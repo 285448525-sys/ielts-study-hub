@@ -99,7 +99,10 @@ let DATA = {
   ]
 };
 
+let _hubLoaded = false;
 function hubLoad(){
+  if(_hubLoaded) return;   // 幂等：每次真实页面加载只解析一次 localStorage（data.js 求值 + common.js ready 两处调用只生效一次）
+  _hubLoaded = true;
   try{
     const raw = localStorage.getItem(HUB_KEY);
     if(raw){

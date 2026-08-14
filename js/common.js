@@ -388,4 +388,123 @@ function notify(title, body){
 window.$ = s => document.querySelector(s);
 function ready(fn){ if(document.readyState !== 'loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
 
-ready(() => { hubLoad(); injectNav(); applyTheme(); restoreSideScroll(); });
+/* =========================================================================
+   软导航（SPA-lite）：点击站内链接只替换 <main>，不整页刷新 → 消除换页卡顿
+   设计红线（保证导航永远不被改坏）：
+   - 在 document 上拦截 a[href] 点击；外部链接 / 新标签 / 下载 / 锚点 / 非 .html
+     一律放行，走浏览器原生跳转。
+   - 仅当目标是已知站内页面才软切换；其余（如导出 blob、mailto）放行。
+   - 软切换任何一步失败（fetch 404/解析失败/异常）→ 立即 location.href 原生
+     兜底跳转，用户永远不会“点不动”。
+   - 每个页面脚本在切换后“重新执行一次”，天然复用其既有的 ready() 与事件绑定，
+     不需要改 17 个页面 JS；DATA 与全部全局函数始终保留在内存里。
+   ========================================================================= */
+let _softNavReady = false;
+let _softNavBusy = false;
+
+function initSoftNav(){
+  if(_softNavReady) return;
+  _softNavReady = true;
+  document.addEventListener('click', onHubLinkClick);
+  window.addEventListener('popstate', onHubPopState);
+}
+
+/* 判断一个 <a> 是否指向已知站内页面；不是则返回 null（交回原生处理） */
+function hubLinkTarget(a){
+  if(!a || a.tagName !== 'A') return null;
+  if(a.hasAttribute('download')) return null;
+  const tgt = a.getAttribute('target');
+  if(tgt && tgt !== '_self' && tgt !== '') return null;            // 新标签/指定窗口
+  const href = (a.getAttribute('href') || '').trim();
+  if(!href) return null;
+  if(href.startsWith('#') || href.startsWith('?')) return null;    // 锚点 / 纯查询
+  if(/^(https?:)?\/\//i.test(href)) return null;                   // 绝对/协议相对
+  if(/^(mailto:|tel:|blob:|data:)/i.test(href)) return null;       // 非站内资源
+  const file = href.split('#')[0].split('?')[0].split('/').pop();
+  if(!file || !/\.html$/i.test(file)) return null;
+  const page = PAGES.find(p => p.file === file);
+  if(!page) return null;
+  return { id: page.id, file: page.file, href };
+}
+
+function onHubLinkClick(e){
+  if(e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  const a = e.target.closest('a[href]');
+  const t = hubLinkTarget(a);
+  if(!t) return;                 // 放行：由浏览器原生处理
+  e.preventDefault();            // 拦下，走软切换
+  softNavigate(t, false);
+}
+
+function onHubPopState(){
+  const file = location.pathname.split('/').pop() || 'index.html';
+  const page = PAGES.find(p => p.file === file);
+  if(page) softNavigate({ id: page.id, file: page.file, href: file }, true);
+  else location.reload();
+}
+
+async function softNavigate(t, isPop){
+  if(_softNavBusy) return;
+  _softNavBusy = true;
+  try{
+    if(window.matchMedia && window.matchMedia('(max-width:860px)').matches) document.body.classList.remove('nav-open');
+    const res = await fetch(t.href, { cache: 'force-cache' });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const html = await res.text();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const newMain = doc.querySelector('main');
+    const main = document.querySelector('main');
+    if(!newMain || !main) throw new Error('目标页缺少 <main>');
+    main.innerHTML = newMain.innerHTML;                 // 只换内容区，侧边栏/全局状态保留
+    if(doc.title) document.title = doc.title;
+    updateActiveNav(t.file);
+    await runPageScript(t.id);                          // 重新执行目标页脚本（复用 ready + 事件绑定）
+    if(!isPop) history.pushState({ hub: t.id }, '', t.href);
+    prefetchNeighbors(t.id);
+  }catch(err){
+    console.warn('[soft-nav] 软切换失败，回退整页跳转：', err);
+    location.href = t.href;                            // 兜底：绝不让导航“卡死”
+  }finally{
+    _softNavBusy = false;
+  }
+}
+
+/* 更新侧边栏高亮（不重建侧边栏，避免丢失滚动位置/搜索态） */
+function updateActiveNav(file){
+  const nav = document.getElementById('mainNav');
+  if(!nav) return;
+  nav.querySelectorAll('.side-item').forEach(a => {
+    a.classList.toggle('active', a.getAttribute('href') === file);
+  });
+}
+
+/* 重新执行目标页脚本：
+   用间接 eval（window.eval）在全局作用域执行脚本源码。
+   - function 声明挂到全局 → 跨页调用（如 restoreDefaultLinks 调 renderFavLinks/renderLinks）仍然可用；
+   - let/const 只存在于本次 eval 的词法作用域 → 多次访问不会“标识符重复声明”报错，且状态随每次访问重置。
+   脚本里的 ready(fn) 在已加载完成的文档上会立即同步运行 → 页面初始化自然发生。 */
+async function runPageScript(id){
+  const p = PAGES.find(p => p.id === id);
+  if(!p) return;
+  const res = await fetch('js/' + id + '.js', { cache: 'force-cache' });
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  const src = await res.text();
+  window.eval(src);
+}
+
+/* 空闲时预取同组相邻页面 HTML（走浏览器缓存，下次软切换近乎瞬时） */
+function prefetchNeighbors(id){
+  const grp = NAV_GROUPS.find(g => g.pages.includes(id));
+  const neighbors = (grp && grp.pages) || [];
+  if(!neighbors.length) return;
+  const idle = window.requestIdleCallback || (cb => setTimeout(cb, 800));
+  idle(() => {
+    neighbors.forEach(nid => {
+      if(nid === id) return;
+      const p = PAGES.find(p => p.id === nid);
+      if(p) fetch(p.file, { cache: 'force-cache', method: 'GET' }).catch(() => {});
+    });
+  });
+}
+
+ready(() => { hubLoad(); injectNav(); applyTheme(); restoreSideScroll(); initSoftNav(); });
