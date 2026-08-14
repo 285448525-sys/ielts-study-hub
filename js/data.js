@@ -109,7 +109,6 @@ function hubLoad(){
       const parsed = JSON.parse(raw);
       DATA = Object.assign({}, DATA, parsed);
       DATA.settings = Object.assign({}, DATA.settings, (parsed && parsed.settings) || {});
-      DATA.targets = Object.assign({}, DATA.settings.targets, (parsed && parsed.settings && parsed.settings.targets) || {});
     }
     // 兼容旧备份：确保数组字段存在，避免 addMock / render 报错
     DATA.mockRecords = DATA.mockRecords || [];

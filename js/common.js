@@ -15,6 +15,7 @@ const PAGES = [
   { id:'speaking',  file:'speaking.html',  icon:'🗨', name:'口语素材库' },
   { id:'writing',   file:'writing.html',  icon:'✍', name:'写作模板库' },
   { id:'history',   file:'history.html',   icon:'🗄', name:'历史统计' },
+  { id:'mock',      file:'mock.html',      icon:'🧪', name:'模考' },
     { id:'settings',  file:'settings.html',  icon:'⚙️', name:'设置' },
 ];
 
@@ -22,7 +23,7 @@ const PAGES = [
 const NAV_GROUPS = [
   { name:'学习', icon:'🎯', pages:['index','timer','plans','weekly'] },
   { name:'积累', icon:'📝', pages:['notes','meds','words','practice','corpus','longsent'] },
-  { name:'实战', icon:'💻', pages:['scores','errorbook','speaking','writing'] },
+  { name:'实战', icon:'💻', pages:['scores','errorbook','speaking','writing','mock'] },
   { name:'数据', icon:'📊', pages:['history','settings'] },
 ];
 

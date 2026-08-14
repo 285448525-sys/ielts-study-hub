@@ -54,6 +54,60 @@ ready(() => {
   $('#delCloudBtn').addEventListener('click', () => cloudDelete());
 
   renderLinks();
+
+  // —— 以下事件绑定原写在页脚本顶层；移入 ready() 以保证 DOM 已就位、符合"页脚本只动 <main> + ready() 初始化"规范 ——
+  const relaySuggests = {
+    ds:  { url:'https://api.deepseek.com/v1', hint:'注册：platform.deepseek.com → API Keys，送免费额度' },
+    groq:{ url:'https://api.groq.com/openai/v1', hint:'console.groq.com/keys，免费 30 RPM' },
+    silicon:{ url:'https://api.siliconflow.cn/v1', hint:'siliconflow.cn，中文模型强，送额度' },
+    aigcbar:{ url:'https://api.aigc.bar/v1', hint:'api.aigc.bar，国内低延迟' },
+    openrouter:{ url:'https://openrouter.ai/api/v1', hint:'openrouter.ai，聚合 20+ 免费模型' }
+  };
+  document.querySelectorAll('[data-relay-suggest]').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const key = a.dataset.relaySuggest;
+      const s = relaySuggests[key]; if(!s) return;
+      $('#sRelayUrl').value = s.url;
+      toast('已填入 ' + s.hint);
+    });
+  });
+  $('#sRelayMode').addEventListener('change', () => {
+    const hint = $('#relayHint');
+    if($('#sRelayMode').value === 'relay'){
+      hint.textContent = '💡 中转模式：运行 relay/relay-server.js，API Key 存在服务器 config 里';
+    } else {
+      hint.innerHTML = '💡 常用地址：<a href="#" data-relay-suggest="ds">DeepSeek</a> · <a href="#" data-relay-suggest="groq">Groq</a> · <a href="#" data-relay-suggest="silicon">硅基流动</a> · <a href="#" data-relay-suggest="aigcbar">AIGC BAR</a> · <a href="#" data-relay-suggest="openrouter">OpenRouter</a>';
+      document.querySelectorAll('[data-relay-suggest]').forEach(a2 => {
+        a2.addEventListener('click', e => {
+          e.preventDefault();
+          const key2 = a2.dataset.relaySuggest;
+          const s2 = relaySuggests[key2]; if(!s2) return;
+          $('#sRelayUrl').value = s2.url;
+          toast('已填入 ' + s2.hint);
+        });
+      });
+    }
+  });
+  $('#addLinkBtn').addEventListener('click', () => {
+    const name = $('#lkName').value.trim();
+    const url = $('#lkUrl').value.trim();
+    const note = $('#lkNote').value.trim();
+    const badge = $('#lkBadge').value;
+    if(!name){ toast('请填名称'); return; }
+    DATA.settings.links = DATA.settings.links || [];
+    DATA.settings.links.push({
+      id: uid(),
+      name,
+      url: badge === '本地' ? '' : url,
+      note,
+      badge
+    });
+    hubSave();
+    $('#lkName').value = ''; $('#lkUrl').value = ''; $('#lkNote').value = '';
+    renderLinks();
+    toast('已添加常用网址');
+  });
 });
 
 function saveSettings(){
@@ -84,42 +138,6 @@ function saveRelay(){
   const isDirect = DATA.settings.relayMode === 'direct';
   toast(isDirect ? '已保存：直连模式（Key 仅存本地浏览器）' : '已保存：中转模式（Key 存在服务器端）');
 }
-// 快捷地址填充
-const relaySuggests = {
-  ds:  { url:'https://api.deepseek.com/v1', hint:'注册：platform.deepseek.com → API Keys，送免费额度' },
-  groq:{ url:'https://api.groq.com/openai/v1', hint:'console.groq.com/keys，免费 30 RPM' },
-  silicon:{ url:'https://api.siliconflow.cn/v1', hint:'siliconflow.cn，中文模型强，送额度' },
-  aigcbar:{ url:'https://api.aigc.bar/v1', hint:'api.aigc.bar，国内低延迟' },
-  openrouter:{ url:'https://openrouter.ai/api/v1', hint:'openrouter.ai，聚合 20+ 免费模型' }
-};
-document.querySelectorAll('[data-relay-suggest]').forEach(a => {
-  a.addEventListener('click', e => {
-    e.preventDefault();
-    const key = a.dataset.relaySuggest;
-    const s = relaySuggests[key]; if(!s) return;
-    $('#sRelayUrl').value = s.url;
-    toast('已填入 ' + s.hint);
-  });
-});
-// 模式切换时更新提示文字
-$('#sRelayMode').addEventListener('change', () => {
-  const hint = $('#relayHint');
-  if($('#sRelayMode').value === 'relay'){
-    hint.textContent = '💡 中转模式：运行 relay/relay-server.js，API Key 存在服务器 config 里';
-  } else {
-    hint.innerHTML = '💡 常用地址：<a href="#" data-relay-suggest="ds">DeepSeek</a> · <a href="#" data-relay-suggest="groq">Groq</a> · <a href="#" data-relay-suggest="silicon">硅基流动</a> · <a href="#" data-relay-suggest="aigcbar">AIGC BAR</a> · <a href="#" data-relay-suggest="openrouter">OpenRouter</a>';
-    document.querySelectorAll('[data-relay-suggest]').forEach(a2 => {
-      a2.addEventListener('click', e => {
-        e.preventDefault();
-        const key2 = a2.dataset.relaySuggest;
-        const s2 = relaySuggests[key2]; if(!s2) return;
-        $('#sRelayUrl').value = s2.url;
-        toast('已填入 ' + s2.hint);
-      });
-    });
-  }
-});
-
 function exportData(){
   const blob = new Blob([JSON.stringify(DATA, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
@@ -185,26 +203,6 @@ function renderLinks(){
     });
   });
 }
-
-$('#addLinkBtn').addEventListener('click', () => {
-  const name = $('#lkName').value.trim();
-  const url = $('#lkUrl').value.trim();
-  const note = $('#lkNote').value.trim();
-  const badge = $('#lkBadge').value;
-  if(!name){ toast('请填名称'); return; }
-  DATA.settings.links = DATA.settings.links || [];
-  DATA.settings.links.push({
-    id: uid(),
-    name,
-    url: badge === '本地' ? '' : url,
-    note,
-    badge
-  });
-  hubSave();
-  $('#lkName').value = ''; $('#lkUrl').value = ''; $('#lkNote').value = '';
-  renderLinks();
-  toast('已添加常用网址');
-});
 
 function resetData(){
   if(confirm('⚠️ 确定清空所有数据？此操作不可恢复，请先导出备份。')){
