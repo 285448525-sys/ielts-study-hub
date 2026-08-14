@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>学习心得 · 雅思备考 Hub</title>
+<link rel="stylesheet" href="css/common.css" />
+<script src="js/data.js"></script>
+<script src="js/common.js"></script>
+<script src="js/notes.js" defer></script>
+</head>
+<body>
+<nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
+
+<main class="container">
+  <h1 class="page-title">学习心得</h1>
+  <p class="page-sub">记录每日感受、刷题注意事项和易错点。支持搜索。</p>
+
+  <section class="card">
+    <h2>新增心得</h2>
+    <div class="form-row">
+      <input id="noteTags" placeholder="标签，如 阅读判断题（可选）" />
+    </div>
+    <textarea id="noteContent" placeholder="今天学到了什么？哪里容易错？下次注意什么？"></textarea>
+    <button class="btn btn-primary" id="saveNote">保存心得</button>
+  </section>
+
+  <section class="card">
+    <h2>已记录</h2>
+    <div class="form-row">
+      <input id="searchNote" placeholder="搜索内容或标签…" />
+    </div>
+    <div id="noteList"></div>
+  </section>
+</main>
+
+</body>
+</html>

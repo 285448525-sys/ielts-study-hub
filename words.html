@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>我的词库 · 雅思备考 Hub</title>
+<link rel="stylesheet" href="css/common.css" />
+<script src="js/data.js"></script>
+<script src="js/common.js"></script>
+<script src="js/words.js" defer></script>
+</head>
+<body>
+<nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
+
+<main class="container">
+  <h1 class="page-title">我的词库</h1>
+  <p class="page-sub">录入自己的单词，「单词练习」会从这里出题。支持批量导入。</p>
+
+  <section class="card">
+    <h2>添加单词</h2>
+    <p class="muted">输入英文后<strong>按回车或点空白处</strong>即可：自动存进词库 + 自动查中文释义（已在「设置 / 中转服务」填地址时生效）。中文框可手写覆盖。</p>
+    <div class="form-row">
+      <input id="wordEn" placeholder="英文单词（输完自动查中文）" autocomplete="off" />
+      <input id="wordCn" placeholder="中文释义（自动填充，可改）" />
+      <select id="wordTag">
+        <option value="">分类（可选）</option>
+        <option value="阅读">阅读</option>
+        <option value="听力">听力</option>
+        <option value="写作">写作</option>
+        <option value="口语">口语</option>
+        <option value="核心">核心</option>
+      </select>
+      <button class="btn btn-primary" id="addWord">保存</button>
+    </div>
+    <div id="wordStatus" class="word-status" aria-live="polite"></div>
+  </section>
+
+  <section class="card">
+    <h2>批量导入</h2>
+    <p class="muted">格式超灵活：每行一个，英文和中文之间用<strong>空格 / 逗号 / 冒号 / 括号</strong>都行；只写英文也行（中文留空）。例：<br>
+      algorithm 算法<br>ambiguous，模棱两可<br>vague：模糊的<br>nuance (细微差别)<br>obscure</p>
+    <textarea id="bulkWords" placeholder="每行一个单词，中英文之间可用空格/逗号/冒号/括号分隔，也可以只写英文"></textarea>
+    <div class="form-row" style="align-items:flex-end">
+      <div><label>导入后统一分类（可选）</label>
+        <select id="importTag">
+          <option value="">不分类</option>
+          <option value="阅读">阅读</option>
+          <option value="听力">听力</option>
+          <option value="写作">写作</option>
+          <option value="口语">口语</option>
+          <option value="核心">核心</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" id="importWords" style="flex:none;min-width:120px">批量导入</button>
+    </div>
+    <p class="muted" id="importHint"></p>
+  </section>
+
+  <section class="card">
+    <h2>词库列表 · 共 <span id="wordCount">0</span> 个</h2>
+    <div class="form-row">
+      <input id="searchWord" placeholder="搜索单词或释义…" />
+      <select id="filterTag"><option value="">全部分类</option><option value="阅读">阅读</option><option value="听力">听力</option><option value="写作">写作</option><option value="口语">口语</option><option value="核心">核心</option></select>
+    </div>
+    <div id="wordList" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));margin-top:10px"></div>
+  </section>
+</main>
+
+</body>
+</html>

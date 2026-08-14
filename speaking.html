@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>口语素材库 · 雅思备考 Hub</title>
+<link rel="stylesheet" href="css/common.css" />
+<script src="js/data.js"></script>
+<script src="js/common.js"></script>
+<script src="js/speaking.js" defer></script>
+<style>
+  .sp-tabs{display:flex;gap:8px;margin-bottom:12px}
+  .sp-tabs button.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .sp-group{margin-bottom:16px}
+  .sp-group h3{font-size:15px;color:var(--muted);border-left:3px solid var(--primary);padding-left:8px;margin:10px 0}
+  .sp-card{border:1px solid var(--line);border-radius:var(--radius);padding:12px;margin-bottom:8px;cursor:pointer;background:var(--surface)}
+  .sp-card:hover{border-color:var(--primary)}
+  .sp-title{font-weight:600;font-size:15px}
+  .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;background:var(--bg);color:var(--ink);border:1px solid var(--line);margin-left:6px}
+  .pf-0{background:var(--muted);color:#fff;border-color:var(--muted)}
+  .pf-1{background:var(--warn);color:#fff;border-color:var(--warn)}
+  .pf-2{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .sp-field{margin-top:8px}
+  .sp-field label{display:block;font-size:12px;color:var(--muted);margin-bottom:2px}
+  .sp-field textarea,.sp-field input{width:100%;padding:6px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);resize:vertical}
+  .sp-field textarea{min-height:54px}
+  .pf-btns{display:flex;gap:6px;margin-top:10px}
+  .pf-btns button{flex:1}
+  .sp-actions{display:flex;gap:8px;margin-top:10px}
+  .empty-state{padding:22px;text-align:center;color:var(--muted)}
+</style>
+</head>
+<body>
+<nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
+
+<main class="container">
+  <h1 class="page-title">口语素材库</h1>
+  <p class="page-sub">集中管理 P1 框架 / P2 母本 / 串题关系，标记熟练度。P1 六框架、P2 三人物母本已按你的真实结构预建，内容待你填。</p>
+
+  <div class="sp-tabs" id="tabs">
+    <button data-type="P1" class="btn">P1</button>
+    <button data-type="P2" class="btn">P2</button>
+    <button data-type="P3" class="btn">P3</button>
+  </div>
+
+  <section class="card">
+    <div id="groups"></div>
+    <div id="empty" class="empty-state" hidden>该类型还没有素材。点「+ 新增素材」添加，或从 P1 框架 / P2 母本开始录入。</div>
+  </section>
+
+  <section class="card" id="addArea" hidden>
+    <h2>新增素材</h2>
+    <div class="sp-field"><label>标题（话题名，如 Describe a friend）</label><input id="a_title" /></div>
+    <div class="sp-field"><label>所属框架（如 P1框架 / P2人物母本）</label><input id="a_framework" placeholder="P1框架" /></div>
+    <div class="sp-field"><label>完整版素材（可多段）</label><textarea id="a_content"></textarea></div>
+    <div class="sp-field"><label>关键词（逗号分隔）</label><input id="a_keywords" /></div>
+    <div class="sp-field"><label>复述线 / 提纲</label><textarea id="a_cue"></textarea></div>
+    <div class="sp-field"><label>串题关系（如 可串:朋友聚会/学习伙伴）</label><input id="a_linked" /></div>
+    <div class="form-row" style="align-items:flex-end;margin-top:10px">
+      <button class="btn btn-primary" id="a_save">保存素材</button>
+      <button class="btn" id="a_cancel">取消</button>
+    </div>
+  </section>
+
+  <div class="form-row" style="margin-top:14px">
+    <button class="btn btn-primary" id="addBtn">+ 新增素材</button>
+  </div>
+</main>
+
+</body>
+</html>

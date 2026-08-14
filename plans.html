@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>学习计划 · 雅思备考 Hub</title>
+<link rel="stylesheet" href="css/common.css" />
+<script src="js/data.js"></script>
+<script src="js/common.js"></script>
+<script src="js/plans.js" defer></script>
+</head>
+<body>
+<nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
+
+<main class="container">
+  <h1 class="page-title">学习计划</h1>
+  <p class="page-sub">每天按自己的状态临时制定计划，完成一项打一个勾。不同日期可分别记录。</p>
+
+  <section class="card">
+    <div class="form-row" style="align-items:center">
+      <div style="flex:2;min-width:200px">
+        <label>选择日期</label>
+        <input type="date" id="planDate" />
+      </div>
+      <button class="btn" id="todayBtn" style="flex:none">回到今天</button>
+    </div>
+    <p class="muted" id="dateLabel"></p>
+  </section>
+
+  <section class="card">
+    <h2>添加任务</h2>
+    <div class="form-row">
+      <input id="planText" placeholder="例如：精听 S1 填空 30 分钟 / 背 20 个阅读生词 / 用 GPT 练 1 个 P2" />
+      <button class="btn btn-primary" id="addPlan" style="flex:none;min-width:120px">添加任务</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="plan-meta">
+      <h2 style="margin:0">当日计划</h2>
+      <span class="badge" id="planCount">0 / 0</span>
+    </div>
+    <div id="planProgress"></div>
+    <div id="planList" style="margin-top:10px"></div>
+  </section>
+
+  <section class="card">
+    <h2>历史计划</h2>
+    <p class="muted">点击任意日期可查看 / 编辑那天的计划。</p>
+    <div id="histPlans"></div>
+  </section>
+</main>
+
+</body>
+</html>

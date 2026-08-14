@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>仪表盘 · 雅思备考 Hub</title>
+<link rel="stylesheet" href="css/common.css" />
+<script src="js/data.js"></script>
+<script src="js/common.js"></script>
+<script src="js/index.js" defer></script>
+</head>
+<body>
+<nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
+
+<main class="container">
+  <h1 class="page-title">你好，<span id="userName">Camille</span> 👋</h1>
+  <p class="page-sub">首考 <span id="examDate">2026-08-02</span>，还剩 <strong id="daysLeft">--</strong> 天 · 目标总分 <strong id="targetOverall">6.0</strong></p>
+
+  <section class="hero">
+    <div class="card hero-card">
+      <div class="hero-count" id="todayTime">0h0m</div>
+      <div class="hero-label">今日学习时长 / 目标 <span id="goalHours">8</span>h</div>
+      <div id="todayProgress"></div>
+    </div>
+    <div class="card hero-card">
+      <div class="hero-count" id="medStatus">未服药</div>
+      <div class="hero-label" id="medSub">今天还没记录专注达</div>
+      <div id="medBar"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>⚡ 快捷入口</h2>
+    <div class="quick-links">
+      <a class="quick-link" href="timer.html">
+        <span class="ql-icon" style="background:var(--primary-soft);color:var(--primary)">⏱</span>
+        <div><b>计时学习</b><span class="muted">选模块开计时器</span></div>
+      </a>
+      <a class="quick-link" href="errorbook.html">
+        <span class="ql-icon" style="background:rgba(239,68,68,0.08);color:var(--danger)">❌</span>
+        <div><b>错题本</b><span class="muted">复习不会的题目</span></div>
+      </a>
+      <a class="quick-link" href="writing.html">
+        <span class="ql-icon" style="background:rgba(245,158,11,0.08);color:var(--warn)">✍️</span>
+        <div><b>写作模板</b><span class="muted">套句/万能句式</span></div>
+      </a>
+      <a class="quick-link" href="speaking.html">
+        <span class="ql-icon" style="background:rgba(16,185,129,0.08);color:#10b981">🗣️</span>
+        <div><b>口语素材库</b><span class="muted">Part 1/2/3 题卡</span></div>
+      </a>
+      <a class="quick-link" href="scores.html">
+        <span class="ql-icon" style="background:rgba(99,102,241,0.08);color:#6366f1">📈</span>
+        <div><b>模考记录</b><span class="muted">历次成绩追踪</span></div>
+      </a>
+      <a class="quick-link" href="practice.html">
+        <span class="ql-icon" style="background:rgba(139,92,246,0.08);color:#8b5cf6">🎯</span>
+        <div><b>单词练习</b><span class="muted">看词选义/听义选义/默写</span></div>
+      </a>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>🔥 连续打卡</h2>
+    <div id="streakBox"></div>
+  </section>
+
+  <section class="card">
+    <h2>🔔 智能提醒</h2>
+    <div id="reminderBox"></div>
+  </section>
+
+  <section class="grid">
+    <div class="card">
+      <h2>今日模块分布</h2>
+      <div id="todayBars"></div>
+    </div>
+    <div class="card">
+      <h2>🌐 常用网址</h2>
+      <div id="favLinks"></div>
+    </div>
+  </section>
+
+
+</main>
+
+</body>
+</html>

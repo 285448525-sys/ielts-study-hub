@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>听力语料库 · 雅思备考 Hub</title>
+<link rel="stylesheet" href="css/common.css" />
+<script src="js/data.js"></script>
+<script src="js/common.js"></script>
+<script src="js/corpus.js" defer></script>
+</head>
+<body>
+<nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
+
+<main class="container">
+  <h1 class="page-title">听力语料库</h1>
+  <p class="page-sub">收集听力里听到的句子/短语，批量导入后做句子听写。格式和词库一样宽松。</p>
+
+  <section class="card">
+    <h2>批量导入句子</h2>
+    <p class="muted">每行一句英文；想带中文翻译，用 <strong>空格 / 竖线 / 冒号</strong> 隔开都行。例：<br>
+      The government should invest more in public transport<br>
+      She was absent because she felt under the weather | 她没来因为身体不适<br>
+      It is vital to preserve the local culture：保护当地文化很重要</p>
+    <textarea id="bulkCorpus" placeholder="每行一个英文句子，可选跟中文翻译"></textarea>
+    <button class="btn btn-primary" id="importCorpus">批量导入</button>
+    <p class="muted" id="importHint"></p>
+  </section>
+
+  <section class="card">
+    <h2>添加单句</h2>
+    <div class="form-row">
+      <input id="corEn" placeholder="英文句子" />
+      <input id="corCn" placeholder="中文翻译（可选）" />
+      <button class="btn btn-primary" id="addCorpus" style="flex:none;min-width:120px">添加</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>句子听写（爱听写风格）</h2>
+    <p class="muted">可调语速、重复次数、播放间隔；逐句逐词批改、错句自动归集、结束可重练错句。</p>
+    <div id="dictSetup" style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;background:rgba(100,116,139,.06);padding:12px 14px;border-radius:12px;margin:10px 0 14px">
+      <div class="s-dict-voice">
+        <label>语速</label>
+        <input type="range" id="sRate" min="0.5" max="1.2" step="0.05" value="0.9" />
+        <span id="sRateTxt">0.90x</span>
+      </div>
+      <div class="s-dict-voice">
+        <label>每句读</label>
+        <input type="range" id="sRepeat" min="1" max="5" step="1" value="3" />
+        <span id="sRepeatTxt">3 次</span>
+      </div>
+      <div class="s-dict-voice">
+        <label>间隔</label>
+        <select id="sInterval">
+          <option value="1600">1.6s</option>
+          <option value="2200" selected>2.2s</option>
+          <option value="3000">3.0s</option>
+          <option value="4200">4.2s</option>
+        </select>
+      </div>
+      <div class="s-dict-voice">
+        <label><input type="checkbox" id="sShowCn"/> 显示中文释义提示</label>
+      </div>
+      <div class="s-dict-voice">
+        <label>题量</label>
+        <select id="sBatch">
+          <option value="5">5 句</option>
+          <option value="10" selected>10 句</option>
+          <option value="20">20 句</option>
+          <option value="-1">全部</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" id="startDict" style="flex:none;margin-left:auto">▶ 开始听写</button>
+    </div>
+    <div id="dictArea" style="margin-top:6px"></div>
+  </section>
+
+  <section class="card">
+    <h2>语料库列表 · 共 <span id="corpusCount">0</span> 句</h2>
+    <div id="corpusList" style="margin-top:10px"></div>
+  </section>
+</main>
+
+</body>
+</html>

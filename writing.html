@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>写作模板库 · 雅思备考 Hub</title>
+<link rel="stylesheet" href="css/common.css" />
+<script src="js/data.js"></script>
+<script src="js/common.js"></script>
+<script src="js/writing.js" defer></script>
+<style>
+  .write-layout{display:flex;gap:16px;align-items:flex-start}
+  .cat-nav{width:160px;flex:none;display:flex;flex-direction:column;gap:6px}
+  .cat-nav button{text-align:left}
+  .cat-nav button.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .write-main{flex:1;min-width:0}
+  .tpl-card{cursor:pointer}
+  .ph{background:var(--warn);color:#fff;padding:0 4px;border-radius:4px;font-weight:600}
+  .ph-input{border:1px solid var(--line);border-bottom:2px solid var(--primary);border-radius:6px;padding:2px 6px;font:inherit;background:var(--bg);color:var(--ink);margin:0 2px}
+  .skeleton-box{white-space:pre-wrap;line-height:1.9;font-size:15px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px}
+  .preview-box{white-space:pre-wrap;line-height:1.9;font-size:15px;border:1px dashed var(--primary);border-radius:var(--radius);padding:14px;margin-top:8px}
+  .preview-box u{text-decoration:underline;color:var(--primary-d);font-weight:600}
+  .tips-box{margin-top:10px;font-size:13px;color:var(--muted);line-height:1.7}
+  @media(max-width:860px){ .write-layout{flex-direction:column} .cat-nav{width:100%;flex-direction:row;flex-wrap:wrap} }
+</style>
+</head>
+<body>
+<nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
+
+<main class="container">
+  <h1 class="page-title">写作模板库</h1>
+  <p class="page-sub">大/小作文模板骨架（填空位用 【】）。左侧选分类，点模板看骨架 + 填空自测。模板已按你原有结构预填。</p>
+
+  <div class="write-layout">
+    <div class="cat-nav card" id="catNav" style="padding:10px"></div>
+    <div class="write-main">
+      <section class="card" id="listCard">
+        <h2>模板列表</h2>
+        <div id="tplList" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr));margin-top:10px"></div>
+        <div id="empty" class="empty-state" hidden>还没有模板。点「+ 新增模板」添加。</div>
+      </section>
+
+      <section class="card" id="detailCard" hidden>
+        <div class="form-row" style="align-items:center">
+          <h2 id="dTitle" style="margin:0"></h2>
+          <button class="btn" id="backBtn" style="margin-left:auto">← 返回</button>
+        </div>
+        <h3>骨架（【】为填空位）</h3>
+        <div id="skeleton" class="skeleton-box"></div>
+        <details style="margin-top:10px">
+          <summary style="cursor:pointer;color:var(--primary)">填空练习（实时生成完整句）</summary>
+          <div id="practice" style="margin-top:8px"></div>
+          <div id="preview" class="preview-box"></div>
+        </details>
+        <div id="tips" class="tips-box"></div>
+        <div class="form-row" style="margin-top:12px">
+          <button class="btn btn-danger" id="delBtn">删除模板</button>
+        </div>
+      </section>
+
+      <section class="card" id="addCard" hidden>
+        <h2>新增模板</h2>
+        <div class="form-row">
+          <select id="a_cat">
+            <option value="小作文A">小作文A</option><option value="小作文B">小作文B</option>
+            <option value="小作文C">小作文C</option><option value="小作文D">小作文D</option>
+            <option value="大作文A">大作文A</option><option value="大作文B">大作文B</option>
+            <option value="万能词组">万能词组</option>
+            <option value="万能句式">万能句式</option>
+          </select>
+          <input id="a_title" placeholder="模板标题" />
+        </div>
+        <textarea id="a_skeleton" placeholder="骨架原句，填空位用【】包裹，如 The figure for【A】was higher than【B】"></textarea>
+        <textarea id="a_tips" placeholder="使用提示（可选）"></textarea>
+        <div class="form-row" style="align-items:flex-end">
+          <button class="btn btn-primary" id="a_save">保存模板</button>
+          <button class="btn" id="a_cancel">取消</button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="form-row" style="margin-top:14px">
+    <button class="btn btn-primary" id="addBtn">+ 新增模板</button>
+  </div>
+</main>
+
+</body>
+</html>

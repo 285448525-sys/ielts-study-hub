@@ -1,0 +1,16 @@
+name = "ielts-study-hub"
+compatibility_date = "2024-09-23"
+
+# ===== 云端同步 KV 绑定 =====
+# 1) 创建命名空间：wrangler kv namespace create SYNC_KV --pages
+# 2) 把命令返回的 namespace id 填到下面 id 处
+# 3) 部署：wrangler pages deploy .  （在本项目根目录执行）
+[[kv_namespaces]]
+binding = "SYNC_KV"
+id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+
+# ===== 可选全局令牌（防陌生人乱写）=====
+# 不填则任何人拿登录码都能读写；填了之后前端「设置」里的 SYNC_TOKEN 必须与之匹配。
+# 也可在 Cloudflare 控制台 Pages 项目 > Settings > Functions > Variables 里设置 SYNC_TOKEN（更安全，不进仓库）。
+# [vars]
+# SYNC_TOKEN = "你自己定的一串字符"

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>学习记录本 · 雅思备考 Hub</title>
+<link rel="stylesheet" href="css/common.css" />
+<script src="js/data.js"></script>
+<script src="js/common.js"></script>
+<script src="js/errorbook.js" defer></script>
+<style>
+  .eb-toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+  .stat-row{display:flex;align-items:center;gap:8px;margin:7px 0}
+  .stat-label{width:150px;font-size:13px;flex:none}
+  .stat-bar{flex:1;height:14px;background:var(--line);border-radius:7px;overflow:hidden}
+  .stat-fill{height:100%;background:var(--warn);border-radius:7px}
+  .stat-num{width:28px;text-align:right;font-size:13px;flex:none;color:var(--muted)}
+  .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+  .badge-trap{background:var(--warn);color:#fff;border-color:var(--warn)}
+  .badge-ok{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .eb-card .eb-head{display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+  .eb-main{font-size:15px;margin-bottom:4px}
+  .eb-sub{font-size:13px;color:var(--muted);margin:2px 0}
+  .eb-note{font-size:13px;margin-top:6px;color:var(--primary-d)}
+  .eb-actions{margin-top:10px;display:flex;gap:8px}
+  .empty-state{padding:22px;text-align:center;color:var(--muted)}
+  textarea{width:100%;min-height:60px;margin-top:8px;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);resize:vertical}
+  .q-word{font-size:22px;font-weight:600}
+  .q-cn{margin-top:8px;color:var(--muted);font-size:15px;line-height:1.6}
+</style>
+</head>
+<body>
+<nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
+
+<main class="container">
+  <h1 class="page-title">学习记录本</h1>
+  <p class="page-sub">把每道错题、每个记不住的生词都收进来，按 题型 + 陷阱 归类复盘。逐题手动录入，一题一题过。</p>
+
+  <section class="card">
+    <div class="eb-toolbar">
+      <button class="btn btn-primary" id="addBtn">+ 新增记录</button>
+      <button class="btn" id="reviewBtn">🔁 开始复习</button>
+    </div>
+    <div id="formArea" hidden></div>
+  </section>
+
+  <section class="card" id="statsCard" hidden>
+    <h2>你最常踩的坑（按陷阱类型）</h2>
+    <div id="statsBox"></div>
+  </section>
+
+  <section class="card">
+    <h2>筛选</h2>
+    <div class="form-row">
+      <select id="fKind"><option value="">全部类型</option><option value="word">单词</option><option value="question">题目</option></select>
+      <select id="fSubject"><option value="">全部科目</option><option value="reading">阅读</option><option value="listening">听力</option></select>
+      <select id="fQtype"><option value="">全部题型</option><option value="TFNG">TRUE/FALSE/NOT GIVEN</option><option value="填空">填空</option><option value="匹配">匹配</option><option value="选择">选择</option><option value="简答">简答</option><option value="heading">Heading</option><option value="其他">其他</option></select>
+      <select id="fTrap"><option value="">全部陷阱</option><option value="目的vs手段">目的vs手段</option><option value="原词重现">原词重现</option><option value="比较级NG">比较级NG</option><option value="FALSE_NG混淆">FALSE/NOT GIVEN混淆</option><option value="定位丢失">定位丢失</option><option value="拼写">拼写</option><option value="其他">其他</option></select>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>记录列表 · 共 <span id="count">0</span> 条</h2>
+    <div id="list" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr));margin-top:10px"></div>
+    <div id="empty" class="empty-state" hidden>还没有记录。点「+ 新增记录」，把今天错的题 / 词收进来。</div>
+  </section>
+
+  <section class="card" id="reviewCard" hidden>
+    <h2>复习模式</h2>
+    <div id="reviewBox"></div>
+    <div class="form-row" style="margin-top:10px">
+      <button class="btn" id="revExit">退出复习</button>
+    </div>
+  </section>
+</main>
+
+</body>
+</html>

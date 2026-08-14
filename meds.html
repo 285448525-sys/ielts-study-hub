@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>服药记录 · 雅思备考 Hub</title>
+<link rel="stylesheet" href="css/common.css" />
+<script src="js/data.js"></script>
+<script src="js/common.js"></script>
+<script src="js/meds.js" defer></script>
+</head>
+<body>
+<nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
+
+<main class="container">
+  <h1 class="page-title">服药记录</h1>
+  <p class="page-sub">专注达药效约 12 小时。记录后显示倒计时，方便把学习安排在药效窗口内。</p>
+
+  <section class="card">
+    <h2>今日状态</h2>
+    <div id="todayMedStatus" style="margin-bottom:12px"></div>
+    <div class="form-row" style="margin-bottom:10px">
+      <div><label>服药日期</label><input type="date" id="medDate" /></div>
+      <div><label>服药时间</label><input type="time" id="medTime" /></div>
+      <div style="align-self:flex-end"><button class="btn" id="resetMedTime" title="回到现在">现在</button></div>
+      <div style="align-self:flex-end"><button class="btn btn-med" id="recordMed">💊 记录服药</button></div>
+    </div>
+    <p class="muted" style="font-size:12px;margin:-2px 0 0">默认就是现在。如果吃完忘记点了，可以把时间改成之前的再记录。</p>
+    <div class="meds-bar-wrap" id="medsBarWrap" style="margin-top:16px" hidden>
+      <div class="meds-bar" id="medsBar"></div>
+      <div id="medsBarLabel" style="font-size:13px;color:var(--muted);margin-top:6px"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>服药历史</h2>
+    <p class="muted" style="font-size:12px;margin:0 0 10px">可以编辑或删除历史记录（点错时用）。</p>
+    <div id="medsHistory"></div>
+  </section>
+</main>
+
+</body>
+</html>
