@@ -1,20 +1,25 @@
 let active = null; // {subId, moduleId, moduleName, subName, startTs, tick, paused, pauseStart, pauseAccum}
+let timerMode = 'vocab'; // 'vocab' | 'subject'
+
+function renderModeTabs(){
+  $('#modeTabs').querySelectorAll('[data-mode]').forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === timerMode);
+  });
+}
 
 function renderGrid(){
   const grid = $('#moduleGrid'); grid.innerHTML = '';
-  for(const m of MODULES){
+  const modules = MODULES.filter(m => timerMode === 'vocab' ? m.id === 'vocab' : m.id !== 'vocab');
+  for(const m of modules){
     const card = document.createElement('div');
     card.className = 'mod-card';
-    let html = `<div class="mod-title"><span>${m.icon}</span>${m.name}</div>`;
+    let html = '<div class="mod-title"><span>' + m.icon + '</span>' + m.name + '</div>';
     for(const c of m.children){
       const running = active && active.subId === c.id;
       const disabled = active && !running ? 'disabled' : '';
-      const txt = running ? '进行中…' : '开始';
+      const txt = running ? '进行中' : '开始';
       const cls = running ? 'btn-primary' : 'btn';
-      html += `<div class="sub-row">
-        <span class="sub-name">${c.icon ? c.icon+' ' : ''}${c.name}</span>
-        <button class="btn ${cls}" data-sub="${c.id}" ${disabled}>${txt}</button>
-      </div>`;
+      html += '<div class="sub-row"><span class="sub-name">' + (c.icon ? c.icon + ' ' : '') + c.name + '</span><button class="btn ' + cls + '" data-sub="' + c.id + '" ' + disabled + '>' + txt + '</button></div>';
     }
     card.innerHTML = html;
     grid.appendChild(card);
@@ -48,11 +53,11 @@ function startSession(subId){
   active = { subId, moduleId: f.m.id, moduleName: f.m.name, subName: f.c.name,
     startTs: Date.now(), paused: false, pauseStart: null, pauseAccum: 0 };
   saveActive({ subId, startTs: active.startTs, paused: false, pauseStart: null, pauseAccum: 0 });
-  $('#activeInfo').innerHTML = `<strong>${f.m.name} › ${f.c.name}</strong> 进行中`;
+  $('#activeInfo').innerHTML = '<strong>' + f.m.name + ' › ' + f.c.name + '</strong> 进行中';
   $('#focusInfo').textContent = '';
   $('#stopBtn').disabled = false;
   $('#pauseBtn').disabled = false;
-  $('#pauseBtn').textContent = '⏸ 暂停';
+  $('#pauseBtn').textContent = '暂停';
   $('#pauseBtn').className = 'btn';
   toast('已开始：' + f.c.name);
   active.tick = setInterval(updateTimer, 1000);
@@ -64,16 +69,16 @@ function togglePause(){
   if(!active.paused){
     active.paused = true;
     active.pauseStart = Date.now();
-    $('#pauseBtn').textContent = '▶ 继续';
+    $('#pauseBtn').textContent = '继续';
     $('#pauseBtn').className = 'btn btn-primary';
     toast('已暂停，回来点「继续」就好');
   } else {
     active.pauseAccum = (active.pauseAccum || 0) + (Date.now() - active.pauseStart);
     active.paused = false;
     active.pauseStart = null;
-    $('#pauseBtn').textContent = '⏸ 暂停';
+    $('#pauseBtn').textContent = '暂停';
     $('#pauseBtn').className = 'btn';
-    toast('继续学习，加油～');
+    toast('继续学习，加油');
   }
   saveActive({ subId: active.subId, startTs: active.startTs, paused: active.paused,
     pauseStart: active.pauseStart, pauseAccum: active.pauseAccum });
@@ -85,7 +90,6 @@ function stopSession(){
   clearInterval(active.tick);
   let totalPauseMs = active.pauseAccum || 0;
   if(active.paused && active.pauseStart) totalPauseMs += (Date.now() - active.pauseStart);
-  clearActive();
   const endTs = Date.now();
   const totalSec = Math.round((endTs - active.startTs)/1000);
   const pauseSec = Math.round(totalPauseMs/1000);
@@ -101,13 +105,13 @@ function stopSession(){
   $('#focusInfo').textContent = '';
   $('#stopBtn').disabled = true;
   $('#pauseBtn').disabled = true;
-  $('#pauseBtn').textContent = '⏸ 暂停';
+  $('#pauseBtn').textContent = '暂停';
   $('#pauseBtn').className = 'btn';
   $('#liveTimer').textContent = '00:00:00';
   $('#liveTimer').style.color = '';
   renderGrid();
   const focusPct = totalSec > 0 ? Math.round(durationSec/totalSec*100) : 100;
-  toast(`已保存 ${d.subName}：学习 ${fmtHM(durationSec)}` + (pauseSec > 0 ? ` · 暂停 ${fmtHM(pauseSec)} · 专注度 ${focusPct}%` : ''));
+  toast('已保存 ' + d.subName + '：学习 ' + fmtHM(durationSec) + (pauseSec > 0 ? ' · 暂停 ' + fmtHM(pauseSec) + ' · 专注度 ' + focusPct + '%' : ''));
 }
 
 function updateTimer(){
@@ -125,15 +129,24 @@ function updateTimer(){
   }
 }
 
+function switchMode(newMode){
+  if(newMode === timerMode) return;
+  if(active){
+    if(!confirm('切换模式会停止当前计时并保存，是否继续？')) return;
+    stopSession();
+  }
+  timerMode = newMode;
+  renderModeTabs();
+  renderGrid();
+}
+
 ready(() => {
+  $('#modeTabs').querySelectorAll('[data-mode]').forEach(b => {
+    b.addEventListener('click', () => switchMode(b.dataset.mode));
+  });
   $('#stopBtn').addEventListener('click', stopSession);
   $('#pauseBtn').addEventListener('click', togglePause);
-  // 番茄钟
-  $('#pomostartBtn').addEventListener('click', pomoStart);
-  $('#pomoresetBtn').addEventListener('click', pomoReset);
-  $('#pomoStudy').addEventListener('change', pomoReset);
-  $('#pomoBreak').addEventListener('change', pomoReset);
-  pomoReset();
+  renderModeTabs();
   const saved = loadActive();
   if(saved && todayKey(new Date(saved.startTs)) === todayKey()){
     const f = findSub(saved.subId);
@@ -141,10 +154,13 @@ ready(() => {
       active = { subId: saved.subId, moduleId: f.m.id, moduleName: f.m.name, subName: f.c.name,
         startTs: saved.startTs, paused: saved.paused || false, pauseStart: saved.pauseStart || null,
         pauseAccum: saved.pauseAccum || 0 };
-      $('#activeInfo').innerHTML = `<strong>${f.m.name} › ${f.c.name}</strong> 进行中`;
+      // 根据恢复的子项自动切换到对应模式
+      timerMode = (f.m.id === 'vocab') ? 'vocab' : 'subject';
+      renderModeTabs();
+      $('#activeInfo').innerHTML = '<strong>' + f.m.name + ' › ' + f.c.name + '</strong> 进行中';
       $('#stopBtn').disabled = false;
       $('#pauseBtn').disabled = false;
-      $('#pauseBtn').textContent = active.paused ? '▶ 继续' : '⏸ 暂停';
+      $('#pauseBtn').textContent = active.paused ? '继续' : '暂停';
       $('#pauseBtn').className = active.paused ? 'btn btn-primary' : 'btn';
       active.tick = setInterval(updateTimer, 1000);
       updateTimer();
@@ -156,46 +172,3 @@ ready(() => {
   if(saved) clearActive();
   renderGrid();
 });
-
-/* ===== 番茄钟 ===== */
-let pomo = { phase:'idle', remain:0, total:0, tick:null, studyMin:25, breakMin:5 };
-function pomoRender(){
-  const mm = String(Math.floor(pomo.remain/60)).padStart(2,'0');
-  const ss = String(pomo.remain%60).padStart(2,'0');
-  const el = $('#pomoTimer'); if(el) el.textContent = mm + ':' + ss;
-  const st = $('#pomoState'); if(st) st.textContent = pomo.phase === 'study' ? '🍅 学习中' : pomo.phase === 'break' ? '☕ 休息中' : '🍅 待开始';
-}
-function pomoStart(){
-  pomo.studyMin = Math.max(1, parseInt($('#pomoStudy').value) || 25);
-  pomo.breakMin = Math.max(1, parseInt($('#pomoBreak').value) || 5);
-  if(pomo.phase === 'idle' || pomo.phase === 'done'){
-    pomo.phase = 'study';
-    pomo.total = pomo.studyMin * 60;
-    pomo.remain = pomo.total;
-  }
-  if(DATA.settings.notifyEnabled) requestNotify();
-  if(pomo.tick) clearInterval(pomo.tick);
-  pomo.tick = setInterval(pomoTick, 1000);
-  pomoRender();
-  toast(pomo.phase === 'study' ? '🍅 番茄钟开始，专注 ' + pomo.studyMin + ' 分钟' : '☕ 休息 ' + pomo.breakMin + ' 分钟');
-}
-function pomoTick(){
-  if(pomo.remain > 0){ pomo.remain--; pomoRender(); return; }
-  if(pomo.tick){ clearInterval(pomo.tick); pomo.tick = null; }
-  if(pomo.phase === 'study'){
-    notify('🍅 番茄钟', '学习时段结束，起来休息 ' + pomo.breakMin + ' 分钟吧～');
-    pomo.phase = 'break'; pomo.total = pomo.breakMin*60; pomo.remain = pomo.total;
-    pomo.tick = setInterval(pomoTick, 1000); pomoRender();
-  } else if(pomo.phase === 'break'){
-    notify('☕ 休息结束', '该回来继续学习啦，加油！');
-    pomo.phase = 'done'; pomoRender(); toast('✅ 一个番茄钟完成！');
-  }
-}
-function pomoReset(){
-  if(pomo.tick) clearInterval(pomo.tick);
-  pomo.studyMin = Math.max(1, parseInt($('#pomoStudy').value) || 25);
-  pomo.breakMin = Math.max(1, parseInt($('#pomoBreak').value) || 5);
-  pomo.phase = 'idle'; pomo.total = 0; pomo.tick = null;
-  pomo.remain = pomo.studyMin * 60;
-  pomoRender();
-}

@@ -7,14 +7,24 @@
 <link rel="stylesheet" href="css/common.css" />
 <script defer src="js/data.js"></script>
 <script defer src="js/common.js"></script>
-<script src="js/timer.js" defer></script>
+<script defer src="js/timer.js"></script>
+<style>
+  .mode-tabs{display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--line)}
+  .mode-tabs button{flex:1;padding:10px 0;font-size:15px;font-weight:600;border:none;background:none;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s}
+  .mode-tabs button.active{color:var(--primary);border-bottom-color:var(--primary)}
+</style>
 </head>
 <body>
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 
 <main class="container">
   <h1 class="page-title">计时学习</h1>
-  <p class="page-sub">选择模块，点开始。一次只跑一个计时器；要离开就点「暂停」，回来点「继续」，系统自动算出真实专注时间。不锁娱乐，自我管理。</p>
+  <p class="page-sub">选择模块，点开始。一次只跑一个计时器；要离开就点「暂停」，回来点「继续」，系统自动算出真实专注时间。</p>
+
+  <div class="mode-tabs" id="modeTabs">
+    <button data-mode="vocab" class="active">单词</button>
+    <button data-mode="subject">雅思科目</button>
+  </div>
 
   <div class="live-timer" id="liveTimer">00:00:00</div>
   <div class="card" style="text-align:center;margin-top:-10px">
@@ -22,26 +32,11 @@
     <div id="focusInfo" class="muted" style="margin-top:4px;min-height:18px"></div>
     <div style="margin-top:12px">
       <button class="btn btn-danger" id="stopBtn" disabled>结束并保存</button>
-      <button class="btn" id="pauseBtn" disabled style="margin-left:8px">⏸ 暂停</button>
+      <button class="btn" id="pauseBtn" disabled style="margin-left:8px">暂停</button>
     </div>
   </div>
 
   <div id="moduleGrid" class="grid"></div>
-
-  <section class="card" style="text-align:center">
-    <h2>🍅 番茄钟（可自定义时长）</h2>
-    <p class="muted">专注学习后短暂休息，循环往复。开始时会请求桌面通知权限（需在「设置」开启通知）。</p>
-    <div class="form-row" style="justify-content:center;align-items:flex-end">
-      <div style="flex:none"><label>学习（分）</label><input id="pomoStudy" type="number" min="1" max="120" value="25" style="width:90px" /></div>
-      <div style="flex:none"><label>休息（分）</label><input id="pomoBreak" type="number" min="1" max="60" value="5" style="width:90px" /></div>
-    </div>
-    <div class="pomo-state" id="pomoState">🍅 待开始</div>
-    <div class="pomo-timer" id="pomoTimer">25:00</div>
-    <div style="margin-top:12px">
-      <button class="btn btn-primary" id="pomostartBtn">开始</button>
-      <button class="btn" id="pomoresetBtn" style="margin-left:8px">重置</button>
-    </div>
-  </section>
 </main>
 
 </body>

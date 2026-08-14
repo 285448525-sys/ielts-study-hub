@@ -3,67 +3,111 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>口语素材库 · 雅思备考 Hub</title>
+<title>口语题库 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css" />
 <script defer src="js/data.js"></script>
 <script defer src="js/common.js"></script>
-<script src="js/speaking.js" defer></script>
+<script defer src="js/speaking.js"></script>
 <style>
-  .sp-tabs{display:flex;gap:8px;margin-bottom:12px}
-  .sp-tabs button.active{background:var(--primary);color:#fff;border-color:var(--primary)}
-  .sp-group{margin-bottom:16px}
-  .sp-group h3{font-size:15px;color:var(--muted);border-left:3px solid var(--primary);padding-left:8px;margin:10px 0}
-  .sp-card{border:1px solid var(--line);border-radius:var(--radius);padding:12px;margin-bottom:8px;cursor:pointer;background:var(--surface)}
-  .sp-card:hover{border-color:var(--primary)}
-  .sp-title{font-weight:600;font-size:15px}
-  .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;background:var(--bg);color:var(--ink);border:1px solid var(--line);margin-left:6px}
-  .pf-0{background:var(--muted);color:#fff;border-color:var(--muted)}
-  .pf-1{background:var(--warn);color:#fff;border-color:var(--warn)}
-  .pf-2{background:var(--primary);color:#fff;border-color:var(--primary)}
-  .sp-field{margin-top:8px}
-  .sp-field label{display:block;font-size:12px;color:var(--muted);margin-bottom:2px}
-  .sp-field textarea,.sp-field input{width:100%;padding:6px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);resize:vertical}
-  .sp-field textarea{min-height:54px}
-  .pf-btns{display:flex;gap:6px;margin-top:10px}
-  .pf-btns button{flex:1}
-  .sp-actions{display:flex;gap:8px;margin-top:10px}
-  .empty-state{padding:22px;text-align:center;color:var(--muted)}
+  /* === 极简口语模块 === */
+  .sp-tabs{display:flex;gap:0;border-bottom:2px solid var(--line);margin-bottom:4px}
+  .sp-tabs button{flex:1;padding:12px 0;font-size:16px;font-weight:600;border:none;background:none;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s}
+  .sp-tabs button.active{color:var(--primary);border-bottom-color:var(--primary)}
+
+  .sp-banner{padding:10px 14px;background:var(--primary);color:#fff;border-radius:var(--radius);font-size:13px;line-height:1.6;margin:12px 0}
+  .sp-banner b{font-weight:700}
+
+  .chip-row{display:flex;gap:8px;overflow-x:auto;padding:8px 0;scrollbar-width:none}
+  .chip-row::-webkit-scrollbar{display:none}
+  .chip{flex:none;padding:6px 14px;border-radius:20px;font-size:13px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;white-space:nowrap;transition:all .15s}
+  .chip.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .chip-row-label{font-size:12px;color:var(--muted);padding:4px 0 0;margin-right:6px;flex:none;align-self:center}
+
+  .sp-search{width:100%;padding:8px 12px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);margin:8px 0 12px;box-sizing:border-box}
+
+  .sp-list{display:flex;flex-direction:column;gap:0}
+  .sp-card{padding:16px;border-bottom:1px solid var(--line);cursor:pointer;transition:background .15s}
+  .sp-card:hover{background:var(--surface)}
+  .sp-card-title{font-size:16px;font-weight:600;color:var(--ink)}
+  .sp-card-zh{font-size:13px;color:var(--muted);margin-top:2px}
+  .sp-card-tags{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+  .sp-tag{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--bg);color:var(--muted);border:1px solid var(--line)}
+  .sp-tag.freq-ultra{background:#ef4444;color:#fff;border-color:#ef4444}
+  .sp-tag.freq-high{background:#f59e0b;color:#fff;border-color:#f59e0b}
+  .sp-tag.freq-must{background:#6366f1;color:#fff;border-color:#6366f1}
+  .sp-tag.freq-medium{background:#0ea5e9;color:#fff;border-color:#0ea5e9}
+  .sp-tag.new{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+  /* 详情页 */
+  .sp-detail-back{display:inline-flex;align-items:center;gap:4px;cursor:pointer;color:var(--primary);font-size:14px;margin-bottom:12px}
+  .sp-detail-title{font-size:20px;font-weight:700}
+  .sp-detail-zh{font-size:15px;color:var(--muted);margin-top:2px}
+  .sp-detail-tags{margin:10px 0 16px}
+  .sp-questions{margin:0 0 16px;padding-left:20px;line-height:2;font-size:15px}
+  .sp-questions li{color:var(--ink)}
+  .sp-prompt{padding:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:12px;font-size:15px;line-height:1.8}
+  .sp-ysay{margin:0 0 16px;padding-left:20px;line-height:1.8;font-size:14px;color:var(--muted)}
+  .sp-ysay li{margin-bottom:4px}
+  .sp-field{margin-bottom:12px}
+  .sp-field label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px;font-weight:600}
+  .sp-field textarea,.sp-field input{width:100%;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);resize:vertical;box-sizing:border-box}
+  .sp-field textarea{min-height:60px}
+  .pf-btns{display:flex;gap:8px;margin:8px 0}
+  .pf-btns button{flex:1;padding:8px;border-radius:var(--radius);font-size:13px;cursor:pointer;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+  .pf-btns button.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .sp-detail-actions{display:flex;gap:8px;margin-top:16px}
+  .sp-ai-result{margin-top:12px;padding:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);font-size:14px;line-height:1.8;white-space:pre-wrap;display:none}
+  .sp-empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:14px}
 </style>
 </head>
 <body>
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 
 <main class="container">
-  <h1 class="page-title">口语素材库</h1>
-  <p class="page-sub">集中管理 P1 框架 / P2 母本 / 串题关系，标记熟练度。P1 六框架、P2 三人物母本已按你的真实结构预建，内容待你填。</p>
+  <h1 class="page-title">口语题库</h1>
+  <p class="page-sub">5-8 月官方题库 · 优先复习超高频</p>
 
-  <div class="sp-tabs" id="tabs">
-    <button data-type="P1" class="btn">P1</button>
-    <button data-type="P2" class="btn">P2</button>
-    <button data-type="P3" class="btn">P3</button>
+  <!-- 列表视图 -->
+  <div id="listView">
+    <div class="sp-tabs" id="tabs">
+      <button data-type="P1" class="active">Part 1</button>
+      <button data-type="P2">Part 2</button>
+    </div>
+
+    <div class="sp-banner" id="freqBanner">
+      8 月考试建议优先复习<b>超高频</b>和<b>必考题</b>；时间紧可只练 P2 前 14 题。
+    </div>
+
+    <div class="chip-row">
+      <span class="chip-row-label">频率</span>
+      <button class="chip active" data-filter="freq" data-val="all">全部</button>
+      <button class="chip" data-filter="freq" data-val="ultra">超高频</button>
+      <button class="chip" data-filter="freq" data-val="high">高频</button>
+      <button class="chip" data-filter="freq" data-val="must">必考题</button>
+      <button class="chip" data-filter="freq" data-val="medium">中高频</button>
+      <button class="chip" data-filter="freq" data-val="new">新题</button>
+    </div>
+    <div class="chip-row">
+      <span class="chip-row-label">分类</span>
+      <button class="chip active" data-filter="cat" data-val="all">全部</button>
+      <button class="chip" data-filter="cat" data-val="人物">人物</button>
+      <button class="chip" data-filter="cat" data-val="事件">事件</button>
+      <button class="chip" data-filter="cat" data-val="地点">地点</button>
+      <button class="chip" data-filter="cat" data-val="物品">物品</button>
+      <button class="chip" data-filter="cat" data-val="抽象">抽象</button>
+      <button class="chip" data-filter="cat" data-val="日常">日常</button>
+    </div>
+
+    <input class="sp-search" id="spSearch" placeholder="搜索题目…" />
+
+    <div class="sp-list" id="spList"></div>
+    <div class="sp-empty" id="spEmpty" hidden>没有匹配的题目</div>
   </div>
 
-  <section class="card">
-    <div id="groups"></div>
-    <div id="empty" class="empty-state" hidden>该类型还没有素材。点「+ 新增素材」添加，或从 P1 框架 / P2 母本开始录入。</div>
-  </section>
-
-  <section class="card" id="addArea" hidden>
-    <h2>新增素材</h2>
-    <div class="sp-field"><label>标题（话题名，如 Describe a friend）</label><input id="a_title" /></div>
-    <div class="sp-field"><label>所属框架（如 P1框架 / P2人物母本）</label><input id="a_framework" placeholder="P1框架" /></div>
-    <div class="sp-field"><label>完整版素材（可多段）</label><textarea id="a_content"></textarea></div>
-    <div class="sp-field"><label>关键词（逗号分隔）</label><input id="a_keywords" /></div>
-    <div class="sp-field"><label>复述线 / 提纲</label><textarea id="a_cue"></textarea></div>
-    <div class="sp-field"><label>串题关系（如 可串:朋友聚会/学习伙伴）</label><input id="a_linked" /></div>
-    <div class="form-row" style="align-items:flex-end;margin-top:10px">
-      <button class="btn btn-primary" id="a_save">保存素材</button>
-      <button class="btn" id="a_cancel">取消</button>
-    </div>
-  </section>
-
-  <div class="form-row" style="margin-top:14px">
-    <button class="btn btn-primary" id="addBtn">+ 新增素材</button>
+  <!-- 详情视图 -->
+  <div id="detailView" hidden>
+    <span class="sp-detail-back" id="backBtn">&larr; 返回</span>
+    <div id="detailBody"></div>
   </div>
 </main>
 
