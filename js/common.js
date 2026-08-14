@@ -452,6 +452,7 @@ async function softNavigate(t, isPop){
     const newMain = doc.querySelector('main');
     const main = document.querySelector('main');
     if(!newMain || !main) throw new Error('目标页缺少 <main>');
+    swapPageStyles(doc, t.id);                          // 同步页面专属 <style>，避免样式丢失
     main.innerHTML = newMain.innerHTML;                 // 只换内容区，侧边栏/全局状态保留
     if(doc.title) document.title = doc.title;
     updateActiveNav(t.file);
@@ -464,6 +465,16 @@ async function softNavigate(t, isPop){
   }finally{
     _softNavBusy = false;
   }
+}
+
+/* 软导航时同步目标页的 <head> 内联 <style>（页面专属样式），避免切页后样式丢失 */
+function swapPageStyles(doc, pageId){
+  document.querySelectorAll('style[data-hub-style]').forEach(el => el.remove());
+  doc.querySelectorAll('head style').forEach((style, idx) => {
+    const clone = style.cloneNode(true);
+    clone.setAttribute('data-hub-style', pageId + '-' + idx);
+    document.head.appendChild(clone);
+  });
 }
 
 /* 更新侧边栏高亮（不重建侧边栏，避免丢失滚动位置/搜索态） */
