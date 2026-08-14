@@ -16,7 +16,6 @@ ready(() => {
   $('#sRelayToken').value = s.relayToken || '';
   $('#sRelayMode').value = s.relayMode || 'direct';
 
-  $('#sSyncToken').value = s.syncToken || '';
   $('#sSyncCode').value = s.syncCode || '';
   $('#sAutoSync').checked = !!s.autoSync;
   $('#sNotify').checked = !!s.notifyEnabled;
@@ -43,7 +42,6 @@ ready(() => {
     } else { toast('复制失败，请手动选'); }
   });
   $('#sSyncCode').addEventListener('change', () => { DATA.settings.syncCode = $('#sSyncCode').value.trim(); hubSave(); });
-  $('#sSyncToken').addEventListener('change', () => { DATA.settings.syncToken = $('#sSyncToken').value.trim(); hubSave(); });
   $('#sAutoSync').addEventListener('change', () => { DATA.settings.autoSync = $('#sAutoSync').checked; hubSave(); if(DATA.settings.autoSync) cloudUpload(true); });
   $('#sNotify').addEventListener('change', () => {
     DATA.settings.notifyEnabled = $('#sNotify').checked; hubSave();
@@ -122,7 +120,6 @@ function saveSettings(){
     writing: parseFloat($('#tWriting').value) || 5.5,
     speaking: parseFloat($('#tSpeaking').value) || 5.5,
   };
-  DATA.settings.syncToken = $('#sSyncToken').value.trim();
   DATA.settings.syncCode = $('#sSyncCode').value.trim();
   DATA.settings.autoSync = $('#sAutoSync').checked;
   DATA.settings.notifyEnabled = $('#sNotify').checked;

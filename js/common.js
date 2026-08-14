@@ -308,9 +308,7 @@ function computeStreak(checkins){
 }
 
 /* ===== 云端同步（Cloudflare Pages Function + KV，6 位登录码） =====
-   机制与考研站一致：相同登录码 = 同一份云端数据（多设备共享）。
-   SYNC_TOKEN 为可选全局守卫（防陌生人乱写），由部署者设在环境变量里，
-   前端只在「设置」里填一次；留空则不做校验。非 Cloudflare 部署时 /api/sync
+   相同登录码 = 同一份云端数据（多设备共享）。非 Cloudflare 部署时 /api/sync
    会 404，所有调用都会优雅降级（不报错、不弹窗刷屏）。 */
 let _cloudTimer = null;
 function scheduleCloudUpload(){
@@ -322,32 +320,30 @@ function scheduleCloudUpload(){
 function genSyncCode(){
   return String(Math.floor(100000 + Math.random() * 900000));
 }
-function _syncUrl(code, token){
-  let u = '/api/sync?code=' + encodeURIComponent(code);
-  if(token) u += '&token=' + encodeURIComponent(token);
-  return u;
+function _syncUrl(code){
+  return '/api/sync?code=' + encodeURIComponent(code);
 }
 async function cloudUpload(showToast){
   showToast = showToast !== false;
-  const code = DATA.settings.syncCode, token = DATA.settings.syncToken;
+  const code = DATA.settings.syncCode;
   if(!code){ if(showToast) toast('请先在「设置」生成登录码'); return; }
   try{
-    const res = await fetch(_syncUrl(code, token), {
+    const res = await fetch(_syncUrl(code), {
       method:'PUT',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ data: DATA, ts: Date.now() })
     });
     if(res.status === 404) throw new Error('云端未启用（需先部署 Functions）');
     if(!res.ok) throw new Error('HTTP ' + res.status);
-    if(showToast) toast('☁ 已上传到云端');
+    if(showToast) toast('已上传到云端');
   }catch(e){ if(showToast) toast('云端上传失败：' + e.message); }
 }
 async function cloudDownload(){
-  const code = DATA.settings.syncCode, token = DATA.settings.syncToken;
+  const code = DATA.settings.syncCode;
   if(!code){ toast('请先在「设置」生成登录码'); return; }
   if(!confirm('从云端下载会覆盖本机全部数据，确定继续？\n建议先点「导出 JSON」备份。')) return;
   try{
-    const res = await fetch(_syncUrl(code, token));
+    const res = await fetch(_syncUrl(code));
     if(res.status === 404){ toast('云端没有该登录码的数据（或云端未启用）'); return; }
     if(!res.ok) throw new Error('HTTP ' + res.status);
     const j = await res.json();
@@ -357,11 +353,11 @@ async function cloudDownload(){
   }catch(e){ toast('云端下载失败：' + e.message); }
 }
 async function cloudDelete(){
-  const code = DATA.settings.syncCode, token = DATA.settings.syncToken;
+  const code = DATA.settings.syncCode;
   if(!code){ toast('请先在「设置」生成登录码'); return; }
   if(!confirm('确定删除云端该登录码的数据？此操作不可恢复。')) return;
   try{
-    const res = await fetch(_syncUrl(code, token), { method:'DELETE' });
+    const res = await fetch(_syncUrl(code), { method:'DELETE' });
     if(res.status === 404){ toast('云端未启用（需先部署 Functions）'); return; }
     if(!res.ok) throw new Error('HTTP ' + res.status);
     toast('已删除云端数据');

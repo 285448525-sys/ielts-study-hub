@@ -69,7 +69,6 @@ let DATA = {
     relayUrl: '',
     relayToken: '',
     syncCode: '',
-    syncToken: '',
     autoSync: false,
     notifyEnabled: false,
     links: DEFAULT_LINKS

@@ -73,25 +73,24 @@
   </section>
 
   <section class="card">
-    <h2>☁️ 云端同步（登录码）</h2>
-    <p class="muted">用一组「6 位登录码」把数据同步到云端（Cloudflare KV）。相同登录码可在任意设备拉取同一份数据，换电脑 / 清缓存也不丢。机制与考研站一致。</p>
+    <h2>☁️ 云端同步</h2>
+    <p class="muted">用 6 位登录码同步数据，换设备不丢。</p>
     <div class="form-row">
-      <div style="flex:2"><label>全局同步令牌 SYNC_TOKEN（可选·防陌生人乱写）</label><input id="sSyncToken" type="password" placeholder="部署者设在环境变量，留空则不校验" autocomplete="off" /></div>
-      <div style="flex:2"><label>我的登录码（6 位）</label><input id="sSyncCode" placeholder="点「生成」获得 6 位数字" inputmode="numeric" maxlength="6" /></div>
-      <div style="flex:none;align-self:flex-end"><button class="btn" id="genCodeBtn">🎲 生成</button></div>
-      <div style="flex:none;align-self:flex-end"><button class="btn" id="copyCodeBtn">📋 复制</button></div>
+      <div style="flex:2"><label>登录码</label><input id="sSyncCode" placeholder="点生成" inputmode="numeric" maxlength="6" /></div>
+      <div style="flex:none;align-self:flex-end"><button class="btn" id="genCodeBtn">生成</button></div>
+      <div style="flex:none;align-self:flex-end"><button class="btn" id="copyCodeBtn">复制</button></div>
     </div>
     <div class="form-row" style="align-items:center">
       <label style="flex:none;display:flex;align-items:center;gap:8px;cursor:pointer">
-        <input type="checkbox" id="sAutoSync" /> 🔄 自动同步（本机改动自动上传云端）
+        <input type="checkbox" id="sAutoSync" /> 自动同步
       </label>
     </div>
     <div class="form-row">
-      <button class="btn btn-primary" id="uploadBtn">⬆️ 上传数据到云端</button>
-      <button class="btn" id="downloadBtn">⬇️ 从云端下载</button>
-      <button class="btn btn-danger" id="delCloudBtn">🗑 删除云端数据</button>
+      <button class="btn btn-primary" id="uploadBtn">上传到云端</button>
+      <button class="btn" id="downloadBtn">从云端下载</button>
+      <button class="btn btn-danger" id="delCloudBtn">删除云端数据</button>
     </div>
-    <p class="muted">首次使用建议先点下方「导出 JSON」备份再上传。从云端下载会<b>覆盖本机全部数据</b>。</p>
+    <p class="muted">下载会覆盖本机数据，建议先导出 JSON 备份。</p>
   </section>
 
   <section class="card">
