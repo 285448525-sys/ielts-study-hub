@@ -40,6 +40,23 @@
   .score-section h4{font-size:14px;margin:0 0 6px;color:var(--ink)}
   .score-section ul{margin:0;padding-left:20px;line-height:1.8;font-size:14px}
   .score-section li{margin-bottom:4px}
+
+  /* 模板填空 → AI 评分（紧凑版） */
+  .tpl-score{margin-top:12px;border:1px solid var(--line);border-radius:var(--radius);padding:14px;background:var(--surface)}
+  .tpl-score .ts-load{color:var(--muted);font-size:14px}
+  .ts-top{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  .ts-overall{font-size:26px;font-weight:800;color:var(--primary);line-height:1}
+  .ts-dims{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-bottom:12px}
+  .ts-dim{border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:var(--bg)}
+  .ts-dim-h{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);font-weight:700}
+  .ts-dim-h b{font-size:16px;color:var(--primary)}
+  .ts-dim-r{font-size:13px;line-height:1.6;margin-top:4px}
+  .ts-sec{margin-top:10px}
+  .ts-sec h4{margin:0 0 6px;font-size:13px;color:var(--muted);font-weight:700}
+  .ts-gram{border-left:3px solid var(--danger);background:rgba(239,68,68,.06);border-radius:8px;padding:8px 11px;margin-bottom:6px;font-size:13.5px;line-height:1.7}
+  .ts-gram s{color:var(--muted)}
+  .ts-gram b{color:var(--primary-d)}
+  .ts-fix{border-left:3px solid var(--primary);background:var(--primary-soft);border-radius:8px;padding:8px 11px;font-size:13.5px;line-height:1.7}
 </style>
 </head>
 <body>
@@ -72,10 +89,16 @@
           </div>
           <h3>骨架（【】为填空位）</h3>
           <div id="skeleton" class="skeleton-box"></div>
-          <details style="margin-top:10px">
+          <details style="margin-top:10px" open>
             <summary style="cursor:pointer;color:var(--primary)">填空练习（实时生成完整句）</summary>
             <div id="practice" style="margin-top:8px"></div>
             <div id="preview" class="preview-box"></div>
+            <div class="form-row" style="margin-top:10px;align-items:center">
+              <button class="btn btn-primary" id="tplScoreBtn">🤖 AI 按官方 4 维度评分</button>
+              <button class="btn" id="tplCopyBtn">复制填好的内容</button>
+              <span class="muted" id="tplFillHint" style="font-size:12.5px"></span>
+            </div>
+            <div id="tplScoreBox" class="tpl-score" hidden></div>
           </details>
           <div id="tips" class="tips-box"></div>
           <div class="form-row" style="margin-top:12px">
