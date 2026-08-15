@@ -3,75 +3,79 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>学习记录本 · 雅思备考 Hub</title>
+<title>错题本 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css" />
 <script defer src="js/data.js"></script>
   <script defer src="js/common.js"></script>
   <script defer src="js/prompts.js"></script>
   <script src="js/errorbook.js" defer></script>
 <style>
-  .eb-toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+  .eb-input{width:100%;min-height:190px;padding:14px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;font-size:14.5px;line-height:1.75;background:var(--bg);color:var(--ink);resize:vertical}
+  .eb-input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+  .eb-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
+  .eb-flow{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px;font-size:13px;color:var(--muted)}
+  .eb-flow span{background:var(--primary-soft);color:var(--primary);padding:4px 10px;border-radius:20px;font-weight:600}
+  .eb-card{border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:12px;background:var(--surface)}
+  .eb-head{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+  .eb-title{font-size:15.5px;font-weight:700;line-height:1.5;margin-bottom:10px}
+  .eb-block{margin-top:10px}
+  .eb-block h4{margin:0 0 5px;font-size:13px;color:var(--muted);font-weight:700;letter-spacing:.02em}
+  .eb-block ol,.eb-block ul{margin:0;padding-left:20px;font-size:14px;line-height:1.75}
+  .eb-block p{margin:0;font-size:14px;line-height:1.75}
+  .eb-wrong{background:rgba(239,68,68,.07);border-left:3px solid var(--danger);padding:9px 12px;border-radius:8px;font-size:14px;line-height:1.7}
+  .eb-rule{background:var(--primary-soft);border-left:3px solid var(--primary);padding:9px 12px;border-radius:8px;font-size:14px;line-height:1.7}
+  .eb-words{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+  .eb-chip{background:var(--bg);border:1px solid var(--line);border-radius:20px;padding:3px 10px;font-size:12.5px}
+  .eb-src{margin-top:12px;font-size:12.5px;color:var(--muted)}
+  .eb-src summary{cursor:pointer;user-select:none}
+  .eb-src pre{white-space:pre-wrap;word-break:break-word;margin:8px 0 0;padding:10px;background:var(--bg);border-radius:8px;border:1px solid var(--line);font:inherit;font-size:13px;line-height:1.7;max-height:260px;overflow:auto}
+  .eb-actions{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
+  .badge{display:inline-block;padding:2px 9px;border-radius:10px;font-size:12px;background:var(--bg);color:var(--ink);border:1px solid var(--line)}
+  .badge-trap{background:var(--warn);color:#fff;border-color:var(--warn)}
+  .badge-ok{background:var(--primary);color:#fff;border-color:var(--primary)}
   .stat-row{display:flex;align-items:center;gap:8px;margin:7px 0}
-  .stat-label{width:150px;font-size:13px;flex:none}
+  .stat-label{width:160px;font-size:13px;flex:none}
   .stat-bar{flex:1;height:14px;background:var(--line);border-radius:7px;overflow:hidden}
   .stat-fill{height:100%;background:var(--warn);border-radius:7px}
   .stat-num{width:28px;text-align:right;font-size:13px;flex:none;color:var(--muted)}
-  .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;background:var(--surface);color:var(--ink);border:1px solid var(--line)}
-  .badge-trap{background:var(--warn);color:#fff;border-color:var(--warn)}
-  .badge-ok{background:var(--primary);color:#fff;border-color:var(--primary)}
-  .eb-card .eb-head{display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap}
-  .eb-main{font-size:15px;margin-bottom:4px}
-  .eb-sub{font-size:13px;color:var(--muted);margin:2px 0}
-  .eb-note{font-size:13px;margin-top:6px;color:var(--primary-d)}
-  .eb-actions{margin-top:10px;display:flex;gap:8px}
-  .empty-state{padding:22px;text-align:center;color:var(--muted)}
-  textarea{width:100%;min-height:60px;margin-top:8px;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);resize:vertical}
-  .q-word{font-size:22px;font-weight:600}
-  .q-cn{margin-top:8px;color:var(--muted);font-size:15px;line-height:1.6}
+  .eb-list-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .eb-list-head h2{margin:0}
+  .eb-list-head select{margin-left:auto}
+  .eb-loading{margin-top:14px;padding:14px;border:1px dashed var(--line);border-radius:var(--radius);color:var(--muted);font-size:14px}
 </style>
 </head>
 <body>
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 
 <main class="container">
-  <h1 class="page-title">学习记录本</h1>
-  <p class="page-sub">把每道错题、每个记不住的生词都收进来，按 题型 + 陷阱 归类复盘。逐题手动录入，一题一题过。</p>
+  <h1 class="page-title">错题本</h1>
+  <p class="page-sub">错题截图丢给 AI 让它讲 → 把讲解整段粘进下面的框 → 一个按钮，站里自动整理成「怎么做 / 错点在哪 / 下次怎么避免」，并归到你的错因统计里。</p>
 
   <section class="card">
-    <div class="eb-toolbar">
-      <button class="btn btn-primary" id="addBtn">+ 新增记录</button>
-      <button class="btn" id="reviewBtn">🔁 开始复习</button>
+    <div class="eb-flow"><span>1 截图问 AI</span><span>2 粘贴到这里</span><span>3 点 AI 分析</span><span>4 自动归档</span></div>
+    <textarea class="eb-input" id="ebInput" placeholder="把 AI 的讲解整段粘进来就行，不用整理格式、不用删多余的话。
+也可以直接写自己的零散笔记，比如：
+剑桥18 T2 P1 第5题 判断题，我选 NOT GIVEN，答案是 FALSE，原文说 …"></textarea>
+    <div class="eb-bar">
+      <button class="btn btn-primary" id="ebAnalyze">🤖 AI 分析并归档</button>
+      <button class="btn" id="ebRaw">只存原文</button>
+      <span class="muted" style="font-size:12.5px">AI 用的是「设置 / AI 接口」里的 DeepSeek Key</span>
     </div>
-    <div id="formArea" hidden></div>
+    <div id="ebLoading" class="eb-loading" hidden></div>
   </section>
 
   <section class="card" id="statsCard" hidden>
-    <h2>你最常踩的坑（按陷阱类型）</h2>
+    <h2>你最常踩的坑</h2>
     <div id="statsBox"></div>
   </section>
 
   <section class="card">
-    <h2>筛选</h2>
-    <div class="form-row">
-      <select id="fKind"><option value="">全部类型</option><option value="word">单词</option><option value="question">题目</option></select>
-      <select id="fSubject"><option value="">全部科目</option><option value="reading">阅读</option><option value="listening">听力</option></select>
-      <select id="fQtype"><option value="">全部题型</option><option value="TFNG">TRUE/FALSE/NOT GIVEN</option><option value="填空">填空</option><option value="匹配">匹配</option><option value="选择">选择</option><option value="简答">简答</option><option value="heading">Heading</option><option value="其他">其他</option></select>
-      <select id="fTrap"><option value="">全部陷阱</option><option value="目的vs手段">目的vs手段</option><option value="原词重现">原词重现</option><option value="比较级NG">比较级NG</option><option value="FALSE_NG混淆">FALSE/NOT GIVEN混淆</option><option value="定位丢失">定位丢失</option><option value="拼写">拼写</option><option value="其他">其他</option></select>
+    <div class="eb-list-head">
+      <h2>已归档 · <span id="count">0</span> 条</h2>
+      <select id="fTrap"><option value="">全部错因</option></select>
     </div>
-  </section>
-
-  <section class="card">
-    <h2>记录列表 · 共 <span id="count">0</span> 条</h2>
-    <div id="list" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr));margin-top:10px"></div>
-    <div id="empty" class="empty-state" hidden>还没有记录。点「+ 新增记录」，把今天错的题 / 词收进来。</div>
-  </section>
-
-  <section class="card" id="reviewCard" hidden>
-    <h2>复习模式</h2>
-    <div id="reviewBox"></div>
-    <div class="form-row" style="margin-top:10px">
-      <button class="btn" id="revExit">退出复习</button>
-    </div>
+    <div id="list"></div>
+    <div id="empty" class="muted" hidden>还没有记录。把 AI 的讲解粘到上面那个框，点「AI 分析并归档」。</div>
   </section>
 </main>
 

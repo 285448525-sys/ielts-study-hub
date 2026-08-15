@@ -286,6 +286,18 @@ async function callRelay(service, messages, temperature){
   throw new Error('AI 接口返回格式异常（缺少 choices[0].message.content）');
 }
 
+/* 从 AI 回复里抠出 JSON（模型常会带 ```json 围栏或前后废话）。
+   解析失败返回 null，调用方自行降级显示原文。 */
+function aiJson(content){
+  if(!content) return null;
+  let s = String(content).trim();
+  s = s.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
+  try{ return JSON.parse(s); }catch(_){}
+  const m = s.match(/\{[\s\S]*\}/);
+  if(m){ try{ return JSON.parse(m[0]); }catch(_){} }
+  return null;
+}
+
 /* 口语 GPT 对话 */
 async function callGPT(messages){ return callRelay('gpt', messages, 0.8); }
 /* 词库专用翻译（与口语GPT隔离，独立 service 区分，不回退） */

@@ -608,7 +608,8 @@ function fmtHM(sec){
   return (sec%60) + 's';
 }
 
-function escapeHtml(s){ return s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+/* 容错：AI 返回的字段可能是数字/undefined，统一转字符串再转义，避免整页渲染崩掉 */
+function escapeHtml(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
 function findSub(subId){
   for(const m of MODULES){ const c = m.children.find(c => c.id === subId); if(c) return {m,c}; }
