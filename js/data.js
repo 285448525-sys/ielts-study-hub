@@ -25,7 +25,7 @@ const MODULES = [
     { id:'writing_outline', name:'审题：5 题列提纲', icon:'🧩' },
   ]},
   { id:'speaking', name:'口语', icon:'🗣️', color:'#ef4444', children:[
-    { id:'speaking_gpt', name:'GPT 口语对话 15min（P1）', icon:'💬' },
+    { id:'speaking_gpt', name:'AI 口语对话 15min（P1）', icon:'💬' },
     { id:'speaking_p2',  name:'串题素材复述 1 个 P2 说满 2min', icon:'🎤' },
     { id:'speaking_rec', name:'录音自查流利度', icon:'🎙️' },
   ]},
@@ -36,7 +36,7 @@ const DEFAULT_LINKS = [
   { id:'l1', name:'九分学长·考雅机考平台', note:'本地软件，每天打开刷题', url:'', badge:'本地' },
   { id:'l2', name:'雅思官网', note:'报名 / 模考', url:'https://www.ielts.org/', badge:'打开' },
   { id:'l3', name:'爱听写·免费雅思考网', note:'', url:'https://www.idictation.cn/', badge:'打开' },
-  { id:'l4', name:'ChatGPT（口语对话练习）', note:'', url:'https://chatgpt.com/', badge:'打开' }
+  { id:'l4', name:'DeepSeek（口语对话练习）', note:'', url:'https://chat.deepseek.com/', badge:'打开' }
 ];
 
 /* 常用网址被清空时，一键写回默认种子 */
