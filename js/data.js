@@ -537,6 +537,7 @@ let DATA = {
     { id:'sp_p2_2', type:'P2', framework:'P2人物母本', title:'舅舅（覆盖6题）', content:'', keywords:'uncle / grows vegetables / yard+rents field / successful CS business / hard but smart fix / hardworking interesting', cue:'复述线：舅舅 → 种菜院子+租田 → 但 CS 创业成功 → 创业难但机智解决 → 勤奋有趣', linkedTo:'串题：③成功商业 / ⑦种植物 / ⑧爱护自然 / ①困难成功 / ⑪机智解决 / 给别人建议', proficiency:'没练' },
     { id:'sp_p2_3', type:'P2', framework:'P2人物母本', title:'妹妹（覆盖6题）', content:'', keywords:'cousin + childhood friend / uncle\'s daughter / grew up together / lively naughty / takes me out / loves drawing / rely on', cue:'复述线：表妹=发小 → 一起长大 → 调皮我安静互补 → 带我玩逗笑 → 爱画画 → 像 Leo 有趣 → 依赖', linkedTo:'串题：⑥发小 / ⑫喜欢画画 / ⑨乐于助人 / ⑩朋友自学 / ⑮好习惯 / 为家人骄傲', proficiency:'没练' }
   ]),
+  speakingStories: [],
   writingScores: [],
   writing: [
     { id:'wt_a', category:'小作文A', title:'数据图·时间轴（线/柱带年份）', skeleton:'The 【chart / graph / table】 illustrates 【图内容+时间范围】. The data is measured in 【percent / millions / thousands】, providing a clear overview of the changes that took place over the given period.\n\nOverall, it is clear that 【总体趋势 1】. Additionally, 【总体趋势 2·名词短语】 stood out throughout the period as the most striking feature. It is also noticeable that the figures changed clearly over the period, rather than remaining steady.\n\nLooking at the details, 【数据 1】 started at 【数值】 in 【年份】 and then 【趋势变化 + 趋势词】. This represents a considerable increase compared to its starting point, and the upward momentum remained consistent across most of the timeframe.\n\nIn contrast, 【数据 2】 showed a different pattern. It 【趋势变化】, from 【数值】 in 【年份】 to 【数值】 in 【年份】. Meanwhile, 【其他数据点】 remained relatively stable, showing little variation. Taken together, the data reveals a clear divergence between the two groups.', tips:'结构：开头改写｜概述(2个总体)｜细节1(写一组)｜细节2(对比另一组)。必背趋势词：rose steadily / declined gradually / remained stable at / reached a peak of / accounted for / compared to。填空直接抄题干改写与数值，不自己造。' },
@@ -568,6 +569,7 @@ function hubLoad(){
     DATA.speaking = DATA.speaking || [];
     DATA.writing = DATA.writing || [];
     DATA.writingScores = DATA.writingScores || [];
+    DATA.speakingStories = DATA.speakingStories || [];
     // 题库迁移：旧用户 localStorage 里没有 SPEAKING_BANK 的题目，按 id 补入
     if(SPEAKING_BANK && SPEAKING_BANK.length){
       const existingIds = new Set(DATA.speaking.map(s => s.id));

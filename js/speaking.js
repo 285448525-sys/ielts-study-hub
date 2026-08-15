@@ -10,11 +10,24 @@ const FREQ_ORDER = { ultra:0, must:1, high:2, medium:3, normal:4 };
 ready(() => {
   $('#tabs').querySelectorAll('[data-type]').forEach(b => {
     b.addEventListener('click', () => {
-      curType = b.dataset.type;
+      const t = b.dataset.type;
       $('#tabs').querySelectorAll('[data-type]').forEach(x => x.classList.toggle('active', x === b));
-      renderList();
+      if(t === 'CT'){
+        $('#listView').hidden = true;
+        $('#detailView').hidden = true;
+        $('#ctView').hidden = false;
+        renderSaved();
+      } else {
+        curType = t;
+        $('#ctView').hidden = true;
+        $('#detailView').hidden = true;
+        $('#listView').hidden = false;
+        renderList();
+      }
     });
   });
+  $('#ctAskBtn').addEventListener('click', ctAsk);
+  $('#ctGenBtn').addEventListener('click', ctGen);
   document.querySelectorAll('.chip[data-filter]').forEach(c => {
     c.addEventListener('click', () => {
       const f = c.dataset.filter, v = c.dataset.val;
@@ -194,4 +207,202 @@ async function aiAssist(id){
   }catch(e){
     resultEl.textContent = 'AI 服务暂不可用：' + e.message + '\n\n请检查「设置」中的 AI 接口地址。';
   }
+}
+
+/* === P2 串题（AI 问→写故事→覆盖矩阵） === */
+let ctQuestions = [];   // [{q, a}]
+
+function ctTemplates(){
+  // 用户已有 P2 母本素材（真实经历），作为写故事的基础
+  const t = DATA.speaking.filter(x => x.type === 'P2' && x.framework === 'P2人物母本');
+  const text = t.map(x => x.title + '：' + (x.content || x.cue || x.keywords || '')).join('\n');
+  return text.trim() ? text : '（暂无母本正文，请仅靠题库生成）';
+}
+
+function ctShowLoading(msg){ const el = $('#ctLoading'); el.textContent = msg; el.hidden = false; }
+function ctHideLoading(){ $('#ctLoading').hidden = true; }
+
+async function ctAsk(){
+  const bank = $('#ctBank').value.trim();
+  if(bank.length < 10){ toast('请先粘贴当季 P2 题库（至少几道题）'); return; }
+  if(!DATA.settings.relayToken){ toast('请先在「设置 / AI 接口」配置 API Key'); return; }
+  ctShowLoading('正在生成提问…');
+  try{
+    const sys = '你是雅思口语 P2 串题规划师。考生要背尽量少的万能故事来覆盖当季题库。'
+      + '请基于【当季题库】和【考生已有母本素材】，提出 3-5 个最关键的问题，帮考生确认/补充个人真实经历，'
+      + '以便写出能串多题的故事。问题要口语化、像老师在聊天，聚焦可用于多个话题的素材（人物关系、难忘经历、擅长的事、去过的地方等）。'
+      + '只输出 JSON：{"questions":["问题1","问题2",...]}，不要任何解释文字。';
+    const user = '当季 P2 题库：\n' + bank + '\n\n考生已有母本素材：\n' + ctTemplates()
+      + '\n\n请提出 3-5 个最有助于串题的挖掘问题（中文）。';
+    const content = await callRelay('speaking_chuan', [
+      { role:'system', content: sys },
+      { role:'user', content: user }
+    ], 0.7);
+    const j = aiJson(content);
+    if(j && Array.isArray(j.questions) && j.questions.length){
+      ctQuestions = j.questions.map(q => ({ q: String(q), a: '' }));
+    } else {
+      ctQuestions = ctPlainQuestions(content);
+    }
+    renderCTQuestions();
+  }catch(e){
+    $('#ctResult').innerHTML = '<div class="ct-loading">AI 服务暂不可用：' + escapeHtml(e.message) + '</div>';
+  }finally{
+    ctHideLoading();
+  }
+}
+
+function ctPlainQuestions(text){
+  // 退化解析：按行拆分带序号/项目符号的列表
+  const lines = String(text).split('\n').map(s => s.trim()).filter(Boolean);
+  const qs = lines
+    .map(s => s.replace(/^[\d]+[.、)]\s*/, '').replace(/^[-•·]\s*/, '').trim())
+    .filter(s => s.length >= 4 && s.length <= 80);
+  return qs.slice(0, 6).map(q => ({ q, a: '' }));
+}
+
+function renderCTQuestions(){
+  const box = $('#ctQuestions');
+  if(!ctQuestions.length){ $('#ctAskBox').hidden = true; return; }
+  box.innerHTML = ctQuestions.map((item, i) =>
+    '<div class="ct-question"><label>Q' + (i + 1) + '：' + escapeHtml(item.q) + '</label>'
+    + '<textarea data-qa="' + i + '" placeholder="你的回答（随便说，细节越多故事越好串）"></textarea></div>'
+  ).join('');
+  $('#ctAskBox').hidden = false;
+}
+
+async function ctGen(){
+  const bank = $('#ctBank').value.trim();
+  if(bank.length < 10){ toast('请先粘贴当季 P2 题库'); return; }
+  // 收集答案
+  document.querySelectorAll('#ctQuestions textarea[data-qa]').forEach(t => {
+    const i = +t.dataset.qa;
+    if(ctQuestions[i]) ctQuestions[i].a = t.value.trim();
+  });
+  const answered = ctQuestions.filter(q => q.a).map(q => 'Q：' + q.q + '\nA：' + q.a).join('\n\n');
+  if(!answered){ toast('先回答几个问题，AI 才能写出属于你的故事'); return; }
+  if(!DATA.settings.relayToken){ toast('请先在「设置 / AI 接口」配置 API Key'); return; }
+
+  ctShowLoading('正在生成串题故事…');
+  try{
+    const sys = '你是雅思口语 P2 串题规划师。基于【当季题库】+【考生回答】+【已有母本】，'
+      + '设计 2-3 个万能故事（必须来自考生的真实经历/回答，口语化、自然、可讲满 2 分钟），'
+      + '让考生背完能覆盖题库大部分题。'
+      + '严格要求只输出如下 JSON（不要任何解释文字）：'
+      + '{"stories":[{"name":"故事名","keyPoints":"复述线/关键词（中文，1-2 行）",'
+      + '"outline":"英文叙事要点，可分点，可夹中文注释","covers":["题库里的原题表述1","原题表述2"...]}],'
+      + '"coverage":[{"topic":"题库里的原题表述","story":"对应的故事名 或 null（无覆盖）"}]}。'
+      + '规则：① stories 数量为 2 或 3；② coverage 必须逐题覆盖题库里每一道题（topic 用题库里的原表述），'
+      + '能串上的写故事名、串不上的写 null；③ 朝最大化覆盖率设计故事；④ 全部用简体中文（outline 英文部分除外）。';
+    const user = '当季 P2 题库：\n' + bank + '\n\n考生回答：\n' + answered
+      + '\n\n已有母本素材：\n' + ctTemplates() + '\n\n请生成串题方案（严格 JSON）。';
+    const content = await callRelay('speaking_chuan', [
+      { role:'system', content: sys },
+      { role:'user', content: user }
+    ], 0.7);
+    const j = aiJson(content);
+    if(!j || !Array.isArray(j.stories) || !j.stories.length){
+      $('#ctResult').innerHTML = '<div class="ct-scheme"><div class="ct-story-out">AI 返回的不是标准格式，原文如下：\n\n'
+        + escapeHtml(content) + '</div></div>';
+      return;
+    }
+    saveScheme({ bank, stories: j.stories, coverage: j.coverage || [] });
+    renderSaved();
+    $('#ctResult').innerHTML = '';
+    $('#ctAskBox').hidden = true;
+    ctQuestions = [];
+    toast('已生成并保存串题方案');
+  }catch(e){
+    $('#ctResult').innerHTML = '<div class="ct-loading">AI 服务暂不可用：' + escapeHtml(e.message) + '</div>';
+  }finally{
+    ctHideLoading();
+  }
+}
+
+function ctToStr(v){ return Array.isArray(v) ? v.join(' / ') : (v == null ? '' : String(v)); }
+
+function saveScheme(obj){
+  const stories = (obj.stories || []).map(s => ({
+    name: ctToStr(s.name) || '故事',
+    keyPoints: ctToStr(s.keyPoints),
+    outline: ctToStr(s.outline),
+    covers: Array.isArray(s.covers) ? s.covers.map(String) : []
+  }));
+  // 覆盖率：优先用 AI 返回的 coverage，否则按题库行推断
+  let coverage = (obj.coverage || []).map(c => ({ topic: ctToStr(c.topic), story: c.story ? String(c.story) : null }));
+  if(!coverage.length){
+    coverage = ctExtractTopics(obj.bank).map(t => ({ topic: t, story: null }));
+  }
+  const total = coverage.length;
+  const covered = coverage.filter(c => c.story).length;
+  DATA.speakingStories.push({
+    id: 'ct_' + Date.now(),
+    date: ctToday(),
+    bank: obj.bank,
+    stories,
+    coverage,
+    total,
+    covered
+  });
+  hubSave();
+}
+
+function ctExtractTopics(bank){
+  const seen = new Set();
+  return String(bank).split('\n').map(s => s.trim()).filter(s => {
+    if(s.length < 4 || s.length > 80) return false;
+    if(seen.has(s)) return false;
+    seen.add(s);
+    return true;
+  });
+}
+
+function ctToday(){
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+
+function renderSaved(){
+  const wrap = $('#ctSaved');
+  if(!wrap) return;
+  const list = DATA.speakingStories || [];
+  if(!list.length){
+    wrap.innerHTML = '<div class="ct-empty">还没有串题方案。粘贴当季题库，让 AI 帮你编 2-3 个万能故事吧。</div>';
+    return;
+  }
+  wrap.innerHTML = list.slice().reverse().map(scheme => {
+    const rate = scheme.total ? Math.round(scheme.covered / scheme.total * 100) : 0;
+    const storiesHtml = (scheme.stories || []).map(st => {
+      const covers = (st.covers || []).map(c => '<span class="ct-cover-tag">' + escapeHtml(c) + '</span>').join('');
+      return '<div class="ct-story">'
+        + '<div class="ct-story-name">' + escapeHtml(st.name) + '</div>'
+        + (st.keyPoints ? '<div class="ct-story-kp">复述线：' + escapeHtml(st.keyPoints) + '</div>' : '')
+        + (st.outline ? '<div class="ct-story-out">' + escapeHtml(st.outline) + '</div>' : '')
+        + (covers ? '<div class="ct-covers">' + covers + '</div>' : '')
+        + '</div>';
+    }).join('');
+    const matrixHtml = (scheme.coverage || []).map(c => {
+      const sCls = c.story ? 's' : 'none';
+      const sTxt = c.story ? escapeHtml(c.story) : '未覆盖';
+      return '<div class="ct-matrix-row"><span class="t">' + escapeHtml(c.topic) + '</span>'
+        + '<span class="' + sCls + '">' + sTxt + '</span></div>';
+    }).join('');
+    return '<div class="ct-scheme">'
+      + '<div class="ct-scheme-head"><span class="ct-scheme-date">' + escapeHtml(scheme.date || '') + '</span>'
+      + '<span class="ct-rate">覆盖率 ' + scheme.covered + '/' + scheme.total + '（' + rate + '%）</span></div>'
+      + storiesHtml
+      + '<div class="ct-matrix">' + matrixHtml + '</div>'
+      + '<button class="ct-del" data-del="' + scheme.id + '">删除此方案</button>'
+      + '</div>';
+  }).join('');
+  wrap.querySelectorAll('[data-del]').forEach(b => {
+    b.addEventListener('click', () => {
+      const id = b.dataset.del;
+      DATA.speakingStories = DATA.speakingStories.filter(x => x.id !== id);
+      hubSave();
+      renderSaved();
+      toast('已删除');
+    });
+  });
 }
