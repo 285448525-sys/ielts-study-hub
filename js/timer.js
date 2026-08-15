@@ -1,34 +1,42 @@
-let active = null; // {subId, moduleId, moduleName, subName, startTs, tick, paused, pauseStart, pauseAccum}
-let timerMode = 'vocab'; // 'vocab' | 'subject'
+let active = null; // {moduleId, moduleName, subId, subName, startTs, tick, paused, pauseStart, pauseAccum}
 
-function renderModeTabs(){
-  $('#modeTabs').querySelectorAll('[data-mode]').forEach(b => {
-    b.classList.toggle('active', b.dataset.mode === timerMode);
-  });
+/* 一个模块 = 一张卡片 + 一个「开始」按钮（不再下钻子任务） */
+function moduleCard(m){
+  const running = active && active.moduleId === m.id;
+  const otherRunning = active && active.moduleId !== m.id;
+  const btnTxt = running ? '进行中' : '开始';
+  const btnCls = running ? 'btn-primary' : 'btn';
+  const disabled = otherRunning ? 'disabled' : '';
+  const card = document.createElement('div');
+  card.className = 'mod-card' + (running ? ' running' : '');
+  card.style.borderTopColor = m.color;
+  card.innerHTML = '<div class="mod-title"><span>' + m.icon + '</span>' + m.name + '</div>' +
+    '<button class="btn ' + btnCls + ' timer-start" data-mod="' + m.id + '" ' + disabled + '>' + btnTxt + '</button>';
+  return card;
 }
 
-function renderGrid(){
-  const grid = $('#moduleGrid'); grid.innerHTML = '';
-  const modules = MODULES.filter(m => timerMode === 'vocab' ? m.id === 'vocab' : m.id !== 'vocab');
-  for(const m of modules){
-    const card = document.createElement('div');
-    card.className = 'mod-card';
-    let html = '<div class="mod-title"><span>' + m.icon + '</span>' + m.name + '</div>';
-    for(const c of m.children){
-      const running = active && active.subId === c.id;
-      const disabled = active && !running ? 'disabled' : '';
-      const txt = running ? '进行中' : '开始';
-      const cls = running ? 'btn-primary' : 'btn';
-      html += '<div class="sub-row"><span class="sub-name">' + (c.icon ? c.icon + ' ' : '') + c.name + '</span><button class="btn ' + cls + '" data-sub="' + c.id + '" ' + disabled + '>' + txt + '</button></div>';
-    }
-    card.innerHTML = html;
-    grid.appendChild(card);
-  }
-  grid.querySelectorAll('button[data-sub]').forEach(b => {
+function renderTimer(){
+  const vocabCol = document.getElementById('vocabCol');
+  const subjectsCol = document.getElementById('subjectsCol');
+  if(!vocabCol || !subjectsCol) return;
+  const vocab = MODULES.find(m => m.id === 'vocab');
+  const subjects = MODULES.filter(m => m.id !== 'vocab');
+  vocabCol.innerHTML = '<div class="timer-col-title">单词</div>';
+  vocabCol.appendChild(moduleCard(vocab));
+  subjectsCol.innerHTML = '<div class="timer-col-title">雅思科目</div>';
+  const grid = document.createElement('div');
+  grid.className = 'timer-subjects';
+  subjects.forEach(m => grid.appendChild(moduleCard(m)));
+  subjectsCol.appendChild(grid);
+  bindStartButtons();
+}
+
+function bindStartButtons(){
+  document.querySelectorAll('.timer-start').forEach(b => {
     b.addEventListener('click', () => {
-      const subId = b.dataset.sub;
-      if(active && active.subId === subId) stopSession();
-      else if(!active) startSession(subId);
+      const id = b.dataset.mod;
+      if(active && active.moduleId === id) stopSession();
+      else if(!active) startSession(id);
     });
   });
 }
@@ -48,20 +56,21 @@ function pauseMs(){
   return Math.max(0, ms);
 }
 
-function startSession(subId){
-  const f = findSub(subId); if(!f) return;
-  active = { subId, moduleId: f.m.id, moduleName: f.m.name, subName: f.c.name,
+/* 直接以「模块」开始计时（不再选子任务） */
+function startSession(moduleId){
+  const m = MODULES.find(x => x.id === moduleId); if(!m) return;
+  active = { moduleId, moduleName: m.name, subId: m.id, subName: m.name,
     startTs: Date.now(), paused: false, pauseStart: null, pauseAccum: 0 };
-  saveActive({ subId, startTs: active.startTs, paused: false, pauseStart: null, pauseAccum: 0 });
-  $('#activeInfo').innerHTML = '<strong>' + f.m.name + ' › ' + f.c.name + '</strong> 进行中';
+  saveActive({ moduleId, subId: m.id, startTs: active.startTs, paused: false, pauseStart: null, pauseAccum: 0 });
+  $('#activeInfo').innerHTML = '<strong>' + m.name + '</strong> 进行中';
   $('#focusInfo').textContent = '';
   $('#stopBtn').disabled = false;
   $('#pauseBtn').disabled = false;
   $('#pauseBtn').textContent = '暂停';
   $('#pauseBtn').className = 'btn';
-  toast('已开始：' + f.c.name);
+  toast('已开始：' + m.name);
   active.tick = setInterval(updateTimer, 1000);
-  renderGrid();
+  renderTimer();
 }
 
 function togglePause(){
@@ -80,8 +89,8 @@ function togglePause(){
     $('#pauseBtn').className = 'btn';
     toast('继续学习，加油');
   }
-  saveActive({ subId: active.subId, startTs: active.startTs, paused: active.paused,
-    pauseStart: active.pauseStart, pauseAccum: active.pauseAccum });
+  saveActive({ moduleId: active.moduleId, subId: active.subId, startTs: active.startTs,
+    paused: active.paused, pauseStart: active.pauseStart, pauseAccum: active.pauseAccum });
   updateTimer();
 }
 
@@ -109,7 +118,7 @@ function stopSession(){
   $('#pauseBtn').className = 'btn';
   $('#liveTimer').textContent = '00:00:00';
   $('#liveTimer').style.color = '';
-  renderGrid();
+  renderTimer();
   const focusPct = totalSec > 0 ? Math.round(durationSec/totalSec*100) : 100;
   toast('已保存 ' + d.subName + '：学习 ' + fmtHM(durationSec) + (pauseSec > 0 ? ' · 暂停 ' + fmtHM(pauseSec) + ' · 专注度 ' + focusPct + '%' : ''));
 }
@@ -129,46 +138,30 @@ function updateTimer(){
   }
 }
 
-function switchMode(newMode){
-  if(newMode === timerMode) return;
-  if(active){
-    if(!confirm('切换模式会停止当前计时并保存，是否继续？')) return;
-    stopSession();
-  }
-  timerMode = newMode;
-  renderModeTabs();
-  renderGrid();
-}
-
 ready(() => {
-  $('#modeTabs').querySelectorAll('[data-mode]').forEach(b => {
-    b.addEventListener('click', () => switchMode(b.dataset.mode));
-  });
   $('#stopBtn').addEventListener('click', stopSession);
   $('#pauseBtn').addEventListener('click', togglePause);
-  renderModeTabs();
   const saved = loadActive();
-  if(saved && todayKey(new Date(saved.startTs)) === todayKey()){
-    const f = findSub(saved.subId);
-    if(f){
-      active = { subId: saved.subId, moduleId: f.m.id, moduleName: f.m.name, subName: f.c.name,
-        startTs: saved.startTs, paused: saved.paused || false, pauseStart: saved.pauseStart || null,
-        pauseAccum: saved.pauseAccum || 0 };
-      // 根据恢复的子项自动切换到对应模式
-      timerMode = (f.m.id === 'vocab') ? 'vocab' : 'subject';
-      renderModeTabs();
-      $('#activeInfo').innerHTML = '<strong>' + f.m.name + ' › ' + f.c.name + '</strong> 进行中';
-      $('#stopBtn').disabled = false;
-      $('#pauseBtn').disabled = false;
-      $('#pauseBtn').textContent = active.paused ? '继续' : '暂停';
-      $('#pauseBtn').className = active.paused ? 'btn btn-primary' : 'btn';
-      active.tick = setInterval(updateTimer, 1000);
-      updateTimer();
-      renderGrid();
-      toast('已恢复未结束的计时：' + f.c.name + (active.paused ? '（暂停中）' : ''));
-      return;
-    }
+  let m = null, fallbackSub = null;
+  if(saved){
+    if(saved.moduleId) m = MODULES.find(x => x.id === saved.moduleId);
+    if(!m && saved.subId){ const f = findSub(saved.subId); if(f){ m = f.m; fallbackSub = f.c.name; } }
+  }
+  if(m && todayKey(new Date(saved.startTs)) === todayKey()){
+    active = { moduleId: m.id, moduleName: m.name, subId: m.id, subName: fallbackSub || m.name,
+      startTs: saved.startTs, paused: saved.paused || false, pauseStart: saved.pauseStart || null,
+      pauseAccum: saved.pauseAccum || 0 };
+    $('#activeInfo').innerHTML = '<strong>' + m.name + '</strong> 进行中';
+    $('#stopBtn').disabled = false;
+    $('#pauseBtn').disabled = false;
+    $('#pauseBtn').textContent = active.paused ? '继续' : '暂停';
+    $('#pauseBtn').className = active.paused ? 'btn btn-primary' : 'btn';
+    active.tick = setInterval(updateTimer, 1000);
+    updateTimer();
+    renderTimer();
+    toast('已恢复未结束的计时：' + m.name + (active.paused ? '（暂停中）' : ''));
+    return;
   }
   if(saved) clearActive();
-  renderGrid();
+  renderTimer();
 });

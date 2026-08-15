@@ -9,9 +9,20 @@
 <script defer src="js/common.js"></script>
 <script defer src="js/timer.js"></script>
 <style>
-  .mode-tabs{display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--line)}
-  .mode-tabs button{flex:1;padding:10px 0;font-size:15px;font-weight:600;border:none;background:none;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s}
-  .mode-tabs button.active{color:var(--primary);border-bottom-color:var(--primary)}
+  /* 计时主页：左单词 / 右 4 科目，点「开始」直接学 */
+  .timer-cols{display:grid;grid-template-columns:240px 1fr;gap:18px;align-items:start;margin-top:6px}
+  .timer-col{display:flex;flex-direction:column;gap:14px;min-width:0}
+  .timer-col-title{font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.3px;padding:0 2px}
+  .timer-subjects{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .timer-start{width:100%;margin-top:10px}
+  .mod-card.running{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+  @media(max-width:760px){
+    .timer-cols{grid-template-columns:1fr;gap:12px}
+    .timer-subjects{grid-template-columns:1fr 1fr}
+  }
+  @media(max-width:420px){
+    .timer-subjects{grid-template-columns:1fr}
+  }
 </style>
 </head>
 <body>
@@ -19,12 +30,7 @@
 
 <main class="container">
   <h1 class="page-title">计时学习</h1>
-  <p class="page-sub">选择模块，点开始。一次只跑一个计时器；要离开就点「暂停」，回来点「继续」，系统自动算出真实专注时间。</p>
-
-  <div class="mode-tabs" id="modeTabs">
-    <button data-mode="vocab" class="active">单词</button>
-    <button data-mode="subject">雅思科目</button>
-  </div>
+  <p class="page-sub">选模块，点开始。一次只跑一个计时器；要离开就点「暂停」，回来点「继续」，系统自动算出真实专注时间。</p>
 
   <div class="live-timer" id="liveTimer">00:00:00</div>
   <div class="card" style="text-align:center;margin-top:-10px">
@@ -36,7 +42,10 @@
     </div>
   </div>
 
-  <div id="moduleGrid" class="grid"></div>
+  <div class="timer-cols">
+    <div class="timer-col" id="vocabCol"></div>
+    <div class="timer-col" id="subjectsCol"></div>
+  </div>
 </main>
 
 </body>
