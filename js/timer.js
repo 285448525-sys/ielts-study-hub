@@ -1,4 +1,18 @@
-let active = null; // {moduleId, moduleName, subId, subName, startTs, tick, paused, pauseStart, pauseAccum}
+let active = null; // {moduleId, moduleName, subId, subName, startTs, paused, pauseStart, pauseAccum}
+
+/* ── 计时器心跳：必须挂在 window 上，不能存在 active 里 ──────────────────
+   软导航（common.js runPageScript）用 window.eval 重跑本脚本，每次 eval 的
+   `let active` 都是全新的词法绑定；上一次 eval 的 setInterval 不会自动停，
+   它还抓着旧的 active 对象继续往新 DOM 的 #liveTimer 里写 →
+   表现为「点了结束计时器还在跑 / 同时跑好几份 / 数字乱跳」。
+   用全局唯一句柄 window.__timerTick，每次进页面先清掉上一份，彻底断根。 */
+function stopTick(){
+  if(window.__timerTick){ clearInterval(window.__timerTick); window.__timerTick = null; }
+}
+function startTick(){
+  stopTick();
+  window.__timerTick = setInterval(updateTimer, 1000);
+}
 
 /* 一个模块 = 一张卡片 + 一个「开始」按钮（不再下钻子任务） */
 function moduleCard(m){
@@ -69,7 +83,7 @@ function startSession(moduleId){
   $('#pauseBtn').textContent = '暂停';
   $('#pauseBtn').className = 'btn';
   toast('已开始：' + m.name);
-  active.tick = setInterval(updateTimer, 1000);
+  startTick();
   renderTimer();
 }
 
@@ -96,7 +110,7 @@ function togglePause(){
 
 function stopSession(){
   if(!active) return;
-  clearInterval(active.tick);
+  stopTick();
   let totalPauseMs = active.pauseAccum || 0;
   if(active.paused && active.pauseStart) totalPauseMs += (Date.now() - active.pauseStart);
   const endTs = Date.now();
@@ -108,6 +122,9 @@ function stopSession(){
     moduleName: active.moduleName, subName: active.subName,
     startTs: active.startTs, endTs, durationSec, pauseSec
   });
+  clearActive();   // 关键：结束后必须清掉 localStorage 里的活动会话，
+                   // 否则下次进页面会被当成「未结束的计时」按旧 startTs 恢复，
+                   // 再结束一次就重复入库、时长虚高。
   hubSave();
   const d = active; active = null;
   $('#activeInfo').textContent = '当前没有进行中的学习';
@@ -126,6 +143,7 @@ function stopSession(){
 function updateTimer(){
   if(!active) return;
   const liveTimer = $('#liveTimer');
+  if(!liveTimer){ stopTick(); return; }   // 已软导航离开计时页：DOM 没了就停掉心跳
   if(active.paused){
     liveTimer.textContent = '已暂停 ' + fmtHMS(pauseMs()/1000);
     liveTimer.style.color = 'var(--muted)';
@@ -139,6 +157,7 @@ function updateTimer(){
 }
 
 ready(() => {
+  stopTick();   // 进页面第一件事：清掉上一次 eval 遗留的孤儿心跳
   $('#stopBtn').addEventListener('click', stopSession);
   $('#pauseBtn').addEventListener('click', togglePause);
   const saved = loadActive();
@@ -156,7 +175,7 @@ ready(() => {
     $('#pauseBtn').disabled = false;
     $('#pauseBtn').textContent = active.paused ? '继续' : '暂停';
     $('#pauseBtn').className = active.paused ? 'btn btn-primary' : 'btn';
-    active.tick = setInterval(updateTimer, 1000);
+    startTick();
     updateTimer();
     renderTimer();
     toast('已恢复未结束的计时：' + m.name + (active.paused ? '（暂停中）' : ''));

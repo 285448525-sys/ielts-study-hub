@@ -3,7 +3,14 @@ ready(() => {
   $('#recordMed').addEventListener('click', recordMed);
   $('#resetMedTime').addEventListener('click', () => { setMedInputsNow(); toast('已重置为当前时间'); });
   renderMeds();
-  setInterval(renderMeds, 30000);
+  // 同 timer.js：软导航会重跑本脚本，轮询句柄必须挂全局并先清旧的，否则每进一次页面多一份轮询
+  if(window.__medsTick) clearInterval(window.__medsTick);
+  window.__medsTick = setInterval(() => {
+    if(!document.getElementById('todayMedStatus')){
+      clearInterval(window.__medsTick); window.__medsTick = null; return;   // 已离开服药页
+    }
+    renderMeds();
+  }, 30000);
 });
 
 function setMedInputsNow(){
