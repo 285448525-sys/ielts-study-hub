@@ -26,7 +26,7 @@ function favPageIds(){
 
 /* 母导航（分组） + 子导航（页面），悬停/点击展开 */
 const NAV_GROUPS = [
-  { name:'学习', icon:'🎯', pages:['index','timer','plans','weekly'] },
+  { name:'学习', icon:'🎯', pages:['index','timer','plans'] },
   { name:'积累', icon:'📝', pages:['meds','words','practice','corpus','longsent'] },
   { name:'实战', icon:'💻', pages:['scores','errorbook','speaking','writing'] },
   { name:'数据', icon:'📊', pages:['history','settings'] },

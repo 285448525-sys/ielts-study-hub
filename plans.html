@@ -15,7 +15,7 @@
 
 <main class="container">
   <h1 class="page-title">学习计划</h1>
-  <p class="page-sub">每天按自己的状态临时制定计划，完成一项打一个勾。不同日期可分别记录。</p>
+  <p class="page-sub">每天按状态临时打勾；每周让 AI 帮你把大目标拆到 7 天。</p>
 
   <section class="card">
     <div class="form-row" style="align-items:center">
@@ -31,7 +31,7 @@
   <section class="card">
     <h2>添加任务</h2>
     <div class="form-row">
-      <input id="planText" placeholder="例如：精听 S1 填空 30 分钟 / 背 20 个阅读生词 / 用 GPT 练 1 个 P2" />
+      <input id="planText" placeholder="例如：精听 S1 填空 30 分钟 / 背 20 个阅读生词 / 用 DeepSeek 练 1 个 P2" />
       <button class="btn btn-primary" id="addPlan" style="flex:none;min-width:120px">添加任务</button>
     </div>
   </section>
@@ -50,6 +50,19 @@
     <p class="muted">点击任意日期可查看 / 编辑那天的计划。</p>
     <div id="histPlans"></div>
   </section>
+
+  <section class="card">
+    <h2>📝 本周我想完成的任务</h2>
+    <p class="muted">写下这一周想完成的大致任务（一行一个），点「AI 帮我想」让它按你的弱项智能分配到 7 天。没配 AI Key 也能用「按弱项生成」走固定模板。</p>
+    <textarea id="weekTasks" placeholder="例如：&#10;背完 Word List 5-7&#10;写 1 篇大作文&#10;精听 3 段 S3&#10;口语 P2 串题素材过一遍"></textarea>
+    <div class="form-row" style="align-items:center;margin-top:10px">
+      <p class="muted" style="flex:1;margin:0" id="weekHint"></p>
+      <button class="btn" id="genWeek" style="flex:none">按弱项生成（无 AI）</button>
+      <button class="btn btn-primary" id="aiWeek" style="flex:none">🤖 AI 帮我想（按天分配）</button>
+    </div>
+  </section>
+
+  <section id="weekBox"></section>
 </main>
 
 </body>
