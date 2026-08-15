@@ -28,15 +28,13 @@ ready(() => {
   $('#importFile').addEventListener('change', e => { if(e.target.files[0]) importData(e.target.files[0]); });
   $('#resetBtn').addEventListener('click', resetData);
 
-  // 云端同步（手机号账号，与考研站一致）
+  // 云端同步（手机号账号，单按钮：注册 / 登录统一入口）
   $('#syncBindBtn').addEventListener('click', () => { syncLoginOrRegister(); });
   $('#sSyncCode').addEventListener('keydown', e => { if(e.key === 'Enter') syncLoginOrRegister(); });
   $('#sNotify').addEventListener('change', () => {
     DATA.settings.notifyEnabled = $('#sNotify').checked; hubSave();
     if(DATA.settings.notifyEnabled) requestNotify();
   });
-  $('#downloadBtn').addEventListener('click', () => cloudDownload());
-  $('#delCloudBtn').addEventListener('click', () => cloudDelete());
 
   renderLinks();
 

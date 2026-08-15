@@ -394,10 +394,11 @@ async function cloudDelete(){
     toast('已删除云端数据');
   }catch(e){ toast('云端删除失败：' + e.message); }
 }
-/* 绑定并同步（注册 / 登录统一入口，与考研站 onSyncConfirm 一致）：
-   - GET 先探活：404 = 该手机号云端无数据 → 注册（PUT 上传本机数据）；
-   - 200 = 云端已有数据 → 询问是否用云端覆盖本机（取消则把本机上传到云端）；
-   - 成功后自动开启自动同步。 */
+/* 绑定并同步（注册 / 登录统一入口，单按钮）：
+   - 点一下按钮：先 GET 探活。
+   - 404 = 该手机号云端无数据 → 注册（直接 PUT 上传本机数据）；
+   - 200 = 云端已有数据 → 直接登录（下载并覆盖本机，恢复之前的数据）；
+   - 成功后自动开启自动同步。不做二次确认，与单按钮设计一致。 */
 async function syncLoginOrRegister(){
   const phone = ($('#sSyncCode') ? $('#sSyncCode').value : '').replace(/\D/g, '');
   if(!phone){ syncSetStatus('请先输入手机号', 'error'); return; }
@@ -413,19 +414,14 @@ async function syncLoginOrRegister(){
       syncSetStatus('✅ 注册成功，数据已上传云端', 'ok');
       renderSyncState();
     } else if(probe.ok){
-      // 登录：云端已有数据，询问是否覆盖本机
-      if(confirm('该手机号云端已有数据。是否用云端数据覆盖本机？\n（点「取消」则把本机数据上传到云端）')){
-        const [res2, data] = await syncApi('GET');
-        if(data && data.data){
-          DATA = Object.assign({ sessions:[], notes:[], meds:[], words:[], plans:[], corpus:[], scores:[], errorbook:[], energy:[], checkins:[], settings:{} }, data.data);
-          enableAutoSyncAfterLogin(phone);
-          hubSave(); location.reload();
-        } else { syncSetStatus('云端返回格式异常', 'error'); }
-      } else {
-        await syncApi('PUT', { data: DATA, ts: Date.now(), deviceId: getDeviceId() });
+      // 登录：云端已有数据 → 直接下载并覆盖本机（恢复之前的数据）
+      const [res2, data] = await syncApi('GET');
+      if(data && data.data){
+        DATA = Object.assign({ sessions:[], notes:[], meds:[], words:[], plans:[], corpus:[], scores:[], errorbook:[], energy:[], checkins:[], settings:{} }, data.data);
         enableAutoSyncAfterLogin(phone);
-        syncSetStatus('已用本机数据上传到云端', 'ok');
-        renderSyncState();
+        hubSave(); location.reload();
+      } else {
+        syncSetStatus('云端返回格式异常', 'error');
       }
     } else {
       syncSetStatus('云端连接失败（HTTP ' + probe.status + '）', 'error');

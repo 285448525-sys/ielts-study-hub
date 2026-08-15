@@ -1,29 +1,44 @@
 // Cloudflare Pages Function: /api/sync
-// 按「手机号」读写 KV（SYNC_KV）。与考研站（kaoyan-tracker）完全一致的契约：
+// 按「手机号」读写 KV（SYNC_KV）。
 //   账号 = 手机号（6~15 位数字），通过请求头 X-Sync-Key 传递（兼容 ?code= 查询参数）。
-//   相同手机号 = 同一份云端数据（多设备共享）。非 Cloudflare 部署时 /api/sync
-//   会 404，前端所有调用都会优雅降级（不报错、不弹窗刷屏）。
+//   相同手机号 = 同一份云端数据（多设备共享）。
 //
 // 前端约定：
 //   GET    /api/sync  (X-Sync-Key: <phone>) -> 返回 { data, ts, updatedAt } 或 404
 //   PUT    /api/sync  (X-Sync-Key: <phone>) body { data, ts, deviceId } -> { ok:true, ts }
 //   DELETE /api/sync  (X-Sync-Key: <phone>) -> { ok:true }
 //
+// CORS：前端用自定义请求头 X-Sync-Key，浏览器会先发 OPTIONS 预检。本函数显式处理
+//       OPTIONS 并回完整的 CORS 响应头（Allow-Methods / Allow-Headers），否则预检失败
+//       浏览器会报 "Failed to fetch"，真实请求根本不会发出。
+//
 // 部署：先建 KV 命名空间 + 在 wrangler.toml 绑定 SYNC_KV，再 `wrangler pages deploy .`
+
+const CORS = {
+  'access-control-allow-origin': '*',
+  'access-control-allow-methods': 'GET, PUT, POST, DELETE, OPTIONS',
+  'access-control-allow-headers': 'Content-Type, X-Sync-Key',
+  'access-control-max-age': '86400',
+};
 
 function json(obj, status) {
   return new Response(JSON.stringify(obj), {
     status: status || 200,
-    headers: {
+    headers: Object.assign({
       'content-type': 'application/json; charset=utf-8',
       'cache-control': 'no-store',
-      'access-control-allow-origin': '*',
-    },
+    }, CORS),
   });
 }
 
 export async function onRequest(context) {
   const { request, env } = context;
+
+  // 预检请求：直接回 204 + CORS 头，不进入业务逻辑
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: CORS });
+  }
+
   const url = new URL(request.url);
   // 账号优先取 X-Sync-Key 请求头；兼容旧的 ?code= 查询参数
   const phone = (request.headers.get('X-Sync-Key') || url.searchParams.get('code') || '').trim();
@@ -33,17 +48,21 @@ export async function onRequest(context) {
     return json({ ok: false, error: '无效的手机号（需 6-15 位数字）' }, 400);
   }
 
+  // KV 未绑定：给出明确提示而非抛错（避免浏览器收到无 CORS 头的 500 → Failed to fetch）
+  if (!env || !env.SYNC_KV) {
+    return json({ ok: false, error: '云端存储未启用（请在 Cloudflare Pages 设置里绑定 SYNC_KV 命名空间）' }, 503);
+  }
+
   const key = 'sync:' + phone;
 
   if (request.method === 'GET') {
     const raw = await env.SYNC_KV.get(key);
     if (!raw) return json({ ok: false, error: 'no data' }, 404);
     return new Response(raw, {
-      headers: {
+      headers: Object.assign({
         'content-type': 'application/json; charset=utf-8',
         'cache-control': 'no-store',
-        'access-control-allow-origin': '*',
-      },
+      }, CORS),
     });
   }
 
