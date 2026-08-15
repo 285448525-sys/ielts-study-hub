@@ -1,27 +1,33 @@
 /* 共享 UI：导航注入、主题、Toast、通用工具 */
 const PAGES = [
-  { id:'index',     file:'index.html',     icon:'🏠', name:'仪表盘' },
-  { id:'timer',     file:'timer.html',     icon:'⏱', name:'计时学习' },
-  { id:'plans',     file:'plans.html',     icon:'🗓', name:'学习计划' },
-  { id:'weekly',    file:'weekly.html',    icon:'🗓️', name:'每周建议' },
-  { id:'notes',     file:'notes.html',     icon:'📝', name:'学习心得' },
-  { id:'meds',      file:'meds.html',      icon:'💊', name:'服药记录' },
-  { id:'words',     file:'words.html',     icon:'🗂', name:'我的词库' },
-  { id:'practice',  file:'practice.html',  icon:'🎮', name:'单词练习' },
-  { id:'corpus',    file:'corpus.html',    icon:'🎧', name:'听力语料库' },
-  { id:'longsent',  file:'longsent.html',  icon:'🧩', name:'长难句拆解' },
-  { id:'scores',    file:'scores.html',    icon:'📈', name:'模考记录' },
-  { id:'errorbook', file:'errorbook.html', icon:'📒', name:'错题本' },
-  { id:'speaking',  file:'speaking.html',  icon:'🗨', name:'口语素材库' },
-  { id:'writing',   file:'writing.html',  icon:'✍', name:'写作模板库' },
-  { id:'history',   file:'history.html',   icon:'🗄', name:'历史统计' },
-  { id:'settings',  file:'settings.html',  icon:'⚙️', name:'设置' },
+  { id:'index',     file:'index.html',     icon:'🏠', name:'仪表盘',     desc:'今日概览' },
+  { id:'timer',     file:'timer.html',     icon:'⏱', name:'计时学习',   desc:'选模块开计时' },
+  { id:'plans',     file:'plans.html',     icon:'🗓', name:'学习计划',   desc:'每日清单 + AI 排周' },
+  { id:'meds',      file:'meds.html',      icon:'💊', name:'服药记录',   desc:'专注达药效窗口' },
+  { id:'words',     file:'words.html',     icon:'🗂', name:'我的词库',   desc:'生词导入与管理' },
+  { id:'practice',  file:'practice.html',  icon:'🎮', name:'单词练习',   desc:'看词选义/听义选义' },
+  { id:'corpus',    file:'corpus.html',    icon:'🎧', name:'听力语料库', desc:'场景词汇听写' },
+  { id:'longsent',  file:'longsent.html',  icon:'🧩', name:'长难句拆解', desc:'括号法解码训练' },
+  { id:'scores',    file:'scores.html',    icon:'📈', name:'模考记录',   desc:'历次成绩追踪' },
+  { id:'errorbook', file:'errorbook.html', icon:'📒', name:'错题本',     desc:'贴 AI 讲解自动归档' },
+  { id:'speaking',  file:'speaking.html',  icon:'🗨', name:'口语素材库', desc:'题库 + AI 串题' },
+  { id:'writing',   file:'writing.html',   icon:'✍', name:'写作模板库', desc:'模板 + AI 评分' },
+  { id:'history',   file:'history.html',   icon:'🗄', name:'历史统计',   desc:'长期趋势' },
+  { id:'settings',  file:'settings.html',  icon:'⚙️', name:'设置',       desc:'同步 / AI / 数据' },
 ];
+
+/* 收藏页面（⭐）——侧边栏「常用」与仪表盘「快捷入口」共用同一份，永远同步。
+   从未收藏过时给 3 个新手默认项，避免入口空着。 */
+const DEFAULT_FAV = ['timer','words','practice'];
+function favPageIds(){
+  const f = DATA.settings && DATA.settings.fav;
+  return (f && f.length) ? f : DEFAULT_FAV.slice();
+}
 
 /* 母导航（分组） + 子导航（页面），悬停/点击展开 */
 const NAV_GROUPS = [
   { name:'学习', icon:'🎯', pages:['index','timer','plans','weekly'] },
-  { name:'积累', icon:'📝', pages:['notes','meds','words','practice','corpus','longsent'] },
+  { name:'积累', icon:'📝', pages:['meds','words','practice','corpus','longsent'] },
   { name:'实战', icon:'💻', pages:['scores','errorbook','speaking','writing'] },
   { name:'数据', icon:'📊', pages:['history','settings'] },
 ];
@@ -34,7 +40,7 @@ function injectNav(){
   const curPage = PAGES.find(p => p.file === current);
   const currentId = curPage ? curPage.id : null;
   const pageById = id => PAGES.find(p => p.id === id);
-  const fav = (DATA.settings.fav && DATA.settings.fav.length) ? DATA.settings.fav : ['timer','words','practice'];
+  const fav = favPageIds();
 
   const todaySec = (DATA.sessions || []).filter(s => s.date === todayKey()).reduce((a, s) => a + (s.durationSec || 0), 0);
   const med = (DATA.meds || []).filter(m => m.date === todayKey()).sort((a, b) => b.ts - a.ts)[0];
@@ -67,8 +73,7 @@ function injectNav(){
 
 function sideItem(p, current){
   const active = (p.file === current) ? 'active' : '';
-  const favArr = (DATA.settings.fav && DATA.settings.fav.length) ? DATA.settings.fav : ['timer','words','practice'];
-  const isFav = favArr.includes(p.id);
+  const isFav = favPageIds().includes(p.id);
   return `<a class="side-item ${active}" href="${p.file}" data-name="${p.name}" data-id="${p.id}">
     <span class="nav-icon">${p.icon}</span><span class="side-label">${p.name}</span>
     <span class="side-star" data-id="${p.id}" role="button" tabindex="0" title="钉到常用 / 取消" aria-label="收藏">${isFav ? '★' : '☆'}</span>
@@ -97,12 +102,15 @@ function bindSidebar(){
     const toggleFav = e => {
       e.preventDefault(); e.stopPropagation();
       const id = star.dataset.id;
-      DATA.settings.fav = DATA.settings.fav || [];
+      // 从未收藏过时先把默认项落地，否则点掉默认项的 ★ 会变成「反而加进去」
+      if(!DATA.settings.fav || !DATA.settings.fav.length) DATA.settings.fav = DEFAULT_FAV.slice();
       DATA.settings.fav = DATA.settings.fav.includes(id)
         ? DATA.settings.fav.filter(x => x !== id)
         : DATA.settings.fav.concat(id);
       hubSave();
       injectNav();
+      // 仪表盘「快捷入口」= 收藏列表，收藏一变立刻同步
+      if(typeof renderQuickLinks === 'function') renderQuickLinks();
     };
     star.addEventListener('click', toggleFav);
     star.addEventListener('keydown', e => {

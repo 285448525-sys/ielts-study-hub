@@ -26,6 +26,9 @@ ready(() => {
     $('#todayBars').innerHTML = renderPieChart(bySub);
   }
 
+  // 快捷入口 = 侧边栏 ⭐ 收藏的页面
+  renderQuickLinks();
+
   // favourite links
   renderFavLinks();
 
@@ -59,6 +62,41 @@ function renderMedSnippet(){
   const pct = Math.min(100, (Date.now()-latest.ts)/MED_DURATION_MS*100);
   const cls = remain < 3600000 ? 'meds-bar low' : 'meds-bar';
   $('#medBar').innerHTML = `<div class="meds-bar-wrap"><div class="${cls}" style="width:${pct}%"></div></div>`;
+}
+
+/* 快捷入口：只渲染侧边栏 ⭐ 收藏过的页面（favPageIds() 与侧边栏「常用」同一份数据） */
+const QL_ACCENT = {
+  timer:    ['var(--primary-soft)',        'var(--primary)'],
+  plans:    ['var(--primary-soft)',        'var(--primary)'],
+  errorbook:['rgba(239,68,68,0.10)',       'var(--danger)'],
+  writing:  ['rgba(245,158,11,0.10)',      'var(--warn)'],
+  speaking: ['rgba(16,185,129,0.10)',      '#10b981'],
+  words:    ['rgba(139,92,246,0.10)',      '#8b5cf6'],
+  practice: ['rgba(139,92,246,0.10)',      '#8b5cf6'],
+  corpus:   ['rgba(6,182,212,0.10)',       '#06b6d4'],
+  longsent: ['rgba(6,182,212,0.10)',       '#06b6d4'],
+  meds:     ['rgba(236,72,153,0.10)',      '#ec4899'],
+  scores:   ['var(--primary-soft)',        'var(--primary)'],
+  history:  ['rgba(100,116,139,0.12)',     '#64748b'],
+  settings: ['rgba(100,116,139,0.12)',     '#64748b']
+};
+
+function renderQuickLinks(){
+  const box = $('#quickLinks');
+  if(!box) return;
+  const ids = (typeof favPageIds === 'function') ? favPageIds() : [];
+  const pages = ids.map(id => PAGES.find(p => p.id === id)).filter(p => p && p.id !== 'index');
+  if(pages.length === 0){
+    box.innerHTML = '<div class="muted" style="grid-column:1/-1;padding:6px 0">还没收藏页面。点侧边栏任意页面右侧的 ☆ 就会钉到这里。</div>';
+    return;
+  }
+  box.innerHTML = pages.map(p => {
+    const [bg, fg] = QL_ACCENT[p.id] || ['var(--primary-soft)', 'var(--primary)'];
+    return '<a class="quick-link" href="' + p.file + '">' +
+      '<span class="ql-icon" style="background:' + bg + ';color:' + fg + '">' + p.icon + '</span>' +
+      '<div><b>' + escapeHtml(p.name) + '</b><span class="muted">' + escapeHtml(p.desc || '') + '</span></div>' +
+    '</a>';
+  }).join('');
 }
 
 function renderFavLinks(){
@@ -146,7 +184,6 @@ function genSummary(){
   const goalSec = (DATA.settings.dailyGoalHours || 8) * 3600;
   const pct = goalSec > 0 ? Math.round(totalSec/goalSec*100) : 0;
   const pauseSec = todays.reduce((a,x) => a + (x.pauseSec||0), 0);
-  const noteCount = DATA.notes.filter(n => n.date === tkey).length;
   const subNames = [...new Set(todays.map(x => x.subName))];
 
   let lines = [];
@@ -154,7 +191,6 @@ function genSummary(){
   lines.push('⏱ 总时长：' + fmtHM(totalSec) + ' / 目标 ' + (DATA.settings.dailyGoalHours||8) + 'h（' + pct + '%）');
   if(pauseSec > 0){ const wallSec = totalSec + pauseSec; const focusPct = wallSec > 0 ? Math.round(totalSec/wallSec*100) : 100; lines.push('⏸ 暂停时间：' + fmtHM(pauseSec) + '（专注度 ' + focusPct + '%）'); }
   lines.push('📚 覆盖子模块：' + subNames.length + ' 个（' + (subNames.join('、') || '无') + '）');
-  if(noteCount > 0) lines.push('📝 今日心得：' + noteCount + ' 条');
 
   // per-module breakdown
   const bySub = {};
