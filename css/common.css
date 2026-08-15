@@ -77,7 +77,7 @@ body{
 .side-group.collapsed .side-group-title,.side-fav.collapsed .side-group-title{opacity:.5}
 
 /* 折叠箭头：≥40×40 可点热区 + 精致外观 */
-.side-toggle-arrow{margin-left:auto;flex:none;width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;border-radius:12px;cursor:pointer;color:var(--muted);position:relative;background:transparent;transition:background .18s ease,color .18s ease,transform .25s cubic-bezier(.34,1.56,.64,1);-webkit-tap-highlight-color:transparent}
+.side-toggle-arrow{margin-left:auto;flex:none;width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:12px;cursor:pointer;color:var(--muted);position:relative;background:transparent;transition:background .18s ease,color .18s ease,transform .25s cubic-bezier(.34,1.56,.64,1);-webkit-tap-highlight-color:transparent}
 .side-toggle-arrow:hover{background:var(--arrow-hover);color:var(--primary)}
 .side-toggle-arrow:active{transform:scale(.9)}
 .side-toggle-arrow:focus-visible{outline:none;box-shadow:0 0 0 3px var(--primary-soft)}
@@ -124,10 +124,31 @@ body{
 .side-collapse{display:none}
 @media(max-width:860px){
   .side-collapse-in{display:none}
-  .top-nav{transform:translateX(-100%);transition:transform .25s;box-shadow:none}
+  .top-nav{transform:translateX(-100%);transition:transform .25s;box-shadow:none;width:264px}
   body.nav-open .top-nav{transform:translateX(0);box-shadow:var(--shadow)}
-  .side-toggle{display:flex;position:fixed;right:14px;bottom:16px;width:48px;height:48px;border-radius:50%;background:var(--primary);color:#fff;font-size:22px;align-items:center;justify-content:center;border:none;cursor:pointer;z-index:60;box-shadow:var(--shadow)}
-  body.nav-open .side-backdrop{display:block;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:55}
+  .side-toggle{display:flex;position:fixed;right:14px;bottom:16px;width:48px;height:48px;border-radius:50%;background:var(--primary);color:#fff;font-size:22px;align-items:center;justify-content:center;border:none;cursor:pointer;z-index:60;box-shadow:var(--shadow);transition:background .15s,transform .15s}
+  .side-toggle:active{transform:scale(.94)}
+  body.nav-open .side-backdrop{display:block;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:45}
+  /* 移动端收紧留白，窄屏不拥挤 */
+  .container{padding:20px 16px}
+  .card{padding:18px;margin-bottom:16px}
+  .page-title{font-size:22px;margin-bottom:6px}
+  .page-sub{margin-bottom:16px}
+  .hero{padding:0}
+  /* 触控优化：保证可点击区域 ≥ 44px */
+  .btn{min-height:44px}
+  .mode-tabs button,.sp-tabs button,.write-tabs button{padding:12px 0}
+  .tab-btn{padding:12px 8px}
+  .chip{padding:9px 14px}
+  .pf-btns button{padding:11px}
+}
+@media(max-width:560px){
+  .container{padding:18px 14px}
+  .card{padding:16px;margin-bottom:14px}
+  .grid{grid-template-columns:1fr}
+  .quick-links{grid-template-columns:1fr 1fr}
+  .stat-grid{grid-template-columns:1fr 1fr}
+  .side-item{padding:13px 14px}
 }
 
 .container{max-width:1080px;margin:0 auto;padding:34px 28px}

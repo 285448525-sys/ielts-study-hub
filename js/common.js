@@ -72,7 +72,7 @@ function sideItem(p, current){
   const isFav = favArr.includes(p.id);
   return `<a class="side-item ${active}" href="${p.file}" data-name="${p.name}" data-id="${p.id}">
     <span class="nav-icon">${p.icon}</span><span class="side-label">${p.name}</span>
-    <button class="side-star" data-id="${p.id}" title="钉到常用 / 取消" aria-label="收藏">${isFav ? '★' : '☆'}</button>
+    <span class="side-star" data-id="${p.id}" role="button" tabindex="0" title="钉到常用 / 取消" aria-label="收藏">${isFav ? '★' : '☆'}</span>
   </a>`;
 }
 function bindSidebar(){
@@ -94,21 +94,25 @@ function bindSidebar(){
       });
     });
   }
-  nav.querySelectorAll('.side-star').forEach(btn => {
-    btn.addEventListener('click', e => {
+  nav.querySelectorAll('.side-star').forEach(star => {
+    const toggleFav = e => {
       e.preventDefault(); e.stopPropagation();
-      const id = btn.dataset.id;
+      const id = star.dataset.id;
       DATA.settings.fav = DATA.settings.fav || [];
       DATA.settings.fav = DATA.settings.fav.includes(id)
         ? DATA.settings.fav.filter(x => x !== id)
         : DATA.settings.fav.concat(id);
       hubSave();
       injectNav();
+    };
+    star.addEventListener('click', toggleFav);
+    star.addEventListener('keydown', e => {
+      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggleFav(e); }
     });
   });
   nav.querySelectorAll('.side-item').forEach(a => {
     a.addEventListener('click', () => {
-      if(window.matchMedia('(max-width:860px)').matches) document.body.classList.remove('nav-open');
+      if(window.matchMedia('(max-width:860px)').matches){ document.body.classList.remove('nav-open'); syncNavToggle(); }
     });
   });
   // 分组折叠：整条标题行可点击（含「常用」收藏区）
@@ -138,6 +142,15 @@ function bindSidebar(){
   ensureMobileChrome();
 }
 
+function syncNavToggle(){
+  const b = document.getElementById('sideToggle');
+  if(!b) return;
+  const open = document.body.classList.contains('nav-open');
+  b.textContent = open ? '✕' : '☰';
+  b.setAttribute('aria-label', open ? '关闭功能菜单' : '功能菜单');
+  b.setAttribute('aria-expanded', String(open));
+}
+
 function ensureMobileChrome(){
   if(document.getElementById('sideToggle')) return;
   const btn = document.createElement('button');
@@ -145,8 +158,8 @@ function ensureMobileChrome(){
   const bd = document.createElement('div');
   bd.id = 'sideBackdrop'; bd.className = 'side-backdrop';
   document.body.appendChild(bd); document.body.appendChild(btn);
-  btn.addEventListener('click', () => document.body.classList.toggle('nav-open'));
-  bd.addEventListener('click', () => document.body.classList.remove('nav-open'));
+  btn.addEventListener('click', () => { document.body.classList.toggle('nav-open'); syncNavToggle(); });
+  bd.addEventListener('click', () => { document.body.classList.remove('nav-open'); syncNavToggle(); });
 
   // 收起后左上角的展开按钮（桌面）
   const col = document.createElement('button');
@@ -154,6 +167,7 @@ function ensureMobileChrome(){
   document.body.appendChild(col);
   col.addEventListener('click', toggleSidebar);
   syncCollapseIcon();
+  syncNavToggle();
 }
 
 function toggleSidebar(){
@@ -444,7 +458,7 @@ async function softNavigate(t, isPop){
   if(_softNavBusy) return;
   _softNavBusy = true;
   try{
-    if(window.matchMedia && window.matchMedia('(max-width:860px)').matches) document.body.classList.remove('nav-open');
+    if(window.matchMedia && window.matchMedia('(max-width:860px)').matches){ document.body.classList.remove('nav-open'); syncNavToggle(); }
     const res = await fetch(t.href, { cache: 'force-cache' });
     if(!res.ok) throw new Error('HTTP ' + res.status);
     const html = await res.text();
