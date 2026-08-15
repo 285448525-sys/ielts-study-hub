@@ -12,9 +12,7 @@ ready(() => {
   $('#tWriting').value = t.writing || 5.5;
   $('#tSpeaking').value = t.speaking || 5.5;
 
-  $('#sRelayUrl').value = s.relayUrl || '';
   $('#sRelayToken').value = s.relayToken || '';
-  $('#sRelayMode').value = s.relayMode || 'direct';
 
   $('#sSyncCode').value = s.syncCode || '';
   $('#sNotify').checked = !!s.notifyEnabled;
@@ -22,6 +20,7 @@ ready(() => {
 
   $('#saveSettings').addEventListener('click', saveSettings);
   $('#saveRelay').addEventListener('click', saveRelay);
+  $('#testAiBtn').addEventListener('click', testAIConnection);
   $('#sTheme').addEventListener('change', () => applyTheme($('#sTheme').value));
   $('#exportBtn').addEventListener('click', exportData);
   $('#importBtn').addEventListener('click', () => $('#importFile').click());
@@ -38,40 +37,6 @@ ready(() => {
 
   renderLinks();
 
-  // —— 以下事件绑定原写在页脚本顶层；移入 ready() 以保证 DOM 已就位、符合"页脚本只动 <main> + ready() 初始化"规范 ——
-  const relaySuggests = {
-    ds:  { url:'https://api.deepseek.com/v1', hint:'注册：platform.deepseek.com → API Keys，送免费额度' },
-    groq:{ url:'https://api.groq.com/openai/v1', hint:'console.groq.com/keys，免费 30 RPM' },
-    silicon:{ url:'https://api.siliconflow.cn/v1', hint:'siliconflow.cn，中文模型强，送额度' },
-    aigcbar:{ url:'https://api.aigc.bar/v1', hint:'api.aigc.bar，国内低延迟' },
-    openrouter:{ url:'https://openrouter.ai/api/v1', hint:'openrouter.ai，聚合 20+ 免费模型' }
-  };
-  document.querySelectorAll('[data-relay-suggest]').forEach(a => {
-    a.addEventListener('click', e => {
-      e.preventDefault();
-      const key = a.dataset.relaySuggest;
-      const s = relaySuggests[key]; if(!s) return;
-      $('#sRelayUrl').value = s.url;
-      toast('已填入 ' + s.hint);
-    });
-  });
-  $('#sRelayMode').addEventListener('change', () => {
-    const hint = $('#relayHint');
-    if($('#sRelayMode').value === 'relay'){
-      hint.textContent = '💡 中转模式：运行 relay/relay-server.js，API Key 存在服务器 config 里';
-    } else {
-      hint.innerHTML = '💡 常用地址：<a href="#" data-relay-suggest="ds">DeepSeek</a> · <a href="#" data-relay-suggest="groq">Groq</a> · <a href="#" data-relay-suggest="silicon">硅基流动</a> · <a href="#" data-relay-suggest="aigcbar">AIGC BAR</a> · <a href="#" data-relay-suggest="openrouter">OpenRouter</a>';
-      document.querySelectorAll('[data-relay-suggest]').forEach(a2 => {
-        a2.addEventListener('click', e => {
-          e.preventDefault();
-          const key2 = a2.dataset.relaySuggest;
-          const s2 = relaySuggests[key2]; if(!s2) return;
-          $('#sRelayUrl').value = s2.url;
-          toast('已填入 ' + s2.hint);
-        });
-      });
-    }
-  });
   $('#addLinkBtn').addEventListener('click', () => {
     const name = $('#lkName').value.trim();
     const url = $('#lkUrl').value.trim();
@@ -113,12 +78,38 @@ function saveSettings(){
 }
 
 function saveRelay(){
-  DATA.settings.relayMode = $('#sRelayMode').value || 'direct';
-  DATA.settings.relayUrl = $('#sRelayUrl').value.trim();
   DATA.settings.relayToken = $('#sRelayToken').value.trim();
   hubSave();
-  const isDirect = DATA.settings.relayMode === 'direct';
-  toast(isDirect ? '已保存：直连模式（Key 仅存本地浏览器）' : '已保存：中转模式（Key 存在服务器端）');
+  toast(DATA.settings.relayToken ? '已保存 DeepSeek Key' : '已清空 Key');
+}
+
+/* 测试连接：用输入框里的 Key 探活 DeepSeek，成功即自动保存 */
+async function testAIConnection(){
+  const key = $('#sRelayToken').value.trim();
+  if(!key){ toast('请先填写 API Key'); return; }
+  const btn = $('#testAiBtn');
+  if(btn) btn.disabled = true;
+  setAiStatus('正在测试连接…', '');
+  try{
+    const prev = DATA.settings.relayToken;
+    DATA.settings.relayToken = key; // 临时用输入框的 key 探活
+    const r = await callRelay('gpt', [{ role:'user', content:'Reply with exactly the single word: PONG' }], 0.1);
+    DATA.settings.relayToken = key; // 探活成功 → 直接生效并保存
+    hubSave();
+    setAiStatus('✅ 连接成功：' + (r||'').slice(0,60), 'ok');
+    toast('✅ 连接成功，Key 已保存');
+  }catch(e){
+    setAiStatus('❌ 连接失败：' + e.message, 'error');
+    toast('❌ 连接失败：' + e.message);
+  }finally{
+    if(btn) btn.disabled = false;
+  }
+}
+function setAiStatus(msg, kind){
+  const el = $('#aiStatus');
+  if(!el) return;
+  el.textContent = msg || '';
+  el.className = 'muted' + (kind ? ' sync-status-' + kind : '');
 }
 function exportData(){
   const blob = new Blob([JSON.stringify(DATA, null, 2)], {type:'application/json'});

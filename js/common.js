@@ -243,51 +243,27 @@ function progressBar(label, percent, color){
 
 function renderEmpty(msg){ return `<div class="empty">${msg}</div>`; }
 
-/* 共享：通过「后端中转服务」调用 OpenAI 兼容接口（口语GPT / 词库翻译 / 长难句拆解 都复用）
-   前端【只】持有中转地址 DATA.settings.relayUrl，绝不在浏览器里保存任何真实 API Key。
-   真实密钥只存在你服务器上的 relay-config.json 里；中转服务按 service 选择对应 base/key/model 并转发。
-   service ∈ 'gpt' | 'trans' | 'longsent'
-   请求体不携带任何密钥；返回沿用 OpenAI 兼容结构 { choices:[{message:{content}}] } */
+/* 共享：直接调用 DeepSeek（OpenAI 兼容 /chat/completions）。
+   只需在「设置 / AI 接口」填一个 DeepSeek API Key，地址与模型已内置，降低门槛。
+   Key 存在浏览器本地 localStorage；口语/翻译/长难句/写作等所有 AI 功能共用。
+   service ∈ 'gpt' | 'trans' | 'longsent' | 'speaking_assist' | 'writing_score' | 'words'
+   （统一用 deepseek-chat，service 仅作语义标记，不影响调用）。 */
+const AI_BASE = 'https://api.deepseek.com/v1';
+const AI_MODEL = 'deepseek-chat';
 async function callRelay(service, messages, temperature){
-  if(!DATA.settings.relayUrl){ throw new Error('未配置 AI 接口地址（去「设置」填写）'); }
-  const mode = DATA.settings.relayMode || 'direct';
-  const base = DATA.settings.relayUrl.replace(/\/+$/, '');
-  let url, headers, body;
-
-  if(mode === 'direct'){
-    // 直连模式：走标准 OpenAI /chat/completions 格式
-    // service 语义上是前端三个功能（gpt/trans/longsent），直连时仅作模型选择的 hint
-    const models = DATA.settings.relayModels || {};
-    // 如果用户没单独为每个 service 配模型，给合理默认：
-    // DeepSeek 默认 deepseek-chat，其它给一个通用默认（后端或平台会处理）
-    const defaultModel = /deepseek/i.test(base) ? 'deepseek-chat'
-      : /siliconflow|silicon/i.test(base) ? 'deepseek-ai/DeepSeek-V3'
-      : /groq/i.test(base) ? 'llama-3.3-70b-versatile'
-      : 'gpt-4o-mini';
-    const model = (models[service] || defaultModel);
-    url = base + '/chat/completions';
-    headers = {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + (DATA.settings.relayToken || '')
-    };
-    body = {
-      model: model,
-      messages: messages,
-      temperature: (temperature == null) ? 0.7 : temperature,
-      stream: false
-    };
-  } else {
-    // 中转模式：走原来自定义的 body 格式
-    url = base;
-    headers = { 'Content-Type': 'application/json' };
-    body = {
-      service: service,
-      messages: messages,
-      temperature: (temperature == null) ? 0.7 : temperature
-    };
-    if(DATA.settings.relayToken) body.token = DATA.settings.relayToken;
-  }
-
+  const key = DATA.settings.relayToken || '';
+  if(!key){ throw new Error('未配置 API Key（去「设置 / AI 接口」填写）'); }
+  const url = AI_BASE + '/chat/completions';
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer ' + key
+  };
+  const body = {
+    model: AI_MODEL,
+    messages: messages,
+    temperature: (temperature == null) ? 0.7 : temperature,
+    stream: false
+  };
   const res = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
   if(!res.ok){
     let detail = '';
@@ -305,9 +281,9 @@ async function callRelay(service, messages, temperature){
 
 /* 口语 GPT 对话 */
 async function callGPT(messages){ return callRelay('gpt', messages, 0.8); }
-/* 词库专用翻译（与口语GPT隔离，由中转服务按 service=trans 选独立配置，不回退） */
+/* 词库专用翻译（与口语GPT隔离，独立 service 区分，不回退） */
 async function callTrans(messages){ return callRelay('trans', messages, 0.3); }
-/* 长难句拆解（中转服务按 service=longsent 选配置） */
+/* 长难句拆解 */
 async function callLongsent(messages){ return callRelay('longsent', messages, 0.4); }
 
 /* ===== 连续打卡 ===== */

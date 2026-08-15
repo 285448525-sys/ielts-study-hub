@@ -29,10 +29,10 @@ async function autoAddWord({ fromBtn=false } = {}){
   const rec = { id: uid(), en, cn:'', tag: $('#wordTag').value, ts: Date.now() };
   DATA.words.push(rec); hubSave(); renderWords();
 
-  if(!DATA.settings.relayUrl){
-    status.textContent = '已保存（未配置中转服务，中文需手动填；去「设置 / 中转服务」填地址可自动查）';
+  if(!DATA.settings.relayToken){
+    status.textContent = '已保存（未配置 API Key，中文需手动填；去「设置 / AI 接口」填 Key 可自动查）';
     status.className = 'word-status warn';
-    toast('已保存：' + en + '（去设置填中转服务地址可自动查中文）');
+    toast('已保存：' + en + '（去设置填 Key 可自动查中文）');
     resetEntry();
     return;
   }
@@ -61,7 +61,7 @@ function resetEntry(){
   $('#wordEn').focus();
 }
 
-// 复用 common.js 的 callTrans（词库翻译，走中转服务 service=trans，与口语GPT隔离）
+// 复用 common.js 的 callTrans（词库翻译，独立 service=trans，与口语GPT隔离）
 async function translateWord(en){
   const sys = '你是精准的英汉词典。用户会给你一个英文单词或短词组，请只返回简洁的中文释义，最多列 3 个常见义项，用"；"分隔，不要任何多余说明、不要英文。示例："algorithm" → "算法；运算法则"';
   const text = await callTrans([{ role:'system', content: sys }, { role:'user', content: en }]);
@@ -98,7 +98,7 @@ async function importBulk(){
   let added = 0, translated = 0, noCn = 0, done = 0;
   hint.textContent = '识别到 ' + rows.length + ' 个新词，正在翻译…';
   for(const r of rows){
-    if(!r.cn && DATA.settings.relayUrl){
+    if(!r.cn && DATA.settings.relayToken){
       try{ r.cn = await translateWord(r.en); translated++; }catch(_){ r.cn = ''; }
     }
     if(!r.cn) noCn++;

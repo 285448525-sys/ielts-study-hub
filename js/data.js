@@ -516,7 +516,6 @@ let DATA = {
     theme: 'light',
     dailyGoalHours: 8,
     targets: { overall: 6.0, listening: 5.5, reading: 6.5, writing: 5.5, speaking: 5.5 },
-    relayUrl: '',
     relayToken: '',
     syncCode: '',
     autoSync: true,

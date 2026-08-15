@@ -26,7 +26,7 @@ ready(() => {
 async function analyze(){
   const sent = $('#sentInput').value.trim();
   if(!sent){ toast('先粘贴一个长难句'); return; }
-  if(!DATA.settings.relayUrl){ toast('还没配置中转服务：去「设置 / 中转服务」填一下中转地址就能拆解'); return; }
+  if(!DATA.settings.relayToken){ toast('还没配置 API Key：去「设置 / AI 接口」填一下 DeepSeek Key 就能拆解'); return; }
   const status = $('#sentStatus');
   status.textContent = '拆解中…（长句可能要 10–20 秒）'; status.className = 'word-status loading';
   $('#analyzeBtn').disabled = true;

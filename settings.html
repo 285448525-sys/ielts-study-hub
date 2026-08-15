@@ -52,24 +52,15 @@
   </section>
 
   <section class="card">
-    <h2>中转服务 / AI 接口</h2>
-    <p class="muted">所有需要调用 AI 的功能（口语 GPT、词库翻译、长难句拆解）都靠这个接口。两种用法：</p>
-    <ul class="muted" style="padding-left:18px;line-height:1.9;margin:0 0 10px">
-      <li><b>直连模式（个人推荐）</b>：直接填平台的 API 地址 + 你的 API Key。Key 只保存在你的浏览器本地。</li>
-      <li><b>中转模式</b>：用项目里的 <code>relay/</code> 目录搭建自己的中转服务器，Key 存在服务器，分享网页不会泄露。</li>
-    </ul>
+    <h2>🤖 AI 接口（DeepSeek）</h2>
+    <p class="muted">所有 AI 功能（口语对练、词库翻译、长难句拆解、写作批改）都用 DeepSeek。只需填一个 Key，地址和模型已内置。</p>
     <div class="form-row">
-      <div style="flex:none"><label>连接方式</label>
-        <select id="sRelayMode">
-          <option value="direct">直连模式（直接填平台 API）</option>
-          <option value="relay">中转模式（自建服务器）</option>
-        </select>
-      </div>
-      <div style="flex:3"><label>接口地址（Base URL）</label><input id="sRelayUrl" placeholder="直连：https://api.deepseek.com/v1 ｜ 中转：https://你的服务器/relay" autocomplete="off" /></div>
-      <div style="flex:1"><label>API Key / 访问令牌</label><input id="sRelayToken" type="password" placeholder="直连填 sk-xxxxxx ｜ 中转填校验令牌" autocomplete="off" /></div>
+      <div style="flex:3"><label>DeepSeek API Key</label><input id="sRelayToken" type="password" placeholder="sk-xxxxxx" autocomplete="off" /></div>
+      <div style="flex:none;align-self:flex-end"><button class="btn btn-primary" id="saveRelay">保存</button></div>
+      <div style="flex:none;align-self:flex-end"><button class="btn" id="testAiBtn">测试连接</button></div>
     </div>
-    <p class="muted" id="relayHint">💡 常用地址：<a href="#" data-relay-suggest="ds">DeepSeek</a> · <a href="#" data-relay-suggest="groq">Groq</a> · <a href="#" data-relay-suggest="silicon">硅基流动</a> · <a href="#" data-relay-suggest="aigcbar">AIGC BAR</a> · <a href="#" data-relay-suggest="openrouter">OpenRouter</a></p>
-    <button class="btn btn-primary" id="saveRelay">保存</button>
+    <p class="muted">获取 Key：<a href="https://platform.deepseek.com" target="_blank" rel="noopener">platform.deepseek.com</a>（注册送免费额度，国内直连免翻墙）。Key 只存在你的浏览器本地。</p>
+    <p id="aiStatus" class="muted" style="margin:6px 0 0"></p>
   </section>
 
   <section class="card">
