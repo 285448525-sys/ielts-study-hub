@@ -17,8 +17,8 @@ ready(() => {
   $('#sRelayMode').value = s.relayMode || 'direct';
 
   $('#sSyncCode').value = s.syncCode || '';
-  $('#sAutoSync').checked = !!s.autoSync;
   $('#sNotify').checked = !!s.notifyEnabled;
+  renderSyncState();
 
   $('#saveSettings').addEventListener('click', saveSettings);
   $('#saveRelay').addEventListener('click', saveRelay);
@@ -28,26 +28,13 @@ ready(() => {
   $('#importFile').addEventListener('change', e => { if(e.target.files[0]) importData(e.target.files[0]); });
   $('#resetBtn').addEventListener('click', resetData);
 
-  // 云端同步
-  $('#genCodeBtn').addEventListener('click', () => {
-    const code = genSyncCode();
-    DATA.settings.syncCode = code; $('#sSyncCode').value = code; hubSave();
-    toast('已生成登录码：' + code + '（已保存）');
-  });
-  $('#copyCodeBtn').addEventListener('click', () => {
-    const code = $('#sSyncCode').value.trim();
-    if(!code){ toast('请先生成或填入登录码'); return; }
-    if(navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(code).then(() => toast('已复制：' + code), () => toast('复制失败，请手动选'));
-    } else { toast('复制失败，请手动选'); }
-  });
-  $('#sSyncCode').addEventListener('change', () => { DATA.settings.syncCode = $('#sSyncCode').value.trim(); hubSave(); });
-  $('#sAutoSync').addEventListener('change', () => { DATA.settings.autoSync = $('#sAutoSync').checked; hubSave(); if(DATA.settings.autoSync) cloudUpload(true); });
+  // 云端同步（手机号账号，与考研站一致）
+  $('#syncBindBtn').addEventListener('click', () => { syncLoginOrRegister(); });
+  $('#sSyncCode').addEventListener('keydown', e => { if(e.key === 'Enter') syncLoginOrRegister(); });
   $('#sNotify').addEventListener('change', () => {
     DATA.settings.notifyEnabled = $('#sNotify').checked; hubSave();
     if(DATA.settings.notifyEnabled) requestNotify();
   });
-  $('#uploadBtn').addEventListener('click', () => cloudUpload(true));
   $('#downloadBtn').addEventListener('click', () => cloudDownload());
   $('#delCloudBtn').addEventListener('click', () => cloudDelete());
 
@@ -120,8 +107,8 @@ function saveSettings(){
     writing: parseFloat($('#tWriting').value) || 5.5,
     speaking: parseFloat($('#tSpeaking').value) || 5.5,
   };
-  DATA.settings.syncCode = $('#sSyncCode').value.trim();
-  DATA.settings.autoSync = $('#sAutoSync').checked;
+  DATA.settings.syncCode = $('#sSyncCode').value.replace(/\D/g, '');
+  DATA.settings.autoSync = true; // 默认开启自动同步，与考研站一致（绑定后由 syncLoginOrRegister 控制）
   DATA.settings.notifyEnabled = $('#sNotify').checked;
   hubSave(); applyTheme(); toast('设置已保存');
   if(DATA.settings.notifyEnabled) requestNotify();

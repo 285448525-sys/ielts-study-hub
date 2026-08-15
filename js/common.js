@@ -321,61 +321,140 @@ function computeStreak(checkins){
   return streak;
 }
 
-/* ===== 云端同步（Cloudflare Pages Function + KV，6 位登录码） =====
-   相同登录码 = 同一份云端数据（多设备共享）。非 Cloudflare 部署时 /api/sync
-   会 404，所有调用都会优雅降级（不报错、不弹窗刷屏）。 */
+/* ===== 云端同步（Cloudflare Pages Function + KV，手机号账号） =====
+   账号 = 手机号（6~15 位数字），与考研站完全一致。相同手机号 = 同一份云端数据
+   （多设备共享）。非 Cloudflare 部署时 /api/sync 会 404，所有调用都会优雅降级
+   （不报错、不弹窗刷屏）。账号通过 X-Sync-Key 请求头传递，兼容旧的 ?code= 参数。 */
 let _cloudTimer = null;
+
+/* 设备唯一标识：每台浏览器生成一次，写入 localStorage，用于云端记录来源 */
+function getDeviceId(){
+  let id = '';
+  try { id = localStorage.getItem('hub_device_id') || ''; } catch(e){}
+  if(!id){
+    id = 'd' + uid();
+    try { localStorage.setItem('hub_device_id', id); } catch(e){}
+  }
+  return id;
+}
+
+/* 统一的云端请求封装：自动带 X-Sync-Key 头（手机号即账号）。
+   返回 [Response, json] 二元组，调用方自行判断 status。 */
+async function syncApi(method, body){
+  const headers = { 'Content-Type': 'application/json' };
+  const phone = DATA.settings.syncCode || '';
+  if(phone) headers['X-Sync-Key'] = phone;
+  const opts = { method, headers };
+  if(body) opts.body = JSON.stringify(body);
+  const res = await fetch('/api/sync', opts);
+  let data = null;
+  try { data = await res.json(); } catch(e){}
+  return [res, data];
+}
+
 function scheduleCloudUpload(){
   if(!DATA.settings.autoSync || !DATA.settings.syncCode) return;
   if(_cloudTimer) clearTimeout(_cloudTimer);
   _cloudTimer = setTimeout(() => { cloudUpload(false); }, 1500); // 防抖，避免每次按键都上传
 }
-/* 生成 6 位登录码（100000~999999，纯数字） */
-function genSyncCode(){
-  return String(Math.floor(100000 + Math.random() * 900000));
-}
-function _syncUrl(code){
-  return '/api/sync?code=' + encodeURIComponent(code);
-}
 async function cloudUpload(showToast){
   showToast = showToast !== false;
-  const code = DATA.settings.syncCode;
-  if(!code){ if(showToast) toast('请先在「设置」生成登录码'); return; }
+  const phone = DATA.settings.syncCode;
+  if(!phone){ if(showToast) toast('请先在「设置」绑定手机号'); return; }
   try{
-    const res = await fetch(_syncUrl(code), {
-      method:'PUT',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ data: DATA, ts: Date.now() })
-    });
+    const [res] = await syncApi('PUT', { data: DATA, ts: Date.now(), deviceId: getDeviceId() });
     if(res.status === 404) throw new Error('云端未启用（需先部署 Functions）');
     if(!res.ok) throw new Error('HTTP ' + res.status);
     if(showToast) toast('已上传到云端');
   }catch(e){ if(showToast) toast('云端上传失败：' + e.message); }
 }
+/* 从云端下载并覆盖本机。返回 true=已应用；false=云端无数据/取消/失败 */
 async function cloudDownload(){
-  const code = DATA.settings.syncCode;
-  if(!code){ toast('请先在「设置」生成登录码'); return; }
-  if(!confirm('从云端下载会覆盖本机全部数据，确定继续？\n建议先点「导出 JSON」备份。')) return;
+  const phone = DATA.settings.syncCode;
+  if(!phone){ toast('请先在「设置」绑定手机号'); return false; }
   try{
-    const res = await fetch(_syncUrl(code));
-    if(res.status === 404){ toast('云端没有该登录码的数据（或云端未启用）'); return; }
+    const [res, data] = await syncApi('GET');
+    if(res.status === 404){ toast('云端没有该手机号的数据'); return false; }
     if(!res.ok) throw new Error('HTTP ' + res.status);
-    const j = await res.json();
-    if(!j || !j.data) throw new Error('返回格式异常');
-    DATA = Object.assign({ sessions:[], notes:[], meds:[], words:[], plans:[], corpus:[], scores:[], errorbook:[], energy:[], checkins:[], settings:{} }, j.data);
+    if(!data || !data.data) throw new Error('返回格式异常');
+    if(!confirm('从云端下载会覆盖本机全部数据，确定继续？\n建议先点「导出 JSON」备份。')) return false;
+    DATA = Object.assign({ sessions:[], notes:[], meds:[], words:[], plans:[], corpus:[], scores:[], errorbook:[], energy:[], checkins:[], settings:{} }, data.data);
     hubSave(); location.reload();
-  }catch(e){ toast('云端下载失败：' + e.message); }
+    return true;
+  }catch(e){ toast('云端下载失败：' + e.message); return false; }
 }
 async function cloudDelete(){
-  const code = DATA.settings.syncCode;
-  if(!code){ toast('请先在「设置」生成登录码'); return; }
-  if(!confirm('确定删除云端该登录码的数据？此操作不可恢复。')) return;
+  const phone = DATA.settings.syncCode;
+  if(!phone){ toast('请先在「设置」绑定手机号'); return; }
+  if(!confirm('确定删除云端该手机号的数据？此操作不可恢复。')) return;
   try{
-    const res = await fetch(_syncUrl(code), { method:'DELETE' });
+    const [res] = await syncApi('DELETE');
     if(res.status === 404){ toast('云端未启用（需先部署 Functions）'); return; }
     if(!res.ok) throw new Error('HTTP ' + res.status);
     toast('已删除云端数据');
   }catch(e){ toast('云端删除失败：' + e.message); }
+}
+/* 绑定并同步（注册 / 登录统一入口，与考研站 onSyncConfirm 一致）：
+   - GET 先探活：404 = 该手机号云端无数据 → 注册（PUT 上传本机数据）；
+   - 200 = 云端已有数据 → 询问是否用云端覆盖本机（取消则把本机上传到云端）；
+   - 成功后自动开启自动同步。 */
+async function syncLoginOrRegister(){
+  const phone = ($('#sSyncCode') ? $('#sSyncCode').value : '').replace(/\D/g, '');
+  if(!phone){ syncSetStatus('请先输入手机号', 'error'); return; }
+  if(phone.length < 6 || phone.length > 15){ syncSetStatus('手机号格式不正确（应为 6-15 位数字）', 'error'); return; }
+  DATA.settings.syncCode = phone; hubSave();
+  syncSetStatus('正在连接云端…', '');
+  try{
+    const [probe] = await syncApi('GET');
+    if(probe.status === 404){
+      // 注册：上传本机数据
+      await syncApi('PUT', { data: DATA, ts: Date.now(), deviceId: getDeviceId() });
+      enableAutoSyncAfterLogin(phone);
+      syncSetStatus('✅ 注册成功，数据已上传云端', 'ok');
+      renderSyncState();
+    } else if(probe.ok){
+      // 登录：云端已有数据，询问是否覆盖本机
+      if(confirm('该手机号云端已有数据。是否用云端数据覆盖本机？\n（点「取消」则把本机数据上传到云端）')){
+        const [res2, data] = await syncApi('GET');
+        if(data && data.data){
+          DATA = Object.assign({ sessions:[], notes:[], meds:[], words:[], plans:[], corpus:[], scores:[], errorbook:[], energy:[], checkins:[], settings:{} }, data.data);
+          enableAutoSyncAfterLogin(phone);
+          hubSave(); location.reload();
+        } else { syncSetStatus('云端返回格式异常', 'error'); }
+      } else {
+        await syncApi('PUT', { data: DATA, ts: Date.now(), deviceId: getDeviceId() });
+        enableAutoSyncAfterLogin(phone);
+        syncSetStatus('已用本机数据上传到云端', 'ok');
+        renderSyncState();
+      }
+    } else {
+      syncSetStatus('云端连接失败（HTTP ' + probe.status + '）', 'error');
+    }
+  }catch(e){
+    syncSetStatus('云端连接失败：' + e.message, 'error');
+  }
+}
+/* 登录/注册成功后：写入手机号、默认开启自动同步、触发一次上传 */
+function enableAutoSyncAfterLogin(phone){
+  DATA.settings.syncCode = phone;
+  DATA.settings.autoSync = true;
+  hubSave();
+  if(typeof scheduleCloudUpload === 'function') scheduleCloudUpload();
+}
+/* 设置页状态行（无对应 DOM 时静默） */
+function syncSetStatus(msg, kind){
+  const el = $('#syncStatus');
+  if(!el) return;
+  el.textContent = msg || '';
+  el.className = 'muted' + (kind ? ' sync-status-' + kind : '');
+}
+/* 设置页同步状态概览 */
+function renderSyncState(){
+  const el = $('#syncState');
+  if(!el) return;
+  const phone = DATA.settings.syncCode || '';
+  if(!phone){ el.textContent = '尚未绑定手机号'; return; }
+  el.textContent = '已绑定：' + phone + (DATA.settings.autoSync ? '（自动同步：开）' : '（自动同步：关）');
 }
 
 /* ===== 桌面通知（番茄钟阶段切换 / 智能提醒） ===== */

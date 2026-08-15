@@ -164,6 +164,8 @@ body{
 .card h2{margin:0 0 14px;font-size:18px;font-weight:800;letter-spacing:-.02em}
 .card h3{margin:0 0 10px;font-size:14.5px;color:var(--muted);font-weight:600}
 .muted{color:var(--muted);font-size:13px}
+.sync-status-ok{color:#1a7f37 !important;font-weight:600}
+.sync-status-error{color:#cf222e !important;font-weight:600}
 .empty{color:var(--muted);padding:20px 0;text-align:center}
 
 .word-status{font-size:13px;margin-top:10px;min-height:18px;line-height:1.5}
