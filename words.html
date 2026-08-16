@@ -18,37 +18,52 @@
   <p class="page-sub">一个框搞定：把单词、句子、段落或文件拖进来，AI 自动挑出生词并配上中文意思。</p>
 
   <section class="card">
-    <h2>🤖 导入</h2>
-    <p class="muted">一个框通吃：单个单词、一行词表、整段英文、中英文混排，甚至把 .txt/.md/.csv/.json 文件直接拖进来都行。点一下，AI 会挑出里面<strong>所有英文词</strong>并逐词翻译成中文，全部导入词库；重复词自动跳过。也可选一个统一分类。</p>
-    <div id="dropZone" style="border:2px dashed transparent;border-radius:var(--radius)">
-      <textarea id="smartInput" style="width:100%;min-height:150px;padding:14px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;font-size:14.5px;line-height:1.7;background:var(--bg);color:var(--ink);resize:vertical" placeholder="粘贴任意内容都行：单个单词、一行词表、整段英文、中英文混排——AI 会挑出里面所有英文词并翻译。&#10;也可以把 .txt/.md/.csv/.json 文件直接拖进这个框。&#10;例：&#10;The algorithm is ambiguous; we need a nuanced approach to obscure the vague boundary."></textarea>
-    </div>
-    <div class="form-row" style="align-items:flex-end;margin-top:12px">
-      <div><label>统一分类（可选）</label>
-        <select id="smartTag">
-          <option value="">不分类</option>
-          <option value="阅读">阅读</option>
-          <option value="听力">听力</option>
-          <option value="写作">写作</option>
-          <option value="口语">口语</option>
-          <option value="核心">核心</option>
-        </select>
+    <div id="dropZone" class="word-drop-zone">
+      <div style="font-size:36px;margin-bottom:8px">📥</div>
+      <div style="font-weight:700;font-size:15.5px;color:var(--ink);margin-bottom:6px">
+        粘贴或拖入任意内容
       </div>
-      <button class="btn btn-primary" id="smartImport" style="flex:none;min-width:160px">🤖 导入</button>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px;max-width:400px;margin-left:auto;margin-right:auto">
+        单个单词 · 词表 · 整段英文 · 中英文混排 · .txt/.md/.csv 文件<br>
+        AI 自动挑出生词并翻译
+      </div>
+      <textarea id="smartInput"
+        style="width:100%;min-height:100px;padding:12px;border:1px solid var(--line);
+               border-radius:var(--radius-sm);font:inherit;font-size:14px;line-height:1.7;
+               background:var(--surface);color:var(--ink);resize:vertical"
+        placeholder="在这里粘贴内容，或把文件拖进来…"></textarea>
+      <div class="form-row" style="justify-content:center;margin-top:14px;max-width:480px;margin-left:auto;margin-right:auto">
+        <div><label style="font-size:12px">分类</label>
+          <select id="smartTag" style="min-width:120px">
+            <option value="">不分类</option>
+            <option value="阅读">阅读</option>
+            <option value="听力">听力</option>
+            <option value="写作">写作</option>
+            <option value="口语">口语</option>
+            <option value="核心">核心</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" id="smartImport" style="flex:none;min-width:140px;padding:10px 28px">
+          🤖 导入
+        </button>
+      </div>
     </div>
-    <p class="muted" id="importHint" style="margin:10px 0 0"></p>
+    <p class="muted" id="importHint" style="margin:10px 0 0;text-align:center"></p>
   </section>
 
   <section class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <h2 style="margin:0">词库列表 · 共 <span id="wordCount">0</span> 个</h2>
-      <button class="btn btn-sm" id="backfillBtn">🔄 补全缺失释义</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div>
+        <h2 style="margin:0">我的词库</h2>
+        <p class="muted" style="font-size:12.5px;margin:2px 0 0">共 <span id="wordCount">0</span> 个单词</p>
+      </div>
+      <button class="btn btn-sm" id="backfillBtn">🔄 补全释义</button>
     </div>
     <div class="form-row">
-      <input id="searchWord" placeholder="搜索单词或释义…" />
+      <input id="searchWord" placeholder="搜索单词…" style="flex:1" />
       <select id="filterTag"><option value="">全部分类</option><option value="阅读">阅读</option><option value="听力">听力</option><option value="写作">写作</option><option value="口语">口语</option><option value="核心">核心</option></select>
     </div>
-    <div id="wordList" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));margin-top:10px"></div>
+    <div id="wordList" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr));margin-top:12px"></div>
   </section>
 </main>
 

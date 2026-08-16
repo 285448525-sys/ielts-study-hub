@@ -18,30 +18,46 @@
   <p class="page-sub">从「我的词库」出题，支持看词选义、听义选义、默写听读音、闪卡和语料库。</p>
 
   <section class="card" id="modeSelect">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
       <h2 style="margin:0">选择练习模式</h2>
       <button class="btn btn-sm" id="cfgGear" title="练习设置">⚙️</button>
     </div>
+    <p class="muted" style="font-size:13px;margin-bottom:12px">从你的词库出题，支持 5 种练习方式</p>
     <div class="grid" style="margin-top:12px">
-      <button class="btn mod-card" data-mode="flashcard" style="text-align:left">
-        <div class="mod-title">🔁 复习单词</div>
-        <div class="muted">按记忆曲线自动排程，先列出今日待复习词</div>
+      <button class="btn mod-card" data-mode="flashcard">
+        <div class="mod-icon">🔁</div>
+        <div class="mod-body">
+          <div class="mod-title">复习单词</div>
+          <div class="mod-desc">按记忆曲线自动排程</div>
+        </div>
       </button>
-      <button class="btn mod-card" data-mode="seeWord" style="text-align:left">
-        <div class="mod-title">👁 阅读词汇·看词选义</div>
-        <div class="muted">看英文，选正确释义；答对自动进入下一题</div>
+      <button class="btn mod-card" data-mode="seeWord">
+        <div class="mod-icon" style="background:var(--primary-soft)">👁</div>
+        <div class="mod-body">
+          <div class="mod-title">看词选义</div>
+          <div class="mod-desc">看英文选释义 · 自动下一题</div>
+        </div>
       </button>
-      <button class="btn mod-card" data-mode="hearMeaning" style="text-align:left">
-        <div class="mod-title">👂 听力词汇·听音选义</div>
-        <div class="muted">听英文发音，选中文释义；答对自动进入下一题</div>
+      <button class="btn mod-card" data-mode="hearMeaning">
+        <div class="mod-icon" style="background:var(--med-soft)">👂</div>
+        <div class="mod-body">
+          <div class="mod-title">听音选义</div>
+          <div class="mod-desc">听发音选中文释义 · 自动下一题</div>
+        </div>
       </button>
-      <button class="btn mod-card" data-mode="dictation" style="text-align:left">
-        <div class="mod-title">✍️ 单词听写（爱听写风格）</div>
-        <div class="muted">可调语速/次数/间隔/题量；逐字母批改、错词归集、答对自动下一题</div>
+      <button class="btn mod-card" data-mode="dictation">
+        <div class="mod-icon" style="background:var(--warn-soft)">✍️</div>
+        <div class="mod-body">
+          <div class="mod-title">单词听写</div>
+          <div class="mod-desc">爱听写风格 · 逐字母批改</div>
+        </div>
       </button>
-      <button class="btn mod-card" data-mode="corpus" style="text-align:left">
-        <div class="mod-title">📋 听力词汇语料库</div>
-        <div class="muted">浏览全部单词列表</div>
+      <button class="btn mod-card" data-mode="corpus">
+        <div class="mod-icon" style="background:var(--mock-soft)">📋</div>
+        <div class="mod-body">
+          <div class="mod-title">语料库</div>
+          <div class="mod-desc">浏览全部单词列表</div>
+        </div>
       </button>
     </div>
     <p class="muted" style="margin-top:10px">想练<strong>句子听写</strong>（整句听音默写）？去 <a href="corpus.html">听力语料库</a> 页批量导入句子后开始听写。</p>
