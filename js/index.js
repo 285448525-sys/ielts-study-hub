@@ -38,6 +38,11 @@ ready(() => {
   safe(renderMedSnippet);
 
   safe(() => { const btn = $('#genSummaryBtn'); if(btn) btn.addEventListener('click', genSummary); });
+
+  // 侧边栏点/取消收藏（心形）时就地刷新「快捷入口」，不依赖跨页全局函数
+  window.__hubFavChange = () => safe(renderQuickLinks);
+  document.removeEventListener('hub:favchange', window.__hubFavChange);
+  document.addEventListener('hub:favchange', window.__hubFavChange);
 });
 
 function renderMedSnippet(){
@@ -84,7 +89,7 @@ function renderQuickLinks(){
   const ids = (typeof favPageIds === 'function') ? favPageIds() : [];
   const pages = ids.map(id => PAGES.find(p => p.id === id)).filter(p => p && p.id !== 'index');
   if(pages.length === 0){
-    box.innerHTML = '<div class="muted" style="grid-column:1/-1;padding:6px 0">还没收藏页面。点侧边栏任意页面右侧的 ☆ 就会钉到这里。</div>';
+    box.innerHTML = '<div class="muted" style="grid-column:1/-1;padding:6px 0">还没收藏页面。点侧边栏任意页面右侧的 ♡ 就会钉到这里。</div>';
     return;
   }
   box.innerHTML = pages.map(p => {

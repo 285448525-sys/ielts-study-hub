@@ -54,7 +54,7 @@ function injectNav(){
   const collapsedMap = (DATA.settings && DATA.settings.groupCollapsed) || {};
   const chev = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>';
   const favCol = collapsedMap['fav'] ? ' collapsed' : '';
-  html += `<div class="side-fav${favCol}" id="sideFav" data-g="fav"><div class="side-group-title"><span class="side-g-label">⭐ 常用</span><span class="side-toggle-arrow" data-g="fav" role="button" tabindex="0" aria-label="展开/收起 常用" aria-expanded="${!favCol}">${chev}</span></div>`;
+  html += `<div class="side-fav${favCol}" id="sideFav" data-g="fav"><div class="side-group-title"><span class="side-g-label">❤ 常用</span><span class="side-toggle-arrow" data-g="fav" role="button" tabindex="0" aria-label="展开/收起 常用" aria-expanded="${!favCol}">${chev}</span></div>`;
   html += '<div class="side-group-body"><div class="side-group-inner">';
   for(const fid of fav){ const p = pageById(fid); if(p) html += sideItem(p, current); }
   html += '</div></div></div>';
@@ -76,7 +76,7 @@ function sideItem(p, current){
   const isFav = favPageIds().includes(p.id);
   return `<a class="side-item ${active}" href="${p.file}" data-name="${p.name}" data-id="${p.id}">
     <span class="nav-icon">${p.icon}</span><span class="side-label">${p.name}</span>
-    <span class="side-star" data-id="${p.id}" role="button" tabindex="0" title="钉到常用 / 取消" aria-label="收藏">${isFav ? '★' : '☆'}</span>
+    <span class="side-star${isFav ? ' is-fav' : ''}" data-id="${p.id}" role="button" tabindex="0" title="收藏 / 取消收藏" aria-label="收藏">${isFav ? '♥' : '♡'}</span>
   </a>`;
 }
 function bindSidebar(){
@@ -102,7 +102,7 @@ function bindSidebar(){
     const toggleFav = e => {
       e.preventDefault(); e.stopPropagation();
       const id = star.dataset.id;
-      // 从未收藏过时先把默认项落地，否则点掉默认项的 ★ 会变成「反而加进去」
+      // 从未收藏过时先把默认项落地，否则点掉默认项的 ♥ 会变成「反而加进去」
       if(!DATA.settings.fav || !DATA.settings.fav.length) DATA.settings.fav = DEFAULT_FAV.slice();
       DATA.settings.fav = DATA.settings.fav.includes(id)
         ? DATA.settings.fav.filter(x => x !== id)
@@ -111,6 +111,8 @@ function bindSidebar(){
       injectNav();
       // 仪表盘「快捷入口」= 收藏列表，收藏一变立刻同步
       if(typeof renderQuickLinks === 'function') renderQuickLinks();
+      // 同时广播事件，让当前页（若停仪表盘）就地刷新，避免依赖跨页全局函数
+      document.dispatchEvent(new CustomEvent('hub:favchange'));
     };
     star.addEventListener('click', toggleFav);
     star.addEventListener('keydown', e => {
