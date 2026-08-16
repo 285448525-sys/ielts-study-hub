@@ -46,18 +46,29 @@ function addScore(){
   const date = $('#scoreDate').value || todayKey();
   const l = $('#scL').value, r = $('#scR').value, w = $('#scW').value, s = $('#scS').value;
   if(l === '' || r === '' || w === '' || s === ''){ toast('四项分数都要填'); return; }
-  // Bug12：校验范围 0–9 且为 0.5 的整数倍
+  // 校验范围 0–9 且为 0.5 的整数倍
   const vals = [l, r, w, s];
   for(const v of vals){
     const n = Number(v);
     if(isNaN(n) || n < 0 || n > 9){ toast('分数必须在 0–9 之间'); return; }
     if(Math.abs(n * 2 - Math.round(n * 2)) > 1e-9){ toast('分数须为 0.5 的整数倍（如 5.5、6.0）'); return; }
   }
-  DATA.scores.push({
-    id: uid(), date,
-    listening: Number(l), reading: Number(r), writing: Number(w), speaking: Number(s),
-    note: $('#scNote').value.trim()
-  });
+  // 同日期重复检查
+  const existing = DATA.scores.find(x => x.date === date);
+  if(existing && !confirm(date + ' 已有记录，是否覆盖？')) return;
+  if(existing){
+    existing.listening = Number(l);
+    existing.reading = Number(r);
+    existing.writing = Number(w);
+    existing.speaking = Number(s);
+    existing.note = $('#scNote').value.trim();
+  } else {
+    DATA.scores.push({
+      id: uid(), date,
+      listening: Number(l), reading: Number(r), writing: Number(w), speaking: Number(s),
+      note: $('#scNote').value.trim()
+    });
+  }
   hubSave();
   $('#scL').value = $('#scR').value = $('#scW').value = $('#scS').value = '';
   $('#scNote').value = '';
@@ -66,6 +77,9 @@ function addScore(){
 }
 
 function deleteScore(id){
+  const rec = DATA.scores.find(x => x.id === id);
+  if(!rec) return;
+  if(!confirm('确定删除 ' + rec.date + ' 的成绩？此操作不可恢复。')) return;
   DATA.scores = DATA.scores.filter(x => x.id !== id);
   hubSave(); render();
 }
@@ -96,10 +110,10 @@ function render(){
   } else {
     const x = list[0];
     barBox.innerHTML =
-      progressBar('听力 ' + x.listening + ' / 目标 ' + (t.listening||5.5), x.listening/9*100, 'var(--mock)') +
-      progressBar('阅读 ' + x.reading + ' / 目标 ' + (t.reading||6.5), x.reading/9*100, 'var(--vocab)') +
-      progressBar('写作 ' + x.writing + ' / 目标 ' + (t.writing||5.5), x.writing/9*100, 'var(--warn)') +
-      progressBar('口语 ' + x.speaking + ' / 目标 ' + (t.speaking||5.5), x.speaking/9*100, 'var(--med)');
+      progressBar('听力 ' + x.listening + ' / 目标 ' + (t.listening||5.5), Math.min(100, x.listening/(t.listening||5.5)*100), 'var(--mock)') +
+      progressBar('阅读 ' + x.reading + ' / 目标 ' + (t.reading||6.5), Math.min(100, x.reading/(t.reading||6.5)*100), 'var(--vocab)') +
+      progressBar('写作 ' + x.writing + ' / 目标 ' + (t.writing||5.5), Math.min(100, x.writing/(t.writing||5.5)*100), 'var(--warn)') +
+      progressBar('口语 ' + x.speaking + ' / 目标 ' + (t.speaking||5.5), Math.min(100, x.speaking/(t.speaking||5.5)*100), 'var(--med)');
   }
 
   // 趋势图 + 雷达图
@@ -227,7 +241,7 @@ function renderPartInputs(){
     if(isScore){
       return `<div class="mk-part form-row">
         <div style="flex:none;min-width:90px;display:flex;align-items:center;font-weight:700">${label}</div>
-        <div style="flex:1"><label>得分（0–9，可 .5）</label><input type="number" step="0.5" min="0" max="9" class="mk-score" data-part="${label}" placeholder="0" /></div>
+        <div style="flex:1"><label>得分（0–9，可 .5）</label><input type="number" step="0.5" min="0" max="9" class="mk-score" data-part="${label}" placeholder="选填" /></div>
       </div>`;
     }
     return `<div class="mk-part form-row">

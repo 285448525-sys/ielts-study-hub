@@ -1,7 +1,6 @@
 ready(() => {
   $('#smartImport').addEventListener('click', importSmart);
   $('#searchWord').addEventListener('input', renderWords);
-  $('#filterTag').addEventListener('change', renderWords);
   $('#backfillBtn').addEventListener('click', backfillCn);
   bindDrop();
   renderWords();
@@ -39,7 +38,6 @@ async function importSmart(){
   const hint = $('#importHint');
   const btn = $('#smartImport');
   if(!raw){ toast('先粘贴点内容（单词 / 句子 / 段落都行）'); return; }
-  const tag = $('#smartTag').value;
 
   // ── 降级：无 Key → 正则抽取，不翻译 ──
   if(!DATA.settings.relayToken){
@@ -50,7 +48,7 @@ async function importSmart(){
     rows.forEach(r => {
       if(existing.has(r.en.toLowerCase())){ skipped++; return; }
       existing.add(r.en.toLowerCase());
-      DATA.words.push({ id: uid(), en: r.en, cn: '', tag, ts: Date.now() });
+      DATA.words.push({ id: uid(), en: r.en, cn: '', ts: Date.now() });
       added++;
     });
     hubSave(); $('#smartInput').value = ''; renderWords();
@@ -80,7 +78,7 @@ async function importSmart(){
       const key = en.toLowerCase();
       if(existing.has(key)){ skipped++; continue; }
       existing.add(key);
-      DATA.words.push({ id: uid(), en, cn, tag, ts: Date.now() });
+      DATA.words.push({ id: uid(), en, cn, ts: Date.now() });
       added++;
     }
     hubSave(); $('#smartInput').value = ''; renderWords();
@@ -91,7 +89,7 @@ async function importSmart(){
     toast('AI 提取失败：' + e.message + '（可重试，或先去「设置」填 Key）');
     if(hint) hint.textContent = 'AI 提取失败：' + e.message;
   }finally{
-    btn.disabled = false; btn.textContent = '🤖 导入';
+    btn.disabled = false; btn.textContent = 'AI 导入';
   }
 }
 
@@ -149,17 +147,15 @@ function deleteWord(id){
 
 function renderWords(){
   const kw = ($('#searchWord').value || '').toLowerCase();
-  const tag = $('#filterTag').value;
   let list = DATA.words.slice().reverse();
   if(kw) list = list.filter(w => (w.en+' '+w.cn).toLowerCase().includes(kw));
-  if(tag) list = list.filter(w => w.tag === tag);
   $('#wordCount').textContent = DATA.words.length;
   const box = $('#wordList');
   if(list.length === 0){ box.innerHTML = renderEmpty('没有匹配的单词。'); return; }
   box.innerHTML = list.map(w => `
     <div class="mod-card" style="padding:12px">
       <div style="font-weight:700">${escapeHtml(w.en)}</div>
-      <div style="font-size:13px;color:var(--muted)">${escapeHtml(w.cn)}${w.tag ? ' · '+w.tag : ''}</div>
+      <div style="font-size:13px;color:var(--muted)">${escapeHtml(w.cn)}</div>
       <button class="btn btn-sm btn-ghost" data-del="${w.id}" style="margin-top:8px;width:100%">删除</button>
     </div>
   `).join('');

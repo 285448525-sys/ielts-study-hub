@@ -32,19 +32,9 @@
                border-radius:var(--radius-sm);font:inherit;font-size:14px;line-height:1.7;
                background:var(--surface);color:var(--ink);resize:vertical"
         placeholder="在这里粘贴内容，或把文件拖进来…"></textarea>
-      <div class="form-row" style="justify-content:center;margin-top:14px;max-width:480px;margin-left:auto;margin-right:auto">
-        <div><label style="font-size:12px">分类</label>
-          <select id="smartTag" style="min-width:120px">
-            <option value="">不分类</option>
-            <option value="阅读">阅读</option>
-            <option value="听力">听力</option>
-            <option value="写作">写作</option>
-            <option value="口语">口语</option>
-            <option value="核心">核心</option>
-          </select>
-        </div>
-        <button class="btn btn-primary" id="smartImport" style="flex:none;min-width:140px;padding:10px 28px">
-          🤖 导入
+      <div style="display:flex;justify-content:center;margin-top:14px">
+        <button class="btn btn-primary" id="smartImport" style="padding:8px 20px;font-size:14px">
+          AI 导入
         </button>
       </div>
     </div>
@@ -61,7 +51,6 @@
     </div>
     <div class="form-row">
       <input id="searchWord" placeholder="搜索单词…" style="flex:1" />
-      <select id="filterTag"><option value="">全部分类</option><option value="阅读">阅读</option><option value="听力">听力</option><option value="写作">写作</option><option value="口语">口语</option><option value="核心">核心</option></select>
     </div>
     <div id="wordList" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr));margin-top:12px"></div>
   </section>

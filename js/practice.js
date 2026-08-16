@@ -238,7 +238,7 @@ function nextQuestion(){
   updateProgBar();
   if(mode === 'corpus'){
     body.innerHTML = '<div style="width:100%;max-height:360px;overflow:auto;text-align:left">' + DATA.words.map(w =>
-      '<div class="list-item"><span><strong>'+escapeHtml(w.en)+'</strong></span><span>'+escapeHtml(w.cn)+(w.tag?' · '+w.tag:'')+'</span></div>'
+      '<div class="list-item"><span><strong>'+escapeHtml(w.en)+'</strong></span><span>'+escapeHtml(w.cn)+'</span></div>'
     ).join('') + '</div>';
     return;
   }
@@ -257,7 +257,7 @@ function nextQuestion(){
       '</div>';
     if(!c.showCn){
       $('#revealBtn').addEventListener('click', () => {
-        $('#flashAns').textContent = cur.cn + (cur.tag ? ' · '+cur.tag : '');
+        $('#flashAns').textContent = cur.cn || '';
         $('#judge').style.display = 'flex';
         $('#revealBtn').hidden = true;
       });
@@ -333,7 +333,7 @@ function markUnknown(correct){
   const ub = document.getElementById('unknownBtn');
   if(ub){ ub.classList.add('wrong'); ub.disabled = true; }
   if(!pq.wrongList) pq.wrongList = [];
-  pq.wrongList.push({ en:correct.en, cn:correct.cn||'', tag:correct.tag||'', user:'（不认识）', skipped:true });
+  pq.wrongList.push({ en:correct.en, cn:correct.cn||'', user:'（不认识）', skipped:true });
   autoAdvance(); updateScore();
   toast('已记为不认识：'+correct.en+' · '+correct.cn);
 }
@@ -356,7 +356,7 @@ function applySrs(w, known){
   w.srsReps = (w.srsReps||0)+1;
   w.srsLast = today;
   hubSave();
-  $('#flashAns').textContent = w.cn + (w.tag ? ' · '+w.tag : '');
+  $('#flashAns').textContent = w.cn || '';
   $('#judge').style.display = 'none';
   $('#revealBtn').hidden = true;
   $('#nextBtn').hidden = false; updateScore();

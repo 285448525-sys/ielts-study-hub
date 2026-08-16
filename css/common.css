@@ -562,3 +562,51 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 /* Range 滑块 */
 .cfg-range{width:100px;accent-color:var(--primary)}
 .cfg-range-val{font-size:12px;color:var(--muted);min-width:36px;text-align:right}
+
+/* =========================================================================
+   AI 输出块视觉统一（口语 .diag-sec / 长难句 .rs-sec / 错题本 .eb-block /
+   写作 .score-section .ts-sec）
+   这些区块由各页 JS 把 AI 返回的 JSON/section 渲染而成，结构已齐，但原有
+   标题是普通小字、区块间无分隔，显得平。这里用 `main` 前缀提升特异性，
+   统一覆盖各页内联 <style> 的同名规则，把区块标题改成彩色 pill 标签、
+   区块之间加细分隔线，提升可扫读性与精致度。纯样式，不改任何 JS 逻辑。
+   ========================================================================= */
+main .diag-sec,
+main .rs-sec,
+main .eb-block,
+main .score-section,
+main .ts-sec{ margin-bottom:14px }
+main .diag-sec:last-child,
+main .rs-sec:last-child,
+main .eb-block:last-child,
+main .score-section:last-child,
+main .ts-sec:last-child{ margin-bottom:0 }
+
+/* 区块标题 → 彩色 pill 标签 */
+main .diag-sec > b,
+main .rs-sec h3,
+main .eb-block h4,
+main .score-section h4,
+main .ts-sec h4{
+  display:inline-block;
+  font-size:12.5px;font-weight:700;letter-spacing:.03em;
+  color:var(--primary);background:var(--primary-soft);
+  padding:4px 11px;border-radius:999px;margin:0 0 10px;border:none;
+}
+
+/* 区块之间细分隔线，强化层次（避免 card-in-card 的厚重感） */
+main .rs-sec + .rs-sec,
+main .score-section + .score-section,
+main .ts-sec + .ts-sec,
+main .diag-sec + .diag-sec,
+main .eb-block + .eb-block{
+  border-top:1px solid var(--line);padding-top:14px;
+}
+
+/* 长难句原句：从斜体灰字升级为清晰 callout（仍是输入，非 AI 输出，但同页相邻顺手优化） */
+main .quote{
+  font-style:normal;color:var(--ink);
+  background:var(--surface-2);border-left:4px solid var(--primary);
+  border-radius:0 var(--radius-sm) var(--radius-sm) 0;
+  font-size:15px;line-height:1.8;padding:12px 16px;
+}
