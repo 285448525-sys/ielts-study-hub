@@ -533,7 +533,8 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 .cfg-m-main{flex:1;padding:16px 24px;}
 
 /* 设置行 */
-.cfg-m-group{margin-bottom:8px}
+.cfg-m-group{display:none;margin-bottom:8px}
+.cfg-m-group.active{display:block}
 .cfg-m-row{display:flex;justify-content:space-between;align-items:center;
   padding:10px 0;border-bottom:1px solid var(--line)}
 .cfg-m-row:last-child{border-bottom:none}

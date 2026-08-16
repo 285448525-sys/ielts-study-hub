@@ -86,7 +86,7 @@ function renderCfgModal(){
 
   let html = '<div class="cfg-m-cols"><div class="cfg-m-sidebar">';
   for(const g of groups){
-    html += '<div class="cfg-m-cat"><span>'+g.icon+' '+g.name+'</span></div>';
+    html += '<div class="cfg-m-cat" data-cat="'+g.name+'"><span>'+g.icon+' '+g.name+'</span></div>';
   }
   html += '</div><div class="cfg-m-main">';
   for(const g of groups){
@@ -133,6 +133,17 @@ function renderCfgModal(){
       el.nextElementSibling.textContent = v + (el.dataset.unit || '');
     });
   });
+  // 左侧分类键点击切换（默认激活第一个分类「答题」）
+  body.querySelectorAll('.cfg-m-cat').forEach(el => {
+    el.addEventListener('click', () => switchCfgCat(el.dataset.cat));
+  });
+  switchCfgCat(groups[0].name);
+}
+
+// 点击左侧分类键 → 高亮该分类，仅显示对应模块设置
+function switchCfgCat(name){
+  document.querySelectorAll('.cfg-m-cat').forEach(el => el.classList.toggle('active', el.dataset.cat === name));
+  document.querySelectorAll('.cfg-m-group').forEach(el => el.classList.toggle('active', el.dataset.g === name));
 }
 
 // 联动：根据 showIf 依赖显隐（如「自动进入下一题」关闭 → 隐藏「跳转延迟」）

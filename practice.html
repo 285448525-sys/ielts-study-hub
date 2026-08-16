@@ -15,15 +15,15 @@
 
 <main class="container">
   <h1 class="page-title">单词练习</h1>
-  <p class="page-sub">从「我的词库」出题，支持看词选义、听义选义、默写听读音、闪卡和语料库。</p>
+  <p class="page-sub">从「我的词库」出题，支持看词选义、听义选义、默写听读音和闪卡。</p>
 
   <section class="card" id="modeSelect">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
       <h2 style="margin:0">选择练习模式</h2>
       <button class="btn btn-sm" id="cfgGear" title="练习设置">⚙️</button>
     </div>
-    <p class="muted" style="font-size:13px;margin-bottom:12px">从你的词库出题，支持 5 种练习方式</p>
-    <div class="grid" style="margin-top:12px">
+    <p class="muted" style="font-size:13px;margin-bottom:12px">从你的词库出题，支持 4 种练习方式</p>
+    <div class="grid" style="margin-top:12px;grid-template-columns:repeat(2,1fr)">
       <button class="btn mod-card" data-mode="flashcard">
         <div class="mod-icon">🔁</div>
         <div class="mod-body">
@@ -50,13 +50,6 @@
         <div class="mod-body">
           <div class="mod-title">单词听写</div>
           <div class="mod-desc">爱听写风格 · 逐字母批改</div>
-        </div>
-      </button>
-      <button class="btn mod-card" data-mode="corpus">
-        <div class="mod-icon" style="background:var(--mock-soft)">📋</div>
-        <div class="mod-body">
-          <div class="mod-title">语料库</div>
-          <div class="mod-desc">浏览全部单词列表</div>
         </div>
       </button>
     </div>
