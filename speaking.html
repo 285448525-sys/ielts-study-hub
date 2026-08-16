@@ -45,12 +45,31 @@
   .sp-tag.freq-medium{background:var(--mock);color:#fff;border-color:var(--mock)}
   .sp-tag.new{background:var(--primary);color:#fff;border-color:var(--primary)}
 
+  .sp-score-badge{font-size:12px;padding:2px 8px;border-radius:10px;margin-left:8px;vertical-align:1px;white-space:nowrap}
+  .sp-score-badge.good{background:var(--primary-soft);color:var(--med)}
+  .sp-score-badge.ok{background:rgba(245,158,11,.16);color:var(--warn)}
+  .sp-score-badge.low{background:var(--surface-2);color:var(--muted)}
+
+  .sp-score-header{display:flex;gap:14px;align-items:center;padding:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:14px}
+  .sp-score-total{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:64px}
+  .sp-score-num{font-size:32px;font-weight:700;color:var(--primary);line-height:1}
+  .sp-score-label{font-size:12px;color:var(--muted);margin-top:4px}
+  .sp-score-dims{display:flex;flex:1;gap:10px;justify-content:space-around}
+  .sp-score-dim{display:flex;flex-direction:column;align-items:center;gap:2px}
+  .sp-score-dim-val{font-size:18px;font-weight:700;color:var(--ink)}
+  .sp-score-dim-lab{font-size:12px;color:var(--muted)}
+  @media(max-width:480px){
+    .sp-score-header{flex-direction:column;align-items:flex-start;gap:10px}
+    .sp-score-dims{width:100%}
+  }
+
   /* 详情页 */
   .sp-detail-back{display:inline-flex;align-items:center;gap:4px;cursor:pointer;color:var(--primary);font-size:14px;margin-bottom:12px;font-weight:600}
   .sp-detail-back:hover{text-decoration:underline}
   .sp-detail-title{font-size:20px;font-weight:700;letter-spacing:-.01em}
   .sp-detail-zh{font-size:15px;color:var(--muted);margin-top:2px}
-  .sp-detail-tags{margin:10px 0 16px}
+  .sp-detail-tags{margin:10px 0 8px}
+  .sp-detail-best{font-size:12px;color:var(--primary);font-weight:600;margin-bottom:16px}
   .sp-questions{margin:0 0 16px;padding-left:20px;line-height:2;font-size:15px}
   .sp-questions li{color:var(--ink)}
   .sp-prompt{padding:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);margin-bottom:12px;font-size:15px;line-height:1.8}

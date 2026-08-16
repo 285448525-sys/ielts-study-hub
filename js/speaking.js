@@ -73,6 +73,53 @@ function tagsHtml(s){
   return html;
 }
 
+// === 口语分数解析与展示 ===
+function parseScore(score){
+  if(!score || score.overall == null) return null;
+  const n = v => { const x = parseFloat(v); return isNaN(x) ? null : x; };
+  return { overall: n(score.overall), fluency: n(score.fluency), pronunciation: n(score.pronunciation), vocabulary: n(score.vocabulary), grammar: n(score.grammar) };
+}
+function getBestScore(s){
+  if(!s || !s.answers) return null;
+  let best = null;
+  Object.values(s.answers).forEach(a => {
+    if(a && a.score && a.score.overall != null){
+      const v = parseFloat(a.score.overall);
+      if(!isNaN(v) && (best === null || v > best)) best = v;
+    }
+  });
+  return best;
+}
+function getScoreCount(s){
+  if(!s || !s.answers) return 0;
+  return Object.values(s.answers).filter(a => a && a.score && a.score.overall != null).length;
+}
+function scoreLabel(v){ return v == null ? '-' : (Math.round(v * 10) / 10).toFixed(v % 1 === 0 ? 0 : 1); }
+function scoreBadgeHtml(score, count){
+  if(score == null) return '';
+  const cls = score >= 5.5 ? 'sp-score-badge good' : (score >= 5 ? 'sp-score-badge ok' : 'sp-score-badge low');
+  const times = count > 1 ? ' · 练过' + count + '次' : '';
+  return '<span class="' + cls + '">' + (score >= 5.5 ? '✅ ' : '') + '最高 ' + scoreLabel(score) + '分' + times + '</span>';
+}
+function scoreHeaderHtml(score, title){
+  if(!score || score.overall == null) return '';
+  const dims = [
+    {k:'fluency',l:'流利度'},
+    {k:'pronunciation',l:'发音'},
+    {k:'vocabulary',l:'词汇'},
+    {k:'grammar',l:'语法'}
+  ];
+  let h = '<div class="sp-score-header">';
+  h += '<div class="sp-score-total"><span class="sp-score-num">' + scoreLabel(score.overall) + '</span><span class="sp-score-label">' + (title || '总分') + '</span></div>';
+  h += '<div class="sp-score-dims">';
+  dims.forEach(d => {
+    const v = score[d.k];
+    h += '<div class="sp-score-dim"><span class="sp-score-dim-val">' + scoreLabel(v) + '</span><span class="sp-score-dim-lab">' + d.l + '</span></div>';
+  });
+  h += '</div></div>';
+  return h;
+}
+
 function renderList(){
   const list = getFiltered();
   const container = $('#spList');
@@ -85,8 +132,10 @@ function renderList(){
   container.innerHTML = list.map(s => {
     const title = s.titleEn || s.title || '';
     const zh = s.titleZh || '';
+    const best = getBestScore(s);
+    const count = getScoreCount(s);
     return '<div class="sp-card" data-id="' + s.id + '">'
-      + '<div class="sp-card-title">' + escapeHtml(title) + '</div>'
+      + '<div class="sp-card-title">' + escapeHtml(title) + scoreBadgeHtml(best, count) + '</div>'
       + (zh ? '<div class="sp-card-zh">' + escapeHtml(zh) + '</div>' : '')
       + '<div class="sp-card-tags">' + tagsHtml(s) + '</div>'
       + '</div>';
@@ -108,6 +157,8 @@ function openDetail(id){
   let html = '<div class="sp-detail-title">' + escapeHtml(title) + '</div>';
   if(zh) html += '<div class="sp-detail-zh">' + escapeHtml(zh) + '</div>';
   html += '<div class="sp-detail-tags">' + tagsHtml(s) + '</div>';
+  const bestScore = getBestScore(s);
+  if(bestScore != null) html += '<div class="sp-detail-best">历史最高：' + scoreLabel(bestScore) + '分</div>';
 
   // P1 问题列表（逐题可点开 + 录 + 诊断）
   if(s.type === 'P1' && s.questions && s.questions.length){
@@ -268,12 +319,14 @@ var ctQuestions = [];   // [{q, a}]
 var SYS_DIAG =
   '你是雅思口语老师。考生：女生，大三CS在读，目标总分6.0、口语5.5；词汇量约4000，'
   + '需要地道但不过难、句型简单的英文（别用生僻词/复杂从句）。\n'
-  + '考生会给出自己对某个口语问题的回答（可能来自语音输入，可能有语法/用词错误）。请：\n'
-  + '1) 指出语法/用词错误：逐条给 原句 → 问题(中文简说，不堆术语) → 修改；没有错误就如实说很少。\n'
-  + '2) 在【不改动考生原本思路与想说内容】的前提下，给一版更地道、自然、符合其基础（简单句型、常见词汇）的英文重写。\n'
-  + '3) 给 1-2 个可积累的地道替换词/句型（同样简单）。\n'
+  + '考生会给出自己对某个口语问题的回答（可能来自语音输入，可能有语法/用词错误）。请完成：\n'
+  + '1) 按雅思口语四项评分标准（流利度与连贯性、发音、词汇资源、语法多样性及准确性）逐项打分（0-9，可含0.5），并给出总分 overall。\n'
+  + '2) 指出语法/用词错误：逐条给 原句 → 问题(中文简说，不堆术语) → 修改；没有错误就如实说很少。\n'
+  + '3) 在【不改动考生原本思路与想说内容】的前提下，给一版更地道、自然、符合其基础（简单句型、常见词汇）的英文重写。\n'
+  + '4) 给 1-2 个可积累的地道替换词/句型（同样简单）。\n'
   + '严格要求只输出如下 JSON（不要任何解释文字）：'
-  + '{"errors":[{"original":"考生原句中的问题片段","issue":"中文简说问题","fix":"修改后片段"}],'
+  + '{"score":{"overall":5.5,"fluency":6.0,"pronunciation":5.5,"vocabulary":5.0,"grammar":5.0},'
+  + '"errors":[{"original":"考生原句中的问题片段","issue":"中文简说问题","fix":"修改后片段"}],'
   + '"rewrite":"按原思路的地道简化英文重写","tips":["可积累替换/句型1","可积累替换/句型2"]}';
 
 var spRec = null; // 当前进行中的语音识别实例
@@ -281,15 +334,17 @@ var spRec = null; // 当前进行中的语音识别实例
 // P2 专用诊断提示词（语法纠错 + 串题素材连接）
 var SYS_DIAG_P2 =
   '你是雅思口语老师（专精 Part 2）。考生：女生，大三CS在读，目标总分6.0、口语5.5；词汇量约4000。'
-  + '考生会给出对一道 P2 题目的完整 2 分钟回答。请完成以下两项任务：\n'
-  + '1) 【语法纠错】逐条指出语法/用词错误：原句 → 问题(中文简说) → 修改；没有就如实说很少。\n'
-  + '2) 【串题素材连接】考生有若干"万能故事"素材（见用户消息末尾），请分析她的回答思路，然后具体建议：\n'
+  + '考生会给出对一道 P2 题目的完整 2 分钟回答。请完成以下任务：\n'
+  + '1) 【评分】按雅思口语四项评分标准（流利度与连贯性、发音、词汇资源、语法多样性及准确性）逐项打分（0-9，可含0.5），并给出总分 overall。\n'
+  + '2) 【语法纠错】逐条指出语法/用词错误：原句 → 问题(中文简说) → 修改；没有就如实说很少。\n'
+  + '3) 【串题素材连接】考生有若干"万能故事"素材（见用户消息末尾），请分析她的回答思路，然后具体建议：\n'
   + '   - 这个回答可以套用哪个/哪些已有万能素材？\n'
   + '   - 怎么调整措辞让素材更自然地嵌入这道题？\n'
   + '   - 如果当前回答没有用到任何素材，指出哪个素材最适合这道题并给一个嵌入示例。\n'
   + '另外给一版更地道的英文重写（简单句型为主），以及 1-2 个可积累替换。\n'
   + '严格要求只输出如下 JSON：'
-  + '{"errors":[{"original":"原句片段","issue":"问题","fix":"修改"}],'
+  + '{"score":{"overall":5.5,"fluency":6.0,"pronunciation":5.5,"vocabulary":5.0,"grammar":5.0},'
+  + '"errors":[{"original":"原句片段","issue":"问题","fix":"修改"}],'
   + '"rewrite":"地道简化英文重写",'
   + '"storyLink":"具体的串题素材连接建议（中文，2-4 行，告诉考生用哪个素材、怎么嵌到这道题里）",'
   + '"tips":["可积累1","可积累2"]}';
@@ -512,7 +567,7 @@ async function diagnoseAnswer(id, qi, questionText, answerText){
     const j = aiJson(content);
     renderDiag(resultEl, j, content);
     s.answers = s.answers || {};
-    s.answers[qi] = { text: answerText, result: (j ? JSON.stringify(j) : content), ts: Date.now() };
+    s.answers[qi] = { text: answerText, result: (j ? JSON.stringify(j) : content), ts: Date.now(), score: (j ? parseScore(j.score) : null) };
     hubSave();
   }catch(e){
     if(resultEl){
@@ -528,7 +583,8 @@ async function diagnoseAnswer(id, qi, questionText, answerText){
 // P2 诊断结构化渲染（语法纠错 + 地道优化 + 串题素材连接 + 可积累）
 function renderP2Diag(el, j){
   if(!j || !Array.isArray(j.errors)){ el.innerHTML = ''; return false; }
-  let h = '<div class="diag-sec"><b>① 语法/用词纠错</b>';
+  let h = (j.score ? scoreHeaderHtml(parseScore(j.score), '本次得分') : '');
+  h += '<div class="diag-sec"><b>① 语法/用词纠错</b>';
   h += j.errors.length
     ? j.errors.map(e => '<div class="diag-err"><span class="diag-orig">' + escapeHtml(e.original || '') + '</span> → <span class="diag-fix">' + escapeHtml(e.fix || '') + '</span><div class="diag-issue">' + escapeHtml(e.issue || '') + '</div></div>').join('')
     : '<div class="diag-ok">没发现明显语法错误～</div>';
@@ -580,7 +636,7 @@ async function diagnoseP2(id){
 
     // 存结果
     s.answers = s.answers || {};
-    s.answers.p2 = { text: answer, result: (j ? JSON.stringify(j) : content), ts: Date.now(), duration: p2TimerInterval ? ((Date.now() - p2TimerStart)/1000).toFixed(1) + 's' : p2LastDuration };
+    s.answers.p2 = { text: answer, result: (j ? JSON.stringify(j) : content), ts: Date.now(), duration: p2TimerInterval ? ((Date.now() - p2TimerStart)/1000).toFixed(1) + 's' : p2LastDuration, score: (j ? parseScore(j.score) : null) };
     hubSave();
 
   }catch(e){
@@ -594,6 +650,7 @@ async function diagnoseP2(id){
 
 // 渲染诊断结构化卡片
 function renderDiag(el, j, raw){
+  const scoreHtml = (j && j.score) ? scoreHeaderHtml(parseScore(j.score), '本题得分') : '';
   if(j && Array.isArray(j.errors) && j.rewrite){
     let h = '<div class="diag-sec"><b>① 语法/用词诊断</b>';
     h += j.errors.length
@@ -602,9 +659,9 @@ function renderDiag(el, j, raw){
     h += '</div>';
     h += '<div class="diag-sec"><b>② 按你思路的地道重写</b><div class="diag-rewrite">' + escapeHtml(j.rewrite) + '</div></div>';
     if(Array.isArray(j.tips) && j.tips.length) h += '<div class="diag-sec"><b>③ 可积累</b><ul>' + j.tips.map(t => '<li>' + escapeHtml(t) + '</li>').join('') + '</ul></div>';
-    el.innerHTML = h;
+    el.innerHTML = scoreHtml + h;
   } else {
-    el.innerHTML = '<div class="diag-note">（AI 返回非标准格式，已贴原文）</div><pre>' + escapeHtml(raw || '') + '</pre>';
+    el.innerHTML = scoreHtml + '<div class="diag-note">（AI 返回非标准格式，已贴原文）</div><pre>' + escapeHtml(raw || '') + '</pre>';
   }
   el.style.display = 'block';
 }
