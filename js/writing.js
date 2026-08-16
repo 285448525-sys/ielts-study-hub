@@ -1,6 +1,6 @@
-let curCat = null;
-let curId = null;
-let curTab = 'tpl';
+var curCat = null;
+var curId = null;
+var curTab = 'tpl';
 
 ready(() => {
   // Tab 切换

@@ -2,7 +2,7 @@
    - 'accuracy' 听/读：客观题，录「答对 / 总题数」，算正确率
    - 'score'    口/写：评分制，只录「得分 0–9（含 .5）」，算加权平均
    accuracy 的 part 带 defaultTotal（预填总题数）；score 的 part 带 weight（加权） */
-const MOCK_TYPES = {
+var MOCK_TYPES = {
   listening: { name:'听力', icon:'🎧', mode:'accuracy', color:'var(--mock)',
     parts:[ {label:'P1',defaultTotal:10},{label:'P2',defaultTotal:10},
             {label:'P3',defaultTotal:10},{label:'P4',defaultTotal:10} ] },
@@ -293,7 +293,7 @@ function partWeight(cfg, label){
 /* 模块 C：整卷客观题（听/读）按「答对率 → 雅思 band」近似估分。
    官方对照为 40 题满分制；若实际总题数不是 40，先按比例折算到 40 再查表。
    仅为练习参考，标签带「约」。口语/写作不估（评分制本身即 band）。 */
-const BAND_TABLE = {
+var BAND_TABLE = {
   reading: [ [39,9],[37,8.5],[35,8],[33,7.5],[30,7],[27,6.5],[23,6],[19,5.5],[15,5],[13,4.5],[10,4],[8,3.5],[6,3],[4,2.5] ],
   listening: [ [39,9],[37,8.5],[35,8],[32,7.5],[30,7],[26,6.5],[23,6],[18,5.5],[16,5],[13,4.5],[11,4],[8,3.5],[6,3],[4,2.5] ],
 };

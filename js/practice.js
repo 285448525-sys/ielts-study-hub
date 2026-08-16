@@ -1,10 +1,10 @@
-let pq = null; // {mode, queue, idx, total, correct, revealed, answer, dueList, wrongList}
+var pq = null; // {mode, queue, idx, total, correct, revealed, answer, dueList, wrongList}
 
 // 间隔重复（记忆曲线）各阶段间隔，单位：天；数组索引 = 记忆阶段
-const SRS_INTERVALS = [0, 1, 2, 4, 7, 15, 30, 60, 120];
+var SRS_INTERVALS = [0, 1, 2, 4, 7, 15, 30, 60, 120];
 
 // ======= 全局练习配置（爱听写风格：一切可自定义）=======
-const PC_DEFAULTS = {
+var PC_DEFAULTS = {
   rate: 0.9,          // 语速
   repeat: 1,          // 朗读次数（选择题默认1）
   dictRepeat: 3,      // 听写模式朗读次数（默认3）
@@ -382,7 +382,7 @@ function renderDictCard(body, cur){
 }
 
 // 朗读N次（按全局配置）
-let _speakTimers = [];
+var _speakTimers = [];
 /* Bug10：集中管理朗读定时器与语音，切题时 cancelSpeak 取消未播放的排队朗读，
    避免上一题的循环朗读跟下一题串台 */
 function cancelSpeak(){

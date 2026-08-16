@@ -8,7 +8,7 @@ ready(() => {
   renderWords();
 });
 
-let _lastAuto = '';   // 防止 blur + 回车 / 重复触发时重复处理同一个词
+var _lastAuto = '';   // 防止 blur + 回车 / 重复触发时重复处理同一个词
 
 async function autoAddWord({ fromBtn=false } = {}){
   const en = $('#wordEn').value.trim();

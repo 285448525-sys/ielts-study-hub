@@ -1,4 +1,4 @@
-let dict = null; // {queue, idx, cfg, wrongList, total, correct, revealed}
+var dict = null; // {queue, idx, cfg, wrongList, total, correct, revealed}
 
 ready(() => {
   $('#importCorpus').addEventListener('click', importBulk);

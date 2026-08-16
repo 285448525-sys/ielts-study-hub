@@ -1,48 +1,43 @@
 ready(() => {
-  const s = DATA.settings;
-  $('#userName').textContent = s.name || 'Camille';
-  $('#examDate').textContent = s.examDate || '--';
-  $('#targetOverall').textContent = (s.targets && s.targets.overall) || '6.0';
-  $('#goalHours').textContent = s.dailyGoalHours || 8;
+  // 仪表盘各卡片独立渲染：任一模块报错不影响其他模块，避免「整片空白」
+  const safe = fn => { try{ fn(); }catch(e){ console.error('[index] 渲染失败', fn.name || '', e); } };
 
-  const dLeft = daysUntil(s.examDate);
-  $('#daysLeft').textContent = dLeft === null ? '--' : (dLeft < 0 ? '已过' : dLeft);
+  safe(() => {
+    const s = DATA.settings;
+    $('#userName').textContent = s.name || 'Camille';
+    $('#examDate').textContent = s.examDate || '--';
+    $('#targetOverall').textContent = (s.targets && s.targets.overall) || '6.0';
+    $('#goalHours').textContent = s.dailyGoalHours || 8;
 
-  // today time
-  const tkey = todayKey();
-  const todays = DATA.sessions.filter(x => x.date === tkey);
-  const totalSec = todays.reduce((a,x) => a + x.durationSec, 0);
-  $('#todayTime').textContent = fmtHM(totalSec);
+    const dLeft = daysUntil(s.examDate);
+    $('#daysLeft').textContent = dLeft === null ? '--' : (dLeft < 0 ? '已过' : dLeft);
+  });
 
-  const goalSec = (s.dailyGoalHours || 8) * 3600;
-  $('#todayProgress').innerHTML = progressBar('今日进度', Math.min(100, totalSec/goalSec*100));
+  safe(() => {
+    const tkey = todayKey();
+    const todays = DATA.sessions.filter(x => x.date === tkey);
+    const totalSec = todays.reduce((a,x) => a + x.durationSec, 0);
+    $('#todayTime').textContent = fmtHM(totalSec);
 
-  // module pie chart
-  const bySub = {};
-  todays.forEach(x => bySub[x.subName] = (bySub[x.subName]||0) + x.durationSec);
-  if(Object.keys(bySub).length === 0){
-    $('#todayBars').innerHTML = renderEmpty('今天还没有学习记录，去「计时学习」开始吧。');
-  } else {
-    $('#todayBars').innerHTML = renderPieChart(bySub);
-  }
+    const goalSec = (DATA.settings.dailyGoalHours || 8) * 3600;
+    $('#todayProgress').innerHTML = progressBar('今日进度', Math.min(100, totalSec/goalSec*100));
 
-  // 快捷入口 = 侧边栏 ⭐ 收藏的页面
-  renderQuickLinks();
+    const bySub = {};
+    todays.forEach(x => bySub[x.subName] = (bySub[x.subName]||0) + x.durationSec);
+    if(Object.keys(bySub).length === 0){
+      $('#todayBars').innerHTML = renderEmpty('今天还没有学习记录，去「计时学习」开始吧。');
+    } else {
+      $('#todayBars').innerHTML = renderPieChart(bySub);
+    }
+  });
 
-  // favourite links
-  renderFavLinks();
+  safe(renderQuickLinks);
+  safe(renderFavLinks);
+  safe(renderStreak);
+  safe(renderReminders);
+  safe(renderMedSnippet);
 
-  // streak / check-in
-  renderStreak();
-
-  // smart reminders
-  renderReminders();
-
-  // meds
-  renderMedSnippet();
-
-  // summary button
-  try { const btn = $('#genSummaryBtn'); if(btn) btn.addEventListener('click', genSummary); } catch(e){}
+  safe(() => { const btn = $('#genSummaryBtn'); if(btn) btn.addEventListener('click', genSummary); });
 });
 
 function renderMedSnippet(){
@@ -64,8 +59,10 @@ function renderMedSnippet(){
   $('#medBar').innerHTML = `<div class="meds-bar-wrap"><div class="${cls}" style="width:${pct}%"></div></div>`;
 }
 
-/* 快捷入口：只渲染侧边栏 ⭐ 收藏过的页面（favPageIds() 与侧边栏「常用」同一份数据） */
-const QL_ACCENT = {
+/* 快捷入口：只渲染侧边栏 ⭐ 收藏过的页面（favPageIds() 与侧边栏「常用」同一份数据）
+   用 var 而非 const：软导航重新执行 index.js 时，const 重复声明会抛 SyntaxError
+   导致整段脚本中断，仪表盘大片内容消失。 */
+var QL_ACCENT = {
   timer:    ['var(--primary-soft)',        'var(--primary)'],
   plans:    ['var(--primary-soft)',        'var(--primary)'],
   errorbook:['rgba(239,68,68,0.10)',       'var(--danger)'],
@@ -102,6 +99,7 @@ function renderQuickLinks(){
 function renderFavLinks(){
   const links = DATA.settings.links || [];
   const box = $('#favLinks');
+  if(!box) return;
   if(links.length === 0){
     box.innerHTML = renderEmpty('常用网址被清空了') +
       '<div style="margin-top:10px"><button class="btn btn-primary" id="restoreLinksBtn">↺ 一键恢复默认常用网址</button></div>';

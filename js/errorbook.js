@@ -4,7 +4,7 @@
      title, subject, qtype, trap, howto:[], wrongPoint, rule:[], words:[], raw }
    兼容老数据 kind:'question' / 'word'（只读渲染，不再提供录入表单）。 */
 
-const EB_TRAPS = [
+var EB_TRAPS = [
   'FALSE与NOT GIVEN混淆', '定位错段/定位丢失', '同义替换没认出', '原词陷阱(原词重现)',
   '比较级/绝对化词', '目的vs手段', '细节看漏(时态/数字/限定词)', '听力连读没听出',
   '听力答案抢跑/漏听', '拼写', '生词不认识', '时间不够/没做完', '粗心', '其他'

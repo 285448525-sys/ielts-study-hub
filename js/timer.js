@@ -1,4 +1,4 @@
-let active = null; // {moduleId, moduleName, subId, subName, startTs, paused, pauseStart, pauseAccum}
+var active = null; // {moduleId, moduleName, subId, subName, startTs, paused, pauseStart, pauseAccum}
 
 /* ── 计时器心跳：必须挂在 window 上，不能存在 active 里 ──────────────────
    软导航（common.js runPageScript）用 window.eval 重跑本脚本，每次 eval 的

@@ -1,11 +1,11 @@
 /* === 口语题库（极简版） === */
-let curType = 'P1';
-let curFreq = 'all';
-let curCat = 'all';
-let curSearch = '';
-let curDetailId = null;
-const PF_LABEL = { '没练':0, '练过':1, '脱口而出':2 };
-const FREQ_ORDER = { ultra:0, must:1, high:2, medium:3, normal:4 };
+var curType = 'P1';
+var curFreq = 'all';
+var curCat = 'all';
+var curSearch = '';
+var curDetailId = null;
+var PF_LABEL = { '没练':0, '练过':1, '脱口而出':2 };
+var FREQ_ORDER = { ultra:0, must:1, high:2, medium:3, normal:4 };
 
 ready(() => {
   $('#tabs').querySelectorAll('[data-type]').forEach(b => {
@@ -229,7 +229,7 @@ async function aiAssist(id){
 }
 
 /* === P2 串题（AI 问→写故事→覆盖矩阵） === */
-let ctQuestions = [];   // [{q, a}]
+var ctQuestions = [];   // [{q, a}]
 
 function ctTemplates(){
   // 用户已有 P2 母本素材（真实经历），作为写故事的基础
