@@ -109,9 +109,9 @@ function bindSidebar(){
         : DATA.settings.fav.concat(id);
       hubSave();
       injectNav();
-      // 仪表盘「快捷入口」= 收藏列表，收藏一变立刻同步
-      if(typeof renderQuickLinks === 'function') renderQuickLinks();
-      // 同时广播事件，让当前页（若停仪表盘）就地刷新，避免依赖跨页全局函数
+      // 收藏列表变更：统一走 hub:favchange 事件让仪表盘「快捷入口」就地刷新。
+      // 不再直接调 renderQuickLinks —— 软导航后该函数可能指向旧 eval 作用域（B 窗口已确认偶发失效），
+      // 且直接调用若抛错会阻塞下方事件广播。事件由 index.js 监听、读取最新 DATA 重绘，最稳。
       document.dispatchEvent(new CustomEvent('hub:favchange'));
     };
     star.addEventListener('click', toggleFav);
@@ -636,4 +636,7 @@ function prefetchNeighbors(id){
   });
 }
 
-ready(() => { hubLoad(); injectNav(); applyTheme(); restoreSideScroll(); initSoftNav(); });
+ready(() => { hubLoad(); injectNav(); applyTheme(); restoreSideScroll(); initSoftNav();
+  // 计时保存后刷新侧边栏「今日已学」（侧边栏在所有页面可见，需即时更新）
+  document.addEventListener('hub:session-saved', () => injectNav());
+});

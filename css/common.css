@@ -287,7 +287,7 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 .hero{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
 @media(max-width:680px){.hero{grid-template-columns:1fr}}
 .hero-card{padding:20px}
-.hero-count{font-size:42px;font-weight:800;color:var(--primary);line-height:1}
+.hero-count{font-size:50px;font-weight:800;color:var(--primary);line-height:1;text-shadow:0 2px 10px rgba(29,78,216,.28);background:linear-gradient(135deg,var(--primary-soft),transparent);border-radius:14px;padding:10px 18px;display:inline-block}
 .hero-label{color:var(--muted);font-size:14px;margin-top:4px}
 
 /* plans */

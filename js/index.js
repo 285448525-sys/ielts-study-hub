@@ -43,6 +43,25 @@ ready(() => {
   window.__hubFavChange = () => safe(renderQuickLinks);
   document.removeEventListener('hub:favchange', window.__hubFavChange);
   document.addEventListener('hub:favchange', window.__hubFavChange);
+
+  // 计时保存后自动刷新「今日已学」时长 + 进度条 + 饼图（无需手动 F5）
+  window.__hubSessionSaved = () => safe(() => {
+    const tkey = todayKey();
+    const todays = DATA.sessions.filter(x => x.date === tkey);
+    const totalSec = todays.reduce((a,x) => a + x.durationSec, 0);
+    const te = $('#todayTime'); if(te) te.textContent = fmtHM(totalSec);
+    const goalSec = (DATA.settings.dailyGoalHours || 8) * 3600;
+    const pb = $('#todayProgress'); if(pb) pb.innerHTML = progressBar('今日进度', Math.min(100, totalSec/goalSec*100));
+    const bySub = {};
+    todays.forEach(x => bySub[x.subName] = (bySub[x.subName]||0) + x.durationSec);
+    const tb = $('#todayBars');
+    if(tb){
+      if(Object.keys(bySub).length === 0) tb.innerHTML = renderEmpty('今天还没有学习记录，去「计时学习」开始吧。');
+      else tb.innerHTML = renderPieChart(bySub);
+    }
+  });
+  document.removeEventListener('hub:session-saved', window.__hubSessionSaved);
+  document.addEventListener('hub:session-saved', window.__hubSessionSaved);
 });
 
 function renderMedSnippet(){

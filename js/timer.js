@@ -126,6 +126,8 @@ function stopSession(){
                    // 否则下次进页面会被当成「未结束的计时」按旧 startTs 恢复，
                    // 再结束一次就重复入库、时长虚高。
   hubSave();
+  // 通知仪表盘/侧边栏刷新「今日已学」（解耦：只广播事件，不直接调其他页函数）
+  document.dispatchEvent(new CustomEvent('hub:session-saved', { detail: { date: todayKey() } }));
   const d = active; active = null;
   $('#activeInfo').textContent = '当前没有进行中的学习';
   $('#focusInfo').textContent = '';
