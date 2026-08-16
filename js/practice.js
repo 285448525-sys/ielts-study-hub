@@ -500,7 +500,7 @@ function showDictResult(cur, userVal, ok, skipped){
   const c = pc();
   const box = $('#dictResult');
   if(!pq.wrongList) pq.wrongList = [];
-  if(!ok) pq.wrongList.push({ en:cur.en, cn:cur.cn||'', tag:cur.tag||'', user: userVal, skipped });
+  if(!ok) pq.wrongList.push({ en:cur.en, cn:cur.cn||'', user: userVal, skipped });
 
   // 逐字母比对
   let charHtml;
@@ -531,7 +531,7 @@ function showDictResult(cur, userVal, ok, skipped){
       ${!skipped && !ok ? '<div class="muted" style="font-size:12px;margin-top:2px">你写的：</div>'+charHtml : charHtml}
       <div class="dict-answer">
         <div class="dict-ans-en">${escapeHtml(cur.en)}</div>
-        <div class="dict-ans-cn">${escapeHtml(cur.cn||'')}${cur.tag?'<span class="badge" style="margin-left:8px">'+escapeHtml(cur.tag)+'</span>':''}</div>
+        <div class="dict-ans-cn">${escapeHtml(cur.cn||'')}</div>
       </div>
       <div class="dict-result-actions">
         <button class="btn" id="playAgainBtn">🔊 再听一遍</button>
@@ -600,7 +600,7 @@ function finishPractice(){
       bodyHtml += '<div class="card" style="margin-top:14px;background:rgba(248,113,113,.04);border:1px solid rgba(248,113,113,.2)">' +
         '<h3 style="margin:0 0 10px;color:var(--danger)">错词列表（'+wrong.length+' 个）</h3><div>' + wrong.map((w,i) =>
           '<div class="list-item">' +
-            '<span><b style="font-size:15px">'+escapeHtml(w.en)+'</b>'+(w.cn?' <span class="muted">'+escapeHtml(w.cn)+'</span>':'')+(w.tag?' <span class="badge">'+escapeHtml(w.tag)+'</span>':'')+'</span>' +
+            '<span><b style="font-size:15px">'+escapeHtml(w.en)+'</b>'+(w.cn?' <span class="muted">'+escapeHtml(w.cn)+'</span>':'')+'</span>' +
             '<span style="text-align:right">'+(w.skipped?'<span class="badge down">跳过</span>':('<span class="muted" style="font-size:12px">你写：'+escapeHtml(w.user||'(空)')+'</span>'))+'</span>' +
             '<span class="list-actions"><button class="btn btn-sm" data-replay="'+i+'">🔊</button></span>' +
           '</div>').join('') + '</div></div>';
@@ -670,14 +670,11 @@ function addDays(dateStr, n){
   return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
 }
 function pickWrong(correct, n){
-  // Bug8：保证返回 n 个不重复且与正确答案不同的干扰项（必要时跨 tag 取词）
+  // 从词库中随机挑选 n 个与正确答案不同的干扰项
   const seen = new Set([correct.en.toLowerCase()]);
-  const pool = DATA.words.filter(w => !seen.has(w.en.toLowerCase()));
-  const sameTag = shuffle(pool.filter(w => w.tag && w.tag === correct.tag));
-  const rest = shuffle(pool.filter(w => !(w.tag && w.tag === correct.tag)));
-  const cand = sameTag.concat(rest);
+  const pool = shuffle(DATA.words.filter(w => !seen.has(w.en.toLowerCase())));
   const uniq = [];
-  for(const w of cand){
+  for(const w of pool){
     if(seen.has(w.en.toLowerCase())) continue;
     seen.add(w.en.toLowerCase());
     uniq.push(w);
