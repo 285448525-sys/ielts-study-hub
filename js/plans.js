@@ -278,19 +278,32 @@ async function aiWeekPlan(){
   const weak = computeWeak();
   const latest = DATA.scores.slice().sort((a,b)=>b.date.localeCompare(a.date))[0];
   const t = DATA.settings.targets || {};
+  const dailyHours = DATA.settings.dailyGoalHours || 8;
+  const dLeft = daysUntil(DATA.settings.examDate);
   const weakStr = weak.map(w => w.name + (w.gap >= 0 ? (' 差' + w.gap) : ' 已达标')).join('、');
   const latestStr = latest ? ('听' + latest.listening + '/读' + latest.reading + '/写' + latest.writing + '/口' + latest.speaking) : '暂无';
   const targetStr = '听' + (t.listening||5.5) + '/读' + (t.reading||6.5) + '/写' + (t.writing||5.5) + '/口' + (t.speaking||5.5);
 
-  const sys = '你是雅思备考周计划教练。考生给出本周想完成的任务清单，请你按 7 天合理分配。'
-    + '原则：① 弱项科目（听、口通常最弱）要多排、优先排；② 每天 2-4 个任务，避免超载；③ 同类任务分散到不同天，避免疲劳；'
-    + '④ 结合考生每日例行：词库复习 20 词、服专注达（把最难任务放在上午药效窗口）。'
-    + '输出严格 JSON：{"days":[{"focus":"当天主题（如 听力突破 / 混合 / 写作）","tasks":["任务1","任务2"...]}]}，'
-    + 'days 长度必须为 7（顺序从今天起连续 7 天）。只输出 JSON，不要解释。';
-  const user = '本周想完成的任务：\n' + tasks.map((x,i)=>(i+1)+'. '+x).join('\n')
-    + '\n\n弱项排序（差得最多在前）：' + weakStr
-    + '\n最近模考：' + latestStr + '\n目标：' + targetStr
-    + '\n\n请分配成 7 天计划（JSON），把上面清单里的任务全都安排进去，并适当补充弱项练习，每天 2-4 个。';
+  const sys = '你是资深雅思备考计划教练。考生会给出本周想完成的任务清单，请你按 7 天合理分配，必须严格遵守以下规则：\n'
+    + '1. 每天学习总时长必须接近 ' + dailyHours + ' 小时（后台设置的目标时长），只少不多、尽量填满。每个任务后面要标注预估分钟数。\n'
+    + '2. 模考、刷题、复盘是强链接：任何听力/阅读/写作/口语的模考或大量刷题之后，必须紧接着安排对应的错题复盘或精听/精读分析，不能拖到另一天。\n'
+    + '3. 对雅思题量要有清晰认知，不能一天塞满一个完整模块：\n'
+    + '   - 口语 P1 题库约 30-40 题，应拆到多天，每天 4-6 题；\n'
+    + '   - 口语 P2 题库约 50 个话题，应拆到多天，每天 1-2 个话题并练习说满 2 分钟；\n'
+    + '   - 口语 P3 跟随当天 P2 进行，不要单独一天过完；\n'
+    + '   - 听力 1 套 = 4 sections，阅读 1 套 = 3 passages，写作 1 套 = Task1 + Task2；\n'
+    + '   - 如果用户说"过一遍题库"，必须按 7 天拆分，绝不能一天完成。\n'
+    + '4. 弱项科目（差分多的）优先多排、排在上午药效窗口；简单机械任务（背单词、泛听）放下午/晚上。\n'
+    + '5. 用户清单里的所有任务必须全部分配进 7 天，不能遗漏；如果用户列得多，就提高每天密度，但仍受 ' + dailyHours + ' 小时上限约束。\n'
+    + '6. 每天 4-8 个任务，每个任务控制在 25-60 分钟；避免只写"模考"这种大词，要拆成"模考+复盘"或"模考 Section 1-2 + 复盘"。\n'
+    + '7. 结合每日例行：词库复习 20 词（约 15min）、专注达药效窗口内安排最难任务。\n'
+    + '输出严格 JSON：{"days":[{"focus":"当天主题（如 听力突破 / 混合 / 写作）","tasks":["任务1（约xx分钟）","任务2（约xx分钟）",...]}]}。days 长度必须为 7（从今天起连续 7 天）。只输出 JSON，不要解释。';
+  const user = '本周想完成的任务清单（必须全部分配到 7 天）：\n' + tasks.map((x,i)=>(i+1)+'. '+x).join('\n')
+    + '\n\n考生画像：\n弱项排序（差得最多在前）：' + weakStr
+    + '\n最近模考：' + latestStr + '\n目标分数：' + targetStr
+    + '\n每天目标学习时长：' + dailyHours + ' 小时'
+    + (dLeft !== null && dLeft > 0 ? '\n距考试 ' + dLeft + ' 天' : '')
+    + '\n\n请分配成 7 天计划（JSON）。特别注意事项：\n- 刷题/模考后必须紧跟复盘；\n- 口语题库要按天拆分，一天只能过一部分；\n- 每天总时长控制在 ' + dailyHours + ' 小时左右；\n- 每个任务标注预估分钟数。';
 
   $('#weekBox').innerHTML = '<div class="card"><div class="muted">正在让 AI 排周计划…</div></div>';
   try{
