@@ -462,7 +462,9 @@ async function syncLoginOrRegister(){
       syncSetStatus('✅ 注册成功，数据已上传云端', 'ok');
       renderSyncState();
     } else if(probe.ok){
-      // 登录：云端已有数据 → 直接下载并覆盖本机（恢复之前的数据）
+      // 登录：云端已有数据 → 先确认再覆盖本机，与 cloudDownload 一致，
+      // 避免本机有未同步的新增（刚加的词/错题）被云端旧数据静默抹掉
+      if(!confirm('云端已有该手机号的数据，登录将用云端数据覆盖本机全部数据，确定继续？\n建议先点「导出 JSON」备份本机数据。')) return;
       const [res2, data] = await syncApi('GET');
       if(data && data.data){
         DATA = Object.assign({ sessions:[], notes:[], meds:[], words:[], plans:[], corpus:[], scores:[], errorbook:[], energy:[], checkins:[], settings:{} }, data.data);

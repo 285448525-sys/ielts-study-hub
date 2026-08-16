@@ -145,11 +145,11 @@ window.AI_PROMPTS = {
     },
     dailyplan: {
       title: '每日计划',
-      params: ['今天状态', '昨天遗留', 'n1', 'n2'],
+      params: ['今天状态', '昨天遗留', 'n1', 'examLabel'],
       body:
 `【今日安排】今天状态：{今天状态}
 昨天遗留：{昨天遗留}
-剩余天数：距 8/25 考试 {n1} 天（距 9/13 主目标 {n2} 天）
+剩余天数：距你设置的考试日期（{examLabel}）还有 {n1} 天。
 
 给我今天的安排，格式：
 1. 今日大事（3-5 件，按优先级）：每件一句话说清"做什么+做多少算完"（如"阅读 P1 一篇，20 分钟计时，做完对答案"）
@@ -163,13 +163,13 @@ window.AI_PROMPTS = {
     },
     weekly: {
       title: '模考/周复盘',
-      params: ['成绩', '本周记录', 'n2'],
+      params: ['成绩', '本周记录', 'examLabel'],
       body:
 `【复盘】本次成绩：{成绩}（目标：听5.5 读6.5 写5.5 口5.5，总分6.0）
 本周学习记录：{本周记录}
 
 输出：
-1. 结论先行：距 9/13 目标，当前最大风险是哪一科（用差距数据说话，别客气）
+1. 结论先行：距你设置的考试日期（{examLabel}）目标，当前最大风险是哪一科（用差距数据说话，别客气）
 2. 对比上次：哪些是真进步（有记录支撑才算）、哪些是波动（单次不可靠）
 3. 本周记录里的"没做完"逐项判断：属于"意愿在但时间/精力没跟上"还是"做了没吸收"？两种的处理方式不同，分开列。
 4. 下周侧重：最多 2 个科目优先级调整建议 + 为什么
@@ -198,10 +198,11 @@ const PAGE_SCENES = {
 /* daysUntil / toast 已由 common.js 定义为全局函数，此处不重复声明，避免覆盖 */
 function collectParams(sceneId) {
   const p = Object.assign({}, window.AI_CONTEXT || {});
-  // 天数自动算（dailyplan / weekly）
+  // 天数自动算（dailyplan / weekly）：以设置里的考试日期为准，不再写死
+  const exam = (DATA.settings && DATA.settings.examDate) || '';
   if (sceneId === 'dailyplan' || sceneId === 'weekly') {
-    if (p.n1 == null) p.n1 = daysUntil('2026-08-25');
-    if (p.n2 == null) p.n2 = daysUntil('2026-09-13');
+    if (p.n1 == null) p.n1 = exam ? daysUntil(exam) : '—';
+    if (p.examLabel == null) p.examLabel = exam || '未设置';
   }
   // 口语页：当前打开的题卡/话题
   if (sceneId === 'p1' || sceneId === 'p2') {
