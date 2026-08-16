@@ -4,7 +4,6 @@ var curFreq = 'all';
 var curCat = 'all';
 var curSearch = '';
 var curDetailId = null;
-var PF_LABEL = { '没练':0, '练过':1, '脱口而出':2 };
 var FREQ_ORDER = { ultra:0, must:1, high:2, medium:3, normal:4 };
 
 ready(() => {
@@ -134,20 +133,6 @@ function openDetail(id){
   html += '<button class="btn btn-primary" id="aiAssistBtn" style="margin-bottom:12px">AI 辅助</button>';
   html += '<div class="sp-ai-result" id="aiResult"></div>';
 
-  // 编辑区
-  html += '<div class="sp-field"><label>Cue / 复述线</label><textarea id="d_cue">' + escapeHtml(s.cue || '') + '</textarea></div>';
-  html += '<div class="sp-field"><label>完整素材</label><textarea id="d_content" style="min-height:100px">' + escapeHtml(s.content || '') + '</textarea></div>';
-  html += '<div class="sp-field"><label>关键词</label><input id="d_keywords" value="' + escapeHtml(s.keywords || '') + '" /></div>';
-  html += '<div class="sp-field"><label>串题关系</label><input id="d_linked" value="' + escapeHtml(s.linkedTo || '') + '" /></div>';
-
-  // 熟练度
-  html += '<div class="pf-btns">';
-  ['没练','练过','脱口而出'].forEach(p => {
-    const active = (s.proficiency || '没练') === p ? ' active' : '';
-    html += '<button class="' + active + '" data-pf="' + p + '">' + p + '</button>';
-  });
-  html += '</div>';
-
   // 保存
   html += '<div class="sp-detail-actions"><button class="btn btn-primary" id="saveBtn">保存</button><button class="btn btn-danger" id="delSpBtn">删除此题</button></div>';
 
@@ -160,27 +145,13 @@ function openDetail(id){
     if(confirm('确定删除这个口语题？删除后默认题库升级也不会再恢复它。')) deleteSpeaking(id);
   });
   $('#aiAssistBtn').addEventListener('click', () => aiAssist(id));
-  document.querySelectorAll('.pf-btns button[data-pf]').forEach(b => {
-    b.addEventListener('click', () => {
-      document.querySelectorAll('.pf-btns button[data-pf]').forEach(x => x.classList.remove('active'));
-      b.classList.add('active');
-    });
-  });
 
   // 逐题展开 + 语音 + AI 诊断 事件绑定（含 localStorage 回填）
   bindQuestionEvents(id);
 }
 
 function saveDetail(id){
-  const s = DATA.speaking.find(x => x.id === id);
-  if(!s) return;
-  s.cue = $('#d_cue').value;
-  s.content = $('#d_content').value;
-  s.keywords = $('#d_keywords').value;
-  s.linkedTo = $('#d_linked').value;
-  const pfBtn = document.querySelector('.pf-btns button.active');
-  if(pfBtn) s.proficiency = pfBtn.dataset.pf;
-  hubSave();
+  // 详情页已无编辑字段，保存仅作确认提示（数据由每题 AI 诊断结果就地存储）
   toast('已保存');
 }
 
