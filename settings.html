@@ -59,7 +59,10 @@
       <div style="flex:none;align-self:flex-end"><button class="btn btn-primary" id="saveRelay">保存</button></div>
       <div style="flex:none;align-self:flex-end"><button class="btn" id="testAiBtn">测试连接</button></div>
     </div>
-    <p class="muted">获取 Key：<a href="https://platform.deepseek.com" target="_blank" rel="noopener">platform.deepseek.com</a>（注册送免费额度，国内直连免翻墙）。Key 只存在你的浏览器本地。</p>
+    <div class="form-row">
+      <div style="flex:3"><label>自定义接口地址（可选，留空用内置 DeepSeek）</label><input id="sRelayUrl" placeholder="https://你的中转代理/v1" autocomplete="off" /></div>
+    </div>
+    <p class="muted">获取 Key：<a href="https://platform.deepseek.com" target="_blank" rel="noopener">platform.deepseek.com</a>（注册送免费额度，国内直连免翻墙）。Key 只存在你的浏览器本地。如需走自建 / 中转代理，填上面的自定义接口地址即可覆盖内置地址。</p>
     <p id="aiStatus" class="muted" style="margin:6px 0 0"></p>
   </section>
 

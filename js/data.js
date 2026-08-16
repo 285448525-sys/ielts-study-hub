@@ -550,6 +550,25 @@ let DATA = {
 };
 
 let _hubLoaded = false;
+/* 深合并：默认值基准，用户数据覆盖。
+   - 对象字段递归合并；
+   - 数组字段整体替换（不合并元素，避免新旧数组合并出重复/脏数据）；
+   - 顶层字段以默认值为准，旧用户缺的字段自动补上，不会 undefined。 */
+function deepMergeDefaults(def, user){
+  if(user == null || typeof user !== 'object') return def;
+  const out = Array.isArray(def) ? def.slice() : Object.assign({}, def);
+  for(const k of Object.keys(user)){
+    const uv = user[k];
+    if(uv == null) continue;
+    if(typeof uv === 'object' && !Array.isArray(uv) && typeof def[k] === 'object' && def[k] !== null){
+      out[k] = deepMergeDefaults(def[k], uv);
+    } else {
+      out[k] = uv;
+    }
+  }
+  return out;
+}
+
 function hubLoad(){
   if(_hubLoaded) return;   // 幂等：每次真实页面加载只解析一次 localStorage（data.js 求值 + common.js ready 两处调用只生效一次）
   _hubLoaded = true;
@@ -557,30 +576,29 @@ function hubLoad(){
     const raw = localStorage.getItem(HUB_KEY);
     if(raw){
       const parsed = JSON.parse(raw);
-      DATA = Object.assign({}, DATA, parsed);
-      DATA.settings = Object.assign({}, DATA.settings, (parsed && parsed.settings) || {});
+      // 深合并：默认值为基准，用户数据覆盖；数组字段整体替换，顶层缺字段自动补
+      DATA = deepMergeDefaults(DATA, parsed);
     }
-    // 兼容旧备份：确保数组字段存在，避免 addMock / render 报错
-    DATA.mockRecords = DATA.mockRecords || [];
-    DATA.checkins = DATA.checkins || [];
-    DATA.scores = DATA.scores || [];
-    DATA.errorbook = DATA.errorbook || [];
-    DATA.energy = DATA.energy || [];
-    DATA.speaking = DATA.speaking || [];
-    DATA.writing = DATA.writing || [];
-    DATA.writingScores = DATA.writingScores || [];
-    DATA.speakingStories = DATA.speakingStories || [];
-    // 题库迁移：旧用户 localStorage 里没有 SPEAKING_BANK 的题目，按 id 补入
+    // 兜底：确保所有数组字段非 undefined（极端损坏数据时也不崩）
+    const arrayFields = ['sessions','notes','meds','words','plans','corpus','scores','errorbook',
+      'energy','checkins','speaking','writing','writingScores','speakingStories','mockRecords'];
+    for(const f of arrayFields){ if(!Array.isArray(DATA[f])) DATA[f] = []; }
+    if(!DATA.settings || typeof DATA.settings !== 'object') DATA.settings = {};
+    // 题库迁移：仅补用户缺失的题目；用户手动删过的 id 记入 deletedSpeakingIds，不再恢复
     if(SPEAKING_BANK && SPEAKING_BANK.length){
+      const deletedIds = new Set(DATA.settings.deletedSpeakingIds || []);
       const existingIds = new Set(DATA.speaking.map(s => s.id));
-      const missing = SPEAKING_BANK.filter(s => !existingIds.has(s.id));
+      const missing = SPEAKING_BANK.filter(s => !existingIds.has(s.id) && !deletedIds.has(s.id));
       if(missing.length) DATA.speaking = missing.concat(DATA.speaking);
     }
   }catch(e){ console.warn('读取本地数据失败', e); }
 }
 
 function hubSave(){
-  try{ localStorage.setItem(HUB_KEY, JSON.stringify(DATA)); }
+  try{
+    DATA._lastSaved = Date.now();   // 记录本机保存时间，供云端下载比对新旧（Bug17）
+    localStorage.setItem(HUB_KEY, JSON.stringify(DATA));
+  }
   catch(e){ alert('保存失败：浏览器存储不可用，请用「历史/设置」导出备份。'); }
   // 云端自动同步（防抖）：仅当开启且已生成登录码；失败静默，不弹 toast
   if(typeof scheduleCloudUpload === 'function') scheduleCloudUpload();
@@ -611,7 +629,12 @@ function fmtHM(sec){
 }
 
 /* 容错：AI 返回的字段可能是数字/undefined，统一转字符串再转义，避免整页渲染崩掉 */
-function escapeHtml(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function escapeHtml(s){ return String(s == null ? '' : s)
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;'); }
 
 function findSub(subId){
   for(const m of MODULES){ const c = m.children.find(c => c.id === subId); if(c) return {m,c}; }

@@ -80,10 +80,13 @@ const server = http.createServer(async (req, res) => {
 
   let raw = '';
   try{
-    for await (const chunk of req) raw += chunk;
-    if(raw.length > 2 * 1024 * 1024){ // 防过大请求
-      res.writeHead(413, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: '请求体过大' })); return;
+    for await (const chunk of req) {
+      raw += chunk;
+      if(raw.length > 2 * 1024 * 1024){ // 防过大请求：逐块判断，超限立即返回，不累积到内存
+        res.writeHead(413, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '请求体过大' }));
+        return;
+      }
     }
     const r = JSON.parse(raw || '{}');
     const service = r.service;
@@ -109,14 +112,27 @@ const server = http.createServer(async (req, res) => {
     const temperature = (typeof r.temperature === 'number') ? r.temperature
                       : (cfg.temperature != null ? cfg.temperature : 0.7);
 
-    const upstreamRes = await fetch(upstream, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfg.key },
-      body: JSON.stringify({ model: model, messages: messages, temperature: temperature })
-    });
-    const text = await upstreamRes.text();
-    res.writeHead(upstreamRes.status, { 'Content-Type': 'application/json' });
-    res.end(text);
+    // 上游转发加超时，避免上游无响应时连接永久挂起、占用事件循环
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000); // 60s 超时
+    try{
+      const upstreamRes = await fetch(upstream, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfg.key },
+        body: JSON.stringify({ model: model, messages: messages, temperature: temperature }),
+        signal: controller.signal
+      });
+      clearTimeout(timeout);
+      const text = await upstreamRes.text();
+      res.writeHead(upstreamRes.status, { 'Content-Type': 'application/json' });
+      res.end(text);
+    }catch(e){
+      clearTimeout(timeout);
+      if(e && e.name === 'AbortError'){
+        res.writeHead(504, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '上游接口超时' }));
+      }else throw e;
+    }
   }catch(e){
     res.writeHead(500, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: '中转服务内部错误：' + (e && e.message ? e.message : e) }));

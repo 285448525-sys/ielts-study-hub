@@ -13,6 +13,7 @@ ready(() => {
   $('#tSpeaking').value = t.speaking || 5.5;
 
   $('#sRelayToken').value = s.relayToken || '';
+  $('#sRelayUrl').value = s.relayUrl || '';
 
   $('#sSyncCode').value = s.syncCode || '';
   $('#sNotify').checked = !!s.notifyEnabled;
@@ -79,8 +80,9 @@ function saveSettings(){
 
 function saveRelay(){
   DATA.settings.relayToken = $('#sRelayToken').value.trim();
+  DATA.settings.relayUrl = $('#sRelayUrl').value.trim();
   hubSave();
-  toast(DATA.settings.relayToken ? '已保存 DeepSeek Key' : '已清空 Key');
+  toast(DATA.settings.relayToken ? '已保存 AI 接口配置' : '已清空 Key');
 }
 
 /* 测试连接：用输入框里的 Key 探活 DeepSeek，成功即自动保存 */
@@ -124,7 +126,18 @@ function importData(file){
   const r = new FileReader();
   r.onload = () => { try{
     const obj = JSON.parse(r.result);
-    DATA = Object.assign({sessions:[],notes:[],meds:[],words:[],plans:[],corpus:[],scores:[],errorbook:[],energy:[],settings:{}}, obj);
+    // Bug14：校验根对象，缺失数组字段用默认值补齐，避免导入后字段丢失/崩溃
+    if(!obj || typeof obj !== 'object' || Array.isArray(obj)){ toast('文件格式错误（根必须是对象）'); return; }
+    const def = { sessions:[], notes:[], meds:[], words:[], plans:[], corpus:[], scores:[],
+      errorbook:[], energy:[], checkins:[], speaking:[], speakingStories:[],
+      writing:[], writingScores:[], mockRecords:[] };
+    const merged = Object.assign({}, def, obj);   // 用新对象，保留 def 纯净，后续兜底才能用回默认空数组
+    for(const f of ['sessions','notes','meds','words','plans','corpus','scores','errorbook',
+      'energy','checkins','speaking','writing','writingScores','speakingStories','mockRecords']){
+      if(!Array.isArray(merged[f])) merged[f] = def[f];
+    }
+    merged.settings = Object.assign({}, DATA.settings || {}, obj.settings || {});
+    DATA = merged;
     hubSave(); location.reload();
   }catch(e){ toast('文件格式错误'); } };
   r.readAsText(file);
@@ -179,7 +192,13 @@ function renderLinks(){
 
 function resetData(){
   if(confirm('⚠️ 确定清空所有数据？此操作不可恢复，请先导出备份。')){
-    DATA = { sessions:[], notes:[], meds:[], words:[], settings: DATA.settings };
+    // Bug13：初始化全部顶层数组，避免清空后字段丢失导致页面报错
+    DATA = {
+      sessions:[], notes:[], meds:[], words:[], plans:[], corpus:[], scores:[],
+      errorbook:[], energy:[], checkins:[], speaking:[], speakingStories:[],
+      writing:[], writingScores:[], mockRecords:[],
+      settings: DATA.settings
+    };
     hubSave(); toast('已清空数据'); setTimeout(() => location.reload(), 600);
   }
 }

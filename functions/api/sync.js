@@ -67,9 +67,20 @@ export async function onRequest(context) {
   }
 
   if (request.method === 'PUT' || request.method === 'POST') {
+    // 先读原始字节，限制请求体大小，防止超大 JSON 耗尽 Worker 内存 / KV 写入配额
+    const MAX_BODY = 5 * 1024 * 1024; // 5MB
+    let buf;
+    try {
+      buf = await request.arrayBuffer();
+    } catch (e) {
+      return json({ ok: false, error: '读取请求体失败' }, 400);
+    }
+    if (buf.byteLength > MAX_BODY) {
+      return json({ ok: false, error: '请求体超过 5MB 限制' }, 413);
+    }
     let body;
     try {
-      body = await request.json();
+      body = JSON.parse(new TextDecoder().decode(buf));
     } catch (e) {
       return json({ ok: false, error: '请求体不是合法 JSON' }, 400);
     }
@@ -78,7 +89,7 @@ export async function onRequest(context) {
     }
     const stored = {
       data: body.data,
-      ts: body.ts || Date.now(),
+      ts: (body.ts != null && !isNaN(Number(body.ts))) ? Number(body.ts) : Date.now(),
       deviceId: body.deviceId || null,
       updatedAt: new Date().toISOString(),
     };

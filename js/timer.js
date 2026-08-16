@@ -166,7 +166,12 @@ ready(() => {
     if(saved.moduleId) m = MODULES.find(x => x.id === saved.moduleId);
     if(!m && saved.subId){ const f = findSub(saved.subId); if(f){ m = f.m; fallbackSub = f.c.name; } }
   }
-  if(m && todayKey(new Date(saved.startTs)) === todayKey()){
+  const startDay = todayKey(new Date(saved.startTs));
+  const sameDay = startDay === todayKey();
+  const modName = m ? m.name : (saved.moduleId || '学习');
+  const subName = fallbackSub || modName;
+
+  if(m && sameDay){
     active = { moduleId: m.id, moduleName: m.name, subId: m.id, subName: fallbackSub || m.name,
       startTs: saved.startTs, paused: saved.paused || false, pauseStart: saved.pauseStart || null,
       pauseAccum: saved.pauseAccum || 0 };
@@ -179,6 +184,45 @@ ready(() => {
     updateTimer();
     renderTimer();
     toast('已恢复未结束的计时：' + m.name + (active.paused ? '（暂停中）' : ''));
+    return;
+  }
+  // Bug11：跨天计时不再丢弃，自动结算昨天那段时长，今天从 0 点重新计时
+  if(saved && !sameDay){
+    const startOfToday = new Date(); startOfToday.setHours(0,0,0,0);
+    const endPrev = startOfToday.getTime();
+    let pauseMsPrev = saved.pauseAccum || 0;
+    if(saved.paused && saved.pauseStart) pauseMsPrev += (endPrev - saved.pauseStart);
+    const totalSec = Math.max(0, Math.round((endPrev - saved.startTs)/1000));
+    const pauseSec = Math.min(totalSec, Math.max(0, Math.round(pauseMsPrev/1000)));
+    const durationSec = Math.max(0, totalSec - pauseSec);
+    if(durationSec > 0){
+      DATA.sessions.push({
+        id: uid(), date: startDay, moduleId: saved.moduleId, subId: saved.subId,
+        moduleName: modName, subName,
+        startTs: saved.startTs, endTs: endPrev, durationSec, pauseSec
+      });
+      hubSave();
+    }
+    if(m){
+      active = { moduleId: m.id, moduleName: modName, subId: saved.subId, subName: subName,
+        startTs: startOfToday.getTime(), paused: false, pauseStart: null, pauseAccum: 0 };
+      saveActive({ moduleId: m.id, subId: saved.subId, startTs: startOfToday.getTime(),
+        paused: false, pauseStart: null, pauseAccum: 0 });
+      $('#activeInfo').innerHTML = '<strong>' + modName + '</strong> 进行中';
+      $('#stopBtn').disabled = false;
+      $('#pauseBtn').disabled = false;
+      $('#pauseBtn').textContent = '暂停';
+      $('#pauseBtn').className = 'btn';
+      toast('检测到跨天计时：已结算昨天 ' + fmtHM(durationSec) + '，并从今天 0 点继续计时');
+      startTick();
+      updateTimer();
+      renderTimer();
+      return;
+    }
+    // 原模块已不存在：只结算昨天那段，清掉活动会话
+    if(durationSec > 0) toast('检测到跨天计时：已结算昨天 ' + fmtHM(durationSec) + '（原模块已不存在，今日计时已清零）');
+    clearActive();
+    renderTimer();
     return;
   }
   if(saved) clearActive();

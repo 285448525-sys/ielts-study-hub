@@ -150,6 +150,7 @@ function showDueList(){
 }
 
 function resetPractice(){
+  cancelSpeak();
   pq = null;
   $('#practiceArea').hidden = true;
   $('#progBarWrap').hidden = true;
@@ -164,11 +165,13 @@ function autoAdvance(){
   const c = pc();
   if(!c.autoNext) { $('#nextBtn').hidden = false; return; }
   $('#nextBtn').hidden = true;
-  setTimeout(() => { if(pq && pq.revealed){ pq.idx++; nextQuestion(); } }, c.autoNextDelay);
+  const idx = pq.idx;  // Bug9：记录本次题目索引，避免用户手动切题后定时器仍误增 idx 跳过题目
+  setTimeout(() => { if(pq && pq.revealed && pq.idx === idx){ pq.idx++; nextQuestion(); } }, c.autoNextDelay);
 }
 
 function nextQuestion(){
   if(!pq) return;
+  cancelSpeak();
   $('#nextBtn').hidden = true;
   const body = $('#practiceBody');
   const mode = pq.mode;
@@ -379,17 +382,26 @@ function renderDictCard(body, cur){
 }
 
 // 朗读N次（按全局配置）
+let _speakTimers = [];
+/* Bug10：集中管理朗读定时器与语音，切题时 cancelSpeak 取消未播放的排队朗读，
+   避免上一题的循环朗读跟下一题串台 */
+function cancelSpeak(){
+  _speakTimers.forEach(t => clearTimeout(t));
+  _speakTimers = [];
+  try{ window.speechSynthesis.cancel(); }catch(e){}
+}
 function speakN(text){
   const c = pc();
+  cancelSpeak();
   try{
-    window.speechSynthesis.cancel();
     let n = 0;
     const run = () => {
       if(n++ >= c.repeat) return;
       const u = new SpeechSynthesisUtterance(text);
       u.lang = 'en-US'; u.rate = c.rate;
       window.speechSynthesis.speak(u);
-      setTimeout(run, c.intervalMs);
+      const t = setTimeout(run, c.intervalMs);
+      _speakTimers.push(t);
     };
     run();
   }catch(e){}
@@ -398,15 +410,16 @@ function speakN(text){
 function playWord(text){
   const c = pc();
   const rep = dictRepeat();
+  cancelSpeak();
   try{
-    window.speechSynthesis.cancel();
     let n = 0;
     const run = () => {
       if(n++ >= rep) return;
       const u = new SpeechSynthesisUtterance(text);
       u.lang = 'en-US'; u.rate = c.rate;
       window.speechSynthesis.speak(u);
-      setTimeout(run, c.intervalMs);
+      const t = setTimeout(run, c.intervalMs);
+      _speakTimers.push(t);
     };
     run();
   }catch(e){}
@@ -415,11 +428,13 @@ function playWord(text){
 function markDictSkip(cur){
   if(pq.revealed) return;
   pq.revealed = true; pq.total++;
+  cancelSpeak();
   showDictResult(cur, '', false, true);
 }
 
 function checkDictation(cur){
   if(pq.revealed) return; pq.revealed = true; pq.total++;
+  cancelSpeak();
   const c = pc();
   const val = ($('#dictInput').value || '').trim();
   const ok = c.caseSensitive ? val === cur.en : val.toLowerCase() === cur.en.toLowerCase();
@@ -442,23 +457,14 @@ function showDictResult(cur, userVal, ok, skipped){
       cur.en.split('').map(ch => '<span class="ch correct">'+escapeHtml(ch)+'</span>').join('') +
       '</div>';
   } else {
+    // Bug19：用 LCS 对齐参考词与用户拼写，准确标出 匹配 / 多写 / 漏写 的字母
     const ref = cur.en.split(''), usr = userVal.split('');
-    const out = [];
-    let i=0, j=0;
-    while(i<ref.length && j<usr.length){
-      if(ref[i].toLowerCase() === usr[j].toLowerCase()){
-        out.push({ch:usr[j], ok:true}); i++; j++;
-      } else {
-        out.push({ch:usr[j], ok:false, extra:false});
-        j++;
-      }
-    }
-    while(j<usr.length){ out.push({ch:usr[j], ok:false}); j++; }
-    const missing = ref.slice(i);
-    charHtml = '<div class="spell-row">' +
-      out.map(x => '<span class="ch '+(x.ok?'correct':'wrong')+'">'+escapeHtml(x.ch)+'</span>').join('') +
-      (missing.length ? missing.map(m => '<span class="ch miss">'+escapeHtml(m)+'</span>').join('') : '') +
-      '</div>';
+    const aligned = lcsSpell(ref, usr);
+    charHtml = '<div class="spell-row">' + aligned.map(x => {
+      if(x.ok) return '<span class="ch correct">'+escapeHtml(x.usr)+'</span>';
+      if(x.missing) return '<span class="ch miss">'+escapeHtml(x.ref)+'</span>';
+      return '<span class="ch wrong">'+escapeHtml(x.usr)+'</span>';
+    }).join('') + '</div>';
     charHtml += '<div class="muted" style="font-size:12px;margin-top:6px">参考拼写：' +
       ref.map(ch => '<span class="ch ref">'+escapeHtml(ch)+'</span>').join('') + '</div>';
   }
@@ -491,6 +497,27 @@ function showDictResult(cur, userVal, ok, skipped){
 }
 
 function onNext(){ pq.idx++; nextQuestion(); }
+
+/* 听写拼写比对：基于最长公共子序列（LCS）对齐参考词与用户拼写，
+   逐字母标出 匹配 / 多写(extra) / 漏写(missing)，比逐位贪心比对更准确（Bug19） */
+function lcsSpell(refArr, usrArr){
+  const a = refArr.map(c => c.toLowerCase());
+  const b = usrArr.map(c => c.toLowerCase());
+  const n = a.length, m = b.length;
+  const dp = Array.from({length: n+1}, () => new Array(m+1).fill(0));
+  for(let i=n-1;i>=0;i--) for(let j=m-1;j>=0;j--)
+    dp[i][j] = (a[i]===b[j]) ? dp[i+1][j+1]+1 : Math.max(dp[i+1][j], dp[i][j+1]);
+  const res = [];
+  let i=0, j=0;
+  while(i<n && j<m){
+    if(a[i]===b[j]){ res.push({ ok:true, usr: usrArr[j], ref: refArr[i] }); i++; j++; }
+    else if(dp[i+1][j] >= dp[i][j+1]){ res.push({ ok:false, missing:true, ref: refArr[i] }); i++; }
+    else { res.push({ ok:false, extra:true, usr: usrArr[j] }); j++; }
+  }
+  while(i<n){ res.push({ ok:false, missing:true, ref: refArr[i] }); i++; }
+  while(j<m){ res.push({ ok:false, extra:true, usr: usrArr[j] }); j++; }
+  return res;
+}
 function finishPractice(){
   const acc = pq.total ? Math.round(pq.correct / pq.total * 100) : 0;
   const unknown = (pq.total||0) - (pq.correct||0);
@@ -589,10 +616,20 @@ function addDays(dateStr, n){
   return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
 }
 function pickWrong(correct, n){
-  const pool = DATA.words.filter(w => w.en !== correct.en);
+  // Bug8：保证返回 n 个不重复且与正确答案不同的干扰项（必要时跨 tag 取词）
+  const seen = new Set([correct.en.toLowerCase()]);
+  const pool = DATA.words.filter(w => !seen.has(w.en.toLowerCase()));
   const sameTag = shuffle(pool.filter(w => w.tag && w.tag === correct.tag));
   const rest = shuffle(pool.filter(w => !(w.tag && w.tag === correct.tag)));
-  return sameTag.concat(rest).slice(0, n);
+  const cand = sameTag.concat(rest);
+  const uniq = [];
+  for(const w of cand){
+    if(seen.has(w.en.toLowerCase())) continue;
+    seen.add(w.en.toLowerCase());
+    uniq.push(w);
+    if(uniq.length >= n) break;
+  }
+  return uniq;
 }
 function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
 function speak(text, lang){ try{ const u=new SpeechSynthesisUtterance(text); u.lang=lang; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u);}catch(e){} }

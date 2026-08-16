@@ -80,11 +80,11 @@ async function importBulk(){
     let en = '', cn = '';
     const cjk = line.search(/[一-鿿]/);
     if(cjk >= 0){
-      const eng = line.slice(0, cjk).match(/[A-Za-z][A-Za-z'.\-]*/);
+      const eng = line.slice(0, cjk).match(/[A-Za-z][A-Za-z'.\-]*(?:\s+[A-Za-z][A-Za-z'.\-]*)*/);
       en = eng ? eng[0].trim() : '';
       cn = line.slice(cjk).replace(/^[\s，,：:：\-—()（）/|]+/, '').replace(/[\s，,：:：\-—()（）/|]+$/, '').trim();
     } else {
-      const eng = line.match(/[A-Za-z][A-Za-z'.\-]*/);
+      const eng = line.match(/[A-Za-z][A-Za-z'.\-]*(?:\s+[A-Za-z][A-Za-z'.\-]*)*/);
       en = eng ? eng[0].trim() : '';
     }
     if(!en) return;

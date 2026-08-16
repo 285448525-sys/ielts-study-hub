@@ -148,12 +148,16 @@ function openDetail(id){
   html += '</div>';
 
   // 保存
-  html += '<div class="sp-detail-actions"><button class="btn btn-primary" id="saveBtn">保存</button></div>';
+  html += '<div class="sp-detail-actions"><button class="btn btn-primary" id="saveBtn">保存</button><button class="btn btn-danger" id="delSpBtn">删除此题</button></div>';
 
   $('#detailBody').innerHTML = html;
 
   // 绑定事件
   $('#saveBtn').addEventListener('click', () => saveDetail(id));
+  const delSpBtn = document.getElementById('delSpBtn');
+  if(delSpBtn) delSpBtn.addEventListener('click', () => {
+    if(confirm('确定删除这个口语题？删除后默认题库升级也不会再恢复它。')) deleteSpeaking(id);
+  });
   $('#aiAssistBtn').addEventListener('click', () => aiAssist(id));
   document.querySelectorAll('.pf-btns button[data-pf]').forEach(b => {
     b.addEventListener('click', () => {
@@ -174,6 +178,21 @@ function saveDetail(id){
   if(pfBtn) s.proficiency = pfBtn.dataset.pf;
   hubSave();
   toast('已保存');
+}
+
+/* === 删除口语题（记录到黑名单，题库升级不再恢复）=== */
+function deleteSpeaking(id){
+  const s = DATA.speaking.find(x => x.id === id);
+  if(!s) return;
+  DATA.speaking = DATA.speaking.filter(x => x.id !== id);
+  DATA.settings.deletedSpeakingIds = DATA.settings.deletedSpeakingIds || [];
+  if(!DATA.settings.deletedSpeakingIds.includes(id)) DATA.settings.deletedSpeakingIds.push(id);
+  hubSave();
+  $('#detailView').hidden = true;
+  $('#listView').hidden = false;
+  curDetailId = null;
+  renderList();
+  toast('已删除该口语题（不再被默认题库恢复）');
 }
 
 /* === AI 辅助 === */

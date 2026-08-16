@@ -46,6 +46,13 @@ function addScore(){
   const date = $('#scoreDate').value || todayKey();
   const l = $('#scL').value, r = $('#scR').value, w = $('#scW').value, s = $('#scS').value;
   if(l === '' || r === '' || w === '' || s === ''){ toast('四项分数都要填'); return; }
+  // Bug12：校验范围 0–9 且为 0.5 的整数倍
+  const vals = [l, r, w, s];
+  for(const v of vals){
+    const n = Number(v);
+    if(isNaN(n) || n < 0 || n > 9){ toast('分数必须在 0–9 之间'); return; }
+    if(Math.abs(n * 2 - Math.round(n * 2)) > 1e-9){ toast('分数须为 0.5 的整数倍（如 5.5、6.0）'); return; }
+  }
   DATA.scores.push({
     id: uid(), date,
     listening: Number(l), reading: Number(r), writing: Number(w), speaking: Number(s),

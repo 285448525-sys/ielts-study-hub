@@ -273,15 +273,11 @@ async function scoreEssay(){
 
   try{
     const content = await callRelay('writing_score', messages, 0.4);
-    let result;
-    try{
-      // 尝试提取 JSON
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      result = JSON.parse(jsonMatch ? jsonMatch[0] : content);
-    }catch(e){
+    // Bug18：复用 aiJson 解析（已处理 ```json 围栏与前后废话），避免重复解析逻辑
+    const result = aiJson(content);
+    if(!result){
       // JSON 解析失败，降级显示原始文本
       bodyEl.innerHTML = '<div class="score-section"><h4>AI 返回（非标准格式）</h4><div style="white-space:pre-wrap;font-size:14px;line-height:1.8">' + escapeHtml(content) + '</div></div>';
-      // 保存记录
       DATA.writingScores.push({ id: uid(), date: todayKey(), type, essay, result: content, parsed: false });
       hubSave();
       btn.disabled = false; btn.textContent = '开始评分';

@@ -258,15 +258,19 @@ function renderEmpty(msg){ return `<div class="empty">${msg}</div>`; }
 const AI_BASE = 'https://api.deepseek.com/v1';
 const AI_MODEL = 'deepseek-chat';
 async function callRelay(service, messages, temperature){
-  const key = DATA.settings.relayToken || '';
+  const s = DATA.settings || {};
+  const key = s.relayToken || '';
   if(!key){ throw new Error('未配置 API Key（去「设置 / AI 接口」填写）'); }
-  const url = AI_BASE + '/chat/completions';
+  // 支持自定义接口地址（自建 / 中转代理）；留空则使用内置 DeepSeek
+  const base = (s.relayUrl || '').trim().replace(/\/+$/, '') || AI_BASE;
+  const model = (s.relayModel || '').trim() || AI_MODEL;
+  const url = base + '/chat/completions';
   const headers = {
     'Content-Type': 'application/json',
     'Authorization': 'Bearer ' + key
   };
   const body = {
-    model: AI_MODEL,
+    model: model,
     messages: messages,
     temperature: (temperature == null) ? 0.7 : temperature,
     stream: false
@@ -372,6 +376,13 @@ async function cloudDownload(){
     if(res.status === 404){ toast('云端没有该手机号的数据'); return false; }
     if(!res.ok) throw new Error('HTTP ' + res.status);
     if(!data || !data.data) throw new Error('返回格式异常');
+    // Bug17：云端不是最新（不比本机新）时不要覆盖本机更新的数据
+    const cloudTs = (data.ts != null && !isNaN(Number(data.ts))) ? Number(data.ts) : 0;
+    const localTs = DATA._lastSaved || 0;
+    if(cloudTs && localTs && cloudTs <= localTs){
+      toast('云端数据不是最新（本机有更新的修改），已跳过下载');
+      return false;
+    }
     if(!confirm('从云端下载会覆盖本机全部数据，确定继续？\n建议先点「导出 JSON」备份。')) return false;
     DATA = Object.assign({ sessions:[], notes:[], meds:[], words:[], plans:[], corpus:[], scores:[], errorbook:[], energy:[], checkins:[], settings:{} }, data.data);
     hubSave(); location.reload();
@@ -525,7 +536,7 @@ function onHubPopState(){
 }
 
 async function softNavigate(t, isPop){
-  if(_softNavBusy) return;
+  if(_softNavBusy){ if(typeof toast === 'function') toast('页面切换中，请稍候…'); return; }
   _softNavBusy = true;
   try{
     if(window.matchMedia && window.matchMedia('(max-width:860px)').matches){ document.body.classList.remove('nav-open'); syncNavToggle(); }
