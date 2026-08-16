@@ -104,6 +104,32 @@ function deleteItem(id){
   hubSave(); render();
 }
 
+function startEdit(id){
+  const p = getPlan(currentDate()); if(!p) return;
+  const it = p.items.find(i => i.id === id); if(!it) return;
+  const span = document.querySelector('.plan-text[data-id="' + id + '"]');
+  if(!span) return;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'plan-input';
+  input.value = it.text;
+  input.dataset.editId = id;
+  span.replaceWith(input);
+  input.focus();
+  input.select();
+
+  function finish(save){
+    const v = input.value.trim();
+    if(save && v && v !== it.text){ it.text = v; hubSave(); }
+    render();
+  }
+  input.addEventListener('blur', () => finish(true), {once:true});
+  input.addEventListener('keydown', e => {
+    if(e.key === 'Enter'){ e.preventDefault(); finish(true); }
+    else if(e.key === 'Escape'){ e.preventDefault(); finish(false); }
+  });
+}
+
 function render(){
   const date = currentDate();
   const p = getPlan(date);
@@ -124,12 +150,17 @@ function render(){
     box.innerHTML = items.map(i => `
       <div class="plan-item ${i.done ? 'done' : ''}">
         <input type="checkbox" ${i.done ? 'checked' : ''} data-toggle="${i.id}" />
-        <span class="plan-text">${escapeHtml(i.text)}</span>
+        <span class="plan-text" data-id="${i.id}" title="点击编辑">${escapeHtml(i.text)}</span>
+        <button class="plan-edit" data-edit="${i.id}" title="编辑">✎</button>
         <button class="plan-del" data-del="${i.id}" title="删除">✕</button>
       </div>
     `).join('');
     box.querySelectorAll('input[data-toggle]').forEach(c =>
       c.addEventListener('change', () => toggleItem(c.dataset.toggle)));
+    box.querySelectorAll('.plan-text[data-id]').forEach(s =>
+      s.addEventListener('click', () => startEdit(s.dataset.id)));
+    box.querySelectorAll('button[data-edit]').forEach(b =>
+      b.addEventListener('click', () => startEdit(b.dataset.edit)));
     box.querySelectorAll('button[data-del]').forEach(b =>
       b.addEventListener('click', () => deleteItem(b.dataset.del)));
   }

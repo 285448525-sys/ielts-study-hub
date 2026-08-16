@@ -344,10 +344,16 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 .plan-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px dashed var(--line)}
 .plan-item:first-child{border-top:none}
 .plan-item input[type=checkbox]{width:18px;height:18px;flex:none;accent-color:var(--primary);cursor:pointer}
-.plan-text{flex:1;font-size:14px;word-break:break-word}
+.plan-text{flex:1;font-size:14px;word-break:break-word;cursor:pointer;border-radius:var(--radius-sm);padding:2px 4px;margin:-2px -4px;transition:background .15s,color .15s}
+.plan-text:hover{color:var(--primary);background:var(--primary-soft)}
 .plan-item.done .plan-text{text-decoration:line-through;color:var(--muted)}
-.plan-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;flex:none}
-.plan-del:hover{color:var(--danger)}
+.plan-item.done .plan-text:hover{color:var(--primary)}
+.plan-edit,.plan-del{background:none;border:none;cursor:pointer;font-size:16px;flex:none;padding:2px 6px;border-radius:var(--radius-sm);transition:background .15s,color .15s}
+.plan-edit{color:var(--primary);margin-right:2px}
+.plan-edit:hover{color:#fff;background:var(--primary)}
+.plan-del{color:var(--muted)}
+.plan-del:hover{color:var(--danger);background:rgba(248,113,113,.1)}
+.plan-input{flex:1;font-size:14px;padding:6px 8px;border:1px solid var(--primary);border-radius:var(--radius-sm);background:var(--surface);color:var(--ink);outline:none;box-shadow:0 0 0 3px var(--primary-soft)}
 .hist-plan{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-top:1px dashed var(--line);cursor:pointer}
 .hist-plan:hover{color:var(--primary)}
 
