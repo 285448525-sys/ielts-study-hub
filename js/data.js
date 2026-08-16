@@ -517,6 +517,9 @@ let DATA = {
     dailyGoalHours: 8,
     targets: { overall: 6.0, listening: 5.5, reading: 6.5, writing: 5.5, speaking: 5.5 },
     relayToken: '',
+    visionToken: '',
+    visionBase: '',
+    visionModel: '',
     syncCode: '',
     autoSync: true,
     links: DEFAULT_LINKS

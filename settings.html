@@ -59,6 +59,21 @@
     </div>
     <p class="muted">获取 Key：<a href="https://platform.deepseek.com" target="_blank" rel="noopener">platform.deepseek.com</a>（注册送免费额度，国内直连免翻墙）。Key 只存在你的浏览器本地。如需走自建 / 中转代理，填上面的自定义接口地址即可覆盖内置地址。</p>
     <p id="aiStatus" class="muted" style="margin:6px 0 0"></p>
+
+    <hr style="border:none;border-top:1px solid var(--line);margin:18px 0" />
+    <h3 style="font-size:15px;margin:0 0 6px">👁 视觉模型（截图识别用）</h3>
+    <p class="muted">错题截图识别走独立的视觉模型（默认通义千问 Qwen-VL，国内直连免翻墙），与上面的 DeepSeek 文本 Key 分开。填一个视觉 Key 即可，图片只在本地压缩后发给视觉模型，不经其他服务器。</p>
+    <div class="form-row">
+      <div style="flex:3"><label>视觉模型 API Key</label><input id="sVisionToken" type="password" placeholder="sk-xxxxxx（DashScope）" autocomplete="off" /></div>
+      <div style="flex:none;align-self:flex-end"><button class="btn btn-primary" id="saveVision">保存</button></div>
+      <div style="flex:none;align-self:flex-end"><button class="btn" id="testVisionBtn">测试连接</button></div>
+    </div>
+    <div class="form-row">
+      <div style="flex:3"><label>自定义接口地址（可选，留空用内置 Qwen-VL）</label><input id="sVisionUrl" placeholder="https://你的中转代理/v1" autocomplete="off" /></div>
+      <div style="flex:1"><label>模型（可选）</label><input id="sVisionModel" placeholder="qwen-vl-plus" autocomplete="off" /></div>
+    </div>
+    <p class="muted">获取 Key：<a href="https://dashscope.console.aliyun.com" target="_blank" rel="noopener">阿里云百炼 DashScope</a>（开通视觉模型即得 Key，国内直连）。Key 只存在你的浏览器本地。</p>
+    <p id="visionStatus" class="muted" style="margin:6px 0 0"></p>
   </section>
 
   <section class="card">

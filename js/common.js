@@ -257,6 +257,11 @@ function renderEmpty(msg){ return `<div class="empty">${msg}</div>`; }
    （统一用 deepseek-chat，service 仅作语义标记，不影响调用）。 */
 const AI_BASE = 'https://api.deepseek.com/v1';
 const AI_MODEL = 'deepseek-chat';
+/* 视觉模型中继（截图识别专用，独立于 DeepSeek 文本链路）。
+   默认走通义千问视觉 Qwen-VL（阿里云百炼 DashScope），OpenAI 兼容、国内直连。
+   Key 只存在浏览器本地 localStorage（visionToken），不经服务器。 */
+const VISION_BASE = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
+const VISION_MODEL = 'qwen-vl-plus';   // 更强可换 qwen-vl-max
 async function callRelay(service, messages, temperature){
   const s = DATA.settings || {};
   const key = s.relayToken || '';
@@ -288,6 +293,41 @@ async function callRelay(service, messages, temperature){
   }
   if(j && typeof j.content === 'string') return j.content;
   throw new Error('AI 接口返回格式异常（缺少 choices[0].message.content）');
+}
+
+/* 视觉模型中继：构造 OpenAI 兼容的多模态消息，图片以 base64 data URL 内联。
+   与 callRelay 解耦——视觉走独立的 visionToken（Qwen-VL），不依赖 DeepSeek。 */
+async function callVisionRelay(service, messages, temperature){
+  const s = DATA.settings || {};
+  const key = s.visionToken || '';
+  if(!key){ throw new Error('未配置视觉模型 Key（去「设置 / AI 接口」填写）'); }
+  // 支持自定义接口地址（自建 / 中转代理）；留空则使用内置 Qwen-VL
+  const base = (s.visionBase || '').trim().replace(/\/+$/, '') || VISION_BASE;
+  const model = (s.visionModel || '').trim() || VISION_MODEL;
+  const url = base + '/chat/completions';
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer ' + key
+  };
+  const body = {
+    model: model,
+    messages: messages,
+    temperature: (temperature == null) ? 0.3 : temperature,
+    stream: false
+  };
+  const res = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
+  if(!res.ok){
+    let detail = '';
+    try{ const j = await res.json(); detail = (j && (j.error || j.detail || j.message || (j.error && j.error.message))) || ''; }catch(_){}
+    if(!detail){ try{ detail = (await res.text()).slice(0,200); }catch(_){} }
+    throw new Error('视觉接口返回 ' + res.status + (detail ? '：' + detail : ''));
+  }
+  const j = await res.json();
+  if(j && j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content != null){
+    return j.choices[0].message.content;
+  }
+  if(j && typeof j.content === 'string') return j.content;
+  throw new Error('视觉接口返回格式异常（缺少 choices[0].message.content）');
 }
 
 /* 从 AI 回复里抠出 JSON（模型常会带 ```json 围栏或前后废话）。
