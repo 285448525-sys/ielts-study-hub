@@ -3,6 +3,10 @@ var pq = null; // {mode, queue, idx, total, correct, revealed, answer, dueList, 
 // 间隔重复（记忆曲线）各阶段间隔，单位：天；数组索引 = 记忆阶段
 var SRS_INTERVALS = [0, 1, 2, 4, 7, 15, 30, 60, 120];
 
+// 墨墨式：单词难度(1易~10难) → 首次「认识」后的复习间隔(天)
+// 越简单首间隔越长，越难越短（贴合墨墨：认识简单词≈60天 / 难词≈1天）
+var MC_FIRST = {1:60,2:40,3:25,4:16,5:10,6:7,7:5,8:3,9:2,10:1};
+
 // ======= 全局练习配置（爱听写风格：一切可自定义）=======
 var PC_DEFAULTS = {
   rate: 0.9,          // 语速
@@ -163,6 +167,7 @@ function startPractice(mode){
   pq = { mode, queue: [], idx: 0, total: 0, correct: 0, revealed: false, answer: null, wrongList: [],
          mastery: {}, retrying: false, reviewQueue: [], countedWords: {}, correctWords: {}, missed: {} };
   if(mode === 'flashcard'){ startReview(); return; }
+  if(mode === 'mc'){ startMcReview(); return; }
   // 出题：按配置选词
   let pool = DATA.words.slice();
   if(c.shuffle) pool = shuffle(pool);
@@ -210,6 +215,43 @@ function showDueList(){
   $('#startReview').addEventListener('click', () => { $('#practiceBody').innerHTML=''; nextQuestion(); });
 }
 
+// ======= 墨墨式记忆曲线复习（独立模式 mc）=======
+function startMcReview(){
+  const due = mcDueWords();
+  $('#modeSelect').hidden = true;
+  $('#practiceArea').hidden = false;
+  $('#nextBtn').hidden = true;
+  $('#progBarWrap').hidden = true;
+  if(due.length === 0){
+    $('#practiceScore').textContent = '';
+    $('#practiceBody').innerHTML = '<div class="q-word">🎉 今天没有待复习的词</div>' +
+      '<div class="q-cn">按记忆曲线自动排程，去「我的词库」加词或明天再来。</div>';
+    return;
+  }
+  pq.dueList = due;
+  pq.queue = shuffle(due.slice());
+  showMcDueList();
+}
+function showMcDueList(){
+  const list = pq.dueList;
+  const byDiff = {};
+  list.forEach(w => { const d = w.mcDiff||5; byDiff[d] = (byDiff[d]||0)+1; });
+  const diffInfo = Object.keys(byDiff).sort((a,b)=>a-b).map(d => '难度'+d+' '+byDiff[d]+' 个').join(' · ');
+  $('#practiceScore').textContent = '待复习 '+list.length+' 个';
+  $('#practiceBody').innerHTML =
+    '<div class="q-word">今日待复习 '+list.length+' 个</div>' +
+    '<div class="q-cn">难度分布：'+(diffInfo||'新词')+'</div>' +
+    '<div style="margin-top:12px;text-align:left;max-height:320px;overflow:auto">' +
+      list.map(w => '<div class="list-item"><span><strong>'+escapeHtml(w.en)+'</strong>'+(w.cn?' <span class="muted">'+escapeHtml(w.cn)+'</span>':'')+'</span><span class="badge">难度'+(w.mcDiff||'新')+'</span></div>').join('') +
+    '</div>' +
+    '<button class="btn btn-primary" id="startReview" style="margin-top:14px">开始复习</button>';
+  $('#startReview').addEventListener('click', () => { $('#practiceBody').innerHTML=''; nextQuestion(); });
+}
+function mcDueWords(){
+  const today = todayKey();
+  return DATA.words.filter(w => !w.mcDue || w.mcDue <= today);
+}
+
 function resetPractice(){
   cancelSpeak();
   pq = null;
@@ -251,6 +293,28 @@ function nextQuestion(){
   if(['seeWord','hearMeaning'].includes(mode) && !pq.retrying && pq.reviewQueue.length && pq.idx > 0 && pq.idx % 3 === 0){
     const rw = pq.reviewQueue.shift();
     if(rw) pq.queue.splice(pq.idx + 1, 0, rw);
+  }
+
+  if(mode === 'mc'){
+    body.innerHTML = '<div class="q-word">'+escapeHtml(cur.en)+'</div>' +
+      (c.showCn ? '<div class="q-cn">'+escapeHtml(cur.cn||'')+'</div>' : '<button class="btn" id="revealBtn">显示释义</button>') +
+      '<div id="flashAns" style="margin-top:10px;color:var(--muted);font-size:18px"></div>' +
+      '<div id="judge" style="margin-top:14px;display:'+(c.showCn?'flex':'none')+';gap:10px;justify-content:center">' +
+        '<button class="btn btn-med" id="knownBtn">✅ 认识</button>' +
+        '<button class="btn btn-warn" id="fuzzyBtn">🤔 模糊</button>' +
+        '<button class="btn btn-danger" id="unknownBtn">❌ 不认识</button>' +
+      '</div>';
+    if(!c.showCn){
+      $('#revealBtn').addEventListener('click', () => {
+        $('#flashAns').textContent = cur.cn || '';
+        $('#judge').style.display = 'flex';
+        $('#revealBtn').hidden = true;
+      });
+    }
+    $('#knownBtn').addEventListener('click', () => applyMc(cur, 'known'));
+    $('#fuzzyBtn').addEventListener('click', () => applyMc(cur, 'fuzzy'));
+    $('#unknownBtn').addEventListener('click', () => applyMc(cur, 'unknown'));
+    return;
   }
 
   if(mode === 'flashcard'){
@@ -463,6 +527,45 @@ function applySrs(w, known){
   $('#revealBtn').hidden = true;
   $('#nextBtn').hidden = false; updateScore();
   toast(known ? ('已记为认识，下次复习 '+w.srsDue) : '已记为不认识，明天再练');
+}
+
+// ======= 墨墨式：三档自测反馈（认识 / 模糊 / 不认识）=======
+function applyMc(w, grade){            // grade: 'known' | 'fuzzy' | 'unknown'
+  if(pq.revealed) return;
+  pq.revealed = true; pq.total++;
+  const today = todayKey();
+  if(!w.mcDiff) w.mcDiff = 5;          // 默认中等难度
+  if(!w.mcEase) w.mcEase = 2.5;
+  if(grade === 'known'){
+    pq.correct++;
+    w.mcStreak = (w.mcStreak||0) + 1;
+    w.mcInterval = w.mcInterval
+      ? Math.round(w.mcInterval * w.mcEase)          // 非首次：按倍数拉长
+      : MC_FIRST[w.mcDiff];                           // 首次：按难度给首间隔
+    w.mcEase = Math.min(3.0, w.mcEase + 0.1);        // 越记越牢，增长越快
+    if(w.mcStreak % 3 === 0) w.mcDiff = Math.max(1, w.mcDiff - 1); // 连对→降难度
+  } else if(grade === 'fuzzy'){
+    w.mcStreak = 0;
+    w.mcDiff  = Math.min(10, w.mcDiff + 1);
+    w.mcEase  = 2.0;
+    w.mcInterval = Math.min(w.mcInterval || 3, 3);    // 模糊→收敛约3天，不膨胀
+  } else { // unknown
+    w.mcStreak = 0;
+    w.mcDiff  = Math.min(10, w.mcDiff + 2);           // 比想象中难→升难度
+    w.mcEase  = 2.5;
+    w.mcInterval = 1;                                 // 不认识→明天再来
+    w.mcLapses = (w.mcLapses||0) + 1;
+  }
+  w.mcDue  = addDays(today, w.mcInterval);
+  w.mcReps = (w.mcReps||0) + 1;
+  w.mcLast = today;
+  hubSave();
+  $('#flashAns').textContent = w.cn || '';
+  $('#judge').style.display = 'none';
+  $('#revealBtn').hidden = true;
+  $('#nextBtn').hidden = false; updateScore();
+  const label = grade==='known' ? '已掌握' : grade==='fuzzy' ? '有点模糊' : '未掌握';
+  toast(label + '，下次复习 ' + w.mcDue);
 }
 
 // ======= 听写（爱听写风格）=======
