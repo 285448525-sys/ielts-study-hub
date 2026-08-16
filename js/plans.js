@@ -4,9 +4,9 @@
 ready(() => {
   $('#planDate').value = todayKey();
   $('#planDate').addEventListener('change', render);
-  $('#todayBtn').addEventListener('click', () => { $('#planDate').value = todayKey(); render(); });
   $('#addPlan').addEventListener('click', addItem);
-  $('#planText').addEventListener('keydown', e => { if(e.key === 'Enter') addItem(); });
+  $('#aiPlan').addEventListener('click', aiPlanItem);
+  $('#planText').addEventListener('keydown', e => { if(e.key === 'Enter' && e.ctrlKey) addItem(); });
 
   // 每周 AI 排程
   $('#weekTasks').value = DATA.settings.weeklyTasks || '';
@@ -28,13 +28,67 @@ function ensurePlan(date){
 }
 
 function addItem(){
-  const text = $('#planText').value.trim();
-  if(!text){ toast('先写点计划内容'); return; }
+  const raw = $('#planText').value.trim();
+  if(!raw){ toast('先写点计划内容'); return; }
+  const lines = raw.split('\n').map(s => s.trim()).filter(Boolean);
+  if(!lines.length){ toast('先写点计划内容'); return; }
   const p = ensurePlan(currentDate());
-  p.items.push({ id: uid(), text, done: false });
+  lines.forEach(text => p.items.push({ id: uid(), text, done: false }));
   hubSave();
   $('#planText').value = '';
   render();
+  toast('已添加 ' + lines.length + ' 个任务');
+}
+
+/* AI 安排今天：根据用户输入的一句话目标 + 考生画像，生成今日任务清单 */
+async function aiPlanItem(){
+  const raw = $('#planText').value.trim();
+  if(!raw){ toast('先写一句今天想完成的目标'); return; }
+  if(!DATA.settings.relayToken){ toast('未配置 AI Key：请去「设置 / AI 接口」填写 DeepSeek Key'); return; }
+
+  const weak = computeWeak();
+  const latest = DATA.scores.slice().sort((a,b)=>b.date.localeCompare(a.date))[0];
+  const t = DATA.settings.targets || {};
+  const weakStr = weak.map(w => w.name + (w.gap >= 0 ? (' 差' + w.gap) : ' 已达标')).join('、');
+  const latestStr = latest ? ('听' + latest.listening + '/读' + latest.reading + '/写' + latest.writing + '/口' + latest.speaking) : '暂无';
+  const targetStr = '听' + (t.listening||5.5) + '/读' + (t.reading||6.5) + '/写' + (t.writing||5.5) + '/口' + (t.speaking||5.5);
+  const dLeft = daysUntil(DATA.settings.examDate);
+  const medToday = (DATA.meds || []).filter(m => m.date === todayKey()).sort((a,b)=>b.ts-a.ts)[0];
+  const medStr = medToday ? ('今天已服专注达，药效窗口参考服药时间') : '今天未记录专注达';
+
+  const sys = '你是雅思备考日计划教练。考生会写一句话描述今天想完成的目标。'
+    + '请根据考生弱项、最近模考、目标分和考试倒计时，把目标拆成 4-6 个可执行的具体任务，并给出建议时间段（嵌入任务文本中，如 "08:30 精听 S1 填空 30 分钟"）。'
+    + '原则：① 弱项科目多排、优先排；② 每天总学习时长控制在 6-8 小时，避免超载；③ 同类任务分散，避免疲劳；④ 把最难的任务放在上午药效窗口。'
+    + '输出严格 JSON 数组：["08:30 任务1","09:30 任务2",...]。只输出 JSON，不要解释。';
+  const user = '我今天想完成：' + raw
+    + '\n\n弱项排序（差得最多在前）：' + weakStr
+    + '\n最近模考：' + latestStr + '\n目标：' + targetStr
+    + (dLeft !== null && dLeft > 0 ? '\n距考试 ' + dLeft + ' 天' : '')
+    + '\n' + medStr
+    + '\n\n请帮我安排今天的学习任务（JSON 数组），每个任务前加上建议时间段。';
+
+  const btn = $('#aiPlan');
+  btn.disabled = true; btn.textContent = '安排中…';
+  try{
+    const content = await callRelay('daily', [
+      { role:'system', content: sys },
+      { role:'user', content: user }
+    ], 0.5);
+    const arr = aiJson(content);
+    if(!Array.isArray(arr) || arr.length === 0) throw new Error('AI 返回格式异常');
+    const tasks = arr.map(x => String(x).trim()).filter(Boolean);
+    if(!tasks.length) throw new Error('AI 没有生成任务');
+    const p = ensurePlan(currentDate());
+    tasks.forEach(text => p.items.push({ id: uid(), text, done: false }));
+    hubSave();
+    $('#planText').value = '';
+    render();
+    toast('AI 已安排今天 ' + tasks.length + ' 个任务');
+  }catch(e){
+    toast('AI 安排失败：' + e.message);
+  }finally{
+    btn.disabled = false; btn.textContent = 'AI 安排今天';
+  }
 }
 
 function toggleItem(id){

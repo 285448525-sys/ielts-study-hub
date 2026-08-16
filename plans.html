@@ -17,22 +17,22 @@
   <h1 class="page-title">学习计划</h1>
   <p class="page-sub">每天按状态临时打勾；每周让 AI 帮你把大目标拆到 7 天。</p>
 
-  <section class="card">
-    <div class="form-row" style="align-items:center">
-      <div style="flex:2;min-width:200px">
-        <label>选择日期</label>
-        <input type="date" id="planDate" />
-      </div>
-      <button class="btn" id="todayBtn" style="flex:none">回到今天</button>
+  <section class="card" style="padding:12px 16px">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <label style="font-size:13px;color:var(--muted);margin:0;white-space:nowrap">选择日期</label>
+      <input type="date" id="planDate" style="font-size:13px;padding:6px 10px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);color:var(--ink)" />
+      <span class="muted" id="dateLabel" style="font-size:12px;margin:0"></span>
     </div>
-    <p class="muted" id="dateLabel"></p>
   </section>
 
   <section class="card">
     <h2>添加任务</h2>
-    <div class="form-row">
-      <input id="planText" placeholder="例如：精听 S1 填空 30 分钟 / 背 20 个阅读生词 / 用 DeepSeek 练 1 个 P2" />
-      <button class="btn btn-primary" id="addPlan" style="flex:none;min-width:120px">添加任务</button>
+    <textarea id="planText"
+      placeholder="例如：精听 S1 填空 30 分钟 / 背 20 个阅读生词 / 用 DeepSeek 练 1 个 P2&#10;也可以写一句「今天想完成什么」，点「AI 安排」让 AI 帮你拆成多条。"
+      style="width:100%;min-height:72px;padding:10px;border:1px solid var(--line);border-radius:var(--radius-sm);font:inherit;font-size:14px;line-height:1.6;background:var(--surface);color:var(--ink);resize:vertical"></textarea>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px">
+      <button class="btn" id="addPlan">添加任务</button>
+      <button class="btn btn-primary" id="aiPlan">AI 安排今天</button>
     </div>
   </section>
 
