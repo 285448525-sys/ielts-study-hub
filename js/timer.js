@@ -168,9 +168,9 @@ ready(() => {
     if(saved.moduleId) m = MODULES.find(x => x.id === saved.moduleId);
     if(!m && saved.subId){ const f = findSub(saved.subId); if(f){ m = f.m; fallbackSub = f.c.name; } }
   }
-  const startDay = todayKey(new Date(saved.startTs));
-  const sameDay = startDay === todayKey();
-  const modName = m ? m.name : (saved.moduleId || '学习');
+  const startDay = saved ? todayKey(new Date(saved.startTs)) : '';
+  const sameDay = !!saved && startDay === todayKey();
+  const modName = m ? m.name : (saved && saved.moduleId) || '学习';
   const subName = fallbackSub || modName;
 
   if(m && sameDay){

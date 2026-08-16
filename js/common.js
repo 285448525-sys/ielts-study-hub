@@ -530,7 +530,7 @@ async function softNavigate(t, isPop){
   try{
     if(window.matchMedia && window.matchMedia('(max-width:860px)').matches){ document.body.classList.remove('nav-open'); syncNavToggle(); }
     hubClearOrphanPageTimers();   // P0-A：离开旧页前清掉残留的计时/服药轮询心跳，避免软导航重进页面叠加“多个计时器同时跑 / 数字乱跳”
-    const res = await fetch(t.href, { cache: 'force-cache' });
+    const res = await fetch(t.href, { cache: 'no-cache' });
     if(!res.ok) throw new Error('HTTP ' + res.status);
     const html = await res.text();
     const doc = new DOMParser().parseFromString(html, 'text/html');
@@ -579,7 +579,7 @@ function updateActiveNav(file){
 async function runPageScript(id){
   const p = PAGES.find(p => p.id === id);
   if(!p) return;
-  const res = await fetch('js/' + id + '.js', { cache: 'force-cache' });
+  const res = await fetch('js/' + id + '.js', { cache: 'no-cache' });
   if(!res.ok) throw new Error('HTTP ' + res.status);
   const src = await res.text();
   try{
