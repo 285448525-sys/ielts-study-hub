@@ -35,62 +35,113 @@ ready(() => {
   });
   $('#exitPractice').addEventListener('click', resetPractice);
   $('#nextBtn').addEventListener('click', onNext);
-  // 绑定设置面板
-  bindCfgPanel();
+  // 练习设置改为右上角齿轮弹窗（参考爱听写）
+  $('#cfgGear').addEventListener('click', () => {
+    $('#cfgModal').hidden = false;
+    renderCfgModal();   // 每次打开时重新渲染当前值
+  });
+  $('#cfgClose').addEventListener('click', () => { $('#cfgModal').hidden = true; });
+  $('#cfgModal').addEventListener('click', e => {
+    if(e.target === $('#cfgModal')) $('#cfgModal').hidden = true;  // 点遮罩关闭
+  });
+  document.addEventListener('keydown', e => {
+    if(e.key === 'Escape' && !$('#cfgModal').hidden) $('#cfgModal').hidden = true;  // ESC 关闭
+  });
 });
 
-// ======= 设置面板渲染与绑定 =======
-function bindCfgPanel(){
+// ======= 设置模态弹窗（齿轮触发，分组渲染，参考爱听写）=======
+function renderCfgModal(){
   const c = pc();
-  $('#pcRate').value = c.rate;
-  $('#pcRateTxt').textContent = c.rate.toFixed(2)+'x';
-  $('#pcRepeat').value = c.repeat;
-  $('#pcRepeatTxt').textContent = c.repeat+' 次';
-  $('#pcInterval').value = String(c.intervalMs);
-  $('#pcBatch').value = String(c.batchSize);
-  $('#pcOptCount').value = String(c.optCount);
-  $('#pcShuffle').value = c.shuffle ? '1' : '0';
-  $('#pcAutoNext').value = c.autoNext ? '1' : '0';
-  $('#pcAutoDelay').value = String(c.autoNextDelay);
-  $('#pcAutoPlay').value = c.autoPlay ? '1' : '0';
-  $('#pcCase').value = c.caseSensitive ? '1' : '0';
-  $('#pcShowCn').value = c.showCn ? '1' : '0';
-  $('#pcShowEn').value = String(c.showEn);
-  toggleDelayWrap();
+  const body = $('.cfg-modal-body');
+  // 分组（答题 / 声音 / 显示）
+  const groups = [
+    {
+      name:'答题', icon:'☑',
+      items:[
+        { key:'batchSize',     label:'题量',          type:'select', opts:[{v:'5',t:'5 题'},{v:'10',t:'10 题'},{v:'20',t:'20 题'},{v:'-1',t:'全部'}] },
+        { key:'optCount',      label:'选项数量',      type:'select', opts:[{v:'4',t:'4 个'},{v:'6',t:'6 个'}] },
+        { key:'shuffle',       label:'随机乱序',      type:'toggle' },
+        { key:'autoNext',      label:'自动进入下一题', type:'toggle', desc:'点选后约 1 秒自动跳转' },
+        { key:'autoNextDelay', label:'跳转延迟',      type:'select', opts:[{v:'400',t:'0.4s'},{v:'1000',t:'1.0s'},{v:'1500',t:'1.5s'},{v:'2500',t:'2.5s'}], showIf:'autoNext' },
+      ]
+    },
+    {
+      name:'声音', icon:'🔊',
+      items:[
+        { key:'rate',      label:'语速',     type:'range', min:0.5, max:1.3, step:0.05, unit:'x' },
+        { key:'repeat',    label:'朗读次数', type:'range', min:1, max:5, step:1, unit:' 次' },
+        { key:'intervalMs',label:'朗读间隔', type:'select', opts:[{v:'800',t:'0.8s'},{v:'1200',t:'1.2s'},{v:'1800',t:'1.8s'},{v:'2400',t:'2.4s'},{v:'3200',t:'3.2s'}] },
+        { key:'autoPlay',  label:'自动播下题', type:'toggle' },
+      ]
+    },
+    {
+      name:'显示', icon:'👁',
+      items:[
+        { key:'showCn',       label:'显示释义提示',    type:'toggle' },
+        { key:'showEn',       label:'显示英文原词',    type:'select', opts:[{v:'0',t:'不显示'},{v:'1',t:'答错时显示'},{v:'2',t:'始终显示'}] },
+        { key:'caseSensitive',label:'大小写敏感(听写)', type:'toggle' },
+      ]
+    }
+  ];
 
-  const saveAll = () => pcSave({
-    rate: parseFloat($('#pcRate').value),
-    repeat: parseInt($('#pcRepeat').value,10),
-    intervalMs: parseInt($('#pcInterval').value,10),
-    batchSize: parseInt($('#pcBatch').value,10),
-    optCount: parseInt($('#pcOptCount').value,10),
-    shuffle: $('#pcShuffle').value === '1',
-    autoNext: $('#pcAutoNext').value === '1',
-    autoNextDelay: parseInt($('#pcAutoDelay').value,10),
-    autoPlay: $('#pcAutoPlay').value === '1',
-    caseSensitive: $('#pcCase').value === '1',
-    showCn: $('#pcShowCn').value === '1',
-    showEn: parseInt($('#pcShowEn').value,10)
-  });
-  $('#pcRate').addEventListener('input', () => { $('#pcRateTxt').textContent = parseFloat($('#pcRate').value).toFixed(2)+'x'; saveAll(); });
-  $('#pcRepeat').addEventListener('input', () => { $('#pcRepeatTxt').textContent = parseInt($('#pcRepeat').value,10)+' 次'; saveAll(); });
-  ['pcInterval','pcBatch','pcOptCount','pcShuffle','pcAutoDelay','pcAutoPlay','pcCase','pcShowCn','pcShowEn'].forEach(id => {
-    $('#'+id).addEventListener('change', saveAll);
-  });
-  $('#pcAutoNext').addEventListener('change', () => { saveAll(); toggleDelayWrap(); });
+  let html = '<div class="cfg-m-cols"><div class="cfg-m-sidebar">';
+  for(const g of groups){
+    html += '<div class="cfg-m-cat"><span>'+g.icon+' '+g.name+'</span></div>';
+  }
+  html += '</div><div class="cfg-m-main">';
+  for(const g of groups){
+    html += '<div class="cfg-m-group" data-g="'+g.name+'">';
+    for(const item of g.items){
+      const val = c[item.key];
+      const hide = item.showIf && !c[item.showIf];
+      html += '<div class="cfg-m-row'+(hide?' cfg-m-hidden':'')+'" data-key="'+item.key+'" data-showif="'+(item.showIf||'')+'">';
+      html += '<div class="cfg-m-label">'+item.label;
+      if(item.desc) html += '<div class="cfg-m-desc">'+item.desc+'</div>';
+      html += '</div>';
+      html += '<div class="cfg-m-ctrl">';
+      if(item.type === 'toggle'){
+        html += '<input type="checkbox" '+(val?'checked':'')+' class="cfg-toggle" data-key="'+item.key+'"><label></label>';
+      } else if(item.type === 'select'){
+        html += '<select class="cfg-select" data-key="'+item.key+'">';
+        for(const o of item.opts) html += '<option value="'+o.v+'"'+(String(val)===o.v?' selected':'')+'>'+o.t+'</option>';
+        html += '</select>';
+      } else if(item.type === 'range'){
+        html += '<input type="range" class="cfg-range" data-key="'+item.key+'" data-unit="'+escapeHtml(item.unit||'')+'" min="'+item.min+'" max="'+item.max+'" step="'+item.step+'" value="'+val+'">';
+        html += '<span class="cfg-range-val">'+val+(item.unit||'')+'</span>';
+      }
+      html += '</div></div>';
+    }
+    html += '</div>';
+  }
+  html += '</div></div>';
+  body.innerHTML = html;
 
-  // 折叠/展开
-  $('#cfgToggle').addEventListener('click', () => {
-    const body = $('#cfgBody');
-    const chev = $('#cfgChev');
-    const open = body.style.display !== 'none';
-    body.style.display = open ? 'none' : '';
-    chev.textContent = open ? '▸' : '▾';
+  // 绑定事件
+  body.querySelectorAll('.cfg-toggle').forEach(el => {
+    el.addEventListener('change', () => {
+      pcSave({ [el.dataset.key]: el.checked });
+      toggleCfgShowIf();   // 联动：autoNext 关闭时隐藏「跳转延迟」
+    });
+  });
+  body.querySelectorAll('.cfg-select').forEach(el => {
+    el.addEventListener('change', () => pcSave({ [el.dataset.key]: parseInt(el.value,10) }));
+  });
+  body.querySelectorAll('.cfg-range').forEach(el => {
+    el.addEventListener('input', () => {
+      const v = parseFloat(el.value);
+      pcSave({ [el.dataset.key]: v });
+      el.nextElementSibling.textContent = v + (el.dataset.unit || '');
+    });
   });
 }
-function toggleDelayWrap(){
-  const on = $('#pcAutoNext').value === '1';
-  $('#autoNextDelayWrap').style.display = on ? '' : 'none';
+
+// 联动：根据 showIf 依赖显隐（如「自动进入下一题」关闭 → 隐藏「跳转延迟」）
+function toggleCfgShowIf(){
+  document.querySelectorAll('.cfg-m-row[data-showif]').forEach(row => {
+    const depKey = row.dataset.showif;
+    if(!depKey) return;
+    row.classList.toggle('cfg-m-hidden', !pc()[depKey]);
+  });
 }
 
 // ======= 开始练习 =======
@@ -106,7 +157,6 @@ function startPractice(mode){
   if(c.batchSize > 0 && pool.length > c.batchSize) pool = pool.slice(0, c.batchSize);
   pq.queue = pool;
   $('#modeSelect').hidden = true;
-  $('#practiceCfg').hidden = true;
   $('#practiceArea').hidden = false;
   $('#progBarWrap').hidden = false;
   nextQuestion();
@@ -116,7 +166,6 @@ function startPractice(mode){
 function startReview(){
   const due = dueWords();
   $('#modeSelect').hidden = true;
-  $('#practiceCfg').hidden = true;
   $('#practiceArea').hidden = false;
   $('#nextBtn').hidden = true;
   $('#progBarWrap').hidden = true;
@@ -155,7 +204,6 @@ function resetPractice(){
   $('#practiceArea').hidden = true;
   $('#progBarWrap').hidden = true;
   $('#modeSelect').hidden = false;
-  $('#practiceCfg').hidden = false;
   $('#nextBtn').hidden = true;
 }
 
