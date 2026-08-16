@@ -259,18 +259,13 @@ function renderEmpty(msg){ return `<div class="empty">${msg}</div>`; }
    （统一用 deepseek-chat，service 仅作语义标记，不影响调用）。 */
 const AI_BASE = 'https://api.deepseek.com/v1';
 const AI_MODEL = 'deepseek-chat';
-/* 视觉模型中继（截图识别专用，独立于 DeepSeek 文本链路）。
-   默认走通义千问视觉 Qwen-VL（阿里云百炼 DashScope），OpenAI 兼容、国内直连。
-   Key 只存在浏览器本地 localStorage（visionToken），不经服务器。 */
-const VISION_BASE = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
-const VISION_MODEL = 'qwen-vl-plus';   // 更强可换 qwen-vl-max
 async function callRelay(service, messages, temperature){
   const s = DATA.settings || {};
   const key = s.relayToken || '';
   if(!key){ throw new Error('未配置 API Key（去「设置 / AI 接口」填写）'); }
-  // 支持自定义接口地址（自建 / 中转代理）；留空则使用内置 DeepSeek
-  const base = (s.relayUrl || '').trim().replace(/\/+$/, '') || AI_BASE;
-  const model = (s.relayModel || '').trim() || AI_MODEL;
+  // 所有文本 AI 固定走内置 DeepSeek（地址与模型已写死），彻底移除中转代理开关
+  const base = AI_BASE;
+  const model = AI_MODEL;
   const url = base + '/chat/completions';
   const headers = {
     'Content-Type': 'application/json',
@@ -297,40 +292,7 @@ async function callRelay(service, messages, temperature){
   throw new Error('AI 接口返回格式异常（缺少 choices[0].message.content）');
 }
 
-/* 视觉模型中继：构造 OpenAI 兼容的多模态消息，图片以 base64 data URL 内联。
-   与 callRelay 解耦——视觉走独立的 visionToken（Qwen-VL），不依赖 DeepSeek。 */
-async function callVisionRelay(service, messages, temperature){
-  const s = DATA.settings || {};
-  const key = s.visionToken || '';
-  if(!key){ throw new Error('未配置视觉模型 Key（去「设置 / AI 接口」填写）'); }
-  // 支持自定义接口地址（自建 / 中转代理）；留空则使用内置 Qwen-VL
-  const base = (s.visionBase || '').trim().replace(/\/+$/, '') || VISION_BASE;
-  const model = (s.visionModel || '').trim() || VISION_MODEL;
-  const url = base + '/chat/completions';
-  const headers = {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer ' + key
-  };
-  const body = {
-    model: model,
-    messages: messages,
-    temperature: (temperature == null) ? 0.3 : temperature,
-    stream: false
-  };
-  const res = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
-  if(!res.ok){
-    let detail = '';
-    try{ const j = await res.json(); detail = (j && (j.error || j.detail || j.message || (j.error && j.error.message))) || ''; }catch(_){}
-    if(!detail){ try{ detail = (await res.text()).slice(0,200); }catch(_){} }
-    throw new Error('视觉接口返回 ' + res.status + (detail ? '：' + detail : ''));
-  }
-  const j = await res.json();
-  if(j && j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content != null){
-    return j.choices[0].message.content;
-  }
-  if(j && typeof j.content === 'string') return j.content;
-  throw new Error('视觉接口返回格式异常（缺少 choices[0].message.content）');
-}
+/* 视觉模型中继：已移除（P1-B，2026-08-16）。错题本改为纯文字粘贴，所有 AI 统一走 DeepSeek。 */
 
 /* 从 AI 回复里抠出 JSON（模型常会带 ```json 围栏或前后废话）。
    解析失败返回 null，调用方自行降级显示原文。 */
@@ -568,6 +530,7 @@ async function softNavigate(t, isPop){
   _softNavBusy = true;
   try{
     if(window.matchMedia && window.matchMedia('(max-width:860px)').matches){ document.body.classList.remove('nav-open'); syncNavToggle(); }
+    hubClearOrphanPageTimers();   // P0-A：离开旧页前清掉残留的计时/服药轮询心跳，避免软导航重进页面叠加“多个计时器同时跑 / 数字乱跳”
     const res = await fetch(t.href, { cache: 'force-cache' });
     if(!res.ok) throw new Error('HTTP ' + res.status);
     const html = await res.text();
@@ -620,7 +583,21 @@ async function runPageScript(id){
   const res = await fetch('js/' + id + '.js', { cache: 'force-cache' });
   if(!res.ok) throw new Error('HTTP ' + res.status);
   const src = await res.text();
-  window.eval(src);
+  try{
+    window.eval(src);   // 幂等重跑：页面 ready 内部已各自清旧心跳 / 重绑事件，多次进入不叠加
+  }catch(err){
+    // P0-A：脚本执行异常（极偶发）→ 记日志后由 softNavigate 的兜底走整页跳转，绝不卡死
+    console.error('[soft-nav] 页面脚本执行失败，将回退整页跳转：', id, err);
+    throw err;
+  }
+}
+
+/* P0-A：清理上一页可能残留的全局心跳（计时 __timerTick / 服药 __medsTick）。
+   各页面 ready 自身已清旧心跳、updateTimer/renderMeds 也会在 DOM 消失时自停，
+   这里再兜底一道，确保软导航重进页面不会叠加“多个计时器同时跑 / 数字乱跳”。 */
+function hubClearOrphanPageTimers(){
+  if(window.__timerTick){ clearInterval(window.__timerTick); window.__timerTick = null; }
+  if(window.__medsTick){ clearInterval(window.__medsTick); window.__medsTick = null; }
 }
 
 /* 空闲时预取同组相邻页面 HTML（走浏览器缓存，下次软切换近乎瞬时） */

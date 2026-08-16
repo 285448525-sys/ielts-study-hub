@@ -10,46 +10,10 @@ var EB_TRAPS = [
   '听力答案抢跑/漏听', '拼写', '生词不认识', '时间不够/没做完', '粗心', '其他'
 ];
 
-/* 截图识别（视觉模型）暂存区：压缩后的 base64 data URL 数组 */
-var _captures = [];
-
-var CAPTURE_SYS = `你是雅思错题诊断助手（视觉版），服务对象是一名冲总分 6.0 的中国考生（弱项：听力、口语；阅读速度慢，常把 FALSE 误判成 NOT GIVEN）。
-用户会上传 1~N 张截图：可能是题干、原文段落、答案页，分开拍或拼一张都行。请直接从图中识别信息，整理成结构化诊断。全部用简体中文，务实、具体、能照着做，不要空话套话。
-
-字段要求：
-- title：一句话说清这是哪道题/什么题（含来源题号如「剑18 T2 P1 Q5 判断题」，图里没有就概括内容）。
-- subject：只能是 阅读 / 听力 / 写作 / 口语 / 词汇 / 其他。
-- qtype：题型，如 判断(TFNG)、填空、匹配、选择、Heading、简答、地图题、多选 等；判断不出写「其他」。
-- questionText：题干原文（从图识别）。
-- passageSnippet：对应的原文句子/段落（从图识别截取）。
-- userAnswer：用户写错的答案（图可见时）。
-- correctAnswer：正确答案。
-- errorLocation：错在哪：第几题/哪句话/哪个词。
-- wrongPoint：一句话直击错点，具体到「你把 X 当成了 Y」或「错在哪一步」。
-- trap：错因，必须从这个列表里挑最贴切的一个（原样照抄）：${EB_TRAPS.join(' / ')}
-- testPoint：考点：这道题考什么能力/知识点。
-- structureAnalysis：题干与原文结构分析（定位词→原文对应→逻辑对比）。
-- translation：原文/题干关键句翻译说明。
-- longSentence：图里出现的长难句，每项 { sentence:原文, analysis:主干+修饰拆解 }，没有就空数组。
-- howto：正确解法步骤，2-4 步，每步一句话、必须可执行。
-- rule：可迁移判断规则 1-2 条，下次遇到同类怎么避免。
-- words：图里出现的值得记的生词，每项格式「word 中文释义」，没有就空数组。
-
-特别规则：
-- 若涉及判断题，必须在 rule 里写清两步判断：原文有没有提到这个信息（没提 → NOT GIVEN）；提到了是否与题干矛盾（矛盾 → FALSE）。
-- 图中信息不足时，就基于已有信息给最有价值的部分，绝不编造图里没有的内容。`;
-
-var CAPTURE_SCHEMA = `{"title":"","subject":"","qtype":"","questionText":"","passageSnippet":"","userAnswer":"","correctAnswer":"","errorLocation":"","wrongPoint":"","trap":"","testPoint":"","structureAnalysis":"","translation":"","longSentence":[{"sentence":"","analysis":""}],"howto":["",""],"rule":["",""],"words":[""]}`;
-
 ready(() => {
   $('#ebAnalyze').addEventListener('click', analyzeEntry);
   $('#ebRaw').addEventListener('click', saveRawEntry);
   $('#fTrap').addEventListener('change', render);
-  // 截图识别入口
-  $('#ebUpload').addEventListener('click', () => { const f = $('#ebImg'); if(f) f.click(); });
-  $('#ebImg').addEventListener('change', onPickImages);
-  $('#ebCapture').addEventListener('click', () => analyzeCapture());
-  $('#ebCaptureRaw').addEventListener('click', saveCaptureRaw);
   render();
 });
 
@@ -152,154 +116,9 @@ function saveRawEntry(){
   toast('已存原文，之后可点卡片「补 AI 分析」');
 }
 
-/* ---------- 截图识别（视觉模型） ---------- */
-function onPickImages(e){
-  const files = Array.from((e.target.files) || []);
-  if(!files.length) return;
-  (async () => {
-    for(const f of files){
-      try{ _captures.push(await compressImage(f)); }
-      catch(err){ toast('有张图处理失败：' + err.message); }
-    }
-    e.target.value = '';   // 允许重复选同一张
-    renderThumbs();
-  })();
-}
-
-/* 用 canvas 把图压到 ≤1280px 宽、JPEG q0.8，控 token / localStorage 体积 */
-function compressImage(file){
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        let w = img.width, h = img.height;
-        const MAXW = 1280;
-        if(w > MAXW){ h = Math.round(h * MAXW / w); w = MAXW; }
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL('image/jpeg', 0.8));
-      };
-      img.onerror = () => reject(new Error('图片解析失败'));
-      img.src = reader.result;
-    };
-    reader.onerror = () => reject(new Error('读取文件失败'));
-    reader.readAsDataURL(file);
-  });
-}
-
-function renderThumbs(){
-  const box = $('#ebThumbs');
-  if(!box) return;
-  box.innerHTML = _captures.map((u, i) =>
-    '<div class="eb-thumb"><img src="' + u + '" alt="截图' + (i+1) + '"/>' +
-    '<button class="eb-thumb-x" data-thumb="' + i + '" title="删除">×</button></div>'
-  ).join('');
-  box.querySelectorAll('[data-thumb]').forEach(b => b.addEventListener('click', () => {
-    _captures.splice(Number(b.dataset.thumb), 1);
-    renderThumbs();
-  }));
-}
-
-/* opts.images 可覆盖 _captures（用于「补视觉分析」重跑已存图片）；opts.id 指定替换的旧记录 */
-async function analyzeCapture(opts){
-  opts = opts || {};
-  const imgs = opts.images || _captures;
-  const replaceId = opts.id || null;
-  const btn = opts.btn || $('#ebCapture');
-  const load = $('#ebLoading');
-  if(!imgs.length){ toast('先上传至少一张截图'); return; }
-  if(!DATA.settings.visionToken){
-    toast('还没填视觉模型 Key，去「设置 / AI 接口」填一下'); return;
-  }
-  if(btn) btn.disabled = true;
-  if(load){ load.hidden = false; load.textContent = '视觉模型识别中（十几秒）…'; }
-  try{
-    const content = [
-      ...imgs.map(u => ({ type:'image_url', image_url:{ url:u } })),
-      { type:'text', text: CAPTURE_SYS + '\n\n只输出 JSON，不要任何解释文字、不要 markdown 围栏：\n' + CAPTURE_SCHEMA }
-    ];
-    const text = await callVisionRelay('errorbook_capture', [{ role:'user', content }], 0.3);
-    const r = aiJson(text);
-    const entry = {
-      id: uid(), date: todayKey(), kind:'capture', known:false,
-      images: imgs.slice(), source: (r && r.questionText) || ''
-    };
-    if(r){
-      Object.assign(entry, {
-        title: String(r.title || '').trim() || '（未命名错题）',
-        subject: String(r.subject || '其他').trim(),
-        qtype: String(r.qtype || '其他').trim(),
-        trap: normTrap(r.trap),
-        questionText: r.questionText || '',
-        passageSnippet: r.passageSnippet || '',
-        userAnswer: r.userAnswer || '',
-        correctAnswer: r.correctAnswer || '',
-        errorLocation: r.errorLocation || '',
-        wrongPoint: String(r.wrongPoint || '').trim(),
-        testPoint: r.testPoint || '',
-        structureAnalysis: r.structureAnalysis || '',
-        translation: r.translation || '',
-        longSentence: toArrObj(r.longSentence),
-        howto: toArr(r.howto),
-        rule: toArr(r.rule),
-        words: toArr(r.words),
-        raw: null
-      });
-    } else {
-      // AI 没按 JSON 回 → 原文照存，不丢东西
-      Object.assign(entry, {
-        title: '（AI 返回非标准格式，已存原文）', subject:'其他', qtype:'其他', trap:'其他',
-        howto: [], wrongPoint: '', rule: [], words: [], raw: text
-      });
-    }
-    if(replaceId){
-      const i = DATA.errorbook.findIndex(x => x.id === replaceId);
-      if(i >= 0) DATA.errorbook[i] = entry; else DATA.errorbook.unshift(entry);
-    } else {
-      DATA.errorbook.unshift(entry);
-    }
-    _captures = []; renderThumbs();
-    hubSave(); if(load) load.hidden = true; render();
-    toast(r ? '已识别并归档' : 'AI 格式异常，已存原文');
-    const first = document.querySelector('#list .eb-card');
-    if(first) first.scrollIntoView({ behavior:'smooth', block:'center' });
-  }catch(e){
-    if(load) load.textContent = '视觉识别失败：' + e.message + '（缩略图还在，可重试）';
-  }finally{
-    if(btn) btn.disabled = false;
-  }
-}
-
-/* 不走 AI，先把截图存下来（之后可点「补视觉分析」重跑） */
-function saveCaptureRaw(){
-  if(!_captures.length){ toast('先上传至少一张截图'); return; }
-  DATA.errorbook.unshift({
-    id: uid(), date: todayKey(), kind:'capture', known:false,
-    images: _captures.slice(), source: '',
-    title: '（仅存截图，未分析）', subject:'其他', qtype:'其他', trap:'其他',
-    howto: [], wrongPoint: '', rule: [], words: [], raw: null
-  });
-  _captures = []; renderThumbs();
-  hubSave(); render();
-  toast('已存截图（未分析），可点卡片「补视觉分析」');
-}
-
-function toArrObj(v){
-  if(Array.isArray(v)) return v.map(o => ({
-    sentence: String((o && o.sentence) || '').trim(),
-    analysis: String((o && o.analysis) || '').trim()
-  })).filter(x => x.sentence);
-  return [];
-}
-
-/* 对已存截图记录重跑视觉分析（复用已存图片，成功后原地替换旧记录） */
-function redoCapture(id, btn){
-  const e = DATA.errorbook.find(x => x.id === id);
-  if(!e || !e.images || !e.images.length){ toast('这条没有截图，无法分析'); return; }
-  analyzeCapture({ images: e.images.slice(), id: e.id, btn: btn });
-}
+/* ---------- 已删除截图识别（视觉模型） ----------
+   P1-B（2026-08-16）：视觉模型与中转代理一并移除，错题本改为纯文字粘贴。
+   老数据 kind:'capture' 仍由 captureCard() 只读渲染，不丢失、不报错。 */
 
 /* 对已存原文的记录补跑一次 AI
    ⚠️ 数据安全铁律：必须「分析成功之后」才删旧记录。
@@ -379,7 +198,6 @@ function render(){
     if(e){ e.known = !e.known; hubSave(); render(); }
   }));
   box.querySelectorAll('[data-redo]').forEach(b => b.addEventListener('click', () => reanalyze(b.dataset.redo)));
-  box.querySelectorAll('[data-redocap]').forEach(b => b.addEventListener('click', () => redoCapture(b.dataset.redocap, b)));
 
   renderStats();
 }
@@ -458,7 +276,6 @@ function captureCard(e){
     ? block('顺手记的词', '<div class="eb-words">' + e.words.map(w => '<span class="eb-chip">' + escapeHtml(w) + '</span>').join('') + '</div>') : '';
   const raw = e.raw
     ? block('AI 原始回复', '<p style="white-space:pre-wrap">' + escapeHtml(e.raw) + '</p>') : '';
-  const needRedo = !e.howto || !e.howto.length;
 
   return '<div class="eb-card">' +
     '<div class="eb-head">' + badges + '<span class="muted" style="margin-left:auto;font-size:12.5px">' + escapeHtml(e.date || '') + '</span></div>' +
@@ -466,7 +283,6 @@ function captureCard(e){
     '<div class="eb-title">' + escapeHtml(e.title || '（未命名错题）') + '</div>' +
     howto + fields.join('') + rule + words + raw +
     '<div class="eb-actions">' +
-      (needRedo ? '<button class="btn btn-sm btn-primary" data-redocap="' + e.id + '">🤖 补视觉分析</button>' : '') +
       '<button class="btn btn-sm" data-known="' + e.id + '">' + (e.known ? '标为未掌握' : '标为已掌握') + '</button>' +
       '<button class="btn btn-sm btn-danger" data-del="' + e.id + '">删除</button>' +
     '</div>' +

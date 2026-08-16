@@ -1,117 +1,96 @@
 ready(() => {
-  $('#addWord').addEventListener('click', () => autoAddWord({ fromBtn:true }));
-  $('#wordEn').addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); autoAddWord(); } });
-  $('#wordEn').addEventListener('blur', () => autoAddWord());
-  $('#importWords').addEventListener('click', importBulk);
+  $('#smartImport').addEventListener('click', importSmart);
   $('#searchWord').addEventListener('input', renderWords);
   $('#filterTag').addEventListener('change', renderWords);
   renderWords();
 });
 
-var _lastAuto = '';   // 防止 blur + 回车 / 重复触发时重复处理同一个词
-
-async function autoAddWord({ fromBtn=false } = {}){
-  const en = $('#wordEn').value.trim();
-  if(!en){ if(fromBtn) toast('先输入英文单词'); return; }
-  if(en === _lastAuto) return;   // 同一词正在/已被处理（blur 与 按钮/回车 重复触发），跳过避免重复存
-  _lastAuto = en;
-  const status = $('#wordStatus');
-
-  // 1) 词库已有 → 直接回显，不再重复存
-  const existing = DATA.words.find(w => w.en.toLowerCase() === en.toLowerCase());
-  if(existing){
-    status.textContent = '词库里已有 ✓'; status.className = 'word-status ok';
-    $('#wordCn').value = existing.cn || '';
-    return;
-  }
-
-  // 2) 先保存（中文先留空），再查词回填
-  const rec = { id: uid(), en, cn:'', tag: $('#wordTag').value, ts: Date.now() };
-  DATA.words.push(rec); hubSave(); renderWords();
-
-  if(!DATA.settings.relayToken){
-    status.textContent = '已保存（未配置 API Key，中文需手动填；去「设置 / AI 接口」填 Key 可自动查）';
-    status.className = 'word-status warn';
-    toast('已保存：' + en + '（去设置填 Key 可自动查中文）');
-    resetEntry();
-    return;
-  }
-
-  status.textContent = '翻译中…'; status.className = 'word-status loading';
-  try{
-    const cn = await translateWord(en);
-    rec.cn = cn; hubSave(); renderWords();
-    $('#wordCn').value = cn;
-    status.textContent = '已保存 + 已查词：' + cn;
-    status.className = 'word-status ok';
-    toast('已添加并查词：' + en);
-  }catch(e){
-    status.textContent = '已保存（查词失败：' + e.message + '，中文可手填）';
-    status.className = 'word-status err';
-    toast('已保存 ' + en + '，但查词失败：' + e.message);
-  }
-  resetEntry();
-}
-
-// 录入后清空英文框、复位标记，焦点回到英文框 → 方便连续录词
-function resetEntry(){
-  $('#wordEn').value = '';
-  $('#wordCn').value = '';
-  _lastAuto = '';
-  $('#wordEn').focus();
-}
-
-// 复用 common.js 的 callTrans（词库翻译，独立 service=trans，与口语GPT隔离）
-async function translateWord(en){
-  const sys = '你是精准的英汉词典。用户会给你一个英文单词或短词组，请只返回简洁的中文释义，最多列 3 个常见义项，用"；"分隔，不要任何多余说明、不要英文。示例："algorithm" → "算法；运算法则"';
-  const text = await callTrans([{ role:'system', content: sys }, { role:'user', content: en }]);
-  return text.replace(/\n/g, ' ').trim();
-}
-
-async function importBulk(){
-  const raw = $('#bulkWords').value.trim(); if(!raw){ toast('粘贴内容后再导入'); return; }
-  const tag = $('#importTag').value;
-  const hint = $('#importHint');
-  let skipped = 0;
-  const existing = new Set(DATA.words.map(w => w.en.toLowerCase()));
+/* 从任意文本抽取英文词（不翻译）：供「无 Key 降级」与复用。
+   中英文混排时只取中文前面的英文片段；纯英文行直接取首个英文词/词组。 */
+function extractWords(raw){
   const rows = [];
+  const seen = new Set();
   raw.split(/\n/).forEach(line => {
     line = line.trim(); if(!line) return;
-    let en = '', cn = '';
+    let en = '';
     const cjk = line.search(/[一-鿿]/);
     if(cjk >= 0){
       const eng = line.slice(0, cjk).match(/[A-Za-z][A-Za-z'.\-]*(?:\s+[A-Za-z][A-Za-z'.\-]*)*/);
       en = eng ? eng[0].trim() : '';
-      cn = line.slice(cjk).replace(/^[\s，,：:：\-—()（）/|]+/, '').replace(/[\s，,：:：\-—()（）/|]+$/, '').trim();
     } else {
       const eng = line.match(/[A-Za-z][A-Za-z'.\-]*(?:\s+[A-Za-z][A-Za-z'.\-]*)*/);
       en = eng ? eng[0].trim() : '';
     }
     if(!en) return;
     const key = en.toLowerCase();
-    if(existing.has(key)){ skipped++; return; }
-    existing.add(key);
-    rows.push({ en, cn, tag });
+    if(seen.has(key)) return;
+    seen.add(key);
+    rows.push({ en });
   });
-  if(!rows.length){ toast(skipped ? ('全部 ' + skipped + ' 个都是重复，已跳过') : '没有识别到有效单词'); return; }
+  return rows;
+}
 
-  let added = 0, translated = 0, noCn = 0, done = 0;
-  hint.textContent = '识别到 ' + rows.length + ' 个新词，正在翻译…';
-  for(const r of rows){
-    if(!r.cn && DATA.settings.relayToken){
-      try{ r.cn = await translateWord(r.en); translated++; }catch(_){ r.cn = ''; }
-    }
-    if(!r.cn) noCn++;
-    DATA.words.push({ id: uid(), en: r.en, cn: r.cn, tag: r.tag, ts: Date.now() });
-    added++; done++;
-    hint.textContent = '翻译中… ' + done + '/' + rows.length;
+/* 主入口：粘贴任意内容 → AI 挑出所有英文词 + 直出中文释义 → 批量导入。
+   未配置 DeepSeek Key 时降级为纯正则抽取（不翻译），保证无 Key 也能用。 */
+async function importSmart(){
+  const raw = $('#smartInput').value.trim();
+  const hint = $('#importHint');
+  const btn = $('#smartImport');
+  if(!raw){ toast('先粘贴点内容（单词 / 句子 / 段落都行）'); return; }
+  const tag = $('#smartTag').value;
+
+  // ── 降级：无 Key → 正则抽取，不翻译 ──
+  if(!DATA.settings.relayToken){
+    const rows = extractWords(raw);
+    if(!rows.length){ toast('没有识别到有效英文单词'); return; }
+    const existing = new Set(DATA.words.map(w => w.en.toLowerCase()));
+    let added = 0, skipped = 0;
+    rows.forEach(r => {
+      if(existing.has(r.en.toLowerCase())){ skipped++; return; }
+      existing.add(r.en.toLowerCase());
+      DATA.words.push({ id: uid(), en: r.en, cn: '', tag, ts: Date.now() });
+      added++;
+    });
+    hubSave(); $('#smartInput').value = ''; renderWords();
+    let msg = '成功导入 ' + added + ' 个（未配置 Key，未翻译）';
+    if(skipped) msg += '，跳过重复 ' + skipped + ' 个';
+    toast(msg); if(hint) hint.textContent = msg + '。去「设置 / AI 接口」填 DeepSeek Key 后可自动翻译。';
+    return;
   }
-  hubSave(); $('#bulkWords').value=''; renderWords();
-  let msg = '成功导入 ' + added + ' 个';
-  if(skipped) msg += '，跳过重复 ' + skipped + ' 个';
-  if(translated) msg += '，自动翻译 ' + translated + ' 个';
-  if(noCn) msg += '（' + noCn + ' 个未翻到中文，可手动补）';
-  toast(msg); hint.textContent = msg;
+
+  // ── 正常：调 DeepSeek 抽词 + 直出中文 ──
+  btn.disabled = true; btn.textContent = 'AI 提取中…';
+  if(hint) hint.textContent = 'AI 正在从内容里挑英文词并翻译…';
+  const sys = '你是一个英文词库助手。从用户输入（可能是单个单词、一行词表、整段英文、或中英文混排）中，抽取所有值得记忆的英文单词或词组。' +
+    '对每个词给出简洁中文释义（最多列 3 个常见义项，用“；”分隔）。' +
+    '只返回 JSON 数组，格式：[{"en":"algorithm","cn":"算法；运算法则"}, ...]。不要任何解释文字、不要 markdown 围栏。' +
+    '如果输入里没有英文单词，返回空数组 []。';
+  try{
+    const content = await callRelay('words', [{ role:'system', content: sys }, { role:'user', content: raw }], 0.3);
+    const arr = aiJson(content);
+    if(!Array.isArray(arr)) throw new Error('AI 返回格式异常');
+    const existing = new Set(DATA.words.map(w => w.en.toLowerCase()));
+    let added = 0, skipped = 0;
+    for(const item of arr){
+      const en = String((item && item.en) || '').trim();
+      const cn = String((item && item.cn) || '').trim();
+      if(!en) continue;
+      const key = en.toLowerCase();
+      if(existing.has(key)){ skipped++; continue; }
+      existing.add(key);
+      DATA.words.push({ id: uid(), en, cn, tag, ts: Date.now() });
+      added++;
+    }
+    hubSave(); $('#smartInput').value = ''; renderWords();
+    let msg = '成功导入 ' + added + ' 个';
+    if(skipped) msg += '，跳过重复 ' + skipped + ' 个';
+    toast(msg); if(hint) hint.textContent = msg;
+  }catch(e){
+    toast('AI 提取失败：' + e.message + '（可重试，或先去「设置」填 Key）');
+    if(hint) hint.textContent = 'AI 提取失败：' + e.message;
+  }finally{
+    btn.disabled = false; btn.textContent = '🤖 AI 提取并导入';
+  }
 }
 
 function deleteWord(id){

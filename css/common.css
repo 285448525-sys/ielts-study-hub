@@ -446,3 +446,6 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 .reminder-icon{font-size:20px;flex:none}
 .reminder-text{flex:1;font-size:14px;line-height:1.5;color:var(--ink)}
 .reminder-text b{color:var(--primary);font-weight:800}
+/* P0-B：提醒里的跳转入口——克制样式（文字链接而非填充按钮），保留主动点击跳转 */
+.reminder-action{display:inline-flex;align-items:center;gap:2px;flex:none;font-size:13.5px;font-weight:700;color:var(--primary);text-decoration:none;padding:4px 10px;border:1px solid var(--line);border-radius:20px;background:var(--surface);transition:background .15s,border-color .15s}
+.reminder-action:hover{background:var(--primary-soft);border-color:var(--primary)}

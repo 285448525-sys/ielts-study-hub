@@ -13,11 +13,6 @@ ready(() => {
   $('#tSpeaking').value = t.speaking || 5.5;
 
   $('#sRelayToken').value = s.relayToken || '';
-  $('#sRelayUrl').value = s.relayUrl || '';
-
-  $('#sVisionToken').value = s.visionToken || '';
-  $('#sVisionUrl').value = s.visionBase || '';
-  $('#sVisionModel').value = s.visionModel || '';
 
   $('#sSyncCode').value = s.syncCode || '';
   renderSyncState();
@@ -25,8 +20,6 @@ ready(() => {
   $('#saveSettings').addEventListener('click', saveSettings);
   $('#saveRelay').addEventListener('click', saveRelay);
   $('#testAiBtn').addEventListener('click', testAIConnection);
-  $('#saveVision').addEventListener('click', saveVision);
-  $('#testVisionBtn').addEventListener('click', testVisionConnection);
   $('#sTheme').addEventListener('change', () => applyTheme($('#sTheme').value));
   $('#exportBtn').addEventListener('click', exportData);
   $('#importBtn').addEventListener('click', () => $('#importFile').click());
@@ -79,53 +72,8 @@ function saveSettings(){
 
 function saveRelay(){
   DATA.settings.relayToken = $('#sRelayToken').value.trim();
-  DATA.settings.relayUrl = $('#sRelayUrl').value.trim();
   hubSave();
   toast(DATA.settings.relayToken ? '已保存 AI 接口配置' : '已清空 Key');
-}
-
-/* 视觉模型（截图识别）配置 */
-function saveVision(){
-  DATA.settings.visionToken = $('#sVisionToken').value.trim();
-  DATA.settings.visionBase = $('#sVisionUrl').value.trim();
-  DATA.settings.visionModel = $('#sVisionModel').value.trim();
-  hubSave();
-  toast(DATA.settings.visionToken ? '已保存视觉模型配置' : '已清空视觉 Key');
-}
-
-/* 测试连接：用输入框里的视觉 Key 探活 Qwen-VL，成功即自动保存。
-   视觉模型必须带图，故用 1x1 像素图 + 文本探活验证 Key / 接口可达。 */
-var TEST_PIXEL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgYGAAAAAEAAH2FzhVAAAAAElFTkSuQmCC';
-async function testVisionConnection(){
-  const key = $('#sVisionToken').value.trim();
-  if(!key){ toast('请先填写视觉模型 Key'); return; }
-  const btn = $('#testVisionBtn');
-  if(btn) btn.disabled = true;
-  setVisionStatus('正在测试连接…', '');
-  try{
-    DATA.settings.visionToken = key; // 临时用输入框的 key 探活
-    DATA.settings.visionBase = $('#sVisionUrl').value.trim();
-    DATA.settings.visionModel = $('#sVisionModel').value.trim();
-    const content = [
-      { type:'image_url', image_url:{ url: TEST_PIXEL } },
-      { type:'text', text:'Reply with exactly the single word: PONG' }
-    ];
-    const r = await callVisionRelay('errorbook_capture', [{ role:'user', content }], 0.1);
-    hubSave(); // 探活成功 → 直接生效并保存
-    setVisionStatus('✅ 连接成功：' + (r||'').slice(0,60), 'ok');
-    toast('✅ 连接成功，Key 已保存');
-  }catch(e){
-    setVisionStatus('❌ 连接失败：' + e.message, 'error');
-    toast('❌ 连接失败：' + e.message);
-  }finally{
-    if(btn) btn.disabled = false;
-  }
-}
-function setVisionStatus(msg, kind){
-  const el = $('#visionStatus');
-  if(!el) return;
-  el.textContent = msg || '';
-  el.className = 'muted' + (kind ? ' sync-status-' + kind : '');
 }
 
 /* 测试连接：用输入框里的 Key 探活 DeepSeek，成功即自动保存 */

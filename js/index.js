@@ -175,7 +175,9 @@ function renderReminders(){
   const tips = [];
   const studiedToday = (DATA.sessions || []).some(s => s.date === tkey);
   if(!studiedToday){
-    tips.push({ icon:'📚', text:'今天还没有学习记录，去「计时学习」开一个计时器吧 🔥', action:{ label:'去计时', href:'timer.html' } });
+    // P0-B：当天未学习时的「去计时」入口。保留主动跳转能力（href 仍走软导航），
+    // 但文案更明确、视觉更克制（不再用填充按钮，避免被误触成「莫名跳计时页」）。
+    tips.push({ icon:'📚', text:'今天还没有学习记录，点下面可去「计时学习」开一个计时器 🔥', action:{ label:'去开启今日计时', href:'timer.html' } });
   }
   const dLeft = daysUntil(DATA.settings.examDate);
   if(dLeft !== null && dLeft >= 0 && dLeft <= 7){
@@ -194,7 +196,7 @@ function renderReminders(){
     '<div class="reminder-item">' +
       '<span class="reminder-icon">' + t.icon + '</span>' +
       '<div class="reminder-text">' + t.text + '</div>' +
-      (t.action ? '<a class="btn btn-sm" href="' + t.action.href + '">' + t.action.label + '</a>' : '') +
+      (t.action ? '<a class="reminder-action" href="' + t.action.href + '">' + t.action.label + ' →</a>' : '') +
     '</div>'
   ).join('');
 }

@@ -15,35 +15,15 @@
 
 <main class="container">
   <h1 class="page-title">我的词库</h1>
-  <p class="page-sub">录入自己的单词，「单词练习」会从这里出题。支持批量导入。</p>
+  <p class="page-sub">录入自己的单词，「单词练习」会从这里出题。一个框搞定：粘贴任意内容，AI 挑出所有英文词并翻译。</p>
 
   <section class="card">
-    <h2>添加单词</h2>
-    <p class="muted">输入英文后<strong>按回车或点空白处</strong>即可：自动存进词库 + 自动查中文释义（已在「设置 / AI 接口」填 DeepSeek Key 时生效）。中文框可手写覆盖。</p>
-    <div class="form-row">
-      <input id="wordEn" placeholder="英文单词（输完自动查中文）" autocomplete="off" />
-      <input id="wordCn" placeholder="中文释义（自动填充，可改）" />
-      <select id="wordTag">
-        <option value="">分类（可选）</option>
-        <option value="阅读">阅读</option>
-        <option value="听力">听力</option>
-        <option value="写作">写作</option>
-        <option value="口语">口语</option>
-        <option value="核心">核心</option>
-      </select>
-      <button class="btn btn-primary" id="addWord">保存</button>
-    </div>
-    <div id="wordStatus" class="word-status" aria-live="polite"></div>
-  </section>
-
-  <section class="card">
-    <h2>批量导入</h2>
-    <p class="muted">格式超灵活：每行一个，英文和中文之间用<strong>空格 / 逗号 / 冒号 / 括号</strong>都行；只写英文也行（中文留空）。例：<br>
-      algorithm 算法<br>ambiguous，模棱两可<br>vague：模糊的<br>nuance (细微差别)<br>obscure</p>
-    <textarea id="bulkWords" placeholder="每行一个单词，中英文之间可用空格/逗号/冒号/括号分隔，也可以只写英文"></textarea>
-    <div class="form-row" style="align-items:flex-end">
-      <div><label>导入后统一分类（可选）</label>
-        <select id="importTag">
+    <h2>🤖 AI 提取并导入</h2>
+    <p class="muted">一个框通吃：单个单词、一行词表、整段英文、中英文混排都行。点一下，AI 会挑出里面<strong>所有英文词</strong>并逐词翻译成中文，全部导入词库；重复词自动跳过。也可选一个统一分类。</p>
+    <textarea id="smartInput" style="width:100%;min-height:150px;padding:14px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;font-size:14.5px;line-height:1.7;background:var(--bg);color:var(--ink);resize:vertical" placeholder="粘贴任意内容都行：单个单词、一行词表、整段英文、中英文混排——AI 会挑出里面所有英文词并翻译。&#10;例：&#10;The algorithm is ambiguous; we need a nuanced approach to obscure the vague boundary."></textarea>
+    <div class="form-row" style="align-items:flex-end;margin-top:12px">
+      <div><label>统一分类（可选）</label>
+        <select id="smartTag">
           <option value="">不分类</option>
           <option value="阅读">阅读</option>
           <option value="听力">听力</option>
@@ -52,9 +32,9 @@
           <option value="核心">核心</option>
         </select>
       </div>
-      <button class="btn btn-primary" id="importWords" style="flex:none;min-width:120px">批量导入</button>
+      <button class="btn btn-primary" id="smartImport" style="flex:none;min-width:160px">🤖 AI 提取并导入</button>
     </div>
-    <p class="muted" id="importHint"></p>
+    <p class="muted" id="importHint" style="margin:10px 0 0"></p>
   </section>
 
   <section class="card">
