@@ -459,23 +459,7 @@ function renderSyncState(){
   el.textContent = '已绑定：' + phone + (DATA.settings.autoSync ? '（自动同步：开）' : '（自动同步：关）');
 }
 
-/* ===== 桌面通知（番茄钟阶段切换 / 智能提醒） ===== */
-function notifySupported(){ try{ return ('Notification' in window); }catch(e){ return false; } }
-function requestNotify(){
-  try{
-    if(!notifySupported()) return false;
-    if(Notification.permission === 'granted') return true;
-    if(Notification.permission === 'denied') return false;
-    try{ Notification.requestPermission(); }catch(e){}
-    return Notification.permission === 'granted';
-  }catch(e){ return false; }
-}
-function notify(title, body){
-  try{
-    if(!notifySupported() || Notification.permission !== 'granted') return;
-    new Notification(title, { body: body || '' });
-  }catch(e){}
-}
+/* ===== 桌面通知（番茄钟阶段切换 / 智能提醒）已移除：不再申请浏览器通知权限 ===== */
 
 window.$ = s => document.querySelector(s);
 function ready(fn){ if(document.readyState !== 'loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }

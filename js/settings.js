@@ -16,7 +16,6 @@ ready(() => {
   $('#sRelayUrl').value = s.relayUrl || '';
 
   $('#sSyncCode').value = s.syncCode || '';
-  $('#sNotify').checked = !!s.notifyEnabled;
   renderSyncState();
 
   $('#saveSettings').addEventListener('click', saveSettings);
@@ -31,10 +30,6 @@ ready(() => {
   // 云端同步（手机号账号，单按钮：注册 / 登录统一入口）
   $('#syncBindBtn').addEventListener('click', () => { syncLoginOrRegister(); });
   $('#sSyncCode').addEventListener('keydown', e => { if(e.key === 'Enter') syncLoginOrRegister(); });
-  $('#sNotify').addEventListener('change', () => {
-    DATA.settings.notifyEnabled = $('#sNotify').checked; hubSave();
-    if(DATA.settings.notifyEnabled) requestNotify();
-  });
 
   renderLinks();
 
@@ -73,9 +68,7 @@ function saveSettings(){
   };
   DATA.settings.syncCode = $('#sSyncCode').value.replace(/\D/g, '');
   DATA.settings.autoSync = true; // 默认开启自动同步，与考研站一致（绑定后由 syncLoginOrRegister 控制）
-  DATA.settings.notifyEnabled = $('#sNotify').checked;
   hubSave(); applyTheme(); toast('设置已保存');
-  if(DATA.settings.notifyEnabled) requestNotify();
 }
 
 function saveRelay(){

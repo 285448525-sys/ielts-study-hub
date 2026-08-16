@@ -519,7 +519,6 @@ let DATA = {
     relayToken: '',
     syncCode: '',
     autoSync: true,
-    notifyEnabled: false,
     links: DEFAULT_LINKS
   },
   errorbook: [],
@@ -576,8 +575,14 @@ function hubLoad(){
     const raw = localStorage.getItem(HUB_KEY);
     if(raw){
       const parsed = JSON.parse(raw);
-      // 深合并：默认值为基准，用户数据覆盖；数组字段整体替换，顶层缺字段自动补
-      DATA = deepMergeDefaults(DATA, parsed);
+      // 仅当存储是合法对象时才合并；若被写成 "null"/"[]"/标量（异常写入），
+      // 保留内存中的默认 DATA，避免刷新后「所有资料消失」
+      if(parsed && typeof parsed === 'object' && !Array.isArray(parsed)){
+        // 深合并：默认值为基准，用户数据覆盖；数组字段整体替换，顶层缺字段自动补
+        DATA = deepMergeDefaults(DATA, parsed);
+      } else {
+        console.warn('本地数据结构异常，已忽略损坏的存储，沿用默认数据');
+      }
     }
     // 兜底：确保所有数组字段非 undefined（极端损坏数据时也不崩）
     const arrayFields = ['sessions','notes','meds','words','plans','corpus','scores','errorbook',
