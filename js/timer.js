@@ -30,18 +30,15 @@ function moduleCard(m){
 }
 
 function renderTimer(){
-  const vocabCol = document.getElementById('vocabCol');
-  const subjectsCol = document.getElementById('subjectsCol');
-  if(!vocabCol || !subjectsCol) return;
-  const vocab = MODULES.find(m => m.id === 'vocab');
-  const subjects = MODULES.filter(m => m.id !== 'vocab');
-  vocabCol.innerHTML = '<div class="timer-col-title">单词</div>';
-  vocabCol.appendChild(moduleCard(vocab));
-  subjectsCol.innerHTML = '<div class="timer-col-title">雅思科目</div>';
-  const grid = document.createElement('div');
-  grid.className = 'timer-subjects';
-  subjects.forEach(m => grid.appendChild(moduleCard(m)));
-  subjectsCol.appendChild(grid);
+  const box = document.getElementById('timerMods');
+  if(!box) return;
+  box.innerHTML = '';
+  // 顺序：听力 / 阅读 / 写作 / 口语 / 背单词，桌面端呈现 3+2 居中布局
+  const order = ['listening','reading','writing','speaking','vocab'];
+  order.forEach(id => {
+    const m = MODULES.find(x => x.id === id);
+    if(m) box.appendChild(moduleCard(m));
+  });
   bindStartButtons();
 }
 

@@ -10,19 +10,16 @@
   <script defer src="js/prompts.js"></script>
   <script defer src="js/timer.js"></script>
 <style>
-  /* 计时主页：左单词 / 右 4 科目，点「开始」直接学 */
-  .timer-cols{display:grid;grid-template-columns:240px 1fr;gap:18px;align-items:start;margin-top:6px}
-  .timer-col{display:flex;flex-direction:column;gap:14px;min-width:0}
-  .timer-col-title{font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.3px;padding:0 2px}
-  .timer-subjects{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-  .timer-start{width:100%;margin-top:10px}
+  /* 计时主页：5 个模块 3+2 居中排列 */
+  .timer-mods{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin-top:6px}
+  .timer-mods .mod-card{flex:1 1 calc(33.333% - 10px);min-width:180px;max-width:320px;display:flex;flex-direction:column}
+  .timer-start{width:100%;margin-top:auto}
   .mod-card.running{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
   @media(max-width:760px){
-    .timer-cols{grid-template-columns:1fr;gap:12px}
-    .timer-subjects{grid-template-columns:1fr 1fr}
+    .timer-mods .mod-card{flex:1 1 calc(50% - 8px);max-width:none}
   }
   @media(max-width:420px){
-    .timer-subjects{grid-template-columns:1fr}
+    .timer-mods .mod-card{flex:1 1 100%}
   }
 </style>
 </head>
@@ -43,10 +40,7 @@
     </div>
   </div>
 
-  <div class="timer-cols">
-    <div class="timer-col" id="vocabCol"></div>
-    <div class="timer-col" id="subjectsCol"></div>
-  </div>
+  <div class="timer-mods" id="timerMods"></div>
 </main>
 
 </body>
