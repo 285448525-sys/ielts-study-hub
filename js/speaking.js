@@ -110,22 +110,23 @@ function openDetail(id){
   if(zh) html += '<div class="sp-detail-zh">' + escapeHtml(zh) + '</div>';
   html += '<div class="sp-detail-tags">' + tagsHtml(s) + '</div>';
 
-  // P1 问题列表
+  // P1 问题列表（逐题可点开 + 录 + 诊断）
   if(s.type === 'P1' && s.questions && s.questions.length){
-    html += '<ol class="sp-questions">';
-    s.questions.forEach(q => { html += '<li>' + escapeHtml(q) + '</li>'; });
+    html += '<div class="sp-q-list-head">Part 1 小问题（点开可语音/手打回答，再让 AI 诊断）</div>';
+    html += '<ol class="sp-q-list">';
+    s.questions.forEach((q, i) => { html += questionItemHtml(q, i); });
     html += '</ol>';
   }
 
-  // P2 题目描述
+  // P2 题目描述（prompt 只读上下文；youShouldSay 每个小点逐题可点开）
   if(s.type === 'P2'){
-    if(s.promptEn) html += '<div class="sp-prompt">' + escapeHtml(s.promptEn) + '</div>';
+    if(s.promptEn) html += '<div class="sp-prompt">题目：' + escapeHtml(s.promptEn) + '</div>';
     if(s.promptZh) html += '<div class="sp-detail-zh" style="margin-bottom:12px">' + escapeHtml(s.promptZh) + '</div>';
     if(s.youShouldSay && s.youShouldSay.length){
-      html += '<div style="font-size:13px;color:var(--muted);margin-bottom:4px;font-weight:600">You should say:</div>';
-      html += '<ul class="sp-ysay">';
-      s.youShouldSay.forEach(y => { html += '<li>' + escapeHtml(y) + '</li>'; });
-      html += '</ul>';
+      html += '<div class="sp-q-list-head">You should say（每个小点可点开，录/诊断）</div>';
+      html += '<ol class="sp-q-list">';
+      s.youShouldSay.forEach((y, i) => { html += questionItemHtml(y, i); });
+      html += '</ol>';
     }
   }
 
@@ -165,6 +166,9 @@ function openDetail(id){
       b.classList.add('active');
     });
   });
+
+  // 逐题展开 + 语音 + AI 诊断 事件绑定（含 localStorage 回填）
+  bindQuestionEvents(id);
 }
 
 function saveDetail(id){
@@ -230,6 +234,197 @@ async function aiAssist(id){
 
 /* === P2 串题（AI 问→写故事→覆盖矩阵） === */
 var ctQuestions = [];   // [{q, a}]
+
+/* === 逐题展开 + 语音输入 + AI 语法诊断 === */
+// 顶部常量用 var（speaking.js 会被软导航 window.eval 重跑，const 会抛「已声明」）
+var SYS_DIAG =
+  '你是雅思口语老师。考生：女生，大三CS在读，目标总分6.0、口语5.5；词汇量约4000，'
+  + '需要地道但不过难、句型简单的英文（别用生僻词/复杂从句）。\n'
+  + '考生会给出自己对某个口语问题的回答（可能来自语音输入，可能有语法/用词错误）。请：\n'
+  + '1) 指出语法/用词错误：逐条给 原句 → 问题(中文简说，不堆术语) → 修改；没有错误就如实说很少。\n'
+  + '2) 在【不改动考生原本思路与想说内容】的前提下，给一版更地道、自然、符合其基础（简单句型、常见词汇）的英文重写。\n'
+  + '3) 给 1-2 个可积累的地道替换词/句型（同样简单）。\n'
+  + '严格要求只输出如下 JSON（不要任何解释文字）：'
+  + '{"errors":[{"original":"考生原句中的问题片段","issue":"中文简说问题","fix":"修改后片段"}],'
+  + '"rewrite":"按原思路的地道简化英文重写","tips":["可积累替换/句型1","可积累替换/句型2"]}';
+
+var spRec = null; // 当前进行中的语音识别实例
+
+// 单题可点开项 HTML（text=可见文本，qi=题目索引）
+function questionItemHtml(text, qi){
+  return '<li class="sp-q" data-qi="' + qi + '">'
+    + '<span class="sp-q-caret">▸</span>'
+    + '<span class="sp-q-text">' + escapeHtml(text) + '</span>'
+    + '<div class="sp-q-panel" data-qi="' + qi + '" hidden>'
+    + '<div class="sp-ans-row"><button class="sp-mic" data-qi="' + qi + '" type="button">🎤 语音回答</button>'
+    + '<span class="sp-mic-hint">说英文；识别不出来就用下方输入框手打/粘贴</span></div>'
+    + '<textarea class="sp-ans" data-qi="' + qi + '" placeholder="在这里说出或写下你的回答…"></textarea>'
+    + '<div class="sp-q-btns">'
+    + '<button class="sp-diag" data-qi="' + qi + '" type="button">🤖 AI 诊断</button>'
+    + '<button class="sp-ans-clear" data-qi="' + qi + '" type="button">清空</button>'
+    + '</div>'
+    + '<div class="sp-ai-result sp-q-result" data-qi="' + qi + '"></div>'
+    + '</div></li>';
+}
+
+// 绑定每题的展开/收起、语音、诊断、清空；并回填已存答案
+function bindQuestionEvents(id){
+  const s = DATA.speaking.find(x => x.id === id);
+  if(!s) return;
+  s.answers = s.answers || {};
+
+  // 浏览器不支持语音识别 → 隐藏所有麦克风按钮（手打/粘贴/诊断仍可用）
+  if(!('SpeechRecognition' in window) && !('webkitSpeechRecognition' in window)){
+    document.querySelectorAll('.sp-mic').forEach(m => { m.style.display = 'none'; });
+  }
+
+  document.querySelectorAll('.sp-q').forEach(li => {
+    const qi = li.dataset.qi;
+    const ta = li.querySelector('.sp-ans[data-qi="' + qi + '"]');
+    const resultEl = li.querySelector('.sp-q-result[data-qi="' + qi + '"]');
+
+    // 回填上次答案 + 诊断结果
+    if(s.answers[qi]){
+      if(ta && s.answers[qi].text) ta.value = s.answers[qi].text;
+      if(resultEl && s.answers[qi].result){
+        try{
+          const j = JSON.parse(s.answers[qi].result);
+          renderDiag(resultEl, j, s.answers[qi].result);
+        }catch(_){
+          resultEl.innerHTML = '<div class="diag-note">（上次结果非标准格式，已贴原文）</div><pre>' + escapeHtml(s.answers[qi].result || '') + '</pre>';
+          resultEl.style.display = 'block';
+        }
+      }
+    }
+
+    // 点开 / 收起（点面板内部不触发）
+    li.addEventListener('click', e => {
+      if(e.target.closest('.sp-q-panel')) return;
+      const panel = li.querySelector('.sp-q-panel[data-qi="' + qi + '"]');
+      if(!panel) return;
+      const willOpen = panel.hidden;
+      panel.hidden = !willOpen;
+      li.classList.toggle('open', willOpen);
+      const caret = li.querySelector('.sp-q-caret');
+      if(caret) caret.classList.toggle('open', willOpen);
+    });
+
+    // 语音
+    const mic = li.querySelector('.sp-mic[data-qi="' + qi + '"]');
+    if(mic) mic.addEventListener('click', e => { e.stopPropagation(); startVoice(qi); });
+
+    // AI 诊断
+    const diag = li.querySelector('.sp-diag[data-qi="' + qi + '"]');
+    if(diag) diag.addEventListener('click', e => {
+      e.stopPropagation();
+      const answer = ta ? ta.value.trim() : '';
+      if(!answer){ toast('先说出或写下你的回答'); return; }
+      let questionText;
+      if(s.type === 'P1'){
+        questionText = (s.questions || [])[+qi] || '';
+      } else {
+        questionText = '题目：' + (s.promptEn || s.title || '') + '\n本题要点：' + ((s.youShouldSay || [])[+qi] || '');
+      }
+      diagnoseAnswer(id, qi, questionText, answer);
+    });
+
+    // 清空
+    const clr = li.querySelector('.sp-ans-clear[data-qi="' + qi + '"]');
+    if(clr) clr.addEventListener('click', e => {
+      e.stopPropagation();
+      if(ta) ta.value = '';
+      if(resultEl){ resultEl.innerHTML = ''; resultEl.style.display = 'none'; }
+      if(s.answers[qi]){ delete s.answers[qi]; hubSave(); }
+    });
+  });
+}
+
+// 语音输入（原生 Web Speech API，零成本；国内无 VPN 多数浏览器不可用，已兜底）
+function startVoice(qi){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const ta = document.querySelector('.sp-ans[data-qi="' + qi + '"]');
+  const btn = document.querySelector('.sp-mic[data-qi="' + qi + '"]');
+  if(!SR){ toast('当前浏览器不支持语音识别，请直接输入'); return; }
+  // 已在录音（点同一题）→ 停止
+  if(spRec && spRec._qi === qi){
+    try{ spRec.stop(); }catch(_){}
+    return;
+  }
+  // 停掉其它进行中的实例
+  if(spRec){ try{ spRec.stop(); }catch(_){} }
+  const rec = new SR();
+  rec._qi = qi;
+  rec.lang = 'en-US';
+  rec.interimResults = true;
+  rec.continuous = false;
+  rec.onresult = e => {
+    let t = '';
+    for(let i = 0; i < e.results.length; i++){ t += e.results[i][0].transcript; }
+    if(ta) ta.value = t.trim();
+  };
+  rec.onerror = () => {
+    toast('语音识别不可用（可能需联网/浏览器支持），请直接输入');
+    if(btn){ btn.classList.remove('sp-mic-on'); btn.textContent = '🎤 语音回答'; }
+    spRec = null;
+  };
+  rec.onend = () => {
+    if(btn){ btn.classList.remove('sp-mic-on'); btn.textContent = '🎤 语音回答'; }
+    if(spRec && spRec._qi === qi) spRec = null;
+  };
+  try{
+    rec.start();
+    spRec = rec;
+    if(btn){ btn.classList.add('sp-mic-on'); btn.textContent = '⏹ 停止'; }
+  }catch(_){
+    toast('语音识别启动失败，请直接输入');
+  }
+}
+
+// AI 语法诊断（复用纯文本 callRelay，service=speaking_diagnose）
+async function diagnoseAnswer(id, qi, questionText, answerText){
+  const s = DATA.speaking.find(x => x.id === id);
+  if(!s) return;
+  const resultEl = document.querySelector('.sp-q-result[data-qi="' + qi + '"]');
+  const btn = document.querySelector('.sp-diag[data-qi="' + qi + '"]');
+  if(btn){ btn.disabled = true; btn.textContent = '诊断中…'; }
+  try{
+    const messages = [
+      { role:'system', content: SYS_DIAG },
+      { role:'user', content: '题目：' + questionText + '\n\n我的回答：\n' + answerText }
+    ];
+    const content = await callRelay('speaking_diagnose', messages, 0.6);
+    const j = aiJson(content);
+    renderDiag(resultEl, j, content);
+    s.answers = s.answers || {};
+    s.answers[qi] = { text: answerText, result: (j ? JSON.stringify(j) : content), ts: Date.now() };
+    hubSave();
+  }catch(e){
+    if(resultEl){
+      resultEl.innerHTML = '<div class="diag-note">AI 服务暂不可用：' + escapeHtml(e.message) + '\n\n请检查「设置」中的 AI 接口地址。</div>';
+      resultEl.style.display = 'block';
+    }
+    toast('AI 诊断失败：' + e.message);
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = '🤖 AI 诊断'; }
+  }
+}
+
+// 渲染诊断结构化卡片
+function renderDiag(el, j, raw){
+  if(j && Array.isArray(j.errors) && j.rewrite){
+    let h = '<div class="diag-sec"><b>① 语法/用词诊断</b>';
+    h += j.errors.length
+      ? j.errors.map(e => '<div class="diag-err"><span class="diag-orig">' + escapeHtml(e.original || '') + '</span> → <span class="diag-fix">' + escapeHtml(e.fix || '') + '</span><div class="diag-issue">' + escapeHtml(e.issue || '') + '</div></div>').join('')
+      : '<div class="diag-ok">没发现明显错误，继续保持～</div>';
+    h += '</div>';
+    h += '<div class="diag-sec"><b>② 按你思路的地道重写</b><div class="diag-rewrite">' + escapeHtml(j.rewrite) + '</div></div>';
+    if(Array.isArray(j.tips) && j.tips.length) h += '<div class="diag-sec"><b>③ 可积累</b><ul>' + j.tips.map(t => '<li>' + escapeHtml(t) + '</li>').join('') + '</ul></div>';
+    el.innerHTML = h;
+  } else {
+    el.innerHTML = '<div class="diag-note">（AI 返回非标准格式，已贴原文）</div><pre>' + escapeHtml(raw || '') + '</pre>';
+  }
+  el.style.display = 'block';
+}
 
 function ctTemplates(){
   // 用户已有 P2 母本素材（真实经历），作为写故事的基础
