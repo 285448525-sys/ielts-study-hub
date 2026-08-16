@@ -195,12 +195,7 @@ const PAGE_SCENES = {
 };
 
 /* ---------- 3. 参数自动带出（最佳努力） ---------- */
-function daysUntil(dateStr) {
-  const target = new Date(dateStr + 'T00:00:00');
-  const now = new Date();
-  const diff = Math.ceil((target - now) / 86400000);
-  return diff >= 0 ? diff : 0;
-}
+/* daysUntil / toast 已由 common.js 定义为全局函数，此处不重复声明，避免覆盖 */
 function collectParams(sceneId) {
   const p = Object.assign({}, window.AI_CONTEXT || {});
   // 天数自动算（dailyplan / weekly）
@@ -290,15 +285,7 @@ function fallbackCopy(text) {
   return true; // 已尽力，不阻断
 }
 
-/* ---------- 6. 轻量 toast（复用全局 toast，否则自建） ---------- */
-function toast(msg) {
-  if (typeof window.toast === 'function') { window.toast(msg); return; }
-  const d = document.createElement('div');
-  d.textContent = msg;
-  d.style.cssText = 'position:fixed;left:50%;bottom:80px;transform:translateX(-50%);background:#0f1b2d;color:#fff;padding:10px 16px;border-radius:12px;font-size:14px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.2)';
-  document.body.appendChild(d);
-  setTimeout(() => d.remove(), 2200);
-}
+/* ---------- 6. toast 直接复用 common.js 全局版本，不再重复定义 ---------- */
 
 /* ---------- 7. 编辑弹窗（可编辑并存 localStorage） ---------- */
 function openEditModal(sceneId) {
