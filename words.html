@@ -15,12 +15,14 @@
 
 <main class="container">
   <h1 class="page-title">我的词库</h1>
-  <p class="page-sub">录入自己的单词，「单词练习」会从这里出题。一个框搞定：粘贴任意内容，AI 挑出所有英文词并翻译。</p>
+  <p class="page-sub">一个框搞定：把单词、句子、段落或文件拖进来，AI 自动挑出生词并配上中文意思。</p>
 
   <section class="card">
-    <h2>🤖 AI 提取并导入</h2>
-    <p class="muted">一个框通吃：单个单词、一行词表、整段英文、中英文混排都行。点一下，AI 会挑出里面<strong>所有英文词</strong>并逐词翻译成中文，全部导入词库；重复词自动跳过。也可选一个统一分类。</p>
-    <textarea id="smartInput" style="width:100%;min-height:150px;padding:14px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;font-size:14.5px;line-height:1.7;background:var(--bg);color:var(--ink);resize:vertical" placeholder="粘贴任意内容都行：单个单词、一行词表、整段英文、中英文混排——AI 会挑出里面所有英文词并翻译。&#10;例：&#10;The algorithm is ambiguous; we need a nuanced approach to obscure the vague boundary."></textarea>
+    <h2>🤖 导入</h2>
+    <p class="muted">一个框通吃：单个单词、一行词表、整段英文、中英文混排，甚至把 .txt/.md/.csv/.json 文件直接拖进来都行。点一下，AI 会挑出里面<strong>所有英文词</strong>并逐词翻译成中文，全部导入词库；重复词自动跳过。也可选一个统一分类。</p>
+    <div id="dropZone" style="border:2px dashed transparent;border-radius:var(--radius)">
+      <textarea id="smartInput" style="width:100%;min-height:150px;padding:14px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;font-size:14.5px;line-height:1.7;background:var(--bg);color:var(--ink);resize:vertical" placeholder="粘贴任意内容都行：单个单词、一行词表、整段英文、中英文混排——AI 会挑出里面所有英文词并翻译。&#10;也可以把 .txt/.md/.csv/.json 文件直接拖进这个框。&#10;例：&#10;The algorithm is ambiguous; we need a nuanced approach to obscure the vague boundary."></textarea>
+    </div>
     <div class="form-row" style="align-items:flex-end;margin-top:12px">
       <div><label>统一分类（可选）</label>
         <select id="smartTag">
@@ -32,13 +34,16 @@
           <option value="核心">核心</option>
         </select>
       </div>
-      <button class="btn btn-primary" id="smartImport" style="flex:none;min-width:160px">🤖 AI 提取并导入</button>
+      <button class="btn btn-primary" id="smartImport" style="flex:none;min-width:160px">🤖 导入</button>
     </div>
     <p class="muted" id="importHint" style="margin:10px 0 0"></p>
   </section>
 
   <section class="card">
-    <h2>词库列表 · 共 <span id="wordCount">0</span> 个</h2>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h2 style="margin:0">词库列表 · 共 <span id="wordCount">0</span> 个</h2>
+      <button class="btn btn-sm" id="backfillBtn">🔄 补全缺失释义</button>
+    </div>
     <div class="form-row">
       <input id="searchWord" placeholder="搜索单词或释义…" />
       <select id="filterTag"><option value="">全部分类</option><option value="阅读">阅读</option><option value="听力">听力</option><option value="写作">写作</option><option value="口语">口语</option><option value="核心">核心</option></select>

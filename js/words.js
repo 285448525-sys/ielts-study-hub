@@ -2,6 +2,8 @@ ready(() => {
   $('#smartImport').addEventListener('click', importSmart);
   $('#searchWord').addEventListener('input', renderWords);
   $('#filterTag').addEventListener('change', renderWords);
+  $('#backfillBtn').addEventListener('click', backfillCn);
+  bindDrop();
   renderWords();
 });
 
@@ -89,8 +91,56 @@ async function importSmart(){
     toast('AI 提取失败：' + e.message + '（可重试，或先去「设置」填 Key）');
     if(hint) hint.textContent = 'AI 提取失败：' + e.message;
   }finally{
-    btn.disabled = false; btn.textContent = '🤖 AI 提取并导入';
+    btn.disabled = false; btn.textContent = '🤖 导入';
   }
+}
+
+/* 一键补全：给词库里「没有中文释义」的老词批量补 AI 翻译（每批 20 个，防超 token）。只写 cn，不破坏其它字段。 */
+async function backfillCn(){
+  const miss = DATA.words.filter(w => !(w.cn && w.cn.trim()));
+  if(!miss.length){ toast('没有缺失释义的词'); return; }
+  if(!DATA.settings.relayToken){ toast('去「设置 / AI 接口」填 DeepSeek Key 才能补全'); return; }
+  const btn = $('#backfillBtn');
+  btn.disabled = true; btn.textContent = '补全中…';
+  try{
+    for(let i=0; i<miss.length; i+=20){      // 每批 20 个，防超 token
+      const chunk = miss.slice(i, i+20);
+      const enList = chunk.map(w => w.en).join('\n');
+      const sys = '你是英文词库助手。下面每行一个英文单词，请给出每个词的简洁中文释义（最多 3 个义项，用"；"分隔）。只返回 JSON 数组：[{"en":"algorithm","cn":"算法；运算法则"}, ...]，顺序与输入一致，不要任何解释文字、不要 markdown 围栏。';
+      const content = await callRelay('words', [{ role:'system', content: sys }, { role:'user', content: enList }], 0.3);
+      const arr = aiJson(content);
+      if(Array.isArray(arr)){
+        const map = {};
+        arr.forEach(x => { if(x && x.en) map[String(x.en).toLowerCase()] = String(x.cn || '').trim(); });
+        chunk.forEach(w => { const c = map[w.en.toLowerCase()]; if(c) w.cn = c; });
+      }
+      hubSave(); renderWords();
+    }
+    const left = DATA.words.filter(w => !(w.cn && w.cn.trim())).length;
+    toast(left ? ('已补全一批，还剩 '+left+' 个未识别，可再点一次') : '全部释义已补全 ✅');
+  }catch(e){
+    toast('补全失败：' + e.message);
+  }finally{
+    btn.disabled = false; btn.textContent = '🔄 补全缺失释义';
+  }
+}
+
+/* 拖文件进框：读取纯文本文件内容并填入输入框，随后走原「导入」流程（importSmart）。仅支持 .txt/.md/.csv/.json。 */
+function bindDrop(){
+  const box = $('#smartInput');
+  const zone = $('#dropZone') || box;
+  ['dragenter','dragover'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.add('drag-over'); }));
+  ['dragleave','drop'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.remove('drag-over'); }));
+  zone.addEventListener('drop', e => {
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if(!f) return;
+    const okExt = /\.(txt|md|csv|json|text)$/i.test(f.name);
+    if(!okExt){ toast('目前只支持 .txt/.md/.csv/.json 文本文件'); return; }
+    const reader = new FileReader();
+    reader.onload = () => { box.value = reader.result; toast('已读入「'+f.name+'」，点「导入」即可'); };
+    reader.onerror = () => toast('文件读取失败');
+    reader.readAsText(f);
+  });
 }
 
 function deleteWord(id){
