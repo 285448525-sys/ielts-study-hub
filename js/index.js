@@ -203,7 +203,7 @@ function genSummary(){
   }
 
   // recent scores
-  const recent = DATA.scores.slice(-3).reverse();
+  const recent = (DATA.scores || []).slice(-3).reverse();
   if(recent.length > 0){
     lines.push('\n📈 最近模考：');
     recent.forEach(s => {
@@ -218,8 +218,22 @@ function genSummary(){
   }
 
   const el = $('#summaryOutput');
+  if(!el) return;  // 容器缺失时静默退出，避免 null.style 抛 TypeError 把整页脚本带崩
+
+  const text = lines.join('\n');
   el.style.display = 'block';
-  el.innerHTML = '<div style="white-space:pre-wrap;line-height:1.8;color:var(--text);background:var(--bg);padding:12px;border-radius:8px;border:1px solid var(--border)">' + escapeHtml(lines.join('\n')) + '</div>';
+  el.innerHTML =
+    '<div style="white-space:pre-wrap;line-height:1.8;color:var(--ink);background:var(--bg);padding:12px;border-radius:8px;border:1px solid var(--line)">' + escapeHtml(text) + '</div>' +
+    '<div style="margin-top:10px"><button class="btn btn-sm" id="copySummaryBtn">📄 复制文本</button></div>';
+
+  const cb = $('#copySummaryBtn');
+  if(cb) cb.addEventListener('click', () => {
+    if(typeof copyText === 'function'){
+      copyText(text).then(() => toast('已复制今日总结'));
+    } else {
+      toast('复制不可用，请手动选中文本');
+    }
+  });
   toast('已生成今日总结');
 }
 

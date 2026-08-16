@@ -18,13 +18,14 @@ ready(() => {
 });
 
 /* ---------- 录入 ---------- */
+/* 返回值：true = 成功归档（调用方可安全删除旧记录）；false = 未归档，原数据必须保留 */
 async function analyzeEntry(){
   const box = $('#ebInput');
   const text = box.value.trim();
-  if(text.length < 15){ toast('内容太短，把 AI 的讲解整段粘进来'); return; }
+  if(text.length < 15){ toast('内容太短，把 AI 的讲解整段粘进来'); return false; }
   if(!DATA.settings.relayToken){
     toast('还没填 DeepSeek Key，去「设置 / AI 接口」填一下；也可以先点「只存原文」');
-    return;
+    return false;
   }
 
   const btn = $('#ebAnalyze');
@@ -90,8 +91,10 @@ async function analyzeEntry(){
     toast(r ? '已分析并归档' : 'AI 格式异常，已存原文');
     const first = document.querySelector('#list .eb-card');
     if(first) first.scrollIntoView({ behavior:'smooth', block:'center' });
+    return true;
   }catch(e){
     load.textContent = 'AI 调不通：' + e.message + '　（可以先点「只存原文」，等有网/配好 Key 再补分析）';
+    return false;
   }finally{
     btn.disabled = false; btn.textContent = '🤖 AI 分析并归档';
   }
@@ -113,16 +116,39 @@ function saveRawEntry(){
   toast('已存原文，之后可点卡片「补 AI 分析」');
 }
 
-/* 对已存原文的记录补跑一次 AI */
+/* 对已存原文的记录补跑一次 AI
+   ⚠️ 数据安全铁律：必须「分析成功之后」才删旧记录。
+   AI 分析有多条失败路径（原文过短 / 没配 Key / 网络异常），若先删后跑，
+   任何一条失败都会让用户手打/粘贴的原始资料永久消失且不可恢复。 */
 async function reanalyze(id){
   const e = DATA.errorbook.find(x => x.id === id);
   if(!e || !e.source){ toast('这条没有原始资料，无法分析'); return; }
-  $('#ebInput').value = e.source;
-  DATA.errorbook = DATA.errorbook.filter(x => x.id !== id);
-  hubSave();
-  render();
+
+  const box = $('#ebInput');
+  // 输入框里可能还有用户没保存的草稿，别默默冲掉
+  const draft = box.value.trim();
+  if(draft && draft !== e.source.trim()){
+    if(!confirm('上面输入框里还有没归档的内容，继续会被这条记录的原文替换。要继续吗？')) return;
+  }
+
+  box.value = e.source;
   window.scrollTo({ top:0, behavior:'smooth' });
-  await analyzeEntry();
+
+  const ok = await analyzeEntry();
+  if(ok){
+    // 新记录已归档，此时才安全地移除旧的那条
+    DATA.errorbook = DATA.errorbook.filter(x => x.id !== id);
+    hubSave();
+    render();
+  } else {
+    // 失败：旧记录原样保留。提示写在 #ebLoading（不用 toast，免得盖掉上面「没填 Key」之类的具体原因）
+    const load = $('#ebLoading');
+    if(load){
+      const prev = load.hidden ? '' : (load.textContent + '　');
+      load.hidden = false;
+      load.textContent = prev + '⚠️ 没分析成功，这条记录仍在下面列表里、原文没丢。原文已放进上面输入框，可以改完再点「AI 分析并归档」（成功后记得删掉旧的那条）。';
+    }
+  }
 }
 
 function normTrap(t){
