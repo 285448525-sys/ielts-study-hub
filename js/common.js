@@ -8,11 +8,10 @@ const PAGES = [
   { id:'practice',  file:'practice.html',  icon:'🎮', name:'单词练习',   desc:'看词选义/听义选义' },
   { id:'corpus',    file:'corpus.html',    icon:'🎧', name:'听力语料库', desc:'场景词汇听写' },
   { id:'longsent',  file:'longsent.html',  icon:'🧩', name:'长难句拆解', desc:'括号法解码训练' },
-  { id:'scores',    file:'scores.html',    icon:'📈', name:'模考记录',   desc:'历次成绩追踪' },
   { id:'errorbook', file:'errorbook.html', icon:'📒', name:'错题本',     desc:'贴 AI 讲解自动归档' },
   { id:'speaking',  file:'speaking.html',  icon:'🗨', name:'口语素材库', desc:'题库 + AI 串题' },
   { id:'writing',   file:'writing.html',   icon:'✍', name:'写作模板库', desc:'模板 + AI 评分' },
-  { id:'history',   file:'history.html',   icon:'🗄', name:'历史统计',   desc:'长期趋势' },
+  { id:'review',    file:'review.html',    icon:'📊', name:'回顾',       desc:'模考成绩 + 学习轨迹' },
   { id:'settings',  file:'settings.html',  icon:'⚙️', name:'设置',       desc:'同步 / AI / 数据' },
 ];
 
@@ -28,8 +27,8 @@ function favPageIds(){
 const NAV_GROUPS = [
   { name:'学习', icon:'🎯', pages:['index','timer','plans'] },
   { name:'积累', icon:'📝', pages:['meds','words','practice','corpus','longsent'] },
-  { name:'实战', icon:'💻', pages:['scores','errorbook','speaking','writing'] },
-  { name:'数据', icon:'📊', pages:['history','settings'] },
+  { name:'实战', icon:'💻', pages:['errorbook','speaking','writing'] },
+  { name:'数据', icon:'📊', pages:['review','settings'] },
 ];
 
 function injectNav(){

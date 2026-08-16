@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>回顾 · 雅思备考 Hub</title>
+<link rel="stylesheet" href="css/common.css" />
+<script defer src="js/data.js"></script>
+<script defer src="js/common.js"></script>
+<script defer src="js/prompts.js"></script>
+<script defer src="js/scores.js"></script>
+<script defer src="js/history.js"></script>
+<style>
+  .tabs{display:flex;gap:8px;margin-bottom:14px;padding:4px;background:var(--surface);border-radius:12px;border:1px solid var(--line)}
+  .tab-btn{flex:1;padding:10px 14px;border:none;background:transparent;color:var(--muted);border-radius:9px;cursor:pointer;font-weight:600;font-size:14px;transition:all .2s ease}
+  .tab-btn.active{background:var(--primary);color:#fff;box-shadow:0 2px 8px rgba(29,78,216,.25)}
+  .tab-btn:hover:not(.active){color:var(--ink);background:var(--surface-2)}
+  .tab-panel{display:none}
+  .tab-panel.active{display:block;animation:fadeIn .25s ease}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+  .mk-parts{margin:6px 0 12px}
+  .mk-part{margin-bottom:8px;align-items:flex-end}
+  .mk-part > div{display:block}
+  .mk-part label{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
+  .mk-part input{width:100%}
+  .mk-grp{margin-bottom:14px}
+  .mk-grp-title{font-weight:700;margin:4px 0 6px}
+  .review-split{margin-top:28px;padding-top:8px}
+</style>
+</head>
+<body>
+<nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
+
+<main class="container">
+  <h1 class="page-title">回顾</h1>
+  <p class="page-sub">上块 = 模考成绩追踪，下块 = 长期学习轨迹，一个入口看全部。</p>
+
+  <!-- ============ 上块：模考成绩 ============ -->
+  <section class="card">
+    <h2>📊 模考成绩</h2>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="overall">📊 整卷模考</button>
+      <button class="tab-btn" data-tab="breakdown">🧩 分项模考</button>
+    </div>
+
+    <!-- 整卷模考 Tab -->
+    <div id="tab-overall" class="tab-panel active">
+      <section class="card">
+        <h2>添加整卷模考成绩</h2>
+        <div class="form-row">
+          <div><label>模考日期</label><input type="date" id="scoreDate" /></div>
+          <div><label>听力</label><input type="number" id="scL" step="0.5" min="0" max="9" placeholder="0–9" /></div>
+          <div><label>阅读</label><input type="number" id="scR" step="0.5" min="0" max="9" placeholder="0–9" /></div>
+        </div>
+        <div class="form-row">
+          <div><label>写作</label><input type="number" id="scW" step="0.5" min="0" max="9" placeholder="0–9" /></div>
+          <div><label>口语</label><input type="number" id="scS" step="0.5" min="0" max="9" placeholder="0–9" /></div>
+          <div><label>备注（可选）</label><input id="scNote" placeholder="备注" /></div>
+        </div>
+        <button class="btn btn-primary" id="addScore">保存成绩</button>
+      </section>
+
+      <div class="grid">
+        <section class="card">
+          <h2>总览</h2>
+          <div class="stat-grid" id="scoreStats"></div>
+        </section>
+        <section class="card">
+          <h2>最近一次 vs 目标</h2>
+          <div id="scoreBars"></div>
+        </section>
+      </div>
+
+      <section class="card">
+        <h2>📈 成绩趋势</h2>
+        <p class="muted">横轴为模考日期，纵轴 0–9 分。至少需要 2 次模考成绩。</p>
+        <div id="trendChart"></div>
+      </section>
+
+      <section class="card">
+        <h2>🧭 综合掌握度雷达图</h2>
+        <p class="muted">对比「最新一次」与「目标」：听 / 读 / 写 / 口 四项能力。至少需要 1 次模考。</p>
+        <div id="radarChart"></div>
+      </section>
+
+      <section class="card">
+        <h2>整卷记录列表</h2>
+        <div id="scoreList"></div>
+      </section>
+    </div>
+
+    <!-- 分项模考 Tab -->
+    <div id="tab-breakdown" class="tab-panel">
+      <section class="card">
+        <h2>添加分项记录</h2>
+        <div class="form-row">
+          <div><label>粒度</label>
+            <select id="mkGran">
+              <option value="whole">整卷（录全部 Part）</option>
+              <option value="part">单项（只录一个 Part）</option>
+            </select>
+          </div>
+          <div><label>题型</label>
+            <select id="mkType">
+              <option value="listening">🎧 听力</option>
+              <option value="reading">📖 阅读</option>
+              <option value="speaking">🗣️ 口语</option>
+              <option value="writing">✏️ 写作</option>
+            </select>
+          </div>
+          <div><label>日期</label><input type="date" id="mkDate" /></div>
+        </div>
+
+        <div class="form-row" id="mkPartPick" hidden>
+          <div><label>选择 Part</label><select id="mkPart"></select></div>
+        </div>
+
+        <div id="mkParts" class="mk-parts"></div>
+
+        <div class="form-row">
+          <div style="flex:3"><label>备注（可选）</label><input id="mkNote" placeholder="如：同义替换慢 / P4 跟不上" /></div>
+        </div>
+        <button class="btn btn-primary" id="mkAdd">保存分项</button>
+      </section>
+
+      <section class="card">
+        <div class="form-row" style="align-items:center">
+          <h2 style="margin:0">表现统计</h2>
+          <div style="flex:none;margin-left:auto"><label>范围</label>
+            <select id="mkFilter">
+              <option value="all">全部</option>
+              <option value="whole">仅整卷</option>
+              <option value="part">仅单项</option>
+            </select>
+          </div>
+        </div>
+        <h3 style="margin-top:16px">题型表现</h3>
+        <div id="mkTypeStats"></div>
+        <h3 style="margin-top:14px">各 Part 表现</h3>
+        <div id="mkPartStats"></div>
+      </section>
+
+      <section class="card">
+        <h2>分项记录列表</h2>
+        <div id="mkList"></div>
+      </section>
+    </div>
+  </section>
+
+  <!-- ============ 下块：学习轨迹 ============ -->
+  <div class="review-split"></div>
+  <section class="card">
+    <h2>📈 学习轨迹</h2>
+
+    <section class="card">
+      <h2>近 30 天学习热力</h2>
+      <div id="heatmap"></div>
+      <div class="cal-legend" id="heatLegend"></div>
+    </section>
+
+    <section class="card">
+      <h2>每日记录</h2>
+      <div id="dayList"></div>
+    </section>
+  </section>
+</main>
+
+</body>
+</html>

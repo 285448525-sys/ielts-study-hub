@@ -191,7 +191,7 @@ const PAGE_SCENES = {
   'practice.html':  ['words'],
   'corpus.html':    ['listening'],
   'plans.html':     ['dailyplan'],
-  'scores.html':    ['weekly']
+  'review.html':    ['weekly']
 };
 
 /* ---------- 3. 参数自动带出（最佳努力） ---------- */
