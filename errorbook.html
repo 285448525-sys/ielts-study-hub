@@ -50,16 +50,16 @@
 
 <main class="container">
   <h1 class="page-title">错题本</h1>
-  <p class="page-sub">把 AI 的讲解（或你自己的零散笔记）整段粘进下面的框，点「AI 分析并归档」→ 自动拆成「怎么做 / 错点 / 规避规则」并归档。没配 DeepSeek Key 时也能先点「只存原文」，之后补分析。</p>
+  <p class="page-sub">把你的错题笔记贴进来，我来帮你理清错因、归纳规避方法并自动归档。没有现成讲解也行——直接写你当时怎么想的、错在哪；没配 DeepSeek Key 时也能先点「只存原文」，之后补分析。</p>
 
   <section class="card">
-    <textarea class="eb-input" id="ebInput" placeholder="把 AI 的讲解整段粘进来就行，不用整理格式、不用删多余的话。
+    <textarea class="eb-input" id="ebInput" placeholder="把你的错题笔记贴进来就行，不用整理格式、不用删多余的话。
 也可以直接写自己的零散笔记，比如：
 剑桥18 T2 P1 第5题 判断题，我选 NOT GIVEN，答案是 FALSE，原文说 …"></textarea>
     <div class="eb-bar">
-      <button class="btn btn-primary" id="ebAnalyze">🤖 AI 分析并归档</button>
+      <button class="btn btn-primary" id="ebAnalyze">🤖 理清错因并归档</button>
       <button class="btn" id="ebRaw">只存原文</button>
-      <span class="muted" style="font-size:12.5px">AI 用的是「设置 / AI 接口」里的 DeepSeek Key</span>
+      <span class="muted" style="font-size:12.5px">自动分析用的是「设置 / AI 接口」里的 DeepSeek Key</span>
     </div>
     <div id="ebLoading" class="eb-loading" hidden></div>
   </section>
@@ -75,7 +75,7 @@
       <select id="fTrap"><option value="">全部错因</option></select>
     </div>
     <div id="list"></div>
-    <div id="empty" class="muted" hidden>还没有记录。把 AI 的讲解粘到上面那个框，点「AI 分析并归档」。</div>
+    <div id="empty" class="muted" hidden>还没有记录。把你的错题笔记贴到上面那个框，点「理清错因并归档」。</div>
   </section>
 </main>
 

@@ -8,7 +8,7 @@ const PAGES = [
   { id:'practice',  file:'practice.html',  icon:'🎮', name:'单词练习',   desc:'看词选义/听义选义' },
   { id:'corpus',    file:'corpus.html',    icon:'🎧', name:'听力语料库', desc:'场景词汇听写' },
   { id:'longsent',  file:'longsent.html',  icon:'🧩', name:'长难句拆解', desc:'括号法解码训练' },
-  { id:'errorbook', file:'errorbook.html', icon:'📒', name:'错题本',     desc:'贴 AI 讲解自动归档' },
+  { id:'errorbook', file:'errorbook.html', icon:'📒', name:'错题本',     desc:'贴错题笔记自动理清错因' },
   { id:'speaking',  file:'speaking.html',  icon:'🗨', name:'口语素材库', desc:'题库 + AI 串题' },
   { id:'writing',   file:'writing.html',   icon:'✍', name:'写作模板库', desc:'模板 + AI 评分' },
   { id:'review',    file:'review.html',    icon:'📊', name:'回顾',       desc:'模考成绩 + 学习轨迹' },

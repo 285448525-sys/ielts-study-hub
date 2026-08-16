@@ -22,7 +22,7 @@ ready(() => {
 async function analyzeEntry(){
   const box = $('#ebInput');
   const text = box.value.trim();
-  if(text.length < 15){ toast('内容太短，把 AI 的讲解整段粘进来'); return false; }
+  if(text.length < 15){ toast('内容太短，把你的错题笔记整段贴进来'); return false; }
   if(!DATA.settings.relayToken){
     toast('还没填 DeepSeek Key，去「设置 / AI 接口」填一下；也可以先点「只存原文」');
     return false;
@@ -96,7 +96,7 @@ async function analyzeEntry(){
     load.textContent = 'AI 调不通：' + e.message + '　（可以先点「只存原文」，等有网/配好 Key 再补分析）';
     return false;
   }finally{
-    btn.disabled = false; btn.textContent = '🤖 AI 分析并归档';
+    btn.disabled = false; btn.textContent = '🤖 理清错因并归档';
   }
 }
 
@@ -150,7 +150,7 @@ async function reanalyze(id){
     if(load){
       const prev = load.hidden ? '' : (load.textContent + '　');
       load.hidden = false;
-      load.textContent = prev + '⚠️ 没分析成功，这条记录仍在下面列表里、原文没丢。原文已放进上面输入框，可以改完再点「AI 分析并归档」（成功后记得删掉旧的那条）。';
+      load.textContent = prev + '⚠️ 没分析成功，这条记录仍在下面列表里、原文没丢。原文已放进上面输入框，可以改完再点「理清错因并归档」（成功后记得删掉旧的那条）。';
     }
   }
 }
