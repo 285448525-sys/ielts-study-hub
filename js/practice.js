@@ -12,7 +12,7 @@ var PC_DEFAULTS = {
   batchSize: -1,      // 题量: -1=全部, 5, 10, 20
   shuffle: true,      // 乱序
   autoNext: true,     // 答对自动下一题
-  autoNextDelay: 800, // 自动下一题延迟ms
+  autoNextDelay: 1000, // 自动下一题延迟ms
   autoPlay: true,     // 自动播放下题读音
   caseSensitive: false, // 大小写敏感（听写）
   showCn: false,      // 显示释义提示
@@ -213,8 +213,8 @@ function nextQuestion(){
     if(c.showCn) html += '<div class="q-cn muted" style="font-size:14px">'+escapeHtml(cur.cn||'')+'</div>';
     html += '<div class="options" id="opts" style="margin-top:14px"></div>';
     body.innerHTML = html;
-    $('#opts').innerHTML = opts.map(o => '<button class="opt" data-en="'+escapeHtml(o.en)+'">'+escapeHtml(o.cn)+'</button>').join('')
-      + '<button class="opt opt-unknown" id="unknownBtn" style="grid-column:1/-1;margin-top:6px">🙈 不认识（不计正确率）</button>';
+    $('#opts').innerHTML = opts.map((o,i) => '<button class="opt" data-en="'+escapeHtml(o.en)+'"><span class="opt-cn">'+escapeHtml(o.cn)+'</span><span class="opt-key">'+(i+1)+'</span></button>').join('')
+      + '<button class="opt opt-unknown" id="unknownBtn" style="grid-column:1/-1;margin-top:6px">🙈 不认识（'+(opts.length+1)+'·不计正确率）</button>';
     bindOpts(cur);
     $('#unknownBtn').addEventListener('click', () => markUnknown(cur));
   } else if(mode === 'hearMeaning'){
@@ -225,8 +225,8 @@ function nextQuestion(){
     if(c.showCn) html += '<div class="q-cn muted" style="font-size:14px;margin-top:8px">'+escapeHtml(cur.cn||'')+'</div>';
     html += '<div class="options" id="opts" style="margin-top:14px"></div>';
     body.innerHTML = html;
-    $('#opts').innerHTML = opts.map(o => '<button class="opt" data-en="'+escapeHtml(o.en)+'">'+escapeHtml(o.cn)+'</button>').join('')
-      + '<button class="opt opt-unknown" id="unknownBtn" style="grid-column:1/-1;margin-top:6px">🙈 不认识（听不出词义）</button>';
+    $('#opts').innerHTML = opts.map((o,i) => '<button class="opt" data-en="'+escapeHtml(o.en)+'"><span class="opt-cn">'+escapeHtml(o.cn)+'</span><span class="opt-key">'+(i+1)+'</span></button>').join('')
+      + '<button class="opt opt-unknown" id="unknownBtn" style="grid-column:1/-1;margin-top:6px">🙈 不认识（'+(opts.length+1)+'·听不出词义）</button>';
     $('#playBtn').addEventListener('click', () => speakN(cur.en));
     speakN(cur.en);
     bindOpts(cur);
@@ -246,27 +246,22 @@ function bindOpts(correct){
       if(pq.revealed) return; pq.revealed = true; pq.total++;
       const ok = b.dataset.en === correct.en;
       if(ok){ b.classList.add('correct'); pq.correct++; } else { b.classList.add('wrong'); }
-      // 高亮正确答案
+      // 高亮正确答案（无论对错都标出正确项）
       document.querySelectorAll('#opts .opt').forEach(x => { if(x.dataset.en === correct.en) x.classList.add('correct'); });
       // 禁用所有选项
       document.querySelectorAll('#opts .opt').forEach(x => { x.style.pointerEvents = 'none'; });
       const ub = document.getElementById('unknownBtn');
       if(ub) ub.style.pointerEvents = 'none';
       updateScore();
-      if(ok){
-        // 答对：自动下一题
-        autoAdvance();
-      } else {
-        // 答错：显示下一题按钮（不自动）
-        if(!c.showCn && c.showEn === 1){
-          // 答错时显示英文原词
-          const hint = document.createElement('div');
-          hint.className = 'opt-hint';
-          hint.innerHTML = '正确答案：<b>'+escapeHtml(correct.en)+'</b>';
-          $('#opts').appendChild(hint);
-        }
-        $('#nextBtn').hidden = false;
+      // 答错时显示英文原词（条件：没开释义提示 且 设为"答错时显示"）
+      if(!ok && !c.showCn && c.showEn === 1){
+        const hint = document.createElement('div');
+        hint.className = 'opt-hint';
+        hint.innerHTML = '正确答案：<b>'+escapeHtml(correct.en)+'</b>';
+        $('#opts').appendChild(hint);
       }
+      // 无论对错，延迟后自动进入下一题（autoAdvance 内按 autoNext 配置决定自动或手动）
+      autoAdvance();
     });
   });
 }
@@ -280,7 +275,7 @@ function markUnknown(correct){
   if(ub){ ub.classList.add('wrong'); ub.disabled = true; }
   if(!pq.wrongList) pq.wrongList = [];
   pq.wrongList.push({ en:correct.en, cn:correct.cn||'', tag:correct.tag||'', user:'（不认识）', skipped:true });
-  $('#nextBtn').hidden = false; updateScore();
+  autoAdvance(); updateScore();
   toast('已记为不认识：'+correct.en+' · '+correct.cn);
 }
 
