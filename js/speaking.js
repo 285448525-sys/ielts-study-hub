@@ -117,16 +117,23 @@ function openDetail(id){
     html += '</ol>';
   }
 
-  // P2 题目描述（prompt 只读上下文；youShouldSay 每个小点逐题可点开）
+  // P2 单窗口答题（不分小问题，一次性作答 2 分钟）
   if(s.type === 'P2'){
     if(s.promptEn) html += '<div class="sp-prompt">题目：' + escapeHtml(s.promptEn) + '</div>';
     if(s.promptZh) html += '<div class="sp-detail-zh" style="margin-bottom:12px">' + escapeHtml(s.promptZh) + '</div>';
-    if(s.youShouldSay && s.youShouldSay.length){
-      html += '<div class="sp-q-list-head">You should say（每个小点可点开，录/诊断）</div>';
-      html += '<ol class="sp-q-list">';
-      s.youShouldSay.forEach((y, i) => { html += questionItemHtml(y, i); });
-      html += '</ol>';
-    }
+
+    html += '<div class="sp-p2-answer">';
+    html += '<div class="sp-ans-row">';
+    html += '<button class="sp-mic" id="p2Mic" type="button">🎤 开始录音</button>';
+    html += '<span id="p2Timer" class="sp-timer" hidden>⏱ 0.0s</span>';
+    html += '</div>';
+    html += '<textarea class="sp-ans" id="p2Ans" placeholder="在这里说出或写下你的 Part 2 回答（目标说满 2 分钟）…"></textarea>';
+    html += '<div class="sp-q-btns">';
+    html += '<button class="sp-diag" id="p2Diag" type="button">🤖 AI 评分</button>';
+    html += '<button class="sp-ans-clear" id="p2Clear" type="button">清空</button>';
+    html += '</div>';
+    html += '<div class="sp-q-result" id="p2Result"></div>';
+    html += '</div>';
   }
 
   // AI 辅助按钮
@@ -148,10 +155,60 @@ function openDetail(id){
 
   // 逐题展开 + 语音 + AI 诊断 事件绑定（含 localStorage 回填）
   bindQuestionEvents(id);
+
+  // P2 单窗口事件绑定
+  if(s.type === 'P2'){
+    const p2Mic = document.getElementById('p2Mic');
+    if(p2Mic) p2Mic.addEventListener('click', e => { e.stopPropagation(); startP2Voice(); });
+    const p2Diag = document.getElementById('p2Diag');
+    if(p2Diag) p2Diag.addEventListener('click', e => { e.stopPropagation(); diagnoseP2(id); });
+    const p2Clear = document.getElementById('p2Clear');
+    if(p2Clear) p2Clear.addEventListener('click', e => {
+      e.stopPropagation();
+      const ta = $('#p2Ans'); if(ta) ta.value = '';
+      const res = $('#p2Result'); if(res){ res.innerHTML = ''; res.style.display = 'none'; }
+      stopP2Timer();
+      const timerEl = $('#p2Timer'); if(timerEl){ timerEl.hidden = true; timerEl.style.color = ''; }
+    });
+
+    // P2 答案回填
+    if(s.answers && s.answers.p2){
+      const ta = $('#p2Ans');
+      if(ta && s.answers.p2.text) ta.value = s.answers.p2.text;
+      const res = $('#p2Result');
+      if(res && s.answers.p2.result){
+        try{
+          const j = JSON.parse(s.answers.p2.result);
+          if(renderP2Diag(res, j)){ res.style.display = 'block'; }
+          else { throw 0; }
+        }catch(_){
+          res.innerHTML = '<pre>' + escapeHtml(s.answers.p2.result) + '</pre>';
+          res.style.display = 'block';
+        }
+      }
+      // 回填录音时长
+      if(s.answers.p2.duration){
+        const timerEl = $('#p2Timer');
+        if(timerEl){ timerEl.hidden = false; timerEl.textContent = '⏱ 上次录音 ' + s.answers.p2.duration; timerEl.style.color = 'var(--muted)'; }
+      }
+    }
+  }
 }
 
 function saveDetail(id){
-  // 详情页已无编辑字段，保存仅作确认提示（数据由每题 AI 诊断结果就地存储）
+  const s = DATA.speaking.find(x => x.id === id);
+  if(!s) return;
+  // P2 单窗口答案回存（仅写 text，不覆盖已存的诊断结果/时长）
+  if(s.type === 'P2'){
+    const ans = $('#p2Ans');
+    if(ans && ans.value.trim()){
+      s.answers = s.answers || {};
+      s.answers.p2 = s.answers.p2 || {};
+      s.answers.p2.text = ans.value.trim();
+      s.answers.p2.ts = Date.now();
+    }
+  }
+  hubSave();
   toast('已保存');
 }
 
@@ -220,6 +277,22 @@ var SYS_DIAG =
   + '"rewrite":"按原思路的地道简化英文重写","tips":["可积累替换/句型1","可积累替换/句型2"]}';
 
 var spRec = null; // 当前进行中的语音识别实例
+
+// P2 专用诊断提示词（语法纠错 + 串题素材连接）
+var SYS_DIAG_P2 =
+  '你是雅思口语老师（专精 Part 2）。考生：女生，大三CS在读，目标总分6.0、口语5.5；词汇量约4000。'
+  + '考生会给出对一道 P2 题目的完整 2 分钟回答。请完成以下两项任务：\n'
+  + '1) 【语法纠错】逐条指出语法/用词错误：原句 → 问题(中文简说) → 修改；没有就如实说很少。\n'
+  + '2) 【串题素材连接】考生有若干"万能故事"素材（见用户消息末尾），请分析她的回答思路，然后具体建议：\n'
+  + '   - 这个回答可以套用哪个/哪些已有万能素材？\n'
+  + '   - 怎么调整措辞让素材更自然地嵌入这道题？\n'
+  + '   - 如果当前回答没有用到任何素材，指出哪个素材最适合这道题并给一个嵌入示例。\n'
+  + '另外给一版更地道的英文重写（简单句型为主），以及 1-2 个可积累替换。\n'
+  + '严格要求只输出如下 JSON：'
+  + '{"errors":[{"original":"原句片段","issue":"问题","fix":"修改"}],'
+  + '"rewrite":"地道简化英文重写",'
+  + '"storyLink":"具体的串题素材连接建议（中文，2-4 行，告诉考生用哪个素材、怎么嵌到这道题里）",'
+  + '"tips":["可积累1","可积累2"]}';
 
 // 单题可点开项 HTML（text=可见文本，qi=题目索引）
 function questionItemHtml(text, qi){
@@ -351,6 +424,78 @@ function startVoice(qi){
   }
 }
 
+// ====== P2 专用：录音计时 ======
+var p2TimerStart = null;   // Date.now()
+var p2TimerInterval = null; // setInterval ID
+var p2LastDuration = '';    // 停止时冻结的最终时长
+
+function startP2Voice(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const ta = $('#p2Ans');
+  const btn = $('#p2Mic');
+  const timerEl = $('#p2Timer');
+  if(!SR){ toast('当前浏览器不支持语音识别，请直接输入'); return; }
+
+  // 已在录音 → 停止
+  if(spRec && spRec._qi === '__p2__'){
+    try{ spRec.stop(); }catch(_){}
+    return;
+  }
+  if(spRec){ try{ spRec.stop(); }catch(_){} }
+
+  const rec = new SR();
+  rec._qi = '__p2__';
+  rec.lang = 'en-US';
+  rec.interimResults = true;
+  rec.continuous = true;   // P2 连续录音（不像 P1 单句）
+  rec.onresult = e => {
+    let t = '';
+    for(let i = 0; i < e.results.length; i++){ t += e.results[i][0].transcript; }
+    if(ta) ta.value = t.trim();
+  };
+  rec.onerror = () => {
+    stopP2Timer();
+    if(btn){ btn.classList.remove('sp-mic-on'); btn.textContent = '🎤 开始录音'; }
+    spRec = null;
+    toast('语音识别不可用，请直接输入');
+  };
+  rec.onend = () => {
+    stopP2Timer();
+    if(btn){ btn.classList.remove('sp-mic-on'); btn.textContent = '🎤 开始录音'; }
+    if(spRec && spRec._qi === '__p2__') spRec = null;
+  };
+
+  try{
+    rec.start();
+    spRec = rec;
+    if(btn){ btn.classList.add('sp-mic-on'); btn.textContent = '⏹ 停止录音'; }
+    startP2Timer(timerEl);
+  }catch(_){
+    toast('语音启动失败');
+  }
+}
+
+function startP2Timer(el){
+  if(!el) el = $('#p2Timer');
+  stopP2Timer();          // 防重复
+  el.hidden = false;
+  p2TimerStart = Date.now();
+  p2TimerInterval = setInterval(() => {
+    const sec = ((Date.now() - p2TimerStart) / 1000).toFixed(1);
+    el.textContent = '⏱ ' + sec + 's';
+    // 超过 120 秒标红提醒
+    el.style.color = parseFloat(sec) >= 120 ? 'var(--danger)' : 'var(--ink)';
+  }, 100);
+}
+
+function stopP2Timer(){
+  if(p2TimerInterval){
+    clearInterval(p2TimerInterval);
+    p2TimerInterval = null;
+    if(p2TimerStart) p2LastDuration = ((Date.now() - p2TimerStart) / 1000).toFixed(1) + 's';
+  }
+}
+
 // AI 语法诊断（复用纯文本 callRelay，service=speaking_diagnose）
 async function diagnoseAnswer(id, qi, questionText, answerText){
   const s = DATA.speaking.find(x => x.id === id);
@@ -377,6 +522,73 @@ async function diagnoseAnswer(id, qi, questionText, answerText){
     toast('AI 诊断失败：' + e.message);
   }finally{
     if(btn){ btn.disabled = false; btn.textContent = '🤖 AI 诊断'; }
+  }
+}
+
+// P2 诊断结构化渲染（语法纠错 + 地道优化 + 串题素材连接 + 可积累）
+function renderP2Diag(el, j){
+  if(!j || !Array.isArray(j.errors)){ el.innerHTML = ''; return false; }
+  let h = '<div class="diag-sec"><b>① 语法/用词纠错</b>';
+  h += j.errors.length
+    ? j.errors.map(e => '<div class="diag-err"><span class="diag-orig">' + escapeHtml(e.original || '') + '</span> → <span class="diag-fix">' + escapeHtml(e.fix || '') + '</span><div class="diag-issue">' + escapeHtml(e.issue || '') + '</div></div>').join('')
+    : '<div class="diag-ok">没发现明显语法错误～</div>';
+  h += '</div>';
+  if(j.rewrite) h += '<div class="diag-sec"><b>② 地道优化版</b><div class="diag-rewrite">' + escapeHtml(j.rewrite) + '</div></div>';
+  if(j.storyLink) h += '<div class="diag-sec"><b>③ 📌 串题素材连接</b><div class="diag-note">可以用你已准备的这些万能素材来回答这道题：</div>' + escapeHtml(j.storyLink) + '</div>';
+  if(Array.isArray(j.tips) && j.tips.length) h += '<div class="diag-sec"><b>④ 可积累</b><ul>' + j.tips.map(t => '<li>' + escapeHtml(t) + '</li>').join('') + '</ul></div>';
+  el.innerHTML = h;
+  return true;
+}
+
+// P2 AI 评分：语法纠错 + 串题素材连接建议
+async function diagnoseP2(id){
+  const s = DATA.speaking.find(x => x.id === id);
+  if(!s) return;
+  const answer = ($('#p2Ans') || {}).value.trim();
+  if(!answer){ toast('先说出或写下你的回答'); return; }
+
+  const btn = $('#p2Diag');
+  const resultEl = $('#p2Result');
+  if(btn){ btn.disabled = true; btn.textContent = '评分中…'; }
+
+  try{
+    // 读已有串题故事作为素材参考（speakingStories 每条含 stories[]，每条有 name/keyPoints/outline）
+    const stories = (DATA.speakingStories || []).map(scheme =>
+      (scheme.stories || []).map(st =>
+        '【' + (st.name || '') + '】' + (st.keyPoints || '') + '\n' + (st.outline || '').slice(0, 300)
+      ).join('\n---\n')
+    ).join('\n===\n');
+
+    const messages = [
+      { role:'system', content: SYS_DIAG_P2 },
+      { role:'user', content:
+        'P2 题目：' + (s.promptEn || s.title || '') +
+        '\n中文描述：' + (s.promptZh || '') +
+        '\n\n考生的完整回答：\n' + answer +
+        '\n\n考生已有的串题万能素材（用于给出串题建议）：\n' +
+        (stories || '（暂无串题素材）')
+      }
+    ];
+    const content = await callRelay('speaking_diagnose', messages, 0.6);
+    const j = aiJson(content);
+
+    // 渲染结果
+    if(!renderP2Diag(resultEl, j)){
+      resultEl.innerHTML = '<div class="diag-note">（AI 返回非标准格式，已贴原文）</div><pre>' + escapeHtml(content || '') + '</pre>';
+    }
+    resultEl.style.display = 'block';
+
+    // 存结果
+    s.answers = s.answers || {};
+    s.answers.p2 = { text: answer, result: (j ? JSON.stringify(j) : content), ts: Date.now(), duration: p2TimerInterval ? ((Date.now() - p2TimerStart)/1000).toFixed(1) + 's' : p2LastDuration };
+    hubSave();
+
+  }catch(e){
+    resultEl.innerHTML = '<div class="diag-note">AI 服务暂不可用：' + escapeHtml(e.message) + '</div>';
+    resultEl.style.display = 'block';
+    toast('AI 评分失败：' + e.message);
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = '🤖 AI 评分'; }
   }
 }
 
