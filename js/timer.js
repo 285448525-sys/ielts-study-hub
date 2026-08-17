@@ -19,7 +19,7 @@ function moduleCard(m){
   const running = active && active.moduleId === m.id;
   const otherRunning = active && active.moduleId !== m.id;
   const btnTxt = running ? '进行中' : '开始';
-  const btnCls = running ? 'btn-primary' : 'btn';
+  const btnCls = running ? 'btn-primary running-badge' : 'btn';
   const disabled = otherRunning ? 'disabled' : '';
   const card = document.createElement('div');
   card.className = 'mod-card' + (running ? ' running' : '');

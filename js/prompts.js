@@ -300,12 +300,12 @@ function openEditModal(sceneId) {
   mask.style.cssText = 'position:fixed;inset:0;background:rgba(15,27,45,.45);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px';
   mask.innerHTML =
     '<div style="background:#fff;border-radius:16px;width:min(720px,100%);max-height:86vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 18px 48px rgba(15,27,45,.2)">' +
-      '<div style="padding:14px 18px;font-weight:700;font-size:16px;border-bottom:1px solid #e8edf4">' + title + '</div>' +
+      '<div style="padding:14px 18px;font-weight:700;font-size:16px;border-bottom:1px solid #e0eae8">' + title + '</div>' +
       '<textarea style="flex:1;min-height:300px;border:0;padding:14px 18px;font:13px/1.7 monospace;resize:none;outline:none;box-sizing:border-box">' + current.replace(/</g, '&lt;') + '</textarea>' +
-      '<div style="padding:12px 18px;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid #e8edf4">' +
-        '<button data-act="reset" style="padding:8px 14px;border:1px solid #e8edf4;border-radius:10px;background:#f8fafc;cursor:pointer">恢复默认</button>' +
-        '<button data-act="cancel" style="padding:8px 14px;border:1px solid #e8edf4;border-radius:10px;background:#f8fafc;cursor:pointer">取消</button>' +
-        '<button data-act="save" style="padding:8px 14px;border:0;border-radius:10px;background:#1d4ed8;color:#fff;cursor:pointer">保存</button>' +
+      '<div style="padding:12px 18px;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid #e0eae8">' +
+        '<button data-act="reset" style="padding:8px 14px;border:1px solid #e0eae8;border-radius:10px;background:#eef5f3;cursor:pointer">恢复默认</button>' +
+        '<button data-act="cancel" style="padding:8px 14px;border:1px solid #e0eae8;border-radius:10px;background:#eef5f3;cursor:pointer">取消</button>' +
+        '<button data-act="save" style="padding:8px 14px;border:0;border-radius:10px;background:#3a9a93;color:#fff;cursor:pointer">保存</button>' +
       '</div>' +
     '</div>';
   document.body.appendChild(mask);
@@ -326,7 +326,7 @@ function openEditModal(sceneId) {
 function makeBtn(label, onClick) {
   const b = document.createElement('button');
   b.textContent = label;
-  b.style.cssText = 'padding:9px 14px;border:0;border-radius:12px;background:#1d4ed8;color:#fff;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 8px 24px rgba(29,78,216,.25)';
+  b.style.cssText = 'padding:9px 14px;border:0;border-radius:12px;background:#3a9a93;color:#fff;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 8px 24px rgba(58,154,147,.25)';
   b.addEventListener('click', onClick);
   return b;
 }
@@ -343,7 +343,7 @@ function mountAICopyUI() {
   const editHeader = document.createElement('button');
   editHeader.textContent = '✏️ 改通用头';
   editHeader.title = '编辑通用指令头（本机保存）';
-  editHeader.style.cssText = 'padding:4px 10px;border:1px solid #e8edf4;border-radius:10px;background:#fff;color:#64748b;font-size:11px;cursor:pointer';
+  editHeader.style.cssText = 'padding:4px 10px;border:1px solid #e0eae8;border-radius:10px;background:#fff;color:#5f7a78;font-size:11px;cursor:pointer';
   editHeader.addEventListener('click', () => openEditModal('__header__'));
 
   if (scenes.length === 1) {
@@ -357,7 +357,7 @@ function mountAICopyUI() {
     panel.style.cssText = 'display:none;flex-direction:column;gap:6px;background:#fff;padding:10px;border-radius:14px;box-shadow:0 8px 24px rgba(15,27,45,.12);min-width:200px';
     scenes.forEach(id => {
       const b = makeBtn('📋 ' + P.scenes[id].title, () => { doCopy(id); panel.style.display = 'none'; });
-      b.style.background = '#f1f5f9'; b.style.color = '#0f1b2d'; b.style.boxShadow = 'none';
+      b.style.background = '#eef5f3'; b.style.color = '#16312f'; b.style.boxShadow = 'none';
       b.style.textAlign = 'left';
       panel.appendChild(b);
     });

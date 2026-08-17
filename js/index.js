@@ -91,15 +91,15 @@ var QL_ACCENT = {
   plans:    ['var(--primary-soft)',        'var(--primary)'],
   errorbook:['rgba(239,68,68,0.10)',       'var(--danger)'],
   writing:  ['rgba(245,158,11,0.10)',      'var(--warn)'],
-  speaking: ['rgba(16,185,129,0.10)',      '#10b981'],
+  speaking: ['rgba(70,168,131,0.10)',      '#46a883'],
   words:    ['rgba(139,92,246,0.10)',      '#8b5cf6'],
   practice: ['rgba(139,92,246,0.10)',      '#8b5cf6'],
   corpus:   ['rgba(6,182,212,0.10)',       '#06b6d4'],
   longsent: ['rgba(6,182,212,0.10)',       '#06b6d4'],
   meds:     ['rgba(236,72,153,0.10)',      '#ec4899'],
   scores:   ['var(--primary-soft)',        'var(--primary)'],
-  history:  ['rgba(100,116,139,0.12)',     '#64748b'],
-  settings: ['rgba(100,116,139,0.12)',     '#64748b']
+  history:  ['rgba(95,122,120,0.12)',     '#5f7a78'],
+  settings: ['rgba(95,122,120,0.12)',     '#5f7a78']
 };
 
 function renderQuickLinks(){
@@ -264,7 +264,7 @@ function genSummary(){
 function renderPieChart(data){
   const entries = Object.entries(data).sort((a,b)=>b[1]-a[1]);
   const total = entries.reduce((a,[,v])=>a+v, 0);
-  const colors = ['var(--primary)','var(--mock)','var(--vocab)','var(--warn)','var(--med)','var(--info)','#f59e0b','#10b981','#8b5cf6'];
+  const colors = ['var(--primary)','var(--mock)','var(--vocab)','var(--warn)','var(--med)','var(--info)','#d99a4e','#46a883','#8b5cf6'];
   let acc = 0;
   const slices = entries.map(([k,v],i) => {
     const pct = v/total;

@@ -2,29 +2,29 @@
 const HUB_KEY = 'ielts_study_hub_v1';
 
 const MODULES = [
-  { id:'vocab', name:'背单词', icon:'📚', color:'#6366f1', children:[
+  { id:'vocab', name:'背单词', icon:'📚', color:'#5f86a8', children:[
     { id:'vocab_review', name:'复习单词', icon:'🔁', practice:'flashcard' },
     { id:'vocab_read',   name:'阅读词汇·看词选义', icon:'👁', practice:'seeWord' },
     { id:'vocab_listen', name:'听力词汇·听义选义', icon:'👂', practice:'hearMeaning' },
     { id:'vocab_corpus', name:'听力词汇语料库', icon:'📋', practice:'corpus' },
     { id:'vocab_dict',   name:'默写单词·听读音', icon:'✍️', practice:'dictation' },
   ]},
-  { id:'listening', name:'听力', icon:'🎧', color:'#0ea5e9', children:[
+  { id:'listening', name:'听力', icon:'🎧', color:'#4f9fc0', children:[
     { id:'listening_set',     name:'听力 S1+S4 填空 1 套', icon:'📝' },
     { id:'listening_corpus',  name:'语料库听写 1 组', icon:'📋' },
     { id:'listening_shadow',  name:'精听 + 跟读模仿 1 段', icon:'🎯' },
   ]},
-  { id:'reading', name:'阅读', icon:'📖', color:'#10b981', children:[
+  { id:'reading', name:'阅读', icon:'📖', color:'#46a883', children:[
     { id:'reading_p1',    name:'阅读 1 篇 P1（计时 20min）', icon:'⏱️' },
     { id:'reading_tfng',  name:'FALSE / NOT GIVEN 专项 10 题', icon:'🔍' },
     { id:'reading_rev',   name:'复盘错题：矛盾 vs 没提', icon:'🧠' },
   ]},
-  { id:'writing', name:'写作', icon:'✍️', color:'#f59e0b', children:[
+  { id:'writing', name:'写作', icon:'✍️', color:'#d99a4e', children:[
     { id:'writing_t2',      name:'Task2 四段式练 1 篇', icon:'📝' },
     { id:'writing_tpl',     name:'背 / 默写作模板 1 段', icon:'📚' },
     { id:'writing_outline', name:'审题：5 题列提纲', icon:'🧩' },
   ]},
-  { id:'speaking', name:'口语', icon:'🗣️', color:'#ef4444', children:[
+  { id:'speaking', name:'口语', icon:'🗣️', color:'#d97877', children:[
     { id:'speaking_gpt', name:'AI 口语对话 15min（P1）', icon:'💬' },
     { id:'speaking_p2',  name:'串题素材复述 1 个 P2 说满 2min', icon:'🎤' },
     { id:'speaking_rec', name:'录音自查流利度', icon:'🎙️' },

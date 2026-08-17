@@ -13,17 +13,17 @@ function renderHeatmap(){
   }
   $('#heatmap').innerHTML = '<div class="cal-heatmap">' + days.map(d => {
     const alpha = Math.min(1, d.sec / 14400); // max at 4h
-    const bg = d.sec ? `rgba(29,78,216,${0.15 + alpha*0.85})` : '';
+    const bg = d.sec ? `rgba(58,154,147,${0.15 + alpha*0.85})` : '';
     const col = d.sec ? '#fff' : '';
     return `<div class="cal-day ${d.sec?'has':''} ${d.today?'today':''}" title="${d.key} ${fmtHM(d.sec)}" style="${bg?'background:'+bg+';color:'+col:''}">${d.key.slice(5)}</div>`;
   }).join('') + '</div>';
 
   const scale = [
     { c: 'var(--line)', t: '无（没学）' },
-    { c: 'rgba(29,78,216,.3)', t: '较少（<1h）' },
-    { c: 'rgba(29,78,216,.55)', t: '中等（1-2h）' },
-    { c: 'rgba(29,78,216,.8)', t: '较多（2-4h）' },
-    { c: 'rgba(29,78,216,1)', t: '很多（≥4h）' },
+    { c: 'rgba(58,154,147,.3)', t: '较少（<1h）' },
+    { c: 'rgba(58,154,147,.55)', t: '中等（1-2h）' },
+    { c: 'rgba(58,154,147,.8)', t: '较多（2-4h）' },
+    { c: 'rgba(58,154,147,1)', t: '很多（≥4h）' },
   ];
   $('#heatLegend').innerHTML = scale.map(s =>
     `<span class="sw"><span class="dot" style="background:${s.c}"></span>${s.t}</span>`
