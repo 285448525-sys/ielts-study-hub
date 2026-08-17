@@ -1,26 +1,31 @@
-/* 长难句拆解：粘贴长难句 → GPT 结构化拆解（句子分析 / 考点词 / 同义替换）+ 历史保存 */
-var SYS_LONG = `你是一位资深的雅思阅读老师，擅长把长难句讲得清晰易懂。用户会给你一个英文长难句，请做结构化拆解，必须包含以下三个一级标题（用 "## " 开头，文字严格如下）：
+/* 长难句拆解：粘贴长难句 → GPT 输出同声传译式 JSON（按语序逐词对照 + 自然译文 + 重点词一键收录） */
+var SYS_LONG = `你是一位资深的雅思阅读老师。用户会给你一个英文长难句，请按"同声传译"方式输出以下 JSON（不要前言、不要解释、不要背景知识，不要输出 markdown 代码块围栏）：
 
-## 一、拆解步骤与方法
-给出 3–5 步可操作的拆解步骤，像老师辅导一样，告诉读者如何一层层读懂这个长难句（先找什么、再拆什么、最后怎么整合意思）。语言通俗、具体。
+{"wordByWord":[{"en":"英文片段","cn":"中文直译"}],"natural":"自然流畅的中文译文","keyWords":[{"en":"考点词","cn":"中文释义","note":"考点提示：同义替换/熟词僻义/学术用法等"}]}
 
-## 二、句子主干与语法结构
-先明确标出主句的主语、谓语、宾语（即主谓宾）；再说明整体语法结构：主句主干 + 从句（定从/状从/名从等）、分词/介词短语等修饰成分，用缩进或括号标出层级。
-
-## 三、考点词与同义替换拓展
-分两部分：
-- 重点单词 / 短语 / 固定搭配：列出句中的考点词，每条格式「词条 — 常见含义；雅思/学术阅读中的考点用法（熟词僻义、同根词、搭配）」，至少 4–5 条。
-- 同义替换：列出关键表达在雅思阅读与写作里可能的替换说法，每条格式「原表达 → 替换说法1；替换说法2」，至少 4 条，服务于阅读定位与写作迁移。
-
-如果你觉得对读者还有帮助，可以追加更多 "## " 开头的一级标题（如「四、参考翻译」「五、背景知识」），内容同样要具体实用。不要输出多余的前言与结尾客套，直接从第一个 "## " 开始。`;
+要求：
+1. wordByWord 必须按原句语序逐词或逐意群给出中文直译，方便用户对照自己的翻译。常见意群可合并为一个条目（如 "in the perceiver" 可作为一个条目）。
+2. natural 给出自然通顺的中文译文，仅供用户参考最终意思。
+3. keyWords 提取 3–6 个句中真正影响理解的考点词或学术词，每条含：en（原词/短语）、cn（中文释义）、note（一句考点提示，如同义替换、熟词僻义、常见误判等）。
+4. 不要输出 "一、拆解步骤"、"二、语法结构"、"三、背景知识" 等大段说明。只输出上述 JSON。`;
 
 var _lastSentence = '';
 var _lastRaw = '';
+var _hoveredWord = null;
 
 ready(() => {
   $('#analyzeBtn').addEventListener('click', analyze);
   $('#copyBtn').addEventListener('click', copyResult);
   renderHistory();
+  // 全局快捷键：S 收录当前悬停的单词
+  document.addEventListener('keydown', e => {
+    if((e.key === 's' || e.key === 'S') && _hoveredWord && !e.ctrlKey && !e.altKey && !e.metaKey){
+      const tag = e.target && e.target.tagName;
+      if(tag === 'INPUT' || tag === 'TEXTAREA') return;
+      e.preventDefault();
+      saveWord(_hoveredWord.en, _hoveredWord.cn);
+    }
+  });
 });
 
 async function analyze(){
@@ -33,8 +38,9 @@ async function analyze(){
   try{
     const text = await callLongsent([{ role:'system', content: SYS_LONG }, { role:'user', content: sent }]);
     _lastSentence = sent; _lastRaw = text;
-    const sections = parseSections(text);
-    $('#resultBody').innerHTML = sections.map(s => `<div class="rs-sec"><h3>${escapeHtml(s.title)}</h3>${renderBody(s.body)}</div>`).join('');
+    const body = $('#resultBody');
+    body.innerHTML = renderResult(sent, text);
+    bindWordHover(body);
     $('#origSent').textContent = sent;
     $('#resultCard').style.display = '';
     status.textContent = '拆解完成 ✓'; status.className = 'word-status ok';
@@ -48,6 +54,90 @@ async function analyze(){
   }
 }
 
+/* 新格式：优先尝试解析 JSON；失败则回退到旧版 markdown 分段渲染（兼容历史记录） */
+function renderResult(sent, raw){
+  const json = aiJson(raw);
+  if(json && Array.isArray(json.wordByWord) && typeof json.natural === 'string'){
+    return renderNewResult(json);
+  }
+  return parseSections(raw).map(s => `<div class="rs-sec"><h3>${escapeHtml(s.title)}</h3>${renderBody(s.body)}</div>`).join('');
+}
+
+function renderNewResult(json){
+  const wbw = (json.wordByWord || []).map(w => {
+    const en = escapeHtml((w.en || '').trim());
+    const cn = escapeHtml((w.cn || '').trim());
+    if(!en) return '';
+    return `<div class="ls-wbw-item" tabindex="0" data-en="${en}" data-cn="${cn}" title="点击收录 · 悬停按 S 一键收录">
+      <span class="ls-wbw-en">${en}</span>
+      <span class="ls-wbw-cn">${cn}</span>
+    </div>`;
+  }).join('');
+
+  const kws = (json.keyWords || []).map(w => {
+    const en = escapeHtml((w.en || '').trim());
+    const cn = escapeHtml((w.cn || '').trim());
+    const note = escapeHtml((w.note || '').trim());
+    if(!en) return '';
+    return `<div class="ls-kw-row" tabindex="0" data-en="${en}" data-cn="${cn}" title="点击收录 · 悬停按 S 一键收录">
+      <div class="ls-kw-main">
+        <span class="ls-kw-en">${en}</span>
+        <span class="ls-kw-cn">${cn}</span>
+        ${note ? `<span class="ls-kw-note">${note}</span>` : ''}
+      </div>
+      <button class="ls-kw-save" data-en="${en}" data-cn="${cn}" title="按 S 一键收录">收录</button>
+    </div>`;
+  }).join('');
+
+  return `
+    <div class="ls-sec">
+      <div class="ls-sec-title">同声传译 · 按语序逐字对照</div>
+      <div class="ls-wbw-grid">${wbw || renderEmpty('无逐词对照')}</div>
+      <div class="ls-save-hint">💡 悬停单词或重点词，按 <kbd>S</kbd> 一键收录到「我的词库」</div>
+    </div>
+    <div class="ls-sec">
+      <div class="ls-sec-title">自然译文 · 参考</div>
+      <div class="ls-natural">${escapeHtml(json.natural || '')}</div>
+    </div>
+    <div class="ls-sec">
+      <div class="ls-sec-title">重点词汇 · 点击/按 S 收录</div>
+      <div class="ls-kw-list">${kws || renderEmpty('无重点词汇')}</div>
+    </div>
+  `;
+}
+
+/* 事件委托：悬停追踪 + 点击收录 */
+function bindWordHover(container){
+  if(!container) return;
+  container.addEventListener('mouseenter', e => {
+    const item = e.target.closest('[data-en]');
+    if(item) _hoveredWord = { en: item.dataset.en, cn: item.dataset.cn || '' };
+  }, true);
+  container.addEventListener('mouseleave', e => {
+    const item = e.target.closest('[data-en]');
+    if(item) _hoveredWord = null;
+  }, true);
+  container.addEventListener('click', e => {
+    const btn = e.target.closest('[data-en]');
+    if(btn && btn.dataset.en){
+      e.stopPropagation();
+      saveWord(btn.dataset.en, btn.dataset.cn || '');
+    }
+  });
+}
+
+function saveWord(en, cn){
+  if(!en) return;
+  const key = en.toLowerCase().trim();
+  DATA.words = DATA.words || [];
+  const exists = DATA.words.some(w => w.en.toLowerCase() === key);
+  if(exists){ toast(`「${en}」已在词库中`); return; }
+  DATA.words.push({ id: uid(), en: en.trim(), cn: (cn || '').trim(), ts: Date.now() });
+  hubSave();
+  toast(`已收录「${en}」到词库`);
+}
+
+/* 旧版 markdown 分段解析（兼容历史记录） */
 function parseSections(text){
   const lines = text.split('\n');
   const out = []; let cur = null;
@@ -92,7 +182,17 @@ function fmtBullet(t){
 
 async function copyResult(){
   if(!_lastRaw) return;
-  const text = '原句：\n' + _lastSentence + '\n\n' + _lastRaw;
+  const json = aiJson(_lastRaw);
+  let text = '原句：\n' + _lastSentence + '\n\n';
+  if(json && typeof json.natural === 'string'){
+    text += '自然译文：\n' + json.natural + '\n\n';
+    text += '重点词汇：\n' + (json.keyWords || []).map(w => {
+      const note = w.note ? '（' + w.note + '）' : '';
+      return (w.en || '') + ' — ' + (w.cn || '') + note;
+    }).join('\n');
+  }else{
+    text += _lastRaw;
+  }
   try{
     if(navigator.clipboard && navigator.clipboard.writeText){ await navigator.clipboard.writeText(text); }
     else{
@@ -133,6 +233,8 @@ function renderHistory(){
 }
 
 function firstSectionPreview(result){
+  const json = aiJson(result);
+  if(json && json.natural) return '同声传译：' + json.natural.slice(0, 60) + (json.natural.length > 60 ? '…' : '');
   const secs = parseSections(result);
   if(!secs.length) return '';
   const lines = secs[0].body.split('\n').filter(l => l.trim());
@@ -144,7 +246,9 @@ function restoreHist(id){
   const h = (DATA.longSent || []).find(x => x.id === id); if(!h) return;
   _lastSentence = h.sentence; _lastRaw = h.result;
   $('#sentInput').value = h.sentence;
-  $('#resultBody').innerHTML = parseSections(h.result).map(s => `<div class="rs-sec"><h3>${escapeHtml(s.title)}</h3>${renderBody(s.body)}</div>`).join('');
+  const body = $('#resultBody');
+  body.innerHTML = renderResult(h.sentence, h.result);
+  bindWordHover(body);
   $('#origSent').textContent = h.sentence;
   $('#resultCard').style.display = '';
   $('#sentStatus').textContent = '已从记录恢复'; $('#sentStatus').className = 'word-status ok';
@@ -156,4 +260,3 @@ function deleteHist(id){
   hubSave(); renderHistory();
   toast('已删除该拆解');
 }
-

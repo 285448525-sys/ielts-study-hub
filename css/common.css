@@ -442,6 +442,28 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 .corpus-item:first-child{border-top:none}
 .corpus-text{flex:1;font-size:14px;line-height:1.5}
 
+/* longsent: 同声传译 + 一键收录 */
+.ls-sec{margin-top:18px}
+.ls-sec:first-child{margin-top:0}
+.ls-sec-title{font-size:13px;font-weight:700;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.02em}
+.ls-wbw-grid{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch}
+.ls-wbw-item{display:flex;flex-direction:column;gap:3px;padding:8px 10px;border-radius:10px;background:var(--surface);border:1px solid var(--line);min-width:42px;cursor:pointer;transition:background .15s,border-color .15s,box-shadow .15s}
+.ls-wbw-item:hover,.ls-wbw-item:focus{background:var(--surface-2);border-color:var(--primary);outline:none;box-shadow:0 2px 8px rgba(58,154,147,.12)}
+.ls-wbw-en{font-size:14px;font-weight:700;color:var(--ink);line-height:1.3}
+.ls-wbw-cn{font-size:12px;color:var(--muted);line-height:1.3}
+.ls-natural{padding:14px 16px;border-radius:12px;background:var(--surface);border-left:4px solid var(--primary);font-size:14px;line-height:1.7;color:var(--ink)}
+.ls-save-hint{font-size:12px;color:var(--muted);margin-top:8px}
+.ls-save-hint kbd{display:inline-block;padding:2px 6px;border-radius:6px;background:var(--surface-2);border:1px solid var(--line);font-family:monospace;font-size:11px}
+.ls-kw-list{display:flex;flex-direction:column;gap:8px}
+.ls-kw-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:var(--surface);border:1px solid var(--line);transition:background .15s,border-color .15s;cursor:pointer}
+.ls-kw-row:hover,.ls-kw-row:focus{background:var(--surface-2);border-color:var(--primary);outline:none}
+.ls-kw-main{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;flex:1}
+.ls-kw-en{font-weight:700;color:var(--ink);font-size:14px}
+.ls-kw-cn{color:var(--primary);font-size:13px}
+.ls-kw-note{flex-basis:100%;font-size:12px;color:var(--muted);margin-top:2px}
+.ls-kw-save{padding:5px 10px;border-radius:8px;border:1px solid var(--primary);background:var(--primary);color:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:background .15s;flex:none}
+.ls-kw-save:hover{background:var(--primary-d)}
+
 /* weekly suggest */
 .suggest-list{margin:0;padding-left:18px;color:var(--ink);font-size:14px;line-height:1.9}
 .suggest-list li{margin:2px 0}.quick-links{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-top:6px}
