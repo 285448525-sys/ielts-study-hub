@@ -161,7 +161,7 @@ function xfyunEvaluate(pcm, refText, cfg){
           ttp_skip:true,
           aue:'raw',
           auf:'audio/L16;rate=16000',
-          plev:'0.5'
+          plev:'0'
         },
         data: { status: 0 }
       };
