@@ -789,3 +789,31 @@ main .quote{
 .btn.sm{padding:5px 10px;font-size:13px;line-height:1.4}
 .btn.danger{color:#dc2626;border-color:rgba(239,68,68,.4)}
 .btn.danger:hover{background:rgba(239,68,68,.1);color:#dc2626}
+/* 朗读发音检测（配讯飞Key时插入每Part后；报告回顾页也复用） */
+.mock-pron{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-top:14px}
+.mock-pron-head{font-size:15px;font-weight:700;color:var(--med);margin-bottom:10px}
+.mock-pron-ref-label{font-size:13px;color:var(--muted)}
+.mock-pron-sentence{font-size:20px;font-weight:600;line-height:1.6;color:var(--ink);margin:6px 0 12px;padding:12px 14px;background:var(--surface);border-radius:var(--radius-sm);border:1px dashed var(--line)}
+.mock-pron-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.mock-pron-timer{font-size:17px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+.mock-pron-status{font-size:13px;color:var(--muted)}
+.mock-pron-result{margin-top:12px}
+.mock-pron-rejected{background:#fff4f4;border:1px solid var(--danger);color:#b3261e;border-radius:var(--radius-sm);padding:10px 12px;font-size:13.5px;line-height:1.6;margin-bottom:10px}
+.mock-pron-subs{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.mock-pron-sub{flex:1;min-width:84px;background:var(--surface);border-radius:var(--radius-sm);padding:8px 10px;text-align:center;border:1px solid var(--line)}
+.mock-pron-sub .n{font-size:18px;font-weight:800}
+.mock-pron-sub .l{font-size:11px;color:var(--muted);margin-top:2px}
+.mock-pron-words{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.mock-pron-word{display:inline-block;padding:3px 9px;border-radius:8px;font-size:14px;background:var(--surface);border:1px solid var(--line);color:var(--ink)}
+.mock-pron-word.good{background:#e7f6ec;border-color:#bfe6cb;color:#1f7a3d}
+.mock-pron-word.ok{background:#fdf3d8;border-color:#f0dc9a;color:#9a7200}
+.mock-pron-word.bad{background:#fdeaea;border-color:#f3c4c4;color:#b3261e}
+.mock-pron-word .dp{display:block;font-size:10px;font-weight:700;text-align:center}
+.mock-pron-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+/* 报告/回顾页：逐 Part 朗读发音检测详情 */
+.mock-pron-detail{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;margin-top:16px}
+.mock-pron-detail-title{font-size:14px;font-weight:700;color:var(--med);margin-bottom:10px}
+.mock-pron-detail-part{padding:10px 0;border-top:1px dashed var(--line)}
+.mock-pron-detail-part:first-of-type{border-top:none;padding-top:0}
+.mock-pron-detail-head{font-size:13.5px;color:var(--ink);margin-bottom:6px}
+.mock-pron-detail-warn{font-size:12.5px;color:#b3261e;background:#fff4f4;border:1px solid var(--danger);border-radius:var(--radius-sm);padding:6px 10px;margin-bottom:8px}

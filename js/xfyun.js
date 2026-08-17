@@ -160,3 +160,108 @@ function xfyunEvaluate(pcm, refText, cfg){
     setTimeout(() => { finish(new Error('评测超时（60s）')); }, 60000);
   });
 }
+
+/* =======================================================================
+   以下两个能力被「发音评测页」与「口语模考·朗读发音检测」共用，集中在此。
+   ======================================================================= */
+
+/* 共享 PCM 工具：拼接 Float32 块、线性重采样到 16k、转 Int16 */
+function concatFloatChunks(chunks){
+  let len = 0; chunks.forEach(c => len += c.length);
+  const out = new Float32Array(len);
+  let o = 0; chunks.forEach(c => { out.set(c, o); o += c.length; });
+  return out;
+}
+function resampleFloat(input, fromRate, toRate){
+  if(!fromRate || !toRate || fromRate === toRate) return input;
+  const ratio = fromRate / toRate;
+  const newLen = Math.max(1, Math.round(input.length / ratio));
+  const out = new Float32Array(newLen);
+  for(let i = 0; i < newLen; i++){
+    const pos = i * ratio;
+    const i0 = Math.floor(pos);
+    const i1 = Math.min(i0 + 1, input.length - 1);
+    const frac = pos - i0;
+    out[i] = input[i0] * (1 - frac) + input[i1] * frac;
+  }
+  return out;
+}
+function floatTo16(arr){
+  const out = new Int16Array(arr.length);
+  for(let i = 0; i < arr.length; i++){
+    let s = Math.max(-1, Math.min(1, arr[i]));
+    out[i] = Math.round(s * 0x7FFF);
+  }
+  return out;
+}
+
+/* 麦克风直采 16k/16bit/单声道 PCM（方案A：AudioContext + ScriptProcessor + 零增益防回声）。
+   返回控制器：ready(Promise，麦克风就绪) / stop()(→Promise<Int16Array>，已重采样16k) / cancel()(直接清理)。
+   供发音评测页与模考朗读检测复用，避免各自复制录音逻辑。 */
+function startPcmRecord(){
+  let stream = null, ctx = null, processor = null, gain = null, chunks = null, stopped = false;
+  const cleanup = () => {
+    try{ if(processor){ processor.disconnect(); processor.onaudioprocess = null; } }catch(_){}
+    try{ if(gain) gain.disconnect(); }catch(_){}
+    try{ if(stream) stream.getTracks().forEach(t => t.stop()); }catch(_){}
+    try{ if(ctx && ctx.state !== 'closed') ctx.close(); }catch(_){}
+    stream = ctx = processor = gain = null;
+  };
+  const ready = (async () => {
+    stream = await navigator.mediaDevices.getUserMedia({ audio:{ channelCount:1, echoCancellation:true, noiseSuppression:false, autoGainControl:false } });
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    ctx = new Ctx({ sampleRate: 16000 });
+    await ctx.resume();
+    const source = ctx.createMediaStreamSource(stream);
+    processor = ctx.createScriptProcessor(4096, 1, 1);
+    gain = ctx.createGain(); gain.gain.value = 0; // 零增益，防回声
+    chunks = [];
+    processor.onaudioprocess = e => { const ch = e.inputBuffer.getChannelData(0); chunks.push(new Float32Array(ch)); };
+    source.connect(processor); processor.connect(gain); gain.connect(ctx.destination);
+  })();
+  return {
+    ready,
+    async stop(){
+      if(stopped) return new Int16Array(0);
+      stopped = true;
+      const fromRate = ctx ? ctx.sampleRate : 16000;
+      cleanup();
+      const floatAll = concatFloatChunks(chunks || []);
+      if(!floatAll || floatAll.length < 1600) return new Int16Array(0); // <0.1s 视为没读
+      const resampled = resampleFloat(floatAll, fromRate, 16000);
+      return floatTo16(resampled);
+    },
+    cancel(){ stopped = true; cleanup(); }
+  };
+}
+
+/* 解析讯飞评测 XML → 结构化结果（与发音评测页共用，避免重复解析逻辑） */
+function parseIseXml(xml){
+  const doc = new DOMParser().parseFromString(xml, 'text/xml');
+  if(doc.querySelector('parsererror')) throw new Error('评测结果解析失败');
+  const root = doc.documentElement;
+  const rejected = /true/i.test(root.getAttribute('is_rejected') || '');
+  const exceptInfo = (root.getAttribute('except_info') || '').trim();
+  let node = doc.querySelector('sentence') || doc.querySelector('read_sentence');
+  const getScore = (el, name) => {
+    if(!el) return null;
+    let v = el.getAttribute(name);
+    if(v == null){ const c = el.querySelector(name); if(c) v = c.textContent; }
+    return (v == null || v === '') ? null : parseFloat(v);
+  };
+  const total = getScore(node, 'total_score');
+  const accuracy = getScore(node, 'accuracy_score');
+  const fluency = getScore(node, 'fluency_score');
+  const integrity = getScore(node, 'integrity_score');
+  const words = [];
+  if(node){
+    node.querySelectorAll('word').forEach(w => {
+      words.push({
+        content: (w.getAttribute('content') || '').trim(),
+        score: parseFloat(w.getAttribute('total_score') || '0') || 0,
+        dp: parseInt(w.getAttribute('dp_message') || '0', 10) || 0
+      });
+    });
+  }
+  return { total, accuracy, fluency, integrity, words, rejected, exceptInfo };
+}

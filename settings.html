@@ -54,9 +54,9 @@
 
   <section class="card">
     <h2>🎤 口语模考</h2>
-    <p class="muted">口语模考的「发音分」采用你自设的固定分（AI 不测发音）。填一次 0–9，之后所有模考都用这个分数，并快照进每次成绩记录。</p>
+    <p class="muted">口语模考的「发音分」现在有三种来源，按优先级自动生效：① 配了讯飞发音评测 Key → 每 Part 后做真实朗读检测（最准）；② 没配 Key 但填了下面这项 → 用此固定分兜底；③ 都没配 → DeepSeek 根据转写文字估算发音。下面这项是「可选」的兜底分，不填也能正常模考。</p>
     <div class="form-row">
-      <div><label>我的发音分（0–9）</label><input id="sPron" type="number" min="0" max="9" step="0.5" placeholder="如 6" /></div>
+      <div><label>固定发音分兜底（可选，0–9）</label><input id="sPron" type="number" min="0" max="9" step="0.5" placeholder="如 6（不填则用 AI 估算）" /></div>
     </div>
     <div class="form-row" style="align-items:center">
       <label style="display:flex;align-items:center;gap:8px;font-size:14px"><input type="checkbox" id="sAsr" /> 云端语音识别（口语录音自动转文字）</label>

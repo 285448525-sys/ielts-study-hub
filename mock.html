@@ -14,6 +14,7 @@
 <script defer src="js/common.js"></script>
 <script defer src="js/mock-asr.js"></script>
 <script defer src="js/mock-report.js"></script>
+<script defer src="js/xfyun.js"></script>
 <script defer src="js/mock-history.js"></script>
 <script defer src="js/mock.js"></script>
 </head>
@@ -30,7 +31,7 @@
     <ul class="mock-intro">
       <li>🎙 <b>录音转写</b>：浏览器本地把你说的话转成文字（Chrome / Edge 支持最佳），不联网、不上传音频。</li>
       <li>🤖 <b>AI 评分</b>：DeepSeek 读你的转写文字，评流利度 / 扣题 / 连贯 / 词汇 / 语法。</li>
-      <li>🔊 <b>发音分</b>：为你自己在「设置」里填的固定分（AI 不测发音），诚实标注在报告里。</li>
+      <li>🔊 <b>发音分</b>：配了讯飞 Key 就每 Part 后做真实朗读检测；没配则用「设置」里的固定分兜底，或让 DeepSeek 估算（报告里诚实标注用了哪种）。</li>
     </ul>
     <div id="mockPreCheck" class="mock-precheck"></div>
     <div class="mock-start-actions">
@@ -49,7 +50,7 @@
   <!-- ② 考试舞台 -->
   <section class="card" id="mockStage" hidden>
     <div class="mock-phase" id="mockPhase">Part 1</div>
-    <div class="mock-qcard">
+    <div class="mock-qcard" id="mockQCard">
       <div class="mock-q" id="mockQ"></div>
       <div class="mock-timer" id="mockTimerWrap" hidden>⏱ <span id="mockTimer">--</span></div>
       <div class="mock-live" id="mockLive" aria-live="polite"></div>
@@ -62,6 +63,23 @@
         <textarea id="mockManual" rows="3" placeholder="在此输入你刚才回答的英文…"></textarea>
       </div>
       <p class="mock-hint" id="mockHint"></p>
+    </div>
+
+    <!-- 朗读发音检测（配讯飞Key时每Part后插入）：参照句 + 录音 + 逐词打分 -->
+    <div class="mock-pron" id="mockPronDetect" hidden>
+      <div class="mock-pron-head" id="mockPronHead">🔊 朗读发音检测</div>
+      <div class="mock-pron-ref-label">请朗读下面这句话（模拟真实考试中"读一段"的发音评测）：</div>
+      <div class="mock-pron-sentence" id="mockPronRef"></div>
+      <div class="mock-pron-controls">
+        <button class="btn" id="mockPronRecBtn">🎙 开始录音</button>
+        <span class="mock-pron-timer" id="mockPronTimer">00:00</span>
+        <span class="mock-pron-status" id="mockPronStatus">录完你读的这句，讯飞会逐词打分</span>
+      </div>
+      <div class="mock-pron-result" id="mockPronResult"></div>
+      <div class="mock-pron-actions">
+        <button class="btn btn-primary" id="mockPronDone">完成检测，继续</button>
+        <button class="btn" id="mockPronSkip">跳过（本次不评发音）</button>
+      </div>
     </div>
   </section>
 
