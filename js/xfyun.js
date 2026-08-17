@@ -97,29 +97,36 @@ function xfyunEvaluate(pcm, refText, cfg){
 
     const sendAudioFrames = (pcm) => {
       const chunkSamples = 8000; // ~0.5s/帧
-      const sendChunk = (audio, status) => {
+      const sendChunk = (audio, status, aus) => {
         ws.send(JSON.stringify({
-          business: { cmd:'auw', data_type:'audio' },
-          data: { status, text: audio }
+          business: { cmd:'auw', aus },
+          data: { status, data: audio }
         }));
       };
       if(!pcm || pcm.length === 0){
-        // 无音频（仅测握手）：只发结束帧
-        try{ sendChunk('', 2); }catch(e){ finish(new Error('发送末帧失败：' + e.message)); }
+        // 无音频（仅测握手）：只发结束帧 aus=4, status=2
+        try{ sendChunk('', 2, 4); }catch(e){ finish(new Error('发送末帧失败：' + e.message)); }
         return;
       }
+      const total = pcm.length;
       let sent = 0;
-      while(sent < pcm.length){
-        const end = Math.min(sent + chunkSamples, pcm.length);
+      while(sent < total){
+        const isFirst = (sent === 0);
+        const end = Math.min(sent + chunkSamples, total);
+        const isLast = (end === total);
         const slice = pcm.subarray(sent, end);
         const audio = int16ToBase64(slice);
         try{
-          sendChunk(audio, 1); // 中间帧统一 status=1
+          if(isFirst && !isLast){
+            sendChunk(audio, 1, 1); // 首音频帧
+          } else if(isLast){
+            sendChunk(audio, 2, 4); // 尾音频帧（status=2, aus=4）
+          } else {
+            sendChunk(audio, 1, 2); // 中间帧
+          }
         }catch(e){ finish(new Error('发送音频失败：' + e.message)); return; }
         sent = end;
       }
-      // 末帧（status=2，空音频）
-      try{ sendChunk('', 2); }catch(e){ finish(new Error('发送末帧失败：' + e.message)); }
     };
 
     ws.onopen = () => {
@@ -133,9 +140,11 @@ function xfyunEvaluate(pcm, refText, cfg){
             cmd:'ssb',
             text: encodeURIComponent(refText),
             ttp_skip:true,
-            plev:0.5
+            aue:'raw',
+            auf:'audio/L16;rate=16000',
+            plev:'0.5'
           },
-          data: { status: 0, text: '' }
+          data: { status: 0 }
         }));
       }catch(e){ finish(new Error('发送首帧失败：' + e.message)); return; }
       sendAudioFrames(pcm);
