@@ -88,6 +88,16 @@
   </section>
 
   <section class="card">
+    <h2>🔔 专注提醒</h2>
+    <p class="muted">专注（倒计时目标达成或手动结束）时给一点正向反馈。提示音本地合成、无需联网；桌面通知需在浏览器授权。</p>
+    <div class="form-row" style="align-items:center">
+      <label style="display:flex;align-items:center;gap:8px;font-size:14px"><input type="checkbox" id="sChime" /> 专注结束播放轻柔提示音</label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:14px"><input type="checkbox" id="sNotify" /> 专注结束发送桌面通知</label>
+    </div>
+    <p id="notifyHint" class="muted" style="margin:6px 0 0"></p>
+  </section>
+
+  <section class="card">
     <h2>数据管理</h2>
     <p class="muted">所有数据存在本机浏览器。导出备份后再做危险操作。</p>
     <div class="form-row">

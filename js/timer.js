@@ -27,6 +27,37 @@ function setModeUI(mode){
   document.querySelectorAll('#modeSeg .seg-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
 }
 
+/* 本地合成轻柔提示音：Web Audio 振荡器，不引入音频文件（离线可用、无版权/加载问题） */
+var audioCtx = null;
+function ensureAudio(){
+  try{
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+  }catch(e){}
+}
+function playChime(){
+  try{
+    if(!audioCtx) return;
+    const t0 = audioCtx.currentTime;
+    [[660,0],[880,0.18]].forEach(([f,dt]) => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = 'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(0, t0 + dt);
+      g.gain.linearRampToValueAtTime(0.18, t0 + dt + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dt + 0.5);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(t0 + dt); o.stop(t0 + dt + 0.55);
+    });
+  }catch(e){}
+}
+function doneNotify(title, body){
+  try{
+    if(DATA.settings.notifyOnDone && 'Notification' in window && Notification.permission === 'granted'){
+      new Notification(title, { body });
+    }
+  }catch(e){}
+}
+
 /* 一个模块 = 一张卡片 + 一个「开始」按钮（不再下钻子任务） */
 function moduleCard(m){
   const running = active && active.moduleId === m.id;
@@ -91,6 +122,8 @@ function startSession(moduleId){
     startTs: Date.now(), paused: false, pauseStart: null, pauseAccum: 0,
     targetSec, mode };
   persistActive();
+  ensureAudio();
+  if(DATA.settings.notifyOnDone && 'Notification' in window && Notification.permission === 'default'){ Notification.requestPermission(); }
   $('#activeInfo').innerHTML = '<strong>' + m.name + '</strong> 进行中';
   $('#focusInfo').textContent = '';
   $('#stopBtn').disabled = false;
@@ -131,6 +164,7 @@ function stopSession(){
   const totalSec = Math.round((endTs - active.startTs)/1000);
   const pauseSec = Math.round(totalPauseMs/1000);
   const durationSec = Math.max(0, totalSec - pauseSec);
+  if((DATA.settings.chimeOnDone !== false) && durationSec > 0) playChime();
   DATA.sessions.push({
     id: uid(), date: todayKey(), moduleId: active.moduleId, subId: active.subId,
     moduleName: active.moduleName, subName: active.subName,
@@ -175,7 +209,12 @@ function updateTimer(){
     liveTimer.style.color = remain <= 0 ? 'var(--med)' : 'var(--primary)';
     const pct = active.targetSec>0 ? Math.min(100, elapsed/active.targetSec*100) : 0;
     if(pg) pg.innerHTML = progressBar('距目标', pct, remain<=0 ? 'var(--med)' : 'var(--primary)');
-    if(remain <= 0 && !active._done){ active._done = true; toast('🎉 本次目标达成！'); }
+    if(remain <= 0 && !active._done){
+      active._done = true;
+      playChime();
+      doneNotify('🎉 专注目标达成', '本次计划专注已结束，休息一下吧～');
+      toast('🎉 本次目标达成！');
+    }
   } else {
     liveTimer.textContent = fmtHMS(elapsed);
     liveTimer.style.color = 'var(--primary)';
