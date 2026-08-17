@@ -14,7 +14,7 @@ ready(() => {
       if(t === 'CT'){
         $('#listView').hidden = true; $('#detailView').hidden = true; $('#mockView').hidden = true;
         $('#ctView').hidden = false;
-        renderCTIntro(); renderSaved();
+        renderCTIntro();
       } else if(t === 'MOCK'){
         $('#listView').hidden = true; $('#detailView').hidden = true; $('#ctView').hidden = true;
         $('#mockView').hidden = false;
@@ -26,8 +26,6 @@ ready(() => {
       }
     });
   });
-  $('#ctAskBtn').addEventListener('click', ctAsk);
-  $('#ctGenBtn').addEventListener('click', ctGen);
   document.querySelectorAll('.chip[data-filter]').forEach(c => {
     c.addEventListener('click', () => {
       const f = c.dataset.filter, v = c.dataset.val;
@@ -333,158 +331,143 @@ function deleteSpeaking(id){
   toast('已删除该口语题（不再被默认题库恢复）');
 }
 
-/* === 串题入口 === */
+/* === 串题入口：逐题 AI 自动串题 === */
 function renderCTIntro(){
-  const n = ctBankCount();
-  const countEl = $('#ctCount');
-  if(countEl) countEl.textContent = String(n);
-  const btn = $('#ctAskBtn');
-  if(btn) btn.disabled = n === 0;
+  const list = ctP2List();
+  const box = $('#ctList');
+  if(!box) return;
+  if(!list.length){ box.innerHTML = '<div class="ct-empty">题库中暂无 Part 2 题目</div>'; return; }
+  if(!matLoadStore()){ box.innerHTML = '<div class="ct-empty">还没有万能素材。先去「万能素材」页生成素材库，再来这里串题。</div>'; return; }
+  box.innerHTML = '<div class="ct-hint" style="margin:10px 0">共 ' + list.length + ' 道题，点击「🔀 AI 串题」即可查看用你素材库拼凑的方案。</div>'
+    + '<div class="ct-q-list">' + list.map((s, i) =>
+      '<div class="ct-q-item">'
+      + '<div class="ct-q-text"><b>' + (i + 1) + '.</b> ' + escapeHtml(ctTopicText(s)) + '</div>'
+      + '<button class="btn btn-primary ct-q-btn" data-ct-idx="' + i + '">🔀 AI 串题</button>'
+      + '</div>'
+    ).join('') + '</div>';
+  box.querySelectorAll('[data-ct-idx]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const idx = +btn.dataset.ctIdx;
+      const s = list[idx];
+      const resultEl = $('#ctPlanResult');
+      matAiPlan(s, resultEl, btn);
+      if(resultEl) resultEl.scrollIntoView({ behavior:'smooth', block:'start' });
+    });
+  });
 }
 
 async function aiStoryLink(id){
   const s = DATA.speaking.find(x => x.id === id);
   if(!s) return;
-  if(!DATA.settings.relayToken){ toast('请先在「设置 / AI 接口」配置 API Key'); return; }
-  if(!(DATA.speakingStories || []).length){ toast('还没有串题素材，先去「串题」Tab 生成方案'); return; }
-
-  const resultEl = $('#aiResult');
-  resultEl.style.display = 'block';
-  resultEl.textContent = '正在生成串题思路…';
-
-  try{
-    // 取最近一期串题方案作为素材来源
-    const latest = (DATA.speakingStories || []).slice().reverse()[0];
-    const storiesText = (latest.stories || []).map(st =>
-      '【' + (st.name || '') + '】\n' +
-      '复述线：' + (st.keyPoints || '') + '\n' +
-      '叙事要点：' + (st.outline || '').slice(0, 500)
-    ).join('\n---\n');
-
-    const sys = '你是雅思口语 P2 串题老师。考生已准备以下万能故事素材（来自她的真实经历/回答）。'
-      + '请针对当前 P2 题目，给出：1) 推荐用哪个/哪些素材串这道题；2) 具体的串题思路（如何改编细节扣题，中文）；3) 一段 1.5-2 分钟、自然口语化的英文范文（简单句型为主，符合口语 5.5 水平）。'
-      + '严格要求只输出如下 JSON：{"link":"串题思路（中文，2-5行）","sample":"英文范文","story":"推荐的故事名"}，不要任何解释文字。';
-
-    const user = 'P2 题目：' + (s.promptEn || s.title || '') +
-      '\n中文：' + (s.promptZh || '') +
-      '\nYou should say: ' + ((s.youShouldSay || []).join('; ')) +
-      '\n\n考生已有的万能故事素材：\n' + storiesText;
-
-    const content = await callRelay('speaking_chuan', [
-      { role:'system', content: sys },
-      { role:'user', content: user }
-    ], 0.7);
-    const j = aiJson(content);
-    if(j && (j.link || j.sample)){
-      resultEl.innerHTML =
-        (j.story ? '<div class="diag-sec"><b>推荐素材</b><div class="diag-rewrite">' + escapeHtml(j.story) + '</div></div>' : '') +
-        '<div class="diag-sec"><b>串题思路</b><div class="diag-note">' + escapeHtml(j.link || '') + '</div></div>' +
-        '<div class="diag-sec"><b>参考范文</b><div class="diag-rewrite">' + escapeHtml(j.sample || '') + '</div></div>';
-    } else {
-      resultEl.innerHTML = '<div class="diag-note">AI 返回非标准格式，原文如下：</div><pre>' + escapeHtml(content) + '</pre>';
-    }
-  }catch(e){
-    resultEl.textContent = 'AI 服务暂不可用：' + e.message + '\n\n请检查「设置」中的 AI 接口地址。';
-  }
+  const btn = document.getElementById('aiStoryLinkBtn');
+  await matAiPlan(s, $('#aiResult'), btn);
 }
 
 /* === 素材生成器联动：P2 抽题命中个人素材 → 显示骨架 + 生成中文思路框架 === */
-var matStoreCache = null; // 当前 materials store 缓存，供按钮回调取素材对象
 function matLoadStore(){
   try{ const s = JSON.parse(localStorage.getItem('ielts_materials_v1')); if(s && Array.isArray(s.materials)) return s; }catch(_){}
   return null;
 }
-function matCore(topic){
-  let t = String(topic || '').trim();
-  ['难忘的','喜欢的','常在一起的','让你','一个','一件','一次','一种','珍贵的','离不开的','常穿或珍藏的','我的'].forEach(p => { if(t.indexOf(p) === 0) t = t.slice(p.length); });
-  return t;
+
+function matStoreSummary(){
+  const store = matLoadStore();
+  if(!store || !store.materials || !store.materials.length) return null;
+  return {
+    persona: (store.persona || '').trim() || '（无人设卡）',
+    materials: store.materials.map((m, i) => ({
+      idx: i + 1,
+      title: m.title || '未命名',
+      coverage: m.coverage || [],
+      facets: m.facets || {},
+      skeleton: m.skeleton || {}
+    }))
+  };
 }
-var MAT_EN = { '家人':'family', '朋友':'friend', '旅行':'trip', '城市':'city', '户外活动':'outdoor', '技能':'skill', '困难':'difficult', '礼物':'gift', '书':'book', '电影':'film', '歌':'song', '衣服':'clothes', '规则':'rule', '法律':'law', '传统':'tradition', '习俗':'custom', '分歧':'disagree', '犯错':'mistake', '投诉':'complaint', '道歉':'apology', '挑战':'challenge', '爱好':'hobby', '视频':'video', '照片':'photo', '放松':'relax', '物件':'object', '改观':'change', '节目':'show' };
-function matMatch(s){
-  const store = matLoadStore(); if(!store) return [];
-  const hayZh = ((s.promptZh || '') + ' ' + (s.promptEn || '')).toLowerCase();
-  const hayEn = (s.promptEn || '').toLowerCase();
-  const hits = [];
-  store.materials.forEach((m, i) => {
-    let score = 0;
-    (m.coverage || []).forEach(c => {
-      const core = matCore(c);
-      if(core && (hayZh.indexOf(core.toLowerCase()) >= 0 || (MAT_EN[core] && hayEn.indexOf(MAT_EN[core]) >= 0))) score++;
-    });
-    if(score > 0) hits.push({ m: m, i: i, score: score });
-  });
-  hits.sort((a, b) => b.score - a.score);
-  return hits;
-}
-function matSkeletonHtml(m){
-  const en = (m.skeleton && m.skeleton.en) || [];
-  const zh = (m.skeleton && m.skeleton.zh) || [];
-  if(!en.length) return '<div class="mat-sk-empty">（无骨架）</div>';
-  return '<ul class="mat-sk">' + en.map((e, k) =>
-    '<li><span class="en">' + escapeHtml(e) + '</span>' + (zh[k] ? '<span class="zh">' + escapeHtml(zh[k]) + '</span>' : '') + '</li>'
-  ).join('') + '</ul>';
-}
+
 function matRenderLink(s){
   const box = document.getElementById('spMatLink'); if(!box) return;
-  const store = matLoadStore();
-  if(!store || !store.materials || !store.materials.length){ box.style.display = 'none'; return; }
-  matStoreCache = store;
-  const hits = matMatch(s);
-  const hasKey = !!(DATA.settings && DATA.settings.relayToken);
-  let h = '<div class="mat-link-head">💡 可用素材（来自你的万能素材库）</div>';
-  if(!hits.length) h += '<div class="mat-link-hint">这道题没自动匹配到素材。下面是你全部素材，可手动挑一个来串：</div>';
-  const list = hits.length ? hits : store.materials.map((m, i) => ({ m: m, i: i, score: 0 }));
-  list.forEach(item => {
-    const m = item.m;
-    const cov = (m.coverage || []).join('、');
-    h += '<div class="mat-link-card">'
-      + '<div class="mat-link-title">' + escapeHtml(m.title || '未命名') + (item.score ? '<span class="mat-link-badge">匹配</span>' : '') + '</div>'
-      + (cov ? '<div class="mat-link-cov">覆盖：' + escapeHtml(cov) + '</div>' : '')
-      + '<div class="mat-link-sub">英文骨架（keyword，非全文）</div>'
-      + matSkeletonHtml(m)
-      + '<div class="mat-link-actions">'
-      + (hasKey ? '<button class="btn mat-outline-btn" data-outline="' + item.i + '">🧭 生成中文思路框架</button>'
-                : '<span class="mat-link-nokey">未配置 AI Key（设置里填 DeepSeek）则无法生成思路，但骨架可参考</span>')
-      + '</div>'
-      + '<div class="mat-outline" id="matOutline_' + item.i + '"></div>'
-      + '</div>';
-  });
-  box.innerHTML = h;
+  if(!matLoadStore()){ box.style.display = 'none'; return; }
+  box.innerHTML = '<div class="mat-link-head">💡 可用素材（来自你的万能素材库）</div>'
+    + '<div class="mat-link-hint">点击下方「🔀 AI 串题思路」，AI 会自动从你的万能素材库中挑选 1-3 个素材、给出拼凑方案：哪些固定内容可直接搬、哪些缺口需要你自己现场补、怎么组织成约 2 分钟的回答。</div>';
   box.style.display = 'block';
-  if(hasKey){
-    box.querySelectorAll('[data-outline]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const idx = +btn.dataset.outline;
-        const mat = (matStoreCache && matStoreCache.materials[idx]) || null;
-        if(mat) matGenOutline(mat, s, btn, document.getElementById('matOutline_' + idx));
-      });
-    });
-  }
 }
-async function matGenOutline(m, s, btn, target){
-  if(!target) return;
-  const SYS = '你是雅思口语陪练。考生有一份来自自己真实经历的万能素材，要用来串一道 Part 2 题。请给考生一段【中文思路框架/逻辑链】——不是英文范文，而是告诉ta“这段真实经历该怎么组织着讲满2分钟”：按时间或因果顺序拆成 5-7 步，每步一句话中文提示（含该说哪个细节、什么感受、怎么自然扣回题目）。要像现场边想边说，不要背诵腔、不要给英文。只输出 JSON：{"outline":["第1步…","第2步…",...]}，不要任何解释文字。';
+
+async function matAiPlan(s, targetEl, btn){
+  if(!targetEl) return;
+  const summary = matStoreSummary();
+  if(!summary){
+    targetEl.style.display = 'block';
+    targetEl.innerHTML = '<div class="mat-plan"><div class="mat-outline-err">还没有万能素材。先去「万能素材」页生成素材库再来串题。</div></div>';
+    return;
+  }
+  if(!DATA.settings.relayToken){
+    targetEl.style.display = 'block';
+    targetEl.innerHTML = '<div class="mat-plan"><div class="mat-outline-err">未配置 AI Key（去「设置 / AI 接口」填写 DeepSeek Token）。</div></div>';
+    return;
+  }
+  targetEl.style.display = 'block';
+  targetEl.innerHTML = '<div class="mat-plan"><div class="mat-outline-loading">🤔 AI 正在读题 + 读你的素材库，设计串题方案…</div></div>';
+  const oldText = btn ? btn.textContent : '';
+  if(btn){ btn.disabled = true; btn.textContent = '生成中…'; }
+
+  const SYS = '你是雅思口语 P2 串题教练。考生有一份基于真实经历生成的「万能素材库」（含人设卡 + 多个素材卡）。你的任务是针对当前这道 Part 2 题，自动从素材库中挑选最合适的 1-3 个素材，并给出「如何把这些素材拼成一道完整 2 分钟回答」的方案。'
+    + '\n\n输出要求（严格只输出 JSON，不要任何解释文字）：'
+    + '\n{'
+    + '\n  "materials": ["素材名1", "素材名2"],'
+    + '\n  "structure": ['
+    + '\n    {"part": "开头/背景", "content": "中文：这一段说什么", "source": "来自素材《xxx》的哪个 facet/骨架，或\'自己发挥\'", "fixed": true, "hint": "可选：可直接用的英文关键词或固定短句"},'
+    + '\n    ...'
+    + '\n  ],'
+    + '\n  "gaps": ["需要考生自己补充的真实细节1", "需要考生自己补充的真实细节2"],'
+    + '\n  "tips": "1-2 句中文提醒：如何自然扣题、避免背诵腔"'
+    + '\n}'
+    + '\n\n规则：'
+    + '\n1. 优先复用素材库里的真实内容，允许合并多个素材。'
+    + '\n2. 明确标出哪些是「固定内容」（fixed=true，直接从素材库搬）和哪些是「自己发挥」（fixed=false，考生现场补充）。'
+    + '\n3. structure 拆成 5-7 步，每步讲清：说什么、来自哪个素材、是否固定。'
+    + '\n4. 面向目标口语 5.5：建议用简单句型，不要复杂从句。'
+    + '\n5. 总时长要能讲满约 2 分钟。'
+    + '\n6. 不要写完整英文范文，只给中文方案 + 少量可选英文锚点。';
+
   const user = 'Part 2 题目（英文）：' + (s.promptEn || s.title || '') + '\n中文题意：' + (s.promptZh || '')
-    + '\n\n可用素材（考生真实经历）：'
-    + '\n标题：' + (m.title || '')
-    + '\n多切面：' + JSON.stringify(m.facets || {})
-    + '\n英文骨架：' + ((m.skeleton && m.skeleton.en) || []).join(' / ')
-    + ((m.skeleton && m.skeleton.zh && m.skeleton.zh.length) ? '\n中文对照：' + m.skeleton.zh.join(' / ') : '')
-    + '\n\n请基于这道具体题目，给出讲述这段素材的中文逻辑链（5-7步）。';
-  target.innerHTML = '<div class="mat-outline-loading">🤔 正在组织中文思路…</div>';
-  btn.disabled = true; btn.textContent = '生成中…';
+    + '\n\n考生人设卡：\n' + summary.persona
+    + '\n\n万能素材库（共 ' + summary.materials.length + ' 条）：\n' + JSON.stringify(summary.materials, null, 2)
+    + '\n\n请针对上面这道题，给出 JSON 格式的串题方案。';
+
   try{
-    const content = await callRelay('material_outline', [ { role:'system', content: SYS }, { role:'user', content: user } ], 0.6);
+    const content = await callRelay('material_match', [ { role:'system', content: SYS }, { role:'user', content: user } ], 0.6);
     const j = aiJson(content);
-    let lines = [];
-    if(j && Array.isArray(j.outline)) lines = j.outline.map(String);
-    else if(typeof content === 'string') lines = content.split('\n').map(x => x.trim()).filter(Boolean);
-    if(!lines.length) throw new Error('未解析到思路');
-    target.innerHTML = '<div class="mat-outline-head">🧭 中文思路框架 / 逻辑链</div><ol class="mat-outline-list">' + lines.map(l => '<li>' + escapeHtml(l) + '</li>').join('') + '</ol>';
+    if(!j || !Array.isArray(j.materials) || !Array.isArray(j.structure)){
+      throw new Error('AI 返回格式不符');
+    }
+    let html = '<div class="mat-plan">'
+      + '<div class="mat-plan-head">🔀 AI 串题方案</div>'
+      + '<div class="mat-plan-mats">' + j.materials.map(m => '<span class="mat-plan-mat">' + escapeHtml(String(m)) + '</span>').join('') + '</div>';
+    j.structure.forEach((step, idx) => {
+      const fixed = step.fixed === true;
+      html += '<div class="mat-plan-step">'
+        + '<div class="mat-plan-step-h">'
+        + '<span>Step ' + (idx + 1) + '：' + escapeHtml(String(step.part || '片段')) + '</span>'
+        + '<span class="mat-plan-step-tag ' + (fixed ? 'fixed' : 'user') + '">' + (fixed ? '固定内容' : '自己发挥') + '</span>'
+        + '</div>'
+        + '<div class="mat-plan-step-p">' + escapeHtml(String(step.content || '')) + '</div>'
+        + (step.source ? '<div class="mat-plan-step-src">来源：' + escapeHtml(String(step.source)) + '</div>' : '')
+        + (step.hint ? '<div class="mat-plan-step-key">可用英文：' + escapeHtml(String(step.hint)) + '</div>' : '')
+        + '</div>';
+    });
+    if(Array.isArray(j.gaps) && j.gaps.length){
+      html += '<div class="mat-plan-gaps"><b>需要你现场补充的缺口</b><ul>' + j.gaps.map(g => '<li>' + escapeHtml(String(g)) + '</li>').join('') + '</ul></div>';
+    }
+    if(j.tips){
+      html += '<div class="mat-plan-tips">💡 ' + escapeHtml(String(j.tips)) + '</div>';
+    }
+    html += '</div>';
+    targetEl.innerHTML = html;
   }catch(e){
-    target.innerHTML = '<div class="mat-outline-err">思路生成失败：' + escapeHtml(e.message) + '。可参考上方英文骨架自己组织。</div>';
+    targetEl.innerHTML = '<div class="mat-plan"><div class="mat-outline-err">串题方案生成失败：' + escapeHtml(e.message) + '。可刷新重试，或先去「万能素材」页补充素材。</div></div>';
   }finally{
-    btn.disabled = false; btn.textContent = '🧭 重新生成中文思路框架';
+    if(btn){ btn.disabled = false; btn.textContent = oldText || '🔀 AI 串题思路'; }
   }
 }
 

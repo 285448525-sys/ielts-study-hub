@@ -209,7 +209,7 @@
   /* === 素材生成器联动面板（P2 抽题命中个人素材）=== */
   .sp-mat-link{margin:0 0 14px}
   .mat-link-head{font-size:14px;font-weight:700;color:var(--med);margin-bottom:8px}
-  .mat-link-hint{font-size:13px;color:var(--muted);margin-bottom:8px}
+  .mat-link-hint{font-size:13px;color:var(--muted);margin-bottom:8px;line-height:1.7}
   .mat-link-card{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:10px}
   .mat-link-title{font-size:15px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:8px}
   .mat-link-badge{font-size:11px;font-weight:700;color:#fff;background:var(--primary);border-radius:6px;padding:1px 7px}
@@ -229,6 +229,35 @@
   .mat-outline-head{font-size:13px;font-weight:700;color:var(--med);margin-bottom:4px}
   .mat-outline-list{margin:0;padding-left:20px}
   .mat-outline-list li{font-size:14px;line-height:1.7;color:var(--ink);margin:3px 0}
+
+  /* === AI 串题方案面板 === */
+  .mat-plan{margin-top:12px;padding:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);font-size:14px;line-height:1.8}
+  .mat-plan-head{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700;color:var(--primary);margin-bottom:10px}
+  .mat-plan-mats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .mat-plan-mat{font-size:12px;padding:3px 10px;border-radius:20px;background:var(--primary-soft);color:var(--med);border:1px solid var(--line)}
+  .mat-plan-step{margin-bottom:12px;padding-bottom:10px;border-bottom:1px dashed var(--line)}
+  .mat-plan-step:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+  .mat-plan-step-h{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--ink);margin-bottom:4px}
+  .mat-plan-step-tag{font-size:11px;padding:1px 6px;border-radius:4px;background:var(--surface-2);color:var(--muted);white-space:nowrap}
+  .mat-plan-step-tag.fixed{background:var(--primary);color:#fff}
+  .mat-plan-step-tag.user{background:var(--warn);color:#fff}
+  .mat-plan-step-p{color:var(--ink);margin-bottom:4px}
+  .mat-plan-step-src{font-size:12px;color:var(--muted)}
+  .mat-plan-step-key{font-size:13px;color:var(--med);background:var(--bg);padding:6px 10px;border-radius:var(--radius-sm);margin-top:6px}
+  .mat-plan-gaps{background:var(--bg);border:1px solid var(--line);border-radius:var(--radius-sm);padding:10px 12px;margin-top:12px}
+  .mat-plan-gaps b{display:block;font-size:13px;color:var(--danger);margin-bottom:6px}
+  .mat-plan-gaps ul{margin:0;padding-left:18px}
+  .mat-plan-gaps li{font-size:13px;color:var(--ink);margin:2px 0}
+  .mat-plan-tips{font-size:13px;color:var(--muted);margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+
+  /* === 串题 tab：逐题 AI 串题列表 === */
+  .ct-q-list{display:flex;flex-direction:column;gap:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+  .ct-q-item{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}
+  .ct-q-item:last-child{border-bottom:none}
+  .ct-q-item:hover{background:var(--surface-2)}
+  .ct-q-text{flex:1;min-width:0;font-size:14px;color:var(--ink);line-height:1.6}
+  .ct-q-text b{color:var(--muted);margin-right:6px;font-weight:600}
+  .ct-q-btn{font-size:12.5px;padding:6px 12px}
 </style>
 </head>
 <body>
@@ -284,32 +313,13 @@
     <div id="detailBody"></div>
   </div>
 
-  <!-- 串题视图 -->
+  <!-- 串题视图：逐题 AI 自动串题 -->
   <div id="ctView" hidden>
     <span class="sp-detail-back" id="ctBackBtn">&larr; 返回题库（P1 / P2）</span>
-    <div class="sp-banner">已自动导入题库里的 <b id="ctCount">0</b> 道 Part 2 题目。AI 会先问你几个问题挖出真实素材，再帮你用<b>尽可能少的故事</b>覆盖最多题（目标：总覆盖率 ≥90%，超高频/高频/必考题 100%）。可多次生成补洞，下方看板会算出「最少背诵组合」。</div>
+    <div class="sp-banner">AI 会读取你的「万能素材库」，针对每道 Part 2 题自动挑选 1-3 个素材、标出可直接复用的固定片段、以及需要你现场补充的缺口，拼凑成约 2 分钟的中文讲述方案。</div>
 
-    <div class="ct-step">
-      <h3>① 确认 Part 2 题库</h3>
-      <p class="ct-hint" id="ctBankHint">系统已自动读取「口语题库」中所有 Part 2 题目作为串题目标。若题目有更新，回到「Part 2」列表重新导入即可。</p>
-      <button class="btn btn-primary" id="ctAskBtn">🤖 AI 先问几个关键问题</button>
-    </div>
-
-    <div class="ct-step" id="ctAskBox" hidden>
-      <h3>② 回答几个问题（帮 AI 写出属于你的故事）</h3>
-      <div id="ctQuestions"></div>
-      <button class="btn btn-primary" id="ctGenBtn">生成我的串题故事</button>
-    </div>
-
-    <div class="ct-loading" id="ctLoading" hidden>正在生成…</div>
-    <div id="ctResult"></div>
-
-    <div id="ctGlobal" hidden></div>
-
-    <div class="ct-saved" id="ctSavedWrap">
-      <h3 style="font-size:16px;margin:18px 0 10px">已生成的串题方案</h3>
-      <div id="ctSaved"></div>
-    </div>
+    <div id="ctList" style="margin-top:14px"></div>
+    <div id="ctPlanResult"></div>
   </div>
 
   <!-- 模考视图（整合口语模考为第 4 个 tab，复用 mock.js） -->
