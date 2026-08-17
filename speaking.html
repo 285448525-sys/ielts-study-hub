@@ -224,12 +224,11 @@
 
   <!-- 串题视图 -->
   <div id="ctView" hidden>
-    <div class="sp-banner">先粘贴当季 P2 题库，AI 会问你几个问题挖出你的真实素材，再编 <b>2-3 个万能故事</b>。背完这几个，基本能串掉题库大部分题。</div>
+    <div class="sp-banner">已自动导入题库里的 <b id="ctCount">0</b> 道 Part 2 题目。AI 会问你几个问题挖出真实素材，再编 <b>2-3 个万能故事</b>。背完这几个，基本能串掉题库大部分题。</div>
 
     <div class="ct-step">
-      <h3>① 粘贴当季 P2 题库</h3>
-      <textarea id="ctBank" placeholder="把当季口语 Part 2 的题目粘进来（每题一行，或整段都行）。例如：&#10;Describe a person who taught you something important.&#10;Describe a happy event from your childhood.&#10;Describe a place you like to visit."></textarea>
-      <p class="ct-hint">已自动读取你题库里的母本素材（男友 Leo / 舅舅 / 表妹）作为写故事的基础，AI 会尽量套用它们。</p>
+      <h3>① 确认 Part 2 题库</h3>
+      <p class="ct-hint" id="ctBankHint">系统已自动读取「口语题库」中所有 Part 2 题目作为串题目标。若题目有更新，回到「Part 2」列表重新导入即可。</p>
       <button class="btn btn-primary" id="ctAskBtn">🤖 AI 先问几个关键问题</button>
     </div>
 

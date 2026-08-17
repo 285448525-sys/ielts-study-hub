@@ -15,6 +15,7 @@ ready(() => {
         $('#listView').hidden = true;
         $('#detailView').hidden = true;
         $('#ctView').hidden = false;
+        renderCTIntro();
         renderSaved();
       } else {
         curType = t;
@@ -189,6 +190,9 @@ function openDetail(id){
 
   // AI 辅助按钮
   html += '<button class="btn btn-primary" id="aiAssistBtn" style="margin-bottom:12px">AI 辅助</button>';
+  if(s.type === 'P2'){
+    html += '<button class="btn btn-primary" id="aiStoryLinkBtn" style="margin-bottom:12px;margin-left:8px">🔀 AI 串题思路</button>';
+  }
   html += '<div class="sp-ai-result" id="aiResult"></div>';
 
   // 保存
@@ -203,6 +207,10 @@ function openDetail(id){
     if(confirm('确定删除这个口语题？删除后默认题库升级也不会再恢复它。')) deleteSpeaking(id);
   });
   $('#aiAssistBtn').addEventListener('click', () => aiAssist(id));
+  if(s.type === 'P2'){
+    const aiStoryLinkBtn = document.getElementById('aiStoryLinkBtn');
+    if(aiStoryLinkBtn) aiStoryLinkBtn.addEventListener('click', () => aiStoryLink(id));
+  }
 
   // 逐题展开 + 语音 + AI 诊断 事件绑定（含 localStorage 回填）
   bindQuestionEvents(id);
@@ -279,6 +287,60 @@ function deleteSpeaking(id){
 }
 
 /* === AI 辅助 === */
+function renderCTIntro(){
+  const n = ctBankCount();
+  const countEl = $('#ctCount');
+  if(countEl) countEl.textContent = String(n);
+  const btn = $('#ctAskBtn');
+  if(btn) btn.disabled = n === 0;
+}
+
+async function aiStoryLink(id){
+  const s = DATA.speaking.find(x => x.id === id);
+  if(!s) return;
+  if(!DATA.settings.relayToken){ toast('请先在「设置 / AI 接口」配置 API Key'); return; }
+  if(!(DATA.speakingStories || []).length){ toast('还没有串题素材，先去「串题」Tab 生成方案'); return; }
+
+  const resultEl = $('#aiResult');
+  resultEl.style.display = 'block';
+  resultEl.textContent = '正在生成串题思路…';
+
+  try{
+    // 取最近一期串题方案作为素材来源
+    const latest = (DATA.speakingStories || []).slice().reverse()[0];
+    const storiesText = (latest.stories || []).map(st =>
+      '【' + (st.name || '') + '】\n' +
+      '复述线：' + (st.keyPoints || '') + '\n' +
+      '叙事要点：' + (st.outline || '').slice(0, 500)
+    ).join('\n---\n');
+
+    const sys = '你是雅思口语 P2 串题老师。考生已准备以下万能故事素材（来自她的真实经历/回答）。'
+      + '请针对当前 P2 题目，给出：1) 推荐用哪个/哪些素材串这道题；2) 具体的串题思路（如何改编细节扣题，中文）；3) 一段 1.5-2 分钟、自然口语化的英文范文（简单句型为主，符合口语 5.5 水平）。'
+      + '严格要求只输出如下 JSON：{"link":"串题思路（中文，2-5行）","sample":"英文范文","story":"推荐的故事名"}，不要任何解释文字。';
+
+    const user = 'P2 题目：' + (s.promptEn || s.title || '') +
+      '\n中文：' + (s.promptZh || '') +
+      '\nYou should say: ' + ((s.youShouldSay || []).join('; ')) +
+      '\n\n考生已有的万能故事素材：\n' + storiesText;
+
+    const content = await callRelay('speaking_chuan', [
+      { role:'system', content: sys },
+      { role:'user', content: user }
+    ], 0.7);
+    const j = aiJson(content);
+    if(j && (j.link || j.sample)){
+      resultEl.innerHTML =
+        (j.story ? '<div class="diag-sec"><b>推荐素材</b><div class="diag-rewrite">' + escapeHtml(j.story) + '</div></div>' : '') +
+        '<div class="diag-sec"><b>串题思路</b><div class="diag-note">' + escapeHtml(j.link || '') + '</div></div>' +
+        '<div class="diag-sec"><b>参考范文</b><div class="diag-rewrite">' + escapeHtml(j.sample || '') + '</div></div>';
+    } else {
+      resultEl.innerHTML = '<div class="diag-note">AI 返回非标准格式，原文如下：</div><pre>' + escapeHtml(content) + '</pre>';
+    }
+  }catch(e){
+    resultEl.textContent = 'AI 服务暂不可用：' + e.message + '\n\n请检查「设置」中的 AI 接口地址。';
+  }
+}
+
 async function aiAssist(id){
   const s = DATA.speaking.find(x => x.id === id);
   if(!s) return;
@@ -666,6 +728,18 @@ function renderDiag(el, j, raw){
   el.style.display = 'block';
 }
 
+function ctBankText(){
+  // 自动从口语题库读取所有 Part 2 题目，一行一题，作为串题目标
+  const list = (DATA.speaking || []).filter(s => s.type === 'P2');
+  return list.map(s => {
+    let t = s.promptEn || s.titleEn || s.title || '';
+    if(s.promptZh || s.titleZh) t += ' | ' + (s.promptZh || s.titleZh);
+    if(s.youShouldSay && s.youShouldSay.length) t += ' | You should say: ' + s.youShouldSay.join('; ');
+    return t;
+  }).join('\n');
+}
+function ctBankCount(){ return (DATA.speaking || []).filter(s => s.type === 'P2').length; }
+
 function ctTemplates(){
   // 用户已有 P2 母本素材（真实经历），作为写故事的基础
   const t = DATA.speaking.filter(x => x.type === 'P2' && x.framework === 'P2人物母本');
@@ -677,8 +751,10 @@ function ctShowLoading(msg){ const el = $('#ctLoading'); el.textContent = msg; e
 function ctHideLoading(){ $('#ctLoading').hidden = true; }
 
 async function ctAsk(){
-  const bank = $('#ctBank').value.trim();
-  if(bank.length < 10){ toast('请先粘贴当季 P2 题库（至少几道题）'); return; }
+  const bank = ctBankText();
+  const n = ctBankCount();
+  if(n === 0){ toast('题库中还没有 Part 2 题目，请先去「Part 2」列表导入'); return; }
+  if(bank.length < 10){ toast('题库中 Part 2 题目不足'); return; }
   if(!DATA.settings.relayToken){ toast('请先在「设置 / AI 接口」配置 API Key'); return; }
   ctShowLoading('正在生成提问…');
   try{
@@ -726,8 +802,10 @@ function renderCTQuestions(){
 }
 
 async function ctGen(){
-  const bank = $('#ctBank').value.trim();
-  if(bank.length < 10){ toast('请先粘贴当季 P2 题库'); return; }
+  const bank = ctBankText();
+  const n = ctBankCount();
+  if(n === 0){ toast('题库中还没有 Part 2 题目'); return; }
+  if(bank.length < 10){ toast('题库中 Part 2 题目不足'); return; }
   // 收集答案
   document.querySelectorAll('#ctQuestions textarea[data-qa]').forEach(t => {
     const i = +t.dataset.qa;
@@ -740,7 +818,7 @@ async function ctGen(){
   ctShowLoading('正在生成串题故事…');
   try{
     const sys = '你是雅思口语 P2 串题规划师。基于【当季题库】+【考生回答】+【已有母本】，'
-      + '设计 2-3 个万能故事（必须来自考生的真实经历/回答，口语化、自然、可讲满 2 分钟），'
+      + '设计 2-3 个真实、有记忆点、属于考生个人的万能故事（必须来自考生的真实经历/回答，口语化、自然、可讲满 2 分钟），'
       + '让考生背完能覆盖题库大部分题。'
       + '严格要求只输出如下 JSON（不要任何解释文字）：'
       + '{"stories":[{"name":"故事名","keyPoints":"复述线/关键词（中文，1-2 行）",'
@@ -822,7 +900,7 @@ function renderSaved(){
   if(!wrap) return;
   const list = DATA.speakingStories || [];
   if(!list.length){
-    wrap.innerHTML = '<div class="ct-empty">还没有串题方案。粘贴当季题库，让 AI 帮你编 2-3 个万能故事吧。</div>';
+    wrap.innerHTML = '<div class="ct-empty">还没有串题方案。点击上方「AI 先问几个关键问题」，让 AI 帮你编 2-3 个万能故事吧。</div>';
     return;
   }
   wrap.innerHTML = list.slice().reverse().map(scheme => {
