@@ -9,7 +9,7 @@ var MOCK_TYPES = {
   reading:   { name:'阅读', icon:'📖', mode:'accuracy', color:'var(--vocab)',
     parts:[ {label:'P1',defaultTotal:13},{label:'P2',defaultTotal:13},{label:'P3',defaultTotal:14} ] },
   speaking:  { name:'口语', icon:'🗣', mode:'score', color:'var(--med)',
-    parts:[ {label:'Part 1',weight:1},{label:'Part 2',weight:1},{label:'Part 3',weight:1} ] },
+    parts:[ {label:'流利度 Fluency',weight:1},{label:'词汇 Lexical',weight:1},{label:'语法 Grammar',weight:1},{label:'发音 Pronunciation',weight:1} ] },
   writing:   { name:'写作', icon:'✏️', mode:'score', color:'var(--warn)',
     parts:[ {label:'Task 1',weight:1},{label:'Task 2',weight:2} ] }, // Task 2 权重更高
 };
@@ -99,21 +99,37 @@ function render(){
     $('#scoreStats').innerHTML =
       statCard('最近总分', lo.toFixed(1), 'var(--primary)') +
       statCard('目标总分', targetOverall.toFixed(1), 'var(--med)') +
-      statCard('距目标', (diff >= 0 ? '+' : '') + diff.toFixed(1), diff >= 0 ? 'var(--med)' : 'var(--danger)') +
+      statCard('距目标', diff >= 0 ? '已超 ' + diff.toFixed(1) + ' 分' : '还差 ' + Math.abs(diff).toFixed(1) + ' 分', diff >= 0 ? 'var(--med)' : 'var(--danger)') +
       statCard('已记录模考', list.length, 'var(--vocab)');
   }
 
-  // bars (latest vs target)
+  // bars (latest vs target) — 改为「差 X 分」对比，差距最大项红色置顶
   const barBox = $('#scoreBars');
   if(list.length === 0){
     barBox.innerHTML = renderEmpty('暂无数据。');
   } else {
     const x = list[0];
-    barBox.innerHTML =
-      progressBar('听力 ' + x.listening + ' / 目标 ' + (t.listening||5.5), Math.min(100, x.listening/(t.listening||5.5)*100), 'var(--mock)') +
-      progressBar('阅读 ' + x.reading + ' / 目标 ' + (t.reading||6.5), Math.min(100, x.reading/(t.reading||6.5)*100), 'var(--vocab)') +
-      progressBar('写作 ' + x.writing + ' / 目标 ' + (t.writing||5.5), Math.min(100, x.writing/(t.writing||5.5)*100), 'var(--warn)') +
-      progressBar('口语 ' + x.speaking + ' / 目标 ' + (t.speaking||5.5), Math.min(100, x.speaking/(t.speaking||5.5)*100), 'var(--med)');
+    const mods = [
+      { name:'听力', icon:'🎧', color:'var(--mock)', val:x.listening, target:t.listening||5.5 },
+      { name:'阅读', icon:'📖', color:'var(--vocab)', val:x.reading,   target:t.reading||6.5 },
+      { name:'写作', icon:'✏️', color:'var(--warn)',  val:x.writing,   target:t.writing||5.5 },
+      { name:'口语', icon:'🗣', color:'var(--med)',   val:x.speaking,  target:t.speaking||5.5 },
+    ];
+    mods.forEach(m => { m.gap = Math.round((m.val - m.target) * 2) / 2; });
+    mods.sort((a, b) => a.gap - b.gap);              // gap 最小（最负=差距最大）置顶
+    const worstGap = mods[0].gap;
+    barBox.innerHTML = mods.map(m => {
+      const isWorst = m.gap === worstGap && m.gap < 0;   // 仅当确有短板(负 gap)才红
+      const tag = m.gap < 0 ? '还差 ' + Math.abs(m.gap).toFixed(1) + ' 分'
+                : (m.gap > 0 ? '已超 ' + m.gap.toFixed(1) + ' 分' : '已达标');
+      const cls = m.gap < 0 ? 'down' : 'up';
+      return `<div class="gap-row${isWorst ? ' gap-worst' : ''}">
+        <span class="gap-ic" style="color:${m.color}">${m.icon}</span>
+        <span class="gap-name">${m.name}</span>
+        <span class="gap-val">${m.val} / 目标 ${m.target}</span>
+        <span class="badge ${cls} gap-tag">${tag}</span>
+      </div>`;
+    }).join('');
   }
 
   // 趋势图 + 雷达图
@@ -134,7 +150,7 @@ function render(){
       <span class="badge w">写 ${x.writing}</span>
       <span class="badge s">口 ${x.speaking}</span>
       <span class="badge overall">总分 ${lo.toFixed(1)}</span>
-      <span class="badge ${reached ? 'up' : 'down'}">${reached ? '达标' : '差 ' + Math.abs(diff).toFixed(1)}</span>
+      <span class="badge ${reached ? 'up' : 'down'}">${reached ? '已达标' : '还差 ' + Math.abs(diff).toFixed(1) + ' 分'}</span>
       ${x.note ? `<span class="muted">${escapeHtml(x.note)}</span>` : ''}
       <button class="plan-del" data-del="${x.id}" title="删除" style="margin-left:auto">✕</button>
     </div>`;
