@@ -89,6 +89,7 @@ function xfyunEvaluate(pcm, refText, cfg){
 
     let xml = '';
     let done = false;
+    let lastServerMsg = '';
     const finish = (err, val) => {
       if(done) return; done = true;
       try{ ws.close(); }catch(_){}
@@ -102,10 +103,11 @@ function xfyunEvaluate(pcm, refText, cfg){
       // 官方推荐每 40ms 一帧：16000Hz * 16bit * 0.04s / 8 = 1280 字节 = 640 Int16 样本
       const chunkSamples = 640;
       const sendChunk = (audio, status, aus) => {
-        // 官方 Java Demo 结构：audio 帧补 aue / data_type / encoding（raw 音频）
+        // 官方 ISE 文档 audio 帧结构：business 只含 cmd/aus；data 只含 status/data
+        if(ws.readyState !== WebSocket.OPEN) return;
         ws.send(JSON.stringify({
-          business: { cmd:'auw', aus, aue:'raw' },
-          data: { status, data: audio, data_type:1, encoding:'raw' }
+          business: { cmd:'auw', aus },
+          data: { status, data: audio }
         }));
       };
       if(!pcm || pcm.length === 0){
@@ -115,7 +117,9 @@ function xfyunEvaluate(pcm, refText, cfg){
       }
       const total = pcm.length;
       let sent = 0;
-      while(sent < total){
+      // 按 40ms 间隔逐帧发送，模拟实时音频流，避免一次性灌入导致服务端关闭
+      const step = () => {
+        if(done) return;
         const isFirst = (sent === 0);
         const end = Math.min(sent + chunkSamples, total);
         const isLast = (end === total);
@@ -131,30 +135,34 @@ function xfyunEvaluate(pcm, refText, cfg){
           }
         }catch(e){ finish(new Error('发送音频失败：' + e.message)); return; }
         sent = end;
-      }
+        if(sent < total) setTimeout(step, 40);
+      };
+      step();
     };
 
     ws.onopen = () => {
       try{
-        // 官方 ISE 流式文档：text 必须是「UTF-8 BOM 前缀 + 原始文本」，不能 urlencode；
-        // 且 tte 为必传字段（文本编码）。text 被 urlencode / 缺 BOM / 缺 tte 都会导致
-        // 引擎识别流异常，进而所有音频帧 append 失败 → 48195(iSEInputAppend/ret=8195)。
-        ws.send(JSON.stringify({
-          common: { app_id: cfg.appid },
-          business: {
-            category:'read_sentence',
-            sub:'ise',
-            ent:'en_vip',
-            cmd:'ssb',
-            text: '\uFEFF' + refText,
-            tte:'utf-8',
-            ttp_skip:true,
-            aue:'raw',
-            auf:'audio/L16;rate=16000',
-            plev:'0.5'
-          },
-          data: { status: 0 }
-        }));
+      // 官方 ISE 流式文档（英文 read_sentence）：
+      // 1. text 必须是「UTF-8 BOM 前缀 + '[content]' + 原始文本」，不能 urlencode；
+      // 2. tte 为必传字段（文本编码）。
+      // text 被 urlencode / 缺 BOM / 缺 [content] / 缺 tte 都会导致引擎识别流异常，
+      // 进而所有音频帧 append 失败 → 48195(iSEInputAppend/ret=8195)。
+      ws.send(JSON.stringify({
+        common: { app_id: cfg.appid },
+        business: {
+          category:'read_sentence',
+          sub:'ise',
+          ent:'en_vip',
+          cmd:'ssb',
+          text: '\uFEFF[content]' + refText,
+          tte:'utf-8',
+          ttp_skip:true,
+          aue:'raw',
+          auf:'audio/L16;rate=16000',
+          plev:'0.5'
+        },
+        data: { status: 0 }
+      }));
       }catch(e){ finish(new Error('发送首帧失败：' + e.message)); return; }
       // 音频帧需等 ssb 握手回包后再发
     };
@@ -162,8 +170,11 @@ function xfyunEvaluate(pcm, refText, cfg){
     ws.onmessage = (ev) => {
       let outer;
       try{ outer = JSON.parse(ev.data); }catch(_){ return; }
-      if(outer.code !== 0 && outer.code !== undefined){
-        finish(new Error('讯飞错误 ' + outer.code + '：' + (outer.message || '未知错误')));
+      lastServerMsg = ev.data;
+
+      const code = outer.code;
+      if(code !== undefined && String(code) !== '0'){
+        finish(new Error('讯飞错误 ' + code + '：' + (outer.message || '未知错误')));
         return;
       }
 
@@ -175,23 +186,25 @@ function xfyunEvaluate(pcm, refText, cfg){
       }
       if(state !== 'audio') return;
 
-      if(!outer.data) return;
+      // 服务端结果结构：outer.data = { status:int, data: base64(xml) }
+      const payload = (outer.data && typeof outer.data === 'object') ? outer.data.data : outer.data;
+      if(typeof payload !== 'string' || !payload) return;
       let decoded;
-      try{ decoded = atob(outer.data); }catch(_){ return; }
+      try{ decoded = atob(payload); }catch(_){ return; }
       // decoded 可能是嵌套 JSON 或裸 XML，统一抽出评测 XML 文本
       const xmlResult = xfyunFindXml(decoded);
-      if(xmlResult){
-        xml = xmlResult;
+      if(xmlResult) xml = xmlResult;
+      // status=2 表示最终完整结果已返回，可以结束
+      if(xml && outer.data && String(outer.data.status) === '2'){
         finish(null, xml);
       }
-      // 否则是中间帧（status 0/1），忽略
     };
 
     ws.onerror = () => { finish(new Error('WebSocket 错误（检查网络 / 密钥 / 系统时间是否准）')); };
     ws.onclose = () => {
       if(!done){
         if(xml) finish(null, xml);
-        else finish(new Error('连接已关闭，未收到评测结果'));
+        else finish(new Error('连接已关闭，未收到评测结果' + (lastServerMsg ? '；最后回包：' + lastServerMsg.slice(0,200) : '')));
       }
     };
 
