@@ -401,9 +401,12 @@ function bindOpts(correct){
       if(ok){
         if(!pq.correctWords) pq.correctWords = {};
         if(!pq.correctWords[key]){ pq.correctWords[key] = true; pq.correct++; }
+        updateMcCurve(correct, 'known');   // 爱听写「认识」→ 推进共享长线曲线
+        toast('已掌握：'+key+'，下次复习 '+correct.mcDue);
         autoAdvance();
       } else {
         // 首次答错 → 进入错题循环（停顿 1.5s 后同题重测、选项换位）
+        updateMcCurve(correct, 'unknown');  // 爱听写「不认识」→ 重置共享长线曲线
         if(!pq.mastery) pq.mastery = {};
         pq.retrying = true;
         pq.mastery[key] = 0;
@@ -425,8 +428,6 @@ function cycleAnswer(key, correct, ok){
     if(pq.mastery[key] >= 3){
       pq.retrying = false;
       toast('✓ 已掌握：'+key);
-      correct.mcDue = addDays(todayKey(), 1);   // 按"不认识"间隔：隔天回墨墨复习
-      hubSave();
       autoAdvance();
     } else {
       pq.retrying = false;
@@ -453,6 +454,7 @@ function markUnknown(correct){
   // 首次作答只计一次 total（重试不重复计）
   if(!pq.countedWords) pq.countedWords = {};
   if(!pq.countedWords[key]){ pq.countedWords[key] = true; pq.total++; }
+  updateMcCurve(correct, 'unknown');   // 爱听写「不认识」→ 重置共享长线曲线
   // 进入错题循环
   pq.retrying = true;
   pq.mastery[key] = 0;
@@ -463,7 +465,7 @@ function markUnknown(correct){
     pq.wrongList.push({ en:key, cn:correct.cn||'', user:'（不认识）', skipped:true });
   }
   updateScore();
-  toast('已记为不认识：'+correct.en+' · '+correct.cn);
+  toast('已记为不认识：'+correct.en+' · '+correct.cn+'，明天再练');
   setTimeout(() => retrySameWord(correct), 1500);
 }
 
@@ -531,41 +533,54 @@ function applySrs(w, known){
   toast(known ? ('已记为认识，下次复习 '+w.srsDue) : '已记为不认识，明天再练');
 }
 
-// ======= 墨墨式：三档自测反馈（认识 / 模糊 / 不认识）=======
-function applyMc(w, grade){            // grade: 'known' | 'fuzzy' | 'unknown'
-  if(pq.revealed) return;
-  pq.revealed = true; pq.total++;
+// ======= 共享记忆曲线（远线）：默墨(3档) 与 爱听写(2档) 共用同一套 mc* 字段 =======
+// grade: 'known' | 'fuzzy' | 'unknown'
+// 只算曲线与落库，不含任何模式专属 UI/重测逻辑；两种模式都调用它，记忆曲线因此共通
+function updateMcCurve(w, grade){
   const today = todayKey();
   if(!w.mcDiff) w.mcDiff = 5;          // 默认中等难度
   if(!w.mcEase) w.mcEase = 2.5;
   if(grade === 'known'){
-    pq.correct++;
     w.mcStreak = (w.mcStreak||0) + 1;
     w.mcInterval = w.mcInterval
       ? Math.round(w.mcInterval * w.mcEase)          // 非首次：按倍数拉长
       : MC_FIRST[w.mcDiff];                           // 首次：按难度给首间隔
     w.mcEase = Math.min(3.0, w.mcEase + 0.1);        // 越记越牢，增长越快
     if(w.mcStreak % 3 === 0) w.mcDiff = Math.max(1, w.mcDiff - 1); // 连对→降难度
-    w.mcDue  = addDays(today, w.mcInterval);
-    w.mcReps = (w.mcReps||0) + 1; w.mcLast = today;
-    hubSave();
+  } else if(grade === 'fuzzy'){
+    w.mcStreak = 0;
+    w.mcDiff  = Math.min(10, w.mcDiff + 1);
+    w.mcEase  = 2.0;
+    w.mcInterval = Math.min(w.mcInterval || 3, 3);    // 模糊→收敛约3天，不膨胀
+  } else { // unknown
+    w.mcStreak = 0;
+    w.mcDiff  = Math.min(10, w.mcDiff + 2);           // 比想象中难→升难度
+    w.mcEase  = 2.5;
+    w.mcInterval = 1;                                 // 不认识→明天再来
+    w.mcLapses = (w.mcLapses||0) + 1;
+  }
+  w.mcDue  = addDays(today, w.mcInterval);
+  w.mcReps = (w.mcReps||0) + 1;
+  w.mcLast = today;
+  hubSave();
+  return grade==='known' ? '已掌握' : grade==='fuzzy' ? '有点模糊' : '未掌握';
+}
+
+// 墨墨式（默默背单词）：三档自测反馈（认识 / 模糊 / 不认识）
+function applyMc(w, grade){            // grade: 'known' | 'fuzzy' | 'unknown'
+  if(pq.revealed) return;
+  pq.revealed = true; pq.total++;
+  const label = updateMcCurve(w, grade);   // 推进共享长线曲线
+  if(grade === 'known'){
+    pq.correct++;
     $('#flashAns').textContent = w.cn || '';
     $('#judge').style.display = 'none';
     $('#revealBtn').hidden = true;
     $('#nextBtn').hidden = false; updateScore();
-    toast('已掌握，下次复习 ' + w.mcDue);
+    toast(label + '，下次复习 ' + w.mcDue);
   } else { // fuzzy / unknown —— 排程照旧，但额外当场重测
-    w.mcStreak = 0;
-    w.mcDiff  = Math.min(10, w.mcDiff + (grade==='fuzzy'?1:2));
-    w.mcEase  = grade==='fuzzy' ? 2.0 : 2.5;
-    w.mcInterval = grade==='fuzzy' ? Math.min(w.mcInterval || 3, 3) : 1; // 模糊→≈3天 / 不认识→1天
-    if(grade==='unknown') w.mcLapses = (w.mcLapses||0) + 1;
-    w.mcDue  = addDays(today, w.mcInterval);   // 后续复习排程照常写入
-    w.mcReps = (w.mcReps||0) + 1; w.mcLast = today;
-    hubSave();
-    const label = grade==='fuzzy' ? '有点模糊' : '未掌握';
     toast(label + '，下次复习 ' + w.mcDue + '（当场重测）');
-    mcDrill(w);   // ← 新：当场重测直到连对3次，再 nextQuestion
+    mcDrill(w);   // ← 当场重测直到连对3次，再 nextQuestion
     return;
   }
 }
