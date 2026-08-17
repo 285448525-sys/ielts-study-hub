@@ -617,6 +617,9 @@ function prefetchNeighbors(id){
 }
 
 ready(() => { hubLoad(); injectNav(); applyTheme(); restoreSideScroll(); initSoftNav();
+  registerSW();
   // 计时保存后刷新侧边栏「今日已学」（侧边栏在所有页面可见，需即时更新）
   document.addEventListener('hub:session-saved', () => injectNav());
 });
+
+function registerSW(){ try{ if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{}); }catch(e){} }
