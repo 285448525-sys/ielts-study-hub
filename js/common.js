@@ -10,6 +10,7 @@ const PAGES = [
   { id:'longsent',  file:'longsent.html',  icon:'🧩', name:'长难句拆解', desc:'括号法解码训练' },
   { id:'errorbook', file:'errorbook.html', icon:'📒', name:'错题本',     desc:'贴错题笔记自动理清错因' },
   { id:'speaking',  file:'speaking.html',  icon:'🗨', name:'口语素材库', desc:'题库 + AI 串题' },
+  { id:'mock',      file:'mock.html',      icon:'🎤', name:'口语模考',   desc:'P1→P2→P3 全真模拟' },
   { id:'writing',   file:'writing.html',   icon:'✍', name:'写作模板库', desc:'模板 + AI 评分' },
   { id:'review',    file:'review.html',    icon:'📊', name:'回顾',       desc:'模考成绩 + 学习轨迹' },
   { id:'settings',  file:'settings.html',  icon:'⚙️', name:'设置',       desc:'同步 / AI / 数据' },
@@ -25,7 +26,7 @@ function favPageIds(){
 
 /* 一级常驻（高频 4 项，始终可见）+ 更多▾（其余 9 项，默认折叠） */
 const PRIMARY_NAV = ['index','timer','review','practice'];
-const MORE_NAV    = ['plans','meds','words','corpus','longsent','errorbook','speaking','writing','settings'];
+const MORE_NAV    = ['plans','meds','words','corpus','longsent','errorbook','speaking','mock','writing','settings'];
 
 function injectNav(){
   const nav = document.getElementById('mainNav');

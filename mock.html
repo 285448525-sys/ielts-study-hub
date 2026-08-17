@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>口语模考 · 雅思备考 Hub</title>
+<link rel="stylesheet" href="css/common.css" />
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#3a9a93" />
+<link rel="apple-touch-icon" href="/icons/icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<script defer src="js/data.js"></script>
+<script defer src="js/common.js"></script>
+<script defer src="js/mock-asr.js"></script>
+<script defer src="js/mock-report.js"></script>
+<script defer src="js/mock.js"></script>
+</head>
+<body>
+<nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
+
+<main class="container">
+  <h1 class="page-title">口语模考</h1>
+  <p class="page-sub">模拟真实考官：P1（4 题）→ P2（1 分钟准备 + 2 分钟陈述）→ P3（4-5 题追问），全程转写，考完 AI 按雅思维度出 Band 报告。</p>
+
+  <!-- ① 开始卡 -->
+  <section class="card" id="mockStart">
+    <h2>开始一次模考</h2>
+    <ul class="mock-intro">
+      <li>🎙 <b>录音转写</b>：浏览器本地把你说的话转成文字（Chrome / Edge 支持最佳），不联网、不上传音频。</li>
+      <li>🤖 <b>AI 评分</b>：DeepSeek 读你的转写文字，评流利度 / 扣题 / 连贯 / 词汇 / 语法。</li>
+      <li>🔊 <b>发音分</b>：为你自己在「设置」里填的固定分（AI 不测发音），诚实标注在报告里。</li>
+    </ul>
+    <div id="mockPreCheck" class="mock-precheck"></div>
+    <div class="mock-start-actions">
+      <button class="btn btn-primary btn-lg" id="mockStartBtn">开始模考</button>
+    </div>
+    <p class="muted" style="margin-top:10px">不支持录音的浏览器，每题下方可手动粘贴你说的内容，流程不中断。</p>
+  </section>
+
+  <!-- ② 考试舞台 -->
+  <section class="card" id="mockStage" hidden>
+    <div class="mock-phase" id="mockPhase">Part 1</div>
+    <div class="mock-qcard">
+      <div class="mock-q" id="mockQ"></div>
+      <div class="mock-timer" id="mockTimerWrap" hidden>⏱ <span id="mockTimer">--</span></div>
+      <div class="mock-live" id="mockLive" aria-live="polite"></div>
+      <div class="mock-controls">
+        <button class="btn" id="mockRecBtn" hidden>🎙 开始录音</button>
+        <button class="btn btn-primary" id="mockSubmit">提交 / 下一题</button>
+      </div>
+      <div class="mock-manual">
+        <label for="mockManual">手动输入 / 粘贴你刚才说的（英文）—— 录音不准或不可用时用它：</label>
+        <textarea id="mockManual" rows="3" placeholder="在此输入你刚才回答的英文…"></textarea>
+      </div>
+      <p class="mock-hint" id="mockHint"></p>
+    </div>
+  </section>
+
+  <!-- ③ 报告 -->
+  <section class="card" id="mockReport" hidden>
+    <h2>模考报告</h2>
+    <div id="mockReportBody"></div>
+    <div class="mock-report-actions">
+      <button class="btn btn-primary" id="mockRetryBtn">再来一次</button>
+      <a class="btn" href="review.html">查看历史</a>
+    </div>
+  </section>
+</main>
+
+</body>
+</html>
