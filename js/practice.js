@@ -425,6 +425,8 @@ function cycleAnswer(key, correct, ok){
     if(pq.mastery[key] >= 3){
       pq.retrying = false;
       toast('✓ 已掌握：'+key);
+      correct.mcDue = addDays(todayKey(), 1);   // 按"不认识"间隔：隔天回墨墨复习
+      hubSave();
       autoAdvance();
     } else {
       pq.retrying = false;
@@ -544,28 +546,59 @@ function applyMc(w, grade){            // grade: 'known' | 'fuzzy' | 'unknown'
       : MC_FIRST[w.mcDiff];                           // 首次：按难度给首间隔
     w.mcEase = Math.min(3.0, w.mcEase + 0.1);        // 越记越牢，增长越快
     if(w.mcStreak % 3 === 0) w.mcDiff = Math.max(1, w.mcDiff - 1); // 连对→降难度
-  } else if(grade === 'fuzzy'){
+    w.mcDue  = addDays(today, w.mcInterval);
+    w.mcReps = (w.mcReps||0) + 1; w.mcLast = today;
+    hubSave();
+    $('#flashAns').textContent = w.cn || '';
+    $('#judge').style.display = 'none';
+    $('#revealBtn').hidden = true;
+    $('#nextBtn').hidden = false; updateScore();
+    toast('已掌握，下次复习 ' + w.mcDue);
+  } else { // fuzzy / unknown —— 排程照旧，但额外当场重测
     w.mcStreak = 0;
-    w.mcDiff  = Math.min(10, w.mcDiff + 1);
-    w.mcEase  = 2.0;
-    w.mcInterval = Math.min(w.mcInterval || 3, 3);    // 模糊→收敛约3天，不膨胀
-  } else { // unknown
-    w.mcStreak = 0;
-    w.mcDiff  = Math.min(10, w.mcDiff + 2);           // 比想象中难→升难度
-    w.mcEase  = 2.5;
-    w.mcInterval = 1;                                 // 不认识→明天再来
-    w.mcLapses = (w.mcLapses||0) + 1;
+    w.mcDiff  = Math.min(10, w.mcDiff + (grade==='fuzzy'?1:2));
+    w.mcEase  = grade==='fuzzy' ? 2.0 : 2.5;
+    w.mcInterval = grade==='fuzzy' ? Math.min(w.mcInterval || 3, 3) : 1; // 模糊→≈3天 / 不认识→1天
+    if(grade==='unknown') w.mcLapses = (w.mcLapses||0) + 1;
+    w.mcDue  = addDays(today, w.mcInterval);   // 后续复习排程照常写入
+    w.mcReps = (w.mcReps||0) + 1; w.mcLast = today;
+    hubSave();
+    const label = grade==='fuzzy' ? '有点模糊' : '未掌握';
+    toast(label + '，下次复习 ' + w.mcDue + '（当场重测）');
+    mcDrill(w);   // ← 新：当场重测直到连对3次，再 nextQuestion
+    return;
   }
-  w.mcDue  = addDays(today, w.mcInterval);
-  w.mcReps = (w.mcReps||0) + 1;
-  w.mcLast = today;
-  hubSave();
-  $('#flashAns').textContent = w.cn || '';
-  $('#judge').style.display = 'none';
-  $('#revealBtn').hidden = true;
-  $('#nextBtn').hidden = false; updateScore();
-  const label = grade==='known' ? '已掌握' : grade==='fuzzy' ? '有点模糊' : '未掌握';
-  toast(label + '，下次复习 ' + w.mcDue);
+}
+
+// 墨墨：模糊/不认识 时，当场重测同词（选项换位），连对3次才过
+function mcDrill(w){
+  cancelSpeak();
+  const body = $('#practiceBody');
+  const c = pc();
+  let streak = 0;
+  const render = () => {
+    pq.revealed = false;
+    const optN = Math.min(c.optCount, DATA.words.length);
+    const opts = shuffle([w, ...pickWrong(w, optN-1)]);
+    let html = '<div class="q-word">'+escapeHtml(w.en)+'</div>';
+    if(c.showCn) html += '<div class="q-cn muted" style="font-size:14px">'+escapeHtml(w.cn||'')+'</div>';
+    html += '<div style="text-align:center;font-size:12px;margin-top:8px;color:var(--warn)">⚠️ 当场重测（已连对 '+streak+'/3 次）</div>';
+    html += '<div class="options" id="opts" style="margin-top:14px"></div>';
+    body.innerHTML = html;
+    $('#opts').innerHTML = opts.map((o,i) =>
+      '<button class="opt" data-en="'+escapeHtml(o.en)+'"><span class="opt-cn">'+escapeHtml(o.cn)+'</span><span class="opt-key">'+(i+1)+'</span></button>'
+    ).join('');
+    $('#opts').querySelectorAll('.opt').forEach(b => b.addEventListener('click', () => {
+      if(pq.revealed) return;
+      pq.revealed = true;
+      const ok = b.dataset.en === w.en;
+      document.querySelectorAll('#opts .opt').forEach(x => { if(x.dataset.en === w.en) x.classList.add('correct'); x.style.pointerEvents='none'; });
+      if(ok){ streak++; if(streak>=3){ toast('✓ 当场练会：'+w.en); setTimeout(()=>nextQuestion(), 600); } else { setTimeout(render, 1200); } }
+      else { streak = 0; setTimeout(render, 1200); }
+    }));
+  };
+  $('#nextBtn').hidden = true;
+  render();
 }
 
 // ======= 听写（爱听写风格）=======
