@@ -89,17 +89,26 @@ function render(){
   const t = DATA.settings.targets || {};
   const targetOverall = t.overall || 6.0;
 
-  // stats
+  // stats — 加考试倒计时 + 本场目标（0 次也显示倒计时/目标）
+  const examDate = DATA.settings.examDate || '';
+  const examMd = examDate ? examDate.slice(5) : '';
+  const dLeft = daysUntil(examDate);
+  const dLabel = dLeft == null ? '--' : (dLeft < 0 ? '已过' : dLeft + ' 天');
+  const statBox = $('#scoreStats');
   if(list.length === 0){
-    $('#scoreStats').innerHTML = renderEmpty('还没有成绩记录，考完第一场就来填吧。');
+    statBox.innerHTML =
+      statCard('距 ' + (examMd || '考试') + ' 还有', dLabel, 'var(--warn)') +
+      statCard('本场目标', targetOverall.toFixed(1), 'var(--med)') +
+      '<div style="grid-column:1/-1">' + renderEmpty('还没有成绩记录，考完第一场就来填吧。') + '</div>';
   } else {
     const latest = list[0];
     const lo = overall(latest.listening, latest.reading, latest.writing, latest.speaking);
     const diff = Math.round((lo - targetOverall) * 2) / 2;
-    $('#scoreStats').innerHTML =
+    statBox.innerHTML =
       statCard('最近总分', lo.toFixed(1), 'var(--primary)') +
-      statCard('目标总分', targetOverall.toFixed(1), 'var(--med)') +
+      statCard('本场目标', targetOverall.toFixed(1), 'var(--med)') +
       statCard('距目标', diff >= 0 ? '已超 ' + diff.toFixed(1) + ' 分' : '还差 ' + Math.abs(diff).toFixed(1) + ' 分', diff >= 0 ? 'var(--med)' : 'var(--danger)') +
+      statCard('距 ' + (examMd || '考试') + ' 还有', dLabel, 'var(--warn)') +
       statCard('已记录模考', list.length, 'var(--vocab)');
   }
 
@@ -130,6 +139,30 @@ function render(){
         <span class="badge ${cls} gap-tag">${tag}</span>
       </div>`;
     }).join('');
+  }
+
+  // 行动建议（最弱项）—— 放在 scoreBars 之后、renderTrend() 之前
+  const tipBox = $('#actionTip');
+  if(tipBox){
+    if(list.length === 0){
+      tipBox.innerHTML = '';
+    } else {
+      const x = list[0];
+      const mods = [
+        { name:'听力', val:x.listening, target:t.listening||5.5 },
+        { name:'阅读', val:x.reading,   target:t.reading||6.5 },
+        { name:'写作', val:x.writing,   target:t.writing||5.5 },
+        { name:'口语', val:x.speaking,  target:t.speaking||5.5 },
+      ];
+      mods.forEach(m => { m.gap = Math.round((m.val - m.target) * 2) / 2; });
+      mods.sort((a, b) => a.gap - b.gap);
+      const w = mods[0];
+      if(w.gap < 0){
+        tipBox.innerHTML = '💡 最弱项 <b>' + w.name + '</b>（差 ' + Math.abs(w.gap).toFixed(1) + ' 分），建议优先练 <a href="practice.html" class="tip-link">' + w.name + ' →</a>';
+      } else {
+        tipBox.innerHTML = '🎉 四项均已达目标，保持节奏即可～';
+      }
+    }
   }
 
   // 趋势图 + 雷达图
@@ -163,7 +196,39 @@ function render(){
 function renderTrend(){
   const box = $('#trendChart'); if(!box) return;
   const list = DATA.scores.slice().sort((a,b) => a.date.localeCompare(b.date));
-  if(list.length < 2){ box.innerHTML = renderEmpty('至少需要 2 次模考成绩，才能生成成绩趋势图。'); return; }
+  if(list.length === 0){
+    box.innerHTML = renderEmpty('还没有模考成绩，考完第一场就来填吧。');
+    return;
+  }
+  if(list.length === 1){
+    // 单点：画「当前 vs 目标」对比 + 推进文案（不再只占位）
+    const t = DATA.settings.targets || {};
+    const s = list[0];
+    const W = 660, H = 300, padL = 34, padR = 16, padT = 16, padB = 34;
+    const plotW = W - padL - padR, plotH = H - padT - padB;
+    const Y = v => padT + plotH * (1 - Math.max(0, Math.min(9, v)) / 9);
+    const X = padL + plotW / 2;
+    const series = [
+      { key:'listening', name:'听力', color:'var(--mock)', target:t.listening||5.5 },
+      { key:'reading',   name:'阅读', color:'var(--vocab)', target:t.reading||6.5 },
+      { key:'writing',   name:'写作', color:'var(--warn)',  target:t.writing||5.5 },
+      { key:'speaking',   name:'口语', color:'var(--med)',   target:t.speaking||5.5 },
+    ];
+    let grid = '';
+    for(let g = 0; g <= 9; g++){ const gy = Y(g); grid += `<line x1="${padL}" y1="${gy}" x2="${W-padR}" y2="${gy}" style="stroke:var(--line)" stroke-width="1"/>`; grid += `<text x="${padL-6}" y="${gy+4}" text-anchor="end" font-size="10" style="fill:var(--muted)">${g}</text>`; }
+    let body = '';
+    series.forEach(se => {
+      const v = s[se.key], cy = Y(v), ty = Y(se.target);
+      body += `<line x1="${padL}" y1="${ty}" x2="${W-padR}" y2="${ty}" stroke="${se.color}" stroke-width="1.5" stroke-dasharray="5 4" opacity=".6"/>`;
+      body += `<circle cx="${X}" cy="${cy}" r="6" style="fill:${se.color}"/>`;
+      body += `<text x="${X+12}" y="${cy+4}" font-size="12" style="fill:var(--ink);font-weight:700">${se.name} ${v}</text>`;
+      body += `<text x="${W-padR}" y="${ty-4}" text-anchor="end" font-size="10" style="fill:${se.color}">目标 ${se.target}</text>`;
+    });
+    box.innerHTML = `<div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" width="100%" style="min-width:520px">${grid}${body}</svg></div>`
+      + `<div style="margin-top:8px;font-size:13px;color:var(--muted)">📈 只有 1 次模考，已画出「当前 vs 目标」。再考 1 次就能看完整趋势～</div>`;
+    return;
+  }
+  // 2 次及以上：原有多点折线（保持不变）
   const W = 660, H = 300, padL = 34, padR = 16, padT = 16, padB = 34;
   const plotW = W - padL - padR, plotH = H - padT - padB;
   const X = i => padL + (list.length === 1 ? plotW/2 : plotW * i / (list.length - 1));
@@ -235,6 +300,9 @@ function renderRadar(){
       <div><span style="display:inline-block;width:12px;height:12px;border-radius:3px;border:2px dashed var(--muted);margin-right:6px;vertical-align:middle"></span>目标分数</div>
     </div>
   </div>`;
+  if(list.length === 1){
+    box.innerHTML += `<div style="margin-top:8px;font-size:13px;color:var(--muted)">🧭 已画出当前 vs 目标雷达，再考 1 次可看能力变化～</div>`;
+  }
 }
 
 /* ===== 分项模考正确率（整卷 / 单篇单项） ===== */

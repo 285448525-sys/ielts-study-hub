@@ -419,6 +419,9 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 /* 最近一次 vs 目标：「差 X 分」对比 */
 .gap-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);margin-bottom:8px;background:var(--surface)}
 .gap-row.gap-worst{border-color:var(--danger);background:rgba(217,120,119,.10);box-shadow:0 2px 8px rgba(217,120,119,.18)}
+.action-tip{margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--primary-soft);color:var(--ink);font-size:13px;line-height:1.7}
+.tip-link{color:var(--primary);font-weight:700;text-decoration:none}
+.tip-link:hover{text-decoration:underline}
 .gap-ic{font-size:18px;flex:none}
 .gap-name{font-weight:700;min-width:42px}
 .gap-val{color:var(--muted);font-size:13px;flex:1}
