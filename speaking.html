@@ -224,7 +224,7 @@
 
   <!-- 串题视图 -->
   <div id="ctView" hidden>
-    <div class="sp-banner">已自动导入题库里的 <b id="ctCount">0</b> 道 Part 2 题目。AI 会问你几个问题挖出真实素材，再编 <b>2-3 个万能故事</b>。背完这几个，基本能串掉题库大部分题。</div>
+    <div class="sp-banner">已自动导入题库里的 <b id="ctCount">0</b> 道 Part 2 题目。AI 会先问你几个问题挖出真实素材，再帮你用<b>尽可能少的故事</b>覆盖最多题（目标：总覆盖率 ≥90%，超高频/高频/必考题 100%）。可多次生成补洞，下方看板会算出「最少背诵组合」。</div>
 
     <div class="ct-step">
       <h3>① 确认 Part 2 题库</h3>
@@ -240,6 +240,8 @@
 
     <div class="ct-loading" id="ctLoading" hidden>正在生成…</div>
     <div id="ctResult"></div>
+
+    <div id="ctGlobal" hidden></div>
 
     <div class="ct-saved" id="ctSavedWrap">
       <h3 style="font-size:16px;margin:18px 0 10px">已生成的串题方案</h3>

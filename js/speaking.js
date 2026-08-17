@@ -739,6 +739,39 @@ function ctBankText(){
   }).join('\n');
 }
 function ctBankCount(){ return (DATA.speaking || []).filter(s => s.type === 'P2').length; }
+function ctP2List(){ return (DATA.speaking || []).filter(s => s.type === 'P2'); }
+function ctBankNumbered(){
+  // 带编号的题库，编号与 ctP2List() 顺序一致（1-based），供 AI 在 coverage 中按 idx 回填
+  return ctP2List().map((s, i) => (i + 1) + '. ' + ((s.promptZh || s.titleZh || s.promptEn || s.title || '').trim() || ('第 ' + (i + 1) + ' 题')));
+}
+function ctTopicText(s){
+  return ((s.promptZh || s.titleZh || s.promptEn || s.title || '').trim()) || ('第 ' + (ctP2List().indexOf(s) + 1) + ' 题');
+}
+function ctFreqGroup(f){ return (f === 'ultra' || f === 'high' || f === 'must') ? 'high' : 'rest'; }
+function ctResolveIdx(topic){
+  // 兼容旧方案（coverage 只有自由文本 topic 无 idx）：用文本子串回推题库行号
+  if(topic == null) return null;
+  const list = ctP2List();
+  const t = String(topic).trim();
+  if(!t) return null;
+  for(let i = 0; i < list.length; i++){
+    const tt = ctTopicText(list[i]);
+    if(tt === t || tt.indexOf(t) >= 0 || t.indexOf(tt) >= 0) return i + 1;
+  }
+  return null;
+}
+function ctUncoveredHighTopics(){
+  // 当前所有方案并集仍未覆盖且频率为高优(超高频/高频/必考)的题，用于多轮补洞提问
+  const list = ctP2List();
+  const covered = {};
+  (DATA.speakingStories || []).forEach(scheme => (scheme.coverage || []).forEach(c => {
+    let idx = c.idx != null ? c.idx : ctResolveIdx(c.topic);
+    if(idx != null && idx >= 1 && idx <= list.length && c.story) covered[idx] = true;
+  }));
+  return list.map((s, i) => ({ idx: i + 1, s }))
+    .filter(o => !covered[o.idx] && ctFreqGroup(o.s.frequency) === 'high')
+    .map(o => o.idx + '. ' + ctTopicText(o.s));
+}
 
 function ctTemplates(){
   // 用户已有 P2 母本素材（真实经历），作为写故事的基础
@@ -758,12 +791,18 @@ async function ctAsk(){
   if(!DATA.settings.relayToken){ toast('请先在「设置 / AI 接口」配置 API Key'); return; }
   ctShowLoading('正在生成提问…');
   try{
-    const sys = '你是雅思口语 P2 串题规划师。考生要背尽量少的万能故事来覆盖当季题库。'
-      + '请基于【当季题库】和【考生已有母本素材】，提出 3-5 个最关键的问题，帮考生确认/补充个人真实经历，'
-      + '以便写出能串多题的故事。问题要口语化、像老师在聊天，聚焦可用于多个话题的素材（人物关系、难忘经历、擅长的事、去过的地方等）。'
+    const sys = '你是雅思口语 P2 串题规划师。考生要背尽量少的万能故事来覆盖当季题库，'
+      + '且必须保证【超高频/高频/必考题】100% 被覆盖。请基于【当季题库】和【考生已有母本素材】，'
+      + '提出 3-5 个最关键的问题，帮考生确认/补充个人真实经历，以便写出能串多题（尤其高频题）的故事。'
+      + '问题要口语化、像老师在聊天，聚焦可用于多个话题的素材（人物关系、难忘经历、擅长的事、去过的地方、常用物品等）。'
+      + '如果提供了「仍未覆盖的高频题」，请优先问能补这些题的素材。'
       + '只输出 JSON：{"questions":["问题1","问题2",...]}，不要任何解释文字。';
-    const user = '当季 P2 题库：\n' + bank + '\n\n考生已有母本素材：\n' + ctTemplates()
-      + '\n\n请提出 3-5 个最有助于串题的挖掘问题（中文）。';
+    const miss = ctUncoveredHighTopics();
+    const missCtx = miss.length
+      ? ('\n\n⚠️ 当前已生成方案中，以下【超高频/高频/必考】题仍未覆盖，请重点问能补这些题的个人素材：\n' + miss.join('\n'))
+      : '';
+    const user = '当季 P2 题库：\n' + bank + '\n\n考生已有母本素材：\n' + ctTemplates() + missCtx
+      + '\n\n请提出 3-5 个最有助于串题（尤其补足高频缺口）的挖掘问题（中文）。';
     const content = await callRelay('speaking_chuan', [
       { role:'system', content: sys },
       { role:'user', content: user }
@@ -817,17 +856,26 @@ async function ctGen(){
 
   ctShowLoading('正在生成串题故事…');
   try{
-    const sys = '你是雅思口语 P2 串题规划师。基于【当季题库】+【考生回答】+【已有母本】，'
-      + '设计 2-3 个真实、有记忆点、属于考生个人的万能故事（必须来自考生的真实经历/回答，口语化、自然、可讲满 2 分钟），'
-      + '让考生背完能覆盖题库大部分题。'
+    const sys = '你是雅思口语 P2 串题规划师。基于【当季题库(带编号)】+【考生回答】+【已有母本】，'
+      + '设计"尽可能少"的万能故事（数量由你决定，通常 3-5 个，但不得多于必要；目标：用最少故事覆盖最多题），'
+      + '让考生背完能覆盖题库尽量多的题，并优先保证频率标记为 超高频/高频/必考题(ultra/high/must) 的题目 100% 被覆盖'
+      + '（这些题 story 绝不能为 null，除非确实完全无法串）。故事必须来自考生的真实经历/回答，口语化、自然、可讲满 2 分钟。'
       + '严格要求只输出如下 JSON（不要任何解释文字）：'
-      + '{"stories":[{"name":"故事名","keyPoints":"复述线/关键词（中文，1-2 行）",'
-      + '"outline":"英文叙事要点，可分点，可夹中文注释","covers":["题库里的原题表述1","原题表述2"...]}],'
-      + '"coverage":[{"topic":"题库里的原题表述","story":"对应的故事名 或 null（无覆盖）"}]}。'
-      + '规则：① stories 数量为 2 或 3；② coverage 必须逐题覆盖题库里每一道题（topic 用题库里的原表述），'
-      + '能串上的写故事名、串不上的写 null；③ 朝最大化覆盖率设计故事；④ 全部用简体中文（outline 英文部分除外）。';
-    const user = '当季 P2 题库：\n' + bank + '\n\n考生回答：\n' + answered
-      + '\n\n已有母本素材：\n' + ctTemplates() + '\n\n请生成串题方案（严格 JSON）。';
+      + '{"stories":[{"name":"故事名","keyPoints":"复述线/关键词(中文1-2行)",'
+      + '"outline":"英文叙事要点，可分点，可夹中文注释","covers":["原题表述或编号"]}],'
+      + '"coverage":[{"idx":题号(整数,从1开始对应下方带编号题库顺序),"story":"覆盖该题的故事名 或 null(确实串不上)"}]}。'
+      + '规则：① stories 数量不加 2或3 限制，以"最少故事+最高覆盖"为准；② coverage 必须逐题覆盖全部题库(每题一个 idx,从1到N)，'
+      + '能串上的写故事名、串不上的写 null，但 ultra/high/must 题尽量都有故事名；③ 全部用简体中文（outline 英文部分除外）。';
+    const listForFreq = ctP2List();
+    const highBank = listForFreq.map((s, i) => ({ idx: i + 1, s }))
+      .filter(o => ctFreqGroup(o.s.frequency) === 'high').map(o => o.idx + '. ' + ctTopicText(o.s)).join('\n');
+    const restBank = listForFreq.map((s, i) => ({ idx: i + 1, s }))
+      .filter(o => ctFreqGroup(o.s.frequency) === 'rest').map(o => o.idx + '. ' + ctTopicText(o.s)).join('\n');
+    const user = '当季 P2 题库(带编号，逐题对应 coverage 的 idx)：\n' + ctBankNumbered().join('\n')
+      + '\n\n【必须100%覆盖的题(超高频/高频/必考)】：\n' + (highBank || '（无）')
+      + '\n\n【其余尽量覆盖的题】：\n' + (restBank || '（无）')
+      + '\n\n考生回答：\n' + answered
+      + '\n\n已有母本素材：\n' + ctTemplates() + '\n\n请生成串题方案（严格 JSON，coverage 用 idx 对应上方编号）。';
     const content = await callRelay('speaking_chuan', [
       { role:'system', content: sys },
       { role:'user', content: user }
@@ -838,7 +886,19 @@ async function ctGen(){
         + escapeHtml(content) + '</div></div>';
       return;
     }
-    saveScheme({ bank, stories: j.stories, coverage: j.coverage || [] });
+    // 构造精确覆盖：idx 优先，回退 topic 文本匹配；带 frequency 字段
+    const list4cov = ctP2List();
+    const coverage = (j.coverage || []).map(c => {
+      let idx = (c.idx != null && !isNaN(+c.idx)) ? +c.idx : ctResolveIdx(c.topic);
+      const q = (idx >= 1 && idx <= list4cov.length) ? list4cov[idx - 1] : null;
+      return {
+        idx: q ? idx : null,
+        topic: q ? ctTopicText(q) : (ctToStr(c.topic) || ''),
+        frequency: q ? (q.frequency || '') : '',
+        story: c.story ? String(c.story) : null
+      };
+    }).filter(c => c.topic);
+    saveScheme({ bank, stories: j.stories, coverage });
     renderSaved();
     $('#ctResult').innerHTML = '';
     $('#ctAskBox').hidden = true;
@@ -860,13 +920,27 @@ function saveScheme(obj){
     outline: ctToStr(s.outline),
     covers: Array.isArray(s.covers) ? s.covers.map(String) : []
   }));
-  // 覆盖率：优先用 AI 返回的 coverage，否则按题库行推断
-  let coverage = (obj.coverage || []).map(c => ({ topic: ctToStr(c.topic), story: c.story ? String(c.story) : null }));
+  const list4cov = ctP2List();
+  // coverage：优先用传入的精确行（含 idx/topic/frequency/story）；旧数据无 idx 则回退 topic 匹配补 idx
+  let coverage = (obj.coverage || []).map(c => {
+    let idx = (c.idx != null && !isNaN(+c.idx)) ? +c.idx : ctResolveIdx(c.topic);
+    const q = (idx >= 1 && idx <= list4cov.length) ? list4cov[idx - 1] : null;
+    return {
+      idx: q ? idx : null,
+      topic: q ? ctTopicText(q) : (ctToStr(c.topic) || ''),
+      frequency: q ? (q.frequency || '') : (c.frequency || ''),
+      story: c.story ? String(c.story) : null
+    };
+  });
   if(!coverage.length){
-    coverage = ctExtractTopics(obj.bank).map(t => ({ topic: t, story: null }));
+    coverage = ctExtractTopics(obj.bank).map(t => {
+      const idx = ctResolveIdx(t);
+      const q = (idx != null && idx >= 1 && idx <= list4cov.length) ? list4cov[idx - 1] : null;
+      return { idx: q ? idx : null, topic: t, frequency: q ? (q.frequency || '') : '', story: null };
+    });
   }
-  const total = coverage.length;
-  const covered = coverage.filter(c => c.story).length;
+  const total = list4cov.length;
+  const covered = coverage.filter(c => c.story && c.idx != null).length;
   DATA.speakingStories.push({
     id: 'ct_' + Date.now(),
     date: ctToday(),
@@ -900,7 +974,7 @@ function renderSaved(){
   if(!wrap) return;
   const list = DATA.speakingStories || [];
   if(!list.length){
-    wrap.innerHTML = '<div class="ct-empty">还没有串题方案。点击上方「AI 先问几个关键问题」，让 AI 帮你编 2-3 个万能故事吧。</div>';
+    wrap.innerHTML = '<div class="ct-empty">还没有串题方案。点击上方「AI 先问几个关键问题」，让 AI 帮你用尽可能少的故事覆盖最多题吧。</div>';
     return;
   }
   wrap.innerHTML = list.slice().reverse().map(scheme => {
@@ -937,4 +1011,99 @@ function renderSaved(){
       toast('已删除');
     });
   });
+  renderGlobalCoverage();
+}
+
+/* === 全局覆盖率看板：所有方案的并集覆盖 + 频率分级 + 贪心最优组合 === */
+function renderGlobalCoverage(){
+  const el = $('#ctGlobal');
+  if(!el) return;
+  const list = ctP2List();
+  const total = list.length;
+  if(total === 0){ el.hidden = true; return; }
+  // 聚合全局覆盖：idx -> { covered, stories[] }
+  const cov = {};
+  (DATA.speakingStories || []).forEach(scheme => (scheme.coverage || []).forEach(c => {
+    let idx = c.idx != null ? c.idx : ctResolveIdx(c.topic);
+    if(idx == null || idx < 1 || idx > total) return;
+    if(!cov[idx]) cov[idx] = { covered:false, stories:[] };
+    if(c.story){ cov[idx].covered = true; if(cov[idx].stories.indexOf(c.story) < 0) cov[idx].stories.push(c.story); }
+  }));
+  let highTotal = 0, highCov = 0, restTotal = 0, restCov = 0, allCov = 0;
+  list.forEach((s, i) => {
+    const idx = i + 1, covered = !!(cov[idx] && cov[idx].covered);
+    if(covered) allCov++;
+    if(ctFreqGroup(s.frequency) === 'high'){ highTotal++; if(covered) highCov++; }
+    else { restTotal++; if(covered) restCov++; }
+  });
+  const rate = Math.round(allCov / total * 100);
+  const highOk = highTotal > 0 && highCov === highTotal;
+  const ok90 = rate >= 90;
+  const missHigh = list.map((s, i) => ({ idx: i + 1, s }))
+    .filter(o => ctFreqGroup(o.s.frequency) === 'high' && !(cov[o.idx] && cov[o.idx].covered))
+    .map(o => o.idx + '. ' + ctTopicText(o.s));
+  const combo = ctGreedyCombo(list, cov);
+  const fmt = n => (n ? Math.round(n / total * 100) : 0);
+  const grp = (label, a, b, ok) =>
+    '<div style="display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:3px 0">'
+    + '<span>' + label + ' <b>' + a + '/' + b + '</b></span>'
+    + '<span style="font-weight:700;color:' + (ok ? 'var(--med)' : 'var(--danger)') + '">'
+    + (b ? fmt(a) + '%' + (ok ? ' ✅' : ' ⚠️') : '—') + '</span></div>';
+  let html = '<div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:10px 0 4px">';
+  html += '<div style="font-weight:700;font-size:15px;margin-bottom:6px">📊 全局覆盖率看板（所有方案并集）</div>';
+  html += grp('总覆盖率', allCov, total, ok90);
+  html += grp('超高/高频/必考（必须100%）', highCov, highTotal, highOk);
+  html += grp('其余题目', restCov, restTotal, true);
+  const reach = (ok90 && highOk) ? '🎯 已达标（总≥90% 且高频100%）' : '🚧 未达标：' + (!highOk ? '高频缺口 ' + (highTotal - highCov) + ' 题；' : '') + (!ok90 ? '总覆盖还差 ' + (90 - rate) + '%' : '');
+  html += '<div style="margin-top:8px;padding:8px 10px;border-radius:10px;font-size:13px;font-weight:700;background:var(--primary-soft);color:var(--ink)">' + reach + '</div>';
+  if(missHigh.length){
+    html += '<div style="margin-top:10px;font-size:12.5px;color:var(--danger)"><b>❗ 未覆盖的高频题（需补素材）：</b><br>' + missHigh.join('<br>') + '</div>';
+  }
+  if(combo.length){
+    html += '<div style="margin-top:10px;font-size:13px;color:var(--ink)"><b>✅ 推荐最少背诵组合（' + combo.length + ' 个故事）：</b><br>'
+      + combo.map(n => '<span style="display:inline-block;margin:3px 6px 3px 0;padding:4px 10px;border-radius:999px;background:var(--primary-soft);color:var(--primary);font-weight:700;font-size:12.5px">' + escapeHtml(n) + '</span>').join('') + '</div>';
+  }
+  html += '</div>';
+  el.innerHTML = html;
+  el.hidden = false;
+}
+
+/* 贪心：从所有方案的所有故事里选最小子集，满足 高频100% + 总≥90% */
+function ctGreedyCombo(list, cov){
+  const total = list.length;
+  // 构建故事池：scheme.id::name -> 覆盖的 idx 集合
+  const pool = {};
+  (DATA.speakingStories || []).forEach(scheme => {
+    const byStory = {};
+    (scheme.coverage || []).forEach(c => {
+      if(!c.story) return;
+      let idx = c.idx != null ? c.idx : ctResolveIdx(c.topic);
+      if(idx == null || idx < 1 || idx > total) return;
+      if(!byStory[c.story]) byStory[c.story] = new Set();
+      byStory[c.story].add(idx);
+    });
+    Object.keys(byStory).forEach(name => { pool[scheme.id + '::' + name] = { name, idxSet: byStory[name] }; });
+  });
+  const highIdx = list.map((s, i) => ({ idx: i + 1, s })).filter(o => ctFreqGroup(o.s.frequency) === 'high').map(o => o.idx);
+  const coveredSet = new Set();
+  const sel = new Set();
+  // 阶段1：覆盖高频
+  let pending = highIdx.slice();
+  while(pending.length){
+    let best = null, bestN = 0;
+    for(const k in pool){ if(sel.has(k)) continue; let n = 0; pool[k].idxSet.forEach(x => { if(pending.indexOf(x) >= 0) n++; }); if(n > bestN){ bestN = n; best = k; } }
+    if(!best || bestN === 0) break;
+    sel.add(best); pool[best].idxSet.forEach(x => { coveredSet.add(x); });
+    pending = pending.filter(p => !coveredSet.has(p));
+  }
+  // 阶段2：扩展到总覆盖≥90%
+  while(Math.round(coveredSet.size / total * 100) < 90){
+    let best = null, bestN = 0;
+    for(const k in pool){ if(sel.has(k)) continue; let n = 0; pool[k].idxSet.forEach(x => { if(!coveredSet.has(x)) n++; }); if(n > bestN){ bestN = n; best = k; } }
+    if(!best || bestN === 0) break;
+    sel.add(best); pool[best].idxSet.forEach(x => coveredSet.add(x));
+  }
+  const names = [];
+  sel.forEach(k => { const n = pool[k].name; if(names.indexOf(n) < 0) names.push(n); });
+  return names;
 }
