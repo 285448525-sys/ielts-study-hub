@@ -102,9 +102,10 @@ function xfyunEvaluate(pcm, refText, cfg){
       // 官方推荐每 40ms 一帧：16000Hz * 16bit * 0.04s / 8 = 1280 字节 = 640 Int16 样本
       const chunkSamples = 640;
       const sendChunk = (audio, status, aus) => {
+        // 官方 Java Demo 结构：audio 帧补 aue / data_type / encoding（raw 音频）
         ws.send(JSON.stringify({
-          business: { cmd:'auw', aus },
-          data: { status, data: audio }
+          business: { cmd:'auw', aus, aue:'raw' },
+          data: { status, data: audio, data_type:1, encoding:'raw' }
         }));
       };
       if(!pcm || pcm.length === 0){
@@ -135,6 +136,9 @@ function xfyunEvaluate(pcm, refText, cfg){
 
     ws.onopen = () => {
       try{
+        // 官方 ISE 流式文档：text 必须是「UTF-8 BOM 前缀 + 原始文本」，不能 urlencode；
+        // 且 tte 为必传字段（文本编码）。text 被 urlencode / 缺 BOM / 缺 tte 都会导致
+        // 引擎识别流异常，进而所有音频帧 append 失败 → 48195(iSEInputAppend/ret=8195)。
         ws.send(JSON.stringify({
           common: { app_id: cfg.appid },
           business: {
@@ -142,7 +146,8 @@ function xfyunEvaluate(pcm, refText, cfg){
             sub:'ise',
             ent:'en_vip',
             cmd:'ssb',
-            text: encodeURIComponent(refText),
+            text: '\uFEFF' + refText,
+            tte:'utf-8',
             ttp_skip:true,
             aue:'raw',
             auf:'audio/L16;rate=16000',
