@@ -1,5 +1,5 @@
 /* 口语模考 · 主控制器（状态机）
-   流程：开始卡 → P1(4 题) → P2(准备 1min + 陈述 2min) → P3(4-5 题 AI 追问) → 报告
+   流程：开始卡 → P1(多个大题·每题若干小题·共约十几个) → P2(准备 1min + 陈述 2min) → P3(4-5 题 AI 追问) → 报告
    架构（见执行方案 §1）：
    - 耳朵层：window.MockASR（Web Speech API 本地转写）
    - 大脑层：callRelay → DeepSeek（生成 P3 追问 + 读转写文字评分）
@@ -137,21 +137,36 @@
     });
   }
 
-  /* ---------- 题库抽样 ---------- */
+  /* ---------- 题库抽样（真实 P1：若干大题 × 各若干小题 ≈ 十几个小题） ---------- */
+  // 频率权重：超高频>高频>中高频>普通；必考题另行强制抽取
+  const FREQ_WEIGHT = { ultra:4, high:3, medium:2, normal:1 };
+  function randInt(a, b){ return a + Math.floor(Math.random() * (b - a + 1)); }
+  function weightedPick(arr){
+    if(!arr.length) return null;
+    let total = 0; for(const t of arr) total += (FREQ_WEIGHT[t.frequency] || 1);
+    let r = Math.random() * total;
+    for(const t of arr){ r -= (FREQ_WEIGHT[t.frequency] || 1); if(r <= 0) return t; }
+    return arr[arr.length - 1];
+  }
   function buildP1Set(pool){
-    const shuffled = shuffle(pool);
+    const must = pool.filter(t => t.frequency === 'must');
+    const rest = pool.filter(t => t.frequency !== 'must');   // 非必考：按频率加权抽奖
+    const picked = new Set();
     const qa = [];
-    const mk = (t, q) => ({ topic: t.titleEn || t.titleZh || '', q: q });
-    // 先从第一个话题拿 2 题（保持连贯），再从其余话题各拿 1 题，凑到 4 题（更丰富）
-    if(shuffled[0]){
-      const qs = shuffle(shuffled[0].questions);
-      for(const q of qs){ if(qa.length >= 2) break; qa.push(mk(shuffled[0], q)); }
-    }
-    for(let i = 1; i < shuffled.length && qa.length < 4; i++){
-      const q = shuffle(shuffled[i].questions)[0];
-      if(q) qa.push(mk(shuffled[i], q));
-    }
-    return qa.slice(0, 4);
+    const takeTopic = (t, n) => {
+      if(!t || picked.has(t.id)) return;
+      picked.add(t.id);
+      const qs = shuffle(t.questions).slice(0, Math.min(n, t.questions.length));
+      for(const q of qs) qa.push({ topic: t.titleEn || t.titleZh || '', q });
+    };
+    // 1) 必考题：每次强制抽至少 2 个大题（默认 2，偶尔 3），每个大题 3 小题，且排在最前
+    const mustN = Math.min(must.length, randInt(2, 3));
+    shuffle(must).forEach((t, i) => { if(i < mustN) takeTopic(t, 3); });
+    // 2) 其余：按频率加权再抽 2-3 个大题（超高频/高频占优，低频自然小概率）
+    const extraN = randInt(2, 3);
+    let guard = 0;
+    while(picked.size < mustN + extraN && guard++ < 200) takeTopic(weightedPick(rest), 3);
+    return qa;   // 必考在前、其余在后；总小题 = 大题数×3 ≈ 12~18（即「十几个」）
   }
 
   /* ---------- 各阶段 ---------- */
