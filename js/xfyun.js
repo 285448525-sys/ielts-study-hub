@@ -95,8 +95,12 @@ function xfyunEvaluate(pcm, refText, cfg){
       if(err) reject(err); else resolve(val);
     };
 
+    // 状态：connecting -> ssb_sent -> audio -> result
+    let state = 'ssb_sent';
+
     const sendAudioFrames = (pcm) => {
-      const chunkSamples = 8000; // ~0.5s/帧
+      // 官方推荐每 40ms 一帧：16000Hz * 16bit * 0.04s / 8 = 1280 字节 = 640 Int16 样本
+      const chunkSamples = 640;
       const sendChunk = (audio, status, aus) => {
         ws.send(JSON.stringify({
           business: { cmd:'auw', aus },
@@ -147,7 +151,7 @@ function xfyunEvaluate(pcm, refText, cfg){
           data: { status: 0 }
         }));
       }catch(e){ finish(new Error('发送首帧失败：' + e.message)); return; }
-      sendAudioFrames(pcm);
+      // 音频帧需等 ssb 握手回包后再发
     };
 
     ws.onmessage = (ev) => {
@@ -157,6 +161,15 @@ function xfyunEvaluate(pcm, refText, cfg){
         finish(new Error('讯飞错误 ' + outer.code + '：' + (outer.message || '未知错误')));
         return;
       }
+
+      // ssb 握手确认：收到首个 code=0 的回包即可开始传音频
+      if(state === 'ssb_sent'){
+        state = 'audio';
+        sendAudioFrames(pcm);
+        return;
+      }
+      if(state !== 'audio') return;
+
       if(!outer.data) return;
       let decoded;
       try{ decoded = atob(outer.data); }catch(_){ return; }
