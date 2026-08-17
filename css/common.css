@@ -323,6 +323,39 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 .opt.wrong{border-bottom:3px solid var(--danger);color:var(--danger)}
 .opt-unknown{border-color:var(--danger);color:var(--danger);font-weight:600}
 .opt-unknown:hover{border-color:var(--danger);background:var(--danger);color:#fff}
+
+/* ── 爱听写风格：单词头（左置大字）── */
+.practice-word-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.pw-en{font-size:28px;font-weight:700;color:var(--ink);letter-spacing:-.01em}
+.pw-ipa{font-size:15px;font-style:normal;color:var(--muted);font-family:serif}
+.pw-cn{font-size:14px;color:var(--muted)}
+
+/* ── 爱听写风格：句子居中高亮 ── */
+.practice-sentence{text-align:center;font-size:18px;line-height:1.8;color:var(--ink);margin:16px 0 20px;padding:14px;background:var(--surface-2);border-radius:12px}
+.practice-sentence .hi{color:var(--danger);font-weight:700}
+
+/* ── 爱听写风格：2×2 大方选项卡 ── */
+.opts-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.opt-big{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:18px 16px;border:1.5px solid var(--line);border-radius:14px;background:var(--bg);cursor:pointer;font-size:15px;text-align:left;transition:border-color .15s,background .15s,transform .1s}
+.opt-big:hover{border-color:var(--primary);background:var(--primary-soft)}
+.opt-big:active{transform:scale(.97)}
+.opt-big-tag{font-size:12px;color:var(--muted);font-weight:500}
+.opt-big-cn{font-size:17px;font-weight:600;color:var(--ink);line-height:1.4}
+.opt-big-key{margin-left:auto;font-size:12px;color:var(--muted);opacity:.6}
+.opt-big.correct{border-color:var(--med);background:rgba(16,185,129,.08)}
+.opt-big.wrong{border-color:var(--danger);background:rgba(239,68,68,.08)}
+.opt-big-unknown{grid-column:1/-1;border-color:var(--warn);background:rgba(245,158,11,.08);justify-content:center;flex-direction:row;gap:8px}
+.opt-big-known{border-color:var(--med);background:rgba(16,185,129,.08)}
+
+/* ── 底部工具栏按钮 ── */
+.tool-btn{width:52px;height:52px;border-radius:50%;font-size:24px;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--line);background:var(--bg);transition:all .15s}
+.tool-btn:hover{border-color:var(--primary);background:var(--primary-soft)}
+.tool-btn:active{transform:scale(.92)}
+.tool-btn.muted{opacity:.35;pointer-events:none}
+
+/* ── 底部进度条（橙色粗条，对齐爱听写）── */
+#progBarWrapBottom .prog-bar-track{height:6px;border-radius:3px;background:var(--surface-2)}
+#progBarWrapBottom .prog-bar-fill{height:100%;border-radius:3px;background:var(--warn);transition:width .3s ease}
 .score-badge{display:inline-block;background:var(--primary);color:#fff;padding:4px 10px;border-radius:999px;font-size:13px;margin-bottom:10px}
 
 /* meds */

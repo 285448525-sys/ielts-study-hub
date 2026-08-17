@@ -51,6 +51,54 @@ ready(() => {
   document.addEventListener('keydown', e => {
     if(e.key === 'Escape' && !$('#cfgModal').hidden) $('#cfgModal').hidden = true;  // ESC 关闭
   });
+  // 底部工具栏：🔊 再读 / 👁 切换认识模式
+  $('#toolSpeaker').addEventListener('click', () => {
+    if(!pq || !pq.answer) return;
+    speakN(pq.answer.en);
+  });
+  $('#toolEye').addEventListener('click', () => {
+    if(!pq || !pq.answer || pq.revealed) return;
+    if(pq.mode !== 'seeWord' && pq.mode !== 'hearMeaning'){ toast('👁 认识模式仅看词/听音选义可用'); return; }
+    const cur = pq.answer;
+    const body = $('#practiceBody');
+    body.innerHTML =
+      '<div class="practice-word-head">'+
+        '<span class="pw-en">'+escapeHtml(cur.en)+'</span>'+
+        '<span class="pw-ipa">'+(cur.ipa||'')+'</span>'+
+      '</div>'+
+      '<div class="pw-cn">'+escapeHtml(cur.cn||'')+'</div>'+
+      '<div class="opts-grid">'+
+        '<button class="opt-big opt-big-known" id="eyeKnown"><span class="opt-big-tag">已掌握</span><span class="opt-big-cn">认识</span></button>'+
+        '<button class="opt-big opt-big-unknown" id="eyeUnknown"><span class="opt-big-tag">待加强</span><span class="opt-big-cn">不认识</span></button>'+
+      '</div>';
+    $('#eyeKnown').addEventListener('click', () => {
+      if(!pq || pq.revealed || !pq.answer) return;
+      pq.revealed = true;
+      const key = cur.en;
+      if(!pq.countedWords) pq.countedWords = {};
+      if(!pq.countedWords[key]){ pq.countedWords[key] = true; pq.total++; }
+      if(!pq.correctWords) pq.correctWords = {};
+      if(!pq.correctWords[key]){ pq.correctWords[key] = true; pq.correct++; }
+      updateMcCurve(cur, 'known');
+      updateScore();
+      toast('✓ 已记为认识，下次复习 '+cur.mcDue);
+      autoAdvance();
+    });
+    $('#eyeUnknown').addEventListener('click', () => {
+      if(!pq || pq.revealed || !pq.answer) return;
+      pq.revealed = true;
+      const key = cur.en;
+      if(!pq.countedWords) pq.countedWords = {};
+      if(!pq.countedWords[key]){ pq.countedWords[key] = true; pq.total++; }
+      updateMcCurve(cur, 'unknown');
+      pq.mastery[key] = 0;
+      if(!pq.reviewQueue) pq.reviewQueue = [];
+      if(!pq.reviewQueue.some(w => w.en === key)) pq.reviewQueue.push(cur);
+      updateScore();
+      toast('已记为不认识，下次复习 '+cur.mcDue);
+      autoAdvance();
+    });
+  });
 });
 
 // ======= 设置模态弹窗（齿轮触发，分组渲染，参考爱听写）=======
@@ -167,7 +215,7 @@ function startPractice(mode){
   pq = { mode, queue: [], idx: 0, total: 0, correct: 0, revealed: false, answer: null, wrongList: [],
          mastery: {}, retrying: false, reviewQueue: [], countedWords: {}, correctWords: {}, missed: {} };
   if(mode === 'flashcard'){ startReview(); return; }
-  if(mode === 'mc'){ startMcReview(); return; }
+  if(mode === 'mc'){ toast('默默背单词已整合到底部 👁 按钮，请先选「看词选义」或「听音选义」开始，点击 👁 即可切换认识/不认识模式'); return; }
   // 出题：按配置选词
   let pool = DATA.words.slice();
   if(c.shuffle) pool = shuffle(pool);
@@ -176,6 +224,7 @@ function startPractice(mode){
   $('#modeSelect').hidden = true;
   $('#practiceArea').hidden = false;
   $('#progBarWrap').hidden = false;
+  $('#progBarWrapBottom').hidden = false;
   nextQuestion();
 }
 
@@ -257,6 +306,7 @@ function resetPractice(){
   pq = null;
   $('#practiceArea').hidden = true;
   $('#progBarWrap').hidden = true;
+  $('#progBarWrapBottom').hidden = true;
   $('#modeSelect').hidden = false;
   $('#nextBtn').hidden = true;
 }
@@ -289,8 +339,8 @@ function nextQuestion(){
   pq.revealed = false;
   const cur = pq.queue[pq.idx];
   const c = pc();
-  // 爱听写式：每做满 3 道新题，把一个「未掌握」的错词插回队列（做几道新题后错题回来）
-  if(['seeWord','hearMeaning'].includes(mode) && !pq.retrying && pq.reviewQueue.length && pq.idx > 0 && pq.idx % 3 === 0){
+  // 每 2 道新题插回一个错词（更频繁，让用户感知到"重复出现"）
+  if(['seeWord','hearMeaning'].includes(mode) && !pq.retrying && pq.reviewQueue.length && pq.idx > 0 && pq.idx % 2 === 0){
     const rw = pq.reviewQueue.shift();
     if(rw) pq.queue.splice(pq.idx + 1, 0, rw);
   }
@@ -338,26 +388,48 @@ function nextQuestion(){
     pq.answer = cur;
     const optN = Math.min(c.optCount, DATA.words.length);
     const opts = shuffle([cur, ...pickWrong(cur, optN-1)]);
-    let html = '<div class="q-word">'+escapeHtml(cur.en)+'</div>';
-    if(c.showCn) html += '<div class="q-cn muted" style="font-size:14px">'+escapeHtml(cur.cn||'')+'</div>';
-    html += '<div class="options" id="opts" style="margin-top:14px"></div>';
+    let html = '<div class="practice-word-head">'+
+      '<span class="pw-en">'+escapeHtml(cur.en)+'</span>'+
+      (cur.ipa ? '<span class="pw-ipa">'+escapeHtml(cur.ipa)+'</span>' : '')+
+      '</div>';
+    if(cur.cn) html += '<div class="pw-cn">'+escapeHtml(cur.cn)+'</div>';
+    if(cur.example) html += '<div class="practice-sentence">'+escapeHtml(cur.example).replace(new RegExp('\\b'+escapeRegExp(cur.en)+'\\b'),'<span class="hi">$&</span>')+'</div>';
+    html += '<div class="opts-grid" id="opts"></div>';
     body.innerHTML = html;
-    $('#opts').innerHTML = opts.map((o,i) => '<button class="opt" data-en="'+escapeHtml(o.en)+'"><span class="opt-cn">'+escapeHtml(o.cn)+'</span><span class="opt-key">'+(i+1)+'</span></button>').join('')
-      + '<button class="opt opt-unknown" id="unknownBtn" style="grid-column:1/-1;margin-top:6px">🙈 不认识（'+(opts.length+1)+'·不计正确率）</button>';
+    $('#opts').innerHTML = opts.map((o,i) =>
+      '<button class="opt-big" data-en="'+escapeHtml(o.en)+'">'+
+        '<span class="opt-big-tag">'+(o.pos||'')+'</span>'+
+        '<span class="opt-big-cn">'+escapeHtml(o.cn)+'</span>'+
+        '<span class="opt-big-key">快捷键：'+(i+1)+'</span>'+
+      '</button>'
+    ).join('') +
+    '<button class="opt-big opt-big-unknown" id="unknownBtn">不知道 <span class="opt-big-key">快捷键：'+(opts.length+1)+'</span></button>';
     bindOpts(cur);
     $('#unknownBtn').addEventListener('click', () => markUnknown(cur));
+    setTimeout(() => speakN(cur.en), 300);  // 新词自动读
   } else if(mode === 'hearMeaning'){
     pq.answer = cur;
     const optN = Math.min(c.optCount, DATA.words.length);
     const opts = shuffle([cur, ...pickWrong(cur, optN-1)]);
-    let html = '<button class="btn btn-play-large" id="playBtn">🔊 播放读音</button>';
-    if(c.showCn) html += '<div class="q-cn muted" style="font-size:14px;margin-top:8px">'+escapeHtml(cur.cn||'')+'</div>';
-    html += '<div class="options" id="opts" style="margin-top:14px"></div>';
+    let html = '<div class="practice-word-head">'+
+      '<span class="pw-en">'+escapeHtml(cur.en)+'</span>'+
+      (cur.ipa ? '<span class="pw-ipa">'+escapeHtml(cur.ipa)+'</span>' : '')+
+      '</div>';
+    if(cur.cn) html += '<div class="pw-cn">'+escapeHtml(cur.cn)+'</div>';
+    if(cur.example) html += '<div class="practice-sentence">'+escapeHtml(cur.example).replace(new RegExp('\\b'+escapeRegExp(cur.en)+'\\b'),'<span class="hi">$&</span>')+'</div>';
+    html += '<div style="text-align:center;margin:10px 0"><button class="btn btn-play-large" id="playBtn">🔊 播放读音</button></div>';
+    html += '<div class="opts-grid" id="opts"></div>';
     body.innerHTML = html;
-    $('#opts').innerHTML = opts.map((o,i) => '<button class="opt" data-en="'+escapeHtml(o.en)+'"><span class="opt-cn">'+escapeHtml(o.cn)+'</span><span class="opt-key">'+(i+1)+'</span></button>').join('')
-      + '<button class="opt opt-unknown" id="unknownBtn" style="grid-column:1/-1;margin-top:6px">🙈 不认识（'+(opts.length+1)+'·听不出词义）</button>';
+    $('#opts').innerHTML = opts.map((o,i) =>
+      '<button class="opt-big" data-en="'+escapeHtml(o.en)+'">'+
+        '<span class="opt-big-tag">'+(o.pos||'')+'</span>'+
+        '<span class="opt-big-cn">'+escapeHtml(o.cn)+'</span>'+
+        '<span class="opt-big-key">快捷键：'+(i+1)+'</span>'+
+      '</button>'
+    ).join('') +
+    '<button class="opt-big opt-big-unknown" id="unknownBtn">不知道 <span class="opt-big-key">快捷键：'+(opts.length+1)+'</span></button>';
     $('#playBtn').addEventListener('click', () => speakN(cur.en));
-    speakN(cur.en);
+    speakN(cur.en);  // 自动播放
     bindOpts(cur);
     $('#unknownBtn').addEventListener('click', () => markUnknown(cur));
   } else if(mode === 'dictation'){
@@ -369,16 +441,17 @@ function nextQuestion(){
 // ======= 选择题选项绑定（爱听写式错题循环）=======
 function bindOpts(correct){
   const c = pc();
-  document.querySelectorAll('#opts .opt').forEach(b => {
+  document.querySelectorAll('#opts .opt-big').forEach(b => {
     if(b.id === 'unknownBtn') return;
     b.addEventListener('click', () => {
       if(pq.revealed) return;
       const key = correct.en;
       const ok = b.dataset.en === key;
+      speakN(correct.en);  // 点选项时再读一遍读音（强化听觉记忆）
       // 视觉反馈：标红错项、高亮正确项、禁用所有选项
       if(ok){ b.classList.add('correct'); } else { b.classList.add('wrong'); }
-      document.querySelectorAll('#opts .opt').forEach(x => { if(x.dataset.en === key) x.classList.add('correct'); });
-      document.querySelectorAll('#opts .opt').forEach(x => { x.style.pointerEvents = 'none'; });
+      document.querySelectorAll('#opts .opt-big').forEach(x => { if(x.dataset.en === key) x.classList.add('correct'); });
+      document.querySelectorAll('#opts .opt-big').forEach(x => { x.style.pointerEvents = 'none'; });
       const ub = document.getElementById('unknownBtn');
       if(ub) ub.style.pointerEvents = 'none';
       if(!ok && !c.showCn && c.showEn === 1){
@@ -405,16 +478,23 @@ function bindOpts(correct){
         toast('已掌握：'+key+'，下次复习 '+correct.mcDue);
         autoAdvance();
       } else {
-        // 首次答错 → 进入错题循环（停顿 1.5s 后同题重测、选项换位）
-        updateMcCurve(correct, 'unknown');  // 爱听写「不认识」→ 重置共享长线曲线
+        // 首次答错 → 标记为错词，mastery 归零，推入 reviewQueue
+        updateMcCurve(correct, 'unknown');
         if(!pq.mastery) pq.mastery = {};
-        pq.retrying = true;
-        pq.mastery[key] = 0;
+        pq.mastery[key] = 0;              // 连对计数归零
         if(!pq.missed) pq.missed = {};
         pq.missed[key] = true;
+        if(!pq.reviewQueue) pq.reviewQueue = [];
+        // 推入队列（去重）：每做 2 道新题由 nextQuestion 插回一次
+        if(!pq.reviewQueue.some(w => w.en === key)) pq.reviewQueue.push(correct);
+        if(!pq.countedWords) pq.countedWords = {};
+        if(!pq.countedWords[key]){ pq.countedWords[key] = true; pq.total++; }
         if(!pq.wrongList) pq.wrongList = [];
-        pq.wrongList.push({ en:key, cn:correct.cn||'', user:(b.querySelector('.opt-cn') ? b.querySelector('.opt-cn').textContent : ''), skipped:false });
-        setTimeout(() => retrySameWord(correct), 1500);
+        // 记录用户答错的选项内容：新选项卡文字在 .opt-big-cn（旧 .opt-cn 兜底）
+        const userAns = b.querySelector('.opt-big-cn') || b.querySelector('.opt-cn');
+        pq.wrongList.push({ en:key, cn:correct.cn||'', user:userAns ? userAns.textContent : '', skipped:false });
+        pq.revealed = true; updateScore();
+        autoAdvance();   // ← 不再立即重试！直接下一题，错词稍后由 reviewQueue 回来
       }
     });
   });
@@ -423,23 +503,22 @@ function bindOpts(correct){
 // 爱听写式：错题循环中的一次作答（立即重试 / 间隔复习 共用）
 // 连续正确计数 mastery[key]，满 3 即过关；任何一次答错清零并立即重试
 function cycleAnswer(key, correct, ok){
+  // 这是 reviewQueue 插回来的错词 —— 答对了就累加 mastery
   if(ok){
     pq.mastery[key] = (pq.mastery[key]||0) + 1;
     if(pq.mastery[key] >= 3){
-      pq.retrying = false;
-      toast('✓ 已掌握：'+key);
-      autoAdvance();
+      // 连对 3 次 → 从错题池移除（不再插回 reviewQueue）
+      delete pq.missed[key];
+      toast('✓ 该词已练会，不再重复');
     } else {
-      pq.retrying = false;
-      if(!pq.reviewQueue) pq.reviewQueue = [];
-      // 推入复习队列：做几道新题后由 nextQuestion 间隔插回（去重，避免堆积）
+      // 还没到 3 次 → 再推回 reviewQueue（下次还会再来）
       if(!pq.reviewQueue.some(w => w.en === key)) pq.reviewQueue.push(correct);
-      autoAdvance();
     }
+    autoAdvance();
   } else {
+    // 又答错了 → mastery 归零，重新开始连对计数
     pq.mastery[key] = 0;
-    pq.retrying = true;
-    setTimeout(() => retrySameWord(correct), 1500);
+    setTimeout(() => { pq.idx++; nextQuestion(); }, 1200);  // 直接下一题（不再原地重试）
   }
 }
 
@@ -447,7 +526,7 @@ function cycleAnswer(key, correct, ok){
 function markUnknown(correct){
   if(!pq || pq.revealed) return;
   const key = correct.en;
-  document.querySelectorAll('#opts .opt').forEach(x => { if(x.dataset.en === key) x.classList.add('correct'); x.style.pointerEvents = 'none'; });
+  document.querySelectorAll('#opts .opt-big').forEach(x => { if(x.dataset.en === key) x.classList.add('correct'); x.style.pointerEvents = 'none'; });
   const ub = document.getElementById('unknownBtn');
   if(ub){ ub.classList.add('wrong'); ub.disabled = true; }
   pq.revealed = true;
@@ -455,7 +534,7 @@ function markUnknown(correct){
   if(!pq.countedWords) pq.countedWords = {};
   if(!pq.countedWords[key]){ pq.countedWords[key] = true; pq.total++; }
   updateMcCurve(correct, 'unknown');   // 爱听写「不认识」→ 重置共享长线曲线
-  // 进入错题循环
+  // 进入错题循环（推入 reviewQueue，后续间隔插回，不再原地重试）
   pq.retrying = true;
   pq.mastery[key] = 0;
   if(!pq.missed) pq.missed = {};
@@ -464,9 +543,12 @@ function markUnknown(correct){
     if(!pq.wrongList) pq.wrongList = [];
     pq.wrongList.push({ en:key, cn:correct.cn||'', user:'（不认识）', skipped:true });
   }
+  // 推入复习队列（去重）：每做 2 道新题由 nextQuestion 插回一次
+  if(!pq.reviewQueue) pq.reviewQueue = [];
+  if(!pq.reviewQueue.some(w => w.en === key)) pq.reviewQueue.push(correct);
   updateScore();
-  toast('已记为不认识：'+correct.en+' · '+correct.cn+'，明天再练');
-  setTimeout(() => retrySameWord(correct), 1500);
+  toast('已记为不认识：'+correct.en+' · '+correct.cn+'，稍后复习再来');
+  autoAdvance();
 }
 
 // 爱听写式：用同一道题重新渲染（选项 shuffle 换位），供选错 / 不认识后调用
@@ -915,6 +997,10 @@ function updateProgBar(){
   if(!pq || !pq.queue.length) return;
   const pct = ((pq.idx) / pq.queue.length) * 100;
   $('#progBarFill').style.width = pct + '%';
+  const pb2 = $('#progBarFillBottom');
+  const pt = $('#progText');
+  if(pb2) pb2.style.width = pct + '%';
+  if(pt) pt.textContent = (pq.idx+1) + '/' + pq.queue.length;
 }
 
 // 今日待复习：新词(无 srsDue) + 到期/逾期(srsDue <= 今天) 的单词
@@ -943,3 +1029,6 @@ function pickWrong(correct, n){
 }
 function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
 function speak(text, lang){ try{ const u=new SpeechSynthesisUtterance(text); u.lang=lang; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u);}catch(e){} }
+
+// 正则转义（例句高亮用：把单词安全地放进 RegExp 里）
+function escapeRegExp(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }

@@ -20,7 +20,7 @@
 
 <main class="container">
   <h1 class="page-title">单词练习</h1>
-  <p class="page-sub">从「我的词库」出题，支持看词选义、听义选义、默写听读音和闪卡。</p>
+  <p class="page-sub">从「我的词库」出题，支持看词选义、听义选义、听写和闪卡。</p>
 
   <section class="card" id="modeSelect">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
@@ -57,13 +57,6 @@
           <div class="mod-desc">爱听写风格 · 逐字母批改</div>
         </div>
       </button>
-      <button class="btn mod-card" data-mode="mc">
-        <div class="mod-icon" style="background:var(--mock-soft)">🧠</div>
-        <div class="mod-body">
-          <div class="mod-title">默默背单词</div>
-          <div class="mod-desc">认识/模糊/不认识 · 与爱听写共用记忆曲线</div>
-        </div>
-      </button>
     </div>
     <p class="muted" style="margin-top:10px">想练<strong>句子听写</strong>（整句听音默写）？去 <a href="corpus.html">听力语料库</a> 页批量导入句子后开始听写。</p>
   </section>
@@ -77,6 +70,14 @@
       <div class="prog-bar-track"><div class="prog-bar-fill" id="progBarFill" style="width:0%"></div></div>
     </div>
     <div id="practiceBody"></div>
+    <div id="practiceTools" style="display:flex;justify-content:center;gap:20px;margin-top:20px;padding-top:14px;border-top:1px solid var(--line)">
+      <button class="btn tool-btn" id="toolSpeaker" title="再读一遍">🔊</button>
+      <button class="btn tool-btn" id="toolEye" title="切换为认识/不认识模式">👁</button>
+    </div>
+    <div class="prog-bar-wrap" id="progBarWrapBottom" style="margin-top:12px" hidden>
+      <div class="prog-bar-track"><div class="prog-bar-fill" id="progBarFillBottom" style="width:0%;background:var(--warn)"></div></div>
+      <div style="text-align:right;font-size:12px;color:var(--muted);margin-top:4px"><span id="progText">0/0</span></div>
+    </div>
     <div style="margin-top:20px">
       <button class="btn btn-primary" id="nextBtn" hidden>下一题</button>
     </div>
