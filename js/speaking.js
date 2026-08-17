@@ -225,10 +225,9 @@ function openDetail(id){
     html += '</div>';
   }
 
-  // AI 辅助按钮
-  html += '<button class="btn btn-primary" id="aiAssistBtn" style="margin-bottom:12px">AI 辅助</button>';
+  // P2 串题思路（保留；AI 辅助按钮已移除）
   if(s.type === 'P2'){
-    html += '<button class="btn btn-primary" id="aiStoryLinkBtn" style="margin-bottom:12px;margin-left:8px">🔀 AI 串题思路</button>';
+    html += '<button class="btn btn-primary" id="aiStoryLinkBtn" style="margin-bottom:12px">🔀 AI 串题思路</button>';
   }
   html += '<div class="sp-ai-result" id="aiResult"></div>';
 
@@ -243,7 +242,6 @@ function openDetail(id){
   if(delSpBtn) delSpBtn.addEventListener('click', () => {
     if(confirm('确定删除这个口语题？删除后默认题库升级也不会再恢复它。')) deleteSpeaking(id);
   });
-  $('#aiAssistBtn').addEventListener('click', () => aiAssist(id));
   if(s.type === 'P2'){
     const aiStoryLinkBtn = document.getElementById('aiStoryLinkBtn');
     if(aiStoryLinkBtn) aiStoryLinkBtn.addEventListener('click', () => aiStoryLink(id));
@@ -333,7 +331,7 @@ function deleteSpeaking(id){
   toast('已删除该口语题（不再被默认题库恢复）');
 }
 
-/* === AI 辅助 === */
+/* === 串题入口 === */
 function renderCTIntro(){
   const n = ctBankCount();
   const countEl = $('#ctCount');
@@ -383,38 +381,6 @@ async function aiStoryLink(id){
     } else {
       resultEl.innerHTML = '<div class="diag-note">AI 返回非标准格式，原文如下：</div><pre>' + escapeHtml(content) + '</pre>';
     }
-  }catch(e){
-    resultEl.textContent = 'AI 服务暂不可用：' + e.message + '\n\n请检查「设置」中的 AI 接口地址。';
-  }
-}
-
-async function aiAssist(id){
-  const s = DATA.speaking.find(x => x.id === id);
-  if(!s) return;
-  const resultEl = $('#aiResult');
-  resultEl.style.display = 'block';
-  resultEl.textContent = '正在生成…';
-
-  let messages = [];
-  if(s.type === 'P1'){
-    const q = (s.questions || []).join('\n');
-    messages = [
-      { role:'system', content:'你是雅思口语老师。针对以下 Part 1 题目，给考生 3 个简短回答方向，每个方向配一句可直接背诵的英文示范（不超过 25 词）。用中文解释方向，英文示范用引号标注。' },
-      { role:'user', content:'题目：' + (s.titleEn || s.title) + '\n问题列表：\n' + q + '\n\n请给 3 个方向和示范。' }
-    ];
-  } else {
-    // P2：查找用户的母本素材
-    const templates = DATA.speaking.filter(x => x.type === 'P2' && x.framework === 'P2人物母本' && x.content);
-    const tplContent = templates.length ? templates.map(t => t.title + '：' + t.content).join('\n\n') : '（暂无母本内容，请先生成通用建议）';
-    messages = [
-      { role:'system', content:'你是雅思口语老师。考生有一个万能 P2 母本。请根据题目生成：1.母本中哪些素材可以直接套用 2.需要补充或调整哪些细节 3.一段 1.5-2 分钟的口语示范（自然、避免背诵痕迹）。' },
-      { role:'user', content:'母本：\n' + tplContent + '\n\n题目：' + (s.promptEn || s.title) + '\n中文：' + (s.promptZh || '') + '\nYou should say: ' + ((s.youShouldSay || []).join('; ')) }
-    ];
-  }
-
-  try{
-    const content = await callRelay('speaking_assist', messages, 0.8);
-    resultEl.textContent = content;
   }catch(e){
     resultEl.textContent = 'AI 服务暂不可用：' + e.message + '\n\n请检查「设置」中的 AI 接口地址。';
   }
@@ -517,13 +483,16 @@ async function storeAndTranscribe(s, qi, ta, blob, duration, isP2){
   const key = isP2 ? 'p2' : String(qi);
   s.answers = s.answers || {};
   s.answers[key] = s.answers[key] || {};
-  // 存录音到 IndexedDB（不进 DATA / 云端）
+  const ans = s.answers[key];
+  // 兼容：旧数据只有单个 audioId，先迁到 records
+  if(ans.audioId && !ans.records){
+    ans.records = [{audioId: ans.audioId, duration: ans.duration, ts: ans.ts || Date.now(), text: ans.text || ''}];
+  }
+  ans.records = ans.records || [];
+  // 存新录音
   let audioId = null;
   try{ audioId = await audioStore.put(blob, { qi: String(qi), isP2: !!isP2, ts: Date.now() }); }
   catch(e){ toast('本地录音存储不可用（可能是隐私模式），将无法回放'); }
-  s.answers[key].audioId = audioId;
-  s.answers[key].duration = duration;
-  s.answers[key].ts = Date.now();
   // 转写
   let text = '';
   if(DATA.settings.asrOn !== false){
@@ -534,34 +503,34 @@ async function storeAndTranscribe(s, qi, ta, blob, duration, isP2){
   }
   if(text && ta){ ta.value = text; }
   else if(!text){ toast('云端识别不可用，可直接手打/粘贴'); }
+  // 追加历史
+  ans.records.push({audioId, duration, ts: Date.now(), text: text || ''});
+  // 同步最新字段（兼容旧逻辑）
+  ans.audioId = audioId;
+  ans.duration = duration;
+  ans.text = text || '';
+  ans.ts = Date.now();
   hubSave();
-  refreshPlayButton(s, qi, isP2);
+  if(!isP2){
+    // P1：通过录音列表统一显示播放项
+    renderRecords(s, qi, document.querySelector('.sp-rec-list[data-qi="' + qi + '"]'));
+  } else {
+    refreshPlayButton(s, qi, isP2);
+  }
 }
 
-// 录音存好后，若面板还没播放按钮则补一个
+// P2 录音存好后，若面板还没播放按钮则补一个（P1 改用录音列表，不再生成单播放按钮）
 function refreshPlayButton(s, qi, isP2){
-  const key = isP2 ? 'p2' : String(qi);
-  const ans = s.answers && s.answers[key];
+  if(!isP2) return;
+  const ans = s.answers && s.answers.p2;
   if(!ans || !ans.audioId) return;
-  if(isP2){
-    const mic = $('#p2Mic');
-    const row = mic ? mic.parentElement : null;
-    if(row && !$('#p2Play')){
-      const b = document.createElement('button');
-      b.id = 'p2Play'; b.className = 'sp-play'; b.type = 'button'; b.textContent = '🎧 播放';
-      b.addEventListener('click', e => { e.stopPropagation(); playRecording(ans.audioId, $('#p2Audio')); });
-      row.appendChild(b);
-    }
-  } else {
-    const li = document.querySelector('.sp-q[data-qi="' + qi + '"]');
-    if(!li) return;
-    const row = li.querySelector('.sp-ans-row');
-    if(row && !li.querySelector('.sp-play[data-qi="' + qi + '"]')){
-      const b = document.createElement('button');
-      b.className = 'sp-play'; b.type = 'button'; b.setAttribute('data-qi', qi); b.textContent = '🎧 播放';
-      b.addEventListener('click', e => { e.stopPropagation(); playRecording(ans.audioId, li.querySelector('.sp-audio[data-qi="' + qi + '"]')); });
-      row.appendChild(b);
-    }
+  const mic = $('#p2Mic');
+  const row = mic ? mic.parentElement : null;
+  if(row && !$('#p2Play')){
+    const b = document.createElement('button');
+    b.id = 'p2Play'; b.className = 'sp-play'; b.type = 'button'; b.textContent = '🎧 播放';
+    b.addEventListener('click', e => { e.stopPropagation(); playRecording(ans.audioId, $('#p2Audio')); });
+    row.appendChild(b);
   }
 }
 
@@ -601,21 +570,31 @@ var SYS_DIAG_P2 =
 // 单题可点开项 HTML（text=可见文本，qi=题目索引）
 function questionItemHtml(text, qi, s){
   const ans = (s && s.answers) ? s.answers[qi] : null;
-  const hasAudio = ans && ans.audioId;
   return '<li class="sp-q" data-qi="' + qi + '">'
     + '<span class="sp-q-caret">▸</span>'
     + '<span class="sp-q-text">' + escapeHtml(text) + '</span>'
     + '<div class="sp-q-panel" data-qi="' + qi + '" hidden>'
-    + '<div class="sp-ans-row"><button class="sp-mic" data-qi="' + qi + '" type="button">🎤 语音回答</button>'
-    + (hasAudio ? '<button class="sp-play" data-qi="' + qi + '" type="button">🎧 播放</button>' : '')
-    + '<span class="sp-mic-hint">说英文；识别不出来就用下方输入框手打/粘贴</span></div>'
-    + '<textarea class="sp-ans" data-qi="' + qi + '" placeholder="在这里说出或写下你的回答…"></textarea>'
-    + '<div class="sp-audio" data-qi="' + qi + '"></div>'
-    + '<div class="sp-q-btns">'
-    + '<button class="sp-diag" data-qi="' + qi + '" type="button">🤖 AI 诊断</button>'
-    + '<button class="sp-ans-clear" data-qi="' + qi + '" type="button">清空</button>'
-    + '</div>'
-    + '<div class="sp-ai-result sp-q-result" data-qi="' + qi + '"></div>'
+    +   '<div class="sp-mini-tabs">'
+    +     '<button class="sp-mini-tab active" data-tab="rec" data-qi="' + qi + '">我的录音</button>'
+    +     '<button class="sp-mini-tab" data-tab="custom" data-qi="' + qi + '">定制答案</button>'
+    +   '</div>'
+    +   '<div class="sp-mini-body" data-body="rec" data-qi="' + qi + '">'
+    +     '<button class="sp-mic" data-qi="' + qi + '" type="button">🎤 开始录音</button>'
+    +     '<div class="sp-rec-list" data-qi="' + qi + '"></div>'
+    +     '<textarea class="sp-ans" data-qi="' + qi + '" placeholder="在这里说出或写下你的回答…"></textarea>'
+    +     '<div class="sp-audio" data-qi="' + qi + '"></div>'
+    +     '<div class="sp-q-btns">'
+    +       '<button class="sp-diag" data-qi="' + qi + '" type="button">🤖 AI 诊断</button>'
+    +       '<button class="sp-ans-clear" data-qi="' + qi + '" type="button">清空</button>'
+    +     '</div>'
+    +     '<div class="sp-ai-result sp-q-result" data-qi="' + qi + '"></div>'
+    +   '</div>'
+    +   '<div class="sp-mini-body" data-body="custom" data-qi="' + qi + '" hidden>'
+    +     '<div class="sp-custom-target">目标分数 <input type="range" class="sp-custom-score" data-qi="' + qi + '" min="5" max="7" step="0.5" value="6"> <span class="sp-custom-score-val">6.0</span></div>'
+    +     '<textarea class="sp-custom-input" data-qi="' + qi + '" placeholder="用中文写下你的思路、关键词或想说的内容…"></textarea>'
+    +     '<button class="sp-custom-btn" data-qi="' + qi + '" type="button">生成定制答案</button>'
+    +     '<div class="sp-custom-result" data-qi="' + qi + '"></div>'
+    +   '</div>'
     + '</div></li>';
 }
 
@@ -625,7 +604,7 @@ function bindQuestionEvents(id){
   if(!s) return;
   s.answers = s.answers || {};
 
-  // 浏览器不支持录音（getUserMedia）→ 隐藏所有麦克风按钮（手打/粘贴/诊断仍可用）
+  // 浏览器不支持录音 → 隐藏所有麦克风按钮
   if(!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)){
     document.querySelectorAll('.sp-mic').forEach(m => { m.style.display = 'none'; });
   }
@@ -634,6 +613,16 @@ function bindQuestionEvents(id){
     const qi = li.dataset.qi;
     const ta = li.querySelector('.sp-ans[data-qi="' + qi + '"]');
     const resultEl = li.querySelector('.sp-q-result[data-qi="' + qi + '"]');
+
+    // 旧数据迁移：单个 audioId → records 数组
+    if(s.answers[qi] && s.answers[qi].audioId && !s.answers[qi].records){
+      s.answers[qi].records = [{
+        audioId: s.answers[qi].audioId,
+        duration: s.answers[qi].duration,
+        ts: s.answers[qi].ts || Date.now(),
+        text: s.answers[qi].text || ''
+      }];
+    }
 
     // 回填上次答案 + 诊断结果
     if(s.answers[qi]){
@@ -647,9 +636,23 @@ function bindQuestionEvents(id){
           resultEl.style.display = 'block';
         }
       }
+      // 回填定制答案
+      const custom = s.answers[qi].custom;
+      if(custom){
+        const scoreIn = li.querySelector('.sp-custom-score[data-qi="' + qi + '"]');
+        const valIn = li.querySelector('.sp-custom-score-val');
+        const inputIn = li.querySelector('.sp-custom-input[data-qi="' + qi + '"]');
+        const resIn = li.querySelector('.sp-custom-result[data-qi="' + qi + '"]');
+        if(scoreIn) scoreIn.value = custom.target || 6;
+        if(valIn) valIn.textContent = (custom.target || 6).toFixed(1);
+        if(inputIn) inputIn.value = custom.input || '';
+        if(resIn && custom.answer) renderCustomResult(resIn, custom);
+      }
+      // 渲染录音列表
+      renderRecords(s, qi, li.querySelector('.sp-rec-list[data-qi="' + qi + '"]'));
     }
 
-    // 点开 / 收起（点面板内部不触发）
+    // 点开 / 收起
     li.addEventListener('click', e => {
       if(e.target.closest('.sp-q-panel')) return;
       const panel = li.querySelector('.sp-q-panel[data-qi="' + qi + '"]');
@@ -661,13 +664,45 @@ function bindQuestionEvents(id){
       if(caret) caret.classList.toggle('open', willOpen);
     });
 
-    // 语音（录→存→云转）
+    // 内部 tab 切换
+    li.querySelectorAll('.sp-mini-tab[data-qi="' + qi + '"]').forEach(tab => {
+      tab.addEventListener('click', e => {
+        e.stopPropagation();
+        const t = tab.dataset.tab;
+        li.querySelectorAll('.sp-mini-tab[data-qi="' + qi + '"]').forEach(x => x.classList.toggle('active', x === tab));
+        li.querySelectorAll('.sp-mini-body[data-qi="' + qi + '"]').forEach(b => b.hidden = (b.dataset.body !== t));
+      });
+    });
+
+    // 目标分数滑块实时显示数值
+    const scoreIn = li.querySelector('.sp-custom-score[data-qi="' + qi + '"]');
+    if(scoreIn){
+      scoreIn.addEventListener('input', () => {
+        const v = parseFloat(scoreIn.value).toFixed(1);
+        const valEl = li.querySelector('.sp-custom-score-val');
+        if(valEl) valEl.textContent = v;
+      });
+    }
+
+    // 语音
     const mic = li.querySelector('.sp-mic[data-qi="' + qi + '"]');
     if(mic) mic.addEventListener('click', e => { e.stopPropagation(); captureAnswer(qi, ta, mic, false); });
 
-    // 播放录音
-    const play = li.querySelector('.sp-play[data-qi="' + qi + '"]');
-    if(play) play.addEventListener('click', e => { e.stopPropagation(); playRecording(s.answers[qi].audioId, li.querySelector('.sp-audio[data-qi="' + qi + '"]')); });
+    // 录音列表点击播放（事件委托）
+    const recList = li.querySelector('.sp-rec-list[data-qi="' + qi + '"]');
+    if(recList){
+      recList.addEventListener('click', e => {
+        e.stopPropagation();
+        const item = e.target.closest('.sp-rec-item');
+        if(!item) return;
+        const idx = +item.dataset.idx;
+        const rec = (s.answers[qi] && s.answers[qi].records) ? s.answers[qi].records[idx] : null;
+        if(!rec) return;
+        recList.querySelectorAll('.sp-rec-item').forEach(x => x.classList.toggle('active', x === item));
+        if(ta && rec.text != null) ta.value = rec.text;
+        playRecording(rec.audioId, li.querySelector('.sp-audio[data-qi="' + qi + '"]'));
+      });
+    }
 
     // AI 诊断
     const diag = li.querySelector('.sp-diag[data-qi="' + qi + '"]');
@@ -684,6 +719,13 @@ function bindQuestionEvents(id){
       diagnoseAnswer(id, qi, questionText, answer);
     });
 
+    // 定制答案生成
+    const customBtn = li.querySelector('.sp-custom-btn[data-qi="' + qi + '"]');
+    if(customBtn) customBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      generateCustomAnswer(id, qi);
+    });
+
     // 清空
     const clr = li.querySelector('.sp-ans-clear[data-qi="' + qi + '"]');
     if(clr) clr.addEventListener('click', e => {
@@ -691,14 +733,30 @@ function bindQuestionEvents(id){
       if(ta) ta.value = '';
       if(resultEl){ resultEl.innerHTML = ''; resultEl.style.display = 'none'; }
       const ans = s.answers[qi];
-      if(ans && ans.audioId){ audioStore.del(ans.audioId).catch(()=>{}); }
-      const playBtn = li.querySelector('.sp-play[data-qi="' + qi + '"]');
-      if(playBtn) playBtn.remove();
+      if(ans && ans.records){
+        ans.records.forEach(r => { if(r.audioId) audioStore.del(r.audioId).catch(()=>{}); });
+      }
+      const recList2 = li.querySelector('.sp-rec-list[data-qi="' + qi + '"]');
+      if(recList2) recList2.innerHTML = '';
       const mount = li.querySelector('.sp-audio[data-qi="' + qi + '"]');
       if(mount) mount.innerHTML = '';
-      if(s.answers[qi]){ delete s.answers[qi]; hubSave(); }
+      delete s.answers[qi];
+      hubSave();
     });
   });
+}
+
+// 录音历史渲染（我的录音 tab 列表）
+function renderRecords(s, qi, container){
+  if(!container) return;
+  const ans = s.answers && s.answers[qi];
+  const records = (ans && ans.records) || [];
+  if(!records.length){ container.innerHTML = ''; return; }
+  container.innerHTML = records.map((r, i) => {
+    const dt = new Date(r.ts).toLocaleString('zh-CN', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'});
+    const dur = r.duration ? ' · ' + r.duration : '';
+    return '<div class="sp-rec-item" data-idx="' + i + '"><span class="sp-rec-play">▶</span><span class="sp-rec-time">' + dt + '</span><span class="sp-rec-dur">' + dur + '</span></div>';
+  }).join('');
 }
 
 // 语音输入（原生 Web Speech API，零成本；国内无 VPN 多数浏览器不可用，已兜底）
@@ -830,7 +888,8 @@ async function diagnoseAnswer(id, qi, questionText, answerText){
     const j = aiJson(content);
     renderDiag(resultEl, j, content);
     s.answers = s.answers || {};
-    s.answers[qi] = { text: answerText, result: (j ? JSON.stringify(j) : content), ts: Date.now(), score: (j ? parseScore(j.score) : null) };
+    const oldAns = s.answers[qi] || {};
+    s.answers[qi] = { ...oldAns, text: answerText, result: (j ? JSON.stringify(j) : content), ts: Date.now(), score: (j ? parseScore(j.score) : null) };
     hubSave();
   }catch(e){
     if(resultEl){
@@ -927,6 +986,55 @@ function renderDiag(el, j, raw){
     el.innerHTML = scoreHtml + '<div class="diag-note">（AI 返回非标准格式，已贴原文）</div><pre>' + escapeHtml(raw || '') + '</pre>';
   }
   el.style.display = 'block';
+}
+
+// 「定制答案」：输入中文思路 + 目标分数 → AI 生成地道英文回答 + 中文 tips
+async function generateCustomAnswer(id, qi){
+  const s = DATA.speaking.find(x => x.id === id);
+  if(!s) return;
+  if(!DATA.settings.relayToken){ toast('请先在「设置 / AI 接口」配置 API Key'); return; }
+
+  const li = document.querySelector('.sp-q[data-qi="' + qi + '"]');
+  if(!li) return;
+  const inputEl = li.querySelector('.sp-custom-input[data-qi="' + qi + '"]');
+  const scoreEl = li.querySelector('.sp-custom-score[data-qi="' + qi + '"]');
+  const resultEl = li.querySelector('.sp-custom-result[data-qi="' + qi + '"]');
+  const btn = li.querySelector('.sp-custom-btn[data-qi="' + qi + '"]');
+  const questionText = (s.questions || [])[+qi] || '';
+  const input = inputEl ? inputEl.value.trim() : '';
+  if(!input){ toast('先写下中文思路'); return; }
+  const target = scoreEl ? parseFloat(scoreEl.value) : 6;
+
+  if(btn){ btn.disabled = true; btn.textContent = '生成中…'; }
+  if(resultEl){ resultEl.innerHTML = '<div class="diag-note">正在生成地道英文表达…</div>'; }
+
+  try{
+    const sys = '你是雅思口语老师。考生目标口语分数 ' + target + ' 分。她会先用中文写下自己的思路/关键词，请你据此写一段自然、地道、符合该分数水平的英文回答。不要逐字翻译，要改成英语母语者会说的表达。输出 ONLY JSON：{"answer":"英文回答（口语化、简单句型为主）","tips":"中文说明：做了哪些自然化处理、用了哪些地道表达/句型"}，不要任何解释文字。';
+    const content = await callRelay('speaking_custom', [
+      { role:'system', content: sys },
+      { role:'user', content:'题目：' + questionText + '\n目标分数：' + target + '\n中文思路：' + input }
+    ], 0.7);
+    const j = aiJson(content);
+    if(j && j.answer){
+      s.answers = s.answers || {};
+      s.answers[qi] = s.answers[qi] || {};
+      s.answers[qi].custom = { input, target, answer: j.answer, tips: j.tips || '', ts: Date.now(), result: content };
+      hubSave();
+      renderCustomResult(resultEl, s.answers[qi].custom);
+    } else {
+      if(resultEl) resultEl.innerHTML = '<div class="diag-note">AI 返回非标准格式，原文如下：</div><pre>' + escapeHtml(content || '') + '</pre>';
+    }
+  }catch(e){
+    if(resultEl) resultEl.innerHTML = '<div class="diag-note">生成失败：' + escapeHtml(e.message) + '</div>';
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = '生成定制答案'; }
+  }
+}
+
+function renderCustomResult(el, custom){
+  if(!el || !custom) return;
+  el.innerHTML = '<div class="ans">' + escapeHtml(custom.answer) + '</div>'
+    + (custom.tips ? '<div class="tips">' + escapeHtml(custom.tips) + '</div>' : '');
 }
 
 function ctBankText(){
