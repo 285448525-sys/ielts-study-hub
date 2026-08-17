@@ -133,8 +133,16 @@ async function testXfyunConnection(){
   if(btn) btn.disabled = true;
   setXfStatus('正在测试连接…', '');
   try{
-    const silent = new Int16Array(16000); // 1s 静音，仅用于探活握手
-    await xfyunEvaluate(silent, 'Hello, this is a pronunciation test.', cfg);
+    // 探活用「合成非静音音频」：1s 振幅调制的 220Hz 音，制造明显能量，
+    // 避免纯静音被讯飞 ISE 判「音量过小/静音」而误报 ❌（有效密钥其实可用）。
+    const sr = 16000;
+    const probe = new Int16Array(sr);
+    for(let i = 0; i < probe.length; i++){
+      const t = i / sr;
+      const env = 0.5 + 0.5 * Math.sin(2 * Math.PI * 3 * t); // 3Hz 包络，平滑起止
+      probe[i] = Math.round(Math.sin(2 * Math.PI * 220 * t) * env * 0.6 * 32767);
+    }
+    await xfyunEvaluate(probe, 'Hello, this is a pronunciation test.', cfg);
     setXfStatus('✅ 连接成功：密钥有效，已连通讯飞语音评测', 'ok');
     toast('✅ 连接成功，密钥有效');
     saveXfSettings();
