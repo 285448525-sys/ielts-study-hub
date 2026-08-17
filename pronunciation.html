@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>发音评测 · 雅思备考 Hub</title>
+<link rel="stylesheet" href="css/common.css" />
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#3a9a93" />
+<link rel="apple-touch-icon" href="/icons/icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<script defer src="js/data.js"></script>
+<script defer src="js/common.js"></script>
+<script defer src="js/xfyun.js"></script>
+<script defer src="js/pronunciation.js"></script>
+<style>
+  /* === 发音评测（跟读句子 · 讯飞发音打分） === */
+  .pr-intro{ padding:14px 16px; background:var(--primary); color:#fff; border-radius:var(--radius); font-size:13.5px; line-height:1.7; margin:12px 0; box-shadow:var(--shadow); }
+  .pr-intro b{ font-weight:700; }
+
+  .pr-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:16px; margin-bottom:14px; box-shadow:var(--shadow); }
+  .pr-card h2{ font-size:15px; font-weight:700; margin:0 0 10px; color:var(--ink); }
+
+  /* 句子来源切换 */
+  .pr-src-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+  .pr-src-tab{ font-size:13px; padding:7px 14px; border-radius:var(--radius-sm); border:1px solid var(--line); background:var(--surface); color:var(--muted); cursor:pointer; }
+  .pr-src-tab.active{ background:var(--primary); color:#fff; border-color:var(--primary); }
+  .pr-src-body{ display:none; }
+  .pr-src-body.active{ display:block; }
+
+  .pr-lib-sel{ width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:var(--radius-sm); font:inherit; background:var(--surface); color:var(--ink); box-sizing:border-box; }
+  .pr-lib-sel:focus{ border-color:var(--primary); box-shadow:0 0 0 4px var(--primary-soft); outline:none; }
+
+  .pr-custom-input{ width:100%; min-height:74px; padding:10px 12px; border:1px solid var(--line); border-radius:var(--radius-sm); font:inherit; background:var(--surface); color:var(--ink); resize:vertical; box-sizing:border-box; line-height:1.7; }
+  .pr-custom-input:focus{ border-color:var(--primary); box-shadow:0 0 0 4px var(--primary-soft); outline:none; }
+  .pr-row{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:8px; }
+
+  .pr-word-chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .pr-word-chip{ font-size:12.5px; padding:5px 10px; border-radius:14px; background:var(--bg); border:1px solid var(--line); color:var(--ink); cursor:pointer; }
+  .pr-word-chip:hover{ border-color:var(--primary); color:var(--primary); }
+
+  .pr-btn{ font-size:13.5px; padding:9px 16px; border-radius:var(--radius-sm); border:1px solid var(--line); background:var(--surface); color:var(--ink); cursor:pointer; }
+  .pr-btn:hover{ border-color:var(--primary); color:var(--primary); }
+  .pr-btn.primary{ background:var(--primary); color:#fff; border-color:var(--primary); }
+  .pr-btn.primary:hover{ filter:brightness(1.05); color:#fff; }
+  .pr-btn.danger{ color:var(--danger); }
+  .pr-btn:disabled{ opacity:.5; cursor:not-allowed; }
+
+  /* 当前练习句 */
+  .pr-sentence{ font-size:22px; line-height:1.6; font-weight:600; color:var(--ink); padding:18px 16px; background:var(--surface-2); border-radius:var(--radius); border:1px dashed var(--line); }
+  .pr-sentence .pr-theme{ display:block; font-size:12px; font-weight:600; color:var(--med); margin-bottom:8px; letter-spacing:.04em; }
+
+  /* 录音控制 */
+  .pr-controls{ display:flex; align-items:center; gap:14px; margin-top:14px; flex-wrap:wrap; }
+  .pr-rec-btn{ display:inline-flex; align-items:center; gap:8px; font-size:15px; font-weight:700; padding:12px 22px; border-radius:30px; border:none; cursor:pointer; }
+  .pr-rec-btn.start{ background:var(--danger); color:#fff; }
+  .pr-rec-btn.stop{ background:var(--ink); color:#fff; }
+  .pr-rec-dot{ width:11px; height:11px; border-radius:50%; background:#fff; }
+  .pr-rec-btn.stop .pr-rec-dot{ animation:prtick 1s steps(1) infinite; }
+  @keyframes prtick{ 50%{ opacity:.2; } }
+  .pr-timer{ font-size:18px; font-weight:700; color:var(--ink); font-variant-numeric:tabular-nums; }
+  .pr-status{ font-size:13px; color:var(--muted); }
+
+  /* 结果区 */
+  .pr-result{ margin-top:4px; }
+  .pr-rejected{ background:#fff4f4; border:1px solid var(--danger); color:#b3261e; border-radius:var(--radius); padding:12px 14px; font-size:13.5px; line-height:1.6; margin-bottom:12px; }
+  .pr-score-head{ display:flex; align-items:center; gap:18px; flex-wrap:wrap; margin-bottom:14px; }
+  .pr-total-ring{ --size:92px; width:var(--size); height:var(--size); border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; border:8px solid var(--line); position:relative; flex:none; }
+  .pr-total-ring .pr-num{ font-size:30px; font-weight:800; line-height:1; }
+  .pr-total-ring .pr-lab{ font-size:11px; color:var(--muted); margin-top:2px; }
+  .pr-subs{ display:flex; gap:10px; flex-wrap:wrap; }
+  .pr-sub{ flex:1; min-width:96px; background:var(--surface-2); border-radius:var(--radius-sm); padding:10px 12px; text-align:center; }
+  .pr-sub .pr-sub-num{ font-size:20px; font-weight:800; }
+  .pr-sub .pr-sub-lab{ font-size:12px; color:var(--muted); margin-top:2px; }
+
+  .pr-words{ display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 4px; }
+  .pr-word{ position:relative; font-size:16px; padding:6px 11px; border-radius:10px; background:var(--surface-2); border:1px solid var(--line); color:var(--ink); }
+  .pr-word.good{ background:#e7f6ec; border-color:#bfe6cb; color:#1f7a3d; }
+  .pr-word.ok{ background:#fdf3d8; border-color:#f0dc9a; color:#9a7200; }
+  .pr-word.bad{ background:#fdeaea; border-color:#f3c4c4; color:#b3261e; }
+  .pr-word .pr-dp{ display:block; font-size:10.5px; font-weight:700; text-align:center; margin-top:2px; }
+  .pr-word.bad .pr-dp{ color:#b3261e; }
+
+  .pr-actions{ display:flex; gap:10px; flex-wrap:wrap; margin-top:16px; }
+
+  .pr-empty{ text-align:center; padding:40px 20px; color:var(--muted); }
+  .pr-empty .pr-empty-emoji{ font-size:40px; }
+  .pr-empty a{ color:var(--primary); font-weight:700; }
+  .pr-hint{ font-size:12px; color:var(--muted); margin-top:8px; line-height:1.6; }
+</style>
+</head>
+<body>
+<nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
+
+<main class="container">
+  <h1 class="page-title">发音评测</h1>
+  <p class="page-sub">跟读英文句子，讯飞逐词打分纠音（准确度 / 流畅度 / 完整度 + 漏读增读标记）</p>
+
+  <!-- 空状态：未填 key -->
+  <div class="pr-card" id="prEmpty" style="display:none">
+    <div class="pr-empty">
+      <div class="pr-empty-emoji">🔑</div>
+      <p>还没配置讯飞密钥，无法评测。</p>
+      <p>去 <a href="settings.html">设置页 · 讯飞发音评测</a> 填入 <b>APPID / APIKey / APISecret</b>（建应用后默认每日 500 次免费），回来即可跟读打分。</p>
+    </div>
+  </div>
+
+  <div id="prMain" style="display:none">
+    <!-- 句子来源 -->
+    <div class="pr-card">
+      <h2>① 选择练习句</h2>
+      <div class="pr-src-tabs">
+        <button class="pr-src-tab active" data-src="lib">内置句子库</button>
+        <button class="pr-src-tab" data-src="custom">自定义输入</button>
+        <button class="pr-src-tab" data-src="words">从生词本拉</button>
+      </div>
+
+      <div class="pr-src-body active" id="prSrcLib">
+        <select class="pr-lib-sel" id="prLibSel"></select>
+        <p class="pr-hint">句子按雅思口语高频主题分类，挑一句跟读即可。</p>
+      </div>
+
+      <div class="pr-src-body" id="prSrcCustom">
+        <textarea class="pr-custom-input" id="prCustomInput" placeholder="输入任意一句你想练的英文，例如：I enjoy reading novels in my free time."></textarea>
+        <div class="pr-row">
+          <button class="pr-btn primary" id="prCustomUse">用这句</button>
+        </div>
+      </div>
+
+      <div class="pr-src-body" id="prSrcWords">
+        <p class="pr-hint">点下面的单词，自动拼进输入框，凑成一句来练；也可自己改。</p>
+        <div class="pr-word-chips" id="prWordChips"></div>
+        <textarea class="pr-custom-input" id="prWordsInput" style="margin-top:10px" placeholder="（点上面的词会自动填入这里）"></textarea>
+        <div class="pr-row">
+          <button class="pr-btn primary" id="prWordsUse">用这句</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 当前句 + 录音 -->
+    <div class="pr-card">
+      <h2>② 跟读录音</h2>
+      <div class="pr-sentence" id="prSentence"><span class="pr-theme"></span><span class="pr-text">请先选择一句练习句</span></div>
+      <div class="pr-controls">
+        <button class="pr-rec-btn start" id="prRecordBtn"><span class="pr-rec-dot"></span><span id="prRecordLabel">开始录音</span></button>
+        <span class="pr-timer" id="prTimer">00:00</span>
+        <span class="pr-status" id="prStatus">点「开始录音」后朗读上面的句子</span>
+      </div>
+    </div>
+
+    <!-- 结果 -->
+    <div class="pr-card">
+      <h2>③ 评测结果</h2>
+      <div class="pr-result" id="prResult">
+        <p class="pr-hint">录完音后，这里会显示总分、三项小分，以及每个词的发音着色（绿=好 / 黄=尚可 / 红=需改），红词下方标注「漏读 / 增读」。</p>
+      </div>
+      <div class="pr-actions" id="prActions" style="display:none">
+        <button class="pr-btn primary" id="prNextBtn">下一句</button>
+        <button class="pr-btn" id="prRerecBtn">重录</button>
+        <button class="pr-btn danger" id="prAddWordsBtn">加入错词本</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+</body>
+</html>

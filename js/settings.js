@@ -18,6 +18,11 @@ ready(() => {
 
   $('#sRelayToken').value = s.relayToken || '';
 
+  const xf = s.xfyunIse || {};
+  $('#sXfAppid').value = xf.appid || '';
+  $('#sXfApiKey').value = xf.apiKey || '';
+  $('#sXfApiSecret').value = xf.apiSecret || '';
+
   $('#sChime').checked = DATA.settings.chimeOnDone !== false;
   $('#sNotify').checked = !!DATA.settings.notifyOnDone;
 
@@ -28,6 +33,8 @@ ready(() => {
   $('#saveSettings2').addEventListener('click', saveSettings);
   $('#saveRelay').addEventListener('click', saveRelay);
   $('#testAiBtn').addEventListener('click', testAIConnection);
+  $('#saveXf').addEventListener('click', saveXfSettings);
+  $('#testXfBtn').addEventListener('click', testXfyunConnection);
   $('#sTheme').addEventListener('change', () => applyTheme($('#sTheme').value));
   $('#exportBtn').addEventListener('click', exportData);
   $('#importBtn').addEventListener('click', () => $('#importFile').click());
@@ -87,6 +94,11 @@ function saveSettings(){
   DATA.settings.autoSync = true; // 默认开启自动同步，与考研站一致（绑定后由 syncLoginOrRegister 控制）
   DATA.settings.pronunciationScore = ($('#sPron').value === '' ? null : (parseFloat($('#sPron').value) || null)); // 口语模考固定发音分（0–9），空=未设置
   DATA.settings.asrOn = $('#sAsr').checked; // 云端语音识别开关
+  DATA.settings.xfyunIse = {
+    appid: $('#sXfAppid').value.trim(),
+    apiKey: $('#sXfApiKey').value.trim(),
+    apiSecret: $('#sXfApiSecret').value.trim()
+  };
   DATA.settings.chimeOnDone = $('#sChime').checked;
   DATA.settings.notifyOnDone = $('#sNotify').checked;
   hubSave(); applyTheme(); toast('设置已保存');
@@ -96,6 +108,48 @@ function saveRelay(){
   DATA.settings.relayToken = $('#sRelayToken').value.trim();
   hubSave();
   toast(DATA.settings.relayToken ? '已保存 AI 接口配置' : '已清空 Key');
+}
+
+/* 讯飞发音评测：保存三项密钥 */
+function saveXfSettings(){
+  DATA.settings.xfyunIse = {
+    appid: $('#sXfAppid').value.trim(),
+    apiKey: $('#sXfApiKey').value.trim(),
+    apiSecret: $('#sXfApiSecret').value.trim()
+  };
+  hubSave();
+  toast('已保存讯飞配置');
+}
+
+/* 测试连接：用 1 秒静音 PCM + 内置测试句探活讯飞（验证密钥+签名有效，无需真实朗读） */
+async function testXfyunConnection(){
+  const cfg = {
+    appid: $('#sXfAppid').value.trim(),
+    apiKey: $('#sXfApiKey').value.trim(),
+    apiSecret: $('#sXfApiSecret').value.trim()
+  };
+  if(!cfg.appid || !cfg.apiKey || !cfg.apiSecret){ toast('请先填写三项密钥'); return; }
+  const btn = $('#testXfBtn');
+  if(btn) btn.disabled = true;
+  setXfStatus('正在测试连接…', '');
+  try{
+    const silent = new Int16Array(16000); // 1s 静音，仅用于探活握手
+    await xfyunEvaluate(silent, 'Hello, this is a pronunciation test.', cfg);
+    setXfStatus('✅ 连接成功：密钥有效，已连通讯飞语音评测', 'ok');
+    toast('✅ 连接成功，密钥有效');
+    saveXfSettings();
+  }catch(e){
+    setXfStatus('❌ 连接失败：' + e.message, 'error');
+    toast('❌ 连接失败：' + e.message);
+  }finally{
+    if(btn) btn.disabled = false;
+  }
+}
+function setXfStatus(msg, kind){
+  const el = $('#xfStatus');
+  if(!el) return;
+  el.textContent = msg || '';
+  el.className = 'muted' + (kind ? ' sync-status-' + kind : '');
 }
 
 /* 测试连接：用输入框里的 Key 探活 DeepSeek，成功即自动保存 */

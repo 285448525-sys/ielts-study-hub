@@ -12,6 +12,7 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js"></script>
 <script defer src="js/common.js"></script>
+<script defer src="js/xfyun.js"></script>
 <script src="js/settings.js" defer></script>
 </head>
 <body>
@@ -74,6 +75,22 @@
     </div>
     <p class="muted">获取 Key：<a href="https://platform.deepseek.com" target="_blank" rel="noopener">platform.deepseek.com</a>（注册送免费额度，国内直连免翻墙）。Key 只存在你的浏览器本地。</p>
     <p id="aiStatus" class="muted" style="margin:6px 0 0"></p>
+  </section>
+
+  <section class="card">
+    <h2>🗣 讯飞发音评测（跟读打分）</h2>
+    <p class="muted">发音评测用讯飞语音评测 API，对"跟读/朗读"类练习做发音打分（准确度 / 流畅度 / 完整度 + 逐词纠错）。在 <a href="https://www.xfyun.cn/" target="_blank" rel="noopener">讯飞开放平台</a> 建应用获取三项密钥，填一次即用。每日免费 500 次，个人练口语够用。</p>
+    <div class="form-row">
+      <div style="flex:2"><label>APPID</label><input id="sXfAppid" placeholder="32 位 APPID" /></div>
+      <div style="flex:3"><label>APIKey</label><input id="sXfApiKey" placeholder="APIKey" /></div>
+      <div style="flex:3"><label>APISecret</label><input id="sXfApiSecret" type="password" placeholder="APISecret" autocomplete="off" /></div>
+    </div>
+    <div class="form-row" style="align-items:flex-end">
+      <div style="flex:none"><button class="btn btn-primary" id="saveXf">保存</button></div>
+      <div style="flex:none"><button class="btn" id="testXfBtn">测试连接</button></div>
+    </div>
+    <p class="muted">密钥只存在你的浏览器本地；纯前端直连讯飞，无后端。公开部署时密钥会暴露（自用无妨）。</p>
+    <p id="xfStatus" class="muted" style="margin:6px 0 0"></p>
   </section>
 
   <section class="card">
