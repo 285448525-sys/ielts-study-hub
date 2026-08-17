@@ -520,6 +520,7 @@ let DATA = {
     relayToken: '',
     syncCode: '',
     autoSync: true,
+    asrOn: true,                       // 云端语音识别（腾讯云）：默认开；关则口语录音只存本地、不转文字
     links: DEFAULT_LINKS
   },
   errorbook: [],

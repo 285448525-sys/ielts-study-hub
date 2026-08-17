@@ -13,6 +13,8 @@
 <script defer src="js/data.js"></script>
   <script defer src="js/common.js"></script>
   <script defer src="js/prompts.js"></script>
+  <script defer src="js/audio-store.js"></script>
+  <script defer src="js/recorder.js"></script>
   <script defer src="js/speaking.js"></script>
 <style>
   /* === 极简口语模块 · 优化版（沿用全站深蓝 Token） === */
@@ -149,6 +151,10 @@
   .sp-diag:disabled{opacity:.6;cursor:default}
   .sp-ans-clear{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;border:1px solid var(--line);background:var(--surface);color:var(--muted);cursor:pointer;font-size:13px;transition:.15s}
   .sp-ans-clear:hover{border-color:var(--danger);color:var(--danger)}
+  .sp-play{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;border:1px solid var(--primary);background:var(--surface);color:var(--primary);cursor:pointer;font-size:13px;transition:.15s}
+  .sp-play:hover{background:var(--primary-soft)}
+  .sp-audio{margin:6px 0 2px}
+  .sp-audio-el{width:100%;height:38px}
   .sp-q-result{margin-top:8px}
   .sp-ysay-in{font-size:13px;color:var(--muted);margin:6px 0 10px;line-height:1.7}
 

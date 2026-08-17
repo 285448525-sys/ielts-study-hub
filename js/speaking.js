@@ -95,12 +95,43 @@ function getScoreCount(s){
   if(!s || !s.answers) return 0;
   return Object.values(s.answers).filter(a => a && a.score && a.score.overall != null).length;
 }
+
+/* === P1 计分聚合（修复3）===
+   P1 的 4 小题算「1 次练习」，外面显示「4 题平均分」（非最高分）。
+   P2 维持原「最高分 / 练过N次」逻辑。 */
+function getP1Done(s){
+  if(!s || !s.answers) return 0;
+  return Object.keys(s.answers).filter(k => k !== 'p2' && s.answers[k] && s.answers[k].score).length;
+}
+function getAggScore(s){
+  if(!s || !s.answers) return null;
+  if(s.type === 'P1'){
+    const vals = Object.keys(s.answers)
+      .filter(k => k !== 'p2' && s.answers[k] && s.answers[k].score && s.answers[k].score.overall != null)
+      .map(k => parseFloat(s.answers[k].score.overall))
+      .filter(v => !isNaN(v));
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  }
+  return getBestScore(s);
+}
+function getPracticeCount(s){
+  if(!s || !s.answers) return 0;
+  if(s.type === 'P1') return getP1Done(s) > 0 ? 1 : 0;
+  return getScoreCount(s);
+}
 function scoreLabel(v){ return v == null ? '-' : (Math.round(v * 10) / 10).toFixed(v % 1 === 0 ? 0 : 1); }
-function scoreBadgeHtml(score, count){
+function scoreBadgeHtml(score, count, s){
   if(score == null) return '';
   const cls = score >= 5.5 ? 'sp-score-badge good' : (score >= 5 ? 'sp-score-badge ok' : 'sp-score-badge low');
-  const times = count > 1 ? ' · 练过' + count + '次' : '';
-  return '<span class="' + cls + '">' + (score >= 5.5 ? '✅ ' : '') + '最高 ' + scoreLabel(score) + '分' + times + '</span>';
+  let label;
+  if(s && s.type === 'P1'){
+    const done = getP1Done(s);
+    label = '平均 ' + scoreLabel(score) + '分 · 练过1次' + (done < 4 ? '（' + done + '/4 小题）' : '');
+  } else {
+    const times = count > 1 ? ' · 练过' + count + '次' : '';
+    label = (score >= 5.5 ? '✅ ' : '') + '最高 ' + scoreLabel(score) + '分' + times;
+  }
+  return '<span class="' + cls + '">' + label + '</span>';
 }
 function scoreHeaderHtml(score, title){
   if(!score || score.overall == null) return '';
@@ -133,10 +164,10 @@ function renderList(){
   container.innerHTML = list.map(s => {
     const title = s.titleEn || s.title || '';
     const zh = s.titleZh || '';
-    const best = getBestScore(s);
-    const count = getScoreCount(s);
+    const best = getAggScore(s);
+    const count = getPracticeCount(s);
     return '<div class="sp-card" data-id="' + s.id + '">'
-      + '<div class="sp-card-title">' + escapeHtml(title) + scoreBadgeHtml(best, count) + '</div>'
+      + '<div class="sp-card-title">' + escapeHtml(title) + scoreBadgeHtml(best, count, s) + '</div>'
       + (zh ? '<div class="sp-card-zh">' + escapeHtml(zh) + '</div>' : '')
       + '<div class="sp-card-tags">' + tagsHtml(s) + '</div>'
       + '</div>';
@@ -158,14 +189,14 @@ function openDetail(id){
   let html = '<div class="sp-detail-title">' + escapeHtml(title) + '</div>';
   if(zh) html += '<div class="sp-detail-zh">' + escapeHtml(zh) + '</div>';
   html += '<div class="sp-detail-tags">' + tagsHtml(s) + '</div>';
-  const bestScore = getBestScore(s);
-  if(bestScore != null) html += '<div class="sp-detail-best">历史最高：' + scoreLabel(bestScore) + '分</div>';
+  const bestScore = getAggScore(s);
+  if(bestScore != null) html += '<div class="sp-detail-best">' + (s.type === 'P1' ? 'P1 平均分' : '历史最高') + '：' + scoreLabel(bestScore) + '分</div>';
 
   // P1 问题列表（逐题可点开 + 录 + 诊断）
   if(s.type === 'P1' && s.questions && s.questions.length){
     html += '<div class="sp-q-list-head">Part 1 小问题（点开可语音/手打回答，再让 AI 诊断）</div>';
     html += '<ol class="sp-q-list">';
-    s.questions.forEach((q, i) => { html += questionItemHtml(q, i); });
+    s.questions.forEach((q, i) => { html += questionItemHtml(q, i, s); });
     html += '</ol>';
   }
 
@@ -177,9 +208,11 @@ function openDetail(id){
     html += '<div class="sp-p2-answer">';
     html += '<div class="sp-ans-row">';
     html += '<button class="sp-mic" id="p2Mic" type="button">🎤 开始录音</button>';
+    if(s.answers && s.answers.p2 && s.answers.p2.audioId) html += '<button class="sp-play" id="p2Play" type="button">🎧 播放</button>';
     html += '<span id="p2Timer" class="sp-timer" hidden>⏱ 0.0s</span>';
     html += '</div>';
     html += '<textarea class="sp-ans" id="p2Ans" placeholder="在这里说出或写下你的 Part 2 回答（目标说满 2 分钟）…"></textarea>';
+    html += '<div class="sp-audio" id="p2Audio"></div>';
     html += '<div class="sp-q-btns">';
     html += '<button class="sp-diag" id="p2Diag" type="button">🤖 AI 评分</button>';
     html += '<button class="sp-ans-clear" id="p2Clear" type="button">清空</button>';
@@ -218,7 +251,9 @@ function openDetail(id){
   // P2 单窗口事件绑定
   if(s.type === 'P2'){
     const p2Mic = document.getElementById('p2Mic');
-    if(p2Mic) p2Mic.addEventListener('click', e => { e.stopPropagation(); startP2Voice(); });
+    if(p2Mic) p2Mic.addEventListener('click', e => { e.stopPropagation(); captureAnswer(null, $('#p2Ans'), p2Mic, true); });
+    const p2Play = document.getElementById('p2Play');
+    if(p2Play) p2Play.addEventListener('click', e => { e.stopPropagation(); playRecording(s.answers.p2.audioId, $('#p2Audio')); });
     const p2Diag = document.getElementById('p2Diag');
     if(p2Diag) p2Diag.addEventListener('click', e => { e.stopPropagation(); diagnoseP2(id); });
     const p2Clear = document.getElementById('p2Clear');
@@ -228,6 +263,14 @@ function openDetail(id){
       const res = $('#p2Result'); if(res){ res.innerHTML = ''; res.style.display = 'none'; }
       stopP2Timer();
       const timerEl = $('#p2Timer'); if(timerEl){ timerEl.hidden = true; timerEl.style.color = ''; }
+      // 删录音
+      if(s.answers && s.answers.p2 && s.answers.p2.audioId){
+        audioStore.del(s.answers.p2.audioId).catch(()=>{});
+        delete s.answers.p2.audioId;
+      }
+      const play = $('#p2Play'); if(play) play.remove();
+      const mount = $('#p2Audio'); if(mount) mount.innerHTML = '';
+      hubSave();
     });
 
     // P2 答案回填
@@ -391,7 +434,147 @@ var SYS_DIAG =
   + '"errors":[{"original":"考生原句中的问题片段","issue":"中文简说问题","fix":"修改后片段"}],'
   + '"rewrite":"按原思路的地道简化英文重写","tips":["可积累替换/句型1","可积累替换/句型2"]}';
 
-var spRec = null; // 当前进行中的语音识别实例
+var spRec = null; // 当前进行中的语音识别实例（旧 Web Speech 路径已弃用为主路径，仅 legacyTranscribe 兜底用）
+
+/* === 新语音流程：录→存→云转（取代不稳定的 Web Speech 单句识别）===
+   根因：原 startVoice 用 webkitSpeechRecognition（continuous=false），一停顿就 onend 关掉，
+   且走 Google 服务器，农村网络抖就 onerror。现改为：MediaRecorder 本地连续录 →
+   存 IndexedDB → 网络稳时调 /api/asr（腾讯云）转文字。Web Speech 仅作未配 Key 时的降级。 */
+
+var _recActive = false; // captureAnswer 防重入 / 切换标志
+
+function hasWebSpeech(){
+  return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+}
+
+// 降级：用浏览器原生 Web Speech 实时识别（需网络/浏览器支持），continuous=true 减少自动关
+function legacyTranscribe(ta){
+  return new Promise(function(resolve, reject){
+    if(!hasWebSpeech()){ reject(new Error('no webspeech')); return; }
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const rec = new SR();
+    rec.lang = 'en-US';
+    rec.interimResults = true;
+    rec.continuous = true;
+    let buf = '';
+    rec.onresult = function(e){ for(let i=0;i<e.results.length;i++){ buf += e.results[i][0].transcript; } if(ta) ta.value = buf.trim(); };
+    rec.onerror = function(){ try{ rec.stop(); }catch(_){} reject(new Error('浏览器语音识别失败')); };
+    rec.onend = function(){ try{ rec.stop(); }catch(_){} resolve(buf.trim()); };
+    try{ rec.start(); toast('正在用浏览器语音识别（说完会自动停止；也可直接手打/粘贴）'); }
+    catch(e){ reject(e); }
+  });
+}
+
+// 前端 → Worker：POST /api/asr {audio: base64 wav, engine:'16k_en'} → {text}
+async function transcribeViaWorker(blob){
+  const b64 = await blobToBase64(blob);
+  const res = await fetch('/api/asr', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ audio: b64, engine:'16k_en' }) });
+  if(!res.ok){ if(res.status === 503) throw new Error('未配置云端识别'); throw new Error('识别失败'); }
+  const j = await res.json().catch(()=>({}));
+  return (j && j.text) || '';
+}
+
+// 主流程：录音 → 存本地 → 转文字（云优先，Web Speech 降级，再不行手打）
+async function captureAnswer(qi, ta, btn, isP2){
+  const s = DATA.speaking.find(x => x.id === curDetailId);
+  if(!s) return;
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    toast('当前浏览器不支持录音，请直接手打/粘贴'); return;
+  }
+  if(_recActive){ // 再点一次 = 停止
+    _recActive = false;
+    if(btn){ btn.classList.remove('sp-mic-on'); btn.textContent = isP2 ? '🎤 开始录音' : '🎤 语音回答'; }
+    if(isP2) stopP2Timer();
+    try{
+      const r = await stopRecorder();
+      if(r) await storeAndTranscribe(s, qi, ta, r.blob, r.duration, isP2);
+    }catch(e){ toast('录音结束失败：' + (e && e.message ? e.message : e)); }
+    return;
+  }
+  // 开始
+  _recActive = true;
+  if(btn){ btn.classList.add('sp-mic-on'); btn.textContent = '⏹ 停止'; }
+  if(isP2) startP2Timer($('#p2Timer'));
+  try{
+    const r = await startRecorder({ autoStopMs: isP2 ? 120000 : 0 });
+    _recActive = false;
+    if(btn){ btn.classList.remove('sp-mic-on'); btn.textContent = isP2 ? '🎤 开始录音' : '🎤 语音回答'; }
+    if(isP2) stopP2Timer();
+    if(r) await storeAndTranscribe(s, qi, ta, r.blob, r.duration, isP2);
+  }catch(e){
+    _recActive = false;
+    if(btn){ btn.classList.remove('sp-mic-on'); btn.textContent = isP2 ? '🎤 开始录音' : '🎤 语音回答'; }
+    if(isP2) stopP2Timer();
+    toast('无法录音：' + (e && e.message ? e.message : '请检查麦克风权限'));
+  }
+}
+
+async function storeAndTranscribe(s, qi, ta, blob, duration, isP2){
+  const key = isP2 ? 'p2' : String(qi);
+  s.answers = s.answers || {};
+  s.answers[key] = s.answers[key] || {};
+  // 存录音到 IndexedDB（不进 DATA / 云端）
+  let audioId = null;
+  try{ audioId = await audioStore.put(blob, { qi: String(qi), isP2: !!isP2, ts: Date.now() }); }
+  catch(e){ toast('本地录音存储不可用（可能是隐私模式），将无法回放'); }
+  s.answers[key].audioId = audioId;
+  s.answers[key].duration = duration;
+  s.answers[key].ts = Date.now();
+  // 转写
+  let text = '';
+  if(DATA.settings.asrOn !== false){
+    try{ text = await transcribeViaWorker(blob); }catch(e){ /* 降级 */ }
+  }
+  if(!text && hasWebSpeech()){
+    try{ text = await legacyTranscribe(ta); }catch(_){}
+  }
+  if(text && ta){ ta.value = text; }
+  else if(!text){ toast('云端识别不可用，可直接手打/粘贴'); }
+  hubSave();
+  refreshPlayButton(s, qi, isP2);
+}
+
+// 录音存好后，若面板还没播放按钮则补一个
+function refreshPlayButton(s, qi, isP2){
+  const key = isP2 ? 'p2' : String(qi);
+  const ans = s.answers && s.answers[key];
+  if(!ans || !ans.audioId) return;
+  if(isP2){
+    const mic = $('#p2Mic');
+    const row = mic ? mic.parentElement : null;
+    if(row && !$('#p2Play')){
+      const b = document.createElement('button');
+      b.id = 'p2Play'; b.className = 'sp-play'; b.type = 'button'; b.textContent = '🎧 播放';
+      b.addEventListener('click', e => { e.stopPropagation(); playRecording(ans.audioId, $('#p2Audio')); });
+      row.appendChild(b);
+    }
+  } else {
+    const li = document.querySelector('.sp-q[data-qi="' + qi + '"]');
+    if(!li) return;
+    const row = li.querySelector('.sp-ans-row');
+    if(row && !li.querySelector('.sp-play[data-qi="' + qi + '"]')){
+      const b = document.createElement('button');
+      b.className = 'sp-play'; b.type = 'button'; b.setAttribute('data-qi', qi); b.textContent = '🎧 播放';
+      b.addEventListener('click', e => { e.stopPropagation(); playRecording(ans.audioId, li.querySelector('.sp-audio[data-qi="' + qi + '"]')); });
+      row.appendChild(b);
+    }
+  }
+}
+
+// 播放：从 IndexedDB 取 blob → <audio controls> 播放
+async function playRecording(audioId, mountEl){
+  if(!audioId) return;
+  const blob = await audioStore.get(audioId);
+  if(!blob){ toast('录音本地已丢失'); return; }
+  const url = URL.createObjectURL(blob);
+  if(mountEl){
+    mountEl.innerHTML = '';
+    const a = document.createElement('audio');
+    a.src = url; a.controls = true; a.className = 'sp-audio-el';
+    mountEl.appendChild(a);
+    if(a.play) a.play().catch(()=>{});
+  }
+}
 
 // P2 专用诊断提示词（语法纠错 + 串题素材连接）
 var SYS_DIAG_P2 =
@@ -412,14 +595,18 @@ var SYS_DIAG_P2 =
   + '"tips":["可积累1","可积累2"]}';
 
 // 单题可点开项 HTML（text=可见文本，qi=题目索引）
-function questionItemHtml(text, qi){
+function questionItemHtml(text, qi, s){
+  const ans = (s && s.answers) ? s.answers[qi] : null;
+  const hasAudio = ans && ans.audioId;
   return '<li class="sp-q" data-qi="' + qi + '">'
     + '<span class="sp-q-caret">▸</span>'
     + '<span class="sp-q-text">' + escapeHtml(text) + '</span>'
     + '<div class="sp-q-panel" data-qi="' + qi + '" hidden>'
     + '<div class="sp-ans-row"><button class="sp-mic" data-qi="' + qi + '" type="button">🎤 语音回答</button>'
+    + (hasAudio ? '<button class="sp-play" data-qi="' + qi + '" type="button">🎧 播放</button>' : '')
     + '<span class="sp-mic-hint">说英文；识别不出来就用下方输入框手打/粘贴</span></div>'
     + '<textarea class="sp-ans" data-qi="' + qi + '" placeholder="在这里说出或写下你的回答…"></textarea>'
+    + '<div class="sp-audio" data-qi="' + qi + '"></div>'
     + '<div class="sp-q-btns">'
     + '<button class="sp-diag" data-qi="' + qi + '" type="button">🤖 AI 诊断</button>'
     + '<button class="sp-ans-clear" data-qi="' + qi + '" type="button">清空</button>'
@@ -434,8 +621,8 @@ function bindQuestionEvents(id){
   if(!s) return;
   s.answers = s.answers || {};
 
-  // 浏览器不支持语音识别 → 隐藏所有麦克风按钮（手打/粘贴/诊断仍可用）
-  if(!('SpeechRecognition' in window) && !('webkitSpeechRecognition' in window)){
+  // 浏览器不支持录音（getUserMedia）→ 隐藏所有麦克风按钮（手打/粘贴/诊断仍可用）
+  if(!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)){
     document.querySelectorAll('.sp-mic').forEach(m => { m.style.display = 'none'; });
   }
 
@@ -470,9 +657,13 @@ function bindQuestionEvents(id){
       if(caret) caret.classList.toggle('open', willOpen);
     });
 
-    // 语音
+    // 语音（录→存→云转）
     const mic = li.querySelector('.sp-mic[data-qi="' + qi + '"]');
-    if(mic) mic.addEventListener('click', e => { e.stopPropagation(); startVoice(qi); });
+    if(mic) mic.addEventListener('click', e => { e.stopPropagation(); captureAnswer(qi, ta, mic, false); });
+
+    // 播放录音
+    const play = li.querySelector('.sp-play[data-qi="' + qi + '"]');
+    if(play) play.addEventListener('click', e => { e.stopPropagation(); playRecording(s.answers[qi].audioId, li.querySelector('.sp-audio[data-qi="' + qi + '"]')); });
 
     // AI 诊断
     const diag = li.querySelector('.sp-diag[data-qi="' + qi + '"]');
@@ -495,6 +686,12 @@ function bindQuestionEvents(id){
       e.stopPropagation();
       if(ta) ta.value = '';
       if(resultEl){ resultEl.innerHTML = ''; resultEl.style.display = 'none'; }
+      const ans = s.answers[qi];
+      if(ans && ans.audioId){ audioStore.del(ans.audioId).catch(()=>{}); }
+      const playBtn = li.querySelector('.sp-play[data-qi="' + qi + '"]');
+      if(playBtn) playBtn.remove();
+      const mount = li.querySelector('.sp-audio[data-qi="' + qi + '"]');
+      if(mount) mount.innerHTML = '';
       if(s.answers[qi]){ delete s.answers[qi]; hubSave(); }
     });
   });

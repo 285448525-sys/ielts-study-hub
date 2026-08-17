@@ -14,6 +14,8 @@ ready(() => {
 
   $('#sPron').value = (s.pronunciationScore != null ? s.pronunciationScore : '');
 
+  $('#sAsr').checked = DATA.settings.asrOn !== false;
+
   $('#sRelayToken').value = s.relayToken || '';
 
   $('#sChime').checked = DATA.settings.chimeOnDone !== false;
@@ -84,6 +86,7 @@ function saveSettings(){
   DATA.settings.syncCode = $('#sSyncCode').value.replace(/\D/g, '');
   DATA.settings.autoSync = true; // 默认开启自动同步，与考研站一致（绑定后由 syncLoginOrRegister 控制）
   DATA.settings.pronunciationScore = ($('#sPron').value === '' ? null : (parseFloat($('#sPron').value) || null)); // 口语模考固定发音分（0–9），空=未设置
+  DATA.settings.asrOn = $('#sAsr').checked; // 云端语音识别开关
   DATA.settings.chimeOnDone = $('#sChime').checked;
   DATA.settings.notifyOnDone = $('#sNotify').checked;
   hubSave(); applyTheme(); toast('设置已保存');
