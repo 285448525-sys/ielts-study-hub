@@ -392,7 +392,7 @@ function nextQuestion(){
       '<span class="pw-en">'+escapeHtml(cur.en)+'</span>'+
       (cur.ipa ? '<span class="pw-ipa">'+escapeHtml(cur.ipa)+'</span>' : '')+
       '</div>';
-    if(cur.cn) html += '<div class="pw-cn">'+escapeHtml(cur.cn)+'</div>';
+    if(cur.cn) html += '<div class="pw-cn" id="pwCn" hidden>'+escapeHtml(cur.cn)+'</div>';
     if(cur.example) html += '<div class="practice-sentence">'+escapeHtml(cur.example).replace(new RegExp('\\b'+escapeRegExp(cur.en)+'\\b'),'<span class="hi">$&</span>')+'</div>';
     html += '<div class="opts-grid" id="opts"></div>';
     body.innerHTML = html;
@@ -415,7 +415,7 @@ function nextQuestion(){
       '<span class="pw-en">'+escapeHtml(cur.en)+'</span>'+
       (cur.ipa ? '<span class="pw-ipa">'+escapeHtml(cur.ipa)+'</span>' : '')+
       '</div>';
-    if(cur.cn) html += '<div class="pw-cn">'+escapeHtml(cur.cn)+'</div>';
+    if(cur.cn) html += '<div class="pw-cn" id="pwCn" hidden>'+escapeHtml(cur.cn)+'</div>';
     if(cur.example) html += '<div class="practice-sentence">'+escapeHtml(cur.example).replace(new RegExp('\\b'+escapeRegExp(cur.en)+'\\b'),'<span class="hi">$&</span>')+'</div>';
     html += '<div style="text-align:center;margin:10px 0"><button class="btn btn-play-large" id="playBtn">🔊 播放读音</button></div>';
     html += '<div class="opts-grid" id="opts"></div>';
@@ -461,6 +461,7 @@ function bindOpts(correct){
         $('#opts').appendChild(hint);
       }
       pq.revealed = true; updateScore();
+      const pwCn = document.getElementById('pwCn'); if(pwCn) pwCn.hidden = false;
 
       // 该词是否已进入错题循环（曾被答错且未达 3 连对）——立即重试 / 间隔复习 都走这里
       if(pq.missed && pq.missed[key] && !((pq.mastery||{})[key] >= 3)){
@@ -530,6 +531,7 @@ function markUnknown(correct){
   const ub = document.getElementById('unknownBtn');
   if(ub){ ub.classList.add('wrong'); ub.disabled = true; }
   pq.revealed = true;
+  const pwCn2 = document.getElementById('pwCn'); if(pwCn2) pwCn2.hidden = false;
   // 首次作答只计一次 total（重试不重复计）
   if(!pq.countedWords) pq.countedWords = {};
   if(!pq.countedWords[key]){ pq.countedWords[key] = true; pq.total++; }
