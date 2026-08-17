@@ -14,6 +14,19 @@ function startTick(){
   window.__timerTick = setInterval(updateTimer, 1000);
 }
 
+/* 统一写入活动会话：saveActive 是整对象替换，所有字段必须在此列全，
+   否则新增的 targetSec/mode 会被覆盖清空（软导航重跑也不会丢）。 */
+function persistActive(){
+  if(!active) return;
+  saveActive({ moduleId: active.moduleId, subId: active.subId, startTs: active.startTs,
+    paused: active.paused, pauseStart: active.pauseStart, pauseAccum: active.pauseAccum,
+    targetSec: active.targetSec || null, mode: active.mode || 'up' });
+}
+
+function setModeUI(mode){
+  document.querySelectorAll('#modeSeg .seg-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+}
+
 /* 一个模块 = 一张卡片 + 一个「开始」按钮（不再下钻子任务） */
 function moduleCard(m){
   const running = active && active.moduleId === m.id;
@@ -70,9 +83,14 @@ function pauseMs(){
 /* 直接以「模块」开始计时（不再选子任务） */
 function startSession(moduleId){
   const m = MODULES.find(x => x.id === moduleId); if(!m) return;
+  const gm = parseInt($('#goalMin').value, 10);
+  const targetSec = (!isNaN(gm) && gm > 0) ? gm*60 : null;
+  const modeEl = document.querySelector('#modeSeg .seg-btn.active');
+  const mode = (modeEl && modeEl.dataset.mode) || 'up';
   active = { moduleId, moduleName: m.name, subId: m.id, subName: m.name,
-    startTs: Date.now(), paused: false, pauseStart: null, pauseAccum: 0 };
-  saveActive({ moduleId, subId: m.id, startTs: active.startTs, paused: false, pauseStart: null, pauseAccum: 0 });
+    startTs: Date.now(), paused: false, pauseStart: null, pauseAccum: 0,
+    targetSec, mode };
+  persistActive();
   $('#activeInfo').innerHTML = '<strong>' + m.name + '</strong> 进行中';
   $('#focusInfo').textContent = '';
   $('#stopBtn').disabled = false;
@@ -100,8 +118,7 @@ function togglePause(){
     $('#pauseBtn').className = 'btn';
     toast('继续学习，加油');
   }
-  saveActive({ moduleId: active.moduleId, subId: active.subId, startTs: active.startTs,
-    paused: active.paused, pauseStart: active.pauseStart, pauseAccum: active.pauseAccum });
+  persistActive();
   updateTimer();
 }
 
@@ -143,22 +160,46 @@ function updateTimer(){
   if(!active) return;
   const liveTimer = $('#liveTimer');
   if(!liveTimer){ stopTick(); return; }   // 已软导航离开计时页：DOM 没了就停掉心跳
+  const elapsed = activeMs()/1000;
+  const pg = $('#timerProgress');
   if(active.paused){
     liveTimer.textContent = '已暂停 ' + fmtHMS(pauseMs()/1000);
     liveTimer.style.color = 'var(--muted)';
-    $('#focusInfo').textContent = '已学习 ' + fmtHM(activeMs()/1000) + ' · 点「继续」恢复计时';
-  } else {
-    liveTimer.textContent = fmtHMS(activeMs()/1000);
-    liveTimer.style.color = 'var(--primary)';
-    const p = pauseMs();
-    $('#focusInfo').textContent = p > 0 ? '中途暂停过 ' + fmtHM(p/1000) : '';
+    $('#focusInfo').textContent = '已学习 ' + fmtHM(elapsed) + ' · 点「继续」恢复计时';
+    if(pg) pg.innerHTML = '';
+    return;
   }
+  if(active.mode === 'down' && active.targetSec){
+    const remain = Math.max(0, active.targetSec - elapsed);
+    liveTimer.textContent = fmtHMS(remain);
+    liveTimer.style.color = remain <= 0 ? 'var(--med)' : 'var(--primary)';
+    const pct = active.targetSec>0 ? Math.min(100, elapsed/active.targetSec*100) : 0;
+    if(pg) pg.innerHTML = progressBar('距目标', pct, remain<=0 ? 'var(--med)' : 'var(--primary)');
+    if(remain <= 0 && !active._done){ active._done = true; toast('🎉 本次目标达成！'); }
+  } else {
+    liveTimer.textContent = fmtHMS(elapsed);
+    liveTimer.style.color = 'var(--primary)';
+    if(active.targetSec && pg){
+      const pct = Math.min(100, elapsed/active.targetSec*100);
+      pg.innerHTML = progressBar('距目标', pct);
+    } else if(pg){ pg.innerHTML = ''; }
+  }
+  const p = pauseMs();
+  $('#focusInfo').textContent = p > 0 ? '中途暂停过 ' + fmtHM(p/1000) : '';
 }
 
 ready(() => {
   stopTick();   // 进页面第一件事：清掉上一次 eval 遗留的孤儿心跳
   $('#stopBtn').addEventListener('click', stopSession);
   $('#pauseBtn').addEventListener('click', togglePause);
+  document.querySelectorAll('#modeSeg .seg-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      setModeUI(b.dataset.mode);
+      if(active) active.mode = b.dataset.mode;   // 运行中可即时切换模式
+      persistActive();
+      updateTimer();
+    });
+  });
   const saved = loadActive();
   let m = null, fallbackSub = null;
   if(saved){
@@ -174,6 +215,10 @@ ready(() => {
     active = { moduleId: m.id, moduleName: m.name, subId: m.id, subName: fallbackSub || m.name,
       startTs: saved.startTs, paused: saved.paused || false, pauseStart: saved.pauseStart || null,
       pauseAccum: saved.pauseAccum || 0 };
+    active.targetSec = saved.targetSec || null;
+    active.mode = saved.mode || 'up';
+    if(active.targetSec) $('#goalMin').value = Math.round(active.targetSec/60);
+    setModeUI(active.mode);
     $('#activeInfo').innerHTML = '<strong>' + m.name + '</strong> 进行中';
     $('#stopBtn').disabled = false;
     $('#pauseBtn').disabled = false;
@@ -204,9 +249,9 @@ ready(() => {
     }
     if(m){
       active = { moduleId: m.id, moduleName: modName, subId: saved.subId, subName: subName,
-        startTs: startOfToday.getTime(), paused: false, pauseStart: null, pauseAccum: 0 };
-      saveActive({ moduleId: m.id, subId: saved.subId, startTs: startOfToday.getTime(),
-        paused: false, pauseStart: null, pauseAccum: 0 });
+        startTs: startOfToday.getTime(), paused: false, pauseStart: null, pauseAccum: 0,
+        targetSec: saved.targetSec || null, mode: saved.mode || 'up' };
+      persistActive();
       $('#activeInfo').innerHTML = '<strong>' + modName + '</strong> 进行中';
       $('#stopBtn').disabled = false;
       $('#pauseBtn').disabled = false;

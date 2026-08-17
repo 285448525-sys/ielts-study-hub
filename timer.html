@@ -21,6 +21,9 @@
   @media(max-width:420px){
     .timer-mods .mod-card{flex:1 1 100%}
   }
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .seg-btn{font:inherit;font-size:13px;padding:7px 14px;border:none;background:var(--surface-2);color:var(--muted);cursor:pointer;transition:background .15s,color .15s}
+  .seg-btn.active{background:var(--primary);color:#fff}
 </style>
 </head>
 <body>
@@ -31,6 +34,16 @@
   <p class="page-sub">选模块，点开始。一次只跑一个计时器；要离开就点「暂停」，回来点「继续」，系统自动算出真实专注时间。</p>
 
   <div class="live-timer" id="liveTimer">00:00:00</div>
+  <div id="timerGoal" style="display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:10px">
+    <label style="font-size:13px;color:var(--muted)">本次目标
+      <input id="goalMin" type="number" min="1" inputmode="numeric" placeholder="分钟" style="width:64px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink);font:inherit">
+    </label>
+    <div class="seg" id="modeSeg">
+      <button type="button" class="seg-btn active" data-mode="up">正计时</button>
+      <button type="button" class="seg-btn" data-mode="down">倒计时</button>
+    </div>
+  </div>
+  <div id="timerProgress" style="margin-top:10px"></div>
   <div class="card" style="text-align:center;margin-top:-10px">
     <div id="activeInfo" class="muted">当前没有进行中的学习</div>
     <div id="focusInfo" class="muted" style="margin-top:4px;min-height:18px"></div>
