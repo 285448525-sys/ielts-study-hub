@@ -105,10 +105,12 @@ function xfyunEvaluate(pcm, refText, cfg){
       const sendChunk = (audio, status, aus) => {
         // 官方 ISE 文档 audio 帧结构：business 只含 cmd/aus；data 只含 status/data
         if(ws.readyState !== WebSocket.OPEN) return;
-        ws.send(JSON.stringify({
+        const frame = {
           business: { cmd:'auw', aus },
           data: { status, data: audio }
-        }));
+        };
+        if(typeof console !== 'undefined' && console.log) console.log('[xfyun] send audio frame', { aus, status, len: audio.length });
+        ws.send(JSON.stringify(frame));
       };
       if(!pcm || pcm.length === 0){
         // 无音频（仅测握手）：只发结束帧 aus=4, status=2
@@ -147,7 +149,7 @@ function xfyunEvaluate(pcm, refText, cfg){
       // 2. tte 为必传字段（文本编码）。
       // text 被 urlencode / 缺 BOM / 缺 [content] / 缺 tte 都会导致引擎识别流异常，
       // 进而所有音频帧 append 失败 → 48195(iSEInputAppend/ret=8195)。
-      ws.send(JSON.stringify({
+      const ssbFrame = {
         common: { app_id: cfg.appid },
         business: {
           category:'read_sentence',
@@ -162,12 +164,15 @@ function xfyunEvaluate(pcm, refText, cfg){
           plev:'0.5'
         },
         data: { status: 0 }
-      }));
+      };
+      if(typeof console !== 'undefined' && console.log) console.log('[xfyun] send ssb frame', JSON.parse(JSON.stringify(ssbFrame)));
+      ws.send(JSON.stringify(ssbFrame));
       }catch(e){ finish(new Error('发送首帧失败：' + e.message)); return; }
       // 音频帧需等 ssb 握手回包后再发
     };
 
     ws.onmessage = (ev) => {
+      if(typeof console !== 'undefined' && console.log) console.log('[xfyun] recv', ev.data);
       let outer;
       try{ outer = JSON.parse(ev.data); }catch(_){ return; }
       lastServerMsg = ev.data;
@@ -204,7 +209,12 @@ function xfyunEvaluate(pcm, refText, cfg){
     ws.onclose = () => {
       if(!done){
         if(xml) finish(null, xml);
-        else finish(new Error('连接已关闭，未收到评测结果' + (lastServerMsg ? '；最后回包：' + lastServerMsg.slice(0,200) : '')));
+        else {
+          const hint = lastServerMsg
+            ? '；最后回包：' + lastServerMsg.slice(0,200)
+            : '；服务端未返回任何消息即断开，常见原因：① 应用未开通「语音评测（流式版）」服务；② APIKey/APISecret 不是该服务的密钥；③ 账号无额度；④ 系统时间与讯飞差>5分钟。';
+          finish(new Error('连接已关闭，未收到评测结果' + hint));
+        }
       }
     };
 
