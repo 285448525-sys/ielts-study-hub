@@ -12,4 +12,10 @@
   };
   await load('scores.js');
   await load('history.js');
+  // 口语整卷模考历史（mock-history.js 复用 MockReport.render）：全量加载已就绪，软导航时重新渲染
+  await load('mock-history.js');
+  const list = document.getElementById('mockHistoryList');
+  if (list && window.MockHistory && typeof window.MockHistory.render === 'function') {
+    window.MockHistory.render(list, { countEl: document.getElementById('mockHistCount') });
+  }
 })();

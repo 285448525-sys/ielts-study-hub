@@ -406,6 +406,7 @@ function estimateBand(type, correct, total){
 function mockAggregate(gran){
   const byType = {}, byPart = {};
   DATA.mockRecords.forEach(r => {
+    if(!Array.isArray(r.parts)) return; // 跳过口语整卷模考记录（无 parts，由「口语模考」tab 专属展示）
     if(gran && gran !== 'all' && r.granularity !== gran) return;
     const cfg = MOCK_TYPES[r.type];
     if(!cfg) return;
@@ -471,8 +472,9 @@ function renderMockStats(){
 
 function renderMockList(){
   const box = $('#mkList');
-  if(DATA.mockRecords.length === 0){ box.innerHTML = renderEmpty('暂无记录。'); return; }
-  const list = DATA.mockRecords.slice().sort((a,b) => b.date.localeCompare(a.date));
+  const partRecs = DATA.mockRecords.filter(r => Array.isArray(r.parts)); // 仅展示分项记录；口语整卷模考走专属 tab
+  if(partRecs.length === 0){ box.innerHTML = renderEmpty('暂无记录。'); return; }
+  const list = partRecs.slice().sort((a,b) => b.date.localeCompare(a.date));
   box.innerHTML = list.map(r => {
     const cfg = MOCK_TYPES[r.type];
     const hasScore = r.parts.some(partIsScore);

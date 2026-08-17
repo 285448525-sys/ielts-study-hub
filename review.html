@@ -15,6 +15,8 @@
 <script defer src="js/prompts.js"></script>
 <script defer src="js/scores.js"></script>
 <script defer src="js/history.js"></script>
+<script defer src="js/mock-report.js"></script>
+<script defer src="js/mock-history.js"></script>
 <style>
   .tabs{display:flex;gap:8px;margin-bottom:14px;padding:4px;background:var(--surface);border-radius:12px;border:1px solid var(--line)}
   .tab-btn{flex:1;padding:10px 14px;border:none;background:transparent;color:var(--muted);border-radius:9px;cursor:pointer;font-weight:600;font-size:14px;transition:all .2s ease}
@@ -58,6 +60,7 @@
     <div class="tabs">
       <button class="tab-btn active" data-tab="overall">📊 整卷模考</button>
       <button class="tab-btn" data-tab="breakdown">🧩 分项模考</button>
+      <button class="tab-btn" data-tab="speaking">🎤 口语模考</button>
     </div>
 
     <!-- 整卷模考 Tab -->
@@ -161,6 +164,15 @@
       <section class="card">
         <h2>分项记录列表</h2>
         <div id="mkList"></div>
+      </section>
+    </div>
+
+    <!-- 口语模考 Tab（整卷口语模考历史，由 mock-history.js 渲染） -->
+    <div id="tab-speaking" class="tab-panel">
+      <section class="card">
+        <h2>🎤 口语整卷模考记录 <span class="muted mock-hist-count" id="mockHistCount"></span></h2>
+        <p class="muted">P1→P2→P3 全真模考的历史报告，含逐题转写。点击「展开」看完整评分与转写，刷新不丢。</p>
+        <div id="mockHistoryList"></div>
       </section>
     </div>
   </section>

@@ -245,6 +245,8 @@
     }
     const rec = {
       id: uid(),
+      ts: Date.now(),
+      kind: 'speaking',
       date: todayKey(),
       overall: report ? report.overall : null,
       pronunciationScore: pron,
@@ -256,6 +258,7 @@
     };
     DATA.mockRecords.push(rec);
     hubSave(); scheduleCloudUpload();
+    renderHistoryArea();
 
     $('#mockStage').hidden = true;
     $('#mockReport').hidden = false;
@@ -307,8 +310,16 @@
   }
 
   /* ---------- 初始化 ---------- */
+  function renderHistoryArea(){
+    if(!window.MockHistory || typeof window.MockHistory.render !== 'function') return; // 兼容：MockHistory 未注入时跳过
+    const list = $('#mockHistoryList');
+    if(list){
+      window.MockHistory.render(list, { countEl: $('#mockHistCount') });
+    }
+  }
   ready(async () => {
     await ensureMockLib();
+    renderHistoryArea();
     const startBtn = $('#mockStartBtn');
     if(startBtn) startBtn.onclick = () => {
       if(window.__mockTick){ clearInterval(window.__mockTick); window.__mockTick = null; }

@@ -14,6 +14,7 @@
 <script defer src="js/common.js"></script>
 <script defer src="js/mock-asr.js"></script>
 <script defer src="js/mock-report.js"></script>
+<script defer src="js/mock-history.js"></script>
 <script defer src="js/mock.js"></script>
 </head>
 <body>
@@ -36,6 +37,13 @@
       <button class="btn btn-primary btn-lg" id="mockStartBtn">开始模考</button>
     </div>
     <p class="muted" style="margin-top:10px">不支持录音的浏览器，每题下方可手动粘贴你说的内容，流程不中断。</p>
+  </section>
+
+  <!-- ④ 历史模考记录（回顾）：常驻可见，刷新不丢 -->
+  <section class="card" id="mockHistory">
+    <h2>📚 历史模考记录 <span class="muted mock-hist-count" id="mockHistCount"></span></h2>
+    <p class="muted" style="margin:-4px 0 12px">每一次口语整卷模考都会自动存到这里，刷新、换设备（已开云端同步）都不会丢。</p>
+    <div id="mockHistoryList"></div>
   </section>
 
   <!-- ② 考试舞台 -->

@@ -773,3 +773,19 @@ main .quote{
 .mock-summary{margin-top:14px;font-size:14px;line-height:1.7;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
 .mock-summary-title{font-size:13px;font-weight:700;color:var(--muted);margin-bottom:6px}
 .mock-report-actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+/* 历史模考记录（回顾） */
+.mock-hist-count{font-size:13px;font-weight:600}
+.mock-hist-card{border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:12px;background:var(--surface)}
+.mock-hist-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.mock-hist-meta{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+.mock-hist-meta b{font-size:15px;color:var(--ink)}
+.mock-hist-ops{display:flex;gap:8px;margin-left:auto}
+.mock-hist-body{margin-top:12px;border-top:1px dashed var(--line);padding-top:12px}
+.mock-hist-trans{margin-top:14px}
+.mock-hist-trans-title{font-weight:700;margin-bottom:6px;color:var(--ink)}
+.mock-hist-sec{font-weight:700;margin:10px 0 4px;color:var(--primary);font-size:14px}
+.mock-hist-qa{margin:0;padding-left:18px}
+.mock-hist-qa li{margin:4px 0;font-size:13.5px;line-height:1.6;color:var(--ink)}
+.btn.sm{padding:5px 10px;font-size:13px;line-height:1.4}
+.btn.danger{color:#dc2626;border-color:rgba(239,68,68,.4)}
+.btn.danger:hover{background:rgba(239,68,68,.1);color:#dc2626}
