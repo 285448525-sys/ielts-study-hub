@@ -208,6 +208,7 @@ function openDetail(id){
   if(s.type === 'P2'){
     if(s.promptEn) html += '<div class="sp-prompt">题目：' + escapeHtml(s.promptEn) + '</div>';
     if(s.promptZh) html += '<div class="sp-detail-zh" style="margin-bottom:12px">' + escapeHtml(s.promptZh) + '</div>';
+    html += '<div class="sp-mat-link" id="spMatLink"></div>';
 
     html += '<div class="sp-p2-answer">';
     html += '<div class="sp-ans-row">';
@@ -245,6 +246,7 @@ function openDetail(id){
   if(s.type === 'P2'){
     const aiStoryLinkBtn = document.getElementById('aiStoryLinkBtn');
     if(aiStoryLinkBtn) aiStoryLinkBtn.addEventListener('click', () => aiStoryLink(id));
+    matRenderLink(s);
   }
 
   // 逐题展开 + 语音 + AI 诊断 事件绑定（含 localStorage 回填）
@@ -383,6 +385,106 @@ async function aiStoryLink(id){
     }
   }catch(e){
     resultEl.textContent = 'AI 服务暂不可用：' + e.message + '\n\n请检查「设置」中的 AI 接口地址。';
+  }
+}
+
+/* === 素材生成器联动：P2 抽题命中个人素材 → 显示骨架 + 生成中文思路框架 === */
+var matStoreCache = null; // 当前 materials store 缓存，供按钮回调取素材对象
+function matLoadStore(){
+  try{ const s = JSON.parse(localStorage.getItem('ielts_materials_v1')); if(s && Array.isArray(s.materials)) return s; }catch(_){}
+  return null;
+}
+function matCore(topic){
+  let t = String(topic || '').trim();
+  ['难忘的','喜欢的','常在一起的','让你','一个','一件','一次','一种','珍贵的','离不开的','常穿或珍藏的','我的'].forEach(p => { if(t.indexOf(p) === 0) t = t.slice(p.length); });
+  return t;
+}
+var MAT_EN = { '家人':'family', '朋友':'friend', '旅行':'trip', '城市':'city', '户外活动':'outdoor', '技能':'skill', '困难':'difficult', '礼物':'gift', '书':'book', '电影':'film', '歌':'song', '衣服':'clothes', '规则':'rule', '法律':'law', '传统':'tradition', '习俗':'custom', '分歧':'disagree', '犯错':'mistake', '投诉':'complaint', '道歉':'apology', '挑战':'challenge', '爱好':'hobby', '视频':'video', '照片':'photo', '放松':'relax', '物件':'object', '改观':'change', '节目':'show' };
+function matMatch(s){
+  const store = matLoadStore(); if(!store) return [];
+  const hayZh = ((s.promptZh || '') + ' ' + (s.promptEn || '')).toLowerCase();
+  const hayEn = (s.promptEn || '').toLowerCase();
+  const hits = [];
+  store.materials.forEach((m, i) => {
+    let score = 0;
+    (m.coverage || []).forEach(c => {
+      const core = matCore(c);
+      if(core && (hayZh.indexOf(core.toLowerCase()) >= 0 || (MAT_EN[core] && hayEn.indexOf(MAT_EN[core]) >= 0))) score++;
+    });
+    if(score > 0) hits.push({ m: m, i: i, score: score });
+  });
+  hits.sort((a, b) => b.score - a.score);
+  return hits;
+}
+function matSkeletonHtml(m){
+  const en = (m.skeleton && m.skeleton.en) || [];
+  const zh = (m.skeleton && m.skeleton.zh) || [];
+  if(!en.length) return '<div class="mat-sk-empty">（无骨架）</div>';
+  return '<ul class="mat-sk">' + en.map((e, k) =>
+    '<li><span class="en">' + escapeHtml(e) + '</span>' + (zh[k] ? '<span class="zh">' + escapeHtml(zh[k]) + '</span>' : '') + '</li>'
+  ).join('') + '</ul>';
+}
+function matRenderLink(s){
+  const box = document.getElementById('spMatLink'); if(!box) return;
+  const store = matLoadStore();
+  if(!store || !store.materials || !store.materials.length){ box.style.display = 'none'; return; }
+  matStoreCache = store;
+  const hits = matMatch(s);
+  const hasKey = !!(DATA.settings && DATA.settings.relayToken);
+  let h = '<div class="mat-link-head">💡 可用素材（来自你的万能素材库）</div>';
+  if(!hits.length) h += '<div class="mat-link-hint">这道题没自动匹配到素材。下面是你全部素材，可手动挑一个来串：</div>';
+  const list = hits.length ? hits : store.materials.map((m, i) => ({ m: m, i: i, score: 0 }));
+  list.forEach(item => {
+    const m = item.m;
+    const cov = (m.coverage || []).join('、');
+    h += '<div class="mat-link-card">'
+      + '<div class="mat-link-title">' + escapeHtml(m.title || '未命名') + (item.score ? '<span class="mat-link-badge">匹配</span>' : '') + '</div>'
+      + (cov ? '<div class="mat-link-cov">覆盖：' + escapeHtml(cov) + '</div>' : '')
+      + '<div class="mat-link-sub">英文骨架（keyword，非全文）</div>'
+      + matSkeletonHtml(m)
+      + '<div class="mat-link-actions">'
+      + (hasKey ? '<button class="btn mat-outline-btn" data-outline="' + item.i + '">🧭 生成中文思路框架</button>'
+                : '<span class="mat-link-nokey">未配置 AI Key（设置里填 DeepSeek）则无法生成思路，但骨架可参考</span>')
+      + '</div>'
+      + '<div class="mat-outline" id="matOutline_' + item.i + '"></div>'
+      + '</div>';
+  });
+  box.innerHTML = h;
+  box.style.display = 'block';
+  if(hasKey){
+    box.querySelectorAll('[data-outline]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = +btn.dataset.outline;
+        const mat = (matStoreCache && matStoreCache.materials[idx]) || null;
+        if(mat) matGenOutline(mat, s, btn, document.getElementById('matOutline_' + idx));
+      });
+    });
+  }
+}
+async function matGenOutline(m, s, btn, target){
+  if(!target) return;
+  const SYS = '你是雅思口语陪练。考生有一份来自自己真实经历的万能素材，要用来串一道 Part 2 题。请给考生一段【中文思路框架/逻辑链】——不是英文范文，而是告诉ta“这段真实经历该怎么组织着讲满2分钟”：按时间或因果顺序拆成 5-7 步，每步一句话中文提示（含该说哪个细节、什么感受、怎么自然扣回题目）。要像现场边想边说，不要背诵腔、不要给英文。只输出 JSON：{"outline":["第1步…","第2步…",...]}，不要任何解释文字。';
+  const user = 'Part 2 题目（英文）：' + (s.promptEn || s.title || '') + '\n中文题意：' + (s.promptZh || '')
+    + '\n\n可用素材（考生真实经历）：'
+    + '\n标题：' + (m.title || '')
+    + '\n多切面：' + JSON.stringify(m.facets || {})
+    + '\n英文骨架：' + ((m.skeleton && m.skeleton.en) || []).join(' / ')
+    + ((m.skeleton && m.skeleton.zh && m.skeleton.zh.length) ? '\n中文对照：' + m.skeleton.zh.join(' / ') : '')
+    + '\n\n请基于这道具体题目，给出讲述这段素材的中文逻辑链（5-7步）。';
+  target.innerHTML = '<div class="mat-outline-loading">🤔 正在组织中文思路…</div>';
+  btn.disabled = true; btn.textContent = '生成中…';
+  try{
+    const content = await callRelay('material_outline', [ { role:'system', content: SYS }, { role:'user', content: user } ], 0.6);
+    const j = aiJson(content);
+    let lines = [];
+    if(j && Array.isArray(j.outline)) lines = j.outline.map(String);
+    else if(typeof content === 'string') lines = content.split('\n').map(x => x.trim()).filter(Boolean);
+    if(!lines.length) throw new Error('未解析到思路');
+    target.innerHTML = '<div class="mat-outline-head">🧭 中文思路框架 / 逻辑链</div><ol class="mat-outline-list">' + lines.map(l => '<li>' + escapeHtml(l) + '</li>').join('') + '</ol>';
+  }catch(e){
+    target.innerHTML = '<div class="mat-outline-err">思路生成失败：' + escapeHtml(e.message) + '。可参考上方英文骨架自己组织。</div>';
+  }finally{
+    btn.disabled = false; btn.textContent = '🧭 重新生成中文思路框架';
   }
 }
 
