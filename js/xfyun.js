@@ -57,6 +57,24 @@ function int16ToBase64(int16){
   return btoa(bin);
 }
 
+/* 从讯飞返回（可能是嵌套 JSON 或裸 XML）里抽出评测 XML 文本。
+   容错：外层 data 是 base64(JSON)，JSON 里某一层 data 又是 base64(XML)，递归找能解出 '<' 的字符串。 */
+function xfyunFindXml(decoded){
+  if(typeof decoded === 'string' && decoded.trim().startsWith('<')) return decoded;
+  let obj;
+  try{ obj = JSON.parse(decoded); }catch(_){ return null; }
+  let found = null;
+  const walk = (v) => {
+    if(found) return;
+    if(typeof v === 'string'){
+      try{ const t = atob(v); if(t.trim().startsWith('<')) found = t; }catch(_){}
+    } else if(Array.isArray(v)){ v.forEach(walk); }
+    else if(v && typeof v === 'object'){ Object.values(v).forEach(walk); }
+  };
+  walk(obj);
+  return found;
+}
+
 /* 评测：pcm=Int16Array(16k/16bit/mono)，refText=参照文本（朗读句），cfg={appid,apiKey,apiSecret}
    返回：评测结果 XML 字符串（result 字段 base64 解码拼接）。失败时 reject(Error)。 */
 function xfyunEvaluate(pcm, refText, cfg){
@@ -79,27 +97,29 @@ function xfyunEvaluate(pcm, refText, cfg){
 
     const sendAudioFrames = (pcm) => {
       const chunkSamples = 8000; // ~0.5s/帧
-      let sent = 0, first = true;
+      const sendChunk = (audio, status) => {
+        ws.send(JSON.stringify({
+          business: { cmd:'auw', data_type:'audio' },
+          data: { status, text: audio }
+        }));
+      };
+      if(!pcm || pcm.length === 0){
+        // 无音频（仅测握手）：只发结束帧
+        try{ sendChunk('', 2); }catch(e){ finish(new Error('发送末帧失败：' + e.message)); }
+        return;
+      }
+      let sent = 0;
       while(sent < pcm.length){
         const end = Math.min(sent + chunkSamples, pcm.length);
         const slice = pcm.subarray(sent, end);
         const audio = int16ToBase64(slice);
-        const isLast = end >= pcm.length;
         try{
-          ws.send(JSON.stringify({
-            business: { cmd:'auw', aus: first ? 1 : 2, auf:'audio/L16;rate=16000' },
-            data: { status: 1, cmd:'auw', audio, auf:'audio/L16;rate=16000', aue:'raw' }
-          }));
+          sendChunk(audio, 1); // 中间帧统一 status=1
         }catch(e){ finish(new Error('发送音频失败：' + e.message)); return; }
-        first = false; sent = end;
+        sent = end;
       }
-      // 末帧（status=2, aus=4）
-      try{
-        ws.send(JSON.stringify({
-          business: { cmd:'auw', aus: 4, auf:'audio/L16;rate=16000' },
-          data: { status: 2, cmd:'auw', audio:'', auf:'audio/L16;rate=16000', aue:'raw' }
-        }));
-      }catch(e){ finish(new Error('发送末帧失败：' + e.message)); }
+      // 末帧（status=2，空音频）
+      try{ sendChunk('', 2); }catch(e){ finish(new Error('发送末帧失败：' + e.message)); }
     };
 
     ws.onopen = () => {
@@ -107,11 +127,15 @@ function xfyunEvaluate(pcm, refText, cfg){
         ws.send(JSON.stringify({
           common: { app_id: cfg.appid },
           business: {
-            cmd:'ise', auf:'audio/L16;rate=16000', aue:'raw', text_type:'utf8',
-            res_type:'entirety', rst:'entirety', language:'en_us',
-            category:'read_sentence', text: encodeURIComponent(refText)
+            category:'read_sentence',
+            sub:'ise',
+            ent:'en_vip',
+            cmd:'ssb',
+            text: encodeURIComponent(refText),
+            ttp_skip:true,
+            plev:0.5
           },
-          data: { status: 0, cmd:'ssb', audio:'', auf:'audio/L16;rate=16000' }
+          data: { status: 0, text: '' }
         }));
       }catch(e){ finish(new Error('发送首帧失败：' + e.message)); return; }
       sendAudioFrames(pcm);
@@ -127,26 +151,13 @@ function xfyunEvaluate(pcm, refText, cfg){
       if(!outer.data) return;
       let decoded;
       try{ decoded = atob(outer.data); }catch(_){ return; }
-      // 情况 A：decoded 是 JSON（含 status/data），官方嵌套格式
-      try{
-        const inner = JSON.parse(decoded);
-        if(inner.code !== 0 && inner.code !== undefined){
-          finish(new Error('讯飞错误 ' + inner.code + '：' + (inner.message || '未知错误')));
-          return;
-        }
-        if(inner.status === 2){
-          if(inner.data){ try{ xml = atob(inner.data); }catch(_){} }
-          finish(null, xml);
-          return;
-        }
-        return; // status 0/1：中间帧，忽略
-      }catch(_){ /* 不是 JSON → 直接是 XML */ }
-      // 情况 B：decoded 直接是 XML 文本
-      if(decoded.trim().startsWith('<')){
-        xml = decoded;
+      // decoded 可能是嵌套 JSON 或裸 XML，统一抽出评测 XML 文本
+      const xmlResult = xfyunFindXml(decoded);
+      if(xmlResult){
+        xml = xmlResult;
         finish(null, xml);
       }
-      // 否则忽略（中间帧片段）
+      // 否则是中间帧（status 0/1），忽略
     };
 
     ws.onerror = () => { finish(new Error('WebSocket 错误（检查网络 / 密钥 / 系统时间是否准）')); };
