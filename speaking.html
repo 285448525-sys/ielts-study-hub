@@ -16,6 +16,10 @@
   <script defer src="js/audio-store.js"></script>
   <script defer src="js/recorder.js"></script>
   <script defer src="js/speaking.js"></script>
+  <script defer src="js/mock-asr.js"></script>
+  <script defer src="js/mock-report.js"></script>
+  <script defer src="js/mock-history.js"></script>
+  <script defer src="js/mock.js"></script>
 <style>
   /* === 极简口语模块 · 优化版（沿用全站深蓝 Token） === */
   .sp-tabs{display:flex;gap:0;border-bottom:2px solid var(--line);margin-bottom:4px}
@@ -184,14 +188,16 @@
   <h1 class="page-title">口语题库</h1>
   <p class="page-sub">5-8 月官方题库 · 优先复习超高频</p>
 
+  <!-- 标签栏（常驻，移出会被 hide 的 listView） -->
+  <div class="sp-tabs" id="tabs">
+    <button data-type="P1" class="active">Part 1</button>
+    <button data-type="P2">Part 2</button>
+    <button data-type="CT">串题</button>
+    <button data-type="MOCK">模考</button>
+  </div>
+
   <!-- 列表视图 -->
   <div id="listView">
-    <div class="sp-tabs" id="tabs">
-      <button data-type="P1" class="active">Part 1</button>
-      <button data-type="P2">Part 2</button>
-      <button data-type="CT">串题</button>
-    </div>
-
     <div class="sp-banner" id="freqBanner">
       8 月考试建议优先复习<b>超高频</b>和<b>必考题</b>；时间紧可只练 P2 前 14 题。
     </div>
@@ -230,6 +236,7 @@
 
   <!-- 串题视图 -->
   <div id="ctView" hidden>
+    <span class="sp-detail-back" id="ctBackBtn">&larr; 返回题库（P1 / P2）</span>
     <div class="sp-banner">已自动导入题库里的 <b id="ctCount">0</b> 道 Part 2 题目。AI 会先问你几个问题挖出真实素材，再帮你用<b>尽可能少的故事</b>覆盖最多题（目标：总覆盖率 ≥90%，超高频/高频/必考题 100%）。可多次生成补洞，下方看板会算出「最少背诵组合」。</div>
 
     <div class="ct-step">
@@ -253,6 +260,60 @@
       <h3 style="font-size:16px;margin:18px 0 10px">已生成的串题方案</h3>
       <div id="ctSaved"></div>
     </div>
+  </div>
+
+  <!-- 模考视图（整合口语模考为第 4 个 tab，复用 mock.js） -->
+  <div id="mockView" hidden>
+    <!-- ① 开始卡 -->
+    <section class="card" id="mockStart">
+      <h2>开始一次模考</h2>
+      <ul class="mock-intro">
+        <li>🎙 <b>录音转写</b>：浏览器本地把你说的话转成文字（Chrome / Edge 支持最佳），不联网、不上传音频。</li>
+        <li>🤖 <b>AI 评分</b>：DeepSeek 读你的转写文字，评流利度 / 扣题 / 连贯 / 词汇 / 语法。</li>
+        <li>🔊 <b>发音分</b>：为你自己在「设置」里填的固定分（AI 不测发音），诚实标注在报告里。</li>
+      </ul>
+      <div id="mockPreCheck" class="mock-precheck"></div>
+      <div class="mock-start-actions">
+        <button class="btn btn-primary btn-lg" id="mockStartBtn">开始模考</button>
+      </div>
+      <p class="muted" style="margin-top:10px">不支持录音的浏览器，每题下方可手动粘贴你说的内容，流程不中断。</p>
+    </section>
+
+    <!-- ④ 历史模考记录（回顾）：常驻可见，刷新不丢 -->
+    <section class="card" id="mockHistory">
+      <h2>📚 历史模考记录 <span class="muted mock-hist-count" id="mockHistCount"></span></h2>
+      <p class="muted" style="margin:-4px 0 12px">每一次口语整卷模考都会自动存到这里，刷新、换设备（已开云端同步）都不会丢。</p>
+      <div id="mockHistoryList"></div>
+    </section>
+
+    <!-- ② 考试舞台 -->
+    <section class="card" id="mockStage" hidden>
+      <div class="mock-phase" id="mockPhase">Part 1</div>
+      <div class="mock-qcard">
+        <div class="mock-q" id="mockQ"></div>
+        <div class="mock-timer" id="mockTimerWrap" hidden>⏱ <span id="mockTimer">--</span></div>
+        <div class="mock-live" id="mockLive" aria-live="polite"></div>
+        <div class="mock-controls">
+          <button class="btn" id="mockRecBtn" hidden>🎙 开始录音</button>
+          <button class="btn btn-primary" id="mockSubmit">提交 / 下一题</button>
+        </div>
+        <div class="mock-manual">
+          <label for="mockManual">手动输入 / 粘贴你刚才说的（英文）—— 录音不准或不可用时用它：</label>
+          <textarea id="mockManual" rows="3" placeholder="在此输入你刚才回答的英文…"></textarea>
+        </div>
+        <p class="mock-hint" id="mockHint"></p>
+      </div>
+    </section>
+
+    <!-- ③ 报告 -->
+    <section class="card" id="mockReport" hidden>
+      <h2>模考报告</h2>
+      <div id="mockReportBody"></div>
+      <div class="mock-report-actions">
+        <button class="btn btn-primary" id="mockRetryBtn">再来一次</button>
+        <a class="btn" href="review.html">查看历史</a>
+      </div>
+    </section>
   </div>
 </main>
 

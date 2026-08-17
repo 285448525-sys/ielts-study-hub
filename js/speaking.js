@@ -12,15 +12,15 @@ ready(() => {
       const t = b.dataset.type;
       $('#tabs').querySelectorAll('[data-type]').forEach(x => x.classList.toggle('active', x === b));
       if(t === 'CT'){
-        $('#listView').hidden = true;
-        $('#detailView').hidden = true;
+        $('#listView').hidden = true; $('#detailView').hidden = true; $('#mockView').hidden = true;
         $('#ctView').hidden = false;
-        renderCTIntro();
-        renderSaved();
+        renderCTIntro(); renderSaved();
+      } else if(t === 'MOCK'){
+        $('#listView').hidden = true; $('#detailView').hidden = true; $('#ctView').hidden = true;
+        $('#mockView').hidden = false;
       } else {
         curType = t;
-        $('#ctView').hidden = true;
-        $('#detailView').hidden = true;
+        $('#ctView').hidden = true; $('#mockView').hidden = true; $('#detailView').hidden = true;
         $('#listView').hidden = false;
         renderList();
       }
@@ -39,6 +39,10 @@ ready(() => {
   });
   $('#spSearch').addEventListener('input', () => { curSearch = $('#spSearch').value.trim().toLowerCase(); renderList(); });
   $('#backBtn').addEventListener('click', () => { $('#detailView').hidden = true; $('#listView').hidden = false; curDetailId = null; });
+  $('#ctBackBtn').addEventListener('click', () => {
+    $('#ctView').hidden = true; $('#listView').hidden = false;
+    $('#tabs').querySelectorAll('[data-type]').forEach(x => x.classList.toggle('active', x.dataset.type === curType));
+  });
   renderList();
 });
 
