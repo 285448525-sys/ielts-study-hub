@@ -19,52 +19,45 @@
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 
 <main class="container">
-  <h1 class="page-title">你好，<span id="userName">Camille</span> 👋</h1>
-  <p class="page-sub">首考 <span id="examDate">2026-08-02</span>，还剩 <strong id="daysLeft">--</strong> 天 · 目标总分 <strong id="targetOverall">6.0</strong></p>
+  <header class="dash-top">
+    <h1 class="page-title">你好，<span id="userName">Camille</span> 👋</h1>
+    <div class="dash-countdown" id="dashCountdown">距 08-25 还有 -- 天</div>
+  </header>
 
-  <section class="hero">
-    <div class="card hero-card">
-      <div class="hero-count" id="todayTime">0h0m</div>
-      <div class="hero-label">今日已专注 / 目标 <span id="goalHours">8</span>h</div>
-      <div id="todayProgress"></div>
+  <section class="hero-cta-wrap">
+    <a class="hero-cta" id="startBtn" href="timer.html">
+      <span class="hero-cta-title" id="startTitle">开始今日学习</span>
+      <span class="hero-cta-sub" id="startSub">选模块，开一个计时器</span>
+    </a>
+    <div class="quick-chips">
+      <a class="quick-chip" href="review.html">📊 模考</a>
+      <a class="quick-chip" href="practice.html">🎮 背单词</a>
+      <a class="quick-chip" href="speaking.html">🗨 口语素材</a>
     </div>
-    <div class="card hero-card">
-      <div class="hero-count" id="medStatus">未服药</div>
-      <div class="hero-label" id="medSub">今天还没记录专注达</div>
-      <div id="medBar"></div>
-    </div>
   </section>
 
-  <section class="card">
-    <h2>⚡ 快捷入口 <span class="muted" style="font-size:12.5px;font-weight:500">· 侧边栏点 ❤ 收藏的页面会出现在这里</span></h2>
-    <div class="quick-links" id="quickLinks"></div>
+  <section class="status-row">
+    <span class="status-item">⏱ 今日已学 <b id="stTime">0h0m</b> / 目标 <b id="stGoal">8</b>h</span>
+    <span class="status-sep">·</span>
+    <span class="status-item">🔥 连续 <b id="stStreak">0</b> 天 <button class="status-link" id="checkinBtn">打卡</button></span>
+    <span class="status-sep">·</span>
+    <span class="status-item muted" id="stMed">💊 未记录服药</span>
   </section>
+  <div class="reminder-line" id="reminderLine"></div>
 
-  <section class="card">
-    <h2>🔥 连续打卡</h2>
-    <div id="streakBox"></div>
-  </section>
-
-  <section class="card">
-    <h2>🔔 智能提醒</h2>
-    <div id="reminderBox"></div>
-  </section>
-
-  <section class="card">
-    <h2>📊 今日模块分布</h2>
+  <details class="detail-block">
+    <summary>📊 今日模块分布</summary>
     <div id="todayBars"></div>
-    <hr style="margin:18px 0;border:none;border-top:1px solid var(--line)">
-    <h2>🌐 常用网址</h2>
+  </details>
+  <details class="detail-block">
+    <summary>🌐 常用网址</summary>
     <div id="favLinks"></div>
-  </section>
-
-  <section class="card">
-    <h2>📋 今日总结</h2>
-    <p class="muted" style="font-size:13px;margin:0 0 10px">把今天的学习时长、分模块分布、最近模考成绩和考试倒计时汇成一段纯文本，方便复制到日记里，或直接丢给 AI 做复盘。</p>
-    <button class="btn btn-primary" id="genSummaryBtn">📋 生成今日总结</button>
+  </details>
+  <details class="detail-block">
+    <summary>📋 今日总结</summary>
+    <button class="btn btn-primary btn-sm" id="genSummaryBtn">生成今日总结</button>
     <div id="summaryOutput" style="display:none;margin-top:12px"></div>
-  </section>
-
+  </details>
 </main>
 
 </body>

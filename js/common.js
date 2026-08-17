@@ -23,51 +23,32 @@ function favPageIds(){
   return (f && f.length) ? f : DEFAULT_FAV.slice();
 }
 
-/* 母导航（分组） + 子导航（页面），悬停/点击展开 */
-const NAV_GROUPS = [
-  { name:'学习', icon:'🎯', pages:['index','timer','plans'] },
-  { name:'积累', icon:'📝', pages:['meds','words','practice','corpus','longsent'] },
-  { name:'实战', icon:'💻', pages:['errorbook','speaking','writing'] },
-  { name:'数据', icon:'📊', pages:['review','settings'] },
-];
+/* 一级常驻（高频 4 项，始终可见）+ 更多▾（其余 9 项，默认折叠） */
+const PRIMARY_NAV = ['index','timer','review','practice'];
+const MORE_NAV    = ['plans','meds','words','corpus','longsent','errorbook','speaking','writing','settings'];
 
 function injectNav(){
   const nav = document.getElementById('mainNav');
   if(!nav) return;
   if(DATA.settings && DATA.settings.collapsed) document.body.classList.add('side-collapsed');
   const current = location.pathname.split('/').pop() || 'index.html';
-  const curPage = PAGES.find(p => p.file === current);
-  const currentId = curPage ? curPage.id : null;
   const pageById = id => PAGES.find(p => p.id === id);
-  const fav = favPageIds();
-
-  const todaySec = (DATA.sessions || []).filter(s => s.date === todayKey()).reduce((a, s) => a + (s.durationSec || 0), 0);
-  const med = (DATA.meds || []).filter(m => m.date === todayKey()).sort((a, b) => b.ts - a.ts)[0];
-  let medTxt = '未记录';
-  if(med){ const remain = MED_DURATION_MS - (Date.now() - med.ts); medTxt = remain > 0 ? '药效中' : '已失效'; }
-  const goalSec = (DATA.settings.dailyGoalHours || 8) * 3600;
-  const reached = goalSec > 0 && todaySec >= goalSec;
+  const collapsedMap = (DATA.settings && DATA.settings.groupCollapsed) || {};
+  const chev = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>';
 
   let html = '';
   html += '<div class="side-head"><span class="nav-logo">📚</span><span>雅思备考 Hub</span><button class="side-collapse-in" id="sideCollapseIn" type="button" title="收起侧边栏" aria-label="收起侧边栏">⟨</button></div>';
   html += '<input class="side-search" id="sideSearch" placeholder="搜索功能…" aria-label="搜索功能" />';
-  html += `<div class="side-today${reached ? ' done' : ''}">${reached ? '🎉 目标达成 · ' : '今日已学 '}<b>${fmtHM(todaySec)}</b>${reached ? '' : ' · 服药：<b>' + medTxt + '</b>'}</div>`;
-  const collapsedMap = (DATA.settings && DATA.settings.groupCollapsed) || {};
-  const chev = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>';
-  const favCol = collapsedMap['fav'] ? ' collapsed' : '';
-  html += `<div class="side-fav${favCol}" id="sideFav" data-g="fav"><div class="side-group-title"><span class="side-g-label">❤ 常用</span><span class="side-toggle-arrow" data-g="fav" role="button" tabindex="0" aria-label="展开/收起 常用" aria-expanded="${!favCol}">${chev}</span></div>`;
-  html += '<div class="side-group-body"><div class="side-group-inner">';
-  for(const fid of fav){ const p = pageById(fid); if(p) html += sideItem(p, current); }
-  html += '</div></div></div>';
-  html += '<div class="side-groups" id="sideGroups">';
-  for(const g of NAV_GROUPS){
-    const col = collapsedMap[g.name] ? ' collapsed' : '';
-    html += `<div class="side-group${col}" data-g="${g.name}"><div class="side-group-title"><span class="side-g-label">${g.icon} ${g.name}</span><span class="side-toggle-arrow" data-g="${g.name}" role="button" tabindex="0" aria-label="展开/收起 ${g.name}" aria-expanded="${!col}">${chev}</span></div>`;
-    html += '<div class="side-group-body"><div class="side-group-inner">';
-    for(const pid of g.pages){ const p = pageById(pid); if(p) html += sideItem(p, current); }
-    html += '</div></div></div>';
-  }
+  // 一级常驻
+  html += '<div class="side-primary">';
+  for(const pid of PRIMARY_NAV){ const p = pageById(pid); if(p) html += sideItem(p, current); }
   html += '</div>';
+  // 更多▾（默认折叠：groupCollapsed['more'] 非 false 即折叠）
+  const moreCol = (collapsedMap['more'] === false) ? '' : ' collapsed';
+  html += '<div class="side-group' + moreCol + '" data-g="more"><div class="side-group-title"><span class="side-g-label">更多</span><span class="side-toggle-arrow" data-g="more" role="button" tabindex="0" aria-label="展开/收起 更多" aria-expanded="' + (moreCol === '' ? 'true' : 'false') + '">' + chev + '</span></div>';
+  html += '<div class="side-group-body"><div class="side-group-inner">';
+  for(const pid of MORE_NAV){ const p = pageById(pid); if(p) html += sideItem(p, current); }
+  html += '</div></div></div>';
   nav.innerHTML = html;
   bindSidebar();
 }

@@ -1,90 +1,57 @@
 ready(() => {
-  // 仪表盘各卡片独立渲染：任一模块报错不影响其他模块，避免「整片空白」
   const safe = fn => { try{ fn(); }catch(e){ console.error('[index] 渲染失败', fn.name || '', e); } };
+  const s = DATA.settings;
+  const tkey = todayKey();
+  const todays = DATA.sessions.filter(x => x.date === tkey);
+  const totalSec = todays.reduce((a,x) => a + x.durationSec, 0);
 
   safe(() => {
-    const s = DATA.settings;
     $('#userName').textContent = s.name || 'Camille';
-    $('#examDate').textContent = s.examDate || '--';
-    $('#targetOverall').textContent = (s.targets && s.targets.overall) || '6.0';
-    $('#goalHours').textContent = s.dailyGoalHours || 8;
-
     const dLeft = daysUntil(s.examDate);
-    $('#daysLeft').textContent = dLeft === null ? '--' : (dLeft < 0 ? '已过' : dLeft);
+    const examMd = s.examDate ? s.examDate.slice(5) : '';
+    $('#dashCountdown').textContent = s.examDate
+      ? ('距 ' + examMd + ' 还有 ' + (dLeft == null ? '--' : (dLeft < 0 ? '已过' : dLeft)) + ' 天')
+      : '未设置考试日期';
+    $('#stTime').textContent = fmtHM(totalSec);
+    $('#stGoal').textContent = s.dailyGoalHours || 8;
+    const st = $('#startTitle'), sb = $('#startSub');
+    if(todays.length > 0){ st.textContent = '继续上次'; sb.textContent = '今天已学 ' + fmtHM(totalSec) + '，继续加油'; }
+    else { st.textContent = '开始今日学习'; sb.textContent = '选模块，开一个计时器'; }
   });
 
-  safe(() => {
-    const tkey = todayKey();
-    const todays = DATA.sessions.filter(x => x.date === tkey);
-    const totalSec = todays.reduce((a,x) => a + x.durationSec, 0);
-    $('#todayTime').textContent = fmtHM(totalSec);
-
-    const goalSec = (DATA.settings.dailyGoalHours || 8) * 3600;
-    const pct = goalSec > 0 ? Math.min(100, totalSec/goalSec*100) : 0;
-    const reached = pct >= 100;
-    $('#todayProgress').innerHTML = (reached ? '<div class="goal-done">🎉 今日目标已达成，太棒了！</div>' : '') + progressBar('今日进度', pct, reached ? 'var(--warn)' : 'var(--primary)');
-
-    const bySub = {};
-    todays.forEach(x => bySub[x.subName] = (bySub[x.subName]||0) + x.durationSec);
-    if(Object.keys(bySub).length === 0){
-      $('#todayBars').innerHTML = renderEmpty('今天还没有学习记录，去「计时学习」开始吧。');
-    } else {
-      $('#todayBars').innerHTML = renderPieChart(bySub);
-    }
-  });
-
-  safe(renderQuickLinks);
-  safe(renderFavLinks);
   safe(renderStreak);
-  safe(renderReminders);
   safe(renderMedSnippet);
-
+  safe(renderReminders);
+  safe(() => { const b = $('#todayBars'); if(b){ const bySub={}; todays.forEach(x=>bySub[x.subName]=(bySub[x.subName]||0)+x.durationSec); b.innerHTML = Object.keys(bySub).length===0 ? renderEmpty('今天还没有学习记录') : renderPieChart(bySub); } });
+  safe(renderFavLinks);
   safe(() => { const btn = $('#genSummaryBtn'); if(btn) btn.addEventListener('click', genSummary); });
 
-  // 侧边栏点/取消收藏（心形）时就地刷新「快捷入口」，不依赖跨页全局函数
-  window.__hubFavChange = () => safe(renderQuickLinks);
+  window.__hubFavChange = () => {};   // 快捷入口已移除，收藏仅作星标指示，无需刷新
   document.removeEventListener('hub:favchange', window.__hubFavChange);
   document.addEventListener('hub:favchange', window.__hubFavChange);
 
-  // 计时保存后自动刷新「今日已学」时长 + 进度条 + 饼图（无需手动 F5）
   window.__hubSessionSaved = () => safe(() => {
-    const tkey = todayKey();
-    const todays = DATA.sessions.filter(x => x.date === tkey);
-    const totalSec = todays.reduce((a,x) => a + x.durationSec, 0);
-    const te = $('#todayTime'); if(te) te.textContent = fmtHM(totalSec);
-    const goalSec = (DATA.settings.dailyGoalHours || 8) * 3600;
-    const pct = goalSec > 0 ? Math.min(100, totalSec/goalSec*100) : 0;
-    const reached = pct >= 100;
-    const pb = $('#todayProgress'); if(pb) pb.innerHTML = (reached ? '<div class="goal-done">🎉 今日目标已达成，太棒了！</div>' : '') + progressBar('今日进度', pct, reached ? 'var(--warn)' : 'var(--primary)');
-    const bySub = {};
-    todays.forEach(x => bySub[x.subName] = (bySub[x.subName]||0) + x.durationSec);
-    const tb = $('#todayBars');
-    if(tb){
-      if(Object.keys(bySub).length === 0) tb.innerHTML = renderEmpty('今天还没有学习记录，去「计时学习」开始吧。');
-      else tb.innerHTML = renderPieChart(bySub);
-    }
+    const tk = todayKey();
+    const td = DATA.sessions.filter(x => x.date === tk);
+    const ts = td.reduce((a,x) => a + x.durationSec, 0);
+    const te = $('#stTime'); if(te) te.textContent = fmtHM(ts);
+    const st = $('#startTitle'), sb = $('#startSub');
+    if(td.length > 0){ st.textContent='继续上次'; sb.textContent='今天已学 '+fmtHM(ts)+'，继续加油'; }
+    else { st.textContent='开始今日学习'; sb.textContent='选模块，开一个计时器'; }
+    const tb = $('#todayBars'); if(tb){ const bySub={}; td.forEach(x=>bySub[x.subName]=(bySub[x.subName]||0)+x.durationSec); tb.innerHTML = Object.keys(bySub).length===0?renderEmpty('今天还没有学习记录'):renderPieChart(bySub); }
   });
   document.removeEventListener('hub:session-saved', window.__hubSessionSaved);
   document.addEventListener('hub:session-saved', window.__hubSessionSaved);
 });
 
 function renderMedSnippet(){
+  const el = $('#stMed'); if(!el) return;
   const tkey = todayKey();
   const todays = DATA.meds.filter(m => m.date === tkey).sort((a,b)=>b.ts-a.ts);
-  if(todays.length === 0){
-    $('#medStatus').textContent = '未服药';
-    $('#medSub').textContent = '今天还没记录专注达';
-    $('#medBar').innerHTML = '';
-    return;
-  }
+  if(todays.length === 0){ el.textContent = '💊 未记录服药'; return; }
   const latest = todays[0];
   const remain = MED_DURATION_MS - (Date.now() - latest.ts);
-  const h = new Date(latest.ts).getHours(), mi = new Date(latest.ts).getMinutes();
-  $('#medStatus').textContent = remain > 0 ? '药效中' : '已失效';
-  $('#medSub').textContent = '服药 ' + pad2(h) + ':' + pad2(mi) + ' · 预计 ' + expireStr(latest.ts) + ' 结束';
-  const pct = Math.min(100, (Date.now()-latest.ts)/MED_DURATION_MS*100);
-  const cls = remain < 3600000 ? 'meds-bar low' : 'meds-bar';
-  $('#medBar').innerHTML = `<div class="meds-bar-wrap"><div class="${cls}" style="width:${pct}%"></div></div>`;
+  el.textContent = remain > 0 ? '💊 药效中' : '💊 已失效';
 }
 
 /* 快捷入口：只渲染侧边栏 ⭐ 收藏过的页面（favPageIds() 与侧边栏「常用」同一份数据）
@@ -151,58 +118,34 @@ function renderFavLinks(){
 }
 
 function renderStreak(){
-  const box = $('#streakBox'); if(!box) return;
+  const el = $('#stStreak'); if(!el) return;
   const checkins = DATA.checkins || [];
-  const streak = computeStreak(checkins);
+  el.textContent = computeStreak(checkins);
+  const btn = $('#checkinBtn');
   const today = todayKey();
   const checked = checkins.includes(today);
-  const total = checkins.length;
-  box.innerHTML =
-    '<div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">' +
-      '<div style="text-align:center"><div style="font-size:30px;font-weight:800;color:var(--warn);line-height:1">🔥 ' + streak + '</div><div class="muted" style="font-size:12px">连续天数</div></div>' +
-      '<div style="text-align:center"><div style="font-size:30px;font-weight:800;color:var(--primary);line-height:1">' + total + '</div><div class="muted" style="font-size:12px">累计打卡</div></div>' +
-      '<button class="btn ' + (checked ? '' : 'btn-primary') + '" id="checkinBtn" ' + (checked ? 'disabled' : '') + '>' + (checked ? '✅ 今日已打卡' : '✅ 今日打卡') + '</button>' +
-    '</div>';
-  const btn = $('#checkinBtn');
-  if(btn) btn.addEventListener('click', () => {
-    const t = todayKey();
-    DATA.checkins = DATA.checkins || [];
-    if(!DATA.checkins.includes(t)){ DATA.checkins.push(t); hubSave(); }
-    toast('🔥 打卡成功，连续 ' + computeStreak(DATA.checkins) + ' 天');
-    renderStreak();
-  });
+  if(btn){
+    btn.textContent = checked ? '✓' : '打卡';
+    btn.disabled = checked;
+    if(!checked) btn.onclick = () => {
+      DATA.checkins = DATA.checkins || [];
+      if(!DATA.checkins.includes(today)){ DATA.checkins.push(today); hubSave(); }
+      toast('🔥 打卡成功，连续 ' + computeStreak(DATA.checkins) + ' 天');
+      renderStreak();
+    };
+  }
 }
 
 function renderReminders(){
-  const box = $('#reminderBox'); if(!box) return;
+  const box = $('#reminderLine'); if(!box) return;
   const tkey = todayKey();
   const tips = [];
-  const studiedToday = (DATA.sessions || []).some(s => s.date === tkey);
-  if(!studiedToday){
-    // P0-B：当天未学习时的「去计时」入口。保留主动跳转能力（href 仍走软导航），
-    // 但文案更明确、视觉更克制（不再用填充按钮，避免被误触成「莫名跳计时页」）。
-    tips.push({ icon:'📚', text:'今天还没有学习记录，点下面可去「计时学习」开一个计时器 🔥', action:{ label:'去开启今日计时', href:'timer.html' } });
-  }
+  if(!(DATA.sessions||[]).some(x => x.date === tkey)) tips.push('今天还没开始学习，去「计时学习」开个计时器');
   const dLeft = daysUntil(DATA.settings.examDate);
-  if(dLeft !== null && dLeft >= 0 && dLeft <= 7){
-    tips.push({ icon:'⏳', text:'距离考试仅剩 <b>' + dLeft + '</b> 天，正是冲刺关键期！' });
-  }
-  const medToday = (DATA.meds || []).some(m => m.date === tkey);
-  if(!medToday){
-    tips.push({ icon:'💊', text:'今天还没记录专注达，记得在「服药记录」里打卡。' });
-  }
-  const due = (DATA.words || []).filter(w => !w.srsDue || w.srsDue <= tkey).length;
-  if(due > 0){
-    tips.push({ icon:'🧠', text:'有 <b>' + due + '</b> 个单词待复习（记忆曲线），去「单词练习」刷一下。', action:{ label:'去复习', href:'practice.html' } });
-  }
-  if(tips.length === 0){ box.innerHTML = '<div class="muted">👍 当前没什么要提醒的，保持节奏就好～</div>'; return; }
-  box.innerHTML = tips.map(t =>
-    '<div class="reminder-item">' +
-      '<span class="reminder-icon">' + t.icon + '</span>' +
-      '<div class="reminder-text">' + t.text + '</div>' +
-      (t.action ? '<a class="reminder-action" href="' + t.action.href + '">' + t.action.label + ' →</a>' : '') +
-    '</div>'
-  ).join('');
+  if(dLeft !== null && dLeft >= 0 && dLeft <= 7) tips.push('距考试仅剩 ' + dLeft + ' 天');
+  const due = (DATA.words||[]).filter(w => !w.srsDue || w.srsDue <= tkey).length;
+  if(due > 0) tips.push(due + ' 个单词待复习');
+  box.innerHTML = tips.length ? '💡 ' + tips.join(' · ') : '';
 }
 
 function genSummary(){
