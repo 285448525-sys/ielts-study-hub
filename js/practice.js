@@ -228,9 +228,10 @@ function startPractice(mode){
   nextQuestion();
 }
 
-// 复习单词（间隔重复）：先算今日待复习，再闪卡复习
+// 复习单词（间隔重复）：读取统一记忆曲线 mc 的到期词（与看词/听音/听写/👁 共用），
+// 因此任何模块练过的词都会在这里按统一排程出现，不再各算各的"第一轮"
 function startReview(){
-  const due = dueWords();
+  const due = mcDueWords();
   $('#modeSelect').hidden = true;
   $('#practiceArea').hidden = false;
   $('#nextBtn').hidden = true;
@@ -243,25 +244,7 @@ function startReview(){
   }
   pq.dueList = due;
   pq.queue = shuffle(due.slice());
-  showDueList();
-}
-
-// 列出当天应复习的词汇（覆盖各阶段记忆周期）
-function showDueList(){
-  const list = pq.dueList;
-  const byStage = {};
-  list.forEach(w => { const s = w.srsStage||0; byStage[s] = (byStage[s]||0)+1; });
-  const stageInfo = Object.keys(byStage).sort((a,b)=>a-b)
-    .map(s => '第'+s+'阶段 '+byStage[s]+' 个').join(' · ');
-  $('#practiceScore').textContent = '待复习 '+list.length+' 个';
-  $('#practiceBody').innerHTML =
-    '<div class="q-word">今日待复习 '+list.length+' 个</div>' +
-    '<div class="q-cn">覆盖记忆周期：'+(stageInfo||'新词')+'</div>' +
-    '<div style="margin-top:12px;text-align:left;max-height:320px;overflow:auto">' +
-      list.map(w => '<div class="list-item"><span><strong>'+escapeHtml(w.en)+'</strong>'+(w.cn?' <span class="muted">'+escapeHtml(w.cn)+'</span>':'')+'</span><span class="badge">第'+(w.srsStage||0)+'阶段</span></div>').join('') +
-    '</div>' +
-    '<button class="btn btn-primary" id="startReview" style="margin-top:14px">开始复习</button>';
-  $('#startReview').addEventListener('click', () => { $('#practiceBody').innerHTML=''; nextQuestion(); });
+  showMcDueList();
 }
 
 // ======= 墨墨式记忆曲线复习（独立模式 mc）=======
@@ -592,29 +575,18 @@ function retrySameWord(cur){
   $('#unknownBtn').addEventListener('click', () => markUnknown(cur));
 }
 
-// 复习单词：依据记忆曲线更新该词的阶段与下次复习日，并落库
+// 复习单词：与看词/听音/听写/👁 共用同一套 mc* 远线记忆曲线，
+// 这样"有没有记过的历史"在所有模块和复习板块之间互通（修：此前用独立的 srs* 曲线，与其他板块不认识）
 function applySrs(w, known){
   if(pq.revealed) return;
   pq.revealed = true; pq.total++;
   if(known) pq.correct++;
-  const today = todayKey();
-  if(known){
-    const stage = Math.min((w.srsStage||0)+1, SRS_INTERVALS.length-1);
-    w.srsStage = stage;
-    w.srsDue = addDays(today, SRS_INTERVALS[stage]);
-  } else {
-    w.srsStage = 0;
-    w.srsDue = addDays(today, 1);
-    w.srsLapses = (w.srsLapses||0)+1;
-  }
-  w.srsReps = (w.srsReps||0)+1;
-  w.srsLast = today;
-  hubSave();
+  const label = updateMcCurve(w, known ? 'known' : 'unknown');  // 推进共享长线曲线
   $('#flashAns').textContent = w.cn || '';
   $('#judge').style.display = 'none';
   $('#revealBtn').hidden = true;
   $('#nextBtn').hidden = false; updateScore();
-  toast(known ? ('已记为认识，下次复习 '+w.srsDue) : '已记为不认识，明天再练');
+  toast(known ? ('已记为认识，下次复习 '+w.mcDue) : '已记为不认识，明天再练');
 }
 
 // ======= 共享记忆曲线（远线）：默墨(3档) 与 爱听写(2档) 共用同一套 mc* 字段 =======
@@ -820,6 +792,7 @@ function markDictSkip(cur){
   if(pq.revealed) return;
   pq.revealed = true; pq.total++;
   cancelSpeak();
+  updateMcCurve(cur, 'unknown');  // 跳过=未掌握，也写入统一记忆曲线
   showDictResult(cur, '', false, true);
 }
 
@@ -830,6 +803,7 @@ function checkDictation(cur){
   const val = ($('#dictInput').value || '').trim();
   const ok = c.caseSensitive ? val === cur.en : val.toLowerCase() === cur.en.toLowerCase();
   if(ok) pq.correct++;
+  updateMcCurve(cur, ok ? 'known' : 'unknown');  // 听写也写入统一记忆曲线（修：此前完全不记记忆）
   showDictResult(cur, val, ok, false);
 }
 
@@ -1005,11 +979,7 @@ function updateProgBar(){
   if(pt) pt.textContent = (pq.idx+1) + '/' + pq.queue.length;
 }
 
-// 今日待复习：新词(无 srsDue) + 到期/逾期(srsDue <= 今天) 的单词
-function dueWords(){
-  const today = todayKey();
-  return DATA.words.filter(w => !w.srsDue || w.srsDue <= today);
-}
+// 记忆曲线工具：addDays / pickWrong / shuffle 等（待复习判定已统一走 mcDueWords → w.mcDue）
 function addDays(dateStr, n){
   const d = new Date(dateStr + 'T00:00:00');
   d.setDate(d.getDate() + n);

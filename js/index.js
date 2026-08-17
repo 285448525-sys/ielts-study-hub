@@ -142,7 +142,7 @@ function renderReminders(){
   if(!(DATA.sessions||[]).some(x => x.date === tkey)) tips.push('今天还没开始学习，去「计时学习」开个计时器');
   const cd = examCountdown();
   if(cd.hasExam && cd.daysLeft !== null && cd.daysLeft >= 0 && cd.daysLeft <= 7) tips.push('距考试仅剩 ' + cd.daysLeft + ' 天');
-  const due = (DATA.words||[]).filter(w => !w.srsDue || w.srsDue <= tkey).length;
+  const due = (DATA.words||[]).filter(w => !w.mcDue || w.mcDue <= tkey).length;
   if(due > 0) tips.push(due + ' 个单词待复习');
   box.innerHTML = tips.length ? '💡 ' + tips.join(' · ') : '';
 }
