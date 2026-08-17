@@ -23,9 +23,12 @@ ready(() => {
   safe(renderReminders);
   safe(() => { const b = $('#todayBars'); if(b){ const bySub={}; todays.forEach(x=>bySub[x.subName]=(bySub[x.subName]||0)+x.durationSec); b.innerHTML = Object.keys(bySub).length===0 ? renderEmpty('今天还没有学习记录') : renderPieChart(bySub); } });
   safe(renderFavLinks);
+  safe(renderQuickLinks);   // 我的收藏（站内页面快捷入口）
   safe(() => { const btn = $('#genSummaryBtn'); if(btn) btn.addEventListener('click', genSummary); });
 
-  window.__hubFavChange = () => {};   // 快捷入口已移除，收藏仅作星标指示，无需刷新
+  // 收藏列表变更：在别的页面切收藏，首页「我的收藏」即时刷新（不用切走再回来）。
+  // common.js 的 toggleFav 已在切星标后派发 hub:favchange；此处监听真正干活。
+  window.__hubFavChange = () => { try{ renderQuickLinks(); }catch(e){ console.error('[index] 快捷入口刷新失败', e); } };
   document.removeEventListener('hub:favchange', window.__hubFavChange);
   document.addEventListener('hub:favchange', window.__hubFavChange);
 

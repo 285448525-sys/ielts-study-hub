@@ -42,15 +42,30 @@ function injectNav(){
   let html = '';
   html += '<div class="side-head"><span class="nav-logo">📚</span><span>雅思备考 Hub</span><button class="side-collapse-in" id="sideCollapseIn" type="button" title="收起侧边栏" aria-label="收起侧边栏">⟨</button></div>';
   html += '<input class="side-search" id="sideSearch" placeholder="搜索功能…" aria-label="搜索功能" />';
-  // 一级常驻
+
+  // 收藏集合（仪表盘 index 永远不参与置顶/去重，避免首页入口消失）
+  const favSet = new Set(favPageIds().filter(id => id !== 'index'));
+  const favPages = [...favSet].map(id => PAGES.find(p => p.id === id)).filter(Boolean);
+  if(favPages.length){
+    const favCol = (collapsedMap['fav'] === false) ? '' : ' collapsed';
+    html += '<div class="side-fav' + favCol + '" data-g="fav">'
+          +   '<div class="side-group-title"><span class="side-g-label">常用</span>'
+          +     '<span class="side-toggle-arrow" data-g="fav" role="button" tabindex="0" aria-label="展开/收起 常用" aria-expanded="' + (favCol === '' ? 'true' : 'false') + '">' + chev + '</span>'
+          +   '</div>'
+          +   '<div class="side-group-body"><div class="side-group-inner">';
+    for(const p of favPages) html += sideItem(p, current);
+    html +=     '</div></div></div>';
+  }
+
+  // 一级常驻（跳过已收藏）
   html += '<div class="side-primary">';
-  for(const pid of PRIMARY_NAV){ const p = pageById(pid); if(p) html += sideItem(p, current); }
+  for(const pid of PRIMARY_NAV){ if(favSet.has(pid)) continue; const p = pageById(pid); if(p) html += sideItem(p, current); }
   html += '</div>';
-  // 更多▾（默认折叠：groupCollapsed['more'] 非 false 即折叠）
+  // 更多▾（默认折叠：groupCollapsed['more'] 非 false 即折叠，跳过已收藏）
   const moreCol = (collapsedMap['more'] === false) ? '' : ' collapsed';
   html += '<div class="side-group' + moreCol + '" data-g="more"><div class="side-group-title"><span class="side-g-label">更多</span><span class="side-toggle-arrow" data-g="more" role="button" tabindex="0" aria-label="展开/收起 更多" aria-expanded="' + (moreCol === '' ? 'true' : 'false') + '">' + chev + '</span></div>';
   html += '<div class="side-group-body"><div class="side-group-inner">';
-  for(const pid of MORE_NAV){ const p = pageById(pid); if(p) html += sideItem(p, current); }
+  for(const pid of MORE_NAV){ if(favSet.has(pid)) continue; const p = pageById(pid); if(p) html += sideItem(p, current); }
   html += '</div></div></div>';
   nav.innerHTML = html;
   bindSidebar();
