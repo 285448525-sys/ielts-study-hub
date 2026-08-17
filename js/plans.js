@@ -52,7 +52,7 @@ async function aiPlanItem(){
   const weakStr = weak.map(w => w.name + (w.gap >= 0 ? (' 差' + w.gap) : ' 已达标')).join('、');
   const latestStr = latest ? ('听' + latest.listening + '/读' + latest.reading + '/写' + latest.writing + '/口' + latest.speaking) : '暂无';
   const targetStr = '听' + (t.listening||5.5) + '/读' + (t.reading||6.5) + '/写' + (t.writing||5.5) + '/口' + (t.speaking||5.5);
-  const dLeft = daysUntil(DATA.settings.examDate);
+  const cd = examCountdown();
   const medToday = (DATA.meds || []).filter(m => m.date === todayKey()).sort((a,b)=>b.ts-a.ts)[0];
   const medStr = medToday ? ('今天已服专注达，药效窗口参考服药时间') : '今天未记录专注达';
 
@@ -215,8 +215,8 @@ function renderWeekHint(){
   const el = $('#weekHint'); if(!el) return;
   const weak = computeWeak();
   let msg = '弱项：' + weak[0].name + '、' + weak[1].name + '（AI 会优先多排）。';
-  const dLeft = daysUntil(DATA.settings.examDate);
-  if(dLeft !== null && dLeft > 0) msg += ' 距考试 ' + dLeft + ' 天。';
+  const cd = examCountdown();
+  if(cd.hasExam && cd.daysLeft !== null && cd.daysLeft > 0) msg += ' 距考试 ' + cd.daysLeft + ' 天。';
   el.textContent = msg;
 }
 function computeWeak(){
@@ -310,7 +310,7 @@ async function aiWeekPlan(){
   const latest = DATA.scores.slice().sort((a,b)=>b.date.localeCompare(a.date))[0];
   const t = DATA.settings.targets || {};
   const dailyHours = DATA.settings.dailyGoalHours || 8;
-  const dLeft = daysUntil(DATA.settings.examDate);
+  const cd = examCountdown();
   const weakStr = weak.map(w => w.name + (w.gap >= 0 ? (' 差' + w.gap) : ' 已达标')).join('、');
   const latestStr = latest ? ('听' + latest.listening + '/读' + latest.reading + '/写' + latest.writing + '/口' + latest.speaking) : '暂无';
   const targetStr = '听' + (t.listening||5.5) + '/读' + (t.reading||6.5) + '/写' + (t.writing||5.5) + '/口' + (t.speaking||5.5);

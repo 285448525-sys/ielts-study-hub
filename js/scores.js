@@ -90,10 +90,9 @@ function render(){
   const targetOverall = t.overall || 6.0;
 
   // stats — 加考试倒计时 + 本场目标（0 次也显示倒计时/目标）
-  const examDate = DATA.settings.examDate || '';
-  const examMd = examDate ? examDate.slice(5) : '';
-  const dLeft = daysUntil(examDate);
-  const dLabel = dLeft == null ? '--' : (dLeft < 0 ? '已过' : dLeft + ' 天');
+  const cd = examCountdown();
+  const examMd = cd.md || '考试';
+  const dLabel = cd.label;
   const statBox = $('#scoreStats');
   if(list.length === 0){
     statBox.innerHTML =

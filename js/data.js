@@ -512,7 +512,8 @@ let DATA = {
   ],
   settings: {
     name: 'Camille',
-    examDate: '2026-08-02',
+    examDate: '2026-08-25',                 // 下一次考试（首考 2026-08-02 已过，不再作倒计时基准）
+    examDates: ['2026-08-25', '2026-09-13'], // 后续场次日程，倒计时自动取"未来最早一场"
     theme: 'light',
     dailyGoalHours: 8,
     targets: { overall: 6.0, listening: 5.5, reading: 6.5, writing: 5.5, speaking: 5.5 },
@@ -595,6 +596,24 @@ function hubLoad(){
       const existingIds = new Set(DATA.speaking.map(s => s.id));
       const missing = SPEAKING_BANK.filter(s => !existingIds.has(s.id) && !deletedIds.has(s.id));
       if(missing.length) DATA.speaking = missing.concat(DATA.speaking);
+    }
+    // 考试倒计时迁移（Bug：首页/顶部显示"已过 天"）：
+    // 老用户 localStorage 里 examDate 仍是首考 2026-08-02（已过），导致 daysUntil 返回负数、格式串又硬拼" 天"，
+    // 倒计时丢失"距下次考试"信息。这里按用户真实档期初始化 upcoming 列表（仅当缺失时，已手动管理者不受影响）。
+    if(!Array.isArray(DATA.settings.examDates) || DATA.settings.examDates.length === 0){
+      const KNOWN_EXAMS = ['2026-08-25', '2026-09-13']; // 二场、三场(目标分)
+      const today0 = new Date(); today0.setHours(0,0,0,0);
+      const future = KNOWN_EXAMS.filter(d => {
+        const dt = new Date(d + 'T00:00:00');
+        return !isNaN(dt) && dt >= today0;
+      });
+      if(future.length){
+        DATA.settings.examDates = future;
+        // 同步修正单个 examDate，确保仍读 examDate 的旧代码不再显示"已过"
+        const cur = DATA.settings.examDate;
+        const curDt = cur ? new Date(cur + 'T00:00:00') : null;
+        if(!curDt || isNaN(curDt) || curDt < today0) DATA.settings.examDate = future[0];
+      }
     }
   }catch(e){ console.warn('读取本地数据失败', e); }
 }

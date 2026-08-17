@@ -7,10 +7,9 @@ ready(() => {
 
   safe(() => {
     $('#userName').textContent = s.name || 'Camille';
-    const dLeft = daysUntil(s.examDate);
-    const examMd = s.examDate ? s.examDate.slice(5) : '';
-    $('#dashCountdown').textContent = s.examDate
-      ? ('距 ' + examMd + ' 还有 ' + (dLeft == null ? '--' : (dLeft < 0 ? '已过' : dLeft)) + ' 天')
+    const cd = examCountdown();
+    $('#dashCountdown').textContent = cd.hasExam
+      ? ('距 ' + cd.md + (cd.daysLeft < 0 ? '（' + cd.label + '）' : ' 还有 ' + cd.label))
       : '未设置考试日期';
     $('#stTime').textContent = fmtHM(totalSec);
     $('#stGoal').textContent = s.dailyGoalHours || 8;
@@ -141,8 +140,8 @@ function renderReminders(){
   const tkey = todayKey();
   const tips = [];
   if(!(DATA.sessions||[]).some(x => x.date === tkey)) tips.push('今天还没开始学习，去「计时学习」开个计时器');
-  const dLeft = daysUntil(DATA.settings.examDate);
-  if(dLeft !== null && dLeft >= 0 && dLeft <= 7) tips.push('距考试仅剩 ' + dLeft + ' 天');
+  const cd = examCountdown();
+  if(cd.hasExam && cd.daysLeft !== null && cd.daysLeft >= 0 && cd.daysLeft <= 7) tips.push('距考试仅剩 ' + cd.daysLeft + ' 天');
   const due = (DATA.words||[]).filter(w => !w.srsDue || w.srsDue <= tkey).length;
   if(due > 0) tips.push(due + ' 个单词待复习');
   box.innerHTML = tips.length ? '💡 ' + tips.join(' · ') : '';
@@ -183,9 +182,9 @@ function genSummary(){
   }
 
   // exam countdown
-  const dLeft = daysUntil(DATA.settings.examDate);
-  if(dLeft !== null && dLeft >= 0){
-    lines.push('\n⏳ 距离考试还有 ' + dLeft + ' 天');
+  const cd = examCountdown();
+  if(cd.hasExam && cd.daysLeft !== null && cd.daysLeft >= 0){
+    lines.push('\n⏳ 距离考试还有 ' + cd.daysLeft + ' 天');
   }
 
   const el = $('#summaryOutput');

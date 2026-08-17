@@ -211,8 +211,38 @@ function toast(msg){
 function daysUntil(dateStr){
   if(!dateStr) return null;
   const d = new Date(dateStr + 'T00:00:00');
+  if(isNaN(d)) return null;                 // 非法/非 ISO 格式（如 2026/8/25）直接判空，避免渲染 NaN
   const now = new Date(); now.setHours(0,0,0,0);
   return Math.ceil((d - now) / 86400000);
+}
+
+/* 取"下一次考试"：优先 examDates 数组（多场日程），回退单个 examDate。
+   选今天及之后最早的一场；若全部已过，返回最近一场（供"已结束"提示）。 */
+function nextExamDate(){
+  const today0 = new Date(); today0.setHours(0,0,0,0);
+  const arr = [];
+  const push = v => { if(!v) return; const d = new Date(v + 'T00:00:00'); if(isNaN(d)) return; arr.push({ raw:v, d }); };
+  (DATA.settings.examDates || []).forEach(push);
+  push(DATA.settings.examDate);
+  if(arr.length === 0) return null;
+  const upcoming = arr.filter(x => x.d >= today0).sort((a,b) => a.d - b.d);
+  if(upcoming.length) return { raw: upcoming[0].raw, passed:false };
+  const past = arr.slice().sort((a,b) => b.d - a.d);
+  return { raw: past[0].raw, passed:true };
+}
+
+/* 倒计时文案：修复原"已过 天"格式 bug（负数时不应再拼" 天"）。
+   返回 { raw, md(MM-DD), daysLeft, label, hasExam }，label 为"还有"之后的部分。 */
+function examCountdown(){
+  const ne = nextExamDate();
+  if(!ne) return { raw:'', md:'', daysLeft:null, label:'--', hasExam:false };
+  const daysLeft = daysUntil(ne.raw);
+  let label;
+  if(daysLeft === null) label = '--';
+  else if(daysLeft < 0) label = '已结束（' + Math.abs(daysLeft) + ' 天前）';
+  else if(daysLeft === 0) label = '就是今天';
+  else label = daysLeft + ' 天';
+  return { raw: ne.raw, md: ne.raw.slice(5), daysLeft, label, hasExam:true };
 }
 
 function expireStr(ts){ const d=new Date(ts+MED_DURATION_MS); return pad2(d.getHours())+':'+pad2(d.getMinutes()); }

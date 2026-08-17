@@ -198,11 +198,11 @@ const PAGE_SCENES = {
 /* daysUntil / toast 已由 common.js 定义为全局函数，此处不重复声明，避免覆盖 */
 function collectParams(sceneId) {
   const p = Object.assign({}, window.AI_CONTEXT || {});
-  // 天数自动算（dailyplan / weekly）：以设置里的考试日期为准，不再写死
-  const exam = (DATA.settings && DATA.settings.examDate) || '';
+  // 天数自动算（dailyplan / weekly）：以"下一次考试"为准（多场自动取未来最早一场）
+  const cd = examCountdown();
   if (sceneId === 'dailyplan' || sceneId === 'weekly') {
-    if (p.n1 == null) p.n1 = exam ? daysUntil(exam) : '—';
-    if (p.examLabel == null) p.examLabel = exam || '未设置';
+    if (p.n1 == null) p.n1 = cd.hasExam ? cd.daysLeft : '—';
+    if (p.examLabel == null) p.examLabel = cd.hasExam ? cd.raw : '未设置';
   }
   // 口语页：当前打开的题卡/话题
   if (sceneId === 'p1' || sceneId === 'p2') {
