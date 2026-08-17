@@ -45,11 +45,13 @@ function injectNav(){
   const med = (DATA.meds || []).filter(m => m.date === todayKey()).sort((a, b) => b.ts - a.ts)[0];
   let medTxt = '未记录';
   if(med){ const remain = MED_DURATION_MS - (Date.now() - med.ts); medTxt = remain > 0 ? '药效中' : '已失效'; }
+  const goalSec = (DATA.settings.dailyGoalHours || 8) * 3600;
+  const reached = goalSec > 0 && todaySec >= goalSec;
 
   let html = '';
   html += '<div class="side-head"><span class="nav-logo">📚</span><span>雅思备考 Hub</span><button class="side-collapse-in" id="sideCollapseIn" type="button" title="收起侧边栏" aria-label="收起侧边栏">⟨</button></div>';
   html += '<input class="side-search" id="sideSearch" placeholder="搜索功能…" aria-label="搜索功能" />';
-  html += `<div class="side-today">今日已学 <b>${fmtHM(todaySec)}</b> · 服药：<b>${medTxt}</b></div>`;
+  html += `<div class="side-today${reached ? ' done' : ''}">${reached ? '🎉 目标达成 · ' : '今日已学 '}<b>${fmtHM(todaySec)}</b>${reached ? '' : ' · 服药：<b>' + medTxt + '</b>'}</div>`;
   const collapsedMap = (DATA.settings && DATA.settings.groupCollapsed) || {};
   const chev = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>';
   const favCol = collapsedMap['fav'] ? ' collapsed' : '';

@@ -20,7 +20,9 @@ ready(() => {
     $('#todayTime').textContent = fmtHM(totalSec);
 
     const goalSec = (DATA.settings.dailyGoalHours || 8) * 3600;
-    $('#todayProgress').innerHTML = progressBar('今日进度', Math.min(100, totalSec/goalSec*100));
+    const pct = goalSec > 0 ? Math.min(100, totalSec/goalSec*100) : 0;
+    const reached = pct >= 100;
+    $('#todayProgress').innerHTML = (reached ? '<div class="goal-done">🎉 今日目标已达成，太棒了！</div>' : '') + progressBar('今日进度', pct, reached ? 'var(--warn)' : 'var(--primary)');
 
     const bySub = {};
     todays.forEach(x => bySub[x.subName] = (bySub[x.subName]||0) + x.durationSec);
@@ -51,7 +53,9 @@ ready(() => {
     const totalSec = todays.reduce((a,x) => a + x.durationSec, 0);
     const te = $('#todayTime'); if(te) te.textContent = fmtHM(totalSec);
     const goalSec = (DATA.settings.dailyGoalHours || 8) * 3600;
-    const pb = $('#todayProgress'); if(pb) pb.innerHTML = progressBar('今日进度', Math.min(100, totalSec/goalSec*100));
+    const pct = goalSec > 0 ? Math.min(100, totalSec/goalSec*100) : 0;
+    const reached = pct >= 100;
+    const pb = $('#todayProgress'); if(pb) pb.innerHTML = (reached ? '<div class="goal-done">🎉 今日目标已达成，太棒了！</div>' : '') + progressBar('今日进度', pct, reached ? 'var(--warn)' : 'var(--primary)');
     const bySub = {};
     todays.forEach(x => bySub[x.subName] = (bySub[x.subName]||0) + x.durationSec);
     const tb = $('#todayBars');
