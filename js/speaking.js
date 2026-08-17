@@ -11,16 +11,12 @@ ready(() => {
     b.addEventListener('click', () => {
       const t = b.dataset.type;
       $('#tabs').querySelectorAll('[data-type]').forEach(x => x.classList.toggle('active', x === b));
-      if(t === 'CT'){
-        $('#listView').hidden = true; $('#detailView').hidden = true; $('#mockView').hidden = true;
-        $('#ctView').hidden = false;
-        renderCTIntro();
-      } else if(t === 'MOCK'){
-        $('#listView').hidden = true; $('#detailView').hidden = true; $('#ctView').hidden = true;
+      if(t === 'MOCK'){
+        $('#listView').hidden = true; $('#detailView').hidden = true;
         $('#mockView').hidden = false;
       } else {
         curType = t;
-        $('#ctView').hidden = true; $('#mockView').hidden = true; $('#detailView').hidden = true;
+        $('#mockView').hidden = true; $('#detailView').hidden = true;
         $('#listView').hidden = false;
         renderList();
       }
@@ -37,10 +33,6 @@ ready(() => {
   });
   $('#spSearch').addEventListener('input', () => { curSearch = $('#spSearch').value.trim().toLowerCase(); renderList(); });
   $('#backBtn').addEventListener('click', () => { $('#detailView').hidden = true; $('#listView').hidden = false; curDetailId = null; });
-  $('#ctBackBtn').addEventListener('click', () => {
-    $('#ctView').hidden = true; $('#listView').hidden = false;
-    $('#tabs').querySelectorAll('[data-type]').forEach(x => x.classList.toggle('active', x.dataset.type === curType));
-  });
   renderList();
 });
 
@@ -206,7 +198,7 @@ function openDetail(id){
   if(s.type === 'P2'){
     if(s.promptEn) html += '<div class="sp-prompt">题目：' + escapeHtml(s.promptEn) + '</div>';
     if(s.promptZh) html += '<div class="sp-detail-zh" style="margin-bottom:12px">' + escapeHtml(s.promptZh) + '</div>';
-    html += '<div class="sp-mat-link" id="spMatLink"></div>';
+    html += '<div class="sp-mat-hint" id="spMatHint"></div>';
 
     html += '<div class="sp-p2-answer">';
     html += '<div class="sp-ans-row">';
@@ -244,7 +236,7 @@ function openDetail(id){
   if(s.type === 'P2'){
     const aiStoryLinkBtn = document.getElementById('aiStoryLinkBtn');
     if(aiStoryLinkBtn) aiStoryLinkBtn.addEventListener('click', () => aiStoryLink(id));
-    matRenderLink(s);
+    matHint(s);
   }
 
   // 逐题展开 + 语音 + AI 诊断 事件绑定（含 localStorage 回填）
@@ -295,6 +287,10 @@ function openDetail(id){
         const timerEl = $('#p2Timer');
         if(timerEl){ timerEl.hidden = false; timerEl.textContent = '⏱ 上次录音 ' + s.answers.p2.duration; timerEl.style.color = 'var(--muted)'; }
       }
+      // 回填 AI 串题方案
+      if(s.answers.p2.aiStoryLink){
+        renderStoryLink($('#aiResult'), s.answers.p2.aiStoryLink);
+      }
     }
   }
 }
@@ -331,148 +327,110 @@ function deleteSpeaking(id){
   toast('已删除该口语题（不再被默认题库恢复）');
 }
 
-/* === 串题入口：逐题 AI 自动串题 === */
-function renderCTIntro(){
-  const list = ctP2List();
-  const box = $('#ctList');
-  if(!box) return;
-  if(!list.length){ box.innerHTML = '<div class="ct-empty">题库中暂无 Part 2 题目</div>'; return; }
-  if(!matLoadStore()){ box.innerHTML = '<div class="ct-empty">还没有万能素材。先去「万能素材」页生成素材库，再来这里串题。</div>'; return; }
-  box.innerHTML = '<div class="ct-hint" style="margin:10px 0">共 ' + list.length + ' 道题，点击「🔀 AI 串题」即可查看用你素材库拼凑的方案。</div>'
-    + '<div class="ct-q-list">' + list.map((s, i) =>
-      '<div class="ct-q-item">'
-      + '<div class="ct-q-text"><b>' + (i + 1) + '.</b> ' + escapeHtml(ctTopicText(s)) + '</div>'
-      + '<button class="btn btn-primary ct-q-btn" data-ct-idx="' + i + '">🔀 AI 串题</button>'
-      + '</div>'
-    ).join('') + '</div>';
-  box.querySelectorAll('[data-ct-idx]').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      const idx = +btn.dataset.ctIdx;
-      const s = list[idx];
-      const resultEl = $('#ctPlanResult');
-      matAiPlan(s, resultEl, btn);
-      if(resultEl) resultEl.scrollIntoView({ behavior:'smooth', block:'start' });
-    });
-  });
-}
-
-async function aiStoryLink(id){
-  const s = DATA.speaking.find(x => x.id === id);
-  if(!s) return;
-  const btn = document.getElementById('aiStoryLinkBtn');
-  await matAiPlan(s, $('#aiResult'), btn);
-}
-
-/* === 素材生成器联动：P2 抽题命中个人素材 → 显示骨架 + 生成中文思路框架 === */
+/* === 素材生成器联动：P2 抽题命中个人素材 → AI 自动匹配串题方案 === */
 function matLoadStore(){
   try{ const s = JSON.parse(localStorage.getItem('ielts_materials_v1')); if(s && Array.isArray(s.materials)) return s; }catch(_){}
   return null;
 }
 
-function matStoreSummary(){
+function matHint(s){
+  const el = document.getElementById('spMatHint'); if(!el) return;
   const store = matLoadStore();
-  if(!store || !store.materials || !store.materials.length) return null;
-  return {
-    persona: (store.persona || '').trim() || '（无人设卡）',
-    materials: store.materials.map((m, i) => ({
-      idx: i + 1,
-      title: m.title || '未命名',
-      coverage: m.coverage || [],
-      facets: m.facets || {},
-      skeleton: m.skeleton || {}
-    }))
-  };
+  const n = (store && store.materials) ? store.materials.length : 0;
+  if(n === 0){
+    el.innerHTML = '<span class="muted">还没生成万能素材，先去「万能素材」页填问卷生成。</span>';
+  } else {
+    el.innerHTML = '<span class="muted">已加载 ' + n + ' 个万能素材，点击下方「🔀 AI 串题思路」自动匹配这道题。</span>';
+  }
 }
 
-function matRenderLink(s){
-  const box = document.getElementById('spMatLink'); if(!box) return;
-  if(!matLoadStore()){ box.style.display = 'none'; return; }
-  box.innerHTML = '<div class="mat-link-head">💡 可用素材（来自你的万能素材库）</div>'
-    + '<div class="mat-link-hint">点击下方「🔀 AI 串题思路」，AI 会自动从你的万能素材库中挑选 1-3 个素材、给出拼凑方案：哪些固定内容可直接搬、哪些缺口需要你自己现场补、怎么组织成约 2 分钟的回答。</div>';
-  box.style.display = 'block';
-}
+async function aiStoryLink(id){
+  const s = DATA.speaking.find(x => x.id === id);
+  if(!s) return;
+  if(!DATA.settings.relayToken){ toast('请先在「设置 / AI 接口」配置 API Key'); return; }
 
-async function matAiPlan(s, targetEl, btn){
-  if(!targetEl) return;
-  const summary = matStoreSummary();
-  if(!summary){
-    targetEl.style.display = 'block';
-    targetEl.innerHTML = '<div class="mat-plan"><div class="mat-outline-err">还没有万能素材。先去「万能素材」页生成素材库再来串题。</div></div>';
+  const store = matLoadStore();
+  if(!store || !store.materials || !store.materials.length){
+    toast('还没有万能素材，先去「万能素材」页生成');
     return;
   }
-  if(!DATA.settings.relayToken){
-    targetEl.style.display = 'block';
-    targetEl.innerHTML = '<div class="mat-plan"><div class="mat-outline-err">未配置 AI Key（去「设置 / AI 接口」填写 DeepSeek Token）。</div></div>';
-    return;
-  }
-  targetEl.style.display = 'block';
-  targetEl.innerHTML = '<div class="mat-plan"><div class="mat-outline-loading">🤔 AI 正在读题 + 读你的素材库，设计串题方案…</div></div>';
-  const oldText = btn ? btn.textContent : '';
-  if(btn){ btn.disabled = true; btn.textContent = '生成中…'; }
 
-  const SYS = '你是雅思口语 P2 串题教练。考生有一份基于真实经历生成的「万能素材库」（含人设卡 + 多个素材卡）。你的任务是针对当前这道 Part 2 题，自动从素材库中挑选最合适的 1-3 个素材，并给出「如何把这些素材拼成一道完整 2 分钟回答」的方案。'
-    + '\n\n输出要求（严格只输出 JSON，不要任何解释文字）：'
-    + '\n{'
-    + '\n  "materials": ["素材名1", "素材名2"],'
-    + '\n  "structure": ['
-    + '\n    {"part": "开头/背景", "content": "中文：这一段说什么", "source": "来自素材《xxx》的哪个 facet/骨架，或\'自己发挥\'", "fixed": true, "hint": "可选：可直接用的英文关键词或固定短句"},'
-    + '\n    ...'
-    + '\n  ],'
-    + '\n  "gaps": ["需要考生自己补充的真实细节1", "需要考生自己补充的真实细节2"],'
-    + '\n  "tips": "1-2 句中文提醒：如何自然扣题、避免背诵腔"'
-    + '\n}'
-    + '\n\n规则：'
-    + '\n1. 优先复用素材库里的真实内容，允许合并多个素材。'
-    + '\n2. 明确标出哪些是「固定内容」（fixed=true，直接从素材库搬）和哪些是「自己发挥」（fixed=false，考生现场补充）。'
-    + '\n3. structure 拆成 5-7 步，每步讲清：说什么、来自哪个素材、是否固定。'
-    + '\n4. 面向目标口语 5.5：建议用简单句型，不要复杂从句。'
-    + '\n5. 总时长要能讲满约 2 分钟。'
-    + '\n6. 不要写完整英文范文，只给中文方案 + 少量可选英文锚点。';
-
-  const user = 'Part 2 题目（英文）：' + (s.promptEn || s.title || '') + '\n中文题意：' + (s.promptZh || '')
-    + '\n\n考生人设卡：\n' + summary.persona
-    + '\n\n万能素材库（共 ' + summary.materials.length + ' 条）：\n' + JSON.stringify(summary.materials, null, 2)
-    + '\n\n请针对上面这道题，给出 JSON 格式的串题方案。';
+  const resultEl = $('#aiResult');
+  resultEl.style.display = 'block';
+  resultEl.innerHTML = '<div class="diag-note">正在根据你的万能素材库自动匹配串题方案…</div>';
 
   try{
-    const content = await callRelay('material_match', [ { role:'system', content: SYS }, { role:'user', content: user } ], 0.6);
+    const matsText = store.materials.map((m, i) =>
+      '【素材 ' + (i + 1) + '：' + (m.title || '未命名') + '】\n' +
+      '自然覆盖题族：' + (m.coverage || []).join('、') + '\n' +
+      '多切面：' + JSON.stringify(m.facets || {}) + '\n' +
+      '英文骨架：' + ((m.skeleton && m.skeleton.en) || []).join(' / ') + '\n' +
+      '中文对照：' + ((m.skeleton && m.skeleton.zh) || []).join(' / ')
+    ).join('\n---\n');
+
+    const sys = '你是雅思口语 P2 串题老师。考生已有一份「万能素材库」，每条素材都来自她的真实经历，包含可覆盖的题族、多切面、英文 keyword 骨架。\n' +
+      '你的任务：针对当前 P2 题目，自动判断应该用哪 1-3 条素材来串这道题；如果单条素材不够覆盖题目所有小问，可以把多条素材的片段**拼凑**成一个完整、自然的故事。\n' +
+      '输出要求：\n' +
+      '1) materials：用了哪几条素材（标题数组，1-3 个）；\n' +
+      '2) steps：分 3-5 段（每段给 part/content/source/type），type=fixed 表示可直接复用素材里的固定内容，type=user 表示需要考生自己现场补充；\n' +
+      '3) sample：一段 1.5-2 分钟、自然口语化的英文参考范文（简单句型为主，符合口语 5.5 水平）；\n' +
+      '4) gaps：需要考生自己补充的细节清单（中文）。\n' +
+      '严格只输出如下 JSON：{"materials":["..."],"steps":[{"part":"开头","content":"中文讲述要点","source":"来自素材X","type":"fixed|user"}],"sample":"英文范文","gaps":["..."]}，不要任何解释文字。';
+
+    const user = 'P2 题目：' + (s.promptEn || s.title || '') +
+      '\n中文题意：' + (s.promptZh || '') +
+      '\nYou should say: ' + ((s.youShouldSay || []).join('; ')) +
+      '\n\n考生的万能素材库：\n' + matsText;
+
+    const content = await callRelay('speaking_chuan', [
+      { role:'system', content: sys },
+      { role:'user', content: user }
+    ], 0.7);
     const j = aiJson(content);
-    if(!j || !Array.isArray(j.materials) || !Array.isArray(j.structure)){
-      throw new Error('AI 返回格式不符');
+
+    if(j && (Array.isArray(j.steps) || j.sample)){
+      s.answers = s.answers || {};
+      s.answers.p2 = s.answers.p2 || {};
+      s.answers.p2.aiStoryLink = { ...j, ts: Date.now(), raw: content };
+      hubSave();
+      renderStoryLink(resultEl, j);
+    } else {
+      resultEl.innerHTML = '<div class="diag-note">AI 返回非标准格式，原文如下：</div><pre>' + escapeHtml(content || '') + '</pre>';
     }
-    let html = '<div class="mat-plan">'
-      + '<div class="mat-plan-head">🔀 AI 串题方案</div>'
-      + '<div class="mat-plan-mats">' + j.materials.map(m => '<span class="mat-plan-mat">' + escapeHtml(String(m)) + '</span>').join('') + '</div>';
-    j.structure.forEach((step, idx) => {
-      const fixed = step.fixed === true;
-      html += '<div class="mat-plan-step">'
-        + '<div class="mat-plan-step-h">'
-        + '<span>Step ' + (idx + 1) + '：' + escapeHtml(String(step.part || '片段')) + '</span>'
-        + '<span class="mat-plan-step-tag ' + (fixed ? 'fixed' : 'user') + '">' + (fixed ? '固定内容' : '自己发挥') + '</span>'
-        + '</div>'
-        + '<div class="mat-plan-step-p">' + escapeHtml(String(step.content || '')) + '</div>'
-        + (step.source ? '<div class="mat-plan-step-src">来源：' + escapeHtml(String(step.source)) + '</div>' : '')
-        + (step.hint ? '<div class="mat-plan-step-key">可用英文：' + escapeHtml(String(step.hint)) + '</div>' : '')
-        + '</div>';
-    });
-    if(Array.isArray(j.gaps) && j.gaps.length){
-      html += '<div class="mat-plan-gaps"><b>需要你现场补充的缺口</b><ul>' + j.gaps.map(g => '<li>' + escapeHtml(String(g)) + '</li>').join('') + '</ul></div>';
-    }
-    if(j.tips){
-      html += '<div class="mat-plan-tips">💡 ' + escapeHtml(String(j.tips)) + '</div>';
-    }
-    html += '</div>';
-    targetEl.innerHTML = html;
   }catch(e){
-    targetEl.innerHTML = '<div class="mat-plan"><div class="mat-outline-err">串题方案生成失败：' + escapeHtml(e.message) + '。可刷新重试，或先去「万能素材」页补充素材。</div></div>';
-  }finally{
-    if(btn){ btn.disabled = false; btn.textContent = oldText || '🔀 AI 串题思路'; }
+    resultEl.innerHTML = '<div class="diag-note">AI 服务暂不可用：' + escapeHtml(e.message) + '</div>';
   }
 }
 
-/* === P2 串题（AI 问→写故事→覆盖矩阵） === */
-var ctQuestions = [];   // [{q, a}]
+function renderStoryLink(el, j){
+  if(!el) return;
+  let h = '<div class="mat-plan">';
+  h += '<div class="mat-plan-head">🧩 AI 串题方案</div>';
+  if(j.materials && j.materials.length){
+    h += '<div class="mat-plan-mats">' + j.materials.map(m => '<span class="mat-plan-mat">' + escapeHtml(m) + '</span>').join('') + '</div>';
+  }
+  if(Array.isArray(j.steps)){
+    j.steps.forEach((st, i) => {
+      const isFixed = st.type === 'fixed';
+      const tag = isFixed ? '素材固定内容' : '需要你现场补';
+      const cls = isFixed ? 'fixed' : 'user';
+      h += '<div class="mat-plan-step">'
+         + '<div class="mat-plan-step-h"><span>' + escapeHtml(st.part || ('第' + (i + 1) + '段')) + '</span><span class="mat-plan-step-tag ' + cls + '">' + tag + '</span></div>'
+         + '<div class="mat-plan-step-p">' + escapeHtml(st.content || '') + '</div>'
+         + (st.source ? '<div class="mat-plan-step-src">来源：' + escapeHtml(st.source) + '</div>' : '')
+         + '</div>';
+    });
+  }
+  if(j.sample){
+    h += '<div class="mat-plan-step"><div class="mat-plan-step-h">参考范文</div><div class="mat-plan-step-key">' + escapeHtml(j.sample) + '</div></div>';
+  }
+  if(j.gaps && j.gaps.length){
+    h += '<div class="mat-plan-gaps"><b>需要你自己补充的细节</b><ul>' + j.gaps.map(g => '<li>' + escapeHtml(g) + '</li>').join('') + '</ul></div>';
+  }
+  h += '<div class="mat-plan-tips">💡 方案根据你的万能素材库自动匹配；点「🔀 AI 串题思路」可重新生成。</div>';
+  h += '</div>';
+  el.innerHTML = h;
+}
 
 /* === 逐题展开 + 语音输入 + AI 语法诊断 === */
 // 顶部常量用 var（speaking.js 会被软导航 window.eval 重跑，const 会抛「已声明」）
@@ -1122,382 +1080,3 @@ function renderCustomResult(el, custom){
     + (custom.tips ? '<div class="tips">' + escapeHtml(custom.tips) + '</div>' : '');
 }
 
-function ctBankText(){
-  // 自动从口语题库读取所有 Part 2 题目，一行一题，作为串题目标
-  const list = (DATA.speaking || []).filter(s => s.type === 'P2');
-  return list.map(s => {
-    let t = s.promptEn || s.titleEn || s.title || '';
-    if(s.promptZh || s.titleZh) t += ' | ' + (s.promptZh || s.titleZh);
-    if(s.youShouldSay && s.youShouldSay.length) t += ' | You should say: ' + s.youShouldSay.join('; ');
-    return t;
-  }).join('\n');
-}
-function ctBankCount(){ return (DATA.speaking || []).filter(s => s.type === 'P2').length; }
-function ctP2List(){ return (DATA.speaking || []).filter(s => s.type === 'P2'); }
-function ctBankNumbered(){
-  // 带编号的题库，编号与 ctP2List() 顺序一致（1-based），供 AI 在 coverage 中按 idx 回填
-  return ctP2List().map((s, i) => (i + 1) + '. ' + ((s.promptZh || s.titleZh || s.promptEn || s.title || '').trim() || ('第 ' + (i + 1) + ' 题')));
-}
-function ctTopicText(s){
-  return ((s.promptZh || s.titleZh || s.promptEn || s.title || '').trim()) || ('第 ' + (ctP2List().indexOf(s) + 1) + ' 题');
-}
-function ctFreqGroup(f){ return (f === 'ultra' || f === 'high' || f === 'must') ? 'high' : 'rest'; }
-function ctResolveIdx(topic){
-  // 兼容旧方案（coverage 只有自由文本 topic 无 idx）：用文本子串回推题库行号
-  if(topic == null) return null;
-  const list = ctP2List();
-  const t = String(topic).trim();
-  if(!t) return null;
-  for(let i = 0; i < list.length; i++){
-    const tt = ctTopicText(list[i]);
-    if(tt === t || tt.indexOf(t) >= 0 || t.indexOf(tt) >= 0) return i + 1;
-  }
-  return null;
-}
-function ctUncoveredHighTopics(){
-  // 当前所有方案并集仍未覆盖且频率为高优(超高频/高频/必考)的题，用于多轮补洞提问
-  const list = ctP2List();
-  const covered = {};
-  (DATA.speakingStories || []).forEach(scheme => (scheme.coverage || []).forEach(c => {
-    let idx = c.idx != null ? c.idx : ctResolveIdx(c.topic);
-    if(idx != null && idx >= 1 && idx <= list.length && c.story) covered[idx] = true;
-  }));
-  return list.map((s, i) => ({ idx: i + 1, s }))
-    .filter(o => !covered[o.idx] && ctFreqGroup(o.s.frequency) === 'high')
-    .map(o => o.idx + '. ' + ctTopicText(o.s));
-}
-
-function ctTemplates(){
-  // 用户已有 P2 母本素材（真实经历），作为写故事的基础
-  const t = DATA.speaking.filter(x => x.type === 'P2' && x.framework === 'P2人物母本');
-  const text = t.map(x => x.title + '：' + (x.content || x.cue || x.keywords || '')).join('\n');
-  return text.trim() ? text : '（暂无母本正文，请仅靠题库生成）';
-}
-
-function ctShowLoading(msg){ const el = $('#ctLoading'); el.textContent = msg; el.hidden = false; }
-function ctHideLoading(){ $('#ctLoading').hidden = true; }
-
-async function ctAsk(){
-  const bank = ctBankText();
-  const n = ctBankCount();
-  if(n === 0){ toast('题库中还没有 Part 2 题目，请先去「Part 2」列表导入'); return; }
-  if(bank.length < 10){ toast('题库中 Part 2 题目不足'); return; }
-  if(!DATA.settings.relayToken){ toast('请先在「设置 / AI 接口」配置 API Key'); return; }
-  ctShowLoading('正在生成提问…');
-  try{
-    const sys = '你是雅思口语 P2 串题规划师。考生要背尽量少的万能故事来覆盖当季题库，'
-      + '且必须保证【超高频/高频/必考题】100% 被覆盖。请基于【当季题库】和【考生已有母本素材】，'
-      + '提出 3-5 个最关键的问题，帮考生确认/补充个人真实经历，以便写出能串多题（尤其高频题）的故事。'
-      + '问题要口语化、像老师在聊天，聚焦可用于多个话题的素材（人物关系、难忘经历、擅长的事、去过的地方、常用物品等）。'
-      + '如果提供了「仍未覆盖的高频题」，请优先问能补这些题的素材。'
-      + '只输出 JSON：{"questions":["问题1","问题2",...]}，不要任何解释文字。';
-    const miss = ctUncoveredHighTopics();
-    const missCtx = miss.length
-      ? ('\n\n⚠️ 当前已生成方案中，以下【超高频/高频/必考】题仍未覆盖，请重点问能补这些题的个人素材：\n' + miss.join('\n'))
-      : '';
-    const user = '当季 P2 题库：\n' + bank + '\n\n考生已有母本素材：\n' + ctTemplates() + missCtx
-      + '\n\n请提出 3-5 个最有助于串题（尤其补足高频缺口）的挖掘问题（中文）。';
-    const content = await callRelay('speaking_chuan', [
-      { role:'system', content: sys },
-      { role:'user', content: user }
-    ], 0.7);
-    const j = aiJson(content);
-    if(j && Array.isArray(j.questions) && j.questions.length){
-      ctQuestions = j.questions.map(q => ({ q: String(q), a: '' }));
-    } else {
-      ctQuestions = ctPlainQuestions(content);
-    }
-    renderCTQuestions();
-  }catch(e){
-    $('#ctResult').innerHTML = '<div class="ct-loading">AI 服务暂不可用：' + escapeHtml(e.message) + '</div>';
-  }finally{
-    ctHideLoading();
-  }
-}
-
-function ctPlainQuestions(text){
-  // 退化解析：按行拆分带序号/项目符号的列表
-  const lines = String(text).split('\n').map(s => s.trim()).filter(Boolean);
-  const qs = lines
-    .map(s => s.replace(/^[\d]+[.、)]\s*/, '').replace(/^[-•·]\s*/, '').trim())
-    .filter(s => s.length >= 4 && s.length <= 80);
-  return qs.slice(0, 6).map(q => ({ q, a: '' }));
-}
-
-function renderCTQuestions(){
-  const box = $('#ctQuestions');
-  if(!ctQuestions.length){ $('#ctAskBox').hidden = true; return; }
-  box.innerHTML = ctQuestions.map((item, i) =>
-    '<div class="ct-question"><label>Q' + (i + 1) + '：' + escapeHtml(item.q) + '</label>'
-    + '<textarea data-qa="' + i + '" placeholder="你的回答（随便说，细节越多故事越好串）"></textarea></div>'
-  ).join('');
-  $('#ctAskBox').hidden = false;
-}
-
-async function ctGen(){
-  const bank = ctBankText();
-  const n = ctBankCount();
-  if(n === 0){ toast('题库中还没有 Part 2 题目'); return; }
-  if(bank.length < 10){ toast('题库中 Part 2 题目不足'); return; }
-  // 收集答案
-  document.querySelectorAll('#ctQuestions textarea[data-qa]').forEach(t => {
-    const i = +t.dataset.qa;
-    if(ctQuestions[i]) ctQuestions[i].a = t.value.trim();
-  });
-  const answered = ctQuestions.filter(q => q.a).map(q => 'Q：' + q.q + '\nA：' + q.a).join('\n\n');
-  if(!answered){ toast('先回答几个问题，AI 才能写出属于你的故事'); return; }
-  if(!DATA.settings.relayToken){ toast('请先在「设置 / AI 接口」配置 API Key'); return; }
-
-  ctShowLoading('正在生成串题故事…');
-  try{
-    const sys = '你是雅思口语 P2 串题规划师。基于【当季题库(带编号)】+【考生回答】+【已有母本】，'
-      + '设计"尽可能少"的万能故事（数量由你决定，通常 3-5 个，但不得多于必要；目标：用最少故事覆盖最多题），'
-      + '让考生背完能覆盖题库尽量多的题，并优先保证频率标记为 超高频/高频/必考题(ultra/high/must) 的题目 100% 被覆盖'
-      + '（这些题 story 绝不能为 null，除非确实完全无法串）。故事必须来自考生的真实经历/回答，口语化、自然、可讲满 2 分钟。'
-      + '严格要求只输出如下 JSON（不要任何解释文字）：'
-      + '{"stories":[{"name":"故事名","keyPoints":"复述线/关键词(中文1-2行)",'
-      + '"outline":"英文叙事要点，可分点，可夹中文注释","covers":["原题表述或编号"]}],'
-      + '"coverage":[{"idx":题号(整数,从1开始对应下方带编号题库顺序),"story":"覆盖该题的故事名 或 null(确实串不上)"}]}。'
-      + '规则：① stories 数量不加 2或3 限制，以"最少故事+最高覆盖"为准；② coverage 必须逐题覆盖全部题库(每题一个 idx,从1到N)，'
-      + '能串上的写故事名、串不上的写 null，但 ultra/high/must 题尽量都有故事名；③ 全部用简体中文（outline 英文部分除外）。';
-    const listForFreq = ctP2List();
-    const highBank = listForFreq.map((s, i) => ({ idx: i + 1, s }))
-      .filter(o => ctFreqGroup(o.s.frequency) === 'high').map(o => o.idx + '. ' + ctTopicText(o.s)).join('\n');
-    const restBank = listForFreq.map((s, i) => ({ idx: i + 1, s }))
-      .filter(o => ctFreqGroup(o.s.frequency) === 'rest').map(o => o.idx + '. ' + ctTopicText(o.s)).join('\n');
-    const user = '当季 P2 题库(带编号，逐题对应 coverage 的 idx)：\n' + ctBankNumbered().join('\n')
-      + '\n\n【必须100%覆盖的题(超高频/高频/必考)】：\n' + (highBank || '（无）')
-      + '\n\n【其余尽量覆盖的题】：\n' + (restBank || '（无）')
-      + '\n\n考生回答：\n' + answered
-      + '\n\n已有母本素材：\n' + ctTemplates() + '\n\n请生成串题方案（严格 JSON，coverage 用 idx 对应上方编号）。';
-    const content = await callRelay('speaking_chuan', [
-      { role:'system', content: sys },
-      { role:'user', content: user }
-    ], 0.7);
-    const j = aiJson(content);
-    if(!j || !Array.isArray(j.stories) || !j.stories.length){
-      $('#ctResult').innerHTML = '<div class="ct-scheme"><div class="ct-story-out">AI 返回的不是标准格式，原文如下：\n\n'
-        + escapeHtml(content) + '</div></div>';
-      return;
-    }
-    // 构造精确覆盖：idx 优先，回退 topic 文本匹配；带 frequency 字段
-    const list4cov = ctP2List();
-    const coverage = (j.coverage || []).map(c => {
-      let idx = (c.idx != null && !isNaN(+c.idx)) ? +c.idx : ctResolveIdx(c.topic);
-      const q = (idx >= 1 && idx <= list4cov.length) ? list4cov[idx - 1] : null;
-      return {
-        idx: q ? idx : null,
-        topic: q ? ctTopicText(q) : (ctToStr(c.topic) || ''),
-        frequency: q ? (q.frequency || '') : '',
-        story: c.story ? String(c.story) : null
-      };
-    }).filter(c => c.topic);
-    saveScheme({ bank, stories: j.stories, coverage });
-    renderSaved();
-    $('#ctResult').innerHTML = '';
-    $('#ctAskBox').hidden = true;
-    ctQuestions = [];
-    toast('已生成并保存串题方案');
-  }catch(e){
-    $('#ctResult').innerHTML = '<div class="ct-loading">AI 服务暂不可用：' + escapeHtml(e.message) + '</div>';
-  }finally{
-    ctHideLoading();
-  }
-}
-
-function ctToStr(v){ return Array.isArray(v) ? v.join(' / ') : (v == null ? '' : String(v)); }
-
-function saveScheme(obj){
-  const stories = (obj.stories || []).map(s => ({
-    name: ctToStr(s.name) || '故事',
-    keyPoints: ctToStr(s.keyPoints),
-    outline: ctToStr(s.outline),
-    covers: Array.isArray(s.covers) ? s.covers.map(String) : []
-  }));
-  const list4cov = ctP2List();
-  // coverage：优先用传入的精确行（含 idx/topic/frequency/story）；旧数据无 idx 则回退 topic 匹配补 idx
-  let coverage = (obj.coverage || []).map(c => {
-    let idx = (c.idx != null && !isNaN(+c.idx)) ? +c.idx : ctResolveIdx(c.topic);
-    const q = (idx >= 1 && idx <= list4cov.length) ? list4cov[idx - 1] : null;
-    return {
-      idx: q ? idx : null,
-      topic: q ? ctTopicText(q) : (ctToStr(c.topic) || ''),
-      frequency: q ? (q.frequency || '') : (c.frequency || ''),
-      story: c.story ? String(c.story) : null
-    };
-  });
-  if(!coverage.length){
-    coverage = ctExtractTopics(obj.bank).map(t => {
-      const idx = ctResolveIdx(t);
-      const q = (idx != null && idx >= 1 && idx <= list4cov.length) ? list4cov[idx - 1] : null;
-      return { idx: q ? idx : null, topic: t, frequency: q ? (q.frequency || '') : '', story: null };
-    });
-  }
-  const total = list4cov.length;
-  const covered = coverage.filter(c => c.story && c.idx != null).length;
-  DATA.speakingStories.push({
-    id: 'ct_' + Date.now(),
-    date: ctToday(),
-    bank: obj.bank,
-    stories,
-    coverage,
-    total,
-    covered
-  });
-  hubSave();
-}
-
-function ctExtractTopics(bank){
-  const seen = new Set();
-  return String(bank).split('\n').map(s => s.trim()).filter(s => {
-    if(s.length < 4 || s.length > 80) return false;
-    if(seen.has(s)) return false;
-    seen.add(s);
-    return true;
-  });
-}
-
-function ctToday(){
-  const d = new Date();
-  const p = n => String(n).padStart(2, '0');
-  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
-}
-
-function renderSaved(){
-  const wrap = $('#ctSaved');
-  if(!wrap) return;
-  const list = DATA.speakingStories || [];
-  if(!list.length){
-    wrap.innerHTML = '<div class="ct-empty">还没有串题方案。点击上方「AI 先问几个关键问题」，让 AI 帮你用尽可能少的故事覆盖最多题吧。</div>';
-    return;
-  }
-  wrap.innerHTML = list.slice().reverse().map(scheme => {
-    const rate = scheme.total ? Math.round(scheme.covered / scheme.total * 100) : 0;
-    const storiesHtml = (scheme.stories || []).map(st => {
-      const covers = (st.covers || []).map(c => '<span class="ct-cover-tag">' + escapeHtml(c) + '</span>').join('');
-      return '<div class="ct-story">'
-        + '<div class="ct-story-name">' + escapeHtml(st.name) + '</div>'
-        + (st.keyPoints ? '<div class="ct-story-kp">复述线：' + escapeHtml(st.keyPoints) + '</div>' : '')
-        + (st.outline ? '<div class="ct-story-out">' + escapeHtml(st.outline) + '</div>' : '')
-        + (covers ? '<div class="ct-covers">' + covers + '</div>' : '')
-        + '</div>';
-    }).join('');
-    const matrixHtml = (scheme.coverage || []).map(c => {
-      const sCls = c.story ? 's' : 'none';
-      const sTxt = c.story ? escapeHtml(c.story) : '未覆盖';
-      return '<div class="ct-matrix-row"><span class="t">' + escapeHtml(c.topic) + '</span>'
-        + '<span class="' + sCls + '">' + sTxt + '</span></div>';
-    }).join('');
-    return '<div class="ct-scheme">'
-      + '<div class="ct-scheme-head"><span class="ct-scheme-date">' + escapeHtml(scheme.date || '') + '</span>'
-      + '<span class="ct-rate">覆盖率 ' + scheme.covered + '/' + scheme.total + '（' + rate + '%）</span></div>'
-      + storiesHtml
-      + '<div class="ct-matrix">' + matrixHtml + '</div>'
-      + '<button class="ct-del" data-del="' + scheme.id + '">删除此方案</button>'
-      + '</div>';
-  }).join('');
-  wrap.querySelectorAll('[data-del]').forEach(b => {
-    b.addEventListener('click', () => {
-      const id = b.dataset.del;
-      DATA.speakingStories = DATA.speakingStories.filter(x => x.id !== id);
-      hubSave();
-      renderSaved();
-      toast('已删除');
-    });
-  });
-  renderGlobalCoverage();
-}
-
-/* === 全局覆盖率看板：所有方案的并集覆盖 + 频率分级 + 贪心最优组合 === */
-function renderGlobalCoverage(){
-  const el = $('#ctGlobal');
-  if(!el) return;
-  const list = ctP2List();
-  const total = list.length;
-  if(total === 0){ el.hidden = true; return; }
-  // 聚合全局覆盖：idx -> { covered, stories[] }
-  const cov = {};
-  (DATA.speakingStories || []).forEach(scheme => (scheme.coverage || []).forEach(c => {
-    let idx = c.idx != null ? c.idx : ctResolveIdx(c.topic);
-    if(idx == null || idx < 1 || idx > total) return;
-    if(!cov[idx]) cov[idx] = { covered:false, stories:[] };
-    if(c.story){ cov[idx].covered = true; if(cov[idx].stories.indexOf(c.story) < 0) cov[idx].stories.push(c.story); }
-  }));
-  let highTotal = 0, highCov = 0, restTotal = 0, restCov = 0, allCov = 0;
-  list.forEach((s, i) => {
-    const idx = i + 1, covered = !!(cov[idx] && cov[idx].covered);
-    if(covered) allCov++;
-    if(ctFreqGroup(s.frequency) === 'high'){ highTotal++; if(covered) highCov++; }
-    else { restTotal++; if(covered) restCov++; }
-  });
-  const rate = Math.round(allCov / total * 100);
-  const highOk = highTotal > 0 && highCov === highTotal;
-  const ok90 = rate >= 90;
-  const missHigh = list.map((s, i) => ({ idx: i + 1, s }))
-    .filter(o => ctFreqGroup(o.s.frequency) === 'high' && !(cov[o.idx] && cov[o.idx].covered))
-    .map(o => o.idx + '. ' + ctTopicText(o.s));
-  const combo = ctGreedyCombo(list, cov);
-  const fmt = n => (n ? Math.round(n / total * 100) : 0);
-  const grp = (label, a, b, ok) =>
-    '<div style="display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:3px 0">'
-    + '<span>' + label + ' <b>' + a + '/' + b + '</b></span>'
-    + '<span style="font-weight:700;color:' + (ok ? 'var(--med)' : 'var(--danger)') + '">'
-    + (b ? fmt(a) + '%' + (ok ? ' ✅' : ' ⚠️') : '—') + '</span></div>';
-  let html = '<div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:10px 0 4px">';
-  html += '<div style="font-weight:700;font-size:15px;margin-bottom:6px">📊 全局覆盖率看板（所有方案并集）</div>';
-  html += grp('总覆盖率', allCov, total, ok90);
-  html += grp('超高/高频/必考（必须100%）', highCov, highTotal, highOk);
-  html += grp('其余题目', restCov, restTotal, true);
-  const reach = (ok90 && highOk) ? '🎯 已达标（总≥90% 且高频100%）' : '🚧 未达标：' + (!highOk ? '高频缺口 ' + (highTotal - highCov) + ' 题；' : '') + (!ok90 ? '总覆盖还差 ' + (90 - rate) + '%' : '');
-  html += '<div style="margin-top:8px;padding:8px 10px;border-radius:10px;font-size:13px;font-weight:700;background:var(--primary-soft);color:var(--ink)">' + reach + '</div>';
-  if(missHigh.length){
-    html += '<div style="margin-top:10px;font-size:12.5px;color:var(--danger)"><b>❗ 未覆盖的高频题（需补素材）：</b><br>' + missHigh.join('<br>') + '</div>';
-  }
-  if(combo.length){
-    html += '<div style="margin-top:10px;font-size:13px;color:var(--ink)"><b>✅ 推荐最少背诵组合（' + combo.length + ' 个故事）：</b><br>'
-      + combo.map(n => '<span style="display:inline-block;margin:3px 6px 3px 0;padding:4px 10px;border-radius:999px;background:var(--primary-soft);color:var(--primary);font-weight:700;font-size:12.5px">' + escapeHtml(n) + '</span>').join('') + '</div>';
-  }
-  html += '</div>';
-  el.innerHTML = html;
-  el.hidden = false;
-}
-
-/* 贪心：从所有方案的所有故事里选最小子集，满足 高频100% + 总≥90% */
-function ctGreedyCombo(list, cov){
-  const total = list.length;
-  // 构建故事池：scheme.id::name -> 覆盖的 idx 集合
-  const pool = {};
-  (DATA.speakingStories || []).forEach(scheme => {
-    const byStory = {};
-    (scheme.coverage || []).forEach(c => {
-      if(!c.story) return;
-      let idx = c.idx != null ? c.idx : ctResolveIdx(c.topic);
-      if(idx == null || idx < 1 || idx > total) return;
-      if(!byStory[c.story]) byStory[c.story] = new Set();
-      byStory[c.story].add(idx);
-    });
-    Object.keys(byStory).forEach(name => { pool[scheme.id + '::' + name] = { name, idxSet: byStory[name] }; });
-  });
-  const highIdx = list.map((s, i) => ({ idx: i + 1, s })).filter(o => ctFreqGroup(o.s.frequency) === 'high').map(o => o.idx);
-  const coveredSet = new Set();
-  const sel = new Set();
-  // 阶段1：覆盖高频
-  let pending = highIdx.slice();
-  while(pending.length){
-    let best = null, bestN = 0;
-    for(const k in pool){ if(sel.has(k)) continue; let n = 0; pool[k].idxSet.forEach(x => { if(pending.indexOf(x) >= 0) n++; }); if(n > bestN){ bestN = n; best = k; } }
-    if(!best || bestN === 0) break;
-    sel.add(best); pool[best].idxSet.forEach(x => { coveredSet.add(x); });
-    pending = pending.filter(p => !coveredSet.has(p));
-  }
-  // 阶段2：扩展到总覆盖≥90%
-  while(Math.round(coveredSet.size / total * 100) < 90){
-    let best = null, bestN = 0;
-    for(const k in pool){ if(sel.has(k)) continue; let n = 0; pool[k].idxSet.forEach(x => { if(!coveredSet.has(x)) n++; }); if(n > bestN){ bestN = n; best = k; } }
-    if(!best || bestN === 0) break;
-    sel.add(best); pool[best].idxSet.forEach(x => coveredSet.add(x));
-  }
-  const names = [];
-  sel.forEach(k => { const n = pool[k].name; if(names.indexOf(n) < 0) names.push(n); });
-  return names;
-}
