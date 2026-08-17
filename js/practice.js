@@ -110,7 +110,7 @@ function renderCfgModal(){
     {
       name:'答题', icon:'☑',
       items:[
-        { key:'batchSize',     label:'题量',          type:'select', opts:[{v:'5',t:'5 题'},{v:'10',t:'10 题'},{v:'20',t:'20 题'},{v:'-1',t:'全部'}] },
+        { key:'batchSize',     label:'题量',          type:'batch', presets:[{v:'5',t:'5 题'},{v:'10',t:'10 题'},{v:'20',t:'20 题'},{v:'50',t:'50 题'},{v:'100',t:'100 题'},{v:'-1',t:'全部'}] },
         { key:'optCount',      label:'选项数量',      type:'select', opts:[{v:'4',t:'4 个'},{v:'6',t:'6 个'}] },
         { key:'shuffle',       label:'随机乱序',      type:'toggle' },
         { key:'autoNext',      label:'自动进入下一题', type:'toggle', desc:'点选后约 1 秒自动跳转' },
@@ -160,6 +160,15 @@ function renderCfgModal(){
       } else if(item.type === 'range'){
         html += '<input type="range" class="cfg-range" data-key="'+item.key+'" data-unit="'+escapeHtml(item.unit||'')+'" min="'+item.min+'" max="'+item.max+'" step="'+item.step+'" value="'+val+'">';
         html += '<span class="cfg-range-val">'+val+(item.unit||'')+'</span>';
+      } else if(item.type === 'batch'){
+        // 题量：预设下拉（含「全部」） + 自定义数字输入
+        const presets = item.presets || [];
+        const isPreset = presets.some(p => String(p.v) === String(val));
+        html += '<select class="cfg-batch-select" data-key="'+item.key+'">';
+        for(const p of presets) html += '<option value="'+p.v+'"'+(String(val)===p.v?' selected':'')+'>'+p.t+'</option>';
+        html += '<option value="__custom__"'+(isPreset?'':' selected')+'>自定义…</option>';
+        html += '</select>';
+        html += '<input type="number" min="1" class="cfg-batch-custom" data-key="'+item.key+'" placeholder="自定义题量" value="'+(isPreset?'':escapeHtml(String(val)))+'">';
       }
       html += '</div></div>';
     }
@@ -183,6 +192,28 @@ function renderCfgModal(){
       const v = parseFloat(el.value);
       pcSave({ [el.dataset.key]: v });
       el.nextElementSibling.textContent = v + (el.dataset.unit || '');
+    });
+  });
+  // 题量：预设下拉 + 自定义数字输入
+  body.querySelectorAll('.cfg-batch-select').forEach(el => {
+    el.addEventListener('change', () => {
+      if(el.value === '__custom__'){
+        const inp = el.parentElement.querySelector('.cfg-batch-custom');
+        if(inp) inp.focus();
+        return; // 自定义项不立即保存，等用户在数字框输入
+      }
+      pcSave({ [el.dataset.key]: parseInt(el.value,10) });
+      const inp = el.parentElement.querySelector('.cfg-batch-custom');
+      if(inp) inp.value = '';   // 选了预设就清空自定义框
+    });
+  });
+  body.querySelectorAll('.cfg-batch-custom').forEach(el => {
+    el.addEventListener('input', () => {
+      const n = parseInt(el.value,10);
+      if(isNaN(n) || n < 1) return;   // 无效（空/负数）不保存
+      pcSave({ [el.dataset.key]: n });
+      const sel = el.parentElement.querySelector('.cfg-batch-select');
+      if(sel && sel.value !== '__custom__') sel.value = '__custom__';  // 数字框有值 → 下拉切到「自定义」
     });
   });
   // 左侧分类键点击切换（默认激活第一个分类「答题」）
