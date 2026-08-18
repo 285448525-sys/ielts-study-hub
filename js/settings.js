@@ -34,7 +34,6 @@ ready(() => {
   $('#saveRelay').addEventListener('click', saveRelay);
   $('#testAiBtn').addEventListener('click', testAIConnection);
   $('#saveXf').addEventListener('click', saveXfSettings);
-  $('#testXfBtn').addEventListener('click', testXfyunConnection);
   $('#sTheme').addEventListener('change', () => applyTheme($('#sTheme').value));
   $('#exportBtn').addEventListener('click', exportData);
   $('#importBtn').addEventListener('click', () => $('#importFile').click());
@@ -110,7 +109,7 @@ function saveRelay(){
   toast(DATA.settings.relayToken ? '已保存 AI 接口配置' : '已清空 Key');
 }
 
-/* 讯飞发音评测：保存三项密钥 */
+/* 讯飞语音（IAT 转写）密钥 */
 function saveXfSettings(){
   DATA.settings.xfyunIse = {
     appid: $('#sXfAppid').value.trim(),
@@ -121,44 +120,6 @@ function saveXfSettings(){
   toast('已保存讯飞配置');
 }
 
-/* 测试连接：用 1 秒静音 PCM + 内置测试句探活讯飞（验证密钥+签名有效，无需真实朗读） */
-async function testXfyunConnection(){
-  const cfg = {
-    appid: $('#sXfAppid').value.trim(),
-    apiKey: $('#sXfApiKey').value.trim(),
-    apiSecret: $('#sXfApiSecret').value.trim()
-  };
-  if(!cfg.appid || !cfg.apiKey || !cfg.apiSecret){ toast('请先填写三项密钥'); return; }
-  const btn = $('#testXfBtn');
-  if(btn) btn.disabled = true;
-  setXfStatus('正在测试连接…', '');
-  try{
-    // 探活用「合成非静音音频」：1s 振幅调制的 220Hz 音，制造明显能量，
-    // 避免纯静音被讯飞 ISE 判「音量过小/静音」而误报 ❌（有效密钥其实可用）。
-    const sr = 16000;
-    const probe = new Int16Array(sr);
-    for(let i = 0; i < probe.length; i++){
-      const t = i / sr;
-      const env = 0.5 + 0.5 * Math.sin(2 * Math.PI * 3 * t); // 3Hz 包络，平滑起止
-      probe[i] = Math.round(Math.sin(2 * Math.PI * 220 * t) * env * 0.6 * 32767);
-    }
-    await xfyunEvaluate(probe, 'Hello, this is a pronunciation test.', cfg);
-    setXfStatus('✅ 连接成功：密钥有效，已连通讯飞语音评测', 'ok');
-    toast('✅ 连接成功，密钥有效');
-    saveXfSettings();
-  }catch(e){
-    setXfStatus('❌ 连接失败：' + e.message, 'error');
-    toast('❌ 连接失败：' + e.message);
-  }finally{
-    if(btn) btn.disabled = false;
-  }
-}
-function setXfStatus(msg, kind){
-  const el = $('#xfStatus');
-  if(!el) return;
-  el.textContent = msg || '';
-  el.className = 'muted' + (kind ? ' sync-status-' + kind : '');
-}
 
 /* 测试连接：用输入框里的 Key 探活 DeepSeek，成功即自动保存 */
 async function testAIConnection(){

@@ -54,9 +54,9 @@
 
   <section class="card">
     <h2>🎤 口语模考</h2>
-    <p class="muted">口语模考的「发音分」现在有三种来源，按优先级自动生效：① 配了讯飞发音评测 Key → 每 Part 后做真实朗读检测（最准）；② 没配 Key 但填了下面这项 → 用此固定分兜底；③ 都没配 → DeepSeek 根据转写文字估算发音。下面这项是「可选」的兜底分，不填也能正常模考。</p>
+    <p class="muted">口语模考的「发音分」直接取你在下面填的固定分（0–9），不做任何发音评测。不填则发音不计入总分。流利度 / 扣题 / 连贯 / 词汇 / 语法仍由 AI 读你的文字转写评出。</p>
     <div class="form-row">
-      <div><label>固定发音分兜底（可选，0–9）</label><input id="sPron" type="number" min="0" max="9" step="0.5" placeholder="如 6（不填则用 AI 估算）" /></div>
+      <div><label>固定发音分（可选，0–9）</label><input id="sPron" type="number" min="0" max="9" step="0.5" placeholder="如 6（不填则发音不计入总分）" /></div>
     </div>
     <div class="form-row" style="align-items:center">
       <label style="display:flex;align-items:center;gap:8px;font-size:14px"><input type="checkbox" id="sAsr" /> 云端语音识别（口语录音自动转文字）</label>
@@ -78,8 +78,8 @@
   </section>
 
   <section class="card">
-    <h2>🗣 讯飞语音（语音输入 + 发音评测）</h2>
-    <p class="muted">讯飞三项密钥现在同时给口语模块提供两样能力：① <b>更准确的语音转写（IAT）</b>——替代不稳定的浏览器识别，修复"漏词"；② <b>发音逐词打分（ISE）</b>——跟读参照句做准确度 / 流畅度 / 完整度 + 逐词纠错。两项共用同一套 APPID / APIKey / APISecret。在 <a href="https://www.xfyun.cn/" target="_blank" rel="noopener">讯飞开放平台</a> 建应用获取三项密钥，填一次即用。每日免费 500 次，个人练口语够用。（"测试连接"探活的是发音评测服务，同时也用于语音输入。）</p>
+    <h2>🗣 讯飞语音（更准确的转写）</h2>
+    <p class="muted">讯飞三项密钥给口语模块提供 <b>更准确的语音转写（IAT）</b>——替代不稳定的浏览器识别，修复"漏词"。在 <a href="https://www.xfyun.cn/" target="_blank" rel="noopener">讯飞开放平台</a> 建应用获取三项密钥，填一次即用（与语音输入共用同一套 APPID / APIKey / APISecret）。每日免费 500 次，个人练口语够用。</p>
     <div class="form-row">
       <div style="flex:2"><label>APPID</label><input id="sXfAppid" placeholder="32 位 APPID" /></div>
       <div style="flex:3"><label>APIKey</label><input id="sXfApiKey" placeholder="APIKey" /></div>
@@ -87,7 +87,6 @@
     </div>
     <div class="form-row" style="align-items:flex-end">
       <div style="flex:none"><button class="btn btn-primary" id="saveXf">保存</button></div>
-      <div style="flex:none"><button class="btn" id="testXfBtn">测试连接</button></div>
     </div>
     <p class="muted">密钥只存在你的浏览器本地；纯前端直连讯飞，无后端。公开部署时密钥会暴露（自用无妨）。</p>
     <p id="xfStatus" class="muted" style="margin:6px 0 0"></p>

@@ -70,9 +70,18 @@ function tagsHtml(s){
 
 // === 口语分数解析与展示 ===
 function parseScore(score){
-  if(!score || score.overall == null) return null;
+  if(!score) return null;
   const n = v => { const x = parseFloat(v); return isNaN(x) ? null : x; };
-  return { overall: n(score.overall), fluency: n(score.fluency), pronunciation: n(score.pronunciation), vocabulary: n(score.vocabulary), grammar: n(score.grammar) };
+  const fluency = n(score.fluency);
+  const vocabulary = n(score.vocabulary);
+  const grammar = n(score.grammar);
+  // 发音：只取设置里的固定分（发音评测已移除，不再用 AI / 讯飞测）；未设则不计发音
+  const pronunciation = (DATA.settings.pronunciationScore != null) ? Number(DATA.settings.pronunciationScore) : null;
+  // 总分：雅思四维度（流利度与连贯、词汇、语法、发音）平均；发音缺失则用前三维度平均
+  const dims = [fluency, vocabulary, grammar].filter(v => v != null);
+  if(pronunciation != null) dims.push(pronunciation);
+  const overall = dims.length ? Math.round(dims.reduce((a, b) => a + b, 0) / dims.length * 2) / 2 : null;
+  return { overall, fluency, pronunciation, vocabulary, grammar };
 }
 function getBestScore(s){
   if(!s || !s.answers) return null;
@@ -131,10 +140,10 @@ function scoreHeaderHtml(score, title){
   if(!score || score.overall == null) return '';
   const dims = [
     {k:'fluency',l:'流利度'},
-    {k:'pronunciation',l:'发音'},
     {k:'vocabulary',l:'词汇'},
     {k:'grammar',l:'语法'}
   ];
+  if(score.pronunciation != null) dims.push({k:'pronunciation',l:'发音(固定)'});
   let h = '<div class="sp-score-header">';
   h += '<div class="sp-score-total"><span class="sp-score-num">' + scoreLabel(score.overall) + '</span><span class="sp-score-label">' + (title || '总分') + '</span></div>';
   h += '<div class="sp-score-dims">';
@@ -212,12 +221,6 @@ function openDetail(id){
     html += '<button class="sp-diag" id="p2Diag" type="button">🤖 AI 评分</button>';
     html += '<button class="sp-ans-clear" id="p2Clear" type="button">清空</button>';
     html += '</div>';
-    html += '<div class="sp-pron" id="p2Pron">'
-          +   '<div class="sp-pron-head">🔊 发音评测（朗读下面这句，讯飞逐词打分）</div>'
-          +   '<div class="sp-pron-ref-text" id="p2PronRef"></div>'
-          +   '<button class="sp-pron-go" id="p2PronGo" type="button">🎤 录这句</button>'
-          +   '<div class="sp-pron-result" id="p2PronResult"></div>'
-          + '</div>';
     html += '<div class="sp-q-result" id="p2Result"></div>';
     html += '</div>';
   }
@@ -273,13 +276,6 @@ function openDetail(id){
       hubSave();
     });
 
-    // P2 发音评测块绑定 + 回填
-    const p2PronGo = document.getElementById('p2PronGo');
-    const p2PronRef = document.getElementById('p2PronRef');
-    const p2PronResult = document.getElementById('p2PronResult');
-    if(p2PronRef) p2PronRef.textContent = (s.answers && s.answers.p2 && s.answers.p2.pron && s.answers.p2.pron.ref) || pickPronSentence();
-    if(p2PronGo) p2PronGo.addEventListener('click', e => { e.stopPropagation(); runSpeakingPron(s, null, true, p2PronRef, p2PronResult, p2PronGo); });
-    if(p2PronResult && s.answers && s.answers.p2 && s.answers.p2.pron) renderPronResult(p2PronResult, s.answers.p2.pron);
 
     // P2 答案回填
     if(s.answers && s.answers.p2){
@@ -452,12 +448,12 @@ var SYS_DIAG =
   '你是雅思口语老师。考生：女生，大三CS在读，目标总分6.0、口语5.5；词汇量约4000，'
   + '需要地道但不过难、句型简单的英文（别用生僻词/复杂从句）。\n'
   + '考生会给出自己对某个口语问题的回答（可能来自语音输入，可能有语法/用词错误）。请完成：\n'
-  + '1) 按雅思口语四项评分标准（流利度与连贯性、发音、词汇资源、语法多样性及准确性）逐项打分（0-9，可含0.5），并给出总分 overall。\n'
+  + '1) 按雅思口语三项评分（流利度与连贯性、词汇资源、语法多样性及准确性）逐项打分（0-9，可含0.5），不要评发音（发音由用户在设置里填固定分）。\n'
   + '2) 指出语法/用词错误：逐条给 原句 → 问题(中文简说，不堆术语) → 修改；没有错误就如实说很少。\n'
   + '3) 在【不改动考生原本思路与想说内容】的前提下，给一版更地道、自然、符合其基础（简单句型、常见词汇）的英文重写。\n'
   + '4) 给 1-2 个可积累的地道替换词/句型（同样简单）。\n'
-  + '严格要求只输出如下 JSON（不要任何解释文字）：'
-  + '{"score":{"overall":5.5,"fluency":6.0,"pronunciation":5.5,"vocabulary":5.0,"grammar":5.0},'
+  + '严格要求只输出如下 JSON（不要任何解释文字，不要输出 pronunciation / overall 字段）：'
+  + '{"score":{"fluency":6.0,"vocabulary":5.0,"grammar":5.0},'
   + '"errors":[{"original":"考生原句中的问题片段","issue":"中文简说问题","fix":"修改后片段"}],'
   + '"rewrite":"按原思路的地道简化英文重写","tips":["可积累替换/句型1","可积累替换/句型2"]}';
 
@@ -470,95 +466,6 @@ var spRec = null; // 当前进行中的语音识别实例（旧 Web Speech 路�
 
 var _recActive = false; // captureAnswer 防重入 / 切换标志
 
-/* === 内联发音评测（讯飞 ISE 逐词打分）：朗读参照句 → 录音 → 打分 ===
-   参照句库（P1/P2 通用，覆盖雅思口语高频句型）。用 var 以兼容软导航重复 eval。 */
-var SP_PRON_SENTENCES = [
-  "I think one of the most important qualities in a friend is being trustworthy.",
-  "In my spare time, I really enjoy listening to music and going for a run.",
-  "The place where I grew up was a small but lively town near the river.",
-  "What I appreciate most about my major is that it teaches me how to solve problems.",
-  "If I had more free time, I would probably travel to different countries and learn new languages."
-];
-function pickPronSentence(){ return SP_PRON_SENTENCES[Math.floor(Math.random() * SP_PRON_SENTENCES.length)]; }
-
-var spPronRec = null; // 当前发音评测录音控制器（xfyun.startPcmRecord）
-
-async function runSpeakingPron(s, qi, isP2, refEl, mountEl, btn){
-  const cfg = DATA.settings.xfyunIse || {};
-  if(!(cfg.appid && cfg.apiKey && cfg.apiSecret)){ toast('请先在「设置」填讯飞三项密钥，才能测发音'); return; }
-  const ref = refEl ? (refEl.textContent || refEl.innerText) : '';
-  if(!ref){ toast('没有参照句'); return; }
-
-  // 再点一次 = 停止并评测
-  if(spPronRec){
-    const r = spPronRec; spPronRec = null;
-    if(btn){ btn.textContent = '🎤 录这句'; btn.classList.remove('sp-mic-on'); }
-    try{
-      const pcm = await r.stop();
-      if(mountEl) mountEl.innerHTML = '<div class="pr-status">评测中…</div>';
-      const xml = await xfyunEvaluate(pcm, ref, cfg);
-      const res = parseIseXml(xml);
-      if(mountEl) renderPronResult(mountEl, res);
-      s.answers = s.answers || {};
-      const key = isP2 ? 'p2' : String(qi);
-      s.answers[key] = s.answers[key] || {};
-      s.answers[key].pron = { total:res.total, accuracy:res.accuracy, fluency:res.fluency, integrity:res.integrity, words:res.words, ref, ts:Date.now() };
-      hubSave();
-    }catch(e){
-      if(mountEl) mountEl.innerHTML = '<div class="pr-status">评测失败：' + (e && e.message ? e.message : e) + '</div>';
-    }
-    return;
-  }
-
-  // 开始录音
-  try{
-    spPronRec = startPcmRecord(); await spPronRec.ready;
-    if(btn){ btn.textContent = '⏹ 停止'; btn.classList.add('sp-mic-on'); }
-    if(mountEl) mountEl.innerHTML = '<div class="pr-status">录音中…读完参照句后点「停止」</div>';
-  }catch(e){
-    spPronRec = null;
-    if(mountEl) mountEl.innerHTML = '<div class="pr-status">无法录音：' + (e && e.message ? e.message : e) + '</div>';
-  }
-}
-
-function renderPronResult(el, res){
-  if(!el) return;
-  if(res.rejected){ el.innerHTML = '<div class="pr-status">未正常朗读，请重读</div>'; return; }
-  const f = v => (v != null ? v.toFixed(1) : '—');
-  let html = '<div class="pr-scores">'
-    + '<span class="pr-chip">总分 ' + f(res.total) + '</span>'
-    + '<span class="pr-chip">准确度 ' + f(res.accuracy) + '</span>'
-    + '<span class="pr-chip">流畅度 ' + f(res.fluency) + '</span>'
-    + '<span class="pr-chip">完整度 ' + f(res.integrity) + '</span>'
-    + '</div>';
-  if(res.words && res.words.length){
-    html += '<div class="pr-words">';
-    res.words.forEach(w => {
-      const sc = w.score || 0;
-      const cls = sc >= 80 ? 'pr-w-good' : (sc >= 60 ? 'pr-w-mid' : 'pr-w-bad');
-      const flag = (w.dp === 2) ? '漏读' : ((w.dp === 4) ? '增读' : ((w.dp === 1) ? '错读' : ''));
-      html += '<span class="' + cls + '">' + escapeHtml(w.content) + (flag ? '<i class="pr-flag">' + flag + '</i>' : '') + '</span> ';
-    });
-    html += '</div>';
-  }
-  html += '<button class="sp-pron-wrong" type="button">+ 红词加入错词本</button>';
-  el.innerHTML = html;
-  const wrongBtn = el.querySelector('.sp-pron-wrong');
-  if(wrongBtn) wrongBtn.addEventListener('click', () => {
-    const reds = (res.words || [])
-      .filter(w => w && (w.score || 0) < 60)
-      .map(w => (w && w.content != null ? String(w.content).trim() : ''))
-      .filter(Boolean);
-    if(!reds.length){ toast('没有红词，发音很棒！'); return; }
-    DATA.words = DATA.words || [];
-    reds.forEach(en => {
-      if(!en) return;
-      if(!DATA.words.find(x => x.en === en)) DATA.words.push({ id: uid(), en, cn: '(发音评测·' + new Date().toLocaleDateString('zh-CN') + ')', ts: Date.now() });
-    });
-    hubSave();
-    toast('已加 ' + reds.length + ' 个红词到错词本');
-  });
-}
 
 function hasWebSpeech(){
   return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
@@ -736,12 +643,6 @@ function questionItemHtml(text, qi, s){
     +   '<div class="sp-mini-body" data-body="rec" data-qi="' + qi + '">'
     +     '<button class="sp-mic" data-qi="' + qi + '" type="button">🎤 开始录音</button>'
     +     '<div class="sp-rec-list" data-qi="' + qi + '"></div>'
-    +     '<div class="sp-pron" data-qi="' + qi + '">'
-    +       '<div class="sp-pron-head">🔊 发音评测（朗读下面这句，讯飞逐词打分）</div>'
-    +       '<div class="sp-pron-ref-text" data-qi="' + qi + '"></div>'
-    +       '<button class="sp-pron-go" data-qi="' + qi + '" type="button">🎤 录这句</button>'
-    +       '<div class="sp-pron-result" data-qi="' + qi + '"></div>'
-    +     '</div>'
     +     '<textarea class="sp-ans" data-qi="' + qi + '" placeholder="在这里说出或写下你的回答…"></textarea>'
     +     '<div class="sp-audio" data-qi="' + qi + '"></div>'
     +     '<div class="sp-q-btns">'
@@ -774,12 +675,6 @@ function bindQuestionEvents(id){
     const qi = li.dataset.qi;
     const ta = li.querySelector('.sp-ans[data-qi="' + qi + '"]');
     const resultEl = li.querySelector('.sp-q-result[data-qi="' + qi + '"]');
-    const refEl = li.querySelector('.sp-pron-ref-text[data-qi="' + qi + '"]');
-    const pronRes = li.querySelector('.sp-pron-result[data-qi="' + qi + '"]');
-
-    // 发音评测块：参照句 + 已存结果回填（首次也先显示一句参照句）
-    if(refEl) refEl.textContent = (s.answers[qi] && s.answers[qi].pron && s.answers[qi].pron.ref) || pickPronSentence();
-    if(pronRes && s.answers[qi] && s.answers[qi].pron) renderPronResult(pronRes, s.answers[qi].pron);
 
     // 旧数据迁移：单个 audioId → records 数组
     if(s.answers[qi] && s.answers[qi].audioId && !s.answers[qi].records){
@@ -855,8 +750,6 @@ function bindQuestionEvents(id){
     const mic = li.querySelector('.sp-mic[data-qi="' + qi + '"]');
     if(mic) mic.addEventListener('click', e => { e.stopPropagation(); captureAnswer(qi, ta, mic, false); });
 
-    // 发音评测录音按钮
-    if(pronRes) li.querySelectorAll('.sp-pron-go[data-qi="' + qi + '"]').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); runSpeakingPron(s, qi, false, refEl, pronRes, btn); }));
 
     // 录音列表点击播放（事件委托）
     const recList = li.querySelector('.sp-rec-list[data-qi="' + qi + '"]');
