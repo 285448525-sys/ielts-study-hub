@@ -13,6 +13,19 @@
   function sampleOne(a){ return a[Math.floor(Math.random()*a.length)]; }
   function fmtClock(sec){ const m=Math.floor(sec/60), s=sec%60; return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0'); }
   function setPhase(t){ const el=$('#mockPhase'); if(el) el.textContent=t; }
+  function setMockStep(part){
+    const steps = document.querySelectorAll('#mockSteps .mock-step');
+    steps.forEach(s => {
+      const p = s.getAttribute('data-step');
+      s.classList.remove('active', 'done');
+      if(p === String(part)) s.classList.add('active');
+      else if(Number(p) < Number(part)) s.classList.add('done');
+    });
+  }
+  function setMockSubCount(idx, total){
+    const el = $('#mockSubCount');
+    if(el) el.textContent = 'Q ' + idx + ' / ' + total;
+  }
 
   /* 软导航只 eval js/mock.js，head 里的 mock-asr/mock-report 不会被重新执行，
      故在此动态注入这两个库（带缓存，避免重复加载），直接访问也有（head defer 已加载）。 */
@@ -178,6 +191,8 @@
   /* ---------- 各阶段 ---------- */
   async function runP1(set){
     for(let i=0;i<set.length;i++){
+      setMockStep('1');
+      setMockSubCount(i+1, set.length);
       const item = set[i];
       const qHtml = (item.topic ? '<span class="mock-q-topic">' + escapeHtml(item.topic) + '</span> · ' : '') + escapeHtml(item.q);
       const res = await askQuestion({ phaseLabel:'Part 1（'+(i+1)+' / '+set.length+'）', qHtml, allowRecord:true, submitLabel:(i===set.length-1?'完成 P1，进入 P2':'下一题') });
@@ -186,12 +201,14 @@
   }
 
   async function startP2(topic){
+    setMockStep('2');
     const promptHtml = '<div class="mock-p2-prompt">' + escapeHtml(topic.promptEn || '')
       + (topic.promptZh ? '<div class="mock-p2-zh">' + escapeHtml(topic.promptZh) + '</div>' : '') + '</div>'
       + (topic.youShouldSay && topic.youShouldSay.length ? '<div class="mock-p2-say">你应该说到：<ul>' + topic.youShouldSay.map(s => '<li>' + escapeHtml(s) + '</li>').join('') + '</ul></div>' : '')
       + '<p class="mock-prephint">你有 1 分钟准备，下方输入框可打草稿（不录音）。时间到或点「结束准备」开始陈述。</p>';
     await askQuestion({ phaseLabel:'Part 2 · 准备（1 min）', qHtml:promptHtml, allowRecord:false, isPrep:true, timeLimit:60, submitLabel:'结束准备，开始陈述' });
 
+    setMockStep('2');
     const talkHtml = '<div class="mock-p2-prompt">' + escapeHtml(topic.promptEn || '')
       + (topic.promptZh ? '<div class="mock-p2-zh">' + escapeHtml(topic.promptZh) + '</div>' : '') + '</div>'
       + '<p class="mock-prephint">现在陈述 2 分钟（可录音）。时间到或点「完成 P2」提交。</p>';
@@ -201,6 +218,7 @@
 
   async function runP3(qs){
     for(let i=0;i<qs.length;i++){
+      setMockStep('3');
       const qHtml = escapeHtml(qs[i]);
       const res = await askQuestion({ phaseLabel:'Part 3（'+(i+1)+' / '+qs.length+'）', qHtml, allowRecord:true, submitLabel:(i===qs.length-1?'完成 P3，出报告':'下一题') });
       mockState.answers.push({ part:'P3', q:qs[i], transcript:res.transcript });

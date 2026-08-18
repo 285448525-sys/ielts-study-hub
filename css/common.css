@@ -15,6 +15,7 @@
   --primary-soft-2:rgba(58,154,147,.07);
   --med:#46a883;
   --warn:#d99a4e;
+  --warn-ink:#b06a00;   /* 琥珀文字色：--warn(#d99a4e) 在白底仅 ~2.6:1 不达 AA，文字用此深琥珀 */
   --danger:#d97877;
   --vocab:#5f86a8;
   --mock:#4f9fc0;
@@ -45,6 +46,7 @@
   --arrow-hover:rgba(92,179,171,.14);
   --med:#46a883;
   --warn:#d99a4e;
+  --warn-ink:#e0a85c;   /* 深主题下浅琥珀文字，保证对比 */
   --danger:#d97877;
   --vocab:#5f86a8;
   --mock:#4f9fc0;
@@ -737,7 +739,7 @@ main .quote{
 /* 方案3 · 首页 AI 就绪状态条（首屏告知 AI 是否可用 + 一键配置，解决 P2 引导；沿用既有 token） */
 .ai-readiness{display:flex;align-items:center;gap:10px;font-size:14px;border-radius:16px;padding:12px 18px;margin-bottom:8px;border:1px solid var(--line);background:var(--surface)}
 .ai-readiness.ok{color:var(--ink);border-color:rgba(70,168,131,.4);background:rgba(70,168,131,.07)}
-.ai-readiness.warn{color:#b06a00;background:#fff7e8;border-color:#f3d9a6}
+.ai-readiness.warn{color:var(--warn-ink);background:var(--warn-soft);border-color:var(--warn)}
 .ai-readiness .ar-ico{flex:none}
 .ai-readiness .ar-text{flex:1;min-width:0}
 .ai-readiness .ar-btn{margin-left:auto;background:var(--primary);color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:13px;font-weight:600;cursor:pointer;flex:none;white-space:nowrap}
@@ -754,6 +756,35 @@ main .quote{
 .side-primary .side-item{font-weight:600}
 
 /* =========================================================================
+   回顾页 review（从 review.html 内联 <style> 收口而来 + 扁平化）
+   ========================================================================= */
+.review-pane{background:transparent;border:none;box-shadow:none;padding:0;margin-bottom:20px}
+.review-pane > h2{margin:0 0 14px;font-size:18px;font-weight:800;letter-spacing:-.02em}
+.mk-note-flex{flex:3;min-width:0}
+.mk-filter-wrap{flex:none;margin-left:auto;display:flex;align-items:center;gap:8px}
+.inline-h2{margin:0}
+.tabs{display:flex;gap:8px;margin-bottom:14px;padding:4px;background:var(--surface);border-radius:12px;border:1px solid var(--line)}
+.tab-btn{flex:1;padding:10px 14px;border:none;background:transparent;color:var(--muted);border-radius:9px;cursor:pointer;font-weight:600;font-size:14px;transition:all .2s ease}
+.tab-btn.active{background:var(--primary);color:#fff;box-shadow:0 2px 8px rgba(58,154,147,.25)}
+.tab-btn:hover:not(.active){color:var(--ink);background:var(--surface-2)}
+.tab-panel{display:none}
+.tab-panel.active{display:block;animation:fadeIn .25s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.top-tab{flex:1;padding:10px 14px;border:none;background:transparent;color:var(--muted);border-radius:9px;cursor:pointer;font-weight:600;font-size:14px;transition:all .2s ease}
+.top-tab.active{background:var(--primary);color:#fff;box-shadow:0 2px 8px var(--primary-soft)}
+.top-tab:hover:not(.active){color:var(--ink);background:var(--surface-2)}
+.top-panel{display:none}
+.top-panel.active{display:block;animation:fadeIn .25s ease}
+.mk-parts{margin:6px 0 12px}
+.mk-part{margin-bottom:8px;align-items:flex-end}
+.mk-part > div{display:block}
+.mk-part label{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
+.mk-part input{width:100%}
+.mk-grp{margin-bottom:14px}
+.mk-grp-title{font-weight:700;margin:4px 0 6px}
+.review-split{margin-top:28px;padding-top:8px}
+
+/* =========================================================================
    口语模考（mock.html）
    ========================================================================= */
 .mock-intro{margin:8px 0 0;padding-left:18px;color:var(--ink)}
@@ -761,16 +792,31 @@ main .quote{
 .mock-precheck{margin:14px 0 4px;display:flex;flex-direction:column;gap:6px}
 .mock-precheck-row{font-size:14px;padding:8px 12px;border-radius:10px;background:var(--surface);border:1px solid var(--line)}
 .mock-precheck-row.ok{color:var(--ink)}
-.mock-precheck-row.warn{color:#b06a00;background:#fff7e8;border-color:#f3d9a6}
-.mock-precheck-row .mock-need a{color:var(--primary);font-weight:700}
-.mock-start-actions{margin-top:12px}
-.btn-lg{font-size:16px;padding:12px 22px}
+.mock-precheck-row.warn{color:var(--warn-ink);background:var(--warn-soft);border-color:var(--warn)}
+  .mock-precheck-row .mock-need a{color:var(--primary);font-weight:700}
+  .btn-lg{font-size:16px;padding:12px 22px}
+/* 模考开始卡 CTA（对齐 Dashboard hero-cta 语言） */
+.mock-start-rail{display:flex;flex-direction:column;gap:4px;background:linear-gradient(135deg,var(--primary),var(--primary-d));color:#fff;border-radius:18px;padding:20px 22px;box-shadow:var(--shadow-md)}
+.mock-start-rail .ms-title{font-size:19px;font-weight:800;letter-spacing:-.01em}
+.mock-start-rail .ms-sub{font-size:13.5px;opacity:.92;margin-bottom:12px}
+.mock-start-rail .btn{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);color:#fff;align-self:flex-start}
+.mock-start-rail .btn:hover{background:rgba(255,255,255,.28)}
 /* 考试舞台 */
 .mock-phase{display:inline-block;font-size:13px;font-weight:700;color:#fff;background:var(--primary);border-radius:999px;padding:4px 14px;margin-bottom:12px}
+/* 考试舞台进度步进器（Part 级 + P1 小题计数） */
+.mock-steps{display:flex;align-items:center;gap:6px;margin-bottom:14px}
+.mock-step{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--muted);white-space:nowrap}
+.mock-step .dot{width:24px;height:24px;border-radius:50%;background:var(--surface-2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);font-weight:800}
+.mock-step.active{color:var(--primary)}
+.mock-step.active .dot{background:var(--primary);border-color:var(--primary);color:#fff}
+.mock-step.done .dot{background:var(--primary-soft);border-color:var(--primary);color:var(--primary)}
+.mock-step-sep{flex:1;height:2px;background:var(--line);border-radius:2px;min-width:14px}
+.mock-step-sep.done{background:var(--primary)}
+.mock-subcount{display:inline-block;font-size:12px;font-weight:700;color:var(--primary);background:var(--primary-soft);border-radius:8px;padding:2px 9px;margin-left:8px;vertical-align:middle}
 .mock-qcard{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px}
 .mock-q{font-size:18px;font-weight:700;line-height:1.5;color:var(--ink)}
 .mock-q-topic{display:inline-block;font-size:12px;font-weight:700;color:var(--primary);background:var(--primary-soft);border-radius:8px;padding:2px 8px;margin-right:8px;vertical-align:middle}
-.mock-timer{margin-top:10px;font-size:15px;font-weight:700;color:#b06a00}
+.mock-timer{margin-top:10px;font-size:15px;font-weight:700;color:var(--warn-ink)}
 .mock-live{margin-top:12px;min-height:42px;padding:10px 12px;border-radius:10px;background:var(--bg);border:1px dashed var(--line);color:var(--ink);font-size:15px;line-height:1.5;white-space:pre-wrap}
 .mock-controls{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
 .mock-manual{margin-top:12px}
@@ -788,11 +834,11 @@ main .quote{
 .mock-overall-label{font-size:13px;color:var(--muted);margin-top:4px}
 .mock-dims{display:flex;flex-direction:column;gap:12px}
 .mock-dim-top{display:flex;justify-content:space-between;font-size:14px;font-weight:600;color:var(--ink);margin-bottom:5px}
-.mock-fixed-tag{font-size:11px;font-weight:700;color:#b06a00;background:#fff7e8;border-radius:6px;padding:1px 6px;margin-left:4px}
+.mock-fixed-tag{font-size:11px;font-weight:700;color:var(--warn-ink);background:var(--warn-soft);border-radius:6px;padding:1px 6px;margin-left:4px}
 .mock-dim-track{height:9px;background:var(--bg);border-radius:999px;overflow:hidden}
 .mock-dim-fill{height:100%;border-radius:999px;transition:width .4s}
 .mock-dim-note{font-size:12px;color:var(--muted);margin-top:3px}
-.mock-report-note{margin:16px 0 0;font-size:13px;color:#b06a00;background:#fff7e8;border:1px solid #f3d9a6;border-radius:10px;padding:10px 12px;line-height:1.6}
+.mock-report-note{margin:16px 0 0;font-size:13px;color:var(--warn-ink);background:var(--warn-soft);border:1px solid var(--warn);border-radius:10px;padding:10px 12px;line-height:1.6}
 .mock-summary{margin-top:14px;font-size:14px;line-height:1.7;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
 .mock-summary-title{font-size:13px;font-weight:700;color:var(--muted);margin-bottom:6px}
 .mock-report-actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
