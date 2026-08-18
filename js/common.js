@@ -4,8 +4,7 @@ const PAGES = [
   { id:'timer',     file:'timer.html',     icon:'⏱', name:'计时学习',   desc:'选模块开计时' },
   { id:'plans',     file:'plans.html',     icon:'🗓', name:'学习计划',   desc:'每日清单 + AI 排周' },
   { id:'meds',      file:'meds.html',      icon:'💊', name:'服药记录',   desc:'专注达药效窗口' },
-  { id:'words',     file:'words.html',     icon:'🗂', name:'我的词库',   desc:'生词导入与管理' },
-  { id:'practice',  file:'practice.html',  icon:'🎮', name:'单词练习',   desc:'看词选义/听义选义' },
+  { id:'practice',  file:'practice.html',  icon:'📚', name:'单词',       desc:'学习与管理你的单词' },
   { id:'corpus',    file:'corpus.html',    icon:'🎧', name:'听力语料库', desc:'场景词汇听写' },
   { id:'longsent',  file:'longsent.html',  icon:'🧩', name:'长难句拆解', desc:'括号法解码训练' },
   { id:'errorbook', file:'errorbook.html', icon:'📒', name:'错题本',     desc:'贴错题笔记自动理清错因' },
@@ -19,7 +18,7 @@ const PAGES = [
 
 /* 收藏页面（⭐）——侧边栏「常用」与仪表盘「快捷入口」共用同一份，永远同步。
    从未收藏过时给 3 个新手默认项，避免入口空着。 */
-const DEFAULT_FAV = ['timer','words','practice'];
+const DEFAULT_FAV = ['timer','practice','speaking'];
 function favPageIds(){
   const f = DATA.settings && DATA.settings.fav;
   return (f && f.length) ? f : DEFAULT_FAV.slice();
@@ -27,7 +26,7 @@ function favPageIds(){
 
 /* 一级常驻（高频 4 项，始终可见）+ 更多▾（其余 9 项，默认折叠） */
 const PRIMARY_NAV = ['index','timer','review','practice'];
-const MORE_NAV    = ['plans','meds','words','corpus','longsent','errorbook','speaking','mock','writing','materials','settings'];
+const MORE_NAV    = ['plans','meds','corpus','longsent','errorbook','speaking','mock','writing','materials','settings'];
 
 function injectNav(){
   const nav = document.getElementById('mainNav');

@@ -1,4 +1,4 @@
-var pq = null; // {mode, queue, idx, total, correct, revealed, answer, dueList, wrongList}
+var pq = null; // {mode, queue, idx, total, correct, revealed, answer, wrongList}
 
 // 间隔重复（记忆曲线）各阶段间隔，单位：天；数组索引 = 记忆阶段
 var SRS_INTERVALS = [0, 1, 2, 4, 7, 15, 30, 60, 120];
@@ -11,14 +11,12 @@ var MC_FIRST = {1:60,2:40,3:25,4:16,5:10,6:7,7:5,8:3,9:2,10:1};
 var PC_DEFAULTS = {
   rate: 0.9,          // 语速
   repeat: 1,          // 朗读次数（选择题默认1）
-  dictRepeat: 3,      // 听写模式朗读次数（默认3）
   intervalMs: 1800,   // 朗读间隔
   batchSize: -1,      // 题量: -1=全部, 5, 10, 20
   shuffle: true,      // 乱序
   autoNext: true,     // 答对自动下一题
   autoNextDelay: 1000, // 自动下一题延迟ms
   autoPlay: true,     // 自动播放下题读音
-  caseSensitive: false, // 大小写敏感（听写）
   showCn: false,      // 显示释义提示
   showEn: 0,          // 显示英文原词: 0=不显示, 1=答错时显示, 2=始终显示
   optCount: 4         // 选择题选项数量
@@ -32,12 +30,26 @@ function pcSave(obj){
   hubSave();
 }
 
+// ======= 单词/词库 标签切换 =======
+function switchWordTab(tab){
+  const study = document.getElementById('studyView');
+  const bank  = document.getElementById('bankView');
+  if(!study || !bank) return;
+  document.querySelectorAll('.wtab').forEach(b => b.classList.toggle('active', b.dataset.wtab === tab));
+  if(tab === 'bank'){
+    study.hidden = true; bank.hidden = false;
+    renderWords();   // 切到词库时刷新（可能在别处新增/删除了单词）
+  } else {
+    bank.hidden = true; study.hidden = false;
+  }
+}
+
 ready(() => {
-  // 绑定模式按钮
-  document.querySelectorAll('button[data-mode]').forEach(b => {
-    b.addEventListener('click', () => startPractice(b.dataset.mode));
+  // 标签切换
+  document.querySelectorAll('.wtab').forEach(b => {
+    b.addEventListener('click', () => switchWordTab(b.dataset.wtab));
   });
-  $('#exitPractice').addEventListener('click', resetPractice);
+  $('#exitPractice').addEventListener('click', autoStartSeeWord);
   $('#nextBtn').addEventListener('click', onNext);
   // 练习设置改为右上角齿轮弹窗（参考爱听写）
   $('#cfgGear').addEventListener('click', () => {
@@ -51,54 +63,13 @@ ready(() => {
   document.addEventListener('keydown', e => {
     if(e.key === 'Escape' && !$('#cfgModal').hidden) $('#cfgModal').hidden = true;  // ESC 关闭
   });
-  // 底部工具栏：🔊 再读 / 👁 切换认识模式
+  // 底部工具栏：🔊 再读
   $('#toolSpeaker').addEventListener('click', () => {
     if(!pq || !pq.answer) return;
     speakN(pq.answer.en);
   });
-  $('#toolEye').addEventListener('click', () => {
-    if(!pq || !pq.answer || pq.revealed) return;
-    if(pq.mode !== 'seeWord' && pq.mode !== 'hearMeaning'){ toast('👁 认识模式仅看词/听音选义可用'); return; }
-    const cur = pq.answer;
-    const body = $('#practiceBody');
-    body.innerHTML =
-      '<div class="practice-word-head">'+
-        '<span class="pw-en">'+escapeHtml(cur.en)+'</span>'+
-        '<span class="pw-ipa">'+(cur.ipa||'')+'</span>'+
-      '</div>'+
-      '<div class="pw-cn">'+escapeHtml(cur.cn||'')+'</div>'+
-      '<div class="opts-grid">'+
-        '<button class="opt-big opt-big-known" id="eyeKnown"><span class="opt-big-tag">已掌握</span><span class="opt-big-cn">认识</span></button>'+
-        '<button class="opt-big opt-big-unknown" id="eyeUnknown"><span class="opt-big-tag">待加强</span><span class="opt-big-cn">不认识</span></button>'+
-      '</div>';
-    $('#eyeKnown').addEventListener('click', () => {
-      if(!pq || pq.revealed || !pq.answer) return;
-      pq.revealed = true;
-      const key = cur.en;
-      if(!pq.countedWords) pq.countedWords = {};
-      if(!pq.countedWords[key]){ pq.countedWords[key] = true; pq.total++; }
-      if(!pq.correctWords) pq.correctWords = {};
-      if(!pq.correctWords[key]){ pq.correctWords[key] = true; pq.correct++; }
-      updateMcCurve(cur, 'known');
-      updateScore();
-      toast('✓ 已记为认识，下次复习 '+cur.mcDue);
-      autoAdvance();
-    });
-    $('#eyeUnknown').addEventListener('click', () => {
-      if(!pq || pq.revealed || !pq.answer) return;
-      pq.revealed = true;
-      const key = cur.en;
-      if(!pq.countedWords) pq.countedWords = {};
-      if(!pq.countedWords[key]){ pq.countedWords[key] = true; pq.total++; }
-      updateMcCurve(cur, 'unknown');
-      pq.mastery[key] = 0;
-      if(!pq.reviewQueue) pq.reviewQueue = [];
-      if(!pq.reviewQueue.some(w => w.en === key)) pq.reviewQueue.push(cur);
-      updateScore();
-      toast('已记为不认识，下次复习 '+cur.mcDue);
-      autoAdvance();
-    });
-  });
+  // 打开即进入看词选义
+  autoStartSeeWord();
 });
 
 // ======= 设置模态弹窗（齿轮触发，分组渲染，参考爱听写）=======
@@ -131,7 +102,6 @@ function renderCfgModal(){
       items:[
         { key:'showCn',       label:'显示释义提示',    type:'toggle' },
         { key:'showEn',       label:'显示英文原词',    type:'select', opts:[{v:'0',t:'不显示'},{v:'1',t:'答错时显示'},{v:'2',t:'始终显示'}] },
-        { key:'caseSensitive',label:'大小写敏感(听写)', type:'toggle' },
       ]
     }
   ];
@@ -238,78 +208,42 @@ function toggleCfgShowIf(){
   });
 }
 
-// ======= 开始练习 =======
-function startPractice(mode){
-  if(DATA.words.length === 0){ toast('词库为空，先去「我的词库」添加单词'); return; }
-  if(['seeWord','hearMeaning','dictation'].includes(mode) && DATA.words.length < 2){ toast('该模式需要至少 2 个单词'); return; }
+// ======= 打开即进入「看词选义」：按记忆曲线到期词出题 =======
+function autoStartSeeWord(){
+  cancelSpeak();
+  if(DATA.words.length === 0){
+    $('#practiceArea').hidden = false;
+    $('#dueBanner').hidden = true;
+    $('#practiceBody').innerHTML = '<div class="q-word">词库为空</div><div class="q-cn">点上方「词库」标签加词后再来练习。</div>';
+    return;
+  }
+  if(DATA.words.length < 2){
+    $('#practiceArea').hidden = false;
+    $('#dueBanner').hidden = true;
+    $('#practiceBody').innerHTML = '<div class="q-word">词库至少需要 2 个单词</div><div class="q-cn">「看词选义」需要选项干扰项，请先加至少 2 个词。</div>';
+    return;
+  }
   const c = pc();
-  pq = { mode, queue: [], idx: 0, total: 0, correct: 0, revealed: false, answer: null, wrongList: [],
-         mastery: {}, retrying: false, reviewQueue: [], countedWords: {}, correctWords: {}, missed: {} };
-  if(mode === 'flashcard'){ startReview(); return; }
-  if(mode === 'mc'){ toast('默默背单词已整合到底部 👁 按钮，请先选「看词选义」或「听音选义」开始，点击 👁 即可切换认识/不认识模式'); return; }
-  // 出题：按配置选词
-  let pool = DATA.words.slice();
-  if(c.shuffle) pool = shuffle(pool);
-  if(c.batchSize > 0 && pool.length > c.batchSize) pool = pool.slice(0, c.batchSize);
-  pq.queue = pool;
-  $('#modeSelect').hidden = true;
+  const due = mcDueWords();
+  pq = { mode:'seeWord', queue:[], idx:0, total:0, correct:0, revealed:false, answer:null, wrongList:[],
+         mastery:{}, retrying:false, reviewQueue:[], countedWords:{}, correctWords:{}, missed:{} };
   $('#practiceArea').hidden = false;
+  $('#dueBanner').hidden = false;
+  $('#dueBanner').textContent = '📚 今日待复习 '+due.length+' 个（按记忆曲线自动排程）';
   $('#progBarWrap').hidden = false;
   $('#progBarWrapBottom').hidden = false;
+  if(due.length === 0){
+    $('#practiceScore').textContent = '';
+    $('#practiceBody').innerHTML = '<div class="q-word">🎉 今天没有待复习的词</div>' +
+      '<div class="q-cn">点上方「词库」标签加词，或明天再来。复习会按记忆曲线自动排程。</div>';
+    return;
+  }
+  let pool = shuffle(due.slice());
+  if(c.batchSize > 0 && pool.length > c.batchSize) pool = pool.slice(0, c.batchSize);
+  pq.queue = pool;
   nextQuestion();
 }
 
-// 复习单词（间隔重复）：读取统一记忆曲线 mc 的到期词（与看词/听音/听写/👁 共用），
-// 因此任何模块练过的词都会在这里按统一排程出现，不再各算各的"第一轮"
-function startReview(){
-  const due = mcDueWords();
-  $('#modeSelect').hidden = true;
-  $('#practiceArea').hidden = false;
-  $('#nextBtn').hidden = true;
-  $('#progBarWrap').hidden = true;
-  if(due.length === 0){
-    $('#practiceScore').textContent = '';
-    $('#practiceBody').innerHTML = '<div class="q-word">🎉 今天没有待复习的词</div>' +
-      '<div class="q-cn">去「我的词库」加词，或明天再来。复习会按记忆曲线自动排程。</div>';
-    return;
-  }
-  pq.dueList = due;
-  pq.queue = shuffle(due.slice());
-  showMcDueList();
-}
-
-// ======= 墨墨式记忆曲线复习（独立模式 mc）=======
-function startMcReview(){
-  const due = mcDueWords();
-  $('#modeSelect').hidden = true;
-  $('#practiceArea').hidden = false;
-  $('#nextBtn').hidden = true;
-  $('#progBarWrap').hidden = true;
-  if(due.length === 0){
-    $('#practiceScore').textContent = '';
-    $('#practiceBody').innerHTML = '<div class="q-word">🎉 今天没有待复习的词</div>' +
-      '<div class="q-cn">按记忆曲线自动排程，去「我的词库」加词或明天再来。</div>';
-    return;
-  }
-  pq.dueList = due;
-  pq.queue = shuffle(due.slice());
-  showMcDueList();
-}
-function showMcDueList(){
-  const list = pq.dueList;
-  const byDiff = {};
-  list.forEach(w => { const d = w.mcDiff||5; byDiff[d] = (byDiff[d]||0)+1; });
-  const diffInfo = Object.keys(byDiff).sort((a,b)=>a-b).map(d => '难度'+d+' '+byDiff[d]+' 个').join(' · ');
-  $('#practiceScore').textContent = '待复习 '+list.length+' 个';
-  $('#practiceBody').innerHTML =
-    '<div class="q-word">今日待复习 '+list.length+' 个</div>' +
-    '<div class="q-cn">难度分布：'+(diffInfo||'新词')+'</div>' +
-    '<div style="margin-top:12px;text-align:left;max-height:320px;overflow:auto">' +
-      list.map(w => '<div class="list-item"><span><strong>'+escapeHtml(w.en)+'</strong>'+(w.cn?' <span class="muted">'+escapeHtml(w.cn)+'</span>':'')+'</span><span class="badge">难度'+(w.mcDiff||'新')+'</span></div>').join('') +
-    '</div>' +
-    '<button class="btn btn-primary" id="startReview" style="margin-top:14px">开始复习</button>';
-  $('#startReview').addEventListener('click', () => { $('#practiceBody').innerHTML=''; nextQuestion(); });
-}
 function mcDueWords(){
   const today = todayKey();
   return DATA.words.filter(w => !w.mcDue || w.mcDue <= today);
@@ -318,11 +252,7 @@ function mcDueWords(){
 function resetPractice(){
   cancelSpeak();
   pq = null;
-  $('#practiceArea').hidden = true;
-  $('#progBarWrap').hidden = true;
-  $('#progBarWrapBottom').hidden = true;
-  $('#modeSelect').hidden = false;
-  $('#nextBtn').hidden = true;
+  autoStartSeeWord();
 }
 
 // 自动进入下一题（答对时调用）
@@ -331,7 +261,7 @@ function autoAdvance(){
   const c = pc();
   if(!c.autoNext) { $('#nextBtn').hidden = false; return; }
   $('#nextBtn').hidden = true;
-  const idx = pq.idx;  // Bug9：记录本次题目索引，避免用户手动切题后定时器仍误增 idx 跳过题目
+  const idx = pq.idx;  // 记录本次题目索引，避免用户手动切题后定时器仍误增 idx 跳过题目
   setTimeout(() => { if(pq && pq.revealed && pq.idx === idx){ pq.idx++; nextQuestion(); } }, c.autoNextDelay);
 }
 
@@ -340,116 +270,39 @@ function nextQuestion(){
   cancelSpeak();
   $('#nextBtn').hidden = true;
   const body = $('#practiceBody');
-  const mode = pq.mode;
   updateScore();
   updateProgBar();
-  if(mode === 'corpus'){
-    body.innerHTML = '<div style="width:100%;max-height:360px;overflow:auto;text-align:left">' + DATA.words.map(w =>
-      '<div class="list-item"><span><strong>'+escapeHtml(w.en)+'</strong></span><span>'+escapeHtml(w.cn)+'</span></div>'
-    ).join('') + '</div>';
-    return;
-  }
   if(pq.idx >= pq.queue.length){ finishPractice(); return; }
   pq.revealed = false;
   const cur = pq.queue[pq.idx];
   const c = pc();
   // 每 2 道新题插回一个错词（更频繁，让用户感知到"重复出现"）
-  if(['seeWord','hearMeaning'].includes(mode) && !pq.retrying && pq.reviewQueue.length && pq.idx > 0 && pq.idx % 2 === 0){
+  if(!pq.retrying && pq.reviewQueue.length && pq.idx > 0 && pq.idx % 2 === 0){
     const rw = pq.reviewQueue.shift();
     if(rw) pq.queue.splice(pq.idx + 1, 0, rw);
   }
-
-  if(mode === 'mc'){
-    body.innerHTML = '<div class="q-word">'+escapeHtml(cur.en)+'</div>' +
-      (c.showCn ? '<div class="q-cn">'+escapeHtml(cur.cn||'')+'</div>' : '<button class="btn" id="revealBtn">显示释义</button>') +
-      '<div id="flashAns" style="margin-top:10px;color:var(--muted);font-size:18px"></div>' +
-      '<div id="judge" style="margin-top:14px;display:'+(c.showCn?'flex':'none')+';gap:10px;justify-content:center">' +
-        '<button class="btn btn-med" id="knownBtn">✅ 认识</button>' +
-        '<button class="btn btn-warn" id="fuzzyBtn">🤔 模糊</button>' +
-        '<button class="btn btn-danger" id="unknownBtn">❌ 不认识</button>' +
-      '</div>';
-    if(!c.showCn){
-      $('#revealBtn').addEventListener('click', () => {
-        $('#flashAns').textContent = cur.cn || '';
-        $('#judge').style.display = 'flex';
-        $('#revealBtn').hidden = true;
-      });
-    }
-    $('#knownBtn').addEventListener('click', () => applyMc(cur, 'known'));
-    $('#fuzzyBtn').addEventListener('click', () => applyMc(cur, 'fuzzy'));
-    $('#unknownBtn').addEventListener('click', () => applyMc(cur, 'unknown'));
-    return;
-  }
-
-  if(mode === 'flashcard'){
-    body.innerHTML = '<div class="q-word">'+escapeHtml(cur.en)+'</div>' +
-      (c.showCn ? '<div class="q-cn">'+escapeHtml(cur.cn||'')+'</div>' : '<button class="btn" id="revealBtn">显示释义</button>') +
-      '<div id="flashAns" style="margin-top:10px;color:var(--muted);font-size:18px"></div>' +
-      '<div id="judge" style="margin-top:14px;display:'+(c.showCn?'flex':'none')+';gap:10px;justify-content:center">' +
-        '<button class="btn btn-med" id="knownBtn">✅ 认识</button>' +
-        '<button class="btn btn-danger" id="unknownBtn">❌ 不认识</button>' +
-      '</div>';
-    if(!c.showCn){
-      $('#revealBtn').addEventListener('click', () => {
-        $('#flashAns').textContent = cur.cn || '';
-        $('#judge').style.display = 'flex';
-        $('#revealBtn').hidden = true;
-      });
-    }
-    $('#knownBtn').addEventListener('click', () => applySrs(cur, true));
-    $('#unknownBtn').addEventListener('click', () => applySrs(cur, false));
-  } else if(mode === 'seeWord'){
-    pq.answer = cur;
-    const optN = Math.min(c.optCount, DATA.words.length);
-    const opts = shuffle([cur, ...pickWrong(cur, optN-1)]);
-    let html = '<div class="practice-word-head">'+
-      '<span class="pw-en">'+escapeHtml(cur.en)+'</span>'+
-      (cur.ipa ? '<span class="pw-ipa">'+escapeHtml(cur.ipa)+'</span>' : '')+
-      '</div>';
-    if(cur.cn) html += '<div class="pw-cn" id="pwCn" hidden>'+escapeHtml(cur.cn)+'</div>';
-    if(cur.example) html += '<div class="practice-sentence">'+escapeHtml(cur.example).replace(new RegExp('\\b'+escapeRegExp(cur.en)+'\\b'),'<span class="hi">$&</span>')+'</div>';
-    html += '<div class="opts-grid" id="opts"></div>';
-    body.innerHTML = html;
-    $('#opts').innerHTML = opts.map((o,i) =>
-      '<button class="opt-big" data-en="'+escapeHtml(o.en)+'">'+
-        '<span class="opt-big-tag">'+(o.pos||'')+'</span>'+
-        '<span class="opt-big-cn">'+escapeHtml(o.cn)+'</span>'+
-        '<span class="opt-big-key">快捷键：'+(i+1)+'</span>'+
-      '</button>'
-    ).join('') +
-    '<button class="opt-big opt-big-unknown" id="unknownBtn">不知道 <span class="opt-big-key">快捷键：'+(opts.length+1)+'</span></button>';
-    bindOpts(cur);
-    $('#unknownBtn').addEventListener('click', () => markUnknown(cur));
-    setTimeout(() => speakN(cur.en), 300);  // 新词自动读
-  } else if(mode === 'hearMeaning'){
-    pq.answer = cur;
-    const optN = Math.min(c.optCount, DATA.words.length);
-    const opts = shuffle([cur, ...pickWrong(cur, optN-1)]);
-    let html = '<div class="practice-word-head">'+
-      '<span class="pw-en">'+escapeHtml(cur.en)+'</span>'+
-      (cur.ipa ? '<span class="pw-ipa">'+escapeHtml(cur.ipa)+'</span>' : '')+
-      '</div>';
-    if(cur.cn) html += '<div class="pw-cn" id="pwCn" hidden>'+escapeHtml(cur.cn)+'</div>';
-    if(cur.example) html += '<div class="practice-sentence">'+escapeHtml(cur.example).replace(new RegExp('\\b'+escapeRegExp(cur.en)+'\\b'),'<span class="hi">$&</span>')+'</div>';
-    html += '<div style="text-align:center;margin:10px 0"><button class="btn btn-play-large" id="playBtn">🔊 播放读音</button></div>';
-    html += '<div class="opts-grid" id="opts"></div>';
-    body.innerHTML = html;
-    $('#opts').innerHTML = opts.map((o,i) =>
-      '<button class="opt-big" data-en="'+escapeHtml(o.en)+'">'+
-        '<span class="opt-big-tag">'+(o.pos||'')+'</span>'+
-        '<span class="opt-big-cn">'+escapeHtml(o.cn)+'</span>'+
-        '<span class="opt-big-key">快捷键：'+(i+1)+'</span>'+
-      '</button>'
-    ).join('') +
-    '<button class="opt-big opt-big-unknown" id="unknownBtn">不知道 <span class="opt-big-key">快捷键：'+(opts.length+1)+'</span></button>';
-    $('#playBtn').addEventListener('click', () => speakN(cur.en));
-    speakN(cur.en);  // 自动播放
-    bindOpts(cur);
-    $('#unknownBtn').addEventListener('click', () => markUnknown(cur));
-  } else if(mode === 'dictation'){
-    pq.answer = cur;
-    renderDictCard(body, cur);
-  }
+  pq.answer = cur;
+  const optN = Math.min(c.optCount, DATA.words.length);
+  const opts = shuffle([cur, ...pickWrong(cur, optN-1)]);
+  let html = '<div class="practice-word-head">'+
+    '<span class="pw-en">'+escapeHtml(cur.en)+'</span>'+
+    (cur.ipa ? '<span class="pw-ipa">'+escapeHtml(cur.ipa)+'</span>' : '')+
+    '</div>';
+  if(cur.cn) html += '<div class="pw-cn" id="pwCn" hidden>'+escapeHtml(cur.cn)+'</div>';
+  if(cur.example) html += '<div class="practice-sentence">'+escapeHtml(cur.example).replace(new RegExp('\\b'+escapeRegExp(cur.en)+'\\b'),'<span class="hi">$&</span>')+'</div>';
+  html += '<div class="opts-grid" id="opts"></div>';
+  body.innerHTML = html;
+  $('#opts').innerHTML = opts.map((o,i) =>
+    '<button class="opt-big" data-en="'+escapeHtml(o.en)+'">'+
+      '<span class="opt-big-tag">'+(o.pos||'')+'</span>'+
+      '<span class="opt-big-cn">'+escapeHtml(o.cn)+'</span>'+
+      '<span class="opt-big-key">快捷键：'+(i+1)+'</span>'+
+    '</button>'
+  ).join('') +
+  '<button class="opt-big opt-big-unknown" id="unknownBtn">不知道 <span class="opt-big-key">快捷键：'+(opts.length+1)+'</span></button>';
+  bindOpts(cur);
+  $('#unknownBtn').addEventListener('click', () => markUnknown(cur));
+  setTimeout(() => speakN(cur.en), 300);  // 新词自动读
 }
 
 // ======= 选择题选项绑定（爱听写式错题循环）=======
@@ -567,59 +420,6 @@ function markUnknown(correct){
   autoAdvance();
 }
 
-// 爱听写式：用同一道题重新渲染（选项 shuffle 换位），供选错 / 不认识后调用
-function retrySameWord(cur){
-  if(!pq) return;
-  const mode = pq.mode;
-  const key = cur.en;
-  if(!['seeWord','hearMeaning'].includes(mode)){
-    pq.revealed = false; pq.retrying = false; nextQuestion(); return;
-  }
-  cancelSpeak();
-  $('#nextBtn').hidden = true;
-  const body = $('#practiceBody');
-  const c = pc();
-  pq.revealed = false;
-  pq.answer = cur;
-  const optN = Math.min(c.optCount, DATA.words.length);
-  const opts = shuffle([cur, ...pickWrong(cur, optN-1)]);
-  const m = (pq.mastery && pq.mastery[key]) || 0;
-  let html;
-  if(mode === 'seeWord'){
-    html = '<div class="q-word">'+escapeHtml(cur.en)+'</div>';
-    if(c.showCn) html += '<div class="q-cn muted" style="font-size:14px">'+escapeHtml(cur.cn||'')+'</div>';
-  } else {
-    html = '<button class="btn btn-play-large" id="playBtn">🔊 播放读音</button>';
-    if(c.showCn) html += '<div class="q-cn muted" style="font-size:14px;margin-top:8px">'+escapeHtml(cur.cn||'')+'</div>';
-  }
-  html += '<div style="text-align:center;font-size:12px;margin-top:8px;color:var(--warn)">⚠️ 再试一次（已连对 '+m+'/3 次）</div>';
-  html += '<div class="options" id="opts" style="margin-top:14px"></div>';
-  body.innerHTML = html;
-  $('#opts').innerHTML = opts.map((o,i) =>
-    '<button class="opt" data-en="'+escapeHtml(o.en)+'"><span class="opt-cn">'+escapeHtml(o.cn)+'</span><span class="opt-key">'+(i+1)+'</span></button>'
-  ).join('') + '<button class="opt opt-unknown" id="unknownBtn" style="grid-column:1/-1;margin-top:6px">🙈 不认识</button>';
-  if(mode === 'hearMeaning'){
-    $('#playBtn').addEventListener('click', () => speakN(cur.en));
-    speakN(cur.en);
-  }
-  bindOpts(cur);
-  $('#unknownBtn').addEventListener('click', () => markUnknown(cur));
-}
-
-// 复习单词：与看词/听音/听写/👁 共用同一套 mc* 远线记忆曲线，
-// 这样"有没有记过的历史"在所有模块和复习板块之间互通（修：此前用独立的 srs* 曲线，与其他板块不认识）
-function applySrs(w, known){
-  if(pq.revealed) return;
-  pq.revealed = true; pq.total++;
-  if(known) pq.correct++;
-  const label = updateMcCurve(w, known ? 'known' : 'unknown');  // 推进共享长线曲线
-  $('#flashAns').textContent = w.cn || '';
-  $('#judge').style.display = 'none';
-  $('#revealBtn').hidden = true;
-  $('#nextBtn').hidden = false; updateScore();
-  toast(known ? ('已记为认识，下次复习 '+w.mcDue) : '已记为不认识，明天再练');
-}
-
 // ======= 共享记忆曲线（远线）：默墨(3档) 与 爱听写(2档) 共用同一套 mc* 字段 =======
 // grade: 'known' | 'fuzzy' | 'unknown'
 // 只算曲线与落库，不含任何模式专属 UI/重测逻辑；两种模式都调用它，记忆曲线因此共通
@@ -653,131 +453,9 @@ function updateMcCurve(w, grade){
   return grade==='known' ? '已掌握' : grade==='fuzzy' ? '有点模糊' : '未掌握';
 }
 
-// 墨墨式（默默背单词）：三档自测反馈（认识 / 模糊 / 不认识）
-function applyMc(w, grade){            // grade: 'known' | 'fuzzy' | 'unknown'
-  if(pq.revealed) return;
-  pq.revealed = true; pq.total++;
-  const label = updateMcCurve(w, grade);   // 推进共享长线曲线
-  if(grade === 'known'){
-    pq.correct++;
-    $('#flashAns').textContent = w.cn || '';
-    $('#judge').style.display = 'none';
-    $('#revealBtn').hidden = true;
-    $('#nextBtn').hidden = false; updateScore();
-    toast(label + '，下次复习 ' + w.mcDue);
-  } else { // fuzzy / unknown —— 排程照旧，但额外当场重测
-    toast(label + '，下次复习 ' + w.mcDue + '（当场重测）');
-    mcDrill(w);   // ← 当场重测直到连对3次，再 nextQuestion
-    return;
-  }
-}
-
-// 墨墨：模糊/不认识 时，当场重测同词（选项换位），连对3次才过
-function mcDrill(w){
-  cancelSpeak();
-  const body = $('#practiceBody');
-  const c = pc();
-  let streak = 0;
-  const render = () => {
-    pq.revealed = false;
-    const optN = Math.min(c.optCount, DATA.words.length);
-    const opts = shuffle([w, ...pickWrong(w, optN-1)]);
-    let html = '<div class="q-word">'+escapeHtml(w.en)+'</div>';
-    if(c.showCn) html += '<div class="q-cn muted" style="font-size:14px">'+escapeHtml(w.cn||'')+'</div>';
-    html += '<div style="text-align:center;font-size:12px;margin-top:8px;color:var(--warn)">⚠️ 当场重测（已连对 '+streak+'/3 次）</div>';
-    html += '<div class="options" id="opts" style="margin-top:14px"></div>';
-    body.innerHTML = html;
-    $('#opts').innerHTML = opts.map((o,i) =>
-      '<button class="opt" data-en="'+escapeHtml(o.en)+'"><span class="opt-cn">'+escapeHtml(o.cn)+'</span><span class="opt-key">'+(i+1)+'</span></button>'
-    ).join('');
-    $('#opts').querySelectorAll('.opt').forEach(b => b.addEventListener('click', () => {
-      if(pq.revealed) return;
-      pq.revealed = true;
-      const ok = b.dataset.en === w.en;
-      document.querySelectorAll('#opts .opt').forEach(x => { if(x.dataset.en === w.en) x.classList.add('correct'); x.style.pointerEvents='none'; });
-      if(ok){ streak++; if(streak>=3){ toast('✓ 当场练会：'+w.en); setTimeout(()=>nextQuestion(), 600); } else { setTimeout(render, 1200); } }
-      else { streak = 0; setTimeout(render, 1200); }
-    }));
-  };
-  $('#nextBtn').hidden = true;
-  render();
-}
-
-// ======= 听写（爱听写风格）=======
-function dictRepeat(){
-  // 听写模式用独立次数配置，如果用户在设置面板调了 repeat 就用那个
-  const c = pc();
-  return c.dictRepeat || c.repeat || 3;
-}
-
-function renderDictCard(body, cur){
-  const c = pc();
-  const rep = dictRepeat();
-  body.innerHTML = `
-    <div class="dict-card">
-      <div class="dict-head">
-        <button class="btn btn-play-large" id="playBtn" title="播放">🔊 播放</button>
-        <div class="dict-meta">
-          <div class="dict-voice">
-            <label>语速</label>
-            <input type="range" id="cfgRate" min="0.5" max="1.3" step="0.05" value="${c.rate}" />
-            <span id="rateTxt">${c.rate.toFixed(2)}x</span>
-          </div>
-          <div class="dict-voice">
-            <label>次数</label>
-            <input type="range" id="cfgRepeat" min="1" max="5" step="1" value="${rep}" />
-            <span id="repeatTxt">${rep} 次</span>
-          </div>
-          <div class="dict-voice">
-            <label>间隔</label>
-            <select id="cfgInterval">
-              <option value="800">0.8s</option>
-              <option value="1200">1.2s</option>
-              <option value="1800">1.8s</option>
-              <option value="2400">2.4s</option>
-              <option value="3200">3.2s</option>
-            </select>
-          </div>
-          <div class="dict-voice">
-            <label><input type="checkbox" id="cfgShowCn" ${c.showCn?'checked':''}/> 释义提示</label>
-          </div>
-        </div>
-      </div>
-      <div id="cnHint" style="text-align:center;color:var(--muted);margin-top:8px;min-height:20px;font-size:14px">${c.showCn ? '中文释义：'+escapeHtml(cur.cn||'(无)') : ''}</div>
-      <input class="q-input dict-input" id="dictInput" placeholder="听到后把英文单词拼写写在这里，Enter 提交" autocomplete="off" spellcheck="false" autocapitalize="off" />
-      <div class="dict-actions">
-        <button class="btn" id="revealBtn">🙈 没听清 / 跳过</button>
-        <button class="btn btn-primary" id="checkBtn">确认提交</button>
-      </div>
-      <div id="dictResult" style="margin-top:14px"></div>
-    </div>`;
-  // 设置面板内联绑定（同步到全局配置）
-  $('#cfgInterval').value = String(c.intervalMs);
-  const syncCfg = () => pcSave({
-    rate: parseFloat($('#cfgRate').value),
-    dictRepeat: parseInt($('#cfgRepeat').value,10),
-    intervalMs: parseInt($('#cfgInterval').value,10),
-    showCn: $('#cfgShowCn').checked
-  });
-  $('#cfgRate').addEventListener('input', () => { $('#rateTxt').textContent = parseFloat($('#cfgRate').value).toFixed(2)+'x'; syncCfg(); });
-  $('#cfgRepeat').addEventListener('input', () => { $('#repeatTxt').textContent = parseInt($('#cfgRepeat').value,10)+' 次'; syncCfg(); });
-  $('#cfgInterval').addEventListener('change', syncCfg);
-  $('#cfgShowCn').addEventListener('change', () => {
-    const on = $('#cfgShowCn').checked;
-    $('#cnHint').textContent = on ? '中文释义：'+escapeHtml(cur.cn||'(无)') : '';
-    syncCfg();
-  });
-  // 播放 / 提交
-  $('#playBtn').addEventListener('click', () => playWord(cur.en));
-  $('#checkBtn').addEventListener('click', () => checkDictation(cur));
-  $('#revealBtn').addEventListener('click', () => markDictSkip(cur));
-  $('#dictInput').addEventListener('keydown', e => { if(e.key === 'Enter') checkDictation(cur); });
-  setTimeout(() => { $('#dictInput').focus(); playWord(cur.en); }, 120);
-}
-
 // 朗读N次（按全局配置）
 var _speakTimers = [];
-/* Bug10：集中管理朗读定时器与语音，切题时 cancelSpeak 取消未播放的排队朗读，
+/* 集中管理朗读定时器与语音，切题时 cancelSpeak 取消未播放的排队朗读，
    避免上一题的循环朗读跟下一题串台 */
 function cancelSpeak(){
   _speakTimers.forEach(t => clearTimeout(t));
@@ -801,177 +479,36 @@ function speakN(text){
   }catch(e){}
 }
 
-function playWord(text){
-  const c = pc();
-  const rep = dictRepeat();
-  cancelSpeak();
-  try{
-    let n = 0;
-    const run = () => {
-      if(n++ >= rep) return;
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = 'en-US'; u.rate = c.rate;
-      window.speechSynthesis.speak(u);
-      const t = setTimeout(run, c.intervalMs);
-      _speakTimers.push(t);
-    };
-    run();
-  }catch(e){}
-}
-
-function markDictSkip(cur){
-  if(pq.revealed) return;
-  pq.revealed = true; pq.total++;
-  cancelSpeak();
-  updateMcCurve(cur, 'unknown');  // 跳过=未掌握，也写入统一记忆曲线
-  showDictResult(cur, '', false, true);
-}
-
-function checkDictation(cur){
-  if(pq.revealed) return; pq.revealed = true; pq.total++;
-  cancelSpeak();
-  const c = pc();
-  const val = ($('#dictInput').value || '').trim();
-  const ok = c.caseSensitive ? val === cur.en : val.toLowerCase() === cur.en.toLowerCase();
-  if(ok) pq.correct++;
-  updateMcCurve(cur, ok ? 'known' : 'unknown');  // 听写也写入统一记忆曲线（修：此前完全不记记忆）
-  showDictResult(cur, val, ok, false);
-}
-
-function showDictResult(cur, userVal, ok, skipped){
-  const c = pc();
-  const box = $('#dictResult');
-  if(!pq.wrongList) pq.wrongList = [];
-  if(!ok) pq.wrongList.push({ en:cur.en, cn:cur.cn||'', user: userVal, skipped });
-
-  // 逐字母比对
-  let charHtml;
-  if(skipped){
-    charHtml = '';
-  } else if(ok){
-    charHtml = '<div class="spell-row">' +
-      cur.en.split('').map(ch => '<span class="ch correct">'+escapeHtml(ch)+'</span>').join('') +
-      '</div>';
-  } else {
-    // Bug19：用 LCS 对齐参考词与用户拼写，准确标出 匹配 / 多写 / 漏写 的字母
-    const ref = cur.en.split(''), usr = userVal.split('');
-    const aligned = lcsSpell(ref, usr);
-    charHtml = '<div class="spell-row">' + aligned.map(x => {
-      if(x.ok) return '<span class="ch correct">'+escapeHtml(x.usr)+'</span>';
-      if(x.missing) return '<span class="ch miss">'+escapeHtml(x.ref)+'</span>';
-      return '<span class="ch wrong">'+escapeHtml(x.usr)+'</span>';
-    }).join('') + '</div>';
-    charHtml += '<div class="muted" style="font-size:12px;margin-top:6px">参考拼写：' +
-      ref.map(ch => '<span class="ch ref">'+escapeHtml(ch)+'</span>').join('') + '</div>';
-  }
-
-  // 答对自动下一题；答错/跳过显示按钮
-  const showNext = !ok || skipped || !c.autoNext;
-  box.innerHTML = `
-    <div class="dict-result-card ${ok?'ok':'bad'}">
-      <div class="dict-verdict">${skipped?'😵 跳过':(ok?'✅ 完全正确':'❌ 拼写有误')}</div>
-      ${!skipped && !ok ? '<div class="muted" style="font-size:12px;margin-top:2px">你写的：</div>'+charHtml : charHtml}
-      <div class="dict-answer">
-        <div class="dict-ans-en">${escapeHtml(cur.en)}</div>
-        <div class="dict-ans-cn">${escapeHtml(cur.cn||'')}</div>
-      </div>
-      <div class="dict-result-actions">
-        <button class="btn" id="playAgainBtn">🔊 再听一遍</button>
-        ${showNext ? '<button class="btn btn-primary" id="dictNextBtn">下一题 →</button>' : ''}
-      </div>
-    </div>`;
-  $('#playAgainBtn').addEventListener('click', () => playWord(cur.en));
-  if(showNext){
-    $('#dictNextBtn').addEventListener('click', () => { pq.idx++; nextQuestion(); });
-  }
-  updateScore();
-  // 答对且开启自动下一题：延迟后自动进入
-  if(ok && !skipped && c.autoNext){
-    setTimeout(() => { if(pq && pq.revealed){ pq.idx++; nextQuestion(); } }, c.autoNextDelay);
-  }
-  // 自动播放下一题读音（在 nextQuestion 里会自动播放）
-}
-
 function onNext(){ pq.idx++; nextQuestion(); }
 
-/* 听写拼写比对：基于最长公共子序列（LCS）对齐参考词与用户拼写，
-   逐字母标出 匹配 / 多写(extra) / 漏写(missing)，比逐位贪心比对更准确（Bug19） */
-function lcsSpell(refArr, usrArr){
-  const a = refArr.map(c => c.toLowerCase());
-  const b = usrArr.map(c => c.toLowerCase());
-  const n = a.length, m = b.length;
-  const dp = Array.from({length: n+1}, () => new Array(m+1).fill(0));
-  for(let i=n-1;i>=0;i--) for(let j=m-1;j>=0;j--)
-    dp[i][j] = (a[i]===b[j]) ? dp[i+1][j+1]+1 : Math.max(dp[i+1][j], dp[i][j+1]);
-  const res = [];
-  let i=0, j=0;
-  while(i<n && j<m){
-    if(a[i]===b[j]){ res.push({ ok:true, usr: usrArr[j], ref: refArr[i] }); i++; j++; }
-    else if(dp[i+1][j] >= dp[i][j+1]){ res.push({ ok:false, missing:true, ref: refArr[i] }); i++; }
-    else { res.push({ ok:false, extra:true, usr: usrArr[j] }); j++; }
-  }
-  while(i<n){ res.push({ ok:false, missing:true, ref: refArr[i] }); i++; }
-  while(j<m){ res.push({ ok:false, extra:true, usr: usrArr[j] }); j++; }
-  return res;
-}
 function finishPractice(){
   const acc = pq.total ? Math.round(pq.correct / pq.total * 100) : 0;
   const unknown = (pq.total||0) - (pq.correct||0);
   const wrong = pq.wrongList || [];
   let bodyHtml = '';
-  if(pq.mode === 'dictation'){
-    bodyHtml = `
-      <div class="dict-summary">
-        <div class="dict-score-ring" style="--pct:${acc}%">
-          <div class="dict-score-num">${acc}<span>%</span></div>
-          <div class="muted" style="font-size:12px">正确率</div>
-        </div>
-        <div class="dict-stats">
-          <div class="stat-row"><span>本次题量</span><b>${pq.total}</b></div>
-          <div class="stat-row"><span>写对</span><b style="color:var(--med)">${pq.correct}</b></div>
-          <div class="stat-row"><span>错 / 跳过</span><b style="color:var(--danger)">${unknown}</b></div>
-          <div class="stat-row"><span>复习错词</span><b>${wrong.length} 个</b></div>
-        </div>
-      </div>
-      <div class="dict-result-actions" style="justify-content:center;margin:14px 0">
-        <button class="btn" id="exitBtn">返回模式选择</button>
-        ${wrong.length ? '<button class="btn btn-med" id="redoWrong">🔁 只重练错词</button>' : ''}
-        <button class="btn btn-primary" id="restartBtn">再来一轮</button>
-      </div>`;
-    if(wrong.length){
-      bodyHtml += '<div class="card" style="margin-top:14px;background:rgba(248,113,113,.04);border:1px solid rgba(248,113,113,.2)">' +
-        '<h3 style="margin:0 0 10px;color:var(--danger)">错词列表（'+wrong.length+' 个）</h3><div>' + wrong.map((w,i) =>
-          '<div class="list-item">' +
-            '<span><b style="font-size:15px">'+escapeHtml(w.en)+'</b>'+(w.cn?' <span class="muted">'+escapeHtml(w.cn)+'</span>':'')+'</span>' +
-            '<span style="text-align:right">'+(w.skipped?'<span class="badge down">跳过</span>':('<span class="muted" style="font-size:12px">你写：'+escapeHtml(w.user||'(空)')+'</span>'))+'</span>' +
-            '<span class="list-actions"><button class="btn btn-sm" data-replay="'+i+'">🔊</button></span>' +
-          '</div>').join('') + '</div></div>';
-    }
-  } else {
-    bodyHtml = '<div class="q-word">练习完成 🎉</div>' +
-      '<div class="q-cn">正确率 '+acc+'%（'+pq.correct+'/'+pq.total+'）· 待加强 '+unknown+'</div>';
-    if(wrong.length){
-      bodyHtml += '<div class="card" style="margin-top:14px;background:rgba(248,113,113,.04);border:1px solid rgba(248,113,113,.2)">' +
-        '<h3 style="margin:0 0 10px;color:var(--danger)">错词列表（'+wrong.length+' 个）</h3><div>' + wrong.map((w,i) => {
-          const mast = (pq.mastery && pq.mastery[w.en]) || 0;
-          const mastTag = mast >= 3
-            ? '<span class="badge" style="background:var(--primary-soft);color:var(--med)">✓ 已掌握</span>'
-            : '<span class="badge" style="background:rgba(245,158,11,.16);color:var(--warn)">连对 '+mast+'/3</span>';
-          return '<div class="list-item">' +
-            '<span><b style="font-size:15px">'+escapeHtml(w.en)+'</b> '+mastTag+(w.cn?' <span class="muted">'+escapeHtml(w.cn)+'</span>':'')+'</span>' +
-            '<span style="text-align:right"><span class="muted" style="font-size:12px">'+escapeHtml(w.user||'')+'</span></span>' +
-            '<span class="list-actions"><button class="btn btn-sm" data-replay="'+i+'">🔊</button></span>' +
+  bodyHtml = '<div class="q-word">练习完成 🎉</div>' +
+    '<div class="q-cn">正确率 '+acc+'%（'+pq.correct+'/'+pq.total+'）· 待加强 '+unknown+'</div>';
+  if(wrong.length){
+    bodyHtml += '<div class="card" style="margin-top:14px;background:rgba(248,113,113,.04);border:1px solid rgba(248,113,113,.2)">' +
+      '<h3 style="margin:0 0 10px;color:var(--danger)">错词列表（'+wrong.length+' 个）</h3><div>' + wrong.map((w,i) => {
+        const mast = (pq.mastery && pq.mastery[w.en]) || 0;
+        const mastTag = mast >= 3
+          ? '<span class="badge" style="background:var(--primary-soft);color:var(--med)">✓ 已掌握</span>'
+          : '<span class="badge" style="background:rgba(245,158,11,.16);color:var(--warn)">连对 '+mast+'/3</span>';
+        return '<div class="list-item">' +
+          '<span><b style="font-size:15px">'+escapeHtml(w.en)+'</b> '+mastTag+(w.cn?' <span class="muted">'+escapeHtml(w.cn)+'</span>':'')+'</span>' +
+          '<span style="text-align:right"><span class="muted" style="font-size:12px">'+escapeHtml(w.user||'')+'</span></span>' +
+          '<span class="list-actions"><button class="btn btn-sm" data-replay="'+i+'">🔊</button></span>' +
           '</div>';
-        }).join('') + '</div></div>';
-      bodyHtml += '<div class="dict-result-actions" style="justify-content:center;margin:14px 0">' +
-        '<button class="btn" id="exitBtn">返回模式选择</button>' +
-        '<button class="btn btn-med" id="redoWrong">🔁 只重练错词</button>' +
-        '<button class="btn btn-primary" id="restartBtn">再来一轮</button></div>';
-    } else {
-      bodyHtml += '<div class="dict-result-actions" style="justify-content:center;margin:14px 0">' +
-        '<button class="btn" id="exitBtn">返回模式选择</button>' +
-        '<button class="btn btn-primary" id="restartBtn">再来一轮</button></div>';
-    }
+      }).join('') + '</div></div>';
+    bodyHtml += '<div class="dict-result-actions" style="justify-content:center;margin:14px 0">' +
+      '<button class="btn" id="exitBtn">重新开始</button>' +
+      '<button class="btn btn-med" id="redoWrong">🔁 只重练错词</button>' +
+      '<button class="btn btn-primary" id="restartBtn">再来一轮</button></div>';
+  } else {
+    bodyHtml += '<div class="dict-result-actions" style="justify-content:center;margin:14px 0">' +
+      '<button class="btn" id="exitBtn">重新开始</button>' +
+      '<button class="btn btn-primary" id="restartBtn">再来一轮</button></div>';
   }
   $('#practiceBody').innerHTML = bodyHtml;
   $('#nextBtn').hidden = true; $('#practiceScore').textContent = '';
@@ -980,10 +517,10 @@ function finishPractice(){
   const eb = document.getElementById('exitBtn');
   if(eb) eb.addEventListener('click', resetPractice);
   const rb = document.getElementById('restartBtn');
-  if(rb) rb.addEventListener('click', () => { startPractice(pq.mode); });
+  if(rb) rb.addEventListener('click', () => { autoStartSeeWord(); });
   const rw = document.getElementById('redoWrong');
   if(rw) rw.addEventListener('click', () => {
-    const mode = pq.mode;
+    const mode = 'seeWord';
     pq = { mode, queue: shuffle(wrong.slice()), idx: 0, total: 0, correct: 0, revealed: false, answer: null, wrongList: [],
            mastery: {}, retrying: false, reviewQueue: [], countedWords: {}, correctWords: {}, missed: {} };
     $('#nextBtn').hidden = true;
@@ -994,7 +531,7 @@ function finishPractice(){
   document.querySelectorAll('[data-replay]').forEach(b => {
     b.addEventListener('click', () => {
       const w = wrong[parseInt(b.dataset.replay,10)];
-      playWord(w.en);
+      speakN(w.en);
     });
   });
 }
