@@ -26,29 +26,43 @@
 
   <section class="hero-cta-wrap">
     <a class="hero-cta" id="startBtn" href="timer.html">
-      <span class="hero-cta-title" id="startTitle">开始今日学习</span>
-      <span class="hero-cta-sub" id="startSub">选模块，开一个计时器</span>
+      <div>
+        <span class="hero-cta-title" id="startTitle">开始今日学习</span>
+        <span class="hero-cta-sub" id="startSub">选模块，开一个计时器</span>
+      </div>
+      <span class="hero-cta-ic">⏱</span>
     </a>
     <div class="quick-chips">
       <a class="quick-chip" href="review.html">📊 模考</a>
       <a class="quick-chip" href="practice.html">🎮 背单词</a>
       <a class="quick-chip" href="speaking.html">🗨 口语素材</a>
+      <a class="quick-chip" href="pronunciation.html">🗣 发音</a>
+      <a class="quick-chip" href="materials.html">🧱 素材</a>
     </div>
   </section>
+
+  <section class="card dash-status">
+    <div class="dash-status-head">
+      <h2 class="dash-status-title">今日进度</h2>
+      <span class="dash-status-pct" id="stPct">0%</span>
+    </div>
+    <div class="dash-progress-track"><div class="dash-progress-fill" id="stFill"></div></div>
+    <div class="dash-progress-meta">
+      <span>⏱ 已学 <b id="stTime">0h0m</b></span>
+      <span class="muted">目标 <b id="stGoal">8</b>h</span>
+    </div>
+    <div class="dash-stats">
+      <div class="dash-stat"><span class="dash-stat-ic">🔥</span><span>连续 <b id="stStreak">0</b> 天</span></div>
+      <div class="dash-stat"><span class="dash-stat-ic">💊</span><span id="stMed">未记录服药</span><button class="status-link" id="checkinBtn">打卡</button></div>
+    </div>
+  </section>
+  <div class="ai-readiness" id="aiReadiness"></div>
+  <div class="dash-reminder" id="reminderLine"></div>
 
   <section class="quick-links-wrap">
     <h2 class="section-title">⭐ 我的收藏</h2>
     <div class="quick-links" id="quickLinks"></div>
   </section>
-
-  <section class="status-row">
-    <span class="status-item">⏱ 今日已学 <b id="stTime">0h0m</b> / 目标 <b id="stGoal">8</b>h</span>
-    <span class="status-sep">·</span>
-    <span class="status-item">🔥 连续 <b id="stStreak">0</b> 天 <button class="status-link" id="checkinBtn">打卡</button></span>
-    <span class="status-sep">·</span>
-    <span class="status-item muted" id="stMed">💊 未记录服药</span>
-  </section>
-  <div class="reminder-line" id="reminderLine"></div>
 
   <details class="detail-block">
     <summary>📊 今日模块分布</summary>

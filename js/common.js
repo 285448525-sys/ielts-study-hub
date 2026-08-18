@@ -41,6 +41,8 @@ function injectNav(){
 
   let html = '';
   html += '<div class="side-head"><span class="nav-logo">📚</span><span>雅思备考 Hub</span><button class="side-collapse-in" id="sideCollapseIn" type="button" title="收起侧边栏" aria-label="收起侧边栏">⟨</button></div>';
+  // 方案1：全局计时徽标容器（任何页面常驻；计时进行中显示呼吸徽标 + 一键结束，解决 P1/P3）
+  html += '<div class="side-timer-wrap" id="sideTimer"></div>';
   html += '<input class="side-search" id="sideSearch" placeholder="搜索功能…" aria-label="搜索功能" />';
 
   // 收藏集合（仪表盘 index 永远不参与置顶/去重，避免首页入口消失）
@@ -69,7 +71,104 @@ function injectNav(){
   html += '</div></div></div>';
   nav.innerHTML = html;
   bindSidebar();
+  renderSideTimer();   // 方案1：注入/刷新全局计时徽标（有活动会话才显示）
 }
+
+/* ===== 方案1 · 全局计时徽标（侧边栏常驻，解决 P1 不可见 + P3 跨页结束） =====
+   设计红线：徽标只读活动会话状态、不新增任何计时实例；计时/恢复逻辑仍在 timer.js，
+   本模块只做"呈现"与"结束"。活动会话来源：优先 window.active（计时页实时对象），
+   否则回退 localStorage（loadActive）以覆盖"从未访问计时页、但会话已持久化"的场景。 */
+function getActiveSession(){
+  if(window.active) return window.active;
+  try { return loadActive(); } catch(e){ return null; }
+}
+/* 轻量刷新：只更新时长数字 + 暂停态，绝不重建 DOM（避免打断停止按钮点击） */
+function updateSideTimerBadge(){
+  const box = document.getElementById('sideTimer');
+  if(!box) return;
+  const a = getActiveSession();
+  if(!a){
+    if(box.childElementCount) box.innerHTML = '';
+    if(window.__sideTimerTick){ clearInterval(window.__sideTimerTick); window.__sideTimerTick = null; }
+    return;
+  }
+  let ms = Date.now() - a.startTs - (a.pauseAccum || 0);
+  if(a.paused && a.pauseStart) ms -= (Date.now() - a.pauseStart);
+  ms = Math.max(0, ms);
+  const live = document.getElementById('sideTimerLive');
+  if(live) live.textContent = fmtHMS(ms/1000);
+  const badge = document.getElementById('sideTimerBadge');
+  if(badge) badge.classList.toggle('paused', !!a.paused);
+}
+function ensureSideTimerTick(){
+  if(window.__sideTimerTick) return;
+  window.__sideTimerTick = setInterval(updateSideTimerBadge, 1000);
+}
+/* 构建/隐藏徽标；仅在"无→有"过渡时重建 DOM 并绑定事件，避免每秒重建丢事件 */
+function renderSideTimer(){
+  const box = document.getElementById('sideTimer');
+  if(!box) return;
+  const a = getActiveSession();
+  if(!a){
+    if(box.childElementCount) box.innerHTML = '';
+    if(window.__sideTimerTick){ clearInterval(window.__sideTimerTick); window.__sideTimerTick = null; }
+    return;
+  }
+  if(!box.querySelector('#sideTimerBadge')){
+    box.innerHTML =
+      '<div class="side-timer running-badge" id="sideTimerBadge" role="button" tabindex="0" title="点击回到计时页">'
+      + '<span class="st-ico">⏱</span>'
+      + '<span class="st-name">' + escapeHtml(a.moduleName || a.subName || '学习') + '</span>'
+      + '<span class="st-live" id="sideTimerLive">00:00:00</span>'
+      + '<button class="st-stop" id="sideTimerStop" type="button" title="结束本次计时">结束</button>'
+      + '</div>';
+    const badge = document.getElementById('sideTimerBadge');
+    const goTimer = () => { try{ softNavigate({ id:'timer', file:'timer.html', href:'timer.html' }, false); }catch(e){ location.href = 'timer.html'; } };
+    badge.addEventListener('click', goTimer);
+    badge.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); goTimer(); } });
+    document.getElementById('sideTimerStop').addEventListener('click', e => { e.stopPropagation(); sideStopClick(); });
+  }
+  updateSideTimerBadge();
+  ensureSideTimerTick();
+}
+/* 结束按钮：在计时页走 timer.js 原生的 stopSession（保证计时页 UI 一致、零逻辑重复）；
+   其它页用 common.js 的 DOM 安全版 stopActiveSession（数据落库 + 同步计时页 DOM 若存在）。 */
+function sideStopClick(){
+  if(document.getElementById('liveTimer') && typeof stopSession === 'function'){ stopSession(); }
+  else if(typeof window.stopActiveSession === 'function'){ window.stopActiveSession(); }
+}
+/* 跨页安全结束：复用 timer.js stopSession 的数据语义，但不依赖计时页 DOM（data.js 全局函数即可完成）。 */
+window.stopActiveSession = function(){
+  const a = window.active || (function(){ try{ return loadActive(); }catch(e){ return null; } })();
+  if(!a) return;
+  if(window.__timerTick){ clearInterval(window.__timerTick); window.__timerTick = null; }
+  let totalPauseMs = a.pauseAccum || 0;
+  if(a.paused && a.pauseStart) totalPauseMs += (Date.now() - a.pauseStart);
+  const endTs = Date.now();
+  const totalSec = Math.round((endTs - a.startTs)/1000);
+  const pauseSec = Math.round(totalPauseMs/1000);
+  const durationSec = Math.max(0, totalSec - pauseSec);
+  if((DATA.settings.chimeOnDone !== false) && durationSec > 0 && typeof playChime === 'function') playChime();
+  DATA.sessions.push({
+    id: uid(), date: todayKey(), moduleId: a.moduleId, subId: a.subId,
+    moduleName: a.moduleName, subName: a.subName,
+    startTs: a.startTs, endTs, durationSec, pauseSec
+  });
+  clearActive();
+  window.active = null;
+  hubSave();
+  // 同步计时页 DOM（仅在计时页有效，避免回看时还显示旧的"进行中"）
+  const liveTimer = document.getElementById('liveTimer');
+  if(liveTimer){ liveTimer.textContent = '00:00:00'; liveTimer.style.color = ''; }
+  const stopBtn = document.getElementById('stopBtn'); if(stopBtn) stopBtn.disabled = true;
+  const pauseBtn = document.getElementById('pauseBtn'); if(pauseBtn){ pauseBtn.disabled = true; pauseBtn.textContent = '暂停'; pauseBtn.className = 'btn'; }
+  const activeInfo = document.getElementById('activeInfo'); if(activeInfo) activeInfo.textContent = '当前没有进行中的学习';
+  const focusInfo = document.getElementById('focusInfo'); if(focusInfo) focusInfo.textContent = '';
+  if(typeof renderTimer === 'function' && document.getElementById('timerMods')) renderTimer();
+  document.dispatchEvent(new CustomEvent('hub:session-saved', { detail: { date: todayKey() } }));
+  document.dispatchEvent(new CustomEvent('hub:timer-state'));
+  toast('已保存 ' + a.subName + '：学习 ' + fmtHM(durationSec) + (pauseSec > 0 ? ' · 暂停 ' + fmtHM(pauseSec) : ''));
+};
 
 function sideItem(p, current){
   const active = (p.file === current) ? 'active' : '';
@@ -649,6 +748,8 @@ ready(() => { hubLoad(); injectNav(); applyTheme(); restoreSideScroll(); initSof
   registerSW();
   // 计时保存后刷新侧边栏「今日已学」（侧边栏在所有页面可见，需即时更新）
   document.addEventListener('hub:session-saved', () => injectNav());
+  // 方案1：计时开始/结束/暂停时刷新全局徽标（无需重建整个侧边栏）
+  document.addEventListener('hub:timer-state', renderSideTimer);
 });
 
 function registerSW(){ try{ if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{}); }catch(e){} }

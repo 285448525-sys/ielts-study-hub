@@ -13,6 +13,11 @@ ready(() => {
       : '未设置考试日期';
     $('#stTime').textContent = fmtHM(totalSec);
     $('#stGoal').textContent = s.dailyGoalHours || 8;
+    // 方案：今日进度条（C 窗口 Dashboard 优化）
+    const goalSec = (s.dailyGoalHours || 8) * 3600;
+    const pct = goalSec > 0 ? Math.min(100, Math.round(totalSec / goalSec * 100)) : 0;
+    const _fill = document.getElementById('stFill'); if(_fill) _fill.style.width = pct + '%';
+    const _stp  = document.getElementById('stPct');  if(_stp)  _stp.textContent  = pct + '%';
     const st = $('#startTitle'), sb = $('#startSub');
     if(todays.length > 0){ st.textContent = '继续上次'; sb.textContent = '今天已学 ' + fmtHM(totalSec) + '，继续加油'; }
     else { st.textContent = '开始今日学习'; sb.textContent = '选模块，开一个计时器'; }
@@ -21,6 +26,7 @@ ready(() => {
   safe(renderStreak);
   safe(renderMedSnippet);
   safe(renderReminders);
+  safe(renderAiReadiness);   // 方案3：首屏 AI 就绪状态条
   safe(() => { const b = $('#todayBars'); if(b){ const bySub={}; todays.forEach(x=>bySub[x.subName]=(bySub[x.subName]||0)+x.durationSec); b.innerHTML = Object.keys(bySub).length===0 ? renderEmpty('今天还没有学习记录') : renderPieChart(bySub); } });
   safe(renderFavLinks);
   safe(renderQuickLinks);   // 我的收藏（站内页面快捷入口）
@@ -37,6 +43,11 @@ ready(() => {
     const td = DATA.sessions.filter(x => x.date === tk);
     const ts = td.reduce((a,x) => a + x.durationSec, 0);
     const te = $('#stTime'); if(te) te.textContent = fmtHM(ts);
+    // 方案：计时保存后进度条实时涨（C 窗口 Dashboard 优化）
+    const goalSec = (DATA.settings.dailyGoalHours || 8) * 3600;
+    const pct = goalSec > 0 ? Math.min(100, Math.round(ts / goalSec * 100)) : 0;
+    const _fill = document.getElementById('stFill'); if(_fill) _fill.style.width = pct + '%';
+    const _stp  = document.getElementById('stPct');  if(_stp)  _stp.textContent  = pct + '%';
     const st = $('#startTitle'), sb = $('#startSub');
     if(td.length > 0){ st.textContent='继续上次'; sb.textContent='今天已学 '+fmtHM(ts)+'，继续加油'; }
     else { st.textContent='开始今日学习'; sb.textContent='选模块，开一个计时器'; }
@@ -45,6 +56,21 @@ ready(() => {
   document.removeEventListener('hub:session-saved', window.__hubSessionSaved);
   document.addEventListener('hub:session-saved', window.__hubSessionSaved);
 });
+
+function renderAiReadiness(){
+  const el = $('#aiReadiness'); if(!el) return;
+  const hasKey = !!(DATA.settings && DATA.settings.relayToken);
+  if(hasKey){
+    el.className = 'ai-readiness ok';
+    el.innerHTML = '<span class="ar-ico">✅</span><span class="ar-text">AI 已就绪 · 串题 / 诊断 / 写作评分 / 万能素材可用</span>';
+  } else {
+    el.className = 'ai-readiness warn';
+    el.innerHTML = '<span class="ar-ico">⚠️</span><span class="ar-text">AI 未配置 · 口语串题 / 诊断 / 写作评分 / 万能素材暂不可用</span>'
+      + '<button class="ar-btn" id="arSetupBtn" type="button">去设置</button>';
+    const b = $('#arSetupBtn');
+    if(b) b.addEventListener('click', () => { try{ softNavigate({ id:'settings', file:'settings.html', href:'settings.html' }, false); }catch(e){ location.href = 'settings.html'; } });
+  }
+}
 
 function renderMedSnippet(){
   const el = $('#stMed'); if(!el) return;

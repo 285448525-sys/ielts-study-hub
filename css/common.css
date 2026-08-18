@@ -216,6 +216,19 @@ body{
 /* 计时"进行中"徽标：柔和呼吸光晕，安静提示正在计时 */
 @keyframes breathe{0%,100%{box-shadow:0 0 0 0 var(--primary-soft)}50%{box-shadow:0 0 0 7px rgba(58,154,147,0)}}
 .running-badge{animation:breathe 2.6s ease-in-out infinite}
+
+/* 方案1 · 侧边栏全局计时徽标（任何页面常驻：正在计时呼吸提示 + 一键结束，解决 P1/P3） */
+.side-timer-wrap{margin:2px 0 8px}
+.side-timer{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:12px;cursor:pointer;background:linear-gradient(135deg,var(--primary),var(--primary-d));color:#fff;font-size:13.5px;font-weight:700;box-shadow:var(--shadow)}
+.side-timer:hover{transform:translateY(-1px)}
+.side-timer.paused{background:linear-gradient(135deg,var(--muted),#4a5f5e)}
+.side-timer[hidden]{display:none}
+.side-timer .st-ico{flex:none}
+.side-timer .st-name{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.side-timer .st-live{font-variant-numeric:tabular-nums;opacity:.95}
+.side-timer .st-stop{background:rgba(255,255,255,.18);border:none;color:#fff;border-radius:8px;padding:3px 9px;font-size:12px;cursor:pointer;flex:none}
+.side-timer .st-stop:hover{background:rgba(255,255,255,.3)}
+.side-timer.running-badge{animation:breathe 2.6s ease-in-out infinite}
 .btn-med{background:var(--med);color:#fff;border-color:var(--med)}
 .btn-warn{background:var(--warn);color:#fff;border-color:var(--warn)}
 .btn-danger{background:var(--danger);color:#fff;border-color:var(--danger)}
@@ -721,6 +734,14 @@ main .quote{
 .status-link{background:none;border:none;color:var(--primary);font-weight:700;cursor:pointer;font-size:14px;padding:4px 8px;border-radius:8px}
 .status-link:hover{background:var(--primary-soft)}
 .status-link:disabled{color:var(--muted);cursor:default}
+/* 方案3 · 首页 AI 就绪状态条（首屏告知 AI 是否可用 + 一键配置，解决 P2 引导；沿用既有 token） */
+.ai-readiness{display:flex;align-items:center;gap:10px;font-size:14px;border-radius:16px;padding:12px 18px;margin-bottom:8px;border:1px solid var(--line);background:var(--surface)}
+.ai-readiness.ok{color:var(--ink);border-color:rgba(70,168,131,.4);background:rgba(70,168,131,.07)}
+.ai-readiness.warn{color:#b06a00;background:#fff7e8;border-color:#f3d9a6}
+.ai-readiness .ar-ico{flex:none}
+.ai-readiness .ar-text{flex:1;min-width:0}
+.ai-readiness .ar-btn{margin-left:auto;background:var(--primary);color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:13px;font-weight:600;cursor:pointer;flex:none;white-space:nowrap}
+.ai-readiness .ar-btn:hover{background:var(--primary-d)}
 .reminder-line{font-size:14px;color:var(--muted);margin:4px 0 20px;padding-left:6px;min-height:1px}
 .detail-block{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:0 16px;margin-bottom:14px}
 .detail-block summary{cursor:pointer;font-size:15px;font-weight:700;color:var(--ink);padding:14px 0;list-style:none}
@@ -819,3 +840,30 @@ main .quote{
 .mock-pron-detail-part:first-of-type{border-top:none;padding-top:0}
 .mock-pron-detail-head{font-size:13.5px;color:var(--ink);margin-bottom:6px}
 .mock-pron-detail-warn{font-size:12.5px;color:#b3261e;background:#fff4f4;border:1px solid var(--danger);border-radius:var(--radius-sm);padding:6px 10px;margin-bottom:8px}
+
+/* ====== 首页 Dashboard 大更新（2026-08-18，teal token，C 窗口方案） ======
+   注意：不重定义全局 .card（corpus/errorbook 等多页都在用），进度卡沿用 `.card`
+   盒子，仅用 .dash-status 微调内距以贴合 mockup；新增样式只用 var(--xxx) token。 */
+.dash-status{padding:20px;margin-bottom:16px}
+.dash-status-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px}
+.dash-status-title{margin:0;font-size:16px;font-weight:800;letter-spacing:-.01em;color:var(--ink)}
+.dash-status-pct{font-size:24px;font-weight:800;color:var(--primary);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.dash-progress-track{height:12px;background:var(--surface-2);border-radius:999px;overflow:hidden}
+.dash-progress-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--primary-bright),var(--primary));transition:width .5s ease}
+.dash-progress-meta{display:flex;justify-content:space-between;gap:12px;margin-top:8px;font-size:13.5px;color:var(--ink)}
+.dash-progress-meta b{font-weight:700}
+.dash-stats{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.dash-stat{flex:1;min-width:130px;display:flex;align-items:center;gap:8px;background:var(--surface-2);border-radius:12px;padding:10px 12px;font-size:13.5px;color:var(--ink)}
+.dash-stat-ic{font-size:16px;flex:none}
+.dash-stat b{font-weight:700}
+.dash-stat .status-link{margin-left:auto;padding:3px 8px}
+/* 提醒卡（替换原 reminder-line；保留 #reminderLine ID，无 tips 时 :empty 自动隐藏） */
+.dash-reminder{display:flex;gap:10px;align-items:flex-start;background:var(--primary-soft);
+  border:1px solid var(--primary-soft);border-left:3px solid var(--primary);
+  border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:14px;color:var(--ink);line-height:1.6}
+.dash-reminder .rem-ic{flex:none;font-size:16px}
+.dash-reminder:empty{display:none}
+/* hero 图标（改动 D 可选）：由列布局改行布局（标题/副标题左、图标右） */
+.hero-cta{flex-direction:row;align-items:center;justify-content:space-between}
+.hero-cta > div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.hero-cta-ic{font-size:34px;opacity:.9;flex:none}

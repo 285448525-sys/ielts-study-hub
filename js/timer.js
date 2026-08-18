@@ -133,6 +133,7 @@ function startSession(moduleId){
   toast('已开始：' + m.name);
   startTick();
   renderTimer();
+  document.dispatchEvent(new CustomEvent('hub:timer-state'));   // 方案1：通知全局徽标出现
 }
 
 function togglePause(){
@@ -153,6 +154,7 @@ function togglePause(){
   }
   persistActive();
   updateTimer();
+  document.dispatchEvent(new CustomEvent('hub:timer-state'));   // 方案1：暂停/继续时同步徽标状态
 }
 
 function stopSession(){
@@ -174,9 +176,10 @@ function stopSession(){
                    // 否则下次进页面会被当成「未结束的计时」按旧 startTs 恢复，
                    // 再结束一次就重复入库、时长虚高。
   hubSave();
+  const d = active; active = null;   // 先清活动态再广播，避免徽标闪一下旧会话
   // 通知仪表盘/侧边栏刷新「今日已学」（解耦：只广播事件，不直接调其他页函数）
   document.dispatchEvent(new CustomEvent('hub:session-saved', { detail: { date: todayKey() } }));
-  const d = active; active = null;
+  document.dispatchEvent(new CustomEvent('hub:timer-state'));   // 方案1：通知全局徽标消失
   $('#activeInfo').textContent = '当前没有进行中的学习';
   $('#focusInfo').textContent = '';
   $('#stopBtn').disabled = true;
