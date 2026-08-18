@@ -1,4 +1,5 @@
 var pq = null; // {mode, queue, idx, total, correct, revealed, answer, wrongList}
+var _speakTimers = []; // 朗读定时器，必须在 ready() 前初始化；ready() 在 defer 阶段会同步执行 autoStartSeeWord
 
 // 间隔重复（记忆曲线）各阶段间隔，单位：天；数组索引 = 记忆阶段
 var SRS_INTERVALS = [0, 1, 2, 4, 7, 15, 30, 60, 120];
@@ -513,11 +514,10 @@ function updateMcCurve(w, grade){
 }
 
 // 朗读N次（按全局配置）
-var _speakTimers = [];
 /* 集中管理朗读定时器与语音，切题时 cancelSpeak 取消未播放的排队朗读，
    避免上一题的循环朗读跟下一题串台 */
 function cancelSpeak(){
-  _speakTimers.forEach(t => clearTimeout(t));
+  (_speakTimers || []).forEach(t => clearTimeout(t));
   _speakTimers = [];
   try{ window.speechSynthesis.cancel(); }catch(e){}
 }
