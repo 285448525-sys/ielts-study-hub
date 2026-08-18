@@ -13,11 +13,7 @@
 <script defer src="js/data.js"></script>
   <script defer src="js/common.js"></script>
   <script defer src="js/prompts.js"></script>
-  <script defer src="js/audio-store.js"></script>
-  <script defer src="js/recorder.js"></script>
-  <script defer src="js/xfyun.js"></script>
   <script defer src="js/speaking.js"></script>
-  <script defer src="js/mock-asr.js"></script>
   <script defer src="js/mock-report.js"></script>
   <script defer src="js/mock-history.js"></script>
   <script defer src="js/mock.js"></script>
@@ -167,6 +163,8 @@
   .sp-rec-time{font-size:12px;color:var(--muted);white-space:nowrap}
   .sp-rec-play{font-size:13px;color:var(--primary)}
   .sp-rec-dur{font-size:12px;color:var(--muted);margin-left:auto}
+  .sp-rec-text{flex:1;min-width:0;font-size:13px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sp-rec-score{font-size:12px;color:var(--primary);font-weight:700;white-space:nowrap;margin-left:8px}
 
   .sp-custom-target{display:flex;align-items:center;gap:10px;margin:8px 0 12px;font-size:13px;color:var(--ink)}
   .sp-custom-score{flex:1;max-width:200px}
@@ -283,17 +281,17 @@
     <section class="card" id="mockStart">
       <h2>开始一次模考</h2>
       <ul class="mock-intro">
-        <li>🎙 <b>录音转写</b>：浏览器本地把你说的话转成文字（Chrome / Edge 支持最佳），不联网、不上传音频。</li>
-        <li>🤖 <b>AI 评分</b>：DeepSeek 读你的转写文字，评流利度 / 扣题 / 连贯 / 词汇 / 语法。</li>
+        <li>✍️ <b>手写回答</b>：每题在下方输入框写下 / 粘贴你的英文回答（不再录音、不再语音转写）。</li>
+        <li>🤖 <b>AI 评分</b>：DeepSeek 读你的文字，评流利度 / 扣题 / 连贯 / 词汇 / 语法。</li>
         <li>🔊 <b>发音分</b>：为你自己在「设置」里填的固定分（AI 不测发音），诚实标注在报告里。</li>
       </ul>
       <div id="mockPreCheck" class="mock-precheck"></div>
       <div class="mock-start-rail">
         <div class="ms-title">🎙 开始一次口语模考</div>
-        <div class="ms-sub">P1 多个话题 → P2 准备+陈述 → P3 追问，全程转写，考完 AI 出 Band 报告。</div>
+        <div class="ms-sub">P1 多个话题 → P2 准备+陈述 → P3 追问，全程手写，考完 AI 出 Band 报告。</div>
         <button class="btn btn-lg" id="mockStartBtn">开始模考 →</button>
       </div>
-      <p class="muted" style="margin-top:10px">不支持录音的浏览器，每题下方可手动粘贴你说的内容，流程不中断。</p>
+      <p class="muted" style="margin-top:10px">每题在输入框手写 / 粘贴你的英文回答即可，流程不中断。</p>
     </section>
 
     <!-- ④ 历史模考记录（回顾）：常驻可见，刷新不丢 -->
@@ -311,12 +309,11 @@
         <div class="mock-timer" id="mockTimerWrap" hidden>⏱ <span id="mockTimer">--</span></div>
         <div class="mock-live" id="mockLive" aria-live="polite"></div>
         <div class="mock-controls">
-          <button class="btn" id="mockRecBtn" hidden>🎙 开始录音</button>
           <button class="btn btn-primary" id="mockSubmit">提交 / 下一题</button>
         </div>
         <div class="mock-manual">
-          <label for="mockManual">手动输入 / 粘贴你刚才说的（英文）—— 录音不准或不可用时用它：</label>
-          <textarea id="mockManual" rows="3" placeholder="在此输入你刚才回答的英文…"></textarea>
+          <label for="mockManual">写下 / 粘贴你的英文回答：</label>
+          <textarea id="mockManual" rows="3" placeholder="在此输入你的英文回答…"></textarea>
         </div>
         <p class="mock-hint" id="mockHint"></p>
       </div>

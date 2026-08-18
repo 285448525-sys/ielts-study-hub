@@ -1,10 +1,10 @@
 /* 口语模考 · 主控制器（状态机）
    流程：开始卡 → P1(多个大题·每题若干小题·共约十几个) → P2(准备 1min + 陈述 2min) → P3(4-5 题 AI 追问) → 报告
-   架构（见执行方案 §1）：
-   - 耳朵层：window.MockASR（Web Speech API 本地转写）
-   - 大脑层：callRelay → DeepSeek（生成 P3 追问 + 读转写文字评分）
-   - 发音分：三来源——配讯飞 Key 则每 Part 后真实朗读检测(ise)；否则用设置固定分(fixed) 或 DeepSeek 文字估算(estimate)，报告里诚实标注
-   红线（§7）：不碰 callRelay / DATA.scores；发音分走设置；PAGES 只追加 mock；题库只读。 */
+   架构：
+   - 输入层：考生直接在页面文本框手写 / 粘贴英文回答（录音 / 语音转写已移除）
+   - 大脑层：callRelay → DeepSeek（生成 P3 追问 + 读文字评分）
+   - 发音分：只取设置里的固定分（发音评测已移除，不再做讯飞 / AI 估算）
+   红线：不碰 callRelay / DATA.scores；发音分走设置；PAGES 只追加 mock；题库只读。 */
 (function(){
   let mockState = null;
 
@@ -27,14 +27,15 @@
     if(el) el.textContent = 'Q ' + idx + ' / ' + total;
   }
 
-  /* 软导航只 eval js/mock.js，head 里的 mock-asr/mock-report 不会被重新执行，
-     故在此动态注入这两个库（带缓存，避免重复加载），直接访问也有（head defer 已加载）。 */
+  /* 软导航只 eval js/mock.js，head 里的 mock-report 不会被重新执行，
+     故在此动态注入该库（带缓存，避免重复加载），直接访问也有（head defer 已加载）。
+     录音 / 语音转写已移除，不再注入 mock-asr.js。 */
   function ensureMockLib(){
     return new Promise(resolve => {
-      const done = () => { if(window.MockASR && window.MockReport) resolve(); };
-      if(window.MockASR && window.MockReport) return resolve();
+      const done = () => { if(window.MockReport) resolve(); };
+      if(window.MockReport) return resolve();
       let pending = 0;
-      ['js/mock-asr.js','js/mock-report.js'].forEach(src => {
+      ['js/mock-report.js'].forEach(src => {
         if(document.querySelector('script[data-mocklib="'+src+'"]')) return;
         pending++;
         const s = document.createElement('script');
@@ -64,7 +65,7 @@
     row(hasKey, '🤖 AI 接口', hasKey ? '已配置 DeepSeek Key' : '未配置（<a href="settings.html">去设置填</a>）');
   }
 
-  /* ---------- 单题交互（录音 + 手动兜底 + 可选计时）---------- */
+  /* ---------- 单题交互（手动输入文本框，无录音）---------- */
   function askQuestion(opts){
     return new Promise(resolve => {
       if(window.__mockTick){ clearInterval(window.__mockTick); window.__mockTick = null; }
@@ -73,40 +74,10 @@
       const liveEl = $('#mockLive'); if(liveEl) liveEl.textContent = '';
       const manual = $('#mockManual'); if(manual) manual.value = '';
       const hint = $('#mockHint'); if(hint) hint.textContent = '';
-      const recBtn = $('#mockRecBtn');
       const submitBtn = $('#mockSubmit');
       const timerWrap = $('#mockTimerWrap');
       const timerEl = $('#mockTimer');
-      if(recBtn) recBtn.dataset.on = '0';
-
       let resolved = false;
-
-      // 录音按钮
-      const canRec = opts.allowRecord && window.MockASR && window.MockASR.isSupported();
-      if(recBtn){
-        if(canRec){
-          recBtn.hidden = false; recBtn.textContent = '🎙 开始录音';
-          recBtn.onclick = () => {
-            if(recBtn.dataset.on === '1'){
-              const r = window.MockASR.stop();
-              recBtn.dataset.on = '0'; recBtn.textContent = '🎙 开始录音';
-              if(liveEl && r && r.transcript) liveEl.textContent = r.transcript;
-              if(hint) hint.textContent = '已停止录音，可在下方输入框修正后提交。';
-            } else {
-              if(liveEl) liveEl.textContent = '聆听中…';
-              const res = window.MockASR.start({
-                onText:(text) => { if(liveEl) liveEl.textContent = text; },
-                onError:(e) => { if(hint) hint.textContent = '录音出错（' + e + '），请改用下方手动输入。'; }
-              });
-              if(res && res.supported){ recBtn.dataset.on = '1'; recBtn.textContent = '⏹ 停止录音'; }
-              else if(hint) hint.textContent = '当前浏览器不支持录音，请直接在下方输入你说的内容。';
-            }
-          };
-        } else {
-          recBtn.hidden = true;
-          if(hint && opts.allowRecord) hint.textContent = '当前浏览器不支持语音识别，请用下方输入框手动粘贴你说的内容。';
-        }
-      }
 
       // 计时（P2 准备 / 陈述）
       if(opts.timeLimit && timerWrap && timerEl){
@@ -119,11 +90,6 @@
             clearInterval(window.__mockTick); window.__mockTick = null;
             timerEl.textContent = '00:00';
             if(hint) hint.textContent = opts.isPrep ? '准备时间到，可以开始陈述了。' : '时间到，请提交你刚才的回答。';
-            if(window.MockASR && recBtn && recBtn.dataset.on === '1'){
-              const r = window.MockASR.stop();
-              recBtn.dataset.on = '0'; recBtn.textContent = '🎙 开始录音';
-              if(liveEl && r && r.transcript) liveEl.textContent = r.transcript;
-            }
           } else {
             timerEl.textContent = fmtClock(left);
           }
@@ -132,21 +98,14 @@
         timerWrap.hidden = true;
       }
 
-      // 提交
+      // 提交（直接取文本框内容，无录音）
       if(submitBtn){
         submitBtn.textContent = opts.submitLabel || '提交 / 下一题';
         submitBtn.onclick = () => {
           if(resolved) return;
           resolved = true;
           if(window.__mockTick){ clearInterval(window.__mockTick); window.__mockTick = null; }
-          let transcript = '';
-          if(window.MockASR && recBtn && recBtn.dataset.on === '1'){
-            const r = window.MockASR.stop();
-            recBtn.dataset.on = '0'; recBtn.textContent = '🎙 开始录音';
-            if(r && r.transcript) transcript = r.transcript;
-          }
-          if(!transcript && liveEl) transcript = liveEl.textContent.trim();
-          if(!transcript && manual) transcript = manual.value.trim();
+          const transcript = manual ? manual.value.trim() : '';
           resolve({ transcript: transcript });
         };
       }
@@ -208,7 +167,7 @@
     setMockStep('2');
     const talkHtml = '<div class="mock-p2-prompt">' + escapeHtml(topic.promptEn || '')
       + (topic.promptZh ? '<div class="mock-p2-zh">' + escapeHtml(topic.promptZh) + '</div>' : '') + '</div>'
-      + '<p class="mock-prephint">现在陈述 2 分钟（可录音）。时间到或点「完成 P2」提交。</p>';
+      + '<p class="mock-prephint">现在陈述 2 分钟（在下方输入框打字 / 粘贴你的英文回答）。时间到或点「完成 P2」提交。</p>';
     const talk = await askQuestion({ phaseLabel:'Part 2 · 陈述（2 min）', qHtml:talkHtml, allowRecord:true, timeLimit:120, submitLabel:'完成 P2，进入 P3' });
     mockState.answers.push({ part:'P2', q:topic.promptEn || '', transcript:talk.transcript });
   }
@@ -360,7 +319,6 @@
       await finishExam();
     }catch(e){
       toast('模考中断：' + e.message);
-      if(window.MockASR) window.MockASR.abort();
       $('#mockStage').hidden = true; $('#mockStart').hidden = false; renderMockStart();
     }
   }

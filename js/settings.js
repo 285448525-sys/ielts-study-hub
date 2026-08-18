@@ -14,14 +14,7 @@ ready(() => {
 
   $('#sPron').value = (s.pronunciationScore != null ? s.pronunciationScore : '');
 
-  $('#sAsr').checked = DATA.settings.asrOn !== false;
-
   $('#sRelayToken').value = s.relayToken || '';
-
-  const xf = s.xfyunIse || {};
-  $('#sXfAppid').value = xf.appid || '';
-  $('#sXfApiKey').value = xf.apiKey || '';
-  $('#sXfApiSecret').value = xf.apiSecret || '';
 
   $('#sChime').checked = DATA.settings.chimeOnDone !== false;
   $('#sNotify').checked = !!DATA.settings.notifyOnDone;
@@ -33,7 +26,6 @@ ready(() => {
   $('#saveSettings2').addEventListener('click', saveSettings);
   $('#saveRelay').addEventListener('click', saveRelay);
   $('#testAiBtn').addEventListener('click', testAIConnection);
-  $('#saveXf').addEventListener('click', saveXfSettings);
   $('#sTheme').addEventListener('change', () => applyTheme($('#sTheme').value));
   $('#exportBtn').addEventListener('click', exportData);
   $('#importBtn').addEventListener('click', () => $('#importFile').click());
@@ -92,12 +84,6 @@ function saveSettings(){
   DATA.settings.syncCode = $('#sSyncCode').value.replace(/\D/g, '');
   DATA.settings.autoSync = true; // 默认开启自动同步，与考研站一致（绑定后由 syncLoginOrRegister 控制）
   DATA.settings.pronunciationScore = ($('#sPron').value === '' ? null : (parseFloat($('#sPron').value) || null)); // 口语模考固定发音分（0–9），空=未设置
-  DATA.settings.asrOn = $('#sAsr').checked; // 云端语音识别开关
-  DATA.settings.xfyunIse = {
-    appid: $('#sXfAppid').value.trim(),
-    apiKey: $('#sXfApiKey').value.trim(),
-    apiSecret: $('#sXfApiSecret').value.trim()
-  };
   DATA.settings.chimeOnDone = $('#sChime').checked;
   DATA.settings.notifyOnDone = $('#sNotify').checked;
   hubSave(); applyTheme(); toast('设置已保存');
@@ -109,16 +95,7 @@ function saveRelay(){
   toast(DATA.settings.relayToken ? '已保存 AI 接口配置' : '已清空 Key');
 }
 
-/* 讯飞语音（IAT 转写）密钥 */
-function saveXfSettings(){
-  DATA.settings.xfyunIse = {
-    appid: $('#sXfAppid').value.trim(),
-    apiKey: $('#sXfApiKey').value.trim(),
-    apiSecret: $('#sXfApiSecret').value.trim()
-  };
-  hubSave();
-  toast('已保存讯飞配置');
-}
+/* 讯飞语音配置已移除（录音 / 转写功能已下线，发音分改由设置里的固定分提供） */
 
 
 /* 测试连接：用输入框里的 Key 探活 DeepSeek，成功即自动保存 */
