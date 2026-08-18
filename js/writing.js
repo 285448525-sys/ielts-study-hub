@@ -72,30 +72,34 @@ function highlight(s){ return escapeHtml(s).replace(/【(.+?)】/g, '【<span cl
 function buildPractice(skeleton){
   const parts = skeleton.split(/(【[^】]*】)/g);
   let html = '';
+  let phIdx = 0;
   parts.forEach(p => {
     const m = p.match(/^【(.+?)】$/);
     if(m){
       const w = Math.max(80, m[1].length * 13);
       const esc = escapeHtml(m[1]);
-      html += '<span class="ph-wrap">'
+      html += '<span class="ph-wrap" data-idx="' + phIdx + '">'
             +   '<input class="ph-input" data-ph="' + esc + '" placeholder="' + esc + '" style="width:' + w + 'px">'
             +   '<button class="ph-hint" type="button" data-ph="' + esc + '" title="AI 给这个空的建议">💡</button>'
             +   '<span class="ph-hint-box" data-for="' + esc + '" hidden></span>'
             + '</span>';
+      phIdx++;
     } else { html += escapeHtml(p); }
   });
   const box = $('#practice');
   box.innerHTML = html;
   box.querySelectorAll('.ph-input').forEach(inp => inp.addEventListener('input', updatePreview));
-  box.querySelectorAll('.ph-hint').forEach(btn => btn.addEventListener('click', () => hintBlank(btn.dataset.ph)));
+  box.querySelectorAll('.ph-hint').forEach(btn => btn.addEventListener('click', () => hintBlank(btn)));
   updatePreview();
 }
 
-async function hintBlank(ph){
-  const escSel = (window.CSS && CSS.escape) ? CSS.escape(ph) : ph;
-  const box = document.querySelector('.ph-hint-box[data-for="' + escSel + '"]');
-  const inp = document.querySelector('.ph-input[data-ph="' + escSel + '"]');
+async function hintBlank(btn){
+  const wrap = btn.closest('.ph-wrap');
+  if(!wrap) return;
+  const inp = wrap.querySelector('.ph-input');
+  const box = wrap.querySelector('.ph-hint-box');
   if(!box) return;
+  const ph = inp.dataset.ph;   // 占位提示文本仍用于拼 prompt
   if(!DATA.settings.relayToken){ toast('还没填 DeepSeek Key，去「设置 / AI 接口」填一下'); return; }
   const t = DATA.writing.find(x => x.id === curId);
   const others = [];
