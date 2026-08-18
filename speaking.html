@@ -15,6 +15,7 @@
   <script defer src="js/prompts.js"></script>
   <script defer src="js/audio-store.js"></script>
   <script defer src="js/recorder.js"></script>
+  <script defer src="js/xfyun.js"></script>
   <script defer src="js/speaking.js"></script>
   <script defer src="js/mock-asr.js"></script>
   <script defer src="js/mock-report.js"></script>
@@ -221,6 +222,21 @@
   .mat-plan-gaps ul{margin:0;padding-left:18px}
   .mat-plan-gaps li{font-size:13px;color:var(--ink);margin:2px 0}
   .mat-plan-tips{font-size:13px;color:var(--muted);margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+
+  /* === 内联发音评测（讯飞 ISE 逐词打分）=== */
+  .sp-pron{margin:10px 0;padding:10px 12px;border:1px dashed var(--line);border-radius:10px;background:var(--primary-soft)}
+  .sp-pron-head{font-size:12px;color:var(--muted);margin-bottom:6px}
+  .sp-pron-ref-text{font-size:15px;font-weight:600;color:var(--ink);margin-bottom:8px;line-height:1.5}
+  .sp-pron-go{margin-bottom:6px}
+  .sp-pron-result .pr-status{font-size:13px;color:var(--muted)}
+  .sp-pron-result .pr-scores{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+  .sp-pron-result .pr-chip{background:var(--primary);color:#fff;font-size:12px;padding:3px 8px;border-radius:999px}
+  .sp-pron-result .pr-words{line-height:2;margin:6px 0}
+  .sp-pron-result .pr-w-good{color:#1a7f37;font-weight:600}
+  .sp-pron-result .pr-w-mid{color:#b7791f;font-weight:600}
+  .sp-pron-result .pr-w-bad{color:#c0392b;font-weight:600;text-decoration:underline}
+  .sp-pron-result .pr-flag{font-size:10px;font-style:normal;margin-left:2px;color:#c0392b}
+  .sp-pron-wrong{margin-top:6px;font-size:12px}
 </style>
 </head>
 <body>
