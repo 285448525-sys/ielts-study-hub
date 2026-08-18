@@ -22,10 +22,31 @@ var PC_DEFAULTS = {
   optCount: 4         // 选择题选项数量
 };
 function pc(){
-  if(!DATA.settings.practiceCfg) DATA.settings.practiceCfg = {};
-  return Object.assign({}, PC_DEFAULTS, DATA.settings.practiceCfg);
+  if(!DATA.settings || typeof DATA.settings !== 'object') DATA.settings = {};
+  if(!DATA.settings.practiceCfg || typeof DATA.settings.practiceCfg !== 'object') DATA.settings.practiceCfg = {};
+  const raw = DATA.settings.practiceCfg;
+  const c = Object.assign({}, PC_DEFAULTS, raw);
+  // 清洗损坏配置（localStorage 异常写入/旧版残留可能把数字存成字符串或 NaN）
+  const clampNum = (v, min, max, def) => {
+    const n = (typeof v === 'number' && !isNaN(v)) ? v : (typeof v === 'string' ? parseFloat(v) : NaN);
+    return (isNaN(n) || n < min || (max !== null && n > max)) ? def : n;
+  };
+  c.rate = clampNum(c.rate, 0.1, 3, PC_DEFAULTS.rate);
+  c.repeat = clampNum(c.repeat, 1, 20, PC_DEFAULTS.repeat);
+  c.intervalMs = clampNum(c.intervalMs, 100, 60000, PC_DEFAULTS.intervalMs);
+  c.batchSize = (typeof c.batchSize === 'number' && !isNaN(c.batchSize)) ? c.batchSize : (typeof c.batchSize === 'string' ? parseInt(c.batchSize, 10) : PC_DEFAULTS.batchSize);
+  if(isNaN(c.batchSize)) c.batchSize = PC_DEFAULTS.batchSize;
+  c.shuffle = !!c.shuffle;
+  c.autoNext = !!c.autoNext;
+  c.autoNextDelay = clampNum(c.autoNextDelay, 100, 30000, PC_DEFAULTS.autoNextDelay);
+  c.autoPlay = !!c.autoPlay;
+  c.showCn = !!c.showCn;
+  c.showEn = clampNum(c.showEn, 0, 2, PC_DEFAULTS.showEn);
+  c.optCount = clampNum(c.optCount, 2, 10, PC_DEFAULTS.optCount);
+  return c;
 }
 function pcSave(obj){
+  if(!DATA.settings || typeof DATA.settings !== 'object') DATA.settings = {};
   DATA.settings.practiceCfg = Object.assign(pc(), obj);
   hubSave();
 }
@@ -41,6 +62,10 @@ function switchWordTab(tab){
     renderWords();   // 切到词库时刷新（可能在别处新增/删除了单词）
   } else {
     bank.hidden = true; study.hidden = false;
+    // 切回学习 tab 时若练习状态丢失/空白，自动重新进入练习
+    if(!pq || !pq.queue || pq.queue.length === 0 || !$('#practiceBody').innerHTML.trim()){
+      autoStartSeeWord();
+    }
   }
 }
 
@@ -210,43 +235,59 @@ function toggleCfgShowIf(){
 
 // ======= 打开即进入「看词选义」：按记忆曲线到期词出题 =======
 function autoStartSeeWord(){
-  cancelSpeak();
-  if(DATA.words.length === 0){
-    $('#practiceArea').hidden = false;
-    $('#dueBanner').hidden = true;
-    $('#practiceBody').innerHTML = '<div class="q-word">词库为空</div><div class="q-cn">点上方「词库」标签加词后再来练习。</div>';
-    return;
+  try{
+    cancelSpeak();
+    // 强制重置 UI 状态，避免异常状态残留（如空白页+下一题按钮可见）
+    const area = $('#practiceArea'); if(area) area.hidden = false;
+    const nextBtn = $('#nextBtn'); if(nextBtn) nextBtn.hidden = true;
+    const score = $('#practiceScore'); if(score) score.textContent = '';
+    const prog1 = $('#progBarWrap'); if(prog1) prog1.hidden = true;
+    const prog2 = $('#progBarWrapBottom'); if(prog2) prog2.hidden = true;
+
+    if(!Array.isArray(DATA.words) || DATA.words.length === 0){
+      $('#dueBanner').hidden = true;
+      $('#practiceBody').innerHTML = '<div class="q-word">词库为空</div><div class="q-cn">点上方「词库」标签加词后再来练习。</div>';
+      return;
+    }
+    if(DATA.words.length < 2){
+      $('#dueBanner').hidden = true;
+      $('#practiceBody').innerHTML = '<div class="q-word">词库至少需要 2 个单词</div><div class="q-cn">「看词选义」需要选项干扰项，请先加至少 2 个词。</div>';
+      return;
+    }
+    const c = pc();
+    const due = mcDueWords();
+    pq = { mode:'seeWord', queue:[], idx:0, total:0, correct:0, revealed:false, answer:null, wrongList:[],
+           mastery:{}, retrying:false, reviewQueue:[], countedWords:{}, correctWords:{}, missed:{} };
+    $('#dueBanner').hidden = false;
+    $('#dueBanner').textContent = '📚 今日待复习 '+due.length+' 个（按记忆曲线自动排程）';
+    $('#progBarWrap').hidden = false;
+    $('#progBarWrapBottom').hidden = false;
+    if(due.length === 0){
+      $('#practiceScore').textContent = '';
+      $('#practiceBody').innerHTML = '<div class="q-word">🎉 今天没有待复习的词</div>' +
+        '<div class="q-cn">点上方「词库」标签加词，或明天再来。复习会按记忆曲线自动排程。</div>';
+      return;
+    }
+    let pool = shuffle(due.slice());
+    if(c.batchSize > 0 && pool.length > c.batchSize) pool = pool.slice(0, c.batchSize);
+    pq.queue = pool;
+    nextQuestion();
+  }catch(err){
+    console.error('[practice] autoStartSeeWord 失败', err);
+    const nextBtn2 = $('#nextBtn'); if(nextBtn2) nextBtn2.hidden = true;
+    const prog1e = $('#progBarWrap'); if(prog1e) prog1e.hidden = true;
+    const prog2e = $('#progBarWrapBottom'); if(prog2e) prog2e.hidden = true;
+    $('#practiceBody').innerHTML = '<div class="q-word">练习加载失败</div>' +
+      '<div class="q-cn">'+escapeHtml(String(err && err.message ? err.message : err))+'</div>' +
+      '<div style="margin-top:16px"><button class="btn btn-primary" id="retryStart">重试</button></div>';
+    const retry = $('#retryStart');
+    if(retry) retry.addEventListener('click', () => { pq = null; autoStartSeeWord(); });
   }
-  if(DATA.words.length < 2){
-    $('#practiceArea').hidden = false;
-    $('#dueBanner').hidden = true;
-    $('#practiceBody').innerHTML = '<div class="q-word">词库至少需要 2 个单词</div><div class="q-cn">「看词选义」需要选项干扰项，请先加至少 2 个词。</div>';
-    return;
-  }
-  const c = pc();
-  const due = mcDueWords();
-  pq = { mode:'seeWord', queue:[], idx:0, total:0, correct:0, revealed:false, answer:null, wrongList:[],
-         mastery:{}, retrying:false, reviewQueue:[], countedWords:{}, correctWords:{}, missed:{} };
-  $('#practiceArea').hidden = false;
-  $('#dueBanner').hidden = false;
-  $('#dueBanner').textContent = '📚 今日待复习 '+due.length+' 个（按记忆曲线自动排程）';
-  $('#progBarWrap').hidden = false;
-  $('#progBarWrapBottom').hidden = false;
-  if(due.length === 0){
-    $('#practiceScore').textContent = '';
-    $('#practiceBody').innerHTML = '<div class="q-word">🎉 今天没有待复习的词</div>' +
-      '<div class="q-cn">点上方「词库」标签加词，或明天再来。复习会按记忆曲线自动排程。</div>';
-    return;
-  }
-  let pool = shuffle(due.slice());
-  if(c.batchSize > 0 && pool.length > c.batchSize) pool = pool.slice(0, c.batchSize);
-  pq.queue = pool;
-  nextQuestion();
 }
 
 function mcDueWords(){
   const today = todayKey();
-  return DATA.words.filter(w => !w.mcDue || w.mcDue <= today);
+  return DATA.words.filter(w => w && typeof w.en === 'string' && w.en.trim() !== '' && (!w.mcDue || w.mcDue <= today));
 }
 
 function resetPractice(){
@@ -267,43 +308,60 @@ function autoAdvance(){
 
 function nextQuestion(){
   if(!pq) return;
-  cancelSpeak();
-  $('#nextBtn').hidden = true;
-  const body = $('#practiceBody');
-  updateScore();
-  updateProgBar();
-  if(pq.idx >= pq.queue.length){ finishPractice(); return; }
-  pq.revealed = false;
-  const cur = pq.queue[pq.idx];
-  if(!cur || cur.en == null || String(cur.en).trim() === ''){ pq.idx++; nextQuestion(); return; }
-  const c = pc();
-  // 每 2 道新题插回一个错词（更频繁，让用户感知到"重复出现"）
-  if(!pq.retrying && pq.reviewQueue.length && pq.idx > 0 && pq.idx % 2 === 0){
-    const rw = pq.reviewQueue.shift();
-    if(rw) pq.queue.splice(pq.idx + 1, 0, rw);
+  try{
+    cancelSpeak();
+    $('#nextBtn').hidden = true;
+    const body = $('#practiceBody');
+    updateScore();
+    updateProgBar();
+    if(pq.idx >= pq.queue.length){ finishPractice(); return; }
+    pq.revealed = false;
+    const cur = pq.queue[pq.idx];
+    if(!cur || cur.en == null || String(cur.en).trim() === ''){
+      pq.idx++;
+      // 防止整队列都是脏词时无限递归
+      if(pq.idx > pq.queue.length || pq.idx > 10000){ finishPractice(); return; }
+      nextQuestion();
+      return;
+    }
+    const c = pc();
+    // 每 2 道新题插回一个错词（更频繁，让用户感知到"重复出现"）
+    if(!pq.retrying && pq.reviewQueue.length && pq.idx > 0 && pq.idx % 2 === 0){
+      const rw = pq.reviewQueue.shift();
+      if(rw) pq.queue.splice(pq.idx + 1, 0, rw);
+    }
+    pq.answer = cur;
+    const optN = Math.min(c.optCount, DATA.words.length);
+    const opts = shuffle([cur, ...pickWrong(cur, optN-1)]);
+    let html = '<div class="practice-word-head">'+
+      '<span class="pw-en">'+escapeHtml(cur.en)+'</span>'+
+      (cur.ipa ? '<span class="pw-ipa">'+escapeHtml(cur.ipa)+'</span>' : '')+
+      '</div>';
+    if(cur.cn) html += '<div class="pw-cn" id="pwCn" hidden>'+escapeHtml(cur.cn)+'</div>';
+    if(cur.example) html += '<div class="practice-sentence">'+escapeHtml(cur.example).replace(new RegExp('\\b'+escapeRegExp(cur.en)+'\\b'),'<span class="hi">$&</span>')+'</div>';
+    html += '<div class="opts-grid" id="opts"></div>';
+    body.innerHTML = html;
+    $('#opts').innerHTML = opts.map((o,i) =>
+      '<button class="opt-big" data-en="'+escapeHtml(o.en)+'">'+
+        '<span class="opt-big-tag">'+(o.pos||'')+'</span>'+
+        '<span class="opt-big-cn">'+escapeHtml(o.cn)+'</span>'+
+        '<span class="opt-big-key">快捷键：'+(i+1)+'</span>'+
+      '</button>'
+    ).join('') +
+    '<button class="opt-big opt-big-unknown" id="unknownBtn">不知道 <span class="opt-big-key">快捷键：'+(opts.length+1)+'</span></button>';
+    bindOpts(cur);
+    $('#unknownBtn').addEventListener('click', () => markUnknown(cur));
+    setTimeout(() => speakN(cur.en), 300);  // 新词自动读
+  }catch(err){
+    console.error('[practice] nextQuestion 失败', err);
+    $('#nextBtn').hidden = true;
+    $('#practiceBody').innerHTML = '<div class="q-word">题目渲染失败</div>' +
+      '<div class="q-cn">'+escapeHtml(String(err && err.message ? err.message : err))+'</div>' +
+      '<div style="margin-top:16px"><button class="btn" id="skipBad">跳过本题</button> <button class="btn btn-primary" id="retryStart2">重新开始</button></div>';
+    const skip = $('#skipBad'), retry = $('#retryStart2');
+    if(skip) skip.addEventListener('click', () => { if(pq){ pq.idx++; nextQuestion(); } });
+    if(retry) retry.addEventListener('click', () => { pq = null; autoStartSeeWord(); });
   }
-  pq.answer = cur;
-  const optN = Math.min(c.optCount, DATA.words.length);
-  const opts = shuffle([cur, ...pickWrong(cur, optN-1)]);
-  let html = '<div class="practice-word-head">'+
-    '<span class="pw-en">'+escapeHtml(cur.en)+'</span>'+
-    (cur.ipa ? '<span class="pw-ipa">'+escapeHtml(cur.ipa)+'</span>' : '')+
-    '</div>';
-  if(cur.cn) html += '<div class="pw-cn" id="pwCn" hidden>'+escapeHtml(cur.cn)+'</div>';
-  if(cur.example) html += '<div class="practice-sentence">'+escapeHtml(cur.example).replace(new RegExp('\\b'+escapeRegExp(cur.en)+'\\b'),'<span class="hi">$&</span>')+'</div>';
-  html += '<div class="opts-grid" id="opts"></div>';
-  body.innerHTML = html;
-  $('#opts').innerHTML = opts.map((o,i) =>
-    '<button class="opt-big" data-en="'+escapeHtml(o.en)+'">'+
-      '<span class="opt-big-tag">'+(o.pos||'')+'</span>'+
-      '<span class="opt-big-cn">'+escapeHtml(o.cn)+'</span>'+
-      '<span class="opt-big-key">快捷键：'+(i+1)+'</span>'+
-    '</button>'
-  ).join('') +
-  '<button class="opt-big opt-big-unknown" id="unknownBtn">不知道 <span class="opt-big-key">快捷键：'+(opts.length+1)+'</span></button>';
-  bindOpts(cur);
-  $('#unknownBtn').addEventListener('click', () => markUnknown(cur));
-  setTimeout(() => speakN(cur.en), 300);  // 新词自动读
 }
 
 // ======= 选择题选项绑定（爱听写式错题循环）=======
@@ -537,9 +595,12 @@ function finishPractice(){
   });
 }
 
-function updateScore(){ if(pq) $('#practiceScore').textContent = '进度 '+(pq.idx+1)+'/'+pq.queue.length+' · 正确 '+pq.correct; }
+function updateScore(){
+  if(!pq || !Array.isArray(pq.queue)) return;
+  $('#practiceScore').textContent = '进度 '+(pq.idx+1)+'/'+pq.queue.length+' · 正确 '+pq.correct;
+}
 function updateProgBar(){
-  if(!pq || !pq.queue.length) return;
+  if(!pq || !Array.isArray(pq.queue) || !pq.queue.length) return;
   const pct = ((pq.idx) / pq.queue.length) * 100;
   $('#progBarFill').style.width = pct + '%';
   const pb2 = $('#progBarFillBottom');
