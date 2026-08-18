@@ -3,11 +3,15 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>口语题库 · 雅思备�?Hub</title>
+<title>口语题库 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css" />
+<link rel="icon" type="image/x-icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
 <link rel="manifest" href="/manifest.json" />
 <meta name="theme-color" content="#3a9a93" />
-<link rel="apple-touch-icon" href="/icons/icon-192.png" />
+
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js"></script>
@@ -17,7 +21,7 @@
   <script defer src="js/mock-history.js"></script>
   <script defer src="js/mock.js"></script>
 <style>
-  /* === 极简口语模块 · 优化版（沿用全站深蓝 Token�?=== */
+  /* === 极简口语模块 · 优化版（沿用全站深蓝 Token） === */
   .sp-tabs{display:flex;gap:0;border-bottom:2px solid var(--line);margin-bottom:4px}
   .sp-tabs button{flex:1;padding:12px 0;font-size:16px;font-weight:600;border:none;background:none;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:color .2s,border-color .2s}
   .sp-tabs button.active{color:var(--primary);border-bottom-color:var(--primary)}
@@ -70,7 +74,7 @@
     .sp-score-dims{width:100%}
   }
 
-  /* 详情�?*/
+  /* 详情页 */
   .sp-detail-back{display:inline-flex;align-items:center;gap:4px;cursor:pointer;color:var(--primary);font-size:14px;margin-bottom:12px;font-weight:600}
   .sp-detail-back:hover{text-decoration:underline}
   .sp-detail-title{font-size:20px;font-weight:700;letter-spacing:-.01em}
@@ -144,11 +148,11 @@
   .diag-sec ul{margin:4px 0 0;padding-left:18px}
   .diag-sec li{font-size:13.5px;color:var(--ink);line-height:1.7}
 
-  /* P2 单窗�?*/
+  /* P2 单窗口 */
   .sp-p2-answer{padding:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);margin-bottom:12px}
   .sp-timer{font-size:13px;font-weight:700;color:var(--primary);white-space:nowrap;margin-left:auto}
 
-  /* === P1 小题�?tab（我的录�?/ 定制答案�?== */
+  /* === P1 小题内 tab（我的录音 / 定制答案）=== */
   .sp-mini-tabs{display:flex;gap:0;border-bottom:2px solid var(--line);margin:0 0 10px}
   .sp-mini-tab{flex:1;padding:10px 0;font-size:14px;font-weight:600;border:none;background:none;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
   .sp-mini-tab.active{color:var(--primary);border-bottom-color:var(--primary)}
@@ -176,7 +180,7 @@
   .sp-custom-result .ans{font-weight:600;color:var(--ink);margin-bottom:8px}
   .sp-custom-result .tips{font-size:13px;color:var(--muted)}
 
-  /* === 素材生成器联动面板（P2 抽题命中个人素材�?== */
+  /* === 素材生成器联动面板（P2 抽题命中个人素材）=== */
   .sp-mat-link{margin:0 0 14px}
   .mat-link-head{font-size:14px;font-weight:700;color:var(--med);margin-bottom:8px}
   .mat-link-hint{font-size:13px;color:var(--muted);margin-bottom:8px;line-height:1.7}
@@ -227,28 +231,28 @@
 
 <main class="container">
   <h1 class="page-title">口语题库</h1>
-  <p class="page-sub">5-8 月官方题�?· 优先复习超高�?/p>
+  <p class="page-sub">5-8 月官方题库 · 优先复习超高频</p>
 
-  <!-- 标签栏（常驻，移出会�?hide �?listView�?-->
+  <!-- 标签栏（常驻，移出会被 hide 的 listView） -->
   <div class="sp-tabs" id="tabs">
     <button data-type="P1" class="active">Part 1</button>
     <button data-type="P2">Part 2</button>
-    <button data-type="MOCK">模�?/button>
+    <button data-type="MOCK">模考</button>
   </div>
 
   <!-- 列表视图 -->
   <div id="listView">
     <div class="sp-banner" id="freqBanner">
-      8 月考试建议优先复习<b>超高�?/b>�?b>必考题</b>；时间紧可只�?P2 �?14 题�?
+      8 月考试建议优先复习<b>超高频</b>和<b>必考题</b>；时间紧可只练 P2 前 14 题。
     </div>
 
     <div class="chip-row">
       <span class="chip-row-label">频率</span>
       <button class="chip active" data-filter="freq" data-val="all">全部</button>
-      <button class="chip" data-filter="freq" data-val="ultra">超高�?/button>
+      <button class="chip" data-filter="freq" data-val="ultra">超高频</button>
       <button class="chip" data-filter="freq" data-val="high">高频</button>
       <button class="chip" data-filter="freq" data-val="must">必考题</button>
-      <button class="chip" data-filter="freq" data-val="medium">中高�?/button>
+      <button class="chip" data-filter="freq" data-val="medium">中高频</button>
       <button class="chip" data-filter="freq" data-val="new">新题</button>
     </div>
     <div class="chip-row">
@@ -262,10 +266,10 @@
       <button class="chip" data-filter="cat" data-val="日常">日常</button>
     </div>
 
-    <input class="sp-search" id="spSearch" placeholder="搜索题目�? />
+    <input class="sp-search" id="spSearch" placeholder="搜索题目…" />
 
     <div class="sp-list" id="spList"></div>
-    <div class="sp-empty" id="spEmpty" hidden>没有匹配的题�?/div>
+    <div class="sp-empty" id="spEmpty" hidden>没有匹配的题目</div>
   </div>
 
   <!-- 详情视图 -->
@@ -274,56 +278,56 @@
     <div id="detailBody"></div>
   </div>
 
-  <!-- 模考视图（整合口语模考为�?4 �?tab，复�?mock.js�?-->
+  <!-- 模考视图（整合口语模考为第 4 个 tab，复用 mock.js） -->
   <div id="mockView" hidden>
-    <!-- �?开始卡 -->
+    <!-- ① 开始卡 -->
     <section class="card" id="mockStart">
-      <h2>开始一次模�?/h2>
+      <h2>开始一次模考</h2>
       <ul class="mock-intro">
-        <li>✍️ <b>手写回答</b>：每题在下方输入框写�?/ 粘贴你的英文回答（不再录音、不再语音转写）�?/li>
-        <li>🤖 <b>AI 评分</b>：DeepSeek 读你的文字，评流利度 / 扣题 / 连贯 / 词汇 / 语法�?/li>
-        <li>🔊 <b>发音�?/b>：为你自己在「设置」里填的固定分（AI 不测发音），诚实标注在报告里�?/li>
+        <li>✍️ <b>手写回答</b>：每题在下方输入框写下 / 粘贴你的英文回答（不再录音、不再语音转写）。</li>
+        <li>🤖 <b>AI 评分</b>：DeepSeek 读你的文字，评流利度 / 扣题 / 连贯 / 词汇 / 语法。</li>
+        <li>🔊 <b>发音分</b>：为你自己在「设置」里填的固定分（AI 不测发音），诚实标注在报告里。</li>
       </ul>
       <div id="mockPreCheck" class="mock-precheck"></div>
       <div class="mock-start-rail">
-        <div class="ms-title">🎙 开始一次口语模�?/div>
-        <div class="ms-sub">P1 多个话题 �?P2 准备+陈述 �?P3 追问，全程手写，考完 AI �?Band 报告�?/div>
-        <button class="btn btn-lg" id="mockStartBtn">开始模�?�?/button>
+        <div class="ms-title">🎙 开始一次口语模考</div>
+        <div class="ms-sub">P1 多个话题 → P2 准备+陈述 → P3 追问，全程手写，考完 AI 出 Band 报告。</div>
+        <button class="btn btn-lg" id="mockStartBtn">开始模考 →</button>
       </div>
-      <p class="muted" style="margin-top:10px">每题在输入框手写 / 粘贴你的英文回答即可，流程不中断�?/p>
+      <p class="muted" style="margin-top:10px">每题在输入框手写 / 粘贴你的英文回答即可，流程不中断。</p>
     </section>
 
-    <!-- �?历史模考记录（回顾）：常驻可见，刷新不�?-->
+    <!-- ④ 历史模考记录（回顾）：常驻可见，刷新不丢 -->
     <section class="card" id="mockHistory">
-      <h2>📚 历史模考记�?<span class="muted mock-hist-count" id="mockHistCount"></span></h2>
-      <p class="muted" style="margin:-4px 0 12px">每一次口语整卷模考都会自动存到这里，刷新、换设备（已开云端同步）都不会丢�?/p>
+      <h2>📚 历史模考记录 <span class="muted mock-hist-count" id="mockHistCount"></span></h2>
+      <p class="muted" style="margin:-4px 0 12px">每一次口语整卷模考都会自动存到这里，刷新、换设备（已开云端同步）都不会丢。</p>
       <div id="mockHistoryList"></div>
     </section>
 
-    <!-- �?考试舞台 -->
+    <!-- ② 考试舞台 -->
     <section class="card" id="mockStage" hidden>
       <div class="mock-phase" id="mockPhase">Part 1</div>
       <div class="mock-qcard">
         <div class="mock-q" id="mockQ"></div>
-        <div class="mock-timer" id="mockTimerWrap" hidden>�?<span id="mockTimer">--</span></div>
+        <div class="mock-timer" id="mockTimerWrap" hidden>⏱ <span id="mockTimer">--</span></div>
         <div class="mock-live" id="mockLive" aria-live="polite"></div>
         <div class="mock-controls">
-          <button class="btn btn-primary" id="mockSubmit">提交 / 下一�?/button>
+          <button class="btn btn-primary" id="mockSubmit">提交 / 下一题</button>
         </div>
         <div class="mock-manual">
-          <label for="mockManual">写下 / 粘贴你的英文回答�?/label>
-          <textarea id="mockManual" rows="3" placeholder="在此输入你的英文回答�?></textarea>
+          <label for="mockManual">写下 / 粘贴你的英文回答：</label>
+          <textarea id="mockManual" rows="3" placeholder="在此输入你的英文回答…"></textarea>
         </div>
         <p class="mock-hint" id="mockHint"></p>
       </div>
     </section>
 
-    <!-- �?报告 -->
+    <!-- ③ 报告 -->
     <section class="card" id="mockReport" hidden>
-      <h2>模考报�?/h2>
+      <h2>模考报告</h2>
       <div id="mockReportBody"></div>
       <div class="mock-report-actions">
-        <button class="btn btn-primary" id="mockRetryBtn">再来一�?/button>
+        <button class="btn btn-primary" id="mockRetryBtn">再来一次</button>
         <a class="btn" href="review.html">查看历史</a>
       </div>
     </section>

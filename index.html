@@ -3,11 +3,15 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>仪表�?· 雅思备�?Hub</title>
+<title>仪表盘 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css" />
+<link rel="icon" type="image/x-icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
 <link rel="manifest" href="/manifest.json" />
 <meta name="theme-color" content="#3a9a93" />
-<link rel="apple-touch-icon" href="/icons/icon-192.png" />
+
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js"></script>
@@ -19,20 +23,20 @@
 
 <main class="container">
   <header class="dash-top">
-    <h1 class="page-title">你好�?span id="userName">Camille</span> 👋</h1>
-    <div class="dash-countdown" id="dashCountdown">�?08-25 还有 -- �?/div>
+    <h1 class="page-title">你好，<span id="userName">Camille</span> 👋</h1>
+    <div class="dash-countdown" id="dashCountdown">距 08-25 还有 -- 天</div>
   </header>
 
   <section class="hero-cta-wrap">
     <a class="hero-cta" id="startBtn" href="timer.html">
       <div>
-        <span class="hero-cta-title" id="startTitle">开始今日学�?/span>
+        <span class="hero-cta-title" id="startTitle">开始今日学习</span>
         <span class="hero-cta-sub" id="startSub">选模块，开一个计时器</span>
       </div>
-      <span class="hero-cta-ic">�?/span>
+      <span class="hero-cta-ic">⏱</span>
     </a>
     <div class="quick-chips">
-      <a class="quick-chip" href="review.html">📊 模�?/a>
+      <a class="quick-chip" href="review.html">📊 模考</a>
       <a class="quick-chip" href="practice.html">📚 单词</a>
       <a class="quick-chip" href="speaking.html">🗨 口语素材</a>
       <a class="quick-chip" href="materials.html">🧱 素材</a>
@@ -46,19 +50,19 @@
     </div>
     <div class="dash-progress-track"><div class="dash-progress-fill" id="stFill"></div></div>
     <div class="dash-progress-meta">
-      <span>�?已学 <b id="stTime">0h0m</b></span>
+      <span>⏱ 已学 <b id="stTime">0h0m</b></span>
       <span class="muted">目标 <b id="stGoal">8</b>h</span>
     </div>
     <div class="dash-stats">
-      <div class="dash-stat"><span class="dash-stat-ic">🔥</span><span>连续 <b id="stStreak">0</b> �?/span></div>
-      <div class="dash-stat"><span class="dash-stat-ic">💊</span><span id="stMed">未记录服�?/span><button class="status-link" id="checkinBtn">打卡</button></div>
+      <div class="dash-stat"><span class="dash-stat-ic">🔥</span><span>连续 <b id="stStreak">0</b> 天</span></div>
+      <div class="dash-stat"><span class="dash-stat-ic">💊</span><span id="stMed">未记录服药</span><button class="status-link" id="checkinBtn">打卡</button></div>
     </div>
   </section>
   <div class="ai-readiness" id="aiReadiness"></div>
   <div class="dash-reminder" id="reminderLine"></div>
 
   <section class="quick-links-wrap">
-    <h2 class="section-title">�?我的收藏</h2>
+    <h2 class="section-title">⭐ 我的收藏</h2>
     <div class="quick-links" id="quickLinks"></div>
   </section>
 

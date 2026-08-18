@@ -3,11 +3,15 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>写作模板�?· 雅思备�?Hub</title>
+<title>写作模板库 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css" />
+<link rel="icon" type="image/x-icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
 <link rel="manifest" href="/manifest.json" />
 <meta name="theme-color" content="#3a9a93" />
-<link rel="apple-touch-icon" href="/icons/icon-192.png" />
+
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js"></script>
@@ -45,7 +49,7 @@
   .score-section ul{margin:0;padding-left:20px;line-height:1.8;font-size:14px}
   .score-section li{margin-bottom:4px}
 
-  /* 模板填空 �?AI 评分（紧凑版�?*/
+  /* 模板填空 → AI 评分（紧凑版） */
   .tpl-score{margin-top:12px;border:1px solid var(--line);border-radius:var(--radius);padding:14px;background:var(--surface)}
   .tpl-score .ts-load{color:var(--muted);font-size:14px}
   .ts-top{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px}
@@ -71,7 +75,7 @@
   .ph-why{color:var(--muted);font-size:12px}
   .ph-use{border:1px solid var(--primary);background:var(--primary);color:#fff;border-radius:6px;padding:1px 8px;cursor:pointer;font-size:12px}
 
-  /* 万能语料�?*/
+  /* 万能语料库 */
   .bank-card{display:flex;flex-direction:column;gap:6px}
   .bank-en{font-size:15px;font-weight:600;color:var(--ink);line-height:1.5}
   .bank-tag{font-size:11px;color:var(--primary);background:var(--primary-soft);border-radius:6px;padding:1px 6px;margin-left:6px;font-weight:500}
@@ -90,12 +94,12 @@
   <p class="page-sub">模板填空练习 + AI 作文评分</p>
 
   <div class="write-tabs" id="writeTabs">
-    <button data-tab="tpl" class="active">模板�?/button>
-    <button data-tab="bank">语料�?/button>
+    <button data-tab="tpl" class="active">模板库</button>
+    <button data-tab="bank">语料库</button>
     <button data-tab="score">AI 评分</button>
   </div>
 
-  <!-- 模板库面�?-->
+  <!-- 模板库面板 -->
   <div id="tplPanel">
     <div class="write-layout">
       <div class="cat-nav card" id="catNav" style="padding:10px"></div>
@@ -103,7 +107,7 @@
         <section class="card" id="listCard">
           <h2>模板列表</h2>
           <div id="tplList" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr));margin-top:10px"></div>
-          <div id="empty" class="empty-state" hidden>还没有模板。点�? 新增模板」添加�?/div>
+          <div id="empty" class="empty-state" hidden>还没有模板。点「+ 新增模板」添加。</div>
         </section>
 
         <section class="card" id="detailCard" hidden>
@@ -114,12 +118,12 @@
           <h3>骨架（【】为填空位）</h3>
           <div id="skeleton" class="skeleton-box"></div>
           <details style="margin-top:10px" open>
-            <summary style="cursor:pointer;color:var(--primary)">填空练习（实时生成完整句�?/summary>
+            <summary style="cursor:pointer;color:var(--primary)">填空练习（实时生成完整句）</summary>
             <div id="practice" style="margin-top:8px"></div>
             <div id="preview" class="preview-box"></div>
             <div class="form-row" style="margin-top:10px;align-items:center">
-              <button class="btn btn-primary" id="tplScoreBtn">🤖 AI 按官�?4 维度评分</button>
-              <button class="btn" id="tplCopyBtn">复制填好的内�?/button>
+              <button class="btn btn-primary" id="tplScoreBtn">🤖 AI 按官方 4 维度评分</button>
+              <button class="btn" id="tplCopyBtn">复制填好的内容</button>
               <span class="muted" id="tplFillHint" style="font-size:12.5px"></span>
             </div>
             <div id="tplScoreBox" class="tpl-score" hidden></div>
@@ -140,7 +144,7 @@
             </select>
             <input id="a_title" placeholder="模板标题" />
           </div>
-          <textarea id="a_skeleton" placeholder="骨架原句，填空位用【】包裹，�?The figure for【A】was higher than【B�? style="width:100%;min-height:120px;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);resize:vertical;box-sizing:border-box"></textarea>
+          <textarea id="a_skeleton" placeholder="骨架原句，填空位用【】包裹，如 The figure for【A】was higher than【B】" style="width:100%;min-height:120px;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);resize:vertical;box-sizing:border-box"></textarea>
           <textarea id="a_tips" placeholder="使用提示（可选）" style="width:100%;min-height:60px;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);resize:vertical;box-sizing:border-box;margin-top:8px"></textarea>
           <div class="form-row" style="align-items:flex-end;margin-top:10px">
             <button class="btn btn-primary" id="a_save">保存模板</button>
@@ -154,11 +158,11 @@
     </div>
   </div>
 
-  <!-- 语料库面�?-->
+  <!-- 语料库面板 -->
   <div id="bankPanel" hidden>
     <section class="card">
       <h2>写作万能语料</h2>
-      <p class="muted" style="font-size:13px">把模�?+ 这套万能词组/句式背完，基本能套市面上所有雅思题。点「看释义」自测背诵，可自己增删�?/p>
+      <p class="muted" style="font-size:13px">把模板 + 这套万能词组/句式背完，基本能套市面上所有雅思题。点「看释义」自测背诵，可自己增删。</p>
       <div class="form-row" style="align-items:center;gap:8px">
         <select id="bankFilter">
           <option value="all">全部</option>
@@ -173,10 +177,10 @@
       <h2>新增语料</h2>
       <div class="form-row">
         <select id="ba_type"><option value="词组">万能词组</option><option value="句式">万能句式</option></select>
-        <input id="ba_en" placeholder="英文（句式可�?[X] 表示可替换处�? />
+        <input id="ba_en" placeholder="英文（句式可用 [X] 表示可替换处）" />
       </div>
       <input id="ba_cn" placeholder="中文释义 / 用法说明" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);box-sizing:border-box;margin-top:8px" />
-      <input id="ba_tag" placeholder="标签（观�?对比/举例/因果/结论/建议，可选）" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);box-sizing:border-box;margin-top:8px" />
+      <input id="ba_tag" placeholder="标签（观点/对比/举例/因果/结论/建议，可选）" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);box-sizing:border-box;margin-top:8px" />
       <input id="ba_ex" placeholder="例句（可选）" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);box-sizing:border-box;margin-top:8px" />
       <div class="form-row" style="align-items:flex-end;margin-top:10px">
         <button class="btn btn-primary" id="ba_save">保存</button>
@@ -189,17 +193,17 @@
   <div id="scorePanel" hidden>
     <section class="card">
       <h2>AI 作文评分</h2>
-      <p class="muted" style="font-size:13px;margin-bottom:12px">粘贴完整 Task 2 作文，AI �?TR / CC / LR / GRA 给出预估分并标出�?复杂句�?/p>
+      <p class="muted" style="font-size:13px;margin-bottom:12px">粘贴完整 Task 2 作文，AI 按 TR / CC / LR / GRA 给出预估分并标出长/复杂句。</p>
       <div class="form-row" style="margin-bottom:10px">
         <select id="scoreType" style="flex:none">
-          <option value="观点�?>观点�?/option>
-          <option value="讨论�?>讨论�?/option>
+          <option value="观点型">观点型</option>
+          <option value="讨论型">讨论型</option>
           <option value="其他">其他</option>
         </select>
       </div>
-      <textarea class="score-essay" id="scoreEssay" placeholder="在此粘贴你的作文（至�?150 词）�?></textarea>
+      <textarea class="score-essay" id="scoreEssay" placeholder="在此粘贴你的作文（至少 150 词）…"></textarea>
       <div class="form-row" style="margin-top:10px">
-        <button class="btn btn-primary" id="scoreBtn">开始评�?/button>
+        <button class="btn btn-primary" id="scoreBtn">开始评分</button>
       </div>
     </section>
 

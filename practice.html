@@ -3,11 +3,15 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>单词 · 雅思备�?Hub</title>
+<title>单词 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css" />
+<link rel="icon" type="image/x-icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
 <link rel="manifest" href="/manifest.json" />
 <meta name="theme-color" content="#3a9a93" />
-<link rel="apple-touch-icon" href="/icons/icon-192.png" />
+
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js"></script>
@@ -32,7 +36,7 @@
 
 <main class="container">
   <h1 class="page-title">单词</h1>
-  <p class="page-sub">看词选义记单词，或从词库导入新词�?/p>
+  <p class="page-sub">看词选义记单词，或从词库导入新词。</p>
 
   <div class="word-tabs">
     <button class="wtab active" data-wtab="study">📝 学习</button>
@@ -54,14 +58,14 @@
       </div>
       <div id="practiceBody"></div>
       <div id="practiceTools" style="display:flex;justify-content:center;gap:20px;margin-top:20px;padding-top:14px;border-top:1px solid var(--line)">
-        <button class="btn tool-btn" id="toolSpeaker" title="再读一�?>🔊</button>
+        <button class="btn tool-btn" id="toolSpeaker" title="再读一遍">🔊</button>
       </div>
       <div class="prog-bar-wrap" id="progBarWrapBottom" style="margin-top:12px" hidden>
         <div class="prog-bar-track"><div class="prog-bar-fill" id="progBarFillBottom" style="width:0%;background:var(--warn)"></div></div>
         <div style="text-align:right;font-size:12px;color:var(--muted);margin-top:4px"><span id="progText">0/0</span></div>
       </div>
       <div style="margin-top:20px">
-        <button class="btn btn-primary" id="nextBtn" hidden>下一�?/button>
+        <button class="btn btn-primary" id="nextBtn" hidden>下一题</button>
       </div>
     </section>
   </div>
@@ -71,17 +75,17 @@
       <div id="dropZone" class="word-drop-zone">
         <div style="font-size:36px;margin-bottom:8px">📥</div>
         <div style="font-weight:700;font-size:15.5px;color:var(--ink);margin-bottom:6px">
-          粘贴或拖入任意内�?
+          粘贴或拖入任意内容
         </div>
         <div style="font-size:13px;color:var(--muted);margin-bottom:16px;max-width:400px;margin-left:auto;margin-right:auto">
-          单个单词 · 词表 · 整段英文 · 中英文混�?· .txt/.md/.csv 文件<br>
-          AI 自动挑出生词并翻�?
+          单个单词 · 词表 · 整段英文 · 中英文混排 · .txt/.md/.csv 文件<br>
+          AI 自动挑出生词并翻译
         </div>
         <textarea id="smartInput"
           style="width:100%;min-height:100px;padding:12px;border:1px solid var(--line);
                  border-radius:var(--radius-sm);font:inherit;font-size:14px;line-height:1.7;
                  background:var(--surface);color:var(--ink);resize:vertical"
-          placeholder="在这里粘贴内容，或把文件拖进来�?></textarea>
+          placeholder="在这里粘贴内容，或把文件拖进来…"></textarea>
         <div style="display:flex;justify-content:center;margin-top:14px">
           <button class="btn btn-primary" id="smartImport" style="padding:8px 20px;font-size:14px">
             AI 导入
@@ -95,18 +99,18 @@
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
         <div>
           <h2 style="margin:0">我的词库</h2>
-          <p class="muted" style="font-size:12.5px;margin:2px 0 0">�?<span id="wordCount">0</span> 个单�?/p>
+          <p class="muted" style="font-size:12.5px;margin:2px 0 0">共 <span id="wordCount">0</span> 个单词</p>
         </div>
         <button class="btn btn-sm" id="backfillBtn">🔄 补全释义</button>
       </div>
       <div class="form-row">
-        <input id="searchWord" placeholder="搜索单词�? style="flex:1" />
+        <input id="searchWord" placeholder="搜索单词…" style="flex:1" />
       </div>
       <div id="wordList" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr));margin-top:12px"></div>
     </section>
   </div>
 
-  <!-- 设置弹窗（右上角齿轮触发�?-->
+  <!-- 设置弹窗（右上角齿轮触发） -->
   <div id="cfgModal" class="cfg-modal-overlay" hidden>
     <div class="cfg-modal">
       <div class="cfg-modal-head">
@@ -114,7 +118,7 @@
         <button id="cfgClose" class="cfg-modal-close" title="关闭">&times;</button>
       </div>
       <div class="cfg-modal-body">
-        <!-- 分组渲染�?js/practice.js renderCfgModal() -->
+        <!-- 分组渲染见 js/practice.js renderCfgModal() -->
       </div>
     </div>
   </div>
