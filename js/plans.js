@@ -53,6 +53,7 @@ async function aiPlanItem(){
   const latestStr = latest ? ('听' + latest.listening + '/读' + latest.reading + '/写' + latest.writing + '/口' + latest.speaking) : '暂无';
   const targetStr = '听' + (t.listening||5.5) + '/读' + (t.reading||6.5) + '/写' + (t.writing||5.5) + '/口' + (t.speaking||5.5);
   const cd = examCountdown();
+  const dLeft = cd.daysLeft;
   const medToday = (DATA.meds || []).filter(m => m.date === todayKey()).sort((a,b)=>b.ts-a.ts)[0];
   const medStr = medToday ? ('今天已服专注达，药效窗口参考服药时间') : '今天未记录专注达';
 
@@ -311,6 +312,7 @@ async function aiWeekPlan(){
   const t = DATA.settings.targets || {};
   const dailyHours = DATA.settings.dailyGoalHours || 8;
   const cd = examCountdown();
+  const dLeft = cd.daysLeft;
   const weakStr = weak.map(w => w.name + (w.gap >= 0 ? (' 差' + w.gap) : ' 已达标')).join('、');
   const latestStr = latest ? ('听' + latest.listening + '/读' + latest.reading + '/写' + latest.writing + '/口' + latest.speaking) : '暂无';
   const targetStr = '听' + (t.listening||5.5) + '/读' + (t.reading||6.5) + '/写' + (t.writing||5.5) + '/口' + (t.speaking||5.5);
