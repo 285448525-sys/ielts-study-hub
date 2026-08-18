@@ -9,7 +9,9 @@ ready(() => {
       curTab = b.dataset.tab;
       $('#writeTabs').querySelectorAll('[data-tab]').forEach(x => x.classList.toggle('active', x === b));
       $('#tplPanel').hidden = curTab !== 'tpl';
+      $('#bankPanel').hidden = curTab !== 'bank';
       $('#scorePanel').hidden = curTab !== 'score';
+      if(curTab === 'bank') renderBank();
     });
   });
 
@@ -25,6 +27,12 @@ ready(() => {
   $('#scoreBtn').addEventListener('click', scoreEssay);
   $('#tplScoreBtn').addEventListener('click', scoreTemplate);
   $('#tplCopyBtn').addEventListener('click', copyFilled);
+
+  // 语料库
+  $('#bankFilter').addEventListener('change', renderBank);
+  $('#bankAddBtn').addEventListener('click', () => { $('#bankAddCard').hidden = false; });
+  $('#ba_cancel').addEventListener('click', () => { $('#bankAddCard').hidden = true; });
+  $('#ba_save').addEventListener('click', addPhrase);
 });
 
 /* ===== 模板库 ===== */
@@ -66,13 +74,72 @@ function buildPractice(skeleton){
   let html = '';
   parts.forEach(p => {
     const m = p.match(/^【(.+?)】$/);
-    if(m){ const w = Math.max(80, m[1].length * 13); html += '<input class="ph-input" data-ph="' + escapeHtml(m[1]) + '" placeholder="' + escapeHtml(m[1]) + '" style="width:' + w + 'px">'; }
-    else { html += escapeHtml(p); }
+    if(m){
+      const w = Math.max(80, m[1].length * 13);
+      const esc = escapeHtml(m[1]);
+      html += '<span class="ph-wrap">'
+            +   '<input class="ph-input" data-ph="' + esc + '" placeholder="' + esc + '" style="width:' + w + 'px">'
+            +   '<button class="ph-hint" type="button" data-ph="' + esc + '" title="AI 给这个空的建议">💡</button>'
+            +   '<span class="ph-hint-box" data-for="' + esc + '" hidden></span>'
+            + '</span>';
+    } else { html += escapeHtml(p); }
   });
   const box = $('#practice');
   box.innerHTML = html;
   box.querySelectorAll('.ph-input').forEach(inp => inp.addEventListener('input', updatePreview));
+  box.querySelectorAll('.ph-hint').forEach(btn => btn.addEventListener('click', () => hintBlank(btn.dataset.ph)));
   updatePreview();
+}
+
+async function hintBlank(ph){
+  const escSel = (window.CSS && CSS.escape) ? CSS.escape(ph) : ph;
+  const box = document.querySelector('.ph-hint-box[data-for="' + escSel + '"]');
+  const inp = document.querySelector('.ph-input[data-ph="' + escSel + '"]');
+  if(!box) return;
+  if(!DATA.settings.relayToken){ toast('还没填 DeepSeek Key，去「设置 / AI 接口」填一下'); return; }
+  const t = DATA.writing.find(x => x.id === curId);
+  const others = [];
+  document.querySelectorAll('.ph-input').forEach(el => { const v = el.value.trim(); if(v) others.push(el.dataset.ph + ' → ' + v); });
+  box.hidden = false;
+  box.innerHTML = '<span class="ph-load">AI 想这个空的填法…</span>';
+  const messages = [
+    { role:'system', content:
+`你是雅思写作陪练。考生用"模板骨架 + 现场填空"策略，目标分 5.5-6.0。
+现在她卡在一个填空位上，需要你给一个**适合填进这个空**的英文（短语或短句，1-6 词最佳，必须是地道的雅思写作表达）。
+只输出 JSON，不要解释、不要 markdown 围栏：
+{"fill":"填进空的英文（不要带括号、不要带句号）","why":"一句中文说明为什么合适、贴什么题"}
+规则：
+1. 必须与模板语境、她已填的其他空的话题一致，不能跑题。
+2. 优先给"按话题领域、能填进空里的实质内容词组"（如 improve work efficiency / reduce carbon emissions / a healthier lifestyle / narrow the wealth gap）——也就是模板之外的"内容搭配"，而不是衔接词/过渡句（模板里 already 自带那些，无需再给）。
+3. 不要造长难句，填空就是填空，短而准。
+4. 若空是"观点/话题"类，给一个可替换的名词短语或 -ing 短语。` },
+    { role:'user', content:
+`模板分类：${t ? t.category : ''}
+模板标题：${t ? t.title : ''}
+模板骨架（【】是填空位，不要评价骨架）：
+${t ? t.skeleton : ''}
+
+她已填的其他空：
+${others.join('\n') || '（还没填其他空）'}
+
+当前这个空的占位提示是：【${ph}】
+请给适合填进【${ph}】的英文与一句中文说明。` }
+  ];
+  try{
+    const content = await callRelay('writing_hint', messages, 0.5);   // service 形参未被使用，纯转发 messages，无需后端改动
+    const r = aiJson(content);
+    if(!r || !r.fill){ box.innerHTML = '<span class="ph-hint-err">AI 没给到建议，换个空或手填吧</span>'; return; }
+    box.innerHTML = '<span class="ph-fill">' + escapeHtml(r.fill) + '</span>'
+      + (r.why ? '<span class="ph-why">' + escapeHtml(r.why) + '</span>' : '')
+      + '<button class="ph-use" type="button">填入</button>';
+    const useBtn = box.querySelector('.ph-use');
+    if(useBtn) useBtn.addEventListener('click', () => {
+      if(inp){ inp.value = r.fill; inp.dispatchEvent(new Event('input')); }
+      box.hidden = true; box.innerHTML = '';
+    });
+  }catch(e){
+    box.innerHTML = '<span class="ph-hint-err">AI 调不通：' + escapeHtml(e.message) + '</span>';
+  }
 }
 
 function updatePreview(){
@@ -251,6 +318,52 @@ function delTpl(){
   curId = null;
   renderCats(); renderList();
   toast('已删除');
+}
+
+/* ===== 万能语料库 ===== */
+function renderBank(){
+  const filter = $('#bankFilter').value;
+  const list = DATA.writingPhrases.filter(p => filter === 'all' || p.type === filter);
+  const box = $('#bankList');
+  if(!list.length){ box.innerHTML = '<div class="muted">还没有语料。点「+ 新增语料」添加，或先用默认起步语料。</div>'; return; }
+  box.innerHTML = list.map(p => {
+    const ex = p.example ? '<div class="bank-ex">例：' + escapeHtml(p.example) + '</div>' : '';
+    const cn = p.cn ? '<div class="bank-detail">' + escapeHtml(p.cn) + '</div>' : '';
+    const tag = p.tag ? '<span class="bank-tag">' + escapeHtml(p.tag) + '</span>' : '';
+    return '<div class="card bank-card" data-id="' + p.id + '">'
+      + '<div class="bank-en">' + escapeHtml(p.en) + ' ' + tag + '</div>'
+      + '<div class="bank-detail-holder" hidden>' + cn + ex + '</div>'
+      + '<div class="bank-actions">'
+      +   '<button class="bank-toggle" type="button">看释义</button>'
+      +   '<button class="bank-del" type="button">删除</button>'
+      + '</div></div>';
+  }).join('');
+  box.querySelectorAll('.bank-card').forEach(card => {
+    const id = card.dataset.id;
+    const holder = card.querySelector('.bank-detail-holder');
+    card.querySelector('.bank-toggle').addEventListener('click', e => {
+      holder.hidden = !holder.hidden;
+      e.target.textContent = holder.hidden ? '看释义' : '隐藏';
+    });
+    card.querySelector('.bank-del').addEventListener('click', () => delPhrase(id));
+  });
+}
+function addPhrase(){
+  const type = $('#ba_type').value;
+  const en = $('#ba_en').value.trim();
+  if(!en){ toast('请填英文'); return; }
+  DATA.writingPhrases.push({ id: uid(), type, en, cn: $('#ba_cn').value.trim(), tag: $('#ba_tag').value.trim(), example: $('#ba_ex').value.trim() });
+  hubSave();
+  $('#ba_en').value = $('#ba_cn').value = $('#ba_tag').value = $('#ba_ex').value = '';
+  $('#bankAddCard').hidden = true;
+  renderBank();
+  toast('已添加');
+}
+function delPhrase(id){
+  if(!confirm('删除这条语料？')) return;
+  DATA.writingPhrases = DATA.writingPhrases.filter(x => x.id !== id);
+  hubSave();
+  renderBank();
 }
 
 /* ===== AI 作文评分 ===== */

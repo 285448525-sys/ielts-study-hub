@@ -548,6 +548,76 @@ let DATA = {
     { id:'wt_d', category:'小作文D', title:'流程图（自然过程/工序/循环）', skeleton:'The diagram illustrates how 【过程是什么·填短语】 is formed through 【关键条件·填短语】. Overall, the process consists of several key stages, starting from 【起点】 and ending with 【终点 / 结果】.\n\nFirst, 【原材料/起始物·填短语】 approaches 【地点】. Then, as it hits 【阻碍物·填短语】, it is pushed upwards and rises. When the air rises, it cools and 【结果 1·填短语】 forms above.\n\nOnce 【条件·填短语】, 【动作·填短语】 falls on 【位置·填短语】. After this, 【后续物·填短语】 continues over 【地点】 and moves down. Finally, these 【终点物·填短语】 reach 【终点】, where 【最终结果·填短语】, creating 【产物·填短语】.', tips:'顺序连接词(First/Then/Once/Finally) + 被动主动混合。必背动词8个(approaches/reaches/is pushed upwards/rises and cools/forms/falls/continues/results in)。' },
     { id:'wt_ba', category:'大作文A', title:'观点型（第一优先背）', skeleton:'The debate surrounding 【话题】 has engaged a broad audience recently. From my perspective, I totally agree that 【观点】. This is an important issue, because its effects reach far beyond the situation we see now.\n\nFirst of all, 【核心主题】 undoubtedly brings substantial benefits. One key strength is its ability to improve 【普适领域】, thereby building a firm basis for 【进阶目标】. As a result, this practice not only generates short-term benefits but also contributes to long-term outcomes. Another significant advantage is that it addresses problems from the ground up by removing 【潜在原因】. For example, this has helped many people and improved life satisfaction. This then creates a ripple effect that helps a wide range of people in their daily lives.\n\nHowever, opponents may argue that 【反方观点】. Nevertheless, this advantage is short-lived, as the initial effect quickly fades once 【简单条件】. More importantly, these short-term gains often hide deeper problems that quick fixes cannot solve. In the end, the problems caused by ignoring the real issue are much bigger than any short-term comfort it gives.\n\nIn summary, for all the reasons above, I totally agree with 【话题】. On the one hand, it brings benefits; on the other hand, its downsides are limited. Therefore, the overall impact should be viewed as largely positive.', tips:'选一边站(agree固定)。【话题】题干词换进去；动词开头加 -ing。结尾【话题】= 开头 -ing 短语原样再抄。填空直接抄：普适领域/进阶目标用万能短语(people\'s well-being / quality of life / living standards)。' },
     { id:'wt_bb', category:'大作文B', title:'讨论型（第二优先背）', skeleton:'The debate surrounding 【话题】 has engaged a broad audience recently. Some people think 【观点 A】, while others believe 【观点 B】. After thinking about both sides, I agree more with the latter one.\n\nOn the one hand, the first view has some truth. People who support it believe it brings real benefits to 【普适领域】. One key strength is its ability to improve 【普适领域】, thereby building a firm basis for 【进阶目标】. As a result, this practice not only generates short-term benefits but also contributes to long-term outcomes. For example, this has helped many people and improved life satisfaction. This then creates a ripple effect that helps a wide range of people in their daily lives.\n\nOn the other hand, I support the second view. In my opinion, 【观点 B 核心理由】 matters more in the long run. This is because if we do not fix this basic problem first, the good results will not last. More importantly, these short-term gains often hide deeper problems that quick fixes cannot solve. In the end, the problems caused by ignoring the real issue are much bigger than any short-term comfort it gives.\n\nIn conclusion, I believe 【立场】 is the better choice. On the one hand, it brings benefits; on the other hand, its downsides are limited. Therefore, the overall impact should be viewed as largely positive.', tips:'支持第二方(latter固定)。正文1客观讲对方道理(题目要求 discuss both views 必须写)，正文2驳论式。观点 A/B/立场填名词短语或 -ing 短语。' }
+  ],
+  writingPhrases: [
+    // ===== 万能词组：按雅思话题领域分类，填进模板「填短语」的空（模板之外真正要补的内容搭配）=====
+    // —— 教育（5）——
+    { id:'wp_g1',  type:'词组', en:'enhance educational fairness', cn:'促进教育公平', tag:'教育' },
+    { id:'wp_g2',  type:'词组', en:'promote career development',  cn:'促进职业发展', tag:'教育' },
+    { id:'wp_g3',  type:'词组', en:'cultivate independent thinking', cn:'培养独立思考', tag:'教育' },
+    { id:'wp_g4',  type:'词组', en:'reduce academic pressure',    cn:'减轻学业压力', tag:'教育' },
+    { id:'wp_g5',  type:'词组', en:'broaden one’s horizons',      cn:'开阔眼界',     tag:'教育' },
+    // —— 科技（5）——
+    { id:'wp_g6',  type:'词组', en:'improve work efficiency',     cn:'提高工作效率', tag:'科技' },
+    { id:'wp_g7',  type:'词组', en:'boost economic growth',       cn:'促进经济增长', tag:'科技' },
+    { id:'wp_g8',  type:'词组', en:'raise privacy concerns',      cn:'引发隐私担忧', tag:'科技' },
+    { id:'wp_g9',  type:'词组', en:'create job opportunities',    cn:'创造就业机会', tag:'科技' },
+    { id:'wp_g10', type:'词组', en:'improve the quality of life', cn:'提高生活质量', tag:'科技' },
+    // —— 环境（5）——
+    { id:'wp_g11', type:'词组', en:'reduce carbon emissions',     cn:'减少碳排放',   tag:'环境' },
+    { id:'wp_g12', type:'词组', en:'protect the environment',     cn:'保护环境',     tag:'环境' },
+    { id:'wp_g13', type:'词组', en:'promote sustainable development', cn:'促进可持续发展', tag:'环境' },
+    { id:'wp_g14', type:'词组', en:'encourage the use of renewable energy', cn:'鼓励使用可再生能源', tag:'环境' },
+    { id:'wp_g15', type:'词组', en:'reduce pollution and waste',  cn:'减少污染和浪费', tag:'环境' },
+    // —— 政府与社会（5）——
+    { id:'wp_g16', type:'词组', en:'narrow the wealth gap',       cn:'缩小贫富差距', tag:'政府与社会' },
+    { id:'wp_g17', type:'词组', en:'ensure social stability',     cn:'确保社会稳定', tag:'政府与社会' },
+    { id:'wp_g18', type:'词组', en:'invest in infrastructure',    cn:'投资基础设施', tag:'政府与社会' },
+    { id:'wp_g19', type:'词组', en:'support vulnerable groups',   cn:'支持弱势群体', tag:'政府与社会' },
+    { id:'wp_g20', type:'词组', en:'improve the welfare system',  cn:'改善福利体系', tag:'政府与社会' },
+    // —— 健康（5）——
+    { id:'wp_g21', type:'词组', en:'improve physical health',     cn:'改善身体健康', tag:'健康' },
+    { id:'wp_g22', type:'词组', en:'promote mental health',       cn:'促进心理健康', tag:'健康' },
+    { id:'wp_g23', type:'词组', en:'reduce stress and anxiety',   cn:'减轻压力和焦虑', tag:'健康' },
+    { id:'wp_g24', type:'词组', en:'encourage a healthy lifestyle', cn:'鼓励健康生活方式', tag:'健康' },
+    { id:'wp_g25', type:'词组', en:'prevent the spread of diseases', cn:'预防疾病传播', tag:'健康' },
+    // —— 工作与经济（5）——
+    { id:'wp_g26', type:'词组', en:'achieve work-life balance',   cn:'实现工作与生活平衡', tag:'工作与经济' },
+    { id:'wp_g27', type:'词组', en:'reduce unemployment rates',   cn:'降低失业率',   tag:'工作与经济' },
+    { id:'wp_g28', type:'词组', en:'enhance professional skills', cn:'提升专业技能', tag:'工作与经济' },
+    { id:'wp_g29', type:'词组', en:'encourage entrepreneurship',  cn:'鼓励创业',     tag:'工作与经济' },
+    { id:'wp_g30', type:'词组', en:'improve living standards',    cn:'提高生活水平', tag:'工作与经济' },
+    // —— 通用（3）——
+    { id:'wp_g31', type:'词组', en:'benefit society as a whole',  cn:'造福整个社会', tag:'通用' },
+    { id:'wp_g32', type:'词组', en:'improve people’s well-being', cn:'改善民众福祉', tag:'通用' },
+    { id:'wp_g33', type:'词组', en:'lead to a better future',     cn:'通向更美好的未来', tag:'通用' },
+    // —— 交通（来自题干词替换库，补全领域覆盖）——
+    { id:'wp_g34', type:'词组', en:'smoother daily travel',       cn:'更顺畅的日常出行', tag:'交通' },
+    { id:'wp_g35', type:'词组', en:'less commuting stress',       cn:'更少的通勤压力', tag:'交通' },
+    // —— 社区/社会（来自题干词替换库）——
+    { id:'wp_g36', type:'词组', en:'stronger local communities',  cn:'更紧密的本地社区', tag:'社区社会' },
+    { id:'wp_g37', type:'词组', en:'people’s sense of belonging', cn:'人们的归属感', tag:'社区社会' },
+    // —— 文化/媒体（来自题干词替换库）——
+    { id:'wp_g38', type:'词组', en:'a richer cultural life',      cn:'更丰富的文化生活', tag:'文化媒体' },
+    { id:'wp_g39', type:'词组', en:'more choices for free time',  cn:'更多闲暇选择', tag:'文化媒体' },
+
+    // ===== 万能句式：现成语法正确句，只填 [ ] 里的名词/数字，零新增语法错（= 大作文预制理由库 + 原因/方案/意义/影响 补充）=====
+    // —— 支持类（"X 是好事"用）——
+    { id:'wp_j1',  type:'句式', en:'This saves [people’s] time and lets them focus more on [work or family].', cn:'这节省了[人们]的时间，让他们更专注于[工作或家庭]', tag:'支持类', example:'This saves people’s time and lets them focus more on work or family.' },
+    { id:'wp_j2',  type:'句式', en:'It cuts the [financial] cost for [ordinary families].', cn:'它削减了[普通家庭]的[经济]成本', tag:'支持类', example:'It cuts the financial cost for ordinary families.' },
+    { id:'wp_j3',  type:'句式', en:'It improves the [daily] life of [local residents].', cn:'它改善了[当地居民]的[日常]生活', tag:'支持类', example:'It improves the daily life of local residents.' },
+    { id:'wp_j4',  type:'句式', en:'It creates more [job] opportunities in the [local] area.', cn:'它在[当地]创造了更多[就业]机会', tag:'支持类', example:'It creates more job opportunities in the local area.' },
+    { id:'wp_j5',  type:'句式', en:'It reduces [air] pollution and protects the [natural] environment.', cn:'它减少[空气]污染，保护[自然]环境', tag:'支持类', example:'It reduces air pollution and protects the natural environment.' },
+    { id:'wp_j6',  type:'句式', en:'It makes [public services] more accessible to [ordinary people].', cn:'它让[普通民众]更易获得[公共服务]', tag:'支持类', example:'It makes public services more accessible to ordinary people.' },
+    // —— 反对类（"对手理由 + 回击"用）——
+    { id:'wp_j7',  type:'句式', en:'Opponents worry that this may hurt [living comfort] and increase [traffic] pressure.', cn:'反对者担心这会损害[居住舒适度]并增加[交通]压力', tag:'反对类', example:'Opponents worry that this may hurt living comfort and increase traffic pressure.' },
+    { id:'wp_j8',  type:'句式', en:'However, these problems can be solved by [better design and stricter rules].', cn:'然而，这些问题可通过[更好的设计与更严的规则]解决', tag:'反对类', example:'However, these problems can be solved by better design and stricter rules.' },
+    { id:'wp_j9',  type:'句式', en:'The long-term benefits are greater than the [short-term] disadvantages.', cn:'长期收益大于[短期]弊端', tag:'反对类', example:'The long-term benefits are greater than the short-term disadvantages.' },
+    // —— 补充：原因 / 方案 / 意义 / 影响（同一"只填名词空"模型）——
+    { id:'wp_j10', type:'句式', en:'This plays a vital role in [children’s education].', cn:'这在[儿童教育]中起着至关重要的作用', tag:'意义', example:'This plays a vital role in children’s education.' },
+    { id:'wp_j11', type:'句式', en:'The main reason is a [lack of public awareness].', cn:'主要原因是[公众意识不足]', tag:'原因', example:'The main reason is a lack of public awareness.' },
+    { id:'wp_j12', type:'句式', en:'A practical measure is to [invest more in public transport].', cn:'一个切实可行的措施是[加大对公共交通的投入]', tag:'方案', example:'A practical measure is to invest more in public transport.' },
+    { id:'wp_j13', type:'句式', en:'These changes mainly affect [young people] and [low-income families].', cn:'这些变化主要影响[年轻人]和[低收入家庭]', tag:'影响', example:'These changes mainly affect young people and low-income families.' }
   ]
 };
 
@@ -589,7 +659,7 @@ function hubLoad(){
     }
     // 兜底：确保所有数组字段非 undefined（极端损坏数据时也不崩）
     const arrayFields = ['sessions','notes','meds','words','plans','corpus','scores','errorbook',
-      'energy','checkins','speaking','writing','writingScores','speakingStories','mockRecords'];
+      'energy','checkins','speaking','writing','writingScores','speakingStories','writingPhrases','mockRecords'];
     for(const f of arrayFields){ if(!Array.isArray(DATA[f])) DATA[f] = []; }
     if(!DATA.settings || typeof DATA.settings !== 'object') DATA.settings = {};
     // 题库迁移：仅补用户缺失的题目；用户手动删过的 id 记入 deletedSpeakingIds，不再恢复
