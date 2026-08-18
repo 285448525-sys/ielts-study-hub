@@ -27,22 +27,30 @@
     <div class="dash-countdown" id="dashCountdown">距 08-25 还有 -- 天</div>
   </header>
 
-  <section class="hero-cta-wrap">
-    <a class="hero-cta" id="startBtn" href="timer.html">
-      <div>
-        <span class="hero-cta-title" id="startTitle">开始今日学习</span>
-        <span class="hero-cta-sub" id="startSub">选模块，开一个计时器</span>
-      </div>
-      <span class="hero-cta-ic">⏱</span>
-    </a>
-    <div class="quick-chips">
-      <a class="quick-chip" href="review.html">📊 模考</a>
-      <a class="quick-chip" href="practice.html">📚 单词</a>
-      <a class="quick-chip" href="speaking.html">🗨 口语素材</a>
-      <a class="quick-chip" href="materials.html">🧱 素材</a>
-    </div>
-  </section>
+  <!-- slim 状态线：合并 AI就绪 + 提醒（两者皆空时整行隐藏） -->
+  <div class="dash-statusline">
+    <span id="aiReadiness"></span>
+    <span class="dash-reminder-inline" id="reminderLine"></span>
+  </div>
 
+  <!-- Zone 1：主行动 -->
+  <a class="hero-cta" id="startBtn" href="timer.html">
+    <div>
+      <span class="hero-cta-title" id="startTitle">开始今日学习</span>
+      <span class="hero-cta-sub" id="startSub">选模块，开一个专注计时器</span>
+    </div>
+    <span class="hero-cta-ic">⏱</span>
+  </a>
+
+  <!-- Zone 2：核心模块导航（4 张统一卡，单色线性 SVG 图标，统一 teal 描边） -->
+  <nav class="mod-grid" aria-label="核心模块">
+    <a class="mod-card" href="practice.html"><span class="mod-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h5v16H6a2 2 0 0 0-2 2z"/><path d="M20 5a2 2 0 0 0-2-2h-5v16h5a2 2 0 0 1 2 2z"/></svg></span><span class="mod-name">单词练习</span><span class="mod-hint">每日背词 · 复习错词</span></a>
+    <a class="mod-card" href="speaking.html"><span class="mod-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v10H9l-4 4z"/><line x1="8" y1="9" x2="15" y2="9"/><line x1="8" y1="12" x2="13" y2="12"/></svg></span><span class="mod-name">口语</span><span class="mod-hint">P1/P2 串题 · 开口练</span></a>
+    <a class="mod-card" href="writing.html"><span class="mod-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4L15.5 5.5a2 2 0 0 1 3 3L8 19z"/><line x1="14" y1="7" x2="17" y2="10"/></svg></span><span class="mod-name">写作</span><span class="mod-hint">模板 · AI 批改</span></a>
+    <a class="mod-card" href="mock.html"><span class="mod-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9z"/><path d="M8.5 13l2.2 2.2L16 10"/></svg></span><span class="mod-name">模考</span><span class="mod-hint">全真模拟 · 出报告</span></a>
+  </nav>
+
+  <!-- Zone 3：今日概览 -->
   <section class="card dash-status">
     <div class="dash-status-head">
       <h2 class="dash-status-title">今日进度</h2>
@@ -58,26 +66,20 @@
       <div class="dash-stat"><span class="dash-stat-ic">💊</span><span id="stMed">未记录服药</span><button class="status-link" id="checkinBtn">打卡</button></div>
     </div>
   </section>
-  <div class="ai-readiness" id="aiReadiness"></div>
-  <div class="dash-reminder" id="reminderLine"></div>
 
-  <section class="quick-links-wrap">
-    <h2 class="section-title">⭐ 我的收藏</h2>
-    <div class="quick-links" id="quickLinks"></div>
-  </section>
-
-  <details class="detail-block">
-    <summary>📊 今日模块分布</summary>
-    <div id="todayBars"></div>
-  </details>
-  <details class="detail-block">
-    <summary>🌐 常用网址</summary>
-    <div id="favLinks"></div>
-  </details>
-  <details class="detail-block">
-    <summary>📋 今日总结</summary>
-    <button class="btn btn-primary btn-sm" id="genSummaryBtn">生成今日总结</button>
-    <div id="summaryOutput" style="display:none;margin-top:12px"></div>
+  <!-- Zone 4：常用（折叠，默认收起） -->
+  <details class="nav-detail">
+    <summary>⭐ 常用</summary>
+    <div class="dash-fav-wrap">
+      <h3 class="dash-sub">我的收藏</h3>
+      <div class="quick-links" id="quickLinks"></div>
+      <h3 class="dash-sub">常用网址</h3>
+      <div id="favLinks"></div>
+      <h3 class="dash-sub">今日模块分布</h3>
+      <div id="todayBars"></div>
+      <button class="btn btn-primary btn-sm" id="genSummaryBtn">生成今日总结</button>
+      <div id="summaryOutput" style="display:none;margin-top:12px"></div>
+    </div>
   </details>
 </main>
 

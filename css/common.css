@@ -943,9 +943,34 @@ main .quote{
 .btn.danger{color:#dc2626;border-color:rgba(239,68,68,.4)}
 .btn.danger:hover{background:rgba(239,68,68,.1);color:#dc2626}
 
-/* ====== 首页 Dashboard 大更新（2026-08-18，teal token，C 窗口方案） ======
-   注意：不重定义全局 .card（corpus/errorbook 等多页都在用），进度卡沿用 `.card`
-   盒子，仅用 .dash-status 微调内距以贴合 mockup；新增样式只用 var(--xxx) token。 */
+/* ====== 首页 Dashboard 简化重构（2026-08-18，teal token，C 窗口方案 v2） ======
+   信息架构：8 块 → 4 区（主行动 / 模块导航 / 今日概览 / 常用折叠）。
+   不重定义全局 .card / .btn；颜色只走 var(--xxx)；保留所有 JS 用 ID。
+   注：#aiReadiness 的 className 由 js/index.js 动态设为 'ai-readiness ok/warn'
+   （common.css:824 已定义其胶囊样式），故此处不再用 .dash-ai，仅做状态线内收紧。 */
+.dash-statusline{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:8px 0 14px;font-size:13px;color:var(--muted)}
+.dash-statusline:empty{display:none}
+.dash-statusline .ai-readiness{margin-bottom:0}
+.dash-reminder-inline{display:inline-flex;align-items:center;gap:6px;color:var(--ink);background:var(--primary-soft);border-left:3px solid var(--primary);border-radius:8px;padding:6px 12px}
+.dash-reminder-inline:empty{display:none}
+
+/* Zone1 主行动（沿用 hero-cta 渐变，内部改行布局） */
+.hero-cta{flex-direction:row;align-items:center;justify-content:space-between;margin-bottom:14px}
+.hero-cta > div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.hero-cta-ic{font-size:34px;opacity:.9;flex:none}
+
+/* Zone2 核心模块导航（4 张统一卡，读成一个导航区） */
+.mod-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+@media(max-width:680px){.mod-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:420px){.mod-grid{grid-template-columns:1fr}}
+.mod-card{display:flex;flex-direction:column;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;color:var(--ink);text-decoration:none;box-shadow:var(--shadow);transition:transform .15s,box-shadow .15s,border-color .15s}
+.mod-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:var(--primary)}
+.mod-ic{width:42px;height:42px;border-radius:12px;background:var(--primary-soft);color:var(--primary);display:flex;align-items:center;justify-content:center;flex:none}
+.mod-ic svg{width:23px;height:23px;display:block}
+.mod-name{font-size:15px;font-weight:800;letter-spacing:-.01em}
+.mod-hint{font-size:12.5px;color:var(--muted);line-height:1.5}
+
+/* Zone3 今日概览（沿用 .card，仅微调内距） */
 .dash-status{padding:20px;margin-bottom:16px}
 .dash-status-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px}
 .dash-status-title{margin:0;font-size:16px;font-weight:800;letter-spacing:-.01em;color:var(--ink)}
@@ -959,16 +984,13 @@ main .quote{
 .dash-stat-ic{font-size:16px;flex:none}
 .dash-stat b{font-weight:700}
 .dash-stat .status-link{margin-left:auto;padding:3px 8px}
-/* 提醒卡（替换原 reminder-line；保留 #reminderLine ID，无 tips 时 :empty 自动隐藏） */
-.dash-reminder{display:flex;gap:10px;align-items:flex-start;background:var(--primary-soft);
-  border:1px solid var(--primary-soft);border-left:3px solid var(--primary);
-  border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:14px;color:var(--ink);line-height:1.6}
-.dash-reminder .rem-ic{flex:none;font-size:16px}
-.dash-reminder:empty{display:none}
-/* hero 图标（改动 D 可选）：由列布局改行布局（标题/副标题左、图标右） */
-.hero-cta{flex-direction:row;align-items:center;justify-content:space-between}
-.hero-cta > div{display:flex;flex-direction:column;gap:2px;min-width:0}
-.hero-cta-ic{font-size:34px;opacity:.9;flex:none}
+
+/* Zone4 常用（折叠，专用类避免影响其他页） */
+.nav-detail{border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow);overflow:hidden}
+.nav-detail > summary{cursor:pointer;padding:14px 18px;font-weight:800;font-size:15px;color:var(--ink);list-style:none;display:flex;align-items:center;gap:8px}
+.nav-detail > summary::-webkit-details-marker{display:none}
+.dash-fav-wrap{padding:4px 18px 18px}
+.dash-sub{font-size:13px;font-weight:700;color:var(--muted);margin:14px 0 8px;text-transform:uppercase;letter-spacing:.02em}
 
 /* ====== 计时 / 专注 大更新（2026-08-18，teal token，C 窗口方案） ======
    .live-timer 默认色已在上方改 var(--muted)（空闲安静、运行中由 JS 设回 primary）；
