@@ -1,8 +1,27 @@
+/* 快捷入口配色：用 var 而非 const（软导航 window.eval 重跑本脚本时，const 重复声明会抛 SyntaxError）。
+   必须放在 ready() 之前——defer 脚本执行时 readyState 已 interactive，ready 回调会同步立即执行，
+   若 QL_ACCENT 定义在其后，renderQuickLinks 访问 QL_ACCENT[p.id] 会因尚未赋值而抛 "reading 'timer'"。 */
+var QL_ACCENT = {
+  timer:    ['var(--primary-soft)',        'var(--primary)'],
+  plans:    ['var(--primary-soft)',        'var(--primary)'],
+  errorbook:['rgba(239,68,68,0.10)',       'var(--danger)'],
+  writing:  ['rgba(245,158,11,0.10)',      'var(--warn)'],
+  speaking: ['rgba(70,168,131,0.10)',      '#46a883'],
+  words:    ['rgba(139,92,246,0.10)',      '#8b5cf6'],
+  practice: ['rgba(139,92,246,0.10)',      '#8b5cf6'],
+  corpus:   ['rgba(6,182,212,0.10)',       '#06b6d4'],
+  longsent: ['rgba(6,182,212,0.10)',       '#06b6d4'],
+  meds:     ['rgba(236,72,153,0.10)',      '#ec4899'],
+  scores:   ['var(--primary-soft)',        'var(--primary)'],
+  history:  ['rgba(95,122,120,0.12)',     '#5f7a78'],
+  settings: ['rgba(95,122,120,0.12)',     '#5f7a78']
+};
+
 ready(() => {
   const safe = fn => { try{ fn(); }catch(e){ console.error('[index] 渲染失败', fn.name || '', e); } };
-  const s = DATA.settings;
+  const s = (DATA && DATA.settings) || {};
   const tkey = todayKey();
-  const todays = DATA.sessions.filter(x => x.date === tkey);
+  const todays = (DATA.sessions || []).filter(x => x.date === tkey);
   const totalSec = todays.reduce((a,x) => a + x.durationSec, 0);
 
   safe(() => {
@@ -82,25 +101,6 @@ function renderMedSnippet(){
   el.textContent = remain > 0 ? '💊 药效中' : '💊 已失效';
 }
 
-/* 快捷入口：只渲染侧边栏 ⭐ 收藏过的页面（favPageIds() 与侧边栏「常用」同一份数据）
-   用 var 而非 const：软导航重新执行 index.js 时，const 重复声明会抛 SyntaxError
-   导致整段脚本中断，仪表盘大片内容消失。 */
-var QL_ACCENT = {
-  timer:    ['var(--primary-soft)',        'var(--primary)'],
-  plans:    ['var(--primary-soft)',        'var(--primary)'],
-  errorbook:['rgba(239,68,68,0.10)',       'var(--danger)'],
-  writing:  ['rgba(245,158,11,0.10)',      'var(--warn)'],
-  speaking: ['rgba(70,168,131,0.10)',      '#46a883'],
-  words:    ['rgba(139,92,246,0.10)',      '#8b5cf6'],
-  practice: ['rgba(139,92,246,0.10)',      '#8b5cf6'],
-  corpus:   ['rgba(6,182,212,0.10)',       '#06b6d4'],
-  longsent: ['rgba(6,182,212,0.10)',       '#06b6d4'],
-  meds:     ['rgba(236,72,153,0.10)',      '#ec4899'],
-  scores:   ['var(--primary-soft)',        'var(--primary)'],
-  history:  ['rgba(95,122,120,0.12)',     '#5f7a78'],
-  settings: ['rgba(95,122,120,0.12)',     '#5f7a78']
-};
-
 function renderQuickLinks(){
   const box = $('#quickLinks');
   if(!box) return;
@@ -111,7 +111,8 @@ function renderQuickLinks(){
     return;
   }
   box.innerHTML = pages.map(p => {
-    const [bg, fg] = QL_ACCENT[p.id] || ['var(--primary-soft)', 'var(--primary)'];
+    const accent = (typeof QL_ACCENT !== 'undefined' && QL_ACCENT[p.id]) || ['var(--primary-soft)', 'var(--primary)'];
+    const [bg, fg] = accent;
     return '<a class="quick-link" href="' + p.file + '">' +
       '<span class="ql-icon" style="background:' + bg + ';color:' + fg + '">' + p.icon + '</span>' +
       '<div><b>' + escapeHtml(p.name) + '</b><span class="muted">' + escapeHtml(p.desc || '') + '</span></div>' +
@@ -169,6 +170,8 @@ function renderReminders(){
   const tkey = todayKey();
   const tips = [];
   if(!(DATA.sessions||[]).some(x => x.date === tkey)) tips.push('今天还没开始学习，去「计时学习」开个计时器');
+  // 空状态引导：词库为空时提示去「我的词库」加词（新用户首屏）
+  if(!DATA.words || DATA.words.length === 0) tips.push('词库还是空的，去「我的词库」加几个单词吧');
   const cd = examCountdown();
   if(cd.hasExam && cd.daysLeft !== null && cd.daysLeft >= 0 && cd.daysLeft <= 7) tips.push('距考试仅剩 ' + cd.daysLeft + ' 天');
   const due = (DATA.words||[]).filter(w => !w.mcDue || w.mcDue <= tkey).length;
