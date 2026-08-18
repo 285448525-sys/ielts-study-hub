@@ -246,12 +246,10 @@ function autoStartSeeWord(){
     const prog2 = $('#progBarWrapBottom'); if(prog2) prog2.hidden = true;
 
     if(!Array.isArray(DATA.words) || DATA.words.length === 0){
-      $('#dueBanner').hidden = true;
       $('#practiceBody').innerHTML = '<div class="q-word">词库为空</div><div class="q-cn">点上方「词库」标签加词后再来练习。</div>';
       return;
     }
     if(DATA.words.length < 2){
-      $('#dueBanner').hidden = true;
       $('#practiceBody').innerHTML = '<div class="q-word">词库至少需要 2 个单词</div><div class="q-cn">「看词选义」需要选项干扰项，请先加至少 2 个词。</div>';
       return;
     }
@@ -259,8 +257,6 @@ function autoStartSeeWord(){
     const due = mcDueWords();
     pq = { mode:'seeWord', queue:[], idx:0, total:0, correct:0, revealed:false, answer:null, wrongList:[],
            mastery:{}, retrying:false, reviewQueue:[], countedWords:{}, correctWords:{}, missed:{} };
-    $('#dueBanner').hidden = false;
-    $('#dueBanner').textContent = '📚 今日待复习 '+due.length+' 个（按记忆曲线自动排程）';
     $('#progBarWrap').hidden = false;
     $('#progBarWrapBottom').hidden = false;
     if(due.length === 0){
