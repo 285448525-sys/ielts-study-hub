@@ -373,6 +373,79 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 #progBarWrapBottom .prog-bar-fill{height:100%;border-radius:3px;background:var(--warn);transition:width .3s ease}
 .score-badge{display:inline-block;background:var(--primary);color:#fff;padding:4px 10px;border-radius:999px;font-size:13px;margin-bottom:10px}
 
+/* ===== 单词页：一屏无滚动布局（design/11） ===== */
+#studyView.study-view-fit{
+  display:flex;flex-direction:column;
+  height:calc(100vh - 158px);   /* 减去标题、tab、container padding 的近似总高 */
+}
+@media(max-width:860px){
+  #studyView.study-view-fit{ height:calc(100vh - 130px); }
+}
+
+.practice-card.practice-card-fit{
+  display:flex;flex-direction:column;gap:10px;
+  padding:18px 22px 16px;margin-bottom:0;
+  overflow:hidden;height:100%;
+}
+
+.practice-head-row{
+  flex:none;
+  display:flex;justify-content:space-between;align-items:center;gap:12px;
+}
+.head-actions{display:flex;gap:8px}
+
+#practiceBody.practice-body-fit{
+  flex:1;min-height:0;
+  display:flex;flex-direction:column;
+}
+#practiceBody.practice-body-fit .practice-word-head,
+#practiceBody.practice-body-fit .pw-cn,
+#practiceBody.practice-body-fit .practice-sentence{ flex:none; }
+
+#practiceBody.practice-body-fit .practice-word-head{
+  justify-content:center;
+  margin:4px 0 2px;min-height:44px;
+}
+#practiceBody.practice-body-fit .pw-en{ font-size:34px;font-weight:800; }
+#practiceBody.practice-body-fit .pw-cn{ font-size:15px;color:var(--muted); }
+#practiceBody.practice-body-fit .practice-sentence{
+  max-width:720px;margin:0 auto;width:100%;
+  padding:10px 14px;font-size:16px;line-height:1.6;
+}
+
+/* 选项区占满剩余空间 */
+#practiceBody.practice-body-fit .opts-grid{
+  flex:1;min-height:0;
+  grid-template-columns:repeat(2,1fr);
+  grid-template-rows:1fr 1fr auto;
+  margin-top:6px;
+}
+#practiceBody.practice-body-fit .opt-big{
+  min-height:0;
+  justify-content:center;
+  padding:14px 16px;
+}
+#practiceBody.practice-body-fit .opt-big-unknown{
+  grid-column:1/-1;flex:none;min-height:44px;
+}
+
+/* 底部工具栏 */
+.practice-tools-row{
+  flex:none;
+  display:flex;justify-content:center;align-items:center;gap:16px;
+  padding-top:8px;border-top:1px solid var(--line);
+}
+.practice-tools-row .tool-btn{ margin:0; }
+.prog-text{flex:1;text-align:right;font-size:12px;color:var(--muted)}
+
+/* 高度紧张时继续压缩 */
+@media(max-height:760px){
+  #practiceBody.practice-body-fit .pw-en{ font-size:28px; }
+  #practiceBody.practice-body-fit .practice-sentence{ font-size:14px;padding:8px 12px; }
+  #practiceBody.practice-body-fit .opt-big{ padding:10px 14px; }
+  #practiceBody.practice-body-fit .opt-big-cn{ font-size:15px; }
+}
+
 /* meds */
 .meds-bar-wrap{margin-top:12px}
 .meds-bar{height:24px;border-radius:8px;background:linear-gradient(90deg,var(--med),var(--warn));position:relative;overflow:hidden;transition:width .5s}

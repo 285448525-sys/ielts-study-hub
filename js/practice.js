@@ -76,7 +76,6 @@ ready(() => {
     b.addEventListener('click', () => switchWordTab(b.dataset.wtab));
   });
   $('#exitPractice').addEventListener('click', autoStartSeeWord);
-  $('#nextBtn').addEventListener('click', onNext);
   // 练习设置改为右上角齿轮弹窗（参考爱听写）
   $('#cfgGear').addEventListener('click', () => {
     $('#cfgModal').hidden = false;
@@ -110,8 +109,6 @@ function renderCfgModal(){
         { key:'batchSize',     label:'题量',          type:'batch', presets:[{v:'5',t:'5 题'},{v:'10',t:'10 题'},{v:'20',t:'20 题'},{v:'50',t:'50 题'},{v:'100',t:'100 题'},{v:'-1',t:'全部'}] },
         { key:'optCount',      label:'选项数量',      type:'select', opts:[{v:'4',t:'4 个'},{v:'6',t:'6 个'}] },
         { key:'shuffle',       label:'随机乱序',      type:'toggle' },
-        { key:'autoNext',      label:'自动进入下一题', type:'toggle', desc:'点选后约 1 秒自动跳转' },
-        { key:'autoNextDelay', label:'跳转延迟',      type:'select', opts:[{v:'400',t:'0.4s'},{v:'1000',t:'1.0s'},{v:'1500',t:'1.5s'},{v:'2500',t:'2.5s'}], showIf:'autoNext' },
       ]
     },
     {
@@ -298,20 +295,31 @@ function resetPractice(){
 }
 
 // 自动进入下一题（答对时调用）
+// 注意：单词页已移除「下一题」按钮（design/11）。autoNext 时延迟自动跳；
+// 若用户旧配置关了 autoNext，则把「不知道」按钮临时变「下一题」兜底，避免无按钮可点。
 function autoAdvance(){
   if(!pq || !pq.revealed) return;
   const c = pc();
-  if(!c.autoNext) { $('#nextBtn').hidden = false; return; }
-  $('#nextBtn').hidden = true;
   const idx = pq.idx;  // 记录本次题目索引，避免用户手动切题后定时器仍误增 idx 跳过题目
-  setTimeout(() => { if(pq && pq.revealed && pq.idx === idx){ pq.idx++; nextQuestion(); } }, c.autoNextDelay);
+  if(c.autoNext){
+    setTimeout(() => { if(pq && pq.revealed && pq.idx === idx){ pq.idx++; nextQuestion(); } }, c.autoNextDelay);
+  } else {
+    const ub = document.getElementById('unknownBtn');
+    if(ub){
+      ub.className = 'opt-big opt-big-unknown next-mode';
+      ub.innerHTML = '下一题 <span class="opt-big-key">快捷键：5</span>';
+      ub.disabled = false;
+      ub.style.pointerEvents = 'auto';
+      const old = ub.onclick;
+      ub.onclick = () => { ub.onclick = old; pq.idx++; nextQuestion(); };
+    }
+  }
 }
 
 function nextQuestion(){
   if(!pq) return;
   try{
     cancelSpeak();
-    $('#nextBtn').hidden = true;
     const body = $('#practiceBody');
     updateScore();
     updateProgBar();
@@ -355,7 +363,6 @@ function nextQuestion(){
     setTimeout(() => speakN(cur.en), 300);  // 新词自动读
   }catch(err){
     console.error('[practice] nextQuestion 失败', err);
-    $('#nextBtn').hidden = true;
     $('#practiceBody').innerHTML = '<div class="q-word">题目渲染失败</div>' +
       '<div class="q-cn">'+escapeHtml(String(err && err.message ? err.message : err))+'</div>' +
       '<div style="margin-top:16px"><button class="btn" id="skipBad">跳过本题</button> <button class="btn btn-primary" id="retryStart2">重新开始</button></div>';
@@ -538,8 +545,6 @@ function speakN(text){
   }catch(e){}
 }
 
-function onNext(){ pq.idx++; nextQuestion(); }
-
 function finishPractice(){
   const acc = pq.total ? Math.round(pq.correct / pq.total * 100) : 0;
   const unknown = (pq.total||0) - (pq.correct||0);
@@ -570,7 +575,7 @@ function finishPractice(){
       '<button class="btn btn-primary" id="restartBtn">再来一轮</button></div>';
   }
   $('#practiceBody').innerHTML = bodyHtml;
-  $('#nextBtn').hidden = true; $('#practiceScore').textContent = '';
+  $('#practiceScore').textContent = '';
   $('#progBarWrap').hidden = true;
   // 绑定按钮
   const eb = document.getElementById('exitBtn');
@@ -582,7 +587,6 @@ function finishPractice(){
     const mode = 'seeWord';
     pq = { mode, queue: shuffle(wrong.slice()), idx: 0, total: 0, correct: 0, revealed: false, answer: null, wrongList: [],
            mastery: {}, retrying: false, reviewQueue: [], countedWords: {}, correctWords: {}, missed: {} };
-    $('#nextBtn').hidden = true;
     $('#progBarWrap').hidden = false;
     nextQuestion();
     toast('已进入错词重练：'+wrong.length+' 个词');
