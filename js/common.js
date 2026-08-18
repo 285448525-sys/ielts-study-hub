@@ -750,6 +750,21 @@ ready(() => { hubLoad(); injectNav(); applyTheme(); restoreSideScroll(); initSof
   document.addEventListener('hub:session-saved', () => injectNav());
   // 方案1：计时开始/结束/暂停时刷新全局徽标（无需重建整个侧边栏）
   document.addEventListener('hub:timer-state', renderSideTimer);
+  // 通用 inner tab 切换：.tab-btn → .tab-panel（按 data-tab 匹配 #tab-<name>）
+  // 修 review.html 内层 tab 死 tab（此前无 handler → 三面板堆叠+点击无效）；scores.html 已有 scores.js 同类 handler，叠加不冲突
+  document.addEventListener('click', function(e){
+    var b = e.target.closest('.tab-btn');
+    if(!b) return;
+    var wrap = b.closest('.tabs');
+    if(!wrap) return;
+    wrap = wrap.parentElement;
+    if(!wrap) return;
+    wrap.querySelectorAll('.tab-btn').forEach(function(x){ x.classList.remove('active'); });
+    wrap.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
+    b.classList.add('active');
+    var panel = wrap.querySelector('#tab-' + b.dataset.tab);
+    if(panel) panel.classList.add('active');
+  });
 });
 
 function registerSW(){ try{ if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{}); }catch(e){} }
