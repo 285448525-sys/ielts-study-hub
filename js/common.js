@@ -515,7 +515,7 @@ async function cloudDownload(){
       return false;
     }
     if(!confirm('从云端下载会覆盖本机全部数据，确定继续？\n建议先点「导出 JSON」备份。')) return false;
-    DATA = Object.assign({ sessions:[], notes:[], meds:[], words:[], plans:[], corpus:[], scores:[], errorbook:[], energy:[], checkins:[], settings:{} }, data.data);
+    DATA = Object.assign({ sessions:[], notes:[], meds:[], words:[], plans:[], corpus:[], scores:[], errorbook:[], energy:[], checkins:[], settings:{}, speaking:[], writing:[], writingPhrases:[], speakingStories:[], mockRecords:[], writingScores:[] }, data.data);
     hubSave(); location.reload();
     return true;
   }catch(e){ toast('云端下载失败：' + e.message); return false; }
@@ -556,7 +556,7 @@ async function syncLoginOrRegister(){
       if(!confirm('云端已有该手机号的数据，登录将用云端数据覆盖本机全部数据，确定继续？\n建议先点「导出 JSON」备份本机数据。')) return;
       const [res2, data] = await syncApi('GET');
       if(data && data.data){
-        DATA = Object.assign({ sessions:[], notes:[], meds:[], words:[], plans:[], corpus:[], scores:[], errorbook:[], energy:[], checkins:[], settings:{} }, data.data);
+        DATA = Object.assign({ sessions:[], notes:[], meds:[], words:[], plans:[], corpus:[], scores:[], errorbook:[], energy:[], checkins:[], settings:{}, speaking:[], writing:[], writingPhrases:[], speakingStories:[], mockRecords:[], writingScores:[] }, data.data);
         enableAutoSyncAfterLogin(phone);
         hubSave(); location.reload();
       } else {

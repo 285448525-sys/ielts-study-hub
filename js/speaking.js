@@ -545,10 +545,16 @@ function renderPronResult(el, res){
   el.innerHTML = html;
   const wrongBtn = el.querySelector('.sp-pron-wrong');
   if(wrongBtn) wrongBtn.addEventListener('click', () => {
-    const reds = (res.words || []).filter(w => (w.score || 0) < 60).map(w => w.content);
+    const reds = (res.words || [])
+      .filter(w => w && (w.score || 0) < 60)
+      .map(w => (w && w.content != null ? String(w.content).trim() : ''))
+      .filter(Boolean);
     if(!reds.length){ toast('没有红词，发音很棒！'); return; }
     DATA.words = DATA.words || [];
-    reds.forEach(en => { if(!DATA.words.find(x => x.en === en)) DATA.words.push({ id: uid(), en, cn: '(发音评测·' + new Date().toLocaleDateString('zh-CN') + ')', ts: Date.now() }); });
+    reds.forEach(en => {
+      if(!en) return;
+      if(!DATA.words.find(x => x.en === en)) DATA.words.push({ id: uid(), en, cn: '(发音评测·' + new Date().toLocaleDateString('zh-CN') + ')', ts: Date.now() });
+    });
     hubSave();
     toast('已加 ' + reds.length + ' 个红词到错词本');
   });

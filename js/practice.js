@@ -275,6 +275,7 @@ function nextQuestion(){
   if(pq.idx >= pq.queue.length){ finishPractice(); return; }
   pq.revealed = false;
   const cur = pq.queue[pq.idx];
+  if(!cur || cur.en == null || String(cur.en).trim() === ''){ pq.idx++; nextQuestion(); return; }
   const c = pc();
   // 每 2 道新题插回一个错词（更频繁，让用户感知到"重复出现"）
   if(!pq.retrying && pq.reviewQueue.length && pq.idx > 0 && pq.idx % 2 === 0){
@@ -555,13 +556,19 @@ function addDays(dateStr, n){
   return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
 }
 function pickWrong(correct, n){
-  // 从词库中随机挑选 n 个与正确答案不同的干扰项
-  const seen = new Set([correct.en.toLowerCase()]);
-  const pool = shuffle(DATA.words.filter(w => !seen.has(w.en.toLowerCase())));
+  // 从词库中随机挑选 n 个与正确答案不同的干扰项（容错：跳过 en 缺失/非字符串的脏词）
+  const seen = new Set();
+  const cEn = (correct.en != null) ? String(correct.en).toLowerCase() : '';
+  if(cEn) seen.add(cEn);
+  const pool = shuffle(DATA.words.filter(w => {
+    const e = (w && w.en != null) ? String(w.en).toLowerCase() : '';
+    return e !== '' && !seen.has(e);
+  }));
   const uniq = [];
   for(const w of pool){
-    if(seen.has(w.en.toLowerCase())) continue;
-    seen.add(w.en.toLowerCase());
+    const e = (w && w.en != null) ? String(w.en).toLowerCase() : '';
+    if(seen.has(e) || e === '') continue;
+    seen.add(e);
     uniq.push(w);
     if(uniq.length >= n) break;
   }

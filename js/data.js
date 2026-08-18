@@ -687,6 +687,12 @@ function hubLoad(){
         if(!curDt || isNaN(curDt) || curDt < today0) DATA.settings.examDate = future[0];
       }
     }
+    // 自愈：清洗词库中 en 非「非空字符串」的脏词（发音评测红词曾写入 undefined/null，导致练习页崩溃）
+    if(Array.isArray(DATA.words)){
+      const before = DATA.words.length;
+      DATA.words = DATA.words.filter(w => w && typeof w.en === 'string' && w.en.trim() !== '');
+      if(DATA.words.length !== before){ console.warn('已清洗 ' + (before - DATA.words.length) + ' 个脏词'); hubSave(); }
+    }
   }catch(e){ console.warn('读取本地数据失败', e); }
 }
 
