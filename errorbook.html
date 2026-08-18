@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>错题本 · 雅思备考 Hub</title>
+<title>错题�?· 雅思备�?Hub</title>
 <link rel="stylesheet" href="css/common.css" />
 <link rel="manifest" href="/manifest.json" />
 <meta name="theme-color" content="#3a9a93" />
@@ -12,7 +12,6 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js"></script>
   <script defer src="js/common.js"></script>
-  <script defer src="js/prompts.js"></script>
   <script src="js/errorbook.js" defer></script>
 <style>
   .eb-input{width:100%;min-height:190px;padding:14px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;font-size:14.5px;line-height:1.75;background:var(--bg);color:var(--ink);resize:vertical}
@@ -54,17 +53,17 @@
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 
 <main class="container">
-  <h1 class="page-title">错题本</h1>
-  <p class="page-sub">把你的错题笔记贴进来，我来帮你理清错因、归纳规避方法并自动归档。没有现成讲解也行——直接写你当时怎么想的、错在哪；没配 DeepSeek Key 时也能先点「只存原文」，之后补分析。</p>
+  <h1 class="page-title">错题�?/h1>
+  <p class="page-sub">把你的错题笔记贴进来，我来帮你理清错因、归纳规避方法并自动归档。没有现成讲解也行——直接写你当时怎么想的、错在哪；没�?DeepSeek Key 时也能先点「只存原文」，之后补分析�?/p>
 
   <section class="card">
-    <textarea class="eb-input" id="ebInput" placeholder="把你的错题笔记贴进来就行，不用整理格式、不用删多余的话。
-也可以直接写自己的零散笔记，比如：
-剑桥18 T2 P1 第5题 判断题，我选 NOT GIVEN，答案是 FALSE，原文说 …"></textarea>
+    <textarea class="eb-input" id="ebInput" placeholder="把你的错题笔记贴进来就行，不用整理格式、不用删多余的话�?
+也可以直接写自己的零散笔记，比如�?
+剑桥18 T2 P1 �?�?判断题，我�?NOT GIVEN，答案是 FALSE，原文说 �?></textarea>
     <div class="eb-bar">
-      <button class="btn btn-primary" id="ebAnalyze">🤖 理清错因并归档</button>
+      <button class="btn btn-primary" id="ebAnalyze">🤖 理清错因并归�?/button>
       <button class="btn" id="ebRaw">只存原文</button>
-      <span class="muted" style="font-size:12.5px">自动分析用的是「设置 / AI 接口」里的 DeepSeek Key</span>
+      <span class="muted" style="font-size:12.5px">自动分析用的是「设�?/ AI 接口」里�?DeepSeek Key</span>
     </div>
     <div id="ebLoading" class="eb-loading" hidden></div>
   </section>
@@ -76,11 +75,11 @@
 
   <section class="card">
     <div class="eb-list-head">
-      <h2>已归档 · <span id="count">0</span> 条</h2>
+      <h2>已归�?· <span id="count">0</span> �?/h2>
       <select id="fTrap"><option value="">全部错因</option></select>
     </div>
     <div id="list"></div>
-    <div id="empty" class="muted" hidden>还没有记录。把你的错题笔记贴到上面那个框，点「理清错因并归档」。</div>
+    <div id="empty" class="muted" hidden>还没有记录。把你的错题笔记贴到上面那个框，点「理清错因并归档」�?/div>
   </section>
 </main>
 

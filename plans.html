@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>学习计划 · 雅思备考 Hub</title>
+<title>学习计划 · 雅思备�?Hub</title>
 <link rel="stylesheet" href="css/common.css" />
 <link rel="manifest" href="/manifest.json" />
 <meta name="theme-color" content="#3a9a93" />
@@ -12,7 +12,6 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js"></script>
   <script defer src="js/common.js"></script>
-  <script defer src="js/prompts.js"></script>
   <script src="js/plans.js" defer></script>
 </head>
 <body>
@@ -20,7 +19,7 @@
 
 <main class="container">
   <h1 class="page-title">学习计划</h1>
-  <p class="page-sub">每天按状态临时打勾；每周让 AI 帮你把大目标拆到 7 天。</p>
+  <p class="page-sub">每天按状态临时打勾；每周�?AI 帮你把大目标拆到 7 天�?/p>
 
   <section class="card" style="padding:12px 16px">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
@@ -33,7 +32,7 @@
   <section class="card">
     <h2>添加任务</h2>
     <textarea id="planText"
-      placeholder="例如：精听 S1 填空 30 分钟 / 背 20 个阅读生词 / 用 DeepSeek 练 1 个 P2&#10;也可以写一句「今天想完成什么」，点「AI 安排」让 AI 帮你拆成多条。"
+      placeholder="例如：精�?S1 填空 30 分钟 / �?20 个阅读生�?/ �?DeepSeek �?1 �?P2&#10;也可以写一句「今天想完成什么」，点「AI 安排」让 AI 帮你拆成多条�?
       style="width:100%;min-height:72px;padding:10px;border:1px solid var(--line);border-radius:var(--radius-sm);font:inherit;font-size:14px;line-height:1.6;background:var(--surface);color:var(--ink);resize:vertical"></textarea>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px">
       <button class="btn" id="addPlan">添加任务</button>
@@ -52,18 +51,18 @@
 
   <section class="card">
     <h2>历史计划</h2>
-    <p class="muted">点击任意日期可查看 / 编辑那天的计划。</p>
+    <p class="muted">点击任意日期可查�?/ 编辑那天的计划�?/p>
     <div id="histPlans"></div>
   </section>
 
   <section class="card">
-    <h2>📝 本周我想完成的任务</h2>
-    <p class="muted">写下这一周想完成的大致任务（一行一个），点「AI 帮我想」让它按你的弱项智能分配到 7 天。没配 AI Key 也能用「按弱项生成」走固定模板。</p>
-    <textarea id="weekTasks" placeholder="例如：&#10;背完 Word List 5-7&#10;写 1 篇大作文&#10;精听 3 段 S3&#10;口语 P2 串题素材过一遍"></textarea>
+    <h2>📝 本周我想完成的任�?/h2>
+    <p class="muted">写下这一周想完成的大致任务（一行一个），点「AI 帮我想」让它按你的弱项智能分配�?7 天。没�?AI Key 也能用「按弱项生成」走固定模板�?/p>
+    <textarea id="weekTasks" placeholder="例如�?#10;背完 Word List 5-7&#10;�?1 篇大作文&#10;精听 3 �?S3&#10;口语 P2 串题素材过一�?></textarea>
     <div class="form-row" style="align-items:center;margin-top:10px">
       <p class="muted" style="flex:1;margin:0" id="weekHint"></p>
-      <button class="btn" id="genWeek" style="flex:none">按弱项生成（无 AI）</button>
-      <button class="btn btn-primary" id="aiWeek" style="flex:none">🤖 AI 帮我想（按天分配）</button>
+      <button class="btn" id="genWeek" style="flex:none">按弱项生成（�?AI�?/button>
+      <button class="btn btn-primary" id="aiWeek" style="flex:none">🤖 AI 帮我想（按天分配�?/button>
     </div>
   </section>
 

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>回顾 · 雅思备考 Hub</title>
+<title>回顾 · 雅思备�?Hub</title>
 <link rel="stylesheet" href="css/common.css" />
 <link rel="manifest" href="/manifest.json" />
 <meta name="theme-color" content="#3a9a93" />
@@ -12,7 +12,6 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js"></script>
 <script defer src="js/common.js"></script>
-<script defer src="js/prompts.js"></script>
 <script defer src="js/scores.js"></script>
 <script defer src="js/history.js"></script>
 <script defer src="js/mock-report.js"></script>
@@ -23,36 +22,36 @@
 
 <main class="container">
   <h1 class="page-title">回顾</h1>
-  <p class="page-sub">上块 = 模考成绩追踪，下块 = 长期学习轨迹，一个入口看全部。</p>
+  <p class="page-sub">上块 = 模考成绩追踪，下块 = 长期学习轨迹，一个入口看全部�?/p>
 
   <div class="tabs">
-    <button class="top-tab active" data-toptab="scores">📊 模考成绩</button>
+    <button class="top-tab active" data-toptab="scores">📊 模考成�?/button>
     <button class="top-tab" data-toptab="record">📝 记录</button>
   </div>
 
-  <!-- ============ 上块：模考成绩 ============ -->
+  <!-- ============ 上块：模考成�?============ -->
   <div class="top-panel active" id="top-scores">
   <section class="review-pane">
-    <h2>📊 模考成绩</h2>
+    <h2>📊 模考成�?/h2>
 
     <div class="tabs">
-      <button class="tab-btn active" data-tab="overall">📊 整卷模考</button>
-      <button class="tab-btn" data-tab="breakdown">🧩 分项模考</button>
-      <button class="tab-btn" data-tab="speaking">🎤 口语模考</button>
+      <button class="tab-btn active" data-tab="overall">📊 整卷模�?/button>
+      <button class="tab-btn" data-tab="breakdown">🧩 分项模�?/button>
+      <button class="tab-btn" data-tab="speaking">🎤 口语模�?/button>
     </div>
 
-    <!-- 整卷模考 Tab -->
+    <!-- 整卷模�?Tab -->
     <div id="tab-overall" class="tab-panel active">
       <section class="card">
-        <h2>添加整卷模考成绩</h2>
+        <h2>添加整卷模考成�?/h2>
         <div class="form-row">
-          <div><label>模考日期</label><input type="date" id="scoreDate" /></div>
-          <div><label>听力</label><input type="number" id="scL" step="0.5" min="0" max="9" placeholder="0–9" /></div>
-          <div><label>阅读</label><input type="number" id="scR" step="0.5" min="0" max="9" placeholder="0–9" /></div>
+          <div><label>模考日�?/label><input type="date" id="scoreDate" /></div>
+          <div><label>听力</label><input type="number" id="scL" step="0.5" min="0" max="9" placeholder="0�?" /></div>
+          <div><label>阅读</label><input type="number" id="scR" step="0.5" min="0" max="9" placeholder="0�?" /></div>
         </div>
         <div class="form-row">
-          <div><label>写作</label><input type="number" id="scW" step="0.5" min="0" max="9" placeholder="0–9" /></div>
-          <div><label>口语</label><input type="number" id="scS" step="0.5" min="0" max="9" placeholder="0–9" /></div>
+          <div><label>写作</label><input type="number" id="scW" step="0.5" min="0" max="9" placeholder="0�?" /></div>
+          <div><label>口语</label><input type="number" id="scS" step="0.5" min="0" max="9" placeholder="0�?" /></div>
           <div><label>备注（可选）</label><input id="scNote" placeholder="备注" /></div>
         </div>
         <button class="btn btn-primary" id="addScore">保存成绩</button>
@@ -64,7 +63,7 @@
           <div class="stat-grid" id="scoreStats"></div>
         </section>
         <section class="card">
-          <h2>最近一次 vs 目标</h2>
+          <h2>最近一�?vs 目标</h2>
           <div id="scoreBars"></div>
           <div id="actionTip" class="action-tip"></div>
         </section>
@@ -72,13 +71,13 @@
 
       <section class="card">
         <h2>📈 成绩趋势</h2>
-        <p class="muted">横轴为模考日期，纵轴 0–9 分。至少需要 2 次模考成绩。</p>
+        <p class="muted">横轴为模考日期，纵轴 0�? 分。至少需�?2 次模考成绩�?/p>
         <div id="trendChart"></div>
       </section>
 
       <section class="card">
         <h2>🧭 综合掌握度雷达图</h2>
-        <p class="muted">对比「最新一次」与「目标」：听 / 读 / 写 / 口 四项能力。至少需要 1 次模考。</p>
+        <p class="muted">对比「最新一次」与「目标」：�?/ �?/ �?/ �?四项能力。至少需�?1 次模考�?/p>
         <div id="radarChart"></div>
       </section>
 
@@ -88,22 +87,22 @@
       </section>
     </div>
 
-    <!-- 分项模考 Tab -->
+    <!-- 分项模�?Tab -->
     <div id="tab-breakdown" class="tab-panel">
       <section class="card">
         <h2>添加分项记录</h2>
         <div class="form-row">
           <div><label>粒度</label>
             <select id="mkGran">
-              <option value="whole">整卷（录全部 Part）</option>
-              <option value="part">单项（只录一个 Part）</option>
+              <option value="whole">整卷（录全部 Part�?/option>
+              <option value="part">单项（只录一�?Part�?/option>
             </select>
           </div>
           <div><label>题型</label>
             <select id="mkType">
               <option value="listening">🎧 听力</option>
               <option value="reading">📖 阅读</option>
-              <option value="speaking">🗣️ 口语</option>
+              <option value="speaking">🗣�?口语</option>
               <option value="writing">✏️ 写作</option>
             </select>
           </div>
@@ -117,7 +116,7 @@
         <div id="mkParts" class="mk-parts"></div>
 
         <div class="form-row">
-          <div class="mk-note-flex"><label>备注（可选）</label><input id="mkNote" placeholder="如：同义替换慢 / P4 跟不上" /></div>
+          <div class="mk-note-flex"><label>备注（可选）</label><input id="mkNote" placeholder="如：同义替换�?/ P4 跟不�? /></div>
         </div>
         <button class="btn btn-primary" id="mkAdd">保存分项</button>
       </section>
@@ -128,14 +127,14 @@
           <div class="mk-filter-wrap"><label>范围</label>
             <select id="mkFilter">
               <option value="all">全部</option>
-              <option value="whole">仅整卷</option>
-              <option value="part">仅单项</option>
+              <option value="whole">仅整�?/option>
+              <option value="part">仅单�?/option>
             </select>
           </div>
         </div>
         <h3>题型表现</h3>
         <div id="mkTypeStats"></div>
-        <h3>各 Part 表现</h3>
+        <h3>�?Part 表现</h3>
         <div id="mkPartStats"></div>
       </section>
 
@@ -145,25 +144,25 @@
       </section>
     </div>
 
-    <!-- 口语模考 Tab（整卷口语模考历史，由 mock-history.js 渲染） -->
+    <!-- 口语模�?Tab（整卷口语模考历史，�?mock-history.js 渲染�?-->
     <div id="tab-speaking" class="tab-panel">
       <section class="card">
-        <h2>🎤 口语整卷模考记录 <span class="muted mock-hist-count" id="mockHistCount"></span></h2>
-        <p class="muted">P1→P2→P3 全真模考的历史报告，含逐题转写。点击「展开」看完整评分与转写，刷新不丢。</p>
+        <h2>🎤 口语整卷模考记�?<span class="muted mock-hist-count" id="mockHistCount"></span></h2>
+        <p class="muted">P1→P2→P3 全真模考的历史报告，含逐题转写。点击「展开」看完整评分与转写，刷新不丢�?/p>
         <div id="mockHistoryList"></div>
       </section>
     </div>
   </section>
   </div>
 
-  <!-- ============ 下块：学习轨迹 ============ -->
+  <!-- ============ 下块：学习轨�?============ -->
   <div class="top-panel" id="top-record">
   <div class="review-split"></div>
   <section class="review-pane">
     <h2>📈 学习轨迹</h2>
 
     <section class="card">
-      <h2>近 30 天学习热力</h2>
+      <h2>�?30 天学习热�?/h2>
       <div id="heatmap"></div>
       <div class="cal-legend" id="heatLegend"></div>
     </section>
@@ -177,7 +176,7 @@
 </main>
 
 <script>
-// 外层 tab 用 document 委托：软导航替换 #main 后，新按钮仍能点（document 不重建）
+// 外层 tab �?document 委托：软导航替换 #main 后，新按钮仍能点（document 不重建）
 document.addEventListener('click', function(e){
   var b = e.target.closest('.top-tab');
   if(!b) return;
