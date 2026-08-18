@@ -260,13 +260,21 @@ function openDetail(id){
   }
   html += '<div class="sp-ai-result" id="aiResult"></div>';
 
-  // 保存
-  html += '<div class="sp-detail-actions"><button class="btn btn-primary" id="saveBtn">保存</button><button class="btn btn-danger" id="delSpBtn">删除此题</button></div>';
+  // 保存 + 删除 +（P1）下一题
+  html += '<div class="sp-detail-actions"><button class="btn btn-primary" id="saveBtn">保存</button><button class="btn btn-danger" id="delSpBtn">删除此题</button>';
+  if(s.type === 'P1'){
+    html += '<button class="btn btn-med" id="nextTopicBtn" style="margin-left:auto">下一题 →</button>';
+  }
+  html += '</div>';
 
   $('#detailBody').innerHTML = html;
 
   // 绑定事件
   $('#saveBtn').addEventListener('click', () => saveDetail(id));
+  if(s.type === 'P1'){
+    const nextTopicBtn = document.getElementById('nextTopicBtn');
+    if(nextTopicBtn) nextTopicBtn.addEventListener('click', () => gotoNextTopic());
+  }
   const delSpBtn = document.getElementById('delSpBtn');
   if(delSpBtn) delSpBtn.addEventListener('click', () => {
     if(confirm('确定删除这个口语题？删除后默认题库升级也不会再恢复它。')) deleteSpeaking(id);
@@ -323,6 +331,17 @@ function openDetail(id){
       }
     });
   }
+}
+
+/* === P1 详情页「下一题」：跳到当前筛选列表里的下一道 P1 话题 ===
+   沿用用户刚筛选的条件（curFreq/curCat/curSearch），到末尾循环回第一道，方便连续练。 */
+function gotoNextTopic(){
+  const list = getFiltered();
+  if(!list.length) return;
+  const idx = list.findIndex(s => s.id === curDetailId);
+  if(idx === -1){ openDetail(list[0].id); return; }   // 当前题不在筛选结果里（如刚改了筛选）→ 打开第一条
+  const nextIdx = (idx + 1) % list.length;
+  openDetail(list[nextIdx].id);
 }
 
 function saveDetail(id){
