@@ -539,6 +539,8 @@ let DATA = {
   ]),
   speakingStories: [],
   writingScores: [],
+  dictationSources: [],   // 默写本：[{id,title,text,createdAt}]
+  dictationLogs: [],      // 错处记录：[{id,sourceId,sourceTitle,date,userText,correctText,mistakes,weakThisTime,parsed}]
   writing: [
     { id:'wt_a', category:'小作文A', title:'数据图·时间轴（线/柱带年份）', skeleton:'The 【chart / graph / table】 illustrates 【图内容+时间范围】. The data is measured in 【percent / millions / thousands】, providing a clear overview of the changes that took place over the given period.\n\nOverall, it is clear that 【总体趋势 1】. Additionally, 【总体趋势 2·名词短语】 stood out throughout the period as the most striking feature. It is also noticeable that the figures changed clearly over the period, rather than remaining steady.\n\nLooking at the details, 【数据 1】 started at 【数值】 in 【年份】 and then 【趋势变化 + 趋势词】. This represents a considerable increase compared to its starting point, and the upward momentum remained consistent across most of the timeframe.\n\nIn contrast, 【数据 2】 showed a different pattern. It 【趋势变化】, from 【数值】 in 【年份】 to 【数值】 in 【年份】. Meanwhile, 【其他数据点】 remained relatively stable, showing little variation. Taken together, the data reveals a clear divergence between the two groups.', tips:'结构：开头改写｜概述(2个总体)｜细节1(写一组)｜细节2(对比另一组)。必背趋势词：rose steadily / declined gradually / remained stable at / reached a peak of / accounted for / compared to。填空直接抄题干改写与数值，不自己造。' },
     { id:'wt_b', category:'小作文B', title:'非时间轴图（饼/表/静态柱）', skeleton:'The 【pie chart / table / charts】 illustrates 【图内容+时间(若有)】. The data is measured in 【percent / number of people】, giving a clear picture of the distribution of 【总类】.\n\nOverall, it is clear that 【最大类·名词短语】 accounted for the largest share, at 【数值】%. Additionally, the contrast between the top and bottom categories stood out as the most striking feature. It is also noticeable that the remaining categories were considerably smaller, showing a clear gap rather than an even spread.\n\nLooking at the details, 【最大类】 represented 【数值】%, which was the most significant. 【类 2】 followed at 【数值】%, while 【类 3】 made up 【数值】%.\n\nMeanwhile, 【类 4】 remained relatively minor, at 【数值】%. 【类 5】 showed a different pattern, reaching 【数值】%. Taken together, the data reveals a clear gap between the top and bottom categories.', tips:'用于饼图/表格/无时间轴柱图/混合图。必背占比词：accounted for the largest share / made up the smallest proportion / followed at / compared to。与§六时间轴模板不混用。' },
@@ -658,7 +660,8 @@ function hubLoad(){
     }
     // 兜底：确保所有数组字段非 undefined（极端损坏数据时也不崩）
     const arrayFields = ['sessions','notes','meds','words','plans','corpus','scores','errorbook',
-      'energy','checkins','speaking','writing','writingScores','speakingStories','writingPhrases','mockRecords'];
+      'energy','checkins','speaking','writing','writingScores','speakingStories','writingPhrases','mockRecords',
+      'dictationSources','dictationLogs'];
     for(const f of arrayFields){ if(!Array.isArray(DATA[f])) DATA[f] = []; }
     if(!DATA.settings || typeof DATA.settings !== 'object') DATA.settings = {};
     // 题库迁移：仅补用户缺失的题目；用户手动删过的 id 记入 deletedSpeakingIds，不再恢复

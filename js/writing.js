@@ -11,7 +11,9 @@ ready(() => {
       $('#tplPanel').hidden = curTab !== 'tpl';
       $('#bankPanel').hidden = curTab !== 'bank';
       $('#scorePanel').hidden = curTab !== 'score';
+      $('#dictationPanel').hidden = curTab !== 'dictation';
       if(curTab === 'bank') renderBank();
+      if(curTab === 'dictation'){ showDictHome(); renderDictationSources(); }
     });
   });
 

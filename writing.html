@@ -17,6 +17,7 @@
 <script defer src="js/data.js"></script>
   <script defer src="js/common.js"></script>
   <script defer src="js/writing.js"></script>
+  <script defer src="js/dictation.js"></script>
 <style>
   .write-tabs{display:flex;gap:0;border-bottom:2px solid var(--line);margin-bottom:16px}
   .write-tabs button{flex:1;padding:12px 0;font-size:16px;font-weight:600;border:none;background:none;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s}
@@ -97,6 +98,7 @@
     <button data-tab="tpl" class="active">模板库</button>
     <button data-tab="bank">语料库</button>
     <button data-tab="score">AI 评分</button>
+    <button data-tab="dictation">默写</button>
   </div>
 
   <!-- 模板库面板 -->
@@ -209,6 +211,54 @@
 
     <section class="card score-result" id="scoreResult">
       <div id="scoreResultBody"></div>
+    </section>
+  </div>
+
+  <!-- 默写面板 -->
+  <div id="dictationPanel" hidden>
+    <!-- 我的默写本（首页） -->
+    <section class="card" id="dictHomeCard">
+      <div class="form-row" style="align-items:center">
+        <h2>我的默写本</h2>
+        <button class="btn" id="dictViewLogs" style="margin-left:auto">📋 错处记录</button>
+      </div>
+      <p class="muted" style="font-size:13px;margin-bottom:10px">把要背的范文/模板粘进来，保存后就能反复全文默写，AI 逐句比对、标出常错点。</p>
+      <div class="form-row">
+        <input id="dictTitle" placeholder="给这篇范文起个名（如：大作文A-利弊段）" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);box-sizing:border-box" />
+        <button class="btn btn-primary" id="dictSaveSrc">保存为默写本</button>
+      </div>
+      <textarea id="dictSource" placeholder="把要背的完整模板/范文粘进来（纯文本，不用挖空）。保存后就能反复默写它。" style="width:100%;min-height:120px;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);resize:vertical;box-sizing:border-box;margin-top:8px"></textarea>
+      <div id="dictSrcList" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr));margin-top:10px"></div>
+    </section>
+
+    <!-- 默写练习 -->
+    <section class="card" id="dictPracticeCard" hidden>
+      <div class="form-row" style="align-items:center">
+        <h2 id="dictPTitle" style="margin:0"></h2>
+        <button class="btn" id="dictBack" style="margin-left:auto">返回</button>
+      </div>
+      <div id="dictWarmup"></div>
+      <div class="form-row" style="align-items:center;gap:14px;margin-top:8px">
+        <label style="font-size:14px"><input type="checkbox" id="dictShowSrc"> 看原文</label>
+        <label style="font-size:14px"><input type="checkbox" id="dictWarmupOn" checked> 开始前先练常错句</label>
+      </div>
+      <div id="dictSrcView" class="skeleton-box" hidden style="margin-top:8px"></div>
+      <textarea id="dictInput" placeholder="凭记忆把整段打上来。模板里的空位不想默可以用 -- 代替，不会算错。" style="width:100%;min-height:220px;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);resize:vertical;box-sizing:border-box;margin-top:8px"></textarea>
+      <div class="form-row" style="margin-top:10px;align-items:center">
+        <button class="btn btn-primary" id="dictSubmit">提交核对</button>
+        <span class="muted" id="dictPreHint" style="font-size:13px"></span>
+      </div>
+      <div id="dictResult" class="tpl-score" hidden></div>
+    </section>
+
+    <!-- 错处记录 -->
+    <section class="card" id="dictLogCard" hidden>
+      <div class="form-row" style="align-items:center">
+        <h2>我的错处记录</h2>
+        <button class="btn" id="dictLogBack" style="margin-left:auto">返回</button>
+        <button class="btn btn-danger" id="dictClearAll">清空全部</button>
+      </div>
+      <div id="dictLogList"></div>
     </section>
   </div>
 </main>
