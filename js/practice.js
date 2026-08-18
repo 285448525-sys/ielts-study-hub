@@ -20,7 +20,8 @@ var PC_DEFAULTS = {
   autoPlay: true,     // 自动播放下题读音
   showCn: false,      // 显示释义提示
   showEn: 0,          // 显示英文原词: 0=不显示, 1=答错时显示, 2=始终显示
-  optCount: 4         // 选择题选项数量
+  optCount: 4,        // 选择题选项数量
+  wrongHoldMs: 2500   // 答错/不认识后停留毫秒（给记忆时间），范围 1000~5000
 };
 function pc(){
   if(!DATA.settings || typeof DATA.settings !== 'object') DATA.settings = {};
@@ -44,6 +45,7 @@ function pc(){
   c.showCn = !!c.showCn;
   c.showEn = clampNum(c.showEn, 0, 2, PC_DEFAULTS.showEn);
   c.optCount = clampNum(c.optCount, 2, 10, PC_DEFAULTS.optCount);
+  c.wrongHoldMs = clampNum(c.wrongHoldMs, 1000, 5000, PC_DEFAULTS.wrongHoldMs);
   return c;
 }
 function pcSave(obj){
@@ -109,6 +111,7 @@ function renderCfgModal(){
         { key:'batchSize',     label:'题量',          type:'batch', presets:[{v:'5',t:'5 题'},{v:'10',t:'10 题'},{v:'20',t:'20 题'},{v:'50',t:'50 题'},{v:'100',t:'100 题'},{v:'-1',t:'全部'}] },
         { key:'optCount',      label:'选项数量',      type:'select', opts:[{v:'4',t:'4 个'},{v:'6',t:'6 个'}] },
         { key:'shuffle',       label:'随机乱序',      type:'toggle' },
+        { key:'wrongHoldMs',   label:'答错停留',      type:'range', min:1000, max:5000, step:500, unit:'ms' },
       ]
     },
     {
@@ -333,34 +336,17 @@ function nextQuestion(){
       nextQuestion();
       return;
     }
-    const c = pc();
-    // 每 2 道新题插回一个错词（更频繁，让用户感知到"重复出现"）
-    if(!pq.retrying && pq.reviewQueue.length && pq.idx > 0 && pq.idx % 2 === 0){
-      const rw = pq.reviewQueue.shift();
-      if(rw) pq.queue.splice(pq.idx + 1, 0, rw);
+    // 错词按各自 gap 插回：gap>0 每过一道新题减1，到0插回当前题之后（一次插一个）
+    if(!pq.retrying && pq.reviewQueue.length){
+      for(let i = pq.reviewQueue.length - 1; i >= 0; i--){
+        const rw = pq.reviewQueue[i];
+        if(rw._gap > 0){ rw._gap--; continue; }
+        pq.reviewQueue.splice(i, 1);
+        pq.queue.splice(pq.idx + 1, 0, rw.word);   // 插回真实词引用（保留对象引用，记忆曲线才写得进真实词）
+        break;
+      }
     }
-    pq.answer = cur;
-    const optN = Math.min(c.optCount, DATA.words.length);
-    const opts = shuffle([cur, ...pickWrong(cur, optN-1)]);
-    let html = '<div class="practice-word-head">'+
-      '<span class="pw-en">'+escapeHtml(cur.en)+'</span>'+
-      (cur.ipa ? '<span class="pw-ipa">'+escapeHtml(cur.ipa)+'</span>' : '')+
-      '</div>';
-    if(cur.cn) html += '<div class="pw-cn" id="pwCn" hidden>'+escapeHtml(cur.cn)+'</div>';
-    if(cur.example) html += '<div class="practice-sentence">'+escapeHtml(cur.example).replace(new RegExp('\\b'+escapeRegExp(cur.en)+'\\b'),'<span class="hi">$&</span>')+'</div>';
-    html += '<div class="opts-grid" id="opts"></div>';
-    body.innerHTML = html;
-    $('#opts').innerHTML = opts.map((o,i) =>
-      '<button class="opt-big" data-en="'+escapeHtml(o.en)+'">'+
-        '<span class="opt-big-tag">'+(o.pos||'')+'</span>'+
-        '<span class="opt-big-cn">'+escapeHtml(o.cn)+'</span>'+
-        '<span class="opt-big-key">快捷键：'+(i+1)+'</span>'+
-      '</button>'
-    ).join('') +
-    '<button class="opt-big opt-big-unknown" id="unknownBtn">不知道 <span class="opt-big-key">快捷键：'+(opts.length+1)+'</span></button>';
-    bindOpts(cur);
-    $('#unknownBtn').addEventListener('click', () => markUnknown(cur));
-    setTimeout(() => speakN(cur.en), 300);  // 新词自动读
+    renderQuestion(cur);
   }catch(err){
     console.error('[practice] nextQuestion 失败', err);
     $('#practiceBody').innerHTML = '<div class="q-word">题目渲染失败</div>' +
@@ -370,6 +356,44 @@ function nextQuestion(){
     if(skip) skip.addEventListener('click', () => { if(pq){ pq.idx++; nextQuestion(); } });
     if(retry) retry.addEventListener('click', () => { pq = null; autoStartSeeWord(); });
   }
+}
+
+// 渲染单题（被 nextQuestion 与 replaySameQuestion 复用，便于错词原地重做时复用同一套渲染）
+function renderQuestion(cur){
+  if(!pq) return;
+  const c = pc();
+  pq.answer = cur;
+  const optN = Math.min(c.optCount, DATA.words.length);
+  const opts = shuffle([cur, ...pickWrong(cur, optN-1)]);
+  let html = '<div class="practice-word-head">'+
+    '<span class="pw-en">'+escapeHtml(cur.en)+'</span>'+
+    (cur.ipa ? '<span class="pw-ipa">'+escapeHtml(cur.ipa)+'</span>' : '')+
+    '</div>';
+  if(cur.cn) html += '<div class="pw-cn" id="pwCn" hidden>'+escapeHtml(cur.cn)+'</div>';
+  if(cur.example) html += '<div class="practice-sentence">'+escapeHtml(cur.example).replace(new RegExp('\\b'+escapeRegExp(cur.en)+'\\b'),'<span class="hi">$&</span>')+'</div>';
+  html += '<div class="opts-grid" id="opts"></div>';
+  const body = $('#practiceBody');
+  body.innerHTML = html;
+  $('#opts').innerHTML = opts.map((o,i) =>
+    '<button class="opt-big" data-en="'+escapeHtml(o.en)+'">'+
+      '<span class="opt-big-tag">'+(o.pos||'')+'</span>'+
+      '<span class="opt-big-cn">'+escapeHtml(o.cn)+'</span>'+
+      '<span class="opt-big-key">快捷键：'+(i+1)+'</span>'+
+    '</button>'
+  ).join('') +
+  '<button class="opt-big opt-big-unknown" id="unknownBtn">不知道 <span class="opt-big-key">快捷键：'+(opts.length+1)+'</span></button>';
+  bindOpts(cur);
+  $('#unknownBtn').addEventListener('click', () => markUnknown(cur));
+  setTimeout(() => speakN(cur.en), 300);  // 新词自动读
+}
+
+// 答错/不认识后：停留 wrongHoldMs，然后重渲染同一题（pq.idx 不变，进度/计数不动）
+function replaySameQuestion(){
+  if(!pq || !pq.answer) return;
+  const cur = pq.answer;
+  pq.revealed = false;
+  renderQuestion(cur);          // 重新渲染同一词，重置选项可点
+  setTimeout(() => speakN(cur.en), 300);  // 重做时再读一遍强化
 }
 
 // ======= 选择题选项绑定（爱听写式错题循环）=======
@@ -413,15 +437,12 @@ function bindOpts(correct){
         toast('已掌握：'+key+'，下次复习 '+correct.mcDue);
         autoAdvance();
       } else {
-        // 首次答错 → 标记为错词，mastery 归零，推入 reviewQueue
+        // 首次答错 → 标记为错词，mastery 归零，原地重做同题（不推队列、不跳下一题）
         updateMcCurve(correct, 'unknown');
         if(!pq.mastery) pq.mastery = {};
         pq.mastery[key] = 0;              // 连对计数归零
         if(!pq.missed) pq.missed = {};
         pq.missed[key] = true;
-        if(!pq.reviewQueue) pq.reviewQueue = [];
-        // 推入队列（去重）：每做 2 道新题由 nextQuestion 插回一次
-        if(!pq.reviewQueue.some(w => w.en === key)) pq.reviewQueue.push(correct);
         if(!pq.countedWords) pq.countedWords = {};
         if(!pq.countedWords[key]){ pq.countedWords[key] = true; pq.total++; }
         if(!pq.wrongList) pq.wrongList = [];
@@ -429,7 +450,9 @@ function bindOpts(correct){
         const userAns = b.querySelector('.opt-big-cn') || b.querySelector('.opt-cn');
         pq.wrongList.push({ en:key, cn:correct.cn||'', user:userAns ? userAns.textContent : '', skipped:false });
         pq.revealed = true; updateScore();
-        autoAdvance();   // ← 不再立即重试！直接下一题，错词稍后由 reviewQueue 回来
+        const c = pc();
+        toast('答错了：'+correct.en+' · '+correct.cn+'，再记一次');
+        setTimeout(replaySameQuestion, c.wrongHoldMs);   // ← 停留后原地重做同题（不再跳下一题）
       }
     });
   });
@@ -438,26 +461,38 @@ function bindOpts(correct){
 // 爱听写式：错题循环中的一次作答（立即重试 / 间隔复习 共用）
 // 连续正确计数 mastery[key]，满 3 即过关；任何一次答错清零并立即重试
 function cycleAnswer(key, correct, ok){
-  // 这是 reviewQueue 插回来的错词 —— 答对了就累加 mastery
+  // 这是错词循环中的一次作答（首次答错后原地重做 / 间隔复习插回 共用）
   if(ok){
     pq.mastery[key] = (pq.mastery[key]||0) + 1;
     if(pq.mastery[key] >= 3){
-      // 连对 3 次 → 从错题池移除（不再插回 reviewQueue）
+      // 连对 3 次 → 本组毕业，不再回来（同时清掉队列里该词的待插回项，避免旧 gap 又插回）
       delete pq.missed[key];
+      if(pq.reviewQueue && pq.reviewQueue.length){
+        pq.reviewQueue = pq.reviewQueue.filter(w => w.word && w.word.en !== key);
+      }
       toast('✓ 该词已练会，不再重复');
     } else {
-      // 还没到 3 次 → 再推回 reviewQueue（下次还会再来）
-      if(!pq.reviewQueue.some(w => w.en === key)) pq.reviewQueue.push(correct);
+      // 还没到 3 次：按已对次数设下次间隔（爱听写：第1次对隔3~4题，第2次对隔5~6题）
+      const gap = pq.mastery[key] === 1
+        ? (3 + Math.floor(Math.random()*2))   // 3~4
+        : (5 + Math.floor(Math.random()*2));  // 5~6
+      if(!pq.reviewQueue) pq.reviewQueue = [];
+      // 包装成 {word,_gap}，保留真实词引用，否则 updateMcCurve 写不进 DATA.words 真实词
+      const item = { word: correct, _gap: gap };
+      if(!pq.reviewQueue.some(w => w.word && w.word.en === key)) pq.reviewQueue.push(item);
     }
-    autoAdvance();
+    autoAdvance();   // 答对→正常跳下一题，错词稍后按 gap 回来
   } else {
-    // 又答错了 → mastery 归零，重新开始连对计数
+    // 又答错 → 连对清零 + 立即原地重做同题（不跳题）
     pq.mastery[key] = 0;
-    setTimeout(() => { pq.idx++; nextQuestion(); }, 1200);  // 直接下一题（不再原地重试）
+    updateMcCurve(correct, 'unknown');   // 重做又错也强化曲线（错词更频繁）
+    const c = pc();
+    toast('又错了：'+correct.en+'，再记一次');
+    setTimeout(replaySameQuestion, c.wrongHoldMs);
   }
 }
 
-// 不认识：等同答错 —— 进入错题循环（停顿 1.5s 后同题重测）
+// 不认识：等同答错 —— 原地重做同题（"下一题还是这题"），答对后按 gap 间隔回来
 function markUnknown(correct){
   if(!pq || pq.revealed) return;
   const key = correct.en;
@@ -470,8 +505,8 @@ function markUnknown(correct){
   if(!pq.countedWords) pq.countedWords = {};
   if(!pq.countedWords[key]){ pq.countedWords[key] = true; pq.total++; }
   updateMcCurve(correct, 'unknown');   // 爱听写「不认识」→ 重置共享长线曲线
-  // 进入错题循环（推入 reviewQueue，后续间隔插回，不再原地重试）
-  pq.retrying = true;
+  // 进入错题循环：标记为错词、连对清零，原地重做同题（不再推队列、不跳下一题）
+  if(!pq.mastery) pq.mastery = {};
   pq.mastery[key] = 0;
   if(!pq.missed) pq.missed = {};
   if(!pq.missed[key]){
@@ -479,12 +514,10 @@ function markUnknown(correct){
     if(!pq.wrongList) pq.wrongList = [];
     pq.wrongList.push({ en:key, cn:correct.cn||'', user:'（不认识）', skipped:true });
   }
-  // 推入复习队列（去重）：每做 2 道新题由 nextQuestion 插回一次
-  if(!pq.reviewQueue) pq.reviewQueue = [];
-  if(!pq.reviewQueue.some(w => w.en === key)) pq.reviewQueue.push(correct);
   updateScore();
-  toast('已记为不认识：'+correct.en+' · '+correct.cn+'，稍后复习再来');
-  autoAdvance();
+  toast('已记为不认识：'+correct.en+' · '+correct.cn+'，再记一次');
+  const c = pc();
+  setTimeout(replaySameQuestion, c.wrongHoldMs);   // ← "下一题还是这题"
 }
 
 // ======= 共享记忆曲线（远线）：默墨(3档) 与 爱听写(2档) 共用同一套 mc* 字段 =======
