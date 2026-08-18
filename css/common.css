@@ -320,7 +320,7 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 .sub-name{font-size:14px}
 
 /* timer live */
-.live-timer{font-size:48px;font-weight:800;font-variant-numeric:tabular-nums;text-align:center;margin:10px 0;color:var(--primary)}
+.live-timer{font-size:48px;font-weight:800;font-variant-numeric:tabular-nums;text-align:center;margin:6px 0;color:var(--muted)}
 
 /* practice */
 .practice-card{text-align:center;padding:30px 20px}
@@ -867,3 +867,27 @@ main .quote{
 .hero-cta{flex-direction:row;align-items:center;justify-content:space-between}
 .hero-cta > div{display:flex;flex-direction:column;gap:2px;min-width:0}
 .hero-cta-ic{font-size:34px;opacity:.9;flex:none}
+
+/* ====== 计时 / 专注 大更新（2026-08-18，teal token，C 窗口方案） ======
+   .live-timer 默认色已在上方改 var(--muted)（空闲安静、运行中由 JS 设回 primary）；
+   模块卡沿用 timer.html 内联的 flex 布局，仅用 .mod-ic/.mod-name 等补充外观。 */
+.timer-stage{text-align:center}
+.timer-goal{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:10px}
+.goal-input{width:72px;padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink);font:inherit;text-align:center}
+.timer-progress{margin-top:12px;text-align:left}
+.timer-active{margin-top:14px}
+.timer-btns{display:flex;gap:10px;justify-content:center;margin-top:12px}
+.timer-btns .btn{min-width:120px}
+/* 计时模块卡（重设计：图标圆底 + 整宽按钮 + 运行高亮 / 其余变暗） */
+.timer-mods .mod-card{
+  align-items:stretch;text-align:left;gap:14px;padding:18px 18px 16px;cursor:pointer;
+  transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+.timer-mods .mod-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md);border-color:var(--primary-soft)}
+.timer-mods .mod-card.running{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+.timer-mods .mod-card:has(.timer-start[disabled]){opacity:.5}
+.mod-ic{width:46px;height:46px;border-radius:14px;background:var(--primary-soft);color:var(--primary);
+  display:flex;align-items:center;justify-content:center;font-size:22px;flex:none}
+.mod-name{font-size:16px;font-weight:700;color:var(--ink);letter-spacing:-.01em}
+.timer-start{width:100%;margin-top:auto;justify-content:center}
+@media(max-width:560px){ .live-timer{font-size:40px} }

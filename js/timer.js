@@ -68,7 +68,8 @@ function moduleCard(m){
   const card = document.createElement('div');
   card.className = 'mod-card' + (running ? ' running' : '');
   card.style.borderTopColor = m.color;
-  card.innerHTML = '<div class="mod-title"><span>' + m.icon + '</span>' + m.name + '</div>' +
+  card.innerHTML = '<div class="mod-ic">' + m.icon + '</div>' +
+    '<div class="mod-name">' + m.name + '</div>' +
     '<button class="btn ' + btnCls + ' timer-start" data-mod="' + m.id + '" ' + disabled + '>' + btnTxt + '</button>';
   return card;
 }
