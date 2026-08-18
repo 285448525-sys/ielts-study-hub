@@ -38,14 +38,14 @@
     <div class="form-row">
       <input id="corEn" placeholder="英文句子" />
       <input id="corCn" placeholder="中文翻译（可选）" />
-      <button class="btn btn-primary" id="addCorpus" style="flex:none;min-width:120px">添加</button>
+      <button class="btn btn-primary flex-none" id="addCorpus" style="min-width:120px">添加</button>
     </div>
   </section>
 
   <section class="card">
     <h2>句子听写（爱听写风格）</h2>
     <p class="muted">可调语速、重复次数、播放间隔；逐句逐词批改、错句自动归集、结束可重练错句。</p>
-    <div id="dictSetup" style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;background:rgba(100,116,139,.06);padding:12px 14px;border-radius:12px;margin:10px 0 14px">
+    <div id="dictSetup" class="corpus-dict-setup">
       <div class="s-dict-voice">
         <label>语速</label>
         <input type="range" id="sRate" min="0.5" max="1.2" step="0.05" value="0.9" />
@@ -77,14 +77,14 @@
           <option value="-1">全部</option>
         </select>
       </div>
-      <button class="btn btn-primary" id="startDict" style="flex:none;margin-left:auto">▶ 开始听写</button>
+      <button class="btn btn-primary flex-none ml-auto" id="startDict">▶ 开始听写</button>
     </div>
     <div id="dictArea" style="margin-top:6px"></div>
   </section>
 
   <section class="card">
     <h2>语料库列表 · 共 <span id="corpusCount">0</span> 句</h2>
-    <div id="corpusList" style="margin-top:10px"></div>
+    <div id="corpusList" class="corpus-list"></div>
   </section>
 </main>
 

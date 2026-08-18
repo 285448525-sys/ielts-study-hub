@@ -186,10 +186,10 @@ body{
 
 .word-status{font-size:13px;margin-top:10px;min-height:18px;line-height:1.5}
 .word-status.ok{color:var(--primary)}
-.word-status.warn{color:#b45309}
+.word-status.warn{color:var(--warn-ink)}
 .word-status.err{color:var(--danger)}
 .word-status.loading{color:var(--muted)}
-[data-theme="dark"] .word-status.warn{color:#fbbf24}
+[data-theme="dark"] .word-status.warn{color:var(--warn-ink)}
 
 /* 长难句拆解 */
 .quote{border-left:4px solid var(--primary);background:var(--bg);padding:10px 14px;border-radius:0 8px 8px 0;margin:10px 0;color:var(--muted);font-style:italic;line-height:1.6;white-space:pre-wrap}
@@ -425,7 +425,7 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 .badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700;background:#eef2f7;color:var(--ink)}
 .badge.l{background:rgba(79,159,192,.15);color:#4f9fc0}
 .badge.r{background:rgba(95,134,168,.15);color:#5f86a8}
-.badge.w{background:rgba(245,158,11,.18);color:#b45309}
+.badge.w{background:rgba(245,158,11,.18);color:var(--warn-ink)}
 .badge.s{background:rgba(16,185,129,.15);color:#059669}
 .badge.overall{background:var(--primary);color:#fff}
 .badge.up{background:rgba(16,185,129,.18);color:#059669}
@@ -459,6 +459,17 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 .corpus-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-top:1px dashed var(--line)}
 .corpus-item:first-child{border-top:none}
 .corpus-text{flex:1;font-size:14px;line-height:1.5}
+
+/* ============ 长难句 + 语料 共用工具/模块类 ============ */
+.card-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.flex-none{flex:none}
+.ml-auto{margin-left:auto}
+.mt-10{margin-top:10px}
+.row-end{align-items:flex-end}
+.ls-hist-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:10px}
+.hist-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;font-size:13px;line-height:1.5;color:var(--ink)}
+.corpus-dict-setup{display:flex;gap:14px;flex-wrap:wrap;align-items:center;background:var(--surface-2);padding:12px 14px;border-radius:12px;margin:10px 0 14px}
+.corpus-list{margin-top:10px}
 
 /* longsent: 同声传译 + 一键收录 */
 .ls-sec{margin-top:18px}

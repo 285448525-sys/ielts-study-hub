@@ -25,14 +25,14 @@
   <section class="card">
     <h2>粘贴长难句</h2>
     <textarea id="sentInput" placeholder="在此粘贴你遇到的长难句，例如：&#10;The theory, which was proposed by a group of researchers who had spent decades observing the species, suggests that the decline is not merely a temporary fluctuation but a sign of a deeper ecological imbalance."></textarea>
-    <div class="form-row" style="align-items:flex-end;margin-top:10px">
+    <div class="form-row row-end mt-10">
       <button class="btn btn-primary" id="analyzeBtn">拆解分析</button>
       <span id="sentStatus" class="word-status" aria-live="polite"></span>
     </div>
   </section>
 
   <section class="card" id="resultCard" style="display:none">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+    <div class="card-head">
       <h2>拆解结果</h2>
       <button class="btn btn-sm btn-ghost" id="copyBtn">复制全文</button>
     </div>
@@ -42,7 +42,7 @@
 
   <section class="card" id="histCard" style="display:none">
     <h2>我的拆解记录 · <span id="histCount">0</span></h2>
-    <div id="histList" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr));margin-top:10px"></div>
+    <div id="histList" class="grid ls-hist-grid"></div>
   </section>
 </main>
 
