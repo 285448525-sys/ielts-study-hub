@@ -523,6 +523,7 @@ let DATA = {
     links: DEFAULT_LINKS
   },
   errorbook: [],
+  longSent: [],           // 长难句拆解记录（合并进「词句库」页，由 errorbook.js 读写）
   energy: [],
   checkins: [],
   mockRecords: [],
@@ -661,7 +662,7 @@ function hubLoad(){
     // 兜底：确保所有数组字段非 undefined（极端损坏数据时也不崩）
     const arrayFields = ['sessions','notes','meds','words','plans','corpus','scores','errorbook',
       'energy','checkins','speaking','writing','writingScores','speakingStories','writingPhrases','mockRecords',
-      'dictationSources','dictationLogs'];
+      'dictationSources','dictationLogs','longSent'];
     for(const f of arrayFields){ if(!Array.isArray(DATA[f])) DATA[f] = []; }
     if(!DATA.settings || typeof DATA.settings !== 'object') DATA.settings = {};
     // 题库迁移：仅补用户缺失的题目；用户手动删过的 id 记入 deletedSpeakingIds，不再恢复

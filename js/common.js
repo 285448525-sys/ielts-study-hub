@@ -1,19 +1,33 @@
 /* 共享 UI：导航注入、主题、Toast、通用工具 */
+/* 统一 teal 线性 SVG 图标（替换原 emoji），stroke=currentColor 跟随侧栏配色 */
+const ICON = {
+  home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>',
+  timer:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>',
+  plans:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg>',
+  meds:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 20.5a4.95 4.95 0 11-7-7l7-7a4.95 4.95 0 017 7z"/><path d="M8.5 8.5l7 7"/></svg>',
+  practice:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6c-2-1.5-5-1.5-7 0v12c2-1.5 5-1.5 7 0 2-1.5 5-1.5 7 0V6c-2-1.5-5-1.5-7 0z"/><path d="M12 6v12"/></svg>',
+  corpus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14v-2a8 8 0 0116 0v2"/><rect x="2.5" y="13" width="4" height="7" rx="1.5"/><rect x="17.5" y="13" width="4" height="7" rx="1.5"/></svg>',
+  words:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg>',
+  speaking:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 01-11.5 7.2L3 21l1.8-6.5A8 8 0 1121 12z"/></svg>',
+  mock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg>',
+  writing:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L18.5 9.5l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>',
+  review:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4v16h15"/><path d="M9 14v4M13 10v8M17 6v12"/></svg>',
+  settings:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>'
+};
+
 const PAGES = [
-  { id:'index',     file:'index.html',     icon:'🏠', name:'仪表盘',     desc:'今日概览' },
-  { id:'timer',     file:'timer.html',     icon:'⏱', name:'计时学习',   desc:'选模块开计时' },
-  { id:'plans',     file:'plans.html',     icon:'🗓', name:'学习计划',   desc:'每日清单 + AI 排周' },
-  { id:'meds',      file:'meds.html',      icon:'💊', name:'服药记录',   desc:'专注达药效窗口' },
-  { id:'practice',  file:'practice.html',  icon:'📚', name:'单词',       desc:'学习与管理你的单词' },
-  { id:'corpus',    file:'corpus.html',    icon:'🎧', name:'听力语料库', desc:'场景词汇听写' },
-  { id:'longsent',  file:'longsent.html',  icon:'🧩', name:'长难句拆解', desc:'括号法解码训练' },
-  { id:'errorbook', file:'errorbook.html', icon:'📒', name:'错题本',     desc:'贴错题笔记自动理清错因' },
-  { id:'speaking',  file:'speaking.html',  icon:'🗨', name:'口语素材库', desc:'题库 + AI 串题' },
-  { id:'mock',      file:'mock.html',      icon:'🎤', name:'口语模考',   desc:'P1→P2→P3 全真模拟' },
-  { id:'writing',   file:'writing.html',   icon:'✍', name:'写作模板库', desc:'模板 + AI 评分' },
-  { id:'materials', file:'materials.html', icon:'🧱', name:'万能素材',   desc:'问卷生成专属口语素材' },
-  { id:'review',    file:'review.html',    icon:'📊', name:'回顾',       desc:'模考成绩 + 学习轨迹' },
-  { id:'settings',  file:'settings.html',  icon:'⚙️', name:'设置',       desc:'同步 / AI / 数据' },
+  { id:'index',     file:'index.html',     icon:ICON.home,      name:'仪表盘',     desc:'今日概览' },
+  { id:'timer',     file:'timer.html',     icon:ICON.timer,     name:'计时学习',   desc:'选模块开计时' },
+  { id:'plans',     file:'plans.html',     icon:ICON.plans,     name:'学习计划',   desc:'每日清单 + AI 排周' },
+  { id:'meds',      file:'meds.html',      icon:ICON.meds,      name:'服药记录',   desc:'专注达药效窗口' },
+  { id:'practice',  file:'practice.html',  icon:ICON.practice,  name:'单词',       desc:'学习与管理你的单词' },
+  { id:'corpus',    file:'corpus.html',    icon:ICON.corpus,    name:'听力语料库', desc:'场景词汇听写' },
+  { id:'errorbook', file:'errorbook.html', icon:ICON.words,     name:'词句库',     desc:'长难句 + 错题本' },
+  { id:'speaking',  file:'speaking.html',  icon:ICON.speaking,  name:'口语素材库', desc:'题库 + AI 串题' },
+  { id:'mock',      file:'mock.html',      icon:ICON.mock,      name:'口语模考',   desc:'P1→P2→P3 全真模拟' },
+  { id:'writing',   file:'writing.html',   icon:ICON.writing,   name:'写作模板库', desc:'模板 + AI 评分' },
+  { id:'review',    file:'review.html',    icon:ICON.review,    name:'回顾',       desc:'模考成绩 + 学习轨迹' },
+  { id:'settings',  file:'settings.html',  icon:ICON.settings,  name:'设置',       desc:'同步 / AI / 数据' },
 ];
 
 /* 收藏页面（⭐）——侧边栏「常用」与仪表盘「快捷入口」共用同一份，永远同步。
@@ -26,7 +40,7 @@ function favPageIds(){
 
 /* 一级常驻（高频 4 项，始终可见）+ 更多▾（其余 9 项，默认折叠） */
 const PRIMARY_NAV = ['index','timer','review','practice'];
-const MORE_NAV    = ['plans','meds','corpus','longsent','errorbook','speaking','mock','writing','materials','settings'];
+const MORE_NAV    = ['plans','meds','corpus','errorbook','speaking','mock','writing','settings'];
 
 function injectNav(){
   const nav = document.getElementById('mainNav');
@@ -43,24 +57,25 @@ function injectNav(){
   html += '<div class="side-timer-wrap" id="sideTimer"></div>';
   html += '<input class="side-search" id="sideSearch" placeholder="搜索功能…" aria-label="搜索功能" />';
 
-  // 收藏集合（仪表盘 index 永远不参与置顶/去重，避免首页入口消失）
+  // 一级常驻（跳过已收藏）
   const favSet = new Set(favPageIds().filter(id => id !== 'index'));
+  html += '<div class="side-primary">';
+  for(const pid of PRIMARY_NAV){ if(favSet.has(pid)) continue; const p = pageById(pid); if(p) html += sideItem(p, current); }
+  html += '</div>';
+
+  // ⭐ 我的收藏：常驻于一级之后、更多之前，默认展开；仪表盘 index 不参与置顶/去重
   const favPages = [...favSet].map(id => PAGES.find(p => p.id === id)).filter(Boolean);
   if(favPages.length){
-    const favCol = (collapsedMap['fav'] === false) ? '' : ' collapsed';
+    const favCol = (collapsedMap['fav'] === true) ? ' collapsed' : '';
     html += '<div class="side-fav' + favCol + '" data-g="fav">'
-          +   '<div class="side-group-title"><span class="side-g-label">常用</span>'
-          +     '<span class="side-toggle-arrow" data-g="fav" role="button" tabindex="0" aria-label="展开/收起 常用" aria-expanded="' + (favCol === '' ? 'true' : 'false') + '">' + chev + '</span>'
+          +   '<div class="side-group-title"><span class="side-g-label">⭐ 我的收藏</span>'
+          +     '<span class="side-toggle-arrow" data-g="fav" role="button" tabindex="0" aria-label="展开/收起 我的收藏" aria-expanded="' + (favCol === '' ? 'true' : 'false') + '">' + chev + '</span>'
           +   '</div>'
           +   '<div class="side-group-body"><div class="side-group-inner">';
     for(const p of favPages) html += sideItem(p, current);
     html +=     '</div></div></div>';
   }
 
-  // 一级常驻（跳过已收藏）
-  html += '<div class="side-primary">';
-  for(const pid of PRIMARY_NAV){ if(favSet.has(pid)) continue; const p = pageById(pid); if(p) html += sideItem(p, current); }
-  html += '</div>';
   // 更多▾（默认折叠：groupCollapsed['more'] 非 false 即折叠，跳过已收藏）
   const moreCol = (collapsedMap['more'] === false) ? '' : ' collapsed';
   html += '<div class="side-group' + moreCol + '" data-g="more"><div class="side-group-title"><span class="side-g-label">更多</span><span class="side-toggle-arrow" data-g="more" role="button" tabindex="0" aria-label="展开/收起 更多" aria-expanded="' + (moreCol === '' ? 'true' : 'false') + '">' + chev + '</span></div>';

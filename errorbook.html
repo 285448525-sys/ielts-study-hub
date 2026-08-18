@@ -51,14 +51,54 @@
   .eb-long{margin-top:6px;padding:8px 10px;background:var(--bg);border-left:3px solid var(--primary);border-radius:8px}
   .eb-long-s{font-size:14px;font-weight:600;color:var(--ink);line-height:1.6}
   .eb-long-a{font-size:13.5px;color:var(--muted);margin-top:3px;line-height:1.7}
+
+  /* 词句库子 tab（长难句 / 错题本） */
+  .sub-tabs{display:flex;gap:0;border-bottom:2px solid var(--line);margin:0 0 16px}
+  .sub-tabs button{flex:1;padding:11px 0;font-size:15px;font-weight:600;border:none;background:none;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:color .2s,border-color .2s}
+  .sub-tabs button.active{color:var(--primary);border-bottom-color:var(--primary)}
+  .sub-tabs button:focus-visible{outline:none;box-shadow:0 0 0 3px var(--primary-soft);border-radius:8px}
 </style>
 </head>
 <body>
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 
 <main class="container">
-  <h1 class="page-title">错题本</h1>
-  <p class="page-sub">把你的错题笔记贴进来，我来帮你理清错因、归纳规避方法并自动归档。没有现成讲解也行——直接写你当时怎么想的、错在哪；没配 DeepSeek Key 时也能先点「只存原文」，之后补分析。</p>
+  <h1 class="page-title">词句库</h1>
+  <p class="page-sub">长难句拆解 + 错题本，两个入口合一：记阅读里读不懂的句子，也记做完题踩过的坑。</p>
+
+  <div class="sub-tabs" id="wordTabs">
+    <button data-sub="ls" class="active">长难句拆解</button>
+    <button data-sub="eb">错题本</button>
+  </div>
+
+  <!-- 长难句拆解（置前） -->
+  <div id="lsView">
+    <section class="card">
+      <h2>粘贴长难句</h2>
+      <textarea id="sentInput" placeholder="在此粘贴你遇到的长难句，例如：&#10;The theory, which was proposed by a group of researchers who had spent decades observing the species, suggests that the decline is not merely a temporary fluctuation but a sign of a deeper ecological imbalance."></textarea>
+      <div class="form-row row-end mt-10">
+        <button class="btn btn-primary" id="analyzeBtn">拆解分析</button>
+        <span id="sentStatus" class="word-status" aria-live="polite"></span>
+      </div>
+    </section>
+
+    <section class="card" id="resultCard" style="display:none">
+      <div class="card-head">
+        <h2>拆解结果</h2>
+        <button class="btn btn-sm btn-ghost" id="copyBtn">复制全文</button>
+      </div>
+      <blockquote id="origSent" class="quote"></blockquote>
+      <div id="resultBody"></div>
+    </section>
+
+    <section class="card" id="histCard" style="display:none">
+      <h2>我的拆解记录 · <span id="histCount">0</span></h2>
+      <div id="histList" class="grid ls-hist-grid"></div>
+    </section>
+  </div>
+
+  <!-- 错题本 -->
+  <div id="ebView" hidden>
 
   <section class="card">
     <textarea class="eb-input" id="ebInput" placeholder="把你的错题笔记贴进来就行，不用整理格式、不用删多余的话。
@@ -85,6 +125,7 @@
     <div id="list"></div>
     <div id="empty" class="muted" hidden>还没有记录。把你的错题笔记贴到上面那个框，点「理清错因并归档」。</div>
   </section>
+  </div>
 </main>
 
 </body>

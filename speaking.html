@@ -224,6 +224,71 @@
   .mat-plan-gaps li{font-size:13px;color:var(--ink);margin:2px 0}
   .mat-plan-tips{font-size:13px;color:var(--muted);margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
 
+  /* === 万能素材生成器（由 materials.html 并入口语页 MAT tab） === */
+  .mat-intro{ padding:14px 16px; background:var(--primary); color:#fff; border-radius:var(--radius); font-size:13.5px; line-height:1.7; margin:12px 0; box-shadow:var(--shadow); }
+  .mat-intro b{ font-weight:700; }
+  .mat-sec-title{ font-size:15px; font-weight:700; margin:18px 0 8px; color:var(--ink); letter-spacing:-.01em; }
+  .mat-sec-title .tag{ font-size:12px; font-weight:600; color:var(--muted); margin-left:6px; }
+  .mat-q{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:14px 16px; margin-bottom:12px; box-shadow:var(--shadow); }
+  .mat-q.optional{ opacity:.92; border-style:dashed; }
+  .mat-q-head{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:4px; }
+  .mat-q-title{ font-size:15px; font-weight:700; color:var(--ink); }
+  .mat-q-title .req{ color:var(--danger); margin-left:4px; font-size:12px; }
+  .mat-q-title .opt{ color:var(--muted); margin-left:4px; font-size:12px; }
+  .mat-q-hint{ font-size:12.5px; color:var(--muted); margin:2px 0 8px; line-height:1.6; }
+  .mat-q textarea{ width:100%; min-height:84px; padding:10px 12px; border:1px solid var(--line); border-radius:var(--radius-sm); font:inherit; background:var(--surface); color:var(--ink); resize:vertical; box-sizing:border-box; line-height:1.7; transition:border-color .15s,box-shadow .15s; }
+  .mat-q textarea:focus{ border-color:var(--primary); box-shadow:0 0 0 4px var(--primary-soft); outline:none; }
+  .mat-char{ font-size:12px; color:var(--muted); margin-top:4px; }
+  .mat-char.warn{ color:var(--warn); }
+  .mat-actions{ display:flex; gap:10px; flex-wrap:wrap; margin:16px 0 4px; }
+  .mat-add{ font-size:13px; color:var(--primary); background:none; border:1px dashed var(--primary); border-radius:var(--radius-sm); padding:8px 14px; cursor:pointer; }
+  .mat-add:hover{ background:var(--primary-soft); }
+  .mat-loading{ padding:40px 20px; text-align:center; color:var(--muted); font-size:15px; }
+  .mat-spinner{ width:34px; height:34px; border:4px solid var(--primary-soft); border-top-color:var(--primary); border-radius:50%; margin:0 auto 14px; animation:matspin 1s linear infinite; }
+  @keyframes matspin{ to{ transform:rotate(360deg); } }
+
+  /* 结果页 */
+  .mat-persona{ background:linear-gradient(135deg,var(--primary),#2f7d77); color:#fff; border-radius:var(--radius); padding:16px 18px; margin-bottom:16px; box-shadow:var(--shadow); }
+  .mat-persona h3{ margin:0 0 8px; font-size:14px; opacity:.85; font-weight:600; }
+  .mat-persona .pp-line{ font-size:15px; line-height:1.7; }
+  .mat-persona .pp-tags{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+  .mat-persona .pp-tag{ font-size:12px; padding:2px 10px; border-radius:10px; background:rgba(255,255,255,.18); }
+
+  .mat-mat{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); margin-bottom:12px; box-shadow:var(--shadow); overflow:hidden; }
+  .mat-mat-head{ display:flex; align-items:center; gap:10px; padding:14px 16px; cursor:pointer; }
+  .mat-mat-head:hover{ background:var(--surface-2); }
+  .mat-mat-title{ font-size:16px; font-weight:700; color:var(--ink); flex:1; min-width:0; }
+  .mat-mat-cov{ font-size:12px; color:var(--primary); font-weight:600; white-space:nowrap; }
+  .mat-caret{ color:var(--muted); transition:transform .2s; flex:none; }
+  .mat-mat.open .mat-caret{ transform:rotate(90deg); }
+  .mat-facets{ display:flex; gap:6px; flex-wrap:wrap; padding:0 16px; }
+  .mat-facet{ font-size:11px; padding:2px 9px; border-radius:10px; background:var(--bg); color:var(--muted); border:1px solid var(--line); }
+  .mat-facet.f{ background:var(--primary-soft); color:var(--med); border-color:transparent; }
+  .mat-body{ padding:0 16px 14px; display:none; }
+  .mat-mat.open .mat-body{ display:block; }
+  .mat-sub{ font-size:12px; font-weight:700; color:var(--muted); margin:12px 0 6px; }
+  .mat-skel{ list-style:none; margin:0; padding:0; }
+  .mat-skel li{ font-size:14px; line-height:1.7; padding:4px 0; border-bottom:1px dashed var(--line); display:flex; gap:8px; }
+  .mat-skel li .en{ flex:1; color:var(--ink); }
+  .mat-skel li .zh{ flex:1; color:var(--muted); }
+  .mat-cov-list{ display:flex; gap:6px; flex-wrap:wrap; }
+  .mat-cov-item{ font-size:12px; padding:2px 10px; border-radius:10px; background:var(--primary-soft); color:var(--med); }
+  .mat-p3{ font-size:13px; color:var(--ink); line-height:1.7; }
+  .mat-p3 div{ padding:2px 0; }
+  .mat-raw-edit{ width:100%; min-height:70px; padding:8px 10px; border:1px solid var(--line); border-radius:var(--radius-sm); font:inherit; background:var(--surface); color:var(--ink); resize:vertical; box-sizing:border-box; margin-top:6px; }
+  .mat-mat-actions{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  .mat-mini{ font-size:12px; padding:6px 12px; border-radius:var(--radius-sm); border:1px solid var(--line); background:var(--surface); color:var(--ink); cursor:pointer; }
+  .mat-mini:hover{ border-color:var(--primary); color:var(--primary); }
+  .mat-mini.danger{ color:var(--danger); border-color:var(--line); }
+  .mat-mini.danger:hover{ border-color:var(--danger); }
+
+  .mat-gaps{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:14px 16px; margin:16px 0; box-shadow:var(--shadow); }
+  .mat-gaps h3{ margin:0 0 10px; font-size:15px; }
+  .mat-gap{ display:flex; gap:10px; padding:8px 0; border-bottom:1px dashed var(--line); font-size:13.5px; }
+  .mat-gap:last-child{ border-bottom:none; }
+  .mat-gap .gt{ font-weight:700; color:var(--ink); flex:none; }
+  .mat-gap .ga{ color:var(--muted); flex:1; }
+  .mat-empty{ text-align:center; padding:40px 20px; color:var(--muted); font-size:14px; }
 </style>
 </head>
 <body>
@@ -238,6 +303,7 @@
     <button data-type="P1" class="active">Part 1</button>
     <button data-type="P2">Part 2</button>
     <button data-type="MOCK">模考</button>
+    <button data-type="MAT">万能素材</button>
   </div>
 
   <!-- 列表视图 -->
@@ -332,6 +398,9 @@
       </div>
     </section>
   </div>
+
+  <!-- 万能素材生成器（整合为口语页第 5 个 tab，复用 materials 生成逻辑） -->
+  <div id="matView" hidden></div>
 </main>
 
 </body>
