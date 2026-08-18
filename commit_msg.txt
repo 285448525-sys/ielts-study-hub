@@ -1,0 +1,8 @@
+design/15 导航与模块整合（纯 UI/结构层）
+
+- 侧边栏图标 emoji → 统一 teal 线性 SVG（common.js ICON / common.css .nav-icon）
+- 首页第4张模块卡「模考」→「回顾」(review.html)；删除首页收藏折叠区，收藏迁至侧边栏常驻「⭐ 我的收藏」默认展开
+- 万能素材合并进口语页第4个 tab（MAT），materials.js 逻辑并入 speaking.js（挂 window.matGen）
+- 长难句 + 错题本合并为「词句库」页（errorbook.html 子 tab：长难句拆解/错题本，长难句置前）；longsent.js 逻辑并入 errorbook.js，删除 longsent.html/longsent.js
+- review.html 内层 tab 重排：分项模考默认激活置前
+- data.js：longSent 加入默认 DATA 与 arrayFields 兜底
