@@ -8,6 +8,64 @@
 (function(){
   let mockState = null;
 
+  /* ---------- 模考进度保持（localStorage 快照，软导航 / 刷新后自动恢复） ----------
+     把"已答题目 + 当前阶段 + 题号 + 剩余秒数"序列化到 localStorage，
+     离开模考页（软导航或刷新）后再次进入时，从断点自动续考，不重头开始。 */
+  const RESUME_KEY = 'ielts_mock_resume_v1';
+  function saveResumeSnapshot(phase, index, remaining){
+    if(!mockState) return;
+    try{
+      const snap = {
+        v: 1, ts: Date.now(),
+        p1Set: mockState.p1Set,
+        p2Topic: mockState.p2Topic,
+        answers: mockState.answers,
+        pronSource: mockState.pronSource,
+        p3qs: mockState.p3qs || [],
+        phase: phase,
+        index: index,
+        remaining: (remaining == null ? 0 : remaining)
+      };
+      localStorage.setItem(RESUME_KEY, JSON.stringify(snap));
+    }catch(e){}
+  }
+  function loadResumeSnapshot(){
+    try{
+      const raw = localStorage.getItem(RESUME_KEY);
+      if(!raw) return null;
+      const s = JSON.parse(raw);
+      if(!s || s.v !== 1) return null;
+      if(!Array.isArray(s.p1Set) || !s.p2Topic || !Array.isArray(s.answers)) return null;
+      if(['P1','P2-prep','P2-talk','P3'].indexOf(s.phase) === -1) return null;
+      return s;
+    }catch(e){ return null; }
+  }
+  function clearResumeSnapshot(){ try{ localStorage.removeItem(RESUME_KEY); }catch(e){} }
+  function injectAbandonButton(){
+    if($('#mockAbandonBtn')) return;
+    const b = document.createElement('button');
+    b.id = 'mockAbandonBtn';
+    b.type = 'button';
+    b.className = 'btn';
+    b.textContent = '放弃本次模考';
+    b.style.cssText = 'float:right;margin-left:8px;padding:4px 10px;font-size:12px;background:transparent;color:var(--muted,#888);border:1px solid #ddd';
+    b.onclick = () => {
+      if(window.__mockTick){ clearInterval(window.__mockTick); window.__mockTick = null; }
+      clearResumeSnapshot();
+      const ab = $('#mockAbandonBtn'); if(ab) ab.remove();
+      const st = $('#mockStage'); if(st) st.hidden = true;
+      const rp = $('#mockReport'); if(rp) rp.hidden = true;
+      const ms = $('#mockStart'); if(ms) ms.hidden = false;
+      mockState = null;
+      renderMockStart();
+      toast('已放弃未完成的模考');
+    };
+    const phase = $('#mockPhase');
+    const stage = $('#mockStage');
+    if(phase && phase.parentNode) phase.parentNode.insertBefore(b, phase);
+    else if(stage) stage.insertBefore(b, stage.firstChild);
+  }
+
   /* ---------- 工具 ---------- */
   function shuffle(a){ a = a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
   function sampleOne(a){ return a[Math.floor(Math.random()*a.length)]; }
@@ -79,10 +137,10 @@
       const timerEl = $('#mockTimer');
       let resolved = false;
 
-      // 计时（P2 准备 / 陈述）
+      // 计时（P2 准备 / 陈述）。恢复时从 opts.remaining 续计时，而非从头 timeLimit 开始。
       if(opts.timeLimit && timerWrap && timerEl){
         timerWrap.hidden = false;
-        let left = opts.timeLimit;
+        let left = (opts.remaining != null) ? opts.remaining : opts.timeLimit;
         timerEl.textContent = fmtClock(left);
         window.__mockTick = setInterval(() => {
           left--;
@@ -90,8 +148,10 @@
             clearInterval(window.__mockTick); window.__mockTick = null;
             timerEl.textContent = '00:00';
             if(hint) hint.textContent = opts.isPrep ? '准备时间到，可以开始陈述了。' : '时间到，请提交你刚才的回答。';
+            if(opts.resume) saveResumeSnapshot(opts.resume.phase, opts.resume.index, 0);
           } else {
             timerEl.textContent = fmtClock(left);
+            if(opts.resume) saveResumeSnapshot(opts.resume.phase, opts.resume.index, left);
           }
         }, 1000);
       } else if(timerWrap){
@@ -144,40 +204,86 @@
     return qa;   // 必考在前、其余在后；总小题 = 大题数×3 ≈ 12~18（即「十几个」）
   }
 
-  /* ---------- 各阶段 ---------- */
-  async function runP1(set){
-    for(let i=0;i<set.length;i++){
-      setMockStep('1');
-      setMockSubCount(i+1, set.length);
-      const item = set[i];
-      const qHtml = (item.topic ? '<span class="mock-q-topic">' + escapeHtml(item.topic) + '</span> · ' : '') + escapeHtml(item.q);
-      const res = await askQuestion({ phaseLabel:'Part 1（'+(i+1)+' / '+set.length+'）', qHtml, allowRecord:true, submitLabel:(i===set.length-1?'完成 P1，进入 P2':'下一题') });
-      mockState.answers.push({ part:'P1', q:item.q, transcript:res.transcript });
-    }
-  }
+  /* ---------- 主流程（支持断点续考） ----------
+     runExam(snap)：snap 为 null 表示全新开考；否则为从 localStorage 恢复的快照，
+     从该快照记录的 phase/index 处继续，已作答答案直接复用，不重头考。 */
+  async function runExam(snap){
+    const rp = snap ? snap.phase : 'P1';
+    const doP1 = !snap || rp === 'P1';
+    const doP2prep = !snap || rp === 'P1' || rp === 'P2-prep';
+    const doP2talk = !snap || rp === 'P1' || rp === 'P2-prep' || rp === 'P2-talk';
+    const doP3 = true; // 任何未完成快照都要走完 P3
 
-  async function startP2(topic){
-    setMockStep('2');
+    const topic = mockState.p2Topic;
     const promptHtml = '<div class="mock-p2-prompt">' + escapeHtml(topic.promptEn || '')
       + (topic.promptZh ? '<div class="mock-p2-zh">' + escapeHtml(topic.promptZh) + '</div>' : '') + '</div>'
       + (topic.youShouldSay && topic.youShouldSay.length ? '<div class="mock-p2-say">你应该说到：<ul>' + topic.youShouldSay.map(s => '<li>' + escapeHtml(s) + '</li>').join('') + '</ul></div>' : '')
       + '<p class="mock-prephint">你有 1 分钟准备，下方输入框可打草稿（不录音）。时间到或点「结束准备」开始陈述。</p>';
-    await askQuestion({ phaseLabel:'Part 2 · 准备（1 min）', qHtml:promptHtml, allowRecord:false, isPrep:true, timeLimit:60, submitLabel:'结束准备，开始陈述' });
-
-    setMockStep('2');
     const talkHtml = '<div class="mock-p2-prompt">' + escapeHtml(topic.promptEn || '')
       + (topic.promptZh ? '<div class="mock-p2-zh">' + escapeHtml(topic.promptZh) + '</div>' : '') + '</div>'
       + '<p class="mock-prephint">现在陈述 2 分钟（在下方输入框打字 / 粘贴你的英文回答）。时间到或点「完成 P2」提交。</p>';
-    const talk = await askQuestion({ phaseLabel:'Part 2 · 陈述（2 min）', qHtml:talkHtml, allowRecord:true, timeLimit:120, submitLabel:'完成 P2，进入 P3' });
-    mockState.answers.push({ part:'P2', q:topic.promptEn || '', transcript:talk.transcript });
-  }
 
-  async function runP3(qs){
-    for(let i=0;i<qs.length;i++){
-      setMockStep('3');
-      const qHtml = escapeHtml(qs[i]);
-      const res = await askQuestion({ phaseLabel:'Part 3（'+(i+1)+' / '+qs.length+'）', qHtml, allowRecord:true, submitLabel:(i===qs.length-1?'完成 P3，出报告':'下一题') });
-      mockState.answers.push({ part:'P3', q:qs[i], transcript:res.transcript });
+    try{
+      // ---- P1 ----
+      if(doP1){
+        const startIdx = (snap && rp === 'P1') ? snap.index : 0;
+        const firstRemain = (snap && rp === 'P1' && snap.remaining != null) ? snap.remaining : undefined;
+        for(let i = startIdx; i < mockState.p1Set.length; i++){
+          setMockStep('1');
+          setMockSubCount(i+1, mockState.p1Set.length);
+          const item = mockState.p1Set[i];
+          const qHtml = (item.topic ? '<span class="mock-q-topic">' + escapeHtml(item.topic) + '</span> · ' : '') + escapeHtml(item.q);
+          const res = await askQuestion({ phaseLabel:'Part 1（'+(i+1)+' / '+mockState.p1Set.length+'）', qHtml, allowRecord:true, submitLabel:(i===mockState.p1Set.length-1?'完成 P1，进入 P2':'下一题'), resume:{ phase:'P1', index:i, remaining:firstRemain } });
+          firstRemain = undefined;
+          mockState.answers.push({ part:'P1', q:item.q, transcript:res.transcript });
+          saveResumeSnapshot('P1', i+1);
+        }
+      }
+      // ---- P2 准备 ----
+      if(doP2prep || doP2talk) setMockStep('2');
+      if(doP2prep){
+        const prepRemain = (snap && rp === 'P2-prep' && snap.remaining != null) ? snap.remaining : undefined;
+        await askQuestion({ phaseLabel:'Part 2 · 准备（1 min）', qHtml:promptHtml, allowRecord:false, isPrep:true, timeLimit:60, submitLabel:'结束准备，开始陈述', resume:{ phase:'P2-prep', index:0, remaining:prepRemain } });
+        saveResumeSnapshot('P2-talk', 0);
+      }
+      // ---- P2 陈述 ----
+      if(doP2talk){
+        const talkRemain = (snap && rp === 'P2-talk' && snap.remaining != null) ? snap.remaining : undefined;
+        const talk = await askQuestion({ phaseLabel:'Part 2 · 陈述（2 min）', qHtml:talkHtml, allowRecord:true, timeLimit:120, submitLabel:'完成 P2，进入 P3', resume:{ phase:'P2-talk', index:0, remaining:talkRemain } });
+        mockState.answers.push({ part:'P2', q: topic.promptEn || '', transcript: talk.transcript });
+        saveResumeSnapshot('P3', 0);
+      }
+      // ---- P3 ----
+      let p3qs = (snap && snap.p3qs && snap.p3qs.length) ? snap.p3qs : (mockState.p3qs || []);
+      if(doP3){
+        if(!p3qs.length){
+          setPhase('Part 3');
+          $('#mockQ').innerHTML = '正在生成 P3 追问…';
+          try{
+            p3qs = await genP3Questions(topic);
+            mockState.p3qs = p3qs;
+          }catch(e){
+            toast('P3 追问生成失败：' + e.message + '（已跳过 P3）');
+            p3qs = [];
+          }
+        }
+        const startIdx = (snap && rp === 'P3') ? snap.index : 0;
+        const firstRemain = (snap && rp === 'P3' && snap.remaining != null) ? snap.remaining : undefined;
+        for(let i = startIdx; i < p3qs.length; i++){
+          setMockStep('3');
+          const qHtml = escapeHtml(p3qs[i]);
+          const res = await askQuestion({ phaseLabel:'Part 3（'+(i+1)+' / '+p3qs.length+'）', qHtml, allowRecord:true, submitLabel:(i===p3qs.length-1?'完成 P3，出报告':'下一题'), resume: firstRemain != null ? { phase:'P3', index:i, remaining:firstRemain } : undefined });
+          firstRemain = undefined;
+          mockState.answers.push({ part:'P3', q: p3qs[i], transcript: res.transcript });
+          saveResumeSnapshot('P3', i+1);
+        }
+      }
+      await finishExam();
+    }catch(e){
+      toast('模考中断：' + e.message);
+      clearResumeSnapshot();
+      const ab = $('#mockAbandonBtn'); if(ab) ab.remove();
+      $('#mockStage').hidden = true; $('#mockStart').hidden = false; renderMockStart();
     }
   }
 
@@ -283,9 +389,12 @@
     if(body) body.innerHTML = report
       ? window.MockReport.render(report)
       : '<p class="muted">本次评分未完成（AI 接口异常），但你的回答已存入「回顾」。</p>';
+    // 模考完成：清理进度快照与「放弃」按钮，下一次进入不再自动续考
+    clearResumeSnapshot();
+    const ab = $('#mockAbandonBtn'); if(ab) ab.remove();
   }
 
-  /* ---------- 主流程 ---------- */
+  /* ---------- 全新开考入口（由「开始模考」按钮触发） ---------- */
   async function startExam(){
     if(!DATA.settings.relayToken){
       toast('请先在「设置 / AI 接口」填写 DeepSeek Key'); return;
@@ -297,30 +406,15 @@
     // 发音来源：填了固定分 → 'fixed'（发音取固定分）；否则 'none'（发音不计入总分，不再做发音评测）
     const fixed = DATA.settings.pronunciationScore;
     const pronSource = (fixed != null) ? 'fixed' : 'none';
-    mockState = { p1Set: buildP1Set(p1), p2Topic: sampleOne(p2), answers: [], pronSource };
+    // 全新开考前先清掉任何旧快照，避免与上一次未完成的模考串档
+    clearResumeSnapshot();
+    mockState = { p1Set: buildP1Set(p1), p2Topic: sampleOne(p2), answers: [], pronSource, p3qs: [] };
 
     $('#mockStart').hidden = true;
     $('#mockReport').hidden = true;
     $('#mockStage').hidden = false;
 
-    try{
-      await runP1(mockState.p1Set);
-      await startP2(mockState.p2Topic);
-      let p3qs = [];
-      try{
-        setPhase('Part 3');
-        $('#mockQ').innerHTML = '正在生成 P3 追问…';
-        p3qs = await genP3Questions(mockState.p2Topic);
-      }catch(e){
-        toast('P3 追问生成失败：' + e.message + '（已跳过 P3）');
-        p3qs = [];
-      }
-      if(p3qs.length) await runP3(p3qs);
-      await finishExam();
-    }catch(e){
-      toast('模考中断：' + e.message);
-      $('#mockStage').hidden = true; $('#mockStart').hidden = false; renderMockStart();
-    }
+    await runExam(null);
   }
 
   /* ---------- 初始化 ---------- */
@@ -334,6 +428,19 @@
   ready(async () => {
     await ensureMockLib();
     renderHistoryArea();
+    // 断点续考：若上次模考未做完就离开了，返回模考页时自动恢复现场
+    const snap = loadResumeSnapshot();
+    if(snap){
+      mockState = { p1Set: snap.p1Set, p2Topic: snap.p2Topic, answers: snap.answers, pronSource: snap.pronSource, p3qs: snap.p3qs || [] };
+      $('#mockStart').hidden = true;
+      $('#mockReport').hidden = true;
+      $('#mockStage').hidden = false;
+      injectAbandonButton();
+      toast('已自动恢复上次未完成的模考，继续答题');
+      runExam(snap);
+    } else {
+      renderMockStart();
+    }
     const startBtn = $('#mockStartBtn');
     if(startBtn) startBtn.onclick = () => {
       if(window.__mockTick){ clearInterval(window.__mockTick); window.__mockTick = null; }
@@ -345,6 +452,5 @@
       $('#mockReport').hidden = true; $('#mockStage').hidden = true; $('#mockStart').hidden = false;
       renderMockStart();
     };
-    renderMockStart();
   });
 })();

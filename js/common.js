@@ -719,12 +719,14 @@ async function runPageScript(id){
   }
 }
 
-/* P0-A：清理上一页可能残留的全局心跳（计时 __timerTick / 服药 __medsTick）。
+/* P0-A：清理上一页可能残留的全局心跳（计时 __timerTick / 服药 __medsTick / 模考 __mockTick）。
    各页面 ready 自身已清旧心跳、updateTimer/renderMeds 也会在 DOM 消失时自停，
-   这里再兜底一道，确保软导航重进页面不会叠加“多个计时器同时跑 / 数字乱跳”。 */
+   这里再兜底一道，确保软导航重进页面不会叠加“多个计时器同时跑 / 数字乱跳”。
+   模考 __mockTick 离开时清掉，可让“剩余时间”在断点续考时冻结在离开那一刻，而非继续走表。 */
 function hubClearOrphanPageTimers(){
   if(window.__timerTick){ clearInterval(window.__timerTick); window.__timerTick = null; }
   if(window.__medsTick){ clearInterval(window.__medsTick); window.__medsTick = null; }
+  if(window.__mockTick){ clearInterval(window.__mockTick); window.__mockTick = null; }
 }
 
 /* 空闲时预取同组相邻页面 HTML（走浏览器缓存，下次软切换近乎瞬时） */
