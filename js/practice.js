@@ -303,7 +303,7 @@ function autoAdvance(){
     const ub = document.getElementById('unknownBtn');
     if(ub){
       ub.className = 'opt-big opt-big-unknown next-mode';
-      ub.innerHTML = '下一题 <span class="opt-big-key">快捷键：5</span>';
+      ub.innerHTML = '下一题';
       ub.disabled = false;
       ub.style.pointerEvents = 'auto';
       const old = ub.onclick;
@@ -358,7 +358,16 @@ function renderQuestion(cur){
   pq.answer = cur;
   const optN = Math.min(c.optCount, DATA.words.length);
   const opts = shuffle([cur, ...pickWrong(cur, optN-1)]);
-  let html = '<div class="practice-word-head">'+
+  let html = '';
+  if(pq.idx > 0){
+    const last = pq.queue[pq.idx - 1];
+    html += '<div class="last-word">'+
+      '<span class="lw-en">'+escapeHtml(last.en)+'</span>'+
+      (last.ipa ? '<span class="lw-ipa">'+escapeHtml(last.ipa)+'</span>' : '')+
+      (last.cn ? '<span class="lw-cn">'+escapeHtml(last.cn)+'</span>' : '')+
+      '</div>';
+  }
+  html += '<div class="practice-word-head">'+
     '<span class="pw-en">'+escapeHtml(cur.en)+'</span>'+
     (cur.ipa ? '<span class="pw-ipa">'+escapeHtml(cur.ipa)+'</span>' : '')+
     '</div>';
@@ -371,10 +380,9 @@ function renderQuestion(cur){
     '<button class="opt-big" data-en="'+escapeHtml(o.en)+'">'+
       '<span class="opt-big-tag">'+(o.pos||'')+'</span>'+
       '<span class="opt-big-cn">'+escapeHtml(o.cn)+'</span>'+
-      '<span class="opt-big-key">快捷键：'+(i+1)+'</span>'+
     '</button>'
   ).join('') +
-  '<button class="opt-big opt-big-unknown" id="unknownBtn">不知道 <span class="opt-big-key">快捷键：'+(opts.length+1)+'</span></button>';
+  '<button class="opt-big opt-big-unknown" id="unknownBtn">不知道</button>';
   bindOpts(cur);
   $('#unknownBtn').addEventListener('click', () => markUnknown(cur));
   setTimeout(() => speakN(cur.en), 300);  // 新词自动读
