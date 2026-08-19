@@ -567,6 +567,7 @@ function _mergeArray(local, cloud){
   let changes = 0;
   for(const it of local){ const k = keyOf(it); if(k) byKey.set(k, it); }
   for(const it of cloud){
+    if(it == null) continue; // null 元素无同步价值：跳过，避免每次计为新增导致数组无限膨胀
     const k = keyOf(it);
     if(!k){ byKey.set('__nk_'+(byKey.size), it); changes++; continue; } // 无 key：各自保留，计为新增
     const ex = byKey.get(k);
@@ -650,7 +651,11 @@ async function cloudDownload(silent){
     if(!res.ok) throw new Error('HTTP ' + res.status);
     if(!data || !data.data) throw new Error('返回格式异常');
     const m = mergeData(DATA, data.data);
-    if(m.changes > 0){
+    // 终极保险：比较合并前后内容，真的变化才算「更新」。
+    // 场景：本机比云端进步（背单词 streak/释义更掌握）时，_mergeWords 内部 changes 每次都会计，
+    // 但合并结果内容与本机一致——若不比较内容，会「每次拉取都弹已合并 + reload」形成无限刷新循环。
+    const reallyChanged = JSON.stringify(m.data) !== JSON.stringify(DATA);
+    if(reallyChanged){
       DATA = m.data; // 合并而非覆盖：保留本机进度，并入云端新增/更新
       // 直接写 localStorage，不走 hubSave——避免「合并云端数据后又触发上传→另一端又拉到→乒乓刷屏」。
       // 本端独有数据会在用户下次操作（hubSave）时自然上传，无需在合并时立即回传。
@@ -659,8 +664,11 @@ async function cloudDownload(silent){
       document.dispatchEvent(new CustomEvent('hub:data-merged'));
       // 自动同步有更新时刷新页面显示新数据（800ms 内先让用户看到 toast）；
       // 手动下载（!silent）只 toast 不 reload；进行中的计时页不 reload（避免打断计时）。
-      // 不乒乓（合并不回传）→ 不会循环 reload，仅真有新数据时刷新一次。
-      if(silent && !window.__timerActive) setTimeout(() => location.reload(), 800);
+      // 防抖：5 秒内不重复 reload，兜底任何意外循环（如 localStorage 写入失败导致的假变化）。
+      if(silent && !window.__timerActive && Date.now() - (window.__lastSyncReload || 0) > 5000){
+        window.__lastSyncReload = Date.now();
+        setTimeout(() => location.reload(), 800);
+      }
     } else if(!silent){
       toast('云端没有比本机更新的内容');
     }
