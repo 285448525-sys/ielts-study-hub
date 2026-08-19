@@ -462,11 +462,9 @@ async function aiStoryLink(id){
     const sys = '你是雅思口语 P2 串题助手。考生有一份"万能故事库"（多条来自真实经历的小故事，每条含：英文可背故事、中文逻辑链、可套题族）。\n' +
       '当前是一道具体的 P2 题。请：\n' +
       '1. 扫描全部故事，找出**能用来答这题的细节**（可跨多条故事组合，不限单条；只要能用的细节都拼进来）。\n' +
-      '2. 把这些细节**拼成一篇英文参考回答**（简单句为主，契合口语 5.5，长度适配该题、不要过长）。注意：这不是让考生照抄——大部分内容考生会用自己的话说，只有少量句子（尤其固定开头/结尾）才直接借用。\n' +
-      '3. 给一段中文「思路」：说明用了哪几条故事的哪些细节、怎么组合、怎么贴着题目讲。\n' +
-      '4. 给这道 P2 题专属的「逻辑链」：用若干中文关键词以 "—"（中文横杠/破折号）串接，把本题要讲的步骤、细节、感受都铺开——越长越细越好、数量不固定，严禁输出 "[横杠]" 这几个字。\n' +
-      '5. 给一个**通用开头句**和一个**通用结尾句**（尽量万能：开头用 "I\'d like to talk about..." 什么题都能接；结尾一句收束）。\n' +
-      '输出严格 JSON：{"approach":"中文思路","article":"拼接的英文参考回答","logicChain":"关键词—关键词（用中文横杠隔开，越长越细越好）","opener":"通用开头句","closer":"通用结尾句"}，不要任何解释文字。';
+      '2. 把这些细节**拼成一篇英文参考回答**（简单句为主，契合口语 5.5，长度适配该题、不要过长）。开头用一句通用开头（如 "I\'d like to talk about..." 什么题都能接），结尾用一句收束，**开头句和结尾句都直接写进参考英文里**，让它读起来是一篇完整的回答。注意：这不是让考生照抄——大部分内容考生会用自己的话说，只有少量句子（尤其开头/结尾）才直接借用。\n' +
+      '3. 给这道 P2 题专属的「逻辑链」：用若干中文关键词以 "—"（中文横杠/破折号）串接，把本题要讲的步骤、细节、感受都铺开——越长越细越好、数量不固定，严禁输出 "[横杠]" 这几个字。\n' +
+      '输出严格 JSON：{"article":"拼接的英文参考回答（含开头和结尾句）","logicChain":"关键词—关键词（用中文横杠隔开，越长越细越好）"}，不要任何解释文字。';
 
     const user = 'P2 题目：' + (s.promptEn || s.title || '') +
       '\n中文题意：' + (s.promptZh || '') +
@@ -479,7 +477,7 @@ async function aiStoryLink(id){
     ], 0.7);
     const j = aiJson(content);
 
-    if(j && (j.article || j.approach)){
+    if(j && (j.article || j.logicChain)){
       s.answers = s.answers || {};
       s.answers.p2 = s.answers.p2 || {};
       s.answers.p2.aiStoryLink = { ...j, ts: Date.now(), raw: content };
@@ -509,15 +507,8 @@ function renderStoryLink(el, j){
   }
   let h = '<div class="mat-plan">';
   h += '<div class="mat-plan-head">🧩 AI 串题方案（跨故事拼细节）</div>';
-  if(j.approach) h += '<div class="mat-plan-sec"><b>① 思路</b><div class="mat-plan-note">' + escapeHtml(j.approach) + '</div></div>';
-  if(j.article) h += '<div class="mat-plan-sec"><b>② 参考英文（自己话讲，少量句子可借模板）</b><div class="mat-story-en">' + escapeHtml(j.article) + '</div></div>';
-  if(j.logicChain) h += '<div class="mat-plan-sec"><b>③ 本题逻辑链</b><div class="mat-logic">' + escapeHtml(j.logicChain) + '</div></div>';
-  if(j.opener || j.closer){
-    h += '<div class="mat-plan-sec"><b>④ 固定句式</b><div class="mat-plan-frames">';
-    if(j.opener) h += '<div>开头：<code>' + escapeHtml(j.opener) + '</code></div>';
-    if(j.closer) h += '<div>结尾：<code>' + escapeHtml(j.closer) + '</code></div>';
-    h += '</div></div>';
-  }
+  if(j.article) h += '<div class="mat-plan-sec"><b>① 参考英文（自己话讲，开头结尾已包含）</b><div class="mat-story-en">' + escapeHtml(j.article) + '</div></div>';
+  if(j.logicChain) h += '<div class="mat-plan-sec"><b>② 本题逻辑链</b><div class="mat-logic">' + escapeHtml(j.logicChain) + '</div></div>';
   h += '<div class="mat-plan-tips">💡 方案根据你的万能故事库跨故事拼细节生成；点「🔀 AI 串题思路」可重新生成。</div>';
   h += '</div>';
   el.innerHTML = h;
