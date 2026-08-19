@@ -243,7 +243,6 @@ function autoStartSeeWord(){
     const nextBtn = $('#nextBtn'); if(nextBtn) nextBtn.hidden = true;
     const score = $('#practiceScore'); if(score) score.textContent = '';
     const prog1 = $('#progBarWrap'); if(prog1) prog1.hidden = true;
-    const prog2 = $('#progBarWrapBottom'); if(prog2) prog2.hidden = true;
 
     if(!Array.isArray(DATA.words) || DATA.words.length === 0){
       $('#practiceBody').innerHTML = '<div class="q-word">词库为空</div><div class="q-cn">点上方「词库」标签加词后再来练习。</div>';
@@ -258,7 +257,6 @@ function autoStartSeeWord(){
     pq = { mode:'seeWord', queue:[], idx:0, total:0, correct:0, revealed:false, answer:null, wrongList:[],
            mastery:{}, retrying:false, reviewQueue:[], countedWords:{}, correctWords:{}, missed:{} };
     $('#progBarWrap').hidden = false;
-    $('#progBarWrapBottom').hidden = false;
     if(due.length === 0){
       $('#practiceScore').textContent = '';
       $('#practiceBody').innerHTML = '<div class="q-word">🎉 今天没有待复习的词</div>' +
@@ -273,7 +271,6 @@ function autoStartSeeWord(){
     console.error('[practice] autoStartSeeWord 失败', err);
     const nextBtn2 = $('#nextBtn'); if(nextBtn2) nextBtn2.hidden = true;
     const prog1e = $('#progBarWrap'); if(prog1e) prog1e.hidden = true;
-    const prog2e = $('#progBarWrapBottom'); if(prog2e) prog2e.hidden = true;
     $('#practiceBody').innerHTML = '<div class="q-word">练习加载失败</div>' +
       '<div class="q-cn">'+escapeHtml(String(err && err.message ? err.message : err))+'</div>' +
       '<div style="margin-top:16px"><button class="btn btn-primary" id="retryStart">重试</button></div>';
@@ -636,10 +633,6 @@ function updateProgBar(){
   if(!pq || !Array.isArray(pq.queue) || !pq.queue.length) return;
   const pct = ((pq.idx) / pq.queue.length) * 100;
   $('#progBarFill').style.width = pct + '%';
-  const pb2 = $('#progBarFillBottom');
-  const pt = $('#progText');
-  if(pb2) pb2.style.width = pct + '%';
-  if(pt) pt.textContent = (pq.idx+1) + '/' + pq.queue.length;
 }
 
 // 记忆曲线工具：addDays / pickWrong / shuffle 等（待复习判定已统一走 mcDueWords → w.mcDue）
