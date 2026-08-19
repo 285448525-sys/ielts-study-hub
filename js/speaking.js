@@ -774,13 +774,13 @@ async function generateAIHelper(id, qi){
   if(resultEl){ resultEl.innerHTML = '<div class="diag-note">正在按你的人设生成回答…</div>'; resultEl.style.display = 'block'; }
 
   try{
-    const sys = '你是雅思口语陪练。考生目标口语 5.5 分，基础一般，需要简单句。\n'
+    const sys = '你是雅思口语陪练。考生目标口语 5.5-6 分：句子以简单句为主，但允许混入 1-2 个稍高级的词汇和句型，像真人聊天，不要太难。\n'
       + '考生会给你一个 Part 1 问题和她的个人素材（人设/经历）。\n'
       + '请按固定框架生成英文回答，一共 3-4 句：\n'
       + '第 1 句：直接表态，口语化开头（Yes, I do. / No, not really. / Definitely. / To be honest, ... 等），不绕弯子。\n'
       + '第 2-4 句：给原因并自然展开，把考生人设细节（身份/城市/爱好等）自然揉进回答，像真人聊天。\n'
-      + '要求：全部简单句、基础词汇、口语化；不要书面语；不要超过 4 句；只使用素材里有的信息，不编造。\n'
-      + '输出严格 JSON：{"answer":"英文回答"}，不要任何解释文字。';
+      + '「稍高级」示例（只混入 1-2 处即可，别每句都用）：like → be really into；good → enjoyable；可加一个 because/when 从句；可用 to be honest / actually / I\'d say 过渡。\n'
+      + '要求：不要写复杂长句；不要超过 4 句；只使用素材里有的信息，不编造；输出严格 JSON：{"answer":"英文回答"}，不要任何解释文字。';
     const content = await callRelay('speaking_aihelper', [
       { role:'system', content: sys },
       { role:'user', content:'P1 题目：' + questionText + '\n\n考生个人素材：\n' + (persona || '（暂无素材，请用通用回答）') }
