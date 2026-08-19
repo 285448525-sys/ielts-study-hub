@@ -526,64 +526,65 @@ function _later(a, b){
   const bv = (b == null || b === '') ? '' : b;
   return (av >= bv) ? av : bv;
 }
-/* 背单词：以 en（大小写不敏感）为 key，逐字段取「更掌握」状态，不丢任何一端进度 */
+/* 背单词：以 en（大小写不敏感）为 key，逐字段取「更掌握」状态，不丢任何一端进度。
+   返回 {arr, changes}：changes = 云端新增词 + 被云端更新（更掌握/补 cn）的已有词数 */
 function _mergeWords(local, cloud){
   const map = new Map();
-  const push = (w) => { if(w && w.en) map.set(String(w.en).toLowerCase(), Object.assign({}, w)); };
-  (cloud||[]).forEach(push);
+  (cloud||[]).forEach(w => { if(w && w.en) map.set(String(w.en).toLowerCase(), Object.assign({}, w)); });
+  let changes = 0;
+  const localSeen = new Set();
   for(const w of (local||[])){
     if(!w || !w.en) continue;
     const k = String(w.en).toLowerCase();
+    localSeen.add(k);
     const ex = map.get(k);
-    if(!ex){ push(w); continue; }
-    ex.mcStreak   = Math.max(_num(ex.mcStreak), _num(w.mcStreak));
-    ex.mcInterval = Math.max(_num(ex.mcInterval), _num(w.mcInterval));
-    ex.mcEase     = Math.max(_num(ex.mcEase), _num(w.mcEase));
-    ex.mcDiff     = Math.min(_num(ex.mcDiff), _num(w.mcDiff));
-    ex.mcDue      = _later(ex.mcDue, w.mcDue);
+    if(!ex){ map.set(k, Object.assign({}, w)); continue; } // 本机独有：保留（非云端更新）
+    let changed = false;
+    const ns = Math.max(_num(ex.mcStreak), _num(w.mcStreak)); if(ns !== _num(ex.mcStreak)){ ex.mcStreak = ns; changed = true; }
+    const ni = Math.max(_num(ex.mcInterval), _num(w.mcInterval)); if(ni !== _num(ex.mcInterval)){ ex.mcInterval = ni; changed = true; }
+    const ne = Math.max(_num(ex.mcEase), _num(w.mcEase)); if(ne !== _num(ex.mcEase)){ ex.mcEase = ne; changed = true; }
+    const nd = Math.min(_num(ex.mcDiff), _num(w.mcDiff)); if(nd !== _num(ex.mcDiff)){ ex.mcDiff = nd; changed = true; }
+    const ndue = _later(ex.mcDue, w.mcDue); if(ndue !== ex.mcDue){ ex.mcDue = ndue; changed = true; }
     const cn1 = (ex.cn||'').trim(), cn2 = (w.cn||'').trim();
-    ex.cn = (cn1 && cn2) ? (cn1.length >= cn2.length ? cn1 : cn2) : (cn1 || cn2);
+    const ncn = (cn1 && cn2) ? (cn1.length >= cn2.length ? cn1 : cn2) : (cn1 || cn2);
+    if(ncn !== ex.cn){ ex.cn = ncn; changed = true; }
+    if(changed) changes++;
   }
-  return Array.from(map.values());
+  // 云端独有词 = 真正新增
+  for(const w of (cloud||[])){ if(w && w.en && !localSeen.has(String(w.en).toLowerCase())) changes++; }
+  return { arr: Array.from(map.values()), changes };
 }
-/* 其他数组：按 id/ts 去重，冲突取较新；保留本机独有条目（不删） */
+/* 其他数组：按 id/ts 去重，冲突取较新；保留本机独有条目（不删）。
+   返回 {arr, changes}：changes = 云端新增/更新的条目数 */
 function _mergeArray(local, cloud){
   local = Array.isArray(local) ? local : [];
   cloud = Array.isArray(cloud) ? cloud : [];
   const keyOf = it => (it && it.id != null) ? ('id:'+it.id) : (it && it.ts != null) ? ('ts:'+it.ts) : null;
   const tsOf  = it => _num(it && it.ts);
   const byKey = new Map();
+  let changes = 0;
   for(const it of local){ const k = keyOf(it); if(k) byKey.set(k, it); }
   for(const it of cloud){
     const k = keyOf(it);
-    if(!k){ byKey.set('__nk_'+(byKey.size), it); continue; } // 无 key：各自保留，不强行合并
+    if(!k){ byKey.set('__nk_'+(byKey.size), it); changes++; continue; } // 无 key：各自保留，计为新增
     const ex = byKey.get(k);
-    if(!ex){ byKey.set(k, it); }
-    else if(tsOf(it) > tsOf(ex)){ byKey.set(k, it); } // 冲突→较新者胜（平局/无 ts 保留本机）
+    if(!ex){ byKey.set(k, it); changes++; }                  // 云端新增
+    else if(tsOf(it) > tsOf(ex)){ byKey.set(k, it); changes++; } // 云端更新（较新者胜）
+    // 否则保留本机（非云端更新），不计 changes
   }
-  return Array.from(byKey.values());
+  return { arr: Array.from(byKey.values()), changes };
 }
-/* 整体合并：以本机为基准，云端增量并入；不覆盖本机设置与任何独有数据 */
+/* 整体合并：以本机为基准，云端增量并入；不覆盖本机设置与任何独有数据。
+   返回 {data, changes}：changes = 实际应用的合并处数（新增 + 更新），用于决定是否写盘/提示 */
 function mergeData(local, cloud){
   cloud = cloud || {};
   const out = Object.assign({}, local);
-  out.words = _mergeWords(local.words, cloud.words);
+  let changes = 0;
+  const w = _mergeWords(local.words, cloud.words); out.words = w.arr; changes += w.changes;
   for(const f of SYNC_ARRAY_FIELDS){
-    if(Array.isArray(cloud[f])) out[f] = _mergeArray(local[f], cloud[f]);
+    if(Array.isArray(cloud[f])){ const r = _mergeArray(local[f], cloud[f]); out[f] = r.arr; changes += r.changes; }
   }
-  return out; // settings 保留本机（同步账号/开关是本机设定，不从云端覆盖）
-}
-/* 统计云端相对本机新增/更新的条目数（用于合并提示） */
-function _countCloudUpdates(local, cloud){
-  let n = 0;
-  const lw = new Set((local.words||[]).map(w => (w.en||'').toLowerCase()));
-  for(const w of (cloud.words||[])) if(w.en && !lw.has(String(w.en).toLowerCase())) n++;
-  const keyOf = it => (it && it.id != null) ? ('id:'+it.id) : (it && it.ts != null) ? ('ts:'+it.ts) : null;
-  for(const f of SYNC_ARRAY_FIELDS){
-    const lk = new Map((local[f]||[]).map(it => [keyOf(it), 1]).filter(([k]) => k));
-    for(const it of (cloud[f]||[])){ const k = keyOf(it); if(k && !lk.has(k)) n++; }
-  }
-  return n;
+  return { data: out, changes };
 }
 /* 从云端合并拉取（替代整份覆盖）。silent=true 时仅在有更新时提示，用于自动拉取 */
 async function cloudDownload(silent){
@@ -594,11 +595,11 @@ async function cloudDownload(silent){
     if(res.status === 404){ if(!silent) toast('云端没有该手机号的数据'); return false; }
     if(!res.ok) throw new Error('HTTP ' + res.status);
     if(!data || !data.data) throw new Error('返回格式异常');
-    const added = _countCloudUpdates(DATA, data.data);
-    if(added > 0){
-      DATA = mergeData(DATA, data.data); // 合并而非覆盖：保留本机进度，并入云端新增
+    const m = mergeData(DATA, data.data);
+    if(m.changes > 0){
+      DATA = m.data; // 合并而非覆盖：保留本机进度，并入云端新增/更新
       hubSave();
-      toast('已合并云端 ' + added + ' 处更新');
+      toast('已合并云端 ' + m.changes + ' 处更新');
     } else if(!silent){
       toast('云端没有比本机更新的内容');
     }
@@ -639,7 +640,8 @@ async function syncLoginOrRegister(){
       // 登录：云端已有数据 → 合并（非覆盖），避免本机未同步新增被云端数据抹掉
       const [res2, data] = await syncApi('GET');
       if(data && data.data){
-        DATA = mergeData(DATA, data.data);
+        const m = mergeData(DATA, data.data);
+        DATA = m.data;
         enableAutoSyncAfterLogin(phone);
         hubSave();
         syncSetStatus('✅ 登录成功，已合并云端数据', 'ok');
