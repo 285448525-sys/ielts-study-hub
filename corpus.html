@@ -25,24 +25,27 @@
   <h1 class="page-title">听力语料库</h1>
   <p class="page-sub">收集听力里听到的句子/短语，批量导入后做句子听写。格式和词库一样宽松。</p>
 
+  <!-- 添加句子：单句 + 批量 合一 -->
   <section class="card">
-    <h2>批量导入句子</h2>
-    <p class="muted">每行一句英文；想带中文翻译，用 <strong>空格 / 竖线 / 冒号</strong> 隔开都行。例：<br>
-      The government should invest more in public transport<br>
-      She was absent because she felt under the weather | 她没来因为身体不适<br>
-      It is vital to preserve the local culture：保护当地文化很重要</p>
-    <textarea id="bulkCorpus" placeholder="每行一个英文句子，可选跟中文翻译"></textarea>
-    <button class="btn btn-primary" id="importCorpus">批量导入</button>
-    <p class="muted" id="importHint"></p>
-  </section>
-
-  <section class="card">
-    <h2>添加单句</h2>
+    <h2>添加句子</h2>
+    <p class="muted">日常加一句用下面的输入框；一次贴多句就展开「批量导入」。</p>
     <div class="form-row">
       <input id="corEn" placeholder="英文句子" />
       <input id="corCn" placeholder="中文翻译（可选）" />
       <button class="btn btn-primary flex-none" id="addCorpus" style="min-width:120px">添加</button>
     </div>
+    <details class="detail-block" style="margin-top:8px">
+      <summary>批量导入多句（每行一句）</summary>
+      <p class="muted">每行一句英文；想带中文翻译，用 <strong>空格 / 竖线 / 冒号</strong> 隔开都行。例：<br>
+        The government should invest more in public transport<br>
+        She was absent because she felt under the weather | 她没来因为身体不适<br>
+        It is vital to preserve the local culture：保护当地文化很重要</p>
+      <textarea id="bulkCorpus" placeholder="每行一个英文句子，可选跟中文翻译"></textarea>
+      <div style="display:flex;justify-content:flex-end;margin-top:10px">
+        <button class="btn btn-primary" id="importCorpus">批量导入</button>
+      </div>
+      <p class="muted" id="importHint" style="margin:8px 0 0"></p>
+    </details>
   </section>
 
   <section class="card">

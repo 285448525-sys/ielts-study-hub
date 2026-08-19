@@ -23,7 +23,6 @@ ready(() => {
   renderSyncState();
 
   $('#saveSettings').addEventListener('click', saveSettings);
-  $('#saveSettings2').addEventListener('click', saveSettings);
   $('#saveRelay').addEventListener('click', saveRelay);
   $('#testAiBtn').addEventListener('click', testAIConnection);
   $('#sTheme').addEventListener('change', () => applyTheme($('#sTheme').value));

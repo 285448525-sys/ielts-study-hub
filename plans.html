@@ -25,52 +25,49 @@
   <h1 class="page-title">学习计划</h1>
   <p class="page-sub">每天按状态临时打勾；每周让 AI 帮你把大目标拆到 7 天。</p>
 
-  <section class="card" style="padding:12px 16px">
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <label style="font-size:13px;color:var(--muted);margin:0;white-space:nowrap">选择日期</label>
-      <input type="date" id="planDate" style="font-size:13px;padding:6px 10px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);color:var(--ink)" />
-      <span class="muted" id="dateLabel" style="font-size:12px;margin:0"></span>
-    </div>
-  </section>
-
+  <!-- 今日计划：日期 + 添加 + 列表 合一 -->
   <section class="card">
-    <h2>添加任务</h2>
+    <div class="card-head">
+      <h2>今日计划</h2>
+      <span class="badge" id="planCount">0 / 0</span>
+    </div>
+    <div class="form-row" style="align-items:center;margin-bottom:14px">
+      <label style="font-size:13px;color:var(--muted);margin:0;white-space:nowrap;flex:none;min-width:0">选择日期</label>
+      <input type="date" id="planDate" style="max-width:180px" />
+      <span class="muted" id="dateLabel" style="font-size:12px;margin:0;flex:1;min-width:0"></span>
+    </div>
     <textarea id="planText"
       placeholder="例如：精听 S1 填空 30 分钟 / 背 20 个阅读生词 / 用 DeepSeek 练 1 个 P2&#10;也可以写一句「今天想完成什么」，点「AI 安排」让 AI 帮你拆成多条。"
       style="width:100%;min-height:72px;padding:10px;border:1px solid var(--line);border-radius:var(--radius-sm);font:inherit;font-size:14px;line-height:1.6;background:var(--surface);color:var(--ink);resize:vertical"></textarea>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px">
-      <button class="btn" id="addPlan">添加任务</button>
-      <button class="btn btn-primary" id="aiPlan">AI 安排今天</button>
+      <button class="btn" id="aiPlan"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l1.7 4.3L18 10l-4.3 1.7L12 16l-1.7-4.3L6 10l4.3-1.7L12 4z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2z"/></svg>AI 安排今天</button>
+      <button class="btn btn-primary" id="addPlan">添加任务</button>
+    </div>
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line)">
+      <div id="planProgress"></div>
+      <div id="planList" style="margin-top:10px"></div>
     </div>
   </section>
 
-  <section class="card">
-    <div class="plan-meta">
-      <h2 style="margin:0">当日计划</h2>
-      <span class="badge" id="planCount">0 / 0</span>
-    </div>
-    <div id="planProgress"></div>
-    <div id="planList" style="margin-top:10px"></div>
-  </section>
-
+  <!-- 历史计划：原样 -->
   <section class="card">
     <h2>历史计划</h2>
     <p class="muted">点击任意日期可查看 / 编辑那天的计划。</p>
     <div id="histPlans"></div>
   </section>
 
+  <!-- 本周计划：输入 + 生成按钮 + 输出 合一 -->
   <section class="card">
-    <h2>📝 本周我想完成的任务</h2>
+    <h2>本周计划</h2>
     <p class="muted">写下这一周想完成的大致任务（一行一个），点「AI 帮我想」让它按你的弱项智能分配到 7 天。没配 AI Key 也能用「按弱项生成」走固定模板。</p>
     <textarea id="weekTasks" placeholder="例如：&#10;背完 Word List 5-7&#10;写 1 篇大作文&#10;精听 3 段 S3&#10;口语 P2 串题素材过一遍"></textarea>
     <div class="form-row" style="align-items:center;margin-top:10px">
       <p class="muted" style="flex:1;margin:0" id="weekHint"></p>
       <button class="btn" id="genWeek" style="flex:none">按弱项生成（无 AI）</button>
-      <button class="btn btn-primary" id="aiWeek" style="flex:none">🤖 AI 帮我想（按天分配）</button>
+      <button class="btn btn-primary" id="aiWeek" style="flex:none"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l1.7 4.3L18 10l-4.3 1.7L12 16l-1.7-4.3L6 10l4.3-1.7L12 4z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2z"/></svg>AI 帮我想（按天分配）</button>
     </div>
+    <div id="weekBox" style="margin-top:14px"></div>
   </section>
-
-  <section id="weekBox"></section>
 </main>
 
 </body>
