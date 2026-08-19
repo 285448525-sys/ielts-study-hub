@@ -825,6 +825,21 @@ main .eb-block + .eb-block{
   color:var(--primary);font-size:14px;
 }
 
+/* 口语诊断：整句 diff 式纠错（原句放中间，只划错误词，箭头+正确词在旁边） */
+.diag-sentence-diff{
+  font-size:15px;line-height:1.9;color:var(--ink);
+  background:var(--surface-2);border-radius:var(--radius-sm);padding:14px 16px;
+}
+.diag-sentence-diff .diag-wrong{
+  color:#c0392b;text-decoration:line-through;text-decoration-color:rgba(192,57,43,.55);
+}
+.diag-sentence-diff .diag-arrow{
+  color:var(--muted);font-size:13px;margin:0 4px;
+}
+.diag-sentence-diff .diag-right{
+  color:#2e9e5b;font-weight:600;
+}
+
 /* 长难句原句：从斜体灰字升级为清晰 callout（仍是输入，非 AI 输出，但同页相邻顺手优化） */
 main .quote{
   font-style:normal;color:var(--ink);

@@ -331,7 +331,7 @@ function openDetail(id){
       if(res && s.answers.p2.result){
         try{
           const j = JSON.parse(s.answers.p2.result);
-          if(renderP2Diag(res, j)){ res.style.display = 'block'; }
+          if(renderP2Diag(res, j, s.answers.p2.text)){ res.style.display = 'block'; }
           else { throw 0; }
         }catch(_){
           res.innerHTML = '<pre>' + escapeHtml(s.answers.p2.result) + '</pre>';
@@ -348,7 +348,7 @@ function openDetail(id){
       const ta = $('#p2Ans'); if(ta && rec.text != null) ta.value = rec.text;
       const res = $('#p2Result');
       if(res && rec.result){
-        try{ const j = JSON.parse(rec.result); if(renderP2Diag(res, j)){ res.style.display = 'block'; return; } }catch(_){}
+        try{ const j = JSON.parse(rec.result); if(renderP2Diag(res, j, rec.text)){ res.style.display = 'block'; return; } }catch(_){}
         res.innerHTML = '<pre>' + escapeHtml(rec.result) + '</pre>'; res.style.display = 'block';
       }
     }, (i) => removeSubmitRecord(s, 'p2', i));
@@ -535,7 +535,7 @@ function bindQuestionEvents(id){
       if(resultEl && s.answers[qi].result){
         try{
           const j = JSON.parse(s.answers[qi].result);
-          renderDiag(resultEl, j, s.answers[qi].result);
+          renderDiag(resultEl, j, s.answers[qi].result, s.answers[qi].text);
         }catch(_){
           resultEl.innerHTML = '<div class="diag-note">（上次结果非标准格式，已贴原文）</div><pre>' + escapeHtml(s.answers[qi].result || '') + '</pre>';
           resultEl.style.display = 'block';
@@ -551,7 +551,7 @@ function bindQuestionEvents(id){
       renderSubmitRecords(s.answers[qi].records, li.querySelector('.sp-rec-list[data-qi="' + qi + '"]'), (rec) => {
         if(ta && rec.text != null) ta.value = rec.text;
         if(resultEl && rec.result){
-          try{ const j = JSON.parse(rec.result); renderDiag(resultEl, j, rec.result); resultEl.style.display = 'block'; }
+          try{ const j = JSON.parse(rec.result); renderDiag(resultEl, j, rec.result, rec.text); resultEl.style.display = 'block'; }
           catch(_){ resultEl.innerHTML = '<pre>' + escapeHtml(rec.result) + '</pre>'; resultEl.style.display = 'block'; }
         }
       }, (i) => removeSubmitRecord(s, qi, i));
@@ -650,7 +650,7 @@ function removeSubmitRecord(s, key, idx){
       const ta = $('#p2Ans'); if(ta && rec.text != null) ta.value = rec.text;
       const res = $('#p2Result');
       if(res && rec.result){
-        try{ const j = JSON.parse(rec.result); if(renderP2Diag(res, j)){ res.style.display = 'block'; return; } }catch(_){}
+        try{ const j = JSON.parse(rec.result); if(renderP2Diag(res, j, rec.text)){ res.style.display = 'block'; return; } }catch(_){}
         res.innerHTML = '<pre>' + escapeHtml(rec.result) + '</pre>'; res.style.display = 'block';
       }
     }, (i) => removeSubmitRecord(s, 'p2', i));
@@ -663,7 +663,7 @@ function removeSubmitRecord(s, key, idx){
       const resultEl = li ? li.querySelector('.sp-q-result[data-qi="' + key + '"]') : null;
       if(ta && rec.text != null) ta.value = rec.text;
       if(resultEl && rec.result){
-        try{ const j = JSON.parse(rec.result); renderDiag(resultEl, j, rec.result); resultEl.style.display = 'block'; }
+        try{ const j = JSON.parse(rec.result); renderDiag(resultEl, j, rec.result, rec.text); resultEl.style.display = 'block'; }
         catch(_){ resultEl.innerHTML = '<pre>' + escapeHtml(rec.result) + '</pre>'; resultEl.style.display = 'block'; }
       }
     }, (i) => removeSubmitRecord(s, key, i));
@@ -686,7 +686,7 @@ async function diagnoseAnswer(id, qi, questionText, answerText){
     ];
     const content = await callRelay('speaking_diagnose', messages, 0.3);
     const j = aiJson(content);
-    renderDiag(resultEl, j, content);
+    renderDiag(resultEl, j, content, answerText);
     s.answers = s.answers || {};
     const oldAns = s.answers[qi] || {};
     const newScore = (j ? parseScore(j.score) : null);
@@ -708,12 +708,12 @@ async function diagnoseAnswer(id, qi, questionText, answerText){
 }
 
 // P2 诊断结构化渲染（语法纠错 + 地道优化 + 串题素材连接 + 可积累）
-function renderP2Diag(el, j){
+function renderP2Diag(el, j, answer){
   if(!j || !Array.isArray(j.errors)){ el.innerHTML = ''; return false; }
   const errs = cleanErrors(j.errors);
   let h = (j.score ? scoreHeaderHtml(parseScore(j.score), '本次得分') : '');
   h += '<div class="diag-sec"><b>① 语法/用词纠错</b>';
-  h += inlineErrorsHtml(errs);
+  h += diffSentenceHtml(answer, errs);
   h += '</div>';
   if(j.rewrite) h += '<div class="diag-sec"><b>② 地道优化版</b><div class="diag-rewrite">' + escapeHtml(j.rewrite) + '</div></div>';
   if(j.storyLink) h += '<div class="diag-sec"><b>③ 📌 串题素材连接</b><div class="diag-note">可以用你已准备的这些万能素材来回答这道题：</div>' + escapeHtml(j.storyLink) + '</div>';
@@ -756,7 +756,7 @@ async function diagnoseP2(id){
     const j = aiJson(content);
 
     // 渲染结果
-    if(!renderP2Diag(resultEl, j)){
+    if(!renderP2Diag(resultEl, j, answer)){
       resultEl.innerHTML = '<div class="diag-note">（AI 返回非标准格式，已贴原文）</div><pre>' + escapeHtml(content || '') + '</pre>';
     }
     resultEl.style.display = 'block';
@@ -775,7 +775,7 @@ async function diagnoseP2(id){
       const ta = $('#p2Ans'); if(ta && rec.text != null) ta.value = rec.text;
       const res = $('#p2Result');
       if(res && rec.result){
-        try{ const j2 = JSON.parse(rec.result); if(renderP2Diag(res, j2)){ res.style.display = 'block'; return; } }catch(_){}
+        try{ const j2 = JSON.parse(rec.result); if(renderP2Diag(res, j2, rec.text)){ res.style.display = 'block'; return; } }catch(_){}
         res.innerHTML = '<pre>' + escapeHtml(rec.result) + '</pre>'; res.style.display = 'block';
       }
     }, (i) => removeSubmitRecord(s, 'p2', i));
@@ -808,7 +808,69 @@ function cleanErrors(errors){
   });
 }
 
-// 渲染 inline 笔记式纠错（省空间：所有错误合成一行/一段）
+// 对两个短语做 token 级 diff，返回 [{type:'same'|'del'|'ins', text}]（按空格分词，忽略大小写匹配）
+function wordDiff(a, b){
+  const wa = String(a || '').trim().split(/\s+/).filter(Boolean);
+  const wb = String(b || '').trim().split(/\s+/).filter(Boolean);
+  const dp = Array(wa.length + 1).fill(null).map(() => Array(wb.length + 1).fill(0));
+  for(let i = wa.length - 1; i >= 0; i--){
+    for(let j = wb.length - 1; j >= 0; j--){
+      if(wa[i].toLowerCase() === wb[j].toLowerCase()) dp[i][j] = dp[i+1][j+1] + 1;
+      else dp[i][j] = Math.max(dp[i+1][j], dp[i][j+1]);
+    }
+  }
+  const out = [];
+  let i = 0, j = 0;
+  while(i < wa.length || j < wb.length){
+    if(i < wa.length && j < wb.length && wa[i].toLowerCase() === wb[j].toLowerCase()){
+      out.push({type:'same', text: wa[i]}); i++; j++;
+    } else if(j < wb.length && (i === wa.length || dp[i][j+1] >= dp[i+1][j])){
+      out.push({type:'ins', text: wb[j]}); j++;
+    } else if(i < wa.length){
+      out.push({type:'del', text: wa[i]}); i++;
+    }
+  }
+  return out;
+}
+
+// 在原句中 inline 标出修改：完整原句放中间，只划掉错误词，箭头+正确词写旁边，不加说明
+function diffSentenceHtml(answer, errs){
+  const ans = String(answer || '').trim();
+  const clean = cleanErrors(errs);
+  if(!clean.length) return '<div class="diag-ok">没发现明显错误，继续保持～</div>';
+  if(!ans) return inlineErrorsHtml(clean);
+
+  // 按 original 在原句中出现位置排序，从后往前替换，避免偏移
+  const reps = [];
+  clean.forEach(e => {
+    const orig = String(e.original || '');
+    const fix = String(e.fix || '');
+    if(!orig || !fix) return;
+    const idx = ans.toLowerCase().indexOf(orig.toLowerCase());
+    if(idx === -1) return;
+    const parts = wordDiff(orig, fix);
+    let html = '';
+    let prevType = null;
+    parts.forEach(p => {
+      if(prevType && prevType !== 'same' && p.type !== 'same') html += ' ';
+      if(p.type === 'same') html += (html ? ' ' : '') + escapeHtml(p.text);
+      if(p.type === 'del') html += (html ? ' ' : '') + '<s class="diag-wrong">' + escapeHtml(p.text) + '</s>';
+      if(p.type === 'ins') html += (html ? ' ' : '') + '<span class="diag-arrow">→</span><span class="diag-right">' + escapeHtml(p.text) + '</span>';
+      prevType = p.type;
+    });
+    reps.push({idx, len: orig.length, html});
+  });
+
+  if(!reps.length) return inlineErrorsHtml(clean);
+  reps.sort((a, b) => b.idx - a.idx);
+  let html = ans;
+  reps.forEach(r => {
+    html = html.slice(0, r.idx) + r.html + html.slice(r.idx + r.len);
+  });
+  return '<div class="diag-sentence-diff">' + html + '</div>';
+}
+
+// 渲染 inline 笔记式纠错（fallback：无法定位原句时使用）
 function inlineErrorsHtml(errs){
   if(!errs.length) return '<div class="diag-ok">没发现明显错误，继续保持～</div>';
   return '<div class="diag-inline-list">' + errs.map((e, i) => {
@@ -824,12 +886,12 @@ function inlineErrorsHtml(errs){
 }
 
 // 渲染诊断结构化卡片
-function renderDiag(el, j, raw){
+function renderDiag(el, j, raw, answer){
   const scoreHtml = (j && j.score) ? scoreHeaderHtml(parseScore(j.score), '本题得分') : '';
   const errs = cleanErrors(j && j.errors);
   if(j && Array.isArray(j.errors) && j.rewrite){
     let h = '<div class="diag-sec"><b>① 语法/用词诊断</b>';
-    h += inlineErrorsHtml(errs);
+    h += diffSentenceHtml(answer, errs);
     h += '</div>';
     h += '<div class="diag-sec"><b>② 按你思路的地道重写</b><div class="diag-rewrite">' + escapeHtml(j.rewrite) + '</div></div>';
     if(Array.isArray(j.tips) && j.tips.length) h += '<div class="diag-sec"><b>③ 可积累</b><ul>' + j.tips.map(t => '<li>' + escapeHtml(t) + '</li>').join('') + '</ul></div>';
