@@ -753,7 +753,9 @@ function renderSyncState(){
 function initCloudSync(){
   if(!DATA.settings.autoSync || !DATA.settings.syncCode) return;
   cloudDownload(true); // 启动静默合并拉取（有更新才提示）
-  setInterval(() => { if(!document.hidden) cloudDownload(true); }, 5 * 60 * 1000);
+  // 轮询拉取：30 秒一次（页面可见时）。曾为 5 分钟——跨设备计时同步体验差（手机开始计时，电脑最长 5 分钟才显示）。
+  // 请求量：每设备每 30 秒 1 次 GET，CF Functions 免费额度内；内容未变时不弹不刷（reallyChanged 保险），不会刷屏。
+  setInterval(() => { if(!document.hidden) cloudDownload(true); }, 30 * 1000);
   document.addEventListener('visibilitychange', () => { if(!document.hidden) cloudDownload(true); });
 }
 ready(initCloudSync);
