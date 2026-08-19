@@ -18,6 +18,7 @@ function startTick(){
    否则新增的 targetSec/mode 会被覆盖清空（软导航重跑也不会丢）。 */
 function persistActive(){
   if(!active) return;
+  window.__timerActive = true;   // 标记「本页有进行中计时」：cloudDownload 自动刷新时跳过本页，避免打断计时
   active.updatedAt = Date.now();   // 本机最新操作时刻：供 hub:data-merged 判断「是否另一端更新」
   saveActive({ moduleId: active.moduleId, subId: active.subId, startTs: active.startTs,
     paused: active.paused, pauseStart: active.pauseStart, pauseAccum: active.pauseAccum,
@@ -193,6 +194,7 @@ function stopSession(){
   DATA.activeTimer = { ended: true, updatedAt: Date.now() };   // 广播"已结束"，覆盖另一端的进行中镜像
   hubSave();
   const d = active; active = null;   // 先清活动态再广播，避免徽标闪一下旧会话
+  window.__timerActive = false;      // 结束：清除「进行中」标记
   // 通知仪表盘/侧边栏刷新「今日已学」（解耦：只广播事件，不直接调其他页函数）
   document.dispatchEvent(new CustomEvent('hub:session-saved', { detail: { date: todayKey() } }));
   document.dispatchEvent(new CustomEvent('hub:timer-state'));   // 方案1：通知全局徽标消失
@@ -308,6 +310,7 @@ ready(() => {
     startTick();
     updateTimer();
     renderTimer();
+    window.__timerActive = true;   // 同日恢复：标记进行中
     toast('已恢复未结束的计时：' + m.name + (active.paused ? '（暂停中）' : ''));
     return;
   }

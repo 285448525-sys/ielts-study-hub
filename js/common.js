@@ -655,8 +655,12 @@ async function cloudDownload(silent){
       // 直接写 localStorage，不走 hubSave——避免「合并云端数据后又触发上传→另一端又拉到→乒乓刷屏」。
       // 本端独有数据会在用户下次操作（hubSave）时自然上传，无需在合并时立即回传。
       try{ localStorage.setItem(HUB_KEY, JSON.stringify(DATA)); }catch(e){}
-      if(!silent) toast('已合并云端 ' + m.changes + ' 处更新');
+      toast('已合并云端 ' + m.changes + ' 处更新');
       document.dispatchEvent(new CustomEvent('hub:data-merged'));
+      // 自动同步有更新时刷新页面显示新数据（800ms 内先让用户看到 toast）；
+      // 手动下载（!silent）只 toast 不 reload；进行中的计时页不 reload（避免打断计时）。
+      // 不乒乓（合并不回传）→ 不会循环 reload，仅真有新数据时刷新一次。
+      if(silent && !window.__timerActive) setTimeout(() => location.reload(), 800);
     } else if(!silent){
       toast('云端没有比本机更新的内容');
     }
