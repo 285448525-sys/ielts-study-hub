@@ -21,6 +21,7 @@ var SYS_DIAG =
   + '【必须纠的真错误】be动词/助动词缺失、主谓不一致、句子成分残缺、时态明显错误，必须列为 errors。例如："I never creating"（缺 have/am）、"I just it\'s Good"（句子碎了）、"I would say"（话没说完）。\n'
   + '没有真错误时 errors 必须写 []；errors 为空非常常见。\n'
   + '【重写】只改 errors 里列出的错误；errors 为空时 rewrite 必须和原句几乎一样。禁止为"更地道"替换原说法。\n'
+  + 'errors 必须是对象数组，每个对象包含 {"original":"原句片段","issue":"中文说明","fix":"改后片段"}，严禁把 errors 写成字符串数组或纯文本列表。\n'
   + '只输出 JSON：{"score":{"fluency":6.0,"vocabulary":6.0,"grammar":6.0},"errors":[],"rewrite":"考生原句（或只改真错后的句子）","tips":["可积累1","可积累2"]}';
 
 /* 录音 / 转写功能已移除：口语只保留「文本框手写 + AI 评分 + 提交记录」。发音分取自设置里的固定分。 */
@@ -41,6 +42,7 @@ var SYS_DIAG_P2 =
   + '没有真错误时 errors 必须写 []；errors 为空非常常见。\n'
   + '【串题素材连接(storyLink)】建议考生已准备的万能素材可怎么套用（中文2-4行）。\n'
   + '【重写】只改 errors 里列出的错误；errors 为空时 rewrite 必须和原句几乎一样。禁止为"更地道"替换原说法。\n'
+  + 'errors 必须是对象数组，每个对象包含 {"original":"原句片段","issue":"中文说明","fix":"改后片段"}，严禁把 errors 写成字符串数组或纯文本列表。\n'
   + '只输出 JSON：{"score":{"overall":6.0,"fluency":6.0,"vocabulary":6.0,"grammar":6.0},"errors":[],"rewrite":"考生原句（或只改真错后的句子）","storyLink":"素材连接建议（中文）","tips":["可积累1","可积累2"]}';
 
 ready(() => {
@@ -808,8 +810,32 @@ async function diagnoseP2(id){
   }
 }
 
+// 把 AI 偶尔返回的非标准 errors（字符串数组或中文说明）尽量归一化为对象数组
+function normalizeErrors(errors){
+  if(!Array.isArray(errors)) return [];
+  return errors.map(e => {
+    if(e && typeof e === 'object') return e;
+    if(typeof e !== 'string') return null;
+    const s = e.trim();
+    if(!s) return null;
+    // 常见模式："xxx" 中 "yyy" 多余，应为 "zzz" / "xxx" 应为 "yyy"
+    let m = s.match(/^[""]([^""]+)[""]\s*中\s*[""]([^""]+)[""]\s*(?:多余|错误|不对|有误)[，,;；]?\s*应为\s*[""]([^""]+)[""](.*)$/);
+    if(m) return { original: m[1].trim(), issue: '「' + m[2].trim() + '」' + (m[0].includes('多余') ? '多余' : '错误'), fix: m[3].trim() };
+    m = s.match(/^[""]([^""]+)[""]\s*(?:中\s*)?[""]([^""]+)[""]\s*应为\s*[""]([^""]+)[""](.*)$/);
+    if(m) return { original: m[1].trim(), issue: '「' + m[2].trim() + '」错误', fix: m[3].trim() };
+    m = s.match(/^[""]([^""]+)[""]\s*应为\s*[""]([^""]+)[""](.*)$/);
+    if(m) return { original: m[1].trim(), issue: '应为「' + m[2].trim() + '」', fix: m[2].trim() };
+    m = s.match(/^([^应为改为→\n]{2,60})\s*(?:应为|应改为|改成|→|->)\s*(.+)$/);
+    if(m) return { original: m[1].trim(), issue: '语法/用词问题', fix: m[2].trim() };
+    // 兜底：把整个字符串当 issue
+    return { original: s, issue: s, fix: '' };
+  }).filter(Boolean);
+}
+
 // 过滤 AI 输出的「自相矛盾」或「无错误硬凑」条目（兜底）
 function cleanErrors(errors){
+  if(!Array.isArray(errors)) return [];
+  errors = normalizeErrors(errors);
   if(!Array.isArray(errors)) return [];
   // 自我否定/自相矛盾的话
   const BAD = /原句没错|原句正确|不应列为|不是错误|不算错误|也正确|可接受|没问题|不存在|没有错误|并不错|其实没错|实际上没错|可保留|不必修改|无需修改|无需改动|没有语法错误|没有明显|不过.*也可以|虽然.*但.*正确|此条不列为|不列为错误/i;
@@ -921,6 +947,8 @@ function hasObviousGrammarIssues(text){
   if(/\babout\s+[A-Z][a-z]+\b/.test(raw)) return true;
   // feel / make me feel ... and + 动词原形，但前面是形容词/名词：feel all right and slow down
   if(/\bfeel\s+\w+(\s+\w+)?\s+and\s+\w+\s+down\b/.test(t)) return true;
+  // 主谓之间插 is：I use social media is frequent / She likes music is good
+  if(/\b(i|you|we|they|he|she)\s+\w+(\s+\w+){1,5}\s+is\s+\w+\b/.test(t)) return true;
   return false;
 }
 
