@@ -137,6 +137,16 @@
   .sp-q-result{margin-top:8px}
   .sp-ysay-in{font-size:13px;color:var(--muted);margin:6px 0 10px;line-height:1.7}
 
+  /* AI 辅助逻辑链：显示在作答框下方，照着讲 */
+  .sp-logic{display:flex;gap:8px;align-items:flex-start;background:var(--primary-soft);border:1px solid var(--primary);border-left:4px solid var(--primary);border-radius:10px;padding:10px 12px;font-size:14px;line-height:1.75;color:var(--ink);margin-top:8px}
+  .sp-logic[hidden]{display:none}
+  .sp-logic>b{color:var(--primary);flex:0 0 auto;font-size:13px;line-height:1.75}
+  .sp-logic-text{white-space:pre-wrap;word-break:break-word}
+  .sp-ref-toggle{display:block;margin-top:8px;font-size:12.5px;color:var(--med);cursor:pointer;background:none;border:none;padding:4px 0;text-decoration:underline dotted;text-align:left}
+  .sp-ref-toggle:hover{color:var(--primary)}
+  .sp-ref-answer{display:none;margin-top:8px;padding:10px 12px;background:var(--bg);border:1px solid var(--line);border-radius:10px;font-size:14px;line-height:1.8;color:var(--ink);white-space:pre-wrap}
+  .sp-ref-answer.open{display:block}
+
   /* 诊断卡片 */
   .diag-sec{margin-bottom:12px}
   .diag-sec>b{display:block;font-size:13px;color:var(--primary);margin-bottom:6px}
