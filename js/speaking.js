@@ -304,7 +304,7 @@ function openDetail(id){
 
   // P1 问题列表（逐题可点开 + 录 + 诊断）
   if(s.type === 'P1' && s.questions && s.questions.length){
-    html += '<div class="sp-q-list-head">Part 1 小问题（点开可手写回答，再让 AI 诊断）</div>';
+    html += '<div class="sp-q-list-head">Part 1 小问题（一题一卡，答完点「下一题」）</div>';
     html += '<ol class="sp-q-list">';
     s.questions.forEach((q, i) => { html += questionItemHtml(q, i, s); });
     html += '</ol>';
@@ -318,9 +318,9 @@ function openDetail(id){
 
     html += '<div class="sp-p2-answer">';
     html += '<textarea class="sp-ans" id="p2Ans" placeholder="在这里写下你的 Part 2 回答（目标写满 2 分钟的内容）…"></textarea>';
-    html += '<div class="sp-logic" id="p2LogicBar" hidden><b>💡 本题逻辑链</b><span class="sp-logic-text"></span></div>';
+    html += '<div class="sp-logic" id="p2LogicBar" hidden><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:14px;height:14px;vertical-align:-2px;margin-right:4px"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 1 4 10.5c-.8.7-1 1.5-1 2.5h-6c0-1-.2-1.8-1-2.5A6 6 0 0 1 12 3z"/></svg>本题逻辑链</b><span class="sp-logic-text"></span></div>';
     html += '<div class="sp-q-btns">';
-    html += '<button class="sp-diag" id="p2Diag" type="button">🤖 AI 评分</button>';
+    html += '<button class="sp-diag" id="p2Diag" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;flex:none"><path d="M12 2l2.4 5.1 5.6.8-4 4.1 1 5.6-5-2.7-5 2.7 1-5.6-4-4.1 5.6-.8z"/></svg>AI 评分</button>';
     html += '<button class="sp-ans-clear" id="p2Clear" type="button">清空</button>';
     html += '</div>';
     html += '<div class="sp-q-result" id="p2Result"></div>';
@@ -330,14 +330,14 @@ function openDetail(id){
 
   // P2 串题思路（保留；AI 辅助按钮已移除）
   if(s.type === 'P2'){
-    html += '<button class="btn btn-primary" id="aiStoryLinkBtn" style="margin-bottom:12px">🔀 AI 串题思路</button>';
+    html += '<button class="btn btn-primary" id="aiStoryLinkBtn" style="margin-bottom:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>AI 串题思路</button>';
   }
   html += '<div class="sp-ai-result" id="aiResult"></div>';
 
   // 保存 + 删除 +（P1）下一题
   html += '<div class="sp-detail-actions"><button class="btn btn-primary" id="saveBtn">保存</button><button class="btn btn-danger" id="delSpBtn">删除此题</button>';
   if(s.type === 'P1'){
-    html += '<button class="btn btn-med" id="nextTopicBtn" style="margin-left:auto">下一题 →</button>';
+    html += '<button class="btn btn-med" id="nextTopicBtn" style="margin-left:auto">下一个话题 →</button>';
   }
   html += '</div>';
 
@@ -732,6 +732,7 @@ async function diagnoseAnswer(id, qi, questionText, answerText){
   if(!s) return;
   const resultEl = document.querySelector('.sp-q-result[data-qi="' + qi + '"]');
   const btn = document.querySelector('.sp-diag[data-qi="' + qi + '"]');
+  const btnHtml = btn ? btn.innerHTML : '';   // B2：缓存原 SVG
   if(btn){ btn.disabled = true; btn.textContent = '诊断中…'; }
   try{
     const messages = [
@@ -757,7 +758,7 @@ async function diagnoseAnswer(id, qi, questionText, answerText){
     }
     toast('AI 诊断失败：' + e.message);
   }finally{
-    if(btn){ btn.disabled = false; btn.textContent = '🤖 AI 诊断'; }
+    if(btn){ btn.disabled = false; btn.innerHTML = btnHtml; }   // B2：恢复 SVG
   }
 }
 
@@ -785,6 +786,7 @@ async function diagnoseP2(id){
   if(!answer){ toast('先说出或写下你的回答'); return; }
 
   const btn = $('#p2Diag');
+  const btnHtml = btn ? btn.innerHTML : '';   // B2：缓存原 SVG
   const resultEl = $('#p2Result');
   if(btn){ btn.disabled = true; btn.textContent = '评分中…'; }
 
@@ -839,7 +841,7 @@ async function diagnoseP2(id){
     resultEl.style.display = 'block';
     toast('AI 评分失败：' + e.message);
   }finally{
-    if(btn){ btn.disabled = false; btn.textContent = '🤖 AI 评分'; }
+    if(btn){ btn.disabled = false; btn.innerHTML = btnHtml; }   // B2：恢复 SVG
   }
 }
 

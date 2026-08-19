@@ -53,6 +53,21 @@
   .score-section ul{margin:0;padding-left:20px;line-height:1.8;font-size:14px}
   .score-section li{margin-bottom:4px}
 
+  /* 评分记录（A1，仿 27-mockup） */
+  .hist{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+  .hist-row{border:1px solid var(--line);border-radius:var(--radius-sm);overflow:hidden}
+  .hist-h{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;transition:background .15s;flex-wrap:wrap}
+  .hist-h:hover{background:var(--surface-2)}
+  .hist-date{font-size:12px;color:var(--muted);white-space:nowrap}
+  .hist-tag{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--primary-soft);color:var(--med);border:1px solid var(--line);font-weight:600;white-space:nowrap}
+  .hist-title{flex:1;min-width:0;font-size:13.5px;color:var(--ink);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hist-score{font-size:14px;font-weight:800;color:var(--primary);white-space:nowrap}
+  .hist-caret{color:var(--muted);font-size:12px;transition:transform .2s}
+  .hist-row.open .hist-caret{transform:rotate(90deg)}
+  .hist-body{display:none;padding:12px;border-top:1px dashed var(--line);background:var(--surface-2);font-size:13px}
+  .hist-row.open .hist-body{display:block}
+  .hist-empty{font-size:13px;color:var(--muted);padding:18px 10px;text-align:center;border:1px dashed var(--line);border-radius:var(--radius-sm)}
+
   /* 模板填空 → AI 评分（紧凑版） */
   .tpl-score{margin-top:12px;border:1px solid var(--line);border-radius:var(--radius);padding:14px;background:var(--surface)}
   .tpl-score .ts-load{color:var(--muted);font-size:14px}
@@ -212,7 +227,10 @@
           <option value="其他">其他</option>
         </select>
       </div>
-      <textarea class="score-essay" id="scoreEssay" placeholder="在此粘贴你的作文（至少 150 词）…"></textarea>
+      <div style="position:relative">
+        <textarea class="score-essay" id="scoreEssay" placeholder="在此粘贴你的作文（至少 150 词）…" style="padding-bottom:30px"></textarea>
+        <span id="scoreWordCount" class="muted" style="font-size:12px;font-weight:700;position:absolute;right:10px;bottom:8px;color:var(--warn-ink);pointer-events:none">0 词</span>
+      </div>
       <div class="form-row" style="margin-top:10px">
         <button class="btn btn-primary" id="scoreBtn">开始评分</button>
       </div>
@@ -220,6 +238,15 @@
 
     <section class="card score-result" id="scoreResult">
       <div id="scoreResultBody"></div>
+    </section>
+
+    <section class="card" id="scoreHistCard" style="margin-top:16px">
+      <div class="form-row" style="align-items:center">
+        <h2>评分记录</h2>
+        <button class="btn" id="scoreHistClear" style="margin-left:auto;color:var(--muted)">清空记录</button>
+      </div>
+      <p class="muted" style="font-size:13px;margin:-4px 0 10px">每次模板评分 / 整篇评分自动存这里，点开可回看明细。</p>
+      <div id="scoreHistList"></div>
     </section>
   </div>
 

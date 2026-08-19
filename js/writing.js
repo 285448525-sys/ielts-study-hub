@@ -13,6 +13,7 @@ ready(() => {
       $('#scorePanel').hidden = curTab !== 'score';
       $('#dictationPanel').hidden = curTab !== 'dictation';
       if(curTab === 'bank') renderBank();
+      if(curTab === 'score') renderScoreHist();
       if(curTab === 'dictation'){ showDictHome(); renderDictationSources(); }
     });
   });
@@ -29,6 +30,30 @@ ready(() => {
   $('#scoreBtn').addEventListener('click', scoreEssay);
   $('#tplScoreBtn').addEventListener('click', scoreTemplate);
   $('#tplCopyBtn').addEventListener('click', copyFilled);
+
+  // A4 实时词数
+  const wcEl = $('#scoreWordCount');
+  const wcInput = $('#scoreEssay');
+  if(wcEl && wcInput){
+    const updWc = () => {
+      const n = (wcInput.value.trim().match(/\S+/g) || []).length;
+      wcEl.textContent = n + ' 词';
+      wcEl.style.color = n >= 150 ? 'var(--primary)' : 'var(--warn-ink)';
+    };
+    wcInput.addEventListener('input', updWc);
+    updWc();
+  }
+
+  // A1 评分记录
+  renderScoreHist();
+  const histClear = $('#scoreHistClear');
+  if(histClear) histClear.addEventListener('click', () => {
+    if(!confirm('确定清空全部评分记录？')) return;
+    DATA.writingScores = [];
+    hubSave();
+    renderScoreHist();
+    toast('已清空');
+  });
 
   // 语料库
   $('#bankFilter').addEventListener('change', renderBank);
@@ -87,7 +112,7 @@ function buildPractice(skeleton){
       const esc = escapeHtml(m[1]);
       html += '<span class="ph-wrap" data-idx="' + phIdx + '">'
             +   '<input class="ph-input" data-ph="' + esc + '" placeholder="' + esc + '">'
-            +   '<button class="ph-hint" type="button" data-ph="' + esc + '" title="AI 给这个空的建议">💡</button>'
+            +   '<button class="ph-hint" type="button" data-ph="' + esc + '" title="AI 给这个空的建议"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;vertical-align:-2px" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 1 4 10.5c-.8.7-1 1.5-1 2.5h-6c0-1-.2-1.8-1-2.5A6 6 0 0 1 12 3z"/></svg></button>'
             +   '<span class="ph-hint-box" data-for="' + esc + '" hidden></span>'
             + '</span>';
       phIdx++;
@@ -201,6 +226,7 @@ async function scoreTemplate(){
   const dimName = isTask1 ? 'TA（Task Achievement 任务完成）' : 'TR（Task Response 任务回应）';
 
   const btn = $('#tplScoreBtn');
+  const btnHtml = btn.innerHTML;   // B2：缓存原 SVG，评分后恢复
   const box = $('#tplScoreBox');
   btn.disabled = true; btn.textContent = '评分中…';
   box.hidden = false;
@@ -251,7 +277,8 @@ ${s.text}` }
   }catch(e){
     box.innerHTML = '<div class="ts-load">AI 调不通：' + escapeHtml(e.message) + '</div>';
   }finally{
-    btn.disabled = false; btn.textContent = '🤖 AI 按官方 4 维度评分';
+    btn.disabled = false; btn.innerHTML = btnHtml;   // B2：恢复 SVG
+    renderScoreHist();
   }
 }
 
@@ -289,6 +316,69 @@ function tplScoreHtml(r, isTask1){
     html += '<div class="ts-sec"><h4>最优先改这个</h4><div class="ts-fix">' + fixes.map(escapeHtml).join('<br>') + '</div></div>';
   }
   return html;
+}
+
+/* ===== 评分记录（A1） ===== */
+function renderScoreHist(){
+  const box = $('#scoreHistList');
+  if(!box) return;
+  const list = (DATA.writingScores || []).slice().reverse().slice(0, 20);
+  if(!list.length){ box.innerHTML = '<div class="hist-empty">还没有评分记录，去上面评一篇吧。</div>'; return; }
+  box.innerHTML = list.map((rec, i) => {
+    const modeTag = rec.mode === 'template' ? '模板评分' : '整篇评分';
+    const title = rec.mode === 'template' ? (rec.tplTitle || '模板') : (rec.type || '整篇');
+    const overall = (!rec.parsed || !rec.result || rec.result.overall == null) ? '未解析' : rec.result.overall;
+    return '<div class="hist-row" data-idx="' + i + '">'
+      + '<div class="hist-h">'
+      +   '<span class="hist-date">' + escapeHtml(rec.date || '') + '</span>'
+      +   '<span class="hist-tag">' + modeTag + '</span>'
+      +   '<span class="hist-title">' + escapeHtml(title) + '</span>'
+      +   '<span class="hist-score">' + escapeHtml(String(overall)) + '</span>'
+      +   '<span class="hist-caret">▶</span>'
+      + '</div>'
+      + '<div class="hist-body">' + histDetailHtml(rec) + '</div>'
+      + '</div>';
+  }).join('');
+  box.querySelectorAll('.hist-row').forEach(row => {
+    const head = row.querySelector('.hist-h');
+    if(head) head.addEventListener('click', () => row.classList.toggle('open'));
+  });
+}
+
+function histDetailHtml(rec){
+  const r = rec.result;
+  if(!rec.parsed || !r || typeof r === 'string'){
+    const raw = typeof r === 'string' ? r : JSON.stringify(r, null, 2);
+    return '<pre style="white-space:pre-wrap;font-size:12.5px;line-height:1.7;margin:0">' + escapeHtml(raw) + '</pre>';
+  }
+  // 模板评分 → 复用 tplScoreHtml
+  if(rec.mode === 'template'){
+    const isTask1 = /小作文/.test(rec.tplTitle || '');
+    return tplScoreHtml(r, isTask1);
+  }
+  // 整篇评分 → 复用 score-* 结构
+  let h = '';
+  h += '<div class="score-overall" style="font-size:20px">预估总分：' + escapeHtml(r.overall != null ? r.overall : 'N/A') + '</div>';
+  if(r.breakdown){
+    h += '<div class="score-breakdown">';
+    ['TR','CC','LR','GRA'].forEach(k => {
+      if(r.breakdown[k] != null) h += '<div class="score-item"><b>' + escapeHtml(r.breakdown[k]) + '</b><span>' + k + '</span></div>';
+    });
+    h += '</div>';
+  }
+  if(Array.isArray(r.longSentences) && r.longSentences.length){
+    h += '<div class="score-section"><h4>长 / 复杂句分析</h4><ul>';
+    r.longSentences.forEach(ls => {
+      h += '<li><b>（' + escapeHtml(ls.wordCount != null ? ls.wordCount : '?') + ' 词）</b>' + escapeHtml(ls.sentence || '') + '<br><span class="muted">建议：' + escapeHtml(ls.suggestion || '') + '</span></li>';
+    });
+    h += '</ul></div>';
+  }
+  if(Array.isArray(r.suggestions) && r.suggestions.length){
+    h += '<div class="score-section"><h4>改进建议</h4><ul>';
+    r.suggestions.forEach(s => { h += '<li>' + escapeHtml(s) + '</li>'; });
+    h += '</ul></div>';
+  }
+  return h;
 }
 
 function copyFilled(){
@@ -385,6 +475,7 @@ async function scoreEssay(){
   if(essay.length < 150){ toast('作文太短，至少需要 150 词'); return; }
 
   const btn = $('#scoreBtn');
+  const btnHtml = btn.innerHTML;   // 缓存原文，评分后恢复
   btn.disabled = true; btn.textContent = '评分中…';
   const resultEl = $('#scoreResult');
   const bodyEl = $('#scoreResultBody');
@@ -405,7 +496,6 @@ async function scoreEssay(){
       bodyEl.innerHTML = '<div class="score-section"><h4>AI 返回（非标准格式）</h4><div style="white-space:pre-wrap;font-size:14px;line-height:1.8">' + escapeHtml(content) + '</div></div>';
       DATA.writingScores.push({ id: uid(), date: todayKey(), type, essay, result: content, parsed: false });
       hubSave();
-      btn.disabled = false; btn.textContent = '开始评分';
       return;
     }
 
@@ -442,6 +532,7 @@ async function scoreEssay(){
   }catch(e){
     bodyEl.innerHTML = '<p class="muted">AI 服务暂不可用：' + escapeHtml(e.message) + '</p><p class="muted" style="font-size:13px">请检查「设置」中的 AI 接口地址。</p>';
   }finally{
-    btn.disabled = false; btn.textContent = '开始评分';
+    btn.disabled = false; btn.innerHTML = btnHtml;
+    renderScoreHist();
   }
 }
