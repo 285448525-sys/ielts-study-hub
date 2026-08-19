@@ -18,9 +18,15 @@ function startTick(){
    否则新增的 targetSec/mode 会被覆盖清空（软导航重跑也不会丢）。 */
 function persistActive(){
   if(!active) return;
+  active.updatedAt = Date.now();   // 本机最新操作时刻：供 hub:data-merged 判断「是否另一端更新」
   saveActive({ moduleId: active.moduleId, subId: active.subId, startTs: active.startTs,
     paused: active.paused, pauseStart: active.pauseStart, pauseAccum: active.pauseAccum,
-    targetSec: active.targetSec || null, mode: active.mode || 'up' });
+    targetSec: active.targetSec || null, mode: active.mode || 'up', updatedAt: active.updatedAt });
+  // 云同步镜像：带 updatedAt 供另一端比较新旧（低频：仅开始/暂停/继续/切模式时调用）
+  DATA.activeTimer = { moduleId: active.moduleId, moduleName: active.moduleName, subId: active.subId, subName: active.subName,
+    startTs: active.startTs, paused: active.paused, pauseStart: active.pauseStart, pauseAccum: active.pauseAccum,
+    targetSec: active.targetSec || null, mode: active.mode || 'up', updatedAt: active.updatedAt };
+  hubSave();
 }
 
 function setModeUI(mode){
@@ -184,6 +190,7 @@ function stopSession(){
   clearActive();   // 关键：结束后必须清掉 localStorage 里的活动会话，
                    // 否则下次进页面会被当成「未结束的计时」按旧 startTs 恢复，
                    // 再结束一次就重复入库、时长虚高。
+  DATA.activeTimer = { ended: true, updatedAt: Date.now() };   // 广播"已结束"，覆盖另一端的进行中镜像
   hubSave();
   const d = active; active = null;   // 先清活动态再广播，避免徽标闪一下旧会话
   // 通知仪表盘/侧边栏刷新「今日已学」（解耦：只广播事件，不直接调其他页函数）
@@ -241,6 +248,17 @@ function updateTimer(){
 
 ready(() => {
   stopTick();   // 进页面第一件事：清掉上一次 eval 遗留的孤儿心跳
+  // 云端合并后如镜像较新（含另一端 ended 广播）→ reload 重走恢复逻辑。
+  // 软导航会重跑本脚本，故挂 window 句柄先解再绑防重复；本机发起的操作会先写
+  // active.updatedAt（最新），不会被自己的 reload 打断，仅另一端有更新才重载。
+  document.removeEventListener('hub:data-merged', window.__timerMerged);
+  window.__timerMerged = () => {
+    const mirror = DATA.activeTimer;
+    if(!mirror) return;
+    const myTs = active ? (active.updatedAt || 0) : 0;
+    if(_num(mirror.updatedAt) > myTs) location.reload();   // 云端较新（含 ended）：重载走恢复逻辑
+  };
+  document.addEventListener('hub:data-merged', window.__timerMerged);
   $('#stopBtn').addEventListener('click', stopSession);
   $('#pauseBtn').addEventListener('click', togglePause);
   document.querySelectorAll('#modeSeg .seg-btn').forEach(b => {
@@ -251,7 +269,19 @@ ready(() => {
       updateTimer();
     });
   });
-  const saved = loadActive();
+  /* 恢复源选择：本机 saved 与云端镜像（DATA.activeTimer）取 updatedAt 新者；ended 镜像 = 另一端已结束 */
+  const localSaved = loadActive();
+  const mirror = DATA.activeTimer || null;
+  const lt = _num(localSaved && localSaved.updatedAt);
+  const mt = _num(mirror && mirror.updatedAt);
+  let saved = null;
+  if(mirror && mirror.ended && mt >= lt){
+    if(localSaved) clearActive();            // 另一端已结束且较新：本机计时作废
+  } else if(mirror && !mirror.ended && mt >= lt){
+    saved = mirror;                          // 云端进行中且较新：按镜像恢复（镜像含 moduleName/subName，恢复分支字段齐全）
+  } else {
+    saved = localSaved;                      // 否则按本机（旧行为）
+  }
   let m = null, fallbackSub = null;
   if(saved){
     if(saved.moduleId) m = MODULES.find(x => x.id === saved.moduleId);
@@ -268,6 +298,7 @@ ready(() => {
       pauseAccum: saved.pauseAccum || 0 };
     active.targetSec = saved.targetSec || null;
     active.mode = saved.mode || 'up';
+    active.updatedAt = saved.updatedAt || Date.now();
     if(active.targetSec) $('#goalMin').value = Math.round(active.targetSec/60);
     setModeUI(active.mode);
     $('#activeInfo').innerHTML = '<strong>' + m.name + '</strong> 进行中';

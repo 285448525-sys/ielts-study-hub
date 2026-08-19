@@ -508,6 +508,7 @@ let DATA = {
   plans: [],
   materials: null,   // 万能素材 store：null=未迁移；迁移后 {persona, materials:[], gaps:[], answers:{}}
   corpus: [],
+  activeTimer: null,   // 进行中计时的跨设备镜像：{moduleId,...,startTs,paused,pauseStart,pauseAccum,targetSec,mode,updatedAt}；结束后为 {ended:true,updatedAt}
   scores: [
     { id:'seed_first', date:'2026-08-02', listening:4, reading:5, writing:5, speaking:4.5, note:'首考' }
   ],

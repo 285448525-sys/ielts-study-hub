@@ -595,6 +595,9 @@ function mergeData(local, cloud){
   }
   // 万能素材：素材卡按 id 并集；persona/gaps/answers 云端非空取云端
   const mt = _mergeMaterials(local.materials, cloud.materials); out.materials = mt.data; changes += mt.changes;
+  // 进行中计时：updatedAt 新者胜（含 ended 广播）
+  const at = _pickNewer(local.activeTimer, cloud.activeTimer);
+  if(JSON.stringify(at) !== JSON.stringify(local.activeTimer || null)){ out.activeTimer = at; changes++; }
   // 设置白名单：云端非空且不同 → 取云端
   const ls = local.settings || {}; const cs = cloud.settings || {};
   out.settings = Object.assign({}, ls);
@@ -635,6 +638,8 @@ function _mergeMaterials(local, cloud){
   out.answers = Object.assign({}, local.answers||{}, cloud.answers||{});
   return { data: out, changes };
 }
+/* 进行中计时镜像：取 updatedAt 较新者（ended 广播也算较新方） */
+function _pickNewer(a, b){ return (_num(b && b.updatedAt) > _num(a && a.updatedAt)) ? b : (a || null); }
 /* 从云端合并拉取（替代整份覆盖）。silent=true 时仅在有更新时提示，用于自动拉取 */
 async function cloudDownload(silent){
   const phone = DATA.settings.syncCode;
@@ -649,6 +654,7 @@ async function cloudDownload(silent){
       DATA = m.data; // 合并而非覆盖：保留本机进度，并入云端新增/更新
       hubSave();
       toast('已合并云端 ' + m.changes + ' 处更新');
+      document.dispatchEvent(new CustomEvent('hub:data-merged'));   // 计时页监听：镜像较新则 reload 重恢复
     } else if(!silent){
       toast('云端没有比本机更新的内容');
     }
