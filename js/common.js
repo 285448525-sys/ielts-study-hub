@@ -561,7 +561,7 @@ function _mergeWords(local, cloud){
 function _mergeArray(local, cloud){
   local = Array.isArray(local) ? local : [];
   cloud = Array.isArray(cloud) ? cloud : [];
-  const keyOf = it => (it && it.id != null) ? ('id:'+it.id) : (it && it.ts != null) ? ('ts:'+it.ts) : null;
+  const keyOf = it => (it && it.id != null) ? ('id:'+it.id) : (it && it.ts != null) ? ('ts:'+it.ts) : (it != null ? 'h:'+JSON.stringify(it) : null);
   const tsOf  = it => _num(it && (it.ts || it.updatedAt));
   const byKey = new Map();
   let changes = 0;
@@ -652,9 +652,11 @@ async function cloudDownload(silent){
     const m = mergeData(DATA, data.data);
     if(m.changes > 0){
       DATA = m.data; // 合并而非覆盖：保留本机进度，并入云端新增/更新
-      hubSave();
-      toast('已合并云端 ' + m.changes + ' 处更新');
-      document.dispatchEvent(new CustomEvent('hub:data-merged'));   // 计时页监听：镜像较新则 reload 重恢复
+      // 直接写 localStorage，不走 hubSave——避免「合并云端数据后又触发上传→另一端又拉到→乒乓刷屏」。
+      // 本端独有数据会在用户下次操作（hubSave）时自然上传，无需在合并时立即回传。
+      try{ localStorage.setItem(HUB_KEY, JSON.stringify(DATA)); }catch(e){}
+      if(!silent) toast('已合并云端 ' + m.changes + ' 处更新');
+      document.dispatchEvent(new CustomEvent('hub:data-merged'));
     } else if(!silent){
       toast('云端没有比本机更新的内容');
     }

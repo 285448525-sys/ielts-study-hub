@@ -253,10 +253,9 @@ ready(() => {
   // active.updatedAt（最新），不会被自己的 reload 打断，仅另一端有更新才重载。
   document.removeEventListener('hub:data-merged', window.__timerMerged);
   window.__timerMerged = () => {
-    const mirror = DATA.activeTimer;
-    if(!mirror) return;
-    const myTs = active ? (active.updatedAt || 0) : 0;
-    if(_num(mirror.updatedAt) > myTs) location.reload();   // 云端较新（含 ended）：重载走恢复逻辑
+    // 运行中不 reload——reload 会导致页面频繁刷新（手机端切前台触发 visibilitychange→cloudDownload→merged→reload 循环）。
+    // 跨设备计时恢复改为仅在页面加载时（ready）从镜像恢复，运行中不自动重载。手动刷新即可查看最新状态。
+    return;
   };
   document.addEventListener('hub:data-merged', window.__timerMerged);
   $('#stopBtn').addEventListener('click', stopSession);
