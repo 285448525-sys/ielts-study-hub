@@ -819,11 +819,12 @@ async function generateAIHelper(id, qi){
       + '考生会给你一个 Part 1 问题和她的个人素材（人设/经历）。\n'
       + '请完成两件事：\n'
       + '1. 给一条中文「逻辑链」：用若干中文短语以"—"（中文横杠/破折号）串接，把这道题该怎么讲（表态→原因1→原因2→细节/感受）按顺序铺开，越长越细越好、数量不固定，让考生看着它就能自己组织英文，严禁输出"[横杠]"这几个字。\n'
-      + '2. 按固定框架生成英文参考回答，一共 3-4 句：\n'
-      + '第 1 句：直接表态，口语化开头（Yes, I do. / No, not really. / Definitely. / To be honest, ... 等），不绕弯子。\n'
-      + '第 2-4 句：给原因并自然展开，把考生人设细节（身份/城市/爱好等）自然揉进回答，像真人聊天。\n'
+      + '2. 按题目类型生成英文参考回答，一共 2-3 句，不要多：\n'
+      + '   - 如果题目是一般疑问句（以 Do / Does / Are / Can / Have / Did / Would 等开头），第 1 句才用 Yes, I do. / No, not really. / Definitely. / To be honest, ... 这类表态开头。\n'
+      + '   - 如果题目是特殊疑问句（以 What / Where / When / Why / Who / How long / How often / How many 等开头），**不要回答 Yes/No**，第 1 句直接给出事实答案（如 "I\'ve lived here for about 18 years." / "It\'s usually in the evening."），不要绕弯子。\n'
+      + '   - 剩下的 1-2 句给原因或自然展开，把考生人设细节（身份/城市/爱好等）自然揉进回答，像真人聊天。\n'
       + '「稍高级」示例（整段只混入 1-2 个稍高级结构，别句句都用）：like → be really into；good → enjoyable；可加一个 because/when 从句或 who/which 定语从句（如 the doctor who gave me medicine / a book which helps me relax）；可用 to be honest / actually / I\'d say 过渡。\n'
-      + '要求：不要写复杂长句；参考回答不要超过 4 句；只使用素材里有的信息，不编造；输出严格 JSON：{"logicChain":"中文逻辑链","answer":"英文参考回答"}，不要任何解释文字。';
+      + '要求：不要写复杂长句；参考回答不要超过 3 句；只使用素材里有的信息，不编造；输出严格 JSON：{"logicChain":"中文逻辑链","answer":"英文参考回答"}，不要任何解释文字。';
     const content = await callRelay('speaking_aihelper', [
       { role:'system', content: sys },
       { role:'user', content:'P1 题目：' + questionText + '\n\n考生个人素材：\n' + (persona || '（暂无素材，请用通用回答）') }
