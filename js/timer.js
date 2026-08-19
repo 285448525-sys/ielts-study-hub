@@ -58,7 +58,16 @@ function doneNotify(title, body){
   }catch(e){}
 }
 
-/* 一个模块 = 一张卡片 + 一个「开始」按钮（不再下钻子任务） */
+/* 模块图标：单色线性 SVG（emoji → SVG，与全站图标规范一致；仅计时页用） */
+const MOD_ICONS = {
+  listening:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="13" width="4" height="7" rx="1.5"/><rect x="17" y="13" width="4" height="7" rx="1.5"/></svg>',
+  reading:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h5v16H6a2 2 0 0 0-2 2z"/><path d="M20 5a2 2 0 0 0-2-2h-5v16h5a2 2 0 0 1 2 2z"/></svg>',
+  writing:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4L15.5 5.5a2 2 0 0 1 3 3L8 19z"/><line x1="14" y1="7" x2="17" y2="10"/></svg>',
+  speaking:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v10H9l-4 4z"/><line x1="8" y1="9" x2="15" y2="9"/></svg>',
+  vocab:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12a2 2 0 0 1 2 2v14H8a2 2 0 0 1-2-2z"/><path d="M9 8h6M9 12h6"/></svg>'
+};
+
+/* 一个模块 = 一个 chip + 一个小「开始」按钮（不再下钻子任务） */
 function moduleCard(m){
   const running = active && active.moduleId === m.id;
   const otherRunning = active && active.moduleId !== m.id;
@@ -67,8 +76,7 @@ function moduleCard(m){
   const disabled = otherRunning ? 'disabled' : '';
   const card = document.createElement('div');
   card.className = 'mod-card' + (running ? ' running' : '');
-  card.style.borderTopColor = m.color;
-  card.innerHTML = '<div class="mod-ic">' + m.icon + '</div>' +
+  card.innerHTML = '<div class="mod-ic">' + (MOD_ICONS[m.id] || m.icon) + '</div>' +
     '<div class="mod-name">' + m.name + '</div>' +
     '<button class="btn ' + btnCls + ' timer-start" data-mod="' + m.id + '" ' + disabled + '>' + btnTxt + '</button>';
   return card;
