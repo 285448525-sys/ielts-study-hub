@@ -27,11 +27,16 @@ var SYS_DIAG =
   + '\n'
   + '【黑白判定——要么是真错，要么闭嘴】\n'
   + '- errors 数组只能放真正的语法/用词错误。以下情况严禁放入 errors：原句可接受、只是换一种说法更自然；原句和 fix 都对（如 "has a lot of changes" 和 "has changed a lot" 都正确）；纯风格/措辞偏好；标点/大小写/空格/断句相关。\n'
-  + '- issue 字段禁止出现"也可以""也正确""更自然""更地道""不算错误""不是错误""可接受"等缓冲词；issue 只能写"哪里错了 + 对应语法规则"。\n'
+  + '- issue 字段禁止出现"也可以""也正确""更自然""更地道""不算错误""不是错误""可接受""没问题""不存在""不应该""不必""不应列为错误"等缓冲词或自我否定；issue 只能写"哪里错了 + 对应语法规则"。\n'
   + '- 若没有真正的语法/用词错误，errors 必须是空数组 []，不要写"很少"或"无"占位。\n'
   + '- rewrite 只修正 errors 里列出的真实错误；不要把可接受的说法硬改成另一种；不要为"更自然"去改动没有错的地方。\n'
   + '- tips 只给 1-2 条真正值得积累的地道替换/句型，不要展开解释，不要重复 rewrite 已处理的内容。\n'
   + '- 标点与大小写一律视为正确，errors 里绝不能出现任何标点/大小写类条目（如"缺少逗号""首字母大写"）。\n'
+  + '\n'
+  + '【错误项硬过滤——最终输出前必须自检并删除】\n'
+  + '- 若某个条目的 original 与 fix 完全相同（忽略大小写和前后空格），该条目必须从 errors 中删除。\n'
+  + '- 若某个条目的 issue 中出现"原句没错""原句正确""不应列为错误""不是错误""不算错误""也正确""可接受""没问题""不存在错误"等表示"其实没错"的字样，该条目必须删除。\n'
+  + '- 经过上述过滤后，若 errors 为空，则必须输出 errors: []，不允许再补任何条目。\n'
   + '\n'
   + '【常见正确用法，不要误判为错误】\n'
   + '- a lot of / lots of 既可接不可数名词（food, water, information, advice, furniture, money），也可接可数复数（books, people, friends），都是正确的，切勿判错。\n'
@@ -42,6 +47,11 @@ var SYS_DIAG =
   + '正确诊断应为：\n'
   + 'errors: [{"original":"There are a lot of delicious food","issue":"food 是不可数名词，there be 句型中 be 动词要用 is（主谓一致），不能用 are","fix":"There is a lot of delicious food"}]\n'
   + 'rewrite: "There is a lot of delicious food in my hometown."（a lot of 接不可数名词完全正确，保留，不判错）\n'
+  + '\n'
+  + '考生回答："I\'m sure they all politely greet you back."（该句语法正确）\n'
+  + '正确诊断应为：\n'
+  + 'errors: []\n'
+  + 'rewrite: "I\'m sure they all politely greet you back."（原句已正确，无需改动）\n'
   + '\n'
   + '严格要求只输出如下 JSON（不要任何解释文字，不要输出 pronunciation / overall 字段）：'
   + '{"score":{"fluency":6.0,"vocabulary":5.0,"grammar":5.0},"errors":[{"original":"原句片段","issue":"中文简说问题+对应语法规则","fix":"修改后片段"}],"rewrite":"按原思路的地道简化英文重写","tips":["可积累替换/句型1","可积累替换/句型2"]}';
@@ -58,7 +68,7 @@ var SYS_DIAG_P2 =
   + '- 语法：先判断「错误造成理解障碍的程度」，再定分。错误极少造成理解困难 → 5.5-6.0（官方6分：复杂结构出错但极少造成理解困难）；基本句型准确、有些小错（时态/单复数/介词）偶尔造成轻微障碍 → 5.0-5.5（官方5分：基本句型合理准确）；只有错误频繁且明显影响理解 → 4.5 或以下（官方4分：错误频发时常造成理解困难）。零散小错扣到 4.5 是错的——官方 5 分档本就允许不少错误。\n'
   + '- 词汇：用词正确、意思表达清晰（哪怕全是基础词）→ 6.0——官方 6 分不要求高级词（词汇量足以详谈话题，意思表达清晰）；明显用词不当/不地道、或过于简单到影响表达 → 5.5；词汇贫乏、很难谈陌生话题 → 5.0 或以下（官方5分：灵活性有限）。别因为「没用什么高级词」就扣分。\n'
   + '- 流利度：愿意交流、偶尔重复/自我纠正但基本连贯 → 5.5-6.0（官方6分）；靠重复/自我纠正/放慢语速维持语流 → 5.0-5.5（官方5分）。别因为「句子简单」压低分数。\n'
-  + '2) 【语法纠错】逐条指出真正的语法/用词错误：原句片段 → 问题(中文简说+对应语法规则) → 修改；没有就如实说很少。标点与大小写永远不算错误，禁止指出。\n'
+  + '2) 【语法纠错】逐条指出真正的语法/用词错误：原句片段 → 问题(中文简说+对应语法规则) → 修改；没有就如实输出空数组。标点与大小写永远不算错误，禁止指出。\n'
   + '3) 【串题素材连接】考生有若干"万能故事"素材（见用户消息末尾），分析其回答思路，具体建议可套用哪个/哪些素材、怎么调整措辞自然嵌入；若没用到任何素材，指出最适合的并给嵌入示例。\n'
   + '4) 给一版更地道的英文重写（简单句型为主），以及 1-2 个可积累替换。\n'
   + '\n'
@@ -69,11 +79,16 @@ var SYS_DIAG_P2 =
   + '\n'
   + '【黑白判定——要么是真错，要么闭嘴】\n'
   + '- errors 数组只能放真正的语法/用词错误。以下情况严禁放入 errors：原句可接受、只是换一种说法更自然；原句和 fix 都对（如 "has a lot of changes" 和 "has changed a lot" 都正确）；纯风格/措辞偏好；标点/大小写/空格/断句相关。\n'
-  + '- issue 字段禁止出现"也可以""也正确""更自然""更地道""不算错误""不是错误""可接受"等缓冲词；issue 只能写"哪里错了 + 对应语法规则"。\n'
+  + '- issue 字段禁止出现"也可以""也正确""更自然""更地道""不算错误""不是错误""可接受""没问题""不存在""不应该""不必""不应列为错误"等缓冲词或自我否定；issue 只能写"哪里错了 + 对应语法规则"。\n'
   + '- 若没有真正的语法/用词错误，errors 必须是空数组 []，不要写"很少"或"无"占位。\n'
   + '- rewrite 只修正 errors 里列出的真实错误；不要把可接受的说法硬改成另一种；不要为"更自然"去改动没有错的地方。\n'
   + '- tips 只给 1-2 条真正值得积累的地道替换/句型，不要展开解释，不要重复 rewrite 已处理的内容。\n'
   + '- 标点与大小写一律视为正确，errors 里绝不能出现任何标点/大小写类条目（如"缺少逗号""首字母大写"）。\n'
+  + '\n'
+  + '【错误项硬过滤——最终输出前必须自检并删除】\n'
+  + '- 若某个条目的 original 与 fix 完全相同（忽略大小写和前后空格），该条目必须从 errors 中删除。\n'
+  + '- 若某个条目的 issue 中出现"原句没错""原句正确""不应列为错误""不是错误""不算错误""也正确""可接受""没问题""不存在错误"等表示"其实没错"的字样，该条目必须删除。\n'
+  + '- 经过上述过滤后，若 errors 为空，则必须输出 errors: []，不允许再补任何条目。\n'
   + '\n'
   + '【常见正确用法，不要误判为错误】\n'
   + '- a lot of / lots of 既可接不可数名词（food, water, information 等），也可接可数复数（books, people 等），都正确，切勿判错。\n'
@@ -765,10 +780,11 @@ async function diagnoseAnswer(id, qi, questionText, answerText){
 // P2 诊断结构化渲染（语法纠错 + 地道优化 + 串题素材连接 + 可积累）
 function renderP2Diag(el, j){
   if(!j || !Array.isArray(j.errors)){ el.innerHTML = ''; return false; }
+  const errs = cleanErrors(j.errors);
   let h = (j.score ? scoreHeaderHtml(parseScore(j.score), '本次得分') : '');
   h += '<div class="diag-sec"><b>① 语法/用词纠错</b>';
-  h += j.errors.length
-    ? j.errors.map(e => '<div class="diag-err"><span class="diag-orig">' + escapeHtml(e.original || '') + '</span> → <span class="diag-fix">' + escapeHtml(e.fix || '') + '</span><div class="diag-issue">' + escapeHtml(e.issue || '') + '</div></div>').join('')
+  h += errs.length
+    ? errs.map(e => '<div class="diag-err"><span class="diag-orig">' + escapeHtml(e.original || '') + '</span> → <span class="diag-fix">' + escapeHtml(e.fix || '') + '</span><div class="diag-issue">' + escapeHtml(e.issue || '') + '</div></div>').join('')
     : '<div class="diag-ok">没发现明显语法错误～</div>';
   h += '</div>';
   if(j.rewrite) h += '<div class="diag-sec"><b>② 地道优化版</b><div class="diag-rewrite">' + escapeHtml(j.rewrite) + '</div></div>';
@@ -845,13 +861,29 @@ async function diagnoseP2(id){
   }
 }
 
+// 过滤 AI 输出的「自相矛盾」或「无错误硬凑」条目（兜底）
+function cleanErrors(errors){
+  if(!Array.isArray(errors)) return [];
+  const BAD = /原句没错|原句正确|不应列为|不是错误|不算错误|也正确|可接受|没问题|不存在|没有错误|并不错|其实没错|实际上没错|可保留|不必修改|无需修改|无需改动|没有语法错误|没有明显|不过.*也可以|虽然.*但.*正确/i;
+  return errors.filter(e => {
+    if(!e || typeof e !== 'object') return false;
+    const orig = String(e.original || '').trim();
+    const fix = String(e.fix || '').trim();
+    if(!orig || !fix) return false;
+    if(orig.toLowerCase() === fix.toLowerCase()) return false;
+    if(BAD.test(String(e.issue || ''))) return false;
+    return true;
+  });
+}
+
 // 渲染诊断结构化卡片
 function renderDiag(el, j, raw){
   const scoreHtml = (j && j.score) ? scoreHeaderHtml(parseScore(j.score), '本题得分') : '';
+  const errs = cleanErrors(j && j.errors);
   if(j && Array.isArray(j.errors) && j.rewrite){
     let h = '<div class="diag-sec"><b>① 语法/用词诊断</b>';
-    h += j.errors.length
-      ? j.errors.map(e => '<div class="diag-err"><span class="diag-orig">' + escapeHtml(e.original || '') + '</span> → <span class="diag-fix">' + escapeHtml(e.fix || '') + '</span><div class="diag-issue">' + escapeHtml(e.issue || '') + '</div></div>').join('')
+    h += errs.length
+      ? errs.map(e => '<div class="diag-err"><span class="diag-orig">' + escapeHtml(e.original || '') + '</span> → <span class="diag-fix">' + escapeHtml(e.fix || '') + '</span><div class="diag-issue">' + escapeHtml(e.issue || '') + '</div></div>').join('')
       : '<div class="diag-ok">没发现明显错误，继续保持～</div>';
     h += '</div>';
     h += '<div class="diag-sec"><b>② 按你思路的地道重写</b><div class="diag-rewrite">' + escapeHtml(j.rewrite) + '</div></div>';
