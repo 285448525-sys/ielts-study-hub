@@ -662,13 +662,8 @@ async function cloudDownload(silent){
       try{ localStorage.setItem(HUB_KEY, JSON.stringify(DATA)); }catch(e){}
       toast('已合并云端 ' + m.changes + ' 处更新');
       document.dispatchEvent(new CustomEvent('hub:data-merged'));
-      // 自动同步有更新时刷新页面显示新数据（800ms 内先让用户看到 toast）；
-      // 手动下载（!silent）只 toast 不 reload；进行中的计时页不 reload（避免打断计时）。
-      // 防抖：5 秒内不重复 reload，兜底任何意外循环（如 localStorage 写入失败导致的假变化）。
-      if(silent && !window.__timerActive && Date.now() - (window.__lastSyncReload || 0) > 5000){
-        window.__lastSyncReload = Date.now();
-        setTimeout(() => location.reload(), 800);
-      }
+      // 自动同步不再刷新页面——避免用户在 speaking/背单词/做题等沉浸式页面被打断、
+      // 回到默认列表或丢失滚动位置。新数据合并后只 toast 提示，手动刷新/切页即可看到。
     } else if(!silent){
       toast('云端没有比本机更新的内容');
     }
