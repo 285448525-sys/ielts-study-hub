@@ -873,14 +873,13 @@ function diffSentenceHtml(answer, errs){
   return '<div class="diag-sentence-diff">' + html + '</div>';
 }
 
-// 强制评分兜底：没有真错误时，语法和词汇不得低于 6.0（用户规则：全对至少6，小错听懂5.5）
+// 强制评分兜底（用户规则）：无真错误 → 语法/词汇 ≥6.0；有错但 AI 能听懂（能列出错误=已读懂） → ≥5.5
 function normalizeScore(j){
   if(!j || !j.score) return j;
   const errs = cleanErrors(j.errors);
-  if(errs.length === 0){
-    if(j.score.grammar != null && Number(j.score.grammar) < 6) j.score.grammar = 6;
-    if(j.score.vocabulary != null && Number(j.score.vocabulary) < 6) j.score.vocabulary = 6;
-  }
+  const floor = errs.length === 0 ? 6 : 5.5;
+  if(j.score.grammar != null && Number(j.score.grammar) < floor) j.score.grammar = floor;
+  if(j.score.vocabulary != null && Number(j.score.vocabulary) < floor) j.score.vocabulary = floor;
   return j;
 }
 
