@@ -549,7 +549,7 @@ function _mergeWords(local, cloud){
     const ndue = _later(ex.mcDue, w.mcDue); if(ndue !== ex.mcDue){ ex.mcDue = ndue; changed = true; }
     const cn1 = (ex.cn||'').trim(), cn2 = (w.cn||'').trim();
     const ncn = (cn1 && cn2) ? (cn1.length >= cn2.length ? cn1 : cn2) : (cn1 || cn2);
-    if(ncn !== ex.cn){ ex.cn = ncn; changed = true; }
+    if(ncn !== (ex.cn||'').trim()){ ex.cn = ncn; changed = true; }   // 与 trim 后比较，避免首尾空格造成每次误判"更新"
     if(changed) changes++;
   }
   // 云端独有词 = 真正新增
@@ -633,8 +633,8 @@ function _mergeMaterials(local, cloud){
   (local.materials||[]).forEach(m => { if(m && m.id) map.set(m.id, m); });
   (cloud.materials||[]).forEach(m => { if(m && m.id && !map.has(m.id)){ map.set(m.id, m); changes++; } });
   out.materials = Array.from(map.values());
-  if(cloud.persona){ out.persona = cloud.persona; changes++; }
-  if(Array.isArray(cloud.gaps) && cloud.gaps.length){ out.gaps = cloud.gaps; changes++; }
+  if(cloud.persona && JSON.stringify(cloud.persona) !== JSON.stringify(local.persona)){ out.persona = cloud.persona; changes++; }
+  if(Array.isArray(cloud.gaps) && cloud.gaps.length && JSON.stringify(cloud.gaps) !== JSON.stringify(local.gaps)){ out.gaps = cloud.gaps; changes++; }
   out.answers = Object.assign({}, local.answers||{}, cloud.answers||{});
   return { data: out, changes };
 }
