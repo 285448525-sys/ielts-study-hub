@@ -4,12 +4,6 @@
      title, subject, qtype, trap, howto:[], wrongPoint, rule:[], words:[], raw }
    兼容老数据 kind:'question' / 'word'（只读渲染，不再提供录入表单）。 */
 
-var EB_TRAPS = [
-  'FALSE与NOT GIVEN混淆', '定位错段/定位丢失', '同义替换没认出', '原词陷阱(原词重现)',
-  '比较级/绝对化词', '目的vs手段', '细节看漏(时态/数字/限定词)', '听力连读没听出',
-  '听力答案抢跑/漏听', '拼写', '生词不认识', '时间不够/没做完', '粗心', '其他'
-];
-
 ready(() => {
   /* 子 tab 切换：长难句拆解 / 错题本（默认长难句在前） */
   const wordTabs = document.querySelectorAll('#wordTabs [data-sub]');
@@ -24,7 +18,6 @@ ready(() => {
   /* 错题本 */
   $('#ebAnalyze').addEventListener('click', analyzeEntry);
   $('#ebRaw').addEventListener('click', saveRawEntry);
-  $('#fTrap').addEventListener('change', render);
   render();
 
   /* 长难句拆解 */
@@ -57,30 +50,29 @@ async function analyzeEntry(){
   const load = $('#ebLoading');
   btn.disabled = true; btn.textContent = 'AI 分析中…';
   load.hidden = false;
-  load.textContent = '正在把这段讲解拆成「怎么做 / 错点 / 规避规则」，大概十几秒…';
+  load.textContent = '正在把这段讲解拆成「题干拆解 / 翻译 / 生词」，大概十几秒…';
 
   const messages = [
     { role:'system', content:
 `你是雅思错题诊断助手，服务对象是一名冲总分 6.0 的中国考生（弱项：听力、口语；阅读速度慢，且常把 FALSE 误判成 NOT GIVEN）。
-用户会粘贴一段关于某道错题的资料——可能是别的 AI 写的讲解，也可能是她自己零散的笔记，格式混乱、有多余的话都正常。
-你的任务：把它整理成结构化诊断。全部用简体中文，务实、具体、能照着做，不要空话套话。
+用户会粘贴一段关于某道错题的讲解——通常是别的 AI 对答题截图的回复，也可能是她自己的零散笔记，格式混乱、有多余的话都正常。
+你的任务：把它整理成结构化内容。全部用简体中文，务实、具体、能照着做，不要空话套话。
 
 字段要求：
-- title：一句话说清这是哪道题/什么题（含来源题号，如「剑18 T2 P1 Q5 判断题」，资料没写就概括内容）。
-- subject：只能是 阅读 / 听力 / 写作 / 口语 / 词汇 / 其他。
+- title：一句话说清这是哪道题/什么题，只概括题目内容本身（如「一道阅读判断题，关于布料材质」）。
+  ⚠️ 禁止写来源，不许出现「剑18」「剑桥」「来自XX」这类说法——你不知道出处，编出来是错的。
 - qtype：题型，如 判断(TFNG)、填空、匹配、选择、Heading、简答、地图题、多选 等；判断不出写「其他」。
-- trap：错因，必须从这个列表里挑最贴切的一个（原样照抄）：${EB_TRAPS.join(' / ')}
-- howto：正确解法步骤，2-4 步，每步一句话，必须可执行（例如「圈题干定位词 renewable → 回原文扫第3段首句 → 对比原文说的是 A 而题干说 B → 判 FALSE」）。
-- wrongPoint：一句话直击错点，具体到「你把 X 当成了 Y」或「错在哪一步」。
-- rule：可迁移的判断规则 1-2 条，下次遇到同类怎么避免。
-- words：资料里出现的值得记的生词，每项格式「word 中文释义」，没有就空数组。
+- questionText：题干原文。资料里没有题干就填空字符串。
+- passageSnippet：相关的原文/材料片段（如果有）。没有就空字符串。
+- translation：题干整句的自然中文翻译。
+- structureAnalysis：用「同声传译」方式拆解题干，逐词/逐意群对照，对象结构：
+  {"wordByWord":[{"en":"英文片段","cn":"中文直译"}],"natural":"自然通顺的整句理解","answerNote":"这题/这个空要你填什么（答案是什么类型）"}
+  其中 answerNote 举例：题干「这块布料由什么制成？」→ answerNote 应为「要填的是材料类型（如棉/羊毛），不是布料本身」。
+- words：讲解里出现的值得记的生词/短语，每项 {"en":"","cn":""}，没有就空数组。
 
-特别规则：
-- 若涉及判断题，必须在 rule 里写清两步判断：原文有没有提到这个信息（没提 → NOT GIVEN）；提到了是否与题干矛盾（矛盾 → FALSE）。
-- 资料信息不足时，就基于已有信息给最有价值的部分，绝不编造原文内容。
-
+资料信息不足时，就基于已有信息给最有价值的部分，绝不编造原文内容。
 只输出 JSON，不要任何解释文字、不要 markdown 围栏：
-{"title":"","subject":"","qtype":"","trap":"","howto":["",""],"wrongPoint":"","rule":[""],"words":[""]}` },
+{"title":"","qtype":"","questionText":"","passageSnippet":"","translation":"","structureAnalysis":{"wordByWord":[{"en":"","cn":""}],"natural":"","answerNote":""},"words":[{"en":"","cn":""}]}` },
     { role:'user', content: text }
   ];
 
@@ -93,19 +85,25 @@ async function analyzeEntry(){
     if(r){
       Object.assign(entry, {
         title: String(r.title || '').trim() || '（未命名错题）',
-        subject: String(r.subject || '其他').trim(),
         qtype: String(r.qtype || '其他').trim(),
-        trap: normTrap(r.trap),
-        howto: toArr(r.howto),
-        wrongPoint: String(r.wrongPoint || '').trim(),
-        rule: toArr(r.rule),
-        words: toArr(r.words)
+        questionText: String(r.questionText || '').trim(),
+        passageSnippet: String(r.passageSnippet || '').trim(),
+        translation: String(r.translation || '').trim(),
+        structureAnalysis: (r.structureAnalysis && typeof r.structureAnalysis === 'object')
+          ? { wordByWord: Array.isArray(r.structureAnalysis.wordByWord) ? r.structureAnalysis.wordByWord : [],
+              natural: String(r.structureAnalysis.natural || '').trim(),
+              answerNote: String(r.structureAnalysis.answerNote || '').trim() }
+          : null,
+        words: Array.isArray(r.words)
+          ? r.words.map(w => ({ en: String(w.en || '').trim(), cn: String(w.cn || '').trim() })).filter(w => w.en)
+          : []
       });
     } else {
       // AI 没按 JSON 回 → 原文照存，不丢东西
       Object.assign(entry, {
-        title: '（AI 返回非标准格式，已存原文）', subject:'其他', qtype:'其他', trap:'其他',
-        howto: [], wrongPoint: '', rule: [], words: [], raw: content
+        title: '（AI 返回非标准格式，已存原文）', qtype:'其他',
+        questionText:'', passageSnippet:'', translation:'', structureAnalysis:null,
+        words: [], raw: content
       });
     }
     DATA.errorbook.unshift(entry);
@@ -133,7 +131,7 @@ function saveRawEntry(){
   DATA.errorbook.unshift({
     id: uid(), date: todayKey(), kind:'ai', known:false, source: text,
     title:'（未分析）' + text.slice(0, 24).replace(/\s+/g,' '),
-    subject:'其他', qtype:'其他', trap:'其他', howto:[], wrongPoint:'', rule:[], words:[]
+    qtype:'其他', questionText:'', passageSnippet:'', translation:'', structureAnalysis:null, words:[]
   });
   hubSave();
   box.value = '';
@@ -180,12 +178,6 @@ async function reanalyze(id){
   }
 }
 
-function normTrap(t){
-  const s = String(t || '').trim();
-  if(EB_TRAPS.includes(s)) return s;
-  const hit = EB_TRAPS.find(x => s && (x.includes(s) || s.includes(x.slice(0,4))));
-  return hit || '其他';
-}
 function toArr(v){
   if(Array.isArray(v)) return v.map(x => String(x).trim()).filter(Boolean);
   if(v == null || v === '') return [];
@@ -194,16 +186,7 @@ function toArr(v){
 
 /* ---------- 渲染 ---------- */
 function render(){
-  const traps = [...new Set(DATA.errorbook.map(e => e.trap).filter(Boolean))];
-  const sel = $('#fTrap');
-  const keep = sel.value;
-  sel.innerHTML = '<option value="">全部错因</option>' +
-    traps.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
-  sel.value = traps.includes(keep) ? keep : '';
-
-  const ft = sel.value;
   const list = DATA.errorbook
-    .filter(e => !ft || e.trap === ft)
     .slice()
     .sort((a,b) => (b.date||'').localeCompare(a.date||''));
 
@@ -211,6 +194,7 @@ function render(){
   const box = $('#list');
   $('#empty').hidden = DATA.errorbook.length > 0;
   box.innerHTML = list.map(cardHtml).join('');
+  bindWordHover(box);
 
   box.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
     if(confirm('确定删除这条记录？')){
@@ -223,8 +207,6 @@ function render(){
     if(e){ e.known = !e.known; hubSave(); render(); }
   }));
   box.querySelectorAll('[data-redo]').forEach(b => b.addEventListener('click', () => reanalyze(b.dataset.redo)));
-
-  renderStats();
 }
 
 function cardHtml(e){
@@ -233,30 +215,41 @@ function cardHtml(e){
   if(e.kind === 'capture')  return captureCard(e);
 
   const badges = [
-    e.subject && e.subject !== '其他' ? `<span class="badge">${escapeHtml(e.subject)}</span>` : '',
     e.qtype  && e.qtype  !== '其他' ? `<span class="badge">${escapeHtml(e.qtype)}</span>` : '',
-    e.trap   && e.trap   !== '其他' ? `<span class="badge badge-trap">${escapeHtml(e.trap)}</span>` : '',
     e.known ? '<span class="badge badge-ok">已掌握</span>' : ''
   ].join('');
 
-  const howto = (e.howto && e.howto.length)
-    ? `<div class="eb-block"><h4>这道题怎么做</h4><ol>${e.howto.map(s => `<li>${escapeHtml(s)}</li>`).join('')}</ol></div>` : '';
-  const wrong = e.wrongPoint
-    ? `<div class="eb-block"><h4>错点在哪</h4><div class="eb-wrong">${escapeHtml(e.wrongPoint)}</div></div>` : '';
-  const rule = (e.rule && e.rule.length)
-    ? `<div class="eb-block"><h4>下次怎么避免</h4><div class="eb-rule">${e.rule.map(escapeHtml).join('<br>')}</div></div>` : '';
+  const questionText = e.questionText
+    ? `<div class="eb-block"><h4>题干原文</h4><p style="white-space:pre-wrap">${escapeHtml(e.questionText)}</p></div>` : '';
+  const passageSnippet = e.passageSnippet
+    ? `<div class="eb-block"><h4>对应原文</h4><p style="white-space:pre-wrap">${escapeHtml(e.passageSnippet)}</p></div>` : '';
+  const translation = e.translation
+    ? `<div class="eb-block"><h4>整句翻译</h4><p>${escapeHtml(e.translation)}</p></div>` : '';
+  const sa = e.structureAnalysis;
+  const splitHtml = (sa && sa.wordByWord && sa.wordByWord.length)
+    ? `<div class="eb-block"><h4>题干拆解 · 同声传译</h4>
+        <div class="ls-wbw-grid">${sa.wordByWord.map(w => {
+          const en = escapeHtml((w.en||'').trim()), cn = escapeHtml((w.cn||'').trim());
+          return en ? `<div class="ls-wbw-item" tabindex="0" data-en="${en}" data-cn="${cn}" title="点击收录 · 悬停按 S 一键收录"><span class="ls-wbw-en">${en}</span><span class="ls-wbw-cn">${cn}</span></div>` : '';
+        }).join('')}</div>
+        ${sa.natural ? `<div class="ls-natural" style="margin-top:8px">自然理解：${escapeHtml(sa.natural)}</div>` : ''}
+        ${sa.answerNote ? `<div class="eb-rule" style="margin-top:8px">这题要你填：${escapeHtml(sa.answerNote)}</div>` : ''}
+      </div>` : '';
   const words = (e.words && e.words.length)
-    ? `<div class="eb-block"><h4>顺手记的词</h4><div class="eb-words">${e.words.map(w => `<span class="eb-chip">${escapeHtml(w)}</span>`).join('')}</div></div>` : '';
+    ? `<div class="eb-block"><h4>生词 · 点击收录</h4><div class="ls-kw-list">${e.words.map(w => {
+        const en = escapeHtml(w.en||''), cn = escapeHtml(w.cn||'');
+        return `<div class="ls-kw-row" tabindex="0" data-en="${en}" data-cn="${cn}" title="点击收录 · 悬停按 S 一键收录"><div class="ls-kw-main"><span class="ls-kw-en">${en}</span><span class="ls-kw-cn">${cn}</span></div><button class="ls-kw-save" data-en="${en}" data-cn="${cn}">收录</button></div>`;
+      }).join('')}</div></div>` : '';
   const raw = e.raw
     ? `<div class="eb-block"><h4>AI 原始回复</h4><p style="white-space:pre-wrap">${escapeHtml(e.raw)}</p></div>` : '';
   const src = e.source
     ? `<details class="eb-src"><summary>看我粘进来的原始资料</summary><pre>${escapeHtml(e.source)}</pre></details>` : '';
-  const needRedo = !e.howto || !e.howto.length;
+  const needRedo = !e.structureAnalysis || !e.structureAnalysis.wordByWord || !e.structureAnalysis.wordByWord.length;
 
   return `<div class="eb-card">
     <div class="eb-head">${badges}<span class="muted" style="margin-left:auto;font-size:12.5px">${escapeHtml(e.date||'')}</span></div>
     <div class="eb-title">${escapeHtml(e.title || '（未命名错题）')}</div>
-    ${howto}${wrong}${rule}${words}${raw}${src}
+    ${questionText}${passageSnippet}${translation}${splitHtml}${words}${raw}${src}
     <div class="eb-actions">
       ${needRedo ? `<button class="btn btn-sm btn-primary" data-redo="${e.id}">🤖 补 AI 分析</button>` : ''}
       <button class="btn btn-sm" data-known="${e.id}">${e.known ? '标为未掌握' : '标为已掌握'}</button>
@@ -341,21 +334,6 @@ function oldWordCard(e){
       <button class="btn btn-sm btn-danger" data-del="${e.id}">删除</button>
     </div>
   </div>`;
-}
-
-function renderStats(){
-  const withTrap = DATA.errorbook.filter(e => e.trap && e.trap !== '其他');
-  const card = $('#statsCard');
-  if(withTrap.length < 2){ card.hidden = true; return; }
-  card.hidden = false;
-  const byTrap = {};
-  withTrap.forEach(e => { byTrap[e.trap] = (byTrap[e.trap]||0) + 1; });
-  const max = Math.max.apply(null, Object.values(byTrap));
-  const rows = Object.entries(byTrap).sort((a,b) => b[1]-a[1]).map(([t,n]) => {
-    const pct = Math.round(n / max * 100);
-    return `<div class="stat-row"><span class="stat-label">${escapeHtml(t)}</span><div class="stat-bar"><div class="stat-fill" style="width:${pct}%"></div></div><span class="stat-num">${n}</span></div>`;
-  }).join('');
-  $('#statsBox').innerHTML = rows;
 }
 
 /* ===================== 长难句拆解（从 longsent.js 合并，保留 DATA.longSent） ===================== */

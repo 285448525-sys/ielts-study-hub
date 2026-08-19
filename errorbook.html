@@ -39,11 +39,6 @@
   .badge{display:inline-block;padding:2px 9px;border-radius:10px;font-size:12px;background:var(--bg);color:var(--ink);border:1px solid var(--line)}
   .badge-trap{background:var(--warn);color:#fff;border-color:var(--warn)}
   .badge-ok{background:var(--primary);color:#fff;border-color:var(--primary)}
-  .stat-row{display:flex;align-items:center;gap:8px;margin:7px 0}
-  .stat-label{width:160px;font-size:13px;flex:none}
-  .stat-bar{flex:1;height:14px;background:var(--line);border-radius:7px;overflow:hidden}
-  .stat-fill{height:100%;background:var(--warn);border-radius:7px}
-  .stat-num{width:28px;text-align:right;font-size:13px;flex:none;color:var(--muted)}
   .eb-list-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
   .eb-list-head h2{margin:0}
   .eb-list-head select{margin-left:auto}
@@ -101,9 +96,9 @@
   <div id="ebView" hidden>
 
   <section class="card">
-    <textarea class="eb-input" id="ebInput" placeholder="把你的错题笔记贴进来就行，不用整理格式、不用删多余的话。
-也可以直接写自己的零散笔记，比如：
-剑桥18 T2 P1 第5题 判断题，我选 NOT GIVEN，答案是 FALSE，原文说 …"></textarea>
+    <textarea class="eb-input" id="ebInput" placeholder="把你的错题讲解贴进来就行（AI 对你截图的回复、你自己记的笔记都行），不用整理格式。
+比如：
+一道阅读判断题，我选 NOT GIVEN，答案是 FALSE，原文说的是 …"></textarea>
     <div class="eb-bar">
       <button class="btn btn-primary" id="ebAnalyze"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="5" y="7" width="14" height="12" rx="3"/><path d="M12 7V3M9 3h6"/><circle cx="9.5" cy="12.5" r="1"/><circle cx="14.5" cy="12.5" r="1"/><path d="M9 16h6"/></svg>理清错因并归档</button>
       <button class="btn" id="ebRaw">只存原文</button>
@@ -112,15 +107,9 @@
     <div id="ebLoading" class="eb-loading" hidden></div>
   </section>
 
-  <section class="card" id="statsCard" hidden>
-    <h2>你最常踩的坑</h2>
-    <div id="statsBox"></div>
-  </section>
-
   <section class="card">
     <div class="eb-list-head">
       <h2>已归档 · <span id="count">0</span> 条</h2>
-      <select id="fTrap"><option value="">全部错因</option></select>
     </div>
     <div id="list"></div>
     <div id="empty" class="muted" hidden>还没有记录。把你的错题笔记贴到上面那个框，点「理清错因并归档」。</div>
