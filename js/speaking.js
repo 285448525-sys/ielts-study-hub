@@ -396,14 +396,14 @@ function openDetail(id){
       }
     }
     // 渲染 P2 提交历史记录
-    renderSubmitRecords(s.answers.p2.records, $('#p2Records'), (rec) => {
+    renderSubmitRecords((s.answers.p2 && s.answers.p2.records) || [], $('#p2Records'), (rec) => {
       const ta = $('#p2Ans'); if(ta && rec.text != null) ta.value = rec.text;
       const res = $('#p2Result');
       if(res && rec.result){
         try{ const j = JSON.parse(rec.result); if(renderP2Diag(res, j)){ res.style.display = 'block'; return; } }catch(_){}
         res.innerHTML = '<pre>' + escapeHtml(rec.result) + '</pre>'; res.style.display = 'block';
       }
-    });
+    }, (i) => removeSubmitRecord(s, 'p2', i));
   }
 }
 
@@ -599,14 +599,14 @@ function bindQuestionEvents(id){
         const aiRes = li.querySelector('.sp-q-result[data-qi="' + qi + '"]');
         if(aiRes) renderAIHelper(aiRes, aiHelper);
       }
-      // 渲染提交历史记录（每次手写提交都会记录，点击可回填）
+      // 渲染提交历史记录（每次手写提交都会记录，点击可回填，✕ 可删除）
       renderSubmitRecords(s.answers[qi].records, li.querySelector('.sp-rec-list[data-qi="' + qi + '"]'), (rec) => {
         if(ta && rec.text != null) ta.value = rec.text;
         if(resultEl && rec.result){
           try{ const j = JSON.parse(rec.result); renderDiag(resultEl, j, rec.result); resultEl.style.display = 'block'; }
           catch(_){ resultEl.innerHTML = '<pre>' + escapeHtml(rec.result) + '</pre>'; resultEl.style.display = 'block'; }
         }
-      });
+      }, (i) => removeSubmitRecord(s, qi, i));
     }
 
     // 点开 / 收起
@@ -653,8 +653,8 @@ function bindQuestionEvents(id){
   });
 }
 
-// 提交历史渲染（每次手写提交都会记录，点击可回填到输入框 / 诊断结果）
-function renderSubmitRecords(records, container, onPick){
+// 提交历史渲染（每次手写提交都会记录，点击可回填到输入框 / 诊断结果；onDelete 提供则每条带删除按钮）
+function renderSubmitRecords(records, container, onPick, onDelete){
   if(!container) return;
   const list = records || [];
   const html = [];
@@ -664,19 +664,63 @@ function renderSubmitRecords(records, container, onPick){
     const dt = new Date(r.ts).toLocaleString('zh-CN', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'});
     const sc = (r.score && r.score.overall != null) ? ' · ' + scoreLabel(r.score.overall) + '分' : '';
     const preview = (r.text || '').slice(0, 28).replace(/\n/g, ' ');
-    html.push('<div class="sp-rec-item" data-idx="' + i + '"><span class="sp-rec-text">' + escapeHtml(preview) + '</span><span class="sp-rec-time">' + dt + '</span><span class="sp-rec-score">' + sc + '</span></div>');
+    const del = onDelete ? '<span class="sp-rec-del" data-idx="' + i + '" title="删除这条历史">✕</span>' : '';
+    html.push('<div class="sp-rec-item" data-idx="' + i + '"><span class="sp-rec-text">' + escapeHtml(preview) + '</span><span class="sp-rec-time">' + dt + '</span><span class="sp-rec-score">' + sc + '</span>' + del + '</div>');
   }
   if(!html.length){ container.innerHTML = ''; return; }
   container.innerHTML = html.reverse().join('');
   if(onPick){
     container.querySelectorAll('.sp-rec-item').forEach(item => {
-      item.addEventListener('click', () => {
+      item.addEventListener('click', (e) => {
+        if(e.target.closest('.sp-rec-del')) return; // 点删除按钮不触发回填
         container.querySelectorAll('.sp-rec-item').forEach(x => x.classList.toggle('active', x === item));
         const rec = (records || [])[+item.dataset.idx];
         if(rec) onPick(rec);
       });
     });
   }
+  if(onDelete){
+    container.querySelectorAll('.sp-rec-del').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if(confirm('删除这条历史记录？删除后无法恢复。')) onDelete(+btn.dataset.idx);
+      });
+    });
+  }
+}
+
+// 删除一条提交历史（key 为 P1 小题序号或 'p2'），删除后重渲染列表并重算分数
+function removeSubmitRecord(s, key, idx){
+  if(!s || !s.answers || !s.answers[key] || !s.answers[key].records) return;
+  const recs = s.answers[key].records;
+  if(idx < 0 || idx >= recs.length) return;
+  recs.splice(idx, 1);
+  s.updatedAt = Date.now();
+  hubSave();
+  if(key === 'p2'){
+    renderSubmitRecords(s.answers.p2.records, $('#p2Records'), (rec) => {
+      const ta = $('#p2Ans'); if(ta && rec.text != null) ta.value = rec.text;
+      const res = $('#p2Result');
+      if(res && rec.result){
+        try{ const j = JSON.parse(rec.result); if(renderP2Diag(res, j)){ res.style.display = 'block'; return; } }catch(_){}
+        res.innerHTML = '<pre>' + escapeHtml(rec.result) + '</pre>'; res.style.display = 'block';
+      }
+    }, (i) => removeSubmitRecord(s, 'p2', i));
+  } else {
+    const li = document.querySelector('.sp-q[data-qi="' + key + '"]');
+    const container = li ? li.querySelector('.sp-rec-list[data-qi="' + key + '"]') : null;
+    if(!container) return;
+    renderSubmitRecords(s.answers[key].records, container, (rec) => {
+      const ta = li ? li.querySelector('.sp-ans[data-qi="' + key + '"]') : null;
+      const resultEl = li ? li.querySelector('.sp-q-result[data-qi="' + key + '"]') : null;
+      if(ta && rec.text != null) ta.value = rec.text;
+      if(resultEl && rec.result){
+        try{ const j = JSON.parse(rec.result); renderDiag(resultEl, j, rec.result); resultEl.style.display = 'block'; }
+        catch(_){ resultEl.innerHTML = '<pre>' + escapeHtml(rec.result) + '</pre>'; resultEl.style.display = 'block'; }
+      }
+    }, (i) => removeSubmitRecord(s, key, i));
+  }
+  refreshScoreAfterDiag(s);
 }
 
 // AI 语法诊断（复用纯文本 callRelay，service=speaking_diagnose）
@@ -785,7 +829,7 @@ async function diagnoseP2(id){
         try{ const j2 = JSON.parse(rec.result); if(renderP2Diag(res, j2)){ res.style.display = 'block'; return; } }catch(_){}
         res.innerHTML = '<pre>' + escapeHtml(rec.result) + '</pre>'; res.style.display = 'block';
       }
-    });
+    }, (i) => removeSubmitRecord(s, 'p2', i));
 
   }catch(e){
     resultEl.innerHTML = '<div class="diag-note">AI 服务暂不可用：' + escapeHtml(e.message) + '</div>';
