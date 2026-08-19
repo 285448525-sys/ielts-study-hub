@@ -905,7 +905,8 @@ function diffSentenceHtml(answer, errs){
 
 // 文本粗检：句子有明显破洞但 AI 漏报时，不让他享受"无错6分"兜底
 function hasObviousGrammarIssues(text){
-  const t = ' ' + String(text || '').toLowerCase().replace(/[.,!?;:'"]/g, ' ') + ' ';
+  const raw = String(text || '').trim();
+  const t = ' ' + raw.toLowerCase().replace(/[.,!?;:'"]/g, ' ') + ' ';
   // I never creating / I just watching / I always thinking（进行时缺 be）
   if(/\bi\s+(never|always|often|sometimes|usually|just|already|also|still)\s+[a-z]+ing\b/.test(t)) return true;
   // I just it's / I also it's / I never it's（缺谓语，后接 it's）
@@ -913,21 +914,42 @@ function hasObviousGrammarIssues(text){
   // I it's / we it's / they it's（主语后直接跟 it's）
   if(/\b(i|we|they|he|she)\s+it'?s\b/.test(t)) return true;
   // I would say 后面啥也没有，话没说完
-  if(/\bi\s+would\s+say\s*$/.test(String(text || '').trim().toLowerCase())) return true;
+  if(/\bi\s+would\s+say\s*$/.test(raw.toLowerCase())) return true;
+  // 过去时间状语 + 现在时动词：in the past I prefer / last year I like
+  if(/\b(in the past|last year|last month|last week|yesterday|when i was young)\b.*\b(i|you|we|they|he|she)\s+(prefer|like|love|hate|want|need|go|do|have|watch|listen|play|eat|read)\b/.test(t)) return true;
+  // about + 大写形容词/副词：about Popular / about Beautiful（词性误用）
+  if(/\babout\s+[A-Z][a-z]+\b/.test(raw)) return true;
+  // feel / make me feel ... and + 动词原形，但前面是形容词/名词：feel all right and slow down
+  if(/\bfeel\s+\w+(\s+\w+)?\s+and\s+\w+\s+down\b/.test(t)) return true;
   return false;
 }
 
+// AI 没报 errors 但 rewrite 大变 → 说明它在隐瞒错误
+function rewriteLooksSuspicious(answerText, rewriteText){
+  const a = String(answerText || '').trim().toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
+  const r = String(rewriteText || '').trim().toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
+  if(!a.length || !r.length) return false;
+  // 计算 rewrite 中有多少 token 出现在原句中
+  const aSet = new Set(a);
+  const common = r.filter(tok => aSet.has(tok)).length;
+  const ratio = common / r.length;
+  // 如果 rewrite 超过 40% 的词是原句没有的，且 rewrite 不短，认为可疑
+  return r.length >= 5 && ratio < 0.6;
+}
+
 // 强制评分兜底（用户规则）：无真错误 → 语法/词汇 ≥6.0；有错但 AI 能听懂（能列出错误=已读懂） → ≥5.5
-function normalizeScore(j, answerText){
+function normalizeScore(j, answerText, rewriteText){
   if(!j || !j.score) return j;
   const errs = cleanErrors(j.errors);
-  const broken = hasObviousGrammarIssues(answerText);
+  let broken = hasObviousGrammarIssues(answerText);
+  // 没报错但 rewrite 大变 = 偷偷改了没说
+  if(!broken && errs.length === 0 && rewriteLooksSuspicious(answerText, rewriteText || j.rewrite)) broken = true;
 
   // 能给出评分 = AI 听懂了 → 流利度不低于 5.5（用户说"能明白意思就有5.5"）
   if(j.score.fluency != null && Number(j.score.fluency) < 5.5) j.score.fluency = 5.5;
 
-  // 真无错且文本没有明显破洞 → 语法/词汇至少 6
-  // 否则（有错 或 文本有破洞）→ 至少 5.5；如果 AI 漏报破洞，封顶 5.5 防止它装瞎给 6
+  // 真无错且文本没有明显破洞、rewrite 也没偷偷大改 → 语法/词汇至少 6
+  // 否则 → 至少 5.5；如果 AI 漏报/隐瞒，封顶 5.5 防止它装瞎给 6
   if(errs.length === 0 && !broken){
     if(j.score.grammar != null && Number(j.score.grammar) < 6) j.score.grammar = 6;
     if(j.score.vocabulary != null && Number(j.score.vocabulary) < 6) j.score.vocabulary = 6;
