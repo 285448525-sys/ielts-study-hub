@@ -24,7 +24,6 @@ const PAGES = [
   { id:'corpus',    file:'corpus.html',    icon:ICON.corpus,    name:'听力语料库', desc:'场景词汇听写' },
   { id:'errorbook', file:'errorbook.html', icon:ICON.words,     name:'词句库',     desc:'长难句 + 错题本' },
   { id:'speaking',  file:'speaking.html',  icon:ICON.speaking,  name:'口语素材库', desc:'题库 + AI 串题' },
-  { id:'mock',      file:'mock.html',      icon:ICON.mock,      name:'口语模考',   desc:'P1→P2→P3 全真模拟' },
   { id:'writing',   file:'writing.html',   icon:ICON.writing,   name:'写作模板库', desc:'模板 + AI 评分' },
   { id:'review',    file:'review.html',    icon:ICON.review,    name:'回顾',       desc:'模考成绩 + 学习轨迹' },
   { id:'settings',  file:'settings.html',  icon:ICON.settings,  name:'设置',       desc:'同步 / AI / 数据' },
@@ -40,7 +39,7 @@ function favPageIds(){
 
 /* 一级常驻（高频 4 项，始终可见）+ 更多▾（其余 9 项，默认折叠） */
 const PRIMARY_NAV = ['index','timer','review','practice'];
-const MORE_NAV    = ['plans','meds','corpus','errorbook','speaking','mock','writing','settings'];
+const MORE_NAV    = ['plans','meds','corpus','errorbook','speaking','writing','settings'];
 
 function injectNav(){
   const nav = document.getElementById('mainNav');
