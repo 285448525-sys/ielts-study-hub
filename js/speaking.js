@@ -1079,7 +1079,15 @@ var matGen = (function(){
       b.onclick = () => { generate(); };
     });
     root.querySelectorAll('[data-del]').forEach(b => {
-      b.onclick = () => { const i = +b.dataset.del; store.materials.splice(i, 1); saveStore(); render(); };
+      b.onclick = () => {
+        if(!confirm('删除这张素材卡？')) return;
+        const i = +b.dataset.del;
+        store.materials.splice(i, 1);
+        saveStore();
+        // 删除后立即上传云端，避免 1.5s 防抖窗口内刷新/切设备导致旧卡从云端合并回来
+        if(DATA.settings.autoSync && DATA.settings.syncCode && typeof cloudUpload === 'function') cloudUpload(true);
+        render();
+      };
     });
     const mc = $('#matContinue');
     if(mc) mc.onclick = () => {
