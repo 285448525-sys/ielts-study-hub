@@ -7,5 +7,5 @@ compatibility_date = "2024-09-23"
 # 3) 部署：wrangler pages deploy .  （在本项目根目录执行）
 [[kv_namespaces]]
 binding = "SYNC_KV"
-id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+id = "2a4819ece7c94463878fb31a11c072ff"
 
