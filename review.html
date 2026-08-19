@@ -29,19 +29,19 @@
   <p class="page-sub">上块 = 模考成绩追踪，下块 = 长期学习轨迹，一个入口看全部。</p>
 
   <div class="tabs">
-    <button class="top-tab active" data-toptab="scores">📊 模考成绩</button>
-    <button class="top-tab" data-toptab="record">📝 记录</button>
+    <button class="top-tab active" data-toptab="scores"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M6 20v-6M12 20V8M18 20v-10M3 20h18"/></svg>模考成绩</button>
+    <button class="top-tab" data-toptab="record"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/><path d="M12 20h9"/></svg>记录</button>
   </div>
 
   <!-- ============ 上块：模考成绩 ============ -->
   <div class="top-panel active" id="top-scores">
   <section class="review-pane">
-    <h2>📊 模考成绩</h2>
+    <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M6 20v-6M12 20V8M18 20v-10M3 20h18"/></svg>模考成绩</h2>
 
     <div class="tabs">
-      <button class="tab-btn active" data-tab="breakdown">🧩 分项模考</button>
-      <button class="tab-btn" data-tab="overall">📊 整卷模考</button>
-      <button class="tab-btn" data-tab="speaking">🎤 口语模考</button>
+      <button class="tab-btn active" data-tab="breakdown"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg>分项模考</button>
+      <button class="tab-btn" data-tab="overall"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M6 20v-6M12 20V8M18 20v-10M3 20h18"/></svg>整卷模考</button>
+      <button class="tab-btn" data-tab="speaking"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg>口语模考</button>
     </div>
 
     <!-- 整卷模考 Tab -->
@@ -74,13 +74,13 @@
       </div>
 
       <section class="card">
-        <h2>📈 成绩趋势</h2>
+        <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>成绩趋势</h2>
         <p class="muted">横轴为模考日期，纵轴 0–9 分。至少需要 2 次模考成绩。</p>
         <div id="trendChart"></div>
       </section>
 
       <section class="card">
-        <h2>🧭 综合掌握度雷达图</h2>
+        <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5 5-2z"/></svg>综合掌握度雷达图</h2>
         <p class="muted">对比「最新一次」与「目标」：听 / 读 / 写 / 口 四项能力。至少需要 1 次模考。</p>
         <div id="radarChart"></div>
       </section>
@@ -104,10 +104,10 @@
           </div>
           <div><label>题型</label>
             <select id="mkType">
-              <option value="listening">🎧 听力</option>
-              <option value="reading">📖 阅读</option>
-              <option value="speaking">🗣️ 口语</option>
-              <option value="writing">✏️ 写作</option>
+              <option value="listening">听力</option>
+              <option value="reading">阅读</option>
+              <option value="speaking">口语</option>
+              <option value="writing">写作</option>
             </select>
           </div>
           <div><label>日期</label><input type="date" id="mkDate" /></div>
@@ -151,7 +151,7 @@
     <!-- 口语模考 Tab（整卷口语模考历史，由 mock-history.js 渲染） -->
     <div id="tab-speaking" class="tab-panel">
       <section class="card">
-        <h2>🎤 口语整卷模考记录 <span class="muted mock-hist-count" id="mockHistCount"></span></h2>
+        <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg>口语整卷模考记录 <span class="muted mock-hist-count" id="mockHistCount"></span></h2>
         <p class="muted">P1→P2→P3 全真模考的历史报告，含逐题转写。点击「展开」看完整评分与转写，刷新不丢。</p>
         <div id="mockHistoryList"></div>
       </section>
@@ -163,7 +163,7 @@
   <div class="top-panel" id="top-record">
   <div class="review-split"></div>
   <section class="review-pane">
-    <h2>📈 学习轨迹</h2>
+    <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>学习轨迹</h2>
 
     <section class="card">
       <h2>近 30 天学习热力</h2>

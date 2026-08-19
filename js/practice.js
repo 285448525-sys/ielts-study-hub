@@ -115,7 +115,7 @@ function renderCfgModal(){
       ]
     },
     {
-      name:'声音', icon:'🔊',
+      name:'声音', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.4 5.6a9 9 0 0 1 0 12.8"/></svg>',
       items:[
         { key:'rate',      label:'语速',     type:'range', min:0.5, max:1.3, step:0.05, unit:'x' },
         { key:'repeat',    label:'朗读次数', type:'range', min:1, max:5, step:1, unit:' 次' },
@@ -124,7 +124,7 @@ function renderCfgModal(){
       ]
     },
     {
-      name:'显示', icon:'👁',
+      name:'显示', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>',
       items:[
         { key:'showCn',       label:'显示释义提示',    type:'toggle' },
         { key:'showEn',       label:'显示英文原词',    type:'select', opts:[{v:'0',t:'不显示'},{v:'1',t:'答错时显示'},{v:'2',t:'始终显示'}] },
@@ -591,7 +591,7 @@ function finishPractice(){
         return '<div class="list-item">' +
           '<span><b style="font-size:15px">'+escapeHtml(w.en)+'</b> '+mastTag+(w.cn?' <span class="muted">'+escapeHtml(w.cn)+'</span>':'')+'</span>' +
           '<span style="text-align:right"><span class="muted" style="font-size:12px">'+escapeHtml(w.user||'')+'</span></span>' +
-          '<span class="list-actions"><button class="btn btn-sm" data-replay="'+i+'">🔊</button></span>' +
+          '<span class="list-actions"><button class="btn btn-sm" data-replay="'+i+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.4 5.6a9 9 0 0 1 0 12.8"/></svg></button></span>' +
           '</div>';
       }).join('') + '</div></div>';
     bodyHtml += '<div class="dict-result-actions" style="justify-content:center;margin:14px 0">' +

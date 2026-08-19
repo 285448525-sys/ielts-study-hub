@@ -51,7 +51,7 @@ function injectNav(){
   const chev = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>';
 
   let html = '';
-  html += '<div class="side-head"><span class="nav-logo">📚</span><span>雅思备考 Hub</span><button class="side-collapse-in" id="sideCollapseIn" type="button" title="收起侧边栏" aria-label="收起侧边栏">⟨</button></div>';
+  html += '<div class="side-head"><span class="nav-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;vertical-align:-3px" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg></span><span>雅思备考 Hub</span><button class="side-collapse-in" id="sideCollapseIn" type="button" title="收起侧边栏" aria-label="收起侧边栏">⟨</button></div>';
   // 方案1：全局计时徽标容器（任何页面常驻；计时进行中显示呼吸徽标 + 一键结束，解决 P1/P3）
   html += '<div class="side-timer-wrap" id="sideTimer"></div>';
   html += '<input class="side-search" id="sideSearch" placeholder="搜索功能…" aria-label="搜索功能" />';
@@ -67,7 +67,7 @@ function injectNav(){
   if(favPages.length){
     const favCol = (collapsedMap['fav'] === true) ? ' collapsed' : '';
     html += '<div class="side-fav' + favCol + '" data-g="fav">'
-          +   '<div class="side-group-title"><span class="side-g-label">⭐ 我的收藏</span>'
+          +   '<div class="side-group-title"><span class="side-g-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M12 4l1.7 4.3L18 10l-4.3 1.7L12 16l-1.7-4.3L6 10l4.3-1.7L12 4z"/></svg>我的收藏</span>'
           +     '<span class="side-toggle-arrow" data-g="fav" role="button" tabindex="0" aria-label="展开/收起 我的收藏" aria-expanded="' + (favCol === '' ? 'true' : 'false') + '">' + chev + '</span>'
           +   '</div>'
           +   '<div class="side-group-body"><div class="side-group-inner">';

@@ -77,7 +77,7 @@ function renderList(){
   if(DATA.corpus.length === 0){ box.innerHTML = renderEmpty('还没有句子，上面导几句吧。'); return; }
   box.innerHTML = DATA.corpus.slice().reverse().map(c => `
     <div class="corpus-item">
-      <button class="plan-del" data-play="${escapeHtml(c.en)}" title="播放">🔊</button>
+      <button class="plan-del" data-play="${escapeHtml(c.en)}" title="播放"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.4 5.6a9 9 0 0 1 0 12.8"/></svg></button>
       <div class="corpus-text"><div>${escapeHtml(c.en)}</div>${c.cn ? `<div class="muted" style="font-size:13px">${escapeHtml(c.cn)}</div>` : ''}</div>
       <button class="plan-del" data-del="${c.id}" title="删除">✕</button>
     </div>
@@ -116,7 +116,7 @@ function renderDictItem(){
         </div>
       </div>
       <div class="dict-head" style="margin-top:4px">
-        <button class="btn" id="replayBtn">🔊 播放</button>
+        <button class="btn" id="replayBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.4 5.6a9 9 0 0 1 0 12.8"/></svg>播放</button>
         <div class="dict-meta">
           <div class="dict-voice"><label>语速</label>
             <input type="range" id="rRate" min="0.5" max="1.2" step="0.05" value="${cfg.rate}"/>
@@ -134,7 +134,7 @@ function renderDictItem(){
       <div id="cnHint" style="text-align:center;color:var(--muted);margin:8px 0 6px;min-height:20px;font-size:14px">${cfg.showCn && item.cn ? '中文：'+escapeHtml(cfg.showCn?item.cn:'') : ''}</div>
       <textarea id="dictInput" class="q-input" style="width:100%;max-width:none;height:86px;font-size:16px;line-height:1.6" placeholder="把听到的整句写下来，写完按 Enter（或 Ctrl+Enter 换行）提交核对…" spellcheck="false"></textarea>
       <div class="dict-actions">
-        <button class="btn" id="skipBtn">🙈 跳过 / 看答案</button>
+        <button class="btn" id="skipBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>跳过 / 看答案</button>
         <button class="btn btn-primary" id="checkBtn">确认核对</button>
       </div>
       <div id="dictResult" style="margin-top:14px"></div>
@@ -219,7 +219,7 @@ function checkSent(item, userVal, skipped){
         ${missed.length ? `<div style="margin-top:10px"><span class="muted" style="font-size:12px">漏掉 / 写错的词：</span> ${missed.map(w=>`<span class="badge down">${escapeHtml(w)}</span>`).join(' ')}</div>` : ''}
       </div>
       <div class="dict-result-actions">
-        <button class="btn" id="playAgainBtn">🔊 再听一遍</button>
+        <button class="btn" id="playAgainBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.4 5.6a9 9 0 0 1 0 12.8"/></svg>再听一遍</button>
         <button class="btn btn-primary" id="nextBtn">下一句 →</button>
       </div>
     </div>`;
@@ -245,7 +245,7 @@ function finishDict(){
     </div>
     <div class="dict-result-actions" style="justify-content:center;margin:14px 0">
       <button class="btn" id="exitBtn">返回</button>
-      ${wrong.length?'<button class="btn btn-med" id="redoWrong">🔁 重练错句</button>':''}
+      ${wrong.length?'<button class="btn btn-med" id="redoWrong"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>重练错句</button>':''}
       <button class="btn btn-primary" id="restartBtn">再来一轮</button>
     </div>`;
   if(wrong.length){
@@ -253,7 +253,7 @@ function finishDict(){
       <h3 style="margin:0 0 10px;color:var(--danger)">错句清单（${wrong.length} 句）</h3>
       <div>` + wrong.map((w,i) => `
         <div class="corpus-item" style="align-items:flex-start">
-          <button class="plan-del" data-replay="${i}" title="播放">🔊</button>
+          <button class="plan-del" data-replay="${i}" title="播放"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.4 5.6a9 9 0 0 1 0 12.8"/></svg></button>
           <div class="corpus-text" style="flex:1;min-width:0">
             <div>${escapeHtml(w.en)}</div>
             <div class="muted" style="font-size:12px;margin-top:4px">
