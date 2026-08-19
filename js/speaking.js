@@ -143,20 +143,35 @@ function parseScore(score){
   const overall = dims.length ? Math.round(dims.reduce((a, b) => a + b, 0) / dims.length * 2) / 2 : null;
   return { overall, fluency, pronunciation, vocabulary, grammar };
 }
+// 某小题的历史最高分：遍历每次诊断/提交记录取最高（用户规则：同一题反复刷分取最高值）；
+// 老数据没有 records 时回退到当前 score 字段
+function bestOfQuestion(a){
+  if(!a) return null;
+  let best = null;
+  (a.records || []).forEach(r => {
+    if(r && r.score && r.score.overall != null){
+      const v = parseFloat(r.score.overall);
+      if(!isNaN(v) && (best === null || v > best)) best = v;
+    }
+  });
+  if(best === null && a.score && a.score.overall != null){
+    const v = parseFloat(a.score.overall);
+    if(!isNaN(v)) best = v;
+  }
+  return best;
+}
 function getBestScore(s){
   if(!s || !s.answers) return null;
   let best = null;
   Object.values(s.answers).forEach(a => {
-    if(a && a.score && a.score.overall != null){
-      const v = parseFloat(a.score.overall);
-      if(!isNaN(v) && (best === null || v > best)) best = v;
-    }
+    const v = bestOfQuestion(a);
+    if(v != null && (best === null || v > best)) best = v;
   });
   return best;
 }
 function getScoreCount(s){
   if(!s || !s.answers) return 0;
-  return Object.values(s.answers).filter(a => a && a.score && a.score.overall != null).length;
+  return Object.values(s.answers).filter(a => bestOfQuestion(a) != null).length;
 }
 
 /* === P1 计分聚合（修复3）===
@@ -164,15 +179,16 @@ function getScoreCount(s){
    P2 维持原「最高分 / 练过N次」逻辑。 */
 function getP1Done(s){
   if(!s || !s.answers) return 0;
-  return Object.keys(s.answers).filter(k => k !== 'p2' && s.answers[k] && s.answers[k].score).length;
+  return Object.keys(s.answers).filter(k => k !== 'p2' && bestOfQuestion(s.answers[k]) != null).length;
 }
 function getAggScore(s){
   if(!s || !s.answers) return null;
   if(s.type === 'P1'){
+    // P1 每个小题取历史最高分后再平均（用户规则：刷分取最高）
     const vals = Object.keys(s.answers)
-      .filter(k => k !== 'p2' && s.answers[k] && s.answers[k].score && s.answers[k].score.overall != null)
-      .map(k => parseFloat(s.answers[k].score.overall))
-      .filter(v => !isNaN(v));
+      .filter(k => k !== 'p2')
+      .map(k => bestOfQuestion(s.answers[k]))
+      .filter(v => v != null);
     return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
   }
   return getBestScore(s);
