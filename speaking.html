@@ -289,6 +289,35 @@
   .mat-gap .gt{ font-weight:700; color:var(--ink); flex:none; }
   .mat-gap .ga{ color:var(--muted); flex:1; }
   .mat-empty{ text-align:center; padding:40px 20px; color:var(--muted); font-size:14px; }
+
+  /* === 25 · 口语练习效率优化（降低使用门槛，纯视觉/布局，不动 JS） === */
+
+  /* 1) P1 小题默认展开：进入详情即可直接写 + 一键 AI 诊断，免去逐题点开 */
+  .sp-q-list .sp-q-panel{ display:block; }            /* 覆盖 [hidden]，强制可见 */
+  .sp-q-list .sp-q-caret{ display:none; }             /* 已无需折叠提示 */
+  .sp-q-list .sp-q.open{ background:var(--surface); } /* 去掉仅用于展开的高亮，避免误导 */
+
+  /* 2) 主行动「AI 诊断 / 评分」改为整行实心主按钮，一眼可见下一步 */
+  .sp-q-btns{ display:flex; gap:8px; align-items:stretch; }
+  .sp-diag{ flex:1 1 auto; justify-content:center; width:auto; padding:12px 16px; font-size:14px; font-weight:700; border-radius:var(--radius-sm); box-shadow:var(--shadow); }
+  .sp-diag:hover{ opacity:.94; }
+  .sp-ans-clear{ flex:0 0 auto; }
+
+  /* 3) 作答框更突出，P1/P2 通用；P2 单窗略增高适配 2 分钟陈述 */
+  .sp-ans{ min-height:88px; font-size:15px; }
+  .sp-p2-answer .sp-ans{ min-height:120px; }
+
+  /* 4) 空的历史记录列表不再占空白，有记录才显示 */
+  .sp-rec-list:empty{ display:none; }
+
+  /* 5) 列表卡片：更强的「可点开练习」暗示 */
+  .sp-card{ position:relative; transition:background .15s, box-shadow .15s, transform .12s, border-color .15s; }
+  .sp-card:hover{ background:var(--primary-soft); box-shadow:var(--shadow); transform:translateX(2px); border-color:var(--primary); }
+  .sp-card:active{ transform:translateX(0) scale(.995); }
+
+  /* 6) P2：把「AI 串题思路」降为次级描边按钮，让「AI 评分 / 保存」成为主视觉 */
+  #aiStoryLinkBtn{ background:var(--surface); color:var(--primary); border:1px solid var(--primary); }
+  #aiStoryLinkBtn:hover{ background:var(--primary-soft); }
 </style>
 </head>
 <body>
