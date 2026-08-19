@@ -9,34 +9,44 @@
 
   const QUESTIONS = [
     { id:'A',  group:'persona', required:true,  title:'一句话介绍你自己', hint:'城市、身份（学生/专业或工作）、性格、一个爱好。例：杭州，大三计算机，理性但开口说英语会紧张，喜欢无纸化学习。' },
-    { id:'B1', group:'core', required:true,  title:'一次外出 / 旅行', hint:'去过哪、和谁、印象最深的瞬间（看到什么/做了什么/当时心情）。写真实细节，别写"很开心"空话。' },
-    { id:'B2', group:'core', required:true,  title:'一个对你重要的人', hint:'家人或朋友。他/她做过什么让你记住？你们间发生过什么具体的事？' },
-    { id:'B3', group:'core', required:true,  title:'一件你学会或克服的事', hint:'一项技能，或一段咬牙坚持/克服困难的经历。最难的是什么？后来怎么变好？' },
-    { id:'B4', group:'core', required:true,  title:'一个每天用或离不开的东西 / 日常爱好', hint:'物件（手机/电脑/乐器…）或爱好。它怎么融入生活？为什么离不开？' },
-    { id:'B5', group:'core', required:true,  title:'一个在网上看到、改观或感兴趣的内容', hint:'B站/短视频/文章都行。讲了什么？为什么让你改观或感兴趣？' },
+    { id:'B1', group:'core', required:true,  title:'一次你和某个重要的人一起做的事 / 外出', hint:'和谁、去哪、做了什么、印象最深的瞬间（看到什么/当时心情）。尽量把"人+事+地+旅行"一次讲全，能少背一条素材。' },
+    { id:'B2', group:'core', required:true,  title:'一件你学会 / 克服 / 坚持的事', hint:'一项技能，或一段咬牙坚持/克服困难的经历。最难的是什么？后来怎么变好？' },
+    { id:'B3', group:'core', required:true,  title:'一个每天用或离不开的东西 / 日常爱好', hint:'物件（手机/电脑/乐器…）或爱好。它怎么融入生活？为什么离不开？' },
+    { id:'B4', group:'core', required:true,  title:'一个在网上看到、让你改观或感兴趣的内容', hint:'B站/短视频/文章都行。讲了什么？为什么让你改观或感兴趣？' },
+    { id:'B5', group:'core', required:true,  title:'一个对你重要的地方 / 一次印象深的经历', hint:'一个地方（家/学校/旅行地）或一次经历。它为什么重要？发生了什么让你记住？' },
     { id:'C1', group:'extra', required:false, title:'一本喜欢的书 / 一部电影 / 一首歌', hint:'采文化消费，覆盖 book/film/song（选填，能讲几个讲几个）。' },
     { id:'C2', group:'extra', required:false, title:'一件常穿或珍藏的衣服 / 珍贵礼物 / 贵的东西', hint:'采物件，覆盖 clothing/gift/expensive（选填）。' },
     { id:'C3', group:'extra', required:false, title:'一条影响过你的规则 / 法律 / 传统习俗', hint:'采规则维度，覆盖 law/rules/tradition/custom（选填）。' },
     { id:'C4', group:'extra', required:false, title:'一次冲突 / 犯错 / 投诉 / 道歉', hint:'采负面经历，覆盖 disagreement/mistake/complaint/apology（选填）。' }
   ];
 
-  const SYS_MAT = '你是雅思口语串题素材教练。用户会给你一段真实生活经历，你要把它变成一个"万能口语锚点"。规则：1.从经历中拆出多切面：person(人)/place(地)/event(事)/object(物)/emotion(情绪)/values(价值观)。只写经历里真实存在的，不编造。2.匹配它能【自然串】的 IELTS Part 2 题——只列真正贴合的 2~5 个，绝不贪心硬套。3.产出英文 keyword 骨架（不是完整稿），让考生场上自己说，避免背诵痕迹。4.给 2~3 个 P3 追问预判（基于人设，保持一致）。输出严格 JSON：{"id":"m1","title":"标题","raw":"用户原话","facets":{"person":"","place":"","event":"","object":"","emotion":"","values":""},"coverage":["题族1","题族2"],"skeleton":{"en":["英文 keyword1","英文 keyword2"],"zh":["中文对照1","中文对照2"]},"p3Hints":["追问预判1","追问预判2"],"confidence":"high"}';
+  const SYS_MAT = '你是雅思口语串题素材教练。考生会给你一份人设 + 若干段真实生活经历（含可能来自你上一轮追问的补充回答）。\n'
+  + '你的任务：把全部经历整合成**几个完整核心小故事**（数量灵活：看内容 + 对照下方 P2 全题型来定，目标是以最少的Story覆盖最多的题，通常 3~5 个，但不要凑数）。每个故事都能让考生直接背、用简单句讲出来。\n'
+  + '规则：\n'
+  + '1. 故事必须基于考生原话，真实不编造；可合并相关经历，不虚构细节。\n'
+  + '2. 每个故事含：title(标题) / storyEn(一段英文小故事，全部**简单句**、基础词汇，契合口语 5.5 水平，长度适中不要太长，可直接背) / logicZh(中文**逻辑链**：用几个中文短语以 "—[横杠]—" 串接，横杠处是考生现场填的细节占位，例如"跟男友去厦门旅游 —[横杠]— 看到海边日落 —[横杠]— 觉得环保重要 —[横杠]— 想以后多保护自然") / coverage(能套的 P2 题族数组) / p3Hints(2-3 个 P3 追问预判)。\n'
+  + '3. coverage 每个元素：{"topic":"题族名","fit":"natural|loose","note":"串题连接说明(给一句怎么把本故事套到该题，如\'旅行中意识到环保法重要→套法律法规\';natural可简写)"}。\n'
+  + '4. 串题很抽象，**搭边就行**：coverage 不限于自然贴合的题，偏题（法律/规则/传统/人物/挑战…）只要能扯上关系就列，并给自然的连接说明。目标是背完这几个故事，大部分 P2 题都能套。\n'
+  + '5. 不要产出 keyword 骨架 / 不要拆分多切面列表——考生基础弱，给词也不会说句型，必须给**成段的简单句英文**让她背。\n'
+  + '6. 判断素材是否够覆盖：对照 P2 全题型，如果现有经历明显缺某大类（如完全没提人或完全没提地点），且补 1-3 个问题就能补上，则在 followups 返回这些问题；如果已经够广，followups 返回空数组。\n'
+  + 'P2 全题型参考：' + CANON.join('、') + '\n'
+  + '输出严格 JSON：{"stories":[{"title":"","storyEn":"","logicZh":"","coverage":[{"topic":"","fit":"","note":""}],"p3Hints":["",""]}],"followups":["还想了解的问题1","问题2"]}';
   const SYS_PERSONA = '你是雅思口语人设分析师。根据用户一句话自我介绍，提取人设锚点，用于保证 Part 3 回答一致性。输出严格 JSON：{"persona":{"city":"城市","identity":"身份/专业或工作","values":["价值观1","价值观2"],"traits":["性格特点1","性格特点2"]}}';
-  const SYS_GAP = '你是雅思 P2 覆盖分析师。给定已被素材自然覆盖的 P2 题族，以及常见 IELTS P2 题族清单，请列出未被覆盖、且该用户大概率会考到的题族（最多 6 条），每条给一句补救建议（补真实小记忆 或 用 P2 公式现场编）。只列真正缺口，不要编造已覆盖的。输出严格 JSON 数组：[{"topic":"题族","advice":"建议"}]';
+  const SYS_GAP = '你是雅思 P2 覆盖分析师。给定已被素材（含搭边串题）覆盖的 P2 题族，以及常见 IELTS P2 题族清单，请列出**连搭边都难覆盖**、且该用户大概率会考到的题族（最多 6 条），每条给一句补救建议（补真实小记忆 或 用 P2 公式现场编）。只列真正缺口，不要编造已覆盖的。输出严格 JSON 数组：[{"topic":"题族","advice":"建议"}]';
 
   let store = loadStore();
   let mode = 'q';
 
   function loadStore(){
     if(DATA.materials && typeof DATA.materials === 'object'){
-      const s = DATA.materials; s.answers = s.answers || {}; s.answers.extraMore = s.answers.extraMore || []; s.materials = s.materials || []; s.gaps = s.gaps || []; return s;
+      const s = DATA.materials; s.answers = s.answers || {}; s.answers.extraMore = s.answers.extraMore || []; s.answers.followups = s.answers.followups || []; s.materials = s.materials || []; s.gaps = s.gaps || []; s.followups = s.followups || []; return s;
     }
     // 一次性迁移：旧 localStorage 数据导入 DATA（此后走云同步）
     try{
       const s = JSON.parse(localStorage.getItem(STORE_KEY));
-      if(s && typeof s === 'object'){ s.answers = s.answers || {}; s.answers.extraMore = s.answers.extraMore || []; s.materials = s.materials || []; s.gaps = s.gaps || []; DATA.materials = s; return s; }
+      if(s && typeof s === 'object'){ s.answers = s.answers || {}; s.answers.extraMore = s.answers.extraMore || []; s.answers.followups = s.answers.followups || []; s.materials = s.materials || []; s.gaps = s.gaps || []; s.followups = s.followups || []; DATA.materials = s; return s; }
     }catch(_){}
-    return { persona:null, materials:[], gaps:[], answers:{ extraMore:[] } };
+    return { persona:null, materials:[], gaps:[], followups:[], answers:{ extraMore:[], followups:[] } };
   }
   function saveStore(){ DATA.materials = store; hubSave(); }
   function ans(id){ return (store.answers[id] || '').trim(); }
@@ -98,11 +108,12 @@
   }
 
   /* ---------- 生成 ---------- */
-  async function generate(){
+  async function generate(extra){
     // 收集经历
     const experiences = [];
     QUESTIONS.forEach(q => { const v = ans(q.id); if(v) experiences.push({ id:q.id, title:q.title, raw:v }); });
     (store.answers.extraMore || []).forEach(x => { if((x.text || '').trim()) experiences.push({ id:x.id, title:'补充经历', raw:x.text.trim() }); });
+    (store.answers.followups || []).forEach(f => { if((f.a || '').trim()) experiences.push({ id:'F' + experiences.length, title:f.q || '补充', raw:f.a.trim() }); });
     // 校验：A + B1~B5 必填
     const missing = [];
     if(!ans('A')) missing.push('A（自我介绍）');
@@ -112,25 +123,22 @@
     const hasKey = !!(DATA.settings && DATA.settings.relayToken);
     if(!hasKey) toast('未配置 AI Key（设置里填 DeepSeek Key），将用模板兜底生成（质量降级但可用）');
 
-    setLoading('正在把你的故事变成万能素材…');
+    setLoading('正在把你的故事整合成万能素材…');
     try{
       // 1) 人设
       let persona = null;
       try{ persona = await genPersona(ans('A')); }catch(e){ persona = fallbackPersona(ans('A')); }
-      // 2) 逐条素材（顺序生成，稳健抗限流）
-      const materials = [];
-      for(let i = 0; i < experiences.length; i++){
-        setLoading('正在生成第 ' + (i + 1) + ' / ' + experiences.length + ' 条素材…');
-        let m = null;
-        try{ m = await genMaterial(experiences[i], ans('A')); }catch(e){ m = fallbackMaterial(experiences[i], i); }
-        if(m) materials.push(m);
-      }
+      // 2) 整批生成小故事 + AI 追问
+      let result = { stories:[], followups:[] };
+      try{ result = await genMaterialsBatch(experiences, ans('A')); }
+      catch(e){ result = { stories: fallbackMaterialsBatch(experiences), followups:[] }; }
+      if(!result.stories || !result.stories.length) result = { stories: fallbackMaterialsBatch(experiences), followups:[] };
       // 3) 缺口
-      const covered = unique(materials.flatMap(m => (m.coverage || [])));
+      const covered = unique((result.stories || []).flatMap(m => (m.coverage || []).map(c => c.topic)));
       let gaps = [];
       try{ gaps = await genGaps(covered); }catch(e){ gaps = fallbackGaps(covered); }
 
-      store.persona = persona; store.materials = materials; store.gaps = gaps;
+      store.persona = persona; store.materials = result.stories; store.followups = result.followups || []; store.gaps = gaps;
       saveStore();
       mode = 'result';
       render();
@@ -145,12 +153,13 @@
     root.innerHTML = '<div class="mat-loading"><div class="mat-spinner"></div>' + escapeHtml(msg) + '</div>';
   }
 
-  async function genMaterial(exp, personaText){
-    const user = '人设：' + (personaText || '（未提供）') + '\n经历标题：' + exp.title + '\n用户原话：' + exp.raw + '\n请按规则生成这条素材的 JSON。';
+  async function genMaterialsBatch(exps, personaText){
+    const expText = exps.map(e => '【' + e.title + '】\n' + e.raw).join('\n\n');
+    const user = '人设：' + (personaText || '（未提供）') + '\n\n全部经历（含追问补充）：\n' + expText + '\n\n请按规则整合为几个完整核心小故事，并判断是否需要追问补充，输出 stories + followups JSON。';
     const content = await callRelay('material', [ { role:'system', content:SYS_MAT }, { role:'user', content:user } ], 0.8);
     const j = aiJson(content);
-    if(!j || typeof j !== 'object') throw new Error('素材 JSON 解析失败');
-    return normalizeMaterial(j, exp);
+    if(!j || !Array.isArray(j.stories)) throw new Error('素材 JSON 解析失败');
+    return { stories: j.stories.map((s, i) => normalizeMaterial(s, i)), followups: Array.isArray(j.followups) ? j.followups.map(String) : [] };
   }
   async function genPersona(text){
     const content = await callRelay('material_persona', [ { role:'system', content:SYS_PERSONA }, { role:'user', content:'自我介绍：' + text } ], 0.4);
@@ -168,22 +177,24 @@
     return arr.filter(g => g && g.topic).map(g => ({ topic:String(g.topic), advice:String(g.advice || '补一个真实相关的小记忆，或用 P2 公式现场编。') }));
   }
 
-  function normalizeMaterial(j, exp){
-    const facets = j.facets || {};
-    const sk = j.skeleton || {};
+  function normalizeMaterial(s, i){
+    const cov = Array.isArray(s.coverage) ? s.coverage : [];
     return {
-      id: j.id || ('m' + Date.now() + Math.floor(Math.random()*1000)),
-      title: j.title || (exp.raw || '').slice(0, 20) || exp.title,
-      raw: exp.raw,
-      facets: { person:facets.person||'', place:facets.place||'', event:facets.event||'', object:facets.object||'', emotion:facets.emotion||'', values:facets.values||'' },
-      coverage: Array.isArray(j.coverage) ? j.coverage.map(String) : [],
-      skeleton: { en: Array.isArray(sk.en) ? sk.en.map(String) : [], zh: Array.isArray(sk.zh) ? sk.zh.map(String) : [] },
-      p3Hints: Array.isArray(j.p3Hints) ? j.p3Hints.map(String) : [],
-      confidence: j.confidence || 'high'
+      id: s.id || ('m' + Date.now() + '_' + i),
+      title: s.title || ('故事' + (i + 1)),
+      storyEn: s.storyEn || '',
+      logicZh: s.logicZh || '',
+      coverage: cov.map(c => ({ topic:String(c.topic || ''), fit:String(c.fit || 'natural'), note:String(c.note || '') })).filter(c => c.topic),
+      p3Hints: Array.isArray(s.p3Hints) ? s.p3Hints.map(String) : [],
+      confidence: s.confidence || 'high'
     };
   }
-  function fallbackMaterial(exp, idx){
-    return { id:'m' + Date.now() + '_' + idx, title:(exp.raw || '').slice(0, 20) || exp.title, raw:exp.raw, facets:{}, coverage:[], skeleton:{ en:[ exp.raw || '' ], zh:[] }, p3Hints:[], confidence:'low', _fallback:true };
+  function fallbackMaterialsBatch(exps){
+    return exps.map((e, i) => ({
+      id:'m' + Date.now() + '_' + i, title:e.title || ('故事' + (i + 1)),
+      storyEn:'', logicZh:e.raw || '（未填写）',
+      coverage:[], p3Hints:[], confidence:'low', _fallback:true
+    }));
   }
   function fallbackPersona(text){
     return { city:'', identity:text || '', values:[], traits:[], _fallback:true };
@@ -205,32 +216,36 @@
         + (tags.length ? '<div class="pp-tags">' + tags.join('') + '</div>' : '')
         + '</div>';
     }
-    // 素材卡
+    // 故事卡
     store.materials.forEach((m, i) => {
-      const facetKeys = [['person','人'],['place','地'],['event','事'],['object','物'],['emotion','情绪'],['values','价值观']];
-      const facetHtml = facetKeys.filter(([k]) => m.facets[k]).map(([k,label]) => '<span class="mat-facet f">' + label + '：' + escapeHtml(m.facets[k]) + '</span>').join('');
-      const skelHtml = (m.skeleton.en || []).map((en, k) => '<li><span class="en">' + escapeHtml(en) + '</span><span class="zh">' + escapeHtml((m.skeleton.zh || [])[k] || '') + '</span></li>').join('');
-      const covHtml = (m.coverage || []).map(c => '<span class="mat-cov-item">' + escapeHtml(c) + '</span>').join('');
+      const covHtml = (m.coverage || []).map(c => {
+        const badge = c.fit === 'loose' ? '<span class="mat-cov-badge loose">搭边</span>' : '<span class="mat-cov-badge nat">自然</span>';
+        const note = c.note ? '<span class="mat-cov-note">串：' + escapeHtml(c.note) + '</span>' : '';
+        return '<span class="mat-cov-item">' + badge + escapeHtml(c.topic) + note + '</span>';
+      }).join('');
       const p3Html = (m.p3Hints || []).map(p => '<div>· ' + escapeHtml(p) + '</div>').join('');
       h += '<div class="mat-mat" data-i="' + i + '">'
         + '<div class="mat-mat-head" data-toggle="' + i + '"><span class="mat-mat-title">' + escapeHtml(m.title || '未命名') + '</span>'
         + '<span class="mat-mat-cov">覆盖 ' + (m.coverage ? m.coverage.length : 0) + ' 题</span><span class="mat-caret">▶</span></div>'
         + '<div class="mat-body">'
-        + (facetHtml ? '<div class="mat-facets">' + facetHtml + '</div>' : '')
-        + '<div class="mat-sub">英文骨架（keyword，非全文）</div><ul class="mat-skel">' + (skelHtml || '<li><span class="en">（未生成）</span></li>') + '</ul>'
-        + '<div class="mat-sub">自然覆盖的 P2 题</div><div class="mat-cov-list">' + (covHtml || '<span class="mat-cov-item">（无）</span>') + '</div>'
+        + (m.storyEn ? '<div class="mat-sub">英文可背（简单句）</div><div class="mat-story-en">' + escapeHtml(m.storyEn) + '</div>' : '')
+        + (m.logicZh ? '<div class="mat-sub">中文逻辑链（横杠处现场填）</div><div class="mat-logic">' + escapeHtml(m.logicZh) + '</div>' : '')
+        + '<div class="mat-sub">可套的 P2 题（搭边也行）</div><div class="mat-cov-list">' + (covHtml || '<span class="mat-cov-item">（无）</span>') + '</div>'
         + '<div class="mat-sub">P3 追问预判</div><div class="mat-p3">' + (p3Html || '<div>（无）</div>') + '</div>'
-        + '<div class="mat-sub">原话（可改，保存后仅更新文本）</div><textarea class="mat-raw-edit" data-raw="' + i + '">' + escapeHtml(m.raw || '') + '</textarea>'
-        + '<div class="mat-mat-actions">'
-        + '<button class="mat-mini" data-save="' + i + '">保存原话</button>'
-        + '<button class="mat-mini" data-regen="' + i + '">重新生成该条</button>'
-        + '<button class="mat-mini danger" data-del="' + i + '">删除</button>'
-        + '</div>'
+        + '<div class="mat-mat-actions"><button class="mat-mini" data-regen-all="1">重新生成全部</button><button class="mat-mini danger" data-del="' + i + '">删除</button></div>'
         + '</div></div>';
     });
+    // 追问区（AI 觉得素材还不够广，继续追问）
+    if(store.followups && store.followups.length){
+      h += '<div class="mat-followup"><h3>🤖 AI 想再问几个问题来补全覆盖</h3>';
+      store.followups.forEach((q, i) => {
+        h += '<div class="mat-q"><div class="mat-q-head">' + escapeHtml(q) + '</div><textarea data-followup="' + i + '" placeholder="你的回答…">' + escapeHtml((store.answers.followups && store.answers.followups[i] ? store.answers.followups[i].a : '') || '') + '</textarea></div>';
+      });
+      h += '<button class="btn btn-primary" id="matContinue">继续生成（含补充回答）</button></div>';
+    }
     // 缺口
     if(store.gaps && store.gaps.length){
-      h += '<div class="mat-gaps"><h3>⚠️ 暂未自然覆盖的题（诚实兜底，不硬套）</h3>';
+      h += '<div class="mat-gaps"><h3>⚠️ 连搭边都难覆盖的题（诚实兜底，不硬套）</h3>';
       store.gaps.forEach(g => { h += '<div class="mat-gap"><span class="gt">' + escapeHtml(g.topic) + '</span><span class="ga">' + escapeHtml(g.advice) + '</span></div>'; });
       h += '</div>';
     }
@@ -241,18 +256,24 @@
     root.querySelectorAll('[data-toggle]').forEach(el => {
       el.onclick = () => { const card = el.closest('.mat-mat'); card.classList.toggle('open'); };
     });
-    root.querySelectorAll('[data-save]').forEach(b => {
-      b.onclick = () => { const i = +b.dataset.save; const ta = root.querySelector('[data-raw="' + i + '"]'); if(ta) store.materials[i].raw = ta.value.trim(); saveStore(); toast('已保存原话'); };
-    });
-    root.querySelectorAll('[data-regen]').forEach(b => {
-      b.onclick = async () => { const i = +b.dataset.regen; const m = store.materials[i]; if(!m) return; b.textContent = '生成中…'; b.disabled = true;
-        try{ const nm = await genMaterial({ id:m.id, title:m.title, raw:m.raw }, ans('A') || (store.persona && store.persona.identity) || ''); store.materials[i] = nm; saveStore(); render(); }
-        catch(e){ const fm = fallbackMaterial({ raw:m.raw }, i); store.materials[i] = fm; saveStore(); render(); }
-      };
+    root.querySelectorAll('[data-regen-all]').forEach(b => {
+      b.onclick = () => { generate(); };
     });
     root.querySelectorAll('[data-del]').forEach(b => {
       b.onclick = () => { const i = +b.dataset.del; store.materials.splice(i, 1); saveStore(); render(); };
     });
+    const mc = $('#matContinue');
+    if(mc) mc.onclick = () => {
+      const list = [];
+      root.querySelectorAll('[data-followup]').forEach(ta => {
+        const i = +ta.dataset.followup;
+        const q = (store.followups && store.followups[i]) || '';
+        list.push({ q: q, a: ta.value.trim() });
+      });
+      store.answers.followups = list;
+      saveStore();
+      generate();
+    };
     $('#matRegen').onclick = () => { mode = 'q'; render(); };
   }
 
