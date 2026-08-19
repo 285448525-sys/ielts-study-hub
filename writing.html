@@ -28,9 +28,12 @@
   .cat-nav button{text-align:left}
   .cat-nav button.active{background:var(--primary);color:#fff;border-color:var(--primary)}
   .write-main{flex:1;min-width:0}
+  .write-layout.detail-open{display:block}
+  .write-layout.detail-open .cat-nav{display:none}
   .tpl-card{cursor:pointer}
   .ph{background:var(--warn);color:#fff;padding:0 4px;border-radius:4px;font-weight:600}
-  .ph-input{border:1px solid var(--line);border-bottom:2px solid var(--primary);border-radius:6px;padding:2px 6px;font:inherit;background:var(--bg);color:var(--ink);margin:0 2px}
+  .ph-input{border:none;border-bottom:1px solid var(--muted);background:transparent;padding:1px 2px;font:inherit;font-size:15px;color:var(--ink);margin:0 2px;min-width:48px}
+  .ph-input:focus{outline:none;border-bottom-color:var(--primary)}
   .skeleton-box{white-space:pre-wrap;line-height:1.9;font-size:15px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px}
   .preview-box{white-space:pre-wrap;line-height:1.9;font-size:15px;border:1px dashed var(--primary);border-radius:var(--radius);padding:14px;margin-top:8px}
   .preview-box u{text-decoration:underline;color:var(--primary-d);font-weight:600}
@@ -71,10 +74,10 @@
   .ph-wrap{position:relative;display:inline-block}
   .ph-hint{border:none;background:none;cursor:pointer;font-size:13px;padding:0 2px;color:var(--muted);vertical-align:middle}
   .ph-hint:hover{color:var(--primary)}
-  .ph-hint-box{display:inline-flex;align-items:center;gap:6px;margin-left:4px;font-size:13px;color:var(--ink);background:var(--primary-soft);border:1px solid var(--line);border-radius:8px;padding:2px 8px;vertical-align:middle}
+  .ph-hint-box{display:inline-flex;align-items:center;gap:6px;margin-left:6px;font-size:13px;color:var(--muted);vertical-align:middle}
   .ph-fill{font-weight:600;color:var(--primary-d)}
   .ph-why{color:var(--muted);font-size:12px}
-  .ph-use{border:1px solid var(--primary);background:var(--primary);color:#fff;border-radius:6px;padding:1px 8px;cursor:pointer;font-size:12px}
+  .ph-use{border:1px solid var(--line);background:var(--surface);color:var(--primary);border-radius:6px;padding:1px 8px;cursor:pointer;font-size:12px}
 
   /* 万能语料库 */
   .bank-card{display:flex;flex-direction:column;gap:6px}
@@ -117,11 +120,16 @@
             <h2 id="dTitle" style="margin:0"></h2>
             <button class="btn" id="backBtn" style="margin-left:auto">返回</button>
           </div>
-          <h3>骨架（【】为填空位）</h3>
-          <div id="skeleton" class="skeleton-box"></div>
-          <details style="margin-top:10px" open>
-            <summary style="cursor:pointer;color:var(--primary)">填空练习（实时生成完整句）</summary>
+
+          <div class="tpl-edit">
+            <h3>作文骨架（【】为填空位）</h3>
+            <div id="skeleton" class="skeleton-box"></div>
+            <h3>填空练习（实时生成完整句）</h3>
             <div id="practice" style="margin-top:8px"></div>
+          </div>
+
+          <div class="tpl-text">
+            <h3>完整句（实时）</h3>
             <div id="preview" class="preview-box"></div>
             <div class="form-row" style="margin-top:10px;align-items:center">
               <button class="btn btn-primary" id="tplScoreBtn">🤖 AI 按官方 4 维度评分</button>
@@ -129,7 +137,8 @@
               <span class="muted" id="tplFillHint" style="font-size:12.5px"></span>
             </div>
             <div id="tplScoreBox" class="tpl-score" hidden></div>
-          </details>
+          </div>
+
           <div id="tips" class="tips-box"></div>
           <div class="form-row" style="margin-top:12px">
             <button class="btn btn-danger" id="delBtn">删除模板</button>

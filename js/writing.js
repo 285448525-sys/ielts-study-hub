@@ -19,7 +19,7 @@ ready(() => {
 
   // 模板库
   renderCats();
-  $('#backBtn').addEventListener('click', () => { $('#detailCard').hidden = true; $('#listCard').hidden = false; });
+  $('#backBtn').addEventListener('click', () => { $('#detailCard').hidden = true; $('#listCard').hidden = false; document.querySelector('.write-layout')?.classList.remove('detail-open'); });
   $('#addBtn').addEventListener('click', () => { $('#addCard').hidden = false; $('#listCard').hidden = true; $('#detailCard').hidden = true; });
   $('#a_cancel').addEventListener('click', () => { $('#addCard').hidden = true; $('#listCard').hidden = false; });
   $('#a_save').addEventListener('click', addTpl);
@@ -61,6 +61,7 @@ function openTpl(id){
   if(!t) return;
   curId = id;
   $('#listCard').hidden = true; $('#detailCard').hidden = false;
+  document.querySelector('.write-layout')?.classList.add('detail-open');
   $('#dTitle').textContent = t.title;
   $('#skeleton').innerHTML = highlight(t.skeleton);
   $('#tips').innerHTML = t.tips ? escapeHtml(t.tips).replace(/\n/g,'<br>') : '';
@@ -71,6 +72,11 @@ function openTpl(id){
 
 function highlight(s){ return escapeHtml(s).replace(/【(.+?)】/g, '【<span class="ph">$1</span>】'); }
 
+function fitInput(inp){
+  const t = (inp.value || inp.dataset.ph || '');
+  inp.style.width = (Math.max(t.length, 4) * 12 + 10) + 'px';   // 最小 ~58px，随字数变宽，不截断
+}
+
 function buildPractice(skeleton){
   const parts = skeleton.split(/(【[^】]*】)/g);
   let html = '';
@@ -78,10 +84,9 @@ function buildPractice(skeleton){
   parts.forEach(p => {
     const m = p.match(/^【(.+?)】$/);
     if(m){
-      const w = Math.max(80, m[1].length * 13);
       const esc = escapeHtml(m[1]);
       html += '<span class="ph-wrap" data-idx="' + phIdx + '">'
-            +   '<input class="ph-input" data-ph="' + esc + '" placeholder="' + esc + '" style="width:' + w + 'px">'
+            +   '<input class="ph-input" data-ph="' + esc + '" placeholder="' + esc + '">'
             +   '<button class="ph-hint" type="button" data-ph="' + esc + '" title="AI 给这个空的建议">💡</button>'
             +   '<span class="ph-hint-box" data-for="' + esc + '" hidden></span>'
             + '</span>';
@@ -90,7 +95,7 @@ function buildPractice(skeleton){
   });
   const box = $('#practice');
   box.innerHTML = html;
-  box.querySelectorAll('.ph-input').forEach(inp => inp.addEventListener('input', updatePreview));
+  box.querySelectorAll('.ph-input').forEach(inp => { fitInput(inp); inp.addEventListener('input', () => { fitInput(inp); updatePreview(); }); });
   box.querySelectorAll('.ph-hint').forEach(btn => btn.addEventListener('click', () => hintBlank(btn)));
   updatePreview();
 }
@@ -321,6 +326,7 @@ function delTpl(){
   DATA.writing = DATA.writing.filter(x => x.id !== curId);
   hubSave();
   $('#detailCard').hidden = true; $('#listCard').hidden = false;
+  document.querySelector('.write-layout')?.classList.remove('detail-open');
   curId = null;
   renderCats(); renderList();
   toast('已删除');
