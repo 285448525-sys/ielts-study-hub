@@ -513,27 +513,97 @@ async function cloudUpload(showToast){
     if(showToast) toast('已上传到云端');
   }catch(e){ if(showToast) toast('云端上传失败：' + e.message); }
 }
-/* 从云端下载并覆盖本机。返回 true=已应用；false=云端无数据/取消/失败 */
-async function cloudDownload(){
+/* ===== 字段级合并（替代整份覆盖，避免双设备互相抹掉进度） ===== */
+const SYNC_ARRAY_FIELDS = ['sessions','notes','meds','plans','corpus','scores','errorbook',
+  'energy','checkins','speaking','writing','writingScores','speakingStories','writingPhrases',
+  'mockRecords','dictationSources','dictationLogs','longSent'];
+
+/* 安全取数字：非有限数→0 */
+function _num(x){ const n = Number(x); return isFinite(n) ? n : 0; }
+/* 取更晚的日期/数值（ISO 日期串或时间戳均可；空值视为最旧） */
+function _later(a, b){
+  const av = (a == null || a === '') ? '' : a;
+  const bv = (b == null || b === '') ? '' : b;
+  return (av >= bv) ? av : bv;
+}
+/* 背单词：以 en（大小写不敏感）为 key，逐字段取「更掌握」状态，不丢任何一端进度 */
+function _mergeWords(local, cloud){
+  const map = new Map();
+  const push = (w) => { if(w && w.en) map.set(String(w.en).toLowerCase(), Object.assign({}, w)); };
+  (cloud||[]).forEach(push);
+  for(const w of (local||[])){
+    if(!w || !w.en) continue;
+    const k = String(w.en).toLowerCase();
+    const ex = map.get(k);
+    if(!ex){ push(w); continue; }
+    ex.mcStreak   = Math.max(_num(ex.mcStreak), _num(w.mcStreak));
+    ex.mcInterval = Math.max(_num(ex.mcInterval), _num(w.mcInterval));
+    ex.mcEase     = Math.max(_num(ex.mcEase), _num(w.mcEase));
+    ex.mcDiff     = Math.min(_num(ex.mcDiff), _num(w.mcDiff));
+    ex.mcDue      = _later(ex.mcDue, w.mcDue);
+    const cn1 = (ex.cn||'').trim(), cn2 = (w.cn||'').trim();
+    ex.cn = (cn1 && cn2) ? (cn1.length >= cn2.length ? cn1 : cn2) : (cn1 || cn2);
+  }
+  return Array.from(map.values());
+}
+/* 其他数组：按 id/ts 去重，冲突取较新；保留本机独有条目（不删） */
+function _mergeArray(local, cloud){
+  local = Array.isArray(local) ? local : [];
+  cloud = Array.isArray(cloud) ? cloud : [];
+  const keyOf = it => (it && it.id != null) ? ('id:'+it.id) : (it && it.ts != null) ? ('ts:'+it.ts) : null;
+  const tsOf  = it => _num(it && it.ts);
+  const byKey = new Map();
+  for(const it of local){ const k = keyOf(it); if(k) byKey.set(k, it); }
+  for(const it of cloud){
+    const k = keyOf(it);
+    if(!k){ byKey.set('__nk_'+(byKey.size), it); continue; } // 无 key：各自保留，不强行合并
+    const ex = byKey.get(k);
+    if(!ex){ byKey.set(k, it); }
+    else if(tsOf(it) > tsOf(ex)){ byKey.set(k, it); } // 冲突→较新者胜（平局/无 ts 保留本机）
+  }
+  return Array.from(byKey.values());
+}
+/* 整体合并：以本机为基准，云端增量并入；不覆盖本机设置与任何独有数据 */
+function mergeData(local, cloud){
+  cloud = cloud || {};
+  const out = Object.assign({}, local);
+  out.words = _mergeWords(local.words, cloud.words);
+  for(const f of SYNC_ARRAY_FIELDS){
+    if(Array.isArray(cloud[f])) out[f] = _mergeArray(local[f], cloud[f]);
+  }
+  return out; // settings 保留本机（同步账号/开关是本机设定，不从云端覆盖）
+}
+/* 统计云端相对本机新增/更新的条目数（用于合并提示） */
+function _countCloudUpdates(local, cloud){
+  let n = 0;
+  const lw = new Set((local.words||[]).map(w => (w.en||'').toLowerCase()));
+  for(const w of (cloud.words||[])) if(w.en && !lw.has(String(w.en).toLowerCase())) n++;
+  const keyOf = it => (it && it.id != null) ? ('id:'+it.id) : (it && it.ts != null) ? ('ts:'+it.ts) : null;
+  for(const f of SYNC_ARRAY_FIELDS){
+    const lk = new Map((local[f]||[]).map(it => [keyOf(it), 1]).filter(([k]) => k));
+    for(const it of (cloud[f]||[])){ const k = keyOf(it); if(k && !lk.has(k)) n++; }
+  }
+  return n;
+}
+/* 从云端合并拉取（替代整份覆盖）。silent=true 时仅在有更新时提示，用于自动拉取 */
+async function cloudDownload(silent){
   const phone = DATA.settings.syncCode;
-  if(!phone){ toast('请先在「设置」绑定手机号'); return false; }
+  if(!phone){ if(!silent) toast('请先在「设置」绑定手机号'); return false; }
   try{
     const [res, data] = await syncApi('GET');
-    if(res.status === 404){ toast('云端没有该手机号的数据'); return false; }
+    if(res.status === 404){ if(!silent) toast('云端没有该手机号的数据'); return false; }
     if(!res.ok) throw new Error('HTTP ' + res.status);
     if(!data || !data.data) throw new Error('返回格式异常');
-    // Bug17：云端不是最新（不比本机新）时不要覆盖本机更新的数据
-    const cloudTs = (data.ts != null && !isNaN(Number(data.ts))) ? Number(data.ts) : 0;
-    const localTs = DATA._lastSaved || 0;
-    if(cloudTs && localTs && cloudTs <= localTs){
-      toast('云端数据不是最新（本机有更新的修改），已跳过下载');
-      return false;
+    const added = _countCloudUpdates(DATA, data.data);
+    if(added > 0){
+      DATA = mergeData(DATA, data.data); // 合并而非覆盖：保留本机进度，并入云端新增
+      hubSave();
+      toast('已合并云端 ' + added + ' 处更新');
+    } else if(!silent){
+      toast('云端没有比本机更新的内容');
     }
-    if(!confirm('从云端下载会覆盖本机全部数据，确定继续？\n建议先点「导出 JSON」备份。')) return false;
-    DATA = Object.assign({ sessions:[], notes:[], meds:[], words:[], plans:[], corpus:[], scores:[], errorbook:[], energy:[], checkins:[], settings:{}, speaking:[], writing:[], writingPhrases:[], speakingStories:[], mockRecords:[], writingScores:[] }, data.data);
-    hubSave(); location.reload();
     return true;
-  }catch(e){ toast('云端下载失败：' + e.message); return false; }
+  }catch(e){ if(!silent) toast('云端下载失败：' + e.message); return false; }
 }
 async function cloudDelete(){
   const phone = DATA.settings.syncCode;
@@ -549,7 +619,7 @@ async function cloudDelete(){
 /* 绑定并同步（注册 / 登录统一入口，单按钮）：
    - 点一下按钮：先 GET 探活。
    - 404 = 该手机号云端无数据 → 注册（直接 PUT 上传本机数据）；
-   - 200 = 云端已有数据 → 直接登录（下载并覆盖本机，恢复之前的数据）；
+   - 200 = 云端已有数据 → 直接登录（合并云端数据，非覆盖，避免本机进度被抹掉）；
    - 成功后自动开启自动同步。不做二次确认，与单按钮设计一致。 */
 async function syncLoginOrRegister(){
   const phone = ($('#sSyncCode') ? $('#sSyncCode').value : '').replace(/\D/g, '');
@@ -566,14 +636,15 @@ async function syncLoginOrRegister(){
       syncSetStatus('✅ 注册成功，数据已上传云端', 'ok');
       renderSyncState();
     } else if(probe.ok){
-      // 登录：云端已有数据 → 先确认再覆盖本机，与 cloudDownload 一致，
-      // 避免本机有未同步的新增（刚加的词/错题）被云端旧数据静默抹掉
-      if(!confirm('云端已有该手机号的数据，登录将用云端数据覆盖本机全部数据，确定继续？\n建议先点「导出 JSON」备份本机数据。')) return;
+      // 登录：云端已有数据 → 合并（非覆盖），避免本机未同步新增被云端数据抹掉
       const [res2, data] = await syncApi('GET');
       if(data && data.data){
-        DATA = Object.assign({ sessions:[], notes:[], meds:[], words:[], plans:[], corpus:[], scores:[], errorbook:[], energy:[], checkins:[], settings:{}, speaking:[], writing:[], writingPhrases:[], speakingStories:[], mockRecords:[], writingScores:[] }, data.data);
+        DATA = mergeData(DATA, data.data);
         enableAutoSyncAfterLogin(phone);
-        hubSave(); location.reload();
+        hubSave();
+        syncSetStatus('✅ 登录成功，已合并云端数据', 'ok');
+        renderSyncState();
+        location.reload();
       } else {
         syncSetStatus('云端返回格式异常', 'error');
       }
@@ -606,6 +677,15 @@ function renderSyncState(){
   if(!phone){ el.textContent = '尚未绑定手机号'; return; }
   el.textContent = '已绑定：' + phone + (DATA.settings.autoSync ? '（自动同步：开）' : '（自动同步：关）');
 }
+
+/* 自动双向同步：启动静默合并拉取一次 + 定时/回到页面时拉取（均为合并，不覆盖、不弹确认刷屏） */
+function initCloudSync(){
+  if(!DATA.settings.autoSync || !DATA.settings.syncCode) return;
+  cloudDownload(true); // 启动静默合并拉取（有更新才提示）
+  setInterval(() => { if(!document.hidden) cloudDownload(true); }, 5 * 60 * 1000);
+  document.addEventListener('visibilitychange', () => { if(!document.hidden) cloudDownload(true); });
+}
+ready(initCloudSync);
 
 /* ===== 桌面通知（番茄钟阶段切换 / 智能提醒）已移除：不再申请浏览器通知权限 ===== */
 
