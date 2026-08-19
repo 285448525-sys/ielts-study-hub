@@ -330,15 +330,19 @@ function renderPartInputs(){
   $('#mkParts').innerHTML = labels.map(label => {
     const def = cfg.parts.find(p => p.label === label) || {};
     if(isScore){
-      return `<div class="mk-part form-row">
-        <div style="flex:none;min-width:90px;display:flex;align-items:center;font-weight:700">${label}</div>
-        <div style="flex:1"><label>得分（0–9，可 .5）</label><input type="number" step="0.5" min="0" max="9" class="mk-score" data-part="${label}" placeholder="选填" /></div>
+      return `<div class="mk-part mk-part-grid">
+        <div class="mk-part-label">${label}</div>
+        <div class="mk-part-inputs">
+          <div><label>得分（0–9，可 .5）</label><input type="number" step="0.5" min="0" max="9" class="mk-score" data-part="${label}" placeholder="选填" /></div>
+        </div>
       </div>`;
     }
-    return `<div class="mk-part form-row">
-      <div style="flex:none;min-width:90px;display:flex;align-items:center;font-weight:700">${label}</div>
-      <div><label>答对</label><input type="number" min="0" class="mk-correct" data-part="${label}" placeholder="0" /></div>
-      <div><label>总题数</label><input type="number" min="1" class="mk-total" data-part="${label}" value="${def.defaultTotal || ''}" placeholder="${def.defaultTotal || 0}" /></div>
+    return `<div class="mk-part mk-part-grid">
+      <div class="mk-part-label">${label}</div>
+      <div class="mk-part-inputs">
+        <div><label>答对</label><input type="number" min="0" class="mk-correct" data-part="${label}" placeholder="0" /></div>
+        <div><label>总题数</label><input type="number" min="1" class="mk-total" data-part="${label}" value="${def.defaultTotal || ''}" placeholder="${def.defaultTotal || 0}" /></div>
+      </div>
     </div>`;
   }).join('');
 }

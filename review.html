@@ -35,7 +35,7 @@
 
     <div class="tabs">
       <button class="tab-btn" data-tab="breakdown"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg>分项模考</button>
-      <button class="tab-btn active" data-tab="overall"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M6 20v-6M12 20V8M18 20v-10M3 20h18"/></svg>整卷模考</button>
+      <button class="tab-btn active" data-tab="overall"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M6 20v-6M12 20V8M18 20v-10M3 20h18"/></svg>真题成绩记录</button>
       <button class="tab-btn" data-tab="speaking"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg>口语模考</button>
     </div>
 
@@ -69,7 +69,7 @@
       </section>
 
       <details class="detail-block">
-        <summary>添加整卷模考成绩</summary>
+        <summary>添加真题成绩</summary>
         <div>
           <div class="form-row">
             <div><label>模考日期</label><input type="date" id="scoreDate" /></div>
@@ -88,28 +88,6 @@
 
     <!-- 分项模考 Tab -->
     <div id="tab-breakdown" class="tab-panel">
-      <section class="card">
-        <div class="form-row" style="align-items:center">
-          <h2 class="inline-h2">表现统计</h2>
-          <div class="mk-filter-wrap"><label>范围</label>
-            <select id="mkFilter">
-              <option value="all">全部</option>
-              <option value="whole">仅整卷</option>
-              <option value="part">仅单项</option>
-            </select>
-          </div>
-        </div>
-        <h3>题型表现</h3>
-        <div id="mkTypeStats"></div>
-        <h3>各 Part 表现</h3>
-        <div id="mkPartStats"></div>
-      </section>
-
-      <section class="card">
-        <h2>分项记录列表</h2>
-        <div id="mkList"></div>
-      </section>
-
       <section class="card">
         <h2>添加分项记录</h2>
         <div>
@@ -142,6 +120,28 @@
           </div>
           <button class="btn btn-primary" id="mkAdd">保存分项</button>
         </div>
+      </section>
+
+      <section class="card">
+        <div class="form-row" style="align-items:center">
+          <h2 class="inline-h2">表现统计</h2>
+          <div class="mk-filter-wrap"><label>范围</label>
+            <select id="mkFilter">
+              <option value="all">全部</option>
+              <option value="whole">仅整卷</option>
+              <option value="part">仅单项</option>
+            </select>
+          </div>
+        </div>
+        <h3>题型表现</h3>
+        <div id="mkTypeStats"></div>
+        <h3>各 Part 表现</h3>
+        <div id="mkPartStats"></div>
+      </section>
+
+      <section class="card">
+        <h2>分项记录列表</h2>
+        <div id="mkList"></div>
       </section>
     </div>
 

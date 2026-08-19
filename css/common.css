@@ -862,6 +862,16 @@ main .quote{
 .mk-part > div{display:block}
 .mk-part label{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
 .mk-part input{width:100%}
+/* design/23 修正：添加分项记录表单 2 列紧凑网格（P1–P4 并排） */
+.mk-parts{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:12px 0}
+.mk-part-grid{display:flex;flex-direction:column;gap:6px;align-items:stretch}
+.mk-part-label{font-weight:700;font-size:14px;color:var(--ink)}
+.mk-part-grid .mk-part-inputs{display:flex;gap:8px}
+.mk-part-grid .mk-part-inputs > div{flex:1}
+.mk-part-grid .mk-part-inputs input{width:100%}
+@media (max-width:480px){
+  .mk-parts{grid-template-columns:1fr}
+}
 .mk-grp{margin-bottom:14px}
 .mk-grp-title{font-weight:700;margin:4px 0 6px}
 .review-split{margin-top:28px;padding-top:8px}
