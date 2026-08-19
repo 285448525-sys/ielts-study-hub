@@ -8,24 +8,38 @@ var FREQ_ORDER = { ultra:0, must:1, high:2, medium:3, normal:4 };
 
 /* 顶部常量用 var（speaking.js 会被软导航 window.eval 重跑，const 会抛「已声明」） */
 var SYS_DIAG =
-  '你是雅思口语老师。考生：女生，大三CS在读，目标口语5.5。\n'
-  + '考生会给出对某个口语问题的回答。请做三件事：\n'
-  + '1) 评分（0-9，可0.5）：没任何语法/用词错误 → 语法和词汇至少6.0；有小错但考官听得懂原意 → 5.5；考官听得费劲 → 5.0或更低。回答超过两句。如果 errors 是空数组，grammar 和 vocabulary 必须都 ≥6.0。\n'
-  + '2) 纠错：只挑真正的语法错误和用词错误。其他一律不管——大小写、标点、空格、断句、说法不够地道、原句可接受但换种说法更好，这些全都不要提，也不要写进 errors。尤其禁止：把考生的个人身份、身体状况、兴趣、观点等事实性表述当成错误改掉（如把 "I am an ADHDer" 改成 "I am a bad driver"）。没有真错误就写空数组 []。\n'
-  + '3) 按考生原思路给一版简单地道的英文重写：只改 errors 里列出的错误；errors 为空则原句保持不动。重写必须保留考生原意，禁止为"更地道"而替换原说法（如把 ADHDer 改成 bad driver）。再给1-2个可积累的地道替换词/句型。\n'
-  + '只输出 JSON：{"score":{"fluency":6.0,"vocabulary":5.0,"grammar":5.0},"errors":[{"original":"原句片段","issue":"错在哪+为什么错（中文）","fix":"改后片段"}],"rewrite":"地道英文重写","tips":["可积累1","可积累2"]}';
+  '你是雅思口语评分员。只找真正的语法错误和明显用错的词，其他一律不算错。\n'
+  + '考生：女生，大三CS在读，目标口语5.5。\n'
+  + '【评分】0-9可0.5。完全无错 → 语法/词汇≥6.0；有小错但意思清楚 → ≥5.5；意思听得很费劲 → ≤5.0。\n'
+  + '【纠错红线】只列真正的语法错误和用词错误。以下情况一律不列、不写进 errors：\n'
+  + '- 大小写、标点、空格、断句；\n'
+  + '- 同义词替换（如把 unwind 改成 relaxed）；\n'
+  + '- 说法不够地道、可接受但换种说法更好；\n'
+  + '- 改变考生原意（如把 "I don\'t know" 改成 "I don\'t think so"，把 "ADHDer" 改成 "bad driver"）；\n'
+  + '- 考生的身份/事实/观点（如 ADHDer、不喜欢开车、喜欢去公园）。\n'
+  + '- 好词只是形式不对时，只改形式（如 feel unwind → feel unwound / helps me unwind），不许换成简单同义词。\n'
+  + '没有真错误时 errors 必须写 []；errors 为空非常常见。\n'
+  + '【重写】只改 errors 里列出的错误；errors 为空时 rewrite 必须和原句几乎一样。禁止为"更地道"替换原说法。\n'
+  + '只输出 JSON：{"score":{"fluency":6.0,"vocabulary":6.0,"grammar":6.0},"errors":[],"rewrite":"考生原句（或只改真错后的句子）","tips":["可积累1","可积累2"]}';
 
 /* 录音 / 转写功能已移除：口语只保留「文本框手写 + AI 评分 + 提交记录」。发音分取自设置里的固定分。 */
 
 // P2 专用诊断提示词（语法纠错 + 串题素材连接）
 var SYS_DIAG_P2 =
-  '你是雅思口语老师（专精Part 2）。考生：女生，大三CS在读，目标口语5.5。\n'
-  + '考生会给出对一道P2题目的完整回答。请做四件事：\n'
-  + '1) 按流利度(fluency)、词汇(vocabulary)、语法(grammar)三项评分（0-9，可0.5），并给总分overall。没任何语法/用词错误 → 语法和词汇至少6.0；有小错但考官听得懂原意 → 5.5；考官听得费劲 → 5.0或更低。回答超过两句。\n'
-  + '2) 纠错：只挑真正的语法错误和用词错误。其他一律不管——大小写、标点、空格、断句、说法不够地道、原句可接受但换种说法更好，这些全都不要提，也不要写进 errors。尤其禁止：把考生的个人身份、身体状况、兴趣、观点等事实性表述当成错误改掉（如把 "I am an ADHDer" 改成 "I am a bad driver"）。没有真错误就写空数组 []。\n'
-  + '3) 串题素材连接(storyLink)：考生有万能故事素材（见用户消息末尾），建议可套用哪个素材、怎么嵌入（中文2-4行）。\n'
-  + '4) 按考生原思路给一版简单地道的英文重写：只改 errors 里列出的错误；errors 为空则原句保持不动。重写必须保留考生原意，禁止为"更地道"而替换原说法（如把 ADHDer 改成 bad driver）。再给1-2个可积累的地道替换词/句型。\n'
-  + '只输出 JSON：{"score":{"overall":5.5,"fluency":6.0,"vocabulary":5.0,"grammar":5.0},"errors":[{"original":"原句片段","issue":"错在哪+为什么错（中文）","fix":"改后片段"}],"rewrite":"地道英文重写","storyLink":"素材连接建议（中文）","tips":["可积累1","可积累2"]}';
+  '你是雅思口语评分员（专精Part 2）。只找真正的语法错误和明显用错的词，其他一律不算错。\n'
+  + '考生：女生，大三CS在读，目标口语5.5。\n'
+  + '【评分】0-9可0.5。完全无错 → 语法/词汇≥6.0；有小错但意思清楚 → ≥5.5；意思听得很费劲 → ≤5.0。\n'
+  + '【纠错红线】只列真正的语法错误和用词错误。以下情况一律不列、不写进 errors：\n'
+  + '- 大小写、标点、空格、断句；\n'
+  + '- 同义词替换（如把 unwind 改成 relaxed）；\n'
+  + '- 说法不够地道、可接受但换种说法更好；\n'
+  + '- 改变考生原意（如把 "I don\'t know" 改成 "I don\'t think so"，把 "ADHDer" 改成 "bad driver"）；\n'
+  + '- 考生的身份/事实/观点（如 ADHDer、不喜欢开车、喜欢去公园）。\n'
+  + '- 好词只是形式不对时，只改形式（如 feel unwind → feel unwound / helps me unwind），不许换成简单同义词。\n'
+  + '没有真错误时 errors 必须写 []；errors 为空非常常见。\n'
+  + '【串题素材连接(storyLink)】建议考生已准备的万能素材可怎么套用（中文2-4行）。\n'
+  + '【重写】只改 errors 里列出的错误；errors 为空时 rewrite 必须和原句几乎一样。禁止为"更地道"替换原说法。\n'
+  + '只输出 JSON：{"score":{"overall":6.0,"fluency":6.0,"vocabulary":6.0,"grammar":6.0},"errors":[],"rewrite":"考生原句（或只改真错后的句子）","storyLink":"素材连接建议（中文）","tips":["可积累1","可积累2"]}';
 
 ready(() => {
   $('#tabs').querySelectorAll('[data-type]').forEach(b => {
@@ -799,6 +813,8 @@ function cleanErrors(errors){
   const BAD = /原句没错|原句正确|不应列为|不是错误|不算错误|也正确|可接受|没问题|不存在|没有错误|并不错|其实没错|实际上没错|可保留|不必修改|无需修改|无需改动|没有语法错误|没有明显|不过.*也可以|虽然.*但.*正确|此条不列为|不列为错误/i;
   // 口语中永远不算错误的点：标点、大小写、空格、断句
   const PUNCT_CAP = /大小写|首字母|大写|小写|标点|逗号|句号|问号|感叹号|引号|空格|断句|缺少.*标点|应加标点|加标点/i;
+  // 风格/同义替换/改写建议类：不是真错误
+  const STYLE = /更地道|更自然|更常见|更口语|更正式|更好|建议|可替换|可改为|可改成|可换成|用.*更好|显得|不够地道|不够自然|不够正式|不够口语|同义词|同义|替换|替换成|换成|改写成|改写为|重写为|换一种|更.*表达|表达.*更好|意思.*一样|意思.*相同|更简洁|更清楚|更流畅/i;
   return errors.filter(e => {
     if(!e || typeof e !== 'object') return false;
     const orig = String(e.original || '').trim();
@@ -807,6 +823,16 @@ function cleanErrors(errors){
     if(orig.toLowerCase() === fix.toLowerCase()) return false;
     if(BAD.test(String(e.issue || ''))) return false;
     if(PUNCT_CAP.test(String(e.issue || ''))) return false;
+    if(STYLE.test(String(e.issue || ''))) return false;
+    // 常见意义改变/同义替换硬过滤（original/fix 同时命中）
+    const origLower = orig.toLowerCase();
+    const fixLower = fix.toLowerCase();
+    if((origLower.includes("don't know") && fixLower.includes("don't think so")) ||
+       (origLower.includes("don't think so") && fixLower.includes("don't know"))) return false;
+    if((origLower.includes('unwind') && fixLower.includes('relaxed')) ||
+       (origLower.includes('relaxed') && fixLower.includes('unwind'))) return false;
+    if((origLower.includes('adhder') || origLower.includes('adhd')) &&
+       (fixLower.includes('bad driver') || fixLower.includes('driver'))) return false;
     return true;
   });
 }
