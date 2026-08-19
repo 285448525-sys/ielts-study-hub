@@ -17,7 +17,6 @@ ready(() => {
   $('#sRelayToken').value = s.relayToken || '';
 
   $('#sChime').checked = DATA.settings.chimeOnDone !== false;
-  $('#sNotify').checked = !!DATA.settings.notifyOnDone;
 
   $('#sSyncCode').value = s.syncCode || '';
   renderSyncState();
@@ -30,16 +29,6 @@ ready(() => {
   $('#importBtn').addEventListener('click', () => $('#importFile').click());
   $('#importFile').addEventListener('change', e => { if(e.target.files[0]) importData(e.target.files[0]); });
   $('#resetBtn').addEventListener('click', resetData);
-
-  $('#sNotify').addEventListener('change', () => {
-    if($('#sNotify').checked && 'Notification' in window && Notification.permission === 'default'){
-      Notification.requestPermission().then(p => {
-        $('#notifyHint').textContent = p === 'granted' ? '✅ 已授权，倒计时到点会弹桌面通知' : '⚠️ 未授权，桌面通知不会弹出（提示音仍可用）';
-      });
-    } else if($('#sNotify').checked && 'Notification' in window && Notification.permission === 'denied'){
-      $('#notifyHint').textContent = '⚠️ 浏览器已拒绝通知权限，请在站点设置里手动开启';
-    }
-  });
 
   // 云端同步（手机号账号，单按钮：注册 / 登录统一入口）
   $('#syncBindBtn').addEventListener('click', () => { syncLoginOrRegister(); });
@@ -84,7 +73,6 @@ function saveSettings(){
   DATA.settings.autoSync = true; // 默认开启自动同步，与考研站一致（绑定后由 syncLoginOrRegister 控制）
   DATA.settings.pronunciationScore = ($('#sPron').value === '' ? null : (parseFloat($('#sPron').value) || null)); // 口语模考固定发音分（0–9），空=未设置
   DATA.settings.chimeOnDone = $('#sChime').checked;
-  DATA.settings.notifyOnDone = $('#sNotify').checked;
   hubSave(); applyTheme(); toast('设置已保存');
 }
 
