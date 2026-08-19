@@ -240,6 +240,19 @@ function renderList(){
   });
 }
 
+// 诊断/评分保存后，同步更新列表 badge 与详情页头部分数
+function refreshScoreAfterDiag(s){
+  if(!s) return;
+  renderList();
+  const bestEl = document.querySelector('.sp-detail-best');
+  if(bestEl){
+    const bestScore = getAggScore(s);
+    if(bestScore != null){
+      bestEl.textContent = (s.type === 'P1' ? 'P1 平均分' : '历史最高') + '：' + scoreLabel(bestScore) + '分';
+    }
+  }
+}
+
 function openDetail(id){
   const s = DATA.speaking.find(x => x.id === id);
   if(!s) return;
@@ -653,6 +666,7 @@ async function diagnoseAnswer(id, qi, questionText, answerText){
     s.answers[qi].records.push({ text: answerText, ts: Date.now(), score: newScore, result: (j ? JSON.stringify(j) : content), raw: content });
     s.updatedAt = Date.now();
     hubSave();
+    refreshScoreAfterDiag(s);
   }catch(e){
     if(resultEl){
       resultEl.innerHTML = '<div class="diag-note">AI 服务暂不可用：' + escapeHtml(e.message) + '\n\n请检查「设置」中的 AI 接口地址。</div>';
@@ -726,6 +740,7 @@ async function diagnoseP2(id){
     s.answers.p2.records.push({ text: answer, ts: Date.now(), score: newScore, result: (j ? JSON.stringify(j) : content), raw: content });
     s.updatedAt = Date.now();
     hubSave();
+    refreshScoreAfterDiag(s);
     // 刷新 P2 提交历史列表
     renderSubmitRecords(s.answers.p2.records, $('#p2Records'), (rec) => {
       const ta = $('#p2Ans'); if(ta && rec.text != null) ta.value = rec.text;
