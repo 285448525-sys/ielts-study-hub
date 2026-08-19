@@ -125,6 +125,9 @@
   .sp-diag{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;border:1px solid var(--primary);background:var(--primary);color:#fff;cursor:pointer;font-size:13px;transition:.15s}
   .sp-diag:hover{opacity:.92}
   .sp-diag:disabled{opacity:.6;cursor:default}
+  .sp-ai-helper{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;border:1px solid var(--primary);background:var(--surface);color:var(--primary);cursor:pointer;font-size:13px;transition:.15s}
+  .sp-ai-helper:hover{background:var(--primary-soft)}
+  .sp-ai-helper:disabled{opacity:.6;cursor:default}
   .sp-ans-clear{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;border:1px solid var(--line);background:var(--surface);color:var(--muted);cursor:pointer;font-size:13px;transition:.15s}
   .sp-ans-clear:hover{border-color:var(--danger);color:var(--danger)}
   .sp-play{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;border:1px solid var(--primary);background:var(--surface);color:var(--primary);cursor:pointer;font-size:13px;transition:.15s}
@@ -152,10 +155,7 @@
   .sp-p2-answer{padding:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);margin-bottom:12px}
   .sp-timer{font-size:13px;font-weight:700;color:var(--primary);white-space:nowrap;margin-left:auto}
 
-  /* === P1 小题内 tab（我的录音 / 定制答案）=== */
-  .sp-mini-tabs{display:flex;gap:0;border-bottom:2px solid var(--line);margin:0 0 10px}
-  .sp-mini-tab{flex:1;padding:10px 0;font-size:14px;font-weight:600;border:none;background:none;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
-  .sp-mini-tab.active{color:var(--primary);border-bottom-color:var(--primary)}
+  /* === P1 小题内（我的回答 + AI 辅助按钮）=== */
   .sp-mini-body{padding:8px 0}
   .sp-mini-body[hidden]{display:none}
 
@@ -168,17 +168,6 @@
   .sp-rec-dur{font-size:12px;color:var(--muted);margin-left:auto}
   .sp-rec-text{flex:1;min-width:0;font-size:13px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .sp-rec-score{font-size:12px;color:var(--primary);font-weight:700;white-space:nowrap;margin-left:8px}
-
-  .sp-custom-target{display:flex;align-items:center;gap:10px;margin:8px 0 12px;font-size:13px;color:var(--ink)}
-  .sp-custom-score{flex:1;max-width:200px}
-  .sp-custom-score-val{font-weight:700;color:var(--primary);min-width:28px}
-  .sp-custom-input{width:100%;min-height:70px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);font:inherit;background:var(--surface);color:var(--ink);resize:vertical;box-sizing:border-box;line-height:1.7;margin-bottom:10px}
-  .sp-custom-input:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-soft);outline:none}
-  .sp-custom-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:20px;border:1px solid var(--primary);background:var(--primary);color:#fff;cursor:pointer;font-size:13px;margin-bottom:10px}
-  .sp-custom-btn:disabled{opacity:.6;cursor:default}
-  .sp-custom-result{padding:12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);font-size:14px;line-height:1.8;white-space:pre-wrap}
-  .sp-custom-result .ans{font-weight:600;color:var(--ink);margin-bottom:8px}
-  .sp-custom-result .tips{font-size:13px;color:var(--muted)}
 
   /* === 素材生成器联动面板（P2 抽题命中个人素材）=== */
   .sp-mat-link{margin:0 0 14px}

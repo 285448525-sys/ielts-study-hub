@@ -499,24 +499,15 @@ function questionItemHtml(text, qi, s){
     + '<span class="sp-q-caret">▸</span>'
     + '<span class="sp-q-text">' + escapeHtml(text) + '</span>'
     + '<div class="sp-q-panel" data-qi="' + qi + '" hidden>'
-    +   '<div class="sp-mini-tabs">'
-    +     '<button class="sp-mini-tab active" data-tab="rec" data-qi="' + qi + '">我的回答</button>'
-    +     '<button class="sp-mini-tab" data-tab="custom" data-qi="' + qi + '">定制答案</button>'
-    +   '</div>'
     +   '<div class="sp-mini-body" data-body="rec" data-qi="' + qi + '">'
     +     '<textarea class="sp-ans" data-qi="' + qi + '" placeholder="在这里写下你的回答…"></textarea>'
     +     '<div class="sp-rec-list" data-qi="' + qi + '"></div>'
     +     '<div class="sp-q-btns">'
+    +       '<button class="sp-ai-helper" data-qi="' + qi + '" type="button">✨ AI 辅助</button>'
     +       '<button class="sp-diag" data-qi="' + qi + '" type="button">🤖 AI 诊断</button>'
     +       '<button class="sp-ans-clear" data-qi="' + qi + '" type="button">清空</button>'
     +     '</div>'
     +     '<div class="sp-ai-result sp-q-result" data-qi="' + qi + '"></div>'
-    +   '</div>'
-    +   '<div class="sp-mini-body" data-body="custom" data-qi="' + qi + '" hidden>'
-    +     '<div class="sp-custom-target">目标分数 <input type="range" class="sp-custom-score" data-qi="' + qi + '" min="5" max="7" step="0.5" value="6"> <span class="sp-custom-score-val">6.0</span></div>'
-    +     '<textarea class="sp-custom-input" data-qi="' + qi + '" placeholder="用中文写下你的思路、关键词或想说的内容…"></textarea>'
-    +     '<button class="sp-custom-btn" data-qi="' + qi + '" type="button">生成定制答案</button>'
-    +     '<div class="sp-custom-result" data-qi="' + qi + '"></div>'
     +   '</div>'
     + '</div></li>';
 }
@@ -544,17 +535,12 @@ function bindQuestionEvents(id){
           resultEl.style.display = 'block';
         }
       }
-      // 回填定制答案
-      const custom = s.answers[qi].custom;
-      if(custom){
-        const scoreIn = li.querySelector('.sp-custom-score[data-qi="' + qi + '"]');
-        const valIn = li.querySelector('.sp-custom-score-val');
-        const inputIn = li.querySelector('.sp-custom-input[data-qi="' + qi + '"]');
-        const resIn = li.querySelector('.sp-custom-result[data-qi="' + qi + '"]');
-        if(scoreIn) scoreIn.value = custom.target || 6;
-        if(valIn) valIn.textContent = (custom.target || 6).toFixed(1);
-        if(inputIn) inputIn.value = custom.input || '';
-        if(resIn && custom.answer) renderCustomResult(resIn, custom);
+      // 回填 AI 辅助结果（上次生成过则填回作答框 + 显示提示）
+      const aiHelper = s.answers[qi].aiHelper;
+      if(aiHelper && aiHelper.answer){
+        if(ta && !ta.value) ta.value = aiHelper.answer;
+        const aiRes = li.querySelector('.sp-q-result[data-qi="' + qi + '"]');
+        if(aiRes) renderAIHelper(aiRes, aiHelper);
       }
       // 渲染提交历史记录（每次手写提交都会记录，点击可回填）
       renderSubmitRecords(s.answers[qi].records, li.querySelector('.sp-rec-list[data-qi="' + qi + '"]'), (rec) => {
@@ -578,26 +564,6 @@ function bindQuestionEvents(id){
       if(caret) caret.classList.toggle('open', willOpen);
     });
 
-    // 内部 tab 切换
-    li.querySelectorAll('.sp-mini-tab[data-qi="' + qi + '"]').forEach(tab => {
-      tab.addEventListener('click', e => {
-        e.stopPropagation();
-        const t = tab.dataset.tab;
-        li.querySelectorAll('.sp-mini-tab[data-qi="' + qi + '"]').forEach(x => x.classList.toggle('active', x === tab));
-        li.querySelectorAll('.sp-mini-body[data-qi="' + qi + '"]').forEach(b => b.hidden = (b.dataset.body !== t));
-      });
-    });
-
-    // 目标分数滑块实时显示数值
-    const scoreIn = li.querySelector('.sp-custom-score[data-qi="' + qi + '"]');
-    if(scoreIn){
-      scoreIn.addEventListener('input', () => {
-        const v = parseFloat(scoreIn.value).toFixed(1);
-        const valEl = li.querySelector('.sp-custom-score-val');
-        if(valEl) valEl.textContent = v;
-      });
-    }
-
     // AI 诊断
     const diag = li.querySelector('.sp-diag[data-qi="' + qi + '"]');
     if(diag) diag.addEventListener('click', e => {
@@ -613,11 +579,11 @@ function bindQuestionEvents(id){
       diagnoseAnswer(id, qi, questionText, answer);
     });
 
-    // 定制答案生成
-    const customBtn = li.querySelector('.sp-custom-btn[data-qi="' + qi + '"]');
-    if(customBtn) customBtn.addEventListener('click', e => {
+    // AI 辅助：按人设一键生成
+    const aiBtn = li.querySelector('.sp-ai-helper[data-qi="' + qi + '"]');
+    if(aiBtn) aiBtn.addEventListener('click', e => {
       e.stopPropagation();
-      generateCustomAnswer(id, qi);
+      generateAIHelper(id, qi);
     });
 
     // 清空（仅清空当前编辑框与诊断结果，不删历史提交记录）
@@ -789,54 +755,81 @@ function renderDiag(el, j, raw){
   el.style.display = 'block';
 }
 
-// 「定制答案」：输入中文思路 + 目标分数 → AI 生成地道英文回答 + 中文 tips
-async function generateCustomAnswer(id, qi){
+// 「✨ AI 辅助」：按万能素材人设，一键生成 3-4 句英文回答（第1句表态 + 2-3句原因），填入作答框
+async function generateAIHelper(id, qi){
   const s = DATA.speaking.find(x => x.id === id);
   if(!s) return;
   if(!DATA.settings.relayToken){ toast('请先在「设置 / AI 接口」配置 API Key'); return; }
 
   const li = document.querySelector('.sp-q[data-qi="' + qi + '"]');
   if(!li) return;
-  const inputEl = li.querySelector('.sp-custom-input[data-qi="' + qi + '"]');
-  const scoreEl = li.querySelector('.sp-custom-score[data-qi="' + qi + '"]');
-  const resultEl = li.querySelector('.sp-custom-result[data-qi="' + qi + '"]');
-  const btn = li.querySelector('.sp-custom-btn[data-qi="' + qi + '"]');
+  const ta = li.querySelector('.sp-ans[data-qi="' + qi + '"]');
+  const resultEl = li.querySelector('.sp-q-result[data-qi="' + qi + '"]');
+  const btn = li.querySelector('.sp-ai-helper[data-qi="' + qi + '"]');
   const questionText = (s.questions || [])[+qi] || '';
-  const input = inputEl ? inputEl.value.trim() : '';
-  if(!input){ toast('先写下中文思路'); return; }
-  const target = scoreEl ? parseFloat(scoreEl.value) : 6;
+  if(!questionText){ toast('题目为空'); return; }
+  const persona = buildPersonaContext();
 
   if(btn){ btn.disabled = true; btn.textContent = '生成中…'; }
-  if(resultEl){ resultEl.innerHTML = '<div class="diag-note">正在生成地道英文表达…</div>'; }
+  if(resultEl){ resultEl.innerHTML = '<div class="diag-note">正在按你的人设生成回答…</div>'; resultEl.style.display = 'block'; }
 
   try{
-    const sys = '你是雅思口语老师。考生目标口语分数 ' + target + ' 分。她会先用中文写下自己的思路/关键词，请你据此写一段自然、地道、符合该分数水平的英文回答。不要逐字翻译，要改成英语母语者会说的表达。输出 ONLY JSON：{"answer":"英文回答（口语化、简单句型为主）","tips":"中文说明：做了哪些自然化处理、用了哪些地道表达/句型"}，不要任何解释文字。';
-    const content = await callRelay('speaking_custom', [
+    const sys = '你是雅思口语陪练。考生目标口语 5.5 分，基础一般，需要简单句。\n'
+      + '考生会给你一个 Part 1 问题和她的个人素材（人设/经历）。\n'
+      + '请按固定框架生成英文回答，一共 3-4 句：\n'
+      + '第 1 句：直接表态，口语化开头（Yes, I do. / No, not really. / Definitely. / To be honest, ... 等），不绕弯子。\n'
+      + '第 2-4 句：给原因并自然展开，把考生人设细节（身份/城市/爱好等）自然揉进回答，像真人聊天。\n'
+      + '要求：全部简单句、基础词汇、口语化；不要书面语；不要超过 4 句；只使用素材里有的信息，不编造。\n'
+      + '输出严格 JSON：{"answer":"英文回答"}，不要任何解释文字。';
+    const content = await callRelay('speaking_aihelper', [
       { role:'system', content: sys },
-      { role:'user', content:'题目：' + questionText + '\n目标分数：' + target + '\n中文思路：' + input }
+      { role:'user', content:'P1 题目：' + questionText + '\n\n考生个人素材：\n' + (persona || '（暂无素材，请用通用回答）') }
     ], 0.7);
     const j = aiJson(content);
     if(j && j.answer){
       s.answers = s.answers || {};
       s.answers[qi] = s.answers[qi] || {};
-      s.answers[qi].custom = { input, target, answer: j.answer, tips: j.tips || '', ts: Date.now(), result: content };
+      s.answers[qi].aiHelper = { answer: j.answer, ts: Date.now(), result: content };
       s.updatedAt = Date.now();
       hubSave();
-      renderCustomResult(resultEl, s.answers[qi].custom);
+      if(ta) ta.value = j.answer;
+      if(resultEl) renderAIHelper(resultEl, s.answers[qi].aiHelper);
     } else {
       if(resultEl) resultEl.innerHTML = '<div class="diag-note">AI 返回非标准格式，原文如下：</div><pre>' + escapeHtml(content || '') + '</pre>';
     }
   }catch(e){
     if(resultEl) resultEl.innerHTML = '<div class="diag-note">生成失败：' + escapeHtml(e.message) + '</div>';
   }finally{
-    if(btn){ btn.disabled = false; btn.textContent = '生成定制答案'; }
+    if(btn){ btn.disabled = false; btn.textContent = '✨ AI 辅助'; }
   }
 }
 
-function renderCustomResult(el, custom){
-  if(!el || !custom) return;
-  el.innerHTML = '<div class="ans">' + escapeHtml(custom.answer) + '</div>'
-    + (custom.tips ? '<div class="tips">' + escapeHtml(custom.tips) + '</div>' : '');
+// 组装万能素材人设上下文（读 DATA.materials）
+function buildPersonaContext(){
+  const m = DATA.materials;
+  if(!m) return '';
+  const parts = [];
+  const ansA = (m.answers && m.answers.A) ? String(m.answers.A).trim() : '';
+  if(ansA) parts.push('人设（一句话介绍）：' + ansA);
+  const p = m.persona;
+  if(p){
+    if(p.city) parts.push('城市：' + p.city);
+    if(p.identity) parts.push('身份：' + p.identity);
+    if(Array.isArray(p.values) && p.values.length) parts.push('价值观：' + p.values.join('、'));
+    if(Array.isArray(p.traits) && p.traits.length) parts.push('性格：' + p.traits.join('、'));
+  }
+  const st = (m.materials || []).slice(0, 3)
+    .map(x => (x.storyEn || '').slice(0, 200))
+    .filter(Boolean);
+  if(st.length) parts.push('可参考的小故事（简单句英文）：\n' + st.join('\n---\n'));
+  return parts.join('\n');
+}
+
+function renderAIHelper(el, ai){
+  if(!el || !ai) return;
+  el.innerHTML = '<div class="diag-sec"><b>✨ 已按你的人设生成（已填入作答框，可改）</b><div class="diag-rewrite">' + escapeHtml(ai.answer) + '</div></div>'
+    + '<div class="diag-note">💡 直接照着说，或改成自己的话；说/写好后点「🤖 AI 诊断」看点评。</div>';
+  el.style.display = 'block';
 }
 
 /* === 万能素材生成器（已并入口语页 MAT tab，原 materials.js 逻辑） ===
