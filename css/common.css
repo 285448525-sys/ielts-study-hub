@@ -798,6 +798,33 @@ main .eb-block + .eb-block{
   border-top:1px solid var(--line);padding-top:14px;
 }
 
+/* 口语诊断：inline 笔记式纠错（省空间） */
+.diag-inline-list{
+  display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  font-size:14.5px;line-height:1.8;color:var(--ink);
+}
+.diag-inline-item{
+  display:inline-flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;
+}
+.diag-wrong{
+  color:#c0392b;text-decoration:line-through;text-decoration-color:rgba(192,57,43,.55);
+}
+.diag-arrow{
+  color:var(--muted);font-size:13px;padding:0 2px;
+}
+.diag-right{
+  color:#2e9e5b;font-weight:600;
+}
+.diag-inline-note{
+  color:var(--muted);font-size:12.5px;
+}
+.diag-sep{
+  color:var(--line);font-size:16px;line-height:1;
+}
+.diag-ok{
+  color:var(--primary);font-size:14px;
+}
+
 /* 长难句原句：从斜体灰字升级为清晰 callout（仍是输入，非 AI 输出，但同页相邻顺手优化） */
 main .quote{
   font-style:normal;color:var(--ink);

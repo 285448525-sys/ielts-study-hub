@@ -713,9 +713,7 @@ function renderP2Diag(el, j){
   const errs = cleanErrors(j.errors);
   let h = (j.score ? scoreHeaderHtml(parseScore(j.score), '本次得分') : '');
   h += '<div class="diag-sec"><b>① 语法/用词纠错</b>';
-  h += errs.length
-    ? errs.map(e => '<div class="diag-err"><span class="diag-orig">' + escapeHtml(e.original || '') + '</span> → <span class="diag-fix">' + escapeHtml(e.fix || '') + '</span><div class="diag-issue">' + escapeHtml(e.issue || '') + '</div></div>').join('')
-    : '<div class="diag-ok">没发现明显语法错误～</div>';
+  h += inlineErrorsHtml(errs);
   h += '</div>';
   if(j.rewrite) h += '<div class="diag-sec"><b>② 地道优化版</b><div class="diag-rewrite">' + escapeHtml(j.rewrite) + '</div></div>';
   if(j.storyLink) h += '<div class="diag-sec"><b>③ 📌 串题素材连接</b><div class="diag-note">可以用你已准备的这些万能素材来回答这道题：</div>' + escapeHtml(j.storyLink) + '</div>';
@@ -810,15 +808,28 @@ function cleanErrors(errors){
   });
 }
 
+// 渲染 inline 笔记式纠错（省空间：所有错误合成一行/一段）
+function inlineErrorsHtml(errs){
+  if(!errs.length) return '<div class="diag-ok">没发现明显错误，继续保持～</div>';
+  return '<div class="diag-inline-list">' + errs.map((e, i) => {
+    const issue = String(e.issue || '').trim();
+    return (i > 0 ? '<span class="diag-sep">·</span>' : '')
+      + '<span class="diag-inline-item">'
+      + '<s class="diag-wrong">' + escapeHtml(e.original || '') + '</s>'
+      + '<span class="diag-arrow">→</span>'
+      + '<span class="diag-right">' + escapeHtml(e.fix || '') + '</span>'
+      + (issue ? '<span class="diag-inline-note">' + escapeHtml(issue) + '</span>' : '')
+      + '</span>';
+  }).join('') + '</div>';
+}
+
 // 渲染诊断结构化卡片
 function renderDiag(el, j, raw){
   const scoreHtml = (j && j.score) ? scoreHeaderHtml(parseScore(j.score), '本题得分') : '';
   const errs = cleanErrors(j && j.errors);
   if(j && Array.isArray(j.errors) && j.rewrite){
     let h = '<div class="diag-sec"><b>① 语法/用词诊断</b>';
-    h += errs.length
-      ? errs.map(e => '<div class="diag-err"><span class="diag-orig">' + escapeHtml(e.original || '') + '</span> → <span class="diag-fix">' + escapeHtml(e.fix || '') + '</span><div class="diag-issue">' + escapeHtml(e.issue || '') + '</div></div>').join('')
-      : '<div class="diag-ok">没发现明显错误，继续保持～</div>';
+    h += inlineErrorsHtml(errs);
     h += '</div>';
     h += '<div class="diag-sec"><b>② 按你思路的地道重写</b><div class="diag-rewrite">' + escapeHtml(j.rewrite) + '</div></div>';
     if(Array.isArray(j.tips) && j.tips.length) h += '<div class="diag-sec"><b>③ 可积累</b><ul>' + j.tips.map(t => '<li>' + escapeHtml(t) + '</li>').join('') + '</ul></div>';
