@@ -363,6 +363,7 @@ function saveDetail(id){
       s.answers.p2.ts = Date.now();
     }
   }
+  s.updatedAt = Date.now();
   hubSave();
   toast('已保存');
 }
@@ -374,6 +375,7 @@ function deleteSpeaking(id){
   DATA.speaking = DATA.speaking.filter(x => x.id !== id);
   DATA.settings.deletedSpeakingIds = DATA.settings.deletedSpeakingIds || [];
   if(!DATA.settings.deletedSpeakingIds.includes(id)) DATA.settings.deletedSpeakingIds.push(id);
+  s.updatedAt = Date.now();
   hubSave();
   $('#detailView').hidden = true;
   $('#listView').hidden = false;
@@ -384,6 +386,7 @@ function deleteSpeaking(id){
 
 /* === 素材生成器联动：P2 抽题命中个人素材 → AI 自动匹配串题方案 === */
 function matLoadStore(){
+  if(DATA.materials && Array.isArray(DATA.materials.materials)) return DATA.materials;
   try{ const s = JSON.parse(localStorage.getItem('ielts_materials_v1')); if(s && Array.isArray(s.materials)) return s; }catch(_){}
   return null;
 }
@@ -447,6 +450,7 @@ async function aiStoryLink(id){
       s.answers = s.answers || {};
       s.answers.p2 = s.answers.p2 || {};
       s.answers.p2.aiStoryLink = { ...j, ts: Date.now(), raw: content };
+      s.updatedAt = Date.now();
       hubSave();
       renderStoryLink(resultEl, j);
     } else {
@@ -674,6 +678,7 @@ async function diagnoseAnswer(id, qi, questionText, answerText){
     s.answers[qi] = { ...oldAns, text: answerText, result: (j ? JSON.stringify(j) : content), ts: Date.now(), score: newScore };
     s.answers[qi].records = s.answers[qi].records || [];
     s.answers[qi].records.push({ text: answerText, ts: Date.now(), score: newScore, result: (j ? JSON.stringify(j) : content), raw: content });
+    s.updatedAt = Date.now();
     hubSave();
   }catch(e){
     if(resultEl){
@@ -746,6 +751,7 @@ async function diagnoseP2(id){
     s.answers.p2 = { text: answer, result: (j ? JSON.stringify(j) : content), ts: Date.now(), score: newScore };
     s.answers.p2.records = s.answers.p2.records || [];
     s.answers.p2.records.push({ text: answer, ts: Date.now(), score: newScore, result: (j ? JSON.stringify(j) : content), raw: content });
+    s.updatedAt = Date.now();
     hubSave();
     // 刷新 P2 提交历史列表
     renderSubmitRecords(s.answers.p2.records, $('#p2Records'), (rec) => {
@@ -815,6 +821,7 @@ async function generateCustomAnswer(id, qi){
       s.answers = s.answers || {};
       s.answers[qi] = s.answers[qi] || {};
       s.answers[qi].custom = { input, target, answer: j.answer, tips: j.tips || '', ts: Date.now(), result: content };
+      s.updatedAt = Date.now();
       hubSave();
       renderCustomResult(resultEl, s.answers[qi].custom);
     } else {
@@ -859,10 +866,17 @@ var matGen = (function(){
   let mode = 'q';
 
   function loadStore(){
-    try{ const s = JSON.parse(localStorage.getItem(STORE_KEY)); if(s && typeof s === 'object'){ s.answers = s.answers || {}; s.answers.extraMore = s.answers.extraMore || []; s.materials = s.materials || []; s.gaps = s.gaps || []; return s; } }catch(_){}
+    if(DATA.materials && typeof DATA.materials === 'object'){
+      const s = DATA.materials; s.answers = s.answers || {}; s.answers.extraMore = s.answers.extraMore || []; s.materials = s.materials || []; s.gaps = s.gaps || []; return s;
+    }
+    // 一次性迁移：旧 localStorage 数据导入 DATA（此后走云同步）
+    try{
+      const s = JSON.parse(localStorage.getItem(STORE_KEY));
+      if(s && typeof s === 'object'){ s.answers = s.answers || {}; s.answers.extraMore = s.answers.extraMore || []; s.materials = s.materials || []; s.gaps = s.gaps || []; DATA.materials = s; return s; }
+    }catch(_){}
     return { persona:null, materials:[], gaps:[], answers:{ extraMore:[] } };
   }
-  function saveStore(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(store)); }catch(_){} }
+  function saveStore(){ DATA.materials = store; hubSave(); }
   function ans(id){ return (store.answers[id] || '').trim(); }
 
   function init(){ store = loadStore(); mode = store.materials.length ? 'result' : 'q'; render(); }

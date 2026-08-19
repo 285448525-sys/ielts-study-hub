@@ -28,10 +28,17 @@
   let mode = 'q';
 
   function loadStore(){
-    try{ const s = JSON.parse(localStorage.getItem(STORE_KEY)); if(s && typeof s === 'object'){ s.answers = s.answers || {}; s.answers.extraMore = s.answers.extraMore || []; s.materials = s.materials || []; s.gaps = s.gaps || []; return s; } }catch(_){}
+    if(DATA.materials && typeof DATA.materials === 'object'){
+      const s = DATA.materials; s.answers = s.answers || {}; s.answers.extraMore = s.answers.extraMore || []; s.materials = s.materials || []; s.gaps = s.gaps || []; return s;
+    }
+    // 一次性迁移：旧 localStorage 数据导入 DATA（此后走云同步）
+    try{
+      const s = JSON.parse(localStorage.getItem(STORE_KEY));
+      if(s && typeof s === 'object'){ s.answers = s.answers || {}; s.answers.extraMore = s.answers.extraMore || []; s.materials = s.materials || []; s.gaps = s.gaps || []; DATA.materials = s; return s; }
+    }catch(_){}
     return { persona:null, materials:[], gaps:[], answers:{ extraMore:[] } };
   }
-  function saveStore(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(store)); }catch(_){} }
+  function saveStore(){ DATA.materials = store; hubSave(); }
   function ans(id){ return (store.answers[id] || '').trim(); }
 
   /* ---------- 渲染分发 ---------- */

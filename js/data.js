@@ -506,6 +506,7 @@ let DATA = {
   meds: [],
   words: [],
   plans: [],
+  materials: null,   // 万能素材 store：null=未迁移；迁移后 {persona, materials:[], gaps:[], answers:{}}
   corpus: [],
   scores: [
     { id:'seed_first', date:'2026-08-02', listening:4, reading:5, writing:5, speaking:4.5, note:'首考' }

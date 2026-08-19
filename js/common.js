@@ -513,9 +513,12 @@ async function cloudUpload(showToast){
   }catch(e){ if(showToast) toast('云端上传失败：' + e.message); }
 }
 /* ===== 字段级合并（替代整份覆盖，避免双设备互相抹掉进度） ===== */
-const SYNC_ARRAY_FIELDS = ['sessions','notes','meds','plans','corpus','scores','errorbook',
-  'energy','checkins','speaking','writing','writingScores','speakingStories','writingPhrases',
+/* plans/checkins 已改为特判合并（_mergePlans / Set 去重），不在通用数组里 */
+const SYNC_ARRAY_FIELDS = ['sessions','notes','meds','corpus','scores','errorbook',
+  'energy','speaking','writing','writingScores','speakingStories','writingPhrases',
   'mockRecords','dictationSources','dictationLogs','longSent'];
+/* 设置里允许跨设备同步的字段；relayToken/syncCode/autoSync/theme 永不同步 */
+const SYNC_SETTINGS_FIELDS = ['name','examDate','examDates','targets','dailyGoalHours','links'];
 
 /* 安全取数字：非有限数→0 */
 function _num(x){ const n = Number(x); return isFinite(n) ? n : 0; }
@@ -559,7 +562,7 @@ function _mergeArray(local, cloud){
   local = Array.isArray(local) ? local : [];
   cloud = Array.isArray(cloud) ? cloud : [];
   const keyOf = it => (it && it.id != null) ? ('id:'+it.id) : (it && it.ts != null) ? ('ts:'+it.ts) : null;
-  const tsOf  = it => _num(it && it.ts);
+  const tsOf  = it => _num(it && (it.ts || it.updatedAt));
   const byKey = new Map();
   let changes = 0;
   for(const it of local){ const k = keyOf(it); if(k) byKey.set(k, it); }
@@ -580,9 +583,56 @@ function mergeData(local, cloud){
   const out = Object.assign({}, local);
   let changes = 0;
   const w = _mergeWords(local.words, cloud.words); out.words = w.arr; changes += w.changes;
+  // plans：嵌套结构按 date 合并（同一天 items 按 id 并集、done 取或）
+  const pl = _mergePlans(local.plans, cloud.plans); out.plans = pl.arr; changes += pl.changes;
+  // checkins：日期字符串数组，Set 去重并集
+  const ci = Array.from(new Set([...(local.checkins||[]), ...(cloud.checkins||[])]));
+  if(ci.length !== (local.checkins||[]).length){ changes += ci.length - (local.checkins||[]).length; }
+  out.checkins = ci;
+  // 其余对象数组按原逻辑
   for(const f of SYNC_ARRAY_FIELDS){
     if(Array.isArray(cloud[f])){ const r = _mergeArray(local[f], cloud[f]); out[f] = r.arr; changes += r.changes; }
   }
+  // 万能素材：素材卡按 id 并集；persona/gaps/answers 云端非空取云端
+  const mt = _mergeMaterials(local.materials, cloud.materials); out.materials = mt.data; changes += mt.changes;
+  // 设置白名单：云端非空且不同 → 取云端
+  const ls = local.settings || {}; const cs = cloud.settings || {};
+  out.settings = Object.assign({}, ls);
+  for(const f of SYNC_SETTINGS_FIELDS){
+    if(cs[f] != null && JSON.stringify(cs[f]) !== JSON.stringify(ls[f])){ out.settings[f] = cs[f]; changes++; }
+  }
+  return { data: out, changes };
+}
+
+/* plans 嵌套合并：外层按 date，内层 items 按 id 并集、done 冲突取 true */
+function _mergePlans(local, cloud){
+  local = Array.isArray(local) ? local : []; cloud = Array.isArray(cloud) ? cloud : [];
+  const byDate = new Map(); let changes = 0;
+  local.forEach(p => byDate.set(p.date, p));
+  cloud.forEach(p => {
+    const ex = byDate.get(p.date);
+    if(!ex){ byDate.set(p.date, p); changes++; return; }
+    const seen = new Set(ex.items.map(i => i.id));
+    (p.items||[]).forEach(it => {
+      if(!seen.has(it.id)){ ex.items.push(it); changes++; }
+      else { const mine = ex.items.find(i => i.id === it.id); if(it.done && !mine.done){ mine.done = true; changes++; } }
+    });
+  });
+  return { arr: Array.from(byDate.values()), changes };
+}
+
+/* 万能素材合并：素材卡按 id 并集（同 id 留本机）；persona/gaps/answers 云端非空取云端 */
+function _mergeMaterials(local, cloud){
+  local = local || {}; cloud = cloud || {};
+  const out = Object.assign({}, local);
+  let changes = 0;
+  const map = new Map();
+  (local.materials||[]).forEach(m => { if(m && m.id) map.set(m.id, m); });
+  (cloud.materials||[]).forEach(m => { if(m && m.id && !map.has(m.id)){ map.set(m.id, m); changes++; } });
+  out.materials = Array.from(map.values());
+  if(cloud.persona){ out.persona = cloud.persona; changes++; }
+  if(Array.isArray(cloud.gaps) && cloud.gaps.length){ out.gaps = cloud.gaps; changes++; }
+  out.answers = Object.assign({}, local.answers||{}, cloud.answers||{});
   return { data: out, changes };
 }
 /* 从云端合并拉取（替代整份覆盖）。silent=true 时仅在有更新时提示，用于自动拉取 */
