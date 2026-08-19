@@ -824,6 +824,9 @@ main .eb-block + .eb-block{
 .diag-ok{
   color:var(--primary);font-size:14px;
 }
+.diag-warn{
+  color:var(--warn-ink);font-size:14px;background:var(--warn-soft);border-radius:var(--radius-sm);padding:10px 12px;
+}
 
 /* 口语诊断：整句 diff 式纠错（原句放中间，只划错误词，箭头+正确词在旁边） */
 .diag-sentence-diff{

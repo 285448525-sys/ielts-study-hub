@@ -18,6 +18,7 @@ var SYS_DIAG =
   + '- 改变考生原意（如把 "I don\'t know" 改成 "I don\'t think so"，把 "ADHDer" 改成 "bad driver"）；\n'
   + '- 考生的身份/事实/观点（如 ADHDer、不喜欢开车、喜欢去公园）。\n'
   + '- 好词只是形式不对时，只改形式（如 feel unwind → feel unwound / helps me unwind），不许换成简单同义词。\n'
+  + '【必须纠的真错误】be动词/助动词缺失、主谓不一致、句子成分残缺、时态明显错误，必须列为 errors。例如："I never creating"（缺 have/am）、"I just it\'s Good"（句子碎了）、"I would say"（话没说完）。\n'
   + '没有真错误时 errors 必须写 []；errors 为空非常常见。\n'
   + '【重写】只改 errors 里列出的错误；errors 为空时 rewrite 必须和原句几乎一样。禁止为"更地道"替换原说法。\n'
   + '只输出 JSON：{"score":{"fluency":6.0,"vocabulary":6.0,"grammar":6.0},"errors":[],"rewrite":"考生原句（或只改真错后的句子）","tips":["可积累1","可积累2"]}';
@@ -36,6 +37,7 @@ var SYS_DIAG_P2 =
   + '- 改变考生原意（如把 "I don\'t know" 改成 "I don\'t think so"，把 "ADHDer" 改成 "bad driver"）；\n'
   + '- 考生的身份/事实/观点（如 ADHDer、不喜欢开车、喜欢去公园）。\n'
   + '- 好词只是形式不对时，只改形式（如 feel unwind → feel unwound / helps me unwind），不许换成简单同义词。\n'
+  + '【必须纠的真错误】be动词/助动词缺失、主谓不一致、句子成分残缺、时态明显错误，必须列为 errors。例如："I never creating"（缺 have/am）、"I just it\'s Good"（句子碎了）、"I would say"（话没说完）。\n'
   + '没有真错误时 errors 必须写 []；errors 为空非常常见。\n'
   + '【串题素材连接(storyLink)】建议考生已准备的万能素材可怎么套用（中文2-4行）。\n'
   + '【重写】只改 errors 里列出的错误；errors 为空时 rewrite 必须和原句几乎一样。禁止为"更地道"替换原说法。\n'
@@ -700,7 +702,7 @@ async function diagnoseAnswer(id, qi, questionText, answerText){
     ];
     const content = await callRelay('speaking_diagnose', messages, 0.3);
     const j = aiJson(content);
-    normalizeScore(j);
+    normalizeScore(j, answerText);
     renderDiag(resultEl, j, content, answerText);
     s.answers = s.answers || {};
     const oldAns = s.answers[qi] || {};
@@ -724,7 +726,7 @@ async function diagnoseAnswer(id, qi, questionText, answerText){
 
 // P2 诊断结构化渲染（语法纠错 + 地道优化 + 串题素材连接 + 可积累）
 function renderP2Diag(el, j, answer){
-  normalizeScore(j);
+  normalizeScore(j, answer);
   if(!j || !Array.isArray(j.errors)){ el.innerHTML = ''; return false; }
   const errs = cleanErrors(j.errors);
   let h = (j.score ? scoreHeaderHtml(parseScore(j.score), '本次得分') : '');
@@ -770,7 +772,7 @@ async function diagnoseP2(id){
     ];
     const content = await callRelay('speaking_diagnose', messages, 0.3);
     const j = aiJson(content);
-    normalizeScore(j);
+    normalizeScore(j, answer);
 
     // 渲染结果
     if(!renderP2Diag(resultEl, j, answer)){
@@ -866,7 +868,9 @@ function wordDiff(a, b){
 function diffSentenceHtml(answer, errs){
   const ans = String(answer || '').trim();
   const clean = cleanErrors(errs);
-  if(!clean.length) return '<div class="diag-ok">没发现明显错误，继续保持～</div>';
+  const broken = hasObviousGrammarIssues(answer);
+  if(!clean.length && !broken) return '<div class="diag-ok">没发现明显错误，继续保持～</div>';
+  if(!clean.length && broken) return '<div class="diag-warn">句子有明显语法问题（如缺 be 动词/时态/成分残缺），但 AI 未具体指出。建议重读原句或手动检查。</div>';
   if(!ans) return inlineErrorsHtml(clean);
 
   // 按 original 在原句中出现位置排序，从后往前替换，避免偏移
@@ -899,13 +903,44 @@ function diffSentenceHtml(answer, errs){
   return '<div class="diag-sentence-diff">' + html + '</div>';
 }
 
+// 文本粗检：句子有明显破洞但 AI 漏报时，不让他享受"无错6分"兜底
+function hasObviousGrammarIssues(text){
+  const t = ' ' + String(text || '').toLowerCase().replace(/[.,!?;:'"]/g, ' ') + ' ';
+  // I never creating / I just watching / I always thinking（进行时缺 be）
+  if(/\bi\s+(never|always|often|sometimes|usually|just|already|also|still)\s+[a-z]+ing\b/.test(t)) return true;
+  // I just it's / I also it's / I never it's（缺谓语，后接 it's）
+  if(/\bi\s+(just|also|always|never|still)\s+it\s*is\b/.test(t)) return true;
+  // I it's / we it's / they it's（主语后直接跟 it's）
+  if(/\b(i|we|they|he|she)\s+it'?s\b/.test(t)) return true;
+  // I would say 后面啥也没有，话没说完
+  if(/\bi\s+would\s+say\s*$/.test(String(text || '').trim().toLowerCase())) return true;
+  return false;
+}
+
 // 强制评分兜底（用户规则）：无真错误 → 语法/词汇 ≥6.0；有错但 AI 能听懂（能列出错误=已读懂） → ≥5.5
-function normalizeScore(j){
+function normalizeScore(j, answerText){
   if(!j || !j.score) return j;
   const errs = cleanErrors(j.errors);
-  const floor = errs.length === 0 ? 6 : 5.5;
-  if(j.score.grammar != null && Number(j.score.grammar) < floor) j.score.grammar = floor;
-  if(j.score.vocabulary != null && Number(j.score.vocabulary) < floor) j.score.vocabulary = floor;
+  const broken = hasObviousGrammarIssues(answerText);
+
+  // 能给出评分 = AI 听懂了 → 流利度不低于 5.5（用户说"能明白意思就有5.5"）
+  if(j.score.fluency != null && Number(j.score.fluency) < 5.5) j.score.fluency = 5.5;
+
+  // 真无错且文本没有明显破洞 → 语法/词汇至少 6
+  // 否则（有错 或 文本有破洞）→ 至少 5.5；如果 AI 漏报破洞，封顶 5.5 防止它装瞎给 6
+  if(errs.length === 0 && !broken){
+    if(j.score.grammar != null && Number(j.score.grammar) < 6) j.score.grammar = 6;
+    if(j.score.vocabulary != null && Number(j.score.vocabulary) < 6) j.score.vocabulary = 6;
+  } else {
+    if(j.score.grammar != null){
+      const g = Number(j.score.grammar);
+      j.score.grammar = g < 5.5 ? 5.5 : (broken && g > 5.5 ? 5.5 : g);
+    }
+    if(j.score.vocabulary != null){
+      const v = Number(j.score.vocabulary);
+      j.score.vocabulary = v < 5.5 ? 5.5 : (broken && v > 5.5 ? 5.5 : v);
+    }
+  }
   return j;
 }
 
@@ -926,7 +961,7 @@ function inlineErrorsHtml(errs){
 
 // 渲染诊断结构化卡片
 function renderDiag(el, j, raw, answer){
-  normalizeScore(j);
+  normalizeScore(j, answer);
   const scoreHtml = (j && j.score) ? scoreHeaderHtml(parseScore(j.score), '本题得分') : '';
   const errs = cleanErrors(j && j.errors);
   if(j && Array.isArray(j.errors) && j.rewrite){
