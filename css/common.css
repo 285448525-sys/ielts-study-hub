@@ -957,6 +957,24 @@ main .quote{
 .btn.sm{padding:5px 10px;font-size:13px;line-height:1.4}
 .btn.danger{color:#dc2626;border-color:rgba(239,68,68,.4)}
 .btn.danger:hover{background:rgba(239,68,68,.1);color:#dc2626}
+/* 整场计时条（模考总时长 12~15 分钟，用于自控节奏） */
+.mock-total-timer{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px;font-weight:700;color:var(--warn-ink);background:var(--warn-soft);border:1px solid var(--warn);border-radius:12px;padding:10px 14px;margin-bottom:14px}
+.mock-total-timer svg{width:16px;height:16px;flex:none}
+.mock-total-timer b{font-size:18px;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.mock-total-timer-note{font-size:12px;font-weight:500;color:var(--muted)}
+/* 分部分报告卡（P1/P2/P3 各四维 + 逐题纠错明细，2026-08-19 模考改造） */
+.mock-part-card{border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px;background:var(--surface)}
+.mock-part-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.mock-part-name{font-size:14px;font-weight:800;color:var(--primary)}
+.mock-part-band{font-size:20px;font-weight:800}
+.mock-fix-block{margin-top:14px;border-top:1px dashed var(--line);padding-top:10px}
+.mock-fix-title{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:8px}
+.mock-fix-q{font-size:13.5px;font-weight:600;color:var(--ink);margin:8px 0 4px}
+.mock-fix-list{margin:0;padding-left:18px}
+.mock-fix-list li{margin:3px 0;font-size:13.5px;line-height:1.6;color:var(--ink)}
+.mock-fix-wrong{color:#c0392b;text-decoration:line-through;text-decoration-color:rgba(192,57,43,.5)}
+.mock-fix-correct{color:#2e9e5b;font-weight:600}
+.mock-fix-note{font-size:12.5px;color:var(--muted)}
 
 /* ====== 首页 Dashboard 简化重构（2026-08-18，teal token，C 窗口方案 v2） ======
    信息架构：8 块 → 4 区（主行动 / 模块导航 / 今日概览 / 常用折叠）。

@@ -15,7 +15,20 @@
   }
 
   function reportBlock(rec){
-    // 复用 MockReport.render 渲染总分 + 六维 + 总评（发音维度已标注「自设」）
+    // 新记录（2026-08-19 起，分 P1/P2/P3 四维 + 逐题纠错）：完整渲染「问题 / 回答 / 哪里错 / 改什么」
+    if(rec.parts){
+      return (window.MockReport)
+        ? window.MockReport.render({
+            overall: rec.overall,
+            pronMode: rec.pronMode,
+            pronunciationScore: rec.pronunciationScore,
+            parts: rec.parts,
+            summary: rec.summary,
+            p1: rec.p1, p2: rec.p2, p3: rec.p3
+          })
+        : '';
+    }
+    // 旧记录（整卷五维）：复用 MockReport.render 渲染总分 + 六维 + 总评（发音维度已标注「自设」）
     const rpt = (window.MockReport) ? window.MockReport.render({ dims: rec.dims, overall: rec.overall, summary: rec.summary }) : '';
     const qa = arr => (arr || []).map(x =>
       '<li><b>Q：</b>' + EH(x.q) + '<br><b>A：</b>' + EH(x.transcript || '(空)') + '</li>').join('');

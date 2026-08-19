@@ -22,6 +22,7 @@
         answers: mockState.answers,
         pronSource: mockState.pronSource,
         p3qs: mockState.p3qs || [],
+        totalRemaining: mockState.totalRemaining != null ? mockState.totalRemaining : TOTAL_LIMIT,
         phase: phase,
         index: index,
         remaining: (remaining == null ? 0 : remaining)
@@ -51,6 +52,7 @@
     b.style.cssText = 'float:right;margin-left:8px;padding:4px 10px;font-size:12px;background:transparent;color:var(--muted,#888);border:1px solid #ddd';
     b.onclick = () => {
       if(window.__mockTick){ clearInterval(window.__mockTick); window.__mockTick = null; }
+      stopTotalTimer();
       clearResumeSnapshot();
       const ab = $('#mockAbandonBtn'); if(ab) ab.remove();
       const st = $('#mockStage'); if(st) st.hidden = true;
@@ -172,6 +174,36 @@
     });
   }
 
+  /* ---------- 整场计时（真题总时长约 12~15 分钟，固定 15:00 倒计时，仅自控节奏不强制收卷） ---------- */
+  const TOTAL_LIMIT = 15 * 60;
+  function startTotalTimer(){
+    stopTotalTimer();
+    if(mockState.totalRemaining == null) mockState.totalRemaining = TOTAL_LIMIT;
+    const wrap = $('#mockTotalTimerWrap');
+    const el = $('#mockTotalTimer');
+    if(wrap) wrap.hidden = false;
+    const paint = () => {
+      if(!el) return;
+      const left = Math.max(0, mockState.totalRemaining);
+      el.textContent = fmtClock(left);
+      el.style.color = left <= 60 ? '#d9534f' : '';
+    };
+    paint();
+    window.__mockTotalTick = setInterval(() => {
+      mockState.totalRemaining = Math.max(0, (mockState.totalRemaining || 0) - 1);
+      paint();
+      if(mockState.totalRemaining <= 0){
+        stopTotalTimer();
+        if(typeof toast === 'function') toast('⏰ 整场时间到（15 分钟），请尽快完成当前回答并提交。');
+        const hint = $('#mockHint');
+        if(hint && !hint.textContent) hint.textContent = '⏰ 整场时间到，请提交当前回答。';
+      }
+    }, 1000);
+  }
+  function stopTotalTimer(){
+    if(window.__mockTotalTick){ clearInterval(window.__mockTotalTick); window.__mockTotalTick = null; }
+  }
+
   /* ---------- 题库抽样（真实 P1：若干大题 × 各若干小题 ≈ 十几个小题） ---------- */
   // 频率权重：超高频>高频>中高频>普通；必考题另行强制抽取
   const FREQ_WEIGHT = { ultra:4, high:3, medium:2, normal:1 };
@@ -194,14 +226,14 @@
       const qs = shuffle(t.questions).slice(0, Math.min(n, t.questions.length));
       for(const q of qs) qa.push({ topic: t.titleEn || t.titleZh || '', q });
     };
-    // 1) 必考题：每次强制抽至少 2 个大题（默认 2，偶尔 3），每个大题 3 小题，且排在最前
-    const mustN = Math.min(must.length, randInt(2, 3));
-    shuffle(must).forEach((t, i) => { if(i < mustN) takeTopic(t, 3); });
-    // 2) 其余：按频率加权再抽 2-3 个大题（超高频/高频占优，低频自然小概率）
-    const extraN = randInt(2, 3);
+    // 1) 必考题：固定抽 2 个大题，每个大题只抽 3~4 小题，且排在最前
+    const mustN = Math.min(must.length, 2);
+    shuffle(must).forEach((t, i) => { if(i < mustN) takeTopic(t, randInt(3, 4)); });
+    // 2) 其余：按频率加权再固定抽 2 个大题（每个大题同样 3~4 小题，不整组全上）
+    const extraN = 2;
     let guard = 0;
-    while(picked.size < mustN + extraN && guard++ < 200) takeTopic(weightedPick(rest), 3);
-    return qa;   // 必考在前、其余在后；总小题 = 大题数×3 ≈ 12~18（即「十几个」）
+    while(picked.size < mustN + extraN && guard++ < 200) takeTopic(weightedPick(rest), randInt(3, 4));
+    return qa;   // 必考在前、其余在后；总小题 ≈ 4 组 × 3~4 ≈ 12~16（即「十几个」）
   }
 
   /* ---------- 主流程（支持断点续考） ----------
@@ -235,7 +267,7 @@
           const qHtml = (item.topic ? '<span class="mock-q-topic">' + escapeHtml(item.topic) + '</span> · ' : '') + escapeHtml(item.q);
           const res = await askQuestion({ phaseLabel:'Part 1（'+(i+1)+' / '+mockState.p1Set.length+'）', qHtml, allowRecord:true, submitLabel:(i===mockState.p1Set.length-1?'完成 P1，进入 P2':'下一题'), resume:{ phase:'P1', index:i, remaining:firstRemain } });
           firstRemain = undefined;
-          mockState.answers.push({ part:'P1', q:item.q, transcript:res.transcript });
+          mockState.answers.push({ part:'P1', q:item.q, transcript:res.transcript, opening: !!item.opening });
           saveResumeSnapshot('P1', i+1);
         }
       }
@@ -260,7 +292,8 @@
           setPhase('Part 3');
           $('#mockQ').innerHTML = '正在生成 P3 追问…';
           try{
-            p3qs = await genP3Questions(topic);
+            const p2ans = mockState.answers.find(x => x.part === 'P2');
+            p3qs = await genP3Questions(topic, p2ans ? p2ans.transcript : '');
             mockState.p3qs = p3qs;
           }catch(e){
             toast('P3 追问生成失败：' + e.message + '（已跳过 P3）');
@@ -281,17 +314,19 @@
       await finishExam();
     }catch(e){
       toast('模考中断：' + e.message);
+      stopTotalTimer();
       clearResumeSnapshot();
       const ab = $('#mockAbandonBtn'); if(ab) ab.remove();
       $('#mockStage').hidden = true; $('#mockStart').hidden = false; renderMockStart();
     }
   }
 
-  /* ---------- AI：生成 P3 追问 ---------- */
-  async function genP3Questions(p2){
-    const sys = 'You are an IELTS speaking examiner. Given a Part 2 cue card topic, generate 4 to 5 abstract Part 3 follow-up questions that explore broader themes (society, comparison, causes, future, individual vs public). Output ONLY a JSON array of question strings in English, no other text.';
+  /* ---------- AI：生成 P3 追问（基于 P2 回答，3~4 个抽象问题） ---------- */
+  async function genP3Questions(p2, p2Transcript){
+    const sys = 'You are an IELTS speaking examiner. Based on the candidate\'s Part 2 talk, generate 3 to 4 abstract Part 3 follow-up questions that explore broader themes (society, comparison, causes, effects, future, individual vs public). Do NOT repeat the candidate\'s own words back; each question must be answerable independently of the Part 2 details. Output ONLY a JSON array of question strings in English, no other text.';
     const user = 'Part 2 cue card (English): ' + (p2.promptEn || '') + '\nChinese: ' + (p2.promptZh || '')
-      + '\nYou should say: ' + ((p2.youShouldSay || []).join('; '));
+      + '\nYou should say: ' + ((p2.youShouldSay || []).join('; '))
+      + '\n\nThe candidate\'s Part 2 talk:\n' + (p2Transcript || '(no answer given)');
     const content = await callRelay('mock_q', [
       { role:'system', content:sys },
       { role:'user', content:user }
@@ -302,37 +337,59 @@
     else if(j && Array.isArray(j.questions)) qs = j.questions;
     qs = qs.map(s => String(s).trim()).filter(Boolean);
     if(!qs.length) throw new Error('AI 未返回有效的 P3 追问');
-    return qs.slice(0, 5);
+    return qs.slice(0, 4);
   }
 
   /* ---------- 朗读发音检测（配讯飞 Key 时每 Part 后插入） ---------- */
   /* 参照句库：模考里让考生朗读的英文（通用雅思口语句，足够练发音）。按 Part 随机抽一句。 */
 
-  /* ---------- AI：评分 ---------- */
-  async function scoreExam(answers){
-    const block = (part) => answers.filter(a => a.part === part)
+  /* ---------- AI：评分（分 P1/P2/P3 各按口语官方四维评；发音取设置固定分） ----------
+     口语官方四维 = FC(流利与连贯) + LR(词汇) + GRA(语法) + 发音(固定分)；
+     AI 只评 FC/LR/GRA，并对每题输出「真错误 → 改正 → 原因」明细（fixes）。
+     红线（同 AI 诊断）：口语不是作文——默认标点/大小写全对，绝不纠；只列真语法/词汇错误；
+     一行一条，不要「也可以 / 更自然」缓冲语。 */
+  async function scorePart(part, answers){
+    // 开场问（opening）不参与评分：真题里那是 ID 确认热身，不计分
+    const block = answers.filter(a => a.part === part && !a.opening)
       .map(a => 'Q: ' + a.q + '\nA: ' + (a.transcript || '(空)')).join('\n\n');
-    const sys = "You are an IELTS speaking examiner. Score the candidate's spoken answers (transcribed text) on 5 dimensions, each 0-9 in 0.5 steps: fluency (流利度), taskResponse (扣题/回答是否切题充分), coherence (连贯/衔接), lexical (词汇丰富与准确), grammar (语法 Range 与 accuracy). Do NOT score pronunciation (it is taken from a fixed number the user set in settings). Also write a brief Chinese summary (2-4 sentences) of strengths and weaknesses. Output ONLY JSON: {\"fluency\":x,\"taskResponse\":x,\"coherence\":x,\"lexical\":x,\"grammar\":x,\"summary\":\"...\"} (no pronunciation field). Do not output anything else.";
-    const user = 'Part 1:\n' + block('P1') + '\n\nPart 2:\n' + block('P2') + '\n\nPart 3:\n' + block('P3');
+    if(!block.trim()) return null;
+    const sys = 'You are an IELTS speaking examiner. Below are the candidate\'s typed answers to IELTS Speaking ' + part + ' questions.\n'
+      + 'Score this part ONLY on 3 of the official dimensions (pronunciation is handled separately by the user), each 0-9 in 0.5 steps:\n'
+      + '- FC (Fluency & Coherence, 流利度与连贯)\n'
+      + '- LR (Lexical Resource, 词汇资源)\n'
+      + '- GRA (Grammatical Range & Accuracy, 语法多样性与准确性)\n'
+      + 'Then for EACH question, list the candidate\'s genuine grammar or vocabulary errors.\n'
+      + 'RULES: this is speaking, not writing — punctuation and capitalization are always correct by default, NEVER mention them; only real errors, no "you could also say / more natural" filler; one error per entry, terse; if a question has no real error, "errors" must be an empty array. Include ALL questions in "fixes".\n'
+      + 'Output ONLY JSON: {"fc":x,"lr":x,"gra":x,"summary":"一句话中文简评","fixes":[{"q":"question text","errors":[{"wrong":"...","correct":"...","note":"...short reason..."}]}]}. Do not output anything else.';
+    const user = 'Part ' + part + ' (questions and the candidate\'s typed answers):\n\n' + block;
     const content = await callRelay('mock_score', [
       { role:'system', content:sys },
       { role:'user', content:user }
     ], 0.4);
     const j = aiJson(content);
     const num = k => { const n = Number(j[k]); return isNaN(n) ? null : n; };
-    const d = {
-      fluency: num('fluency'),
-      taskResponse: num('taskResponse'),
-      coherence: num('coherence'),
-      lexical: num('lexical'),
-      grammar: num('grammar')
-    };
-    const check = [d.fluency, d.taskResponse, d.coherence, d.lexical, d.grammar];
-    if(check.some(v => v == null)){
-      throw new Error('AI 评分返回格式异常');
+    const p = { fc: num('fc'), lr: num('lr'), gra: num('gra') };
+    if([p.fc, p.lr, p.gra].some(v => v == null)) throw new Error('AI 评分返回格式异常（Part ' + part + '）');
+    p.fixes = Array.isArray(j.fixes) ? j.fixes.filter(f => f && f.q) : [];
+    p.summary = j.summary || '';
+    return p;
+  }
+
+  async function scoreExam(answers){
+    const parts = { p1: null, p2: null, p3: null };
+    let summary = '';
+    const order = [['p1','P1'],['p2','P2'],['p3','P3']];
+    for(const [key, label] of order){
+      try{
+        parts[key] = await scorePart(label, answers);
+        if(parts[key] && parts[key].summary) summary += (summary ? '\n' : '') + label + '：' + parts[key].summary;
+      }catch(e){
+        if(typeof toast === 'function') toast('Part ' + label + ' 评分失败：' + e.message);
+      }
     }
-    // overall 由 finishExam 统一计算（发音取固定分）
-    return { dims:d, summary:j.summary || '' };
+    if(!Object.values(parts).some(Boolean)) throw new Error('AI 评分全部失败');
+    // overall 由 finishExam 统一合成（发音取固定分）
+    return { parts: parts, summary: summary };
   }
 
   /* ---------- 收尾：报告 + 落库 ---------- */
@@ -352,16 +409,28 @@
     if(pronunciation == null && DATA.settings.pronunciationScore != null) pronunciation = Number(DATA.settings.pronunciationScore);
 
     if(report){
-      report.dims.pronunciation = pronunciation; // null 表示未设置固定分，不计入
-      const vocabGrammar = (report.dims.lexical + report.dims.grammar) / 2;
-      if(pronunciation != null){
-        report.overall = Math.round(((pronunciation + report.dims.fluency + vocabGrammar + report.dims.coherence) / 4) * 2) / 2;
-      } else {
-        const parts = [report.dims.fluency, vocabGrammar, report.dims.coherence].filter(v => v != null);
-        report.overall = parts.length ? Math.round((parts.reduce((a, b) => a + b, 0) / parts.length) * 2) / 2 : null;
-      }
+      // 各部分四维 overall = (FC + LR + GRA + 发音)/4；未填发音固定分则只均 FC/LR/GRA
+      const partOv = [];
+      ['p1','p2','p3'].forEach(k => {
+        const p = report.parts[k];
+        if(!p) return;
+        const vals = [p.fc, p.lr, p.gra].filter(v => v != null);
+        if(pronunciation != null && vals.length === 3){
+          p.overall = Math.round(((pronunciation + vals[0] + vals[1] + vals[2]) / 4) * 2) / 2;
+        } else if(vals.length){
+          p.overall = Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 2) / 2;
+        }
+        if(p.overall != null) partOv.push(p.overall);
+      });
+      report.overall = partOv.length ? Math.round((partOv.reduce((a, b) => a + b, 0) / partOv.length) * 2) / 2 : null;
       report.pronMode = source;
       report.pronDetail = null;
+      report.pronunciationScore = pronunciation; // 供报告渲染四维中的「发音」
+      // 附带完整转写，供报告渲染「问题 / 我的回答 / 哪里错 / 改成什么」
+      report.p1 = mockState.answers.filter(a => a.part === 'P1').map(a => ({ q:a.q, transcript:a.transcript, opening: !!a.opening }));
+      const p2a = mockState.answers.find(x => x.part === 'P2');
+      report.p2 = p2a ? { promptEn: mockState.p2Topic.promptEn, transcript:p2a.transcript } : null;
+      report.p3 = mockState.answers.filter(a => a.part === 'P3').map(a => ({ q:a.q, transcript:a.transcript }));
     }
 
     const rec = {
@@ -373,8 +442,8 @@
       pronunciationScore: pronunciation,
       pronMode: source,
       pronDetail: null,
-      dims: report ? report.dims : null,
-      p1: mockState.answers.filter(a => a.part === 'P1').map(a => ({ q:a.q, transcript:a.transcript })),
+      parts: report ? report.parts : null,
+      p1: mockState.answers.filter(a => a.part === 'P1').map(a => ({ q:a.q, transcript:a.transcript, opening: !!a.opening })),
       p2: (() => { const a = mockState.answers.find(x => x.part === 'P2'); return a ? { promptEn: mockState.p2Topic.promptEn, transcript:a.transcript } : null; })(),
       p3: mockState.answers.filter(a => a.part === 'P3').map(a => ({ q:a.q, transcript:a.transcript })),
       summary: report ? report.summary : ''
@@ -385,6 +454,7 @@
 
     $('#mockStage').hidden = true;
     $('#mockReport').hidden = false;
+    stopTotalTimer();
     const body = $('#mockReportBody');
     if(body) body.innerHTML = report
       ? window.MockReport.render(report)
@@ -408,7 +478,10 @@
     const pronSource = (fixed != null) ? 'fixed' : 'none';
     // 全新开考前先清掉任何旧快照，避免与上一次未完成的模考串档
     clearResumeSnapshot();
-    mockState = { p1Set: buildP1Set(p1), p2Topic: sampleOne(p2), answers: [], pronSource, p3qs: [] };
+    mockState = { p1Set: buildP1Set(p1), p2Topic: sampleOne(p2), answers: [], pronSource, p3qs: [], totalRemaining: TOTAL_LIMIT };
+    // 真题固定开场问：每场模考第一个问题固定为姓名确认（ID 热身，不参与评分，但会出现在完整记录里）
+    mockState.p1Set.unshift({ topic: 'Opening', q: 'Can you tell me your full name?', opening: true });
+    startTotalTimer();
 
     $('#mockStart').hidden = true;
     $('#mockReport').hidden = true;
@@ -431,11 +504,12 @@
     // 断点续考：若上次模考未做完就离开了，返回模考页时自动恢复现场
     const snap = loadResumeSnapshot();
     if(snap){
-      mockState = { p1Set: snap.p1Set, p2Topic: snap.p2Topic, answers: snap.answers, pronSource: snap.pronSource, p3qs: snap.p3qs || [] };
+      mockState = { p1Set: snap.p1Set, p2Topic: snap.p2Topic, answers: snap.answers, pronSource: snap.pronSource, p3qs: snap.p3qs || [], totalRemaining: (snap.totalRemaining != null ? snap.totalRemaining : TOTAL_LIMIT) };
       $('#mockStart').hidden = true;
       $('#mockReport').hidden = true;
       $('#mockStage').hidden = false;
       injectAbandonButton();
+      startTotalTimer(); // 断点续考：整场倒计时从快照剩余继续
       toast('已自动恢复上次未完成的模考，继续答题');
       runExam(snap);
     } else {
