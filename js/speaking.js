@@ -10,7 +10,7 @@ var FREQ_ORDER = { ultra:0, must:1, high:2, medium:3, normal:4 };
 var SYS_DIAG =
   '你是雅思口语老师。考生：女生，大三CS在读，目标口语5.5。\n'
   + '考生会给出对某个口语问题的回答。请做三件事：\n'
-  + '1) 评分（0-9，可0.5）：没任何语法/用词错误 → 语法和词汇至少6.0；有小错但考官听得懂原意 → 5.5；考官听得费劲 → 5.0或更低。回答超过两句。\n'
+  + '1) 评分（0-9，可0.5）：没任何语法/用词错误 → 语法和词汇至少6.0；有小错但考官听得懂原意 → 5.5；考官听得费劲 → 5.0或更低。回答超过两句。如果 errors 是空数组，grammar 和 vocabulary 必须都 ≥6.0。\n'
   + '2) 纠错：只挑真正的语法错误和用词错误。其他一律不管——大小写、标点、空格、断句、说法不够地道、原句可接受但换种说法更好，这些全都不要提，也不要写进 errors。没有真错误就写空数组 []。\n'
   + '3) 按考生原思路给一版简单地道的英文重写：只改 errors 里列出的错误；errors 为空则原句保持不动。再给1-2个可积累的地道替换词/句型。\n'
   + '只输出 JSON：{"score":{"fluency":6.0,"vocabulary":5.0,"grammar":5.0},"errors":[{"original":"原句片段","issue":"错在哪+为什么错（中文）","fix":"改后片段"}],"rewrite":"地道英文重写","tips":["可积累1","可积累2"]}';
@@ -686,6 +686,7 @@ async function diagnoseAnswer(id, qi, questionText, answerText){
     ];
     const content = await callRelay('speaking_diagnose', messages, 0.3);
     const j = aiJson(content);
+    normalizeScore(j);
     renderDiag(resultEl, j, content, answerText);
     s.answers = s.answers || {};
     const oldAns = s.answers[qi] || {};
@@ -709,6 +710,7 @@ async function diagnoseAnswer(id, qi, questionText, answerText){
 
 // P2 诊断结构化渲染（语法纠错 + 地道优化 + 串题素材连接 + 可积累）
 function renderP2Diag(el, j, answer){
+  normalizeScore(j);
   if(!j || !Array.isArray(j.errors)){ el.innerHTML = ''; return false; }
   const errs = cleanErrors(j.errors);
   let h = (j.score ? scoreHeaderHtml(parseScore(j.score), '本次得分') : '');
@@ -754,6 +756,7 @@ async function diagnoseP2(id){
     ];
     const content = await callRelay('speaking_diagnose', messages, 0.3);
     const j = aiJson(content);
+    normalizeScore(j);
 
     // 渲染结果
     if(!renderP2Diag(resultEl, j, answer)){
@@ -870,6 +873,17 @@ function diffSentenceHtml(answer, errs){
   return '<div class="diag-sentence-diff">' + html + '</div>';
 }
 
+// 强制评分兜底：没有真错误时，语法和词汇不得低于 6.0（用户规则：全对至少6，小错听懂5.5）
+function normalizeScore(j){
+  if(!j || !j.score) return j;
+  const errs = cleanErrors(j.errors);
+  if(errs.length === 0){
+    if(j.score.grammar != null && Number(j.score.grammar) < 6) j.score.grammar = 6;
+    if(j.score.vocabulary != null && Number(j.score.vocabulary) < 6) j.score.vocabulary = 6;
+  }
+  return j;
+}
+
 // 渲染 inline 笔记式纠错（fallback：无法定位原句时使用）
 function inlineErrorsHtml(errs){
   if(!errs.length) return '<div class="diag-ok">没发现明显错误，继续保持～</div>';
@@ -887,6 +901,7 @@ function inlineErrorsHtml(errs){
 
 // 渲染诊断结构化卡片
 function renderDiag(el, j, raw, answer){
+  normalizeScore(j);
   const scoreHtml = (j && j.score) ? scoreHeaderHtml(parseScore(j.score), '本题得分') : '';
   const errs = cleanErrors(j && j.errors);
   if(j && Array.isArray(j.errors) && j.rewrite){
