@@ -362,6 +362,9 @@ function openDetail(id){
   // 逐题展开 + 语音 + AI 诊断 事件绑定（含 localStorage 回填）
   bindQuestionEvents(id);
 
+  // 26 · P1 问答流：一题一卡 + 进度 + 步进（只影响 P1 详情显示，不动数据）
+  if(s.type === 'P1') p1FlowInit(s);
+
   // P2 单窗口事件绑定（仅手写 + AI 评分 + 提交记录；无录音）
   if(s.type === 'P2'){
     const p2Diag = document.getElementById('p2Diag');
@@ -561,9 +564,9 @@ function questionItemHtml(text, qi, s){
     +     '<textarea class="sp-ans" data-qi="' + qi + '" placeholder="在这里写下你的回答…"></textarea>'
     +     '<div class="sp-rec-list" data-qi="' + qi + '"></div>'
     +     '<div class="sp-q-btns">'
-    +       '<button class="sp-ai-helper" data-qi="' + qi + '" type="button">✨ AI 辅助</button>'
-    +       '<button class="sp-diag" data-qi="' + qi + '" type="button">🤖 AI 诊断</button>'
-    +       '<button class="sp-ans-clear" data-qi="' + qi + '" type="button">清空</button>'
+    +       '<button class="sp-ai-helper" data-qi="' + qi + '" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;flex:none"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.4L22 18.3l-2.1.9L19 21.5l-.9-2.3-2.1-.9 2.1-.9z"/></svg>AI 辅助</button>'
+    +       '<button class="sp-diag" data-qi="' + qi + '" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;flex:none"><path d="M12 2l2.4 5.1 5.6.8-4 4.1 1 5.6-5-2.7-5 2.7 1-5.6-4-4.1 5.6-.8z"/></svg>AI 诊断</button>'
+    +       '<button class="sp-ans-clear" data-qi="' + qi + '" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;flex:none"><circle cx="12" cy="12" r="9"/><path d="M8.5 8.5l7 7M15.5 8.5l-7 7"/></svg>清空</button>'
     +     '</div>'
     +     '<div class="sp-ai-result sp-q-result" data-qi="' + qi + '"></div>'
     +   '</div>'
@@ -1229,4 +1232,94 @@ var matGen = (function(){
 
   return { init, render };
 })();
+
+/* === 26 · P1 问答流：一题一卡 + 进度 + 步进（在 openDetail 的 P1 分支调用） === */
+function p1FlowInit(s){
+  var list = document.querySelector('.sp-q-list');
+  if(!list || !s.questions || !s.questions.length) return;
+  var items = Array.prototype.slice.call(list.querySelectorAll('.sp-q'));
+  if(!items.length) return;
+  var n = items.length;
+  s.answers = s.answers || {};
+
+  // 默认聚焦第一道未做的题（全做完则回到第 1 题）
+  var cur = 0;
+  for(var i = 0; i < n; i++){ if(bestOfQuestion(s.answers[i]) == null){ cur = i; break; } }
+
+  // ① 进度头（插到题卡列表前）
+  var head = document.createElement('div');
+  head.className = 'sp-flow-head';
+  head.innerHTML = '<div class="sp-flow-dots"></div><div class="sp-flow-count"></div>';
+  list.parentNode.insertBefore(head, list);
+
+  // ② 步进导航（插到底部操作区之前）
+  var nav = document.createElement('div');
+  nav.className = 'sp-flow-nav';
+  nav.innerHTML = '<button class="sp-flow-prev" type="button">← 上一题</button>'
+    + '<button class="sp-flow-next" type="button">下一题 →</button>';
+  var acts = document.querySelector('.sp-detail-actions');
+  if(acts) acts.parentNode.insertBefore(nav, acts);
+
+  // ③ 已完成小结（插到题卡列表后）
+  var done = document.createElement('div');
+  done.className = 'sp-flow-done';
+  done.hidden = true;
+  list.insertAdjacentElement('afterend', done);
+
+  function render(){
+    items.forEach(function(li, idx){ li.classList.toggle('active', idx === cur); });
+
+    // 进度点
+    var dotsHtml = '';
+    for(var i = 0; i < n; i++){
+      var cls = (i === cur) ? 'cur' : (i < cur ? 'past' : '');
+      dotsHtml += '<span class="sp-flow-dot ' + cls + '">' + (i < cur ? '✓' : '') + '</span>';
+    }
+    head.querySelector('.sp-flow-dots').innerHTML = dotsHtml;
+    head.querySelector('.sp-flow-count').textContent = (cur + 1) + ' / ' + n;
+
+    // 步进按钮状态
+    var prev = nav.querySelector('.sp-flow-prev');
+    var next = nav.querySelector('.sp-flow-next');
+    prev.disabled = (cur === 0);
+    next.textContent = (cur === n - 1) ? '完成 ✓' : '下一题 →';
+
+    // 已完成小结（沿用 bestOfQuestion，与列表 badge 分数一致）
+    var rows = '';
+    for(var j = 0; j < n; j++){
+      var best = bestOfQuestion(s.answers[j]);
+      if(best == null) continue;
+      rows += '<div class="sp-flow-drow" data-i="' + j + '">'
+        + '<span class="sp-flow-dnum">' + (j + 1) + '</span>'
+        + '<span class="sp-flow-dtext">' + escapeHtml((s.questions[j] || '').slice(0, 30)) + '</span>'
+        + '<span class="sp-flow-dscore">' + scoreLabel(best) + '分</span>'
+        + '</div>';
+    }
+    if(rows){
+      done.hidden = false;
+      done.innerHTML = '<div class="sp-flow-dhead"><span>已完成</span><button class="sp-flow-dtoggle" type="button">展开 / 收起</button></div>'
+        + '<div class="sp-flow-dbody">' + rows + '</div>';
+      done.querySelectorAll('.sp-flow-drow').forEach(function(row){
+        row.addEventListener('click', function(){ cur = +row.dataset.i; render(); });
+      });
+      var t = done.querySelector('.sp-flow-dtoggle');
+      var b = done.querySelector('.sp-flow-dbody');
+      t.addEventListener('click', function(e){ e.stopPropagation(); b.classList.toggle('open'); });
+    } else {
+      done.hidden = true;
+    }
+
+    // 切题后滚回题卡顶部
+    var top = list.getBoundingClientRect().top + window.scrollY - 12;
+    window.scrollTo({ top: top, behavior: 'smooth' });
+  }
+
+  nav.querySelector('.sp-flow-prev').addEventListener('click', function(){ if(cur > 0){ cur--; render(); } });
+  nav.querySelector('.sp-flow-next').addEventListener('click', function(){
+    if(cur < n - 1){ cur++; render(); }
+    else { toast('本话题 ' + n + ' 题完成 ✓'); }
+  });
+
+  render();
+}
 
