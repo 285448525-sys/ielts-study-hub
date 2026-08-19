@@ -442,9 +442,9 @@ async function aiStoryLink(id){
       '1. 扫描全部故事，找出**能用来答这题的细节**（可跨多条故事组合，不限单条；只要能用的细节都拼进来）。\n' +
       '2. 把这些细节**拼成一篇英文参考回答**（简单句为主，契合口语 5.5，长度适配该题、不要过长）。注意：这不是让考生照抄——大部分内容考生会用自己的话说，只有少量句子（尤其固定开头/结尾）才直接借用。\n' +
       '3. 给一段中文「思路」：说明用了哪几条故事的哪些细节、怎么组合、怎么贴着题目讲。\n' +
-      '4. 给这道 P2 题专属的「逻辑链」：用几个中文关键词以 "—[横杠]—" 串接，横杠代表一个过程步骤，标出该题该走的几环。\n' +
+      '4. 给这道 P2 题专属的「逻辑链」：用若干中文关键词以 "—"（中文横杠/破折号）串接，把本题要讲的步骤、细节、感受都铺开——越长越细越好、数量不固定，严禁输出 "[横杠]" 这几个字。\n' +
       '5. 给一个**通用开头句**和一个**通用结尾句**（尽量万能：开头用 "I\'d like to talk about..." 什么题都能接；结尾一句收束）。\n' +
-      '输出严格 JSON：{"approach":"中文思路","article":"拼接的英文参考回答","logicChain":"关键词—[横杠]—关键词","opener":"通用开头句","closer":"通用结尾句"}，不要任何解释文字。';
+      '输出严格 JSON：{"approach":"中文思路","article":"拼接的英文参考回答","logicChain":"关键词—关键词（用中文横杠隔开，越长越细越好）","opener":"通用开头句","closer":"通用结尾句"}，不要任何解释文字。';
 
     const user = 'P2 题目：' + (s.promptEn || s.title || '') +
       '\n中文题意：' + (s.promptZh || '') +
@@ -861,13 +861,13 @@ var matGen = (function(){
   + '你的任务：把全部经历整合成**几个完整核心小故事**（数量灵活：看内容 + 对照下方 P2 全题型来定，目标是以最少的Story覆盖最多的题，通常 3~5 个，但不要凑数）。每个故事都能让考生直接背、用简单句讲出来。\n'
   + '规则：\n'
   + '1. 故事必须基于考生原话，真实不编造；可合并相关经历，不虚构细节。\n'
-  + '2. 每个故事含：title(标题) / storyEn(一段英文小故事，全部**简单句**、基础词汇，契合口语 5.5 水平，长度适中不要太长，可直接背) / logicZh(中文**逻辑链**：用几个中文短语以 "—[横杠]—" 串接，横杠处是考生现场填的细节占位，例如"跟男友去厦门旅游 —[横杠]— 看到海边日落 —[横杠]— 觉得环保重要 —[横杠]— 想以后多保护自然") / coverage(能套的 P2 题族数组) / p3Hints(2-3 个 P3 追问预判)。\n'
+  + '2. 每个故事含：title(标题) / storyEn(一段英文小故事，全部**简单句**、基础词汇，契合口语 5.5 水平，长度适中不要太长，可直接背) / logicZh(中文**逻辑链**：用若干中文短语以 "—"（中文横杠/破折号）串接，把故事的关键步骤、转折、感受、细节都铺开——越长越细越好、数量不固定，例如"朋友送手机壳—觉得很有心—每天用手机—看到就想起朋友—珍藏") / coverage(能套的 P2 题族数组)。\n'
   + '3. coverage 每个元素：{"topic":"题族名","fit":"natural|loose","note":"串题连接说明(给一句怎么把本故事套到该题，如\'旅行中意识到环保法重要→套法律法规\';natural可简写)"}。\n'
   + '4. 串题很抽象，**搭边就行**：coverage 不限于自然贴合的题，偏题（法律/规则/传统/人物/挑战…）只要能扯上关系就列，并给自然的连接说明。目标是背完这几个故事，大部分 P2 题都能套。\n'
   + '5. 不要产出 keyword 骨架 / 不要拆分多切面列表——考生基础弱，给词也不会说句型，必须给**成段的简单句英文**让她背。\n'
   + '6. 判断素材是否够覆盖：对照 P2 全题型，如果现有经历明显缺某大类（如完全没提人或完全没提地点），且补 1-3 个问题就能补上，则在 followups 返回这些问题；如果已经够广，followups 返回空数组。\n'
   + 'P2 全题型参考：' + CANON.join('、') + '\n'
-  + '输出严格 JSON：{"stories":[{"title":"","storyEn":"","logicZh":"","coverage":[{"topic":"","fit":"","note":""}],"p3Hints":["",""]}],"followups":["还想了解的问题1","问题2"]}';
+  + '输出严格 JSON：{"stories":[{"title":"","storyEn":"","logicZh":"","coverage":[{"topic":"","fit":"","note":""}]}],"followups":["还想了解的问题1","问题2"]}';
   const SYS_PERSONA = '你是雅思口语人设分析师。根据用户一句话自我介绍，提取人设锚点，用于保证 Part 3 回答一致性。输出严格 JSON：{"persona":{"city":"城市","identity":"身份/专业或工作","values":["价值观1","价值观2"],"traits":["性格特点1","性格特点2"]}}';
   const SYS_GAP = '你是雅思 P2 覆盖分析师。给定已被素材（含搭边串题）覆盖的 P2 题族，以及常见 IELTS P2 题族清单，请列出**连搭边都难覆盖**、且该用户大概率会考到的题族（最多 6 条），每条给一句补救建议（补真实小记忆 或 用 P2 公式现场编）。只列真正缺口，不要编造已覆盖的。输出严格 JSON 数组：[{"topic":"题族","advice":"建议"}]';
 
@@ -1015,7 +1015,6 @@ var matGen = (function(){
       storyEn: s.storyEn || '',
       logicZh: s.logicZh || '',
       coverage: cov.map(c => ({ topic:String(c.topic || ''), fit:String(c.fit || 'natural'), note:String(c.note || '') })).filter(c => c.topic),
-      p3Hints: Array.isArray(s.p3Hints) ? s.p3Hints.map(String) : [],
       confidence: s.confidence || 'high'
     };
   }
@@ -1023,7 +1022,7 @@ var matGen = (function(){
     return exps.map((e, i) => ({
       id:'m' + Date.now() + '_' + i, title:e.title || ('故事' + (i + 1)),
       storyEn:'', logicZh:e.raw || '（未填写）',
-      coverage:[], p3Hints:[], confidence:'low', _fallback:true
+      coverage:[], confidence:'low', _fallback:true
     }));
   }
   function fallbackPersona(text){
@@ -1052,15 +1051,13 @@ var matGen = (function(){
         const note = c.note ? '<span class="mat-cov-note">串：' + escapeHtml(c.note) + '</span>' : '';
         return '<span class="mat-cov-item">' + badge + escapeHtml(c.topic) + note + '</span>';
       }).join('');
-      const p3Html = (m.p3Hints || []).map(p => '<div>· ' + escapeHtml(p) + '</div>').join('');
       h += '<div class="mat-mat" data-i="' + i + '">'
         + '<div class="mat-mat-head" data-toggle="' + i + '"><span class="mat-mat-title">' + escapeHtml(m.title || '未命名') + '</span>'
         + '<span class="mat-mat-cov">覆盖 ' + (m.coverage ? m.coverage.length : 0) + ' 题</span><span class="mat-caret">▶</span></div>'
         + '<div class="mat-body">'
         + (m.storyEn ? '<div class="mat-sub">英文可背（简单句）</div><div class="mat-story-en">' + escapeHtml(m.storyEn) + '</div>' : '')
-        + (m.logicZh ? '<div class="mat-sub">中文逻辑链（横杠处现场填）</div><div class="mat-logic">' + escapeHtml(m.logicZh) + '</div>' : '')
+        + (m.logicZh ? '<div class="mat-sub">中文逻辑链</div><div class="mat-logic">' + escapeHtml(m.logicZh) + '</div>' : '')
         + '<div class="mat-sub">可套的 P2 题（搭边也行）</div><div class="mat-cov-list">' + (covHtml || '<span class="mat-cov-item">（无）</span>') + '</div>'
-        + '<div class="mat-sub">P3 追问预判</div><div class="mat-p3">' + (p3Html || '<div>（无）</div>') + '</div>'
         + '<div class="mat-mat-actions"><button class="mat-mini" data-regen-all="1">重新生成全部</button><button class="mat-mini danger" data-del="' + i + '">删除</button></div>'
         + '</div></div>';
     });
