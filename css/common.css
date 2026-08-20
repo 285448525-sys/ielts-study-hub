@@ -1159,27 +1159,13 @@ main .quote{
    v5 首页 Dashboard + 导航全面简化（design/30-首页Dashboard+导航全面简化_详细方案v5.md）
    ========================================================================= */
 
-/* —— 侧边栏：200px 下的紧凑导航项（覆盖上方 15px 旧样式，含 889 行 .side-primary 的 600 字重） —— */
-.side-primary .side-item{
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
-  padding:7px 11px;
-  border-radius:var(--radius-sm);
-  color:var(--ink);
-  text-decoration:none;
-  font-size:13.5px;
-  font-weight:500;
-  white-space:nowrap;
-}
-.side-primary .side-item.active{font-weight:600}
+/* 设置/服药 前的分隔线 */
+.side-sep{height:1px;background:var(--line);margin:8px 10px;flex:none}
 /* 窄屏时隐藏导航文字，只留图标 */
 @media(max-width:680px){
   .side-label{display:none}
   .side-item{justify-content:center;padding:9px}
 }
-/* 设置/服药 前的分隔线 */
-.side-sep{height:1px;background:var(--line);margin:8px 10px;flex:none}
 
 /* —— 首页 Dashboard v5（纵向信息流） —— */
 

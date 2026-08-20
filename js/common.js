@@ -825,10 +825,14 @@ function hubClearOrphanPageTimers(){
   if(window.__mockTick){ clearInterval(window.__mockTick); window.__mockTick = null; }
 }
 
-/* 空闲时预取同组相邻页面 HTML（走浏览器缓存，下次软切换近乎瞬时） */
+/* 空闲时预取相邻页面 HTML（走浏览器缓存，下次软切换近乎瞬时）
+   v5 导航已平铺无分组，直接按 PAGES 顺序取前后各 1 个邻居 */
 function prefetchNeighbors(id){
-  const grp = NAV_GROUPS.find(g => g.pages.includes(id));
-  const neighbors = (grp && grp.pages) || [];
+  const idx = PAGES.findIndex(p => p.id === id);
+  if(idx === -1) return;
+  const neighbors = [];
+  if(idx > 0) neighbors.push(PAGES[idx - 1].id);
+  if(idx < PAGES.length - 1) neighbors.push(PAGES[idx + 1].id);
   if(!neighbors.length) return;
   const idle = window.requestIdleCallback || (cb => setTimeout(cb, 800));
   idle(() => {
