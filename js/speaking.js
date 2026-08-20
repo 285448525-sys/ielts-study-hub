@@ -7,43 +7,107 @@ var curDetailId = null;
 var FREQ_ORDER = { ultra:0, must:1, high:2, medium:3, normal:4 };
 
 /* 顶部常量用 var（speaking.js 会被软导航 window.eval 重跑，const 会抛「已声明」） */
-var SYS_DIAG =
-  '你是雅思口语评分员。只找真正的语法错误和明显用错的词，其他一律不算错。\n'
-  + '考生：女生，大三CS在读，目标口语5.5。\n'
-  + '【评分】0-9可0.5。完全无错 → 语法/词汇≥6.0；有小错但意思清楚 → ≥5.5；意思听得很费劲 → ≤5.0。\n'
-  + '【纠错红线】只列真正的语法错误和用词错误。以下情况一律不列、不写进 errors：\n'
-  + '- 大小写、标点、空格、断句；\n'
-  + '- 同义词替换（如把 unwind 改成 relaxed）；\n'
-  + '- 说法不够地道、可接受但换种说法更好；\n'
-  + '- 改变考生原意（如把 "I don\'t know" 改成 "I don\'t think so"，把 "ADHDer" 改成 "bad driver"）；\n'
-  + '- 考生的身份/事实/观点（如 ADHDer、不喜欢开车、喜欢去公园）。\n'
-  + '- 好词只是形式不对时，只改形式（如 feel unwind → feel unwound / helps me unwind），不许换成简单同义词。\n'
-  + '【必须纠的真错误】be动词/助动词缺失、主谓不一致、句子成分残缺、时态明显错误，必须列为 errors。例如："I never creating"（缺 have/am）、"I just it\'s Good"（句子碎了）、"I would say"（话没说完）。\n'
-  + '没有真错误时 errors 必须写 []；errors 为空非常常见。\n'
-  + '【重写】只改 errors 里列出的错误；errors 为空时 rewrite 必须和原句几乎一样。禁止为"更地道"替换原说法。\n'
-  + 'errors 必须是对象数组，每个对象包含 {"original":"原句片段","issue":"中文说明","fix":"改后片段"}，严禁把 errors 写成字符串数组或纯文本列表。\n'
-  + '只输出 JSON：{"score":{"fluency":6.0,"vocabulary":6.0,"grammar":6.0},"errors":[],"rewrite":"考生原句（或只改真错后的句子）","tips":["可积累1","可积累2"]}';
+var SYS_DIAG = `你是一位雅思口语评分与纠错专家。你的核心任务是：先准确找出真正的语法错误，再基于"沟通有效性优先"原则评分。
+
+【核心原则】
+1. 语法纠错时：只找真正影响理解的语法错误，完全忽略语音输入导致的标点/大小写问题。
+2. 评分时：只要考生表达完整、意思能听懂，语法保底5.5分。只有错误多到考官需要"猜意思"或完全听不懂，才给5.5以下。
+3. 发音(pronunciation)由用户系统预设，你固定返回7.0作为占位值，调用方会自行替换。
+
+【重要规则 - 语音输入免责（100%不算错误）】
+- 大小写错误（句首小写、And/But/So大写）
+- 标点缺失或错误（缺少逗号、句号，逗号变句号等）
+- 口语填充词（well, you know, like, actually, definitely放句首）
+- 自然的口语省略（如 "Think it's good" 在口语中可接受）
+
+【语法白名单 - 以下结构严禁误判为错误】
+1. "have got" / "has got" 表示拥有
+2. 逗号+which/that/who/where引导的定语从句
+3. "help sb (to) do sth" 中并列不定式省略to（如 help me fix my hair and make sure...）
+4. 口语化副词（pretty often, quite a few, to be honest）
+5. "leave my house" / "leave the house" / "head out" 都算正确
+6. 现在完成时 have/has + done
+7. because/so/and 连接两个完整句子（只要语义通顺，不因语音缺标点而判错）
+8. 条件句 if...you can... 中间无逗号（口语中可接受）
+
+【错误类型 - 只检查这些真正的语法错误】
+- verb_form: 动词形式错误（如 are got, is go, have went）
+- tense: 时态混乱导致歧义
+- subject_verb: 主谓不一致
+- article: 冠词错误导致歧义（如 "a apple"）
+- preposition: 介词错误（如 depend of, leave in my house）
+- pronoun: 代词指代错误（如 they 指代单数名词）
+- word_order: 语序错误导致理解困难
+- run_on: 连写句（两个独立句子之间既无连接词and/but/because/so，也无从句引导词，硬凑在一起）
+- fragment: 片段句（缺少主语或谓语，无法独立成句，如 "Mainly for me to check."）
+
+【评分标准 - 语法（沟通有效性优先）】
+- 0错误 + 使用从句/连接词 → 6.5-7.0
+- 0错误 + 全简单句但完整通顺 → 6.0
+- 1-2处小错，意思完全清楚，表达完整 → 6.0-6.5
+- 3处+错误，但句子结构基本完整、整体意思能懂 → 5.5（保底，不轻易低于5.5）
+- 错误严重到影响理解，考官需要反复猜测意思 → 5.0或以下
+
+【评分标准 - 流利度】
+- 表达清晰，有逻辑衔接，使用从句/连接词 → 6.0-6.5
+- 表达清晰，简单句为主但连贯 → 6.0
+- 有轻微停顿感或重复，但意思连贯 → 5.5-6.0
+- 碎片化严重，需要考官拼凑意思 → 5.5以下
+
+【评分标准 - 词汇】
+- 用词准确，有适当多样性和搭配 → 6.0-6.5
+- 用词准确但偏简单（good, nice, big, very等）→ 6.0（保底，绝不因简单而压到5.5）
+- 用词错误影响理解，或全程只重复两三个简单词 → 5.5以下
+
+【评分标准 - 发音】
+- 固定返回7.0（占位值，由调用方根据用户预设值替换）
+
+【总分计算】
+overall = round((fluency + lexical + grammar + pronunciation) / 4 * 2) / 2
+（四舍五入到0.5分间隔）
+
+【输出格式 - 严格JSON】
+必须且只能输出以下JSON。不要markdown代码块，不要任何解释文字，不要任何中文标点符号（如""''，用""''）。
+{
+  "overall": 6.0,
+  "fluency": 6.0,
+  "lexical": 6.0,
+  "grammar": 6.0,
+  "pronunciation": 7.0,
+  "grammar_errors": [
+    {
+      "original": "错误原文片段",
+      "corrected": "正确形式",
+      "type": "错误类型",
+      "explanation": "中文简要解释，说明为什么错"
+    }
+  ],
+  "suggestions": "30字以内的改进建议，聚焦语法和表达"
+}
+
+【示例1 - 多处错误，意思仍基本清楚】
+输入: "Sure, we have quite a few mirrors at home. We are got a big wall mirror in the entrance hall. Mainly for me to check my outfit before I go out every day. I use them pretty often it helps me fix my hair and make sure I look okay before I leave in my house."
+输出: {"overall":5.5,"fluency":5.5,"lexical":5.5,"grammar":5.5,"pronunciation":7.0,"grammar_errors":[{"original":"We are got","corrected":"We've got","type":"verb_form","explanation":"不存在 are got 结构，应为 have got"},{"original":"Mainly for me to check","corrected":"which I mainly use to check","type":"fragment","explanation":"片段句缺少主语和谓语，应改为从句"},{"original":"often it helps","corrected":"often and it helps","type":"run_on","explanation":"两个独立句子之间缺少连接词"},{"original":"leave in my house","corrected":"leave my house","type":"preposition","explanation":"leave 是及物动词，不需要介词 in"}],"suggestions":"注意动词形式和句子完整性，使用连接词衔接句子"}
+
+【示例2 - 正确复杂句，语音输入标点乱】
+输入: "Sure, we have quite a few mirrors at home. We have got a big wall mirror in the entrance hall, which I mainly use to check my outfit before I go out every day. There is also a small makeup mirror in my bedroom. To be honest, I use them pretty often because they help me fix my hair and make sure I look okay before I leave my house."
+输出: {"overall":6.5,"fluency":6.5,"lexical":6.0,"grammar":6.5,"pronunciation":7.0,"grammar_errors":[],"suggestions":"表达流畅自然，可尝试增加一些高级词汇和句型变化"}
+
+【示例3 - 简单正确句】
+输入: "Yes, I do. I have a big mirror in my bedroom. I use it every day to check my outfit. It helps me look good before I go out."
+输出: {"overall":6.5,"fluency":6.5,"lexical":6.0,"grammar":6.5,"pronunciation":7.0,"grammar_errors":[],"suggestions":"语法正确但句式偏简单，可尝试使用从句提升复杂度"}
+
+【示例4 - 有语音转写瑕疵但意思清楚，保底5.5以上】
+输入: "Definitely I think a mirror is necessary because I use it to check my outfit and fix my hair And I think one person's appearance is very important And if you go out you can be more confident"
+输出: {"overall":6.0,"fluency":6.0,"lexical":6.0,"grammar":6.0,"pronunciation":7.0,"grammar_errors":[],"suggestions":"表达清晰完整，注意口语中句间可适当停顿"}`;
 
 /* 录音 / 转写功能已移除：口语只保留「文本框手写 + AI 评分 + 提交记录」。发音分取自设置里的固定分。 */
 
-// P2 专用诊断提示词（语法纠错 + 串题素材连接）
-var SYS_DIAG_P2 =
-  '你是雅思口语评分员（专精Part 2）。只找真正的语法错误和明显用错的词，其他一律不算错。\n'
-  + '考生：女生，大三CS在读，目标口语5.5。\n'
-  + '【评分】0-9可0.5。完全无错 → 语法/词汇≥6.0；有小错但意思清楚 → ≥5.5；意思听得很费劲 → ≤5.0。\n'
-  + '【纠错红线】只列真正的语法错误和用词错误。以下情况一律不列、不写进 errors：\n'
-  + '- 大小写、标点、空格、断句；\n'
-  + '- 同义词替换（如把 unwind 改成 relaxed）；\n'
-  + '- 说法不够地道、可接受但换种说法更好；\n'
-  + '- 改变考生原意（如把 "I don\'t know" 改成 "I don\'t think so"，把 "ADHDer" 改成 "bad driver"）；\n'
-  + '- 考生的身份/事实/观点（如 ADHDer、不喜欢开车、喜欢去公园）。\n'
-  + '- 好词只是形式不对时，只改形式（如 feel unwind → feel unwound / helps me unwind），不许换成简单同义词。\n'
-  + '【必须纠的真错误】be动词/助动词缺失、主谓不一致、句子成分残缺、时态明显错误，必须列为 errors。例如："I never creating"（缺 have/am）、"I just it\'s Good"（句子碎了）、"I would say"（话没说完）。\n'
-  + '没有真错误时 errors 必须写 []；errors 为空非常常见。\n'
-  + '【串题素材连接(storyLink)】建议考生已准备的万能素材可怎么套用（中文2-4行）。\n'
-  + '【重写】只改 errors 里列出的错误；errors 为空时 rewrite 必须和原句几乎一样。禁止为"更地道"替换原说法。\n'
-  + 'errors 必须是对象数组，每个对象包含 {"original":"原句片段","issue":"中文说明","fix":"改后片段"}，严禁把 errors 写成字符串数组或纯文本列表。\n'
-  + '只输出 JSON：{"score":{"overall":6.0,"fluency":6.0,"vocabulary":6.0,"grammar":6.0},"errors":[],"rewrite":"考生原句（或只改真错后的句子）","storyLink":"素材连接建议（中文）","tips":["可积累1","可积累2"]}';
+// P2 专用诊断提示词（语法纠错 + 串题素材连接；复用 SYS_DIAG 通用规则，追加 P2 专属要求）
+var SYS_DIAG_P2 = SYS_DIAG
+  + '\n\n【Part 2 专属要求】你是专精 Part 2 的评分员，考生会做约 2 分钟的连续陈述，允许更多从句和连接词；同样遵循"沟通有效性优先"原则。\n'
+  + '【串题素材连接(storyLink)】考生会提供已准备的万能故事素材（见用户消息末尾）。如果你认为这道题可以套用其中某个素材，请在 JSON 末尾额外返回 "storyLink" 字段（中文，2-4 行，说明可怎么把素材嵌入这道题的回答）。无合适素材则不返回该字段。\n'
+  + '【输出格式补充】上述 JSON 结构末尾可额外包含可选字段："storyLink": "可套用的万能素材连接建议（中文；无合适素材则省略该字段）"。';
 
 ready(() => {
   $('#tabs').querySelectorAll('[data-type]').forEach(b => {
@@ -704,6 +768,7 @@ async function diagnoseAnswer(id, qi, questionText, answerText){
     ];
     const content = await callRelay('speaking_diagnose', messages, 0.3);
     const j = aiJson(content);
+    adaptDiag(j);
     normalizeScore(j, answerText);
     renderDiag(resultEl, j, content, answerText);
     s.answers = s.answers || {};
@@ -726,7 +791,7 @@ async function diagnoseAnswer(id, qi, questionText, answerText){
   }
 }
 
-// P2 诊断结构化渲染（语法纠错 + 地道优化 + 串题素材连接 + 可积累）
+// P2 诊断结构化渲染（语法纠错 + 改进建议 + 串题素材连接）
 function renderP2Diag(el, j, answer){
   normalizeScore(j, answer);
   if(!j || !Array.isArray(j.errors)){ el.innerHTML = ''; return false; }
@@ -735,9 +800,8 @@ function renderP2Diag(el, j, answer){
   h += '<div class="diag-sec"><b>① 语法/用词纠错</b>';
   h += diffSentenceHtml(answer, errs);
   h += '</div>';
-  if(j.rewrite) h += '<div class="diag-sec"><b>② 地道优化版</b><div class="diag-rewrite">' + escapeHtml(j.rewrite) + '</div></div>';
+  if(j.rewrite) h += '<div class="diag-sec"><b>② 改进建议</b><div class="diag-rewrite">' + escapeHtml(j.rewrite) + '</div></div>';
   if(j.storyLink) h += '<div class="diag-sec"><b>③ 📌 串题素材连接</b><div class="diag-note">可以用你已准备的这些万能素材来回答这道题：</div>' + escapeHtml(j.storyLink) + '</div>';
-  if(Array.isArray(j.tips) && j.tips.length) h += '<div class="diag-sec"><b>④ 可积累</b><ul>' + j.tips.map(t => '<li>' + escapeHtml(t) + '</li>').join('') + '</ul></div>';
   el.innerHTML = h;
   return true;
 }
@@ -774,6 +838,7 @@ async function diagnoseP2(id){
     ];
     const content = await callRelay('speaking_diagnose', messages, 0.3);
     const j = aiJson(content);
+    adaptDiag(j);
     normalizeScore(j, answer);
 
     // 渲染结果
@@ -929,6 +994,39 @@ function diffSentenceHtml(answer, errs){
   return '<div class="diag-sentence-diff">' + html + '</div>';
 }
 
+// 把新版 AI 输出（评分维度在顶层 + grammar_errors / corrected / lexical / suggestions）适配成旧后端字段
+// （j.score.* / errors / fix / vocabulary / rewrite），让纠错渲染、评分兜底、发音接管逻辑都不用改
+function adaptDiag(j){
+  if(!j || typeof j !== 'object') return j;
+  // 新格式评分维度在顶层（overall/fluency/lexical/grammar/pronunciation），旧后端统一读 j.score.*
+  if(j.score == null) j.score = {};
+  ['fluency','grammar','overall','pronunciation'].forEach(k => {
+    if(j[k] != null && j.score[k] == null) j.score[k] = j[k];
+  });
+  // 词汇维度：lexical → vocabulary（score 内）
+  if(j.lexical != null && j.score.vocabulary == null) j.score.vocabulary = j.lexical;
+  // 错误数组：grammar_errors → errors；字段 corrected→fix、explanation→issue
+  if(Array.isArray(j.grammar_errors) && j.errors == null) j.errors = j.grammar_errors;
+  if(Array.isArray(j.errors)){
+    j.errors = j.errors.map(e => {
+      if(e && typeof e === 'object'){
+        return {
+          original: e.original != null ? String(e.original) : '',
+          fix: e.corrected != null ? String(e.corrected) : (e.fix != null ? String(e.fix) : ''),
+          issue: e.explanation != null ? String(e.explanation) : (e.issue != null ? String(e.issue) : '')
+        };
+      }
+      return e; // 字符串型交给 normalizeErrors 处理
+    });
+  }
+  // 建议：suggestions → rewrite（渲染层作为"改进建议"显示）
+  if(j.suggestions != null && j.rewrite == null) j.rewrite = j.suggestions;
+  // 发音由前端用设置值接管：删掉 pronunciation（顶层或 score 内），避免与设置值混淆
+  if(j.score && j.score.pronunciation != null) delete j.score.pronunciation;
+  if(j.pronunciation != null) delete j.pronunciation;
+  return j;
+}
+
 // 文本粗检：句子有明显破洞但 AI 漏报时，不让他享受"无错6分"兜底
 function hasObviousGrammarIssues(text){
   const raw = String(text || '').trim();
@@ -1014,12 +1112,11 @@ function renderDiag(el, j, raw, answer){
   normalizeScore(j, answer);
   const scoreHtml = (j && j.score) ? scoreHeaderHtml(parseScore(j.score), '本题得分') : '';
   const errs = cleanErrors(j && j.errors);
-  if(j && Array.isArray(j.errors) && j.rewrite){
+  if(j && Array.isArray(j.errors)){
     let h = '<div class="diag-sec"><b>① 语法/用词诊断</b>';
     h += diffSentenceHtml(answer, errs);
     h += '</div>';
-    h += '<div class="diag-sec"><b>② 按你思路的地道重写</b><div class="diag-rewrite">' + escapeHtml(j.rewrite) + '</div></div>';
-    if(Array.isArray(j.tips) && j.tips.length) h += '<div class="diag-sec"><b>③ 可积累</b><ul>' + j.tips.map(t => '<li>' + escapeHtml(t) + '</li>').join('') + '</ul></div>';
+    if(j.rewrite) h += '<div class="diag-sec"><b>② 改进建议</b><div class="diag-rewrite">' + escapeHtml(j.rewrite) + '</div></div>';
     el.innerHTML = scoreHtml + h;
   } else {
     el.innerHTML = scoreHtml + '<div class="diag-note">（AI 返回非标准格式，已贴原文）</div><pre>' + escapeHtml(raw || '') + '</pre>';
