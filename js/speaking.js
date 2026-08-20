@@ -1260,12 +1260,12 @@ var matGen = (function(){
 
   function loadStore(){
     if(DATA.materials && typeof DATA.materials === 'object'){
-      const s = DATA.materials; s.answers = s.answers || {}; s.answers.extraMore = s.answers.extraMore || []; s.answers.followups = s.answers.followups || []; s.materials = s.materials || []; s.gaps = s.gaps || []; s.followups = s.followups || []; return s;
+      const s = DATA.materials; s.answers = s.answers || {}; s.answers.extraMore = s.answers.extraMore || []; s.answers.followups = s.answers.followups || []; s.materials = s.materials || []; s.gaps = s.gaps || []; s.followups = s.followups || []; s.deletedIds = s.deletedIds || []; return s;
     }
     // 一次性迁移：旧 localStorage 数据导入 DATA（此后走云同步）
     try{
       const s = JSON.parse(localStorage.getItem(STORE_KEY));
-      if(s && typeof s === 'object'){ s.answers = s.answers || {}; s.answers.extraMore = s.answers.extraMore || []; s.answers.followups = s.answers.followups || []; s.materials = s.materials || []; s.gaps = s.gaps || []; s.followups = s.followups || []; DATA.materials = s; return s; }
+      if(s && typeof s === 'object'){ s.answers = s.answers || {}; s.answers.extraMore = s.answers.extraMore || []; s.answers.followups = s.answers.followups || []; s.materials = s.materials || []; s.gaps = s.gaps || []; s.followups = s.followups || []; s.deletedIds = s.deletedIds || []; DATA.materials = s; return s; }
     }catch(_){}
     return { persona:null, materials:[], gaps:[], followups:[], answers:{ extraMore:[], followups:[] } };
   }
@@ -1353,6 +1353,8 @@ var matGen = (function(){
       try{ gaps = await genGaps(covered); }catch(e){ gaps = fallbackGaps(covered); }
 
       store.persona = persona; store.materials = result.stories; store.followups = result.followups || []; store.gaps = gaps;
+      // 给每张素材卡补稳定 id（AI 未必返回），供删除墓碑与跨设备去重使用
+      store.materials.forEach(m => { if(m && m.id == null) m.id = 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); });
       saveStore();
       mode = 'result';
       render();
@@ -1473,9 +1475,12 @@ var matGen = (function(){
       b.onclick = () => {
         if(!confirm('删除这张素材卡？')) return;
         const i = +b.dataset.del;
+        const m = store.materials[i];
+        // 记录删除墓碑：即使云端/另一份仍残留该卡，合并时也会按 id 过滤掉，避免"删了又回来"
+        if(m && m.id != null){ store.deletedIds = store.deletedIds || []; if(!store.deletedIds.includes(m.id)) store.deletedIds.push(m.id); }
         store.materials.splice(i, 1);
         saveStore();
-        // 删除后立即上传云端，避免 1.5s 防抖窗口内刷新/切设备导致旧卡从云端合并回来
+        // 删除后立即上传云端，让墓碑随同步传播，避免旧卡从云端合并回来
         if(DATA.settings.autoSync && DATA.settings.syncCode && typeof cloudUpload === 'function') cloudUpload(true);
         render();
       };

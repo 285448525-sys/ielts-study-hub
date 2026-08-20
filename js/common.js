@@ -625,20 +625,29 @@ function _mergePlans(local, cloud){
   return { arr: Array.from(byDate.values()), changes };
 }
 
-/* 万能素材合并：素材卡按 id 并集（同 id 留本机）；persona/gaps/answers 云端非空取云端 */
+/* 万能素材合并：素材卡按 id 去重并集（同 id 留本机），已删除 id（deletedIds 墓碑）过滤，使删除能跨同步传播；
+   persona/gaps/answers 云端非空取云端。无 id 的旧卡就地补稳定 hash id，保证墓碑与去重可用 */
 function _mergeMaterials(local, cloud){
   local = local || {}; cloud = cloud || {};
   const out = Object.assign({}, local);
-  let changes = 0;
+  const ensureId = m => { if(m && m.id == null){ try{ m.id = 'h' + hashStr(JSON.stringify(m)); }catch(_){ m.id = 'h' + Math.random().toString(36).slice(2,9); } } };
+  (local.materials||[]).forEach(ensureId);
+  (cloud.materials||[]).forEach(ensureId);
+  const deleted = new Set([...(local.deletedIds||[]), ...(cloud.deletedIds||[])]);
   const map = new Map();
-  (local.materials||[]).forEach(m => { if(m && m.id) map.set(m.id, m); });
-  (cloud.materials||[]).forEach(m => { if(m && m.id && !map.has(m.id)){ map.set(m.id, m); changes++; } });
+  const add = m => { if(!m || m.id == null) return; if(deleted.has(m.id)) return; if(!map.has(m.id)) map.set(m.id, m); };
+  (local.materials||[]).forEach(add);
+  (cloud.materials||[]).forEach(add);
   out.materials = Array.from(map.values());
-  if(cloud.persona && JSON.stringify(cloud.persona) !== JSON.stringify(local.persona)){ out.persona = cloud.persona; changes++; }
-  if(Array.isArray(cloud.gaps) && cloud.gaps.length && JSON.stringify(cloud.gaps) !== JSON.stringify(local.gaps)){ out.gaps = cloud.gaps; changes++; }
+  out.deletedIds = Array.from(deleted);
+  if(cloud.persona && JSON.stringify(cloud.persona) !== JSON.stringify(local.persona)){ out.persona = cloud.persona; }
+  if(Array.isArray(cloud.gaps) && cloud.gaps.length && JSON.stringify(cloud.gaps) !== JSON.stringify(local.gaps)){ out.gaps = cloud.gaps; }
   out.answers = Object.assign({}, local.answers||{}, cloud.answers||{});
+  const changes = Math.max(0, out.materials.length - (local.materials||[]).length);
   return { data: out, changes };
 }
+/* 稳定短哈希（用于给无 id 的旧素材卡补 id，内容相同→同 id 自动去重） */
+function hashStr(s){ let h = 0; s = String(s||''); for(let i=0;i<s.length;i++){ h = (h*31 + s.charCodeAt(i)) | 0; } return (h >>> 0).toString(36); }
 /* 进行中计时镜像：取 updatedAt 较新者（ended 广播也算较新方） */
 function _pickNewer(a, b){ return (_num(b && b.updatedAt) > _num(a && a.updatedAt)) ? b : (a || null); }
 /* 从云端合并拉取（替代整份覆盖）。silent=true 时仅在有更新时提示，用于自动拉取 */
