@@ -50,11 +50,17 @@
   .sp-card-zh{font-size:13px;color:var(--muted);margin-top:2px}
   .sp-card-tags{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
   .sp-tag{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--bg);color:var(--muted);border:1px solid var(--line)}
-  .sp-tag.freq-ultra{background:var(--danger);color:#fff;border-color:var(--danger)}
-  .sp-tag.freq-high{background:var(--warn);color:#fff;border-color:var(--warn)}
   .sp-tag.freq-must{background:var(--vocab);color:#fff;border-color:var(--vocab)}
-  .sp-tag.freq-medium{background:var(--mock);color:#fff;border-color:var(--mock)}
-  .sp-tag.new{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .sp-tag.freq-high{background:var(--warn);color:#fff;border-color:var(--warn)}
+  .sp-tag.freq-subhigh{background:#e08e0b;color:#fff;border-color:#e08e0b}
+  .sp-tag.freq-mid{background:var(--mock);color:#fff;border-color:var(--mock)}
+  .sp-tag.freq-low{background:var(--muted);color:#fff;border-color:var(--muted)}
+
+  /* 优先级/分类下拉筛选（联动） */
+  .sp-filters{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin:8px 0 12px}
+  .sp-filter{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--muted);font-weight:600}
+  .sp-select{padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);font:inherit;font-size:14px;background:var(--surface);color:var(--ink);min-width:150px;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+  .sp-select:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-soft);outline:none}
 
   .sp-score-badge{font-size:12px;padding:2px 8px;border-radius:10px;margin-left:8px;vertical-align:1px;white-space:nowrap}
   .sp-score-badge.good{background:var(--primary-soft);color:var(--med)}
@@ -388,7 +394,7 @@
 
 <main class="container">
   <h1 class="page-title">口语题库</h1>
-  <p class="page-sub">5-8 月官方题库 · 优先复习超高频</p>
+  <p class="page-sub">本季口语题库 · 按档位分级复习</p>
 
   <!-- 标签栏（常驻，移出会被 hide 的 listView） -->
   <div class="sp-tabs" id="tabs">
@@ -401,27 +407,23 @@
   <!-- 列表视图 -->
   <div id="listView">
     <div class="sp-banner" id="freqBanner">
-      8 月考试建议优先复习<b>超高频</b>和<b>必考题</b>；时间紧可只练 P2 前 14 题。
+      本季口语题库已分级：<b>Part1</b> 优先练 <b>必考题 → 高频 → 中频</b>；<b>Part2</b> 优先练 <b>高频 → 次高频 → 中频</b>。其余话题归为低频，按需练习。
     </div>
 
-    <div class="chip-row">
-      <span class="chip-row-label">频率</span>
-      <button class="chip active" data-filter="freq" data-val="all">全部</button>
-      <button class="chip" data-filter="freq" data-val="ultra">超高频</button>
-      <button class="chip" data-filter="freq" data-val="high">高频</button>
-      <button class="chip" data-filter="freq" data-val="must">必考题</button>
-      <button class="chip" data-filter="freq" data-val="medium">中高频</button>
-      <button class="chip" data-filter="freq" data-val="new">新题</button>
-    </div>
-    <div class="chip-row">
-      <span class="chip-row-label">分类</span>
-      <button class="chip active" data-filter="cat" data-val="all">全部</button>
-      <button class="chip" data-filter="cat" data-val="人物">人物</button>
-      <button class="chip" data-filter="cat" data-val="事件">事件</button>
-      <button class="chip" data-filter="cat" data-val="地点">地点</button>
-      <button class="chip" data-filter="cat" data-val="物品">物品</button>
-      <button class="chip" data-filter="cat" data-val="抽象">抽象</button>
-      <button class="chip" data-filter="cat" data-val="日常">日常</button>
+    <div class="sp-filters">
+      <label class="sp-filter"><span>优先级</span>
+        <select id="freqSelect" class="sp-select"></select>
+      </label>
+      <label class="sp-filter"><span>分类</span>
+        <select id="catSelect" class="sp-select">
+          <option value="all">全部</option>
+          <option value="人">人</option>
+          <option value="事">事</option>
+          <option value="地">地</option>
+          <option value="物">物</option>
+          <option value="杂项">杂项</option>
+        </select>
+      </label>
     </div>
 
     <input class="sp-search" id="spSearch" placeholder="搜索题目…" />

@@ -4,7 +4,8 @@ var curFreq = 'all';
 var curCat = 'all';
 var curSearch = '';
 var curDetailId = null;
-var FREQ_ORDER = { ultra:0, must:1, high:2, medium:3, normal:4 };
+var FREQ_ORDER = { P1:{must:0, high:1, mid:2, low:3}, P2:{high:0, subhigh:1, mid:2, low:3} };
+function freqRank(f){ const t = FREQ_ORDER[curType] || FREQ_ORDER.P1; return (t[f] != null) ? t[f] : 9; }
 
 /* 顶部常量用 var（speaking.js 会被软导航 window.eval 重跑，const 会抛「已声明」） */
 var SYS_DIAG = `你是一位雅思口语评分与纠错专家。你的核心任务是：先准确找出真正的语法错误，再基于"沟通有效性优先"原则评分。
@@ -122,31 +123,37 @@ ready(() => {
         if(typeof matGen !== 'undefined' && matGen.init) matGen.init();
       } else {
         curType = t;
+        populateFreqOptions();
+        const cs = $('#catSelect'); if(cs) cs.value = 'all';
+        curCat = 'all';
         $('#listView').hidden = false;
         renderList();
       }
     });
   });
-  document.querySelectorAll('.chip[data-filter]').forEach(c => {
-    c.addEventListener('click', () => {
-      const f = c.dataset.filter, v = c.dataset.val;
-      if(f === 'freq') curFreq = v;
-      else curCat = v;
-      document.querySelectorAll('.chip[data-filter="' + f + '"]').forEach(x => x.classList.toggle('active', x === c));
-      renderList();
-    });
-  });
+  const freqSel = $('#freqSelect'), catSel = $('#catSelect');
+  if(freqSel) freqSel.addEventListener('change', e => { curFreq = e.target.value; renderList(); });
+  if(catSel) catSel.addEventListener('change', e => { curCat = e.target.value; renderList(); });
+  populateFreqOptions();
   $('#spSearch').addEventListener('input', () => { curSearch = $('#spSearch').value.trim().toLowerCase(); renderList(); });
   $('#backBtn').addEventListener('click', () => { $('#detailView').hidden = true; $('#listView').hidden = false; curDetailId = null; });
   renderList();
 });
 
+// 优先级下拉选项随 Part1/Part2 联动：P1 必考题>高频>中频>低频；P2 高频>次高频>中频>低频
+function populateFreqOptions(){
+  const sel = $('#freqSelect');
+  if(!sel) return;
+  const opts = (curType === 'P2')
+    ? [['all','全部'],['high','高频'],['subhigh','次高频'],['mid','中频'],['low','低频']]
+    : [['all','全部'],['must','必考题'],['high','高频'],['mid','中频'],['low','低频']];
+  sel.innerHTML = opts.map(o => '<option value="' + o[0] + '">' + o[1] + '</option>').join('');
+  curFreq = 'all';
+}
+
 function getFiltered(){
   let list = DATA.speaking.filter(s => s.type === curType);
-  if(curFreq !== 'all'){
-    if(curFreq === 'new') list = list.filter(s => s.isNew);
-    else list = list.filter(s => s.frequency === curFreq);
-  }
+  if(curFreq !== 'all') list = list.filter(s => s.frequency === curFreq);
   if(curCat !== 'all') list = list.filter(s => s.category === curCat);
   if(curSearch){
     list = list.filter(s => {
@@ -154,8 +161,8 @@ function getFiltered(){
       return t.includes(curSearch);
     });
   }
-  // 按频率排序
-  list.sort((a, b) => (FREQ_ORDER[a.frequency] || 9) - (FREQ_ORDER[b.frequency] || 9));
+  // 按档位排序（P1/P2 档位顺序不同）
+  list.sort((a, b) => freqRank(a.frequency) - freqRank(b.frequency));
   return list;
 }
 
@@ -167,7 +174,6 @@ function freqTag(freq){
 function tagsHtml(s){
   let html = '';
   if(s.frequency) html += freqTag(s.frequency);
-  if(s.isNew) html += '<span class="sp-tag new">新题</span>';
   if(s.category) html += '<span class="sp-tag">' + escapeHtml(s.category) + '</span>';
   if(s.framework) html += '<span class="sp-tag">' + escapeHtml(s.framework) + '</span>';
   return html;

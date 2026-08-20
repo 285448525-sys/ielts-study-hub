@@ -49,7 +49,7 @@ function restoreDefaultLinks(){
 }
 
 /* ===== 5-8 月口语题库（高频顺序录入，完整题库待补） ===== */
-const FREQ_LABEL = { ultra:'超高频', high:'高频', must:'必考题', medium:'中高频', normal:'普通' };
+const FREQ_LABEL = { must:'必考题', high:'高频', subhigh:'次高频', mid:'中频', low:'低频' };
 const SPEAKING_BANK = [
   { id:"sb_p1_music", type:"P1", period:"2026-05-08", isNew:true, frequency:"high", category:"日常",
     titleEn:"Music", titleZh:"音乐",
@@ -495,6 +495,25 @@ const SPEAKING_BANK = [
   { id:"sb_p1_leisure", type:"P1", period:"2026-08-09", isNew:true, frequency:"high", category:"日常",
     titleEn:"Leisure time", titleZh:"闲暇时间",
     questions:["What do you usually do in your leisure time?","Do you prefer to spend leisure time alone or with others?","Did you have more leisure time when you were a child?","Do you think leisure time is important?"],
+    cue:'', content:'', keywords:'', linkedTo:"", proficiency:"没练" },
+  { id:"sb_p1_dailyroutine", type:"P1", period:"2026-08-20", isNew:true, frequency:"mid", category:"事",
+    titleEn:"Daily routine", titleZh:"日常作息",
+    questions:["What is your daily routine?","Do you have a fixed daily schedule?","Has your routine changed recently?","Do you prefer a routine or doing things spontaneously?"],
+    cue:'', content:'', keywords:'', linkedTo:"可套框架③", proficiency:"没练" },
+  { id:"sb_p2_difficult_problem", type:"P2", period:"2026-08-20", isNew:true, frequency:"mid", category:"事",
+    titleEn:"A time you solved a difficult problem", titleZh:"解决困难的一次经历",
+    promptEn:"Describe a time when you solved a difficult problem.", promptZh:"描述一次你解决困难问题的经历。",
+    youShouldSay:["What the problem was","How you solved it","What the result was","And explain how you felt about it"],
+    cue:'', content:'', keywords:'', linkedTo:"", proficiency:"没练" },
+  { id:"sb_p2_encouraged_by_others", type:"P2", period:"2026-08-20", isNew:true, frequency:"mid", category:"事",
+    titleEn:"A time when someone encouraged you", titleZh:"别人鼓励你的经历",
+    promptEn:"Describe a time when someone encouraged you.", promptZh:"描述一次别人鼓励你的经历。",
+    youShouldSay:["Who encouraged you","When it happened","What they said or did","And explain how it helped you"],
+    cue:'', content:'', keywords:'', linkedTo:"", proficiency:"没练" },
+  { id:"sb_p2_old_object", type:"P2", period:"2026-08-20", isNew:true, frequency:"mid", category:"物",
+    titleEn:"An old object your family keeps", titleZh:"家里保留的一件旧物件",
+    promptEn:"Describe an old object which your family has kept for a long time.", promptZh:"描述一件你家长期保留的旧物件。",
+    youShouldSay:["What it is","Who kept it","How long it has been kept","And explain why it is important"],
     cue:'', content:'', keywords:'', linkedTo:"", proficiency:"没练" }
 ];
 
@@ -674,6 +693,25 @@ function hubLoad(){
       const missing = SPEAKING_BANK.filter(s => !existingIds.has(s.id) && !deletedIds.has(s.id));
       if(missing.length) DATA.speaking = missing.concat(DATA.speaking);
     }
+    // 口语题库档位体系迁移（2026-08-20）：本季分级，P1 必考题>高频>中频>低频，P2 高频>次高频>中频>低频；分类统一 人/事/地/物/杂项。
+    // 作用：既修正 SPEAKING_BANK 新题，也回写老用户浏览器里已存的旧档位/旧分类（种子只增量补齐、不回写，故必须在此统一重映射）。
+    (function migrateSpeakingTiers(){
+      const REMAP = {
+        sb_p1_work:['must','事'], sb_p1_hometown:['must','地'], sb_p1_area:['must','地'],
+        sb_p1_socialmedia:['high','物'], sb_p1_tidiness:['high','地'], sb_p1_space:['high','杂项'], sb_p1_science:['high','杂项'], sb_p1_watch:['high','物'], sb_p1_headphones:['high','物'],
+        sb_p1_music:['mid','杂项'], sb_p1_teachers:['mid','人'], sb_p1_shopping:['mid','事'], sb_p1_websites:['mid','物'], sb_p1_clothing:['mid','物'], sb_p1_parks:['mid','地'], sb_p1_singing:['mid','事'], sb_p1_dailyroutine:['mid','事'],
+        sb_p2_travel:['high','地'], sb_p2_techproduct:['high','物'], sb_p2_tallbuilding:['high','物'], sb_p2_animals:['high','杂项'], sb_p2_boringplace:['high','地'], sb_p2_describe_a_boring_place18:['high','地'],
+        sb_p2_childhoodfriend:['subhigh','人'], sb_p2_describe_a_famous_person_you_would_like_52:['subhigh','人'], sb_p2_describe_a_live_sports_event_you_watched29:['subhigh','事'], sb_p2_specialfood:['subhigh','物'], sb_p2_teamwork:['subhigh','事'], sb_p2_describe_a_plan_that_you_had_to_change_r26:['subhigh','事'], sb_p2_earlymorning:['subhigh','事'], sb_p2_describe_a_person_who_loves_to_grow_vege21:['subhigh','人'],
+        sb_p2_decision:['mid','事'], sb_p2_describe_a_movie_you_watched_and_enjoyed66:['mid','杂项'], sb_p2_describe_a_bicycle_motorcycle_car_trip_y62:['mid','地'], sb_p2_difficult_problem:['mid','事'], sb_p2_encouraged_by_others:['mid','事'], sb_p2_old_object:['mid','物']
+      };
+      const OLDCAT = { '人物':'人', '事件':'事', '地点':'地', '物品':'物', '抽象':'杂项', '日常':'事' };
+      DATA.speaking.forEach(s => {
+        if(!s || !s.id) return;
+        const r = REMAP[s.id];
+        if(r){ s.frequency = r[0]; s.category = r[1]; }
+        else { s.frequency = 'low'; s.category = OLDCAT[s.category] || '事'; }
+      });
+    })();
     // 考试倒计时迁移（Bug：首页/顶部显示"已过 天"）：
     // 老用户 localStorage 里 examDate 仍是首考 2026-08-02（已过），导致 daysUntil 返回负数、格式串又硬拼" 天"，
     // 倒计时丢失"距下次考试"信息。这里按用户真实档期初始化 upcoming 列表（仅当缺失时，已手动管理者不受影响）。
