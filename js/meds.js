@@ -47,6 +47,8 @@ function recordMed(){
 function deleteMed(id){
   if(!confirm('确定要删除这条记录吗？')) return;
   DATA.meds = DATA.meds.filter(m => m.id !== id);
+  DATA.deletedIds = DATA.deletedIds || [];
+  if(id != null && !DATA.deletedIds.includes(id)) DATA.deletedIds.push(id);
   hubSave(); renderMeds(); toast('已删除');
 }
 

@@ -548,6 +548,7 @@ let DATA = {
   energy: [],
   checkins: [],
   mockRecords: [],
+  deletedIds: [],   // 全局墓碑：所有删除操作的 raw id 集合，跨同步传播删除
   speaking: SPEAKING_BANK.concat([
     { id:'sp_p1_1', type:'P1', framework:'P1框架', title:'框架① 兴趣/活动喜好类', content:'', keywords:'Singing、Hobby、Reading、Music、Sports team、Walking、Food、Telling Jokes、Outer space and stars、Pets and Animals', cue:'1.直接表态(Yes, I am really into it) 2.给一个原因(1句) 3.习惯细节(频率/和谁/什么时候) 4.(可选)小时候 vs 现在', linkedTo:'', proficiency:'没练' },
     { id:'sp_p1_2', type:'P1', framework:'P1框架', title:'框架② 居住/地点描述类', content:'', keywords:'Hometown、Home/Accommodation、The city you live in、The area you live in、Parks、View、Scenery、Building', cue:'1.方位/类型 2.喜欢点(2个特征) 3.在那做什么 4.(可选)对比/变化', linkedTo:'', proficiency:'没练' },
@@ -683,12 +684,14 @@ function hubLoad(){
     // 兜底：确保所有数组字段非 undefined（极端损坏数据时也不崩）
     const arrayFields = ['sessions','notes','meds','words','plans','corpus','scores','errorbook',
       'energy','checkins','speaking','writing','writingScores','speakingStories','writingPhrases','mockRecords',
-      'dictationSources','dictationLogs','longSent'];
+      'dictationSources','dictationLogs','longSent','deletedIds'];
     for(const f of arrayFields){ if(!Array.isArray(DATA[f])) DATA[f] = []; }
     if(!DATA.settings || typeof DATA.settings !== 'object') DATA.settings = {};
-    // 题库迁移：仅补用户缺失的题目；用户手动删过的 id 记入 deletedSpeakingIds，不再恢复
+    // 题库迁移：仅补用户缺失的题目；用户手动删过的 id 记入全局墓碑 deletedIds（兼容旧 settings.deletedSpeakingIds），不再恢复
     if(SPEAKING_BANK && SPEAKING_BANK.length){
-      const deletedIds = new Set(DATA.settings.deletedSpeakingIds || []);
+      const legacyDel = (DATA.settings && Array.isArray(DATA.settings.deletedSpeakingIds)) ? DATA.settings.deletedSpeakingIds : [];
+      const deletedIds = new Set([...(DATA.deletedIds||[]), ...legacyDel]);
+      DATA.deletedIds = Array.from(deletedIds);
       const existingIds = new Set(DATA.speaking.map(s => s.id));
       const missing = SPEAKING_BANK.filter(s => !existingIds.has(s.id) && !deletedIds.has(s.id));
       if(missing.length) DATA.speaking = missing.concat(DATA.speaking);

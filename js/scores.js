@@ -89,6 +89,8 @@ function deleteScore(id){
   if(!rec) return;
   if(!confirm('确定删除 ' + rec.date + ' 的成绩？此操作不可恢复。')) return;
   DATA.scores = DATA.scores.filter(x => x.id !== id);
+  DATA.deletedIds = DATA.deletedIds || [];
+  if(id != null && !DATA.deletedIds.includes(id)) DATA.deletedIds.push(id);
   hubSave(); render();
 }
 
@@ -517,7 +519,7 @@ function renderMockList(){
     </div>`;
   }).join('');
   box.querySelectorAll('button[data-del]').forEach(b => b.addEventListener('click', () => {
-    if(confirm('删除这条分项模考？')){ DATA.mockRecords = DATA.mockRecords.filter(x => x.id !== b.dataset.del); hubSave(); renderMock(); }
+    if(confirm('删除这条分项模考？')){ DATA.mockRecords = DATA.mockRecords.filter(x => x.id !== b.dataset.del); DATA.deletedIds = DATA.deletedIds || []; if(b.dataset.del != null && !DATA.deletedIds.includes(b.dataset.del)) DATA.deletedIds.push(b.dataset.del); hubSave(); renderMock(); }
   }));
 }
 function renderMock(){ renderMockStats(); renderMockList(); }

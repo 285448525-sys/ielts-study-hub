@@ -477,8 +477,8 @@ function deleteSpeaking(id){
   const s = DATA.speaking.find(x => x.id === id);
   if(!s) return;
   DATA.speaking = DATA.speaking.filter(x => x.id !== id);
-  DATA.settings.deletedSpeakingIds = DATA.settings.deletedSpeakingIds || [];
-  if(!DATA.settings.deletedSpeakingIds.includes(id)) DATA.settings.deletedSpeakingIds.push(id);
+  DATA.deletedIds = DATA.deletedIds || [];
+  if(id != null && !DATA.deletedIds.includes(id)) DATA.deletedIds.push(id);
   s.updatedAt = Date.now();
   hubSave();
   $('#detailView').hidden = true;

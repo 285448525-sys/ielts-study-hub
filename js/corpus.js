@@ -68,6 +68,8 @@ function importBulk(){
 
 function deleteCorpus(id){
   DATA.corpus = DATA.corpus.filter(c => c.id !== id);
+  DATA.deletedIds = DATA.deletedIds || [];
+  if(id != null && !DATA.deletedIds.includes(id)) DATA.deletedIds.push(id);
   hubSave(); renderList();
 }
 

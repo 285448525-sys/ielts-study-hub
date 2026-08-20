@@ -142,7 +142,11 @@ function bindDrop(){
 }
 
 function deleteWord(id){
-  DATA.words = DATA.words.filter(w => w.id !== id); hubSave(); renderWords();
+  const w = DATA.words.find(x => x.id === id);
+  DATA.words = DATA.words.filter(x => x.id !== id);
+  DATA.deletedIds = DATA.deletedIds || [];
+  if(w && w.en){ const wkey = 'en:'+String(w.en).toLowerCase(); if(!DATA.deletedIds.includes(wkey)) DATA.deletedIds.push(wkey); }
+  hubSave(); renderWords();
 }
 
 function renderWords(){

@@ -582,19 +582,23 @@ function _mergeArray(local, cloud){
 function mergeData(local, cloud){
   cloud = cloud || {};
   const out = Object.assign({}, local);
+  const deleted = new Set([...(local.deletedIds||[]), ...(cloud.deletedIds||[])]);
+  const delKey = it => (it && it.id != null) ? it.id : (it && it.ts != null) ? it.ts : null;
   let changes = 0;
-  const w = _mergeWords(local.words, cloud.words); out.words = w.arr; changes += w.changes;
-  // plans：嵌套结构按 date 合并（同一天 items 按 id 并集、done 取或）
-  const pl = _mergePlans(local.plans, cloud.plans); out.plans = pl.arr; changes += pl.changes;
+  const w = _mergeWords(local.words, cloud.words);
+  out.words = w.arr.filter(x => !deleted.has('en:'+(String(x.en||'').toLowerCase()))); // 单词按 en 过滤
+  changes += w.changes;
+  // plans：嵌套结构按 date 合并（同一天 items 按 id 并集、done 取或），合并后按墓碑过滤被删 item
+  const pl = _mergePlans(local.plans, cloud.plans, deleted); out.plans = pl.arr; changes += pl.changes;
   // checkins：日期字符串数组，Set 去重并集
   const ci = Array.from(new Set([...(local.checkins||[]), ...(cloud.checkins||[])]));
   if(ci.length !== (local.checkins||[]).length){ changes += ci.length - (local.checkins||[]).length; }
   out.checkins = ci;
-  // 其余对象数组按原逻辑
+  // 其余对象数组按原逻辑，合并后按墓碑过滤
   for(const f of SYNC_ARRAY_FIELDS){
-    if(Array.isArray(cloud[f])){ const r = _mergeArray(local[f], cloud[f]); out[f] = r.arr; changes += r.changes; }
+    if(Array.isArray(cloud[f])){ const r = _mergeArray(local[f], cloud[f]); out[f] = r.arr.filter(x => !deleted.has(delKey(x))); changes += r.changes; }
   }
-  // 万能素材：素材卡按 id 并集；persona/gaps/answers 云端非空取云端
+  // 万能素材：素材卡按 id 并集；persona/gaps/answers 云端非空取云端（素材自有 deletedIds 墓碑，不叠加全局过滤）
   const mt = _mergeMaterials(local.materials, cloud.materials); out.materials = mt.data; changes += mt.changes;
   // 进行中计时：updatedAt 新者胜（含 ended 广播）
   const at = _pickNewer(local.activeTimer, cloud.activeTimer);
@@ -605,11 +609,12 @@ function mergeData(local, cloud){
   for(const f of SYNC_SETTINGS_FIELDS){
     if(cs[f] != null && JSON.stringify(cs[f]) !== JSON.stringify(ls[f])){ out.settings[f] = cs[f]; changes++; }
   }
+  out.deletedIds = Array.from(deleted);
   return { data: out, changes };
 }
 
 /* plans 嵌套合并：外层按 date，内层 items 按 id 并集、done 冲突取 true */
-function _mergePlans(local, cloud){
+function _mergePlans(local, cloud, deleted){
   local = Array.isArray(local) ? local : []; cloud = Array.isArray(cloud) ? cloud : [];
   const byDate = new Map(); let changes = 0;
   local.forEach(p => byDate.set(p.date, p));
@@ -622,6 +627,9 @@ function _mergePlans(local, cloud){
       else { const mine = ex.items.find(i => i.id === it.id); if(it.done && !mine.done){ mine.done = true; changes++; } }
     });
   });
+  for(const p of byDate.values()){
+    if(p.items && deleted){ p.items = p.items.filter(it => !deleted.has(it.id)); }
+  }
   return { arr: Array.from(byDate.values()), changes };
 }
 

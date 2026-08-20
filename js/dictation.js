@@ -64,6 +64,8 @@ function delDictSource(id){
   if(!confirm('删除《' + s.title + '》？相关的错处记录也会一并删除。')) return;
   DATA.dictationSources = DATA.dictationSources.filter(x => x.id !== id);
   DATA.dictationLogs = (DATA.dictationLogs || []).filter(l => l.sourceId !== id);
+  DATA.deletedIds = DATA.deletedIds || [];
+  if(id != null && !DATA.deletedIds.includes(id)) DATA.deletedIds.push(id);
   hubSave();
   renderDictationSources();
   toast('已删除');
@@ -384,6 +386,8 @@ function renderDictLogs(){
 function delDictLog(id){
   if(!confirm('删除这条记录？')) return;
   DATA.dictationLogs = (DATA.dictationLogs || []).filter(l => l.id !== id);
+  DATA.deletedIds = DATA.deletedIds || [];
+  if(id != null && !DATA.deletedIds.includes(id)) DATA.deletedIds.push(id);
   hubSave();
   renderDictLogs();
 }

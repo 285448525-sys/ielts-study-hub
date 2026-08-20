@@ -90,6 +90,8 @@
       if(!rec) return;
       if(!confirm('删除 ' + (rec.date || '') + ' 的这次口语模考记录？此操作不可恢复。')) return;
       DATA.mockRecords = all.filter(x => x.id !== b.dataset.id);
+      DATA.deletedIds = DATA.deletedIds || [];
+      if(b.dataset.id != null && !DATA.deletedIds.includes(b.dataset.id)) DATA.deletedIds.push(b.dataset.id);
       hubSave();
       render(listEl, opts);
       if(typeof toast === 'function') toast('已删除该模考记录');

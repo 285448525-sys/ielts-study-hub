@@ -580,6 +580,8 @@ function restoreHist(id){
 
 function deleteHist(id){
   DATA.longSent = (DATA.longSent || []).filter(x => x.id !== id);
+  DATA.deletedIds = DATA.deletedIds || [];
+  if(id != null && !DATA.deletedIds.includes(id)) DATA.deletedIds.push(id);
   hubSave(); renderHistory();
   toast('已删除该拆解');
 }

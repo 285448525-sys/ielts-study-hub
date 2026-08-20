@@ -418,6 +418,8 @@ function delTpl(){
   if(!curId) return;
   if(!confirm('确定删除这个模板？')) return;
   DATA.writing = DATA.writing.filter(x => x.id !== curId);
+  DATA.deletedIds = DATA.deletedIds || [];
+  if(curId != null && !DATA.deletedIds.includes(curId)) DATA.deletedIds.push(curId);
   hubSave();
   $('#detailCard').hidden = true; $('#listCard').hidden = false;
   document.querySelector('.write-layout')?.classList.remove('detail-open');
@@ -468,6 +470,8 @@ function addPhrase(){
 function delPhrase(id){
   if(!confirm('删除这条语料？')) return;
   DATA.writingPhrases = DATA.writingPhrases.filter(x => x.id !== id);
+  DATA.deletedIds = DATA.deletedIds || [];
+  if(id != null && !DATA.deletedIds.includes(id)) DATA.deletedIds.push(id);
   hubSave();
   renderBank();
 }
