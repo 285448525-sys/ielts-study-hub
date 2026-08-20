@@ -47,6 +47,7 @@ async function analyzeEntry(){
   }
 
   const btn = $('#ebAnalyze');
+  const btnHtml = btn.innerHTML;
   const load = $('#ebLoading');
   btn.disabled = true; btn.textContent = 'AI 分析中…';
   load.hidden = false;
@@ -119,7 +120,7 @@ async function analyzeEntry(){
     load.textContent = 'AI 调不通：' + e.message + '　（可以先点「只存原文」，等有网/配好 Key 再补分析）';
     return false;
   }finally{
-    btn.disabled = false; btn.textContent = '🤖 理清错因并归档';
+    btn.disabled = false; btn.innerHTML = btnHtml;
   }
 }
 

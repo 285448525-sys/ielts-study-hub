@@ -174,7 +174,7 @@ body{
 }
 
 .container{max-width:1080px;margin:0 auto;padding:34px 28px}
-.page-title{margin:0 0 8px;font-size:25px;font-weight:800;letter-spacing:-.02em}
+.page-title{margin:0 0 4px;font-size:25px;font-weight:800;letter-spacing:-.02em}
 .page-sub{margin:0 0 22px;color:var(--muted);font-size:14.5px;line-height:1.6}
 
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:24px;margin-bottom:20px;box-shadow:var(--shadow);transition:box-shadow .2s ease,transform .2s ease,border-color .2s ease}

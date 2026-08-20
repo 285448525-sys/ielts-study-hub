@@ -17,13 +17,13 @@ const ICON = {
 
 const PAGES = [
   { id:'index',     file:'index.html',     icon:ICON.home,      name:'仪表盘',     desc:'今日概览' },
-  { id:'timer',     file:'timer.html',     icon:ICON.timer,     name:'计时学习',   desc:'选模块开计时' },
-  { id:'plans',     file:'plans.html',     icon:ICON.plans,     name:'学习计划',   desc:'每日清单 + AI 排周' },
-  { id:'meds',      file:'meds.html',      icon:ICON.meds,      name:'服药记录',   desc:'专注达药效窗口' },
+  { id:'timer',     file:'timer.html',     icon:ICON.timer,     name:'计时',   desc:'选模块开计时' },
+  { id:'plans',     file:'plans.html',     icon:ICON.plans,     name:'计划',   desc:'每日清单 + AI 排周' },
+  { id:'meds',      file:'meds.html',      icon:ICON.meds,      name:'服药',   desc:'专注达药效窗口' },
   { id:'practice',  file:'practice.html',  icon:ICON.practice,  name:'单词',       desc:'学习与管理你的单词' },
-  { id:'corpus',    file:'corpus.html',    icon:ICON.corpus,    name:'听力语料库', desc:'场景词汇听写' },
-  { id:'errorbook', file:'errorbook.html', icon:ICON.words,     name:'词句库',     desc:'长难句 + 错题本' },
-  { id:'speaking',  file:'speaking.html',  icon:ICON.speaking,  name:'口语素材库', desc:'题库 + AI 串题' },
+  { id:'corpus',    file:'corpus.html',    icon:ICON.corpus,    name:'听力', desc:'场景词汇听写' },
+  { id:'errorbook', file:'errorbook.html', icon:ICON.words,     name:'词句',     desc:'长难句 + 错题本' },
+  { id:'speaking',  file:'speaking.html',  icon:ICON.speaking,  name:'口语', desc:'题库 + AI 串题' },
   { id:'writing',   file:'writing.html',   icon:ICON.writing,   name:'写作模板库', desc:'模板 + AI 评分' },
   { id:'review',    file:'review.html',    icon:ICON.review,    name:'回顾',       desc:'模考成绩 + 学习轨迹' },
   { id:'settings',  file:'settings.html',  icon:ICON.settings,  name:'设置',       desc:'同步 / AI / 数据' },
@@ -129,7 +129,7 @@ function renderSideTimer(){
   if(!box.querySelector('#sideTimerBadge')){
     box.innerHTML =
       '<div class="side-timer running-badge" id="sideTimerBadge" role="button" tabindex="0" title="点击回到计时页">'
-      + '<span class="st-ico">⏱</span>'
+      + '<span class="st-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg></span>'
       + '<span class="st-name">' + escapeHtml(a.moduleName || a.subName || '学习') + '</span>'
       + '<span class="st-live" id="sideTimerLive">00:00:00</span>'
       + '<button class="st-stop" id="sideTimerStop" type="button" title="结束本次计时">结束</button>'

@@ -68,7 +68,7 @@
     h += '<div class="mat-sec-title">扩展补缺卡 <span class="tag">4 题 · 选填（想覆盖偏题就填）</span></div>';
     QUESTIONS.filter(q => q.group === 'extra').forEach(q => { h += qCard(q.id); });
     (store.answers.extraMore || []).forEach(x => { h += qCard(x.id, true); });
-    h += '<div class="mat-actions"><button class="btn btn-primary btn-lg" id="matGen">🚀 生成我的专属素材</button><button class="mat-add" id="matAdd">＋ 添加一段经历</button></div>';
+    h += '<div class="mat-actions"><button class="btn btn-primary btn-lg" id="matGen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M5 15c-1.5 1.5-2 5-2 5s3.5-.5 5-2c.8-.8.8-2 0-2.8s-2-.8-3 0z"/><path d="M9 11l4 4"/><path d="M13 7l4 4 3-3a2 2 0 0 0-3-3l-4 2z"/><path d="M14 4l6 6"/></svg>生成我的专属素材</button><button class="mat-add" id="matAdd">＋ 添加一段经历</button></div>';
     root.innerHTML = h;
     // 绑定输入
     root.querySelectorAll('textarea[data-q]').forEach(ta => {
