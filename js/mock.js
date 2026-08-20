@@ -259,7 +259,7 @@
       // ---- P1 ----
       if(doP1){
         const startIdx = (snap && rp === 'P1') ? snap.index : 0;
-        const firstRemain = (snap && rp === 'P1' && snap.remaining != null) ? snap.remaining : undefined;
+        let firstRemain = (snap && rp === 'P1' && snap.remaining != null) ? snap.remaining : undefined;
         for(let i = startIdx; i < mockState.p1Set.length; i++){
           setMockStep('1');
           setMockSubCount(i+1, mockState.p1Set.length);
@@ -301,7 +301,7 @@
           }
         }
         const startIdx = (snap && rp === 'P3') ? snap.index : 0;
-        const firstRemain = (snap && rp === 'P3' && snap.remaining != null) ? snap.remaining : undefined;
+        let firstRemain = (snap && rp === 'P3' && snap.remaining != null) ? snap.remaining : undefined;
         for(let i = startIdx; i < p3qs.length; i++){
           setMockStep('3');
           const qHtml = escapeHtml(p3qs[i]);
