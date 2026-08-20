@@ -20,8 +20,8 @@ const PAGES = [
   { id:'timer',     file:'timer.html',     icon:ICON.timer,     name:'计时',   desc:'选模块开计时' },
   { id:'plans',     file:'plans.html',     icon:ICON.plans,     name:'计划',   desc:'每日清单 + AI 排周' },
   { id:'practice',  file:'practice.html',  icon:ICON.practice,  name:'单词',       desc:'学习与管理你的单词' },
-  // 合并入口：听力(corpus) + 词句(errorbook) → 语料（页面文件保留，仅导航合并）
-  { id:'corpus',    file:'corpus.html',    icon:ICON.corpus,    name:'语料', desc:'听力听写 + 长难句错题' },
+  // 三合一入口：长难句 + 错题本 + 听力默写（原听力 corpus + 词句 errorbook 合并）
+  { id:'corpus',    file:'corpus.html',    icon:ICON.corpus,    name:'语料', desc:'长难句 · 错题本 · 听力默写' },
   { id:'speaking',  file:'speaking.html',  icon:ICON.speaking,  name:'口语', desc:'题库 + AI 串题' },
   { id:'writing',   file:'writing.html',   icon:ICON.writing,   name:'写作',       desc:'模板 + AI 评分' },
   { id:'review',    file:'review.html',    icon:ICON.review,    name:'回顾',       desc:'模考成绩 + 学习轨迹' },

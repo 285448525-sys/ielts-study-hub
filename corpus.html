@@ -17,6 +17,43 @@
 <script defer src="js/data.js"></script>
   <script defer src="js/common.js"></script>
   <script src="js/corpus.js" defer></script>
+<style>
+  /* 长难句 / 错题本 样式（原 errorbook.html 内联） */
+  .eb-input{width:100%;min-height:190px;padding:14px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;font-size:14.5px;line-height:1.75;background:var(--bg);color:var(--ink);resize:vertical}
+  .eb-input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+  .eb-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
+  .eb-card{border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:12px;background:var(--surface)}
+  .eb-head{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+  .eb-title{font-size:15.5px;font-weight:700;line-height:1.5;margin-bottom:10px}
+  .eb-block{margin-top:10px}
+  .eb-block h4{margin:0 0 5px;font-size:13px;color:var(--muted);font-weight:700;letter-spacing:.02em}
+  .eb-block ol,.eb-block ul{margin:0;padding-left:20px;font-size:14px;line-height:1.75}
+  .eb-block p{margin:0;font-size:14px;line-height:1.75}
+  .eb-wrong{background:rgba(239,68,68,.07);border-left:3px solid var(--danger);padding:9px 12px;border-radius:8px;font-size:14px;line-height:1.7}
+  .eb-rule{background:var(--primary-soft);border-left:3px solid var(--primary);padding:9px 12px;border-radius:8px;font-size:14px;line-height:1.7}
+  .eb-words{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+  .eb-chip{background:var(--bg);border:1px solid var(--line);border-radius:20px;padding:3px 10px;font-size:12.5px}
+  .eb-src{margin-top:12px;font-size:12.5px;color:var(--muted)}
+  .eb-src summary{cursor:pointer;user-select:none}
+  .eb-src pre{white-space:pre-wrap;word-break:break-word;margin:8px 0 0;padding:10px;background:var(--bg);border-radius:8px;border:1px solid var(--line);font:inherit;font-size:13px;line-height:1.7;max-height:260px;overflow:auto}
+  .eb-actions{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
+  .badge{display:inline-block;padding:2px 9px;border-radius:10px;font-size:12px;background:var(--bg);color:var(--ink);border:1px solid var(--line)}
+  .badge-trap{background:var(--warn);color:#fff;border-color:var(--warn)}
+  .badge-ok{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .eb-list-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .eb-list-head h2{margin:0}
+  .eb-list-head select{margin-left:auto}
+  .eb-loading{margin-top:14px;padding:14px;border:1px dashed var(--line);border-radius:var(--radius);color:var(--muted);font-size:14px}
+  .eb-long{margin-top:6px;padding:8px 10px;background:var(--bg);border-left:3px solid var(--primary);border-radius:8px}
+  .eb-long-s{font-size:14px;font-weight:600;color:var(--ink);line-height:1.6}
+  .eb-long-a{font-size:13.5px;color:var(--muted);margin-top:3px;line-height:1.7}
+
+  /* 语料 子 tab（长难句 / 错题本 / 听力默写） */
+  .sub-tabs{display:flex;gap:0;border-bottom:2px solid var(--line);margin:0 0 16px}
+  .sub-tabs button{flex:1;padding:11px 0;font-size:15px;font-weight:600;border:none;background:none;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:color .2s,border-color .2s}
+  .sub-tabs button.active{color:var(--primary);border-bottom-color:var(--primary)}
+  .sub-tabs button:focus-visible{outline:none;box-shadow:0 0 0 3px var(--primary-soft);border-radius:8px}
+</style>
 </head>
 <body>
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
@@ -24,79 +61,132 @@
 <main class="container">
   <h1 class="page-title">语料</h1>
 
-  <!-- 长难句解析 / 错题本 入口（听力之外的功能，原「词句」页保留独立页面） -->
-  <div class="corpus-entry">
-    <a href="errorbook.html">长难句解析 &amp; 错题本 →</a>
-    <span class="ce-sub">拆解长难句、收集错题——听力之外的句子功能</span>
+  <!-- 三合一：长难句(默认) / 错题本 / 听力默写 -->
+  <div class="sub-tabs" id="wordTabs">
+    <button data-sub="ls" class="active">长难句</button>
+    <button data-sub="eb">错题本</button>
+    <button data-sub="dict">听力默写</button>
   </div>
 
-  <!-- 添加句子：单句 + 批量 合一 -->
-  <section class="card">
-    <h2>添加句子</h2>
-    <p class="muted">日常加一句用下面的输入框；一次贴多句就展开「批量导入」。</p>
-    <div class="form-row">
-      <input id="corEn" placeholder="英文句子" />
-      <input id="corCn" placeholder="中文翻译（可选）" />
-      <button class="btn btn-primary flex-none" id="addCorpus" style="min-width:120px">添加</button>
-    </div>
-    <details class="detail-block" style="margin-top:8px">
-      <summary>批量导入多句（每行一句）</summary>
-      <p class="muted">每行一句英文；想带中文翻译，用 <strong>空格 / 竖线 / 冒号</strong> 隔开都行。例：<br>
-        The government should invest more in public transport<br>
-        She was absent because she felt under the weather | 她没来因为身体不适<br>
-        It is vital to preserve the local culture：保护当地文化很重要</p>
-      <textarea id="bulkCorpus" placeholder="每行一个英文句子，可选跟中文翻译"></textarea>
-      <div style="display:flex;justify-content:flex-end;margin-top:10px">
-        <button class="btn btn-primary" id="importCorpus">批量导入</button>
+  <!-- ① 长难句拆解（默认打开） -->
+  <div id="lsView">
+    <section class="card">
+      <h2>粘贴长难句</h2>
+      <textarea id="sentInput" placeholder="在此粘贴你遇到的长难句，例如：&#10;The theory, which was proposed by a group of researchers who had spent decades observing the species, suggests that the decline is not merely a temporary fluctuation but a sign of a deeper ecological imbalance."></textarea>
+      <div class="form-row row-end mt-10">
+        <button class="btn btn-primary" id="analyzeBtn">拆解分析</button>
+        <span id="sentStatus" class="word-status" aria-live="polite"></span>
       </div>
-      <p class="muted" id="importHint" style="margin:8px 0 0"></p>
-    </details>
-  </section>
+    </section>
 
-  <section class="card">
-    <h2>句子听写（爱听写风格）</h2>
-    <p class="muted">可调语速、重复次数、播放间隔；逐句逐词批改、错句自动归集、结束可重练错句。</p>
-    <div id="dictSetup" class="corpus-dict-setup">
-      <div class="s-dict-voice">
-        <label>语速</label>
-        <input type="range" id="sRate" min="0.5" max="1.2" step="0.05" value="0.9" />
-        <span id="sRateTxt">0.90x</span>
+    <section class="card" id="resultCard" style="display:none">
+      <div class="card-head">
+        <h2>拆解结果</h2>
+        <button class="btn btn-sm btn-ghost" id="copyBtn">复制全文</button>
       </div>
-      <div class="s-dict-voice">
-        <label>每句读</label>
-        <input type="range" id="sRepeat" min="1" max="5" step="1" value="3" />
-        <span id="sRepeatTxt">3 次</span>
-      </div>
-      <div class="s-dict-voice">
-        <label>间隔</label>
-        <select id="sInterval">
-          <option value="1600">1.6s</option>
-          <option value="2200" selected>2.2s</option>
-          <option value="3000">3.0s</option>
-          <option value="4200">4.2s</option>
-        </select>
-      </div>
-      <div class="s-dict-voice">
-        <label><input type="checkbox" id="sShowCn"/> 显示中文释义提示</label>
-      </div>
-      <div class="s-dict-voice">
-        <label>题量</label>
-        <select id="sBatch">
-          <option value="5">5 句</option>
-          <option value="10" selected>10 句</option>
-          <option value="20">20 句</option>
-          <option value="-1">全部</option>
-        </select>
-      </div>
-      <button class="btn btn-primary flex-none ml-auto" id="startDict">▶ 开始听写</button>
-    </div>
-    <div id="dictArea" style="margin-top:6px"></div>
-  </section>
+      <blockquote id="origSent" class="quote"></blockquote>
+      <div id="resultBody"></div>
+    </section>
 
-  <section class="card">
-    <h2>语料库列表 · 共 <span id="corpusCount">0</span> 句</h2>
-    <div id="corpusList" class="corpus-list"></div>
-  </section>
+    <section class="card" id="histCard" style="display:none">
+      <h2>我的拆解记录 · <span id="histCount">0</span></h2>
+      <div id="histList" class="grid ls-hist-grid"></div>
+    </section>
+  </div>
+
+  <!-- ② 错题本 -->
+  <div id="ebView" hidden>
+    <section class="card">
+      <textarea class="eb-input" id="ebInput" placeholder="把你的错题讲解贴进来就行（AI 对你截图的回复、你自己记的笔记都行），不用整理格式。
+比如：
+一道阅读判断题，我选 NOT GIVEN，答案是 FALSE，原文说的是 …"></textarea>
+      <div class="eb-bar">
+        <button class="btn btn-primary" id="ebAnalyze"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="5" y="7" width="14" height="12" rx="3"/><path d="M12 7V3M9 3h6"/><circle cx="9.5" cy="12.5" r="1"/><circle cx="14.5" cy="12.5" r="1"/><path d="M9 16h6"/></svg>理清错因并归档</button>
+        <button class="btn" id="ebRaw">只存原文</button>
+        <span class="muted" style="font-size:12.5px">自动分析用的是「设置 / AI 接口」里的 DeepSeek Key</span>
+      </div>
+      <div id="ebLoading" class="eb-loading" hidden></div>
+    </section>
+
+    <section class="card">
+      <div class="eb-list-head">
+        <h2>已归档 · <span id="count">0</span> 条</h2>
+      </div>
+      <div id="list"></div>
+      <div id="empty" class="muted" hidden>还没有记录。把你的错题笔记贴到上面那个框，点「理清错因并归档」。</div>
+    </section>
+  </div>
+
+  <!-- ③ 听力语料库默写（放最后） -->
+  <div id="dictView" hidden>
+    <!-- 添加句子：单句 + 批量 合一 -->
+    <section class="card">
+      <h2>添加句子</h2>
+      <p class="muted">日常加一句用下面的输入框；一次贴多句就展开「批量导入」。</p>
+      <div class="form-row">
+        <input id="corEn" placeholder="英文句子" />
+        <input id="corCn" placeholder="中文翻译（可选）" />
+        <button class="btn btn-primary flex-none" id="addCorpus" style="min-width:120px">添加</button>
+      </div>
+      <details class="detail-block" style="margin-top:8px">
+        <summary>批量导入多句（每行一句）</summary>
+        <p class="muted">每行一句英文；想带中文翻译，用 <strong>空格 / 竖线 / 冒号</strong> 隔开都行。例：<br>
+          The government should invest more in public transport<br>
+          She was absent because she felt under the weather | 她没来因为身体不适<br>
+          It is vital to preserve the local culture：保护当地文化很重要</p>
+        <textarea id="bulkCorpus" placeholder="每行一个英文句子，可选跟中文翻译"></textarea>
+        <div style="display:flex;justify-content:flex-end;margin-top:10px">
+          <button class="btn btn-primary" id="importCorpus">批量导入</button>
+        </div>
+        <p class="muted" id="importHint" style="margin:8px 0 0"></p>
+      </details>
+    </section>
+
+    <section class="card">
+      <h2>句子听写（爱听写风格）</h2>
+      <p class="muted">可调语速、重复次数、播放间隔；逐句逐词批改、错句自动归集、结束可重练错句。</p>
+      <div id="dictSetup" class="corpus-dict-setup">
+        <div class="s-dict-voice">
+          <label>语速</label>
+          <input type="range" id="sRate" min="0.5" max="1.2" step="0.05" value="0.9" />
+          <span id="sRateTxt">0.90x</span>
+        </div>
+        <div class="s-dict-voice">
+          <label>每句读</label>
+          <input type="range" id="sRepeat" min="1" max="5" step="1" value="3" />
+          <span id="sRepeatTxt">3 次</span>
+        </div>
+        <div class="s-dict-voice">
+          <label>间隔</label>
+          <select id="sInterval">
+            <option value="1600">1.6s</option>
+            <option value="2200" selected>2.2s</option>
+            <option value="3000">3.0s</option>
+            <option value="4200">4.2s</option>
+          </select>
+        </div>
+        <div class="s-dict-voice">
+          <label><input type="checkbox" id="sShowCn"/> 显示中文释义提示</label>
+        </div>
+        <div class="s-dict-voice">
+          <label>题量</label>
+          <select id="sBatch">
+            <option value="5">5 句</option>
+            <option value="10" selected>10 句</option>
+            <option value="20">20 句</option>
+            <option value="-1">全部</option>
+          </select>
+        </div>
+        <button class="btn btn-primary flex-none ml-auto" id="startDict">▶ 开始听写</button>
+      </div>
+      <div id="dictArea" style="margin-top:6px"></div>
+    </section>
+
+    <section class="card">
+      <h2>语料库列表 · 共 <span id="corpusCount">0</span> 句</h2>
+      <div id="corpusList" class="corpus-list"></div>
+    </section>
+  </div>
 </main>
 
 </body>
