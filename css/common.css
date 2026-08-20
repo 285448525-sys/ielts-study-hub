@@ -1161,6 +1161,18 @@ main .quote{
 
 /* 设置/服药 前的分隔线 */
 .side-sep{height:1px;background:var(--line);margin:8px 10px;flex:none}
+/* 语料页：长难句解析 / 错题本 入口卡（听力与句子功能合并为「语料」后的跳转入口） */
+.corpus-entry{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  background:var(--primary-soft);border:1px solid rgba(58,154,147,.25);border-radius:var(--radius);
+  padding:14px 18px;margin-bottom:20px
+}
+.corpus-entry a{
+  display:inline-flex;align-items:center;gap:8px;color:var(--primary-d);
+  font-weight:800;font-size:15px;text-decoration:none
+}
+.corpus-entry a:hover{text-decoration:underline}
+.corpus-entry .ce-sub{font-size:12.5px;color:var(--muted)}
 /* 窄屏时隐藏导航文字，只留图标 */
 @media(max-width:680px){
   .side-label{display:none}
