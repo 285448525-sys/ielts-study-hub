@@ -18,4 +18,7 @@
   if (list && window.MockHistory && typeof window.MockHistory.render === 'function') {
     window.MockHistory.render(list, { countEl: document.getElementById('mockHistCount') });
   }
+  // 口语单题日常练习沉淀（Feature A）：加载并渲染回顾页新增 section
+  await load('speaking-practice.js');
+  if (typeof window.renderSpeakingPractice === 'function') window.renderSpeakingPractice();
 })();

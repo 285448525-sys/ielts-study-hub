@@ -17,6 +17,7 @@
 <script defer src="js/data.js"></script>
   <script defer src="js/common.js"></script>
   <script defer src="js/speaking.js"></script>
+  <script defer src="js/progress.js"></script>
   <script defer src="js/mock-report.js"></script>
   <script defer src="js/mock-history.js"></script>
   <script defer src="js/mock.js"></script>
@@ -401,6 +402,7 @@
     <button data-type="P2">Part 2</button>
     <button data-type="MOCK">模考</button>
     <button data-type="MAT">万能素材</button>
+    <button data-type="PROGRESS">学习情况</button>
   </div>
 
   <!-- 列表视图 -->
@@ -499,6 +501,9 @@
 
   <!-- 万能素材生成器（整合为口语页第 5 个 tab，复用 materials 生成逻辑） -->
   <div id="matView" hidden></div>
+
+  <!-- 学习情况（口语页第 6 个 tab：各 Part 练习可视化仪表盘，由 progress.js 渲染） -->
+  <div id="progressView" hidden></div>
 </main>
 
 </body>

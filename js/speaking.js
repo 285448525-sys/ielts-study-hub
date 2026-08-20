@@ -115,12 +115,15 @@ ready(() => {
     b.addEventListener('click', () => {
       const t = b.dataset.type;
       $('#tabs').querySelectorAll('[data-type]').forEach(x => x.classList.toggle('active', x === b));
-      $('#listView').hidden = true; $('#detailView').hidden = true; $('#mockView').hidden = true; $('#matView').hidden = true;
+      $('#listView').hidden = true; $('#detailView').hidden = true; $('#mockView').hidden = true; $('#matView').hidden = true; $('#progressView').hidden = true;
       if(t === 'MOCK'){
         $('#mockView').hidden = false;
       } else if(t === 'MAT'){
         $('#matView').hidden = false;
         if(typeof matGen !== 'undefined' && matGen.init) matGen.init();
+      } else if(t === 'PROGRESS'){
+        $('#progressView').hidden = false;
+        if(typeof renderProgress === 'function') renderProgress();
       } else {
         curType = t;
         populateFreqOptions();

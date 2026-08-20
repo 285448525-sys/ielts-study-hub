@@ -20,6 +20,7 @@
 <script defer src="js/history.js"></script>
 <script defer src="js/mock-report.js"></script>
 <script defer src="js/mock-history.js"></script>
+<script defer src="js/speaking-practice.js"></script>
 </head>
 <body>
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
@@ -170,6 +171,12 @@
     <section class="card">
       <h2>每日记录</h2>
       <div id="dayList"></div>
+    </section>
+
+    <section class="card" id="spPractice">
+      <h2>口语日常练习 <span class="muted" id="spPracticeCount"></span></h2>
+      <p class="muted">P1 / P2 单题手写练习的历史（含 AI 评分与纠错），按时间倒序。点击任意一条可展开看回答与纠错。</p>
+      <div id="spPracticeList"></div>
     </section>
   </section>
   </div>
