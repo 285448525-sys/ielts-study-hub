@@ -19,14 +19,14 @@ const PAGES = [
   { id:'index',     file:'index.html',     icon:ICON.home,      name:'首页',       desc:'今日概览' },
   { id:'timer',     file:'timer.html',     icon:ICON.timer,     name:'计时',   desc:'选模块开计时' },
   { id:'plans',     file:'plans.html',     icon:ICON.plans,     name:'计划',   desc:'每日清单 + AI 排周' },
-  { id:'meds',      file:'meds.html',      icon:ICON.meds,      name:'服药',   desc:'专注达药效窗口' },
   { id:'practice',  file:'practice.html',  icon:ICON.practice,  name:'单词',       desc:'学习与管理你的单词' },
-  { id:'corpus',    file:'corpus.html',    icon:ICON.corpus,    name:'听力', desc:'场景词汇听写' },
-  { id:'errorbook', file:'errorbook.html', icon:ICON.words,     name:'词句',     desc:'长难句 + 错题本' },
+  // 合并入口：听力(corpus) + 词句(errorbook) → 语料（页面文件保留，仅导航合并）
+  { id:'corpus',    file:'corpus.html',    icon:ICON.corpus,    name:'语料', desc:'听力听写 + 长难句错题' },
   { id:'speaking',  file:'speaking.html',  icon:ICON.speaking,  name:'口语', desc:'题库 + AI 串题' },
   { id:'writing',   file:'writing.html',   icon:ICON.writing,   name:'写作',       desc:'模板 + AI 评分' },
   { id:'review',    file:'review.html',    icon:ICON.review,    name:'回顾',       desc:'模考成绩 + 学习轨迹' },
   { id:'settings',  file:'settings.html',  icon:ICON.settings,  name:'设置',       desc:'同步 / AI / 数据' },
+  { id:'meds',      file:'meds.html',      icon:ICON.meds,      name:'服药',   desc:'专注达药效窗口' },  // ← 移到最后
 ];
 
 /* 收藏页面（⭐）——侧边栏「常用」与首页「快捷入口」共用同一份，永远同步。
@@ -37,9 +37,9 @@ function favPageIds(){
   return (f && f.length) ? f : DEFAULT_FAV.slice();
 }
 
-/* 一级常驻（高频 4 项，始终可见）+ 更多▾（其余 9 项，默认折叠） */
-const PRIMARY_NAV = ['index','timer','review','practice'];
-const MORE_NAV    = ['plans','meds','corpus','errorbook','speaking','writing','settings'];
+/* v5：简化后全部平铺，不再分折叠组（首页→回顾 一级；设置/服药 在分隔线下方） */
+const PRIMARY_NAV = ['index','timer','plans','practice','corpus','speaking','writing','review'];
+const MORE_NAV    = ['settings','meds'];
 
 function injectNav(){
   const nav = document.getElementById('mainNav');
@@ -47,40 +47,19 @@ function injectNav(){
   if(DATA.settings && DATA.settings.collapsed) document.body.classList.add('side-collapsed');
   const current = location.pathname.split('/').pop() || 'index.html';
   const pageById = id => PAGES.find(p => p.id === id);
-  const collapsedMap = (DATA.settings && DATA.settings.groupCollapsed) || {};
-  const chev = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>';
 
   let html = '';
-  html += '<div class="side-head"><span class="nav-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;vertical-align:-3px" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg></span><span>雅思备考 Hub</span><button class="side-collapse-in" id="sideCollapseIn" type="button" title="收起侧边栏" aria-label="收起侧边栏">⟨</button></div>';
+  // v5：侧栏头部只放真实 PNG 图标（替代 SVG logo + 文字 + 收起按钮）
+  html += '<div class="side-head"><img src="icons/icon-192.png" alt="雅思备考 Hub" width="36" height="36" style="border-radius:11px"></div>';
   // 方案1：全局计时徽标容器（任何页面常驻；计时进行中显示呼吸徽标 + 一键结束，解决 P1/P3）
   html += '<div class="side-timer-wrap" id="sideTimer"></div>';
-  html += '<input class="side-search" id="sideSearch" placeholder="搜索功能…" aria-label="搜索功能" />';
 
-  // 一级常驻（跳过已收藏）
-  const favSet = new Set(favPageIds().filter(id => id !== 'index'));
+  // v5：全部平铺无折叠 —— 首页→回顾 一级；设置/服药 在分隔线下方
   html += '<div class="side-primary">';
-  for(const pid of PRIMARY_NAV){ if(favSet.has(pid)) continue; const p = pageById(pid); if(p) html += sideItem(p, current); }
+  for(const pid of PRIMARY_NAV){ const p = pageById(pid); if(p) html += sideItem(p, current); }
+  html += '<div class="side-sep" role="separator"></div>';
+  for(const pid of MORE_NAV){ const p = pageById(pid); if(p) html += sideItem(p, current); }
   html += '</div>';
-
-  // ⭐ 我的收藏：常驻于一级之后、更多之前，默认展开；首页 index 不参与置顶/去重
-  const favPages = [...favSet].map(id => PAGES.find(p => p.id === id)).filter(Boolean);
-  if(favPages.length){
-    const favCol = (collapsedMap['fav'] === true) ? ' collapsed' : '';
-    html += '<div class="side-fav' + favCol + '" data-g="fav">'
-          +   '<div class="side-group-title"><span class="side-g-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M12 4l1.7 4.3L18 10l-4.3 1.7L12 16l-1.7-4.3L6 10l4.3-1.7L12 4z"/></svg>我的收藏</span>'
-          +     '<span class="side-toggle-arrow" data-g="fav" role="button" tabindex="0" aria-label="展开/收起 我的收藏" aria-expanded="' + (favCol === '' ? 'true' : 'false') + '">' + chev + '</span>'
-          +   '</div>'
-          +   '<div class="side-group-body"><div class="side-group-inner">';
-    for(const p of favPages) html += sideItem(p, current);
-    html +=     '</div></div></div>';
-  }
-
-  // 更多▾（默认折叠：groupCollapsed['more'] 非 false 即折叠，跳过已收藏）
-  const moreCol = (collapsedMap['more'] === false) ? '' : ' collapsed';
-  html += '<div class="side-group' + moreCol + '" data-g="more"><div class="side-group-title"><span class="side-g-label">更多</span><span class="side-toggle-arrow" data-g="more" role="button" tabindex="0" aria-label="展开/收起 更多" aria-expanded="' + (moreCol === '' ? 'true' : 'false') + '">' + chev + '</span></div>';
-  html += '<div class="side-group-body"><div class="side-group-inner">';
-  for(const pid of MORE_NAV){ if(favSet.has(pid)) continue; const p = pageById(pid); if(p) html += sideItem(p, current); }
-  html += '</div></div></div>';
   nav.innerHTML = html;
   bindSidebar();
   renderSideTimer();   // 方案1：注入/刷新全局计时徽标（有活动会话才显示）
@@ -184,79 +163,16 @@ window.stopActiveSession = function(){
 
 function sideItem(p, current){
   const active = (p.file === current) ? 'active' : '';
-  const isFav = favPageIds().includes(p.id);
   return `<a class="side-item ${active}" href="${p.file}" data-name="${p.name}" data-id="${p.id}">
     <span class="nav-icon">${p.icon}</span><span class="side-label">${p.name}</span>
-    <span class="side-star${isFav ? ' is-fav' : ''}" data-id="${p.id}" role="button" tabindex="0" title="收藏 / 取消收藏" aria-label="收藏">${isFav ? '♥' : '♡'}</span>
   </a>`;
 }
 function bindSidebar(){
   const nav = document.getElementById('mainNav');
-  const inBtn = nav.querySelector('#sideCollapseIn');
-  if(inBtn) inBtn.addEventListener('click', toggleSidebar);
-  const search = nav.querySelector('#sideSearch');
-  if(search){
-    search.addEventListener('input', () => {
-      const q = search.value.trim().toLowerCase();
-      nav.querySelectorAll('.side-item').forEach(a => {
-        const name = (a.dataset.name || '').toLowerCase();
-        const id = (a.dataset.id || '').toLowerCase();
-        a.style.display = (!q || name.includes(q) || id.includes(q)) ? '' : 'none';
-      });
-      nav.querySelectorAll('.side-group, .side-fav').forEach(grp => {
-        const any = [...grp.querySelectorAll('.side-item')].some(a => a.style.display !== 'none');
-        grp.style.display = any ? '' : 'none';
-      });
-    });
-  }
-  nav.querySelectorAll('.side-star').forEach(star => {
-    const toggleFav = e => {
-      e.preventDefault(); e.stopPropagation();
-      const id = star.dataset.id;
-      // 从未收藏过时先把默认项落地，否则点掉默认项的 ♥ 会变成「反而加进去」
-      if(!DATA.settings.fav || !DATA.settings.fav.length) DATA.settings.fav = DEFAULT_FAV.slice();
-      DATA.settings.fav = DATA.settings.fav.includes(id)
-        ? DATA.settings.fav.filter(x => x !== id)
-        : DATA.settings.fav.concat(id);
-      hubSave();
-      injectNav();
-      // 收藏列表变更：统一走 hub:favchange 事件让首页「快捷入口」就地刷新。
-      // 不再直接调 renderQuickLinks —— 软导航后该函数可能指向旧 eval 作用域（B 窗口已确认偶发失效），
-      // 且直接调用若抛错会阻塞下方事件广播。事件由 index.js 监听、读取最新 DATA 重绘，最稳。
-      document.dispatchEvent(new CustomEvent('hub:favchange'));
-    };
-    star.addEventListener('click', toggleFav);
-    star.addEventListener('keydown', e => {
-      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggleFav(e); }
-    });
-  });
+  // 移动端抽屉：点击任一导航项后自动收起
   nav.querySelectorAll('.side-item').forEach(a => {
     a.addEventListener('click', () => {
       if(window.matchMedia('(max-width:860px)').matches){ document.body.classList.remove('nav-open'); syncNavToggle(); }
-    });
-  });
-  // 分组折叠：整条标题行可点击（含「常用」收藏区）
-  nav.querySelectorAll('.side-group-title').forEach(title => {
-    const toggle = () => {
-      const g = title.querySelector('.side-toggle-arrow').dataset.g;
-      const group = nav.querySelector(`.side-group[data-g="${g}"], .side-fav[data-g="${g}"]`);
-      if(!group) return;
-      const nowCol = group.classList.toggle('collapsed');
-      const arrow = title.querySelector('.side-toggle-arrow');
-      if(arrow) arrow.setAttribute('aria-expanded', String(!nowCol));
-      DATA.settings.groupCollapsed = DATA.settings.groupCollapsed || {};
-      DATA.settings.groupCollapsed[g] = nowCol;
-      hubSave();
-    };
-    title.addEventListener('click', e => {
-      // 点击标题行内任意位置都触发折叠，但不要干扰收藏星星按钮
-      if(e.target.closest('.side-star')) return;
-      e.stopPropagation(); toggle();
-    });
-    title.setAttribute('role', 'button');
-    title.setAttribute('tabindex', '0');
-    title.addEventListener('keydown', e => {
-      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggle(); }
     });
   });
   ensureMobileChrome();

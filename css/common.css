@@ -65,7 +65,7 @@ body{
 }
 
 /* ===== 侧边栏母导航 ===== */
-.top-nav{position:fixed;top:0;left:0;bottom:0;width:248px;background:var(--surface);border-right:1px solid var(--line);z-index:50;display:flex;flex-direction:column;padding:18px 14px;gap:12px;overflow-y:auto;box-shadow:var(--shadow-md);transition:transform .25s, box-shadow .15s;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.top-nav{position:fixed;top:0;left:0;bottom:0;width:200px;background:var(--surface);border-right:1px solid var(--line);z-index:50;display:flex;flex-direction:column;padding:18px 14px;gap:12px;overflow-y:auto;box-shadow:var(--shadow-md);transition:transform .25s, box-shadow .15s;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
 .top-nav::-webkit-scrollbar{width:8px}
 .top-nav::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
 .side-head{display:flex;align-items:center;gap:9px;font-weight:800;font-size:18px;letter-spacing:-.01em;white-space:nowrap;padding:2px 6px}
@@ -135,7 +135,7 @@ body{
 
 /* 桌面：内容右移 */
 @media(min-width:861px){
-  body{padding-left:248px;transition:padding-left .25s}
+  body{padding-left:200px;transition:padding-left .25s}
   body.side-collapsed{padding-left:0}
   body.side-collapsed .top-nav{transform:translateX(-100%)}
   body.side-collapsed .side-collapse{display:flex}
@@ -146,7 +146,7 @@ body{
 .side-collapse{display:none}
 @media(max-width:860px){
   .side-collapse-in{display:none}
-  .top-nav{transform:translateX(-100%);transition:transform .25s;box-shadow:none;width:264px}
+  .top-nav{transform:translateX(-100%);transition:transform .25s;box-shadow:none;width:200px}
   body.nav-open .top-nav{transform:translateX(0);box-shadow:var(--shadow)}
   .side-toggle{display:flex;position:fixed;right:14px;bottom:16px;width:48px;height:48px;border-radius:50%;background:var(--primary);color:#fff;font-size:22px;align-items:center;justify-content:center;border:none;cursor:pointer;z-index:60;box-shadow:var(--shadow);transition:background .15s,transform .15s}
   .side-toggle:active{transform:scale(.94)}
@@ -1154,3 +1154,108 @@ main .quote{
 .pl-count{font-size:12px;font-weight:700;color:var(--primary);background:var(--primary-soft);border-radius:10px;padding:2px 9px;font-variant-numeric:tabular-nums;flex:none}
 .pl-time{font-size:12px;color:var(--muted);min-width:78px;text-align:right;font-variant-numeric:tabular-nums;flex:none}
 @media(max-width:640px){.prog-grid{grid-template-columns:repeat(2,1fr)}.pl-time{display:none}.pl-dots{min-width:36px}}
+
+/* =========================================================================
+   v5 首页 Dashboard + 导航全面简化（design/30-首页Dashboard+导航全面简化_详细方案v5.md）
+   ========================================================================= */
+
+/* —— 侧边栏：200px 下的紧凑导航项（覆盖上方 15px 旧样式，含 889 行 .side-primary 的 600 字重） —— */
+.side-primary .side-item{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:7px 11px;
+  border-radius:var(--radius-sm);
+  color:var(--ink);
+  text-decoration:none;
+  font-size:13.5px;
+  font-weight:500;
+  white-space:nowrap;
+}
+.side-primary .side-item.active{font-weight:600}
+/* 窄屏时隐藏导航文字，只留图标 */
+@media(max-width:680px){
+  .side-label{display:none}
+  .side-item{justify-content:center;padding:9px}
+}
+/* 设置/服药 前的分隔线 */
+.side-sep{height:1px;background:var(--line);margin:8px 10px;flex:none}
+
+/* —— 首页 Dashboard v5（纵向信息流） —— */
+
+/* 顶栏 */
+.dash-top-v5{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+.dash-top-v5 .hi{font-size:20px;font-weight:800;color:var(--ink)}
+.dash-top-v5 .date{font-size:13px;color:var(--muted)}
+
+/* 指标横条：三格并排 */
+.dash-stats{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:14px;margin-bottom:24px}
+.dash-stat{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:18px 22px;
+  box-shadow:var(--shadow)
+}
+/* 倒计时主视觉格 */
+.dash-stat.cd-main{
+  background:var(--primary-soft);
+  border-color:rgba(58,154,147,.25)
+}
+.dash-stat .dsl{font-size:12.5px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.dash-stat.cd-main .dsl{color:var(--primary-d)}
+.dash-stat .dsv{font-size:32px;font-weight:800;line-height:1.15;margin:6px 0 2px;font-variant-numeric:tabular-nums}
+.dash-stat.cd-main .dsv{color:var(--primary-d)}
+.dash-stat .dsv b{font-size:38px}
+.dash-stat .dsd{font-size:12px;color:var(--muted)}
+/* 进度条 */
+.dash-stat .dsbar{height:6px;border-radius:99px;background:rgba(58,154,147,.2);margin-top:14px;overflow:hidden}
+.dash-stat .dsbar > i{display:block;height:100%;background:linear-gradient(90deg,var(--primary-bright),var(--primary));border-radius:99px;width:62%}
+
+/* 今日学习记录卡 */
+.dash-rec{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  margin-bottom:24px;
+  overflow:hidden
+}
+.dash-rec-head{display:flex;justify-content:space-between;align-items:center;padding:20px 24px 0}
+.dash-rec-head h2{font-size:15.5px;font-weight:800;margin:0}
+.dash-rec-head .total{font-size:13px;color:var(--muted)}
+.dash-rec-head .total b{color:var(--ink);font-size:19px;font-weight:800;margin-left:4px;font-variant-numeric:tabular-nums}
+.dash-rec-body{padding:16px 24px 22px}
+.dash-rec-row{display:flex;align-items:center;gap:14px;margin:12px 0}
+.dash-rec-row .nm{width:82px;font-size:13.5px;flex:none}
+.dash-rec-row .bar{flex:1;height:11px;border-radius:99px;background:var(--primary-soft-2);overflow:hidden}
+.dash-rec-row .bar > i{display:block;height:100%;background:linear-gradient(90deg,var(--primary-bright),var(--primary));border-radius:99px}
+.dash-rec-row .dur{width:52px;text-align:right;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;flex:none}
+
+/* 行动区 */
+.dash-action{display:flex;gap:14px;align-items:center}
+.dash-start{
+  display:inline-flex;
+  align-items:center;
+  gap:9px;
+  background:var(--primary);
+  color:#fff;
+  font-weight:700;
+  font-size:15px;
+  padding:15px 30px;
+  border-radius:var(--radius-sm);
+  text-decoration:none;
+  box-shadow:var(--shadow-md);
+  transition:background .15s
+}
+.dash-start:hover{background:var(--primary-d)}
+.dash-streak{margin-left:auto;font-size:13px;color:var(--muted)}
+.dash-streak b{color:var(--ink);font-weight:800;font-variant-numeric:tabular-nums}
+
+/* 响应式 */
+@media(max-width:760px){
+  .dash-stats{grid-template-columns:1fr}
+}
+
+/* 删除旧的状态行（dash-statusline）—— 已被三格指标取代 */
+.dash-statusline{display:none!important}

@@ -1,139 +1,153 @@
 ready(() => {
   const safe = fn => { try{ fn(); }catch(e){ console.error('[index] 渲染失败', fn.name || '', e); } };
   const s = (DATA && DATA.settings) || {};
-  const tkey = todayKey();
-  const todays = (DATA.sessions || []).filter(x => x.date === tkey);
-  const totalSec = todays.reduce((a,x) => a + x.durationSec, 0);
 
   safe(() => {
     $('#userName').textContent = s.name || 'Camille';
-    const cd = examCountdown();
-    $('#dashCountdown').textContent = cd.hasExam
-      ? ('距 ' + cd.md + (cd.daysLeft < 0 ? '（' + cd.label + '）' : ' 还有 ' + cd.label))
-      : '未设置考试日期';
-    $('#stTime').textContent = fmtHM(totalSec);
-    $('#stGoal').textContent = s.dailyGoalHours || 8;
-    // 方案：今日进度条（C 窗口 Dashboard 优化）
-    const goalSec = (s.dailyGoalHours || 8) * 3600;
-    const pct = goalSec > 0 ? Math.min(100, Math.round(totalSec / goalSec * 100)) : 0;
-    const _fill = document.getElementById('stFill'); if(_fill) _fill.style.width = pct + '%';
-    const _stp  = document.getElementById('stPct');  if(_stp)  _stp.textContent  = pct + '%';
-    const st = $('#startTitle'), sb = $('#startSub');
-    if(todays.length > 0){ st.textContent = '继续上次'; sb.textContent = '今天已学 ' + fmtHM(totalSec) + '，继续加油'; }
-    else { st.textContent = '开始今日学习'; sb.textContent = '选模块，开一个计时器'; }
   });
 
-  safe(renderStreak);
-  safe(renderMedSnippet);
-  safe(renderReminders);
-  safe(renderAiReadiness);   // 方案3：首屏 AI 就绪状态条
-  // （Zone 4 收藏区已迁移至侧边栏常驻收藏区，相关渲染逻辑已移除）
+  // v5 首页：纵向信息流渲染（倒计时 / 今日学习 / 待复习 / 模块时长 / 连续天数）
+  safe(renderDashV5);
 
-  window.__hubSessionSaved = () => safe(() => {
-    const tk = todayKey();
-    const td = DATA.sessions.filter(x => x.date === tk);
-    const ts = td.reduce((a,x) => a + x.durationSec, 0);
-    const te = $('#stTime'); if(te) te.textContent = fmtHM(ts);
-    // 方案：计时保存后进度条实时涨（C 窗口 Dashboard 优化）
-    const goalSec = (DATA.settings.dailyGoalHours || 8) * 3600;
-    const pct = goalSec > 0 ? Math.min(100, Math.round(ts / goalSec * 100)) : 0;
-    const _fill = document.getElementById('stFill'); if(_fill) _fill.style.width = pct + '%';
-    const _stp  = document.getElementById('stPct');  if(_stp)  _stp.textContent  = pct + '%';
-    const st = $('#startTitle'), sb = $('#startSub');
-    if(td.length > 0){ st.textContent='继续上次'; sb.textContent='今天已学 '+fmtHM(ts)+'，继续加油'; }
-    else { st.textContent='开始今日学习'; sb.textContent='选模块，开一个计时器'; }
-    // 今日模块分布图表已从首页移除
-  });
-  document.removeEventListener('hub:session-saved', window.__hubSessionSaved);
+  // 计时保存后整页指标就地刷新（今日学习时长 + 模块条形图 + 连续天数）
+  // 软导航会重跑本文件：先移除旧监听再挂新监听，避免重复注册
+  const prevHub = window.__hubSessionSaved;
+  if(typeof prevHub === 'function') document.removeEventListener('hub:session-saved', prevHub);
+  window.__hubSessionSaved = () => safe(renderDashV5);
   document.addEventListener('hub:session-saved', window.__hubSessionSaved);
 });
 
-function renderAiReadiness(){
-  const el = $('#aiReadiness'); if(!el) return;
-  const hasKey = !!(DATA.settings && DATA.settings.relayToken);
-  if(hasKey){
-    el.className = 'ai-readiness ok';
-    el.innerHTML = '<span class="ar-ico">✅</span><span class="ar-text">AI 已就绪 · 串题 / 诊断 / 写作评分 / 万能素材可用</span>';
-  } else {
-    el.className = 'ai-readiness warn';
-    el.innerHTML = '<span class="ar-ico">⚠️</span><span class="ar-text">AI 未配置 · 口语串题 / 诊断 / 写作评分 / 万能素材暂不可用</span>'
-      + '<button class="ar-btn" id="arSetupBtn" type="button">去设置</button>';
-    const b = $('#arSetupBtn');
-    if(b) b.addEventListener('click', () => { try{ softNavigate({ id:'settings', file:'settings.html', href:'settings.html' }, false); }catch(e){ location.href = 'settings.html'; } });
-  }
-}
+/**
+ * 首页 v5 渲染：纵向信息流（design/30 首页Dashboard+导航全面简化_详细方案v5.md D2）
+ * - 格1：考试倒计时（合并原 dashCountdown + reminderLine 的倒计时）
+ * - 格2：今日学习时长（聚合 DATA.sessions）
+ * - 格3：待复习单词数
+ * - 详情卡：按 moduleName 分组的时长条形图
+ */
+function renderDashV5(){
+  // ---- 日期 ----
+  const now = new Date();
+  const wks = ['日','一','二','三','四','五','六'];
+  const dateEl = $('#dashDate');
+  if(dateEl) dateEl.textContent =
+    (now.getMonth()+1).toString().padStart(2,'0')+'-'+now.getDate().toString().padStart(2,'0')
+    +' · 周'+wks[now.getDay()];
 
-function renderMedSnippet(){
-  const el = $('#stMed'); if(!el) return;
-  const tkey = todayKey();
-  const todays = DATA.meds.filter(m => m.date === tkey).sort((a,b)=>b.ts-a.ts);
-  if(todays.length === 0){ el.textContent = '💊 未记录服药'; return; }
-  const latest = todays[0];
-  const remain = MED_DURATION_MS - (Date.now() - latest.ts);
-  el.textContent = remain > 0 ? '💊 药效中' : '💊 已失效';
-}
-
-/* renderQuickLinks 已移除：收藏快捷入口已迁移至侧边栏常驻收藏区 */
-
-function renderFavLinks(){
-  const links = DATA.settings.links || [];
-  const box = $('#favLinks');
-  if(!box) return;
-  if(links.length === 0){
-    box.innerHTML = renderEmpty('常用网址被清空了') +
-      '<div style="margin-top:10px"><button class="btn btn-primary" id="restoreLinksBtn">↺ 一键恢复默认常用网址</button></div>';
-    const rb = $('#restoreLinksBtn');
-    if(rb) rb.addEventListener('click', () => { if(typeof restoreDefaultLinks === 'function') restoreDefaultLinks(); });
-    return;
-  }
-  box.innerHTML = '<div class="fav-links">' + links.map(l => {
-    const isLocal = l.badge === '本地';
-    const badgeHtml = isLocal
-      ? '<span class="badge local">本地</span>'
-      : (l.url ? '<a class="btn btn-sm" href="' + escapeHtml(l.url) + '" target="_blank" rel="noreferrer">打开</a>' : '');
-    return '<div class="fav-link-item">' +
-      '<div class="fav-link-info">' +
-        '<div class="fav-link-name">' + escapeHtml(l.name) + '</div>' +
-        (l.note ? '<div class="fav-link-note muted">' + escapeHtml(l.note) + '</div>' : '') +
-      '</div>' +
-      '<div class="fav-link-action">' + badgeHtml + '</div>' +
-    '</div>';
-  }).join('') + '</div>';
-}
-
-function renderStreak(){
-  const el = $('#stStreak'); if(!el) return;
-  const checkins = DATA.checkins || [];
-  el.textContent = computeStreak(checkins);
-  const btn = $('#checkinBtn');
-  const today = todayKey();
-  const checked = checkins.includes(today);
-  if(btn){
-    btn.textContent = checked ? '✓' : '打卡';
-    btn.disabled = checked;
-    if(!checked) btn.onclick = () => {
-      DATA.checkins = DATA.checkins || [];
-      if(!DATA.checkins.includes(today)){ DATA.checkins.push(today); hubSave(); }
-      toast('🔥 打卡成功，连续 ' + computeStreak(DATA.checkins) + ' 天');
-      renderStreak();
-    };
-  }
-}
-
-function renderReminders(){
-  const box = $('#reminderLine'); if(!box) return;
-  const tkey = todayKey();
-  const tips = [];
-  if(!(DATA.sessions||[]).some(x => x.date === tkey)) tips.push('今天还没开始学习，去「计时」开个计时器');
-  // 空状态引导：词库为空时提示去「我的词库」加词（新用户首屏）
-  if(!DATA.words || DATA.words.length === 0) tips.push('词库还是空的，去「我的词库」加几个单词吧');
+  // ---- 格1：考试倒计时 ----
   const cd = examCountdown();
-  if(cd.hasExam && cd.daysLeft !== null && cd.daysLeft >= 0 && cd.daysLeft <= 7) tips.push('距考试仅剩 ' + cd.daysLeft + ' 天');
+  const numEl = $('#dashCDNum');
+  const subEl = $('#dashCDSub');
+  const barEl = $('#dashCDBar');
+  if(cd.hasExam && numEl && subEl && barEl){
+    if(cd.daysLeft >= 0){
+      numEl.innerHTML = '<b>'+cd.daysLeft+'</b> 天';
+      subEl.textContent = cd.md + ' 机考';
+      // 备考进度估算：假设从首考到目标共 45 天跑道
+      const totalDays = 45;
+      const pct = Math.min(100, Math.max(0, ((totalDays - cd.daysLeft) / totalDays) * 100));
+      barEl.style.width = pct.toFixed(0)+'%';
+    } else {
+      numEl.innerHTML = '已过';
+      subEl.textContent = cd.label || '';
+      barEl.style.width='100%';
+    }
+  } else if(numEl){ numEl.innerHTML='<b>--</b> 天'; }
+  if(!cd.hasExam && subEl) subEl.textContent = '未设置考试日期';
+
+  // ---- 格2：今日学习时长 ----
+  const tkey = todayKey();
+  const todays = (DATA.sessions||[]).filter(x => x.date === tkey);
+  const totalSec = todays.reduce((a,x)=>a+(x.durationSec||0),0);
+  const mods = new Set(todays.map(x=>x.moduleName||'未知').filter(Boolean));
+
+  const timeEl = $('#dashTodayTime');
+  const modsEl = $('#dashTodayMods');
+  if(timeEl){
+    const h = Math.floor(totalSec/3600);
+    const m = Math.floor((totalSec%3600)/60);
+    timeEl.innerHTML = h+'<span style="font-size:20px;font-weight:600">h</span>'
+                      +m+'<span style="font-size:20px;font-weight:600">m</span>';
+  }
+  if(modsEl) modsEl.textContent = mods.size+' 个模块已记录';
+
+  // ---- 格3：待复习单词 ----
   const due = (DATA.words||[]).filter(w => !w.mcDue || w.mcDue <= tkey).length;
-  if(due > 0) tips.push(due + ' 个单词待复习');
-  box.innerHTML = tips.length ? '💡 ' + tips.join(' · ') : '';
+  const dueEl = $('#dashDueWords');
+  const hintEl = $('#dashDueHint');
+  if(dueEl) dueEl.innerHTML = due+'<span style="font-size:18px;font-weight:600;color:var(--muted)"> 词</span>';
+  if(hintEl) hintEl.textContent = due > 0 ? '建议先复习再学新词' : '暂无到期单词';
+
+  // ---- 详情卡：按模块聚合时长 ----
+  const bodyEl = $('#dashRecBody');
+  const totalEl = $('#dashRecTotal');
+  if(!bodyEl) return;
+
+  // 聚合
+  const byModule = {};
+  todays.forEach(s => {
+    const nm = s.moduleName || '未知';
+    byModule[nm] = (byModule[nm]||0) + (s.durationSec||0);
+  });
+  const modNames = Object.keys(byModule);
+  const maxDur = Math.max(...Object.values(byModule), 1);
+
+  if(modNames.length === 0){
+    bodyEl.innerHTML = '<div class="empty-state">'
+      +'<p style="text-align:center;padding:26px 0;color:var(--muted);font-size:14px;line-height:1.7">'
+      +'今天还没有学习记录<br>'
+      +'<a href="timer.html" style="color:var(--primary);font-weight:700;text-decoration:none">去「计时学习」开始打卡 →</a>'
+      +'</p></div>';
+  } else {
+    let html = '';
+    modNames.forEach(nm => {
+      const sec = byModule[nm];
+      const pct = Math.round((sec/maxDur)*100);
+      const m = Math.floor(sec/60);
+      html += '<div class="dash-rec-row">'
+        +'<span class="nm">'+escHtml(nm)+'</span>'
+        +'<span class="bar"><i style="width:'+pct+'%"></i></span>'
+        +'<span class="dur">'+m+'m</span>'
+        +'</div>';
+    });
+    bodyEl.innerHTML = html;
+  }
+
+  // 总计
+  if(totalEl){
+    const th = Math.floor(totalSec/3600);
+    const tm = Math.floor((totalSec%3600)/60);
+    totalEl.textContent = th+'h'+tm+'m';
+  }
+
+  // ---- 连续学习天数 ----
+  const streakEl = $('#dashStreak');
+  if(streakEl){
+    const streak = calcStreak(); // 见下方辅助函数
+    if(streak > 0){
+      streakEl.innerHTML = '连续学习 <b>'+streak+'</b> 天';
+    } else {
+      streakEl.textContent = '';
+    }
+  }
 }
 
-/* genSummary 已移除：今日总结入口随 Zone 4 一并移除 */
+/** 计算连续学习天数（从今天往前数连续有 session 的天数；与打卡数据无关） */
+function calcStreak(){
+  const sessions = DATA.sessions || [];
+  if(sessions.length === 0) return 0;
+  const dates = [...new Set(sessions.map(s=>s.date))].sort().reverse();
+  if(dates[0] !== todayKey()) return 0; // 今天没学，断链
+  let count = 1;
+  for(let i=1;i<dates.length;i++){
+    const d = new Date(dates[i-1]);
+    d.setDate(d.getDate()-1);
+    // todayKey(d) 与 session.date 同格式 YYYY-MM-DD（data.js:757）
+    if(dates[i] === todayKey(d)) count++; else break;
+  }
+  return count;
+}
 
-/* renderPieChart 已移除：今日模块分布图表随 Zone 4 一并移除 */
+/** 安全转义 HTML */
+function escHtml(s){
+  const d=document.createElement('div');d.textContent=s;return d.innerHTML;
+}
