@@ -195,7 +195,7 @@ function stopSession(){
   hubSave();
   const d = active; active = null;   // 先清活动态再广播，避免徽标闪一下旧会话
   window.__timerActive = false;      // 结束：清除「进行中」标记
-  // 通知仪表盘/侧边栏刷新「今日已学」（解耦：只广播事件，不直接调其他页函数）
+  // 通知首页/侧边栏刷新「今日已学」（解耦：只广播事件，不直接调其他页函数）
   document.dispatchEvent(new CustomEvent('hub:session-saved', { detail: { date: todayKey() } }));
   document.dispatchEvent(new CustomEvent('hub:timer-state'));   // 方案1：通知全局徽标消失
   $('#activeInfo').textContent = '当前没有进行中的学习';

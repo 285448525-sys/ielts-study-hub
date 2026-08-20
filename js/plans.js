@@ -4,7 +4,7 @@
    因为 defer 脚本在 DOMInteractive 时同步执行 ready 回调，
    若变量还没初始化会导致「Cannot read properties of undefined」崩溃。 ---------- */
 var SUB = {
-  listening: { name:'听力', tpl:['听力 S1+S4 填空 1 套','语料库听写 1 组（去「听力语料库」页）','精听 1 段并跟读模仿'] },
+  listening: { name:'听力', tpl:['听力 S1+S4 填空 1 套','语料库听写 1 组（去「听力」页）','精听 1 段并跟读模仿'] },
   reading:   { name:'阅读', tpl:['阅读 1 篇 P1（计时 20min）','判断题 FALSE / NOT GIVEN 专项 10 题','复盘错题：分清"矛盾"与"没提"'] },
   writing:   { name:'写作', tpl:['写作 Task2 四段式练 1 篇','背 / 默写作模板 1 段','审题训练：5 个题目列提纲'] },
   speaking:  { name:'口语', tpl:['DeepSeek 口语对话 15min（P1 快问快答）','串题素材复述 1 个 P2，说满 2 分钟','录音自查流利度'] },

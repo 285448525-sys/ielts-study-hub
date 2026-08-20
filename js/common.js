@@ -16,7 +16,7 @@ const ICON = {
 };
 
 const PAGES = [
-  { id:'index',     file:'index.html',     icon:ICON.home,      name:'仪表盘',     desc:'今日概览' },
+  { id:'index',     file:'index.html',     icon:ICON.home,      name:'首页',       desc:'今日概览' },
   { id:'timer',     file:'timer.html',     icon:ICON.timer,     name:'计时',   desc:'选模块开计时' },
   { id:'plans',     file:'plans.html',     icon:ICON.plans,     name:'计划',   desc:'每日清单 + AI 排周' },
   { id:'meds',      file:'meds.html',      icon:ICON.meds,      name:'服药',   desc:'专注达药效窗口' },
@@ -24,12 +24,12 @@ const PAGES = [
   { id:'corpus',    file:'corpus.html',    icon:ICON.corpus,    name:'听力', desc:'场景词汇听写' },
   { id:'errorbook', file:'errorbook.html', icon:ICON.words,     name:'词句',     desc:'长难句 + 错题本' },
   { id:'speaking',  file:'speaking.html',  icon:ICON.speaking,  name:'口语', desc:'题库 + AI 串题' },
-  { id:'writing',   file:'writing.html',   icon:ICON.writing,   name:'写作模板库', desc:'模板 + AI 评分' },
+  { id:'writing',   file:'writing.html',   icon:ICON.writing,   name:'写作',       desc:'模板 + AI 评分' },
   { id:'review',    file:'review.html',    icon:ICON.review,    name:'回顾',       desc:'模考成绩 + 学习轨迹' },
   { id:'settings',  file:'settings.html',  icon:ICON.settings,  name:'设置',       desc:'同步 / AI / 数据' },
 ];
 
-/* 收藏页面（⭐）——侧边栏「常用」与仪表盘「快捷入口」共用同一份，永远同步。
+/* 收藏页面（⭐）——侧边栏「常用」与首页「快捷入口」共用同一份，永远同步。
    从未收藏过时给 3 个新手默认项，避免入口空着。 */
 const DEFAULT_FAV = ['timer','practice','speaking'];
 function favPageIds(){
@@ -62,7 +62,7 @@ function injectNav(){
   for(const pid of PRIMARY_NAV){ if(favSet.has(pid)) continue; const p = pageById(pid); if(p) html += sideItem(p, current); }
   html += '</div>';
 
-  // ⭐ 我的收藏：常驻于一级之后、更多之前，默认展开；仪表盘 index 不参与置顶/去重
+  // ⭐ 我的收藏：常驻于一级之后、更多之前，默认展开；首页 index 不参与置顶/去重
   const favPages = [...favSet].map(id => PAGES.find(p => p.id === id)).filter(Boolean);
   if(favPages.length){
     const favCol = (collapsedMap['fav'] === true) ? ' collapsed' : '';
@@ -220,7 +220,7 @@ function bindSidebar(){
         : DATA.settings.fav.concat(id);
       hubSave();
       injectNav();
-      // 收藏列表变更：统一走 hub:favchange 事件让仪表盘「快捷入口」就地刷新。
+      // 收藏列表变更：统一走 hub:favchange 事件让首页「快捷入口」就地刷新。
       // 不再直接调 renderQuickLinks —— 软导航后该函数可能指向旧 eval 作用域（B 窗口已确认偶发失效），
       // 且直接调用若抛错会阻塞下方事件广播。事件由 index.js 监听、读取最新 DATA 重绘，最稳。
       document.dispatchEvent(new CustomEvent('hub:favchange'));

@@ -544,7 +544,7 @@ let DATA = {
     links: DEFAULT_LINKS
   },
   errorbook: [],
-  longSent: [],           // 长难句拆解记录（合并进「词句库」页，由 errorbook.js 读写）
+  longSent: [],           // 长难句拆解记录（合并进「词句」页，由 errorbook.js 读写）
   energy: [],
   checkins: [],
   mockRecords: [],

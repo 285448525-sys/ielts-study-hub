@@ -124,7 +124,7 @@ function renderReminders(){
   const box = $('#reminderLine'); if(!box) return;
   const tkey = todayKey();
   const tips = [];
-  if(!(DATA.sessions||[]).some(x => x.date === tkey)) tips.push('今天还没开始学习，去「计时学习」开个计时器');
+  if(!(DATA.sessions||[]).some(x => x.date === tkey)) tips.push('今天还没开始学习，去「计时」开个计时器');
   // 空状态引导：词库为空时提示去「我的词库」加词（新用户首屏）
   if(!DATA.words || DATA.words.length === 0) tips.push('词库还是空的，去「我的词库」加几个单词吧');
   const cd = examCountdown();
