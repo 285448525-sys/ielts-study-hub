@@ -50,7 +50,7 @@ function injectNav(){
 
   let html = '';
   // v5：侧栏头部只放真实 PNG 图标（替代 SVG logo + 文字 + 收起按钮）
-  html += '<div class="side-head"><img src="icons/icon-192.png" alt="雅思备考 Hub" width="36" height="36" style="border-radius:11px"></div>';
+  html += '<div class="side-head"><img src="icons/icon-192.png" alt="雅思备考 Hub" width="48" height="48"></div>';
   // 方案1：全局计时徽标容器（任何页面常驻；计时进行中显示呼吸徽标 + 一键结束，解决 P1/P3）
   html += '<div class="side-timer-wrap" id="sideTimer"></div>';
 

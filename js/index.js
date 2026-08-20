@@ -40,18 +40,18 @@ function renderDashV5(){
   const barEl = $('#dashCDBar');
   if(cd.hasExam && numEl && subEl && barEl){
     if(cd.daysLeft >= 0){
-      numEl.innerHTML = '<b>'+cd.daysLeft+'</b> 天';
+      numEl.innerHTML = '<span class="num">'+cd.daysLeft+'</span><span class="unit">天</span>';
       subEl.textContent = cd.md + ' 机考';
       // 备考进度估算：假设从首考到目标共 45 天跑道
       const totalDays = 45;
       const pct = Math.min(100, Math.max(0, ((totalDays - cd.daysLeft) / totalDays) * 100));
       barEl.style.width = pct.toFixed(0)+'%';
     } else {
-      numEl.innerHTML = '已过';
+      numEl.innerHTML = '<span class="num">已过</span>';
       subEl.textContent = cd.label || '';
       barEl.style.width='100%';
     }
-  } else if(numEl){ numEl.innerHTML='<b>--</b> 天'; }
+  } else if(numEl){ numEl.innerHTML='<span class="num">--</span><span class="unit">天</span>'; }
   if(!cd.hasExam && subEl) subEl.textContent = '未设置考试日期';
 
   // ---- 格2：今日学习时长 ----
@@ -65,8 +65,8 @@ function renderDashV5(){
   if(timeEl){
     const h = Math.floor(totalSec/3600);
     const m = Math.floor((totalSec%3600)/60);
-    timeEl.innerHTML = h+'<span style="font-size:20px;font-weight:600">h</span>'
-                      +m+'<span style="font-size:20px;font-weight:600">m</span>';
+    timeEl.innerHTML = '<span class="num">'+h+'</span><span class="unit">h</span>'
+                      +'<span class="num">'+m+'</span><span class="unit">m</span>';
   }
   if(modsEl) modsEl.textContent = mods.size+' 个模块已记录';
 
@@ -74,7 +74,7 @@ function renderDashV5(){
   const due = (DATA.words||[]).filter(w => !w.mcDue || w.mcDue <= tkey).length;
   const dueEl = $('#dashDueWords');
   const hintEl = $('#dashDueHint');
-  if(dueEl) dueEl.innerHTML = due+'<span style="font-size:18px;font-weight:600;color:var(--muted)"> 词</span>';
+  if(dueEl) dueEl.innerHTML = '<span class="num">'+due+'</span><span class="unit">词</span>';
   if(hintEl) hintEl.textContent = due > 0 ? '建议先复习再学新词' : '暂无到期单词';
 
   // ---- 详情卡：按模块聚合时长 ----
