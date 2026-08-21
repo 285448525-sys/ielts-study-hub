@@ -1,5 +1,5 @@
 /* 口语模考 · 主控制器（状态机）
-   流程：开始卡 → P1(多个大题·每题若干小题·共约十几个) → P2(准备 1min + 陈述 2min) → P3(4-5 题 AI 追问) → 报告
+   流程：开始卡 → P1(2 必选大题 + 2 非必选大题·每题 3 小题·含开场姓名共 13 个) → P2(准备 1min + 陈述 2min) → P3(4-5 题 AI 追问) → 报告
    架构：
    - 输入层：考生直接在页面文本框手写 / 粘贴英文回答（录音 / 语音转写已移除）
    - 大脑层：callRelay → DeepSeek（生成 P3 追问 + 读文字评分）
@@ -240,7 +240,7 @@
     const rest = pool.filter(t => t.frequency !== 'must');   // 非必考：按题库原始顺序取
     const picked = new Set();
     const qa = [];
-    const PER_TOPIC = 4; // 每个大题固定取前 4 个小题（按题库原始顺序，不随机）
+    const PER_TOPIC = 3; // 每个大题固定取前 3 个小题（按题库原始顺序，不随机）；4 大题×3=12 + 开场姓名 = 共 13
     const takeTopic = (t, n) => {
       if(!t || picked.has(t.id)) return;
       picked.add(t.id);
@@ -254,7 +254,7 @@
     // 2) 其余：按题库原始顺序固定取 2 个大题（必考一定排在选考之前，两段内部各自连续）
     const extraN = 2;
     for(const t of rest){ if(picked.size >= mustN + extraN) break; if(picked.has(t.id)) continue; takeTopic(t, PER_TOPIC); }
-    return qa;   // 顺序固定：必考在前、选考在后；总小题 ≈ 4 组 × 3~4 ≈ 12~16（即「十几个」）
+    return qa;   // 顺序固定：必考在前、选考在后；总小题 = 4 大题 × 3 = 12，加开场姓名共 13（最多 13 个）
   }
 
   /* ---------- 主流程（支持断点续考） ----------
