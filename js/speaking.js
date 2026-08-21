@@ -312,7 +312,6 @@ function openDetail(id){
 
     html += '<div class="sp-p2-answer">';
     html += '<textarea class="sp-ans" id="p2Ans" placeholder="在这里写下你的 Part 2 回答（目标写满 2 分钟的内容）…"></textarea>';
-    html += '<div class="sp-logic" id="p2LogicBar" hidden><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:14px;height:14px;vertical-align:-2px;margin-right:4px"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 1 4 10.5c-.8.7-1 1.5-1 2.5h-6c0-1-.2-1.8-1-2.5A6 6 0 0 1 12 3z"/></svg>本题逻辑链</b><span class="sp-logic-text"></span></div>';
     html += '<div class="sp-q-btns">';
     html += '<button class="sp-diag" id="p2Diag" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;flex:none"><path d="M12 2l2.4 5.1 5.6.8-4 4.1 1 5.6-5-2.7-5 2.7 1-5.6-4-4.1 5.6-.8z"/></svg>AI 纠错</button>';
     html += '<button class="sp-ans-clear" id="p2Clear" type="button">清空</button>';
@@ -322,27 +321,34 @@ function openDetail(id){
     html += '</div>';
   }
 
-  // P2 串题思路（保留在 P3 之上）；完成/下一题 = 固定底栏（在 P3 之下、视口最底）
+  // P2 串题素材（逻辑 + 原文）：来自 AI 串题方案，自动回填；头部带「AI 串题思路」生成按钮
   if(s.type === 'P2'){
-    // AI 串题思路（独立一行，左对齐；与完成/下一题不再同行）
-    html += '<div class="sp-detail-actions" style="margin-top:8px">';
-    html += '<button class="btn btn-primary" id="aiStoryLinkBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>AI 串题思路</button>';
+    html += '<div class="sp-story-head">';
+    html += '<span class="sp-story-title">串题素材（逻辑 + 原文）</span>';
+    html += '<button class="btn btn-med" id="aiStoryLinkBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>AI 串题思路</button>';
     html += '</div>';
-    // AI 串题方案输出（点击 AI 串题思路后填充）—— DOM 放在 P3 之上
     html += '<div class="sp-ai-result" id="aiResult"></div>';
-    // P3 追问区：head → list(动态) → save(动态) → actions(按钮，sticky 底栏上方)
-    html += '<div class="sp-p3-area" id="p3Area" data-p3-state="idle">';
+
+    // 动作行：P3追问（左） + 下一题/完成（右）
+    html += '<div class="sp-action-row" id="p2ActionRow">';
+    html += '<button class="btn btn-med" id="p3GenBtn" type="button">P3追问</button>';
+    html += '<div class="sp-action-row-right">';
+    html += '<button class="btn btn-med" id="p2FinishBtn" type="button">完成</button>';
+    html += '<button class="btn btn-primary" id="p2NextBtn" type="button">下一题 →</button>';
+    html += '</div>';
+    html += '</div>';
+
+    // P3 区：默认隐藏，点 P3追问后展开在其下方
+    html += '<div class="sp-p3-area" id="p3Area" data-p3-state="idle" hidden>';
     html += '<div class="sp-p3-head">P3 提问</div>';
     html += '<div class="sp-p3-list" id="p3List"></div>';
     html += '<div class="sp-p3-save" id="p3SaveWrap" hidden><button class="btn btn-primary" id="p3SaveBtn" type="button">保存 P3 答案</button></div>';
-    html += '<div class="sp-p3-actions" id="p3Actions">';
-    html += '<button class="btn btn-med" id="p3GenBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:14px;height:14px;vertical-align:-2px;margin-right:5px"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>基于我的回答生成 3 题 P3 追问</button>';
     html += '</div>';
-    html += '</div>';
-    // 固定底栏：完成 / 下一题（视口最最底部，position:fixed bottom:0）
-    html += '<div class="sp-bottom-actions" id="p2BottomActions">';
-    html += '<button class="btn btn-med" id="p2FinishBtn">完成</button>';
-    html += '<button class="btn btn-primary" id="p2NextBtn">下一题 →</button>';
+
+    // 底部动作栏：下一题/完成（P3 展示完后出现在最底）
+    html += '<div class="sp-bottom-bar" id="p2BottomBar" hidden>';
+    html += '<button class="btn btn-med" id="p2FinishBtn2" type="button">完成</button>';
+    html += '<button class="btn btn-primary" id="p2NextBtn2" type="button">下一题 →</button>';
     html += '</div>';
   }
 
@@ -382,6 +388,16 @@ function openDetail(id){
     });
     const nx = $('#p2NextBtn');
     if(nx) nx.addEventListener('click', () => gotoNextTopic());
+    // 底部动作栏的「完成/下一题」复用同一逻辑
+    const fin2 = $('#p2FinishBtn2');
+    if(fin2) fin2.addEventListener('click', () => {
+      $('#listView').hidden = false;
+      $('#detailView').hidden = true;
+      renderList();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    const nx2 = $('#p2NextBtn2');
+    if(nx2) nx2.addEventListener('click', () => gotoNextTopic());
     // 回填上次保存的「AI 串题方案」（参考英文 + 本题逻辑链），无需用户再点一次生成按钮
     if(s.answers && s.answers.p2 && s.answers.p2.aiStoryLink){
       try{
@@ -436,7 +452,8 @@ function openDetail(id){
         renderP3List(s, $('#p3List'));
         const saveWrap = $('#p3SaveWrap'); if(saveWrap) saveWrap.hidden = false;
         p3GenBtn.disabled = false; p3GenBtn.innerHTML = orig;
-        const area = $('#p3Area'); if(area) area.dataset.p3State = 'generated';
+        const area = $('#p3Area'); if(area){ area.hidden = false; area.dataset.p3State = 'generated'; }
+        const bottom = $('#p2BottomBar'); if(bottom) bottom.hidden = false;
       }).catch(err => {
         toast('P3 生成失败：' + err.message + '（已尝试兜底）');
         try{
@@ -447,6 +464,8 @@ function openDetail(id){
           s.answers.p2.p3.ts = Date.now();
           renderP3List(s, $('#p3List'));
           const saveWrap = $('#p3SaveWrap'); if(saveWrap) saveWrap.hidden = false;
+          const area = $('#p3Area'); if(area){ area.hidden = false; area.dataset.p3State = 'generated'; }
+          const bottom = $('#p2BottomBar'); if(bottom) bottom.hidden = false;
         }catch(_){}
         p3GenBtn.disabled = false; p3GenBtn.innerHTML = orig;
       });
@@ -494,7 +513,9 @@ function openDetail(id){
         const saveWrap = $('#p3SaveWrap');
         if(saveWrap) saveWrap.hidden = false;
         const area = $('#p3Area');
-        if(area) area.dataset.p3State = 'generated';
+        if(area){ area.hidden = false; area.dataset.p3State = 'generated'; }
+        const bottom = $('#p2BottomBar');
+        if(bottom) bottom.hidden = false;
       }
     }
     // 渲染 P2 提交历史记录
@@ -619,24 +640,14 @@ async function aiStoryLink(id){
 
 function renderStoryLink(el, j){
   if(!el) return;
-  // 同步逻辑链到 P2 作答框正下方（照着讲）
-  const lb = document.getElementById('p2LogicBar');
-  if(lb){
-    const txt = lb.querySelector('.sp-logic-text');
-    if(j.logicChain && txt){
-      txt.textContent = j.logicChain;
-      lb.hidden = false;
-    } else {
-      lb.hidden = true;
-    }
-  }
   let h = '<div class="mat-plan">';
-  h += '<div class="mat-plan-head">🧩 AI 串题方案（跨故事拼细节）</div>';
-  if(j.article) h += '<div class="mat-plan-sec"><b>① 参考英文（自己话讲，开头结尾已包含）</b><div class="mat-story-en">' + escapeHtml(j.article) + '</div></div>';
-  if(j.logicChain) h += '<div class="mat-plan-sec"><b>② 本题逻辑链</b><div class="mat-logic">' + escapeHtml(j.logicChain) + '</div></div>';
-  h += '<div class="mat-plan-tips">💡 方案根据你的万能故事库跨故事拼细节生成；点「🔀 AI 串题思路」可重新生成。</div>';
+  h += '<div class="mat-plan-head">🧩 串题素材（AI 根据万能故事库匹配）</div>';
+  if(j.logicChain) h += '<div class="mat-plan-sec"><b>串题逻辑</b><div class="mat-logic">' + escapeHtml(j.logicChain) + '</div></div>';
+  if(j.article) h += '<div class="mat-plan-sec"><b>串题原文</b><div class="mat-story-en">' + escapeHtml(j.article) + '</div>';
+  h += '<div class="mat-plan-tips">💡 方案根据你的万能故事库跨故事拼细节生成；点「AI 串题思路」可重新生成。</div>';
   h += '</div>';
   el.innerHTML = h;
+  el.style.display = 'block';
 }
 
 /* === P3 追问区渲染：3 个抽象题 + 每题一个朗读按钮 + 答案框 ===
