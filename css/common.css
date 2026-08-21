@@ -1376,8 +1376,8 @@ main.container{padding-top:20px}
 
 /* 紧凑双卡 */
 .meta{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
-.meta-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 18px;display:flex;justify-content:space-between;align-items:center;transition:transform .15s,box-shadow .15s,border-color .15s;box-shadow:var(--shadow)}
-.meta-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:var(--primary)}
+.meta-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 18px;display:flex;justify-content:space-between;align-items:center;transition:transform .18s,box-shadow .18s,border-color .18s;box-shadow:var(--shadow);text-decoration:none;color:var(--ink)}
+.meta-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md);border-color:var(--primary)}
 .meta-left .label{font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:4px}
 .meta-left .val{font-size:22px;font-weight:800;letter-spacing:-.01em}
 .meta-left .val .u{font-size:13px;color:var(--muted);font-weight:500;margin-left:2px}
@@ -1385,11 +1385,12 @@ main.container{padding-top:20px}
 .meta-ico{width:46px;height:46px;border-radius:12px;background:var(--primary-soft);color:var(--primary);display:inline-flex;align-items:center;justify-content:center;flex:none}
 .meta-ico svg{width:22px;height:22px}
 
-/* 6 模块快速入口 */
+/* 6 模块快速入口（首页 .qc 走 6 列；其它页面若用 4 个走 .qc-4） */
 .quick{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:12px}
-.qc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 6px 12px;text-align:center;text-decoration:none;color:var(--ink);transition:transform .15s,box-shadow .15s,border-color .15s;display:flex;flex-direction:column;align-items:center;box-shadow:var(--shadow)}
-.qc:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:var(--primary)}
-.qc-ico{width:38px;height:38px;margin:0 auto 6px;border-radius:11px;background:var(--primary-soft);color:var(--primary);display:inline-flex;align-items:center;justify-content:center}
+.quick.qc-4{grid-template-columns:repeat(4,1fr)}
+.qc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 6px 12px;text-align:center;text-decoration:none;color:var(--ink);transition:transform .18s,box-shadow .18s,border-color .18s;display:flex;flex-direction:column;align-items:center;box-shadow:var(--shadow)}
+.qc:hover{transform:translateY(-3px);box-shadow:var(--shadow-md);border-color:var(--primary)}
+.qc-ico{width:38px;height:38px;margin:0 auto 6px;border-radius:12px;background:var(--primary-soft);color:var(--primary);display:inline-flex;align-items:center;justify-content:center}
 .qc-ico svg{width:21px;height:21px}
 .qc-nm{font-size:13.5px;font-weight:700}
 .qc-due{display:inline-block;margin-top:4px;padding:1px 7px;background:var(--warn-soft);color:var(--warn-ink);border-radius:999px;font-size:11px;font-weight:700}
@@ -1411,6 +1412,7 @@ main.container{padding-top:20px}
   main.container{padding-top:18px}
   .meta{grid-template-columns:1fr}
   .quick{grid-template-columns:repeat(3,1fr)}
+  .quick.qc-4{grid-template-columns:repeat(2,1fr)}
   .hero-num .big{font-size:48px}
   .hero-greet{flex-wrap:wrap;gap:6px}
   .hero-goal{width:100%;text-align:left}

@@ -5,9 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>首页 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css" />
-<link rel="icon" type="image/x-icon" href="/favicon.ico?v=4" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=4">
-<link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=4">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=5" />
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=5">
 <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png?v=4">
 <link rel="manifest" href="/manifest.json" />
 <meta name="theme-color" content="#3a9a93" />
@@ -56,9 +55,9 @@
     </div>
   </section>
 
-  <!-- L2 · 紧凑双卡 -->
+  <!-- L2 · 紧凑双卡（包 a 可点击，与下方 6 模块去重后作为唯一入口） -->
   <section class="meta">
-    <article class="meta-card">
+    <a class="meta-card" href="timer.html">
       <div class="meta-left">
         <div class="label">今日学习</div>
         <div class="val" id="dashTodayTime"></div>
@@ -67,8 +66,8 @@
       <div class="meta-ico">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg>
       </div>
-    </article>
-    <article class="meta-card">
+    </a>
+    <a class="meta-card" href="practice.html">
       <div class="meta-left">
         <div class="label">待复习单词</div>
         <div class="val" id="dashDueWords"></div>
@@ -77,17 +76,15 @@
       <div class="meta-ico">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h12a3 3 0 0 1 3 3v11H7a3 3 0 0 1-3-3V5zM4 5a3 3 0 0 1 3-3h9"/><path d="M9 9h7M9 13h5"/></svg>
       </div>
-    </article>
+    </a>
   </section>
 
-  <!-- L3 · 6 模块快速入口 -->
-  <section class="quick">
-    <a class="qc" href="timer.html"><span class="qc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg></span><span class="qc-nm">计时</span></a>
+  <!-- L3 · 4 模块快速入口（计时/单词去重后保留：计划 / 语料 / 口语 / 写作） -->
+  <section class="quick qc-4">
     <a class="qc" href="plans.html"><span class="qc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4"/></svg></span><span class="qc-nm">计划</span></a>
-    <a class="qc" href="practice.html"><span class="qc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h12a3 3 0 0 1 3 3v11H7a3 3 0 0 1-3-3V5zM4 5a3 3 0 0 1 3-3h9"/></svg></span><span class="qc-nm">单词</span><span class="qc-due" id="qcDueWords" hidden></span></a>
     <a class="qc" href="corpus.html"><span class="qc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V6l11-2v12"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></span><span class="qc-nm">语料</span></a>
-    <a class="qc" href="speaking.html"><span class="qc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v20M5 7l7-5 7 5M5 17l7 5 7-5"/></svg></span><span class="qc-nm">口语</span></a>
-    <a class="qc" href="writing.html"><span class="qc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21l3-2 8-8-1-1-8 8-2 3zM14 6l3 3M16 4l4 4"/></svg></span><span class="qc-nm">写作</span></a>
+    <a class="qc" href="speaking.html"><span class="qc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 01-11.5 7.2L3 21l1.8-6.5A8 8 0 1121 12z"/></svg></span><span class="qc-nm">口语</span></a>
+    <a class="qc" href="writing.html"><span class="qc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L18.5 9.5l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg></span><span class="qc-nm">写作</span></a>
   </section>
 
   <!-- 今日学习记录 -->
