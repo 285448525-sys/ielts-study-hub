@@ -42,30 +42,68 @@
     }catch(e){ return null; }
   }
   function clearResumeSnapshot(){ try{ localStorage.removeItem(RESUME_KEY); }catch(e){} }
-  function injectAbandonButton(){
-    if($('#mockAbandonBtn')) return;
-    const b = document.createElement('button');
-    b.id = 'mockAbandonBtn';
-    b.type = 'button';
-    b.className = 'btn';
-    b.textContent = '放弃本次模考';
-    b.style.cssText = 'float:right;margin-left:8px;padding:4px 10px;font-size:12px;background:transparent;color:var(--muted,#888);border:1px solid #ddd';
-    b.onclick = () => {
-      if(window.__mockTick){ clearInterval(window.__mockTick); window.__mockTick = null; }
-      stopTotalTimer();
-      clearResumeSnapshot();
-      const ab = $('#mockAbandonBtn'); if(ab) ab.remove();
-      const st = $('#mockStage'); if(st) st.hidden = true;
-      const rp = $('#mockReport'); if(rp) rp.hidden = true;
-      const ms = $('#mockStart'); if(ms) ms.hidden = false;
-      mockState = null;
-      renderMockStart();
-      toast('已放弃未完成的模考');
-    };
-    const phase = $('#mockPhase');
+  /* ---------- 右下角红色「退出」按钮 + 退出确认对话框 ----------
+     退出交互：点 FAB → 弹对话框，三选一：
+       · 保存进度并退出：保留 localStorage 快照，返回开始卡（下次进入模考自动续考；同会话也可点「继续上次模考」）
+       · 清除记录并退出：清掉快照，返回开始卡
+       · 继续模考：关闭对话框，留在当前题
+     FAB 挂在 #mockStage 内（fixed 定位），舞台隐藏 / 切 tab / 显示报告时随父级自动消失，不污染其他页面。 */
+  function injectExitButton(){
+    if($('#mockExitFab')) return;
     const stage = $('#mockStage');
-    if(phase && phase.parentNode) phase.parentNode.insertBefore(b, phase);
-    else if(stage) stage.insertBefore(b, stage.firstChild);
+    if(!stage) return;
+    const b = document.createElement('button');
+    b.id = 'mockExitFab';
+    b.type = 'button';
+    b.className = 'mock-exit-fab';
+    b.setAttribute('aria-label', '退出模考');
+    b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg> 退出模考';
+    b.onclick = () => showExitModal();
+    stage.appendChild(b);
+  }
+  function removeExitButton(){ const b = $('#mockExitFab'); if(b) b.remove(); }
+  function showExitModal(){
+    if($('#mockExitModal')) return;
+    const backdrop = document.createElement('div');
+    backdrop.id = 'mockExitModal';
+    backdrop.className = 'mock-modal-backdrop';
+    backdrop.innerHTML =
+      '<div class="mock-modal" role="dialog" aria-modal="true">'
+      + '<h3>退出模考？</h3>'
+      + '<p class="mock-modal-desc">是否需要保存本次模考进度？保存后，下次进入模考可继续未完成的部分；不保存将清除本次所有答题记录。</p>'
+      + '<div class="mock-modal-actions">'
+      + '<button class="mock-modal-btn save" id="mockExitSave">保存进度并退出</button>'
+      + '<button class="mock-modal-btn clear" id="mockExitClear">不保存，清除记录退出</button>'
+      + '<button class="mock-modal-btn cancel" id="mockExitCancel">继续模考</button>'
+      + '</div></div>';
+    backdrop.addEventListener('click', e => { if(e.target === backdrop) closeExitModal(); });
+    document.body.appendChild(backdrop);
+    const save = $('#mockExitSave'); if(save) save.onclick = () => { closeExitModal(); exitToStart(true); };
+    const clear = $('#mockExitClear'); if(clear) clear.onclick = () => { closeExitModal(); exitToStart(false); };
+    const cancel = $('#mockExitCancel'); if(cancel) cancel.onclick = () => closeExitModal();
+  }
+  function closeExitModal(){ const m = $('#mockExitModal'); if(m) m.remove(); }
+  function exitToStart(save){
+    if(window.__mockTick){ clearInterval(window.__mockTick); window.__mockTick = null; }
+    stopTotalTimer();
+    if(!save) clearResumeSnapshot();   // 保存则不清除，保留快照供续考
+    removeExitButton();
+    mockState = null;
+    $('#mockStage').hidden = true;
+    $('#mockReport').hidden = true;
+    $('#mockStart').hidden = false;
+    renderMockStart();
+    toast(save ? '已保存进度，下次进入模考可继续' : '已清除本次模考记录');
+  }
+  async function resumeFromSnapshot(){
+    const snap = loadResumeSnapshot();
+    if(!snap){ renderMockStart(); return; }
+    mockState = { p1Set: snap.p1Set, p2Topic: snap.p2Topic, answers: snap.answers, pronSource: snap.pronSource, p3qs: snap.p3qs || [], totalRemaining: (snap.totalRemaining != null ? snap.totalRemaining : TOTAL_LIMIT) };
+    $('#mockStart').hidden = true; $('#mockReport').hidden = true; $('#mockStage').hidden = false;
+    injectExitButton();
+    startTotalTimer();
+    toast('已恢复上次未完成的模考，继续答题');
+    await runExam(snap);
   }
 
   /* ---------- 工具 ---------- */
@@ -123,6 +161,32 @@
   box.innerHTML =
     row(fixed != null, '🔊 发音分', pronVal) +
     row(hasKey, '🤖 AI 接口', hasKey ? '已配置 DeepSeek Key' : '未配置（<a href="settings.html">去设置填</a>）');
+
+  // 续考入口：若上次有未完成的模考（保存进度退出后，同会话内可直接「继续上次模考」），
+  // 显示提示 + 续考按钮，并隐藏原本的「开始模考 →」（避免误点覆盖）。无快照时恢复显示。
+  let resumeBox = $('#mockResumeBox'); if(resumeBox) resumeBox.remove();
+  const startBtn = $('#mockStartBtn');
+  const snap = loadResumeSnapshot();
+  if(snap){
+    if(startBtn) startBtn.hidden = true;
+    const sec = $('#mockStart');
+    if(sec){
+      resumeBox = document.createElement('div');
+      resumeBox.id = 'mockResumeBox';
+      resumeBox.className = 'mock-resume-box';
+      const when = snap.ts ? new Date(snap.ts).toLocaleString() : '';
+      resumeBox.innerHTML = '<div class="mock-resume-title">你有一场未完成的模考' + (when ? '（' + when + '）' : '') + '</div>'
+        + '<div class="mock-resume-actions">'
+        + '<button class="btn btn-primary" id="mockResumeBtn">继续上次模考 →</button>'
+        + '<button class="btn" id="mockNewBtn">开始新模考（覆盖）</button>'
+        + '</div>';
+      sec.appendChild(resumeBox);
+      const rb = $('#mockResumeBtn'); if(rb) rb.onclick = () => resumeFromSnapshot();
+      const nb = $('#mockNewBtn'); if(nb) nb.onclick = () => { if(confirm('确定放弃上次未完成的模考，开始新的一场吗？')) startExam(); };
+    }
+  } else {
+    if(startBtn) startBtn.hidden = false;
+  }
   }
 
   /* ---------- 单题交互（手动输入文本框，无录音）---------- */
@@ -339,7 +403,7 @@
       toast('模考中断：' + e.message);
       stopTotalTimer();
       clearResumeSnapshot();
-      const ab = $('#mockAbandonBtn'); if(ab) ab.remove();
+      removeExitButton();
       $('#mockStage').hidden = true; $('#mockStart').hidden = false; renderMockStart();
     }
   }
@@ -499,9 +563,9 @@
     if(body) body.innerHTML = report
       ? window.MockReport.render(report)
       : '<p class="muted">本次评分未完成（AI 接口异常），但你的回答已存入「回顾」。</p>';
-    // 模考完成：清理进度快照与「放弃」按钮，下一次进入不再自动续考
+    // 模考完成：清理进度快照与「退出」按钮，下一次进入不再自动续考
     clearResumeSnapshot();
-    const ab = $('#mockAbandonBtn'); if(ab) ab.remove();
+    removeExitButton();
   }
 
   /* ---------- 全新开考入口（由「开始模考」按钮触发） ---------- */
@@ -526,6 +590,7 @@
     $('#mockStart').hidden = true;
     $('#mockReport').hidden = true;
     $('#mockStage').hidden = false;
+    injectExitButton();
 
     await runExam(null);
   }
@@ -543,18 +608,8 @@
     renderHistoryArea();
     // 断点续考：若上次模考未做完就离开了，返回模考页时自动恢复现场
     const snap = loadResumeSnapshot();
-    if(snap){
-      mockState = { p1Set: snap.p1Set, p2Topic: snap.p2Topic, answers: snap.answers, pronSource: snap.pronSource, p3qs: snap.p3qs || [], totalRemaining: (snap.totalRemaining != null ? snap.totalRemaining : TOTAL_LIMIT) };
-      $('#mockStart').hidden = true;
-      $('#mockReport').hidden = true;
-      $('#mockStage').hidden = false;
-      injectAbandonButton();
-      startTotalTimer(); // 断点续考：整场倒计时从快照剩余继续
-      toast('已自动恢复上次未完成的模考，继续答题');
-      runExam(snap);
-    } else {
-      renderMockStart();
-    }
+    if(snap){ await resumeFromSnapshot(); }
+    else { renderMockStart(); }
     const startBtn = $('#mockStartBtn');
     if(startBtn) startBtn.onclick = () => {
       if(window.__mockTick){ clearInterval(window.__mockTick); window.__mockTick = null; }
