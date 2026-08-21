@@ -6,26 +6,18 @@ ready(() => {
     $('#userName').textContent = s.name || 'Camille';
   });
 
-  // v5 首页：纵向信息流渲染（倒计时 / 今日学习 / 待复习 / 模块时长 / 连续天数）
-  safe(renderDashV5);
+  // v6 首页渲染（design/31 A 版）
+  safe(renderDashV6);
 
-  // 计时保存后整页指标就地刷新（今日学习时长 + 模块条形图 + 连续天数）
-  // 软导航会重跑本文件：先移除旧监听再挂新监听，避免重复注册
+  // 计时保存后整页指标就地刷新（软导航会重跑本文件：先移除旧监听再挂新监听）
   const prevHub = window.__hubSessionSaved;
   if(typeof prevHub === 'function') document.removeEventListener('hub:session-saved', prevHub);
-  window.__hubSessionSaved = () => safe(renderDashV5);
+  window.__hubSessionSaved = () => safe(renderDashV6);
   document.addEventListener('hub:session-saved', window.__hubSessionSaved);
 });
 
-/**
- * 首页 v5 渲染：纵向信息流（design/30 首页Dashboard+导航全面简化_详细方案v5.md D2）
- * - 格1：考试倒计时（合并原 dashCountdown + reminderLine 的倒计时）
- * - 格2：今日学习时长（聚合 DATA.sessions）
- * - 格3：待复习单词数
- * - 详情卡：按 moduleName 分组的时长条形图
- */
-function renderDashV5(){
-  // ---- 日期 ----
+/** v6 首页渲染：hero 倒计时 + 双卡 + 快速入口 + 今日记录（design/31 A 版） */
+function renderDashV6(){
   const now = new Date();
   const wks = ['日','一','二','三','四','五','六'];
   const dateEl = $('#dashDate');
@@ -33,28 +25,46 @@ function renderDashV5(){
     (now.getMonth()+1).toString().padStart(2,'0')+'-'+now.getDate().toString().padStart(2,'0')
     +' · 周'+wks[now.getDay()];
 
-  // ---- 格1：考试倒计时 ----
+  // ---- 连续学习天数 chip ----
+  const chipEl = $('#dashStreakChip');
+  if(chipEl){
+    const streak = calcStreakV6();
+    if(streak > 0){
+      chipEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 2c1 3-3 5 0 8 1 1 4-1 4 3 0 3-2 5-4 5s-4-2-4-5c0-3 2-4 4-4"/></svg>连续 '+streak+' 天';
+    } else {
+      chipEl.textContent = '';
+    }
+  }
+
+  // ---- hero：考试倒计时 ----
   const cd = examCountdown();
-  const numEl = $('#dashCDNum');
-  const subEl = $('#dashCDSub');
-  const barEl = $('#dashCDBar');
-  if(cd.hasExam && numEl && subEl && barEl){
+  const numEl = $('#dashHeroNum');
+  const targetEl = $('#dashHeroTarget');
+  const barEl = $('#dashHeroBar');
+  const footEl = $('#dashHeroFoot');
+  const pctEl = $('#dashHeroPct');
+  const totalDays = 45;
+  if(cd.hasExam && numEl && barEl){
     if(cd.daysLeft >= 0){
-      numEl.innerHTML = '<span class="num">'+cd.daysLeft+'</span><span class="unit">天</span>';
-      subEl.textContent = cd.md + ' 机考';
-      // 备考进度估算：假设从首考到目标共 45 天跑道
-      const totalDays = 45;
+      numEl.innerHTML = '<span class="big">'+cd.daysLeft+'</span><span class="unit">天</span>';
+      if(targetEl) targetEl.textContent = cd.md + ' 机考 / 09·13 终考';
       const pct = Math.min(100, Math.max(0, ((totalDays - cd.daysLeft) / totalDays) * 100));
       barEl.style.width = pct.toFixed(0)+'%';
+      if(footEl) footEl.textContent = '已备考 '+(totalDays - cd.daysLeft)+' / '+totalDays+' 天';
+      if(pctEl) pctEl.textContent = '跑道进度 '+pct.toFixed(0)+'%';
     } else {
-      numEl.innerHTML = '<span class="num">已过</span>';
-      subEl.textContent = cd.label || '';
-      barEl.style.width='100%';
+      numEl.innerHTML = '<span class="big">已过</span>';
+      if(targetEl) targetEl.textContent = cd.label || '';
+      barEl.style.width = '100%';
+      if(footEl) footEl.textContent = '';
+      if(pctEl) pctEl.textContent = '';
     }
-  } else if(numEl){ numEl.innerHTML='<span class="num">--</span><span class="unit">天</span>'; }
-  if(!cd.hasExam && subEl) subEl.textContent = '未设置考试日期';
+  } else if(numEl){
+    numEl.innerHTML = '<span class="big">--</span><span class="unit">天</span>';
+    if(targetEl) targetEl.textContent = '未设置考试日期';
+  }
 
-  // ---- 格2：今日学习时长 ----
+  // ---- 双卡：今日学习时长 / 待复习 ----
   const tkey = todayKey();
   const todays = (DATA.sessions||[]).filter(x => x.date === tkey);
   const totalSec = todays.reduce((a,x)=>a+(x.durationSec||0),0);
@@ -65,24 +75,30 @@ function renderDashV5(){
   if(timeEl){
     const h = Math.floor(totalSec/3600);
     const m = Math.floor((totalSec%3600)/60);
-    timeEl.innerHTML = '<span class="num">'+h+'</span><span class="unit">h</span>'
-                      +'<span class="num">'+m+'</span><span class="unit">m</span>';
+    timeEl.innerHTML = h+'<span class="u">h</span>'+m+'<span class="u">m</span>';
   }
-  if(modsEl) modsEl.textContent = mods.size+' 个模块已记录';
+  if(modsEl) modsEl.textContent = mods.size > 0
+    ? [...mods].slice(0,2).join(' · ')
+    : '今天还没开始学习';
 
-  // ---- 格3：待复习单词 ----
   const due = (DATA.words||[]).filter(w => !w.mcDue || w.mcDue <= tkey).length;
   const dueEl = $('#dashDueWords');
   const hintEl = $('#dashDueHint');
-  if(dueEl) dueEl.innerHTML = '<span class="num">'+due+'</span><span class="unit">词</span>';
+  if(dueEl) dueEl.innerHTML = due+'<span class="u">词</span>';
   if(hintEl) hintEl.textContent = due > 0 ? '建议先复习再学新词' : '暂无到期单词';
 
-  // ---- 详情卡：按模块聚合时长 ----
+  // 快速入口「单词」卡上的待复习角标
+  const qcDueEl = $('#qcDueWords');
+  if(qcDueEl){
+    if(due > 0){ qcDueEl.textContent = due; qcDueEl.hidden = false; }
+    else { qcDueEl.hidden = true; }
+  }
+
+  // ---- 今日学习记录条形图 ----
   const bodyEl = $('#dashRecBody');
   const totalEl = $('#dashRecTotal');
   if(!bodyEl) return;
 
-  // 聚合
   const byModule = {};
   todays.forEach(s => {
     const nm = s.moduleName || '未知';
@@ -93,7 +109,7 @@ function renderDashV5(){
 
   if(modNames.length === 0){
     bodyEl.innerHTML = '<div class="empty-state">'
-      +'<p style="text-align:center;padding:26px 0;color:var(--muted);font-size:14px;line-height:1.7">'
+      +'<p style="text-align:center;padding:22px 0;color:var(--muted);font-size:14px;line-height:1.7">'
       +'今天还没有学习记录<br>'
       +'<a href="timer.html" style="color:var(--primary);font-weight:700;text-decoration:none">去「计时学习」开始打卡 →</a>'
       +'</p></div>';
@@ -103,7 +119,7 @@ function renderDashV5(){
       const sec = byModule[nm];
       const pct = Math.round((sec/maxDur)*100);
       const m = Math.floor(sec/60);
-      html += '<div class="dash-rec-row">'
+      html += '<div class="rec-row">'
         +'<span class="nm">'+escHtml(nm)+'</span>'
         +'<span class="bar"><i style="width:'+pct+'%"></i></span>'
         +'<span class="dur">'+m+'m</span>'
@@ -112,36 +128,23 @@ function renderDashV5(){
     bodyEl.innerHTML = html;
   }
 
-  // 总计
   if(totalEl){
     const th = Math.floor(totalSec/3600);
     const tm = Math.floor((totalSec%3600)/60);
     totalEl.textContent = th+'h'+tm+'m';
   }
-
-  // ---- 连续学习天数 ----
-  const streakEl = $('#dashStreak');
-  if(streakEl){
-    const streak = calcStreak(); // 见下方辅助函数
-    if(streak > 0){
-      streakEl.innerHTML = '连续学习 <b>'+streak+'</b> 天';
-    } else {
-      streakEl.textContent = '';
-    }
-  }
 }
 
-/** 计算连续学习天数（从今天往前数连续有 session 的天数；与打卡数据无关） */
-function calcStreak(){
+/** 计算连续学习天数（从今天往前数连续有 session 的天数） */
+function calcStreakV6(){
   const sessions = DATA.sessions || [];
   if(sessions.length === 0) return 0;
   const dates = [...new Set(sessions.map(s=>s.date))].sort().reverse();
-  if(dates[0] !== todayKey()) return 0; // 今天没学，断链
+  if(dates[0] !== todayKey()) return 0;
   let count = 1;
   for(let i=1;i<dates.length;i++){
     const d = new Date(dates[i-1]);
     d.setDate(d.getDate()-1);
-    // todayKey(d) 与 session.date 同格式 YYYY-MM-DD（data.js:757）
     if(dates[i] === todayKey(d)) count++; else break;
   }
   return count;

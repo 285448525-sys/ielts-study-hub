@@ -38,8 +38,8 @@ function favPageIds(){
 }
 
 /* v5：简化后全部平铺，不再分折叠组（首页→回顾 一级；设置/服药 在分隔线下方） */
-const PRIMARY_NAV = ['index','timer','plans','practice','corpus','speaking','writing','review'];
-const MORE_NAV    = ['settings','meds'];
+const PRIMARY_NAV = ['index','timer','plans','practice','corpus','speaking','writing'];
+const MORE_NAV    = ['review','meds','settings'];
 
 function injectNav(){
   const nav = document.getElementById('mainNav');
@@ -53,6 +53,8 @@ function injectNav(){
   html += '<div class="side-head"><img src="icons/icon-192.png" alt="雅思备考 Hub" width="48" height="48"></div>';
   // 方案1：全局计时徽标容器（任何页面常驻；计时进行中显示呼吸徽标 + 一键结束，解决 P1/P3）
   html += '<div class="side-timer-wrap" id="sideTimer"></div>';
+  // 搜索框占位：仅保留外观，不接任何功能（用户确认后续再做查词/搜索）
+  html += '<input class="side-search" placeholder="搜索功能/单词…" disabled title="搜索功能开发中，敬请期待" />';
 
   // v5：全部平铺无折叠 —— 首页→回顾 一级；设置/服药 在分隔线下方
   html += '<div class="side-primary">';
