@@ -1342,11 +1342,11 @@ main.container{padding-top:20px}
 
 /* hero 倒计时主卡（问候/目标/连续天数已收进卡内） */
 /* ⭐ 占满主区宽度，去掉 max-width 限制（避免右侧大片空白） */
-.hero{background:linear-gradient(135deg,var(--primary-bright) 0%,var(--primary-d) 100%);border-radius:var(--radius);padding:20px 28px 22px;color:#fff;margin:0 0 12px;box-shadow:var(--shadow-md);position:relative;overflow:hidden}
+.hero{background:linear-gradient(135deg,var(--primary-bright) 0%,var(--primary-d) 100%);border-radius:var(--radius);padding:20px 28px 22px;color:#fff;margin:0 0 12px;box-shadow:var(--shadow-md);position:relative;overflow:hidden;display:block}
 .hero::before{content:"";position:absolute;right:-60px;top:-60px;width:240px;height:240px;background:rgba(255,255,255,.10);border-radius:50%;pointer-events:none}
 .hero::after{content:"";position:absolute;left:-40px;bottom:-80px;width:200px;height:200px;background:rgba(255,255,255,.06);border-radius:50%;pointer-events:none}
 /* 问候行：替代原来的独立 .hello 横条 */
-.hero-greet{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:14px;position:relative;z-index:1;width:100%}
+.hero-greet{display:grid;grid-template-columns:auto 1fr auto;align-items:center;column-gap:16px;margin-bottom:14px;position:relative;z-index:1}
 .hero-user{display:flex;align-items:center;gap:10px;min-width:0;flex:none}
 .hero-hi{font-size:15px;font-weight:700;opacity:.95;white-space:nowrap}
 .hero-date{font-size:12.5px;opacity:.85;white-space:nowrap}
