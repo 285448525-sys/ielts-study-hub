@@ -1,4 +1,6 @@
-var active = null; // {moduleId, moduleName, subId, subName, startTs, paused, pauseStart, pauseAccum}
+var active = null; // 本机「活跃计时」态：仅当本机是计时拥有者时存在。
+                     // {timerId, ownerDevice, moduleId, moduleName, subId, subName,
+                     //  startTs, paused, pauseStart, pauseAccum, targetSec, mode, updatedAt}
 
 /* ── 计时器心跳：必须挂在 window 上，不能存在 active 里 ──────────────────
    软导航（common.js runPageScript）用 window.eval 重跑本脚本，每次 eval 的
@@ -14,20 +16,63 @@ function startTick(){
   window.__timerTick = setInterval(updateTimer, 1000);
 }
 
-/* 统一写入活动会话：saveActive 是整对象替换，所有字段必须在此列全，
-   否则新增的 targetSec/mode 会被覆盖清空（软导航重跑也不会丢）。 */
-function persistActive(){
+/* ── 单一可信源：云端镜像 DATA.activeTimer ───────────────────────────────
+   结构（v2）：
+     { timerId, ownerDevice, moduleId, moduleName, subId, subName,
+       startTs, paused, pauseStart, pauseAccum, targetSec, mode,
+       updatedAt, lastBeat, ended }
+   - timerId：全局唯一，一次计时生命周期内不变（跨端同一份）
+   - ownerDevice：发起设备的 deviceId；非 owner 端只读不写
+   - lastBeat：owner 每 5s 续租的心跳；超过 TIMER_STALE_MS 视为 owner 离线
+   - ended：true 表示已结算，两端见此即清本地态、不再续租/恢复
+   本机 ACTIVE_KEY 仅作「恢复锚点」，不参与跨端新旧判定（旧逻辑靠 updatedAt
+   比大小会误把已结束计时当"较新进行中"复活，是累加 bug 的根因之一）。 */
+const TIMER_STALE_MS = 15000;
+function getDeviceId(){
+  try{
+    let id = localStorage.getItem('ielts_hub_device');
+    if(!id){ id = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); localStorage.setItem('ielts_hub_device', id); }
+    return id;
+  }catch(e){ return 'd' + Date.now().toString(36); }
+}
+
+/* 写本地恢复锚点（仅本机持有活跃计时时调，用于刷新后找回，不进云端判定） */
+function persistLocalActive(){
   if(!active) return;
-  window.__timerActive = true;   // 标记「本页有进行中计时」：cloudDownload 自动刷新时跳过本页，避免打断计时
-  active.updatedAt = Date.now();   // 本机最新操作时刻：供 hub:data-merged 判断「是否另一端更新」
-  saveActive({ moduleId: active.moduleId, subId: active.subId, startTs: active.startTs,
-    paused: active.paused, pauseStart: active.pauseStart, pauseAccum: active.pauseAccum,
-    targetSec: active.targetSec || null, mode: active.mode || 'up', updatedAt: active.updatedAt });
-  // 云同步镜像：带 updatedAt 供另一端比较新旧（低频：仅开始/暂停/继续/切模式时调用）
-  DATA.activeTimer = { moduleId: active.moduleId, moduleName: active.moduleName, subId: active.subId, subName: active.subName,
+  saveActive({ timerId: active.timerId, ownerDevice: active.ownerDevice, moduleId: active.moduleId, subId: active.subId,
     startTs: active.startTs, paused: active.paused, pauseStart: active.pauseStart, pauseAccum: active.pauseAccum,
-    targetSec: active.targetSec || null, mode: active.mode || 'up', updatedAt: active.updatedAt };
+    targetSec: active.targetSec || null, mode: active.mode || 'up', updatedAt: active.updatedAt, lastBeat: active.lastBeat });
+}
+
+/* 写云端镜像（单一可信源）。仅在「本机是 owner 且未结束」时调用。 */
+function persistMirror(){
+  if(!active) return;
+  active.updatedAt = Date.now();
+  active.lastBeat = Date.now();
+  DATA.activeTimer = {
+    timerId: active.timerId, ownerDevice: active.ownerDevice,
+    moduleId: active.moduleId, moduleName: active.moduleName, subId: active.subId, subName: active.subName,
+    startTs: active.startTs, paused: active.paused, pauseStart: active.pauseStart, pauseAccum: active.pauseAccum,
+    targetSec: active.targetSec || null, mode: active.mode || 'up',
+    updatedAt: active.updatedAt, lastBeat: active.lastBeat, ended: false
+  };
+  hubSave();   // 走防抖上传，另一端 30s 内合并可见
+}
+/* 广播结束（带 timerId，另一端合并后清本地态、不二次入库） */
+function broadcastEnded(timerId){
+  DATA.activeTimer = { timerId: timerId || (active && active.timerId) || null, ended: true, updatedAt: Date.now(), lastBeat: 0 };
   hubSave();
+}
+/* 镜像是否仍有效（owner 在线且未结束） */
+function mirrorAlive(m){
+  if(!m || m.ended) return false;
+  return (Date.now() - _num(m.lastBeat)) < TIMER_STALE_MS;
+}
+/* 镜像是否由「他人」持有且仍在线（本机应只读、禁止开新计时） */
+function mirrorHeldByOther(m){
+  if(!mirrorAlive(m)) return false;
+  const me = getDeviceId();
+  return (m.ownerDevice || '') !== me;
 }
 
 function setModeUI(mode){
@@ -65,6 +110,25 @@ function doneNotify(title, body){
   }catch(e){}
 }
 
+/* 远端计时只读展示（他人持有且在线时调用）：本机不持有 active，只展示状态 */
+function renderRemoteActive(){
+  const m = DATA.activeTimer;
+  if(!m || m.ended || !m.timerId) return false;
+  if((m.ownerDevice || '') === getDeviceId()) return false;   // 自己拥有走恢复流程，不走这里
+  if(!mirrorAlive(m)) return false;                            // 他人离线由 takeover 接管
+  const mod = MODULES.find(x => x.id === m.moduleId);
+  const mName = m.moduleName || (mod && mod.name) || '学习';
+  $('#activeInfo').innerHTML = '📱 另一设备正在计时：<strong>' + escapeHtml(mName) + '</strong>';
+  $('#focusInfo').textContent = '在「' + (m.ownerDevice || '其他设备') + '」上进行中，本机无法同时开启';
+  $('#liveTimer').textContent = '进行中…';
+  $('#liveTimer').style.color = 'var(--muted)';
+  $('#stopBtn').disabled = true;
+  $('#pauseBtn').disabled = true;
+  window.__timerActive = true;
+  renderTimer();
+  return true;
+}
+
 /* 模块图标：单色线性 SVG（emoji → SVG，与全站图标规范一致；仅计时页用） */
 const MOD_ICONS = {
   listening:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="13" width="4" height="7" rx="1.5"/><rect x="17" y="13" width="4" height="7" rx="1.5"/></svg>',
@@ -77,8 +141,8 @@ const MOD_ICONS = {
 /* 一个模块 = 一个 chip + 一个小「开始」按钮（不再下钻子任务） */
 function moduleCard(m){
   const running = active && active.moduleId === m.id;
-  const otherRunning = active && active.moduleId !== m.id;
-  const btnTxt = running ? '进行中' : '开始';
+  const otherRunning = (active && active.moduleId !== m.id) || mirrorHeldByOther(DATA.activeTimer);
+  const btnTxt = running ? '进行中' : (mirrorHeldByOther(DATA.activeTimer) ? '占用中' : '开始');
   const btnCls = running ? 'btn-primary running-badge' : 'btn';
   const disabled = otherRunning ? 'disabled' : '';
   const card = document.createElement('div');
@@ -129,15 +193,23 @@ function pauseMs(){
 
 /* 直接以「模块」开始计时（不再选子任务） */
 function startSession(moduleId){
+  // 单一可信源守卫：若云端镜像显示「他人正持有活跃计时」，禁止本机再开（消除双端同时计时）
+  if(mirrorHeldByOther(DATA.activeTimer)){
+    renderTimer();
+    toast('另一设备正在进行「' + (DATA.activeTimer.moduleName || '学习') + '」计时，请先在那边结束', 3500);
+    return;
+  }
   const m = MODULES.find(x => x.id === moduleId); if(!m) return;
   const gm = parseInt($('#goalMin').value, 10);
   const targetSec = (!isNaN(gm) && gm > 0) ? gm*60 : null;
   const modeEl = document.querySelector('#modeSeg .seg-btn.active');
   const mode = (modeEl && modeEl.dataset.mode) || 'up';
-  active = { moduleId, moduleName: m.name, subId: m.id, subName: m.name,
-    startTs: Date.now(), paused: false, pauseStart: null, pauseAccum: 0,
-    targetSec, mode };
-  persistActive();
+  const now = Date.now();
+  active = { timerId: uid(), ownerDevice: getDeviceId(), moduleId, moduleName: m.name, subId: m.id, subName: m.name,
+    startTs: now, paused: false, pauseStart: null, pauseAccum: 0,
+    targetSec, mode, updatedAt: now, lastBeat: now };
+  persistLocalActive();
+  persistMirror();        // 立即写云端可信源
   ensureAudio();
   if(DATA.settings.notifyOnDone && 'Notification' in window && Notification.permission === 'default'){ Notification.requestPermission(); }
   $('#activeInfo').innerHTML = '<strong>' + m.name + '</strong> 进行中';
@@ -148,8 +220,9 @@ function startSession(moduleId){
   $('#pauseBtn').className = 'btn';
   toast('已开始：' + m.name);
   startTick();
+  startHeartbeat();   // 开始续租云端心跳，另一端据 lastBeat 判断本机在线
   renderTimer();
-  document.dispatchEvent(new CustomEvent('hub:timer-state'));   // 方案1：通知全局徽标出现
+  document.dispatchEvent(new CustomEvent('hub:timer-state'));   // 通知全局徽标出现
 }
 
 function togglePause(){
@@ -168,36 +241,41 @@ function togglePause(){
     $('#pauseBtn').className = 'btn';
     toast('继续学习，加油');
   }
-  persistActive();
+  persistLocalActive();
+  persistMirror();
   updateTimer();
-  document.dispatchEvent(new CustomEvent('hub:timer-state'));   // 方案1：暂停/继续时同步徽标状态
+  document.dispatchEvent(new CustomEvent('hub:timer-state'));   // 暂停/继续时同步徽标状态
 }
 
 function stopSession(){
   if(!active) return;
   stopTick();
+  stopHeartbeat();
+  const timerId = active.timerId;
   let totalPauseMs = active.pauseAccum || 0;
   if(active.paused && active.pauseStart) totalPauseMs += (Date.now() - active.pauseStart);
   const endTs = Date.now();
   const totalSec = Math.round((endTs - active.startTs)/1000);
   const pauseSec = Math.round(totalPauseMs/1000);
   const durationSec = Math.max(0, totalSec - pauseSec);
-  if((DATA.settings.chimeOnDone !== false) && durationSec > 0) playChime();
-  DATA.sessions.push({
-    id: uid(), date: todayKey(), moduleId: active.moduleId, subId: active.subId,
-    moduleName: active.moduleName, subName: active.subName,
-    startTs: active.startTs, endTs, durationSec, pauseSec
-  });
-  clearActive();   // 关键：结束后必须清掉 localStorage 里的活动会话，
-                   // 否则下次进页面会被当成「未结束的计时」按旧 startTs 恢复，
-                   // 再结束一次就重复入库、时长虚高。
-  DATA.activeTimer = { ended: true, updatedAt: Date.now() };   // 广播"已结束"，覆盖另一端的进行中镜像
-  hubSave();
-  const d = active; active = null;   // 先清活动态再广播，避免徽标闪一下旧会话
-  window.__timerActive = false;      // 结束：清除「进行中」标记
-  // 通知首页/侧边栏刷新「今日已学」（解耦：只广播事件，不直接调其他页函数）
+  // 入库去重：同一 timerId 只结算一次（防双端各自结束 → 两段计时叠加进当日统计）
+  const already = DATA.sessions.some(s => s.timerId && s.timerId === timerId);
+  if(!already && durationSec > 0){
+    if((DATA.settings.chimeOnDone !== false)) playChime();
+    DATA.sessions.push({
+      id: uid(), timerId, date: todayKey(), moduleId: active.moduleId, subId: active.subId,
+      moduleName: active.moduleName, subName: active.subName,
+      startTs: active.startTs, endTs, durationSec, pauseSec
+    });
+    hubSave();   // 入库走 hubSave：本机持久化 + 防抖上传（含 ended 广播）
+  }
+  clearActive();              // 清本机恢复锚点
+  broadcastEnded(timerId);    // 广播 ended（带 timerId），另一端合并后清本地态、不二次入库
+  const d = active; active = null;
+  window.__timerActive = false;
+  // 通知首页/侧边栏刷新「今日已学」
   document.dispatchEvent(new CustomEvent('hub:session-saved', { detail: { date: todayKey() } }));
-  document.dispatchEvent(new CustomEvent('hub:timer-state'));   // 方案1：通知全局徽标消失
+  document.dispatchEvent(new CustomEvent('hub:timer-state'));   // 通知全局徽标消失
   $('#activeInfo').textContent = '当前没有进行中的学习';
   $('#focusInfo').textContent = '';
   $('#stopBtn').disabled = true;
@@ -207,8 +285,12 @@ function stopSession(){
   $('#liveTimer').textContent = '00:00:00';
   $('#liveTimer').style.color = '';
   renderTimer();
-  const focusPct = totalSec > 0 ? Math.round(durationSec/totalSec*100) : 100;
-  toast('已保存 ' + d.subName + '：学习 ' + fmtHM(durationSec) + (pauseSec > 0 ? ' · 暂停 ' + fmtHM(pauseSec) + ' · 专注度 ' + focusPct + '%' : ''));
+  if(already){
+    toast('该段计时已在其他设备结算，本端不再重复记录');
+  } else {
+    const focusPct = totalSec > 0 ? Math.round(durationSec/totalSec*100) : 100;
+    toast('已保存 ' + d.subName + '：学习 ' + fmtHM(durationSec) + (pauseSec > 0 ? ' · 暂停 ' + fmtHM(pauseSec) + ' · 专注度 ' + focusPct + '%' : ''));
+  }
 }
 
 function updateTimer(){
@@ -248,16 +330,63 @@ function updateTimer(){
   $('#focusInfo').textContent = p > 0 ? '中途暂停过 ' + fmtHM(p/1000) : '';
 }
 
+/* 心跳续租：owner 每 5s 刷新 mirror.lastBeat，让另一端能判断「本机在线」 */
+function startHeartbeat(){
+  stopHeartbeat();
+  window.__timerBeat = setInterval(() => {
+    if(active && !active.paused){ persistMirror(); }   // 暂停时不续租：留给另一端判定托管
+  }, 5000);
+}
+function stopHeartbeat(){
+  if(window.__timerBeat){ clearInterval(window.__timerBeat); window.__timerBeat = null; }
+}
+/* 跨端接管：打开计时页时，若云端镜像由「他人」持有但已离线（lastBeat 过期），
+   本机作为新 owner 接管该计时（保留 startTs/暂停累积，不重复起算） */
+function maybeTakeover(){
+  const m = DATA.activeTimer;
+  if(!m || m.ended || !m.timerId) return false;
+  const me = getDeviceId();
+  if((m.ownerDevice || '') === me) return false;          // 自己拥有：不接管
+  if(mirrorAlive(m)) return false;                         // 他人仍在线：不抢
+  // 他人离线 → 接管：用镜像数据重建本机 active，owner 改为本机
+  const mod = MODULES.find(x => x.id === m.moduleId);
+  active = { timerId: m.timerId, ownerDevice: me,
+    moduleId: m.moduleId, moduleName: m.moduleName || (mod && mod.name) || '学习',
+    subId: m.subId || m.moduleId, subName: m.subName || (mod && mod.name) || '学习',
+    startTs: _num(m.startTs), paused: !!m.paused, pauseStart: m.pauseStart ? _num(m.pauseStart) : null,
+    pauseAccum: _num(m.pauseAccum), targetSec: m.targetSec || null, mode: m.mode || 'up',
+    updatedAt: Date.now(), lastBeat: Date.now() };
+  persistLocalActive();
+  persistMirror();   // 接管后立即可信源刷新为「本机拥有」
+  return true;
+}
+
 ready(() => {
   stopTick();   // 进页面第一件事：清掉上一次 eval 遗留的孤儿心跳
-  // 云端合并后如镜像较新（含另一端 ended 广播）→ reload 重走恢复逻辑。
-  // 软导航会重跑本脚本，故挂 window 句柄先解再绑防重复；本机发起的操作会先写
-  // active.updatedAt（最新），不会被自己的 reload 打断，仅另一端有更新才重载。
+  stopHeartbeat();
+  // 运行中不自动 reload——reload 会导致页面频繁刷新（手机端切前台触发 visibilitychange→cloudDownload→merged→reload 循环）。
+  // 跨设备计时恢复改为仅在页面加载时（ready）从镜像恢复，运行中不自动重载。手动刷新即可看到最新状态。
   document.removeEventListener('hub:data-merged', window.__timerMerged);
   window.__timerMerged = () => {
-    // 运行中不 reload——reload 会导致页面频繁刷新（手机端切前台触发 visibilitychange→cloudDownload→merged→reload 循环）。
-    // 跨设备计时恢复改为仅在页面加载时（ready）从镜像恢复，运行中不自动重载。手动刷新即可查看最新状态。
-    return;
+    const m = DATA.activeTimer;
+    // 场景A：另一端结束（ended 广播），本机仍持同 timerId 活跃态 → 清掉、不二次入库
+    if(m && m.ended && active && m.timerId && active.timerId === m.timerId){
+      stopTick(); stopHeartbeat();
+      clearActive();
+      active = null; window.__timerActive = false;
+      $('#activeInfo').textContent = '当前没有进行中的学习';
+      $('#focusInfo').textContent = '';
+      $('#stopBtn').disabled = true; $('#pauseBtn').disabled = true;
+      $('#pauseBtn').textContent = '暂停'; $('#pauseBtn').className = 'btn';
+      $('#liveTimer').textContent = '00:00:00'; $('#liveTimer').style.color = '';
+      renderTimer();
+      toast('该段计时已在其他设备结束');
+      return;
+    }
+    // 场景B：本机无活跃态，但镜像显示他人正计时 → 实时只读展示（不刷新打断）
+    if(!active && m && !m.ended && m.timerId && (m.ownerDevice || '') !== getDeviceId()){
+      renderRemoteActive();
+    }
   };
   document.addEventListener('hub:data-merged', window.__timerMerged);
   $('#stopBtn').addEventListener('click', stopSession);
@@ -266,93 +395,137 @@ ready(() => {
     b.addEventListener('click', () => {
       setModeUI(b.dataset.mode);
       if(active) active.mode = b.dataset.mode;   // 运行中可即时切换模式
-      persistActive();
+      persistLocalActive();
+      persistMirror();
       updateTimer();
     });
   });
-  /* 恢复源选择：本机 saved 与云端镜像（DATA.activeTimer）取 updatedAt 新者；ended 镜像 = 另一端已结束 */
-  const localSaved = loadActive();
-  const mirror = DATA.activeTimer || null;
-  const lt = _num(localSaved && localSaved.updatedAt);
-  const mt = _num(mirror && mirror.updatedAt);
-  let saved = null;
-  if(mirror && mirror.ended && mt >= lt){
-    if(localSaved) clearActive();            // 另一端已结束且较新：本机计时作废
-  } else if(mirror && !mirror.ended && mt >= lt){
-    saved = mirror;                          // 云端进行中且较新：按镜像恢复（镜像含 moduleName/subName，恢复分支字段齐全）
-  } else {
-    saved = localSaved;                      // 否则按本机（旧行为）
-  }
-  let m = null, fallbackSub = null;
-  if(saved){
-    if(saved.moduleId) m = MODULES.find(x => x.id === saved.moduleId);
-    if(!m && saved.subId){ const f = findSub(saved.subId); if(f){ m = f.m; fallbackSub = f.c.name; } }
-  }
-  const startDay = saved ? todayKey(new Date(saved.startTs)) : '';
-  const sameDay = !!saved && startDay === todayKey();
-  const modName = m ? m.name : (saved && saved.moduleId) || '学习';
-  const subName = fallbackSub || modName;
 
-  if(m && sameDay){
-    active = { moduleId: m.id, moduleName: m.name, subId: m.id, subName: fallbackSub || m.name,
-      startTs: saved.startTs, paused: saved.paused || false, pauseStart: saved.pauseStart || null,
-      pauseAccum: saved.pauseAccum || 0 };
-    active.targetSec = saved.targetSec || null;
-    active.mode = saved.mode || 'up';
-    active.updatedAt = saved.updatedAt || Date.now();
-    if(active.targetSec) $('#goalMin').value = Math.round(active.targetSec/60);
-    setModeUI(active.mode);
-    $('#activeInfo').innerHTML = '<strong>' + m.name + '</strong> 进行中';
-    $('#stopBtn').disabled = false;
-    $('#pauseBtn').disabled = false;
-    $('#pauseBtn').textContent = active.paused ? '继续' : '暂停';
-    $('#pauseBtn').className = active.paused ? 'btn btn-primary' : 'btn';
-    startTick();
-    updateTimer();
+  /* ── 恢复逻辑（单一可信源 = 云端镜像 DATA.activeTimer） ──
+     优先级：
+       1) 镜像 ended          → 本机若有同 timerId 活跃态则清掉（防二次入库），不恢复
+       2) 镜像由他人持有且在线 → 只读展示「他人进行中」，本机禁止开新计时
+       3) 镜像由他人持有但离线 → maybeTakeover 接管为本地活跃
+       4) 镜像由本机持有（owner=me）→ 直接用镜像恢复为本地活跃
+       5) 本机仅有 ACTIVE_KEY 锚点（未同步过云端，如离线起步）→ 以本地锚点恢复
+     跨天：镜像 startTs 非今日 → 结算昨日段，今日 0 点起重开（沿用旧逻辑） */
+
+  const mirror = DATA.activeTimer || null;
+  const localSaved = loadActive();
+  const me = getDeviceId();
+  let restored = false;
+
+  // 1) 已结束：清本机活跃态，不恢复
+  if(mirror && mirror.ended){
+    if(active && mirror.timerId && active.timerId === mirror.timerId){ /* 不应发生，ready 时 active 还空 */ }
+    if(localSaved && mirror.timerId && localSaved.timerId === mirror.timerId) clearActive();
+    else if(localSaved) clearActive();
     renderTimer();
-    window.__timerActive = true;   // 同日恢复：标记进行中
-    toast('已恢复未结束的计时：' + m.name + (active.paused ? '（暂停中）' : ''));
     return;
   }
-  // Bug11：跨天计时不再丢弃，自动结算昨天那段时长，今天从 0 点重新计时
-  if(saved && !sameDay){
-    const startOfToday = new Date(); startOfToday.setHours(0,0,0,0);
-    const endPrev = startOfToday.getTime();
-    let pauseMsPrev = saved.pauseAccum || 0;
-    if(saved.paused && saved.pauseStart) pauseMsPrev += (endPrev - saved.pauseStart);
-    const totalSec = Math.max(0, Math.round((endPrev - saved.startTs)/1000));
-    const pauseSec = Math.min(totalSec, Math.max(0, Math.round(pauseMsPrev/1000)));
-    const durationSec = Math.max(0, totalSec - pauseSec);
-    if(durationSec > 0){
-      DATA.sessions.push({
-        id: uid(), date: startDay, moduleId: saved.moduleId, subId: saved.subId,
-        moduleName: modName, subName,
-        startTs: saved.startTs, endTs: endPrev, durationSec, pauseSec
-      });
-      hubSave();
-    }
-    if(m){
-      active = { moduleId: m.id, moduleName: modName, subId: saved.subId, subName: subName,
-        startTs: startOfToday.getTime(), paused: false, pauseStart: null, pauseAccum: 0,
-        targetSec: saved.targetSec || null, mode: saved.mode || 'up' };
-      persistActive();
-      $('#activeInfo').innerHTML = '<strong>' + modName + '</strong> 进行中';
-      $('#stopBtn').disabled = false;
-      $('#pauseBtn').disabled = false;
-      $('#pauseBtn').textContent = '暂停';
-      $('#pauseBtn').className = 'btn';
-      toast('检测到跨天计时：已结算昨天 ' + fmtHM(durationSec) + '，并从今天 0 点继续计时');
-      startTick();
-      updateTimer();
-      renderTimer();
+
+  // 2) 他人持有且在线：只读展示
+  if(mirror && mirror.timerId && (mirror.ownerDevice || '') !== me && mirrorAlive(mirror)){
+    const mod = MODULES.find(x => x.id === mirror.moduleId);
+    const mName = mirror.moduleName || (mod && mod.name) || '学习';
+    $('#activeInfo').innerHTML = '📱 另一设备正在计时：<strong>' + escapeHtml(mName) + '</strong>';
+    $('#focusInfo').textContent = '在「' + (mirror.ownerDevice || '其他设备') + '」上进行中，本机无法同时开启';
+    $('#liveTimer').textContent = '进行中…';
+    $('#liveTimer').style.color = 'var(--muted)';
+    $('#stopBtn').disabled = true;
+    $('#pauseBtn').disabled = true;
+    window.__timerActive = true;
+    renderTimer();   // 此时所有模块卡 disabled（active 为空但 mirrorHeldByOther 守卫会拦 startSession）
+    return;
+  }
+
+  // 3) 他人持有但离线 → 接管
+  if(mirror && mirror.timerId && (mirror.ownerDevice || '') !== me && !mirrorAlive(mirror)){
+    if(maybeTakeover()){
+      const mod = MODULES.find(x => x.id === active.moduleId);
+      if(active.targetSec) $('#goalMin').value = Math.round(active.targetSec/60);
+      setModeUI(active.mode || 'up');
+      $('#activeInfo').innerHTML = '<strong>' + (active.moduleName || (mod&&mod.name) || '学习') + '</strong> 进行中（已接管离线设备）';
+      $('#stopBtn').disabled = false; $('#pauseBtn').disabled = false;
+      $('#pauseBtn').textContent = active.paused ? '继续' : '暂停';
+      $('#pauseBtn').className = active.paused ? 'btn btn-primary' : 'btn';
+      startTick(); startHeartbeat(); updateTimer(); renderTimer();
+      window.__timerActive = true;
+      toast('已接管离线设备的计时：' + (active.moduleName || (mod&&mod.name) || '学习') + (active.paused ? '（暂停中）' : ''));
       return;
     }
-    // 原模块已不存在：只结算昨天那段，清掉活动会话
-    if(durationSec > 0) toast('检测到跨天计时：已结算昨天 ' + fmtHM(durationSec) + '（原模块已不存在，今日计时已清零）');
-    clearActive();
-    renderTimer();
+  }
+
+  // 4) 本机是 owner（含镜像无 ownerDevice 的旧数据）→ 用镜像恢复
+  // 5) 仅有本地锚点（离线起步、云端无镜像）→ 用本地锚点恢复
+  let saved = null;
+  if(mirror && mirror.timerId && (mirror.ownerDevice || '') === me){
+    saved = mirror;
+  } else if(localSaved && localSaved.timerId){
+    saved = localSaved;   // 离线起步：本地锚点优先，进入后 persistMirror 会补回云端
+  } else if(mirror && mirror.timerId){
+    saved = mirror;       // 旧镜像无 ownerDevice 字段：兼容恢复
+  }
+
+  if(saved){
+    const mod = MODULES.find(x => x.id === saved.moduleId);
+    const startDay = todayKey(_num(saved.startTs));
+    const sameDay = startDay === todayKey();
+    // 跨天结算（沿用旧逻辑）
+    if(!sameDay){
+      const startOfToday = new Date(); startOfToday.setHours(0,0,0,0);
+      const endPrev = startOfToday.getTime();
+      let pPrev = _num(saved.pauseAccum);
+      if(saved.paused && saved.pauseStart) pPrev += (endPrev - _num(saved.pauseStart));
+      const totalSec = Math.max(0, Math.round((endPrev - _num(saved.startTs))/1000));
+      const pauseSec = Math.min(totalSec, Math.max(0, Math.round(pPrev/1000)));
+      const durationSec = Math.max(0, totalSec - pauseSec);
+      const mName = saved.moduleName || (mod && mod.name) || '学习';
+      const already = DATA.sessions.some(s => s.timerId && s.timerId === saved.timerId);
+      if(durationSec > 0 && !already){
+        DATA.sessions.push({ id: uid(), timerId: saved.timerId || null, date: startDay,
+          moduleId: saved.moduleId, subId: saved.subId || saved.moduleId, moduleName: mName, subName: saved.subName || mName,
+          startTs: _num(saved.startTs), endTs: endPrev, durationSec, pauseSec });
+        hubSave();
+      }
+      // 今日从 0 点重新计时（owner 改本机）
+      active = { timerId: saved.timerId || uid(), ownerDevice: me, moduleId: saved.moduleId,
+        moduleName: mName, subId: saved.subId || saved.moduleId, subName: saved.subName || mName,
+        startTs: startOfToday.getTime(), paused: false, pauseStart: null, pauseAccum: 0,
+        targetSec: saved.targetSec || null, mode: saved.mode || 'up', updatedAt: Date.now(), lastBeat: Date.now() };
+      persistLocalActive(); persistMirror();
+      $('#activeInfo').innerHTML = '<strong>' + mName + '</strong> 进行中';
+      $('#stopBtn').disabled = false; $('#pauseBtn').disabled = false;
+      $('#pauseBtn').textContent = '暂停'; $('#pauseBtn').className = 'btn';
+      if(active.targetSec) $('#goalMin').value = Math.round(active.targetSec/60);
+      setModeUI(active.mode || 'up');
+      toast('检测到跨天计时：已结算昨天 ' + fmtHM(durationSec) + '，并从今天 0 点继续计时');
+      startTick(); startHeartbeat(); updateTimer(); renderTimer();
+      window.__timerActive = true;
+      return;
+    }
+    // 同日恢复
+    active = { timerId: saved.timerId || uid(), ownerDevice: (saved.ownerDevice || me),
+      moduleId: saved.moduleId, moduleName: saved.moduleName || (mod && mod.name) || '学习',
+      subId: saved.subId || saved.moduleId, subName: saved.subName || (mod && mod.name) || '学习',
+      startTs: _num(saved.startTs), paused: !!saved.paused, pauseStart: saved.pauseStart ? _num(saved.pauseStart) : null,
+      pauseAccum: _num(saved.pauseAccum), targetSec: saved.targetSec || null, mode: saved.mode || 'up',
+      updatedAt: Date.now(), lastBeat: Date.now() };
+    persistLocalActive();
+    if((saved.ownerDevice || '') !== me) persistMirror();   // 旧镜像无 owner：补写 owner 回云端
+    else persistMirror();
+    if(active.targetSec) $('#goalMin').value = Math.round(active.targetSec/60);
+    setModeUI(active.mode || 'up');
+    $('#activeInfo').innerHTML = '<strong>' + active.moduleName + '</strong> 进行中';
+    $('#stopBtn').disabled = false; $('#pauseBtn').disabled = false;
+    $('#pauseBtn').textContent = active.paused ? '继续' : '暂停';
+    $('#pauseBtn').className = active.paused ? 'btn btn-primary' : 'btn';
+    startTick(); startHeartbeat(); updateTimer(); renderTimer();
+    window.__timerActive = true;
+    toast('已恢复未结束的计时：' + active.moduleName + (active.paused ? '（暂停中）' : ''));
     return;
   }
-  if(saved) clearActive();
+
+  // 无任何活跃源
   renderTimer();
 });

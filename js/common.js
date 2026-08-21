@@ -633,8 +633,11 @@ function mergeData(local, cloud){
   }
   // 万能素材：素材卡按 id 并集；persona/gaps/answers 云端非空取云端（素材自有 deletedIds 墓碑，不叠加全局过滤）
   const mt = _mergeMaterials(local.materials, cloud.materials); out.materials = mt.data; changes += mt.changes;
-  // 进行中计时：updatedAt 新者胜（含 ended 广播）
-  const at = _pickNewer(local.activeTimer, cloud.activeTimer);
+  // 进行中计时（单一可信源合并）：以 timerId 为生命周期锚点
+  //   规则：ended 优先（任一侧 ended → 结果 ended，防双端各自结束叠加）；
+  //        同 timerId 进行中 → 心跳 lastBeat 较新者胜（owner 在线续租，另一端看到最新）；
+  //        不同 timerId（一端开新计时、另一端旧计时）→ 进行中且未 ended 者优先，都进行中则 lastBeat 新者胜。
+  const at = _mergeActiveTimer(local.activeTimer, cloud.activeTimer);
   if(JSON.stringify(at) !== JSON.stringify(local.activeTimer || null)){ out.activeTimer = at; changes++; }
   // 设置白名单：云端非空且不同 → 取云端
   const ls = local.settings || {}; const cs = cloud.settings || {};
@@ -706,8 +709,33 @@ function _mergeMaterials(local, cloud){
 }
 /* 稳定短哈希（用于给无 id 的旧素材卡补 id，内容相同→同 id 自动去重） */
 function hashStr(s){ let h = 0; s = String(s||''); for(let i=0;i<s.length;i++){ h = (h*31 + s.charCodeAt(i)) | 0; } return (h >>> 0).toString(36); }
-/* 进行中计时镜像：取 updatedAt 较新者（ended 广播也算较新方） */
-function _pickNewer(a, b){ return (_num(b && b.updatedAt) > _num(a && a.updatedAt)) ? b : (a || null); }
+/* 进行中计时的单一可信源合并：以 timerId 为生命周期锚点，杜绝「双端同时计时 + 结束累加」。
+   入参 a/b 为 {timerId, ownerDevice, startTs, ..., lastBeat, ended} 或 null。
+   规则：
+     1) 任一侧 ended 且带 timerId → 结果标记 ended（同 timerId 优先；无 timerId 的 ended 仅当另一侧也空/ended 时采用），
+        确保「一端结束」后另一端合并得到 ended、清除本地活跃态，不再续租/恢复/二次入库。
+     2) 两侧同 timerId 进行中（都未 ended）→ lastBeat 较新者胜（owner 续租始终是更新鲜的真相）。
+     3) 两侧不同 timerId（一侧开新、另一侧旧计时）→ 都进行中取 lastBeat 新者；一侧 ended 则取未 ended 侧。
+     4) 仅一侧有时直接取该侧；都为空返回 null。 */
+function _mergeActiveTimer(a, b){
+  const na = a || null, nb = b || null;
+  const aEnded = !!(na && na.ended), bEnded = !!(nb && nb.ended);
+  const aId = na && na.timerId, bId = nb && nb.timerId;
+  // 规则1：ended 优先
+  if(aEnded && bEnded) return { timerId: (aId||bId||null), ended: true, updatedAt: Math.max(_num(na.updatedAt), _num(nb.updatedAt)) };
+  if(aEnded){ // a 已结束；若 b 是同 timerId 进行中，仍判 ended（该次计时已收尾）
+    return { timerId: (aId || bId || null), ended: true, updatedAt: _num(na.updatedAt) || _num(nb.updatedAt) };
+  }
+  if(bEnded){
+    return { timerId: (bId || aId || null), ended: true, updatedAt: _num(nb.updatedAt) || _num(na.updatedAt) };
+  }
+  // 两侧都未 ended
+  if(na && nb){
+    if(aId && bId && aId === bId) return (_num(nb.lastBeat) >= _num(na.lastBeat)) ? nb : na;  // 规则2
+    return (_num(nb.lastBeat) >= _num(na.lastBeat)) ? nb : na;                                  // 规则3（lastBeat 新者胜）
+  }
+  return na || nb;   // 规则4
+}
 /* 从云端合并拉取（替代整份覆盖）。silent=true 时仅在有更新时提示，用于自动拉取 */
 async function cloudDownload(silent){
   const phone = DATA.settings.syncCode;
