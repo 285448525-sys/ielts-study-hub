@@ -725,17 +725,12 @@ function renderP3Step(s, container, i){
     + '<span class="sp-p3-q-text">' + escapeHtml(q) + '</span>'
     + ttsBtnHtml()
     + '</div>'
-    + '<textarea class="sp-p3-textarea" data-i="' + i + '" placeholder="在这里写下你的 P3 回答…">' + escapeHtml(savedAns) + '</textarea>'
+    + '<textarea class="sp-p3-textarea" data-i="' + i + '" placeholder="写下或贴出你的 P3 回答（中文英文都行）。没思路？点「AI 辅助」直接给你参考答案；自己有思路？点「老师帮我改」按 5.5 规则挑问题 + 改一版合规的。">' + escapeHtml(savedAns) + '</textarea>'
     + '<div class="sp-p3-helper-row">'
-    + '<button class="sp-p3-helper-btn" data-i="' + i + '" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;flex:none"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.4L22 18.3l-2.1.9L19 21.5l-.9-2.3-2.1-.9 2.1-.9z"/></svg>AI 辅助</button>'
+    + '<button class="sp-p3-helper-btn" data-i="' + i + '" type="button" data-mode="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;flex:none"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.4L22 18.3l-2.1.9L19 21.5l-.9-2.3-2.1-.9 2.1-.9z"/></svg>AI 辅助</button>'
+    + '<button class="sp-p3-review-btn" data-i="' + i + '" type="button" data-mode="review"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;flex:none"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>老师帮我改</button>'
     + '</div>'
-    + '<div class="sp-p3-ai-result" data-i="' + i + '"></div>'
-    + '<div class="sp-p3-review">'
-    + '<div class="sp-p3-review-tip">把你的回答贴进来（中文或英文都行），老师按 5.5 分规则帮你挑问题、改一版合规的</div>'
-    + '<textarea class="sp-p3-review-in" data-i="' + i + '" placeholder="在这里贴你的 P3 回答…（例如：I think young people like coding because it is interesting and they can find good job.）"></textarea>'
-    + '<button class="sp-p3-review-btn" data-i="' + i + '" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;flex:none"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>老师帮我改</button>'
-    + '<div class="sp-p3-review-result" data-i="' + i + '"></div>'
-    + '</div>';
+    + '<div class="sp-p3-ai-result" data-i="' + i + '"></div>';
   container.appendChild(div);
   const ttsBtn = div.querySelector('.sp-tts');
   if(ttsBtn) ttsBtn.addEventListener('click', e => { e.stopPropagation(); speakQuestion.speak(q, ttsBtn); });
@@ -745,7 +740,8 @@ function renderP3Step(s, container, i){
   if(reviewBtn) reviewBtn.addEventListener('click', e => { e.stopPropagation(); reviewP3Answer(s.id, i); });
   const savedHelper = (Array.isArray(p3.aiHelper)) ? p3.aiHelper[i] : null;
   if(savedHelper && (savedHelper.main || savedHelper.extend || savedHelper.cn || savedHelper.raw)){
-    renderP3Helper(div.querySelector('.sp-p3-ai-result'), savedHelper);
+    const rEl = div.querySelector('.sp-p3-ai-result');
+    if(rEl){ rEl.innerHTML = '<div class="sp-p3-result-tag">AI 辅助 · 参考答案</div>'; renderP3Helper(rEl, savedHelper); }
   }
 }
 
@@ -849,7 +845,7 @@ async function generateP3Helper(id, i){
   const btn = qDiv ? qDiv.querySelector('.sp-p3-helper-btn') : null;
   const resultEl = qDiv ? qDiv.querySelector('.sp-p3-ai-result') : null;
 
-  if(btn){ btn.disabled = true; btn.innerHTML = '生成中…'; }
+  if(btn){ btn.disabled = true; btn.innerHTML = 'AI 在生成…'; }
   if(resultEl){ resultEl.innerHTML = '<div class="diag-note">正在按 5.5 分策略生成 P3 参考答案…</div>'; resultEl.style.display = 'block'; }
 
   try{
@@ -862,33 +858,33 @@ async function generateP3Helper(id, i){
     p3.aiHelper[i] = { main: parsed.main, extend: parsed.extend, cn: parsed.cn, raw: content, ts: Date.now() };
     s.updatedAt = Date.now();
     hubSave();
-    if(resultEl) renderP3Helper(resultEl, p3.aiHelper[i]);
+    if(resultEl){ resultEl.innerHTML = '<div class="sp-p3-result-tag">AI 辅助 · 参考答案</div>'; renderP3Helper(resultEl, p3.aiHelper[i]); }
   }catch(e){
-    if(resultEl) resultEl.innerHTML = '<div class="diag-note">生成失败：' + escapeHtml(e.message) + '</div>';
+    if(resultEl) resultEl.innerHTML = '<div class="sp-p3-result-tag">AI 辅助 · 参考答案</div><div class="diag-note">生成失败：' + escapeHtml(e.message) + '</div>';
   }finally{
     if(btn){ btn.disabled = false; btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;flex:none"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.4L22 18.3l-2.1.9L19 21.5l-.9-2.3-2.1-.9 2.1-.9z"/></svg>AI 辅助'; }
   }
 }
 
-// 考生贴自己的回答，老师按 5.5 规则挑问题 + 给改后合规版本
+// 考生用同一个回答框里的内容，老师按 5.5 规则挑问题 + 给改后合规版本
 async function reviewP3Answer(id, i){
   const s = DATA.speaking.find(x => x.id === id);
   if(!s) return;
   const qDiv = document.querySelector('#p3List .sp-p3-q[data-i="'+i+'"]');
-  const inEl = qDiv ? qDiv.querySelector('.sp-p3-review-in') : null;
+  const ta = qDiv ? qDiv.querySelector('.sp-p3-textarea') : null;
   const btn = qDiv ? qDiv.querySelector('.sp-p3-review-btn') : null;
-  const resultEl = qDiv ? qDiv.querySelector('.sp-p3-review-result') : null;
-  if(!inEl || !btn || !resultEl) return;
-  const userText = (inEl.value || '').trim();
-  if(!userText){ toast('先把下面的回答贴进来'); inEl.focus(); return; }
+  const resultEl = qDiv ? qDiv.querySelector('.sp-p3-ai-result') : null;
+  if(!ta || !btn || !resultEl) return;
+  const userText = (ta.value || '').trim();
+  if(!userText){ toast('先在上面写或贴一下你的 P3 回答'); ta.focus(); return; }
   if(!DATA.settings.relayToken){ toast('请先在「设置 / AI 接口」配置 API Key'); return; }
   const p3 = s.answers && s.answers.p2 && s.answers.p2.p3;
   const q = (p3 && Array.isArray(p3.questions) && p3.questions[i]) || '';
-  const ta = document.getElementById('p2Ans');
-  const p2Text = (ta && ta.value && ta.value.trim()) || (s.answers.p2 && s.answers.p2.text) || '';
+  const p2TextEl = document.getElementById('p2Ans');
+  const p2Text = (p2TextEl && p2TextEl.value && p2TextEl.value.trim()) || (s.answers.p2 && s.answers.p2.text) || '';
 
-  btn.disabled = true; btn.innerHTML = '修改中…';
-  resultEl.innerHTML = '<div class="diag-note">老师正在按 5.5 分规则看你的回答…</div>';
+  btn.disabled = true; btn.innerHTML = '老师在看…';
+  resultEl.innerHTML = '<div class="diag-note">老师正在按 5.5 分规则看你刚写的回答…</div>';
   resultEl.style.display = 'block';
   try{
     const content = await callRelay('p3_review', [
@@ -896,7 +892,7 @@ async function reviewP3Answer(id, i){
       { role:'user', content:'当前P3题目：' + q + '\n\n用户的P2回答内容：\n' + (p2Text || '（考生暂未填写 P2 回答）') + '\n\n考生自己的P3回答（待修改）：\n' + userText }
     ], 0.6);
     const parsed = parseP3Review(content);
-    resultEl.innerHTML = renderP3ReviewHtml(parsed);
+    resultEl.innerHTML = '<div class="sp-p3-result-tag">老师改动</div>' + renderP3ReviewHtml(parsed);
     resultEl.style.display = 'block';
     // 绑定朗读
     resultEl.querySelectorAll('.sp-p3-tts').forEach(b => {
@@ -905,7 +901,7 @@ async function reviewP3Answer(id, i){
       if(txt) b.addEventListener('click', e => { e.stopPropagation(); speakQuestion.speak(txt, b); });
     });
   }catch(e){
-    resultEl.innerHTML = '<div class="diag-note">修改失败：' + escapeHtml(e.message) + '</div>';
+    resultEl.innerHTML = '<div class="sp-p3-result-tag">老师改动</div><div class="diag-note">老师暂时改不了：' + escapeHtml(e.message) + '</div>';
   }finally{
     btn.disabled = false;
     btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;flex:none"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>老师帮我改';
