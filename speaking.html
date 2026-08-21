@@ -135,6 +135,16 @@
   .sp-p3-block-tools{position:absolute;top:10px;right:10px;line-height:0}
   .sp-p3-block-tools .sp-tts{width:24px;height:24px}
 
+  /* === P3「老师帮我改」：贴回答 + 修改按钮 + 结果 === */
+  .sp-p3-review{margin-top:12px;border-top:1px dashed var(--line);padding-top:12px}
+  .sp-p3-review-tip{font-size:12.5px;color:var(--muted);line-height:1.6;margin-bottom:8px}
+  .sp-p3-review-in{width:100%;box-sizing:border-box;min-height:64px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);color:var(--ink);font-size:14px;line-height:1.65;resize:vertical;font-family:inherit}
+  .sp-p3-review-in:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-soft);outline:none}
+  .sp-p3-review-btn{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:8px 14px;border-radius:20px;border:1px solid var(--primary);background:var(--primary);color:#fff;cursor:pointer;font-size:13px;transition:.15s}
+  .sp-p3-review-btn:hover{opacity:.92}
+  .sp-p3-review-btn:disabled{opacity:.6;cursor:default}
+  .sp-p3-review-result{margin-top:10px;display:none}
+
   /* === 串题素材头部（标题 + AI 串题思路按钮） === */
   .sp-story-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:6px 0 2px}
   .sp-story-title{font-size:14px;font-weight:700;color:var(--ink)}

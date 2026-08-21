@@ -715,12 +715,20 @@ function renderP3Step(s, container, i){
     + '<div class="sp-p3-helper-row">'
     + '<button class="sp-p3-helper-btn" data-i="' + i + '" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;flex:none"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.4L22 18.3l-2.1.9L19 21.5l-.9-2.3-2.1-.9 2.1-.9z"/></svg>AI 辅助</button>'
     + '</div>'
-    + '<div class="sp-p3-ai-result" data-i="' + i + '"></div>';
+    + '<div class="sp-p3-ai-result" data-i="' + i + '"></div>'
+    + '<div class="sp-p3-review">'
+    + '<div class="sp-p3-review-tip">把你的回答贴进来（中文或英文都行），老师按 5.5 分规则帮你挑问题、改一版合规的</div>'
+    + '<textarea class="sp-p3-review-in" data-i="' + i + '" placeholder="在这里贴你的 P3 回答…（例如：I think young people like coding because it is interesting and they can find good job.）"></textarea>'
+    + '<button class="sp-p3-review-btn" data-i="' + i + '" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;flex:none"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>老师帮我改</button>'
+    + '<div class="sp-p3-review-result" data-i="' + i + '"></div>'
+    + '</div>';
   container.appendChild(div);
   const ttsBtn = div.querySelector('.sp-tts');
   if(ttsBtn) ttsBtn.addEventListener('click', e => { e.stopPropagation(); speakQuestion.speak(q, ttsBtn); });
   const aiBtn = div.querySelector('.sp-p3-helper-btn');
   if(aiBtn) aiBtn.addEventListener('click', e => { e.stopPropagation(); generateP3Helper(s.id, i); });
+  const reviewBtn = div.querySelector('.sp-p3-review-btn');
+  if(reviewBtn) reviewBtn.addEventListener('click', e => { e.stopPropagation(); reviewP3Answer(s.id, i); });
   const savedHelper = (Array.isArray(p3.aiHelper)) ? p3.aiHelper[i] : null;
   if(savedHelper && (savedHelper.main || savedHelper.extend || savedHelper.cn || savedHelper.raw)){
     renderP3Helper(div.querySelector('.sp-p3-ai-result'), savedHelper);
@@ -770,6 +778,29 @@ const P3_HELPER_SYS = `身份：雅思口语Part3答题辅助工具，面向英�
 3. 素材说明
 
 输入参数：当前P3题目 + 用户的P2回答内容，请严格按照以上规则输出。`;
+
+// P3「老师帮我改」：考生贴自己的回答（中/英），按同一套 5.5 硬规则挑问题 + 给改后合规版本
+const P3_REVIEW_SYS = `你是雅思口语Part3答题老师，面向英语基础极差的考生，目标分数严格锁定5.5分，绝对不可以输出6分以上水平的内容。
+考生会贴出自己针对某道P3题目的回答（可能是中文，也可能是英文）。请你：
+1. 先用大白话指出他回答里的具体问题（对照下面硬规则），用中文列点，每条说清"哪里不对、为什么、怎么改"；
+2. 再给一版符合5.5分规则的改动后回答（英文），严格按"主回答2句以内无例子 + 可附追问拓展3句含because"的格式。
+
+【绝对强制硬规则，和出题辅助完全一致】
+1. 词汇：只能用初中-高中最基础词汇，禁止identity, landmark, concrete, shape, construct, symbolize等；统一用look, famous, tall building等简单词。
+2. 主回答铁则：2句以内、10-15秒；只含观点+1个最简单原因；绝对禁止for example/for instance/such as；最多1个简单复合结构。
+3. 追问拓展铁则：3句以内，必须含1个because从句；最多额外1个固定结构（especially for / which means二选一）；用抽象化P2素材举例，禁止具体个人故事。
+4. 若考生贴的是中文：先指出"中文思路是否跑题/是否太复杂"，再把中文翻成合规的2句英文主回答。
+
+【输出格式】
+🔹你的问题（中文，逐条列点）
+（指出：是否超2句 / 是否误加例子 / 是否用了难词 / 复合结构是否堆砌 / 观点是否清楚）
+
+🔹改后回答（英文，可直接照着说）
+主回答：xxx（2句以内，无例子）
+追问拓展：xxx（3句以内，含because，可选）
+
+🔹中文说明
+（一句话讲清为什么这么改）`;
 
 // 把 AI 返回的 🔹 三段式文本拆成 {main, extend, cn}
 function parseP3Helper(content){
@@ -823,6 +854,88 @@ async function generateP3Helper(id, i){
   }finally{
     if(btn){ btn.disabled = false; btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;flex:none"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.4L22 18.3l-2.1.9L19 21.5l-.9-2.3-2.1-.9 2.1-.9z"/></svg>AI 辅助'; }
   }
+}
+
+// 考生贴自己的回答，老师按 5.5 规则挑问题 + 给改后合规版本
+async function reviewP3Answer(id, i){
+  const s = DATA.speaking.find(x => x.id === id);
+  if(!s) return;
+  const qDiv = document.querySelector('#p3List .sp-p3-q[data-i="'+i+'"]');
+  const inEl = qDiv ? qDiv.querySelector('.sp-p3-review-in') : null;
+  const btn = qDiv ? qDiv.querySelector('.sp-p3-review-btn') : null;
+  const resultEl = qDiv ? qDiv.querySelector('.sp-p3-review-result') : null;
+  if(!inEl || !btn || !resultEl) return;
+  const userText = (inEl.value || '').trim();
+  if(!userText){ toast('先把下面的回答贴进来'); inEl.focus(); return; }
+  if(!DATA.settings.relayToken){ toast('请先在「设置 / AI 接口」配置 API Key'); return; }
+  const p3 = s.answers && s.answers.p2 && s.answers.p2.p3;
+  const q = (p3 && Array.isArray(p3.questions) && p3.questions[i]) || '';
+  const ta = document.getElementById('p2Ans');
+  const p2Text = (ta && ta.value && ta.value.trim()) || (s.answers.p2 && s.answers.p2.text) || '';
+
+  btn.disabled = true; btn.innerHTML = '修改中…';
+  resultEl.innerHTML = '<div class="diag-note">老师正在按 5.5 分规则看你的回答…</div>';
+  resultEl.style.display = 'block';
+  try{
+    const content = await callRelay('p3_review', [
+      { role:'system', content: P3_REVIEW_SYS },
+      { role:'user', content:'当前P3题目：' + q + '\n\n用户的P2回答内容：\n' + (p2Text || '（考生暂未填写 P2 回答）') + '\n\n考生自己的P3回答（待修改）：\n' + userText }
+    ], 0.6);
+    const parsed = parseP3Review(content);
+    resultEl.innerHTML = renderP3ReviewHtml(parsed);
+    resultEl.style.display = 'block';
+    // 绑定朗读
+    resultEl.querySelectorAll('.sp-p3-tts').forEach(b => {
+      const body = b.closest('.sp-p3-block').querySelector('.sp-p3-block-body');
+      const txt = body ? body.textContent.trim() : '';
+      if(txt) b.addEventListener('click', e => { e.stopPropagation(); speakQuestion.speak(txt, b); });
+    });
+  }catch(e){
+    resultEl.innerHTML = '<div class="diag-note">修改失败：' + escapeHtml(e.message) + '</div>';
+  }finally{
+    btn.disabled = false;
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;flex:none"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>老师帮我改';
+  }
+}
+
+// 把 🔹 三段式（你的问题 / 改后回答 / 中文说明）拆成结构化对象
+function parseP3Review(content){
+  const r = { problems:'', fixed:'', cn:'', raw: content || '' };
+  if(!content) return r;
+  const parts = String(content).split('🔹');
+  const take = (txt) => { txt = (txt || '').trim(); const nl = txt.indexOf('\n'); return nl >= 0 ? txt.slice(nl + 1).trim() : txt; };
+  if(parts[1] != null) r.problems = take(parts[1]);
+  if(parts[2] != null) r.fixed = take(parts[2]);
+  if(parts[3] != null) r.cn = take(parts[3]);
+  if(!r.problems && !r.fixed && !r.cn) r.problems = String(content).trim();
+  return r;
+}
+
+// 渲染「老师帮我改」结果：问题清单 + 改后回答（可朗读）+ 中文说明
+function renderP3ReviewHtml(r){
+  if(!r) return '';
+  let h = '';
+  if(r.problems){
+    h += '<div class="sp-p3-block">';
+    h += '<div class="sp-p3-block-title">你的问题<span class="sp-p3-sub">按 5.5 分规则逐条挑</span></div>';
+    h += '<div class="sp-p3-block-body sp-p3-cn">' + escapeHtml(r.problems) + '</div>';
+    h += '</div>';
+  }
+  if(r.fixed){
+    h += '<div class="sp-p3-block">';
+    h += '<div class="sp-p3-block-title">改后回答<span class="sp-p3-sub">可直接照着说</span></div>';
+    h += '<div class="sp-p3-block-body">' + escapeHtml(r.fixed) + '</div>';
+    h += '<div class="sp-p3-block-tools">' + ttsBtnHtml('sp-p3-tts') + '</div>';
+    h += '</div>';
+  }
+  if(r.cn){
+    h += '<div class="sp-p3-block">';
+    h += '<div class="sp-p3-block-title">中文说明</div>';
+    h += '<div class="sp-p3-block-body sp-p3-cn">' + escapeHtml(r.cn) + '</div>';
+    h += '</div>';
+  }
+  if(!h) h = '<div class="diag-note">（返回格式异常，已保留原文）</div><pre>' + escapeHtml(r.raw || '') + '</pre>';
+  return h;
 }
 
 // 渲染 P3 单题 AI 辅助结果（主回答 / 追问拓展 / 中文思路拆解）
