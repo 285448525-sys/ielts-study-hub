@@ -322,17 +322,23 @@ function openDetail(id){
   }
   html += '<div class="sp-ai-result" id="aiResult"></div>';
 
-  // 保存 + 删除 +（P1）下一题
-  html += '<div class="sp-detail-actions"><button class="btn btn-primary" id="saveBtn">保存</button><button class="btn btn-danger" id="delSpBtn">删除此题</button>';
+  // 底部动作区：P1 = 保存/删除/下一话题；P2 = 完成(返回列表) + 下一题（串题结果直接持久化，所以不再需要单独的"保存"按钮）
+  html += '<div class="sp-detail-actions">';
   if(s.type === 'P1'){
+    html += '<button class="btn btn-primary" id="saveBtn">保存</button>';
+    html += '<button class="btn btn-danger" id="delSpBtn">删除此题</button>';
     html += '<button class="btn btn-med" id="nextTopicBtn" style="margin-left:auto">下一个话题 →</button>';
+  } else if(s.type === 'P2'){
+    html += '<button class="btn btn-med" id="p2FinishBtn" style="margin-left:auto">完成</button>';
+    html += '<button class="btn btn-primary" id="p2NextBtn" style="margin-left:8px">下一题 →</button>';
   }
   html += '</div>';
 
   $('#detailBody').innerHTML = html;
 
   // 绑定事件
-  $('#saveBtn').addEventListener('click', () => saveDetail(id));
+  const saveBtn = $('#saveBtn');
+  if(saveBtn) saveBtn.addEventListener('click', () => saveDetail(id));
   if(s.type === 'P1'){
     const nextTopicBtn = document.getElementById('nextTopicBtn');
     if(nextTopicBtn) nextTopicBtn.addEventListener('click', () => gotoNextTopic());
@@ -341,6 +347,31 @@ function openDetail(id){
   if(delSpBtn) delSpBtn.addEventListener('click', () => {
     if(confirm('确定删除这个口语题？删除后默认题库升级也不会再恢复它。')) deleteSpeaking(id);
   });
+  if(s.type === 'P1'){
+    const nextTopicBtn = document.getElementById('nextTopicBtn');
+    if(nextTopicBtn) nextTopicBtn.addEventListener('click', () => gotoNextTopic());
+  } else if(s.type === 'P2'){
+    // P2：完成 = 返回列表；下一题 = 跳到筛选列表的下一道（沿用现有 gotoNextTopic）
+    const fin = $('#p2FinishBtn');
+    if(fin) fin.addEventListener('click', () => {
+      $('#listView').hidden = false;
+      $('#detailView').hidden = true;
+      renderList();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    const nx = $('#p2NextBtn');
+    if(nx) nx.addEventListener('click', () => gotoNextTopic());
+    // 回填上次保存的「AI 串题方案」（参考英文 + 本题逻辑链），无需用户再点一次生成按钮
+    if(s.answers && s.answers.p2 && s.answers.p2.aiStoryLink){
+      try{
+        const saved = s.answers.p2.aiStoryLink;
+        const resultEl = $('#aiResult');
+        if(resultEl && (saved.article || saved.logicChain)){
+          renderStoryLink(resultEl, { article: saved.article || '', logicChain: saved.logicChain || '' });
+        }
+      }catch(_){}
+    }
+  }
   if(s.type === 'P2'){
     const aiStoryLinkBtn = document.getElementById('aiStoryLinkBtn');
     if(aiStoryLinkBtn) aiStoryLinkBtn.addEventListener('click', () => aiStoryLink(id));
