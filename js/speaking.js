@@ -742,21 +742,14 @@ async function diagnoseAnswer(id, qi, questionText, answerText){
   }
 }
 
-// P2 诊断结构化渲染（语法错误 / 用词错误 分块展示 + 改进建议 + 串题素材连接；不显示分数）
+// P2 诊断结构化渲染（语法/用词错误合并为一个模块展示 + 改进建议 + 串题素材连接；不显示分数）
 function renderP2Diag(el, j, answer){
   normalizeScore(j, answer);
   if(!j || !Array.isArray(j.errors)){ el.innerHTML = ''; return false; }
   const errs = cleanErrors(j.errors);
-  let h = '';   // 评分机制已关闭（P2 仅展示语法/用词错误 + 串题建议，不再显示分数）
-  const g = errs.filter(e => diagTypeBucket(e.type) === 'grammar');
-  const v = errs.filter(e => diagTypeBucket(e.type) === 'vocab');
-  const o = errs.filter(e => diagTypeBucket(e.type) === 'other');
-  if(g.length) h += '<div class="diag-sec"><b>① 语法错误</b>' + diffSentenceHtml(answer, g) + '</div>';
-  if(v.length) h += '<div class="diag-sec"><b>② 用词错误</b>' + diffSentenceHtml(answer, v) + '</div>';
-  if(o.length) h += '<div class="diag-sec"><b>③ 其他错误</b>' + diffSentenceHtml(answer, o) + '</div>';
-  if(!g.length && !v.length && !o.length) h += diffSentenceHtml(answer, errs);
-  if(j.rewrite) h += '<div class="diag-sec"><b>④ 改进建议</b><div class="diag-rewrite">' + escapeHtml(j.rewrite) + '</div></div>';
-  if(j.storyLink) h += '<div class="diag-sec"><b>⑤ 📌 串题素材连接</b><div class="diag-note">可以用你已准备的这些万能素材来回答这道题：</div>' + escapeHtml(j.storyLink) + '</div>';
+  let h = '<div class="diag-sec"><b>语法/用词纠错</b>' + diffSentenceHtml(answer, errs) + '</div>';   // 评分机制已关闭（P2 仅展示语法/用词错误 + 串题建议，不再显示分数）
+  if(j.rewrite) h += '<div class="diag-sec"><b>改进建议</b><div class="diag-rewrite">' + escapeHtml(j.rewrite) + '</div></div>';
+  if(j.storyLink) h += '<div class="diag-sec"><b>📌 串题素材连接</b><div class="diag-note">可以用你已准备的这些万能素材来回答这道题：</div>' + escapeHtml(j.storyLink) + '</div>';
   el.innerHTML = h;
   return true;
 }
@@ -883,14 +876,6 @@ function cleanErrors(errors){
        (fixLower.includes('bad driver') || fixLower.includes('driver'))) return false;
     return true;
   });
-}
-
-// 把错误 type 归到三类桶：grammar / vocab / other，用于渲染时按「语法错误 / 用词错误」分块展示
-function diagTypeBucket(t){
-  const s = String(t || '').toLowerCase().trim();
-  if(s === 'grammar' || s.indexOf('grammar') !== -1) return 'grammar';
-  if(s === 'vocabulary' || s === 'lexical' || s.indexOf('vocab') !== -1) return 'vocab';
-  return 'other';
 }
 
 // 对两个短语做 token 级 diff，返回 [{type:'same'|'del'|'ins', text}]（按空格分词，忽略大小写匹配）
@@ -1071,21 +1056,14 @@ function inlineErrorsHtml(errs){
   }).join('') + '</div>';
 }
 
-// 渲染诊断结构化卡片（P1：语法错误 / 用词错误 分块展示，不显示分数）
+// 渲染诊断结构化卡片（P1：语法/用词错误合并为一个模块展示，不显示分数）
 function renderDiag(el, j, raw, answer){
   normalizeScore(j, answer);
   const scoreHtml = '';   // 评分机制已关闭（P1/P2 仅展示语法/用词错误，不再显示分数）
   if(j && Array.isArray(j.errors)){
     const errs = cleanErrors(j.errors);
-    let h = '';
-    const g = errs.filter(e => diagTypeBucket(e.type) === 'grammar');
-    const v = errs.filter(e => diagTypeBucket(e.type) === 'vocab');
-    const o = errs.filter(e => diagTypeBucket(e.type) === 'other');
-    if(g.length) h += '<div class="diag-sec"><b>① 语法错误</b>' + diffSentenceHtml(answer, g) + '</div>';
-    if(v.length) h += '<div class="diag-sec"><b>② 用词错误</b>' + diffSentenceHtml(answer, v) + '</div>';
-    if(o.length) h += '<div class="diag-sec"><b>③ 其他错误</b>' + diffSentenceHtml(answer, o) + '</div>';
-    if(!g.length && !v.length && !o.length) h += diffSentenceHtml(answer, errs);
-    if(j.rewrite) h += '<div class="diag-sec"><b>④ 改进建议</b><div class="diag-rewrite">' + escapeHtml(j.rewrite) + '</div></div>';
+    let h = '<div class="diag-sec"><b>语法/用词纠错</b>' + diffSentenceHtml(answer, errs) + '</div>';
+    if(j.rewrite) h += '<div class="diag-sec"><b>改进建议</b><div class="diag-rewrite">' + escapeHtml(j.rewrite) + '</div></div>';
     el.innerHTML = scoreHtml + h;
   } else {
     el.innerHTML = scoreHtml + '<div class="diag-note">（AI 返回非标准格式，已贴原文）</div><pre>' + escapeHtml(raw || '') + '</pre>';
