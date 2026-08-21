@@ -668,16 +668,172 @@ function renderP3List(s, container){
     h += '<span class="sp-p3-q-text">'+escapeHtml(q)+'</span>';
     h += ttsBtnHtml();
     h += '</div>';
-    h += '<textarea class="sp-p3-textarea" placeholder="在这里写下你的 P3 回答…">' + escapeHtml(savedAns[i] || '') + '</textarea>';
+    h += '<textarea class="sp-p3-textarea" data-i="'+i+'" placeholder="在这里写下你的 P3 回答…">' + escapeHtml(savedAns[i] || '') + '</textarea>';
+    // P3 单题 AI 辅助：按钮（左）+ 结果容器
+    h += '<div class="sp-p3-helper-row">';
+    h += '<button class="sp-p3-helper-btn" data-i="'+i+'" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;flex:none"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.4L22 18.3l-2.1.9L19 21.5l-.9-2.3-2.1-.9 2.1-.9z"/></svg>AI 辅助</button>';
+    h += '</div>';
+    h += '<div class="sp-p3-ai-result" data-i="'+i+'"></div>';
     h += '</div>';
   });
   container.innerHTML = h;
-  // 给每个题目绑朗读
+  // 给每个题目绑朗读 + AI 辅助，并回填已生成的辅助结果
   container.querySelectorAll('.sp-p3-q').forEach(qDiv => {
     const i = +qDiv.dataset.i;
-    const btn = qDiv.querySelector('.sp-tts');
     const text = qs[i];
-    if(btn && text) btn.addEventListener('click', e => { e.stopPropagation(); speakQuestion.speak(text, btn); });
+    const ttsBtn = qDiv.querySelector('.sp-tts');
+    if(ttsBtn && text) ttsBtn.addEventListener('click', e => { e.stopPropagation(); speakQuestion.speak(text, ttsBtn); });
+    const aiBtn = qDiv.querySelector('.sp-p3-helper-btn');
+    if(aiBtn) aiBtn.addEventListener('click', e => { e.stopPropagation(); generateP3Helper(s.id, i); });
+    // 回填已保存的 AI 辅助结果
+    const savedHelper = (p3 && Array.isArray(p3.aiHelper)) ? p3.aiHelper[i] : null;
+    if(savedHelper && (savedHelper.main || savedHelper.extend || savedHelper.cn || savedHelper.raw)){
+      renderP3Helper(qDiv.querySelector('.sp-p3-ai-result'), savedHelper);
+    }
+  });
+}
+
+// P3 单题 AI 辅助的 system prompt（用户给定，严格锁定 5.5 分策略）
+const P3_HELPER_SYS = `你的身份：雅思口语Part3答题辅助工具，服务英语基础薄弱考生，目标分数严格锁定5.5分。
+核心考场策略：主回答简短精炼，1个观点+1句解释即可，不强行凑时长；预留拓展内容，等考官追问后再补充，避免硬编出错。
+
+===== 硬性执行规则 =====
+1. 【词汇硬约束】
+所有用词严格控制在高中核心词汇范围内，禁止使用 phenomenon, significant, fundamentally 等考生无法现场脱口输出的难词、大词。
+抽象转换用户P2素材时，优先复用素材中已有的具体感受词（如relaxed, peaceful, happy等），禁止通篇使用 nice feelings / good things 这类空泛表达，避免词汇单一被压分。
+
+2. 【语法升级：固定低风险句型，零思考成本】
+以简单句为主，仅使用以下固定复合结构提升语法得分，禁止其他复杂语法：
+① especially 补充状语：从以下3个固定表达中直接选用，不自由造词
+   - especially for most people（万能通用）
+   - especially for young people（可按人群拆分时使用）
+   - especially for students and workers（偏日常话题时使用）
+② which means 定语从句：严格遵循「前因→后果」逻辑
+   - 使用条件：前面描述“某件事带来的好处/变化”，后面接“因此人们会有什么感受/结果”
+   - 禁止同义反复（如 people like it, which means it is popular 为错误用法，严禁出现）
+③ 追问拓展模块强制包含至少1个 because 引导的原因状语从句，作为复合结构保底，满足5.5分“简单句与少量复合句混合”的语法评分要求。
+
+3. 【P3话题规则：抽象讨论优先】
+禁止开场就讲个人具体故事。若需使用用户提供的P2素材，必须做抽象转换：把“我”改成 people，删掉具体时间、地点，只保留共性感受与普遍现象，仅作为追问环节的佐证使用。
+
+4. 【题型固定逻辑，禁止自由发挥】
+① 观点题：直接表态 + 1个简单原因（可搭配上述语法句型升级）
+② 对比题：优先按年轻人/老年人拆分；无法按人群拆分时，按「目的/场景」拆分
+   兜底拆分维度三选一：for fun / for health；at home / outside；alone / with friends
+   固定兜底句型：Well, it really depends on the person. Some people do it for fun, while others do it for health.
+③ 原因题：1个核心原因，不强行堆砌多个点
+④ 建议题：2个简单做法，用 or 连接，不深度展开
+
+5. 【长度与套话规则】
+- 主回答控制在2-3句话，时长10-15秒，说完即停
+- 整套回答思考类填充句最多出现1次，禁止每题都用
+- 可用万能救场句：Well, I think it depends on the person.
+
+===== 输出格式 =====
+🔹主回答（考场直接说，10-15秒）
+英文短句答案
+
+🔹追问拓展（考官追问Why/example时再补充）
+英文补充内容，必须包含because从句
+
+🔹中文思路拆解
+1. 答题提示：主回答说完停顿等考官提问，不要一次性说完所有内容
+2. 语法/逻辑说明：标注用到的升级句型，说明使用逻辑
+3. 素材说明：标注P2素材的抽象化用法，明确使用时机
+
+输入参数：当前P3题目 + 用户的P2回答内容，请严格按照以上规则输出。`;
+
+// 把 AI 返回的 🔹 三段式文本拆成 {main, extend, cn}
+function parseP3Helper(content){
+  const r = { main:'', extend:'', cn:'', raw: content || '' };
+  if(!content) return r;
+  const parts = String(content).split('🔹');
+  const take = (txt) => {
+    txt = (txt || '').trim();
+    const nl = txt.indexOf('\n');
+    return nl >= 0 ? txt.slice(nl + 1).trim() : txt;
+  };
+  if(parts[1] != null) r.main = take(parts[1]);
+  if(parts[2] != null) r.extend = take(parts[2]);
+  if(parts[3] != null) r.cn = take(parts[3]);
+  if(!r.main && !r.extend && !r.cn) r.main = String(content).trim();
+  return r;
+}
+
+async function generateP3Helper(id, i){
+  const s = DATA.speaking.find(x => x.id === id);
+  if(!s) return;
+  if(!DATA.settings.relayToken){ toast('请先在「设置 / AI 接口」配置 API Key'); return; }
+  const p3 = s.answers && s.answers.p2 && s.answers.p2.p3;
+  if(!p3 || !Array.isArray(p3.questions)){ toast('还没有 P3 题目，先点「P3追问」生成'); return; }
+  const q = p3.questions[i];
+  if(!q){ toast('题目为空'); return; }
+  // 考生 P2 回答文本：优先实时框内，否则已存
+  const ta = document.getElementById('p2Ans');
+  const p2Text = (ta && ta.value && ta.value.trim()) || (s.answers.p2 && s.answers.p2.text) || '';
+
+  const qDiv = document.querySelector('#p3List .sp-p3-q[data-i="'+i+'"]');
+  const btn = qDiv ? qDiv.querySelector('.sp-p3-helper-btn') : null;
+  const resultEl = qDiv ? qDiv.querySelector('.sp-p3-ai-result') : null;
+
+  if(btn){ btn.disabled = true; btn.innerHTML = '生成中…'; }
+  if(resultEl){ resultEl.innerHTML = '<div class="diag-note">正在按 5.5 分策略生成 P3 参考答案…</div>'; resultEl.style.display = 'block'; }
+
+  try{
+    const content = await callRelay('p3_aihelper', [
+      { role:'system', content: P3_HELPER_SYS },
+      { role:'user', content:'当前P3题目：' + q + '\n\n用户的P2回答内容：\n' + (p2Text || '（考生暂未填写 P2 回答，请用通用素材作答）') }
+    ], 0.7);
+    const parsed = parseP3Helper(content);
+    p3.aiHelper = p3.aiHelper || [];
+    p3.aiHelper[i] = { main: parsed.main, extend: parsed.extend, cn: parsed.cn, raw: content, ts: Date.now() };
+    s.updatedAt = Date.now();
+    hubSave();
+    if(resultEl) renderP3Helper(resultEl, p3.aiHelper[i]);
+  }catch(e){
+    if(resultEl) resultEl.innerHTML = '<div class="diag-note">生成失败：' + escapeHtml(e.message) + '</div>';
+  }finally{
+    if(btn){ btn.disabled = false; btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;flex:none"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.4L22 18.3l-2.1.9L19 21.5l-.9-2.3-2.1-.9 2.1-.9z"/></svg>AI 辅助'; }
+  }
+}
+
+// 渲染 P3 单题 AI 辅助结果（主回答 / 追问拓展 / 中文思路拆解）
+function renderP3Helper(el, r){
+  if(!el || !r) return;
+  let h = '';
+  // 主回答（英文，可朗读）
+  if(r.main){
+    h += '<div class="sp-p3-block">';
+    h += '<div class="sp-p3-block-title">主回答<span class="sp-p3-sub">考场直接说 · 10-15秒</span></div>';
+    h += '<div class="sp-p3-block-body">' + escapeHtml(r.main) + '</div>';
+    h += '<div class="sp-p3-block-tools">' + ttsBtnHtml('sp-p3-tts') + '</div>';
+    h += '</div>';
+  }
+  // 追问拓展（英文，可朗读，强制含 because）
+  if(r.extend){
+    h += '<div class="sp-p3-block">';
+    h += '<div class="sp-p3-block-title">追问拓展<span class="sp-p3-sub">考官追问 Why/example 时再补充</span></div>';
+    h += '<div class="sp-p3-block-body">' + escapeHtml(r.extend) + '</div>';
+    h += '<div class="sp-p3-block-tools">' + ttsBtnHtml('sp-p3-tts') + '</div>';
+    h += '</div>';
+  }
+  // 中文思路拆解
+  if(r.cn){
+    h += '<div class="sp-p3-block">';
+    h += '<div class="sp-p3-block-title">中文思路拆解</div>';
+    h += '<div class="sp-p3-block-body sp-p3-cn">' + escapeHtml(r.cn) + '</div>';
+    h += '</div>';
+  }
+  if(!h){
+    h = '<div class="diag-note">（生成结果格式异常，已保留原文）</div><pre>' + escapeHtml(r.raw || '') + '</pre>';
+  }
+  el.innerHTML = h;
+  el.style.display = 'block';
+  // 绑定朗读（每个英文块右上角的 TTS 朗读该块正文）
+  el.querySelectorAll('.sp-p3-tts').forEach(b => {
+    const body = b.closest('.sp-p3-block').querySelector('.sp-p3-block-body');
+    const txt = body ? body.textContent.trim() : '';
+    if(txt) b.addEventListener('click', e => { e.stopPropagation(); speakQuestion.speak(txt, b); });
   });
 }
 
