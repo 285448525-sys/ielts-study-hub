@@ -1341,8 +1341,8 @@ main .quote{
 main.container{padding-top:20px}
 
 /* hero 倒计时主卡（问候/目标/连续天数已收进卡内） */
-/* max-width:720px 限制大屏横向拉伸（2026-08-21 修复"放大变丑"） */
-.hero{background:linear-gradient(135deg,var(--primary-bright) 0%,var(--primary-d) 100%);border-radius:var(--radius);padding:22px 26px 24px;color:#fff;margin:0 0 12px;box-shadow:var(--shadow-md);position:relative;overflow:hidden;max-width:720px}
+/* ⭐ 占满主区宽度，去掉 max-width 限制（避免右侧大片空白） */
+.hero{background:linear-gradient(135deg,var(--primary-bright) 0%,var(--primary-d) 100%);border-radius:var(--radius);padding:20px 28px 22px;color:#fff;margin:0 0 12px;box-shadow:var(--shadow-md);position:relative;overflow:hidden}
 .hero::before{content:"";position:absolute;right:-60px;top:-60px;width:240px;height:240px;background:rgba(255,255,255,.10);border-radius:50%;pointer-events:none}
 .hero::after{content:"";position:absolute;left:-40px;bottom:-80px;width:200px;height:200px;background:rgba(255,255,255,.06);border-radius:50%;pointer-events:none}
 /* 问候行：替代原来的独立 .hello 横条 */
@@ -1358,7 +1358,7 @@ main.container{padding-top:20px}
 .hero-target-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.18);padding:6px 12px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap;backdrop-filter:blur(4px)}
 .hero-target-pill svg{width:12px;height:12px}
 .hero-main{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;position:relative;z-index:1;flex-wrap:wrap}
-.hero-left{min-width:0}
+.hero-left{min-width:0;flex:1}
 .hero-right{display:flex;flex-direction:column;align-items:flex-end;gap:10px;flex:none}
 .hero-num{display:flex;align-items:baseline;gap:8px;position:relative;z-index:1;margin-bottom:6px}
 .hero-num .big{font-size:64px;font-weight:900;letter-spacing:-.04em;line-height:1}
