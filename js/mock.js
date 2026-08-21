@@ -217,23 +217,24 @@
   }
   function buildP1Set(pool){
     const must = pool.filter(t => t.frequency === 'must');
-    const rest = pool.filter(t => t.frequency !== 'must');   // 非必考：按频率加权抽奖
+    const rest = pool.filter(t => t.frequency !== 'must');   // 非必考：按题库原始顺序取
     const picked = new Set();
     const qa = [];
+    const PER_TOPIC = 4; // 每个大题固定取前 4 个小题（按题库原始顺序，不随机）
     const takeTopic = (t, n) => {
       if(!t || picked.has(t.id)) return;
       picked.add(t.id);
-      const qs = shuffle(t.questions).slice(0, Math.min(n, t.questions.length));
+      // 按题库原始数组顺序取前 n 个小题：不 shuffle / 不随机重排 / 不随机抽题
+      const qs = t.questions.slice(0, Math.min(n, t.questions.length));
       for(const q of qs) qa.push({ topic: t.titleEn || t.titleZh || '', q });
     };
-    // 1) 必考题：固定抽 2 个大题，每个大题只抽 3~4 小题，且排在最前
+    // 1) 必考题：按题库原始顺序固定取前 2 个大题，排在最前（顺序不随机）
     const mustN = Math.min(must.length, 2);
-    shuffle(must).forEach((t, i) => { if(i < mustN) takeTopic(t, randInt(3, 4)); });
-    // 2) 其余：按频率加权再固定抽 2 个大题（每个大题同样 3~4 小题，不整组全上）
+    must.slice(0, mustN).forEach(t => takeTopic(t, PER_TOPIC));
+    // 2) 其余：按题库原始顺序固定取 2 个大题（必考一定排在选考之前，两段内部各自连续）
     const extraN = 2;
-    let guard = 0;
-    while(picked.size < mustN + extraN && guard++ < 200) takeTopic(weightedPick(rest), randInt(3, 4));
-    return qa;   // 必考在前、其余在后；总小题 ≈ 4 组 × 3~4 ≈ 12~16（即「十几个」）
+    for(const t of rest){ if(picked.size >= mustN + extraN) break; if(picked.has(t.id)) continue; takeTopic(t, PER_TOPIC); }
+    return qa;   // 顺序固定：必考在前、选考在后；总小题 ≈ 4 组 × 3~4 ≈ 12~16（即「十几个」）
   }
 
   /* ---------- 主流程（支持断点续考） ----------
@@ -296,8 +297,10 @@
             p3qs = await genP3Questions(topic, p2ans ? p2ans.transcript : '');
             mockState.p3qs = p3qs;
           }catch(e){
-            toast('P3 追问生成失败：' + e.message + '（已跳过 P3）');
-            p3qs = [];
+            // 绝不直接跳到出成绩：用预设题库兜底，停留在 P3 界面让考生继续作答
+            toast('P3 AI 生成失败：' + e.message + '（已用预设题库）');
+            p3qs = presetP3Questions(topic);
+            mockState.p3qs = p3qs;
           }
         }
         const startIdx = (snap && rp === 'P3') ? snap.index : 0;
@@ -338,6 +341,23 @@
     qs = qs.map(s => String(s).trim()).filter(Boolean);
     if(!qs.length) throw new Error('AI 未返回有效的 P3 追问');
     return qs.slice(0, 4);
+  }
+
+  /* ---------- 预设 P3 追问（DeepSeek 生成失败时的兜底，保证 P3 绝不跳过） ----------
+     抽象、通用、可套大多数 Part 2 话题；与 AI 生成的 3~4 题数量一致。 */
+  const PRESET_P3 = [
+    'Why do you think this topic matters to people in today\'s society?',
+    'How have people\'s attitudes towards this changed compared with the past?',
+    'What are the main benefits and drawbacks of this for individuals and for society as a whole?',
+    'Do you think this will become more or less common in the future? Why?',
+    'To what extent should the government be responsible for this?',
+    'How might this differ between urban and rural areas?',
+    'What impact has technology had on this part of people\'s lives?',
+    'Do younger and older generations see this differently? In what way?'
+  ];
+  function presetP3Questions(topic){
+    // 固定取前 4 个作为兜底，顺序稳定、永远有题（DeepSeek 失败时回退到这里）
+    return PRESET_P3.slice(0, 4);
   }
 
   /* ---------- 朗读发音检测（配讯飞 Key 时每 Part 后插入） ---------- */
