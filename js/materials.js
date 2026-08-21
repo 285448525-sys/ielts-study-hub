@@ -32,21 +32,21 @@
   + 'P2 全题型参考：' + CANON.join('、') + '\n'
   + '输出严格 JSON：{"stories":[{"title":"","storyEn":"","logicZh":"","coverage":[{"topic":"","fit":"","note":""}]}],"followups":["还想了解的问题1","问题2"]}';
   const SYS_PERSONA = '你是雅思口语人设分析师。根据用户一句话自我介绍，提取人设锚点，用于保证 Part 3 回答一致性。输出严格 JSON：{"persona":{"city":"城市","identity":"身份/专业或工作","values":["价值观1","价值观2"],"traits":["性格特点1","性格特点2"]}}';
-  const SYS_GAP = '你是雅思 P2 覆盖分析师。给定已被素材（含搭边串题）覆盖的 P2 题族，以及常见 IELTS P2 题族清单，请列出**连搭边都难覆盖**、且该用户大概率会考到的题族（最多 6 条），每条给一句补救建议（补真实小记忆 或 用 P2 公式现场编）。只列真正缺口，不要编造已覆盖的。输出严格 JSON 数组：[{"topic":"题族","advice":"建议"}]';
+  const SYS_GAP = '你是雅思 P2 覆盖分析师。给定已被素材（含搭边串题）覆盖的 P2 题族，以及常见 IELTS P2 题族清单，请列出**连搭边都难覆盖**、且该用户大概率会考到的题族（最多 6 条），每条给一个**澄清性问题**——用第二人称直接问考生真实经历，问题要具体、好回答，比如"你最近半年有没有搬过家？搬去哪了？"、"你有没有哪款小工具是每天都用的？说说怎么用的？"。只列真正缺口，不要编造已覆盖的。输出严格 JSON 数组：[{"topic":"题族","question":"澄清性问题"}]';
 
   let store = loadStore();
   let mode = 'q';
 
   function loadStore(){
     if(DATA.materials && typeof DATA.materials === 'object'){
-      const s = DATA.materials; s.answers = s.answers || {}; s.answers.extraMore = s.answers.extraMore || []; s.answers.followups = s.answers.followups || []; s.materials = s.materials || []; s.gaps = s.gaps || []; s.followups = s.followups || []; s.deletedIds = s.deletedIds || []; return s;
+      const s = DATA.materials; s.answers = s.answers || {}; s.answers.extraMore = s.answers.extraMore || []; s.answers.followups = s.answers.followups || []; s.answers.gaps = s.answers.gaps || []; s.materials = s.materials || []; s.gaps = s.gaps || []; s.followups = s.followups || []; s.deletedIds = s.deletedIds || []; return s;
     }
     // 一次性迁移：旧 localStorage 数据导入 DATA（此后走云同步）
     try{
       const s = JSON.parse(localStorage.getItem(STORE_KEY));
-      if(s && typeof s === 'object'){ s.answers = s.answers || {}; s.answers.extraMore = s.answers.extraMore || []; s.answers.followups = s.answers.followups || []; s.materials = s.materials || []; s.gaps = s.gaps || []; s.followups = s.followups || []; s.deletedIds = s.deletedIds || []; DATA.materials = s; return s; }
+      if(s && typeof s === 'object'){ s.answers = s.answers || {}; s.answers.extraMore = s.answers.extraMore || []; s.answers.followups = s.answers.followups || []; s.answers.gaps = s.answers.gaps || []; s.materials = s.materials || []; s.gaps = s.gaps || []; s.followups = s.followups || []; s.deletedIds = s.deletedIds || []; DATA.materials = s; return s; }
     }catch(_){}
-    return { persona:null, materials:[], gaps:[], followups:[], answers:{ extraMore:[], followups:[] } };
+    return { persona:null, materials:[], gaps:[], followups:[], answers:{ extraMore:[], followups:[], gaps:[] } };
   }
   function saveStore(){ DATA.materials = store; hubSave(); }
   function ans(id){ return (store.answers[id] || '').trim(); }
@@ -114,6 +114,7 @@
     QUESTIONS.forEach(q => { const v = ans(q.id); if(v) experiences.push({ id:q.id, title:q.title, raw:v }); });
     (store.answers.extraMore || []).forEach(x => { if((x.text || '').trim()) experiences.push({ id:x.id, title:'补充经历', raw:x.text.trim() }); });
     (store.answers.followups || []).forEach(f => { if((f.a || '').trim()) experiences.push({ id:'F' + experiences.length, title:f.q || '补充', raw:f.a.trim() }); });
+    (store.answers.gaps || []).forEach(g => { if((g.a || '').trim()) experiences.push({ id:'G' + experiences.length, title:g.topic + '（追问补充）', raw:g.a.trim() }); });
     // 校验：A + B1~B5 必填
     const missing = [];
     if(!ans('A')) missing.push('A（自我介绍）');
@@ -177,7 +178,7 @@
     const j = aiJson(content);
     let arr = Array.isArray(j) ? j : (j && Array.isArray(j.gaps) ? j.gaps : null);
     if(!arr) throw new Error('缺口 JSON 解析失败');
-    return arr.filter(g => g && g.topic).map(g => ({ topic:String(g.topic), advice:String(g.advice || '补一个真实相关的小记忆，或用 P2 公式现场编。') }));
+    return arr.filter(g => g && g.topic).map(g => ({ topic:String(g.topic), question:String(g.question || g.advice || '你有没有和"' + g.topic + '"相关的真实经历？简单说几句。') }));
   }
 
   function normalizeMaterial(s, i){
@@ -202,7 +203,7 @@
     return { city:'', identity:text || '', values:[], traits:[], _fallback:true };
   }
   function fallbackGaps(covered){
-    return CANON.filter(t => !covered.includes(t)).slice(0, 6).map(t => ({ topic:t, advice:'补一个真实相关的小记忆（3 句话骨架），或用 P2 公式现场编。' }));
+    return CANON.filter(t => !covered.includes(t)).slice(0, 6).map(t => ({ topic:t, question:'你有没有和"' + t + '"相关的真实经历？简单说几句。' }));
   }
   function unique(a){ return Array.from(new Set(a)); }
 
@@ -229,19 +230,23 @@
         + '<div class="mat-mat-actions"><button class="mat-mini" data-regen-all="1">重新生成全部</button><button class="mat-mini danger" data-del="' + i + '">删除</button></div>'
         + '</div></div>';
     });
-    // 追问区（AI 觉得素材还不够广，继续追问）
-    if(store.followups && store.followups.length){
-      h += '<div class="mat-followup"><h3>🤖 AI 想再问几个问题来补全覆盖</h3>';
-      store.followups.forEach((q, i) => {
-        h += '<div class="mat-q"><div class="mat-q-head">' + escapeHtml(q) + '</div><textarea data-followup="' + i + '" placeholder="你的回答…">' + escapeHtml((store.answers.followups && store.answers.followups[i] ? store.answers.followups[i].a : '') || '') + '</textarea></div>';
-      });
+    // AI 追问区（followups + gaps 合并：每个问题带输入框，回答后一起喂给重新生成）
+    const hasFups = store.followups && store.followups.length;
+    const hasGaps = store.gaps && store.gaps.length;
+    if(hasFups || hasGaps){
+      h += '<div class="mat-followup"><h3>🤖 AI 追问区</h3><div class="mat-followup-tip">回答下面的问题（能答几个答几个），点「继续生成」后 AI 会基于新回答重新整合素材、补全覆盖。</div>';
+      if(hasFups){
+        store.followups.forEach((q, i) => {
+          h += '<div class="mat-q"><div class="mat-q-head">' + escapeHtml(q) + '</div><textarea data-followup="' + i + '" placeholder="你的回答…">' + escapeHtml((store.answers.followups && store.answers.followups[i] ? store.answers.followups[i].a : '') || '') + '</textarea></div>';
+        });
+      }
+      if(hasGaps){
+        store.gaps.forEach((g, i) => {
+          const qtext = g.question || '你有没有和"' + g.topic + '"相关的真实经历？';
+          h += '<div class="mat-q mat-gap-q"><div class="mat-q-head"><span class="mat-gap-topic">【' + escapeHtml(g.topic) + '】</span>' + escapeHtml(qtext) + '</div><textarea data-gap="' + i + '" placeholder="你的回答…（没有相关经历可留空）">' + escapeHtml((store.answers.gaps && store.answers.gaps[i] ? store.answers.gaps[i].a : '') || '') + '</textarea></div>';
+        });
+      }
       h += '<button class="btn btn-primary" id="matContinue">继续生成（含补充回答）</button></div>';
-    }
-    // 缺口
-    if(store.gaps && store.gaps.length){
-      h += '<div class="mat-gaps"><h3>⚠️ 连搭边都难覆盖的题（诚实兜底，不硬套）</h3>';
-      store.gaps.forEach(g => { h += '<div class="mat-gap"><span class="gt">' + escapeHtml(g.topic) + '</span><span class="ga">' + escapeHtml(g.advice) + '</span></div>'; });
-      h += '</div>';
     }
     // 行动
     h += '<div class="mat-actions"><a class="btn btn-primary" href="speaking.html">去练口语 →</a><button class="mat-add" id="matRegen">↻ 重新填写 / 生成</button></div>';
@@ -276,6 +281,13 @@
         list.push({ q: q, a: ta.value.trim() });
       });
       store.answers.followups = list;
+      const gapList = [];
+      root.querySelectorAll('[data-gap]').forEach(ta => {
+        const i = +ta.dataset.gap;
+        const g = (store.gaps && store.gaps[i]) || {};
+        gapList.push({ topic: g.topic || '', question: g.question || '', a: ta.value.trim() });
+      });
+      store.answers.gaps = gapList;
       saveStore();
       generate();
     };
