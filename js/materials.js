@@ -21,13 +21,13 @@
   ];
 
   const SYS_MAT = '你是雅思口语串题素材教练。考生会给你一份人设 + 若干段真实生活经历（含可能来自你上一轮追问的补充回答）。\n'
-  + '你的任务：把全部经历整合成**几个完整核心小故事**（数量灵活：看内容 + 对照下方 P2 全题型来定，目标是以最少的Story覆盖最多的题，通常 3~5 个，但不要凑数）。每个故事都能让考生直接背、用简单句讲出来。\n'
+  + '你的任务：把全部经历整合成**几个完整核心小故事**（数量灵活：看内容 + 对照下方 P2 全题型来定，目标是以最少的Story覆盖最多的题，通常 3~5 个，但不要凑数）。每个故事都能让考生直接背出来。\n'
   + '规则：\n'
   + '1. 故事必须基于考生原话，真实不编造；可合并相关经历，不虚构细节。\n'
-  + '2. 每个故事含：title(标题) / storyEn(一段英文小故事，全部**简单句**、基础词汇，契合口语 5.5 水平，长度适中不要太长，可直接背；要像**连贯的小故事**而不是清单，避免连续用同一主语/同一动词/同一连接词堆砌，适当用 and, so, because, actually 等过渡让叙事流畅) / logicZh(中文**逻辑链**：用若干中文短语以 "—"（中文横杠/破折号）串接，把故事的关键步骤、转折、感受、细节都铺开——越长越细越好、数量不固定，例如"朋友送手机壳—觉得很有心—每天用手机—看到就想起朋友—珍藏") / coverage(能套的 P2 题族数组)。\n'
+  + '2. 每个故事含：title(标题) / storyEn(一段英文小故事，用**基础词汇**、短到中等长度的句子，靠 and / so / because / but / actually 等连接词串成有「起因→经过→感受→结尾」的**连贯叙事**，读起来像在讲一件事而不是清单；严禁连续堆砌孤立短句、严禁连续同一主语/同一动词；契合口语 5.5 水平，长度适中可直接背) / logicZh(中文**逻辑链**：用若干中文短语以 "—"（中文横杠/破折号）串接，把故事的关键步骤、转折、感受、细节都铺开——越长越细越好、数量不固定，例如"朋友送手机壳—觉得很有心—每天用手机—看到就想起朋友—珍藏") / coverage(能套的 P2 题族数组)。\n'
   + '3. coverage 每个元素：{"topic":"题族名","fit":"natural|loose","note":"串题连接说明(给一句怎么把本故事套到该题，如\'旅行中意识到环保法重要→套法律法规\';natural可简写)"}。\n'
   + '4. 串题很抽象，**搭边就行**：coverage 不限于自然贴合的题，偏题（法律/规则/传统/人物/挑战…）只要能扯上关系就列，并给自然的连接说明。目标是背完这几个故事，大部分 P2 题都能套。\n'
-  + '5. 不要产出 keyword 骨架 / 不要拆分多切面列表——考生基础弱，给词也不会说句型，必须给**成段的简单句英文**让她背。\n'
+  + '5. 不要产出 keyword 骨架 / 不要拆分多切面列表——考生基础弱，给词也不会说句型，必须给**成段的、能直接背的英文小故事**（句子可简单但必须连贯，靠连接词串成一件事）。\n'
   + '6. 判断素材是否够覆盖：对照 P2 全题型，如果现有经历明显缺某大类（如完全没提人或完全没提地点），且补 1-3 个问题就能补上，则在 followups 返回这些问题；如果已经够广，followups 返回空数组。\n'
   + 'P2 全题型参考：' + CANON.join('、') + '\n'
   + '输出严格 JSON：{"stories":[{"title":"","storyEn":"","logicZh":"","coverage":[{"topic":"","fit":"","note":""}]}],"followups":["还想了解的问题1","问题2"]}';
@@ -158,7 +158,7 @@
   async function genMaterialsBatch(exps, personaText){
     const expText = exps.map(e => '【' + e.title + '】\n' + e.raw).join('\n\n');
     const user = '人设：' + (personaText || '（未提供）') + '\n\n全部经历（含追问补充）：\n' + expText + '\n\n请按规则整合为几个完整核心小故事，并判断是否需要追问补充，输出 stories + followups JSON。';
-    const content = await callRelay('material', [ { role:'system', content:SYS_MAT }, { role:'user', content:user } ], 0.8);
+    const content = await callRelay('material', [ { role:'system', content:SYS_MAT }, { role:'user', content:user } ], 0.7);
     const j = aiJson(content);
     if(!j || !Array.isArray(j.stories)) throw new Error('素材 JSON 解析失败');
     return { stories: j.stories.map((s, i) => normalizeMaterial(s, i)), followups: Array.isArray(j.followups) ? j.followups.map(String) : [] };
@@ -219,18 +219,12 @@
     }
     // 故事卡
     store.materials.forEach((m, i) => {
-      const covHtml = (m.coverage || []).map(c => {
-        const badge = c.fit === 'loose' ? '<span class="mat-cov-badge loose">搭边</span>' : '<span class="mat-cov-badge nat">自然</span>';
-        const note = c.note ? '<span class="mat-cov-note">串：' + escapeHtml(c.note) + '</span>' : '';
-        return '<span class="mat-cov-item">' + badge + escapeHtml(c.topic) + note + '</span>';
-      }).join('');
       h += '<div class="mat-mat" data-i="' + i + '">'
         + '<div class="mat-mat-head" data-toggle="' + i + '"><span class="mat-mat-title">' + escapeHtml(m.title || '未命名') + '</span>'
-        + '<span class="mat-mat-cov">覆盖 ' + (m.coverage ? m.coverage.length : 0) + ' 题</span><span class="mat-caret">▶</span></div>'
+        + '<span class="mat-caret">▶</span></div>'
         + '<div class="mat-body">'
-        + (m.storyEn ? '<div class="mat-sub">英文可背（简单句）</div><div class="mat-story-en">' + escapeHtml(m.storyEn) + '</div>' : '')
+        + (m.storyEn ? '<div class="mat-sub">英文可背（连贯小故事）</div><div class="mat-story-en">' + escapeHtml(m.storyEn) + '</div>' : '')
         + (m.logicZh ? '<div class="mat-sub">中文逻辑链</div><div class="mat-logic">' + escapeHtml(m.logicZh) + '</div>' : '')
-        + '<div class="mat-sub">可套的 P2 题（搭边也行）</div><div class="mat-cov-list">' + (covHtml || '<span class="mat-cov-item">（无）</span>') + '</div>'
         + '<div class="mat-mat-actions"><button class="mat-mini" data-regen-all="1">重新生成全部</button><button class="mat-mini danger" data-del="' + i + '">删除</button></div>'
         + '</div></div>';
     });
