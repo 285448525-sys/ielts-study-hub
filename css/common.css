@@ -1346,7 +1346,7 @@ main.container{padding-top:20px}
 .hero::before{content:"";position:absolute;right:-60px;top:-60px;width:240px;height:240px;background:rgba(255,255,255,.10);border-radius:50%;pointer-events:none}
 .hero::after{content:"";position:absolute;left:-40px;bottom:-80px;width:200px;height:200px;background:rgba(255,255,255,.06);border-radius:50%;pointer-events:none}
 /* 问候行：替代原来的独立 .hello 横条 */
-.hero-greet{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:14px;position:relative;z-index:1;flex-wrap:wrap}
+.hero-greet{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:14px;position:relative;z-index:1}
 .hero-user{display:flex;align-items:center;gap:10px;min-width:0}
 .hero-hi{font-size:15px;font-weight:700;opacity:.95;white-space:nowrap}
 .hero-date{font-size:12.5px;opacity:.75}
