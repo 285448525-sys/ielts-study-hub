@@ -342,6 +342,7 @@ function openDetail(id){
     html += '<div class="sp-p3-area" id="p3Area" data-p3-state="idle" hidden>';
     html += '<div class="sp-p3-head">P3 提问</div>';
     html += '<div class="sp-p3-list" id="p3List"></div>';
+    html += '<div class="sp-p3-next" id="p3NextWrap" hidden><button class="btn btn-med" id="p3NextBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:14px;height:14px;vertical-align:-2px;margin-right:5px"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>下一道追问</button></div>';
     html += '<div class="sp-p3-save" id="p3SaveWrap" hidden><button class="btn btn-primary" id="p3SaveBtn" type="button">保存 P3 答案</button></div>';
     html += '</div>';
 
@@ -432,43 +433,84 @@ function openDetail(id){
       // 仅清空当前编辑框与诊断结果，不删历史提交记录
     });
 
-    // P3 追问区：基于 P2 答案出 3 个抽象题（共用 common.js MockGenP3）
+    // P3 逐题追问：先出第 1 题，考生答完后点「下一道追问」基于上一题回答继续出题
+    const MAX_P3 = 3;
+    function getP2TextForP3(){
+      const ta = $('#p2Ans');
+      return (ta && ta.value.trim()) || (s.answers && s.answers.p2 && s.answers.p2.text) || '';
+    }
+    function ensureP3(){
+      s.answers = s.answers || {}; s.answers.p2 = s.answers.p2 || {};
+      s.answers.p2.p3 = s.answers.p2.p3 || {};
+      if(!Array.isArray(s.answers.p2.p3.questions)) s.answers.p2.p3.questions = [];
+      if(!Array.isArray(s.answers.p2.p3.answers)) s.answers.p2.p3.answers = [];
+      if(!Array.isArray(s.answers.p2.p3.aiHelper)) s.answers.p2.p3.aiHelper = [];
+      return s.answers.p2.p3;
+    }
+    function showP3Area(){
+      const area = $('#p3Area'); if(area){ area.hidden = false; area.dataset.p3State = 'generated'; }
+      const saveWrap = $('#p3SaveWrap'); if(saveWrap) saveWrap.hidden = false;
+      const bottom = $('#p2BottomBar'); if(bottom) bottom.hidden = false;
+    }
+    function updateP3NextBtn(){
+      const p3 = ensureP3();
+      const wrap = $('#p3NextWrap');
+      if(wrap) wrap.hidden = (p3.questions.length >= MAX_P3);
+    }
+    async function genP3Step(step, prevQ, prevA){
+      const p2Text = getP2TextForP3();
+      const q = await window.MockGenP3.genNext(s, p2Text, step, prevQ, prevA);
+      const p3 = ensureP3();
+      p3.questions[step] = q;
+      renderP3Step(s, $('#p3List'), step);
+      updateP3NextBtn();
+      showP3Area();
+      hubSave();
+    }
+    async function genP3StepSafe(step, prevQ, prevA, btn, orig){
+      if(btn){ btn.disabled = true; btn.textContent = '⏳ 生成中…'; }
+      try{
+        await genP3Step(step, prevQ, prevA);
+      }catch(err){
+        toast('P3 生成失败：' + err.message + '（已尝试兜底）');
+        try{
+          const q = window.MockGenP3.presetNext(step);
+          const p3 = ensureP3();
+          p3.questions[step] = q;
+          renderP3Step(s, $('#p3List'), step);
+          updateP3NextBtn();
+          showP3Area();
+          hubSave();
+        }catch(_){}
+      }finally{
+        if(btn){ btn.disabled = false; if(orig) btn.innerHTML = orig; }
+      }
+    }
+
     const p3GenBtn = document.getElementById('p3GenBtn');
     if(p3GenBtn) p3GenBtn.addEventListener('click', e => {
       e.stopPropagation();
-      const ta = $('#p2Ans');
-      const p2Text = ta && ta.value.trim() || (s.answers && s.answers.p2 && s.answers.p2.text) || '';
+      const p2Text = getP2TextForP3();
       if(!p2Text){ toast('请先在 P2 答题框写点东西，再生成 P3 追问'); return; }
       if(!DATA.settings.relayToken){ toast('请先在「设置」配置 DeepSeek Key'); return; }
-      p3GenBtn.disabled = true;
+      // 已生成过的题目：直接展开，不清空（支持重看）
+      const p3 = ensureP3();
+      if(p3.questions.length){ renderP3All(s, $('#p3List')); updateP3NextBtn(); showP3Area(); return; }
       const orig = p3GenBtn.innerHTML;
-      p3GenBtn.textContent = '⏳ 生成中…';
-      window.MockGenP3.gen(s, p2Text).then(qs => {
-        s.answers = s.answers || {}; s.answers.p2 = s.answers.p2 || {};
-        s.answers.p2.p3 = s.answers.p2.p3 || {};
-        s.answers.p2.p3.questions = qs;
-        s.answers.p2.p3.p2TextRef = (p2Text.length > 200 ? p2Text.slice(0, 200) + '…' : p2Text);
-        s.answers.p2.p3.ts = Date.now();
-        renderP3List(s, $('#p3List'));
-        const saveWrap = $('#p3SaveWrap'); if(saveWrap) saveWrap.hidden = false;
-        p3GenBtn.disabled = false; p3GenBtn.innerHTML = orig;
-        const area = $('#p3Area'); if(area){ area.hidden = false; area.dataset.p3State = 'generated'; }
-        const bottom = $('#p2BottomBar'); if(bottom) bottom.hidden = false;
-      }).catch(err => {
-        toast('P3 生成失败：' + err.message + '（已尝试兜底）');
-        try{
-          const qs = window.MockGenP3.preset();
-          s.answers = s.answers || {}; s.answers.p2 = s.answers.p2 || {};
-          s.answers.p2.p3 = s.answers.p2.p3 || {};
-          s.answers.p2.p3.questions = qs;
-          s.answers.p2.p3.ts = Date.now();
-          renderP3List(s, $('#p3List'));
-          const saveWrap = $('#p3SaveWrap'); if(saveWrap) saveWrap.hidden = false;
-          const area = $('#p3Area'); if(area){ area.hidden = false; area.dataset.p3State = 'generated'; }
-          const bottom = $('#p2BottomBar'); if(bottom) bottom.hidden = false;
-        }catch(_){}
-        p3GenBtn.disabled = false; p3GenBtn.innerHTML = orig;
-      });
+      genP3StepSafe(0, null, null, p3GenBtn, orig);
+    });
+
+    const p3NextBtn = document.getElementById('p3NextBtn');
+    if(p3NextBtn) p3NextBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      const p3 = ensureP3();
+      const step = p3.questions.length;
+      if(step >= MAX_P3) return;
+      const prevQ = p3.questions[step - 1] || null;
+      const prevTa = document.querySelector('#p3List .sp-p3-q[data-i="' + (step - 1) + '"] .sp-p3-textarea');
+      const prevA = prevTa ? prevTa.value.trim() : '';
+      const orig = p3NextBtn.innerHTML;
+      genP3StepSafe(step, prevQ, prevA, p3NextBtn, orig);
     });
     const p3SaveBtn = document.getElementById('p3SaveBtn');
     if(p3SaveBtn) p3SaveBtn.addEventListener('click', e => {
@@ -508,8 +550,9 @@ function openDetail(id){
         renderStoryLink($('#aiResult'), s.answers.p2.aiStoryLink);
       }
       // 回填已生成的 P3 追问列表 + 答案
-      if(s.answers.p2.p3 && Array.isArray(s.answers.p2.p3.questions)){
-        renderP3List(s, $('#p3List'));
+      if(s.answers.p2.p3 && Array.isArray(s.answers.p2.p3.questions) && s.answers.p2.p3.questions.length){
+        renderP3All(s, $('#p3List'));
+        updateP3NextBtn();
         const saveWrap = $('#p3SaveWrap');
         if(saveWrap) saveWrap.hidden = false;
         const area = $('#p3Area');
@@ -650,77 +693,81 @@ function renderStoryLink(el, j){
   el.style.display = 'block';
 }
 
-/* === P3 追问区渲染：3 个抽象题 + 每题一个朗读按钮 + 答案框 ===
-   输入：s = 当前的 speaking 项，container = #p3List 容器。
-   行为：取 s.answers.p2.p3.questions 渲染题目，每题一个 textarea 回填 s.answers.p2.p3.answers[i]。
-   注意：这里只负责渲染，保存事件（#p3SaveBtn）由 openDetail 绑定，避免重复。 */
-function renderP3List(s, container){
+/* === P3 逐题追问渲染 ===
+   行为：把第 i 题（已生成）渲染进 #p3List 末尾；首题无"上一题"标注，续题标注"追问 N"。
+   每题：题号 + 朗读 + 题目 + 回答框 + AI辅助按钮 + 结果容器。
+   绑定朗读 / AI辅助 / 回填已存辅助结果。保存事件（#p3SaveBtn）由 openDetail 统一绑定。 */
+function renderP3Step(s, container, i){
   if(!container) return;
   const p3 = s.answers && s.answers.p2 && s.answers.p2.p3;
-  const qs = (p3 && Array.isArray(p3.questions)) ? p3.questions : [];
-  const savedAns = (p3 && Array.isArray(p3.answers)) ? p3.answers : [];
-  if(!qs.length){ container.innerHTML = ''; return; }
-  let h = '';
-  qs.forEach((q, i) => {
-    h += '<div class="sp-p3-q" data-i="'+i+'">';
-    h += '<div class="sp-p3-q-head">';
-    h += '<span class="sp-p3-q-num">Q3-'+(i+1)+'</span>';
-    h += '<span class="sp-p3-q-text">'+escapeHtml(q)+'</span>';
-    h += ttsBtnHtml();
-    h += '</div>';
-    h += '<textarea class="sp-p3-textarea" data-i="'+i+'" placeholder="在这里写下你的 P3 回答…">' + escapeHtml(savedAns[i] || '') + '</textarea>';
-    // P3 单题 AI 辅助：按钮（左）+ 结果容器
-    h += '<div class="sp-p3-helper-row">';
-    h += '<button class="sp-p3-helper-btn" data-i="'+i+'" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;flex:none"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.4L22 18.3l-2.1.9L19 21.5l-.9-2.3-2.1-.9 2.1-.9z"/></svg>AI 辅助</button>';
-    h += '</div>';
-    h += '<div class="sp-p3-ai-result" data-i="'+i+'"></div>';
-    h += '</div>';
-  });
-  container.innerHTML = h;
-  // 给每个题目绑朗读 + AI 辅助，并回填已生成的辅助结果
-  container.querySelectorAll('.sp-p3-q').forEach(qDiv => {
-    const i = +qDiv.dataset.i;
-    const text = qs[i];
-    const ttsBtn = qDiv.querySelector('.sp-tts');
-    if(ttsBtn && text) ttsBtn.addEventListener('click', e => { e.stopPropagation(); speakQuestion.speak(text, ttsBtn); });
-    const aiBtn = qDiv.querySelector('.sp-p3-helper-btn');
-    if(aiBtn) aiBtn.addEventListener('click', e => { e.stopPropagation(); generateP3Helper(s.id, i); });
-    // 回填已保存的 AI 辅助结果
-    const savedHelper = (p3 && Array.isArray(p3.aiHelper)) ? p3.aiHelper[i] : null;
-    if(savedHelper && (savedHelper.main || savedHelper.extend || savedHelper.cn || savedHelper.raw)){
-      renderP3Helper(qDiv.querySelector('.sp-p3-ai-result'), savedHelper);
-    }
-  });
+  if(!p3 || !Array.isArray(p3.questions) || !p3.questions[i]) return;
+  const q = p3.questions[i];
+  const savedAns = (Array.isArray(p3.answers) && p3.answers[i]) || '';
+  const div = document.createElement('div');
+  div.className = 'sp-p3-q';
+  div.dataset.i = i;
+  div.innerHTML = '<div class="sp-p3-q-head">'
+    + '<span class="sp-p3-q-num">Q3-' + (i + 1) + (i === 0 ? '' : ' · 追问') + '</span>'
+    + '<span class="sp-p3-q-text">' + escapeHtml(q) + '</span>'
+    + ttsBtnHtml()
+    + '</div>'
+    + '<textarea class="sp-p3-textarea" data-i="' + i + '" placeholder="在这里写下你的 P3 回答…">' + escapeHtml(savedAns) + '</textarea>'
+    + '<div class="sp-p3-helper-row">'
+    + '<button class="sp-p3-helper-btn" data-i="' + i + '" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;flex:none"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.4L22 18.3l-2.1.9L19 21.5l-.9-2.3-2.1-.9 2.1-.9z"/></svg>AI 辅助</button>'
+    + '</div>'
+    + '<div class="sp-p3-ai-result" data-i="' + i + '"></div>';
+  container.appendChild(div);
+  const ttsBtn = div.querySelector('.sp-tts');
+  if(ttsBtn) ttsBtn.addEventListener('click', e => { e.stopPropagation(); speakQuestion.speak(q, ttsBtn); });
+  const aiBtn = div.querySelector('.sp-p3-helper-btn');
+  if(aiBtn) aiBtn.addEventListener('click', e => { e.stopPropagation(); generateP3Helper(s.id, i); });
+  const savedHelper = (Array.isArray(p3.aiHelper)) ? p3.aiHelper[i] : null;
+  if(savedHelper && (savedHelper.main || savedHelper.extend || savedHelper.cn || savedHelper.raw)){
+    renderP3Helper(div.querySelector('.sp-p3-ai-result'), savedHelper);
+  }
 }
 
-// P3 单题 AI 辅助的 system prompt（用户给定，严格锁定 5.5 分策略）
-const P3_HELPER_SYS = `身份：雅思口语Part3答题辅助工具，面向英语基础薄弱考生，目标分数5.5分。
-核心策略：主回答简短切题，2-3句话说完即停；预留追问拓展内容，考官追问后再补充，避免硬编出错。
+/* 重新渲染整段（用于回填已有 P3 数据：已有几题就渲染几题，并显示"下一道追问"到当前步） */
+function renderP3All(s, container){
+  if(!container) return;
+  container.innerHTML = '';
+  const p3 = s.answers && s.answers.p2 && s.answers.p2.p3;
+  const n = (p3 && Array.isArray(p3.questions)) ? p3.questions.length : 0;
+  for(let i = 0; i < n; i++) renderP3Step(s, container, i);
+}
 
-【硬性执行规则】
-1. 词汇：仅限高中核心词汇，禁用生僻难词；复用用户P2素材中的具体感受词，禁止通篇使用nice feelings等空泛表达。
-2. 语法：以简单句为主，仅用3种固定复合结构保底，满足5.5分语法要求：
-   - 范围补充：从 especially for most people / young people / students and workers 三选一
-   - 定语从句：which means，严格遵循「前因→后果」逻辑，禁止同义反复
-   - 追问拓展必须包含1个because引导的原因状语从句
-3. 答题原则：优先讨论普遍现象，禁止开场讲个人故事；使用用户P2素材时，须做抽象转换：将“我”改为people，删除具体时间地点，仅在追问环节用作佐证。
-4. 题型固定逻辑：
-   - 观点题：直接表态 + 1个简单原因
-   - 对比题：优先按人群拆分；无法拆分时，按目的/场景拆分（for fun/for health、at home/outside二选一）
-   - 原因题：1个核心原因，不堆砌多个要点
+// P3 单题 AI 辅助的 system prompt（用户给定：基础极差 / 严格锁 5.5 分，绝不输出 6+ 水平）
+const P3_HELPER_SYS = `身份：雅思口语Part3答题辅助工具，面向英语基础极差的考生，目标分数严格锁定5.5分，绝对不可以输出6分以上水平的内容。
+核心策略：主回答极简，只给观点+1个原因，说完即停；例子和拓展全部放在追问环节，绝对不可以提前说。
+
+【绝对强制执行的硬规则，违反即不合格】
+1. 词汇：只能用初中-高中最基础词汇，禁止使用identity, landmark, concrete, shape, construct, symbolize等抽象/进阶词汇；统一用最简单的近义替换，如look, famous, tall building。
+2. 主回答铁则：
+   - 严格控制在2句话以内，10-15秒说完
+   - 只包含：核心观点 + 1个最简单的原因
+   - 绝对禁止出现 for example, for instance, such as 等举例表达，例子全部放在追问拓展里
+   - 最多使用1个简单复合结构，不许多个结构堆砌
+3. 追问拓展铁则：
+   - 3句话以内，必须包含1个because引导的从句
+   - 最多额外加1个固定结构（especially for / which means二选一），禁止同时使用多个
+   - 必须使用抽象化的用户P2素材举例，禁止讲具体个人故事
+4. 答题逻辑：
+   - 观点题：表态+1个原因
+   - 对比题：优先拆人群，拆不动就拆目的/场景
+   - 原因题：1个核心原因
    - 建议题：2个简单做法，用or连接
 
 【输出格式】
 🔹主回答（考场直接说，10-15秒）
-英文答案
+英文答案，2句以内，无例子
 
 🔹追问拓展（考官追问Why/example时补充）
-英文补充内容，必须含because从句，必须用到抽象化P2素材
+英文补充内容，3句以内，含because从句，含抽象化P2素材
 
 🔹中文思路拆解
-1. 答题提示：主回答说完停顿等待提问，勿一次性说完
-2. 逻辑说明：本题的拆分思路与答题逻辑
-3. 素材说明：P2素材的转换方式与使用时机
+1. 答题提示
+2. 逻辑说明
+3. 素材说明
 
 输入参数：当前P3题目 + 用户的P2回答内容，请严格按照以上规则输出。`;
 

@@ -412,15 +412,15 @@
     }
   }
 
-  /* ---------- AI：生成 P3 追问（基于 P2 回答，3 个抽象问题） ----------
+  /* ---------- AI：生成 P3 追问（基于 P2 回答，3 个抽象问题，内部走逐题追问逻辑） ----------
      复用 common.js 的 window.MockGenP3（口语练习详情页 P3 也共用一份）。 */
   async function genP3Questions(p2, p2Transcript){
-    return window.MockGenP3.gen(p2, p2Transcript);
+    return window.MockGenP3.gen3(p2, p2Transcript);
   }
 
   /* ---------- 预设 P3 追问（DeepSeek 生成失败时的兜底，保证 P3 绝不跳过） ---------- */
   function presetP3Questions(/* topic */){
-    return window.MockGenP3.preset();
+    return window.MockGenP3.preset3();
   }
 
   /* ---------- 朗读发音检测（配讯飞 Key 时每 Part 后插入） ---------- */

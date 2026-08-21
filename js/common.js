@@ -430,28 +430,62 @@ const P3_PRESET = [
   'To what extent should the government be responsible for this?',
   'How might this differ between urban and rural areas?'
 ];
-async function genSpeakingP3(p2, p2Transcript){
-  const sys = 'You are an IELTS speaking examiner. Based on the candidate\'s Part 2 talk, generate EXACTLY 3 abstract Part 3 follow-up questions that explore broader themes (society, comparison, causes, effects, future, individual vs public). Do NOT repeat the candidate\'s own words back; each question must be answerable independently of the Part 2 details. Output ONLY a JSON array of 3 question strings in English, no other text.';
-  const user = 'Part 2 cue card (English): ' + (p2.promptEn || '') + '\nChinese: ' + (p2.promptZh || '')
+/* P3 逐题追问：先出第 1 题（仅基于 P2），之后每一题都基于「上一题 + 上一题考生的回答」
+   继续追问，模拟考官 real-time follow-up。返回单题字符串。
+   参数：p2 = speaking 项；p2Text = P2 回答文本；step = 当前题序号（从 0 起）；
+         prevQ / prevA = 上一题题目与考生回答（首题为 null）。 */
+async function genSpeakingP3(p2, p2Text, step, prevQ, prevA){
+  step = step || 0;
+  const isFirst = !prevQ && !prevA;
+  const sys = 'You are an IELTS Speaking Part 3 examiner. Ask ONE abstract follow-up question in English.'
+    + (isFirst
+        ? ' This is the FIRST follow-up: it must explore a broad theme derived from the candidate\'s Part 2 talk (society, comparison, cause, effect, or future). Do NOT repeat the candidate\'s words.'
+        : ' This is a CONTINUING follow-up: it must directly build on the candidate\'s PREVIOUS answer below — dig deeper, ask for reason/example/contrast. Do NOT introduce an unrelated new topic.')
+    + ' Output ONLY the single question string, no numbering, no quotes, no other text.';
+  let user = 'Part 2 cue card (English): ' + (p2.promptEn || '') + '\nChinese: ' + (p2.promptZh || '')
     + '\nYou should say: ' + ((p2.youShouldSay || []).join('; '))
-    + '\n\nThe candidate\'s Part 2 talk:\n' + (p2Transcript || '(no answer given)');
+    + '\n\nThe candidate\'s Part 2 talk:\n' + (p2Text || '(no answer given)');
+  if(!isFirst){
+    user += '\n\n--- Previous Part 3 exchange ---'
+      + '\nExaminer asked: ' + (prevQ || '')
+      + '\nCandidate answered: ' + (prevA || '(no answer given)')
+      + '\n\nNow ask the NEXT follow-up question that continues from the candidate\'s answer above.';
+  }
   const content = await callRelay('mock_q', [
     { role:'system', content:sys },
     { role:'user', content:user }
   ], 0.8);
-  const j = aiJson(content);
-  let qs = [];
-  if(Array.isArray(j)) qs = j.map(x => (typeof x === 'string' ? x : (x.q || x.question || '')));
-  else if(j && Array.isArray(j.questions)) qs = j.questions;
-  qs = qs.map(s => String(s).trim()).filter(Boolean);
-  if(!qs.length) throw new Error('AI 未返回有效的 P3 追问');
-  return qs.slice(0, 3);
+  const q = String(content || '').replace(/^[\s\d."'\-]+/, '').replace(/["']+$/, '').trim();
+  if(!q) throw new Error('AI 未返回有效的 P3 追问');
+  return q;
 }
-function presetSpeakingP3(/* topic */){
-  // 兜底：固定取前 3 个万能抽象题（永远有题、AI 失败时回退）
-  return P3_PRESET.slice(0, 3);
+/* 兜底：按步数给固定题（首题 / 续题），AI 失败时回退 */
+function presetSpeakingP3(step){
+  step = step || 0;
+  if(step === 0) return P3_PRESET[0];
+  const cont = [
+    'Why do you think that is the case?',
+    'Can you give a reason or an example to support your point?',
+    'Do you think this might change in the future? Why or why not?'
+  ];
+  return cont[(step - 1) % cont.length];
 }
-window.MockGenP3 = { gen: genSpeakingP3, preset: presetSpeakingP3 };
+/* 向后兼容：模考场景仍需要一次性拿 3 题（P3 在模考里按固定 3 题推进）。
+   gen3 内部仍走"逐题追问"逻辑——首题基于 P2，续题基于上一题（无考生答，用 cue 续问）。 */
+async function genSpeakingP3Three(p2, p2Text){
+  const out = [];
+  let prevQ = null, prevA = null;
+  for(let i = 0; i < 3; i++){
+    const q = await genSpeakingP3(p2, p2Text, i, prevQ, prevA);
+    out.push(q);
+    prevQ = q; prevA = ''; // 模考无考生作答，续题靠 cue 自然追问
+  }
+  return out;
+}
+function presetSpeakingP3Three(){
+  return [ P3_PRESET[0], 'Why do you think that is the case?', 'Do you think this might change in the future? Why or why not?' ];
+}
+window.MockGenP3 = { genNext: genSpeakingP3, presetNext: presetSpeakingP3, gen3: genSpeakingP3Three, preset3: presetSpeakingP3Three };
 
 /* ===== 连续打卡 ===== */
 function computeStreak(checkins){
