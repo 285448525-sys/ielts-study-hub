@@ -322,24 +322,29 @@ function openDetail(id){
     html += '</div>';
   }
 
-  // P2 串题思路 + 完成/下一题：并排同一行（左侧 = AI 串题思路，右侧 = 完成 + 下一题）
+  // P2 串题思路（保留在 P3 之上）；完成/下一题 = 固定底栏（在 P3 之下、视口最底）
   if(s.type === 'P2'){
+    // AI 串题思路（独立一行，左对齐；与完成/下一题不再同行）
     html += '<div class="sp-detail-actions" style="margin-top:8px">';
     html += '<button class="btn btn-primary" id="aiStoryLinkBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>AI 串题思路</button>';
-    html += '<button class="btn btn-med" id="p2FinishBtn" style="margin-left:auto">完成</button>';
-    html += '<button class="btn btn-primary" id="p2NextBtn" style="margin-left:8px">下一题 →</button>';
     html += '</div>';
-    // P3 追问区：基于 P2 回答让 AI 出 3 个抽象追问 + 每题一个回答框 + 保存（共用 common.js MockGenP3）
+    // AI 串题方案输出（点击 AI 串题思路后填充）—— DOM 放在 P3 之上
+    html += '<div class="sp-ai-result" id="aiResult"></div>';
+    // P3 追问区：head → list(动态) → save(动态) → actions(按钮，sticky 底栏上方)
     html += '<div class="sp-p3-area" id="p3Area" data-p3-state="idle">';
     html += '<div class="sp-p3-head">P3 提问</div>';
     html += '<div class="sp-p3-list" id="p3List"></div>';
     html += '<div class="sp-p3-save" id="p3SaveWrap" hidden><button class="btn btn-primary" id="p3SaveBtn" type="button">保存 P3 答案</button></div>';
-    html += '<div class="sp-p3-actions" id="p3Actions" style="margin-top:12px">';
+    html += '<div class="sp-p3-actions" id="p3Actions">';
     html += '<button class="btn btn-med" id="p3GenBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:14px;height:14px;vertical-align:-2px;margin-right:5px"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>基于我的回答生成 3 题 P3 追问</button>';
     html += '</div>';
     html += '</div>';
+    // 固定底栏：完成 / 下一题（视口最最底部，position:fixed bottom:0）
+    html += '<div class="sp-bottom-actions" id="p2BottomActions">';
+    html += '<button class="btn btn-med" id="p2FinishBtn">完成</button>';
+    html += '<button class="btn btn-primary" id="p2NextBtn">下一题 →</button>';
+    html += '</div>';
   }
-  html += '<div class="sp-ai-result" id="aiResult"></div>';
 
   // 底部动作区：P1 = 保存/删除/下一话题（P2 的动作已合并到上方 AI 串题思路同一行）
   html += '<div class="sp-detail-actions">';

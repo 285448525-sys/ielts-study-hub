@@ -109,9 +109,9 @@
   .sp-empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:14px}
 
   /* === P3 追问区（P2 详情页用）：基于 P2 回答让 AI 出 3 个抽象题 === */
-  .sp-p3-area{margin-top:14px;padding:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm)}
+  .sp-p3-area{margin-top:14px;padding:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);padding-bottom:78px}
   .sp-p3-head{font-size:15px;font-weight:700;color:var(--ink);margin-bottom:10px}
-  .sp-p3-actions{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+  .sp-p3-actions{position:sticky;bottom:70px;z-index:5;display:flex;align-items:center;flex-wrap:wrap;gap:6px;background:var(--surface);padding:8px 0;margin:8px -14px -8px;border-top:1px solid var(--line);border-radius:0 0 var(--radius-sm) var(--radius-sm);padding-left:14px;padding-right:14px}
   .sp-p3-actions .btn{flex:none}
   .sp-p3-list{display:flex;flex-direction:column;gap:10px}
   .sp-p3-q{padding:12px;background:var(--bg);border:1px solid var(--line);border-radius:var(--radius-sm)}
@@ -121,6 +121,12 @@
   .sp-p3-textarea{width:100%;box-sizing:border-box;min-height:72px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);color:var(--ink);font-size:14px;line-height:1.65;resize:vertical;font-family:inherit}
   .sp-p3-textarea:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-soft);outline:none}
   .sp-p3-save{margin-top:12px}
+
+  /* === P2 详情页固定底栏：完成 / 下一题（视口最底，position:fixed） === */
+  .sp-bottom-actions{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;gap:10px;justify-content:flex-end;align-items:center;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:12px 16px;border-top:1px solid var(--line);box-shadow:0 -4px 16px rgba(0,0,0,.06)}
+  .sp-bottom-actions #p2FinishBtn{margin-right:auto;min-width:96px}
+  .sp-bottom-actions #p2NextBtn{min-width:140px}
+  #detailView{padding-bottom:88px}
 
   /* === 逐题展开 + 语音 + 诊断 === */
   .sp-q-list{list-style:none;margin:0 0 16px;padding:0;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);overflow:hidden}
