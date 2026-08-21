@@ -51,7 +51,13 @@ function injectNav(){
   let html = '';
   // v5：侧栏头部只放真实 PNG 图标（替代 SVG logo + 文字 + 收起按钮）
   html += '<div class="side-head">'
-    + '<img src="icons/icon-192.png" alt="IELTS Hub" width="40" height="40">'
+    + '<span class="side-brand-mark" aria-hidden="true">'
+    + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'
+    + '<path d="M4 4.5h7v15H4z" fill="#fff" fill-opacity=".95" stroke="none"/>'
+    + '<path d="M13 4.5h7v15h-7z" fill="#fff" fill-opacity=".55" stroke="none"/>'
+    + '<path d="M4 4.5h7v15M11 4.5v15M13 4.5h7v15"/>'
+    + '</svg>'
+    + '</span>'
     + '<div class="side-brand"><span class="bn">IELTS Hub</span><span class="bs">雅思备考</span></div>'
     + '</div>';
   // 方案1：全局计时徽标容器（任何页面常驻；计时进行中显示呼吸徽标 + 一键结束，解决 P1/P3）
