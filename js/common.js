@@ -767,7 +767,7 @@ async function softNavigate(t, isPop){
     main.innerHTML = newMain.innerHTML;                 // 只换内容区，侧边栏/全局状态保留
     if(doc.title) document.title = doc.title;
     updateActiveNav(t.file);
-    await runPageScript(t.id);                          // 重新执行目标页脚本（复用 ready + 事件绑定）
+    await runPageScript(t.id, doc);                     // 重新执行目标页脚本（复用 ready + 事件绑定）
     if(!isPop) history.pushState({ hub: t.id }, '', t.href);
     prefetchNeighbors(t.id);
   }catch(err){
@@ -801,19 +801,39 @@ function updateActiveNav(file){
    用间接 eval（window.eval）在全局作用域执行脚本源码。
    - function 声明挂到全局 → 跨页调用（如 restoreDefaultLinks 调 renderFavLinks/renderLinks）仍然可用；
    - let/const 只存在于本次 eval 的词法作用域 → 多次访问不会“标识符重复声明”报错，且状态随每次访问重置。
-   脚本里的 ready(fn) 在已加载完成的文档上会立即同步运行 → 页面初始化自然发生。 */
-async function runPageScript(id){
+   脚本里的 ready(fn) 在已加载完成的文档上会立即同步运行 → 页面初始化自然发生。
+   软导航只换 <main>，原 head 里的页面专属脚本（如 speaking.html 的 mock.js / progress.js）不会自动重跑，
+   因此从目标页 HTML 里收集其余 js/*.js（排除全局 data.js / common.js 与主脚本）一并 eval，避免 tab 组件未初始化。 */
+async function runPageScript(id, doc){
   const p = PAGES.find(p => p.id === id);
   if(!p) return;
-  const res = await fetch('js/' + id + '.js', { cache: 'no-cache' });
-  if(!res.ok) throw new Error('HTTP ' + res.status);
-  const src = await res.text();
+  const evalScript = async (src) => {
+    const res = await fetch(src, { cache: 'no-cache' });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const code = await res.text();
+    window.eval(code);   // 幂等重跑：页面 ready 内部已各自清旧心跳 / 重绑事件，多次进入不叠加
+  };
+  // 主脚本 js/{id}.js
   try{
-    window.eval(src);   // 幂等重跑：页面 ready 内部已各自清旧心跳 / 重绑事件，多次进入不叠加
+    await evalScript('js/' + id + '.js');
   }catch(err){
     // P0-A：脚本执行异常（极偶发）→ 记日志后由 softNavigate 的兜底走整页跳转，绝不卡死
     console.error('[soft-nav] 页面脚本执行失败，将回退整页跳转：', id, err);
     throw err;
+  }
+  // 目标页 HTML 中声明的其他页面专属脚本
+  if(doc){
+    const extras = [];
+    doc.querySelectorAll('script[src]').forEach(s => {
+      const src = s.getAttribute('src');
+      if(!src || !src.startsWith('js/')) return;
+      if(src === 'js/data.js' || src === 'js/common.js' || src === 'js/' + id + '.js') return;
+      extras.push(src);
+    });
+    for(const src of extras){
+      try{ await evalScript(src); }
+      catch(err){ console.warn('[soft-nav] 附加脚本执行失败，已跳过：', src, err); }
+    }
   }
 }
 
