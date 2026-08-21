@@ -1352,7 +1352,8 @@ main.container{padding-top:20px}
 .hero-date{font-size:12.5px;opacity:.75}
 .streak-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:rgba(255,255,255,.18);color:#fff;border-radius:999px;font-weight:700;font-size:12px;flex:none;backdrop-filter:blur(4px)}
 .streak-chip svg{width:13px;height:13px}
-.hero-goal{font-size:12.5px;background:rgba(255,255,255,.18);padding:5px 12px;border-radius:999px;font-weight:600;backdrop-filter:blur(4px);flex:none;white-space:nowrap}
+.hero-greet-right{display:inline-flex;align-items:center;gap:8px;flex:none;flex-wrap:wrap}
+.hero-goal{font-size:12.5px;background:rgba(255,255,255,.18);padding:5px 12px;border-radius:999px;font-weight:600;backdrop-filter:blur(4px);white-space:nowrap}
 .hero-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;position:relative;z-index:1;gap:10px}
 .hero-label{font-size:13px;opacity:.85;font-weight:600;letter-spacing:.04em}
 .hero-target-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.18);padding:6px 12px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap;backdrop-filter:blur(4px)}
