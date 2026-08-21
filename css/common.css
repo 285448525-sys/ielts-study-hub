@@ -515,6 +515,10 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 .plan-input{flex:1;font-size:14px;padding:6px 8px;border:1px solid var(--primary);border-radius:var(--radius-sm);background:var(--surface);color:var(--ink);outline:none;box-shadow:0 0 0 3px var(--primary-soft)}
 .hist-plan{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-top:1px dashed var(--line);cursor:pointer}
 .hist-plan:hover{color:var(--primary)}
+/* 昨日未完成自动延续提示 + 延续项左侧标记 */
+.plan-carry-tip{font-size:12.5px;color:var(--primary);background:var(--primary-soft);border-radius:var(--radius-sm);padding:7px 10px;margin-bottom:8px;line-height:1.5}
+.plan-item.carried{position:relative;padding-left:10px}
+.plan-item.carried::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:2px;background:var(--primary);opacity:.45}
 
 /* scores */
 .score-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 0;border-top:1px dashed var(--line)}
@@ -1157,12 +1161,13 @@ main .quote{
 /* ====== 计时 / 专注（2026-08-18 极简：stage 收紧 + 模块改单行 chip） ======
    所有计时专用样式集中在此（timer.html 内联 style 已删）；
    图标走 .mod-ic 的 teal 线性 SVG；全局 .mod-card/.btn 仅用作用域覆写，不动。 */
-.timer-stage{text-align:center}
-.timer-goal{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:8px}
+/* timer 页面（紧凑居中样式） */
+.timer-stage{text-align:center;max-width:580px;margin-left:auto;margin-right:auto;padding:32px 28px}
+.timer-goal{display:inline-flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:14px}
 .goal-input{width:64px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink);font:inherit;text-align:center}
-.timer-progress{margin-top:10px;text-align:left}
-.timer-active{margin-top:10px}
-.timer-btns{display:flex;gap:10px;justify-content:center;margin-top:10px}
+.timer-progress{margin-top:16px;text-align:left}
+.timer-active{margin-top:14px}
+.timer-btns{display:flex;gap:10px;justify-content:center;margin-top:14px}
 .timer-btns .btn{min-width:0;padding:7px 14px}
 /* 模块选择：单行紧凑 chip（图标 + 名称 + 小按钮） */
 .timer-mods{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:14px}
@@ -1185,7 +1190,38 @@ main .quote{
 @media(max-width:560px){ .live-timer{font-size:36px} }
 
 
-/* ====== 口语·练习沉淀（回顾页 section）+ 学习情况（tab） 2026-08-20 ====== */
+/* ====== 页头（标题+副标题+右侧统计 chip 通用） 2026-08-22 ====== */
+.page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+.page-head-l{min-width:0}
+.page-head-l .page-title{margin:0}
+.page-head-l .page-sub{margin:6px 0 0;font-size:13px;color:var(--muted)}
+.page-head-r{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}
+.phr-chip{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:5px 11px;border-radius:999px;
+  background:var(--primary-soft);color:var(--primary);
+  font-size:12.5px;font-weight:700;
+}
+/* 章节小标题（"选择本次任务"等） */
+.section-title{
+  font-size:13px;font-weight:700;color:var(--muted);
+  letter-spacing:.04em;margin:22px 0 10px;
+  display:flex;align-items:center;gap:8px;
+}
+.section-title::before{content:'';width:3px;height:14px;border-radius:2px;background:var(--primary);display:inline-block}
+/* 今日学习记录 mini 卡 */
+.rec-mini{padding:18px 22px}
+.rec-mini .rec-h{margin-bottom:14px}
+.rec-mini-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:6px}
+.rec-mini-cell{
+  background:var(--surface-2);border:1px solid var(--line);border-radius:12px;
+  padding:10px 8px;text-align:center;
+}
+.rec-mini-cell .nm{font-size:13px;font-weight:700;color:var(--ink);display:block;margin-bottom:3px}
+.rec-mini-cell .v{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.rec-mini-cell.has .v{color:var(--primary);font-weight:700}
+.rec-empty{font-size:13px;color:var(--muted);margin:8px 0 0;text-align:center}
+@media(max-width:720px){ .rec-mini-grid{grid-template-columns:repeat(2,1fr)} }
 /* 评分徽标（模块内自配色语义：≥6 绿 / 5–5.5 琥珀 / <5 红，严格用 Token） */
 .score-badge{font-size:12px;font-weight:700;border-radius:10px;padding:2px 9px;font-variant-numeric:tabular-nums}
 .score-badge.good{background:var(--primary-soft);color:var(--med)}

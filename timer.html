@@ -22,7 +22,16 @@
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 
 <main class="container">
-  <h1 class="page-title">计时</h1>
+  <div class="page-head">
+    <div class="page-head-l">
+      <h1 class="page-title">计时</h1>
+      <p class="page-sub">番茄钟 · 让每次学习都有目标</p>
+    </div>
+    <div class="page-head-r">
+      <span class="phr-chip" id="phrToday">今日 0h0m</span>
+      <span class="phr-chip" id="phrStreak">连续 0 天</span>
+    </div>
+  </div>
 
   <section class="card timer-stage">
     <div class="live-timer" id="liveTimer">00:00:00</div>
@@ -46,7 +55,17 @@
     </div>
   </section>
 
+  <p class="section-title">选择本次任务</p>
   <div class="timer-mods" id="timerMods"></div>
+
+  <section class="card rec-mini">
+    <div class="rec-h">
+      <h3>今日学习记录</h3>
+      <span class="rec-total">总计 <b id="recTotalMini">0h0m</b></span>
+    </div>
+    <div class="rec-mini-grid" id="recMiniGrid"></div>
+    <p class="rec-empty" id="recEmpty">还没有计时记录。开始一次专注学习吧。</p>
+  </section>
 </main>
 
 </body>

@@ -157,6 +157,23 @@ function startEdit(id){
 
 function render(){
   const date = currentDate();
+  // 自动延续：当查看的是「今天」且今天还没有任何计划条目时，
+  // 把「前一天」所有未勾选（done:false）的任务复制过来（新 id、done:false、标记 carried），
+  // 实现「昨天没做完 → 今天自动续上」。
+  if(date === todayKey()){
+    const todayPlan = getPlan(date);
+    if(!todayPlan || todayPlan.items.length === 0){
+      const yPlan = getPlan(addDays(date, -1));
+      if(yPlan && yPlan.items.length){
+        const carried = yPlan.items.filter(i => !i.done);
+        if(carried.length){
+          const tp = ensurePlan(date);
+          carried.forEach(i => tp.items.push({ id: uid(), text: i.text, done: false, carried: true }));
+          hubSave();
+        }
+      }
+    }
+  }
   const p = getPlan(date);
   const items = p ? p.items : [];
   const done = items.filter(i => i.done).length;
@@ -172,8 +189,12 @@ function render(){
   if(total === 0){
     box.innerHTML = renderEmpty('这天还没有计划，上面加一条吧。');
   } else {
-    box.innerHTML = items.map(i => `
-      <div class="plan-item ${i.done ? 'done' : ''}">
+    const carriedCount = items.filter(i => i.carried).length;
+    const carriedTip = carriedCount
+      ? `<div class="plan-carry-tip">↻ 其中 ${carriedCount} 条是昨天未完成的，已自动延续到今天</div>`
+      : '';
+    box.innerHTML = carriedTip + items.map(i => `
+      <div class="plan-item ${i.done ? 'done' : ''} ${i.carried ? 'carried' : ''}">
         <input type="checkbox" ${i.done ? 'checked' : ''} data-toggle="${i.id}" />
         <span class="plan-text" data-id="${i.id}" title="点击编辑">${escapeHtml(i.text)}</span>
         <button class="plan-edit" data-edit="${i.id}" title="编辑">✎</button>
