@@ -316,21 +316,22 @@ function openDetail(id){
     html += '</div>';
   }
 
-  // P2 串题思路（保留；AI 辅助按钮已移除）
+  // P2 串题思路 + 完成/下一题：并排同一行（左侧 = AI 串题思路，右侧 = 完成 + 下一题）
   if(s.type === 'P2'){
-    html += '<button class="btn btn-primary" id="aiStoryLinkBtn" style="margin-bottom:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>AI 串题思路</button>';
+    html += '<div class="sp-detail-actions" style="margin-top:8px">';
+    html += '<button class="btn btn-primary" id="aiStoryLinkBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>AI 串题思路</button>';
+    html += '<button class="btn btn-med" id="p2FinishBtn" style="margin-left:auto">完成</button>';
+    html += '<button class="btn btn-primary" id="p2NextBtn" style="margin-left:8px">下一题 →</button>';
+    html += '</div>';
   }
   html += '<div class="sp-ai-result" id="aiResult"></div>';
 
-  // 底部动作区：P1 = 保存/删除/下一话题；P2 = 完成(返回列表) + 下一题（串题结果直接持久化，所以不再需要单独的"保存"按钮）
+  // 底部动作区：P1 = 保存/删除/下一话题（P2 的动作已合并到上方 AI 串题思路同一行）
   html += '<div class="sp-detail-actions">';
   if(s.type === 'P1'){
     html += '<button class="btn btn-primary" id="saveBtn">保存</button>';
     html += '<button class="btn btn-danger" id="delSpBtn">删除此题</button>';
     html += '<button class="btn btn-med" id="nextTopicBtn" style="margin-left:auto">下一个话题 →</button>';
-  } else if(s.type === 'P2'){
-    html += '<button class="btn btn-med" id="p2FinishBtn" style="margin-left:auto">完成</button>';
-    html += '<button class="btn btn-primary" id="p2NextBtn" style="margin-left:8px">下一题 →</button>';
   }
   html += '</div>';
 
