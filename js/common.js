@@ -432,16 +432,35 @@ const P3_PRESET = [
 ];
 /* P3 逐题追问：先出第 1 题（仅基于 P2），之后每一题都基于「上一题 + 上一题考生的回答」
    继续追问，模拟考官 real-time follow-up。返回单题字符串。
+   出题人设与逻辑严格对齐用户给定 prompt（talking/P3追问官_prompt_2026-08-21.md）：
+   - 角色 = 追问生成器（不扮演考官/不写开场白/不模拟考试流程）
+   - 问题风格 = 自然、略正式但口语化的英语，与真实 P3 考场问法完全对齐
+   - 题型轮替 + 难度递进：第1问浅（社会现象）→ 第2-3问深（原因/影响/对比）→ 第4问表态/预测收尾
    参数：p2 = speaking 项；p2Text = P2 回答文本；step = 当前题序号（从 0 起）；
          prevQ / prevA = 上一题题目与考生回答（首题为 null）。 */
+const P3_GEN_SYS = `You are an IELTS Speaking Part 3 follow-up question generator. Your ONLY task is to generate ONE follow-up question that closely matches real IELTS Speaking Part 3 exam style — natural, slightly formal but conversational English (NOT written language, NOT robotic).
+- Do NOT role-play as an examiner. Do NOT write opening remarks. Do NOT simulate the exam flow.
+- Output ONLY ONE question per turn. Wait for the candidate's answer, then ask the next follow-up based on their previous answer (dig deeper like a real examiner, do not mechanically switch topics).
+- You do not know the candidate's specific Part 2 details, so the FIRST question should start from the general TOPIC CATEGORY of their Part 2 (the candidate will give you the Part 2 cue card and their Part 2 answer).
+
+Question generation rules:
+1. P3 questions must stay within the SAME topic category as Part 2, but elevated to society / abstract / comparison level (this is the essence of P3 vs P2: P2 is personal experience, P3 is general phenomena).
+2. Question types should rotate and cover: cause (Why do you think...?), comparison (How does X differ from Y?), past-vs-now (Has this changed compared to the past?), classification (Do you think this varies between...?), pros/impact (What impact does this have on...?), prediction/opinion (Do you believe...? / To what extent...?).
+3. Difficulty must progress, NOT random: Q1 is shallow (social phenomenon); Q2-Q3 go deeper (cause / impact / comparison); Q4 (if any) asks for the candidate's stance or prediction, then wrap up.
+4. Each turn ask ONLY ONE question. After the candidate answers, respond with a 1-2 sentence brief acknowledgment (e.g. "That's interesting." / "I see."), then ask the next follow-up.
+5. A normal P3 round runs 3-4 follow-ups, then STOP generating — no extra closing remark.
+
+Output ONLY the single question string (or the brief acknowledgment + next question when continuing), no numbering, no quotes, no other text.`;
+
 async function genSpeakingP3(p2, p2Text, step, prevQ, prevA){
   step = step || 0;
   const isFirst = !prevQ && !prevA;
-  const sys = 'You are an IELTS Speaking Part 3 examiner. Ask ONE abstract follow-up question in English.'
+  const sys = P3_GEN_SYS
+    + '\n\n--- CURRENT TURN ---'
     + (isFirst
-        ? ' This is the FIRST follow-up: it must explore a broad theme derived from the candidate\'s Part 2 talk (society, comparison, cause, effect, or future). Do NOT repeat the candidate\'s words.'
-        : ' This is a CONTINUING follow-up: it must directly build on the candidate\'s PREVIOUS answer below — dig deeper, ask for reason/example/contrast. Do NOT introduce an unrelated new topic.')
-    + ' Output ONLY the single question string, no numbering, no quotes, no other text.';
+        ? '\nThis is the FIRST follow-up (Q1): explore a broad social phenomenon derived from the candidate\'s Part 2 topic category. Shallow difficulty.'
+        : '\nThis is a CONTINUING follow-up (Q' + (step + 1) + '): it must directly build on the candidate\'s PREVIOUS answer below — dig deeper (cause / impact / comparison / classification / prediction). Increase difficulty vs the previous question. Do NOT introduce an unrelated new topic.')
+    + '\nGenerate ONLY the single next question string now.';
   let user = 'Part 2 cue card (English): ' + (p2.promptEn || '') + '\nChinese: ' + (p2.promptZh || '')
     + '\nYou should say: ' + ((p2.youShouldSay || []).join('; '))
     + '\n\nThe candidate\'s Part 2 talk:\n' + (p2Text || '(no answer given)');
