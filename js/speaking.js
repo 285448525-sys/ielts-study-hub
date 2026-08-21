@@ -451,6 +451,11 @@ function openDetail(id){
       const area = $('#p3Area'); if(area){ area.hidden = false; area.dataset.p3State = 'generated'; }
       const saveWrap = $('#p3SaveWrap'); if(saveWrap) saveWrap.hidden = false;
       const bottom = $('#p2BottomBar'); if(bottom) bottom.hidden = false;
+      // 已生成过题：「P3追问」按钮变为「重新生成 P3」，提示可重出
+      const genBtn = $('#p3GenBtn');
+      if(genBtn && area && area.dataset.p3State === 'generated'){
+        genBtn.textContent = '重新生成 P3';
+      }
     }
     function updateP3NextBtn(){
       const p3 = ensureP3();
@@ -493,9 +498,16 @@ function openDetail(id){
       const p2Text = getP2TextForP3();
       if(!p2Text){ toast('请先在 P2 答题框写点东西，再生成 P3 追问'); return; }
       if(!DATA.settings.relayToken){ toast('请先在「设置」配置 DeepSeek Key'); return; }
-      // 已生成过的题目：直接展开，不清空（支持重看）
       const p3 = ensureP3();
-      if(p3.questions.length){ renderP3All(s, $('#p3List')); updateP3NextBtn(); showP3Area(); return; }
+      // 已有题：提示重新生成会清空当前题目与回答，确认才重出
+      if(p3.questions.length){
+        const ok = window.confirm('重新生成 P3 追问会清空当前已有的题目和你的回答，确定要重新生成吗？');
+        if(!ok) return;
+        // 清空旧数据，从第 0 题重新出
+        p3.questions = []; p3.answers = []; p3.aiHelper = [];
+        const list = $('#p3List'); if(list) list.innerHTML = '';
+        updateP3NextBtn();
+      }
       const orig = p3GenBtn.innerHTML;
       genP3StepSafe(0, null, null, p3GenBtn, orig);
     });
@@ -557,6 +569,8 @@ function openDetail(id){
         if(saveWrap) saveWrap.hidden = false;
         const area = $('#p3Area');
         if(area){ area.hidden = false; area.dataset.p3State = 'generated'; }
+        const genBtn = $('#p3GenBtn');
+        if(genBtn) genBtn.textContent = '重新生成 P3';
         const bottom = $('#p2BottomBar');
         if(bottom) bottom.hidden = false;
       }
