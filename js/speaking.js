@@ -556,7 +556,7 @@ function matLoadStore(){
   return null;
 }
 
-function aiStoryLink(id){
+async function aiStoryLink(id){
   const s = DATA.speaking.find(x => x.id === id);
   if(!s) return;
   if(!DATA.settings.relayToken){ toast('请先在「设置 / AI 接口」配置 API Key'); return; }
