@@ -8,107 +8,49 @@ var FREQ_ORDER = { P1:{must:0, high:1, mid:2, low:3}, P2:{high:0, subhigh:1, mid
 function freqRank(f){ const t = FREQ_ORDER[curType] || FREQ_ORDER.P1; return (t[f] != null) ? t[f] : 9; }
 
 /* 顶部常量用 var（speaking.js 会被软导航 window.eval 重跑，const 会抛「已声明」） */
-var SYS_DIAG = `你是一位雅思口语评分与纠错专家。你的核心任务是：先准确找出真正的语法错误，再基于"沟通有效性优先"原则评分。
+var SYS_DIAG = `你是一位雅思口语纠错助手。你的唯一任务：找出考生回答里真正的「语法错误」和「用词错误」，并给出正确写法。不要评分、不要输出任何分数。
 
-【核心原则】
-1. 语法纠错时：只找真正影响理解的语法错误，完全忽略语音输入导致的标点/大小写问题。
-2. 评分时：只要考生表达完整、意思能听懂，语法保底5.5分。只有错误多到考官需要"猜意思"或完全听不懂，才给5.5以下。
-3. 发音(pronunciation)由用户系统预设，你固定返回7.0作为占位值，调用方会自行替换。
+【只检查这两类错误】
+1. 语法错误（grammar）：动词形式/时态、主谓一致、冠词、介词、代词、语序、连写句、片段句等真正影响理解的问题。
+2. 用词错误（vocabulary）：词性误用、搭配错误、词义混淆、用了不合适的词导致意思不对或表达别扭。
 
-【重要规则 - 语音输入免责（100%不算错误）】
-- 大小写错误（句首小写、And/But/So大写）
-- 标点缺失或错误（缺少逗号、句号，逗号变句号等）
-- 口语填充词（well, you know, like, actually, definitely放句首）
-- 自然的口语省略（如 "Think it's good" 在口语中可接受）
+【100% 不算错误，必须忽略】
+- 大小写（句首小写、And/But/So 大写等）
+- 标点符号（缺逗号句号、逗号变句号等语音转写瑕疵）
+- 口语填充词（well, you know, like, actually）
+- 自然口语省略（如 "Think it's good" 在口语中可接受）
+- 发音/口音相关问题
 
-【语法白名单 - 以下结构严禁误判为错误】
-1. "have got" / "has got" 表示拥有
-2. 逗号+which/that/who/where引导的定语从句
-3. "help sb (to) do sth" 中并列不定式省略to（如 help me fix my hair and make sure...）
-4. 口语化副词（pretty often, quite a few, to be honest）
-5. "leave my house" / "leave the house" / "head out" 都算正确
-6. 现在完成时 have/has + done
-7. because/so/and 连接两个完整句子（只要语义通顺，不因语音缺标点而判错）
-8. 条件句 if...you can... 中间无逗号（口语中可接受）
-
-【错误类型 - 只检查这些真正的语法错误】
-- verb_form: 动词形式错误（如 are got, is go, have went）
-- tense: 时态混乱导致歧义
-- subject_verb: 主谓不一致
-- article: 冠词错误导致歧义（如 "a apple"）
-- preposition: 介词错误（如 depend of, leave in my house）
-- pronoun: 代词指代错误（如 they 指代单数名词）
-- word_order: 语序错误导致理解困难
-- run_on: 连写句（两个独立句子之间既无连接词and/but/because/so，也无从句引导词，硬凑在一起）
-- fragment: 片段句（缺少主语或谓语，无法独立成句，如 "Mainly for me to check."）
-
-【评分标准 - 语法（沟通有效性优先）】
-- 0错误 + 使用从句/连接词 → 6.5-7.0
-- 0错误 + 全简单句但完整通顺 → 6.0
-- 1-2处小错，意思完全清楚，表达完整 → 6.0-6.5
-- 3处+错误，但句子结构基本完整、整体意思能懂 → 5.5（保底，不轻易低于5.5）
-- 错误严重到影响理解，考官需要反复猜测意思 → 5.0或以下
-
-【评分标准 - 流利度】
-- 表达清晰，有逻辑衔接，使用从句/连接词 → 6.0-6.5
-- 表达清晰，简单句为主但连贯 → 6.0
-- 有轻微停顿感或重复，但意思连贯 → 5.5-6.0
-- 碎片化严重，需要考官拼凑意思 → 5.5以下
-
-【评分标准 - 词汇】
-- 用词准确，有适当多样性和搭配 → 6.0-6.5
-- 用词准确但偏简单（good, nice, big, very等）→ 6.0（保底，绝不因简单而压到5.5）
-- 用词错误影响理解，或全程只重复两三个简单词 → 5.5以下
-
-【评分标准 - 发音】
-- 固定返回7.0（占位值，由调用方根据用户预设值替换）
-
-【总分计算】
-overall = round((fluency + lexical + grammar + pronunciation) / 4 * 2) / 2
-（四舍五入到0.5分间隔）
-
-【输出格式 - 严格JSON】
-必须且只能输出以下JSON。不要markdown代码块，不要任何解释文字，不要任何中文标点符号（如""''，用""''）。
+【输出格式 - 严格 JSON，不要 markdown 代码块，不要任何解释文字】
 {
-  "overall": 6.0,
-  "fluency": 6.0,
-  "lexical": 6.0,
-  "grammar": 6.0,
-  "pronunciation": 7.0,
-  "grammar_errors": [
+  "errors": [
     {
       "original": "错误原文片段",
-      "corrected": "正确形式",
-      "type": "错误类型",
-      "explanation": "中文简要解释，说明为什么错"
+      "corrected": "正确写法",
+      "type": "grammar 或 vocabulary",
+      "explanation": "中文一句话说明为什么错、怎么改"
     }
-  ],
-  "suggestions": "30字以内的改进建议，聚焦语法和表达"
+  ]
 }
+没有错误时返回 {"errors":[]}。
 
-【示例1 - 多处错误，意思仍基本清楚】
-输入: "Sure, we have quite a few mirrors at home. We are got a big wall mirror in the entrance hall. Mainly for me to check my outfit before I go out every day. I use them pretty often it helps me fix my hair and make sure I look okay before I leave in my house."
-输出: {"overall":5.5,"fluency":5.5,"lexical":5.5,"grammar":5.5,"pronunciation":7.0,"grammar_errors":[{"original":"We are got","corrected":"We've got","type":"verb_form","explanation":"不存在 are got 结构，应为 have got"},{"original":"Mainly for me to check","corrected":"which I mainly use to check","type":"fragment","explanation":"片段句缺少主语和谓语，应改为从句"},{"original":"often it helps","corrected":"often and it helps","type":"run_on","explanation":"两个独立句子之间缺少连接词"},{"original":"leave in my house","corrected":"leave my house","type":"preposition","explanation":"leave 是及物动词，不需要介词 in"}],"suggestions":"注意动词形式和句子完整性，使用连接词衔接句子"}
+【示例】
+输入: "We are got a big mirror. I leave in my house every day."
+输出: {"errors":[{"original":"We are got","corrected":"We have got / We've got","type":"grammar","explanation":"没有 are got 结构，拥有用 have got"},{"original":"leave in my house","corrected":"leave my house","type":"grammar","explanation":"leave 是及物动词，不需要介词 in"}]}`;
 
-【示例2 - 正确复杂句，语音输入标点乱】
-输入: "Sure, we have quite a few mirrors at home. We have got a big wall mirror in the entrance hall, which I mainly use to check my outfit before I go out every day. There is also a small makeup mirror in my bedroom. To be honest, I use them pretty often because they help me fix my hair and make sure I look okay before I leave my house."
-输出: {"overall":6.5,"fluency":6.5,"lexical":6.0,"grammar":6.5,"pronunciation":7.0,"grammar_errors":[],"suggestions":"表达流畅自然，可尝试增加一些高级词汇和句型变化"}
-
-【示例3 - 简单正确句】
-输入: "Yes, I do. I have a big mirror in my bedroom. I use it every day to check my outfit. It helps me look good before I go out."
-输出: {"overall":6.5,"fluency":6.5,"lexical":6.0,"grammar":6.5,"pronunciation":7.0,"grammar_errors":[],"suggestions":"语法正确但句式偏简单，可尝试使用从句提升复杂度"}
-
-【示例4 - 有语音转写瑕疵但意思清楚，保底5.5以上】
-输入: "Definitely I think a mirror is necessary because I use it to check my outfit and fix my hair And I think one person's appearance is very important And if you go out you can be more confident"
-输出: {"overall":6.0,"fluency":6.0,"lexical":6.0,"grammar":6.0,"pronunciation":7.0,"grammar_errors":[],"suggestions":"表达清晰完整，注意口语中句间可适当停顿"}`;
-
-/* 录音 / 转写功能已移除：口语只保留「文本框手写 + AI 评分 + 提交记录」。发音分取自设置里的固定分。 */
+/* 录音 / 转写功能已移除：口语只保留「文本框手写 + AI 纠错 + 提交记录」。现已关闭 P1/P2 评分机制，诊断只返回语法/用词错误，不输出任何分数。 */
 
 // P2 专用诊断提示词（语法纠错 + 串题素材连接；复用 SYS_DIAG 通用规则，追加 P2 专属要求）
 var SYS_DIAG_P2 = SYS_DIAG
-  + '\n\n【Part 2 专属要求】你是专精 Part 2 的评分员，考生会做约 2 分钟的连续陈述，允许更多从句和连接词；同样遵循"沟通有效性优先"原则。\n'
-  + '【串题素材连接(storyLink)】考生会提供已准备的万能故事素材（见用户消息末尾）。如果你认为这道题可以套用其中某个素材，请在 JSON 末尾额外返回 "storyLink" 字段（中文，2-4 行，说明可怎么把素材嵌入这道题的回答）。无合适素材则不返回该字段。\n'
-  + '【输出格式补充】上述 JSON 结构末尾可额外包含可选字段："storyLink": "可套用的万能素材连接建议（中文；无合适素材则省略该字段）"。';
+  + `
+
+【Part 2 要求】考生做约 2 分钟连续陈述，允许更多从句和连接词。仍只找语法/用词错误，不评分。
+
+`
+  + `【串题素材连接(storyLink)】考生会提供已准备的万能素材（见用户消息末尾）。若本题可套用其中某个素材，请在 JSON 末尾额外返回 "storyLink" 字段（中文，2-4 行，说明可怎么把素材嵌入本题回答）。无合适素材则不返回该字段。
+
+`
+  + `【输出格式补充】上述 JSON 的 "errors" 数组外，可额外包含可选字段："storyLink": "可套用的万能素材连接建议（中文；无合适素材则省略）"。`;
 
 ready(() => {
   $('#tabs').querySelectorAll('[data-type]').forEach(b => {
@@ -356,7 +298,7 @@ function openDetail(id){
     html += '<textarea class="sp-ans" id="p2Ans" placeholder="在这里写下你的 Part 2 回答（目标写满 2 分钟的内容）…"></textarea>';
     html += '<div class="sp-logic" id="p2LogicBar" hidden><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:14px;height:14px;vertical-align:-2px;margin-right:4px"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 1 4 10.5c-.8.7-1 1.5-1 2.5h-6c0-1-.2-1.8-1-2.5A6 6 0 0 1 12 3z"/></svg>本题逻辑链</b><span class="sp-logic-text"></span></div>';
     html += '<div class="sp-q-btns">';
-    html += '<button class="sp-diag" id="p2Diag" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;flex:none"><path d="M12 2l2.4 5.1 5.6.8-4 4.1 1 5.6-5-2.7-5 2.7 1-5.6-4-4.1 5.6-.8z"/></svg>AI 评分</button>';
+    html += '<button class="sp-diag" id="p2Diag" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;flex:none"><path d="M12 2l2.4 5.1 5.6.8-4 4.1 1 5.6-5-2.7-5 2.7 1-5.6-4-4.1 5.6-.8z"/></svg>AI 纠错</button>';
     html += '<button class="sp-ans-clear" id="p2Clear" type="button">清空</button>';
     html += '</div>';
     html += '<div class="sp-q-result" id="p2Result"></div>';
@@ -401,7 +343,7 @@ function openDetail(id){
   // 26 · P1 问答流：一题一卡 + 进度 + 步进（只影响 P1 详情显示，不动数据）
   if(s.type === 'P1') p1FlowInit(s);
 
-  // P2 单窗口事件绑定（仅手写 + AI 评分 + 提交记录；无录音）
+  // P2 单窗口事件绑定（仅手写 + AI 纠错 + 提交记录；无录音）
   if(s.type === 'P2'){
     const p2Diag = document.getElementById('p2Diag');
     if(p2Diag) p2Diag.addEventListener('click', e => { e.stopPropagation(); diagnoseP2(id); });
@@ -782,7 +724,7 @@ async function diagnoseAnswer(id, qi, questionText, answerText){
     renderDiag(resultEl, j, content, answerText);
     s.answers = s.answers || {};
     const oldAns = s.answers[qi] || {};
-    const newScore = (j ? parseScore(j.score) : null);
+    const newScore = null;
     s.answers[qi] = { ...oldAns, text: answerText, result: (j ? JSON.stringify(j) : content), ts: Date.now(), score: newScore };
     s.answers[qi].records = s.answers[qi].records || [];
     s.answers[qi].records.push({ text: answerText, ts: Date.now(), score: newScore, result: (j ? JSON.stringify(j) : content), raw: content });
@@ -800,22 +742,26 @@ async function diagnoseAnswer(id, qi, questionText, answerText){
   }
 }
 
-// P2 诊断结构化渲染（语法纠错 + 改进建议 + 串题素材连接）
+// P2 诊断结构化渲染（语法错误 / 用词错误 分块展示 + 改进建议 + 串题素材连接；不显示分数）
 function renderP2Diag(el, j, answer){
   normalizeScore(j, answer);
   if(!j || !Array.isArray(j.errors)){ el.innerHTML = ''; return false; }
   const errs = cleanErrors(j.errors);
-  let h = (j.score ? scoreHeaderHtml(parseScore(j.score), '本次得分') : '');
-  h += '<div class="diag-sec"><b>① 语法/用词纠错</b>';
-  h += diffSentenceHtml(answer, errs);
-  h += '</div>';
-  if(j.rewrite) h += '<div class="diag-sec"><b>② 改进建议</b><div class="diag-rewrite">' + escapeHtml(j.rewrite) + '</div></div>';
-  if(j.storyLink) h += '<div class="diag-sec"><b>③ 📌 串题素材连接</b><div class="diag-note">可以用你已准备的这些万能素材来回答这道题：</div>' + escapeHtml(j.storyLink) + '</div>';
+  let h = '';   // 评分机制已关闭（P2 仅展示语法/用词错误 + 串题建议，不再显示分数）
+  const g = errs.filter(e => diagTypeBucket(e.type) === 'grammar');
+  const v = errs.filter(e => diagTypeBucket(e.type) === 'vocab');
+  const o = errs.filter(e => diagTypeBucket(e.type) === 'other');
+  if(g.length) h += '<div class="diag-sec"><b>① 语法错误</b>' + diffSentenceHtml(answer, g) + '</div>';
+  if(v.length) h += '<div class="diag-sec"><b>② 用词错误</b>' + diffSentenceHtml(answer, v) + '</div>';
+  if(o.length) h += '<div class="diag-sec"><b>③ 其他错误</b>' + diffSentenceHtml(answer, o) + '</div>';
+  if(!g.length && !v.length && !o.length) h += diffSentenceHtml(answer, errs);
+  if(j.rewrite) h += '<div class="diag-sec"><b>④ 改进建议</b><div class="diag-rewrite">' + escapeHtml(j.rewrite) + '</div></div>';
+  if(j.storyLink) h += '<div class="diag-sec"><b>⑤ 📌 串题素材连接</b><div class="diag-note">可以用你已准备的这些万能素材来回答这道题：</div>' + escapeHtml(j.storyLink) + '</div>';
   el.innerHTML = h;
   return true;
 }
 
-// P2 AI 评分：语法纠错 + 串题素材连接建议
+// P2 AI 纠错：语法纠错 + 串题素材连接建议
 async function diagnoseP2(id){
   const s = DATA.speaking.find(x => x.id === id);
   if(!s) return;
@@ -825,7 +771,7 @@ async function diagnoseP2(id){
   const btn = $('#p2Diag');
   const btnHtml = btn ? btn.innerHTML : '';   // B2：缓存原 SVG
   const resultEl = $('#p2Result');
-  if(btn){ btn.disabled = true; btn.textContent = '评分中…'; }
+  if(btn){ btn.disabled = true; btn.textContent = '纠错中…'; }
 
   try{
     // 读已有串题故事作为素材参考（speakingStories 每条含 stories[]，每条有 name/keyPoints/outline）
@@ -858,7 +804,7 @@ async function diagnoseP2(id){
 
     // 存结果 + 追加一条提交历史记录
     s.answers = s.answers || {};
-    const newScore = (j ? parseScore(j.score) : null);
+    const newScore = null;
     s.answers.p2 = { text: answer, result: (j ? JSON.stringify(j) : content), ts: Date.now(), score: newScore };
     s.answers.p2.records = s.answers.p2.records || [];
     s.answers.p2.records.push({ text: answer, ts: Date.now(), score: newScore, result: (j ? JSON.stringify(j) : content), raw: content });
@@ -878,7 +824,7 @@ async function diagnoseP2(id){
   }catch(e){
     resultEl.innerHTML = '<div class="diag-note">AI 服务暂不可用：' + escapeHtml(e.message) + '</div>';
     resultEl.style.display = 'block';
-    toast('AI 评分失败：' + e.message);
+    toast('AI 纠错失败：' + e.message);
   }finally{
     if(btn){ btn.disabled = false; btn.innerHTML = btnHtml; }   // B2：恢复 SVG
   }
@@ -937,6 +883,14 @@ function cleanErrors(errors){
        (fixLower.includes('bad driver') || fixLower.includes('driver'))) return false;
     return true;
   });
+}
+
+// 把错误 type 归到三类桶：grammar / vocab / other，用于渲染时按「语法错误 / 用词错误」分块展示
+function diagTypeBucket(t){
+  const s = String(t || '').toLowerCase().trim();
+  if(s === 'grammar' || s.indexOf('grammar') !== -1) return 'grammar';
+  if(s === 'vocabulary' || s === 'lexical' || s.indexOf('vocab') !== -1) return 'vocab';
+  return 'other';
 }
 
 // 对两个短语做 token 级 diff，返回 [{type:'same'|'del'|'ins', text}]（按空格分词，忽略大小写匹配）
@@ -1022,7 +976,8 @@ function adaptDiag(j){
         return {
           original: e.original != null ? String(e.original) : '',
           fix: e.corrected != null ? String(e.corrected) : (e.fix != null ? String(e.fix) : ''),
-          issue: e.explanation != null ? String(e.explanation) : (e.issue != null ? String(e.issue) : '')
+          issue: e.explanation != null ? String(e.explanation) : (e.issue != null ? String(e.issue) : ''),
+          type: e.type != null ? String(e.type) : ''
         };
       }
       return e; // 字符串型交给 normalizeErrors 处理
@@ -1116,16 +1071,21 @@ function inlineErrorsHtml(errs){
   }).join('') + '</div>';
 }
 
-// 渲染诊断结构化卡片
+// 渲染诊断结构化卡片（P1：语法错误 / 用词错误 分块展示，不显示分数）
 function renderDiag(el, j, raw, answer){
   normalizeScore(j, answer);
-  const scoreHtml = (j && j.score) ? scoreHeaderHtml(parseScore(j.score), '本题得分') : '';
-  const errs = cleanErrors(j && j.errors);
+  const scoreHtml = '';   // 评分机制已关闭（P1/P2 仅展示语法/用词错误，不再显示分数）
   if(j && Array.isArray(j.errors)){
-    let h = '<div class="diag-sec"><b>① 语法/用词诊断</b>';
-    h += diffSentenceHtml(answer, errs);
-    h += '</div>';
-    if(j.rewrite) h += '<div class="diag-sec"><b>② 改进建议</b><div class="diag-rewrite">' + escapeHtml(j.rewrite) + '</div></div>';
+    const errs = cleanErrors(j.errors);
+    let h = '';
+    const g = errs.filter(e => diagTypeBucket(e.type) === 'grammar');
+    const v = errs.filter(e => diagTypeBucket(e.type) === 'vocab');
+    const o = errs.filter(e => diagTypeBucket(e.type) === 'other');
+    if(g.length) h += '<div class="diag-sec"><b>① 语法错误</b>' + diffSentenceHtml(answer, g) + '</div>';
+    if(v.length) h += '<div class="diag-sec"><b>② 用词错误</b>' + diffSentenceHtml(answer, v) + '</div>';
+    if(o.length) h += '<div class="diag-sec"><b>③ 其他错误</b>' + diffSentenceHtml(answer, o) + '</div>';
+    if(!g.length && !v.length && !o.length) h += diffSentenceHtml(answer, errs);
+    if(j.rewrite) h += '<div class="diag-sec"><b>④ 改进建议</b><div class="diag-rewrite">' + escapeHtml(j.rewrite) + '</div></div>';
     el.innerHTML = scoreHtml + h;
   } else {
     el.innerHTML = scoreHtml + '<div class="diag-note">（AI 返回非标准格式，已贴原文）</div><pre>' + escapeHtml(raw || '') + '</pre>';
