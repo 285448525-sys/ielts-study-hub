@@ -1229,6 +1229,7 @@ var matGen = (function(){
 
   let store = null;
   let mode = 'q';
+  let editing = -1;   // 当前正在「更改」编辑的素材卡下标；-1 表示无
 
   function loadStore(){
     if(DATA.materials && typeof DATA.materials === 'object'){
@@ -1406,14 +1407,23 @@ var matGen = (function(){
     }
     // 故事卡
     store.materials.forEach((m, i) => {
-      h += '<div class="mat-mat" data-i="' + i + '">'
+      const isEditing = (editing === i);
+      h += '<div class="mat-mat' + (isEditing ? ' open' : '') + '" data-i="' + i + '">'
         + '<div class="mat-mat-head" data-toggle="' + i + '"><span class="mat-mat-title">' + escapeHtml(m.title || '未命名') + '</span>'
         + '<span class="mat-caret">▶</span></div>'
-        + '<div class="mat-body">'
-        + (m.storyEn ? '<div class="mat-sub">英文可背（连贯小故事）</div><div class="mat-story-en">' + escapeHtml(m.storyEn) + '</div>' : '')
-        + (m.logicZh ? '<div class="mat-sub">中文逻辑链</div><div class="mat-logic">' + escapeHtml(m.logicZh) + '</div>' : '')
-        + '<div class="mat-mat-actions"><button class="mat-mini" data-regen-all="1">重新生成全部</button><button class="mat-mini danger" data-del="' + i + '">删除</button></div>'
-        + '</div></div>';
+        + '<div class="mat-body">';
+      if(isEditing){
+        h += '<div class="mat-sub">标题</div><input class="mat-edit-input" data-edit-title="' + i + '" value="' + escapeHtml(m.title || '') + '">'
+          + (m.storyEn != null ? '<div class="mat-sub">英文可背（连贯小故事）</div><textarea class="mat-edit-input mat-edit-area" data-edit-story="' + i + '" placeholder="英文小故事…">' + escapeHtml(m.storyEn) + '</textarea>' : '')
+          + (m.logicZh != null ? '<div class="mat-sub">中文逻辑链</div><textarea class="mat-edit-input mat-edit-area" data-edit-logic="' + i + '" placeholder="中文逻辑…">' + escapeHtml(m.logicZh) + '</textarea>' : '')
+          + '<div class="mat-edit-hint">保存后会作为<b>新素材</b>加入列表，原素材保留不变。</div>'
+          + '<div class="mat-mat-actions"><button class="mat-mini btn-save" data-save="' + i + '">保存</button><button class="mat-mini" data-cancel="' + i + '">取消</button></div>';
+      } else {
+        h += (m.storyEn ? '<div class="mat-sub">英文可背（连贯小故事）</div><div class="mat-story-en">' + escapeHtml(m.storyEn) + '</div>' : '')
+          + (m.logicZh ? '<div class="mat-sub">中文逻辑链</div><div class="mat-logic">' + escapeHtml(m.logicZh) + '</div>' : '')
+          + '<div class="mat-mat-actions"><button class="mat-mini" data-regen-all="1">重新生成全部</button><button class="mat-mini danger" data-del="' + i + '">删除</button><button class="mat-mini" data-edit="' + i + '">更改</button></div>';
+      }
+      h += '</div></div>';
     });
     // AI 追问区（followups + gaps 合并：每个问题带输入框，回答后一起喂给重新生成）
     const hasFups = store.followups && store.followups.length;
@@ -1455,6 +1465,41 @@ var matGen = (function(){
         // 删除后立即上传云端，让墓碑随同步传播，避免旧卡从云端合并回来
         if(DATA.settings.autoSync && DATA.settings.syncCode && typeof cloudUpload === 'function') cloudUpload(true);
         render();
+      };
+    });
+    // 「更改」：进入编辑态
+    root.querySelectorAll('[data-edit]').forEach(b => {
+      b.onclick = () => { editing = +b.dataset.edit; render(); };
+    });
+    // 「取消」：丢弃改动，退出编辑态
+    root.querySelectorAll('[data-cancel]').forEach(b => {
+      b.onclick = () => { editing = -1; render(); };
+    });
+    // 「保存」：把改后的内容作为【新素材】加入（原素材保留）
+    root.querySelectorAll('[data-save]').forEach(b => {
+      b.onclick = () => {
+        const i = +b.dataset.save;
+        const m = store.materials[i];
+        if(!m) return;
+        const card = b.closest('.mat-mat');
+        const titleEl = card.querySelector('[data-edit-title]');
+        const storyEl = card.querySelector('[data-edit-story]');
+        const logicEl = card.querySelector('[data-edit-logic]');
+        const newMat = {
+          id: 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2,7),
+          title: (titleEl ? titleEl.value.trim() : '') || m.title || '未命名',
+          storyEn: storyEl ? storyEl.value : (m.storyEn || ''),
+          logicZh: logicEl ? logicEl.value : (m.logicZh || ''),
+          coverage: m.coverage || [],
+          createdAt: Date.now(),
+          editedFrom: m.id || null        // 溯源：由哪张原素材改出来的
+        };
+        store.materials.push(newMat);     // 原素材 m 不动，只追加新的一份
+        editing = -1;
+        saveStore();
+        if(DATA.settings.autoSync && DATA.settings.syncCode && typeof cloudUpload === 'function') cloudUpload(true);
+        render();
+        toast('已另存为新素材（原素材保留）');
       };
     });
     const mc = $('#matContinue');
