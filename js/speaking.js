@@ -300,15 +300,15 @@ function openDetail(id){
 
   // P2 单窗口答题（不分小问题，一次性作答 2 分钟）
   if(s.type === 'P2'){
-    if(s.promptEn) html += '<div class="sp-prompt">题目：' + escapeHtml(s.promptEn) + '</div>';
-    if(s.promptZh) html += '<div class="sp-detail-zh" style="margin-bottom:12px">' + escapeHtml(s.promptZh) + '</div>';
-    // 雅思题卡：You should say: 下面挂 3-4 个子提示（与官方题卡一致）
+    // P2 提示卡：题目 + You should say: 子提示统一合并到同一个 sp-prompt 白底黑字块（与官方题卡一致）
+    if(s.promptEn) html += '<div class="sp-prompt">题目：' + escapeHtml(s.promptEn);
     if(s.youShouldSay && s.youShouldSay.length){
-      html += '<div class="sp-ysay" style="margin-top:-6px"><b>You should say:</b><ul>'
-        + s.youShouldSay.map(b => '<li>' + escapeHtml(b) + '</li>').join('')
-        + '</ul></div>';
+      html += '<div class="sp-ysay-list"><b>You should say:</b>'
+        + s.youShouldSay.map(b => '<div>· ' + escapeHtml(b) + '</div>').join('')
+        + '</div>';
     }
-    html += '<div class="sp-mat-hint" id="spMatHint"></div>';
+    if(s.promptEn) html += '</div>';
+    if(s.promptZh) html += '<div class="sp-detail-zh" style="margin-bottom:12px">' + escapeHtml(s.promptZh) + '</div>';
 
     html += '<div class="sp-p2-answer">';
     html += '<textarea class="sp-ans" id="p2Ans" placeholder="在这里写下你的 Part 2 回答（目标写满 2 分钟的内容）…"></textarea>';
@@ -331,12 +331,12 @@ function openDetail(id){
     html += '</div>';
     // P3 追问区：基于 P2 回答让 AI 出 3 个抽象追问 + 每题一个回答框 + 保存（共用 common.js MockGenP3）
     html += '<div class="sp-p3-area" id="p3Area" data-p3-state="idle">';
-    html += '<div class="sp-p3-actions" id="p3Actions">';
-    html += '<button class="btn btn-med" id="p3GenBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:14px;height:14px;vertical-align:-2px;margin-right:5px"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>基于我的回答生成 3 题 P3 追问</button>';
-    html += '<span class="muted" style="font-size:12px;margin-left:8px">P2 答完了再点；按 P2 内容生成 3 个抽象追问</span>';
-    html += '</div>';
+    html += '<div class="sp-p3-head">P3 提问</div>';
     html += '<div class="sp-p3-list" id="p3List"></div>';
     html += '<div class="sp-p3-save" id="p3SaveWrap" hidden><button class="btn btn-primary" id="p3SaveBtn" type="button">保存 P3 答案</button></div>';
+    html += '<div class="sp-p3-actions" id="p3Actions" style="margin-top:12px">';
+    html += '<button class="btn btn-med" id="p3GenBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:14px;height:14px;vertical-align:-2px;margin-right:5px"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>基于我的回答生成 3 题 P3 追问</button>';
+    html += '</div>';
     html += '</div>';
   }
   html += '<div class="sp-ai-result" id="aiResult"></div>';
@@ -391,7 +391,6 @@ function openDetail(id){
   if(s.type === 'P2'){
     const aiStoryLinkBtn = document.getElementById('aiStoryLinkBtn');
     if(aiStoryLinkBtn) aiStoryLinkBtn.addEventListener('click', () => aiStoryLink(id));
-    matHint(s);
   }
 
   // 逐题展开 + 语音 + AI 诊断 事件绑定（含 localStorage 回填）
@@ -557,18 +556,7 @@ function matLoadStore(){
   return null;
 }
 
-function matHint(s){
-  const el = document.getElementById('spMatHint'); if(!el) return;
-  const store = matLoadStore();
-  const n = (store && store.materials) ? store.materials.length : 0;
-  if(n === 0){
-    el.innerHTML = '<span class="muted">还没生成万能素材，先在上方「万能素材」tab 填问卷生成。</span>';
-  } else {
-    el.innerHTML = '<span class="muted">已加载 ' + n + ' 个万能素材，点击下方「🔀 AI 串题思路」自动匹配这道题。</span>';
-  }
-}
-
-async function aiStoryLink(id){
+function aiStoryLink(id){
   const s = DATA.speaking.find(x => x.id === id);
   if(!s) return;
   if(!DATA.settings.relayToken){ toast('请先在「设置 / AI 接口」配置 API Key'); return; }
