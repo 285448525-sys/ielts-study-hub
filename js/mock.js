@@ -304,13 +304,17 @@
     const rest = pool.filter(t => t.frequency !== 'must');   // 非必考：按题库原始顺序取
     const picked = new Set();
     const qa = [];
-    const PER_TOPIC = 3; // 每个大题固定取前 3 个小题（按题库原始顺序，不随机）；4 大题×3=12 + 开场姓名 = 共 13
+    const PER_TOPIC = 3; // 每个大题随机抽 3 个小题（不固定前 3 个，每个小题都有机会被抽到），但保持题库原始顺序；4 大题×3=12 + 开场姓名 = 共 13
     const takeTopic = (t, n) => {
       if(!t || picked.has(t.id)) return;
       picked.add(t.id);
-      // 按题库原始数组顺序取前 n 个小题：不 shuffle / 不随机重排 / 不随机抽题
-      const qs = t.questions.slice(0, Math.min(n, t.questions.length));
-      for(const q of qs) qa.push({ topic: t.titleEn || t.titleZh || '', q });
+      const qsAll = t.questions || [];
+      const takeN = Math.min(n, qsAll.length);
+      // 随机抽 n 个小题下标，再按下标升序排好 —— 既打乱了"永远是前 3 个"，又保持题目原始顺序
+      const idx = qsAll.map((_, i) => i);
+      for(let i = idx.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); const tmp = idx[i]; idx[i] = idx[j]; idx[j] = tmp; }
+      const chosen = idx.slice(0, takeN).sort((a, b) => a - b);
+      for(const i of chosen) qa.push({ topic: t.titleEn || t.titleZh || '', q: qsAll[i] });
     };
     // 1) 必考题：按题库原始顺序固定取前 2 个大题，排在最前（顺序不随机）
     const mustN = Math.min(must.length, 2);
