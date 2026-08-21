@@ -416,6 +416,43 @@ async function callTrans(messages){ return callRelay('trans', messages, 0.3); }
 /* 长难句拆解 */
 async function callLongsent(messages){ return callRelay('longsent', messages, 0.4); }
 
+/* ===== P3 追问生成（口语练习详情 + 模考 P3 共用）=====
+   输入 P2 题面（object，含 promptEn / youShouldSay）和考生的 P2 英文回答，
+   调 DeepSeek 出 3 个抽象 Part 3 追问题（社会类、对比、未来、影响等）。
+   服务 key：'mock_q'（与口语模考共用同一 service，省配额）；失败兜底返回预设 P3。 */
+const P3_PRESET = [
+  'Why do you think this topic matters to people in today\'s society?',
+  'How have people\'s attitudes towards this changed compared with the past?',
+  'Do you think this will become more or less common in the future? Why?',
+  'What are the main benefits and drawbacks of this for individuals and society?',
+  'Do younger and older generations see this differently? In what way?',
+  'What impact has technology had on this part of people\'s lives?',
+  'To what extent should the government be responsible for this?',
+  'How might this differ between urban and rural areas?'
+];
+async function genSpeakingP3(p2, p2Transcript){
+  const sys = 'You are an IELTS speaking examiner. Based on the candidate\'s Part 2 talk, generate EXACTLY 3 abstract Part 3 follow-up questions that explore broader themes (society, comparison, causes, effects, future, individual vs public). Do NOT repeat the candidate\'s own words back; each question must be answerable independently of the Part 2 details. Output ONLY a JSON array of 3 question strings in English, no other text.';
+  const user = 'Part 2 cue card (English): ' + (p2.promptEn || '') + '\nChinese: ' + (p2.promptZh || '')
+    + '\nYou should say: ' + ((p2.youShouldSay || []).join('; '))
+    + '\n\nThe candidate\'s Part 2 talk:\n' + (p2Transcript || '(no answer given)');
+  const content = await callRelay('mock_q', [
+    { role:'system', content:sys },
+    { role:'user', content:user }
+  ], 0.8);
+  const j = aiJson(content);
+  let qs = [];
+  if(Array.isArray(j)) qs = j.map(x => (typeof x === 'string' ? x : (x.q || x.question || '')));
+  else if(j && Array.isArray(j.questions)) qs = j.questions;
+  qs = qs.map(s => String(s).trim()).filter(Boolean);
+  if(!qs.length) throw new Error('AI 未返回有效的 P3 追问');
+  return qs.slice(0, 3);
+}
+function presetSpeakingP3(/* topic */){
+  // 兜底：固定取前 3 个万能抽象题（永远有题、AI 失败时回退）
+  return P3_PRESET.slice(0, 3);
+}
+window.MockGenP3 = { gen: genSpeakingP3, preset: presetSpeakingP3 };
+
 /* ===== 连续打卡 ===== */
 function computeStreak(checkins){
   if(!checkins || !checkins.length) return 0;

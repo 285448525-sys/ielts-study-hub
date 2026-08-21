@@ -302,6 +302,12 @@ function openDetail(id){
   if(s.type === 'P2'){
     if(s.promptEn) html += '<div class="sp-prompt">题目：' + escapeHtml(s.promptEn) + '</div>';
     if(s.promptZh) html += '<div class="sp-detail-zh" style="margin-bottom:12px">' + escapeHtml(s.promptZh) + '</div>';
+    // 雅思题卡：You should say: 下面挂 3-4 个子提示（与官方题卡一致）
+    if(s.youShouldSay && s.youShouldSay.length){
+      html += '<div class="sp-ysay" style="margin-top:-6px"><b>You should say:</b><ul>'
+        + s.youShouldSay.map(b => '<li>' + escapeHtml(b) + '</li>').join('')
+        + '</ul></div>';
+    }
     html += '<div class="sp-mat-hint" id="spMatHint"></div>';
 
     html += '<div class="sp-p2-answer">';
@@ -322,6 +328,15 @@ function openDetail(id){
     html += '<button class="btn btn-primary" id="aiStoryLinkBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>AI 串题思路</button>';
     html += '<button class="btn btn-med" id="p2FinishBtn" style="margin-left:auto">完成</button>';
     html += '<button class="btn btn-primary" id="p2NextBtn" style="margin-left:8px">下一题 →</button>';
+    html += '</div>';
+    // P3 追问区：基于 P2 回答让 AI 出 3 个抽象追问 + 每题一个回答框 + 保存（共用 common.js MockGenP3）
+    html += '<div class="sp-p3-area" id="p3Area" data-p3-state="idle">';
+    html += '<div class="sp-p3-actions" id="p3Actions">';
+    html += '<button class="btn btn-med" id="p3GenBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:14px;height:14px;vertical-align:-2px;margin-right:5px"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>基于我的回答生成 3 题 P3 追问</button>';
+    html += '<span class="muted" style="font-size:12px;margin-left:8px">P2 答完了再点；按 P2 内容生成 3 个抽象追问</span>';
+    html += '</div>';
+    html += '<div class="sp-p3-list" id="p3List"></div>';
+    html += '<div class="sp-p3-save" id="p3SaveWrap" hidden><button class="btn btn-primary" id="p3SaveBtn" type="button">保存 P3 答案</button></div>';
     html += '</div>';
   }
   html += '<div class="sp-ai-result" id="aiResult"></div>';
@@ -397,6 +412,58 @@ function openDetail(id){
       // 仅清空当前编辑框与诊断结果，不删历史提交记录
     });
 
+    // P3 追问区：基于 P2 答案出 3 个抽象题（共用 common.js MockGenP3）
+    const p3GenBtn = document.getElementById('p3GenBtn');
+    if(p3GenBtn) p3GenBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      const ta = $('#p2Ans');
+      const p2Text = ta && ta.value.trim() || (s.answers && s.answers.p2 && s.answers.p2.text) || '';
+      if(!p2Text){ toast('请先在 P2 答题框写点东西，再生成 P3 追问'); return; }
+      if(!DATA.settings.relayToken){ toast('请先在「设置」配置 DeepSeek Key'); return; }
+      p3GenBtn.disabled = true;
+      const orig = p3GenBtn.innerHTML;
+      p3GenBtn.textContent = '⏳ 生成中…';
+      window.MockGenP3.gen(s, p2Text).then(qs => {
+        s.answers = s.answers || {}; s.answers.p2 = s.answers.p2 || {};
+        s.answers.p2.p3 = s.answers.p2.p3 || {};
+        s.answers.p2.p3.questions = qs;
+        s.answers.p2.p3.p2TextRef = (p2Text.length > 200 ? p2Text.slice(0, 200) + '…' : p2Text);
+        s.answers.p2.p3.ts = Date.now();
+        renderP3List(s, $('#p3List'));
+        const saveWrap = $('#p3SaveWrap'); if(saveWrap) saveWrap.hidden = false;
+        p3GenBtn.disabled = false; p3GenBtn.innerHTML = orig;
+        const area = $('#p3Area'); if(area) area.dataset.p3State = 'generated';
+      }).catch(err => {
+        toast('P3 生成失败：' + err.message + '（已尝试兜底）');
+        try{
+          const qs = window.MockGenP3.preset();
+          s.answers = s.answers || {}; s.answers.p2 = s.answers.p2 || {};
+          s.answers.p2.p3 = s.answers.p2.p3 || {};
+          s.answers.p2.p3.questions = qs;
+          s.answers.p2.p3.ts = Date.now();
+          renderP3List(s, $('#p3List'));
+          const saveWrap = $('#p3SaveWrap'); if(saveWrap) saveWrap.hidden = false;
+        }catch(_){}
+        p3GenBtn.disabled = false; p3GenBtn.innerHTML = orig;
+      });
+    });
+    const p3SaveBtn = document.getElementById('p3SaveBtn');
+    if(p3SaveBtn) p3SaveBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      const p3 = s.answers && s.answers.p2 && s.answers.p2.p3;
+      if(!p3 || !Array.isArray(p3.questions)){ toast('还没有 P3 题目，先点上面的按钮生成'); return; }
+      const answers = [];
+      p3.questions.forEach((q, i) => {
+        const ta = document.querySelector('#p3List .sp-p3-q[data-i="'+i+'"] .sp-p3-textarea');
+        answers.push((ta && ta.value) || '');
+      });
+      p3.answers = answers;
+      p3.tsSave = Date.now();
+      s.updatedAt = Date.now();
+      hubSave();
+      toast('已保存 P3 答案');
+    });
+
 
     // P2 答案回填
     if(s.answers && s.answers.p2){
@@ -416,6 +483,14 @@ function openDetail(id){
       // 回填 AI 串题方案
       if(s.answers.p2.aiStoryLink){
         renderStoryLink($('#aiResult'), s.answers.p2.aiStoryLink);
+      }
+      // 回填已生成的 P3 追问列表 + 答案
+      if(s.answers.p2.p3 && Array.isArray(s.answers.p2.p3.questions)){
+        renderP3List(s, $('#p3List'));
+        const saveWrap = $('#p3SaveWrap');
+        if(saveWrap) saveWrap.hidden = false;
+        const area = $('#p3Area');
+        if(area) area.dataset.p3State = 'generated';
       }
     }
     // 渲染 P2 提交历史记录
@@ -571,7 +646,36 @@ function renderStoryLink(el, j){
   el.innerHTML = h;
 }
 
-/* === 逐题展开 + 语音输入 + AI 语法诊断 === */
+/* === P3 追问区渲染：3 个抽象题 + 每题一个朗读按钮 + 答案框 ===
+   输入：s = 当前的 speaking 项，container = #p3List 容器。
+   行为：取 s.answers.p2.p3.questions 渲染题目，每题一个 textarea 回填 s.answers.p2.p3.answers[i]。
+   注意：这里只负责渲染，保存事件（#p3SaveBtn）由 openDetail 绑定，避免重复。 */
+function renderP3List(s, container){
+  if(!container) return;
+  const p3 = s.answers && s.answers.p2 && s.answers.p2.p3;
+  const qs = (p3 && Array.isArray(p3.questions)) ? p3.questions : [];
+  const savedAns = (p3 && Array.isArray(p3.answers)) ? p3.answers : [];
+  if(!qs.length){ container.innerHTML = ''; return; }
+  let h = '';
+  qs.forEach((q, i) => {
+    h += '<div class="sp-p3-q" data-i="'+i+'">';
+    h += '<div class="sp-p3-q-head">';
+    h += '<span class="sp-p3-q-num">Q3-'+(i+1)+'</span>';
+    h += '<span class="sp-p3-q-text">'+escapeHtml(q)+'</span>';
+    h += ttsBtnHtml();
+    h += '</div>';
+    h += '<textarea class="sp-p3-textarea" placeholder="在这里写下你的 P3 回答…">' + escapeHtml(savedAns[i] || '') + '</textarea>';
+    h += '</div>';
+  });
+  container.innerHTML = h;
+  // 给每个题目绑朗读
+  container.querySelectorAll('.sp-p3-q').forEach(qDiv => {
+    const i = +qDiv.dataset.i;
+    const btn = qDiv.querySelector('.sp-tts');
+    const text = qs[i];
+    if(btn && text) btn.addEventListener('click', e => { e.stopPropagation(); speakQuestion.speak(text, btn); });
+  });
+}
 
 // 单题可点开项 HTML（text=可见文本，qi=题目索引）
 function questionItemHtml(text, qi, s){

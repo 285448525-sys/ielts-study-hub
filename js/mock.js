@@ -1,5 +1,5 @@
 /* 口语模考 · 主控制器（状态机）
-   流程：开始卡 → P1(2 必选大题 + 2 非必选大题·每题 3 小题·含开场姓名共 13 个) → P2(准备 1min + 陈述 2min) → P3(4-5 题 AI 追问) → 报告
+   流程：开始卡 → P1(2 必选大题 + 2 非必选大题·每题 3 小题·含开场姓名共 13 个) → P2(准备 1min + 陈述 2min) → P3(3 题 AI 追问，复用 common.js MockGenP3) → 报告
    架构：
    - 输入层：考生直接在页面文本框手写 / 粘贴英文回答（录音 / 语音转写已移除）
    - 大脑层：callRelay → DeepSeek（生成 P3 追问 + 读文字评分）
@@ -412,40 +412,15 @@
     }
   }
 
-  /* ---------- AI：生成 P3 追问（基于 P2 回答，3~4 个抽象问题） ---------- */
+  /* ---------- AI：生成 P3 追问（基于 P2 回答，3 个抽象问题） ----------
+     复用 common.js 的 window.MockGenP3（口语练习详情页 P3 也共用一份）。 */
   async function genP3Questions(p2, p2Transcript){
-    const sys = 'You are an IELTS speaking examiner. Based on the candidate\'s Part 2 talk, generate 3 to 4 abstract Part 3 follow-up questions that explore broader themes (society, comparison, causes, effects, future, individual vs public). Do NOT repeat the candidate\'s own words back; each question must be answerable independently of the Part 2 details. Output ONLY a JSON array of question strings in English, no other text.';
-    const user = 'Part 2 cue card (English): ' + (p2.promptEn || '') + '\nChinese: ' + (p2.promptZh || '')
-      + '\nYou should say: ' + ((p2.youShouldSay || []).join('; '))
-      + '\n\nThe candidate\'s Part 2 talk:\n' + (p2Transcript || '(no answer given)');
-    const content = await callRelay('mock_q', [
-      { role:'system', content:sys },
-      { role:'user', content:user }
-    ], 0.8);
-    const j = aiJson(content);
-    let qs = [];
-    if(Array.isArray(j)) qs = j.map(x => (typeof x === 'string' ? x : (x.q || x.question || '')));
-    else if(j && Array.isArray(j.questions)) qs = j.questions;
-    qs = qs.map(s => String(s).trim()).filter(Boolean);
-    if(!qs.length) throw new Error('AI 未返回有效的 P3 追问');
-    return qs.slice(0, 4);
+    return window.MockGenP3.gen(p2, p2Transcript);
   }
 
-  /* ---------- 预设 P3 追问（DeepSeek 生成失败时的兜底，保证 P3 绝不跳过） ----------
-     抽象、通用、可套大多数 Part 2 话题；与 AI 生成的 3~4 题数量一致。 */
-  const PRESET_P3 = [
-    'Why do you think this topic matters to people in today\'s society?',
-    'How have people\'s attitudes towards this changed compared with the past?',
-    'What are the main benefits and drawbacks of this for individuals and for society as a whole?',
-    'Do you think this will become more or less common in the future? Why?',
-    'To what extent should the government be responsible for this?',
-    'How might this differ between urban and rural areas?',
-    'What impact has technology had on this part of people\'s lives?',
-    'Do younger and older generations see this differently? In what way?'
-  ];
-  function presetP3Questions(topic){
-    // 固定取前 4 个作为兜底，顺序稳定、永远有题（DeepSeek 失败时回退到这里）
-    return PRESET_P3.slice(0, 4);
+  /* ---------- 预设 P3 追问（DeepSeek 生成失败时的兜底，保证 P3 绝不跳过） ---------- */
+  function presetP3Questions(/* topic */){
+    return window.MockGenP3.preset();
   }
 
   /* ---------- 朗读发音检测（配讯飞 Key 时每 Part 后插入） ---------- */
