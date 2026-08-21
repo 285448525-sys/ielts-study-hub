@@ -1347,10 +1347,10 @@ main.container{padding-top:20px}
 .hero::after{content:"";position:absolute;left:-40px;bottom:-80px;width:200px;height:200px;background:rgba(255,255,255,.06);border-radius:50%;pointer-events:none}
 /* 问候行：替代原来的独立 .hello 横条 */
 .hero-greet{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:14px;position:relative;z-index:1}
-.hero-user{display:flex;align-items:center;gap:10px;min-width:0}
+.hero-user{display:flex;align-items:center;gap:10px;min-width:0;flex:none}
 .hero-hi{font-size:15px;font-weight:700;opacity:.95;white-space:nowrap}
-.hero-date{font-size:12.5px;opacity:.75}
-.streak-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:rgba(255,255,255,.18);color:#fff;border-radius:999px;font-weight:700;font-size:12px;flex:none;backdrop-filter:blur(4px)}
+.hero-date{font-size:12.5px;opacity:.85;white-space:nowrap}
+.streak-chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;background:rgba(255,255,255,.20);border-radius:999px;padding:4px 10px;backdrop-filter:blur(4px);white-space:nowrap}
 .streak-chip svg{width:13px;height:13px}
 .hero-greet-right{display:inline-flex;align-items:center;gap:8px;flex:none;flex-wrap:wrap}
 .hero-goal{font-size:12.5px;background:rgba(255,255,255,.18);padding:5px 12px;border-radius:999px;font-weight:600;backdrop-filter:blur(4px);white-space:nowrap}
