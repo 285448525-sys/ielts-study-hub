@@ -255,6 +255,50 @@ function toast(msg){
   clearTimeout(toast._t); toast._t = setTimeout(() => t.hidden = true, 2400);
 }
 
+/* === 题目语音播放（Web Speech API，浏览器内置、离线可用，无需 API key）===
+   雅思口语题目为英文，默认 en-GB 英音，贴合雅思考试。
+   speakQuestion.speak(text, btn)：朗读文本并切换按钮 playing 态；btn 可选。
+   说明：speechSynthesis 在用户已与页面交互后即可自动播放（不强制每次点击），满足“进入题目自动播一次 + 点按钮重播”。 */
+var speakQuestion = (function(){
+  function pickVoice(){
+    try{
+      if(typeof speechSynthesis === 'undefined') return null;
+      const vs = speechSynthesis.getVoices() || [];
+      if(!vs.length) return null;
+      return vs.find(v => /en[-_]GB/i.test(v.lang)) || vs.find(v => /^en/i.test(v.lang)) || null;
+    }catch(_){ return null; }
+  }
+  function stop(){ if(typeof speechSynthesis !== 'undefined'){ try{ speechSynthesis.cancel(); }catch(_){} } }
+  function speak(text, btn){
+    if(typeof speechSynthesis === 'undefined'){ if(typeof toast === 'function') toast('当前浏览器不支持语音播放'); return; }
+    text = (text || '').trim();
+    if(!text) return;
+    try{ speechSynthesis.cancel(); }catch(_){}
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-GB';
+    const v = pickVoice(); if(v) u.voice = v;
+    u.rate = 0.95;
+    u.pitch = 1;
+    if(btn) btn.classList.add('playing');
+    u.onstart = () => { if(btn) btn.classList.add('playing'); };
+    u.onend = () => { if(btn) btn.classList.remove('playing'); };
+    u.onerror = () => { if(btn) btn.classList.remove('playing'); };
+    try{ speechSynthesis.speak(u); }
+    catch(_){ if(btn) btn.classList.remove('playing'); }
+  }
+  return { speak, stop };
+})();
+
+/* 题目播放按钮 HTML（单色线性 SVG，stroke=currentColor 继承全站 teal 调性，不用 emoji） */
+function ttsBtnHtml(extraClass){
+  return '<button class="sp-tts' + (extraClass ? ' ' + extraClass : '') + '" type="button" aria-label="播放题目语音">'
+    + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="tts-icon">'
+    + '<path d="M11 5L6 9H3v6h3l5 4V5z"/>'
+    + '<path d="M15.5 8.5a5 5 0 0 1 0 7"/>'
+    + '<path d="M18.5 6a9 9 0 0 1 0 12"/>'
+    + '</svg></button>';
+}
+
 function daysUntil(dateStr){
   if(!dateStr) return null;
   const d = new Date(dateStr + 'T00:00:00');

@@ -547,6 +547,7 @@ function questionItemHtml(text, qi, s){
   return '<li class="sp-q" data-qi="' + qi + '">'
     + '<span class="sp-q-caret">▸</span>'
     + '<span class="sp-q-text">' + escapeHtml(text) + '</span>'
+    + ttsBtnHtml()
     + '<div class="sp-q-panel" data-qi="' + qi + '" hidden>'
     +   '<div class="sp-mini-body" data-body="rec" data-qi="' + qi + '">'
     +     '<textarea class="sp-ans" data-qi="' + qi + '" placeholder="在这里写下你的回答…"></textarea>'
@@ -600,9 +601,18 @@ function bindQuestionEvents(id){
       }, (i) => removeSubmitRecord(s, qi, i));
     }
 
+    // 题目语音播放（点按钮朗读当前小问题，不触发展开）
+    const tts = li.querySelector('.sp-tts');
+    if(tts) tts.addEventListener('click', e => {
+      e.stopPropagation();
+      const txt = li.querySelector('.sp-q-text');
+      if(txt && txt.textContent.trim()) speakQuestion.speak(txt.textContent.trim(), tts);
+    });
+
     // 点开 / 收起
     li.addEventListener('click', e => {
       if(e.target.closest('.sp-q-panel')) return;
+      if(e.target.closest('.sp-tts')) return;
       const panel = li.querySelector('.sp-q-panel[data-qi="' + qi + '"]');
       if(!panel) return;
       const willOpen = panel.hidden;
@@ -610,6 +620,11 @@ function bindQuestionEvents(id){
       li.classList.toggle('open', willOpen);
       const caret = li.querySelector('.sp-q-caret');
       if(caret) caret.classList.toggle('open', willOpen);
+      // 进入（展开）一道小问题时自动朗读一次
+      if(willOpen){
+        const txt = li.querySelector('.sp-q-text');
+        if(txt && txt.textContent.trim()) speakQuestion.speak(txt.textContent.trim(), tts);
+      }
     });
 
     // AI 诊断
@@ -1503,6 +1518,14 @@ function p1FlowInit(s){
 
   function render(){
     items.forEach(function(li, idx){ li.classList.toggle('active', idx === cur); });
+
+    // 切到一道小题时自动朗读一次（点“下一题/上一题”或在列表点题都会触发）
+    var activeLi = items[cur];
+    if(activeLi){
+      var qText = activeLi.querySelector('.sp-q-text');
+      var btn = activeLi.querySelector('.sp-tts');
+      if(qText && qText.textContent.trim()) speakQuestion.speak(qText.textContent.trim(), btn);
+    }
 
     // 进度点
     var dotsHtml = '';

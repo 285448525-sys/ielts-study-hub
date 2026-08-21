@@ -130,7 +130,27 @@
     return new Promise(resolve => {
       if(window.__mockTick){ clearInterval(window.__mockTick); window.__mockTick = null; }
       setPhase(opts.phaseLabel || '');
-      const qEl = $('#mockQ'); if(qEl) qEl.innerHTML = opts.qHtml || '';
+      const qEl = $('#mockQ');
+      if(qEl){
+        if(opts.allowTts){
+          // 题目文本 + 播放按钮并排（P1/P3 需要语音；P2 不加）
+          qEl.innerHTML = '<div class="mock-q-row">'
+            + '<div class="mock-q-text">' + (opts.qHtml || '') + '</div>'
+            + ttsBtnHtml()
+            + '</div>';
+        } else {
+          qEl.innerHTML = opts.qHtml || '';
+        }
+      }
+      // 题目语音：渲染后自动朗读一次（用户刚点过“下一题”，属用户手势，浏览器允许）；并绑定重播按钮
+      if(opts.allowTts && qEl){
+        const ttsBtn = qEl.querySelector('.sp-tts');
+        const ttsText = opts.ttsText || (qEl.querySelector('.mock-q-text') ? qEl.querySelector('.mock-q-text').textContent.trim() : '');
+        if(ttsText){
+          if(ttsBtn) ttsBtn.addEventListener('click', e => { e.stopPropagation(); speakQuestion.speak(ttsText, ttsBtn); });
+          speakQuestion.speak(ttsText, ttsBtn);
+        }
+      }
       const liveEl = $('#mockLive'); if(liveEl) liveEl.textContent = '';
       const manual = $('#mockManual'); if(manual) manual.value = '';
       const hint = $('#mockHint'); if(hint) hint.textContent = '';
@@ -266,7 +286,7 @@
           setMockSubCount(i+1, mockState.p1Set.length);
           const item = mockState.p1Set[i];
           const qHtml = (item.topic ? '<span class="mock-q-topic">' + escapeHtml(item.topic) + '</span> · ' : '') + escapeHtml(item.q);
-          const res = await askQuestion({ phaseLabel:'Part 1（'+(i+1)+' / '+mockState.p1Set.length+'）', qHtml, allowRecord:true, submitLabel:(i===mockState.p1Set.length-1?'完成 P1，进入 P2':'下一题'), resume:{ phase:'P1', index:i, remaining:firstRemain } });
+          const res = await askQuestion({ phaseLabel:'Part 1（'+(i+1)+' / '+mockState.p1Set.length+'）', qHtml, ttsText:item.q, allowTts:true, allowRecord:true, submitLabel:(i===mockState.p1Set.length-1?'完成 P1，进入 P2':'下一题'), resume:{ phase:'P1', index:i, remaining:firstRemain } });
           firstRemain = undefined;
           mockState.answers.push({ part:'P1', q:item.q, transcript:res.transcript, opening: !!item.opening });
           saveResumeSnapshot('P1', i+1);
@@ -308,7 +328,7 @@
         for(let i = startIdx; i < p3qs.length; i++){
           setMockStep('3');
           const qHtml = escapeHtml(p3qs[i]);
-          const res = await askQuestion({ phaseLabel:'Part 3（'+(i+1)+' / '+p3qs.length+'）', qHtml, allowRecord:true, submitLabel:(i===p3qs.length-1?'完成 P3，出报告':'下一题'), resume: firstRemain != null ? { phase:'P3', index:i, remaining:firstRemain } : undefined });
+          const res = await askQuestion({ phaseLabel:'Part 3（'+(i+1)+' / '+p3qs.length+'）', qHtml, ttsText:p3qs[i], allowTts:true, allowRecord:true, submitLabel:(i===p3qs.length-1?'完成 P3，出报告':'下一题'), resume: firstRemain != null ? { phase:'P3', index:i, remaining:firstRemain } : undefined });
           firstRemain = undefined;
           mockState.answers.push({ part:'P3', q: p3qs[i], transcript: res.transcript });
           saveResumeSnapshot('P3', i+1);
