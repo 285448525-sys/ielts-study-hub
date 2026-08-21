@@ -791,26 +791,17 @@ const P3_HELPER_SYS = `身份：雅思口语Part3答题辅助工具，面向英�
 
 // P3「老师帮我改」：考生贴自己的回答（中/英），按同一套 5.5 硬规则挑问题 + 给改后合规版本
 const P3_REVIEW_SYS = `你是雅思口语Part3答题老师，面向英语基础极差的考生，目标分数严格锁定5.5分，绝对不可以输出6分以上水平的内容。
-考生会贴出自己针对某道P3题目的回答（可能是中文，也可能是英文）。请你：
-1. 先用大白话指出他回答里的具体问题（对照下面硬规则），用中文列点，每条说清"哪里不对、为什么、怎么改"；
-2. 再给一版符合5.5分规则的改动后回答（英文），严格按"主回答2句以内无例子 + 可附追问拓展3句含because"的格式。
+考生会贴出自己针对某道P3题目的回答（可能是中文，也可能是英文）。请你只做一件事：直接给一版符合5.5分规则的改动后回答（英文）。不要挑问题、不要写中文说明、不要寒暄。
 
-【绝对强制硬规则，和出题辅助完全一致】
+【绝对强制硬规则】
 1. 词汇：只能用初中-高中最基础词汇，禁止identity, landmark, concrete, shape, construct, symbolize等；统一用look, famous, tall building等简单词。
 2. 主回答铁则：2句以内、10-15秒；只含观点+1个最简单原因；绝对禁止for example/for instance/such as；最多1个简单复合结构。
 3. 追问拓展铁则：3句以内，必须含1个because从句；最多额外1个固定结构（especially for / which means二选一）；用抽象化P2素材举例，禁止具体个人故事。
-4. 若考生贴的是中文：先指出"中文思路是否跑题/是否太复杂"，再把中文翻成合规的2句英文主回答。
+4. 若考生贴的是中文：按合规的2句英文主回答直接翻译，不解释。
 
-【输出格式】
-🔹你的问题（中文，逐条列点）
-（指出：是否超2句 / 是否误加例子 / 是否用了难词 / 复合结构是否堆砌 / 观点是否清楚）
-
-🔹改后回答（英文，可直接照着说）
+【输出格式：严格只输出下面两段，不要任何前缀/解释/寒暄】
 主回答：xxx（2句以内，无例子）
-追问拓展：xxx（3句以内，含because，可选）
-
-🔹中文说明
-（一句话讲清为什么这么改）`;
+追问拓展：xxx（3句以内，含because，可选）`;
 
 // 把 AI 返回的 🔹 三段式文本拆成 {main, extend, cn}
 function parseP3Helper(content){
@@ -908,43 +899,36 @@ async function reviewP3Answer(id, i){
   }
 }
 
-// 把 🔹 三段式（你的问题 / 改后回答 / 中文说明）拆成结构化对象
+// 把 AI 返回的「主回答：x / 追问拓展：y」拆成 {main, extend}
 function parseP3Review(content){
-  const r = { problems:'', fixed:'', cn:'', raw: content || '' };
+  const r = { main:'', extend:'', raw: content || '' };
   if(!content) return r;
-  const parts = String(content).split('🔹');
-  const take = (txt) => { txt = (txt || '').trim(); const nl = txt.indexOf('\n'); return nl >= 0 ? txt.slice(nl + 1).trim() : txt; };
-  if(parts[1] != null) r.problems = take(parts[1]);
-  if(parts[2] != null) r.fixed = take(parts[2]);
-  if(parts[3] != null) r.cn = take(parts[3]);
-  if(!r.problems && !r.fixed && !r.cn) r.problems = String(content).trim();
+  const txt = String(content);
+  // 抽「主回答：」段到「追问拓展：」或末尾之间
+  const mMain = txt.match(/主回答[：:]\s*([\s\S]*?)(?=(?:\n\s*追问拓展[：:])|$)/);
+  if(mMain) r.main = mMain[1].trim();
+  // 抽「追问拓展：」段到末尾
+  const mExtend = txt.match(/追问拓展[：:]\s*([\s\S]*?)$/);
+  if(mExtend) r.extend = mExtend[1].trim();
+  // 兜底：若 AI 没按格式输出，整段当主回答
+  if(!r.main && !r.extend) r.main = txt.trim();
   return r;
 }
 
-// 渲染「老师帮我改」结果：问题清单 + 改后回答（可朗读）+ 中文说明
+// 渲染「老师帮我改」结果：只一个块，里面包含主回答 + 追问拓展，整块可朗读
 function renderP3ReviewHtml(r){
   if(!r) return '';
+  const all = [];
+  if(r.main) all.push('主回答：' + r.main);
+  if(r.extend) all.push('追问拓展：' + r.extend);
+  if(!all.length) return '<div class="diag-note">（返回格式异常，已保留原文）</div><pre>' + escapeHtml(r.raw || '') + '</pre>';
+  let body = all.join('\n\n');
   let h = '';
-  if(r.problems){
-    h += '<div class="sp-p3-block">';
-    h += '<div class="sp-p3-block-title">你的问题<span class="sp-p3-sub">按 5.5 分规则逐条挑</span></div>';
-    h += '<div class="sp-p3-block-body sp-p3-cn">' + escapeHtml(r.problems) + '</div>';
-    h += '</div>';
-  }
-  if(r.fixed){
-    h += '<div class="sp-p3-block">';
-    h += '<div class="sp-p3-block-title">改后回答<span class="sp-p3-sub">可直接照着说</span></div>';
-    h += '<div class="sp-p3-block-body">' + escapeHtml(r.fixed) + '</div>';
-    h += '<div class="sp-p3-block-tools">' + ttsBtnHtml('sp-p3-tts') + '</div>';
-    h += '</div>';
-  }
-  if(r.cn){
-    h += '<div class="sp-p3-block">';
-    h += '<div class="sp-p3-block-title">中文说明</div>';
-    h += '<div class="sp-p3-block-body sp-p3-cn">' + escapeHtml(r.cn) + '</div>';
-    h += '</div>';
-  }
-  if(!h) h = '<div class="diag-note">（返回格式异常，已保留原文）</div><pre>' + escapeHtml(r.raw || '') + '</pre>';
+  h += '<div class="sp-p3-block">';
+  h += '<div class="sp-p3-block-title">改后回答<span class="sp-p3-sub">可直接照着说</span></div>';
+  h += '<div class="sp-p3-block-body">' + escapeHtml(body) + '</div>';
+  h += '<div class="sp-p3-block-tools">' + ttsBtnHtml('sp-p3-tts') + '</div>';
+  h += '</div>';
   return h;
 }
 
