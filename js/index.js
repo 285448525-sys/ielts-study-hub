@@ -40,28 +40,26 @@ function renderDashV6(){
   const cd = examCountdown();
   const numEl = $('#dashHeroNum');
   const targetEl = $('#dashHeroTarget');
-  const barEl = $('#dashHeroBar');
+  const statNumEl = $('#dashStatNum');
   const footEl = $('#dashHeroFoot');
-  const pctEl = $('#dashHeroPct');
   const totalDays = 45;
-  if(cd.hasExam && numEl && barEl){
+  if(cd.hasExam && numEl){
     if(cd.daysLeft >= 0){
       numEl.innerHTML = '<span class="big">'+cd.daysLeft+'</span><span class="unit">天</span>';
       if(targetEl) targetEl.textContent = cd.md + ' 机考 / 09·13 终考';
-      const pct = Math.min(100, Math.max(0, ((totalDays - cd.daysLeft) / totalDays) * 100));
-      barEl.style.width = pct.toFixed(0)+'%';
-      if(footEl) footEl.textContent = '已备考 '+(totalDays - cd.daysLeft)+' / '+totalDays+' 天';
-      if(pctEl) pctEl.textContent = '跑道进度 '+pct.toFixed(0)+'%';
+      const done = totalDays - cd.daysLeft;
+      if(statNumEl) statNumEl.textContent = done;
+      if(footEl) footEl.textContent = '跑道进度 '+Math.min(100,Math.round(done/totalDays*100))+'% · 09-13 终考冲刺中';
     } else {
       numEl.innerHTML = '<span class="big">已过</span>';
       if(targetEl) targetEl.textContent = cd.label || '';
-      barEl.style.width = '100%';
+      if(statNumEl) statNumEl.textContent = totalDays;
       if(footEl) footEl.textContent = '';
-      if(pctEl) pctEl.textContent = '';
     }
   } else if(numEl){
     numEl.innerHTML = '<span class="big">--</span><span class="unit">天</span>';
     if(targetEl) targetEl.textContent = '未设置考试日期';
+    if(statNumEl) statNumEl.textContent = '--';
   }
 
   // ---- 双卡：今日学习时长 / 待复习 ----
