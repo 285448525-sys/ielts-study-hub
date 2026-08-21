@@ -1302,6 +1302,7 @@ var matGen = (function(){
       store.persona = persona; store.materials = result.stories; store.followups = result.followups || []; store.gaps = gaps;
       // 给每张素材卡补稳定 id（AI 未必返回），供删除墓碑与跨设备去重使用
       store.materials.forEach(m => { if(m && m.id == null) m.id = 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); });
+      store.materialsEpoch = Date.now();   // 生成批次戳：云端合并时凭此整体替换旧素材，避免旧卡片被并集回残留
       saveStore();
       mode = 'result';
       render();

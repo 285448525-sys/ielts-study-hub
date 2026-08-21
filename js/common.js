@@ -552,9 +552,26 @@ function _mergePlans(local, cloud, deleted){
 }
 
 /* 万能素材合并：素材卡按 id 去重并集（同 id 留本机），已删除 id（deletedIds 墓碑）过滤，使删除能跨同步传播；
-   persona/gaps/answers 云端非空取云端。无 id 的旧卡就地补稳定 hash id，保证墓碑与去重可用 */
+   persona/gaps/answers 云端非空取云端。无 id 的旧卡就地补稳定 hash id，保证墓碑与去重可用。
+   若任一侧重新生成过（materialsEpoch 更新），则以较新一侧的素材整体替换另一侧，避免旧卡片被并集回残留成重复 */
 function _mergeMaterials(local, cloud){
   local = local || {}; cloud = cloud || {};
+  const le = _num(local.materialsEpoch), ce = _num(cloud.materialsEpoch);
+  if(le || ce){
+    // 重新生成优先：以较新批次整体替换，旧素材不再并集进来
+    const winner = (le >= ce) ? local : cloud;
+    const deleted = new Set([...(local.deletedIds||[]), ...(cloud.deletedIds||[])]);
+    const data = (winner.materials||[]).filter(m => m && m.id != null && !deleted.has(m.id));
+    const out = Object.assign({}, winner);
+    out.materials = data;
+    out.deletedIds = Array.from(deleted);
+    if(cloud.persona && JSON.stringify(cloud.persona) !== JSON.stringify(local.persona)) out.persona = cloud.persona;
+    if(Array.isArray(cloud.gaps) && cloud.gaps.length && JSON.stringify(cloud.gaps) !== JSON.stringify(local.gaps)) out.gaps = cloud.gaps;
+    out.answers = Object.assign({}, cloud.answers||{}, local.answers||{});   // 答案本机优先，避免云端旧快照覆盖用户刚改的内容
+    const changes = Math.max(0, data.length - (local.materials||[]).length);
+    return { data: out, changes };
+  }
+  // 旧数据（无 epoch）：维持原按 id 并集去重逻辑
   const out = Object.assign({}, local);
   const ensureId = m => { if(m && m.id == null){ try{ m.id = 'h' + hashStr(JSON.stringify(m)); }catch(_){ m.id = 'h' + Math.random().toString(36).slice(2,9); } } };
   (local.materials||[]).forEach(ensureId);
