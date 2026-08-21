@@ -231,7 +231,7 @@
         h += '<div class="mat-sub">标题</div><input class="mat-edit-input" data-edit-title="' + i + '" value="' + escapeHtml(m.title || '') + '">'
           + (m.storyEn != null ? '<div class="mat-sub">英文可背（连贯小故事）</div><textarea class="mat-edit-input mat-edit-area" data-edit-story="' + i + '" placeholder="英文小故事…">' + escapeHtml(m.storyEn) + '</textarea>' : '')
           + (m.logicZh != null ? '<div class="mat-sub">中文逻辑链</div><textarea class="mat-edit-input mat-edit-area" data-edit-logic="' + i + '" placeholder="中文逻辑…">' + escapeHtml(m.logicZh) + '</textarea>' : '')
-          + '<div class="mat-edit-hint">保存后会作为<b>新素材</b>加入列表，原素材保留不变。</div>'
+          + '<div class="mat-edit-hint">保存后会<b>直接覆盖</b>这张素材，旧内容不再保留。</div>'
           + '<div class="mat-mat-actions"><button class="mat-mini btn-save" data-save="' + i + '">保存</button><button class="mat-mini" data-cancel="' + i + '">取消</button></div>';
       } else {
         h += (m.storyEn ? '<div class="mat-sub">英文可背（连贯小故事）</div><div class="mat-story-en">' + escapeHtml(m.storyEn) + '</div>' : '')
@@ -290,7 +290,7 @@
     root.querySelectorAll('[data-cancel]').forEach(b => {
       b.onclick = () => { editing = -1; render(); };
     });
-    // 「保存」：把改后的内容作为【新素材】加入（原素材保留）
+    // 「保存」：把改后的内容直接覆盖原素材（不新增、不保留旧内容）
     root.querySelectorAll('[data-save]').forEach(b => {
       b.onclick = () => {
         const i = +b.dataset.save;
@@ -300,21 +300,16 @@
         const titleEl = card.querySelector('[data-edit-title]');
         const storyEl = card.querySelector('[data-edit-story]');
         const logicEl = card.querySelector('[data-edit-logic]');
-        const newMat = {
-          id: 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2,7),
-          title: (titleEl ? titleEl.value.trim() : '') || m.title || '未命名',
-          storyEn: storyEl ? storyEl.value : (m.storyEn || ''),
-          logicZh: logicEl ? logicEl.value : (m.logicZh || ''),
-          coverage: m.coverage || [],
-          createdAt: Date.now(),
-          editedFrom: m.id || null        // 溯源：由哪张原素材改出来的
-        };
-        store.materials.push(newMat);     // 原素材 m 不动，只追加新的一份
+        // 直接原地覆盖原素材：id 不变，只更新内容；旧内容不再保留
+        m.title = (titleEl ? titleEl.value.trim() : '') || m.title || '未命名';
+        m.storyEn = storyEl ? storyEl.value : (m.storyEn || '');
+        m.logicZh = logicEl ? logicEl.value : (m.logicZh || '');
+        m.updatedAt = Date.now();
         editing = -1;
         saveStore();
         if(DATA.settings.autoSync && DATA.settings.syncCode && typeof cloudUpload === 'function') cloudUpload(true);
         render();
-        toast('已另存为新素材（原素材保留）');
+        toast('已保存（覆盖原素材）');
       };
     });
     const mc = $('#matContinue');
