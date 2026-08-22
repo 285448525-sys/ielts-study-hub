@@ -5,6 +5,7 @@
 var dictCurrent = null;      // 当前打开的默写本
 var dictWeakMap = {};        // 当前源的「loc -> 历史出错次数」（提交前）
 var dictWarmSentences = [];  // 热身句索引 -> 原句（避免 HTML 转义污染）
+var dictWarmOriginals = [];   // 热身项序号(weakArr 下标 i) -> 该项渲染时正确的原句（提交时直接取，彻底绕开 loc→idx 映射错位）
 var dictSkipIdx = new Set(); // 本次默写用户勾选「跳过不判」的原文句编号（1-based）
 
 // ---- 默写草稿自动保存（防移动端切走/刷新丢内容）----
@@ -277,14 +278,15 @@ function renderDictWarmup(s, weakMap, on){
   const box = $('#dictWarmup');
   if(!box) return;
   if(!on){
-    box.hidden = true; box.innerHTML = ''; dictWarmSentences = [];
+    box.hidden = true; box.innerHTML = ''; dictWarmSentences = []; dictWarmOriginals = [];
     return;
   }
   const sentences = splitSentences(s.text);
   dictWarmSentences = sentences;
+  dictWarmOriginals = [];
   const weakArr = Object.entries(weakMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
   if(!weakArr.length){
-    box.hidden = true; box.innerHTML = ''; dictWarmSentences = [];
+    box.hidden = true; box.innerHTML = ''; dictWarmSentences = []; dictWarmOriginals = [];
     return;
   }
   box.hidden = false;
@@ -292,6 +294,7 @@ function renderDictWarmup(s, weakMap, on){
     + weakArr.map(([loc, c], i) => {
         const idx = Number(loc) - 1;
         const sent = sentences[idx] || '';
+        dictWarmOriginals[i] = sent;   // 渲染时锁死该项的正确原句，提交时直接取，不再依赖 loc→idx 映射
         return '<div class="dict-warm-item" data-i="' + i + '" style="border:1px solid var(--line);border-radius:var(--radius);padding:10px;margin-bottom:8px">'
           + '<div class="form-row" style="align-items:center;gap:6px">'
           +   '<span class="muted" style="font-size:12.5px">第 ' + loc + ' 句（历史错 ' + c + ' 次）</span>'
@@ -315,8 +318,8 @@ function renderDictWarmup(s, weakMap, on){
     if(!ta || !res) return;
     const userText = stripSkipMarkers(ta.value).trim();
     if(!userText){ toast('先打这句（或已标记跳过）'); return; }
-    const idx = Number(b.dataset.idx);
-    const correct = (idx >= 0 && dictWarmSentences[idx] != null) ? dictWarmSentences[idx] : '';
+    // 直接取该项渲染时锁死的正确原句，彻底排除 loc→idx 索引错位（不再用 dictWarmSentences[idx]）
+    const correct = dictWarmOriginals[Number(i)] || '';
     if(!correct){ toast('未找到该句原文，请刷新页面重试'); return; }
     warmupCheck(correct, userText, res, b);
   }));
