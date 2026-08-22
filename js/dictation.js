@@ -572,7 +572,19 @@ function openDictLogDetail(id){
       const loc = String(m.loc || '0');
       const si = Number(loc) - 1;
       const srcSent = si >= 0 && srcSents[si] != null ? srcSents[si] : '（无法定位原句）';
-      const usrSent = si >= 0 && usrSents[si] != null ? usrSents[si] : '（你这部位没写）';
+      // 上下文里「你写的句子」优先用 loc 索引取；若对不上（语音输入缺标点/缺句导致编号错位），
+      // 就在用户全文中搜包含 m.wrong 的那一句；还找不到再用 m.wrong 或漏写提示兜底。
+      let usrSent = '';
+      if(si >= 0 && usrSents[si] != null){
+        usrSent = usrSents[si];
+      } else if(m.wrong){
+        const wrong = String(m.wrong);
+        const found = usrSents.find(s => s.toLowerCase().includes(wrong.toLowerCase()));
+        if(found) usrSent = found;
+        else usrSent = wrong;
+      } else {
+        usrSent = '（你这部位没写）';
+      }
       return '<div class="card" style="margin-bottom:10px;padding:10px">'
         + '<div style="font-size:13.5px;margin-bottom:4px"><b>第 ' + escapeHtml(loc) + ' 句</b> · <span class="muted">' + escapeHtml(m.type || '') + '</span></div>'
         + '<div style="font-size:13.5px;margin:4px 0"><span class="muted">你的写法：</span><s>' + escapeHtml(m.wrong || '（漏写）') + '</s></div>'
