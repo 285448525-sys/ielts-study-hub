@@ -279,7 +279,7 @@ function renderDictWarmup(s, weakMap, on){
           + '</div>'
           + '<div class="dict-peek-src muted" data-i="' + i + '" hidden style="font-size:13px;margin:4px 0;white-space:pre-wrap">' + escapeHtml(sent) + '</div>'
           + '<textarea class="dict-warm-input" data-i="' + i + '" placeholder="凭记忆打这句…" style="width:100%;min-height:60px;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);resize:vertical;box-sizing:border-box"></textarea>'
-          + '<button class="btn dict-warm-submit" type="button" data-i="' + i + '" style="margin-top:6px">这句提交</button>'
+          + '<button class="btn dict-warm-submit" type="button" data-i="' + i + '" data-idx="' + idx + '" style="margin-top:6px">这句提交</button>'
           + '<div class="dict-warm-res" data-i="' + i + '"></div>'
           + '</div>';
       }).join('');
@@ -295,7 +295,9 @@ function renderDictWarmup(s, weakMap, on){
     if(!ta || !res) return;
     const userText = stripSkipMarkers(ta.value).trim();
     if(!userText){ toast('先打这句（或已标记跳过）'); return; }
-    const correct = dictWarmSentences[Number(i)] || '';
+    const idx = Number(b.dataset.idx);
+    const correct = (idx >= 0 && dictWarmSentences[idx] != null) ? dictWarmSentences[idx] : '';
+    if(!correct){ toast('未找到该句原文，请刷新页面重试'); return; }
     warmupCheck(correct, userText, res, b);
   }));
   // 草稿：暖身框内容实时存，切走不丢
