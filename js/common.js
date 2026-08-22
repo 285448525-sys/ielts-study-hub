@@ -588,17 +588,22 @@ async function cloudUpload(showToast){
   const phone = DATA.settings.syncCode;
   if(!phone){ if(showToast) toast('请先在「设置」绑定手机号'); return; }
   try{
-    const [res] = await syncApi('PUT', { data: DATA, ts:  Date.now(), deviceId: getDeviceId() });
+    const [res, body] = await syncApi('PUT', { data: DATA, ts:  Date.now(), deviceId: getDeviceId() });
     if(res.status === 404) throw new Error('云端未启用（需先部署 Functions）');
     if(res.status === 503) throw new Error('云端存储未绑定（Cloudflare 后台需绑定 SYNC_KV）');
-    if(!res.ok) throw new Error('HTTP ' + res.status);
+    if(!res.ok){
+      const detail = body && body.error ? body.error : ('HTTP ' + res.status);
+      throw new Error(detail);
+    }
     DATA.settings.lastSyncTs = Date.now();
     if(showToast) toast('已上传到云端');
     syncSetStatus('✅ 已同步到云端', 'ok');
     renderLastSync();
   }catch(e){
-    if(showToast) toast('云端上传失败：' + e.message);
-    syncSetStatus('同步失败：' + e.message, 'error');
+    const size = Math.round(JSON.stringify(DATA).length / 1024);
+    const msg = e.message + '（本机数据约 ' + size + ' KB）';
+    if(showToast) toast('云端上传失败：' + msg);
+    syncSetStatus('同步失败：' + msg, 'error');
     renderLastSync();
   }
 }
@@ -911,8 +916,9 @@ async function syncDiagnose(){
       syncSetStatus('探测结果：HTTP 404 —— 云端 Functions 未启用或未部署。即 Cloudflare Pages 项目的 Pages Functions 没开启，/api/sync 不存在。需在 Cloudflare 后台确认 Functions 已启用。', 'error');
     } else if(res.status === 503){
       syncSetStatus('探测结果：HTTP 503 —— 云端存储未绑定。Cloudflare Pages 项目未绑定 KV 命名空间「SYNC_KV」。需在后台 Settings → Storage/KV 绑定一个名为 SYNC_KV 的命名空间。', 'error');
-    } else if(res.ok){
-      syncSetStatus('探测结果：HTTP 200 ✅ 云端连通正常。若仍显示「尚未同步」，点一下「绑定并同步」或刷新页面即可。', 'ok');
+    } else     if(res.ok){
+      const size = Math.round(JSON.stringify(DATA).length / 1024);
+      syncSetStatus('探测结果：HTTP 200 ✅ 云端连通正常。本机数据约 ' + size + ' KB。若仍显示「尚未同步」，点一下「绑定并同步」或刷新页面即可。', 'ok');
       renderLastSync();
     } else {
       syncSetStatus('探测结果：HTTP ' + res.status + '（' + ((data && data.error) || '未知错误') + '）', 'error');

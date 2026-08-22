@@ -93,8 +93,16 @@ export async function onRequest(context) {
       deviceId: body.deviceId || null,
       updatedAt: new Date().toISOString(),
     };
-    await env.SYNC_KV.put(key, JSON.stringify(stored));
-    return json({ ok: true, ts: stored.ts });
+    try {
+      const value = JSON.stringify(stored);
+      if (value.length > 25 * 1024 * 1024) {
+        return json({ ok: false, error: '单条数据超过 Cloudflare KV 25MB 上限（当前 ' + Math.round(value.length / 1024 / 1024) + 'MB）' }, 413);
+      }
+      await env.SYNC_KV.put(key, value);
+      return json({ ok: true, ts: stored.ts });
+    } catch (e) {
+      return json({ ok: false, error: 'KV 写入失败：' + (e && e.message ? e.message : String(e)) }, 500);
+    }
   }
 
   if (request.method === 'DELETE') {
