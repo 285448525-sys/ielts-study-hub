@@ -787,15 +787,18 @@ function renderP3Step(s, container, i){
   const p3 = s.answers && s.answers.p2 && s.answers.p2.p3;
   if(!p3 || !Array.isArray(p3.questions) || !p3.questions[i]) return;
   const q = p3.questions[i];
+  const qDisp = purifyP3Question(q);
   const savedAns = (Array.isArray(p3.answers) && p3.answers[i]) || '';
   const div = document.createElement('div');
   div.className = 'sp-p3-q';
   div.dataset.i = i;
   div.innerHTML = '<div class="sp-p3-q-head">'
     + '<span class="sp-p3-q-num">Q3-' + (i + 1) + (i === 0 ? '' : ' · 追问') + '</span>'
-    + '<span class="sp-p3-q-text">' + escapeHtml(q) + '</span>'
+    + '<span class="sp-p3-q-text">' + escapeHtml(qDisp) + '</span>'
     + ttsBtnHtml()
+    + '<button class="sp-p3-trans-btn" data-i="' + i + '" type="button" title="翻译为中文">译</button>'
     + '</div>'
+    + '<div class="sp-p3-cn-line" data-i="' + i + '" hidden></div>'
     + '<textarea class="sp-p3-textarea" data-i="' + i + '" placeholder="写下或贴出你的 P3 回答（中文英文都行）。没思路？点「AI 辅助」直接给你参考答案；自己有思路？点「老师帮我改」按 5.5 规则挑问题 + 改一版合规的。">' + escapeHtml(savedAns) + '</textarea>'
     + '<div class="sp-p3-helper-row">'
     + '<button class="sp-p3-helper-btn" data-i="' + i + '" type="button" data-mode="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;flex:none"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.4L22 18.3l-2.1.9L19 21.5l-.9-2.3-2.1-.9 2.1-.9z"/></svg>AI 辅助</button>'
@@ -804,7 +807,11 @@ function renderP3Step(s, container, i){
     + '<div class="sp-p3-ai-result" data-i="' + i + '"></div>';
   container.appendChild(div);
   const ttsBtn = div.querySelector('.sp-tts');
-  if(ttsBtn) ttsBtn.addEventListener('click', e => { e.stopPropagation(); speakQuestion.speak(q, ttsBtn); });
+  if(ttsBtn) ttsBtn.addEventListener('click', e => { e.stopPropagation(); speakQuestion.speak(qDisp, ttsBtn); });
+  const transBtn = div.querySelector('.sp-p3-trans-btn');
+  if(transBtn) transBtn.addEventListener('click', e => { e.stopPropagation(); toggleTranslateP3Q(s.id, i, transBtn); });
+  const cnLine = div.querySelector('.sp-p3-cn-line');
+  if(cnLine && p3.questionsCN && p3.questionsCN[i]){ cnLine.textContent = p3.questionsCN[i]; cnLine.hidden = false; }
   const aiBtn = div.querySelector('.sp-p3-helper-btn');
   if(aiBtn) aiBtn.addEventListener('click', e => { e.stopPropagation(); generateP3Helper(s.id, i); });
   const reviewBtn = div.querySelector('.sp-p3-review-btn');
@@ -813,6 +820,41 @@ function renderP3Step(s, container, i){
   if(savedHelper && (savedHelper.main || savedHelper.extend || savedHelper.cn || savedHelper.raw)){
     const rEl = div.querySelector('.sp-p3-ai-result');
     if(rEl){ rEl.innerHTML = '<div class="sp-p3-result-tag">AI 辅助 · 参考答案</div>'; renderP3Helper(rEl, savedHelper); }
+  }
+}
+
+/* P3 单题翻译：点「译」把当前（已净化的）问题译为中文，内联显示在问题下方，不离开页面。
+   结果缓存进 p3.questionsCN[i]，刷新或重开详情仍可见；再次点击切换显隐。 */
+async function toggleTranslateP3Q(id, i, btn){
+  const s = DATA.speaking.find(x => x.id === id);
+  if(!s) return;
+  const p3 = s.answers && s.answers.p2 && s.answers.p2.p3;
+  if(!p3 || !Array.isArray(p3.questions) || !p3.questions[i]) return;
+  const qDisp = purifyP3Question(p3.questions[i]);
+  const cnLine = document.querySelector('#p3List .sp-p3-q[data-i="' + i + '"] .sp-p3-cn-line');
+  if(!cnLine) return;
+  // 已译过：切换显隐，不重复调接口
+  if(p3.questionsCN && p3.questionsCN[i]){
+    cnLine.hidden = !cnLine.hidden;
+    return;
+  }
+  if(!DATA.settings.relayToken){ toast('请先在「设置 / AI 接口」配置 API Key'); return; }
+  btn.disabled = true; const old = btn.textContent; btn.textContent = '…';
+  try{
+    const out = await callRelay('trans', [
+      { role:'user', content:'把下面这道雅思口语 Part 3 问题翻译成自然、简单、易懂的中文。只输出中文译文本身，不要解释、不要英文、不要多余文字：\n\n' + qDisp }
+    ], 0.3);
+    const cn = String(out || '').trim();
+    if(!cn) throw new Error('翻译结果为空');
+    p3.questionsCN = p3.questionsCN || [];
+    p3.questionsCN[i] = cn;
+    hubSave();
+    cnLine.textContent = cn;
+    cnLine.hidden = false;
+  }catch(e){
+    toast('翻译失败：' + e.message);
+  }finally{
+    btn.disabled = false; btn.textContent = old;
   }
 }
 

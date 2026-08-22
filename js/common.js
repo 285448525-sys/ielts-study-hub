@@ -449,10 +449,33 @@ Question generation rules:
 1. P3 questions must stay within the SAME topic category as Part 2, but elevated to society / abstract / comparison level (this is the essence of P3 vs P2: P2 is personal experience, P3 is general phenomena).
 2. Question types should rotate and cover: cause (Why do you think...?), comparison (How does X differ from Y?), past-vs-now (Has this changed compared to the past?), classification (Do you think this varies between...?), pros/impact (What impact does this have on...?), prediction/opinion (Do you believe...? / To what extent...?).
 3. Difficulty must progress, NOT random: Q1 is shallow (social phenomenon); Q2-Q3 go deeper (cause / impact / comparison); Q4 (if any) asks for the candidate's stance or prediction, then wrap up.
-4. Each turn ask ONLY ONE question. After the candidate answers, respond with a 1-2 sentence brief acknowledgment (e.g. "That's interesting." / "I see."), then ask the next follow-up.
+4. Each turn ask ONLY ONE question. Output ONLY the single next question — do NOT add any preamble, acknowledgment, or connector before it (no "That's interesting.", no "Now,", no "So,", no "Let me ask you..."). The question itself must be the entire response.
 5. A normal P3 round runs 3-4 follow-ups, then STOP generating — no extra closing remark.
 
 Output ONLY the single question string (or the brief acknowledgment + next question when continuing), no numbering, no quotes, no other text.`;
+
+/* P3 问题净化：剔除 AI 生成时附带的开场寒暄 / 过渡废话，仅保留核心问题。
+   用于两处：① P3 逐题追问渲染（renderP3Step）对线上已存的旧题(raw)重新净化；
+   ② 下方 genSpeakingP3 落库前净化，使练习与模考两处 P3 从源头即干净。
+   幂等（对已是干净的问题不会破坏）。 */
+function purifyP3Question(raw){
+  if(!raw) return raw;
+  const cap = s => (s && s.length) ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+  let t = String(raw).trim();
+  // 1) 去开头编号 / 引号 / 破折号 / 项目符号 / 首尾引号
+  t = t.replace(/^[\s\d."'\-–—•·]+/, '').replace(/^["'“”'']+|["'“”'']+$/g, '').trim();
+  // 2) 去开头寒暄词（That's interesting. / I see. / Well / Okay / Right / Sure ...）
+  t = t.replace(/^(that'?s (interesting|great|good|nice|true|fair|right|reasonable)|that is (interesting|true|right|fair|good|great)|i see|i understand|okay|ok|well|right|sure|got it|hmm|good point|indeed|exactly|yes|alright|right then|sure thing|fair enough)\b[\s,.:!?\-—–]*/i, '').trim();
+  // 3) 去过渡连词（Now, / So, / Then, / Let me ask you (this): / Moving on / Next, ...）
+  t = t.replace(/^(now,?\s*|so,?\s*|then,?\s*|let me ask(?: you)?(?: this)?[:.,]?\s*|moving on,?\s*|next,?\s*|alright,?\s*|let'?s see,?\s*|now then,?\s*)/i, '').trim();
+  // 4) 兜底：若仍含多句且首句无问号（是废话），取最后一个含问号的句子
+  const sentences = t.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(Boolean);
+  if(sentences.length >= 2 && !/\?/.test(sentences[0])){
+    const lastQ = [...sentences].reverse().find(s => /\?/.test(s));
+    if(lastQ) return cap(lastQ.trim());
+  }
+  return cap(t);
+}
 
 async function genSpeakingP3(p2, p2Text, step, prevQ, prevA){
   step = step || 0;
@@ -478,7 +501,7 @@ async function genSpeakingP3(p2, p2Text, step, prevQ, prevA){
   ], 0.8);
   const q = String(content || '').replace(/^[\s\d."'\-]+/, '').replace(/["']+$/, '').trim();
   if(!q) throw new Error('AI 未返回有效的 P3 追问');
-  return q;
+  return purifyP3Question(q);
 }
 /* 兜底：按步数给固定题（首题 / 续题），AI 失败时回退 */
 function presetSpeakingP3(step){
