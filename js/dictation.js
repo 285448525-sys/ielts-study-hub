@@ -177,7 +177,7 @@ function openVirtualSource(s){
   $('#dictSrcView').textContent = s.text;
 
   // 开始前提示
-  const logs = (DATA.dictationLogs || []).filter(l => l.sourceId === id);
+  const logs = (DATA.dictationLogs || []).filter(l => l.sourceId === s.id);
   const times = logs.length;
   const totalMistakes = logs.reduce((a, l) => a + (Array.isArray(l.mistakes) ? l.mistakes.length : 0), 0);
   let hint = '已默 ' + times + ' 次 · 历史错 ' + totalMistakes + ' 处';
@@ -188,7 +188,7 @@ function openVirtualSource(s){
   $('#dictPreHint').textContent = hint;
 
   // 草稿恢复：默到一半切走（移动端回消息/刷新）后回来，从 localStorage 续上
-  const draft = loadDictDraft(id);
+  const draft = loadDictDraft(s.id);
   const hasDraft = draft && ((draft.text && draft.text.trim().length) || (draft.warms && Object.keys(draft.warms).some(k => (draft.warms[k] || '').trim().length)));
   if(hasDraft){
     $('#dictInput').value = draft.text || '';

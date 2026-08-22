@@ -3,6 +3,9 @@ var curId = null;
 var curTab = 'tpl';
 
 ready(() => {
+  // 迁移：清洗写作模板分类名里的括号后缀（如「观点型（第一优先级）」→「观点型」），就地改写并保存
+  migrateWritingCategoryNames();
+
   // Tab 切换
   $('#writeTabs').querySelectorAll('[data-tab]').forEach(b => {
     b.addEventListener('click', () => {
@@ -67,9 +70,24 @@ ready(() => {
 });
 
 /* ===== 模板库 ===== */
+// 分类名防御性清洗：去掉「（xxx）」「(xxx)」等括号及括号内后缀（如「观点型（第一优先级）」→「观点型」）
+function cleanCatName(c){
+  if(!c) return c;
+  return c.replace(/[（(][^）)]*[）)]/g, '').trim();
+}
+// 迁移：把 DATA.writing 里所有模板的 category 就地清洗（去掉括号后缀），并持久化，使渲染/过滤全程一致
+function migrateWritingCategoryNames(){
+  let changed = false;
+  (DATA.writing || []).forEach(t => {
+    if(!t || typeof t.category !== 'string') return;
+    const c = cleanCatName(t.category);
+    if(c !== t.category){ t.category = c; changed = true; }
+  });
+  if(changed) hubSave();
+}
 function renderCats(){
   const cats = [];
-  DATA.writing.forEach(t => { if(!cats.includes(t.category)) cats.push(t.category); });
+  DATA.writing.forEach(t => { const c = cleanCatName(t.category); if(!cats.includes(c)) cats.push(c); });
   // 大作文在上、小作文在下；组内按雅思出题频率排序（高频靠前）
   const CAT_ORDER = ['观点型','讨论型','Report','动态图','静态图','地图题','流程图'];
   cats.sort((a, b) => {
