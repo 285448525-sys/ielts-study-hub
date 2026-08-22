@@ -251,6 +251,11 @@
   <div id="dictationPanel" hidden>
     <!-- 我的默写本（首页） -->
     <section class="card" id="dictHomeCard">
+      <div id="dictDraftBanner" hidden class="dict-draft-banner" style="background:var(--primary-soft);border:1px solid var(--primary);border-radius:var(--radius);padding:12px;margin-bottom:12px;font-size:14px;line-height:1.8">
+        📝 你有一篇《<b id="dictDraftBannerTitle"></b>》上次没默完（<span id="dictDraftBannerAgo"></span>），
+        <button class="btn btn-primary" id="dictDraftResume">继续默写</button>
+        <button class="btn" id="dictDraftDiscard">放弃</button>
+      </div>
       <div class="form-row" style="align-items:center">
         <h2>我的默写本</h2>
         <button class="btn" id="dictViewLogs" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4a3 3 0 0 1 6 0M9 10h6M9 14h6"/></svg>错处记录</button>
@@ -276,6 +281,10 @@
         <label style="font-size:14px"><input type="checkbox" id="dictWarmupOn" checked> 开始前先练常错句</label>
       </div>
       <div id="dictSrcView" class="skeleton-box" hidden style="margin-top:8px"></div>
+      <div id="dictDraftNote" hidden class="dict-draft-note" style="background:var(--primary-soft);border:1px solid var(--primary);border-radius:var(--radius);padding:10px;margin-top:8px;font-size:13.5px;line-height:1.7">
+        📝 已恢复上次未写完的草稿（<span id="dictDraftNoteAgo"></span>）。
+        <button class="btn" id="dictDraftReload">放弃重默</button>
+      </div>
       <textarea id="dictInput" placeholder="凭记忆把整段打上来。模板里的空位不想默可以用 -- 代替，不会算错。" style="width:100%;min-height:220px;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);resize:vertical;box-sizing:border-box;margin-top:8px"></textarea>
       <div class="form-row" style="margin-top:10px;align-items:center">
         <button class="btn btn-primary" id="dictSubmit">提交核对</button>

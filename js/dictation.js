@@ -6,6 +6,85 @@ var dictCurrent = null;      // 当前打开的默写本
 var dictWeakMap = {};        // 当前源的「loc -> 历史出错次数」（提交前）
 var dictWarmSentences = [];  // 热身句索引 -> 原句（避免 HTML 转义污染）
 
+// ---- 默写草稿自动保存（防移动端切走/刷新丢内容）----
+// 草稿只存 localStorage（瞬态，不进云同步），按 sourceId 区分；页面被回收后回来仍能续。
+var dictDraftTimer = null;
+function dictDraftKey(id){ return 'ielts_dict_draft_' + id; }
+function loadDictDraft(id){
+  try{
+    const raw = localStorage.getItem(dictDraftKey(id));
+    if(!raw) return null;
+    const d = JSON.parse(raw);
+    if(!d || (!d.text && (!d.warms || !Object.keys(d.warms).length))) return null;
+    return d;
+  }catch(e){ return null; }
+}
+function collectDictDraft(){
+  if(!dictCurrent) return null;
+  const text = ($('#dictInput').value) || '';
+  const warms = {};
+  const wrap = $('#dictWarmup');
+  if(wrap && !wrap.hidden){
+    wrap.querySelectorAll('.dict-warm-input').forEach(ta => { warms[ta.dataset.i] = ta.value || ''; });
+  }
+  const hasText = text.trim().length > 0;
+  const hasWarm = Object.keys(warms).some(k => (warms[k] || '').trim().length > 0);
+  if(!hasText && !hasWarm) return null;
+  return { text, warms, ts: Date.now() };
+}
+function saveDictDraft(){
+  if(!dictCurrent) return;
+  const d = collectDictDraft();
+  if(!d){ clearDictDraft(dictCurrent.id); return; }
+  try{ localStorage.setItem(dictDraftKey(dictCurrent.id), JSON.stringify(d)); }catch(e){}
+}
+function scheduleDictDraftSave(){
+  if(dictDraftTimer) clearTimeout(dictDraftTimer);
+  dictDraftTimer = setTimeout(saveDictDraft, 400);
+}
+function clearDictDraft(id){
+  try{ localStorage.removeItem(dictDraftKey(id)); }catch(e){}
+  hideDictDraftRestored();
+}
+function agoText(ts){
+  const diff = Date.now() - (ts || 0);
+  const m = Math.floor(diff / 60000);
+  if(m < 1) return '刚刚';
+  if(m < 60) return m + ' 分钟前';
+  const h = Math.floor(m / 60);
+  if(h < 24) return h + ' 小时前';
+  return Math.floor(h / 24) + ' 天前';
+}
+function showDictDraftRestored(ts){
+  const note = $('#dictDraftNote');
+  if(!note) return;
+  note.hidden = false;
+  const ago = $('#dictDraftNoteAgo'); if(ago) ago.textContent = agoText(ts);
+}
+function hideDictDraftRestored(){
+  const note = $('#dictDraftNote'); if(note) note.hidden = true;
+}
+// 首页横幅：扫描是否有「上次没默完」的草稿，便于页面被回收后一键续
+function refreshDictDraftBanner(){
+  const banner = $('#dictDraftBanner');
+  if(!banner) return;
+  const sources = DATA.dictationSources || [];
+  let best = null;
+  for(const s of sources){
+    const d = loadDictDraft(s.id);
+    if(!d) continue;
+    const hasText = d.text && d.text.trim().length > 0;
+    const hasWarm = d.warms && Object.values(d.warms).some(v => v && v.trim().length > 0);
+    if(hasText || hasWarm){ if(!best || d.ts > best.ts) best = { s, d }; }
+  }
+  if(!best){ banner.hidden = true; return; }
+  banner.hidden = false;
+  const t = $('#dictDraftBannerTitle'); if(t) t.textContent = best.s.title;
+  const a = $('#dictDraftBannerAgo'); if(a) a.textContent = agoText(best.d.ts);
+  const r = $('#dictDraftResume'); if(r) r.dataset.id = best.s.id;
+  const x = $('#dictDraftDiscard'); if(x) x.dataset.id = best.s.id;
+}
+
 // ---- 视图切换 ----
 function showDictHome(){ $('#dictHomeCard').hidden = false; $('#dictPracticeCard').hidden = true; $('#dictLogCard').hidden = true; }
 function showDictPractice(){ $('#dictHomeCard').hidden = true; $('#dictPracticeCard').hidden = false; $('#dictLogCard').hidden = true; }
@@ -25,6 +104,7 @@ function computeWeak(sourceId){
 function renderDictationSources(){
   const box = $('#dictSrcList');
   if(!box) return;
+  refreshDictDraftBanner();
   const list = DATA.dictationSources || [];
   if(!list.length){
     box.innerHTML = '<div class="muted">还没有默写本。把要背的范文粘进上面的框，起个名，保存就能反复默写。</div>';
@@ -66,6 +146,7 @@ function delDictSource(id){
   DATA.dictationLogs = (DATA.dictationLogs || []).filter(l => l.sourceId !== id);
   DATA.deletedIds = DATA.deletedIds || [];
   if(id != null && !DATA.deletedIds.includes(id)) DATA.deletedIds.push(id);
+  clearDictDraft(id);   // 连带清掉未完成的草稿 key
   hubSave();
   renderDictationSources();
   toast('已删除');
@@ -79,7 +160,6 @@ function openDictSource(id){
   dictWeakMap = computeWeak(s.id);
   showDictPractice();
   $('#dictPTitle').textContent = s.title;
-  $('#dictInput').value = '';
   $('#dictResult').hidden = true;
   $('#dictResult').innerHTML = '';
   $('#dictShowSrc').checked = false;
@@ -97,7 +177,26 @@ function openDictSource(id){
   }
   $('#dictPreHint').textContent = hint;
 
-  renderDictWarmup(s, dictWeakMap, $('#dictWarmupOn').checked);
+  // 草稿恢复：默到一半切走（移动端回消息/刷新）后回来，从 localStorage 续上
+  const draft = loadDictDraft(id);
+  const hasDraft = draft && ((draft.text && draft.text.trim().length) || (draft.warms && Object.keys(draft.warms).some(k => (draft.warms[k] || '').trim().length)));
+  if(hasDraft){
+    $('#dictInput').value = draft.text || '';
+    const hasWarm = !!(draft.warms && Object.keys(draft.warms).length);
+    $('#dictWarmupOn').checked = hasWarm ? true : $('#dictWarmupOn').checked;
+    renderDictWarmup(s, dictWeakMap, hasWarm ? true : $('#dictWarmupOn').checked);
+    if(hasWarm){
+      Object.keys(draft.warms).forEach(i => {
+        const ta = $('#dictWarmup').querySelector('.dict-warm-input[data-i="' + i + '"]');
+        if(ta) ta.value = draft.warms[i];
+      });
+    }
+    showDictDraftRestored(draft.ts);
+  } else {
+    $('#dictInput').value = '';
+    renderDictWarmup(s, dictWeakMap, $('#dictWarmupOn').checked);
+    hideDictDraftRestored();
+  }
 }
 
 // ========== 常错句热身 ==========
@@ -160,6 +259,8 @@ function renderDictWarmup(s, weakMap, on){
     const correct = dictWarmSentences[Number(i)] || '';
     warmupCheck(correct, userText, res, b);
   }));
+  // 草稿：暖身框内容实时存，切走不丢
+  box.querySelectorAll('.dict-warm-input').forEach(ta => ta.addEventListener('input', scheduleDictDraftSave));
 }
 
 async function warmupCheck(correctText, userText, resEl, btn){
@@ -254,6 +355,7 @@ ${JSON.stringify(weakBefore)}` }
     const ms = Array.isArray(r.mistakes) ? r.mistakes : [];
     renderDictResult(r, userText, weakBefore);
     pushDictLog(dictCurrent, userText, dictCurrent.text, ms, weakBefore, true);
+    clearDictDraft(dictCurrent.id);   // 提交成功即视为本次默写完成，清草稿
     toast('核对完成');
   }catch(e){
     box.innerHTML = '<div class="ts-load">AI 调不通：' + escapeHtml(e.message) + '</div>';
@@ -409,6 +511,29 @@ ready(() => {
   bind('dictBack', () => { showDictHome(); renderDictationSources(); });
   bind('dictSubmit', submitDictation);
   bind('dictClearAll', clearAllLogs);
+
+  // 草稿：主默写框实时存，切走/刷新不丢
+  const di = $('#dictInput');
+  if(di) di.addEventListener('input', scheduleDictDraftSave);
+
+  // 首页草稿横幅：继续 / 放弃
+  bind('dictDraftResume', () => {
+    const id = $('#dictDraftResume').dataset.id;
+    if(id) openDictSource(id);
+  });
+  bind('dictDraftDiscard', () => {
+    const id = $('#dictDraftDiscard').dataset.id;
+    if(id){ clearDictDraft(id); refreshDictDraftBanner(); }
+  });
+  // 练习视图内「放弃重默」：清空当前草稿与输入框
+  bind('dictDraftReload', () => {
+    if(!dictCurrent) return;
+    clearDictDraft(dictCurrent.id);
+    $('#dictInput').value = '';
+    const wrap = $('#dictWarmup');
+    if(wrap) wrap.querySelectorAll('.dict-warm-input').forEach(ta => ta.value = '');
+    toast('已清空，重新开始默写');
+  });
 
   const showSrc = $('#dictShowSrc');
   if(showSrc) showSrc.addEventListener('change', e => { $('#dictSrcView').hidden = !e.target.checked; });
