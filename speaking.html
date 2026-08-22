@@ -545,6 +545,29 @@
         <a class="btn" href="review.html">查看历史</a>
       </div>
     </section>
+
+    <!-- 手动录入口语分数 + 最近 3 次模考（方案 23） -->
+    <section class="card" id="spManualCard">
+      <h2>录入口语模考分数</h2>
+      <p class="muted" style="font-size:13px;margin-bottom:10px">平时自己模考（非本系统整卷模考）得出的分数，可直接手动录入，计入回顾页「分项模考」看板的口语均分。</p>
+      <div class="form-row">
+        <div><label>日期</label><input type="date" id="spManualDate" /></div>
+        <div><label>流利度 Fluency</label><input type="number" id="spF" step="0.5" min="0" max="9" placeholder="0–9" /></div>
+        <div><label>词汇 Lexical</label><input type="number" id="spL" step="0.5" min="0" max="9" placeholder="0–9" /></div>
+      </div>
+      <div class="form-row">
+        <div><label>语法 Grammar</label><input type="number" id="spG" step="0.5" min="0" max="9" placeholder="0–9" /></div>
+        <div><label>发音 Pronunciation</label><input type="number" id="spP" step="0.5" min="0" max="9" placeholder="0–9" /></div>
+        <div><label>备注（可选）</label><input id="spManualNote" placeholder="如：Part2 卡壳" /></div>
+      </div>
+      <button class="btn btn-primary" id="spManualAdd">保存口语分数</button>
+    </section>
+
+    <section class="card" id="spRecentCard">
+      <h2>最近 3 次口语模考</h2>
+      <p class="muted" style="font-size:13px;margin-bottom:10px">含本系统整卷模考与上面手动录入的记录，自动取最近 3 条。</p>
+      <div id="spRecentList"></div>
+    </section>
   </div>
 
   <!-- 万能素材生成器（整合为口语页第 5 个 tab，复用 materials 生成逻辑） -->

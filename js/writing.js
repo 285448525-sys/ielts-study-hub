@@ -272,6 +272,7 @@ ${s.text}` }
     }
     box.innerHTML = tplScoreHtml(r, isTask1);
     DATA.writingScores.push({ id: uid(), date: todayKey(), mode:'template', tplId: s.tpl.id, tplTitle: s.tpl.title, essay: s.text, result: r, parsed:true });
+    writeSyncMock(isTask1 ? '小作文' : '大作文', r);   // 方案 23：模板评分也回流看板
     hubSave();
     toast('评分完成');
   }catch(e){
@@ -626,6 +627,7 @@ ${isTask1 ? RULES_TASK1 : RULES_TASK2}
 
     // 保存记录
     DATA.writingScores.push({ id: uid(), date: todayKey(), type, essay, result, parsed: true });
+    writeSyncMock(type, result);   // 方案 23：回流到分项模考看板
     hubSave();
     toast('评分完成');
   }catch(e){
@@ -634,4 +636,31 @@ ${isTask1 ? RULES_TASK1 : RULES_TASK2}
     btn.disabled = false; btn.innerHTML = btnHtml;
     renderScoreHist();
   }
+}
+
+/* 方案 23：写作 AI 评分结果回流到回顾页「分项模考」看板（DATA.mockRecords, type:'writing'）。
+   加权：Task 1 ×1，Task 2 ×2（与 MOCK_TYPES.writing 一致）。同日期同题型不重复叠加——覆盖式更新。 */
+function writeSyncMock(type, result){
+  if(!result || typeof result.overall === 'undefined') return;
+  const isTask1 = type === '小作文';
+  const t1 = isTask1 ? Number(result.overall) : (result.breakdown && result.breakdown.TA != null ? Number(result.breakdown.TA) : null);
+  const t2 = !isTask1 ? Number(result.overall) : (result.breakdown && result.breakdown.TR != null ? Number(result.breakdown.TR) : null);
+  // 用 breakdown 四维均值作为缺失项的兜底
+  const dims = result.breakdown ? ['TR','CC','LR','GRA'].map(k => result.breakdown[k]).filter(v => v != null).map(Number) : [];
+  const fallback = dims.length ? Math.round(dims.reduce((a,b)=>a+b,0)/dims.length*2)/2 : Number(result.overall);
+  const parts = [];
+  if(isTask1){
+    if(t1 != null) parts.push({ label:'Task 1', score:t1, weight:1 });
+    parts.push({ label:'Task 2', score:fallback, weight:2 });
+  } else {
+    parts.push({ label:'Task 1', score:fallback, weight:1 });
+    if(t2 != null) parts.push({ label:'Task 2', score:t2, weight:2 });
+  }
+  const wsum = parts.reduce((s,x)=>s+x.weight,0);
+  const overall = Math.round(parts.reduce((s,x)=>s+x.score*x.weight,0)/wsum*2)/2;
+  // 覆盖式：同日期同题型只留一条
+  const date = todayKey();
+  const existing = DATA.mockRecords.find(r => r.type === 'writing' && r.date === date && r.ai === true);
+  if(existing){ existing.parts = parts; existing.overall = overall; existing.note = 'AI 评分自动同步'; }
+  else { DATA.mockRecords.unshift({ id:uid(), date, granularity:'whole', type:'writing', parts, overall, note:'AI 评分自动同步', ai:true }); }
 }

@@ -83,6 +83,11 @@ ready(() => {
   $('#spSearch').addEventListener('input', () => { curSearch = $('#spSearch').value.trim().toLowerCase(); renderList(); });
   $('#backBtn').addEventListener('click', () => { $('#detailView').hidden = true; $('#listView').hidden = false; curDetailId = null; });
   renderList();
+
+  // 方案 23：口语手动录入分数 + 最近 3 次模考
+  const spDate = $('#spManualDate'); if(spDate) spDate.value = todayKey();
+  const spAdd = $('#spManualAdd'); if(spAdd) spAdd.onclick = spManualAdd;
+  spRenderRecent();
 });
 
 // 优先级下拉选项随 Part1/Part2 联动：P1 必考题>高频>中频>低频；P2 高频>次高频>中频>低频
@@ -631,6 +636,72 @@ function deleteSpeaking(id){
   renderList();
   toast('已删除该口语题（不再被默认题库恢复）');
 }
+
+  /* ---------- 方案 23：手动录入口语分数 + 最近 3 次展示 ---------- */
+  function spManualAdd(){
+    const date = $('#spManualDate').value || todayKey();
+    const f = $('#spF').value, l = $('#spL').value, g = $('#spG').value, p = $('#spP').value;
+    const vals = [f, l, g, p];
+    if(vals.some(v => v === '')){ toast('四个维度分数都要填'); return; }
+    for(const v of vals){
+      const n = Number(v);
+      if(isNaN(n) || n < 0 || n > 9){ toast('分数必须在 0–9 之间'); return; }
+      if(Math.abs(n * 2 - Math.round(n * 2)) > 1e-9){ toast('分数须为 0.5 的整数倍（如 5.5、6.0）'); return; }
+    }
+    const parts = [
+      { label:'流利度 Fluency', score:Number(f), weight:1 },
+      { label:'词汇 Lexical', score:Number(l), weight:1 },
+      { label:'语法 Grammar', score:Number(g), weight:1 },
+      { label:'发音 Pronunciation', score:Number(p), weight:1 }
+    ];
+    const wsum = parts.reduce((s,x)=>s+x.weight,0);
+    const overall = Math.round(parts.reduce((s,x)=>s+x.score*x.weight,0)/wsum*2)/2;
+    DATA.mockRecords.unshift({ id:uid(), date, granularity:'whole', type:'speaking', parts, overall, note:$('#spManualNote').value.trim(), manual:true });
+    hubSave(); scheduleCloudUpload();
+    ['spF','spL','spG','spP'].forEach(id => $('#'+id).value = '');
+    $('#spManualNote').value = '';
+    spRenderRecent();
+    toast('已保存 ' + date + ' 口语分数（均分 ' + overall.toFixed(1) + '）');
+  }
+  function spRenderRecent(){
+    const box = $('#spRecentList');
+    if(!box) return;
+    const recs = DATA.mockRecords
+      .filter(r => r.kind === 'speaking' || r.type === 'speaking')
+      .sort((a,b) => (b.ts || 0) - (a.ts || 0))
+      .slice(0, 3);
+    if(recs.length === 0){ box.innerHTML = renderEmpty('还没有口语模考记录。'); return; }
+    box.innerHTML = recs.map(r => {
+      let avg;
+      if(r.overall != null){ avg = Number(r.overall); }
+      else if(Array.isArray(r.parts)){
+        const wsum = r.parts.reduce((s,x)=>s+(x.weight||1),0);
+        avg = wsum ? Math.round(r.parts.reduce((s,x)=>s+(x.score||0)*(x.weight||1),0)/wsum*2)/2 : null;
+      } else if(r.parts && typeof r.parts === 'object'){
+        const ovs = ['p1','p2','p3'].map(k => r.parts[k] && r.parts[k].overall).filter(v => v != null).map(Number);
+        avg = ovs.length ? Math.round(ovs.reduce((a,b)=>a+b,0)/ovs.length*2)/2 : null;
+      } else { avg = null; }
+      let badges = '';
+      if(Array.isArray(r.parts)){
+        badges = r.parts.map(x => '<span class="badge">'+x.label.split(' ')[0]+' · '+(x.score||0)+'</span>').join(' ');
+      } else if(r.parts && typeof r.parts === 'object'){
+        badges = ['p1','p2','p3'].map(k => {
+          const p = r.parts[k]; if(!p) return '';
+          const fc = p.fc!=null?Number(p.fc):null, lr=p.lr!=null?Number(p.lr):null, gra=p.gra!=null?Number(p.gra):null;
+          const vals=[fc,lr,gra].filter(v=>v!=null);
+          const partAvg = vals.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length*2)/2:'-';
+          return '<span class="badge">'+k.toUpperCase()+' · '+partAvg+(r.pronunciationScore!=null?' (发'+r.pronunciationScore+')':'')+'</span>';
+        }).filter(Boolean).join(' ');
+      }
+      return '<div class="score-row" style="align-items:flex-start">'
+        + '<strong style="min-width:88px">'+r.date+'</strong>'
+        + (avg!=null ? '<span class="badge overall">均分 '+avg.toFixed(1)+'</span>' : '')
+        + (r.manual ? '<span class="badge">手动录入</span>' : '<span class="badge">整卷模考</span>')
+        + '<div style="flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">'+badges+'</div>'
+        + (r.note ? '<div class="muted" style="flex-basis:100%">'+escapeHtml(r.note)+'</div>' : '')
+        + '</div>';
+    }).join('');
+  }
 
 /* === 素材生成器联动：P2 抽题命中个人素材 → AI 自动匹配串题方案 === */
 function matLoadStore(){
