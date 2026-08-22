@@ -599,6 +599,17 @@ const SYNC_SETTINGS_FIELDS = ['name','examDate','examDates','targets','dailyGoal
 
 /* 安全取数字：非有限数→0 */
 function _num(x){ const n = Number(x); return isFinite(n) ? n : 0; }
+/* 比较合并前后是否「真变化」时剔除 activeTimer 的心跳字段（lastBeat/updatedAt），
+   否则另一端每 30s 轮询拉到刷新后的 lastBeat 都会被判为「已更新」→ 频繁弹「已合并 N 处」
+   + 重复触发 hub:data-merged 渲染。计时本身的开始/结束（timerId/ended 变化）仍会判为变化。 */
+function _stripBeat(d){
+  if(!d || !d.activeTimer) return d;
+  const c = Object.assign({}, d);
+  c.activeTimer = Object.assign({}, d.activeTimer);
+  delete c.activeTimer.lastBeat;
+  delete c.activeTimer.updatedAt;
+  return c;
+}
 /* 取更晚的日期/数值（ISO 日期串或时间戳均可；空值视为最旧） */
 function _later(a, b){
   const av = (a == null || a === '') ? '' : a;
@@ -793,7 +804,7 @@ async function cloudDownload(silent){
     // 终极保险：比较合并前后内容，真的变化才算「更新」。
     // 场景：本机比云端进步（背单词 streak/释义更掌握）时，_mergeWords 内部 changes 每次都会计，
     // 但合并结果内容与本机一致——若不比较内容，会「每次拉取都弹已合并 + reload」形成无限刷新循环。
-    const reallyChanged = JSON.stringify(m.data) !== JSON.stringify(DATA);
+    const reallyChanged = JSON.stringify(_stripBeat(m.data)) !== JSON.stringify(_stripBeat(DATA));
     if(reallyChanged){
       DATA = m.data; // 合并而非覆盖：保留本机进度，并入云端新增/更新
       // 直接写 localStorage，不走 hubSave——避免「合并云端数据后又触发上传→另一端又拉到→乒乓刷屏」。
