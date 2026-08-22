@@ -202,22 +202,26 @@ function updatePreview(){
 }
 
 /* ===== 模板填空 → AI 按官方 4 维度评分 ===== */
-/* 取「填好的纯文本」（不走 #preview 的 HTML，避免转义污染） */
+/* 取「填好的纯文本」（不走 #preview 的 HTML，避免转义污染）
+   容错规则：用户整框留空的填空位，从拼接文本里剥离（用 ____ 占位），
+   既不让中文占位符【话题】原样进 AI，也不把留空框算作错误。 */
 function filledState(){
   const t = DATA.writing.find(x => x.id === curId);
-  if(!t) return { text:'', total:0, blank:0, filled:[] };
+  if(!t) return { text:'', total:0, blank:0, filled:[], skipped:[] };
   let out = t.skeleton;
   let total = 0, blank = 0;
   const filled = [];
+  const skipped = [];
   document.querySelectorAll('.ph-input').forEach(inp => {
     total++;
     const ph = inp.dataset.ph;
     const val = inp.value.trim();
-    if(!val) blank++;
+    if(!val){ blank++; skipped.push(ph); }
     else filled.push(ph + ' → ' + val);
-    out = out.split('【' + ph + '】').join(val || ('【' + ph + '】'));
+    // 留空的框用 ____ 占位（明显"此处跳过"），已填的框替换成用户填的内容
+    out = out.split('【' + ph + '】').join(val || '____');
   });
-  return { text: out.trim(), total, blank, filled, tpl: t };
+  return { text: out.trim(), total, blank, filled, skipped, tpl: t };
 }
 
 async function scoreTemplate(){
@@ -225,7 +229,7 @@ async function scoreTemplate(){
   if(!s.tpl){ toast('先打开一个模板'); return; }
   if(s.total === 0){ toast('这个模板没有填空位'); return; }
   if(s.blank === s.total){ toast('先把空填上再评分'); return; }
-  if(s.blank > 0 && !confirm('还有 ' + s.blank + ' 个空没填，仍然要让 AI 评分吗？（没填的空会按原样交给 AI）')) return;
+  if(s.blank > 0 && !confirm('还有 ' + s.blank + ' 个空没填，仍然要让 AI 评分吗？（留空的框不算错，AI 只评你填了的部分）')) return;
   if(!DATA.settings.relayToken){ toast('还没填 DeepSeek Key，去「设置 / AI 接口」填一下'); return; }
 
   const isTask1 = /^(动态图|静态图|地图题|流程图)$/.test(s.tpl.category || '');
@@ -250,6 +254,7 @@ async function scoreTemplate(){
 4. 理由必须短、具体、能改：每维度一句话（不超过 40 字），直接说问题在哪或哪里做得对，不要"建议丰富词汇"这种空话。
 5. 语法错误逐条列，含原错处、改法、一句话错因；同类错误合并成一条。没有明显错误就给空数组。
 6. 全部用简体中文（错句和改法里的英文原文保留英文）。
+7. 完整文本里出现的 ____ 是她**主动整框留空、选择跳过的填空位，不是没写完，更不算错误**。绝对不要因为 ____ 的存在扣分、不要把它当成"遗漏/未完成"来评价、不要在语法问题里列出它。只评她实际填了文字的部分。
 
 只输出 JSON，不要解释、不要 markdown 围栏：
 {"overall":5.5,"breakdown":{"TR":5.5,"CC":6.0,"LR":5.5,"GRA":5.0},"reasons":{"TR":"","CC":"","LR":"","GRA":""},"grammar":[{"wrong":"","fix":"","why":""}],"fixes":[""]}
@@ -260,10 +265,13 @@ async function scoreTemplate(){
 模板骨架（不要评价它）：
 ${s.tpl.skeleton}
 
-我填的内容（空位 → 我填的）：
-${s.filled.join('\n') || '（无）'}
+我填的内容（空位 → 我填的，只列填了的）：
+${s.filled.join('\n') || '（全部留空）'}
 
-拼出来的完整文本（评这个）：
+我主动整框跳过、没填的空（这些不算错，文本里对应 ____，不要评价）：
+${s.skipped.length ? s.skipped.map(p => '【' + p + '】').join('、') : '（无，都填了）'}
+
+拼出来的完整文本（评这个，____ 是跳过的空，不算错）：
 ${s.text}` }
   ];
 

@@ -276,6 +276,11 @@
         <button class="btn" id="dictBack" style="margin-left:auto">返回</button>
       </div>
       <div id="dictWarmup"></div>
+      <details class="dict-skip-wrap" style="margin-top:10px;border:1px solid var(--line);border-radius:var(--radius);padding:8px 10px;background:var(--bg)">
+        <summary style="cursor:pointer;font-size:14px">⏭️ 选择本次跳过的句子（不练就不判错）</summary>
+        <p class="muted" style="font-size:12.5px;margin:6px 0 4px">勾选你今天不想默写的句子（如话题句、观点句），它们会从 AI 比对里整体移除——无论你写没写，都不算错。也可在文本框里用 <b>【略】…【/略】</b> 包住想跳过的整段/整句。</p>
+        <div id="dictSkipBox" class="dict-skip-grid"></div>
+      </details>
       <div class="form-row" style="align-items:center;gap:14px;margin-top:8px">
         <label style="font-size:14px"><input type="checkbox" id="dictShowSrc"> 看原文</label>
         <label style="font-size:14px"><input type="checkbox" id="dictWarmupOn" checked> 开始前先练常错句</label>
@@ -301,6 +306,7 @@
         <button class="btn btn-danger" id="dictClearAll">清空全部</button>
       </div>
       <div id="dictLogList"></div>
+      <div id="dictLogDetail" hidden></div>
     </section>
   </div>
 </main>

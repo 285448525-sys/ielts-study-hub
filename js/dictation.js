@@ -5,6 +5,7 @@
 var dictCurrent = null;      // 当前打开的默写本
 var dictWeakMap = {};        // 当前源的「loc -> 历史出错次数」（提交前）
 var dictWarmSentences = [];  // 热身句索引 -> 原句（避免 HTML 转义污染）
+var dictSkipIdx = new Set(); // 本次默写用户勾选「跳过不判」的原文句编号（1-based）
 
 // ---- 默写草稿自动保存（防移动端切走/刷新丢内容）----
 // 草稿只存 localStorage（瞬态，不进云同步），按 sourceId 区分；页面被回收后回来仍能续。
@@ -158,6 +159,8 @@ function openDictSource(id){
   if(!s) return;
   dictCurrent = s;
   dictWeakMap = computeWeak(s.id);
+  dictSkipIdx = new Set();   // 每次打开默写本重置跳过选择
+  renderDictSkip(s);
   showDictPractice();
   $('#dictPTitle').textContent = s.title;
   $('#dictResult').hidden = true;
@@ -214,6 +217,35 @@ function splitSentences(text){
   return out;
 }
 
+// 剥离「内联跳过标记」【略】…【/略】：用户在文本框里主动包住想跳过的整段/整句，提交前整体删掉（视作不存在）。
+function stripSkipMarkers(text){
+  if(!text) return '';
+  // 成对移除；若只写了开头没写结尾，则把开头到文末一并删除（避免残留半截标记）
+  return text
+    .replace(/【略】[\s\S]*?【\/略】/g, '')
+    .replace(/【略】[\s\S]*$/, '')
+    .replace(/【\/略】/g, '');
+}
+
+// ========== 跳过句子勾选（容错核心）==========
+function renderDictSkip(s){
+  const box = $('#dictSkipBox');
+  if(!box) return;
+  const sents = splitSentences(s.text);
+  if(!sents.length){ box.innerHTML = '<div class="muted">按句拆分失败，无法列出跳过项。</div>'; return; }
+  box.innerHTML = sents.map((t, i) => {
+    const n = i + 1;
+    const preview = t.length > 16 ? t.slice(0, 16) + '…' : t;
+    return '<label class="dict-skip-item" style="display:block;font-size:13px;margin:3px 0;cursor:pointer">'
+      + '<input type="checkbox" class="dict-skip-chk" data-idx="' + n + '"> 第' + n + '句：' + escapeHtml(preview)
+      + '</label>';
+  }).join('');
+  box.querySelectorAll('.dict-skip-chk').forEach(c => c.addEventListener('change', () => {
+    const idx = Number(c.dataset.idx);
+    if(c.checked) dictSkipIdx.add(idx); else dictSkipIdx.delete(idx);
+  }));
+}
+
 function renderDictWarmup(s, weakMap, on){
   const box = $('#dictWarmup');
   if(!box) return;
@@ -254,8 +286,8 @@ function renderDictWarmup(s, weakMap, on){
     const ta = box.querySelector('.dict-warm-input[data-i="' + i + '"]');
     const res = box.querySelector('.dict-warm-res[data-i="' + i + '"]');
     if(!ta || !res) return;
-    const userText = ta.value.trim();
-    if(!userText){ toast('先打这句'); return; }
+    const userText = stripSkipMarkers(ta.value).trim();
+    if(!userText){ toast('先打这句（或已标记跳过）'); return; }
     const correct = dictWarmSentences[Number(i)] || '';
     warmupCheck(correct, userText, res, b);
   }));
@@ -309,9 +341,12 @@ ${userText}` }
 // ========== 正式默写提交 ==========
 async function submitDictation(){
   if(!dictCurrent) return;
-  const userText = $('#dictInput').value.trim();
+  let userText = $('#dictInput').value.trim();
   if(!userText){ toast('先把整段默出来再提交'); return; }
   if(!DATA.settings.relayToken){ toast('还没填 DeepSeek Key，去「设置 / AI 接口」填一下'); return; }
+
+  // 容错：剥离用户用【略】…【/略】主动标记的跳过块（视作不存在，不判错）
+  userText = stripSkipMarkers(userText).trim();
 
   const btn = $('#dictSubmit');
   btn.disabled = true; btn.textContent = '核对中…';
@@ -322,23 +357,35 @@ async function submitDictation(){
   // 提交前的历史 weakMap（用于标注"本次又错在历史常错点"）
   const weakBefore = computeWeak(dictCurrent.id);
 
+  // 把原文按句编号（与跳过勾选/错处记录 loc 一致），并列出本次跳过的句编号
+  const srcSentences = splitSentences(dictCurrent.text);
+  const srcNumbered = srcSentences.map((t, i) => (i + 1) + '. ' + t).join('\n');
+  const skippedArr = [...dictSkipIdx].sort((a, b) => a - b);
+  const skippedText = skippedArr.length ? skippedArr.join('、') : '无';
+
   const messages = [
     { role:'system', content:
-`你是雅思写作默写陪练。给定「标准原文」和「学生默写」，逐句比对，识别差异。
+`你是雅思写作默写陪练。给定「标准原文（已按句编号）」和「学生默写」，逐句比对，识别差异。
 铁律：
 1. 学生默写里出现的占位符 -- — ___ 【】 () 等，视为"此处跳过未默"，绝不判为错误；只比对实际写出的文字与原文对应部分是否一致。
-2. 把标准原文按句号/问号/感叹号/换行切成句，从 1 开始编号。逐句定位差异，type 分：漏写 / 错词 / 拼写 / 语法 / 语序。loc 用该句的数字编号（如 "3"），无法归到某句用 "0"。
-3. 拼写错误在 type 标"拼写"，在清单里附带即可，不要像语法错那样在正文重点标红。
-4. 返回严格 JSON：
+2. 学生默写中若某整句被【略】…【/略】包裹，表示该句用户主动跳过，已在上游删除，无需再判。
+3. 严格沿用下方「标准原文」给出的句编号（如 "3"）作为 loc；无法归到某句用 "0"。
+4. 用户本次选择跳过的原句编号（见下方「跳过清单」）：这些句子用户主动不练，无论学生是否写出、写出对错，都【绝不判为错误】，也不要因它们的存在/缺失而标红其它句子。请只比对未被跳过的句子。
+5. 未被跳过的句子逐句定位差异，type 分：漏写 / 错词 / 拼写 / 语法 / 语序。
+6. 拼写错误在 type 标"拼写"，在清单里附带即可，不要像语法错那样在正文重点标红。
+7. 返回严格 JSON：
 {"overall":"一句话总体反馈","mistakes":[{"loc":"3","wrong":"学生写法(漏写则空字符串)","right":"正确写法","type":"漏写|错词|拼写|语法|语序","note":"一句说明"}],"weakHistory":[{"loc":"3","times":历史出错次数}]}
 weakHistory 里填你根据「历史常错统计」判断本次又错在历史常错点的（loc + 历史次数）；没有就为空数组。
 only JSON，无解释无围栏。` },
     { role:'user', content:
-`标准原文：
-${dictCurrent.text}
+`标准原文（句编号请沿用）：
+${srcNumbered}
 
 学生默写：
 ${userText}
+
+跳过清单（这些原句编号用户主动跳过，不计分、不判错）：
+${skippedText}
 
 历史常错统计（loc -> 历史出错次数）：
 ${JSON.stringify(weakBefore)}` }
@@ -349,12 +396,14 @@ ${JSON.stringify(weakBefore)}` }
     const r = aiJson(content);
     if(!r){
       box.innerHTML = '<div class="ts-sec"><h4>AI 返回（非标准格式）</h4><div style="white-space:pre-wrap;font-size:13.5px;line-height:1.8">' + escapeHtml(content) + '</div></div>';
-      pushDictLog(dictCurrent, userText, dictCurrent.text, [], weakBefore, false);
+      pushDictLog(dictCurrent, userText, dictCurrent.text, [], weakBefore, false, '');
       return;
     }
     const ms = Array.isArray(r.mistakes) ? r.mistakes : [];
-    renderDictResult(r, userText, weakBefore);
-    pushDictLog(dictCurrent, userText, dictCurrent.text, ms, weakBefore, true);
+    // 双保险：即使 AI 仍把跳过句报了错，也在此过滤掉
+    const filtered = ms.filter(m => !skippedArr.includes(Number(m.loc)));
+    renderDictResult(r, userText, weakBefore, filtered);
+    pushDictLog(dictCurrent, userText, dictCurrent.text, filtered, weakBefore, true, r.overall || '');
     clearDictDraft(dictCurrent.id);   // 提交成功即视为本次默写完成，清草稿
     toast('核对完成');
   }catch(e){
@@ -365,9 +414,9 @@ ${JSON.stringify(weakBefore)}` }
 }
 
 // ========== 结果渲染 ==========
-function renderDictResult(r, userText, weakBefore){
+function renderDictResult(r, userText, weakBefore, ms){
   const box = $('#dictResult');
-  const ms = Array.isArray(r.mistakes) ? r.mistakes : [];
+  ms = Array.isArray(ms) ? ms : [];
   let html = '';
 
   // 总体反馈
@@ -443,7 +492,7 @@ function renderDictResult(r, userText, weakBefore){
 }
 
 // ========== 错处记录 ==========
-function pushDictLog(s, userText, correctText, mistakes, weakBefore, parsed){
+function pushDictLog(s, userText, correctText, mistakes, weakBefore, parsed, overall){
   const weakThisTime = mistakes.map(m => ({ loc: String(m.loc || '0'), times: 1 }));
   DATA.dictationLogs.push({
     id: uid(),
@@ -454,14 +503,18 @@ function pushDictLog(s, userText, correctText, mistakes, weakBefore, parsed){
     correctText,
     mistakes,
     weakThisTime,
-    parsed
+    parsed,
+    overall: overall || ''
   });
   hubSave();
 }
 
 function renderDictLogs(){
   const box = $('#dictLogList');
+  const detail = $('#dictLogDetail');
   if(!box) return;
+  if(detail) detail.hidden = true;
+  box.hidden = false;
   const logs = DATA.dictationLogs || [];
   if(!logs.length){
     box.innerHTML = '<div class="muted">还没有错处记录。去默写本默一次，错的地方会自动记下来。</div>';
@@ -475,14 +528,56 @@ function renderDictLogs(){
     html += '<div style="margin-bottom:16px"><h3 style="font-size:15px;margin:6px 0">' + escapeHtml(title) + '</h3>';
     html += items.map(l => {
       const n = Array.isArray(l.mistakes) ? l.mistakes.length : 0;
-      return '<div class="card" data-id="' + l.id + '" style="display:flex;align-items:center;gap:10px;margin-bottom:8px;padding:10px">'
-        + '<div style="flex:1"><span class="muted" style="font-size:13px">' + escapeHtml(l.date || '') + '</span> · 错 ' + n + ' 处</div>'
-        + '<button class="bank-del dict-log-del" type="button" data-id="' + l.id + '">删除</button></div>';
+      return '<div class="card" data-id="' + l.id + '" style="margin-bottom:8px;padding:10px">'
+        + '<div class="dict-log-row" data-id="' + l.id + '" style="display:flex;align-items:center;gap:10px;cursor:pointer">'
+        +   '<div style="flex:1"><span class="muted" style="font-size:13px">' + escapeHtml(l.date || '') + '</span> · 错 <b>' + n + '</b> 处'
+        +   (n ? ' <span class="muted" style="font-size:12px">（点击查看详情）</span>' : ' <span class="muted" style="font-size:12px">（点击查看）</span>') + '</div>'
+        +   '<button class="bank-del dict-log-del" type="button" data-id="' + l.id + '">删除</button>'
+        + '</div></div>';
     }).join('');
     html += '</div>';
   });
   box.innerHTML = html;
+  box.querySelectorAll('.dict-log-row').forEach(r => r.addEventListener('click', () => openDictLogDetail(r.dataset.id)));
   box.querySelectorAll('.dict-log-del').forEach(b => b.addEventListener('click', () => delDictLog(b.dataset.id)));
+}
+
+// 点击某条记录 → 展开该篇每处错的「位置 + 写法 + 正确 + 类型 + 说明 + 原句/你的句上下文」
+function openDictLogDetail(id){
+  const l = (DATA.dictationLogs || []).find(x => x.id === id);
+  const box = $('#dictLogDetail');
+  const list = $('#dictLogList');
+  if(!l || !box || !list) return;
+  list.hidden = true; box.hidden = false;
+  const ms = Array.isArray(l.mistakes) ? l.mistakes : [];
+  const srcSents = splitSentences(l.correctText || '');
+  const usrSents = splitSentences(l.userText || '');
+  let html = '<div class="form-row" style="align-items:center;margin-bottom:6px">'
+    + '<h3 style="margin:0;font-size:15px">' + escapeHtml(l.sourceTitle || '') + ' · ' + escapeHtml(l.date || '') + '</h3>'
+    + '<button class="btn" id="dictLogDetailBack" style="margin-left:auto">返回列表</button></div>';
+  if(l.overall){ html += '<div class="ts-fix" style="margin-bottom:8px">' + escapeHtml(l.overall) + '</div>'; }
+  html += '<div class="muted" style="font-size:13px;margin:4px 0 10px">本篇共 <b>' + ms.length + '</b> 处差异</div>';
+  if(ms.length){
+    html += ms.map(m => {
+      const loc = String(m.loc || '0');
+      const si = Number(loc) - 1;
+      const srcSent = si >= 0 && srcSents[si] != null ? srcSents[si] : '（无法定位原句）';
+      const usrSent = si >= 0 && usrSents[si] != null ? usrSents[si] : '（你这部位没写）';
+      return '<div class="card" style="margin-bottom:10px;padding:10px">'
+        + '<div style="font-size:13.5px;margin-bottom:4px"><b>第 ' + escapeHtml(loc) + ' 句</b> · <span class="muted">' + escapeHtml(m.type || '') + '</span></div>'
+        + '<div style="font-size:13.5px;margin:4px 0"><span class="muted">你的写法：</span><s>' + escapeHtml(m.wrong || '（漏写）') + '</s></div>'
+        + '<div style="font-size:13.5px;margin:4px 0"><span style="color:var(--primary-d)">正确写法：</span><b>' + escapeHtml(m.right || '') + '</b></div>'
+        + (m.note ? '<div class="muted" style="font-size:12.5px;margin:2px 0">' + escapeHtml(m.note) + '</div>' : '')
+        + '<details style="margin-top:6px"><summary class="muted" style="font-size:12.5px;cursor:pointer">看这句上下文</summary>'
+        + '<div class="muted" style="font-size:12.5px;white-space:pre-wrap;margin-top:4px;line-height:1.7">原文：' + escapeHtml(srcSent) + '\n你写：' + escapeHtml(usrSent) + '</div></details>'
+        + '</div>';
+    }).join('');
+  } else {
+    html += '<div class="muted">🎉 这篇没有记录到差异。</div>';
+  }
+  box.innerHTML = html;
+  const back = box.querySelector('#dictLogDetailBack');
+  if(back) back.addEventListener('click', () => { box.hidden = true; list.hidden = false; });
 }
 
 function delDictLog(id){
