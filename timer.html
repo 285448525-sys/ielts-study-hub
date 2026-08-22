@@ -36,9 +36,8 @@
   <section class="card timer-stage">
     <div class="live-timer" id="liveTimer">00:00:00</div>
     <div id="timerGoal" class="timer-goal">
-      <label class="muted">本次目标
-        <input id="goalMin" type="number" min="1" inputmode="numeric" placeholder="分钟" class="goal-input">
-      </label>
+      <label class="muted" for="goalMin">本次目标</label>
+      <input id="goalMin" type="number" min="1" inputmode="numeric" placeholder="分钟" class="goal-input">
       <div class="seg" id="modeSeg">
         <button type="button" class="seg-btn active" data-mode="up">正计时</button>
         <button type="button" class="seg-btn" data-mode="down">倒计时</button>
@@ -47,11 +46,11 @@
     <div id="timerProgress" class="timer-progress"></div>
     <div class="timer-active">
       <div id="activeInfo" class="muted">当前没有进行中的学习</div>
-      <div id="focusInfo" class="muted" style="margin-top:4px;min-height:18px"></div>
-      <div class="timer-btns">
-        <button class="btn btn-danger" id="stopBtn" disabled>结束并保存</button>
-        <button class="btn" id="pauseBtn" disabled>暂停</button>
-      </div>
+      <div id="focusInfo" class="muted"></div>
+    </div>
+    <div class="timer-btns">
+      <button class="btn btn-danger" id="stopBtn" disabled>结束并保存</button>
+      <button class="btn" id="pauseBtn" disabled>暂停</button>
     </div>
   </section>
 

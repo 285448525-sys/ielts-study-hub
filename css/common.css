@@ -29,6 +29,9 @@
   --radius:16px;
   --radius-lg:22px;
   --radius-sm:12px;
+  --ink-2:#2c4a48;
+  --danger-soft:#fde6e4;
+  --danger-text:#a14542;
 }
 [data-theme="dark"]{
   --bg:#0e1c1b;
@@ -48,6 +51,9 @@
   --warn:#d99a4e;
   --warn-ink:#e0a85c;   /* 深主题下浅琥珀文字，保证对比 */
   --danger:#d97877;
+  --ink-2:#9fc1bd;
+  --danger-soft:#3a2626;
+  --danger-text:#e7a3a2;
   --vocab:#5f86a8;
   --mock:#4f9fc0;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.22);
@@ -344,7 +350,7 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 .sub-name{font-size:14px}
 
 /* timer live */
-.live-timer{font-size:36px;font-weight:800;font-variant-numeric:tabular-nums;text-align:center;margin:2px 0;color:var(--muted)}
+.live-timer{font-size:44px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.005em;line-height:1;color:var(--ink-2);margin:2px 0 18px;text-align:center}
 
 /* practice */
 .practice-card{text-align:center;padding:30px 20px}
@@ -1164,13 +1170,21 @@ main .quote{
    所有计时专用样式集中在此（timer.html 内联 style 已删）；
    图标走 .mod-ic 的 teal 线性 SVG；全局 .mod-card/.btn 仅用作用域覆写，不动。 */
 /* timer 页面（紧凑居中样式） */
-.timer-stage{text-align:center;max-width:580px;margin-left:auto;margin-right:auto;padding:22px 28px}
-.timer-goal{display:inline-flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:10px}
-.goal-input{width:64px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink);font:inherit;text-align:center}
+.timer-stage{text-align:center;max-width:460px;margin-left:auto;margin-right:auto;padding:24px 28px 22px}
+.timer-goal{display:flex;align-items:center;justify-content:center;gap:8px;margin:0 0 12px}
+.timer-goal label{font-size:13px;color:var(--muted);font-weight:600;white-space:nowrap}
+.timer-goal input.goal-input{width:56px;height:32px;padding:0 6px;border:none;border-radius:8px;background:var(--primary-soft);color:var(--ink);font:inherit;font-size:13px;text-align:center;outline:none}
+.timer-goal input.goal-input:focus{box-shadow:0 0 0 2px var(--primary)}
 .timer-progress{margin-top:12px;text-align:left}
-.timer-active{margin-top:10px}
-.timer-btns{display:flex;gap:10px;justify-content:center;margin-top:10px}
-.timer-btns .btn{min-width:0;padding:7px 14px}
+.timer-progress:empty{margin-top:0;min-height:0}
+.timer-active{margin-top:0}
+.timer-active .muted{font-size:13px;color:var(--muted);text-align:center;margin:12px 0 14px}
+.timer-active .muted:empty{margin:0;min-height:0}
+.timer-btns{display:flex;gap:10px;justify-content:center;margin-top:0}
+.timer-btns .btn{min-width:0;padding:9px 22px;border-radius:999px}
+.timer-btns .btn:disabled{opacity:.55;cursor:not-allowed}
+.timer-stage .btn-danger{background:var(--danger-soft);color:var(--danger-text);border-color:transparent}
+.timer-stage .btn-danger:hover{background:var(--danger-soft);color:var(--danger-text);border-color:transparent}
 /* 模块选择：单行紧凑 chip（图标 + 名称 + 小按钮） */
 .timer-mods{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:6px}
 .timer-mods .mod-card{
@@ -1186,9 +1200,11 @@ main .quote{
 .timer-mods .mod-name{font-size:13.5px;font-weight:700}
 .timer-mods .timer-start{width:auto;margin:0;padding:4px 10px;font-size:12.5px;border-radius:14px}
 /* 正/倒计时切换（从 timer.html 内联迁来） */
-.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
-.seg-btn{font:inherit;font-size:13px;padding:6px 13px;border:none;background:var(--surface-2);color:var(--muted);cursor:pointer;transition:background .15s,color .15s}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;height:32px}
+.seg-btn{font:inherit;font-size:12.5px;font-weight:700;padding:0 12px;border:none;background:var(--surface);color:var(--muted);cursor:pointer;transition:background .15s,color .15s}
+.seg-btn + .seg-btn{border-left:1px solid var(--line)}
 .seg-btn.active{background:var(--primary);color:#fff}
+.seg-btn.active + .seg-btn{border-left-color:transparent}
 @media(max-width:560px){ .live-timer{font-size:36px} }
 
 
