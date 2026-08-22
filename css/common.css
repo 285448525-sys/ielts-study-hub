@@ -146,10 +146,10 @@ body{
 .side-collapse{position:fixed;top:16px;left:18px;width:40px;height:40px;border-radius:12px;background:var(--primary);color:#fff;border:none;cursor:pointer;display:none;align-items:center;justify-content:center;font-size:18px;z-index:70;box-shadow:var(--shadow-md);transition:background .15s,transform .15s}
 .side-collapse:hover{background:var(--primary-d);transform:scale(1.05)}
 
-/* 桌面：内容右移 */
+/* 桌面：内容右移（外加镜像 padding-right:32px，使左右缓冲对称） */
 @media(min-width:861px){
-  body{padding-left:252px;transition:padding-left .25s}
-  body.side-collapsed{padding-left:0}
+  body{padding-left:252px;padding-right:32px;transition:padding .25s}
+  body.side-collapsed{padding-left:0;padding-right:0}
   body.side-collapsed .top-nav{transform:translateX(-100%)}
   body.side-collapsed .side-collapse{display:flex}
 }
