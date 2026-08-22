@@ -814,8 +814,8 @@ async function cloudDownload(silent){
       try{ localStorage.setItem(HUB_KEY, JSON.stringify(DATA)); }catch(e){}
       toast('已合并云端 ' + m.changes + ' 处更新');
       document.dispatchEvent(new CustomEvent('hub:data-merged'));
-      // 自动同步不再刷新页面——避免用户在 speaking/背单词/做题等沉浸式页面被打断、
-      // 回到默认列表或丢失滚动位置。新数据合并后只 toast 提示，手动刷新/切页即可看到。
+      // 无缝刷新：合并成功后主动重渲染当前页面，无需用户手动刷新即可看到另一端的变化。
+      renderAllOnMerge();
     } else if(!silent){
       toast('云端没有比本机更新的内容');
     }
@@ -927,13 +927,28 @@ async function syncForcePull(){
   }catch(e){ toast('云端拉取失败：' + e.message); }
 }
 
+/* 合并成功后无缝重渲染当前页：优先调用页面注册的渲染入口；未注册则退回「调用已知 render 函数名」。
+   目的：另一台设备保存的变更合并进来后，本端页面自动刷新、无需手动刷新。 */
+function renderAllOnMerge(){
+  // 1) 页面主动注册的渲染器（推荐，精确）
+  if(Array.isArray(window.__hubRenderers)){
+    window.__hubRenderers.forEach(fn => { try{ fn(); }catch(e){} });
+  }
+  // 2) 退回：调用各页面可能存在的全局 render 入口（命名各异，存在才调）
+  ['render','renderList','renderWords','renderMeds','renderHistory','renderMock',
+   'renderSyncState','renderPlan','renderPlanList','renderMaterials','renderStory',
+   'renderCorpus','renderErrorbook','renderScores','renderTimer','renderDaily',
+   'renderHome','renderReports'].forEach(name => {
+    try{ if(typeof window[name] === 'function') window[name](); }catch(e){}
+  });
+}
 /* 自动双向同步：启动静默合并拉取一次 + 定时/回到页面时拉取（均为合并，不覆盖、不弹确认刷屏） */
 function initCloudSync(){
-  if(!DATA.settings.autoSync || !DATA.settings.syncCode) return;
+  if(!DATA.settings.autoSync || !  DATA.settings.syncCode) return;
   cloudDownload(true); // 启动静默合并拉取（有更新才提示）
-  // 轮询拉取：30 秒一次（页面可见时）。曾为 5 分钟——跨设备计时同步体验差（手机开始计时，电脑最长 5 分钟才显示）。
-  // 请求量：每设备每 30 秒 1 次 GET，CF Functions 免费额度内；内容未变时不弹不刷（reallyChanged 保险），不会刷屏。
-  setInterval(() => { if(!document.hidden) cloudDownload(true); }, 30 * 1000);
+  // 轮询拉取：10 秒一次（页面可见时）。近实时——另一台设备保存后，本端约 10s 内自动合并且重渲染，无需手动操作。
+  // 请求量：每设备每 10 秒 1 次 GET，CF Functions 免费额度内；内容未变时不弹不刷（reallyChanged 保险），不会刷屏。
+  setInterval(() => { if(!document.hidden) cloudDownload(true); }, 10 * 1000);
   document.addEventListener('visibilitychange', () => { if(!document.hidden) cloudDownload(true); });
 }
 ready(initCloudSync);

@@ -2070,6 +2070,12 @@ var matGen = (function(){
   return { init, render };
 })();
 
+// 注册到「合并后无缝重渲染」：另一台设备改了素材，本端 MAT 区域自动刷新（init 会重新从 DATA.materials 加载并渲染）
+try{
+  window.__hubRenderers = window.__hubRenderers || [];
+  if(typeof init === 'function' && !window.__hubRenderers.includes(init)) window.__hubRenderers.push(init);
+}catch(_){}
+
 /* === 26 · P1 问答流：一题一卡 + 进度 + 步进（在 openDetail 的 P1 分支调用） === */
 function p1FlowInit(s){
   var list = document.querySelector('.sp-q-list');
