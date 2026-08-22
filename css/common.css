@@ -1228,7 +1228,7 @@ main .quote{
 }
 .section-title::before{content:'';width:3px;height:14px;border-radius:2px;background:var(--primary);display:inline-block}
 /* 今日学习记录 mini 卡 */
-.rec-mini{padding:18px 22px}
+.rec-mini{padding:18px 22px;margin-top:28px}
 .rec-mini .rec-h{margin-bottom:14px}
 .rec-mini-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:6px}
 .rec-mini-cell{
