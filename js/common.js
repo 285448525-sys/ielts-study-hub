@@ -143,13 +143,18 @@ window.stopActiveSession = function(){
   const totalSec = Math.round((endTs - a.startTs)/1000);
   const pauseSec = Math.round(totalPauseMs/1000);
   const durationSec = Math.max(0, totalSec - pauseSec);
-  if((DATA.settings.chimeOnDone !== false) && durationSec > 0 && typeof playChime === 'function') playChime();
-  DATA.sessions.push({
-    id: uid(), date: todayKey(), moduleId: a.moduleId, subId: a.subId,
-    moduleName: a.moduleName, subName: a.subName,
-    startTs: a.startTs, endTs, durationSec, pauseSec
-  });
-  clearActive();
+  // 入库去重：同一 timerId 只结算一次（防双端各自结束 → 两段计时叠加进当日统计）
+  const already = DATA.sessions.some(s => s.timerId && s.timerId === a.timerId);
+  if(!already && durationSec > 0 && typeof playChime === 'function') playChime();
+  if(!already && durationSec > 0){
+    DATA.sessions.push({
+      id: uid(), timerId: a.timerId, date: todayKey(), moduleId: a.moduleId, subId: a.subId,
+      moduleName: a.moduleName, subName: a.subName,
+      startTs: a.startTs, endTs, durationSec, pauseSec
+    });
+  }
+  clearActive();                                   // 清本地恢复锚 点
+  broadcastEnded(a.timerId);                         // 广播 ended：计时页恢复逻辑见此即清态、不二次入库
   window.active = null;
   hubSave();
   // 同步计时页 DOM（仅在计时页有效，避免回看时还显示旧的"进行中"）

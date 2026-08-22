@@ -556,6 +556,14 @@ ready(() => {
 
   // 4) 本机是 owner（含镜像无 ownerDevice 的旧数据）→ 用镜像恢复
   // 5) 仅有本地锚点（离线起步、云端无镜像）→ 用本地锚点恢复
+  // ── 已结算防护：本机锚点的 timerId 已在 sessions 中结算过（如导航栏结束但云端镜像尚未同步回来）
+  //    则视为「已结束」，只清本地态、不二次恢复，避免叠加两段计时。
+  if(localSaved && localSaved.timerId && DATA.sessions.some(s => s.timerId && s.timerId === localSaved.timerId)){
+    clearActive();
+    renderTimer();
+    return;
+  }
+
   let saved = null;
   if(mirror && mirror.timerId && (mirror.ownerDevice || '') === me){
     saved = mirror;
