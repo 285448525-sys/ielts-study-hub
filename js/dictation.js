@@ -174,7 +174,7 @@ function openVirtualSource(s){
   $('#dictResult').innerHTML = '';
   $('#dictShowSrc').checked = false;
   $('#dictSrcView').hidden = true;
-  $('#dictSrcView').textContent = s.text;
+  renderDictSrcView(s);
 
   // 开始前提示
   const logs = (DATA.dictationLogs || []).filter(l => l.sourceId === s.id);
@@ -250,7 +250,27 @@ function renderDictSkip(s){
   box.querySelectorAll('.dict-skip-chk').forEach(c => c.addEventListener('change', () => {
     const idx = Number(c.dataset.idx);
     if(c.checked) dictSkipIdx.add(idx); else dictSkipIdx.delete(idx);
+    renderDictSrcView(dictCurrent);   // 跳过项变化 → 看原文内容同步更新
   }));
+}
+
+// 「看原文」：只显示本次要默写的句子（已勾选跳过的句整体排除），让用户对着该练的句子核对
+function renderDictSrcView(s){
+  const box = $('#dictSrcView');
+  if(!box || !s) return;
+  // 草稿恢复期间 dictCurrent 可能已设；用传入的 s 兜底
+  const src = s.text || (dictCurrent && dictCurrent.text) || '';
+  const sents = splitSentences(src);
+  if(!sents.length){ box.textContent = src; return; }
+  const kept = sents
+    .map((t, i) => ({ n: i + 1, t }))
+    .filter(o => !dictSkipIdx.has(o.n))
+    .map(o => '第' + o.n + '句：' + o.t);
+  if(!kept.length){
+    box.textContent = '（本次所有句子都已勾选跳过，没有要默写的句子）';
+    return;
+  }
+  box.textContent = kept.join('\n\n');
 }
 
 function renderDictWarmup(s, weakMap, on){
@@ -655,7 +675,10 @@ ready(() => {
   });
 
   const showSrc = $('#dictShowSrc');
-  if(showSrc) showSrc.addEventListener('change', e => { $('#dictSrcView').hidden = !e.target.checked; });
+  if(showSrc) showSrc.addEventListener('change', e => {
+    if(e.target.checked) renderDictSrcView(dictCurrent);   // 打开时按当前跳过选择动态生成
+    $('#dictSrcView').hidden = !e.target.checked;
+  });
 
   const warmOn = $('#dictWarmupOn');
   if(warmOn) warmOn.addEventListener('change', () => {
