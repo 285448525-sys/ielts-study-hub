@@ -157,6 +157,13 @@ function delDictSource(id){
 function openDictSource(id){
   const s = (DATA.dictationSources || []).find(x => x.id === id);
   if(!s) return;
+  openVirtualSource(s);
+}
+
+// 虚拟源入口：接受已构造好的 source 对象（如模板内联默写 tpl_<id>），
+// 不要求它在 DATA.dictationSources 里——复用全部练习/提交/记录逻辑，但删除逻辑不会污染真实默写本或模板。
+function openVirtualSource(s){
+  if(!s) return;
   dictCurrent = s;
   dictWeakMap = computeWeak(s.id);
   dictSkipIdx = new Set();   // 每次打开默写本重置跳过选择
@@ -373,7 +380,8 @@ async function submitDictation(){
 4. 用户本次选择跳过的原句编号（见下方「跳过清单」）：这些句子用户主动不练，无论学生是否写出、写出对错，都【绝不判为错误】，也不要因它们的存在/缺失而标红其它句子。请只比对未被跳过的句子。
 5. 未被跳过的句子逐句定位差异，type 分：漏写 / 错词 / 拼写 / 语法 / 语序。
 6. 拼写错误在 type 标"拼写"，在清单里附带即可，不要像语法错那样在正文重点标红。
-7. 返回严格 JSON：
+7. 原文（标准原文）里出现的连续下划线 ____ 是模板骨架的"填空位"——用户选择整框留空不填，这【不算错误】，请勿因此判错或标红；只比对用户实际写出的文字与其它非填空部分的原文是否一致。
+8. 返回严格 JSON：
 {"overall":"一句话总体反馈","mistakes":[{"loc":"3","wrong":"学生写法(漏写则空字符串)","right":"正确写法","type":"漏写|错词|拼写|语法|语序","note":"一句说明"}],"weakHistory":[{"loc":"3","times":历史出错次数}]}
 weakHistory 里填你根据「历史常错统计」判断本次又错在历史常错点的（loc + 历史次数）；没有就为空数组。
 only JSON，无解释无围栏。` },

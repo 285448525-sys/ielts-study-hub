@@ -26,6 +26,10 @@ ready(() => {
   $('#a_save').addEventListener('click', addTpl);
   $('#delBtn').addEventListener('click', delTpl);
 
+  // 模板内联默写：把模板骨架当默写源，复用 dictation.js 的 AI 批改 + 错处记录
+  // 骨架里的【】填空位先转成 ____（明显"跳过"标记），提交比对时整框留空不算错
+  $('#tplDictBtn').addEventListener('click', () => openTplDict(curId));
+
   // AI 评分
   $('#scoreBtn').addEventListener('click', scoreEssay);
   $('#tplScoreBtn').addEventListener('click', scoreTemplate);
@@ -441,6 +445,20 @@ function delTpl(){
   curId = null;
   renderCats(); renderList();
   toast('已删除');
+}
+
+/* ===== 模板内联默写 =====
+   把模板骨架当默写源，复用 dictation.js 的 AI 批改 + 错处记录。
+   骨架里的【xxx】填空位先转成 ____（明显"跳过"标记），提交比对时整框留空不算错——
+   与「填空练习」容错逻辑一致（filledState 的 ____ 占位）。 */
+function openTplDict(tplId){
+  const t = DATA.writing.find(x => x.id === tplId);
+  if(!t) return;
+  // 骨架 → 纯默写文本：把【占位符】替换成 ____，让用户整框留空时不算错
+  const plain = (t.skeleton || '').replace(/【[^】]*】/g, '____');
+  const virtual = { id: 'tpl_' + t.id, title: t.title + '（模板默写）', text: plain, isTpl: true };
+  openVirtualSource(virtual);   // dictation.js 全局函数
+  toast('已进入模板默写：' + t.title + '。骨架里的填空位整框留空不算错。');
 }
 
 /* ===== 万能语料库 ===== */
