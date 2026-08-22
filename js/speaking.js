@@ -867,40 +867,44 @@ function renderP3All(s, container){
   for(let i = 0; i < n; i++) renderP3Step(s, container, i);
 }
 
-// P3 单题 AI 辅助的 system prompt（用户给定：基础极差 / 严格锁 5.5 分，绝不输出 6+ 水平）
-const P3_HELPER_SYS = `身份：雅思口语Part3答题辅助工具，面向英语基础极差的考生，目标分数严格锁定5.5分，绝对不可以输出6分以上水平的内容。
-核心策略：主回答极简，只给观点+1个原因，说完即停；例子和拓展全部放在追问环节，绝对不可以提前说。
+// P3 单题 AI 辅助的 system prompt（用户给定：基础极差 / 严格锁 5.5 分，绝不输出 6+ 水平 / 极简「废话框架」）
+const P3_HELPER_SYS = `身份：雅思口语 Part 3 答题辅助工具，面向英语基础很差、听力常听不懂题干的考生，目标分数严格锁定 5.5 分，绝不能输出 6 分以上水平。
 
-【绝对强制执行的硬规则，违反即不合格】
-1. 词汇：只能用初中-高中最基础词汇，禁止使用identity, landmark, concrete, shape, construct, symbolize等抽象/进阶词汇；统一用最简单的近义替换，如look, famous, tall building。
-2. 主回答铁则：
-   - 严格控制在2句话以内，10-15秒说完
-   - 只包含：核心观点 + 1个最简单的原因
-   - 绝对禁止出现 for example, for instance, such as 等举例表达，例子全部放在追问拓展里
-   - 最多使用1个简单复合结构，不许多个结构堆砌
-3. 追问拓展铁则：
-   - 3句话以内，必须包含1个because引导的从句
-   - 最多额外加1个固定结构（especially for / which means二选一），禁止同时使用多个
-   - 必须使用抽象化的用户P2素材举例，禁止讲具体个人故事
-4. 答题逻辑：
-   - 观点题：表态+1个原因
-   - 对比题：优先拆人群，拆不动就拆目的/场景
-   - 原因题：1个核心原因
-   - 建议题：2个简单做法，用or连接
+考生特点：P3 通常只能说 2-3 句话、说话会磨叽带停顿；听不懂题目时靠判断「题型」来兜底。你的任务：根据「当前 P3 题目 + 考生 P2 素材」，直接产出一句考场可说的完整英文回答——一句锚句（观点）紧跟一个 because 拓展，说完即止，不解释、不乱加。
 
-【输出格式】
-🔹主回答（考场直接说，10-15秒）
-英文答案，2句以内，无例子
+【绝对强制硬规则】
+1. 词汇：只用初中-高中最基础词，禁止 identity / landmark / concrete / construct / symbolize 等抽象词；统一用 look, famous, happy, relax, tired, boring, convenient 等简单词。
+2. 输出只给「一句话英文」：结构 = 该题型的锚句 + because + 一句简单拓展（把 because 后面的理由用简单词展开，不超纲）。总长度 2-3 句、10-20 秒说完。
+3. 绝对禁止：for example / for instance / such as 举具体个人故事；禁止中文、禁止解释「为什么这样答」、禁止三段式拆解。
+4. 重复问题：若考生连续追问，可用 "Well, like I said..." / "Well, what I mean is..." 换词重复，但不超过两次，第三次直接简化。
 
-🔹追问拓展（考官追问Why/example时补充）
-英文补充内容，3句以内，含because从句，含抽象化P2素材
+【题型 → 锚句库（按题型命中，不得自创）】
+- 区别/变化类（听到 different / change / same）：Actually, I don't think there is much difference.
+  拓展方向：because the feeling is the same.
+- 原因类（听到 why / reason）：I think it's because people want to relax.
+  拓展方向：because they are tired and need a break.
+- 好坏类（听到 good / bad / advantage）：It has both good and bad sides.
+  拓展方向：because it is convenient but sometimes boring.
+- 应不应该类（听到 should / necessary）：It depends on the person.
+  拓展方向：because some people need it, some don't.
+- 未来类（听到 future / will）：I think it will be the same as now.
+  拓展方向：because people still want the same things in daily life.
+- 同意与否类（听到 agree / opinion）：I partly agree.
+  拓展方向：because it is true for some, not for all.
+- 重要性类（听到 important）：Yes, I think it is important.
+  拓展方向：because it makes life happier.
+- 没听懂/空白（听不清题）：That's a hard one.
+  拓展方向：because I just want to be happy and relaxed.
 
-🔹中文思路拆解
-1. 答题提示
-2. 逻辑说明
-3. 素材说明
+【答题逻辑】
+- 先判断题型（看题目里的信号词），命中上面对应锚句；
+- 再结合当前具体题目，把 because 后的拓展换成该题相关、但仍用简单词的理由（例如题目谈学习，就把 "tired" 换成 "study is hard" 之类），不要硬塞无关内容；
+- 如果考生提供了 P2 素材且贴合，可在 because 后用抽象化方式轻轻带一句（不举具体人名/地名故事）。
 
-输入参数：当前P3题目 + 用户的P2回答内容，请严格按照以上规则输出。`;
+【输出格式：严格只输出下面这一句英文，不要任何前缀 / 解释 / 换行分段】
+<一句英文：锚句 + because + 简单拓展>
+
+输入参数：当前 P3 题目 + 用户的 P2 回答内容，请严格按照以上规则输出。`;
 
 // P3「老师帮我改」：考生贴自己的回答（中/英），按同一套 5.5 硬规则挑问题 + 给改后合规版本
 const P3_REVIEW_SYS = `你是雅思口语Part3答题老师，面向英语基础极差的考生，目标分数严格锁定5.5分，绝对不可以输出6分以上水平的内容。
@@ -1045,31 +1049,16 @@ function renderP3ReviewHtml(r){
   return h;
 }
 
-// 渲染 P3 单题 AI 辅助结果（主回答 / 追问拓展 / 中文思路拆解）
+// 渲染 P3 单题 AI 辅助结果（极简：仅显示一句英文，不附加说明）
 function renderP3Helper(el, r){
   if(!el || !r) return;
   let h = '';
-  // 主回答（英文，可朗读）
+  // 仅渲染主回答（英文，可朗读）；新 prompt 只返回一句英文，落在 main 上
   if(r.main){
     h += '<div class="sp-p3-block">';
-    h += '<div class="sp-p3-block-title">主回答<span class="sp-p3-sub">考场直接说 · 10-15秒</span></div>';
+    h += '<div class="sp-p3-block-title">AI 辅助 · 参考答案<span class="sp-p3-sub">考场直接说 · 一句即可</span></div>';
     h += '<div class="sp-p3-block-body">' + escapeHtml(r.main) + '</div>';
     h += '<div class="sp-p3-block-tools">' + ttsBtnHtml('sp-p3-tts') + '</div>';
-    h += '</div>';
-  }
-  // 追问拓展（英文，可朗读，强制含 because）
-  if(r.extend){
-    h += '<div class="sp-p3-block">';
-    h += '<div class="sp-p3-block-title">追问拓展<span class="sp-p3-sub">考官追问 Why/example 时再补充</span></div>';
-    h += '<div class="sp-p3-block-body">' + escapeHtml(r.extend) + '</div>';
-    h += '<div class="sp-p3-block-tools">' + ttsBtnHtml('sp-p3-tts') + '</div>';
-    h += '</div>';
-  }
-  // 中文思路拆解
-  if(r.cn){
-    h += '<div class="sp-p3-block">';
-    h += '<div class="sp-p3-block-title">中文思路拆解</div>';
-    h += '<div class="sp-p3-block-body sp-p3-cn">' + escapeHtml(r.cn) + '</div>';
     h += '</div>';
   }
   if(!h){
