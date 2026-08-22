@@ -31,8 +31,8 @@ function collectDictDraft(){
   }
   const hasText = text.trim().length > 0;
   const hasWarm = Object.keys(warms).some(k => (warms[k] || '').trim().length > 0);
-  if(!hasText && !hasWarm) return null;
-  return { text, warms, ts: Date.now() };
+  if(!hasText && !hasWarm && dictSkipIdx.size === 0) return null;
+  return { text, warms, skip: [...dictSkipIdx], ts: Date.now() };
 }
 function saveDictDraft(){
   if(!dictCurrent) return;
@@ -167,8 +167,6 @@ function openVirtualSource(s){
   if(!s) return;
   dictCurrent = s;
   dictWeakMap = computeWeak(s.id);
-  dictSkipIdx = new Set();   // 每次打开默写本重置跳过选择
-  renderDictSkip(s);
   showDictPractice();
   $('#dictPTitle').textContent = s.title;
   $('#dictResult').hidden = true;
@@ -190,7 +188,10 @@ function openVirtualSource(s){
 
   // 草稿恢复：默到一半切走（移动端回消息/刷新）后回来，从 localStorage 续上
   const draft = loadDictDraft(s.id);
-  const hasDraft = draft && ((draft.text && draft.text.trim().length) || (draft.warms && Object.keys(draft.warms).some(k => (draft.warms[k] || '').trim().length)));
+  const hasDraft = draft && ((draft.text && draft.text.trim().length) || (draft.warms && Object.keys(draft.warms).some(k => (draft.warms[k] || '').trim().length)) || (draft.skip && draft.skip.length));
+  // 恢复本次跳过的勾选（刷新/切走后能还原）—— 必须在渲染跳过清单前把 dictSkipIdx 设好
+  dictSkipIdx = new Set((draft && draft.skip) || []);
+  renderDictSkip(s, dictSkipIdx);
   if(hasDraft){
     $('#dictInput').value = draft.text || '';
     const hasWarm = !!(draft.warms && Object.keys(draft.warms).length);
@@ -259,22 +260,24 @@ function stripSkipMarkers(text){
 }
 
 // ========== 跳过句子勾选（容错核心）==========
-function renderDictSkip(s){
+function renderDictSkip(s, preSet){
   const box = $('#dictSkipBox');
   if(!box) return;
   const sents = splitSentences(s.text);
   if(!sents.length){ box.innerHTML = '<div class="muted">按句拆分失败，无法列出跳过项。</div>'; return; }
   box.innerHTML = sents.map((t, i) => {
     const n = i + 1;
+    const checked = (preSet && preSet.has(n)) ? ' checked' : '';
     const preview = t.length > 16 ? t.slice(0, 16) + '…' : t;
     return '<label class="dict-skip-item" style="display:block;font-size:13px;margin:3px 0;cursor:pointer">'
-      + '<input type="checkbox" class="dict-skip-chk" data-idx="' + n + '"> 第' + n + '句：' + escapeHtml(preview)
+      + '<input type="checkbox" class="dict-skip-chk" data-idx="' + n + '"' + checked + '> 第' + n + '句：' + escapeHtml(preview)
       + '</label>';
   }).join('');
   box.querySelectorAll('.dict-skip-chk').forEach(c => c.addEventListener('change', () => {
     const idx = Number(c.dataset.idx);
     if(c.checked) dictSkipIdx.add(idx); else dictSkipIdx.delete(idx);
     renderDictSrcView(dictCurrent);   // 跳过项变化 → 看原文内容同步更新
+    scheduleDictDraftSave();          // 跳过勾选也进草稿，刷新后仍能还原
   }));
 }
 
