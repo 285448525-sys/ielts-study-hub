@@ -1,11 +1,16 @@
-var active = null; // 本机「活跃计时」态：仅当本机是计时拥有者时存在。
-                     // {timerId, ownerDevice, moduleId, moduleName, subId, subName,
-                     //  startTs, paused, pauseStart, pauseAccum, targetSec, mode, updatedAt}
+/* ── 活跃计时态：必须挂在 window 上，不能做成脚本级 var ──────────────────
+   根因（状态丢失 bug）：runPageScript 用 window.eval 重跑本脚本，脚本级变量
+   `var active` 每次 eval 都被重新声明并重置为 null → 软导航点计时模块卡跳回
+   计时页时，旧 active 被清空，若云端 mirror（persistMirror 走 hubSave 防抖上传）
+   还没同步上去、或本地锚点读取时机不对，ready 恢复逻辑就找不到活跃态 → 计时清零。
+   修复：active 永久存在 window.active，跨 eval 重跑保留真实状态；本脚本不再声明
+   局部 active，所有读写直接走 window.active。
+   计时器心跳句柄 window.__timerTick 同理挂 window，进页面先清掉上一份避免孤儿叠跑。 */
+window.active = window.active || null;
 
-/* ── 计时器心跳：必须挂在 window 上，不能存在 active 里 ──────────────────
+/* ── 计时器心跳：必须挂在 window 上 ────────────────────────────────────
    软导航（common.js runPageScript）用 window.eval 重跑本脚本，每次 eval 的
-   `let active` 都是全新的词法绑定；上一次 eval 的 setInterval 不会自动停，
-   它还抓着旧的 active 对象继续往新 DOM 的 #liveTimer 里写 →
+   setInterval 不会自动停，上一份还抓着旧 DOM 的 #liveTimer 继续写 →
    表现为「点了结束计时器还在跑 / 同时跑好几份 / 数字乱跳」。
    用全局唯一句柄 window.__timerTick，每次进页面先清掉上一份，彻底断根。 */
 function stopTick(){
@@ -38,29 +43,29 @@ function getDeviceId(){
 
 /* 写本地恢复锚点（仅本机持有活跃计时时调，用于刷新后找回，不进云端判定） */
 function persistLocalActive(){
-  if(!active) return;
-  saveActive({ timerId: active.timerId, ownerDevice: active.ownerDevice, moduleId: active.moduleId, subId: active.subId,
-    startTs: active.startTs, paused: active.paused, pauseStart: active.pauseStart, pauseAccum: active.pauseAccum,
-    targetSec: active.targetSec || null, mode: active.mode || 'up', updatedAt: active.updatedAt, lastBeat: active.lastBeat });
+  if(!window.active) return;
+  saveActive({ timerId: window.active.timerId, ownerDevice: window.active.ownerDevice, moduleId: window.active.moduleId, subId: window.active.subId,
+    startTs: window.active.startTs, paused: window.active.paused, pauseStart: window.active.pauseStart, pauseAccum: window.active.pauseAccum,
+    targetSec: window.active.targetSec || null, mode: window.active.mode || 'up', updatedAt: window.active.updatedAt, lastBeat: window.active.lastBeat });
 }
 
 /* 写云端镜像（单一可信源）。仅在「本机是 owner 且未结束」时调用。 */
 function persistMirror(){
-  if(!active) return;
-  active.updatedAt = Date.now();
-  active.lastBeat = Date.now();
+  if(!window.active) return;
+  window.active.updatedAt = Date.now();
+  window.active.lastBeat = Date.now();
   DATA.activeTimer = {
-    timerId: active.timerId, ownerDevice: active.ownerDevice,
-    moduleId: active.moduleId, moduleName: active.moduleName, subId: active.subId, subName: active.subName,
-    startTs: active.startTs, paused: active.paused, pauseStart: active.pauseStart, pauseAccum: active.pauseAccum,
-    targetSec: active.targetSec || null, mode: active.mode || 'up',
-    updatedAt: active.updatedAt, lastBeat: active.lastBeat, ended: false
+    timerId: window.active.timerId, ownerDevice: window.active.ownerDevice,
+    moduleId: window.active.moduleId, moduleName: window.active.moduleName, subId: window.active.subId, subName: window.active.subName,
+    startTs: window.active.startTs, paused: window.active.paused, pauseStart: window.active.pauseStart, pauseAccum: window.active.pauseAccum,
+    targetSec: window.active.targetSec || null, mode: window.active.mode || 'up',
+    updatedAt: window.active.updatedAt, lastBeat: window.active.lastBeat, ended: false
   };
   hubSave();   // 走防抖上传，另一端 30s 内合并可见
 }
 /* 广播结束（带 timerId，另一端合并后清本地态、不二次入库） */
 function broadcastEnded(timerId){
-  DATA.activeTimer = { timerId: timerId || (active && active.timerId) || null, ended: true, updatedAt: Date.now(), lastBeat: 0 };
+  DATA.activeTimer = { timerId: timerId || (window.active && window.active.timerId) || null, ended: true, updatedAt: Date.now(), lastBeat: 0 };
   hubSave();
 }
 /* 镜像是否「可显示」（本端只读展示）：未结束、非本机持有；
@@ -116,7 +121,7 @@ function doneNotify(title, body){
   }catch(e){}
 }
 
-/* 远端计时只读展示（他人持有且可显示时调用）：本机不持有 active，按云端镜像的
+/* 远端计时只读展示（他人持有且可显示时调用）：本机不持有 window.active，按云端镜像的
    startTs / 暂停状态本地计算并每秒刷新，使两端显示完全一致的实时计时。 */
 function renderRemoteActive(){
   const m = DATA.activeTimer;
@@ -170,8 +175,8 @@ const MOD_ICONS = {
 
 /* 一个模块 = 一个 chip + 一个小「开始」按钮（不再下钻子任务） */
 function moduleCard(m){
-  const running = active && active.moduleId === m.id;
-  const otherRunning = (active && active.moduleId !== m.id) || mirrorHeldByOther(DATA.activeTimer);
+  const running = window.active && window.active.moduleId === m.id;
+  const otherRunning = (window.active && window.active.moduleId !== m.id) || mirrorHeldByOther(DATA.activeTimer);
   const btnTxt = running ? '进行中' : (mirrorHeldByOther(DATA.activeTimer) ? '占用中' : '开始');
   const btnCls = running ? 'btn-primary running-badge' : 'btn';
   const disabled = otherRunning ? 'disabled' : '';
@@ -200,24 +205,24 @@ function bindStartButtons(){
   document.querySelectorAll('.timer-start').forEach(b => {
     b.addEventListener('click', () => {
       const id = b.dataset.mod;
-      if(active && active.moduleId === id) stopSession();
-      else if(!active) startSession(id);
+      if(window.active && window.active.moduleId === id) stopSession();
+      else if(!window.active) startSession(id);
     });
   });
 }
 
 /* 当前活跃学习时长（毫秒，已扣除暂停） */
 function activeMs(){
-  if(!active) return 0;
-  let ms = Date.now() - active.startTs - (active.pauseAccum || 0);
-  if(active.paused && active.pauseStart) ms -= (Date.now() - active.pauseStart);
+  if(!window.active) return 0;
+  let ms = Date.now() - window.active.startTs - (window.active.pauseAccum || 0);
+  if(window.active.paused && window.active.pauseStart) ms -= (Date.now() - window.active.pauseStart);
   return Math.max(0, ms);
 }
 /* 当前累计暂停时长（毫秒） */
 function pauseMs(){
-  if(!active) return 0;
-  let ms = active.pauseAccum || 0;
-  if(active.paused && active.pauseStart) ms += (Date.now() - active.pauseStart);
+  if(!window.active) return 0;
+  let ms = window.active.pauseAccum || 0;
+  if(window.active.paused && window.active.pauseStart) ms += (Date.now() - window.active.pauseStart);
   return Math.max(0, ms);
 }
 
@@ -235,7 +240,7 @@ function startSession(moduleId){
   const modeEl = document.querySelector('#modeSeg .seg-btn.active');
   const mode = (modeEl && modeEl.dataset.mode) || 'up';
   const now = Date.now();
-  active = { timerId: uid(), ownerDevice: getDeviceId(), moduleId, moduleName: m.name, subId: m.id, subName: m.name,
+  window.active = { timerId: uid(), ownerDevice: getDeviceId(), moduleId, moduleName: m.name, subId: m.id, subName: m.name,
     startTs: now, paused: false, pauseStart: null, pauseAccum: 0,
     targetSec, mode, updatedAt: now, lastBeat: now };
   persistLocalActive();
@@ -256,17 +261,17 @@ function startSession(moduleId){
 }
 
 function togglePause(){
-  if(!active) return;
-  if(!active.paused){
-    active.paused = true;
-    active.pauseStart = Date.now();
+  if(!window.active) return;
+  if(!window.active.paused){
+    window.active.paused = true;
+    window.active.pauseStart = Date.now();
     $('#pauseBtn').textContent = '继续';
     $('#pauseBtn').className = 'btn btn-primary';
     toast('已暂停，回来点「继续」就好');
   } else {
-    active.pauseAccum = (active.pauseAccum || 0) + (Date.now() - active.pauseStart);
-    active.paused = false;
-    active.pauseStart = null;
+    window.active.pauseAccum = (window.active.pauseAccum || 0) + (Date.now() - window.active.pauseStart);
+    window.active.paused = false;
+    window.active.pauseStart = null;
     $('#pauseBtn').textContent = '暂停';
     $('#pauseBtn').className = 'btn';
     toast('继续学习，加油');
@@ -278,14 +283,14 @@ function togglePause(){
 }
 
 function stopSession(){
-  if(!active) return;
+  if(!window.active) return;
   stopTick();
   stopHeartbeat();
-  const timerId = active.timerId;
-  let totalPauseMs = active.pauseAccum || 0;
-  if(active.paused && active.pauseStart) totalPauseMs += (Date.now() - active.pauseStart);
+  const timerId = window.active.timerId;
+  let totalPauseMs = window.active.pauseAccum || 0;
+  if(window.active.paused && window.active.pauseStart) totalPauseMs += (Date.now() - window.active.pauseStart);
   const endTs = Date.now();
-  const totalSec = Math.round((endTs - active.startTs)/1000);
+  const totalSec = Math.round((endTs - window.active.startTs)/1000);
   const pauseSec = Math.round(totalPauseMs/1000);
   const durationSec = Math.max(0, totalSec - pauseSec);
   // 入库去重：同一 timerId 只结算一次（防双端各自结束 → 两段计时叠加进当日统计）
@@ -293,15 +298,15 @@ function stopSession(){
   if(!already && durationSec > 0){
     if((DATA.settings.chimeOnDone !== false)) playChime();
     DATA.sessions.push({
-      id: uid(), timerId, date: todayKey(), moduleId: active.moduleId, subId: active.subId,
-      moduleName: active.moduleName, subName: active.subName,
-      startTs: active.startTs, endTs, durationSec, pauseSec
+      id: uid(), timerId, date: todayKey(), moduleId: window.active.moduleId, subId: window.active.subId,
+      moduleName: window.active.moduleName, subName: window.active.subName,
+      startTs: window.active.startTs, endTs, durationSec, pauseSec
     });
     hubSave();   // 入库走 hubSave：本机持久化 + 防抖上传（含 ended 广播）
   }
   clearActive();              // 清本机恢复锚点
   broadcastEnded(timerId);    // 广播 ended（带 timerId），另一端合并后清本地态、不二次入库
-  const d = active; active = null;
+  const d = window.active; window.active = null;
   window.__timerActive = false;
   // 通知首页/侧边栏刷新「今日已学」
   document.dispatchEvent(new CustomEvent('hub:session-saved', { detail: { date: todayKey() } }));
@@ -324,26 +329,26 @@ function stopSession(){
 }
 
 function updateTimer(){
-  if(!active) return;
+  if(!window.active) return;
   const liveTimer = $('#liveTimer');
   if(!liveTimer){ stopTick(); return; }   // 已软导航离开计时页：DOM 没了就停掉心跳
   const elapsed = activeMs()/1000;
   const pg = $('#timerProgress');
-  if(active.paused){
+  if(window.active.paused){
     liveTimer.textContent = '已暂停 ' + fmtHMS(pauseMs()/1000);
     liveTimer.style.color = 'var(--muted)';
     $('#focusInfo').textContent = '已学习 ' + fmtHM(elapsed) + ' · 点「继续」恢复计时';
     if(pg) pg.innerHTML = '';
     return;
   }
-  if(active.mode === 'down' && active.targetSec){
-    const remain = Math.max(0, active.targetSec - elapsed);
+  if(window.active.mode === 'down' && window.active.targetSec){
+    const remain = Math.max(0, window.active.targetSec - elapsed);
     liveTimer.textContent = fmtHMS(remain);
     liveTimer.style.color = remain <= 0 ? 'var(--med)' : 'var(--primary)';
-    const pct = active.targetSec>0 ? Math.min(100, elapsed/active.targetSec*100) : 0;
+    const pct = window.active.targetSec>0 ? Math.min(100, elapsed/window.active.targetSec*100) : 0;
     if(pg) pg.innerHTML = progressBar('距目标', pct, remain<=0 ? 'var(--med)' : 'var(--primary)');
-    if(remain <= 0 && !active._done){
-      active._done = true;
+    if(remain <= 0 && !window.active._done){
+      window.active._done = true;
       playChime();
       doneNotify('🎉 专注目标达成', '本次计划专注已结束，休息一下吧～');
       toast('🎉 本次目标达成！');
@@ -351,8 +356,8 @@ function updateTimer(){
   } else {
     liveTimer.textContent = fmtHMS(elapsed);
     liveTimer.style.color = 'var(--primary)';
-    if(active.targetSec && pg){
-      const pct = Math.min(100, elapsed/active.targetSec*100);
+    if(window.active.targetSec && pg){
+      const pct = Math.min(100, elapsed/window.active.targetSec*100);
       pg.innerHTML = progressBar('距目标', pct);
     } else if(pg){ pg.innerHTML = ''; }
   }
@@ -364,7 +369,7 @@ function updateTimer(){
 function startHeartbeat(){
   stopHeartbeat();
   window.__timerBeat = setInterval(() => {
-    if(active && !active.paused){ persistMirror(); }   // 暂停时不续租：留给另一端判定托管
+    if(window.active && !window.active.paused){ persistMirror(); }   // 暂停时不续租：留给另一端判定托管
   }, 5000);
 }
 function stopHeartbeat(){
@@ -378,9 +383,9 @@ function maybeTakeover(){
   const me = getDeviceId();
   if((m.ownerDevice || '') === me) return false;          // 自己拥有：不接管
   if(!shouldTakeover(m)) return false;                    // 他人仍在线或已暂停：不抢
-  // 他人离线 → 接管：用镜像数据重建本机 active，owner 改为本机
+  // 他人离线 → 接管：用镜像数据重建本机 window.active，owner 改为本机
   const mod = MODULES.find(x => x.id === m.moduleId);
-  active = { timerId: m.timerId, ownerDevice: me,
+  window.active = { timerId: m.timerId, ownerDevice: me,
     moduleId: m.moduleId, moduleName: m.moduleName || (mod && mod.name) || '学习',
     subId: m.subId || m.moduleId, subName: m.subName || (mod && mod.name) || '学习',
     startTs: _num(m.startTs), paused: !!m.paused, pauseStart: m.pauseStart ? _num(m.pauseStart) : null,
@@ -400,10 +405,10 @@ ready(() => {
   window.__timerMerged = () => {
     const m = DATA.activeTimer;
     // 场景A：另一端结束（ended 广播），本机仍持同 timerId 活跃态 → 清掉、不二次入库
-    if(m && m.ended && active && m.timerId && active.timerId === m.timerId){
+    if(m && m.ended && window.active && m.timerId && window.active.timerId === m.timerId){
       stopTick(); stopHeartbeat();
       clearActive();
-      active = null; window.__timerActive = false;
+      window.active = null; window.__timerActive = false;
       $('#activeInfo').textContent = '当前没有进行中的学习';
       $('#focusInfo').textContent = '';
       $('#stopBtn').disabled = true; $('#pauseBtn').disabled = true;
@@ -414,7 +419,7 @@ ready(() => {
       return;
     }
     // 场景B：本机无活跃态，但镜像显示他人正计时 → 实时只读展示（不刷新打断）
-    if(!active && m && !m.ended && m.timerId && (m.ownerDevice || '') !== getDeviceId()){
+    if(!window.active && m && !m.ended && m.timerId && (m.ownerDevice || '') !== getDeviceId()){
       renderRemoteActive();
     }
   };
@@ -424,7 +429,7 @@ ready(() => {
   document.querySelectorAll('#modeSeg .seg-btn').forEach(b => {
     b.addEventListener('click', () => {
       setModeUI(b.dataset.mode);
-      if(active) active.mode = b.dataset.mode;   // 运行中可即时切换模式
+      if(window.active) window.active.mode = b.dataset.mode;   // 运行中可即时切换模式
       persistLocalActive();
       persistMirror();
       updateTimer();
@@ -447,7 +452,7 @@ ready(() => {
 
   // 1) 已结束：清本机活跃态，不恢复
   if(mirror && mirror.ended){
-    if(active && mirror.timerId && active.timerId === mirror.timerId){ /* 不应发生，ready 时 active 还空 */ }
+    if(window.active && mirror.timerId && window.active.timerId === mirror.timerId){ /* 不应发生，ready 时 window.active 还空 */ }
     if(localSaved && mirror.timerId && localSaved.timerId === mirror.timerId) clearActive();
     else if(localSaved) clearActive();
     renderTimer();
@@ -463,16 +468,16 @@ ready(() => {
   // 3) 他人持有但已离线（运行态 lastBeat 过期）→ 接管
   if(shouldTakeover(mirror)){
     if(maybeTakeover()){
-      const mod = MODULES.find(x => x.id === active.moduleId);
-      if(active.targetSec) $('#goalMin').value = Math.round(active.targetSec/60);
-      setModeUI(active.mode || 'up');
-      $('#activeInfo').innerHTML = '<strong>' + (active.moduleName || (mod&&mod.name) || '学习') + '</strong> 进行中（已接管离线设备）';
+      const mod = MODULES.find(x => x.id === window.active.moduleId);
+      if(window.active.targetSec) $('#goalMin').value = Math.round(window.active.targetSec/60);
+      setModeUI(window.active.mode || 'up');
+      $('#activeInfo').innerHTML = '<strong>' + (window.active.moduleName || (mod&&mod.name) || '学习') + '</strong> 进行中（已接管离线设备）';
       $('#stopBtn').disabled = false; $('#pauseBtn').disabled = false;
-      $('#pauseBtn').textContent = active.paused ? '继续' : '暂停';
-      $('#pauseBtn').className = active.paused ? 'btn btn-primary' : 'btn';
+      $('#pauseBtn').textContent = window.active.paused ? '继续' : '暂停';
+      $('#pauseBtn').className = window.active.paused ? 'btn btn-primary' : 'btn';
       startTick(); startHeartbeat(); updateTimer(); renderTimer();
       window.__timerActive = true;
-      toast('已接管离线设备的计时：' + (active.moduleName || (mod&&mod.name) || '学习') + (active.paused ? '（暂停中）' : ''));
+      toast('已接管离线设备的计时：' + (window.active.moduleName || (mod&&mod.name) || '学习') + (window.active.paused ? '（暂停中）' : ''));
       return;
     }
   }
@@ -510,7 +515,7 @@ ready(() => {
         hubSave();
       }
       // 今日从 0 点重新计时（owner 改本机）
-      active = { timerId: saved.timerId || uid(), ownerDevice: me, moduleId: saved.moduleId,
+      window.active = { timerId: saved.timerId || uid(), ownerDevice: me, moduleId: saved.moduleId,
         moduleName: mName, subId: saved.subId || saved.moduleId, subName: saved.subName || mName,
         startTs: startOfToday.getTime(), paused: false, pauseStart: null, pauseAccum: 0,
         targetSec: saved.targetSec || null, mode: saved.mode || 'up', updatedAt: Date.now(), lastBeat: Date.now() };
@@ -518,15 +523,15 @@ ready(() => {
       $('#activeInfo').innerHTML = '<strong>' + mName + '</strong> 进行中';
       $('#stopBtn').disabled = false; $('#pauseBtn').disabled = false;
       $('#pauseBtn').textContent = '暂停'; $('#pauseBtn').className = 'btn';
-      if(active.targetSec) $('#goalMin').value = Math.round(active.targetSec/60);
-      setModeUI(active.mode || 'up');
+      if(window.active.targetSec) $('#goalMin').value = Math.round(window.active.targetSec/60);
+      setModeUI(window.active.mode || 'up');
       toast('检测到跨天计时：已结算昨天 ' + fmtHM(durationSec) + '，并从今天 0 点继续计时');
       startTick(); startHeartbeat(); updateTimer(); renderTimer();
       window.__timerActive = true;
       return;
     }
     // 同日恢复
-    active = { timerId: saved.timerId || uid(), ownerDevice: (saved.ownerDevice || me),
+    window.active = { timerId: saved.timerId || uid(), ownerDevice: (saved.ownerDevice || me),
       moduleId: saved.moduleId, moduleName: saved.moduleName || (mod && mod.name) || '学习',
       subId: saved.subId || saved.moduleId, subName: saved.subName || (mod && mod.name) || '学习',
       startTs: _num(saved.startTs), paused: !!saved.paused, pauseStart: saved.pauseStart ? _num(saved.pauseStart) : null,
@@ -535,15 +540,15 @@ ready(() => {
     persistLocalActive();
     if((saved.ownerDevice || '') !== me) persistMirror();   // 旧镜像无 owner：补写 owner 回云端
     else persistMirror();
-    if(active.targetSec) $('#goalMin').value = Math.round(active.targetSec/60);
-    setModeUI(active.mode || 'up');
-    $('#activeInfo').innerHTML = '<strong>' + active.moduleName + '</strong> 进行中';
+    if(window.active.targetSec) $('#goalMin').value = Math.round(window.active.targetSec/60);
+    setModeUI(window.active.mode || 'up');
+    $('#activeInfo').innerHTML = '<strong>' + window.active.moduleName + '</strong> 进行中';
     $('#stopBtn').disabled = false; $('#pauseBtn').disabled = false;
-    $('#pauseBtn').textContent = active.paused ? '继续' : '暂停';
-    $('#pauseBtn').className = active.paused ? 'btn btn-primary' : 'btn';
+    $('#pauseBtn').textContent = window.active.paused ? '继续' : '暂停';
+    $('#pauseBtn').className = window.active.paused ? 'btn btn-primary' : 'btn';
     startTick(); startHeartbeat(); updateTimer(); renderTimer();
     window.__timerActive = true;
-    toast('已恢复未结束的计时：' + active.moduleName + (active.paused ? '（暂停中）' : ''));
+    toast('已恢复未结束的计时：' + window.active.moduleName + (window.active.paused ? '（暂停中）' : ''));
     return;
   }
 
