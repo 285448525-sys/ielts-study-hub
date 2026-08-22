@@ -31,23 +31,6 @@ const MODULES = [
   ]},
 ];
 
-/* 默认常用网址（代码层种子，被清空时可一键恢复） */
-const DEFAULT_LINKS = [
-  { id:'l1', name:'九分学长·考雅机考平台', note:'本地软件，每天打开刷题', url:'', badge:'本地' },
-  { id:'l2', name:'雅思官网', note:'报名 / 模考', url:'https://www.ielts.org/', badge:'打开' },
-  { id:'l3', name:'爱听写·免费雅思考网', note:'', url:'https://www.idictation.cn/', badge:'打开' },
-  { id:'l4', name:'DeepSeek（口语对话练习）', note:'', url:'https://chat.deepseek.com/', badge:'打开' }
-];
-
-/* 常用网址被清空时，一键写回默认种子 */
-function restoreDefaultLinks(){
-  DATA.settings.links = JSON.parse(JSON.stringify(DEFAULT_LINKS));
-  hubSave();
-  if(typeof renderFavLinks === 'function') renderFavLinks();
-  if(typeof renderLinks === 'function') renderLinks();
-  if(typeof toast === 'function') toast('已恢复默认常用网址');
-}
-
 /* ===== 5-8 月口语题库（高频顺序录入，完整题库待补） ===== */
 const FREQ_LABEL = { must:'必考题', high:'高频', subhigh:'次高频', mid:'中频', low:'低频' };
 const SPEAKING_BANK = [
@@ -540,8 +523,7 @@ let DATA = {
     targets: { overall: 6.0, listening: 5.5, reading: 6.5, writing: 5.5, speaking: 5.5 },
     relayToken: '',
     syncCode: '',
-    autoSync: true,
-    links: DEFAULT_LINKS
+    autoSync: true
   },
   errorbook: [],
   longSent: [],           // 长难句拆解记录（合并进「词句」页，由 errorbook.js 读写）

@@ -596,7 +596,7 @@ const SYNC_ARRAY_FIELDS = ['sessions','notes','meds','corpus','scores','errorboo
   'energy','speaking','writing','writingScores','speakingStories','writingPhrases',
   'mockRecords','dictationSources','dictationLogs','longSent'];
 /* 设置里允许跨设备同步的字段；relayToken/syncCode/autoSync/theme 永不同步 */
-const SYNC_SETTINGS_FIELDS = ['name','examDate','examDates','targets','dailyGoalHours','links'];
+const SYNC_SETTINGS_FIELDS = ['name','examDate','examDates','targets','dailyGoalHours'];
 
 /* 安全取数字：非有限数→0 */
 function _num(x){ const n = Number(x); return isFinite(n) ? n : 0; }
@@ -1062,7 +1062,7 @@ function updateActiveNav(file){
 
 /* 重新执行目标页脚本：
    用间接 eval（window.eval）在全局作用域执行脚本源码。
-   - function 声明挂到全局 → 跨页调用（如 restoreDefaultLinks 调 renderFavLinks/renderLinks）仍然可用；
+   - function 声明挂到全局 → 跨页调用仍然可用；
    - let/const 只存在于本次 eval 的词法作用域 → 多次访问不会“标识符重复声明”报错，且状态随每次访问重置。
    脚本里的 ready(fn) 在已加载完成的文档上会立即同步运行 → 页面初始化自然发生。
    软导航只换 <main>，原 head 里的页面专属脚本（如 speaking.html 的 mock.js / progress.js）不会自动重跑，
