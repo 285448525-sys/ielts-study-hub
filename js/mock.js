@@ -290,7 +290,7 @@
 
   /* ---------- 题库抽样（真实 P1：若干大题 × 各若干小题 ≈ 十几个小题） ---------- */
   // 频率权重：超高频>高频>中高频>普通；必考题另行强制抽取
-  const FREQ_WEIGHT = { ultra:4, high:3, medium:2, normal:1 };
+  const FREQ_WEIGHT = { must:5, ultra:4, high:3, medium:2, normal:1 };
 
   /* 统计每道题被模考过的次数（优先级选取依据）。
      从 DATA.mockRecords（口语整卷记录）里累加：
@@ -328,13 +328,24 @@
     for(const t of arr){ r -= (FREQ_WEIGHT[t.frequency] || 1); if(r <= 0) return t; }
     return arr[arr.length - 1];
   }
+  /* 选 P1 大题集合：全局按"考过次数升序（最优先）+ 同次数高频优先"排序，取前 TOPIC_N 个大题。
+     题内小题再按同样的优先级取前 PER_TOPIC 个（从未考过的优先）。
+     must 频率权重最高（见 FREQ_WEIGHT.must），故未考过的必考题自然排前；一旦考过多次，
+     让位给仍新鲜的高频题，实现「轮换」——避免每场模考都抽到同样的大题（旧逻辑按题库顺序硬取，会重复）。 */
   function buildP1Set(pool){
     const taken = buildTakenCounts();
-    const must = pool.filter(t => t.frequency === 'must');
-    const rest = pool.filter(t => t.frequency !== 'must');   // 非必考：按题库原始顺序取
     const picked = new Set();
     const qa = [];
     const PER_TOPIC = 3; // 每个大题抽 3 个小题
+    const TOPIC_N = 4;   // 固定 4 大题 × 3 小题 = 12，加开场姓名共 13
+    // 一个大题的"新鲜度" = 其小题里被考次数最少的那条（因为我们会优先抽它最新鲜的小题）
+    const topicLeastTaken = (t) => {
+      const qs = t.questions || [];
+      if(!qs.length) return 0;
+      let min = Infinity;
+      qs.forEach(q => { const c = taken.get(q) || 0; if(c < min) min = c; });
+      return min === Infinity ? 0 : min;
+    };
     const takeTopic = (t, n) => {
       if(!t || picked.has(t.id)) return;
       picked.add(t.id);
@@ -347,13 +358,12 @@
         .sort((a, b) => a.i - b.i);
       for(const r of ranked) qa.push({ topic: t.titleEn || t.titleZh || '', q: r.q });
     };
-    // 1) 必考题：按题库原始顺序固定取前 2 个大题，排在最前（顺序不随机）
-    const mustN = Math.min(must.length, 2);
-    must.slice(0, mustN).forEach(t => takeTopic(t, PER_TOPIC));
-    // 2) 其余：按题库原始顺序固定取 2 个大题（必考一定排在选考之前，两段内部各自连续）
-    const extraN = 2;
-    for(const t of rest){ if(picked.size >= mustN + extraN) break; if(picked.has(t.id)) continue; takeTopic(t, PER_TOPIC); }
-    return qa;   // 顺序固定：必考在前、选考在后；总小题 = 4 大题 × 3 = 12，加开场姓名共 13（最多 13 个）
+    // 所有大题按全局优先级排序，取前 TOPIC_N 个（同分时频率越高越靠前，再随机破平）
+    pool.map(t => ({ t, score: takenPriority(topicLeastTaken(t), t.frequency) }))
+      .sort((a, b) => (a.score - b.score) || (Math.random() - 0.5))
+      .slice(0, TOPIC_N)
+      .forEach(x => takeTopic(x.t, PER_TOPIC));
+    return qa;
   }
 
   // 选 P2 话题：从未考过 > 考过次数少 > 同次数高频优先
