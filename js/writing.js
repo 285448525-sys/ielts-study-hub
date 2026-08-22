@@ -66,6 +66,12 @@ ready(() => {
 function renderCats(){
   const cats = [];
   DATA.writing.forEach(t => { if(!cats.includes(t.category)) cats.push(t.category); });
+  // 大作文在上、小作文在下；组内按雅思出题频率排序（高频靠前）
+  const CAT_ORDER = ['大作文观点型','大作文讨论型','大作文Report','小作文动态图','小作文静态图','小作文地图题','小作文流程图'];
+  cats.sort((a, b) => {
+    const ia = CAT_ORDER.indexOf(a), ib = CAT_ORDER.indexOf(b);
+    return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+  });
   const nav = $('#catNav');
   if(cats.length === 0){ nav.innerHTML = '<div class="muted">暂无分类</div>'; $('#tplList').innerHTML=''; return; }
   if(!curCat) curCat = cats[0];
