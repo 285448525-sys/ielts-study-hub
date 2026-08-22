@@ -4,7 +4,7 @@ var curFreq = 'all';
 var curCat = 'all';
 var curSearch = '';
 var curDetailId = null;
-var FREQ_ORDER = { P1:{must:0, high:1, mid:2, low:3}, P2:{high:0, subhigh:1, mid:2, low:3} };
+var FREQ_ORDER = { P1:{ultra:0, high:1, medium:2, low:3}, P2:{ultra:0, high:1, medium:2, low:3} };
 function freqRank(f){ const t = FREQ_ORDER[curType] || FREQ_ORDER.P1; return (t[f] != null) ? t[f] : 9; }
 
 /* 顶部常量用 var（speaking.js 会被软导航 window.eval 重跑，const 会抛「已声明」） */
@@ -85,13 +85,11 @@ ready(() => {
   renderList();
 });
 
-// 优先级下拉选项随 Part1/Part2 联动：P1 必考题>高频>中频>低频；P2 高频>次高频>中频>低频
+// 优先级下拉选项（P1/P2 共用）：超高频>高频>中频>低频
 function populateFreqOptions(){
   const sel = $('#freqSelect');
   if(!sel) return;
-  const opts = (curType === 'P2')
-    ? [['all','全部'],['high','高频'],['subhigh','次高频'],['mid','中频'],['low','低频']]
-    : [['all','全部'],['must','必考题'],['high','高频'],['mid','中频'],['low','低频']];
+  const opts = [['all','全部'],['ultra','超高频'],['high','高频'],['medium','中频'],['low','低频']];
   sel.innerHTML = opts.map(o => '<option value="' + o[0] + '">' + o[1] + '</option>').join('');
   curFreq = 'all';
 }

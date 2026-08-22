@@ -51,10 +51,9 @@
   .sp-card-zh{font-size:13px;color:var(--muted);margin-top:2px}
   .sp-card-tags{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
   .sp-tag{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--bg);color:var(--muted);border:1px solid var(--line)}
-  .sp-tag.freq-must{background:var(--vocab);color:#fff;border-color:var(--vocab)}
+  .sp-tag.freq-ultra{background:var(--vocab);color:#fff;border-color:var(--vocab)}
   .sp-tag.freq-high{background:var(--warn);color:#fff;border-color:var(--warn)}
-  .sp-tag.freq-subhigh{background:#e08e0b;color:#fff;border-color:#e08e0b}
-  .sp-tag.freq-mid{background:var(--mock);color:#fff;border-color:var(--mock)}
+  .sp-tag.freq-medium{background:var(--mock);color:#fff;border-color:var(--mock)}
   .sp-tag.freq-low{background:var(--muted);color:#fff;border-color:var(--muted)}
 
   /* 优先级/分类下拉筛选（联动） */
@@ -468,7 +467,7 @@
   <!-- 列表视图 -->
   <div id="listView">
     <div class="sp-banner" id="freqBanner">
-      本季口语题库已分级：<b>Part1</b> 优先练 <b>必考题 → 高频 → 中频</b>；<b>Part2</b> 优先练 <b>高频 → 次高频 → 中频</b>。其余话题归为低频，按需练习。
+      本季口语题库已统一分级：<b>超高频（原必考题）→ 高频 → 中频 → 低频</b>，Part1 / Part2 共用同一套档位。优先练超高频与高频，中频按需，低频见缝插针。
     </div>
 
     <div class="sp-filters">

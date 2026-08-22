@@ -32,7 +32,7 @@ const MODULES = [
 ];
 
 /* ===== 5-8 月口语题库（高频顺序录入，完整题库待补） ===== */
-const FREQ_LABEL = { must:'必考题', high:'高频', subhigh:'次高频', mid:'中频', low:'低频' };
+const FREQ_LABEL = { ultra:'超高频', high:'高频', medium:'中频', low:'低频' };
 const SPEAKING_BANK = [
   { id:"sb_p1_music", type:"P1", period:"2026-05-08", isNew:true, frequency:"high", category:"日常",
     titleEn:"Music", titleZh:"音乐",
@@ -234,23 +234,23 @@ const SPEAKING_BANK = [
     titleEn:"Life stages", titleZh:"",
     questions:["What did you often do with your friends in your childhood?","What do you think is the most important at the moment?","Do you have any plans for the next five years?","How do people remember each stage of their lives?","Do you enjoy being the age you are now?","At what age do you think people are the happiest?"],
     cue:'', content:'', keywords:'', linkedTo:"", proficiency:"没练" },
-  { id:"sb_p1_work", type:"P1", period:"2026-05-08", isNew:false, frequency:"must", category:"日常",
+  { id:"sb_p1_work", type:"P1", period:"2026-05-08", isNew:false, frequency:"ultra", category:"日常",
     titleEn:"Work or studies", titleZh:"工作/学习",
     questions:["What do you do?","Do you like your studies?","Is there anything you want to change about your studies?","What do you plan to do after graduation?"],
     cue:'', content:'', keywords:'', linkedTo:"必考题", proficiency:"没练" },
-  { id:"sb_p1_home", type:"P1", period:"2026-05-08", isNew:false, frequency:"must", category:"地点",
+  { id:"sb_p1_home", type:"P1", period:"2026-05-08", isNew:false, frequency:"ultra", category:"地点",
     titleEn:"Home & Accommodation", titleZh:"家",
     questions:["Do you live in a house or an apartment?","Do you like where you live?","What is your favorite room?","Would you like to move?"],
     cue:'', content:'', keywords:'', linkedTo:"可套框架②", proficiency:"没练" },
-  { id:"sb_p1_hometown", type:"P1", period:"2026-05-08", isNew:false, frequency:"must", category:"地点",
+  { id:"sb_p1_hometown", type:"P1", period:"2026-05-08", isNew:false, frequency:"ultra", category:"地点",
     titleEn:"Hometown", titleZh:"家乡",
     questions:["Where is your hometown?","Do you like your hometown?","Is your hometown a good place to live?","Has your hometown changed?"],
     cue:'', content:'', keywords:'', linkedTo:"可套框架②", proficiency:"没练" },
-  { id:"sb_p1_area", type:"P1", period:"2026-05-08", isNew:false, frequency:"must", category:"地点",
+  { id:"sb_p1_area", type:"P1", period:"2026-05-08", isNew:false, frequency:"ultra", category:"地点",
     titleEn:"The area you live in", titleZh:"居住的地方",
     questions:["Do you like the area you live in?","What is your area like?","Has your area changed recently?","Would you recommend your area to others?"],
     cue:'', content:'', keywords:'', linkedTo:"可套框架②", proficiency:"没练" },
-  { id:"sb_p1_the_city_you_live_in", type:"P1", period:"2026-08-09", isNew:true, frequency:"must", category:"日常",
+  { id:"sb_p1_the_city_you_live_in", type:"P1", period:"2026-08-09", isNew:true, frequency:"ultra", category:"日常",
     titleEn:"The city you live in", titleZh:"",
     questions:["What city do you live in?","Do you like this city? Why?","How long have you lived in this city?","Are there big changes in this city?","Is this city your permanent residence?","Are there people of different ages living in this city?","Are the people friendly in the city?","Is the city friendly to children and old people?","Do you often see your neighbors?","What's the weather like where you live?","Would you recommend your city to others?"],
     cue:'', content:'', keywords:'', linkedTo:"", proficiency:"没练" },
@@ -479,21 +479,21 @@ const SPEAKING_BANK = [
     titleEn:"Leisure time", titleZh:"闲暇时间",
     questions:["What do you usually do in your leisure time?","Do you prefer to spend leisure time alone or with others?","Did you have more leisure time when you were a child?","Do you think leisure time is important?"],
     cue:'', content:'', keywords:'', linkedTo:"", proficiency:"没练" },
-  { id:"sb_p1_dailyroutine", type:"P1", period:"2026-08-20", isNew:true, frequency:"mid", category:"事",
+  { id:"sb_p1_dailyroutine", type:"P1", period:"2026-08-20", isNew:true, frequency:"medium", category:"事",
     titleEn:"Daily routine", titleZh:"日常作息",
     questions:["What is your daily routine?","Do you have a fixed daily schedule?","Has your routine changed recently?","Do you prefer a routine or doing things spontaneously?"],
     cue:'', content:'', keywords:'', linkedTo:"可套框架③", proficiency:"没练" },
-  { id:"sb_p2_difficult_problem", type:"P2", period:"2026-08-20", isNew:true, frequency:"mid", category:"事",
+  { id:"sb_p2_difficult_problem", type:"P2", period:"2026-08-20", isNew:true, frequency:"medium", category:"事",
     titleEn:"A time you solved a difficult problem", titleZh:"解决困难的一次经历",
     promptEn:"Describe a time when you solved a difficult problem.", promptZh:"描述一次你解决困难问题的经历。",
     youShouldSay:["What the problem was","How you solved it","What the result was","And explain how you felt about it"],
     cue:'', content:'', keywords:'', linkedTo:"", proficiency:"没练" },
-  { id:"sb_p2_encouraged_by_others", type:"P2", period:"2026-08-20", isNew:true, frequency:"mid", category:"事",
+  { id:"sb_p2_encouraged_by_others", type:"P2", period:"2026-08-20", isNew:true, frequency:"medium", category:"事",
     titleEn:"A time when someone encouraged you", titleZh:"别人鼓励你的经历",
     promptEn:"Describe a time when someone encouraged you.", promptZh:"描述一次别人鼓励你的经历。",
     youShouldSay:["Who encouraged you","When it happened","What they said or did","And explain how it helped you"],
     cue:'', content:'', keywords:'', linkedTo:"", proficiency:"没练" },
-  { id:"sb_p2_old_object", type:"P2", period:"2026-08-20", isNew:true, frequency:"mid", category:"物",
+  { id:"sb_p2_old_object", type:"P2", period:"2026-08-20", isNew:true, frequency:"medium", category:"物",
     titleEn:"An old object your family keeps", titleZh:"家里保留的一件旧物件",
     promptEn:"Describe an old object which your family has kept for a long time.", promptZh:"描述一件你家长期保留的旧物件。",
     youShouldSay:["What it is","Who kept it","How long it has been kept","And explain why it is important"],
@@ -724,16 +724,16 @@ function hubLoad(){
         if(missing.length) DATA.writing = DATA.writing.concat(missing);
       }
     })();
-    // 口语题库档位体系迁移（2026-08-20）：本季分级，P1 必考题>高频>中频>低频，P2 高频>次高频>中频>低频；分类统一 人/事/地/物/杂项。
+    // 口语题库档位体系迁移：统一为 超高频(ultra,原必考)>高频(high)>中频(medium)>低频(low)；分类统一 人/事/地/物/杂项。
     // 作用：既修正 SPEAKING_BANK 新题，也回写老用户浏览器里已存的旧档位/旧分类（种子只增量补齐、不回写，故必须在此统一重映射）。
     (function migrateSpeakingTiers(){
       const REMAP = {
-        sb_p1_work:['must','事'], sb_p1_hometown:['must','地'], sb_p1_area:['must','地'],
+        sb_p1_work:['ultra','事'], sb_p1_home:['ultra','地'], sb_p1_hometown:['ultra','地'], sb_p1_area:['ultra','地'], sb_p1_the_city_you_live_in:['ultra','事'],
         sb_p1_socialmedia:['high','物'], sb_p1_tidiness:['high','地'], sb_p1_space:['high','杂项'], sb_p1_science:['high','杂项'], sb_p1_watch:['high','物'], sb_p1_headphones:['high','物'],
-        sb_p1_music:['mid','杂项'], sb_p1_teachers:['mid','人'], sb_p1_shopping:['mid','事'], sb_p1_websites:['mid','物'], sb_p1_clothing:['mid','物'], sb_p1_parks:['mid','地'], sb_p1_singing:['mid','事'], sb_p1_dailyroutine:['mid','事'],
+        sb_p1_music:['medium','杂项'], sb_p1_teachers:['medium','人'], sb_p1_shopping:['medium','事'], sb_p1_websites:['medium','物'], sb_p1_clothing:['medium','物'], sb_p1_parks:['medium','地'], sb_p1_singing:['medium','事'], sb_p1_dailyroutine:['medium','事'],
         sb_p2_travel:['high','地'], sb_p2_techproduct:['high','物'], sb_p2_tallbuilding:['high','物'], sb_p2_animals:['high','杂项'], sb_p2_boringplace:['high','地'], sb_p2_describe_a_boring_place18:['high','地'],
-        sb_p2_childhoodfriend:['subhigh','人'], sb_p2_describe_a_famous_person_you_would_like_52:['subhigh','人'], sb_p2_describe_a_live_sports_event_you_watched29:['subhigh','事'], sb_p2_specialfood:['subhigh','物'], sb_p2_teamwork:['subhigh','事'], sb_p2_describe_a_plan_that_you_had_to_change_r26:['subhigh','事'], sb_p2_earlymorning:['subhigh','事'], sb_p2_describe_a_person_who_loves_to_grow_vege21:['subhigh','人'],
-        sb_p2_decision:['mid','事'], sb_p2_describe_a_movie_you_watched_and_enjoyed66:['mid','杂项'], sb_p2_describe_a_bicycle_motorcycle_car_trip_y62:['mid','地'], sb_p2_difficult_problem:['mid','事'], sb_p2_encouraged_by_others:['mid','事'], sb_p2_old_object:['mid','物']
+        sb_p2_childhoodfriend:['high','人'], sb_p2_describe_a_famous_person_you_would_like_52:['high','人'], sb_p2_describe_a_live_sports_event_you_watched29:['high','事'], sb_p2_specialfood:['high','物'], sb_p2_teamwork:['high','事'], sb_p2_describe_a_plan_that_you_had_to_change_r26:['high','事'], sb_p2_earlymorning:['high','事'], sb_p2_describe_a_person_who_loves_to_grow_vege21:['high','人'],
+        sb_p2_decision:['medium','事'], sb_p2_describe_a_movie_you_watched_and_enjoyed66:['medium','杂项'], sb_p2_describe_a_bicycle_motorcycle_car_trip_y62:['medium','地'], sb_p2_difficult_problem:['medium','事'], sb_p2_encouraged_by_others:['medium','事'], sb_p2_old_object:['medium','物']
       };
       const OLDCAT = { '人物':'人', '事件':'事', '地点':'地', '物品':'物', '抽象':'杂项', '日常':'事' };
       DATA.speaking.forEach(s => {

@@ -22,20 +22,6 @@
   function lastTs(s) { let m = 0; topicRecords(s).forEach(r => { if (r.ts > m) m = r.ts; }); return m; }
   function practiced(s) { return countOf(s) > 0; }
 
-  // 必考题进度环（半径 40 → 周长 ≈ 251.2）
-  function ring(done, total) {
-    const C = 251.2;
-    const pct = total ? done / total : 0;
-    const off = C * (1 - pct);
-    const col = (done === total && total > 0) ? 'var(--med)' : 'var(--primary)';
-    return '<svg width="96" height="96" viewBox="0 0 96 96">'
-      + '<circle cx="48" cy="48" r="40" fill="none" stroke="var(--primary-soft)" stroke-width="10"/>'
-      + '<circle cx="48" cy="48" r="40" fill="none" stroke="' + col + '" stroke-width="10" stroke-linecap="round" stroke-dasharray="' + C + '" stroke-dashoffset="' + off.toFixed(1) + '" transform="rotate(-90 48 48)"/>'
-      + '<text x="48" y="44" text-anchor="middle" class="ring-num">' + done + '/' + total + '</text>'
-      + '<text x="48" y="62" text-anchor="middle" class="ring-sub">已练</text>'
-      + '</svg>';
-  }
-
   window.renderProgress = function () {
     const el = document.getElementById('progressView');
     if (!el) return;
@@ -51,21 +37,8 @@
     });
     const coverage = total ? Math.round(doneTopics / total * 100) : 0;
 
-    // 必考题专项
-    const must = list.filter(s => s.type === 'P1' && s.frequency === 'must');
-    const mustDone = must.filter(practiced).length;
-    let mustTxt;
-    const unMust = must.filter(s => !practiced(s));
-    if (unMust.length) {
-      mustTxt = '未练：' + unMust.map(s => '<b>' + escapeHtml(s.titleEn || s.titleZh || '') + '（必考）</b>').join('、') + ' —— <a href="speaking.html">去练习 →</a>';
-    } else if (must.length) {
-      mustTxt = '必考题已全部练过，保持住 💪';
-    } else {
-      mustTxt = '本季 P1 无必考题档位。';
-    }
-
     // 各档位进度条（只显示数据里实际出现的档位）
-    const order = ['must', 'high', 'subhigh', 'mid', 'low'];
+    const order = ['ultra', 'high', 'medium', 'low'];
     const present = order.filter(f => list.some(s => s.frequency === f));
     let bars = '';
     present.forEach(f => {
@@ -96,8 +69,6 @@
       + '<div class="prog-card"><div class="n">' + coverage + '%</div><div class="l">覆盖率</div></div>'
       + '<div class="prog-card"><div class="n">' + totalPass + '</div><div class="l">总练习遍数</div></div>'
       + '</div>'
-
-      + '<section class="card"><h2>必考题进度</h2><div class="prog-ring"><div class="ring-wrap">' + ring(mustDone, must.length) + '</div><div class="prog-ring-txt">必考题共 <b>' + must.length + '</b> 道，已练 <b>' + mustDone + '</b> 道。<br>' + mustTxt + '</div></div></section>'
 
       + '<section class="card"><h2>各档位进度</h2>' + bars + '</section>'
 
