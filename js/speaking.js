@@ -404,16 +404,6 @@ function openDetail(id){
     });
     const nx2 = $('#p2NextBtn2');
     if(nx2) nx2.addEventListener('click', () => gotoNextTopic());
-    // 回填上次保存的「AI 串题方案」（参考英文 + 本题逻辑链），无需用户再点一次生成按钮
-    if(s.answers && s.answers.p2 && s.answers.p2.aiStoryLink){
-      try{
-        const saved = s.answers.p2.aiStoryLink;
-        const resultEl = $('#aiResult');
-        if(resultEl && (saved.article || saved.logicChain)){
-          renderStoryLink(resultEl, { article: saved.article || '', logicChain: saved.logicChain || '' });
-        }
-      }catch(_){}
-    }
   }
   if(s.type === 'P2'){
     const aiStoryLinkBtn = document.getElementById('aiStoryLinkBtn');
