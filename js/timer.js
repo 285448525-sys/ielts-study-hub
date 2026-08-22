@@ -8,6 +8,30 @@
    计时器心跳句柄 window.__timerTick 同理挂 window，进页面先清掉上一份避免孤儿叠跑。 */
 window.active = window.active || null;
 
+/* ── 单调时钟封装（整数纳秒）：隔离系统时间修改 / NTP 跳变 / 跨时区 ──
+   计时算「流逝」只用它；wall-clock(startTs) 仅用于「跨天结算 / 入库日期」，不参与流逝计算。
+   返回 BigInt 纳秒。浏览器用 performance.now()，Node 用 hrtime.bigint()。 */
+function monoNowNs(){
+  try{
+    if(typeof performance !== 'undefined' && performance.now){
+      return BigInt(Math.round(performance.now() * 1e6));
+    }
+    if(typeof process !== 'undefined' && process.hrtime && process.hrtime.bigint){
+      return process.hrtime.bigint();
+    }
+  }catch(e){}
+  return BigInt(Date.now()) * 1000000n; // 兜底（会受时间修改影响，仅保底）
+}
+/* 单调回退钳制：极个别环境 hrtime 异常回退时，不更新 lastMono，避免负流逝 */
+let _lastMono = monoNowNs();
+function safeMonoNowNs(){
+  const m = monoNowNs();
+  if(m < _lastMono) return _lastMono;
+  _lastMono = m;
+  return m;
+}
+const monoMs = () => Number(safeMonoNowNs() / 1000000n);
+
 /* ── 计时器心跳：必须挂在 window 上 ────────────────────────────────────
    软导航（common.js runPageScript）用 window.eval 重跑本脚本，每次 eval 的
    setInterval 不会自动停，上一份还抓着旧 DOM 的 #liveTimer 继续写 →
@@ -45,7 +69,9 @@ function getDeviceId(){
 function persistLocalActive(){
   if(!window.active) return;
   saveActive({ timerId: window.active.timerId, ownerDevice: window.active.ownerDevice, moduleId: window.active.moduleId, subId: window.active.subId,
-    startTs: window.active.startTs, paused: window.active.paused, pauseStart: window.active.pauseStart, pauseAccum: window.active.pauseAccum,
+    startTs: window.active.startTs, startMonoNs: window.active.startMonoNs || null,
+    paused: window.active.paused, pauseStart: window.active.pauseStart, pauseStartMonoNs: window.active.pauseStartMonoNs || null,
+    pauseAccum: window.active.pauseAccum, pauseAccumMonoNs: window.active.pauseAccumMonoNs || 0,
     targetSec: window.active.targetSec || null, mode: window.active.mode || 'up', updatedAt: window.active.updatedAt, lastBeat: window.active.lastBeat });
 }
 
@@ -211,11 +237,31 @@ function bindStartButtons(){
   });
 }
 
-/* 当前活跃学习时长（毫秒，已扣除暂停） */
+/* 当前活跃学习时长（毫秒，已扣除暂停）。
+   优先用「单调时钟减法」算流逝（隔离系统时间修改/NTP/休眠），再用 wall-clock 结果交叉校验：
+   - 系统时间被改导致 wall 结果异常（负或远超单调结果）→ 信任单调结果
+   - 正常情况两者一致，取单调结果（整数、零累积）
+   睡眠唤醒：performance.now() 休眠期间不走 → 自然不计入，语义正确。 */
 function activeMs(){
   if(!window.active) return 0;
-  let ms = Date.now() - window.active.startTs - (window.active.pauseAccum || 0);
-  if(window.active.paused && window.active.pauseStart) ms -= (Date.now() - window.active.pauseStart);
+  const nowMono = safeMonoNowNs();
+  const startMono = window.active.startMonoNs ? BigInt(window.active.startMonoNs) : null;
+  let pauseMono = window.active.pauseAccumMonoNs || 0;
+  if(window.active.paused && window.active.pauseStartMonoNs != null){
+    pauseMono += Number(nowMono - BigInt(window.active.pauseStartMonoNs));
+  }
+  let monoMsVal = startMono != null ? Number(nowMono - startMono) - pauseMono : null;
+
+  // wall-clock 结果（用于交叉校验，以及 startMono 缺失时兜底）
+  let wallMs = Date.now() - window.active.startTs - (window.active.pauseAccum || 0);
+  if(window.active.paused && window.active.pauseStart) wallMs -= (Date.now() - window.active.pauseStart);
+
+  // 取更可信者：单调可用且非负 → 用单调；否则用 wall（再兜底 0）
+  let ms;
+  if(monoMsVal != null && monoMsVal >= 0) ms = monoMsVal;
+  else ms = Math.max(0, wallMs);
+  // 交叉校验：若 wall 明显小于 0（时间被往回改），仍以单调为准；wall 异常大（时间往前跳）不采纳
+  if(wallMs < 0 && monoMsVal != null) ms = monoMsVal;
   return Math.max(0, ms);
 }
 /* 当前累计暂停时长（毫秒） */
@@ -223,7 +269,12 @@ function pauseMs(){
   if(!window.active) return 0;
   let ms = window.active.pauseAccum || 0;
   if(window.active.paused && window.active.pauseStart) ms += (Date.now() - window.active.pauseStart);
-  return Math.max(0, ms);
+  const monoP = window.active.pauseAccumMonoNs || 0;
+  const monoLive = (window.active.paused && window.active.pauseStartMonoNs != null)
+    ? Number(safeMonoNowNs() - BigInt(window.active.pauseStartMonoNs)) : 0;
+  const monoTotal = monoP + monoLive;
+  // 优先单调（不被时间跳变污染），缺则 wall
+  return Math.max(0, monoTotal > 0 ? monoTotal : ms);
 }
 
 /* 直接以「模块」开始计时（不再选子任务） */
@@ -241,7 +292,8 @@ function startSession(moduleId){
   const mode = (modeEl && modeEl.dataset.mode) || 'up';
   const now = Date.now();
   window.active = { timerId: uid(), ownerDevice: getDeviceId(), moduleId, moduleName: m.name, subId: m.id, subName: m.name,
-    startTs: now, paused: false, pauseStart: null, pauseAccum: 0,
+    startTs: now, startMonoNs: safeMonoNowNs().toString(), paused: false, pauseStart: null, pauseAccum: 0,
+    pauseStartMonoNs: null, pauseAccumMonoNs: 0,
     targetSec, mode, updatedAt: now, lastBeat: now };
   persistLocalActive();
   persistMirror();        // 立即写云端可信源
@@ -265,13 +317,21 @@ function togglePause(){
   if(!window.active.paused){
     window.active.paused = true;
     window.active.pauseStart = Date.now();
+    window.active.pauseStartMonoNs = safeMonoNowNs().toString();
     $('#pauseBtn').textContent = '继续';
     $('#pauseBtn').className = 'btn btn-primary';
     toast('已暂停，回来点「继续」就好');
   } else {
-    window.active.pauseAccum = (window.active.pauseAccum || 0) + (Date.now() - window.active.pauseStart);
+    const now = Date.now();
+    const nowMono = safeMonoNowNs();
+    window.active.pauseAccum = (window.active.pauseAccum || 0) + (now - window.active.pauseStart);
+    if(window.active.pauseStartMonoNs != null){
+      window.active.pauseAccumMonoNs = (window.active.pauseAccumMonoNs || 0) +
+        Number(nowMono - BigInt(window.active.pauseStartMonoNs));
+    }
     window.active.paused = false;
     window.active.pauseStart = null;
+    window.active.pauseStartMonoNs = null;
     $('#pauseBtn').textContent = '暂停';
     $('#pauseBtn').className = 'btn';
     toast('继续学习，加油');
@@ -287,12 +347,23 @@ function stopSession(){
   stopTick();
   stopHeartbeat();
   const timerId = window.active.timerId;
-  let totalPauseMs = window.active.pauseAccum || 0;
-  if(window.active.paused && window.active.pauseStart) totalPauseMs += (Date.now() - window.active.pauseStart);
   const endTs = Date.now();
-  const totalSec = Math.round((endTs - window.active.startTs)/1000);
-  const pauseSec = Math.round(totalPauseMs/1000);
-  const durationSec = Math.max(0, totalSec - pauseSec);
+  // 暂停时长：优先单调累计（不受时间跳变污染）
+  let totalPauseMs = window.active.pauseAccumMonoNs || 0;
+  if(window.active.paused && window.active.pauseStartMonoNs != null){
+    totalPauseMs += Number(safeMonoNowNs() - BigInt(window.active.pauseStartMonoNs));
+  }
+  // 学习时长：优先单调减法（startMonoNs 缺失时降级用 wall）
+  let learnedMs;
+  if(window.active.startMonoNs){
+    learnedMs = Number(safeMonoNowNs() - BigInt(window.active.startMonoNs)) - totalPauseMs;
+  } else {
+    let wp = window.active.pauseAccum || 0;
+    if(window.active.paused && window.active.pauseStart) wp += (Date.now() - window.active.pauseStart);
+    learnedMs = (endTs - window.active.startTs) - wp;
+  }
+  const pauseSec = Math.max(0, Math.round(totalPauseMs/1000));
+  const durationSec = Math.max(0, Math.round(learnedMs/1000));
   // 入库去重：同一 timerId 只结算一次（防双端各自结束 → 两段计时叠加进当日统计）
   const already = DATA.sessions.some(s => s.timerId && s.timerId === timerId);
   if(!already && durationSec > 0){
@@ -388,8 +459,9 @@ function maybeTakeover(){
   window.active = { timerId: m.timerId, ownerDevice: me,
     moduleId: m.moduleId, moduleName: m.moduleName || (mod && mod.name) || '学习',
     subId: m.subId || m.moduleId, subName: m.subName || (mod && mod.name) || '学习',
-    startTs: _num(m.startTs), paused: !!m.paused, pauseStart: m.pauseStart ? _num(m.pauseStart) : null,
-    pauseAccum: _num(m.pauseAccum), targetSec: m.targetSec || null, mode: m.mode || 'up',
+    startTs: _num(m.startTs), startMonoNs: null, paused: !!m.paused, pauseStart: m.pauseStart ? _num(m.pauseStart) : null,
+    pauseStartMonoNs: null, pauseAccum: _num(m.pauseAccum), pauseAccumMonoNs: _num(m.pauseAccum),
+    targetSec: m.targetSec || null, mode: m.mode || 'up',
     updatedAt: Date.now(), lastBeat: Date.now() };
   persistLocalActive();
   persistMirror();   // 接管后立即可信源刷新为「本机拥有」
@@ -517,7 +589,8 @@ ready(() => {
       // 今日从 0 点重新计时（owner 改本机）
       window.active = { timerId: saved.timerId || uid(), ownerDevice: me, moduleId: saved.moduleId,
         moduleName: mName, subId: saved.subId || saved.moduleId, subName: saved.subName || mName,
-        startTs: startOfToday.getTime(), paused: false, pauseStart: null, pauseAccum: 0,
+        startTs: startOfToday.getTime(), startMonoNs: safeMonoNowNs().toString(), paused: false, pauseStart: null, pauseStartMonoNs: null,
+        pauseAccum: 0, pauseAccumMonoNs: 0,
         targetSec: saved.targetSec || null, mode: saved.mode || 'up', updatedAt: Date.now(), lastBeat: Date.now() };
       persistLocalActive(); persistMirror();
       $('#activeInfo').innerHTML = '<strong>' + mName + '</strong> 进行中';
@@ -534,8 +607,11 @@ ready(() => {
     window.active = { timerId: saved.timerId || uid(), ownerDevice: (saved.ownerDevice || me),
       moduleId: saved.moduleId, moduleName: saved.moduleName || (mod && mod.name) || '学习',
       subId: saved.subId || saved.moduleId, subName: saved.subName || (mod && mod.name) || '学习',
-      startTs: _num(saved.startTs), paused: !!saved.paused, pauseStart: saved.pauseStart ? _num(saved.pauseStart) : null,
-      pauseAccum: _num(saved.pauseAccum), targetSec: saved.targetSec || null, mode: saved.mode || 'up',
+      startTs: _num(saved.startTs), startMonoNs: saved.startMonoNs || null,
+      paused: !!saved.paused, pauseStart: saved.pauseStart ? _num(saved.pauseStart) : null,
+      pauseStartMonoNs: saved.pauseStartMonoNs || null, pauseAccum: _num(saved.pauseAccum),
+      pauseAccumMonoNs: saved.pauseAccumMonoNs || _num(saved.pauseAccum),
+      targetSec: saved.targetSec || null, mode: saved.mode || 'up',
       updatedAt: Date.now(), lastBeat: Date.now() };
     persistLocalActive();
     if((saved.ownerDevice || '') !== me) persistMirror();   // 旧镜像无 owner：补写 owner 回云端
