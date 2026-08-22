@@ -51,7 +51,7 @@ function injectNav(){
   let html = '';
   html += '<div class="side-head">'
     + '<span class="side-brand-mark" aria-hidden="true">I</span>'
-    + '<div class="side-brand"><span class="bn">IELTS Hub</span><span class="bs">雅思备考</span></div>'
+    + '<div class="side-brand"><span class="bn">IELTS</span><span class="bs">雅思备考站</span></div>'
     + '</div>';
   // 方案1：全局计时徽标容器（任何页面常驻；计时进行中显示呼吸徽标 + 一键结束，解决 P1/P3）
   html += '<div class="side-timer-wrap" id="sideTimer"></div>';
