@@ -34,6 +34,7 @@ ready(() => {
   $('#syncBindBtn').addEventListener('click', () => { syncLoginOrRegister(); });
   $('#sSyncCode').addEventListener('keydown', e => { if(e.key === 'Enter') syncLoginOrRegister(); });
   $('#syncDiagBtn').addEventListener('click', () => { syncDiagnose(); });
+  $('#syncNowBtn').addEventListener('click', () => { cloudUpload(true, true); });
 });
 
 function saveSettings(){

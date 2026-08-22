@@ -552,6 +552,15 @@ function computeStreak(checkins){
    （多设备共享）。非 Cloudflare 部署时 /api/sync 会 404，所有调用都会优雅降级
    （不报错、不弹窗刷屏）。账号通过 X-Sync-Key 请求头传递，兼容旧的 ?code= 参数。 */
 let _cloudTimer = null;
+let _lastUploadedHash = '';
+let _pendingUpload = false;
+function hashData(){
+  // 简单稳定哈希：把 DATA JSON 做 djb2，够用来判断「内容是否真变了」
+  const s = JSON.stringify(DATA);
+  let h = 5381;
+  for(let i = 0; i < s.length; i++) h = ((h << 5) + h) + s.charCodeAt(i);
+  return String(h);
+}
 
 /* 设备唯一标识：每台浏览器生成一次，写入 localStorage，用于云端记录来源 */
 function getDeviceId(){
@@ -580,13 +589,22 @@ async function syncApi(method, body){
 
 function scheduleCloudUpload(){
   if(!DATA.settings.autoSync || !DATA.settings.syncCode) return;
+  _pendingUpload = true;
   if(_cloudTimer) clearTimeout(_cloudTimer);
-  _cloudTimer = setTimeout(() => { cloudUpload(false); }, 1500); // 防抖，避免每次按键都上传
+  // 60 秒防抖：避免每次 hubSave（如 plans 页频繁写盘）都触发 PUT，导致 Cloudflare KV 日配额秒光。
+  _cloudTimer = setTimeout(() => { cloudUpload(false); }, 60 * 1000);
 }
-async function cloudUpload(showToast){
+async function cloudUpload(showToast, force){
   showToast = showToast !== false;
+  _pendingUpload = false;
   const phone = DATA.settings.syncCode;
   if(!phone){ if(showToast) toast('请先在「设置」绑定手机号'); return; }
+  const h = hashData();
+  if(h === _lastUploadedHash && !force){
+    // 数据自上次成功上传后没有实质变化，跳过本次 PUT，节省 KV 写入次数
+    if(showToast) toast('数据未变化，无需上传');
+    return;
+  }
   try{
     const [res, body] = await syncApi('PUT', { data: DATA, ts:  Date.now(), deviceId: getDeviceId() });
     if(res.status === 404) throw new Error('云端未启用（需先部署 Functions）');
@@ -596,6 +614,7 @@ async function cloudUpload(showToast){
       throw new Error(detail);
     }
     DATA.settings.lastSyncTs = Date.now();
+    _lastUploadedHash = h;
     if(showToast) toast('已上传到云端');
     syncSetStatus('✅ 已同步到云端', 'ok');
     renderLastSync();
@@ -607,6 +626,21 @@ async function cloudUpload(showToast){
     renderLastSync();
   }
 }
+/* 页面关闭/切后台前，若还有未上传的变更，尽量上传一次。
+   sendBeacon 限制约 64KB，无法携带自定义头，故把账号放 URL 参数 code=（sync.js 兼容）。
+   数据超过 60KB 时不在 beforeunload 中强传（会失败或阻塞），下次打开页面后 60s 内会自动补传，
+   或用户可手动点「立即同步到云端」。 */
+function flushCloudUpload(){
+  if(!_pendingUpload) return;
+  if(!DATA.settings.autoSync || !DATA.settings.syncCode) return;
+  try{
+    const payload = JSON.stringify({ data: DATA, ts: Date.now(), deviceId: getDeviceId() });
+    if(payload.length > 60 * 1024) return; // sendBeacon 传不了，交给下次自动上传或手动同步
+    navigator.sendBeacon('/api/sync?code=' + encodeURIComponent(DATA.settings.syncCode), new Blob([payload], { type: 'application/json' }));
+  }catch(e){}
+}
+window.addEventListener('beforeunload', flushCloudUpload);
+document.addEventListener('visibilitychange', () => { if(document.hidden) flushCloudUpload(); });
 /* ===== 字段级合并（替代整份覆盖，避免双设备互相抹掉进度） ===== */
 /* plans/checkins 已改为特判合并（_mergePlans / Set 去重），不在通用数组里 */
 const SYNC_ARRAY_FIELDS = ['sessions','notes','meds','corpus','scores','errorbook',
