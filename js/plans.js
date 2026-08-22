@@ -162,15 +162,28 @@ function render(){
   // 实现「昨天没做完 → 今天自动续上」。
   if(date === todayKey()){
     const todayPlan = getPlan(date);
-    if(!todayPlan || todayPlan.items.length === 0){
+    // 仅在「今天计划对象还不存在」时自动延续一次（把昨天未完成的搬来）。
+    // 注意：不能用 items.length===0 当触发条件——否则用户把今天任务删光后会
+    // 反复把昨天的任务「复活」，表现为「删都删不掉」。创建对象后即视为已初始化。
+    if(!todayPlan || !todayPlan.initialized){
       const yPlan = getPlan(addDays(date, -1));
       if(yPlan && yPlan.items.length){
         const carried = yPlan.items.filter(i => !i.done);
         if(carried.length){
           const tp = ensurePlan(date);
           carried.forEach(i => tp.items.push({ id: uid(), text: i.text, done: false, carried: true }));
+          tp.initialized = true;
+          hubSave();
+        } else {
+          // 昨天没有未完成的，也要标记今天已初始化，避免后续清空时误搬
+          const tp = ensurePlan(date);
+          tp.initialized = true;
           hubSave();
         }
+      } else {
+        const tp = ensurePlan(date);
+        tp.initialized = true;
+        hubSave();
       }
     }
   }
