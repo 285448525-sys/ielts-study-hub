@@ -733,17 +733,29 @@ async function aiStoryLink(id){
       '可套题族（搭边也行）：' + (m.coverage || []).map(c => c.topic + (c.fit === 'loose' ? '(搭边:' + c.note + ')' : '')).join('、')
     ).join('\n---\n');
 
-    const sys = '你是雅思口语 P2 串题助手。考生有一份"万能故事库"（多条来自真实经历的小故事，每条含：英文可背故事、中文逻辑链、可套题族）。\n' +
-      '当前是一道具体的 P2 题。请：\n' +
-      '1. 扫描全部故事，找出**能用来答这题的细节**（可跨多条故事组合，不限单条；只要能用的细节都拼进来）。\n' +
-      '2. 把这些细节**拼成一篇英文参考回答**（简单句为主，契合口语 5.5，长度适配该题、不要过长）。开头用一句通用开头（如 "I\'d like to talk about..." 什么题都能接），结尾用一句收束，**开头句和结尾句都直接写进参考英文里**，让它读起来是一篇完整的回答。注意：这不是让考生照抄——大部分内容考生会用自己的话说，只有少量句子（尤其开头/结尾）才直接借用。\n' +
-      '3. 给这道 P2 题专属的「逻辑链」：用若干中文关键词以 "—"（中文横杠/破折号）串接，把本题要讲的步骤、细节、感受都铺开——越长越细越好、数量不固定，严禁输出 "[横杠]" 这几个字。\n' +
-      '输出严格 JSON：{"article":"拼接的英文参考回答（含开头和结尾句）","logicChain":"关键词—关键词（用中文横杠隔开，越长越细越好）"}，不要任何解释文字。';
+    // 把语料库写进 system（而非仅 user），弱模型读漏就会编，写死为唯一积木更稳
+    const sys = [
+      '你是雅思口语 P2 串题助手。考生基础较差（四级未过），目标严格锁定 5.5 分，考场上必须能直接念出来而不卡壳。',
+      '',
+      '【考生真实语料库】（你的唯一素材来源，严禁自创新细节；以下从考生已背素材动态注入）：',
+      matsText,
+      '',
+      '【铁律】',
+      '1. 素材优先级：优先使用最熟的素材（通常含 Xiamen / beach / Leo / seafood 等，若是旅行故事优先）。该素材完全套不上时，才用次熟素材（ADHD / 专注达相关）。其他素材仅在万不得已时使用，且只借关键词、不可展开编造。',
+      '2. 70- 80% 句子必须从语料库直接搬运，只改 1-2 句点题句适配题目。严禁编展览内容、建筑外观、名人成就、菜品味道等生僻细节。若题目所涉事物不在语料库（如"著名建筑""成功商人"），用 "Well, actually, I don\'t know any..." 明说，并硬套最熟素材里的"海边/风景/感受"句，绝不编造新内容。',
+      '3. 词汇天花板：只用初中词（happy, tired, relax, boring, beautiful, delicious, amazing, big, fresh, nice, good, like, feel, went, was, were, because, and）。严禁 landmark / construct / symbolize / architecture / breathtaking / incredible / entrepreneurship / cognitive / authentic 等生僻词。',
+      '4. 语法：只用简单句（主谓宾 / 主系表），禁止复杂从句、分词结构、被动语态。',
+      '5. 长度严格 110-125 词。多了删，少了补一句语料库里的感受句。',
+      '6. 新增/改动的句子用 ** 包裹标黑体，语料库原句不标。',
+      '7. 开头固定用 "I\'d like to talk about..."，结尾固定用 "So that\'s why I chose it to describe."',
+      '8. 逻辑链用中文短语横杠 "-" 连接，越长越细越好，严禁输出 "[横杠]" 这几个字。',
+      '',
+      '输出严格 JSON：{"article":"英文稿（含开头结尾，改动句用**标黑）","logicChain":"关键词—关键词"}，不要任何解释文字。'
+    ].join('\n');
 
     const user = 'P2 题目：' + (s.promptEn || s.title || '') +
       '\n中文题意：' + (s.promptZh || '') +
-      '\nYou should say: ' + ((s.youShouldSay || []).join('; ')) +
-      '\n\n考生的万能素材库：\n' + matsText;
+      '\nYou should say: ' + ((s.youShouldSay || []).join('; '));
 
     const content = await callRelay('speaking_chuan', [
       { role:'system', content: sys },
@@ -766,12 +778,18 @@ async function aiStoryLink(id){
   }
 }
 
+// 把 AI 输出的 **文字** 转成 <b>文字</b>（串题稿里改动句用 ** 标注）
+function mdInline(t){
+  if(!t) return '';
+  return escapeHtml(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+}
+
 function renderStoryLink(el, j){
   if(!el) return;
   let h = '<div class="mat-plan">';
   h += '<div class="mat-plan-head">🧩 串题素材（AI 根据万能故事库匹配）</div>';
   if(j.logicChain) h += '<div class="mat-plan-sec"><b>串题逻辑</b><div class="mat-logic">' + escapeHtml(j.logicChain) + '</div></div>';
-  if(j.article) h += '<div class="mat-plan-sec"><b>串题原文</b><div class="mat-story-en">' + escapeHtml(j.article) + '</div>';
+  if(j.article) h += '<div class="mat-plan-sec"><b>串题原文</b><div class="mat-story-en">' + mdInline(j.article) + '</div>';
   h += '<div class="mat-plan-tips">💡 方案根据你的万能故事库跨故事拼细节生成；点「AI 串题思路」可重新生成。</div>';
   h += '</div>';
   el.innerHTML = h;
