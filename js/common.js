@@ -590,10 +590,17 @@ async function cloudUpload(showToast){
   try{
     const [res] = await syncApi('PUT', { data: DATA, ts:  Date.now(), deviceId: getDeviceId() });
     if(res.status === 404) throw new Error('云端未启用（需先部署 Functions）');
+    if(res.status === 503) throw new Error('云端存储未绑定（Cloudflare 后台需绑定 SYNC_KV）');
     if(!res.ok) throw new Error('HTTP ' + res.status);
     DATA.settings.lastSyncTs = Date.now();
     if(showToast) toast('已上传到云端');
-  }catch(e){ if(showToast) toast('云端上传失败：' + e.message); }
+    syncSetStatus('✅ 已同步到云端', 'ok');
+    renderLastSync();
+  }catch(e){
+    if(showToast) toast('云端上传失败：' + e.message);
+    syncSetStatus('同步失败：' + e.message, 'error');
+    renderLastSync();
+  }
 }
 /* ===== 字段级合并（替代整份覆盖，避免双设备互相抹掉进度） ===== */
 /* plans/checkins 已改为特判合并（_mergePlans / Set 去重），不在通用数组里 */
@@ -804,6 +811,7 @@ async function cloudDownload(silent){
   try{
     const [res, data] = await syncApi('GET');
     if(res.status === 404){ if(!silent) toast('云端没有该手机号的数据'); return false; }
+    if(res.status === 503) throw new Error('云端存储未绑定（Cloudflare 后台需绑定 SYNC_KV）');
     if(!res.ok) throw new Error('HTTP ' + res.status);
     if(!data || !data.data) throw new Error('返回格式异常');
     const m = mergeData(DATA, data.data);
@@ -821,11 +829,18 @@ async function cloudDownload(silent){
       document.dispatchEvent(new CustomEvent('hub:data-merged'));
       // 无缝刷新：合并成功后主动重渲染当前页面，无需用户手动刷新即可看到另一端的变化。
       renderAllOnMerge();
+      syncSetStatus('✅ 已同步（已合并云端更新）', 'ok');
+      renderLastSync();
     } else if(!silent){
       toast('云端没有比本机更新的内容');
     }
     return true;
-  }catch(e){ if(!silent) toast('云端下载失败：' + e.message); return false; }
+  }catch(e){
+    if(!silent) toast('云端下载失败：' + e.message);
+    syncSetStatus('同步失败：' + e.message, 'error');
+    renderLastSync();
+    return false;
+  }
 }
 async function cloudDelete(){
   const phone = DATA.settings.syncCode;
@@ -884,6 +899,27 @@ function enableAutoSyncAfterLogin(phone){
   DATA.settings.autoSync = true;
   hubSave();
   if(typeof scheduleCloudUpload === 'function') scheduleCloudUpload();
+}
+/* 诊断：明确告诉用户后端到底卡在哪一步（不静默） */
+async function syncDiagnose(){
+  const phone = DATA.settings.syncCode;
+  if(!phone){ syncSetStatus('请先在上方输入手机号并点「绑定并同步」', 'error'); return; }
+  syncSetStatus('正在探测云端…', '');
+  try{
+    const [res, data] = await syncApi('GET');
+    if(res.status === 404){
+      syncSetStatus('探测结果：HTTP 404 —— 云端 Functions 未启用或未部署。即 Cloudflare Pages 项目的 Pages Functions 没开启，/api/sync 不存在。需在 Cloudflare 后台确认 Functions 已启用。', 'error');
+    } else if(res.status === 503){
+      syncSetStatus('探测结果：HTTP 503 —— 云端存储未绑定。Cloudflare Pages 项目未绑定 KV 命名空间「SYNC_KV」。需在后台 Settings → Storage/KV 绑定一个名为 SYNC_KV 的命名空间。', 'error');
+    } else if(res.ok){
+      syncSetStatus('探测结果：HTTP 200 ✅ 云端连通正常。若仍显示「尚未同步」，点一下「绑定并同步」或刷新页面即可。', 'ok');
+      renderLastSync();
+    } else {
+      syncSetStatus('探测结果：HTTP ' + res.status + '（' + ((data && data.error) || '未知错误') + '）', 'error');
+    }
+  }catch(e){
+    syncSetStatus('探测失败：' + e.message + '（可能是网络无法访问 pages.dev，或浏览器拦了请求）', 'error');
+  }
 }
 /* 设置页状态行（无对应 DOM 时静默） */
 function syncSetStatus(msg, kind){
