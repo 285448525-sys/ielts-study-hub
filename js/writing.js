@@ -2,23 +2,26 @@ var curCat = null;
 var curId = null;
 var curTab = 'tpl';
 
+function switchWriteTab(tab){
+  curTab = tab;
+  const btn = $('#writeTabs').querySelector('[data-tab="' + tab + '"]');
+  $('#writeTabs').querySelectorAll('[data-tab]').forEach(x => x.classList.toggle('active', x === btn));
+  $('#tplPanel').hidden = tab !== 'tpl';
+  $('#bankPanel').hidden = tab !== 'bank';
+  $('#scorePanel').hidden = tab !== 'score';
+  $('#dictationPanel').hidden = tab !== 'dictation';
+  if(tab === 'bank') renderBank();
+  if(tab === 'score') renderScoreHist();
+  if(tab === 'dictation'){ showDictHome(); renderDictationSources(); }
+}
+
 ready(() => {
-  // 迁移：清洗写作模板分类名里的括号后缀（如「观点型（第一优先级）」→「观点型」），就地改写并保存
+  // 迁移：清洗写作模板分类名/标题里的括号后缀（如「观点型（第一优先级）」→「观点型」），就地改写并保存
   migrateWritingCategoryNames();
 
   // Tab 切换
   $('#writeTabs').querySelectorAll('[data-tab]').forEach(b => {
-    b.addEventListener('click', () => {
-      curTab = b.dataset.tab;
-      $('#writeTabs').querySelectorAll('[data-tab]').forEach(x => x.classList.toggle('active', x === b));
-      $('#tplPanel').hidden = curTab !== 'tpl';
-      $('#bankPanel').hidden = curTab !== 'bank';
-      $('#scorePanel').hidden = curTab !== 'score';
-      $('#dictationPanel').hidden = curTab !== 'dictation';
-      if(curTab === 'bank') renderBank();
-      if(curTab === 'score') renderScoreHist();
-      if(curTab === 'dictation'){ showDictHome(); renderDictationSources(); }
-    });
+    b.addEventListener('click', () => switchWriteTab(b.dataset.tab));
   });
 
   // 模板库
@@ -75,13 +78,19 @@ function cleanCatName(c){
   if(!c) return c;
   return c.replace(/[（(][^）)]*[）)]/g, '').trim();
 }
-// 迁移：把 DATA.writing 里所有模板的 category 就地清洗（去掉括号后缀），并持久化，使渲染/过滤全程一致
+// 迁移：把 DATA.writing 里所有模板的 category/title 就地清洗（去掉括号后缀），并持久化，使渲染/过滤全程一致
 function migrateWritingCategoryNames(){
   let changed = false;
   (DATA.writing || []).forEach(t => {
-    if(!t || typeof t.category !== 'string') return;
-    const c = cleanCatName(t.category);
-    if(c !== t.category){ t.category = c; changed = true; }
+    if(!t) return;
+    if(typeof t.category === 'string'){
+      const c = cleanCatName(t.category);
+      if(c !== t.category){ t.category = c; changed = true; }
+    }
+    if(typeof t.title === 'string'){
+      const ti = cleanCatName(t.title);
+      if(ti !== t.title){ t.title = ti; changed = true; }
+    }
   });
   if(changed) hubSave();
 }
@@ -104,7 +113,7 @@ function renderCats(){
 
 function renderList(){
   const list = DATA.writing.filter(t => t.category === curCat);
-  $('#tplList').innerHTML = list.map(t => '<div class="card tpl-card" data-id="' + t.id + '"><b>' + escapeHtml(t.title) + '</b><div class="muted" style="font-size:13px;margin-top:4px">' + escapeHtml(t.category) + '</div></div>').join('');
+  $('#tplList').innerHTML = list.map(t => '<div class="card tpl-card" data-id="' + t.id + '"><b>' + escapeHtml(cleanCatName(t.title)) + '</b><div class="muted" style="font-size:13px;margin-top:4px">' + escapeHtml(t.category) + '</div></div>').join('');
   $('#empty').hidden = list.length > 0;
   $('#tplList').querySelectorAll('[data-id]').forEach(c => c.addEventListener('click', () => openTpl(c.dataset.id)));
 }
@@ -115,7 +124,7 @@ function openTpl(id){
   curId = id;
   $('#listCard').hidden = true; $('#detailCard').hidden = false;
   document.querySelector('.write-layout')?.classList.add('detail-open');
-  $('#dTitle').textContent = t.title;
+  $('#dTitle').textContent = cleanCatName(t.title);
   $('#skeleton').innerHTML = highlight(t.skeleton);
   $('#tips').innerHTML = t.tips ? escapeHtml(t.tips).replace(/\n/g,'<br>') : '';
   const sb = $('#tplScoreBox');
@@ -474,9 +483,10 @@ function openTplDict(tplId){
   if(!t) return;
   // 骨架 → 纯默写文本：把【占位符】替换成 ____，让用户整框留空时不算错
   const plain = (t.skeleton || '').replace(/【[^】]*】/g, '____');
-  const virtual = { id: 'tpl_' + t.id, title: t.title + '（模板默写）', text: plain, isTpl: true };
-  openVirtualSource(virtual);   // dictation.js 全局函数
-  toast('已进入模板默写：' + t.title + '。骨架里的填空位整框留空不算错。');
+  const virtual = { id: 'tpl_' + t.id, title: cleanCatName(t.title) + '（模板默写）', text: plain, isTpl: true };
+  switchWriteTab('dictation');   // 切到「默写」tab，否则用户还在模板库面板，看不见练习界面
+  openVirtualSource(virtual);    // dictation.js 全局函数
+  toast('已进入模板默写：' + cleanCatName(t.title) + '。骨架里的填空位整框留空不算错。');
 }
 
 /* ===== 万能语料库 ===== */
