@@ -1784,7 +1784,12 @@ var matGen = (function(){
     }catch(_){}
     return { persona:null, materials:[], gaps:[], followups:[], answers:{ extraMore:[], followups:[], gaps:[] } };
   }
-  function saveStore(){ DATA.materials = store; hubSave(); }
+  function saveStore(){
+    // 关键：每次素材变动刷新 epoch，使云端合并走「较新端整体替换」分支，
+    // 删除/新增/修改都能即时跨设备生效，避免「删了又并回来」的旧并集陷阱。
+    if(DATA.materials && typeof DATA.materials === 'object') DATA.materials.materialsEpoch = Date.now();
+    DATA.materials = store; hubSave();
+  }
   function ans(id){ return (store.answers[id] || '').trim(); }
 
   function init(){ store = loadStore(); mode = store.materials.length ? 'result' : 'q'; render(); }

@@ -33,6 +33,8 @@ ready(() => {
   // 云端同步（手机号账号，单按钮：注册 / 登录统一入口）
   $('#syncBindBtn').addEventListener('click', () => { syncLoginOrRegister(); });
   $('#sSyncCode').addEventListener('keydown', e => { if(e.key === 'Enter') syncLoginOrRegister(); });
+  $('#syncPushBtn').addEventListener('click', () => { syncForcePush(); });
+  $('#syncPullBtn').addEventListener('click', () => { syncForcePull(); });
 
   renderLinks();
 

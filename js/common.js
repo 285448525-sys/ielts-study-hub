@@ -583,9 +583,10 @@ async function cloudUpload(showToast){
   const phone = DATA.settings.syncCode;
   if(!phone){ if(showToast) toast('请先在「设置」绑定手机号'); return; }
   try{
-    const [res] = await syncApi('PUT', { data: DATA, ts: Date.now(), deviceId: getDeviceId() });
+    const [res] = await syncApi('PUT', { data: DATA, ts:  Date.now(), deviceId: getDeviceId() });
     if(res.status === 404) throw new Error('云端未启用（需先部署 Functions）');
     if(!res.ok) throw new Error('HTTP ' + res.status);
+    DATA.settings.lastSyncTs = Date.now();
     if(showToast) toast('已上传到云端');
   }catch(e){ if(showToast) toast('云端上传失败：' + e.message); }
 }
@@ -807,6 +808,7 @@ async function cloudDownload(silent){
     const reallyChanged = JSON.stringify(_stripBeat(m.data)) !== JSON.stringify(_stripBeat(DATA));
     if(reallyChanged){
       DATA = m.data; // 合并而非覆盖：保留本机进度，并入云端新增/更新
+      DATA.settings.lastSyncTs = Date.now();
       // 直接写 localStorage，不走 hubSave——避免「合并云端数据后又触发上传→另一端又拉到→乒乓刷屏」。
       // 本端独有数据会在用户下次操作（hubSave）时自然上传，无需在合并时立即回传。
       try{ localStorage.setItem(HUB_KEY, JSON.stringify(DATA)); }catch(e){}
@@ -890,8 +892,39 @@ function renderSyncState(){
   const el = $('#syncState');
   if(!el) return;
   const phone = DATA.settings.syncCode || '';
-  if(!phone){ el.textContent = '尚未绑定手机号'; return; }
+  if(!phone){ el.textContent = '尚未绑定手机号'; renderLastSync(); return; }
   el.textContent = '已绑定：' + phone + (DATA.settings.autoSync ? '（自动同步：开）' : '（自动同步：关）');
+  renderLastSync();
+}
+/* 上次同步时间（可读） */
+function renderLastSync(){
+  const el = $('#lastSyncTs');
+  if(!el) return;
+  const ts = DATA.settings.lastSyncTs;
+  el.textContent = ts ? ('上次同步：' + new Date(ts).toLocaleString('zh-CN')) : '尚未同步';
+}
+/* 强制：本机覆盖云端（无视合并，直接 PUT 整份） */
+function syncForcePush(){
+  if(!DATA.settings.syncCode){ toast('请先绑定手机号'); return; }
+  cloudUpload(true);
+  setTimeout(renderLastSync, 1800);
+}
+/* 强制：云端覆盖本机（GET 后整体替换，不保留本机独有数据） */
+async function syncForcePull(){
+  const phone = DATA.settings.syncCode;
+  if(!phone){ toast('请先绑定手机号'); return; }
+  if(!confirm('⚠️ 此操作将用云端数据替换本机所有数据（含素材），本机未同步的内容会丢失！确定继续？')) return;
+  try{
+    const [res, data] = await syncApi('GET');
+    if(res.status === 404){ toast('云端没有该手机号的数据'); return; }
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    if(!data || !data.data) throw new Error('返回格式异常');
+    DATA = data.data;
+    DATA.settings.lastSyncTs = Date.now();
+    hubSave();
+    toast('已用云端数据覆盖本机');
+    setTimeout(() => location.reload(), 800);
+  }catch(e){ toast('云端拉取失败：' + e.message); }
 }
 
 /* 自动双向同步：启动静默合并拉取一次 + 定时/回到页面时拉取（均为合并，不覆盖、不弹确认刷屏） */

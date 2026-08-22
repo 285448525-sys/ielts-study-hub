@@ -85,6 +85,12 @@
     </div>
     <p id="syncStatus" class="muted" style="margin:6px 0 0"></p>
     <p id="syncState" class="muted" style="margin:2px 0 0"></p>
+    <div class="form-row" style="margin-top:8px; gap:8px; flex-wrap:wrap">
+      <button class="btn" id="syncPushBtn">⬆️ 本机覆盖云端</button>
+      <button class="btn" id="syncPullBtn">⬇️ 云端覆盖本机</button>
+      <span id="lastSyncTs" class="muted" style="align-self:center"></span>
+    </div>
+    <p class="muted" style="margin:6px 0 0; font-size:12px">「本机覆盖云端」把当前设备数据强写云端；「云端覆盖本机」用云端数据替换本机。两边冲突时手动二选一，不再自动合并互相覆盖。</p>
   </section>
 
   <section class="card">

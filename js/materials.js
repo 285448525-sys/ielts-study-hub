@@ -49,7 +49,10 @@
     }catch(_){}
     return { persona:null, materials:[], gaps:[], followups:[], answers:{ extraMore:[], followups:[], gaps:[] } };
   }
-  function saveStore(){ DATA.materials = store; hubSave(); }
+  function saveStore(){
+    if(DATA.materials && typeof DATA.materials === 'object') DATA.materials.materialsEpoch = Date.now();
+    DATA.materials = store; hubSave();
+  }
   function ans(id){ return (store.answers[id] || '').trim(); }
 
   /* ---------- 渲染分发 ---------- */
