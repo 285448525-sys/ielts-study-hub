@@ -67,7 +67,7 @@ function renderCats(){
   const cats = [];
   DATA.writing.forEach(t => { if(!cats.includes(t.category)) cats.push(t.category); });
   // 大作文在上、小作文在下；组内按雅思出题频率排序（高频靠前）
-  const CAT_ORDER = ['大作文观点型','大作文讨论型','大作文Report','小作文动态图','小作文静态图','小作文地图题','小作文流程图'];
+  const CAT_ORDER = ['观点型','讨论型','Report','动态图','静态图','地图题','流程图'];
   cats.sort((a, b) => {
     const ia = CAT_ORDER.indexOf(a), ib = CAT_ORDER.indexOf(b);
     return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
@@ -228,7 +228,7 @@ async function scoreTemplate(){
   if(s.blank > 0 && !confirm('还有 ' + s.blank + ' 个空没填，仍然要让 AI 评分吗？（没填的空会按原样交给 AI）')) return;
   if(!DATA.settings.relayToken){ toast('还没填 DeepSeek Key，去「设置 / AI 接口」填一下'); return; }
 
-  const isTask1 = /小作文/.test(s.tpl.category || '');
+  const isTask1 = /^(动态图|静态图|地图题|流程图)$/.test(s.tpl.category || '');
   const dimName = isTask1 ? 'TA（Task Achievement 任务完成）' : 'TR（Task Response 任务回应）';
 
   const btn = $('#tplScoreBtn');
