@@ -164,8 +164,10 @@ function render(){
     const todayPlan = getPlan(date);
     // 仅在「今天计划对象还不存在」时自动延续一次（把昨天未完成的搬来）。
     // 注意：不能用 items.length===0 当触发条件——否则用户把今天任务删光后会
-    // 反复把昨天的任务「复活」，表现为「删都删不掉」。创建对象后即视为已初始化。
-    if(!todayPlan || !todayPlan.initialized){
+    // 反复把昨天的任务「复活」，表现为「删都删不掉」。
+    // 注意：绝不能在这里对「已存在但无 initialized 标记」的今天计划执行 ensurePlan+hubSave，
+    // 否则只看历史某天时也会反复写盘、触发云端同步乒乓，甚至把旧数据异常覆盖。
+    if(!todayPlan){
       const yPlan = getPlan(addDays(date, -1));
       if(yPlan && yPlan.items.length){
         const carried = yPlan.items.filter(i => !i.done);
@@ -174,17 +176,9 @@ function render(){
           carried.forEach(i => tp.items.push({ id: uid(), text: i.text, done: false, carried: true }));
           tp.initialized = true;
           hubSave();
-        } else {
-          // 昨天没有未完成的，也要标记今天已初始化，避免后续清空时误搬
-          const tp = ensurePlan(date);
-          tp.initialized = true;
-          hubSave();
         }
-      } else {
-        const tp = ensurePlan(date);
-        tp.initialized = true;
-        hubSave();
       }
+      // 今天计划对象已存在（包括被上面 ensurePlan 创建的）：不再做任何写盘操作
     }
   }
   const p = getPlan(date);
