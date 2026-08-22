@@ -1466,3 +1466,15 @@ main.container{padding-top:20px}
   .hero-main{flex-direction:column;align-items:flex-start}
   .hero-right{align-items:flex-start}
 }
+
+/* ===== 回顾页 · 口语模考错误总结模块 ===== */
+.ms-sum-overall{font-size:14px;line-height:1.7;color:var(--primary-d);font-weight:600;margin:0 0 4px}
+.ms-sum-list{display:flex;flex-direction:column;gap:12px;margin-top:6px}
+.ms-sum-item{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.ms-sum-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.ms-sum-type{font-weight:600;font-size:15px;color:var(--ink)}
+.ms-sum-count{font-size:13px;color:var(--muted);white-space:nowrap}
+.ms-sum-bar{height:6px;background:var(--line);border-radius:4px;margin:8px 0 6px;overflow:hidden}
+.ms-sum-bar i{display:block;height:100%;border-radius:4px;transition:width .3s ease}
+.ms-sum-freq{font-size:13px;color:var(--ink-soft);line-height:1.6}
+.ms-sum-advice{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.6}

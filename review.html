@@ -20,6 +20,7 @@
 <script defer src="js/history.js"></script>
 <script defer src="js/mock-report.js"></script>
 <script defer src="js/mock-history.js"></script>
+<script defer src="js/mock-summary.js"></script>
 <script defer src="js/speaking-practice.js"></script>
 </head>
 <body>
@@ -147,6 +148,12 @@
 
     <!-- 口语模考 Tab（整卷口语模考历史，由 mock-history.js 渲染） -->
     <div id="tab-speaking" class="tab-panel">
+      <section class="card" id="mockSummaryCard">
+        <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>错误总结 <button class="btn sm btn-primary" id="mockSummaryBtn" style="margin-left:8px">生成总结</button></h2>
+        <p class="muted">AI 自动统计你所有口语模考里的语法 / 用词错误，列出最高频与需重点修改的类型，并说明其频繁程度。</p>
+        <div id="mockSummaryBox"></div>
+      </section>
+
       <section class="card">
         <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg>口语整卷模考记录 <span class="muted mock-hist-count" id="mockHistCount"></span></h2>
         <p class="muted">P1→P2→P3 全真模考的历史报告，含逐题转写。点击「展开」看完整评分与转写，刷新不丢。</p>

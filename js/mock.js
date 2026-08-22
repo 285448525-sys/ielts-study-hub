@@ -291,6 +291,35 @@
   /* ---------- 题库抽样（真实 P1：若干大题 × 各若干小题 ≈ 十几个小题） ---------- */
   // 频率权重：超高频>高频>中高频>普通；必考题另行强制抽取
   const FREQ_WEIGHT = { ultra:4, high:3, medium:2, normal:1 };
+
+  /* 统计每道题被模考过的次数（优先级选取依据）。
+     从 DATA.mockRecords（口语整卷记录）里累加：
+       P1 小题 → 以小题题目文本 q 为 key
+       P2 话题 → 以 promptEn 为 key
+     返回 Map<string, number>。P3 为 AI 实时生成，不纳入统计。 */
+  function buildTakenCounts(){
+    const m = new Map();
+    const inc = k => { if(k == null) return; m.set(k, (m.get(k) || 0) + 1); };
+    (DATA.mockRecords || []).forEach(rec => {
+      if(!rec || !isSpeakingRecLite(rec)) return;
+      (rec.p1 || []).forEach(a => { if(!a.opening) inc(a.q); });
+      if(rec.p2 && rec.p2.promptEn) inc(rec.p2.promptEn);
+    });
+    return m;
+  }
+  // 轻量判定：是否口语整卷记录（避免误统计到旧五维整卷记录）
+  function isSpeakingRecLite(r){
+    return r && (r.kind === 'speaking' || (Array.isArray(r.parts) && r.p1));
+  }
+
+  /* 选题排序评分：从未考过(0次) → 考过次数少 → 同次数高频(frequency)优先。
+     返回升序（越小越优先）。次数相同时 frequency 权重越大越优先（权重取负使其靠前）。 */
+  function takenPriority(count, freq){
+    const c = count || 0;
+    const w = FREQ_WEIGHT[freq] || 1;
+    return c * 100 - w; // 次数主导；同次数时 w 大（高频）则该项更小、更靠前
+  }
+
   function randInt(a, b){ return a + Math.floor(Math.random() * (b - a + 1)); }
   function weightedPick(arr){
     if(!arr.length) return null;
@@ -300,21 +329,23 @@
     return arr[arr.length - 1];
   }
   function buildP1Set(pool){
+    const taken = buildTakenCounts();
     const must = pool.filter(t => t.frequency === 'must');
     const rest = pool.filter(t => t.frequency !== 'must');   // 非必考：按题库原始顺序取
     const picked = new Set();
     const qa = [];
-    const PER_TOPIC = 3; // 每个大题随机抽 3 个小题（不固定前 3 个，每个小题都有机会被抽到），但保持题库原始顺序；4 大题×3=12 + 开场姓名 = 共 13
+    const PER_TOPIC = 3; // 每个大题抽 3 个小题
     const takeTopic = (t, n) => {
       if(!t || picked.has(t.id)) return;
       picked.add(t.id);
       const qsAll = t.questions || [];
       const takeN = Math.min(n, qsAll.length);
-      // 随机抽 n 个小题下标，再按下标升序排好 —— 既打乱了"永远是前 3 个"，又保持题目原始顺序
-      const idx = qsAll.map((_, i) => i);
-      for(let i = idx.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); const tmp = idx[i]; idx[i] = idx[j]; idx[j] = tmp; }
-      const chosen = idx.slice(0, takeN).sort((a, b) => a - b);
-      for(const i of chosen) qa.push({ topic: t.titleEn || t.titleZh || '', q: qsAll[i] });
+      // 按"考过次数升序 + 同次数高频优先"给小题排序，取前 takeN 个（从未考过的优先），再按下标升序保持题库原始顺序
+      const ranked = qsAll.map((q, i) => ({ i, q, score: takenPriority(taken.get(q), t.frequency) }))
+        .sort((a, b) => (a.score - b.score) || (a.i - b.i))
+        .slice(0, takeN)
+        .sort((a, b) => a.i - b.i);
+      for(const r of ranked) qa.push({ topic: t.titleEn || t.titleZh || '', q: r.q });
     };
     // 1) 必考题：按题库原始顺序固定取前 2 个大题，排在最前（顺序不随机）
     const mustN = Math.min(must.length, 2);
@@ -323,6 +354,14 @@
     const extraN = 2;
     for(const t of rest){ if(picked.size >= mustN + extraN) break; if(picked.has(t.id)) continue; takeTopic(t, PER_TOPIC); }
     return qa;   // 顺序固定：必考在前、选考在后；总小题 = 4 大题 × 3 = 12，加开场姓名共 13（最多 13 个）
+  }
+
+  // 选 P2 话题：从未考过 > 考过次数少 > 同次数高频优先
+  function pickP2Topic(pool){
+    const taken = buildTakenCounts();
+    const ranked = pool.map(t => ({ t, score: takenPriority(taken.get(t.promptEn), t.frequency) }))
+      .sort((a, b) => (a.score - b.score) || (Math.random() - 0.5));
+    return ranked.length ? ranked[0].t : null;
   }
 
   /* ---------- 主流程（支持断点续考） ----------
@@ -533,7 +572,6 @@
     };
     DATA.mockRecords.push(rec);
     hubSave(); scheduleCloudUpload();
-    renderHistoryArea();
 
     $('#mockStage').hidden = true;
     $('#mockReport').hidden = false;
@@ -561,7 +599,7 @@
     const pronSource = (fixed != null) ? 'fixed' : 'none';
     // 全新开考前先清掉任何旧快照，避免与上一次未完成的模考串档
     clearResumeSnapshot();
-    mockState = { p1Set: buildP1Set(p1), p2Topic: sampleOne(p2), answers: [], pronSource, p3qs: [], totalRemaining: TOTAL_LIMIT };
+    mockState = { p1Set: buildP1Set(p1), p2Topic: pickP2Topic(p2), answers: [], pronSource, p3qs: [], totalRemaining: TOTAL_LIMIT };
     // 真题固定开场问：每场模考第一个问题固定为姓名确认（ID 热身，不参与评分，但会出现在完整记录里）
     mockState.p1Set.unshift({ topic: 'Opening', q: 'Can you tell me your full name?', opening: true });
     startTotalTimer();
@@ -575,16 +613,8 @@
   }
 
   /* ---------- 初始化 ---------- */
-  function renderHistoryArea(){
-    if(!window.MockHistory || typeof window.MockHistory.render !== 'function') return; // 兼容：MockHistory 未注入时跳过
-    const list = $('#mockHistoryList');
-    if(list){
-      window.MockHistory.render(list, { countEl: $('#mockHistCount') });
-    }
-  }
   ready(async () => {
     await ensureMockLib();
-    renderHistoryArea();
     // 断点续考：若上次模考未做完就离开了，返回模考页时自动恢复现场
     const snap = loadResumeSnapshot();
     if(snap){ await resumeFromSnapshot(); }
