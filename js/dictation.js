@@ -596,7 +596,7 @@ function openDictLogDetail(id){
   if(l.overall){ html += '<div class="ts-fix" style="margin-bottom:8px">' + escapeHtml(l.overall) + '</div>'; }
   html += '<div class="muted" style="font-size:13px;margin:4px 0 10px">本篇共 <b>' + ms.length + '</b> 处差异</div>';
   if(ms.length){
-    html += ms.map(m => {
+    html += ms.map((m, mi) => {
       const loc = String(m.loc || '0');
       const si = Number(loc) - 1;
       const srcSent = si >= 0 && srcSents[si] != null ? srcSents[si] : '（无法定位原句）';
@@ -614,7 +614,10 @@ function openDictLogDetail(id){
         usrSent = '（你这部位没写）';
       }
       return '<div class="card" style="margin-bottom:10px;padding:10px">'
-        + '<div style="font-size:13.5px;margin-bottom:4px"><b>第 ' + escapeHtml(loc) + ' 句</b> · <span class="muted">' + escapeHtml(m.type || '') + '</span></div>'
+        + '<div class="form-row" style="align-items:center;margin-bottom:4px">'
+        +   '<div style="flex:1;font-size:13.5px"><b>第 ' + escapeHtml(loc) + ' 句</b> · <span class="muted">' + escapeHtml(m.type || '') + '</span></div>'
+        +   '<button class="bank-del dict-mistake-del" type="button" data-id="' + id + '" data-mi="' + mi + '">删除此误判</button>'
+        + '</div>'
         + '<div style="font-size:13.5px;margin:4px 0"><span class="muted">你的写法：</span><s>' + escapeHtml(m.wrong || '（漏写）') + '</s></div>'
         + '<div style="font-size:13.5px;margin:4px 0"><span style="color:var(--primary-d)">正确写法：</span><b>' + escapeHtml(m.right || '') + '</b></div>'
         + (m.note ? '<div class="muted" style="font-size:12.5px;margin:2px 0">' + escapeHtml(m.note) + '</div>' : '')
@@ -628,6 +631,34 @@ function openDictLogDetail(id){
   box.innerHTML = html;
   const back = box.querySelector('#dictLogDetailBack');
   if(back) back.addEventListener('click', () => { box.hidden = true; list.hidden = false; });
+  box.querySelectorAll('.dict-mistake-del').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    delDictMistake(b.dataset.id, Number(b.dataset.mi));
+  }));
+}
+
+// 删除某篇记录里的单条错误（误判）
+function delDictMistake(logId, mi){
+  const l = (DATA.dictationLogs || []).find(x => x.id === logId);
+  if(!l) return;
+  if(!confirm('删除这一处「误判」？')) return;
+  if(!Array.isArray(l.mistakes)) l.mistakes = [];
+  l.mistakes.splice(mi, 1);   // 按渲染下标移除（渲染顺序与数组顺序一致）
+  if(l.mistakes.length === 0){
+    // 整篇已无差异记录：直接删掉这篇（避免列表里出现「错 0 处」空记录）
+    DATA.dictationLogs = DATA.dictationLogs.filter(x => x.id !== logId);
+    DATA.deletedIds = DATA.deletedIds || [];
+    if(logId != null && !DATA.deletedIds.includes(logId)) DATA.deletedIds.push(logId);
+    hubSave();
+    const detail = $('#dictLogDetail'); const list = $('#dictLogList');
+    if(detail) detail.hidden = true; if(list) list.hidden = false;
+    renderDictLogs();
+    toast('这篇已无差异记录，已整篇移除');
+    return;
+  }
+  hubSave();
+  openDictLogDetail(logId);   // 重新渲染详情（下标已变化）
+  toast('已删除该误判');
 }
 
 function delDictLog(id){
