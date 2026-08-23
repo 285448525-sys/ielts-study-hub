@@ -662,16 +662,18 @@ window.addEventListener('beforeunload', flushCloudUpload);
 document.addEventListener('visibilitychange', () => { if(document.hidden) flushCloudUpload(); });
 /* ===== 字段级合并（替代整份覆盖，避免双设备互相抹掉进度） ===== */
 /* plans/checkins 已改为特判合并（_mergePlans / Set 去重），不在通用数组里 */
-/* ⚠️ 口语题库(speaking)与写作模板(writing)是「官方共享题集」，所有用户一致、个人不可增删，
- *    因此【不进云端同步】——否则旧账号的脏题库会被下载回来覆盖本地官方库（用户实测：清缓存后 61 题，
- *    登录账号又变 101 题）。同步时这两个字段从上传/合并中排除，永远以本机 SPEAKING_BANK / 默认模板为准。 */
+/* 同步字段白名单（个人数据，跨设备合并）。
+ * ⚠️ 写作模板(writing)仍是官方共享题集，不进同步（避免手动删模板被另一端覆盖）。
+ * ⚠️ 口语题库(speaking)【现已纳入同步】——用户要求口语串题答案/练习记录跨设备恢复。
+ *    早期曾因"清缓存变101题"而剔除，但 v20260823u 已改 mergeSpeakingKeepAnswers 按id回填，
+ *    不再有旧脏题库复活风险，故放开同步。合并时按 id 双向回填 answers，题干以官方为准。 */
 const SYNC_ARRAY_FIELDS = ['sessions','notes','meds','corpus','scores','errorbook',
   'energy','writingScores','speakingStories','writingPhrases',
   'mockRecords','dictationSources','dictationLogs','longSent'];
-/* 上传/合并前剔除「官方共享、个人不应同步」的字段（speaking / writing），保持 DATA 其余逻辑不变 */
+/* 上传/合并前剔除「官方共享、个人不应同步」的字段（仅 writing 模板），保持 DATA 其余逻辑不变。
+ * 注意：speaking 现已纳入同步，不再剔除。 */
 function stripCloudFields(d){
   const c = Object.assign({}, d);
-  delete c.speaking;   // 口语题库：所有用户一致，永远用本机 SPEAKING_BANK
   delete c.writing;    // 写作模板：所有用户一致，永远用本机默认模板
   return c;
 }
@@ -750,12 +752,38 @@ function _mergeArray(local, cloud){
 }
 /* 整体合并：以本机为基准，云端增量并入；不覆盖本机设置与任何独有数据。
    返回 {data, changes}：changes = 实际应用的合并处数（新增 + 更新），用于决定是否写盘/提示 */
+/* 口语题库跨设备合并：以官方 SPEAKING_BANK 为基准（52 题），本机答案优先、云端补缺。
+   1) 先用 mergeSpeakingKeepAnswers(local) 得到官方基准+本机答案（丢弃非官方题）
+   2) 再按 id 把云端 speaking 的 answers 回填（云端有答案且本机无 → 取云端；都有 → 保留本机较新端）
+   保证：跨设备恢复串题答案/练习记录，且不复活旧脏题库。 */
+function _mergeSpeaking(localSp, cloudSp){
+  if(!Array.isArray(localSp) && !Array.isArray(cloudSp)) return { arr: [], changes: 0 };
+  // 基准：官方题 + 本机答案
+  let base = (typeof mergeSpeakingKeepAnswers === 'function')
+    ? mergeSpeakingKeepAnswers(localSp || [])
+    : (localSp || []);
+  const cloudById = {};
+  (cloudSp || []).forEach(s => { if(s && s.id) cloudById[s.id] = s; });
+  let changes = 0;
+  base = base.map(official => {
+    const cloud = cloudById[official.id];
+    if(!cloud) return official;
+    const keep = Object.assign({}, official);
+    // answers：本机有则保留本机（当前操作端较新），否则取云端
+    if(official.answers){ keep.answers = official.answers; }
+    else if(cloud.answers){ keep.answers = cloud.answers; changes++; }
+    if(official.speakingStories){ keep.speakingStories = official.speakingStories; }
+    else if(cloud.speakingStories){ keep.speakingStories = cloud.speakingStories; changes++; }
+    return keep;
+  });
+  return { arr: base, changes };
+}
+
 function mergeData(local, cloud){
   cloud = cloud || {};
-  // 口语题库(speaking)与写作模板(writing)是官方共享题集，个人不可增删、不进同步。
-  // 即使云端旧数据残留这两个字段（早期版本同步过），合并时也强制忽略云端版本，永远以本机官方库为准。
+  // 写作模板(writing)是官方共享题集，不进同步，合并时强制忽略云端版本，永远以本机默认模板为准。
+  // 口语题库(speaking)【已纳入同步】：不在此删除，函数末尾按 id 双向合并 answers（见下方 _mergeSpeaking）。
   cloud = Object.assign({}, cloud);
-  delete cloud.speaking;
   delete cloud.writing;
   const out = Object.assign({}, local);
   const deleted = new Set([...(local.deletedIds||[]), ...(cloud.deletedIds||[])]);
@@ -803,6 +831,14 @@ function mergeData(local, cloud){
       // 时间戳相同或都缺失：回退旧逻辑（云端非空且不同→取云端）
       if(cs[f] != null && JSON.stringify(cs[f]) !== JSON.stringify(ls[f])){ out.settings[f] = cs[f]; changes++; }
     }
+  }
+  // 口语题库(speaking)按 id 双向合并：以官方 SPEAKING_BANK 为基准建 52 题，
+  // 本机与云端同 id 题的 answers/练习记录取「较新一侧」（按 _lastSaved 时间戳或内容非空判断），题干永远用官方。
+  // 这样既跨设备恢复串题答案，又不会因早期脏题库复活成 100+ 题（mergeSpeakingKeepAnswers 已保证非官方题丢弃）。
+  if(Array.isArray(cloud.speaking) || Array.isArray(local.speaking)){
+    const ms = _mergeSpeaking(local.speaking, cloud.speaking);
+    out.speaking = ms.arr;
+    changes += ms.changes;
   }
   out.deletedIds = Array.from(deleted);
   return { data: out, changes };
