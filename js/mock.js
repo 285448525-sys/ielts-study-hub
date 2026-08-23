@@ -600,8 +600,9 @@
     if(!DATA.settings.relayToken){
       toast('请先在「设置 / AI 接口」填写 DeepSeek Key'); return;
     }
-    const p1 = DATA.speaking.filter(x => x.type === 'P1' && x.questions && x.questions.length);
-    const p2 = DATA.speaking.filter(x => x.type === 'P2' && x.promptEn);
+    // 仅从纯官方题库抽题：剔除框架母本(带 framework 字段 / id 形如 sp_p[12]_*)及任何残留非题目项，杜绝抽到老题库/框架内容
+    const p1 = DATA.speaking.filter(x => x.type === 'P1' && x.questions && x.questions.length && !x.framework && !/^sp_p[12]_\d+$/.test(x.id || ''));
+    const p2 = DATA.speaking.filter(x => x.type === 'P2' && x.promptEn && !x.framework && !/^sp_p[12]_\d+$/.test(x.id || ''));
     if(!p1.length || !p2.length){ toast('口语题库为空，无法模考'); return; }
 
     // 发音来源：填了固定分 → 'fixed'（发音取固定分）；否则 'none'（发音不计入总分，不再做发音评测）
