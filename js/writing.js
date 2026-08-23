@@ -37,7 +37,8 @@ ready(() => {
   $('#tplDictBtn').addEventListener('click', () => openTplDict(curId));
   $('#wtDictBack').addEventListener('click', () => switchWriteTab('tpl'));
   $('#wtDictSubmit').addEventListener('click', submitWtDict);
-  $('#wtDictClear').addEventListener('click', () => { if(wtDictCurrent) $('#wtDictInput').value = ''; toast('已清空，重新默写'); });
+  $('#wtDictClear').addEventListener('click', () => { if(wtDictCurrent){ $('#wtDictInput').value = ''; clearWtDictDraft(wtDictCurrent.id); } toast('已清空，重新默写'); });
+  $('#wtDictDiscardDraft').addEventListener('click', () => { if(wtDictCurrent){ clearWtDictDraft(wtDictCurrent.id); $('#wtDictInput').value = ''; $('#wtDictResult').hidden = true; $('#wtDictResult').innerHTML = ''; toast('已放弃草稿'); } });
 
   // AI 评分
   $('#scoreBtn').addEventListener('click', scoreEssay);
@@ -136,6 +137,23 @@ function openTpl(id){
   const sb = $('#tplScoreBox');
   if(sb){ sb.hidden = true; sb.innerHTML = ''; }   // 换模板时清掉上一份评分
   buildPractice(t.skeleton);
+  renderTplWrong('tpl_' + t.id);   // 本模板「我的错句」折叠区
+}
+
+// 写作模板详情下的「我的错句」折叠区：聚合该模板默写错句
+function renderTplWrong(sourceId){
+  const box = $('#tplWrongBox');
+  if(!box) return;
+  const items = collectWrongBySource(sourceId);
+  if(!items.length){ box.hidden = true; box.innerHTML = ''; return; }
+  box.hidden = false;
+  box.innerHTML = '<details class="tpl-wrong-wrap"><summary class="tpl-wrong-sum" style="cursor:pointer;padding:9px 12px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);font-size:13.5px;user-select:none">我的错句（' + items.length + ' 条 · 点开回顾）</summary>'
+    + '<div class="tpl-wrong-list" style="background:var(--surface-2);border:1px solid var(--line);border-top:none;border-radius:0 0 var(--radius) var(--radius);padding:10px 12px">'
+    + items.map(it => '<div class="tpl-wrong-item" style="padding:6px 0;border-bottom:1px dashed var(--line);font-size:13.5px">'
+        + '<div>正确：<code>' + escapeHtml(it.right) + '</code>' + (it.count > 1 ? ' <span class="dict-weak-tag" title="错 ' + it.count + ' 次">★×' + it.count + '</span>' : '') + '</div>'
+        + (it.wrong ? '<div class="muted" style="font-size:12.5px">你写：' + escapeHtml(it.wrong) + '</div>' : '<div class="muted" style="font-size:12.5px">（漏写）</div>')
+      + '</div>').join('')
+    + '</div></details>';
 }
 
 function highlight(s){ return escapeHtml(s).replace(/【(.+?)】/g, '【<span class="ph">$1</span>】'); }
@@ -501,6 +519,59 @@ let wtDictCurrent = null;   // 当前默写源 {id,title,text}
 let wtDictSentences = [];   // 当前源按句拆分后的句子数组（1-based 与勾选区序号一致）
 let wtDictWeak = {};        // 当前源 loc -> 历史出错次数
 
+// ---- 模板默写草稿（瞬态 localStorage，切走/刷新后可续；不进云同步）----
+var wtDictDraftTimer = null;
+function wtDictDraftKey(id){ return 'ielts_wt_dict_draft_' + id; }
+function loadWtDictDraft(id){
+  try{
+    const raw = localStorage.getItem(wtDictDraftKey(id));
+    if(!raw) return null;
+    const d = JSON.parse(raw);
+    if(!d || (!d.text && !(d.checked && d.checked.length) && !d.result)) return null;
+    return d;
+  }catch(e){ return null; }
+}
+function collectWtDictDraft(){
+  if(!wtDictCurrent) return null;
+  const text = ($('#wtDictInput').value) || '';
+  const checked = [];
+  document.querySelectorAll('.wt-dict-sent-chk').forEach(c => { if(c.checked) checked.push(Number(c.dataset.idx)); });
+  const resultHtml = $('#wtDictResult').hidden ? '' : $('#wtDictResult').innerHTML;
+  const hasText = text.trim().length > 0;
+  const hasPick = checked.length > 0 && checked.length !== wtDictSentences.length; // 仅当不是"全选默认"才存勾选（全选=无信息量）
+  if(!hasText && !hasPick && !resultHtml) return null;
+  return { text, checked: hasPick ? checked : [], result: resultHtml, ts: Date.now() };
+}
+function saveWtDictDraft(){
+  if(!wtDictCurrent) return;
+  const d = collectWtDictDraft();
+  if(!d){ try{ localStorage.removeItem(wtDictDraftKey(wtDictCurrent.id)); }catch(e){} return; }
+  try{ localStorage.setItem(wtDictDraftKey(wtDictCurrent.id), JSON.stringify(d)); }catch(e){}
+}
+function scheduleWtDictDraftSave(){
+  if(wtDictDraftTimer) clearTimeout(wtDictDraftTimer);
+  wtDictDraftTimer = setTimeout(saveWtDictDraft, 400);
+}
+function clearWtDictDraft(id){
+  try{ localStorage.removeItem(wtDictDraftKey(id)); }catch(e){}
+  const note = $('#wtDictDraftNote'); if(note) note.hidden = true;
+}
+function wtAgoText(ts){
+  const diff = Date.now() - (ts || 0);
+  const m = Math.floor(diff / 60000);
+  if(m < 1) return '刚刚';
+  if(m < 60) return m + ' 分钟前';
+  const h = Math.floor(m / 60);
+  if(h < 24) return h + ' 小时前';
+  return Math.floor(h / 24) + ' 天前';
+}
+function showWtDictDraftNote(ts){
+  const note = $('#wtDictDraftNote');
+  if(!note) return;
+  note.hidden = false;
+  const ago = $('#wtDictDraftNoteAgo'); if(ago) ago.textContent = wtAgoText(ts);
+}
+
 // 实时更新「选择要默写的句子」折叠标题里的已选句数
 function updateWtSentCount(){
   const el = $('#wtDictSentCount');
@@ -566,6 +637,28 @@ function openTplDict(tplId){
     pick.querySelectorAll('.wt-dict-sent-chk').forEach(c => { c.addEventListener('change', updateWtSentCount); });
   }
   updateWtSentCount();   // 初始全勾 → 显示总句数
+
+  // 草稿恢复：若上次切走/刷新前有未完成的默写，还原勾选句 + 输入 + 已批改结果
+  const draft = loadWtDictDraft(wtDictCurrent.id);
+  if(draft){
+    if(draft.checked && draft.checked.length){
+      pick.querySelectorAll('.wt-dict-sent-chk').forEach(c => {
+        c.checked = draft.checked.indexOf(Number(c.dataset.idx)) >= 0;
+      });
+      updateWtSentCount();
+      renderWtSrcView();
+    }
+    if(draft.text){ $('#wtDictInput').value = draft.text; }
+    if(draft.result){
+      const box = $('#wtDictResult');
+      box.hidden = false; box.innerHTML = draft.result;
+    }
+    showWtDictDraftNote(draft.ts);
+  }
+
+  // 输入与勾选变化 → 防抖存草稿（切走/刷新可续）
+  $('#wtDictInput').addEventListener('input', scheduleWtDictDraftSave);
+  pick.querySelectorAll('.wt-dict-sent-chk').forEach(c => { c.addEventListener('change', scheduleWtDictDraftSave); });
 
   // 「重默错句」开关：开启时自动只勾选常错句（其余取消勾选），实现"每次做前重默错过的句子"
   const redo = $('#wtDictRedoWrong');
@@ -701,6 +794,7 @@ ${JSON.stringify(weakBefore)}` }
     DATA.dictationLogs = DATA.dictationLogs || [];
     DATA.dictationLogs.push({ sourceId: wtDictCurrent.id, title: wtDictCurrent.title, date: todayKey(), mistakes: mappedMistakes });
     hubSave();
+    clearWtDictDraft(wtDictCurrent.id);   // 提交成功 → 本次默写完成，清草稿
   }catch(e){
     box.innerHTML = '<div class="ts-load">AI 调不通：' + escapeHtml(e.message) + '</div>';
   }finally{

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<title>错句本 · 雅思备考 Hub</title>
+<link rel="stylesheet" href="css/common.css?v=20260823k" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=5" />
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=4">
+<link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=4">
+<link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png?v=4">
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#3a9a93" />
+
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<script defer src="js/data.js?v=20260823k"></script>
+<script defer src="js/common.js?v=20260823k"></script>
+<script src="js/wrongbook.js?v=20260823a" defer></script>
+</head>
+<body>
+<nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
+
+<main class="container">
+  <h1 class="page-title">错句本</h1>
+  <p class="muted" style="font-size:13px;margin:-6px 0 16px">自动收集写作模板默写 + 语料库表格默写的错误句子，按出错次数排序。点「删除」可从错句本移除（不影响原默写记录）。</p>
+
+  <section class="card">
+    <div class="card-head" style="margin-bottom:10px">
+      <h2 style="margin:0">我的错句 · <span id="wbCount">0</span> 条</h2>
+      <span class="muted" style="font-size:13px" id="wbSourceFilterWrap">来源筛选：
+        <select id="wbSourceFilter" style="padding:6px 10px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink)">
+          <option value="all">全部</option>
+        </select>
+      </span>
+    </div>
+    <div id="wbList"></div>
+    <div id="wbEmpty" class="muted" hidden>还没有错句。去写作模板默写或语料库表格默写，写错的句子会自动收集到这里。</div>
+  </section>
+</main>
+
+</body>
+</html>

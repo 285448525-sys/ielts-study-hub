@@ -1,5 +1,54 @@
 var dict = null; // {queue, idx, cfg, wrongList, total, correct, revealed}
 
+// ---- 语料库表格默写草稿（瞬态 localStorage，切走/刷新可续；不进云同步）----
+var corDraftTimer = null;
+function corDraftKey(){ return 'ielts_cor_dict_draft'; }
+function loadCorDraft(){
+  try{
+    const raw = localStorage.getItem(corDraftKey());
+    if(!raw) return null;
+    const d = JSON.parse(raw);
+    if(!d || (!d.checked && !d.inputs && !d.result)) return null;
+    return d;
+  }catch(e){ return null; }
+}
+function collectCorDraft(){
+  const q = window.__writeQueue;
+  if(!q) return null;
+  const checked = (window.__writeChecked || []).slice();
+  const inputs = {};
+  document.querySelectorAll('#dictArea .write-row').forEach(row => {
+    const id = row.dataset.id;
+    const inp = row.querySelector('.write-en');
+    if(inp && inp.value.trim()) inputs[id] = inp.value;
+  });
+  const resultHtml = $('#writeResult').innerHTML || '';
+  if(!checked.length && !Object.keys(inputs).length && !resultHtml) return null;
+  return { checked, inputs, result: resultHtml, ts: Date.now() };
+}
+function saveCorDraft(){
+  const d = collectCorDraft();
+  if(!d){ try{ localStorage.removeItem(corDraftKey()); }catch(e){} return; }
+  try{ localStorage.setItem(corDraftKey(), JSON.stringify(d)); }catch(e){}
+}
+function scheduleCorDraftSave(){
+  if(corDraftTimer) clearTimeout(corDraftTimer);
+  corDraftTimer = setTimeout(saveCorDraft, 400);
+}
+function clearCorDraft(){
+  try{ localStorage.removeItem(corDraftKey()); }catch(e){}
+  const note = $('#corDraftNote'); if(note) note.hidden = true;
+}
+function corAgoText(ts){
+  const diff = Date.now() - (ts || 0);
+  const m = Math.floor(diff / 60000);
+  if(m < 1) return '刚刚';
+  if(m < 60) return m + ' 分钟前';
+  const h = Math.floor(m / 60);
+  if(h < 24) return h + ' 小时前';
+  return Math.floor(h / 24) + ' 天前';
+}
+
 ready(() => {
   $('#importCorpus').addEventListener('click', importBulk);
   $('#aiImportBtn').addEventListener('click', aiImportCorpus);
@@ -285,12 +334,73 @@ function checkSent(item, userVal, skipped){
    提交后调用 AI 逐行批改，批改结果以颜色标注回写英文列。 */
 function startWrite(){
   if(DATA.corpus.length === 0){ toast('语料库是空的，先导入句子'); return; }
-  const cfg = Object.assign({ rate:.9, repeat:3, intervalMs:2200, showCn:false, batchSize:10 }, DATA.settings.corpusCfg || {});
-  let q = shuffle(DATA.corpus.slice());
-  const bs = cfg.batchSize;
-  if(bs > 0 && bs < q.length) q = q.slice(0, bs);
-  window.__writeQueue = q;
-  renderWrite(q, cfg);
+  // 草稿恢复：上次没默完，直接进默写视图还原
+  const draft = loadCorDraft();
+  if(draft && draft.checked && draft.checked.length){
+    const q = DATA.corpus.filter(c => draft.checked.indexOf(c.id) >= 0);
+    window.__writeQueue = q;
+    window.__writeChecked = draft.checked.slice();
+    renderWrite(q);
+    // 还原输入 + 结果 + 提示条
+    if(draft.inputs){
+      document.querySelectorAll('#dictArea .write-row').forEach(row => {
+        const id = row.dataset.id; const inp = row.querySelector('.write-en');
+        if(inp && draft.inputs[id] != null) inp.value = draft.inputs[id];
+      });
+    }
+    if(draft.result){ $('#writeResult').innerHTML = draft.result; }
+    const note = $('#corDraftNote');
+    if(note){ note.hidden = false; const ago = $('#corDraftNoteAgo'); if(ago) ago.textContent = corAgoText(draft.ts); }
+    return;
+  }
+  renderWritePick();
+}
+
+// 选句步骤：列出全部语料，用户勾选要默写的句子，确认后进入表格默写
+function renderWritePick(){
+  const all = DATA.corpus.slice().reverse();
+  const rows = all.map((c, i) => `
+    <tr class="pick-row" data-id="${c.id}">
+      <td class="cor-idx"><input type="checkbox" class="cor-pick-chk" data-id="${c.id}" checked></td>
+      <td class="cor-cell cor-cn">${c.cn ? escapeHtml(c.cn) : '<span class="muted">（无中文）</span>'}</td>
+      <td class="cor-cell cor-en">${escapeHtml(c.en)}</td>
+    </tr>`).join('');
+  $('#dictArea').innerHTML = `
+    <div class="write-card">
+      <div class="card-head" style="margin-bottom:10px">
+        <div class="score-badge">选择要默写的句子（<span id="corPickCount">${all.length}</span> / ${all.length} 句已选）</div>
+        <button class="btn" id="writePickCancel" type="button">← 返回</button>
+      </div>
+      <p class="muted" style="font-size:13px;margin:0 0 10px">勾选你想默写的句子，默认全选。确认后进入「看中文写英文」表格默写（英文列隐藏）。</p>
+      <div style="max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:var(--radius)">
+        <table class="corpus-table write-table">
+          <thead><tr><th style="width:42px">默</th><th>中文</th><th>英文</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div class="dict-actions" style="margin-top:12px">
+        <button class="btn" id="corPickAll" type="button">全选</button>
+        <button class="btn" id="corPickNone" type="button">全不选</button>
+        <button class="btn btn-primary" id="corPickConfirm" type="button">确认并开始默写 →</button>
+      </div>
+    </div>`;
+  const updateCount = () => {
+    const n = document.querySelectorAll('#dictArea .cor-pick-chk:checked').length;
+    const el = $('#corPickCount'); if(el) el.textContent = n;
+  };
+  document.querySelectorAll('#dictArea .cor-pick-chk').forEach(c => c.addEventListener('change', updateCount));
+  $('#corPickAll').addEventListener('click', () => { document.querySelectorAll('#dictArea .cor-pick-chk').forEach(c => c.checked = true); updateCount(); });
+  $('#corPickNone').addEventListener('click', () => { document.querySelectorAll('#dictArea .cor-pick-chk').forEach(c => c.checked = false); updateCount(); });
+  $('#writePickCancel').addEventListener('click', () => { $('#dictArea').innerHTML = ''; });
+  $('#corPickConfirm').addEventListener('click', () => {
+    const ids = [];
+    document.querySelectorAll('#dictArea .cor-pick-chk').forEach(c => { if(c.checked) ids.push(c.dataset.id); });
+    if(!ids.length){ toast('至少勾选一句'); return; }
+    const q = DATA.corpus.filter(c => ids.indexOf(c.id) >= 0);
+    window.__writeChecked = ids.slice();
+    window.__writeQueue = q;
+    renderWrite(q);
+  });
 }
 
 function renderWrite(q, cfg){
@@ -310,6 +420,10 @@ function renderWrite(q, cfg){
       <div class="card-head" style="margin-bottom:10px">
         <div class="score-badge">表格默写 · 看中文写英文（${q.length} 句）</div>
         <button class="btn" id="writeExit" type="button">← 退出默写</button>
+      </div>
+      <div id="corDraftNote" class="dict-draft-note" hidden style="margin-bottom:10px;padding:9px 12px;background:var(--primary-soft);border:1px solid var(--primary);border-radius:var(--radius);font-size:13px;color:var(--ink);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span>📝 已恢复上次没默完的内容（<span id="corDraftNoteAgo">刚刚</span>保存的草稿）</span>
+        <button class="btn btn-sm" id="corDiscardDraft" type="button" style="margin-left:auto">放弃草稿</button>
       </div>
       <table class="corpus-table write-table">
         <thead><tr><th class="cor-idx">#</th><th>中文（提示）</th><th>英文（默写）</th></tr></thead>
@@ -333,6 +447,10 @@ function renderWrite(q, cfg){
     });
   });
   $('#writeSubmit').addEventListener('click', () => gradeWrite(q, cfg));
+  // 输入变化 → 防抖存草稿（切走/刷新可续）
+  document.querySelectorAll('#dictArea .write-en').forEach(inp => inp.addEventListener('input', scheduleCorDraftSave));
+  const dd = $('#corDiscardDraft');
+  if(dd) dd.addEventListener('click', () => { clearCorDraft(); document.querySelectorAll('#dictArea .write-en').forEach(inp => inp.value = ''); $('#writeResult').innerHTML = ''; toast('已放弃草稿'); });
 }
 
 async function gradeWrite(q, cfg){
@@ -415,6 +533,20 @@ async function gradeWrite(q, cfg){
       + (it.missed.length ? ' · 漏：' + it.missed.map(w => escapeHtml(w)).join(' ') : '')
       + (ai && ai.note ? ' · <span class="muted">' + escapeHtml(ai.note) + '</span>' : '');
   });
+  // 错句本：把本次准确率<100%的句子写入 dictationLogs（sourceId='corpus'），供错句本聚合
+  const wrongItems = base.filter(it => it.acc < 100).map(it => ({
+    loc: String(q.indexOf(it) + 1),
+    wrong: it.user || '',
+    right: it.en,
+    type: it.missed.length ? '漏写' : '错词',
+    note: it.missed.length ? ('漏：' + it.missed.join(' ')) : ''
+  }));
+  if(wrongItems.length){
+    DATA.dictationLogs = DATA.dictationLogs || [];
+    DATA.dictationLogs.push({ sourceId: 'corpus', title: '语料库表格默写', date: todayKey(), mistakes: wrongItems });
+    hubSave();
+  }
+  clearCorDraft();   // 批改完成 → 本次默写结束，清草稿
 }
 
 function finishDict(){

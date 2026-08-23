@@ -12,7 +12,8 @@ const ICON = {
   mock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg>',
   writing:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L18.5 9.5l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>',
   review:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4v16h15"/><path d="M9 14v4M13 10v8M17 6v12"/></svg>',
-  settings:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>'
+  settings:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>',
+  wrongbook:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"/><path d="M9 7l1.5 3 3 .5-2 2 .5 3-3-1.5-3 1.5.5-3-2-2 3-.5z"/></svg>'
 };
 
 const PAGES = [
@@ -24,6 +25,7 @@ const PAGES = [
   { id:'corpus',    file:'corpus.html',    icon:ICON.corpus,    name:'语料', desc:'长难句 · 错题本 · 听力默写' },
   { id:'speaking',  file:'speaking.html',  icon:ICON.speaking,  name:'口语', desc:'题库 + AI 串题' },
   { id:'writing',   file:'writing.html',   icon:ICON.writing,   name:'写作',       desc:'模板 + AI 评分' },
+  { id:'wrongbook', file:'wrongbook.html', icon:ICON.wrongbook, name:'错句本',     desc:'写作/语料默写错句汇总' },
   { id:'review',    file:'review.html',    icon:ICON.review,    name:'回顾',       desc:'模考成绩 + 学习轨迹' },
   { id:'settings',  file:'settings.html',  icon:ICON.settings,  name:'设置',       desc:'同步 / AI / 数据' },
   { id:'meds',      file:'meds.html',      icon:ICON.meds,      name:'服药',   desc:'专注达药效窗口' },  // ← 移到最后
@@ -38,7 +40,7 @@ function favPageIds(){
 }
 
 /* v5：简化后全部平铺，不再分折叠组（首页→回顾 一级；设置/服药 在分隔线下方） */
-const PRIMARY_NAV = ['index','timer','plans','practice','corpus','speaking','writing'];
+const PRIMARY_NAV = ['index','timer','plans','practice','corpus','speaking','writing','wrongbook'];
 const MORE_NAV    = ['review','meds','settings'];
 
 function injectNav(){
@@ -1330,3 +1332,43 @@ ready(() => { hubLoad(); injectNav(); applyTheme(); restoreSideScroll(); initSof
 });
 
 function registerSW(){ try{ if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{}); }catch(e){} }
+
+// ===== 错句本聚合：从 dictationLogs 提取所有错句，按「标准句 + 错误写法」去重 =====
+// 返回 [{key, sourceId, sourceTitle, right(标准英文), wrong(学生写法), type, note, count(出错次数), lastDate}]
+function collectWrongSentences(){
+  const logs = DATA.dictationLogs || [];
+  const map = {};   // key = sourceId + '|' + right + '|' + wrong
+  logs.forEach(log => {
+    const ms = Array.isArray(log.mistakes) ? log.mistakes : [];
+    ms.forEach(m => {
+      const right = (m.right || '').trim();
+      const wrong = (m.wrong || '').trim();
+      if(!right) return;
+      const key = log.sourceId + '|' + right.toLowerCase() + '|' + wrong.toLowerCase();
+      if(!map[key]){
+        map[key] = { key, sourceId: log.sourceId, sourceTitle: log.title || '', right, wrong, type: m.type || '', note: m.note || '', count: 0, lastDate: log.date || '' };
+      }
+      map[key].count++;
+      if(log.date && (!map[key].lastDate || log.date > map[key].lastDate)) map[key].lastDate = log.date;
+    });
+  });
+  return Object.values(map).sort((a, b) => b.count - a.count);
+}
+// 按 sourceId 过滤错句（用于写作模板下「我的错句」折叠区）
+function collectWrongBySource(sourceId){
+  return collectWrongSentences().filter(x => x.sourceId === sourceId);
+}
+// 删除某条错句聚合项（从所有 logs 中移除该 right+wrong 的 mistake）
+function deleteWrongItem(key){
+  const parts = key.split('|');
+  const sourceId = parts[0], right = parts[1], wrong = parts[2];
+  const logs = DATA.dictationLogs || [];
+  logs.forEach(log => {
+    if(log.sourceId !== sourceId) return;
+    if(!Array.isArray(log.mistakes)) return;
+    log.mistakes = log.mistakes.filter(m =>
+      !((m.right || '').trim().toLowerCase() === right && (m.wrong || '').trim().toLowerCase() === wrong));
+  });
+  DATA.dictationLogs = logs.filter(l => Array.isArray(l.mistakes) && l.mistakes.length > 0);
+  hubSave();
+}

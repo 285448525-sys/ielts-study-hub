@@ -190,6 +190,7 @@
           </div>
 
           <div id="tips" class="tips-box"></div>
+          <div id="tplWrongBox" hidden style="margin-top:12px"></div>
           <div class="form-row" style="margin-top:12px">
             <button class="btn btn-danger" id="delBtn">删除模板</button>
           </div>
@@ -380,6 +381,11 @@
         <button class="btn btn-primary" id="wtDictSubmit" type="button">提交核对</button>
         <button class="btn" id="wtDictClear" type="button">清空重默</button>
         <span class="muted" style="font-size:13px">还没填 DeepSeek Key？去「设置 / AI 接口」填一下</span>
+      </div>
+
+      <div id="wtDictDraftNote" class="dict-draft-note" hidden style="margin-top:12px;padding:9px 12px;background:var(--primary-soft);border:1px solid var(--primary);border-radius:var(--radius);font-size:13px;color:var(--ink);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span>📝 已恢复上次没默完的内容（<span id="wtDictDraftNoteAgo">刚刚</span>保存的草稿）</span>
+        <button class="btn btn-sm" id="wtDictDiscardDraft" type="button" style="margin-left:auto">放弃草稿</button>
       </div>
 
       <div id="wtDictResult" class="tpl-score" hidden style="margin-top:16px"></div>
