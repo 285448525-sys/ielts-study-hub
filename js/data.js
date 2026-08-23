@@ -126,10 +126,7 @@ const SPEAKING_BANK = [
     cue:'', content:'', keywords:'', linkedTo:"", proficiency:"没练" },{ id:"sb_p1_work", type:"P1", period:"2026-05-08", isNew:false, frequency:"ultra", category:"日常",
     titleEn:"Work or studies", titleZh:"工作/学习",
     questions:["What do you do?","Do you like your studies?","Is there anything you want to change about your studies?","What do you plan to do after graduation?"],
-    cue:'', content:'', keywords:'', linkedTo:"必考题", proficiency:"没练" },{ id:"sb_p1_home", type:"P1", period:"2026-05-08", isNew:false, frequency:"ultra", category:"地点",
-    titleEn:"Home & Accommodation", titleZh:"家",
-    questions:["Do you live in a house or an apartment?","Do you like where you live?","What is your favorite room?","Would you like to move?"],
-    cue:'', content:'', keywords:'', linkedTo:"可套框架②", proficiency:"没练" },{ id:"sb_p1_hometown", type:"P1", period:"2026-05-08", isNew:false, frequency:"ultra", category:"地点",
+    cue:'', content:'', keywords:'', linkedTo:"必考题", proficiency:"没练" },{ id:"sb_p1_hometown", type:"P1", period:"2026-05-08", isNew:false, frequency:"ultra", category:"地点",
     titleEn:"Hometown", titleZh:"家乡",
     questions:["Where is your hometown?","Do you like your hometown?","Is your hometown a good place to live?","Has your hometown changed?"],
     cue:'', content:'', keywords:'', linkedTo:"可套框架②", proficiency:"没练" },{ id:"sb_p1_area", type:"P1", period:"2026-05-08", isNew:false, frequency:"ultra", category:"地点",
@@ -146,10 +143,6 @@ const SPEAKING_BANK = [
     cue:'', content:'', keywords:'', linkedTo:"可套Leo母本(常做计划)", proficiency:"没练" },{ id:"sb_p1_dream_and_ambition", type:"P1", period:"2026-08-09", isNew:true, frequency:"low", category:"日常",
     titleEn:"Dream and ambition", titleZh:"",
     questions:["What was your childhood dream?","Are you the kind of person who sticks to dreams?","What is your dream job?","Do you think you are an ambitious person?"],
-    cue:'', content:'', keywords:'', linkedTo:"", proficiency:"没练" },{ id:"sb_p2_describe_a_place_you_would_like_to_visit77", type:"P2", period:"2026-08-09", isNew:true, frequency:"ultra", category:"地点",
-    titleEn:"a place you would like to visit in your free time", titleZh:"想有空时去旅游的地方",
-    promptEn:"Describe a place you would like to visit in your free time", promptZh:"",
-    youShouldSay:["Where it is","What you will do there","How long you will stay there","And explain why you would like to visit it"],
     cue:'', content:'', keywords:'', linkedTo:"", proficiency:"没练" },{ id:"sb_p2_describe_a_person_who_works_in_a_success79", type:"P2", period:"2026-08-09", isNew:true, frequency:"low", category:"人物",
     titleEn:"a person who works in a successful company", titleZh:"在成功公司工作的人",
     promptEn:"Describe a person who works in a successful company", promptZh:"",
@@ -184,10 +177,6 @@ const SPEAKING_BANK = [
     titleEn:"An ad with a celebrity", titleZh:"名人出演的广告",
     promptEn:"Describe an advertisement that features a celebrity.", promptZh:"描述一个有名人出演的广告。",
     youShouldSay:["What the ad is about","Who the celebrity is","What you think of the ad","And explain why this matters to you"],
-    cue:'', content:'', keywords:'', linkedTo:"", proficiency:"没练" },{ id:"sb_p2_travel", type:"P2", period:"2026-05-08", isNew:true, frequency:"ultra", category:"地点",
-    titleEn:"A place you recommend to travel", titleZh:"推荐旅行过的地方",
-    promptEn:"Describe a place you would recommend people to travel to.", promptZh:"描述一个你推荐别人去旅行的地方。",
-    youShouldSay:["Where it is","What people can do there","Why you recommend it","And explain why this matters to you"],
     cue:'', content:'', keywords:'', linkedTo:"", proficiency:"没练" },{ id:"sb_p2_techprob", type:"P2", period:"2026-05-08", isNew:true, frequency:"high", category:"事件",
     titleEn:"A tech problem you encountered", titleZh:"遇到的科技问题",
     promptEn:"Describe a time you had a problem with a piece of technology.", promptZh:"描述一次你遇到科技问题的经历。",
@@ -214,7 +203,17 @@ const SPEAKING_BANK = [
     titleEn:"A time you solved a difficult problem", titleZh:"解决困难的一次经历",
     promptEn:"Describe a time when you solved a difficult problem.", promptZh:"描述一次你解决困难问题的经历。",
     youShouldSay:["What the problem was","How you solved it","What the result was","And explain how you felt about it"],
-    cue:'', content:'', keywords:'', linkedTo:"", proficiency:"没练" },];
+    cue:'', content:'', keywords:'', linkedTo:"", proficiency:"没练" },  { id:"sb_p2_trip_again", type:"P2", period:"2026-08-23", isNew:true, frequency:"ultra", category:"地点",
+    titleEn:"A trip you want to take again", titleZh:"想再去一次的旅行",
+    questions:[], cue:"", content:"", keywords:"", linkedTo:"", proficiency:"没练" },
+  { id:"sb_p2_quiet_place", type:"P2", period:"2026-08-23", isNew:true, frequency:"ultra", category:"地点",
+    titleEn:"A quiet place you like", titleZh:"喜欢的安静地方",
+    questions:[], cue:"", content:"", keywords:"", linkedTo:"", proficiency:"没练" },
+  { id:"sb_p2_othershome", type:"P2", period:"2026-08-23", isNew:true, frequency:"low", category:"地点",
+    titleEn:"A home of someone else you visited", titleZh:"别人家住宅",
+    questions:[], cue:"", content:"", keywords:"", linkedTo:"", proficiency:"没练" },
+];
+
 
 
 const MED_DURATION_MS = 12 * 3600 * 1000;
