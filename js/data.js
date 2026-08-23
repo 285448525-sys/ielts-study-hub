@@ -230,6 +230,9 @@ const SPEAKING_BANK_VERSION = 4;
  * 注意：这会清空本地所有练习记录/词库/计时等；这是为了让题库更新一次性生效不得已的代价。 */
 (function autoCleanOldSpeakingBank(){
   try{
+    // 防重入：本次会话已清理过一次就不再清，避免任何边缘情况下 reload 死循环
+    const GUARD = 'ielts_bank_clean_guard';
+    try{ if(sessionStorage.getItem(GUARD)) return; }catch(_){}
     const raw = localStorage.getItem(HUB_KEY);
     if(!raw) return;
     const parsed = JSON.parse(raw);
@@ -241,6 +244,7 @@ const SPEAKING_BANK_VERSION = 4;
     // 若因version清整个DATA会误删云端同步的其它个人数据。仅当确实残留脏题id时才清。
     if(hasDirty || hasOldMorning){
       console.warn('[题库清理] 检测到旧 localStorage 题库脏题，正在自动清空并刷新…');
+      try{ sessionStorage.setItem(GUARD, '1'); }catch(_){}
       localStorage.removeItem(HUB_KEY);
       if(typeof location !== 'undefined' && location.reload){
         location.reload(true);
