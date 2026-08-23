@@ -60,6 +60,10 @@ function saveSettings(){
   DATA.settings.autoSync = true; // 默认开启自动同步，与考研站一致（绑定后由 syncLoginOrRegister 控制）
   DATA.settings.pronunciationScore = ($('#sPron').value === '' ? null : (parseFloat($('#sPron').value) || null)); // 口语模考固定发音分（0–9），空=未设置
   DATA.settings.chimeOnDone = $('#sChime').checked;
+  // 记录本机保存时间：name/examDate/dailyGoalHours/theme/targets/syncCode/autoSync/pronunciationScore/chimeOnDone
+  const now = Date.now();
+  DATA.settings._fieldTs = DATA.settings._fieldTs || {};
+  ['name','examDate','dailyGoalHours','theme','targets','syncCode','autoSync','pronunciationScore','chimeOnDone'].forEach(f => { DATA.settings._fieldTs[f] = now; });
   hubSave(); applyTheme();
   if(DATA.settings.syncCode) scheduleCloudUpload();   // 已登录则立即同步（含发音分等）到云端
   toast('设置已保存（已同步云端）');
@@ -67,6 +71,8 @@ function saveSettings(){
 
 function saveRelay(){
   DATA.settings.relayToken = $('#sRelayToken').value.trim();
+  DATA.settings._fieldTs = DATA.settings._fieldTs || {};
+  DATA.settings._fieldTs.relayToken = Date.now();   // 记录本机 Key 保存时间，合并时按时间胜出，避免被云端旧值覆盖
   hubSave();
   if(DATA.settings.syncCode) scheduleCloudUpload();   // 已登录则立即同步到云端，避免 60s 延迟期间清缓存丢 Key
   toast(DATA.settings.relayToken ? '已保存 AI 接口配置（已同步云端）' : '已清空 Key');

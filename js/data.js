@@ -279,7 +279,8 @@ let DATA = {
     targets: { overall: 6.0, listening: 5.5, reading: 6.5, writing: 5.5, speaking: 5.5 },
     relayToken: '',
     syncCode: '',
-    autoSync: true
+    autoSync: true,
+    _fieldTs: {}   // 各 settings 字段最后本机保存时间戳（毫秒），用于云端合并时按字段级「较新者胜」，根治刚填的 Key 被云端旧值覆盖
   },
   errorbook: [],
   longSent: [],           // 长难句拆解记录（合并进「词句」页，由 errorbook.js 读写）

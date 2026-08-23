@@ -48,20 +48,6 @@
       bars += '<div class="prog-bar-row"><span class="freq-badge ' + f + '">' + (FREQ_LABEL[f] || f) + '</span><div class="bar"><i style="width:' + pct + '%"></i></div><span class="bar-num">' + gd + '/' + grp.length + '</span></div>';
     });
 
-    // 每题练习遍数列表（默认：遍数多→少，同遍数按最近练习时间）
-    const rows = list.map(s => ({ s, c: countOf(s), ts: lastTs(s), f: s.frequency, title: s.titleEn || s.titleZh || '未命名' }))
-      .sort((a, b) => (b.c - a.c) || (b.ts - a.ts));
-    let pl = '';
-    rows.forEach(r => {
-      const dots = r.c > 0 ? '●'.repeat(Math.min(r.c, 10)) : '·';
-      const time = r.ts ? (function () { const d = new Date(r.ts); const p = n => String(n).padStart(2, '0'); return (d.getMonth() + 1) + '-' + p(d.getDate()); })() : '—';
-      pl += '<div class="pl-row"><span class="freq-badge ' + (r.f || 'low') + '">' + (FREQ_LABEL[r.f] || r.f || '') + '</span>'
-        + '<span class="pl-title">' + escapeHtml(r.title) + (r.s.type === 'P2' ? ' (P2)' : '') + '</span>'
-        + '<span class="pl-dots">' + dots + '</span>'
-        + '<span class="pl-count">' + r.c + ' 遍</span>'
-        + '<span class="pl-time">' + time + '</span></div>';
-    });
-
     el.innerHTML =
       '<div class="prog-grid">'
       + '<div class="prog-card"><div class="n">' + total + '</div><div class="l">话题总数</div></div>'
@@ -72,8 +58,6 @@
 
       + '<section class="card"><h2>各档位进度</h2>' + bars + '</section>'
 
-      + '<section class="card"><h2>Part 分块</h2><div class="prog-part"><span>P1 已练 <b>' + p1Done + '</b>/' + p1Total + '</span><span>P2 已练 <b>' + p2Done + '</b>/' + p2Total + '</span><span>P1 练习 <b>' + list.filter(s => s.type !== 'P2').reduce((a, s) => a + countOf(s), 0) + '</b> 遍</span><span>P2 练习 <b>' + list.filter(s => s.type === 'P2').reduce((a, s) => a + countOf(s), 0) + '</b> 遍</span></div></section>'
-
-      + '<section class="card"><h2>每题练习遍数（P1 / P2）</h2><div class="pract-list">' + pl + '</div></section>';
+      + '<section class="card"><h2>Part 分块</h2><div class="prog-part"><span>P1 已练 <b>' + p1Done + '</b>/' + p1Total + '</span><span>P2 已练 <b>' + p2Done + '</b>/' + p2Total + '</span><span>P1 练习 <b>' + list.filter(s => s.type !== 'P2').reduce((a, s) => a + countOf(s), 0) + '</b> 遍</span><span>P2 练习 <b>' + list.filter(s => s.type === 'P2').reduce((a, s) => a + countOf(s), 0) + '</b> 遍</span></div></section>';
   };
 })();

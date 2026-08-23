@@ -782,11 +782,27 @@ function mergeData(local, cloud){
   //        不同 timerId（一端开新计时、另一端旧计时）→ 进行中且未 ended 者优先，都进行中则 lastBeat 新者胜。
   const at = _mergeActiveTimer(local.activeTimer, cloud.activeTimer);
   if(JSON.stringify(at) !== JSON.stringify(local.activeTimer || null)){ out.activeTimer = at; changes++; }
-  // 设置白名单：云端非空且不同 → 取云端
+  // 设置白名单：字段级「较新者胜」——对比本机与云端各自的 _fieldTs 时间戳，取更晚保存的一侧。
+  // 根治经典 bug：本机刚填的 relayToken/发音分，被 10 秒轮询拉到的云端旧值覆盖（"去别的模块回来 Key 又没了"）。
+  // 时间戳缺失时回退旧逻辑：云端非空且不同→取云端（兼容早期无 _fieldTs 的云端数据）。
   const ls = local.settings || {}; const cs = cloud.settings || {};
   out.settings = Object.assign({}, ls);
+  const lTs = ls._fieldTs || {}; const cTs = cs._fieldTs || {};
+  out.settings._fieldTs = Object.assign({}, lTs);
   for(const f of SYNC_SETTINGS_FIELDS){
-    if(cs[f] != null && JSON.stringify(cs[f]) !== JSON.stringify(ls[f])){ out.settings[f] = cs[f]; changes++; }
+    const cl = (lTs[f] != null) ? lTs[f] : 0;
+    const cc = (cTs[f] != null) ? cTs[f] : 0;
+    if(cc > cl){
+      // 云端该字段比本机更新 → 取云端值 + 云端时间戳
+      if(cs[f] !== undefined){ out.settings[f] = cs[f]; out.settings._fieldTs[f] = cc; changes++; }
+    } else if(cl > cc){
+      // 本机更新 → 保持本机值（已 Object.assign 进 out.settings），并保留本机时间戳
+      // 若云端有同名字段且值不同，上面 Object.assign 已用本机 ls 覆盖，这里无需操作
+      if(JSON.stringify(cs[f]) !== JSON.stringify(ls[f])) changes++; // 仍计为一次合并应用（本机胜出）
+    } else {
+      // 时间戳相同或都缺失：回退旧逻辑（云端非空且不同→取云端）
+      if(cs[f] != null && JSON.stringify(cs[f]) !== JSON.stringify(ls[f])){ out.settings[f] = cs[f]; changes++; }
+    }
   }
   out.deletedIds = Array.from(deleted);
   return { data: out, changes };
@@ -945,6 +961,7 @@ async function syncLoginOrRegister(){
       // 注册：上传本机数据（剔除官方共享题库/模板，避免脏数据污染云端）
       await syncApi('PUT', { data: stripCloudFields(DATA), ts: Date.now(), deviceId: getDeviceId() });
       enableAutoSyncAfterLogin(phone);
+      initCloudSync();   // 登录后补启动轮询拉取（页面可能已加载，ready 里的 initCloudSync 当时因未登录跳过了）
       syncSetStatus('✅ 注册成功，数据已上传云端', 'ok');
       renderSyncState();
     } else if(probe.ok){
@@ -954,6 +971,7 @@ async function syncLoginOrRegister(){
         const m = mergeData(DATA, data.data);
         DATA = m.data;
         enableAutoSyncAfterLogin(phone);
+        initCloudSync();   // 登录后补启动轮询拉取，立即能拉到另一端历史/进度
         hubSave();
         syncSetStatus('✅ 登录成功，已合并云端数据', 'ok');
         renderSyncState();
@@ -1063,8 +1081,11 @@ function renderAllOnMerge(){
   });
 }
 /* 自动双向同步：启动静默合并拉取一次 + 定时/回到页面时拉取（均为合并，不覆盖、不弹确认刷屏） */
+let _cloudSyncStarted = false;
 function initCloudSync(){
+  if(_cloudSyncStarted) return;   // 幂等：登录后补调用 / 重复 ready 都不重复起轮询
   if(!DATA.settings.autoSync || !  DATA.settings.syncCode) return;
+  _cloudSyncStarted = true;
   cloudDownload(true); // 启动静默合并拉取（有更新才提示）
   // 轮询拉取：10 秒一次（页面可见时）。近实时——另一台设备保存后，本端约 10s 内自动合并且重渲染，无需手动操作。
   // 请求量：每设备每 10 秒 1 次 GET，CF Functions 免费额度内；内容未变时不弹不刷（reallyChanged 保险），不会刷屏。
