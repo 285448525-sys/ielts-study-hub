@@ -4,6 +4,7 @@ ready(() => {
   $('#importCorpus').addEventListener('click', importBulk);
   $('#addCorpus').addEventListener('click', addOne);
   $('#startDict').addEventListener('click', startDict);
+  $('#startWrite').addEventListener('click', startWrite);
   // 设置联动：设置实时保存到 localStorage
   const loadCfg = () => Object.assign({ rate:.9, repeat:3, intervalMs:2200, showCn:false, batchSize:10 }, DATA.settings.corpusCfg || {});
   const saveCfg = () => {
@@ -77,17 +78,16 @@ function renderList(){
   $('#corpusCount').textContent = DATA.corpus.length;
   const box = $('#corpusList');
   if(DATA.corpus.length === 0){ box.innerHTML = renderEmpty('还没有句子，上面导几句吧。'); return; }
-  box.innerHTML = DATA.corpus.slice().reverse().map(c => `
-    <div class="corpus-item">
-      <button class="plan-del" data-play="${escapeHtml(c.en)}" title="播放"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.4 5.6a9 9 0 0 1 0 12.8"/></svg></button>
-      <div class="corpus-text"><div>${escapeHtml(c.en)}</div>${c.cn ? `<div class="muted" style="font-size:13px">${escapeHtml(c.cn)}</div>` : ''}</div>
-      <button class="plan-del" data-del="${c.id}" title="删除">✕</button>
-    </div>
-  `).join('');
-  box.querySelectorAll('button[data-play]').forEach(b =>
-    b.addEventListener('click', () => speak(b.dataset.play, 'en-US')));
-  box.querySelectorAll('button[data-del]').forEach(b =>
-    b.addEventListener('click', () => deleteCorpus(b.dataset.del)));
+  const rows = DATA.corpus.slice().reverse().map(c => `
+    <tr>
+      <td class="cor-cell cor-cn">${c.cn ? escapeHtml(c.cn) : '<span class="muted">（无中文）</span>'}</td>
+      <td class="cor-cell cor-en">${escapeHtml(c.en)}</td>
+    </tr>`).join('');
+  box.innerHTML = `
+    <table class="corpus-table">
+      <thead><tr><th>中文</th><th>英文</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
 }
 
 // ========== 听写 ==========
@@ -227,6 +227,122 @@ function checkSent(item, userVal, skipped){
     </div>`;
   $('#playAgainBtn').addEventListener('click', () => playSentence(item.en));
   $('#nextBtn').addEventListener('click', () => { dict.idx++; renderDictItem(); });
+}
+
+/* ========== 默写（看中文写英文） ==========
+   与「听写」共用背诵配置；区别：不自动朗读，左侧中文提示，右侧填英文，提交后 AI 批改。 */
+function startWrite(){
+  if(DATA.corpus.length === 0){ toast('语料库是空的，先导入句子'); return; }
+  const cfg = Object.assign({ rate:.9, repeat:3, intervalMs:2200, showCn:false, batchSize:10 }, DATA.settings.corpusCfg || {});
+  let q = shuffle(DATA.corpus.slice());
+  const bs = cfg.batchSize;
+  if(bs > 0 && bs < q.length) q = q.slice(0, bs);
+  window.__writeQueue = q;
+  renderWrite(q, cfg);
+}
+
+function renderWrite(q, cfg){
+  $('#dictArea').innerHTML = `
+    <div class="write-card">
+      <div class="card-head" style="margin-bottom:10px">
+        <div class="score-badge">看中文 · 写英文（${q.length} 句）</div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <span class="muted" style="font-size:12px">左列中文作提示，右侧写出英文</span>
+        </div>
+      </div>
+      <div id="writeList">
+        ${q.map((it, i) => `
+          <div class="write-row" data-id="${it.id}">
+            <div class="write-cn">${escapeHtml(it.cn || '（无中文）')}</div>
+            <input class="write-en" data-id="${it.id}" placeholder="写出英文…" spellcheck="false" />
+            <button class="write-play" data-play="${escapeHtml(it.en)}" title="听发音">🔊</button>
+          </div>`).join('')}
+      </div>
+      <div class="dict-actions">
+        <button class="btn" id="writeReveal">显示全部答案</button>
+        <button class="btn btn-primary" id="writeSubmit">提交批改</button>
+      </div>
+      <div id="writeResult" style="margin-top:14px"></div>
+    </div>`;
+
+  document.querySelectorAll('#writeList .write-play').forEach(b =>
+    b.addEventListener('click', () => speak(b.dataset.play, 'en-US')));
+  $('#writeReveal').addEventListener('click', () => {
+    const q2 = window.__writeQueue;
+    document.querySelectorAll('#writeList .write-row').forEach((row,i) => {
+      const inp = row.querySelector('.write-en');
+      if(!inp.value.trim()) inp.value = q2[i].en;
+    });
+  });
+  $('#writeSubmit').addEventListener('click', () => gradeWrite(q, cfg));
+}
+
+async function gradeWrite(q, cfg){
+  const rows = document.querySelectorAll('#writeList .write-row');
+  const items = [];
+  rows.forEach((row, i) => {
+    const inp = row.querySelector('.write-en');
+    items.push({ id: q[i].id, en: q[i].en, cn: q[i].cn || '', user: (inp.value || '').trim() });
+  });
+  const resBox = $('#writeResult');
+  resBox.innerHTML = '<div class="ts-load">AI 正在逐句批改…</div>';
+
+  // 先做可靠的基础词级比对（不依赖网络），作为兜底与 AI 结果合并
+  const norm = s => (s||'').toLowerCase().replace(/[^a-z0-9\s]/g,'').replace(/\s+/g,' ').trim().split(' ').filter(Boolean);
+  const base = items.map(it => {
+    const ref = norm(it.en), usr = norm(it.user);
+    const usrSet = new Set(usr);
+    let matched = 0; const missed = [];
+    ref.forEach(w => { if(usrSet.has(w)) matched++; else missed.push(w); });
+    const acc = ref.length ? Math.round(matched/ref.length*100) : 0;
+    return { ...it, acc, missed };
+  });
+
+  let aiNotes = {};
+  if(DATA.settings.relayToken){
+    try{
+      let lines = '';
+      items.forEach((it,i) => { lines += (i+1) + '. 标准：' + it.en + '\n学生：' + (it.user || '（空）') + '\n\n'; });
+      const messages = [
+        { role:'system', content:
+`你是雅思默写批改。给定「标准英文」和「学生默写」，逐句找英文单词层面的差异。
+规则：只比对英文单词序列（小写、去标点），标点/空格/符号差异不算错；连字符豁免（short-lived / short lived / shortlived 视为同）。
+返回严格 JSON：{"results":[{"loc":"1","wrong":"学生写法(漏写则空)","right":"正确写法","type":"漏写|错词|拼写","note":""}],"overall":""}。
+无错则该条 results 不含此项。只输出 JSON，无解释无围栏。` },
+        { role:'user', content: lines }
+      ];
+      const content = await callRelay('dictation_check', messages, 0.3);
+      const r = aiJson(content);
+      if(r && Array.isArray(r.results)){
+        r.results.forEach(x => { if(x && x.loc) aiNotes[String(x.loc)] = x; });
+      }
+    }catch(e){ /* AI 失败则用基础比对，不影响批改 */ }
+  }
+
+  let okCount = 0;
+  const html = base.map((it, i) => {
+    const ai = aiNotes[String(i+1)];
+    const ok = it.acc === 100;
+    if(ok) okCount++;
+    const missHtml = it.missed.length
+      ? `<div class="write-res-line"><span class="muted">漏掉：</span> ${it.missed.map(w=>`<span class="badge down">${escapeHtml(w)}</span>`).join(' ')}</div>` : '';
+    const aiLine = ai && ai.note
+      ? `<div class="write-res-line muted">AI：${escapeHtml(ai.note)}</div>` : '';
+    return `<div class="write-result-row ${ok?'ok':'bad'}">
+      <div class="write-res-line"><b>${escapeHtml(it.cn || '（无中文）')}</b> · 准确率 ${it.acc}%${ok?' ✅':''}</div>
+      <div class="write-res-line">你的：<span style="color:${ok?'var(--med)':'var(--danger)'}">${escapeHtml(it.user||'（未作答）')}</span></div>
+      <div class="write-res-line muted">正确：${escapeHtml(it.en)}</div>
+      ${missHtml}${aiLine}
+    </div>`;
+  }).join('');
+
+  const summary = `<div class="dict-result-actions" style="justify-content:flex-start;margin-bottom:10px">
+    <div class="stat-row" style="margin-right:16px">本次 <b>${q.length}</b> 句 · 全对 <b style="color:var(--med)">${okCount}</b></div>
+    <button class="btn btn-primary" id="writeRestart">再来一轮</button>
+  </div>`;
+  resBox.innerHTML = summary + html;
+  const rb = document.getElementById('writeRestart');
+  if(rb) rb.addEventListener('click', startWrite);
 }
 
 function finishDict(){

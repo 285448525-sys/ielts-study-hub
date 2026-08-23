@@ -581,6 +581,27 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 .hist-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;font-size:13px;line-height:1.5;color:var(--ink)}
 .corpus-dict-setup{display:flex;gap:14px;flex-wrap:wrap;align-items:center;background:var(--surface-2);padding:12px 14px;border-radius:12px;margin:10px 0 14px}
 .corpus-list{margin-top:10px}
+/* 语料库紧凑表格：左列中文 / 右列英文 */
+.corpus-table{width:100%;border-collapse:collapse;font-size:14px}
+.corpus-table th{text-align:left;color:var(--muted);font-size:12.5px;font-weight:700;padding:8px 10px;border-bottom:2px solid var(--line)}
+.corpus-table td.cor-cell{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.5}
+.corpus-table td.cor-cn{color:var(--ink-sub);width:42%}
+.corpus-table td.cor-en{color:var(--ink);font-weight:600}
+
+/* 默写（看中文写英文）练习 */
+.write-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px}
+.write-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px dashed var(--line)}
+.write-row:first-child{border-top:none}
+.write-cn{flex:none;width:38%;color:var(--ink-sub);font-size:14px;line-height:1.4}
+.write-en{flex:1;min-width:0;padding:9px 12px;border:1.5px solid var(--line);border-radius:10px;font:inherit;font-size:15px;background:var(--bg);color:var(--ink)}
+.write-en:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+.write-play{flex:none;width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--surface);cursor:pointer;color:var(--ink-sub)}
+.write-play:hover{border-color:var(--primary);color:var(--primary)}
+.write-result-row{margin-top:8px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg)}
+.write-result-row.ok{border-color:rgba(16,185,129,.35);background:rgba( 16,185,129,.05)}
+.write-result-row.bad{border-color:rgba(248,113,113,.3);background:rgba(248,113,113,.04)}
+.write-res-line{font-size:13px;margin:3px 0}
+.write-res-line .muted{font-size:12px}
 
 /* longsent: 同声传译 + 一键收录 */
 .ls-sec{margin-top:18px}
