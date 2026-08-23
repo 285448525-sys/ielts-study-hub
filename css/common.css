@@ -603,6 +603,15 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 .write-result-row.ok{border-color:rgba(16,185,129,.35);background:rgba( 16,185,129,.05)}
 .write-result-row.bad{border-color:rgba(248,113,113,.3);background:rgba(248,113,113,.04)}
 .write-res-line{font-size:13px;margin:3px 0}
+/* 表格默写模式：英文列内联输入 + 批改回显 */
+.write-table td.cor-en-write{position:relative}
+.write-table .write-en{width:100%;box-sizing:border-box;padding:7px 10px;margin:2px 0;border:1.5px solid var(--line);border-radius:8px;font:inherit;font-size:13.5px;background:var(--bg);color:var(--ink)}
+.write-table .write-en:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+.write-table .write-play{margin-left:6px;padding:4px 7px;border:1px solid var(--line);border-radius:7px;background:var(--surface);cursor:pointer;font-size:13px}
+.write-table .write-play:hover{border-color:var(--primary);color:var(--primary)}
+.write-fb{font-size:12px;margin-top:3px;line-height:1.5}
+.write-fb.ok{color:var(--med)}
+.write-fb.bad{color:var(--danger)}
 .write-res-line .muted{font-size:12px}
 
 /* longsent: 同声传译 + 一键收录 */

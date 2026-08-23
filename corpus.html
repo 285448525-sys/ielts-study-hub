@@ -144,11 +144,11 @@
       <div class="card-head" style="margin-bottom:10px">
         <h2 style="margin:0">语料表（左中文 · 右英文）</h2>
         <span class="muted" style="font-size:13px">共 <b id="corpusCount">0</b> 条</span>
-        <button class="btn btn-primary flex-none" id="startWrite">开始默写（看中文写英文）</button>
+        <button class="btn btn-primary flex-none" id="startWrite">表格默写（隐藏英文列）</button>
       </div>
       <div id="corpusList"></div>
       <details style="margin-top:12px">
-        <summary style="cursor:pointer;font-size:14px">＋ 添加语料（单条 / 批量导入）</summary>
+        <summary style="cursor:pointer;font-size:14px">＋ 添加语料（单条 / 批量 / AI 智能导入）</summary>
         <div class="form-row" style="align-items:flex-end;gap:10px;flex-wrap:wrap;margin-top:10px">
           <div>
             <div class="muted" style="font-size:12px;margin-bottom:4px">英文</div>
@@ -169,6 +169,14 @@
               <span id="importHint" class="muted" style="font-size:12.5px"></span>
             </div>
           </details>
+          <div style="margin-top:10px;border-top:1px dashed var(--line);padding-top:10px">
+            <div class="muted" style="font-size:13px;margin-bottom:6px">AI 智能导入：粘贴短语 / 词 / 句子（可纯英文，AI 自动切分并补中文释义）</div>
+            <textarea id="aiImportBox" placeholder="粘贴要记的内容，例如：&#10;The government should invest in public transport.&#10; sustainable development&#10; 空气污染加剧" style="width:100%;min-height:80px;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);resize:vertical;box-sizing:border-box"></textarea>
+            <div class="form-row" style="margin-top:8px;align-items:center">
+              <button class="btn btn-primary" id="aiImportBtn">AI 识别并导入</button>
+              <span id="aiImportHint" class="muted" style="font-size:12.5px"></span>
+            </div>
+          </div>
         </div>
       </details>
     </section>

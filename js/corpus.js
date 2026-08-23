@@ -2,6 +2,7 @@ var dict = null; // {queue, idx, cfg, wrongList, total, correct, revealed}
 
 ready(() => {
   $('#importCorpus').addEventListener('click', importBulk);
+  $('#aiImportBtn').addEventListener('click', aiImportCorpus);
   $('#addCorpus').addEventListener('click', addOne);
   $('#startDict').addEventListener('click', startDict);
   $('#startWrite').addEventListener('click', startWrite);
@@ -72,6 +73,55 @@ function deleteCorpus(id){
   DATA.deletedIds = DATA.deletedIds || [];
   if(id != null && !DATA.deletedIds.includes(id)) DATA.deletedIds.push(id);
   hubSave(); renderList();
+}
+
+// AI 智能导入：粘贴短语/词/句子（可纯英文），AI 自动切分每条并匹配中文释义，批量加入语料表
+async function aiImportCorpus(){
+  const box = $('#aiImportBox');
+  const raw = (box && box.value || '').trim();
+  if(!raw){ toast('先粘贴要导入的内容'); return; }
+  if(!DATA.settings.relayToken){ toast('还没填 DeepSeek Key，去「设置 / AI 接口」填一下'); return; }
+  const btn = $('#aiImportBtn');
+  const hint = $('#aiImportHint');
+  btn.disabled = true; btn.textContent = 'AI 识别中…';
+  if(hint) hint.textContent = '正在切分并匹配中文…';
+  try{
+    const messages = [
+      { role:'system', content:
+`你是雅思语料整理助手。用户输入一段要记忆的内容（可能是短语、单词、句子，可纯英文、可夹中文、可多行混合）。
+请：1) 按语义切分成独立的「条目」（一个短语/词/句子=一条，不要把整段当一个条目）；2) 为每条给出准确的中文释义。
+规则：若原文本已含中文释义，直接采用；若纯英文，根据雅思语境补贴切中文。条目原文保留英文原样（含标点）。
+返回严格 JSON：{"items":[{"en":"英文原句/词","cn":"中文释义"}]}，只输出 JSON，无解释无围栏。` },
+      { role:'user', content: raw }
+    ];
+    const content = await callRelay('translate', messages, 0.3);
+    const r = aiJson(content);
+    const items = (r && Array.isArray(r.items)) ? r.items : [];
+    if(!items.length){ toast('AI 没识别出条目，换个格式再试'); if(hint) hint.textContent = '未识别到条目'; return; }
+    const existing = new Set(DATA.corpus.map(c => c.en.toLowerCase()));
+    let added = 0, skipped = 0;
+    items.forEach(it => {
+      const en = (it.en || '').trim();
+      const cn = (it.cn || '').trim();
+      if(!en) return;
+      const key = en.toLowerCase();
+      if(existing.has(key)){ skipped++; return; }
+      existing.add(key);
+      DATA.corpus.push({ id: uid(), en, cn });
+      added++;
+    });
+    if(added){ hubSave(); renderList(); }
+    let msg = added ? ('AI 导入 ' + added + ' 条') : '没有新增（可能都重复）';
+    if(skipped) msg += '，跳过重复 ' + skipped + ' 条';
+    toast(msg);
+    if(hint) hint.textContent = msg;
+    if(box) box.value = '';
+  }catch(e){
+    toast('AI 导入失败：' + e.message);
+    if(hint) hint.textContent = '失败：' + e.message;
+  }finally{
+    btn.disabled = false; btn.textContent = 'AI 识别并导入';
+  }
 }
 
 function renderList(){
@@ -230,8 +280,9 @@ function checkSent(item, userVal, skipped){
   $('#nextBtn').addEventListener('click', () => { dict.idx++; renderDictItem(); });
 }
 
-/* ========== 默写（看中文写英文） ==========
-   与「听写」共用背诵配置；区别：不自动朗读，左侧中文提示，右侧填英文，提交后 AI 批改。 */
+/* ========== 表格默写（看中文写英文） ==========
+   点「表格默写」后：原语料表进入默写模式——英文列隐藏，改为每行一个输入框（中文列作提示），
+   提交后调用 AI 逐行批改，批改结果以颜色标注回写英文列。 */
 function startWrite(){
   if(DATA.corpus.length === 0){ toast('语料库是空的，先导入句子'); return; }
   const cfg = Object.assign({ rate:.9, repeat:3, intervalMs:2200, showCn:false, batchSize:10 }, DATA.settings.corpusCfg || {});
@@ -243,34 +294,40 @@ function startWrite(){
 }
 
 function renderWrite(q, cfg){
+  // 复用语料表结构：左中文（提示）+ 右英文（默写输入），紧凑表格
+  const rows = q.map((it, i) => `
+    <tr class="write-row" data-id="${it.id}">
+      <td class="cor-idx">${i + 1}</td>
+      <td class="cor-cell cor-cn">${it.cn ? escapeHtml(it.cn) : '<span class="muted">（无中文）</span>'}</td>
+      <td class="cor-cell cor-en-write">
+        <input class="write-en" data-id="${it.id}" placeholder="写出英文…" spellcheck="false" />
+        <button class="write-play" data-play="${escapeHtml(it.en)}" title="听发音" type="button">🔊</button>
+        <div class="write-fb" data-id="${it.id}" hidden></div>
+      </td>
+    </tr>`).join('');
   $('#dictArea').innerHTML = `
     <div class="write-card">
       <div class="card-head" style="margin-bottom:10px">
-        <div class="score-badge">看中文 · 写英文（${q.length} 句）</div>
-        <div style="display:flex;gap:10px;align-items:center">
-          <span class="muted" style="font-size:12px">左列中文作提示，右侧写出英文</span>
-        </div>
+        <div class="score-badge">表格默写 · 看中文写英文（${q.length} 句）</div>
+        <button class="btn" id="writeExit" type="button">← 退出默写</button>
       </div>
-      <div id="writeList">
-        ${q.map((it, i) => `
-          <div class="write-row" data-id="${it.id}">
-            <div class="write-cn">${escapeHtml(it.cn || '（无中文）')}</div>
-            <input class="write-en" data-id="${it.id}" placeholder="写出英文…" spellcheck="false" />
-            <button class="write-play" data-play="${escapeHtml(it.en)}" title="听发音">🔊</button>
-          </div>`).join('')}
-      </div>
-      <div class="dict-actions">
-        <button class="btn" id="writeReveal">显示全部答案</button>
-        <button class="btn btn-primary" id="writeSubmit">提交批改</button>
+      <table class="corpus-table write-table">
+        <thead><tr><th class="cor-idx">#</th><th>中文（提示）</th><th>英文（默写）</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="dict-actions" style="margin-top:12px">
+        <button class="btn" id="writeReveal" type="button">显示全部答案</button>
+        <button class="btn btn-primary" id="writeSubmit" type="button">提交批改（AI）</button>
       </div>
       <div id="writeResult" style="margin-top:14px"></div>
     </div>`;
 
-  document.querySelectorAll('#writeList .write-play').forEach(b =>
+  document.querySelectorAll('#writeList .write-play, #dictArea .write-play').forEach(b =>
     b.addEventListener('click', () => speak(b.dataset.play, 'en-US')));
+  $('#writeExit').addEventListener('click', () => { $('#dictArea').innerHTML = ''; });
   $('#writeReveal').addEventListener('click', () => {
     const q2 = window.__writeQueue;
-    document.querySelectorAll('#writeList .write-row').forEach((row,i) => {
+    document.querySelectorAll('#dictArea .write-row').forEach((row,i) => {
       const inp = row.querySelector('.write-en');
       if(!inp.value.trim()) inp.value = q2[i].en;
     });
@@ -344,6 +401,20 @@ async function gradeWrite(q, cfg){
   resBox.innerHTML = summary + html;
   const rb = document.getElementById('writeRestart');
   if(rb) rb.addEventListener('click', startWrite);
+  // 表格内回显：每行英文列下方显示正确英文 + 准确率（保留表格默写形态，不丢上下文）
+  base.forEach((it, i) => {
+    const row = document.querySelector('#dictArea .write-row[data-id="' + (q[i] && q[i].id) + '"]');
+    if(!row) return;
+    const fb = row.querySelector('.write-fb');
+    if(!fb) return;
+    const ok = it.acc === 100;
+    const ai = aiNotes[String(i + 1)];
+    fb.hidden = false;
+    fb.className = 'write-fb ' + (ok ? 'ok' : 'bad');
+    fb.innerHTML = '正确：' + escapeHtml(it.en) + ' · ' + it.acc + '%' + (ok ? ' ✅' : '')
+      + (it.missed.length ? ' · 漏：' + it.missed.map(w => escapeHtml(w)).join(' ') : '')
+      + (ai && ai.note ? ' · <span class="muted">' + escapeHtml(ai.note) + '</span>' : '');
+  });
 }
 
 function finishDict(){
