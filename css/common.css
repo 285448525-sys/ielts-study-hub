@@ -1034,6 +1034,15 @@ main .quote{
 .sp-tts.playing{background:var(--primary);color:var(--on-primary);border-color:var(--primary);animation:pulseTts 1s ease-in-out infinite}
 @keyframes pulseTts{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
 
+/* === P2 练习倒计时按钮（2 分钟逼讲满）=== */
+.sp-timer-btn{display:inline-flex;align-items:center;gap:4px;padding:6px 11px;font-size:13px;font-weight:600;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:var(--radius-sm);cursor:pointer;transition:background .15s,color .15s,border-color .15s,box-shadow .15s,transform .15s}
+.sp-timer-btn:hover{border-color:var(--primary);color:var(--primary)}
+.sp-timer-btn.sp-timer-running{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+.sp-timer-btn:active{transform:translateY(0) scale(.97)}
+.sp-timer-display{display:inline-flex;align-items:center;justify-content:center;min-width:52px;font-variant-numeric:tabular-nums;font-feature-settings:"tnum";font-weight:700;font-size:14px;color:var(--primary);background:var(--primary-soft);border-radius:8px;padding:4px 9px;letter-spacing:.5px}
+.sp-timer-display.sp-timer-end{color:var(--on-primary);background:var(--danger);animation:timerBlink .6s steps(2,start) infinite}
+@keyframes timerBlink{0%,100%{opacity:1}50%{opacity:.45}}
+
 
 /* === 模考：右下角红色退出按钮 + 退出确认对话框 === */
 /* FAB 挂在 #mockStage 内部（fixed 定位）；舞台隐藏 / 切 tab / 显示报告时随父级自动隐藏，不会跑到别的页面 */

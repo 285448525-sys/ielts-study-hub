@@ -314,6 +314,8 @@ function openDetail(id){
     html += '<div class="sp-q-btns">';
     html += '<button class="sp-diag" id="p2Diag" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;flex:none"><path d="M12 2l2.4 5.1 5.6.8-4 4.1 1 5.6-5-2.7-5 2.7 1-5.6-4-4.1 5.6-.8z"/></svg>AI 纠错</button>';
     html += '<button class="sp-ans-clear" id="p2Clear" type="button">清空</button>';
+    html += '<button class="sp-timer-btn" id="p2TimerBtn" type="button" title="开始 2 分钟倒计时，逼自己讲满 2 分钟">⏱ 2分钟</button>';
+    html += '<span class="sp-timer-display" id="p2TimerDisplay" hidden>02:00</span>';
     html += '</div>';
     html += '<div class="sp-q-result" id="p2Result"></div>';
     html += '<div class="sp-rec-list" id="p2Records"></div>';
@@ -421,6 +423,39 @@ function openDetail(id){
       const res = $('#p2Result'); if(res){ res.innerHTML = ''; res.style.display = 'none'; }
       // 仅清空当前编辑框与诊断结果，不删历史提交记录
     });
+
+    // P2 倒计时按钮：点一下开始 2 分钟倒计时，到 0 停；再点重置重来
+    const p2TimerBtn = document.getElementById('p2TimerBtn');
+    const p2TimerDisp = document.getElementById('p2TimerDisplay');
+    if(p2TimerBtn && p2TimerDisp){
+      const TOTAL = 120; // 2 分钟
+      const fmt = s => { const m = Math.floor(s / 60), sec = s % 60; return String(m).padStart(2,'0') + ':' + String(sec).padStart(2,'0'); };
+      p2TimerBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        if(p2TimerBtn._timer){ clearInterval(p2TimerBtn._timer); p2TimerBtn._timer = null; }
+        let left = TOTAL;
+        p2TimerDisp.hidden = false;
+        p2TimerDisp.textContent = fmt(left);
+        p2TimerDisp.classList.remove('sp-timer-end');
+        p2TimerBtn.textContent = '⏱ 停止';
+        p2TimerBtn.classList.add('sp-timer-running');
+        // 自动聚焦输入框，方便语音输入转文字
+        const ta = $('#p2Ans'); if(ta) ta.focus();
+        p2TimerBtn._timer = setInterval(() => {
+          left--;
+          if(left <= 0){
+            clearInterval(p2TimerBtn._timer); p2TimerBtn._timer = null;
+            p2TimerDisp.textContent = '00:00';
+            p2TimerDisp.classList.add('sp-timer-end');
+            p2TimerBtn.textContent = '⏱ 2分钟';
+            p2TimerBtn.classList.remove('sp-timer-running');
+            toast('⏰ 2 分钟到！讲满啦');
+            return;
+          }
+          p2TimerDisp.textContent = fmt(left);
+        }, 1000);
+      });
+    }
 
     // P3 逐题追问：先出第 1 题，考生答完后点「下一道追问」基于上一题回答继续出题
     const MAX_P3 = 3;
