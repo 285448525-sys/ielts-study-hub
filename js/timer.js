@@ -227,6 +227,39 @@ function renderTimer(){
   bindStartButtons();
 }
 
+/* 今日学习记录：把 DATA.sessions 中「今日」的计时渲染进 #recMiniGrid，并刷新总计。
+   Bug（用户反馈）：计时结束后下方记录区不刷新——根因是 stopSession 入库后只调了
+   renderTimer()（刷新模块卡片），从未渲染记录区。这里补上独立渲染函数，并在
+   stopSession 入库后 + ready 初始化时调用。 */
+function renderMiniRecords(){
+  const grid = document.getElementById('recMiniGrid');
+  const empty = document.getElementById('recEmpty');
+  const totalEl = document.getElementById('recTotalMini');
+  if(!grid) return;
+  const tk = todayKey();
+  const list = (DATA.sessions || []).filter(s => s && s.date === tk);
+  let totalSec = 0;
+  list.forEach(s => { totalSec += Number(s.durationSec || 0); });
+  if(totalEl) totalEl.textContent = fmtHM(totalSec);
+  if(!list.length){
+    grid.innerHTML = '';
+    if(empty) empty.hidden = false;
+    return;
+  }
+  if(empty) empty.hidden = true;
+  grid.innerHTML = list.slice().reverse().map(s => {
+    const name = s.subName || s.moduleName || '学习';
+    const t = s.startTs ? new Date(s.startTs) : null;
+    const hh = t ? String(t.getHours()).padStart(2,'0') : '--';
+    const mm = t ? String(t.getMinutes()).padStart(2,'0') : '--';
+    return '<div class="rec-mini-item">'
+      + '<span class="rec-mini-mod">' + escapeHtml(name) + '</span>'
+      + '<span class="rec-mini-dur">' + fmtHM(Number(s.durationSec || 0)) + '</span>'
+      + '<span class="rec-mini-time">' + hh + ':' + mm + '</span>'
+      + '</div>';
+  }).join('');
+}
+
 function bindStartButtons(){
   document.querySelectorAll('.timer-start').forEach(b => {
     b.addEventListener('click', () => {
@@ -398,6 +431,7 @@ function stopSession(){
   $('#liveTimer').textContent = '00:00:00';
   $('#liveTimer').style.color = '';
   renderTimer();
+  renderMiniRecords();   // 入库后刷新「今日学习记录」列表（Bug：此前不刷新）
   if(already){
     toast('该段计时已在其他设备结算，本端不再重复记录');
   } else {
@@ -646,4 +680,5 @@ ready(() => {
 
   // 无任何活跃源
   renderTimer();
+  renderMiniRecords();   // 进入计时页即渲染已有「今日学习记录」
 });
