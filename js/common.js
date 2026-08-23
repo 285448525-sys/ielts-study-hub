@@ -52,6 +52,7 @@ function injectNav(){
   html += '<div class="side-head">'
     + '<span class="side-brand-mark" aria-hidden="true">I</span>'
     + '<div class="side-brand"><span class="bn">IELTS</span><span class="bs">雅思备考站</span></div>'
+    + '<button id="sideCollapseIn" class="side-collapse-in" type="button" aria-label="收起侧边栏" title="收起侧边栏">⟨</button>'
     + '</div>';
   // 方案1：全局计时徽标容器（任何页面常驻；计时进行中显示呼吸徽标 + 一键结束，解决 P1/P3）
   html += '<div class="side-timer-wrap" id="sideTimer"></div>';
@@ -184,6 +185,9 @@ function bindSidebar(){
       if(window.matchMedia('(max-width:860px)').matches){ document.body.classList.remove('nav-open'); syncNavToggle(); }
     });
   });
+  // 桌面展开态常驻「收起」按钮
+  const cin = document.getElementById('sideCollapseIn');
+  if(cin){ cin.addEventListener('click', toggleSidebar); }
   ensureMobileChrome();
 }
 
@@ -197,22 +201,26 @@ function syncNavToggle(){
 }
 
 function ensureMobileChrome(){
-  if(document.getElementById('sideToggle')) return;
-  const btn = document.createElement('button');
-  btn.id = 'sideToggle'; btn.className = 'side-toggle'; btn.innerHTML = '☰'; btn.setAttribute('aria-label', '功能菜单');
-  const bd = document.createElement('div');
-  bd.id = 'sideBackdrop'; bd.className = 'side-backdrop';
-  document.body.appendChild(bd); document.body.appendChild(btn);
-  btn.addEventListener('click', () => { document.body.classList.toggle('nav-open'); syncNavToggle(); });
-  bd.addEventListener('click', () => { document.body.classList.remove('nav-open'); syncNavToggle(); });
+  // 移动端抽屉：☰ 菜单按钮 + 遮罩
+  if(!document.getElementById('sideToggle')){
+    const btn = document.createElement('button');
+    btn.id = 'sideToggle'; btn.className = 'side-toggle'; btn.innerHTML = '☰'; btn.setAttribute('aria-label', '功能菜单');
+    const bd = document.createElement('div');
+    bd.id = 'sideBackdrop'; bd.className = 'side-backdrop';
+    document.body.appendChild(bd); document.body.appendChild(btn);
+    btn.addEventListener('click', () => { document.body.classList.toggle('nav-open'); syncNavToggle(); });
+    bd.addEventListener('click', () => { document.body.classList.remove('nav-open'); syncNavToggle(); });
+    syncNavToggle();
+  }
 
-  // 收起后左上角的展开按钮（桌面）
-  const col = document.createElement('button');
-  col.id = 'sideCollapse'; col.className = 'side-collapse';
-  document.body.appendChild(col);
-  col.addEventListener('click', toggleSidebar);
-  syncCollapseIcon();
-  syncNavToggle();
+  // 收起后左上角的展开按钮（桌面浮出）
+  if(!document.getElementById('sideCollapse')){
+    const col = document.createElement('button');
+    col.id = 'sideCollapse'; col.className = 'side-collapse';
+    document.body.appendChild(col);
+    col.addEventListener('click', toggleSidebar);
+    syncCollapseIcon();
+  }
 }
 
 function toggleSidebar(){
@@ -223,11 +231,19 @@ function toggleSidebar(){
 }
 
 function syncCollapseIcon(){
-  const col = document.getElementById('sideCollapse');
-  if(!col) return;
   const collapsed = document.body.classList.contains('side-collapsed');
-  col.textContent = collapsed ? '☰' : '⟨';
-  col.setAttribute('aria-label', collapsed ? '展开侧边栏' : '收起侧边栏');
+  // 收起后浮出的「展开」按钮
+  const col = document.getElementById('sideCollapse');
+  if(col){
+    col.textContent = collapsed ? '☰' : '⟨';
+    col.setAttribute('aria-label', collapsed ? '展开侧边栏' : '收起侧边栏');
+  }
+  // 展开态常驻在侧栏头部的「收起」按钮
+  const cin = document.getElementById('sideCollapseIn');
+  if(cin){
+    cin.textContent = collapsed ? '☰' : '⟨';
+    cin.setAttribute('aria-label', collapsed ? '展开侧边栏' : '收起侧边栏');
+  }
 }
 
 /* 侧栏滚动位置记忆：跳转子页面后导航栏保持原位、不跳回顶部

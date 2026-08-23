@@ -10,6 +10,7 @@ function switchWriteTab(tab){
   $('#bankPanel').hidden = tab !== 'bank';
   $('#scorePanel').hidden = tab !== 'score';
   $('#examPanel').hidden = tab !== 'exam';
+  $('#dictationPanel').hidden = tab !== 'dictation';
   if(tab === 'bank') renderBank();
   if(tab === 'score') renderScoreHist();
   if(tab === 'exam') renderExamList();
@@ -32,9 +33,11 @@ ready(() => {
   $('#a_save').addEventListener('click', addTpl);
   $('#delBtn').addEventListener('click', delTpl);
 
-  // 模板内联默写：把模板骨架当默写源，复用 dictation.js 的 AI 批改 + 错处记录
-  // 骨架里的【】填空位先转成 ____（明显"跳过"标记），提交比对时整框留空不算错
+  // 模板内联默写：把模板骨架当默写源（自包含默写 UI + AI 批改）
   $('#tplDictBtn').addEventListener('click', () => openTplDict(curId));
+  $('#wtDictBack').addEventListener('click', () => switchWriteTab('tpl'));
+  $('#wtDictSubmit').addEventListener('click', submitWtDict);
+  $('#wtDictClear').addEventListener('click', () => { if(wtDictCurrent) $('#wtDictInput').value = ''; toast('已清空，重新默写'); });
 
   // AI 评分
   $('#scoreBtn').addEventListener('click', scoreEssay);
@@ -479,19 +482,130 @@ function delTpl(){
   toast('已删除');
 }
 
-/* ===== 模板内联默写 =====
-   把模板骨架当默写源，复用 dictation.js 的 AI 批改 + 错处记录。
-   骨架里的【xxx】填空位先转成 ____（明显"跳过"标记），提交比对时整框留空不算错——
-   与「填空练习」容错逻辑一致（filledState 的 ____ 占位）。 */
+/* ===== 模板内联默写（自包含实现，不依赖 dictation.js） =====
+   把模板骨架当默写源，复用 common.js 的 callRelay + aiJson 做 AI 批改。
+   骨架里的【xxx】填空位先转成 ____，提交比对时整框留空不算错。 */
+function wtSplitSentences(text){
+  return (text || '').split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(Boolean);
+}
+function wtComputeWeak(sourceId){
+  const map = {};
+  (DATA.dictationLogs || []).forEach(l => {
+    if(l.sourceId !== sourceId || !Array.isArray(l.mistakes)) return;
+    l.mistakes.forEach(m => { const k = String(m.loc); if(k && k !== '0') map[k] = (map[k] || 0) + 1; });
+  });
+  return map;
+}
+
+let wtDictCurrent = null;   // 当前默写源 {id,title,text}
+
 function openTplDict(tplId){
   const t = DATA.writing.find(x => x.id === tplId);
   if(!t) return;
   // 骨架 → 纯默写文本：把【占位符】替换成 ____，让用户整框留空时不算错
   const plain = (t.skeleton || '').replace(/【[^】]*】/g, '____');
-  const virtual = { id: 'tpl_' + t.id, title: cleanCatName(t.title) + '（模板默写）', text: plain, isTpl: true };
-  switchWriteTab('dictation');   // 切到「默写」tab，否则用户还在模板库面板，看不见练习界面
-  openVirtualSource(virtual);    // dictation.js 全局函数
+  wtDictCurrent = { id: 'tpl_' + t.id, title: cleanCatName(t.title) + '（模板默写）', text: plain };
+
+  switchWriteTab('dictation');   // 切到默写面板
+
+  $('#wtDictTitle').textContent = wtDictCurrent.title;
+  $('#wtDictSrc').textContent = plain;
+  $('#wtDictInput').value = '';
+  $('#wtDictResult').hidden = true;
+  $('#wtDictResult').innerHTML = '';
+
+  // 历史提示
+  const logs = (DATA.dictationLogs || []).filter(l => l.sourceId === wtDictCurrent.id);
+  const times = logs.length;
+  const totalMistakes = logs.reduce((a, l) => a + (Array.isArray(l.mistakes) ? l.mistakes.length : 0), 0);
+  $('#wtDictHint').textContent = '已默 ' + times + ' 次 · 历史错 ' + totalMistakes + ' 处';
+
   toast('已进入模板默写：' + cleanCatName(t.title) + '。骨架里的填空位整框留空不算错。');
+}
+
+async function submitWtDict(){
+  if(!wtDictCurrent) return;
+  const userText = $('#wtDictInput').value.trim();
+  if(!userText){ toast('先把整段默出来再提交'); return; }
+  if(!DATA.settings.relayToken){ toast('还没填 DeepSeek Key，去「设置 / AI 接口」填一下'); return; }
+
+  const btn = $('#wtDictSubmit');
+  btn.disabled = true; btn.textContent = '核对中…';
+  const box = $('#wtDictResult');
+  box.hidden = false;
+  box.innerHTML = '<div class="ts-load">AI 正在逐句比对你的默写，十几秒…</div>';
+
+  const srcSentences = wtSplitSentences(wtDictCurrent.text);
+  const srcNumbered = srcSentences.map((t, i) => (i + 1) + '. ' + t).join('\n');
+  const weakBefore = wtComputeWeak(wtDictCurrent.id);
+
+  const messages = [
+    { role:'system', content:
+`你是雅思写作默写陪练。给定「标准原文（已按句编号）」和「学生默写」，找出英文单词层面的差异。
+【预处理规则】比对前，请在心里对「标准原文」和「学生默写」统一做如下标准化：
+1. 只保留英文字母和空格；删除所有标点、下划线、横线、连字符、数字、中文、括号、【】、() 等符号。
+2. 全部转小写。
+3. 连续空格合并为单空格；首尾空格去掉。
+4. 原文中的 ____（连续下划线）是模板骨架的「填空位」，不是需要默写的英文单词，标准化时直接删除。学生没写这个填空位不算错。
+5. 学生输入里的占位符 -- — ___ 【】 () 等也直接删除。
+
+比对只基于标准化后的纯英文单词序列：单词顺序一致、拼写一致即为正确。标点和各种符号差异一律不算错。学生漏写句号导致两句合并时，不要因此造成大规模错位；请基于全局英文单词序列对齐，再回查原句编号作为 loc。
+铁律：
+1. 严格沿用下方「标准原文」给出的句编号（如 "3"）作为 loc；无法归到某句用 "0"。
+2. 未被跳过的句子定位差异，type 分：漏写 / 错词 / 拼写 / 语法 / 语序。
+3. 拼写错误在 type 标"拼写"，在清单里附带即可，不要像语法错那样在正文重点标红。
+4. 连字符豁免：标准原文里带连字符的词（如 short-lived），学生默写若只是少了横杠写成 short lived、或连写成 shortlived、或换成空格，这属于语音输入常见现象，【不算错】。词义与单词组成一致即可视为正确；只有换成完全不同的词才判错。
+5. wrong 字段必须是学生原始输入里真实存在的连续英文片段，漏写则空字符串。严禁返回 AI 自己生成的带横线、箭头或合并符号的 diff。
+6. 返回严格 JSON：
+{"overall":"一句话总体反馈","mistakes":[{"loc":"3","wrong":"学生写法(漏写则空字符串)","right":"正确写法","type":"漏写|错词|拼写|语法|语序","note":"一句说明"}],"weakHistory":[{"loc":"3","times":历史出错次数}]}
+only JSON，无解释无围栏。` },
+    { role:'user', content:
+`标准原文（句编号请沿用）：
+${srcNumbered}
+
+学生默写：
+${userText}
+
+历史常错统计（loc -> 历史出错次数）：
+${JSON.stringify(weakBefore)}` }
+  ];
+
+  try{
+    const content = await callRelay('dictation_check', messages, 0.4);
+    const r = aiJson(content);
+    if(!r){
+      box.innerHTML = '<div class="ts-sec"><h4>AI 返回（非标准格式）</h4><div style="white-space:pre-wrap;font-size:13.5px;line-height:1.8">' + escapeHtml(content) + '</div></div>';
+      return;
+    }
+    const mistakes = Array.isArray(r.mistakes) ? r.mistakes : [];
+    const overall = r.overall || '核对完成。';
+    let html = '<div class="ts-sec"><h4>总体反馈</h4><div style="line-height:1.8">' + escapeHtml(overall) + '</div></div>';
+    if(mistakes.length){
+      html += '<div class="ts-sec"><h4>差异明细（' + mistakes.length + ' 处）</h4><div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">';
+      mistakes.forEach(m => {
+        const loc = m.loc || '0';
+        const wrong = m.wrong ? escapeHtml(m.wrong) : '<span class="muted">（漏写）</span>';
+        const right = m.right ? escapeHtml(m.right) : '';
+        html += '<div class="ts-fix" style="padding:8px 10px;border:1px solid var(--line);border-radius:8px">'
+          + '<b>第' + loc + '句</b> · ' + escapeHtml(m.type || '差异') + '：你写 <code>' + wrong + '</code> → 应为 <code>' + right + '</code>'
+          + (m.note ? '<div class="muted" style="font-size:12.5px;margin-top:4px">' + escapeHtml(m.note) + '</div>' : '')
+          + '</div>';
+      });
+      html += '</div></div>';
+    } else {
+      html += '<div class="ts-fix">✅ 没有实质差异，默写得很准。</div>';
+    }
+    box.innerHTML = html;
+
+    // 记录到 dictationLogs（与语料库默写同源统计）
+    DATA.dictationLogs = DATA.dictationLogs || [];
+    DATA.dictationLogs.push({ sourceId: wtDictCurrent.id, title: wtDictCurrent.title, date: todayKey(), mistakes: mistakes });
+    hubSave();
+  }catch(e){
+    box.innerHTML = '<div class="ts-load">AI 调不通：' + escapeHtml(e.message) + '</div>';
+  }finally{
+    btn.disabled = false; btn.textContent = '提交核对';
+  }
 }
 
 /* ===== 万能语料库 ===== */

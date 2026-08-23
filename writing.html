@@ -307,6 +307,27 @@
     </section>
   </div>
 
-  <!-- 默写面板已移除：原「默写」tab 改为「写作真题」；语料库默写另建 -->
-  <div id="dictationPanel" hidden style="display:none"></div>
+  <!-- 模板内联默写面板（自包含，不依赖 dictation.js） -->
+  <div id="dictationPanel" hidden>
+    <section class="card">
+      <div class="card-head" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+        <button class="btn" id="wtDictBack" type="button">← 返回模板</button>
+        <h2 style="margin:0" id="wtDictTitle">模板默写</h2>
+        <span class="muted" style="font-size:13px" id="wtDictHint"></span>
+      </div>
+
+      <div id="wtDictSrc" class="dict-src-box" style="background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;font-size:14px;line-height:1.9;white-space:pre-wrap;margin-bottom:14px"></div>
+
+      <label class="muted" style="font-size:13px;display:block;margin-bottom:6px">凭记忆默写（骨架里的 ____ 是填空位，整框留空不算错）：</label>
+      <textarea id="wtDictInput" style="width:100%;min-height:220px;padding:12px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);resize:vertical;box-sizing:border-box;line-height:1.8"></textarea>
+
+      <div class="form-row" style="margin-top:12px;align-items:center;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-primary" id="wtDictSubmit" type="button">提交核对</button>
+        <button class="btn" id="wtDictClear" type="button">清空重默</button>
+        <span class="muted" style="font-size:13px">还没填 DeepSeek Key？去「设置 / AI 接口」填一下</span>
+      </div>
+
+      <div id="wtDictResult" class="tpl-score" hidden style="margin-top:16px"></div>
+    </section>
+  </div>
 </main>
