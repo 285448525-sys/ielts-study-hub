@@ -231,6 +231,30 @@ function renderTimer(){
    Bug（用户反馈）：计时结束后下方记录区不刷新——根因是 stopSession 入库后只调了
    renderTimer()（刷新模块卡片），从未渲染记录区。这里补上独立渲染函数，并在
    stopSession 入库后 + ready 初始化时调用。 */
+/* 头部「今日 XhYm / 连续 N 天」芯片：与记录区同步刷新（之前从没被任何代码写过 → 永远显示 0）。
+   连续天数算法与首页一致：今日有记录才计数，往前逐日递减连续。 */
+function renderPhrChips(){
+  const todayEl = document.getElementById('phrToday');
+  const streakEl = document.getElementById('phrStreak');
+  const list = (DATA.sessions || []).filter(s => s && s.date === todayKey());
+  let totalSec = 0;
+  list.forEach(s => { totalSec += Number(s.durationSec || 0); });
+  if(todayEl) todayEl.textContent = '今日 ' + fmtHM(totalSec);
+  if(streakEl) streakEl.textContent = '连续 ' + calcStreakLocal() + ' 天';
+}
+function calcStreakLocal(){
+  const sessions = DATA.sessions || [];
+  if(sessions.length === 0) return 0;
+  const dates = [...new Set(sessions.map(s => s.date))].sort().reverse();
+  if(dates[0] !== todayKey()) return 0;
+  let count = 1;
+  for(let i = 1; i < dates.length; i++){
+    const d = new Date(dates[i-1]);
+    d.setDate(d.getDate() - 1);
+    if(dates[i] === todayKey(d)) count++; else break;
+  }
+  return count;
+}
 function renderMiniRecords(){
   const grid = document.getElementById('recMiniGrid');
   const empty = document.getElementById('recEmpty');
@@ -241,6 +265,7 @@ function renderMiniRecords(){
   let totalSec = 0;
   list.forEach(s => { totalSec += Number(s.durationSec || 0); });
   if(totalEl) totalEl.textContent = fmtHM(totalSec);
+  renderPhrChips(); // 同步刷新头部今日/连续芯片
   if(!list.length){
     grid.innerHTML = '';
     if(empty) empty.hidden = false;

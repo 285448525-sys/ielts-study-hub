@@ -47,7 +47,8 @@ function injectNav(){
   const nav = document.getElementById('mainNav');
   if(!nav) return;
   if(DATA.settings && DATA.settings.collapsed) document.body.classList.add('side-collapsed');
-  const current = location.pathname.split('/').pop() || 'index.html';
+  const current = _hubCurrentFile || (location.pathname.split('/').pop() || 'index.html');
+  _hubCurrentFile = current;   // 记住真实当前页，供软导航期间被 injectNav 复用（pathname 此时滞后）
   const pageById = id => PAGES.find(p => p.id === id);
 
   let html = '';
@@ -1156,6 +1157,10 @@ function ready(fn){ if(document.readyState !== 'loading') fn(); else document.ad
    ========================================================================= */
 let _softNavReady = false;
 let _softNavBusy = false;
+/* 逻辑当前页（文件名的 .html）：软导航期间 location.pathname 滞后于真实目标页
+   （pushState 在 runPageScript 之后才执行），若此刻 injectNav 按 pathname 算高亮会回退到旧页。
+   故用本变量记录「真实当前页」，updateActiveNav 写入、injectNav 优先读取。 */
+let _hubCurrentFile = null;
 
 function initSoftNav(){
   if(_softNavReady) return;
@@ -1216,6 +1221,7 @@ async function softNavigate(t, isPop){
     if(doc.title) document.title = doc.title;
     updateActiveNav(t.file);
     await runPageScript(t.id, doc);                     // 重新执行目标页脚本（复用 ready + 事件绑定）
+    updateActiveNav(t.file);                            // 收尾再断言：抵消 runPageScript 内 hubSave→injectNav 对高亮的竞态改写
     if(!isPop) history.pushState({ hub: t.id }, '', t.href);
     prefetchNeighbors(t.id);
   }catch(err){
@@ -1238,6 +1244,7 @@ function swapPageStyles(doc, pageId){
 
 /* 更新侧边栏高亮（不重建侧边栏，避免丢失滚动位置/搜索态） */
 function updateActiveNav(file){
+  if(file) _hubCurrentFile = file;   // 软导航先把真实当前页记下来，避免后续 injectNav 按滞后 pathname 错配高亮
   const nav = document.getElementById('mainNav');
   if(!nav) return;
   nav.querySelectorAll('.side-item').forEach(a => {
@@ -1317,7 +1324,10 @@ function prefetchNeighbors(id){
 ready(() => { hubLoad(); injectNav(); applyTheme(); restoreSideScroll(); initSoftNav();
   registerSW();
   // 计时保存后刷新侧边栏「今日已学」（侧边栏在所有页面可见，需即时更新）
-  document.addEventListener('hub:session-saved', () => injectNav());
+  // 计时保存后刷新侧边栏「今日已学」。软导航进行中（_softNavBusy）跳过整条 injectNav，
+  // 否则 runPageScript 内 hubSave→hub:session-saved 会触发 injectNav，按其（此时滞后的）current 把高亮改回旧页。
+  // 软导航结束由 softNavigate 收尾统一 updateActiveNav 断言正确高亮。
+  document.addEventListener('hub:session-saved', () => { if(!_softNavBusy) injectNav(); });
   // 方案1：计时开始/结束/暂停时刷新全局徽标（无需重建整个侧边栏）
   document.addEventListener('hub:timer-state', renderSideTimer);
   // 通用 inner tab 切换：.tab-btn → .tab-panel（按 data-tab 匹配 #tab-<name>）

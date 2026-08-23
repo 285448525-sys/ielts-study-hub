@@ -50,34 +50,38 @@ function corAgoText(ts){
 }
 
 ready(() => {
-  $('#importCorpus').addEventListener('click', importBulk);
-  $('#aiImportBtn').addEventListener('click', aiImportCorpus);
-  $('#addCorpus').addEventListener('click', addOne);
-  $('#startDict').addEventListener('click', startDict);
-  $('#startWrite').addEventListener('click', startWrite);
-  // 设置联动：设置实时保存到 localStorage
-  const loadCfg = () => Object.assign({ rate:.9, repeat:3, intervalMs:2200, showCn:false, batchSize:10 }, DATA.settings.corpusCfg || {});
-  const saveCfg = () => {
-    DATA.settings.corpusCfg = {
-      rate: parseFloat($('#sRate').value),
-      repeat: parseInt($('#sRepeat').value,10),
-      intervalMs: parseInt($('#sInterval').value,10),
-      showCn: $('#sShowCn').checked,
-      batchSize: parseInt($('#sBatch').value,10)
+  const on = (id, ev, fn) => { const el = document.getElementById(id); if(el) el.addEventListener(ev, fn); };
+  on('importCorpus', 'click', importBulk);
+  on('aiImportBtn', 'click', aiImportCorpus);
+  on('addCorpus', 'click', addOne);
+  on('startDict', 'click', startDict);   // 听力默写入口：HTML 尚未提供按钮时安全跳过（避免整段脚本崩溃）
+  on('startWrite', 'click', startWrite);
+  // 设置联动：设置实时保存到 localStorage（对应滑块缺失则跳过，用默认配置，避免整段脚本崩溃）
+  const sRate = document.getElementById('sRate');
+  if(sRate){
+    const loadCfg = () => Object.assign({ rate:.9, repeat:3, intervalMs:2200, showCn:false, batchSize:10 }, DATA.settings.corpusCfg || {});
+    const saveCfg = () => {
+      DATA.settings.corpusCfg = {
+        rate: parseFloat(sRate.value),
+        repeat: parseInt(document.getElementById('sRepeat').value,10),
+        intervalMs: parseInt(document.getElementById('sInterval').value,10),
+        showCn: document.getElementById('sShowCn').checked,
+        batchSize: parseInt(document.getElementById('sBatch').value,10)
+      };
+      hubSave();
     };
-    hubSave();
-  };
-  const cfg = loadCfg();
-  $('#sRate').value = cfg.rate;  $('#sRateTxt').textContent = cfg.rate.toFixed(2)+'x';
-  $('#sRepeat').value = cfg.repeat; $('#sRepeatTxt').textContent = cfg.repeat+' 次';
-  $('#sInterval').value = String(cfg.intervalMs);
-  $('#sShowCn').checked = !!cfg.showCn;
-  $('#sBatch').value = String(cfg.batchSize);
-  $('#sRate').addEventListener('input', () => { $('#sRateTxt').textContent = parseFloat($('#sRate').value).toFixed(2)+'x'; saveCfg(); });
-  $('#sRepeat').addEventListener('input', () => { $('#sRepeatTxt').textContent = parseInt($('#sRepeat').value,10)+' 次'; saveCfg(); });
-  $('#sInterval').addEventListener('change', saveCfg);
-  $('#sShowCn').addEventListener('change', saveCfg);
-  $('#sBatch').addEventListener('change', saveCfg);
+    const cfg = loadCfg();
+    sRate.value = cfg.rate; document.getElementById('sRateTxt').textContent = cfg.rate.toFixed(2)+'x';
+    document.getElementById('sRepeat').value = cfg.repeat; document.getElementById('sRepeatTxt').textContent = cfg.repeat+' 次';
+    document.getElementById('sInterval').value = String(cfg.intervalMs);
+    document.getElementById('sShowCn').checked = !!cfg.showCn;
+    document.getElementById('sBatch').value = String(cfg.batchSize);
+    sRate.addEventListener('input', () => { document.getElementById('sRateTxt').textContent = parseFloat(sRate.value).toFixed(2)+'x'; saveCfg(); });
+    document.getElementById('sRepeat').addEventListener('input', () => { document.getElementById('sRepeatTxt').textContent = parseInt(document.getElementById('sRepeat').value,10)+' 次'; saveCfg(); });
+    document.getElementById('sInterval').addEventListener('change', saveCfg);
+    document.getElementById('sShowCn').addEventListener('change', saveCfg);
+    document.getElementById('sBatch').addEventListener('change', saveCfg);
+  }
   renderList();
 });
 

@@ -160,7 +160,9 @@ function highlight(s){ return escapeHtml(s).replace(/【(.+?)】/g, '【<span cl
 
 function fitInput(inp){
   const t = (inp.value || inp.dataset.ph || '');
-  inp.style.width = (Math.max(t.length, 4) * 12 + 10) + 'px';   // 最小 ~58px，随字数变宽，不截断
+  // 最小 48px，随字数变宽但封顶 200px（超长答案在框内横向滚动，不再无限撑长）
+  const w = Math.min(Math.max(t.length, 4) * 10 + 12, 200);
+  inp.style.width = w + 'px';
 }
 
 function buildPractice(skeleton){
@@ -1236,9 +1238,8 @@ function examStopAndScore(){
   if(essay.length < 150){ toast('作文太短，至少需要 150 词'); return; }
   const isTask1 = type === '小作文';
   const dim = isTask1 ? 'TA（Task Achievement 任务完成）' : 'TR（Task Response 任务回应）';
-  const btn = $('#examScoreBtn');
-  const btnHtml = btn.innerHTML;
-  btn.disabled = true; btn.textContent = '评分中…';
+  const btn = $('#examScoreBtn');   // 手动评分按钮可能不存在（HTML 未提供），空值安全
+  if(btn){ btn.disabled = true; btn.textContent = '评分中…'; }
   const box = $('#examResult');
   box.hidden = false;
   box.innerHTML = '<div class="ts-load">AI 正在按官方 4 维度评分，请稍候…</div>';
