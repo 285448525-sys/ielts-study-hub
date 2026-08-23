@@ -214,6 +214,11 @@ const SPEAKING_BANK = [
     questions:[], cue:"", content:"", keywords:"", linkedTo:"", proficiency:"没练" },
 ];
 
+/* 口语题库版本号：每次题库大改（删题/建题/调档位）递增。
+ * hubLoad 检测到本地 DATA.speakingVersion 落后于此值，则整体用最新库替换本地旧库，
+ * 根治「旧 localStorage 累积 100+ 题 / 档位错乱清不掉」的问题（用户刷新即生效，无需手动清缓存）。 */
+const SPEAKING_BANK_VERSION = 3;
+
 
 
 const MED_DURATION_MS = 12 * 3600 * 1000;
@@ -397,14 +402,23 @@ function hubLoad(){
       'dictationSources','dictationLogs','longSent','deletedIds'];
     for(const f of arrayFields){ if(!Array.isArray(DATA[f])) DATA[f] = []; }
     if(!DATA.settings || typeof DATA.settings !== 'object') DATA.settings = {};
-    // 题库迁移：仅补用户缺失的题目；用户手动删过的 id 记入全局墓碑 deletedIds（兼容旧 settings.deletedSpeakingIds），不再恢复
+    // 口语题库版本控制：检测到本地版本落后则整体用最新库替换（解决旧 localStorage 累积脏题/档位错乱），否则仅增量补齐
     if(SPEAKING_BANK && SPEAKING_BANK.length){
-      const legacyDel = (DATA.settings && Array.isArray(DATA.settings.deletedSpeakingIds)) ? DATA.settings.deletedSpeakingIds : [];
-      const deletedIds = new Set([...(DATA.deletedIds||[]), ...legacyDel]);
-      DATA.deletedIds = Array.from(deletedIds);
-      const existingIds = new Set(DATA.speaking.map(s => s.id));
-      const missing = SPEAKING_BANK.filter(s => !existingIds.has(s.id) && !deletedIds.has(s.id));
-      if(missing.length) DATA.speaking = missing.concat(DATA.speaking);
+      if(DATA.speakingVersion !== SPEAKING_BANK_VERSION){
+        // 版本升级：整体替换本地口语库为最新 SPEAKING_BANK（框架题母本不属于题库，原样保留在末尾）
+        const frameworkItems = (DATA.speaking || []).filter(s => s && /^sp_p[12]_\d+$/.test(s.id));
+        DATA.speaking = SPEAKING_BANK.slice().concat(frameworkItems);
+        DATA.speakingVersion = SPEAKING_BANK_VERSION;
+        hubSave();
+      } else {
+        // 同版本：仅补用户缺失的题目；用户手动删过的 id 记入全局墓碑 deletedIds（兼容旧 settings.deletedSpeakingIds），不再恢复
+        const legacyDel = (DATA.settings && Array.isArray(DATA.settings.deletedSpeakingIds)) ? DATA.settings.deletedSpeakingIds : [];
+        const deletedIds = new Set([...(DATA.deletedIds||[]), ...legacyDel]);
+        DATA.deletedIds = Array.from(deletedIds);
+        const existingIds = new Set(DATA.speaking.map(s => s.id));
+        const missing = SPEAKING_BANK.filter(s => !existingIds.has(s.id) && !deletedIds.has(s.id));
+        if(missing.length) DATA.speaking = missing.concat(DATA.speaking);
+      }
     }
     // 写作模板迁移（2026-08-22）：补齐新增 5.0 万能版，并同步旧模板标题；手动删过的 id 记入 deletedIds，不再恢复。
     (function migrateWritingTemplates(){
@@ -462,25 +476,8 @@ function hubLoad(){
         if(missing.length) DATA.writing = DATA.writing.concat(missing);
       }
     })();
-    // 口语题库档位体系迁移：统一为 超高频(ultra,原必考)>高频(high)>中频(medium)>低频(low)；分类统一 人/事/地/物/杂项。
-    // 作用：既修正 SPEAKING_BANK 新题，也回写老用户浏览器里已存的旧档位/旧分类（种子只增量补齐、不回写，故必须在此统一重映射）。
-    (function migrateSpeakingTiers(){
-      const REMAP = {
-        sb_p1_work:['ultra','事'], sb_p1_home:['ultra','地'], sb_p1_hometown:['ultra','地'], sb_p1_area:['ultra','地'], sb_p1_the_city_you_live_in:['ultra','事'],
-        sb_p1_socialmedia:['high','物'], sb_p1_tidiness:['high','地'], sb_p1_space:['high','杂项'], sb_p1_science:['high','杂项'], sb_p1_watch:['high','物'], sb_p1_headphones:['high','物'],
-        sb_p1_music:['medium','杂项'], sb_p1_teachers:['medium','人'], sb_p1_shopping:['medium','事'], sb_p1_websites:['medium','物'], sb_p1_clothing:['medium','物'], sb_p1_parks:['medium','地'], sb_p1_singing:['medium','事'], sb_p1_dailyroutine:['medium','事'],
-        sb_p2_travel:['high','地'], sb_p2_techproduct:['high','物'], sb_p2_tallbuilding:['high','物'], sb_p2_animals:['high','杂项'], sb_p2_boringplace:['high','地'], sb_p2_describe_a_boring_place18:['high','地'],
-        sb_p2_childhoodfriend:['high','人'], sb_p2_describe_a_famous_person_you_would_like_52:['high','人'], sb_p2_describe_a_live_sports_event_you_watched29:['high','事'], sb_p2_specialfood:['high','物'], sb_p2_teamwork:['high','事'], sb_p2_describe_a_plan_that_you_had_to_change_r26:['high','事'], sb_p2_earlymorning:['high','事'], sb_p2_describe_a_person_who_loves_to_grow_vege21:['high','人'],
-        sb_p2_decision:['medium','事'], sb_p2_describe_a_movie_you_watched_and_enjoyed66:['medium','杂项'], sb_p2_describe_a_bicycle_motorcycle_car_trip_y62:['medium','地'], sb_p2_difficult_problem:['medium','事'], sb_p2_encouraged_by_others:['medium','事'], sb_p2_old_object:['medium','物']
-      };
-      const OLDCAT = { '人物':'人', '事件':'事', '地点':'地', '物品':'物', '抽象':'杂项', '日常':'事' };
-      DATA.speaking.forEach(s => {
-        if(!s || !s.id) return;
-        const r = REMAP[s.id];
-        if(r){ s.frequency = r[0]; s.category = r[1]; }
-        else { s.frequency = 'low'; s.category = OLDCAT[s.category] || '事'; }
-      });
-    })();
+    // 注意：口语档位体系已废弃 migrateSpeakingTiers 重映射——版本号机制整体替换 DATA.speaking 为 SPEAKING_BANK，
+    // 档位以 SPEAKING_BANK 定义为准，无需再回写旧映射（旧映射会把 tallbuilding 等 ultra 题错改回 high）。
     // 考试倒计时迁移（Bug：首页/顶部显示"已过 天"）：
     // 老用户 localStorage 里 examDate 仍是首考 2026-08-02（已过），导致 daysUntil 返回负数、格式串又硬拼" 天"，
     // 倒计时丢失"距下次考试"信息。这里按用户真实档期初始化 upcoming 列表（仅当缺失时，已手动管理者不受影响）。
