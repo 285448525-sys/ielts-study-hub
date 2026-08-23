@@ -95,7 +95,8 @@ function populateFreqOptions(){
 }
 
 function getFiltered(){
-  let list = DATA.speaking.filter(s => s.type === curType);
+  // 仅展示纯题目：剔除框架母本（带 framework 字段 / id 形如 sp_p[12]_*）
+  let list = DATA.speaking.filter(s => s.type === curType && !s.framework && !/^sp_p[12]_\d+$/.test(s.id || ''));
   if(curFreq !== 'all') list = list.filter(s => s.frequency === curFreq);
   if(curCat !== 'all') list = list.filter(s => s.category === curCat);
   if(curSearch){

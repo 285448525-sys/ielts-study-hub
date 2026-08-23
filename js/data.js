@@ -287,17 +287,7 @@ let DATA = {
   checkins: [],
   mockRecords: [],
   deletedIds: [],   // 全局墓碑：所有删除操作的 raw id 集合，跨同步传播删除
-  speaking: SPEAKING_BANK.concat([
-    { id:'sp_p1_1', type:'P1', framework:'P1框架', title:'框架① 兴趣/活动喜好类', content:'', keywords:'Singing、Hobby、Reading、Music、Sports team、Walking、Food、Telling Jokes、Outer space and stars、Pets and Animals', cue:'1.直接表态(Yes, I am really into it) 2.给一个原因(1句) 3.习惯细节(频率/和谁/什么时候) 4.(可选)小时候 vs 现在', linkedTo:'', proficiency:'没练' },
-    { id:'sp_p1_2', type:'P1', framework:'P1框架', title:'框架② 居住/地点描述类', content:'', keywords:'Hometown、Home/Accommodation、The city you live in、The area you live in、Parks、View、Scenery、Building', cue:'1.方位/类型 2.喜欢点(2个特征) 3.在那做什么 4.(可选)对比/变化', linkedTo:'', proficiency:'没练' },
-    { id:'sp_p1_3', type:'P1', framework:'P1框架', title:'框架③ 日常作息/习惯类', content:'', keywords:'Daily routine、Morning time、Work/studies、Tidiness、Feeling bored、Shopping', cue:'1.日常动作(1-2个) 2.偏好/原因 3.变化/对比', linkedTo:'', proficiency:'没练' },
-    { id:'sp_p1_4', type:'P1', framework:'P1框架', title:'框架④ 物品/科技使用类', content:'', keywords:'Watch、Headphone、Websites、Social media、Typing、Cars、Clothing、Mirrors、Gifts', cue:'1.拥有/使用 2.场景/频率 3.用处 4.(可选)变化', linkedTo:'', proficiency:'没练' },
-    { id:'sp_p1_5', type:'P1', framework:'P1框架', title:'框架⑤ 人物/影响类', content:'', keywords:'Teachers（Pets 可套①或⑤）', cue:'1.点名+关系 2.特质 3.影响', linkedTo:'', proficiency:'没练' },
-    { id:'sp_p1_6', type:'P1', framework:'P1框架', title:'框架⑥ 抽象观点/变化类', content:'', keywords:'Art、Science、Life stages、Childhood activities、Tidiness(观点面)', cue:'1.表态(重要/不重要) 2.理由 3.变化', linkedTo:'', proficiency:'没练' },
-    { id:'sp_p2_1', type:'P2', framework:'P2人物母本', title:'男友 Leo（主·覆盖10题）', content:'', keywords:'boyfriend Leo / 同班坐旁 / 洛克王国 / reserved→talkative / cheerful / difficult assignment patiently / considerate reliable / count on', cue:'复述线：Leo → 同班坐旁 → 洛克王国熟 → 内敛变话多 → 开朗逗笑 → 帮难作业耐心 → 体贴可靠 → 同食 → 可依靠', linkedTo:'串题：①困难成功 / ②擅长语言 / ⑤想从医 / ⑨乐于助人 / ⑩朋友自学 / ⑪机智解决 / ⑬常做计划 / ⑭想见名人 / ⑮学好习惯 / 鼓励不愿做的事', proficiency:'没练' },
-    { id:'sp_p2_2', type:'P2', framework:'P2人物母本', title:'舅舅（覆盖6题）', content:'', keywords:'uncle / grows vegetables / yard+rents field / successful CS business / hard but smart fix / hardworking interesting', cue:'复述线：舅舅 → 种菜院子+租田 → 但 CS 创业成功 → 创业难但机智解决 → 勤奋有趣', linkedTo:'串题：③成功商业 / ⑦种植物 / ⑧爱护自然 / ①困难成功 / ⑪机智解决 / 给别人建议', proficiency:'没练' },
-    { id:'sp_p2_3', type:'P2', framework:'P2人物母本', title:'妹妹（覆盖6题）', content:'', keywords:'cousin + childhood friend / uncle\'s daughter / grew up together / lively naughty / takes me out / loves drawing / rely on', cue:'复述线：表妹=发小 → 一起长大 → 调皮我安静互补 → 带我玩逗笑 → 爱画画 → 像 Leo 有趣 → 依赖', linkedTo:'串题：⑥发小 / ⑫喜欢画画 / ⑨乐于助人 / ⑩朋友自学 / ⑮好习惯 / 为家人骄傲', proficiency:'没练' }
-  ]),
+  speaking: SPEAKING_BANK,   // 纯官方题库（题目），框架母本(sp_p1_*/sp_p2_*)已移除，不再混入任何框架类内容
   speakingStories: [],
   writingScores: [],
   dictationSources: [],   // 默写本：[{id,title,text,createdAt}]
@@ -440,13 +430,14 @@ function hubLoad(){
     // 口语题库版本控制：检测到本地版本落后则整体用最新库替换（解决旧 localStorage 累积脏题/档位错乱），否则仅增量补齐
     if(SPEAKING_BANK && SPEAKING_BANK.length){
       if(DATA.speakingVersion !== SPEAKING_BANK_VERSION){
-        // 版本升级：整体替换本地口语库为最新 SPEAKING_BANK（框架题母本不属于题库，原样保留在末尾）
-        const frameworkItems = (DATA.speaking || []).filter(s => s && /^sp_p[12]_\d+$/.test(s.id));
-        DATA.speaking = SPEAKING_BANK.slice().concat(frameworkItems);
+        // 版本升级：整体替换本地口语库为最新 SPEAKING_BANK（纯题目，框架母本永不混入）
+        DATA.speaking = SPEAKING_BANK.slice();
         DATA.speakingVersion = SPEAKING_BANK_VERSION;
         hubSave();
       } else {
-        // 同版本：仅补用户缺失的题目；用户手动删过的 id 记入全局墓碑 deletedIds（兼容旧 settings.deletedSpeakingIds），不再恢复
+        // 同版本：先剔除任何残留的框架母本项（sp_p[12]_* / 带 framework 字段），再补用户缺失的纯题目
+        DATA.speaking = (DATA.speaking || []).filter(s => s && !s.framework && !/^sp_p[12]_\d+$/.test(s.id));
+        // 用户手动删过的 id 记入全局墓碑 deletedIds（兼容旧 settings.deletedSpeakingIds），不再恢复
         const legacyDel = (DATA.settings && Array.isArray(DATA.settings.deletedSpeakingIds)) ? DATA.settings.deletedSpeakingIds : [];
         const deletedIds = new Set([...(DATA.deletedIds||[]), ...legacyDel]);
         DATA.deletedIds = Array.from(deletedIds);
