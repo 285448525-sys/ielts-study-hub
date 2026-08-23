@@ -65,7 +65,7 @@
   <div class="sub-tabs" id="wordTabs">
     <button data-sub="ls" class="active">长难句</button>
     <button data-sub="eb">错题本</button>
-    <button data-sub="dict">听力默写</button>
+    <button data-sub="dict">写作真题</button>
   </div>
 
   <!-- ① 长难句拆解（默认打开） -->
@@ -117,75 +117,60 @@
     </section>
   </div>
 
-  <!-- ③ 听力语料库默写（放最后） -->
+  <!-- ③ 写作真题模拟 -->
   <div id="dictView" hidden>
-    <!-- 添加句子：单句 + 批量 合一 -->
     <section class="card">
-      <h2>添加句子</h2>
-      <p class="muted">日常加一句用下面的输入框；一次贴多句就展开「批量导入」。</p>
-      <div class="form-row">
-        <input id="corEn" placeholder="英文句子" />
-        <input id="corCn" placeholder="中文翻译（可选）" />
-        <button class="btn btn-primary flex-none" id="addCorpus" style="min-width:120px">添加</button>
+      <div id="examNav" class="exam-nav">
+        <button class="btn btn-sm btn-ghost" id="examBack" hidden>← 返回分类</button>
+        <div class="exam-breadcrumb" id="examBreadcrumb">选择题型 → 选择题目</div>
       </div>
-      <details class="detail-block" style="margin-top:8px">
-        <summary>批量导入多句（每行一句）</summary>
-        <p class="muted">每行一句英文；想带中文翻译，用 <strong>空格 / 竖线 / 冒号</strong> 隔开都行。例：<br>
-          The government should invest more in public transport<br>
-          She was absent because she felt under the weather | 她没来因为身体不适<br>
-          It is vital to preserve the local culture：保护当地文化很重要</p>
-        <textarea id="bulkCorpus" placeholder="每行一个英文句子，可选跟中文翻译"></textarea>
-        <div style="display:flex;justify-content:flex-end;margin-top:10px">
-          <button class="btn btn-primary" id="importCorpus">批量导入</button>
+      <div id="examBody">
+        <!-- ① 分类选择 -->
+        <div id="examCats">
+          <h2 style="margin-bottom:6px">雅思写作真题模拟</h2>
+          <p class="muted" style="margin-bottom:16px">按你背的模板类型分类。选一个类型 → 选一道题 → 左侧看题、右侧写作 → AI 按官方四维评分。</p>
+          <div class="exam-type-sec">
+            <div class="exam-type-title">Task 1 小作文</div>
+            <div class="exam-cat-grid" id="catGridTask1"></div>
+          </div>
+          <div class="exam-type-sec">
+            <div class="exam-type-title">Task 2 大作文</div>
+            <div class="exam-cat-grid" id="catGridTask2"></div>
+          </div>
         </div>
-        <p class="muted" id="importHint" style="margin:8px 0 0"></p>
-      </details>
-    </section>
-
-    <section class="card">
-      <h2>句子听写（爱听写风格）</h2>
-      <p class="muted">可调语速、重复次数、播放间隔；逐句逐词批改、错句自动归集、结束可重练错句。</p>
-      <div id="dictSetup" class="corpus-dict-setup">
-        <div class="s-dict-voice">
-          <label>语速</label>
-          <input type="range" id="sRate" min="0.5" max="1.2" step="0.05" value="0.9" />
-          <span id="sRateTxt">0.90x</span>
+        <!-- ② 题目列表 -->
+        <div id="examList" hidden>
+          <h2 id="examListTitle" style="margin-bottom:10px"></h2>
+          <div id="examListBody" class="exam-list-body"></div>
         </div>
-        <div class="s-dict-voice">
-          <label>每句读</label>
-          <input type="range" id="sRepeat" min="1" max="5" step="1" value="3" />
-          <span id="sRepeatTxt">3 次</span>
+        <!-- ③ 练习界面 -->
+        <div id="examPractice" hidden>
+          <div class="exam-practice-wrap">
+            <div class="exam-prompt">
+              <div class="exam-prompt-head">
+                <span class="score-badge" id="practiceBadge">Task 2</span>
+                <span class="muted" id="practiceMeta"></span>
+              </div>
+              <div class="exam-prompt-body" id="practicePrompt"></div>
+            </div>
+            <div class="exam-write">
+              <div class="exam-write-head">
+                <span>写作区</span>
+                <span class="muted" id="wordCount">0 词</span>
+              </div>
+              <textarea id="examEssay" class="exam-essay" placeholder="在此写作…" spellcheck="false"></textarea>
+              <div class="exam-write-bar">
+                <span class="muted" id="examTimer">00:00:00</span>
+                <div style="display:flex;gap:8px">
+                  <button class="btn" id="examTimerToggle">暂停计时</button>
+                  <button class="btn btn-primary" id="examSubmit">提交 AI 批改</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="examResult"></div>
         </div>
-        <div class="s-dict-voice">
-          <label>间隔</label>
-          <select id="sInterval">
-            <option value="1600">1.6s</option>
-            <option value="2200" selected>2.2s</option>
-            <option value="3000">3.0s</option>
-            <option value="4200">4.2s</option>
-          </select>
-        </div>
-        <div class="s-dict-voice">
-          <label><input type="checkbox" id="sShowCn"/> 显示中文释义提示</label>
-        </div>
-        <div class="s-dict-voice">
-          <label>题量</label>
-          <select id="sBatch">
-            <option value="5">5 句</option>
-            <option value="10" selected>10 句</option>
-            <option value="20">20 句</option>
-            <option value="-1">全部</option>
-          </select>
-        </div>
-        <button class="btn btn-primary flex-none ml-auto" id="startDict">▶ 开始听写</button>
-        <button class="btn btn-med flex-none" id="startWrite" style="margin-left:8px">✍ 开始默写</button>
       </div>
-      <div id="dictArea" style="margin-top:6px"></div>
-    </section>
-
-    <section class="card">
-      <h2>语料库列表 · 共 <span id="corpusCount">0</span> 句</h2>
-      <div id="corpusList" class="corpus-list"></div>
     </section>
   </div>
 </main>

@@ -427,9 +427,10 @@ function updateTimer(){
     if(pg) pg.innerHTML = progressBar('距目标', pct, remain<=0 ? 'var(--med)' : 'var(--primary)');
     if(remain <= 0 && !window.active._done){
       window.active._done = true;
-      playChime();
       doneNotify('🎉 专注目标达成', '本次计划专注已结束，休息一下吧～');
       toast('🎉 本次目标达成！');
+      // 到点后自动结束并入库（否则计时仍在后台跑、关页面会丢记录）
+      stopSession();
     }
   } else {
     liveTimer.textContent = fmtHMS(elapsed);
