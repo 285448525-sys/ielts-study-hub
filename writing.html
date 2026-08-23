@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>写作 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css" />
+<link rel="stylesheet" href="css/common.css?v=20260823c" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=5" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=4">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=4">
@@ -14,10 +14,10 @@
 
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
-<script defer src="js/data.js"></script>
-  <script defer src="js/common.js"></script>
+<script defer src="js/data.js?v=20260823c"></script>
+  <script defer src="js/common.js?v=20260823c"></script>
   <script defer src="js/writing_prompts.js"></script>
-  <script defer src="js/writing.js"></script>
+  <script defer src="js/writing.js?v=20260823c"></script>
 <style>
   .write-tabs{display:flex;gap:0;border-bottom:2px solid var(--line);margin-bottom:16px}
   .write-tabs button{flex:1;padding:12px 0;font-size:16px;font-weight:600;border:none;background:none;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s}
@@ -278,32 +278,50 @@
       <div id="examList" class="exam-list" style="margin-top:12px"></div>
     </section>
 
-    <!-- 练习界面 -->
-    <section class="card" id="examPractice" hidden>
-      <div class="form-row" style="align-items:center">
-        <h2 id="examPTitle" style="margin:0"></h2>
-        <button class="btn" id="examBack" style="margin-left:auto">返回题目</button>
-      </div>
-      <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;margin-top:8px">
-        <div style="flex:1;min-width:280px">
-          <div class="exam-qmeta" id="examQMeta" style="margin-bottom:8px"></div>
-          <div class="skeleton-box" id="examQuestion" style="margin-top:0"></div>
+    <!-- 练习界面（全屏沉浸式） -->
+    <section id="examPractice" hidden>
+      <header class="exam-head">
+        <div class="exam-head-left">
+          <h1 class="exam-part" id="examPartLabel">Part 2</h1>
+          <p class="exam-instr" id="examInstr">You should spend about 40 minutes on this task. Write at least 250 words.</p>
         </div>
-        <div style="flex:1;min-width:280px;position:relative">
-          <textarea id="examEssay" class="score-essay" placeholder="在此写作文。计时器已在右下角自动开始，写完点「AI 按官方 4 维度评分」即可。"></textarea>
-          <span id="examWordCount" class="muted" style="font-size:12px;font-weight:700;position:absolute;right:10px;bottom:38px;color:var(--warn-ink);pointer-events:none">0 词</span>
-          <!-- 右下角计时器 -->
-          <div id="examTimer" class="exam-timer" title="本次练习计时">
-            <span id="examTimerText">00:00:00</span>
-            <span id="examTimerBtn" style="cursor:pointer;margin-left:8px;font-size:13px">⏸</span>
+        <button class="exam-exit-full" id="examExitFull" type="button" title="退出全屏">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4M15 3h4a2 2 0 0 1 2 2v4M9 21H5a2 2 0 0 1-2-2v-4M15 21h4a2 2 0 0 0 2-2v-4"/></svg>
+          退出全屏
+        </button>
+      </header>
+
+      <div class="exam-split">
+        <article class="exam-q">
+          <p class="exam-q-lead">Write about the following topic:</p>
+          <div class="exam-q-body" id="examQuestion"></div>
+          <p class="exam-q-note" id="examQNote"></p>
+        </article>
+
+        <div class="exam-a">
+          <textarea id="examEssay" class="exam-textarea" placeholder="Type your response here..."></textarea>
+          <div class="exam-a-foot">
+            <span class="exam-wc" id="examWordCount">Word count: 0</span>
           </div>
         </div>
       </div>
-      <div class="form-row" style="margin-top:12px;align-items:center">
-        <button class="btn btn-primary" id="examScoreBtn">AI 按官方 4 维度评分</button>
-        <span class="muted" style="font-size:13px">计时仅记录，不强制限时</span>
-      </div>
+
       <div id="examResult" class="tpl-score" hidden></div>
+
+      <footer class="exam-bar">
+        <div class="exam-bar-left">
+          <span class="exam-step" id="examStepBadge">2</span>
+          <span class="exam-step-label" id="examStepLabel">Part 2</span>
+          <span class="exam-status"><i class="exam-dot"></i>页面状态正常</span>
+        </div>
+        <div class="exam-bar-right">
+          <button class="btn-exam-ghost" id="examFinish" type="button">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            Finish section
+          </button>
+          <button class="btn-exam-exit" id="examExit" type="button">Exit</button>
+        </div>
+      </footer>
     </section>
   </div>
 

@@ -917,18 +917,27 @@ function openExam(item, kind){
   examTimer.cur = { kind, no: item.no };
   $('#examHome').hidden = true;
   $('#examPractice').hidden = false;
-  const typeLabel = kind === 'big' ? '大作文 Task 2' : '小作文 Task 1';
-  $('#examPTitle').textContent = (kind==='big'? '#'+item.no : 'T'+item.no) + ' · ' + typeLabel;
-  if(kind === 'big'){
-    $('#examQMeta').innerHTML = '<span class="ei-type">'+escapeHtml(item.meta)+'</span>';
-    $('#examQuestion').innerHTML = '<div class="ei-zh" style="font-size:15px;line-height:1.8">'+escapeHtml(item.zh)+'</div>'
-      + '<div class="ei-en" style="font-size:13px;color:var(--muted);margin-top:8px">'+escapeHtml(item.en)+'</div>';
+  document.body.classList.add('exam-fullscreen');   // 进入全屏沉浸式
+  const isBig = kind === 'big';
+  const partNo = isBig ? 2 : 1;
+  const typeLabel = isBig ? '大作文 Task 2' : '小作文 Task 1';
+  $('#examPartLabel').textContent = 'Part ' + partNo;
+  $('#examStepBadge').textContent = String(partNo);
+  $('#examStepLabel').textContent = 'Part ' + partNo;
+  $('#examInstr').textContent = isBig
+    ? 'You should spend about 40 minutes on this task. Write at least 250 words.'
+    : 'You should spend about 20 minutes on this task. Write at least 150 words.';
+  if(isBig){
+    $('#examQuestion').innerHTML =
+      '<div class="ei-zh">' + escapeHtml(item.zh) + '</div>' +
+      '<div class="ei-en">' + escapeHtml(item.en) + '</div>';
+    $('#examQNote').textContent = 'Give reasons for your answer and include any relevant examples from your own knowledge or experience.';
   } else {
-    $('#examQMeta').innerHTML = '<span class="ei-type">雅思预测</span>';
-    $('#examQuestion').innerHTML = '<div class="ei-en" style="font-size:14px;line-height:1.8">'+escapeHtml(item.title)+'</div>';
+    $('#examQuestion').innerHTML = '<div class="ei-en">' + escapeHtml(item.title) + '</div>';
+    $('#examQNote').textContent = 'Summarise the information by selecting and reporting the main features, and make comparisons where relevant.';
   }
   $('#examEssay').value = '';
-  $('#examWordCount').textContent = '0 词';
+  $('#examWordCount').textContent = 'Word count: 0';
   $('#examResult').hidden = true;
   examStartTimer();   // 点进去自动开始计时（不强制限时）
 }
@@ -1019,8 +1028,23 @@ ${isTask1 ? RULES_TASK1 : RULES_TASK2}
 function bindExam(){
   const f = $('#examFilter');
   if(f) f.addEventListener('change', renderExamList);
+
+  const exitExam = () => {
+    examStopTimer();
+    document.body.classList.remove('exam-fullscreen');
+    $('#examPractice').hidden = true;
+    $('#examHome').hidden = false;
+  };
   const back = $('#examBack');
-  if(back) back.addEventListener('click', () => { examStopTimer(); $('#examPractice').hidden = true; $('#examHome').hidden = false; });
+  if(back) back.addEventListener('click', exitExam);
+  const exitBtn = $('#examExit');
+  if(exitBtn) exitBtn.addEventListener('click', exitExam);
+  const exitFull = $('#examExitFull');
+  if(exitFull) exitFull.addEventListener('click', exitExam);
+
+  const finish = $('#examFinish');
+  if(finish) finish.addEventListener('click', () => { examStopAndScore(); });
+
   const tb = $('#examTimerBtn');
   if(tb) tb.addEventListener('click', () => {
     if(examTimer.running){ examPauseTimer(); tb.textContent = '▶'; }
@@ -1029,7 +1053,7 @@ function bindExam(){
   const essay = $('#examEssay');
   if(essay) essay.addEventListener('input', () => {
     const n = (essay.value.trim().match(/\b[\w'-]+\b/g) || []).length;
-    $('#examWordCount').textContent = n + ' 词';
+    $('#examWordCount').textContent = 'Word count: ' + n;
   });
   const sb = $('#examScoreBtn');
   if(sb) sb.addEventListener('click', examStopAndScore);
