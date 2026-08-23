@@ -1096,7 +1096,7 @@ function renderExamList(){
       ? (zh ? '<div class="ei-zh">'+escapeHtml(zh)+'</div>' : '') + (en ? '<div class="ei-en">'+escapeHtml(en)+'</div>' : '')
       : (en ? '<div class="ei-en" style="margin-top:0">'+escapeHtml(en)+'</div>' : '');
     const chartThumb = (kind !== 'big' && it.img && it.img.length)
-      ? '<div class="ei-chart"><img src="assets/writing/'+escapeHtml(it.img[0])+'" alt="chart" loading="lazy"></div>'
+      ? '<div class="ei-chart"><img src="assets/writing/'+escapeHtml(it.img[0])+'" alt="chart"></div>'
       : '';
     return '<div class="exam-item" data-kind="'+kind+'" data-no="'+it.no+'">'
       + '<div class="ei-top">'
