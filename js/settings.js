@@ -134,6 +134,11 @@ function importData(file){
     }
     merged.settings = Object.assign({}, DATA.settings || {}, obj.settings || {});
     DATA = merged;
+    // 导入的旧 speaking 数组可能含旧 100+ 题/框架母本 → 走合并逻辑只回填个人内容、不新增非官方题
+    if(typeof mergeSpeakingKeepAnswers === 'function'){
+      DATA.speaking = mergeSpeakingKeepAnswers(DATA.speaking);
+      DATA.speakingVersion = SPEAKING_BANK_VERSION;
+    }
     hubSave(); location.reload();
   }catch(e){ toast('文件格式错误'); } };
   r.readAsText(file);

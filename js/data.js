@@ -225,6 +225,31 @@ const SPEAKING_BANK = [
  * 根治「旧 localStorage 累积 100+ 题 / 档位错乱清不掉」的问题（用户刷新即生效，无需手动清缓存）。 */
 const SPEAKING_BANK_VERSION = 4;
 
+/* 口语合并：以官方 SPEAKING_BANK 为基准，保留用户个人内容、丢弃非官方题。
+   入参 localSpeaking = 用户本地/导入的口语数组（可能含旧 100+ 题、框架母本、已填 answers）。
+   返回 = 与官方 52 题一一对应的新数组，仅回填用户同 id 题的个人内容（answers/串题答案/练习 records），
+   绝不新增官方库以外的题、绝不覆盖官方题干。供 hubLoad 版本合并与 importData 导入共用。 */
+function mergeSpeakingKeepAnswers(localSpeaking){
+  if(!SPEAKING_BANK || !SPEAKING_BANK.length) return localSpeaking || [];
+  const legacyDel = (DATA.settings && Array.isArray(DATA.settings.deletedSpeakingIds)) ? DATA.settings.deletedSpeakingIds : [];
+  const deletedIds = new Set([...(DATA.deletedIds||[]), ...legacyDel]);
+  const localById = {};
+  (localSpeaking || []).forEach(s => { if(s && s.id) localById[s.id] = s; });
+  return SPEAKING_BANK
+    .filter(official => !deletedIds.has(official.id))
+    .map(official => {
+      const local = localById[official.id];
+      if(!local) return Object.assign({}, official);
+      const keep = Object.assign({}, official);
+      if(local.answers) keep.answers = local.answers;
+      if(local.speakingStories) keep.speakingStories = local.speakingStories;
+      if(local.titleZh) keep.titleZh = local.titleZh;
+      if(local.category) keep.category = local.category;
+      if(local.frequency) keep.frequency = local.frequency;
+      return keep;
+    });
+}
+
 /* 强制清旧题库：只要加载到包含本代码的新 data.js，就检测 localStorage 里是否残留旧题库特征；
  * 是则直接清空整个 DATA 并刷新页面，确保用户不需要手动清缓存就能拿到干净新题库。
  * 注意：这会清空本地所有练习记录/词库/计时等；这是为了让题库更新一次性生效不得已的代价。 */
@@ -428,24 +453,16 @@ function hubLoad(){
       'dictationSources','dictationLogs','longSent','deletedIds'];
     for(const f of arrayFields){ if(!Array.isArray(DATA[f])) DATA[f] = []; }
     if(!DATA.settings || typeof DATA.settings !== 'object') DATA.settings = {};
-    // 口语题库版本控制：检测到本地版本落后则整体用最新库替换（解决旧 localStorage 累积脏题/档位错乱），否则仅增量补齐
+    // 口语题库版本控制（2026-08-23 重构：根治「升版本吞用户答案」）：
+    //   以官方 SPEAKING_BANK（固定 52 题纯题目）为唯一基准，绝不整锅替换。
+    //   合并规则：官方题永远保留；用户本地同 id 题的「个人内容」(answers/串题答案/练习 records)
+    //   回填进官方题；本地多出来的非官方题（旧 100+ 题、框架母本 sp_p*）直接丢弃——
+    //   实现用户要求：无论题库怎么升版本、导入什么旧数据，都只导「练过/填过的题的内容」，
+    //   不新增官方库以外的题、不覆盖官方题。
     if(SPEAKING_BANK && SPEAKING_BANK.length){
-      if(DATA.speakingVersion !== SPEAKING_BANK_VERSION){
-        // 版本升级：整体替换本地口语库为最新 SPEAKING_BANK（纯题目，框架母本永不混入）
-        DATA.speaking = SPEAKING_BANK.slice();
-        DATA.speakingVersion = SPEAKING_BANK_VERSION;
-        hubSave();
-      } else {
-        // 同版本：先剔除任何残留的框架母本项（sp_p[12]_* / 带 framework 字段），再补用户缺失的纯题目
-        DATA.speaking = (DATA.speaking || []).filter(s => s && !s.framework && !/^sp_p[12]_\d+$/.test(s.id));
-        // 用户手动删过的 id 记入全局墓碑 deletedIds（兼容旧 settings.deletedSpeakingIds），不再恢复
-        const legacyDel = (DATA.settings && Array.isArray(DATA.settings.deletedSpeakingIds)) ? DATA.settings.deletedSpeakingIds : [];
-        const deletedIds = new Set([...(DATA.deletedIds||[]), ...legacyDel]);
-        DATA.deletedIds = Array.from(deletedIds);
-        const existingIds = new Set(DATA.speaking.map(s => s.id));
-        const missing = SPEAKING_BANK.filter(s => !existingIds.has(s.id) && !deletedIds.has(s.id));
-        if(missing.length) DATA.speaking = missing.concat(DATA.speaking);
-      }
+      DATA.speaking = mergeSpeakingKeepAnswers(DATA.speaking);
+      DATA.speakingVersion = SPEAKING_BANK_VERSION;
+      hubSave();
     }
     // 写作模板迁移（2026-08-22）：补齐新增 5.0 万能版，并同步旧模板标题；手动删过的 id 记入 deletedIds，不再恢复。
     (function migrateWritingTemplates(){
