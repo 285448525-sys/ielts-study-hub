@@ -238,43 +238,50 @@ function bindStartButtons(){
 }
 
 /* 当前活跃学习时长（毫秒，已扣除暂停）。
-   优先用「单调时钟减法」算流逝（隔离系统时间修改/NTP/休眠），再用 wall-clock 结果交叉校验：
-   - 系统时间被改导致 wall 结果异常（负或远超单调结果）→ 信任单调结果
-   - 正常情况两者一致，取单调结果（整数、零累积）
-   睡眠唤醒：performance.now() 休眠期间不走 → 自然不计入，语义正确。 */
+   单调时钟 startMonoNs / pauseStartMonoNs / pauseAccumMonoNs 都是「纳秒」，
+   相减后必须 ÷1e6 转回毫秒，否则会被当成毫秒放大 100 万倍（曾导致「1 秒变数百小时」）。
+   优先用「单调时钟减法」算流逝（隔离系统时间修改/NTP/休眠），再用 wall-clock 交叉校验。 */
+function monoElapsedMs(a, nowMono){
+  const startMono = a.startMonoNs ? BigInt(a.startMonoNs) : null;
+  if(startMono == null) return null;
+  let pauseNs = BigInt(a.pauseAccumMonoNs || 0);
+  if(a.paused && a.pauseStartMonoNs != null){
+    pauseNs += (nowMono - BigInt(a.pauseStartMonoNs));
+  }
+  return Number(nowMono - startMono - pauseNs) / 1e6;   // 纳秒 → 毫秒
+}
 function activeMs(){
   if(!window.active) return 0;
-  const nowMono = safeMonoNowNs();
-  const startMono = window.active.startMonoNs ? BigInt(window.active.startMonoNs) : null;
-  let pauseMono = window.active.pauseAccumMonoNs || 0;
-  if(window.active.paused && window.active.pauseStartMonoNs != null){
-    pauseMono += Number(nowMono - BigInt(window.active.pauseStartMonoNs));
-  }
-  let monoMsVal = startMono != null ? Number(nowMono - startMono) - pauseMono : null;
+  const nowMono = safeMonoNowNs();                       // 纳秒
+  const monoMsVal = monoElapsedMs(window.active, nowMono); // 毫秒
 
-  // wall-clock 结果（用于交叉校验，以及 startMono 缺失时兜底）
+  // wall-clock 结果（毫秒，用于交叉校验，以及 startMono 缺失时兜底）
   let wallMs = Date.now() - window.active.startTs - (window.active.pauseAccum || 0);
   if(window.active.paused && window.active.pauseStart) wallMs -= (Date.now() - window.active.pauseStart);
 
-  // 取更可信者：单调可用且非负 → 用单调；否则用 wall（再兜底 0）
+  // 单调可用且非负 → 用单调；否则用 wall；wall 异常（时间被往回改）时退回单调
   let ms;
   if(monoMsVal != null && monoMsVal >= 0) ms = monoMsVal;
   else ms = Math.max(0, wallMs);
-  // 交叉校验：若 wall 明显小于 0（时间被往回改），仍以单调为准；wall 异常大（时间往前跳）不采纳
   if(wallMs < 0 && monoMsVal != null) ms = monoMsVal;
   return Math.max(0, ms);
 }
 /* 当前累计暂停时长（毫秒） */
 function pauseMs(){
   if(!window.active) return 0;
-  let ms = window.active.pauseAccum || 0;
-  if(window.active.paused && window.active.pauseStart) ms += (Date.now() - window.active.pauseStart);
-  const monoP = window.active.pauseAccumMonoNs || 0;
-  const monoLive = (window.active.paused && window.active.pauseStartMonoNs != null)
-    ? Number(safeMonoNowNs() - BigInt(window.active.pauseStartMonoNs)) : 0;
-  const monoTotal = monoP + monoLive;
-  // 优先单调（不被时间跳变污染），缺则 wall
-  return Math.max(0, monoTotal > 0 ? monoTotal : ms);
+  const a = window.active;
+  // 单调可用（有 startMono）时统一走单调，不被时间跳变污染
+  if(a.startMonoNs){
+    let monoNs = BigInt(a.pauseAccumMonoNs || 0);
+    if(a.paused && a.pauseStartMonoNs != null){
+      monoNs += (safeMonoNowNs() - BigInt(a.pauseStartMonoNs));
+    }
+    return Math.max(0, Number(monoNs) / 1e6);          // 纳秒 → 毫秒
+  }
+  // 降级：无 startMono 时用 wall（毫秒）
+  let ms = a.pauseAccum || 0;
+  if(a.paused && a.pauseStart) ms += (Date.now() - a.pauseStart);
+  return Math.max(0, ms);
 }
 
 /* 直接以「模块」开始计时（不再选子任务） */
@@ -348,22 +355,22 @@ function stopSession(){
   stopHeartbeat();
   const timerId = window.active.timerId;
   const endTs = Date.now();
-  // 暂停时长：优先单调累计（不受时间跳变污染）
-  let totalPauseMs = window.active.pauseAccumMonoNs || 0;
+  // 暂停时长：优先单调累计（纳秒 → 毫秒）
+  let totalPauseMs = Number(BigInt(window.active.pauseAccumMonoNs || 0)) / 1e6;
   if(window.active.paused && window.active.pauseStartMonoNs != null){
-    totalPauseMs += Number(safeMonoNowNs() - BigInt(window.active.pauseStartMonoNs));
+    totalPauseMs += Number(safeMonoNowNs() - BigInt(window.active.pauseStartMonoNs)) / 1e6;
   }
   // 学习时长：优先单调减法（startMonoNs 缺失时降级用 wall）
   let learnedMs;
   if(window.active.startMonoNs){
-    learnedMs = Number(safeMonoNowNs() - BigInt(window.active.startMonoNs)) - totalPauseMs;
+    learnedMs = Number(safeMonoNowNs() - BigInt(window.active.startMonoNs)) / 1e6 - totalPauseMs;
   } else {
     let wp = window.active.pauseAccum || 0;
     if(window.active.paused && window.active.pauseStart) wp += (Date.now() - window.active.pauseStart);
     learnedMs = (endTs - window.active.startTs) - wp;
   }
-  const pauseSec = Math.max(0, Math.round(totalPauseMs/1000));
-  const durationSec = Math.max(0, Math.round(learnedMs/1000));
+  const pauseSec = Math.max(0, Math.round(totalPauseMs));
+  const durationSec = Math.max(0, Math.round(learnedMs));
   // 入库去重：同一 timerId 只结算一次（防双端各自结束 → 两段计时叠加进当日统计）
   const already = DATA.sessions.some(s => s.timerId && s.timerId === timerId);
   if(!already && durationSec > 0){

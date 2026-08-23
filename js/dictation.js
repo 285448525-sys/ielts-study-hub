@@ -235,7 +235,8 @@ function normalizeWords(text){
 }
 
 // 兜底过滤 AI 仍可能返回的误判：填空位差异、标准化后无差异、AI 自创 diff
-function filterDictMistakes(ms){
+// sourceText 可选：传入标准原文后，可进一步识别「用户没写原句中 ____ / () / 【】 等可跳过片段」的误判。
+function filterDictMistakes(ms, sourceText){
   return (ms || []).filter(m => {
     const w = String(m.wrong || '');
     const r = String(m.right || '');
@@ -245,6 +246,19 @@ function filterDictMistakes(ms){
     if(normalizeWords(w).join(' ') === normalizeWords(r).join(' ')) return false;
     // 3. wrong 是 AI 自创 diff（含箭头）
     if(w.includes('→')) return false;
+    // 4. 用户这边没有实质英文内容，且原句该位置包含可跳过片段（填空位/括号/【】），不算错
+    if(sourceText){
+      const wWords = normalizeWords(w);
+      if(!wWords.length){
+        const sents = splitSentences(sourceText);
+        const idx = Number(m.loc || '0') - 1;
+        if(idx >= 0 && idx < sents.length){
+          const src = sents[idx];
+          // ____ 填空位、() / （）括号内容、【】跳过标记 —— 漏写/没写都不算错
+          if(/____|[（(].*?[）)]|【.*?】/.test(src)) return false;
+        }
+      }
+    }
     return true;
   });
 }
@@ -390,7 +404,7 @@ ${userText}` }
       return;
     }
     const ms = Array.isArray(r.mistakes) ? r.mistakes : [];
-    const filtered = filterDictMistakes(ms);
+    const filtered = filterDictMistakes(ms, correct);
     if(!filtered.length){
       resEl.innerHTML = '<div class="ts-fix">✅ 这句没错，棒。</div>';
       return;
@@ -478,7 +492,7 @@ ${JSON.stringify(weakBefore)}` }
     }
     const ms = Array.isArray(r.mistakes) ? r.mistakes : [];
     // 双保险：过滤 AI 仍可能返回的填空位误判 / 符号差异 / 跳过句
-    let filtered = filterDictMistakes(ms).filter(m => !skippedArr.includes(Number(m.loc)));
+    let filtered = filterDictMistakes(ms, dictCurrent.text).filter(m => !skippedArr.includes(Number(m.loc)));
     // 如果过滤后所有错误都没了，总体反馈也同步为正面
     if(filtered.length === 0) r.overall = '太棒了！英文单词序列与原文一致，没有实质差异。';
     renderDictResult(r, userText, weakBefore, filtered);
