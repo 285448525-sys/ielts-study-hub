@@ -78,14 +78,15 @@ function renderList(){
   $('#corpusCount').textContent = DATA.corpus.length;
   const box = $('#corpusList');
   if(DATA.corpus.length === 0){ box.innerHTML = renderEmpty('还没有句子，上面导几句吧。'); return; }
-  const rows = DATA.corpus.slice().reverse().map(c => `
+  const rows = DATA.corpus.slice().reverse().map((c, i) => `
     <tr>
+      <td class="cor-idx">${i + 1}</td>
       <td class="cor-cell cor-cn">${c.cn ? escapeHtml(c.cn) : '<span class="muted">（无中文）</span>'}</td>
       <td class="cor-cell cor-en">${escapeHtml(c.en)}</td>
     </tr>`).join('');
   box.innerHTML = `
     <table class="corpus-table">
-      <thead><tr><th>中文</th><th>英文</th></tr></thead>
+      <thead><tr><th class="cor-idx">#</th><th>中文</th><th>英文</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
 }

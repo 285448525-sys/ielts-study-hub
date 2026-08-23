@@ -581,11 +581,13 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 .hist-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;font-size:13px;line-height:1.5;color:var(--ink)}
 .corpus-dict-setup{display:flex;gap:14px;flex-wrap:wrap;align-items:center;background:var(--surface-2);padding:12px 14px;border-radius:12px;margin:10px 0 14px}
 .corpus-list{margin-top:10px}
-/* 语料库紧凑表格：左列中文 / 右列英文 */
-.corpus-table{width:100%;border-collapse:collapse;font-size:14px}
-.corpus-table th{text-align:left;color:var(--muted);font-size:12.5px;font-weight:700;padding:8px 10px;border-bottom:2px solid var(--line)}
-.corpus-table td.cor-cell{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.5}
-.corpus-table td.cor-cn{color:var(--ink-sub);width:42%}
+/* 语料库紧凑表格：第1列序号 / 左列中文 / 右列英文 */
+.corpus-table{width:100%;border-collapse:collapse;font-size:13.5px}
+.corpus-table th{text-align:left;color:var(--muted);font-size:12px;font-weight:700;padding:7px 10px;border-bottom:2px solid var(--line)}
+.corpus-table td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.55}
+.corpus-table td.cor-idx{width:34px;text-align:center;color:var(--muted);font-variant-numeric:tabular-nums;font-size:12px}
+.corpus-table tbody tr:nth-child(even){background:var(--surface-2)}
+.corpus-table td.cor-cn{color:var(--ink-sub);width:40%}
 .corpus-table td.cor-en{color:var(--ink);font-weight:600}
 
 /* 默写（看中文写英文）练习 */

@@ -63,13 +63,13 @@
 
   <!-- 三合一：长难句(默认) / 错题本 / 听力默写 -->
   <div class="sub-tabs" id="wordTabs">
-    <button data-sub="ls" class="active">长难句</button>
+    <button data-sub="ls">长难句</button>
     <button data-sub="eb">错题本</button>
-    <button data-sub="dict">默写（看中文写英文）</button>
+    <button data-sub="dict" class="active">语料表（中英对照）</button>
   </div>
 
-  <!-- ① 长难句拆解（默认打开） -->
-  <div id="lsView">
+  <!-- ① 长难句拆解 -->
+  <div id="lsView" hidden>
     <section class="card">
       <h2>粘贴长难句</h2>
       <textarea id="sentInput" placeholder="在此粘贴你遇到的长难句，例如：&#10;The theory, which was proposed by a group of researchers who had spent decades observing the species, suggests that the decline is not merely a temporary fluctuation but a sign of a deeper ecological imbalance."></textarea>
@@ -117,36 +117,39 @@
     </section>
   </div>
 
-  <!-- ③ 默写（看中文写英文） -->
-  <div id="dictView" hidden>
+  <!-- ③ 语料表（中英对照，默认打开） -->
+  <div id="dictView">
     <section class="card">
-      <div class="form-row" style="align-items:flex-end;gap:10px;flex-wrap:wrap">
-        <div>
-          <div class="muted" style="font-size:12px;margin-bottom:4px">英文</div>
-          <input id="corEn" placeholder="英文句子 / 词组…" style="padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);width:260px" />
-        </div>
-        <div>
-          <div class="muted" style="font-size:12px;margin-bottom:4px">中文</div>
-          <input id="corCn" placeholder="对应中文…" style="padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:  (bg);color:var(--ink);width:260px" />
-        </div>
-        <button class="btn btn-primary" id="addCorpus">添加</button>
-      </div>
-      <div style="margin-top:12px">
-        <details>
-          <summary style="cursor:pointer;font-size:14px">批量导入（每行一句，英文与中文用空格/竖线/中文处自动分隔）</summary>
-          <textarea id="bulkCorpus" placeholder="Paste: English | 中文&#10;The government should invest in public transport. | 政府应该投资公共交通" style="width:100%;min-height:90px;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);resize:vertical;box-sizing:border-box;margin-top:8px"></textarea>
-          <div class="form-row" style="margin-top:8px;align-items:center">
-            <button class="btn btn-primary" id="importCorpus">导入</button>
-            <span id="importHint" class="muted" style="font-size:12.5px"></span>
-          </div>
-        </details>
-      </div>
-      <div class="form-row" style="margin-top:12px;align-items:center">
+      <div class="card-head" style="margin-bottom:10px">
         <h2 style="margin:0">语料表（左中文 · 右英文）</h2>
         <span class="muted" style="font-size:13px">共 <b id="corpusCount">0</b> 条</span>
-        <button class="btn btn-primary" id="startWrite" style="margin-left:auto">开始默写（看中文写英文）</button>
+        <button class="btn btn-primary flex-none" id="startWrite">开始默写（看中文写英文）</button>
       </div>
       <div id="corpusList"></div>
+      <details style="margin-top:12px">
+        <summary style="cursor:pointer;font-size:14px">＋ 添加语料（单条 / 批量导入）</summary>
+        <div class="form-row" style="align-items:flex-end;gap:10px;flex-wrap:wrap;margin-top:10px">
+          <div>
+            <div class="muted" style="font-size:12px;margin-bottom:4px">英文</div>
+            <input id="corEn" placeholder="英文句子 / 词组…" style="padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);width:260px" />
+          </div>
+          <div>
+            <div class="muted" style="font-size:12px;margin-bottom:4px">中文</div>
+            <input id="corCn" placeholder="对应中文…" style="padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);width:260px" />
+          </div>
+          <button class="btn btn-primary" id="addCorpus">添加</button>
+        </div>
+        <div style="margin-top:12px">
+          <details>
+            <summary style="cursor:pointer;font-size:14px">批量导入（每行一句，英文与中文用空格/竖线/中文处自动分隔）</summary>
+            <textarea id="bulkCorpus" placeholder="Paste: English | 中文&#10;The government should invest in public transport. | 政府应该投资公共交通" style="width:100%;min-height:90px;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);resize:vertical;box-sizing:border-box;margin-top:8px"></textarea>
+            <div class="form-row" style="margin-top:8px;align-items:center">
+              <button class="btn btn-primary" id="importCorpus">导入</button>
+              <span id="importHint" class="muted" style="font-size:12.5px"></span>
+            </div>
+          </details>
+        </div>
+      </details>
     </section>
     <div id="dictArea"></div>
   </div>
