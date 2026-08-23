@@ -955,7 +955,10 @@ async function syncLoginOrRegister(){
         hubSave();
         syncSetStatus('✅ 登录成功，已合并云端数据', 'ok');
         renderSyncState();
-        location.reload();
+        // 注意：不调用 location.reload()——reload 会重新触发 autoClean 清空整个 HUB_KEY，
+        // 导致本机未同步的 relayToken/发音分/syncCode 等字段丢失且无法从云端恢复（它们不进同步）。
+        // 合并后已 hubSave + 重渲染，页面状态已最新，无需刷新。
+        toast('登录成功，云端数据已合并。若页面显示未更新，手动刷新一次即可。');
       } else {
         syncSetStatus('云端返回格式异常', 'error');
       }
