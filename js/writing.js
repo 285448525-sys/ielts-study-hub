@@ -1072,32 +1072,64 @@ function examStopTimer(){
 function renderExamList(){
   const data = window.WRITING_PROMPTS || { big:[], small:[] };
   const filter = $('#examFilter').value || 'all';
+  const subFilter = $('#examSubFilter').value || 'all';
   const box = $('#examList');
   if(!box) return;
-  let html = '';
+
+  // 题型自动判定
+  function detectBigSubType(en, meta){
+    const t = (en || '').toLowerCase(), m = (meta || '').toLowerCase();
+    if(/discuss both (views|sides)|discuss these two points/.test(t)) return '讨论型';
+    if(/to what extent do you agree or disagree|do you agree or disagree|what is your opinion/.test(t)) return '观点型';
+    if(/what are the (main )?(causes|reasons|problems|solutions|effects|impacts)|advantages outweigh|positive or negative/.test(t) || m.indexOf('report') >= 0) return 'Report';
+    return '观点型';
+  }
+  function detectSmallSubType(title){
+    const t = (title || '').toLowerCase();
+    if(!t) return '未分类';
+    if(/\b(process|flow|cycle|life cycle|stages|diagram|is made|how .* (is|are))\b/.test(t)) return '流程图';
+    if(/\b(plan|map|layout)\b|development of (an|the) (area|town|city|site)/.test(t)) return '地图题';
+    if(/\b(19|20)\d{2}\b[\s\S]*\b(19|20)\d{2}\b|between .*\d{4}.* and .*\d{4}|from .*\d{4}.* to .*\d{4}|over .*(period|years|decades)|from .* to .* (years|period)/.test(t)) return '动态图';
+    return '静态图';
+  }
+
   const makeItem = (it, kind) => {
     const typeLabel = kind === 'big' ? '大作文' : '小作文';
-    const meta = kind === 'big' ? it.meta : ('雅思预测 · ' + typeLabel);
-    const zh = kind === 'big' ? it.zh : (it.title || '');
-    const zhText = zh.length > 80 ? zh.slice(0,80)+'…' : zh;
+    const subType = it.subType || '未分类';
+    const meta = kind === 'big' ? (it.meta || '') : ('雅思预测 · ' + typeLabel);
+    const zh = kind === 'big' ? it.zh : '';
     const en = kind === 'big' ? it.en : (it.title || '');
+    const mainText = kind === 'big'
+      ? (zh ? '<div class="ei-zh">'+escapeHtml(zh)+'</div>' : '') + (en ? '<div class="ei-en">'+escapeHtml(en)+'</div>' : '')
+      : (en ? '<div class="ei-en" style="margin-top:0">'+escapeHtml(en)+'</div>' : '');
     return '<div class="exam-item" data-kind="'+kind+'" data-no="'+it.no+'">'
-      + '<div class="ei-top"><span class="ei-no">#'+(kind==='big'?it.no:'T'+it.no)+'</span>'
+      + '<div class="ei-top">'
+      + '<span class="ei-no">#'+(kind==='big'?it.no:'T'+it.no)+'</span>'
       + '<span class="ei-type">'+typeLabel+'</span>'
+      + '<span class="ei-sub">'+escapeHtml(subType)+'</span>'
       + '<span class="ei-meta">'+escapeHtml(meta)+'</span></div>'
-      + (zhText ? '<div class="ei-zh">'+escapeHtml(zhText)+'</div>' : '')
-      + (en ? '<div class="ei-en">'+escapeHtml(en)+'</div>' : '')
+      + mainText
       + '</div>';
   };
-  if(filter === 'big' || filter === 'all'){
-    html += '<div class="exam-group-title">大作文 · Task 2（'+data.big.length+' 题）</div>';
-    html += data.big.map(it => makeItem(it,'big')).join('');
-  }
-  if(filter === 'small' || filter === 'all'){
-    html += '<div class="exam-group-title">小作文 · Task 1（'+data.small.length+' 题）</div>';
-    html += data.small.map(it => makeItem(it,'small')).join('');
-  }
-  box.innerHTML = html;
+
+  let html = '';
+  const kinds = filter === 'all' ? ['big','small'] : [filter];
+  kinds.forEach(kind => {
+    const typeLabel = kind === 'big' ? '大作文' : '小作文';
+    let items = (data[kind] || []).slice();
+    items.forEach(it => { it.subType = kind === 'big' ? detectBigSubType(it.en, it.meta) : detectSmallSubType(it.title); });
+    const groups = {};
+    items.forEach(it => { (groups[it.subType] = groups[it.subType] || []).push(it); });
+    const order = kind === 'big' ? ['观点型','讨论型','Report','未分类'] : ['动态图','静态图','地图题','流程图','未分类'];
+    order.filter(st => groups[st] && groups[st].length).forEach(st => {
+      if(subFilter !== 'all' && st !== subFilter) return;
+      const list = groups[st];
+      html += '<div class="exam-group-title">'+typeLabel+' · '+escapeHtml(st)+'（'+list.length+' 题）</div>';
+      html += list.map(it => makeItem(it, kind)).join('');
+    });
+  });
+
+  box.innerHTML = html || '<div class="muted">没有符合筛选条件的题目</div>';
   box.querySelectorAll('.exam-item').forEach(el => {
     el.addEventListener('click', () => {
       const kind = el.dataset.kind, no = Number(el.dataset.no);
@@ -1221,7 +1253,27 @@ ${isTask1 ? RULES_TASK1 : RULES_TASK2}
 
 function bindExam(){
   const f = $('#examFilter');
-  if(f) f.addEventListener('change', renderExamList);
+  const sf = $('#examSubFilter');
+  const updateSubOptions = () => {
+    if(!sf) return;
+    const val = f ? f.value : 'all';
+    let opts = '<option value="all">全部题型</option>';
+    if(val === 'big'){
+      opts += '<option value="观点型">观点型</option>'
+            + '<option value="讨论型">讨论型</option>'
+            + '<option value="Report">Report</option>';
+    } else if(val === 'small'){
+      opts += '<option value="动态图">动态图</option>'
+            + '<option value="静态图">静态图</option>'
+            + '<option value="地图题">地图题</option>'
+            + '<option value="流程图">流程图</option>';
+    }
+    sf.innerHTML = opts;
+    sf.value = 'all';
+  };
+  if(f){ f.addEventListener('change', () => { updateSubOptions(); renderExamList(); }); }
+  if(sf){ sf.addEventListener('change', renderExamList); }
+  updateSubOptions();
 
   const exitExam = () => {
     examStopTimer();

@@ -25,7 +25,7 @@
 })();
 </script>
 <title>写作 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20260823j" />
+<link rel="stylesheet" href="css/common.css?v=20260823l" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=5" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=4">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=4">
@@ -38,7 +38,7 @@
 <script defer src="js/data.js?v=20260823k"></script>
   <script defer src="js/common.js?v=20260823k"></script>
   <script defer src="js/writing_prompts.js?v=20260823j"></script>
-  <script defer src="js/writing.js?v=20260823k"></script>
+  <script defer src="js/writing.js?v=20260823l"></script>
 <style>
   .write-tabs{display:flex;gap:0;border-bottom:2px solid var(--line);margin-bottom:16px}
   .write-tabs button{flex:1;padding:12px 0;font-size:16px;font-weight:600;border:none;background:none;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s}
@@ -126,16 +126,19 @@
   .bank-toggle:hover,.bank-del:hover{color:var(--primary);border-color:var(--primary)}
 
   /* 写作真题 */
-  .exam-list{display:flex;flex-direction:column;gap:18px}
-  .exam-group-title{font-size:14px;font-weight:700;color:var(--primary);margin:4px 0 6px;padding-left:8px;border-left:3px solid var(--primary)}
-  .exam-item{border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;cursor:pointer;transition:border-color .15s,background .15s}
+  .exam-filter-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .exam-filter-bar select{padding:6px 10px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink)}
+  .exam-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+  .exam-group-title{grid-column:1 / -1;font-size:14px;font-weight:700;color:var(--primary);margin:4px 0 2px;padding-left:8px;border-left:3px solid var(--primary)}
+  .exam-item{border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;cursor:pointer;transition:border-color .15s,background .15s;display:flex;flex-direction:column;height:100%}
   .exam-item:hover{border-color:var(--primary);background:var(--surface)}
-  .exam-item .ei-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .exam-item .ei-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
   .exam-item .ei-no{font-size:12px;font-weight:700;color:var(--muted)}
   .exam-item .ei-type{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--primary-soft);color:var(--med);font-weight:600;white-space:nowrap}
-  .exam-item .ei-meta{font-size:12px;color:var(--muted)}
-  .exam-item .ei-zh{font-size:14px;color:var(--ink);line-height:1.6;margin-top:6px}
-  .exam-item .ei-en{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.6}
+  .exam-item .ei-sub{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--bg);color:var(--ink);border:1px solid var(--line);font-weight:600;white-space:nowrap}
+  .exam-item .ei-meta{font-size:12px;color:var(--muted);margin-left:auto}
+  .exam-item .ei-zh{font-size:14px;color:var(--ink);line-height:1.6;flex:1}
+  .exam-item .ei-en{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.6;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
   .exam-timer{position:absolute;right:10px;bottom:8px;display:inline-flex;align-items:center;gap:4px;background:var(--primary);color:#fff;border-radius:20px;padding:4px 12px;font-weight:700;font-size:14px;box-shadow:0 2px 8px rgba(58,154,147,.25)}
   .exam-timer #examTimerBtn{color:#fff}
 </style>
@@ -291,11 +294,16 @@
       <div class="form-row" style="align-items:center;gap:10px;flex-wrap:wrap">
         <h2 style="margin:0">写作真题</h2>
         <span class="muted" style="font-size:13px">选择一道题开始练习，点进去自动计时</span>
-        <select id="examFilter" style="margin-left:auto">
-          <option value="all">全部</option>
-          <option value="big">大作文（Task 2）</option>
-          <option value="small">小作文（Task 1）</option>
-        </select>
+        <div class="exam-filter-bar" style="margin-left:auto">
+          <select id="examFilter">
+            <option value="all">全部</option>
+            <option value="big">大作文（Task 2）</option>
+            <option value="small">小作文（Task 1）</option>
+          </select>
+          <select id="examSubFilter">
+            <option value="all">全部题型</option>
+          </select>
+        </div>
       </div>
       <div id="examList" class="exam-list" style="margin-top:12px"></div>
     </section>
