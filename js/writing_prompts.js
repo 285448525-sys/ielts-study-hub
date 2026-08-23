@@ -494,103 +494,178 @@ window.WRITING_PROMPTS = {
   "small": [
     {
       "no": 1,
-      "title": "The table describes the changes of people who went for international travel in 1990, 1995, 2000 and 2005 (million)."
+      "title": "The table describes the changes of people who went for international travel in 1990, 1995, 2000 and 2005 (million).",
+      "img": [
+        "image2.jpeg"
+      ]
     },
     {
       "no": 2,
-      "title": "The chart shows global sales of the top five mobile phone brands between 2009 and 2013."
+      "title": "The chart shows global sales of the top five mobile phone brands between 2009 and 2013.",
+      "img": [
+        "image3.png"
+      ]
     },
     {
       "no": 3,
-      "title": "The graph gives information about the percentage of the population if four different Asian countries living in cities between 1970 and 2020 with additional predictions for 2030 and 2040."
+      "title": "The graph gives information about the percentage of the population if four different Asian countries living in cities between 1970 and 2020 with additional predictions for 2030 and 2040.",
+      "img": [
+        "image4.jpeg"
+      ]
     },
     {
       "no": 4,
-      "title": ""
+      "title": "The chart below shows the expenditure of two countries on consumer goods in 2010.",
+      "img": [
+        "image5.png"
+      ]
     },
     {
       "no": 5,
-      "title": "The table shows the change in the number of cinemas in different regions in a European country between 2004 and 2009."
+      "title": "The table shows the change in the number of cinemas in different regions in a European country between 2004 and 2009.",
+      "img": [
+        "image6.jpeg"
+      ]
     },
     {
       "no": 6,
-      "title": "The table below describes water usage for 3 different purposes in 6 countries in 2003."
+      "title": "The table below describes water usage for 3 different purposes in 6 countries in 2003.",
+      "img": [
+        "image7.png"
+      ]
     },
     {
       "no": 7,
-      "title": "The charts below give information about levels of education inGlasgow, a city in Scotland, in 2010."
+      "title": "The charts below give information about levels of education inGlasgow, a city in Scotland, in 2010.",
+      "img": [
+        "image9.png"
+      ]
     },
     {
       "no": 8,
-      "title": "The table and charts below give information on the police budget for 2017 and 2018 in one area of Britain."
+      "title": "The table and charts below give information on the police budget for 2017 and 2018 in one area of Britain.",
+      "img": [
+        "image10.png"
+      ]
     },
     {
       "no": 9,
-      "title": "The bar chart shows the production of fruits by weight in the years of 1995, 2005 2015"
+      "title": "The bar chart shows the production of fruits by weight in the years of 1995, 2005 2015",
+      "img": [
+        "image11.png"
+      ]
     },
     {
       "no": 10,
-      "title": "The charts below give information about USA marriage and divorce rates between1970 and 2000, and the marital status of adult Americans in two of the years."
+      "title": "The charts below give information about USA marriage and divorce rates between1970 and 2000, and the marital status of adult Americans in two of the years.",
+      "img": [
+        "image12.png",
+        "image13.png"
+      ]
     },
     {
       "no": 11,
-      "title": "The plans below show part of the town of Oxton thirty years ago and now."
+      "title": "The plans below show part of the town of Oxton thirty years ago and now.",
+      "img": [
+        "image14.png"
+      ]
     },
     {
       "no": 12,
-      "title": "The charts below show the population size and life expectancy for five European countries in 1914 and 2014."
+      "title": "The charts below show the population size and life expectancy for five European countries in 1914 and 2014.",
+      "img": [
+        "image15.png"
+      ]
     },
     {
       "no": 13,
-      "title": "The chart below shows the participation of Australian children in certain sports activities outside of school hours. Participation of Australian children in sports outside of school hours"
+      "title": "The chart below shows the participation of Australian children in certain sports activities outside of school hours. Participation of Australian children in sports outside of school hours",
+      "img": [
+        "image17.jpeg"
+      ]
     },
     {
       "no": 14,
-      "title": "The graph below shows the percentages of tourists who used different types of transport to travel within a particular nation between 1989 and 2009. Each tourist may have used more than one type of transport."
+      "title": "The graph below shows the percentages of tourists who used different types of transport to travel within a particular nation between 1989 and 2009. Each tourist may have used more than one type of transport.",
+      "img": [
+        "image18.png"
+      ]
     },
     {
       "no": 15,
-      "title": "The chart below shows the percentage of people who ate at least five portions of fruit and vegetables per day in the UK from 2001 to 2008"
+      "title": "The chart below shows the percentage of people who ate at least five portions of fruit and vegetables per day in the UK from 2001 to 2008",
+      "img": []
     },
     {
       "no": 16,
-      "title": "The charts below show the reasons for migration to and from one European country in 2009."
+      "title": "The charts below show the reasons for migration to and from one European country in 2009.",
+      "img": [
+        "image19.jpeg",
+        "image20.jpeg"
+      ]
     },
     {
       "no": 17,
-      "title": ""
+      "title": "The pie charts below show the online shopping sales for retail sectors in New Zealand in 2003 and 2013.",
+      "img": [
+        "image21.png"
+      ]
     },
     {
       "no": 18,
-      "title": "The graph below shows the average number of people attending top-level football matches in three European countries from 1980 to 2004."
+      "title": "The graph below shows the average number of people attending top-level football matches in three European countries from 1980 to 2004.",
+      "img": [
+        "image22.jpeg"
+      ]
     },
     {
       "no": 19,
-      "title": "The bar chart shows the average prices per kilometre of clothing imported into the European Union from six different countries in 1997 and 2003."
+      "title": "The bar chart shows the average prices per kilometre of clothing imported into the European Union from six different countries in 1997 and 2003.",
+      "img": [
+        "image23.png"
+      ]
     },
     {
       "no": 20,
-      "title": ""
+      "title": "The diagram shows how rainwater is collected for the use of drinking water in an Australian town.",
+      "img": [
+        "image24.png"
+      ]
     },
     {
       "no": 21,
-      "title": ""
+      "title": "The graph shows data about the annual earnings of three bakeries in Calgary, from 2000 to 2010.",
+      "img": [
+        "image25.png"
+      ]
     },
     {
       "no": 22,
-      "title": ""
+      "title": "The maps below show changes in the village of Meadowside and its surrounding area over three time periods (1962, 1985 and now).",
+      "img": [
+        "image26.png"
+      ]
     },
     {
       "no": 23,
-      "title": ""
+      "title": "The diagram below shows a simple system that turns dirty water into clean water.",
+      "img": [
+        "image27.png"
+      ]
     },
     {
       "no": 24,
-      "title": "The plans below show a small theatre In 2010, and the same theatre in 2012."
+      "title": "The plans below show a small theatre In 2010, and the same theatre in 2012.",
+      "img": [
+        "image28.png"
+      ]
     },
     {
       "no": 25,
-      "title": "The first table below shows changes in the total population of New York City from1800 to 2000. The second and third tables show changes in the population of the five districts of the city (Manhattan, Brooklyn, Bronx, Queens, and Staten island )over the same period."
+      "title": "The first table below shows changes in the total population of New York City from1800 to 2000. The second and third tables show changes in the population of the five districts of the city (Manhattan, Brooklyn, Bronx, Queens, and Staten island )over the same period.",
+      "img": [
+        "image29.png"
+      ]
     }
   ]
 };

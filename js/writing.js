@@ -1095,6 +1095,9 @@ function renderExamList(){
     const mainText = kind === 'big'
       ? (zh ? '<div class="ei-zh">'+escapeHtml(zh)+'</div>' : '') + (en ? '<div class="ei-en">'+escapeHtml(en)+'</div>' : '')
       : (en ? '<div class="ei-en" style="margin-top:0">'+escapeHtml(en)+'</div>' : '');
+    const chartThumb = (kind !== 'big' && it.img && it.img.length)
+      ? '<div class="ei-chart"><img src="assets/writing/'+escapeHtml(it.img[0])+'" alt="chart" loading="lazy"></div>'
+      : '';
     return '<div class="exam-item" data-kind="'+kind+'" data-no="'+it.no+'">'
       + '<div class="ei-top">'
       + '<span class="ei-no">#'+(kind==='big'?it.no:'T'+it.no)+'</span>'
@@ -1102,6 +1105,7 @@ function renderExamList(){
       + '<span class="ei-sub">'+escapeHtml(subType)+'</span>'
       + '<span class="ei-meta">'+escapeHtml(meta)+'</span></div>'
       + mainText
+      + chartThumb
       + '</div>';
   };
 
@@ -1152,7 +1156,10 @@ function openExam(item, kind){
       '<div class="ei-en">' + escapeHtml(item.en) + '</div>';
     $('#examQNote').textContent = 'Give reasons for your answer and include any relevant examples from your own knowledge or experience.';
   } else {
-    $('#examQuestion').innerHTML = '<div class="ei-en">' + escapeHtml(item.title) + '</div>';
+    const charts = (item.img && item.img.length)
+      ? '<div class="eq-charts">' + item.img.map(f => '<img src="assets/writing/'+escapeHtml(f)+'" alt="chart">').join('') + '</div>'
+      : '';
+    $('#examQuestion').innerHTML = charts + '<div class="ei-en">' + escapeHtml(item.title) + '</div>';
     $('#examQNote').textContent = 'Summarise the information by selecting and reporting the main features, and make comparisons where relevant.';
   }
   $('#examEssay').value = '';
