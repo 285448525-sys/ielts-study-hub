@@ -625,7 +625,7 @@ async function cloudUpload(showToast, force){
     return;
   }
   try{
-    const [res, body] = await syncApi('PUT', { data: DATA, ts:  Date.now(), deviceId: getDeviceId() });
+    const [res, body] = await syncApi('PUT', { data: stripCloudFields(DATA), ts:  Date.now(), deviceId: getDeviceId() });
     if(res.status === 404) throw new Error('云端未启用（需先部署 Functions）');
     if(res.status === 503) throw new Error('云端存储未绑定（Cloudflare 后台需绑定 SYNC_KV）');
     if(!res.ok){
@@ -653,7 +653,7 @@ function flushCloudUpload(){
   if(!_pendingUpload) return;
   if(!DATA.settings.autoSync || !DATA.settings.syncCode) return;
   try{
-    const payload = JSON.stringify({ data: DATA, ts: Date.now(), deviceId: getDeviceId() });
+    const payload = JSON.stringify({ data: stripCloudFields(DATA), ts: Date.now(), deviceId: getDeviceId() });
     if(payload.length > 60 * 1024) return; // sendBeacon 传不了，交给下次自动上传或手动同步
     navigator.sendBeacon('/api/sync?code=' + encodeURIComponent(DATA.settings.syncCode), new Blob([payload], { type: 'application/json' }));
   }catch(e){}
@@ -662,9 +662,19 @@ window.addEventListener('beforeunload', flushCloudUpload);
 document.addEventListener('visibilitychange', () => { if(document.hidden) flushCloudUpload(); });
 /* ===== 字段级合并（替代整份覆盖，避免双设备互相抹掉进度） ===== */
 /* plans/checkins 已改为特判合并（_mergePlans / Set 去重），不在通用数组里 */
+/* ⚠️ 口语题库(speaking)与写作模板(writing)是「官方共享题集」，所有用户一致、个人不可增删，
+ *    因此【不进云端同步】——否则旧账号的脏题库会被下载回来覆盖本地官方库（用户实测：清缓存后 61 题，
+ *    登录账号又变 101 题）。同步时这两个字段从上传/合并中排除，永远以本机 SPEAKING_BANK / 默认模板为准。 */
 const SYNC_ARRAY_FIELDS = ['sessions','notes','meds','corpus','scores','errorbook',
-  'energy','speaking','writing','writingScores','speakingStories','writingPhrases',
+  'energy','writingScores','speakingStories','writingPhrases',
   'mockRecords','dictationSources','dictationLogs','longSent'];
+/* 上传/合并前剔除「官方共享、个人不应同步」的字段（speaking / writing），保持 DATA 其余逻辑不变 */
+function stripCloudFields(d){
+  const c = Object.assign({}, d);
+  delete c.speaking;   // 口语题库：所有用户一致，永远用本机 SPEAKING_BANK
+  delete c.writing;    // 写作模板：所有用户一致，永远用本机默认模板
+  return c;
+}
 /* 设置里允许跨设备同步的字段；relayToken/syncCode/autoSync/theme 永不同步 */
 const SYNC_SETTINGS_FIELDS = ['name','examDate','examDates','targets','dailyGoalHours'];
 
@@ -740,6 +750,11 @@ function _mergeArray(local, cloud){
    返回 {data, changes}：changes = 实际应用的合并处数（新增 + 更新），用于决定是否写盘/提示 */
 function mergeData(local, cloud){
   cloud = cloud || {};
+  // 口语题库(speaking)与写作模板(writing)是官方共享题集，个人不可增删、不进同步。
+  // 即使云端旧数据残留这两个字段（早期版本同步过），合并时也强制忽略云端版本，永远以本机官方库为准。
+  cloud = Object.assign({}, cloud);
+  delete cloud.speaking;
+  delete cloud.writing;
   const out = Object.assign({}, local);
   const deleted = new Set([...(local.deletedIds||[]), ...(cloud.deletedIds||[])]);
   const delKey = it => (it && it.id != null) ? it.id : (it && it.ts != null) ? it.ts : null;
@@ -925,8 +940,8 @@ async function syncLoginOrRegister(){
   try{
     const [probe] = await syncApi('GET');
     if(probe.status === 404){
-      // 注册：上传本机数据
-      await syncApi('PUT', { data: DATA, ts: Date.now(), deviceId: getDeviceId() });
+      // 注册：上传本机数据（剔除官方共享题库/模板，避免脏数据污染云端）
+      await syncApi('PUT', { data: stripCloudFields(DATA), ts: Date.now(), deviceId: getDeviceId() });
       enableAutoSyncAfterLogin(phone);
       syncSetStatus('✅ 注册成功，数据已上传云端', 'ok');
       renderSyncState();

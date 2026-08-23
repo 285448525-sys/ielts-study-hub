@@ -6,8 +6,26 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
+<script>
+(function autoCleanOldBank(){
+  try{
+    var key = 'ielts_study_hub_v1';
+    var raw = localStorage.getItem(key);
+    if(!raw) return;
+    var parsed = JSON.parse(raw);
+    var speaking = Array.isArray(parsed.speaking) ? parsed.speaking : [];
+    var dirtyIds = ['sb_p1_home','sb_p2_travel','sb_p2_earlymorning'];
+    var hasDirty = speaking.some(function(s){ return s && dirtyIds.indexOf(s.id) >= 0; });
+    var hasOldMorning = speaking.some(function(s){ return s && s.titleEn && s.titleEn.toLowerCase().indexOf('early morning') >= 0; });
+    if(hasDirty || hasOldMorning){
+      localStorage.removeItem(key);
+      location.reload(true);
+    }
+  }catch(e){}
+})();
+</script>
 <title>口语 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20260823g" />
+<link rel="stylesheet" href="css/common.css?v=20260823i" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=5" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=4">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=4">
@@ -17,13 +35,13 @@
 
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
-<script defer src="js/data.js?v=20260823g"></script>
-  <script defer src="js/common.js?v=20260823g"></script>
-  <script defer src="js/speaking.js?v=20260823g"></script>
-  <script defer src="js/progress.js?v=20260823g"></script>
-  <script defer src="js/mock-report.js?v=20260823g"></script>
-  <script defer src="js/mock-history.js?v=20260823g"></script>
-  <script defer src="js/mock.js?v=20260823g"></script>
+<script defer src="js/data.js?v=20260823i"></script>
+  <script defer src="js/common.js?v=20260823i"></script>
+  <script defer src="js/speaking.js?v=20260823i"></script>
+  <script defer src="js/progress.js?v=20260823i"></script>
+  <script defer src="js/mock-report.js?v=20260823i"></script>
+  <script defer src="js/mock-history.js?v=20260823i"></script>
+  <script defer src="js/mock.js?v=20260823i"></script>
 <style>
   /* === 极简口语模块 · 优化版（沿用全站 Teal Token） === */
   .sp-tabs{display:flex;gap:0;border-bottom:2px solid var(--line);margin-bottom:4px}
@@ -470,7 +488,7 @@
   <!-- 列表视图 -->
   <div id="listView">
     <div class="sp-banner" id="freqBanner">
-      本季口语题库已统一分级：<b>超高频（原必考题）→ 高频 → 中频 → 低频</b>，Part1 / Part2 共用同一套档位。优先练超高频与高频，中频按需，低频见缝插针。
+      <b>本季口语题库 v3 · 2026-08-23 更新</b>：已统一分级为<b>超高频（原必考题）→ 高频 → 中频 → 低频</b>，Part1 / Part2 共用同一套档位。优先练超高频与高频，中频按需，低频见缝插针。
     </div>
 
     <div class="sp-filters">

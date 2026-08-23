@@ -6,8 +6,26 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
+<script>
+(function autoCleanOldBank(){
+  try{
+    var key = 'ielts_study_hub_v1';
+    var raw = localStorage.getItem(key);
+    if(!raw) return;
+    var parsed = JSON.parse(raw);
+    var speaking = Array.isArray(parsed.speaking) ? parsed.speaking : [];
+    var dirtyIds = ['sb_p1_home','sb_p2_travel','sb_p2_earlymorning'];
+    var hasDirty = speaking.some(function(s){ return s && dirtyIds.indexOf(s.id) >= 0; });
+    var hasOldMorning = speaking.some(function(s){ return s && s.titleEn && s.titleEn.toLowerCase().indexOf('early morning') >= 0; });
+    if(hasDirty || hasOldMorning){
+      localStorage.removeItem(key);
+      location.reload(true);
+    }
+  }catch(e){}
+})();
+</script>
 <title>计划 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20260823g" />
+<link rel="stylesheet" href="css/common.css?v=20260823i" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=5" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=4">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=4">
@@ -17,9 +35,9 @@
 
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
-<script defer src="js/data.js?v=20260823g"></script>
-  <script defer src="js/common.js?v=20260823g"></script>
-  <script src="js/plans.js?v=20260823g" defer></script>
+<script defer src="js/data.js?v=20260823i"></script>
+  <script defer src="js/common.js?v=20260823i"></script>
+  <script src="js/plans.js?v=20260823i" defer></script>
 </head>
 <body>
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>

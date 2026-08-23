@@ -223,7 +223,32 @@ const SPEAKING_BANK = [
 /* 口语题库版本号：每次题库大改（删题/建题/调档位）递增。
  * hubLoad 检测到本地 DATA.speakingVersion 落后于此值，则整体用最新库替换本地旧库，
  * 根治「旧 localStorage 累积 100+ 题 / 档位错乱清不掉」的问题（用户刷新即生效，无需手动清缓存）。 */
-const SPEAKING_BANK_VERSION = 3;
+const SPEAKING_BANK_VERSION = 4;
+
+/* 强制清旧题库：只要加载到包含本代码的新 data.js，就检测 localStorage 里是否残留旧题库特征；
+ * 是则直接清空整个 DATA 并刷新页面，确保用户不需要手动清缓存就能拿到干净新题库。
+ * 注意：这会清空本地所有练习记录/词库/计时等；这是为了让题库更新一次性生效不得已的代价。 */
+(function autoCleanOldSpeakingBank(){
+  try{
+    const raw = localStorage.getItem(HUB_KEY);
+    if(!raw) return;
+    const parsed = JSON.parse(raw);
+    const speaking = Array.isArray(parsed.speaking) ? parsed.speaking : [];
+    const dirtyIds = ['sb_p1_home','sb_p2_travel','sb_p2_earlymorning','sb_p2_visit77','sb_p2_describe_a_live_sports_event_you_watched29'];
+    const hasDirty = speaking.some(s => s && dirtyIds.includes(s.id));
+    const hasOldMorning = speaking.some(s => s && s.titleEn && s.titleEn.toLowerCase().includes('early morning'));
+    // 注意：不再依赖 speakingVersion 判定，因为登录后云端同步的DATA不包含speaking（官方共享），
+    // 若因version清整个DATA会误删云端同步的其它个人数据。仅当确实残留脏题id时才清。
+    if(hasDirty || hasOldMorning){
+      console.warn('[题库清理] 检测到旧 localStorage 题库脏题，正在自动清空并刷新…');
+      localStorage.removeItem(HUB_KEY);
+      if(typeof location !== 'undefined' && location.reload){
+        location.reload(true);
+        return;
+      }
+    }
+  }catch(e){ /* 解析失败不做任何事 */ }
+})();
 
 
 
