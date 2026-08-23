@@ -24,6 +24,13 @@ ready(() => {
   $('#saveSettings').addEventListener('click', saveSettings);
   $('#saveRelay').addEventListener('click', saveRelay);
   $('#testAiBtn').addEventListener('click', testAIConnection);
+  $('#toggleKey').addEventListener('click', () => {
+    const el = $('#sRelayToken');
+    if(!el) return;
+    const showing = el.type === 'text';
+    el.type = showing ? 'password' : 'text';
+    $('#toggleKey').textContent = showing ? '显示' : '隐藏';
+  });
   $('#sTheme').addEventListener('change', () => applyTheme($('#sTheme').value));
   $('#exportBtn').addEventListener('click', exportData);
   $('#importBtn').addEventListener('click', () => $('#importFile').click());

@@ -68,7 +68,7 @@
     <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="5" y="7" width="14" height="12" rx="3"/><path d="M12 7V3M9 3h6"/><circle cx="9.5" cy="12.5" r="1"/><circle cx="14.5" cy="12.5" r="1"/><path d="M9 16h6"/></svg>AI 接口（DeepSeek）</h2>
     <p class="muted">所有 AI 功能（口语对练、词库翻译、长难句拆解、写作批改、错题本讲解）都用 DeepSeek。只需填一个 Key，地址和模型已内置，无需任何其它配置。</p>
     <div class="form-row">
-      <div style="flex:3"><label>DeepSeek API Key</label><input id="sRelayToken" type="password" placeholder="sk-xxxxxx" autocomplete="off" /></div>
+      <div style="flex:3"><label>DeepSeek API Key</label><div style="display:flex;gap:8px;align-items:center"><input id="sRelayToken" type="password" placeholder="sk-xxxxxx" autocomplete="off" style="flex:1" /><button class="btn btn-sm" id="toggleKey" type="button">显示</button></div></div>
       <div style="flex:none;align-self:flex-end"><button class="btn btn-primary" id="saveRelay">保存</button></div>
       <div style="flex:none;align-self:flex-end"><button class="btn" id="testAiBtn">测试连接</button></div>
     </div>
