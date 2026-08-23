@@ -501,6 +501,19 @@ let wtDictCurrent = null;   // 当前默写源 {id,title,text}
 let wtDictSentences = [];   // 当前源按句拆分后的句子数组（1-based 与勾选区序号一致）
 let wtDictWeak = {};        // 当前源 loc -> 历史出错次数
 
+// 偷看原文：只显示当前勾选要默写的句子（按原顺序），未勾选句不显示
+function renderWtSrcView(){
+  const box = $('#wtDictSrc');
+  if(!box || !wtDictSentences.length) return;
+  const checked = new Set();
+  document.querySelectorAll('.wt-dict-sent-chk').forEach(c => { if(c.checked) checked.add(Number(c.dataset.idx)); });
+  const kept = wtDictSentences
+    .map((t, i) => ({ n: i + 1, t }))
+    .filter(o => checked.has(o.n))
+    .map(o => o.n + '. ' + o.t);
+  box.textContent = kept.length ? kept.join('\n\n') : '（本次没有勾选要默写的句子）';
+}
+
 function openTplDict(tplId){
   const t = DATA.writing.find(x => x.id === tplId);
   if(!t) return;
@@ -512,7 +525,7 @@ function openTplDict(tplId){
   switchWriteTab('dictation');   // 切到默写面板
 
   $('#wtDictTitle').textContent = wtDictCurrent.title;
-  $('#wtDictSrc').textContent = plain;          // 原文存着，默认隐藏（点「偷看原文」展开）
+  renderWtSrcView();          // 预设原文为勾选句（默认隐藏，点「偷看原文」展开）
   $('#wtDictSrc').hidden = true;
   $('#wtDictPeek').setAttribute('aria-expanded', 'false');
   $('#wtDictInput').value = '';
@@ -552,14 +565,16 @@ function openTplDict(tplId){
         const isWeak = (wtDictWeak[n] || 0) > 0;
         c.checked = only ? isWeak : true;   // 开=只勾常错句；关=恢复全勾
       });
+      if(!$('#wtDictSrc').hidden) renderWtSrcView();   // 若原文已展开，同步刷新为勾选句
       toast(only ? '已自动勾选常错句，本次只重默错过的句子' : '已恢复全选');
     };
   }
-  // 偷看原文：展开/收起（折叠）
+  // 偷看原文：展开/收起（折叠）—— 只显示本次勾选要默的句子，不是全部
   const peek = $('#wtDictPeek');
   if(peek){
     peek.onclick = () => {
       const hidden = $('#wtDictSrc').hidden;
+      if(hidden) renderWtSrcView();          // 展开前按当前勾选刷新内容
       $('#wtDictSrc').hidden = !hidden;
       peek.setAttribute('aria-expanded', String(hidden));
       peek.textContent = hidden ? '🙈 收起原文' : '👁 偷看原文';
@@ -587,20 +602,22 @@ async function submitWtDict(){
   box.hidden = false;
   box.innerHTML = '<div class="ts-load">AI 正在逐句比对你的默写，十几秒…</div>';
 
-  // 仅取用户勾选要默的句子（正向勾选：勾了=本次默写包含该句）；编号沿用原句编号，AI 反馈 loc 对应原模板句
-  const checked = new Set();
-  document.querySelectorAll('.wt-dict-sent-chk').forEach(c => { if(c.checked) checked.add(Number(c.dataset.idx)); });
-  if(!checked.size && wtDictSentences.length){
+  // 仅取用户勾选要默的句子（正向勾选）；按勾选顺序连续编号 1..N，与学生默写行序一一对应，杜绝 loc 错位
+  const checked = [];
+  document.querySelectorAll('.wt-dict-sent-chk').forEach(c => { if(c.checked) checked.push(Number(c.dataset.idx)); });
+  if(!checked.length && wtDictSentences.length){
     toast('请至少勾选一句要默写的句子');
     btn.disabled = false; btn.textContent = '提交核对';
     return;
   }
-  // 用原句编号拼标准原文（未勾选句不纳入比对，自然不算错）
-  const srcNumbered = wtDictSentences
-    .map((t, i) => ({ n: i + 1, t }))
-    .filter(o => checked.has(o.n))
-    .map(o => o.n + '. ' + o.t)
-    .join('\n');
+  // picked: 按勾选原顺序的 [{orig:原句编号, text}]；连续编号 k=1..N 对应学生默写第 k 行
+  const picked = wtDictSentences
+    .map((t, i) => ({ orig: i + 1, text: t }))
+    .filter(o => checked.includes(o.orig));
+  const srcNumbered = picked.map((o, k) => (k + 1) + '. ' + o.text).join('\n');
+  // origByK: 连续编号 k+1 -> 原句编号，用于把 AI 返回的 loc 映射回原模板句存 weakHistory
+  const origByK = {};
+  picked.forEach((o, k) => { origByK[k + 1] = o.orig; });
   const weakBefore = wtComputeWeak(wtDictCurrent.id);
 
   const messages = [
@@ -613,9 +630,10 @@ async function submitWtDict(){
 4. 原文中的 ____（连续下划线）是模板骨架的「填空位」，不是需要默写的英文单词，标准化时直接删除。学生没写这个填空位不算错。
 5. 学生输入里的占位符 -- — ___ 【】 () 等也直接删除。
 
-比对只基于标准化后的纯英文单词序列：单词顺序一致、拼写一致即为正确。标点和各种符号差异一律不算错。学生漏写句号导致两句合并时，不要因此造成大规模错位；请基于全局英文单词序列对齐，再回查原句编号作为 loc。
+比对只基于标准化后的纯英文单词序列：单词顺序一致、拼写一致即为正确。标点和各种符号差异一律不算错。
+对齐规则（关键）：下方「标准原文」已按勾选顺序连续编号为 1、2、3…；「学生默写」请按行拆分，第 k 行对应标准原文第 k 句（即学生默写第 1 行对标准第 1 句，第 2 行对标准第 2 句，依此类推）。不要跨行对齐，不要因为某行多写/少写就整体错位。
 铁律：
-1. 严格沿用下方「标准原文」给出的句编号（如 "3"）作为 loc；无法归到某句用 "0"。
+1. loc 使用下方「标准原文」给出的连续编号（如 "2" 表示第 2 句）；无法归到某句用 "0"。
 2. 未被跳过的句子定位差异，type 分：漏写 / 错词 / 拼写 / 语法 / 语序。
 3. 拼写错误在 type 标"拼写"，在清单里附带即可，不要像语法错那样在正文重点标红。
 4. 连字符豁免：标准原文里带连字符的词（如 short-lived），学生默写若只是少了横杠写成 short lived、或连写成 shortlived、或换成空格，这属于语音输入常见现象，【不算错】。词义与单词组成一致即可视为正确；只有换成完全不同的词才判错。
@@ -648,10 +666,11 @@ ${JSON.stringify(weakBefore)}` }
       html += '<div class="ts-sec"><h4>差异明细（' + mistakes.length + ' 处）</h4><div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">';
       mistakes.forEach(m => {
         const loc = m.loc || '0';
+        const origLoc = origByK[Number(loc)] || Number(loc);   // 连续编号 -> 原模板句编号
         const wrong = m.wrong ? escapeHtml(m.wrong) : '<span class="muted">（漏写）</span>';
         const right = m.right ? escapeHtml(m.right) : '';
         html += '<div class="ts-fix" style="padding:8px 10px;border:1px solid var(--line);border-radius:8px">'
-          + '<b>第' + loc + '句</b> · ' + escapeHtml(m.type || '差异') + '：你写 <code>' + wrong + '</code> → 应为 <code>' + right + '</code>'
+          + '<b>第' + origLoc + '句</b> · ' + escapeHtml(m.type || '差异') + '：你写 <code>' + wrong + '</code> → 应为 <code>' + right + '</code>'
           + (m.note ? '<div class="muted" style="font-size:12.5px;margin-top:4px">' + escapeHtml(m.note) + '</div>' : '')
           + '</div>';
       });
@@ -661,9 +680,13 @@ ${JSON.stringify(weakBefore)}` }
     }
     box.innerHTML = html;
 
-    // 记录到 dictationLogs（与语料库默写同源统计）
+    // 记录到 dictationLogs：把 AI 返回的连续 loc 映射回原模板句编号，保证常错统计准确
+    const mappedMistakes = mistakes.map(m => {
+      const k = Number(m.loc);
+      return Object.assign({}, m, { loc: String(origByK[k] != null ? origByK[k] : (m.loc || '0')) });
+    });
     DATA.dictationLogs = DATA.dictationLogs || [];
-    DATA.dictationLogs.push({ sourceId: wtDictCurrent.id, title: wtDictCurrent.title, date: todayKey(), mistakes: mistakes });
+    DATA.dictationLogs.push({ sourceId: wtDictCurrent.id, title: wtDictCurrent.title, date: todayKey(), mistakes: mappedMistakes });
     hubSave();
   }catch(e){
     box.innerHTML = '<div class="ts-load">AI 调不通：' + escapeHtml(e.message) + '</div>';
