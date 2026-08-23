@@ -103,6 +103,7 @@
     injectExitButton();
     startTotalTimer();
     toast('已恢复上次未完成的模考，继续答题');
+    await ensureMockLib();   // 续考前确保报告库就绪
     await runExam(snap);
   }
 
@@ -187,6 +188,37 @@
   } else {
     if(startBtn) startBtn.hidden = false;
   }
+  }
+
+  /* ---------- 事件委托：开始 / 重试 / 续考 / 新模考按钮 ----------
+     委托到稳定的 #mockView（该容器不会被云同步合并或任何重渲染替换），彻底规避两类竞态：
+       · 原 ready() 里 await ensureMockLib() 在冷加载（mock-report.js 未缓存）时会延迟点击绑定，
+         期间点「开始模考」无任何反应；
+       · 云同步合并成功触发 renderAllOnMerge() 重渲染当前页，直接绑在按钮上的 onclick 会随 DOM 替换丢失。
+     统一走委托后，按钮任何时刻都可点；ensureMockLib 改为在真正开考前（startExam / resumeFromSnapshot）才 await。 */
+  function bindMockViewDelegation(){
+    const view = $('#mockView');
+    if(!view || view.__mockDelegated) return;   // 软导航重跑时 #mockView 被替换成新元素，flag 自然失效，不会重复绑定
+    view.__mockDelegated = true;
+    view.addEventListener('click', e => {
+      const startBtn = e.target.closest('#mockStartBtn');
+      if(startBtn && !startBtn.hidden){
+        if(window.__mockTick){ clearInterval(window.__mockTick); window.__mockTick = null; }
+        startExam();
+        return;
+      }
+      const retry = e.target.closest('#mockRetryBtn');
+      if(retry){
+        if(window.__mockTick){ clearInterval(window.__mockTick); window.__mockTick = null; }
+        $('#mockReport').hidden = true; $('#mockStage').hidden = true; $('#mockStart').hidden = false;
+        renderMockStart();
+        return;
+      }
+      const rb = e.target.closest('#mockResumeBtn');
+      if(rb){ resumeFromSnapshot(); return; }
+      const nb = e.target.closest('#mockNewBtn');
+      if(nb){ if(confirm('确定放弃上次未完成的模考，开始新的一场吗？')) startExam(); return; }
+    });
   }
 
   /* ---------- 单题交互（手动输入文本框，无录音）---------- */
@@ -600,6 +632,7 @@
     if(!DATA.settings.relayToken){
       toast('请先在「设置 / AI 接口」填写 DeepSeek Key'); return;
     }
+    await ensureMockLib();   // 确保报告库（MockReport）就绪后再开考，避免 finishExam 渲染报告时缺库
     // 仅从纯官方题库抽题：剔除框架母本(带 framework 字段 / id 形如 sp_p[12]_*)及任何残留非题目项，杜绝抽到老题库/框架内容
     const p1 = DATA.speaking.filter(x => x.type === 'P1' && x.questions && x.questions.length && !x.framework && !/^sp_p[12]_\d+$/.test(x.id || ''));
     const p2 = DATA.speaking.filter(x => x.type === 'P2' && x.promptEn && !x.framework && !/^sp_p[12]_\d+$/.test(x.id || ''));
@@ -625,21 +658,17 @@
 
   /* ---------- 初始化 ---------- */
   ready(async () => {
+    // 事件委托先绑定（同步、不依赖任何 await）：无论 ensureMockLib 是否还在加载、或云同步合并后是否重渲染，
+    // 「开始模考 / 重试 / 续考」按钮都始终可点。
+    bindMockViewDelegation();
+    if(!window.__mockMergedBound){
+      document.addEventListener('hub:data-merged', () => { renderMockStart(); });
+      window.__mockMergedBound = true;   // 全局只绑一次，避免软导航重跑重复叠加监听
+    }
     await ensureMockLib();
     // 断点续考：若上次模考未做完就离开了，返回模考页时自动恢复现场
     const snap = loadResumeSnapshot();
     if(snap){ await resumeFromSnapshot(); }
     else { renderMockStart(); }
-    const startBtn = $('#mockStartBtn');
-    if(startBtn) startBtn.onclick = () => {
-      if(window.__mockTick){ clearInterval(window.__mockTick); window.__mockTick = null; }
-      startExam();
-    };
-    const retry = $('#mockRetryBtn');
-    if(retry) retry.onclick = () => {
-      if(window.__mockTick){ clearInterval(window.__mockTick); window.__mockTick = null; }
-      $('#mockReport').hidden = true; $('#mockStage').hidden = true; $('#mockStart').hidden = false;
-      renderMockStart();
-    };
   });
 })();
