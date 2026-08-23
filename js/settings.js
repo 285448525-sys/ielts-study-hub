@@ -127,14 +127,40 @@ function importData(file){
     const def = { sessions:[], notes:[], meds:[], words:[], plans:[], corpus:[], scores:[],
       errorbook:[], energy:[], checkins:[], speaking:[], speakingStories:[],
       writing:[], writingScores:[], mockRecords:[] };
-    const merged = Object.assign({}, def, obj);   // 用新对象，保留 def 纯净，后续兜底才能用回默认空数组
-    for(const f of ['sessions','notes','meds','words','plans','corpus','scores','errorbook',
-      'energy','checkins','speaking','writing','writingScores','speakingStories','mockRecords']){
-      if(!Array.isArray(merged[f])) merged[f] = def[f];
+    // 智能合并导入（v20260823w）：只把「本地没有的内容」补进来，本地已有的（更新/更多）绝不覆盖。
+    //   - 数组字段：备份中本地不存在的元素才追加（有 id 的按 id 去重，无 id 的按序列化去重）
+    //   - settings：本地已非空的值优先，备份只补本地为空的字段
+    //   - 其他顶层字段：本地有则用本地，本地无才取备份
+    //   - 口语 speaking：走 mergeSpeakingKeepAnswers（官方题基准 + 回填答案，不新增非官方题）
+    const ARRAY_FIELDS = ['sessions','notes','meds','words','plans','corpus','scores','errorbook',
+      'energy','checkins','writing','writingScores','speakingStories','mockRecords','longSent','dictationSources','dictationLogs'];
+    const result = {};
+    // 1) 顶层标量/对象字段：本地优先，本地无才取备份
+    for(const k of Object.keys(DATA)){
+      if(ARRAY_FIELDS.includes(k)) continue;          // 数组单独处理
+      if(k === 'settings') continue;                  // settings 单独处理
+      result[k] = (DATA[k] !== undefined && DATA[k] !== null && !(Array.isArray(DATA[k]) && DATA[k].length === 0))
+        ? DATA[k] : (obj[k] !== undefined ? obj[k] : DATA[k]);
     }
-    merged.settings = Object.assign({}, DATA.settings || {}, obj.settings || {});
-    DATA = merged;
-    // 导入的旧 speaking 数组可能含旧 100+ 题/框架母本 → 走合并逻辑只回填个人内容、不新增非官方题
+    // 2) 数组字段：本地为基准，补入备份中本地没有的元素
+    for(const f of ARRAY_FIELDS){
+      const localArr = Array.isArray(DATA[f]) ? DATA[f] : [];
+      const bakArr = Array.isArray(obj[f]) ? obj[f] : [];
+      const merged = localArr.slice();
+      if(bakArr.length){
+        // 去重键：有 id 字段用 id，否则用序列化
+        const seen = new Set(localArr.map(it => (it && it.id != null) ? String(it.id) : JSON.stringify(it)));
+        for(const it of bakArr){
+          const key = (it && it.id != null) ? String(it.id) : JSON.stringify(it);
+          if(!seen.has(key)){ merged.push(it); seen.add(key); }
+        }
+      }
+      result[f] = merged;
+    }
+    // 3) settings：本地已非空优先，备份只补缺
+    result.settings = Object.assign({}, obj.settings || {}, DATA.settings || {});
+    DATA = result;
+    // 4) 口语：官方题基准 + 回填答案（本地 + 备份双向），不新增非官方题
     if(typeof mergeSpeakingKeepAnswers === 'function'){
       DATA.speaking = mergeSpeakingKeepAnswers(DATA.speaking);
       DATA.speakingVersion = SPEAKING_BANK_VERSION;
