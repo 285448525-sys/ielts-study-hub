@@ -498,6 +498,8 @@ function wtComputeWeak(sourceId){
 }
 
 let wtDictCurrent = null;   // 当前默写源 {id,title,text}
+let wtDictSentences = [];   // 当前源按句拆分后的句子数组（1-based 与勾选区序号一致）
+let wtDictWeak = {};        // 当前源 loc -> 历史出错次数
 
 function openTplDict(tplId){
   const t = DATA.writing.find(x => x.id === tplId);
@@ -505,14 +507,64 @@ function openTplDict(tplId){
   // 骨架 → 纯默写文本：把【占位符】替换成 ____，让用户整框留空时不算错
   const plain = (t.skeleton || '').replace(/【[^】]*】/g, '____');
   wtDictCurrent = { id: 'tpl_' + t.id, title: cleanCatName(t.title) + '（模板默写）', text: plain };
+  wtDictSentences = wtSplitSentences(plain);   // 按句拆分，供勾选区与提交过滤使用
 
   switchWriteTab('dictation');   // 切到默写面板
 
   $('#wtDictTitle').textContent = wtDictCurrent.title;
-  $('#wtDictSrc').textContent = plain;
+  $('#wtDictSrc').textContent = plain;          // 原文存着，默认隐藏（点「偷看原文」展开）
+  $('#wtDictSrc').hidden = true;
+  $('#wtDictPeek').setAttribute('aria-expanded', 'false');
   $('#wtDictInput').value = '';
   $('#wtDictResult').hidden = true;
   $('#wtDictResult').innerHTML = '';
+
+  // 历史常错（loc -> 次数），用于勾选区标记"常错句" + 「重默错句」开关自动优先
+  const weak = wtComputeWeak(wtDictCurrent.id);
+  wtDictWeak = weak;
+
+  // 句子勾选区：默认全勾（=本次全默），常错句标注 ★
+  const pick = $('#wtDictSentPick');
+  if(pick){
+    if(!wtDictSentences.length){
+      pick.innerHTML = '<span class="muted">本模板无法按句拆分，将整篇默写。</span>';
+    } else {
+      pick.innerHTML = '<div style="margin-bottom:6px;font-weight:600">选择本次要默写的句子（默认全选）：</div>'
+        + wtDictSentences.map((s, i) => {
+            const n = i + 1;
+            const w = weak[n] || 0;
+            const tag = w > 0 ? ' <span class="dict-weak-tag" title="历史错 ' + w + ' 次">★常错×' + w + '</span>' : '';
+            const prev = s.length > 22 ? s.slice(0, 22) + '…' : s;
+            return '<label class="dict-sent-item" style="display:block;margin:3px 0;cursor:pointer">'
+              + '<input type="checkbox" class="wt-dict-sent-chk" data-idx="' + n + '" checked> 第' + n + '句：' + escapeHtml(prev) + tag
+              + '</label>';
+          }).join('');
+    }
+  }
+
+  // 「重默错句」开关：开启时自动只勾选常错句（其余取消勾选），实现"每次做前重默错过的句子"
+  const redo = $('#wtDictRedoWrong');
+  if(redo){
+    redo.onchange = () => {
+      const only = redo.checked;
+      pick.querySelectorAll('.wt-dict-sent-chk').forEach(c => {
+        const n = Number(c.dataset.idx);
+        const isWeak = (wtDictWeak[n] || 0) > 0;
+        c.checked = only ? isWeak : true;   // 开=只勾常错句；关=恢复全勾
+      });
+      toast(only ? '已自动勾选常错句，本次只重默错过的句子' : '已恢复全选');
+    };
+  }
+  // 偷看原文：展开/收起（折叠）
+  const peek = $('#wtDictPeek');
+  if(peek){
+    peek.onclick = () => {
+      const hidden = $('#wtDictSrc').hidden;
+      $('#wtDictSrc').hidden = !hidden;
+      peek.setAttribute('aria-expanded', String(hidden));
+      peek.textContent = hidden ? '🙈 收起原文' : '👁 偷看原文';
+    };
+  }
 
   // 历史提示
   const logs = (DATA.dictationLogs || []).filter(l => l.sourceId === wtDictCurrent.id);
@@ -535,8 +587,20 @@ async function submitWtDict(){
   box.hidden = false;
   box.innerHTML = '<div class="ts-load">AI 正在逐句比对你的默写，十几秒…</div>';
 
-  const srcSentences = wtSplitSentences(wtDictCurrent.text);
-  const srcNumbered = srcSentences.map((t, i) => (i + 1) + '. ' + t).join('\n');
+  // 仅取用户勾选要默的句子（正向勾选：勾了=本次默写包含该句）；编号沿用原句编号，AI 反馈 loc 对应原模板句
+  const checked = new Set();
+  document.querySelectorAll('.wt-dict-sent-chk').forEach(c => { if(c.checked) checked.add(Number(c.dataset.idx)); });
+  if(!checked.size && wtDictSentences.length){
+    toast('请至少勾选一句要默写的句子');
+    btn.disabled = false; btn.textContent = '提交核对';
+    return;
+  }
+  // 用原句编号拼标准原文（未勾选句不纳入比对，自然不算错）
+  const srcNumbered = wtDictSentences
+    .map((t, i) => ({ n: i + 1, t }))
+    .filter(o => checked.has(o.n))
+    .map(o => o.n + '. ' + o.t)
+    .join('\n');
   const weakBefore = wtComputeWeak(wtDictCurrent.id);
 
   const messages = [

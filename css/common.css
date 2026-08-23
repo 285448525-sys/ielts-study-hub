@@ -1579,3 +1579,12 @@ body.exam-fullscreen #writeTabs{display:none}
   .exam-head,.exam-bar{padding-left:16px;padding-right:16px}
   .exam-q,.exam-a{padding-left:16px;padding-right:16px}
 }
+
+/* ===== 模板默写面板：功能条 / 句子勾选 / 常错标记 ===== */
+.dict-toolbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.dict-switch{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;cursor:pointer;user-select:none}
+.dict-switch input{width:16px;height:16px;accent-color:var(--primary);cursor:pointer}
+.dict-sent-pick{font-size:13.5px;line-height:1.6}
+.dict-sent-pick .dict-sent-item{display:block;margin:3px 0;cursor:pointer}
+.dict-sent-pick .dict-sent-item input{width:15px;height:15px;accent-color:var(--primary);margin-right:4px;cursor:pointer}
+.dict-weak-tag{color:#c2742a;font-weight:700;font-size:12px;margin-left:4px}

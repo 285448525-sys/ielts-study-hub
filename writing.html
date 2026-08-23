@@ -355,7 +355,20 @@
         <span class="muted" style="font-size:13px" id="wtDictHint"></span>
       </div>
 
-      <div id="wtDictSrc" class="dict-src-box" style="background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;font-size:14px;line-height:1.9;white-space:pre-wrap;margin-bottom:14px"></div>
+      <!-- 功能条：重默错句开关 + 偷看原文折叠 -->
+      <div class="dict-toolbar" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px">
+        <label class="dict-switch" style="display:inline-flex;align-items:center;gap:6px;font-size:13.5px;cursor:pointer">
+          <input type="checkbox" id="wtDictRedoWrong" />
+          <span>每次做前重默错过的句子</span>
+        </label>
+        <button class="btn btn-sm" id="wtDictPeek" type="button" aria-expanded="false">👁 偷看原文</button>
+      </div>
+
+      <!-- 句子选择：勾选本次要默写的句子（默认全勾） -->
+      <div id="wtDictSentPick" class="dict-sent-pick" style="background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;margin-bottom:12px;font-size:13.5px"></div>
+
+      <!-- 原文（默认隐藏，点「偷看原文」展开/收起） -->
+      <div id="wtDictSrc" class="dict-src-box" hidden style="background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;font-size:14px;line-height:1.9;white-space:pre-wrap;margin-bottom:14px"></div>
 
       <label class="muted" style="font-size:13px;display:block;margin-bottom:6px">凭记忆默写（骨架里的 ____ 是填空位，整框留空不算错）：</label>
       <textarea id="wtDictInput" style="width:100%;min-height:220px;padding:12px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);resize:vertical;box-sizing:border-box;line-height:1.8"></textarea>
