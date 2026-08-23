@@ -65,7 +65,7 @@
   <div class="sub-tabs" id="wordTabs">
     <button data-sub="ls" class="active">长难句</button>
     <button data-sub="eb">错题本</button>
-    <button data-sub="dict">写作真题</button>
+    <button data-sub="dict">默写（看中文写英文）</button>
   </div>
 
   <!-- ① 长难句拆解（默认打开） -->
@@ -117,62 +117,40 @@
     </section>
   </div>
 
-  <!-- ③ 写作真题模拟 -->
+  <!-- ③ 默写（看中文写英文） -->
   <div id="dictView" hidden>
     <section class="card">
-      <div id="examNav" class="exam-nav">
-        <button class="btn btn-sm btn-ghost" id="examBack" hidden>← 返回分类</button>
-        <div class="exam-breadcrumb" id="examBreadcrumb">选择题型 → 选择题目</div>
+      <div class="form-row" style="align-items:flex-end;gap:10px;flex-wrap:wrap">
+        <div>
+          <div class="muted" style="font-size:12px;margin-bottom:4px">英文</div>
+          <input id="corEn" placeholder="英文句子 / 词组…" style="padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);width:260px" />
+        </div>
+        <div>
+          <div class="muted" style="font-size:12px;margin-bottom:4px">中文</div>
+          <input id="corCn" placeholder="对应中文…" style="padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:  (bg);color:var(--ink);width:260px" />
+        </div>
+        <button class="btn btn-primary" id="addCorpus">添加</button>
       </div>
-      <div id="examBody">
-        <!-- ① 分类选择 -->
-        <div id="examCats">
-          <h2 style="margin-bottom:6px">雅思写作真题模拟</h2>
-          <p class="muted" style="margin-bottom:16px">按你背的模板类型分类。选一个类型 → 选一道题 → 左侧看题、右侧写作 → AI 按官方四维评分。</p>
-          <div class="exam-type-sec">
-            <div class="exam-type-title">Task 1 小作文</div>
-            <div class="exam-cat-grid" id="catGridTask1"></div>
+      <div style="margin-top:12px">
+        <details>
+          <summary style="cursor:pointer;font-size:14px">批量导入（每行一句，英文与中文用空格/竖线/中文处自动分隔）</summary>
+          <textarea id="bulkCorpus" placeholder="Paste: English | 中文&#10;The government should invest in public transport. | 政府应该投资公共交通" style="width:100%;min-height:90px;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);resize:vertical;box-sizing:border-box;margin-top:8px"></textarea>
+          <div class="form-row" style="margin-top:8px;align-items:center">
+            <button class="btn btn-primary" id="importCorpus">导入</button>
+            <span id="importHint" class="muted" style="font-size:12.5px"></span>
           </div>
-          <div class="exam-type-sec">
-            <div class="exam-type-title">Task 2 大作文</div>
-            <div class="exam-cat-grid" id="catGridTask2"></div>
-          </div>
-        </div>
-        <!-- ② 题目列表 -->
-        <div id="examList" hidden>
-          <h2 id="examListTitle" style="margin-bottom:10px"></h2>
-          <div id="examListBody" class="exam-list-body"></div>
-        </div>
-        <!-- ③ 练习界面 -->
-        <div id="examPractice" hidden>
-          <div class="exam-practice-wrap">
-            <div class="exam-prompt">
-              <div class="exam-prompt-head">
-                <span class="score-badge" id="practiceBadge">Task 2</span>
-                <span class="muted" id="practiceMeta"></span>
-              </div>
-              <div class="exam-prompt-body" id="practicePrompt"></div>
-            </div>
-            <div class="exam-write">
-              <div class="exam-write-head">
-                <span>写作区</span>
-                <span class="muted" id="wordCount">0 词</span>
-              </div>
-              <textarea id="examEssay" class="exam-essay" placeholder="在此写作…" spellcheck="false"></textarea>
-              <div class="exam-write-bar">
-                <span class="muted" id="examTimer">00:00:00</span>
-                <div style="display:flex;gap:8px">
-                  <button class="btn" id="examTimerToggle">暂停计时</button>
-                  <button class="btn btn-primary" id="examSubmit">提交 AI 批改</button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div id="examResult"></div>
-        </div>
+        </details>
       </div>
+      <div class="form-row" style="margin-top:12px;align-items:center">
+        <h2 style="margin:0">语料表（左中文 · 右英文）</h2>
+        <span class="muted" style="font-size:13px">共 <b id="corpusCount">0</b> 条</span>
+        <button class="btn btn-primary" id="startWrite" style="margin-left:auto">开始默写（看中文写英文）</button>
+      </div>
+      <div id="corpusList"></div>
     </section>
+    <div id="dictArea"></div>
   </div>
+
 </main>
 
 </body>

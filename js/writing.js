@@ -9,10 +9,10 @@ function switchWriteTab(tab){
   $('#tplPanel').hidden = tab !== 'tpl';
   $('#bankPanel').hidden = tab !== 'bank';
   $('#scorePanel').hidden = tab !== 'score';
-  $('#dictationPanel').hidden = tab !== 'dictation';
+  $('#examPanel').hidden = tab !== 'exam';
   if(tab === 'bank') renderBank();
   if(tab === 'score') renderScoreHist();
-  if(tab === 'dictation'){ showDictHome(); renderDictationSources(); }
+  if(tab === 'exam') renderExamList();
 }
 
 ready(() => {
@@ -70,6 +70,9 @@ ready(() => {
   $('#bankAddBtn').addEventListener('click', () => { $('#bankAddCard').hidden = false; });
   $('#ba_cancel').addEventListener('click', () => { $('#bankAddCard').hidden = true; });
   $('#ba_save').addEventListener('click', addPhrase);
+
+  // 写作真题
+  bindExam();
 });
 
 /* ===== 模板库 ===== */
@@ -722,5 +725,183 @@ function writeSyncMock(type, result){
   const date = todayKey();
   const existing = DATA.mockRecords.find(r => r.type === 'writing' && r.date === date && r.ai === true);
   if(existing){ existing.parts = parts; existing.overall = overall; existing.note = 'AI 评分自动同步'; }
-  else { DATA.mockRecords.unshift({ id:uid(), date, granularity:'whole', type:'writing', parts, overall, note:'AI 评分自动同步', ai:true }); }
+  else { DATA.mockRecords.unshift({ id:uid(), date, granularity:'whole', type:'writing',  parts, overall, note:'AI 评分自动同步', ai:true }); }
 }
+
+/* ===================== 写作真题模块 ===================== */
+var examTimer = { start: 0, elapsed: 0, running: false, tick: null, cur: null };
+
+function fmtExamTime(ms){
+  const s = Math.floor(ms/1000);
+  const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+  const p = n => String(n).padStart(2,'0');
+  return p(h)+':'+p(m)+':'+p(sec);
+}
+function examTick(){
+  const ms = examTimer.elapsed + (examTimer.running ? Date.now()-examTimer.start : 0);
+  $('#examTimerText').textContent = fmtExamTime(ms);
+}
+function examStartTimer(){
+  examTimer.start = Date.now(); examTimer.elapsed = 0; examTimer.running = true;
+  if(examTimer.tick) clearInterval(examTimer.tick);
+  examTimer.tick = setInterval(examTick, 1000); examTick();
+}
+function examPauseTimer(){
+  if(!examTimer.running) return;
+  examTimer.elapsed += Date.now()-examTimer.start; examTimer.running = false; examTick();
+}
+function examResumeTimer(){
+  if(examTimer.running) return;
+  examTimer.start = Date.now(); examTimer.running = true; examTick();
+}
+function examStopTimer(){
+  examPauseTimer();
+  if(examTimer.tick){ clearInterval(examTimer.tick); examTimer.tick = null; }
+}
+
+function renderExamList(){
+  const data = window.WRITING_PROMPTS || { big:[], small:[] };
+  const filter = $('#examFilter').value || 'all';
+  const box = $('#examList');
+  if(!box) return;
+  let html = '';
+  const makeItem = (it, kind) => {
+    const typeLabel = kind === 'big' ? '大作文' : '小作文';
+    const meta = kind === 'big' ? it.meta : ('雅思预测 · ' + typeLabel);
+    const zh = kind === 'big' ? it.zh : (it.title || '');
+    const zhText = zh.length > 80 ? zh.slice(0,80)+'…' : zh;
+    const en = kind === 'big' ? it.en : (it.title || '');
+    return '<div class="exam-item" data-kind="'+kind+'" data-no="'+it.no+'">'
+      + '<div class="ei-top"><span class="ei-no">#'+(kind==='big'?it.no:'T'+it.no)+'</span>'
+      + '<span class="ei-type">'+typeLabel+'</span>'
+      + '<span class="ei-meta">'+escapeHtml(meta)+'</span></div>'
+      + (zhText ? '<div class="ei-zh">'+escapeHtml(zhText)+'</div>' : '')
+      + (en ? '<div class="ei-en">'+escapeHtml(en)+'</div>' : '')
+      + '</div>';
+  };
+  if(filter === 'big' || filter === 'all'){
+    html += '<div class="exam-group-title">大作文 · Task 2（'+data.big.length+' 题）</div>';
+    html += data.big.map(it => makeItem(it,'big')).join('');
+  }
+  if(filter === 'small' || filter === 'all'){
+    html += '<div class="exam-group-title">小作文 · Task 1（'+data.small.length+' 题）</div>';
+    html += data.small.map(it => makeItem(it,'small')).join('');
+  }
+  box.innerHTML = html;
+  box.querySelectorAll('.exam-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const kind = el.dataset.kind, no = Number(el.dataset.no);
+      const item = (kind==='big'?data.big:data.small).find(x => x.no === no);
+      openExam(item, kind);
+    });
+  });
+}
+
+function openExam(item, kind){
+  examTimer.cur = { kind, no: item.no };
+  $('#examHome').hidden = true;
+  $('#examPractice').hidden = false;
+  const typeLabel = kind === 'big' ? '大作文 Task 2' : '小作文 Task 1';
+  $('#examPTitle').textContent = (kind==='big'? '#'+item.no : 'T'+item.no) + ' · ' + typeLabel;
+  if(kind === 'big'){
+    $('#examQMeta').innerHTML = '<span class="ei-type">'+escapeHtml(item.meta)+'</span>';
+    $('#examQuestion').innerHTML = '<div class="ei-zh" style="font-size:15px;line-height:1.8">'+escapeHtml(item.zh)+'</div>'
+      + '<div class="ei-en" style="font-size:13px;color:var(--muted);margin-top:8px">'+escapeHtml(item.en)+'</div>';
+  } else {
+    $('#examQMeta').innerHTML = '<span class="ei-type">雅思预测</span>';
+    $('#examQuestion').innerHTML = '<div class="ei-en" style="font-size:14px;line-height:1.8">'+escapeHtml(item.title)+'</div>';
+  }
+  $('#examEssay').value = '';
+  $('#examWordCount').textContent = '0 词';
+  $('#examResult').hidden = true;
+  examStartTimer();   // 点进去自动开始计时（不强制限时）
+}
+
+function examStopAndScore(){
+  // 自动评分（复用官方 4 维度 prompt）。此处独立实现，避免依赖 scoreEssay 的 DOM。
+  const essay = $('#examEssay').value.trim();
+  const type = examTimer.cur && examTimer.cur.kind === 'big' ? '大作文' : '小作文';
+  if(essay.length < 150){ toast('作文太短，至少需要 150 词'); return; }
+  const isTask1 = type === '小作文';
+  const dim = isTask1 ? 'TA（Task Achievement 任务完成）' : 'TR（Task Response 任务回应）';
+  const btn = $('#examScoreBtn');
+  const btnHtml = btn.innerHTML;
+  btn.disabled = true; btn.textContent = '评分中…';
+  const box = $('#examResult');
+  box.hidden = false;
+  box.innerHTML = '<div class="ts-load">AI 正在按官方 4 维度评分，请稍候…</div>';
+  const messages = [
+    { role:'system', content:
+`你是雅思写作${isTask1 ? ' Task 1 小作文（学术类图表/数据题）' : ' Task 2 大作文（议论文）'}考官，严格按官方评分细则给分。
+评分标准：${dim}、CC（Coherence & Cohesion 连贯与衔接）、LR（Lexical Resource 词汇）、GRA（Grammatical Range & Accuracy 语法）。
+${isTask1 ? RULES_TASK1 : RULES_TASK2}
+输出要求：
+1. 对照细则逐档比对，给出 0-9 的预估分（可用 0.5）。
+2. breakdown 第一项 key 统一用 "TR" 输出（${isTask1 ? '小作文时我知道它代表 TA' : '即 TR'}）。
+3. 指出文中超过 35 词或含多层从句的复杂句，给出简化建议。
+4. 全部用简体中文。
+只输出严格 JSON，不要其他文字：
+{"overall":6.0,"breakdown":{"TR":6.0,"CC":6.0,"LR":6.0,"GRA":5.5},"longSentences":[{"sentence":"原文句子","wordCount":42,"suggestion":"拆分建议"}],"suggestions":["建议1","建议2","建议3"]}` },
+    { role:'user', content:'题型：' + type + '\n\n作文：\n' + essay }
+  ];
+  (async () => {
+    try{
+      const content = await callRelay('writing_score', messages, 0.4);
+      const result = aiJson(content);
+      if(!result){
+        box.innerHTML = '<div class="ts-sec"><h4>AI 返回（非标准格式）</h4><div style="white-space:pre-wrap;font-size:14px;line-height:1.8">'+escapeHtml(content)+'</div></div>';
+        toast('AI 返回格式异常，已显示原文');
+        return;
+      }
+      let html = '<div class="ts-top"><span class="ts-overall">'+escapeHtml(result.overall || 'N/A')+'</span><span class="muted">预估总分</span></div>';
+      if(result.breakdown){
+        html += '<div class="ts-dims">';
+        ['TR','CC','LR','GRA'].forEach(k => {
+          if(result.breakdown[k] != null){
+            const label = (k==='TR'&&isTask1) ? 'TA' : k;
+            html += '<div class="ts-dim"><div class="ts-dim-h">'+label+' <b>'+escapeHtml(result.breakdown[k])+'</b></div></div>';
+          }
+        });
+        html += '</div>';
+      }
+      if(result.longSentences && result.longSentences.length){
+        html += '<div class="ts-sec"><h4>长 / 复杂句分析</h4>';
+        result.longSentences.forEach((ls,i) => {
+          html += '<div class="ts-gram"><b>第 '+(i+1)+' 句（'+(ls.wordCount||'?')+' 词）：</b>'+escapeHtml(ls.sentence||'')+'<br><span class="ts-fix">建议：'+escapeHtml(ls.suggestion||'')+'</span></div>';
+        });
+        html += '</div>';
+      }
+      if(result.suggestions && result.suggestions.length){
+        html += '<div class="ts-sec"><h4>改进建议</h4><ul>';
+        result.suggestions.forEach(s => { html += '<li>'+escapeHtml(s)+'</li>'; });
+        html += '</ul></div>';
+      }
+      box.innerHTML = html;
+      toast('评分完成');
+    }catch(e){
+      box.innerHTML = '<p class="muted">AI 服务暂不可用：'+escapeHtml(e.message)+'</p><p class="muted" style="font-size:13px">请检查「设置」中的 AI 接口地址。</p>';
+    }finally{
+      btn.disabled = false; btn.innerHTML = btnHtml;
+    }
+  })();
+}
+
+function bindExam(){
+  const f = $('#examFilter');
+  if(f) f.addEventListener('change', renderExamList);
+  const back = $('#examBack');
+  if(back) back.addEventListener('click', () => { examStopTimer(); $('#examPractice').hidden = true; $('#examHome').hidden = false; });
+  const tb = $('#examTimerBtn');
+  if(tb) tb.addEventListener('click', () => {
+    if(examTimer.running){ examPauseTimer(); tb.textContent = '▶'; }
+    else { examResumeTimer(); tb.textContent = '⏸'; }
+  });
+  const essay = $('#examEssay');
+  if(essay) essay.addEventListener('input', () => {
+    const n = (essay.value.trim().match(/\b[\w'-]+\b/g) || []).length;
+    $('#examWordCount').textContent = n + ' 词';
+  });
+  const sb = $('#examScoreBtn');
+  if(sb) sb.addEventListener('click', examStopAndScore);
+}
+

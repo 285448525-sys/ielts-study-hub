@@ -16,8 +16,8 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js"></script>
   <script defer src="js/common.js"></script>
+  <script defer src="js/writing_prompts.js"></script>
   <script defer src="js/writing.js"></script>
-  <script defer src="js/dictation.js"></script>
 <style>
   .write-tabs{display:flex;gap:0;border-bottom:2px solid var(--line);margin-bottom:16px}
   .write-tabs button{flex:1;padding:12px 0;font-size:16px;font-weight:600;border:none;background:none;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s}
@@ -103,6 +103,20 @@
   .bank-actions{display:flex;gap:8px;margin-top:2px}
   .bank-toggle,.bank-del{border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:2px 10px;cursor:pointer;font-size:12.5px;color:var(--muted)}
   .bank-toggle:hover,.bank-del:hover{color:var(--primary);border-color:var(--primary)}
+
+  /* 写作真题 */
+  .exam-list{display:flex;flex-direction:column;gap:18px}
+  .exam-group-title{font-size:14px;font-weight:700;color:var(--primary);margin:4px 0 6px;padding-left:8px;border-left:3px solid var(--primary)}
+  .exam-item{border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;cursor:pointer;transition:border-color .15s,background .15s}
+  .exam-item:hover{border-color:var(--primary);background:var(--surface)}
+  .exam-item .ei-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .exam-item .ei-no{font-size:12px;font-weight:700;color:var(--muted)}
+  .exam-item .ei-type{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--primary-soft);color:var(--med);font-weight:600;white-space:nowrap}
+  .exam-item .ei-meta{font-size:12px;color:var(--muted)}
+  .exam-item .ei-zh{font-size:14px;color:var(--ink);line-height:1.6;margin-top:6px}
+  .exam-item .ei-en{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.6}
+  .exam-timer{position:absolute;right:10px;bottom:8px;display:inline-flex;align-items:center;gap:4px;background:var(--primary);color:#fff;border-radius:20px;padding:4px 12px;font-weight:700;font-size:14px;box-shadow:0 2px 8px rgba(58,154,147,.25)}
+  .exam-timer #examTimerBtn{color:#fff}
 </style>
 </head>
 <body>
@@ -115,7 +129,7 @@
     <button data-tab="tpl" class="active">模板库</button>
     <button data-tab="bank">语料库</button>
     <button data-tab="score">AI 评分</button>
-    <button data-tab="dictation">默写</button>
+    <button data-tab="exam">写作真题</button>
   </div>
 
   <!-- 模板库面板 -->
@@ -248,69 +262,51 @@
     </section>
   </div>
 
-  <!-- 默写面板 -->
-  <div id="dictationPanel" hidden>
-    <!-- 我的默写本（首页） -->
-    <section class="card" id="dictHomeCard">
-      <div id="dictDraftBanner" hidden class="dict-draft-banner" style="background:var(--primary-soft);border:1px solid var(--primary);border-radius:var(--radius);padding:12px;margin-bottom:12px;font-size:14px;line-height:1.8">
-        📝 你有一篇《<b id="dictDraftBannerTitle"></b>》上次没默完（<span id="dictDraftBannerAgo"></span>），
-        <button class="btn btn-primary" id="dictDraftResume">继续默写</button>
-        <button class="btn" id="dictDraftDiscard">放弃</button>
+  <!-- 写作真题面板 -->
+  <div id="examPanel" hidden>
+    <!-- 题目列表 -->
+    <section class="card" id="examHome">
+      <div class="form-row" style="align-items:center;gap:10px;flex-wrap:wrap">
+        <h2 style="margin:0">写作真题</h2>
+        <span class="muted" style="font-size:13px">选择一道题开始练习，点进去自动计时</span>
+        <select id="examFilter" style="margin-left:auto">
+          <option value="all">全部</option>
+          <option value="big">大作文（Task 2）</option>
+          <option value="small">小作文（Task 1）</option>
+        </select>
       </div>
-      <div class="form-row" style="align-items:center">
-        <h2>我的默写本</h2>
-        <button class="btn" id="dictViewLogs" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4a3 3 0 0 1 6 0M9 10h6M9 14h6"/></svg>错处记录</button>
-      </div>
-      <p class="muted" style="font-size:13px;margin-bottom:10px">把要背的范文/模板粘进来，保存后就能反复全文默写，AI 逐句比对、标出常错点。</p>
-      <div class="form-row">
-        <input id="dictTitle" placeholder="给这篇范文起个名（如：观点型-利弊段）" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);box-sizing:border-box" />
-        <button class="btn btn-primary" id="dictSaveSrc">保存为默写本</button>
-      </div>
-      <textarea id="dictSource" placeholder="把要背的完整模板/范文粘进来（纯文本，不用挖空）。保存后就能反复默写它。" style="width:100%;min-height:120px;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);resize:vertical;box-sizing:border-box;margin-top:8px"></textarea>
-      <div id="dictSrcList" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr));margin-top:10px"></div>
+      <div id="examList" class="exam-list" style="margin-top:12px"></div>
     </section>
 
-    <!-- 默写练习 -->
-    <section class="card" id="dictPracticeCard" hidden>
+    <!-- 练习界面 -->
+    <section class="card" id="examPractice" hidden>
       <div class="form-row" style="align-items:center">
-        <h2 id="dictPTitle" style="margin:0"></h2>
-        <button class="btn" id="dictBack" style="margin-left:auto">返回</button>
+        <h2 id="examPTitle" style="margin:0"></h2>
+        <button class="btn" id="examBack" style="margin-left:auto">返回题目</button>
       </div>
-      <div id="dictWarmup"></div>
-      <details class="dict-skip-wrap" style="margin-top:10px;border:1px solid var(--line);border-radius:var(--radius);padding:8px 10px;background:var(--bg)">
-        <summary style="cursor:pointer;font-size:14px">⏭️ 选择本次跳过的句子（不练就不判错）</summary>
-        <p class="muted" style="font-size:12.5px;margin:6px 0 4px">勾选你今天不想默写的句子（如话题句、观点句），它们会从 AI 比对里整体移除——无论你写没写，都不算错。也可在文本框里用 <b>【略】…【/略】</b> 包住想跳过的整段/整句。</p>
-        <div id="dictSkipBox" class="dict-skip-grid"></div>
-      </details>
-      <div class="form-row" style="align-items:center;gap:14px;margin-top:8px">
-        <label style="font-size:14px"><input type="checkbox" id="dictShowSrc"> 看原文</label>
-        <label style="font-size:14px"><input type="checkbox" id="dictWarmupOn" checked> 开始前先练常错句</label>
+      <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;margin-top:8px">
+        <div style="flex:1;min-width:280px">
+          <div class="exam-qmeta" id="examQMeta" style="margin-bottom:8px"></div>
+          <div class="skeleton-box" id="examQuestion" style="margin-top:0"></div>
+        </div>
+        <div style="flex:1;min-width:280px;position:relative">
+          <textarea id="examEssay" class="score-essay" placeholder="在此写作文。计时器已在右下角自动开始，写完点「AI 按官方 4 维度评分」即可。"></textarea>
+          <span id="examWordCount" class="muted" style="font-size:12px;font-weight:700;position:absolute;right:10px;bottom:38px;color:var(--warn-ink);pointer-events:none">0 词</span>
+          <!-- 右下角计时器 -->
+          <div id="examTimer" class="exam-timer" title="本次练习计时">
+            <span id="examTimerText">00:00:00</span>
+            <span id="examTimerBtn" style="cursor:pointer;margin-left:8px;font-size:13px">⏸</span>
+          </div>
+        </div>
       </div>
-      <div id="dictSrcView" class="skeleton-box" hidden style="margin-top:8px"></div>
-      <div id="dictDraftNote" hidden class="dict-draft-note" style="background:var(--primary-soft);border:1px solid var(--primary);border-radius:var(--radius);padding:10px;margin-top:8px;font-size:13.5px;line-height:1.7">
-        📝 已恢复上次未写完的草稿（<span id="dictDraftNoteAgo"></span>）。
-        <button class="btn" id="dictDraftReload">放弃重默</button>
+      <div class="form-row" style="margin-top:12px;align-items:center">
+        <button class="btn btn-primary" id="examScoreBtn">AI 按官方 4 维度评分</button>
+        <span class="muted" style="font-size:13px">计时仅记录，不强制限时</span>
       </div>
-      <textarea id="dictInput" placeholder="凭记忆把整段打上来。模板里的空位不想默可以用 -- 代替，不会算错。" style="width:100%;min-height:220px;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);resize:vertical;box-sizing:border-box;margin-top:8px"></textarea>
-      <div class="form-row" style="margin-top:10px;align-items:center">
-        <button class="btn btn-primary" id="dictSubmit">提交核对</button>
-        <span class="muted" id="dictPreHint" style="font-size:13px"></span>
-      </div>
-      <div id="dictResult" class="tpl-score" hidden></div>
-    </section>
-
-    <!-- 错处记录 -->
-    <section class="card" id="dictLogCard" hidden>
-      <div class="form-row" style="align-items:center">
-        <h2>我的错处记录</h2>
-        <button class="btn" id="dictLogBack" style="margin-left:auto">返回</button>
-        <button class="btn btn-danger" id="dictClearAll">清空全部</button>
-      </div>
-      <div id="dictLogList"></div>
-      <div id="dictLogDetail" hidden></div>
+      <div id="examResult" class="tpl-score" hidden></div>
     </section>
   </div>
-</main>
 
-</body>
-</html>
+  <!-- 默写面板已移除：原「默写」tab 改为「写作真题」；语料库默写另建 -->
+  <div id="dictationPanel" hidden style="display:none"></div>
+</main>
