@@ -253,6 +253,9 @@ function applyTheme(theme){
   theme = theme || DATA.settings.theme || 'light';
   if(theme === 'auto') theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   document.documentElement.setAttribute('data-theme', theme);
+  // 状态栏配色随主题联动（iOS/Android 浏览器顶栏）
+  var tc = document.querySelector('meta[name="theme-color"]');
+  if(tc) tc.setAttribute('content', theme === 'dark' ? '#0e1c1b' : '#3a9a93');
 }
 
 function toast(msg){
