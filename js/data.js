@@ -480,6 +480,8 @@ function hubLoad(){
         const existingIds = new Set(DATA.writing.map(t => t.id));
         const missing = DEFAULT_WRITING_TEMPLATES.filter(t => !existingIds.has(t.id) && !deletedIds.has(t.id));
         if(missing.length) DATA.writing = DATA.writing.concat(missing);
+        // 模板迁移（标题/分类/骨架刷新）必须落盘，否则仅内存生效、刷新后旧 localStorage 仍显示旧模板
+        hubSave();
       }
     })();
     // 注意：口语档位体系已废弃 migrateSpeakingTiers 重映射——版本号机制整体替换 DATA.speaking 为 SPEAKING_BANK，
