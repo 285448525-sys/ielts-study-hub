@@ -501,6 +501,15 @@ let wtDictCurrent = null;   // 当前默写源 {id,title,text}
 let wtDictSentences = [];   // 当前源按句拆分后的句子数组（1-based 与勾选区序号一致）
 let wtDictWeak = {};        // 当前源 loc -> 历史出错次数
 
+// 实时更新「选择要默写的句子」折叠标题里的已选句数
+function updateWtSentCount(){
+  const el = $('#wtDictSentCount');
+  if(!el) return;
+  let n = 0;
+  document.querySelectorAll('.wt-dict-sent-chk').forEach(c => { if(c.checked) n++; });
+  el.textContent = n;
+}
+
 // 偷看原文：只显示当前勾选要默写的句子（按原顺序），未勾选句不显示
 function renderWtSrcView(){
   const box = $('#wtDictSrc');
@@ -553,7 +562,10 @@ function openTplDict(tplId){
               + '</label>';
           }).join('');
     }
+    // 勾选变化实时更新折叠标题句数
+    pick.querySelectorAll('.wt-dict-sent-chk').forEach(c => { c.addEventListener('change', updateWtSentCount); });
   }
+  updateWtSentCount();   // 初始全勾 → 显示总句数
 
   // 「重默错句」开关：开启时自动只勾选常错句（其余取消勾选），实现"每次做前重默错过的句子"
   const redo = $('#wtDictRedoWrong');
@@ -566,6 +578,7 @@ function openTplDict(tplId){
         c.checked = only ? isWeak : true;   // 开=只勾常错句；关=恢复全勾
       });
       if(!$('#wtDictSrc').hidden) renderWtSrcView();   // 若原文已展开，同步刷新为勾选句
+      updateWtSentCount();   // 勾选数变了，更新折叠标题
       toast(only ? '已自动勾选常错句，本次只重默错过的句子' : '已恢复全选');
     };
   }

@@ -38,7 +38,7 @@
 <script defer src="js/data.js?v=20260823j"></script>
   <script defer src="js/common.js?v=20260823j"></script>
   <script defer src="js/writing_prompts.js?v=20260823j"></script>
-  <script defer src="js/writing.js?v=20260823j"></script>
+  <script defer src="js/writing.js?v=20260823k"></script>
 <style>
   .write-tabs{display:flex;gap:0;border-bottom:2px solid var(--line);margin-bottom:16px}
   .write-tabs button{flex:1;padding:12px 0;font-size:16px;font-weight:600;border:none;background:none;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s}
@@ -364,8 +364,11 @@
         <button class="btn btn-sm" id="wtDictPeek" type="button" aria-expanded="false">👁 偷看原文</button>
       </div>
 
-      <!-- 句子选择：勾选本次要默写的句子（默认全勾） -->
-      <div id="wtDictSentPick" class="dict-sent-pick" style="background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;margin-bottom:12px;font-size:13.5px"></div>
+      <!-- 句子选择：勾选本次要默写的句子（默认全勾）。用 details 折叠，选好后收起，避免长模板一直占屏 -->
+      <details class="dict-sent-pick-wrap" style="margin-bottom:12px">
+        <summary class="dict-sent-pick-sum" style="cursor:pointer;padding:9px 12px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);font-size:13.5px;user-select:none">选择要默写的句子（<span id="wtDictSentCount">0</span> 句已选）</summary>
+        <div id="wtDictSentPick" class="dict-sent-pick" style="background:var(--surface-2);border:1px solid var(--line);border-top:none;border-radius:0 0 var(--radius) var(--radius);padding:10px 12px;font-size:13.5px"></div>
+      </details>
 
       <!-- 原文（默认隐藏，点「偷看原文」展开/收起） -->
       <div id="wtDictSrc" class="dict-src-box" hidden style="background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;font-size:14px;line-height:1.9;white-space:pre-wrap;margin-bottom:14px"></div>
