@@ -374,8 +374,10 @@ function renderScoreHist(){
   const list = (DATA.writingScores || []).slice().reverse().slice(0, 20);
   if(!list.length){ box.innerHTML = '<div class="hist-empty">还没有评分记录，去上面评一篇吧。</div>'; return; }
   box.innerHTML = list.map((rec, i) => {
-    const modeTag = rec.mode === 'template' ? '模板评分' : '整篇评分';
-    const title = rec.mode === 'template' ? (rec.tplTitle || '模板') : (rec.type || '整篇');
+    const modeTag = rec.mode === 'template' ? '模板评分' : (rec.mode === 'exam' ? '真题模考' : '整篇评分');
+    const title = rec.mode === 'template' ? (rec.tplTitle || '模板')
+                : rec.mode === 'exam' ? ((rec.examNo ? '#'+rec.examNo+' ' : '') + (rec.type || '真题'))
+                : (rec.type || '整篇');
     const overall = (!rec.parsed || !rec.result || rec.result.overall == null) ? '未解析' : rec.result.overall;
     return '<div class="hist-row" data-idx="' + i + '">'
       + '<div class="hist-h">'
@@ -877,6 +879,20 @@ ${isTask1 ? RULES_TASK1 : RULES_TASK2}
         html += '</ul></div>';
       }
       box.innerHTML = html;
+      // 存盘：真题模考评分记录持久化（刷新不丢），并回流到回顾页「分项模考」看板
+      try{
+        const cur = examTimer.cur || {};
+        const examType = type; // '大作文' / '小作文'
+        DATA.writingScores = DATA.writingScores || [];
+        DATA.writingScores.push({
+          id: uid(), date: todayKey(), mode:'exam',
+          examNo: cur.no != null ? (cur.kind==='big' ? cur.no : 'T'+cur.no) : '',
+          type: examType, essay: essay, result: result, parsed: true
+        });
+        hubSave();
+        writeSyncMock(examType, result); // 与整篇评分一致，回流分项模考看板
+        renderScoreHist(); // 同步刷新「AI 评分」tab 的记录列表
+      }catch(e){ console.warn('exam score save failed', e); }
       toast('评分完成');
     }catch(e){
       box.innerHTML = '<p class="muted">AI 服务暂不可用：'+escapeHtml(e.message)+'</p><p class="muted" style="font-size:13px">请检查「设置」中的 AI 接口地址。</p>';

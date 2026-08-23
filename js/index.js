@@ -30,9 +30,10 @@ function renderDashV6(){
   if(chipEl){
     const streak = calcStreakV6();
     if(streak > 0){
+      chipEl.hidden = false;
       chipEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 2c1 3-3 5 0 8 1 1 4-1 4 3 0 3-2 5-4 5s-4-2-4-5c0-3 2-4 4-4"/></svg>连续 '+streak+' 天';
     } else {
-      chipEl.textContent = '';
+      chipEl.hidden = true;
     }
   }
 
