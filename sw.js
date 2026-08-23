@@ -1,4 +1,4 @@
-const CACHE = 'ielts-hub-v1';
+const CACHE = 'ielts-hub-v2';
 const SHELL = ['/', '/index.html', '/css/common.css', '/js/common.js', '/js/data.js'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL).catch(()=>{})).then(() => self.skipWaiting()));

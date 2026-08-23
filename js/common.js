@@ -680,9 +680,11 @@ function stripCloudFields(d){
   return c;
 }
 /* 设置里允许跨设备同步的字段。
-   说明：relayToken（AI Key）/ pronunciationScore（发音分）也纳入同步——用户要求登录手机号后个人全部数据自动恢复，
-   包括 Key 与发音分，换设备/清缓存后登录即回，无需重填。syncCode 是账号标识本身不重复同步；autoSync/theme 仍不同步。 */
-const SYNC_SETTINGS_FIELDS = ['name','examDate','examDates','targets','dailyGoalHours','relayToken','pronunciationScore'];
+   说明：relayToken（AI Key）/ pronunciationScore（发音分）/ theme（主题）/ chimeOnDone（完成提示音）均纳入同步——
+   用户要求登录手机号后个人全部数据自动恢复，包括 Key 与发音分，换设备/清缓存后登录即回，无需重填。
+   syncCode 是账号标识本身不重复同步；autoSync 是本地开关、不跨设备同步（设计：绑了账号就自动同步）。
+   合并规则见 mergeData：空值（未填/被清空）永不覆盖另一侧已填值，杜绝「空值带新时间戳把本机 Key 冲掉」。 */
+const SYNC_SETTINGS_FIELDS = ['name','examDate','examDates','targets','dailyGoalHours','relayToken','pronunciationScore','theme','chimeOnDone'];
 
 /* 安全取数字：非有限数→0 */
 function _num(x){ const n = Number(x); return isFinite(n) ? n : 0; }
@@ -819,20 +821,24 @@ function mergeData(local, cloud){
   out.settings = Object.assign({}, ls);
   const lTs = ls._fieldTs || {}; const cTs = cs._fieldTs || {};
   out.settings._fieldTs = Object.assign({}, lTs);
+  // 空值判定：null/undefined/空串/空数组/空对象 视为「未填」；未填值绝不覆盖另一侧已填值。
+  // 这是「几分钟就清空 Key」死亡循环的关键防御：云端哪怕带更新的时间戳，只要是空值就永不冲掉本机已填的 Key/分数。
+  const _isEmpty = v => v == null || v === '' ||
+    (Array.isArray(v) && v.length === 0) ||
+    (typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0);
   for(const f of SYNC_SETTINGS_FIELDS){
+    const lEmpty = _isEmpty(ls[f]);
+    const cEmpty = _isEmpty(cs[f]);
     const cl = (lTs[f] != null) ? lTs[f] : 0;
     const cc = (cTs[f] != null) ? cTs[f] : 0;
-    if(cc > cl){
-      // 云端该字段比本机更新 → 取云端值 + 云端时间戳
-      if(cs[f] !== undefined){ out.settings[f] = cs[f]; out.settings._fieldTs[f] = cc; changes++; }
-    } else if(cl > cc){
-      // 本机更新 → 保持本机值（已 Object.assign 进 out.settings），并保留本机时间戳
-      // 若云端有同名字段且值不同，上面 Object.assign 已用本机 ls 覆盖，这里无需操作
-      if(JSON.stringify(cs[f]) !== JSON.stringify(ls[f])) changes++; // 仍计为一次合并应用（本机胜出）
-    } else {
-      // 时间戳相同或都缺失：回退旧逻辑（云端非空且不同→取云端）
-      if(cs[f] != null && JSON.stringify(cs[f]) !== JSON.stringify(ls[f])){ out.settings[f] = cs[f]; changes++; }
+    if(cEmpty) continue;                       // 云端未填：永不覆盖本机（无论本机是否填写）
+    if(lEmpty){                                 // 本机未填、云端有值 → 取云端（含云端时间戳）
+      out.settings[f] = cs[f]; out.settings._fieldTs[f] = cc; changes++; continue;
     }
+    // 两端都已填：较新者胜；时间戳相同则取云端（保留恢复能力），仅值不同才计为合并应用
+    if(cc > cl){ out.settings[f] = cs[f]; out.settings._fieldTs[f] = cc; changes++; }
+    else if(cl > cc){ /* 本机较新：保持本机，无需操作 */ }
+    else if(JSON.stringify(cs[f]) !== JSON.stringify(ls[f])){ out.settings[f] = cs[f]; out.settings._fieldTs[f] = cc; changes++; }
   }
   // 口语题库(speaking)按 id 双向合并：以官方 SPEAKING_BANK 为基准建 52 题，
   // 本机与云端同 id 题的 answers/练习记录取「较新一侧」（按 _lastSaved 时间戳或内容非空判断），题干永远用官方。
