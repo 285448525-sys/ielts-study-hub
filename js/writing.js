@@ -1062,6 +1062,20 @@ function examStopTimer(){
   if(examTimer.tick){ clearInterval(examTimer.tick); examTimer.tick = null; }
 }
 
+// 10 字内题目总结（替换卡片原标题 / 折叠条标题）
+function summarizeExamTitle(kind, it){
+  // 优先用各题自带的中文 summary（若有），否则从英文/中文题面截取核心短语
+  if(it.summary && it.summary.trim()) return it.summary.trim().slice(0, 10);
+  const src = kind === 'big'
+    ? (it.zh || it.en || '')
+    : (it.title || '');
+  const s = (src || '').replace(/\s+/g, ' ').trim();
+  if(!s) return (kind === 'big' ? '大作文' : '小作文');
+  // 去掉常见引导词
+  const cleaned = s.replace(/^(some people think|some people believe|in some countries|it is sometimes argued|many people believe)\s*,?\s*/i, '');
+  return cleaned.slice(0, 10);
+}
+
 function renderExamList(){
   const data = window.WRITING_PROMPTS || { big:[], small:[] };
   const filter = $('#examFilter').value || 'all';
@@ -1086,25 +1100,45 @@ function renderExamList(){
     return '静态图';
   }
 
+  // 建立 examNo → 最新评分记录 索引（用于卡片打勾 + 总分）
+  const scoreMap = {};
+  (DATA.writingScores || []).forEach(rec => {
+    const key = (rec.type === '大作文' ? 'big:' : 'small:') + (rec.examNo != null ? rec.examNo : '');
+    // 仅取第一条（最新写入的为最后一条，这里覆盖为最新）
+    scoreMap[key] = rec;
+  });
+
   const makeItem = (it, kind) => {
     const typeLabel = kind === 'big' ? '大作文' : '小作文';
     const subType = it.subType || '未分类';
     const meta = kind === 'big' ? (it.meta || '') : ('雅思预测 · ' + typeLabel);
     const zh = kind === 'big' ? it.zh : '';
     const en = kind === 'big' ? it.en : (it.title || '');
-    const mainText = kind === 'big'
-      ? (zh ? '<div class="ei-zh">'+escapeHtml(zh)+'</div>' : '') + (en ? '<div class="ei-en">'+escapeHtml(en)+'</div>' : '')
-      : (en ? '<div class="ei-en" style="margin-top:0">'+escapeHtml(en)+'</div>' : '');
+    const summary = summarizeExamTitle(kind, it);
+    // 评分记录匹配
+    const recKey = (kind === 'big' ? 'big:' : 'small:') + it.no;
+    const rec = scoreMap[recKey];
+    const doneMark = rec ? '<span class="ei-done" title="已练过">✓</span>' : '';
+    const scoreMark = rec && rec.result && rec.result.overall != null
+      ? '<span class="ei-score" title="预估总分">'+escapeHtml(rec.result.overall)+'<i>/9</i></span>'
+      : '';
+    // 原文预览（取作文前 40 字）
+    const preview = rec && rec.essay
+      ? '<div class="ei-prev">'+escapeHtml(rec.essay.replace(/\s+/g,' ').slice(0, 40))+(rec.essay.length > 40 ? '…' : '')+'</div>'
+      : '<div class="ei-prev ei-prev-empty">尚未练习</div>';
     const chartThumb = (kind !== 'big' && it.img && it.img.length)
       ? '<div class="ei-chart"><img src="assets/writing/'+escapeHtml(it.img[0])+'" alt="chart"></div>'
       : '';
-    return '<div class="exam-item" data-kind="'+kind+'" data-no="'+it.no+'">'
+    return '<div class="exam-item'+(rec ? ' is-done' : '')+'" data-kind="'+kind+'" data-no="'+it.no+'">'
       + '<div class="ei-top">'
       + '<span class="ei-no">#'+(kind==='big'?it.no:'T'+it.no)+'</span>'
+      + doneMark
+      + scoreMark
       + '<span class="ei-type">'+typeLabel+'</span>'
       + '<span class="ei-sub">'+escapeHtml(subType)+'</span>'
       + '<span class="ei-meta">'+escapeHtml(meta)+'</span></div>'
-      + mainText
+      + '<div class="ei-title">'+escapeHtml(summary)+'</div>'
+      + preview
       + chartThumb
       + '</div>';
   };
@@ -1150,6 +1184,9 @@ function openExam(item, kind){
   $('#examInstr').textContent = isBig
     ? 'You should spend about 40 minutes on this task. Write at least 250 words.'
     : 'You should spend about 20 minutes on this task. Write at least 150 words.';
+  // 左栏题目折叠区：折叠条显示 10 字内总结，展开显示完整题目 + 你写的原文
+  const summary = summarizeExamTitle(kind, item);
+  $('#examQSummary').textContent = summary;
   if(isBig){
     $('#examQuestion').innerHTML =
       '<div class="ei-zh">' + escapeHtml(item.zh) + '</div>' +
@@ -1162,7 +1199,31 @@ function openExam(item, kind){
     $('#examQuestion').innerHTML = charts + '<div class="ei-en">' + escapeHtml(item.title) + '</div>';
     $('#examQNote').textContent = 'Summarise the information by selecting and reporting the main features, and make comparisons where relevant.';
   }
+  // 默认展开题目（首次进入）
+  $('#examQCollapser').classList.remove('collapsed');
   $('#examEssay').value = '';
+
+  // 草稿恢复：若该题已有未提交草稿，弹框询问「重新写 / 继续写」
+  let draftEssay = '';
+  try{
+    const dk = 'ielts_wt_draft_' + kind + '_' + item.no;
+    const raw = localStorage.getItem(dk);
+    if(raw){
+      const d = JSON.parse(raw);
+      if(d && d.essay && d.essay.trim()) draftEssay = d.essay;
+    }
+  }catch(e){ console.warn('draft read failed', e); }
+  if(draftEssay){
+    const ok = window.confirm('检测到这道题有未提交的草稿。\n\n点「确定」= 继续写（恢复草稿）\n点「取消」= 重新写（清空草稿）');
+    if(ok){
+      $('#examEssay').value = draftEssay;
+    } else {
+      try{ localStorage.removeItem('ielts_wt_draft_' + kind + '_' + item.no); }catch(e){}
+      $('#examEssay').value = '';
+    }
+    const n = ($('#examEssay').value.trim().match(/\b[\w'-]+\b/g) || []).length;
+    $('#examWordCount').textContent = 'Word count: ' + n;
+  }
   $('#examWordCount').textContent = 'Word count: 0';
   $('#examResult').hidden = true;
   examStartTimer();   // 点进去自动开始计时（不强制限时）
@@ -1228,6 +1289,9 @@ ${isTask1 ? RULES_TASK1 : RULES_TASK2}
         html += '</ul></div>';
       }
       box.innerHTML = html;
+      // Finish section 后：左栏题目自动折叠，右栏显示评分明细
+      const qc = $('#examQCollapser');
+      if(qc) qc.classList.add('collapsed');
       // 存盘：真题模考评分记录持久化（刷新不丢），并回流到回顾页「分项模考」看板
       try{
         const cur = examTimer.cur || {};
@@ -1276,6 +1340,19 @@ function bindExam(){
   updateSubOptions();
 
   const exitExam = () => {
+    // 退出前自动保存草稿（仅当有内容）
+    try{
+      const cur = examTimer.cur || {};
+      const txt = $('#examEssay').value || '';
+      if(cur.kind && cur.no != null){
+        const key = 'ielts_wt_draft_' + cur.kind + '_' + cur.no;
+        if(txt.trim()){
+          localStorage.setItem(key, JSON.stringify({ essay: txt, date: Date.now() }));
+        } else {
+          localStorage.removeItem(key);
+        }
+      }
+    }catch(e){ console.warn('draft save failed', e); }
     examStopTimer();
     document.body.classList.remove('exam-fullscreen');
     $('#examPractice').hidden = true;
@@ -1303,5 +1380,11 @@ function bindExam(){
   });
   const sb = $('#examScoreBtn');
   if(sb) sb.addEventListener('click', examStopAndScore);
+
+  // 左栏题目折叠/展开
+  const qCol = $('#examQCollapser');
+  if(qCol) qCol.addEventListener('click', () => {
+    qCol.classList.toggle('collapsed');
+  });
 }
 

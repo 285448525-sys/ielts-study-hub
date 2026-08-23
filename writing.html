@@ -38,7 +38,7 @@
 <script defer src="js/data.js?v=20260823k"></script>
   <script defer src="js/common.js?v=20260823k"></script>
   <script defer src="js/writing_prompts.js?v=20260823n"></script>
-  <script defer src="js/writing.js?v=20260823o"></script>
+  <script defer src="js/writing.js?v=20260823p"></script>
 <style>
   .write-tabs{display:flex;gap:0;border-bottom:2px solid var(--line);margin-bottom:16px}
   .write-tabs button{flex:1;padding:12px 0;font-size:16px;font-weight:600;border:none;background:none;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s}
@@ -136,13 +136,20 @@
   .exam-group-title .exam-kind-tag{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--primary-soft);color:var(--med);font-weight:600;white-space:nowrap}
   .exam-group-title .exam-sub-tag{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--bg);color:var(--ink);border:1px solid var(--line);font-weight:600;white-space:nowrap}
   .exam-group-title .exam-count{font-size:12px;color:var(--muted)}
-  .exam-item{border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;cursor:pointer;transition:border-color .15s,background .15s;display:flex;flex-direction:column;height:100%}
+  .exam-item{border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;cursor:pointer;transition:border-color .15s,background .15s;display:flex;flex-direction:column;height:100%;position:relative}
   .exam-item:hover{border-color:var(--primary);background:var(--surface)}
+  .exam-item.is-done{border-color:var(--primary);background:linear-gradient(0deg,var(--primary-soft),var(--primary-soft))}
   .exam-item .ei-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
   .exam-item .ei-no{font-size:12px;font-weight:700;color:var(--muted)}
+  .exam-item .ei-done{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#22c55e;color:#fff;font-size:12px;font-weight:700;flex:none}
+  .exam-item .ei-score{margin-left:auto;font-size:13px;font-weight:800;color:var(--med);background:var(--primary-soft);border-radius:10px;padding:1px 8px;white-space:nowrap}
+  .exam-item .ei-score i{font-style:normal;font-weight:600;color:var(--muted);font-size:11px}
   .exam-item .ei-type{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--primary-soft);color:var(--med);font-weight:600;white-space:nowrap}
   .exam-item .ei-sub{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--bg);color:var(--ink);border:1px solid var(--line);font-weight:600;white-space:nowrap}
-  .exam-item .ei-meta{font-size:12px;color:var(--muted);margin-left:auto}
+  .exam-item .ei-meta{font-size:12px;color:var(--muted)}
+  .exam-item .ei-title{font-size:15px;font-weight:700;color:var(--ink);line-height:1.4;margin:2px 0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .exam-item .ei-prev{font-size:12.5px;color:var(--ink-soft);line-height:1.55;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 9px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .exam-item .ei-prev-empty{color:var(--muted);font-style:italic}
   .exam-item .ei-zh{font-size:14px;color:var(--ink);line-height:1.6;flex:1}
   .exam-item .ei-en{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.6;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
   .exam-item .ei-chart{margin-top:10px;border-radius:var(--radius);overflow:hidden;background:var(--bg);border:1px solid var(--line);flex-shrink:0}
@@ -332,9 +339,16 @@
 
       <div class="exam-split">
         <article class="exam-q">
-          <p class="exam-q-lead">Write about the following topic:</p>
-          <div class="exam-q-body" id="examQuestion"></div>
-          <p class="exam-q-note" id="examQNote"></p>
+          <button class="exam-q-toggle" id="examQCollapser" type="button">
+            <svg class="eq-caret" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            <span class="exam-q-summary" id="examQSummary">题目</span>
+            <span class="exam-q-toggle-hint">题目</span>
+          </button>
+          <div class="exam-q-body-wrap" id="examQBodyWrap">
+            <p class="exam-q-lead">Write about the following topic:</p>
+            <div class="exam-q-body" id="examQuestion"></div>
+            <p class="exam-q-note" id="examQNote"></p>
+          </div>
         </article>
 
         <div class="exam-a">
@@ -342,10 +356,9 @@
           <div class="exam-a-foot">
             <span class="exam-wc" id="examWordCount">Word count: 0</span>
           </div>
+          <div id="examResult" class="tpl-score" hidden></div>
         </div>
       </div>
-
-      <div id="examResult" class="tpl-score" hidden></div>
 
       <footer class="exam-bar">
         <div class="exam-bar-left">
