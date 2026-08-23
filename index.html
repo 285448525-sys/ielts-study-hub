@@ -13,13 +13,13 @@
     var raw = localStorage.getItem(key);
     if(!raw) return;
     var parsed = JSON.parse(raw);
-    var speaking = Array.isArray(parsed.speaking) ? parsed.speaking : [];
+    if(!parsed || !Array.isArray(parsed.speaking)) return;
     var dirtyIds = ['sb_p1_home','sb_p2_travel','sb_p2_earlymorning'];
-    var hasDirty = speaking.some(function(s){ return s && dirtyIds.indexOf(s.id) >= 0; });
-    var hasOldMorning = speaking.some(function(s){ return s && s.titleEn && s.titleEn.toLowerCase().indexOf('early morning') >= 0; });
-    if(hasDirty || hasOldMorning){
-      localStorage.removeItem(key);
-      location.reload(true);
+    var before = parsed.speaking.length;
+    var kept = parsed.speaking.filter(function(s){ return !(s && dirtyIds.indexOf(s.id) >= 0); });
+    if(kept.length !== before){
+      parsed.speaking = kept;
+      localStorage.setItem(key, JSON.stringify(parsed));
     }
   }catch(e){}
 })();
