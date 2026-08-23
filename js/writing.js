@@ -802,32 +802,25 @@ ${JSON.stringify(weakBefore)}` }
   }
 }
 
-/* ===== 万能语料库 ===== */
+/* ===== 万能语料库（表格：英文 | 中文/例句 | 操作） ===== */
 function renderBank(){
   const filter = $('#bankFilter').value;
   const list = DATA.writingPhrases.filter(p => filter === 'all' || p.type === filter);
   const box = $('#bankList');
   if(!list.length){ box.innerHTML = '<div class="muted">还没有语料。点「+ 新增语料」添加，或先用默认起步语料。</div>'; return; }
-  box.innerHTML = list.map(p => {
+  const rows = list.map(p => {
     const ex = p.example ? '<div class="bank-ex">例：' + escapeHtml(p.example) + '</div>' : '';
     const cn = p.cn ? '<div class="bank-detail">' + escapeHtml(p.cn) + '</div>' : '';
     const tag = p.tag ? '<span class="bank-tag">' + escapeHtml(p.tag) + '</span>' : '';
-    return '<div class="card bank-card" data-id="' + p.id + '">'
-      + '<div class="bank-en">' + escapeHtml(p.en) + ' ' + tag + '</div>'
-      + '<div class="bank-detail-holder" hidden>' + cn + ex + '</div>'
-      + '<div class="bank-actions">'
-      +   '<button class="bank-toggle" type="button">看释义</button>'
-      +   '<button class="bank-del" type="button">删除</button>'
-      + '</div></div>';
+    return '<tr data-id="' + p.id + '">'
+      + '<td class="bank-td-en">' + escapeHtml(p.en) + ' ' + tag + '</td>'
+      + '<td class="bank-td-cn">' + (cn || '') + (ex || '') + '</td>'
+      + '<td class="bank-td-actions"><button class="bank-del" type="button">删除</button></td>'
+      + '</tr>';
   }).join('');
-  box.querySelectorAll('.bank-card').forEach(card => {
-    const id = card.dataset.id;
-    const holder = card.querySelector('.bank-detail-holder');
-    card.querySelector('.bank-toggle').addEventListener('click', e => {
-      holder.hidden = !holder.hidden;
-      e.target.textContent = holder.hidden ? '看释义' : '隐藏';
-    });
-    card.querySelector('.bank-del').addEventListener('click', () => delPhrase(id));
+  box.innerHTML = '<table class="bank-table"><thead><tr><th>英文</th><th>中文 / 例句</th><th style="width:70px">操作</th></tr></thead><tbody>' + rows + '</tbody></table>';
+  box.querySelectorAll('.bank-del').forEach(btn => {
+    btn.addEventListener('click', () => { const tr = btn.closest('tr'); if(tr) delPhrase(tr.dataset.id); });
   });
 }
 function addPhrase(){
@@ -1124,7 +1117,7 @@ function renderExamList(){
     order.filter(st => groups[st] && groups[st].length).forEach(st => {
       if(subFilter !== 'all' && st !== subFilter) return;
       const list = groups[st];
-      html += '<div class="exam-group-title">'+typeLabel+' · '+escapeHtml(st)+'（'+list.length+' 题）</div>';
+      html += '<div class="exam-group-title"><span class="exam-kind-tag">'+typeLabel+'</span><span class="exam-sub-tag">'+escapeHtml(st)+'</span><span class="exam-count">'+list.length+' 题</span></div>';
       html += list.map(it => makeItem(it, kind)).join('');
     });
   });
