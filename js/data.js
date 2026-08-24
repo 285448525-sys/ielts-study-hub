@@ -489,10 +489,12 @@ function hubLoad(){
       } else {
         console.warn('本地数据结构异常，已忽略损坏的存储，沿用默认数据');
       }
-      // 账号凭证自愈：若主 blob 被清空/丢失 syncCode/relayToken（历史 autoClean 等 bug），
-      // 从隔离凭证键回填，保证「登录状态/Key/手机号」跨会话可靠保留、不被意外清除。
-      restoreCredsIfMissing();
     }
+    // 账号凭证自愈：若主 blob 被清空/丢失 syncCode/relayToken（历史 autoClean removeItem 等 bug），
+    // 从隔离凭证键回填，保证「登录状态/Key/手机号」跨会话可靠保留、不被意外清除。
+    // ⚠️ 必须在 if(raw) 之外调用：当 HUB_KEY 整体被 removeItem 时 raw 为 null，
+    //    若放在 if(raw) 内则永远跳过、凭证丢失（正是用户「退出重进东西又不见了」的真因）。
+    restoreCredsIfMissing();
     // 兜底：确保所有数组字段非 undefined（极端损坏数据时也不崩）
     const arrayFields = ['sessions','notes','meds','words','plans','corpus','scores','errorbook',
       'energy','checkins','speaking','writing','writingScores','speakingStories','writingPhrases','mockRecords',
