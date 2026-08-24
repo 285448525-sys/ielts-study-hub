@@ -180,7 +180,10 @@ function fitInput(inp){
   __phMirror.style.fontStyle = cs.fontStyle;
   __phMirror.style.letterSpacing = cs.letterSpacing;
   __phMirror.textContent = t;
-  const w = Math.max(__phMirror.offsetWidth + 16, 60);   // +padding/buffer，最小 60px，不封顶
+  // 真实占用宽度 = 文字宽 + 输入框左右内边距 + 左右边框（box-sizing:border-box 下都算进 width）
+  const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+  const borderX = parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth);
+  const w = Math.max(__phMirror.offsetWidth + padX + borderX + 6, 60);   // +6px buffer，不封顶
   inp.style.width = w + 'px';
 }
 
