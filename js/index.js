@@ -3,7 +3,7 @@ ready(() => {
   const s = (DATA && DATA.settings) || {};
 
   safe(() => {
-    $('#userName').textContent = s.name || 'Camille';
+    $('#userName').textContent = s.name || '同学';
   });
 
   // v6 首页渲染（design/31 A 版）

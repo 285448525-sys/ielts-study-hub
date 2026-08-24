@@ -2,15 +2,15 @@ ready(() => {
   const s = DATA.settings;
   $('#sName').value = s.name || '';
   $('#sExam').value = s.examDate || '';
-  $('#sGoal').value = s.dailyGoalHours || 8;
+  $('#sGoal').value = s.dailyGoalHours || '';
   $('#sTheme').value = s.theme || 'light';
 
   const t = s.targets || {};
-  $('#tOverall').value = t.overall || 6.0;
-  $('#tListening').value = t.listening || 5.5;
-  $('#tReading').value = t.reading || 6.5;
-  $('#tWriting').value = t.writing || 5.5;
-  $('#tSpeaking').value = t.speaking || 5.5;
+  $('#tOverall').value = t.overall || '';
+  $('#tListening').value = t.listening || '';
+  $('#tReading').value = t.reading || '';
+  $('#tWriting').value = t.writing || '';
+  $('#tSpeaking').value = t.speaking || '';
 
   $('#sPron').value = (s.pronunciationScore != null ? s.pronunciationScore : '');
 
@@ -45,16 +45,16 @@ ready(() => {
 });
 
 function saveSettings(){
-  DATA.settings.name = $('#sName').value.trim() || 'Camille';
+  DATA.settings.name = $('#sName').value.trim();
   DATA.settings.examDate = $('#sExam').value;
-  DATA.settings.dailyGoalHours = parseFloat($('#sGoal').value) || 8;
+  DATA.settings.dailyGoalHours = parseFloat($('#sGoal').value) || 0;
   DATA.settings.theme = $('#sTheme').value;
   DATA.settings.targets = {
-    overall: parseFloat($('#tOverall').value) || 6.0,
-    listening: parseFloat($('#tListening').value) || 5.5,
-    reading: parseFloat($('#tReading').value) || 6.5,
-    writing: parseFloat($('#tWriting').value) || 5.5,
-    speaking: parseFloat($('#tSpeaking').value) || 5.5,
+    overall: parseFloat($('#tOverall').value) || 0,
+    listening: parseFloat($('#tListening').value) || 0,
+    reading: parseFloat($('#tReading').value) || 0,
+    writing: parseFloat($('#tWriting').value) || 0,
+    speaking: parseFloat($('#tSpeaking').value) || 0,
   };
   DATA.settings.syncCode = $('#sSyncCode').value.replace(/\D/g, '');
   DATA.settings.autoSync = true; // 默认开启自动同步，与考研站一致（绑定后由 syncLoginOrRegister 控制）

@@ -97,7 +97,8 @@ function deleteScore(id){
 function render(){
   const list = DATA.scores.slice().sort((a,b) => b.date.localeCompare(a.date));
   const t = DATA.settings.targets || {};
-  const targetOverall = t.overall || 6.0;
+  const targetOverall = t.overall || 0;
+  const hasTargets = targetOverall > 0;
 
   // stats — 加考试倒计时 + 本场目标（0 次也显示倒计时/目标）
   const cd = examCountdown();
@@ -107,16 +108,16 @@ function render(){
   if(list.length === 0){
     statBox.innerHTML =
       statCard('距 ' + (examMd || '考试') + ' 还有', dLabel, 'var(--warn)') +
-      statCard('本场目标', targetOverall.toFixed(1), 'var(--med)') +
+      (hasTargets ? statCard('本场目标', targetOverall.toFixed(1), 'var(--med)') : statCard('本场目标', '未设', 'var(--muted)')) +
       '<div style="grid-column:1/-1">' + renderEmpty('还没有成绩记录，考完第一场就来填吧。') + '</div>';
   } else {
     const latest = list[0];
     const lo = overall(latest.listening, latest.reading, latest.writing, latest.speaking);
-    const diff = Math.round((lo - targetOverall) * 2) / 2;
+    const diff = hasTargets ? Math.round((lo - targetOverall) * 2) / 2 : 0;
     statBox.innerHTML =
       statCard('最近总分', lo.toFixed(1), 'var(--primary)') +
-      statCard('本场目标', targetOverall.toFixed(1), 'var(--med)') +
-      statCard('距目标', diff >= 0 ? '已超 ' + diff.toFixed(1) + ' 分' : '还差 ' + Math.abs(diff).toFixed(1) + ' 分', diff >= 0 ? 'var(--med)' : 'var(--danger)') +
+      (hasTargets ? statCard('本场目标', targetOverall.toFixed(1), 'var(--med)') : statCard('本场目标', '未设', 'var(--muted)')) +
+      (hasTargets ? statCard('距目标', diff >= 0 ? '已超 ' + diff.toFixed(1) + ' 分' : '还差 ' + Math.abs(diff).toFixed(1) + ' 分', diff >= 0 ? 'var(--med)' : 'var(--danger)') : '') +
       statCard('距 ' + (examMd || '考试') + ' 还有', dLabel, 'var(--warn)') +
       statCard('已记录模考', list.length, 'var(--vocab)');
   }
@@ -125,13 +126,15 @@ function render(){
   const barBox = $('#scoreBars');
   if(list.length === 0){
     barBox.innerHTML = renderEmpty('暂无数据。');
+  } else if(!hasTargets){
+    barBox.innerHTML = renderEmpty('还没设目标分数，去「设置 / 目标分数」填一下再对比。');
   } else {
     const x = list[0];
     const mods = [
-      { name:'听力', icon:'🎧', color:'var(--mock)', val:x.listening, target:t.listening||5.5 },
-      { name:'阅读', icon:'📖', color:'var(--vocab)', val:x.reading,   target:t.reading||6.5 },
-      { name:'写作', icon:'✏️', color:'var(--warn)',  val:x.writing,   target:t.writing||5.5 },
-      { name:'口语', icon:'🗣', color:'var(--med)',   val:x.speaking,  target:t.speaking||5.5 },
+      { name:'听力', icon:'🎧', color:'var(--mock)', val:x.listening, target:t.listening||0 },
+      { name:'阅读', icon:'📖', color:'var(--vocab)', val:x.reading,   target:t.reading||0 },
+      { name:'写作', icon:'✏️', color:'var(--warn)',  val:x.writing,   target:t.writing||0 },
+      { name:'口语', icon:'🗣', color:'var(--med)',   val:x.speaking,  target:t.speaking||0 },
     ];
     mods.forEach(m => { m.gap = Math.round((m.val - m.target) * 2) / 2; });
     mods.sort((a, b) => a.gap - b.gap);              // gap 最小（最负=差距最大）置顶
@@ -153,15 +156,15 @@ function render(){
   // 行动建议（最弱项）—— 放在 scoreBars 之后、renderTrend() 之前
   const tipBox = $('#actionTip');
   if(tipBox){
-    if(list.length === 0){
+    if(list.length === 0 || !hasTargets){
       tipBox.innerHTML = '';
     } else {
       const x = list[0];
       const mods = [
-        { name:'听力', val:x.listening, target:t.listening||5.5 },
-        { name:'阅读', val:x.reading,   target:t.reading||6.5 },
-        { name:'写作', val:x.writing,   target:t.writing||5.5 },
-        { name:'口语', val:x.speaking,  target:t.speaking||5.5 },
+        { name:'听力', val:x.listening, target:t.listening||0 },
+        { name:'阅读', val:x.reading,   target:t.reading||0 },
+        { name:'写作', val:x.writing,   target:t.writing||0 },
+        { name:'口语', val:x.speaking,  target:t.speaking||0 },
       ];
       mods.forEach(m => { m.gap = Math.round((m.val - m.target) * 2) / 2; });
       mods.sort((a, b) => a.gap - b.gap);

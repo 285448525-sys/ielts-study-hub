@@ -314,20 +314,18 @@ let DATA = {
   materials: null,   // 万能素材 store：null=未迁移；迁移后 {persona, materials:[], gaps:[], answers:{}}
   corpus: [],
   activeTimer: null,   // 进行中计时的跨设备镜像：{moduleId,...,startTs,paused,pauseStart,pauseAccum,targetSec,mode,updatedAt}；结束后为 {ended:true,updatedAt}
-  scores: [
-    { id:'seed_first', date:'2026-08-02', listening:4, reading:5, writing:5, speaking:4.5, note:'首考' }
-  ],
+  scores: [],
   settings: {
-    name: 'Camille',
-    examDate: '2026-08-25',                 // 下一次考试（首考 2026-08-02 已过，不再作倒计时基准）
-    examDates: ['2026-08-25', '2026-09-13'], // 后续场次日程，倒计时自动取"未来最早一场"
+    name: '',
+    examDate: '',
+    examDates: [],
     theme: 'light',
-    dailyGoalHours: 8,
-    targets: { overall: 6.0, listening: 5.5, reading: 6.5, writing: 5.5, speaking: 5.5 },
+    dailyGoalHours: 0,
+    targets: { overall: 0, listening: 0, reading: 0, writing: 0, speaking: 0 },
     relayToken: '',
     syncCode: '',
     autoSync: true,
-    _fieldTs: {}   // 各 settings 字段最后本机保存时间戳（毫秒），用于云端合并时按字段级「较新者胜」，根治刚填的 Key 被云端旧值覆盖
+    _fieldTs: {}
   },
   errorbook: [],
   longSent: [],           // 长难句拆解记录（合并进「词句」页，由 errorbook.js 读写）
@@ -551,22 +549,20 @@ function hubLoad(){
     })();
     // 注意：口语档位体系已废弃 migrateSpeakingTiers 重映射——版本号机制整体替换 DATA.speaking 为 SPEAKING_BANK，
     // 档位以 SPEAKING_BANK 定义为准，无需再回写旧映射（旧映射会把 tallbuilding 等 ultra 题错改回 high）。
-    // 考试倒计时迁移（Bug：首页/顶部显示"已过 天"）：
-    // 老用户 localStorage 里 examDate 仍是首考 2026-08-02（已过），导致 daysUntil 返回负数、格式串又硬拼" 天"，
-    // 倒计时丢失"距下次考试"信息。这里按用户真实档期初始化 upcoming 列表（仅当缺失时，已手动管理者不受影响）。
-    if(!Array.isArray(DATA.settings.examDates) || DATA.settings.examDates.length === 0){
+    // 考试倒计时迁移：仅当用户已有 examDate 且已过时，才从已知档期找未来日期修正。
+    // 新用户/已清空用户 examDate 为空时，不自动填充任何固定日期，避免无痕浏览器看到他人档期。
+    const curExam = DATA.settings.examDate;
+    const curExamDt = curExam ? new Date(curExam + 'T00:00:00') : null;
+    const today0 = new Date(); today0.setHours(0,0,0,0);
+    if(curExam && !isNaN(curExamDt) && curExamDt < today0){
       const KNOWN_EXAMS = ['2026-08-25', '2026-09-13']; // 二场、三场(目标分)
-      const today0 = new Date(); today0.setHours(0,0,0,0);
       const future = KNOWN_EXAMS.filter(d => {
         const dt = new Date(d + 'T00:00:00');
         return !isNaN(dt) && dt >= today0;
       });
       if(future.length){
+        DATA.settings.examDate = future[0];
         DATA.settings.examDates = future;
-        // 同步修正单个 examDate，确保仍读 examDate 的旧代码不再显示"已过"
-        const cur = DATA.settings.examDate;
-        const curDt = cur ? new Date(cur + 'T00:00:00') : null;
-        if(!curDt || isNaN(curDt) || curDt < today0) DATA.settings.examDate = future[0];
       }
     }
     // 自愈：清洗词库中 en 非「非空字符串」的脏词（发音评测红词曾写入 undefined/null，导致练习页崩溃）

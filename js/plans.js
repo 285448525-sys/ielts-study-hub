@@ -63,9 +63,9 @@ async function aiPlanItem(){
   const weak = computeWeak();
   const latest = DATA.scores.slice().sort((a,b)=>b.date.localeCompare(a.date))[0];
   const t = DATA.settings.targets || {};
-  const weakStr = weak.map(w => w.name + (w.gap >= 0 ? (' 差' + w.gap) : ' 已达标')).join('、');
+  const weakStr = weak.length ? weak.map(w => w.name + (w.gap >= 0 ? (' 差' + w.gap) : ' 已达标')).join('、') : '未设置目标分数，无法计算弱项';
   const latestStr = latest ? ('听' + latest.listening + '/读' + latest.reading + '/写' + latest.writing + '/口' + latest.speaking) : '暂无';
-  const targetStr = '听' + (t.listening||5.5) + '/读' + (t.reading||6.5) + '/写' + (t.writing||5.5) + '/口' + (t.speaking||5.5);
+  const targetStr = '听' + (t.listening||'?') + '/读' + (t.reading||'?') + '/写' + (t.writing||'?') + '/口' + (t.speaking||'?');
   const cd = examCountdown();
   const dLeft = cd.daysLeft;
   const medToday = (DATA.meds || []).filter(m => m.date === todayKey()).sort((a,b)=>b.ts-a.ts)[0];
@@ -255,7 +255,14 @@ function getCustomTasks(){
 function renderWeekHint(){
   const el = $('#weekHint'); if(!el) return;
   const weak = computeWeak();
-  let msg = '弱项：' + weak[0].name + '、' + weak[1].name + '（AI 会优先多排）。';
+  let msg;
+  if(weak.length >= 2){
+    msg = '弱项：' + weak[0].name + '、' + weak[1].name + '（AI 会优先多排）。';
+  } else if(weak.length === 1){
+    msg = '弱项：' + weak[0].name + '（AI 会优先多排）。';
+  } else {
+    msg = '还没设目标分数，去「设置 / 目标分数」填一下，AI 才好按弱项排序。';
+  }
   const cd = examCountdown();
   if(cd.hasExam && cd.daysLeft !== null && cd.daysLeft > 0) msg += ' 距考试 ' + cd.daysLeft + ' 天。';
   el.textContent = msg;
@@ -263,8 +270,9 @@ function renderWeekHint(){
 function computeWeak(){
   const t = DATA.settings.targets || {};
   const latest = DATA.scores.slice().sort((a,b)=>b.date.localeCompare(a.date))[0];
-  const subs = [['listening','听力',t.listening||5.5],['reading','阅读',t.reading||6.5],['writing','写作',t.writing||5.5],['speaking','口语',t.speaking||5.5]];
+  const subs = [['listening','听力',t.listening||0],['reading','阅读',t.reading||0],['writing','写作',t.writing||0],['speaking','口语',t.speaking||0]];
   return subs.map(([k,name,tg]) => ({ k, name, gap: latest ? Math.round((tg-(latest[k]||0))*2)/2 : tg }))
+    .filter(x => x.gap > 0)
     .sort((a,b)=>b.gap-a.gap);
 }
 
@@ -272,8 +280,8 @@ function computeWeak(){
 function buildAndRender(customTasks){
   customTasks = customTasks || [];
   const weak = computeWeak();
-  const weakK = [weak[0].k, weak[1].k];
-  const types = ['reading','listening','writing','speaking','mix', weakK[0], weakK[1]];
+  const weakK = [weak[0] && weak[0].k, weak[1] && weak[1].k].filter(Boolean);
+  const types = ['reading','listening','writing','speaking','mix', weakK[0] || 'review', weakK[1] || 'review'];
   const dates = weekDates();
   currentWeek = [];
   for(let i = 0; i < 7; i++){
@@ -350,12 +358,12 @@ async function aiWeekPlan(){
   const weak = computeWeak();
   const latest = DATA.scores.slice().sort((a,b)=>b.date.localeCompare(a.date))[0];
   const t = DATA.settings.targets || {};
-  const dailyHours = DATA.settings.dailyGoalHours || 8;
+  const dailyHours = DATA.settings.dailyGoalHours || 0;
   const cd = examCountdown();
   const dLeft = cd.daysLeft;
-  const weakStr = weak.map(w => w.name + (w.gap >= 0 ? (' 差' + w.gap) : ' 已达标')).join('、');
+  const weakStr = weak.length ? weak.map(w => w.name + (w.gap >= 0 ? (' 差' + w.gap) : ' 已达标')).join('、') : '未设置目标分数，无法计算弱项';
   const latestStr = latest ? ('听' + latest.listening + '/读' + latest.reading + '/写' + latest.writing + '/口' + latest.speaking) : '暂无';
-  const targetStr = '听' + (t.listening||5.5) + '/读' + (t.reading||6.5) + '/写' + (t.writing||5.5) + '/口' + (t.speaking||5.5);
+  const targetStr = '听' + (t.listening||'?') + '/读' + (t.reading||'?') + '/写' + (t.writing||'?') + '/口' + (t.speaking||'?');
 
   const sys = '你是资深雅思备考计划教练。考生会给出本周想完成的任务清单，请你按 7 天合理分配，必须严格遵守以下规则：\n'
     + '1. 每天学习总时长参考 ' + dailyHours + ' 小时（后台设置的目标时长），只少不多、尽量填满。任务只写名称，不要标注预估分钟数。\n'
