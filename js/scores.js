@@ -371,7 +371,8 @@ function addMock(){
     } else {
       const c = (row.querySelector('.mk-correct').value || '').trim();
       const t = (row.querySelector('.mk-total').value || '').trim();
-      if(c === '' && t === '') return;
+      // ⚠️ 只填了总题数(预填默认值)但没填答对的 part，必须跳过——否则会被当成「答对0/总题数」存成全零假记录
+      if(c === '') return;
       const cv = Number(c), tv = Number(t);
       if(!(tv > 0)){ toast('总题数必须大于 0（' + label + '）'); bad = true; return; }
       if(!(cv >= 0) || cv > tv){ toast('答对必须是 0~总题数 之间（' + label + '）'); bad = true; return; }
@@ -424,9 +425,9 @@ function mockAggregate(gran){
     r.parts.forEach(p => {
       if(partIsScore(p)){
         const w = partWeight(cfg, p.label);
-        ta.sum += p.score; ta.wsum += w;
+        ta.sum += p.score * w; ta.wsum += w;   // ⚠️ 分子必须乘权重，否则 Task2(权重2) 被稀释→写作均分虚低(如 5.5→3.7)
         const pa = byPart[r.type + '|' + p.label] || (byPart[r.type + '|' + p.label] = { c:0, t:0, sum:0, wsum:0 });
-        pa.sum += p.score; pa.wsum += w;
+        pa.sum += p.score * w; pa.wsum += w;
       } else if(typeof p.correct === 'number' && typeof p.total === 'number'){
         ta.c += p.correct; ta.t += p.total;
         const pa = byPart[r.type + '|' + p.label] || (byPart[r.type + '|' + p.label] = { c:0, t:0, sum:0, wsum:0 });
