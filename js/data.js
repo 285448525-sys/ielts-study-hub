@@ -293,34 +293,13 @@ function mergeSpeakingKeepAnswers(localSpeaking){
     });
 }
 
-/* 强制清旧题库：只要加载到包含本代码的新 data.js，就检测 localStorage 里是否残留旧题库特征；
- * 是则直接清空整个 DATA 并刷新页面，确保用户不需要手动清缓存就能拿到干净新题库。
- * 注意：这会清空本地所有练习记录/词库/计时等；这是为了让题库更新一次性生效不得已的代价。 */
-(function autoCleanOldSpeakingBank(){
-  try{
-    // 防重入：本次会话已清理过一次就不再清，避免任何边缘情况下 reload 死循环
-    const GUARD = 'ielts_bank_clean_guard';
-    try{ if(sessionStorage.getItem(GUARD)) return; }catch(_){}
-    const raw = localStorage.getItem(HUB_KEY);
-    if(!raw) return;
-    const parsed = JSON.parse(raw);
-    const speaking = Array.isArray(parsed.speaking) ? parsed.speaking : [];
-    const dirtyIds = ['sb_p1_home','sb_p2_travel','sb_p2_earlymorning','sb_p2_visit77','sb_p2_describe_a_live_sports_event_you_watched29'];
-    const hasDirty = speaking.some(s => s && dirtyIds.includes(s.id));
-    const hasOldMorning = speaking.some(s => s && s.titleEn && s.titleEn.toLowerCase().includes('early morning'));
-    // 注意：不再依赖 speakingVersion 判定，因为登录后云端同步的DATA不包含speaking（官方共享），
-    // 若因version清整个DATA会误删云端同步的其它个人数据。仅当确实残留脏题id时才清。
-    if(hasDirty || hasOldMorning){
-      console.warn('[题库清理] 检测到旧 localStorage 题库脏题，正在自动清空并刷新…');
-      try{ sessionStorage.setItem(GUARD, '1'); }catch(_){}
-      localStorage.removeItem(HUB_KEY);
-      if(typeof location !== 'undefined' && location.reload){
-        location.reload(true);
-        return;
-      }
-    }
-  }catch(e){ /* 解析失败不做任何事 */ }
-})();
+/* 强制清旧题库（autoCleanOldSpeakingBank）已于 2026-08-24 退役。
+ * 原逻辑会 localStorage.removeItem(HUB_KEY) 整锅清空用户全部学习数据 + location.reload()，
+ * 既导致「登录/学习数据频繁丢失」（见用户多轮反馈），又在口语/写作页打开时触发整页重载（表现为卡顿/跳一下）。
+ * 题库更新现由 hubLoad 内的 mergeSpeakingKeepAnswers() 安全处理：
+ *   以官方 SPEAKING_BANK 为唯一基准，旧脏 id 自然被丢弃、用户已填答案按 id 保留，绝不整锅清数据、绝不 reload。
+ * 故此处不再有任何清空/重载逻辑。 */
+
 
 
 

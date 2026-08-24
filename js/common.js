@@ -1195,6 +1195,9 @@ function onHubLinkClick(e){
   const t = hubLinkTarget(a);
   if(!t) return;                 // 放行：由浏览器原生处理
   e.preventDefault();            // 拦下，走软切换
+  updateActiveNav(t.file);       // ⚠️ 关键修复（导航高亮闪烁）：点击瞬间同步高亮目标模块，
+                                  //    不等 fetch/脚本执行。否则在「点击→fetch→runPageScript(重脚本 eval)」
+                                  //    这段异步窗口里，旧模块高亮仍挂着，表现为「先闪其他模块、再跳回」。
   softNavigate(t, false);
 }
 
@@ -1221,9 +1224,15 @@ async function softNavigate(t, isPop){
     swapPageStyles(doc, t.id);                          // 同步页面专属 <style>，避免样式丢失
     main.innerHTML = newMain.innerHTML;                 // 只换内容区，侧边栏/全局状态保留
     if(doc.title) document.title = doc.title;
-    updateActiveNav(t.file);
+    // ⚠️ 性能修复（口语/写作打开卡顿）：runPageScript 会 eval 2140 行的 speaking.js + 4 个附加脚本并同步渲染
+    //    52 题/P2/P3 诊断树，若直接 await 会阻塞主线程、画面“冻住”。先让本次内容交换 + 高亮先 paint，
+    //    再用 requestAnimationFrame 把重脚本执行推到下一帧，打开即流畅。后台标签页 rAF 不触发则用 setTimeout 兜底。
+    await new Promise(res => {
+      if(typeof requestAnimationFrame === 'function') requestAnimationFrame(() => res());
+      else setTimeout(res, 0);
+    });
     await runPageScript(t.id, doc);                     // 重新执行目标页脚本（复用 ready + 事件绑定）
-    updateActiveNav(t.file);                            // 收尾再断言：抵消 runPageScript 内 hubSave→injectNav 对高亮的竞态改写
+    updateActiveNav(t.file);                            // ⚠️ 放 runPageScript 之后：page 脚本可能改写高亮，这里最终断言目标模块
     if(!isPop) history.pushState({ hub: t.id }, '', t.href);
     prefetchNeighbors(t.id);
   }catch(err){
