@@ -1312,7 +1312,8 @@ async function runPageScript(id, doc){
     doc.querySelectorAll('script[src]').forEach(s => {
       const src = s.getAttribute('src');
       if(!src || !src.startsWith('js/')) return;
-      if(src === 'js/data.js' || src === 'js/common.js' || src === 'js/' + id + '.js') return;
+      const base = src.split('?')[0];
+      if(base === 'js/data.js' || base === 'js/common.js' || base === 'js/' + id + '.js') return;
       extras.push(src);
     });
     for(const src of extras){
