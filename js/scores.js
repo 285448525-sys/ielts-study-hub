@@ -461,11 +461,90 @@ function aggregateSpeakingPracticeScores(){
   return { byPart, overall: totalW ? { sum: totalSum, wsum: totalW } : null };
 }
 
+/* 判定是否为口语整卷模考记录（与 mock-history.js / mock.js 保持一致）
+   新版：kind==='speaking'；旧版：无 kind，但有 p1 且无数组 parts */
+function isSpeakingMockRec(r){
+  return r && (r.kind === 'speaking' || (!Array.isArray(r.parts) && r.p1));
+}
+
+/* 把一条口语整卷模考记录聚合成「分项模考」所需的四维结构。
+   新版：parts.p1/p2/p3 含 {fc,lr,gra,overall}，发音取 pronunciationScore
+   旧版：dims 含 {fluency,lexical,grammar,pronunciation}
+   返回 { byPart, overall }；overall 用记录总 Band，四维用于下面的进度条。 */
+function aggregateSpeakingMockRecord(r){
+  const byPart = {};
+  let dimSum = 0, dimW = 0;
+
+  // 新版结构
+  if(r.parts && typeof r.parts === 'object' && !Array.isArray(r.parts)){
+    ['p1','p2','p3'].forEach(k => {
+      const p = r.parts[k];
+      if(!p) return;
+      const map = [
+        { k:'fc',  l:'流利度 Fluency' },
+        { k:'lr',  l:'词汇 Lexical' },
+        { k:'gra', l:'语法 Grammar' }
+      ];
+      map.forEach(m => {
+        const v = parseFloat(p[m.k]);
+        if(isNaN(v)) return;
+        const pa = byPart[m.l] || (byPart[m.l] = { sum:0, wsum:0 });
+        pa.sum += v; pa.wsum += 1;
+        dimSum += v; dimW += 1;
+      });
+    });
+    const pron = parseFloat(r.pronunciationScore);
+    if(!isNaN(pron)){
+      const pa = byPart['发音 Pronunciation'] || (byPart['发音 Pronunciation'] = { sum:0, wsum:0 });
+      pa.sum += pron; pa.wsum += 1;
+      dimSum += pron; dimW += 1;
+    }
+  }
+
+  // 旧版结构
+  if(r.dims && typeof r.dims === 'object'){
+    const map = [
+      { k:'fluency',     l:'流利度 Fluency' },
+      { k:'lexical',     l:'词汇 Lexical' },
+      { k:'grammar',     l:'语法 Grammar' },
+      { k:'pronunciation', l:'发音 Pronunciation' }
+    ];
+    map.forEach(m => {
+      const v = parseFloat(r.dims[m.k]);
+      if(isNaN(v)) return;
+      const pa = byPart[m.l] || (byPart[m.l] = { sum:0, wsum:0 });
+      pa.sum += v; pa.wsum += 1;
+      dimSum += v; dimW += 1;
+    });
+  }
+
+  const overall = parseFloat(r.overall);
+  if(isNaN(overall)) return null;
+  return { byPart, overall: { sum: overall, wsum: 1 } };
+}
+
 function mockAggregate(gran){
   const byType = {}, byPart = {};
+
   DATA.mockRecords.forEach(r => {
-    if(!Array.isArray(r.parts)) return; // 跳过口语整卷模考记录（无 parts，由「口语模考」tab 专属展示）
     if(gran && gran !== 'all' && r.granularity !== gran) return;
+
+    // ① 口语整卷模考记录 → 联动到「分项模考」口语统计
+    if(isSpeakingMockRec(r)){
+      const sp = aggregateSpeakingMockRecord(r);
+      if(!sp) return;
+      const ta = byType.speaking || (byType.speaking = { c:0, t:0, sum:0, wsum:0 });
+      ta.sum += sp.overall.sum; ta.wsum += sp.overall.wsum;
+      Object.entries(sp.byPart).forEach(([label, p]) => {
+        const key = 'speaking|' + label;
+        const pa = byPart[key] || (byPart[key] = { c:0, t:0, sum:0, wsum:0 });
+        pa.sum += p.sum; pa.wsum += p.wsum;
+      });
+      return;
+    }
+
+    // ② 普通分项模考记录（听/读/写/口语分项）
+    if(!Array.isArray(r.parts)) return;
     const cfg = MOCK_TYPES[r.type];
     if(!cfg) return;
     const ta = byType[r.type] || (byType[r.type] = { c:0, t:0, sum:0, wsum:0 });
@@ -483,8 +562,7 @@ function mockAggregate(gran){
     });
   });
 
-  // 口语分项模考没数据时，自动回退到口语页日常练习评分
-  const speakingCfg = MOCK_TYPES.speaking;
+  // ③ 口语既没有整卷模考、也没有分项模考 → 回退到口语页日常练习评分
   const speakingHasMock = byType.speaking && byType.speaking.wsum > 0;
   if(!speakingHasMock){
     const sp = aggregateSpeakingPracticeScores();
