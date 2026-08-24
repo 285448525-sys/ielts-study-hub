@@ -158,11 +158,9 @@ function renderTplWrong(sourceId){
 
 function highlight(s){ return escapeHtml(s).replace(/【(.+?)】/g, '【<span class="ph">$1</span>】'); }
 
+// 填空框宽度：交给 CSS field-sizing:content，由浏览器按实际文字/placeholder 精确自适应
 function fitInput(inp){
-  const t = (inp.value || inp.dataset.ph || '');
-  // 最小 48px，随字数变宽但封顶 200px（超长答案在框内横向滚动，不再无限撑长）
-  const w = Math.min(Math.max(t.length, 4) * 10 + 12, 200);
-  inp.style.width = w + 'px';
+  inp.style.width = '';
 }
 
 function buildPractice(skeleton){
