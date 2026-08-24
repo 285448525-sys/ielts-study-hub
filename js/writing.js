@@ -158,18 +158,29 @@ function renderTplWrong(sourceId){
 
 function highlight(s){ return escapeHtml(s).replace(/【(.+?)】/g, '【<span class="ph">$1</span>】'); }
 
-// 填空框宽度：用 canvas 按实际文字/placeholder 精确测量，不设 200px 上限
+// 填空框宽度：用隐藏 mirror <span> 按真实渲染字体精确测量，保证随文字增长且不溢出
+let __phMirror = null;
 function fitInput(inp){
-  const t = (inp.value || inp.dataset.ph || '');
-  if(!window.__phCanvas){
-    window.__phCanvas = document.createElement('canvas');
-    window.__phCtx = window.__phCanvas.getContext('2d');
+  if(!__phMirror){
+    __phMirror = document.createElement('span');
+    __phMirror.style.position = 'absolute';
+    __phMirror.style.visibility = 'hidden';
+    __phMirror.style.whiteSpace = 'pre';
+    __phMirror.style.left = '-9999px';
+    __phMirror.style.top = '0';
+    document.body.appendChild(__phMirror);
   }
-  const ctx = window.__phCtx;
-  const style = window.getComputedStyle(inp);
-  ctx.font = style.fontSize + ' ' + style.fontFamily;
-  const textW = ctx.measureText(t || '  ').width;
-  const w = Math.max(textW + 28, 60);   // 留足 padding/buffer，最小 60px
+  const t = (inp.value || inp.dataset.ph || ' ');
+  // 复制输入框的真实字体样式，保证测量与渲染完全一致（canvas 测字体栈会回退默认字体导致偏窄）
+  const cs = window.getComputedStyle(inp);
+  __phMirror.style.font = cs.font;
+  __phMirror.style.fontFamily = cs.fontFamily;
+  __phMirror.style.fontSize = cs.fontSize;
+  __phMirror.style.fontWeight = cs.fontWeight;
+  __phMirror.style.fontStyle = cs.fontStyle;
+  __phMirror.style.letterSpacing = cs.letterSpacing;
+  __phMirror.textContent = t;
+  const w = Math.max(__phMirror.offsetWidth + 16, 60);   // +padding/buffer，最小 60px，不封顶
   inp.style.width = w + 'px';
 }
 
