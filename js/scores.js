@@ -414,6 +414,53 @@ function estimateBand(type, correct, total){
   return null;
 }
 
+/* 从口语页日常练习记录聚合四维度均分。
+   评分机制关闭后新记录可能无 score，但只要旧记录/评分恢复后仍有 score，就可用。
+   返回 { sum, wsum } 对象，标签与 MOCK_TYPES.speaking.parts 一致。 */
+function aggregateSpeakingPracticeScores(){
+  const byPart = {};
+  let totalSum = 0, totalW = 0;
+  (DATA.speaking || []).forEach(s => {
+    if(!s || !s.answers) return;
+    const allAns = Object.values(s.answers);
+    allAns.forEach(a => {
+      (a && a.records || []).forEach(r => {
+        if(!r || !r.score) return;
+        const map = [
+          { k:'fluency',      l:'流利度 Fluency', w:1 },
+          { k:'vocabulary',   l:'词汇 Lexical',   w:1 },
+          { k:'grammar',      l:'语法 Grammar',    w:1 },
+          { k:'pronunciation',l:'发音 Pronunciation', w:1 }
+        ];
+        map.forEach(m => {
+          const v = parseFloat(r.score[m.k]);
+          if(isNaN(v)) return;
+          const p = byPart[m.l] || (byPart[m.l] = { sum:0, wsum:0 });
+          p.sum += v; p.wsum += 1;
+          totalSum += v; totalW += 1;
+        });
+      });
+      // 兼容老数据：a.score 直接挂在答案上（非 records 数组）
+      if(a.score && !Array.isArray(a.records)){
+        const map = [
+          { k:'fluency',      l:'流利度 Fluency', w:1 },
+          { k:'vocabulary',   l:'词汇 Lexical',   w:1 },
+          { k:'grammar',      l:'语法 Grammar',    w:1 },
+          { k:'pronunciation',l:'发音 Pronunciation', w:1 }
+        ];
+        map.forEach(m => {
+          const v = parseFloat(a.score[m.k]);
+          if(isNaN(v)) return;
+          const p = byPart[m.l] || (byPart[m.l] = { sum:0, wsum:0 });
+          p.sum += v; p.wsum += 1;
+          totalSum += v; totalW += 1;
+        });
+      }
+    });
+  });
+  return { byPart, overall: totalW ? { sum: totalSum, wsum: totalW } : null };
+}
+
 function mockAggregate(gran){
   const byType = {}, byPart = {};
   DATA.mockRecords.forEach(r => {
@@ -435,6 +482,24 @@ function mockAggregate(gran){
       }
     });
   });
+
+  // 口语分项模考没数据时，自动回退到口语页日常练习评分
+  const speakingCfg = MOCK_TYPES.speaking;
+  const speakingHasMock = byType.speaking && byType.speaking.wsum > 0;
+  if(!speakingHasMock){
+    const sp = aggregateSpeakingPracticeScores();
+    if(sp.overall){
+      byType.speaking = byType.speaking || { c:0, t:0, sum:0, wsum:0 };
+      byType.speaking.sum += sp.overall.sum;
+      byType.speaking.wsum += sp.overall.wsum;
+      Object.entries(sp.byPart).forEach(([label, p]) => {
+        const key = 'speaking|' + label;
+        const pa = byPart[key] || (byPart[key] = { c:0, t:0, sum:0, wsum:0 });
+        pa.sum += p.sum; pa.wsum += p.wsum;
+      });
+    }
+  }
+
   return { byType, byPart };
 }
 
@@ -442,8 +507,9 @@ function renderMockStats(){
   const gran = $('#mkFilter') ? $('#mkFilter').value : 'all';
   const { byType, byPart } = mockAggregate(gran);
   const keys = Object.keys(MOCK_TYPES);
+  const hasAny = DATA.mockRecords.length > 0 || (aggregateSpeakingPracticeScores().overall != null);
   const tbox = $('#mkTypeStats');
-  if(DATA.mockRecords.length === 0){
+  if(!hasAny){
     tbox.innerHTML = renderEmpty('还没有分项模考记录，录一条就能看题型表现。');
   } else {
     tbox.innerHTML = '<div class="stat-grid">' + keys.map(ty => {
@@ -459,7 +525,7 @@ function renderMockStats(){
     }).join('') + '</div>';
   }
   const pbox = $('#mkPartStats');
-  if(DATA.mockRecords.length === 0){
+  if(!hasAny){
     pbox.innerHTML = renderEmpty('暂无数据。');
   } else {
     pbox.innerHTML = keys.map(ty => {
