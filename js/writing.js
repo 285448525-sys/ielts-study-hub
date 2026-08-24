@@ -526,6 +526,41 @@ function wtComputeWeak(sourceId){
   return map;
 }
 
+// 把文本标准化为纯英文小写单词序列（只看英文单词，标点/下划线/横线/符号全忽略）
+function wtNormalizeWords(text){
+  return (text || '').toLowerCase()
+    .replace(/[^a-z\s]/g, ' ')   // 非字母字符全部换成空格
+    .replace(/\s+/g, ' ').trim()
+    .split(' ').filter(Boolean);
+}
+
+// 兜底过滤 AI 仍可能返回的误判：填空位差异、标准化后无差异、AI 自创 diff
+function wtFilterMistakes(ms, sourceText){
+  return (ms || []).filter(m => {
+    const w = String(m.wrong || '');
+    const r = String(m.right || '');
+    // 1. 模板填空位差异：right 含 ____ 而 wrong 不含 ____，只是没写/多写了填空位
+    if(r.includes('____') && !w.includes('____')) return false;
+    // 2. 标准化后单词序列完全一致 → 忽略（大小写/空格/标点/连字符缺失等）
+    if(wtNormalizeWords(w).join(' ') === wtNormalizeWords(r).join(' ')) return false;
+    // 3. wrong 是 AI 自创 diff（含箭头）
+    if(w.includes('→')) return false;
+    // 4. 用户这边没有实质英文内容，且原句该位置包含可跳过片段（填空位/括号/【】），不算错
+    if(sourceText){
+      const wWords = wtNormalizeWords(w);
+      if(!wWords.length){
+        const sents = wtSplitSentences(sourceText);
+        const idx = Number(m.loc || '0') - 1;
+        if(idx >= 0 && idx < sents.length){
+          const src = sents[idx];
+          if(/____|[（(].*?[）)]|【.*?】/.test(src)) return false;
+        }
+      }
+    }
+    return true;
+  });
+}
+
 let wtDictCurrent = null;   // 当前默写源 {id,title,text}
 let wtDictSentences = [];   // 当前源按句拆分后的句子数组（1-based 与勾选区序号一致）
 let wtDictWeak = {};        // 当前源 loc -> 历史出错次数
@@ -776,8 +811,11 @@ ${JSON.stringify(weakBefore)}` }
       box.innerHTML = '<div class="ts-sec"><h4>AI 返回（非标准格式）</h4><div style="white-space:pre-wrap;font-size:13.5px;line-height:1.8">' + escapeHtml(content) + '</div></div>';
       return;
     }
-    const mistakes = Array.isArray(r.mistakes) ? r.mistakes : [];
-    const overall = r.overall || '核对完成。';
+    const rawMistakes = Array.isArray(r.mistakes) ? r.mistakes : [];
+    // 过滤 AI 仍可能返回的豁免项：大小写/空格/标点/连字符缺失/填空位未填等都不算错
+    const pickedSource = picked.map(o => o.text).join('\n');
+    const mistakes = wtFilterMistakes(rawMistakes, pickedSource);
+    const overall = mistakes.length === 0 ? '太棒了！英文单词序列与原文一致，没有实质差异。' : (r.overall || '核对完成。');
     let html = '<div class="ts-sec"><h4>总体反馈</h4><div style="line-height:1.8">' + escapeHtml(overall) + '</div></div>';
     if(mistakes.length){
       html += '<div class="ts-sec"><h4>差异明细（' + mistakes.length + ' 处）</h4><div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">';
@@ -797,7 +835,7 @@ ${JSON.stringify(weakBefore)}` }
     }
     box.innerHTML = html;
 
-    // 记录到 dictationLogs：把 AI 返回的连续 loc 映射回原模板句编号，保证常错统计准确
+    // 记录到 dictationLogs：把过滤后的连续 loc 映射回原模板句编号，保证常错统计准确
     const mappedMistakes = mistakes.map(m => {
       const k = Number(m.loc);
       return Object.assign({}, m, { loc: String(origByK[k] != null ? origByK[k] : (m.loc || '0')) });
