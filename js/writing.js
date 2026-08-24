@@ -207,9 +207,10 @@ async function hintBlank(btn){
 {"fill":"填进空的英文（不要带括号、不要带句号）","why":"一句中文说明为什么合适、贴什么题"}
 规则：
 1. 必须与模板语境、她已填的其他空的话题一致，不能跑题。
-2. 优先给"按话题领域、能填进空里的实质内容词组"（如 improve work efficiency / reduce carbon emissions / a healthier lifestyle / narrow the wealth gap）——也就是模板之外的"内容搭配"，而不是衔接词/过渡句（模板里 already 自带那些，无需再给）。
+2. 优先给"按话题领域、能填进空里的实质内容词组"（如 get a good job / protect the environment / live a healthy life / help poor people）——也就是模板之外的"内容搭配"，而不是衔接词/过渡句（模板里 already 自带那些，无需再给）。
 3. 不要造长难句，填空就是填空，短而准。
-4. 若空是"观点/话题"类，给一个可替换的名词短语或 -ing 短语。` },
+4. 若空是"观点/话题"类，给一个可替换的名词短语或 -ing 短语。
+5. 【词汇难度硬限制】目标分只要 5.5，所以你给的英文**必须全部是高中（高考）词汇范围内的词**，绝对不许用雅思高级词/学术词/生僻词。判定标准：每个单词都应该是普通高中生认识、能拼写出来的词（如 people / job / money / important / because / improve / environment / health / problem / government / children）。禁止出现以下类型：长词（如 phenomenon / significant / crucial / beneficial / consequently / undermine）、抽象学术词、GRE/雅思词汇。如果某个意思只能用难词表达，就换一种更简单的说法，不要硬塞难词。填进去的词组合必须是她看得懂、自己也能写出来的。` },
     { role:'user', content:
 `模板分类：${t ? t.category : ''}
 模板标题：${t ? t.title : ''}
