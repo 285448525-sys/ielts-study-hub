@@ -47,7 +47,7 @@ function injectNav(){
   const nav = document.getElementById('mainNav');
   if(!nav) return;
   if(DATA.settings && DATA.settings.collapsed) document.body.classList.add('side-collapsed');
-  const current = _hubCurrentFile || (location.pathname.split('/').pop() || 'index.html');
+  const current = _hubCurrentFile || normalizePageFile(location.pathname.split('/').pop() || 'index.html');
   _hubCurrentFile = current;   // 记住真实当前页，供软导航期间被 injectNav 复用（pathname 此时滞后）
   const pageById = id => PAGES.find(p => p.id === id);
 
@@ -367,6 +367,24 @@ function examCountdown(){
 
 function expireStr(ts){ const d=new Date(ts+MED_DURATION_MS); return pad2(d.getHours())+':'+pad2(d.getMinutes()); }
 function pad2(n){ return String(n).padStart(2,'0'); }
+
+/* 日期偏移：输入 'YYYY-MM-DD'，返回 +/- n 天后的 'YYYY-MM-DD'。
+   原在 practice.js，plans.js 软导航时因 practice.js 未加载而崩溃，故上提到 common.js。 */
+function addDays(dateStr, n){
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + n);
+  const p = x => String(x).padStart(2,'0');
+  return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
+}
+
+/* Cloudflare Pages 会开启 Pretty URLs，把 /plans.html 改写成 /plans。
+   软导航与直接访问的 pathname 可能不带 .html，但 PAGES 中统一存 .html。
+   用此函数把文件名标准化，保证高亮匹配不出错。 */
+function normalizePageFile(file){
+  if(!file || file === '/' || file === '') return 'index.html';
+  if(!/\.html$/i.test(file)) return file + '.html';
+  return file;
+}
 
 function statCard(label, value, color){
   return `<div class="stat-card" style="--accent:${color||'var(--primary)'};">
@@ -1182,11 +1200,10 @@ function hubLinkTarget(a){
   if(href.startsWith('#') || href.startsWith('?')) return null;    // 锚点 / 纯查询
   if(/^(https?:)?\/\//i.test(href)) return null;                   // 绝对/协议相对
   if(/^(mailto:|tel:|blob:|data:)/i.test(href)) return null;       // 非站内资源
-  const file = href.split('#')[0].split('?')[0].split('/').pop();
-  if(!file || !/\.html$/i.test(file)) return null;
+  const file = normalizePageFile(href.split('#')[0].split('?')[0].split('/').pop());
   const page = PAGES.find(p => p.file === file);
   if(!page) return null;
-  return { id: page.id, file: page.file, href };
+  return { id: page.id, file: page.file, href: page.file };
 }
 
 function onHubLinkClick(e){
@@ -1202,7 +1219,7 @@ function onHubLinkClick(e){
 }
 
 function onHubPopState(){
-  const file = location.pathname.split('/').pop() || 'index.html';
+  const file = normalizePageFile(location.pathname.split('/').pop() || 'index.html');
   const page = PAGES.find(p => p.file === file);
   if(page) softNavigate({ id: page.id, file: page.file, href: file }, true);
   else location.reload();
