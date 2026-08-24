@@ -1,6 +1,49 @@
 /* 数据层：localStorage 读写与默认数据 */
 const HUB_KEY = 'ielts_study_hub_v1';
 
+/* ⚠️ 登录凭证隔离存储（根治「登录状态/Key/手机号频繁丢失」）：
+   账号凭证（手机号 syncCode / AI Key relayToken / 发音分 pronunciationScore / 自动同步 autoSync）
+   与 _fieldTs 单独镜像到独立的 localStorage 键，与 HUB_KEY 主数据 blob 完全解耦。
+   - 绝不参与 cloud 合并（mergeData 只动 DATA，不碰本键）；
+   - 绝不参与 autoCleanOldBank（该函数只处理 HUB_KEY，不引用本键）；
+   - 主 blob 被任何历史/未来 bug 抹掉时，本键仍完好，加载时自动回填 → 账号永不失联。
+   写入点：hubSave()（覆盖所有保存路径）+ mergeData()（云端合并后）；读取点：hubLoad() + ready 早恢复。 */
+const CREDS_KEY = 'ielts_hub_credentials_v1';
+const CREDS_FIELDS = ['syncCode', 'relayToken', 'pronunciationScore', 'autoSync'];
+function saveCredsMirror(){
+  try{
+    const s = DATA.settings || {};
+    const m = {
+      syncCode: s.syncCode || '',
+      relayToken: s.relayToken || '',
+      pronunciationScore: (s.pronunciationScore != null ? s.pronunciationScore : ''),
+      autoSync: !!s.autoSync,
+      _fieldTs: (s._fieldTs && typeof s._fieldTs === 'object') ? s._fieldTs : {},
+      ts: Date.now()
+    };
+    localStorage.setItem(CREDS_KEY, JSON.stringify(m));
+  }catch(e){}
+}
+function restoreCredsIfMissing(){
+  try{
+    const raw = localStorage.getItem(CREDS_KEY);
+    if(!raw) return;
+    const m = JSON.parse(raw);
+    if(!m || typeof m !== 'object') return;
+    const s = (DATA.settings && typeof DATA.settings === 'object') ? DATA.settings : (DATA.settings = {});
+    let restored = false;
+    for(const f of CREDS_FIELDS){
+      const cur = s[f];
+      const isEmpty = (cur == null || cur === '' || (f === 'pronunciationScore' && cur === ''));
+      if(isEmpty && m[f] != null && m[f] !== ''){ s[f] = m[f]; restored = true; }
+    }
+    if(restored){
+      s._fieldTs = Object.assign({}, (s._fieldTs || {}), (m._fieldTs || {}));
+      hubSave();
+    }
+  }catch(e){}
+}
+
 const MODULES = [
   { id:'vocab', name:'背单词', icon:'📚', color:'#5f86a8', children:[
     { id:'vocab_review', name:'复习单词', icon:'🔁', practice:'flashcard' },
@@ -446,6 +489,9 @@ function hubLoad(){
       } else {
         console.warn('本地数据结构异常，已忽略损坏的存储，沿用默认数据');
       }
+      // 账号凭证自愈：若主 blob 被清空/丢失 syncCode/relayToken（历史 autoClean 等 bug），
+      // 从隔离凭证键回填，保证「登录状态/Key/手机号」跨会话可靠保留、不被意外清除。
+      restoreCredsIfMissing();
     }
     // 兜底：确保所有数组字段非 undefined（极端损坏数据时也不崩）
     const arrayFields = ['sessions','notes','meds','words','plans','corpus','scores','errorbook',
@@ -555,6 +601,7 @@ function hubSave(){
   try{
     DATA._lastSaved = Date.now();   // 记录本机保存时间，供云端下载比对新旧（Bug17）
     localStorage.setItem(HUB_KEY, JSON.stringify(DATA));
+    saveCredsMirror();              // 同步镜像账号凭证到隔离键，确保 Key/手机号永不因主 blob 被清而丢失
   }
   catch(e){ alert('保存失败：浏览器存储不可用，请用「历史/设置」导出备份。'); }
   // 云端自动同步（防抖）：仅当开启且已生成登录码；失败静默，不弹 toast

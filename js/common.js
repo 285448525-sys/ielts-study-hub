@@ -850,6 +850,8 @@ function mergeData(local, cloud){
     changes += ms.changes;
   }
   out.deletedIds = Array.from(deleted);
+  // 合并后同步镜像账号凭证到隔离键（云端可能带来/更新 Key/手机号/发音分，务必落盘镜像）
+  if(typeof saveCredsMirror === 'function') saveCredsMirror();
   return { data: out, changes };
 }
 
@@ -1321,13 +1323,17 @@ function prefetchNeighbors(id){
   });
 }
 
-ready(() => { hubLoad(); injectNav(); applyTheme(); restoreSideScroll(); initSoftNav();
+ready(() => { hubLoad();
+  if(typeof restoreCredsIfMissing === 'function') restoreCredsIfMissing();  // 早恢复：确保登录状态/Key/手机号在云端同步启动前已就位
+  injectNav(); applyTheme(); restoreSideScroll(); initSoftNav();
   registerSW();
-  // 计时保存后刷新侧边栏「今日已学」（侧边栏在所有页面可见，需即时更新）
-  // 计时保存后刷新侧边栏「今日已学」。软导航进行中（_softNavBusy）跳过整条 injectNav，
-  // 否则 runPageScript 内 hubSave→hub:session-saved 会触发 injectNav，按其（此时滞后的）current 把高亮改回旧页。
-  // 软导航结束由 softNavigate 收尾统一 updateActiveNav 断言正确高亮。
-  document.addEventListener('hub:session-saved', () => { if(!_softNavBusy) injectNav(); });
+  // 计时保存后刷新侧边栏「今日已学」（侧边栏在所有页面可见，需即时更新）。
+  // ⚠️ 关键修复（导航高亮闪烁 bug）：原来这里调 injectNav() 会「整条重建侧边栏 nav.innerHTML」，
+  //    而页面 ready→hubSave→hub:session-saved 在软导航收尾后触发该重建，重建瞬间高亮被按「滞后/旧的
+  //    _hubCurrentFile」重算 → 出现「正确→空白→跳回上一模块→再跳回正确」的可见闪烁。
+  //    改为：只刷新计时徽标（renderSideTimer，纯文本更新不重建 DOM），绝不重建侧边栏；
+  //    高亮由 updateActiveNav 专管（只切换 .active class，无重建、无闪烁）。
+  document.addEventListener('hub:session-saved', () => { renderSideTimer(); });
   // 方案1：计时开始/结束/暂停时刷新全局徽标（无需重建整个侧边栏）
   document.addEventListener('hub:timer-state', renderSideTimer);
   // 通用 inner tab 切换：.tab-btn → .tab-panel（按 data-tab 匹配 #tab-<name>）
@@ -1347,7 +1353,7 @@ ready(() => { hubLoad(); injectNav(); applyTheme(); restoreSideScroll(); initSof
   });
 });
 
-function registerSW(){ try{ if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{}); }catch(e){} }
+function registerSW(){ try{ if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js?v=20260824a').catch(()=>{}); }catch(e){} }
 
 // ===== 错句本聚合：从 dictationLogs 提取所有错句，按「标准句 + 错误写法」去重 =====
 // 返回 [{key, sourceId, sourceTitle, right(标准英文), wrong(学生写法), type, note, count(出错次数), lastDate}]
