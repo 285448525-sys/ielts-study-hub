@@ -1232,7 +1232,9 @@ async function softNavigate(t, isPop){
       else setTimeout(res, 0);
     });
     await runPageScript(t.id, doc);                     // 重新执行目标页脚本（复用 ready + 事件绑定）
-    updateActiveNav(t.file);                            // ⚠️ 放 runPageScript 之后：page 脚本可能改写高亮，这里最终断言目标模块
+    // ⚠️ 不再在这里二次 updateActiveNav：点击瞬间(onHubLinkClick)已写好正确高亮，
+    //    page 脚本经代码审计确认不触碰侧栏 .active，二次写只会增加一次无效重绘、
+    //    在重脚本 eval 阻塞主线程后触发“高亮闪一下”的观感。单一写入点 = 零闪烁。
     if(!isPop) history.pushState({ hub: t.id }, '', t.href);
     prefetchNeighbors(t.id);
   }catch(err){

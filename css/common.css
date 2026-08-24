@@ -133,7 +133,9 @@ body{
 .side-group.collapsed .side-group-inner,
 .side-fav.collapsed .side-group-inner{opacity:0;visibility:hidden;transform:translateY(-8px)}
 
-.side-item{display:flex;align-items:center;gap:10px;padding:8px 12px;margin:1px 0;border-radius:12px;color:var(--ink);text-decoration:none;font-size:15px;transition:background .15s,color .15s,transform .15s,opacity .2s ease}
+.side-item{display:flex;align-items:center;gap:10px;padding:8px 12px;margin:1px 0;border-radius:12px;color:var(--ink);text-decoration:none;font-size:15px;transition:background .15s,color .15s,opacity .2s ease}
+/* 高亮态即时生效：避免“绿色块滑动/跳一下”的观感（点击即落在正确项，不做位置/背景过渡动画） */
+.side-item.active{transition:background 0s,color 0s}
 .side-group.collapsed .side-item,.side-fav.collapsed .side-item{opacity:0}
 .side-item:hover{background:var(--surface-2);color:var(--primary)}
 .side-item.active{background:linear-gradient(135deg,var(--primary-bright),var(--primary-d));color:var(--on-primary);box-shadow:var(--shadow-md);font-weight:600}
