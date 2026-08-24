@@ -158,9 +158,19 @@ function renderTplWrong(sourceId){
 
 function highlight(s){ return escapeHtml(s).replace(/【(.+?)】/g, '【<span class="ph">$1</span>】'); }
 
-// 填空框宽度：交给 CSS field-sizing:content，由浏览器按实际文字/placeholder 精确自适应
+// 填空框宽度：用 canvas 按实际文字/placeholder 精确测量，不设 200px 上限
 function fitInput(inp){
-  inp.style.width = '';
+  const t = (inp.value || inp.dataset.ph || '');
+  if(!window.__phCanvas){
+    window.__phCanvas = document.createElement('canvas');
+    window.__phCtx = window.__phCanvas.getContext('2d');
+  }
+  const ctx = window.__phCtx;
+  const style = window.getComputedStyle(inp);
+  ctx.font = style.fontSize + ' ' + style.fontFamily;
+  const textW = ctx.measureText(t || '  ').width;
+  const w = Math.max(textW + 28, 60);   // 留足 padding/buffer，最小 60px
+  inp.style.width = w + 'px';
 }
 
 function buildPractice(skeleton){
