@@ -1216,6 +1216,71 @@ function hideHubLoader(){
   el.classList.remove('show');
   if(_hubLoaderTimer){ clearTimeout(_hubLoaderTimer); _hubLoaderTimer = null; }
 }
+
+/* ===== 全站计时悬浮标签（底部居中 · 跨页常驻） =====
+   - 运行时注入 <body>，所有页面可见；默认 hidden。
+   - 数据源：本页 timer.js 的 window.active（计时页内，含实时暂停累计），
+     或 DATA.activeTimer 云端镜像（跨页 / 其他页也能显示本地计时）。
+   - timer.js 在 开始/暂停/结束/继续 时 dispatch 'hub:timer-state' → 立即同步；
+     另起 1s 间隔持续刷新 elapsed 并自愈（ended 时自动隐藏）。
+   - 只显示「未结束」的活跃计时。 */
+function injectFloatTimer(){
+  if(document.getElementById('floatTimer')) return;
+  const el = document.createElement('div');
+  el.id = 'floatTimer';
+  el.className = 'float-timer';
+  el.setAttribute('hidden', '');
+  el.innerHTML = '<span class="ft-dot"></span>'
+    + '<span id="ft-label" class="ft-label">计时中</span>'
+    + '<span id="ft-time" class="ft-time">00:00:00</span>'
+    + '<button id="ft-stop" class="ft-stop" type="button">结束</button>';
+  document.body.appendChild(el);
+  const stop = document.getElementById('ft-stop');
+  if(stop) stop.addEventListener('click', floatStopTimer);
+}
+function floatTimerSource(){
+  if(window.active && window.active.startTs && !window.active.ended) return window.active;
+  const a = DATA.activeTimer;
+  if(a && !a.ended && a.startTs) return a;
+  return null;
+}
+function floatElapsedSec(src){
+  if(!src || !src.startTs) return 0;
+  const now = Date.now();
+  let pause = Number(src.pauseAccum) || 0;
+  if(src.paused && src.pauseStart) pause += (now - src.pauseStart);
+  let elapsed = (now - src.startTs - pause) / 1000;
+  if(src.paused && src.pauseStart) elapsed = (src.pauseStart - src.startTs - (Number(src.pauseAccum) || 0)) / 1000;
+  return Math.max(0, elapsed);
+}
+function syncFloatTimer(){
+  const src = floatTimerSource();
+  const el = document.getElementById('floatTimer');
+  if(!el) return;
+  if(!src){
+    if(!el.hasAttribute('hidden')) el.setAttribute('hidden', '');
+    return;
+  }
+  const name = src.moduleName || src.subName || '学习';
+  const label = document.getElementById('ft-label');
+  if(label) label.textContent = (src.paused ? name + ' 暂停中' : name + ' 计时中');
+  const t = document.getElementById('ft-time');
+  if(t) t.textContent = (typeof fmtHMS === 'function') ? fmtHMS(floatElapsedSec(src)) : '00:00:00';
+  if(el.hasAttribute('hidden')) el.removeAttribute('hidden');
+}
+function floatStopTimer(){
+  if(typeof window.stopSession === 'function'){ window.stopSession(); return; }
+  // 非计时页：直接跳到计时页，由那里的「结束并保存」正规结算（避免丢失记录）
+  location.href = 'timer.html';
+}
+let _floatTimerInterval = null;
+function initFloatTimer(){
+  injectFloatTimer();
+  syncFloatTimer();                                  // 若已有运行中的计时，立即显示
+  document.addEventListener('hub:timer-state', syncFloatTimer);
+  if(_floatTimerInterval) clearInterval(_floatTimerInterval);
+  _floatTimerInterval = setInterval(syncFloatTimer, 1000);   // 每秒刷新 elapsed + 自愈 ended
+}
 /* 逻辑当前页（文件名的 .html）：软导航期间 location.pathname 滞后于真实目标页
    （pushState 在 runPageScript 之后才执行），若此刻 injectNav 按 pathname 算高亮会回退到旧页。
    故用本变量记录「真实当前页」，updateActiveNav 写入、injectNav 优先读取。 */
@@ -1397,6 +1462,7 @@ function prefetchNeighbors(id){
 ready(() => { hubLoad();
   if(typeof restoreCredsIfMissing === 'function') restoreCredsIfMissing();  // 早恢复：确保登录状态/Key/手机号在云端同步启动前已就位
   injectLoadingOverlay();                              // 注入全站跳转加载遮罩（默认隐藏，点击站内链接时显示）
+  initFloatTimer();                                   // 注入全站计时悬浮标签（跨页常驻，运行中显示）
   injectNav(); applyTheme(); restoreSideScroll(); initSoftNav();
   registerSW();
   // 计时保存后刷新侧边栏「今日已学」（侧边栏在所有页面可见，需即时更新）。

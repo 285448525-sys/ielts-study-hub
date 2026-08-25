@@ -466,6 +466,7 @@ function stopSession(){
     toast('已保存 ' + d.subName + '：学习 ' + fmtHM(durationSec) + (pauseSec > 0 ? ' · 暂停 ' + fmtHM(pauseSec) + ' · 专注度 ' + focusPct + '%' : ''));
   }
 }
+window.stopSession = stopSession;   // 供全站计时悬浮标签的「结束」按钮调用（计时页内）
 
 function updateTimer(){
   if(!window.active) return;
