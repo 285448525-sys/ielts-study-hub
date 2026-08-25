@@ -570,6 +570,24 @@ function hubLoad(){
       const before = DATA.words.length;
       DATA.words = DATA.words.filter(w => w && typeof w.en === 'string' && w.en.trim() !== '');
       if(DATA.words.length !== before){ console.warn('已清洗 ' + (before - DATA.words.length) + ' 个脏词'); hubSave(); }
+      // v1.2 字段默认补全：仅给「非旧格式」词补默认字段，旧格式词（含 mc*）交给 practice.js 的 ensureWordV12 迁移，
+      // 这里不动，避免覆盖 level 导致迁移被跳过。
+      let wdirty = false;
+      DATA.words.forEach(w => {
+        if(!w || typeof w.en !== 'string') return;
+        const isOld = (w.mcInterval != null || w.mcDue != null || w.mcStreak != null || w.mcLapses != null || w.mcLast != null);
+        if(isOld) return;
+        if(w.level == null){ w.level = 0; wdirty = true; }
+        if(w.nextReview == null){ w.nextReview = todayKey(); wdirty = true; }
+        if(w.errTotal == null){ w.errTotal = 0; wdirty = true; }
+        if(w.errStreak == null){ w.errStreak = 0; wdirty = true; }
+        if(w.fuzzyStreak == null){ w.fuzzyStreak = 0; wdirty = true; }
+        if(w.hardWord == null){ w.hardWord = false; wdirty = true; }
+        if(w.okStreak == null){ w.okStreak = 0; wdirty = true; }
+        if(w.keyWord == null){ w.keyWord = false; wdirty = true; }
+        if(w.ts == null){ w.ts = Date.now(); wdirty = true; }
+      });
+      if(wdirty) hubSave();
     }
   }catch(e){ console.warn('读取本地数据失败', e); }
 }

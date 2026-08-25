@@ -743,6 +743,16 @@ function _mergeWords(local, cloud){
     const ne = Math.max(_num(ex.mcEase), _num(w.mcEase)); if(ne !== _num(ex.mcEase)){ ex.mcEase = ne; changed = true; }
     const nd = Math.min(_num(ex.mcDiff), _num(w.mcDiff)); if(nd !== _num(ex.mcDiff)){ ex.mcDiff = nd; changed = true; }
     const ndue = _later(ex.mcDue, w.mcDue); if(ndue !== ex.mcDue){ ex.mcDue = ndue; changed = true; }
+    // ── v1.2 字段合并：level 取更高、间隔日期取更晚、计数取更大、布尔取或 ──
+    const nl = Math.max(_num(ex.level)||0, _num(w.level)||0); if(nl !== (_num(ex.level)||0)){ ex.level = nl; changed = true; }
+    const nrev = _later(ex.nextReview, w.nextReview); if(nrev !== (ex.nextReview||'')){ ex.nextReview = nrev; changed = true; }
+    const nlrev = _later(ex.lastReview, w.lastReview); if(nlrev !== (ex.lastReview||'')){ ex.lastReview = nlrev; changed = true; }
+    const net = Math.max(_num(ex.errTotal)||0, _num(w.errTotal)||0); if(net !== (_num(ex.errTotal)||0)){ ex.errTotal = net; changed = true; }
+    const nest = Math.max(_num(ex.errStreak)||0, _num(w.errStreak)||0); if(nest !== (_num(ex.errStreak)||0)){ ex.errStreak = nest; changed = true; }
+    const nfs = Math.max(_num(ex.fuzzyStreak)||0, _num(w.fuzzyStreak)||0); if(nfs !== (_num(ex.fuzzyStreak)||0)){ ex.fuzzyStreak = nfs; changed = true; }
+    const nos = Math.max(_num(ex.okStreak)||0, _num(w.okStreak)||0); if(nos !== (_num(ex.okStreak)||0)){ ex.okStreak = nos; changed = true; }
+    const nh = !!(ex.hardWord || w.hardWord); if(nh !== !!ex.hardWord){ ex.hardWord = nh; changed = true; }
+    const nkey = !!(ex.keyWord || w.keyWord); if(nkey !== !!ex.keyWord){ ex.keyWord = nkey; changed = true; }
     const cn1 = (ex.cn||'').trim(), cn2 = (w.cn||'').trim();
     const ncn = (cn1 && cn2) ? (cn1.length >= cn2.length ? cn1 : cn2) : (cn1 || cn2);
     if(ncn !== (ex.cn||'').trim()){ ex.cn = ncn; changed = true; }   // 与 trim 后比较，避免首尾空格造成每次误判"更新"
