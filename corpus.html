@@ -27,7 +27,7 @@
 })();
 </script>
 <title>语料 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20260823j" />
+<link rel="stylesheet" href="css/common.css?v=20260825a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=5" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=4">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=4">
@@ -39,7 +39,7 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20260824q"></script>
   <script defer src="js/common.js?v=20260824s"></script>
-  <script src="js/corpus.js?v=20260823k" defer></script>
+  <script src="js/corpus.js?v=20260825a" defer></script>
 <style>
   /* 长难句 / 错题本 样式（原 errorbook.html 内联） */
   .eb-input{width:100%;min-height:190px;padding:14px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;font-size:14.5px;line-height:1.75;background:var(--bg);color:var(--ink);resize:vertical}
@@ -86,13 +86,13 @@
 
   <!-- 三合一：长难句(默认) / 错题本 / 听力默写 -->
   <div class="sub-tabs" id="wordTabs">
-    <button data-sub="ls">长难句</button>
+    <button data-sub="ls" class="active">长难句</button>
     <button data-sub="eb">错题本</button>
-    <button data-sub="dict" class="active">语料表（中英对照）</button>
+    <button data-sub="dict">语料表（中英对照）</button>
   </div>
 
-  <!-- ① 长难句拆解 -->
-  <div id="lsView" hidden>
+  <!-- ① 长难句拆解（默认打开） -->
+  <div id="lsView">
     <section class="card">
       <h2>粘贴长难句</h2>
       <textarea id="sentInput" placeholder="在此粘贴你遇到的长难句，例如：&#10;The theory, which was proposed by a group of researchers who had spent decades observing the species, suggests that the decline is not merely a temporary fluctuation but a sign of a deeper ecological imbalance."></textarea>
@@ -140,8 +140,8 @@
     </section>
   </div>
 
-  <!-- ③ 语料表（中英对照，默认打开） -->
-  <div id="dictView">
+  <!-- ③ 语料表（中英对照，默认关闭） -->
+  <div id="dictView" hidden>
     <section class="card">
       <div class="card-head" style="margin-bottom:10px">
         <h2 style="margin:0">语料表（左中文 · 右英文）</h2>
