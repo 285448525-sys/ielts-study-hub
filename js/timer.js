@@ -427,8 +427,8 @@ function stopSession(){
     if(window.active.paused && window.active.pauseStart) wp += (Date.now() - window.active.pauseStart);
     learnedMs = (endTs - window.active.startTs) - wp;
   }
-  const pauseSec = Math.max(0, Math.round(totalPauseMs));
-  const durationSec = Math.max(0, Math.round(learnedMs));
+  const pauseSec = Math.max(0, Math.round(totalPauseMs / 1000));
+  const durationSec = Math.max(0, Math.round(learnedMs / 1000));
   // 入库去重：同一 timerId 只结算一次（防双端各自结束 → 两段计时叠加进当日统计）
   const already = DATA.sessions.some(s => s.timerId && s.timerId === timerId);
   if(!already && durationSec > 0){
@@ -460,6 +460,7 @@ function stopSession(){
   if(already){
     toast('该段计时已在其他设备结算，本端不再重复记录');
   } else {
+    const totalSec = durationSec + pauseSec;
     const focusPct = totalSec > 0 ? Math.round(durationSec/totalSec*100) : 100;
     toast('已保存 ' + d.subName + '：学习 ' + fmtHM(durationSec) + (pauseSec > 0 ? ' · 暂停 ' + fmtHM(pauseSec) + ' · 专注度 ' + focusPct + '%' : ''));
   }
