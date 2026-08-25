@@ -1199,7 +1199,7 @@ function injectLoadingOverlay(){
   el.id = 'hubLoader';
   el.className = 'hub-loader';
   el.setAttribute('aria-hidden', 'true');
-  el.innerHTML = '<div class="jelly"></div>';
+  el.innerHTML = '<div class="load-reveal"><span>I</span><span>E</span><span>L</span><span>T</span><span>S</span><div class="load-bar"></div><div class="load-sub">Loading</div></div>';
   document.body.appendChild(el);
 }
 let _hubLoaderTimer = null;
