@@ -191,7 +191,8 @@ function buildQueue(){
     ensureWordV12(w);
     return (!w.nextReview || w.nextReview <= today);
   });
-  const overdue = [], forcedList = [], keyDue = [], hardDue = [], normal = [], newToday = [];
+  const overdue = [], forcedList = [], keyDue = [], hardDue = [], normal = [];
+  let newToday = [];
   due.forEach(w => {
     const k = String(w.en).toLowerCase();
     const isOverdue = w.nextReview && w.nextReview < today;
