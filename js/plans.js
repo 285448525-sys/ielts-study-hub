@@ -126,6 +126,11 @@ function toggleItem(id){
 function deleteItem(id){
   const p = getPlan(currentDate()); if(!p) return;
   p.items = p.items.filter(i => i.id !== id);
+  // 登记墓碑：同步合并(_mergePlans)靠 DATA.deletedIds 识别「已删除项」，
+  // 否则云端/另一设备仍含该项的旧副本会在下次拉取时复活（表现为「删了又回来」）。
+  // 其他模块(corpus/dictation/scores/meds/speaking/words/writing 等)删除点都已 push 墓碑，计划模块此前漏了。
+  DATA.deletedIds = DATA.deletedIds || [];
+  if(id != null && !DATA.deletedIds.includes(id)) DATA.deletedIds.push(id);
   hubSave(); render();
 }
 
