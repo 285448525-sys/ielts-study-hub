@@ -1187,6 +1187,35 @@ function ready(fn){ if(document.readyState !== 'loading') fn(); else document.ad
    ========================================================================= */
 let _softNavReady = false;
 let _softNavBusy = false;
+
+/* ===== 全站跳转加载遮罩（果冻水珠 · 纯图案无文字） =====
+   - 运行时注入 <body>，避免每页改 HTML。
+   - 软导航点击站内链接当帧显示，内容切换 + 脚本执行完毕（DOM 就绪）后淡出。
+   - 整页兜底跳转（location.href）时旧页卸载、遮罩随页面消失，新页默认隐藏（无残留）。
+   - 3s 兜底强制隐藏，避免卡死。 */
+function injectLoadingOverlay(){
+  if(document.getElementById('hubLoader')) return;
+  const el = document.createElement('div');
+  el.id = 'hubLoader';
+  el.className = 'hub-loader';
+  el.setAttribute('aria-hidden', 'true');
+  el.innerHTML = '<div class="jelly"></div>';
+  document.body.appendChild(el);
+}
+let _hubLoaderTimer = null;
+function showHubLoader(){
+  const el = document.getElementById('hubLoader');
+  if(!el) return;
+  el.classList.add('show');
+  if(_hubLoaderTimer) clearTimeout(_hubLoaderTimer);
+  _hubLoaderTimer = setTimeout(hideHubLoader, 3000);
+}
+function hideHubLoader(){
+  const el = document.getElementById('hubLoader');
+  if(!el) return;
+  el.classList.remove('show');
+  if(_hubLoaderTimer){ clearTimeout(_hubLoaderTimer); _hubLoaderTimer = null; }
+}
 /* 逻辑当前页（文件名的 .html）：软导航期间 location.pathname 滞后于真实目标页
    （pushState 在 runPageScript 之后才执行），若此刻 injectNav 按 pathname 算高亮会回退到旧页。
    故用本变量记录「真实当前页」，updateActiveNav 写入、injectNav 优先读取。 */
@@ -1225,6 +1254,7 @@ function onHubLinkClick(e){
   updateActiveNav(t.file);       // ⚠️ 关键修复（导航高亮闪烁）：点击瞬间同步高亮目标模块，
                                   //    不等 fetch/脚本执行。否则在「点击→fetch→runPageScript(重脚本 eval)」
                                   //    这段异步窗口里，旧模块高亮仍挂着，表现为「先闪其他模块、再跳回」。
+  showHubLoader();                // 软导航异步窗口（fetch + 重脚本 eval）期间盖住，避免白屏闪烁
   softNavigate(t, false);
 }
 
@@ -1264,11 +1294,13 @@ async function softNavigate(t, isPop){
     //    在重脚本 eval 阻塞主线程后触发“高亮闪一下”的观感。单一写入点 = 零闪烁。
     if(!isPop) history.pushState({ hub: t.id }, '', t.href);
     prefetchNeighbors(t.id);
+    hideHubLoader();                                   // 内容切换 + 脚本执行完毕（DOM 就绪）→ 淡出遮罩
   }catch(err){
     console.warn('[soft-nav] 软切换失败，回退整页跳转：', err);
     location.href = t.href;                            // 兜底：绝不让导航“卡死”
   }finally{
     _softNavBusy = false;
+    hideHubLoader();                                   // 兜底：任何异常路径下都不残留遮罩
   }
 }
 
@@ -1364,6 +1396,7 @@ function prefetchNeighbors(id){
 
 ready(() => { hubLoad();
   if(typeof restoreCredsIfMissing === 'function') restoreCredsIfMissing();  // 早恢复：确保登录状态/Key/手机号在云端同步启动前已就位
+  injectLoadingOverlay();                              // 注入全站跳转加载遮罩（默认隐藏，点击站内链接时显示）
   injectNav(); applyTheme(); restoreSideScroll(); initSoftNav();
   registerSW();
   // 计时保存后刷新侧边栏「今日已学」（侧边栏在所有页面可见，需即时更新）。

@@ -1654,3 +1654,46 @@ body.exam-fullscreen #writeTabs{display:none}
 .dict-sent-pick .dict-sent-item{display:block;margin:3px 0;cursor:pointer}
 .dict-sent-pick .dict-sent-item input{width:15px;height:15px;accent-color:var(--primary);margin-right:4px;cursor:pointer}
 .dict-weak-tag{color:#c2742a;font-weight:700;font-size:12px;margin-left:4px}
+
+/* ===== 全站跳转加载遮罩（果冻水珠 · 纯图案无文字） ===== */
+.hub-loader{
+  position:fixed; inset:0; z-index:9999;
+  display:flex; align-items:center; justify-content:center;
+  background:
+    radial-gradient(1100px 560px at 100% -8%, rgba(58,154,147,.05), transparent 60%),
+    var(--bg);
+  opacity:0;
+  transition:opacity .16s ease;
+  pointer-events:none;
+}
+.hub-loader.show{ opacity:1; pointer-events:auto; }
+.hub-loader .jelly{
+  position:relative; width:64px; height:64px;
+  background:var(--primary);
+  border-radius:60% 40% 55% 45% / 50% 55% 45% 50%;
+  animation:jellyMorph 1.2s ease-in-out infinite, jellyBreath 1.2s ease-in-out infinite;
+  box-shadow:0 10px 30px -8px rgba(58,154,147,.5);
+}
+.hub-loader .jelly::after{
+  content:""; position:absolute; right:-18px; top:8px;
+  width:18px; height:18px; background:var(--primary);
+  border-radius:50%; opacity:.7;
+  animation:jellyEcho 1.2s ease-in-out infinite .6s;
+}
+@keyframes jellyMorph{
+  0%,100%{ border-radius:60% 40% 55% 45% / 50% 55% 45% 50%; }
+  50%{ border-radius:40% 60% 45% 55% / 55% 45% 55% 45%; }
+}
+@keyframes jellyBreath{
+  0%,100%{ transform:scale(1,1); }
+  30%{ transform:scale(1.08,.92); }
+  60%{ transform:scale(.94,1.06); }
+}
+@keyframes jellyEcho{
+  0%,100%{ transform:scale(.9); opacity:.7; }
+  50%{ transform:scale(1.5); opacity:.2; }
+}
+@media (prefers-reduced-motion: reduce){
+  .hub-loader .jelly{ animation:jellyMorph 1.2s ease-in-out infinite; }
+  .hub-loader .jelly::after{ animation:none; }
+}
