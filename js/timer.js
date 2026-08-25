@@ -374,6 +374,7 @@ function startSession(moduleId){
   startTick();
   startHeartbeat();   // 开始续租云端心跳，另一端据 lastBeat 判断本机在线
   renderTimer();
+  renderMiniRecords();   // 开始计时后也刷新一次，确保今日记录区始终与 DATA 同步
   document.dispatchEvent(new CustomEvent('hub:timer-state'));   // 通知全局徽标出现
 }
 
@@ -562,6 +563,8 @@ ready(() => {
     if(!window.active && m && !m.ended && m.timerId && (m.ownerDevice || '') !== getDeviceId()){
       renderRemoteActive();
     }
+    // 云端合并可能带来新的/更新的今日计时记录，刷新记录区
+    renderMiniRecords();
   };
   document.addEventListener('hub:data-merged', window.__timerMerged);
   $('#stopBtn').addEventListener('click', stopSession);
@@ -596,12 +599,14 @@ ready(() => {
     if(localSaved && mirror.timerId && localSaved.timerId === mirror.timerId) clearActive();
     else if(localSaved) clearActive();
     renderTimer();
+    renderMiniRecords();
     return;
   }
 
   // 2) 他人持有且可显示：只读展示（实时 tick，与拥有端一致）
   if(remoteShowable(mirror)){
     renderRemoteActive();
+    renderMiniRecords();
     return;
   }
 
@@ -618,6 +623,7 @@ ready(() => {
       startTick(); startHeartbeat(); updateTimer(); renderTimer();
       window.__timerActive = true;
       toast('已接管离线设备的计时：' + (window.active.moduleName || (mod&&mod.name) || '学习') + (window.active.paused ? '（暂停中）' : ''));
+      renderMiniRecords();
       return;
     }
   }
@@ -629,6 +635,7 @@ ready(() => {
   if(localSaved && localSaved.timerId && DATA.sessions.some(s => s.timerId && s.timerId === localSaved.timerId)){
     clearActive();
     renderTimer();
+    renderMiniRecords();
     return;
   }
 
@@ -676,6 +683,7 @@ ready(() => {
       setModeUI(window.active.mode || 'up');
       toast('检测到跨天计时：已结算昨天 ' + fmtHM(durationSec) + '，并从今天 0 点继续计时');
       startTick(); startHeartbeat(); updateTimer(); renderTimer();
+      renderMiniRecords();
       window.__timerActive = true;
       return;
     }
@@ -701,6 +709,7 @@ ready(() => {
     startTick(); startHeartbeat(); updateTimer(); renderTimer();
     window.__timerActive = true;
     toast('已恢复未结束的计时：' + window.active.moduleName + (window.active.paused ? '（暂停中）' : ''));
+    renderMiniRecords();
     return;
   }
 
