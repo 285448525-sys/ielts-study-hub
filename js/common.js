@@ -1202,7 +1202,14 @@ function injectLoadingOverlay(){
   el.innerHTML = '<div class="load-reveal"><span>I</span><span>E</span><span>L</span><span>T</span><span>S</span><div class="load-bar"></div><div class="load-sub">Loading</div></div>';
   document.body.appendChild(el);
 }
-let _hubLoaderTimer = null;
+/* 遮罩显示策略：
+   - HUB_LOADER_MIN：最短展示，避免软导航极快完成时遮罩「闪一下」像坏了一样；
+   - HUB_LOADER_MAX：安全上限，极端慢网 / 重脚本 eval 卡住时也不残留遮罩（softNavigate 的 finally 也会兜底收起）。 */
+let _hubLoaderHideTimer = null;
+let _hubLoaderMaxTimer = null;
+let _hubLoaderShownAt = 0;
+const HUB_LOADER_MIN = 250;
+const HUB_LOADER_MAX = 5000;
 function showHubLoader(){
   const el = document.getElementById('hubLoader');
   if(!el) return;
@@ -1211,14 +1218,31 @@ function showHubLoader(){
   spans.forEach(s=>{ s.style.animation='none'; });
   void el.offsetWidth; // 强制回流，使下方动画重新从头播放
   spans.forEach(s=>{ s.style.animation=''; });
-  if(_hubLoaderTimer) clearTimeout(_hubLoaderTimer);
-  _hubLoaderTimer = setTimeout(hideHubLoader, 3000);
+  _hubLoaderShownAt = Date.now();
+  if(_hubLoaderHideTimer){ clearTimeout(_hubLoaderHideTimer); _hubLoaderHideTimer = null; }
+  if(_hubLoaderMaxTimer) clearTimeout(_hubLoaderMaxTimer);
+  _hubLoaderMaxTimer = setTimeout(_doHideHubLoader, HUB_LOADER_MAX);
 }
 function hideHubLoader(){
   const el = document.getElementById('hubLoader');
   if(!el) return;
-  el.classList.remove('show');
-  if(_hubLoaderTimer){ clearTimeout(_hubLoaderTimer); _hubLoaderTimer = null; }
+  if(!el.classList.contains('show')){ _clearLoaderTimers(); return; }   // 已收起，忽略重复调用
+  const remain = HUB_LOADER_MIN - (Date.now() - _hubLoaderShownAt);
+  if(remain > 0){                                                      // 未达最短展示，延时收起
+    if(_hubLoaderHideTimer) clearTimeout(_hubLoaderHideTimer);
+    _hubLoaderHideTimer = setTimeout(_doHideHubLoader, remain);
+    return;
+  }
+  _doHideHubLoader();
+}
+function _doHideHubLoader(){
+  const el = document.getElementById('hubLoader');
+  if(el) el.classList.remove('show');
+  _clearLoaderTimers();
+}
+function _clearLoaderTimers(){
+  if(_hubLoaderHideTimer){ clearTimeout(_hubLoaderHideTimer); _hubLoaderHideTimer = null; }
+  if(_hubLoaderMaxTimer){ clearTimeout(_hubLoaderMaxTimer); _hubLoaderMaxTimer = null; }
 }
 
 /* ===== 全站计时悬浮标签（底部居中 · 跨页常驻） =====
@@ -1340,7 +1364,9 @@ async function softNavigate(t, isPop){
   try{
     if(window.matchMedia && window.matchMedia('(max-width:860px)').matches){ document.body.classList.remove('nav-open'); syncNavToggle(); }
     hubClearOrphanPageTimers();   // P0-A：离开旧页前清掉残留的计时/服药轮询心跳，避免软导航重进页面叠加“多个计时器同时跑 / 数字乱跳”
-    const res = await fetch(t.href, { cache: 'no-cache' });
+    // cache:'default' 复用 prefetchNeighbors 预热进 HTTP 缓存的 HTML：未变动页面走 304 近乎瞬时，
+    // 部署后变更页面走 200 拿新 ?v=；避免原 no-cache 每次重新下载、使预取形同虚设。
+    const res = await fetch(t.href, { cache: 'default' });
     if(!res.ok) throw new Error('HTTP ' + res.status);
     const html = await res.text();
     const doc = new DOMParser().parseFromString(html, 'text/html');
