@@ -1207,6 +1207,10 @@ function showHubLoader(){
   const el = document.getElementById('hubLoader');
   if(!el) return;
   el.classList.add('show');
+  const spans = el.querySelectorAll('.load-reveal > span');
+  spans.forEach(s=>{ s.style.animation='none'; });
+  void el.offsetWidth; // 强制回流，使下方动画重新从头播放
+  spans.forEach(s=>{ s.style.animation=''; });
   if(_hubLoaderTimer) clearTimeout(_hubLoaderTimer);
   _hubLoaderTimer = setTimeout(hideHubLoader, 3000);
 }
