@@ -12,6 +12,9 @@ var _speakTimers = [];    // 朗读定时器，必须在 ready() 前初始化
 // 0→1天 1→2天 2→4天 3→7天 4→15天 5→30天 6→60天 7→90天
 var LEVEL_INTERVAL = [1, 2, 4, 7, 15, 30, 60, 90];
 
+// 短线：锁定词当场需连对几次才放过（爱听写式错词重测；用户要求"连对3次才放你走"）
+var STREAK_NEED = 3;
+
 // ======= 全局练习配置（与词库无关）=======
 var PC_DEFAULTS = {
   rate: 0.9,
@@ -88,6 +91,7 @@ function switchWordTab(tab){
 function ensureWordV12(w){
   if(!w) return w;
   if(w.level != null && w.nextReview != null){
+    if(w.cleared == null) w.cleared = !!w.lastReview;  // 已学过的词默认"已达标"(复习对1次即过)；新词需连对3次
     return w;
   }
   let level = 0;
@@ -223,7 +227,8 @@ function autoStartSeeWord(){
     const c = pc();
     const all = buildQueue();
     pq = { mode:'study', queue:[], idx:0, total:0, correct:0, revealed:false, answer:null, wrongList:[],
-           stats:{ known:0, unknown:0 }, counted:new Set(), appended:new Set() };
+           stats:{ known:0, unknown:0 }, counted:new Set(), appended:new Set(),
+           streak:{}, clearedSet:new Set() };
     $('#progBarWrap').hidden = false;
     if(all.length === 0){
       $('#practiceScore').textContent = '';
@@ -281,7 +286,7 @@ function nextQuestion(){
   }
 }
 
-function renderQuestion(cur){
+function renderQuestion(cur, isRehold){
   if(!pq) return;
   pq.answer = cur;
   ensureWordV12(cur);
@@ -292,7 +297,7 @@ function renderQuestion(cur){
   const opts = shuffle([cur, ...pickWrong(cur, optN - 1)]);
 
   let html = '';
-  if(pq.idx > 0){
+  if(pq.idx > 0 && !isRehold){
     const last = pq.queue[pq.idx - 1];
     html += '<div class="last-word">' +
       '<span class="lw-en">' + escapeHtml(last.en) + '</span>' +
@@ -304,6 +309,15 @@ function renderQuestion(cur){
     '<span class="pw-en">' + escapeHtml(cur.en) + '</span>' +
     (cur.ipa ? '<span class="pw-ipa">' + escapeHtml(cur.ipa) + '</span>' : '') +
     '</div>';
+  // 短线进度提示：锁定词（未达标）显示「连对 x/3」
+  const kRR = String(cur.en).toLowerCase();
+  const isLockedRR = !(cur.cleared === true || (pq.clearedSet && pq.clearedSet.has(kRR)));
+  if(isLockedRR){
+    const sRR = (pq.streak && pq.streak[kRR]) || 0;
+    html += '<div class="streak-bar">需连对 <b>' + sRR + '</b>/' + STREAK_NEED +
+      ' ' + [0,1,2].map(i => '<span class="sdot' + (i < sRR ? ' on' : '') + '"></span>').join('') +
+      ' <span class="streak-tip">（满 ' + STREAK_NEED + ' 次才放过）</span></div>';
+  }
   if(cur.cn) html += '<div class="pw-cn" id="pwCn" hidden>' + escapeHtml(cur.cn) + '</div>';
   if(cur.example) html += '<div class="practice-sentence">' + escapeHtml(cur.example).replace(new RegExp('\\b' + escapeRegExp(cur.en) + '\\b'), '<span class="hi">$&</span>') + '</div>';
   html += '<div class="opts-grid" id="opts"></div>';
@@ -351,8 +365,11 @@ function bindOpts(cur){
   });
 }
 
-// 统一处理一次作答（四选一 或 双按钮）。仅 known / unknown 两档，
-// 「不认识」会按记忆曲线降级并重排，记忆曲线由 applyGrade 排程（长线 Leitner）。
+// 统一处理一次作答（四选一 或 双按钮）。仅 known / unknown 两档。
+// 长线记忆曲线由 applyGrade 排程（Leitner）；短线「连对3次才放你走」由本函数控制：
+//  - 锁定词（新词 / 被重新锁定的词）需当场连对 STREAK_NEED 次才过关；
+//  - 已达标(cleared)词复习时对 1 次即过（不用连对3次）；
+//  - 任何一次「不认识」→ 重新锁定，需再连对3次。
 function resolve(cur, grade){
   if(!pq || pq.revealed) return;
   pq.revealed = true;
@@ -368,12 +385,12 @@ function resolve(cur, grade){
   if(right){ right.style.pointerEvents = 'none'; right.disabled = true; }
   const pwCn = document.getElementById('pwCn'); if(pwCn) pwCn.hidden = false;
 
-  // 每词仅计一次
   const k = String(cur.en).toLowerCase();
   if(!pq.counted) pq.counted = new Set();
-  if(!pq.counted.has(k)){ pq.counted.add(k); pq.total++; }
+  if(!pq.counted.has(k)){ pq.counted.add(k); pq.total++; }   // 每词仅计一次
 
-  if(grade === 'known'){ pq.correct++; pq.stats.known++; }
+  // 长线评分
+  if(grade === 'known'){ pq.stats.known++; }
   else {
     pq.stats.unknown++;
     if(!pq.wrongList) pq.wrongList = [];
@@ -381,21 +398,66 @@ function resolve(cur, grade){
   }
   applyGrade(cur, grade);
 
-  // 不认识 → 当日队列末尾追加 1 次复习（再错仅更新不重复追加）
+  // ===== 短线：连对3次才放你走 =====
+  if(!pq.streak) pq.streak = {};
+  if(!pq.clearedSet) pq.clearedSet = new Set();
+  const wasCleared = (cur.cleared === true) || pq.clearedSet.has(k);
+  let pass = false;     // 本题是否让该词过关（进入下一词）
+  let rehold = false;   // 是否当场重测同一词
+
   if(grade === 'unknown'){
-    if(!pq.appended) pq.appended = new Set();
-    if(!pq.appended.has(k)){ pq.appended.add(k); pq.queue.push(cur); }
+    // 错（不认识）→ 重新锁定，需连对3次才能过
+    pq.streak[k] = 0;
+    cur.cleared = false;          // 持久重新锁定
+    pq.clearedSet.delete(k);
+    rehold = true;
+  } else {
+    // 对（认识）
+    if(wasCleared){
+      // 已达标词：复习对1次即过（无需连对3次）
+      pq.clearedSet.add(k);
+      pass = true;
+    } else {
+      // 锁定词：累计连对，满 STREAK_NEED 才过
+      pq.streak[k] = (pq.streak[k] || 0) + 1;
+      if(pq.streak[k] >= STREAK_NEED){
+        pq.clearedSet.add(k);
+        cur.cleared = true;       // 持久标记为已连对达标
+        pass = true;
+      } else {
+        rehold = true;            // 还没够，当场重测
+      }
+    }
   }
+  hubSave();   // 持久化 cur.cleared（达标 / 重新锁定）状态
 
   updateScore();
-  const msg = grade === 'known'
-    ? ('✓ 认识：' + cur.en + (cur.cn ? ' · ' + cur.cn : ''))
-    : ('✗ 不认识：' + cur.en + ' · ' + (cur.cn || '') + '（已加入本次复习末尾）');
-  toast(msg);
+  if(pass){
+    // 过关 → correct 仅最终过关时 +1（保证正确率 ≤100%）
+    if(grade === 'known') pq.correct++;
+    const msg = grade === 'known'
+      ? ('✓ 认识：' + cur.en + (cur.cn ? ' · ' + cur.cn : ''))
+      : ('✗ 不认识：' + cur.en + ' · ' + (cur.cn || '') + '（需连对3次才能过）');
+    toast(msg);
+    advanceAfterPass(cur, grade, c);
+  } else {
+    // 当场重测同一词
+    const remain = STREAK_NEED - (pq.streak[k] || 0);
+    const msg = grade === 'unknown'
+      ? ('✗ 不认识：' + cur.en + ' · ' + (cur.cn || '') + '（已重新锁定，需连对3次）')
+      : ('✓ 对：' + cur.en + '（连对 ' + (pq.streak[k] || 0) + '/' + STREAK_NEED + '，还差 ' + remain + ' 次）');
+    toast(msg);
+    reholdSameWord(cur, grade, c);
+  }
+}
 
-  // 推进
-  if(grade === 'known' && !c.autoNext){
-    // 复用左按钮为「下一题」
+// 过关后推进到下一题（沿用原有 autoNext 行为）
+function advanceAfterPass(cur, grade, c){
+  if(c.autoNext){
+    const delay = (grade === 'known') ? c.autoNextDelay : 1400;
+    setTimeout(() => { if(pq && pq.revealed){ pq.idx++; nextQuestion(); } }, delay);
+  } else {
+    const left = document.getElementById('leftBtn');
     if(left){
       left.className = 'abtn abtn-next';
       left.textContent = '下一题';
@@ -404,10 +466,17 @@ function resolve(cur, grade){
       left.onclick = () => { pq.idx++; nextQuestion(); };
     }
     if(right){ right.style.display = 'none'; }
-  } else {
-    const delay = grade === 'known' ? c.autoNextDelay : c.wrongHoldMs;
-    setTimeout(() => { if(pq && pq.revealed){ pq.idx++; nextQuestion(); } }, delay);
   }
+}
+
+// 当场重测同一词（连对未达标 / 刚被重新锁定）
+function reholdSameWord(cur, grade, c){
+  const delay = (grade === 'unknown') ? c.wrongHoldMs : Math.min(900, c.autoNextDelay || 900);
+  setTimeout(() => {
+    if(!pq || !pq.revealed) return;
+    pq.revealed = false;
+    renderQuestion(cur, true);   // 重渲染同一词，隐藏"上一词"条
+  }, delay);
 }
 
 function finishPractice(){

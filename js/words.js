@@ -36,7 +36,8 @@ function newWordV12(en, cn){
   return {
     id: uid(), en, cn: cn || '', ts: Date.now(),
     level: 0, nextReview: todayKey(), errTotal: 0, errStreak: 0,
-    hardWord: false, okStreak: 0, lastReview: null, keyWord: false
+    hardWord: false, okStreak: 0, lastReview: null, keyWord: false,
+    cleared: false   // 短线：是否曾达成"当场连对3次"。新词=false（需连对3次）；已学过的词迁移时置 true（复习对1次即过）
   };
 }
 
