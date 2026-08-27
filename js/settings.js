@@ -1,24 +1,26 @@
-ready(() => {
-  const s = DATA.settings;
-  $('#sName').value = s.name || '';
-  $('#sExam').value = s.examDate || '';
-  $('#sGoal').value = s.dailyGoalHours || '';
-  $('#sTheme').value = s.theme || 'light';
+// 把当前 DATA.settings 回填到设置页表单（登录合并云端数据后调用，确保「目标分数/每日目标」等可见恢复）
+function populateSettingsForm(){
+  const s = DATA.settings || {};
+  if($('#sName')) $('#sName').value = s.name || '';
+  if($('#sExam')) $('#sExam').value = s.examDate || '';
+  if($('#sGoal')) $('#sGoal').value = s.dailyGoalHours || '';
+  if($('#sTheme')) $('#sTheme').value = s.theme || 'light';
 
   const t = s.targets || {};
-  $('#tOverall').value = t.overall || '';
-  $('#tListening').value = t.listening || '';
-  $('#tReading').value = t.reading || '';
-  $('#tWriting').value = t.writing || '';
-  $('#tSpeaking').value = t.speaking || '';
+  if($('#tOverall')) $('#tOverall').value = t.overall || '';
+  if($('#tListening')) $('#tListening').value = t.listening || '';
+  if($('#tReading')) $('#tReading').value = t.reading || '';
+  if($('#tWriting')) $('#tWriting').value = t.writing || '';
+  if($('#tSpeaking')) $('#tSpeaking').value = t.speaking || '';
 
-  $('#sPron').value = (s.pronunciationScore != null ? s.pronunciationScore : '');
+  if($('#sPron')) $('#sPron').value = (s.pronunciationScore != null ? s.pronunciationScore : '');
+  if($('#sRelayToken')) $('#sRelayToken').value = s.relayToken || '';
+  if($('#sChime')) $('#sChime').checked = s.chimeOnDone !== false;
+  if($('#sSyncCode')) $('#sSyncCode').value = s.syncCode || '';
+}
 
-  $('#sRelayToken').value = s.relayToken || '';
-
-  $('#sChime').checked = DATA.settings.chimeOnDone !== false;
-
-  $('#sSyncCode').value = s.syncCode || '';
+ready(() => {
+  populateSettingsForm();
   renderSyncState();
 
   $('#saveSettings').addEventListener('click', saveSettings);
@@ -42,6 +44,14 @@ ready(() => {
   $('#sSyncCode').addEventListener('keydown', e => { if(e.key === 'Enter') syncLoginOrRegister(); });
   $('#syncDiagBtn').addEventListener('click', () => { syncDiagnose(); });
   $('#syncNowBtn').addEventListener('click', () => { cloudUpload(true, true); });
+
+  // 云端合并完成后回填表单：登录/其他设备同步后，让「目标分数/每日目标」等立即可见。
+  // 若用户正在表单里输入（焦点在某设置输入框），则不覆盖，避免打断输入。
+  document.addEventListener('hub:data-merged', () => {
+    const a = document.activeElement;
+    if(a && a.tagName === 'INPUT' && /^[ts]/.test(a.id || '')) return;
+    populateSettingsForm();
+  });
 });
 
 function saveSettings(){

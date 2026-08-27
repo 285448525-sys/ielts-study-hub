@@ -1062,15 +1062,17 @@ async function syncLoginOrRegister(){
       if(data && data.data){
         const m = mergeData(DATA, data.data);
         DATA = m.data;
+        if(typeof populateSettingsForm === 'function') populateSettingsForm(); // 登录后立即回填「目标分数/每日目标」等表单，无需手动刷新
         enableAutoSyncAfterLogin(phone);
         initCloudSync();   // 登录后补启动轮询拉取，立即能拉到另一端历史/进度
         hubSave();
+        renderAllOnMerge(); // 重渲染当前页（分数对比/计划等）以反映合并后的云端数据
         syncSetStatus('✅ 登录成功，已合并云端数据', 'ok');
         renderSyncState();
         // 注意：不调用 location.reload()——reload 会重新触发 autoClean 清空整个 HUB_KEY，
         // 导致本机未同步的 syncCode 等字段丢失（syncCode 是账号标识，不进同步；relayToken/发音分已纳入 SYNC_SETTINGS_FIELDS 会自动恢复）。
-        // 合并后已 hubSave + 重渲染，页面状态已最新，无需刷新。
-        toast('登录成功，云端数据已合并。若页面显示未更新，手动刷新一次即可。');
+        // 合并后已 hubSave + 重渲染 + 回填表单，页面状态已最新，无需刷新。
+        toast('登录成功，云端数据已合并。目标分数/每日目标等已恢复。');
       } else {
         syncSetStatus('云端返回格式异常', 'error');
       }
