@@ -136,6 +136,22 @@ function sideStopClick(){
   if(document.getElementById('liveTimer') && typeof stopSession === 'function'){ stopSession(); }
   else if(typeof window.stopActiveSession === 'function'){ window.stopActiveSession(); }
 }
+/* 根据 moduleId/subId 补全 moduleName/subName；本地锚点只存 id 没存名字，
+   跨页结束时若直接从 loadActive() 取，会缺名字导致记录显示成「学习」。
+   以后 persistLocalActive 会同时写名字，但旧锚点和异常数据仍靠这里兜底。 */
+function resolveTimerNames(a){
+  if(!a) return { moduleName:'学习', subName:'学习' };
+  let moduleName = a.moduleName || '';
+  let subName = a.subName || '';
+  const mod = (typeof MODULES !== 'undefined') ? MODULES.find(x => x.id === a.moduleId) : null;
+  const child = mod && mod.children ? mod.children.find(c => c.id === a.subId) : null;
+  if(!moduleName && mod) moduleName = mod.name || '';
+  if(!subName){
+    if(child) subName = child.name || '';
+    else if(moduleName) subName = moduleName;
+  }
+  return { moduleName: moduleName || '学习', subName: subName || moduleName || '学习' };
+}
 /* 跨页安全结束：复用 timer.js stopSession 的数据语义，但不依赖计时页 DOM（data.js 全局函数即可完成）。 */
 window.stopActiveSession = function(){
   const a = window.active || (function(){ try{ return loadActive(); }catch(e){ return null; } })();
@@ -151,9 +167,10 @@ window.stopActiveSession = function(){
   const already = DATA.sessions.some(s => s.timerId && s.timerId === a.timerId);
   if(!already && durationSec > 0 && typeof playChime === 'function') playChime();
   if(!already && durationSec > 0){
+    const names = resolveTimerNames(a);
     DATA.sessions.push({
       id: uid(), timerId: a.timerId, date: todayKey(), moduleId: a.moduleId, subId: a.subId,
-      moduleName: a.moduleName, subName: a.subName,
+      moduleName: names.moduleName, subName: names.subName,
       startTs: a.startTs, endTs, durationSec, pauseSec
     });
   }
@@ -171,7 +188,7 @@ window.stopActiveSession = function(){
   if(typeof renderTimer === 'function' && document.getElementById('timerMods')) renderTimer();
   document.dispatchEvent(new CustomEvent('hub:session-saved', { detail: { date: todayKey() } }));
   document.dispatchEvent(new CustomEvent('hub:timer-state'));
-  toast('已保存 ' + a.subName + '：学习 ' + fmtHM(durationSec) + (pauseSec > 0 ? ' · 暂停 ' + fmtHM(pauseSec) : ''));
+  toast('已保存 ' + names.subName + '：学习 ' + fmtHM(durationSec) + (pauseSec > 0 ? ' · 暂停 ' + fmtHM(pauseSec) : ''));
 };
 
 function sideItem(p, current){

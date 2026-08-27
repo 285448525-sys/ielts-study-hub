@@ -1315,13 +1315,19 @@ main .quote{
 .rec-mini .rec-h{margin-bottom:14px}
 .rec-mini-grid{display:flex;flex-direction:column;gap:8px;margin-bottom:6px}
 .rec-mini-item{
-  display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:12px;
+  display:grid;grid-template-columns:1fr auto auto auto;align-items:center;gap:10px;
   background:var(--surface-2);border:1px solid var(--line);border-radius:10px;
-  padding:9px 14px;font-size:13px;
+  padding:9px 12px 9px 14px;font-size:13px;
 }
 .rec-mini-item .rec-mini-mod{font-weight:700;color:var(--ink)}
 .rec-mini-item .rec-mini-dur{color:var(--primary);font-weight:700;font-variant-numeric:tabular-nums}
 .rec-mini-item .rec-mini-time{color:var(--muted);font-variant-numeric:tabular-nums;font-size:12px}
+.rec-mini-del{
+  width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;
+  border:1px solid var(--line);background:var(--bg);color:var(--muted);border-radius:50%;
+  font-size:15px;line-height:1;cursor:pointer;transition:.15s;padding:0;
+}
+.rec-mini-del:hover{border-color:var(--danger);color:var(--danger);background:var(--danger-soft)}
 .rec-mini-cell{
   background:var(--surface-2);border:1px solid var(--line);border-radius:12px;
   padding:10px 8px;text-align:center;

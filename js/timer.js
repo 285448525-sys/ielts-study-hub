@@ -69,6 +69,7 @@ function getDeviceId(){
 function persistLocalActive(){
   if(!window.active) return;
   saveActive({ timerId: window.active.timerId, ownerDevice: window.active.ownerDevice, moduleId: window.active.moduleId, subId: window.active.subId,
+    moduleName: window.active.moduleName, subName: window.active.subName,
     startTs: window.active.startTs, startMonoNs: window.active.startMonoNs || null,
     paused: window.active.paused, pauseStart: window.active.pauseStart, pauseStartMonoNs: window.active.pauseStartMonoNs || null,
     pauseAccum: window.active.pauseAccum, pauseAccumMonoNs: window.active.pauseAccumMonoNs || 0,
@@ -152,8 +153,7 @@ function doneNotify(title, body){
 function renderRemoteActive(){
   const m = DATA.activeTimer;
   if(!remoteShowable(m)) return false;
-  const mod = MODULES.find(x => x.id === m.moduleId);
-  const mName = m.moduleName || (mod && mod.name) || '学习';
+  const mName = resolveTimerNames(m).moduleName;
   $('#activeInfo').innerHTML = '📱 另一设备正在计时：<strong>' + escapeHtml(mName) + '</strong>';
   $('#stopBtn').disabled = true;
   $('#pauseBtn').disabled = true;
@@ -273,7 +273,8 @@ function renderMiniRecords(){
   }
   if(empty) empty.hidden = true;
   grid.innerHTML = list.slice().reverse().map(s => {
-    const name = s.subName || s.moduleName || '学习';
+    const names = resolveTimerNames(s);
+    const name = names.subName || names.moduleName;
     const t = s.startTs ? new Date(s.startTs) : null;
     const hh = t ? String(t.getHours()).padStart(2,'0') : '--';
     const mm = t ? String(t.getMinutes()).padStart(2,'0') : '--';
@@ -281,8 +282,19 @@ function renderMiniRecords(){
       + '<span class="rec-mini-mod">' + escapeHtml(name) + '</span>'
       + '<span class="rec-mini-dur">' + fmtHM(Number(s.durationSec || 0)) + '</span>'
       + '<span class="rec-mini-time">' + hh + ':' + mm + '</span>'
+      + '<button class="rec-mini-del" data-rid="' + (s.id || '') + '" type="button" title="删除本条记录">×</button>'
       + '</div>';
   }).join('');
+  // 绑定删除：单条误记（如「学习」19h）可直接清掉
+  grid.querySelectorAll('.rec-mini-del').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const rid = btn.dataset.rid;
+      if(!rid) return;
+      DATA.sessions = (DATA.sessions || []).filter(s => s.id !== rid);
+      hubSave();
+      renderMiniRecords();
+    });
+  });
 }
 
 function bindStartButtons(){
@@ -525,10 +537,10 @@ function maybeTakeover(){
   if((m.ownerDevice || '') === me) return false;          // 自己拥有：不接管
   if(!shouldTakeover(m)) return false;                    // 他人仍在线或已暂停：不抢
   // 他人离线 → 接管：用镜像数据重建本机 window.active，owner 改为本机
-  const mod = MODULES.find(x => x.id === m.moduleId);
+  const names = resolveTimerNames(m);
   window.active = { timerId: m.timerId, ownerDevice: me,
-    moduleId: m.moduleId, moduleName: m.moduleName || (mod && mod.name) || '学习',
-    subId: m.subId || m.moduleId, subName: m.subName || (mod && mod.name) || '学习',
+    moduleId: m.moduleId, moduleName: names.moduleName,
+    subId: m.subId || m.moduleId, subName: names.subName,
     startTs: _num(m.startTs), startMonoNs: null, paused: !!m.paused, pauseStart: m.pauseStart ? _num(m.pauseStart) : null,
     pauseStartMonoNs: null, pauseAccum: _num(m.pauseAccum), pauseAccumMonoNs: _num(m.pauseAccum),
     targetSec: m.targetSec || null, mode: m.mode || 'up',
@@ -662,22 +674,22 @@ ready(() => {
       const totalSec = Math.max(0, Math.round((endPrev - _num(saved.startTs))/1000));
       const pauseSec = Math.min(totalSec, Math.max(0, Math.round(pPrev/1000)));
       const durationSec = Math.max(0, totalSec - pauseSec);
-      const mName = saved.moduleName || (mod && mod.name) || '学习';
+      const names = resolveTimerNames(saved);
       const already = DATA.sessions.some(s => s.timerId && s.timerId === saved.timerId);
       if(durationSec > 0 && !already){
         DATA.sessions.push({ id: uid(), timerId: saved.timerId || null, date: startDay,
-          moduleId: saved.moduleId, subId: saved.subId || saved.moduleId, moduleName: mName, subName: saved.subName || mName,
+          moduleId: saved.moduleId, subId: saved.subId || saved.moduleId, moduleName: names.moduleName, subName: names.subName,
           startTs: _num(saved.startTs), endTs: endPrev, durationSec, pauseSec });
         hubSave();
       }
       // 今日从 0 点重新计时（owner 改本机）
       window.active = { timerId: saved.timerId || uid(), ownerDevice: me, moduleId: saved.moduleId,
-        moduleName: mName, subId: saved.subId || saved.moduleId, subName: saved.subName || mName,
+        moduleName: names.moduleName, subId: saved.subId || saved.moduleId, subName: names.subName,
         startTs: startOfToday.getTime(), startMonoNs: safeMonoNowNs().toString(), paused: false, pauseStart: null, pauseStartMonoNs: null,
         pauseAccum: 0, pauseAccumMonoNs: 0,
         targetSec: saved.targetSec || null, mode: saved.mode || 'up', updatedAt: Date.now(), lastBeat: Date.now() };
       persistLocalActive(); persistMirror();
-      $('#activeInfo').innerHTML = '<strong>' + mName + '</strong> 进行中';
+      $('#activeInfo').innerHTML = '<strong>' + names.moduleName + '</strong> 进行中';
       $('#stopBtn').disabled = false; $('#pauseBtn').disabled = false;
       $('#pauseBtn').textContent = '暂停'; $('#pauseBtn').className = 'btn';
       if(window.active.targetSec) $('#goalMin').value = Math.round(window.active.targetSec/60);
@@ -689,9 +701,10 @@ ready(() => {
       return;
     }
     // 同日恢复
+    const sameDayNames = resolveTimerNames(saved);
     window.active = { timerId: saved.timerId || uid(), ownerDevice: (saved.ownerDevice || me),
-      moduleId: saved.moduleId, moduleName: saved.moduleName || (mod && mod.name) || '学习',
-      subId: saved.subId || saved.moduleId, subName: saved.subName || (mod && mod.name) || '学习',
+      moduleId: saved.moduleId, moduleName: sameDayNames.moduleName,
+      subId: saved.subId || saved.moduleId, subName: sameDayNames.subName,
       startTs: _num(saved.startTs), startMonoNs: saved.startMonoNs || null,
       paused: !!saved.paused, pauseStart: saved.pauseStart ? _num(saved.pauseStart) : null,
       pauseStartMonoNs: saved.pauseStartMonoNs || null, pauseAccum: _num(saved.pauseAccum),
