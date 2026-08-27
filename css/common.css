@@ -378,12 +378,6 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 .pw-en{font-size:28px;font-weight:700;color:var(--ink);letter-spacing:-.01em}
 .pw-ipa{font-size:15px;font-style:normal;color:var(--muted);font-family:serif}
 .pw-cn{font-size:14px;color:var(--muted)}
-/* 短线：连对进度条 */
-.streak-bar{display:flex;align-items:center;gap:6px;margin:2px 0 14px;font-size:13px;color:var(--muted)}
-.streak-bar b{color:var(--primary);font-size:15px}
-.streak-bar .sdot{width:11px;height:11px;border-radius:50%;border:2px solid var(--primary);display:inline-block;box-sizing:border-box;transition:background .15s}
-.streak-bar .sdot.on{background:var(--primary)}
-.streak-bar .streak-tip{opacity:.75}
 
 /* ── 爱听写风格：句子居中高亮 ── */
 .practice-sentence{text-align:center;font-size:18px;line-height:1.8;color:var(--ink);margin:16px 0 20px;padding:14px;background:var(--surface-2);border-radius:12px}
