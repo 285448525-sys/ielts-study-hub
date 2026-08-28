@@ -1637,6 +1637,21 @@ body.word-fullscreen #studyView.study-view-fit{min-height:100vh}
 body.word-fullscreen .practice-card.practice-card-fit{height:100vh;max-width:none;border-radius:0;margin:0;justify-content:center;padding:24px 28px}
 body.word-fullscreen #practiceBody.practice-body-fit{flex:0 1 auto;justify-content:center}
 body.word-fullscreen .practice-tools-row{border-top:none;padding-top:18px}
+
+/* ── 全屏背词：舒展布局优化 ── */
+body.word-fullscreen .practice-card.practice-card-fit{padding:48px 64px}
+body.word-fullscreen #practiceBody.practice-body-fit .practice-word-area{position:relative;margin-bottom:46px}
+body.word-fullscreen #practiceBody.practice-body-fit .practice-word-head{justify-content:flex-start;align-items:baseline;gap:14px;margin:0;min-height:auto}
+body.word-fullscreen #practiceBody.practice-body-fit .pw-en{font-size:52px;font-weight:800;letter-spacing:-.02em}
+body.word-fullscreen #practiceBody.practice-body-fit .pw-ipa{font-size:18px;margin-left:2px}
+body.word-fullscreen #practiceBody.practice-body-fit .pw-cn{position:absolute;left:0;top:100%;margin-top:10px;font-size:21px;font-weight:800;color:var(--primary-d);letter-spacing:.01em;opacity:0;transform:translateY(-6px);transition:opacity .35s ease,transform .35s ease}
+body.word-fullscreen #practiceBody.practice-body-fit .pw-cn:not([hidden]){opacity:1;transform:translateY(0)}
+body.word-fullscreen #practiceBody.practice-body-fit .practice-sentence{max-width:none;margin:0;text-align:left;font-size:18px;line-height:1.8;color:var(--ink);padding:0;background:none;border-radius:0}
+body.word-fullscreen #practiceBody.practice-body-fit .practice-sentence .hi{color:var(--primary);font-weight:700;background:var(--primary-soft);padding:1px 5px;border-radius:4px}
+body.word-fullscreen #practiceBody.practice-body-fit .opts-grid{gap:16px;margin-top:10px}
+body.word-fullscreen #practiceBody.practice-body-fit .opt-big{padding:22px 26px;min-height:96px}
+body.word-fullscreen #practiceBody.practice-body-fit .opt-big-cn{font-size:18px}
+body.word-fullscreen #practiceBody.practice-body-fit .answer-btns{margin-top:20px}
 @media(max-width:860px){
   body.word-fullscreen .practice-card.practice-card-fit{padding:18px 16px}
 }

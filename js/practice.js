@@ -501,13 +501,15 @@ function renderQuestion(cur, isRehold){
       ' ' + [0,1,2].map(i => '<span class="sdot' + (i < sc ? ' on' : '') + '"></span>').join('') +
       ' <span class="streak-tip">（还差 ' + (SHORT_PASS - sc) + ' 次记牢，隔 ' + nextGap + ' 个词后回考）</span></div>';
   }
-  html += '<div class="practice-word-head">' +
-    '<span class="pw-en">' + escapeHtml(cur.en) + '</span>' +
-    (cur.ipa ? '<span class="pw-ipa">' + escapeHtml(cur.ipa) + '</span>' : '') +
-    (cur.hardWord ? '<span class="hardtag" title="难词：短线回考更密、长线间隔减半">难词</span>' : '') +
-    '<button class="mastered-btn" id="masteredBtn" title="已掌握：从词库删除该词">已掌握</button>' +
-    '</div>';
-  if(cur.cn) html += '<div class="pw-cn" id="pwCn" hidden>' + escapeHtml(cur.cn) + '</div>';
+  html += '<div class="practice-word-area">' +
+    '<div class="practice-word-head">' +
+      '<span class="pw-en">' + escapeHtml(cur.en) + '</span>' +
+      (cur.ipa ? '<span class="pw-ipa">' + escapeHtml(cur.ipa) + '</span>' : '') +
+      (cur.hardWord ? '<span class="hardtag" title="难词：短线回考更密、长线间隔减半">难词</span>' : '') +
+      '<button class="mastered-btn" id="masteredBtn" title="已掌握：从词库删除该词">已掌握</button>' +
+    '</div>' +
+    (cur.cn ? '<div class="pw-cn" id="pwCn" hidden>' + escapeHtml(cur.cn) + '</div>' : '') +
+  '</div>';
   if(cur.example) html += '<div class="practice-sentence">' + escapeHtml(cur.example).replace(new RegExp('\\b' + escapeRegExp(cur.en) + '\\b'), '<span class="hi">$&</span>') + '</div>';
   html += '<div class="opts-grid" id="opts"></div>';
   // 单一「不认识」按钮（选对/选错由 4 选项直接判定；只有完全不会才点它）
