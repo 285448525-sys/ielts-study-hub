@@ -328,6 +328,26 @@ function resetPractice(){
   autoStartSeeWord();
 }
 
+function setWordFullscreen(on){
+  if(on){
+    document.body.classList.add('word-fullscreen');
+  } else {
+    document.body.classList.remove('word-fullscreen');
+  }
+  const btn = $('#fullscreenBtn');
+  if(!btn) return;
+  if(on){
+    btn.title = '退出全屏';
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px" aria-hidden="true"><path d="M4 8V5a2 2 0 0 1 2-2h3m0 18H6a2 2 0 0 1-2-2v-3m18-3v3a2 2 0 0 1-2 2h-3m0-18h3a2 2 0 0 1 2 2v3"/></svg>退出';
+  } else {
+    btn.title = '全屏沉浸式背单词';
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>全屏';
+  }
+}
+function toggleWordFullscreen(){
+  setWordFullscreen(!document.body.classList.contains('word-fullscreen'));
+}
+
 function masterWord(cur){
   if(!pq || !cur) return;
   const k = String(cur.en || '').trim().toLowerCase();
@@ -777,7 +797,14 @@ ready(() => {
   document.querySelectorAll('.wtab').forEach(b => {
     b.addEventListener('click', () => switchWordTab(b.dataset.wtab));
   });
-  $('#exitPractice').addEventListener('click', autoStartSeeWord);
+  const fsBtn = $('#fullscreenBtn');
+  if(fsBtn) fsBtn.addEventListener('click', () => toggleWordFullscreen());
+  // ESC / F11 退出全屏
+  document.addEventListener('keydown', e => {
+    if(e.key === 'Escape' && document.body.classList.contains('word-fullscreen')){
+      setWordFullscreen(false);
+    }
+  });
   $('#cfgGear').addEventListener('click', () => {
     $('#cfgModal').hidden = false;
     renderCfgModal();

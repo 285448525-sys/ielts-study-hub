@@ -1613,6 +1613,21 @@ main.container{padding-top:20px}
 .ms-sum-freq{font-size:13px;color:var(--ink-soft);line-height:1.6}
 .ms-sum-advice{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.6}
 
+/* ===== 单词 · 全屏沉浸式背词 ===== */
+body.word-fullscreen{padding-left:0 !important;padding-right:0 !important}
+body.word-fullscreen .top-nav{display:none !important}
+body.word-fullscreen .side-collapse{display:none !important}
+body.word-fullscreen main.container{padding:0 !important;max-width:none !important;height:100vh;display:flex;flex-direction:column;justify-content:center}
+body.word-fullscreen .page-title{display:none}
+body.word-fullscreen .word-tabs{display:none}
+body.word-fullscreen #studyView.study-view-fit{min-height:100vh}
+body.word-fullscreen .practice-card.practice-card-fit{height:100vh;max-width:none;border-radius:0;margin:0;justify-content:center;padding:24px 28px}
+body.word-fullscreen #practiceBody.practice-body-fit{flex:0 1 auto;justify-content:center}
+body.word-fullscreen .practice-tools-row{border-top:none;padding-top:18px}
+@media(max-width:860px){
+  body.word-fullscreen .practice-card.practice-card-fit{padding:18px 16px}
+}
+
 /* ===== 写作真题 · 全屏沉浸式练习页 ===== */
 body.exam-fullscreen{padding-left:0 !important;padding-right:0 !important}
 body.exam-fullscreen .top-nav{display:none !important}
