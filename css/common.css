@@ -1638,20 +1638,104 @@ body.word-fullscreen .practice-card.practice-card-fit{height:100vh;max-width:non
 body.word-fullscreen #practiceBody.practice-body-fit{flex:0 1 auto;justify-content:center}
 body.word-fullscreen .practice-tools-row{border-top:none;padding-top:18px}
 
-/* ── 全屏背词：舒展布局优化 ── */
-body.word-fullscreen .practice-card.practice-card-fit{padding:48px 64px}
-body.word-fullscreen #practiceBody.practice-body-fit .practice-word-area{position:relative;margin-bottom:46px}
-body.word-fullscreen #practiceBody.practice-body-fit .practice-word-head{justify-content:flex-start;align-items:baseline;gap:14px;margin:0;min-height:auto}
-body.word-fullscreen #practiceBody.practice-body-fit .pw-en{font-size:52px;font-weight:800;letter-spacing:-.02em}
-body.word-fullscreen #practiceBody.practice-body-fit .pw-ipa{font-size:18px;margin-left:2px}
-body.word-fullscreen #practiceBody.practice-body-fit .pw-cn{position:absolute;left:0;top:100%;margin-top:10px;font-size:21px;font-weight:800;color:var(--primary-d);letter-spacing:.01em;opacity:0;transform:translateY(-6px);transition:opacity .35s ease,transform .35s ease}
-body.word-fullscreen #practiceBody.practice-body-fit .pw-cn:not([hidden]){opacity:1;transform:translateY(0)}
-body.word-fullscreen #practiceBody.practice-body-fit .practice-sentence{max-width:none;margin:0;text-align:left;font-size:18px;line-height:1.8;color:var(--ink);padding:0;background:none;border-radius:0}
-body.word-fullscreen #practiceBody.practice-body-fit .practice-sentence .hi{color:var(--primary);font-weight:700;background:var(--primary-soft);padding:1px 5px;border-radius:4px}
-body.word-fullscreen #practiceBody.practice-body-fit .opts-grid{gap:16px;margin-top:10px}
-body.word-fullscreen #practiceBody.practice-body-fit .opt-big{padding:22px 26px;min-height:96px}
-body.word-fullscreen #practiceBody.practice-body-fit .opt-big-cn{font-size:18px}
-body.word-fullscreen #practiceBody.practice-body-fit .answer-btns{margin-top:20px}
+/* ── 全屏背词 · 完整视觉（= 预览方案A） ── */
+
+/* 卡片容器：渐变暖白背景 + 大留白 */
+body.word-fullscreen .practice-card.practice-card-fit{
+  padding:44px 56px;
+  background:linear-gradient(165deg,#fafdfc 0%,#f0f5f3 50%,#eaf2ef 100%);
+}
+
+/* 单词区：左对齐 + 星标间距 */
+body.word-fullscreen #practiceBody.practice-body-fit .practice-word-area{
+  position:relative;margin-bottom:42px;
+}
+body.word-fullscreen #practiceBody.practice-body-fit .practice-word-head{
+  justify-content:flex-start;align-items:flex-start;gap:16px;margin:0;min-height:auto;
+}
+/* ★ 星标：橙色圆圈（复用现有 mastered-btn 旁的视觉逻辑，但这里给单词区）*/
+body.word-fullscreen #practiceBody.practice-body-fit .pw-en{
+  font-size:54px;font-weight:800;letter-spacing:-.02em;line-height:1.15;
+}
+/* 音标 + 词性标签：一行跟在单词下方 */
+body.word-fullscreen #practiceBody.practice-body-fit .pw-ipa{
+  font-size:18px;color:var(--muted);margin-left:0;font-style:normal;
+}
+body.word-fullscreen #practiceBody.practice-body-fit .hardtag{
+  display:inline-block;font-size:14px;font-weight:700;color:var(--primary);
+  background:var(--primary-soft);padding:2px 8px;border-radius:4px;margin-left:6px;
+}
+
+/* 中文释义：绝对定位浮在预留空间 → 点选项后淡入不挤布局 */
+body.word-fullscreen #practiceBody.practice-body-fit .pw-cn{
+  position:absolute;left:54px;top:100%;margin-top:8px;
+  font-size:21px;font-weight:800;color:var(--primary-d);letter-spacing:.01em;
+  opacity:0;transform:translateY(-6px);
+  transition:opacity .35s ease,transform .35s ease;pointer-events:none;
+}
+body.word-fullscreen #practiceBody.practice-body-fit .pw-cn:not([hidden]){
+  opacity:1;transform:translateY(0);
+}
+
+/* 例句：去掉白块背景，直接一行 */
+body.word-fullscreen #practiceBody.practice-body-fit .practice-sentence{
+  max-width:none;margin:0;text-align:left;font-size:17px;
+  line-height:1.75;color:var(--ink);padding:0;background:none;border-radius:0;
+}
+body.word-fullscreen #practiceBody.practice-body-fit .practice-sentence .hi{
+  color:var(--primary);font-weight:700;background:var(--primary-soft);
+  padding:1px 5px;border-radius:4px;
+}
+
+/* 「选择正确释义」引导语（由JS注入，这里只写样式） */
+body.word-fullscreen #practiceBody.practice-body-fit .opts-label{
+  font-size:13px;font-weight:700;color:var(--muted);
+  margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em;
+}
+
+/* 选项卡：大间距 + 左上角词性标签 + hover上浮 */
+body.word-fullscreen #practiceBody.practice-body-fit .opts-grid{
+  gap:14px;margin-top:0;
+}
+body.word-fullscreen #practiceBody.practice-body-fit .opt-big{
+  padding:20px 24px;min-height:96px;
+  justify-content:flex-start;align-items:flex-start;flex-direction:column;gap:4px;
+  border:1.5px solid var(--line);border-radius:14px;
+  background:var(--surface);
+  transition:.18s;
+}
+body.word-fullscreen #practiceBody.practice-body-fit .opt-big:hover{
+  border-color:var(--primary);transform:translateY(-2px);
+  box-shadow:0 6px 20px rgba(58,154,147,.1);
+}
+/* 词性标签 n./v. */
+body.word-fullscreen #practiceBody.practice-body-fit .opt-big-tag{
+  font-size:12px;font-weight:700;color:var(--primary);
+}
+/* 释义文字 */
+body.word-fullscreen #practiceBody.practice-body-fit .opt-big-cn{
+  font-size:16px;font-weight:600;color:var(--ink);line-height:1.5;
+}
+
+/* 「完全不认识」：虚线轻量按钮（非粉色实心） */
+body.word-fullscreen #practiceBody.practice-body-fit .answer-btns{margin-top:4px}
+body.word-fullscreen #practiceBody.practice-body-fit .abtn-unknown{
+  width:100%;padding:16px;border:2px dashed var(--line);
+  border-radius:14px;background:transparent;color:var(--muted);
+  font-size:15px;font-weight:600;cursor:pointer;
+}
+body.word-fullscreen #practiceBody.practice-body-fit .abtn-unknown:hover{
+  border-color:var(--muted);color:var(--ink);background:rgba(0,0,0,.02);
+}
+
+/* 已掌握按钮：绿色描边圆角药丸 */
+body.word-fullscreen #practiceBody.practice-body-fit .mastered-btn{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:7px 16px;border-radius:20px;
+  border:1.5px solid #22c55e;
+  background:rgba(34,197,94,.06);color:#22c55e;
+  font-size:13px;font-weight:700;
+}
 @media(max-width:860px){
   body.word-fullscreen .practice-card.practice-card-fit{padding:18px 16px}
 }
