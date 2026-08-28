@@ -37,6 +37,8 @@
     if (saveBtn) saveBtn.addEventListener('click', () => {
       DATA.settings = DATA.settings || {};
       DATA.settings.examDate = ed.value;
+      // 清空历史多场日程数组：避免旧 examDates 里的 09-13 等日期幽灵复出，覆盖用户刚设的下次考试日期
+      if(ed.value) DATA.settings.examDates = [];
       hubSave();
       renderCd();
       toast(ed.value ? ('已保存下次考试日期：' + ed.value) : '已清除考试日期');

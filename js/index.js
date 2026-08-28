@@ -48,7 +48,7 @@ function renderDashV6(){
       numEl.innerHTML = '<span class="big">'+cd.daysLeft+'</span><span class="unit">天</span>';
       const done = totalDays - cd.daysLeft;
       if(statNumEl) statNumEl.textContent = done;
-      if(footEl) footEl.textContent = '跑道进度 '+Math.min(100,Math.round(done/totalDays*100))+'% · 09-13 终考冲刺中';
+      if(footEl) footEl.textContent = '跑道进度 '+Math.min(100,Math.round(done/totalDays*100))+'% · '+cd.md+' 终考冲刺中';
     } else {
       numEl.innerHTML = '<span class="big">已过</span>';
       if(statNumEl) statNumEl.textContent = totalDays;

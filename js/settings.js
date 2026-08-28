@@ -57,6 +57,8 @@ ready(() => {
 function saveSettings(){
   DATA.settings.name = $('#sName').value.trim();
   DATA.settings.examDate = $('#sExam').value;
+  // 清空历史多场日程数组：旧的 examDates 会覆盖单个 examDate，导致首页倒计时显示过期日期
+  if(DATA.settings.examDate) DATA.settings.examDates = [];
   DATA.settings.dailyGoalHours = parseFloat($('#sGoal').value) || 0;
   DATA.settings.theme = $('#sTheme').value;
   DATA.settings.targets = {

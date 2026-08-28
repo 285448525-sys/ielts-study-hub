@@ -353,14 +353,21 @@ function daysUntil(dateStr){
   return Math.ceil((d - now) / 86400000);
 }
 
-/* 取"下一次考试"：优先 examDates 数组（多场日程），回退单个 examDate。
+/* 取"下一次考试"：优先用户显式设置的单个 examDate，再回退 examDates 数组（多场日程）。
    选今天及之后最早的一场；若全部已过，返回最近一场（供"已结束"提示）。 */
 function nextExamDate(){
   const today0 = new Date(); today0.setHours(0,0,0,0);
-  const arr = [];
-  const push = v => { if(!v) return; const d = new Date(v + 'T00:00:00'); if(isNaN(d)) return; arr.push({ raw:v, d }); };
-  (DATA.settings.examDates || []).forEach(push);
-  push(DATA.settings.examDate);
+  const push = v => { if(!v) return null; const d = new Date(v + 'T00:00:00'); if(isNaN(d)) return null; return { raw:v, d }; };
+
+  // 用户通过「设置/回顾」显式设置的"下次考试日期"优先级最高
+  const single = push(DATA.settings.examDate);
+  if(single){
+    if(single.d >= today0) return { raw:single.raw, passed:false };
+    return { raw:single.raw, passed:true };
+  }
+
+  // 回退到历史多场日程
+  const arr = (DATA.settings.examDates || []).map(push).filter(Boolean);
   if(arr.length === 0) return null;
   const upcoming = arr.filter(x => x.d >= today0).sort((a,b) => a.d - b.d);
   if(upcoming.length) return { raw: upcoming[0].raw, passed:false };
