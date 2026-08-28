@@ -3,6 +3,14 @@ function populateSettingsForm(){
   const s = DATA.settings || {};
   if($('#sName')) $('#sName').value = s.name || '';
   if($('#sExam')) $('#sExam').value = s.examDate || '';
+  // 考试日期倒计时显示（从回顾页移来）
+  const cdEl2 = document.getElementById('settingsCountdown');
+  if(cdEl2 && typeof examCountdown === 'function'){
+    const cd = examCountdown();
+    cdEl2.textContent = cd.hasExam ? ('距考试 ' + cd.label) : '';
+    cdEl2.style.background = cd.hasExam ? 'var(--primary-soft)' : 'transparent';
+    cdEl2.style.color = cd.hasExam ? 'var(--primary)' : 'var(--muted)';
+  }
   if($('#sGoal')) $('#sGoal').value = s.dailyGoalHours || '';
   if($('#sTheme')) $('#sTheme').value = s.theme || 'light';
 
@@ -77,6 +85,14 @@ function saveSettings(){
   DATA.settings._fieldTs = DATA.settings._fieldTs || {};
   ['name','examDate','dailyGoalHours','theme','targets','syncCode','autoSync','pronunciationScore','chimeOnDone'].forEach(f => { DATA.settings._fieldTs[f] = now; });
   hubSave(); applyTheme();
+  // 刷新考试倒计时显示（重新查元素：cdEl2 是 populateSettingsForm 的局部变量，此处不可跨函数访问）
+  const cdEl2 = document.getElementById('settingsCountdown');
+  if(cdEl2 && typeof examCountdown === 'function'){
+    const cd2 = examCountdown();
+    cdEl2.textContent = cd2.hasExam ? ('距考试 ' + cd2.label) : '';
+    cdEl2.style.background = cd2.hasExam ? 'var(--primary-soft)' : 'transparent';
+    cdEl2.style.color = cd2.hasExam ? 'var(--primary)' : 'var(--muted)';
+  }
   if(DATA.settings.syncCode) scheduleCloudUpload();   // 已登录则立即同步（含发音分等）到云端
   toast('设置已保存（已同步云端）');
 }

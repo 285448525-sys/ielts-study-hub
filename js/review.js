@@ -21,27 +21,4 @@
   // 口语单题日常练习沉淀（Feature A）：加载并渲染回顾页新增 section
   await load('speaking-practice.js');
   if (typeof window.renderSpeakingPractice === 'function') window.renderSpeakingPractice();
-
-  // 下次考试日期（回顾页快捷设置）：写入 DATA.settings.examDate，复用首页倒计时
-  const ed = document.getElementById('reviewExamDate');
-  if (ed) {
-    ed.value = (DATA.settings && DATA.settings.examDate) || '';
-    const cdEl = document.getElementById('examCountdownText');
-    const renderCd = () => {
-      if (!cdEl || typeof examCountdown !== 'function') return;
-      const cd = examCountdown();
-      cdEl.textContent = cd.hasExam ? ('距考试 ' + cd.label) : '未设置';
-    };
-    renderCd();
-    const saveBtn = document.getElementById('saveExamDate');
-    if (saveBtn) saveBtn.addEventListener('click', () => {
-      DATA.settings = DATA.settings || {};
-      DATA.settings.examDate = ed.value;
-      // 清空历史多场日程数组：避免旧 examDates 里的 09-13 等日期幽灵复出，覆盖用户刚设的下次考试日期
-      if(ed.value) DATA.settings.examDates = [];
-      hubSave();
-      renderCd();
-      toast(ed.value ? ('已保存下次考试日期：' + ed.value) : '已清除考试日期');
-    });
-  }
 })();

@@ -1286,6 +1286,32 @@ function _clearLoaderTimers(){
   if(_hubLoaderMaxTimer){ clearTimeout(_hubLoaderMaxTimer); _hubLoaderMaxTimer = null; }
 }
 
+/* ===== 首屏启动遮罩（覆盖硬刷新 / 整页跳转的卡顿） =====
+   说明：上面的 #hubLoader 是「软导航」遮罩，由 JS 注入、仅在点击站内链接时显示。
+   但它赶不上 Ctrl+F5 / 整页跳转——那种情况下 JS 还没跑、body 还是空的，卡顿完全没遮住。
+   所以各页面 HTML 里直接内联了一个 #bootLoader（含内联 <style>，首字节即渲染），
+   本函数负责在「页面真正可用」后把它收起，并对任何卡死情况兜底。
+   - window.load：所有子资源（脚本/样式/字体/图片）就绪，覆盖整段硬刷新卡顿；
+   - 8s 安全上限：极端情况 load 不触发也不残留；
+   - 暴露 window.__hubBootDone：若某页要在自己的重脚本跑完后才收起，可主动调用。 */
+function _finishBootLoader(){
+  var el = document.getElementById('bootLoader');
+  if(!el || el.dataset.done) return;
+  el.dataset.done = '1';
+  el.classList.add('hide');
+  setTimeout(function(){ if(el && el.parentNode) el.parentNode.removeChild(el); }, 400);
+}
+function initBootLoader(){
+  var el = document.getElementById('bootLoader');
+  if(!el) return;
+  window.__hubBootDone = _finishBootLoader;
+  if(document.readyState === 'complete'){ _finishBootLoader(); }
+  else {
+    window.addEventListener('load', _finishBootLoader, { once:true });
+    setTimeout(_finishBootLoader, 8000);   // 兜底：绝不卡死在遮罩上
+  }
+}
+
 /* ===== 全站计时悬浮标签（底部居中 · 跨页常驻） =====
    - 运行时注入 <body>，所有页面可见；默认 hidden。
    - 数据源：本页 timer.js 的 window.active（计时页内，含实时暂停累计），
@@ -1533,6 +1559,7 @@ function prefetchNeighbors(id){
 ready(() => { hubLoad();
   if(typeof restoreCredsIfMissing === 'function') restoreCredsIfMissing();  // 早恢复：确保登录状态/Key/手机号在云端同步启动前已就位
   injectLoadingOverlay();                              // 注入全站跳转加载遮罩（默认隐藏，点击站内链接时显示）
+  initBootLoader();                                    // 收起首屏内联遮罩（覆盖 Ctrl+F5 / 整页跳转的卡顿）
   initFloatTimer();                                   // 注入全站计时悬浮标签（跨页常驻，运行中显示）
   injectNav(); applyTheme(); restoreSideScroll(); initSoftNav();
   registerSW();

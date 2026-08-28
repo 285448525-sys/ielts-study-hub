@@ -18,10 +18,27 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20260824q"></script>
-  <script defer src="js/common.js?v=20260828f"></script>
+  <script defer src="js/common.js?v=20260828p"></script>
   <script src="js/settings.js?v=20260828f" defer></script>
+<style id="bootLoaderStyle">
+#bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
+#bootLoader.hide{opacity:0;pointer-events:none}
+#bootLoader .load-reveal{text-align:center}
+#bootLoader .load-reveal>span{font-size:58px;font-weight:800;color:var(--ink,#173a39);display:inline-block;opacity:0;animation:eFade 1.8s cubic-bezier(.2,.7,.2,1) forwards}
+#bootLoader .load-reveal>span:nth-child(1){animation-delay:0s}
+#bootLoader .load-reveal>span:nth-child(2){animation-delay:.12s}
+#bootLoader .load-reveal>span:nth-child(3){animation-delay:.24s}
+#bootLoader .load-reveal>span:nth-child(4){animation-delay:.36s}
+#bootLoader .load-reveal>span:nth-child(5){animation-delay:.48s}
+@keyframes eFade{0%{opacity:0;transform:translateY(14px);filter:blur(6px)}100%{opacity:1;transform:translateY(0);filter:blur(0)}}
+#bootLoader .load-bar{width:180px;height:3px;margin:18px auto 0;border-radius:3px;background:linear-gradient(90deg,var(--primary,#3a9a93),transparent);background-size:55% 100%;background-repeat:no-repeat;animation:eLoad 1.7s cubic-bezier(.4,0,.2,1) infinite}
+@keyframes eLoad{0%{background-position:-100px 0}100%{background-position:240px 0}}
+#bootLoader .load-sub{margin-top:12px;font-size:12.5px;color:var(--muted,#6b7d7c);letter-spacing:.3em;text-transform:uppercase}
+@media (prefers-reduced-motion: reduce){#bootLoader .load-reveal>span{animation:none;opacity:1;filter:none}#bootLoader .load-bar{animation:none}}
+</style>
 </head>
 <body>
+<div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="load-reveal"><span>I</span><span>E</span><span>L</span><span>T</span><span>S</span><div class="load-bar"></div><div class="load-sub">Loading</div></div></div>
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 
 <main class="container">
@@ -31,7 +48,12 @@
     <h2>基本信息</h2>
     <div class="form-row">
       <div><label>昵称</label><input id="sName" /></div>
-      <div><label>考试日期</label><input id="sExam" type="date" /></div>
+      <div><label>下次考试日期</label>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input id="sExam" type="date" />
+          <span id="settingsCountdown" class="badge" style="font-size:12.5px;white-space:nowrap"></span>
+        </div>
+      </div>
       <div><label>每日目标（小时）</label><input id="sGoal" type="number" min="1" max="16" /></div>
     </div>
     <div class="form-row">
