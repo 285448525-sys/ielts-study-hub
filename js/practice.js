@@ -504,11 +504,13 @@ function renderQuestion(cur, isRehold){
       ' <span class="streak-tip">（还差 ' + (SHORT_PASS - sc) + ' 次记牢，隔 ' + nextGap + ' 个词后回考）</span></div>';
   }
   html += '<div class="practice-word-area">' +
+    '<button class="mastered-btn" id="masteredBtn" title="已掌握：从词库删除该词">已掌握</button>' +
     '<div class="practice-word-head">' +
-      '<span class="pw-en">' + escapeHtml(cur.en) + '</span>' +
-      (cur.ipa ? '<span class="pw-ipa">' + escapeHtml(cur.ipa) + '</span>' : '') +
-      (cur.hardWord ? '<span class="hardtag" title="难词：短线回考更密、长线间隔减半">难词</span>' : '') +
-      '<button class="mastered-btn" id="masteredBtn" title="已掌握：从词库删除该词">已掌握</button>' +
+      '<div class="pw-main"><span class="pw-en">' + escapeHtml(cur.en) + '</span></div>' +
+      '<div class="pw-meta">' +
+        (cur.ipa ? '<span class="pw-ipa">' + escapeHtml(cur.ipa) + '</span>' : '') +
+        (cur.pos ? '<span class="pw-pos">' + escapeHtml(cur.pos) + '</span>' : '') +
+      '</div>' +
     '</div>' +
     (cur.cn ? '<div class="pw-cn" id="pwCn" hidden>' + escapeHtml(cur.cn) + '</div>' : '') +
   '</div>';
