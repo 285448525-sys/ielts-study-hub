@@ -36,7 +36,7 @@ function newWordV12(en, cn){
   return {
     id: uid(), en, cn: cn || '', ts: Date.now(),
     level: 0, nextReview: todayKey(), errTotal: 0, errStreak: 0,
-    hardWord: false, okStreak: 0, lastReview: null, keyWord: true,
+    hardWord: false, okStreak: 0, lastReview: null, keyWord: false,
     cleared: false, shortCount: 0, lastShortTouch: null, cleanRounds: 0
   };
 }

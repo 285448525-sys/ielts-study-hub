@@ -328,6 +328,20 @@ function resetPractice(){
   autoStartSeeWord();
 }
 
+function masterWord(cur){
+  if(!pq || !cur) return;
+  const k = String(cur.en || '').trim().toLowerCase();
+  const same = w => {
+    if(cur.id && w.id) return w.id === cur.id;
+    return String(w.en || '').trim().toLowerCase() === k;
+  };
+  DATA.words = (DATA.words || []).filter(w => !same(w));
+  pq.queue = pq.queue.filter(w => !same(w));
+  hubSave();
+  toast('已掌握，已从词库删除');
+  nextQuestion();
+}
+
 function nextQuestion(){
   if(!pq) return;
   try{
@@ -386,7 +400,7 @@ function renderQuestion(cur, isRehold){
     '<span class="pw-en">' + escapeHtml(cur.en) + '</span>' +
     (cur.ipa ? '<span class="pw-ipa">' + escapeHtml(cur.ipa) + '</span>' : '') +
     (cur.hardWord ? '<span class="hardtag" title="难词：短线回考更密、长线间隔减半">难词</span>' : '') +
-    '<button class="keytag' + (cur.keyWord ? ' active' : '') + '" id="keyTag" title="重点词（点击切换）">★</button>' +
+    '<button class="mastered-btn" id="masteredBtn" title="已掌握：从词库删除该词">已掌握</button>' +
     '</div>';
   if(cur.cn) html += '<div class="pw-cn" id="pwCn" hidden>' + escapeHtml(cur.cn) + '</div>';
   if(cur.example) html += '<div class="practice-sentence">' + escapeHtml(cur.example).replace(new RegExp('\\b' + escapeRegExp(cur.en) + '\\b'), '<span class="hi">$&</span>') + '</div>';
@@ -405,14 +419,9 @@ function renderQuestion(cur, isRehold){
   // 不认识：完全不会时点击（isUnknownBtn=true → 触发 P1-1 加重惩罚）
   const left0 = document.getElementById('unknownBtn');
   if(left0) left0.onclick = () => judge(cur, null, false, true);
-  // 重点词切换
-  const kt = document.getElementById('keyTag');
-  if(kt) kt.onclick = () => {
-    cur.keyWord = !cur.keyWord;
-    hubSave();
-    kt.classList.toggle('active', cur.keyWord);
-    toast(cur.keyWord ? '已标记为重点词' : '已取消重点词');
-  };
+  // 已掌握：从词库删除当前词
+  const mb = document.getElementById('masteredBtn');
+  if(mb) mb.onclick = () => masterWord(cur);
   setTimeout(() => speakN(cur.en), 300);
 }
 
