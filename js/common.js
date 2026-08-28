@@ -902,6 +902,21 @@ function mergeData(local, cloud){
     changes += ms.changes;
   }
   out.deletedIds = Array.from(deleted);
+  // 当日背词会话（dailySession）：跨设备取「较新者胜」，杜绝云端旧会话覆盖本地新进度
+  const _ld = local.dailySession, _cd = cloud.dailySession;
+  if(_ld && _cd){
+    const _pick = (a, b) => {
+      if(a.date !== b.date) return (a.date > b.date) ? a : b;
+      const _lt = a.lastTouch || 0, _ct = b.lastTouch || 0;
+      if(_lt !== _ct) return (_lt > _ct) ? a : b;
+      const _lp = (a.passed || []).length, _cp = (b.passed || []).length;
+      return _lp >= _cp ? a : b;
+    };
+    const _win = _pick(_ld, _cd);
+    if(_win !== _ld){ out.dailySession = _win; changes++; }
+  } else if(_cd && !_ld){
+    out.dailySession = _cd; changes++;
+  }
   // 合并后同步镜像账号凭证到隔离键（云端可能带来/更新 Key/手机号/发音分，务必落盘镜像）
   if(typeof saveCredsMirror === 'function') saveCredsMirror();
   return { data: out, changes };

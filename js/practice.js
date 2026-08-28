@@ -317,7 +317,8 @@ function autoStartSeeWord(){
         currentEn: null,
         stats: { known:0, unknown:0 },
         total: 0,
-        finished: false
+        finished: false,
+        lastTouch: Date.now()
       };
       DATA.dailySession = session;
       hubSave();
@@ -392,6 +393,7 @@ function saveDailySession(){
   s.initLen = pq.initLen || 0;
   const cur = pq.queue[pq.idx];
   s.currentEn = cur ? String(cur.en || '').trim().toLowerCase() : null;
+  s.lastTouch = Date.now();
   hubSave();
 }
 // 清空当日 session 并重建（"再来一轮"用：当天内重新锁定一份词表）
