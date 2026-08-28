@@ -234,6 +234,8 @@ function renderHistory(curDate){
   const others = DATA.plans
     .filter(p => p.date !== curDate && p.items.length)
     .slice().sort((a,b) => b.date.localeCompare(a.date));
+  const meta = $('#historyMeta');
+  if(meta) meta.textContent = others.length ? ('共 ' + others.length + ' 天 · 点击展开') : '暂无历史计划';
   const box = $('#histPlans');
   if(others.length === 0){
     box.innerHTML = renderEmpty('还没有其它日期的计划。');

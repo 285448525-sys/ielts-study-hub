@@ -1613,6 +1613,19 @@ main.container{padding-top:20px}
 .ms-sum-freq{font-size:13px;color:var(--ink-soft);line-height:1.6}
 .ms-sum-advice{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.6}
 
+/* ===== 计划页 · 历史计划整体折叠 ===== */
+.history-folded{padding:0}
+.history-wrap{margin:0}
+.history-wrap > summary{list-style:none;cursor:pointer;user-select:none}
+.history-wrap > summary::-webkit-details-marker{display:none}
+.history-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 20px}
+.history-summary h2{font-size:18px;font-weight:700;color:var(--ink)}
+.history-summary .muted{font-size:13px}
+.history-wrap > summary::after{content:"▸";color:var(--muted);font-size:14px;transition:transform .15s}
+.history-wrap[open] > summary::after{transform:rotate(90deg)}
+.history-wrap p.muted{padding:0 20px}
+#histPlans{padding:0 20px 18px}
+
 /* ===== 单词 · 全屏沉浸式背词 ===== */
 body.word-fullscreen{padding-left:0 !important;padding-right:0 !important}
 body.word-fullscreen .top-nav{display:none !important}

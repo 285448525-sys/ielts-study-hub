@@ -25,7 +25,7 @@
 })();
 </script>
 <title>计划 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20260828f" />
+<link rel="stylesheet" href="css/common.css?v=20260828i" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=5" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=4">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=4">
@@ -37,7 +37,7 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20260824q"></script>
   <script defer src="js/common.js?v=20260827b"></script>
-  <script src="js/plans.js?v=20260828e" defer></script>
+  <script src="js/plans.js?v=20260828i" defer></script>
 </head>
 <body>
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
@@ -69,13 +69,6 @@
     </div>
   </section>
 
-  <!-- 历史计划：原样 -->
-  <section class="card">
-    <h2>历史计划</h2>
-    <p class="muted">点击任意日期可查看 / 编辑那天的计划。</p>
-    <div id="histPlans"></div>
-  </section>
-
   <!-- 计划：自由输入 + AI 智能分配到每天 -->
   <section class="card">
     <h2>计划</h2>
@@ -87,6 +80,20 @@
       <button class="btn btn-primary" id="aiWeek" style="flex:none"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l1.7 4.3L18 10l-4.3 1.7L12 16l-1.7-4.3L6 10l4.3-1.7L12 4z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2z"/></svg>AI 智能分配</button>
     </div>
     <div id="weekBox" style="margin-top:14px"></div>
+  </section>
+
+  <!-- 历史计划：整模块默认折叠，移到最下面 -->
+  <section class="card history-folded">
+    <details class="history-wrap" id="historyWrap">
+      <summary>
+        <div class="history-summary">
+          <h2 style="margin:0">历史计划</h2>
+          <span class="muted" id="historyMeta">点击展开</span>
+        </div>
+      </summary>
+      <p class="muted" style="margin-top:10px">点击任意日期可查看 / 编辑那天的计划。</p>
+      <div id="histPlans"></div>
+    </details>
   </section>
 </main>
 
