@@ -26,7 +26,11 @@ ready(() => {
   $('#weekTasks').value = DATA.settings.weeklyTasks || '';
   renderWeekHint();
   $('#aiWeek').addEventListener('click', aiWeekPlan);
-  $('#genWeek').addEventListener('click', () => { buildAndRender(getCustomTasks()); });
+  $('#genWeek').addEventListener('click', () => {
+    DATA.settings.weeklyTasks = $('#weekTasks').value.trim();
+    hubSave();
+    buildAndRender(getCustomTasks());
+  });
 
   render();
 });
@@ -235,22 +239,39 @@ function renderHistory(curDate){
     box.innerHTML = renderEmpty('还没有其它日期的计划。');
     return;
   }
+  // 可折叠：默认收起，只显示日期 + 完成数摘要；点开才展开当天任务明细。
   box.innerHTML = others.map(p => {
     const done = p.items.filter(i => i.done).length;
-    return `<div class="hist-plan" data-date="${p.date}">
-      <span>${p.date}</span>
-      <span class="badge">${done} / ${p.items.length} 完成</span>
-    </div>`;
+    const itemsHtml = p.items.map(i =>
+      `<li class="${i.done ? 'done' : ''}">${i.done ? '✓' : '○'} ${escapeHtml(i.text)}</li>`
+    ).join('');
+    return `<details class="hist-plan">
+      <summary>
+        <span class="hist-date">${p.date}</span>
+        <span class="badge">${done} / ${p.items.length} 完成</span>
+        <span class="hist-chev">▸</span>
+      </summary>
+      <div class="hist-body">
+        <ul class="hist-items">${itemsHtml}</ul>
+        <button class="btn btn-sm" data-open="${p.date}">打开编辑这天</button>
+      </div>
+    </details>`;
   }).join('');
-  box.querySelectorAll('.hist-plan').forEach(el =>
-    el.addEventListener('click', () => { $('#planDate').value = el.dataset.date; render(); }));
+  box.querySelectorAll('button[data-open]').forEach(b =>
+    b.addEventListener('click', e => {
+      e.stopPropagation();
+      $('#planDate').value = b.dataset.open;
+      render();
+      const top = document.querySelector('.container .card');
+      if(top) top.scrollIntoView({ behavior:'smooth', block:'start' });
+    }));
 }
 
 
-function weekDates(){
-  const start = new Date(); start.setHours(0,0,0,0);
+function upcomingDates(n){
   const arr = [];
-  for(let i = 0; i < 7; i++){ const d = new Date(start); d.setDate(start.getDate() + i); arr.push(d); }
+  const start = new Date(); start.setHours(0,0,0,0);
+  for(let i = 0; i < n; i++){ const d = new Date(start); d.setDate(start.getDate() + i); arr.push(d); }
   return arr;
 }
 function getCustomTasks(){
@@ -281,18 +302,22 @@ function computeWeak(){
     .sort((a,b)=>b.gap-a.gap);
 }
 
-/* 无 AI：按弱项固定模板排 7 天 */
+/* 无 AI：按弱项固定模板 + 任务量自动铺开 N 天（N 由任务数估算，2-7） */
 function buildAndRender(customTasks){
   customTasks = customTasks || [];
   const weak = computeWeak();
   const weakK = [weak[0] && weak[0].k, weak[1] && weak[1].k].filter(Boolean);
-  const types = ['reading','listening','writing','speaking','mix', weakK[0] || 'review', weakK[1] || 'review'];
-  const dates = weekDates();
+  const baseTypes = ['reading','listening','writing','speaking','mix', weakK[0] || 'review', weakK[1] || 'review'];
+  // 天数：有自定义任务按任务数估算（每约 2 条压一天），否则默认 5 天
+  const n = customTasks.length
+    ? Math.max(2, Math.min(7, Math.ceil(customTasks.length / 2)))
+    : 5;
+  const dates = upcomingDates(n);
   currentWeek = [];
-  for(let i = 0; i < 7; i++){
+  for(let i = 0; i < n; i++){
     const d = dates[i];
     const key = todayKey(d);
-    const type = types[i];
+    const type = baseTypes[i % baseTypes.length];
     const tasks = [];
     if(type === weakK[0] || type === weakK[1]){
       tasks.push('⚠️ 重点突破：' + SUB[type].name + ' 加练 1 组');
@@ -302,7 +327,7 @@ function buildAndRender(customTasks){
     currentWeek.push({ key, date: d, type, tasks });
   }
   customTasks.forEach((t, i) => {
-    const dayIdx = i % 7;
+    const dayIdx = i % n;
     currentWeek[dayIdx].tasks.splice(1, 0, '📌 ' + t);
   });
   renderWeek();
@@ -310,7 +335,7 @@ function buildAndRender(customTasks){
 
 function renderWeek(){
   if(!currentWeek){ $('#weekBox').innerHTML = renderEmpty('点「AI 帮我想」或「按弱项生成」先看建议。'); return; }
-  let html = '<div class="plan-meta" style="margin:4px 0 10px"><h2 style="margin:0">本周 7 天安排</h2>'
+  let html = '<div class="plan-meta" style="margin:4px 0 10px"><h2 style="margin:0">计划安排（' + currentWeek.length + ' 天）</h2>'
     + '<button class="btn btn-sm" id="fillAllBtn">全部填入学习计划</button></div>';
   html += currentWeek.map((day, idx) => {
     const wd = WEEK[day.date.getDay()];
@@ -351,14 +376,12 @@ function fillAll(){
   toast('整周已生成，共新增 ' + total + ' 项到学习计划');
 }
 
-/* 有 AI：让 DeepSeek 按弱项智能分配本周任务到 7 天 */
+/* 有 AI：让 DeepSeek 读懂文本框里的自由格式安排，智能分配到合适的天数（不再固定 7 天） */
 async function aiWeekPlan(){
   const raw = $('#weekTasks').value.trim();
   DATA.settings.weeklyTasks = raw;
   hubSave();
-  const tasks = raw ? raw.split('\n').map(s => s.trim()).filter(Boolean) : [];
-  if(!tasks.length){ toast('先在上面写下本周想完成的任务（一行一个）'); return; }
-  if(!DATA.settings.relayToken){ toast('未配置 AI Key：请去「设置 / AI 接口」填写，或用「按弱项生成」走无 AI 模式'); return; }
+  if(!raw){ toast('先在上面写下接下来几天要做的任务（含具体安排）'); return; }
 
   const weak = computeWeak();
   const latest = DATA.scores.slice().sort((a,b)=>b.date.localeCompare(a.date))[0];
@@ -370,52 +393,67 @@ async function aiWeekPlan(){
   const latestStr = latest ? ('听' + latest.listening + '/读' + latest.reading + '/写' + latest.writing + '/口' + latest.speaking) : '暂无';
   const targetStr = '听' + (t.listening||'?') + '/读' + (t.reading||'?') + '/写' + (t.writing||'?') + '/口' + (t.speaking||'?');
 
-  const sys = '你是资深雅思备考计划教练。考生会给出本周想完成的任务清单，请你按 7 天合理分配，必须严格遵守以下规则：\n'
-    + '1. 每天学习总时长参考 ' + dailyHours + ' 小时（后台设置的目标时长），只少不多、尽量填满。任务只写名称，不要标注预估分钟数。\n'
-    + '2. 模考、刷题、复盘是强链接：任何听力/阅读/写作/口语的模考或大量刷题之后，必须紧接着安排对应的错题复盘或精听/精读分析，不能拖到另一天。\n'
-    + '3. 对雅思题量要有清晰认知，不能一天塞满一个完整模块：\n'
-    + '   - 口语 P1 题库约 30-40 题，应拆到多天，每天 4-6 题；\n'
-    + '   - 口语 P2 题库约 50 个话题，应拆到多天，每天 1-2 个话题并练习说满 2 分钟；\n'
-    + '   - 口语 P3 跟随当天 P2 进行，不要单独一天过完；\n'
-    + '   - 听力 1 套 = 4 sections，阅读 1 套 = 3 passages，写作 1 套 = Task1 + Task2；\n'
-    + '   - 如果用户说"过一遍题库"，必须按 7 天拆分，绝不能一天完成。\n'
-    + '4. 弱项科目（差分多的）优先多排、排在药效窗口；简单机械任务（背单词、泛听）放后面。\n'
-    + '5. 用户清单里的所有任务必须全部分配进 7 天，不能遗漏；如果用户列得多，就提高每天密度，但仍受 ' + dailyHours + ' 小时上限约束。\n'
-    + '6. 每天 4-8 个大概任务；避免只写"模考"这种大词，要拆成"模考+复盘"，但模考本身必须整体出现（如"听力限时模考"），不能拆成"听力 S1""阅读 P1"等。\n'
-    + '7. 结合每日例行：词库复习 20 词、专注达药效窗口内安排最难任务。\n'
-    + '输出严格 JSON：{"days":[{"focus":"当天主题（如 听力突破 / 混合 / 写作）","tasks":["任务1","任务2",...]}]}。days 长度必须为 7（从今天起连续 7 天）。只输出 JSON，不要解释。';
-  const user = '本周想完成的任务清单（必须全部分配到 7 天）：\n' + tasks.map((x,i)=>(i+1)+'. '+x).join('\n')
-    + '\n\n考生画像：\n弱项排序（差得最多在前）：' + weakStr
+  // 无 AI：按弱项 + 任务量自动铺开
+  if(!DATA.settings.relayToken){
+    const tasks = raw.split('\n').map(s => s.trim()).filter(Boolean);
+    buildAndRender(tasks.length ? tasks : getCustomTasks());
+    return;
+  }
+
+  // 提供未来 14 天可选日期清单，约束 AI 只从这些日期里选，避免它乱编日期
+  const span = 14;
+  const optDates = [];
+  for(let i = 0; i < span; i++){
+    const iso = addDays(todayKey(), i);
+    const dt = new Date(iso + 'T00:00:00');
+    const wd = WEEK[dt.getDay()];
+    const label = i === 0 ? '今天' : (i === 1 ? '明天' : wd);
+    optDates.push({ iso, wd, label });
+  }
+  const dateListStr = optDates.map(d => d.iso + '（' + d.label + '）').join('、');
+
+  const sys = '你是资深雅思备考计划教练。考生会在文本框里写下"接下来几天内要做的一些任务 + 具体安排"，可能是自由格式（含"今天/明天/周X/上午/下午/具体日期"等时间词），也可能只是一份任务清单。请**读懂考生的真实意图**，把这些任务智能分配到合适的日期，严格遵循：\n'
+    + '1. 考生写了明确时间词（今天/明天/周X/上午/下午/具体日期）的，严格按时间词归位，不要自行挪动；\n'
+    + '2. 没有明确时间词的，根据任务总量判断需要几天：任务少就压在 2-3 天，任务多就铺到 4-7 天，既不要强行塞满 7 天，也不要全部堆在 1 天；\n'
+    + '3. 每天总时长参考 ' + dailyHours + ' 小时（后台目标时长），只少不多、尽量填满；任务之间同类分散，弱项（' + weakStr + '）多排、排在前面；\n'
+    + '4. 考生列出的任务**必须全部分配**，不能遗漏；如果用户列得多就提高每天密度，但仍受 ' + dailyHours + ' 小时上限约束；\n'
+    + '5. 每个任务只写名称，不要写预估时长、不要括号说明；模考/刷题后必须紧跟对应复盘（错题复盘 / 精听 / 精读）；\n'
+    + '6. 口语题库（P1 约 30-40 题、P2 约 50 话题）必须按天拆分，一天只能过一部分，绝不能一天过完；\n'
+    + '7. 每天可补 1 条例行（词库复习 20 词）；最难的 task 排在最前。\n'
+    + '只从下面提供的日期清单里选日期，不要发明其它日期：\n' + dateListStr + '\n'
+    + '输出严格 JSON：{"days":[{"date":"YYYY-MM-DD（必须是上面清单里的某一天）","focus":"当天主题（如 听力突破 / 混合 / 写作）","tasks":["任务1","任务2",...]}]}。days 的数量由你根据任务量自行决定（通常 2-7 天）。只输出 JSON，不要解释。';
+  const user = '接下来几天我想做的事（原文）：\n' + raw
+    + '\n\n考生画像：\n弱项（差得最多在前）：' + weakStr
     + '\n最近模考：' + latestStr + '\n目标分数：' + targetStr
     + '\n每天目标学习时长：' + dailyHours + ' 小时'
     + (dLeft !== null && dLeft > 0 ? '\n距考试 ' + dLeft + ' 天' : '')
-    + '\n\n请分配成 7 天计划（JSON）。特别注意事项：\n- 刷题/模考后必须紧跟复盘；\n- 口语题库要按天拆分，一天只能过一部分；\n- 每天总时长参考 ' + dailyHours + ' 小时；\n- 任务只写名称，不要时间段、时长和括号说明。';
+    + '\n\n请智能分配到合适的日期（JSON）。注意：有具体时间词的严格按时间词归位；没有的按任务量决定天数（2-7 天）；所有任务必须分配完；任务只写名称不要时长。';
 
-  $('#weekBox').innerHTML = '<div class="card"><div class="muted">正在让 AI 排周计划…</div></div>';
+  $('#weekBox').innerHTML = '<div class="card"><div class="muted">正在让 AI 读懂你的安排并分配…</div></div>';
   try{
     const content = await callRelay('weekly', [
       { role:'system', content: sys },
       { role:'user', content: user }
     ], 0.6);
     const j = aiJson(content);
-    if(!j || !Array.isArray(j.days) || j.days.length === 0){
+    const validSet = new Set(optDates.map(d => d.iso));
+    const days = (j && Array.isArray(j.days)) ? j.days.filter(d => d && validSet.has(d.date)) : [];
+    if(days.length === 0){
       $('#weekBox').innerHTML = '<div class="card"><div class="muted">AI 返回格式异常，原文如下：\n\n' + escapeHtml(content) + '</div></div>';
       return;
     }
-    const dates = weekDates();
-    currentWeek = j.days.slice(0, 7).map((d, i) => ({
-      key: todayKey(dates[i]),
-      date: dates[i],
-      type: 'mix',
-      focus: (Array.isArray(d.focus) ? d.focus.join(' / ') : (d.focus == null ? '' : String(d.focus))),
-      tasks: Array.isArray(d.tasks) ? d.tasks.map(String) : []
-    }));
-    while(currentWeek.length < 7){
-      const i = currentWeek.length;
-      currentWeek.push({ key: todayKey(dates[i]), date: dates[i], type:'mix', focus:'自主安排', tasks: DAILY.slice() });
-    }
+    currentWeek = days.map(d => {
+      const dt = new Date(d.date + 'T00:00:00');
+      return {
+        key: d.date,
+        date: dt,
+        type: 'mix',
+        focus: (Array.isArray(d.focus) ? d.focus.join(' / ') : (d.focus == null ? '' : String(d.focus))),
+        tasks: Array.isArray(d.tasks) ? d.tasks.map(String) : []
+      };
+    }).sort((a, b) => a.key.localeCompare(b.key));
     renderWeek();
-    toast('AI 已把 ' + tasks.length + ' 个任务分配到 7 天');
+    toast('AI 已把你的安排分配到 ' + currentWeek.length + ' 天');
   }catch(e){
     $('#weekBox').innerHTML = '<div class="card"><div class="muted">AI 服务暂不可用：' + escapeHtml(e.message) + '</div></div>';
   }
