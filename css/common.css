@@ -378,6 +378,10 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 .pw-en{font-size:28px;font-weight:700;color:var(--ink);letter-spacing:-.01em}
 .pw-ipa{font-size:15px;font-style:normal;color:var(--muted);font-family:serif}
 .pw-cn{font-size:14px;color:var(--muted)}
+/* 重点词切换按钮（背词界面单词卡右上角） */
+.keytag{margin-left:auto;width:36px;height:36px;border-radius:50%;border:1.5px solid var(--line);background:var(--bg);color:var(--muted);font-size:18px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.keytag:hover{border-color:var(--warn)}
+.keytag.active{color:var(--warn);border-color:var(--warn);background:rgba(245,158,11,.1)}
 /* 短线：连对进度条 */
 .streak-bar{display:flex;align-items:center;gap:6px;margin:2px 0 14px;font-size:13px;color:var(--muted)}
 .streak-bar b{color:var(--primary);font-size:15px}
