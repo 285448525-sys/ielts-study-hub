@@ -700,20 +700,33 @@ function cancelSpeak(){
   try{ window.speechSynthesis.cancel(); }catch(e){}
 }
 function speakN(text){
+  if(!text || !('speechSynthesis' in window)) return;
   const c = pc();
   cancelSpeak();
-  try{
+  try{ window.speechSynthesis.resume(); }catch(e){}   // 唤醒被自动播放策略卡在 paused 的引擎
+  const doSpeak = () => {
     let n = 0;
     const run = () => {
       if(n++ >= c.repeat) return;
       const u = new SpeechSynthesisUtterance(text);
       u.lang = 'en-US'; u.rate = c.rate;
-      window.speechSynthesis.speak(u);
+      try{ window.speechSynthesis.speak(u); }catch(e){}
       const t = setTimeout(run, c.intervalMs);
       _speakTimers.push(t);
     };
     run();
-  }catch(e){}
+  };
+  // 语音包可能首屏尚未加载（getVoices 为空则 speak 静默失败），等 voiceschanged 再读，兜底 1.2s
+  try{
+    const vs = window.speechSynthesis.getVoices();
+    if(vs && vs.length) doSpeak();
+    else {
+      let done = false;
+      const onV = () => { if(done) return; done = true; try{ window.speechSynthesis.removeEventListener('voiceschanged', onV); }catch(e){} doSpeak(); };
+      window.speechSynthesis.addEventListener('voiceschanged', onV);
+      setTimeout(() => { if(!done && !_speakTimers.length){ done = true; doSpeak(); } }, 1200);
+    }
+  }catch(e){ doSpeak(); }
 }
 
 // ======= 工具函数 =======
@@ -764,5 +777,17 @@ ready(() => {
   $('#cfgModal').addEventListener('click', e => { if(e.target === $('#cfgModal')) $('#cfgModal').hidden = true; });
   document.addEventListener('keydown', e => { if(e.key === 'Escape' && !$('#cfgModal').hidden) $('#cfgModal').hidden = true; });
   $('#toolSpeaker').addEventListener('click', () => { if(!pq || !pq.answer) return; speakN(pq.answer.en); });
+  // 解锁浏览器语音合成：自动播放策略要求首次朗读须在用户手势内/后触发，否则 Chrome/Edge 会把引擎
+  // 卡在 paused，导致整轮静音。页面首次任意交互即唤醒引擎；同时预加载语音包。
+  try{ window.speechSynthesis.getVoices(); }catch(e){}
+  const _unlockSpeech = () => {
+    try{ window.speechSynthesis.resume(); }catch(e){}
+    document.removeEventListener('click', _unlockSpeech);
+    document.removeEventListener('keydown', _unlockSpeech);
+    document.removeEventListener('touchstart', _unlockSpeech);
+  };
+  document.addEventListener('click', _unlockSpeech);
+  document.addEventListener('keydown', _unlockSpeech);
+  document.addEventListener('touchstart', _unlockSpeech);
   autoStartSeeWord();
 });
