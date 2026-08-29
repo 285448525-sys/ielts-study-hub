@@ -492,7 +492,9 @@ function hubLoad(){
     //   回填进官方题；本地多出来的非官方题（旧 100+ 题、框架母本 sp_p*）直接丢弃——
     //   实现用户要求：无论题库怎么升版本、导入什么旧数据，都只导「练过/填过的题的内容」，
     //   不新增官方库以外的题、不覆盖官方题。
-    if(SPEAKING_BANK && SPEAKING_BANK.length){
+    // 优化：仅在口语题库版本变化时才重跑合并 + 落盘；否则跳过，
+    // 避免每次加载都做一次整库写盘（数据越大越卡）。
+    if(SPEAKING_BANK && SPEAKING_BANK.length && DATA.speakingVersion !== SPEAKING_BANK_VERSION){
       DATA.speaking = mergeSpeakingKeepAnswers(DATA.speaking);
       DATA.speakingVersion = SPEAKING_BANK_VERSION;
       hubSave();
@@ -527,32 +529,36 @@ function hubLoad(){
         '大作文A': '观点型', '大作文B': '讨论型'
       };
       if(Array.isArray(DATA.writing)){
+        var wdirty = false;
         DATA.writing.forEach(t => {
-          if(t && titleUpdates[t.id]) t.title = titleUpdates[t.id];
-          if(t && categoryUpdates[t.id]) t.category = categoryUpdates[t.id];
-          if(t && oldCategoryMap[t.category]) t.category = oldCategoryMap[t.category];
+          if(t && titleUpdates[t.id]){ t.title = titleUpdates[t.id]; wdirty = true; }
+          if(t && categoryUpdates[t.id]){ t.category = categoryUpdates[t.id]; wdirty = true; }
+          if(t && oldCategoryMap[t.category]){ t.category = oldCategoryMap[t.category]; wdirty = true; }
         });
         const deletedIds = new Set(DATA.deletedIds || []);
         // 2026-08-23：Report 模板收敛为单一「先表态再分析」骨架（用户自制），旧 4 条 Report 默认不再保留
         ['wt_cr1','wt_cr2','wt_cr4'].forEach(id => deletedIds.add(id));
         // 若用户浏览器里仍有这些旧 Report 模板，强制移除；并检查已存在的 wt_cr3 是否需要刷新为新骨架
+        const beforeLen = DATA.writing.length;
         DATA.writing = DATA.writing.filter(t => !(t && t.category === 'Report' && ['wt_cr1','wt_cr2','wt_cr4'].includes(t.id)));
+        if(DATA.writing.length !== beforeLen) wdirty = true;
         const cr3Default = DATA.writing.find(t => t.id === 'wt_cr3');
         if(cr3Default){
           const seed = DEFAULT_WRITING_TEMPLATES.find(t => t.id === 'wt_cr3');
-          if(seed){ cr3Default.skeleton = seed.skeleton; cr3Default.title = seed.title; cr3Default.tips = seed.tips; }
+          if(seed){ cr3Default.skeleton = seed.skeleton; cr3Default.title = seed.title; cr3Default.tips = seed.tips; wdirty = true; }
         }
         // 2026-08-23：动态图/静态图/地图对比/地图变化/流程图万能版替换为用户「完整背诵版」骨架，老用户本地已存的也要同步刷新
         ['wt_a5','wt_b5','wt_c5a','wt_c5b','wt_d5'].forEach(id => {
           const local = DATA.writing.find(t => t.id === id);
           const seed = DEFAULT_WRITING_TEMPLATES.find(t => t.id === id);
-          if(local && seed){ local.skeleton = seed.skeleton; local.title = seed.title; local.tips = seed.tips; }
+          if(local && seed){ local.skeleton = seed.skeleton; local.title = seed.title; local.tips = seed.tips; wdirty = true; }
         });
         const existingIds = new Set(DATA.writing.map(t => t.id));
         const missing = DEFAULT_WRITING_TEMPLATES.filter(t => !existingIds.has(t.id) && !deletedIds.has(t.id));
-        if(missing.length) DATA.writing = DATA.writing.concat(missing);
-        // 模板迁移（标题/分类/骨架刷新）必须落盘，否则仅内存生效、刷新后旧 localStorage 仍显示旧模板
-        hubSave();
+        if(missing.length){ DATA.writing = DATA.writing.concat(missing); wdirty = true; }
+        // 模板迁移（标题/分类/骨架刷新）必须落盘，否则仅内存生效、刷新后旧 localStorage 仍显示旧模板。
+        // 优化：仅当确有改动才写盘，避免每次加载都做一次整库写盘（数据越大越卡）。
+        if(wdirty) hubSave();
       }
     })();
     // 注意：口语档位体系已废弃 migrateSpeakingTiers 重映射——版本号机制整体替换 DATA.speaking 为 SPEAKING_BANK，

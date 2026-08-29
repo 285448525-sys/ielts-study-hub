@@ -1208,7 +1208,10 @@ function initCloudSync(){
   if(_cloudSyncStarted) return;   // 幂等：登录后补调用 / 重复 ready 都不重复起轮询
   if(!DATA.settings.autoSync || !  DATA.settings.syncCode) return;
   _cloudSyncStarted = true;
-  cloudDownload(true); // 启动静默合并拉取（有更新才提示）
+  // 优化：首屏拉取延迟到首屏渲染之后，避免「下载+合并大数组」阻塞首屏（数据越大越明显）。
+  // 10s 轮询与切回前台拉取保留原逻辑。
+  if(typeof requestIdleCallback === 'function') requestIdleCallback(function(){ cloudDownload(true); }, { timeout: 2000 });
+  else setTimeout(function(){ cloudDownload(true); }, 800);
   // 轮询拉取：10 秒一次（页面可见时）。近实时——另一台设备保存后，本端约 10s 内自动合并且重渲染，无需手动操作。
   // 请求量：每设备每 10 秒 1 次 GET，CF Functions 免费额度内；内容未变时不弹不刷（reallyChanged 保险），不会刷屏。
   setInterval(() => { if(!document.hidden) cloudDownload(true); }, 10 * 1000);
@@ -1311,11 +1314,15 @@ function initBootLoader(){
   var el = document.getElementById('bootLoader');
   if(!el) return;
   window.__hubBootDone = _finishBootLoader;
-  if(document.readyState === 'complete'){ _finishBootLoader(); }
-  else {
-    window.addEventListener('load', _finishBootLoader, { once:true });
-    setTimeout(_finishBootLoader, 8000);   // 兜底：绝不卡死在遮罩上
+  // 优化：遮罩在「DOM 解析完成 + 本批 defer 脚本渲染完」即收起，
+  // 不再等 window.load（window.load 还会等图片/字体/慢网资源，农村代理网络下会卡很久）。
+  // 本 App 内容全靠 JS 渲染、几乎无图片，DOMContentLoaded 时页面已就绪。
+  if(document.readyState === 'complete' || document.readyState === 'interactive'){
+    setTimeout(_finishBootLoader, 250); // 给同批 defer 脚本(页面自身 ready)留一点渲染时间
+  } else {
+    document.addEventListener('DOMContentLoaded', function(){ setTimeout(_finishBootLoader, 250); }, { once:true });
   }
+  setTimeout(_finishBootLoader, 8000);   // 兜底：绝不卡死在遮罩上
 }
 
 /* ===== 全站计时悬浮标签（底部居中 · 跨页常驻） =====
