@@ -37,7 +37,8 @@ function newWordV12(en, cn){
     id: uid(), en, cn: cn || '', ts: Date.now(),
     level: 0, nextReview: todayKey(), errTotal: 0, errStreak: 0,
     hardWord: false, okStreak: 0, lastReview: null, keyWord: false,
-    cleared: false, shortCount: 0, lastShortTouch: null, cleanRounds: 0
+    cleared: false, shortCount: 0, lastShortTouch: null, cleanRounds: 0,
+    pos: '', ipa: ''
   };
 }
 
@@ -143,11 +144,19 @@ function normPos(s){
   return out.join(';');
 }
 
-/* 一键补全：给词库里「缺失中文释义 或 缺失词性」的词批量补 AI 翻译+词性（每批 20 个，防超 token）。
-   只补缺失的字段，不破坏已有数据；已填的 cn / pos 不会被覆盖。 */
+/* 一键补全：给词库里「缺失中文释义 / 词性 / 音标」的词批量补 AI（每批 20 个，防超 token）。
+   只补缺失的字段，不破坏已有数据；词组（含空格）只补中文释义，不补词性和音标。
+   已填的 cn / pos / ipa 不会被覆盖。 */
 async function backfillCn(){
-  const miss = DATA.words.filter(w => !(w.cn && w.cn.trim()) || !(w.pos && w.pos.trim()));
-  if(!miss.length){ toast('没有需要补全的词（释义和词性都已齐全）'); return; }
+  const isPhrase = en => /\s/.test(String(en || ''));
+  const needFill = w => {
+    const phrase = isPhrase(w.en);
+    const missCn = !(w.cn && w.cn.trim());
+    if(phrase) return missCn;                       // 词组只补中文
+    return missCn || !(w.pos && w.pos.trim()) || !(w.ipa && w.ipa.trim());
+  };
+  const miss = DATA.words.filter(needFill);
+  if(!miss.length){ toast('没有需要补全的词'); return; }
   if(!DATA.settings.relayToken){ toast('去「设置 / AI 接口」填 DeepSeek Key 才能补全'); return; }
   const btn = $('#backfillBtn');
   btn.disabled = true; btn.textContent = '补全中…';
@@ -155,9 +164,12 @@ async function backfillCn(){
     for(let i=0; i<miss.length; i+=20){      // 每批 20 个，防超 token
       const chunk = miss.slice(i, i+20);
       const enList = chunk.map(w => w.en).join('\n');
-      const sys = '你是英文词库助手。下面每行一个英文单词，请给每个词：①简洁中文释义（最多 3 个义项，用"；"分隔）；' +
-        '②词性，用标准英文缩写（n./v./adj./adv./prep./conj./pron./num.），多个词性用分号分隔如 n.;v.。' +
-        '只返回 JSON 数组：[{"en":"algorithm","cn":"算法；运算法则","pos":"n."}, ...]，顺序与输入一致，不要任何解释文字、不要 markdown 围栏。';
+      const sys = '你是英文词库助手。下面每行一个英文单词或词组。请给每个词返回：' +
+        '①简洁中文释义（最多 3 个义项，用";"分隔）；' +
+        '②词性，用标准英文缩写（n./v./adj./adv./prep./conj./pron./num.），多个词性用分号分隔如 n.;v.；' +
+        '③音标，用 IPA 格式，如 /ˈælɡərɪðəm/。' +
+        '对于词组（含空格），只返回中文释义，pos 和 ipa 留空字符串。' +
+        '只返回 JSON 数组：[{"en":"algorithm","cn":"算法；运算法则","pos":"n.","ipa":"/ˈælɡərɪðəm/"}, ...]，顺序与输入一致，不要任何解释文字、不要 markdown 围栏。';
       const content = await callRelay('words', [{ role:'system', content: sys }, { role:'user', content: enList }], 0.3);
       const arr = aiJson(content);
       if(Array.isArray(arr)){
@@ -167,13 +179,16 @@ async function backfillCn(){
           const it = map[w.en.toLowerCase()];
           if(!it) return;
           if(!w.cn || !w.cn.trim()) w.cn = String(it.cn || '').trim();
-          if(!w.pos || !w.pos.trim()){ const p = normPos(it.pos); if(p) w.pos = p; }
+          if(!isPhrase(w.en)){
+            if(!w.pos || !w.pos.trim()){ const p = normPos(it.pos); if(p) w.pos = p; }
+            if(!w.ipa || !w.ipa.trim()){ const ipa = String(it.ipa || '').trim(); if(ipa) w.ipa = ipa; }
+          }
         });
       }
       hubSave(); renderWords();
     }
-    const left = DATA.words.filter(w => !(w.cn && w.cn.trim()) || !(w.pos && w.pos.trim())).length;
-    toast(left ? ('已补全一批，还剩 '+left+' 个未识别，可再点一次') : '全部释义与词性已补全 ✅');
+    const left = DATA.words.filter(needFill).length;
+    toast(left ? ('已补全一批，还剩 '+left+' 个未识别，可再点一次') : '全部已补全 ✅');
   }catch(e){
     toast('补全失败：' + e.message);
   }finally{
@@ -239,33 +254,25 @@ function renderWords(){
   $('#wordCount').textContent = DATA.words.length;
   const box = $('#wordList');
   if(list.length === 0){ box.innerHTML = renderEmpty('没有匹配的单词。'); return; }
-  const t = todayKey();
   box.innerHTML = list.map(w => {
     ensureWordV12(w);
     const lv = (w.level != null) ? w.level : 0;
-    const due = (w.nextReview || '').toString();
-    let stClass = 'new', stTxt = '新词';
-    if(due){
-      if(due < t){ stClass='due'; stTxt='逾期'; }
-      else if(due === t){ stClass='due'; stTxt='今天复习'; }
-      else { stClass='ok'; stTxt='复习中'; }
-    } else { stClass='new'; stTxt='新词'; }
-    if(lv >= 7){ stClass='ok'; stTxt='已掌握'; }
     const posTxt = (w.pos && w.pos.trim()) ? escapeHtml(w.pos) : '<span class="wl-pos-miss">无词性</span>';
+    const ipaTxt = (w.ipa && w.ipa.trim()) ? `<span class="wl-ipa">${escapeHtml(w.ipa)}</span>` : '<span class="wl-ipa-miss">无读音</span>';
+    const isPhrase = /\s/.test(String(w.en || ''));
     return `
       <li class="wl-item" data-en="${escapeHtml(w.en)}">
-        <span class="wl-word">${escapeHtml(w.en)}</span>
-        <span class="wl-mean">${escapeHtml(w.cn || '')}</span>
-        <span class="wl-pos">${posTxt}</span>
-        <span class="wl-lv">Lv ${lv}</span>
-        <span class="wl-st ${stClass}">${stTxt}</span>
-        <div class="wl-actions">
-          <button class="wl-btn star ${w.keyWord?'active':''}" data-en="${escapeHtml(w.en)}" data-act="key">★ 重点</button>
-          <button class="wl-btn del" data-del="${w.id}">删</button>
+        <div class="wl-main">
+          <span class="wl-word">${escapeHtml(w.en)}</span>
+          <span class="wl-mean">${escapeHtml(w.cn || '')}</span>
         </div>
+        ${isPhrase ? '' : `<div class="wl-meta">${posTxt}${ipaTxt}</div>`}
+        <span class="wl-lv">Lv ${lv}</span>
+        <button class="wl-del" data-del="${w.id}" title="删除" aria-label="删除">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
       </li>`;
   }).join('');
-  box.querySelectorAll('button[data-del]').forEach(b => b.addEventListener('click', () => deleteWord(b.dataset.del)));
-  box.querySelectorAll('.wl-btn[data-act]').forEach(b => b.addEventListener('click', () => markWord(b.dataset.en, b.dataset.act)));
+  box.querySelectorAll('.wl-del').forEach(b => b.addEventListener('click', () => deleteWord(b.dataset.del)));
 }
 

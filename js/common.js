@@ -845,6 +845,7 @@ function mergeData(local, cloud){
   delete cloud.writing;
   const out = Object.assign({}, local);
   const deleted = new Set([...(local.deletedIds||[]), ...(cloud.deletedIds||[])]);
+  const deletedWrong = new Set([...(local.deletedWrongKeys||[]), ...(cloud.deletedWrongKeys||[])]);  // 错句级墓碑（合并传播）
   const delKey = it => (it && it.id != null) ? it.id : (it && it.ts != null) ? it.ts : null;
   let changes = 0;
   const w = _mergeWords(local.words, cloud.words);
@@ -859,6 +860,15 @@ function mergeData(local, cloud){
   // 其余对象数组按原逻辑，合并后按墓碑过滤
   for(const f of SYNC_ARRAY_FIELDS){
     if(Array.isArray(cloud[f])){ const r = _mergeArray(local[f], cloud[f]); out[f] = r.arr.filter(x => !deleted.has(delKey(x))); changes += r.changes; }
+  }
+  // 错句级墓碑落地：合并 dictationLogs 后，真正移除属于墓碑的 mistake 子项（含云端带回的旧 mistake），并丢弃变空的 log，使数据自洽
+  if(out.dictationLogs && deletedWrong.size){
+    out.dictationLogs = out.dictationLogs.map(log => {
+      if(!Array.isArray(log.mistakes)) return log;
+      log.mistakes = log.mistakes.filter(mm =>
+        !deletedWrong.has((log.sourceId||'') + '|' + (mm.right||'').trim().toLowerCase() + '|' + (mm.wrong||'').trim().toLowerCase()));
+      return log;
+    }).filter(log => (log.mistakes||[]).length > 0);
   }
   // 万能素材：素材卡按 id 并集；persona/gaps/answers 云端非空取云端（素材自有 deletedIds 墓碑，不叠加全局过滤）
   const mt = _mergeMaterials(local.materials, cloud.materials); out.materials = mt.data; changes += mt.changes;
@@ -903,6 +913,7 @@ function mergeData(local, cloud){
     changes += ms.changes;
   }
   out.deletedIds = Array.from(deleted);
+  out.deletedWrongKeys = Array.from(deletedWrong);   // 错句级墓碑随合并传播
   // 当日背词会话（dailySession）：跨设备取「较新者胜」，杜绝云端旧会话覆盖本地新进度
   const _ld = local.dailySession, _cd = cloud.dailySession;
   if(_ld && _cd){
@@ -1622,6 +1633,7 @@ function collectWrongSentences(){
       const wrong = (m.wrong || '').trim();
       if(!right) return;
       const key = log.sourceId + '|' + right.toLowerCase() + '|' + wrong.toLowerCase();
+      if((DATA.deletedWrongKeys||[]).includes(key)) return;   // 墓碑：已删的错句永不聚合显示（根治「删了又回来」）
       if(!map[key]){
         map[key] = { key, sourceId: log.sourceId, sourceTitle: log.title || '', right, wrong, type: m.type || '', note: m.note || '', count: 0, lastDate: log.date || '' };
       }
@@ -1654,6 +1666,10 @@ function deleteWrongItem(key){
     else remaining.push(log);
   });
   DATA.dictationLogs = remaining;
+  // 写 mistake 级墓碑：被删 (sourceId|right|wrong) 持久化，跨同步传播，云端旧数据带回也不显示
+  DATA.deletedWrongKeys = DATA.deletedWrongKeys || [];
+  const wk = sourceId + '|' + right + '|' + wrong;
+  if(!DATA.deletedWrongKeys.includes(wk)) DATA.deletedWrongKeys.push(wk);
   if(removedIds.length){
     DATA.deletedIds = DATA.deletedIds || [];
     removedIds.forEach(id => { if(!DATA.deletedIds.includes(id)) DATA.deletedIds.push(id); });

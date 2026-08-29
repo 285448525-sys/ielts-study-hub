@@ -700,6 +700,13 @@ function delDictMistake(logId, mi){
   if(!l) return;
   if(!confirm('删除这一处「误判」？')) return;
   if(!Array.isArray(l.mistakes)) l.mistakes = [];
+  const m = l.mistakes[mi];
+  // 写 mistake 级墓碑（normalized key），跨同步传播删除，根治「删了又回来」
+  if(m){
+    const wk = (l.sourceId||'') + '|' + (m.right||'').trim().toLowerCase() + '|' + (m.wrong||'').trim().toLowerCase();
+    DATA.deletedWrongKeys = DATA.deletedWrongKeys || [];
+    if(!DATA.deletedWrongKeys.includes(wk)) DATA.deletedWrongKeys.push(wk);
+  }
   l.mistakes.splice(mi, 1);   // 按渲染下标移除（渲染顺序与数组顺序一致）
   if(l.mistakes.length === 0){
     // 整篇已无差异记录：直接删掉这篇（避免列表里出现「错 0 处」空记录）

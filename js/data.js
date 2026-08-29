@@ -333,6 +333,7 @@ let DATA = {
   checkins: [],
   mockRecords: [],
   deletedIds: [],   // 全局墓碑：所有删除操作的 raw id 集合，跨同步传播删除
+  deletedWrongKeys: [],   // 错句级墓碑：已删「标准句+错误写法」组合 key（sourceId|right|wrong），跨同步传播错句本/默写详情的单处删除
   speaking: SPEAKING_BANK,   // 纯官方题库（题目），框架母本(sp_p1_*/sp_p2_*)已移除，不再混入任何框架类内容
   speakingStories: [],
   writingScores: [],

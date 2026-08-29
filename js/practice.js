@@ -32,8 +32,7 @@ var PC_DEFAULTS = {
   rate: 0.9,
   repeat: 1,
   intervalMs: 1800,
-  batchSize: -1,          // -1=全部
-  newPerDay: 20,          // 每日新学上限（P1-2：仅统计新词，-1=不限）
+  batchSize: 20,          // 每轮固定题量（复习优先，不足时补新词；-1=全部）
   shuffle: true,
   autoNext: true,
   autoNextDelay: 1000,
@@ -104,6 +103,8 @@ function ensureWordV12(w){
     if(w.shortCount == null) w.shortCount = 0;
     if(w.lastShortTouch == null) w.lastShortTouch = null;
     if(w.cleanRounds == null) w.cleanRounds = 0;
+    if(w.ipa == null) w.ipa = '';
+    if(w.pos == null) w.pos = '';
     return w;
   }
   let level = 0;
@@ -273,13 +274,7 @@ function buildQueue(today, nowISO){
   for(const w of due) reconcileShortCount(w, nowISO);   // 入队前恢复短线进度（仅变化时写库）
   due.sort(dueCmp);
 
-  // P1-2：newPerDay 仅为「每日新学新词上限」，复习词（cleared===true）不占配额、全部保留
-  if(c.newPerDay && c.newPerDay > 0){
-    const review = due.filter(w => w.cleared === true);
-    const fresh  = due.filter(w => w.cleared !== true);
-    if(fresh.length > c.newPerDay) fresh.length = c.newPerDay;
-    return review.concat(fresh).sort(dueCmp);
-  }
+  // 不再按 newPerDay 截断：固定题量由 autoStartSeeWord 的 batchSize 控制，复习词自然排在前面
   return due;
 }
 
@@ -316,8 +311,7 @@ function autoStartSeeWord(){
       }
       let plan = all.slice();
       if(c.shuffle) plan = shuffle(plan);
-      // 锁定当日词量：总词表上限 = 每日学习量（newPerDay），不足则取实际待复习数
-      if(c.newPerDay && c.newPerDay > 0 && plan.length > c.newPerDay) plan = plan.slice(0, c.newPerDay);
+      // 固定题量：题量设置即每轮总题数；buildQueue 已按复习优先级排序，直接截断即可
       if(c.batchSize > 0 && plan.length > c.batchSize) plan = plan.slice(0, c.batchSize);
       session = {
         date: today,
@@ -715,7 +709,6 @@ function renderCfgModal(){
       name:'答题', icon:'☑',
       items:[
         { key:'batchSize',     label:'题量',          type:'batch', presets:[{v:'5',t:'5 题'},{v:'10',t:'10 题'},{v:'20',t:'20 题'},{v:'50',t:'50 题'},{v:'100',t:'100 题'},{v:'-1',t:'全部'}] },
-        { key:'newPerDay',     label:'每日新学上限',   type:'batch', desc:'仅限制新词，复习词不占配额', presets:[{v:'10',t:'10 个'},{v:'20',t:'20 个'},{v:'30',t:'30 个'},{v:'50',t:'50 个'},{v:'-1',t:'不限'}] },
         { key:'optCount',      label:'选项数量',      type:'select', opts:[{v:'4',t:'4 个'},{v:'6',t:'6 个'}] },
         { key:'shuffle',       label:'随机乱序',      type:'toggle' },
         { key:'wrongHoldMs',   label:'答错停留',      type:'range', min:1000, max:5000, step:500, unit:'ms' },
