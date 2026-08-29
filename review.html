@@ -25,7 +25,7 @@
 })();
 </script>
 <title>回顾 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20260829k" />
+<link rel="stylesheet" href="css/common.css?v=20260829s" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=5" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=4">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=4">
@@ -35,10 +35,10 @@
 
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
-<script defer src="js/data.js?v=20260829k"></script>
-<script defer src="js/common.js?v=20260829k"></script>
-<script defer src="js/scores.js?v=20260829j"></script>
-<script defer src="js/history.js?v=20260829j"></script>
+<script defer src="js/data.js?v=20260829s"></script>
+<script defer src="js/common.js?v=20260829s"></script>
+<script defer src="js/scores.js?v=20260829s"></script>
+<script defer src="js/history.js?v=20260829s"></script>
 <script defer src="js/mock-report.js?v=20260823j"></script>
 <script defer src="js/mock-history.js?v=20260823j"></script>
 <script defer src="js/mock-summary.js?v=20260823j"></script>
@@ -65,165 +65,159 @@
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 
 <main class="container">
-  <h1 class="page-title">回顾</h1>
-
-  <!-- ============ 上块：模考成绩 ============ -->
-  <div class="top-panel active" id="top-scores">
-  <section class="review-pane">
-    <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M6 20v-6M12 20V8M18 20v-10M3 20h18"/></svg>模考成绩</h2>
-
-    <div class="tabs pill-tabs">
-      <button class="tab-btn pill-tab active" data-tab="breakdown"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg>分项模考</button>
-      <button class="tab-btn pill-tab" data-tab="overall"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M6 20v-6M12 20V8M18 20v-10M3 20h18"/></svg>真题成绩记录</button>
-      <button class="tab-btn pill-tab" data-tab="speaking"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg>口语模考</button>
+  <div class="review-wrap">
+    <div class="page-head-row">
+      <h1 class="page-title">回顾</h1>
+      <div class="tabs pill-tabs">
+        <button class="tab-btn pill-tab active" data-tab="breakdown"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg>模考</button>
+        <button class="tab-btn pill-tab" data-tab="overall"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M6 20v-6M12 20V8M18 20v-10M3 20h18"/></svg>实战</button>
+        <button class="tab-btn pill-tab" data-tab="speaking"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg>口语</button>
+        <button class="tab-btn pill-tab" data-tab="record"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>学习轨迹</button>
+      </div>
     </div>
 
-    <!-- 真题成绩记录 Tab -->
-    <div id="tab-overall" class="tab-panel">
-      <div class="grid">
+    <section class="review-pane">
+      <!-- 分项模考 Tab（默认） -->
+      <div id="tab-breakdown" class="tab-panel active">
         <section class="card">
-          <h2>总览</h2>
-          <div class="stat-grid" id="scoreStats"></div>
+          <h2>添加分项记录</h2>
+          <div>
+            <div class="form-row">
+              <div><label>粒度</label>
+                <select id="mkGran">
+                  <option value="whole">整卷（录全部 Part）</option>
+                  <option value="part">单项（只录一个 Part）</option>
+                </select>
+              </div>
+              <div><label>题型</label>
+                <select id="mkType">
+                  <option value="listening">听力</option>
+                  <option value="reading">阅读</option>
+                  <option value="speaking">口语</option>
+                  <option value="writing">写作</option>
+                </select>
+              </div>
+              <div><label>日期</label><input type="date" id="mkDate" /></div>
+            </div>
+
+            <div class="form-row" id="mkPartPick" hidden>
+              <div><label>选择 Part</label><select id="mkPart"></select></div>
+            </div>
+
+            <div id="mkParts" class="mk-parts"></div>
+
+            <div class="form-row">
+              <div class="mk-note-flex"><label>备注（可选）</label><input id="mkNote" placeholder="如：同义替换慢 / P4 跟不上" /></div>
+            </div>
+            <button class="btn btn-primary" id="mkAdd">保存分项</button>
+          </div>
         </section>
+
         <section class="card">
-          <h2>最近一次 vs 目标</h2>
-          <div id="scoreBars"></div>
-          <div id="actionTip" class="action-tip"></div>
+          <div class="form-row" style="align-items:center">
+            <h2 class="inline-h2">表现统计</h2>
+            <div class="mk-filter-wrap"><label>范围</label>
+              <select id="mkFilter">
+                <option value="all">全部</option>
+                <option value="whole">仅整卷</option>
+                <option value="part">仅单项</option>
+              </select>
+            </div>
+          </div>
+          <h3>题型表现</h3>
+          <div id="mkTypeStats"></div>
+          <h3>各 Part 表现</h3>
+          <div id="mkPartStats"></div>
+        </section>
+
+        <section class="card">
+          <h2>分项记录列表</h2>
+          <div id="mkList"></div>
         </section>
       </div>
 
-      <section class="card">
-        <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>成绩趋势与掌握度</h2>
-        <h3>成绩趋势</h3>
-        <p class="muted">横轴为模考日期，纵轴 0–9 分。至少需要 2 次模考成绩。</p>
-        <div id="trendChart"></div>
-        <h3 style="margin-top:20px">综合掌握度雷达图</h3>
-        <p class="muted">对比「最新一次」与「目标」：听 / 读 / 写 / 口 四项能力。至少需要 1 次模考。</p>
-        <div id="radarChart"></div>
-      </section>
-
-      <section class="card">
-        <h2>整卷记录列表</h2>
-        <div id="scoreList"></div>
-      </section>
-
-      <details class="detail-block">
-        <summary>添加真题成绩</summary>
-        <div>
-          <div class="form-row">
-            <div><label>模考日期</label><input type="date" id="scoreDate" /></div>
-            <div><label>听力</label><input type="number" id="scL" step="0.5" min="0" max="9" placeholder="0–9" /></div>
-            <div><label>阅读</label><input type="number" id="scR" step="0.5" min="0" max="9" placeholder="0–9" /></div>
-          </div>
-          <div class="form-row">
-            <div><label>写作</label><input type="number" id="scW" step="0.5" min="0" max="9" placeholder="0–9" /></div>
-            <div><label>口语</label><input type="number" id="scS" step="0.5" min="0" max="9" placeholder="0–9" /></div>
-            <div><label>备注（可选）</label><input id="scNote" placeholder="备注" /></div>
-          </div>
-          <button class="btn btn-primary" id="addScore">保存成绩</button>
+      <!-- 实战 Tab -->
+      <div id="tab-overall" class="tab-panel">
+        <div class="grid">
+          <section class="card">
+            <h2>总览</h2>
+            <div class="stat-grid" id="scoreStats"></div>
+          </section>
+          <section class="card">
+            <h2>最近一次 vs 目标</h2>
+            <div id="scoreBars"></div>
+            <div id="actionTip" class="action-tip"></div>
+          </section>
         </div>
-      </details>
-    </div>
 
-    <!-- 分项模考 Tab（默认） -->
-    <div id="tab-breakdown" class="tab-panel active">
-      <section class="card">
-        <h2>添加分项记录</h2>
-        <div>
-          <div class="form-row">
-            <div><label>粒度</label>
-              <select id="mkGran">
-                <option value="whole">整卷（录全部 Part）</option>
-                <option value="part">单项（只录一个 Part）</option>
-              </select>
+        <section class="card">
+          <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>成绩趋势与掌握度</h2>
+          <h3>成绩趋势</h3>
+          <p class="muted">横轴为模考日期，纵轴 0–9 分。至少需要 2 次模考成绩。</p>
+          <div id="trendChart"></div>
+          <h3 style="margin-top:20px">综合掌握度雷达图</h3>
+          <p class="muted">对比「最新一次」与「目标」：听 / 读 / 写 / 口 四项能力。至少需要 1 次模考。</p>
+          <div id="radarChart"></div>
+        </section>
+
+        <section class="card">
+          <h2>整卷记录列表</h2>
+          <div id="scoreList"></div>
+        </section>
+
+        <details class="detail-block">
+          <summary>添加真题成绩</summary>
+          <div>
+            <div class="form-row">
+              <div><label>模考日期</label><input type="date" id="scoreDate" /></div>
+              <div><label>听力</label><input type="number" id="scL" step="0.5" min="0" max="9" placeholder="0–9" /></div>
+              <div><label>阅读</label><input type="number" id="scR" step="0.5" min="0" max="9" placeholder="0–9" /></div>
             </div>
-            <div><label>题型</label>
-              <select id="mkType">
-                <option value="listening">听力</option>
-                <option value="reading">阅读</option>
-                <option value="speaking">口语</option>
-                <option value="writing">写作</option>
-              </select>
+            <div class="form-row">
+              <div><label>写作</label><input type="number" id="scW" step="0.5" min="0" max="9" placeholder="0–9" /></div>
+              <div><label>口语</label><input type="number" id="scS" step="0.5" min="0" max="9" placeholder="0–9" /></div>
+              <div><label>备注（可选）</label><input id="scNote" placeholder="备注" /></div>
             </div>
-            <div><label>日期</label><input type="date" id="mkDate" /></div>
+            <button class="btn btn-primary" id="addScore">保存成绩</button>
           </div>
+        </details>
+      </div>
 
-          <div class="form-row" id="mkPartPick" hidden>
-            <div><label>选择 Part</label><select id="mkPart"></select></div>
-          </div>
+      <!-- 口语 Tab（整卷口语模考历史，由 mock-history.js 渲染） -->
+      <div id="tab-speaking" class="tab-panel">
+        <section class="card" id="mockSummaryCard">
+          <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>错误总结 <button class="btn sm btn-primary" id="mockSummaryBtn" style="margin-left:8px">生成总结</button></h2>
+          <p class="muted">AI 自动统计你所有口语模考里的语法 / 用词错误，列出最高频与需重点修改的类型，并说明其频繁程度。</p>
+          <div id="mockSummaryBox"></div>
+        </section>
 
-          <div id="mkParts" class="mk-parts"></div>
+        <section class="card">
+          <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg>口语整卷模考记录 <span class="muted mock-hist-count" id="mockHistCount"></span></h2>
+          <p class="muted">P1→P2→P3 全真模考的历史报告，含逐题转写。点击「展开」看完整评分与转写，刷新不丢。</p>
+          <div id="mockHistoryList"></div>
+        </section>
+      </div>
 
-          <div class="form-row">
-            <div class="mk-note-flex"><label>备注（可选）</label><input id="mkNote" placeholder="如：同义替换慢 / P4 跟不上" /></div>
-          </div>
-          <button class="btn btn-primary" id="mkAdd">保存分项</button>
-        </div>
-      </section>
+      <!-- 学习轨迹 Tab -->
+      <div id="tab-record" class="tab-panel">
+        <section class="card">
+          <h2>近 30 天学习热力</h2>
+          <div id="heatmap"></div>
+          <div class="cal-legend" id="heatLegend"></div>
+        </section>
 
-      <section class="card">
-        <div class="form-row" style="align-items:center">
-          <h2 class="inline-h2">表现统计</h2>
-          <div class="mk-filter-wrap"><label>范围</label>
-            <select id="mkFilter">
-              <option value="all">全部</option>
-              <option value="whole">仅整卷</option>
-              <option value="part">仅单项</option>
-            </select>
-          </div>
-        </div>
-        <h3>题型表现</h3>
-        <div id="mkTypeStats"></div>
-        <h3>各 Part 表现</h3>
-        <div id="mkPartStats"></div>
-      </section>
+        <section class="card">
+          <h2>每日记录</h2>
+          <div id="dayList"></div>
+        </section>
 
-      <section class="card">
-        <h2>分项记录列表</h2>
-        <div id="mkList"></div>
-      </section>
-    </div>
-
-    <!-- 口语模考 Tab（整卷口语模考历史，由 mock-history.js 渲染） -->
-    <div id="tab-speaking" class="tab-panel">
-      <section class="card" id="mockSummaryCard">
-        <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>错误总结 <button class="btn sm btn-primary" id="mockSummaryBtn" style="margin-left:8px">生成总结</button></h2>
-        <p class="muted">AI 自动统计你所有口语模考里的语法 / 用词错误，列出最高频与需重点修改的类型，并说明其频繁程度。</p>
-        <div id="mockSummaryBox"></div>
-      </section>
-
-      <section class="card">
-        <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg>口语整卷模考记录 <span class="muted mock-hist-count" id="mockHistCount"></span></h2>
-        <p class="muted">P1→P2→P3 全真模考的历史报告，含逐题转写。点击「展开」看完整评分与转写，刷新不丢。</p>
-        <div id="mockHistoryList"></div>
-      </section>
-    </div>
-  </section>
-  </div>
-
-  <!-- ============ 下块：学习轨迹 ============ -->
-  <div class="top-panel active" id="top-record">
-  <div class="review-split"></div>
-  <section class="review-pane">
-    <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>学习轨迹</h2>
-
-    <section class="card">
-      <h2>近 30 天学习热力</h2>
-      <div id="heatmap"></div>
-      <div class="cal-legend" id="heatLegend"></div>
+        <section class="card" id="spPractice">
+          <h2>口语日常练习 <span class="muted" id="spPracticeCount"></span></h2>
+          <p class="muted">P1 / P2 单题手写练习的历史（含 AI 评分与纠错），按时间倒序。点击任意一条可展开看回答与纠错。</p>
+          <div id="spPracticeList"></div>
+        </section>
+      </div>
     </section>
-
-    <section class="card">
-      <h2>每日记录</h2>
-      <div id="dayList"></div>
-    </section>
-
-    <section class="card" id="spPractice">
-      <h2>口语日常练习 <span class="muted" id="spPracticeCount"></span></h2>
-      <p class="muted">P1 / P2 单题手写练习的历史（含 AI 评分与纠错），按时间倒序。点击任意一条可展开看回答与纠错。</p>
-      <div id="spPracticeList"></div>
-    </section>
-  </section>
   </div>
 </main>
 

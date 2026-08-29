@@ -1604,18 +1604,25 @@ ready(() => { hubLoad();
   document.addEventListener('hub:timer-state', renderSideTimer);
   // 通用 inner tab 切换：.tab-btn → .tab-panel（按 data-tab 匹配 #tab-<name>）
   // 修 review.html 内层 tab 死 tab（此前无 handler → 三面板堆叠+点击无效）；scores.html 已有 scores.js 同类 handler，叠加不冲突
+  // v2：兼容 tab 按钮与面板不在同一父容器（review 页标题+tab 在右上角，面板在下方 section 内）
   document.addEventListener('click', function(e){
     var b = e.target.closest('.tab-btn');
     if(!b) return;
-    var wrap = b.closest('.tabs');
-    if(!wrap) return;
-    wrap = wrap.parentElement;
-    if(!wrap) return;
-    wrap.querySelectorAll('.tab-btn').forEach(function(x){ x.classList.remove('active'); });
-    wrap.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
+    var tabs = b.closest('.tabs');
+    if(!tabs) return;
+    // 清除本 tabs 内所有 tab-btn active
+    tabs.querySelectorAll('.tab-btn').forEach(function(x){ x.classList.remove('active'); });
     b.classList.add('active');
-    var panel = wrap.querySelector('#tab-' + b.dataset.tab);
-    if(panel) panel.classList.add('active');
+    // 找 panel：优先在 .tabs 父容器内找，找不到则全局按 id 找
+    var panelId = 'tab-' + b.dataset.tab;
+    var scope = tabs.parentElement || document.body;
+    var panel = scope.querySelector('#' + panelId);
+    if(!panel) panel = document.getElementById(panelId);
+    if(!panel) return;
+    // 在 panel 的父容器内清除其他 tab-panel active
+    var panelScope = panel.parentElement;
+    if(panelScope) panelScope.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
+    panel.classList.add('active');
   });
 });
 
