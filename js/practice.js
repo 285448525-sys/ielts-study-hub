@@ -522,7 +522,6 @@ function renderQuestion(cur, isRehold){
     ? escapeHtml(cur.example).replace(new RegExp('\\b' + escapeRegExp(cur.en) + '\\b'), '<span class="hi">$&</span>')
     : '';
   html += '<div class="practice-sentence' + (cur.example ? '' : ' is-empty') + '">' + exHtml + '</div>';
-  html += '<div class="opts-label">选择正确释义</div>';
   html += '<div class="opts-grid" id="opts"></div>';
   // 单一「不认识」按钮（选对/选错由 4 选项直接判定；只有完全不会才点它）
   html += '<div class="answer-btns"><button class="abtn abtn-unknown" id="unknownBtn">完全不认识</button></div>';
