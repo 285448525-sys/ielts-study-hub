@@ -608,7 +608,7 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
     pq.passed.push(String(cur.en).trim().toLowerCase());
     hubSave();
     result = 'pass';
-    toast('✓ 过关：' + cur.en + cnTxt);
+    // 过关提示已删除（用户要求去掉底部黑框"✓ 过关：xxx"）
   } else {
     const wasRehold = (pq.reholdMap[k] || 0) >= 1;
     demoteLongTerm(cur, today, !!isUnknownBtn); // P1-1：点「完全不认识」时惩罚加重
