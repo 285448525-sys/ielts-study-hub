@@ -177,10 +177,6 @@ function render(){
     }
   }
 
-  // 趋势图 + 雷达图
-  renderTrend();
-  renderRadar();
-
   // list
   const box = $('#scoreList');
   if(list.length === 0){ box.innerHTML = renderEmpty('暂无记录。'); return; }
