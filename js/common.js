@@ -618,6 +618,7 @@ function computeStreak(checkins){
 let _cloudTimer = null;
 let _lastUploadedHash = '';
 let _pendingUpload = false;
+let _lastCloudHash = '';   // 上次拉到的云端内容哈希：相同则跳过 mergeData（性能优化，见 cloudDownload）
 function hashData(){
   // 简单稳定哈希：把 DATA JSON 做 djb2，够用来判断「内容是否真变了」
   const s = JSON.stringify(DATA);
@@ -1025,6 +1026,10 @@ async function cloudDownload(silent){
     if(res.status === 503) throw new Error('云端存储未绑定（Cloudflare 后台需绑定 SYNC_KV）');
     if(!res.ok) throw new Error('HTTP ' + res.status);
     if(!data || !data.data) throw new Error('返回格式异常');
+    // 性能优化：云端内容哈希未变则跳过合并（省去每次轮询的 mergeData + 两次全量 stringify 比较，
+    // DATA 越大这波 CPU 越重，是「有时候卡」的头号来源；单设备用户基本用不上 10s 实时性）
+    const _ch = hashData(data.data);
+    if(_ch === _lastCloudHash) return true;
     const m = mergeData(DATA, data.data);
     // 终极保险：比较合并前后内容，真的变化才算「更新」。
     // 场景：本机比云端进步（背单词 streak/释义更掌握）时，_mergeWords 内部 changes 每次都会计，
@@ -1045,6 +1050,7 @@ async function cloudDownload(silent){
     } else if(!silent){
       toast('云端没有比本机更新的内容');
     }
+    _lastCloudHash = _ch;   // 记录云端内容哈希：下次拉到相同哈希直接早退，不再跑合并
     return true;
   }catch(e){
     if(!silent) toast('云端下载失败：' + e.message);
@@ -1212,9 +1218,9 @@ function initCloudSync(){
   // 10s 轮询与切回前台拉取保留原逻辑。
   if(typeof requestIdleCallback === 'function') requestIdleCallback(function(){ cloudDownload(true); }, { timeout: 2000 });
   else setTimeout(function(){ cloudDownload(true); }, 800);
-  // 轮询拉取：10 秒一次（页面可见时）。近实时——另一台设备保存后，本端约 10s 内自动合并且重渲染，无需手动操作。
-  // 请求量：每设备每 10 秒 1 次 GET，CF Functions 免费额度内；内容未变时不弹不刷（reallyChanged 保险），不会刷屏。
-  setInterval(() => { if(!document.hidden) cloudDownload(true); }, 10 * 1000);
+  // 轮询拉取：30 秒一次（页面可见时）。单设备用户基本用不上 10s 实时性，30s 足够在另一台设备保存后自动合并；
+  // 内容未变时 hash 早退（不进 mergeData），进一步省 CPU；请求量降至 1/3，CF Functions 额度更宽裕。
+  setInterval(() => { if(!document.hidden) cloudDownload(true); }, 30 * 1000);
   document.addEventListener('visibilitychange', () => { if(!document.hidden) cloudDownload(true); });
 }
 ready(initCloudSync);
