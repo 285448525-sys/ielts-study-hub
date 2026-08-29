@@ -24,7 +24,6 @@ ready(() => {
 
   // 每周 AI 排程
   $('#weekTasks').value = DATA.settings.weeklyTasks || '';
-  renderWeekHint();
   $('#aiWeek').addEventListener('click', aiWeekPlan);
   $('#genWeek').addEventListener('click', () => {
     DATA.settings.weeklyTasks = $('#weekTasks').value.trim();
@@ -279,21 +278,6 @@ function upcomingDates(n){
 function getCustomTasks(){
   const raw = (DATA.settings.weeklyTasks || '').trim();
   return raw ? raw.split('\n').map(s => s.trim()).filter(Boolean) : [];
-}
-function renderWeekHint(){
-  const el = $('#weekHint'); if(!el) return;
-  const weak = computeWeak();
-  let msg;
-  if(weak.length >= 2){
-    msg = '弱项：' + weak[0].name + '、' + weak[1].name + '（AI 会优先多排）。';
-  } else if(weak.length === 1){
-    msg = '弱项：' + weak[0].name + '（AI 会优先多排）。';
-  } else {
-    msg = '还没设目标分数，去「设置 / 目标分数」填一下，AI 才好按弱项排序。';
-  }
-  const cd = examCountdown();
-  if(cd.hasExam && cd.daysLeft !== null && cd.daysLeft > 0) msg += ' 距考试 ' + cd.daysLeft + ' 天。';
-  el.textContent = msg;
 }
 function computeWeak(){
   const t = DATA.settings.targets || {};

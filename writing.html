@@ -25,7 +25,7 @@
 })();
 </script>
 <title>写作 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20260829a" />
+<link rel="stylesheet" href="css/common.css?v=20260829b" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=5" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=4">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=4">
@@ -261,9 +261,19 @@
       <p class="muted" style="font-size:13px">把模板 + 这套万能词组/句式背完，基本能套市面上所有雅思题。点「看释义」自测背诵，可自己增删。</p>
       <div class="form-row" style="align-items:center;gap:8px">
         <select id="bankFilter">
-          <option value="all">全部</option>
-          <option value="词组">万能词组</option>
-          <option value="句式">万能句式</option>
+          <option value="all">全部领域</option>
+          <option value="教育">教育</option>
+          <option value="科技">科技</option>
+          <option value="环境">环境</option>
+          <option value="健康">健康</option>
+          <option value="文化">文化</option>
+          <option value="社会">社会</option>
+          <option value="政府">政府</option>
+          <option value="经济">经济</option>
+          <option value="犯罪">犯罪</option>
+          <option value="交通">交通</option>
+          <option value="工作">工作</option>
+          <option value="通用">通用</option>
         </select>
         <button class="btn btn-primary" id="bankAddBtn">+ 新增语料</button>
       </div>
@@ -271,17 +281,31 @@
     </section>
     <section class="card" id="bankAddCard" hidden>
       <h2>新增语料</h2>
-      <div class="form-row">
-        <select id="ba_type"><option value="词组">万能词组</option><option value="句式">万能句式</option></select>
-        <input id="ba_en" placeholder="英文（句式可用 [X] 表示可替换处）" />
-      </div>
-      <input id="ba_cn" placeholder="中文释义 / 用法说明" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);box-sizing:border-box;margin-top:8px" />
-      <input id="ba_tag" placeholder="标签（观点/对比/举例/因果/结论/建议，可选）" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);box-sizing:border-box;margin-top:8px" />
-      <input id="ba_ex" placeholder="例句（可选）" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);box-sizing:border-box;margin-top:8px" />
+      <p class="muted" style="font-size:13px;margin:-4px 0 10px">把任意英文材料（文章、笔记、词表、网页复制）粘贴进去，AI 会自动拆成词组/句式、补中文释义、按领域分类并导入。</p>
+      <textarea id="ba_bulkInput" placeholder="在此粘贴任意英文内容…（可含中文释义，也可只有英文，AI 会自己补）" style="width:100%;min-height:160px;padding:10px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);resize:vertical;box-sizing:border-box;line-height:1.7"></textarea>
       <div class="form-row" style="align-items:flex-end;margin-top:10px">
-        <button class="btn btn-primary" id="ba_save">保存</button>
+        <button class="btn btn-primary" id="ba_aiImport">AI 识别并导入</button>
         <button class="btn" id="ba_cancel">取消</button>
       </div>
+      <details style="margin-top:12px" id="ba_manualWrap">
+        <summary style="cursor:pointer;font-size:13px;color:var(--muted);user-select:none">手动添加一条</summary>
+        <div style="padding:12px 0 4px">
+          <div class="form-row">
+            <select id="ba_type">
+              <option value="教育">教育</option><option value="科技">科技</option><option value="环境">环境</option><option value="健康">健康</option>
+              <option value="文化">文化</option><option value="社会">社会</option><option value="政府">政府</option><option value="经济">经济</option>
+              <option value="犯罪">犯罪</option><option value="交通">交通</option><option value="工作">工作</option><option value="通用" selected>通用</option>
+            </select>
+            <input id="ba_en" placeholder="英文词组/句式" />
+          </div>
+          <input id="ba_cn" placeholder="中文释义 / 用法说明" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);box-sizing:border-box;margin-top:8px" />
+          <input id="ba_tag" placeholder="功能标签（支持/反对/原因/方案/意义/影响/观点/对比/举例/因果/结论/建议，可选）" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);box-sizing:border-box;margin-top:8px" />
+          <input id="ba_ex" placeholder="例句（可选）" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);box-sizing:border-box;margin-top:8px" />
+          <div class="form-row" style="align-items:flex-end;margin-top:10px">
+            <button class="btn btn-primary" id="ba_save">保存</button>
+          </div>
+        </div>
+      </details>
     </section>
   </div>
 

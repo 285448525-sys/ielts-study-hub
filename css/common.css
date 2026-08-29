@@ -210,7 +210,6 @@ body{
 .card h3{margin:0 0 10px;font-size:14.5px;color:var(--muted);font-weight:600}
 
 /* ===== 计划页简化（2026-08-28） ===== */
-.plan-hint{font-size:13px;color:var(--muted);margin:0 0 12px;line-height:1.55}
 .plan-textarea{min-height:88px}
 .plan-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;flex-wrap:wrap}
 .plan-actions-left{font-size:12.5px;color:var(--muted);flex:1;min-width:0}
@@ -2009,4 +2008,56 @@ body.exam-fullscreen #writeTabs{display:none}
 @media (prefers-reduced-motion: reduce){
   .ft-dot{ animation:none; }
   .float-timer{ animation:none; }
+}
+
+/* ===================================================================
+   移动端适配增强（手机竖屏 ≤640px）
+   表单行默认 flex 并排会在窄屏挤压 → 改为纵向堆叠、输入框占满、按钮全宽
+   =================================================================== */
+@media (max-width:640px){
+  /* 表单行：纵向堆叠 */
+  .form-row{ display:block; }
+  .form-row > div{ width:100% !important; flex:none !important; margin-bottom:12px; }
+  .form-row > div:last-child{ margin-bottom:0; }
+  .form-row > label{ display:block; margin-bottom:5px; font-size:13px; }
+  .form-row > span{ display:block; margin-top:6px; }
+
+  /* 输入框 / 下拉 / 文本域占满；16px 防止 iOS 聚焦缩放 */
+  .form-row input:not([type=checkbox]):not([type=radio]),
+  .form-row select,
+  .form-row textarea{
+    width:100% !important; max-width:100% !important;
+    box-sizing:border-box; font-size:16px; min-height:44px;
+  }
+  .form-row input[type=checkbox],
+  .form-row input[type=radio]{ width:18px; height:18px; }
+
+  /* 行内组合（日期+徽章 / key+显示按钮）也纵向堆叠 */
+  .form-row div[style*="display:flex"]{
+    flex-direction:column !important; align-items:stretch !important; gap:8px;
+  }
+  .form-row div[style*="display:flex"] > *{ width:100% !important; }
+
+  /* 按钮行：按钮全宽竖排，更易点 */
+  .form-row .btn,
+  .form-row button.btn{ width:100%; margin:0 0 8px; }
+  .form-row button.btn:last-child{ margin-bottom:0; }
+  .form-row button[style*="margin-left:auto"]{ margin-left:0 !important; }
+
+  /* 计划页今日计划日期行（label 直接子 + 说明 span） */
+  .form-row input[type=date]{ width:100% !important; max-width:100% !important; flex:none !important; }
+
+  /* 卡片内联 sticky 保存条：竖排、按钮全宽置底 */
+  section.card[style*="position:sticky"]{
+    flex-direction:column-reverse !important; align-items:stretch !important; gap:10px;
+  }
+  section.card[style*="position:sticky"] .btn{ min-width:0 !important; width:100%; }
+
+  /* pill 标签页窄屏允许换行，避免溢出 */
+  .tabs.pill-tabs{ flex-wrap:wrap; }
+
+  /* 计划页「计划」区按钮行：堆叠后居中 */
+  .plan-actions{ flex-direction:column; align-items:stretch; gap:10px; }
+  .plan-actions-right{ display:flex; flex-direction:column; gap:10px; }
+  .plan-actions-right .btn{ width:100%; }
 }
