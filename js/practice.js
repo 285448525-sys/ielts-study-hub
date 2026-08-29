@@ -222,6 +222,16 @@ function recordDailyWrong(en){
   if(!DATA.dailyWrong[t].includes(k)) DATA.dailyWrong[t].push(k);
 }
 
+// 轻量词性推断（从英文后缀推断，纯 UI 显示用；数据有 pos 字段时优先使用）
+function inferPos(en){
+  var w = (en || '').toLowerCase();
+  if(/tion$|sion$|ment$|ness$|ity$|ance$|ence$|ist$|er$|or$|dom$|ship$|th$/.test(w)) return 'n.';
+  if(/ly$/.test(w)) return 'adv.';
+  if(/able$|ible$|al$|ive$|ous$|ful$|less$|ic$|ent$|ant$|y$|ive$/.test(w)) return 'adj.';
+  if(/ize$|ise$|ate$|ify$|en$/.test(w)) return 'v.';
+  return '';
+}
+
 // 动态干扰项（v4 §3.7 genDistractors，适配 en/cn）：同/相邻 level 优先，不写回 distractors，shuffle 不修改入参原数组
 function genDistractors(correct, allWords){
   const cEn = String(correct.en || '').toLowerCase();
@@ -503,7 +513,7 @@ function renderQuestion(cur, isRehold){
     '<button class="mastered-btn" id="masteredBtn" title="已掌握：从词库删除该词">已掌握</button>' +
     '<div class="pw-en">' + escapeHtml(cur.en) + '</div>' +
     (cur.ipa ? '<div class="pw-ipa">/ ' + escapeHtml(cur.ipa) + ' /</div>' : '') +
-    '<div class="pw-cn" id="pwCn"></div>' +
+    '<div class="pw-cn" id="pwCn">&nbsp;</div>' +
   '</div>';
 
   // ── 选项网格（2×2 + 不知道，照抄爱听写） ──
@@ -514,7 +524,7 @@ function renderQuestion(cur, isRehold){
   body.innerHTML = html;
   $('#opts').innerHTML = opts.map((o, i) =>
     '<button class="opt-big" data-en="' + escapeHtml(o.en) + '" data-idx="' + i + '">' +
-      '<span class="opt-big-tag">' + (o.pos || '') + '</span>' +
+      '<span class="opt-big-tag">' + (o.pos || cur.pos || inferPos(o.en) || inferPos(cur.en) || '') + '</span>' +
       '<span class="opt-big-cn">' + escapeHtml(o.cn) + '</span>' +
       '<span class="opt-big-en"></span>' +
     '</button>'
@@ -549,10 +559,10 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
     const isCorrect = (x.dataset.en === cur.en);
     const isWrong = (!correct && pickedEn != null && x.dataset.en === pickedEn);
     if(isCorrect || isWrong){
-      // 在词性标签旁显示英文： "n." → "n. tone" / "n. loan"
+      // 在词性标签旁显示英文： "n." → "n. tone" / "n. loan"；空标签 → 直接显示英文
       const tagEl = x.querySelector('.opt-big-tag');
       if(tagEl){
-        const pos = tagEl.textContent.trim();
+        var pos = tagEl.textContent.trim();
         tagEl.textContent = pos ? (pos + ' ' + x.dataset.en) : x.dataset.en;
       }
     }

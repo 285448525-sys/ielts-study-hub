@@ -502,9 +502,9 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 }
 #practiceBody.practice-body-fit .opt-big:hover{ border-color:#cbd5e1; }
 
-/* 第一行：词性标签（"n." / "adj." 灰色小字）；固定行高 18px → 答后加英文不撑高中文 */
+/* 第一行：词性标签（"n." / "adj." 灰色小字）；固定 min-height+line-height 18px → 答后加英文不撑高不跳动 */
 #practiceBody.practice-body-fit .opt-big-tag{
-  font-size:13px;color:#999;font-weight:500;flex:0 0 auto;line-height:18px;
+  font-size:13px;color:#999;font-weight:500;flex:0 0 auto;line-height:18px;min-height:18px;
 }
 /* 第二行：中文释义 */
 #practiceBody.practice-body-fit .opt-big-cn{
@@ -1745,7 +1745,7 @@ body.word-fullscreen #practiceBody.practice-body-fit .opt-big{
   transition:all .15s ease;overflow:hidden;box-sizing:border-box;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .opt-big:hover{ border-color:#cbd5e1; }
-body.word-fullscreen #practiceBody.practice-body-fit .opt-big-tag{ font-size:14px;color:#999;font-weight:500;flex:0 0 auto;line-height:18px; }
+body.word-fullscreen #practiceBody.practice-body-fit .opt-big-tag{ font-size:14px;color:#999;font-weight:500;flex:0 0 auto;line-height:18px;min-height:18px; }
 body.word-fullscreen #practiceBody.practice-body-fit .opt-big-cn{
   font-size:18px;font-weight:600;color:var(--ink);line-height:1.4;
 }
