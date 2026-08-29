@@ -341,8 +341,8 @@ function renderPartInputs(){
     return `<div class="mk-part mk-part-grid">
       <div class="mk-part-label">${label}</div>
       <div class="mk-part-inputs">
-        <div><label>答对</label><input type="number" min="0" class="mk-correct" data-part="${label}" placeholder="0" /></div>
-        <div><label>总题数</label><input type="number" min="1" class="mk-total" data-part="${label}" value="${def.defaultTotal || ''}" placeholder="${def.defaultTotal || 0}" /></div>
+        <div style="flex:1"><label>答对</label><input type="number" min="0" class="mk-correct" data-part="${label}" placeholder="0" /></div>
+        <input type="hidden" class="mk-total" data-part="${label}" value="${def.defaultTotal || ''}" />
       </div>
     </div>`;
   }).join('');
@@ -377,10 +377,9 @@ function addMock(){
   });
   if(bad) return;
   if(parts.length === 0){ toast('至少填一个 part 的' + (isScore ? '得分' : '答对 / 总题数')); return; }
-  DATA.mockRecords.unshift({ id:uid(), date, granularity:gran, type, parts, note:$('#mkNote').value.trim() });
+  DATA.mockRecords.unshift({ id:uid(), date, granularity:gran, type, parts });
   hubSave();
   renderPartInputs();
-  $('#mkNote').value = '';
   renderMock();
   // 整卷 + 客观题：顺带估算卷面雅思分
   let msg = '已保存分项模考';
