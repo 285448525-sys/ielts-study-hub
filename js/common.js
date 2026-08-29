@@ -21,8 +21,8 @@ const PAGES = [
   { id:'timer',     file:'timer.html',     icon:ICON.timer,     name:'计时',   desc:'选模块开计时' },
   { id:'plans',     file:'plans.html',     icon:ICON.plans,     name:'计划',   desc:'每日清单 + AI 排周' },
   { id:'practice',  file:'practice.html',  icon:ICON.practice,  name:'单词',       desc:'学习与管理你的单词' },
-  // 三合一入口：长难句 + 错题本 + 听力默写（原听力 corpus + 词句 errorbook 合并）
-  { id:'corpus',    file:'corpus.html',    icon:ICON.corpus,    name:'语料', desc:'长难句 · 错题本 · 听力默写' },
+  // 三合一入口：长难句 + 错题 + 听写（原听力 corpus + 词句 errorbook 合并）
+  { id:'corpus',    file:'corpus.html',    icon:ICON.corpus,    name:'句子', desc:'长难句 · 错题 · 听写' },
   { id:'speaking',  file:'speaking.html',  icon:ICON.speaking,  name:'口语', desc:'题库 + AI 串题' },
   { id:'writing',   file:'writing.html',   icon:ICON.writing,   name:'写作',       desc:'模板 + AI 评分' },
   { id:'wrongbook', file:'wrongbook.html', icon:ICON.wrongbook, name:'错句本',     desc:'写作/语料默写错句汇总' },

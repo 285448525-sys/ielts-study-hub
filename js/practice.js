@@ -486,7 +486,7 @@ function renderQuestion(cur, isRehold){
   const opts = genDistractors(cur, DATA.words);
 
   let html = '';
-  // ── 顶部区：上一词回顾 + 短线进度 ──
+  // ── 顶部区：上一词回顾 ──
   let top = '';
   if(pq.idx > 0 && !isRehold){
     const last = pq.queue[pq.idx - 1];
@@ -494,33 +494,29 @@ function renderQuestion(cur, isRehold){
       '<span class="lw-en">← ' + escapeHtml(last.en) + '</span>' +
       (last.ipa ? '<span class="lw-ipa">' + escapeHtml(last.ipa) + '</span>' : '') +
       (last.cn ? '<span class="lw-cn">' + escapeHtml(last.cn) + '</span>' : '') +
-      '<span class="lw-hint">上一个单词，快捷键：1</span></div>';
+      '</div>';
   }
-  // streak-bar 已移除（用户要求不显示）
   if(top) html += '<div class="practice-topzone">' + top + '</div>';
 
-  // ── 单词区（居中：大字 + 音标 + 词性） ──
-  html += '<div class="practice-word-area">' +
-    '<button class="mastered-btn" id="masteredBtn" title="已掌握：从词库删除该词">已掌握</button>' +
-    '<div class="practice-word-head">' +
-      '<div class="pw-main"><span class="pw-en">' + escapeHtml(cur.en) + '</span></div>' +
-      '<div class="pw-meta">' +
-        (cur.ipa ? '<span class="pw-ipa">/ ' + escapeHtml(cur.ipa) + ' /</span>' : '') +
-        (cur.pos ? '<span class="pw-pos">' + escapeHtml(cur.pos) + '</span>' : '') +
-      '</div>' +
-      (cur.cn ? '<div class="pw-cn" id="pwCn">' + escapeHtml(cur.cn) + '</div>' : '') +
-    '</div>' +
-  '</div>';
-
-  // ── 例句卡片（居中，高亮词用 primary 色） ──
+  // 例句 HTML（高亮当前单词）
   const exHtml = cur.example
     ? escapeHtml(cur.example).replace(new RegExp('\\b' + escapeRegExp(cur.en) + '\\b', 'gi'), '<span class="hi">$&</span>')
     : '';
-  if(exHtml){
-    html += '<div class="practice-sentence">' + exHtml + '</div>';
-  } else {
-    html += '<div class="practice-sentence is-empty"></div>';
-  }
+
+  // ── 主区域（照抄爱听写：左=单词+音标+词性释义，右=例句卡片） ──
+  html += '<div class="practice-word-area">' +
+    '<button class="mastered-btn" id="masteredBtn" title="已掌握：从词库删除该词">已掌握</button>' +
+    '<div class="pw-left">' +
+      '<div class="pw-main"><span class="pw-en">' + escapeHtml(cur.en) + '</span></div>' +
+      '<div class="pw-meta">' +
+        (cur.ipa ? '<span class="pw-ipa">/ ' + escapeHtml(cur.ipa) + ' /</span>' : '') +
+      '</div>' +
+      '<div class="pw-desc" id="pwCn">' +
+        (cur.pos ? '<span class="pw-pos">' + escapeHtml(cur.pos) + '</span>' : '') +
+      '</div>' +
+    '</div>' +
+    (exHtml ? '<div class="practice-sentence">' + exHtml + '</div>' : '') +
+  '</div>';
 
   // ── 选项网格（2×2 + 不知道，照抄爱听写） ──
   html += '<div class="opts-grid" id="opts"></div>';
@@ -560,24 +556,29 @@ function bindOpts(cur){
 function judge(cur, pickedEn, correct, isUnknownBtn){
   if(!pq || pq.revealed) return;
   pq.revealed = true;
-  // 揭示反馈（照抄爱听写：选项内显示英文，对=绿，错=红+同时亮出正确答案）
+  // 揭示反馈（照抄爱听写：词性标签变 "n. english" 格式，对=绿框，错=红框+正确也绿框）
   document.querySelectorAll('#opts .opt-big').forEach(x => {
     const isCorrect = (x.dataset.en === cur.en);
     const isWrong = (!correct && pickedEn != null && x.dataset.en === pickedEn);
     if(isCorrect || isWrong){
-      // 在选项内显示对应的英文单词
-      const enEl = x.querySelector('.opt-big-en');
-      if(enEl) enEl.textContent = x.dataset.en;
+      // 在词性标签旁显示英文： "n." → "n. tone" / "n. loan"
+      const tagEl = x.querySelector('.opt-big-tag');
+      if(tagEl){
+        const pos = tagEl.textContent.trim();
+        tagEl.textContent = pos ? (pos + ' ' + x.dataset.en) : x.dataset.en;
+      }
     }
     if(isCorrect) x.classList.add('correct');
     if(isWrong) x.classList.add('wrong');
     x.style.pointerEvents = 'none';
   });
+  // 揭示题干中文释义（照抄爱听写：答后才显示，修复此前「中文提前显示」）
+  const reveal = document.getElementById('pwCn');
+  if(reveal && (cur.cn || cur.pos)){
+    reveal.innerHTML = (cur.pos ? '<span class="pw-pos">' + escapeHtml(cur.pos) + '</span> ' : '') + (cur.cn ? escapeHtml(cur.cn) : '');
+  }
   const ub = document.getElementById('unknownBtn');
   if(ub){ ub.style.pointerEvents = 'none'; ub.disabled = true; }
-  // 答题后揭示中文释义
-  const pwCn = document.getElementById('pwCn');
-  if(pwCn) pwCn.classList.add('revealed');
 
   const k = String(cur.en).toLowerCase();
   if(!pq.counted) pq.counted = new Set();
