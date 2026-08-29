@@ -595,6 +595,50 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 .cal-day.has{background:var(--primary);color:var(--on-primary)}
 .cal-day.today{box-shadow:0 0 0 2px var(--warn)}
 
+/* 学习轨迹 · 每日记录（美化卡片，照抄原型 v20260829-record） */
+#dayList .day-card{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:14px 18px;
+  margin-bottom:10px;
+  transition:border-color .15s;
+}
+#dayList .day-card:hover{ border-color:#c5d0db; }
+#dayList .day-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:10px;
+}
+#dayList .day-date{
+  font-size:14px;font-weight:600;color:var(--ink);letter-spacing:.3px;
+}
+#dayList .day-date .weekday{
+  font-weight:400;color:var(--muted);font-size:12px;margin-left:6px;
+}
+#dayList .day-total{
+  font-size:13px;font-weight:600;color:#fff;
+  background:linear-gradient(135deg,var(--primary),#2d7a74);
+  padding:3px 12px;border-radius:20px;white-space:nowrap;
+}
+#dayList .day-chips{
+  display:flex;flex-wrap:wrap;gap:6px;align-items:center;
+}
+#dayList .chip{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:12px;padding:4px 10px;border-radius:6px;
+  background:#f0f4f8;color:#444;font-weight:500;white-space:nowrap;line-height:1.4;
+}
+#dayList .chip .chip-name{ color:#666; }
+#dayList .chip .chip-val{ color:var(--ink);font-weight:600; }
+#dayList .chip.chip-long{ background:#e8f5f2; }
+#dayList .chip.chip-long .chip-name{ color:#2d7a74; }
+#dayList .chip.chip-long .chip-val{ color:#1a6b64;font-weight:700; }
+#dayList .chip-focus{
+  font-size:11px;color:var(--muted);padding:4px 10px;border-radius:6px;
+  background:#fafafa;border:1px dashed #ddd;margin-left:2px;
+}
+#dayList .chip-focus b{ color:var(--primary); }
+
 /* resources */
 .tip-card{border-left:4px solid var(--primary);padding:12px 16px;background:#eef5f3;border-radius:0 10px 10px 0;margin-bottom:10px}
 [data-theme="dark"] .tip-card{background:#1e293b}

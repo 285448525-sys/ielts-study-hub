@@ -31,6 +31,8 @@ function renderHeatmap(){
 }
 
 function renderDays(){
+  const wd = ['周日','周一','周二','周三','周四','周五','周六'];
+  const getWeekday = dStr => wd[new Date(dStr.replace(/-/g,'/')).getDay()];
   const byDay = {};
   DATA.sessions.forEach(s => {
     byDay[s.date] = byDay[s.date] || [];
@@ -45,15 +47,22 @@ function renderDays(){
     const pause = arr.reduce((a,s) => a + (s.pauseSec||0), 0);
     const parts = {};
     arr.forEach(s => parts[s.subName] = (parts[s.subName]||0) + s.durationSec);
-    const chips = Object.entries(parts).sort((a,b)=>b[1]-a[1]).map(([n,s]) => n + ' ' + fmtHM(s)).join(' · ');
-    let extra = '';
+    const isLong = total >= 3600;
+    const chips = Object.entries(parts).sort((a,b)=>b[1]-a[1]).map(([n,s]) => {
+      const longCls = (isLong && s >= 3600) ? ' chip-long' : '';
+      return `<span class="chip${longCls}"><span class="chip-name">${escapeHtml(String(n))}</span><span class="chip-val">${fmtHM(s)}</span></span>`;
+    }).join('');
+    let focusChip = '';
     if(pause > 0){
       const focusPct = (total + pause) > 0 ? Math.round(total/(total+pause)*100) : 100;
-      extra = ' · 暂停 ' + fmtHM(pause) + ' · 专注度 ' + focusPct + '%';
+      focusChip = `<span class="chip-focus">专注 <b>${focusPct}%</b></span>`;
     }
-    return `<div class="hist-day">
-      <div class="hd">${k} · 总时长 ${fmtHM(total)}${extra}</div>
-      <div class="hr">${chips}</div>
+    return `<div class="day-card">
+      <div class="day-header">
+        <span class="day-date">${k}<span class="weekday">${getWeekday(k)}</span></span>
+        <span class="day-total">总时长 ${fmtHM(total)}</span>
+      </div>
+      <div class="day-chips">${chips}${focusChip}</div>
     </div>`;
   }).join('');
 }
