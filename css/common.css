@@ -340,18 +340,6 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 }
 .mod-body{ flex:1;min-width:0 }
 
-/* ====== 词库页拖放区 ====== */
-.word-drop-zone{
-  border:2px dashed var(--line);
-  border-radius:var(--radius-lg);
-  padding:32px 20px;
-  text-align:center;
-  transition:border-color .2s, background .2s;
-  background:var(--bg);
-  cursor:text;
-}
-.word-drop-zone:hover{ border-color:var(--primary); background:var(--surface) }
-.word-drop-zone.drag-over{ border-color:var(--primary); background:var(--primary-soft) }
 
 @media (max-width:640px){
   #modeSelect .mod-card{ flex-direction:column; align-items:flex-start; }
@@ -385,9 +373,9 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 .pw-en{font-size:28px;font-weight:700;color:var(--ink);letter-spacing:-.01em}
 .pw-ipa{font-size:15px;font-style:normal;color:var(--muted);font-family:serif}
 .pw-cn{font-size:14px;color:var(--muted)}
-/* 已掌握按钮（背词界面单词卡右上角）：点击从词库删除 */
-.mastered-btn{margin-left:auto;padding:6px 12px;border-radius:999px;border:1px solid rgba(245,158,11,.5);background:rgba(245,158,11,.1);color:#d97706;font-size:13px;font-weight:600;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;white-space:nowrap}
-.mastered-btn:hover{background:rgba(245,158,11,.2);border-color:var(--warn);color:#b45309}
+/* 已掌握按钮（背词界面单词卡右上角）：绿色描边药丸（与全屏一致） */
+.mastered-btn{margin-left:auto;padding:6px 14px;border-radius:999px;border:1.5px solid var(--med);background:rgba(70,168,131,.08);color:var(--med);font-size:13px;font-weight:700;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;white-space:nowrap}
+.mastered-btn:hover{background:rgba(70,168,131,.16);border-color:#3aa86a;color:#2a8a54}
 /* 难词标签（短线回考更密、长线间隔减半） */
 .hardtag{flex:0 0 auto;margin-left:2px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600;line-height:1.5;color:var(--danger);background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);white-space:nowrap}
 /* 短线：连对进度条 */
@@ -399,7 +387,7 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 
 /* ── 爱听写风格：句子居中高亮 ── */
 .practice-sentence{text-align:center;font-size:18px;line-height:1.8;color:var(--ink);margin:16px 0 20px;padding:14px;background:var(--surface-2);border-radius:12px}
-.practice-sentence .hi{color:var(--danger);font-weight:700}
+.practice-sentence .hi{color:var(--primary);font-weight:700;background:var(--primary-soft);padding:1px 5px;border-radius:4px}
 
 /* ── 爱听写风格：2×2 大方选项卡 ── */
 .opts-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -420,6 +408,7 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
   background:var(--bg);color:var(--ink);display:flex;align-items:center;justify-content:center}
 .abtn:active{transform:scale(.97)}
 .abtn-unknown{border-color:var(--danger);color:var(--danger);background:rgba(239,68,68,.06)}
+.abtn-unknown::before{content:'⊙';margin-right:5px;font-size:15px;opacity:.6}
 .abtn-known{border-color:var(--med);color:var(--med);background:rgba(16,185,129,.06)}
 .abtn-fuzzy{border-color:var(--warn);color:var(--warn);background:rgba(245,158,11,.06)}
 .abtn-next{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
@@ -454,37 +443,138 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 }
 .head-actions{display:flex;gap:8px}
 
+/* ===== 背词练习页：非全屏模式（匹配参考图设计） ===== */
 #practiceBody.practice-body-fit{
   flex:1;min-height:0;
   display:flex;flex-direction:column;
+  align-items:center;
 }
 #practiceBody.practice-body-fit .last-word,
+#practiceBody.practice-body-fit .practice-word-area,
 #practiceBody.practice-body-fit .practice-word-head,
 #practiceBody.practice-body-fit .pw-cn,
-#practiceBody.practice-body-fit .practice-sentence{ flex:none; }
+#practiceBody.practice-body-fit .practice-sentence,
+#practiceBody.practice-body-fit .opts-label,
+#practiceBody.practice-body-fit .opts-grid,
+#practiceBody.practice-body-fit .answer-btns{ flex:none;width:100%;max-width:680px; }
 
+/* ── 单词区：全部居中（单词/IPA/词性/释义） ── */
+#practiceBody.practice-body-fit .practice-word-area{
+  position:relative;
+  display:flex;flex-direction:column;
+  justify-content:center;align-items:center;
+  text-align:center;
+  padding:20px 0 8px;
+}
 #practiceBody.practice-body-fit .practice-word-head{
-  justify-content:center;
-  margin:4px 0 2px;min-height:44px;
+  display:flex;flex-direction:column;
+  justify-content:center;align-items:center;
+  gap:6px;margin:0;text-align:center;
 }
-#practiceBody.practice-body-fit .pw-en{ font-size:34px;font-weight:800; }
-#practiceBody.practice-body-fit .pw-cn{ font-size:15px;color:var(--muted); }
-#practiceBody.practice-body-fit .practice-sentence{
-  max-width:720px;margin:0 auto;width:100%;
-  padding:10px 14px;font-size:16px;line-height:1.6;
+#practiceBody.practice-body-fit .pw-main{
+  display:flex;align-items:center;justify-content:center;
+}
+#practiceBody.practice-body-fit .pw-en{
+  font-size:44px;font-weight:800;letter-spacing:-.02em;line-height:1.15;
+  color:var(--ink);text-align:center;
+}
+/* 音标 + 词性：一行居中 */
+#practiceBody.practice-body-fit .pw-meta{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  font-size:16px;color:var(--muted);text-align:center;
+}
+#practiceBody.practice-body-fit .pw-ipa{
+  font-family:serif;font-style:normal;color:var(--muted);
+}
+#practiceBody.practice-body-fit .pw-pos{
+  color:var(--primary);font-weight:700;
+}
+/* 中文释义：居中，答对后淡入 */
+#practiceBody.practice-body-fit .pw-cn{
+  margin-top:8px;min-height:24px;
+  font-size:18px;font-weight:700;color:var(--primary-d);
+  text-align:center;
+  opacity:0;transform:translateY(-4px);
+  transition:opacity .3s ease,transform .3s ease;
+}
+#practiceBody.practice-body-fit .pw-cn:not([hidden]){
+  opacity:1;transform:translateY(0);
 }
 
-/* 选项区 2×2 网格（design/24：去掉拉伸，按钮固定最小高度） */
+/* 已掌握按钮：绝对定位在单词区右上角（绿色药丸，与基础样式一致） */
+#practiceBody.practice-body-fit .mastered-btn{
+  position:absolute;top:4px;right:4px;z-index:2;
+  margin-left:0;
+}
+
+/* 例句：居中 + teal 高亮 */
+#practiceBody.practice-body-fit .practice-sentence{
+  margin:10px auto 0;width:100%;
+  padding:12px 18px;font-size:16px;line-height:1.7;
+  text-align:center;background:var(--surface-2);border-radius:12px;
+}
+
+/* 「选择正确释义」引导语 */
+#practiceBody.practice-body-fit .opts-label{
+  font-size:13px;font-weight:700;color:var(--muted);
+  margin:16px 0 10px;text-align:left;
+}
+
+/* ── 选项区：2×2 固定高度宽卡片（参考图风格） ── */
 #practiceBody.practice-body-fit .opts-grid{
-  grid-template-columns:repeat(2,1fr);
-  gap:12px;
-  margin-top:6px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+  margin-top:0;
 }
 #practiceBody.practice-body-fit .opt-big{
-  height:88px;justify-content:center;padding:14px 16px;overflow:hidden;
+  height:105px;
+  padding:18px 20px;
+  justify-content:flex-start;align-items:flex-start;
+  flex-direction:column;gap:6px;
+  border:1.5px solid var(--line);border-radius:14px;
+  background:#fff;
+  transition:all .18s ease;
+  overflow:hidden;
 }
-#practiceBody.practice-body-fit .opt-big-unknown{
-  grid-column:1/-1;flex:none;min-height:44px;
+#practiceBody.practice-body-fit .opt-big:hover{
+  border-color:var(--primary);
+  transform:translateY(-2px);
+  box-shadow:0 4px 14px rgba(58,154,147,.1);
+  background:#fafdfc;
+}
+#practiceBody.practice-body-fit .opt-big:active{ transform:.98); }
+/* 词性标签：teal 小标签（参考图左上角 n./v.） */
+#practiceBody.practice-body-fit .opt-big-tag{
+  font-size:12px;font-weight:700;color:var(--primary);text-transform:uppercase;
+}
+/* 释义文字 */
+#practiceBody.practice-body-fit .opt-big-cn{
+  font-size:16.5px;font-weight:600;color:var(--ink);line-height:1.45;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+#practiceBody.practice-body-fit .opt-big.correct{
+  border-color:var(--med);background:rgba(70,168,131,.07);
+}
+#practiceBody.practice-body-fit .opt-big.wrong{
+  border-color:var(--danger);background:rgba(239,68,68,.06);
+}
+
+/* 「完全不认识」：宽虚线按钮（参考图风格） */
+#practiceBody.practice-body-fit .answer-btns{
+  margin-top:14px;display:flex;justify-content:center;
+}
+#practiceBody.practice-body-fit .abtn-unknown{
+  width:100%;height:52px;padding:0;
+  border:2px dashed var(--line);border-radius:12px;
+  background:transparent;color:var(--muted);
+  font-size:14.5px;font-weight:600;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  gap:6px;transition:all .15s;
+}
+#practiceBody.practice-body-fit .abtn-unknown:hover{
+  border-color:var(--primary);color:var(--primary);
+  background:var(--primary-soft);
 }
 
 /* 底部工具栏 */
@@ -497,10 +587,12 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 
 /* 高度紧张时继续压缩 */
 @media(max-height:760px){
-  #practiceBody.practice-body-fit .pw-en{ font-size:28px; }
-  #practiceBody.practice-body-fit .practice-sentence{ font-size:14px;padding:8px 12px; }
-  #practiceBody.practice-body-fit .opt-big{ padding:10px 14px; }
+  #practiceBody.practice-body-fit .pw-en{ font-size:34px; }
+  #practiceBody.practice-body-fit .practice-word-area{ padding:12px 0 4px; }
+  #practiceBody.practice-body-fit .practice-sentence{ font-size:14px;padding:8px 14px; }
+  #practiceBody.practice-body-fit .opt-big{ height:88px;padding:14px 16px; }
   #practiceBody.practice-body-fit .opt-big-cn{ font-size:15px; }
+  #practiceBody.practice-body-fit .abtn-unknown{ height:44px; }
 }
 
 /* design/24：左上角上一题回顾 */
@@ -512,28 +604,6 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 .last-word .lw-ipa{font-family:serif;color:var(--muted)}
 .last-word .lw-cn{color:var(--muted)}
 
-/* ===== 词库卡片（与学习模块隔离，仅展示 + 手动标记）===== */
-.wcard{display:flex;flex-direction:column;gap:8px;padding:13px 14px;border:1px solid var(--line);border-radius:14px;background:var(--bg)}
-.wcard-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
-.wcard-en{font-weight:700;font-size:16px;color:var(--ink);line-height:1.3;word-break:break-word}
-.wcard-tags{display:flex;flex-wrap:wrap;gap:5px;flex:none}
-.lv-badge{font-size:11.5px;font-weight:700;color:var(--primary);background:var(--primary-soft);border-radius:8px;padding:2px 7px;white-space:nowrap}
-.wtag{font-size:11.5px;font-weight:700;border-radius:8px;padding:2px 7px;white-space:nowrap}
-.wtag-hard{color:var(--danger);background:rgba(239,68,68,.1)}
-.wtag-key{color:var(--warn);background:rgba(245,158,11,.12)}
-.wtag-over{color:var(--danger);background:rgba(239,68,68,.12)}
-.wcard-cn{font-size:13.5px;color:var(--muted);line-height:1.5}
-.wcard-meta{font-size:12px;color:var(--muted)}
-.wcard-meta .due-soon{color:var(--warn);font-weight:700}
-.wcard-meta .due-over{color:var(--danger);font-weight:700}
-.wmark-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
-.wmark-btn{font-size:12.5px;font-weight:600;padding:6px 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--ink);cursor:pointer;transition:all .15s}
-.wmark-btn:hover{border-color:var(--primary);background:var(--primary-soft)}
-.wmark-btn.active{border-color:var(--primary);background:var(--primary);color:var(--on-primary)}
-.wmark-btn.act-hard.active{border-color:var(--danger);background:var(--danger);color:#fff}
-.wmark-btn.act-key.active{border-color:var(--warn);background:var(--warn);color:#fff}
-.wmark-del{margin-left:auto;color:var(--danger);border-color:rgba(239,68,68,.3)}
-.wmark-del:hover{background:rgba(239,68,68,.1);border-color:var(--danger)}
 
 /* meds */
 .meds-bar-wrap{margin-top:12px}
@@ -555,6 +625,39 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 
 /* toast */
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 18px;border-radius:10px;z-index:200;font-size:14px;box-shadow:var(--shadow)}
+
+/* ===== 统一子 Tab：右上角药丸切换（全局） ===== */
+.page-head-row{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+.page-head-row .page-title{margin:0}
+.pill-tabs{display:inline-flex;gap:0;background:var(--primary-soft);border-radius:10px;padding:3px;align-items:center}
+.pill-tab{display:inline-flex;align-items:center;gap:6px;border:none;background:transparent;color:var(--muted);padding:8px 16px;font-size:13.5px;font-weight:600;border-radius:8px;cursor:pointer;transition:all .18s ease;white-space:nowrap;line-height:1;font-family:inherit}
+.pill-tab svg{width:15px;height:15px;flex-shrink:0}
+.pill-tab:hover:not(.active){color:var(--ink);background:rgba(58,154,147,.08)}
+.pill-tab.active{background:var(--primary);color:var(--on-primary);box-shadow:0 2px 8px rgba(58,154,147,.25)}
+.pill-tab:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(58,154,147,.2)}
+
+/* ===== 词库 B：紧凑列表 ===== */
+.wl-import{display:flex;align-items:stretch;gap:10px;margin-bottom:14px}
+.wl-import.drag-over{border-color:var(--primary);background:var(--primary-soft)}
+.wl-import-hint{flex:1;width:100%;min-height:46px;padding:12px 14px;border:1.5px dashed var(--line);border-radius:10px;font:inherit;font-size:14px;line-height:1.5;background:var(--surface);color:var(--ink);resize:vertical;outline:none;transition:border-color .15s}
+.wl-import-hint:focus{border-color:var(--primary)}
+.wl-list{list-style:none;display:flex;flex-direction:column}
+.wl-item{display:flex;align-items:center;gap:14px;padding:11px 14px;border-radius:10px;transition:background .12s;border:1px solid transparent}
+.wl-item:hover{background:var(--bg);border-color:var(--line)}
+.wl-word{font-size:16px;font-weight:700;color:var(--ink);min-width:130px;flex:none}
+.wl-mean{font-size:14px;color:var(--muted);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wl-lv{font-size:12px;font-weight:700;color:var(--primary);background:var(--primary-soft);padding:2px 8px;border-radius:6px;flex:none}
+.wl-st{font-size:12px;font-weight:600;padding:2px 8px;border-radius:6px;flex:none;white-space:nowrap}
+.wl-st.new{color:var(--warn-ink);background:var(--warn-soft)}
+.wl-st.due{color:var(--danger-text);background:var(--danger-soft)}
+.wl-st.ok{color:var(--med);background:var(--med-soft)}
+.wl-actions{display:flex;gap:6px;flex:none}
+.wl-btn{border:1.5px solid var(--line);background:var(--surface);color:var(--muted);padding:4px 10px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;transition:.12s;white-space:nowrap}
+.wl-btn:hover{border-color:var(--primary);color:var(--primary)}
+.wl-btn.star{color:var(--warn-ink);border-color:var(--warn)}
+.wl-btn.star:hover{background:var(--warn-soft)}
+.wl-btn.del{color:var(--danger-text);border-color:var(--danger)}
+.wl-btn.del:hover{background:var(--danger-soft)}
 
 /* dashboard hero */
 .hero{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
@@ -1024,11 +1127,7 @@ main .quote{
 .mk-note-flex{flex:3;min-width:0}
 .mk-filter-wrap{flex:none;margin-left:auto;display:flex;align-items:center;gap:8px}
 .inline-h2{margin:0}
-.tabs{display:flex;gap:8px;margin-bottom:14px;padding:4px;background:var(--surface);border-radius:12px;border:1px solid var(--line)}
-.tab-btn{flex:1;padding:10px 14px;border:none;background:transparent;color:var(--muted);border-radius:9px;cursor:pointer;font-weight:600;font-size:14px;transition:all .2s ease;display:inline-flex;align-items:center;justify-content:center;gap:6px}
-.tab-btn.active{background:var(--primary);color:var(--on-primary);box-shadow:0 2px 8px rgba(58,154,147,.25)}
-.tab-btn:hover:not(.active){color:var(--ink);background:var(--surface-2)}
-.tab-btn:focus-visible{outline:none;box-shadow:0 0 0 3px var(--primary-soft)}
+/* 旧 .tabs/.tab-btn 全局样式已废弃：全站统一改用 .pill-tabs/.pill-tab（见上方「统一子 Tab」块）。仅 review.html 曾用，现由其 pill 类接管。 */
 .tab-panel{display:none}
 .tab-panel.active{display:block;animation:fadeIn .25s ease}
 @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
@@ -1758,6 +1857,9 @@ body.word-fullscreen #practiceBody.practice-body-fit .abtn-unknown{
   font-size:14.5px;font-weight:600;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
   gap:6px;transition:all .15s;
+}
+body.word-fullscreen #practiceBody.practice-body-fit .abtn-unknown::before{
+  content:'⊙';font-size:15px;opacity:.5;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .abtn-unknown:hover{
   border-color:var(--muted);color:var(--ink);background:rgba(0,0,0,.02);

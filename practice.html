@@ -27,7 +27,7 @@
 })();
 </script>
 <title>单词 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20260828n" />
+<link rel="stylesheet" href="css/common.css?v=20260828r" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=5" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=4">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=4">
@@ -39,14 +39,9 @@
 <meta name="mobile-web-app-capable" content="yes" />
   <script defer src="js/data.js?v=20260825a"></script>
   <script defer src="js/common.js?v=20260828p"></script>
-  <script src="js/practice.js?v=20260828n" defer></script>
-  <script src="js/words.js?v=20260828g" defer></script>
+  <script src="js/practice.js?v=20260828r" defer></script>
+  <script src="js/words.js?v=20260828q" defer></script>
 <style>
-  .word-tabs{display:flex;gap:8px;margin-bottom:16px}
-  .wtab{flex:1;padding:10px 0;border:1px solid var(--line);background:var(--surface);
-        border-radius:12px;font:inherit;font-size:14.5px;font-weight:600;color:var(--muted);
-        cursor:pointer;transition:.15s;display:inline-flex;align-items:center;justify-content:center;gap:6px}
-  .wtab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -70,11 +65,12 @@
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 
 <main class="container">
-  <h1 class="page-title">单词</h1>
-
-  <div class="word-tabs">
-    <button class="wtab active" data-wtab="study"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/><path d="M12 20h9"/></svg>学习</button>
-    <button class="wtab" data-wtab="bank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>词库</button>
+  <div class="page-head-row">
+    <h1 class="page-title">单词</h1>
+    <div class="word-tabs pill-tabs">
+      <button class="wtab pill-tab active" data-wtab="study"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/><path d="M12 20h9"/></svg>学习</button>
+      <button class="wtab pill-tab" data-wtab="bank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>词库</button>
+    </div>
   </div>
 
   <div id="studyView" class="study-view-fit">
@@ -98,27 +94,11 @@
 
   <div id="bankView" hidden>
     <section class="card">
-      <div id="dropZone" class="word-drop-zone">
-        <div style="margin-bottom:8px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:34px;height:34px;vertical-align:-3px" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 20h16"/></svg></div>
-        <div style="font-weight:700;font-size:15.5px;color:var(--ink);margin-bottom:6px">
-          粘贴或拖入任意内容
-        </div>
-        <div style="font-size:13px;color:var(--muted);margin-bottom:16px;max-width:400px;margin-left:auto;margin-right:auto">
-          单个单词 · 词表 · 整段英文 · 中英文混排 · .txt/.md/.csv 文件<br>
-          AI 自动挑出生词并翻译
-        </div>
-        <textarea id="smartInput"
-          style="width:100%;min-height:100px;padding:12px;border:1px solid var(--line);
-                 border-radius:var(--radius-sm);font:inherit;font-size:14px;line-height:1.7;
-                 background:var(--surface);color:var(--ink);resize:vertical"
-          placeholder="在这里粘贴内容，或把文件拖进来…"></textarea>
-        <div style="display:flex;justify-content:center;margin-top:14px">
-          <button class="btn btn-primary" id="smartImport" style="padding:8px 20px;font-size:14px">
-            AI 导入
-          </button>
-        </div>
+      <div id="dropZone" class="wl-import">
+        <textarea id="smartInput" class="wl-import-hint" placeholder="粘贴内容或拖入文件… 支持单词/列表/整段英文/.txt .md .csv"></textarea>
+        <button class="btn btn-primary" id="smartImport">AI 导入</button>
       </div>
-      <p class="muted" id="importHint" style="margin:10px 0 0;text-align:center"></p>
+      <p class="muted" id="importHint" style="margin:8px 0 0"></p>
     </section>
 
     <section class="card">
@@ -132,7 +112,7 @@
       <div class="form-row">
         <input id="searchWord" placeholder="搜索单词…" style="flex:1" />
       </div>
-      <div id="wordList" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr));margin-top:12px"></div>
+      <ul id="wordList" class="wl-list"></ul>
     </section>
   </div>
 
