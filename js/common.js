@@ -980,6 +980,12 @@ function _mergeMaterials(local, cloud){
   const changes = Math.max(0, out.materials.length - (local.materials||[]).length);
   return { data: out, changes };
 }
+/* 分类名防御性清洗：去掉「（xxx）」「(xxx)」等括号及括号内后缀（如「观点型（第一优先级）」→「观点型」）。
+   上移到 common.js：错句本等不引入 writing.js 的页面也需要用到，避免 ReferenceError 导致整页渲染中断。 */
+function cleanCatName(c){
+  if(!c) return c;
+  return c.replace(/[（(][^）)]*[）)]/g, '').trim();
+}
 /* 稳定短哈希（用于给无 id 的旧素材卡补 id，内容相同→同 id 自动去重） */
 function hashStr(s){ let h = 0; s = String(s||''); for(let i=0;i<s.length;i++){ h = (h*31 + s.charCodeAt(i)) | 0; } return (h >>> 0).toString(36); }
 /* 进行中计时的单一可信源合并：以 timerId 为生命周期锚点，杜绝「双端同时计时 + 结束累加」。

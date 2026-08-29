@@ -80,11 +80,7 @@ ready(() => {
 });
 
 /* ===== 模板库 ===== */
-// 分类名防御性清洗：去掉「（xxx）」「(xxx)」等括号及括号内后缀（如「观点型（第一优先级）」→「观点型」）
-function cleanCatName(c){
-  if(!c) return c;
-  return c.replace(/[（(][^）)]*[）)]/g, '').trim();
-}
+// 注：cleanCatName 已上移到 common.js（共享工具，错句本等不引入 writing.js 的页面也需用到）
 // 迁移：把 DATA.writing 里所有模板的 category/title 就地清洗（去掉括号后缀），并持久化，使渲染/过滤全程一致
 function migrateWritingCategoryNames(){
   let changed = false;

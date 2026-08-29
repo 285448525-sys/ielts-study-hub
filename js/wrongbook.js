@@ -51,7 +51,7 @@ function sourceLabel(id){
   if(id && id.indexOf('tpl_') === 0){
     const tplId = id.slice(4);
     const t = (DATA.writing || []).find(x => x.id === tplId);
-    return t ? ('写作模板 · ' + cleanCatName(t.title)) : ('写作模板 ' + tplId);
+    return t ? ('写作模板 · ' + (typeof cleanCatName === 'function' ? cleanCatName(t.title) : t.title)) : ('写作模板 ' + tplId);
   }
   return id || '未知来源';
 }
