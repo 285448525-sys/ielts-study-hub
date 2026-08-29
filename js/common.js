@@ -781,6 +781,13 @@ function _mergeWords(local, cloud){
     const cn1 = (ex.cn||'').trim(), cn2 = (w.cn||'').trim();
     const ncn = (cn1 && cn2) ? (cn1.length >= cn2.length ? cn1 : cn2) : (cn1 || cn2);
     if(ncn !== (ex.cn||'').trim()){ ex.cn = ncn; changed = true; }   // 与 trim 后比较，避免首尾空格造成每次误判"更新"
+    // pos/ipa 合并：本机刚 AI 补全的字段必须被保留，不能被云端空值覆盖
+    const pos1 = (ex.pos||'').trim(), pos2 = (w.pos||'').trim();
+    const npos = (pos1 && pos2) ? pos2 : (pos1 || pos2);
+    if(npos !== (ex.pos||'').trim()){ ex.pos = npos; changed = true; }
+    const ipa1 = (ex.ipa||'').trim(), ipa2 = (w.ipa||'').trim();
+    const nipa = (ipa1 && ipa2) ? ipa2 : (ipa1 || ipa2);
+    if(nipa !== (ex.ipa||'').trim()){ ex.ipa = nipa; changed = true; }
     if(changed) changes++;
   }
   // 云端独有词 = 真正新增

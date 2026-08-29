@@ -444,6 +444,9 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
   display:flex;justify-content:space-between;align-items:center;gap:12px;
 }
 .head-actions{display:flex;gap:8px}
+.word-stats{display:flex;gap:16px;padding:8px 12px;margin:2px 0 6px;background:var(--primary-soft);border-radius:8px;font-size:13px;color:var(--ink);flex:none}
+.word-stats span{display:flex;align-items:center;gap:4px}
+.word-stats b{color:var(--primary);font-size:15px;font-variant-numeric:tabular-nums}
 
 /* ===== 背词练习页：精确照抄爱听写 v5 原型（居中题干 / 无例句 / 无题干词性 / 选项2x2） ===== */
 #practiceBody.practice-body-fit{
@@ -1159,20 +1162,24 @@ main .quote{
 .top-tab:hover:not(.active){color:var(--ink);background:var(--surface-2)}
 .top-panel{display:none}
 .top-panel.active{display:block;animation:fadeIn .25s ease}
-.mk-parts{margin:6px 0 12px}
-.mk-part{margin-bottom:8px;align-items:flex-end}
-.mk-part > div{display:block}
-.mk-part label{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
-.mk-part input{width:100%}
-/* design/23 修正：添加分项记录表单 2 列紧凑网格（P1–P4 并排） */
-.mk-parts{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:12px 0}
+/* design/23 修正：添加分项记录表单紧凑布局 */
+.mk-parts{display:flex;gap:10px;margin:12px 0;align-items:flex-end}
+.mk-part{flex:1;margin-bottom:0}
+/* 听力/阅读 accuracy 模式：P1-P4 一行内紧凑 */
+.mk-part-inline{display:flex;align-items:center;gap:6px}
+.mk-part-inline .mk-part-label{flex:none;font-weight:700;font-size:14px;color:var(--ink)}
+.mk-part-inline input{flex:1;min-width:0}
+/* 口语/写作 score 模式：两列网格 */
+.mk-parts.mk-parts-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;align-items:stretch}
 .mk-part-grid{display:flex;flex-direction:column;gap:6px;align-items:stretch}
 .mk-part-label{font-weight:700;font-size:14px;color:var(--ink)}
 .mk-part-grid .mk-part-inputs{display:flex;gap:8px}
 .mk-part-grid .mk-part-inputs > div{flex:1}
 .mk-part-grid .mk-part-inputs input{width:100%}
 @media (max-width:480px){
-  .mk-parts{grid-template-columns:1fr}
+  .mk-parts.mk-parts-grid{grid-template-columns:1fr}
+  .mk-parts.mk-parts-inline{flex-wrap:wrap}
+  .mk-parts-inline .mk-part{min-width:70px;flex:1 1 20%}
 }
 
 .mk-grp{margin-bottom:14px}

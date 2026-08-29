@@ -282,6 +282,7 @@ function buildQueue(today, nowISO){
 function autoStartSeeWord(){
   try{
     cancelSpeak();
+    updateWordStats();
     const area = $('#practiceArea'); if(area) area.hidden = false;
     const nextBtn = $('#nextBtn'); if(nextBtn) nextBtn.hidden = true;
     const score = $('#practiceScore'); if(score) score.textContent = '';
@@ -342,6 +343,7 @@ function autoStartSeeWord(){
       .map(en => findWordByEn(en))
       .filter(w => w && !(s.passed || []).includes(String(w.en).trim().toLowerCase()));
     $('#progBarWrap').hidden = false;
+    updateWordStats();
 
     if(pq.queue.length === 0){
       s.finished = true; s.currentEn = null; hubSave();
@@ -641,6 +643,7 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
 
   updateScore();
   updateProgBar();
+  updateWordStats();
   saveDailySession();   // 每次作答后持久化进度（草稿自动存档）
 
   if(result === 'rehold'){
@@ -679,6 +682,7 @@ function finishPractice(){
   $('#practiceBody').innerHTML = bodyHtml;
   $('#practiceScore').textContent = '';
   $('#progBarWrap').hidden = true;
+  updateWordStats();
   if(DATA.dailySession && DATA.dailySession.date === todayKey()){
     DATA.dailySession.finished = true; DATA.dailySession.currentEn = null; hubSave();
   }
@@ -693,6 +697,27 @@ function updateScore(){
   const s = pq.stats || { known:0, unknown:0 };
   $('#practiceScore').textContent = '过关 ' + (pq.correct || 0) + '/' + (pq.initLen || 0) +
     ' · 答对 ' + s.known + ' · 答错 ' + s.unknown;
+}
+function updateWordStats(){
+  const today = todayKey();
+  const words = DATA.words || [];
+  // 待复习：今天到期且未掌握的词
+  const due = words.filter(w => w.cleared !== true && (w.nextReview || '') <= today).length;
+  let active = 0, done = 0;
+  if(pq){
+    active = pq.queue.length;
+    done = (pq.passed || []).length;
+  } else if(DATA.dailySession && DATA.dailySession.date === today){
+    const s = DATA.dailySession;
+    const total = (s.planEn || []).length;
+    done = (s.passed || []).length;
+    active = Math.max(0, total - done);
+  }
+  const set = (id, n) => { const el = $('#'+id); if(el) el.textContent = n; };
+  set('statDue', due);
+  set('statActive', active);
+  set('statDone', done);
+  const bar = $('#wordStats'); if(bar) bar.hidden = false;
 }
 function updateProgBar(){
   if(!pq || !pq.initLen) return;

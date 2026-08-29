@@ -328,6 +328,7 @@ function renderPartInputs(){
   const cfg = MOCK_TYPES[$('#mkType').value];
   const labels = $('#mkGran').value === 'whole' ? cfg.parts.map(p => p.label) : [ $('#mkPart').value ];
   const isScore = cfg.mode === 'score';
+  $('#mkParts').className = isScore ? 'mk-parts mk-parts-grid' : 'mk-parts mk-parts-inline';
   $('#mkParts').innerHTML = labels.map(label => {
     const def = cfg.parts.find(p => p.label === label) || {};
     if(isScore){
@@ -338,12 +339,10 @@ function renderPartInputs(){
         </div>
       </div>`;
     }
-    return `<div class="mk-part mk-part-grid">
-      <div class="mk-part-label">${label}</div>
-      <div class="mk-part-inputs">
-        <div style="flex:1"><label>答对</label><input type="number" min="0" class="mk-correct" data-part="${label}" placeholder="0" /></div>
-        <input type="hidden" class="mk-total" data-part="${label}" value="${def.defaultTotal || ''}" />
-      </div>
+    return `<div class="mk-part mk-part-inline">
+      <span class="mk-part-label">${label}</span>
+      <input type="number" min="0" class="mk-correct" data-part="${label}" placeholder="0" />
+      <input type="hidden" class="mk-total" data-part="${label}" value="${def.defaultTotal || ''}" />
     </div>`;
   }).join('');
 }
