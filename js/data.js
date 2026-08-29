@@ -477,6 +477,14 @@ function hubLoad(){
       'energy','checkins','speaking','writing','writingScores','speakingStories','writingPhrases','mockRecords',
       'dictationSources','dictationLogs','longSent','deletedIds'];
     for(const f of arrayFields){ if(!Array.isArray(DATA[f])) DATA[f] = []; }
+    // 2026-08-29 修复：早期默写记录(dictationLogs)可能无 id，删除墓碑(整条删光依赖 log.id)
+    // 与部分删除的 updatedAt(合并按 id 取本地优先)都会失效，导致错句本「删了又复活」。
+    // 全局补 uid，并 hubSave 触发上传，让云端也拿到带 id 的 log，消除合并分叉。
+    if(Array.isArray(DATA.dictationLogs)){
+      let _dmig = false;
+      DATA.dictationLogs.forEach(l => { if(l && l.id == null){ l.id = uid(); _dmig = true; } });
+      if(_dmig) hubSave();
+    }
     if(!DATA.settings || typeof DATA.settings !== 'object') DATA.settings = {};
     // 口语题库版本控制（2026-08-23 重构：根治「升版本吞用户答案」）：
     //   以官方 SPEAKING_BANK（固定 52 题纯题目）为唯一基准，绝不整锅替换。

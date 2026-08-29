@@ -1630,6 +1630,7 @@ function deleteWrongItem(key){
   const removedIds = [];
   const remaining = [];
   logs.forEach(log => {
+    if(log.id == null) log.id = uid();   // 兜底：删除前确保 id 存在，墓碑/合并按 id 才稳定
     if(log.sourceId !== sourceId){ remaining.push(log); return; }
     if(!Array.isArray(log.mistakes)){ remaining.push(log); return; }
     const before = log.mistakes.length;
