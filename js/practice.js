@@ -486,58 +486,59 @@ function renderQuestion(cur, isRehold){
   const opts = genDistractors(cur, DATA.words);
 
   let html = '';
-  // 顶部预留区：上一词回顾 + 短线进度（始终渲染，无内容时空占 54px → 锁死单词 Y 坐标）
+  // ── 顶部区：上一词回顾 + 短线进度 ──
   let top = '';
   if(pq.idx > 0 && !isRehold){
     const last = pq.queue[pq.idx - 1];
     if(last) top += '<div class="last-word">' +
-      '<span class="lw-en">' + escapeHtml(last.en) + '</span>' +
+      '<span class="lw-en">← ' + escapeHtml(last.en) + '</span>' +
       (last.ipa ? '<span class="lw-ipa">' + escapeHtml(last.ipa) + '</span>' : '') +
       (last.cn ? '<span class="lw-cn">' + escapeHtml(last.cn) + '</span>' : '') +
-      '</div>';
+      '<span class="lw-hint">上一个单词，快捷键：1</span></div>';
   }
-  // 短线进度提示（已对 X/3 + 间隔提示，难词走 GAP_HARD）
-  const sc = cur.shortCount || 0;
-  if(sc > 0 && sc < SHORT_PASS){
-    const nextGap = gapFor(cur, sc);
-    top += '<div class="streak-bar">已对 <b>' + sc + '</b>/' + SHORT_PASS +
-      ' ' + [0,1,2].map(i => '<span class="sdot' + (i < sc ? ' on' : '') + '"></span>').join('') +
-      ' <span class="streak-tip">（还差 ' + (SHORT_PASS - sc) + ' 次记牢，隔 ' + nextGap + ' 个词后回考）</span></div>';
-  }
-  html += '<div class="practice-topzone">' + top + '</div>';
-  // 单词区（固定 150px）：pw-cn 常驻占位，答题后加 .revealed 显隐 → 选项坐标永不动
+  // streak-bar 已移除（用户要求不显示）
+  if(top) html += '<div class="practice-topzone">' + top + '</div>';
+
+  // ── 单词区（照抄爱听写：左对齐大字 + 音标 + 释义） ──
   html += '<div class="practice-word-area">' +
     '<button class="mastered-btn" id="masteredBtn" title="已掌握：从词库删除该词">已掌握</button>' +
     '<div class="practice-word-head">' +
       '<div class="pw-main"><span class="pw-en">' + escapeHtml(cur.en) + '</span></div>' +
       '<div class="pw-meta">' +
-        (cur.ipa ? '<span class="pw-ipa">' + escapeHtml(cur.ipa) + '</span>' : '') +
+        (cur.ipa ? '<span class="pw-ipa">/ ' + escapeHtml(cur.ipa) + ' /</span>' : '') +
         (cur.pos ? '<span class="pw-pos">' + escapeHtml(cur.pos) + '</span>' : '') +
       '</div>' +
+      (cur.cn ? '<div class="pw-desc">' + escapeHtml(cur.pos || '') + ' ' + escapeHtml(cur.cn) + '</div>' : '') +
     '</div>' +
-    '<div class="pw-cn" id="pwCn">' + escapeHtml(cur.cn || '') + '</div>' +
   '</div>';
-  // 例句区（常驻占位：无例句加 .is-empty 空占 56px → 选项坐标永不动）
+
+  // ── 例句卡片（居中，高亮词用 primary 色） ──
   const exHtml = cur.example
-    ? escapeHtml(cur.example).replace(new RegExp('\\b' + escapeRegExp(cur.en) + '\\b'), '<span class="hi">$&</span>')
+    ? escapeHtml(cur.example).replace(new RegExp('\\b' + escapeRegExp(cur.en) + '\\b', 'gi'), '<span class="hi">$&</span>')
     : '';
-  html += '<div class="practice-sentence' + (cur.example ? '' : ' is-empty') + '">' + exHtml + '</div>';
+  if(exHtml){
+    html += '<div class="practice-sentence">' + exHtml + '</div>';
+  } else {
+    html += '<div class="practice-sentence is-empty"></div>';
+  }
+
+  // ── 选项网格（2×2 + 不知道，照抄爱听写） ──
   html += '<div class="opts-grid" id="opts"></div>';
-  // 单一「不认识」按钮（选对/选错由 4 选项直接判定；只有完全不会才点它）
-  html += '<div class="answer-btns"><button class="abtn abtn-unknown" id="unknownBtn">完全不认识</button></div>';
+  html += '<div class="answer-btns"><button class="abtn abtn-unknown" id="unknownBtn">不知道 <span class="unk-hint">快捷键：5</span></button></div>';
+
   const body = $('#practiceBody');
   body.innerHTML = html;
-  $('#opts').innerHTML = opts.map(o =>
-    '<button class="opt-big" data-en="' + escapeHtml(o.en) + '">' +
+  $('#opts').innerHTML = opts.map((o, i) =>
+    '<button class="opt-big" data-en="' + escapeHtml(o.en) + '" data-idx="' + i + '">' +
       '<span class="opt-big-tag">' + (o.pos || '') + '</span>' +
       '<span class="opt-big-cn">' + escapeHtml(o.cn) + '</span>' +
+      '<span class="opt-big-key">快捷键：' + (i + 1) + '</span>' +
+      '<span class="opt-big-en"></span>' +
     '</button>'
   ).join('');
   bindOpts(cur);
-  // 不认识：完全不会时点击（isUnknownBtn=true → 触发 P1-1 加重惩罚）
   const left0 = document.getElementById('unknownBtn');
   if(left0) left0.onclick = () => judge(cur, null, false, true);
-  // 已掌握：从词库删除当前词
   const mb = document.getElementById('masteredBtn');
   if(mb) mb.onclick = () => masterWord(cur);
   setTimeout(() => speakN(cur.en), 300);
@@ -560,15 +561,21 @@ function bindOpts(cur){
 function judge(cur, pickedEn, correct, isUnknownBtn){
   if(!pq || pq.revealed) return;
   pq.revealed = true;
-  // 揭示反馈
+  // 揭示反馈（照抄爱听写：选项内显示英文，对=绿，错=红+同时亮出正确答案）
   document.querySelectorAll('#opts .opt-big').forEach(x => {
-    if(x.dataset.en === cur.en) x.classList.add('correct');
-    if(!correct && pickedEn != null && x.dataset.en === pickedEn) x.classList.add('wrong');
+    const isCorrect = (x.dataset.en === cur.en);
+    const isWrong = (!correct && pickedEn != null && x.dataset.en === pickedEn);
+    if(isCorrect || isWrong){
+      // 在选项内显示对应的英文单词
+      const enEl = x.querySelector('.opt-big-en');
+      if(enEl) enEl.textContent = x.dataset.en;
+    }
+    if(isCorrect) x.classList.add('correct');
+    if(isWrong) x.classList.add('wrong');
     x.style.pointerEvents = 'none';
   });
   const ub = document.getElementById('unknownBtn');
   if(ub){ ub.style.pointerEvents = 'none'; ub.disabled = true; }
-  const pwCn = document.getElementById('pwCn'); if(pwCn) pwCn.classList.add('revealed');
 
   const k = String(cur.en).toLowerCase();
   if(!pq.counted) pq.counted = new Set();
@@ -590,28 +597,14 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
   let result;
 
   if(correct){
-    // 短线成功 +1 → 刷新 lastShortTouch
-    cur.shortCount = (cur.shortCount || 0) + 1;
-    cur.lastShortTouch = nowStr;
-    pq.reholdMap[k] = 0;                        // 重考通过 → 清掉当场重考标记
-    if(cur.shortCount >= SHORT_PASS){
-      promoteLongTerm(cur, today);              // P0-1：先算间隔再升级；shortCount=0, lastShortTouch=null
-      pq.queue.splice(pq.idx, 1);               // 过关移出队列
-      pq.correct++;
-      pq.passed.push(String(cur.en).trim().toLowerCase());  // 计入当日已过词表
-      hubSave();
-      result = 'pass';
-      toast('✓ 过关：' + cur.en + cnTxt + '（本轮记住了）');
-    } else {
-      const gap = gapFor(cur, cur.shortCount);  // P0-3：难词走 GAP_HARD
-      pq.queue.splice(pq.idx, 1);               // 先移除当前词
-      const pos = Math.min(pq.queue.length, pq.idx + gap);   // 插回到「前面隔 gap 个词」的位置
-      if(pos >= pq.queue.length) pq.queue.push(cur);
-      else pq.queue.splice(pos, 0, cur);
-      hubSave();
-      result = 'requeue';
-      toast('✓ 认识：' + cur.en + '（已对 ' + cur.shortCount + '/' + SHORT_PASS + '，隔 ' + gap + ' 个词回考）');
-    }
+    // 选对直接过（不再需要3次；SHORT_PASS 只给错词回考用）
+    promoteLongTerm(cur, today);
+    pq.queue.splice(pq.idx, 1);
+    pq.correct++;
+    pq.passed.push(String(cur.en).trim().toLowerCase());
+    hubSave();
+    result = 'pass';
+    toast('✓ 过关：' + cur.en + cnTxt);
   } else {
     const wasRehold = (pq.reholdMap[k] || 0) >= 1;
     demoteLongTerm(cur, today, !!isUnknownBtn); // P1-1：点「完全不认识」时惩罚加重

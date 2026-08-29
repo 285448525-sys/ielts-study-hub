@@ -442,8 +442,7 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 }
 .head-actions{display:flex;gap:8px}
 
-/* ===== 背词练习页：非全屏模式（对齐参考图 groceries） ===== */
-/* 策略：自然流布局 + pw-cn 预留空间(visibility:hidden) → 有无例句都好看 */
+/* ===== 背词练习页：照抄爱听写风格（v20260829h） ===== */
 #practiceBody.practice-body-fit{
   flex:1;min-height:0;
   display:flex;flex-direction:column;
@@ -459,154 +458,105 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 #practiceBody.practice-body-fit .opts-grid,
 #practiceBody.practice-body-fit .answer-btns{ width:100%;max-width:680px; }
 
-/* ── 上一词回顾 ── */
+/* ── 上一词回顾（爱听写风格） ── */
 #practiceBody.practice-body-fit .last-word{
   display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
-  font-size:13px;color:var(--muted);padding:2px 0;
-}
-
-/* ── 进度提示条 ── */
-#practiceBody.practice-body-fit .streak-bar{
-  display:flex;align-items:center;gap:6px;
   font-size:13px;color:var(--muted);padding:2px 0;margin-bottom:4px;
 }
+#practiceBody.practice-body-fit .lw-en{font-weight:700;color:var(--ink);font-size:15px}
 
-/* ── 单词区（自然高度，内容决定大小） ── */
+/* streak-bar 已移除不显示 */
+
+/* ── 单词区（爱听写：左对齐大字 + 音标 + 释义） ── */
 #practiceBody.practice-body-fit .practice-word-area{
-  position:relative;
-  display:flex;flex-direction:column;
-  justify-content:center;align-items:center;
-  text-align:center;
-  width:100%;
-  padding:16px 0 8px;
+  position:relative;display:flex;flex-direction:column;
+  align-items:flex-start;text-align:left;width:100%;padding:20px 4px 12px;
 }
-#practiceBody.practice-body-fit .practice-word-head{
-  display:flex;flex-direction:column;
-  justify-content:center;align-items:center;
-  gap:4px;margin:0;text-align:center;
-}
-#practiceBody.practice-body-fit .pw-main{
-  display:flex;align-items:center;justify-content:center;
-}
+#practiceBody.practice-body-fit .practice-word-head{ display:flex;flex-direction:column;gap:2px;width:100%; }
+#practiceBody.practice-body-fit .pw-main{ }
 #practiceBody.practice-body-fit .pw-en{
-  font-size:40px;font-weight:800;letter-spacing:-.02em;line-height:1.15;
-  color:var(--ink);text-align:center;
+  font-size:32px;font-weight:800;letter-spacing:-.02em;line-height:1.2;color:var(--ink);
 }
-/* 音标 + 词性（参考图：/ˈɡrəʊsəriz/  n.） */
 #practiceBody.practice-body-fit .pw-meta{
-  display:flex;align-items:center;justify-content:center;gap:8px;
-  font-size:15px;color:var(--muted);text-align:center;
+  display:flex;align-items:center;gap:8px;font-size:15px;color:var(--muted);margin-top:2px;
 }
-#practiceBody.practice-body-fit .pw-ipa{
-  font-family:serif;font-style:normal;color:var(--muted);
-}
-#practiceBody.practice-body-fit .pw-pos{
-  color:var(--primary);font-weight:700;
+#practiceBody.practice-body-fit .pw-ipa{ font-family:serif;font-style:normal;color:var(--muted); }
+#practiceBody.practice-body-fit .pw-pos{ color:var(--primary);font-weight:700; }
+#practiceBody.practice-body-fit .pw-desc{
+  font-size:14px;color:var(--muted);margin-top:4px;line-height:1.5;
 }
 
-/*
- * 中文释义：常驻 DOM + visibility:hidden 预留 ~26px
- * 答题前 invisible 占位 → 选项不动；答题后 revealed 淡入 → 选项仍不动
- */
-#practiceBody.practice-body-fit .pw-cn{
-  margin-top:6px;min-height:26px;
-  font-size:17px;font-weight:700;color:var(--primary);
-  text-align:center;
-  visibility:hidden;opacity:0;
-  transition:opacity .25s ease, visibility .25s ease;
-  line-height:1.4;
-}
-#practiceBody.practice-body-fit .pw-cn.revealed{
-  visibility:visible;opacity:1;
-}
-
-/* 已掌握按钮：绝对定位在右上角（绿色药丸） */
+/* 已掌握按钮：右上角绿色药丸 */
 #practiceBody.practice-body-fit .mastered-btn{
-  position:absolute;top:6px;right:6px;z-index:2;
-  margin-left:0;
+  position:absolute;top:8px;right:8px;z-index:2;margin-left:0;
 }
 
-/* ── 例句区（有例句才显示，不预留固定高度） ── */
+/* ── 例句卡片（居中，浅底，高亮词 primary 色） ── */
 #practiceBody.practice-body-fit .practice-sentence{
-  width:100%;
-  margin:14px 0 0;
-  padding:12px 18px;font-size:15px;line-height:1.65;
-  text-align:center;background:var(--surface-2);border-radius:10px;
+  width:100%;margin:14px 0 0;padding:14px 20px;font-size:16px;line-height:1.7;
+  text-align:center;background:var(--surface-2);border-radius:10px;box-sizing:border-box;
 }
-/* 无例句时完全隐藏不占位 */
-#practiceBody.practice-body-fit .practice-sentence.is-empty{
-  display:none;
-}
-#practiceBody.practice-body-fit .practice-sentence .hi{
-  color:var(--primary);font-weight:700;
-}
+#practiceBody.practice-body-fit .practice-sentence.is-empty{ display:none; }
+#practiceBody.practice-body-fit .practice-sentence .hi{ color:var(--primary);font-weight:700; }
 
-/* 「选择正确释义」已从 JS 删除 → 永久隐藏防残留 */
 #practiceBody.practice-body-fit .opts-label{ display:none !important; }
 
-/* ── 选项网格（紧跟上方内容，~20px 自然间距） ── */
+/* ── 选项网格（爱听写：2×2 固定88px高度卡片，内容不变不抖） ── */
 #practiceBody.practice-body-fit .opts-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:14px;
-  margin-top:20px;
-  width:100%;
+  display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px;width:100%;
 }
 #practiceBody.practice-body-fit .opt-big{
-  height:90px;
-  padding:16px 20px;
-  justify-content:flex-start;align-items:flex-start;
-  flex-direction:column;gap:6px;
-  border:1.5px solid var(--line);border-radius:14px;
-  background:#fff;
-  transition:all .18s ease;
-  overflow:hidden;
-  box-sizing:border-box;
+  position:relative;height:88px;padding:14px 16px;
+  display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;
+  border:1.5px solid var(--line);border-radius:10px;background:#fff;cursor:pointer;
+  transition:all .18s ease;overflow:hidden;box-sizing:border-box;
 }
-#practiceBody.practice-body-fit .opt-big:hover{
-  border-color:var(--primary);
-  transform:translateY(-2px);
-  box-shadow:0 4px 14px rgba(58,154,147,.12);
-  background:#fafdfc;
-}
+#practiceBody.practice-body-fit .opt-big:hover{ border-color:var(--primary);background:#fafdfc; }
 #practiceBody.practice-body-fit .opt-big:active{ transform:scale(.98); }
-/* 词性标签（参考图左上角 n./v. teal 小字） */
+
+/* 词性标签（左上角 n./adj. 灰色小字） */
 #practiceBody.practice-body-fit .opt-big-tag{
-  font-size:12px;font-weight:700;color:var(--primary);text-transform:uppercase;
-  flex:none;
+  font-size:12px;color:var(--muted);font-weight:500;flex:0 0 auto;line-height:1;
 }
-/* 释义文字 */
+/* 中文释义 */
 #practiceBody.practice-body-fit .opt-big-cn{
-  font-size:16px;font-weight:600;color:var(--ink);line-height:1.45;
+  font-size:17px;font-weight:600;color:var(--ink);line-height:1.4;margin-top:4px;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
 }
+/* 快捷键（右上角） */
+#practiceBody.practice-body-fit .opt-big-key{
+  position:absolute;top:12px;right:14px;font-size:11px;color:var(--muted);opacity:.6;line-height:1;
+}
+/* 英文揭示（答题后底部滑入） */
+#practiceBody.practice-body-fit .opt-big-en{
+  font-size:13px;font-weight:600;margin-top:auto;padding-top:6px;
+  line-height:1.3;opacity:0;transform:translateY(4px);
+  transition:opacity .25s ease, transform .25s ease;color:var(--ink);
+}
+/* 正确=绿框+英文 */
 #practiceBody.practice-body-fit .opt-big.correct{
-  border-color:var(--med);background:rgba(70,168,131,.07);
+  border-color:#22c55e;background:rgba(34,197,94,.05);
 }
+#practiceBody.practice-body-fit .opt-big.correct .opt-big-en{ opacity:1;transform:translateY(0);color:#16a34a; }
+/* 错误=红框+英文 */
 #practiceBody.practice-body-fit .opt-big.wrong{
-  border-color:var(--danger);background:rgba(239,68,68,.06);
+  border-color:#ef4444;background:rgba(239,68,68,.05);
 }
+#practiceBody.practice-body-fit .opt-big.wrong .opt-big-en{ opacity:1;transform:translateY(0);color:#dc2626; }
 
-/* ── 「完全不认识」（宽虚线按钮 + ⊙ 图标） ── */
+/* ── 不知道按钮（左侧放置，像爱听写） ── */
 #practiceBody.practice-body-fit .answer-btns{
-  margin-top:14px;display:flex;justify-content:center;
+  margin-top:12px;display:flex;justify-content:flex-start;
 }
 #practiceBody.practice-body-fit .abtn-unknown{
-  width:100%;height:48px;padding:0;
-  border:2px dashed var(--line);border-radius:12px;
-  background:transparent;color:var(--muted);
-  font-size:14.5px;font-weight:600;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  gap:6px;transition:all .15s;
+  width:auto;height:44px;padding:0 24px;border:1.5px solid var(--line);border-radius:10px;
+  background:transparent;color:var(--muted);font-size:14px;font-weight:500;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;
 }
-#practiceBody.practice-body-fit .abtn-unknown::before{
-  content:'⊙';font-size:14px;opacity:.5;
-}
+#practiceBody.practice-body-fit .abtn-unknown .unk-hint{ font-size:11px;color:var(--muted);opacity:.6; }
 #practiceBody.practice-body-fit .abtn-unknown:hover{
-  border-color:var(--primary);color:var(--primary);
-  background:var(--primary-soft);
+  border-color:var(--primary);color:var(--primary);background:var(--primary-soft);
 }
-
 /* 底部工具栏 */
 .practice-tools-row{
   flex:none;
@@ -615,21 +565,14 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 }
 .practice-tools-row .tool-btn{ margin:0; }
 
-/* 高度紧张时适度压缩 */
+/* 小屏适度压缩 */
 @media(max-height:760px){
-  #practiceBody.practice-body-fit .practice-word-area{ padding:12px 0 10px; }
-  #practiceBody.practice-body-fit .pw-en{ font-size:34px; }
-  #practiceBody.practice-body-fit .pw-cn{ font-size:15px;min-height:22px; }
-  #practiceBody.practice-body-fit .practice-sentence{ font-size:14px;padding:8px 14px; }
-  #practiceBody.practice-body-fit .opts-grid{ margin-top:16px;gap:10px; }
-  #practiceBody.practice-body-fit .opt-big{ height:78px;padding:12px 16px; }
-  #practiceBody.practice-body-fit .opt-big-cn{ font-size:14.5px; }
-  #practiceBody.practice-body-fit .abtn-unknown{ height:44px; }
-}
-  #practiceBody.practice-body-fit .opts-grid{ margin-top:6px; gap:10px; }
-  #practiceBody.practice-body-fit .opt-big{ height:80px;padding:12px 16px; }
-  #practiceBody.practice-body-fit .opt-big-cn{ font-size:14.5px; }
-  #practiceBody.practice-body-fit .abtn-unknown{ height:44px; }
+  #practiceBody.practice-body-fit .practice-word-area{ padding:14px 4px 10px; }
+  #practiceBody.practice-body-fit .pw-en{ font-size:28px; }
+  #practiceBody.practice-body-fit .practice-sentence{ font-size:14px;padding:10px 16px; }
+  #practiceBody.practice-body-fit .opts-grid{ margin-top:14px;gap:10px; }
+  #practiceBody.practice-body-fit .opt-big{ height:78px;padding:12px 14px; }
+  #practiceBody.practice-body-fit .opt-big-cn{ font-size:15px; }
 }
 
 /* design/24：左上角上一题回顾 */
@@ -1783,100 +1726,93 @@ body.word-fullscreen #practiceBody.practice-body-fit{
 }
 body.word-fullscreen .practice-tools-row{border-top:none;padding-top:18px}
 
-/* 卡片容器：渐变暖白背景 */
+/* 全屏卡片容器：渐变暖白背景 */
 body.word-fullscreen .practice-card.practice-card-fit{
   background:linear-gradient(165deg,#fafdfc 0%,#f0f5f3 50%,#eaf2ef 100%);
 }
 
-/* 全屏单词区（自然流，内容决定大小） */
+/* 全屏单词区（左对齐，照抄爱听写） */
 body.word-fullscreen #practiceBody.practice-body-fit .practice-word-area{
   position:relative;width:100%;
   display:flex;flex-direction:column;
-  justify-content:center;align-items:center;text-align:center;
-  padding:20px 0 12px;
+  align-items:flex-start;text-align:left;
+  padding:24px 4px 14px;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .practice-word-head{
-  display:flex;flex-direction:column;
-  justify-content:center;align-items:center;
-  gap:4px;margin:0;text-align:center;
-}
-body.word-fullscreen #practiceBody.practice-body-fit .pw-main{
-  display:flex;align-items:center;justify-content:center;
+  display:flex;flex-direction:column;gap:2px;width:100%;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-en{
-  font-size:46px;font-weight:800;letter-spacing:-.02em;line-height:1.15;
-  text-align:center;
+  font-size:38px;font-weight:800;letter-spacing:-.02em;line-height:1.2;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-meta{
-  display:flex;align-items:center;justify-content:center;gap:8px;
-  font-size:16px;color:var(--muted);text-align:center;
-  flex:none;
+  display:flex;align-items:center;gap:8px;font-size:16px;color:var(--muted);margin-top:2px;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-ipa{ color:var(--muted); }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-pos{ color:var(--primary);font-weight:700; }
-
-/* 全屏中文释义：visibility:hidden 预留空间 */
-body.word-fullscreen #practiceBody.practice-body-fit .pw-cn{
-  margin-top:6px;min-height:28px;
-  font-size:19px;font-weight:700;color:var(--primary);
-  text-align:center;
-  visibility:hidden;opacity:0;
-  transition:opacity .25s ease, visibility .25s ease;
+body.word-fullscreen #practiceBody.practice-body-fit .pw-desc{
+  font-size:15px;color:var(--muted);margin-top:5px;line-height:1.5;
 }
-body.word-fullscreen #practiceBody.practice-body-fit .pw-cn.revealed{
-  visibility:visible;opacity:1;
+body.word-fullscreen #practiceBody.practice-body-fit .mastered-btn{
+  position:absolute;top:10px;right:10px;z-index:2;
 }
 
-/* 全屏例句（有才显示） */
+/* 全屏例句 */
 body.word-fullscreen #practiceBody.practice-body-fit .practice-sentence{
-  width:100%;margin:16px 0 0;padding:12px 20px;
-  text-align:center;font-size:15.5px;line-height:1.65;
+  width:100%;margin:18px 0 0;padding:16px 24px;
+  text-align:center;font-size:17px;line-height:1.7;
   color:var(--ink);background:var(--surface-2);border-radius:10px;
 }
-body.word-fullscreen #practiceBody.practice-body-fit .practice-sentence.is-empty{
-  display:none;
-}
+body.word-fullscreen #practiceBody.practice-body-fit .practice-sentence.is-empty{ display:none; }
 body.word-fullscreen #practiceBody.practice-body-fit .practice-sentence .hi{
-  color:var(--primary);font-weight:700;background:var(--primary-soft);
-  padding:1px 5px;border-radius:4px;
+  color:var(--primary);font-weight:700;
 }
 
-/* 全屏「选择正确释义」已删除 → 永久隐藏 */
+/* 全屏选项网格（固定高度不抖） */
 body.word-fullscreen #practiceBody.practice-body-fit .opts-label{ display:none !important; }
-
-/* 全屏选项网格 */
 body.word-fullscreen #practiceBody.practice-body-fit .opts-grid{
   display:grid;grid-template-columns:1fr 1fr;gap:16px;
   margin-top:24px;width:100%;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .opt-big{
-  height:96px;padding:18px 22px;
-  justify-content:flex-start;align-items:flex-start;
-  flex-direction:column;gap:6px;
-  border:1.5px solid var(--line);border-radius:14px;
+  position:relative;height:96px;padding:18px 20px;
+  display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;
+  border:1.5px solid var(--line);border-radius:10px;
   background:#fff;transition:all .18s ease;overflow:hidden;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .opt-big:hover{
-  border-color:var(--primary);transform:translateY(-2px);
-  box-shadow:0 4px 16px rgba(58,154,147,.12);background:#fafdfc;
+  border-color:var(--primary);background:#fafdfc;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .opt-big:active{ transform:scale(.98); }
 body.word-fullscreen #practiceBody.practice-body-fit .opt-big-tag{
-  font-size:12px;font-weight:700;color:var(--primary);text-transform:uppercase;
+  font-size:12px;color:var(--muted);font-weight:500;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .opt-big-cn{
-  font-size:16px;font-weight:600;color:var(--ink);line-height:1.45;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  font-size:17px;font-weight:600;color:var(--ink);line-height:1.4;margin-top:4px;
 }
+body.word-fullscreen #practiceBody.practice-body-fit .opt-big-key{
+  position:absolute;top:14px;right:16px;font-size:11px;color:var(--muted);opacity:.6;
+}
+body.word-fullscreen #practiceBody.practice-body-fit .opt-big-en{
+  font-size:14px;font-weight:600;margin-top:auto;padding-top:6px;
+  opacity:0;transform:translateY(4px);
+  transition:opacity .25s ease, transform .25s ease;color:var(--ink);
+}
+body.word-fullscreen #practiceBody.practice-body-fit .opt-big.correct{
+  border-color:#22c55e;background:rgba(34,197,94,.05);
+}
+body.word-fullscreen #practiceBody.practice-body-fit .opt-big.correct .opt-big-en{ opacity:1;transform:translateY(0);color:#16a34a; }
+body.word-fullscreen #practiceBody.practice-body-fit .opt-big.wrong{
+  border-color:#ef4444;background:rgba(239,68,68,.05);
+}
+body.word-fullscreen #practiceBody.practice-body-fit .opt-big.wrong .opt-big-en{ opacity:1;transform:translateY(0);color:#dc2626; }
 
-body.word-fullscreen #practiceBody.practice-body-fit .answer-btns{ margin-top:14px;display:flex;justify-content:center;width:100%; }
+body.word-fullscreen #practiceBody.practice-body-fit .answer-btns{ margin-top:14px;display:flex;justify-content:flex-start;width:100%; }
 body.word-fullscreen #practiceBody.practice-body-fit .abtn-unknown{
-  width:100%;height:48px;padding:0;border:2px dashed var(--line);
-  border-radius:12px;background:transparent;color:var(--muted);
-  font-size:14.5px;font-weight:600;cursor:pointer;
+  width:auto;height:48px;padding:0 28px;border:1.5px solid var(--line);
+  border-radius:10px;background:transparent;color:var(--muted);
+  font-size:14px;font-weight:500;cursor:pointer;
   display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;
 }
-body.word-fullscreen #practiceBody.practice-body-fit .abtn-unknown::before{ content:'⊙';font-size:14px;opacity:.5; }
 body.word-fullscreen #practiceBody.practice-body-fit .abtn-unknown:hover{
   border-color:var(--primary);color:var(--primary);background:var(--primary-soft);
 }
