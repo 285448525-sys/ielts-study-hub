@@ -510,7 +510,10 @@ function renderQuestion(cur, isRehold){
 
   // ── 主区域（照抄爱听写 v5：单词+音标+中文 居中；无例句、题干无词性；中文答后才显示） ──
   html += '<div class="practice-word-area">' +
-    '<button class="mastered-btn" id="masteredBtn" title="已掌握：从词库删除该词">已掌握</button>' +
+    '<div class="pw-toolbar">' +
+      '<button class="mastered-btn" id="masteredBtn" title="已掌握：从词库删除该词">已掌握</button>' +
+      '<button class="btn tool-btn" id="toolSpeaker" title="再读一遍"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.4 5.6a9 9 0 0 1 0 12.8"/></svg></button>' +
+    '</div>' +
     '<div class="pw-en">' + escapeHtml(cur.en) + '</div>' +
     (cur.ipa ? '<div class="pw-ipa">/ ' + escapeHtml(cur.ipa) + ' /</div>' : '') +
     '<div class="pw-cn" id="pwCn">&nbsp;</div>' +
