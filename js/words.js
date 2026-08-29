@@ -103,10 +103,51 @@ async function importSmart(){
   }
 }
 
-/* 一键补全：给词库里「没有中文释义」的老词批量补 AI 翻译（每批 20 个，防超 token）。只写 cn，不破坏其它字段。 */
+/* 词性归一化：把 AI 返回的各种写法规范为标准缩写（n./v./adj./adv./prep./conj./pron./num.），
+   多个词性用分号连接（如 n.;v.）。兼容英文全写 / 中文 / 带不带点。 */
+function normPos(s){
+  s = String(s || '').trim().toLowerCase();
+  if(!s) return '';
+  const parts = s.split(/[;/,、\s]+/).map(p => p.trim()).filter(Boolean);
+  const dict = {
+    n:'n.', noun:'n.', 名词:'n.',
+    v:'v.', verb:'v.', 动词:'v.',
+    adj:'adj.', adjective:'adj.', 形容词:'adj.',
+    adv:'adv.', adverb:'adv.', 副词:'adv.',
+    prep:'prep.', preposition:'prep.', 介词:'prep.',
+    conj:'conj.', conjunction:'conj.', 连词:'conj.',
+    pron:'pron.', pronoun:'pron.', 代词:'pron.',
+    num:'num.', numeral:'num.', 数词:'num.',
+    int:'int.', interjection:'int.', 感叹词:'int.',
+    art:'art.', article:'art.', 冠词:'art.'
+  };
+  const out = [];
+  for(const p of parts){
+    const key = p.replace(/\.+$/, '');
+    let v = dict[key] || dict[p];
+    if(!v){
+      if(/^n/.test(p)) v = 'n.';
+      else if(/^v/.test(p)) v = 'v.';
+      else if(/^adj/.test(p)) v = 'adj.';
+      else if(/^adv/.test(p)) v = 'adv.';
+      else if(/^prep/.test(p)) v = 'prep.';
+      else if(/^conj/.test(p)) v = 'conj.';
+      else if(/^pron/.test(p)) v = 'pron.';
+      else if(/^num/.test(p)) v = 'num.';
+      else if(/^int/.test(p)) v = 'int.';
+      else if(/^art/.test(p)) v = 'art.';
+      else v = p; // 兜底保留原值
+    }
+    if(v && !out.includes(v)) out.push(v);
+  }
+  return out.join(';');
+}
+
+/* 一键补全：给词库里「缺失中文释义 或 缺失词性」的词批量补 AI 翻译+词性（每批 20 个，防超 token）。
+   只补缺失的字段，不破坏已有数据；已填的 cn / pos 不会被覆盖。 */
 async function backfillCn(){
-  const miss = DATA.words.filter(w => !(w.cn && w.cn.trim()));
-  if(!miss.length){ toast('没有缺失释义的词'); return; }
+  const miss = DATA.words.filter(w => !(w.cn && w.cn.trim()) || !(w.pos && w.pos.trim()));
+  if(!miss.length){ toast('没有需要补全的词（释义和词性都已齐全）'); return; }
   if(!DATA.settings.relayToken){ toast('去「设置 / AI 接口」填 DeepSeek Key 才能补全'); return; }
   const btn = $('#backfillBtn');
   btn.disabled = true; btn.textContent = '补全中…';
@@ -114,22 +155,29 @@ async function backfillCn(){
     for(let i=0; i<miss.length; i+=20){      // 每批 20 个，防超 token
       const chunk = miss.slice(i, i+20);
       const enList = chunk.map(w => w.en).join('\n');
-      const sys = '你是英文词库助手。下面每行一个英文单词，请给出每个词的简洁中文释义（最多 3 个义项，用"；"分隔）。只返回 JSON 数组：[{"en":"algorithm","cn":"算法；运算法则"}, ...]，顺序与输入一致，不要任何解释文字、不要 markdown 围栏。';
+      const sys = '你是英文词库助手。下面每行一个英文单词，请给每个词：①简洁中文释义（最多 3 个义项，用"；"分隔）；' +
+        '②词性，用标准英文缩写（n./v./adj./adv./prep./conj./pron./num.），多个词性用分号分隔如 n.;v.。' +
+        '只返回 JSON 数组：[{"en":"algorithm","cn":"算法；运算法则","pos":"n."}, ...]，顺序与输入一致，不要任何解释文字、不要 markdown 围栏。';
       const content = await callRelay('words', [{ role:'system', content: sys }, { role:'user', content: enList }], 0.3);
       const arr = aiJson(content);
       if(Array.isArray(arr)){
         const map = {};
-        arr.forEach(x => { if(x && x.en) map[String(x.en).toLowerCase()] = String(x.cn || '').trim(); });
-        chunk.forEach(w => { const c = map[w.en.toLowerCase()]; if(c) w.cn = c; });
+        arr.forEach(x => { if(x && x.en) map[String(x.en).toLowerCase()] = x; });
+        chunk.forEach(w => {
+          const it = map[w.en.toLowerCase()];
+          if(!it) return;
+          if(!w.cn || !w.cn.trim()) w.cn = String(it.cn || '').trim();
+          if(!w.pos || !w.pos.trim()){ const p = normPos(it.pos); if(p) w.pos = p; }
+        });
       }
       hubSave(); renderWords();
     }
-    const left = DATA.words.filter(w => !(w.cn && w.cn.trim())).length;
-    toast(left ? ('已补全一批，还剩 '+left+' 个未识别，可再点一次') : '全部释义已补全 ✅');
+    const left = DATA.words.filter(w => !(w.cn && w.cn.trim()) || !(w.pos && w.pos.trim())).length;
+    toast(left ? ('已补全一批，还剩 '+left+' 个未识别，可再点一次') : '全部释义与词性已补全 ✅');
   }catch(e){
     toast('补全失败：' + e.message);
   }finally{
-    btn.disabled = false; btn.textContent = '🔄 补全缺失释义';
+    btn.disabled = false; btn.textContent = '🔄 AI 补全';
   }
 }
 
@@ -203,10 +251,12 @@ function renderWords(){
       else { stClass='ok'; stTxt='复习中'; }
     } else { stClass='new'; stTxt='新词'; }
     if(lv >= 7){ stClass='ok'; stTxt='已掌握'; }
+    const posTxt = (w.pos && w.pos.trim()) ? escapeHtml(w.pos) : '<span class="wl-pos-miss">无词性</span>';
     return `
       <li class="wl-item" data-en="${escapeHtml(w.en)}">
         <span class="wl-word">${escapeHtml(w.en)}</span>
         <span class="wl-mean">${escapeHtml(w.cn || '')}</span>
+        <span class="wl-pos">${posTxt}</span>
         <span class="wl-lv">Lv ${lv}</span>
         <span class="wl-st ${stClass}">${stTxt}</span>
         <div class="wl-actions">

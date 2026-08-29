@@ -630,6 +630,8 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 .wl-st.due{color:var(--danger-text);background:var(--danger-soft)}
 .wl-st.ok{color:var(--med);background:var(--med-soft)}
 .wl-actions{display:flex;gap:6px;flex:none}
+.wl-pos{font-size:12px;font-weight:600;color:#3a6ea5;background:#eaf1f8;padding:2px 8px;border-radius:6px;flex:none;white-space:nowrap;font-family:var(--mono,ui-monospace,SFMono-Regular,Menlo,Consolas,monospace)}
+.wl-pos-miss{font-size:12px;font-weight:600;color:var(--warn-ink);background:var(--warn-soft);padding:2px 8px;border-radius:6px;flex:none;white-space:nowrap}
 .wl-btn{border:1.5px solid var(--line);background:var(--surface);color:var(--muted);padding:4px 10px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;transition:.12s;white-space:nowrap}
 .wl-btn:hover{border-color:var(--primary);color:var(--primary)}
 .wl-btn.star{color:var(--warn-ink);border-color:var(--warn)}
