@@ -467,24 +467,28 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 
 /* streak-bar 已移除不显示 */
 
-/* ── 单词区（爱听写：左对齐大字 + 音标 + 释义） ── */
+/* ── 单词区（居中：大字 + 音标 + 词性 + 中文释义答题后显示） ── */
 #practiceBody.practice-body-fit .practice-word-area{
   position:relative;display:flex;flex-direction:column;
-  align-items:flex-start;text-align:left;width:100%;padding:20px 4px 12px;
+  align-items:center;text-align:center;width:100%;padding:20px 4px 12px;
 }
-#practiceBody.practice-body-fit .practice-word-head{ display:flex;flex-direction:column;gap:2px;width:100%; }
+#practiceBody.practice-body-fit .practice-word-head{ display:flex;flex-direction:column;gap:2px;width:100%;align-items:center; }
 #practiceBody.practice-body-fit .pw-main{ }
 #practiceBody.practice-body-fit .pw-en{
   font-size:32px;font-weight:800;letter-spacing:-.02em;line-height:1.2;color:var(--ink);
 }
 #practiceBody.practice-body-fit .pw-meta{
-  display:flex;align-items:center;gap:8px;font-size:15px;color:var(--muted);margin-top:2px;
+  display:flex;align-items:center;justify-content:center;gap:8px;font-size:15px;color:var(--muted);margin-top:2px;
 }
 #practiceBody.practice-body-fit .pw-ipa{ font-family:serif;font-style:normal;color:var(--muted); }
 #practiceBody.practice-body-fit .pw-pos{ color:var(--primary);font-weight:700; }
-#practiceBody.practice-body-fit .pw-desc{
-  font-size:14px;color:var(--muted);margin-top:4px;line-height:1.5;
+
+/* 中文释义：答题前隐藏，答题后淡入（不占位防抖） */
+#practiceBody.practice-body-fit .pw-cn{
+  margin-top:6px;font-size:17px;font-weight:700;color:var(--primary);
+  visibility:hidden;opacity:0;transition:opacity .25s ease,visibility .25s ease;line-height:1.4;
 }
+#practiceBody.practice-body-fit .pw-cn.revealed{ visibility:visible;opacity:1; }
 
 /* 已掌握按钮：右上角绿色药丸 */
 #practiceBody.practice-body-fit .mastered-btn{
@@ -523,10 +527,8 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
   font-size:17px;font-weight:600;color:var(--ink);line-height:1.4;margin-top:4px;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
 }
-/* 快捷键（右上角） */
-#practiceBody.practice-body-fit .opt-big-key{
-  position:absolute;top:12px;right:14px;font-size:11px;color:var(--muted);opacity:.6;line-height:1;
-}
+/* 快捷键：用户不用，隐藏 */
+#practiceBody.practice-body-fit .opt-big-key{ display:none; }
 /* 英文揭示（答题后底部滑入） */
 #practiceBody.practice-body-fit .opt-big-en{
   font-size:13px;font-weight:600;margin-top:auto;padding-top:6px;
@@ -544,16 +546,16 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 }
 #practiceBody.practice-body-fit .opt-big.wrong .opt-big-en{ opacity:1;transform:translateY(0);color:#dc2626; }
 
-/* ── 不知道按钮（左侧放置，像爱听写） ── */
+/* ── 不知道按钮（居中，与上方选项留足间距） ── */
 #practiceBody.practice-body-fit .answer-btns{
-  margin-top:12px;display:flex;justify-content:flex-start;
+  margin-top:20px;display:flex;justify-content:center;
 }
 #practiceBody.practice-body-fit .abtn-unknown{
-  width:auto;height:44px;padding:0 24px;border:1.5px solid var(--line);border-radius:10px;
+  width:auto;height:44px;padding:0 28px;border:1.5px solid var(--line);border-radius:10px;
   background:transparent;color:var(--muted);font-size:14px;font-weight:500;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;
+  display:flex;align-items:center;justify-content:center;transition:all .15s;
 }
-#practiceBody.practice-body-fit .abtn-unknown .unk-hint{ font-size:11px;color:var(--muted);opacity:.6; }
+#practiceBody.practice-body-fit .abtn-unknown .unk-hint{ display:none; }
 #practiceBody.practice-body-fit .abtn-unknown:hover{
   border-color:var(--primary);color:var(--primary);background:var(--primary-soft);
 }
@@ -1731,27 +1733,30 @@ body.word-fullscreen .practice-card.practice-card-fit{
   background:linear-gradient(165deg,#fafdfc 0%,#f0f5f3 50%,#eaf2ef 100%);
 }
 
-/* 全屏单词区（左对齐，照抄爱听写） */
+/* 全屏单词区（居中） */
 body.word-fullscreen #practiceBody.practice-body-fit .practice-word-area{
   position:relative;width:100%;
   display:flex;flex-direction:column;
-  align-items:flex-start;text-align:left;
+  align-items:center;text-align:center;
   padding:24px 4px 14px;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .practice-word-head{
-  display:flex;flex-direction:column;gap:2px;width:100%;
+  display:flex;flex-direction:column;gap:2px;width:100%;align-items:center;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-en{
   font-size:38px;font-weight:800;letter-spacing:-.02em;line-height:1.2;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-meta{
-  display:flex;align-items:center;gap:8px;font-size:16px;color:var(--muted);margin-top:2px;
+  display:flex;align-items:center;justify-content:center;gap:8px;font-size:16px;color:var(--muted);margin-top:2px;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-ipa{ color:var(--muted); }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-pos{ color:var(--primary);font-weight:700; }
-body.word-fullscreen #practiceBody.practice-body-fit .pw-desc{
-  font-size:15px;color:var(--muted);margin-top:5px;line-height:1.5;
+/* 全屏中文释义：答题前隐藏 */
+body.word-fullscreen #practiceBody.practice-body-fit .pw-cn{
+  margin-top:6px;font-size:19px;font-weight:700;color:var(--primary);
+  visibility:hidden;opacity:0;transition:opacity .25s ease,visibility .25s ease;
 }
+body.word-fullscreen #practiceBody.practice-body-fit .pw-cn.revealed{ visibility:visible;opacity:1; }
 body.word-fullscreen #practiceBody.practice-body-fit .mastered-btn{
   position:absolute;top:10px;right:10px;z-index:2;
 }
@@ -1789,9 +1794,7 @@ body.word-fullscreen #practiceBody.practice-body-fit .opt-big-tag{
 body.word-fullscreen #practiceBody.practice-body-fit .opt-big-cn{
   font-size:17px;font-weight:600;color:var(--ink);line-height:1.4;margin-top:4px;
 }
-body.word-fullscreen #practiceBody.practice-body-fit .opt-big-key{
-  position:absolute;top:14px;right:16px;font-size:11px;color:var(--muted);opacity:.6;
-}
+body.word-fullscreen #practiceBody.practice-body-fit .opt-big-key{ display:none; }
 body.word-fullscreen #practiceBody.practice-body-fit .opt-big-en{
   font-size:14px;font-weight:600;margin-top:auto;padding-top:6px;
   opacity:0;transform:translateY(4px);
@@ -1806,7 +1809,7 @@ body.word-fullscreen #practiceBody.practice-body-fit .opt-big.wrong{
 }
 body.word-fullscreen #practiceBody.practice-body-fit .opt-big.wrong .opt-big-en{ opacity:1;transform:translateY(0);color:#dc2626; }
 
-body.word-fullscreen #practiceBody.practice-body-fit .answer-btns{ margin-top:14px;display:flex;justify-content:flex-start;width:100%; }
+body.word-fullscreen #practiceBody.practice-body-fit .answer-btns{ margin-top:20px;display:flex;justify-content:center;width:100%; }
 body.word-fullscreen #practiceBody.practice-body-fit .abtn-unknown{
   width:auto;height:48px;padding:0 28px;border:1.5px solid var(--line);
   border-radius:10px;background:transparent;color:var(--muted);

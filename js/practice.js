@@ -499,7 +499,7 @@ function renderQuestion(cur, isRehold){
   // streak-bar 已移除（用户要求不显示）
   if(top) html += '<div class="practice-topzone">' + top + '</div>';
 
-  // ── 单词区（照抄爱听写：左对齐大字 + 音标 + 释义） ──
+  // ── 单词区（居中：大字 + 音标 + 词性） ──
   html += '<div class="practice-word-area">' +
     '<button class="mastered-btn" id="masteredBtn" title="已掌握：从词库删除该词">已掌握</button>' +
     '<div class="practice-word-head">' +
@@ -508,7 +508,7 @@ function renderQuestion(cur, isRehold){
         (cur.ipa ? '<span class="pw-ipa">/ ' + escapeHtml(cur.ipa) + ' /</span>' : '') +
         (cur.pos ? '<span class="pw-pos">' + escapeHtml(cur.pos) + '</span>' : '') +
       '</div>' +
-      (cur.cn ? '<div class="pw-desc">' + escapeHtml(cur.pos || '') + ' ' + escapeHtml(cur.cn) + '</div>' : '') +
+      (cur.cn ? '<div class="pw-cn" id="pwCn">' + escapeHtml(cur.cn) + '</div>' : '') +
     '</div>' +
   '</div>';
 
@@ -524,7 +524,7 @@ function renderQuestion(cur, isRehold){
 
   // ── 选项网格（2×2 + 不知道，照抄爱听写） ──
   html += '<div class="opts-grid" id="opts"></div>';
-  html += '<div class="answer-btns"><button class="abtn abtn-unknown" id="unknownBtn">不知道 <span class="unk-hint">快捷键：5</span></button></div>';
+  html += '<div class="answer-btns"><button class="abtn abtn-unknown" id="unknownBtn">不知道</button></div>';
 
   const body = $('#practiceBody');
   body.innerHTML = html;
@@ -532,7 +532,6 @@ function renderQuestion(cur, isRehold){
     '<button class="opt-big" data-en="' + escapeHtml(o.en) + '" data-idx="' + i + '">' +
       '<span class="opt-big-tag">' + (o.pos || '') + '</span>' +
       '<span class="opt-big-cn">' + escapeHtml(o.cn) + '</span>' +
-      '<span class="opt-big-key">快捷键：' + (i + 1) + '</span>' +
       '<span class="opt-big-en"></span>' +
     '</button>'
   ).join('');
@@ -576,6 +575,9 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
   });
   const ub = document.getElementById('unknownBtn');
   if(ub){ ub.style.pointerEvents = 'none'; ub.disabled = true; }
+  // 答题后揭示中文释义
+  const pwCn = document.getElementById('pwCn');
+  if(pwCn) pwCn.classList.add('revealed');
 
   const k = String(cur.en).toLowerCase();
   if(!pq.counted) pq.counted = new Set();
