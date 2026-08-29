@@ -70,14 +70,17 @@ ready(() => {
       };
       hubSave();
     };
+    // 滑块拖动时 input 事件高频触发，整份 DATA 序列化写盘会卡；防抖 300ms，停手才落库
+    let _saveTimer = null;
+    const scheduleSaveCfg = () => { if(_saveTimer) clearTimeout(_saveTimer); _saveTimer = setTimeout(saveCfg, 300); };
     const cfg = loadCfg();
     sRate.value = cfg.rate; document.getElementById('sRateTxt').textContent = cfg.rate.toFixed(2)+'x';
     document.getElementById('sRepeat').value = cfg.repeat; document.getElementById('sRepeatTxt').textContent = cfg.repeat+' 次';
     document.getElementById('sInterval').value = String(cfg.intervalMs);
     document.getElementById('sShowCn').checked = !!cfg.showCn;
     document.getElementById('sBatch').value = String(cfg.batchSize);
-    sRate.addEventListener('input', () => { document.getElementById('sRateTxt').textContent = parseFloat(sRate.value).toFixed(2)+'x'; saveCfg(); });
-    document.getElementById('sRepeat').addEventListener('input', () => { document.getElementById('sRepeatTxt').textContent = parseInt(document.getElementById('sRepeat').value,10)+' 次'; saveCfg(); });
+    sRate.addEventListener('input', () => { document.getElementById('sRateTxt').textContent = parseFloat(sRate.value).toFixed(2)+'x'; scheduleSaveCfg(); });
+    document.getElementById('sRepeat').addEventListener('input', () => { document.getElementById('sRepeatTxt').textContent = parseInt(document.getElementById('sRepeat').value,10)+' 次'; scheduleSaveCfg(); });
     document.getElementById('sInterval').addEventListener('change', saveCfg);
     document.getElementById('sShowCn').addEventListener('change', saveCfg);
     document.getElementById('sBatch').addEventListener('change', saveCfg);

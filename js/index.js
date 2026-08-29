@@ -82,13 +82,6 @@ function renderDashV6(){
   if(dueEl) dueEl.innerHTML = due+'<span class="u">词</span>';
   if(hintEl) hintEl.textContent = due > 0 ? '建议先复习再学新词' : '暂无到期单词';
 
-  // 旧：快速入口「单词」卡上的待复习角标（2026-08-22 6 模块去重后只 4 个，单词入口已下沉到双卡，故删）
-  // const qcDueEl = $('#qcDueWords');
-  // if(qcDueEl){
-  //   if(due > 0){ qcDueEl.textContent = due; qcDueEl.hidden = false; }
-  //   else { qcDueEl.hidden = true; }
-  // }
-
   // ---- 今日学习记录条形图 ----
   const bodyEl = $('#dashRecBody');
   const totalEl = $('#dashRecTotal');
@@ -115,7 +108,7 @@ function renderDashV6(){
       const pct = Math.round((sec/maxDur)*100);
       const m = Math.floor(sec/60);
       html += '<div class="rec-row">'
-        +'<span class="nm">'+escHtml(nm)+'</span>'
+        +'<span class="nm">'+escapeHtml(nm)+'</span>'
         +'<span class="bar"><i style="width:'+pct+'%"></i></span>'
         +'<span class="dur">'+m+'m</span>'
         +'</div>';
@@ -143,9 +136,4 @@ function calcStreakV6(){
     if(dates[i] === todayKey(d)) count++; else break;
   }
   return count;
-}
-
-/** 安全转义 HTML */
-function escHtml(s){
-  const d=document.createElement('div');d.textContent=s;return d.innerHTML;
 }

@@ -152,9 +152,6 @@ function importData(file){
     const obj = JSON.parse(r.result);
     // Bug14：校验根对象，缺失数组字段用默认值补齐，避免导入后字段丢失/崩溃
     if(!obj || typeof obj !== 'object' || Array.isArray(obj)){ toast('文件格式错误（根必须是对象）'); return; }
-    const def = { sessions:[], notes:[], meds:[], words:[], plans:[], corpus:[], scores:[],
-      errorbook:[], energy:[], checkins:[], speaking:[], speakingStories:[],
-      writing:[], writingScores:[], mockRecords:[] };
     // 智能合并导入（v20260823w）：只把「本地没有的内容」补进来，本地已有的（更新/更多）绝不覆盖。
     //   - 数组字段：备份中本地不存在的元素才追加（有 id 的按 id 去重，无 id 的按序列化去重）
     //   - settings：本地已非空的值优先，备份只补本地为空的字段
