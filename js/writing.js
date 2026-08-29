@@ -74,6 +74,7 @@ ready(() => {
   $('#bankAddBtn').addEventListener('click', () => { $('#bankAddCard').hidden = false; });
   $('#ba_cancel').addEventListener('click', () => { $('#bankAddCard').hidden = true; });
   $('#ba_save').addEventListener('click', addPhrase);
+  $('#ba_aiImport').addEventListener('click', aiImportPhrases);
 
   // 写作真题
   bindExam();
@@ -900,6 +901,69 @@ function delPhrase(id){
   if(id != null && !DATA.deletedIds.includes(id)) DATA.deletedIds.push(id);
   hubSave();
   renderBank();
+}
+
+/* AI 智能导入：粘贴任意英文材料 → AI 拆成可套用词组/句式 + 补中文 + 按领域分类 → 落库 DATA.writingPhrases
+   领域(type)是主分类维度（= bankFilter 的 12 个枚举），不做「词组/句式」二元分桶；功能区分用 tag 表达。 */
+async function aiImportPhrases(){
+  const box = $('#ba_bulkInput');
+  const raw = (box && box.value || '').trim();
+  if(!raw){ toast('先粘贴要导入的内容'); return; }
+  if(!DATA.settings.relayToken){ toast('还没填 DeepSeek Key，去「设置 / AI 接口」填一下'); return; }
+  const btn = $('#ba_aiImport');
+  const hint = $('#ba_importHint');
+  btn.disabled = true; btn.textContent = 'AI 识别中…';
+  if(hint) hint.textContent = '正在拆分词组/句式并按领域分类…';
+  try{
+    const DOMAINS = ['教育','科技','环境','健康','文化','社会','政府','经济','犯罪','交通','工作','通用'];
+    const DOMAIN_SET = new Set(DOMAINS);
+    const messages = [
+      { role:'system', content:
+`你是雅思写作语料整理助手。用户输入一段英文材料（文章、笔记、词表、网页复制均可，可能夹中文），请整理成可直接套进写作模板的「词组 / 句式」语料。
+要求：
+1) 按语义切分成独立的条目（一个词组或一句可用句式=一条，不要把整段当一个条目，也不要拆得过于零碎）。
+2) 每条给出：
+   en（英文原词/短语/句式，保留原样含标点）、
+   cn（准确中文释义）、
+   type（领域，必须从以下 12 个里选最贴切的一个：教育、科技、环境、健康、文化、社会、政府、经济、犯罪、交通、工作、通用；无法确定时填「通用」）、
+   tag（功能标签，从 支持、反对、原因、方案、意义、影响、观点、对比、举例、因果、结论、建议 里选最贴切的一个，没有就填空字符串）、
+   example（用该词组的例句，没有就填空字符串）。
+3) 领域(type)是主分类维度，不要另设「词组/句式」这样的二元分类；功能上的区分用 tag 表达。
+4) 只输出严格 JSON，无解释无围栏：{"items":[{"en":"","cn":"","type":"通用","tag":"","example":""}]}` },
+      { role:'user', content: raw }
+    ];
+    const content = await callRelay('writing_bank', messages, 0.3);
+    const r = aiJson(content);
+    const items = (r && Array.isArray(r.items)) ? r.items : [];
+    if(!items.length){ toast('AI 没识别出条目，换个格式再试'); if(hint) hint.textContent = '未识别到条目'; return; }
+    const existing = new Set((DATA.writingPhrases || []).map(p => (p.en || '').toLowerCase()));
+    DATA.writingPhrases = DATA.writingPhrases || [];
+    let added = 0, skipped = 0;
+    items.forEach(it => {
+      const en = (it.en || '').trim();
+      const cn = (it.cn || '').trim();
+      if(!en) return;
+      const key = en.toLowerCase();
+      if(existing.has(key)){ skipped++; return; }
+      existing.add(key);
+      let type = (it.type || '通用').trim();
+      if(!DOMAIN_SET.has(type)) type = '通用';
+      DATA.writingPhrases.push({ id: uid(), type, en, cn, tag: (it.tag || '').trim(), example: (it.example || '').trim() });
+      added++;
+    });
+    if(added){ hubSave(); renderBank(); }
+    let msg = added ? ('AI 导入 ' + added + ' 条') : '没有新增（可能都重复）';
+    if(skipped) msg += '，跳过重复 ' + skipped + ' 条';
+    toast(msg);
+    if(hint) hint.textContent = msg;
+    if(box) box.value = '';
+    $('#bankAddCard').hidden = true;
+  }catch(e){
+    toast('AI 导入失败：' + e.message);
+    if(hint) hint.textContent = '失败：' + e.message;
+  }finally{
+    btn.disabled = false; btn.textContent = 'AI 识别并导入';
+  }
 }
 
 /* ===== AI 作文评分 ===== */
