@@ -445,7 +445,7 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 }
 .head-actions{display:flex;gap:8px}
 
-/* ===== 背词练习页：精确照抄爱听写 idictation.cn（v20260829j） ===== */
+/* ===== 背词练习页：精确照抄爱听写 v5 原型（居中题干 / 无例句 / 无题干词性 / 选项2x2） ===== */
 #practiceBody.practice-body-fit{
   flex:1;min-height:0;
   display:flex;flex-direction:column;
@@ -457,7 +457,8 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 #practiceBody.practice-body-fit .practice-word-area,
 #practiceBody.practice-body-fit .opts-label,
 #practiceBody.practice-body-fit .opts-grid,
-#practiceBody.practice-body-fit .answer-btns{ width:100%;max-width:720px; }
+#practiceBody.practice-body-fit .answer-btns,
+#practiceBody.practice-body-fit .practice-tools-row{ width:100%;max-width:960px; }
 
 /* ── 上一词回顾 ── */
 #practiceBody.practice-body-fit .last-word{
@@ -466,94 +467,70 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 }
 #practiceBody.practice-body-fit .lw-en{font-weight:700;color:var(--ink);font-size:15px}
 
-/* ═══ 主区域：左右布局（照抄爱听写） ═══ */
+/* ═══ 题干区：单词+音标+中文 全部居中，无例句、无词性（照抄 v5 原型） ═══ */
 #practiceBody.practice-body-fit .practice-word-area{
-  position:relative;display:flex;flex-direction:row;align-items:flex-start;
-  justify-content:space-between;width:100%;padding:16px 4px 12px;gap:16px;
+  position:relative;text-align:center;
+  padding:10px 4px 24px;margin-bottom:22px;
+  border-bottom:1px solid #f0f0f0;
 }
 /* 已掌握按钮：右上角绿色药丸 */
 #practiceBody.practice-body-fit .mastered-btn{
-  position:absolute;top:6px;right:6px;z-index:2;
+  position:absolute;top:2px;right:6px;z-index:2;
 }
-
-/* ── 左栏：单词 + 音标 + 词性中文释义（照抄爱听写左半边）── */
-#practiceBody.practice-body-fit .pw-left{
-  display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;
-}
-#practiceBody.practice-body-fit .pw-main{ }
 #practiceBody.practice-body-fit .pw-en{
-  font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.25;color:var(--ink);
-}
-#practiceBody.practice-body-fit .pw-meta{
-  display:flex;align-items:center;gap:6px;font-size:14px;color:var(--muted);margin-top:1px;
+  font-size:38px;font-weight:800;letter-spacing:-.02em;line-height:1.25;color:var(--ink);
 }
 #practiceBody.practice-body-fit .pw-ipa{
-  font-family:serif;font-style:normal;color:var(--muted);
+  font-family:serif;font-style:normal;font-size:15px;color:#999;margin-top:6px;
 }
-/* 词性+中文释义（照抄爱听写 "n. 怜悯；同情；憾事；"） */
-#practiceBody.practice-body-fit .pw-desc{
-  font-size:14px;color:var(--muted);margin-top:4px;line-height:1.5;
-}
-#practiceBody.practice-body-fit .pw-desc .pw-pos{
-  color:var(--primary);font-weight:700;
-}
-
-/* ── 右栏：例句卡片（照抄爱听写右半边 "His tone sounded angry."）── */
-#practiceBody.practice-body-fit .practice-sentence{
-  flex:0 0 auto;max-width:55%;
-  padding:14px 18px;font-size:15px;line-height:1.65;
-  text-align:left;background:var(--surface-2);border-radius:10px;
-  box-sizing:border-box;border:none;
-}
-#practiceBody.practice-body-fit .practice-sentence .hi{
-  color:#e85d04;font-weight:700; /* 爱听写橙红色高亮 */
+/* 中文释义（答后才填充）：固定 min-height，答后不撑高 → 布局不跳动 */
+#practiceBody.practice-body-fit .pw-cn{
+  font-size:15px;color:#555;margin-top:5px;min-height:23px;line-height:1.55;
 }
 
 #practiceBody.practice-body-fit .opts-label{ display:none !important; }
 
-/* ═══ 选项网格（照抄爱听写：第一行=词性，第二行=中文） ═══ */
+/* ═══ 选项网格（照抄 v5：第一行=词性，第二行=中文） ═══ */
 #practiceBody.practice-body-fit .opts-grid{
-  display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px;width:100%;
+  display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%;
 }
 #practiceBody.practice-body-fit .opt-big{
-  position:relative;height:84px;padding:14px 16px;
-  display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;
-  border:1.5px solid #e8e8e8;border-radius:8px;background:#fff;cursor:pointer;
+  position:relative;height:88px;padding:14px 18px;
+  display:flex;flex-direction:column;align-items:flex-start;justify-content:center;
+  gap:6px;border:1.5px solid #e5e7eb;border-radius:10px;background:#fff;cursor:pointer;
   transition:all .15s ease;overflow:hidden;box-sizing:border-box;
 }
-#practiceBody.practice-body-fit .opt-big:hover{ border-color:#ccc; }
+#practiceBody.practice-body-fit .opt-big:hover{ border-color:#cbd5e1; }
 
-/* 第一行：词性标签（"n." / "adj." 灰色小字） */
+/* 第一行：词性标签（"n." / "adj." 灰色小字）；固定行高 18px → 答后加英文不撑高中文 */
 #practiceBody.practice-body-fit .opt-big-tag{
-  font-size:13px;color:#888;font-weight:500;flex:0 0 auto;line-height:1.4;
+  font-size:13px;color:#999;font-weight:500;flex:0 0 auto;line-height:18px;
 }
 /* 第二行：中文释义 */
 #practiceBody.practice-body-fit .opt-big-cn{
-  font-size:17px;font-weight:600;color:var(--ink);line-height:1.45;margin-top:4px;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  font-size:17px;font-weight:600;color:var(--ink);line-height:1.4;
 }
-/* 英文揭示区改用 tag 显示，此元素隐藏 */
+/* 英文揭示区改用 tag 显示，这些元素隐藏 */
 #practiceBody.practice-body-fit .opt-big-en{ display:none; }
-/* 快捷键隐藏 */
 #practiceBody.practice-body-fit .opt-big-key{ display:none; }
 
-/* ── 答题反馈（照抄爱听写：对=绿框+tag显英文，错=粉红框+tag显英文） ── */
+/* ── 答题反馈（照抄 v5：对=绿框+tag英文，错=粉红框+tag英文；英文16px但行高不变→不跳动） ── */
 #practiceBody.practice-body-fit .opt-big.correct{
-  border-color:#86efac;background:rgba(134,239,172,.1);
+  border-color:#86efac;background:#f0fdf4;
 }
 #practiceBody.practice-body-fit .opt-big.correct .opt-big-tag{
-  color:#166534;font-weight:700;
+  color:#166534;font-weight:700;font-size:16px;line-height:18px;
 }
 #practiceBody.practice-body-fit .opt-big.wrong{
-  border-color:#fca5a5;background:rgba(252,165,165,.1);
+  border-color:#fca5a5;background:#fef2f2;
 }
 #practiceBody.practice-body-fit .opt-big.wrong .opt-big-tag{
-  color:#b91c1c;font-weight:700;
+  color:#b91c1c;font-weight:700;font-size:16px;line-height:18px;
 }
 
 /* ── 不知道按钮（左侧文字按钮） ── */
 #practiceBody.practice-body-fit .answer-btns{
-  margin-top:14px;display:flex;justify-content:flex-start;
+  margin-top:20px;display:flex;justify-content:flex-start;
 }
 #practiceBody.practice-body-fit .abtn-unknown{
   width:auto;height:40px;padding:0 22px;border:1.5px solid var(--line);border-radius:8px;
@@ -563,43 +540,21 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 #practiceBody.practice-body-fit .abtn-unknown:hover{
   border-color:var(--primary);color:var(--primary);background:var(--primary-soft);
 }
-#practiceBody.practice-body-fit{
-  flex:1;min-height:0;
-  display:flex;flex-direction:column;
-  align-items:center;
-  width:100%;
-}
-#practiceBody.practice-body-fit .last-word,
-#practiceBody.practice-body-fit .streak-bar,
-#practiceBody.practice-body-fit .practice-topzone,
-#practiceBody.practice-body-fit .practice-word-area,
-#practiceBody.practice-body-fit .practice-sentence,
-#practiceBody.practice-body-fit .opts-label,
-#practiceBody.practice-body-fit .opts-grid,
-#practiceBody.practice-body-fit .answer-btns{ width:100%;max-width:680px; }
 
-/* ── 上一词回顾（爱听写风格） ── */
-#practiceBody.practice-body-fit .last-word{
-  display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
-  font-size:13px;color:var(--muted);padding:2px 0;margin-bottom:4px;
-}
-#practiceBody.practice-body-fit .lw-en{font-weight:700;color:var(--ink);font-size:15px}
-
-/* 底部工具栏 */
+/* 底部工具栏（只有喇叭，无眼睛 / 无快捷键） */
 .practice-tools-row{
   flex:none;
   display:flex;justify-content:center;align-items:center;gap:16px;
-  padding-top:8px;border-top:1px solid var(--line);
+  padding-top:16px;border-top:1px solid var(--line);margin-top:24px;
 }
 .practice-tools-row .tool-btn{ margin:0; }
 
-/* 小屏适度压缩 */
+/* 小屏适度压缩（电脑为主，仅做下限保护） */
 @media(max-height:760px){
-  #practiceBody.practice-body-fit .practice-word-area{ padding:14px 4px 10px; }
-  #practiceBody.practice-body-fit .pw-en{ font-size:28px; }
-  #practiceBody.practice-body-fit .practice-sentence{ font-size:14px;padding:10px 16px; }
-  #practiceBody.practice-body-fit .opts-grid{ margin-top:14px;gap:10px; }
-  #practiceBody.practice-body-fit .opt-big{ height:78px;padding:12px 14px; }
+  #practiceBody.practice-body-fit .practice-word-area{ padding:10px 4px 20px; }
+  #practiceBody.practice-body-fit .pw-en{ font-size:32px; }
+  #practiceBody.practice-body-fit .opts-grid{ gap:12px; }
+  #practiceBody.practice-body-fit .opt-big{ height:82px;padding:12px 16px; }
   #practiceBody.practice-body-fit .opt-big-cn{ font-size:15px; }
 }
 
@@ -1760,68 +1715,52 @@ body.word-fullscreen .practice-card.practice-card-fit{
 }
 
 /* 全屏单词区（居中） */
-/* 全屏模式：同样左右布局（照抄爱听写） */
+/* 全屏模式：同样居中题干（照抄 v5 原型，无例句 / 无题干词性） */
 body.word-fullscreen #practiceBody.practice-body-fit .practice-word-area{
-  position:relative;width:100%;
-  display:flex;flex-direction:row;align-items:flex-start;
-  justify-content:space-between;padding:20px 4px 14px;gap:20px;
+  position:relative;text-align:center;width:100%;
+  padding:20px 4px 28px;margin-bottom:28px;border-bottom:1px solid #f0f0f0;
 }
-body.word-fullscreen #practiceBody.practice-body-fit .pw-left{
-  display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;
-}
-body.word-fullscreen #practiceBody.practice-body-fit .pw-en{
-  font-size:36px;font-weight:800;letter-spacing:-.02em;line-height:1.25;
-}
-body.word-fullscreen #practiceBody.practice-body-fit .pw-meta{
-  display:flex;align-items:center;gap:6px;font-size:15px;color:var(--muted);margin-top:1px;
-}
-body.word-fullscreen #practiceBody.practice-body-fit .pw-ipa{ color:var(--muted); }
-body.word-fullscreen #practiceBody.practice-body-fit .pw-desc{
-  font-size:15px;color:var(--muted);margin-top:5px;line-height:1.5;
-}
-body.word-fullscreen #practiceBody.practice-body-fit .pw-desc .pw-pos{ color:var(--primary);font-weight:700; }
 body.word-fullscreen #practiceBody.practice-body-fit .mastered-btn{
   position:absolute;top:10px;right:10px;z-index:2;
 }
-
-/* 全屏例句（右侧卡片） */
-body.word-fullscreen #practiceBody.practice-body-fit .practice-sentence{
-  flex:0 0 auto;max-width:55%;
-  padding:16px 22px;font-size:16px;line-height:1.7;
-  text-align:left;background:var(--surface-2);border-radius:10px;
+body.word-fullscreen #practiceBody.practice-body-fit .pw-en{
+  font-size:44px;font-weight:800;letter-spacing:-.02em;line-height:1.25;color:var(--ink);
 }
-body.word-fullscreen #practiceBody.practice-body-fit .practice-sentence .hi{
-  color:#e85d04;font-weight:700;
+body.word-fullscreen #practiceBody.practice-body-fit .pw-ipa{
+  font-family:serif;font-style:normal;font-size:17px;color:#999;margin-top:8px;
+}
+body.word-fullscreen #practiceBody.practice-body-fit .pw-cn{
+  font-size:17px;color:#555;margin-top:6px;min-height:25px;line-height:1.55;
 }
 
-/* 全屏选项网格 + 反馈 */
+/* 全屏选项网格 + 反馈（与 v5 一致） */
 body.word-fullscreen #practiceBody.practice-body-fit .opts-label{ display:none !important; }
 body.word-fullscreen #practiceBody.practice-body-fit .opts-grid{
-  display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px;width:100%;
+  display:grid;grid-template-columns:1fr 1fr;gap:16px;width:100%;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .opt-big{
-  position:relative;height:88px;padding:16px 18px;
-  display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;
-  border:1.5px solid #e8e8e8;border-radius:8px;background:#fff;cursor:pointer;
-  transition:all .15s ease;overflow:hidden;
+  position:relative;height:96px;padding:16px 20px;
+  display:flex;flex-direction:column;align-items:flex-start;justify-content:center;
+  gap:6px;border:1.5px solid #e5e7eb;border-radius:10px;background:#fff;cursor:pointer;
+  transition:all .15s ease;overflow:hidden;box-sizing:border-box;
 }
-body.word-fullscreen #practiceBody.practice-body-fit .opt-big:hover{ border-color:#ccc; }
-body.word-fullscreen #practiceBody.practice-body-fit .opt-big-tag{ font-size:13px;color:#888;font-weight:500; }
+body.word-fullscreen #practiceBody.practice-body-fit .opt-big:hover{ border-color:#cbd5e1; }
+body.word-fullscreen #practiceBody.practice-body-fit .opt-big-tag{ font-size:14px;color:#999;font-weight:500;flex:0 0 auto;line-height:18px; }
 body.word-fullscreen #practiceBody.practice-body-fit .opt-big-cn{
-  font-size:17px;font-weight:600;color:var(--ink);line-height:1.45;margin-top:4px;
+  font-size:18px;font-weight:600;color:var(--ink);line-height:1.4;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .opt-big-key{ display:none; }
 body.word-fullscreen #practiceBody.practice-body-fit .opt-big-en{ display:none; }
 body.word-fullscreen #practiceBody.practice-body-fit .opt-big.correct{
-  border-color:#86efac;background:rgba(134,239,172,.1);
+  border-color:#86efac;background:#f0fdf4;
 }
-body.word-fullscreen #practiceBody.practice-body-fit .opt-big.correct .opt-big-tag{ color:#166534;font-weight:700; }
+body.word-fullscreen #practiceBody.practice-body-fit .opt-big.correct .opt-big-tag{ color:#166534;font-weight:700;font-size:16px;line-height:18px; }
 body.word-fullscreen #practiceBody.practice-body-fit .opt-big.wrong{
-  border-color:#fca5a5;background:rgba(252,165,165,.1);
+  border-color:#fca5a5;background:#fef2f2;
 }
-body.word-fullscreen #practiceBody.practice-body-fit .opt-big.wrong .opt-big-tag{ color:#b91c1c;font-weight:700; }
+body.word-fullscreen #practiceBody.practice-body-fit .opt-big.wrong .opt-big-tag{ color:#b91c1c;font-weight:700;font-size:16px;line-height:18px; }
 
-body.word-fullscreen #practiceBody.practice-body-fit .answer-btns{ margin-top:16px;display:flex;justify-content:flex-start; }
+body.word-fullscreen #practiceBody.practice-body-fit .answer-btns{ margin-top:22px;display:flex;justify-content:flex-start; }
 body.word-fullscreen #practiceBody.practice-body-fit .abtn-unknown{
   width:auto;height:42px;padding:0 24px;border:1.5px solid var(--line);
   border-radius:8px;background:transparent;color:var(--muted);

@@ -498,24 +498,12 @@ function renderQuestion(cur, isRehold){
   }
   if(top) html += '<div class="practice-topzone">' + top + '</div>';
 
-  // 例句 HTML（高亮当前单词）
-  const exHtml = cur.example
-    ? escapeHtml(cur.example).replace(new RegExp('\\b' + escapeRegExp(cur.en) + '\\b', 'gi'), '<span class="hi">$&</span>')
-    : '';
-
-  // ── 主区域（照抄爱听写：左=单词+音标+词性释义，右=例句卡片） ──
+  // ── 主区域（照抄爱听写 v5：单词+音标+中文 居中；无例句、题干无词性；中文答后才显示） ──
   html += '<div class="practice-word-area">' +
     '<button class="mastered-btn" id="masteredBtn" title="已掌握：从词库删除该词">已掌握</button>' +
-    '<div class="pw-left">' +
-      '<div class="pw-main"><span class="pw-en">' + escapeHtml(cur.en) + '</span></div>' +
-      '<div class="pw-meta">' +
-        (cur.ipa ? '<span class="pw-ipa">/ ' + escapeHtml(cur.ipa) + ' /</span>' : '') +
-      '</div>' +
-      '<div class="pw-desc" id="pwCn">' +
-        (cur.pos ? '<span class="pw-pos">' + escapeHtml(cur.pos) + '</span>' : '') +
-      '</div>' +
-    '</div>' +
-    (exHtml ? '<div class="practice-sentence">' + exHtml + '</div>' : '') +
+    '<div class="pw-en">' + escapeHtml(cur.en) + '</div>' +
+    (cur.ipa ? '<div class="pw-ipa">/ ' + escapeHtml(cur.ipa) + ' /</div>' : '') +
+    '<div class="pw-cn" id="pwCn"></div>' +
   '</div>';
 
   // ── 选项网格（2×2 + 不知道，照抄爱听写） ──
@@ -572,10 +560,10 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
     if(isWrong) x.classList.add('wrong');
     x.style.pointerEvents = 'none';
   });
-  // 揭示题干中文释义（照抄爱听写：答后才显示，修复此前「中文提前显示」）
+  // 揭示题干中文释义（照抄爱听写 v5：答后才显示，题干不含词性）
   const reveal = document.getElementById('pwCn');
-  if(reveal && (cur.cn || cur.pos)){
-    reveal.innerHTML = (cur.pos ? '<span class="pw-pos">' + escapeHtml(cur.pos) + '</span> ' : '') + (cur.cn ? escapeHtml(cur.cn) : '');
+  if(reveal && cur.cn){
+    reveal.textContent = cur.cn;
   }
   const ub = document.getElementById('unknownBtn');
   if(ub){ ub.style.pointerEvents = 'none'; ub.disabled = true; }
