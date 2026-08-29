@@ -820,7 +820,10 @@ function render(){
 
   box.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
     if(confirm('确定删除这条记录？')){
-      DATA.errorbook = DATA.errorbook.filter(x => x.id !== b.dataset.del);
+      const id = b.dataset.del;
+      DATA.errorbook = DATA.errorbook.filter(x => x.id !== id);
+      DATA.deletedIds = DATA.deletedIds || [];
+      if(id != null && !DATA.deletedIds.includes(id)) DATA.deletedIds.push(id);
       hubSave(); render();
     }
   }));
