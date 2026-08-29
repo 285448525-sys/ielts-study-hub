@@ -196,33 +196,26 @@ function renderWords(){
     ensureWordV12(w);
     const lv = (w.level != null) ? w.level : 0;
     const due = (w.nextReview || '').toString();
-    let dueTxt = '新词';
+    let stClass = 'new', stTxt = '新词';
     if(due){
-      if(due < t)            dueTxt = '<span class="due-over">已逾期 ' + escapeHtml(due) + '</span>';
-      else if(due === t)     dueTxt = '<span class="due-soon">今天复习</span>';
-      else                   dueTxt = '下次 ' + escapeHtml(due);
-    }
-    const tags = ['<span class="lv-badge">Lv ' + lv + '</span>'];
-    if(w.hardWord) tags.push('<span class="wtag wtag-hard">难</span>');
-    if(w.keyWord)  tags.push('<span class="wtag wtag-key">重</span>');
+      if(due < t){ stClass='due'; stTxt='逾期'; }
+      else if(due === t){ stClass='due'; stTxt='今天复习'; }
+      else { stClass='ok'; stTxt='复习中'; }
+    } else { stClass='new'; stTxt='新词'; }
+    if(lv >= 7){ stClass='ok'; stTxt='已掌握'; }
     return `
-      <div class="wcard" data-en="${escapeHtml(w.en)}">
-        <div class="wcard-top">
-          <div class="wcard-en">${escapeHtml(w.en)}</div>
-          <div class="wcard-tags">${tags.join('')}</div>
+      <li class="wl-item" data-en="${escapeHtml(w.en)}">
+        <span class="wl-word">${escapeHtml(w.en)}</span>
+        <span class="wl-mean">${escapeHtml(w.cn || '')}</span>
+        <span class="wl-lv">Lv ${lv}</span>
+        <span class="wl-st ${stClass}">${stTxt}</span>
+        <div class="wl-actions">
+          <button class="wl-btn star ${w.keyWord?'active':''}" data-en="${escapeHtml(w.en)}" data-act="key">★ 重点</button>
+          <button class="wl-btn del" data-del="${w.id}">删</button>
         </div>
-        <div class="wcard-cn">${escapeHtml(w.cn || '')}</div>
-        <div class="wcard-meta">${dueTxt}</div>
-        <div class="wmark-row">
-          <button class="wmark-btn act-key ${w.keyWord?'active':''}" data-en="${escapeHtml(w.en)}" data-act="key">重点</button>
-          <button class="wmark-btn act-hard ${w.hardWord?'active':''}" data-en="${escapeHtml(w.en)}" data-act="hard">难词</button>
-          <button class="wmark-btn" data-en="${escapeHtml(w.en)}" data-act="master">已掌握</button>
-          <button class="wmark-btn" data-en="${escapeHtml(w.en)}" data-act="forgot">不认识</button>
-          <button class="wmark-btn wmark-del" data-del="${w.id}">删除</button>
-        </div>
-      </div>`;
+      </li>`;
   }).join('');
   box.querySelectorAll('button[data-del]').forEach(b => b.addEventListener('click', () => deleteWord(b.dataset.del)));
-  box.querySelectorAll('.wmark-btn[data-act]').forEach(b => b.addEventListener('click', () => markWord(b.dataset.en, b.dataset.act)));
+  box.querySelectorAll('.wl-btn[data-act]').forEach(b => b.addEventListener('click', () => markWord(b.dataset.en, b.dataset.act)));
 }
 

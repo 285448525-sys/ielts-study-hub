@@ -787,6 +787,8 @@ async function reanalyze(id){
   if(ok){
     // 新记录已归档，此时才安全地移除旧的那条
     DATA.errorbook = DATA.errorbook.filter(x => x.id !== id);
+    DATA.deletedIds = DATA.deletedIds || [];
+    if(id != null && !DATA.deletedIds.includes(id)) DATA.deletedIds.push(id);  // 墓碑：防云同步把旧记录拉回
     hubSave();
     render();
   } else {

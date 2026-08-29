@@ -145,9 +145,11 @@ function delDictSource(id){
   if(!s) return;
   if(!confirm('删除《' + s.title + '》？相关的错处记录也会一并删除。')) return;
   DATA.dictationSources = DATA.dictationSources.filter(x => x.id !== id);
+  const removedLogs = (DATA.dictationLogs || []).filter(l => l.sourceId === id).map(l => l.id).filter(x => x != null);
   DATA.dictationLogs = (DATA.dictationLogs || []).filter(l => l.sourceId !== id);
   DATA.deletedIds = DATA.deletedIds || [];
   if(id != null && !DATA.deletedIds.includes(id)) DATA.deletedIds.push(id);
+  removedLogs.forEach(lid => { if(!DATA.deletedIds.includes(lid)) DATA.deletedIds.push(lid); });  // 关联错处记录一并墓碑，防云端复活
   clearDictDraft(id);   // 连带清掉未完成的草稿 key
   hubSave();
   renderDictationSources();
@@ -711,6 +713,7 @@ function delDictMistake(logId, mi){
     toast('这篇已无差异记录，已整篇移除');
     return;
   }
+  l.updatedAt = Date.now();   // 标记本机较新，同步合并优先保留（防云端整条覆盖复活该误判）
   hubSave();
   openDictLogDetail(logId);   // 重新渲染详情（下标已变化）
   toast('已删除该误判');
@@ -727,7 +730,12 @@ function delDictLog(id){
 
 function clearAllLogs(){
   if(!confirm('清空全部错处记录？此操作不可撤销。')) return;
+  const ids = (DATA.dictationLogs || []).map(l => l.id).filter(id => id != null);
   DATA.dictationLogs = [];
+  if(ids.length){
+    DATA.deletedIds = DATA.deletedIds || [];
+    ids.forEach(id => { if(!DATA.deletedIds.includes(id)) DATA.deletedIds.push(id); });
+  }
   hubSave();
   renderDictLogs();
   toast('已清空');

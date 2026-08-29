@@ -27,7 +27,7 @@
 })();
 </script>
 <title>口语 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20260828d" />
+<link rel="stylesheet" href="css/common.css?v=20260828q" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=5" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=4">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=4">
@@ -46,10 +46,6 @@
   <script defer src="js/mock.js?v=20260823l"></script>
 <style>
   /* === 极简口语模块 · 优化版（沿用全站 Teal Token） === */
-  .sp-tabs{display:flex;gap:0;border-bottom:2px solid var(--line);margin-bottom:4px}
-  .sp-tabs button{flex:1;padding:12px 0;font-size:16px;font-weight:600;border:none;background:none;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:color .2s,border-color .2s}
-  .sp-tabs button.active{color:var(--primary);border-bottom-color:var(--primary)}
-  .sp-tabs button:focus-visible{outline:none;box-shadow:0 0 0 3px var(--primary-soft);border-radius:8px}
 
   .sp-banner{padding:12px 16px;background:var(--primary);color:#fff;border-radius:var(--radius);font-size:13px;line-height:1.65;margin:12px 0;box-shadow:var(--shadow)}
   .sp-banner b{font-weight:700}
@@ -493,15 +489,15 @@
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 
 <main class="container">
-  <h1 class="page-title">口语</h1>
-
-  <!-- 标签栏（常驻，移出会被 hide 的 listView） -->
-  <div class="sp-tabs" id="tabs">
-    <button data-type="P1" class="active">Part 1</button>
-    <button data-type="P2">Part 2</button>
-    <button data-type="MOCK">模考</button>
-    <button data-type="MAT">素材</button>
-    <button data-type="PROGRESS">数据</button>
+  <div class="page-head-row">
+    <h1 class="page-title">口语</h1>
+    <div class="sp-tabs pill-tabs" id="tabs">
+      <button data-type="P1" class="pill-tab active">Part 1</button>
+      <button data-type="P2" class="pill-tab">Part 2</button>
+      <button data-type="MOCK" class="pill-tab">模考</button>
+      <button data-type="MAT" class="pill-tab">素材</button>
+      <button data-type="PROGRESS" class="pill-tab">数据</button>
+    </div>
   </div>
 
   <!-- 列表视图 -->

@@ -27,7 +27,7 @@
 })();
 </script>
 <title>语料 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20260828d" />
+<link rel="stylesheet" href="css/common.css?v=20260828q" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=5" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=4">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=4">
@@ -71,11 +71,6 @@
   .eb-long-s{font-size:14px;font-weight:600;color:var(--ink);line-height:1.6}
   .eb-long-a{font-size:13.5px;color:var(--muted);margin-top:3px;line-height:1.7}
 
-  /* 语料 子 tab（长难句 / 错题本 / 听力默写） */
-  .sub-tabs{display:flex;gap:0;border-bottom:2px solid var(--line);margin:0 0 16px}
-  .sub-tabs button{flex:1;padding:11px 0;font-size:15px;font-weight:600;border:none;background:none;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:color .2s,border-color .2s}
-  .sub-tabs button.active{color:var(--primary);border-bottom-color:var(--primary)}
-  .sub-tabs button:focus-visible{outline:none;box-shadow:0 0 0 3px var(--primary-soft);border-radius:8px}
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -99,13 +94,13 @@
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 
 <main class="container">
-  <h1 class="page-title">语料</h1>
-
-  <!-- 三合一：长难句(默认) / 错题本 / 听力默写 -->
-  <div class="sub-tabs" id="wordTabs">
-    <button data-sub="ls" class="active">长难句</button>
-    <button data-sub="eb">错题本</button>
-    <button data-sub="dict">语料表（中英对照）</button>
+  <div class="page-head-row">
+    <h1 class="page-title">语料</h1>
+    <div class="sub-tabs pill-tabs" id="wordTabs">
+      <button data-sub="ls" class="pill-tab active">长难句</button>
+      <button data-sub="eb" class="pill-tab">错题本</button>
+      <button data-sub="dict" class="pill-tab">语料表（中英对照）</button>
+    </div>
   </div>
 
   <!-- ① 长难句拆解（默认打开） -->

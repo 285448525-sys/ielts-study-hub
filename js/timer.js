@@ -291,6 +291,8 @@ function renderMiniRecords(){
       const rid = btn.dataset.rid;
       if(!rid) return;
       DATA.sessions = (DATA.sessions || []).filter(s => s.id !== rid);
+      DATA.deletedIds = DATA.deletedIds || [];
+      if(rid != null && !DATA.deletedIds.includes(rid)) DATA.deletedIds.push(rid);  // 墓碑：防云同步把这条误记/记录拉回来
       hubSave();
       renderMiniRecords();
     });

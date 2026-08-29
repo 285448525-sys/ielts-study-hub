@@ -1621,12 +1621,22 @@ function deleteWrongItem(key){
   const parts = key.split('|');
   const sourceId = parts[0], right = parts[1], wrong = parts[2];
   const logs = DATA.dictationLogs || [];
+  const removedIds = [];
+  const remaining = [];
   logs.forEach(log => {
-    if(log.sourceId !== sourceId) return;
-    if(!Array.isArray(log.mistakes)) return;
+    if(log.sourceId !== sourceId){ remaining.push(log); return; }
+    if(!Array.isArray(log.mistakes)){ remaining.push(log); return; }
+    const before = log.mistakes.length;
     log.mistakes = log.mistakes.filter(m =>
       !((m.right || '').trim().toLowerCase() === right && (m.wrong || '').trim().toLowerCase() === wrong));
+    if(log.mistakes.length !== before) log.updatedAt = Date.now();   // 标记本机较新，同步合并优先保留
+    if(log.mistakes.length === 0){ if(log.id != null) removedIds.push(log.id); }  // 整条删光 → 墓碑防云端复活
+    else remaining.push(log);
   });
-  DATA.dictationLogs = logs.filter(l => Array.isArray(l.mistakes) && l.mistakes.length > 0);
+  DATA.dictationLogs = remaining;
+  if(removedIds.length){
+    DATA.deletedIds = DATA.deletedIds || [];
+    removedIds.forEach(id => { if(!DATA.deletedIds.includes(id)) DATA.deletedIds.push(id); });
+  }
   hubSave();
 }
