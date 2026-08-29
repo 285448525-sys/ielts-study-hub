@@ -1807,66 +1807,77 @@ body.word-fullscreen .practice-card.practice-card-fit{
   background:linear-gradient(165deg,#fafdfc 0%,#f0f5f3 50%,#eaf2ef 100%);
 }
 
-/* 全屏单词区：固定高度 200px（无论有无释义/例句都占满，坐标不动） */
+/* ⭐ 全屏单词区：固定 200px 高度 + overflow:hidden 锁死 */
 body.word-fullscreen #practiceBody.practice-body-fit .practice-word-area{
   position:relative;width:100%;
   display:flex;flex-direction:column;
   justify-content:center;align-items:center;text-align:center;
-  min-height:200px;padding:16px 0;
+  height:200px;                          /* ⚡ 固定高度 */
+  padding:12px 0;
+  box-sizing:border-box;
+  overflow:hidden;                        /* ⚡ 内容不撑开 */
 }
 body.word-fullscreen #practiceBody.practice-body-fit .practice-word-head{
   display:flex;flex-direction:column;
   justify-content:center;align-items:center;
-  gap:6px;margin:0;text-align:center;
+  gap:4px;margin:0;text-align:center;
+  flex:none;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-main{
   display:flex;align-items:center;justify-content:center;
+  flex:none;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-en{
-  font-size:48px;font-weight:800;letter-spacing:-.02em;line-height:1.15;
+  font-size:46px;font-weight:800;letter-spacing:-.02em;line-height:1.15;
   text-align:center;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-meta{
   display:flex;align-items:center;justify-content:center;gap:8px;
-  font-size:17px;color:var(--muted);text-align:center;
+  font-size:16px;color:var(--muted);text-align:center;
+  flex:none;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-ipa{ color:var(--muted); }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-pos{ color:var(--primary);font-weight:700; }
 
-/* 全屏中文释义：visibility:hidden 预留空间 */
+/* 全屏中文释义：在固定容器内 visibility 切换 */
 body.word-fullscreen #practiceBody.practice-body-fit .pw-cn{
-  margin-top:6px;min-height:28px;
+  margin-top:4px;
   font-size:19px;font-weight:700;color:var(--primary);
   text-align:center;
+  flex:none;
   visibility:hidden;opacity:0;
   transition:opacity .25s ease, visibility .25s ease;
 }
-body.word-fullscreen #practiceBody.practice-body-fit .pw-cn:not([hidden]){
+body.word-fullscreen #practiceBody.practice-body-fit .pw-cn.revealed{
   visibility:visible;opacity:1;
 }
 
-/* 全屏例句 */
+/* ⭐ 全屏例句：固定 56px 高度 */
 body.word-fullscreen #practiceBody.practice-body-fit .practice-sentence{
-  width:100%;margin:0;padding:12px 20px;
-  text-align:center;font-size:16px;line-height:1.65;
+  width:100%;height:56px;margin:0;padding:10px 20px;
+  text-align:center;font-size:15.5px;line-height:1.6;
   color:var(--ink);background:var(--surface-2);border-radius:10px;
-  box-sizing:border-box;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  box-sizing:border-box;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .practice-sentence .hi{
   color:var(--primary);font-weight:700;background:var(--primary-soft);
   padding:1px 5px;border-radius:4px;
 }
 
-body.word-fullscreen #practiceBody.practice-body-fit .opts-label{ display:none; }
+/* 全屏「选择正确释义」 */
+body.word-fullscreen #practiceBody.practice-body-fit .opts-label{
+  font-size:13px;font-weight:700;color:var(--muted);
+  margin:18px 0 10px;text-align:left;
+}
 
-/* 全屏选项网格：正常间距 ~28px */
+/* 全屏选项网格 */
 body.word-fullscreen #practiceBody.practice-body-fit .opts-grid{
   display:grid;grid-template-columns:1fr 1fr;gap:16px;
-  margin-top:28px;width:100%;
+  margin-top:8px;width:100%;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .opt-big{
-  height:98px;padding:18px 22px;
+  height:96px;padding:18px 22px;
   justify-content:flex-start;align-items:flex-start;
   flex-direction:column;gap:6px;
   border:1.5px solid var(--line);border-radius:14px;
@@ -1887,7 +1898,7 @@ body.word-fullscreen #practiceBody.practice-body-fit .opt-big-cn{
 
 body.word-fullscreen #practiceBody.practice-body-fit .answer-btns{ margin-top:14px;display:flex;justify-content:center;width:100%; }
 body.word-fullscreen #practiceBody.practice-body-fit .abtn-unknown{
-  width:100%;height:50px;padding:0;border:2px dashed var(--line);
+  width:100%;height:48px;padding:0;border:2px dashed var(--line);
   border-radius:12px;background:transparent;color:var(--muted);
   font-size:14.5px;font-weight:600;cursor:pointer;
   display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;
@@ -1895,16 +1906,6 @@ body.word-fullscreen #practiceBody.practice-body-fit .abtn-unknown{
 body.word-fullscreen #practiceBody.practice-body-fit .abtn-unknown::before{ content:'⊙';font-size:14px;opacity:.5; }
 body.word-fullscreen #practiceBody.practice-body-fit .abtn-unknown:hover{
   border-color:var(--primary);color:var(--primary);background:var(--primary-soft);
-}
-
-/* 已掌握按钮：绿色描边圆角药丸，绝对定位在单词区右上角（无黄色星标） */
-body.word-fullscreen #practiceBody.practice-body-fit .mastered-btn{
-  position:absolute;top:0;right:0;z-index:2;
-  display:inline-flex;align-items:center;gap:5px;
-  padding:7px 16px;border-radius:20px;
-  border:1.5px solid #22c55e;
-  background:rgba(34,197,94,.06);color:#22c55e;
-  font-size:13px;font-weight:700;
 }
 @media(max-width:860px){
   body.word-fullscreen .practice-card.practice-card-fit{padding:18px 16px}
