@@ -1248,7 +1248,6 @@ function openExam(item, kind){
   $('#examQSummary').textContent = summary;
   if(isBig){
     $('#examQuestion').innerHTML =
-      '<div class="ei-zh">' + escapeHtml(item.zh) + '</div>' +
       '<div class="ei-en">' + escapeHtml(item.en) + '</div>';
     $('#examQNote').textContent = 'Give reasons for your answer and include any relevant examples from your own knowledge or experience.';
   } else {

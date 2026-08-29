@@ -486,10 +486,11 @@ function renderQuestion(cur, isRehold){
   const opts = genDistractors(cur, DATA.words);
 
   let html = '';
-  // 上一词回顾（重考时不显示）
+  // 顶部预留区：上一词回顾 + 短线进度（始终渲染，无内容时空占 54px → 锁死单词 Y 坐标）
+  let top = '';
   if(pq.idx > 0 && !isRehold){
     const last = pq.queue[pq.idx - 1];
-    if(last) html += '<div class="last-word">' +
+    if(last) top += '<div class="last-word">' +
       '<span class="lw-en">' + escapeHtml(last.en) + '</span>' +
       (last.ipa ? '<span class="lw-ipa">' + escapeHtml(last.ipa) + '</span>' : '') +
       (last.cn ? '<span class="lw-cn">' + escapeHtml(last.cn) + '</span>' : '') +
@@ -499,10 +500,12 @@ function renderQuestion(cur, isRehold){
   const sc = cur.shortCount || 0;
   if(sc > 0 && sc < SHORT_PASS){
     const nextGap = gapFor(cur, sc);
-    html += '<div class="streak-bar">已对 <b>' + sc + '</b>/' + SHORT_PASS +
+    top += '<div class="streak-bar">已对 <b>' + sc + '</b>/' + SHORT_PASS +
       ' ' + [0,1,2].map(i => '<span class="sdot' + (i < sc ? ' on' : '') + '"></span>').join('') +
       ' <span class="streak-tip">（还差 ' + (SHORT_PASS - sc) + ' 次记牢，隔 ' + nextGap + ' 个词后回考）</span></div>';
   }
+  html += '<div class="practice-topzone">' + top + '</div>';
+  // 单词区（固定 150px）：pw-cn 常驻占位，答题后加 .revealed 显隐 → 选项坐标永不动
   html += '<div class="practice-word-area">' +
     '<button class="mastered-btn" id="masteredBtn" title="已掌握：从词库删除该词">已掌握</button>' +
     '<div class="practice-word-head">' +
@@ -512,9 +515,14 @@ function renderQuestion(cur, isRehold){
         (cur.pos ? '<span class="pw-pos">' + escapeHtml(cur.pos) + '</span>' : '') +
       '</div>' +
     '</div>' +
-    (cur.cn ? '<div class="pw-cn" id="pwCn" hidden>' + escapeHtml(cur.cn) + '</div>' : '') +
+    '<div class="pw-cn" id="pwCn">' + escapeHtml(cur.cn || '') + '</div>' +
   '</div>';
-  if(cur.example) html += '<div class="practice-sentence">' + escapeHtml(cur.example).replace(new RegExp('\\b' + escapeRegExp(cur.en) + '\\b'), '<span class="hi">$&</span>') + '</div>';
+  // 例句区（常驻占位：无例句加 .is-empty 空占 56px → 选项坐标永不动）
+  const exHtml = cur.example
+    ? escapeHtml(cur.example).replace(new RegExp('\\b' + escapeRegExp(cur.en) + '\\b'), '<span class="hi">$&</span>')
+    : '';
+  html += '<div class="practice-sentence' + (cur.example ? '' : ' is-empty') + '">' + exHtml + '</div>';
+  html += '<div class="opts-label">选择正确释义</div>';
   html += '<div class="opts-grid" id="opts"></div>';
   // 单一「不认识」按钮（选对/选错由 4 选项直接判定；只有完全不会才点它）
   html += '<div class="answer-btns"><button class="abtn abtn-unknown" id="unknownBtn">完全不认识</button></div>';
@@ -561,7 +569,7 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
   });
   const ub = document.getElementById('unknownBtn');
   if(ub){ ub.style.pointerEvents = 'none'; ub.disabled = true; }
-  const pwCn = document.getElementById('pwCn'); if(pwCn) pwCn.hidden = false;
+  const pwCn = document.getElementById('pwCn'); if(pwCn) pwCn.classList.add('revealed');
 
   const k = String(cur.en).toLowerCase();
   if(!pq.counted) pq.counted = new Set();
