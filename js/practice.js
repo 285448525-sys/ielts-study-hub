@@ -508,20 +508,20 @@ function renderQuestion(cur, isRehold){
   }
   if(top) html += '<div class="practice-topzone">' + top + '</div>';
 
-  // ── 主区域（照抄爱听写 v5：单词+音标+中文 居中；无例句、题干无词性；中文答后才显示） ──
+  // ── 主区域（严格还原 v5 原型：单词+音标+中文居中，无例句无词性；中文答后才显示） ──
   html += '<div class="practice-word-area">' +
-    '<div class="pw-toolbar">' +
-      '<button class="mastered-btn" id="masteredBtn" title="已掌握：从词库删除该词">已掌握</button>' +
-      '<button class="btn tool-btn" id="toolSpeaker" title="再读一遍"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.4 5.6a9 9 0 0 1 0 12.8"/></svg></button>' +
-    '</div>' +
+    '<button class="mastered-btn" id="masteredBtn" title="已掌握：从词库删除该词">已掌握</button>' +
     '<div class="pw-en">' + escapeHtml(cur.en) + '</div>' +
     (cur.ipa ? '<div class="pw-ipa">/ ' + escapeHtml(cur.ipa) + ' /</div>' : '') +
     '<div class="pw-cn" id="pwCn">&nbsp;</div>' +
   '</div>';
 
-  // ── 选项网格（2×2 + 不知道，照抄爱听写） ──
+  // ── 选项网格（2×2） ──
   html += '<div class="opts-grid" id="opts"></div>';
   html += '<div class="answer-btns"><button class="abtn abtn-unknown" id="unknownBtn">不知道</button></div>';
+
+  // ── 底部喇叭大圆按钮（严格还原 v5 原型：居中 48px 圆） ──
+  html += '<div class="pw-speaker-wrap"><button class="btn tool-btn" id="toolSpeaker" title="再读一遍"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.4 5.6a9 9 0 0 1 0 12.8"/></svg></button></div>';
 
   const body = $('#practiceBody');
   body.innerHTML = html;
@@ -573,7 +573,7 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
     if(isWrong) x.classList.add('wrong');
     x.style.pointerEvents = 'none';
   });
-  // 揭示题干中文释义（照抄爱听写 v5：答后才显示，题干不含词性）
+  // 揭示题干中文释义（严格还原 v5 原型：答后才显示，题干不含词性）
   const reveal = document.getElementById('pwCn');
   if(reveal && cur.cn){
     reveal.textContent = cur.cn;
