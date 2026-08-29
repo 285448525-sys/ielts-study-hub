@@ -40,23 +40,14 @@ function renderDashV6(){
   // ---- hero：考试倒计时 ----
   const cd = examCountdown();
   const numEl = $('#dashHeroNum');
-  const statNumEl = $('#dashStatNum');
-  const footEl = $('#dashHeroFoot');
-  const totalDays = 45;
   if(cd.hasExam && numEl){
     if(cd.daysLeft >= 0){
       numEl.innerHTML = '<span class="big">'+cd.daysLeft+'</span><span class="unit">天</span>';
-      const done = totalDays - cd.daysLeft;
-      if(statNumEl) statNumEl.textContent = done;
-      if(footEl) footEl.textContent = '跑道进度 '+Math.min(100,Math.round(done/totalDays*100))+'% · '+cd.md+' 终考冲刺中';
     } else {
       numEl.innerHTML = '<span class="big">已过</span>';
-      if(statNumEl) statNumEl.textContent = totalDays;
-      if(footEl) footEl.textContent = '';
     }
   } else if(numEl){
     numEl.innerHTML = '<span class="big">--</span><span class="unit">天</span>';
-    if(statNumEl) statNumEl.textContent = '--';
   }
 
   // ---- 双卡：今日学习时长 / 待复习 ----
