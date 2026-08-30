@@ -67,12 +67,12 @@ function renderDashV6(){
     ? [...mods].slice(0,2).join(' · ')
     : '今天还没开始学习';
 
-  // 待复习口径与背单词页一致：未掌握（cleared!==true）且到期日≤今天
-  const due = (DATA.words||[]).filter(w => w.cleared !== true && (w.nextReview || '') <= tkey).length;
+  // 待学习口径与背单词页一致：未掌握（cleared!==true）或今天到期（nextReview≤今天）
+  const due = (DATA.words||[]).filter(w => w.cleared !== true || (w.nextReview || '') <= tkey).length;
   const dueEl = $('#dashDueWords');
   const hintEl = $('#dashDueHint');
   if(dueEl) dueEl.innerHTML = due+'<span class="u">词</span>';
-  if(hintEl) hintEl.textContent = due > 0 ? '建议先复习再学新词' : '暂无到期单词';
+  if(hintEl) hintEl.textContent = due > 0 ? '建议先背待学习的词' : '暂无待学习单词';
 
   // ---- 今日学习记录条形图 ----
   const bodyEl = $('#dashRecBody');

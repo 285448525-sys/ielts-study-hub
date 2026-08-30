@@ -308,7 +308,7 @@ function autoStartSeeWord(){
       const all = buildQueue(today, nowISO());
       if(all.length === 0){
         $('#practiceScore').textContent = '';
-        $('#practiceBody').innerHTML = '<div class="q-word">今天没有待复习的词</div>' +
+        $('#practiceBody').innerHTML = '<div class="q-word">今天没有待学习的词</div>' +
           '<div class="q-cn">去「词库」加词，或明天再来。复习会按记忆曲线自动排程。</div>';
         clearDailySession();
         return;
@@ -895,8 +895,8 @@ if(!window.__wordTimerLeaveHook){
 function updateWordStats(){
   const today = todayKey();
   const words = DATA.words || [];
-  // 待复习：今天到期且未掌握的词（全局 backlog，全库口径，不只本轮）
-  const due = words.filter(w => w.cleared !== true && (w.nextReview || '') <= today).length;
+  // 待学习：未掌握（cleared!==true）或今天到期（nextReview<=今天）的词，全库口径；背完一个 promote 即减 1
+  const due = words.filter(w => w.cleared !== true || (w.nextReview || '') <= today).length;
   let active = 0, done = 0;
   if(pq){
     // 本轮剩余：每作答一个词（对错都算，按"首次作答的唯一词"计）就减 1，给进度感；
