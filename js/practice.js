@@ -721,20 +721,19 @@ function finishPractice(){
   }
   commitWordTimer();   // 完成一轮即把本次「背单词」时长结算进计时模块（DATA.sessions）
 
-  // total 用 initLen：续背时 pq.total 因 counted 已含 passed 而为 0，initLen 才是本轮真实题量
-  const total = pq.initLen || pq.total || 0;
-  const passed = pq.correct || 0;
-  const acc = total ? Math.round(passed / total * 100) : 0;
-  const s = pq.stats || { known:0, unknown:0 };
+  // 今日已练 = 今天真正练过的 unique 词数（不是轮次位累加）
+  const seenToday = DATA.wordSeenToday && DATA.wordSeenToday.date === todayKey() ? DATA.wordSeenToday.words || [] : [];
+  const todayLearned = seenToday.length;
 
-  // 累加今日统计：词数=本轮真实题量，时长=自动计时实际时长（不是 sessionStart 墙钟）
-  addTodayStats(total, wordMs);
+  // 剩余待学习：未掌握或今天到期的词数
+  const due = (DATA.words || []).filter(w => w.cleared !== true || (w.nextReview || '') <= todayKey()).length;
+
+  // 累加今日统计：时长累加，词数用今日 unique 数（覆盖，非累加）
+  addTodayStats(todayLearned, wordMs);
   const { st: todaySt } = getTodayStats();
 
   let bodyHtml = '<div class="q-word">练习完成 🎉</div>' +
-    '<div class="q-cn">本轮过关 ' + passed + '/' + total + '（' + acc + '%）' +
-    ' · 答对 ' + s.known + ' 次 · 答错 ' + s.unknown + ' 次</div>' +
-    '<div style="margin-top:6px;font-size:14px;color:var(--muted)">今日已练 ' + todaySt.totalWords + ' 个 · 耗时 ' + formatMs(todaySt.totalMs) + '</div>';
+    '<div style="margin-top:8px;font-size:14px;color:var(--muted)">今日已练 ' + todaySt.totalWords + ' 个 · 耗时 ' + formatMs(todaySt.totalMs) + ' · 剩余待学习 ' + due + ' 个</div>';
   const seen = new Set();
   const wrong = (pq.wrongList || []).filter(w => {
     const k = String(w.en).toLowerCase();
@@ -809,7 +808,8 @@ function getTodayStats(){
 }
 function addTodayStats(wordsCount, ms){
   const { st } = getTodayStats();
-  st.totalWords += Math.max(0, wordsCount || 0);
+  // 今日已练 = 今天真正练过的 unique 词数，直接覆盖（避免三轮×20被记成60的重复累加）
+  st.totalWords = Math.max(0, wordsCount || 0);
   st.totalMs += Math.max(0, ms || 0);
   st.sessions += 1;
   hubSave();
@@ -900,26 +900,19 @@ if(!window.__wordTimerLeaveHook){
 }
 
 function updateWordStats(){
-  const today = todayKey();
-  const words = DATA.words || [];
-  // 待学习：未掌握（cleared!==true）或今天到期（nextReview<=今天）的词，全库口径；背完一个 promote 即减 1
-  const due = words.filter(w => w.cleared !== true || (w.nextReview || '') <= today).length;
-  let active = 0, done = 0;
+  // 进度条只显示「本轮已作答数 / 本轮总数」，例如 34/50
+  let progress = '0/0';
   if(pq){
-    // 本轮剩余：每作答一个词（对错都算，按"首次作答的唯一词"计）就减 1，给进度感；
-    // 答错的词仍会重问（rehold/requeue），但轮次只在队列清空时结束，不会因此提前结束。
-    active = Math.max(0, (pq.initLen || pq.queue.length || 0) - (pq.counted ? pq.counted.size : 0));
-    done = (pq.passed || []).length;
-  } else if(DATA.dailySession && DATA.dailySession.date === today){
+    const counted = pq.counted ? pq.counted.size : 0;
+    const total = pq.initLen || pq.queue.length || 0;
+    progress = counted + '/' + total;
+  } else if(DATA.dailySession && DATA.dailySession.date === todayKey()){
     const s = DATA.dailySession;
     const total = (s.planEn || []).length;
-    done = (s.passed || []).length;
-    active = Math.max(0, total - (s.total || 0));
+    const answered = Math.min(total, s.total || 0);
+    progress = answered + '/' + total;
   }
-  const set = (id, n) => { const el = $('#'+id); if(el) el.textContent = n; };
-  set('statDue', due);
-  set('statActive', active);
-  set('statDone', done);
+  const el = $('#statProgress'); if(el) el.textContent = progress;
   const bar = $('#wordStats'); if(bar) bar.hidden = false;
 }
 function updateProgBar(){

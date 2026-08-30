@@ -443,8 +443,9 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
   display:flex;justify-content:space-between;align-items:center;gap:12px;
 }
 .head-actions{display:flex;gap:8px}
-.word-stats{display:flex;gap:16px;padding:8px 12px;margin:2px 0 6px;background:var(--primary-soft);border-radius:8px;font-size:13px;color:var(--ink);flex:none}
+.word-stats{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 12px;margin:2px 0 6px;background:var(--primary-soft);border-radius:8px;font-size:13px;color:var(--ink);flex:none}
 .word-stats span{display:flex;align-items:center;gap:4px}
+.word-stats .stat-progress{color:var(--primary);font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
 .word-stats b{color:var(--primary);font-size:15px;font-variant-numeric:tabular-nums}
 
 /* ===== 背词练习页：精确照抄爱听写 v5 原型（居中题干 / 无例句 / 无题干词性 / 选项2x2） ===== */
