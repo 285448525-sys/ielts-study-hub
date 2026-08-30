@@ -326,7 +326,8 @@ function autoStartSeeWord(){
         stats: { known:0, unknown:0 },
         total: 0,
         finished: false,
-        lastTouch: Date.now()
+        lastTouch: Date.now(),
+        sessionStart: Date.now()
       };
       DATA.dailySession = session;
       hubSave();
@@ -340,7 +341,8 @@ function autoStartSeeWord(){
            counted: new Set(s.passed || []),     // 已过的词不重复计数
            passed: (s.passed || []).slice(),
            reholdMap:{},   // P0-2：本词当场重考次数（仅内存，不持久化，key=小写单词）
-           attempts:{} };  // 本词本轮作答次数（防死循环）
+           attempts:{},    // 本词本轮作答次数（防死循环）
+           sessionStart: s.sessionStart || Date.now() };
     const order = (s.queueOrder && s.queueOrder.length) ? s.queueOrder : s.planEn;
     pq.queue = order
       .map(en => findWordByEn(en))
@@ -393,13 +395,15 @@ function clearDailySession(){
 // 把当前内存会话快照写入当日 session（仅当天有效），供刷新/跳转后恢复
 function saveDailySession(){
   if(!pq || !DATA || !DATA.dailySession) return;
+  if(pq.isWrongReview) return;                   // 重练错词是临时模式，不覆盖正常 dailySession
   const s = DATA.dailySession;
-  if(s.date !== todayKey()) return;            // 只保存当天，跨天不污染
+  if(s.date !== todayKey()) return;              // 只保存当天，跨天不污染
   s.passed = (pq.passed || []).slice();
   s.queueOrder = pq.queue.map(w => String(w.en || '').trim().toLowerCase());
   s.stats = { known: (pq.stats && pq.stats.known) || 0, unknown: (pq.stats && pq.stats.unknown) || 0 };
   s.total = pq.total || 0;
   s.initLen = pq.initLen || 0;
+  s.sessionStart = pq.sessionStart || s.sessionStart || Date.now();
   const cur = pq.queue[pq.idx];
   s.currentEn = cur ? String(cur.en || '').trim().toLowerCase() : null;
   s.lastTouch = Date.now();
@@ -443,7 +447,7 @@ function masterWord(cur){
   DATA.words = (DATA.words || []).filter(w => !same(w));
   pq.queue = pq.queue.filter(w => !same(w));
   // 从当日计划移除（分母缩减，不计入已掌握进度）
-  if(DATA.dailySession && DATA.dailySession.date === todayKey()){
+  if(!pq.isWrongReview && DATA.dailySession && DATA.dailySession.date === todayKey()){
     const s = DATA.dailySession;
     s.planEn = (s.planEn || []).filter(e => e !== k);
     s.queueOrder = (s.queueOrder || []).filter(e => e !== k);
@@ -451,7 +455,7 @@ function masterWord(cur){
     pq.initLen = s.planEn.length;
   }
   hubSave();
-  saveDailySession();
+  if(!pq.isWrongReview) saveDailySession();
   toast('已掌握，已从词库删除');
   nextQuestion();
 }
@@ -663,9 +667,16 @@ function finishPractice(){
   const passed = pq.correct || 0;
   const acc = total ? Math.round(passed / total * 100) : 0;
   const s = pq.stats || { known:0, unknown:0 };
+
+  // 累加今日统计（跨轮累计，再来一轮不清零）
+  const sessionMs = pq.sessionStart ? (Date.now() - pq.sessionStart) : 0;
+  addTodayStats(total, sessionMs);
+  const { st: todaySt } = getTodayStats();
+
   let bodyHtml = '<div class="q-word">练习完成 🎉</div>' +
     '<div class="q-cn">本轮过关 ' + passed + '/' + total + '（' + acc + '%）' +
-    ' · 答对 ' + s.known + ' 次 · 答错 ' + s.unknown + ' 次</div>';
+    ' · 答对 ' + s.known + ' 次 · 答错 ' + s.unknown + ' 次</div>' +
+    '<div style="margin-top:6px;font-size:14px;color:var(--muted)">今日已练 ' + todaySt.totalWords + ' 个 · 耗时 ' + formatMs(todaySt.totalMs) + '</div>';
   const seen = new Set();
   const wrong = (pq.wrongList || []).filter(w => {
     const k = String(w.en).toLowerCase();
@@ -674,25 +685,64 @@ function finishPractice(){
   });
   if(wrong.length){
     bodyHtml += '<div class="card" style="margin-top:14px;background:rgba(248,113,113,.04);border:1px solid rgba(248,113,113,.2)">' +
-      '<h3 style="margin:0 0 10px;color:var(--danger)">没记住的词（' + wrong.length + ' 个，明天优先复习）</h3><div>' + wrong.map(w =>
+      '<h3 style="margin:0 0 10px;color:var(--danger)">没记住的词（' + wrong.length + ' 个）</h3><div>' + wrong.map(w =>
         '<div class="list-item"><span><b style="font-size:15px">' + escapeHtml(w.en) + '</b>' +
         (w.cn ? ' <span class="muted">' + escapeHtml(w.cn) + '</span>' : '') + '</span></div>'
       ).join('') + '</div></div>';
   }
-  bodyHtml += '<div class="dict-result-actions" style="justify-content:center;margin:14px 0">' +
-    '<button class="btn" id="exitBtn">重新开始</button>' +
+  bodyHtml += '<div class="dict-result-actions" style="justify-content:center;margin:14px 0;gap:12px;flex-wrap:wrap">' +
+    (wrong.length ? '<button class="btn" id="reviewWrongBtn">重练错词（' + wrong.length + '）</button>' : '') +
     '<button class="btn btn-primary" id="restartBtn">再来一轮</button></div>';
   $('#practiceBody').innerHTML = bodyHtml;
   $('#practiceScore').textContent = '';
   $('#progBarWrap').hidden = true;
   updateWordStats();
-  if(DATA.dailySession && DATA.dailySession.date === todayKey()){
+  if(!pq.isWrongReview && DATA.dailySession && DATA.dailySession.date === todayKey()){
     DATA.dailySession.finished = true; DATA.dailySession.currentEn = null; hubSave();
   }
-  const eb = document.getElementById('exitBtn');
-  if(eb) eb.addEventListener('click', restartToday);
+  const rwb = document.getElementById('reviewWrongBtn');
+  if(rwb) rwb.addEventListener('click', () => startWrongReview(wrong));
   const rb = document.getElementById('restartBtn');
   if(rb) rb.addEventListener('click', restartToday);
+}
+
+// 完成页「重练错词」：用本轮答错的词生成临时队列，不影响正常 dailySession
+function startWrongReview(wrongItems){
+  if(!wrongItems || wrongItems.length === 0) return;
+  cancelSpeak();
+  const seen = new Set();
+  const words = [];
+  wrongItems.forEach(w => {
+    const k = String(w.en).trim().toLowerCase();
+    if(seen.has(k)) return;
+    seen.add(k);
+    const live = findWordByEn(w.en);
+    if(live) words.push(live);
+  });
+  if(words.length === 0){ toast('未找到可重练的单词'); return; }
+  pq = {
+    mode:'study',
+    queue: shuffle(words.slice()),
+    idx: 0,
+    initLen: words.length,
+    correct: 0,
+    revealed: false,
+    answer: null,
+    wrongList: [],
+    stats: { known:0, unknown:0 },
+    counted: new Set(),
+    passed: [],
+    reholdMap: {},
+    attempts: {},
+    sessionStart: Date.now(),
+    isWrongReview: true
+  };
+  $('#practiceScore').textContent = '';
+  $('#progBarWrap').hidden = false;
+  updateScore();
+  updateWordStats();
+  updateProgBar();
+  nextQuestion();
 }
 
 function updateScore(){
@@ -701,6 +751,29 @@ function updateScore(){
   $('#practiceScore').textContent = '过关 ' + (pq.correct || 0) + '/' + (pq.initLen || 0) +
     ' · 答对 ' + s.known + ' · 答错 ' + s.unknown;
 }
+
+// ======= 每日单词学习统计（跨轮累计：再来一轮不清零）=======
+function getTodayStats(){
+  const key = todayKey();
+  if(!DATA.wordDayStats) DATA.wordDayStats = {};
+  if(!DATA.wordDayStats[key]) DATA.wordDayStats[key] = { totalWords:0, totalMs:0, sessions:0 };
+  return { key, st: DATA.wordDayStats[key] };
+}
+function addTodayStats(wordsCount, ms){
+  const { st } = getTodayStats();
+  st.totalWords += Math.max(0, wordsCount || 0);
+  st.totalMs += Math.max(0, ms || 0);
+  st.sessions += 1;
+  hubSave();
+}
+function formatMs(millis){
+  const m = Math.floor(millis / 60000);
+  const s = Math.floor((millis % 60000) / 1000);
+  if(m < 1) return s + '秒';
+  if(s === 0) return m + '分钟';
+  return m + '分' + s + '秒';
+}
+
 function updateWordStats(){
   const today = todayKey();
   const words = DATA.words || [];
