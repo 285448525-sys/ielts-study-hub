@@ -780,6 +780,7 @@ function _mergeWords(local, cloud){
     const nos = Math.max(_num(ex.okStreak)||0, _num(w.okStreak)||0); if(nos !== (_num(ex.okStreak)||0)){ ex.okStreak = nos; changed = true; }
     const nh = !!(ex.hardWord || w.hardWord); if(nh !== !!ex.hardWord){ ex.hardWord = nh; changed = true; }
     const nkey = !!(ex.keyWord || w.keyWord); if(nkey !== !!ex.keyWord){ ex.keyWord = nkey; changed = true; }
+    const ncleared = !!(ex.cleared || w.cleared); if(ncleared !== !!ex.cleared){ ex.cleared = ncleared; changed = true; }
     const cn1 = (ex.cn||'').trim(), cn2 = (w.cn||'').trim();
     const ncn = (cn1 && cn2) ? (cn1.length >= cn2.length ? cn1 : cn2) : (cn1 || cn2);
     if(ncn !== (ex.cn||'').trim()){ ex.cn = ncn; changed = true; }   // 与 trim 后比较，避免首尾空格造成每次误判"更新"
