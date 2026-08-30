@@ -233,6 +233,9 @@ function inferPos(en){
   return '';
 }
 
+// 只取第一个词性，避免选项标签里塞多个词性（adj.;v.）
+function singlePos(pos){ return String(pos || '').split(';')[0].trim(); }
+
 // 动态干扰项（v4 §3.7 genDistractors，适配 en/cn）：同/相邻 level 优先，不写回 distractors，shuffle 不修改入参原数组
 function genDistractors(correct, allWords){
   const cEn = String(correct.en || '').toLowerCase();
@@ -523,7 +526,7 @@ function renderQuestion(cur, isRehold){
   body.innerHTML = html;
   $('#opts').innerHTML = opts.map((o, i) =>
     '<button class="opt-big" data-en="' + escapeHtml(o.en) + '" data-idx="' + i + '">' +
-      '<span class="opt-big-tag">' + (o.pos || cur.pos || inferPos(o.en) || inferPos(cur.en) || '') + '</span>' +
+      '<span class="opt-big-tag">' + (singlePos(o.pos) || inferPos(o.en) || '') + '</span>' +
       '<span class="opt-big-cn">' + escapeHtml(o.cn) + '</span>' +
       '<span class="opt-big-en"></span>' +
     '</button>'

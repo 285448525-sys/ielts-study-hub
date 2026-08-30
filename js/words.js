@@ -248,6 +248,22 @@ function markWord(en, action){
   hubSave(); renderWords();
 }
 
+/* 把 pos + cn 拆成「词性+中文」释义块，多词性横向排列。
+   例如 pos="n.;v." cn="算法；运转" → n.算法 / v.运转 */
+function formatMean(pos, cn){
+  const cnStr = String(cn || '').trim();
+  if(!cnStr) return '<span class="wl-sense"><span class="wl-sense-cn" style="color:var(--muted-light)">无释义</span></span>';
+  const posList = String(pos || '').split(';').map(s => s.trim()).filter(Boolean);
+  const cnList = cnStr.split('；').map(s => s.trim()).filter(Boolean);
+  if(!posList.length){
+    return `<span class="wl-sense"><span class="wl-sense-cn">${escapeHtml(cnStr)}</span></span>`;
+  }
+  if(cnList.length >= posList.length){
+    return posList.map((p, i) => `<span class="wl-sense"><span class="wl-sense-pos">${escapeHtml(p)}</span><span class="wl-sense-cn">${escapeHtml(cnList[i])}</span></span>`).join('');
+  }
+  return `<span class="wl-sense"><span class="wl-sense-pos">${escapeHtml(posList[0])}</span><span class="wl-sense-cn">${escapeHtml(cnStr)}</span></span>`;
+}
+
 function renderWords(){
   const kw = ($('#searchWord').value || '').toLowerCase();
   let list = DATA.words.slice().reverse();
@@ -262,16 +278,14 @@ function renderWords(){
   box.innerHTML = list.map(w => {
     ensureWordV12(w);
     const lv = (w.level != null) ? w.level : 0;
-    const posTxt = (w.pos && w.pos.trim()) ? escapeHtml(w.pos) : '<span class="wl-pos-miss">无词性</span>';
-    const ipaTxt = (w.ipa && w.ipa.trim()) ? `<span class="wl-ipa">${escapeHtml(w.ipa)}</span>` : '<span class="wl-ipa-miss">无读音</span>';
     const isPhrase = /\s/.test(String(w.en || ''));
+    const meanHtml = isPhrase
+      ? `<span class="wl-sense"><span class="wl-sense-cn">${escapeHtml(w.cn || '')}</span></span>`
+      : formatMean(w.pos, w.cn);
     return `
       <li class="wl-item" data-en="${escapeHtml(w.en)}">
-        <div class="wl-main">
-          <span class="wl-word">${escapeHtml(w.en)}</span>
-          <span class="wl-mean">${escapeHtml(w.cn || '')}</span>
-        </div>
-        ${isPhrase ? '' : `<div class="wl-meta">${posTxt}${ipaTxt}</div>`}
+        <span class="wl-word">${escapeHtml(w.en)}</span>
+        <div class="wl-senses">${meanHtml}</div>
         <span class="wl-lv">Lv ${lv}</span>
         <button class="wl-del" data-del="${w.id}" title="删除" aria-label="删除">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
