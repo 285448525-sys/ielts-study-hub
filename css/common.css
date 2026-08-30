@@ -410,7 +410,6 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
   background:var(--bg);color:var(--ink);display:flex;align-items:center;justify-content:center}
 .abtn:active{transform:scale(.97)}
 .abtn-unknown{border-color:var(--danger);color:var(--danger);background:rgba(239,68,68,.06)}
-.abtn-unknown::before{content:'⊙';margin-right:5px;font-size:15px;opacity:.6}
 .abtn-known{border-color:var(--med);color:var(--med);background:rgba(16,185,129,.06)}
 .abtn-fuzzy{border-color:var(--warn);color:var(--warn);background:rgba(245,158,11,.06)}
 .abtn-next{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
@@ -1767,14 +1766,14 @@ main.container{padding-top:20px}
 #histPlans{padding:0 20px 18px}
 
 /* ===== 单词 · 全屏沉浸式背词（匹配参考图布局） ===== */
-body.word-fullscreen{padding-left:0 !important;padding-right:0 !important}
+body.word-fullscreen{padding-left:0 !important;padding-right:0 !important;overflow:hidden !important}
 body.word-fullscreen .top-nav{display:none !important}
 body.word-fullscreen .side-collapse{display:none !important}
-body.word-fullscreen main.container{padding:0 !important;max-width:none !important;height:100vh;display:flex;flex-direction:column;justify-content:center}
+body.word-fullscreen main.container{padding:0 !important;max-width:none !important;height:100vh;display:flex;flex-direction:column;justify-content:center;background:#fff}
 body.word-fullscreen .page-title{display:none}
 body.word-fullscreen .word-tabs{display:none}
-body.word-fullscreen #studyView.study-view-fit{min-height:100vh}
-body.word-fullscreen .practice-card.practice-card-fit{height:100vh;max-width:none;border-radius:0;margin:0;justify-content:flex-start;padding:32px 40px}
+body.word-fullscreen #studyView.study-view-fit{min-height:100vh;background:#fff}
+body.word-fullscreen .practice-card.practice-card-fit{height:100vh;max-width:none;border-radius:0;margin:0;justify-content:flex-start;padding:32px 40px;background:#fff}
 body.word-fullscreen #practiceBody.practice-body-fit{
   display:flex;flex-direction:column;
   align-items:center;
@@ -1782,26 +1781,22 @@ body.word-fullscreen #practiceBody.practice-body-fit{
 }
 body.word-fullscreen .practice-tools-row{ display:none !important; }
 
-/* 全屏卡片容器：渐变暖白背景 */
-body.word-fullscreen .practice-card.practice-card-fit{
-  background:linear-gradient(165deg,#fafdfc 0%,#f0f5f3 50%,#eaf2ef 100%);
-}
-
-/* 全屏单词区（居中） */
+/* 全屏单词区（居中）：与非全屏保持同一比例，减少切换突变 */
 /* 全屏模式：同样居中题干（照抄 v5 原型，无例句 / 无题干词性） */
 body.word-fullscreen #practiceBody.practice-body-fit .practice-word-area{
   position:relative;text-align:center;width:100%;
-  padding:20px 4px 28px;margin-bottom:28px;border-bottom:1px solid #f0f0f0;
+  padding:10px 4px 16px;margin-bottom:12px;border-bottom:1px solid #f0f0f0;
+  min-height:160px;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .mastered-btn{
   position:absolute;top:10px;right:10px;z-index:2;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap{
-  margin-top:28px;padding-top:18px;border-top:1px solid #f0f0f0;
+  margin-top:14px;padding-top:10px;border-top:1px solid #f0f0f0;
   display:flex;justify-content:center;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap .tool-btn{
-  width:54px;height:54px;padding:0;border-radius:50%;
+  width:48px;height:48px;padding:0;border-radius:50%;
   border:1.5px solid var(--line);background:#fff;color:var(--muted);
   display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;
 }
@@ -1809,30 +1804,30 @@ body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap .tool-btn:
   border-color:var(--primary);color:var(--primary);background:var(--primary-soft);
 }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-en{
-  font-size:44px;font-weight:800;letter-spacing:-.02em;line-height:1.25;color:var(--ink);
+  font-size:40px;font-weight:800;letter-spacing:-.02em;line-height:1.25;color:var(--ink);
 }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-ipa{
-  font-family:serif;font-style:normal;font-size:17px;color:#999;margin-top:8px;
+  font-family:serif;font-style:normal;font-size:15px;color:#999;margin-top:6px;min-height:19px;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-cn{
-  font-size:17px;color:#555;margin-top:6px;min-height:25px;line-height:1.55;
+  font-size:15px;color:#555;margin-top:5px;min-height:46px;line-height:1.55;overflow:hidden;
 }
 
 /* 全屏选项网格 + 反馈（与 v5 一致） */
 body.word-fullscreen #practiceBody.practice-body-fit .opts-label{ display:none !important; }
 body.word-fullscreen #practiceBody.practice-body-fit .opts-grid{
-  display:grid;grid-template-columns:1fr 1fr;gap:16px;width:100%;
+  display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .opt-big{
-  position:relative;height:96px;padding:16px 20px;
+  position:relative;height:88px;padding:14px 18px;
   display:flex;flex-direction:column;align-items:flex-start;justify-content:center;
   gap:6px;border:1.5px solid #e5e7eb;border-radius:10px;background:#fff;cursor:pointer;
   transition:all .15s ease;overflow:hidden;box-sizing:border-box;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .opt-big:hover{ border-color:#cbd5e1; }
-body.word-fullscreen #practiceBody.practice-body-fit .opt-big-tag{ font-size:14px;color:#999;font-weight:500;flex:0 0 auto;line-height:18px;min-height:18px; }
+body.word-fullscreen #practiceBody.practice-body-fit .opt-big-tag{ font-size:13px;color:#999;font-weight:500;flex:0 0 auto;line-height:18px;min-height:18px; }
 body.word-fullscreen #practiceBody.practice-body-fit .opt-big-cn{
-  font-size:18px;font-weight:600;color:var(--ink);line-height:1.4;
+  font-size:17px;font-weight:600;color:var(--ink);line-height:1.4;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .opt-big-key{ display:none; }
 body.word-fullscreen #practiceBody.practice-body-fit .opt-big-en{ display:none; }
@@ -1845,9 +1840,9 @@ body.word-fullscreen #practiceBody.practice-body-fit .opt-big.wrong{
 }
 body.word-fullscreen #practiceBody.practice-body-fit .opt-big.wrong .opt-big-tag{ color:#b91c1c;font-weight:700;font-size:16px;line-height:18px; }
 
-body.word-fullscreen #practiceBody.practice-body-fit .answer-btns{ margin-top:22px;display:flex;justify-content:flex-start; }
+body.word-fullscreen #practiceBody.practice-body-fit .answer-btns{ margin-top:20px;display:flex;justify-content:flex-start; }
 body.word-fullscreen #practiceBody.practice-body-fit .abtn-unknown{
-  width:auto;height:42px;padding:0 24px;border:1.5px solid var(--line);
+  width:auto;height:40px;padding:0 22px;border:1.5px solid var(--line);
   border-radius:8px;background:transparent;color:var(--muted);
   font-size:14px;font-weight:500;cursor:pointer;
   display:flex;align-items:center;justify-content:center;transition:all .15s;
