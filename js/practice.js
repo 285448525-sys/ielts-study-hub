@@ -302,7 +302,6 @@ function autoStartSeeWord(){
     updateWordStats();
     const area = $('#practiceArea'); if(area) area.hidden = false;
     const nextBtn = $('#nextBtn'); if(nextBtn) nextBtn.hidden = true;
-    const score = $('#practiceScore'); if(score) score.textContent = '';
     const prog1 = $('#progBarWrap'); if(prog1) prog1.hidden = true;
 
     if(!Array.isArray(DATA.words) || DATA.words.length === 0){
@@ -325,7 +324,6 @@ function autoStartSeeWord(){
       const seen = getTodaySeen();
       const unseen = all.filter(w => !seen.words.includes(String(w.en || '').trim().toLowerCase()));
       if(unseen.length === 0){
-        $('#practiceScore').textContent = '';
         $('#practiceBody').innerHTML = '<div class="q-word">今天没有待学习的词</div>' +
           '<div class="q-cn">去「词库」加词，或明天再来。复习会按记忆曲线自动排程。</div>';
         clearDailySession();
@@ -488,7 +486,6 @@ function nextQuestion(){
   maybeStartWordTimer();   // 进练习即自动开启「背单词」计时（若尚未在计）；不重复开手动计时
   try{
     cancelSpeak();
-    updateScore();
     updateProgBar();
     if(pq.idx >= pq.queue.length){ finishPractice(); return; }
     const cur = pq.queue[pq.idx];
@@ -703,7 +700,6 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
     toast('⏸ ' + cur.en + ' 本轮先放着，明天再来');
   }
 
-  updateScore();
   updateProgBar();
   updateWordStats();
   saveDailySession();   // 每次作答后持久化进度（草稿自动存档）
@@ -756,7 +752,6 @@ function finishPractice(){
     (wrong.length ? '<button class="btn" id="reviewWrongBtn">重练错词（' + wrong.length + '）</button>' : '') +
     '<button class="btn btn-primary" id="restartBtn">再来一轮</button></div>';
   $('#practiceBody').innerHTML = bodyHtml;
-  $('#practiceScore').textContent = '';
   $('#progBarWrap').hidden = true;
   updateWordStats();
   if(!pq.isWrongReview && DATA.dailySession && DATA.dailySession.date === todayKey()){
@@ -799,19 +794,10 @@ function startWrongReview(wrongItems){
     sessionStart: Date.now(),
     isWrongReview: true
   };
-  $('#practiceScore').textContent = '';
   $('#progBarWrap').hidden = false;
-  updateScore();
   updateWordStats();
   updateProgBar();
   nextQuestion();
-}
-
-function updateScore(){
-  if(!pq) return;
-  const s = pq.stats || { known:0, unknown:0 };
-  $('#practiceScore').textContent = '过关 ' + (pq.correct || 0) + '/' + (pq.initLen || 0) +
-    ' · 答对 ' + s.known + ' · 答错 ' + s.unknown;
 }
 
 // ======= 每日单词学习统计（跨轮累计：再来一轮不清零）=======
@@ -1163,7 +1149,6 @@ ready(() => {
   // 云端合并后刷新当前统计：避免另一端/旧 session 合并进来后，顶部「待学习/本轮剩余/已复习」仍显示旧数
   document.addEventListener('hub:data-merged', () => {
     updateWordStats();
-    updateScore();
     updateProgBar();
   });
   autoStartSeeWord();

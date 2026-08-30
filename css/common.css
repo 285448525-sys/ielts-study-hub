@@ -422,7 +422,6 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 .tool-btn:hover{border-color:var(--primary);background:var(--primary-soft)}
 .tool-btn:active{transform:scale(.92)}
 .tool-btn.muted{opacity:.35;pointer-events:none}
-.score-badge{display:inline-block;background:var(--primary);color:var(--on-primary);padding:4px 10px;border-radius:999px;font-size:13px;margin-bottom:10px}
 
 /* ===== 单词页：一屏无滚动布局（design/11，design/24 改最小高度防压扁） ===== */
 #studyView.study-view-fit{
