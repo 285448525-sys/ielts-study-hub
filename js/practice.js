@@ -352,12 +352,14 @@ function autoStartSeeWord(){
 
     // —— 重建内存会话：planEn 中未 passed、且仍在词库的，按 queueOrder 顺序 ——
     const s = session;
-    pq = { mode:'study', queue:[], idx:0, initLen: s.planEn.length, correct: (s.passed || []).length,
+    // 只把「属于当前 planEn」的 passed 算进本轮进度；避免 mergeData 跨设备/跨轮次并集污染后 counted > initLen
+    const sessionPassedInPlan = new Set((s.passed || []).filter(en => (s.planEn || []).includes(en)));
+    pq = { mode:'study', queue:[], idx:0, initLen: s.planEn.length, correct: sessionPassedInPlan.size,
            revealed:false, answer:null, wrongList:[],
            stats: s.stats || { known:0, unknown:0 },
-           counted: new Set(s.passed || []),     // 已过的词不重复计数
-           passed: (s.passed || []).slice(),
-           total: (s.total || 0),                // 本轮已作答过的唯一词数（用于"本轮剩余"进度）
+           counted: new Set(sessionPassedInPlan), // 已过的词不重复计数（仅限本轮 planEn 内）
+           passed: Array.from(sessionPassedInPlan),
+           total: sessionPassedInPlan.size,       // 本轮已作答过的唯一词数
            reholdMap:{},   // P0-2：本词当场重考次数（仅内存，不持久化，key=小写单词）
            shortMode: new Set(),  // 本轮"答错/不认识过"的词集合 → 需短线分散重复3次才过
            attempts:{},    // 本词本轮作答次数（防死循环）
@@ -900,16 +902,19 @@ if(!window.__wordTimerLeaveHook){
 }
 
 function updateWordStats(){
-  // 进度条只显示「本轮已作答数 / 本轮总数」，例如 34/50
+  // 进度条显示「本轮读到第几个 / 本轮总数」，例如 3/50
+  // 数字 = 已作答唯一词数 + 当前正在看的这一题；完成时 queue 为空，直接显示 total/total
   let progress = '0/0';
   if(pq){
-    const counted = pq.counted ? pq.counted.size : 0;
     const total = pq.initLen || pq.queue.length || 0;
-    progress = counted + '/' + total;
+    let current = pq.counted ? pq.counted.size : 0;
+    if(pq.queue.length > 0) current = Math.min(current + 1, total);
+    progress = current + '/' + total;
   } else if(DATA.dailySession && DATA.dailySession.date === todayKey()){
     const s = DATA.dailySession;
     const total = (s.planEn || []).length;
-    const answered = Math.min(total, s.total || 0);
+    const inPlanPassed = (s.passed || []).filter(en => (s.planEn || []).includes(en)).length;
+    const answered = Math.min(total, inPlanPassed);
     progress = answered + '/' + total;
   }
   const el = $('#statProgress'); if(el) el.textContent = progress;
