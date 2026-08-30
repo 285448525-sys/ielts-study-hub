@@ -856,17 +856,19 @@ if(!window.__wordTimerLeaveHook){
 function updateWordStats(){
   const today = todayKey();
   const words = DATA.words || [];
-  // 待复习：今天到期且未掌握的词
+  // 待复习：今天到期且未掌握的词（全局 backlog，全库口径，不只本轮）
   const due = words.filter(w => w.cleared !== true && (w.nextReview || '') <= today).length;
   let active = 0, done = 0;
   if(pq){
-    active = pq.queue.length;
+    // 本轮剩余：每作答一个词（对错都算，按"首次作答的唯一词"计）就减 1，给进度感；
+    // 答错的词仍会重问（rehold/requeue），但轮次只在队列清空时结束，不会因此提前结束。
+    active = Math.max(0, (pq.initLen || 0) - (pq.total || 0));
     done = (pq.passed || []).length;
   } else if(DATA.dailySession && DATA.dailySession.date === today){
     const s = DATA.dailySession;
     const total = (s.planEn || []).length;
     done = (s.passed || []).length;
-    active = Math.max(0, total - done);
+    active = Math.max(0, total - (s.total || 0));
   }
   const set = (id, n) => { const el = $('#'+id); if(el) el.textContent = n; };
   set('statDue', due);
