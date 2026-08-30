@@ -1160,5 +1160,11 @@ ready(() => {
   document.addEventListener('click', _unlockSpeech);
   document.addEventListener('keydown', _unlockSpeech);
   document.addEventListener('touchstart', _unlockSpeech);
+  // 云端合并后刷新当前统计：避免另一端/旧 session 合并进来后，顶部「待学习/本轮剩余/已复习」仍显示旧数
+  document.addEventListener('hub:data-merged', () => {
+    updateWordStats();
+    updateScore();
+    updateProgBar();
+  });
   autoStartSeeWord();
 });

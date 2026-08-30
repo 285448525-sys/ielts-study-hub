@@ -781,6 +781,10 @@ function _mergeWords(local, cloud){
     const nh = !!(ex.hardWord || w.hardWord); if(nh !== !!ex.hardWord){ ex.hardWord = nh; changed = true; }
     const nkey = !!(ex.keyWord || w.keyWord); if(nkey !== !!ex.keyWord){ ex.keyWord = nkey; changed = true; }
     const ncleared = !!(ex.cleared || w.cleared); if(ncleared !== !!ex.cleared){ ex.cleared = ncleared; changed = true; }
+    // 短线分散进度字段：必须随单词同步，否则另一端/云端旧数据会把本机刚积累的 shortCount 清零
+    const nsc = Math.max(_num(ex.shortCount)||0, _num(w.shortCount)||0); if(nsc !== (_num(ex.shortCount)||0)){ ex.shortCount = nsc; changed = true; }
+    const ncr = Math.max(_num(ex.cleanRounds)||0, _num(w.cleanRounds)||0); if(ncr !== (_num(ex.cleanRounds)||0)){ ex.cleanRounds = ncr; changed = true; }
+    const nlst = _later(ex.lastShortTouch, w.lastShortTouch); if(nlst !== (ex.lastShortTouch||'')){ ex.lastShortTouch = nlst; changed = true; }
     const cn1 = (ex.cn||'').trim(), cn2 = (w.cn||'').trim();
     const ncn = (cn1 && cn2) ? (cn1.length >= cn2.length ? cn1 : cn2) : (cn1 || cn2);
     if(ncn !== (ex.cn||'').trim()){ ex.cn = ncn; changed = true; }   // 与 trim 后比较，避免首尾空格造成每次误判"更新"
@@ -924,18 +928,36 @@ function mergeData(local, cloud){
   }
   out.deletedIds = Array.from(deleted);
   out.deletedWrongKeys = Array.from(deletedWrong);   // 错句级墓碑随合并传播
-  // 当日背词会话（dailySession）：跨设备取「较新者胜」，杜绝云端旧会话覆盖本地新进度
+  // 当日背词会话（dailySession）：跨设备合并，杜绝云端旧/空会话覆盖本地新进度。
+  // 同 date 时取 passed 并集、queueOrder/planEn 以本机为准、total/stats/lastTouch 取较大者，
+  // 保证在 A 设备背的词在 B 设备合并后仍然保留，而不是被 B 刚打开页面时产生的空 session 冲掉。
   const _ld = local.dailySession, _cd = cloud.dailySession;
   if(_ld && _cd){
-    const _pick = (a, b) => {
-      if(a.date !== b.date) return (a.date > b.date) ? a : b;
-      const _lt = a.lastTouch || 0, _ct = b.lastTouch || 0;
-      if(_lt !== _ct) return (_lt > _ct) ? a : b;
-      const _lp = (a.passed || []).length, _cp = (b.passed || []).length;
-      return _lp >= _cp ? a : b;
-    };
-    const _win = _pick(_ld, _cd);
-    if(_win !== _ld){ out.dailySession = _win; changes++; }
+    if(_ld.date !== _cd.date){
+      const _win = (_ld.date > _cd.date) ? _ld : _cd;
+      if(_win !== _ld){ out.dailySession = _win; changes++; }
+    } else {
+      const mergedSession = Object.assign({}, _ld);
+      const passedSet = new Set([...(_ld.passed || []), ...(_cd.passed || [])]);
+      mergedSession.passed = Array.from(passedSet);
+      mergedSession.total = Math.max(_ld.total || 0, _cd.total || 0);
+      mergedSession.stats = {
+        known: Math.max(((_ld.stats && _ld.stats.known) || 0), ((_cd.stats && _cd.stats.known) || 0)),
+        unknown: Math.max(((_ld.stats && _ld.stats.unknown) || 0), ((_cd.stats && _cd.stats.unknown) || 0))
+      };
+      mergedSession.lastTouch = Math.max(_ld.lastTouch || 0, _cd.lastTouch || 0);
+      mergedSession.sessionStart = Math.min(_ld.sessionStart || Date.now(), _cd.sessionStart || Date.now());
+      // planEn / queueOrder：本机已锁定的轮次计划优先；本机没有才取云端
+      mergedSession.planEn = (_ld.planEn && _ld.planEn.length) ? _ld.planEn : (_cd.planEn || []);
+      mergedSession.queueOrder = (_ld.queueOrder && _ld.queueOrder.length) ? _ld.queueOrder : (_cd.queueOrder || []);
+      // currentEn：取 lastTouch 较新的一侧；都不新则保持本机
+      mergedSession.currentEn = (_ld.lastTouch || 0) >= (_cd.lastTouch || 0) ? _ld.currentEn : _cd.currentEn;
+      // finished：仅当两端都结束才算结束，避免一端空 session 让本轮提前结束
+      mergedSession.finished = !!_ld.finished && !!_cd.finished;
+      if(JSON.stringify(mergedSession) !== JSON.stringify(_ld)){
+        out.dailySession = mergedSession; changes++;
+      }
+    }
   } else if(_cd && !_ld){
     out.dailySession = _cd; changes++;
   }
@@ -1636,7 +1658,7 @@ ready(() => { hubLoad();
   });
 });
 
-function registerSW(){ try{ if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js?v=20260830n').catch(()=>{}); }catch(e){} }
+function registerSW(){ try{ if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js?v=20260830p').catch(()=>{}); }catch(e){} }
 
 // ===== 错句本聚合：从 dictationLogs 提取所有错句，按「标准句 + 错误写法」去重 =====
 // 返回 [{key, sourceId, sourceTitle, right(标准英文), wrong(学生写法), type, note, count(出错次数), lastDate}]
