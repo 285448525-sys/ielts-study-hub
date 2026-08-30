@@ -359,6 +359,7 @@ function autoStartSeeWord(){
            stats: s.stats || { known:0, unknown:0 },
            counted: new Set(s.passed || []),     // 已过的词不重复计数
            passed: (s.passed || []).slice(),
+           total: (s.total || 0),                // 本轮已作答过的唯一词数（用于"本轮剩余"进度）
            reholdMap:{},   // P0-2：本词当场重考次数（仅内存，不持久化，key=小写单词）
            shortMode: new Set(),  // 本轮"答错/不认识过"的词集合 → 需短线分散重复3次才过
            attempts:{},    // 本词本轮作答次数（防死循环）
@@ -610,6 +611,7 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
   const k = String(cur.en).toLowerCase();
   if(!pq.counted) pq.counted = new Set();
   if(!pq.counted.has(k)){ pq.counted.add(k); pq.total++; }   // 每词仅计一次
+  if(DATA.dailySession) DATA.dailySession.total = pq.total;  // 持久化，刷新续背时不丢进度
   if(correct) pq.stats.known++; else pq.stats.unknown++;
   if(!pq.attempts) pq.attempts = {};
   if(!pq.reholdMap) pq.reholdMap = {};
@@ -920,7 +922,7 @@ function updateWordStats(){
   if(pq){
     // 本轮剩余：每作答一个词（对错都算，按"首次作答的唯一词"计）就减 1，给进度感；
     // 答错的词仍会重问（rehold/requeue），但轮次只在队列清空时结束，不会因此提前结束。
-    active = Math.max(0, (pq.initLen || 0) - (pq.total || 0));
+    active = Math.max(0, (pq.initLen || pq.queue.length || 0) - (pq.counted ? pq.counted.size : 0));
     done = (pq.passed || []).length;
   } else if(DATA.dailySession && DATA.dailySession.date === today){
     const s = DATA.dailySession;

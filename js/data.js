@@ -604,6 +604,25 @@ function hubLoad(){
       });
       if(wdirty) hubSave();
     }
+    // 2026-08-30 修复：旧代码残留的「已掌握(cleared=true)但 nextReview<=今天」词，
+    // 会被 buildQueue 重新入队、且被「待学习」的 OR 口径算入，导致「已掌握词又出现 + 待学习虚高」。
+    // 这些词本应已排到未来复习，这里一次性把它们推到明天，退出今日待学习与队列（后续 Leitner 正常回炉）。
+    // 仅跑一次（DATA._repairMasteredDueV 标记），避免每天把所有到期复习词永久后推、破坏记忆曲线。
+    if(!DATA._repairMasteredDueV){
+      if(Array.isArray(DATA.words)){
+        const tk = todayKey();
+        let changed = false;
+        for(const w of DATA.words){
+          if(w && w.cleared === true && (w.nextReview || '') <= tk){
+            w.nextReview = addDays(tk, 1);   // 推到明天，今日不再出现
+            changed = true;
+          }
+        }
+        if(changed) hubSave();
+      }
+      DATA._repairMasteredDueV = true;
+      hubSave();
+    }
   }catch(e){ console.warn('读取本地数据失败', e); }
 }
 
