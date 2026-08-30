@@ -172,20 +172,25 @@ async function backfillCn(){
         '只返回 JSON 数组：[{"en":"algorithm","cn":"算法；运算法则","pos":"n.","ipa":"/ˈælɡərɪðəm/"}, ...]，顺序与输入一致，不要任何解释文字、不要 markdown 围栏。';
       const content = await callRelay('words', [{ role:'system', content: sys }, { role:'user', content: enList }], 0.3);
       const arr = aiJson(content);
-      if(Array.isArray(arr)){
-        const map = {};
-        arr.forEach(x => { if(x && x.en) map[String(x.en).toLowerCase()] = x; });
-        chunk.forEach(w => {
-          const it = map[w.en.toLowerCase()];
-          if(!it) return;
-          if(!w.cn || !w.cn.trim()) w.cn = String(it.cn || '').trim();
-          if(!isPhrase(w.en)){
-            if(!w.pos || !w.pos.trim()){ const p = normPos(it.pos); if(p) w.pos = p; }
-            if(!w.ipa || !w.ipa.trim()){ const ipa = String(it.ipa || '').trim(); if(ipa) w.ipa = ipa; }
-          }
-        });
+      if(!Array.isArray(arr)){
+        console.error('[backfillCn] AI 返回无法解析为 JSON 数组：', content);
+        toast('AI 返回格式异常，已打印到控制台（F12 → Console）');
+        break;
       }
+      const map = {};
+      arr.forEach(x => { if(x && x.en) map[String(x.en).toLowerCase()] = x; });
+      let filled = 0;
+      chunk.forEach(w => {
+        const it = map[w.en.toLowerCase()];
+        if(!it) return;
+        if(!w.cn || !w.cn.trim()){ w.cn = String(it.cn || '').trim(); filled++; }
+        if(!isPhrase(w.en)){
+          if(!w.pos || !w.pos.trim()){ const p = normPos(it.pos); if(p){ w.pos = p; filled++; } }
+          if(!w.ipa || !w.ipa.trim()){ const ipa = String(it.ipa || '').trim(); if(ipa){ w.ipa = ipa; filled++; } }
+        }
+      });
       hubSave(); renderWords();
+      console.log('[backfillCn] 批次', i/20+1, '命中', arr.length, '条，填充', filled, '处');
     }
     const left = DATA.words.filter(needFill).length;
     toast(left ? ('已补全一批，还剩 '+left+' 个未识别，可再点一次') : '全部已补全 ✅');

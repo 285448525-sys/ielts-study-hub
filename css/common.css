@@ -2022,6 +2022,9 @@ body.exam-fullscreen #writeTabs{display:none}
   /* 计划页今日计划日期行（label 直接子 + 说明 span） */
   .form-row input[type=date]{ width:100% !important; max-width:100% !important; flex:none !important; }
 
+  /* 设置页日期输入框在手机上太高，压小一点 */
+  #sExam{ min-height:38px; padding:7px 10px; font-size:14px; }
+
   /* 卡片内联 sticky 保存条：竖排、按钮全宽置底 */
   section.card[style*="position:sticky"]{
     flex-direction:column-reverse !important; align-items:stretch !important; gap:10px;
@@ -2030,9 +2033,17 @@ body.exam-fullscreen #writeTabs{display:none}
 
   /* pill 标签页窄屏允许换行，避免溢出 */
   .tabs.pill-tabs{ flex-wrap:wrap; }
+  /* review 页 4 个 tab 强制一行，去除图标后仍可容纳 */
+  .tabs.pill-tabs.review-pill-tabs{ flex-wrap:nowrap; }
+  .tabs.pill-tabs.review-pill-tabs .pill-tab{ padding:8px 14px; font-size:13px; }
 
   /* 计划页「计划」区按钮行：堆叠后居中 */
   .plan-actions{ flex-direction:column; align-items:stretch; gap:10px; }
   .plan-actions-right{ display:flex; flex-direction:column; gap:10px; }
   .plan-actions-right .btn{ width:100%; }
+
+  /* 词库列表窄屏：只保留英文+中文，隐藏词性/读音/等级 */
+  .wl-meta, .wl-lv{ display:none; }
+  .wl-word{ max-width:45%; }
+  .wl-mean{ flex:1.5; }
 }

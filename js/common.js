@@ -475,8 +475,10 @@ function aiJson(content){
   let s = String(content).trim();
   s = s.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
   try{ return JSON.parse(s); }catch(_){}
-  const m = s.match(/\{[\s\S]*\}/);
-  if(m){ try{ return JSON.parse(m[0]); }catch(_){} }
+  const mObj = s.match(/\{[\s\S]*\}/);
+  if(mObj){ try{ return JSON.parse(mObj[0]); }catch(_){} }
+  const mArr = s.match(/\[[\s\S]*\]/);
+  if(mArr){ try{ return JSON.parse(mArr[0]); }catch(_){} }
   return null;
 }
 

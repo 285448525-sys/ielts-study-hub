@@ -67,7 +67,8 @@ function renderDashV6(){
     ? [...mods].slice(0,2).join(' · ')
     : '今天还没开始学习';
 
-  const due = (DATA.words||[]).filter(w => !w.mcDue || w.mcDue <= tkey).length;
+  // 待复习口径与背单词页一致：未掌握（cleared!==true）且到期日≤今天
+  const due = (DATA.words||[]).filter(w => w.cleared !== true && (w.nextReview || '') <= tkey).length;
   const dueEl = $('#dashDueWords');
   const hintEl = $('#dashDueHint');
   if(dueEl) dueEl.innerHTML = due+'<span class="u">词</span>';

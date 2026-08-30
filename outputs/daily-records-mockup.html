@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>每日记录 - 美化原型</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1a1a2e; padding:32px; }
+
+  h2 { font-size:17px; font-weight:600; margin-bottom:16px; color:#1a1a2e; }
+
+  .wrap { max-width:720px; margin:0 auto; }
+
+  .day-card {
+    background:#fff;
+    border:1px solid #e8ecf1;
+    border-radius:10px;
+    padding:14px 18px;
+    margin-bottom:10px;
+    transition:border-color .15s;
+  }
+  .day-card:hover { border-color:#c5d0db; }
+
+  .day-header {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:10px;
+  }
+  .day-date {
+    font-size:14px;
+    font-weight:600;
+    color:#1a1a2e;
+    letter-spacing:.3px;
+  }
+  .day-date .weekday {
+    font-weight:400;
+    color:#888;
+    font-size:12px;
+    margin-left:6px;
+  }
+  .day-total {
+    font-size:13px;
+    font-weight:600;
+    color:#fff;
+    background:linear-gradient(135deg,#3a9a93,#2d7a74);
+    padding:3px 12px;
+    border-radius:20px;
+    white-space:nowrap;
+  }
+
+  .day-chips {
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    align-items:center;
+  }
+  .chip {
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    font-size:12px;
+    padding:4px 10px;
+    border-radius:6px;
+    background:#f0f4f8;
+    color:#444;
+    font-weight:500;
+    white-space:nowrap;
+    line-height:1.4;
+  }
+  .chip .chip-name { color:#666; }
+  .chip .chip-val { color:#1a1a2e; font-weight:600; }
+  .chip.chip-long { background:#e8f5f2; }
+  .chip.chip-long .chip-name { color:#2d7a74; }
+  .chip.chip-long .chip-val { color:#1a6b64; font-weight:700; }
+
+  .chip-focus {
+    font-size:11px;
+    color:#888;
+    padding:4px 10px;
+    border-radius:6px;
+    background:#fafafa;
+    border:1px dashed #ddd;
+    margin-left:2px;
+  }
+  .chip-focus b { color:#3a9a93; }
+
+  .empty { text-align:center; color:#aaa; padding:24px; font-size:13px; }
+
+  @media(max-width:500px){
+    body { padding:16px; }
+    .day-card { padding:12px 14px; }
+    .chip { font-size:11px; padding:3px 8px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h2>每日记录</h2>
+
+  <div id="list"></div>
+</div>
+
+<script>
+const rawData = [
+  { date:'2026-08-28', totalSec:2160, parts:[['背单词',2160]], pauseSec:0 },
+  { date:'2026-08-26', totalSec:71660, parts:[['undefined',71220],['听力',180],['阅读',25],['背单词',23],['写作',4],['口语',3]], pauseSec:0 },
+  { date:'2026-08-25', totalSec:12840, parts:[['听力',12780],['阅读',12],['写作',4]], pauseSec:0, focusPct:null },
+  { date:'2026-08-23', totalSec:7200, parts:[['背单词',3840],['听力',3300],['阅读',60]], pauseSec:57600, focusPct:72 },
+  { date:'2026-08-22', totalSec:14400, parts:[['写作',3600],['阅读',9480],['undefined',240],['背单词',60],['数学',4]], pauseSec:0 },
+  { date:'2026-08-21', totalSec:15000, parts:[['阅读',4200],['写作',3600],['暂停',6780],['专注度',420],['背单词',21]], pauseSec:6780, focusPct:1 },
+  { date:'2026-08-20', totalSec:14400, parts:[['口语',180],['写作',4200],['undefined',10020]], pauseSec:0 },
+  { date:'2026-08-19', totalSec:16200, parts:[['写作',9580],['口语',3000],['undefined',3620]], pauseSec:0 },
+];
+
+const wd = ['周日','周一','周二','周三','周四','周五','周六'];
+
+function fmtHM(s){
+  if(!s) return '0m';
+  const h=Math.floor(s/3600), m=Math.floor((s%3600)/60);
+  if(h>0) return h+'h'+(m>0?m+'m':'');
+  return m+'m';
+}
+
+function getWeekday(dStr){
+  const d=new Date(dStr.replace(/-/g,'-'));
+  return wd[d.getDay()];
+}
+
+const list=document.getElementById('list');
+list.innerHTML=rawData.map(d=>{
+  const isLong=d.totalSec>=3600;
+  const chips=d.parts.map(([n,s])=>
+    `<span class="chip${isLong&&s>=3600?' chip-long':''}"><span class="chip-name">${n}</span><span class="chip-val">${fmtHM(s)}</span></span>`
+  ).join('');
+  const focusChip=d.focusPct!=null
+    ?`<span class="chip-focus">专注 <b>${d.focusPct}%</b></span>`:'';
+  return `<div class="day-card">
+    <div class="day-header">
+      <span class="day-date">${d.date}<span class="weekday">${getWeekday(d.date)}</span></span>
+      <span class="day-total">总时长 ${fmtHM(d.totalSec)}</span>
+    </div>
+    <div class="day-chips">${chips}${focusChip}</div>
+  </div>`;
+}).join('');
+</script>
+</body>
+</html>
