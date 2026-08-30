@@ -505,13 +505,13 @@ function renderQuestion(cur, isRehold){
       (last.cn ? '<span class="lw-cn">' + escapeHtml(last.cn) + '</span>' : '') +
       '</div>';
   }
-  if(top) html += '<div class="practice-topzone">' + top + '</div>';
+  html += '<div class="practice-topzone">' + top + '</div>';
 
   // ── 主区域（严格还原 v5 原型：单词+音标+中文居中，无例句无词性；中文答后才显示） ──
   html += '<div class="practice-word-area">' +
     '<button class="mastered-btn" id="masteredBtn" title="已掌握：从词库删除该词">已掌握</button>' +
     '<div class="pw-en">' + escapeHtml(cur.en) + '</div>' +
-    (cur.ipa ? '<div class="pw-ipa">/ ' + escapeHtml(cur.ipa) + ' /</div>' : '') +
+    '<div class="pw-ipa">' + (cur.ipa ? '/ ' + escapeHtml(cur.ipa) + ' /' : '&nbsp;') + '</div>' +
     '<div class="pw-cn" id="pwCn">&nbsp;</div>' +
   '</div>';
 

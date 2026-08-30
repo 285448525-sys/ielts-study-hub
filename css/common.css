@@ -469,6 +469,8 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
   display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
   font-size:13px;color:var(--muted);padding:2px 0;margin-bottom:4px;
 }
+/* 上一词回顾区：永远占位（空也留同样高的空位），避免第 1 个词 vs 第 2 个词题干整体下移跳动 */
+#practiceBody.practice-body-fit .practice-topzone{ min-height:24px; }
 #practiceBody.practice-body-fit .lw-en{font-weight:700;color:var(--ink);font-size:15px}
 
 /* ═══ 题干区：单词+音标+中文 全部居中，无例句、无词性（照抄 v5 原型） ═══ */
@@ -476,17 +478,18 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
   position:relative;text-align:center;
   padding:10px 4px 24px;margin-bottom:22px;
   border-bottom:1px solid #f0f0f0;
+  min-height:200px;   /* 锁死题干区高度：已掌握按钮+单词+音标+中文恒定占位，换词/答题不再跳动 */
 }
 /* 已掌握按钮：右上角绿色药丸（在 pw-toolbar 内，不需要 absolute） */
 #practiceBody.practice-body-fit .pw-en{
   font-size:38px;font-weight:800;letter-spacing:-.02em;line-height:1.25;color:var(--ink);
 }
 #practiceBody.practice-body-fit .pw-ipa{
-  font-family:serif;font-style:normal;font-size:15px;color:#999;margin-top:6px;
+  font-family:serif;font-style:normal;font-size:15px;color:#999;margin-top:6px;min-height:19px;
 }
 /* 中文释义（答后才填充）：固定 min-height，答后不撑高 → 布局不跳动 */
 #practiceBody.practice-body-fit .pw-cn{
-  font-size:15px;color:#555;margin-top:5px;min-height:23px;line-height:1.55;
+  font-size:15px;color:#555;margin-top:5px;min-height:46px;line-height:1.55;overflow:hidden;
 }
 
 #practiceBody.practice-body-fit .opts-label{ display:none !important; }
