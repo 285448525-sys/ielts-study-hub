@@ -281,6 +281,20 @@ function buildQueue(today, nowISO){
   return due;
 }
 
+// ======= 今日已学词集合（跨轮累计，保证「第二轮不重复第一轮的词」）=======
+function getTodaySeen(){
+  if(!DATA.wordSeenToday) DATA.wordSeenToday = { date: todayKey(), words: [] };
+  if(DATA.wordSeenToday.date !== todayKey()) DATA.wordSeenToday = { date: todayKey(), words: [] };
+  return DATA.wordSeenToday;
+}
+function markSeen(words){
+  const s = getTodaySeen();
+  const set = new Set(s.words);
+  for(const w of (words || [])){ const k = String(w.en || '').trim().toLowerCase(); if(k) set.add(k); }
+  s.words = Array.from(set);
+  hubSave();
+}
+
 // ======= 进入学习（打开即按排程出题）=======
 function autoStartSeeWord(){
   try{
@@ -302,21 +316,26 @@ function autoStartSeeWord(){
     const today = todayKey();
     // —— 恢复或首次锁定当日词表 ——
     let session = DATA.dailySession;
-    const fresh = !session || session.date !== today || !Array.isArray(session.planEn) || session.planEn.length === 0;
+    // 上一轮已做完 -> 强制开新一轮（取全新待学习词）；否则续上当天未完成的轮次（不丢进度）
+    const fresh = !session || session.date !== today || !Array.isArray(session.planEn) || session.planEn.length === 0 || session.finished === true;
     if(fresh){
       const c = pc();
       const all = buildQueue(today, nowISO());
-      if(all.length === 0){
+      // 排除「今天任何一轮已经出过的词」，保证新一轮与上一轮完全不重复
+      const seen = getTodaySeen();
+      const unseen = all.filter(w => !seen.words.includes(String(w.en || '').trim().toLowerCase()));
+      if(unseen.length === 0){
         $('#practiceScore').textContent = '';
         $('#practiceBody').innerHTML = '<div class="q-word">今天没有待学习的词</div>' +
           '<div class="q-cn">去「词库」加词，或明天再来。复习会按记忆曲线自动排程。</div>';
         clearDailySession();
         return;
       }
-      let plan = all.slice();
+      let plan = unseen.slice();
       if(c.shuffle) plan = shuffle(plan);
       // 固定题量：题量设置即每轮总题数；buildQueue 已按复习优先级排序，直接截断即可
       if(c.batchSize > 0 && plan.length > c.batchSize) plan = plan.slice(0, c.batchSize);
+      markSeen(plan);   // 记录本轮已学词，下一轮不再重复
       session = {
         date: today,
         planEn: plan.map(w => String(w.en).trim().toLowerCase()),
