@@ -1636,7 +1636,7 @@ ready(() => { hubLoad();
   });
 });
 
-function registerSW(){ try{ if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js?v=20260824a').catch(()=>{}); }catch(e){} }
+function registerSW(){ try{ if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js?v=20260830n').catch(()=>{}); }catch(e){} }
 
 // ===== 错句本聚合：从 dictationLogs 提取所有错句，按「标准句 + 错误写法」去重 =====
 // 返回 [{key, sourceId, sourceTitle, right(标准英文), wrong(学生写法), type, note, count(出错次数), lastDate}]
