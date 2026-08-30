@@ -317,20 +317,39 @@ function renderRadar(){
 function onMockType(){
   const cfg = MOCK_TYPES[$('#mkType').value];
   $('#mkPart').innerHTML = cfg.parts.map(p => `<option value="${p.label}">${p.label}</option>`).join('');
-  renderPartInputs();
+  if($('#mkGran').value === 'whole') renderPartInputs();
+  else renderSinglePartInput();
 }
 function onMockGran(){
   const whole = $('#mkGran').value === 'whole';
   $('#mkPartPick').hidden = whole;
-  renderPartInputs();
+  $('#mkParts').hidden = !whole;
+  if(whole) renderPartInputs();
+  else renderSinglePartInput();
+}
+function renderSinglePartInput(){
+  const cfg = MOCK_TYPES[$('#mkType').value];
+  const isScore = cfg.mode === 'score';
+  $('#mkPartInputLabel').textContent = isScore ? '得分（0–9，可 .5）' : '答对题数';
+  const inp = $('#mkPartInput');
+  inp.type = 'number';
+  inp.min = '0';
+  inp.placeholder = isScore ? '0–9' : '0';
+  if(isScore){
+    inp.step = '0.5';
+    inp.max = '9';
+  } else {
+    inp.removeAttribute('step');
+    inp.removeAttribute('max');
+  }
 }
 function renderPartInputs(){
   const cfg = MOCK_TYPES[$('#mkType').value];
-  const labels = $('#mkGran').value === 'whole' ? cfg.parts.map(p => p.label) : [ $('#mkPart').value ];
   const isScore = cfg.mode === 'score';
   $('#mkParts').className = isScore ? 'mk-parts mk-parts-grid' : 'mk-parts mk-parts-inline';
-  $('#mkParts').innerHTML = labels.map(label => {
-    const def = cfg.parts.find(p => p.label === label) || {};
+  $('#mkParts').innerHTML = cfg.parts.map(p => {
+    const label = p.label;
+    const def = cfg.parts.find(x => x.label === label) || {};
     if(isScore){
       return `<div class="mk-part mk-part-grid">
         <div class="mk-part-label">${label}</div>
@@ -355,30 +374,51 @@ function addMock(){
   const isScore = cfg.mode === 'score';
   const parts = [];
   let bad = false;
-  document.querySelectorAll('#mkParts .mk-part').forEach(row => {
-    const label = row.querySelector('.mk-correct, .mk-score').dataset.part;
+  if(gran === 'part'){
+    const label = $('#mkPart').value;
+    const v = ($('#mkPartInput').value || '').trim();
+    if(v === ''){ toast('请填写' + (isScore ? '得分' : '答对题数')); return; }
     if(isScore){
-      const sv = (row.querySelector('.mk-score').value || '').trim();
-      if(sv === '') return;
-      const v = Number(sv);
-      if(!(v >= 0) || v > 9){ toast('得分必须在 0–9 之间（' + label + '）'); bad = true; return; }
-      parts.push({ label, score: v });
+      const num = Number(v);
+      if(!(num >= 0) || num > 9 || Math.abs(num * 2 - Math.round(num * 2)) > 1e-9){
+        toast('得分必须在 0–9 之间且为 0.5 的整数倍'); return;
+      }
+      parts.push({ label, score: num });
     } else {
-      const c = (row.querySelector('.mk-correct').value || '').trim();
-      const t = (row.querySelector('.mk-total').value || '').trim();
-      // ⚠️ 只填了总题数(预填默认值)但没填答对的 part，必须跳过——否则会被当成「答对0/总题数」存成全零假记录
-      if(c === '') return;
-      const cv = Number(c), tv = Number(t);
-      if(!(tv > 0)){ toast('总题数必须大于 0（' + label + '）'); bad = true; return; }
-      if(!(cv >= 0) || cv > tv){ toast('答对必须是 0~总题数 之间（' + label + '）'); bad = true; return; }
+      const def = cfg.parts.find(p => p.label === label) || {};
+      const tv = Number(def.defaultTotal || 0);
+      if(!(tv > 0)){ toast('该 Part 无默认总题数'); return; }
+      const cv = Number(v);
+      if(!(cv >= 0) || cv > tv){ toast('答对必须是 0~' + tv + ' 之间（' + label + '）'); return; }
       parts.push({ label, correct: cv, total: tv });
     }
-  });
+  } else {
+    document.querySelectorAll('#mkParts .mk-part').forEach(row => {
+      const label = row.querySelector('.mk-correct, .mk-score').dataset.part;
+      if(isScore){
+        const sv = (row.querySelector('.mk-score').value || '').trim();
+        if(sv === '') return;
+        const v = Number(sv);
+        if(!(v >= 0) || v > 9){ toast('得分必须在 0–9 之间（' + label + '）'); bad = true; return; }
+        parts.push({ label, score: v });
+      } else {
+        const c = (row.querySelector('.mk-correct').value || '').trim();
+        const t = (row.querySelector('.mk-total').value || '').trim();
+        // ⚠️ 只填了总题数(预填默认值)但没填答对的 part，必须跳过——否则会被当成「答对0/总题数」存成全零假记录
+        if(c === '') return;
+        const cv = Number(c), tv = Number(t);
+        if(!(tv > 0)){ toast('总题数必须大于 0（' + label + '）'); bad = true; return; }
+        if(!(cv >= 0) || cv > tv){ toast('答对必须是 0~总题数 之间（' + label + '）'); bad = true; return; }
+        parts.push({ label, correct: cv, total: tv });
+      }
+    });
+  }
   if(bad) return;
   if(parts.length === 0){ toast('至少填一个 part 的' + (isScore ? '得分' : '答对 / 总题数')); return; }
   DATA.mockRecords.unshift({ id:uid(), date, granularity:gran, type, parts });
   hubSave();
-  renderPartInputs();
+  if(gran === 'whole') renderPartInputs();
+  else $('#mkPartInput').value = '';
   renderMock();
   // 整卷 + 客观题：顺带估算卷面雅思分
   let msg = '已保存分项模考';
