@@ -1,8 +1,35 @@
+const WORD_FILTERS = { type: 'all', level: 'all' };
+
+function setWordFilterType(type){
+  WORD_FILTERS.type = type;
+  document.querySelectorAll('#filterType .chip').forEach(b => b.classList.toggle('active', b.dataset.type === type));
+}
+function setWordFilterLevel(level){
+  WORD_FILTERS.level = level;
+  document.querySelectorAll('#filterLevel .chip').forEach(b => b.classList.toggle('active', b.dataset.level === level));
+}
+
+function initLevelFilter(){
+  const box = $('#filterLevel');
+  if(!box) return;
+  const levels = Array.from(new Set(DATA.words.map(w => w.level || 0))).sort((a,b) => a-b);
+  let html = '<button class="chip active" data-level="all">全部</button>';
+  levels.forEach(lv => { html += `<button class="chip" data-level="${lv}">Lv ${lv}</button>`; });
+  box.innerHTML = html;
+  box.querySelectorAll('.chip').forEach(btn => {
+    btn.addEventListener('click', () => { setWordFilterLevel(btn.dataset.level); renderWords(); });
+  });
+}
+
 ready(() => {
   $('#smartImport').addEventListener('click', importSmart);
   $('#searchWord').addEventListener('input', renderWords);
   $('#backfillBtn').addEventListener('click', backfillCn);
+  document.querySelectorAll('#filterType .chip').forEach(btn => {
+    btn.addEventListener('click', () => { setWordFilterType(btn.dataset.type); renderWords(); });
+  });
   bindDrop();
+  initLevelFilter();
   renderWords();
 });
 
@@ -62,7 +89,7 @@ async function importSmart(){
       DATA.words.push(newWordV12(r.en, ''));
       added++;
     });
-    hubSave(); $('#smartInput').value = ''; renderWords();
+    hubSave(); $('#smartInput').value = ''; initLevelFilter(); renderWords();
     let msg = '成功导入 ' + added + ' 个（未配置 Key，未翻译）';
     if(skipped) msg += '，跳过重复 ' + skipped + ' 个';
     toast(msg); if(hint) hint.textContent = msg + '。去「设置 / AI 接口」填 DeepSeek Key 后可自动翻译。';
@@ -92,7 +119,7 @@ async function importSmart(){
       DATA.words.push(newWordV12(en, cn));
       added++;
     }
-    hubSave(); $('#smartInput').value = ''; renderWords();
+    hubSave(); $('#smartInput').value = ''; initLevelFilter(); renderWords();
     let msg = '成功导入 ' + added + ' 个';
     if(skipped) msg += '，跳过重复 ' + skipped + ' 个';
     toast(msg); if(hint) hint.textContent = msg;
@@ -224,7 +251,7 @@ function deleteWord(id){
   DATA.words = DATA.words.filter(x => x.id !== id);
   DATA.deletedIds = DATA.deletedIds || [];
   if(w && w.en){ const wkey = 'en:'+String(w.en).toLowerCase(); if(!DATA.deletedIds.includes(wkey)) DATA.deletedIds.push(wkey); }
-  hubSave(); renderWords();
+  hubSave(); initLevelFilter(); renderWords();
 }
 
 /* 词库手动标记（与学习算法 v1.2 字段一致）：
@@ -245,7 +272,7 @@ function markWord(en, action){
     w.lastReview = t;
     if(typeof recordDailyWrong === 'function') recordDailyWrong(w.en);
   }
-  hubSave(); renderWords();
+  hubSave(); initLevelFilter(); renderWords();
 }
 
 /* 把 pos + cn 拆成「词性+中文」释义块，多词性横向排列。
@@ -267,6 +294,18 @@ function formatMean(pos, cn){
 function renderWords(){
   const kw = ($('#searchWord').value || '').toLowerCase();
   let list = DATA.words.slice().reverse();
+  list.sort((a,b) => (a.level || 0) - (b.level || 0)); // 等级低的排在前面
+  const type = WORD_FILTERS.type;
+  if(type !== 'all'){
+    list = list.filter(w => {
+      const isPhrase = /\s/.test(String(w.en || ''));
+      return type === 'phrase' ? isPhrase : !isPhrase;
+    });
+  }
+  const level = WORD_FILTERS.level;
+  if(level !== 'all'){
+    list = list.filter(w => String(w.level || 0) === level);
+  }
   if(kw) list = list.filter(w => (w.en+' '+w.cn).toLowerCase().includes(kw));
   // 旧 mc* → v1.2 迁移（幂等），迁移后落盘
   let migrated = false;
