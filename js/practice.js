@@ -341,12 +341,15 @@ function autoStartSeeWord(){
            counted: new Set(s.passed || []),     // 已过的词不重复计数
            passed: (s.passed || []).slice(),
            reholdMap:{},   // P0-2：本词当场重考次数（仅内存，不持久化，key=小写单词）
+           shortMode: new Set(),  // 本轮"答错/不认识过"的词集合 → 需短线分散重复3次才过
            attempts:{},    // 本词本轮作答次数（防死循环）
            sessionStart: s.sessionStart || Date.now() };
     const order = (s.queueOrder && s.queueOrder.length) ? s.queueOrder : s.planEn;
     pq.queue = order
       .map(en => findWordByEn(en))
       .filter(w => w && !(s.passed || []).includes(String(w.en).trim().toLowerCase()));
+    // 续背恢复：把上次没重复满3次的词重新标记为 shortMode，继续分散重复
+    for(const w of pq.queue){ if((w.shortCount || 0) > 0) pq.shortMode.add(String(w.en).trim().toLowerCase()); }
     $('#progBarWrap').hidden = false;
     updateWordStats();
 
@@ -605,17 +608,45 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
   let result;
 
   if(correct){
-    // 选对直接过（不再需要3次；SHORT_PASS 只给错词回考用）
-    promoteLongTerm(cur, today);
-    pq.queue.splice(pq.idx, 1);
-    pq.correct++;
-    pq.passed.push(String(cur.en).trim().toLowerCase());
-    hubSave();
-    result = 'pass';
-    // 过关提示已删除（用户要求去掉底部黑框"✓ 过关：xxx"）
+    // 从未答错过的词 → 选对直接过（v5 核心变更：一直对的词不重复3次）
+    const inShort = pq.shortMode && pq.shortMode.has(k);
+    if(!inShort){
+      promoteLongTerm(cur, today);
+      pq.queue.splice(pq.idx, 1);
+      pq.correct++;
+      pq.passed.push(String(cur.en).trim().toLowerCase());
+      hubSave();
+      result = 'pass';
+    } else {
+      // 答错/不认识的词 → 短线分散重复：需分散答对 SHORT_PASS(3) 次才过关
+      const n = (cur.shortCount || 0) + 1;          // 本轮已分散答对次数
+      if(n >= SHORT_PASS){
+        promoteLongTerm(cur, today);                // 内部会把 shortCount 归零
+        pq.queue.splice(pq.idx, 1);
+        pq.correct++;
+        pq.passed.push(String(cur.en).trim().toLowerCase());
+        pq.shortMode.delete(k);
+        hubSave();
+        result = 'pass';
+        toast('✓ 已记住：' + cur.en + cnTxt + '（重复3遍过关）');
+      } else {
+        cur.shortCount = n;                          // 记录进度（持久化，续背接得上）
+        pq.reholdMap[k] = 0;                         // 已在短线模式，不再当场重考
+        pq.queue.splice(pq.idx, 1);
+        const gap = gapFor(cur, n);                  // n=1→隔2、n=2→隔5（难词更密）
+        const pos = Math.min(pq.queue.length, pq.idx + gap);
+        if(pos >= pq.queue.length) pq.queue.push(cur);
+        else pq.queue.splice(pos, 0, cur);
+        hubSave();
+        result = 'requeue';
+        toast('✓ ' + cur.en + cnTxt + '（' + n + '/3 记住了，隔' + gap + '个词再来）');
+      }
+    }
   } else {
     const wasRehold = (pq.reholdMap[k] || 0) >= 1;
     demoteLongTerm(cur, today, !!isUnknownBtn); // P1-1：点「完全不认识」时惩罚加重
+    if(!pq.shortMode) pq.shortMode = new Set();
+    pq.shortMode.add(k);                          // 标记：该词进入短线重复模式
     if(wasRehold){
       // P0-2 边界：重考仍错 → 额外记一次错误，插回到「隔 1 个词」的位置，不再当场重考
       cur.errTotal = (cur.errTotal || 0) + 1;
@@ -640,6 +671,8 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
     const at = pq.queue.indexOf(cur);
     if(at >= 0) pq.queue.splice(at, 1);
     pq.reholdMap[k] = 0;
+    if(pq.shortMode) pq.shortMode.delete(k);
+    cur.shortCount = 0;
     if(!pq.wrongList) pq.wrongList = [];
     if(!pq.wrongList.some(x => String(x.en).toLowerCase() === k)){
       pq.wrongList.push({ en: cur.en, cn: cur.cn || '', user: '(本轮放弃)', grade: 'unknown' });
