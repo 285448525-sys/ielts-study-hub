@@ -462,6 +462,7 @@ function masterWord(cur){
 
 function nextQuestion(){
   if(!pq) return;
+  maybeStartWordTimer();   // 进练习即自动开启「背单词」计时（若尚未在计）；不重复开手动计时
   try{
     cancelSpeak();
     updateScore();
@@ -663,6 +664,7 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
 }
 
 function finishPractice(){
+  commitWordTimer();   // 完成一轮即把本次「背单词」时长结算进计时模块（DATA.sessions）
   const total = pq.total || 0;
   const passed = pq.correct || 0;
   const acc = total ? Math.round(passed / total * 100) : 0;
@@ -772,6 +774,83 @@ function formatMs(millis){
   if(m < 1) return s + '秒';
   if(s === 0) return m + '分钟';
   return m + '分' + s + '秒';
+}
+
+/* ======= 背单词自动计时接入「计时」模块 =======
+   用户常忘记开计时：进练习即自动开一个「背单词」计时（模块 id 与 data.js MODULES 的 vocab 一致），
+   完成一轮/离开页面时结算进 DATA.sessions（首页「今日学习时长」与计时页「今日学习记录」都读它）。
+   若本机已在跑「背单词」计时（手动在计时页开的，或上轮未结束的），绝不重复开，避免双份时长。 */
+const WORD_TIMER_MODULE = 'vocab';
+const WORD_TIMER_NAME = '背单词';
+function wordTimerDeviceId(){
+  try{
+    let id = localStorage.getItem('ielts_hub_device');
+    if(!id){ id = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); localStorage.setItem('ielts_hub_device', id); }
+    return id;
+  }catch(e){ return 'd' + Date.now().toString(36); }
+}
+function isWordTimerActive(){
+  const a = window.active;
+  if(a && !a.ended && a.moduleId === WORD_TIMER_MODULE) return true;
+  const m = DATA.activeTimer;
+  if(m && !m.ended && m.timerId && m.moduleId === WORD_TIMER_MODULE) return true;
+  return false;
+}
+function maybeStartWordTimer(){
+  // 本页之前已自动开、且仍活跃 → 保持，不重复开
+  if(window.__wordTimerAuto && window.active && !window.active.ended && window.active.moduleId === WORD_TIMER_MODULE) return;
+  // 已有任意进行中的「背单词」计时（手动开的或其他入口）→ 不重复开、也不接管提交
+  if(isWordTimerActive()) return;
+  const now = Date.now();
+  const id = uid();
+  const dev = wordTimerDeviceId();
+  window.active = {
+    timerId: id, ownerDevice: dev, moduleId: WORD_TIMER_MODULE, moduleName: WORD_TIMER_NAME,
+    subId: WORD_TIMER_MODULE, subName: WORD_TIMER_NAME,
+    startTs: now, startMonoNs: null, paused: false, pauseStart: null, pauseAccum: 0,
+    pauseStartMonoNs: null, pauseAccumMonoNs: 0, targetSec: null, mode: 'up',
+    updatedAt: now, lastBeat: now
+  };
+  DATA.activeTimer = {
+    timerId: id, ownerDevice: dev, moduleId: WORD_TIMER_MODULE, moduleName: WORD_TIMER_NAME,
+    subId: WORD_TIMER_MODULE, subName: WORD_TIMER_NAME,
+    startTs: now, paused: false, pauseStart: null, pauseAccum: 0,
+    targetSec: null, mode: 'up', updatedAt: now, lastBeat: now, ended: false
+  };
+  window.__wordTimerAuto = true;
+  hubSave();
+}
+function commitWordTimer(){
+  if(!window.__wordTimerAuto) return;
+  const a = window.active;
+  if(!a || a.ended || a.moduleId !== WORD_TIMER_MODULE){ window.__wordTimerAuto = false; return; }
+  const timerId = a.timerId;
+  const endTs = Date.now();
+  const durationSec = Math.max(0, Math.round((endTs - (a.startTs || endTs)) / 1000));
+  DATA.sessions = DATA.sessions || [];
+  const already = DATA.sessions.some(s => s.timerId && s.timerId === timerId);
+  if(!already && durationSec > 0){
+    DATA.sessions.push({
+      id: uid(), timerId, date: todayKey(), moduleId: a.moduleId, subId: a.subId,
+      moduleName: a.moduleName, subName: a.subName,
+      startTs: a.startTs, endTs, durationSec, pauseSec: 0
+    });
+  }
+  window.active = null;
+  DATA.activeTimer = { timerId, ended: true, updatedAt: Date.now(), lastBeat: 0 };
+  hubSave();
+  window.__wordTimerAuto = false;
+  try{
+    document.dispatchEvent(new CustomEvent('hub:session-saved', { detail: { date: todayKey() } }));
+    document.dispatchEvent(new CustomEvent('hub:timer-state'));
+  }catch(e){}
+}
+// 离页兜底：关标签页 / 切到别的程序时结算本次计时（防悬挂的进行中计时）
+if(!window.__wordTimerLeaveHook){
+  window.__wordTimerLeaveHook = true;
+  const _onLeave = () => { try{ commitWordTimer(); }catch(e){} };
+  document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'hidden') _onLeave(); });
+  window.addEventListener('beforeunload', _onLeave);
 }
 
 function updateWordStats(){
