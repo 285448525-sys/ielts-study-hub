@@ -1080,6 +1080,17 @@ async function cloudDownload(silent){
     const reallyChanged = JSON.stringify(_stripBeat(m.data)) !== JSON.stringify(_stripBeat(DATA));
     if(reallyChanged){
       DATA = m.data; // 合并而非覆盖：保留本机进度，并入云端新增/更新
+      // 关键修复：背单词页内存中的 pq.queue 引用的是旧 DATA.words 里的对象；
+      // 合并后 DATA.words 已换成新数组/副本，若不同步引用，用户继续答题改的是旧对象，
+      // hubSave 保存的新数组不会包含这些修改 → 表现为「背了不计数/待学习不变」。
+      if(typeof window !== 'undefined' && window.pq && Array.isArray(window.pq.queue) && Array.isArray(DATA.words)){
+        window.pq.queue = window.pq.queue.map(oldW => {
+          const k = String(oldW.en || '').trim().toLowerCase();
+          if(!k) return oldW;
+          const newW = DATA.words.find(x => String(x.en || '').trim().toLowerCase() === k);
+          return newW || oldW;
+        });
+      }
       DATA.settings.lastSyncTs = Date.now();
       // 直接写 localStorage，不走 hubSave——避免「合并云端数据后又触发上传→另一端又拉到→乒乓刷屏」。
       // 本端独有数据会在用户下次操作（hubSave）时自然上传，无需在合并时立即回传。
@@ -1139,6 +1150,15 @@ async function syncLoginOrRegister(){
       if(data && data.data){
         const m = mergeData(DATA, data.data);
         DATA = m.data;
+        // 登录合并后同步背单词页内存引用（同 cloudDownload 理由）
+        if(typeof window !== 'undefined' && window.pq && Array.isArray(window.pq.queue) && Array.isArray(DATA.words)){
+          window.pq.queue = window.pq.queue.map(oldW => {
+            const k = String(oldW.en || '').trim().toLowerCase();
+            if(!k) return oldW;
+            const newW = DATA.words.find(x => String(x.en || '').trim().toLowerCase() === k);
+            return newW || oldW;
+          });
+        }
         if(typeof populateSettingsForm === 'function') populateSettingsForm(); // 登录后立即回填「目标分数/每日目标」等表单，无需手动刷新
         enableAutoSyncAfterLogin(phone);
         initCloudSync();   // 登录后补启动轮询拉取，立即能拉到另一端历史/进度
