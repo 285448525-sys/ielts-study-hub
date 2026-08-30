@@ -697,15 +697,21 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
 }
 
 function finishPractice(){
+  // 先捕获本轮自动计时实际时长（避免 commitWordTimer 清掉 window.active 后拿不到）
+  let wordMs = 0;
+  if(window.__wordTimerAuto && window.active && !window.active.ended && window.active.moduleId === WORD_TIMER_MODULE){
+    wordMs = Math.max(0, Date.now() - (window.active.startTs || Date.now()));
+  }
   commitWordTimer();   // 完成一轮即把本次「背单词」时长结算进计时模块（DATA.sessions）
-  const total = pq.total || 0;
+
+  // total 用 initLen：续背时 pq.total 因 counted 已含 passed 而为 0，initLen 才是本轮真实题量
+  const total = pq.initLen || pq.total || 0;
   const passed = pq.correct || 0;
   const acc = total ? Math.round(passed / total * 100) : 0;
   const s = pq.stats || { known:0, unknown:0 };
 
-  // 累加今日统计（跨轮累计，再来一轮不清零）
-  const sessionMs = pq.sessionStart ? (Date.now() - pq.sessionStart) : 0;
-  addTodayStats(total, sessionMs);
+  // 累加今日统计：词数=本轮真实题量，时长=自动计时实际时长（不是 sessionStart 墙钟）
+  addTodayStats(total, wordMs);
   const { st: todaySt } = getTodayStats();
 
   let bodyHtml = '<div class="q-word">练习完成 🎉</div>' +
