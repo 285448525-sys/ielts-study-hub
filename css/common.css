@@ -277,7 +277,7 @@ body{
 .side-timer-wrap{margin:0 0 4px}
 .side-timer{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:12px;cursor:pointer;background:linear-gradient(135deg,var(--primary),var(--primary-d));color:var(--on-primary);font-size:13.5px;font-weight:700;box-shadow:var(--shadow)}
 .side-timer:hover{transform:translateY(-1px)}
-.side-timer.paused{background:linear-gradient(135deg,var(--muted),#4a5f5e)}
+.side-timer.paused{background:linear-gradient(135deg,var(--muted),var(--ink-2))}
 .side-timer[hidden]{display:none}
 .side-timer .st-ico{flex:none}
 .side-timer .st-name{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -314,8 +314,8 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 /* bars */
 .bar-row{margin:8px 0}
 .bar-info{display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px}
-.bar-track{height:14px;background:#eef2f7;border-radius:7px;overflow:hidden}
-[data-theme="dark"] .bar-track{background:#334155}
+.bar-track{height:14px;background:var(--surface-2);border-radius:7px;overflow:hidden}
+[data-theme="dark"] .bar-track{background:var(--surface-2)}
 .bar-fill{height:100%;border-radius:7px;transition:width .4s}
 
 /* lists */
@@ -492,7 +492,7 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 #practiceBody.practice-body-fit .practice-word-area{
   position:relative;text-align:center;
   padding:10px 4px 16px;margin-bottom:12px;
-  border-bottom:1px solid #f0f0f0;
+  border-bottom:1px solid var(--line);
   min-height:160px;   /* 锁死题干区高度：已掌握按钮+单词+音标+中文恒定占位，换词/答题不再跳动 */
 }
 /* 已掌握按钮：右上角绿色药丸（在 pw-toolbar 内，不需要 absolute） */
@@ -500,11 +500,11 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
   font-size:38px;font-weight:800;letter-spacing:-.02em;line-height:1.25;color:var(--ink);
 }
 #practiceBody.practice-body-fit .pw-ipa{
-  font-family:serif;font-style:normal;font-size:15px;color:#999;margin-top:6px;min-height:19px;
+  font-family:serif;font-style:normal;font-size:15px;color:var(--muted);margin-top:6px;min-height:19px;
 }
 /* 中文释义（答后才填充）：固定 min-height，答后不撑高 → 布局不跳动 */
 #practiceBody.practice-body-fit .pw-cn{
-  font-size:15px;color:#555;margin-top:5px;min-height:46px;line-height:1.55;overflow:hidden;
+  font-size:15px;color:var(--ink-2);margin-top:5px;min-height:46px;line-height:1.55;overflow:hidden;
 }
 
 #practiceBody.practice-body-fit .opts-label{ display:none !important; }
@@ -562,7 +562,7 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 
 /* 底部喇叭大圆按钮（严格还原 v5 原型：居中 48px 圆） */
 #practiceBody.practice-body-fit .pw-speaker-wrap{
-  margin-top:14px;padding-top:10px;border-top:1px solid #f0f0f0;
+  margin-top:14px;padding-top:10px;border-top:1px solid var(--line);
   display:flex;justify-content:center;
 }
 #practiceBody.practice-body-fit .pw-speaker-wrap .tool-btn{
@@ -625,7 +625,7 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
   margin-bottom:10px;
   transition:border-color .15s;
 }
-#dayList .day-card:hover{ border-color:#c5d0db; }
+#dayList .day-card:hover{ border-color:var(--primary-soft); }
 #dayList .day-header{
   display:flex;align-items:center;justify-content:space-between;
   margin-bottom:10px;
@@ -638,7 +638,7 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 }
 #dayList .day-total{
   font-size:13px;font-weight:600;color:#fff;
-  background:linear-gradient(135deg,var(--primary),#2d7a74);
+  background:linear-gradient(135deg,var(--primary),var(--primary-d));
   padding:3px 12px;border-radius:20px;white-space:nowrap;
 }
 #dayList .day-chips{
@@ -647,27 +647,27 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 #dayList .chip{
   display:inline-flex;align-items:center;gap:4px;
   font-size:12px;padding:4px 10px;border-radius:6px;
-  background:#f0f4f8;color:#444;font-weight:500;white-space:nowrap;line-height:1.4;
+  background:var(--surface-2);color:var(--ink);font-weight:500;white-space:nowrap;line-height:1.4;
 }
-#dayList .chip .chip-name{ color:#666; }
+#dayList .chip .chip-name{ color:var(--muted); }
 #dayList .chip .chip-val{ color:var(--ink);font-weight:600; }
-#dayList .chip.chip-long{ background:#e8f5f2; }
-#dayList .chip.chip-long .chip-name{ color:#2d7a74; }
-#dayList .chip.chip-long .chip-val{ color:#1a6b64;font-weight:700; }
+#dayList .chip.chip-long{ background:var(--primary-soft); }
+#dayList .chip.chip-long .chip-name{ color:var(--primary-d); }
+#dayList .chip.chip-long .chip-val{ color:var(--primary);font-weight:700; }
 #dayList .chip-focus{
   font-size:11px;color:var(--muted);padding:4px 10px;border-radius:6px;
-  background:#fafafa;border:1px dashed #ddd;margin-left:2px;
+  background:var(--surface-2);border:1px dashed var(--line);margin-left:2px;
 }
 #dayList .chip-focus b{ color:var(--primary); }
 
 /* resources */
-.tip-card{border-left:4px solid var(--primary);padding:12px 16px;background:#eef5f3;border-radius:0 10px 10px 0;margin-bottom:10px}
-[data-theme="dark"] .tip-card{background:#1e293b}
+.tip-card{border-left:4px solid var(--primary);padding:12px 16px;background:var(--surface-2);border-radius:0 10px 10px 0;margin-bottom:10px}
+[data-theme="dark"] .tip-card{background:var(--surface-2)}
 .tip-card h4{margin:0 0 4px}
 .tip-card p{margin:0;color:var(--muted);font-size:14px}
 
 /* toast */
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 18px;border-radius:10px;z-index:200;font-size:14px;box-shadow:var(--shadow)}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:10px 18px;border-radius:10px;z-index:200;font-size:14px;box-shadow:var(--shadow)}
 
 /* ===== 统一子 Tab：右上角药丸切换（全局） ===== */
 .page-head-row{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap}
@@ -700,7 +700,7 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 .wl-word{font-size:16px;font-weight:700;color:var(--ink);min-width:90px;width:22%;max-width:170px;flex:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.5}
 .wl-senses{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;flex:1;min-width:0;padding-top:1px}
 .wl-sense{display:inline-flex;align-items:baseline;gap:5px;max-width:100%}
-.wl-sense-pos{font-size:13px;font-weight:600;color:#3a6ea5;white-space:nowrap;flex:none;font-family:var(--mono,ui-monospace,SFMono-Regular,Menlo,Consolas,monospace)}
+.wl-sense-pos{font-size:13px;font-weight:600;color:var(--vocab);white-space:nowrap;flex:none;font-family:var(--mono,ui-monospace,SFMono-Regular,Menlo,Consolas,monospace)}
 .wl-sense-cn{font-size:14px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .wl-lv{font-size:12px;font-weight:700;color:var(--primary);background:var(--primary-soft);padding:2px 8px;border-radius:6px;flex:none;margin-top:2px}
 .wl-del{width:28px;height:28px;border-radius:7px;border:1.5px solid var(--danger);background:var(--surface);color:var(--danger);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:.12s;flex:none;margin-top:1px}
@@ -1801,14 +1801,14 @@ body.word-fullscreen .practice-tools-row{ display:none !important; }
 /* 全屏模式：同样居中题干（照抄 v5 原型，无例句 / 无题干词性） */
 body.word-fullscreen #practiceBody.practice-body-fit .practice-word-area{
   position:relative;text-align:center;width:100%;
-  padding:10px 4px 16px;margin-bottom:12px;border-bottom:1px solid #f0f0f0;
+  padding:10px 4px 16px;margin-bottom:12px;border-bottom:1px solid var(--line);
   min-height:160px;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .mastered-btn{
   position:absolute;top:10px;right:10px;z-index:2;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap{
-  margin-top:14px;padding-top:10px;border-top:1px solid #f0f0f0;
+  margin-top:14px;padding-top:10px;border-top:1px solid var(--line);
   display:flex;justify-content:center;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap .tool-btn{
@@ -1823,10 +1823,10 @@ body.word-fullscreen #practiceBody.practice-body-fit .pw-en{
   font-size:40px;font-weight:800;letter-spacing:-.02em;line-height:1.25;color:var(--ink);
 }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-ipa{
-  font-family:serif;font-style:normal;font-size:15px;color:#999;margin-top:6px;min-height:19px;
+  font-family:serif;font-style:normal;font-size:15px;color:var(--muted);margin-top:6px;min-height:19px;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-cn{
-  font-size:15px;color:#555;margin-top:5px;min-height:46px;line-height:1.55;overflow:hidden;
+  font-size:15px;color:var(--ink-2);margin-top:5px;min-height:46px;line-height:1.55;overflow:hidden;
 }
 
 /* 全屏选项网格 + 反馈（与 v5 一致） */
@@ -1914,12 +1914,12 @@ body.exam-fullscreen #writeTabs{display:none}
 .exam-step{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:7px;background:var(--primary);color:var(--on-primary);font-size:13px;font-weight:800;flex:none}
 .exam-step-label{font-size:14px;font-weight:700;color:var(--ink)}
 .exam-status{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
-.exam-dot{width:8px;height:8px;border-radius:50%;background:#22c55e;flex:none}
+.exam-dot{width:8px;height:8px;border-radius:50%;background:var(--med);flex:none}
 .exam-bar-right{display:flex;align-items:center;gap:10px}
 .btn-exam-ghost{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--primary);background:#fff;color:var(--primary);border-radius:9px;padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer;transition:.15s}
 .btn-exam-ghost:hover{background:var(--primary-soft)}
-.btn-exam-exit{border:1px solid #f0859b;background:#fff;color:#e0556f;border-radius:9px;padding:9px 18px;font-size:14px;font-weight:600;cursor:pointer;transition:.15s}
-.btn-exam-exit:hover{background:#fdeef2}
+.btn-exam-exit{border:1px solid var(--err);background:#fff;color:var(--err-text);border-radius:9px;padding:9px 18px;font-size:14px;font-weight:600;cursor:pointer;transition:.15s}
+.btn-exam-exit:hover{background:var(--err-bg)}
 
 @media(max-width:860px){
   .exam-split{flex-direction:column;overflow-y:auto}
@@ -1937,7 +1937,7 @@ body.exam-fullscreen #writeTabs{display:none}
 .dict-sent-pick{font-size:13.5px;line-height:1.6}
 .dict-sent-pick .dict-sent-item{display:block;margin:3px 0;cursor:pointer}
 .dict-sent-pick .dict-sent-item input{width:15px;height:15px;accent-color:var(--primary);margin-right:4px;cursor:pointer}
-.dict-weak-tag{color:#c2742a;font-weight:700;font-size:12px;margin-left:4px}
+.dict-weak-tag{color:var(--warn-ink);font-weight:700;font-size:12px;margin-left:4px}
 
 /* ===== 全站跳转加载遮罩（IELTS 逐字淡入 · Type Reveal · 全英文） ===== */
 .hub-loader{
