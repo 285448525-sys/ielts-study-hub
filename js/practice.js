@@ -716,12 +716,15 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
 }
 
 function finishPractice(){
-  // 先捕获本轮自动计时实际时长（避免 commitWordTimer 清掉 window.active 后拿不到）
+  // 本轮「背单词」实际学习时长 = 距上一停留点（上一轮结束 / 计时开始）的增量，只计真实学习、不计轮间空隙
   let wordMs = 0;
   if(window.__wordTimerAuto && window.active && !window.active.ended && window.active.moduleId === WORD_TIMER_MODULE){
-    wordMs = Math.max(0, Date.now() - (window.active.startTs || Date.now()));
+    const segStart = window.__lastSegTs || window.active.startTs || Date.now();
+    wordMs = Math.max(0, Date.now() - segStart);
+    window.__lastSegTs = Date.now();   // 标记本轮结束点，下一轮增量从此算起
   }
-  commitWordTimer();   // 完成一轮即把本次「背单词」时长结算进计时模块（DATA.sessions）
+  // 完成一轮不立刻停止计时：进入 2 分钟宽限，期间若又开始背单词则保持连续（背单词合并成一段）
+  scheduleWordTimerStop();
 
   // 今日已练 = 今天真正练过的 unique 词数（不是轮次位累加）
   const seenToday = DATA.wordSeenToday && DATA.wordSeenToday.date === todayKey() ? DATA.wordSeenToday.words || [] : [];
@@ -845,6 +848,12 @@ function isWordTimerActive(){
   return false;
 }
 function maybeStartWordTimer(){
+  // 一轮结束后处于「2 分钟宽限」中又开始学习 → 取消停止计时，保持连续（背单词合并成一段）
+  if(window.__wordTimerStopTimer){
+    clearTimeout(window.__wordTimerStopTimer);
+    window.__wordTimerStopTimer = null;
+    window.__lastSegTs = Date.now();
+  }
   // 本页之前已自动开、且仍活跃 → 保持，不重复开
   if(window.__wordTimerAuto && window.active && !window.active.ended && window.active.moduleId === WORD_TIMER_MODULE) return;
   // 已有任意进行中的「背单词」计时（手动开的或其他入口）→ 不重复开、也不接管提交
@@ -866,14 +875,27 @@ function maybeStartWordTimer(){
     targetSec: null, mode: 'up', updatedAt: now, lastBeat: now, ended: false
   };
   window.__wordTimerAuto = true;
+  window.__lastSegTs = window.active.startTs || Date.now();
   hubSave();
 }
-function commitWordTimer(){
+// 一轮结束后的「2 分钟宽限」：到时仍未继续背单词才结算本轮「背单词」时长；期间开始新的一轮则取消（保持连续）
+function scheduleWordTimerStop(){
+  if(!window.__wordTimerAuto) return;          // 手动计时等不由本模块接管，跳过
+  if(window.__wordTimerStopTimer) clearTimeout(window.__wordTimerStopTimer);
+  window.__wordTimerStopTimer = setTimeout(() => {
+    window.__wordTimerStopTimer = null;
+    // 宽限结束：只计到上一轮结束点（window.__lastSegTs），不把轮间空隙算进学习时长
+    commitWordTimer(window.__lastSegTs || Date.now());
+  }, 120000);
+}
+function commitWordTimer(endTsOverride){
   if(!window.__wordTimerAuto) return;
   const a = window.active;
   if(!a || a.ended || a.moduleId !== WORD_TIMER_MODULE){ window.__wordTimerAuto = false; return; }
   const timerId = a.timerId;
-  const endTs = Date.now();
+  // 正常离开：计到当前；处于「轮间宽限」时：只计到上一轮结束点（不把空隙算进学习时长）
+  const endTs = (endTsOverride != null) ? endTsOverride
+              : (window.__wordTimerStopTimer ? (window.__lastSegTs || Date.now()) : Date.now());
   const durationSec = Math.max(0, Math.round((endTs - (a.startTs || endTs)) / 1000));
   DATA.sessions = DATA.sessions || [];
   const already = DATA.sessions.some(s => s.timerId && s.timerId === timerId);
@@ -910,7 +932,8 @@ function updateWordStats(){
     let current = pq.counted ? pq.counted.size : 0;
     if(pq.queue.length > 0) current = Math.min(current + 1, total);
     progress = current + '/' + total;
-  } else if(DATA.dailySession && DATA.dailySession.date === todayKey()){
+  } else if(DATA.dailySession && DATA.dailySession.date === todayKey() && !DATA.dailySession.finished){
+    // 仅「进行中」的当日 session 才用其进度；已完成/过期的 session 不再当作当前进度（避免重开即显 20/20）
     const s = DATA.dailySession;
     const total = (s.planEn || []).length;
     const inPlanPassed = (s.passed || []).filter(en => (s.planEn || []).includes(en)).length;
