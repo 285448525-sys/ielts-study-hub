@@ -395,7 +395,7 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 .mastered-btn{margin-left:auto;padding:6px 14px;border-radius:999px;border:1.5px solid var(--med);background:rgba(70,168,131,.08);color:var(--med);font-size:13px;font-weight:700;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;white-space:nowrap}
 .mastered-btn:hover{background:rgba(70,168,131,.16);border-color:#3aa86a;color:#2a8a54}
 /* 难词标签（短线回考更密、长线间隔减半） */
-.hardtag{flex:0 0 auto;margin-left:2px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600;line-height:1.5;color:var(--danger);background:var(--danger-soft);border-color:var(--danger);white-space:nowrap}
+.hardtag{flex:0 0 auto;margin-left:2px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600;line-height:1.5;color:var(--danger);background:var(--danger-soft);border:1px solid var(--danger);white-space:nowrap}
 /* 短线：连对进度条 */
 .streak-bar{display:flex;align-items:center;gap:6px;margin:0 0 6px;font-size:13px;color:var(--muted)}
 .streak-bar b{color:var(--primary);font-size:15px}
@@ -1921,8 +1921,8 @@ body.exam-fullscreen #writeTabs{display:none}
 .exam-bar-right{display:flex;align-items:center;gap:10px}
 .btn-exam-ghost{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--primary);background:var(--surface);color:var(--primary);border-radius:9px;padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer;transition:.15s}
 .btn-exam-ghost:hover{background:var(--primary-soft)}
-.btn-exam-exit{background:var(--err-bg);color:var(--err-text);border-color:var(--err);border-radius:9px;padding:9px 18px;font-size:14px;font-weight:600;cursor:pointer;transition:.15s}
-.btn-exam-exit:hover{background:var(--err-bg)}
+.btn-exam-exit{background:var(--err-bg);color:var(--err-text);border:1px solid var(--err);border-radius:9px;padding:9px 18px;font-size:14px;font-weight:600;cursor:pointer;transition:.15s}
+.btn-exam-exit:hover{background:var(--err);color:var(--surface)}
 
 @media(max-width:860px){
   .exam-split{flex-direction:column;overflow-y:auto}

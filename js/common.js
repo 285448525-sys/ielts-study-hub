@@ -986,10 +986,13 @@ function mergeData(local, cloud){
     for(const _k of _allKeys){
       const _a = lds[_k] || { totalWords:0, totalMs:0, sessions:0 };
       const _b = cds[_k] || { totalWords:0, totalMs:0, sessions:0 };
+      // 关键：用 max 而非 sum —— 云端已含本机上次上传的贡献，重复同步若求和会把本机部分再加一遍导致虚高；
+      // max 幂等（max(max(a,b),a)=max(a,b)），永不重复累加，跨设备收敛到「单设备当日最大值」。
+      // 「今日已练」主数字走 wordSeenToday 并集（已正确），此处 dayStats 为次级明细，取 max 最稳妥。
       _mergedStats[_k] = {
         totalWords: Math.max(_a.totalWords || 0, _b.totalWords || 0),
-        totalMs: (_a.totalMs || 0) + (_b.totalMs || 0),
-        sessions: (_a.sessions || 0) + (_b.sessions || 0)
+        totalMs: Math.max(_a.totalMs || 0, _b.totalMs || 0),
+        sessions: Math.max(_a.sessions || 0, _b.sessions || 0)
       };
     }
     if(JSON.stringify(_mergedStats) !== JSON.stringify(local.wordDayStats || {})){
