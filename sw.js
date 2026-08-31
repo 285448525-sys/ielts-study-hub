@@ -3,7 +3,7 @@
 //       导致"改了不生效 / 数字冻结 / 词反复出现"长期顽疾。
 // 修复：对本站所有同源 GET 一律走网络，绝不写入长期缓存、绝不回退旧缓存。
 //       这样每次加载都取到 Cloudflare 上的最新部署，旧缓存永远不会被serve。
-const CACHE = 'ielts-hub-v9';
+const CACHE = 'ielts-hub-v10';
 self.addEventListener('install', e => { self.skipWaiting(); });
 self.addEventListener('activate', e => {
   // 安装新 SW 时清空所有历史缓存（v1/v2/v3 可能含旧 JS/CSS），强制丢弃陈旧资源
