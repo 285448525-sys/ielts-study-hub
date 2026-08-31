@@ -350,6 +350,25 @@ function autoStartSeeWord(){
       hubSave();
     }
 
+    // —— 题量收归：设置题量小于已锁定轮次词数时，截断到设定题量（保留已过的词，去除未开始的冗余词）——
+    //    解决「设置改成 20 但当天已建过 50 词轮次、改设置不生效」的问题（之之 8/31 反馈）
+    {
+      const _c = pc();
+      const _cap = (_c.batchSize > 0) ? _c.batchSize : session.planEn.length;
+      if(session.planEn.length > _cap){
+        const _passedSet = new Set((session.passed || []).map(e => String(e).trim().toLowerCase()));
+        const _capEff = Math.max(_cap, _passedSet.size);   // 绝不丢弃已过的词
+        const _order = (session.queueOrder && session.queueOrder.length) ? session.queueOrder : session.planEn;
+        const _kept = _order.filter(en => _passedSet.has(en));
+        const _rest = _order.filter(en => !_passedSet.has(en));
+        const _newPlan = _kept.concat(_rest).slice(0, _capEff);
+        session.planEn = _newPlan;
+        session.queueOrder = _newPlan;
+        DATA.dailySession = session;
+        hubSave();
+      }
+    }
+
     // —— 重建内存会话：planEn 中未 passed、且仍在词库的，按 queueOrder 顺序 ——
     const s = session;
     // 只把「属于当前 planEn」的 passed 算进本轮进度；避免 mergeData 跨设备/跨轮次并集污染后 counted > initLen

@@ -961,6 +961,41 @@ function mergeData(local, cloud){
   } else if(_cd && !_ld){
     out.dailySession = _cd; changes++;
   }
+  // 今日背词进度跨设备合并（修复：网页端练了 50 个，手机端「今日已练」仍显示 0）
+  // wordSeenToday：同日取 unique 词集合并集（该集合长度即「今日已练」展示值）；wordDayStats：按时段 key 求和时长与轮次
+  {
+    const _tk = todayKey();
+    const lt = local.wordSeenToday, ct = cloud.wordSeenToday;
+    let mergedSeen = null;
+    if(lt && ct){
+      if(lt.date === _tk && ct.date === _tk){
+        const _set = new Set([...(lt.words || []), ...(ct.words || [])]);
+        mergedSeen = { date: _tk, words: Array.from(_set) };
+      } else if(lt.date === _tk){ mergedSeen = lt; }
+      else if(ct.date === _tk){ mergedSeen = ct; }
+    } else if(lt || ct){
+      const _only = lt || ct;
+      mergedSeen = (_only.date === _tk) ? _only : null;   // 非今日的旧记录不回填（本机下次 getTodaySeen 会重置）
+    }
+    if(mergedSeen && JSON.stringify(mergedSeen) !== JSON.stringify(local.wordSeenToday || null)){
+      out.wordSeenToday = mergedSeen; changes++;
+    }
+    const lds = local.wordDayStats || {}, cds = cloud.wordDayStats || {};
+    const _allKeys = new Set([...Object.keys(lds), ...Object.keys(cds)]);
+    const _mergedStats = {};
+    for(const _k of _allKeys){
+      const _a = lds[_k] || { totalWords:0, totalMs:0, sessions:0 };
+      const _b = cds[_k] || { totalWords:0, totalMs:0, sessions:0 };
+      _mergedStats[_k] = {
+        totalWords: Math.max(_a.totalWords || 0, _b.totalWords || 0),
+        totalMs: (_a.totalMs || 0) + (_b.totalMs || 0),
+        sessions: (_a.sessions || 0) + (_b.sessions || 0)
+      };
+    }
+    if(JSON.stringify(_mergedStats) !== JSON.stringify(local.wordDayStats || {})){
+      out.wordDayStats = _mergedStats; changes++;
+    }
+  }
   // 合并后同步镜像账号凭证到隔离键（云端可能带来/更新 Key/手机号/发音分，务必落盘镜像）
   if(typeof saveCredsMirror === 'function') saveCredsMirror();
   return { data: out, changes };
@@ -1451,8 +1486,45 @@ function floatStopTimer(){
   location.href = 'timer.html';
 }
 let _floatTimerInterval = null;
+/* 遗弃计时自愈：打开任意页面时，若云端镜像存在一个「未结束但已离线/跨天」的遗弃计时，
+   把它结算为结束（记录真实时长 = startTs→lastBeat，不含离线空隙），避免被浮窗按墙钟累加成 17 小时幽灵计时，
+   也解除它对另一端「isWordTimerActive」的占用，让另一台设备能正常开新计时。（之之 8/31 反馈） */
+function settleOrphanActiveTimer(){
+  const m = DATA.activeTimer;
+  if(!m || m.ended || !m.timerId || !m.startTs) return;
+  if(m.paused) return;                       // 暂停是主动空闲，绝不误抢
+  const lastBeat = _num(m.lastBeat) || 0;
+  const now = Date.now();
+  const prevDay = todayKey(_num(m.startTs)) !== todayKey();
+  const ABANDON_MS = 10 * 60 * 1000;
+  // 仅当「跨天」或「运行态心跳过期超过 10 分钟」才判定为遗弃（避免误杀短暂后台节流的正常计时）
+  if(!(prevDay || (lastBeat && (now - lastBeat) > ABANDON_MS))) return;
+  // 结算真实时长：结束点取 lastBeat（最后在线时刻），不把离线空隙算进学习时长
+  const endTs = Math.min(lastBeat || now, now);
+  let pause = _num(m.pauseAccum) || 0;
+  if(m.pauseStart) pause += (endTs - _num(m.pauseStart));
+  const durationSec = Math.max(0, Math.round((endTs - _num(m.startTs) - pause) / 1000));
+  const dayKey = todayKey(_num(m.startTs));
+  if(durationSec > 0 && !(DATA.sessions || []).some(s => s.timerId && s.timerId === m.timerId)){
+    const names = (typeof resolveTimerNames === 'function')
+      ? resolveTimerNames(m)
+      : { moduleName: m.moduleName || '学习', subName: m.subName || '' };
+    DATA.sessions = DATA.sessions || [];
+    DATA.sessions.push({
+      id: (typeof uid === 'function') ? uid() : ('s' + Date.now()),
+      timerId: m.timerId, date: dayKey,
+      moduleId: m.moduleId, subId: m.subId || m.moduleId,
+      moduleName: names.moduleName, subName: names.subName,
+      startTs: _num(m.startTs), endTs, durationSec, pauseSec: Math.max(0, Math.round(pause / 1000))
+    });
+  }
+  DATA.activeTimer = { timerId: m.timerId, ended: true, updatedAt: Date.now(), lastBeat: 0 };
+  if(typeof hubSave === 'function') hubSave();
+  try{ document.dispatchEvent(new CustomEvent('hub:timer-state')); }catch(e){}
+}
 function initFloatTimer(){
   injectFloatTimer();
+  settleOrphanActiveTimer();                        // 打开即清理被遗弃的计时（防 17 小时幽灵计时）
   syncFloatTimer();                                  // 若已有运行中的计时，立即显示
   document.addEventListener('hub:timer-state', syncFloatTimer);
   if(_floatTimerInterval) clearInterval(_floatTimerInterval);
