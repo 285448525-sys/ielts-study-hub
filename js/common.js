@@ -42,6 +42,9 @@ function favPageIds(){
 /* v5：简化后全部平铺，不再分折叠组（首页→回顾 一级；设置/服药 在分隔线下方） */
 const PRIMARY_NAV = ['index','timer','plans','practice','corpus','speaking','writing','wrongbook'];
 const MORE_NAV    = ['review','meds','settings'];
+const TAB_NAV     = ['index','timer','practice','speaking'];   // 底部 Tab 栏前 4 项；第 5 项固定为「更多」
+// 底部 Tab 标签覆盖：practice 在站内含「单词」，但原型/验收确认为「背词」，单独对齐（不改 PAGES 以免影响桌面侧栏）
+const TAB_LABEL   = { practice:'背词' };
 
 function injectNav(){
   const nav = document.getElementById('mainNav');
@@ -221,19 +224,48 @@ function syncNavToggle(){
 }
 
 function ensureMobileChrome(){
-  // 移动端抽屉：☰ 菜单按钮 + 遮罩
-  if(!document.getElementById('sideToggle')){
-    const btn = document.createElement('button');
-    btn.id = 'sideToggle'; btn.className = 'side-toggle'; btn.innerHTML = '☰'; btn.setAttribute('aria-label', '功能菜单');
-    const bd = document.createElement('div');
-    bd.id = 'sideBackdrop'; bd.className = 'side-backdrop';
-    document.body.appendChild(bd); document.body.appendChild(btn);
-    btn.addEventListener('click', () => { document.body.classList.toggle('nav-open'); syncNavToggle(); });
-    bd.addEventListener('click', () => { document.body.classList.remove('nav-open'); syncNavToggle(); });
-    syncNavToggle();
+  // 移动端：底部固定 Tab 栏 + 「更多」弹层（取代原 ☰ 抽屉）
+  if(!document.getElementById('tabbar')){
+    const bar = document.createElement('nav');
+    bar.id = 'tabbar'; bar.className = 'tabbar'; bar.setAttribute('aria-label', '底部导航');
+    const pageById = id => PAGES.find(p => p.id === id);
+    const cur = _hubCurrentFile;
+    let items = '';
+    for(const pid of TAB_NAV){
+      const p = pageById(pid); if(!p) continue;
+      const active = (p.file === cur) ? 'active' : '';
+      const label = TAB_LABEL[pid] || p.name;
+      items += `<a class="tabbar-item ${active}" href="${p.file}" data-id="${p.id}">`
+        + `<span class="tb-ico">${p.icon}</span><span class="tb-lbl">${label}</span></a>`;
+    }
+    items += `<button class="tabbar-item tabbar-more" type="button" aria-label="更多功能">`
+      + `<span class="tb-ico">≡</span><span class="tb-lbl">更多</span></button>`;
+    bar.innerHTML = items;
+    document.body.appendChild(bar);
+
+    // 「更多」弹层：MORE_NAV + PRIMARY_NAV 中未进 Tab 的项（计划/句子/写作/错句本）
+    const moreIds = MORE_NAV.concat(PRIMARY_NAV.filter(id => !TAB_NAV.includes(id)));
+    let sh = '<div class="sheet-head"><span>更多功能</span>'
+      + '<button class="sheet-close" type="button" aria-label="关闭">✕</button></div>'
+      + '<div class="sheet-list">';
+    for(const pid of moreIds){
+      const p = pageById(pid); if(!p) continue;
+      const active = (p.file === cur) ? 'active' : '';
+      sh += `<a class="sheet-item ${active}" href="${p.file}" data-id="${p.id}">`
+        + `<span class="nav-icon">${p.icon}</span><span class="side-label">${p.name}</span></a>`;
+    }
+    sh += '</div>';
+    const bd = document.createElement('div'); bd.id = 'sheetBackdrop'; bd.className = 'sheet-backdrop';
+    const sheet = document.createElement('div'); sheet.id = 'moreSheet'; sheet.className = 'sheet'; sheet.innerHTML = sh;
+    document.body.appendChild(bd); document.body.appendChild(sheet);
+
+    bar.querySelector('.tabbar-more').addEventListener('click', openMoreSheet);
+    bd.addEventListener('click', closeMoreSheet);
+    sheet.querySelector('.sheet-close').addEventListener('click', closeMoreSheet);
+    sheet.querySelectorAll('.sheet-item').forEach(a => a.addEventListener('click', closeMoreSheet));
   }
 
-  // 收起后左上角的展开按钮（桌面浮出）
+  // 收起后左上角的展开按钮（桌面浮出）—— 保持不动
   if(!document.getElementById('sideCollapse')){
     const col = document.createElement('button');
     col.id = 'sideCollapse'; col.className = 'side-collapse';
@@ -242,6 +274,8 @@ function ensureMobileChrome(){
     syncCollapseIcon();
   }
 }
+function openMoreSheet(){ document.body.classList.add('sheet-open'); }
+function closeMoreSheet(){ document.body.classList.remove('sheet-open'); }
 
 function toggleSidebar(){
   const now = document.body.classList.toggle('side-collapsed');
@@ -1568,6 +1602,7 @@ function onHubLinkClick(e){
   const t = hubLinkTarget(a);
   if(!t) return;                 // 放行：由浏览器原生处理
   e.preventDefault();            // 拦下，走软切换
+  closeMoreSheet();             // 移动端：点任意站内链接即收起「更多」弹层
   updateActiveNav(t.file);       // ⚠️ 关键修复（导航高亮闪烁）：点击瞬间同步高亮目标模块，
                                   //    不等 fetch/脚本执行。否则在「点击→fetch→runPageScript(重脚本 eval)」
                                   //    这段异步窗口里，旧模块高亮仍挂着，表现为「先闪其他模块、再跳回」。
@@ -1637,9 +1672,15 @@ function swapPageStyles(doc, pageId){
 function updateActiveNav(file){
   if(file) _hubCurrentFile = file;   // 软导航先把真实当前页记下来，避免后续 injectNav 按滞后 pathname 错配高亮
   const nav = document.getElementById('mainNav');
-  if(!nav) return;
-  nav.querySelectorAll('.side-item').forEach(a => {
-    a.classList.toggle('active', a.getAttribute('href') === file);
+  if(nav){
+    nav.querySelectorAll('.side-item').forEach(a => {
+      a.classList.toggle('active', a.getAttribute('href') === file);
+    });
+  }
+  // 同步底部 Tab 栏 + 更多弹层高亮（单一写入点，避免闪烁）
+  document.querySelectorAll('.tabbar-item[data-id], .sheet-item[data-id]').forEach(a => {
+    const p = PAGES.find(pp => pp.id === a.dataset.id);
+    a.classList.toggle('active', !!(p && p.file === file));
   });
 }
 
