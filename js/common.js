@@ -972,7 +972,13 @@ function mergeData(local, cloud){
       if(_win !== _ld){ out.dailySession = _win; changes++; }
     } else {
       const mergedSession = Object.assign({}, _ld);
-      const passedSet = new Set([...(_ld.passed || []), ...(_cd.passed || [])]);
+      // 只有两端锁定的是同一轮词表（planEn 完全一致）时，才合并 passed 实现续背；
+      // planEn 不同意味着不是同一轮，合并 passed 会把本机未背的词标记为已背，导致一打开就是 20/20。
+      const _normPlan = arr => (arr || []).map(e => String(e).trim().toLowerCase()).sort().join('\u0001');
+      const _samePlan = _normPlan(_ld.planEn) && _normPlan(_ld.planEn) === _normPlan(_cd.planEn);
+      const passedSet = _samePlan
+        ? new Set([...(_ld.passed || []), ...(_cd.passed || [])])
+        : new Set(_ld.passed || []);
       mergedSession.passed = Array.from(passedSet);
       mergedSession.total = Math.max(_ld.total || 0, _cd.total || 0);
       mergedSession.stats = {

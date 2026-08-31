@@ -315,6 +315,16 @@ function autoStartSeeWord(){
     const today = todayKey();
     // —— 恢复或首次锁定当日词表 ——
     let session = DATA.dailySession;
+    // 防污染：若本机 session 里 planEn 内已被标记为 passed 的词 >=95%，视为本轮已结束，强制开新轮。
+    // 这种情况通常由跨设备 passed 并集污染导致（例如云端把本机未背的词也标记为已背，一打开就显示 20/20）。
+    if(session && session.date === today && Array.isArray(session.planEn) && session.planEn.length > 0 && !session.finished){
+      const _planSet = new Set(session.planEn.map(e => String(e).trim().toLowerCase()));
+      const _passedInPlan = (session.passed || []).filter(e => _planSet.has(String(e).trim().toLowerCase()));
+      if(_passedInPlan.length / session.planEn.length >= 0.95){
+        session.finished = true;
+        hubSave();
+      }
+    }
     // 上一轮已做完 -> 强制开新一轮（取全新待学习词）；否则续上当天未完成的轮次（不丢进度）
     const fresh = !session || session.date !== today || !Array.isArray(session.planEn) || session.planEn.length === 0 || session.finished === true;
     if(fresh){
