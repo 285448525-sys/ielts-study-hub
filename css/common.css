@@ -2208,3 +2208,41 @@ body.exam-fullscreen #writeTabs{display:none}
   color:var(--err-text); font-size:18px; line-height:1; transition:background .15s;
 }
 .ui-err-close:hover{ background:color-mix(in srgb, var(--err) 16%, transparent); }
+
+/* ===== 通用 AI 唤起按钮 ai-btn（Uiverse ilkhoeri 改写：Tailwind 黄 #efad21/#ffd60f/#ffea50 → teal --primary-d/--primary-bright；sparkle 脉冲 + 悬停放大/文字淡出交互保留；原 .group/.relative 等 Tailwind 工具类无站点冲突，改名 .ai-btn 零冲突） ===== */
+.ai-btn{
+  --sz-btn:68px;
+  --space:calc(var(--sz-btn) / 5.5);
+  --gen-sz:calc(var(--space) * 2);
+  --sz-text:calc(var(--sz-btn) - var(--gen-sz));
+  position:relative;
+  width:var(--sz-btn); height:var(--sz-btn);
+  border:1px solid transparent; border-radius:var(--radius-sm);
+  display:flex; align-items:center; justify-content:center;
+  aspect-ratio:1 / 1; cursor:pointer; outline:none;
+  background:linear-gradient(45deg, var(--primary-d), var(--primary-bright));
+  box-shadow:rgba(60,64,67,.30) 0 1px 2px 0, rgba(60,64,67,.15) 0 2px 6px 2px, rgba(0,0,0,.30) 0 30px 60px -30px, rgba(52,52,52,.35) 0 -2px 6px 0 inset;
+  transition:transform .2s;
+  font-family:inherit;
+}
+.ai-btn:active{ transform:scale(.95); }
+.ai-btn-spark{
+  position:absolute; z-index:10; overflow:visible;
+  color:var(--on-primary);
+  top:calc(var(--sz-text) / 7); left:calc(var(--sz-text) / 7);
+  width:var(--gen-sz); height:var(--gen-sz);
+  transition:all .3s;
+  animation:pulse 2s cubic-bezier(.4,0,.6,1) infinite;
+}
+.ai-btn:hover .ai-btn-spark{
+  color:var(--on-primary);
+  width:var(--sz-text); height:var(--sz-text);
+  left:calc(var(--sz-text) / 4); top:calc(var(--gen-sz) / 2);
+}
+.ai-btn-label{
+  font-size:var(--sz-text);
+  font-weight:800; line-height:1; color:var(--on-primary);
+  transition:opacity .2s;
+}
+.ai-btn:hover .ai-btn-label{ opacity:0; }
+@keyframes pulse{ 50%{ opacity:.5 } }
