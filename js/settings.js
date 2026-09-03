@@ -208,7 +208,15 @@ function importData(file){
       DATA.speakingVersion = SPEAKING_BANK_VERSION;
     }
     hubSave(); location.reload();
-  }catch(e){ toast('文件格式错误'); } };
+  }catch(e){
+    const box = document.getElementById('importErr');
+    if(box) box.innerHTML = '<div class="ui-err-card">'
+      + '<span class="ui-err-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.3v.2"/></svg></span>'
+      + '<div class="ui-err-body"><h4 class="ui-err-title">导入失败</h4><ul class="ui-err-list"><li>文件不是有效的 JSON 备份</li><li>请确认是从本站点「导出 JSON」得到的文件</li></ul></div>'
+      + '<button class="ui-err-close" type="button" aria-label="关闭" onclick="this.closest(\'.ui-err-box\').innerHTML=\'\'">×</button>'
+      + '</div>';
+    toast('文件格式错误');
+  } };
   r.readAsText(file);
 }
 

@@ -76,6 +76,73 @@ function injectNav(){
   renderSideTimer();   // 方案1：注入/刷新全局计时徽标（有活动会话才显示）
 }
 
+/* ===== 全站玻璃底栏 dock（桌面 ≥861px；移动端用既有 tabbar，不再重复）===== */
+function injectGlobalDock(){
+  if(document.getElementById('hubDock')) return;
+  if(window.matchMedia && window.matchMedia('(max-width:860px)').matches) return;
+  const items = [
+    {id:'index',    label:'首页', icon:'<path d="M3 11l9-8 9 8M5 10v10h14V10"/>'},
+    {id:'plans',    label:'计划', icon:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4"/>'},
+    {id:'practice', label:'背词', icon:'<path d="M4 5h12a3 3 0 0 1 3 3v11H7a3 3 0 0 1-3-3V5zM4 5a3 3 0 0 1 3-3h9"/>'},
+    {id:'speaking', label:'口语', icon:'<path d="M21 12a8 8 0 0 1-11.5 7.2L3 21l1.8-6.5A8 8 0 1 1 21 12z"/>'},
+    {id:'writing',  label:'写作', icon:'<path d="M4 20h4L18.5 9.5l-4-4L4 16v4z"/>'}
+  ];
+  const current = _hubCurrentFile || normalizePageFile(location.pathname.split('/').pop() || 'index.html');
+  let inner = '';
+  for(const it of items){
+    const p = PAGES.find(x => x.id === it.id);
+    const file = p ? p.file : (it.id + '.html');
+    const active = (it.id === current) ? ' active' : '';
+    inner += '<a class="ui-menu-item' + active + '" href="' + file + '" data-id="' + it.id + '" title="' + it.label + '">'
+      + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + it.icon + '</svg>'
+      + '<span>' + it.label + '</span></a>';
+  }
+  const dock = document.createElement('nav');
+  dock.id = 'hubDock';
+  dock.className = 'ui-menu';
+  dock.setAttribute('aria-label', '快捷导航');
+  dock.innerHTML = inner;
+  document.body.appendChild(dock);
+  document.body.classList.add('has-dock');
+}
+
+/* ===== 全站 + 浮动按钮（点击页面内 [data-fab-add] 触发新增）===== */
+function injectFab(){
+  if(document.getElementById('hubFab')) return;
+  const target = document.querySelector('[data-fab-add]');
+  if(!target) return;   // 当前页无新增入口则不加
+  const fab = document.createElement('button');
+  fab.id = 'hubFab';
+  fab.className = 'ui-plus';
+  fab.type = 'button';
+  fab.setAttribute('aria-label', '新增');
+  fab.title = '新增';
+  fab.innerHTML = '<svg class="ui-plus-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg>';
+  fab.addEventListener('click', () => { try{ target.click(); }catch(e){} });
+  document.body.appendChild(fab);
+}
+
+/* ===== 列表页即时搜索（.ui-search 组件配套） =====
+   用法：<input class="ui-search-input" data-search-input data-search-target="#planList" />
+   过滤目标容器内「直接子元素」的文本；空查询恢复全部显示。无匹配选择器时安全跳过。 */
+function initListSearch(){
+  document.querySelectorAll('[data-search-input]').forEach(inp => {
+    const sel = inp.getAttribute('data-search-target');
+    if(!sel) return;
+    const box = document.querySelector(sel);
+    if(!box) return;
+    inp.addEventListener('input', () => {
+      const q = (inp.value || '').trim().toLowerCase();
+      const items = Array.prototype.slice.call(box.children);
+      if(!items.length) return;
+      items.forEach(it => {
+        const hit = !q || (it.textContent || '').toLowerCase().indexOf(q) !== -1;
+        it.style.display = hit ? '' : 'none';
+      });
+    });
+  });
+}
+
 /* ===== 方案1 · 全局计时徽标（侧边栏常驻，解决 P1 不可见 + P3 跨页结束） =====
    设计红线：徽标只读活动会话状态、不新增任何计时实例；计时/恢复逻辑仍在 timer.js，
    本模块只做"呈现"与"结束"。活动会话来源：优先 window.active（计时页实时对象），
@@ -1766,6 +1833,8 @@ ready(() => { hubLoad();
   initBootLoader();                                    // 收起首屏内联遮罩（覆盖 Ctrl+F5 / 整页跳转的卡顿）
   initFloatTimer();                                   // 注入全站计时悬浮标签（跨页常驻，运行中显示）
   injectNav(); applyTheme(); restoreSideScroll(); initSoftNav();
+  injectGlobalDock(); injectFab();          // 全站玻璃底栏 dock + 新增浮动按钮
+  initListSearch();                          // 列表页 .ui-search 即时过滤（data-search-input + data-search-target）
   registerSW();
   // 计时保存后刷新侧边栏「今日已学」（侧边栏在所有页面可见，需即时更新）。
   // ⚠️ 关键修复（导航高亮闪烁 bug）：原来这里调 injectNav() 会「整条重建侧边栏 nav.innerHTML」，

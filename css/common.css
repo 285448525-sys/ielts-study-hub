@@ -2850,3 +2850,19 @@ body.exam-fullscreen #writeTabs{display:none}
     0 0 0 2px var(--line),
     0.3em 0.3em 1em rgba(0,0,0,.3);
 }
+
+/* ===== 全站玻璃底栏 dock（桌面固定底部居中；移动端隐藏，用既有 tabbar） + 新增浮动按钮 ===== */
+#hubDock{ position:fixed; left:50%; bottom:18px; transform:translateX(-50%); z-index:45; }
+body.has-dock main.container{ padding-bottom:88px; }
+@media (max-width:860px){
+  #hubDock{ display:none; }
+  body.has-dock main.container{ padding-bottom:0; }
+}
+#hubFab{
+  position:fixed; right:18px; bottom:18px; z-index:60;
+  border-radius:50%; cursor:pointer; padding:0;
+  box-shadow:0 8px 20px rgba(0,0,0,.28);
+}
+@media (max-width:860px){
+  #hubFab{ bottom:74px; }   /* 避开移动端底部 tabbar */
+}
