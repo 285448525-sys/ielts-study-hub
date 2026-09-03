@@ -2457,3 +2457,46 @@ body.exam-fullscreen #writeTabs{display:none}
   50%{outline:.2em solid var(--color-outline); outline-offset:.2em}
   100%{outline:.4em solid transparent; outline-offset:.4em}
 }
+
+/* ===== 通用滑出图标按钮 ui-slide-btn（Uiverse cssbuttons-io 改写：红 #e62222/#c41b1b/#ff3636 → teal --primary/--primary-d(描边)/--primary-bright；原裸 button{} 元素选择器会污染全站按钮 → 改名 .ui-slide-btn 作用域；补 position:relative 让绝对定位 icon 收敛（原版缺导致 icon 跑到祖先）；icon 用 right:0 替代 translateX(110px) 防垂直错位；svg #eee→var(--on-primary)） ===== */
+.ui-slide-btn{
+  position:relative;
+  width:150px;
+  height:50px;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  background:var(--primary);
+  border:none;
+  border-radius:5px;
+  box-shadow:1px 1px 3px rgba(0,0,0,.15);
+  overflow:hidden;
+  font-family:inherit;
+}
+.ui-slide-btn, .ui-slide-btn .text{ transition:200ms; }
+.ui-slide-btn .text{
+  transform:translateX(35px);
+  color:var(--on-primary);
+  font-weight:bold;
+}
+.ui-slide-btn .icon{
+  position:absolute;
+  top:0; right:0;
+  height:100%;
+  width:40px;
+  border-left:1px solid rgba(255,255,255,.4);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:200ms;
+}
+.ui-slide-btn .icon svg{
+  width:15px;
+  fill:var(--on-primary);
+  transition:200ms;
+}
+.ui-slide-btn:hover{ background:var(--primary-bright); }
+.ui-slide-btn:hover .text{ color:transparent; }
+.ui-slide-btn:hover .icon{ width:100%; border-left:none; }
+.ui-slide-btn:focus{ outline:none; }
+.ui-slide-btn:active .icon svg{ transform:scale(.8); }
