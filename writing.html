@@ -25,7 +25,7 @@
 })();
 </script>
 <title>写作 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20260903aa" />
+<link rel="stylesheet" href="css/common.css?v=20260903ab" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=5" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=4">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=4">
@@ -35,10 +35,10 @@
 
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
-<script defer src="js/data.js?v=20260830u"></script>
+<script defer src="js/data.js?v=20260903ab"></script>
   <script defer src="js/common.js?v=20260903c"></script>
-  <script defer src="js/writing_prompts.js?v=20260830u"></script>
-  <script defer src="js/writing.js?v=20260830u"></script>
+  <script defer src="js/writing_prompts.js?v=20260903ab"></script>
+  <script defer src="js/writing.js?v=20260903ab"></script>
 <style>
 
   .write-layout{display:flex;gap:16px;align-items:flex-start}
@@ -189,6 +189,10 @@
       <div class="write-main">
         <section class="card" id="listCard">
           <h2>模板列表</h2>
+          <div class="ui-search" style="margin:8px 0 4px">
+            <svg class="ui-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input class="ui-search-input" type="search" id="tplSearch" placeholder="搜索模板（标题/分类）…" aria-label="搜索模板" />
+          </div>
           <div id="tplList" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr));margin-top:10px"></div>
           <div id="empty" class="empty-state" hidden>还没有模板。点「+ 新增模板」添加。</div>
         </section>
@@ -271,6 +275,10 @@
           <option value="通用">通用</option>
         </select>
         <button class="btn btn-primary" id="bankAddBtn">+ 新增语料</button>
+      </div>
+      <div class="ui-search" style="margin:6px 0 4px">
+        <svg class="ui-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input class="ui-search-input" type="search" id="bankSearch" placeholder="搜索语料（英/中/标签）…" aria-label="搜索语料" />
       </div>
       <div id="bankList" style="margin-top:10px"></div>
     </section>

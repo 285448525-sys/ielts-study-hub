@@ -51,6 +51,8 @@ function corAgoText(ts){
 
 ready(() => {
   const on = (id, ev, fn) => { const el = document.getElementById(id); if(el) el.addEventListener(ev, fn); };
+  const cs = document.getElementById('corpusSearch');
+  if(cs) cs.addEventListener('input', () => { corpusSearch = cs.value.trim().toLowerCase(); renderList(); });
   on('importCorpus', 'click', importBulk);
   on('aiImportBtn', 'click', aiImportCorpus);
   on('addCorpus', 'click', addOne);
@@ -180,11 +182,14 @@ async function aiImportCorpus(){
   }
 }
 
+let corpusSearch = '';
 function renderList(){
-  $('#corpusCount').textContent = DATA.corpus.length;
+  let arr = DATA.corpus;
+  if(corpusSearch){ arr = arr.filter(c => ((c.en||'')+' '+(c.cn||'')).toLowerCase().indexOf(corpusSearch) !== -1); }
+  $('#corpusCount').textContent = arr.length;
   const box = $('#corpusList');
-  if(DATA.corpus.length === 0){ box.innerHTML = renderEmpty('还没有句子，上面导几句吧。'); return; }
-  const rows = DATA.corpus.slice().reverse().map((c, i) => `
+  if(arr.length === 0){ box.innerHTML = renderEmpty(corpusSearch ? '没有匹配“'+escapeHtml(corpusSearch)+'”的句子。' : '还没有句子，上面导几句吧。'); return; }
+  const rows = arr.slice().reverse().map((c, i) => `
     <tr>
       <td class="cor-idx">${i + 1}</td>
       <td class="cor-cell cor-cn">${c.cn ? escapeHtml(c.cn) : '<span class="muted">（无中文）</span>'}</td>

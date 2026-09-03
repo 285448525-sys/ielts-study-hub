@@ -27,7 +27,7 @@
 })();
 </script>
 <title>句子 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20260903aa" />
+<link rel="stylesheet" href="css/common.css?v=20260903ab" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=5" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=4">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=4">
@@ -37,9 +37,9 @@
 
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
-<script defer src="js/data.js?v=20260830u"></script>
+<script defer src="js/data.js?v=20260903ab"></script>
   <script defer src="js/common.js?v=20260903c"></script>
-  <script src="js/corpus.js?v=20260830u" defer></script>
+  <script src="js/corpus.js?v=20260903ab" defer></script>
 <style>
   /* 长难句 / 错题本 样式（原 errorbook.html 内联） */
   .eb-input{width:100%;min-height:190px;padding:14px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;font-size:14.5px;line-height:1.75;background:var(--bg);color:var(--ink);resize:vertical}
@@ -149,6 +149,10 @@
         <h2 style="margin:0">语料表（左中文 · 右英文）</h2>
         <span class="muted" style="font-size:13px">共 <b id="corpusCount">0</b> 条</span>
         <button class="btn btn-primary flex-none" id="startWrite">表格默写（隐藏英文列）</button>
+      </div>
+      <div class="ui-search" style="margin:8px 0 4px">
+        <svg class="ui-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input class="ui-search-input" type="search" id="corpusSearch" placeholder="搜索语料（中/英）…" aria-label="搜索语料" />
       </div>
       <div id="corpusList"></div>
       <details style="margin-top:12px">

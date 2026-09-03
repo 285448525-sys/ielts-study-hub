@@ -25,7 +25,7 @@
 })();
 </script>
 <title>词句 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20260903aa" />
+<link rel="stylesheet" href="css/common.css?v=20260903ab" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=5" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=4">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=4">
@@ -35,9 +35,9 @@
 
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
-<script defer src="js/data.js?v=20260830u"></script>
+<script defer src="js/data.js?v=20260903ab"></script>
   <script defer src="js/common.js?v=20260903c"></script>
-  <script src="js/errorbook.js?v=20260830u" defer></script>
+  <script src="js/errorbook.js?v=20260903ab" defer></script>
 <style>
   .eb-input{width:100%;min-height:190px;padding:14px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;font-size:14.5px;line-height:1.75;background:var(--bg);color:var(--ink);resize:vertical}
   .eb-input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
@@ -133,6 +133,10 @@
   <section class="card">
     <div class="eb-list-head">
       <h2>已归档 · <span id="count">0</span> 条</h2>
+    </div>
+    <div class="ui-search" style="margin:8px 0 4px">
+      <svg class="ui-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input class="ui-search-input" type="search" id="ebSearch" placeholder="搜索错题（题干/笔记）…" aria-label="搜索错题" />
     </div>
     <div id="list"></div>
     <div id="empty" class="muted" hidden>还没有记录。把你的错题笔记贴到上面那个框，点「理清错因并归档」。</div>

@@ -18,6 +18,8 @@ ready(() => {
   /* 错题本 */
   $('#ebAnalyze').addEventListener('click', analyzeEntry);
   $('#ebRaw').addEventListener('click', saveRawEntry);
+  const es = document.getElementById('ebSearch');
+  if(es) es.addEventListener('input', () => { ebSearch = es.value.trim().toLowerCase(); render(); });
   render();
 
   /* 长难句拆解 */
@@ -188,14 +190,16 @@ function toArr(v){
 }
 
 /* ---------- 渲染 ---------- */
+let ebSearch = '';
 function render(){
-  const list = DATA.errorbook
+  let list = DATA.errorbook
     .slice()
     .sort((a,b) => (b.date||'').localeCompare(a.date||''));
+  if(ebSearch){ list = list.filter(e => (JSON.stringify(e)||'').toLowerCase().indexOf(ebSearch) !== -1); }
 
   $('#count').textContent = list.length;
   const box = $('#list');
-  $('#empty').hidden = DATA.errorbook.length > 0;
+  $('#empty').hidden = list.length > 0;
   box.innerHTML = list.map(cardHtml).join('');
   bindWordHover(box);
 

@@ -1,7 +1,10 @@
 // ===== 错句本：聚合写作模板默写 + 语料库表格默写的错误句子 =====
 // 复用 common.js 的 collectWrongSentences / deleteWrongItem
 
+let wbSearch = '';
 ready(() => {
+  const ws = document.getElementById('wbSearch');
+  if(ws) ws.addEventListener('input', () => { wbSearch = ws.value.trim().toLowerCase(); renderWrongbook(); });
   renderWrongbook();
   $('#wbSourceFilter').addEventListener('change', renderWrongbook);
 });
@@ -19,6 +22,7 @@ function renderWrongbook(){
   if(cur && (cur === 'all' || sources.indexOf(cur) >= 0)) filterSel.value = cur;
 
   const list = cur && cur !== 'all' ? all.filter(x => x.sourceId === cur) : all;
+  if(wbSearch){ list = list.filter(it => ((it.right||'')+' '+(it.wrong||'')+' '+(it.note||'')+' '+sourceLabel(it.sourceId)).toLowerCase().indexOf(wbSearch) !== -1); }
   $('#wbCount').textContent = list.length;
   $('#wbEmpty').hidden = list.length > 0;
 

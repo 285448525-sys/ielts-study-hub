@@ -1,6 +1,8 @@
 var curCat = null;
 var curId = null;
 var curTab = 'tpl';
+var tplSearch = '';
+var bankSearch = '';
 
 function switchWriteTab(tab){
   curTab = tab;
@@ -71,6 +73,10 @@ ready(() => {
 
   // 语料库
   $('#bankFilter').addEventListener('change', renderBank);
+  const tplSearchEl = document.getElementById('tplSearch');
+  if(tplSearchEl) tplSearchEl.addEventListener('input', () => { tplSearch = tplSearchEl.value.trim().toLowerCase(); renderList(); });
+  const bankSearchEl = document.getElementById('bankSearch');
+  if(bankSearchEl) bankSearchEl.addEventListener('input', () => { bankSearch = bankSearchEl.value.trim().toLowerCase(); renderBank(); });
   $('#bankAddBtn').addEventListener('click', () => { $('#bankAddCard').hidden = false; });
   $('#ba_cancel').addEventListener('click', () => { $('#bankAddCard').hidden = true; });
   $('#ba_save').addEventListener('click', addPhrase);
@@ -116,7 +122,8 @@ function renderCats(){
 }
 
 function renderList(){
-  const list = DATA.writing.filter(t => t.category === curCat);
+  let list = DATA.writing.filter(t => t.category === curCat);
+  if(tplSearch){ list = list.filter(t => (cleanCatName(t.title)+' '+t.category).toLowerCase().indexOf(tplSearch) !== -1); }
   $('#tplList').innerHTML = list.map(t => '<div class="card tpl-card" data-id="' + t.id + '"><b>' + escapeHtml(cleanCatName(t.title)) + '</b><div class="muted" style="font-size:13px;margin-top:4px">' + escapeHtml(t.category) + '</div></div>').join('');
   $('#empty').hidden = list.length > 0;
   $('#tplList').querySelectorAll('[data-id]').forEach(c => c.addEventListener('click', () => openTpl(c.dataset.id)));
@@ -865,9 +872,10 @@ ${JSON.stringify(weakBefore)}` }
 /* ===== 万能语料库（表格：英文 | 中文/例句 | 操作） ===== */
 function renderBank(){
   const filter = $('#bankFilter').value;
-  const list = DATA.writingPhrases.filter(p => filter === 'all' || p.type === filter);
+  let list = DATA.writingPhrases.filter(p => filter === 'all' || p.type === filter);
+  if(bankSearch){ list = list.filter(p => ((p.en||'')+' '+(p.cn||'')+' '+(p.tag||'')+' '+(p.example||'')).toLowerCase().indexOf(bankSearch) !== -1); }
   const box = $('#bankList');
-  if(!list.length){ box.innerHTML = '<div class="muted">还没有语料。点「+ 新增语料」添加，或先用默认起步语料。</div>'; return; }
+  if(!list.length){ box.innerHTML = '<div class="muted">' + (DATA.writingPhrases.length ? '没有匹配“'+escapeHtml(bankSearch)+'”的语料。' : '还没有语料。点「+ 新增语料」添加，或先用默认起步语料。') + '</div>'; return; }
   const rows = list.map(p => {
     const ex = p.example ? '<div class="bank-ex">例：' + escapeHtml(p.example) + '</div>' : '';
     const cn = p.cn ? '<div class="bank-detail">' + escapeHtml(p.cn) + '</div>' : '';
