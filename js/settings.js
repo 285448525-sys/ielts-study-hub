@@ -12,7 +12,7 @@ function populateSettingsForm(){
     cdEl2.style.color = cd.hasExam ? 'var(--primary)' : 'var(--muted)';
   }
   if($('#sGoal')) $('#sGoal').value = s.dailyGoalHours || '';
-  if($('#sTheme')) $('#sTheme').value = s.theme || 'light';
+  if($('#sThemeToggle')) $('#sThemeToggle').checked = (s.theme === 'dark');
 
   const t = s.targets || {};
   if($('#tOverall')) $('#tOverall').value = t.overall || '';
@@ -41,7 +41,13 @@ ready(() => {
     el.type = showing ? 'password' : 'text';
     $('#toggleKey').textContent = showing ? '显示' : '隐藏';
   });
-  $('#sTheme').addEventListener('change', () => applyTheme($('#sTheme').value));
+  $('#sThemeToggle').addEventListener('change', () => {
+    const dark = $('#sThemeToggle').checked;
+    DATA.settings.theme = dark ? 'dark' : 'light';
+    applyTheme();
+    hubSave();
+    if(DATA.settings.syncCode) scheduleCloudUpload(); // 已登录则同步主题到云端（theme 在 SYNC_SETTINGS_FIELDS）
+  });
   $('#exportBtn').addEventListener('click', exportData);
   $('#importBtn').addEventListener('click', () => $('#importFile').click());
   $('#importFile').addEventListener('change', e => { if(e.target.files[0]) importData(e.target.files[0]); });
@@ -68,7 +74,7 @@ function saveSettings(){
   // 清空历史多场日程数组：旧的 examDates 会覆盖单个 examDate，导致首页倒计时显示过期日期
   if(DATA.settings.examDate) DATA.settings.examDates = [];
   DATA.settings.dailyGoalHours = parseFloat($('#sGoal').value) || 0;
-  DATA.settings.theme = $('#sTheme').value;
+  DATA.settings.theme = $('#sThemeToggle').checked ? 'dark' : 'light';
   DATA.settings.targets = {
     overall: parseFloat($('#tOverall').value) || 0,
     listening: parseFloat($('#tListening').value) || 0,
