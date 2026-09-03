@@ -2540,3 +2540,38 @@ body.exam-fullscreen #writeTabs{display:none}
   color:var(--muted);
   pointer-events:none;
 }
+
+/* ===== 通用浮动标签输入框 ui-float（Uiverse alexruix 改写：Material 蓝 #1a73e8/#2196f3 → teal --primary；近白字 #f5f5f5/#e8e8e8→--ink/--muted；原 .input-group/.input/.user-label 改名 .ui-float*；⚠️ 原 input:valid/input:focus 裸元素选择器会污染全站（所有 input+其后续 label）→ 改 .ui-float-input 作用域；并用 :placeholder-shown 替代 :valid（避免「空的非 required 输入框」标签提前上浮的怪相） ===== */
+.ui-float{ position:relative; }
+.ui-float-input{
+  border:solid 1.5px var(--line);
+  border-radius:1rem;
+  background:var(--surface);
+  padding:1rem;
+  font-size:1rem;
+  color:var(--ink);
+  font-family:inherit;
+  width:100%;
+  box-sizing:border-box;
+  transition:border 150ms cubic-bezier(.4,0,.2,1);
+}
+.ui-float-label{
+  position:absolute;
+  left:15px;
+  color:var(--muted);
+  pointer-events:none;
+  transform:translateY(1rem);
+  transition:150ms cubic-bezier(.4,0,.2,1);
+}
+.ui-float-input:focus,
+.ui-float-input:not(:placeholder-shown){
+  outline:none;
+  border-color:var(--primary);
+}
+.ui-float-input:focus ~ .ui-float-label,
+.ui-float-input:not(:placeholder-shown) ~ .ui-float-label{
+  transform:translateY(-50%) scale(.8);
+  background-color:var(--surface);
+  padding:0 .2em;
+  color:var(--primary);
+}
