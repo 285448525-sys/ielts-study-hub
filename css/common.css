@@ -2304,3 +2304,40 @@ body.exam-fullscreen #writeTabs{display:none}
 .ui-menu a span{ font-size:.8rem; font-weight:600; line-height:1; margin-top:4px; }
 .ui-menu a.active{ background:rgba(255,255,255,.55); color:var(--primary-d); }
 .ui-menu a:active{ transform:scale(.98); }
+
+/* ===== 通用 + 按钮 ui-plus（Uiverse OnCloud125252 改写：黑 #000 → teal --primary；白描边/白三角/白图标保留，悬停白三角填充+图标转 teal 反转；原 .plusButton/.plusIcon 改名 .ui-plus/.ui-plus-icon 防冲突，配置变量改 kebab --plus-sz/--plus-tri；原版用自定义属性做动画实际不动，改 transition:border-width 真动画） ===== */
+.ui-plus{
+  --plus-sz:2.5rem;
+  --plus-tri:0.9rem;
+  position:relative;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  border:1px solid var(--on-primary);
+  width:var(--plus-sz);
+  height:var(--plus-sz);
+  background-color:var(--primary);
+  overflow:hidden;
+}
+.ui-plus::before{
+  position:absolute;
+  content:"";
+  top:0; right:0;
+  width:0; height:0;
+  border-width:0 var(--plus-tri) var(--plus-tri) 0;
+  border-style:solid;
+  border-color:transparent var(--on-primary) transparent transparent;
+  transition:border-width .2s ease-in-out;
+}
+.ui-plus:hover{ cursor:pointer; }
+.ui-plus:hover::before,
+.ui-plus:focus-visible::before{ --plus-tri:calc(var(--plus-sz) * 2); }
+.ui-plus > .ui-plus-icon{
+  fill:var(--on-primary);
+  width:calc(var(--plus-sz) * .7);
+  height:calc(var(--plus-sz) * .7);
+  z-index:1;
+  transition:fill .2s ease-in-out, transform .2s ease-in-out;
+}
+.ui-plus:hover > .ui-plus-icon,
+.ui-plus:focus-visible > .ui-plus-icon{ fill:var(--primary-d); transform:rotate(180deg); }
