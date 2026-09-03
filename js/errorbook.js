@@ -4,6 +4,7 @@
      title, subject, qtype, trap, howto:[], wrongPoint, rule:[], words:[], raw }
    兼容老数据 kind:'question' / 'word'（只读渲染，不再提供录入表单）。 */
 
+let ebSearch = '';
 ready(() => {
   /* 子 tab 切换：长难句拆解 / 错题本（默认长难句在前） */
   const wordTabs = document.querySelectorAll('#wordTabs [data-sub]');
@@ -190,7 +191,6 @@ function toArr(v){
 }
 
 /* ---------- 渲染 ---------- */
-let ebSearch = '';
 function render(){
   let list = DATA.errorbook
     .slice()

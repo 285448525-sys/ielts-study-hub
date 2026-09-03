@@ -49,6 +49,7 @@ function corAgoText(ts){
   return Math.floor(h / 24) + ' 天前';
 }
 
+let corpusSearch = '';
 ready(() => {
   const on = (id, ev, fn) => { const el = document.getElementById(id); if(el) el.addEventListener(ev, fn); };
   const cs = document.getElementById('corpusSearch');
@@ -182,7 +183,6 @@ async function aiImportCorpus(){
   }
 }
 
-let corpusSearch = '';
 function renderList(){
   let arr = DATA.corpus;
   if(corpusSearch){ arr = arr.filter(c => ((c.en||'')+' '+(c.cn||'')).toLowerCase().indexOf(corpusSearch) !== -1); }
