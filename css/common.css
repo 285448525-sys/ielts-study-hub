@@ -2270,7 +2270,7 @@ body.exam-fullscreen #writeTabs{display:none}
 
 /* ===== 通用 AI 唤起按钮 ai-btn（Uiverse ilkhoeri 改写：Tailwind 黄 #efad21/#ffd60f/#ffea50 → teal --primary-d/--primary-bright；sparkle 脉冲 + 悬停放大/文字淡出交互保留；原 .group/.relative 等 Tailwind 工具类无站点冲突，改名 .ai-btn 零冲突） ===== */
 .ai-btn{
-  --sz-btn:68px;
+  --sz-btn:48px;
   --space:calc(var(--sz-btn) / 5.5);
   --gen-sz:calc(var(--space) * 2);
   --sz-text:calc(var(--sz-btn) - var(--gen-sz));
@@ -2852,11 +2852,11 @@ body.exam-fullscreen #writeTabs{display:none}
 }
 
 /* ===== 全站玻璃底栏 dock（桌面固定底部居中；移动端隐藏，用既有 tabbar） + 新增浮动按钮 ===== */
-#hubDock{ position:fixed; left:50%; bottom:18px; transform:translateX(-50%); z-index:45; }
-body.has-dock main.container{ padding-bottom:88px; }
+#hubDock{ position:fixed; left:50%; bottom:18px; transform:translateX(-50%); z-index:45; display:none; }
+body.has-dock main.container{ padding-bottom:0; }
 @media (max-width:860px){
-  #hubDock{ display:none; }
-  body.has-dock main.container{ padding-bottom:0; }
+  #hubDock{ display:flex; }
+  body.has-dock main.container{ padding-bottom:88px; }
 }
 #hubFab{
   position:fixed; right:18px; bottom:18px; z-index:60;
