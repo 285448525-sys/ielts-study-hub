@@ -2387,3 +2387,73 @@ body.exam-fullscreen #writeTabs{display:none}
   transition:width .4s cubic-bezier(.42,0,.58,1);
 }
 .ui-input-alt:focus + .ui-input-border-alt{ width:100%; }
+
+/* ===== 通用动画药丸按钮 ui-ripple-btn（Uiverse Li-Deheng 改写：粉 #ff135a/#ff1472 → teal --primary/--primary-bright；三箭头 polygon 闪烁+滑入、ripple/colorize 动画保留；原 .button 超通用改名 .ui-ripple-btn，keyframes opacity/colorize/ripple 加 uiArrow 前缀防冲突；Poppins→inherit） ===== */
+.ui-ripple-btn{
+  --main-size:2em;
+  --color-text:var(--on-primary);
+  --color-background:var(--primary);
+  --color-background-hover:var(--primary-bright);
+  --color-outline:color-mix(in srgb, var(--primary) 25%, transparent);
+  --color-shadow:rgba(0,0,0,.25);
+  cursor:pointer;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  text-decoration:none;
+  border:none;
+  border-radius:calc(var(--main-size) * 100);
+  padding:.33em 0 .33em .66em;
+  font-family:inherit;
+  font-weight:600;
+  font-size:var(--main-size);
+  color:var(--color-text);
+  background:var(--color-background);
+  box-shadow:0 0 .2em 0 var(--color-background);
+  transition:1s;
+}
+.ui-ripple-btn:active{ transform:scale(.95); }
+.ui-ripple-btn:hover{
+  outline:.1em solid transparent;
+  outline-offset:.2em;
+  box-shadow:0 0 1em 0 var(--color-background);
+  animation:uiArrowRipple 1s linear infinite, uiArrowColorize 1s infinite;
+  transition:.5s;
+}
+.ui-ripple-btn span{ margin-right:.3em; transition:.5s; }
+.ui-ripple-btn:hover span{ text-shadow:5px 5px 5px var(--color-shadow); }
+.ui-ripple-btn:active span{ text-shadow:none; }
+.ui-ripple-btn svg{
+  height:.8em;
+  fill:var(--color-text);
+  margin-right:-.16em;
+  position:relative;
+  transition:.5s;
+}
+.ui-ripple-btn:hover svg{
+  margin-right:.66em;
+  transition:.5s;
+  filter:drop-shadow(5px 5px 2.5px var(--color-shadow));
+}
+.ui-ripple-btn:active svg{ filter:none; }
+.ui-ripple-btn svg polygon:nth-child(1){ transition:.4s; transform:translateX(-60%); }
+.ui-ripple-btn svg polygon:nth-child(2){ transition:.5s; transform:translateX(-30%); }
+.ui-ripple-btn:hover svg polygon:nth-child(1){ transform:translateX(0%); animation:uiArrowOpacity 1s infinite .6s; }
+.ui-ripple-btn:hover svg polygon:nth-child(2){ transform:translateX(0%); animation:uiArrowOpacity 1s infinite .4s; }
+.ui-ripple-btn:hover svg polygon:nth-child(3){ animation:uiArrowOpacity 1s infinite .2s; }
+
+@keyframes uiArrowOpacity{
+  0%{opacity:1}
+  50%{opacity:0}
+  100%{opacity:1}
+}
+@keyframes uiArrowColorize{
+  0%{background:var(--color-background)}
+  50%{background:var(--color-background-hover)}
+  100%{background:var(--color-background)}
+}
+@keyframes uiArrowRipple{
+  0%{outline:0em solid transparent; outline-offset:-.1em}
+  50%{outline:.2em solid var(--color-outline); outline-offset:.2em}
+  100%{outline:.4em solid transparent; outline-offset:.4em}
+}
