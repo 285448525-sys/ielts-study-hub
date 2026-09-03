@@ -2575,3 +2575,49 @@ body.exam-fullscreen #writeTabs{display:none}
   padding:0 .2em;
   color:var(--primary);
 }
+
+/* ===== 通用加载跳动点 ui-loader（Uiverse mobinkakei 改写：白球 #fff→teal --primary；黑影 rgba(0,0,0,.9)→color-mix(--ink 30%) 明暗自适应；原 .wrapper/.circle/.shadow 改名 .ui-loader*；⚠️ 原用 :nth-child(2/3/4/5) 定位/延时，DOM 顺序错一点就崩 → 改 .m2/.m3 修饰类，顺序无关；keyframes circle7124/shadow046 加 uiLoader 前缀） ===== */
+.ui-loader{
+  width:200px;
+  height:60px;
+  position:relative;
+  z-index:1;
+}
+.ui-loader-dot{
+  width:20px;
+  height:20px;
+  position:absolute;
+  border-radius:50%;
+  background-color:var(--primary);
+  left:15%;
+  transform-origin:50%;
+  animation:uiLoaderDot .5s alternate infinite ease;
+}
+.ui-loader-dot.m2{ left:45%; animation-delay:.2s; }
+.ui-loader-dot.m3{ left:auto; right:15%; animation-delay:.3s; }
+.ui-loader-shadow{
+  width:20px;
+  height:4px;
+  border-radius:50%;
+  background-color:color-mix(in srgb, var(--ink) 30%, transparent);
+  position:absolute;
+  top:62px;
+  transform-origin:50%;
+  z-index:-1;
+  left:15%;
+  filter:blur(1px);
+  animation:uiLoaderShadow .5s alternate infinite ease;
+}
+.ui-loader-shadow.m2{ left:45%; animation-delay:.2s; }
+.ui-loader-shadow.m3{ left:auto; right:15%; animation-delay:.3s; }
+
+@keyframes uiLoaderDot{
+  0%{ top:60px; height:5px; border-radius:50px 50px 25px 25px; transform:scaleX(1.7); }
+  40%{ height:20px; border-radius:50%; transform:scaleX(1); }
+  100%{ top:0%; }
+}
+@keyframes uiLoaderShadow{
+  0%{ transform:scaleX(1.5); }
+  40%{ transform:scaleX(1); opacity:.7; }
+  100%{ transform:scaleX(.2); opacity:.4; }
+}
