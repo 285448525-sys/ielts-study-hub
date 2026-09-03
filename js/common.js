@@ -1463,7 +1463,7 @@ function injectLoadingOverlay(){
   el.id = 'hubLoader';
   el.className = 'hub-loader';
   el.setAttribute('aria-hidden', 'true');
-  el.innerHTML = '<div class="load-reveal"><span>I</span><span>E</span><span>L</span><span>T</span><span>S</span><div class="load-bar"></div><div class="load-sub">Loading</div></div>';
+  el.innerHTML = '<div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div>';
   document.body.appendChild(el);
 }
 /* 遮罩显示策略：
@@ -1478,10 +1478,7 @@ function showHubLoader(){
   const el = document.getElementById('hubLoader');
   if(!el) return;
   el.classList.add('show');
-  const spans = el.querySelectorAll('.load-reveal > span');
-  spans.forEach(s=>{ s.style.animation='none'; });
-  void el.offsetWidth; // 强制回流，使下方动画重新从头播放
-  spans.forEach(s=>{ s.style.animation=''; });
+  // .ui-loader 由 CSS 无限动画驱动，无需 JS 重置
   _hubLoaderShownAt = Date.now();
   if(_hubLoaderHideTimer){ clearTimeout(_hubLoaderHideTimer); _hubLoaderHideTimer = null; }
   if(_hubLoaderMaxTimer) clearTimeout(_hubLoaderMaxTimer);
