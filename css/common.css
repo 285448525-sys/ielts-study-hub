@@ -230,6 +230,7 @@ body.sheet-open .sheet{transform:translateY(0)}
   /* 底部固定 Tab 栏 */
   .tabbar{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;
     padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+  .tabbar{display:none!important} /* dock 已接管移动端导航，隐藏旧 tabbar 避免双底栏 */
   /* 内容区底部留白，避免被 Tab 栏遮挡 */
   .container{padding:20px 16px calc(84px + env(safe-area-inset-bottom))}
   .card{padding:18px;margin-bottom:16px}
@@ -2343,6 +2344,15 @@ body.exam-fullscreen #writeTabs{display:none}
 .ui-menu a span{ font-size:.8rem; font-weight:600; line-height:1; margin-top:4px; }
 .ui-menu a.active{ background:rgba(255,255,255,.55); color:var(--primary-d); }
 .ui-menu a:active{ transform:scale(.98); }
+/* dock 的「更多」用 <button>（非 <a>），补一套等价样式使其与导航项视觉一致 */
+.ui-menu button.ui-menu-item{
+  display:flex;flex-direction:column;align-items:center;flex:1 1 0;min-width:0;
+  color:rgba(255,255,255,.9);text-decoration:none;padding:10px 6px;border-radius:999rem;
+  background:none;border:none;cursor:pointer;font-family:inherit;font-size:inherit;-webkit-tap-highlight-color:transparent;
+}
+.ui-menu button.ui-menu-item svg{ width:1.4rem; height:1.4rem; }
+.ui-menu button.ui-menu-item span{ font-size:.8rem; font-weight:600; line-height:1; margin-top:4px; }
+.ui-menu button.ui-menu-item:active{ transform:scale(.98); }
 
 /* ===== 通用 + 按钮 ui-plus（Uiverse OnCloud125252 改写：黑 #000 → teal --primary；白描边/白三角/白图标保留，悬停白三角填充+图标转 teal 反转；原 .plusButton/.plusIcon 改名 .ui-plus/.ui-plus-icon 防冲突，配置变量改 kebab --plus-sz/--plus-tri；原版用自定义属性做动画实际不动，改 transition:border-width 真动画） ===== */
 .ui-plus{
@@ -2815,6 +2825,9 @@ body.exam-fullscreen #writeTabs{display:none}
   filter:drop-shadow(0 10px 20px rgba(50,50,50,1)) drop-shadow(0 0 20px rgba(2,2,2,1));
   transform:rotate(-35deg);
 }
+/* 小号变体：用于计时页等次要操作，避免原版 padding 过大撑满 */
+.ui-dark-btn--sm{ padding:.5rem 1.25rem; font-size:.95rem;
+  box-shadow:0 1px 2px rgba(0,0,0,.5), 0 6px 12px rgba(0,0,0,.25); }
 
 /* ===== 通用分层阴影卡片 ui-shadow-card（Uiverse absoluteSTrange 改写：白底 white→--surface；灰环 rgb(190,190,190)→--line；原 .card/.shadow 改名 .ui-shadow-card/.ui-shadow-card-shadow（.card 站里已有 section.card → 必改名）；黑阴影中性保留 ===== */
 .ui-shadow-card{
@@ -2844,5 +2857,5 @@ body.has-dock main.container{ padding-bottom:0; }
   box-shadow:0 8px 20px rgba(0,0,0,.28);
 }
 @media (max-width:860px){
-  #hubFab{ bottom:74px; }   /* 避开移动端底部 tabbar */
+  #hubFab{ bottom:96px; }   /* 避开移动端玻璃底栏 dock */
 }

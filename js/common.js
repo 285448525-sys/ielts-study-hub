@@ -76,10 +76,9 @@ function injectNav(){
   renderSideTimer();   // 方案1：注入/刷新全局计时徽标（有活动会话才显示）
 }
 
-/* ===== 全站玻璃底栏 dock（桌面 ≥861px；移动端用既有 tabbar，不再重复）===== */
+/* ===== 全站玻璃底栏 dock（移动端 ≤860px 显示，作为移动端主底部导航；桌面用侧栏，不显示）===== */
 function injectGlobalDock(){
   if(document.getElementById('hubDock')) return;
-  if(window.matchMedia && window.matchMedia('(max-width:860px)').matches) return;
   const items = [
     {id:'index',    label:'首页', icon:'<path d="M3 11l9-8 9 8M5 10v10h14V10"/>'},
     {id:'plans',    label:'计划', icon:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4"/>'},
@@ -101,9 +100,14 @@ function injectGlobalDock(){
   dock.id = 'hubDock';
   dock.className = 'ui-menu';
   dock.setAttribute('aria-label', '快捷导航');
+  inner += '<button class="ui-menu-item" type="button" data-more aria-label="更多功能">'
+    + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>'
+    + '<span>更多</span></button>';
   dock.innerHTML = inner;
   document.body.appendChild(dock);
   document.body.classList.add('has-dock');
+  const moreBtn = dock.querySelector('[data-more]');
+  if(moreBtn) moreBtn.addEventListener('click', openMoreSheet);
 }
 
 /* ===== 全站 + 浮动按钮（点击页面内 [data-fab-add] 触发新增）===== */
@@ -310,8 +314,13 @@ function ensureMobileChrome(){
     bar.innerHTML = items;
     document.body.appendChild(bar);
 
-    // 「更多」弹层：MORE_NAV + PRIMARY_NAV 中未进 Tab 的项（计划/句子/写作/错句本）
-    const moreIds = MORE_NAV.concat(PRIMARY_NAV.filter(id => !TAB_NAV.includes(id)));
+    // dock 已接管移动端导航（含 index/plans/practice/speaking/writing），
+    // 把其余页面（含原 tabbar 主项 timer）收进「更多」弹层，避免丢失入口
+    const DOCK_IDS = ['index','plans','practice','speaking','writing'];
+    const moreIds = MORE_NAV
+      .concat(PRIMARY_NAV.filter(id => !TAB_NAV.includes(id)))
+      .concat(['timer'])
+      .filter(id => !DOCK_IDS.includes(id));
     let sh = '<div class="sheet-head"><span>更多功能</span>'
       + '<button class="sheet-close" type="button" aria-label="关闭">✕</button></div>'
       + '<div class="sheet-list">';
