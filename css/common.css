@@ -2640,3 +2640,74 @@ body.exam-fullscreen #writeTabs{display:none}
 .ui-box-input:hover{ border-color:var(--muted); box-shadow:0 0 20px -17px; }
 .ui-box-input:active{ transform:scale(.95); }
 .ui-box-input:focus{ border-color:var(--primary); }
+
+/* ===== 通用玻璃卡片 ui-glass-card（Uiverse Javierrocadev 改写：紫 rgba(105,13,197,.103)→teal color-mix(--primary 10%,--surface)；aliceblue/near-white 字→--ink/--muted；navy svg 描边 rgb(38,59,126)→--primary；白环→teal 半透明；原 .card/.text/.subtitle/.icons/.btn/.svg-icon 全超通用（站里已有 section.card/.btn）→ 全改名 .ui-glass-card*；.icons justify-items(对 flex 无效)→justify-content） ===== */
+.ui-glass-card{
+  width:250px;
+  height:200px;
+  border-radius:15px;
+  background:color-mix(in srgb, var(--primary) 10%, var(--surface));
+  display:flex;
+  flex-direction:column;
+  position:relative;
+  overflow:hidden;
+}
+.ui-glass-card::before{
+  content:"";
+  height:100px;
+  width:100px;
+  position:absolute;
+  top:-40%;
+  left:-20%;
+  border-radius:50%;
+  border:35px solid color-mix(in srgb, var(--primary) 22%, transparent);
+  transition:all .8s ease;
+  filter:blur(.5rem);
+}
+.ui-glass-card-text{
+  flex-grow:1;
+  padding:15px;
+  display:flex;
+  flex-direction:column;
+  color:var(--ink);
+  font-weight:900;
+  font-size:1.2em;
+}
+.ui-glass-card-sub{
+  font-size:.6em;
+  font-weight:300;
+  color:var(--muted);
+}
+.ui-glass-card-icons{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  width:250px;
+  border-radius:0 0 15px 15px;
+  overflow:hidden;
+}
+.ui-glass-card-btn{
+  border:none;
+  width:84px;
+  height:35px;
+  background-color:var(--surface-2);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  transition:background-color .2s;
+}
+.ui-glass-card-btn:hover{ background-color:var(--primary-soft); }
+.ui-glass-card-icon{
+  width:25px;
+  height:25px;
+  stroke:var(--primary);
+  fill:none;
+}
+.ui-glass-card:hover::before{
+  width:140px;
+  height:140px;
+  top:-30%;
+  left:50%;
+  filter:blur(0rem);
+}
