@@ -2341,3 +2341,49 @@ body.exam-fullscreen #writeTabs{display:none}
 }
 .ui-plus:hover > .ui-plus-icon,
 .ui-plus:focus-visible > .ui-plus-icon{ fill:var(--primary-d); transform:rotate(180deg); }
+
+/* ===== 通用带下划线动画输入框 ui-input（Uiverse adamgiebl 改写：白字 #fff→var(--ink)；彩虹渐变 #FF6464/#FFBF59/#47C9FF→teal 渐变；未定义变量 --border-height/--border-before-color/--border-after-color 在 .ui-form-control 内给默认值；原 .input/.form-control/.input-alt 改名 .ui-input* 防冲突） ===== */
+.ui-form-control{
+  position:relative;
+  --width-of-input:300px;
+  --border-height:2px;
+  --border-before-color:var(--line);
+  --border-after-color:var(--primary);
+  width:var(--width-of-input);
+}
+.ui-input{
+  color:var(--ink);
+  font-size:.9rem;
+  font-family:inherit;
+  background-color:transparent;
+  width:100%;
+  box-sizing:border-box;
+  padding-inline:.5em;
+  padding-block:.7em;
+  border:none;
+  border-bottom:var(--border-height) solid var(--border-before-color);
+  box-shadow:0 2px 4px rgba(0,0,0,.1);
+}
+.ui-input-border{
+  position:absolute;
+  background:var(--border-after-color);
+  width:0%;
+  height:var(--border-height);
+  bottom:0; left:0;
+  transition:width .3s cubic-bezier(.6,-.28,.735,.045);
+}
+.ui-input:focus{ outline:none; }
+.ui-input:focus + .ui-input-border{ width:100%; }
+
+.ui-input-alt{
+  font-size:1.2rem;
+  padding-inline:1em;
+  padding-block:.8em;
+  box-shadow:0 4px 8px rgba(0,0,0,.1);
+}
+.ui-input-border-alt{
+  height:3px;
+  background:linear-gradient(90deg, var(--primary-d), var(--primary-bright));
+  transition:width .4s cubic-bezier(.42,0,.58,1);
+}
+.ui-input-alt:focus + .ui-input-border-alt{ width:100%; }
