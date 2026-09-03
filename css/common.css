@@ -2621,3 +2621,22 @@ body.exam-fullscreen #writeTabs{display:none}
   40%{ transform:scaleX(1); opacity:.7; }
   100%{ transform:scaleX(.2); opacity:.4; }
 }
+
+/* ===== 通用圆角输入框 ui-box-input（Uiverse ErzenXz 改写：lightgrey/grey 命名色→teal token；原 .input 改名 .ui-box-input 防与 .ui-input 系列混淆；border 宽 1.5→2px 改为恒定 2px 仅变色，避免聚焦时 0.5px 布局抖动） ===== */
+.ui-box-input{
+  width:100%;
+  max-width:220px;
+  height:45px;
+  padding:12px;
+  border-radius:12px;
+  border:2px solid var(--line);
+  outline:none;
+  color:var(--ink);
+  background:var(--surface);
+  font-family:inherit;
+  transition:all .3s cubic-bezier(.19,1,.22,1);
+  box-shadow:0 0 20px -18px;
+}
+.ui-box-input:hover{ border-color:var(--muted); box-shadow:0 0 20px -17px; }
+.ui-box-input:active{ transform:scale(.95); }
+.ui-box-input:focus{ border-color:var(--primary); }
