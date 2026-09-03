@@ -721,6 +721,16 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 .alert-info{border-color:var(--med);border-left-color:var(--med);background:var(--primary-soft);color:var(--primary-d)}
 .alert-info .alert-ico{color:var(--med)}
 
+/* ===== 通用拟物勾选框 ui-check（Uiverse 改写：原名 .container/.checkmark 会覆盖站内容器，已改名；灰阶走 token，明暗自适应） ===== */
+.ui-check{position:relative;display:inline-block;cursor:pointer;user-select:none;font-size:18px;line-height:1;vertical-align:middle}
+.ui-check input{position:absolute;opacity:0;cursor:pointer;height:0;width:0}
+.ui-check-mark{position:relative;display:inline-block;height:1.3em;width:1.3em;border-radius:100%;background:var(--surface-2);box-shadow:3px 3px 5px rgba(16,40,38,.10),-3px -3px 5px rgba(255,255,255,.75);transition:box-shadow .25s ease,background .25s ease;vertical-align:middle}
+.ui-check input:checked ~ .ui-check-mark{box-shadow:inset 3px 3px 5px rgba(16,40,38,.12),inset -3px -3px 5px rgba(255,255,255,.7)}
+.ui-check-mark:after{content:"";position:absolute;opacity:0;left:.45em;top:.25em;width:.25em;height:.5em;border:solid var(--med);border-width:0 .15em .15em 0;transform:rotate(45deg);transition:opacity .2s ease}
+.ui-check input:checked ~ .ui-check-mark:after{opacity:1}
+[data-theme="dark"] .ui-check-mark{box-shadow:3px 3px 5px rgba(0,0,0,.35),-3px -3px 5px rgba(255,255,255,.05)}
+[data-theme="dark"] .ui-check input:checked ~ .ui-check-mark{box-shadow:inset 3px 3px 5px rgba(0,0,0,.4),inset -3px -3px 5px rgba(255,255,255,.04)}
+
 /* ===== 统一子 Tab：右上角药丸切换（全局） ===== */
 .page-head-row{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap}
 .page-head-row .page-title{margin:0;font-size:22px;font-weight:800;letter-spacing:-.01em;color:var(--ink)}
