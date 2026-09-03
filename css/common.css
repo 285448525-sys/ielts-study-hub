@@ -2711,3 +2711,68 @@ body.exam-fullscreen #writeTabs{display:none}
   left:50%;
   filter:blur(0rem);
 }
+
+/* ===== 通用深色描边药丸按钮 ui-dark-btn（Uiverse elijahgummer 改写：黑渐变 #171717/#242424/#292929/#000000/#252525 → teal 渐变 --primary-d/--primary；白字→--on-primary；原 .styled-button/.inner-button/.icon 改名 .ui-dark-btn*，drop-shadow 中性黑保留） ===== */
+.ui-dark-btn{
+  position:relative;
+  padding:1rem 2rem;
+  font-size:1.1rem;
+  font-weight:bold;
+  color:var(--on-primary);
+  background:linear-gradient(to bottom, var(--primary-d), var(--primary));
+  border-radius:9999px;
+  cursor:pointer;
+  box-shadow:0 2px 4px rgba(0,0,0,1), 0 10px 20px rgba(0,0,0,.4);
+  transition:all .2s ease;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid var(--primary-d);
+  font-family:inherit;
+}
+.ui-dark-btn::before{
+  content:"";
+  position:absolute;
+  top:-2px; right:-1px; bottom:-1px; left:-1px;
+  background:linear-gradient(to bottom, var(--primary), var(--primary-d));
+  z-index:-1;
+  border-radius:9999px;
+  transition:all .2s ease;
+  opacity:1;
+}
+.ui-dark-btn:active{
+  transform:translateY(2px);
+  box-shadow:0 1px 2px rgba(0,0,0,1), 0 5px 10px rgba(0,0,0,.4);
+}
+.ui-dark-btn-inner{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:linear-gradient(to bottom, var(--primary-d), var(--primary));
+  width:40px;
+  height:40px;
+  margin-left:10px;
+  border-radius:50%;
+  box-shadow:0 0 1px rgba(0,0,0,1);
+  border:1px solid var(--primary-d);
+  transition:all .2s ease;
+}
+.ui-dark-btn-inner::before{
+  content:"";
+  position:absolute;
+  top:-2px; right:-1px; bottom:-1px; left:-1px;
+  background:linear-gradient(to bottom, var(--primary), var(--primary-d));
+  z-index:-1;
+  border-radius:9999px;
+  transition:all .2s ease;
+  opacity:1;
+}
+.ui-dark-btn-icon{
+  filter:drop-shadow(0 10px 20px rgba(26,25,25,.9)) drop-shadow(0 0 4px rgba(0,0,0,1));
+  transition:all .4s ease-in-out;
+}
+.ui-dark-btn-icon:hover{
+  filter:drop-shadow(0 10px 20px rgba(50,50,50,1)) drop-shadow(0 0 20px rgba(2,2,2,1));
+  transform:rotate(-35deg);
+}
