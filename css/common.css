@@ -2183,3 +2183,28 @@ body.exam-fullscreen #writeTabs{display:none}
   .wl-word{ max-width:45%; }
   .wl-mean{ flex:1.5; }
 }
+
+/* ===== 通用错误提示卡片 ui-err-*（Uiverse kennyotsu 改写：Tailwind 红 #F87171/#991B1B/#B91C1C/rgb(254 242 242) → teal --err/--err-bg/--err-text；通用类 .flex/.error-alert/.error-svg 重命名为 .ui-err-* 防冲突） ===== */
+.ui-err-box{ display:flex; flex-direction:column; gap:12px; width:100%; max-width:420px; font-family:inherit; }
+.ui-err-card{
+  display:flex; align-items:flex-start; gap:12px;
+  background:var(--err-bg);
+  border:1px solid var(--err);
+  border-left:4px solid var(--err);
+  border-radius:var(--radius-sm);
+  padding:14px 14px 14px 12px;
+  color:var(--err-text);
+  box-shadow:0 2px 8px color-mix(in srgb, var(--err) 12%, transparent);
+}
+.ui-err-icon{ flex:none; width:22px; height:22px; margin-top:1px; color:var(--err); }
+.ui-err-icon svg{ width:100%; height:100%; display:block; }
+.ui-err-body{ flex:1; min-width:0; }
+.ui-err-title{ margin:0 0 6px; font-size:14px; font-weight:700; color:var(--err-text); line-height:1.4; }
+.ui-err-list{ margin:0; padding-left:18px; display:flex; flex-direction:column; gap:3px; }
+.ui-err-list li{ font-size:13px; line-height:1.5; color:var(--err-text); }
+.ui-err-close{
+  flex:none; align-self:flex-start; border:none; background:transparent; cursor:pointer;
+  width:24px; height:24px; border-radius:6px; display:flex; align-items:center; justify-content:center;
+  color:var(--err-text); font-size:18px; line-height:1; transition:background .15s;
+}
+.ui-err-close:hover{ background:color-mix(in srgb, var(--err) 16%, transparent); }
