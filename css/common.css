@@ -2296,7 +2296,7 @@ body.exam-fullscreen #writeTabs{display:none}
   max-width:520px;
   backdrop-filter:blur(12px) saturate(180%) contrast(200%);
   -webkit-backdrop-filter:blur(12px) saturate(180%) contrast(200%);
-  background:color-mix(in srgb, var(--primary) 40%, transparent);
+  background:color-mix(in srgb, var(--primary-d) 88%, #08201d); /* 深 teal 近实色，保证浅色页面上白字/白图标清晰可辨（原 40% 主色+透明在白底下几乎隐形） */
   border:1px solid var(--glass-border);
   box-shadow:0 10px 30px rgba(0,0,0,.06);
   padding:8px;
@@ -2324,7 +2324,8 @@ body.exam-fullscreen #writeTabs{display:none}
   align-items:center;
   flex:1 1 0;
   min-width:0;
-  color:rgba(255,255,255,.9);
+  color:rgba(255,255,255,1);
+  text-shadow:0 1px 2px rgba(0,0,0,.3);
   text-decoration:none;
   padding:10px 6px;
   border-radius:999rem;
@@ -2347,7 +2348,7 @@ body.exam-fullscreen #writeTabs{display:none}
 /* dock 的「更多」用 <button>（非 <a>），补一套等价样式使其与导航项视觉一致 */
 .ui-menu button.ui-menu-item{
   display:flex;flex-direction:column;align-items:center;flex:1 1 0;min-width:0;
-  color:rgba(255,255,255,.9);text-decoration:none;padding:10px 6px;border-radius:999rem;
+  color:rgba(255,255,255,1);text-shadow:0 1px 2px rgba(0,0,0,.3);text-decoration:none;padding:10px 6px;border-radius:999rem;
   background:none;border:none;cursor:pointer;font-family:inherit;font-size:inherit;-webkit-tap-highlight-color:transparent;
 }
 .ui-menu button.ui-menu-item svg{ width:1.4rem; height:1.4rem; }
