@@ -770,6 +770,19 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 .theme-switch__checkbox:checked + .theme-switch__container .theme-switch__clouds{bottom:-4.062em}
 .theme-switch__checkbox:checked + .theme-switch__container .theme-switch__stars-container{top:50%;-webkit-transform:translateY(-50%);-ms-transform:translateY(-50%);transform:translateY(-50%)}
 
+/* 主题开关小尺寸变体：设置页紧凑排列用 */
+.theme-switch.theme-switch--sm{--toggle-size:14px}
+
+/* 设置页紧凑选项行：主题开关 + 复选框并排，标签紧贴控件 */
+.settings-option{display:flex;align-items:center;gap:10px;flex:0 0 auto;min-width:0;white-space:nowrap;font-size:14px;color:var(--ink)}
+.settings-option-label{display:block;font-size:13px;color:var(--muted);margin:0;line-height:1.3}
+.settings-option-check{display:flex;align-items:center;gap:8px;cursor:pointer}
+.settings-option-check input[type=checkbox]{margin:0}
+@media (max-width:640px){
+  .settings-options{gap:12px !important}
+  .settings-option{flex:1 1 100%;white-space:normal;min-height:36px}
+}
+
 /* ===== 通用按钮 ui-btn（Uiverse 改写：蓝 #1163ff/紫 #6c18ff → teal --primary/--primary-d；白字→--on-primary；tooltip 自适应；悬停文字上滑、图标从底滑入） ===== */
 .ui-btn{--width:100px;--height:35px;--tooltip-height:35px;--tooltip-width:90px;--gap-between-tooltip-to-button:18px;--button-color:var(--primary);--tooltip-color:var(--surface);--tooltip-text:var(--ink);width:var(--width);height:var(--height);background:var(--button-color);position:relative;text-align:center;border-radius:var(--radius-sm);transition:background .3s;font-family:inherit}
 .ui-btn::before{position:absolute;content:attr(data-tooltip);width:var(--tooltip-width);height:var(--tooltip-height);background-color:var(--tooltip-color);font-size:.9rem;color:var(--tooltip-text);border-radius:.25em;line-height:var(--tooltip-height);bottom:calc(var(--height) + var(--gap-between-tooltip-to-button) + 10px);left:calc(50% - var(--tooltip-width) / 2);z-index:5}

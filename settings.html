@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>设置 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20260903t" />
+<link rel="stylesheet" href="css/common.css?v=20260903u" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=5" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=4">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=4">
@@ -56,10 +56,10 @@
       </div>
       <div><label>每日目标（小时）</label><input id="sGoal" type="number" min="1" max="16" /></div>
     </div>
-    <div class="form-row">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
-        <label style="margin:0">主题（日 / 夜）</label>
-        <div class="theme-switch">
+    <div class="form-row settings-options" style="gap:16px;align-items:center;margin-top:12px;flex-wrap:wrap">
+      <div class="settings-option">
+        <span class="settings-option-label">主题（日 / 夜）</span>
+        <div class="theme-switch theme-switch--sm">
           <input type="checkbox" id="sThemeToggle" class="theme-switch__checkbox" />
           <label class="theme-switch__container" for="sThemeToggle">
             <div class="theme-switch__circle-container">
@@ -80,10 +80,11 @@
           </label>
         </div>
       </div>
+      <label class="settings-option settings-option-check">
+        <input type="checkbox" id="sChime" checked />
+        <span>专注结束播放轻柔提示音</span>
+      </label>
     </div>
-    <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:14px;color:var(--ink);cursor:pointer">
-      <input type="checkbox" id="sChime" checked /> 专注结束播放轻柔提示音
-    </label>
   </section>
 
   <section class="card">
