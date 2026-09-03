@@ -308,6 +308,15 @@ body.sheet-open .sheet{transform:translateY(0)}
 @keyframes breathe{0%,100%{box-shadow:0 0 0 0 var(--primary-soft)}50%{box-shadow:0 0 0 7px rgba(58,154,147,0)}}
 .running-badge{animation:breathe 2.6s ease-in-out infinite}
 
+/* 主操作按钮 hover 扫光（灵感 .ui-slide-btn；仅 teal 主按钮上明显） + 全局按钮点击水波纹（灵感 .ui-ripple-btn，teal 色深浅按钮均可见） */
+.btn-primary{position:relative;overflow:hidden}
+.btn-primary::before{content:"";position:absolute;top:0;left:-130%;width:55%;height:100%;background:linear-gradient(120deg,transparent,rgba(255,255,255,.55),transparent);transform:skewX(-20deg);transition:left .6s ease;pointer-events:none}
+.btn-primary:hover::before{left:140%}
+.btn{position:relative;overflow:hidden}
+.btn::after{content:"";position:absolute;left:50%;top:50%;width:12px;height:12px;border-radius:50%;background:color-mix(in srgb,var(--primary) 42%,transparent);transform:translate(-50%,-50%) scale(0);opacity:0;pointer-events:none}
+.btn:active::after{animation:btnRippleFx .5s ease-out}
+@keyframes btnRippleFx{0%{transform:translate(-50%,-50%) scale(0);opacity:.55}100%{transform:translate(-50%,-50%) scale(20);opacity:0}}
+
 /* 方案1 · 侧边栏全局计时徽标（任何页面常驻：正在计时呼吸提示 + 一键结束，解决 P1/P3） */
 .side-timer-wrap{margin:0 0 4px}
 .side-timer{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:12px;cursor:pointer;background:linear-gradient(135deg,var(--primary),var(--primary-d));color:var(--on-primary);font-size:13.5px;font-weight:700;box-shadow:var(--shadow)}
@@ -1873,6 +1882,43 @@ main.container{padding-top:20px}
 .rec-row .bar{flex:1;height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden}
 .rec-row .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--primary-bright),var(--primary-d));border-radius:4px}
 .rec-row .dur{font-size:13px;color:var(--muted);min-width:54px;text-align:right;font-weight:600}
+
+/* 首页玻璃化（灵感 .ui-glass-card）：页面底色 + 卡片半透玻璃 + hover 光晕；全部走 teal token，无杂色 */
+.home{
+  position:relative;
+  background:
+    radial-gradient(620px 300px at 96% -2%, color-mix(in srgb, var(--primary) 11%, transparent), transparent 55%),
+    radial-gradient(540px 280px at -4% 102%, color-mix(in srgb, var(--primary-bright) 11%, transparent), transparent 55%),
+    var(--bg);
+  border-radius:var(--radius);
+}
+.home .meta-card, .home .qc, .home .rec{
+  background:color-mix(in srgb, var(--primary) 7%, var(--surface));
+  border-color:color-mix(in srgb, var(--primary) 16%, var(--line));
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+  position:relative;
+  overflow:hidden;
+}
+.home .meta-card::before, .home .qc::before, .home .rec::before{
+  content:"";
+  position:absolute;
+  width:90px;height:90px;
+  top:-32%;left:-12%;
+  border-radius:50%;
+  background:color-mix(in srgb, var(--primary) 24%, transparent);
+  filter:blur(.6rem);
+  opacity:0;
+  transform:scale(.5);
+  transition:opacity .55s ease, transform .65s ease, top .65s ease, left .65s ease;
+  pointer-events:none;
+}
+.home .meta-card:hover::before, .home .qc:hover::before, .home .rec:hover::before{
+  opacity:1;
+  transform:scale(1.5);
+  top:-18%;
+  left:62%;
+}
 
 /* 响应式 */
 @media(max-width:760px){

@@ -121,7 +121,7 @@ async function testAIConnection(){
   if(!key){ toast('请先填写 API Key'); return; }
   const btn = $('#testAiBtn');
   if(btn) btn.disabled = true;
-  setAiStatus('正在测试连接…', '');
+  setAiLoading();
   try{
     const prev = DATA.settings.relayToken;
     DATA.settings.relayToken = key; // 临时用输入框的 key 探活
@@ -142,6 +142,17 @@ function setAiStatus(msg, kind){
   if(!el) return;
   el.textContent = msg || '';
   el.className = 'muted' + (kind ? ' sync-status-' + kind : '');
+}
+// 测试连接等待时，用弹跳 loader（.ui-loader）代替纯文字
+function setAiLoading(){
+  const el = $('#aiStatus');
+  if(!el) return;
+  el.className = 'muted';
+  el.innerHTML = '<div style="height:40px;overflow:hidden;display:flex;justify-content:center;align-items:flex-start">'
+    + '<div class="ui-loader" style="transform:scale(.6);transform-origin:top center;margin-top:2px">'
+    + '<div class="ui-loader-dot"></div><div class="ui-loader-dot m2"></div><div class="ui-loader-dot m3"></div>'
+    + '<div class="ui-loader-shadow"></div><div class="ui-loader-shadow m2"></div><div class="ui-loader-shadow m3"></div>'
+    + '</div></div>';
 }
 function exportData(){
   const blob = new Blob([JSON.stringify(DATA, null, 2)], {type:'application/json'});
