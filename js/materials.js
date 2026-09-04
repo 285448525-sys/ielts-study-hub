@@ -323,7 +323,7 @@
     h += '<div class="mat-mx-legend"><span class="mat-chip mat-chip-natural">自然贴合</span><span class="mat-chip mat-chip-loose">搭边可套</span><span class="mat-chip mat-chip-none">缺素材</span></div>'
       + '<div class="mat-mx-actions">'
       + '<button class="btn mat-mx-dig" id="matDig" title="AI 拿每张素材卡对新题库全量重评：搭边就列、宁多勿漏">深挖覆盖</button>'
-      + (missingCnt ? '<button class="btn mat-mx-dig" id="matAsk" title="AI 针对每道灰色缺题出澄清性问题，答完继续生成即可补上">补齐缺题（AI 追问 ' + missingCnt + '）</button>' : '')
+      + (missingCnt ? '<button class="btn mat-mx-dig" id="matAsk" title="AI 会把缺题聚类，用最少几个追问问出高覆盖经历（一问挂多题），答完继续生成即可补上">补齐缺题（还差 ' + missingCnt + ' 题）</button>' : '')
       + '<a class="btn btn-primary mat-mx-go" href="speaking.html">去口语页练题 →</a></div>'
       + '<div class="mat-mx-tip">灰色题 = 缺素材：点「补齐缺题」让 AI 针对性追问，答几条算几条，「继续生成」后即可补上。</div></div>';
     return h;
@@ -349,20 +349,25 @@
     if(btn){ btn.disabled = true; btn.textContent = '正在出追问…'; }
     try{
       const storyInfo = (store.materials || []).filter(Boolean).map(m => '【' + (m.title || '') + '】' + String(m.storyEn || '').slice(0, 120)).join('\n');
-      const sys = '你是雅思口语素材补缺教练。考生的万能故事覆盖不了下面这些当季 P2 题。请给每个缺题出**一个针对性澄清性问题**：\n'
-        + '1. 第二人称、直接问考生真实经历、具体好答（答 2~3 句就够喂给 AI 生成新故事），例如"你最近半年有没有搬过家？搬去哪了？"。\n'
-        + '2. 内容彼此相近的题可合并成一问（topic 填主要题名，问题里顺带覆盖其他题需要的经历点），减少考生负担。\n'
-        + '3. 不要问已有故事覆盖的内容。topic 必须**逐字取自缺题清单**。\n'
-        + '输出严格 JSON 数组：[{"topic":"缺题名","question":"澄清性问题"}]，不要任何解释文字。';
-      const user = '已有故事概要（不要重复问这些）：\n' + (storyInfo || '（无）') + '\n\n未覆盖的当季题：\n' + missing.join('\n');
+      // 追问也要"串题"：绝不一一对应，用最少的问题问出高覆盖经历
+      const sys = '你是雅思口语串题补缺教练。考生的万能故事覆盖不了下面这些当季 P2 题。**绝对不要一题一问！**你的任务和"串题"是同一个逻辑：用**尽可能少的问题**（通常 3~6 个，最多不超过 8 个）问出几段「高覆盖」的真实经历，让每段经历能同时套上一串缺题：\n'
+        + '1. 先把缺题按主题聚类（人物类/地点类/事件类/物品类/抽象类…），每一类设计**一个**追问，问一段真实经历——第二人称、具体好答，并提示考生答全「谁 / 何时 / 何地 / 做了什么 / 一个细节 / 当时感受」。\n'
+        + '2. 每个追问的 topics 数组列出它预期能覆盖的缺题（逐字取自缺题清单，一问通常挂 4~8 题）。例：问"你身边有没有一个做事特别有条理的人（朋友/家人/同学）？讲一件TA帮你安排或解决事情的事，TA是怎么做的、你什么感受"→ 可同时覆盖「有条理的人」「帮助你的人」「和朋友度过的愉快夜晚」等一串人物/事件题。\n'
+        + '3. 只问缺题；已有故事覆盖的内容不要问。实在单挂的孤立缺题才单独出一问。\n'
+        + '输出严格 JSON 数组：[{"topics":["缺题1","缺题2"],"question":"追问"}]，不要任何解释文字。';
+      const user = '已有故事概要（不要重复问这些）：\n' + (storyInfo || '（无）') + '\n\n未覆盖的当季题（共 ' + missing.length + ' 题）：\n' + missing.join('\n');
       const content = await callRelay('material_ask_missing', [ { role:'system', content:sys }, { role:'user', content:user } ], 0.6);
       const j = aiJson(content);
       const arr = Array.isArray(j) ? j : (j && Array.isArray(j.gaps) ? j.gaps : null);
       if(!arr) throw new Error('追问 JSON 解析失败');
-      store.gaps = arr.filter(g => g && g.topic).map(g => ({ topic:String(g.topic), question:String(g.question || '') }));
+      // 兼容 topics 数组（一问挂多题）与旧 topic 单值
+      store.gaps = arr.filter(g => g && (Array.isArray(g.topics) ? g.topics.length : g.topic)).map(g => ({
+        topic: Array.isArray(g.topics) ? g.topics.map(String).join('、') : String(g.topic || ''),
+        question: String(g.question || '')
+      }));
       saveStore();
       render();
-      toast('已生成 ' + store.gaps.length + ' 个追问：在下方「AI 追问区」作答，答完点「继续生成」');
+      toast('已生成 ' + store.gaps.length + ' 个高覆盖追问（一问挂多题）：在「AI 追问区」作答，答完点「继续生成」');
     }catch(e){
       render();
       toast('追问生成失败：' + e.message);
