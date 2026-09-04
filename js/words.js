@@ -12,11 +12,18 @@ function setWordFilterLevel(level){
 function initLevelFilter(){
   const box = $('#filterLevel');
   if(!box) return;
-  const levels = Array.from(new Set(DATA.words.map(w => w.level || 0))).sort((a,b) => a-b);
-  let html = '<button class="chip active" data-level="all">全部</button>';
+  // Number 归一：脏 level（字符串数字/乱值）不再产生重复 chip 或 NaN 排序
+  const levels = Array.from(new Set(DATA.words.map(w => Number(w.level) || 0))).sort((a,b) => a-b);
+  let html = '<button class="chip" data-level="all">全部</button>';
   levels.forEach(lv => { html += `<button class="chip" data-level="${lv}">Lv ${lv}</button>`; });
   box.innerHTML = html;
+  // 重建后恢复筛选状态：当前筛的等级还有词则保持高亮；已无词（如该等级删光）回退「全部」。
+  // 旧实现把「全部」硬编码为高亮，但 WORD_FILTERS.level 仍是旧值 → 界面显示「全部」、实际仍按旧等级过滤。
+  if(WORD_FILTERS.level !== 'all' && !levels.some(lv => String(lv) === String(WORD_FILTERS.level))){
+    WORD_FILTERS.level = 'all';
+  }
   box.querySelectorAll('.chip').forEach(btn => {
+    btn.classList.toggle('active', String(btn.dataset.level) === String(WORD_FILTERS.level));
     btn.addEventListener('click', () => { setWordFilterLevel(btn.dataset.level); renderWords(); });
   });
 }
@@ -81,7 +88,7 @@ async function importSmart(){
   if(!DATA.settings.relayToken){
     const rows = extractWords(raw);
     if(!rows.length){ toast('没有识别到有效英文单词'); return; }
-    const existing = new Set(DATA.words.map(w => w.en.toLowerCase()));
+    const existing = new Set(DATA.words.map(w => String(w.en || '').toLowerCase()));
     let added = 0, skipped = 0;
     rows.forEach(r => {
       if(existing.has(r.en.toLowerCase())){ skipped++; return; }
@@ -107,7 +114,7 @@ async function importSmart(){
     const content = await callRelay('words', [{ role:'system', content: sys }, { role:'user', content: raw }], 0.3);
     const arr = aiJson(content);
     if(!Array.isArray(arr)) throw new Error('AI 返回格式异常');
-    const existing = new Set(DATA.words.map(w => w.en.toLowerCase()));
+    const existing = new Set(DATA.words.map(w => String(w.en || '').toLowerCase()));
     let added = 0, skipped = 0;
     for(const item of arr){
       const en = String((item && item.en) || '').trim();
@@ -254,27 +261,6 @@ function deleteWord(id){
   hubSave(); initLevelFilter(); renderWords();
 }
 
-/* 词库手动标记（与学习算法 v1.2 字段一致）：
-   key=切换重点词；hard=切换高频难词；master=直接标已掌握(Lv7)；forgot=标不认识(降级+明天复习+记当日错) */
-function markWord(en, action){
-  if(!en) return;
-  const w = DATA.words.find(x => x.en && String(x.en).toLowerCase() === String(en).toLowerCase());
-  if(!w) return;
-  ensureWordV12(w);
-  const t = todayKey();
-  if(action === 'key'){ w.keyWord = !w.keyWord; }
-  else if(action === 'hard'){ w.hardWord = !w.hardWord; }
-  else if(action === 'master'){ w.level = 7; w.nextReview = addDays(t, 90); w.lastReview = t; }
-  else if(action === 'forgot'){
-    w.level = Math.max(0, (w.level || 0) - 2);
-    w.nextReview = addDays(t, 1);
-    w.errTotal = (w.errTotal || 0) + 1;
-    w.lastReview = t;
-    if(typeof recordDailyWrong === 'function') recordDailyWrong(w.en);
-  }
-  hubSave(); initLevelFilter(); renderWords();
-}
-
 /* 把 pos + cn 拆成「词性+中文」释义块，多词性横向排列。
    例如 pos="n.;v." cn="算法；运转" → n.算法 / v.运转 */
 function formatMean(pos, cn){
@@ -304,7 +290,7 @@ function renderWords(){
   }
   const level = WORD_FILTERS.level;
   if(level !== 'all'){
-    list = list.filter(w => String(w.level || 0) === level);
+    list = list.filter(w => String(Number(w.level) || 0) === level);   // 与 initLevelFilter 的 Number 归一口径一致
   }
   if(kw) list = list.filter(w => (w.en+' '+w.cn).toLowerCase().includes(kw));
   // 旧 mc* → v1.2 迁移（幂等），迁移后落盘
@@ -316,7 +302,7 @@ function renderWords(){
   if(list.length === 0){ box.innerHTML = renderEmpty('没有匹配的单词。'); return; }
   box.innerHTML = list.map(w => {
     ensureWordV12(w);
-    const lv = (w.level != null) ? w.level : 0;
+    const lv = (w.level != null) ? (Number(w.level) || 0) : 0;
     const isPhrase = /\s/.test(String(w.en || ''));
     const meanHtml = isPhrase
       ? `<span class="wl-sense"><span class="wl-sense-cn">${escapeHtml(w.cn || '')}</span></span>`
