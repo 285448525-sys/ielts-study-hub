@@ -1197,7 +1197,7 @@ function examStopTimer(){
 // 10 字内题目总结（替换卡片原标题 / 折叠条标题）
 function summarizeExamTitle(kind, it){
   // 优先用各题自带的中文 summary（若有），否则从英文/中文题面截取核心短语
-  if(it.summary && it.summary.trim()) return it.summary.trim().slice(0, 10);
+  if(it.summary && it.summary.trim()) return it.summary.trim();   // 不限字数：一句通顺的话概括题面
   const src = kind === 'big'
     ? (it.zh || it.en || '')
     : (it.title || '');
@@ -1205,7 +1205,7 @@ function summarizeExamTitle(kind, it){
   if(!s) return (kind === 'big' ? '大作文' : '小作文');
   // 去掉常见引导词
   const cleaned = s.replace(/^(some people think|some people believe|in some countries|it is sometimes argued|many people believe)\s*,?\s*/i, '');
-  return cleaned.slice(0, 10);
+  return cleaned.slice(0, 30);   // 无 summary 时退化截取，30 字保证一句完整话
 }
 
 function renderExamList(){
@@ -1316,9 +1316,6 @@ function openExam(item, kind){
   $('#examInstr').textContent = isBig
     ? 'You should spend about 40 minutes on this task. Write at least 250 words.'
     : 'You should spend about 20 minutes on this task. Write at least 150 words.';
-  // 左栏题目折叠区：折叠条显示 10 字内总结，展开显示完整题目 + 你写的原文
-  const summary = summarizeExamTitle(kind, item);
-  $('#examQSummary').textContent = summary;
   if(isBig){
     $('#examQuestion').innerHTML =
       '<div class="ei-en">' + escapeHtml(item.en) + '</div>';
@@ -1330,8 +1327,6 @@ function openExam(item, kind){
     $('#examQuestion').innerHTML = charts + '<div class="ei-en">' + escapeHtml(item.title) + '</div>';
     $('#examQNote').textContent = 'Summarise the information by selecting and reporting the main features, and make comparisons where relevant.';
   }
-  // 默认展开题目（首次进入）
-  $('#examQCollapser').classList.remove('collapsed');
   $('#examEssay').value = '';
 
   // 草稿恢复：若该题已有未提交草稿，弹框询问「重新写 / 继续写」
@@ -1357,6 +1352,10 @@ function openExam(item, kind){
   }
   $('#examWordCount').textContent = 'Word count: 0';
   $('#examResult').hidden = true;
+  const fold = $('#examEssayFold'); if(fold) fold.open = false;   // 我的作文默认收起
+  const eo = $('#examEssayOrig'); if(eo) eo.textContent = '';
+  $('#examEssay').hidden = false;   // 恢复输入区（上一题提交时被隐藏）
+  const ft = $('#examAFoot'); if(ft) ft.hidden = false;
   examStartTimer();   // 点进去自动开始计时（不强制限时）
 }
 
@@ -1419,9 +1418,10 @@ ${isTask1 ? RULES_TASK1 : RULES_TASK2}
         html += '</ul></div>';
       }
       box.innerHTML = html;
-      // Finish section 后：左栏题目自动折叠，右栏显示评分明细
-      const qc = $('#examQCollapser');
-      if(qc) qc.classList.add('collapsed');
+      // 提交后：右栏=AI 评分（隐藏输入区）；左栏题目保持展开，我的作文默认收起、可展开回看
+      $('#examEssay').hidden = true;
+      const ft2 = $('#examAFoot'); if(ft2) ft2.hidden = true;
+      const eo2 = $('#examEssayOrig'); if(eo2) eo2.textContent = essay;
       // 存盘：真题模考评分记录持久化（刷新不丢），并回流到回顾页「分项模考」看板
       try{
         const cur = examTimer.cur || {};
@@ -1511,10 +1511,5 @@ function bindExam(){
   const sb = $('#examScoreBtn');
   if(sb) sb.addEventListener('click', examStopAndScore);
 
-  // 左栏题目折叠/展开
-  const qCol = $('#examQCollapser');
-  if(qCol) qCol.addEventListener('click', () => {
-    qCol.classList.toggle('collapsed');
-  });
 }
 

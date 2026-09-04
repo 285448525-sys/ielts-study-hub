@@ -2894,3 +2894,12 @@ body.has-dock main.container{ padding-bottom:0; }
 [data-mod] .streak-chip{color:var(--mod)}
 [data-mod] .section-title{border-left:3px solid var(--mod);padding-left:10px}
 
+
+/* ── 写作真题·提交后「我的作文」折叠块（左栏题目下方，默认收起） ── */
+.exam-essay-fold{border-top:1px solid var(--line)}
+.exam-essay-fold-sum{list-style:none;cursor:pointer;padding:14px 28px;font-size:14.5px;font-weight:700;color:var(--ink);user-select:none}
+.exam-essay-fold-sum::-webkit-details-marker{display:none}
+.exam-essay-fold-sum::before{content:'▸ ';color:var(--muted)}
+.exam-essay-fold[open] .exam-essay-fold-sum::before{content:'▾ '}
+.exam-essay-fold-sum:hover{background:var(--primary-soft)}
+.exam-essay-orig{padding:4px 28px 24px;white-space:pre-wrap;line-height:1.9;font-size:15px;color:var(--ink)}

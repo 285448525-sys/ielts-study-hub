@@ -25,7 +25,7 @@
 })();
 </script>
 <title>写作 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20260904h" />
+<link rel="stylesheet" href="css/common.css?v=20260904i" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=5" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=4">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=4">
@@ -38,7 +38,7 @@
 <script defer src="js/data.js?v=20260903ab"></script>
   <script defer src="js/common.js?v=20260904c"></script>
   <script defer src="js/writing_prompts.js?v=20260903ab"></script>
-  <script defer src="js/writing.js?v=20260903ac"></script>
+  <script defer src="js/writing.js?v=20260904a"></script>
   <script defer src="js/wrongbook.js?v=20260903ab"></script>
 <style>
 
@@ -382,21 +382,20 @@
 
       <div class="exam-split">
         <article class="exam-q">
-          <button class="exam-q-toggle" id="examQCollapser" type="button">
-            <svg class="eq-caret" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-            <span class="exam-q-summary" id="examQSummary">题目</span>
-            <span class="exam-q-toggle-hint">题目</span>
-          </button>
           <div class="exam-q-body-wrap" id="examQBodyWrap">
             <p class="exam-q-lead">Write about the following topic:</p>
             <div class="exam-q-body" id="examQuestion"></div>
             <p class="exam-q-note" id="examQNote"></p>
           </div>
+          <details class="exam-essay-fold" id="examEssayFold">
+            <summary class="exam-essay-fold-sum">我的作文</summary>
+            <div class="exam-essay-orig" id="examEssayOrig"></div>
+          </details>
         </article>
 
         <div class="exam-a">
           <textarea id="examEssay" class="exam-textarea" placeholder="Type your response here..."></textarea>
-          <div class="exam-a-foot">
+          <div class="exam-a-foot" id="examAFoot">
             <span class="exam-wc" id="examWordCount">Word count: 0</span>
           </div>
           <div id="examResult" class="tpl-score" hidden></div>
