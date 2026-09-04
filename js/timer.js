@@ -202,8 +202,9 @@ const MOD_ICONS = {
 /* 一个模块 = 一个 chip + 一个小「开始」按钮（不再下钻子任务） */
 function moduleCard(m){
   const running = window.active && window.active.moduleId === m.id;
-  const otherRunning = (window.active && window.active.moduleId !== m.id) || mirrorHeldByOther(DATA.activeTimer);
-  const btnTxt = running ? '进行中' : (mirrorHeldByOther(DATA.activeTimer) ? '占用中' : '开始');
+  const heldByOther = mirrorHeldByOther(DATA.activeTimer);   // 只算一次，避免同帧重复判定
+  const otherRunning = (window.active && window.active.moduleId !== m.id) || heldByOther;
+  const btnTxt = running ? '进行中' : (heldByOther ? '占用中' : '开始');
   const btnCls = running ? 'btn-primary running-badge' : 'btn';
   const disabled = otherRunning ? 'disabled' : '';
   const card = document.createElement('div');
@@ -240,20 +241,7 @@ function renderPhrChips(){
   let totalSec = 0;
   list.forEach(s => { totalSec += Number(s.durationSec || 0); });
   if(todayEl) todayEl.textContent = '今日 ' + fmtHM(totalSec);
-  if(streakEl) streakEl.textContent = '连续 ' + calcStreakLocal() + ' 天';
-}
-function calcStreakLocal(){
-  const sessions = DATA.sessions || [];
-  if(sessions.length === 0) return 0;
-  const dates = [...new Set(sessions.map(s => s.date))].sort().reverse();
-  if(dates[0] !== todayKey()) return 0;
-  let count = 1;
-  for(let i = 1; i < dates.length; i++){
-    const d = new Date(dates[i-1]);
-    d.setDate(d.getDate() - 1);
-    if(dates[i] === todayKey(d)) count++; else break;
-  }
-  return count;
+  if(streakEl) streakEl.textContent = '连续 ' + calcStreak() + ' 天';   // 统一实现见 common.js
 }
 function renderMiniRecords(){
   const grid = document.getElementById('recMiniGrid');
@@ -365,7 +353,8 @@ function startSession(moduleId){
     return;
   }
   const m = MODULES.find(x => x.id === moduleId); if(!m) return;
-  const gm = parseInt($('#goalMin').value, 10);
+  const goalEl = $('#goalMin');   // 容错：元素缺失时按无目标继续，不让开计时整段崩掉
+  const gm = goalEl ? parseInt(goalEl.value, 10) : NaN;
   const targetSec = (!isNaN(gm) && gm > 0) ? gm*60 : null;
   const modeEl = document.querySelector('#modeSeg .seg-btn.active');
   const mode = (modeEl && modeEl.dataset.mode) || 'up';
@@ -608,9 +597,9 @@ ready(() => {
   const me = getDeviceId();
   let restored = false;
 
-  // 1) 已结束：清本机活跃态，不恢复
+  // 1) 已结束：清本机活跃态，不恢复（镜像 timerId 与本机活跃态同 id 的「本机仍持有」情形
+  //    在 ready 时不会发生——window.active 此时必为空，故无需再判）
   if(mirror && mirror.ended){
-    if(window.active && mirror.timerId && window.active.timerId === mirror.timerId){ /* 不应发生，ready 时 window.active 还空 */ }
     if(localSaved && mirror.timerId && localSaved.timerId === mirror.timerId) clearActive();
     else if(localSaved) clearActive();
     renderTimer();
@@ -629,7 +618,8 @@ ready(() => {
   if(shouldTakeover(mirror)){
     if(maybeTakeover()){
       const mod = MODULES.find(x => x.id === window.active.moduleId);
-      if(window.active.targetSec) $('#goalMin').value = Math.round(window.active.targetSec/60);
+      const goalEl2 = $('#goalMin');
+      if(window.active.targetSec && goalEl2) goalEl2.value = Math.round(window.active.targetSec/60);
       setModeUI(window.active.mode || 'up');
       $('#activeInfo').innerHTML = '<strong>' + (window.active.moduleName || (mod&&mod.name) || '学习') + '</strong> 进行中（已接管离线设备）';
       $('#stopBtn').disabled = false; $('#pauseBtn').disabled = false;
@@ -694,7 +684,7 @@ ready(() => {
       $('#activeInfo').innerHTML = '<strong>' + names.moduleName + '</strong> 进行中';
       $('#stopBtn').disabled = false; $('#pauseBtn').disabled = false;
       $('#pauseBtn').textContent = '暂停'; $('#pauseBtn').className = 'btn';
-      if(window.active.targetSec) $('#goalMin').value = Math.round(window.active.targetSec/60);
+      if(window.active.targetSec){ const g3 = $('#goalMin'); if(g3) g3.value = Math.round(window.active.targetSec/60); }
       setModeUI(window.active.mode || 'up');
       toast('检测到跨天计时：已结算昨天 ' + fmtHM(durationSec) + '，并从今天 0 点继续计时');
       startTick(); startHeartbeat(); updateTimer(); renderTimer();
@@ -714,9 +704,8 @@ ready(() => {
       targetSec: saved.targetSec || null, mode: saved.mode || 'up',
       updatedAt: Date.now(), lastBeat: Date.now() };
     persistLocalActive();
-    if((saved.ownerDevice || '') !== me) persistMirror();   // 旧镜像无 owner：补写 owner 回云端
-    else persistMirror();
-    if(window.active.targetSec) $('#goalMin').value = Math.round(window.active.targetSec/60);
+    persistMirror();   // 无论镜像 owner 是否本机都刷新：旧镜像无 ownerDevice 时借此补写 owner 回云端
+    { const g4 = $('#goalMin'); if(window.active.targetSec && g4) g4.value = Math.round(window.active.targetSec/60); }
     setModeUI(window.active.mode || 'up');
     $('#activeInfo').innerHTML = '<strong>' + window.active.moduleName + '</strong> 进行中';
     $('#stopBtn').disabled = false; $('#pauseBtn').disabled = false;

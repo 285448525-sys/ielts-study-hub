@@ -32,7 +32,7 @@ function renderDashV6(){
   // ---- 连续学习天数 chip ----
   const chipEl = $('#dashStreakChip');
   if(chipEl){
-    const streak = calcStreakV6();
+    const streak = calcStreak();   // 统一实现见 common.js（首页/计时页共用）
     if(streak > 0){
       chipEl.hidden = false;
       chipEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 2c1 3-3 5 0 8 1 1 4-1 4 3 0 3-2 5-4 5s-4-2-4-5c0-3 2-4 4-4"/></svg>连续 '+streak+' 天';
@@ -123,21 +123,4 @@ function renderDashV6(){
 function hmParts(sec){
   const t = Math.max(0, Number(sec) || 0);
   return { h: Math.floor(t/3600), m: Math.floor((t % 3600) / 60) };
-}
-
-/** 计算连续学习天数（从今天往前数连续有 session 的天数） */
-function calcStreakV6(){
-  const sessions = DATA.sessions || [];
-  if(sessions.length === 0) return 0;
-  // Set 按日期字符串去重（同一天多条 session 只算一天）；filter 丢弃缺 date 的脏记录，
-  // 否则 undefined 经 sort+reverse 会排到首位，把整条 streak 误判为 0
-  const dates = [...new Set(sessions.map(s=>s.date).filter(Boolean))].sort().reverse();
-  if(dates[0] !== todayKey()) return 0;
-  let count = 1;
-  for(let i=1;i<dates.length;i++){
-    // 用 addDays 做纯字符串日期算术：new Date('YYYY-MM-DD') 会按 UTC 解析，
-    // 在非东八区会被本地化到前一天，导致 streak 断档——addDays 强制本地午夜解析，无此问题
-    if(dates[i] === addDays(dates[i-1], -1)) count++; else break;
-  }
-  return count;
 }

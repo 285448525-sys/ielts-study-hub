@@ -702,6 +702,21 @@ function addDays(dateStr, n){
   return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
 }
 
+/* 连续学习天数（今天往前数连续有 session 的天数）。首页与计时页共用一份实现。
+   - 用 addDays 做纯字符串日期算术：new Date('YYYY-MM-DD') 按 UTC 解析，非东八区会错位断档；
+   - filter(Boolean) 丢弃缺 date 的脏记录：undefined 经 sort+reverse 排首位会把整条 streak 误判 0。 */
+function calcStreak(){
+  const sessions = DATA.sessions || [];
+  if(sessions.length === 0) return 0;
+  const dates = [...new Set(sessions.map(s => s.date).filter(Boolean))].sort().reverse();
+  if(dates[0] !== todayKey()) return 0;
+  let count = 1;
+  for(let i = 1; i < dates.length; i++){
+    if(dates[i] === addDays(dates[i-1], -1)) count++; else break;
+  }
+  return count;
+}
+
 /* Cloudflare Pages 会开启 Pretty URLs，把 /plans.html 改写成 /plans。
    软导航与直接访问的 pathname 可能不带 .html，但 PAGES 中统一存 .html。
    用此函数把文件名标准化，保证高亮匹配不出错。 */
