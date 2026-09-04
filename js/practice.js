@@ -57,8 +57,6 @@ function pc(){
   c.batchSize = (typeof c.batchSize === 'number' && !isNaN(c.batchSize)) ? c.batchSize : (typeof c.batchSize === 'string' ? parseInt(c.batchSize, 10) : PC_DEFAULTS.batchSize);
   if(isNaN(c.batchSize)) c.batchSize = PC_DEFAULTS.batchSize;
   if([20,50,100,200,-1].indexOf(c.batchSize) === -1) c.batchSize = PC_DEFAULTS.batchSize;   // 白名单外(旧预设5/10/自定义残留)回退默认
-  c.newPerDay = (typeof c.newPerDay === 'number' && !isNaN(c.newPerDay)) ? c.newPerDay : (typeof c.newPerDay === 'string' ? parseInt(c.newPerDay, 10) : PC_DEFAULTS.newPerDay);
-  if(isNaN(c.newPerDay)) c.newPerDay = PC_DEFAULTS.newPerDay;
   c.shuffle = !!c.shuffle;
   c.autoNext = !!c.autoNext;
   c.autoNextDelay = clampNum(c.autoNextDelay, 100, 30000, PC_DEFAULTS.autoNextDelay);
@@ -503,6 +501,10 @@ function masterWord(cur){
   };
   DATA.words = (DATA.words || []).filter(w => !same(w));
   pq.queue = pq.queue.filter(w => !same(w));
+  // 墓碑（与 words.js deleteWord 同格式 'en:'+小写）：不记墓碑的话，云同步合并会把已掌握的词复活回来
+  DATA.deletedIds = DATA.deletedIds || [];
+  const _tomb = 'en:' + String(cur.en || '').toLowerCase();
+  if(!DATA.deletedIds.includes(_tomb)) DATA.deletedIds.push(_tomb);
   // 从当日计划移除（分母缩减，不计入已掌握进度）
   if(!pq.isWrongReview && DATA.dailySession && DATA.dailySession.date === todayKey()){
     const s = DATA.dailySession;
@@ -581,13 +583,13 @@ function renderQuestion(cur, isRehold){
   html += '<div class="answer-btns"><button class="abtn abtn-unknown" id="unknownBtn">不知道</button></div>';
 
   // ── 底部喇叭大圆按钮（严格还原 v5 原型：居中 48px 圆） ──
-  html += '<div class="pw-speaker-wrap"><button class="btn tool-btn" id="toolSpeaker" title="再读一遍"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.4 5.6a9 9 0 0 1 0 12.8"/></svg></button></div>';
+  html += '<div class="pw-speaker-wrap"><button class="btn tool-btn" id="qSpeaker" title="再读一遍"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.4 5.6a9 9 0 0 1 0 12.8"/></svg></button></div>';
 
   const body = $('#practiceBody');
   body.innerHTML = html;
   $('#opts').innerHTML = opts.map((o, i) =>
     '<button class="opt-big" data-en="' + escapeHtml(o.en) + '" data-idx="' + i + '">' +
-      '<span class="opt-big-tag">' + (singlePos(o.pos) || inferPos(o.en) || '') + '</span>' +
+      '<span class="opt-big-tag">' + escapeHtml(singlePos(o.pos) || inferPos(o.en) || '') + '</span>' +
       '<span class="opt-big-cn">' + escapeHtml(o.cn) + '</span>' +
       '<span class="opt-big-en"></span>' +
     '</button>'
@@ -597,7 +599,9 @@ function renderQuestion(cur, isRehold){
   if(left0) left0.onclick = () => judge(cur, null, false, true);
   const mb = document.getElementById('masteredBtn');
   if(mb) mb.onclick = () => masterWord(cur);
-  setTimeout(() => speakN(cur.en), 300);
+  const qsp = document.getElementById('qSpeaker');
+  if(qsp) qsp.onclick = () => speakN(cur.en);
+  if(c.autoPlay) setTimeout(() => speakN(cur.en), 300);   // autoPlay=false 时不自动朗读，仅手动点喇叭
 }
 
 // 选项点击 → 立即判定对错（对=认识，错=不认识）；不另设「认识」按钮
@@ -617,6 +621,9 @@ function bindOpts(cur){
 function judge(cur, pickedEn, correct, isUnknownBtn){
   if(!pq || pq.revealed) return;
   pq.revealed = true;
+  // 云同步合并后页面闭包里的 cur 可能还是旧 DATA.words 的孤儿对象（common.js 只重映射 pq.queue）：
+  // 作答前按 en 换成合并后的活对象，避免 promote/demote 写到旧对象上、hubSave 落盘时丢失。
+  cur = findWordByEn(cur && cur.en) || cur;
   // 揭示反馈（照抄爱听写：词性标签变 "n. english" 格式，对=绿框，错=红框+正确也绿框）
   document.querySelectorAll('#opts .opt-big').forEach(x => {
     const isCorrect = (x.dataset.en === cur.en);
@@ -644,7 +651,7 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
   const k = String(cur.en).toLowerCase();
   if(!pq.counted) pq.counted = new Set();
   if(!pq.counted.has(k)){ pq.counted.add(k); pq.total++; }   // 每词仅计一次
-  if(DATA.dailySession) DATA.dailySession.total = pq.total;  // 持久化，刷新续背时不丢进度
+  if(DATA.dailySession && !pq.isWrongReview) DATA.dailySession.total = pq.total;  // 持久化，刷新续背时不丢进度（重练错词不污染正常 session）
   if(correct) pq.stats.known++; else pq.stats.unknown++;
   if(!pq.attempts) pq.attempts = {};
   if(!pq.reholdMap) pq.reholdMap = {};
@@ -715,6 +722,7 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
     } else {
       // 第一次答错 → 展示答案后当场重考同一词（选项重新打乱）
       pq.reholdMap[k] = 1;
+      hubSave();   // 显式落盘：重练错词模式下 saveDailySession 会跳过，不落盘则本次降级/dailyWrong 全丢
       result = 'rehold';
       toast('✗ 答错：' + cur.en + cnTxt + '（看完答案，马上再考你一次）');
     }
@@ -765,7 +773,7 @@ function finishPractice(){
   const todayLearned = seenToday.length;
 
   // 剩余待学习：未掌握或今天到期的词数
-  const due = (DATA.words || []).filter(w => w.cleared !== true || (w.nextReview || '') <= todayKey()).length;
+  const due = (DATA.words || []).filter(w => w && (w.cleared !== true || (w.nextReview || '') <= todayKey())).length;
 
   // 累加今日统计：时长累加，词数用今日 unique 数（覆盖，非累加）
   addTodayStats(todayLearned, wordMs);
@@ -992,11 +1000,9 @@ function renderCfgModal(){
       name:'答题', icon:'☑',
       items:[
         { key:'batchSize',     label:'题量',          type:'batch', presets:[{v:'20',t:'20 题'},{v:'50',t:'50 题'},{v:'100',t:'100 题'},{v:'200',t:'200 题'},{v:'-1',t:'全部'}] },
-        { key:'optCount',      label:'选项数量',      type:'select', opts:[{v:'4',t:'4 个'},{v:'6',t:'6 个'}] },
         { key:'shuffle',       label:'随机乱序',      type:'toggle' },
         { key:'wrongHoldMs',   label:'答错停留',      type:'range', min:1000, max:5000, step:500, unit:'ms' },
-        { key:'autoNext',      label:'答对自动下一题', type:'toggle', showIf:'autoNext' },
-        { key:'autoNextDelay', label:'自动间隔',      type:'range', min:300, max:3000, step:100, unit:'ms', showIf:'autoNext' },
+        { key:'autoNextDelay', label:'自动间隔',      type:'range', min:300, max:3000, step:100, unit:'ms' },
       ]
     },
     {
@@ -1006,12 +1012,6 @@ function renderCfgModal(){
         { key:'repeat',    label:'朗读次数', type:'range', min:1, max:5, step:1, unit:' 次' },
         { key:'intervalMs',label:'朗读间隔', type:'select', opts:[{v:'800',t:'0.8s'},{v:'1200',t:'1.2s'},{v:'1800',t:'1.8s'},{v:'2400',t:'2.4s'},{v:'3200',t:'3.2s'}] },
         { key:'autoPlay',  label:'自动播下题', type:'toggle' },
-      ]
-    },
-    {
-      name:'显示', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>',
-      items:[
-        { key:'showCn',       label:'显示释义提示',    type:'toggle' },
       ]
     }
   ];
@@ -1190,6 +1190,11 @@ ready(() => {
   document.addEventListener('hub:data-merged', () => {
     updateWordStats();
     updateProgBar();
+    // 合并后当前题目闭包还挂着旧 DATA.words 对象：未作答时用合并后的活对象重渲染当前题
+    if(pq && pq.answer && !pq.revealed && pq.queue.length > 0){
+      const live = findWordByEn(pq.answer.en);
+      if(live && live !== pq.answer) renderQuestion(live);
+    }
   });
   autoStartSeeWord();
 });
