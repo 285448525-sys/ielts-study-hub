@@ -9,15 +9,15 @@
 
   const QUESTIONS = [
     { id:'A',  group:'persona', required:true,  title:'一句话介绍你自己', hint:'城市、身份（学生/专业或工作）、性格、一个爱好。例：杭州，大三计算机，理性但开口说英语会紧张，喜欢无纸化学习。' },
-    { id:'B1', group:'core', required:true,  title:'一次你和某个重要的人一起做的事 / 外出', hint:'和谁、去哪、做了什么、印象最深的瞬间（看到什么/当时心情）。尽量把"人+事+地+旅行"一次讲全，能少背一条素材。' },
-    { id:'B2', group:'core', required:true,  title:'一件你学会 / 克服 / 坚持的事', hint:'一项技能，或一段咬牙坚持/克服困难的经历。最难的是什么？后来怎么变好？' },
-    { id:'B3', group:'core', required:true,  title:'一个每天用或离不开的东西 / 日常爱好', hint:'物件（手机/电脑/乐器…）或爱好。它怎么融入生活？为什么离不开？' },
-    { id:'B4', group:'core', required:true,  title:'一个在网上看到、让你改观或感兴趣的内容', hint:'B站/短视频/文章都行。讲了什么？为什么让你改观或感兴趣？' },
-    { id:'B5', group:'core', required:true,  title:'一个对你重要的地方 / 一次印象深的经历', hint:'一个地方（家/学校/旅行地）或一次经历。它为什么重要？发生了什么让你记住？' },
-    { id:'C1', group:'extra', required:false, title:'一本喜欢的书 / 一部电影 / 一首歌', hint:'采文化消费，覆盖 book/film/song（选填，能讲几个讲几个）。' },
-    { id:'C2', group:'extra', required:false, title:'一件常穿或珍藏的衣服 / 珍贵礼物 / 贵的东西', hint:'采物件，覆盖 clothing/gift/expensive（选填）。' },
-    { id:'C3', group:'extra', required:false, title:'一条影响过你的规则 / 法律 / 传统习俗', hint:'采规则维度，覆盖 law/rules/tradition/custom（选填）。' },
-    { id:'C4', group:'extra', required:false, title:'一次冲突 / 犯错 / 投诉 / 道歉', hint:'采负面经历，覆盖 disagreement/mistake/complaint/apology（选填）。' }
+    { id:'B1', group:'core', required:true,  title:'一次你和某个重要的人一起做的事 / 外出', hint:'写全：和谁 / 什么时候 / 去哪 / 具体做了什么 / 一个当时看到的细节 / 当时感受。例：去年八月和男友去厦门，鼓浪屿沙滩边吃现做的海蛎煎，晚上海边散步看对岸灯火，觉得很踏实。' },
+    { id:'B2', group:'core', required:true,  title:'一件你学会 / 克服 / 坚持的事', hint:'写全：学什么 / 难在哪 / 怎么熬过来的 / 现在做得怎样 / 感受。例：备考雅思练口语，一开始开口就卡，每天用 AI 对话半小时，两个月后能说满 2 分钟，很有成就感。' },
+    { id:'B3', group:'core', required:true,  title:'一个每天用或离不开的东西 / 日常爱好', hint:'写全：是什么 / 什么时候开始用 / 每天怎么用 / 一个具体场景 / 为什么离不开。例：笔记本电脑，学代码写作业全靠它，每天背单词软件刷 20 分钟，屏幕边贴着便利贴。' },
+    { id:'B4', group:'core', required:true,  title:'一个在网上看到、让你改观或感兴趣的内容', hint:'写全：在哪看到 / 讲了什么 / 一个具体画面或细节 / 为什么打动你。例：B站看UP主讲间隔背单词法，照做两周记住了一直忘的词，才发现方法比硬背重要。' },
+    { id:'B5', group:'core', required:true,  title:'一个对你重要的地方 / 一次印象深的经历', hint:'写全：什么地方 / 什么时候去或常去 / 在那做什么 / 一个细节 / 为什么重要。例：外婆家的老院子，夏天在葡萄架下写作业，她摇着蒲扇讲故事，现在想起来很安心。' },
+    { id:'C1', group:'extra', required:false, title:'一本喜欢的书 / 一部电影', hint:'写全：名字 / 讲什么 / 印象最深的画面 / 感受（选填，当季相关：包含动物的故事或书 / 最不喜欢的电影）。' },
+    { id:'C2', group:'extra', required:false, title:'一件想攒钱买的物品 / 常用的电子产品', hint:'写全：是什么 / 大概多少钱 / 为什么想要 / 买来做什么（选填，当季相关：攒钱买想要物品 / 电子设备）。' },
+    { id:'C3', group:'extra', required:false, title:'一条你知道 / 想颁布的规则或法律', hint:'写全：内容 / 从哪知道 / 你怎么看 / 对生活的影响（选填，当季相关：想颁布的新法律 / 保护环境的法律）。' },
+    { id:'C4', group:'extra', required:false, title:'一次遇到麻烦 / 改变主意的经历', hint:'写全：出了什么事 / 怎么应对 / 结果 / 感受（选填，当季相关：遇到的科技问题 / 近期改变的计划）。' }
   ];
 
   const SYS_MAT = '你是雅思口语串题素材教练。考生会给你一份人设 + 若干段真实生活经历（含可能来自你上一轮追问的补充回答）。\n'
@@ -57,6 +57,7 @@
   let store = loadStore();
   let mode = 'q';
   let editing = -1;   // 当前正在「更改」编辑的素材卡下标；-1 表示无
+  let shortWarned = false;   // P2：质检软门槛——短答案警告只弹一次，之后点生成直接放行
 
   function loadStore(){
     if(DATA.materials && typeof DATA.materials === 'object'){
@@ -127,8 +128,14 @@
     const id = ta.dataset.q;
     const el = document.querySelector('[data-char="' + id + '"]'); if(!el) return;
     const n = ta.value.trim().length;
-    el.textContent = '已写 ' + n + ' 字';
-    el.classList.toggle('warn', n > 0 && n < 20);
+    let tip = '已写 ' + n + ' 字';
+    let cls = '';
+    if(n > 0 && n < 20){ tip += ' · 太短，AI 没细节可用'; cls = 'warn'; }
+    else if(n >= 20 && n < 60){ tip += ' · 再补 1-2 个细节（看到什么 / 当时感受）'; cls = 'ok'; }
+    else if(n >= 60){ tip += ' · 够了'; cls = 'good'; }
+    el.textContent = tip;
+    el.classList.remove('warn','ok','good');
+    if(cls) el.classList.add(cls);
   }
 
   /* ---------- 生成 ---------- */
@@ -145,6 +152,14 @@
     if(!ans('A')) missing.push('A（自我介绍）');
     QUESTIONS.filter(q => q.group === 'core').forEach(q => { if(!ans(q.id)) missing.push(q.id); });
     if(missing.length){ toast('请先填完必填项：' + missing.join('、')); return; }
+
+    // P2：素材质检软门槛——核心经历太短先提示补充（不强制拦截，可点「直接生成」放行）
+    const shortOnes = QUESTIONS.filter(q => q.group === 'core' && ans(q.id) && ans(q.id).length < 40).map(q => q.id);
+    if(shortOnes.length && !shortWarned){
+      shortWarned = true;
+      showShortWarning(shortOnes);
+      return;
+    }
 
     const hasKey = !!(DATA.settings && DATA.settings.relayToken);
     if(!hasKey) toast('未配置 AI Key（设置里填 DeepSeek Key），将用模板兜底生成（质量降级但可用）');
@@ -168,6 +183,7 @@
       // 杜绝「继续生成/重新生成」把用户改好的故事整批冲掉（数据丢失级缺陷）。
       const keepOld = (store.materials || []).filter(m => m && (m.updatedAt || m.pinned));
       store.persona = persona; store.materials = keepOld.concat(result.stories); store.followups = result.followups || []; store.gaps = gaps; store.uncovered = result.uncovered || [];
+      store.bankVersion = DATA.speakingVersion;   // P2：记录生成时题库版本，换季后据此提示重映射
       // 给每张素材卡补稳定 id（AI 未必返回），供删除墓碑与跨设备去重使用
       store.materials.forEach(m => { if(m && m.id == null) m.id = 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); });
       store.materialsEpoch = Date.now();   // 生成批次戳：云端合并时凭此整体替换旧素材，避免旧卡片被并集回残留
@@ -184,6 +200,21 @@
   function setLoading(msg){
     const root = $('#matRoot'); if(!root) return;
     root.innerHTML = '<div class="mat-loading"><div class="mat-spinner"></div>' + escapeHtml(msg) + '</div>';
+  }
+
+  /* P2：质检软门槛提示——列出偏短的核心经历，给「直接生成」放行按钮 */
+  function showShortWarning(ids){
+    const root = $('#matRoot'); if(!root) return;
+    const old = document.querySelector('.mat-shortwarn'); if(old) old.remove();
+    const names = ids.map(id => (QUESTIONS.find(q => q.id === id) || {}).title || id);
+    const div = document.createElement('div');
+    div.className = 'mat-shortwarn';
+    div.innerHTML = '<b>先补两个细节？</b>这几段经历偏短（不到 40 字），AI 只能干巴巴地拼，故事会不像真的：'
+      + '<div class="mat-shortwarn-list">' + names.map(n => '· ' + escapeHtml(n)).join('<br>') + '</div>'
+      + '<div class="mat-shortwarn-actions"><button class="btn btn-primary" id="matShortGen">直接生成</button><span class="mat-shortwarn-tip">建议回上面补 1-2 个细节（看到什么 / 当时感受）再生成</span></div>';
+    root.prepend(div);
+    div.scrollIntoView({ behavior:'smooth', block:'center' });
+    document.getElementById('matShortGen').onclick = () => { div.remove(); generate(); };
   }
 
   async function genMaterialsBatch(exps, personaText){
@@ -281,9 +312,50 @@
     return h;
   }
 
+  /* === 换季重映射（P2）：题库换季后，把每张素材卡的 coverage 一次性对齐新题库 ===
+     旧题在新库没有对应题 → 丢弃该条；能对应 → AI 重给 fit + bridgeEn + note。
+     失败不破坏现有数据（只在成功后整体写回）。 */
+  async function remapCoverage(){
+    const btn = $('#matRemap');
+    if(btn){ btn.disabled = true; btn.textContent = '正在重映射…'; }
+    try{
+      const bank = getBankP2List();
+      const mats = (store.materials || []).filter(m => m && (m.coverage || []).length);
+      if(!bank || !mats.length) throw new Error('没有可映射的素材');
+      const newList = bank.map(b => b.title + (b.req ? '（要点：' + b.req + '）' : '')).join('\n');
+      const oldInfo = mats.map(m => '【' + (m.title || '未命名') + '】可套题：' + m.coverage.map(c => c.topic).join('、')).join('\n');
+      const sys = '你是雅思口语题库换季映射助手。考生网站的口语题库刚换季。下面给出每张素材卡原来可套的旧题，以及新题库清单。请把每张素材卡的 coverage 重映射到新题库：新 topic 必须**逐字取自新题库清单**；旧题在新库里没有对应题时直接丢弃该条；能对应上的给 fit（natural|loose）、一句考场可直接念的英文点题句 bridgeEn（只用初中词汇、单一主谓简单句、15 词以内）和中文 note。输出严格 JSON：{"mappings":[{"title":"素材卡标题","coverage":[{"topic":"","fit":"","bridgeEn":"","note":""}]}]}，不要任何解释文字。';
+      const user = '素材卡旧覆盖：\n' + oldInfo + '\n\n新题库清单：\n' + newList;
+      const content = await callRelay('material_remap', [ { role:'system', content:sys }, { role:'user', content:user } ], 0.4);
+      const j = aiJson(content);
+      if(!j || !Array.isArray(j.mappings)) throw new Error('重映射 JSON 解析失败');
+      let applied = 0;
+      j.mappings.forEach(mp => {
+        const m = (store.materials || []).find(x => x && x.title === mp.title);
+        if(m && Array.isArray(mp.coverage)){
+          m.coverage = mp.coverage.filter(c => c && c.topic).map(c => ({ topic:String(c.topic), fit:String(c.fit || 'natural'), bridgeEn:String(c.bridgeEn || ''), note:String(c.note || '') }));
+          applied++;
+        }
+      });
+      store.bankVersion = DATA.speakingVersion;
+      saveStore();
+      if(DATA.settings.autoSync && DATA.settings.syncCode && typeof cloudUpload === 'function') cloudUpload(true);
+      render();
+      toast('重映射完成：' + applied + ' 张素材卡已对齐新题库');
+    }catch(e){
+      render();
+      toast('重映射失败：' + e.message);
+    }
+  }
+
   /* ---------- 结果页 ---------- */
   function renderResults(root){
     let h = '';
+    // 换季提示（P2）：素材是旧题库版本时生成的 → 给一键重映射
+    if(store.materials.length && store.bankVersion != null && store.bankVersion !== DATA.speakingVersion){
+      h += '<div class="mat-remap"><div class="mat-remap-txt"><b>题库已换季</b>：这些素材是旧题库（v' + escapeHtml(String(store.bankVersion)) + '）时生成的，「可套当季题」对照可能已过时。</div>'
+        + '<button class="btn btn-primary" id="matRemap">一键重映射到新题库</button></div>';
+    }
     // 当季覆盖矩阵（P1）：题库 P2 逐题对照素材 coverage，一眼看出「背这几个够不够」
     h += renderCoverageMatrix();
     // 人设卡
@@ -429,7 +501,9 @@
       saveStore();
       generate();
     };
-    $('#matRegen').onclick = () => { mode = 'q'; render(); };
+    const mr = $('#matRemap');
+    if(mr) mr.onclick = () => { remapCoverage(); };
+    $('#matRegen').onclick = () => { mode = 'q'; shortWarned = false; render(); };
   }
 
   /* ---------- 初始化 ---------- */
