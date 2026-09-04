@@ -37,7 +37,7 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20260904g"></script>
 <script defer src="js/common.js?v=20260904j"></script>
-<script defer src="js/materials.js?v=20260904e"></script>
+<script defer src="js/materials.js?v=20260904f"></script>
 <style>
   /* === 万能素材生成器（沿用全站 Teal Token） === */
   .mat-intro{ padding:14px 16px; background:var(--primary); color:#fff; border-radius:var(--radius); font-size:13.5px; line-height:1.7; margin:12px 0; box-shadow:var(--shadow); }
@@ -104,6 +104,28 @@
   .mat-mini.btn-save{ background:var(--primary); color:#fff; border-color:var(--primary); }
   .mat-mini.btn-save:hover{ filter:brightness(1.05); color:#fff; }
   .mat-mini.mat-pin-on{ color:var(--primary); border-color:var(--primary); background:var(--primary-soft); }
+
+  /* P1：当季覆盖矩阵 */
+  .mat-matrix{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:16px; margin:12px 0; box-shadow:var(--shadow); }
+  .mat-mx-head{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+  .mat-mx-head h3{ margin:0; font-size:15px; }
+  .mat-mx-stat{ font-size:12px; color:var(--muted); }
+  .mat-mx-row{ display:flex; gap:10px; align-items:flex-start; padding:6px 0; }
+  .mat-mx-cat{ flex:0 0 3.2em; font-size:12px; color:var(--muted); padding-top:5px; }
+  .mat-mx-chips{ display:flex; flex-wrap:wrap; gap:6px; }
+  .mat-chip{ display:inline-block; font-size:12px; line-height:1; padding:7px 9px; border-radius:999px; border:1px solid var(--line); color:var(--muted); background:var(--surface); }
+  .mat-chip-natural{ background:var(--primary); border-color:var(--primary); color:#fff; }
+  .mat-chip-loose{ border-color:var(--primary); color:var(--primary); background:var(--primary-soft); }
+  .mat-mx-legend{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  .mat-mx-legend .mat-mx-go{ margin-left:auto; min-height:44px; padding:10px 16px; }
+  .mat-mx-tip{ font-size:12px; color:var(--muted); margin-top:8px; }
+
+  /* P1：素材卡点题句区块 */
+  .mat-covs{ display:flex; flex-direction:column; gap:6px; margin-bottom:10px; }
+  .mat-cov{ display:flex; flex-direction:column; gap:2px; padding:8px 10px; background:var(--primary-soft-2); border-radius:var(--radius-sm); }
+  .mat-cov-topic{ font-size:13px; font-weight:600; }
+  .mat-bridge{ font-size:13px; line-height:1.6; color:var(--primary); }
+  .mat-cov-note{ font-size:12.5px; color:var(--muted); }
 
   .mat-gaps{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:14px 16px; margin:16px 0; box-shadow:var(--shadow); }
   .mat-gaps h3{ margin:0 0 10px; font-size:15px; }

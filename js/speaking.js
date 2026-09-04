@@ -91,6 +91,11 @@ ready(() => {
   $('#spSearch').addEventListener('input', () => { curSearch = $('#spSearch').value.trim().toLowerCase(); renderList(); });
   $('#backBtn').addEventListener('click', () => { $('#detailView').hidden = true; $('#listView').hidden = false; curDetailId = null; });
   renderList();
+  // P1：?open=<题id> 直达详情（素材页覆盖矩阵点题跳转用）
+  try{
+    const openId = new URLSearchParams(location.search).get('open');
+    if(openId && (DATA.speaking || []).some(x => x && x.id === openId)) openDetail(openId);
+  }catch(_){}
 });
 
 // 优先级下拉选项（P1/P2 共用）：超高频>高频>中频>低频
@@ -674,6 +679,14 @@ function matLoadStore(){
   return null;
 }
 
+/* === 口语目标分 → 串题稿词数预算（P1：按考生目标语速校准，目标越低语速越慢/卡顿越多，稿子越短）=== */
+function storyWordBudget(){
+  const t = parseFloat(DATA.settings && DATA.settings.targets && DATA.settings.targets.speaking) || 5.5;
+  if(t >= 6.5) return { target: t, min: 130, max: 160 };
+  if(t >= 6.0) return { target: t, min: 120, max: 140 };
+  return { target: t, min: 100, max: 125 };
+}
+
 async function aiStoryLink(id){
   const s = DATA.speaking.find(x => x.id === id);
   if(!s) return;
@@ -701,24 +714,27 @@ async function aiStoryLink(id){
     ).join('\n---\n');
 
     // 把语料库写进 system（而非仅 user），弱模型读漏就会编，写死为唯一积木更稳
+    const wb = storyWordBudget();
     const sys = [
-      '你是雅思口语 P2 串题助手。考生基础较差（四级未过），目标严格锁定 5.5 分，考场上必须能直接念出来而不卡壳。',
+      '你是雅思口语 P2 串题助手。考生目标口语 ' + wb.target + ' 分，语速较慢、卡顿较多，考场上必须能直接念出来而不卡壳。',
       '',
       '【考生真实语料库】（你的唯一素材来源，严禁自创新细节；已按考生标记的熟悉度排序，排在最前的最熟）：',
       matsText,
       '',
       '【铁律】',
       '1. 素材优先级：默认使用第一个素材（考生最熟的素材）。该素材完全套不上本题时，才依次向后换下一个。其他素材只借关键词、不可展开编造。',
-      '2. 70- 80% 句子必须从语料库直接搬运，只改 1-2 句点题句适配题目。严禁编展览内容、建筑外观、名人成就、菜品味道等生僻细节。若题目所涉事物不在语料库（如"著名建筑""成功商人"），用 "Well, actually, I don\'t know any..." 明说，并硬套最熟素材里的"海边/风景/感受"句，绝不编造新内容。',
+      '2. 70% 以上句子必须从语料库直接搬运，只改 1-2 句点题句适配题目。严禁编造生僻细节（展览内容、建筑外观、名人成就、菜品味道等）。若题目所涉事物不在语料库，用 "Well, actually, ..." 明说，并硬套素材里的风景/感受类句子，绝不编造新内容。',
       '3. 词汇天花板：只用初中词（happy, tired, relax, boring, beautiful, delicious, amazing, big, fresh, nice, good, like, feel, went, was, were, because, and）。严禁 landmark / construct / symbolize / architecture / breathtaking / incredible / entrepreneurship / cognitive / authentic 等生僻词。',
       '4. 语法：只用简单句（主谓宾 / 主系表），禁止复杂从句、分词结构、被动语态。',
       '4.1 新增句子限制（强制）：凡是语料库之外、本次由你补充加入的句子，必须为简单句——仅含单一主谓结构（一个主语 + 一个谓语），不得包含任何从句（定语/状语/名词性从句等）、不得用 and / but / or 等连词拼接并列复合句、不得出现分词短语或插入结构。新增句越短越直白越好，确保考生一眼能懂、直接念出。',
-      '5. 字数强制限定：串题原文 article 总词数严格不超过 120 词，且不少于 80 词。多出的词必须删减；若不足 80 词可补语料库里的感受句，但无论如何不得越过 120 词上限、且需满足 80 词下限。',
-      '6. 新增/改动的句子用 ** 包裹标黑体，语料库原句不标。',
-      '7. 开头固定用 "I\'d like to talk about..."，结尾固定用 "So that\'s why I chose it to describe."',
-      '8. 逻辑链用中文短语横杠 "-" 连接，越长越细越好，严禁输出 "[横杠]" 这几个字。',
+      '5. 结构：article 必须自然覆盖 You should say 的每个要点（是什么 / 何时何地 / 具体细节 / 感受），缺一不可，顺序尽量与官方小问一致。',
+      '6. 词数强制限定（按考生目标语速校准，不是越多越好）：article 总词数严格在 ' + wb.min + ' 到 ' + wb.max + ' 词之间。超出必须删减；不足可补语料库里的感受句，但不得越过上下限。',
+      '7. 加时备用句 paddingEn：给 3~5 句与本题相关的简单句（感受 / 回忆 / 展望类，每句 8~15 词，同样只用语料库内容或极简新句），供考生说得偏快或说不满 2 分钟时自己插入。',
+      '8. 新增/改动的句子用 ** 包裹标黑体，语料库原句不标。',
+      '9. 开头固定用 "I\'d like to talk about..."。结尾按题型自然收束（必须是简单句）：人物题→用一句说明为什么欣赏 / 喜欢TA；地点题→用一句说明为什么喜欢去；事件 / 经历题→用一句说明这段经历对自己的意义。',
+      '10. 逻辑链用中文短语横杠 "-" 连接，越长越细越好，严禁输出 "[横杠]" 这几个字。',
       '',
-      '输出严格 JSON：{"article":"英文稿（含开头结尾，改动句用**标黑，总词数 80-120）","logicChain":"关键词—关键词"}，不要任何解释文字。'
+      '输出严格 JSON：{"article":"英文稿（含开头结尾，改动句用**标黑，总词数 ' + wb.min + '-' + wb.max + '）","paddingEn":["加时句1","加时句2","加时句3"],"logicChain":"关键词—关键词"}，不要任何解释文字。'
     ].join('\n');
 
     const user = 'P2 题目：' + (s.promptEn || s.title || '') +
@@ -758,6 +774,12 @@ function renderStoryLink(el, j){
   h += '<div class="mat-plan-head">🧩 串题素材（AI 根据万能故事库匹配）</div>';
   if(j.logicChain) h += '<div class="mat-plan-sec"><b>串题逻辑</b><div class="mat-logic">' + escapeHtml(j.logicChain) + '</div></div>';
   if(j.article) h += '<div class="mat-plan-sec"><b>串题原文</b><div class="mat-story-en">' + mdInline(j.article) + '</div>';
+  // P1：加时备用句——说得偏快 / 不满 2 分钟时自己插入，保证说满时长
+  if(Array.isArray(j.paddingEn) && j.paddingEn.length){
+    h += '<div class="mat-plan-sec"><b>加时备用句（说得偏快 / 不满 2 分钟时插入）</b><ul class="sp-padding">'
+      + j.paddingEn.map(s => '<li>' + mdInline(String(s)) + '</li>').join('')
+      + '</ul></div>';
+  }
   h += '<div class="mat-plan-tips">💡 方案根据你的万能故事库跨故事拼细节生成；点「AI 串题思路」可重新生成。</div>';
   h += '</div>';
   el.innerHTML = h;
