@@ -130,7 +130,10 @@ body{
 }
 
 /* ===== 侧边栏母导航 ===== */
-.top-nav{position:fixed;top:0;left:0;bottom:0;width:248px;background:var(--surface);border-right:1px solid var(--line);z-index:50;display:flex;flex-direction:column;padding:12px 14px;gap:6px;overflow-y:auto;scrollbar-gutter:stable;box-shadow:var(--shadow-md);transition:transform .25s, box-shadow .15s;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.top-nav{position:fixed;top:0;left:0;bottom:0;width:248px;background:rgba(255,255,255,.72);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);
+  border-right:1px solid var(--line);z-index:50;display:flex;flex-direction:column;padding:12px 14px;gap:6px;overflow-y:auto;scrollbar-gutter:stable;box-shadow:var(--shadow-md);transition:transform .25s, box-shadow .15s;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+[data-theme="dark"] .top-nav{background:rgba(26,26,28,.72)}
 .top-nav::-webkit-scrollbar{width:8px}
 .top-nav::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
 .side-head{display:flex;justify-content:flex-start;align-items:center;gap:10px;padding:8px 6px 12px;border-bottom:1px solid var(--line);margin-bottom:6px}
