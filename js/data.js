@@ -608,20 +608,27 @@ function hubLoad(){
     // 会被 buildQueue 重新入队、且被「待学习」的 OR 口径算入，导致「已掌握词又出现 + 待学习虚高」。
     // 这些词本应已排到未来复习，这里一次性把它们推到明天，退出今日待学习与队列（后续 Leitner 正常回炉）。
     // 仅跑一次（DATA._repairMasteredDueV 标记），避免每天把所有到期复习词永久后推、破坏记忆曲线。
+    // ⚠️ 标记只 set 不主动落盘、仅在确有修复时才 hubSave（标记随 DATA 一起写入）：
+    //    无条件写盘会让每次加载/清空后都多一次整库写入（迁移禁无条件 hubSave）；
+    //    若无修复且标记未落盘，下次加载重跑本循环也只是空转，无副作用。
+    // ⚠️ 不能用 common.js 的 addDays：data.js 先于 common.js 执行（defer 顺序），
+    //    顶层 hubLoad 跑到这里时 addDays 还是 undefined → TypeError 被 catch 静默吞掉，
+    //    导致本段修复 2026-08-30 上线以来从未生效（2026-09-04 实测发现）。改用自有 todayKey 算明天。
     if(!DATA._repairMasteredDueV){
+      DATA._repairMasteredDueV = true;
       if(Array.isArray(DATA.words)){
         const tk = todayKey();
+        const _d = new Date(); _d.setHours(0,0,0,0); _d.setDate(_d.getDate()+1);
+        const tomorrow = todayKey(_d);   // 本地零点起算 +1 天，无 DST 漂移
         let changed = false;
         for(const w of DATA.words){
           if(w && w.cleared === true && (w.nextReview || '') <= tk){
-            w.nextReview = addDays(tk, 1);   // 推到明天，今日不再出现
+            w.nextReview = tomorrow;   // 推到明天，今日不再出现
             changed = true;
           }
         }
         if(changed) hubSave();
       }
-      DATA._repairMasteredDueV = true;
-      hubSave();
     }
   }catch(e){ console.warn('读取本地数据失败', e); }
 }
