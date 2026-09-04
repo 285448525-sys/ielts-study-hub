@@ -12,6 +12,7 @@ function switchWriteTab(tab){
   $('#bankPanel').hidden = tab !== 'bank';
   $('#scorePanel').hidden = tab !== 'score';
   $('#examPanel').hidden = tab !== 'exam';
+  $('#wrongPanel').hidden = tab !== 'wrong';
   $('#dictationPanel').hidden = tab !== 'dictation';
   if(tab === 'bank') renderBank();
   if(tab === 'score') renderScoreHist();

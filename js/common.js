@@ -40,7 +40,7 @@ function favPageIds(){
 }
 
 /* v5：简化后全部平铺，不再分折叠组（首页→回顾 一级；设置/服药 在分隔线下方） */
-const PRIMARY_NAV = ['index','timer','plans','practice','corpus','speaking','writing','wrongbook'];
+const PRIMARY_NAV = ['index','timer','plans','practice','corpus','speaking','writing'];
 const MORE_NAV    = ['review','meds','settings'];
 const TAB_NAV     = ['index','timer','practice','speaking'];   // 底部 Tab 栏前 4 项；第 5 项固定为「更多」
 // 底部 Tab 标签覆盖：practice 在站内含「单词」，但原型/验收确认为「背词」，单独对齐（不改 PAGES 以免影响桌面侧栏）

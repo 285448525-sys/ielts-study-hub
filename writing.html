@@ -25,7 +25,7 @@
 })();
 </script>
 <title>写作 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20260904e" />
+<link rel="stylesheet" href="css/common.css?v=20260904f" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=5" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=4">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=4">
@@ -36,9 +36,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20260903ab"></script>
-  <script defer src="js/common.js?v=20260904b"></script>
+  <script defer src="js/common.js?v=20260904c"></script>
   <script defer src="js/writing_prompts.js?v=20260903ab"></script>
-  <script defer src="js/writing.js?v=20260903ab"></script>
+  <script defer src="js/writing.js?v=20260903ac"></script>
+  <script defer src="js/wrongbook.js?v=20260903ab"></script>
 <style>
 
   .write-layout{display:flex;gap:16px;align-items:flex-start}
@@ -179,6 +180,7 @@
       <button data-tab="bank" class="pill-tab">语料</button>
       <button data-tab="score" class="pill-tab">评分</button>
       <button data-tab="exam" class="pill-tab">真题</button>
+      <button data-tab="wrong" class="pill-tab">错句</button>
     </div>
   </div>
 
@@ -419,6 +421,26 @@
           <button class="btn-exam-exit" id="examExit" type="button">Exit</button>
         </div>
       </footer>
+    </section>
+  </div>
+
+  <!-- 错句本面板（并入写作页；原独立页 wrongbook.html 仍可直接访问） -->
+  <div id="wrongPanel" hidden>
+    <section class="card">
+      <div class="card-head" style="margin-bottom:10px">
+        <h2 style="margin:0">我的错句 · <span id="wbCount">0</span> 条</h2>
+        <span class="muted" style="font-size:13px" id="wbSourceFilterWrap">来源筛选：
+          <select id="wbSourceFilter" style="padding:6px 10px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink)">
+            <option value="all">全部</option>
+          </select>
+        </span>
+      </div>
+      <div class="ui-search" style="margin:8px 0 4px">
+        <svg class="ui-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input class="ui-search-input" type="search" id="wbSearch" placeholder="" aria-label="搜索错句" />
+      </div>
+      <div id="wbList"></div>
+      <div id="wbEmpty" class="muted" hidden>还没有错句。去写作模板默写或语料库表格默写，写错的句子会自动收集到这里。</div>
     </section>
   </div>
 
