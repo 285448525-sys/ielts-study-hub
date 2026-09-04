@@ -271,7 +271,7 @@ function cardHtml(e){
 /* 截图识别条目渲染（视觉模型产出，含缩略图与新扩展字段） */
 function captureCard(e){
   const imgs = (e.images || []).map((u, i) =>
-    '<div class="eb-thumb"><img src="' + u + '" alt="截图' + (i+1) + '"/></div>'
+    '<div class="eb-thumb"><img src="' + escapeHtml(u) + '" alt="截图' + (i+1) + '"/></div>'
   ).join('');
   const badges = [
     e.subject && e.subject !== '其他' ? '<span class="badge">' + escapeHtml(e.subject) + '</span>' : '',
@@ -463,7 +463,7 @@ function saveWord(en, cn){
   if(!en) return;
   const key = en.toLowerCase().trim();
   DATA.words = DATA.words || [];
-  const exists = DATA.words.some(w => w.en.toLowerCase() === key);
+  const exists = DATA.words.some(w => (w.en || '').toLowerCase() === key);   // 老数据可能缺 en
   if(exists){ toast(`「${en}」已在词库中`); return; }
   DATA.words.push({ id: uid(), en: en.trim(), cn: (cn || '').trim(), ts: Date.now() });
   hubSave();
