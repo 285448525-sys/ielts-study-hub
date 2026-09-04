@@ -198,22 +198,24 @@
       // 杜绝「每次生成旧卡越滚越多」的堆积问题
       store.persona = persona; store.materials = result.stories; store.uncovered = result.uncovered || [];
       store.bankVersion = DATA.speakingVersion;   // P2：记录生成时题库版本，换季后据此提示重映射
-      // 追问区收敛：coverage 已纠偏入库，按「真实还缺的题」算——
+      // 给每张素材卡补稳定 id（AI 未必返回），供删除墓碑与跨设备去重使用
+      store.materials.forEach(m => { if(m && m.id == null) m.id = 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); });
+      // 生成即深挖（默认执行，无需手动点按钮）：提交答案一步到位
+      setLoading('正在深挖每张卡的覆盖（自动执行，请稍等）…');
+      await deepDigCoverage(true);
+      // 追问区收敛：深挖完成后再算「真实还缺的题」——
       // 已答过的题（答了内容）视为已补上、不再问；全覆盖就不出任何追问；
       // gaps 只留针对真缺题的（AI followups 上限 4 条，且仅在确实有缺题时保留）
       const answeredTopics = new Set((store.answers.gaps || []).filter(g => g && (g.a || '').trim()).map(g => g.topic));
       const missing = getMissingTopics().filter(t => !answeredTopics.has(t));
       store.followups = missing.length ? (result.followups || []).slice(0, 4) : [];
       store.gaps = gaps.filter(g => missing.includes(g.topic));
-      // 给每张素材卡补稳定 id（AI 未必返回），供删除墓碑与跨设备去重使用
-      store.materials.forEach(m => { if(m && m.id == null) m.id = 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); });
       store.materialsEpoch = Date.now();   // 生成批次戳：云端合并时凭此整体替换旧素材，避免旧卡片被并集回残留
       saveStore();
       mode = 'result';
       render();
-      toast(missing.length
-        ? ('已生成 ' + result.stories.length + ' 张全新素材卡（旧卡已替换）；还差 ' + missing.length + ' 题，追问区可补')
-        : ('已生成 ' + result.stories.length + ' 张全新素材卡（旧卡已替换），当季题已全部覆盖'));
+      const bankCnt = (DATA.speaking || []).filter(s => s && s.type === 'P2').length;
+      toast('已生成 ' + result.stories.length + ' 张全新素材卡，当季覆盖 ' + (bankCnt - missing.length) + '/' + bankCnt + ' 题' + (missing.length ? '，还差 ' + missing.length + ' 题可在追问区补' : '，全部打通'));
     }catch(e){
       toast('生成中断：' + e.message);
       render();
@@ -343,7 +345,6 @@
     });
     h += '<div class="mat-mx-legend"><span class="mat-chip mat-chip-natural">自然贴合</span><span class="mat-chip mat-chip-loose">搭边可套</span><span class="mat-chip mat-chip-none">缺素材</span></div>'
       + '<div class="mat-mx-actions">'
-      + '<button class="btn mat-mx-dig" id="matDig" title="AI 拿每张素材卡对新题库全量重评：搭边就列、宁多勿漏">深挖覆盖</button>'
       + (missingCnt ? '<button class="btn mat-mx-dig" id="matAsk" title="AI 会把缺题聚类，用最少几个追问问出高覆盖经历（一问挂多题），答完继续生成即可补上">补齐缺题（还差 ' + missingCnt + ' 题）</button>' : '')
       + '<a class="btn btn-primary mat-mx-go" href="speaking.html">去口语页练题 →</a></div>'
       + '<div class="mat-mx-tip">灰色题 = 缺素材：点「补齐缺题」让 AI 针对性追问，答几条算几条，「继续生成」后即可补上。</div></div>';
@@ -409,19 +410,17 @@
     }
   }
 
-  /* === 换季重映射（P2）：题库换季后，把每张素材卡的 coverage 一次性对齐新题库 ===
-     旧题在新库没有对应题 → 丢弃该条；能对应 → AI 重给 fit + bridgeEn + note。
-     失败不破坏现有数据（只在成功后整体写回）。 */
-  async function remapCoverage(){
-    // 两个入口共用：换季横幅的「一键深挖覆盖」+ 矩阵常驻的「深挖覆盖」
-    [ $('#matRemap'), $('#matDig') ].forEach(b => { if(b){ b.disabled = true; b.textContent = '正在深挖…'; } });
+  /* === 覆盖深挖：每张素材卡对当季题库全量重评（默认能串、宁多勿漏、题名纠偏落库） ===
+     已并入生成流程：generate() 每次提交答案后自动执行，不再需要单独点按钮。
+     silent=true 为生成流程内部调用（不弹 toast、无进度按钮）。 */
+  async function deepDigCoverage(silent){
     try{
       const bank = getBankP2List();
       const mats = (store.materials || []).filter(m => m && (m.coverage || []).length);
-      if(!bank || !mats.length) throw new Error('没有可映射的素材');
+      if(!bank || !mats.length) return { applied: 0, failed: [] };
       const newList = bank.map(b => b.title + (b.req ? '（要点：' + b.req + '）' : '')).join('\n');
       const bankTitles = bank.map(b => b.title);
-      // 深挖式重映射 v2：逐卡调用（单卡输出远小于全量，避免长输出被截断导致整体失败），
+      // 逐卡调用（单卡输出远小于全量，避免长输出被截断导致整体失败），
       // 每张卡对新题库【全量重评】，AI 返回的题名纠偏落回真实题库题名后再入库
       const rawAns = QUESTIONS.map(q => ans(q.id)).filter(v => v).map(v => '· ' + v.slice(0, 150)).join('\n');
       const sys = '你是雅思口语串题覆盖挖掘助手。考生正在对自己的素材卡做覆盖深挖。下面给出这张素材卡的故事内容（概要+中文逻辑）和考生问卷原始经历。你的任务是**把这张卡放到题库清单里全量重评一遍**。先理解考生的真实用法：考场上 90% 就是把故事原样讲出来，只临场加 1~2 句过渡点题——所以你的默认态度是「**能串**」，发挥想象力找联系，不要挑剔：\n'
@@ -433,7 +432,7 @@
       let applied = 0; const failed = [];
       for(let i = 0; i < mats.length; i++){
         const m = mats[i];
-        [ $('#matRemap'), $('#matDig') ].forEach(b => { if(b) b.textContent = '正在深挖 ' + (i + 1) + '/' + mats.length + '…'; });
+        if(silent) setLoading('正在深挖覆盖 ' + (i + 1) + '/' + mats.length + '（提交后自动做，无需手动）…');
         const user = '素材卡：【' + (m.title || '未命名') + '】\n故事：' + String(m.storyEn || '').slice(0, 400) + '\n中文逻辑：' + (m.logicZh || '')
           + (rawAns ? '\n\n考生问卷原始经历（可从中取细节做即兴补充）：\n' + rawAns : '')
           + '\n\n题库清单：\n' + newList;
@@ -455,18 +454,21 @@
           m.coverage.push({ topic: bt, fit: (String(c.fit) === 'natural' ? 'natural' : 'loose'), bridgeEn: String(c.bridgeEn || ''), note: String(c.note || '') });
         });
         applied++;
-        saveStore(); render();   // 逐卡落库：后面卡失败，前面已完成的也不丢
+        saveStore(); if(!silent) render();   // 逐卡落库：后面卡失败，前面已完成的也不丢
       }
       store.bankVersion = DATA.speakingVersion;
       saveStore();
       if(DATA.settings.autoSync && DATA.settings.syncCode && typeof cloudUpload === 'function') cloudUpload(true);
-      render();
-      if(applied && !failed.length) toast('深挖完成：' + applied + ' 张素材卡已对齐当季题库');
-      else if(applied) toast('深挖完成 ' + applied + ' 张；' + failed.length + ' 张失败（' + failed[0] + (failed.length > 1 ? ' 等' : '') + '），可再点一次只补失败的');
-      else toast('深挖失败：' + failed.join('；'));
+      if(!silent){
+        render();
+        if(applied && !failed.length) toast('深挖完成：' + applied + ' 张素材卡已对齐当季题库');
+        else if(applied) toast('深挖完成 ' + applied + ' 张；' + failed.length + ' 张失败（' + failed[0] + (failed.length > 1 ? ' 等' : '') + '）');
+        else toast('深挖失败：' + failed.join('；'));
+      }
+      return { applied: applied, failed: failed };
     }catch(e){
-      render();
-      toast('深挖失败：' + e.message);
+      if(!silent){ render(); toast('深挖失败：' + e.message); }
+      return { applied: 0, failed: [e && e.message] };
     }
   }
 
@@ -510,13 +512,8 @@
   /* ---------- 结果页 ---------- */
   function renderResults(root){
     let h = '';
-    // 换季提示（P2）：素材对照可能过时 → 给一键重映射
-    // bankVersion == null = 旧版（本功能上线前）生成的存量素材，同样视为过时、给出重映射入口
-    if(store.materials.length && store.bankVersion !== DATA.speakingVersion){
-      const verTxt = store.bankVersion != null ? ('旧题库（v' + escapeHtml(String(store.bankVersion)) + '）') : '较早版本的题库';
-      h += '<div class="mat-remap"><div class="mat-remap-txt"><b>题库已换季</b>：这些素材是' + verTxt + '时生成的，「可套当季题」对照可能已过时。故事本身是你自己的经历、不会过期——只是对照清单需要对齐。</div>'
-        + '<button class="btn btn-primary" id="matRemap">一键深挖覆盖（对齐新题库）</button></div>';
-    }
+    // 深挖已并入生成流程（生成即深挖），换季横幅与手动深挖按钮均已移除：
+    // 题库换季后重新生成一次即可自动对齐新题库
     // 当季覆盖矩阵（P1）：题库 P2 逐题对照素材 coverage，一眼看出「背这几个够不够」
     h += renderCoverageMatrix();
     // 人设卡
@@ -672,10 +669,6 @@
       saveStore();
       generate();
     };
-    const mr = $('#matRemap');
-    if(mr) mr.onclick = () => { remapCoverage(); };
-    const md = $('#matDig');
-    if(md) md.onclick = () => { remapCoverage(); };
     const ma = $('#matAsk');
     if(ma) ma.onclick = () => { askMissingTopics(); };
     $('#matRegen').onclick = () => { mode = 'q'; shortWarned = false; render(); };
@@ -689,7 +682,8 @@
   });
   // 口语页 MAT tab：挂 window.matGen（tab 点击时 init 从 DATA.materials 重载并渲染）
   // 并注册「云同步合并后无缝重渲染」，与旧内嵌版行为对齐
-  window.matGen = { init: init, render: render };
+  // deepDig 供程序化调用（深挖已并入生成流程，无手动按钮）
+  window.matGen = { init: init, render: render, deepDig: function(){ return deepDigCoverage(false); } };
   try{
     window.__hubRenderers = window.__hubRenderers || [];
     if(!window.__hubRenderers.includes(init)) window.__hubRenderers.push(init);

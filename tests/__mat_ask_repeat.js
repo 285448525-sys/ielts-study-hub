@@ -72,6 +72,17 @@ function ok(cond, name, extra){
         { topic: '包含动物的故事或书', question: '你喜欢什么动物故事？' }
       ]);
     }
+    if(service === 'material_remap'){
+      // 生成即深挖：按卡返回与生成阶段相同的覆盖（保持断言前提稳定）
+      const u = messages[1].content;
+      if(u.includes('上海地铁')){
+        return JSON.stringify({ coverage: [ { topic: '拥挤的地方', fit: 'natural', bridgeEn: 'The subway was crowded.', note: '' } ] });
+      }
+      if(u.includes('做网站')){
+        return JSON.stringify({ coverage: [ { topic: '机智解决问题的人', fit: 'natural', bridgeEn: 'I solved problems.', note: '' } ] });
+      }
+      return JSON.stringify({ coverage: [] });
+    }
     throw new Error('unexpected service ' + service);
   };
 

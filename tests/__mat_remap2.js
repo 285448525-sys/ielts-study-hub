@@ -67,11 +67,11 @@ function ok(cond, name, extra){
   const doc = window.document;
   const matRoot = doc.querySelector('#matRoot');
   ok(!!matRoot && matRoot.innerHTML.includes('当季覆盖'), '页面渲染出覆盖矩阵');
-  ok(matRoot.innerHTML.includes('题库已换季'), '旧 bankVersion 触发换季横幅');
-
-  const digBtn = doc.querySelector('#matDig');
-  ok(!!digBtn, '矩阵常驻「深挖覆盖」按钮存在');
-  digBtn.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  ok(!matRoot.innerHTML.includes('深挖覆盖'), '「深挖覆盖」按钮已移除（深挖并入生成流程）');
+  ok(!window.document.querySelector('#matRemap') && !matRoot.innerHTML.includes('题库已换季'), '换季横幅/重映射按钮已移除');
+  ok(typeof window.matGen.deepDig === 'function', 'matGen.deepDig 程序化入口可用');
+  await window.matGen.deepDig();
+  await new Promise(r => setTimeout(r, 800));
 
   await new Promise(r => setTimeout(r, 1200));
 

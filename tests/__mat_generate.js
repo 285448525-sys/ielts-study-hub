@@ -78,6 +78,29 @@ function ok(cond, name, extra){
         { topic: '机智解决问题的人', question: '这个题已被覆盖，应被过滤' }
       ]);
     }
+    if(service === 'material_remap'){
+      // 生成即深挖：按卡全量重评（含深挖才挖得出的抽象题）
+      const u = messages[1].content;
+      if(u.includes('厦门看日落')){
+        return JSON.stringify({ coverage: [
+          { topic: '推荐旅行过的地方', fit: 'natural', bridgeEn: 'I went to Xiamen.', note: '' },
+          { topic: '喜欢或不喜欢的高建筑', fit: 'natural', bridgeEn: 'Our hotel was tall.', note: '' },
+          { topic: '想颁布的环保法律', fit: 'loose', bridgeEn: 'I want a law to protect the environment.', note: '变体→想要颁布的环保法律' },
+          { topic: '想颁布的网络隐私法', fit: 'loose', bridgeEn: '', note: '幻觉→丢弃' }
+        ] });
+      }
+      if(u.includes('做网站')){
+        return JSON.stringify({ coverage: [
+          { topic: '机智解决问题的人', fit: 'natural', bridgeEn: 'I solved problems.', note: '' },
+          { topic: '长久目标/抱负', fit: 'loose', bridgeEn: 'I want to build more tools.', note: '做网站→想帮更多人学习' },
+          { topic: '想颁布的新法律', fit: 'loose', bridgeEn: 'I want a law for study tools.', note: '过渡句嫁接' }
+        ] });
+      }
+      if(u.includes('听歌')){
+        return JSON.stringify({ coverage: [ { topic: '保护环境的法律', fit: 'loose', bridgeEn: '', note: '' } ] });
+      }
+      return JSON.stringify({ coverage: [] });
+    }
     throw new Error('unexpected service ' + service);
   };
 
@@ -110,6 +133,11 @@ function ok(cond, name, extra){
   ok(!(saved.followups || []).includes('旧追问1') && !(saved.gaps || []).some(g => g.topic === '旧缺题'), '旧追问不残留');
 
   ok(calls.filter(s => s === 'material').length === 1, '素材生成只调 1 次（不会重复叠加生成）');
+  ok(calls.filter(s => s === 'material_remap').length === 3, '生成即深挖：3 张新卡每张自动深挖 1 次（无需手动按钮）', '实际 ' + calls.filter(s => s === 'material_remap').length);
+
+  const allCov = saved.materials.flatMap(m => (m.coverage || []).map(c => c.topic));
+  ok(allCov.includes('长久目标/抱负'), '最终 coverage 是深挖后的结果（含深挖才挖出的抽象题）');
+  ok(!doc.querySelector('#matDig'), '结果页不再有「深挖覆盖」按钮');
 
   console.log('\n==== 结果: ' + pass + ' PASS / ' + failCnt + ' FAIL ====');
   process.exit(failCnt ? 1 : 0);
