@@ -334,7 +334,7 @@
     const inc = k => { if(k == null) return; m.set(k, (m.get(k) || 0) + 1); };
     (DATA.mockRecords || []).forEach(rec => {
       if(!rec || !isSpeakingRecLite(rec)) return;
-      (rec.p1 || []).forEach(a => { if(!a.opening) inc(a.q); });
+      (Array.isArray(rec.p1) ? rec.p1 : []).forEach(a => { if(!a.opening) inc(a.q); });   // 老脏数据 p1 可能非数组
       if(rec.p2 && rec.p2.promptEn) inc(rec.p2.promptEn);
     });
     return m;
@@ -620,7 +620,9 @@
     stopTotalTimer();
     const body = $('#mockReportBody');
     if(body) body.innerHTML = report
-      ? window.MockReport.render(report)
+      ? (window.MockReport && typeof window.MockReport.render === 'function'
+          ? window.MockReport.render(report)
+          : '<p class="muted">报告组件未加载完成，但本场回答与评分已存入「回顾」，重新进入口语页可查看。</p>')
       : '<p class="muted">本次评分未完成（AI 接口异常），但你的回答已存入「回顾」。</p>';
     // 模考完成：清理进度快照与「退出」按钮，下一次进入不再自动续考
     clearResumeSnapshot();
