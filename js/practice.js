@@ -237,13 +237,17 @@ function inferPos(en){
 function singlePos(pos){ return String(pos || '').split(';')[0].trim(); }
 
 // 动态干扰项（v4 §3.7 genDistractors，适配 en/cn）：同/相邻 level 优先，不写回 distractors，shuffle 不修改入参原数组
+// 选项类型严格一致：题干=单词→选项全是单词；题干=词组→选项全是词组。
+// 类型按「英文含空格」判定（与 words.js isPhrase 一致）；不用 pos 判断——部分单词缺词性标注，无词性≠词组。
 function genDistractors(correct, allWords){
   const cEn = String(correct.en || '').toLowerCase();
   const cCn = String(correct.cn || '');
+  const cPhrase = /\s/.test(String(correct.en || '').trim());   // 词组=英文含空格
   const pool = shuffle(allWords.filter(w => {
     const e = String(w.en || '').toLowerCase();
     if(e === '' || e === cEn) return false;
     if(cCn && String(w.cn || '') === cCn) return false;   // 去掉与正确答案中文完全相同的释义
+    if((/\s/.test(String(w.en || '').trim())) !== cPhrase) return false;   // 类型严格一致：单词题只配单词、词组题只配词组
     return true;
   }));
   const similar = pool.filter(w => Math.abs((w.level || 0) - (correct.level || 0)) <= 1);  // 同/相邻 level
