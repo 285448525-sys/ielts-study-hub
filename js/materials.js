@@ -71,14 +71,26 @@
     return { persona:null, materials:[], gaps:[], followups:[], uncovered:[], answers:{ extraMore:[], followups:[], gaps:[] } };
   }
   function saveStore(){
-    if(DATA.materials && typeof DATA.materials === 'object') DATA.materials.materialsEpoch = Date.now();
+    // epoch 必须打在「即将写入的 store」上（与口语页旧内嵌版对齐的修复）：
+    // 新用户首次 loadStore() 返回尚未挂到 DATA.materials 的新对象，若把 epoch 打在
+    // DATA.materials 上再整体替换，首次保存的素材没有 epoch → 云端合并不走
+    // 「较新端整体替换」分支，会出现「删了又并回来」。
+    if(store && typeof store === 'object') store.materialsEpoch = Date.now();
     DATA.materials = store; hubSave();
   }
   function ans(id){ return (store.answers[id] || '').trim(); }
 
+  /* 渲染容器双适配：materials.html 用 #matRoot；口语页 MAT tab 用 #matView */
+  function rootEl(){ return $('#matRoot') || $('#matView'); }
+  function init(){
+    store = loadStore();
+    mode = store.materials.length ? 'result' : 'q';
+    render();
+  }
+
   /* ---------- 渲染分发 ---------- */
   function render(){
-    const root = $('#matRoot'); if(!root) return;
+    const root = rootEl(); if(!root) return;
     if(mode === 'result' && store.materials.length){ renderResults(root); }
     else { renderQuestionnaire(root); }
   }
@@ -198,13 +210,13 @@
   }
 
   function setLoading(msg){
-    const root = $('#matRoot'); if(!root) return;
+    const root = rootEl(); if(!root) return;
     root.innerHTML = '<div class="mat-loading"><div class="mat-spinner"></div>' + escapeHtml(msg) + '</div>';
   }
 
   /* P2：质检软门槛提示——列出偏短的核心经历，给「直接生成」放行按钮 */
   function showShortWarning(ids){
-    const root = $('#matRoot'); if(!root) return;
+    const root = rootEl(); if(!root) return;
     const old = document.querySelector('.mat-shortwarn'); if(old) old.remove();
     const names = ids.map(id => (QUESTIONS.find(q => q.id === id) || {}).title || id);
     const div = document.createElement('div');
@@ -509,8 +521,16 @@
   }
 
   /* ---------- 初始化 ---------- */
+  // materials.html：页面加载即渲染
   ready(() => {
     if(store.materials.length) mode = 'result'; else mode = 'q';
     render();
   });
+  // 口语页 MAT tab：挂 window.matGen（tab 点击时 init 从 DATA.materials 重载并渲染）
+  // 并注册「云同步合并后无缝重渲染」，与旧内嵌版行为对齐
+  window.matGen = { init: init, render: render };
+  try{
+    window.__hubRenderers = window.__hubRenderers || [];
+    if(!window.__hubRenderers.includes(init)) window.__hubRenderers.push(init);
+  }catch(_){}
 })();
