@@ -132,11 +132,11 @@ body{
 /* ===== 侧边栏母导航 ===== */
 .top-nav{position:fixed;top:0;left:0;bottom:0;width:248px;background:rgba(255,255,255,.72);
   -webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);
-  border-right:1px solid var(--line);z-index:50;display:flex;flex-direction:column;padding:12px 14px;gap:6px;overflow-y:auto;scrollbar-gutter:stable;box-shadow:var(--shadow-md);transition:transform .25s, box-shadow .15s;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+  border-right:1px solid var(--line);z-index:50;display:flex;flex-direction:column;padding:10px 12px;gap:4px;overflow-y:auto;scrollbar-gutter:stable;box-shadow:var(--shadow-md);transition:transform .25s, box-shadow .15s;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
 [data-theme="dark"] .top-nav{background:rgba(26,26,28,.72)}
 .top-nav::-webkit-scrollbar{width:8px}
 .top-nav::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
-.side-head{display:flex;justify-content:flex-start;align-items:center;gap:10px;padding:8px 6px 12px;border-bottom:1px solid var(--line);margin-bottom:6px}
+.side-head{display:flex;justify-content:flex-start;align-items:center;gap:8px;padding:8px 12px 10px;border-bottom:1px solid var(--line);margin-bottom:4px}
 .side-head img{width:40px;height:40px;flex:none}
 .side-brand-mark{
   width:40px;height:40px;flex:none;
@@ -208,10 +208,16 @@ body{
 .side-item.active .side-star.is-fav{color:var(--on-primary-soft)}
 
 /* 收起/展开：侧栏内顶部按钮（展开时可见）+ 收起后左上角浮动按钮（仅收起时可见） */
-.side-collapse-in{margin-left:auto;background:none;border:1px solid var(--line);border-radius:9px;color:var(--muted);cursor:pointer;font-size:15px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;flex:none;line-height:1;transition:.15s}
+.side-collapse-in{margin-left:auto;background:none;border:1px solid var(--line);border-radius:8px;color:var(--muted);cursor:pointer;font-size:14px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;flex:none;line-height:1;transition:.15s}
 .side-collapse-in:hover{border-color:var(--primary);color:var(--primary);background:var(--surface-2)}
 .side-collapse{position:fixed;top:16px;left:18px;width:40px;height:40px;border-radius:12px;background:var(--primary);color:var(--on-primary);border:none;cursor:pointer;display:none;align-items:center;justify-content:center;font-size:18px;z-index:70;box-shadow:var(--shadow-md);transition:background .15s,transform .15s}
 .side-collapse:hover{background:var(--primary-d);transform:scale(1.05)}
+
+/* 侧边栏搜索框与标题、导航视觉统一（与 side-item 12px 圆角/内边距对齐，收紧留白） */
+.top-nav .ui-search{width:100%;max-width:none}
+.top-nav .ui-search-input{height:38px;padding:0 12px 0 44px;border-radius:12px;font-size:14px;background:var(--surface-2)}
+.top-nav .ui-search-input:focus,.top-nav .ui-search-input:hover{box-shadow:0 0 0 4px var(--primary-soft)}
+.top-nav .ui-search-icon{left:12px;width:18px;height:18px}
 
 /* ===== 移动端底部固定 Tab 栏 + 更多弹层（取代原 ☰ 抽屉） ===== */
 .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:55;display:none;
@@ -2896,3 +2902,26 @@ body.has-dock main.container{ padding-bottom:0; }
 @media (max-width:860px){
   #hubFab{ bottom:96px; }   /* 避开移动端玻璃底栏 dock */
 }
+
+/* ===== 苹果极简 · Layer③ 模块色驱动：[data-mod] 决定每页身份色 --mod ===== */
+[data-mod="teal"]{--mod:var(--primary)}
+[data-mod="vocab"]{--mod:var(--vocab)}
+[data-mod="corpus"]{--mod:var(--corpus)}
+[data-mod="speak"]{--mod:var(--speak)}
+[data-mod="write"]{--mod:var(--warn)}
+[data-mod="mock"]{--mod:var(--mock)}
+[data-mod="timer"]{--mod:var(--timer)}
+[data-mod="ok"]{--mod:var(--ok)}
+[data-mod="err"]{--mod:var(--err)}
+[data-mod] .prog-bar-fill{background:var(--mod)}
+[data-mod] .page-title{color:var(--mod);border-left:4px solid var(--mod);padding-left:12px}
+[data-mod] .pill-tab.active,
+[data-mod] .wtab.active,
+[data-mod] .chip.active{background:var(--mod);border-color:var(--mod);color:#fff}
+[data-mod] .meta-ico,
+[data-mod] .qc-ico{color:var(--mod)}
+[data-mod] .hero-num .big{color:var(--mod)}
+[data-mod] .hero-cta{background:var(--mod);border-color:var(--mod)}
+[data-mod] .streak-chip{color:var(--mod)}
+[data-mod] .section-title{border-left:3px solid var(--mod);padding-left:10px}
+

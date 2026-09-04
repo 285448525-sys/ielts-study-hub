@@ -63,7 +63,7 @@ function injectNav(){
   // 方案1：全局计时徽标容器（任何页面常驻；计时进行中显示呼吸徽标 + 一键结束，解决 P1/P3）
   html += '<div class="side-timer-wrap" id="sideTimer"></div>';
   // 搜索框占位：仅保留外观（.ui-search 视觉：放大镜图标 + teal 聚焦环），不接任何功能（用户确认后续再做查词/搜索）
-  html += '<div class="ui-search" style="margin:8px 10px 4px;max-width:none">'
+  html += '<div class="ui-search" style="margin:4px 0 6px">'
     + '<svg class="ui-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>'
     + '<input class="ui-search-input" type="search" placeholder="" aria-label="搜索" title="搜索功能开发中，敬请期待" /></div>';
 
