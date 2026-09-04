@@ -62,10 +62,13 @@ function injectNav(){
     + '</div>';
   // 方案1：全局计时徽标容器（任何页面常驻；计时进行中显示呼吸徽标 + 一键结束，解决 P1/P3）
   html += '<div class="side-timer-wrap" id="sideTimer"></div>';
-  // 搜索框占位：仅保留外观（.ui-search 视觉：放大镜图标 + teal 聚焦环），不接任何功能（用户确认后续再做查词/搜索）
-  html += '<div class="ui-search" style="margin:4px 0 6px">'
+  // AI 智能搜索：输入中文搜站内功能跳转；输入英文单词/词组 AI 查词并自动入词库
+  html += '<div class="side-search-wrap">'
+    + '<div class="ui-search">'
     + '<svg class="ui-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>'
-    + '<input class="ui-search-input" type="search" placeholder="" aria-label="搜索" title="搜索功能开发中，敬请期待" /></div>';
+    + '<input class="ui-search-input" type="search" id="sideSearch" placeholder="" aria-label="搜索" autocomplete="off" title="输入中文搜功能；输入英文单词 AI 查词" /></div>'
+    + '<div class="ss-panel" id="ssPanel" hidden><div id="ssList"></div></div>'
+    + '</div>';
 
   // v5：全部平铺无折叠 —— 首页→回顾 一级；设置/服药 在分隔线下方
   html += '<div class="side-primary">';
@@ -75,7 +78,193 @@ function injectNav(){
   html += '</div>';
   nav.innerHTML = html;
   bindSidebar();
+  bindSideSearch();   // AI 智能搜索（功能跳转 + AI 查词）
   renderSideTimer();   // 方案1：注入/刷新全局计时徽标（有活动会话才显示）
+}
+
+/* ===== 侧边栏 AI 智能搜索：中文搜功能跳转 + 英文 AI 查词自动入词库 ===== */
+const SIDE_SEARCH_PAGES = [
+  { id:'index',     kw:'首页 主页 概览 今日 overview' },
+  { id:'timer',     kw:'计时 计时器 番茄钟 专注 时钟 timer' },
+  { id:'plans',     kw:'计划 任务 清单 待办 每日 周计划 排程 plan' },
+  { id:'practice',  kw:'单词 背单词 背词 词库 词汇 练习 学习 word' },
+  { id:'corpus',    kw:'句子 长难句 错题 听写 语料 翻译 解码 sentence' },
+  { id:'speaking',  kw:'口语 题库 串题 跟读 影子 part1 part2 part3 speaking' },
+  { id:'writing',   kw:'写作 作文 模板 真题 评分 大作文 小作文 task1 task2 writing' },
+  { id:'wrongbook', kw:'错句本 错句 默写 wrong' },
+  { id:'review',    kw:'回顾 复习 成绩 模考 记录 轨迹 历史 看板 review' },
+  { id:'settings',  kw:'设置 配置 同步 api key 账号 数据 导出 导入 settings' },
+  { id:'meds',      kw:'服药 用药 药 专注达 健康 药效 meds' }
+];
+let _ssAiToken = 0;   // 查词请求序号：过期响应直接丢弃
+let _ssAiBusy = false;
+
+function ssNormQuery(q){ return String(q || '').trim().toLowerCase().replace(/\s+/g, ' '); }
+function ssHasCn(q){ return /[\u4e00-\u9fff]/.test(q); }
+
+function ssMatchPages(q){
+  if(!q) return [];
+  const hits = [];
+  for(const p of SIDE_SEARCH_PAGES){
+    const page = PAGES.find(x => x.id === p.id);
+    if(!page) continue;
+    const hay = (page.name + ' ' + p.kw + ' ' + (page.desc || '')).toLowerCase();
+    if(hay.indexOf(q) !== -1) hits.push(page);
+    if(hits.length >= 6) break;
+  }
+  return hits;
+}
+
+/* 词性归一化（words.js normPos 的内置精简版，全站可用） */
+function ssNormPos(s){
+  s = String(s || '').trim().toLowerCase();
+  if(!s) return '';
+  const dict = { n:'n.', noun:'n.', 名词:'n.', v:'v.', verb:'v.', 动词:'v.', adj:'adj.', adjective:'adj.', 形容词:'adj.',
+    adv:'adv.', adverb:'adv.', 副词:'adv.', prep:'prep.', 介词:'prep.', conj:'conj.', 连词:'conj.',
+    pron:'pron.', 代词:'pron.', num:'num.', 数词:'num.', int:'int.', 感叹词:'int.', art:'art.', 冠词:'art.' };
+  const parts = s.split(/[;/,、\s]+/).map(x => x.trim()).filter(Boolean);
+  const out = parts.map(x => dict[x.replace(/\.$/, '')] || dict[x] || (/^(n|v|adj|adv|prep|conj|pron|num|int|art)\.$/.test(x) ? x : '')).filter(Boolean);
+  return Array.from(new Set(out)).join(';');
+}
+
+/* 新建词条（newWordV12 的内置版，结构与词库 v1.2 完全一致；练习页在线时优先复用） */
+function ssNewWord(en, cn){
+  if(typeof newWordV12 === 'function'){
+    try{ const w = newWordV12(en, cn); if(w) return w; }catch(_){}
+  }
+  return { id: uid(), en: en, cn: cn || '', ts: Date.now(), level: 0, nextReview: todayKey(),
+    errTotal: 0, errStreak: 0, hardWord: false, okStreak: 0, lastReview: null, keyWord: false,
+    cleared: false, shortCount: 0, lastShortTouch: null, cleanRounds: 0, pos: '', ipa: '' };
+}
+
+function bindSideSearch(){
+  const input = document.getElementById('sideSearch');
+  const panel = document.getElementById('ssPanel');
+  const list = document.getElementById('ssList');
+  if(!input || !panel || !list) return;
+
+  function show(){ panel.hidden = false; }
+  function hide(){ panel.hidden = true; }
+
+  function renderMatch(){
+    const q = ssNormQuery(input.value);
+    const hits = ssMatchPages(q);
+    const isEn = q && !ssHasCn(q);
+    let html = '';
+    if(isEn){
+      html += '<button class="ss-item ss-ai" type="button" data-ai="1" title="AI 查询释义并加入词库">'
+        + '<span class="ss-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 4.6 4.6 1.9-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"/><path d="M19 15l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z"/></svg></span>'
+        + '<span>AI 查词「' + escapeHtml(q) + '」</span><span class="ss-hint">回车</span></button>';
+    }
+    for(const p of hits){
+      html += '<button class="ss-item" type="button" data-file="' + p.file + '">'
+        + '<span class="ss-ico">' + p.icon + '</span><span class="ss-name">' + escapeHtml(p.name) + '</span>'
+        + '<span class="ss-desc">' + escapeHtml(p.desc || '') + '</span></button>';
+    }
+    if(!html && !q) html = '<div class="ss-empty">输入中文搜功能跳转；输入英文单词 AI 查词（自动加入词库）</div>';
+    else if(!html) html = '<div class="ss-empty">没有匹配的功能' + (isEn ? '，可回车用 AI 查这个词' : '') + '</div>';
+    const card = list.querySelector('.ss-card');
+    list.innerHTML = html + (card ? card.outerHTML : '');
+    show();
+  }
+
+  function ssCardHtml(inner){ return '<div class="ss-card">' + inner + '</div>'; }
+
+  async function aiLookup(word){
+    if(_ssAiBusy){ return; }
+    _ssAiBusy = true;
+    const token = ++_ssAiToken;
+    let card = list.querySelector('.ss-card');
+    const loading = ssCardHtml('<div class="sc-cn muted">AI 正在查询「' + escapeHtml(word) + '」…</div>');
+    if(card) card.outerHTML = loading; else list.insertAdjacentHTML('beforeend', loading);
+    show();
+    try{
+      const messages = [
+        { role:'system', content:
+'你是雅思词库助手。查询用户给的英文单词或词组，只输出严格 JSON（不要 markdown 围栏、不要解释）：\n'
++ '{"en":"原词小写","ipa":"英式音标，如 /ɡɪv ʌp/，查不到留空字符串","pos":"词性缩写，多个用;分隔（如 n. 或 n.;v.），词组留空字符串","cn":"简明中文释义；多词性时按词性顺序用；分隔对应"}' },
+        { role:'user', content: word }
+      ];
+      const content = await callRelay('words', messages, 0.3);
+      if(token !== _ssAiToken) return;
+      const r = aiJson(content);
+      if(!r || !r.en || !r.cn) throw new Error('AI 返回格式异常，请稍后重试');
+      const en = String(r.en).trim().toLowerCase();
+      const cn = String(r.cn).trim();
+      const pos = ssNormPos(r.pos);
+      const ipa = String(r.ipa || '').trim();
+      if(!en) throw new Error('AI 返回的单词为空');
+      let existed = false;
+      let dup = null;
+      (DATA.words || []).forEach(w => { if(String(w.en || '').trim().toLowerCase() === en) dup = w; });
+      if(dup){
+        existed = true;
+        if(!dup.pos && pos) dup.pos = pos;
+        if(!dup.ipa && ipa) dup.ipa = ipa;
+        if(!dup.cn && cn) dup.cn = cn;
+      } else {
+        const w = ssNewWord(en, cn);
+        w.pos = pos; w.ipa = ipa;
+        DATA.words.push(w);
+      }
+      hubSave();
+      const tag = existed ? '✓ 已在词库（释义已补全）' : '✓ 已自动加入词库（去「单词」页可背诵）';
+      const inner = '<span class="sc-en">' + escapeHtml(en) + '</span>'
+        + (ipa ? '<span class="sc-ipa">' + escapeHtml(ipa) + '</span>' : '')
+        + '<div class="sc-cn">' + (pos ? '<b>' + escapeHtml(pos) + '</b> ' : '') + escapeHtml(cn) + '</div>'
+        + '<div class="sc-tag">' + tag + '</div>';
+      card = list.querySelector('.ss-card');
+      if(card) card.outerHTML = ssCardHtml(inner);
+      toast(existed ? '「' + en + '」已在词库' : '「' + en + '」已加入词库');
+    }catch(e){
+      if(token !== _ssAiToken) return;
+      const msg = (e && e.message) ? e.message : '查询失败';
+      let inner = '<div class="sc-err">「' + escapeHtml(word) + '」查询失败：' + escapeHtml(msg) + '</div>';
+      if(String(msg).indexOf('API Key') !== -1){
+        inner += '<button class="ss-item" type="button" data-file="settings.html" style="margin-top:6px"><span class="ss-name">去设置填写 API Key</span></button>';
+      }
+      card = list.querySelector('.ss-card');
+      if(card) card.outerHTML = ssCardHtml(inner);
+    }finally{
+      if(token === _ssAiToken) _ssAiBusy = false;
+    }
+  }
+
+  input.addEventListener('focus', renderMatch);
+  input.addEventListener('input', renderMatch);
+  input.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter'){
+      const q = ssNormQuery(input.value);
+      if(!q) return;
+      if(ssHasCn(q)){
+        const hits = ssMatchPages(q);
+        if(hits[0]){ hide(); input.value = ''; location.href = hits[0].file; }
+        return;
+      }
+      aiLookup(q);   // 英文：AI 查词
+    } else if(e.key === 'Escape'){
+      hide(); input.blur();
+    }
+  });
+  panel.addEventListener('mousedown', (e) => {
+    const fileBtn = e.target.closest('[data-file]');
+    if(fileBtn){
+      e.preventDefault();
+      const f = fileBtn.dataset.file;
+      hide(); input.value = '';
+      location.href = f;
+      return;
+    }
+    const aiBtn = e.target.closest('[data-ai]');
+    if(aiBtn){
+      e.preventDefault();
+      const q = ssNormQuery(input.value);
+      if(q && !ssHasCn(q)) aiLookup(q);
+    }
+  });
+  document.addEventListener('click', (e) => {
+    if(!panel.hidden && !e.target.closest('.side-search-wrap')) hide();
+  });
 }
 
 /* ===== 全站玻璃底栏 dock（移动端 ≤860px 显示，作为移动端主底部导航；桌面用侧栏，不显示）===== */
