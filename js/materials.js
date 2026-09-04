@@ -26,7 +26,8 @@
   + '1. 故事必须基于考生原话，真实不编造。**事实完整性优先于语言精简**：若把相关经历合并成一个故事，两段经历的关键事实（人物/地点/事件/感受）都必须出现在某个 storyEn 或 logicZh 里——信息不能丢，但语言允许压缩重写；宁可多生成一个小故事，也绝不丢弃考生填的事实。\n'
   + '2. 每个故事含：title(标题) / storyEn(一段英文小故事，**90~120 词**——按考生口语水平校准，句子可简单但必须能背；用**基础词汇**、短到中等长度的句子，靠 and / so / because / but / actually 等连接词串成有「起因→经过→感受→结尾」的**连贯叙事**，读起来像在讲一件事而不是清单；严禁连续堆砌孤立短句、严禁连续同一主语/同一动词；**严禁超过 120 词**，宁可用两个短故事承载也不写超长故事) / logicZh(中文**逻辑链**：用若干中文短语以 "—"（中文横杠/破折号）串接，把故事的关键步骤、转折、感受、细节都铺开——越长越细越好、数量不固定，例如"朋友送手机壳—觉得很有心—每天用手机—看到就想起朋友—珍藏") / coverage(能套的当季 P2 题数组)。\n'
   + '3. 人设一致：每个故事至少一处与考生人设（性格/价值观）自然呼应（如「理性」「喜欢无纸化学习」这类考生自己的特质），为 Part 3 追问时的人设一致性打底，不要让故事像另一个人经历。\n'
-  + '4. coverage 每个元素：{"topic":"题名","fit":"natural|loose","bridgeEn":"1 句英文点题句","note":"中文一句怎么套(如\'旅行中意识到环保法重要→套法律法规\';natural 可简写)"}。topic 必须**逐字取自下方【P2 题库对照清单】里的题目名**（这是考生网站当季真实题库），严禁自创题族名、严禁使用清单外的名字。bridgeEn 是把本故事嫁接到该题、考场可直接念的**英文简单句**（只用初中词汇、单一主谓结构，15 词以内）。串题很抽象，**搭边就行**：不限于自然贴合的题，偏题（法律/规则/人物/挑战…）只要能扯上关系就列，并给自然的连接说明。目标是背完这几个故事，清单里绝大多数题都能套。\n'
+  + '4. coverage 每个元素：{"topic":"题名","fit":"natural|loose","bridgeEn":"1 句英文点题句","note":"中文一句怎么套(如\'旅行中意识到环保法重要→套法律法规\';natural 可简写)"}。topic 必须**逐字取自下方【P2 题库对照清单】里的题目名**（这是考生网站当季真实题库），严禁自创题族名、严禁使用清单外的名字。bridgeEn 是把本故事嫁接到该题、考场可直接念的**英文简单句**（只用初中词汇、单一主谓结构，15 词以内）。\n'
+  + '4.1 覆盖宁多勿漏（重要）：每个故事的 coverage 要把下方清单**全量扫一遍**，搭边就列、能圆就列——直接讲的是 natural；借人物关系 / 事件 / 感受 / 物品硬扯能圆的是 loose（如故事里有"对象帮考生解决难题"→「机智解决问题的人」natural、「有条理的人」loose、「做困难事情并成功的人」loose）。每张卡通常能列 5~15 题，只有真正一点关系都扯不上的才不列。目标是背完这几张卡，清单里绝大多数题都能套。\n'
   + '5. 不要产出 keyword 骨架 / 不要拆分多切面列表——考生基础弱，给词也不会说句型，必须给**成段的、能直接背的英文小故事**（句子可简单但必须连贯，靠连接词串成一件事）。\n'
   + '6. 自检（输出前必须执行）：把下方题库清单逐题过一遍——每题要么已被某故事的 coverage 覆盖，要么确认现有素材实在覆盖不了，放入 uncovered 数组（topic 逐字取自清单，reason 写明缺什么素材，如"缺地点类经历"）。\n'
   + '7. followups：针对 uncovered 里「补 1-2 问就能救」的题，生成第二人称、具体好答的澄清性问题（如"你最近半年有没有搬过家？搬去哪了？"）；若素材已够广，followups 返回空数组。\n'
@@ -335,9 +336,16 @@
       const mats = (store.materials || []).filter(m => m && (m.coverage || []).length);
       if(!bank || !mats.length) throw new Error('没有可映射的素材');
       const newList = bank.map(b => b.title + (b.req ? '（要点：' + b.req + '）' : '')).join('\n');
-      const oldInfo = mats.map(m => '【' + (m.title || '未命名') + '】可套题：' + m.coverage.map(c => c.topic).join('、')).join('\n');
-      const sys = '你是雅思口语题库换季映射助手。考生网站的口语题库刚换季。下面给出每张素材卡原来可套的旧题，以及新题库清单。请把每张素材卡的 coverage 重映射到新题库：新 topic 必须**逐字取自新题库清单**；旧题在新库里没有对应题时直接丢弃该条；能对应上的给 fit（natural|loose）、一句考场可直接念的英文点题句 bridgeEn（只用初中词汇、单一主谓简单句、15 词以内）和中文 note。输出严格 JSON：{"mappings":[{"title":"素材卡标题","coverage":[{"topic":"","fit":"","bridgeEn":"","note":""}]}]}，不要任何解释文字。';
-      const user = '素材卡旧覆盖：\n' + oldInfo + '\n\n新题库清单：\n' + newList;
+      // 深挖式重映射：不只翻译旧对照，而是每张卡对着新题库【全量重评】——搭边就列、宁多勿漏
+      const storyInfo = mats.map(m => '【' + (m.title || '未命名') + '】\n故事概要：' + String(m.storyEn || '').slice(0, 200) + '\n中文逻辑：' + (m.logicZh || '') + '\n旧对照（仅供参考，可推翻）：' + m.coverage.map(c => c.topic).join('、')).join('\n\n');
+      const sys = '你是雅思口语串题覆盖挖掘助手。考生网站口语题库刚换季。下面给出每张素材卡的故事内容（概要+中文逻辑）和它原来标的旧对照。你的任务不是翻译旧对照，而是**把每张卡放到新题库清单里全量重评一遍**：\n'
+        + '1. 逐题扫描新题库清单，凡是这个故事**能扯上关系**的题都列进 coverage——标准是「搭边就列、宁多勿漏」：直接讲的就是 natural；借人物关系/事件/感受/物品硬扯能圆的就是 loose。\n'
+        + '   例：故事里有"对象帮考生解决难题"→「机智解决问题的人」natural、「有条理的人」loose（把对象描述成有条理地帮忙）、「做困难事情并成功的人」loose、「帮助你的人」类题 natural。\n'
+        + '   例：海边旅行故事 → 旅行/地点/放松/照片/朋友类题都能列。\n'
+        + '2. 每张卡通常能列 5~15 题，列得越全越好；只有真正一点关系都扯不上的才不列。\n'
+        + '3. 新 topic 必须**逐字取自新题库清单**；每条给 fit（natural|loose）、一句考场可直接念的英文点题句 bridgeEn（只用初中词汇、单一主谓简单句、15 词以内）和中文 note（loose 必须写清怎么圆）。\n'
+        + '输出严格 JSON：{"mappings":[{"title":"素材卡标题","coverage":[{"topic":"","fit":"","bridgeEn":"","note":""}]}]}，不要任何解释文字。';
+      const user = '素材卡列表：\n' + storyInfo + '\n\n新题库清单：\n' + newList;
       const content = await callRelay('material_remap', [ { role:'system', content:sys }, { role:'user', content:user } ], 0.4);
       const j = aiJson(content);
       if(!j || !Array.isArray(j.mappings)) throw new Error('重映射 JSON 解析失败');
@@ -368,7 +376,7 @@
     if(store.materials.length && store.bankVersion !== DATA.speakingVersion){
       const verTxt = store.bankVersion != null ? ('旧题库（v' + escapeHtml(String(store.bankVersion)) + '）') : '较早版本的题库';
       h += '<div class="mat-remap"><div class="mat-remap-txt"><b>题库已换季</b>：这些素材是' + verTxt + '时生成的，「可套当季题」对照可能已过时。故事本身是你自己的经历、不会过期——只是对照清单需要对齐。</div>'
-        + '<button class="btn btn-primary" id="matRemap">一键重映射到新题库</button></div>';
+        + '<button class="btn btn-primary" id="matRemap">一键深挖覆盖（对齐新题库）</button></div>';
     }
     // 当季覆盖矩阵（P1）：题库 P2 逐题对照素材 coverage，一眼看出「背这几个够不够」
     h += renderCoverageMatrix();
