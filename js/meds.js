@@ -40,13 +40,14 @@ function recordMed(){
     if(!confirm('这个时间在未来，确定要记录吗？')) return;
   }
   const tkey = todayKey(ts);
+  if(!Array.isArray(DATA.meds)) DATA.meds = [];   // h 类：corrupt/legacy 数据缺 meds 不再崩
   DATA.meds.push({ id: uid(), date: tkey, ts });
   hubSave(); renderMeds(); toast('已记录服药');
 }
 
 function deleteMed(id){
   if(!confirm('确定要删除这条记录吗？')) return;
-  DATA.meds = DATA.meds.filter(m => m.id !== id);
+  DATA.meds = (Array.isArray(DATA.meds) ? DATA.meds : []).filter(m => m.id !== id);
   DATA.deletedIds = DATA.deletedIds || [];
   if(id != null && !DATA.deletedIds.includes(id)) DATA.deletedIds.push(id);
   hubSave(); renderMeds(); toast('已删除');
@@ -79,6 +80,7 @@ function editMed(id){
 }
 
 function renderMeds(){
+  if(!Array.isArray(DATA.meds)) DATA.meds = [];   // h 类：corrupt/legacy 数据缺 meds 不再崩
   const tkey = todayKey();
   const todays = DATA.meds.filter(m => m.date === tkey).sort((a,b) => b.ts - a.ts);
   const status = $('#todayMedStatus');

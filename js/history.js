@@ -4,8 +4,9 @@ ready(() => {
 });
 
 function renderHeatmap(){
+  const sessions = Array.isArray(DATA.sessions) ? DATA.sessions : [];   // h 类：corrupt/legacy 数据缺 sessions 不再崩整页
   const byDay = {};
-  DATA.sessions.forEach(s => byDay[s.date] = (byDay[s.date]||0) + s.durationSec);
+  sessions.forEach(s => byDay[s.date] = (byDay[s.date]||0) + s.durationSec);
   const days = [];
   for(let i=29;i>=0;i--){
     const d = new Date(); d.setDate(d.getDate()-i);
@@ -34,7 +35,7 @@ function renderDays(){
   const wd = ['周日','周一','周二','周三','周四','周五','周六'];
   const getWeekday = dStr => wd[new Date(dStr.replace(/-/g,'/')).getDay()];
   const byDay = {};
-  DATA.sessions.forEach(s => {
+  (Array.isArray(DATA.sessions) ? DATA.sessions : []).forEach(s => {
     byDay[s.date] = byDay[s.date] || [];
     byDay[s.date].push(s);
   });
