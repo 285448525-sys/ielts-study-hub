@@ -66,6 +66,16 @@ ready(() => {
   const histClear = $('#scoreHistClear');
   if(histClear) histClear.addEventListener('click', () => {
     if(!confirm('确定清空全部评分记录？')) return;
+    // 修(a 播种复活)：writingScores 在 SYNC_ARRAY_FIELDS 内按 id 并集合并、靠 deletedIds 墓碑过滤。
+    // 原写法直接置空数组、不写墓碑 → 下次云同步把云端旧记录原样并回来（删了又回来）。
+    // 墓碑口径对齐 common.js mergeData 的 delKey：优先 id，老记录缺 id 用 ts 兜底。
+    (DATA.writingScores || []).forEach(r => {
+      const k = (r && r.id != null) ? r.id : (r && r.ts != null) ? r.ts : null;
+      if(k != null){
+        DATA.deletedIds = DATA.deletedIds || [];
+        if(!DATA.deletedIds.includes(k)) DATA.deletedIds.push(k);
+      }
+    });
     DATA.writingScores = [];
     hubSave();
     renderScoreHist();
@@ -272,7 +282,10 @@ ${others.join('\n') || '（还没填其他空）'}
 function updatePreview(){
   const t = DATA.writing.find(x => x.id === curId);
   if(!t) return;
-  let out = t.skeleton;
+  // 修(e 转义纪律)：骨架是用户可新增/编辑的数据（addTpl），原先未转义直插 innerHTML —— 骨架含 < > 时
+  // 会破坏结构甚至注入标签。先整体转义再做填空替换（【】与占位文本不受 escapeHtml 影响，split/join 口径不变），
+  // 填入值本身在下一步已过 escapeHtml。
+  let out = escapeHtml(t.skeleton);
   document.querySelectorAll('.ph-input').forEach(inp => {
     const ph = inp.dataset.ph;
     const val = inp.value.trim();
@@ -365,12 +378,12 @@ ${s.text}` }
     const r = aiJson(content);
     if(!r){
       box.innerHTML = '<div class="ts-sec"><h4>AI 返回（非标准格式）</h4><div style="white-space:pre-wrap;font-size:13.5px;line-height:1.8">' + escapeHtml(content) + '</div></div>';
-      DATA.writingScores.push({ id: uid(), date: todayKey(), mode:'template', tplId: s.tpl.id, tplTitle: s.tpl.title, essay: s.text, result: content, parsed:false });
+      DATA.writingScores.push({ id: uid(), date: todayKey(), mode:'template', tplId: s.tpl.id, tplTitle: s.tpl.title, tplCat: s.tpl.category, essay: s.text, result: content, parsed:false });
       hubSave();
       return;
     }
     box.innerHTML = tplScoreHtml(r, isTask1);
-    DATA.writingScores.push({ id: uid(), date: todayKey(), mode:'template', tplId: s.tpl.id, tplTitle: s.tpl.title, essay: s.text, result: r, parsed:true });
+    DATA.writingScores.push({ id: uid(), date: todayKey(), mode:'template', tplId: s.tpl.id, tplTitle: s.tpl.title, tplCat: s.tpl.category, essay: s.text, result: r, parsed:true });
     writeSyncMock(isTask1 ? '小作文' : '大作文', r);   // 方案 23：模板评分也回流看板
     hubSave();
     toast('评分完成');
@@ -455,7 +468,11 @@ function histDetailHtml(rec){
   }
   // 模板评分 → 复用 tplScoreHtml
   if(rec.mode === 'template'){
-    const isTask1 = /小作文/.test(rec.tplTitle || '');
+    // 修(d 前缀启发式)：原用 /小作文/.test(tplTitle) 判 Task1，但默认模板标题是「动态图（线/柱带年份）」
+    // 这类、不含「小作文」→ 历史记录重渲染时 Task1 模板错标成 TR 任务回应。
+    // 优先按评分时落库的 category 判定（与 scoreTemplate 同一口径），旧记录无 tplCat 时退化为前缀匹配。
+    const cat = rec.tplCat || rec.tplTitle || '';
+    const isTask1 = /^(动态图|静态图|地图题|流程图)/.test(cat) || /小作文/.test(rec.tplTitle || '');
     return tplScoreHtml(r, isTask1);
   }
   // 整篇评分 → 复用 score-* 结构
@@ -585,6 +602,10 @@ let wtDictSentences = [];   // 当前源按句拆分后的句子数组（1-based
 let wtDictWeak = {};        // 当前源 loc -> 历史出错次数
 
 // ---- 模板默写草稿（瞬态 localStorage，切走/刷新后可续；不进云同步）----
+/* 修(f/b)：writing.js 软导航重 eval 时这句 var 会把防抖句柄重置为 null，旧 setTimeout 无人清理 ——
+   旧 eval 闭包里的 saveWtDictDraft 照常触发，而此刻 #wtDictInput 可能已随页面切换销毁 → 回调崩溃。
+   重声明前先清旧句柄；collectWtDictDraft 内再做元素缺失守卫。 */
+if(window.wtDictDraftTimer){ clearTimeout(window.wtDictDraftTimer); }
 var wtDictDraftTimer = null;
 function wtDictDraftKey(id){ return 'ielts_wt_dict_draft_' + id; }
 function loadWtDictDraft(id){
@@ -598,10 +619,14 @@ function loadWtDictDraft(id){
 }
 function collectWtDictDraft(){
   if(!wtDictCurrent) return null;
-  const text = ($('#wtDictInput').value) || '';
+  // 修(h 空数据降级)：防抖定时器回调可能在页面已切换后触发，#wtDictInput/#wtDictResult 可能已不存在
+  const inpEl = $('#wtDictInput');
+  const resEl = $('#wtDictResult');
+  if(!inpEl || !resEl) return null;
+  const text = inpEl.value || '';
   const checked = [];
   document.querySelectorAll('.wt-dict-sent-chk').forEach(c => { if(c.checked) checked.push(Number(c.dataset.idx)); });
-  const resultHtml = $('#wtDictResult').hidden ? '' : $('#wtDictResult').innerHTML;
+  const resultHtml = resEl.hidden ? '' : resEl.innerHTML;
   const hasText = text.trim().length > 0;
   const hasPick = checked.length > 0 && checked.length !== wtDictSentences.length; // 仅当不是"全选默认"才存勾选（全选=无信息量）
   if(!hasText && !hasPick && !resultHtml) return null;
@@ -1098,7 +1123,8 @@ ${isTask1 ? RULES_TASK1 : RULES_TASK2}
 
     // 渲染结果
     let html = '';
-    html += '<div class="score-overall">预估总分：' + (result.overall || 'N/A') + '</div>';
+    // 修(e 转义纪律)：AI 返回的 overall 未过 escapeHtml 就直插（histDetailHtml / examStopAndScore 同场景均已转义）
+    html += '<div class="score-overall">预估总分：' + escapeHtml(result.overall || 'N/A') + '</div>';
     if(result.breakdown){
       html += '<div class="score-breakdown">';
       ['TR','CC','LR','GRA'].forEach(k => {
@@ -1164,6 +1190,10 @@ function writeSyncMock(type, result){
 }
 
 /* ===================== 写作真题模块 ===================== */
+/* 修(f 场景状态隔离)：writing.js 会被软导航 window.eval 重跑，这句 var 会把 examTimer 重置成新对象，
+   旧 setInterval 句柄随之丢失且无人清理 —— 离开写作页后旧心跳每秒照跑，而 #examTimerText 已不在 DOM，
+   examTick 里 null.textContent 每秒抛一次 TypeError。重声明前先清旧句柄；examTick 内再做元素缺失自停兜底。 */
+if(window.examTimer && window.examTimer.tick){ clearInterval(window.examTimer.tick); }
 var examTimer = { start: 0, elapsed: 0, running: false, tick: null, cur: null };
 
 function fmtExamTime(ms){
@@ -1173,8 +1203,13 @@ function fmtExamTime(ms){
   return p(h)+':'+p(m)+':'+p(sec);
 }
 function examTick(){
+  const el = $('#examTimerText');
+  if(!el){   // 修(f)：元素已随页面切换销毁 → 自停心跳，避免每秒 TypeError、也堵住跨页残留
+    if(examTimer.tick){ clearInterval(examTimer.tick); examTimer.tick = null; }
+    return;
+  }
   const ms = examTimer.elapsed + (examTimer.running ? Date.now()-examTimer.start : 0);
-  $('#examTimerText').textContent = fmtExamTime(ms);
+  el.textContent = fmtExamTime(ms);
 }
 function examStartTimer(){
   examTimer.start = Date.now(); examTimer.elapsed = 0; examTimer.running = true;
@@ -1235,7 +1270,9 @@ function renderExamList(){
   // 建立 examNo → 最新评分记录 索引（用于卡片打勾 + 总分）
   const scoreMap = {};
   (DATA.writingScores || []).forEach(rec => {
-    const key = (rec.type === '大作文' ? 'big:' : 'small:') + (rec.examNo != null ? rec.examNo : '');
+    // 修(g 键口径)：小作文真题记录存 examNo 时带 'T' 前缀（'T3'，见 examStopAndScore 的写入），
+    // 而下方 recKey 用裸题号（3）→ 键对不上，小作文真题练完后 ✓ 与预估分永不显示。剥前缀归一化，兼容旧记录。
+    const key = (rec.type === '大作文' ? 'big:' : 'small:') + String(rec.examNo != null ? rec.examNo : '').replace(/^T/, '');
     // 仅取第一条（最新写入的为最后一条，这里覆盖为最新）
     scoreMap[key] = rec;
   });
@@ -1349,8 +1386,10 @@ function openExam(item, kind){
     }
     const n = ($('#examEssay').value.trim().match(/\b[\w'-]+\b/g) || []).length;
     $('#examWordCount').textContent = 'Word count: ' + n;
+  } else {
+    // 修：原写法在 if 块之后无条件把词数清零，刚恢复的草稿词数立刻被盖成 0
+    $('#examWordCount').textContent = 'Word count: 0';
   }
-  $('#examWordCount').textContent = 'Word count: 0';
   $('#examResult').hidden = true;
   const fold = $('#examEssayFold'); if(fold) fold.open = false;   // 我的作文默认收起
   const eo = $('#examEssayOrig'); if(eo) eo.textContent = '';
@@ -1367,6 +1406,9 @@ function examStopAndScore(){
   const isTask1 = type === '小作文';
   const dim = isTask1 ? 'TA（Task Achievement 任务完成）' : 'TR（Task Response 任务回应）';
   const btn = $('#examScoreBtn');   // 手动评分按钮可能不存在（HTML 未提供），空值安全
+  // 修：finally 里原本引用了未声明的 btnHtml（作用域内只有 scoreEssay/scoreTemplate 各自的局部
+  // btnHtml）→ ReferenceError；且 btn 为 null 时 btn.disabled 也直接 TypeError。声明处缓存 + finally 统一守卫。
+  const btnHtml = btn ? btn.innerHTML : '';
   if(btn){ btn.disabled = true; btn.textContent = '评分中…'; }
   const box = $('#examResult');
   box.hidden = false;
@@ -1440,7 +1482,8 @@ ${isTask1 ? RULES_TASK1 : RULES_TASK2}
     }catch(e){
       box.innerHTML = '<p class="muted">AI 服务暂不可用：'+escapeHtml(e.message)+'</p><p class="muted" style="font-size:13px">请检查「设置」中的 AI 接口地址。</p>';
     }finally{
-      btn.disabled = false; btn.innerHTML = btnHtml;
+      // 修：原 finally 无空值守卫（btn 可能为 null）且引用未声明的 btnHtml → 该块每次执行必抛
+      if(btn){ btn.disabled = false; btn.innerHTML = btnHtml; }
     }
   })();
 }
