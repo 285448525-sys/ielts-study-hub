@@ -113,6 +113,7 @@
 
   /* ---------- 生成 ---------- */
   async function generate(extra){
+    editing = -1;   // 重新生成整体替换素材集，重置编辑态，避免旧下标错位指向错误的卡（f 类：跨操作状态隔离）
     // 收集经历
     const experiences = [];
     QUESTIONS.forEach(q => { const v = ans(q.id); if(v) experiences.push({ id:q.id, title:q.title, raw:v }); });
@@ -224,7 +225,8 @@
         + '</div>';
     }
     // 故事卡
-    store.materials.forEach((m, i) => {
+    (Array.isArray(store.materials) ? store.materials : []).forEach((m, i) => {
+      if(!m) return;
       const isEditing = (editing === i);
       h += '<div class="mat-mat' + (isEditing ? ' open' : '') + '" data-i="' + i + '">'
         + '<div class="mat-mat-head" data-toggle="' + i + '"><span class="mat-mat-title">' + escapeHtml(m.title || '未命名') + '</span>'
