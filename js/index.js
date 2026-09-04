@@ -1,3 +1,8 @@
+// hint 行最多列 2 个模块名，再多会撑爆卡片（视觉契约，勿改数值）
+const MAX_HINT_MODS = 2;
+// 倒计时日期的「周 X」后缀用
+const WEEKDAY_CN = ['日','一','二','三','四','五','六'];
+
 ready(() => {
   const safe = fn => { try{ fn(); }catch(e){ console.error('[index] 渲染失败', fn.name || '', e); } };
   const s = (DATA && DATA.settings) || {};
@@ -19,11 +24,10 @@ ready(() => {
 /** v6 首页渲染：hero 倒计时 + 双卡 + 快速入口 + 今日记录（design/31 A 版） */
 function renderDashV6(){
   const now = new Date();
-  const wks = ['日','一','二','三','四','五','六'];
   const dateEl = $('#dashDate');
   if(dateEl) dateEl.textContent =
     (now.getMonth()+1).toString().padStart(2,'0')+'-'+now.getDate().toString().padStart(2,'0')
-    +' · 周'+wks[now.getDay()];
+    +' · 周'+WEEKDAY_CN[now.getDay()];
 
   // ---- 连续学习天数 chip ----
   const chipEl = $('#dashStreakChip');
@@ -38,33 +42,33 @@ function renderDashV6(){
   }
 
   // ---- hero：考试倒计时 ----
+  // daysLeft === null 表示考试日期字符串非法（daysUntil 兜底返回），必须回退 "--"，不能掉进 <0 分支误显「已过」
   const cd = examCountdown();
   const numEl = $('#dashHeroNum');
-  if(cd.hasExam && numEl){
-    if(cd.daysLeft >= 0){
+  if(numEl){
+    if(!cd.hasExam || cd.daysLeft === null){
+      numEl.innerHTML = '<span class="big">--</span><span class="unit">天</span>';
+    } else if(cd.daysLeft >= 0){
       numEl.innerHTML = '<span class="big">'+cd.daysLeft+'</span><span class="unit">天</span>';
     } else {
       numEl.innerHTML = '<span class="big">已过</span>';
     }
-  } else if(numEl){
-    numEl.innerHTML = '<span class="big">--</span><span class="unit">天</span>';
   }
 
   // ---- 双卡：今日学习时长 / 待复习 ----
   const tkey = todayKey();
   const todays = (DATA.sessions||[]).filter(x => x.date === tkey);
   const totalSec = todays.reduce((a,x)=>a+(x.durationSec||0),0);
-  const mods = new Set(todays.map(x=>x.moduleName||'未知').filter(Boolean));
+  const mods = new Set(todays.map(x => x.moduleName || '未知'));
 
   const timeEl = $('#dashTodayTime');
   const modsEl = $('#dashTodayMods');
   if(timeEl){
-    const h = Math.floor(totalSec/3600);
-    const m = Math.floor((totalSec%3600)/60);
-    timeEl.innerHTML = h+'<span class="u">h</span>'+m+'<span class="u">m</span>';
+    const hm = hmParts(totalSec);
+    timeEl.innerHTML = hm.h+'<span class="u">h</span>'+hm.m+'<span class="u">m</span>';
   }
   if(modsEl) modsEl.textContent = mods.size > 0
-    ? [...mods].slice(0,2).join(' · ')
+    ? [...mods].slice(0, MAX_HINT_MODS).join(' · ')
     : '今天还没开始学习';
 
   // 待学习口径与背单词页一致：未掌握（cleared!==true）或今天到期（nextReview≤今天）
@@ -109,23 +113,31 @@ function renderDashV6(){
   }
 
   if(totalEl){
-    const th = Math.floor(totalSec/3600);
-    const tm = Math.floor((totalSec%3600)/60);
-    totalEl.textContent = th+'h'+tm+'m';
+    const hm = hmParts(totalSec);
+    totalEl.textContent = hm.h+'h'+hm.m+'m';
   }
+}
+
+/** 秒 → {h, m}（均向下取整，与历史口径一致不进位；负值/脏数据按 0 处理）。
+    为什么抽：hero「今日学习」卡与右下角「总计」两处重复同一换算，防改一处漏一处。 */
+function hmParts(sec){
+  const t = Math.max(0, Number(sec) || 0);
+  return { h: Math.floor(t/3600), m: Math.floor((t % 3600) / 60) };
 }
 
 /** 计算连续学习天数（从今天往前数连续有 session 的天数） */
 function calcStreakV6(){
   const sessions = DATA.sessions || [];
   if(sessions.length === 0) return 0;
-  const dates = [...new Set(sessions.map(s=>s.date))].sort().reverse();
+  // Set 按日期字符串去重（同一天多条 session 只算一天）；filter 丢弃缺 date 的脏记录，
+  // 否则 undefined 经 sort+reverse 会排到首位，把整条 streak 误判为 0
+  const dates = [...new Set(sessions.map(s=>s.date).filter(Boolean))].sort().reverse();
   if(dates[0] !== todayKey()) return 0;
   let count = 1;
   for(let i=1;i<dates.length;i++){
-    const d = new Date(dates[i-1]);
-    d.setDate(d.getDate()-1);
-    if(dates[i] === todayKey(d)) count++; else break;
+    // 用 addDays 做纯字符串日期算术：new Date('YYYY-MM-DD') 会按 UTC 解析，
+    // 在非东八区会被本地化到前一天，导致 streak 断档——addDays 强制本地午夜解析，无此问题
+    if(dates[i] === addDays(dates[i-1], -1)) count++; else break;
   }
   return count;
 }
