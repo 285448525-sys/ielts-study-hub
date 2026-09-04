@@ -4,6 +4,14 @@ var curFreq = 'all';
 var curCat = 'all';
 var curSearch = '';
 var curDetailId = null;
+
+/* P2 倒计时句柄（f 类 · 场景状态隔离）：句柄挂 window 而非 DOM 节点，
+   因为 speaking.js 会被软导航 window.eval 重跑、详情页节点也会被整体重建；
+   挂在节点上会导致离开口语页/切换话题后心跳仍跑，在别的页面弹「2 分钟到」。
+   进入/重建详情页时先 __clearP2Timer()，保证同页与跨页都只可能有一个倒计时。 */
+function __clearP2Timer(){
+  if(window.__p2TimerId){ clearInterval(window.__p2TimerId); window.__p2TimerId = null; }
+}
 var FREQ_ORDER = { P1:{ultra:0, high:1, medium:2, low:3}, P2:{ultra:0, high:1, medium:2, low:3} };
 function freqRank(f){ const t = FREQ_ORDER[curType] || FREQ_ORDER.P1; return (t[f] != null) ? t[f] : 9; }
 
@@ -277,6 +285,7 @@ function refreshScoreAfterDiag(s){
 function openDetail(id){
   const s = DATA.speaking.find(x => x.id === id);
   if(!s) return;
+  __clearP2Timer();   // 修(f)：切话题/重进详情页先停掉上一题残留的 2 分钟倒计时
   curDetailId = id;
   $('#listView').hidden = true;
   $('#detailView').hidden = false;
@@ -376,10 +385,9 @@ function openDetail(id){
   if(delSpBtn) delSpBtn.addEventListener('click', () => {
     if(confirm('确定删除这个口语题？删除后默认题库升级也不会再恢复它。')) deleteSpeaking(id);
   });
-  if(s.type === 'P1'){
-    const nextTopicBtn = document.getElementById('nextTopicBtn');
-    if(nextTopicBtn) nextTopicBtn.addEventListener('click', () => gotoNextTopic());
-  } else if(s.type === 'P2'){
+  // 修：原此处重复绑定了一次 nextTopicBtn（上面 P1 分支已绑过），导致点一次「下一个话题」
+  // 连跳两题。删除重复分支，P2 分支由 else if 改为独立 if（保持大括号配平）。
+  if(s.type === 'P2'){
     // P2：完成 = 返回列表；下一题 = 跳到筛选列表的下一道（沿用现有 gotoNextTopic）
     const fin = $('#p2FinishBtn');
     if(fin) fin.addEventListener('click', () => {
@@ -432,7 +440,7 @@ function openDetail(id){
       const fmt = s => { const m = Math.floor(s / 60), sec = s % 60; return String(m).padStart(2,'0') + ':' + String(sec).padStart(2,'0'); };
       p2TimerBtn.addEventListener('click', e => {
         e.stopPropagation();
-        if(p2TimerBtn._timer){ clearInterval(p2TimerBtn._timer); p2TimerBtn._timer = null; }
+        __clearP2Timer();   // 修(f)：改用可跨页清理的句柄，原 p2TimerBtn._timer 随节点丢弃后无人清理
         let left = TOTAL;
         p2TimerDisp.hidden = false;
         p2TimerDisp.textContent = fmt(left);
@@ -441,10 +449,13 @@ function openDetail(id){
         p2TimerBtn.classList.add('sp-timer-running');
         // 自动聚焦输入框，方便语音输入转文字
         const ta = $('#p2Ans'); if(ta) ta.focus();
-        p2TimerBtn._timer = setInterval(() => {
+        window.__p2TimerId = setInterval(() => {
+          // 修(f)：详情页被重建（切话题/完成）或软导航离开口语页后，这两个节点会脱离文档。
+          // 检测到脱离就立刻自停，避免心跳在别的页面继续跑、2 分钟后弹出无关的「⏰ 2 分钟到」。
+          if(!p2TimerDisp.isConnected){ __clearP2Timer(); return; }
           left--;
           if(left <= 0){
-            clearInterval(p2TimerBtn._timer); p2TimerBtn._timer = null;
+            __clearP2Timer();
             p2TimerDisp.textContent = '00:00';
             p2TimerDisp.classList.add('sp-timer-end');
             p2TimerBtn.textContent = '⏱ 2分钟';
@@ -1289,7 +1300,10 @@ function renderP2Diag(el, j, answer){
 async function diagnoseP2(id){
   const s = DATA.speaking.find(x => x.id === id);
   if(!s) return;
-  const answer = ($('#p2Ans') || {}).value.trim();
+  // 修(h 空数据降级)：原 ($('#p2Ans') || {}).value.trim() 只兜住了元素本身，
+  // 元素缺失时 {}.value 是 undefined，再 .trim() 直接 TypeError —— 应当走下面的空值提示而非崩溃。
+  const __p2ta = $('#p2Ans');
+  const answer = __p2ta ? __p2ta.value.trim() : '';
   if(!answer){ toast('先说出或写下你的回答'); return; }
 
   const btn = $('#p2Diag');
@@ -1329,7 +1343,10 @@ async function diagnoseP2(id){
     // 存结果 + 追加一条提交历史记录
     s.answers = s.answers || {};
     const newScore = null;
-    s.answers.p2 = { text: answer, result: (j ? JSON.stringify(j) : content), ts: Date.now(), score: newScore };
+    // 修(b/g)：原写法整体替换 answers.p2，会把 p3（P3 追问题目/答案/AI辅助）、
+    // aiStoryLink（串题素材）和已有 records 全部抹掉，导致每次「AI 纠错」后 P3 与串题消失、
+    // 历史只剩 1 条。改为展开合并保留旧字段，与 diagnoseAnswer 的 { ...oldAns } 口径一致。
+    s.answers.p2 = { ...(s.answers.p2 || {}), text: answer, result: (j ? JSON.stringify(j) : content), ts: Date.now(), score: newScore };
     s.answers.p2.records = s.answers.p2.records || [];
     s.answers.p2.records.push({ text: answer, ts: Date.now(), score: newScore, result: (j ? JSON.stringify(j) : content), raw: content });
     s.updatedAt = Date.now();
@@ -1465,11 +1482,16 @@ function diffSentenceHtml(answer, errs){
   });
 
   if(!reps.length) return inlineErrorsHtml(clean);
-  reps.sort((a, b) => b.idx - a.idx);
-  let html = ans;
+  // 修(e 转义纪律)：原写法把未转义的用户原文 ans 直接拼进 innerHTML，只有命中的错误片段过了
+  // escapeHtml —— 回答里出现 < > & 会破坏结构甚至注入标签。改为升序遍历，未命中的段落逐段转义。
+  reps.sort((a, b) => a.idx - b.idx);
+  let html = '';
+  let last = 0;
   reps.forEach(r => {
-    html = html.slice(0, r.idx) + r.html + html.slice(r.idx + r.len);
+    html += escapeHtml(ans.slice(last, r.idx)) + r.html;   // r.html 内部已各自 escapeHtml
+    last = r.idx + r.len;
   });
+  html += escapeHtml(ans.slice(last));
   return '<div class="diag-sentence-diff">' + html + '</div>';
 }
 
@@ -1616,6 +1638,7 @@ async function generateAIHelper(id, qi){
   const questionText = (s.questions || [])[+qi] || '';
   if(!questionText){ toast('题目为空'); return; }
   const persona = buildPersonaContext();
+  const btnHtml = btn ? btn.innerHTML : '';   // 修：缓存原 SVG 图标，finally 还原（与 diagnoseAnswer 同口径）
 
   if(btn){ btn.disabled = true; btn.textContent = '生成中…'; }
   if(resultEl){ resultEl.innerHTML = '<div class="diag-note">正在按你的人设生成思路和参考回答…</div>'; resultEl.style.display = 'block'; }
@@ -1652,7 +1675,9 @@ async function generateAIHelper(id, qi){
   }catch(e){
     if(resultEl) resultEl.innerHTML = '<div class="diag-note">生成失败：' + escapeHtml(e.message) + '</div>';
   }finally{
-    if(btn){ btn.disabled = false; btn.textContent = '✨ AI 辅助'; }
+    // 修：原用 textContent 写回 '✨ AI 辅助'，把按钮原有的 SVG 图标永久抹成表情文本；
+    // 改为还原缓存的 innerHTML，与 diagnoseAnswer / reviewP3Answer 保持一致。
+    if(btn){ btn.disabled = false; btn.innerHTML = btnHtml; }
   }
 }
 
@@ -1751,7 +1776,11 @@ var matGen = (function(){
   function saveStore(){
     // 关键：每次素材变动刷新 epoch，使云端合并走「较新端整体替换」分支，
     // 删除/新增/修改都能即时跨设备生效，避免「删了又并回来」的旧并集陷阱。
-    if(DATA.materials && typeof DATA.materials === 'object') DATA.materials.materialsEpoch = Date.now();
+    // 修(b 异步丢写)：epoch 必须打在「即将写入的 store」上。原写法打在 DATA.materials 上，
+    // 而新用户首次 loadStore() 返回的是一个尚未挂到 DATA.materials 的新对象，下一行
+    // DATA.materials = store 会把它整体换掉 —— 首次保存的素材因此没有 epoch，
+    // 删除/新增无法触发云端「较新端整体替换」，会出现「删了又并回来」。
+    if(store && typeof store === 'object') store.materialsEpoch = Date.now();
     DATA.materials = store; hubSave();
   }
   function ans(id){ return (store.answers[id] || '').trim(); }
