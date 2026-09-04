@@ -1164,7 +1164,7 @@ function _mergeArray(local, cloud){
 }
 /* 整体合并：以本机为基准，云端增量并入；不覆盖本机设置与任何独有数据。
    返回 {data, changes}：changes = 实际应用的合并处数（新增 + 更新），用于决定是否写盘/提示 */
-/* 口语题库跨设备合并：以官方 SPEAKING_BANK 为基准（52 题），本机答案优先、云端补缺。
+/* 口语题库跨设备合并：以官方 SPEAKING_BANK 为基准（当前 9-12 月版 79 题），本机答案优先、云端补缺。
    1) 先用 mergeSpeakingKeepAnswers(local) 得到官方基准+本机答案（丢弃非官方题）
    2) 再按 id 把云端 speaking 的 answers 回填（云端有答案且本机无 → 取云端；都有 → 保留本机较新端）
    保证：跨设备恢复串题答案/练习记录，且不复活旧脏题库。 */
@@ -1258,7 +1258,7 @@ function mergeData(local, cloud){
     else if(cl > cc){ /* 本机较新：保持本机，无需操作 */ }
     else if(JSON.stringify(cs[f]) !== JSON.stringify(ls[f])){ out.settings[f] = cs[f]; out.settings._fieldTs[f] = cc; changes++; }
   }
-  // 口语题库(speaking)按 id 双向合并：以官方 SPEAKING_BANK 为基准建 52 题，
+  // 口语题库(speaking)按 id 双向合并：以官方 SPEAKING_BANK 为基准建库（题数以数组实际为准），
   // 本机与云端同 id 题的 answers/练习记录取「较新一侧」（按 _lastSaved 时间戳或内容非空判断），题干永远用官方。
   // 这样既跨设备恢复串题答案，又不会因早期脏题库复活成 100+ 题（mergeSpeakingKeepAnswers 已保证非官方题丢弃）。
   if(Array.isArray(cloud.speaking) || Array.isArray(local.speaking)){
@@ -1974,7 +1974,7 @@ async function softNavigate(t, isPop){
     main.innerHTML = newMain.innerHTML;                 // 只换内容区，侧边栏/全局状态保留
     if(doc.title) document.title = doc.title;
     // ⚠️ 性能修复（口语/写作打开卡顿）：runPageScript 会 eval 2140 行的 speaking.js + 4 个附加脚本并同步渲染
-    //    52 题/P2/P3 诊断树，若直接 await 会阻塞主线程、画面“冻住”。先让本次内容交换 + 高亮先 paint，
+    //    官方题库/P2/P3 诊断树，若直接 await 会阻塞主线程、画面“冻住”。先让本次内容交换 + 高亮先 paint，
     //    再用 requestAnimationFrame 把重脚本执行推到下一帧，打开即流畅。
     //    兜底：rAF 在后台标签页会被暂停（注释承诺过 setTimeout 兜底但原实现没有）→ rAF + 50ms 定时器竞速，
     //    哪个先到都放行，绝不因标签失焦把软导航永久卡死（_softNavBusy 无法释放）。
