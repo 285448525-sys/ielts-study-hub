@@ -1728,10 +1728,17 @@ function initBootLoader(){
   // 优化：遮罩在「DOM 解析完成 + 本批 defer 脚本渲染完」即收起，
   // 不再等 window.load（window.load 还会等图片/字体/慢网资源，农村代理网络下会卡很久）。
   // 本 App 内容全靠 JS 渲染、几乎无图片，DOMContentLoaded 时页面已就绪。
+  var _bootFinishSoon = function(){
+    // 2026-09-04 提速：原固定 250ms 是纯死等。defer 脚本与各页 ready 的同步渲染
+    // 在 DOMContentLoaded 前后即已完成，两帧 rAF（约 32ms）足以让首帧绘制发生，
+    // 遮罩即可收起 → 新开标签页「可用」体感提前约 200ms。
+    var raf = window.requestAnimationFrame || function(cb){ setTimeout(cb, 16); };
+    raf(function(){ raf(function(){ _finishBootLoader(); }); });
+  };
   if(document.readyState === 'complete' || document.readyState === 'interactive'){
-    setTimeout(_finishBootLoader, 250); // 给同批 defer 脚本(页面自身 ready)留一点渲染时间
+    _bootFinishSoon();
   } else {
-    document.addEventListener('DOMContentLoaded', function(){ setTimeout(_finishBootLoader, 250); }, { once:true });
+    document.addEventListener('DOMContentLoaded', _bootFinishSoon, { once:true });
   }
   setTimeout(_finishBootLoader, 8000);   // 兜底：绝不卡死在遮罩上
 }
@@ -2066,7 +2073,23 @@ ready(() => { hubLoad();
   });
 });
 
-function registerSW(){ try{ if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js?v=20260830p').catch(()=>{}); }catch(e){} }
+/* 2026-09-04 性能优化：停用 Service Worker。
+   sw.js 现策略是「全部请求 respondWith(fetch(req)) 网络直通」——行为与浏览器原生加载等价，
+   却让每个资源请求多一层 SW 线程往返；且新开标签页时 SW 可能被回收需冷启动（加载+解析+启动），
+   期间请求被排队，弱网/低端机上「新开标签页变慢」明显。其历史使命（清旧缓存治「改了不生效」）
+   已由 ?v= 版本纪律 + Cloudflare Pages must-revalidate 接管，SW 成为纯开销 → 停用并主动注销。 */
+function registerSW(){
+  try{
+    if('serviceWorker' in navigator){
+      navigator.serviceWorker.getRegistrations().then(function(rs){
+        (rs || []).forEach(function(r){ try{ r.unregister(); }catch(_){} });
+      }).catch(function(){});
+    }
+    if(window.caches && caches.keys){
+      caches.keys().then(function(ks){ (ks || []).forEach(function(k){ try{ caches.delete(k); }catch(_){} }); }).catch(function(){});
+    }
+  }catch(e){}
+}
 
 // ===== 错句本聚合：从 dictationLogs 提取所有错句，按「标准句 + 错误写法」去重 =====
 // 返回 [{key, sourceId, sourceTitle, right(标准英文), wrong(学生写法), type, note, count(出错次数), lastDate}]

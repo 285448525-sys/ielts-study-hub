@@ -1066,19 +1066,7 @@ function renderCfgModal(){
     });
   });
   body.querySelectorAll('.cfg-batch-select').forEach(el => {
-    el.addEventListener('change', () => {
-      if(el.value === '__custom__'){ const inp = el.parentElement.querySelector('.cfg-batch-custom'); if(inp) inp.focus(); return; }
-      pcSave({ [el.dataset.key]: parseInt(el.value, 10) });
-      const inp = el.parentElement.querySelector('.cfg-batch-custom'); if(inp) inp.value = '';
-    });
-  });
-  body.querySelectorAll('.cfg-batch-custom').forEach(el => {
-    el.addEventListener('input', () => {
-      const n = parseInt(el.value, 10);
-      if(isNaN(n) || n < 1) return;
-      pcSave({ [el.dataset.key]: n });
-      const sel = el.parentElement.querySelector('.cfg-batch-select'); if(sel && sel.value !== '__custom__') sel.value = '__custom__';
-    });
+    el.addEventListener('change', () => pcSave({ [el.dataset.key]: parseInt(el.value, 10) }));
   });
   body.querySelectorAll('.cfg-m-cat').forEach(el => el.addEventListener('click', () => switchCfgCat(el.dataset.cat)));
   switchCfgCat(groups[0].name);
