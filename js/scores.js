@@ -95,7 +95,7 @@ function deleteScore(id){
 }
 
 function render(){
-  const list = DATA.scores.slice().sort((a,b) => b.date.localeCompare(a.date));
+  const list = DATA.scores.slice().sort((a,b) => String(b.date||'').localeCompare(String(a.date||'')));
   const t = DATA.settings.targets || {};
   const targetOverall = t.overall || 0;
   const hasTargets = targetOverall > 0;
@@ -203,7 +203,7 @@ function render(){
 /* ===== 成绩趋势折线图（SVG） ===== */
 function renderTrend(){
   const box = $('#trendChart'); if(!box) return;
-  const list = DATA.scores.slice().sort((a,b) => a.date.localeCompare(b.date));
+  const list = DATA.scores.slice().sort((a,b) => String(a.date||'').localeCompare(String(b.date||'')));
   if(list.length === 0){
     box.innerHTML = renderEmpty('还没有模考成绩，考完第一场就来填吧。');
     return;
@@ -268,7 +268,7 @@ function renderTrend(){
 /* ===== 综合掌握度雷达图（SVG，最新 vs 目标） ===== */
 function renderRadar(){
   const box = $('#radarChart'); if(!box) return;
-  const list = DATA.scores.slice().sort((a,b) => b.date.localeCompare(a.date));
+  const list = DATA.scores.slice().sort((a,b) => String(b.date||'').localeCompare(String(a.date||'')));
   if(list.length === 0){ box.innerHTML = renderEmpty('至少需要 1 次模考成绩，才能绘制掌握度雷达图。'); return; }
   const t = DATA.settings.targets || {};
   const latest = list[0];
@@ -663,7 +663,7 @@ function renderMockList(){
   const box = $('#mkList');
   const partRecs = DATA.mockRecords.filter(r => Array.isArray(r.parts)); // 仅展示分项记录；口语整卷模考走专属 tab
   if(partRecs.length === 0){ box.innerHTML = renderEmpty('暂无记录。'); return; }
-  const list = partRecs.slice().sort((a,b) => b.date.localeCompare(a.date));
+  const list = partRecs.slice().sort((a,b) => String(b.date||'').localeCompare(String(a.date||''))).filter(r => MOCK_TYPES[r.type]);   // 缺日期/未知 type 的旧记录防崩（与 mockAggregate 口径一致）
   box.innerHTML = list.map(r => {
     const cfg = MOCK_TYPES[r.type];
     const hasScore = r.parts.some(partIsScore);
@@ -681,7 +681,7 @@ function renderMockList(){
     }
     const partsHtml = r.parts.map(p => partIsScore(p)
       ? `<span class="badge">${p.label} · ${p.score}</span>`
-      : `<span class="badge">${p.label} ${p.correct}/${p.total}</span>`).join(' ');
+      : `<span class="badge">${p.label} ${p.correct||0}/${p.total||0}</span>`).join(' ');
     // 整卷客观题：顺带估算卷面分
     let estBadge = '';
     if(r.granularity === 'whole' && !hasScore){
