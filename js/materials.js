@@ -26,13 +26,32 @@
   + '1. 故事必须基于考生原话，真实不编造。**完整性优先于精简**：若把相关经历合并成一个故事，必须把两段经历的所有人物、地点、事件、感受等关键信息和细节都完整写进去，不得省略任何一段你提供的经历内容；宁可多生成一个小故事，也绝不丢弃考生填的任何内容。\n'
   + '2. 每个故事含：title(标题) / storyEn(一段英文小故事，用**基础词汇**、短到中等长度的句子，靠 and / so / because / but / actually 等连接词串成有「起因→经过→感受→结尾」的**连贯叙事**，读起来像在讲一件事而不是清单；严禁连续堆砌孤立短句、严禁连续同一主语/同一动词；契合口语 5.5 水平，长度适中可直接背；storyEn 必须把该故事涵盖的考生经历细节全部写进去，不得遗漏) / logicZh(中文**逻辑链**：用若干中文短语以 "—"（中文横杠/破折号）串接，把故事的关键步骤、转折、感受、细节都铺开——越长越细越好、数量不固定，例如"朋友送手机壳—觉得很有心—每天用手机—看到就想起朋友—珍藏") / coverage(能套的 P2 题族数组)。\n'
   + '3. coverage 每个元素：{"topic":"题族名","fit":"natural|loose","note":"串题连接说明(给一句怎么把本故事套到该题，如\'旅行中意识到环保法重要→套法律法规\';natural可简写)"}。\n'
-  + '4. 串题很抽象，**搭边就行**：coverage 不限于自然贴合的题，偏题（法律/规则/传统/人物/挑战…）只要能扯上关系就列，并给自然的连接说明。目标是背完这几个故事，大部分 P2 题都能套。\n'
+  + '4. 串题很抽象，**搭边就行**：coverage 不限于自然贴合的题，偏题（法律/规则/人物/挑战…）只要能扯上关系就列，并给自然的连接说明。但 coverage 的 topic 必须**逐字取自下方【P2 题库对照清单】里的题目名**（这是考生网站当季真实题库），严禁自创题族名、严禁使用清单外的名字。目标是背完这几个故事，清单里绝大多数题都能套。\n'
   + '5. 不要产出 keyword 骨架 / 不要拆分多切面列表——考生基础弱，给词也不会说句型，必须给**成段的、能直接背的英文小故事**（句子可简单但必须连贯，靠连接词串成一件事）。\n'
-  + '6. 判断素材是否够覆盖：对照 P2 全题型，如果现有经历明显缺某大类（如完全没提人或完全没提地点），且补 1-3 个问题就能补上，则在 followups 返回这些问题；如果已经够广，followups 返回空数组。\n'
-  + 'P2 全题型参考：' + CANON.join('、') + '\n'
+  + '6. 判断素材是否够覆盖：对照下方题库清单逐题检查，如果现有经历明显缺某大类（如完全没提人或完全没提地点），且补 1-3 个问题就能补上，则在 followups 返回这些问题；如果已经够广，followups 返回空数组。\n'
+  + '【P2 题库对照清单】\n{BANK_P2_LIST}'
   + '输出严格 JSON：{"stories":[{"title":"","storyEn":"","logicZh":"","coverage":[{"topic":"","fit":"","note":""}]}],"followups":["还想了解的问题1","问题2"]}';
   const SYS_PERSONA = '你是雅思口语人设分析师。根据用户一句话自我介绍，提取人设锚点，用于保证 Part 3 回答一致性。输出严格 JSON：{"persona":{"city":"城市","identity":"身份/专业或工作","values":["价值观1","价值观2"],"traits":["性格特点1","性格特点2"]}}';
-  const SYS_GAP = '你是雅思 P2 覆盖分析师。给定已被素材（含搭边串题）覆盖的 P2 题族，以及常见 IELTS P2 题族清单，请列出**连搭边都难覆盖**、且该用户大概率会考到的题族（最多 6 条），每条给一个**澄清性问题**——用第二人称直接问考生真实经历，问题要具体、好回答，比如"你最近半年有没有搬过家？搬去哪了？"、"你有没有哪款小工具是每天都用的？说说怎么用的？"。只列真正缺口，不要编造已覆盖的。输出严格 JSON 数组：[{"topic":"题族","question":"澄清性问题"}]';
+  const SYS_GAP = '你是雅思 P2 覆盖分析师。给定已被素材（含搭边串题）覆盖的 P2 题族，以及考生当季真实 P2 题库清单，请列出**连搭边都难覆盖**、且该用户大概率会考到的题族（最多 6 条），每条给一个**澄清性问题**——用第二人称直接问考生真实经历，问题要具体、好回答，比如"你最近半年有没有搬过家？搬去哪了？"、"你有没有哪款小工具是每天都用的？说说怎么用的？"。只列真正缺口，不要编造已覆盖的。输出严格 JSON 数组：[{"topic":"题族","question":"澄清性问题"}]';
+
+  /* === 当季 P2 题库动态提取（P0：替代写死的 CANON 旧季快照）===
+     每次生成/追问都以 DATA.speaking 真实题库为准（换季后自动跟随）；
+     题库缺失时才回退 CANON 静态表（离线/异常兜底）。 */
+  function getBankP2List(){
+    const arr = (DATA.speaking || []).filter(s => s && s.type === 'P2');
+    if(!arr.length) return null;
+    return arr.map(s => ({
+      title: s.titleZh || s.titleEn || '',
+      req: (s.youShouldSay || []).slice(0, 3).join('；')
+    })).filter(b => b.title);
+  }
+  function buildSysMat(){
+    const bank = getBankP2List();
+    const listStr = bank
+      ? bank.map(b => b.title + (b.req ? '（要点：' + b.req + '）' : '')).join('\n')
+      : CANON.join('、');
+    return SYS_MAT.replace('{BANK_P2_LIST}', listStr);
+  }
 
   let store = loadStore();
   let mode = 'q';
@@ -144,13 +163,17 @@
       let gaps = [];
       try{ gaps = await genGaps(covered); }catch(e){ gaps = fallbackGaps(covered); }
 
-      store.persona = persona; store.materials = result.stories; store.followups = result.followups || []; store.gaps = gaps;
+      // P0：保留用户手改（updatedAt）或置顶（pinned）的素材卡——AI 只重生成其余部分，
+      // 杜绝「继续生成/重新生成」把用户改好的故事整批冲掉（数据丢失级缺陷）。
+      const keepOld = (store.materials || []).filter(m => m && (m.updatedAt || m.pinned));
+      store.persona = persona; store.materials = keepOld.concat(result.stories); store.followups = result.followups || []; store.gaps = gaps;
       // 给每张素材卡补稳定 id（AI 未必返回），供删除墓碑与跨设备去重使用
       store.materials.forEach(m => { if(m && m.id == null) m.id = 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); });
       store.materialsEpoch = Date.now();   // 生成批次戳：云端合并时凭此整体替换旧素材，避免旧卡片被并集回残留
       saveStore();
       mode = 'result';
       render();
+      if(keepOld.length) toast('已保留你置顶/手改过的 ' + keepOld.length + ' 张素材卡');
     }catch(e){
       toast('生成中断：' + e.message);
       render();
@@ -165,7 +188,7 @@
   async function genMaterialsBatch(exps, personaText){
     const expText = exps.map(e => '【' + e.title + '】\n' + e.raw).join('\n\n');
     const user = '人设：' + (personaText || '（未提供）') + '\n\n全部经历（含追问补充）：\n' + expText + '\n\n请按规则整合为几个完整核心小故事，并判断是否需要追问补充，输出 stories + followups JSON。';
-    const content = await callRelay('material', [ { role:'system', content:SYS_MAT }, { role:'user', content:user } ], 0.7);
+    const content = await callRelay('material', [ { role:'system', content:buildSysMat() }, { role:'user', content:user } ], 0.7);
     const j = aiJson(content);
     if(!j || !Array.isArray(j.stories)) throw new Error('素材 JSON 解析失败');
     return { stories: j.stories.map((s, i) => normalizeMaterial(s, i)), followups: Array.isArray(j.followups) ? j.followups.map(String) : [] };
@@ -178,7 +201,9 @@
   }
   async function genGaps(covered){
     const coveredStr = covered.length ? covered.join('、') : '（无）';
-    const user = '已被素材自然覆盖的 P2 题族：' + coveredStr + '。\n常见 IELTS P2 题族清单：' + CANON.join('、') + '。\n请列出未被覆盖、且该用户大概率会考到的题族。';
+    const bank = getBankP2List();
+    const listStr = bank ? bank.map(b => b.title).join('、') : CANON.join('、');
+    const user = '已被素材自然覆盖的 P2 题族：' + coveredStr + '。\n考生当季真实 P2 题库清单：' + listStr + '。\n请列出未被覆盖、且该用户大概率会考到的题族。';
     const content = await callRelay('material_gap', [ { role:'system', content:SYS_GAP }, { role:'user', content:user } ], 0.5);
     const j = aiJson(content);
     let arr = Array.isArray(j) ? j : (j && Array.isArray(j.gaps) ? j.gaps : null);
@@ -194,7 +219,8 @@
       storyEn: s.storyEn || '',
       logicZh: s.logicZh || '',
       coverage: cov.map(c => ({ topic:String(c.topic || ''), fit:String(c.fit || 'natural'), note:String(c.note || '') })).filter(c => c.topic),
-      confidence: s.confidence || 'high'
+      confidence: s.confidence || 'high',
+      pinned: false
     };
   }
   function fallbackMaterialsBatch(exps){
@@ -241,7 +267,7 @@
       } else {
         h += (m.storyEn ? '<div class="mat-sub">英文可背（连贯小故事）</div><div class="mat-story-en">' + escapeHtml(m.storyEn) + '</div>' : '')
           + (m.logicZh ? '<div class="mat-sub">中文逻辑链</div><div class="mat-logic">' + escapeHtml(m.logicZh) + '</div>' : '')
-          + '<div class="mat-mat-actions"><button class="mat-mini" data-regen-all="1">重新生成全部</button><button class="mat-mini danger" data-del="' + i + '">删除</button><button class="mat-mini" data-edit="' + i + '">更改</button></div>';
+          + '<div class="mat-mat-actions"><button class="mat-mini' + (m.pinned ? ' mat-pin-on' : '') + '" data-pin="' + i + '">' + (m.pinned ? '已置顶最熟 · 取消' : '置顶为最熟') + '</button><button class="mat-mini" data-regen-all="1" title="重新生成时保留置顶/手改过的卡">重新生成</button><button class="mat-mini danger" data-del="' + i + '">删除</button><button class="mat-mini" data-edit="' + i + '">更改</button></div>';
       }
       h += '</div></div>';
     });
@@ -272,6 +298,23 @@
     });
     root.querySelectorAll('[data-regen-all]').forEach(b => {
       b.onclick = () => { generate(); };
+    });
+    // 「置顶为最熟」：标记 + 置顶排序——speaking 页 aiStoryLink 按此顺序取材（排最前的最熟）
+    root.querySelectorAll('[data-pin]').forEach(b => {
+      b.onclick = () => {
+        const i = +b.dataset.pin;
+        const m = store.materials[i];
+        if(!m) return;
+        m.pinned = !m.pinned;
+        if(m.pinned){
+          // 置顶卡移到最前（保持相对顺序），数组顺序即素材优先级
+          store.materials = store.materials.filter(x => x && x.pinned).concat(store.materials.filter(x => !x || !x.pinned));
+        }
+        saveStore();
+        if(DATA.settings.autoSync && DATA.settings.syncCode && typeof cloudUpload === 'function') cloudUpload(true);
+        render();
+        toast(m.pinned ? '已置顶为最熟素材（AI 串题时优先使用）' : '已取消置顶');
+      };
     });
     root.querySelectorAll('[data-del]').forEach(b => {
       b.onclick = () => {

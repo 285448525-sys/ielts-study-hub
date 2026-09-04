@@ -690,7 +690,10 @@ async function aiStoryLink(id){
   resultEl.innerHTML = '<div class="diag-note">正在根据你的万能素材库自动匹配串题方案…</div>';
 
   try{
-    const matsText = store.materials.map((m, i) =>
+    // 素材优先级数据驱动（P0）：置顶（pinned）的排最前，其余按数组原序——
+    // 个人素材内容绝不硬编码进源码，谁最熟由用户在素材页「置顶为最熟」自己标记
+    const mats = (store.materials || []).filter(Boolean).slice().sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+    const matsText = mats.map((m, i) =>
       '【素材 ' + (i + 1) + '：' + (m.title || '未命名') + '】\n' +
       '英文可背故事：' + (m.storyEn || '') + '\n' +
       '中文逻辑链：' + (m.logicZh || '') + '\n' +
@@ -701,11 +704,11 @@ async function aiStoryLink(id){
     const sys = [
       '你是雅思口语 P2 串题助手。考生基础较差（四级未过），目标严格锁定 5.5 分，考场上必须能直接念出来而不卡壳。',
       '',
-      '【考生真实语料库】（你的唯一素材来源，严禁自创新细节；以下从考生已背素材动态注入）：',
+      '【考生真实语料库】（你的唯一素材来源，严禁自创新细节；已按考生标记的熟悉度排序，排在最前的最熟）：',
       matsText,
       '',
       '【铁律】',
-      '1. 素材优先级：优先使用最熟的素材（通常含 Xiamen / beach / Leo / seafood 等，若是旅行故事优先）。该素材完全套不上时，才用次熟素材（ADHD / 专注达相关）。其他素材仅在万不得已时使用，且只借关键词、不可展开编造。',
+      '1. 素材优先级：默认使用第一个素材（考生最熟的素材）。该素材完全套不上本题时，才依次向后换下一个。其他素材只借关键词、不可展开编造。',
       '2. 70- 80% 句子必须从语料库直接搬运，只改 1-2 句点题句适配题目。严禁编展览内容、建筑外观、名人成就、菜品味道等生僻细节。若题目所涉事物不在语料库（如"著名建筑""成功商人"），用 "Well, actually, I don\'t know any..." 明说，并硬套最熟素材里的"海边/风景/感受"句，绝不编造新内容。',
       '3. 词汇天花板：只用初中词（happy, tired, relax, boring, beautiful, delicious, amazing, big, fresh, nice, good, like, feel, went, was, were, because, and）。严禁 landmark / construct / symbolize / architecture / breathtaking / incredible / entrepreneurship / cognitive / authentic 等生僻词。',
       '4. 语法：只用简单句（主谓宾 / 主系表），禁止复杂从句、分词结构、被动语态。',
