@@ -1,82 +1,118 @@
 :root{
-  --bg:#f3f8f7;
-  --bg-accent:rgba(56,142,138,.05);
+  /* === 中性层（苹果极简：绝对中性灰白，一克绿都不带） === */
+  --bg:#f5f5f7;
+  --bg-accent:rgba(0,0,0,.02);   /* 右上光晕去 teal 染色，改为极淡中性 */
   --surface:#ffffff;
-  --surface-2:#eef5f3;
-  --ink:#16312f;
-  --muted:#5f7a78;
-  --line:#e0eae8;
+  --surface-2:#f2f2f5;
+  --ink:#1d1d1f;
+  --muted:#6e6e73;
+  --line:#e5e5ea;
+  --ink-2:#3a3a3c;
+  --neutral:#d2d2d7;
   --accent:var(--primary);
   --ink-sub:var(--muted);
-  --primary:#3a9a93;
+  /* === 品牌 / 身份色（iOS 系统色，全部走 token，禁硬编码） === */
+  --primary:#3a9a93;            /* 品牌锚点：teal 保留 */
   --primary-d:#2c7873;
   --primary-bright:#56b3ab;
-  --primary-soft:rgba(58,154,147,.12);
+  --primary-soft:rgba(58,154,147,.10);
   --primary-soft-2:rgba(58,154,147,.07);
+  --primary-text:#1f6f69;
   --med:#46a883;
-  --warn:#d99a4e;
-  --warn-ink:#b06a00;   /* 琥珀文字色：--warn(#d99a4e) 在白底仅 ~2.6:1 不达 AA，文字用此深琥珀 */
-  --danger:#d97877;
-  --vocab:#5f86a8;
-  --mock:#4f9fc0;
   --med-soft:rgba(16,185,129,.12);
-  --warn-soft:rgba(245,158,11,.12);
-  --mock-soft:rgba(14,165,233,.12);
+  --vocab:#007aff;              /* 单词/词汇：blue */
+  --vocab-soft:rgba(0,122,255,.10);
+  --vocab-text:#0a5bbf;
+  --corpus:#5856d6;             /* 语料：indigo（新增） */
+  --corpus-soft:rgba(88,86,214,.10);
+  --corpus-text:#2e2c8f;
+  --speak:#ff2d55;              /* 口语：pink（新增） */
+  --speak-soft:rgba(255,45,85,.10);
+  --speak-text:#c2003b;
+  --timer:#af52de;              /* 计时：purple（新增） */
+  --timer-soft:rgba(175,82,222,.10);
+  --timer-text:#6f1fa3;
+  --warn:#ff9500;               /* 写作：orange（升级） */
+  --warn-ink:#a35c00;           /* orange 在白底文字用深一档，保证 AA */
+  --warn-soft:rgba(255,149,0,.12);
+  --mock:#32ade6;               /* 模考：cyan（升级） */
+  --mock-soft:rgba(50,173,230,.12);
+  --mock-text:#0a6e96;
+  --danger:#d97877;
+  --danger-soft:#fde6e4;
+  --danger-text:#a14542;
   --arrow-hover:rgba(58,154,147,.08);
-  --shadow:0 1px 3px rgba(16,40,38,.05),0 6px 20px rgba(16,40,38,.06);
-  --shadow-md:0 10px 30px rgba(16,40,38,.09);
-  --shadow-lg:0 20px 52px rgba(16,40,38,.13);
+  /* === 阴影三档：纯黑低透明，比原 teal 阴影更轻 === */
+  --shadow:0 1px 3px rgba(0,0,0,.04),0 6px 20px rgba(0,0,0,.06);
+  --shadow-md:0 10px 30px rgba(0,0,0,.07);
+  --shadow-lg:0 20px 52px rgba(0,0,0,.10);
   --radius:16px;
   --radius-lg:22px;
   --radius-sm:12px;
-  --ink-2:#2c4a48;
-  --danger-soft:#fde6e4;
-  --danger-text:#a14542;
   --on-primary:#ffffff;          /* 主色/语义色实底上的反白文字 */
   --on-primary-soft:rgba(255,255,255,.7); /* 主色底上的次级反白（如 fav 星标未选中） */
-  /* === P0 反馈语义色：统一 Tailwind 硬编码绿/红 → teal 系统 === */
-  --ok:       #2d8a5e;              /* 正确/成功：teal 偏绿（深，用于边框/强调） */
-  --ok-bg:    rgba(45,138,94,.10);  /* 正确淡背景 */
-  --ok-text:  #1a6b48;              /* 正确文字（白底可读，AA） */
-  --err:      #c75552;              /* 错误/危险：teal 偏红（深，用于边框/强调） */
-  --err-bg:   rgba(199,85,82,.10);  /* 错误淡背景 */
-  --err-text: #94342f;              /* 错误文字（白底可读，AA） */
-  --neutral:  #d8e0de;              /* 中性边框（选项框默认边，替代 #e5e7eb/#cbd5e1） */
+  /* === P0 反馈语义色：统一 Tailwind 硬编码绿/红 → iOS 系统色 === */
+  --ok:       #34c759;              /* 正确/成功：green */
+  --ok-bg:    rgba(52,199,89,.12);  /* 正确淡背景 */
+  --ok-soft:  rgba(52,199,89,.12);
+  --ok-text:  #1d7a3a;              /* 正确文字（白底可读，AA） */
+  --err:      #e0342c;              /* 错误/危险：red */
+  --err-bg:   rgba(224,52,44,.10);  /* 错误淡背景 */
+  --err-soft: rgba(224,52,44,.10);
+  --err-text: #a31f18;              /* 错误文字（白底可读，AA） */
 }
 [data-theme="dark"]{
-  --bg:#0e1c1b;
-  --bg-accent:rgba(92,179,171,.10);
-  --surface:#16282a;
-  --surface-2:#1d3336;
-  --ink:#e8f1ef;
-  --muted:#8aa6a4;
-  --line:#273f40;
+  --bg:#0e0e10;
+  --bg-accent:rgba(255,255,255,.02);
+  --surface:#1a1a1c;
+  --surface-2:#262629;
+  --ink:#f5f5f7;
+  --muted:#98989d;
+  --line:#38383c;
+  --ink-2:#aeaeb2;
+  --neutral:#3a3a3c;
   --primary:#5cb3ab;
   --primary-d:#3f8e87;
   --primary-bright:#7ccac2;
   --primary-soft:rgba(92,179,171,.16);
   --primary-soft-2:rgba(92,179,171,.10);
+  --primary-text:#7ccac2;
   --arrow-hover:rgba(92,179,171,.14);
   --med:#46a883;
-  --warn:#d99a4e;
-  --warn-ink:#e0a85c;   /* 深主题下浅琥珀文字，保证对比 */
+  --med-soft:rgba(16,185,129,.16);
+  --vocab:#0a84ff;
+  --vocab-soft:rgba(10,132,255,.18);
+  --vocab-text:#5aa6ff;
+  --corpus:#7d7aff;
+  --corpus-soft:rgba(125,122,255,.16);
+  --corpus-text:#b0aeff;
+  --speak:#ff6488;
+  --speak-soft:rgba(255,100,136,.16);
+  --speak-text:#ff9bb0;
+  --timer:#c07cf0;
+  --timer-soft:rgba(192,124,240,.16);
+  --timer-text:#d9a8f5;
+  --warn:#ff9500;
+  --warn-ink:#e0a85c;
+  --warn-soft:rgba(255,149,0,.16);
+  --mock:#32ade6;
+  --mock-soft:rgba(50,173,230,.18);
+  --mock-text:#5cc8f0;
   --danger:#d97877;
-  --ink-2:#9fc1bd;
   --danger-soft:#3a2626;
   --danger-text:#e7a3a2;
-  --vocab:#5f86a8;
-  --mock:#4f9fc0;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.22);
   --shadow-md:0 8px 24px rgba(0,0,0,.35);
   --shadow-lg:0 18px 48px rgba(0,0,0,.45);
   /* === P0 反馈语义色（深色） === */
-  --ok:       #4db884;
-  --ok-bg:    rgba(77,184,132,.14);
-  --ok-text:  #7dd9a8;
-  --err:      #e07a76;
-  --err-bg:   rgba(224,122,118,.14);
-  --err-text: #f0a8a5;
-  --neutral:  #33434f;
+  --ok:       #34c759;
+  --ok-bg:    rgba(52,199,89,.16);
+  --ok-soft:  rgba(52,199,89,.16);
+  --ok-text:  #5fd98a;
+  --err:      #ff453a;
+  --err-bg:   rgba(255,69,58,.16);
+  --err-soft: rgba(255,69,58,.16);
+  --err-text: #ff7a72;
 }
 /* 全局强制 hidden 生效：防止 display:flex/grid/block 的类覆盖 UA 的 [hidden] 样式 */
 [hidden]{display:none !important}
