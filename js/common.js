@@ -432,15 +432,25 @@ window.stopActiveSession = function(){
   const already = DATA.sessions.some(s => s.timerId && s.timerId === a.timerId);
   if(!already && durationSec > 0 && typeof playChime === 'function') playChime();
   if(!already && durationSec > 0){
-    const names = resolveTimerNames(a);
+    const names0 = resolveTimerNames(a);
     DATA.sessions.push({
       id: uid(), timerId: a.timerId, date: todayKey(), moduleId: a.moduleId, subId: a.subId,
-      moduleName: names.moduleName, subName: names.subName,
+      moduleName: names0.moduleName, subName: names0.subName,
       startTs: a.startTs, endTs, durationSec, pauseSec
     });
   }
+  // toast 文案需要名字：无条件计算（names 只在上方 if 块内声明的话，出了块就访问不到 → ReferenceError）
+  const names = resolveTimerNames(a);
   clearActive();                                   // 清本地恢复锚 点
-  broadcastEnded(a.timerId);                         // 广播 ended：计时页恢复逻辑见此即清态、不二次入库
+  // 云镜像同步结束（对齐 timer.js stopSession 的口径）：不标记的话浮窗按 DATA.activeTimer
+  // 继续显示幽灵计时，且另一端 30s 轮询合并 _mergeActiveTimer 时拿不到 ended → 不清态、可二次入库
+  if(DATA.activeTimer && !DATA.activeTimer.ended && (!DATA.activeTimer.timerId || DATA.activeTimer.timerId === a.timerId)){
+    DATA.activeTimer = { timerId: a.timerId, ended: true, updatedAt: Date.now(), lastBeat: 0 };
+  }
+  // 广播 ended：计时页恢复逻辑见此即清态、不二次入库。
+  // broadcastEnded 定义在 timer.js（仅计时页加载）；其他页跨页结束时不存在，必须守卫，
+  // 否则此处 ReferenceError 会中断后续 window.active 清理 + hubSave 落盘 + toast（实测崩溃路径）。
+  if(typeof broadcastEnded === 'function') broadcastEnded(a.timerId);
   window.active = null;
   hubSave();
   // 同步计时页 DOM（仅在计时页有效，避免回看时还显示旧的"进行中"）
@@ -770,7 +780,14 @@ async function callRelay(service, messages, temperature){
   const res = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
   if(!res.ok){
     let detail = '';
-    try{ const j = await res.json(); detail = (j && (j.error || j.detail || j.message || (j.error && j.error.message))) || ''; }catch(_){}
+    try{
+      const j = await res.json();
+      // DeepSeek/OpenAI 4xx 返回 {error:{message,type,...}}——不展开对象会拼出 "[object Object]"，用户看不到真实原因
+      const err = j && j.error;
+      detail = (typeof err === 'object' && err && err.message) ? err.message
+        : (j && (j.error || j.detail || j.message)) || '';
+      if(typeof detail !== 'string') detail = '';
+    }catch(_){}
     if(!detail){ try{ detail = (await res.text()).slice(0,200); }catch(_){} }
     throw new Error('AI 接口返回 ' + res.status + (detail ? '：' + detail : ''));
   }
@@ -937,9 +954,11 @@ let _cloudTimer = null;
 let _lastUploadedHash = '';
 let _pendingUpload = false;
 let _lastCloudHash = '';   // 上次拉到的云端内容哈希：相同则跳过 mergeData（性能优化，见 cloudDownload）
-function hashData(){
-  // 简单稳定哈希：把 DATA JSON 做 djb2，够用来判断「内容是否真变了」
-  const s = JSON.stringify(DATA);
+function hashData(x){
+  // 简单稳定哈希：把 DATA JSON 做 djb2，够用来判断「内容是否真变了」。
+  // x 可选：传云端数据则哈希云端内容（cloudDownload 用它判断「云端是否变化」）；
+  // 不传则哈希当前内存 DATA（cloudUpload 判断「本机是否有实质变更」）。
+  const s = JSON.stringify(x === undefined ? DATA : x);
   let h = 5381;
   for(let i = 0; i < s.length; i++) h = ((h << 5) + h) + s.charCodeAt(i);
   return String(h);
@@ -1008,6 +1027,9 @@ async function cloudUpload(showToast, force){
     if(showToast) toast('云端上传失败：' + msg);
     syncSetStatus('同步失败：' + msg, 'error');
     renderLastSync();
+    // 失败后恢复未传标记：beforeunload/切后台时 flushCloudUpload 仍会用 sendBeacon 尽力补传；
+    // 否则失败即清标记，本批改动既无提示也无任何补传通道（静默丢失窗口）
+    _pendingUpload = true;
     return false;
   }
 }
@@ -1382,7 +1404,8 @@ function _mergeMaterials(local, cloud){
   out.deletedIds = Array.from(deleted);
   if(cloud.persona && JSON.stringify(cloud.persona) !== JSON.stringify(local.persona)){ out.persona = cloud.persona; }
   if(Array.isArray(cloud.gaps) && cloud.gaps.length && JSON.stringify(cloud.gaps) !== JSON.stringify(local.gaps)){ out.gaps = cloud.gaps; }
-  out.answers = Object.assign({}, local.answers||{}, cloud.answers||{});
+  // 答案本机优先（与上方 epoch 分支对齐）：云端旧快照不应覆盖用户刚在本机改的内容
+  out.answers = Object.assign({}, cloud.answers||{}, local.answers||{});
   const changes = Math.max(0, out.materials.length - (local.materials||[]).length);
   return { data: out, changes };
 }
@@ -1501,7 +1524,9 @@ async function syncLoginOrRegister(){
     const [probe] = await syncApi('GET');
     if(probe.status === 404){
       // 注册：上传本机数据（剔除官方共享题库/模板，避免脏数据污染云端）
-      await syncApi('PUT', { data: stripCloudFields(DATA), ts: Date.now(), deviceId: getDeviceId() });
+      // 必须检查 PUT 结果：失败仍走「成功」分支会误报「已上传云端」且开启轮询，实际云端是空的
+      const [putRes] = await syncApi('PUT', { data: stripCloudFields(DATA), ts: Date.now(), deviceId: getDeviceId() });
+      if(!putRes.ok) throw new Error('上传本机数据失败（HTTP ' + putRes.status + '），请稍后重试');
       enableAutoSyncAfterLogin(phone);
       initCloudSync();   // 登录后补启动轮询拉取（页面可能已加载，ready 里的 initCloudSync 当时因未登录跳过了）
       syncSetStatus('✅ 注册成功，数据已上传云端', 'ok');
@@ -1610,7 +1635,12 @@ async function syncForcePull(){
     if(res.status === 404){ toast('云端没有该手机号的数据'); return; }
     if(!res.ok) throw new Error('HTTP ' + res.status);
     if(!data || !data.data) throw new Error('返回格式异常');
+    // h 类防御：云端数据理论上只缺 writing（官方模板 stripCloudFields 剔除后从不上传）；
+    // 若云端数据异常缺 settings/words 等骨架字段，直接覆盖会让全站无 settings 可用（变砖）→ 拒绝执行。
+    if(!data.data.settings || !Array.isArray(data.data.words)) throw new Error('云端数据不完整（缺 settings/words），已取消覆盖以保护本机数据');
+    const _keepWriting = DATA.writing;
     DATA = data.data;
+    if(!DATA.writing && _keepWriting) DATA.writing = _keepWriting;   // writing 永远用本机官方模板
     DATA.settings.lastSyncTs = Date.now();
     hubSave();
     toast('已用云端数据覆盖本机');
@@ -1945,10 +1975,14 @@ async function softNavigate(t, isPop){
     if(doc.title) document.title = doc.title;
     // ⚠️ 性能修复（口语/写作打开卡顿）：runPageScript 会 eval 2140 行的 speaking.js + 4 个附加脚本并同步渲染
     //    52 题/P2/P3 诊断树，若直接 await 会阻塞主线程、画面“冻住”。先让本次内容交换 + 高亮先 paint，
-    //    再用 requestAnimationFrame 把重脚本执行推到下一帧，打开即流畅。后台标签页 rAF 不触发则用 setTimeout 兜底。
+    //    再用 requestAnimationFrame 把重脚本执行推到下一帧，打开即流畅。
+    //    兜底：rAF 在后台标签页会被暂停（注释承诺过 setTimeout 兜底但原实现没有）→ rAF + 50ms 定时器竞速，
+    //    哪个先到都放行，绝不因标签失焦把软导航永久卡死（_softNavBusy 无法释放）。
     await new Promise(res => {
-      if(typeof requestAnimationFrame === 'function') requestAnimationFrame(() => res());
-      else setTimeout(res, 0);
+      let done = false;
+      const fin = () => { if(!done){ done = true; res(); } };
+      if(typeof requestAnimationFrame === 'function') requestAnimationFrame(fin);
+      setTimeout(fin, 50);
     });
     await runPageScript(t.id, doc);                     // 重新执行目标页脚本（复用 ready + 事件绑定）
     // ⚠️ 不再在这里二次 updateActiveNav：点击瞬间(onHubLinkClick)已写好正确高亮，
