@@ -199,8 +199,10 @@
       store.persona = persona; store.materials = result.stories; store.uncovered = result.uncovered || [];
       store.bankVersion = DATA.speakingVersion;   // P2：记录生成时题库版本，换季后据此提示重映射
       // 追问区收敛：coverage 已纠偏入库，按「真实还缺的题」算——
-      // 全覆盖就不出任何追问；只保留针对真缺题的 gaps（AI followups 上限 4 条，且仅在确实有缺题时保留）
-      const missing = getMissingTopics();
+      // 已答过的题（答了内容）视为已补上、不再问；全覆盖就不出任何追问；
+      // gaps 只留针对真缺题的（AI followups 上限 4 条，且仅在确实有缺题时保留）
+      const answeredTopics = new Set((store.answers.gaps || []).filter(g => g && (g.a || '').trim()).map(g => g.topic));
+      const missing = getMissingTopics().filter(t => !answeredTopics.has(t));
       store.followups = missing.length ? (result.followups || []).slice(0, 4) : [];
       store.gaps = gaps.filter(g => missing.includes(g.topic));
       // 给每张素材卡补稳定 id（AI 未必返回），供删除墓碑与跨设备去重使用
@@ -560,13 +562,13 @@
       h += '<div class="mat-followup"><h3>🤖 AI 追问区</h3><div class="mat-followup-tip">回答下面的问题（能答几个答几个），点「继续生成」后 AI 会基于新回答重新整合素材、补全覆盖。</div>';
       if(hasFups){
         store.followups.forEach((q, i) => {
-          h += '<div class="mat-q"><div class="mat-q-head">' + escapeHtml(q) + '</div><textarea data-followup="' + i + '" placeholder="你的回答…">' + escapeHtml((store.answers.followups && store.answers.followups[i] ? store.answers.followups[i].a : '') || '') + '</textarea></div>';
+          h += '<div class="mat-q"><div class="mat-q-head">' + escapeHtml(q) + '</div><textarea data-followup="' + i + '" placeholder="你的回答…">' + escapeHtml(((store.answers.followups || []).find(f => f.q === q) || {}).a || '') + '</textarea></div>';
         });
       }
       if(hasGaps){
         store.gaps.forEach((g, i) => {
           const qtext = g.question || '你有没有和"' + g.topic + '"相关的真实经历？';
-          h += '<div class="mat-q mat-gap-q"><div class="mat-q-head"><span class="mat-gap-topic">【' + escapeHtml(g.topic) + '】</span>' + escapeHtml(qtext) + '</div><textarea data-gap="' + i + '" placeholder="你的回答…（没有相关经历可留空）">' + escapeHtml((store.answers.gaps && store.answers.gaps[i] ? store.answers.gaps[i].a : '') || '') + '</textarea></div>';
+          h += '<div class="mat-q mat-gap-q"><div class="mat-q-head"><span class="mat-gap-topic">【' + escapeHtml(g.topic) + '】</span>' + escapeHtml(qtext) + '</div><textarea data-gap="' + i + '" placeholder="你的回答…（没有相关经历可留空）">' + escapeHtml(((store.answers.gaps || []).find(p => p.topic === g.topic) || {}).a || '') + '</textarea></div>';
         });
       }
       h += '<button class="btn btn-primary" id="matContinue">继续生成（含补充回答）</button></div>';
@@ -644,20 +646,29 @@
     });
     const mc = $('#matContinue');
     if(mc) mc.onclick = () => {
-      const list = [];
+      // 回答按题目归档合并（不覆写历史）：同题新答覆盖旧答，没出现的旧回答原样保留
+      const prevF = store.answers.followups || [];
       root.querySelectorAll('[data-followup]').forEach(ta => {
         const i = +ta.dataset.followup;
         const q = (store.followups && store.followups[i]) || '';
-        list.push({ q: q, a: ta.value.trim() });
+        const a = ta.value.trim();
+        if(!q) return;
+        const old = prevF.find(f => f.q === q);
+        if(old){ if(a) old.a = a; }
+        else prevF.push({ q: q, a: a });
       });
-      store.answers.followups = list;
-      const gapList = [];
+      store.answers.followups = prevF;
+      const prevGaps = store.answers.gaps || [];
       root.querySelectorAll('[data-gap]').forEach(ta => {
         const i = +ta.dataset.gap;
         const g = (store.gaps && store.gaps[i]) || {};
-        gapList.push({ topic: g.topic || '', question: g.question || '', a: ta.value.trim() });
+        if(!g.topic) return;
+        const a = ta.value.trim();
+        const old = prevGaps.find(p => p.topic === g.topic);
+        if(old){ if(a) old.a = a; if(g.question) old.question = g.question; }
+        else prevGaps.push({ topic: g.topic, question: g.question || '', a: a });
       });
-      store.answers.gaps = gapList;
+      store.answers.gaps = prevGaps;
       saveStore();
       generate();
     };
