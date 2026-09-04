@@ -71,8 +71,9 @@ ready(() => {
 function saveSettings(){
   DATA.settings.name = $('#sName').value.trim();
   DATA.settings.examDate = $('#sExam').value;
-  // 清空历史多场日程数组：旧的 examDates 会覆盖单个 examDate，导致首页倒计时显示过期日期
-  if(DATA.settings.examDate) DATA.settings.examDates = [];
+  // 一律清空历史多场日程数组：examDate 是唯一有效来源。旧逻辑仅在有值时清，
+  // 会漏掉「用户清空日期」——残留的 examDates 会让 nextExamDate() 回退显示已废弃的旧档期（倒计时复活）
+  DATA.settings.examDates = [];
   DATA.settings.dailyGoalHours = parseFloat($('#sGoal').value) || 0;
   DATA.settings.theme = $('#sThemeToggle').checked ? 'dark' : 'light';
   DATA.settings.targets = {
@@ -100,7 +101,7 @@ function saveSettings(){
     cdEl2.style.color = cd2.hasExam ? 'var(--primary)' : 'var(--muted)';
   }
   if(DATA.settings.syncCode) scheduleCloudUpload();   // 已登录则立即同步（含发音分等）到云端
-  toast('设置已保存（已同步云端）');
+  toast(DATA.settings.syncCode ? '设置已保存（已同步云端）' : '设置已保存');   // 未登录不谎报「已同步」
 }
 
 function saveRelay(){
@@ -122,15 +123,19 @@ async function testAIConnection(){
   const btn = $('#testAiBtn');
   if(btn) btn.disabled = true;
   setAiLoading();
+  const prev = DATA.settings.relayToken || '';
   try{
-    const prev = DATA.settings.relayToken;
-    DATA.settings.relayToken = key; // 临时用输入框的 key 探活
+    DATA.settings.relayToken = key; // 临时用输入框的 key 探活（callRelay 从 settings 里读）
     const r = await callRelay('gpt', [{ role:'user', content:'Reply with exactly the single word: PONG' }], 0.1);
-    DATA.settings.relayToken = key; // 探活成功 → 直接生效并保存
+    DATA.settings.relayToken = key; // 探活成功 → 直接生效并保存（与 saveRelay 一致：记时间戳 + 调度云端同步）
+    DATA.settings._fieldTs = DATA.settings._fieldTs || {};
+    DATA.settings._fieldTs.relayToken = Date.now();
     hubSave();
+    if(DATA.settings.syncCode) scheduleCloudUpload();
     setAiStatus('✅ 连接成功：' + (r||'').slice(0,60), 'ok');
     toast('✅ 连接成功，Key 已保存');
   }catch(e){
+    DATA.settings.relayToken = prev;   // 探活失败 → 恢复原 Key：否则无效 key 残留内存态，后续任何 hubSave 都会把它持久化
     setAiStatus('❌ 连接失败：' + e.message, 'error');
     toast('❌ 连接失败：' + e.message);
   }finally{
@@ -156,10 +161,12 @@ function setAiLoading(){
 }
 function exportData(){
   const blob = new Blob([JSON.stringify(DATA, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
+  a.href = url;
   a.download = 'ielts_hub_backup_' + todayKey() + '.json';
   a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 3000);   // 下载启动后回收 blob URL
   toast('已导出备份');
 }
 
@@ -223,12 +230,35 @@ function importData(file){
 function resetData(){
   if(confirm('⚠️ 确定清空所有数据？此操作不可恢复，请先导出备份。')){
     // Bug13：初始化全部顶层数组，避免清空后字段丢失导致页面报错
+    const settings = DATA.settings;
     DATA = {
       sessions:[], notes:[], meds:[], words:[], plans:[], corpus:[], scores:[],
       errorbook:[], energy:[], checkins:[], speaking:[], speakingStories:[],
       writing:[], writingScores:[], mockRecords:[],
-      settings: DATA.settings
+      settings,
+      // 墓碑必须保留：① data.js 写作模板迁移靠 deletedIds 识别「用户手动删过的模板」，丢了会把已删模板全部复活；
+      // ② 多设备合并时靠墓碑过滤已删内容
+      deletedIds: DATA.deletedIds || [],
+      deletedWrongKeys: DATA.deletedWrongKeys || []
     };
-    hubSave(); toast('已清空数据'); setTimeout(() => location.reload(), 600);
+    clearActive();   // 清计时恢复锚点：sessions 已空，timer.js 的「已结算」防护拦不住，会按本地锚点把旧计时复活
+    hubSave();
+    toast('已清空数据');
+    // 已登录：必须抢在 30s 自动 cloudDownload 轮询之前，把「空数据+墓碑」强制推上云端（不等 60s 防抖），
+    // 否则本机清空后云端仍是旧数据，下次拉取会被整份合并回来——清空等于白清。
+    const reload = () => setTimeout(() => location.reload(), 500);
+    if(settings.syncCode && typeof cloudUpload === 'function'){
+      Promise.resolve(cloudUpload(false, true)).then(ok => {
+        if(ok === false){
+          // 上传失败（断网等）：本地已清但云端仍是旧数据。记补传标记，下次启动 initCloudSync 强制补传，
+          // 避免云端旧数据抢先合并回来复活。
+          try{ localStorage.setItem('hub_reset_pending', '1'); }catch(e){}
+          toast('本地已清空，但云端同步失败，已记待补传');
+        }
+        reload();
+      });
+    } else {
+      reload();
+    }
   }
 }

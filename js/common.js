@@ -981,12 +981,12 @@ async function cloudUpload(showToast, force){
   showToast = showToast !== false;
   _pendingUpload = false;
   const phone = DATA.settings.syncCode;
-  if(!phone){ if(showToast) toast('请先在「设置」绑定手机号'); return; }
+  if(!phone){ if(showToast) toast('请先在「设置」绑定手机号'); return false; }
   const h = hashData();
   if(h === _lastUploadedHash && !force){
     // 数据自上次成功上传后没有实质变化，跳过本次 PUT，节省 KV 写入次数
     if(showToast) toast('数据未变化，无需上传');
-    return;
+    return true;   // 内容与云端一致，视为成功
   }
   try{
     const [res, body] = await syncApi('PUT', { data: stripCloudFields(DATA), ts:  Date.now(), deviceId: getDeviceId() });
@@ -1001,12 +1001,14 @@ async function cloudUpload(showToast, force){
     if(showToast) toast('已上传到云端');
     syncSetStatus('✅ 已同步到云端', 'ok');
     renderLastSync();
+    return true;
   }catch(e){
     const size = Math.round(JSON.stringify(DATA).length / 1024);
     const msg = e.message + '（本机数据约 ' + size + ' KB）';
     if(showToast) toast('云端上传失败：' + msg);
     syncSetStatus('同步失败：' + msg, 'error');
     renderLastSync();
+    return false;
   }
 }
 /* 页面关闭/切后台前，若还有未上传的变更，尽量上传一次。
@@ -1637,10 +1639,24 @@ function initCloudSync(){
   if(_cloudSyncStarted) return;   // 幂等：登录后补调用 / 重复 ready 都不重复起轮询
   if(!DATA.settings.autoSync || !  DATA.settings.syncCode) return;
   _cloudSyncStarted = true;
+  // 清空数据补传：resetData 时若云端上传失败（断网），本地已空、云端仍是旧数据，
+  // 此时若先拉取会把旧数据整份合并回来复活。有补传标记则先强制推空、跳过本次首屏拉取（30s 轮询保留）。
+  let skipFirstDownload = false;
+  try{
+    if(localStorage.getItem('hub_reset_pending') === '1'){
+      localStorage.removeItem('hub_reset_pending');
+      skipFirstDownload = true;
+      Promise.resolve(cloudUpload(false, true)).then(ok => {
+        if(ok === false){ try{ localStorage.setItem('hub_reset_pending', '1'); }catch(e){} }   // 仍失败：重记标记，下次启动再补传
+      });
+    }
+  }catch(e){}
   // 优化：首屏拉取延迟到首屏渲染之后，避免「下载+合并大数组」阻塞首屏（数据越大越明显）。
   // 10s 轮询与切回前台拉取保留原逻辑。
-  if(typeof requestIdleCallback === 'function') requestIdleCallback(function(){ cloudDownload(true); }, { timeout: 2000 });
-  else setTimeout(function(){ cloudDownload(true); }, 800);
+  if(!skipFirstDownload){
+    if(typeof requestIdleCallback === 'function') requestIdleCallback(function(){ cloudDownload(true); }, { timeout: 2000 });
+    else setTimeout(function(){ cloudDownload(true); }, 800);
+  }
   // 轮询拉取：30 秒一次（页面可见时）。单设备用户基本用不上 10s 实时性，30s 足够在另一台设备保存后自动合并；
   // 内容未变时 hash 早退（不进 mergeData），进一步省 CPU；请求量降至 1/3，CF Functions 额度更宽裕。
   setInterval(() => { if(!document.hidden) cloudDownload(true); }, 30 * 1000);
