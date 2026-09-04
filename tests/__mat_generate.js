@@ -123,7 +123,8 @@ function ok(cond, name, extra){
   const hubRaw = JSON.parse(window.localStorage.getItem('ielts_study_hub_v1') || '{}');
   const saved = (hubRaw.materials && hubRaw.materials.materials) ? hubRaw.materials : JSON.parse(window.localStorage.getItem('ielts_materials_v1'));
 
-  ok(calls.includes('material') && calls.includes('material_gap') && calls.includes('material_persona'), '三段 AI 调用齐全（人设/素材/缺口）');
+  ok(calls.includes('material') && calls.includes('material_persona'), '两段 AI 调用（人设/素材）');
+  ok(!calls.includes('material_gap') && !calls.includes('material_remap'), '深挖/缺口调用已移除（生成即出结果，不做覆盖率检查）', JSON.stringify(calls));
   ok(saved.materials.length === 3, '整库替换：重新生成后只剩新 3 张（旧 11 张不留）', '实际 ' + saved.materials.length);
   ok(!saved.materials.some(m => (m.title || '').indexOf('旧卡') === 0), '置顶/手改的旧卡也不再保留（整库替换）');
 
@@ -131,17 +132,13 @@ function ok(cond, name, extra){
   ok(cov1.includes('想要颁布的环保法律'), '生成路径同样做题名纠偏（变体→题库题名）');
   ok(!cov1.includes('想颁布的网络隐私法'), '幻觉题名在生成路径同样被丢弃');
 
-  const gapTopics = (saved.gaps || []).map(g => g.topic);
-  ok(gapTopics.length === 1 && gapTopics[0] === '包含动物的故事或书', 'gaps 只留真缺题（已被覆盖的「机智解决问题的人」被过滤）', '实际 ' + JSON.stringify(gapTopics));
-  ok((saved.followups || []).length === 4 && (saved.followups || []).every(f => ['追1','追2','追3','追4'].includes(f)), '有缺题时 followups 保留且上限 4 条（AI 给 5 条裁到 4）');
+  ok((saved.gaps || []).length === 0 && (saved.followups || []).length === 0, '缺题追问/追问区整套清空（不再出题）');
   ok(!(saved.followups || []).includes('旧追问1') && !(saved.gaps || []).some(g => g.topic === '旧缺题'), '旧追问不残留');
 
   ok(calls.filter(s => s === 'material').length === 1, '素材生成只调 1 次（不会重复叠加生成）');
-  ok(calls.filter(s => s === 'material_remap').length === 3, '生成即深挖：3 张新卡每张自动深挖 1 次（无需手动按钮）', '实际 ' + calls.filter(s => s === 'material_remap').length);
 
-  const allCov = saved.materials.flatMap(m => (m.coverage || []).map(c => c.topic));
-  ok(allCov.includes('长久目标/抱负'), '最终 coverage 是深挖后的结果（含深挖才挖出的抽象题）');
   ok(!doc.querySelector('#matDig'), '结果页不再有「深挖覆盖」按钮');
+  ok(!doc.querySelector('#matRoot').innerHTML.includes('当季覆盖'), '覆盖率矩阵已从结果页移除');
 
   const cnStory = saved.materials.find(m => /[\u4e00-\u9fff]/.test(m.storyEn || ''));
   ok(!cnStory, 'storyEn 中文污染自愈：混入的中文词被自动重写为纯英文', cnStory ? JSON.stringify(cnStory.storyEn) : '');

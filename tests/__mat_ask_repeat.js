@@ -50,7 +50,9 @@ function ok(cond, name, extra){
   await new Promise(r => setTimeout(r, 200));
 
   const doc = window.document;
+  const calls = [];
   window.callRelay = async function(service, messages, temperature){
+    calls.push(service);
     if(service === 'material_persona'){
       return JSON.stringify({ persona: { city: '杭州', identity: '大三学生', values: [], traits: [] } });
     }
@@ -93,17 +95,14 @@ function ok(cond, name, extra){
   const hubRaw = JSON.parse(window.localStorage.getItem('ielts_study_hub_v1') || '{}');
   const saved = (hubRaw.materials && hubRaw.materials.materials) ? hubRaw.materials : JSON.parse(window.localStorage.getItem('ielts_materials_v1'));
 
-  const gapTopics = (saved.gaps || []).map(g => g.topic);
-  ok(!gapTopics.includes('拥挤的地方'), '答过的【拥挤的地方】不再重复问（即使 AI 又列了它）', '实际 ' + JSON.stringify(gapTopics));
-  ok(!gapTopics.includes('机智解决问题的人'), '已被素材覆盖的题被过滤');
-  ok(gapTopics.includes('包含动物的故事或书'), '真缺的新题正常保留');
+  ok((saved.gaps || []).length === 0 && (saved.followups || []).length === 0, '重新生成后追问区整体清空（覆盖率/缺题机制已移除，素材出来直接练）', JSON.stringify({ g: saved.gaps, f: saved.followups }));
+  ok(!calls.includes('material_gap') && !calls.includes('material_remap'), '生成不再调用缺口分析/深挖');
 
   const arch = (saved.answers.gaps || []).find(p => p.topic === '拥挤的地方');
-  ok(!!arch && arch.a.includes('上海地铁'), '之前答过的内容仍归档在 answers.gaps（不被覆写冲掉，且继续喂给生成）');
+  ok(!!arch && arch.a.includes('上海地铁'), '之前答过的内容仍归档在 answers.gaps（继续喂给生成）');
 
   ok((saved.materials || []).length === 2, '素材整库替换为新 2 张');
-  ok((saved.followups || []).length === 2 && saved.followups[0] === '新追1', '有缺题时新 followups 保留（旧追问列表被新列表替换）');
-  ok(!(saved.followups || []).includes('你最近有没有看过什么当地的新闻？'), '答过的 followup 问题不出现在新追问区');
+  ok(!(saved.followups || []).includes('你最近有没有看过什么当地的新闻？'), '旧追问不出现在任何位置');
 
   console.log('\n==== 结果: ' + pass + ' PASS / ' + failCnt + ' FAIL ====');
   process.exit(failCnt ? 1 : 0);

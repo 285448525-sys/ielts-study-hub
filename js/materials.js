@@ -29,12 +29,10 @@
   + '4. coverage 每个元素：{"topic":"题名","fit":"natural|loose","bridgeEn":"1 句英文点题句","note":"中文一句怎么套(如\'旅行中意识到环保法重要→套法律法规\';natural 可简写)"}。topic 必须**逐字取自下方【P2 题库对照清单】里的题目名**（这是考生网站当季真实题库），严禁自创题族名、严禁使用清单外的名字。bridgeEn 是把本故事嫁接到该题、考场可直接念的**英文简单句**（只用初中词汇、单一主谓结构，15 词以内）。\n'
   + '4.1 **覆盖宁多勿漏，默认=能串（重要）**：把下方清单全量扫一遍。判断标准不是「故事里有没有讲到这个」，而是「**站在考场上，把 storyEn 原样讲出来，能不能很自然地引到这道题**」——考场串题的实际情况是：90% 就是原样背故事，只临场加 1~2 句过渡点题。所以：**稍微搭边的就算能串（loose）；拿不准的，也按 loose 列上**；只有加一句话都实在圆不上的才不列。故事是个素材库：里面的人、地点、物品、瞬间、感受都能辐射成题——旅行/学校/家庭这类日常故事更是万能辐射源，场景里合理出现的一切都能挂（建筑、比赛、食物、遇到的人、拥挤、照片、天气……）。每张卡通常能列 10~20 题，宁多勿漏：考场上不合适临场放弃就行，没列上考生才真的亏。\n'
   + '4.2 **抽象/观点类题更要放开想象**：想颁布的法律、规则、想做的改变、想解决的问题、传统、挑战、认为重要的事——这些题考的不是「经历」而是「想法」，而任何经历都能自然生出一个想法（看到某件事 → 有个感受 → I want to… / I think…）。比如旅行路上见到有人破坏环境 → 顺理成章想颁布环保法律；旅行让你想去看更大的世界 → 就是长久目标/抱负。把清单里的抽象题逐个想一遍：「这段经历能不能让人生出这个想法？」只要不是完全牵强，就按 loose 列上，note 里写清那句过渡怎么讲。\n'
-  + '4.3 **通用性优先（合并时的取舍标准）**：合并故事时，尽量让最终的大故事同时含有**「人物（同行的朋友/帮助过你的人）+ 地点（城市/场所）+ 物品/食物 + 事件（比赛/购物/意外）+ 见闻与感受（可引出观点的瞬间）」五类元素**——这样一个故事本身就是万能辐射源，里面每个人、地点、物品、见闻都能独立辐射一批题。若某段经历能自然嵌进主线增加元素，就嵌进去（哪怕只是半句带过）；不要为了「故事主题纯粹」而把能合并的经历拆出去。'
+  + '4.3 **通用性优先（合并时的取舍标准）**：合并故事时，尽量让最终的大故事同时含有**「人物（同行的朋友/帮助过你的人）+ 地点（城市/场所）+ 物品/食物 + 事件（比赛/购物/意外）+ 见闻与感受（可引出观点的瞬间）」五类元素**——这样一个故事本身就是万能辐射源，里面每个人、地点、物品、见闻都能独立辐射一批题。若某段经历能自然嵌进主线增加元素，就嵌进去（哪怕只是半句带过）；不要为了「故事主题纯粹」而把能合并的经历拆出去。\n'
   + '5. 不要产出 keyword 骨架 / 不要拆分多切面列表——考生基础弱，给词也不会说句型，必须给**成段的、能直接背的英文小故事**（句子可简单但必须连贯，靠连接词串成一件事）。\n'
-  + '6. 自检（输出前必须执行）：把下方题库清单逐题过一遍——每题要么已被某故事的 coverage 覆盖，要么确认现有素材实在覆盖不了，放入 uncovered 数组（topic 逐字取自清单，reason 写明缺什么素材，如"缺地点类经历"）。\n'
-  + '7. followups：针对 uncovered 里「补 1-2 问就能救」的题，生成第二人称、具体好答的澄清性问题（如"你最近半年有没有搬过家？搬去哪了？"）；若素材已够广，followups 返回空数组。\n'
   + '【P2 题库对照清单】\n{BANK_P2_LIST}\n'
-  + '输出严格 JSON：{"stories":[{"title":"","storyEn":"","logicZh":"","coverage":[{"topic":"","fit":"","bridgeEn":"","note":""}]}],"uncovered":[{"topic":"","reason":""}],"followups":["还想了解的问题1","问题2"]}，不要任何解释文字。';
+  + '输出严格 JSON：{"stories":[{"title":"","storyEn":"","logicZh":"","coverage":[{"topic":"","fit":"","bridgeEn":"","note":""}]}]}，不要任何解释文字。';
   const SYS_PERSONA = '你是雅思口语人设分析师。根据用户一句话自我介绍，提取人设锚点，用于保证 Part 3 回答一致性。输出严格 JSON：{"persona":{"city":"城市","identity":"身份/专业或工作","values":["价值观1","价值观2"],"traits":["性格特点1","性格特点2"]}}';
   const SYS_GAP = '你是雅思 P2 覆盖分析师。给定已被素材（含搭边串题）覆盖的 P2 题族，以及考生当季真实 P2 题库清单，请列出**连搭边都难覆盖**、且该用户大概率会考到的题族（最多 6 条），每条给一个**澄清性问题**——用第二人称直接问考生真实经历，问题要具体、好回答，比如"你最近半年有没有搬过家？搬去哪了？"、"你有没有哪款小工具是每天都用的？说说怎么用的？"。只列真正缺口，不要编造已覆盖的。输出严格 JSON 数组：[{"topic":"题族","question":"澄清性问题"}]';
 
@@ -184,41 +182,27 @@
       // 1) 人设
       let persona = null;
       try{ persona = await genPersona(ans('A')); }catch(e){ persona = fallbackPersona(ans('A')); }
-      // 2) 整批生成小故事 + AI 追问
+      // 2) 整批生成连贯大故事（coverage 由生成时一并给出，供口语页串题参考）
       let result = { stories:[], uncovered:[], followups:[] };
       try{ result = await genMaterialsBatch(experiences, ans('A')); }
       catch(e){ result = { stories: fallbackMaterialsBatch(experiences), uncovered:[], followups:[] }; }
       if(!result.stories || !result.stories.length) result = { stories: fallbackMaterialsBatch(experiences), uncovered:[], followups:[] };
-      // 3) 缺口（喂入 AI 自检的 uncovered，让缺口分析有的放矢）
-      const covered = unique((result.stories || []).flatMap(m => (m.coverage || []).map(c => c.topic)));
-      let gaps = [];
-      try{ gaps = await genGaps(covered, result.uncovered || []); }catch(e){ gaps = fallbackGaps(covered); }
 
-      // 重新生成 = 整库替换：旧素材一律不留（用户的问卷/追问答案都在，重新生成即可复原等价故事），
-      // 杜绝「每次生成旧卡越滚越多」的堆积问题
-      store.persona = persona; store.materials = result.stories; store.uncovered = result.uncovered || [];
-      store.bankVersion = DATA.speakingVersion;   // P2：记录生成时题库版本，换季后据此提示重映射
+      // 重新生成 = 整库替换：旧素材一律不留（用户的问卷/追问答案都在，重新生成即可复原等价故事）
+      store.persona = persona; store.materials = result.stories; store.uncovered = [];
+      store.bankVersion = DATA.speakingVersion;   // P2：记录生成时题库版本
       // 给每张素材卡补稳定 id（AI 未必返回），供删除墓碑与跨设备去重使用
       store.materials.forEach(m => { if(m && m.id == null) m.id = 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); });
-      // 生成即深挖（默认执行，无需手动点按钮）：提交答案一步到位
-      setLoading('正在深挖每张卡的覆盖（自动执行，请稍等）…');
-      await deepDigCoverage(true);
-      // 英文故事混入中文词时自动重写为纯英文（自愈，无按钮）
+      // 英文故事混入中文词时自动重写为纯英文（自愈，仅在检测到中文时才多一次调用）
       setLoading('正在检查英文稿…');
       await fixStoryEnglish();
-      // 追问区收敛：深挖完成后再算「真实还缺的题」——
-      // 已答过的题（答了内容）视为已补上、不再问；全覆盖就不出任何追问；
-      // gaps 只留针对真缺题的（AI followups 上限 4 条，且仅在确实有缺题时保留）
-      const answeredTopics = new Set((store.answers.gaps || []).filter(g => g && (g.a || '').trim()).map(g => g.topic));
-      const missing = getMissingTopics().filter(t => !answeredTopics.has(t));
-      store.followups = missing.length ? (result.followups || []).slice(0, 4) : [];
-      store.gaps = gaps.filter(g => missing.includes(g.topic));
+      // 覆盖率检查/深挖/缺题追问整套已移除（用户定案：素材出来直接去练，口语页串题即可）
+      store.followups = []; store.gaps = [];
       store.materialsEpoch = Date.now();   // 生成批次戳：云端合并时凭此整体替换旧素材，避免旧卡片被并集回残留
       saveStore();
       mode = 'result';
       render();
-      const bankCnt = (DATA.speaking || []).filter(s => s && s.type === 'P2').length;
-      toast('已生成 ' + result.stories.length + ' 张全新素材卡，当季覆盖 ' + (bankCnt - missing.length) + '/' + bankCnt + ' 题' + (missing.length ? '，还差 ' + missing.length + ' 题可在追问区补' : '，全部打通'));
+      toast('已生成 ' + result.stories.length + ' 张全新素材卡，去口语页开练即可');
     }catch(e){
       toast('生成中断：' + e.message);
       render();
@@ -247,7 +231,7 @@
 
   async function genMaterialsBatch(exps, personaText){
     const expText = exps.map(e => '【' + e.title + '】\n' + e.raw).join('\n\n');
-    const user = '人设：' + (personaText || '（未提供）') + '\n\n全部经历（含追问补充）：\n' + expText + '\n\n请按规则整合为几个完整核心小故事，并判断是否需要追问补充，输出 stories + followups JSON。';
+    const user = '人设：' + (personaText || '（未提供）') + '\n\n全部经历（含追问补充）：\n' + expText + '\n\n请按规则整合为尽量少的连贯大故事（coverage 按规则 4.x 放开挂题），输出 stories JSON。';
     const content = await callRelay('material', [ { role:'system', content:buildSysMat() }, { role:'user', content:user } ], 0.7);
     const j = aiJson(content);
     if(!j || !Array.isArray(j.stories)) throw new Error('素材 JSON 解析失败');
@@ -532,10 +516,8 @@
   /* ---------- 结果页 ---------- */
   function renderResults(root){
     let h = '';
-    // 深挖已并入生成流程（生成即深挖），换季横幅与手动深挖按钮均已移除：
-    // 题库换季后重新生成一次即可自动对齐新题库
-    // 当季覆盖矩阵（P1）：题库 P2 逐题对照素材 coverage，一眼看出「背这几个够不够」
-    h += renderCoverageMatrix();
+    // 覆盖率矩阵 / 深挖 / 缺题追问整套已移除（用户定案：素材出来直接去口语页练，
+    // 串题在练题时按需进行）。coverage 数据仍在生成时随卡产出，供口语页串题提示使用。
     // 人设卡
     if(store.persona){
       const p = store.persona;
@@ -689,8 +671,6 @@
       saveStore();
       generate();
     };
-    const ma = $('#matAsk');
-    if(ma) ma.onclick = () => { askMissingTopics(); };
     $('#matRegen').onclick = () => { mode = 'q'; shortWarned = false; render(); };
   }
 

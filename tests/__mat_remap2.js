@@ -66,9 +66,7 @@ function ok(cond, name, extra){
 
   const doc = window.document;
   const matRoot = doc.querySelector('#matRoot');
-  ok(!!matRoot && matRoot.innerHTML.includes('当季覆盖'), '页面渲染出覆盖矩阵');
-  ok(!matRoot.innerHTML.includes('深挖覆盖'), '「深挖覆盖」按钮已移除（深挖并入生成流程）');
-  ok(!window.document.querySelector('#matRemap') && !matRoot.innerHTML.includes('题库已换季'), '换季横幅/重映射按钮已移除');
+  ok(!matRoot.innerHTML.includes('当季覆盖') && !matRoot.innerHTML.includes('深挖覆盖'), '覆盖率矩阵/深挖按钮已从结果页移除（素材出来直接练）');
   ok(typeof window.matGen.deepDig === 'function', 'matGen.deepDig 程序化入口可用');
   await window.matGen.deepDig();
   await new Promise(r => setTimeout(r, 800));
@@ -93,15 +91,11 @@ function ok(cond, name, extra){
   ok(saved.materials[0].coverage.find(c => c.topic === '想要颁布的环保法律').fit === 'loose', '法律题为 loose 搭边');
   ok(saved.bankVersion !== 'v4_old', '完成后 bankVersion 更新');
 
-  const mx = matRoot.innerHTML;
-  ok(/mat-chip mat-chip-loose">想要颁布的环保法律</.test(mx), '矩阵中「想要颁布的环保法律」变 teal 描边（搭边）');
-  ok(/mat-chip mat-chip-loose">想颁布的新法律</.test(mx), '矩阵中「想颁布的新法律」变 teal 描边');
-  ok(/mat-chip mat-chip-loose">保护环境的法律</.test(mx), '矩阵中「保护环境的法律」变 teal 描边');
-
   // 卡2 失败但卡1 已落库（逐卡容错）
   ok(saved.materials[1].coverage.length === 1 && saved.materials[1].coverage[0].topic === '近期改变', '卡2 调用失败，但原 coverage 未被破坏（逐卡容错）');
 
-  // 点题句黑体「临场加」+ note 同显
+  // 点题句黑体「临场加」+ note 同显（素材卡 coverage 展示区）
+  const mx = matRoot.innerHTML;
   ok(mx.includes('<div class="mat-bridge">临场加：I want a law to protect the environment.</div>'), '点题句以「临场加：」黑体前缀显示');
   ok(mx.includes('即兴补：住的酒店楼层很高'), 'note 与点题句同显（不再被藏）');
 
