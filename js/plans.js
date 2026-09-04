@@ -16,6 +16,9 @@ var currentWeek = null;
 
 /* ---------- 每日计划 ---------- */
 ready(() => {
+  // 软导航重新进入本页时，重置上次遗留的周计划状态（模块级全局），
+  // 否则 currentWeek 会残留上一次生成的建议在内存里，与已清空的 DOM 不一致（f 类：跨页状态隔离）。
+  currentWeek = null;
   $('#planDate').value = todayKey();
   $('#planDate').addEventListener('change', render);
   $('#addPlan').addEventListener('click', addItem);
@@ -113,6 +116,8 @@ async function aiPlanItem(){
     const p = ensurePlan(currentDate());
     tasks.forEach(text => p.items.push({ id: uid(), text, done: false }));
     hubSave();
+    // 软导航可能在 AI 等待期间离开计划页；数据已落盘，DOM 不存在则跳过渲染（f 类：跨页闭包隔离）。
+    if(!document.getElementById('planText')) return;
     $('#planText').value = '';
     render();
     toast('AI 已安排今天 ' + tasks.length + ' 个任务');
@@ -155,15 +160,16 @@ function startEdit(id){
   input.focus();
   input.select();
 
+  let cancelled = false;
   function finish(save){
     const v = input.value.trim();
     if(save && v && v !== it.text){ it.text = v; hubSave(); }
     render();
   }
-  input.addEventListener('blur', () => finish(true), {once:true});
+  input.addEventListener('blur', () => { if(!cancelled) finish(true); }, {once:true});
   input.addEventListener('keydown', e => {
     if(e.key === 'Enter'){ e.preventDefault(); finish(true); }
-    else if(e.key === 'Escape'){ e.preventDefault(); finish(false); }
+    else if(e.key === 'Escape'){ e.preventDefault(); cancelled = true; finish(false); }
   });
 }
 
@@ -181,7 +187,7 @@ function render(){
     // 否则只看历史某天时也会反复写盘、触发云端同步乒乓，甚至把旧数据异常覆盖。
     if(!todayPlan){
       const yPlan = getPlan(addDays(date, -1));
-      if(yPlan && yPlan.items.length){
+      if(yPlan && Array.isArray(yPlan.items) && yPlan.items.length){
         const carried = yPlan.items.filter(i => !i.done);
         if(carried.length){
           const tp = ensurePlan(date);
@@ -194,7 +200,7 @@ function render(){
     }
   }
   const p = getPlan(date);
-  const items = p ? p.items : [];
+  const items = (p && Array.isArray(p.items)) ? p.items : [];
   const done = items.filter(i => i.done).length;
   const total = items.length;
 
@@ -235,7 +241,7 @@ function render(){
 
 function renderHistory(curDate){
   const others = DATA.plans
-    .filter(p => p.date !== curDate && p.items.length)
+    .filter(p => p.date !== curDate && Array.isArray(p.items) && p.items.length)
     .slice().sort((a,b) => b.date.localeCompare(a.date));
   const meta = $('#historyMeta');
   if(meta) meta.textContent = others.length ? ('共 ' + others.length + ' 天 · 点击展开') : '暂无历史计划';
@@ -246,8 +252,9 @@ function renderHistory(curDate){
   }
   // 可折叠：默认收起，只显示日期 + 完成数摘要；点开才展开当天任务明细。
   box.innerHTML = others.map(p => {
-    const done = p.items.filter(i => i.done).length;
-    const itemsHtml = p.items.map(i =>
+    const pItems = Array.isArray(p.items) ? p.items : [];
+    const done = pItems.filter(i => i.done).length;
+    const itemsHtml = pItems.map(i =>
       `<li class="${i.done ? 'done' : ''}">${i.done ? '✓' : '○'} ${escapeHtml(i.text)}</li>`
     ).join('');
     return `<details class="hist-plan">
@@ -297,7 +304,7 @@ function buildAndRender(customTasks){
   customTasks = customTasks || [];
   const weak = computeWeak();
   const weakK = [weak[0] && weak[0].k, weak[1] && weak[1].k].filter(Boolean);
-  const baseTypes = ['reading','listening','writing','speaking','mix', weakK[0] || 'review', weakK[1] || 'review'];
+  const baseTypes = ['reading','listening','writing','speaking','mix', weakK[0] || 'mix', weakK[1] || 'mix'];
   // 天数：有自定义任务按任务数估算（每约 2 条压一天），否则默认 5 天
   const n = customTasks.length
     ? Math.max(2, Math.min(7, Math.ceil(customTasks.length / 2)))
@@ -441,7 +448,8 @@ async function aiWeekPlan(){
     const validSet = new Set(optDates.map(d => d.iso));
     const days = (j && Array.isArray(j.days)) ? j.days.filter(d => d && validSet.has(d.date)) : [];
     if(days.length === 0){
-      $('#weekBox').innerHTML = '<div class="card"><div class="muted">AI 返回格式异常，原文如下：\n\n' + escapeHtml(content) + '</div></div>';
+      const wb = document.getElementById('weekBox');
+      if(wb) wb.innerHTML = '<div class="card"><div class="muted">AI 返回格式异常，原文如下：\n\n' + escapeHtml(content) + '</div></div>';
       return;
     }
     currentWeek = days.map(d => {
@@ -454,9 +462,11 @@ async function aiWeekPlan(){
         tasks: Array.isArray(d.tasks) ? d.tasks.map(String) : []
       };
     }).sort((a, b) => a.key.localeCompare(b.key));
-    renderWeek();
+    // 软导航可能在 AI 等待期间离开计划页；仅当周计划容器仍在当前 DOM 才渲染（f 类：跨页闭包隔离）。
+    if(document.getElementById('weekBox')) renderWeek();
     toast('AI 已把你的安排分配到 ' + currentWeek.length + ' 天');
   }catch(e){
-    $('#weekBox').innerHTML = '<div class="card"><div class="muted">AI 服务暂不可用：' + escapeHtml(e.message) + '</div></div>';
+    const wb = document.getElementById('weekBox');
+    if(wb) wb.innerHTML = '<div class="card"><div class="muted">AI 服务暂不可用：' + escapeHtml(e.message) + '</div></div>';
   }
 }
