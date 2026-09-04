@@ -194,18 +194,24 @@
       let gaps = [];
       try{ gaps = await genGaps(covered, result.uncovered || []); }catch(e){ gaps = fallbackGaps(covered); }
 
-      // P0：保留用户手改（updatedAt）或置顶（pinned）的素材卡——AI 只重生成其余部分，
-      // 杜绝「继续生成/重新生成」把用户改好的故事整批冲掉（数据丢失级缺陷）。
-      const keepOld = (store.materials || []).filter(m => m && (m.updatedAt || m.pinned));
-      store.persona = persona; store.materials = keepOld.concat(result.stories); store.followups = result.followups || []; store.gaps = gaps; store.uncovered = result.uncovered || [];
+      // 重新生成 = 整库替换：旧素材一律不留（用户的问卷/追问答案都在，重新生成即可复原等价故事），
+      // 杜绝「每次生成旧卡越滚越多」的堆积问题
+      store.persona = persona; store.materials = result.stories; store.uncovered = result.uncovered || [];
       store.bankVersion = DATA.speakingVersion;   // P2：记录生成时题库版本，换季后据此提示重映射
+      // 追问区收敛：coverage 已纠偏入库，按「真实还缺的题」算——
+      // 全覆盖就不出任何追问；只保留针对真缺题的 gaps（AI followups 上限 4 条，且仅在确实有缺题时保留）
+      const missing = getMissingTopics();
+      store.followups = missing.length ? (result.followups || []).slice(0, 4) : [];
+      store.gaps = gaps.filter(g => missing.includes(g.topic));
       // 给每张素材卡补稳定 id（AI 未必返回），供删除墓碑与跨设备去重使用
       store.materials.forEach(m => { if(m && m.id == null) m.id = 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); });
       store.materialsEpoch = Date.now();   // 生成批次戳：云端合并时凭此整体替换旧素材，避免旧卡片被并集回残留
       saveStore();
       mode = 'result';
       render();
-      if(keepOld.length) toast('已保留你置顶/手改过的 ' + keepOld.length + ' 张素材卡');
+      toast(missing.length
+        ? ('已生成 ' + result.stories.length + ' 张全新素材卡（旧卡已替换）；还差 ' + missing.length + ' 题，追问区可补')
+        : ('已生成 ' + result.stories.length + ' 张全新素材卡（旧卡已替换），当季题已全部覆盖'));
     }catch(e){
       toast('生成中断：' + e.message);
       render();
@@ -265,12 +271,23 @@
 
   function normalizeMaterial(s, i){
     const cov = Array.isArray(s.coverage) ? s.coverage : [];
+    // 题名纠偏（与深挖同标准）：AI 返回的 topic 落回题库真实题名，落不上的丢弃 + 去重
+    const bankTitles = (getBankP2List() || []).map(b => b.title);
+    const seen = new Set();
+    const covFixed = [];
+    cov.forEach(c => {
+      if(!c || !c.topic) return;
+      const bt = matchBankTitle(String(c.topic), bankTitles);
+      if(!bt || seen.has(bt)) return;
+      seen.add(bt);
+      covFixed.push({ topic: bt, fit: (String(c.fit) === 'natural' ? 'natural' : 'loose'), bridgeEn: String(c.bridgeEn || ''), note: String(c.note || '') });
+    });
     return {
       id: s.id || ('m' + Date.now() + '_' + i),
       title: s.title || ('故事' + (i + 1)),
       storyEn: s.storyEn || '',
       logicZh: s.logicZh || '',
-      coverage: cov.map(c => ({ topic:String(c.topic || ''), fit:String(c.fit || 'natural'), bridgeEn:String(c.bridgeEn || ''), note:String(c.note || '') })).filter(c => c.topic),
+      coverage: covFixed,
       confidence: s.confidence || 'high',
       pinned: false
     };
@@ -532,7 +549,7 @@
                 + (c.note ? '<div class="mat-cov-note">' + escapeHtml(c.note) + '</div>' : '')
                 + '</div>').join('')
               + '</div>' : '')
-          + '<div class="mat-mat-actions"><button class="mat-mini' + (m.pinned ? ' mat-pin-on' : '') + '" data-pin="' + i + '">' + (m.pinned ? '已置顶最熟 · 取消' : '置顶为最熟') + '</button><button class="mat-mini" data-regen-all="1" title="重新生成时保留置顶/手改过的卡">重新生成</button><button class="mat-mini danger" data-del="' + i + '">删除</button><button class="mat-mini" data-edit="' + i + '">更改</button></div>';
+          + '<div class="mat-mat-actions"><button class="mat-mini' + (m.pinned ? ' mat-pin-on' : '') + '" data-pin="' + i + '">' + (m.pinned ? '已置顶最熟 · 取消' : '置顶为最熟') + '</button><button class="mat-mini" data-regen-all="1" title="重新生成：全部素材整库替换为最新生成的版本">重新生成</button><button class="mat-mini danger" data-del="' + i + '">删除</button><button class="mat-mini" data-edit="' + i + '">更改</button></div>';
       }
       h += '</div></div>';
     });
