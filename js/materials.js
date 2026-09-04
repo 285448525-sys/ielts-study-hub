@@ -27,8 +27,8 @@
   + '2. 每个故事含：title(标题) / storyEn(一段英文小故事，**90~120 词**——按考生口语水平校准，句子可简单但必须能背；用**基础词汇**、短到中等长度的句子，靠 and / so / because / but / actually 等连接词串成有「起因→经过→感受→结尾」的**连贯叙事**，读起来像在讲一件事而不是清单；严禁连续堆砌孤立短句、严禁连续同一主语/同一动词；**严禁超过 120 词**，宁可用两个短故事承载也不写超长故事) / logicZh(中文**逻辑链**：用若干中文短语以 "—"（中文横杠/破折号）串接，把故事的关键步骤、转折、感受、细节都铺开——越长越细越好、数量不固定，例如"朋友送手机壳—觉得很有心—每天用手机—看到就想起朋友—珍藏") / coverage(能套的当季 P2 题数组)。\n'
   + '3. 人设一致：每个故事至少一处与考生人设（性格/价值观）自然呼应（如「理性」「喜欢无纸化学习」这类考生自己的特质），为 Part 3 追问时的人设一致性打底，不要让故事像另一个人经历。\n'
   + '4. coverage 每个元素：{"topic":"题名","fit":"natural|loose","bridgeEn":"1 句英文点题句","note":"中文一句怎么套(如\'旅行中意识到环保法重要→套法律法规\';natural 可简写)"}。topic 必须**逐字取自下方【P2 题库对照清单】里的题目名**（这是考生网站当季真实题库），严禁自创题族名、严禁使用清单外的名字。bridgeEn 是把本故事嫁接到该题、考场可直接念的**英文简单句**（只用初中词汇、单一主谓结构，15 词以内）。\n'
-  + '4.1 覆盖宁多勿漏（重要）：每个故事的 coverage 要把下方清单**全量扫一遍**。评估标准 = **考场可嫁接性**，不是字面包含——直接讲的是 natural；只要故事提供一个场景/时机、考场上能自然补一句合理小细节圆上的就是 loose。**场景型故事（旅行/学校/家庭聚会/常去的地方）是万能辐射源**：该场景里合理出现的一切（建筑、看过的比赛、吃过的食物、遇到的人、拥挤嘈杂、拍的照片…）都可挂。例：去厦门旅行的故事 →「喜欢或不喜欢的高建筑」loose（住的酒店楼层很高）、「喜欢的现场体育赛事」loose（沙滩上正好有排球赛）。每张卡通常能列 10~20 题，**宁可多挂不可漏挂**（考场上不合适可现场放弃，漏挂则考生根本不知道能套）。\n'
-  + '4.2 **抽象/观点类题同样可挂（重要）**：想颁布的法律、规则、想做的改变、想解决的问题、想引入的传统、挑战/冒险、认为重要的事这类**表达观点的抽象题**，不要求故事里真的发生过——任何故事都能通过一句过渡句嫁接。公式：故事见闻/感受 → 引出观点（I saw …, so I think … / I want to …）。例：去厦门旅行的故事 →「想颁布的法律」loose（路上看到有人破坏环境，所以想颁布保护环境的法律）。凡是故事见闻能自然引出一个想法/愿望/评价的抽象题，都应列入 coverage（loose），note 写清那句过渡怎么讲。\n'
+  + '4.1 **覆盖宁多勿漏，默认=能串（重要）**：把下方清单全量扫一遍。判断标准不是「故事里有没有讲到这个」，而是「**站在考场上，把 storyEn 原样讲出来，能不能很自然地引到这道题**」——考场串题的实际情况是：90% 就是原样背故事，只临场加 1~2 句过渡点题。所以：**稍微搭边的就算能串（loose）；拿不准的，也按 loose 列上**；只有加一句话都实在圆不上的才不列。故事是个素材库：里面的人、地点、物品、瞬间、感受都能辐射成题——旅行/学校/家庭这类日常故事更是万能辐射源，场景里合理出现的一切都能挂（建筑、比赛、食物、遇到的人、拥挤、照片、天气……）。每张卡通常能列 10~20 题，宁多勿漏：考场上不合适临场放弃就行，没列上考生才真的亏。\n'
+  + '4.2 **抽象/观点类题更要放开想象**：想颁布的法律、规则、想做的改变、想解决的问题、传统、挑战、认为重要的事——这些题考的不是「经历」而是「想法」，而任何经历都能自然生出一个想法（看到某件事 → 有个感受 → I want to… / I think…）。比如旅行路上见到有人破坏环境 → 顺理成章想颁布环保法律；旅行让你想去看更大的世界 → 就是长久目标/抱负。把清单里的抽象题逐个想一遍：「这段经历能不能让人生出这个想法？」只要不是完全牵强，就按 loose 列上，note 里写清那句过渡怎么讲。\n'
   + '4.3 **通用性优先（合并时的取舍标准）**：合并故事时，尽量让最终的大故事同时含有**「人物（同行的朋友/帮助过你的人）+ 地点（城市/场所）+ 物品/食物 + 事件（比赛/购物/意外）+ 见闻与感受（可引出观点的瞬间）」五类元素**——这样一个故事本身就是万能辐射源，里面每个人、地点、物品、见闻都能独立辐射一批题。若某段经历能自然嵌进主线增加元素，就嵌进去（哪怕只是半句带过）；不要为了「故事主题纯粹」而把能合并的经历拆出去。'
   + '5. 不要产出 keyword 骨架 / 不要拆分多切面列表——考生基础弱，给词也不会说句型，必须给**成段的、能直接背的英文小故事**（句子可简单但必须连贯，靠连接词串成一件事）。\n'
   + '6. 自检（输出前必须执行）：把下方题库清单逐题过一遍——每题要么已被某故事的 coverage 覆盖，要么确认现有素材实在覆盖不了，放入 uncovered 数组（topic 逐字取自清单，reason 写明缺什么素材，如"缺地点类经历"）。\n'
@@ -401,38 +401,91 @@
       const mats = (store.materials || []).filter(m => m && (m.coverage || []).length);
       if(!bank || !mats.length) throw new Error('没有可映射的素材');
       const newList = bank.map(b => b.title + (b.req ? '（要点：' + b.req + '）' : '')).join('\n');
-      // 深挖式重映射：不只翻译旧对照，而是每张卡对着新题库【全量重评】——考场可嫁接标准
-      const storyInfo = mats.map(m => '【' + (m.title || '未命名') + '】\n故事概要：' + String(m.storyEn || '').slice(0, 400) + '\n中文逻辑：' + (m.logicZh || '') + '\n旧对照（仅供参考，可推翻）：' + m.coverage.map(c => c.topic).join('、')).join('\n\n');
+      const bankTitles = bank.map(b => b.title);
+      // 深挖式重映射 v2：逐卡调用（单卡输出远小于全量，避免长输出被截断导致整体失败），
+      // 每张卡对新题库【全量重评】，AI 返回的题名纠偏落回真实题库题名后再入库
       const rawAns = QUESTIONS.map(q => ans(q.id)).filter(v => v).map(v => '· ' + v.slice(0, 150)).join('\n');
-      const sys = '你是雅思口语串题覆盖挖掘助手。考生网站口语题库刚换季。下面给出每张素材卡的故事内容（概要+中文逻辑）、考生问卷原始经历、和它原来标的旧对照。你的任务不是翻译旧对照，而是**把每张卡放到新题库清单里全量重评一遍**：\n'
-        + '1. 评估标准 = **考场可嫁接性**，不是字面包含：只要故事提供了一个「场景/时机」，让考生在考场上能自然补一句合理的小细节把题圆上，就算 loose 搭边可套。允许即兴补充合理细节——这正是串题的实战用法。\n'
-        + '2. **场景型故事是万能辐射源**：旅行、学校生活、家庭聚会、常去的地方、日常爱好这类故事，凡是在该场景里合理出现的一切事物都可挂——住宿的建筑、看过的比赛、吃过的食物、遇到的人、排队拥挤、嘈杂安静、天气、拍的照片、难忘瞬间……\n'
-        + '   例：去厦门旅行的故事 → 「喜欢或不喜欢的高建筑」loose（住的酒店楼层很高，窗外是海景）、「喜欢的现场体育赛事」loose（沙滩上正好有人在打排球）、「特别场合的食物」loose（团圆时吃的海鲜大餐）、「拥挤的地方」loose（轮渡口排队人山人海）、「难以回答的问题」类也可借旅行见闻圆。\n'
-        + '3. 自然直接讲的就是 natural；需要补一句合理细节的是 loose；每张场景型卡通常可挂 10~20 题——**宁可多挂不可漏挂**，考场上不合适再现场放弃，漏挂的代价是考生根本不知道能套。\n'
-        + '4. **抽象/观点类题必须重点扫（重要）**：想颁布的法律、想引入的规则、想做的改变、想解决的问题、想鼓励的传统/新时尚、挑战、认为重要/有价值的事这类**表达观点的抽象题**，不要求故事里真的发生过——任何故事都能用一句过渡句嫁接。公式：故事见闻/感受 → 引出观点（I saw …, so I want to …）。例：去厦门旅行的故事 →「想颁布的法律」loose（路上看到有人破坏环境，所以想颁布保护环境的法律）。**每张卡都要对照题库清单，把所有抽象/观点类题逐一过一遍**：只要故事见闻能自然引出一个想法/愿望/评价，就列入 coverage（loose），note 写清过渡句怎么讲。\n'
-        + '4. 新 topic 必须**逐字取自新题库清单**；每条给 fit（natural|loose）、一句考场可直接念的英文点题句 bridgeEn（只用初中词汇、单一主谓简单句、15 词以内）和中文 note（loose 必须写清怎么圆，可以写"即兴补：…"）。\n'
-        + '输出严格 JSON：{"mappings":[{"title":"素材卡标题","coverage":[{"topic":"","fit":"","bridgeEn":"","note":""}]}]}，不要任何解释文字。';
-      const user = '素材卡列表：\n' + storyInfo + (rawAns ? '\n\n考生问卷原始经历（可从中取细节做即兴补充）：\n' + rawAns : '') + '\n\n新题库清单：\n' + newList;
-      const content = await callRelay('material_remap', [ { role:'system', content:sys }, { role:'user', content:user } ], 0.4);
-      const j = aiJson(content);
-      if(!j || !Array.isArray(j.mappings)) throw new Error('重映射 JSON 解析失败');
-      let applied = 0;
-      j.mappings.forEach(mp => {
-        const m = (store.materials || []).find(x => x && x.title === mp.title);
-        if(m && Array.isArray(mp.coverage)){
-          m.coverage = mp.coverage.filter(c => c && c.topic).map(c => ({ topic:String(c.topic), fit:String(c.fit || 'natural'), bridgeEn:String(c.bridgeEn || ''), note:String(c.note || '') }));
-          applied++;
-        }
-      });
+      const sys = '你是雅思口语串题覆盖挖掘助手。考生正在对自己的素材卡做覆盖深挖。下面给出这张素材卡的故事内容（概要+中文逻辑）和考生问卷原始经历。你的任务是**把这张卡放到题库清单里全量重评一遍**。先理解考生的真实用法：考场上 90% 就是把故事原样讲出来，只临场加 1~2 句过渡点题——所以你的默认态度是「**能串**」，发挥想象力找联系，不要挑剔：\n'
+        + '1. 判断标准不是「故事里有没有讲到这个」，而是「**站在考场上把故事讲出来，能不能自然引到这道题**」：直接讲就是 natural；稍微搭边、或临场加一句合理的话就能圆上，就是 loose；**拿不准的，也按 loose 列上**——考场上不合适临场放弃没有任何损失，漏列了考生才吃亏。允许即兴补充合理细节，这正是串题的实战用法。\n'
+        + '2. 放开想：故事是个素材库，里面的人、地点、物品、瞬间、感受都能辐射成题。旅行/学校/家庭/常去的地方这类日常故事是万能辐射源——场景里合理出现的一切都能挂（建筑、比赛、食物、遇到的人、拥挤、嘈杂安静、天气、照片……）。例：去厦门的故事 → 高建筑（住的酒店楼层很高）、体育赛事（沙滩上正好有排球）、特别场合的食物（海鲜大餐）、拥挤的地方（轮渡人山人海）。\n'
+        + '3. **抽象/观点类题更要放开想象**：想颁布的法律、规则、想做的改变、想解决的问题、传统、挑战、认为重要的事——这些题考的是「想法」，而任何经历都能自然生出一个想法（看到某件事 → 有个感受 → I want to… / I think…）。比如旅行路上见到有人破坏环境 → 顺理成章想颁布环保法律。把清单里的抽象题逐个想一遍：「这段经历能不能让人生出这个想法？」只要不是完全牵强，就按 loose 列上，note 写清那句过渡怎么讲。\n'
+        + '4. 每张卡通常能列 10~20 题，宁多勿漏；topic **逐字复制题库清单里的题名**（「（要点：…）」前面的部分才是题名，不要改写、简写或合并近似题名——题库里「想颁布的新法律」「想要颁布的环保法律」「保护环境的法律」是三道不同的题，能挂就分别列出）；每条给 fit（natural|loose）、一句考场可直接念的英文点题句 bridgeEn（初中词汇、单一主谓简单句、15 词以内——这句就是考生临场要加的那句话）和中文 note（loose 写清那句过渡怎么讲，可写"即兴补：…"）。\n'
+        + '输出严格 JSON：{"coverage":[{"topic":"","fit":"","bridgeEn":"","note":""}]}，不要任何解释文字。';
+      let applied = 0; const failed = [];
+      for(let i = 0; i < mats.length; i++){
+        const m = mats[i];
+        [ $('#matRemap'), $('#matDig') ].forEach(b => { if(b) b.textContent = '正在深挖 ' + (i + 1) + '/' + mats.length + '…'; });
+        const user = '素材卡：【' + (m.title || '未命名') + '】\n故事：' + String(m.storyEn || '').slice(0, 400) + '\n中文逻辑：' + (m.logicZh || '')
+          + (rawAns ? '\n\n考生问卷原始经历（可从中取细节做即兴补充）：\n' + rawAns : '')
+          + '\n\n题库清单：\n' + newList;
+        let content;
+        try{
+          content = await callRelay('material_remap', [ { role:'system', content:sys }, { role:'user', content:user } ], 0.4, { max_tokens: 8192 });
+        }catch(err){ failed.push((m.title || '未命名') + '：' + err.message); continue; }
+        const j = aiJson(content);
+        const covArr = (j && Array.isArray(j.coverage)) ? j.coverage : (j && Array.isArray(j.mappings) && j.mappings[0] && Array.isArray(j.mappings[0].coverage) ? j.mappings[0].coverage : null);
+        if(!covArr){ failed.push((m.title || '未命名') + '：AI 返回格式异常'); continue; }
+        // 题名纠偏 + 去重：AI 返回的题名先落到题库真实题名，落不上的丢弃（防止近似变体永不匹配矩阵）
+        const seen = new Set();
+        m.coverage = [];
+        covArr.forEach(c => {
+          if(!c || !c.topic) return;
+          const bt = matchBankTitle(String(c.topic), bankTitles);
+          if(!bt || seen.has(bt)) return;
+          seen.add(bt);
+          m.coverage.push({ topic: bt, fit: (String(c.fit) === 'natural' ? 'natural' : 'loose'), bridgeEn: String(c.bridgeEn || ''), note: String(c.note || '') });
+        });
+        applied++;
+        saveStore(); render();   // 逐卡落库：后面卡失败，前面已完成的也不丢
+      }
       store.bankVersion = DATA.speakingVersion;
       saveStore();
       if(DATA.settings.autoSync && DATA.settings.syncCode && typeof cloudUpload === 'function') cloudUpload(true);
       render();
-      toast('重映射完成：' + applied + ' 张素材卡已对齐新题库');
+      if(applied && !failed.length) toast('深挖完成：' + applied + ' 张素材卡已对齐当季题库');
+      else if(applied) toast('深挖完成 ' + applied + ' 张；' + failed.length + ' 张失败（' + failed[0] + (failed.length > 1 ? ' 等' : '') + '），可再点一次只补失败的');
+      else toast('深挖失败：' + failed.join('；'));
     }catch(e){
       render();
-      toast('重映射失败：' + e.message);
+      toast('深挖失败：' + e.message);
     }
+  }
+
+  /* 题名纠偏：AI 返回的 topic 落到题库真实题名。
+     逐字相等优先；其次去空格/标点后的包含匹配（长度差 ≤3）；最后编辑距离 ≤1 兜底
+     （AI 常在近似题名里插/漏一个字，如把「想要颁布的环保法律」写成「想颁布的环保法律」）。
+     落不上返回 null（丢弃）。 */
+  function matchBankTitle(raw, titles){
+    const norm = s => String(s || '').replace(/[\s《》「」『』·，,、()（）]/g, '');
+    const n = norm(raw);
+    if(!n) return null;
+    const nT = titles.map(t => ({ t: t, n: norm(t) }));
+    const exact = nT.find(x => x.n === n);
+    if(exact) return exact.t;
+    const cands = nT.filter(x => x.n !== n && (
+      (x.n.indexOf(n) !== -1 && x.n.length - n.length <= 3) ||
+      (n.indexOf(x.n) !== -1 && n.length - x.n.length <= 3) ||
+      (Math.abs(x.n.length - n.length) <= 2 && lev1(x.n, n))
+    ));
+    if(cands.length){ cands.sort((a, b) => a.n.length - b.n.length); return cands[0].t; }
+    return null;
+  }
+  /* 编辑距离 ≤1（短题名够用）：长度差≤1 时允许一次插入/删除/替换 */
+  function lev1(a, b){
+    if(Math.abs(a.length - b.length) > 1) return false;
+    if(a.length === b.length){
+      let diff = 0;
+      for(let i = 0; i < a.length; i++){ if(a[i] !== b[i] && ++diff > 1) return false; }
+      return true;
+    }
+    const L = a.length > b.length ? a : b, S = a.length > b.length ? b : a;
+    let i = 0, j = 0, skipped = false;
+    while(i < L.length && j < S.length){
+      if(L[i] === S[j]){ i++; j++; continue; }
+      if(skipped) return false;
+      skipped = true; i++;
+    }
+    return true;
   }
 
   /* ---------- 结果页 ---------- */
@@ -475,7 +528,8 @@
           + (m.logicZh ? '<div class="mat-sub">中文逻辑链</div><div class="mat-logic">' + escapeHtml(m.logicZh) + '</div>' : '')
           + ((m.coverage && m.coverage.length) ? '<div class="mat-sub">可套当季题 + 点题句（可直接念）</div><div class="mat-covs">'
               + m.coverage.map(c => '<div class="mat-cov"><span class="mat-cov-topic">' + escapeHtml(c.topic) + '</span>'
-                + (c.bridgeEn ? '<div class="mat-bridge">' + escapeHtml(c.bridgeEn) + '</div>' : (c.note ? '<div class="mat-cov-note">' + escapeHtml(c.note) + '</div>' : ''))
+                + (c.bridgeEn ? '<div class="mat-bridge">临场加：' + escapeHtml(c.bridgeEn) + '</div>' : '')
+                + (c.note ? '<div class="mat-cov-note">' + escapeHtml(c.note) + '</div>' : '')
                 + '</div>').join('')
               + '</div>' : '')
           + '<div class="mat-mat-actions"><button class="mat-mini' + (m.pinned ? ' mat-pin-on' : '') + '" data-pin="' + i + '">' + (m.pinned ? '已置顶最熟 · 取消' : '置顶为最熟') + '</button><button class="mat-mini" data-regen-all="1" title="重新生成时保留置顶/手改过的卡">重新生成</button><button class="mat-mini danger" data-del="' + i + '">删除</button><button class="mat-mini" data-edit="' + i + '">更改</button></div>';

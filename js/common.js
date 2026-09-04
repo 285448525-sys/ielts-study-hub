@@ -759,7 +759,7 @@ function renderEmpty(msg){ return `<div class="empty">${msg}</div>`; }
    （统一用 deepseek-chat，service 仅作语义标记，不影响调用）。 */
 const AI_BASE = 'https://api.deepseek.com/v1';
 const AI_MODEL = 'deepseek-chat';
-async function callRelay(service, messages, temperature){
+async function callRelay(service, messages, temperature, opts){
   const s = DATA.settings || {};
   const key = s.relayToken || '';
   if(!key){ throw new Error('未配置 API Key（去「设置 / AI 接口」填写）'); }
@@ -777,6 +777,8 @@ async function callRelay(service, messages, temperature){
     temperature: (temperature == null) ? 0.7 : temperature,
     stream: false
   };
+  // 可选覆盖（如素材深挖需要更大输出窗口：{ max_tokens: 8192 }，默认 4096 会被长 JSON 截断）
+  if(opts && typeof opts === 'object') Object.assign(body, opts);
   const res = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
   if(!res.ok){
     let detail = '';
