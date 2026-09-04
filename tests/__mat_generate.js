@@ -63,7 +63,7 @@ function ok(cond, name, extra){
           { topic: '想颁布的环保法律', fit: 'loose', bridgeEn: 'I want a law to protect the environment.', note: '变体→想要颁布的环保法律' },
           { topic: '想颁布的网络隐私法', fit: 'loose', bridgeEn: '', note: '幻觉→丢弃' }
         ] },
-        { title: '做网站', storyEn: 'I built two study websites by myself. It was amazing.', logicZh: '建站—成就感', coverage: [
+        { title: '做网站', storyEn: 'I built two study websites, one for IELTS and one for 考研. It was amazing.', logicZh: '建站—成就感', coverage: [
           { topic: '机智解决问题的人', fit: 'natural', bridgeEn: 'I solved problems.', note: '' }
         ] },
         { title: '听歌', storyEn: 'I listen to a song called Shi Yi. It makes me calm.', logicZh: '听歌—平静', coverage: [
@@ -77,6 +77,10 @@ function ok(cond, name, extra){
         { topic: '包含动物的故事或书', question: '你喜欢什么动物故事？' },
         { topic: '机智解决问题的人', question: '这个题已被覆盖，应被过滤' }
       ]);
+    }
+    if(service === 'material_fixen'){
+      // 中文污染自愈：返回纯英文重写
+      return 'I built two study websites, one for IELTS and one for the postgraduate exam. It was amazing.';
     }
     if(service === 'material_remap'){
       // 生成即深挖：按卡全量重评（含深挖才挖得出的抽象题）
@@ -138,6 +142,10 @@ function ok(cond, name, extra){
   const allCov = saved.materials.flatMap(m => (m.coverage || []).map(c => c.topic));
   ok(allCov.includes('长久目标/抱负'), '最终 coverage 是深挖后的结果（含深挖才挖出的抽象题）');
   ok(!doc.querySelector('#matDig'), '结果页不再有「深挖覆盖」按钮');
+
+  const cnStory = saved.materials.find(m => /[\u4e00-\u9fff]/.test(m.storyEn || ''));
+  ok(!cnStory, 'storyEn 中文污染自愈：混入的中文词被自动重写为纯英文', cnStory ? JSON.stringify(cnStory.storyEn) : '');
+  ok(calls.includes('material_fixen'), '检测到中文时自动触发英文修复调用');
 
   console.log('\n==== 结果: ' + pass + ' PASS / ' + failCnt + ' FAIL ====');
   process.exit(failCnt ? 1 : 0);
