@@ -22,7 +22,8 @@ function collectCorDraft(){
     const inp = row.querySelector('.write-en');
     if(inp && inp.value.trim()) inputs[id] = inp.value;
   });
-  const resultHtml = $('#writeResult').innerHTML || '';
+  const wrEl = $('#writeResult');
+  const resultHtml = (wrEl && wrEl.innerHTML) || '';   // 防抖定时器可能在切走后触发，#writeResult 已不在 DOM
   if(!checked.length && !Object.keys(inputs).length && !resultHtml) return null;
   return { checked, inputs, result: resultHtml, ts: Date.now() };
 }
@@ -280,7 +281,11 @@ function renderDictItem(){
       const v = ($('#dictInput').value||'').trim(); checkSent(item, v, !v);
     }
   });
-  setTimeout(() => { $('#dictInput').focus(); playSentence(item.en); }, 150);
+  setTimeout(() => {
+    const di = $('#dictInput');
+    if(!di || !dict) return;   // 150ms 内已切走/软导航重载则不再聚焦播放
+    di.focus(); playSentence(item.en);
+  }, 150);
 }
 
 function playSentence(text){
@@ -466,7 +471,7 @@ function renderWrite(q, cfg){
 }
 
 async function gradeWrite(q, cfg){
-  const rows = document.querySelectorAll('#writeList .write-row');
+  const rows = document.querySelectorAll('#dictArea .write-row');   // 修复：#writeList 已不存在，行实际在 #dictArea 内
   const items = [];
   rows.forEach((row, i) => {
     const inp = row.querySelector('.write-en');
@@ -546,13 +551,18 @@ async function gradeWrite(q, cfg){
       + (ai && ai.note ? ' · <span class="muted">' + escapeHtml(ai.note) + '</span>' : '');
   });
   // 错句本：把本次准确率<100%的句子写入 dictationLogs（sourceId='corpus'），供错句本聚合
-  const wrongItems = base.filter(it => it.acc < 100).map(it => ({
-    loc: String(q.indexOf(it) + 1),
-    wrong: it.user || '',
-    right: it.en,
-    type: it.missed.length ? '漏写' : '错词',
-    note: it.missed.length ? ('漏：' + it.missed.join(' ')) : ''
-  }));
+  const wrongItems = [];
+  base.forEach((it, i) => {
+    if(it.acc >= 100) return;
+    // 修复：it 是展开副本，q.indexOf(it) 恒为 -1（loc 恒为 "0"），改用下标
+    wrongItems.push({
+      loc: String(i + 1),
+      wrong: it.user || '',
+      right: it.en,
+      type: it.missed.length ? '漏写' : '错词',
+      note: it.missed.length ? ('漏：' + it.missed.join(' ')) : ''
+    });
+  });
   if(wrongItems.length){
     DATA.dictationLogs = DATA.dictationLogs || [];
     DATA.dictationLogs.push({ sourceId: 'corpus', title: '语料库表格默写', date: todayKey(), mistakes: wrongItems });
@@ -896,7 +906,7 @@ function cardHtml(e){
 /* 截图识别条目渲染（视觉模型产出，含缩略图与新扩展字段） */
 function captureCard(e){
   const imgs = (e.images || []).map((u, i) =>
-    '<div class="eb-thumb"><img src="' + u + '" alt="截图' + (i+1) + '"/></div>'
+    '<div class="eb-thumb"><img src="' + escapeHtml(u) + '" alt="截图' + (i+1) + '"/></div>'
   ).join('');
   const badges = [
     e.subject && e.subject !== '其他' ? '<span class="badge">' + escapeHtml(e.subject) + '</span>' : '',
@@ -1088,7 +1098,7 @@ function saveWord(en, cn){
   if(!en) return;
   const key = en.toLowerCase().trim();
   DATA.words = DATA.words || [];
-  const exists = DATA.words.some(w => w.en.toLowerCase() === key);
+  const exists = DATA.words.some(w => (w.en || '').toLowerCase() === key);   // 老数据可能缺 en
   if(exists){ toast(`「${en}」已在词库中`); return; }
   DATA.words.push({ id: uid(), en: en.trim(), cn: (cn || '').trim(), ts: Date.now() });
   hubSave();
