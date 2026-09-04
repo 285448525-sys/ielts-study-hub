@@ -351,9 +351,11 @@
   /* ---------- 结果页 ---------- */
   function renderResults(root){
     let h = '';
-    // 换季提示（P2）：素材是旧题库版本时生成的 → 给一键重映射
-    if(store.materials.length && store.bankVersion != null && store.bankVersion !== DATA.speakingVersion){
-      h += '<div class="mat-remap"><div class="mat-remap-txt"><b>题库已换季</b>：这些素材是旧题库（v' + escapeHtml(String(store.bankVersion)) + '）时生成的，「可套当季题」对照可能已过时。</div>'
+    // 换季提示（P2）：素材对照可能过时 → 给一键重映射
+    // bankVersion == null = 旧版（本功能上线前）生成的存量素材，同样视为过时、给出重映射入口
+    if(store.materials.length && store.bankVersion !== DATA.speakingVersion){
+      const verTxt = store.bankVersion != null ? ('旧题库（v' + escapeHtml(String(store.bankVersion)) + '）') : '较早版本的题库';
+      h += '<div class="mat-remap"><div class="mat-remap-txt"><b>题库已换季</b>：这些素材是' + verTxt + '时生成的，「可套当季题」对照可能已过时。故事本身是你自己的经历、不会过期——只是对照清单需要对齐。</div>'
         + '<button class="btn btn-primary" id="matRemap">一键重映射到新题库</button></div>';
     }
     // 当季覆盖矩阵（P1）：题库 P2 逐题对照素材 coverage，一眼看出「背这几个够不够」
