@@ -771,7 +771,7 @@ function renderP3Step(s, container, i){
     + '<button class="sp-p3-trans-btn" data-i="' + i + '" type="button" title="翻译为中文">译</button>'
     + '</div>'
     + '<div class="sp-p3-cn-line" data-i="' + i + '" hidden></div>'
-    + '<textarea class="sp-p3-textarea" data-i="' + i + '" placeholder="写下或贴出你的 P3 回答（中文英文都行）。没思路？点「AI 辅助」直接给你参考答案；自己有思路？点「老师帮我改」按 5.5 规则挑问题 + 改一版合规的。">' + escapeHtml(savedAns) + '</textarea>'
+    + '<textarea class="sp-p3-textarea" data-i="' + i + '" placeholder="写下或贴出你的 P3 回答（中英文均可）；没思路点「AI 辅助」，有思路点「老师帮我改」。">' + escapeHtml(savedAns) + '</textarea>'
     + '<div class="sp-p3-helper-row">'
     + '<button class="sp-p3-helper-btn" data-i="' + i + '" type="button" data-mode="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;flex:none"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.4L22 18.3l-2.1.9L19 21.5l-.9-2.3-2.1-.9 2.1-.9z"/></svg>AI 辅助</button>'
     + '<button class="sp-p3-review-btn" data-i="' + i + '" type="button" data-mode="review"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;flex:none"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>老师帮我改</button>'

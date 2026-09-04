@@ -246,7 +246,7 @@ function renderDictItem(){
         </div>
       </div>
       <div id="cnHint" style="text-align:center;color:var(--muted);margin:8px 0 6px;min-height:20px;font-size:14px">${cfg.showCn && item.cn ? '中文：'+escapeHtml(cfg.showCn?item.cn:'') : ''}</div>
-      <textarea id="dictInput" class="q-input" style="width:100%;max-width:none;height:86px;font-size:16px;line-height:1.6" placeholder="把听到的整句写下来，写完按 Enter（或 Ctrl+Enter 换行）提交核对…" spellcheck="false"></textarea>
+      <textarea id="dictInput" class="q-input" style="width:100%;max-width:none;height:86px;font-size:16px;line-height:1.6" placeholder="把听到的整句写下来，按 Enter 提交核对…" spellcheck="false"></textarea>
       <div class="dict-actions">
         <button class="btn" id="skipBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>跳过 / 看答案</button>
         <button class="btn btn-primary" id="checkBtn">确认核对</button>

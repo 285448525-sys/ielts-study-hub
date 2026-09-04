@@ -27,7 +27,7 @@
 })();
 </script>
 <title>句子 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20260904c" />
+<link rel="stylesheet" href="css/common.css?v=20260904d" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=5" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=4">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=4">
@@ -39,7 +39,7 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20260903ab"></script>
   <script defer src="js/common.js?v=20260904a"></script>
-  <script src="js/corpus.js?v=20260903ac" defer></script>
+  <script src="js/corpus.js?v=20260904a" defer></script>
 <style>
   /* 长难句 / 错题本 样式（原 errorbook.html 内联） */
   .eb-input{width:100%;min-height:190px;padding:14px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;font-size:14.5px;line-height:1.75;background:var(--bg);color:var(--ink);resize:vertical}
@@ -97,7 +97,7 @@
   <div id="lsView">
     <section class="card">
       <h2>粘贴长难句</h2>
-      <textarea id="sentInput" placeholder="在此粘贴你遇到的长难句，例如：&#10;The theory, which was proposed by a group of researchers who had spent decades observing the species, suggests that the decline is not merely a temporary fluctuation but a sign of a deeper ecological imbalance."></textarea>
+      <textarea id="sentInput" placeholder="在此粘贴长难句，例如：The theory suggests the decline is a deeper imbalance."></textarea>
       <div class="form-row row-end mt-10">
         <button class="btn btn-primary" id="analyzeBtn">拆解分析</button>
         <span id="sentStatus" class="word-status" aria-live="polite"></span>
@@ -122,9 +122,7 @@
   <!-- ② 错题本 -->
   <div id="ebView" hidden>
     <section class="card">
-      <textarea class="eb-input" id="ebInput" placeholder="把你的错题讲解贴进来就行（AI 对你截图的回复、你自己记的笔记都行），不用整理格式。
-比如：
-一道阅读判断题，我选 NOT GIVEN，答案是 FALSE，原文说的是 …"></textarea>
+      <textarea class="eb-input" id="ebInput" placeholder="粘贴错题讲解（截图回复/笔记均可），无需整理格式"></textarea>
       <div class="eb-bar">
         <button class="btn btn-primary" id="ebAnalyze"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="5" y="7" width="14" height="12" rx="3"/><path d="M12 7V3M9 3h6"/><circle cx="9.5" cy="12.5" r="1"/><circle cx="14.5" cy="12.5" r="1"/><path d="M9 16h6"/></svg>理清错因并归档</button>
         <button class="btn" id="ebRaw">只存原文</button>
@@ -171,7 +169,7 @@
         <div style="margin-top:12px">
           <details>
             <summary style="cursor:pointer;font-size:14px">批量导入（每行一句，英文与中文用空格/竖线/中文处自动分隔）</summary>
-            <textarea id="bulkCorpus" placeholder="Paste: English | 中文&#10;The government should invest in public transport. | 政府应该投资公共交通" style="width:100%;min-height:90px;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);resize:vertical;box-sizing:border-box;margin-top:8px"></textarea>
+            <textarea id="bulkCorpus" placeholder="批量导入：每行 英文 | 中文，如：The government should invest in public transport. | 政府应投资公交" style="width:100%;min-height:90px;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);resize:vertical;box-sizing:border-box;margin-top:8px"></textarea>
             <div class="form-row" style="margin-top:8px;align-items:center">
               <button class="btn btn-primary" id="importCorpus">导入</button>
               <span id="importHint" class="muted" style="font-size:12.5px"></span>
@@ -179,7 +177,7 @@
           </details>
           <div style="margin-top:10px;border-top:1px dashed var(--line);padding-top:10px">
             <div class="muted" style="font-size:13px;margin-bottom:6px">AI 智能导入：粘贴短语 / 词 / 句子（可纯英文，AI 自动切分并补中文释义）</div>
-            <textarea id="aiImportBox" placeholder="粘贴要记的内容，例如：&#10;The government should invest in public transport.&#10; sustainable development&#10; 空气污染加剧" style="width:100%;min-height:80px;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);resize:vertical;box-sizing:border-box"></textarea>
+            <textarea id="aiImportBox" placeholder="粘贴要记的内容，例如：The government should invest in public transport." style="width:100%;min-height:80px;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);resize:vertical;box-sizing:border-box"></textarea>
             <div class="form-row" style="margin-top:8px;align-items:center">
               <button class="btn btn-primary" id="aiImportBtn">AI 识别并导入</button>
               <span id="aiImportHint" class="muted" style="font-size:12.5px"></span>

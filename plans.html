@@ -25,7 +25,7 @@
 })();
 </script>
 <title>计划 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20260904c" />
+<link rel="stylesheet" href="css/common.css?v=20260904d" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=5" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=4">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=4">
@@ -64,7 +64,7 @@
       <span class="muted" id="dateLabel" style="font-size:12px;margin:0;flex:1;min-width:0"></span>
     </div>
     <textarea id="planText"
-      placeholder="写下今天的任务…&#10;例如：精听 S1 填空 30 分钟 / 背 20 个阅读生词"
+      placeholder="写下今天的任务，如：精听 S1 填空 30 分钟"
       style="width:100%;min-height:64px;padding:10px;border:1px solid var(--line);border-radius:var(--radius-sm);font:inherit;font-size:14px;line-height:1.6;background:var(--surface);color:var(--ink);resize:vertical"></textarea>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px">
       <button class="btn" id="aiPlan"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l1.7 4.3L18 10l-4.3 1.7L12 16l-1.7-4.3L6 10l4.3-1.7L12 4z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2z"/></svg>AI 安排今天</button>
@@ -83,7 +83,7 @@
   <!-- 计划：自由输入 + AI 智能分配到每天 -->
   <section class="card">
     <h2>计划</h2>
-    <textarea id="weekTasks" class="plan-textarea" placeholder="例如：&#10;周一 上午 背完 Word List 5-7，下午 精听 3 段 S3&#10;周二 写 1 篇大作文 + 模考复盘&#10;口语 P2 串题素材过一遍（分两天）"></textarea>
+    <textarea id="weekTasks" class="plan-textarea" placeholder="列出任务，AI 帮你排到每天，如：周一背单词 / 周二写作文"></textarea>
     <div class="plan-actions">
       <div class="plan-actions-right">
         <button class="btn" id="genWeek" style="flex:none">无 AI 也排</button>
