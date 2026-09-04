@@ -32,7 +32,7 @@ var PC_DEFAULTS = {
   rate: 0.9,
   repeat: 1,
   intervalMs: 1800,
-  batchSize: 20,          // 每轮固定题量（复习优先，不足时补新词；-1=全部）
+  batchSize: 50,          // 每轮固定题量（复习优先，不足时补新词；-1=全部）
   shuffle: true,
   autoNext: true,
   autoNextDelay: 1000,
@@ -56,6 +56,7 @@ function pc(){
   c.intervalMs = clampNum(c.intervalMs, 100, 60000, PC_DEFAULTS.intervalMs);
   c.batchSize = (typeof c.batchSize === 'number' && !isNaN(c.batchSize)) ? c.batchSize : (typeof c.batchSize === 'string' ? parseInt(c.batchSize, 10) : PC_DEFAULTS.batchSize);
   if(isNaN(c.batchSize)) c.batchSize = PC_DEFAULTS.batchSize;
+  if([20,50,100,200,-1].indexOf(c.batchSize) === -1) c.batchSize = PC_DEFAULTS.batchSize;   // 白名单外(旧预设5/10/自定义残留)回退默认
   c.newPerDay = (typeof c.newPerDay === 'number' && !isNaN(c.newPerDay)) ? c.newPerDay : (typeof c.newPerDay === 'string' ? parseInt(c.newPerDay, 10) : PC_DEFAULTS.newPerDay);
   if(isNaN(c.newPerDay)) c.newPerDay = PC_DEFAULTS.newPerDay;
   c.shuffle = !!c.shuffle;
@@ -990,7 +991,7 @@ function renderCfgModal(){
     {
       name:'答题', icon:'☑',
       items:[
-        { key:'batchSize',     label:'题量',          type:'batch', presets:[{v:'5',t:'5 题'},{v:'10',t:'10 题'},{v:'20',t:'20 题'},{v:'50',t:'50 题'},{v:'100',t:'100 题'},{v:'-1',t:'全部'}] },
+        { key:'batchSize',     label:'题量',          type:'batch', presets:[{v:'20',t:'20 题'},{v:'50',t:'50 题'},{v:'100',t:'100 题'},{v:'200',t:'200 题'},{v:'-1',t:'全部'}] },
         { key:'optCount',      label:'选项数量',      type:'select', opts:[{v:'4',t:'4 个'},{v:'6',t:'6 个'}] },
         { key:'shuffle',       label:'随机乱序',      type:'toggle' },
         { key:'wrongHoldMs',   label:'答错停留',      type:'range', min:1000, max:5000, step:500, unit:'ms' },
@@ -1040,12 +1041,9 @@ function renderCfgModal(){
         html += '<span class="cfg-range-val">' + val + (item.unit || '') + '</span>';
       } else if(item.type === 'batch'){
         const presets = item.presets || [];
-        const isPreset = presets.some(p => String(p.v) === String(val));
         html += '<select class="cfg-batch-select" data-key="' + item.key + '">';
         for(const p of presets) html += '<option value="' + p.v + '"' + (String(val) === p.v ? ' selected' : '') + '>' + p.t + '</option>';
-        html += '<option value="__custom__"' + (isPreset ? '' : ' selected') + '>自定义…</option>';
         html += '</select>';
-        html += '<input type="number" min="1" class="cfg-batch-custom" data-key="' + item.key + '" placeholder="自定义数量" value="' + (isPreset ? '' : escapeHtml(String(val))) + '">';
       }
       html += '</div></div>';
     }
