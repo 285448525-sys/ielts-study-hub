@@ -723,6 +723,7 @@ async function aiStoryLink(id){
       '',
       '【铁律】',
       '1. 素材优先级：默认使用第一个素材（考生最熟的素材）。该素材完全套不上本题时，才依次向后换下一个。其他素材只借关键词、不可展开编造。',
+      '1.1 态度倾向（重要）：若题目允许考生自己选（如「喜欢或不喜欢的高建筑」「喜欢的城市」这类可正可负的题），**一律优先选「喜欢 / 正向」的角度讲**——顺着说喜欢更顺口、更好发挥，把语料库里正面的细节挑出来支撑（风景、日落、美食、安静、愉快的感受等，素材里有就一定要用上）。不要主动编「不喜欢 / 讨厌 / 失望」的负面剧情；负面词（dislike, noisy, tired, boring）只在题目硬性要求讲负面时才用。',
       '2. 70% 以上句子必须从语料库直接搬运，只改 1-2 句点题句适配题目。严禁编造生僻细节（展览内容、建筑外观、名人成就、菜品味道等）。若题目所涉事物不在语料库，用 "Well, actually, ..." 明说，并硬套素材里的风景/感受类句子，绝不编造新内容。',
       '3. 词汇天花板：只用初中词（happy, tired, relax, boring, beautiful, delicious, amazing, big, fresh, nice, good, like, feel, went, was, were, because, and）。严禁 landmark / construct / symbolize / architecture / breathtaking / incredible / entrepreneurship / cognitive / authentic 等生僻词。',
       '4. 语法：只用简单句（主谓宾 / 主系表），禁止复杂从句、分词结构、被动语态。',
