@@ -544,12 +544,6 @@
       } else {
         h += (m.storyEn ? '<div class="mat-sub">英文可背（连贯小故事）</div><div class="mat-story-en">' + escapeHtml(m.storyEn) + '</div>' : '')
           + (m.logicZh ? '<div class="mat-sub">中文逻辑链</div><div class="mat-logic">' + escapeHtml(m.logicZh) + '</div>' : '')
-          + ((m.coverage && m.coverage.length) ? '<div class="mat-sub">可套当季题 + 点题句（可直接念）</div><div class="mat-covs">'
-              + m.coverage.map(c => '<div class="mat-cov"><span class="mat-cov-topic">' + escapeHtml(c.topic) + '</span>'
-                + (c.bridgeEn ? '<div class="mat-bridge">临场加：' + escapeHtml(c.bridgeEn) + '</div>' : '')
-                + (c.note ? '<div class="mat-cov-note">' + escapeHtml(c.note) + '</div>' : '')
-                + '</div>').join('')
-              + '</div>' : '')
           + '<div class="mat-mat-actions"><button class="mat-mini' + (m.pinned ? ' mat-pin-on' : '') + '" data-pin="' + i + '">' + (m.pinned ? '已置顶最熟 · 取消' : '置顶为最熟') + '</button><button class="mat-mini" data-regen-all="1" title="重新生成：全部素材整库替换为最新生成的版本">重新生成</button><button class="mat-mini danger" data-del="' + i + '">删除</button><button class="mat-mini" data-edit="' + i + '">更改</button></div>';
       }
       h += '</div></div>';

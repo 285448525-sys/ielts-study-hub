@@ -94,10 +94,9 @@ function ok(cond, name, extra){
   // 卡2 失败但卡1 已落库（逐卡容错）
   ok(saved.materials[1].coverage.length === 1 && saved.materials[1].coverage[0].topic === '近期改变', '卡2 调用失败，但原 coverage 未被破坏（逐卡容错）');
 
-  // 点题句黑体「临场加」+ note 同显（素材卡 coverage 展示区）
-  const mx = matRoot.innerHTML;
-  ok(mx.includes('<div class="mat-bridge">临场加：I want a law to protect the environment.</div>'), '点题句以「临场加：」黑体前缀显示');
-  ok(mx.includes('即兴补：住的酒店楼层很高'), 'note 与点题句同显（不再被藏）');
+  // 「可套当季题 + 点题句」模块已按用户要求从素材卡移除（数据仍落库供口语页串题用）
+  ok(!matRoot.innerHTML.includes('可套当季题'), '素材卡不再渲染「可套当季题 + 点题句」模块');
+  ok(matRoot.innerHTML.includes('中文逻辑链'), '故事卡的英文故事与中文逻辑链仍正常展示');
 
   console.log('\n==== 结果: ' + pass + ' PASS / ' + failCnt + ' FAIL ====');
   process.exit(failCnt ? 1 : 0);
