@@ -56,7 +56,7 @@ function injectNav(){
 
   let html = '';
   html += '<div class="side-head">'
-    + '<span class="side-brand-mark" aria-hidden="true">I</span>'
+    + '<span class="side-brand-mark" aria-hidden="true"><svg viewBox="0 0 512 512" width="40" height="40" fill="none" style="display:block" aria-hidden="true"><path d="M114 369 L243 287 L368 133" stroke="#ffffff" stroke-width="42" stroke-linecap="round" stroke-linejoin="round"/><circle cx="114" cy="369" r="24" fill="#ffffff"/><circle cx="368" cy="133" r="33" fill="#ffffff"/></svg></span>'
     + '<div class="side-brand"><span class="bn">IELTS</span><span class="bs">雅思备考站</span></div>'
     + '<button id="sideCollapseIn" class="side-collapse-in" type="button" aria-label="收起侧边栏" title="收起侧边栏">⟨</button>'
     + '</div>';
