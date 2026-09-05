@@ -774,7 +774,7 @@ function renderStoryLink(el, j){
   let h = '<div class="mat-plan">';
   h += '<div class="mat-plan-head">🧩 串题素材（AI 根据万能故事库匹配）</div>';
   if(j.logicChain) h += '<div class="mat-plan-sec"><b>串题逻辑</b><div class="mat-logic">' + escapeHtml(j.logicChain) + '</div></div>';
-  if(j.article) h += '<div class="mat-plan-sec"><b>串题原文</b><div class="mat-story-en">' + mdInline(j.article) + '</div>';
+  if(j.article) h += '<div class="mat-plan-sec"><b>串题原文</b><div class="mat-story-en">' + mdInline(j.article) + '</div></div>';
   // P1：加时备用句——说得偏快 / 不满 2 分钟时自己插入，保证说满时长
   if(Array.isArray(j.paddingEn) && j.paddingEn.length){
     h += '<div class="mat-plan-sec"><b>加时备用句（说得偏快 / 不满 2 分钟时插入）</b><ul class="sp-padding">'
