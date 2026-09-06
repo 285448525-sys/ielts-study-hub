@@ -302,6 +302,7 @@ function markSeen(words){
 function autoStartSeeWord(){
   try{
     cancelSpeak();
+    removeMasteredBtn();   // 离开答题态：移除顶部「已掌握」按钮（空态/开始页不显示）
     updateWordStats();
     const area = $('#practiceArea'); if(area) area.hidden = false;
     const nextBtn = $('#nextBtn'); if(nextBtn) nextBtn.hidden = true;
@@ -519,6 +520,29 @@ function masterWord(cur){
   nextQuestion();
 }
 
+// 已掌握按钮：固定在顶部 word-stats 行（设置齿轮左侧），不再钉在题干区右上角——
+// 手机窄屏时长单词/换行内容会顶到按钮位置，造成视觉遮挡与误触（之之 9/6 反馈）。
+// 按钮随每题重绑当前词；非答题态（完成页/空态/错误态）由 removeMasteredBtn 移除。
+function ensureMasteredBtn(cur){
+  const ha = document.querySelector('#wordStats .head-actions');
+  if(!ha) return;
+  let mb = document.getElementById('masteredBtn');
+  if(!mb){
+    mb = document.createElement('button');
+    mb.id = 'masteredBtn';
+    mb.type = 'button';
+    mb.className = 'mastered-btn';
+    mb.title = '已掌握：从词库删除该词（任何学习阶段都直接删除）';
+    mb.textContent = '已掌握';
+    ha.insertBefore(mb, ha.firstChild);
+  }
+  mb.onclick = () => masterWord(cur);
+}
+function removeMasteredBtn(){
+  const mb = document.getElementById('masteredBtn');
+  if(mb && mb.parentNode) mb.parentNode.removeChild(mb);
+}
+
 function nextQuestion(){
   if(!pq) return;
   maybeStartWordTimer();   // 进练习即自动开启「背单词」计时（若尚未在计）；不重复开手动计时
@@ -537,6 +561,7 @@ function nextQuestion(){
     renderQuestion(cur);
   }catch(err){
     console.error('[practice] nextQuestion 失败', err);
+    removeMasteredBtn();   // 错误态没有可作答的当前词：移除「已掌握」按钮
     $('#practiceBody').innerHTML = '<div class="q-word">题目渲染失败</div>' +
       '<div class="q-cn">' + escapeHtml(String(err && err.message ? err.message : err)) + '</div>' +
       '<div style="margin-top:16px"><button class="btn" id="skipBad">跳过本题</button> <button class="btn btn-primary" id="retryStart2">重新开始</button></div>';
@@ -571,8 +596,8 @@ function renderQuestion(cur, isRehold){
   html += '<div class="practice-topzone">' + top + '</div>';
 
   // ── 主区域（严格还原 v5 原型：单词+音标+中文居中，无例句无词性；中文答后才显示） ──
+  // 已掌握按钮已上移至顶部 word-stats 行（见 ensureMasteredBtn），题干区不再放按钮
   html += '<div class="practice-word-area">' +
-    '<button class="mastered-btn" id="masteredBtn" title="已掌握：从词库删除该词">已掌握</button>' +
     '<div class="pw-en">' + escapeHtml(cur.en) + '</div>' +
     '<div class="pw-ipa">' + (cur.ipa ? '/ ' + escapeHtml(cur.ipa) + ' /' : '&nbsp;') + '</div>' +
     '<div class="pw-cn" id="pwCn">&nbsp;</div>' +
@@ -597,8 +622,7 @@ function renderQuestion(cur, isRehold){
   bindOpts(cur);
   const left0 = document.getElementById('unknownBtn');
   if(left0) left0.onclick = () => judge(cur, null, false, true);
-  const mb = document.getElementById('masteredBtn');
-  if(mb) mb.onclick = () => masterWord(cur);
+  ensureMasteredBtn(cur);
   const qsp = document.getElementById('qSpeaker');
   if(qsp) qsp.onclick = () => speakN(cur.en);
   if(c.autoPlay) setTimeout(() => speakN(cur.en), 300);   // autoPlay=false 时不自动朗读，仅手动点喇叭
@@ -799,6 +823,7 @@ function finishPractice(){
     '<button class="btn btn-primary" id="restartBtn">再来一轮</button></div>';
   $('#practiceBody').innerHTML = bodyHtml;
   $('#progBarWrap').hidden = true;
+  removeMasteredBtn();   // 完成页没有当前词：移除「已掌握」按钮，防误点删除
   updateWordStats();
   if(!pq.isWrongReview && DATA.dailySession && DATA.dailySession.date === todayKey()){
     DATA.dailySession.finished = true; DATA.dailySession.currentEn = null; hubSave();
