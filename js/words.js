@@ -344,7 +344,7 @@ function excelRowsToEntries(rows){
       const hasCn = /[一-鿿]/.test(v);
       if(!en && !hasCn && /^[A-Za-z][A-Za-z'.\-]*(?:\s+[A-Za-z][A-Za-z'.\-]*)*$/.test(v)){ en = v; continue; }
       if(hasCn){
-        if(/^(?:词组|单词)?\d+\s*[~～]\s*\d+\s*次?$/.test(v)) continue;      // 词频区间 120~149次 / 词组11~19次
+        if(/^(?:词组|单词)?\d+(?:\s*[~～]\s*\d+)?\s*次(?:\s*(?:及以上|以上|\+))?$/.test(v)) continue;      // 词频 120~149次 / 词组11~19次 / 词组20次及以上
         if(/\d{4}-\d{1,2}-\d{1,2}/.test(v)) continue;          // 日期时间戳
         const ph = v.match(/^(?:phrase|phr|短语)\s*[.、:：]?\s*([一-鿿].*)$/i);   // phrase. 标签 → 剥掉，词组不留词性
         if(ph){ cnParts.push(ph[1]); continue; }

@@ -878,7 +878,7 @@ var _RE_SEP = /([；;;﹔])/;                                 // 分号变体�
 function isNoiseSeg(seg){
   const s = String(seg || '').trim();
   if(!s) return true;
-  if(/^(?:词组|单词)?\d+\s*[~～]\s*\d+\s*次?$/.test(s)) return true;  // 词频区间（120~149次 / 词组11~19次）
+  if(/^(?:词组|单词)?\d+(?:\s*[~～]\s*\d+)?\s*次(?:\s*(?:及以上|以上|\+))?$/.test(s)) return true;  // 词频（120~149次 / 词组11~19次 / 词组20次及以上）
   if(/[一-鿿]/.test(s)) return false;                        // 其余含中文 = 释义，永不当噪声（安全优先）
   if(_RE_IPA.test(s)) return true;                          // 含 IPA 音标特征符
   if(/^[\d\s.,;:～~\-—()（）]+$/.test(s)) return true;      // 纯数字/符号

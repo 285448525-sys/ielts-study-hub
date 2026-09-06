@@ -1141,6 +1141,22 @@ function _mergeWords(local, cloud){
   }
   // 云端独有词 = 真正新增
   for(const w of (cloud||[])){ if(w && w.en && !localSeen.has(String(w.en).toLowerCase())) changes++; }
+  // ── 出口统一清洗（2026-09-06 晚）：cn 合并取「较长者」，而云端老脏 cn（混音标/词频/时间戳/例句）
+  // 比本机洗净后的短 cn 长 → 每次拉云端合并都会把清洗结果回滚成脏数据（之之「叫你删你删了吗」根因）。
+  // 在合并出口对全部词统一过 salvageWordCn（幂等，与 _cnCleanV1/V2 迁移同口径）：
+  // 脏的洗净（音标抢救进 ipa、噪声丢弃），已干净的零改动；不碰 pos（词组 phrase. 由补全统一，别打架）。
+  // data.js 未加载的页面自动跳过（typeof 守卫）。
+  if(typeof window !== 'undefined' && typeof window.salvageWordCn === 'function'){
+    for(const mw of map.values()){
+      const cn0 = (typeof mw.cn === 'string') ? mw.cn : '';
+      if(!cn0) continue;
+      try{
+        const r = window.salvageWordCn(cn0, mw.ipa, /\s/.test(String(mw.en || '')));
+        if(r.cn !== cn0){ mw.cn = r.cn; changes++; }
+        if(r.ipa && r.ipa !== String(mw.ipa || '').trim()){ mw.ipa = r.ipa; changes++; }
+      }catch(_){}
+    }
+  }
   return { arr: Array.from(map.values()), changes };
 }
 /* 其他数组：按 id/ts 去重，冲突取较新；保留本机独有条目（不删）。
