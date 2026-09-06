@@ -825,6 +825,26 @@ function hubLoad(){
         if(cdirty) hubSave();
       }
     }
+    // 2026-09-06 晚 · v3 补扫：①词组词性统一为 phrase.（之之要求；v2 口径是清空，本迁移改口径重设，
+    //   列表/背词卡随 pos 显示 phrase. 标签）；②isNoiseSeg 升级版清洗补扫——删中英例句（英文放宽标点、
+    //   中文以句号收尾）、剥首尾杂标点（"phrase. ，眼下" 式开头），已干净的词幂等零改动。
+    // 一次性标记门控 + 确有改动才 hubSave（迁移铁律）；云同步合并出口同口径清洗，双路自愈。
+    if(!DATA._cnCleanV3){
+      DATA._cnCleanV3 = true;
+      if(Array.isArray(DATA.words)){
+        let v3dirty = false;
+        for(const w of DATA.words){
+          if(!w) continue;
+          const isPhrase = /\s/.test(String(w.en || ''));
+          if(isPhrase && w.pos !== 'phrase.'){ w.pos = 'phrase.'; v3dirty = true; }
+          const cn0 = typeof w.cn === 'string' ? w.cn : '';
+          const r = salvageWordCn(cn0, w.ipa, isPhrase);
+          if(r.cn !== cn0){ w.cn = r.cn; v3dirty = true; }
+          if(r.ipa && r.ipa !== String(w.ipa || '').trim()){ w.ipa = r.ipa; v3dirty = true; }
+        }
+        if(v3dirty) hubSave();
+      }
+    }
     // 2026-08-30 修复：旧代码残留的「已掌握(cleared=true)但 nextReview<=今天」词，
     // 会被 buildQueue 重新入队、且被「待学习」的 OR 口径算入，导致「已掌握词又出现 + 待学习虚高」。
     // 这些词本应已排到未来复习，这里一次性把它们推到明天，退出今日待学习与队列（后续 Leitner 正常回炉）。
@@ -879,12 +899,15 @@ function isNoiseSeg(seg){
   const s = String(seg || '').trim();
   if(!s) return true;
   if(/^(?:词组|单词)?\d+(?:\s*[~～]\s*\d+)?\s*次(?:\s*(?:及以上|以上|\+))?$/.test(s)) return true;  // 词频（120~149次 / 词组11~19次 / 词组20次及以上）
+  // 中文例句（≥4 个汉字且以句号/叹号/问号收尾）：义项从不带句末标点，老工具导出的双语例句整段删
+  // （之之 9/6 晚截图：在这个阶段，他正在学习阅读。/ 下雨是延误的原因。）。长度门槛防误删「好啊！」类短感叹义项。
+  if(/[一-鿿].*[一-鿿].*[一-鿿].*[一-鿿]/.test(s) && /[。！？]$/.test(s)) return true;
   if(/[一-鿿]/.test(s)) return false;                        // 其余含中文 = 释义，永不当噪声（安全优先）
   if(_RE_IPA.test(s)) return true;                          // 含 IPA 音标特征符
   if(/^[\d\s.,;:～~\-—()（）]+$/.test(s)) return true;      // 纯数字/符号
   if(/\d{4}-\d{1,2}-\d{1,2}/.test(s)) return true;          // 日期时间戳
   if(/^\d{1,2}:\d{2}/.test(s)) return true;                 // 时间片段
-  if(/^[A-Za-z][A-Za-z\s'’.\-]*$/.test(s)) return true;     // 纯英文段（例句、误拼记录、phrase. 标签等）
+  if(/^[A-Za-z][A-Za-z\s'’.,!?;:"()\-]*$/.test(s)) return true;  // 纯英文段（放宽标点：带逗号/问号的例句 "At this stage, he is..." 也整段删）
   return false;
 }
 function salvageWordCn(cn, curIpa, isPhrase){
@@ -900,7 +923,7 @@ function salvageWordCn(cn, curIpa, isPhrase){
     }
     kept.push(parts[i] + (parts[i+1] || ''));
   }
-  let out = kept.join('').replace(/[；;;﹔]\s*$/, '').trim();
+  let out = kept.join('').replace(/^[；;;﹔，,]+/, '').replace(/[；;;﹔，,]\s*$/, '').trim();  // 首尾杂标点一并剥（老数据有 "phrase. ，眼下" 式开头）
   if(isPhrase) out = out.replace(/^(?:phrase|phr|短语)\s*[.、:：]?\s*/i, '');  // 词组格式=音标+意思，剥 phrase. 标签
   out = out.replace(/[;﹔]/g, '；');                         // 异体分号归一化为全角（防释义里留怪符号）
   return { cn: out, ipa };

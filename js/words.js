@@ -417,7 +417,7 @@ function renderWords(){
     const lv = (w.level != null) ? (Number(w.level) || 0) : 0;
     const isPhrase = /\s/.test(String(w.en || ''));
     const meanHtml = isPhrase
-      ? `<span class="wl-sense"><span class="wl-sense-cn">${escapeHtml(w.cn || '')}</span></span>`
+      ? `<span class="wl-sense"><span class="wl-sense-pos">phrase.</span><span class="wl-sense-cn">${escapeHtml(w.cn || '')}</span></span>`
       : formatMean(w.pos, w.cn);
     return `
       <li class="wl-item" data-en="${escapeHtml(w.en)}">
