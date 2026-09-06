@@ -235,7 +235,8 @@ async function backfillCn(){
   }
 }
 
-/* 拖文件进框：读取纯文本文件内容并填入输入框，随后走原「导入」流程（importSmart）。仅支持 .txt/.md/.csv/.json。 */
+/* 拖文件进框：读取纯文本文件内容并填入输入框，随后走原「导入」流程（importSmart）。
+   .txt/.md/.csv/.json 走文本；.xlsx/.xls/.xlsm 由 SheetJS 解析（按需懒加载 js/vendor/xlsx.full.min.js）。 */
 function bindDrop(){
   const box = $('#smartInput');
   const zone = $('#dropZone') || box;
@@ -244,13 +245,103 @@ function bindDrop(){
   zone.addEventListener('drop', e => {
     const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
     if(!f) return;
-    const okExt = /\.(txt|md|csv|json|text)$/i.test(f.name);
-    if(!okExt){ toast('目前只支持 .txt/.md/.csv/.json 文本文件'); return; }
+    const m = f.name.match(/\.([a-z0-9]+)$/i);
+    const ext = m ? m[1].toLowerCase() : '';
+    if(ext === 'xlsx' || ext === 'xls' || ext === 'xlsm'){ handleExcelFile(f); return; }
+    const okExt = ['txt','md','csv','json','text'].includes(ext);
+    if(!okExt){ toast('目前只支持 .txt/.md/.csv/.json 文本文件，或 .xlsx/.xls Excel 文件'); return; }
     const reader = new FileReader();
     reader.onload = () => { box.value = reader.result; toast('已读入「'+f.name+'」，点「导入」即可'); };
     reader.onerror = () => toast('文件读取失败');
     reader.readAsText(f);
   });
+}
+
+/* 按需加载 Excel 解析库（约 880KB，只在拖入 Excel 时才下载一次，之后浏览器缓存）。 */
+function ensureXLSX(){
+  if(window.XLSX) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'js/vendor/xlsx.full.min.js?v=20260906a';
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('解析库下载失败，请检查网络后重试'));
+    document.head.appendChild(s);
+  });
+}
+
+/* Excel 文件导入：读第一个 Sheet → 行转词条。
+   全部行都带中文释义 → 直接入库（释义原样保留，不走 AI、不耗额度）；
+   有行缺释义 → 转文本填框，点「AI 导入」补全翻译。 */
+async function handleExcelFile(f){
+  const hint = $('#importHint');
+  try{
+    toast('正在读取 Excel…');
+    await ensureXLSX();
+    const buf = await f.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    if(!ws){ toast('Excel 里没有工作表'); return; }
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, blankrows: false, defval: '' });
+    const entries = excelRowsToEntries(rows);
+    if(!entries.length){ toast('Excel 里没识别到英文单词'); return; }
+    if(entries.every(e => e.cn)){
+      const existing = new Set(DATA.words.map(w => String(w.en || '').toLowerCase()));
+      let added = 0, skipped = 0;
+      entries.forEach(e => {
+        const key = e.en.toLowerCase();
+        if(existing.has(key)){ skipped++; return; }
+        existing.add(key);
+        const w = newWordV12(e.en, e.cn);
+        if(e.pos) w.pos = normPos(e.pos);
+        DATA.words.push(w);
+        added++;
+      });
+      hubSave(); $('#smartInput').value = ''; initLevelFilter(); renderWords();
+      let msg = 'Excel 直读导入 ' + added + ' 个（释义原样保留，未走 AI）';
+      if(skipped) msg += '，跳过重复 ' + skipped + ' 个';
+      toast(msg); if(hint) hint.textContent = msg;
+      return;
+    }
+    $('#smartInput').value = entries.map(e => e.cn ? (e.en + ' ' + e.cn) : e.en).join('\n');
+    const miss = entries.filter(e => !e.cn).length;
+    const msg = '已读入 ' + entries.length + ' 行（' + miss + ' 行缺释义），点「AI 导入」补全翻译';
+    toast(msg); if(hint) hint.textContent = msg;
+  }catch(err){
+    toast('Excel 读取失败：' + err.message);
+    if(hint) hint.textContent = 'Excel 读取失败：' + err.message;
+  }
+}
+
+/* Excel 行数组 → 词条：每行取第一个纯英文词/词组单元格为 en；含中文的单元格为释义
+   （行首词性标记如 "n. " 拆出归 pos）；纯词性单元格（如 "n."）归 pos；自动剥行首序号。 */
+function excelRowsToEntries(rows){
+  const out = [];
+  const seen = new Set();
+  (rows || []).forEach(cells => {
+    if(!Array.isArray(cells)) return;
+    const vals = cells.map(c => String(c == null ? '' : c).trim().replace(/^\d+[.、)]\s*/, ''))
+      .map(s => s.trim()).filter(Boolean);
+    if(!vals.length) return;
+    let en = '';
+    const cnParts = [], posParts = [];
+    for(const v of vals){
+      const hasCn = /[一-鿿]/.test(v);
+      if(!en && !hasCn && /^[A-Za-z][A-Za-z'.\-]*(?:\s+[A-Za-z][A-Za-z'.\-]*)*$/.test(v)){ en = v; continue; }
+      if(hasCn){
+        const pm = v.match(/^((?:[A-Za-z]{1,4}\.\s*)+)([一-鿿].*)$/);
+        if(pm){ posParts.push(pm[1].trim()); cnParts.push(pm[2]); } else cnParts.push(v);
+        continue;
+      }
+      if(/^[A-Za-z]{1,4}\.$/i.test(v)){ posParts.push(v); continue; }
+      if(en) cnParts.push(v);
+    }
+    if(!en) return;
+    const key = en.toLowerCase();
+    if(seen.has(key)) return;
+    seen.add(key);
+    out.push({ en, cn: cnParts.join('；'), pos: posParts.join(';') });
+  });
+  return out;
 }
 
 function deleteWord(id){
