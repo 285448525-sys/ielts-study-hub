@@ -293,6 +293,7 @@ async function handleExcelFile(f){
         existing.add(key);
         const w = newWordV12(e.en, e.cn);
         if(e.pos) w.pos = normPos(e.pos);
+        if(e.ipa) w.ipa = e.ipa;
         DATA.words.push(w);
         added++;
       });
@@ -325,6 +326,7 @@ function excelRowsToEntries(rows){
     if(!vals.length) return;
     let en = '';
     const cnParts = [], posParts = [];
+    let ipa = '';
     for(const v of vals){
       const hasCn = /[一-鿿]/.test(v);
       if(!en && !hasCn && /^[A-Za-z][A-Za-z'.\-]*(?:\s+[A-Za-z][A-Za-z'.\-]*)*$/.test(v)){ en = v; continue; }
@@ -336,13 +338,14 @@ function excelRowsToEntries(rows){
         continue;
       }
       if(/^[A-Za-z]{1,4}\.$/i.test(v)){ posParts.push(v); continue; }
-      /* 其余纯英文 cell（音标/例句/错误数/误拼记录等元数据）→ 丢弃，不进释义 */
+      if(!ipa && /[ˈˌːəɪʊɛɔæʃŋθðɑʌɜˑ]/.test(v)){ ipa = v.replace(/^[/\s]+|[/\s]+$/g, ''); continue; }  // 音标 cell → ipa 字段
+      /* 其余纯英文 cell（例句/错误数/误拼记录等元数据）→ 丢弃，不进释义 */
     }
     if(!en) return;
     const key = en.toLowerCase();
     if(seen.has(key)) return;
     seen.add(key);
-    out.push({ en, cn: cnParts.join('；'), pos: posParts.join(';') });
+    out.push({ en, cn: cnParts.join('；'), pos: posParts.join(';'), ipa });
   });
   return out;
 }
