@@ -789,6 +789,22 @@ function hubLoad(){
       });
       if(wdirty) hubSave();
     }
+    // 2026-09-06 清洗：Excel/老词库工具导入时混进 cn 的元数据噪声（音标、错误数、词频区间、
+    // 日期时间戳、例句等），表现为释义尾部「; səˈpɔːt; 2; serport; 120~149次; 2026-07-27 ...」一长串。
+    // 按分隔符分段后只删高置信噪声段（拿不准的保留），词性与中文义项原样保留。
+    // 标记门控 + 仅确有改动才 hubSave（迁移铁律）；cleanWordCn/isNoiseSeg 定义见下方函数声明。
+    if(!DATA._cnCleanV1){
+      DATA._cnCleanV1 = true;
+      if(Array.isArray(DATA.words)){
+        let cdirty = false;
+        for(const w of DATA.words){
+          if(!w || typeof w.cn !== 'string' || !w.cn) continue;
+          const cleaned = cleanWordCn(w.cn);
+          if(cleaned !== w.cn){ w.cn = cleaned; cdirty = true; }
+        }
+        if(cdirty) hubSave();
+      }
+    }
     // 2026-08-30 修复：旧代码残留的「已掌握(cleared=true)但 nextReview<=今天」词，
     // 会被 buildQueue 重新入队、且被「待学习」的 OR 口径算入，导致「已掌握词又出现 + 待学习虚高」。
     // 这些词本应已排到未来复习，这里一次性把它们推到明天，退出今日待学习与队列（后续 Leitner 正常回炉）。
@@ -830,6 +846,31 @@ function hubSave(){
 }
 
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+/* ── 释义噪声清洗（2026-09-06，配套 _cnCleanV1 迁移与 Excel 导入过滤）──
+   老词库工具导出表的元数据会被拼进 cn，按「段」（；或 ; 分隔）剔除高置信噪声：
+   空段 / IPA 音标 / 纯数字符号 / 日期时间戳 / 词频区间（120~149次）/ 纯英文段（例句、误拼记录）。
+   只删有把握的，词性与中文义项一律保留；拿不准的段不动。 */
+function isNoiseSeg(seg){
+  const s = String(seg || '').trim();
+  if(!s) return true;
+  if(/[ˈˌːəɪʊɛɔæʃŋθðɑʌɜˑ]/.test(s)) return true;         // 含 IPA 音标特征符
+  if(/^[\d\s.,;:～~\-—()（）]+$/.test(s)) return true;     // 纯数字/符号
+  if(/\d{4}-\d{1,2}-\d{1,2}/.test(s)) return true;         // 日期时间戳
+  if(/^\d{1,2}:\d{2}/.test(s)) return true;                // 时间片段
+  if(/^\d+\s*[~～]\s*\d+\s*次?$/.test(s)) return true;     // 词频区间
+  if(/^[A-Za-z][A-Za-z\s'’.\-]*$/.test(s)) return true;    // 纯英文段（释义必有中文）
+  return false;
+}
+function cleanWordCn(cn){
+  const parts = String(cn || '').split(/([；;])/);
+  const kept = [];
+  for(let i = 0; i < parts.length; i += 2){
+    if(isNoiseSeg(parts[i])) continue;                     // 丢噪声段连同其后的分隔符
+    kept.push(parts[i] + (parts[i+1] || ''));
+  }
+  return kept.join('').replace(/[；;]\s*$/, '').trim();
+}
 
 function todayKey(d){
   if(d == null) d = new Date();

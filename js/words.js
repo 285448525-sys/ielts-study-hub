@@ -313,7 +313,8 @@ async function handleExcelFile(f){
 }
 
 /* Excel 行数组 → 词条：每行取第一个纯英文词/词组单元格为 en；含中文的单元格为释义
-   （行首词性标记如 "n. " 拆出归 pos）；纯词性单元格（如 "n."）归 pos；自动剥行首序号。 */
+   （行首词性标记如 "n. " 拆出归 pos）；纯词性单元格（如 "n."）归 pos；自动剥行首序号。
+   老词库工具导出表的元数据 cell（词频/时间戳/音标/例句等）一律过滤，不进释义。 */
 function excelRowsToEntries(rows){
   const out = [];
   const seen = new Set();
@@ -328,12 +329,14 @@ function excelRowsToEntries(rows){
       const hasCn = /[一-鿿]/.test(v);
       if(!en && !hasCn && /^[A-Za-z][A-Za-z'.\-]*(?:\s+[A-Za-z][A-Za-z'.\-]*)*$/.test(v)){ en = v; continue; }
       if(hasCn){
+        if(/^\d+\s*[~～]\s*\d+\s*次?$/.test(v)) continue;      // 词频区间 120~149次
+        if(/\d{4}-\d{1,2}-\d{1,2}/.test(v)) continue;          // 日期时间戳
         const pm = v.match(/^((?:[A-Za-z]{1,4}\.\s*)+)([一-鿿].*)$/);
         if(pm){ posParts.push(pm[1].trim()); cnParts.push(pm[2]); } else cnParts.push(v);
         continue;
       }
       if(/^[A-Za-z]{1,4}\.$/i.test(v)){ posParts.push(v); continue; }
-      if(en) cnParts.push(v);
+      /* 其余纯英文 cell（音标/例句/错误数/误拼记录等元数据）→ 丢弃，不进释义 */
     }
     if(!en) return;
     const key = en.toLowerCase();
