@@ -179,15 +179,16 @@ function normPos(s){
 }
 
 /* 一键补全：给词库里「缺失中文释义 / 词性 / 音标」的词批量补 AI（每批 20 个，防超 token）。
-   只补缺失的字段，不破坏已有数据；词组（含空格）只补中文释义，不补词性和音标。
+   只补缺失的字段，不破坏已有数据；词组（含空格）补中文释义 + 音标，不补词性（词组格式=音标+意思）。
    已填的 cn / pos / ipa 不会被覆盖。 */
 async function backfillCn(){
   const isPhrase = en => /\s/.test(String(en || ''));
   const needFill = w => {
     const phrase = isPhrase(w.en);
     const missCn = !(w.cn && w.cn.trim());
-    if(phrase) return missCn;                       // 词组只补中文
-    return missCn || !(w.pos && w.pos.trim()) || !(w.ipa && w.ipa.trim());
+    const missIpa = !(w.ipa && w.ipa.trim());
+    if(phrase) return missCn || missIpa;            // 词组补中文+音标
+    return missCn || !(w.pos && w.pos.trim()) || missIpa;
   };
   const miss = DATA.words.filter(needFill);
   if(!miss.length){ toast('没有需要补全的词'); return; }
@@ -202,7 +203,7 @@ async function backfillCn(){
         '①简洁中文释义（最多 3 个义项，用";"分隔）；' +
         '②词性，用标准英文缩写（n./v./adj./adv./prep./conj./pron./num.），多个词性用分号分隔如 n.;v.；' +
         '③音标，用 IPA 格式，如 /ˈælɡərɪðəm/。' +
-        '对于词组（含空格），只返回中文释义，pos 和 ipa 留空字符串。' +
+        '对于词组（含空格），返回中文释义和音标（查不到音标则 ipa 留空字符串），pos 留空字符串。' +
         '只返回 JSON 数组：[{"en":"algorithm","cn":"算法；运算法则","pos":"n.","ipa":"/ˈælɡərɪðəm/"}, ...]，顺序与输入一致，不要任何解释文字、不要 markdown 围栏。';
       const content = await callRelay('words', [{ role:'system', content: sys }, { role:'user', content: enList }], 0.3);
       const arr = aiJson(content);
@@ -220,8 +221,8 @@ async function backfillCn(){
         if(!w.cn || !w.cn.trim()){ w.cn = String(it.cn || '').trim(); filled++; }
         if(!isPhrase(w.en)){
           if(!w.pos || !w.pos.trim()){ const p = normPos(it.pos); if(p){ w.pos = p; filled++; } }
-          if(!w.ipa || !w.ipa.trim()){ const ipa = String(it.ipa || '').trim(); if(ipa){ w.ipa = ipa; filled++; } }
         }
+        if(!w.ipa || !w.ipa.trim()){ const ipa = String(it.ipa || '').trim(); if(ipa){ w.ipa = ipa; filled++; } }
       });
       hubSave(); renderWords();
       console.log('[backfillCn] 批次', i/20+1, '命中', arr.length, '条，填充', filled, '处');
@@ -331,14 +332,16 @@ function excelRowsToEntries(rows){
       const hasCn = /[一-鿿]/.test(v);
       if(!en && !hasCn && /^[A-Za-z][A-Za-z'.\-]*(?:\s+[A-Za-z][A-Za-z'.\-]*)*$/.test(v)){ en = v; continue; }
       if(hasCn){
-        if(/^\d+\s*[~～]\s*\d+\s*次?$/.test(v)) continue;      // 词频区间 120~149次
+        if(/^(?:词组|单词)?\d+\s*[~～]\s*\d+\s*次?$/.test(v)) continue;      // 词频区间 120~149次 / 词组11~19次
         if(/\d{4}-\d{1,2}-\d{1,2}/.test(v)) continue;          // 日期时间戳
+        const ph = v.match(/^(?:phrase|phr|短语)\s*[.、:：]?\s*([一-鿿].*)$/i);   // phrase. 标签 → 剥掉，词组不留词性
+        if(ph){ cnParts.push(ph[1]); continue; }
         const pm = v.match(/^((?:[A-Za-z]{1,4}\.\s*)+)([一-鿿].*)$/);
         if(pm){ posParts.push(pm[1].trim()); cnParts.push(pm[2]); } else cnParts.push(v);
         continue;
       }
       if(/^[A-Za-z]{1,4}\.$/i.test(v)){ posParts.push(v); continue; }
-      if(!ipa && /[ˈˌːəɪʊɛɔæʃŋθðɑʌɜˑ]/.test(v)){ ipa = v.replace(/^[/\s]+|[/\s]+$/g, ''); continue; }  // 音标 cell → ipa 字段
+      if(!ipa && /[ˈˌːəɪʊɛɔæʃŋθðɑʌɜˑʒʤ]/.test(v)){ ipa = v.replace(/^[/\s]+|[/\s]+$/g, ''); continue; }  // 音标 cell → ipa 字段
       /* 其余纯英文 cell（例句/错误数/误拼记录等元数据）→ 丢弃，不进释义 */
     }
     if(!en) return;

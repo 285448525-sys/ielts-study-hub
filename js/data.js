@@ -806,6 +806,25 @@ function hubLoad(){
         if(cdirty) hubSave();
       }
     }
+    // 2026-09-06 晚 · v2 补扫：词组词条漏网修复——老工具词组表用异体分号（U+037E/﹔，肉眼与 ; 无异）
+    // 时 v1 分段正则不认 → 整条 cn 原样保留；且「词组11~19次」词频、「phrase.」前缀均非 v1 模式所覆盖。
+    // 新标记门控：已跑过 v1 的浏览器也会执行本补扫（清洗函数已升级为全分号变体 + 新模式，重复跑幂等）。
+    if(!DATA._cnCleanV2){
+      DATA._cnCleanV2 = true;
+      if(Array.isArray(DATA.words)){
+        let cdirty = false;
+        for(const w of DATA.words){
+          if(!w) continue;
+          const cn0 = typeof w.cn === 'string' ? w.cn : '';
+          const isPhrase = /\s/.test(String(w.en || ''));
+          const r = salvageWordCn(cn0, w.ipa, isPhrase);
+          if(r.cn !== cn0){ w.cn = r.cn; cdirty = true; }
+          if(r.ipa && r.ipa !== String(w.ipa || '').trim()){ w.ipa = r.ipa; cdirty = true; }
+          if(isPhrase && /^(?:phrase|phr|短语)/i.test(String(w.pos || ''))){ w.pos = ''; cdirty = true; }
+        }
+        if(cdirty) hubSave();
+      }
+    }
     // 2026-08-30 修复：旧代码残留的「已掌握(cleared=true)但 nextReview<=今天」词，
     // 会被 buildQueue 重新入队、且被「待学习」的 OR 口径算入，导致「已掌握词又出现 + 待学习虚高」。
     // 这些词本应已排到未来复习，这里一次性把它们推到明天，退出今日待学习与队列（后续 Leitner 正常回炉）。
@@ -848,36 +867,43 @@ function hubSave(){
 
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
-/* ── 释义噪声清洗（2026-09-06，配套 _cnCleanV1 迁移与 Excel 导入过滤）──
-   老词库工具导出表的元数据会被拼进 cn，按「段」（；或 ; 分隔）剔除高置信噪声：
-   空段 / IPA 音标 / 纯数字符号 / 日期时间戳 / 词频区间（120~149次）/ 纯英文段（例句、误拼记录）。
+/* ── 释义噪声清洗（2026-09-06，配套 _cnCleanV1/V2 迁移与 Excel 导入过滤）──
+   老词库工具导出表的元数据会被拼进 cn，按「段」（各类分号变体分隔）剔除高置信噪声：
+   空段 / IPA 音标 / 纯数字符号 / 日期时间戳 / 词频区间（含「词组/单词」前缀如 词组11~19次）/ 纯英文段。
    音标段不丢弃——抢救进 ipa 字段（背词卡 /ipa/ 显示位），cn 只留词性与中文义项。
+   安全铁律：含中文的段一律不当噪声删（防异体分号导致整条释义成一段时被一锅端）。
    只删有把握的，拿不准的段不动。 */
+var _RE_IPA = /[ˈˌːəɪʊɛɔæʃŋθðɑʌɜˑʒʤ]/;                    // IPA 音标特征符（含 ʒ ʤ）
+var _RE_SEP = /([；;;﹔])/;                                 // 分号变体：全角/半角/希腊问号U+037E/小分号U+FE54
 function isNoiseSeg(seg){
   const s = String(seg || '').trim();
   if(!s) return true;
-  if(/[ˈˌːəɪʊɛɔæʃŋθðɑʌɜˑ]/.test(s)) return true;         // 含 IPA 音标特征符
-  if(/^[\d\s.,;:～~\-—()（）]+$/.test(s)) return true;     // 纯数字/符号
-  if(/\d{4}-\d{1,2}-\d{1,2}/.test(s)) return true;         // 日期时间戳
-  if(/^\d{1,2}:\d{2}/.test(s)) return true;                // 时间片段
-  if(/^\d+\s*[~～]\s*\d+\s*次?$/.test(s)) return true;     // 词频区间
-  if(/^[A-Za-z][A-Za-z\s'’.\-]*$/.test(s)) return true;    // 纯英文段（释义必有中文）
+  if(/^(?:词组|单词)?\d+\s*[~～]\s*\d+\s*次?$/.test(s)) return true;  // 词频区间（120~149次 / 词组11~19次）
+  if(/[一-鿿]/.test(s)) return false;                        // 其余含中文 = 释义，永不当噪声（安全优先）
+  if(_RE_IPA.test(s)) return true;                          // 含 IPA 音标特征符
+  if(/^[\d\s.,;:～~\-—()（）]+$/.test(s)) return true;      // 纯数字/符号
+  if(/\d{4}-\d{1,2}-\d{1,2}/.test(s)) return true;          // 日期时间戳
+  if(/^\d{1,2}:\d{2}/.test(s)) return true;                 // 时间片段
+  if(/^[A-Za-z][A-Za-z\s'’.\-]*$/.test(s)) return true;     // 纯英文段（例句、误拼记录、phrase. 标签等）
   return false;
 }
-function salvageWordCn(cn, curIpa){
-  const parts = String(cn || '').split(/([；;])/);
+function salvageWordCn(cn, curIpa, isPhrase){
+  const parts = String(cn || '').split(_RE_SEP);
   const kept = [];
   let ipa = String(curIpa || '').trim();
   for(let i = 0; i < parts.length; i += 2){
     if(isNoiseSeg(parts[i])){
-      if(!ipa && /[ˈˌːəɪʊɛɔæʃŋθðɑʌɜˑ]/.test(parts[i])){    // 噪声段含真音标 → 抢救（去首尾斜杠/空白）
+      if(!ipa && _RE_IPA.test(parts[i])){                    // 噪声段含真音标 → 抢救（去首尾斜杠/空白）
         ipa = parts[i].trim().replace(/^[/\s]+|[/\s]+$/g, '');
       }
       continue;                                              // 丢噪声段连同其后的分隔符
     }
     kept.push(parts[i] + (parts[i+1] || ''));
   }
-  return { cn: kept.join('').replace(/[；;]\s*$/, '').trim(), ipa };
+  let out = kept.join('').replace(/[；;;﹔]\s*$/, '').trim();
+  if(isPhrase) out = out.replace(/^(?:phrase|phr|短语)\s*[.、:：]?\s*/i, '');  // 词组格式=音标+意思，剥 phrase. 标签
+  out = out.replace(/[;﹔]/g, '；');                         // 异体分号归一化为全角（防释义里留怪符号）
+  return { cn: out, ipa };
 }
 
 function todayKey(d){
