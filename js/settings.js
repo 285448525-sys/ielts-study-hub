@@ -69,28 +69,35 @@ ready(() => {
 });
 
 function saveSettings(){
-  DATA.settings.name = $('#sName').value.trim();
-  DATA.settings.examDate = $('#sExam').value;
+  // 只给「真的变了」的字段赋值+打 _fieldTs 时间戳。
+  // ⚠️ 旧写法无差别全字段盖 now：新设备上只改个主题/随便存一次，全 0 的 targets（默认值=未填）
+  // 也被打上最新时间戳 → 登录合并时「本机较新」压过云端真值 → 目标分换设备同步丢失（之之 9/6 反馈，S2/S5 复现）。
+  const now = Date.now();
+  DATA.settings._fieldTs = DATA.settings._fieldTs || {};
+  const _set = (f, v) => {
+    if(JSON.stringify(DATA.settings[f]) !== JSON.stringify(v)){
+      DATA.settings[f] = v;
+      DATA.settings._fieldTs[f] = now;
+    }
+  };
+  _set('name', $('#sName').value.trim());
+  _set('examDate', $('#sExam').value);
   // 一律清空历史多场日程数组：examDate 是唯一有效来源。旧逻辑仅在有值时清，
   // 会漏掉「用户清空日期」——残留的 examDates 会让 nextExamDate() 回退显示已废弃的旧档期（倒计时复活）
-  DATA.settings.examDates = [];
-  DATA.settings.dailyGoalHours = parseFloat($('#sGoal').value) || 0;
-  DATA.settings.theme = $('#sThemeToggle').checked ? 'dark' : 'light';
-  DATA.settings.targets = {
+  _set('examDates', []);
+  _set('dailyGoalHours', parseFloat($('#sGoal').value) || 0);
+  _set('theme', $('#sThemeToggle').checked ? 'dark' : 'light');
+  _set('targets', {
     overall: parseFloat($('#tOverall').value) || 0,
     listening: parseFloat($('#tListening').value) || 0,
     reading: parseFloat($('#tReading').value) || 0,
     writing: parseFloat($('#tWriting').value) || 0,
     speaking: parseFloat($('#tSpeaking').value) || 0,
-  };
-  DATA.settings.syncCode = $('#sSyncCode').value.replace(/\D/g, '');
-  DATA.settings.autoSync = true; // 默认开启自动同步，与考研站一致（绑定后由 syncLoginOrRegister 控制）
-  DATA.settings.pronunciationScore = ($('#sPron').value === '' ? null : (parseFloat($('#sPron').value) || null)); // 口语模考固定发音分（0–9），空=未设置
-  DATA.settings.chimeOnDone = $('#sChime').checked;
-  // 记录本机保存时间：name/examDate/dailyGoalHours/theme/targets/syncCode/autoSync/pronunciationScore/chimeOnDone
-  const now = Date.now();
-  DATA.settings._fieldTs = DATA.settings._fieldTs || {};
-  ['name','examDate','dailyGoalHours','theme','targets','syncCode','autoSync','pronunciationScore','chimeOnDone'].forEach(f => { DATA.settings._fieldTs[f] = now; });
+  });
+  _set('syncCode', $('#sSyncCode').value.replace(/\D/g, ''));
+  _set('autoSync', true); // 默认开启自动同步，与考研站一致（绑定后由 syncLoginOrRegister 控制）
+  _set('pronunciationScore', ($('#sPron').value === '' ? null : (parseFloat($('#sPron').value) || null))); // 口语模考固定发音分（0–9），空=未设置
+  _set('chimeOnDone', $('#sChime').checked);
   hubSave(); applyTheme();
   // 刷新考试倒计时显示（重新查元素：cdEl2 是 populateSettingsForm 的局部变量，此处不可跨函数访问）
   const cdEl2 = document.getElementById('settingsCountdown');

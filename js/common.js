@@ -1246,9 +1246,19 @@ function mergeData(local, cloud){
   const _isEmpty = v => v == null || v === '' ||
     (Array.isArray(v) && v.length === 0) ||
     (typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0);
+  // targets 全 0 = 语义上的「未设置」（默认值就是全 0，表单留空保存出来就是全 0）：
+  // 绝不能凭「本机时间戳较新」压过云端真值，否则换设备登录目标分必丢（之之 9/6 反馈，S2 复现）。
+  const _fieldEmpty = (f, v) => {
+    if(_isEmpty(v)) return true;
+    if(f === 'targets' && v && typeof v === 'object' && !Array.isArray(v)){
+      const ks = Object.keys(v);
+      return ks.length === 0 || ks.every(k => !_num(v[k]));   // 全 0 / 全空
+    }
+    return false;
+  };
   for(const f of SYNC_SETTINGS_FIELDS){
-    const lEmpty = _isEmpty(ls[f]);
-    const cEmpty = _isEmpty(cs[f]);
+    const lEmpty = _fieldEmpty(f, ls[f]);
+    const cEmpty = _fieldEmpty(f, cs[f]);
     const cl = (lTs[f] != null) ? lTs[f] : 0;
     const cc = (cTs[f] != null) ? cTs[f] : 0;
     if(cEmpty) continue;                       // 云端未填：永不覆盖本机（无论本机是否填写）
