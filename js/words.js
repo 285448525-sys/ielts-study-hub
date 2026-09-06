@@ -178,20 +178,30 @@ function normPos(s){
   return out.join(';');
 }
 
+/* 判断一个词是否「仍需 AI 补全」（抽成独立函数便于单测）：
+   - 词组（含空格）：只需中文释义，音标可选（模型常查不到，不应阻塞"已补全"）；
+   - 单词：需 cn + pos + ipa 三者齐全。 */
+function wordNeedsFill(w){
+  const isPhrase = en => /\s/.test(String(en || ''));
+  const phrase = isPhrase(w.en);
+  const missCn = !(w.cn && w.cn.trim());
+  if(phrase) return missCn;                                   // 词组只看释义，音标可选
+  return missCn || !(w.pos && w.pos.trim()) || !(w.ipa && w.ipa.trim());
+}
+
 /* 一键补全：给词库里「缺失中文释义 / 词性 / 音标」的词批量补 AI（每批 20 个，防超 token）。
-   只补缺失的字段，不破坏已有数据；词组（含空格）补中文释义 + 音标，不补词性（词组格式=音标+意思）。
-   已填的 cn / pos / ipa 不会被覆盖。 */
+   只补缺失字段，不破坏已有数据；词组（含空格）补中文释义 + 音标（可选），且词性统一为 phrase.。
+   已填的 cn / pos / ipa 不会被覆盖。
+   修复：词组只需释义即可判定"已补全"（旧逻辑要求音标，而模型对词组基本不返回音标，
+   导致缺音标的词组永远卡在"还剩 N 个"）。 */
 async function backfillCn(){
   const isPhrase = en => /\s/.test(String(en || ''));
-  const needFill = w => {
-    const phrase = isPhrase(w.en);
-    const missCn = !(w.cn && w.cn.trim());
-    const missIpa = !(w.ipa && w.ipa.trim());
-    if(phrase) return missCn || missIpa;            // 词组补中文+音标
-    return missCn || !(w.pos && w.pos.trim()) || missIpa;
-  };
-  const miss = DATA.words.filter(needFill);
-  if(!miss.length){ toast('没有需要补全的词'); return; }
+  // 先把所有词组词性统一为 phrase.（用户要求"统一成phrase"），与是否需补释义无关
+  let posN = 0;
+  DATA.words.forEach(w => { if(isPhrase(w.en) && w.pos !== 'phrase.'){ w.pos = 'phrase.'; posN++; } });
+  if(posN){ hubSave(); renderWords(); }
+  const miss = DATA.words.filter(wordNeedsFill);
+  if(!miss.length){ toast(posN ? ('已统一 '+posN+' 个词组词性为 phrase. ✅') : '没有需要补全的词'); return; }
   if(!DATA.settings.relayToken){ toast('去「设置 / AI 接口」填 DeepSeek Key 才能补全'); return; }
   const btn = $('#backfillBtn');
   btn.disabled = true; btn.textContent = '补全中…';
@@ -202,9 +212,10 @@ async function backfillCn(){
       const sys = '你是英文词库助手。下面每行一个英文单词或词组。请给每个词返回：' +
         '①简洁中文释义（最多 3 个义项，用";"分隔）；' +
         '②词性，用标准英文缩写（n./v./adj./adv./prep./conj./pron./num.），多个词性用分号分隔如 n.;v.；' +
-        '③音标，用 IPA 格式，如 /ˈælɡərɪðəm/。' +
-        '对于词组（含空格），返回中文释义和音标（查不到音标则 ipa 留空字符串），pos 留空字符串。' +
-        '只返回 JSON 数组：[{"en":"algorithm","cn":"算法；运算法则","pos":"n.","ipa":"/ˈælɡərɪðəm/"}, ...]，顺序与输入一致，不要任何解释文字、不要 markdown 围栏。';
+        '词组（含空格）务必输出 pos:"phrase."；' +
+        '③音标，用 IPA 格式，如 /ˈælɡərɪðəm/（单词尽量给出，词组查不到可留空字符串）。' +
+        '注意：每个词都必须给出①和②，不要留空；顺序与输入一致。' +
+        '只返回 JSON 数组：[{"en":"algorithm","cn":"算法；运算法则","pos":"n.","ipa":"/ˈælɡərɪðəm/"}, ...]，不要任何解释文字、不要 markdown 围栏。';
       const content = await callRelay('words', [{ role:'system', content: sys }, { role:'user', content: enList }], 0.3);
       const arr = aiJson(content);
       if(!Array.isArray(arr)){
@@ -212,23 +223,24 @@ async function backfillCn(){
         toast('AI 返回格式异常，已打印到控制台（F12 → Console）');
         break;
       }
+      // 两端都 trim，避免模型在 en 上附带首尾空格导致匹配失败（旧逻辑因此漏填）
       const map = {};
-      arr.forEach(x => { if(x && x.en) map[String(x.en).toLowerCase()] = x; });
+      arr.forEach(x => { if(x && x.en) map[String(x.en).toLowerCase().trim()] = x; });
       let filled = 0;
       chunk.forEach(w => {
-        const it = map[w.en.toLowerCase()];
+        const it = map[String(w.en).toLowerCase().trim()];
         if(!it) return;
-        if(!w.cn || !w.cn.trim()){ w.cn = String(it.cn || '').trim(); filled++; }
-        if(!isPhrase(w.en)){
-          if(!w.pos || !w.pos.trim()){ const p = normPos(it.pos); if(p){ w.pos = p; filled++; } }
-        }
+        if(!w.cn || !w.cn.trim()){ const c = String(it.cn || '').trim(); if(c){ w.cn = c; filled++; } }
+        if(isPhrase(w.en)){
+          if(w.pos !== 'phrase.'){ w.pos = 'phrase.'; filled++; }   // 词组词性统一为 phrase.
+        } else if(!w.pos || !w.pos.trim()){ const p = normPos(it.pos); if(p){ w.pos = p; filled++; } }
         if(!w.ipa || !w.ipa.trim()){ const ipa = String(it.ipa || '').trim(); if(ipa){ w.ipa = ipa; filled++; } }
       });
       hubSave(); renderWords();
       console.log('[backfillCn] 批次', i/20+1, '命中', arr.length, '条，填充', filled, '处');
     }
-    const left = DATA.words.filter(needFill).length;
-    toast(left ? ('已补全一批，还剩 '+left+' 个未识别，可再点一次') : '全部已补全 ✅');
+    const left = DATA.words.filter(wordNeedsFill).length;
+    toast(left ? ('已补全一批，还剩 '+left+' 个（多为 AI 查不到释义的专名/片段），可手动补或忽略') : '全部已补全 ✅');
   }catch(e){
     toast('补全失败：' + e.message);
   }finally{
