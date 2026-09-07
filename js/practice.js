@@ -265,10 +265,32 @@ function confusableScore(a, b){
   return Math.min(1, s);
 }
 
+/* 中文释义「撞意思」判据（之之 9/7：题干 expeditions 正确项「远征；探险；航行」与干扰项
+   「探险；远征」意思雷同无法作答）。拆义项后存在完全相同、或互含（较短项 ≥2 字）的术语
+   → 视为雷同，不能与正确答案/已选干扰项同题出现。 */
+function cnConflict(a, b){
+  a = String(a || ''); b = String(b || '');
+  if(!a || !b) return false;
+  if(a === b) return true;
+  const terms = s => String(s).split(/[；;;﹔，,、\s]+/)
+    .map(t => t.replace(/^[A-Za-z.\s]+/, '').trim())
+    .filter(t => /[一-鿿]/.test(t));
+  const ta = terms(a), tb = terms(b);
+  for(const x of ta){
+    for(const y of tb){
+      if(!x || !y) continue;
+      if(x === y) return true;
+      if(Math.min(x.length, y.length) >= 2 && (x.includes(y) || y.includes(x))) return true;
+    }
+  }
+  return false;
+}
+
 // 动态干扰项（v4 §3.7 genDistractors，适配 en/cn）：易混淆词优先（拼写相近泛化匹配，之之 9/7 要求），
 // 其次同/相邻 level，最后随机补位。不写回 distractors，shuffle 不修改入参原数组。
 // 选项类型严格一致：题干=单词→选项全是单词；题干=词组→选项全是词组。
 // 类型按「英文含空格」判定（与 words.js isPhrase 一致）；不用 pos 判断——部分单词缺词性标注，无词性≠词组。
+// 释义与正确答案「撞意思」（cnConflict）的词不进候选，防止两个选项意思雷同无法作答。
 function genDistractors(correct, allWords){
   const cEn = String(correct.en || '').toLowerCase();
   const cCn = String(correct.cn || '');
@@ -276,7 +298,8 @@ function genDistractors(correct, allWords){
   const pool = shuffle(allWords.filter(w => {
     const e = String(w.en || '').toLowerCase();
     if(e === '' || e === cEn) return false;
-    if(cCn && String(w.cn || '') === cCn) return false;   // 去掉与正确答案中文完全相同的释义
+    if(cCn && String(w.cn || '') === cCn) return false;   // 释义完全相同
+    if(cnConflict(cCn, String(w.cn || ''))) return false; // 释义撞意思（近义/互含）
     if((/\s/.test(String(w.en || '').trim())) !== cPhrase) return false;   // 类型严格一致：单词题只配单词、词组题只配词组
     return true;
   }));
@@ -290,7 +313,12 @@ function genDistractors(correct, allWords){
   const ordered = confusable.concat(sameLevel, pool);
   const uniq = [];
   const seenCn = new Set();
-  const pushIfNew = x => { const cn = String(x.cn || ''); if(cn && !seenCn.has(cn)){ seenCn.add(cn); uniq.push(x); } };
+  const pushIfNew = x => {
+    const cn = String(x.cn || '');
+    if(cn && !seenCn.has(cn) && !uniq.some(u => cnConflict(u.cn, cn)) && !cnConflict(cCn, cn)){
+      seenCn.add(cn); uniq.push(x);
+    }
+  };
   for(const w of ordered){ if(uniq.length >= 3) break; pushIfNew(w); }
   return shuffle([correct, ...uniq.slice(0, 3)]);
 }
