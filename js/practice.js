@@ -274,8 +274,17 @@ function confusableScore(a, b){
 
 /* 中文释义「撞意思」判据（之之 9/7：题干 expeditions 正确项「远征；探险；航行」与干扰项
    「探险；远征」意思雷同无法作答）。拆义项后存在完全相同、或互含（较短项 ≥2 字）的术语
-   → 视为雷同，不能与正确答案/已选干扰项同题出现。 */
-function cnConflict(a, b){
+   → 视为雷同，不能与正确答案/已选干扰项同题出现。
+   ③ 实义字相撞（之之 9/7 10:51：specialised「专门的；特别的」vs 形近词 specific
+   「明确的；特定的；细节」——无相同/互含义项但「特」字相撞，肉眼分不开）：
+   去虚词（的/了/着…）后实义汉字交集 ≥1 且双方实义字数均 ≥2 → 判雷同。
+   loose=true 跳过判据③（genDistractors 凑不满 4 选项时的兜底，出题优先）。 */
+const _CN_STOP_CHARS = new Set([
+  '\u7684', '\u4e86', '\u7740', '\u5f97', '\u5730', '\u4e4b',   // 的了着得地之
+  '\u548c', '\u4e0e', '\u6216', '\u7b49', '\u4e5f', '\u90fd',   // 和与或等也都
+  '\u5f88', '\u66f4', '\u5728', '\u4e0a', '\u4e0b', '\u4e2d', '\u4eec'  // 很更在上下中们
+]);
+function cnConflict(a, b, loose){
   a = String(a || ''); b = String(b || '');
   if(!a || !b) return false;
   if(a === b) return true;
@@ -289,6 +298,19 @@ function cnConflict(a, b){
       if(x === y) return true;
       if(Math.min(x.length, y.length) >= 2 && (x.includes(y) || y.includes(x))) return true;
     }
+  }
+  if(loose) return false;
+  // ③ 实义字相撞：只数汉字、去虚词；交集 ≥1 且双方实义字数均 ≥2（单字/短释义豁免，防「网」vs「网络」误伤）
+  const coreSet = s => {
+    const r = new Set();
+    for(const ch of s){
+      if(ch >= '\u4e00' && ch <= '\u9fff' && !_CN_STOP_CHARS.has(ch)) r.add(ch);
+    }
+    return r;
+  };
+  const sa = coreSet(a), sb = coreSet(b);
+  if(sa.size >= 2 && sb.size >= 2){
+    for(const ch of sa){ if(sb.has(ch)) return true; }
   }
   return false;
 }
@@ -306,7 +328,8 @@ function genDistractors(correct, allWords){
     const e = String(w.en || '').toLowerCase();
     if(e === '' || e === cEn) return false;
     if(cCn && String(w.cn || '') === cCn) return false;   // 释义完全相同
-    if(cnConflict(cCn, String(w.cn || ''))) return false; // 释义撞意思（近义/互含）
+    // 注：撞意思拦截统一放 pushIfNew（strict→loose 两轮），pool 阶段不踢——
+    // 否则实义字判据拦掉的候选在兜底轮就找不回来了（9/7 10:51 之之要求选项不太像，但出题优先）
     if((/\s/.test(String(w.en || '').trim())) !== cPhrase) return false;   // 类型严格一致：单词题只配单词、词组题只配词组
     return true;
   }));
@@ -320,13 +343,17 @@ function genDistractors(correct, allWords){
   const ordered = confusable.concat(sameLevel, pool);
   const uniq = [];
   const seenCn = new Set();
-  const pushIfNew = x => {
+  const pushIfNew = (x, loose) => {
     const cn = String(x.cn || '');
-    if(cn && !seenCn.has(cn) && !uniq.some(u => cnConflict(u.cn, cn)) && !cnConflict(cCn, cn)){
+    if(cn && !seenCn.has(cn) && !uniq.some(u => cnConflict(u.cn, cn, loose)) && !cnConflict(cCn, cn, loose)){
       seenCn.add(cn); uniq.push(x);
     }
   };
   for(const w of ordered){ if(uniq.length >= 3) break; pushIfNew(w); }
+  // 兜底：实义字判据拦太狠凑不满 4 选项时，放宽判据③（保留完全相同/互含拦截）补位——出题优先
+  if(uniq.length < 3){
+    for(const w of pool){ if(uniq.length >= 3) break; pushIfNew(w, true); }
+  }
   return shuffle([correct, ...uniq.slice(0, 3)]);
 }
 
