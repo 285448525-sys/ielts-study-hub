@@ -674,8 +674,8 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
 
   const k = String(cur.en).toLowerCase();
   if(!pq.counted) pq.counted = new Set();
-  if(!pq.counted.has(k)){ pq.counted.add(k); pq.total++; }   // 每词仅计一次
-  if(DATA.dailySession && !pq.isWrongReview) DATA.dailySession.total = pq.total;  // 持久化，刷新续背时不丢进度（重练错词不污染正常 session）
+  // 进度计数口径（9/7 之之要求）：一个词「完全过去」才计数——答错进短线重复的词，要分散过完 3 遍全对才 +1。
+  // counted/total 的自增移到下方两个 pass 分支；judge 入口只记对错 stats。
   if(correct) pq.stats.known++; else pq.stats.unknown++;
   if(!pq.attempts) pq.attempts = {};
   if(!pq.reholdMap) pq.reholdMap = {};
@@ -700,6 +700,8 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
       pq.queue.splice(pq.idx, 1);
       pq.correct++;
       pq.passed.push(String(cur.en).trim().toLowerCase());
+      if(!pq.counted.has(k)){ pq.counted.add(k); pq.total++; }   // 完全过关才计入进度
+      if(DATA.dailySession && !pq.isWrongReview) DATA.dailySession.total = pq.total;  // 持久化，刷新续背时不丢
       hubSave();
       result = 'pass';
     } else {
@@ -711,6 +713,8 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
         pq.correct++;
         pq.passed.push(String(cur.en).trim().toLowerCase());
         pq.shortMode.delete(k);
+        if(!pq.counted.has(k)){ pq.counted.add(k); pq.total++; }   // 过完 3 遍全对，此时才算过
+        if(DATA.dailySession && !pq.isWrongReview) DATA.dailySession.total = pq.total;
         hubSave();
         result = 'pass';
         toast('✓ 已记住：' + cur.en + cnTxt + '（重复3遍过关）');
@@ -859,6 +863,7 @@ function startWrongReview(wrongItems){
     wrongList: [],
     stats: { known:0, unknown:0 },
     counted: new Set(),
+    total: 0,
     passed: [],
     reholdMap: {},
     attempts: {},
@@ -996,8 +1001,8 @@ function updateWordStats(){
   let progress = '0/0';
   if(pq){
     const total = pq.initLen || pq.queue.length || 0;
-    let current = pq.counted ? pq.counted.size : 0;
-    if(pq.queue.length > 0) current = Math.min(current + 1, total);
+    // 9/7 口径：只数「完全过关」的词（答错进短线的词过完 3 遍全对才计入），不含正在看的题
+    const current = Math.min(pq.counted ? pq.counted.size : 0, total);
     progress = current + '/' + total;
   } else if(DATA.dailySession && DATA.dailySession.date === todayKey() && !DATA.dailySession.finished){
     // 仅「进行中」的当日 session 才用其进度；已完成/过期的 session 不再当作当前进度（避免重开即显 20/20）

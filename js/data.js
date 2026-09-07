@@ -893,6 +893,23 @@ function hubLoad(){
         if(v6dirty) hubSave();
       }
     }
+    // 2026-09-07 晨 · v7 补扫：①引号类改 \uXXXX 转义——弯引号字面量曾被编码损坏成 ASCII（od 实锤），
+    // 「"tide"的复数」式弯引号屈折段从未匹配过；②新增混合语言段删除（英文开头+含中文=双语例句残片）。
+    // 幂等；新标记触发重扫。
+    if(!DATA._cnCleanV7){
+      DATA._cnCleanV7 = true;
+      if(Array.isArray(DATA.words)){
+        let v7dirty = false;
+        for(const w of DATA.words){
+          if(!w) continue;
+          const cn0 = typeof w.cn === 'string' ? w.cn : '';
+          const r = salvageWordCn(cn0, w.ipa, /\s/.test(String(w.en || '')));
+          if(r.cn !== cn0){ w.cn = r.cn; v7dirty = true; }
+          if(r.ipa && r.ipa !== String(w.ipa || '').trim()){ w.ipa = r.ipa; v7dirty = true; }
+        }
+        if(v7dirty) hubSave();
+      }
+    }
     // 2026-08-30 修复：旧代码残留的「已掌握(cleared=true)但 nextReview<=今天」词，
     // 会被 buildQueue 重新入队、且被「待学习」的 OR 口径算入，导致「已掌握词又出现 + 待学习虚高」。
     // 这些词本应已排到未来复习，这里一次性把它们推到明天，退出今日待学习与队列（后续 Leitner 正常回炉）。
@@ -947,8 +964,15 @@ function isNoiseSeg(seg){
   const s = String(seg || '').trim();
   if(!s) return true;
   if(/^(?:词组|单词)?\d+(?:\s*[~～]\s*\d+)?\s*次(?:\s*(?:及以上|以上|\+))?(?:\s*[①②③④⑤⑥⑦⑧⑨⑩])?$/.test(s)) return true;  // 词频（120~149次 / 词组11~19次 / 词组20次及以上 / 11次②）
-  // 屈折变化说明（之之 9/7 截图：「"descend"的过去式和过去分词」）——语法标注不是义项，整段删
-  if(/^[（(]?["""'']?\s*[A-Za-z][A-Za-z\s'’\-]*["""'']?\s*的(?:过去式|过去分词|现在分词|第三人称单数|名词复数|动词复数|名词单数|复数|单数|比较级|最高级)/.test(s)) return true;
+  // 屈折变化说明（之之 9/7 截图：「"descend"的过去式和过去分词」）——语法标注不是义项，整段删。
+  // 引号类用 \uXXXX 转义（弯引号字面量曾被编码损坏成 ASCII，导致 "tide"的复数 永远匹配不上——9/7 od 实锤）。
+  if(/^[（(]?[\u0022\u201C\u201D\u2018\u2019']?\s*[A-Za-z][A-Za-z\s'’.\-]*[\u0022\u201C\u201D\u2018\u2019']?\s*的(?:过去式|过去分词|现在分词|第三人称单数|名词复数|动词复数|名词单数|复数|单数|比较级|最高级)/.test(s)) return true;
+  // 混合语言段（含中文且含 ≥3 个英文单词 = 双语例句残片，如「Therapists help people feel better after伤心的」）删；
+  // 「phrase. 眼下」「v. 得到」「U.S. 价格」式标签/词性/缩写开头段英文 token 不足 3 个，不受影响。
+  {
+    const _enToks = s.match(/[A-Za-z]{2,}/g);
+    if(/[一-鿿]/.test(s) && _enToks && _enToks.length >= 3) return true;
+  }
   // 中文例句（≥4 个汉字且以句号/叹号/问号收尾）：义项从不带句末标点，老工具导出的双语例句整段删
   // （之之 9/6 晚截图：在这个阶段，他正在学习阅读。/ 下雨是延误的原因。）。长度门槛防误删「好啊！」类短感叹义项。
   if(/[一-鿿].*[一-鿿].*[一-鿿].*[一-鿿]/.test(s) && /[。！？]$/.test(s)) return true;
