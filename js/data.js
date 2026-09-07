@@ -910,6 +910,22 @@ function hubLoad(){
         if(v7dirty) hubSave();
       }
     }
+    // 2026-09-07 午 · v8 补扫：salvageWordCn 预洗升级——剥「（名词，动词为recover」式括号内语法标注
+    // （含未闭合括号形态，之之 9/7 截图）。幂等；新标记触发重扫（用户设备 _cnCleanV7 已置位，必须新门）。
+    if(!DATA._cnCleanV8){
+      DATA._cnCleanV8 = true;
+      if(Array.isArray(DATA.words)){
+        let v8dirty = false;
+        for(const w of DATA.words){
+          if(!w) continue;
+          const cn0 = typeof w.cn === 'string' ? w.cn : '';
+          const r = salvageWordCn(cn0, w.ipa, /\s/.test(String(w.en || '')));
+          if(r.cn !== cn0){ w.cn = r.cn; v8dirty = true; }
+          if(r.ipa && r.ipa !== String(w.ipa || '').trim()){ w.ipa = r.ipa; v8dirty = true; }
+        }
+        if(v8dirty) hubSave();
+      }
+    }
     // 2026-08-30 修复：旧代码残留的「已掌握(cleared=true)但 nextReview<=今天」词，
     // 会被 buildQueue 重新入队、且被「待学习」的 OR 口径算入，导致「已掌握词又出现 + 待学习虚高」。
     // 这些词本应已排到未来复习，这里一次性把它们推到明天，退出今日待学习与队列（后续 Leitner 正常回炉）。
@@ -988,6 +1004,10 @@ function salvageWordCn(cn, curIpa, isPhrase){
   // 预洗：剥「开始(initiate的过去式和过去分词)」式括号内屈折说明（之之 9/7 晨截图）——
   // 只删括号内容含屈折关键词的括号对，正常注释括号（如「（数量或比例上）占」）不动。
   cn = String(cn || '').replace(/[（(][^（）()]*的(?:过去式|过去分词|现在分词|第三人称单数|名词复数|动词复数|名词单数|复数|单数|比较级|最高级)[^（）()]*[）)]/g, '');
+  // 括号内语法标注（之之 9/7 晨：「恢复、康复（名词，动词为recover」）——「（名词/动词/形容词…」开头的
+  // 括号对整对删；未闭合括号（老数据缺右括号）从（截到尾。正常注释括号（如「（数量或比例上）」）不受影响。
+  cn = cn.replace(/[（(]\s*(?:名词|动词|形容词)[^（）()]*[）)]/g, '');
+  cn = cn.replace(/[（(]\s*(?:名词|动词|形容词)[^（）()]*$/g, '');
   const parts = cn.split(_RE_SEP);
   const kept = [];
   let ipa = String(curIpa || '').trim();
