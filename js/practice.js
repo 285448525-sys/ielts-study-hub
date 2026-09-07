@@ -697,7 +697,6 @@ function renderQuestion(cur, isRehold){
   const c = pc();
   pq.revealed = false;
   pq._picked = false;
-  hideFlowHint();   // design/54：新题渲染前清掉上一题的流转提示条
 
   const opts = genDistractors(cur, DATA.words);
 
@@ -917,45 +916,21 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
   }else{
     pq.streak = Math.floor(pq.streak / 2);   // 减半不归零（10→5），全程无惩罚文案
   }
-  showFlowHint(correct ? 'correct' : 'wrong', correct ? c.autoNextDelay : (result === 'rehold' ? c.wrongHoldMs : 1400));
   updateWordStats();
-}
-
-// ======= design/54 反馈层：流转提示条 + 隐藏 =======
-// 纯 DOM/CSS 视觉：把既有 setTimeout 的等待时长画成进度条，不注册任何新定时器、不改跳转。
-function hideFlowHint(){
-  const el = document.getElementById('flowHint');
-  if(el){ el.hidden = true; el.innerHTML = ''; el.className = 'flow-hint'; }
-}
-function showFlowHint(type, waitMs){
-  const el = document.getElementById('flowHint');
-  if(!el) return;
-  const c = pc();
-  if(c.fxFeedback === false){ el.hidden = true; el.innerHTML = ''; el.className = 'flow-hint'; return; }
-  const cur = (pq && pq.answer) || {};
-  const sense = (cur.en && typeof practiceSense === 'function') ? practiceSense(cur).cn : (cur.cn || '');
-  const sec = Math.max(0.3, Math.round((waitMs || 0) / 100) / 10);
-  const isOk = (type === 'correct');
-  const ico = isOk
-    ? '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l4 4L19 6"/></svg>'
-    : '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-7-4.5-9.3-9c-1.4-2.7 0-6 3.3-6 2 0 3.5 1 4 2 .5-1 2-2 4-2 3.3 0 4.7 3.3 3.3 6C19 16.5 12 21 12 21z"/></svg>';
-  const arrow = isOk
-    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>'
-    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
-  const t2 = (cur.en || '') + (sense ? ' · ' + sense : '');
-  el.className = 'flow-hint ' + (isOk ? 'correct' : 'wrong');
-  el.innerHTML =
-    '<div class="feedback-toast ' + (isOk ? 'correct' : 'wrong') + '">' +
-      '<div class="fb-ico">' + ico + '</div>' +
-      '<div class="fb-txt"><span class="fb-t1">' + (isOk ? '答对了！' : '再认一次就记住') + '</span>' +
-      '<span class="fb-t2">' + escapeHtml(t2) + '</span></div>' +
-      (isOk ? '<span class="fb-xp">+10 XP</span>' : '') +
-    '</div>' +
-    '<div class="fh-row">' + arrow +
-      '<span>' + (isOk ? ('约 ' + sec + ' 秒后自动进下一词') : ('停留约 ' + sec + ' 秒 → 自动重考这个词')) + ' · <b>无需点任何按钮</b></span>' +
-      '<span class="fh-bar"><i style="animation-duration:' + (Math.max(0.3, waitMs || 0) / 1000) + 's"></i></span>' +
-    '</div>';
-  el.hidden = false;
+  // 之之 9/7 11:03：答对/答错气泡与流转条模块整体撤掉（实测=纯噪音）；其余照 design/54 原型。
+  // 答错时顶部 chip 切红心「再认一次就记住」（原型状态3），下一题 renderQuestion→updateWordStats 自动恢复连击文案。
+  if(!correct && c.fxFeedback){
+    const chip = document.getElementById('streakChip');
+    if(chip){
+      chip.hidden = false;
+      chip.classList.remove('boost');
+      chip.classList.add('heart');
+      const num = document.getElementById('streakNum');
+      if(num) num.textContent = '再认一次就记住';
+      const x2 = document.getElementById('x2Badge');
+      if(x2) x2.hidden = true;
+    }
+  }
 }
 
 function finishPractice(){
@@ -1015,7 +990,6 @@ function finishPractice(){
     (wrong.length ? '<button class="btn" id="reviewWrongBtn">重练错词（' + wrong.length + '）</button>' : '') +
     '<button class="btn btn-primary" id="restartBtn">再来一轮</button></div>';
   $('#practiceBody').innerHTML = bodyHtml;
-  hideFlowHint();   // design/54：完成页没有作答反馈，清掉流转条
   $('#progBarWrap').hidden = true;
   removeMasteredBtn();   // 完成页没有当前词：移除「已掌握」按钮，防误点删除
   updateWordStats();
@@ -1205,12 +1179,13 @@ function updateWordStats(){
   const el = $('#statProgress'); if(el) el.textContent = progress;
   const bar = $('#wordStats'); if(bar) bar.hidden = false;
 
-  // design/54：连击 chip（streak ≥1 才显示；满 STREAK_BOOST 的整数倍触发 ×2 高光）
+  // design/54：连击 chip（streak ≥1 才显示；满 STREAK_BOOST 的整数倍触发 ×2 高光；开关关闭则永不显示）
   const chip = document.getElementById('streakChip');
   if(chip){
     const s = (pq && pq.streak) || 0;
     const boost = s > 0 && s % STREAK_BOOST === 0;
-    chip.hidden = s < 1;
+    chip.hidden = s < 1 || pc().fxFeedback === false;
+    chip.classList.remove('heart');
     chip.classList.toggle('boost', boost);
     const num = document.getElementById('streakNum');
     if(num) num.textContent = '连击 ' + s;
@@ -1248,9 +1223,9 @@ function renderCfgModal(){
       ]
     },
     {
-      name:'连击与反馈', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px" aria-hidden="true"><path d="M13 2L4.5 12.5H11L9.5 22 19 10h-6.5L13 2z"/></svg>',
+      name:'连击显示', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px" aria-hidden="true"><path d="M13 2L4.5 12.5H11L9.5 22 19 10h-6.5L13 2z"/></svg>',
       items:[
-        { key:'fxFeedback', label:'连击与反馈', type:'toggle', desc:'连击计数、答对/答错气泡与流转提示条；关闭后仅保留勾叉高亮与自动流转' },
+        { key:'fxFeedback', label:'连击显示', type:'toggle', desc:'顶部连击计数与答错「再认一次」提示 chip；关闭后仅保留勾叉高亮与自动流转' },
       ]
     }
   ];

@@ -2976,7 +2976,8 @@ body.has-dock main.container{ padding-bottom:0; }
 .ss-card .sc-err{font-size:12.5px;color:var(--err);line-height:1.6}
 
 /* ═════════ 背单词页趣味性 + 正向反馈（design/54 · 2026-09-07） ═════════
-   只加反馈层，不改过词逻辑：无任何新按钮，流转条纯视觉映射既有 setTimeout 等待时长 */
+   之之 9/7 11:03 定版：答对/答错气泡与流转条模块撤掉不显示；
+   保留 streak chip（含答错红心态）+ 选项勾叉图标 + 完成页勋章三宫格 */
 
 /* ── 连击 chip（word-stats 行，stat-progress 右侧；≥1 才显示） ── */
 .streak-chip{
@@ -2994,63 +2995,33 @@ body.has-dock main.container{ padding-bottom:0; }
   animation:streakPop .6s cubic-bezier(.4,0,.2,1); /* scale 1→1.06→1，≤600ms */
 }
 @keyframes streakPop{0%{transform:scale(1)}35%{transform:scale(1.06)}100%{transform:scale(1)}}
+/* 答错红心态（原型状态3）：♥「再认一次就记住」，无任何惩罚文案 */
+.streak-chip.heart{background:var(--err-bg);color:var(--err-text)}
+.streak-chip.heart .streak-ico{display:none}
+.streak-chip.heart::before{
+  content:'';width:13px;height:13px;flex:none;background:currentColor;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 21s-7-4.5-9.3-9c-1.4-2.7 0-6 3.3-6 2 0 3.5 1 4 2 .5-1 2-2 4-2 3.3 0 4.7 3.3 3.3 6C19 16.5 12 21 12 21z'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 21s-7-4.5-9.3-9c-1.4-2.7 0-6 3.3-6 2 0 3.5 1 4 2 .5-1 2-2 4-2 3.3 0 4.7 3.3 3.3 6C19 16.5 12 21 12 21z'/%3E%3C/svg%3E") center/contain no-repeat;
+}
 .streak-chip .x2-badge{
   background:var(--streak);color:#fff;
   font-size:10px;font-weight:800;padding:1px 6px;border-radius:999px;margin-left:2px;
 }
 .streak-chip .x2-badge[hidden]{display:none}
 
-/* ── 反馈气泡（答对：勾 + 词义 + XP；答错：心 + 再认一次就记住。文案禁「错误/答错」） ── */
-.feedback-toast{
-  display:flex;align-items:center;gap:12px;
-  padding:12px 18px;border-radius:14px;
-  animation:fbSlideUp .18s ease-out;
+/* ── 选项勾/叉图标（照 design/54 原型：词性标签旁圆底勾/叉，普通态/fit 态/全屏态通用） ── */
+.opt-big.correct .opt-big-tag::before{
+  content:'';display:inline-block;width:15px;height:15px;vertical-align:-3px;margin-right:4px;
+  background:var(--ok);
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1.2 14.2L6 11.4l1.4-1.4 3.4 3.4 6-6L18.2 8.8l-7.4 7.4z'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1.2 14.2L6 11.4l1.4-1.4 3.4 3.4 6-6L18.2 8.8l-7.4 7.4z'/%3E%3C/svg%3E") center/contain no-repeat;
 }
-@keyframes fbSlideUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-.feedback-toast.correct{background:var(--ok-bg);border:1px solid rgba(52,199,89,.3)}
-.feedback-toast.wrong{background:var(--err-bg);border:1px solid rgba(224,52,44,.25)}
-.feedback-toast .fb-ico{
-  width:32px;height:32px;border-radius:50%;flex:none;
-  display:flex;align-items:center;justify-content:center;
+.opt-big.wrong .opt-big-tag::before{
+  content:'';display:inline-block;width:15px;height:15px;vertical-align:-3px;margin-right:4px;
+  background:var(--err);
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm5 13.6L15.6 17 12 13.4 8.4 17 7 15.6 10.6 12 7 8.4 8.4 7 12 10.6 15.6 7 17 8.4 13.4 12 17 15.6z'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm5 13.6L15.6 17 12 13.4 8.4 17 7 15.6 10.6 12 7 8.4 8.4 7 12 10.6 15.6 7 17 8.4 13.4 12 17 15.6z'/%3E%3C/svg%3E") center/contain no-repeat;
 }
-.feedback-toast.correct .fb-ico{background:var(--ok)}
-.feedback-toast.wrong .fb-ico{background:var(--err)}
-.feedback-toast .fb-ico svg{width:18px;height:18px}
-.feedback-toast .fb-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;text-align:left}
-.feedback-toast .fb-t1{font-size:14px;font-weight:700}
-.feedback-toast.correct .fb-t1{color:var(--ok-text)}
-.feedback-toast.wrong .fb-t1{color:var(--err-text)}
-.feedback-toast .fb-t2{font-size:12px;line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.feedback-toast.correct .fb-t2{color:var(--ok-text)}
-.feedback-toast.wrong .fb-t2{color:var(--err-text)}
-.feedback-toast .fb-xp{
-  background:var(--xp-bg);color:var(--xp-text);flex:none;
-  font-size:12px;font-weight:800;padding:4px 12px;border-radius:999px;white-space:nowrap;
-}
-
-/* ── 流转提示条（替代按钮位：把「等 0.9s/2.5s 自动走」变成可见进度，不注册新定时器） ── */
-.flow-hint{
-  display:flex;flex-direction:column;gap:10px;
-  width:100%;max-width:960px;margin:12px auto 0;padding:0;
-  animation:fbSlideUp .18s ease-out;
-}
-.flow-hint[hidden]{display:none}
-.flow-hint .fh-row{
-  display:flex;align-items:center;justify-content:center;gap:8px;
-  padding:10px 14px;border-radius:12px;font-size:12px;font-weight:600;
-}
-.flow-hint.correct .fh-row{background:var(--ok-bg);color:var(--ok-text)}
-.flow-hint.wrong .fh-row{background:var(--err-bg);color:var(--err-text)}
-.flow-hint .fh-row svg{width:14px;height:14px;flex:none}
-.flow-hint .fh-bar{
-  width:36px;height:3px;border-radius:2px;background:currentColor;opacity:.25;
-  overflow:hidden;position:relative;flex:none;
-}
-.flow-hint .fh-bar i{
-  position:absolute;inset:0;background:currentColor;opacity:.9;
-  transform-origin:left;animation:fhShrink linear forwards;  /* duration 由 JS 按既有等待时长内联注入 */
-}
-@keyframes fhShrink{from{transform:scaleX(1)}to{transform:scaleX(0)}}
 
 /* ── 完成页：勋章 + 三宫格 + 复习激励条 ── */
 .finish-medal-row{display:flex;align-items:center;gap:16px}
@@ -3086,6 +3057,5 @@ body.has-dock main.container{ padding-bottom:0; }
 
 /* ── 动效开关：系统层面减弱动态效果时全部关闭 ── */
 @media (prefers-reduced-motion: reduce){
-  .streak-chip.boost,.feedback-toast,.flow-hint,.finish-medal{animation:none !important}
-  .flow-hint .fh-bar i{animation:none !important}
+  .streak-chip.boost,.finish-medal{animation:none !important}
 }
