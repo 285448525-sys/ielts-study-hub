@@ -123,7 +123,7 @@ async function importSmart(){
       const key = en.toLowerCase();
       if(existing.has(key)){ skipped++; continue; }
       existing.add(key);
-      DATA.words.push(newWordV12(en, cn));
+      DATA.words.push(newWordV12(en, salvageWordCn(cn, '', isPhrase(en)).cn || cn));
       added++;
     }
     hubSave(); $('#smartInput').value = ''; initLevelFilter(); renderWords();
@@ -196,12 +196,28 @@ function wordNeedsFill(w){
    导致缺音标的词组永远卡在"还剩 N 个"）。 */
 async function backfillCn(){
   const isPhrase = en => /\s/.test(String(en || ''));
+  // ── 一键格式化（之之 9/7 要求「弄到 AI 补全按钮上，一劳永逸」）：全库释义过 salvageWordCn 重洗——
+  // 例句残片/词频/屈折说明/未闭合语法标注/尾部裸英文等老垃圾，点一次按钮即全库清洗，不依赖迁移门控。
+  let cleanN = 0;
+  if(Array.isArray(DATA.words)){
+    for(const w of DATA.words){
+      if(!w) continue;
+      const cn0 = typeof w.cn === 'string' ? w.cn : '';
+      if(!cn0) continue;
+      try{
+        const r = salvageWordCn(cn0, w.ipa, isPhrase(w.en));
+        if(r.cn !== cn0){ w.cn = r.cn; cleanN++; }
+        if(r.ipa && r.ipa !== String(w.ipa || '').trim()){ w.ipa = r.ipa; cleanN++; }
+      }catch(_){}
+    }
+  }
+  if(cleanN){ hubSave(); renderWords(); console.log('[backfillCn] 格式化清洗', cleanN, '处'); }
   // 先把所有词组词性统一为 phrase.（用户要求"统一成phrase"），与是否需补释义无关
   let posN = 0;
   DATA.words.forEach(w => { if(isPhrase(w.en) && w.pos !== 'phrase.'){ w.pos = 'phrase.'; posN++; } });
   if(posN){ hubSave(); renderWords(); }
   const miss = DATA.words.filter(wordNeedsFill);
-  if(!miss.length){ toast(posN ? ('已统一 '+posN+' 个词组词性为 phrase. ✅') : '没有需要补全的词'); return; }
+  if(!miss.length){ toast(posN ? ('已统一 '+posN+' 个词组词性为 phrase. ✅') : (cleanN ? ('格式化完成：清洗 '+cleanN+' 处 ✅') : '没有需要补全的词')); return; }
   if(!DATA.settings.relayToken){ toast('去「设置 / AI 接口」填 DeepSeek Key 才能补全'); return; }
   const btn = $('#backfillBtn');
   btn.disabled = true; btn.textContent = '补全中…';
@@ -230,7 +246,7 @@ async function backfillCn(){
       chunk.forEach(w => {
         const it = map[String(w.en).toLowerCase().trim()];
         if(!it) return;
-        if(!w.cn || !w.cn.trim()){ const c = String(it.cn || '').trim(); if(c){ w.cn = c; filled++; } }
+        if(!w.cn || !w.cn.trim()){ const c = String(it.cn || '').trim(); if(c){ w.cn = (salvageWordCn(c, w.ipa, isPhrase(w.en)).cn || c); filled++; } }
         if(isPhrase(w.en)){
           if(w.pos !== 'phrase.'){ w.pos = 'phrase.'; filled++; }   // 词组词性统一为 phrase.
         } else if(!w.pos || !w.pos.trim()){ const p = normPos(it.pos); if(p){ w.pos = p; filled++; } }
@@ -304,9 +320,10 @@ async function handleExcelFile(f){
         const key = e.en.toLowerCase();
         if(existing.has(key)){ skipped++; return; }
         existing.add(key);
-        const w = newWordV12(e.en, e.cn);
+        const r = salvageWordCn(e.cn, e.ipa, /\s/.test(e.en));   // 直读释义同口径清洗（例句/词频/屈折说明等）
+        const w = newWordV12(e.en, r.cn);
         if(e.pos) w.pos = normPos(e.pos);
-        if(e.ipa) w.ipa = e.ipa;
+        if(e.ipa) w.ipa = e.ipa; else if(r.ipa) w.ipa = r.ipa;
         DATA.words.push(w);
         added++;
       });

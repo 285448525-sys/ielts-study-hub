@@ -926,6 +926,22 @@ function hubLoad(){
         if(v8dirty) hubSave();
       }
     }
+    // 2026-09-07 午 · v9 补扫：①纯英文句子（无中文+≥3 英文词，含数字/$）删除；②屈折表扩「变形/原形」；
+    // ③预洗剥尾部裸英文残片（「落下；drpt」）。幂等；新标记触发重扫。
+    if(!DATA._cnCleanV9){
+      DATA._cnCleanV9 = true;
+      if(Array.isArray(DATA.words)){
+        let v9dirty = false;
+        for(const w of DATA.words){
+          if(!w) continue;
+          const cn0 = typeof w.cn === 'string' ? w.cn : '';
+          const r = salvageWordCn(cn0, w.ipa, /\s/.test(String(w.en || '')));
+          if(r.cn !== cn0){ w.cn = r.cn; v9dirty = true; }
+          if(r.ipa && r.ipa !== String(w.ipa || '').trim()){ w.ipa = r.ipa; v9dirty = true; }
+        }
+        if(v9dirty) hubSave();
+      }
+    }
     // 2026-08-30 修复：旧代码残留的「已掌握(cleared=true)但 nextReview<=今天」词，
     // 会被 buildQueue 重新入队、且被「待学习」的 OR 口径算入，导致「已掌握词又出现 + 待学习虚高」。
     // 这些词本应已排到未来复习，这里一次性把它们推到明天，退出今日待学习与队列（后续 Leitner 正常回炉）。
@@ -982,7 +998,13 @@ function isNoiseSeg(seg){
   if(/^(?:词组|单词)?\d+(?:\s*[~～]\s*\d+)?\s*次(?:\s*(?:及以上|以上|\+))?(?:\s*[①②③④⑤⑥⑦⑧⑨⑩])?$/.test(s)) return true;  // 词频（120~149次 / 词组11~19次 / 词组20次及以上 / 11次②）
   // 屈折变化说明（之之 9/7 截图：「"descend"的过去式和过去分词」）——语法标注不是义项，整段删。
   // 引号类用 \uXXXX 转义（弯引号字面量曾被编码损坏成 ASCII，导致 "tide"的复数 永远匹配不上——9/7 od 实锤）。
-  if(/^[（(]?[\u0022\u201C\u201D\u2018\u2019']?\s*[A-Za-z][A-Za-z\s'’.\-]*[\u0022\u201C\u201D\u2018\u2019']?\s*的(?:过去式|过去分词|现在分词|第三人称单数|名词复数|动词复数|名词单数|复数|单数|比较级|最高级)/.test(s)) return true;
+  if(/^[（(]?[\u0022\u201C\u201D\u2018\u2019']?\s*[A-Za-z][A-Za-z\s'’.\-]*[\u0022\u201C\u201D\u2018\u2019']?\s*的(?:过去式|过去分词|现在分词|第三人称单数|名词复数|动词复数|名词单数|复数|单数|比较级|最高级|变形|原形)/.test(s)) return true;
+  // 纯英文句子（无中文 + ≥3 个英文单词，可含数字/$等符号）：老库例句残片
+  // （之之 9/7 截图："The country gained independence in 1960." / "The net profit after taxes is $500."）
+  {
+    const _enSent = s.match(/[A-Za-z]{2,}/g);
+    if(_enSent && _enSent.length >= 3 && !/[一-鿿]/.test(s)) return true;
+  }
   // 混合语言段（含中文且含 ≥3 个英文单词 = 双语例句残片，如「Therapists help people feel better after伤心的」）删；
   // 「phrase. 眼下」「v. 得到」「U.S. 价格」式标签/词性/缩写开头段英文 token 不足 3 个，不受影响。
   {
@@ -1003,7 +1025,10 @@ function isNoiseSeg(seg){
 function salvageWordCn(cn, curIpa, isPhrase){
   // 预洗：剥「开始(initiate的过去式和过去分词)」式括号内屈折说明（之之 9/7 晨截图）——
   // 只删括号内容含屈折关键词的括号对，正常注释括号（如「（数量或比例上）占」）不动。
-  cn = String(cn || '').replace(/[（(][^（）()]*的(?:过去式|过去分词|现在分词|第三人称单数|名词复数|动词复数|名词单数|复数|单数|比较级|最高级)[^（）()]*[）)]/g, '');
+  cn = String(cn || '').replace(/[（(][^（）()]*的(?:过去式|过去分词|现在分词|第三人称单数|名词复数|动词复数|名词单数|复数|单数|比较级|最高级|变形|原形)[^（）()]*[）)]/g, '');
+  // 尾部裸英文残片（之之 9/7 截图：「落下；drpt」——过去式缩写等元数据挂在释义尾）：
+  // 分隔符后跟纯英文字母 token 直到结尾 → 删（合法释义尾是中文，带点的词性标签 "v. 更新" 不受影响）
+  cn = cn.replace(/[；;;﹔]\s*[A-Za-z][A-Za-z\-']{0,15}\s*$/g, '');
   // 括号内语法标注（之之 9/7 晨：「恢复、康复（名词，动词为recover」）——「（名词/动词/形容词…」开头的
   // 括号对整对删；未闭合括号（老数据缺右括号）从（截到尾。正常注释括号（如「（数量或比例上）」）不受影响。
   cn = cn.replace(/[（(]\s*(?:名词|动词|形容词)[^（）()]*[）)]/g, '');
