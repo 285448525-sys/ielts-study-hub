@@ -3009,19 +3009,7 @@ body.has-dock main.container{ padding-bottom:0; }
 }
 .streak-chip .x2-badge[hidden]{display:none}
 
-/* ── 选项勾/叉图标（照 design/54 原型：词性标签旁圆底勾/叉，普通态/fit 态/全屏态通用） ── */
-.opt-big.correct .opt-big-tag::before{
-  content:'';display:inline-block;width:15px;height:15px;vertical-align:-3px;margin-right:4px;
-  background:var(--ok);
-  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1.2 14.2L6 11.4l1.4-1.4 3.4 3.4 6-6L18.2 8.8l-7.4 7.4z'/%3E%3C/svg%3E") center/contain no-repeat;
-  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1.2 14.2L6 11.4l1.4-1.4 3.4 3.4 6-6L18.2 8.8l-7.4 7.4z'/%3E%3C/svg%3E") center/contain no-repeat;
-}
-.opt-big.wrong .opt-big-tag::before{
-  content:'';display:inline-block;width:15px;height:15px;vertical-align:-3px;margin-right:4px;
-  background:var(--err);
-  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm5 13.6L15.6 17 12 13.4 8.4 17 7 15.6 10.6 12 7 8.4 8.4 7 12 10.6 15.6 7 17 8.4 13.4 12 17 15.6z'/%3E%3C/svg%3E") center/contain no-repeat;
-  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm5 13.6L15.6 17 12 13.4 8.4 17 7 15.6 10.6 12 7 8.4 8.4 7 12 10.6 15.6 7 17 8.4 13.4 12 17 15.6z'/%3E%3C/svg%3E") center/contain no-repeat;
-}
+/* 之之 9/7 14:17：勾/叉圆底图标撤掉（觉得多余）——保留绿/红框高亮 + 词性旁补英文 + 红心 chip */
 
 /* ── 完成页：勋章 + 三宫格 + 复习激励条 ── */
 .finish-medal-row{display:flex;align-items:center;gap:16px}
