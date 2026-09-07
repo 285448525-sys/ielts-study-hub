@@ -877,6 +877,22 @@ function hubLoad(){
         if(v5dirty) hubSave();
       }
     }
+    // 2026-09-07 晨 · v6 补扫：屈折关键词表扩充——「名词复数/动词复数/名词单数/单数」（之之 9/7 晨三报：
+    // 「君主的统治( reign的名词复数 )」）。括号内有空格本就兼容；幂等；新标记触发重扫。
+    if(!DATA._cnCleanV6){
+      DATA._cnCleanV6 = true;
+      if(Array.isArray(DATA.words)){
+        let v6dirty = false;
+        for(const w of DATA.words){
+          if(!w) continue;
+          const cn0 = typeof w.cn === 'string' ? w.cn : '';
+          const r = salvageWordCn(cn0, w.ipa, /\s/.test(String(w.en || '')));
+          if(r.cn !== cn0){ w.cn = r.cn; v6dirty = true; }
+          if(r.ipa && r.ipa !== String(w.ipa || '').trim()){ w.ipa = r.ipa; v6dirty = true; }
+        }
+        if(v6dirty) hubSave();
+      }
+    }
     // 2026-08-30 修复：旧代码残留的「已掌握(cleared=true)但 nextReview<=今天」词，
     // 会被 buildQueue 重新入队、且被「待学习」的 OR 口径算入，导致「已掌握词又出现 + 待学习虚高」。
     // 这些词本应已排到未来复习，这里一次性把它们推到明天，退出今日待学习与队列（后续 Leitner 正常回炉）。
@@ -932,7 +948,7 @@ function isNoiseSeg(seg){
   if(!s) return true;
   if(/^(?:词组|单词)?\d+(?:\s*[~～]\s*\d+)?\s*次(?:\s*(?:及以上|以上|\+))?(?:\s*[①②③④⑤⑥⑦⑧⑨⑩])?$/.test(s)) return true;  // 词频（120~149次 / 词组11~19次 / 词组20次及以上 / 11次②）
   // 屈折变化说明（之之 9/7 截图：「"descend"的过去式和过去分词」）——语法标注不是义项，整段删
-  if(/^[（(]?["""'']?[A-Za-z][A-Za-z\s'’\-]*["""'']?的(?:过去式|过去分词|现在分词|第三人称单数|复数|比较级|最高级)/.test(s)) return true;
+  if(/^[（(]?["""'']?\s*[A-Za-z][A-Za-z\s'’\-]*["""'']?\s*的(?:过去式|过去分词|现在分词|第三人称单数|名词复数|动词复数|名词单数|复数|单数|比较级|最高级)/.test(s)) return true;
   // 中文例句（≥4 个汉字且以句号/叹号/问号收尾）：义项从不带句末标点，老工具导出的双语例句整段删
   // （之之 9/6 晚截图：在这个阶段，他正在学习阅读。/ 下雨是延误的原因。）。长度门槛防误删「好啊！」类短感叹义项。
   if(/[一-鿿].*[一-鿿].*[一-鿿].*[一-鿿]/.test(s) && /[。！？]$/.test(s)) return true;
@@ -947,7 +963,7 @@ function isNoiseSeg(seg){
 function salvageWordCn(cn, curIpa, isPhrase){
   // 预洗：剥「开始(initiate的过去式和过去分词)」式括号内屈折说明（之之 9/7 晨截图）——
   // 只删括号内容含屈折关键词的括号对，正常注释括号（如「（数量或比例上）占」）不动。
-  cn = String(cn || '').replace(/[（(][^（）()]*的(?:过去式|过去分词|现在分词|第三人称单数|复数|比较级|最高级)[^（）()]*[）)]/g, '');
+  cn = String(cn || '').replace(/[（(][^（）()]*的(?:过去式|过去分词|现在分词|第三人称单数|名词复数|动词复数|名词单数|复数|单数|比较级|最高级)[^（）()]*[）)]/g, '');
   const parts = cn.split(_RE_SEP);
   const kept = [];
   let ipa = String(curIpa || '').trim();
