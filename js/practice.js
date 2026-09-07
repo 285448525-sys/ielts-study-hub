@@ -235,7 +235,38 @@ function inferPos(en){
 // 只取第一个词性，避免选项标签里塞多个词性（adj.;v.）
 function singlePos(pos){ return String(pos || '').split(';')[0].trim(); }
 
-// 动态干扰项（v4 §3.7 genDistractors，适配 en/cn）：同/相邻 level 优先，不写回 distractors，shuffle 不修改入参原数组
+// 编辑距离（Levenshtein，小写），拼写相似度的泛化度量——不针对个别词硬编码
+function _lev(a, b){
+  if(a === b) return 0;
+  const m = a.length, n = b.length;
+  if(!m) return n;
+  if(!n) return m;
+  let prev = [];
+  for(let j = 0; j <= n; j++) prev.push(j);
+  for(let i = 1; i <= m; i++){
+    const cur = [i];
+    for(let j = 1; j <= n; j++){
+      cur[j] = Math.min(prev[j] + 1, cur[j-1] + 1, prev[j-1] + (a[i-1] === b[j-1] ? 0 : 1));
+    }
+    prev = cur;
+  }
+  return prev[n];
+}
+/* 易混淆度 0~1：编辑距离占比为基，同首字母/等长微加成（模拟读音相近的视觉混淆）。
+   adapt vs adopt = 0.9，adapt vs adept = 0.9；不相干词对普遍 <0.5。≥0.55 视为易混淆。 */
+function confusableScore(a, b){
+  a = String(a || '').toLowerCase().replace(/[^a-z]/g, '');
+  b = String(b || '').toLowerCase().replace(/[^a-z]/g, '');
+  if(!a || !b || a === b) return 0;
+  const d = _lev(a, b);
+  let s = 1 - d / Math.max(a.length, b.length);
+  if(a[0] === b[0]) s += 0.05;
+  if(Math.abs(a.length - b.length) <= 1) s += 0.05;
+  return Math.min(1, s);
+}
+
+// 动态干扰项（v4 §3.7 genDistractors，适配 en/cn）：易混淆词优先（拼写相近泛化匹配，之之 9/7 要求），
+// 其次同/相邻 level，最后随机补位。不写回 distractors，shuffle 不修改入参原数组。
 // 选项类型严格一致：题干=单词→选项全是单词；题干=词组→选项全是词组。
 // 类型按「英文含空格」判定（与 words.js isPhrase 一致）；不用 pos 判断——部分单词缺词性标注，无词性≠词组。
 function genDistractors(correct, allWords){
@@ -249,14 +280,18 @@ function genDistractors(correct, allWords){
     if((/\s/.test(String(w.en || '').trim())) !== cPhrase) return false;   // 类型严格一致：单词题只配单词、词组题只配词组
     return true;
   }));
-  const similar = pool.filter(w => Math.abs((w.level || 0) - (correct.level || 0)) <= 1);  // 同/相邻 level
+  // 易混淆排序：相似度降序；随机打底保证同分词对之间有变化
+  const confusable = pool
+    .map(w => ({ w, s: confusableScore(correct.en, w.en) }))
+    .filter(x => x.s >= 0.55)
+    .sort((x, y) => y.s - x.s)
+    .map(x => x.w);
+  const sameLevel = pool.filter(w => Math.abs((w.level || 0) - (correct.level || 0)) <= 1);
+  const ordered = confusable.concat(sameLevel, pool);
   const uniq = [];
   const seenCn = new Set();
   const pushIfNew = x => { const cn = String(x.cn || ''); if(cn && !seenCn.has(cn)){ seenCn.add(cn); uniq.push(x); } };
-  for(const w of similar){ if(uniq.length >= 2) break; pushIfNew(w); }
-  for(const w of pool){ if(uniq.length >= 2) break; pushIfNew(w); }
-  let i = 0;
-  while(uniq.length < 3 && i < pool.length){ pushIfNew(pool[i]); i++; }
+  for(const w of ordered){ if(uniq.length >= 3) break; pushIfNew(w); }
   return shuffle([correct, ...uniq.slice(0, 3)]);
 }
 
