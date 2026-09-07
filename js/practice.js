@@ -571,18 +571,25 @@ function nextQuestion(){
   }
 }
 
-/* 背词场景释义裁剪（9/7 之之要求）：单词只展示最常用的一个词性+释义（第一义项），词组全显。
+/* 背词场景释义裁剪（9/7 之之要求两轮澄清后定版）：单词只展示**最常用的一个词性**（首个词性组）
+   及**该词性下的全部中文释义**，后续词性组（"v. xxx"段起）整组不显示；词组全显。
    词库浏览页仍展示全部词性+释义（words.js formatMean），两场景互不影响。
-   段首内联词性（"n. xxx"）提进标签位返回，避免标签+释义重复显示词性。 */
+   段首内联词性（"n. 理由；根据"）提进标签位返回，避免标签+释义重复显示词性。
+   词性缩写白名单匹配（n/v/vt/vi/adj/adv/prep/…），防「U.S. 价格」式段首被误判为新词性组截断。 */
+var _RE_POS_SEG = /^(n|v|vt|vi|adj|adv|prep|conj|pron|art|num|int|phrase|phr)\s*\.\s*(.*)$/i;
 function practiceSense(w){
   const cn = String(w.cn || '').trim();
   if(/\s/.test(String(w.en || '')) || !cn) return { tag: '', cn };   // 词组/空释义：全显
   const segs = cn.split(/[；;;﹔]/).map(s => s.trim()).filter(Boolean);
-  let first = segs.length ? segs[0] : cn;
-  let tag = '';
-  const pm = first.match(/^([A-Za-z]{1,4}\.)\s*(.+)$/);
-  if(pm){ tag = pm[1]; first = pm[2]; }
-  return { tag, cn: first };
+  if(!segs.length) return { tag: '', cn };
+  const pm = segs[0].match(_RE_POS_SEG);
+  const tag = pm ? pm[1].toLowerCase() + '.' : '';
+  const parts = [pm ? pm[2] : segs[0]];
+  for(let i = 1; i < segs.length; i++){
+    if(_RE_POS_SEG.test(segs[i])) break;      // 撞到下一个词性组即停：只留最常用词性
+    parts.push(segs[i]);
+  }
+  return { tag, cn: parts.filter(Boolean).join('；') };
 }
 
 function renderQuestion(cur, isRehold){
