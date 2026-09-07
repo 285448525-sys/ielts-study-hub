@@ -3011,6 +3011,9 @@ body.has-dock main.container{ padding-bottom:0; }
 
 /* 之之 9/7 14:17：勾/叉圆底图标撤掉（觉得多余）——保留绿/红框高亮 + 词性旁补英文 + 红心 chip */
 
+/* ── 头部布局对齐 design/54 原型（之之 14:22）：连击 chip 最左、进度数字靠右 ── */
+.word-stats .stat-progress{ margin-left:auto; }
+
 /* ── 完成页：勋章 + 三宫格 + 复习激励条 ── */
 .finish-medal-row{display:flex;align-items:center;gap:16px}
 .finish-medal{

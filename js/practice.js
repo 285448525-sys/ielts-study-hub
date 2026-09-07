@@ -1167,14 +1167,14 @@ function updateWordStats(){
     const total = pq.initLen || pq.queue.length || 0;
     // 9/7 口径：只数「完全过关」的词（答错进短线的词过完 3 遍全对才计入），不含正在看的题
     const current = Math.min(pq.counted ? pq.counted.size : 0, total);
-    progress = current + '/' + total;
+    progress = current + ' / ' + total;   // 14:22 对齐 design/54 原型数字格式「7 / 20」
   } else if(DATA.dailySession && DATA.dailySession.date === todayKey() && !DATA.dailySession.finished){
     // 仅「进行中」的当日 session 才用其进度；已完成/过期的 session 不再当作当前进度（避免重开即显 20/20）
     const s = DATA.dailySession;
     const total = (s.planEn || []).length;
     const inPlanPassed = (s.passed || []).filter(en => (s.planEn || []).includes(en)).length;
     const answered = Math.min(total, inPlanPassed);
-    progress = answered + '/' + total;
+    progress = answered + ' / ' + total;
   }
   const el = $('#statProgress'); if(el) el.textContent = progress;
   const bar = $('#wordStats'); if(bar) bar.hidden = false;
