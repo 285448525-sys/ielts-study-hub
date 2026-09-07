@@ -617,11 +617,10 @@ function masterWord(cur){
   nextQuestion();
 }
 
-// 已掌握按钮：固定在顶部 word-stats 行（设置齿轮左侧），不再钉在题干区右上角——
-// 手机窄屏时长单词/换行内容会顶到按钮位置，造成视觉遮挡与误触（之之 9/6 反馈）。
-// 按钮随每题重绑当前词；非答题态（完成页/空态/错误态）由 removeMasteredBtn 移除。
+// 已掌握按钮：固定在进度条下方工具行（设置按钮左侧）——14:22 头部行只留 chip+数字（照 design/54 原型），
+// 功能按钮整体下移。按钮随每题重绑当前词；非答题态（完成页/空态/错误态）由 removeMasteredBtn 移除。
 function ensureMasteredBtn(cur){
-  const ha = document.querySelector('#wordStats .head-actions');
+  const ha = document.getElementById('wordToolsRow');
   if(!ha) return;
   let mb = document.getElementById('masteredBtn');
   if(!mb){
@@ -1178,6 +1177,7 @@ function updateWordStats(){
   }
   const el = $('#statProgress'); if(el) el.textContent = progress;
   const bar = $('#wordStats'); if(bar) bar.hidden = false;
+  const tools = document.getElementById('wordToolsRow'); if(tools) tools.hidden = false;   // 进度条下按钮行随练习态显示
 
   // design/54：连击 chip（streak ≥1 才显示；满 STREAK_BOOST 的整数倍触发 ×2 高光；开关关闭则永不显示）
   const chip = document.getElementById('streakChip');
