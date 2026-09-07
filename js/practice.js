@@ -571,6 +571,20 @@ function nextQuestion(){
   }
 }
 
+/* 背词场景释义裁剪（9/7 之之要求）：单词只展示最常用的一个词性+释义（第一义项），词组全显。
+   词库浏览页仍展示全部词性+释义（words.js formatMean），两场景互不影响。
+   段首内联词性（"n. xxx"）提进标签位返回，避免标签+释义重复显示词性。 */
+function practiceSense(w){
+  const cn = String(w.cn || '').trim();
+  if(/\s/.test(String(w.en || '')) || !cn) return { tag: '', cn };   // 词组/空释义：全显
+  const segs = cn.split(/[；;;﹔]/).map(s => s.trim()).filter(Boolean);
+  let first = segs.length ? segs[0] : cn;
+  let tag = '';
+  const pm = first.match(/^([A-Za-z]{1,4}\.)\s*(.+)$/);
+  if(pm){ tag = pm[1]; first = pm[2]; }
+  return { tag, cn: first };
+}
+
 function renderQuestion(cur, isRehold){
   if(!pq) return;
   pq.answer = cur;
@@ -590,7 +604,7 @@ function renderQuestion(cur, isRehold){
     if(last) top += '<div class="last-word">' +
       '<span class="lw-en">← ' + escapeHtml(last.en) + '</span>' +
       (last.ipa ? '<span class="lw-ipa">' + escapeHtml(last.ipa) + '</span>' : '') +
-      (last.cn ? '<span class="lw-cn">' + escapeHtml(last.cn) + '</span>' : '') +
+      (last.cn ? '<span class="lw-cn">' + escapeHtml(practiceSense(last).cn) + '</span>' : '') +
       '</div>';
   }
   html += '<div class="practice-topzone">' + top + '</div>';
@@ -612,13 +626,15 @@ function renderQuestion(cur, isRehold){
 
   const body = $('#practiceBody');
   body.innerHTML = html;
-  $('#opts').innerHTML = opts.map((o, i) =>
-    '<button class="opt-big" data-en="' + escapeHtml(o.en) + '" data-idx="' + i + '">' +
-      '<span class="opt-big-tag">' + escapeHtml(singlePos(o.pos) || inferPos(o.en) || '') + '</span>' +
-      '<span class="opt-big-cn">' + escapeHtml(o.cn) + '</span>' +
+  $('#opts').innerHTML = opts.map((o, i) => {
+    const ps = practiceSense(o);
+    const tag = singlePos(o.pos) || ps.tag || inferPos(o.en) || '';
+    return '<button class="opt-big" data-en="' + escapeHtml(o.en) + '" data-idx="' + i + '">' +
+      '<span class="opt-big-tag">' + escapeHtml(tag) + '</span>' +
+      '<span class="opt-big-cn">' + escapeHtml(ps.cn) + '</span>' +
       '<span class="opt-big-en"></span>' +
-    '</button>'
-  ).join('');
+    '</button>';
+  }).join('');
   bindOpts(cur);
   const left0 = document.getElementById('unknownBtn');
   if(left0) left0.onclick = () => judge(cur, null, false, true);
@@ -664,10 +680,10 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
     if(isWrong) x.classList.add('wrong');
     x.style.pointerEvents = 'none';
   });
-  // 揭示题干中文释义（严格还原 v5 原型：答后才显示，题干不含词性）
+  // 揭示题干中文释义（背词场景只显示最常用的第一义项，词组全显——9/7 之之要求）
   const reveal = document.getElementById('pwCn');
   if(reveal && cur.cn){
-    reveal.textContent = cur.cn;
+    reveal.textContent = practiceSense(cur).cn;
   }
   const ub = document.getElementById('unknownBtn');
   if(ub){ ub.style.pointerEvents = 'none'; ub.disabled = true; }
