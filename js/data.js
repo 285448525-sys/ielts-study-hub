@@ -845,6 +845,22 @@ function hubLoad(){
         if(v3dirty) hubSave();
       }
     }
+    // 2026-09-07 晨 · v4 补扫：isNoiseSeg 再升级——删「11次②」式带圈号词频、「"descend"的过去式和过去分词」
+    // 式屈折变化说明（之之 9/7 背词卡截图）。与 v3 同一轮循环、幂等；已跑过 v3 的浏览器由本新标记触发重扫。
+    if(!DATA._cnCleanV4){
+      DATA._cnCleanV4 = true;
+      if(Array.isArray(DATA.words)){
+        let v4dirty = false;
+        for(const w of DATA.words){
+          if(!w) continue;
+          const cn0 = typeof w.cn === 'string' ? w.cn : '';
+          const r = salvageWordCn(cn0, w.ipa, /\s/.test(String(w.en || '')));
+          if(r.cn !== cn0){ w.cn = r.cn; v4dirty = true; }
+          if(r.ipa && r.ipa !== String(w.ipa || '').trim()){ w.ipa = r.ipa; v4dirty = true; }
+        }
+        if(v4dirty) hubSave();
+      }
+    }
     // 2026-08-30 修复：旧代码残留的「已掌握(cleared=true)但 nextReview<=今天」词，
     // 会被 buildQueue 重新入队、且被「待学习」的 OR 口径算入，导致「已掌握词又出现 + 待学习虚高」。
     // 这些词本应已排到未来复习，这里一次性把它们推到明天，退出今日待学习与队列（后续 Leitner 正常回炉）。
@@ -898,7 +914,9 @@ var _RE_SEP = /([；;;﹔])/;                                 // 分号变体�
 function isNoiseSeg(seg){
   const s = String(seg || '').trim();
   if(!s) return true;
-  if(/^(?:词组|单词)?\d+(?:\s*[~～]\s*\d+)?\s*次(?:\s*(?:及以上|以上|\+))?$/.test(s)) return true;  // 词频（120~149次 / 词组11~19次 / 词组20次及以上）
+  if(/^(?:词组|单词)?\d+(?:\s*[~～]\s*\d+)?\s*次(?:\s*(?:及以上|以上|\+))?(?:\s*[①②③④⑤⑥⑦⑧⑨⑩])?$/.test(s)) return true;  // 词频（120~149次 / 词组11~19次 / 词组20次及以上 / 11次②）
+  // 屈折变化说明（之之 9/7 截图：「"descend"的过去式和过去分词」）——语法标注不是义项，整段删
+  if(/^["""'']?[A-Za-z][A-Za-z\s'’\-]*["""'']?的(?:过去式|过去分词|现在分词|第三人称单数|复数|比较级|最高级)/.test(s)) return true;
   // 中文例句（≥4 个汉字且以句号/叹号/问号收尾）：义项从不带句末标点，老工具导出的双语例句整段删
   // （之之 9/6 晚截图：在这个阶段，他正在学习阅读。/ 下雨是延误的原因。）。长度门槛防误删「好啊！」类短感叹义项。
   if(/[一-鿿].*[一-鿿].*[一-鿿].*[一-鿿]/.test(s) && /[。！？]$/.test(s)) return true;
