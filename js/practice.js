@@ -803,7 +803,7 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
         if(DATA.dailySession && !pq.isWrongReview) DATA.dailySession.total = pq.total;
         hubSave();
         result = 'pass';
-        toast('✓ 已记住：' + cur.en + cnTxt + '（重复3遍过关）');
+        // 答题反馈 toast 已删（之之 9/7：黑框压在计时框后面，纯噪音，答题卡已有反馈）
       } else {
         cur.shortCount = n;                          // 记录进度（持久化，续背接得上）
         pq.reholdMap[k] = 0;                         // 已在短线模式，不再当场重考
@@ -814,7 +814,7 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
         else pq.queue.splice(pos, 0, cur);
         hubSave();
         result = 'requeue';
-        toast('✓ ' + cur.en + cnTxt + '（' + n + '/3 记住了，隔' + gap + '个词再来）');
+        // toast 已删
       }
     }
   } else {
@@ -832,13 +832,13 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
       else pq.queue.splice(pos, 0, cur);
       hubSave();
       result = 'requeue';
-      toast('✗ 还是没记住：' + cur.en + cnTxt + '（明天 + 隔 1 个词再来）');
+      // toast 已删
     } else {
       // 第一次答错 → 展示答案后当场重考同一词（选项重新打乱）
       pq.reholdMap[k] = 1;
       hubSave();   // 显式落盘：重练错词模式下 saveDailySession 会跳过，不落盘则本次降级/dailyWrong 全丢
       result = 'rehold';
-      toast('✗ 答错：' + cur.en + cnTxt + '（看完答案，马上再考你一次）');
+      // toast 已删
     }
   }
 
@@ -855,7 +855,7 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
     }
     hubSave();
     result = 'requeue';
-    toast('⏸ ' + cur.en + ' 本轮先放着，明天再来');
+    // toast 已删
   }
 
   updateProgBar();
