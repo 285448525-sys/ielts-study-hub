@@ -27,7 +27,7 @@
 })();
 </script>
 <title>单词 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20260906e" />
+<link rel="stylesheet" href="css/common.css?v=20260907a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=6" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=6">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=6">
@@ -39,7 +39,7 @@
 <meta name="mobile-web-app-capable" content="yes" />
   <script defer src="js/data.js?v=20260906l"></script>
   <script defer src="js/common.js?v=20260906g"></script>
-  <script src="js/practice.js?v=20260906k" defer></script>
+  <script src="js/practice.js?v=20260907a" defer></script>
   <script src="js/words.js?v=20260906j" defer></script>
 <style>
 </style>
@@ -67,6 +67,11 @@
     <section class="card practice-card practice-card-fit" id="practiceArea">
       <div class="word-stats" id="wordStats" hidden>
         <span class="stat-progress" id="statProgress">0/0</span>
+        <span class="streak-chip" id="streakChip" hidden>
+          <svg class="streak-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2c0 4-3 5-3 9a3 3 0 0 0 6 0c0-1-.5-2-1-2.5 2 0 3 1.5 3 3.5a6 6 0 0 1-12 0c0-4 4-6 7-10z"/></svg>
+          <span id="streakNum">连击 0</span>
+          <span class="x2-badge" id="x2Badge" hidden>x2</span>
+        </span>
         <div class="head-actions">
           <button class="btn btn-sm" id="cfgGear" title="练习设置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></button>
           <button class="btn btn-sm" id="fullscreenBtn" title="全屏沉浸式背单词"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>全屏</button>
@@ -76,6 +81,7 @@
         <div class="prog-bar-track"><div class="prog-bar-fill" id="progBarFill" style="width:0%"></div></div>
       </div>
       <div id="practiceBody" class="practice-body-fit"></div>
+      <div class="flow-hint" id="flowHint" hidden></div>
       <div class="practice-tools-row" id="practiceTools">
         <button class="btn tool-btn" id="toolSpeaker" title="再读一遍"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.4 5.6a9 9 0 0 1 0 12.8"/></svg></button>
       </div>

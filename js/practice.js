@@ -27,6 +27,11 @@ var GAP_HARD = [0, 1, 3]; // P0-3 难词加密：k=1→隔1个、k=2→隔3个
 var CLEAN_TO_EXIT = 3;    // P1-3 难词退出门槛：连续 3 轮短线过关才取消 hardWord
 var MAX_ATTEMPT = 15;     // 单个词本轮最多作答次数（防死循环，超出则移出队列留到明天）
 
+// ======= design/54 趣味性反馈（2026-09-07）=======
+// 连击门槛：每连对 STREAK_BOOST 题触发一次 ×2 高光；答错减半不归零。
+// streak/xp 只存 pq 内存态（刷新即重置），禁止写 DATA、禁止走 hubSave、禁止参与 mergeData。
+const STREAK_BOOST = 10;
+
 // ======= 全局练习配置（与词库无关）=======
 var PC_DEFAULTS = {
   rate: 0.9,
@@ -40,7 +45,8 @@ var PC_DEFAULTS = {
   showCn: false,
   showEn: 0,              // 0=不显示 1=答错时显示 2=始终显示
   optCount: 4,
-  wrongHoldMs: 2500
+  wrongHoldMs: 2500,
+  fxFeedback: true        // design/54：连击与反馈层开关（设置弹窗「连击与反馈」）
 };
 function pc(){
   if(!DATA.settings || typeof DATA.settings !== 'object') DATA.settings = {};
@@ -65,6 +71,7 @@ function pc(){
   c.showEn = clampNum(c.showEn, 0, 2, PC_DEFAULTS.showEn);
   c.optCount = clampNum(c.optCount, 2, 10, PC_DEFAULTS.optCount);
   c.wrongHoldMs = clampNum(c.wrongHoldMs, 1000, 5000, PC_DEFAULTS.wrongHoldMs);
+  c.fxFeedback = !!c.fxFeedback;
   return c;
 }
 function pcSave(obj){
@@ -663,6 +670,7 @@ function renderQuestion(cur, isRehold){
   const c = pc();
   pq.revealed = false;
   pq._picked = false;
+  hideFlowHint();   // design/54：新题渲染前清掉上一题的流转提示条
 
   const opts = genDistractors(cur, DATA.words);
 
@@ -869,6 +877,58 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
     const delay = correct ? c.autoNextDelay : 1400;
     setTimeout(() => { if(pq && pq.revealed){ nextQuestion(); } }, delay);
   }
+
+  // ── design/54 趣味性反馈（只追加，不动上方任何过词逻辑/跳转时机）──
+  // streak/xp 只存 pq 内存态，禁止写 DATA、禁止 hubSave、禁止参与 mergeData。
+  if(!pq.streak) pq.streak = 0;
+  if(!pq.maxStreak) pq.maxStreak = 0;
+  if(!pq.xp) pq.xp = 0;
+  if(correct){
+    pq.streak++;
+    if(pq.streak > pq.maxStreak) pq.maxStreak = pq.streak;
+    pq.xp += 10;
+  }else{
+    pq.streak = Math.floor(pq.streak / 2);   // 减半不归零（10→5），全程无惩罚文案
+  }
+  showFlowHint(correct ? 'correct' : 'wrong', correct ? c.autoNextDelay : (result === 'rehold' ? c.wrongHoldMs : 1400));
+  updateWordStats();
+}
+
+// ======= design/54 反馈层：流转提示条 + 隐藏 =======
+// 纯 DOM/CSS 视觉：把既有 setTimeout 的等待时长画成进度条，不注册任何新定时器、不改跳转。
+function hideFlowHint(){
+  const el = document.getElementById('flowHint');
+  if(el){ el.hidden = true; el.innerHTML = ''; el.className = 'flow-hint'; }
+}
+function showFlowHint(type, waitMs){
+  const el = document.getElementById('flowHint');
+  if(!el) return;
+  const c = pc();
+  if(c.fxFeedback === false){ el.hidden = true; el.innerHTML = ''; el.className = 'flow-hint'; return; }
+  const cur = (pq && pq.answer) || {};
+  const sense = (cur.en && typeof practiceSense === 'function') ? practiceSense(cur).cn : (cur.cn || '');
+  const sec = Math.max(0.3, Math.round((waitMs || 0) / 100) / 10);
+  const isOk = (type === 'correct');
+  const ico = isOk
+    ? '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l4 4L19 6"/></svg>'
+    : '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-7-4.5-9.3-9c-1.4-2.7 0-6 3.3-6 2 0 3.5 1 4 2 .5-1 2-2 4-2 3.3 0 4.7 3.3 3.3 6C19 16.5 12 21 12 21z"/></svg>';
+  const arrow = isOk
+    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>'
+    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+  const t2 = (cur.en || '') + (sense ? ' · ' + sense : '');
+  el.className = 'flow-hint ' + (isOk ? 'correct' : 'wrong');
+  el.innerHTML =
+    '<div class="feedback-toast ' + (isOk ? 'correct' : 'wrong') + '">' +
+      '<div class="fb-ico">' + ico + '</div>' +
+      '<div class="fb-txt"><span class="fb-t1">' + (isOk ? '答对了！' : '再认一次就记住') + '</span>' +
+      '<span class="fb-t2">' + escapeHtml(t2) + '</span></div>' +
+      (isOk ? '<span class="fb-xp">+10 XP</span>' : '') +
+    '</div>' +
+    '<div class="fh-row">' + arrow +
+      '<span>' + (isOk ? ('约 ' + sec + ' 秒后自动进下一词') : ('停留约 ' + sec + ' 秒 → 自动重考这个词')) + ' · <b>无需点任何按钮</b></span>' +
+      '<span class="fh-bar"><i style="animation-duration:' + (Math.max(0.3, waitMs || 0) / 1000) + 's"></i></span>' +
+    '</div>';
+  el.hidden = false;
 }
 
 function finishPractice(){
@@ -893,8 +953,20 @@ function finishPractice(){
   addTodayStats(todayLearned, wordMs);
   const { st: todaySt } = getTodayStats();
 
-  let bodyHtml = '<div class="q-word">练习完成 🎉</div>' +
-    '<div style="margin-top:8px;font-size:14px;color:var(--muted)">今日已练 ' + todaySt.totalWords + ' 个 · 耗时 ' + formatMs(todaySt.totalMs) + ' · 剩余待学习 ' + due + ' 个</div>';
+  // design/54 完成页仪式感：勋章（数字=本轮答对数）+ 三宫格（XP/最高连击/待学习，均为内存态或既有统计）
+  const medalNum = pq ? (pq.correct || 0) : 0;
+  const maxStreak = pq ? (pq.maxStreak || 0) : 0;
+  const sessionXp = pq ? (pq.xp || 0) : 0;
+  let bodyHtml = '<div class="finish-medal-row">' +
+      '<div class="finish-medal"><div class="finish-medal-in">' + medalNum + '</div></div>' +
+      '<div><div class="q-word" style="margin:0">完成！这一轮你坚持了 ' + formatMs(wordMs || todaySt.totalMs) + '</div>' +
+      '<div style="margin-top:4px;font-size:14px;color:var(--muted)">今日已练 ' + todaySt.totalWords + ' 个 · 耗时 ' + formatMs(todaySt.totalMs) + ' · 剩余待学习 ' + due + ' 个</div></div>' +
+    '</div>' +
+    '<div class="finish-stats">' +
+      '<div class="fs-cell fs-xp"><div class="fs-l">获得 XP</div><div class="fs-v">+' + sessionXp + '</div></div>' +
+      '<div class="fs-cell fs-st"><div class="fs-l">本轮最高连击</div><div class="fs-v">' + maxStreak + '</div></div>' +
+      '<div class="fs-cell"><div class="fs-l">待学习</div><div class="fs-v">' + due + '</div><div class="fs-l" style="margin:2px 0 0">个</div></div>' +
+    '</div>';
   const seen = new Set();
   const wrong = (pq.wrongList || []).filter(w => {
     const k = String(w.en).toLowerCase();
@@ -902,16 +974,21 @@ function finishPractice(){
     seen.add(k); return true;
   });
   if(wrong.length){
-    bodyHtml += '<div class="card" style="margin-top:14px;background:rgba(248,113,113,.04);border:1px solid rgba(248,113,113,.2)">' +
-      '<h3 style="margin:0 0 10px;color:var(--danger)">没记住的词（' + wrong.length + ' 个）</h3><div>' + wrong.map(w =>
+    bodyHtml += '<div class="card" style="margin-top:14px;background:var(--err-bg);border:1px solid var(--err)">' +
+      '<h3 style="margin:0 0 10px;color:var(--danger)">想再认一次的词（' + wrong.length + ' 个）</h3><div>' + wrong.map(w =>
         '<div class="list-item"><span><b style="font-size:15px">' + escapeHtml(w.en) + '</b>' +
         (w.cn ? ' <span class="muted">' + escapeHtml(w.cn) + '</span>' : '') + '</span></div>'
       ).join('') + '</div></div>';
+    bodyHtml += '<div class="review-hint">' +
+      '<div class="rh-ico"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.3L3 16"/><path d="M3 21v-5h5"/></svg></div>' +
+      '<div><div class="rh-t">本轮有 ' + wrong.length + ' 个词想再认一次</div>' +
+      '<div class="rh-s">立刻重练 → 1 周后只需复习 1 次</div></div></div>';
   }
   bodyHtml += '<div class="dict-result-actions" style="justify-content:center;margin:14px 0;gap:12px;flex-wrap:wrap">' +
     (wrong.length ? '<button class="btn" id="reviewWrongBtn">重练错词（' + wrong.length + '）</button>' : '') +
     '<button class="btn btn-primary" id="restartBtn">再来一轮</button></div>';
   $('#practiceBody').innerHTML = bodyHtml;
+  hideFlowHint();   // design/54：完成页没有作答反馈，清掉流转条
   $('#progBarWrap').hidden = true;
   removeMasteredBtn();   // 完成页没有当前词：移除「已掌握」按钮，防误点删除
   updateWordStats();
@@ -1100,6 +1177,19 @@ function updateWordStats(){
   }
   const el = $('#statProgress'); if(el) el.textContent = progress;
   const bar = $('#wordStats'); if(bar) bar.hidden = false;
+
+  // design/54：连击 chip（streak ≥1 才显示；满 STREAK_BOOST 的整数倍触发 ×2 高光）
+  const chip = document.getElementById('streakChip');
+  if(chip){
+    const s = (pq && pq.streak) || 0;
+    const boost = s > 0 && s % STREAK_BOOST === 0;
+    chip.hidden = s < 1;
+    chip.classList.toggle('boost', boost);
+    const num = document.getElementById('streakNum');
+    if(num) num.textContent = '连击 ' + s;
+    const x2 = document.getElementById('x2Badge');
+    if(x2) x2.hidden = !boost;
+  }
 }
 function updateProgBar(){
   if(!pq || !pq.initLen) return;
@@ -1128,6 +1218,12 @@ function renderCfgModal(){
         { key:'repeat',    label:'朗读次数', type:'range', min:1, max:5, step:1, unit:' 次' },
         { key:'intervalMs',label:'朗读间隔', type:'select', opts:[{v:'800',t:'0.8s'},{v:'1200',t:'1.2s'},{v:'1800',t:'1.8s'},{v:'2400',t:'2.4s'},{v:'3200',t:'3.2s'}] },
         { key:'autoPlay',  label:'自动播下题', type:'toggle' },
+      ]
+    },
+    {
+      name:'连击与反馈', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px" aria-hidden="true"><path d="M13 2L4.5 12.5H11L9.5 22 19 10h-6.5L13 2z"/></svg>',
+      items:[
+        { key:'fxFeedback', label:'连击与反馈', type:'toggle', desc:'连击计数、答对/答错气泡与流转提示条；关闭后仅保留勾叉高亮与自动流转' },
       ]
     }
   ];

@@ -92,6 +92,13 @@
   --err-bg:   rgba(224,52,44,.10);  /* 错误淡背景 */
   --err-soft: rgba(224,52,44,.10);
   --err-text: #a31f18;              /* 错误文字（白底可读，AA） */
+  /* === 趣味性反馈（design/54 新增）：连击/XP 复用既有 --warn 橙，不引入新色相 === */
+  --streak:      var(--warn);       /* 连击高亮 */
+  --streak-bg:   var(--warn-soft);  /* 连击淡背景 */
+  --streak-text: var(--warn-ink);   /* 连击文字（AA） */
+  --xp:          var(--warn);       /* XP 与连击同源，避免调色盘感 */
+  --xp-bg:       var(--warn-soft);
+  --xp-text:     var(--warn-ink);
 }
 [data-theme="dark"]{
   /* 中性阶反向：深色下「背景最深 → 卡片次深」，层次靠明度差 + 加重阴影建立 */
@@ -163,6 +170,13 @@
   --err-bg:   rgba(255,69,58,.16);
   --err-soft: rgba(255,69,58,.16);
   --err-text: #ff7a72;
+  /* === 趣味性反馈（design/54）：同上，经 var() 别名自动适配暗色 === */
+  --streak:      var(--warn);
+  --streak-bg:   var(--warn-soft);
+  --streak-text: var(--warn-ink);
+  --xp:          var(--warn);
+  --xp-bg:       var(--warn-soft);
+  --xp-text:     var(--warn-ink);
 }
 /* 全局强制 hidden 生效：防止 display:flex/grid/block 的类覆盖 UA 的 [hidden] 样式 */
 [hidden]{display:none !important}
@@ -2960,3 +2974,118 @@ body.has-dock main.container{ padding-bottom:0; }
 .ss-card .sc-cn{margin-top:4px;font-size:13.5px;color:var(--ink);line-height:1.6}
 .ss-card .sc-tag{margin-top:6px;font-size:12px;color:var(--ok)}
 .ss-card .sc-err{font-size:12.5px;color:var(--err);line-height:1.6}
+
+/* ═════════ 背单词页趣味性 + 正向反馈（design/54 · 2026-09-07） ═════════
+   只加反馈层，不改过词逻辑：无任何新按钮，流转条纯视觉映射既有 setTimeout 等待时长 */
+
+/* ── 连击 chip（word-stats 行，stat-progress 右侧；≥1 才显示） ── */
+.streak-chip{
+  display:inline-flex;align-items:center;gap:4px;flex:none;
+  background:var(--ok-bg);color:var(--ok-text);
+  padding:4px 12px;border-radius:999px;font-size:12px;font-weight:700;line-height:1;
+  transition:background .15s ease,color .15s ease;
+}
+.streak-chip[hidden]{display:none}
+.streak-chip .streak-ico{width:14px;height:14px;flex:none}
+.streak-chip.boost{
+  background:var(--streak-bg);color:var(--streak-text);
+  border:1.5px solid var(--streak);
+  box-shadow:0 0 0 4px var(--streak-bg);          /* 呼吸光晕底 */
+  animation:streakPop .6s cubic-bezier(.4,0,.2,1); /* scale 1→1.06→1，≤600ms */
+}
+@keyframes streakPop{0%{transform:scale(1)}35%{transform:scale(1.06)}100%{transform:scale(1)}}
+.streak-chip .x2-badge{
+  background:var(--streak);color:#fff;
+  font-size:10px;font-weight:800;padding:1px 6px;border-radius:999px;margin-left:2px;
+}
+.streak-chip .x2-badge[hidden]{display:none}
+
+/* ── 反馈气泡（答对：勾 + 词义 + XP；答错：心 + 再认一次就记住。文案禁「错误/答错」） ── */
+.feedback-toast{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 18px;border-radius:14px;
+  animation:fbSlideUp .18s ease-out;
+}
+@keyframes fbSlideUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.feedback-toast.correct{background:var(--ok-bg);border:1px solid rgba(52,199,89,.3)}
+.feedback-toast.wrong{background:var(--err-bg);border:1px solid rgba(224,52,44,.25)}
+.feedback-toast .fb-ico{
+  width:32px;height:32px;border-radius:50%;flex:none;
+  display:flex;align-items:center;justify-content:center;
+}
+.feedback-toast.correct .fb-ico{background:var(--ok)}
+.feedback-toast.wrong .fb-ico{background:var(--err)}
+.feedback-toast .fb-ico svg{width:18px;height:18px}
+.feedback-toast .fb-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;text-align:left}
+.feedback-toast .fb-t1{font-size:14px;font-weight:700}
+.feedback-toast.correct .fb-t1{color:var(--ok-text)}
+.feedback-toast.wrong .fb-t1{color:var(--err-text)}
+.feedback-toast .fb-t2{font-size:12px;line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.feedback-toast.correct .fb-t2{color:var(--ok-text)}
+.feedback-toast.wrong .fb-t2{color:var(--err-text)}
+.feedback-toast .fb-xp{
+  background:var(--xp-bg);color:var(--xp-text);flex:none;
+  font-size:12px;font-weight:800;padding:4px 12px;border-radius:999px;white-space:nowrap;
+}
+
+/* ── 流转提示条（替代按钮位：把「等 0.9s/2.5s 自动走」变成可见进度，不注册新定时器） ── */
+.flow-hint{
+  display:flex;flex-direction:column;gap:10px;
+  width:100%;max-width:960px;margin:12px auto 0;padding:0;
+  animation:fbSlideUp .18s ease-out;
+}
+.flow-hint[hidden]{display:none}
+.flow-hint .fh-row{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:10px 14px;border-radius:12px;font-size:12px;font-weight:600;
+}
+.flow-hint.correct .fh-row{background:var(--ok-bg);color:var(--ok-text)}
+.flow-hint.wrong .fh-row{background:var(--err-bg);color:var(--err-text)}
+.flow-hint .fh-row svg{width:14px;height:14px;flex:none}
+.flow-hint .fh-bar{
+  width:36px;height:3px;border-radius:2px;background:currentColor;opacity:.25;
+  overflow:hidden;position:relative;flex:none;
+}
+.flow-hint .fh-bar i{
+  position:absolute;inset:0;background:currentColor;opacity:.9;
+  transform-origin:left;animation:fhShrink linear forwards;  /* duration 由 JS 按既有等待时长内联注入 */
+}
+@keyframes fhShrink{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+
+/* ── 完成页：勋章 + 三宫格 + 复习激励条 ── */
+.finish-medal-row{display:flex;align-items:center;gap:16px}
+.finish-medal{
+  width:80px;height:80px;border-radius:50%;flex:none;
+  background:linear-gradient(135deg,#ffd470,var(--warn));  /* 全页唯一暖色渐变焦点 */
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 6px 16px rgba(255,149,0,.4);
+  animation:medalIn .4s cubic-bezier(.4,0,.2,1);
+}
+@keyframes medalIn{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+.finish-medal .finish-medal-in{
+  width:64px;height:64px;border-radius:50%;background:#fff9ed;
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;font-weight:800;color:var(--warn-ink);font-variant-numeric:tabular-nums;
+}
+.finish-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:14px 0 12px}
+.finish-stats .fs-cell{background:var(--n-50);border-radius:14px;padding:14px 12px;text-align:center}
+.finish-stats .fs-cell .fs-l{font-size:11px;font-weight:500;margin-bottom:4px;color:var(--muted)}
+.finish-stats .fs-cell .fs-v{font-size:26px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1.2}
+.finish-stats .fs-cell.fs-xp{background:#fff9ed}
+.finish-stats .fs-cell.fs-xp .fs-l,.finish-stats .fs-cell.fs-xp .fs-v{color:var(--xp-text)}
+.finish-stats .fs-cell.fs-st{background:var(--ok-bg)}
+.finish-stats .fs-cell.fs-st .fs-l{color:var(--ok-text)}
+.review-hint{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--primary-soft);border-radius:14px;margin:12px 0 0}
+.review-hint .rh-ico{
+  width:36px;height:36px;border-radius:10px;background:var(--primary);flex:none;
+  display:flex;align-items:center;justify-content:center;
+}
+.review-hint .rh-ico svg{width:20px;height:20px}
+.review-hint .rh-t{font-size:13.5px;font-weight:600;color:var(--primary-900)}
+.review-hint .rh-s{font-size:12px;color:var(--primary-900);opacity:.85;margin-top:2px}
+
+/* ── 动效开关：系统层面减弱动态效果时全部关闭 ── */
+@media (prefers-reduced-motion: reduce){
+  .streak-chip.boost,.feedback-toast,.flow-hint,.finish-medal{animation:none !important}
+  .flow-hint .fh-bar i{animation:none !important}
+}
