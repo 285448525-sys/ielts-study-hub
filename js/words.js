@@ -123,7 +123,7 @@ async function importSmart(){
       const key = en.toLowerCase();
       if(existing.has(key)){ skipped++; continue; }
       existing.add(key);
-      DATA.words.push(newWordV12(en, salvageWordCn(cn, '', isPhrase(en)).cn || cn));
+      DATA.words.push(newWordV12(en, salvageWordCn(cn, '', /\s/.test(en)).cn || cn));   // 修复：旧代码调 isPhrase(en)，但该标识符在词法作用域内不存在 → ReferenceError 导致 AI 导入永远失败
       added++;
     }
     hubSave(); $('#smartInput').value = ''; initLevelFilter(); renderWords();
@@ -221,6 +221,7 @@ async function backfillCn(){
   if(!DATA.settings.relayToken){ toast('去「设置 / AI 接口」填 DeepSeek Key 才能补全'); return; }
   const btn = $('#backfillBtn');
   btn.disabled = true; btn.textContent = '补全中…';
+  let aborted = false;   // 格式异常中断标志：中断后不再覆盖提示（旧 bug：break 后循环外 toast 照常执行，把「AI 返回格式异常」盖掉）
   try{
     for(let i=0; i<miss.length; i+=20){      // 每批 20 个，防超 token
       const chunk = miss.slice(i, i+20);
@@ -237,6 +238,7 @@ async function backfillCn(){
       if(!Array.isArray(arr)){
         console.error('[backfillCn] AI 返回无法解析为 JSON 数组：', content);
         toast('AI 返回格式异常，已打印到控制台（F12 → Console）');
+        aborted = true;
         break;
       }
       // 两端都 trim，避免模型在 en 上附带首尾空格导致匹配失败（旧逻辑因此漏填）
@@ -255,8 +257,10 @@ async function backfillCn(){
       hubSave(); renderWords();
       console.log('[backfillCn] 批次', i/20+1, '命中', arr.length, '条，填充', filled, '处');
     }
-    const left = DATA.words.filter(wordNeedsFill).length;
-    toast(left ? ('已补全一批，还剩 '+left+' 个（多为 AI 查不到释义的专名/片段），可手动补或忽略') : '全部已补全 ✅');
+    if(!aborted){
+      const left = DATA.words.filter(wordNeedsFill).length;
+      toast(left ? ('已补全一批，还剩 '+left+' 个（多为 AI 查不到释义的专名/片段），可手动补或忽略') : '全部已补全 ✅');
+    }
   }catch(e){
     toast('补全失败：' + e.message);
   }finally{
