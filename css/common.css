@@ -2926,6 +2926,31 @@ body.has-dock main.container{ padding-bottom:0; }
   #hubDock{ display:flex; }
   body.has-dock main.container{ padding-bottom:88px; }
 }
+/* ===== 手机端浮层/完成页适配（之之 9/8：完成页按钮点不到、排版乱、dock 优化）===== */
+@media (max-width:860px){
+  /* 底部净空加大：dock 顶约 78px + 计时浮框上移后仍需余量，按钮行必须整体在浮层上方可点 */
+  body.has-dock main.container{ padding-bottom:132px; }
+  /* 计时浮框（z-index 8000 压过 dock）上移到 dock 上方，不再叠压 */
+  .float-timer{ bottom:calc(86px + env(safe-area-inset-bottom, 0px)); }
+  /* dock 贴合手机底部 + iOS 安全区 */
+  #hubDock{ bottom:calc(10px + env(safe-area-inset-bottom, 0px)); }
+  #hubFab{ bottom:calc(100px + env(safe-area-inset-bottom, 0px)); }
+  /* 全屏沉浸时隐藏全局 dock，不留悬浮物 */
+  body.word-fullscreen #hubDock{ display:none !important; }
+}
+@media (max-width:640px){
+  /* 完成页勋章行窄屏竖排：勋章居中在上，大标题不再 42px 换三行 */
+  .finish-medal-row{ flex-direction:column; text-align:center; gap:10px; }
+  .finish-medal-row .q-word{ font-size:24px; line-height:1.35; }
+  .finish-medal-row > div:last-child{ width:100%; }
+  .finish-medal-row .q-cn, .finish-medal-row div[style*="font-size:14px"]{ text-align:center; }
+  .finish-stats{ gap:8px; }
+  .finish-stats .fs-cell{ padding:12px 6px; }
+  .finish-stats .fs-v{ font-size:22px; }
+  .finish-stats .fs-l{ font-size:10px; white-space:nowrap; }
+  /* 完成页动作按钮窄屏全宽竖排，远离误触 */
+  .dict-result-actions .btn{ min-width:46%; }
+}
 #hubFab{
   position:fixed; right:18px; bottom:18px; z-index:60;
   border-radius:50%; cursor:pointer; padding:0;
