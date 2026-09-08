@@ -2036,25 +2036,29 @@ body.word-fullscreen:has(#practiceBody .opts-grid) .practice-card.practice-card-
 body.word-fullscreen #practiceBody.practice-body-fit{
   display:flex;flex-direction:column;
   align-items:center;
-  justify-content:space-evenly;   /* 各段间距弹性分配，矮视口不溢出 */
+  justify-content:flex-start;     /* 之之 9/8 晚反馈：块间空隙太大。evenly/around 都会均摊剩余空间（块间 40-50px），改为顶部对齐+固定小 gap，剩余留给底部拇指区 */
+  gap:clamp(12px,1.6vh,16px);
   flex:1;min-height:0;            /* 关键：允许被压进 100vh 卡片 */
   width:100%;max-width:720px;margin:0 auto;
 }
 body.word-fullscreen .practice-tools-row{ display:none !important; }
+/* 上一词回顾占位压缩：全屏态 gap1（工具行→单词）主要成分就是它（之之 9/8 晚反馈） */
+body.word-fullscreen #practiceBody.practice-body-fit .practice-topzone{ min-height:8px; }
+body.word-fullscreen #practiceBody.practice-body-fit .last-word{ font-size:12px;margin-bottom:0;padding:0; }
 
 /* 全屏单词区（居中）：与非全屏保持同一比例，减少切换突变 */
 /* 全屏模式：同样居中题干（照抄 v5 原型，无例句 / 无题干词性） */
 body.word-fullscreen #practiceBody.practice-body-fit .practice-word-area{
   position:relative;text-align:center;width:100%;
-  padding:6px 4px 10px;margin-bottom:8px;border-bottom:1px solid var(--line);
+  padding:12px 4px 14px;margin-bottom:14px;border-bottom:1px solid var(--line);
   min-height:0;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap{
-  margin-top:8px;padding-top:8px;border-top:1px solid var(--line);
+  margin-top:14px;padding-top:14px;border-top:1px solid var(--line);
   display:flex;justify-content:center;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap .tool-btn{
-  width:42px;height:42px;padding:0;border-radius:50%;
+  width:52px;height:52px;padding:0;border-radius:50%;
   border:1.5px solid var(--line);background:#fff;color:var(--muted);
   display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;
 }
@@ -2062,7 +2066,7 @@ body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap .tool-btn:
   border-color:var(--primary);color:var(--primary);background:var(--primary-soft);
 }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-en{
-  font-size:clamp(28px,6.5vh,40px);font-weight:800;letter-spacing:-.02em;line-height:1.25;color:var(--ink);
+  font-size:clamp(30px,7vh,52px);font-weight:800;letter-spacing:-.02em;line-height:1.25;color:var(--ink);
 }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-ipa{
   font-family:serif;font-style:normal;font-size:15px;color:var(--muted);margin-top:6px;min-height:19px;
@@ -2074,13 +2078,22 @@ body.word-fullscreen #practiceBody.practice-body-fit .pw-cn{
 /* 全屏选项网格 + 反馈（与 v5 一致） */
 body.word-fullscreen #practiceBody.practice-body-fit .opts-label{ display:none !important; }
 body.word-fullscreen #practiceBody.practice-body-fit .opts-grid{
-  display:grid;grid-template-columns:1fr 1fr;gap:clamp(8px,1.6vh,14px);width:100%;
+  display:grid;grid-template-columns:1fr 1fr;gap:clamp(10px,1.6vh,14px);width:100%;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .opt-big{
-  position:relative;height:clamp(60px,13.5vh,88px);padding:10px 18px;
+  position:relative;height:clamp(64px,14vh,104px);padding:10px 18px;
   display:flex;flex-direction:column;align-items:flex-start;justify-content:center;
   gap:6px;border:1.5px solid var(--neutral);border-radius:10px;background:#fff;cursor:pointer;
   transition:all .15s ease;overflow:hidden;box-sizing:border-box;
+}
+/* 「不知道」按钮全屏态加高：内容整体放大吃空间，块间只留固定小 gap（之之 9/8 晚反馈） */
+body.word-fullscreen #practiceBody.practice-body-fit .abtn{ min-height:64px; }
+/* 矮屏（SE/小 iPhone ≤760px 高）兜底：压缩内容防溢出裁切（html overflow hidden 下溢出=看不见喇叭） */
+@media(max-height:760px){
+  body.word-fullscreen #practiceBody.practice-body-fit .abtn{ min-height:50px; }
+  body.word-fullscreen #practiceBody.practice-body-fit .opt-big{ height:clamp(60px,13vh,90px); }
+  body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap{ margin-top:10px;padding-top:10px; }
+  body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap .tool-btn{ width:44px;height:44px; }
 }
 body.word-fullscreen #practiceBody.practice-body-fit .opt-big:hover{ border-color:var(--muted); }
 body.word-fullscreen #practiceBody.practice-body-fit .opt-big-tag{ font-size:13px;color:var(--muted);font-weight:500;flex:0 0 auto;line-height:18px;min-height:18px; }
@@ -2920,8 +2933,9 @@ body.has-dock main.container{ padding-bottom:0; }
   /* dock 贴合手机底部 + iOS 安全区 */
   #hubDock{ bottom:calc(10px + env(safe-area-inset-bottom, 0px)); }
   #hubFab{ bottom:calc(100px + env(safe-area-inset-bottom, 0px)); }
-  /* 全屏沉浸时隐藏全局 dock，不留悬浮物 */
+  /* 全屏沉浸时隐藏全局 dock 与计时胶囊，不留悬浮物（验收 12：dock 与计时胶囊都不出现；胶囊不藏会叠在喇叭按钮上——9/8 晚补） */
   body.word-fullscreen #hubDock{ display:none !important; }
+  body.word-fullscreen #floatTimer{ display:none !important; }
 }
 @media (max-width:640px){
   /* 完成页勋章行窄屏竖排：勋章居中在上，大标题不再 42px 换三行 */
@@ -3042,7 +3056,8 @@ body.has-dock main.container{ padding-bottom:0; }
 }
 .word-tools-row[hidden]{ display:none; }
 .word-tools-row .icon-square-btn{
-  width:28px;height:28px;padding:0;border-radius:8px;
+  width:30px;height:30px;min-height:0;   /* min-height:0 抵掉移动端 .btn{min-height:44px}（331 行），否则 28/30 宽被撑成 44 高长方形（之之 9/8 晚反馈） */
+  padding:0;border-radius:9px;
   display:inline-flex;align-items:center;justify-content:center;flex:none;
 }
 .word-tools-row .icon-square-btn svg{ width:15px;height:15px; }
