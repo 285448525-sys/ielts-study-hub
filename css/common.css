@@ -3143,3 +3143,17 @@ body.has-dock main.container{ padding-bottom:0; }
     font-size:11.5px;
   }
 }
+
+/* ===== 背词完成页「想再认一次的词」紧凑卡（之之 2026-09-09 反馈重设计：粉卡+提示条合一） ===== */
+.rw-card{
+  background:var(--err-bg); border:1px solid var(--err); border-radius:14px;
+  padding:12px 14px; margin-top:14px;
+}
+.rw-head{ display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; margin-bottom:2px; }
+.rw-t{ font-size:14px; font-weight:800; color:var(--danger); }
+.rw-n{ font-size:12.5px; font-weight:700; color:var(--danger); opacity:.85; }
+.rw-s{ font-size:11.5px; color:var(--muted); margin-left:auto; }
+.rw-row{ display:flex; align-items:baseline; gap:10px; padding:6px 0; }
+.rw-row + .rw-row{ border-top:1px dashed rgba(0,0,0,.07); }
+.rw-row b{ font-size:14px; color:var(--ink); flex:none; }
+.rw-row .rw-cn{ font-size:12.5px; color:var(--ink-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }

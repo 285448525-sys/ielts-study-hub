@@ -390,7 +390,11 @@ function getTodaySeen(){
 function markSeen(words){
   const s = getTodaySeen();
   const set = new Set(s.words);
-  for(const w of (words || [])){ const k = String(w.en || '').trim().toLowerCase(); if(k) set.add(k); }
+  // 兼容两种入参：词对象（{en}）与纯字符串（pq.passed 存的是小写 en 字符串）
+  for(const w of (words || [])){
+    const k = String((w && w.en) || (typeof w === 'string' ? w : '')).trim().toLowerCase();
+    if(k) set.add(k);
+  }
   s.words = Array.from(set);
   hubSave();
 }
@@ -451,7 +455,8 @@ function autoStartSeeWord(){
       if(c.shuffle) plan = shuffle(plan);
       // 固定题量：题量设置即每轮总题数；buildQueue 已按复习优先级排序，直接截断即可
       if(c.batchSize > 0 && plan.length > c.batchSize) plan = plan.slice(0, c.batchSize);
-      markSeen(plan);   // 记录本轮已学词，下一轮不再重复
+      // 之之 9/9 修正：开轮不再 markSeen（旧逻辑把整轮计划词在没背时就算「今日已练」→ 数字虚高、复用轮永远不动），
+      // 改为 finishPractice 答完才计入；跨轮防重复出题改用「今日真实背完的词」过滤，中途放弃的词下一轮会重新出现（更合理）。
       session = {
         date: today,
         planEn: plan.map(w => String(w.en).trim().toLowerCase()),
@@ -950,6 +955,9 @@ function finishPractice(){
   // 完成一轮不立刻停止计时：进入 2 分钟宽限，期间若又开始背单词则保持连续（背单词合并成一段）
   scheduleWordTimerStop();
 
+  // 之之 9/9 口径修正：只把「本轮实际作答完成」的词计入今日已练（答完才记，不再开轮即记）
+  if(pq) markSeen([].concat(pq.passed || [], pq.wrongList || []));
+
   // 今日已练 = 今天真正练过的 unique 词数（不是轮次位累加）
   const seenToday = DATA.wordSeenToday && DATA.wordSeenToday.date === todayKey() ? DATA.wordSeenToday.words || [] : [];
   const todayLearned = seenToday.length;
@@ -961,19 +969,12 @@ function finishPractice(){
   addTodayStats(todayLearned, wordMs);
   const { st: todaySt } = getTodayStats();
 
-  // design/54 完成页仪式感：勋章（数字=本轮答对数）+ 三宫格（XP/最高连击/待学习，均为内存态或既有统计）
+  // 之之 9/9 完成页改版：删三宫格（XP/最高连击按反馈去掉，待学习保留在统计行），勋章+标题+统计行保留
   const medalNum = pq ? (pq.correct || 0) : 0;
-  const maxStreak = pq ? (pq.maxStreak || 0) : 0;
-  const sessionXp = pq ? (pq.xp || 0) : 0;
   let bodyHtml = '<div class="finish-medal-row">' +
       '<div class="finish-medal"><div class="finish-medal-in">' + medalNum + '</div></div>' +
       '<div><div class="q-word" style="margin:0">完成！这一轮你坚持了 ' + formatMs(wordMs || todaySt.totalMs) + '</div>' +
       '<div style="margin-top:4px;font-size:14px;color:var(--muted)">今日已练 ' + todaySt.totalWords + ' 个 · 耗时 ' + formatMs(todaySt.totalMs) + ' · 剩余待学习 ' + due + ' 个</div></div>' +
-    '</div>' +
-    '<div class="finish-stats">' +
-      '<div class="fs-cell fs-xp"><div class="fs-l">获得 XP</div><div class="fs-v">+' + sessionXp + '</div></div>' +
-      '<div class="fs-cell fs-st"><div class="fs-l">本轮最高连击</div><div class="fs-v">' + maxStreak + '</div></div>' +
-      '<div class="fs-cell"><div class="fs-l">待学习</div><div class="fs-v">' + due + '</div><div class="fs-l" style="margin:2px 0 0">个</div></div>' +
     '</div>';
   const seen = new Set();
   const wrong = (pq.wrongList || []).filter(w => {
@@ -982,15 +983,14 @@ function finishPractice(){
     seen.add(k); return true;
   });
   if(wrong.length){
-    bodyHtml += '<div class="card" style="margin-top:14px;background:var(--err-bg);border:1px solid var(--err)">' +
-      '<h3 style="margin:0 0 10px;color:var(--danger)">想再认一次的词（' + wrong.length + ' 个）</h3><div>' + wrong.map(w =>
-        '<div class="list-item"><span><b style="font-size:15px">' + escapeHtml(w.en) + '</b>' +
-        (w.cn ? ' <span class="muted">' + escapeHtml(w.cn) + '</span>' : '') + '</span></div>'
+    // 之之 9/9 紧凑重设计：粉卡+提示条合并为一张卡，词条单行流式（词加粗+释义同行省略），去掉重复的说明条
+    bodyHtml += '<div class="rw-card">' +
+      '<div class="rw-head"><span class="rw-t">想再认一次的词</span><span class="rw-n">' + wrong.length + ' 个</span>' +
+      '<span class="rw-s">立刻重练 · 1 周后只需复习 1 次</span></div>' +
+      '<div class="rw-list">' + wrong.map(w =>
+        '<div class="rw-row"><b>' + escapeHtml(w.en) + '</b>' +
+        (w.cn ? '<span class="rw-cn">' + escapeHtml(w.cn) + '</span>' : '') + '</div>'
       ).join('') + '</div></div>';
-    bodyHtml += '<div class="review-hint">' +
-      '<div class="rh-ico"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.3L3 16"/><path d="M3 21v-5h5"/></svg></div>' +
-      '<div><div class="rh-t">本轮有 ' + wrong.length + ' 个词想再认一次</div>' +
-      '<div class="rh-s">立刻重练 → 1 周后只需复习 1 次</div></div></div>';
   }
   bodyHtml += '<div class="dict-result-actions" style="justify-content:center;margin:14px 0;gap:12px;flex-wrap:wrap">' +
     (wrong.length ? '<button class="btn" id="reviewWrongBtn">重练错词（' + wrong.length + '）</button>' : '') +
