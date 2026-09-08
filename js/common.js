@@ -42,7 +42,7 @@ function favPageIds(){
 /* v5：简化后全部平铺，不再分折叠组（首页→回顾 一级；设置/服药 在分隔线下方） */
 const PRIMARY_NAV = ['index','timer','plans','practice','corpus','speaking','writing'];
 const MORE_NAV    = ['review','meds','settings'];
-const TAB_NAV     = ['index','timer','practice','speaking'];   // 底部 Tab 栏前 4 项；第 5 项固定为「更多」
+const TAB_NAV     = ['index','timer','practice','speaking'];   // 旧 tabbar 主项（组件已删，仅用于计算「更多」弹层要收纳哪些页面）
 // 底部 Tab 标签覆盖：practice 在站内含「单词」，但原型/验收确认为「背词」，单独对齐（不改 PAGES 以免影响桌面侧栏）
 const TAB_LABEL   = { practice:'背词' };
 
@@ -496,24 +496,10 @@ function syncNavToggle(){
 }
 
 function ensureMobileChrome(){
-  // 移动端：底部固定 Tab 栏 + 「更多」弹层（取代原 ☰ 抽屉）
-  if(!document.getElementById('tabbar')){
-    const bar = document.createElement('nav');
-    bar.id = 'tabbar'; bar.className = 'tabbar'; bar.setAttribute('aria-label', '底部导航');
+  // 移动端：「更多」弹层（底部导航已由全站 dock 接管，旧 tabbar 组件 2026-09-08 删除）
+  if(!document.getElementById('moreSheet')){
     const pageById = id => PAGES.find(p => p.id === id);
     const cur = _hubCurrentFile;
-    let items = '';
-    for(const pid of TAB_NAV){
-      const p = pageById(pid); if(!p) continue;
-      const active = (p.file === cur) ? 'active' : '';
-      const label = TAB_LABEL[pid] || p.name;
-      items += `<a class="tabbar-item ${active}" href="${p.file}" data-id="${p.id}">`
-        + `<span class="tb-ico">${p.icon}</span><span class="tb-lbl">${label}</span></a>`;
-    }
-    items += `<button class="tabbar-item tabbar-more" type="button" aria-label="更多功能">`
-      + `<span class="tb-ico">≡</span><span class="tb-lbl">更多</span></button>`;
-    bar.innerHTML = items;
-    document.body.appendChild(bar);
 
     // dock 已接管移动端导航（含 index/plans/practice/speaking/writing），
     // 把其余页面（含原 tabbar 主项 timer）收进「更多」弹层，避免丢失入口
@@ -536,7 +522,6 @@ function ensureMobileChrome(){
     const sheet = document.createElement('div'); sheet.id = 'moreSheet'; sheet.className = 'sheet'; sheet.innerHTML = sh;
     document.body.appendChild(bd); document.body.appendChild(sheet);
 
-    bar.querySelector('.tabbar-more').addEventListener('click', openMoreSheet);
     bd.addEventListener('click', closeMoreSheet);
     sheet.querySelector('.sheet-close').addEventListener('click', closeMoreSheet);
     sheet.querySelectorAll('.sheet-item').forEach(a => a.addEventListener('click', closeMoreSheet));
@@ -2047,8 +2032,8 @@ function updateActiveNav(file){
       a.classList.toggle('active', a.getAttribute('href') === file);
     });
   }
-  // 同步底部 Tab 栏 + 更多弹层高亮（单一写入点，避免闪烁）
-  document.querySelectorAll('.tabbar-item[data-id], .sheet-item[data-id]').forEach(a => {
+  // 同步「更多」弹层高亮（单一写入点，避免闪烁；旧 tabbar 高亮已随组件删除）
+  document.querySelectorAll('.sheet-item[data-id]').forEach(a => {
     const p = PAGES.find(pp => pp.id === a.dataset.id);
     a.classList.toggle('active', !!(p && p.file === file));
   });

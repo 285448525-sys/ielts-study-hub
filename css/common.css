@@ -284,20 +284,7 @@ body{
 .top-nav .ui-search-input:focus,.top-nav .ui-search-input:hover{box-shadow:0 0 0 4px var(--primary-soft)}
 .top-nav .ui-search-icon{left:12px;width:18px;height:18px}
 
-/* ===== 移动端底部固定 Tab 栏 + 更多弹层（取代原 ☰ 抽屉） ===== */
-.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:55;display:none;
-  height:56px;padding:6px 4px calc(6px + env(safe-area-inset-bottom));
-  background:var(--surface);border-top:1px solid var(--line);
-  box-shadow:0 -4px 16px rgba(15,23,42,.06)}
-.tabbar-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-  min-height:44px;border:none;background:none;cursor:pointer;text-decoration:none;
-  color:var(--muted);font-size:11px;font-weight:600;line-height:1;
-  -webkit-tap-highlight-color:transparent;transition:color .15s}
-.tabbar-item .tb-ico{width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center}
-.tabbar-item .tb-ico svg{width:23px;height:23px;display:block}
-.tabbar-item.active{color:var(--primary)}
-.tabbar-item.active .tb-ico{color:var(--primary);background:var(--primary-soft);border-radius:12px;padding:3px;margin:-3px}
-.tabbar-more .tb-ico{font-size:20px;line-height:1}
+/* ===== 移动端「更多」弹层（底部导航由全站 dock 接管；旧 tabbar 组件已于 2026-09-08 删除） ===== */
 .sheet-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:60;opacity:0;transition:opacity .22s}
 body.sheet-open .sheet-backdrop{display:block;opacity:1}
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:61;transform:translateY(100%);
@@ -334,11 +321,7 @@ body.sheet-open .sheet{transform:translateY(0)}
   /* 旧 ☰ 抽屉彻底停用（改用底部 Tab 栏） */
   .side-toggle{display:none!important}
   .side-backdrop{display:none!important}
-  /* 底部固定 Tab 栏 */
-  .tabbar{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;
-    padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
-  .tabbar{display:none!important} /* dock 已接管移动端导航，隐藏旧 tabbar 避免双底栏 */
-  /* 内容区底部留白，避免被 Tab 栏遮挡 */
+  /* 内容区底部留白，避免被底部 dock 遮挡（旧 tabbar 已删，净空由 body.has-dock 规则接管） */
   .container{padding:20px 16px calc(96px + env(safe-area-inset-bottom))}
   .card{padding:18px;margin-bottom:16px}
   .page-title{font-size:22px;margin-bottom:6px}
@@ -946,7 +929,9 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 .wl-sense-pos{font-size:13px;font-weight:600;color:var(--vocab);white-space:nowrap;flex:none;font-family:var(--mono,ui-monospace,SFMono-Regular,Menlo,Consolas,monospace)}
 .wl-sense-cn{font-size:14px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .wl-lv{font-size:12px;font-weight:700;color:var(--primary);background:var(--primary-soft);padding:2px 8px;border-radius:6px;flex:none;margin-top:2px}
-.wl-del{width:28px;height:28px;border-radius:7px;border:1.5px solid var(--danger);background:var(--surface);color:var(--danger);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:.12s;flex:none;margin-top:1px}
+/* 视觉尺寸 28px 不变，用伪元素把触摸热区撑到 44px（iOS/Android 建议值），不影响列表排版 */
+.wl-del{position:relative;width:28px;height:28px;border-radius:7px;border:1.5px solid var(--danger);background:var(--surface);color:var(--danger);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:.12s;flex:none;margin-top:1px}
+.wl-del::after{content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:44px;height:44px}
 .wl-del:hover{background:var(--danger);color:#fff}
 
 /* dashboard hero */
@@ -2919,7 +2904,7 @@ body.exam-fullscreen #writeTabs{display:none}
     0.3em 0.3em 1em rgba(0,0,0,.3);
 }
 
-/* ===== 全站玻璃底栏 dock（桌面固定底部居中；移动端隐藏，用既有 tabbar） + 新增浮动按钮 ===== */
+/* ===== 全站玻璃底栏 dock（移动端主导航；桌面隐藏，用侧栏） + 新增浮动按钮 ===== */
 #hubDock{ position:fixed; left:50%; bottom:18px; transform:translateX(-50%); z-index:45; display:none; }
 body.has-dock main.container{ padding-bottom:0; }
 @media (max-width:860px){

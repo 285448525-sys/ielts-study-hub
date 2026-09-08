@@ -71,7 +71,10 @@ function renderDashV6(){
     ? [...mods].slice(0, MAX_HINT_MODS).join(' · ')
     : '今天还没开始学习';
 
-  // 待学习口径与背单词页一致：未掌握（cleared!==true）或今天到期（nextReview≤今天）
+  // 首页「待学习」= 未掌握总词数口径（cleared!==true 即计入，不管排到哪天）。
+  // ⚠️ 与背单词页的「出题口径」不同：buildQueue(practice.js) 只取 nextReview≤今天的词，
+  //    所以首页这个数会明显大于今天真正能背到的量（2026-09-08 修复「再来一轮显示没词」时确认）。
+  //    两处口径是刻意保留的：首页看总进度，出题按记忆曲线；不要随手改成一致。
   const due = (DATA.words||[]).filter(w => w.cleared !== true || (w.nextReview || '') <= tkey).length;
   const dueEl = $('#dashDueWords');
   const hintEl = $('#dashDueHint');
