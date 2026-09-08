@@ -702,7 +702,7 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
   margin-top:20px;display:flex;justify-content:flex-start;
 }
 #practiceBody.practice-body-fit .abtn-unknown{
-  width:auto;height:40px;padding:0 22px;border:1.5px solid var(--line);border-radius:8px;
+  flex:0 0 auto;width:auto;min-height:40px;height:40px;padding:0 22px;border:1.5px solid var(--line);border-radius:8px;
   background:transparent;color:var(--muted);font-size:14px;font-weight:500;cursor:pointer;
   display:flex;align-items:center;justify-content:center;transition:all .15s;
 }
@@ -2103,7 +2103,7 @@ body.word-fullscreen #practiceBody.practice-body-fit .opt-big.wrong .opt-big-tag
 
 body.word-fullscreen #practiceBody.practice-body-fit .answer-btns{ margin-top:20px;display:flex;justify-content:flex-start; }
 body.word-fullscreen #practiceBody.practice-body-fit .abtn-unknown{
-  width:auto;height:40px;padding:0 22px;border:1.5px solid var(--line);
+  flex:0 0 auto;width:auto;min-height:40px;height:40px;padding:0 22px;border:1.5px solid var(--line);
   border-radius:8px;background:transparent;color:var(--muted);
   font-size:14px;font-weight:500;cursor:pointer;
   display:flex;align-items:center;justify-content:center;transition:all .15s;
