@@ -3083,3 +3083,48 @@ body.has-dock main.container{ padding-bottom:0; }
 @media (prefers-reduced-motion: reduce){
   .streak-chip.boost,.finish-medal{animation:none !important}
 }
+
+/* ===== design/56 · 移动端底部 dock「混搭 AC」改版（之之 2026-09-08 定版）===== */
+#hubDock{
+  width:calc(100% - 24px); max-width:500px;
+  background:rgba(255,255,255,.86);
+  backdrop-filter:blur(18px) saturate(160%);
+  -webkit-backdrop-filter:blur(18px) saturate(160%);
+  border:1px solid rgba(255,255,255,.75);
+  box-shadow:0 10px 30px rgba(16,24,40,.14);
+  padding:7px;
+}
+#hubDock::after{ display:none; }   /* 去 Uiverse 模板内阴影白高光（浅底上是雾感） */
+#hubDock .ui-menu-item{ color:var(--n-600); text-shadow:none; padding:9px 0 7px; }
+#hubDock .ui-menu-item svg{ width:22px; height:22px; }
+#hubDock .ui-menu-item > span{ font-size:11px; font-weight:600; }
+#hubDock .ui-menu-item:hover{
+  background:rgba(20,22,26,.04); box-shadow:none; transform:none; color:var(--n-800);  /* 删模板 rotate(2.2deg) 彩蛋 */
+}
+#hubDock .ui-menu-item.active{ background:var(--primary-50); color:var(--primary-700); }
+#hubDock .ui-menu-item.active > span{ font-weight:800; }
+/* 中央凸起主钮（背词） */
+#hubDock .ui-menu-item.dock-raised{ flex:1.15; gap:2px; }
+#hubDock .ui-menu-item.dock-raised.active{ background:none; }  /* 凸钮本身就是焦点，不套白胶囊 */
+#hubDock .dock-raised .rb{
+  width:52px; height:52px; border-radius:50%;
+  background:linear-gradient(135deg, var(--primary-400), var(--primary-500));
+  color:#fff; display:flex; align-items:center; justify-content:center;
+  border:3px solid rgba(255,255,255,.92);
+  box-shadow:0 8px 18px rgba(58,154,147,.45);
+  transform:translateY(-14px);
+}
+#hubDock .dock-raised .rb svg{ width:24px; height:24px; }
+#hubDock .dock-raised .rb-lbl{ font-size:11px; font-weight:800; color:var(--primary-700); margin-top:-6px; }
+
+@media (max-width:860px){
+  /* design/56：抬高 8px 避开 iPhone home indicator（原 10px） */
+  #hubDock{ bottom:calc(18px + env(safe-area-inset-bottom, 0px)); }
+  /* 计时胶囊：挂到凸起钮正上方（104 实测与凸钮重叠 2px，+10 抬到 gap≈8px，验收要求 6-12px） */
+  .float-timer{
+    bottom:calc(114px + env(safe-area-inset-bottom, 0px));
+    background:var(--primary-700);
+    padding:5px 6px 5px 11px;
+    font-size:11.5px;
+  }
+}
