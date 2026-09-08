@@ -433,14 +433,21 @@ function autoStartSeeWord(){
       const all = buildQueue(today, nowISO());
       // 排除「今天任何一轮已经出过的词」，保证新一轮与上一轮完全不重复
       const seen = getTodaySeen();
-      const unseen = all.filter(w => !seen.words.includes(String(w.en || '').trim().toLowerCase()));
-      if(unseen.length === 0){
-        $('#practiceBody').innerHTML = '<div class="q-word">今天没有待学习的词</div>' +
-          '<div class="q-cn">去「词库」加词，或明天再来。复习会按记忆曲线自动排程。</div>';
+      let plan = all.filter(w => !seen.words.includes(String(w.en || '').trim().toLowerCase()));
+      if(plan.length === 0 && all.length > 0){
+        // 今天到期的词本日各轮已全部出过（完成页点「再来一轮」的常见场景）：复用今日排程重开一轮，不误报空态
+        plan = all.slice();
+      }
+      if(plan.length === 0){
+        // 今天确实没有到期词：未掌握的词被记忆曲线排在之后几天，空态要说清数字，避免与首页「待学习」互相矛盾
+        const pending = (DATA.words || []).filter(w => w && w.cleared !== true).length;
+        $('#practiceBody').innerHTML = '<div class="q-word">今天没有到期要复习的词</div>' +
+          '<div class="q-cn">已学过的词都被记忆曲线排到了之后几天，今天不用复习。' +
+          (pending ? '还有 ' + pending + ' 个没掌握的词，会在接下来按曲线依次出现。' : '') +
+          '想多背可以去「词库」加词。</div>';
         clearDailySession();
         return;
       }
-      let plan = unseen.slice();
       if(c.shuffle) plan = shuffle(plan);
       // 固定题量：题量设置即每轮总题数；buildQueue 已按复习优先级排序，直接截断即可
       if(c.batchSize > 0 && plan.length > c.batchSize) plan = plan.slice(0, c.batchSize);
