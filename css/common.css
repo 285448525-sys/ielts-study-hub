@@ -702,7 +702,7 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
   margin-top:20px;display:flex;justify-content:flex-start;
 }
 #practiceBody.practice-body-fit .abtn-unknown{
-  flex:0 0 auto;width:auto;min-height:40px;height:40px;padding:0 22px;border:1.5px solid var(--line);border-radius:8px;
+  width:auto;height:40px;padding:0 22px;border:1.5px solid var(--line);border-radius:8px;
   background:transparent;color:var(--muted);font-size:14px;font-weight:500;cursor:pointer;
   display:flex;align-items:center;justify-content:center;transition:all .15s;
 }
@@ -2030,14 +2030,14 @@ main.container{padding-top:40px}
 #histPlans{padding:0 20px 18px}
 
 /* ===== 单词 · 全屏沉浸式背词（匹配参考图布局） ===== */
-body.word-fullscreen{padding-left:0 !important;padding-right:0 !important;overflow:hidden !important}
+body.word-fullscreen{padding-left:0 !important;padding-right:0 !important;overflow-x:hidden !important;overflow-y:auto !important}
 body.word-fullscreen .top-nav{display:none !important}
 body.word-fullscreen .side-collapse{display:none !important}
-body.word-fullscreen main.container{padding:0 !important;max-width:none !important;height:100vh;display:flex;flex-direction:column;justify-content:center;background:var(--bg)}
+body.word-fullscreen main.container{padding:0 !important;max-width:none !important;min-height:100vh;display:flex;flex-direction:column;justify-content:flex-start;background:var(--bg)}
 body.word-fullscreen .page-title{display:none}
 body.word-fullscreen .word-tabs{display:none}
 body.word-fullscreen #studyView.study-view-fit{min-height:100vh;background:var(--bg)}
-body.word-fullscreen .practice-card.practice-card-fit{height:100vh;max-width:none;border-radius:0;margin:0;justify-content:flex-start;padding:32px 40px;background:var(--bg)}
+body.word-fullscreen .practice-card.practice-card-fit{min-height:100vh;max-width:none;border-radius:0;margin:0;justify-content:flex-start;padding:32px 40px;background:var(--bg)}
 body.word-fullscreen #practiceBody.practice-body-fit{
   display:flex;flex-direction:column;
   align-items:center;
@@ -2103,7 +2103,7 @@ body.word-fullscreen #practiceBody.practice-body-fit .opt-big.wrong .opt-big-tag
 
 body.word-fullscreen #practiceBody.practice-body-fit .answer-btns{ margin-top:20px;display:flex;justify-content:flex-start; }
 body.word-fullscreen #practiceBody.practice-body-fit .abtn-unknown{
-  flex:0 0 auto;width:auto;min-height:40px;height:40px;padding:0 22px;border:1.5px solid var(--line);
+  width:auto;height:40px;padding:0 22px;border:1.5px solid var(--line);
   border-radius:8px;background:transparent;color:var(--muted);
   font-size:14px;font-weight:500;cursor:pointer;
   display:flex;align-items:center;justify-content:center;transition:all .15s;
