@@ -588,6 +588,7 @@ function setWordFullscreen(on){
   } else {
     document.body.classList.remove('word-fullscreen');
   }
+  fitWordOneLine();   // 9/9：全屏字号基准不同（clamp 最大 52px），切换后要按新基准重算单行字号
   const btn = $('#fullscreenBtn');
   if(!btn) return;
   if(on){
@@ -757,7 +758,30 @@ function renderQuestion(cur, isRehold){
   const qsp = document.getElementById('qSpeaker');
   if(qsp) qsp.onclick = () => speakN(cur.en);
   if(c.autoPlay) setTimeout(() => speakN(cur.en), 300);   // autoPlay=false 时不自动朗读，仅手动点喇叭
+  fitWordOneLine();   // 9/9：渲染完立即按单词长度自适应字号，保证手机端/全屏态都不折行
 }
+
+// 9/9 之之需求：题干单词固定一行显示，字号按长度自动收缩（长词变小、短词不变）。
+// 做法：先清空 inline font-size 拿到 CSS 基准字号（普通态 38px / 全屏态 clamp(30px,7vh,52px)），
+// 再逐 1px 下调直到 scrollWidth 不超出容器宽度；下限 15px（≈36 字符仍可单行）。
+function fitWordOneLine(){
+  const el = document.querySelector('#practiceBody .pw-en');
+  if(!el) return;
+  el.style.fontSize = '';                    // 还原基准值 → 切换全屏/改窗口后能重新取到正确起点
+  const max = el.clientWidth;
+  if(!max) return;
+  let size = parseFloat(getComputedStyle(el).fontSize);
+  if(!size) return;
+  let guard = 40;
+  while(el.scrollWidth > max + 1 && size > 15 && guard--){
+    size -= 1;
+    el.style.fontSize = size + 'px';
+  }
+}
+window.addEventListener('resize', () => {
+  clearTimeout(window._fitWordT);
+  window._fitWordT = setTimeout(fitWordOneLine, 160);
+});
 
 // 选项点击 → 立即判定对错（对=认识，错=不认识）；不另设「认识」按钮
 function bindOpts(cur){

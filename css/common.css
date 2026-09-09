@@ -583,7 +583,7 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 
 
 .practice-card.practice-card-fit{
-  display:flex;flex-direction:column;gap:10px;
+  display:flex;flex-direction:column;gap:8px;   /* 9/9 之之反馈：块间空隙收紧 10→8 */
   padding:18px 22px 16px;margin-bottom:0;
 }
 
@@ -619,25 +619,27 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
   font-size:13px;color:var(--muted);padding:2px 0;margin-bottom:4px;
 }
 /* 上一词回顾区：永远占位（空也留同样高的空位），避免第 1 个词 vs 第 2 个词题干整体下移跳动 */
-#practiceBody.practice-body-fit .practice-topzone{ min-height:24px; }
+#practiceBody.practice-body-fit .practice-topzone{ min-height:18px; }   /* 9/9 收紧：24→18（上一词回顾空占位） */
 #practiceBody.practice-body-fit .lw-en{font-weight:700;color:var(--ink);font-size:15px}
 
 /* ═══ 题干区：单词+音标+中文 全部居中，无例句、无词性（照抄 v5 原型） ═══ */
 #practiceBody.practice-body-fit .practice-word-area{
   position:relative;text-align:center;
-  padding:10px 4px 16px;margin-bottom:12px;
+  padding:4px 4px 8px;margin-bottom:6px;   /* 9/9 收紧：10/16/12 → 4/8/6 */
   border-bottom:1px solid var(--line);
-  min-height:160px;   /* 锁死题干区高度：单词+音标+中文恒定占位，换词/答题不再跳动（已掌握按钮 9/6 已上移至 word-stats 行） */
+  min-height:120px;   /* 锁死题干区高度：单词+音标+中文恒定占位，换词/答题不再跳动（9/9 随释义占位由 46→24 同步下调 160→120） */
 }
 #practiceBody.practice-body-fit .pw-en{
   font-size:38px;font-weight:800;letter-spacing:-.02em;line-height:1.25;color:var(--ink);
+  white-space:nowrap;   /* 9/9：题干单词强制单行，超长由 practice.js fitWordOneLine() 自动缩字号 */
+  min-height:48px;display:flex;align-items:center;justify-content:center;   /* 9/9：盒子高度恒定 48px，字号收缩时题干区不塌、换词不跳动 */
 }
 #practiceBody.practice-body-fit .pw-ipa{
   font-family:serif;font-style:normal;font-size:15px;color:var(--muted);margin-top:6px;min-height:19px;
 }
 /* 中文释义（答后才填充）：固定 min-height，答后不撑高 → 布局不跳动 */
 #practiceBody.practice-body-fit .pw-cn{
-  font-size:15px;color:var(--ink-2);margin-top:5px;min-height:46px;line-height:1.55;overflow:hidden;
+  font-size:15px;color:var(--ink-2);margin-top:5px;min-height:24px;line-height:1.55;overflow:hidden;   /* 9/9：空占位 46→24（1 行），音标→选项的空隙从 84px 降到 46px */
 }
 
 #practiceBody.practice-body-fit .opts-label{ display:none !important; }
@@ -682,7 +684,7 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 
 /* ── 不知道按钮（左侧文字按钮） ── */
 #practiceBody.practice-body-fit .answer-btns{
-  margin-top:20px;display:flex;justify-content:flex-start;
+  margin-top:12px;display:flex;justify-content:flex-start;   /* 9/9 收紧：20→12 */
 }
 #practiceBody.practice-body-fit .abtn-unknown{
   width:auto;height:40px;padding:0 22px;border:1.5px solid var(--line);border-radius:8px;
@@ -720,7 +722,8 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 
 /* 小屏适度压缩（电脑为主，仅做下限保护） */
 @media(max-height:760px){
-  #practiceBody.practice-body-fit .practice-word-area{ padding:10px 4px 14px;min-height:150px; }
+  /* 9/9：与基准保持一致（原 10/14/150 比基准还松，导致矮窗口空隙反弹） */
+  #practiceBody.practice-body-fit .practice-word-area{ padding:4px 4px 8px;min-height:120px; }
   #practiceBody.practice-body-fit .pw-en{ font-size:32px; }
   #practiceBody.practice-body-fit .opts-grid{ gap:12px; }
   #practiceBody.practice-body-fit .opt-big{ height:82px;padding:12px 16px; }
@@ -2067,6 +2070,7 @@ body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap .tool-btn:
 }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-en{
   font-size:clamp(30px,7vh,52px);font-weight:800;letter-spacing:-.02em;line-height:1.25;color:var(--ink);
+  min-height:clamp(38px,8.75vh,65px);display:flex;align-items:center;justify-content:center;   /* 9/9：全屏基准更大，盒子同步锁到 52×1.25=65px 上限 */
 }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-ipa{
   font-family:serif;font-style:normal;font-size:15px;color:var(--muted);margin-top:6px;min-height:19px;
