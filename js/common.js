@@ -1368,6 +1368,48 @@ function mergeData(local, cloud){
       out.wordDayStats = _mergedStats; changes++;
     }
   }
+  /* 句型闯关（patternDrill）跨设备合并（2026-09-09 修复：云端拉取时整份丢弃 +
+     手机端任意操作全量上传会把云端进度/我的句型库冲掉——移动端「练习页进度没了」根因）。
+     规则：items 按条目 id 取「更进步」一侧（mastered > 未掌握；level 大者胜；同级 updated 新者胜；
+     pending 标记做 OR 保留，下次判对自动清除）；custom[] 按 id 并集（同 id 留本机）；
+     mockSynced[] 签名并集（同步去重，永不重复导入）。 */
+  if(cloud.patternDrill && typeof cloud.patternDrill === 'object'){
+    const _pdRank = s => (s && s.status === 'mastered') ? 1 : 0;
+    const _pdItems = Object.assign({}, (local.patternDrill && local.patternDrill.items) || {});
+    let _pdCh = 0;
+    const _cItems = cloud.patternDrill.items || {};
+    for(const id in _cItems){
+      const a = _pdItems[id], b = _cItems[id];
+      if(!b || typeof b !== 'object') continue;
+      if(!a){ _pdItems[id] = b; _pdCh++; continue; }
+      let win;
+      const ra = _pdRank(a), rb = _pdRank(b);
+      if(ra !== rb) win = (ra > rb) ? a : b;
+      else {
+        const la = a.level || 0, lb = b.level || 0;
+        if(la !== lb) win = (la > lb) ? a : b;
+        else win = (String(a.updated || '') >= String(b.updated || '')) ? a : b;
+      }
+      if(win !== a){
+        _pdItems[id] = win; _pdCh++;
+      }
+      if((a.pending || b.pending) && !_pdItems[id].pending){ _pdItems[id] = Object.assign({}, _pdItems[id], { pending: true }); _pdCh++; }
+    }
+    const _pdOut = Object.assign({}, local.patternDrill || {}, { items: _pdItems });
+    // custom：按 id 并集（同 id 留本机）；mockSynced：签名并集
+    const _lc = Array.isArray(local.patternDrill && local.patternDrill.custom) ? local.patternDrill.custom.slice() : [];
+    const _cc = Array.isArray(cloud.patternDrill.custom) ? cloud.patternDrill.custom : [];
+    const _ids = new Set(_lc.map(x => x && x.id));
+    _cc.forEach(x => { if(x && x.id != null && !_ids.has(x.id)){ _lc.push(x); _pdCh++; } });
+    _pdOut.custom = _lc;
+    const _ms = Array.from(new Set([
+      ...((Array.isArray(local.patternDrill && local.patternDrill.mockSynced)) ? local.patternDrill.mockSynced : []),
+      ...((Array.isArray(cloud.patternDrill.mockSynced)) ? cloud.patternDrill.mockSynced : [])
+    ]));
+    if(_ms.length !== ((local.patternDrill && local.patternDrill.mockSynced) || []).length) _pdCh++;
+    _pdOut.mockSynced = _ms;
+    if(_pdCh){ out.patternDrill = _pdOut; changes += _pdCh; }
+  }
   // 合并后同步镜像账号凭证到隔离键（云端可能带来/更新 Key/手机号/发音分，务必落盘镜像）
   if(typeof saveCredsMirror === 'function') saveCredsMirror();
   return { data: out, changes };
