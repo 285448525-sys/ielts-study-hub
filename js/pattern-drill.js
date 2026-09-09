@@ -1,8 +1,8 @@
 /* 句型闯关（pattern-drill）：Repair Drill 引擎（design/06 方案落地）
    架构：数据(data/patterns.json) + 引擎(本文件) + AI 只做判定(callRelay)。
    流程：给中文 + 用户自己的错句 → 用户 repair → AI 只判对/错 → 答错出同类补题(retry)，答对才过
-   → 新学组全过后显示组「易错点」总结 → 自由造句 → mastered → 艾宾浩斯 +1/+2/+4/+7/+15 复习。
-   复习模式混合连打、不逐题展开、答错降级 level 0。进度挂 DATA.patternDrill（云同步零额外代码）。
+   → 新学组全过后显示组「易错点」总结（自由造句已按之之 9/9 反馈移除）→ mastered → 艾宾浩斯 +1/+2/+4/+7/+15 复习。
+   复习模式混合连打、不逐题展开、答错降级 level 0；答错路径一律停住手动进下一题（9/9）。进度挂 DATA.patternDrill（云同步零额外代码）。
    AI 超时 3.2s 放行 + 标 pending（顶部计数），绝不卡流程。 */
 
 var PD_NEW_PER_DAY = 5;
@@ -19,9 +19,9 @@ var PD_CUR = null;        // { item, mode:'new'|'review'|'free', wrongCount, dem
 var PD_AUTO_NEXT = null;  // 自动跳转定时器
 var PD_RETRY = null;      // 补题上下文 { cn, fix }（答错后 AI 出的同类中文短句）
 var PD_RETRY_FAILS = 0;   // 同一道补题连续答错次数（≥2 放行，标 pending）
-var PD_STAGES = [];       // 新学题全过后的阶段：组 tip → 自由造句
+var PD_STAGES = [];       // 新学题全过后的阶段：组 tip
 var PD_STAGE_IDX = 0;
-var PD_NEW_GROUP_IDS = []; // 本轮新学涉及的组（决定 tip 与自由造句）
+var PD_NEW_GROUP_IDS = []; // 本轮新学涉及的组（决定 tip）
 var PD_BUSY = false;      // 判定进行中，防连点
 var PD_BOOTED = false;    // 引擎本页会话是否已启动（tab 切回不重建队列）
 
@@ -33,14 +33,6 @@ var PD_JUDGE_SYS = `你是雅思口语 5.5 分目标的语法裁判。用户在�
 - 正确：{"ok":true}
 - 错误：{"ok":false,"fix":"中文一句话，点出错误在哪 + 怎么改","retry":"针对同一错误点的一句同类中文短句（新的句子，让她翻译重说）"}
 绝不输出 6 分以上水平的改写，不要给整句正确翻译。`;
-
-var PD_FREE_SYS = `你是雅思口语 5.5 分目标的语法裁判。用户刚练完一组句型，现在用该句型自由说了一句关于自己的英文（没有标准答案）。你只判断这句话是否"正确"（意思清楚、结构没有严重错误即可）。
-【只纠严重影响理解的错误】：词序错、时态错、双动词、缺 be 动词、词性混淆、缺主语、缺助动词。
-【一律放过，判 ok】：单复数、a/an/the 漏用、三单 -s、大小写、标点、拼写(除非改变词义)。
-输出严格 JSON，不要任何前后文字：
-- 正确：{"ok":true}
-- 错误：{"ok":false,"fix":"中文一句话，点出错误在哪 + 怎么改","retry":"针对同一错误点的一句同类中文短句（新的句子，让她翻译重说）"}
-绝不输出 6 分以上水平的改写。`;
 
 var PD_RETRY_SYS = `你是雅思口语 5.5 分目标的语法裁判。用户刚才在某句型上犯了错，现在做"补题"：给一句同类的中文，她翻译成英文。你只重点检查她是否修复了原来那个错误点，其余一律放过（单复数、冠词、三单、大小写、标点、拼写都不算错）。
 输出严格 JSON，不要任何前后文字：
@@ -166,7 +158,8 @@ function pdStart(){
   pdNext();
 }
 
-/* 新学题全过后进入的阶段：各组 tip（直接告知不考）→ 自由造句 */
+/* 新学题全过后进入的阶段：各组 tip（直接告知不考）。
+   自由造句阶段已按之之 9/9 反馈整步移除（「毫无头绪该说啥」）。 */
 function pdBuildStages(){
   const stages = [];
   const hadNew = PD_QUEUE.some(q => q.mode === 'new');
@@ -174,7 +167,6 @@ function pdBuildStages(){
   for(const g of PD_GROUPS){
     if(PD_NEW_GROUP_IDS.indexOf(g.id) !== -1 && g.tip) stages.push({ type:'tip', group:g });
   }
-  stages.push({ type:'free' });
   return stages;
 }
 
@@ -187,7 +179,7 @@ function pdNext(){
     pdRenderItem();
     return;
   }
-  // 队列完 → tip / 自由造句 阶段
+  // 队列完 → tip 阶段
   if(!PD_STAGES.length) PD_STAGES = pdBuildStages();
   if(PD_STAGE_IDX < PD_STAGES.length){
     pdRenderStage(PD_STAGES[PD_STAGE_IDX]);
@@ -215,7 +207,7 @@ function pdRenderItem(){
   $('#pdAnswer').focus();
 }
 
-/* 补题 / 自由造句复用同一卡片 */
+/* 补题卡片 */
 function pdRenderRetry(){
   $('#pdTag').textContent = '补题 · 同类句（答对才过）';
   $('#pdTag').className = 'pd-tag';
@@ -254,23 +246,6 @@ function pdRenderStage(stage){
     window.scrollTo({ top:0, behavior:'smooth' });
     return;
   }
-  // 自由造句：不给中文，用今天的句型说一句自己的话
-  PD_CUR = { item:{ id:'__free__', cn:'', wrong:'', right:'' }, mode:'free', wrongCount:0 };
-  const focusList = PD_NEW_GROUP_IDS.map(gid => (PD_GROUPS.find(g => g.id === gid) || {}).tip).filter(Boolean).join(' ');
-  $('#pdTag').textContent = '自由造句 · 最后一关';
-  $('#pdTag').className = 'pd-tag';
-  $('#pdCn').textContent = '用今天的句型，说一句关于你自己的话';
-  $('#pdWrong').style.display = 'none';
-  pdResetAnswer('说完提交，AI 只查严重错误');
-  $('#pdHint').style.display = 'none';
-  $('#pdSkip').style.display = '';
-  $('#pdAnswer').placeholder = '比如说：Learning English makes me feel confident.（用今天的句型说你自己的）';
-  $('#trainCard').style.display = 'block';
-  const fb = $('#pdFeedback');
-  fb.className = 'pd-feedback';
-  fb.textContent = '';
-  if(focusList){ fb.className = 'pd-feedback info'; fb.textContent = focusList; }
-  $('#pdAnswer').focus();
 }
 
 function pdResetAnswer(statusText){
@@ -312,8 +287,6 @@ async function pdOnSubmit(){
     if(PD_RETRY){
       // 补题判定：无参考句，按原错误点判
       r = await pdAskAI(PD_RETRY_SYS, '原来的错误点：' + (PD_RETRY.fix || '（未知）') + '\n补题中文：' + PD_RETRY.cn + '\n用户答案：' + answer + '\n只重点检查原错误点是否修复，其余一律放过。');
-    } else if(PD_CUR && PD_CUR.mode === 'free'){
-      r = await pdAskAI(PD_FREE_SYS, '用户用今天练的句型自由说的英文：' + answer);
     } else {
       const it = PD_CUR.item;
       r = await pdAskAI(PD_JUDGE_SYS, '题目：' + it.cn + '\n参考正确句：' + it.right + '\n用户答案：' + answer + '\n只判定用户答案是否正确（意思和基本结构对即可，细节如拼写/单复数放过）。');
@@ -339,16 +312,11 @@ function pdHandleResult(r){
       // 补题答对 → 原题过
       const wasRetry = true;
       PD_RETRY = null;
-      if(PD_CUR.mode === 'free'){
-        return pdFreePass();
-      }
       if(!PD_CUR.demoted) pdMarkMastered(it);
       pdClearPending(it);
       fb.className = 'pd-feedback ok';
       fb.textContent = '✓ 补题也过了，这条算修复。';
       pdAdvance('下一题 ▸', wasRetry);
-    } else if(PD_CUR.mode === 'free'){
-      return pdFreePass();
     } else {
       if(!PD_CUR.demoted) pdMarkMastered(it);
       pdClearPending(it);
@@ -369,8 +337,8 @@ function pdHandleResult(r){
       if(PD_RETRY_FAILS >= 2){
         fb.innerHTML += '<br>先过，这条下次还会作为新题出现。';
         PD_RETRY = null;
-        if(PD_CUR.mode === 'free') return pdFreePass(true);
-        pdAdvance('下一题 ▸', false);   // 判过错不算 pending，明天作为新题重来
+        // 之之 9/9：答错一律停住，手动进下一题，不自动跳
+        pdAdvance('下一题 ▸', false, true);   // 判过错不算 pending，明天作为新题重来
       }
       return;
     }
@@ -383,16 +351,18 @@ function pdHandleResult(r){
     fb.className = 'pd-feedback bad';
     fb.innerHTML = '✗ ' + (r.fix || '有错误，再想想。');
     if(r.retry){
-      // 同类补题：答对才过（方案七）
-      fb.innerHTML += '<br><b>补题</b>：请把下面这句翻译成英文（同一错误点，换个说法）——';
+      // 同类补题：答对才过（方案七）。之之 9/9：不自动切卡——先看错在哪，手动点「看补题 ▸」再进
+      fb.innerHTML += '<br><b>补题</b>：同一错误点换个说法，看完错在哪点按钮继续——';
       PD_RETRY = { cn: r.retry, fix: r.fix || '' };
       PD_RETRY_FAILS = 0;
-      setTimeout(() => { pdRenderRetry(); }, 1200);
-    } else {
-      fb.innerHTML += '　→ 重说一遍试试。';
-      $('#pdAnswer').value = '';
-      $('#pdAnswer').focus();
+      $('#pdSubmit').textContent = '看补题 ▸';
+      $('#pdSubmit').disabled = false;
+      $('#pdSubmit').onclick = () => pdRenderRetry();
+      return;
     }
+    fb.innerHTML += '　→ 重说一遍试试。';
+    $('#pdAnswer').value = '';
+    $('#pdAnswer').focus();
     $('#pdSubmit').disabled = false;
     if(PD_CUR.wrongCount >= 2){ $('#pdReveal').style.display = ''; }
     $('#pdReveal').onclick = () => {
@@ -400,8 +370,7 @@ function pdHandleResult(r){
       fb.innerHTML = '正确句：<b>' + it.right + '</b><br>看一眼就行，这条下次还会作为新题出现。';
       $('#pdReveal').style.display = 'none';
       PD_RETRY = null;
-      if(PD_CUR.mode === 'free') return pdFreePass(true);
-      pdAdvance('下一题 ▸', false);
+      pdAdvance('下一题 ▸', false, true);   // 答错路径：手动进下一题
     };
   } else {
     // 未判定（超时 / 无 Key / 异常）→ 放行不卡流程，标 pending
@@ -413,29 +382,17 @@ function pdHandleResult(r){
       fb.innerHTML = '正确句：<b>' + it.right + '</b>';
       $('#pdReveal').style.display = 'none';
       PD_RETRY = null;
-      if(PD_CUR.mode === 'free') return pdFreePass(true);
       pdMarkPending(it);
       pdAdvance('下一题 ▸', false);
     };
-    if(PD_RETRY || (PD_CUR && PD_CUR.mode === 'free')){
-      $('#pdReveal').style.display = 'none';   // 补题/自由造句无参考句，不展示正确句
-    }
     if(PD_RETRY){
+      $('#pdReveal').style.display = 'none';   // 补题无参考句，不展示正确句
       PD_RETRY = null;
-      if(PD_CUR.mode === 'free') return pdFreePass(true);
       pdMarkPending(it);
       pdAdvance('下一题 ▸', false);
       return;
     }
     pdMarkPending(it);
-    if(PD_CUR.mode === 'free'){
-      // 自由造句无判定放行 → 直接完成该阶段（否则会死循环重渲染本阶段）
-      $('#pdSubmit').textContent = '我过了，完成 ▸';
-      $('#pdSubmit').disabled = false;
-      $('#pdSubmit').onclick = () => pdFreePass(true);
-      PD_AUTO_NEXT = setTimeout(() => pdFreePass(true), 4000);
-      return;
-    }
     $('#pdSubmit').textContent = '我过了，下一题 ▸';
     $('#pdSubmit').disabled = false;
     $('#pdSubmit').onclick = () => { PD_IDX++; pdNext(); };
@@ -453,20 +410,13 @@ function pdMarkPending(it){
   pdUpdatePendingTop();
 }
 
-function pdAdvance(btnText, wasRetry){
+function pdAdvance(btnText, wasRetry, manual){
   $('#pdProgressFill').style.width = Math.round((PD_IDX + 1) / Math.max(1, PD_QUEUE.length) * 100) + '%';
   $('#pdSubmit').textContent = btnText;
   $('#pdSubmit').disabled = false;
   $('#pdSubmit').onclick = () => { PD_IDX++; pdNext(); };
-  PD_AUTO_NEXT = setTimeout(() => { PD_IDX++; pdNext(); }, 1100);
-}
-
-/* 自由造句过关 → 收尾阶段 */
-function pdFreePass(gaveUp){
-  PD_RETRY = null;
-  PD_STAGE_IDX++;
-  if(!gaveUp){ toast('自由造句过关，完成！'); }
-  pdNext();
+  /* manual=true：答错路径停住，不自动跳（之之 9/9：答错后自己手动选下一题） */
+  if(!manual) PD_AUTO_NEXT = setTimeout(() => { PD_IDX++; pdNext(); }, 1100);
 }
 
 function pdMarkMastered(it){
@@ -586,8 +536,10 @@ async function pdAutoSyncMock(){
     if(raw === '__TIMEOUT__'){ r = { ok:null, err:'同步超时' }; }
     else {
       const j = aiJson(raw);
-      if(!j || !Array.isArray(j.items)){ r = { ok:null, err:'同步结果格式异常' }; }
-      else r = { ok:true, items: j.items };
+      // 容错：模型偶尔直接回裸数组而不是 {items:[...]}
+      const arr = j ? (Array.isArray(j) ? j : (Array.isArray(j.items) ? j.items : null)) : null;
+      if(!arr){ r = { ok:null, err:'同步结果格式异常' }; }
+      else r = { ok:true, items: arr };
     }
   }catch(e){ r = { ok:null, err: (e && e.message) || '同步失败' }; }
   if(r.ok !== true){
@@ -647,8 +599,10 @@ async function pdImportParse(){
     if(raw === '__TIMEOUT__'){ r = { ok:null, err:'识别超时' }; }
     else {
       const j = aiJson(raw);
-      if(!j || !Array.isArray(j.items)){ r = { ok:null, err:'返回格式异常' }; }
-      else r = { ok:true, items: j.items.filter(x => x && String(x.right || '').trim()) };
+      // 容错：模型偶尔直接回裸数组而不是 {items:[...]}
+      const arr = j ? (Array.isArray(j) ? j : (Array.isArray(j.items) ? j.items : null)) : null;
+      if(!arr){ r = { ok:null, err:'返回格式异常' }; }
+      else r = { ok:true, items: arr.filter(x => x && String(x.right || '').trim()) };
     }
   }catch(e){ r = { ok:null, err: (e && e.message) || '识别失败' }; }
   parseBtn.disabled = false;
@@ -733,7 +687,6 @@ ready(async () => {
   $('#pdHint').addEventListener('click', pdHint);
   $('#pdSkip').addEventListener('click', () => {
     PD_RETRY = null;
-    if(PD_CUR && PD_CUR.mode === 'free'){ pdFreePass(true); return; }   // 跳过自由造句 = 完成该阶段，防止死循环
     PD_IDX++; pdNext();
   });
   $('#pdAnswer').addEventListener('keydown', e => {
