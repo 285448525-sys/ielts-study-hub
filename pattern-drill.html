@@ -37,7 +37,7 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20260908a"></script>
 <script defer src="js/common.js?v=20260909e"></script>
-<script defer src="js/pattern-drill.js?v=20260909d"></script>
+<script defer src="js/pattern-drill.js?v=20260909e"></script>
 <style>
   .pd-meta{font-size:13px;color:var(--muted);margin-left:auto;align-self:center}
   .pd-progress{height:6px;background:var(--bg);border-radius:20px;overflow:hidden;margin:0 0 14px}
@@ -88,6 +88,18 @@
   <section class="card" id="overview">
     <h2>今日任务</h2>
     <div id="ovBody"></div>
+    <div class="pd-bar" style="margin-top:10px">
+      <button class="btn btn-ghost" id="pdImportBtn" style="min-height:36px">导入句型</button>
+      <span class="pd-note" id="pdSyncNote" style="margin:0"></span>
+    </div>
+    <div id="pdImportPanel" hidden style="margin-top:10px">
+      <textarea id="pdImportText" class="pd-input" style="min-height:70px" placeholder="粘贴你想练的内容：中文句 / 英文句 / 错句+改正 / 笔记，AI 自动识别并入库"></textarea>
+      <div class="pd-bar">
+        <button class="btn btn-primary" id="pdImportParse">AI 解析</button>
+        <button class="btn btn-ghost" id="pdImportCancel">收起</button>
+      </div>
+      <div id="pdImportResult"></div>
+    </div>
   </section>
 
   <section class="card" id="trainCard" style="display:none">

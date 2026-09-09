@@ -45,7 +45,7 @@
   <script defer src="js/mock-report.js?v=20260830u"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
   <script defer src="js/mock.js?v=20260830v"></script>
-  <script defer src="js/pattern-drill.js?v=20260909d"></script>
+  <script defer src="js/pattern-drill.js?v=20260909e"></script>
 <style>
   /* === 极简口语模块 · 优化版（沿用全站 Teal Token） === */
 
@@ -661,6 +661,18 @@
     <section class="card" id="overview">
       <h2>今日任务</h2>
       <div id="ovBody"></div>
+      <div class="pd-bar" style="margin-top:10px">
+        <button class="btn btn-ghost" id="pdImportBtn" style="min-height:36px">导入句型</button>
+        <span class="pd-note" id="pdSyncNote" style="margin:0"></span>
+      </div>
+      <div id="pdImportPanel" hidden style="margin-top:10px">
+        <textarea id="pdImportText" class="pd-input" style="min-height:70px" placeholder="粘贴你想练的内容：中文句 / 英文句 / 错句+改正 / 笔记，AI 自动识别并入库"></textarea>
+        <div class="pd-bar">
+          <button class="btn btn-primary" id="pdImportParse">AI 解析</button>
+          <button class="btn btn-ghost" id="pdImportCancel">收起</button>
+        </div>
+        <div id="pdImportResult"></div>
+      </div>
     </section>
 
     <section class="card" id="trainCard" style="display:none">

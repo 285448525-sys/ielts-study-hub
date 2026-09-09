@@ -47,6 +47,21 @@ var PD_RETRY_SYS = `你是雅思口语 5.5 分目标的语法裁判。用户刚�
 - 正确：{"ok":true}
 - 错误：{"ok":false,"fix":"中文一句话，点出错误在哪 + 怎么改"}`;
 
+var PD_IMPORT_SYS = `你在为雅思「句子修复」练习库做解析。用户会粘贴一段任意文本（可能是：中文句子、英文句子、他写错的英文+改正、句型笔记、混合内容）。把其中值得练习的内容解析成练习条目。
+每条格式：{"cn":"中文提示句（她看中文说英文）","wrong":"英文错句，没有就空字符串","right":"正确英文句","fix":"中文一句话点出易错点，没有就空字符串"}
+【规则】
+1. 只提完整句子，最多 12 条，宁缺毋滥；标题、说明文字等无关内容忽略。
+2. 原文是「错句 → 改正」对：wrong=错句，right=改正句，fix=点出错误类型。
+3. 原文只是正确英文句：wrong 留空，right=该句，cn=对应中文。
+4. 原文是中文句：right=地道的英文翻译，cn=原中文，wrong 留空。
+5. fix 只点严重错误（词序/时态/双动词/缺 be/词性/缺主语），不纠结拼写标点。
+输出严格 JSON，不要任何解释：{"items":[...]}
+解析不出任何条目时输出 {"items":[]}。`;
+
+var PD_SYNC_SYS = `你在为「句子修复」练习库生成中文提示。输入是 JSON 数组 [{"i":0,"right":"正确英文句"},...]。
+对每句输出自然的口语化中文翻译（供用户看着中文说出这句英文）。
+输出严格 JSON，不要任何解释：{"items":[{"i":0,"cn":"中文"}]}`;
+
 function pdIsoDate(d){ d = d || new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
 function pdAddDays(iso, n){ const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate()+n); return pdIsoDate(d); }
 function pdWithTimeout(p, ms){ return new Promise((res, rej) => { const t = setTimeout(() => res('__TIMEOUT__'), ms); p.then(v => { clearTimeout(t); res(v); }, e => { clearTimeout(t); rej(e); }); }); }
@@ -128,7 +143,10 @@ function pdShowOverview(){
   } else {
     html += '<p class="pd-note">今天没有新任务。已掌握的全部还没到复习日——去练别的模块，或加新题库。</p>';
   }
-  html += '<p class="pd-note">规则：给中文 + 你自己的错句，repair 成正确句。答错会提示错在哪，并出一道同类补题，答对才过关。AI 只判对/错，不剧透答案。</p>';
+  const customN = (PD_PROGRESS.custom || []).length;
+  html += '<p class="pd-note">规则：给中文 + 你自己的错句，repair 成正确句。答错会提示错在哪，并出一道同类补题，答对才过关。AI 只判对/错，不剧透答案。'
+    + (customN ? '句型库含 <b>' + customN + '</b> 句自建句子（模考错句自动同步 / 手动导入），之后的练习优先出现。' : '')
+    + '</p>';
   $('#ovBody').innerHTML = html;
 }
 
@@ -501,6 +519,196 @@ function pdHint(){
   fb.innerHTML = '提示（易错点）：' + (it.fix || '') + '<br>正确句先别看，自己 repair 一遍。';
 }
 
+/* ===== 我的句型库（模考错句自动联动 + 自定义导入，2026-09-09）=====
+   存 DATA.patternDrill.custom[]（随 hubSave 云同步）：
+   { id, cn, wrong, right, fix, focus, src:'mock'|'import', added }
+   模考来源：DATA.mockRecords[].parts.{p1,p2,p3}.fixes[].errors[]{wrong,correct,note}，
+   已同步的按签名记入 patternDrill.mockSynced[]，不重复导入。 */
+
+function pdErrSig(w, c){ return (String(w || '') + '→' + String(c || '')).toLowerCase().replace(/\s+/g, ' ').trim(); }
+
+/* 把 custom 条目包装成第一个组（她的错句优先出） */
+function pdEnsureCustomGroup(){
+  PD_GROUPS = PD_GROUPS.filter(g => g.id !== 'GCUSTOM');
+  const items = DATA.patternDrill.custom || [];
+  if(items.length) PD_GROUPS.unshift({ id:'GCUSTOM', name:'我的句型', priority:0, why:'', tip:'', items: items });
+}
+
+function pdCollectMockErrors(){
+  const out = []; const seen = new Set();
+  (DATA.mockRecords || []).forEach(rec => {
+    const parts = rec && rec.parts; if(!parts) return;
+    ['p1', 'p2', 'p3'].forEach(k => {
+      const p = parts[k]; if(!p || !p.fixes) return;
+      (p.fixes || []).forEach(f => {
+        (f.errors || []).forEach(e => {
+          const w = String((e && e.wrong) || '').trim(), c = String((e && e.correct) || '').trim();
+          if(!w || !c || w.toLowerCase() === c.toLowerCase()) return;
+          const sig = pdErrSig(w, c);
+          if(seen.has(sig)) return; seen.add(sig);
+          out.push({ wrong: w, right: c, fix: String((e && e.note) || '').trim(), sig: sig });
+        });
+      });
+    });
+  });
+  return out;
+}
+
+function pdSyncPending(){
+  const synced = new Set(DATA.patternDrill.mockSynced || []);
+  const mine = new Set((DATA.patternDrill.custom || []).map(it => pdErrSig(it.wrong, it.right)));
+  return pdCollectMockErrors().filter(e => !synced.has(e.sig) && !mine.has(e.sig));
+}
+
+function pdSetSyncNote(html){ const el = document.getElementById('pdSyncNote'); if(el) el.innerHTML = html || ''; }
+
+/* 若引擎还没开练（还在第 1 题、没在判定中），重建队列让新句型立即生效 */
+function pdRefreshQueueIfIdle(){
+  if(PD_BOOTED && PD_IDX === 0 && !PD_BUSY && !PD_RETRY && !$('#pdAnswer').value){
+    PD_QUEUE = pdBuildQueue(); PD_STAGES = []; PD_STAGE_IDX = 0; PD_RETRY = null;
+    pdShowOverview(); pdUpdatePendingTop();
+    if(PD_QUEUE.length) pdRenderItem();
+  }
+}
+
+/* 模考错句 → 自动同步（AI 只补中文提示，错/对句直接取报告） */
+async function pdAutoSyncMock(){
+  if(!DATA.settings.relayToken){ return; }
+  const pending = pdSyncPending();
+  if(!pending.length){ pdSetSyncNote(''); return; }
+  const batch = pending.slice(0, 30);
+  pdSetSyncNote('⏳ 正在同步 ' + batch.length + ' 句模考错句…');
+  let r;
+  try{
+    const raw = await pdWithTimeout(callRelay('pattern_sync',
+      [{ role:'system', content: PD_SYNC_SYS }, { role:'user', content: JSON.stringify(batch.map((e, i) => ({ i: i, right: e.right }))) }],
+      0, { max_tokens: 1500 }), 20000);
+    if(raw === '__TIMEOUT__'){ r = { ok:null, err:'同步超时' }; }
+    else {
+      const j = aiJson(raw);
+      if(!j || !Array.isArray(j.items)){ r = { ok:null, err:'同步结果格式异常' }; }
+      else r = { ok:true, items: j.items };
+    }
+  }catch(e){ r = { ok:null, err: (e && e.message) || '同步失败' }; }
+  if(r.ok !== true){
+    pdSetSyncNote('⚠️ 模考错句同步失败（' + r.err + '）· <a href="javascript:void(0)" id="pdSyncRetry" style="color:var(--primary)">重试</a>');
+    const rb = document.getElementById('pdSyncRetry');
+    if(rb) rb.onclick = () => pdAutoSyncMock();
+    return;
+  }
+  const cnMap = {};
+  (r.items || []).forEach(x => { if(x && x.cn != null) cnMap[x.i] = String(x.cn).trim(); });
+  const today = pdIsoDate();
+  DATA.patternDrill.mockSynced = DATA.patternDrill.mockSynced || [];
+  batch.forEach((e, i) => {
+    DATA.patternDrill.custom.push({
+      id: 'M' + Date.now().toString(36) + i,
+      cn: cnMap[i] || e.right,
+      wrong: e.wrong, right: e.right, fix: e.fix || '',
+      focus: '模考错句', src: 'mock', added: today
+    });
+    DATA.patternDrill.mockSynced.push(e.sig);
+  });
+  pdSave();
+  pdEnsureCustomGroup();
+  pdSetSyncNote('✓ 已自动同步 ' + batch.length + ' 句模考错句进「我的句型」');
+  toast('已同步 ' + batch.length + ' 句模考错句，之后的练习优先出现');
+  pdRefreshQueueIfIdle();
+}
+
+/* ===== 自定义导入：粘贴 → AI 解析 → 预览 → 加库；失败可重试/换一段 ===== */
+var PD_IMPORT_LAST = [];
+
+function pdImportToggle(force){
+  const panel = document.getElementById('pdImportPanel');
+  if(!panel) return;
+  panel.hidden = (force != null) ? !force : !panel.hidden;
+  if(!panel.hidden) document.getElementById('pdImportText').focus();
+}
+
+function pdImportReset(){
+  document.getElementById('pdImportText').value = '';
+  document.getElementById('pdImportResult').innerHTML = '';
+  PD_IMPORT_LAST = [];
+}
+
+async function pdImportParse(){
+  const text = document.getElementById('pdImportText').value.trim();
+  const resEl = document.getElementById('pdImportResult');
+  if(!text){ toast('先粘贴你想练的句型内容'); return; }
+  const parseBtn = document.getElementById('pdImportParse');
+  parseBtn.disabled = true;
+  resEl.innerHTML = '<div class="pd-note">⏳ AI 正在识别内容与结构…</div>';
+  let r;
+  try{
+    const raw = await pdWithTimeout(callRelay('pattern_import',
+      [{ role:'system', content: PD_IMPORT_SYS }, { role:'user', content: text.slice(0, 4000) }],
+      0, { max_tokens: 2000 }), 30000);
+    if(raw === '__TIMEOUT__'){ r = { ok:null, err:'识别超时' }; }
+    else {
+      const j = aiJson(raw);
+      if(!j || !Array.isArray(j.items)){ r = { ok:null, err:'返回格式异常' }; }
+      else r = { ok:true, items: j.items.filter(x => x && String(x.right || '').trim()) };
+    }
+  }catch(e){ r = { ok:null, err: (e && e.message) || '识别失败' }; }
+  parseBtn.disabled = false;
+  const fallbackBtns = '<a href="javascript:void(0)" class="pd-import-retry" style="color:var(--primary)">重试</a>　<a href="javascript:void(0)" class="pd-import-new" style="color:var(--primary)">换一段</a>';
+  if(r.ok !== true || !r.items.length){
+    resEl.innerHTML = '<div class="pd-note">⚠️ ' + (r.ok !== true ? ('识别失败：' + r.err) : '没识别出可练习的完整句子') + '　' + fallbackBtns + '</div>';
+  } else {
+    PD_IMPORT_LAST = r.items.map(x => ({
+      cn: String(x.cn || '').trim(),
+      wrong: String(x.wrong || '').trim(),
+      right: String(x.right).trim(),
+      fix: String(x.fix || '').trim()
+    }));
+    resEl.innerHTML = '<div class="pd-note">识别出 <b>' + PD_IMPORT_LAST.length + '</b> 句，预览：</div>'
+      + PD_IMPORT_LAST.map(it =>
+        '<div class="pd-wrong" style="border-left-color:var(--primary);margin-top:8px">'
+        + (it.wrong ? '<b>' + escapeHtml(it.wrong) + '</b> → ' : '')
+        + '<b style="color:var(--primary)">' + escapeHtml(it.right) + '</b>'
+        + (it.cn ? '<br>' + escapeHtml(it.cn) : '')
+        + (it.fix ? '<br><span style="color:var(--muted)">' + escapeHtml(it.fix) + '</span>' : '')
+        + '</div>').join('')
+      + '<div class="pd-bar"><button class="btn btn-primary" id="pdImportAdd2">全部加入句型库（' + PD_IMPORT_LAST.length + '）</button><button class="btn btn-ghost" id="pdImportRetry3">重试</button><button class="btn btn-ghost" id="pdImportNew3">换一段</button></div>';
+  }
+  const add2 = document.getElementById('pdImportAdd2'); if(add2) add2.onclick = pdImportAdd;
+  resEl.querySelectorAll('.pd-import-retry').forEach(a => a.onclick = pdImportParse);
+  const rt3 = document.getElementById('pdImportRetry3'); if(rt3) rt3.onclick = pdImportParse;
+  resEl.querySelectorAll('.pd-import-new').forEach(a => a.onclick = () => { pdImportReset(); document.getElementById('pdImportText').focus(); });
+  const nw3 = document.getElementById('pdImportNew3'); if(nw3) nw3.onclick = () => { pdImportReset(); document.getElementById('pdImportText').focus(); };
+}
+
+function pdImportAdd(){
+  if(!PD_IMPORT_LAST.length) return;
+  const today = pdIsoDate();
+  PD_IMPORT_LAST.forEach((it, i) => {
+    DATA.patternDrill.custom.push({
+      id: 'C' + Date.now().toString(36) + i,
+      cn: it.cn || it.right,
+      wrong: it.wrong, right: it.right, fix: it.fix,
+      focus: '自定义导入', src: 'import', added: today
+    });
+  });
+  const n = PD_IMPORT_LAST.length;
+  pdSave();
+  pdEnsureCustomGroup();
+  pdImportReset();
+  pdImportToggle(false);
+  toast('已加入 ' + n + ' 句句型，之后的练习优先出现');
+  pdRefreshQueueIfIdle();
+}
+
+function pdImportInit(){
+  const btn = document.getElementById('pdImportBtn');
+  if(!btn) return;
+  btn.onclick = () => pdImportToggle();
+  const cancel = document.getElementById('pdImportCancel');
+  if(cancel) cancel.onclick = () => pdImportToggle(false);
+  const parse = document.getElementById('pdImportParse');
+  if(parse) parse.onclick = pdImportParse;
+}
+
 ready(async () => {
   pdEnsureProgress();
   /* 题库走 window 级缓存：口语页软导航每次重进都会重跑本 ready，
@@ -531,5 +739,11 @@ ready(async () => {
   $('#pdAnswer').addEventListener('keydown', e => {
     if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); pdOnSubmit(); }
   });
+  /* 我的句型库：custom/mockSynced 缺字段补齐（老数据兼容）→ 自建组插队首 → 绑导入 UI */
+  DATA.patternDrill.custom = DATA.patternDrill.custom || [];
+  DATA.patternDrill.mockSynced = DATA.patternDrill.mockSynced || [];
+  pdEnsureCustomGroup();
+  pdImportInit();
   pdStart();
+  pdAutoSyncMock();   // 异步：不阻塞首屏；同步失败在概览区显示可重试提示
 });
