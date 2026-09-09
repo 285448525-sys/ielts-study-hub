@@ -1,0 +1,324 @@
+{
+  "version": 1,
+  "source": "之之真实错句。49 预编 E1-E6（2026 两次模考实录 Quiet place / Museum）+ 87 自建（模考联动/手动导入）。首期聚焦错得最多的 Top3：E1 时态漂移 11 / E2 词性混淆 8 / E3 双动词缺 be 7。B 的每句 wrong 都是她真实说过的原句；A 的提问句为引导句（wrong 空 = 她没错过）。",
+  "scenes": [
+    {
+      "id": "S-E1-1",
+      "topic": "P2 去年去过的一个安静地方",
+      "part": "P2",
+      "patterns": ["E1"],
+      "goal": "把「讲过去的事滑回现在时」这个最大的毛病打死：全程 was / were / 过去式",
+      "lines": [
+        {
+          "id": "S-E1-1-L1",
+          "speaker": "A",
+          "cn": "你去年夏天去哪儿了？",
+          "right": "Where did you go last summer?",
+          "wrong": "",
+          "fix": "",
+          "focus": "past-tense",
+          "hints": [
+            { "level": 1, "type": "word", "text": "go [ɡəʊ] v.去；summer [ˈsʌmə] n.夏天" },
+            { "level": 2, "type": "rule", "text": "问过去的事：did + 主语 + 动词原形" }
+          ]
+        },
+        {
+          "id": "S-E1-1-L2",
+          "speaker": "B",
+          "cn": "这个地方在厦门。",
+          "right": "The place was in Xiamen.",
+          "wrong": "This place in Xiamen.",
+          "fix": "P2 讲去年 → was，不是 is；别把 was 整个漏掉",
+          "focus": "past-tense",
+          "hints": [
+            { "level": 1, "type": "word", "text": "was [wɒz] v.是（过去式）；place [pleɪs] n.地方" },
+            { "level": 2, "type": "rule", "text": "P2 全程过去时：讲去年就用 was / were" }
+          ]
+        },
+        {
+          "id": "S-E1-1-L3",
+          "speaker": "A",
+          "cn": "那里怎么样？",
+          "right": "What was it like there?",
+          "wrong": "",
+          "fix": "",
+          "focus": "past-tense",
+          "hints": [
+            { "level": 1, "type": "word", "text": "like [laɪk] prep.像…样；there [ðeə] adv.那里" },
+            { "level": 2, "type": "rule", "text": "问过去的感受：What was it like...?" }
+          ]
+        },
+        {
+          "id": "S-E1-1-L4",
+          "speaker": "B",
+          "cn": "所以它非常安静。",
+          "right": "So it was very quiet.",
+          "wrong": "So it is very quiet.",
+          "fix": "过去叙事 → was，不是 is",
+          "focus": "past-tense",
+          "hints": [
+            { "level": 1, "type": "word", "text": "quiet [ˈkwaɪət] adj.安静的" },
+            { "level": 2, "type": "rule", "text": "过去 → it was，不是 it is" }
+          ]
+        },
+        {
+          "id": "S-E1-1-L5",
+          "speaker": "B",
+          "cn": "那儿几乎没人。",
+          "right": "There was almost no one there.",
+          "wrong": "Almost no one in there.",
+          "fix": "缺 there be → There was almost no one there",
+          "focus": "past-tense",
+          "hints": [
+            { "level": 1, "type": "word", "text": "almost [ˈɔːlməʊst] adv.几乎；no one 没有人" },
+            { "level": 2, "type": "rule", "text": "「那儿有…」= There was / There were，不能省" }
+          ]
+        }
+      ],
+      "variants": [
+        { "after": "S-E1-1-L2", "pattern": "The place was in X", "fills": ["The place was in Hangzhou", "The place was near the sea", "The place was in a small town"] },
+        { "after": "S-E1-1-L4", "pattern": "So it was very X", "fills": ["So it was very noisy", "So it was very crowded", "So it was very peaceful"] },
+        { "after": "S-E1-1-L5", "pattern": "There was/were almost no X there", "fills": ["There were almost no cars there", "There was almost no noise there", "There were almost no people there"] }
+      ]
+    },
+    {
+      "id": "S-E1-2",
+      "topic": "P2 和家人在一起的一天",
+      "part": "P2",
+      "patterns": ["E1"],
+      "goal": "过去叙事里每一句都要过去式：wanted / let me go / walked，别滑回现在时",
+      "lines": [
+        {
+          "id": "S-E1-2-L1",
+          "speaker": "A",
+          "cn": "你为什么去那儿？",
+          "right": "Why did you go there?",
+          "wrong": "",
+          "fix": "",
+          "focus": "past-tense",
+          "hints": [
+            { "level": 1, "type": "word", "text": "why [waɪ] adv.为什么" },
+            { "level": 2, "type": "rule", "text": "问过去的原因：Why did + 主语 + 原形" }
+          ]
+        },
+        {
+          "id": "S-E1-2-L2",
+          "speaker": "B",
+          "cn": "因为我们觉得很累。",
+          "right": "Because we were very tired.",
+          "wrong": "Because we thought very tired.",
+          "fix": "觉得很累 = we were tired，不是 think tired",
+          "focus": "past-tense",
+          "hints": [
+            { "level": 1, "type": "word", "text": "tired [ˈtaɪəd] adj.累的；because [bɪˈkɒz] conj.因为" },
+            { "level": 2, "type": "rule", "text": "「觉得累」= be tired，不用 think；过去用 were" }
+          ]
+        },
+        {
+          "id": "S-E1-2-L3",
+          "speaker": "B",
+          "cn": "我爸妈想让我放松一下。",
+          "right": "My parents just wanted me to relax.",
+          "wrong": "My parents just want me to relax.",
+          "fix": "过去叙事 → wanted，不是 want",
+          "focus": "past-tense",
+          "hints": [
+            { "level": 1, "type": "word", "text": "want [wɒnt] v.想要；relax [rɪˈlæks] v.放松" },
+            { "level": 2, "type": "rule", "text": "讲那次的事 → wanted，不是 want" }
+          ]
+        },
+        {
+          "id": "S-E1-2-L4",
+          "speaker": "B",
+          "cn": "他们让我去一个博物馆。",
+          "right": "They let me go to a museum.",
+          "wrong": "They let me to go a museum.",
+          "fix": "let sb do（不加 to）+ go TO a museum",
+          "focus": "past-tense",
+          "hints": [
+            { "level": 1, "type": "word", "text": "let [let] v.让；museum [mjuˈziːəm] n.博物馆" },
+            { "level": 2, "type": "rule", "text": "let sb do sth：let 后面直接加动词原形，不加 to" }
+          ]
+        },
+        {
+          "id": "S-E1-2-L5",
+          "speaker": "B",
+          "cn": "我一直跟在我爸妈后面走。",
+          "right": "I walked around with my parents.",
+          "wrong": "I walk around my parents all the time.",
+          "fix": "过去 → walked；跟着走 = walk around with sb",
+          "focus": "past-tense",
+          "hints": [
+            { "level": 1, "type": "word", "text": "walk [wɔːk] v.走；around [əˈraʊnd] prep.围绕" },
+            { "level": 2, "type": "rule", "text": "过去 → walked；「和某人一起走」= walk around with sb" }
+          ]
+        }
+      ],
+      "variants": [
+        { "after": "S-E1-2-L2", "pattern": "Because we were very X", "fills": ["Because we were very busy", "Because we were very bored", "Because we were very stressed"] },
+        { "after": "S-E1-2-L3", "pattern": "My parents wanted me to X", "fills": ["My parents wanted me to rest", "My parents wanted me to study", "My parents wanted me to come home"] },
+        { "after": "S-E1-2-L4", "pattern": "They let me go to X", "fills": ["They let me go to a park", "They let me go to a cafe", "They let me go to the library"] },
+        { "after": "S-E1-2-L5", "pattern": "I walked around with X", "fills": ["I walked around with my friends", "I walked around with my sister", "I walked around with my classmates"] }
+      ]
+    },
+    {
+      "id": "S-E2-1",
+      "topic": "P1 好老师应该是什么样的",
+      "part": "P1",
+      "patterns": ["E2"],
+      "goal": "中文不分词性，英语要：并列必须同词性；feel / makes 后面跟形容词不是动词",
+      "lines": [
+        {
+          "id": "S-E2-1-L1",
+          "speaker": "A",
+          "cn": "你觉得什么样的老师是好老师？",
+          "right": "What makes a good teacher?",
+          "wrong": "",
+          "fix": "",
+          "focus": "parallel",
+          "hints": [
+            { "level": 1, "type": "word", "text": "make [meɪk] v.使得；teacher [ˈtiːtʃə] n.老师" },
+            { "level": 2, "type": "rule", "text": "What makes + 名词？= 什么造就了…" }
+          ]
+        },
+        {
+          "id": "S-E2-1-L2",
+          "speaker": "B",
+          "cn": "好老师要细心、乐于助人、有耐心。",
+          "right": "They should be careful, helpful and patient.",
+          "wrong": "It's careful, helpful and patience.",
+          "fix": "三个并列都用形容词：careful / helpful / patient",
+          "focus": "parallel",
+          "hints": [
+            { "level": 1, "type": "word", "text": "careful [ˈkeəfl] adj.细心的；patient [ˈpeɪʃnt] adj.有耐心的" },
+            { "level": 2, "type": "rule", "text": "and 并列要同词性：三个都用形容词，别混进名词" }
+          ]
+        },
+        {
+          "id": "S-E2-1-L3",
+          "speaker": "B",
+          "cn": "老师对社会很重要。",
+          "right": "Teachers are very important for society.",
+          "wrong": "Teacher is very important for this social.",
+          "fix": "泛指用复数 Teachers；社会 = society（名词），不是 social（形容词）",
+          "focus": "plural",
+          "hints": [
+            { "level": 1, "type": "word", "text": "society [səˈsaɪəti] n.社会；important [ɪmˈpɔːtnt] adj.重要的" },
+            { "level": 2, "type": "rule", "text": "泛指一类人用复数 Teachers；「社会」是名词 society，不是 social" }
+          ]
+        },
+        {
+          "id": "S-E2-1-L4",
+          "speaker": "B",
+          "cn": "它让我觉得很有成就感。",
+          "right": "It makes me feel successful.",
+          "wrong": "It is makes me felt successful.",
+          "fix": "双动词：去掉 is；makes me feel + 原形",
+          "focus": "adj-after-feel",
+          "hints": [
+            { "level": 1, "type": "word", "text": "successful [səkˈsesfl] adj.成功的；feel [fiːl] v.感觉" },
+            { "level": 2, "type": "rule", "text": "一个句子一个谓语：已有 makes，就不要 is" }
+          ]
+        },
+        {
+          "id": "S-E2-1-L5",
+          "speaker": "B",
+          "cn": "（干净的房间）让你更放松。",
+          "right": "A clean room makes you more relaxed.",
+          "wrong": "A clean room made you more relax.",
+          "fix": "放松的 = relaxed（形容词），不是 relax（动词）",
+          "focus": "adj-after-feel",
+          "note": "原句 E2-2 是片段「（干净的房间）让你更放松 / ...makes you more relaxed.」，为做成完整对话句补全主语为 A clean room；错误模式保留原样（relax 当形容词 + made 时态）。",
+          "hints": [
+            { "level": 1, "type": "word", "text": "relaxed [rɪˈlækst] adj.放松的；clean [kliːn] adj.干净的" },
+            { "level": 2, "type": "rule", "text": "make sb + 形容词：放松的用 relaxed，relax 是动词" }
+          ]
+        }
+      ],
+      "variants": [
+        { "after": "S-E2-1-L2", "pattern": "They should be X, Y and Z（都用形容词）", "fills": ["They should be kind, patient and funny", "They should be strict, fair and helpful"] },
+        { "after": "S-E2-1-L4", "pattern": "It makes me feel X（形容词）", "fills": ["It makes me feel relaxed", "It makes me feel happy", "It makes me feel proud"] },
+        { "after": "S-E2-1-L5", "pattern": "A X makes you more Y（形容词）", "fills": ["A tidy room makes you more comfortable", "A quiet room makes you more relaxed", "A clean desk makes you more focused"] }
+      ]
+    },
+    {
+      "id": "S-E3-1",
+      "topic": "P1 空闲时间与我的房间",
+      "part": "P1",
+      "patterns": ["E3"],
+      "goal": "一个句子只能有一个谓语动词：补上 be、去掉多余的 is、否定向 do 借力",
+      "lines": [
+        {
+          "id": "S-E3-1-L1",
+          "speaker": "A",
+          "cn": "你平时喜欢做什么？",
+          "right": "What do you like to do in your free time?",
+          "wrong": "",
+          "fix": "",
+          "focus": "missing-be",
+          "hints": [
+            { "level": 1, "type": "word", "text": "free time 空闲时间；like [laɪk] v.喜欢" },
+            { "level": 2, "type": "rule", "text": "What do you like to do...? 一般现在时问爱好" }
+          ]
+        },
+        {
+          "id": "S-E3-1-L2",
+          "speaker": "B",
+          "cn": "我很喜欢尝试不同的餐厅。",
+          "right": "I'm really into trying different restaurants.",
+          "wrong": "I really into trying some different restaurant.",
+          "fix": "缺 be：I'm really into；restaurants 用复数",
+          "focus": "missing-be",
+          "hints": [
+            { "level": 1, "type": "word", "text": "into [ˈɪntə] prep.热衷于；restaurant [ˈrestrɒnt] n.餐厅" },
+            { "level": 2, "type": "rule", "text": "be into doing：缺了 be 就不是句子，要说 I'm really into" }
+          ]
+        },
+        {
+          "id": "S-E3-1-L3",
+          "speaker": "B",
+          "cn": "我总是把房间弄脏。",
+          "right": "I always make my room a little dirty.",
+          "wrong": "I always made my room is a little dirty.",
+          "fix": "make + 宾语 + 形容词，中间不加 is（一个句子一个谓语）",
+          "focus": "double-verb",
+          "hints": [
+            { "level": 1, "type": "word", "text": "dirty [ˈdɜːti] adj.脏的；always [ˈɔːlweɪz] adv.总是" },
+            { "level": 2, "type": "rule", "text": "make + 宾语 + 形容词：已经有 make 当谓语，别再加 is" }
+          ]
+        },
+        {
+          "id": "S-E3-1-L4",
+          "speaker": "B",
+          "cn": "我很难保持房间整洁。",
+          "right": "I find it hard to keep my room tidy.",
+          "wrong": "I often hard to keep my room tidy.",
+          "fix": "「做某事难」= I find it hard to do，不是 I ... hard to do",
+          "focus": "find-it-adj",
+          "hints": [
+            { "level": 1, "type": "word", "text": "find [faɪnd] v.发现/觉得；tidy [ˈtaɪdi] adj.整洁的" },
+            { "level": 2, "type": "rule", "text": "「做…很难」= I find it hard to do sth，不能说 I ... hard to" }
+          ]
+        },
+        {
+          "id": "S-E3-1-L5",
+          "speaker": "B",
+          "cn": "年轻人不懂这些。",
+          "right": "Young people don't understand it.",
+          "wrong": "Young people not understand it.",
+          "fix": "否定要借 don't，不能直接 not + 动词",
+          "focus": "negation",
+          "hints": [
+            { "level": 1, "type": "word", "text": "understand [ˌʌndəˈstænd] v.理解；young [jʌŋ] adj.年轻的" },
+            { "level": 2, "type": "rule", "text": "否定句要借 don't / doesn't，不能把 not 直接放动词前" }
+          ]
+        }
+      ],
+      "variants": [
+        { "after": "S-E3-1-L2", "pattern": "I'm really into X", "fills": ["I'm really into cooking", "I'm really into taking photos", "I'm really into playing games"] },
+        { "after": "S-E3-1-L3", "pattern": "I always make X Y", "fills": ["I always make my desk a little messy", "I always make my room a little untidy", "I always make my bed in the morning"] },
+        { "after": "S-E3-1-L4", "pattern": "I find it hard to X", "fills": ["I find it hard to get up early", "I find it hard to focus for a long time", "I find it hard to start working"] }
+      ]
+    }
+  ]
+}

@@ -59,8 +59,29 @@ function pdAddDays(iso, n){ const d = new Date(iso + 'T00:00:00'); d.setDate(d.g
 function pdWithTimeout(p, ms){ return new Promise((res, rej) => { const t = setTimeout(() => res('__TIMEOUT__'), ms); p.then(v => { clearTimeout(t); res(v); }, e => { clearTimeout(t); rej(e); }); }); }
 
 function pdEnsureProgress(){
-  DATA.patternDrill = DATA.patternDrill || { items:{}, lastDate:'', todayDone:[] };
+  DATA.patternDrill = DATA.patternDrill || { items:{}, lastDate:'', todayDone:[], weakness:{} };
   PD_PROGRESS = DATA.patternDrill;
+  pdMigrateSceneV1();
+}
+
+/* design/07 场景闯关 v2 —— _sceneV1 迁移门（幂等；dirty 才落盘，禁无条件 hubSave）
+   ① 建 weakness={}：按 focus 聚合的弱点，供完成页「哪类在变好」排行（§5.2 / §十一）
+   ② 给老 custom[] 补 focus 字段：识别不出的一律留空，weakness 不计入（§十四） */
+function pdMigrateSceneV1(){
+  var p = DATA.patternDrill;
+  if(!p) return;
+  var dirty = false;
+  if(!p.weakness || typeof p.weakness !== 'object'){ p.weakness = {}; dirty = true; }
+  if(!p._sceneV1){
+    if(Array.isArray(p.custom)){
+      for(var i = 0; i < p.custom.length; i++){
+        if(p.custom[i] && typeof p.custom[i].focus === 'undefined'){ p.custom[i].focus = ''; dirty = true; }
+      }
+    }
+    p._sceneV1 = 1;
+    dirty = true;
+  }
+  if(dirty && typeof hubSave === 'function') hubSave();
 }
 
 function pdGroupOf(it){ return PD_GROUPS.find(g => g.items.indexOf(it) >= 0) || {}; }
@@ -748,6 +769,10 @@ function pdFmtMs(ms){
 }
 
 ready(async () => {
+  /* design/07 场景闯关 v2 上线开关：开关为 true 时由 scene-drill.js 接管 #pdView，
+     本文件（pdLegacy 兜底引擎）让位、不启动。阶段 1-5 默认 false → 行为与改动前完全一致。
+     注：开关判断必须在 ready 内（此时 scene-drill.js 已执行完），不能放脚本顶层。 */
+  if(window.__SCENE_V2_ON) return;
   pdEnsureProgress();
   /* 题库走 window 级缓存：口语页软导航每次重进都会重跑本 ready，
      不缓存则每次进口语 tab 都打一次 patterns.json（nav 冒烟 req2 5→3 实锤） */
