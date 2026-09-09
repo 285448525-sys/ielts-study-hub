@@ -2004,10 +2004,19 @@ function onHubPopState(){
    - 只活在当前会话（刷新即失效），部署新版（?v= 变化）不会被永久缓存住。 */
 const _navDocCache = new Map();     // file -> Document
 const _navCodeCache = new Map();    // src  -> 源码文本
+const NAV_FETCH_TIMEOUT = 20000;    // 单请求 20s 超时：极端慢网下让 softNavigate 走「整页跳转」兜底，绝不无限占住 _softNavBusy
+function navFetchOpts(){
+  if(typeof AbortController === 'function'){
+    const ac = new AbortController();
+    setTimeout(() => ac.abort(), NAV_FETCH_TIMEOUT);
+    return { cache: 'default', signal: ac.signal };
+  }
+  return { cache: 'default' };
+}
 function navCached(file){ return _navDocCache.has(file); }
 async function navGetDoc(file){
   if(_navDocCache.has(file)) return _navDocCache.get(file);
-  const res = await fetch(file, { cache: 'default' });   // 走 HTTP 缓存：未变动 304，部署后 ?v= 变化拿新
+  const res = await fetch(file, navFetchOpts());   // 走 HTTP 缓存：未变动 304，部署后 ?v= 变化拿新
   if(!res.ok) throw new Error('HTTP ' + res.status);
   const doc = new DOMParser().parseFromString(await res.text(), 'text/html');
   _navDocCache.set(file, doc);
@@ -2015,7 +2024,7 @@ async function navGetDoc(file){
 }
 async function navGetCode(src){
   if(_navCodeCache.has(src)) return _navCodeCache.get(src);
-  const res = await fetch(src, { cache: 'default' });
+  const res = await fetch(src, navFetchOpts());
   if(!res.ok) throw new Error('HTTP ' + res.status);
   const code = await res.text();
   _navCodeCache.set(src, code);
