@@ -24,6 +24,9 @@ const PAGES = [
   // 三合一入口：长难句 + 错题 + 听写（原听力 corpus + 词句 errorbook 合并）
   { id:'corpus',    file:'corpus.html',    icon:ICON.corpus,    name:'句子', desc:'长难句 · 错题 · 听写' },
   { id:'speaking',  file:'speaking.html',  icon:ICON.speaking,  name:'口语', desc:'题库 + AI 串题' },
+  // Repair Drill：中文+错句 → 自己 repair 正确版，AI 只当裁判（design/06）
+  // ⚠️ id 必须与文件名一致（软导航按 js/{id}.js 找主脚本），不能用缩写 pdrill
+  { id:'pattern-drill', file:'pattern-drill.html', icon:ICON.speaking, name:'句型', desc:'Repair 闯关 + 间隔复习' },
   { id:'writing',   file:'writing.html',   icon:ICON.writing,   name:'写作',       desc:'模板 + AI 评分' },
   { id:'wrongbook', file:'wrongbook.html', icon:ICON.wrongbook, name:'错句本',     desc:'写作/语料默写错句汇总' },
   { id:'review',    file:'review.html',    icon:ICON.review,    name:'回顾',       desc:'模考成绩 + 学习轨迹' },
@@ -40,7 +43,7 @@ function favPageIds(){
 }
 
 /* v5：简化后全部平铺，不再分折叠组（首页→回顾 一级；设置/服药 在分隔线下方） */
-const PRIMARY_NAV = ['index','timer','plans','practice','corpus','speaking','writing'];
+const PRIMARY_NAV = ['index','timer','plans','practice','corpus','speaking','pattern-drill','writing'];
 const MORE_NAV    = ['review','meds','settings'];
 const TAB_NAV     = ['index','timer','practice','speaking'];   // 旧 tabbar 主项（组件已删，仅用于计算「更多」弹层要收纳哪些页面）
 // 底部 Tab 标签覆盖：practice 在站内含「单词」，但原型/验收确认为「背词」，单独对齐（不改 PAGES 以免影响桌面侧栏）

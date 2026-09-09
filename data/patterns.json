@@ -1,0 +1,109 @@
+{
+  "version": 1,
+  "source": "E1 我的错题本 · 2026 两次模考实录（Quiet place / Museum）",
+  "groups": [
+    {
+      "id": "E1",
+      "name": "时态漂移",
+      "priority": 1,
+      "why": "P2 讲过去的事，开头两句过去时，说着说着滑回现在时",
+      "tip": "P2 卡片题 = 全程过去时。开头定好时态，后面不许滑回现在。",
+      "items": [
+        { "id": "E1-1", "cn": "这个地方在厦门。（P2 讲去年）", "wrong": "This place in Xiamen.", "right": "The place was in Xiamen.", "fix": "P2 过去时 → was，不是 is", "focus": "past-tense" },
+        { "id": "E1-2", "cn": "因为我们觉得很累。", "wrong": "Because we thought very tired.", "right": "Because we were very tired.", "fix": "觉得很累 = we were tired，不是 think tired", "focus": "past-tense" },
+        { "id": "E1-3", "cn": "我们只想放松一下。", "wrong": "We just to want to relax.", "right": "We just wanted to relax.", "fix": "过去叙事 → just wanted to relax", "focus": "past-tense" },
+        { "id": "E1-4", "cn": "我到那儿的时候，空气特别新鲜。", "wrong": "And I went there, the fresh, the air was so fresh.", "right": "When I got there, the air was so fresh.", "fix": "「当…时」= When I got there；fresh 只说一次", "focus": "when-clause" },
+        { "id": "E1-5", "cn": "那里有很多五颜六色的花。", "wrong": "There are many colorful flowers.", "right": "There were many colourful flowers.", "fix": "过去叙事 → there were", "focus": "past-tense" },
+        { "id": "E1-6", "cn": "那儿几乎没人。", "wrong": "Almost no one in there.", "right": "There was almost no one there.", "fix": "缺 there be → There was almost no one there", "focus": "past-tense" },
+        { "id": "E1-7", "cn": "所以它非常安静。", "wrong": "So it is very quiet.", "right": "So it was very quiet.", "fix": "过去叙事 → was", "focus": "past-tense" },
+        { "id": "E1-8", "cn": "我爸妈想让我放松一下。", "wrong": "My parents just want me to relax.", "right": "My parents just wanted me to relax.", "fix": "过去叙事 → wanted", "focus": "past-tense" },
+        { "id": "E1-9", "cn": "他们让我去一个博物馆。", "wrong": "They let me to go a museum.", "right": "They let me go to a museum.", "fix": "let sb do（不加 to）+ go TO a museum", "focus": "past-tense" },
+        { "id": "E1-10", "cn": "我一直跟在我爸妈后面走。", "wrong": "I walk around my parents all the time.", "right": "I walked around with my parents.", "fix": "过去 → walked；跟着走 = walk around with sb", "focus": "past-tense" },
+        { "id": "E1-11", "cn": "我一直在刷手机，直到我们出去。", "wrong": "I scrolling my phone until we go out.", "right": "I was scrolling my phone until we went out.", "fix": "过去进行 was scrolling；until we went out（过去）", "focus": "past-tense" }
+      ]
+    },
+    {
+      "id": "E2",
+      "name": "词性混淆",
+      "priority": 2,
+      "why": "中文不区分词性，说英语时顺手抓一个词就填",
+      "tip": "feel / makes me 后面用形容词（relaxed, successful）；society / care / patience 是名词。",
+      "items": [
+        { "id": "E2-1", "cn": "它让我觉得很有成就感。", "wrong": "It is makes me felt successful.", "right": "It makes me feel successful.", "fix": "双动词去 is；makes me feel + 原形", "focus": "adj-after-feel" },
+        { "id": "E2-2", "cn": "（干净的房间）让你更放松。", "wrong": "...made you more relax.", "right": "...makes you more relaxed.", "fix": "放松的 = relaxed（形容词），不是 relax（动词）", "focus": "adj-after-feel" },
+        { "id": "E2-3", "cn": "它让我放松。", "wrong": "It makes me feel unwind.", "right": "It makes me feel relaxed.", "fix": "feel 后用形容词 relaxed；unwind 是动词", "focus": "adj-after-feel" },
+        { "id": "E2-4", "cn": "我缺乏耐心和细心。", "wrong": "I lack patience and careful.", "right": "I lack patience and care.", "fix": "and 并列要同词性：patience（名）+ care（名）", "focus": "parallel" },
+        { "id": "E2-5", "cn": "好老师要细心、乐于助人、有耐心。", "wrong": "It's careful, helpful and patience.", "right": "They should be careful, helpful and patient.", "fix": "三个并列都用形容词：careful / helpful / patient", "focus": "parallel" },
+        { "id": "E2-6", "cn": "老师对社会很重要。", "wrong": "Teacher is very important for this social.", "right": "Teachers are very important for society.", "fix": "泛指用复数 Teachers；社会 = society（名词）", "focus": "plural" },
+        { "id": "E2-7", "cn": "我家乡是个生活的好地方。", "wrong": "My hometown is very nice place to life.", "right": "My hometown is a very nice place to live.", "fix": "a nice place；住/生活 = live（动词），不是 life（名词）", "focus": "adj-after-feel" },
+        { "id": "E2-8", "cn": "我有多动症。", "wrong": "Because I am ADHD.", "right": "Because I have ADHD.", "fix": "ADHD 是名词 → have ADHD", "focus": "verb-choice" }
+      ]
+    },
+    {
+      "id": "E3",
+      "name": "双动词 / 缺 be",
+      "priority": 3,
+      "why": "一个句子只有一个谓语动词；is+makes、made...is 都是双动词，句子骨架塌",
+      "tip": "一个句子只有一个谓语动词。「我做某事很难」= I find it hard to...，别用 I ... hard to...",
+      "items": [
+        { "id": "E3-1", "cn": "它让我觉得成功。", "wrong": "It is makes me felt successful.", "right": "It makes me feel successful.", "fix": "一个谓语：去掉 is；makes me feel + 原形", "focus": "double-verb" },
+        { "id": "E3-2", "cn": "我总是把房间弄脏。", "wrong": "I always made my room is a little dirty.", "right": "I always make my room a little dirty.", "fix": "make + 宾语 + 形容词，中间不加 is", "focus": "double-verb" },
+        { "id": "E3-3", "cn": "我很喜欢尝试不同的餐厅。", "wrong": "I really into trying some different restaurant.", "right": "I'm really into trying different restaurants.", "fix": "缺 be：I'm really into；restaurants 复数", "focus": "missing-be" },
+        { "id": "E3-4", "cn": "我很难保持房间整洁。", "wrong": "I often hard to keep my room tidy.", "right": "I find it hard to keep my room tidy.", "fix": "「做某事难」= I find it hard to do", "focus": "find-it-adj" },
+        { "id": "E3-5", "cn": "年轻人不懂这些。", "wrong": "Young people not understand it.", "right": "Young people don't understand it.", "fix": "否定要借 don't", "focus": "negation" },
+        { "id": "E3-6", "cn": "博物馆没有加入有趣的东西。", "wrong": "The museums is not add some fun things.", "right": "Museums don't add anything fun.", "fix": "否定借 don't；some → anything fun", "focus": "negation" },
+        { "id": "E3-7", "cn": "这个 App 不仅免费而且好用。", "wrong": "", "right": "It's not only free but also easy to use.", "fix": "正例句型：not only...but also（自己完整说出）", "focus": "not-only" }
+      ]
+    },
+    {
+      "id": "E4",
+      "name": "非谓语动词",
+      "priority": 4,
+      "why": "to do / -ing 混用：into/like/prefer 后 -ing，need/want 后 to do，let sb do 原形",
+      "tip": "into / like / before / prefer 后面 -ing；need / want / would like 后面 to do；let me 后面动词原形。",
+      "items": [
+        { "id": "E4-1", "cn": "我很喜欢尝试各种餐厅。", "wrong": "I'm really into try various restaurants.", "right": "I'm really into trying various restaurants.", "fix": "into 后接 -ing", "focus": "gerund" },
+        { "id": "E4-2", "cn": "我也喜欢做这个。", "wrong": "I like do it.", "right": "I like doing it.", "fix": "like 后接 doing", "focus": "gerund" },
+        { "id": "E4-3", "cn": "我需要用它来检查穿着。", "wrong": "I need use it to check my outfit.", "right": "I need to use it to check my outfit.", "fix": "need 后接 to do", "focus": "to-do" },
+        { "id": "E4-4", "cn": "他们让我去博物馆。", "wrong": "They let me to go a museum.", "right": "They let me go to a museum.", "fix": "let sb do 原形不加 to；go to a museum", "focus": "let-sb-do" },
+        { "id": "E4-5", "cn": "他们需要保持平衡。", "wrong": "They need keep a balance for it.", "right": "They need to keep a balance.", "fix": "need 后接 to do", "focus": "to-do" },
+        { "id": "E4-6", "cn": "每天上课前我都会照镜子。", "wrong": "...every day before went to class.", "right": "...every day before going to class.", "fix": "介词 before 后接 -ing", "focus": "gerund" },
+        { "id": "E4-7", "cn": "我经常在学习和打游戏时听它。", "wrong": "I often listening it when I study or playing games.", "right": "I often listen to it when I'm studying or playing games.", "fix": "一般现在时用 listen to；when 后进行时 I'm studying", "focus": "verb-form" },
+        { "id": "E4-8", "cn": "现在我更喜欢听慢歌。", "wrong": "Now I prefer to listening slow music.", "right": "Now I prefer listening to slow music.", "fix": "prefer 后接 doing；listen TO", "focus": "gerund" }
+      ]
+    },
+    {
+      "id": "E5",
+      "name": "主谓一致 / there be",
+      "priority": 5,
+      "why": "不可数名词用 there is；泛指一类人用复数",
+      "tip": "不可数名词（food / water / advice）用 there is；泛指一类人用复数（teachers, young people）。",
+      "items": [
+        { "id": "E5-1", "cn": "那里有很多美食。", "wrong": "There are much delicious food.", "right": "There is a lot of delicious food.", "fix": "food 不可数 → there is a lot of", "focus": "there-be" },
+        { "id": "E5-2", "cn": "我们小区和店铺都跟以前一样。", "wrong": "My neighborhood and shops is familiar for before.", "right": "The shops and neighbourhood are the same as before.", "fix": "并列主语复数 → are the same as before", "focus": "agreement" },
+        { "id": "E5-3", "cn": "老师很重要。", "wrong": "Teacher is very important.", "right": "Teachers are very important.", "fix": "泛指一类人用复数 Teachers are", "focus": "plural" },
+        { "id": "E5-4", "cn": "老师在教育中起重要作用。", "wrong": "Teacher play an important role in the education.", "right": "Teachers play an important role in education.", "fix": "复数 Teachers + play；education 前不加 the", "focus": "plural" },
+        { "id": "E5-5", "cn": "我觉得这对我是件好事。", "wrong": "I think it is a good things for me.", "right": "I think it's a good thing for me.", "fix": "a good thing 单数", "focus": "singular" },
+        { "id": "E5-6", "cn": "没什么不一样的。", "wrong": "It is nothing is not similar.", "right": "Nothing has really changed.", "fix": "别硬翻字面：没什么变化 = Nothing has really changed", "focus": "meaning" }
+      ]
+    },
+    {
+      "id": "E6",
+      "name": "冠词 / 介词 / 形近词",
+      "priority": 6,
+      "why": "单复致命度低但密集出现，考官听得见",
+      "tip": "a/an 别漏；recommend...to / spend...on；quiet（安静）≠ quite（相当）。",
+      "items": [
+        { "id": "E6-1", "cn": "我是个吃货。", "wrong": "I am foodie.", "right": "I'm a foodie.", "fix": "可数单数要冠词 → a foodie", "focus": "article" },
+        { "id": "E6-2", "cn": "给我留下了很深的印象。", "wrong": "It left an deep impression on me.", "right": "It left a deep impression on me.", "fix": "deep 辅音开头 → a deep", "focus": "article" },
+        { "id": "E6-3", "cn": "我们去厦门度了个短假。", "wrong": "We went to Xiamen for short holiday.", "right": "We went to Xiamen for a short holiday.", "fix": "for a short holiday", "focus": "article" },
+        { "id": "E6-4", "cn": "我经常把它们推荐给别人。", "wrong": "I often recommend them for others.", "right": "I often recommend them to others.", "fix": "recommend sth TO sb", "focus": "preposition" },
+        { "id": "E6-5", "cn": "我在上面花了太多时间。", "wrong": "I spent more time in it.", "right": "I spend too much time on it.", "fix": "spend time ON it；太多 = too much", "focus": "preposition" },
+        { "id": "E6-6", "cn": "这取决于人怎么用。", "wrong": "It depends on person's use.", "right": "It depends on how people use it.", "fix": "取决于怎么用 = depends on how people use it", "focus": "meaning" },
+        { "id": "E6-7", "cn": "那里安静又舒服。", "wrong": "It is quite and comfortable.", "right": "It's quiet and comfortable.", "fix": "形近词：安静的 = quiet；quite = 相当", "focus": "spelling" },
+        { "id": "E6-8", "cn": "分享自己的生活。", "wrong": "Share yourself life.", "right": "Share your life.", "fix": "你的生活 = your life", "focus": "pronoun" },
+        { "id": "E6-9", "cn": "我想减少使用。", "wrong": "I try to exchange it.", "right": "I try to cut down on it.", "fix": "减少使用 = cut down on it（不是 exchange）", "focus": "phrase" }
+      ]
+    }
+  ]
+}
