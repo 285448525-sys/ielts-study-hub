@@ -1747,24 +1747,34 @@ function injectLoadingOverlay(){
   document.body.appendChild(el);
 }
 /* 遮罩显示策略：
-   - HUB_LOADER_MIN：最短展示，避免软导航极快完成时遮罩「闪一下」像坏了一样；
+   - HUB_LOADER_DELAY：延迟展示阈值（9/9 性能）。旧实现「点击即显示 + 最短展示 250ms」，
+     导致页面 15ms 就切好了也要卡满 250ms 的 loading —— 正是「点 tab 加载时间过长」的体感主因。
+     现在：120ms 内切完就完全不显示遮罩；只有真慢（>120ms）才出现，避免闪一下。
+   - HUB_LOADER_MIN：已展示后的最短展示，避免遮罩「闪一下」像坏了一样；
    - HUB_LOADER_MAX：安全上限，极端慢网 / 重脚本 eval 卡住时也不残留遮罩（softNavigate 的 finally 也会兜底收起）。 */
 let _hubLoaderHideTimer = null;
 let _hubLoaderMaxTimer = null;
+let _hubLoaderShowTimer = null;
 let _hubLoaderShownAt = 0;
+const HUB_LOADER_DELAY = 120;
 const HUB_LOADER_MIN = 250;
 const HUB_LOADER_MAX = 5000;
 function showHubLoader(){
-  const el = document.getElementById('hubLoader');
-  if(!el) return;
-  el.classList.add('show');
-  // .ui-loader 由 CSS 无限动画驱动，无需 JS 重置
-  _hubLoaderShownAt = Date.now();
-  if(_hubLoaderHideTimer){ clearTimeout(_hubLoaderHideTimer); _hubLoaderHideTimer = null; }
-  if(_hubLoaderMaxTimer) clearTimeout(_hubLoaderMaxTimer);
-  _hubLoaderMaxTimer = setTimeout(_doHideHubLoader, HUB_LOADER_MAX);
+  if(_hubLoaderShowTimer) clearTimeout(_hubLoaderShowTimer);
+  _hubLoaderShowTimer = setTimeout(() => {           // 延迟展示：秒切不显示，慢了才盖遮罩
+    _hubLoaderShowTimer = null;
+    const el = document.getElementById('hubLoader');
+    if(!el) return;
+    el.classList.add('show');
+    // .ui-loader 由 CSS 无限动画驱动，无需 JS 重置
+    _hubLoaderShownAt = Date.now();
+    if(_hubLoaderHideTimer){ clearTimeout(_hubLoaderHideTimer); _hubLoaderHideTimer = null; }
+    if(_hubLoaderMaxTimer) clearTimeout(_hubLoaderMaxTimer);
+    _hubLoaderMaxTimer = setTimeout(_doHideHubLoader, HUB_LOADER_MAX);
+  }, HUB_LOADER_DELAY);
 }
 function hideHubLoader(){
+  if(_hubLoaderShowTimer){ clearTimeout(_hubLoaderShowTimer); _hubLoaderShowTimer = null; }  // 还没来得及显示就切完了 → 直接取消
   const el = document.getElementById('hubLoader');
   if(!el) return;
   if(!el.classList.contains('show')){ _clearLoaderTimers(); return; }   // 已收起，忽略重复调用
@@ -1784,6 +1794,7 @@ function _doHideHubLoader(){
 function _clearLoaderTimers(){
   if(_hubLoaderHideTimer){ clearTimeout(_hubLoaderHideTimer); _hubLoaderHideTimer = null; }
   if(_hubLoaderMaxTimer){ clearTimeout(_hubLoaderMaxTimer); _hubLoaderMaxTimer = null; }
+  if(_hubLoaderShowTimer){ clearTimeout(_hubLoaderShowTimer); _hubLoaderShowTimer = null; }
 }
 
 /* ===== 首屏启动遮罩（覆盖硬刷新 / 整页跳转的卡顿） =====
@@ -1934,6 +1945,15 @@ function initSoftNav(){
   _softNavReady = true;
   document.addEventListener('click', onHubLinkClick);
   window.addEventListener('popstate', onHubPopState);
+  // ⚡ 按下/悬停即预热（9/9 性能）：pointerdown 早于 click 触发，鼠标 hover 也提前几百 ms。
+  //    只拉资源进内存缓存、不执行不渲染，与随后的软导航天然去重（navGetDoc 命中缓存直接返回）。
+  const warm = (e) => {
+    const a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+    const t = hubLinkTarget(a);
+    if(t) prefetchPage(t.id);
+  };
+  document.addEventListener('pointerdown', warm, { capture: true, passive: true });
+  document.addEventListener('mouseover', warm, { capture: true, passive: true });
 }
 
 /* 判断一个 <a> 是否指向已知站内页面；不是则返回 null（交回原生处理） */
@@ -1974,18 +1994,63 @@ function onHubPopState(){
   else location.reload();
 }
 
+/* ===== 软导航资源缓存（9/9 性能专项） =====
+   旧实现：每次切 tab 都重新 fetch 目标页 HTML，再串行 fetch 该页每个脚本（cache:'no-cache' 强制重新下载）。
+   口语页 6 个脚本 ≈210KB、写作页 ≈140KB —— 每次切换都重下一遍，慢网/手机下单次 1s+，
+   这是「点各 tab 加载时间过长」的根因。
+   现实现：HTML（已解析的 Document）与脚本源码进内存 Map：
+   - 二次切同一页 = 零网络请求、零等待；
+   - 首次也能命中「空闲预热」（见 prefetchAll）提前拉好的缓存；
+   - 只活在当前会话（刷新即失效），部署新版（?v= 变化）不会被永久缓存住。 */
+const _navDocCache = new Map();     // file -> Document
+const _navCodeCache = new Map();    // src  -> 源码文本
+function navCached(file){ return _navDocCache.has(file); }
+async function navGetDoc(file){
+  if(_navDocCache.has(file)) return _navDocCache.get(file);
+  const res = await fetch(file, { cache: 'default' });   // 走 HTTP 缓存：未变动 304，部署后 ?v= 变化拿新
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  const doc = new DOMParser().parseFromString(await res.text(), 'text/html');
+  _navDocCache.set(file, doc);
+  return doc;
+}
+async function navGetCode(src){
+  if(_navCodeCache.has(src)) return _navCodeCache.get(src);
+  const res = await fetch(src, { cache: 'default' });
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  const code = await res.text();
+  _navCodeCache.set(src, code);
+  return code;
+}
+/* 目标页要执行的脚本清单（主脚本在前，extras 保持 HTML 中声明顺序）
+   主脚本优先取 HTML 里带 ?v= 的 src（版本正确、可复用 HTTP 缓存），取不到才退回无版本路径。 */
+function pageScriptSources(id, doc){
+  const list = [];
+  let mainSrc = 'js/' + id + '.js';
+  if(doc){
+    const s = doc.querySelector('script[src*="js/' + id + '.js"]');
+    if(s && s.getAttribute('src')) mainSrc = s.getAttribute('src');
+  }
+  list.push(mainSrc);
+  if(doc){
+    doc.querySelectorAll('script[src]').forEach(s => {
+      const src = s.getAttribute('src');
+      if(!src || !src.startsWith('js/')) return;
+      const base = src.split('?')[0];
+      if(base === 'js/data.js' || base === 'js/common.js' || base === 'js/' + id + '.js') return;
+      if(list.indexOf(src) === -1) list.push(src);
+    });
+  }
+  return list;
+}
+
 async function softNavigate(t, isPop){
   if(_softNavBusy){ if(typeof toast === 'function') toast('页面切换中，请稍候…'); return; }
   _softNavBusy = true;
   try{
     if(window.matchMedia && window.matchMedia('(max-width:860px)').matches){ document.body.classList.remove('nav-open'); syncNavToggle(); }
     hubClearOrphanPageTimers();   // P0-A：离开旧页前清掉残留的计时/服药轮询心跳，避免软导航重进页面叠加“多个计时器同时跑 / 数字乱跳”
-    // cache:'default' 复用 prefetchNeighbors 预热进 HTTP 缓存的 HTML：未变动页面走 304 近乎瞬时，
-    // 部署后变更页面走 200 拿新 ?v=；避免原 no-cache 每次重新下载、使预取形同虚设。
-    const res = await fetch(t.href, { cache: 'default' });
-    if(!res.ok) throw new Error('HTTP ' + res.status);
-    const html = await res.text();
-    const doc = new DOMParser().parseFromString(html, 'text/html');
+    // 命中内存缓存时这一步是同步的（微任务级），零网络、零等待
+    const doc = await navGetDoc(t.href);
     const newMain = doc.querySelector('main');
     const main = document.querySelector('main');
     if(!newMain || !main) throw new Error('目标页缺少 <main>');
@@ -2008,7 +2073,7 @@ async function softNavigate(t, isPop){
     //    page 脚本经代码审计确认不触碰侧栏 .active，二次写只会增加一次无效重绘、
     //    在重脚本 eval 阻塞主线程后触发“高亮闪一下”的观感。单一写入点 = 零闪烁。
     if(!isPop) history.pushState({ hub: t.id }, '', t.href);
-    prefetchNeighbors(t.id);
+    prefetchAll(t.id);
     hideHubLoader();                                   // 内容切换 + 脚本执行完毕（DOM 就绪）→ 淡出遮罩
   }catch(err){
     console.warn('[soft-nav] 软切换失败，回退整页跳转：', err);
@@ -2055,33 +2120,29 @@ function updateActiveNav(file){
 async function runPageScript(id, doc){
   const p = PAGES.find(p => p.id === id);
   if(!p) return;
-  const evalScript = async (src) => {
-    const res = await fetch(src, { cache: 'no-cache' });
-    if(!res.ok) throw new Error('HTTP ' + res.status);
-    const code = await res.text();
-    window.eval(code);   // 幂等重跑：页面 ready 内部已各自清旧心跳 / 重绑事件，多次进入不叠加
-  };
-  // 主脚本 js/{id}.js
-  try{
-    await evalScript('js/' + id + '.js');
-  }catch(err){
-    // P0-A：脚本执行异常（极偶发）→ 记日志后由 softNavigate 的兜底走整页跳转，绝不卡死
-    console.error('[soft-nav] 页面脚本执行失败，将回退整页跳转：', id, err);
-    throw err;
-  }
-  // 目标页 HTML 中声明的其他页面专属脚本
-  if(doc){
-    const extras = [];
-    doc.querySelectorAll('script[src]').forEach(s => {
-      const src = s.getAttribute('src');
-      if(!src || !src.startsWith('js/')) return;
-      const base = src.split('?')[0];
-      if(base === 'js/data.js' || base === 'js/common.js' || base === 'js/' + id + '.js') return;
-      extras.push(src);
-    });
-    for(const src of extras){
-      try{ await evalScript(src); }
-      catch(err){ console.warn('[soft-nav] 附加脚本执行失败，已跳过：', src, err); }
+  const srcs = pageScriptSources(id, doc);
+  // ⚡ 并行拉取全部脚本（命中内存缓存时零网络）：旧实现串行 await，每多一个脚本多一个网络 RTT，
+  //    口语页 6 个脚本 = 6 次串行往返；现在一次并发搞定，再按原顺序 eval（顺序不变，行为一致）。
+  const got = await Promise.all(srcs.map(s =>
+    navGetCode(s).then(code => ({ code })).catch(err => ({ err }))
+  ));
+  for(let i = 0; i < srcs.length; i++){
+    if(got[i].err){
+      if(i === 0){        // 主脚本失败：记日志后由 softNavigate 兜底走整页跳转，绝不卡死
+        console.error('[soft-nav] 页面脚本执行失败，将回退整页跳转：', id, got[i].err);
+        throw got[i].err;
+      }
+      console.warn('[soft-nav] 附加脚本加载失败，已跳过：', srcs[i], got[i].err);
+      continue;
+    }
+    try{
+      window.eval(got[i].code);   // 幂等重跑：页面 ready 内部已各自清旧心跳 / 重绑事件，多次进入不叠加
+    }catch(err){
+      if(i === 0){
+        console.error('[soft-nav] 页面脚本执行失败，将回退整页跳转：', id, err);
+        throw err;
+      }
+      console.warn('[soft-nav] 附加脚本执行失败，已跳过：', srcs[i], err);
     }
   }
 }
@@ -2096,23 +2157,51 @@ function hubClearOrphanPageTimers(){
   if(window.__mockTick){ clearInterval(window.__mockTick); window.__mockTick = null; }
 }
 
-/* 空闲时预取相邻页面 HTML（走浏览器缓存，下次软切换近乎瞬时）
-   v5 导航已平铺无分组，直接按 PAGES 顺序取前后各 1 个邻居 */
-function prefetchNeighbors(id){
-  const idx = PAGES.findIndex(p => p.id === id);
-  if(idx === -1) return;
-  const neighbors = [];
-  if(idx > 0) neighbors.push(PAGES[idx - 1].id);
-  if(idx < PAGES.length - 1) neighbors.push(PAGES[idx + 1].id);
-  if(!neighbors.length) return;
+/* ===== 空闲预热（9/9 性能专项） =====
+   旧 prefetchNeighbors 只预取「前后各 1 个邻居」，而 tab 是平铺的、她随手跳任意页 → 预取命中率极低，
+   等于每次切页都要现拉 100~300KB 脚本。现在改为全量预热：页面 HTML + 该页全部脚本源码进内存缓存。
+   - 顺序：当前页相邻 → 收藏页 → 其余，逐个 requestIdleCallback 排队，不与当前页渲染抢主线程；
+   - 幂等：已缓存的页直接跳过；切换后再调用也几乎零成本；
+   - 省流/2G 下自动关闭（她农村网络，避免后台偷跑流量）。 */
+function navPrefetchAllowed(){
+  try{
+    const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if(!c) return true;
+    if(c.saveData) return false;
+    return !(c.effectiveType && /^(slow-)?2g$/.test(c.effectiveType));
+  }catch(e){ return true; }
+}
+function prefetchPage(id){
+  const p = PAGES.find(pp => pp.id === id);
+  if(!p || _navDocCache.has(p.file)) return Promise.resolve();
+  return navGetDoc(p.file).then(doc => {
+    const srcs = pageScriptSources(id, doc);
+    return Promise.all(srcs.map(s => navGetCode(s).catch(() => '')));
+  }).catch(() => {});
+}
+let _prefetchRunning = false;
+function prefetchAll(curId){
+  if(!navPrefetchAllowed()) return;
+  if(_prefetchRunning) return;
+  _prefetchRunning = true;
   const idle = window.requestIdleCallback || (cb => setTimeout(cb, 800));
-  idle(() => {
-    neighbors.forEach(nid => {
-      if(nid === id) return;
-      const p = PAGES.find(p => p.id === nid);
-      if(p) fetch(p.file, { cache: 'force-cache', method: 'GET' }).catch(() => {});
-    });
-  });
+  const order = [];
+  const push = id => { if(id && order.indexOf(id) === -1 && PAGES.some(p => p.id === id)) order.push(id); };
+  if(curId){                                   // 先照顾当前页左右邻居（最可能下一个点的）
+    const idx = PAGES.findIndex(p => p.id === curId);
+    if(idx > -1){ push(PAGES[idx - 1] && PAGES[idx - 1].id); push(PAGES[idx + 1] && PAGES[idx + 1].id); }
+  }
+  try{ (typeof favPageIds === 'function' ? favPageIds() : []).forEach(push); }catch(e){}
+  PAGES.forEach(p => push(p.id));
+  let i = 0;
+  const step = () => {
+    if(i >= order.length){ _prefetchRunning = false; return; }
+    const id = order[i++];
+    const p = PAGES.find(pp => pp.id === id);
+    if(!p || _navDocCache.has(p.file)){ idle(step); return; }   // 已缓存 → 跳过
+    prefetchPage(id).then(() => idle(step)).catch(() => idle(step));
+  };
+  idle(step);
 }
 
 ready(() => { hubLoad();
@@ -2124,6 +2213,12 @@ ready(() => { hubLoad();
   injectGlobalDock(); injectFab();          // 全站玻璃底栏 dock + 新增浮动按钮
   initListSearch();                          // 列表页 .ui-search 即时过滤（data-search-input + data-search-target）
   registerSW();
+  // ⚡ 空闲时把其余页面的 HTML + 脚本预热进内存缓存，之后点任何 tab 都是零网络秒开
+  (function(){
+    const f = normalizePageFile(location.pathname.split('/').pop() || 'index.html');
+    const cur = (PAGES.find(p => p.file === f) || { id:null }).id;
+    setTimeout(() => prefetchAll(cur), 1200);
+  })();
   // 计时保存后刷新侧边栏「今日已学」（侧边栏在所有页面可见，需即时更新）。
   // ⚠️ 关键修复（导航高亮闪烁 bug）：原来这里调 injectNav() 会「整条重建侧边栏 nav.innerHTML」，
   //    而页面 ready→hubSave→hub:session-saved 在软导航收尾后触发该重建，重建瞬间高亮被按「滞后/旧的
