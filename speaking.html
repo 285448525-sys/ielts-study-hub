@@ -45,8 +45,8 @@
   <script defer src="js/mock-report.js?v=20260830u"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
   <script defer src="js/mock.js?v=20260830v"></script>
-  <script defer src="js/pattern-drill.js?v=20260909h"></script>
-  <script defer src="js/scene-drill.js?v=20260909a"></script>
+  <script defer src="js/pattern-drill.js?v=20260909i"></script>
+  <script defer src="js/scene-drill.js?v=20260909b"></script>
 <style>
   /* === 极简口语模块 · 优化版（沿用全站 Teal Token） === */
 
@@ -654,7 +654,10 @@
     .pd-dot.done{background:var(--ok,#22c55e)}
     .pd-actions{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
     .pd-note{font-size:12.5px;color:var(--muted);line-height:1.7;margin-top:12px}
-    #trainCard,#finishCard{ margin-bottom:150px }   /* 底部给悬浮计时器+dock 让位：否则滚动到底时提交按钮被固定层盖住（9/9 实测） */
+    /* 场景闯关 v2（design/07）——只加最小样式，全部复用既有 token */
+    .sd-hint{margin:4px 0 0;font-size:13px;color:var(--muted);line-height:1.7}
+    .sd-hint b{color:var(--primary);font-weight:600}
+    #trainCard,#sceneCard,#finishCard{ margin-bottom:150px }   /* 底部给悬浮计时器+dock 让位：否则滚动到底时提交按钮被固定层盖住（9/9 实测） */
     @media (max-width:560px){ .pd-ov-grid{grid-template-columns:1fr} }
   </style>
   <div id="pdView" hidden>
@@ -691,6 +694,26 @@
         <span class="pd-status" id="pdStatus" aria-live="polite"></span>
       </div>
       <div class="pd-feedback" id="pdFeedback"></div>
+    </section>
+
+    <!-- 场景闯关 v2（design/07）：与 trainCard 同级保留；__SCENE_V2_ON=true 时由 scene-drill.js 接管 -->
+    <section class="card" id="sceneCard" style="display:none">
+      <div class="pd-progress"><div class="pd-progress-fill" id="sdProgressFill"></div></div>
+      <div class="pd-bar" style="justify-content:space-between;margin-top:0">
+        <span class="pd-tag" id="sdSceneTag"></span>
+        <span class="pd-note" id="sdSceneStep" style="margin:0"></span>
+      </div>
+      <div id="sdFlow"></div>
+      <div class="pd-cn" id="sdCn"></div>
+      <div id="sdHints"></div>
+      <textarea id="sdAnswer" class="pd-input" placeholder="看着中文，说出这句英文（可直接打字，或语音输入转文字后粘贴）" autocomplete="off"></textarea>
+      <div class="pd-bar">
+        <button class="btn btn-primary" id="sdSubmit">提交</button>
+        <button class="btn btn-ghost" id="sdHintBtn">提示</button>
+        <button class="btn btn-ghost" id="sdNext" style="display:none">下一句 ▸</button>
+        <span class="pd-status" id="sdStatus" aria-live="polite"></span>
+      </div>
+      <div class="pd-feedback" id="sdFeedback"></div>
     </section>
 
     <section class="card" id="finishCard" style="display:none">

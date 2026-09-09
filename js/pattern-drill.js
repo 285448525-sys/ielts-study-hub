@@ -769,11 +769,13 @@ function pdFmtMs(ms){
 }
 
 ready(async () => {
+  /* 数据默认值/迁移门（weakness + 老 custom 补 focus）新老形态都要跑：
+     场景模式接管时本引擎让位，但迁移不能跟着让位，否则 weakness 永远建不出来。 */
+  pdEnsureProgress();
   /* design/07 场景闯关 v2 上线开关：开关为 true 时由 scene-drill.js 接管 #pdView，
      本文件（pdLegacy 兜底引擎）让位、不启动。阶段 1-5 默认 false → 行为与改动前完全一致。
      注：开关判断必须在 ready 内（此时 scene-drill.js 已执行完），不能放脚本顶层。 */
   if(window.__SCENE_V2_ON) return;
-  pdEnsureProgress();
   /* 题库走 window 级缓存：口语页软导航每次重进都会重跑本 ready，
      不缓存则每次进口语 tab 都打一次 patterns.json（nav 冒烟 req2 5→3 实锤） */
   if(window.__pdPatternsCache){
