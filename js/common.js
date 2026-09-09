@@ -26,7 +26,8 @@ const PAGES = [
   { id:'speaking',  file:'speaking.html',  icon:ICON.speaking,  name:'口语', desc:'题库 + AI 串题' },
   // Repair Drill：中文+错句 → 自己 repair 正确版，AI 只当裁判（design/06）
   // ⚠️ id 必须与文件名一致（软导航按 js/{id}.js 找主脚本），不能用缩写 pdrill
-  { id:'pattern-drill', file:'pattern-drill.html', icon:ICON.speaking, name:'句型', desc:'Repair 闯关 + 间隔复习' },
+  /* 句型闯关已并入口语页「练习」tab（2026-09-09 之之拍板），主导航不再单列入口；
+     pattern-drill.html 保留为独立直达页 */
   { id:'writing',   file:'writing.html',   icon:ICON.writing,   name:'写作',       desc:'模板 + AI 评分' },
   { id:'wrongbook', file:'wrongbook.html', icon:ICON.wrongbook, name:'错句本',     desc:'写作/语料默写错句汇总' },
   { id:'review',    file:'review.html',    icon:ICON.review,    name:'回顾',       desc:'模考成绩 + 学习轨迹' },
@@ -43,7 +44,7 @@ function favPageIds(){
 }
 
 /* v5：简化后全部平铺，不再分折叠组（首页→回顾 一级；设置/服药 在分隔线下方） */
-const PRIMARY_NAV = ['index','timer','plans','practice','corpus','speaking','pattern-drill','writing'];
+const PRIMARY_NAV = ['index','timer','plans','practice','corpus','speaking','writing'];
 const MORE_NAV    = ['review','meds','settings'];
 const TAB_NAV     = ['index','timer','practice','speaking'];   // 旧 tabbar 主项（组件已删，仅用于计算「更多」弹层要收纳哪些页面）
 // 底部 Tab 标签覆盖：practice 在站内含「单词」，但原型/验收确认为「背词」，单独对齐（不改 PAGES 以免影响桌面侧栏）

@@ -37,14 +37,15 @@
 
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
-<script defer src="js/data.js?v=20260908a"></script>
-  <script defer src="js/common.js?v=20260909d"></script>
-  <script defer src="js/speaking.js?v=20260905e"></script>
+  <script defer src="js/data.js?v=20260908a"></script>
+  <script defer src="js/common.js?v=20260909e"></script>
+  <script defer src="js/speaking.js?v=20260909a"></script>
   <script defer src="js/materials.js?v=20260904z"></script>
   <script defer src="js/progress.js?v=20260830u"></script>
   <script defer src="js/mock-report.js?v=20260830u"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
   <script defer src="js/mock.js?v=20260830v"></script>
+  <script defer src="js/pattern-drill.js?v=20260909d"></script>
 <style>
   /* === 极简口语模块 · 优化版（沿用全站 Teal Token） === */
 
@@ -518,8 +519,8 @@
   <div class="page-head-row">
     <h1 class="page-title">口语</h1>
     <div class="sp-tabs pill-tabs" id="tabs">
-      <button data-type="P1" class="pill-tab active">Part 1</button>
-      <button data-type="P2" class="pill-tab">Part 2</button>
+      <button data-type="PRACTICE" class="pill-tab active">练习</button>
+      <button data-type="BANK" class="pill-tab">题库</button>
       <button data-type="MOCK" class="pill-tab">模考</button>
       <button data-type="MAT" class="pill-tab">素材</button>
       <button data-type="PROGRESS" class="pill-tab">数据</button>
@@ -619,6 +620,70 @@
 
   <!-- 学习情况（口语页第 6 个 tab：各 Part 练习可视化仪表盘，由 progress.js 渲染） -->
   <div id="progressView" hidden></div>
+
+  <!-- 练习 tab（口语页第 1 个 tab · 默认）：句型闯关引擎（pattern-drill.js），UI 与 pattern-drill.html 同构 -->
+  <style>
+    .pd-meta{font-size:13px;color:var(--muted);margin-left:auto;align-self:center}
+    .pd-progress{height:6px;background:var(--bg);border-radius:20px;overflow:hidden;margin:0 0 14px}
+    .pd-progress-fill{height:100%;width:0;background:var(--primary);border-radius:20px;transition:width .25s ease}
+    .pd-tag{display:inline-block;font-size:12px;padding:3px 10px;border-radius:12px;background:var(--primary-soft);color:var(--primary);margin-bottom:8px}
+    .pd-tag.rev{background:rgba(245,158,11,.16);color:var(--warn)}
+    .pd-pending{padding:9px 13px;background:rgba(245,158,11,.14);border:1px solid rgba(245,158,11,.4);border-radius:var(--radius);color:var(--warn);font-size:13px;margin:10px 0 0}
+    .pd-cn{font-size:21px;font-weight:700;line-height:1.5;margin-bottom:6px}
+    .pd-wrong{font-size:13.5px;color:var(--muted);background:rgba(239,68,68,.06);border-left:3px solid var(--danger);padding:8px 12px;border-radius:8px;margin-bottom:12px;line-height:1.6}
+    .pd-wrong b{color:var(--danger)}
+    .pd-input{width:100%;min-height:90px;padding:13px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;font-size:15px;line-height:1.7;background:var(--bg);color:var(--ink);resize:vertical}
+    .pd-input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+    .pd-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
+    .pd-status{font-size:13px;color:var(--muted);margin-left:4px}
+    .pd-feedback{margin-top:12px;font-size:14.5px;line-height:1.7;display:none}
+    .pd-feedback.ok{display:block;color:var(--primary);background:var(--primary-soft);padding:10px 12px;border-radius:8px}
+    .pd-feedback.bad{display:block;color:var(--danger);background:rgba(239,68,68,.07);border-left:3px solid var(--danger);padding:10px 12px;border-radius:8px}
+    .pd-feedback.info{display:block;color:var(--ink);background:var(--bg);border-left:3px solid var(--primary);padding:10px 12px;border-radius:8px}
+    .pd-ov-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+    .pd-ov-box{border:1px solid var(--line);border-radius:var(--radius);padding:12px}
+    .pd-ov-box h3{margin:0 0 4px;font-size:13px;color:var(--muted);font-weight:700}
+    .pd-ov-box .num{font-size:24px;font-weight:800;color:var(--primary)}
+    .pd-ov-list{margin:10px 0 0;padding-left:0;list-style:none}
+    .pd-ov-list li{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:14px}
+    .pd-ov-list li:last-child{border-bottom:0}
+    .pd-dot{width:8px;height:8px;border-radius:50%;flex:none}
+    .pd-dot.new{background:var(--primary)}
+    .pd-dot.rev{background:var(--warn)}
+    .pd-dot.done{background:var(--ok,#22c55e)}
+    .pd-actions{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
+    .pd-note{font-size:12.5px;color:var(--muted);line-height:1.7;margin-top:12px}
+    @media (max-width:560px){ .pd-ov-grid{grid-template-columns:1fr} }
+  </style>
+  <div id="pdView" hidden>
+    <div class="pd-pending" id="pdPendingTop" hidden></div>
+
+    <section class="card" id="overview">
+      <h2>今日任务</h2>
+      <div id="ovBody"></div>
+    </section>
+
+    <section class="card" id="trainCard" style="display:none">
+      <div class="pd-progress"><div class="pd-progress-fill" id="pdProgressFill"></div></div>
+      <span class="pd-tag" id="pdTag"></span>
+      <div class="pd-cn" id="pdCn"></div>
+      <div class="pd-wrong" id="pdWrong"></div>
+      <textarea id="pdAnswer" class="pd-input" placeholder="输入你的英文（也可以用输入法语音转文字后粘贴）" autocomplete="off"></textarea>
+      <div class="pd-bar">
+        <button class="btn btn-primary" id="pdSubmit">提交</button>
+        <button class="btn btn-ghost" id="pdHint">提示</button>
+        <button class="btn btn-ghost" id="pdSkip">跳过</button>
+        <button class="btn btn-ghost" id="pdReveal" style="display:none">看正确句</button>
+        <span class="pd-status" id="pdStatus" aria-live="polite"></span>
+      </div>
+      <div class="pd-feedback" id="pdFeedback"></div>
+    </section>
+
+    <section class="card" id="finishCard" style="display:none">
+      <h2 id="finishTitle"></h2>
+      <div id="finishBody"></div>
+    </section>
+  </div>
 </main>
 
 </body>

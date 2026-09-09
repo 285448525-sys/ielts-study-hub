@@ -1,5 +1,5 @@
 /* === 口语题库（极简版） === */
-var curType = 'P1';
+var curType = 'ALL';   // 题库 tab 合并 P1+P2（'ALL'）；P1/P2 仅保留为数据类型
 var curFreq = 'all';
 var curCat = 'all';
 var curSearch = '';
@@ -60,13 +60,28 @@ var SYS_DIAG_P2 = SYS_DIAG
 `
   + `【输出格式补充】上述 JSON 的 "errors" 数组外，可额外包含可选字段："storyLink": "可套用的万能素材连接建议（中文；无合适素材则省略）"。`;
 
+/* 激活指定 tab（只切高亮，不切视图——视图由调用方控制） */
+function spActivateTab(type){
+  $('#tabs').querySelectorAll('[data-type]').forEach(x => x.classList.toggle('active', x.dataset.type === type));
+}
+
 ready(() => {
   $('#tabs').querySelectorAll('[data-type]').forEach(b => {
     b.addEventListener('click', () => {
       const t = b.dataset.type;
-      $('#tabs').querySelectorAll('[data-type]').forEach(x => x.classList.toggle('active', x === b));
-      $('#listView').hidden = true; $('#detailView').hidden = true; $('#mockView').hidden = true; $('#matView').hidden = true; $('#progressView').hidden = true;
-      if(t === 'MOCK'){
+      spActivateTab(t);
+      $('#listView').hidden = true; $('#detailView').hidden = true; $('#mockView').hidden = true; $('#matView').hidden = true; $('#progressView').hidden = true; $('#pdView').hidden = true;
+      if(t === 'PRACTICE'){
+        // 句型闯关引擎（pattern-drill.js）已在 ready 时启动；切回只显隐，不重建队列
+        $('#pdView').hidden = false;
+      } else if(t === 'BANK'){
+        curType = 'ALL';
+        populateFreqOptions();
+        const cs = $('#catSelect'); if(cs) cs.value = 'all';
+        curCat = 'all';
+        $('#listView').hidden = false;
+        renderList();
+      } else if(t === 'MOCK'){
         $('#mockView').hidden = false;
       } else if(t === 'MAT'){
         $('#matView').hidden = false;
@@ -89,12 +104,19 @@ ready(() => {
   if(catSel) catSel.addEventListener('change', e => { curCat = e.target.value; renderList(); });
   populateFreqOptions();
   $('#spSearch').addEventListener('input', () => { curSearch = $('#spSearch').value.trim().toLowerCase(); renderList(); });
-  $('#backBtn').addEventListener('click', () => { $('#detailView').hidden = true; $('#listView').hidden = false; curDetailId = null; });
-  renderList();
-  // P1：?open=<题id> 直达详情（素材页覆盖矩阵点题跳转用）
+  $('#backBtn').addEventListener('click', () => { $('#detailView').hidden = true; $('#listView').hidden = false; curDetailId = null; spActivateTab('BANK'); });
+  // 默认 tab = 练习（句型闯关）：题库列表先不渲染，pdView 由 pattern-drill.js 的 ready 启动
+  $('#listView').hidden = true;
+  $('#pdView').hidden = false;
+  // P1：?open=<题id> 直达详情（素材页覆盖矩阵点题跳转用）——跳详情时落到题库 tab
   try{
     const openId = new URLSearchParams(location.search).get('open');
-    if(openId && (DATA.speaking || []).some(x => x && x.id === openId)) openDetail(openId);
+    if(openId && (DATA.speaking || []).some(x => x && x.id === openId)){
+      spActivateTab('BANK');
+      $('#pdView').hidden = true;
+      $('#listView').hidden = true;
+      openDetail(openId);
+    }
   }catch(_){}
 });
 
@@ -108,8 +130,8 @@ function populateFreqOptions(){
 }
 
 function getFiltered(){
-  // 仅展示纯题目：剔除框架母本（带 framework 字段 / id 形如 sp_p[12]_*）
-  let list = DATA.speaking.filter(s => s.type === curType && !s.framework && !/^sp_p[12]_\d+$/.test(s.id || ''));
+  // 仅展示纯题目：剔除框架母本（带 framework 字段 / id 形如 sp_p[12]_*）；curType='ALL' 为题库 tab（P1+P2 合并）
+  let list = DATA.speaking.filter(s => (curType === 'ALL' || s.type === curType) && !s.framework && !/^sp_p[12]_\d+$/.test(s.id || ''));
   if(curFreq !== 'all') list = list.filter(s => s.frequency === curFreq);
   if(curCat !== 'all') list = list.filter(s => s.category === curCat);
   if(curSearch){
@@ -130,6 +152,7 @@ function freqTag(freq){
 
 function tagsHtml(s){
   let html = '';
+  if(curType === 'ALL' && s.type) html += '<span class="sp-tag">' + (s.type === 'P1' ? 'Part 1' : 'Part 2') + '</span>';
   if(s.frequency) html += freqTag(s.frequency);
   if(s.category) html += '<span class="sp-tag">' + escapeHtml(s.category) + '</span>';
   if(s.framework) html += '<span class="sp-tag">' + escapeHtml(s.framework) + '</span>';

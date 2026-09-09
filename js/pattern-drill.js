@@ -5,24 +5,27 @@
    复习模式混合连打、不逐题展开、答错降级 level 0。进度挂 DATA.patternDrill（云同步零额外代码）。
    AI 超时 3.2s 放行 + 标 pending（顶部计数），绝不卡流程。 */
 
-const PD_NEW_PER_DAY = 5;
-const PD_INTERVALS = [1, 2, 4, 7, 15]; // 掌握后下次复习间隔（天），level 0~4
+var PD_NEW_PER_DAY = 5;
+var PD_INTERVALS = [1, 2, 4, 7, 15]; // 掌握后下次复习间隔（天），level 0~4
 
-let PD_PATTERNS = null;
-let PD_GROUPS = [];
-let PD_PROGRESS = null;
-let PD_QUEUE = [];
-let PD_IDX = 0;
-let PD_CUR = null;        // { item, mode:'new'|'review'|'free', wrongCount, demoted }
-let PD_AUTO_NEXT = null;  // 自动跳转定时器
-let PD_RETRY = null;      // 补题上下文 { cn, fix }（答错后 AI 出的同类中文短句）
-let PD_RETRY_FAILS = 0;   // 同一道补题连续答错次数（≥2 放行，标 pending）
-let PD_STAGES = [];       // 新学题全过后的阶段：组 tip → 自由造句
-let PD_STAGE_IDX = 0;
-let PD_NEW_GROUP_IDS = []; // 本轮新学涉及的组（决定 tip 与自由造句）
-let PD_BUSY = false;      // 判定进行中，防连点
+/* 顶层一律 var：本文件同时被 pattern-drill.html（script 标签）与 speaking.html「练习」tab
+   （软导航 window.eval 重跑）加载，let/const 顶层声明重跑会崩（见 speaking.js 同款注释）。 */
+var PD_PATTERNS = null;
+var PD_GROUPS = [];
+var PD_PROGRESS = null;
+var PD_QUEUE = [];
+var PD_IDX = 0;
+var PD_CUR = null;        // { item, mode:'new'|'review'|'free', wrongCount, demoted }
+var PD_AUTO_NEXT = null;  // 自动跳转定时器
+var PD_RETRY = null;      // 补题上下文 { cn, fix }（答错后 AI 出的同类中文短句）
+var PD_RETRY_FAILS = 0;   // 同一道补题连续答错次数（≥2 放行，标 pending）
+var PD_STAGES = [];       // 新学题全过后的阶段：组 tip → 自由造句
+var PD_STAGE_IDX = 0;
+var PD_NEW_GROUP_IDS = []; // 本轮新学涉及的组（决定 tip 与自由造句）
+var PD_BUSY = false;      // 判定进行中，防连点
+var PD_BOOTED = false;    // 引擎本页会话是否已启动（tab 切回不重建队列）
 
-const PD_JUDGE_SYS = `你是雅思口语 5.5 分目标的语法裁判。用户在做"句子修复"练习：给她一句中文和她自己说错的英文，她要 repair 成正确句。你只判断用户这次的答案是否"正确"（意思和基本结构对即可）。
+var PD_JUDGE_SYS = `你是雅思口语 5.5 分目标的语法裁判。用户在做"句子修复"练习：给她一句中文和她自己说错的英文，她要 repair 成正确句。你只判断用户这次的答案是否"正确"（意思和基本结构对即可）。
 【只纠严重影响理解的错误】：词序错、时态错、双动词、缺 be 动词、词性混淆(形容词/名词/动词用错)、缺主语、缺助动词。
 【一律放过，判 ok】：单复数、a/an/the 漏用、三单 -s、大小写、标点、拼写(除非改变词义)、there is/are 小误、英式/美式拼写差异。
 【用户自述打错(typo)不算错】。
@@ -31,7 +34,7 @@ const PD_JUDGE_SYS = `你是雅思口语 5.5 分目标的语法裁判。用户�
 - 错误：{"ok":false,"fix":"中文一句话，点出错误在哪 + 怎么改","retry":"针对同一错误点的一句同类中文短句（新的句子，让她翻译重说）"}
 绝不输出 6 分以上水平的改写，不要给整句正确翻译。`;
 
-const PD_FREE_SYS = `你是雅思口语 5.5 分目标的语法裁判。用户刚练完一组句型，现在用该句型自由说了一句关于自己的英文（没有标准答案）。你只判断这句话是否"正确"（意思清楚、结构没有严重错误即可）。
+var PD_FREE_SYS = `你是雅思口语 5.5 分目标的语法裁判。用户刚练完一组句型，现在用该句型自由说了一句关于自己的英文（没有标准答案）。你只判断这句话是否"正确"（意思清楚、结构没有严重错误即可）。
 【只纠严重影响理解的错误】：词序错、时态错、双动词、缺 be 动词、词性混淆、缺主语、缺助动词。
 【一律放过，判 ok】：单复数、a/an/the 漏用、三单 -s、大小写、标点、拼写(除非改变词义)。
 输出严格 JSON，不要任何前后文字：
@@ -39,7 +42,7 @@ const PD_FREE_SYS = `你是雅思口语 5.5 分目标的语法裁判。用户刚
 - 错误：{"ok":false,"fix":"中文一句话，点出错误在哪 + 怎么改","retry":"针对同一错误点的一句同类中文短句（新的句子，让她翻译重说）"}
 绝不输出 6 分以上水平的改写。`;
 
-const PD_RETRY_SYS = `你是雅思口语 5.5 分目标的语法裁判。用户刚才在某句型上犯了错，现在做"补题"：给一句同类的中文，她翻译成英文。你只重点检查她是否修复了原来那个错误点，其余一律放过（单复数、冠词、三单、大小写、标点、拼写都不算错）。
+var PD_RETRY_SYS = `你是雅思口语 5.5 分目标的语法裁判。用户刚才在某句型上犯了错，现在做"补题"：给一句同类的中文，她翻译成英文。你只重点检查她是否修复了原来那个错误点，其余一律放过（单复数、冠词、三单、大小写、标点、拼写都不算错）。
 输出严格 JSON，不要任何前后文字：
 - 正确：{"ok":true}
 - 错误：{"ok":false,"fix":"中文一句话，点出错误在哪 + 怎么改"}`;
@@ -130,6 +133,7 @@ function pdShowOverview(){
 }
 
 function pdStart(){
+  PD_BOOTED = true;
   PD_QUEUE = pdBuildQueue();
   PD_IDX = 0;
   PD_STAGES = []; PD_STAGE_IDX = 0;
@@ -499,13 +503,21 @@ function pdHint(){
 
 ready(async () => {
   pdEnsureProgress();
-  try{
-    const res = await fetch('data/patterns.json?v=20260909a');
-    PD_PATTERNS = await res.json();
+  /* 题库走 window 级缓存：口语页软导航每次重进都会重跑本 ready，
+     不缓存则每次进口语 tab 都打一次 patterns.json（nav 冒烟 req2 5→3 实锤） */
+  if(window.__pdPatternsCache){
+    PD_PATTERNS = window.__pdPatternsCache;
     PD_GROUPS = PD_PATTERNS.groups || [];
-  }catch(e){
-    $('#ovBody').innerHTML = '<p class="pd-note">题库加载失败：' + (e.message || e) + '</p>';
-    return;
+  } else {
+    try{
+      const res = await fetch('data/patterns.json?v=20260909a');
+      PD_PATTERNS = await res.json();
+      window.__pdPatternsCache = PD_PATTERNS;
+      PD_GROUPS = PD_PATTERNS.groups || [];
+    }catch(e){
+      $('#ovBody').innerHTML = '<p class="pd-note">题库加载失败：' + (e.message || e) + '</p>';
+      return;
+    }
   }
   /* 提交按钮只用 onclick 单通道（pdResetAnswer/pdAdvance/各分支各自赋值）。
      禁止再 addEventListener 同一函数：双 handler + AI 微任务内即时 resolve 时，
