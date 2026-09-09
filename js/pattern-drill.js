@@ -154,6 +154,8 @@ function pdStart(){
     $('#trainCard').style.display = 'none';
     return;
   }
+  PD_ROUND_START = Date.now();
+  maybeStartPdTimer();   // 之之 9/9：打开口语练习自动开始计时
   $('#overview').scrollIntoView({ behavior:'smooth', block:'start' });
   pdNext();
 }
@@ -454,7 +456,11 @@ function pdFinish(){
   }
   $('#finishCard').style.display = 'block';
   $('#finishTitle').textContent = '今天练完啦 🎉';
-  $('#finishBody').innerHTML = '<p class="pd-note">本次共 ' + PD_QUEUE.length + ' 题。已掌握 ' + Object.keys(PD_PROGRESS.items).filter(k => PD_PROGRESS.items[k].status === 'mastered').length + ' 条。'
+  // 本轮用时 + 结算自动计时（2 分钟宽限内再来一轮则保持连续）
+  var roundMs = PD_ROUND_START ? Math.max(0, Date.now() - PD_ROUND_START) : 0;
+  window.__pdLastSegTs = Date.now();
+  schedulePdTimerStop();
+  $('#finishBody').innerHTML = '<p class="pd-note">本次共 ' + PD_QUEUE.length + ' 题' + (roundMs ? ' · 用时 <b>' + pdFmtMs(roundMs) + '</b>' : '') + '。已掌握 ' + Object.keys(PD_PROGRESS.items).filter(k => PD_PROGRESS.items[k].status === 'mastered').length + ' 条。'
     + (nextDue ? '　下次复习日：<b>' + nextDue + '</b>。' : '') + '</p>'
     + '<div class="pd-actions"><button class="btn btn-primary" id="pdAgain">再来一轮</button><button class="btn btn-ghost" id="pdBack">看今日任务</button></div>';
   $('#pdAgain').onclick = () => { PD_IDX = 0; PD_STAGES = []; PD_STAGE_IDX = 0; pdStart(); };
@@ -661,6 +667,84 @@ function pdImportInit(){
   if(cancel) cancel.onclick = () => pdImportToggle(false);
   const parse = document.getElementById('pdImportParse');
   if(parse) parse.onclick = pdImportParse;
+}
+
+/* ===== 自动计时接入「计时」模块（之之 9/9：打开口语练习自动开始计时） =====
+   进练习（队列非空）自动开「口语·句型闯关」计时；完成一轮 → 2 分钟宽限（轮间空隙不计时）；
+   离页/关标签/切后台结算进 DATA.sessions（首页「今日学习时长」与计时页「今日学习记录」都读它）。
+   已有任意进行中的计时（手动开的或其他模块自动开的）→ 不重复开也不接管，避免双份时长。 */
+var PD_TIMER_MODULE = 'speaking';
+var PD_TIMER_SUB = 'speaking_drill';
+var PD_TIMER_NAME = '句型闯关';
+var PD_ROUND_START = 0;   // 本轮开始时刻（完成页显示「本轮用时」）
+
+function pdTimerDev(){
+  try{
+    var id = localStorage.getItem('ielts_hub_device');
+    if(!id){ id = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); localStorage.setItem('ielts_hub_device', id); }
+    return id;
+  }catch(e){ return 'd' + Date.now().toString(36); }
+}
+
+function maybeStartPdTimer(){
+  // 一轮结束后的「2 分钟宽限」内又开新一轮 → 取消结算，保持连续
+  if(window.__pdTimerStopTimer){ clearTimeout(window.__pdTimerStopTimer); window.__pdTimerStopTimer = null; window.__pdLastSegTs = Date.now(); }
+  if(window.__pdTimerAuto && window.active && !window.active.ended && window.active.moduleId === PD_TIMER_MODULE) return;
+  // 已有任意进行中的计时（手动/其他模块自动）→ 不开也不接管
+  if(window.active && !window.active.ended) return;
+  if(DATA.activeTimer && !DATA.activeTimer.ended && DATA.activeTimer.timerId) return;
+  var now = Date.now(), id = uid(), dev = pdTimerDev();
+  window.active = { timerId:id, ownerDevice:dev, moduleId:PD_TIMER_MODULE, moduleName:'口语', subId:PD_TIMER_SUB, subName:PD_TIMER_NAME, startTs:now, startMonoNs:null, paused:false, pauseStart:null, pauseAccum:0, pauseStartMonoNs:null, pauseAccumMonoNs:0, targetSec:null, mode:'up', updatedAt:now, lastBeat:now };
+  DATA.activeTimer = { timerId:id, ownerDevice:dev, moduleId:PD_TIMER_MODULE, moduleName:'口语', subId:PD_TIMER_SUB, subName:PD_TIMER_NAME, startTs:now, paused:false, pauseStart:null, pauseAccum:0, targetSec:null, mode:'up', updatedAt:now, lastBeat:now, ended:false };
+  window.__pdTimerAuto = true;
+  window.__pdLastSegTs = now;
+  hubSave();
+}
+
+function schedulePdTimerStop(){
+  if(!window.__pdTimerAuto) return;
+  if(window.__pdTimerStopTimer) clearTimeout(window.__pdTimerStopTimer);
+  window.__pdTimerStopTimer = setTimeout(function(){
+    window.__pdTimerStopTimer = null;
+    commitPdTimer(window.__pdLastSegTs || Date.now());   // 只计到上一轮结束点，轮间空隙不算
+  }, 120000);
+}
+
+function commitPdTimer(endTsOverride){
+  if(!window.__pdTimerAuto) return;
+  var a = window.active;
+  if(!a || a.ended || a.moduleId !== PD_TIMER_MODULE){ window.__pdTimerAuto = false; return; }
+  var timerId = a.timerId;
+  var endTs = (endTsOverride != null) ? endTsOverride : (window.__pdTimerStopTimer ? (window.__pdLastSegTs || Date.now()) : Date.now());
+  var durationSec = Math.max(0, Math.round((endTs - (a.startTs || endTs)) / 1000));
+  DATA.sessions = DATA.sessions || [];
+  var already = DATA.sessions.some(function(s){ return s.timerId && s.timerId === timerId; });
+  if(!already && durationSec > 0){
+    DATA.sessions.push({ id: uid(), timerId: timerId, date: pdIsoDate(), moduleId: a.moduleId, subId: a.subId, moduleName: a.moduleName, subName: a.subName, startTs: a.startTs, endTs: endTs, durationSec: durationSec, pauseSec: 0 });
+  }
+  window.active = null;
+  DATA.activeTimer = { timerId: timerId, ended: true, updatedAt: Date.now(), lastBeat: 0 };
+  hubSave();
+  window.__pdTimerAuto = false;
+  try{
+    document.dispatchEvent(new CustomEvent('hub:session-saved', { detail: { date: pdIsoDate() } }));
+    document.dispatchEvent(new CustomEvent('hub:timer-state'));
+  }catch(e){}
+}
+
+/* 离页兜底：关标签 / 切后台时结算（防悬挂的进行中计时）；hook 只挂一次（本文件被软导航重跑） */
+if(!window.__pdTimerLeaveHook){
+  window.__pdTimerLeaveHook = true;
+  var _pdOnLeave = function(){ try{ commitPdTimer(); }catch(e){} };
+  document.addEventListener('visibilitychange', function(){ if(document.visibilityState === 'hidden') _pdOnLeave(); });
+  window.addEventListener('beforeunload', _pdOnLeave);
+}
+
+function pdFmtMs(ms){
+  var m = Math.floor(ms / 60000), s = Math.floor((ms % 60000) / 1000);
+  if(m < 1) return s + '秒';
+  if(s === 0) return m + '分钟';
+  return m + '分' + s + '秒';
 }
 
 ready(async () => {

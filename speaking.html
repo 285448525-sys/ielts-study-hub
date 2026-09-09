@@ -37,7 +37,7 @@
 
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
-  <script defer src="js/data.js?v=20260908a"></script>
+  <script defer src="js/data.js?v=20260909b"></script>
   <script defer src="js/common.js?v=20260909f"></script>
   <script defer src="js/speaking.js?v=20260909a"></script>
   <script defer src="js/materials.js?v=20260904z"></script>
@@ -45,7 +45,7 @@
   <script defer src="js/mock-report.js?v=20260830u"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
   <script defer src="js/mock.js?v=20260830v"></script>
-  <script defer src="js/pattern-drill.js?v=20260909f"></script>
+  <script defer src="js/pattern-drill.js?v=20260909g"></script>
 <style>
   /* === 极简口语模块 · 优化版（沿用全站 Teal Token） === */
 
@@ -653,6 +653,7 @@
     .pd-dot.done{background:var(--ok,#22c55e)}
     .pd-actions{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
     .pd-note{font-size:12.5px;color:var(--muted);line-height:1.7;margin-top:12px}
+    #trainCard,#finishCard{ margin-bottom:150px }   /* 底部给悬浮计时器+dock 让位：否则滚动到底时提交按钮被固定层盖住（9/9 实测） */
     @media (max-width:560px){ .pd-ov-grid{grid-template-columns:1fr} }
   </style>
   <div id="pdView" hidden>
