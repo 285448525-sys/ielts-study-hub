@@ -201,6 +201,8 @@ async function sdOnSubmit(){
   var fix = '';
   if(!ok){
     var r = await sdAskAI(line, answer);
+    /* B2（阶段 4 补）：超时/异常放行目前无 pending 标记，该句会被算成「一次说过」。
+       v1 可接受；阶段 4 建 pdRecordWrong 时一并给超时错句补 pending/不计「一次说过」。 */
     ok = (r.ok !== false);        // 超时/异常放行，绝不卡流程（design/06 口径）
     fix = r.fix || '';
   }
@@ -211,7 +213,7 @@ function sdHandleResult(ok, fix, answer, line){
   var c = SD_CUR; if(!c) return;
   var fb = sd$('sdFeedback'), st = sd$('sdStatus'), sub = sd$('sdSubmit');
   var hb = sd$('sdHintBtn'), nx = sd$('sdNext'), ans = sd$('sdAnswer');
-  c.log.push({ ok: ok, right: line.right, focus: line.focus || '', answer: answer });
+  c.log.push({ ok: ok, right: line.right, focus: line.focus || '', answer: answer, stuck: !!c.stuck });
   if(ok){
     if(fb){ fb.className = 'pd-feedback ok'; fb.textContent = '过了'; }
     if(st) st.textContent = '';
@@ -270,7 +272,9 @@ async function sdBoot(){
   if(!scenes || !scenes.scenes || !scenes.scenes.length) return;
   if(!sd$('sceneCard')) return;       // 不在口语页
   var c = SD_CUR;
-  if(!c || c.date !== sdToday()){     // 新一天或首次进入 → 开今日关；同日重进（软导航）续练当前句
+  if(!c || c.date !== sdToday()){     // 新一天或首次进入 → 开今日关。
+    // 注：SD_CUR 是顶层 var，软导航重跑会重置 → 同日重进口语页是「重开今日关」而非续练
+    //（5 句量无实害，验收 B3 按实修正注释；若未来要真续练，需挂 window 缓存恢复）。
     var scene = sdPickScene(scenes.scenes);
     if(!scene) return;
     SD_CUR = { scene: scene, steps: sdStepsOf(scene), idx: 0, log: [], date: sdToday(), stuck: false };
