@@ -1372,7 +1372,8 @@ function mergeData(local, cloud){
      手机端任意操作全量上传会把云端进度/我的句型库冲掉——移动端「练习页进度没了」根因）。
      规则：items 按条目 id 取「更进步」一侧（mastered > 未掌握；level 大者胜；同级 updated 新者胜；
      pending 标记做 OR 保留，下次判对自动清除）；custom[] 按 id 并集（同 id 留本机）；
-     mockSynced[] 签名并集（同步去重，永不重复导入）。 */
+     mockSynced[] 签名并集（同步去重，永不重复导入）；weakness 按 focus 合并
+     （wrongCount 取 max 幂等防重复同步累加、lastWrongAt 取较新，design/07 §5.4）。 */
   if(cloud.patternDrill && typeof cloud.patternDrill === 'object'){
     const _pdRank = s => (s && s.status === 'mastered') ? 1 : 0;
     const _pdItems = Object.assign({}, (local.patternDrill && local.patternDrill.items) || {});
@@ -1408,6 +1409,23 @@ function mergeData(local, cloud){
     ]));
     if(_ms.length !== ((local.patternDrill && local.patternDrill.mockSynced) || []).length) _pdCh++;
     _pdOut.mockSynced = _ms;
+    // weakness（design/07 §5.4）：按 focus 合并；wrongCount 取 max 不取 sum（幂等——云端已含本机
+    // 上次上传的贡献，sum 在重复同步时反复累加虚高），lastWrongAt 取较新。
+    // 不显式处理会被上方 Object.assign({}, local.patternDrill) 起步的 _pdOut 整份丢弃云端那份。
+    const _lw = (local.patternDrill && local.patternDrill.weakness) || {};
+    const _cw = (cloud.patternDrill && cloud.patternDrill.weakness) || {};
+    const _mw = {};
+    let _wCh = 0;
+    Array.from(new Set([...Object.keys(_lw), ...Object.keys(_cw)])).forEach(k => {
+      const a = _lw[k] || {}, b = _cw[k] || {};
+      const wc = Math.max(Number(a.wrongCount) || 0, Number(b.wrongCount) || 0);
+      const lwa = String(a.lastWrongAt || '') >= String(b.lastWrongAt || '') ? (a.lastWrongAt || '') : (b.lastWrongAt || '');
+      _mw[k] = { wrongCount: wc, lastWrongAt: lwa };
+      if((Number(a.wrongCount) || 0) !== wc || String(a.lastWrongAt || '') !== lwa) _wCh++;
+    });
+    if(Object.keys(_lw).length !== Object.keys(_mw).length) _wCh++;
+    _pdOut.weakness = _mw;
+    _pdCh += _wCh;
     if(_pdCh){ out.patternDrill = _pdOut; changes += _pdCh; }
   }
   // 合并后同步镜像账号凭证到隔离键（云端可能带来/更新 Key/手机号/发音分，务必落盘镜像）
