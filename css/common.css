@@ -3149,9 +3149,12 @@ body.has-dock main.container{ padding-bottom:0; }
 }
 
 /* ===== 背词完成页「想再认一次的词」紧凑卡（之之 2026-09-09 反馈重设计：粉卡+提示条合一） ===== */
+/* min-width:0 必须：本卡是 .practice-body-fit（flex 列）的子项，默认 min-width:auto 时不许收缩，
+   会被 .rw-cn（nowrap 长释义）的固有宽度撑破父容器 → 手机窄屏整卡左右溢出、左侧切出屏幕外（9/9 实测 360px 复现） */
 .rw-card{
   background:var(--err-bg); border:1px solid var(--err); border-radius:14px;
   padding:12px 14px; margin-top:14px;
+  min-width:0; max-width:100%;
 }
 .rw-head{ display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; margin-bottom:2px; }
 .rw-t{ font-size:14px; font-weight:800; color:var(--danger); }
