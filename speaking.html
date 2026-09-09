@@ -45,8 +45,8 @@
   <script defer src="js/mock-report.js?v=20260830u"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
   <script defer src="js/mock.js?v=20260830v"></script>
-  <script defer src="js/pattern-drill.js?v=20260909i"></script>
-  <script defer src="js/scene-drill.js?v=20260909b"></script>
+  <script defer src="js/pattern-drill.js?v=20260909j"></script>
+  <script defer src="js/scene-drill.js?v=20260909c"></script>
 <style>
   /* === 极简口语模块 · 优化版（沿用全站 Teal Token） === */
 
@@ -658,30 +658,34 @@
     .sd-hint{margin:4px 0 0;font-size:13px;color:var(--muted);line-height:1.7}
     .sd-hint b{color:var(--primary);font-weight:600}
     #trainCard,#sceneCard,#finishCard{ margin-bottom:150px }   /* 底部给悬浮计时器+dock 让位：否则滚动到底时提交按钮被固定层盖住（9/9 实测） */
-    @media (max-width:560px){ .pd-ov-grid{grid-template-columns:1fr} }
+    /* design/09 改动 2.4：⛶ 全屏练习（复用背词页 body 级 class 机制，只作用于 trainCard；完成/空态可滚） */
+    body.pd-fullscreen{padding-left:0 !important;padding-right:0 !important}
+    body.pd-fullscreen .top-nav{display:none !important}
+    body.pd-fullscreen .side-collapse{display:none !important}
+    body.pd-fullscreen .page-title{display:none}
+    body.pd-fullscreen .page-head-row{display:none}   /* 元素 hide 后空壳仍占 margin → 全屏态整行摘掉 */
+    body.pd-fullscreen main.container{padding:0 !important;max-width:none !important;height:100vh;overflow:hidden !important;display:flex;flex-direction:column;justify-content:flex-start;background:var(--bg)}
+    body.pd-fullscreen #pdPendingTop{display:none !important}
+    body.pd-fullscreen #pdEmpty{display:none !important}
+    body.pd-fullscreen #trainCard{min-height:100vh;max-width:none;border-radius:0;margin:0;padding:24px 40px;background:var(--bg)}
+    body.pd-fullscreen .pd-cn{font-size:clamp(22px,4.5vh,30px)}
+    body.pd-fullscreen #pdAnswer{min-height:30vh}
+    body.pd-fullscreen #pdImportPanel{display:none !important}
   </style>
   <div id="pdView" hidden>
     <div class="pd-pending" id="pdPendingTop" hidden></div>
 
-    <section class="card" id="overview">
-      <h2>今日任务</h2>
-      <div id="ovBody"></div>
-      <div class="pd-bar" style="margin-top:10px">
-        <button class="btn btn-ghost" id="pdImportBtn" style="min-height:36px">导入句型</button>
-        <span class="pd-note" id="pdSyncNote" style="margin:0"></span>
-      </div>
-      <div id="pdImportPanel" hidden style="margin-top:10px">
-        <textarea id="pdImportText" class="pd-input" style="min-height:70px" placeholder="粘贴你想练的内容：中文句 / 英文句 / 错句+改正 / 笔记，AI 自动识别并入库"></textarea>
-        <div class="pd-bar">
-          <button class="btn btn-primary" id="pdImportParse">AI 解析</button>
-          <button class="btn btn-ghost" id="pdImportCancel">收起</button>
-        </div>
-        <div id="pdImportResult"></div>
-      </div>
-    </section>
-
     <section class="card" id="trainCard" style="display:none">
-      <div class="pd-progress"><div class="pd-progress-fill" id="pdProgressFill"></div></div>
+      <div class="word-stats" id="pdStats">
+        <span class="stat-progress" id="pdMasteredStat">已掌握 0 / 0</span>
+      </div>
+      <div class="prog-bar-wrap" id="pdProgWrap">
+        <div class="prog-bar-track"><div class="prog-bar-fill" id="pdProgressFill" style="width:0%"></div></div>
+      </div>
+      <div class="word-tools-row" id="pdToolsRow">
+        <button class="btn btn-sm icon-square-btn" id="pdGear" title="导入句型 / 模考同步"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></button>
+        <button class="btn btn-sm icon-square-btn" id="pdFullscreen" title="全屏练习"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg></button>
+      </div>
       <span class="pd-tag" id="pdTag"></span>
       <div class="pd-cn" id="pdCn"></div>
       <div class="pd-wrong" id="pdWrong"></div>
@@ -694,7 +698,18 @@
         <span class="pd-status" id="pdStatus" aria-live="polite"></span>
       </div>
       <div class="pd-feedback" id="pdFeedback"></div>
+      <div id="pdImportPanel" hidden style="margin-top:10px">
+        <textarea id="pdImportText" class="pd-input" style="min-height:70px" placeholder="粘贴你想练的内容：中文句 / 英文句 / 错句+改正 / 笔记，AI 自动识别并入库"></textarea>
+        <div class="pd-bar">
+          <button class="btn btn-primary" id="pdImportParse">AI 解析</button>
+          <button class="btn btn-ghost" id="pdImportCancel">收起</button>
+        </div>
+        <div id="pdImportResult"></div>
+      </div>
+      <span class="pd-note" id="pdSyncNote" style="margin:0"></span>
     </section>
+
+    <div id="pdEmpty" class="pd-note" hidden></div>
 
     <!-- 场景闯关 v2（design/07）：与 trainCard 同级保留；__SCENE_V2_ON=true 时由 scene-drill.js 接管 -->
     <section class="card" id="sceneCard" style="display:none">

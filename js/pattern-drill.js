@@ -5,7 +5,6 @@
    复习模式混合连打、不逐题展开、答错降级 level 0；答错路径一律停住手动进下一题（9/9）。进度挂 DATA.patternDrill（云同步零额外代码）。
    AI 超时 3.2s 放行 + 标 pending（顶部计数），绝不卡流程。 */
 
-var PD_NEW_PER_DAY = 5;
 var PD_INTERVALS = [1, 2, 4, 7, 15]; // 掌握后下次复习间隔（天），level 0~4
 
 /* 顶层一律 var：本文件同时被 pattern-drill.html（script 标签）与 speaking.html「练习」tab
@@ -17,8 +16,6 @@ var PD_QUEUE = [];
 var PD_IDX = 0;
 var PD_CUR = null;        // { item, mode:'new'|'review'|'free', wrongCount, demoted }
 var PD_AUTO_NEXT = null;  // 自动跳转定时器
-var PD_RETRY = null;      // 补题上下文 { cn, fix }（答错后 AI 出的同类中文短句）
-var PD_RETRY_FAILS = 0;   // 同一道补题连续答错次数（≥2 放行，标 pending）
 var PD_STAGES = [];       // 新学题全过后的阶段：组 tip
 var PD_STAGE_IDX = 0;
 var PD_NEW_GROUP_IDS = []; // 本轮新学涉及的组（决定 tip）
@@ -34,10 +31,8 @@ var PD_JUDGE_SYS = `你是雅思口语 5.5 分目标的语法裁判。用户在�
 - 错误：{"ok":false,"fix":"中文一句话，点出错误在哪 + 怎么改","retry":"针对同一错误点的一句同类中文短句（新的句子，让她翻译重说）"}
 绝不输出 6 分以上水平的改写，不要给整句正确翻译。`;
 
-var PD_RETRY_SYS = `你是雅思口语 5.5 分目标的语法裁判。用户刚才在某句型上犯了错，现在做"补题"：给一句同类的中文，她翻译成英文。你只重点检查她是否修复了原来那个错误点，其余一律放过（单复数、冠词、三单、大小写、标点、拼写都不算错）。
-输出严格 JSON，不要任何前后文字：
-- 正确：{"ok":true}
-- 错误：{"ok":false,"fix":"中文一句话，点出错误在哪 + 怎么改"}`;
+/* PD_RETRY_SYS 补题判定提示词已随补题机制退役（design/09 改动 1：答错=提示→改→重交到对）。
+   PD_JUDGE_SYS 里的 retry 字段保留不动（判定口径红线），返回后忽略。 */
 
 var PD_IMPORT_SYS = `你在为雅思「句子修复」练习库做解析。用户会粘贴一段任意文本（可能是：中文句子、英文句子、他写错的英文+改正、句型笔记、混合内容）。把其中值得练习的内容解析成练习条目。
 每条格式：{"cn":"中文提示句（她看中文说英文）","wrong":"英文错句，没有就空字符串","right":"正确英文句","fix":"中文一句话点出易错点，没有就空字符串"}
@@ -99,18 +94,16 @@ function pdBuildQueue(){
       }
     }
   }
-  // 新学：未掌握的，按 group 优先级顺序，每天最多推进 PD_NEW_PER_DAY 个
-  const pending = [];
+  // 新学：未掌握的全部入队（之之 9/9：每日 5 句太少，节奏自己控制——design/09 改动 3 去上限；
+  // 到期复习已排在前混排；中途放弃明天重现口径不动）
   for(const g of PD_GROUPS){
     for(const it of g.items){
       const st = PD_PROGRESS.items[it.id];
-      if(!(st && st.status === 'mastered')) pending.push(it);
+      if(st && st.status === 'mastered') continue;
+      queue.push({ item:it, mode:'new' });
+      const gid = pdGroupOf(it).id;
+      if(gid && PD_NEW_GROUP_IDS.indexOf(gid) === -1) PD_NEW_GROUP_IDS.push(gid);
     }
-  }
-  for(let i = 0; i < Math.min(PD_NEW_PER_DAY, pending.length); i++){
-    queue.push({ item:pending[i], mode:'new' });
-    const gid = pdGroupOf(pending[i]).id;
-    if(gid && PD_NEW_GROUP_IDS.indexOf(gid) === -1) PD_NEW_GROUP_IDS.push(gid);
   }
   return queue;
 }
@@ -133,34 +126,13 @@ function pdUpdatePendingTop(){
   else el.hidden = true;
 }
 
-function pdShowOverview(){
+/* 头部右上角「已掌握 N / M」（design/09 改动 2：今日任务卡整卡删除，头部对齐背词页） */
+function pdUpdateHead(){
+  const el = document.getElementById('pdMasteredStat');
+  if(!el) return;
   const total = PD_GROUPS.reduce((n,g) => n + g.items.length, 0);
   let mastered = 0; for(const id in PD_PROGRESS.items){ if(PD_PROGRESS.items[id].status === 'mastered') mastered++; }
-  const newCount = PD_QUEUE.filter(q => q.mode === 'new').length;
-  const revCount = PD_QUEUE.filter(q => q.mode === 'review').length;
-  let html = '<div class="pd-ov-grid">'
-    + '<div class="pd-ov-box"><h3>今日新学</h3><div class="num">' + newCount + '</div></div>'
-    + '<div class="pd-ov-box"><h3>今日复习</h3><div class="num">' + revCount + '</div></div>'
-    + '<div class="pd-ov-box"><h3>已掌握</h3><div class="num">' + mastered + ' / ' + total + '</div></div>'
-    + '<div class="pd-ov-box"><h3>下次复习</h3><div class="num" style="font-size:16px">' + (revCount ? '今天有' : '待掌握后') + '</div></div>'
-    + '</div>';
-  if(PD_QUEUE.length){
-    html += '<ul class="pd-ov-list">';
-    for(const q of PD_QUEUE){
-      const st = PD_PROGRESS.items[q.item.id];
-      const done = (q.mode === 'review' && st && st.status === 'mastered' && st.due && st.due > pdIsoDate());
-      const cls = done ? 'done' : (q.mode === 'review' ? 'rev' : 'new');
-      html += '<li><span class="pd-dot ' + cls + '"></span>' + q.item.cn + '</li>';
-    }
-    html += '</ul>';
-  } else {
-    html += '<p class="pd-note">今天没有新任务。已掌握的全部还没到复习日——去练别的模块，或加新题库。</p>';
-  }
-  const customN = (PD_PROGRESS.custom || []).length;
-  html += '<p class="pd-note">规则：给中文 + 你自己的错句，repair 成正确句。答错会提示错在哪，并出一道同类补题，答对才过关。AI 只判对/错，不剧透答案。'
-    + (customN ? '句型库含 <b>' + customN + '</b> 句自建句子（模考错句自动同步 / 手动导入），之后的练习优先出现。' : '')
-    + '</p>';
-  $('#ovBody').innerHTML = html;
+  el.textContent = '已掌握 ' + mastered + ' / ' + total;
 }
 
 function pdStart(){
@@ -168,16 +140,20 @@ function pdStart(){
   PD_QUEUE = pdBuildQueue();
   PD_IDX = 0;
   PD_STAGES = []; PD_STAGE_IDX = 0;
-  PD_RETRY = null; PD_RETRY_FAILS = 0; PD_BUSY = false;
-  pdShowOverview();
+  PD_BUSY = false;
+  pdSetFullscreen(false);   // body 不随软导航重建：重跑必须清全屏态，防泄漏到别的 tab/页面
+  pdUpdateHead();
   pdUpdatePendingTop();
+  const empty = document.getElementById('pdEmpty');
   if(!PD_QUEUE.length){
     $('#trainCard').style.display = 'none';
+    if(empty){ empty.hidden = false; empty.textContent = '今天没有到期的复习，句型库也没有未掌握的新句——去练别的模块，或点齿轮加新句型。'; }
     return;
   }
+  if(empty) empty.hidden = true;
   PD_ROUND_START = Date.now();
   maybeStartPdTimer();   // 之之 9/9：打开口语练习自动开始计时
-  $('#overview').scrollIntoView({ behavior:'smooth', block:'start' });
+  window.scrollTo({ top:0, behavior:'smooth' });
   pdNext();
 }
 
@@ -195,8 +171,7 @@ function pdBuildStages(){
 
 function pdNext(){
   if(PD_AUTO_NEXT){ clearTimeout(PD_AUTO_NEXT); PD_AUTO_NEXT = null; }
-  PD_RETRY = null; PD_RETRY_FAILS = 0;
-  pdShowOverview();
+  pdUpdateHead();
   if(PD_IDX < PD_QUEUE.length){
     PD_CUR = PD_QUEUE[PD_IDX];
     pdRenderItem();
@@ -230,15 +205,7 @@ function pdRenderItem(){
   $('#pdAnswer').focus();
 }
 
-/* 补题卡片 */
-function pdRenderRetry(){
-  $('#pdTag').textContent = '补题 · 同类句（答对才过）';
-  $('#pdTag').className = 'pd-tag';
-  $('#pdCn').textContent = PD_RETRY.cn;
-  $('#pdWrong').style.display = 'none';
-  pdResetAnswer((PD_IDX + 1) + ' / ' + PD_QUEUE.length);
-  $('#pdAnswer').focus();
-}
+/* 补题卡片 pdRenderRetry 已随补题机制退役（design/09 改动 1） */
 
 function pdRenderStage(stage){
   if(stage.type === 'tip'){
@@ -307,13 +274,8 @@ async function pdOnSubmit(){
   $('#pdStatus').textContent = '判定中…';
   let r;
   try{
-    if(PD_RETRY){
-      // 补题判定：无参考句，按原错误点判
-      r = await pdAskAI(PD_RETRY_SYS, '原来的错误点：' + (PD_RETRY.fix || '（未知）') + '\n补题中文：' + PD_RETRY.cn + '\n用户答案：' + answer + '\n只重点检查原错误点是否修复，其余一律放过。');
-    } else {
-      const it = PD_CUR.item;
-      r = await pdAskAI(PD_JUDGE_SYS, '题目：' + it.cn + '\n参考正确句：' + it.right + '\n用户答案：' + answer + '\n只判定用户答案是否正确（意思和基本结构对即可，细节如拼写/单复数放过）。');
-    }
+    const it = PD_CUR.item;
+    r = await pdAskAI(PD_JUDGE_SYS, '题目：' + it.cn + '\n参考正确句：' + it.right + '\n用户答案：' + answer + '\n只判定用户答案是否正确（意思和基本结构对即可，细节如拼写/单复数放过）。');
   }catch(e){
     r = { ok:null, err: (e && e.message) ? e.message : 'AI 调用失败' };
   }
@@ -330,70 +292,36 @@ function pdClearPending(it){
 function pdHandleResult(r){
   const it = PD_CUR.item;
   const fb = $('#pdFeedback');
+  const stat = (PD_IDX + 1) + ' / ' + PD_QUEUE.length;   // 本页 N/M 就挂在 pdStatus 上，每分支收尾必须恢复（改动 1.4）
   if(r.ok === true){
-    if(PD_RETRY){
-      // 补题答对 → 原题过
-      const wasRetry = true;
-      PD_RETRY = null;
-      if(!PD_CUR.demoted) pdMarkMastered(it);
-      pdClearPending(it);
-      fb.className = 'pd-feedback ok';
-      fb.textContent = '✓ 补题也过了，这条算修复。';
-      pdAdvance('下一题 ▸', wasRetry);
-    } else {
-      if(!PD_CUR.demoted) pdMarkMastered(it);
-      pdClearPending(it);
-      fb.className = 'pd-feedback ok';
-      fb.textContent = '✓ 正确，过关。';
-      pdAdvance('下一题 ▸', false);
-    }
+    if(!PD_CUR.demoted) pdMarkMastered(it);
+    pdClearPending(it);
+    fb.className = 'pd-feedback ok';
+    fb.textContent = '✓ 正确，过关。';
+    $('#pdStatus').textContent = stat;
+    pdAdvance('下一题 ▸');
   } else if(r.ok === false){
-    if(PD_RETRY){
-      // 补题错 → 原句重说；两次仍错放行标 pending
-      PD_RETRY_FAILS++;
-      fb.className = 'pd-feedback bad';
-      fb.innerHTML = '✗ ' + (r.fix || '还有问题，再试一次。');
-      $('#pdAnswer').value = '';
-      $('#pdAnswer').focus();
-      $('#pdSubmit').disabled = false;
-      $('#pdStatus').textContent = '补题重说 ' + PD_RETRY_FAILS + '/2';
-      if(PD_RETRY_FAILS >= 2){
-        fb.innerHTML += '<br>先过，这条下次还会作为新题出现。';
-        PD_RETRY = null;
-        // 之之 9/9：答错一律停住，手动进下一题，不自动跳
-        pdAdvance('下一题 ▸', false, true);   // 判过错不算 pending，明天作为新题重来
-      }
-      return;
-    }
     PD_CUR.wrongCount = (PD_CUR.wrongCount || 0) + 1;
     if(PD_CUR.mode === 'review' && !PD_CUR.demoted){
       // 复习答错 → 立即降级 level 0，明天的复习名额里再见（方案：答错降级回 level 0）
       PD_CUR.demoted = true;
       pdDemote(it);
     }
+    /* design/09 改动 1：答错 = 提示 → 改 → 重交到对（补题机制退役）。
+       输入框【不清空】——保留她刚写的，改一改直接重交；提交按钮恢复可点（onclick 一直是 pdOnSubmit 单通道）。 */
     fb.className = 'pd-feedback bad';
-    fb.innerHTML = '✗ ' + (r.fix || '有错误，再想想。');
-    if(r.retry){
-      // 同类补题：答对才过（方案七）。之之 9/9：不自动切卡——先看错在哪，手动点「看补题 ▸」再进
-      fb.innerHTML += '<br><b>补题</b>：同一错误点换个说法，看完错在哪点按钮继续——';
-      PD_RETRY = { cn: r.retry, fix: r.fix || '' };
-      PD_RETRY_FAILS = 0;
-      $('#pdSubmit').textContent = '看补题 ▸';
-      $('#pdSubmit').disabled = false;
-      $('#pdSubmit').onclick = () => pdRenderRetry();
-      return;
-    }
-    fb.innerHTML += '　→ 重说一遍试试。';
-    $('#pdAnswer').value = '';
+    fb.innerHTML = '✗ ' + (r.fix || '有错误，再想想。') + '　→ 改一改再交一次。';
     $('#pdAnswer').focus();
+    $('#pdSubmit').textContent = '提交';
     $('#pdSubmit').disabled = false;
+    $('#pdSubmit').onclick = pdOnSubmit;
+    $('#pdStatus').textContent = stat;
     if(PD_CUR.wrongCount >= 2){ $('#pdReveal').style.display = ''; }
     $('#pdReveal').onclick = () => {
       fb.className = 'pd-feedback info';
       fb.innerHTML = '正确句：<b>' + it.right + '</b><br>看一眼就行，这条下次还会作为新题出现。';
       $('#pdReveal').style.display = 'none';
-      PD_RETRY = null;
-      pdAdvance('下一题 ▸', false, true);   // 答错路径：手动进下一题
+      pdAdvance('下一题 ▸', true);   // 答错路径：停住手动进下一题（之之 9/9）
     };
   } else {
     // 未判定（超时 / 无 Key / 异常）→ 放行不卡流程，标 pending
@@ -404,17 +332,9 @@ function pdHandleResult(r){
       fb.className = 'pd-feedback info';
       fb.innerHTML = '正确句：<b>' + it.right + '</b>';
       $('#pdReveal').style.display = 'none';
-      PD_RETRY = null;
       pdMarkPending(it);
-      pdAdvance('下一题 ▸', false);
+      pdAdvance('下一题 ▸');
     };
-    if(PD_RETRY){
-      $('#pdReveal').style.display = 'none';   // 补题无参考句，不展示正确句
-      PD_RETRY = null;
-      pdMarkPending(it);
-      pdAdvance('下一题 ▸', false);
-      return;
-    }
     pdMarkPending(it);
     $('#pdSubmit').textContent = '我过了，下一题 ▸';
     $('#pdSubmit').disabled = false;
@@ -433,13 +353,19 @@ function pdMarkPending(it){
   pdUpdatePendingTop();
 }
 
-function pdAdvance(btnText, wasRetry, manual){
+function pdAdvance(btnText, manual){
   $('#pdProgressFill').style.width = Math.round((PD_IDX + 1) / Math.max(1, PD_QUEUE.length) * 100) + '%';
   $('#pdSubmit').textContent = btnText;
   $('#pdSubmit').disabled = false;
   $('#pdSubmit').onclick = () => { PD_IDX++; pdNext(); };
   /* manual=true：答错路径停住，不自动跳（之之 9/9：答错后自己手动选下一题） */
   if(!manual) PD_AUTO_NEXT = setTimeout(() => { PD_IDX++; pdNext(); }, 1100);
+}
+
+/* 全屏练习（design/09 改动 2.4）：复用背词页 body 级 class 机制，规则见 speaking/pattern-drill 页内 CSS。
+   body 不随软导航重建 → ready 里必须清态防泄漏（pdStart 已做）。 */
+function pdSetFullscreen(on){
+  try{ document.body.classList.toggle('pd-fullscreen', !!on); }catch(e){}
 }
 
 function pdMarkMastered(it){
@@ -466,6 +392,7 @@ function pdDemote(it){
 }
 
 function pdFinish(){
+  pdSetFullscreen(false);   // 完成态可滚（design/09 改动 2.4）
   $('#trainCard').style.display = 'none';
   // 找最近一次复习日
   let nextDue = null;
@@ -483,9 +410,9 @@ function pdFinish(){
   schedulePdTimerStop();
   $('#finishBody').innerHTML = '<p class="pd-note">本次共 ' + PD_QUEUE.length + ' 题' + (roundMs ? ' · 用时 <b>' + pdFmtMs(roundMs) + '</b>' : '') + '。已掌握 ' + Object.keys(PD_PROGRESS.items).filter(k => PD_PROGRESS.items[k].status === 'mastered').length + ' 条。'
     + (nextDue ? '　下次复习日：<b>' + nextDue + '</b>。' : '') + '</p>'
-    + '<div class="pd-actions"><button class="btn btn-primary" id="pdAgain">再来一轮</button><button class="btn btn-ghost" id="pdBack">看今日任务</button></div>';
+    + '<div class="pd-actions"><button class="btn btn-primary" id="pdAgain">再来一轮</button><button class="btn btn-ghost" id="pdBack">收起</button></div>';
   $('#pdAgain').onclick = () => { PD_IDX = 0; PD_STAGES = []; PD_STAGE_IDX = 0; pdStart(); };
-  $('#pdBack').onclick = () => { $('#finishCard').style.display = 'none'; $('#overview').scrollIntoView(); };
+  $('#pdBack').onclick = () => { $('#finishCard').style.display = 'none'; window.scrollTo({ top:0, behavior:'smooth' }); };   // design/09：overview 卡已删，收起完成页回顶部
 }
 
 function pdHint(){
@@ -541,9 +468,9 @@ function pdSetSyncNote(html){ const el = document.getElementById('pdSyncNote'); 
 
 /* 若引擎还没开练（还在第 1 题、没在判定中），重建队列让新句型立即生效 */
 function pdRefreshQueueIfIdle(){
-  if(PD_BOOTED && PD_IDX === 0 && !PD_BUSY && !PD_RETRY && !$('#pdAnswer').value){
-    PD_QUEUE = pdBuildQueue(); PD_STAGES = []; PD_STAGE_IDX = 0; PD_RETRY = null;
-    pdShowOverview(); pdUpdatePendingTop();
+  if(PD_BOOTED && PD_IDX === 0 && !PD_BUSY && !$('#pdAnswer').value){
+    PD_QUEUE = pdBuildQueue(); PD_STAGES = []; PD_STAGE_IDX = 0;
+    pdUpdateHead(); pdUpdatePendingTop();
     if(PD_QUEUE.length) pdRenderItem();
   }
 }
@@ -681,7 +608,8 @@ function pdImportAdd(){
 }
 
 function pdImportInit(){
-  const btn = document.getElementById('pdImportBtn');
+  /* design/09 改动 2.3：「导入句型」按钮退役，齿轮（pdGear）接管开关面板 */
+  const btn = document.getElementById('pdGear') || document.getElementById('pdImportBtn');
   if(!btn) return;
   btn.onclick = () => pdImportToggle();
   const cancel = document.getElementById('pdImportCancel');
@@ -788,7 +716,7 @@ ready(async () => {
       window.__pdPatternsCache = PD_PATTERNS;
       PD_GROUPS = PD_PATTERNS.groups || [];
     }catch(e){
-      $('#ovBody').innerHTML = '<p class="pd-note">题库加载失败：' + (e.message || e) + '</p>';
+      pdSetSyncNote('题库加载失败：' + (e.message || e));   // design/09：overview 卡已删，ovBody 不存在
       return;
     }
   }
@@ -797,9 +725,11 @@ ready(async () => {
      onclick 槽会在同一 click 派发中途被 pdAdvance 换成「下一题」箭头导致跳题（9/9 冒烟实锤）。 */
   $('#pdHint').addEventListener('click', pdHint);
   $('#pdSkip').addEventListener('click', () => {
-    PD_RETRY = null;
     PD_IDX++; pdNext();
   });
+  /* design/09 改动 2：⛶ 全屏练习按钮（齿轮→导入面板由 pdImportInit 单通道绑定） */
+  const pdFsBtn = document.getElementById('pdFullscreen');
+  if(pdFsBtn) pdFsBtn.onclick = () => pdSetFullscreen(!document.body.classList.contains('pd-fullscreen'));
   $('#pdAnswer').addEventListener('keydown', e => {
     if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); pdOnSubmit(); }
   });

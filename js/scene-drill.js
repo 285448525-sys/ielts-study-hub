@@ -25,6 +25,7 @@ var SD_CUR = null;          // { scene, steps, idx, log, date, stuck }
 var SD_BUSY = false;        // 判定进行中，防连点
 var SD_AUTO_NEXT = null;    // 答对自动流转定时器
 var SD_HINT_SHOWN = 0;      // 当前句提示层级：0=只显中文(L0) 1=提示单词(L1) 2=结构规则(L2，=卡住)
+var SD_WRONG_N = 0;         // 当前句已错次数：1=只给 fix 可重交，2=给整句+看答案进下一句（design/09 改动 4）
 
 /* ── 本地判定（design/07 §六）：本地优先 AI 兜底 ──
    归一化 → token 序列比对。放过（判对口径同 PD_JUDGE_SYS 5.5）：
@@ -213,21 +214,37 @@ function sdHandleResult(ok, fix, answer, line){
   var c = SD_CUR; if(!c) return;
   var fb = sd$('sdFeedback'), st = sd$('sdStatus'), sub = sd$('sdSubmit');
   var hb = sd$('sdHintBtn'), nx = sd$('sdNext'), ans = sd$('sdAnswer');
-  c.log.push({ ok: ok, right: line.right, focus: line.focus || '', answer: answer, stuck: !!c.stuck });
   if(ok){
+    /* log 只在该句解决时 push（对/两次错），与 c.steps 索引对齐（回显 c.log[i] 依赖） */
+    c.log.push({ ok: true, tries: SD_WRONG_N, right: line.right, focus: line.focus || '', answer: answer, stuck: !!c.stuck });
     if(fb){ fb.className = 'pd-feedback ok'; fb.textContent = '过了'; }
     if(st) st.textContent = '';
     SD_AUTO_NEXT = setTimeout(sdAdvance, 1100);   // 答对自动流转；答错停住手动进（9/9 定版）
   } else {
-    if(fb){
-      fb.className = 'pd-feedback bad';           // 答错立刻给正确句（不再等 2 次，§一/§四）
-      fb.innerHTML = '<b>正确句：</b>' + sdEsc(line.right) + '<br>' + sdEsc(fix || line.fix || '');
+    SD_WRONG_N++;
+    if(SD_WRONG_N === 1){
+      /* 第 1 次错：只给 fix（不给整句正确句），ans/sub 不禁用可重交，判对才过（design/09 改动 4） */
+      if(fb){
+        fb.className = 'pd-feedback bad';
+        fb.innerHTML = '<b>AI 提示：</b>' + sdEsc(fix || line.fix || '');
+      }
+      if(st) st.textContent = '再试一次：把这句重新说一遍';
+      if(hb) hb.style.display = 'none';
+      if(sub){ sub.disabled = false; sub.textContent = '再交一次'; }
+      if(nx) nx.style.display = 'none';
+    } else {
+      /* 第 2 次仍错：给整句正确句；按钮变「看答案，下一句 ▸」，点击进下一句（正确句留在「补的：」回显） */
+      c.log.push({ ok: false, right: line.right, focus: line.focus || '', answer: answer, stuck: !!c.stuck });
+      if(fb){
+        fb.className = 'pd-feedback bad';
+        fb.innerHTML = '<b>正确句：</b>' + sdEsc(line.right) + '<br>' + sdEsc(fix || line.fix || '');
+      }
+      if(st) st.textContent = '';
+      if(hb) hb.style.display = 'none';
+      if(nx) nx.style.display = 'none';
+      if(sub){ sub.disabled = false; sub.textContent = '看答案，下一句 ▸'; sub.onclick = sdAdvance; }
+      if(ans) ans.disabled = true;
     }
-    if(st) st.textContent = '';
-    if(sub) sub.disabled = true;
-    if(hb) hb.style.display = 'none';
-    if(nx) nx.style.display = '';
-    if(ans) ans.disabled = true;
   }
 }
 function sdAdvance(){
@@ -242,7 +259,7 @@ function sdAdvance(){
 }
 function sdFinish(){
   var c = SD_CUR; if(!c) return;
-  var wrong = c.log.filter(function(x){ return !x.ok; }).length;
+  var wrong = c.log.filter(function(x){ return (x.tries || 0) > 0; }).length;   // 当场纠了=错过至少 1 次（含 1 错 1 对）
   var stuck = c.log.filter(function(x){ return x.stuck; }).length;
   var fill = sd$('sdProgressFill');
   if(fill) fill.style.width = '100%';
