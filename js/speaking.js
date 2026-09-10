@@ -2,6 +2,7 @@
 var curType = 'ALL';   // 题库 tab 合并 P1+P2（'ALL'）；P1/P2 仅保留为数据类型
 var curFreq = 'all';
 var curCat = 'all';
+var curPart = 'all';
 var curSearch = '';
 var curDetailId = null;
 
@@ -79,6 +80,8 @@ ready(() => {
         populateFreqOptions();
         const cs = $('#catSelect'); if(cs) cs.value = 'all';
         curCat = 'all';
+        const ps = $('#partSelect'); if(ps) ps.value = 'all';
+        curPart = 'all';
         $('#listView').hidden = false;
         renderList();
       } else if(t === 'MOCK'){
@@ -94,14 +97,17 @@ ready(() => {
         populateFreqOptions();
         const cs = $('#catSelect'); if(cs) cs.value = 'all';
         curCat = 'all';
+        const ps = $('#partSelect'); if(ps) ps.value = 'all';
+        curPart = 'all';
         $('#listView').hidden = false;
         renderList();
       }
     });
   });
-  const freqSel = $('#freqSelect'), catSel = $('#catSelect');
+  const freqSel = $('#freqSelect'), catSel = $('#catSelect'), partSel = $('#partSelect');
   if(freqSel) freqSel.addEventListener('change', e => { curFreq = e.target.value; renderList(); });
   if(catSel) catSel.addEventListener('change', e => { curCat = e.target.value; renderList(); });
+  if(partSel) partSel.addEventListener('change', e => { curPart = e.target.value; renderList(); });
   populateFreqOptions();
   $('#spSearch').addEventListener('input', () => { curSearch = $('#spSearch').value.trim().toLowerCase(); renderList(); });
   $('#backBtn').addEventListener('click', () => { $('#detailView').hidden = true; $('#listView').hidden = false; curDetailId = null; spActivateTab('BANK'); });
@@ -134,6 +140,7 @@ function getFiltered(){
   let list = DATA.speaking.filter(s => (curType === 'ALL' || s.type === curType) && !s.framework && !/^sp_p[12]_\d+$/.test(s.id || ''));
   if(curFreq !== 'all') list = list.filter(s => s.frequency === curFreq);
   if(curCat !== 'all') list = list.filter(s => s.category === curCat);
+  if(curPart !== 'all') list = list.filter(s => s.type === curPart);
   if(curSearch){
     list = list.filter(s => {
       const t = ((s.titleEn || '') + ' ' + (s.titleZh || '') + ' ' + (s.title || '') + ' ' + (s.promptEn || '') + ' ' + (s.promptZh || '') + ' ' + (s.questions || []).join(' ')).toLowerCase();
