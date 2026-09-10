@@ -12,7 +12,7 @@
 
 /* 上线开关：若外部已注入（真值/假值都算）则尊重外部，否则用默认 false。
    阶段 6 把 SD_DEFAULT_ON 改 true 即整体上线；改回 false 即整体回滚。 */
-var SD_DEFAULT_ON = false;
+var SD_DEFAULT_ON = true;   // design/10 §六：阶段 3/4 验证通过，整体上线（改回 false 即整体回滚到老模块，零数据损失）
 var SD_V2_ON = (typeof window !== 'undefined' && typeof window.__SCENE_V2_ON !== 'undefined') ? !!window.__SCENE_V2_ON : SD_DEFAULT_ON;
 window.__SCENE_V2_ON = SD_V2_ON;
 
@@ -147,8 +147,21 @@ function sdBind(){
   var hb = sd$('sdHintBtn');
   if(hb) hb.onclick = function(){ if(SD_VARIANT) sdVariantHint(); else sdOnHint(); };   // 阶段 3：换词态提示分流
   var nx = sd$('sdNext'); if(nx) nx.onclick = sdAdvance;
+  var sp = sd$('sdSpeakBtn'); if(sp) sp.onclick = sdSpeak;   // TTS 听一遍（design/07 §十二，之之已对齐）
   var ans = sd$('sdAnswer');
   if(ans) ans.onkeydown = function(e){ if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); sdOnSubmit(); } };
+}
+/* TTS 听一遍：朗读当前目标句（换词态读目标 fill）。完成态无目标句 → 静默返回 */
+function sdSpeak(){
+  var c = SD_CUR; if(!c) return;
+  var text = SD_VARIANT ? SD_VARIANT_FILL : (c.steps[c.idx] ? c.steps[c.idx].line.right : '');
+  if(!text || !window.speechSynthesis) return;
+  try{
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US'; u.rate = 0.95;
+    window.speechSynthesis.speak(u);
+  }catch(e){}
 }
 function sdRenderHints(){
   var c = SD_CUR; if(!c) return;
