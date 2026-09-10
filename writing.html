@@ -25,7 +25,7 @@
 })();
 </script>
 <title>写作 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20260910a" />
+<link rel="stylesheet" href="css/common.css?v=20260910b" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=6" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=6">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=6">
@@ -60,7 +60,11 @@
   @media(max-width:860px){ .write-layout{flex-direction:column} .cat-nav{width:100%;flex-direction:row;flex-wrap:wrap} }
 
   /* AI 评分 */
-  .score-essay{width:100%;min-height:200px;padding:12px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);resize:vertical;box-sizing:border-box;line-height:1.8}
+  /* AI 作文评分 · 粘贴作文框（与 .exam-textarea 同款 Uiverse .input 深色样式，vw→px 换算见 common.css） */
+  .score-essay{width:100%;min-height:200px;padding:14px 16px;font:inherit;font-weight:500;font-size:15px;line-height:1.8;background-color:rgb(28,28,30);color:#fff;border:none;border-radius:8px;outline:none;box-shadow:0 0 8px rgba(0,0,0,.5),0 0 0 3px transparent;resize:vertical;box-sizing:border-box;transition:.4s}
+  .score-essay:hover{box-shadow:0 0 0 3px rgba(135,207,235,.186)}
+  .score-essay:focus{box-shadow:0 0 0 3px skyblue}
+  .score-essay::placeholder{color:rgba(255,255,255,.45)}
   .score-result{margin-top:16px;display:none}
   .score-overall{font-size:28px;font-weight:700;color:var(--primary)}
   .score-breakdown{display:flex;gap:16px;margin:8px 0 16px;flex-wrap:wrap}
