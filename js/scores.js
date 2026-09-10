@@ -41,6 +41,7 @@ ready(() => {
   $('#mkAdd').addEventListener('click', addMock);
   if($('#mkFilter')) $('#mkFilter').addEventListener('change', renderMockStats);
   onMockType();
+  onMockGran();   // 9/10：默认粒度=单项，初始化时把「选择 Part / 答对题数」摆到可见态
   renderMock();
   render();
 });
@@ -322,7 +323,9 @@ function onMockType(){
 }
 function onMockGran(){
   const whole = $('#mkGran').value === 'whole';
+  /* 9/10：五控件并入同一行后，单项模式的两个格子各自带 id，切整卷时一起藏 */
   $('#mkPartPick').hidden = whole;
+  $('#mkPartInputWrap').hidden = whole;
   $('#mkParts').hidden = !whole;
   if(whole) renderPartInputs();
   else renderSinglePartInput();
@@ -451,7 +454,7 @@ function estimateBand(type, correct, total){
 /* 从口语页日常练习记录聚合四维度均分。
    评分机制关闭后新记录可能无 score，但只要旧记录/评分恢复后仍有 score，就可用。
    返回 { sum, wsum } 对象，标签与 MOCK_TYPES.speaking.parts 一致。 */
-function aggregateSpeakingPracticeScores(){
+function aggregateSpeakingPracticeScores(cutoffTs){
   const byPart = {};
   let totalSum = 0, totalW = 0;
   (DATA.speaking || []).forEach(s => {
@@ -460,6 +463,7 @@ function aggregateSpeakingPracticeScores(){
     allAns.forEach(a => {
       (a && a.records || []).forEach(r => {
         if(!r || !r.score) return;
+        if(cutoffTs && r.ts && r.ts < cutoffTs) return;   // 近十天：无 ts 的旧数据不带日期，无法归属窗口，保留
         const map = [
           { k:'fluency',      l:'流利度 Fluency', w:1 },
           { k:'vocabulary',   l:'词汇 Lexical',   w:1 },
@@ -557,11 +561,27 @@ function aggregateSpeakingMockRecord(r){
   return { byPart, overall: { sum: overall, wsum: 1 } };
 }
 
-function mockAggregate(gran){
+/* 近十天窗口下界（之之 9/10：范围筛选改为 全部/近十天）。
+   含今天共 10 个自然日；本地日期帧拼回，禁止 toISOString（UTC+8 会回退一天）。 */
+function mkRecentCutoff(){
+  const d = new Date();
+  d.setDate(d.getDate() - 9);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function mkRecentCutoffTs(){
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d.getTime() - 9 * 86400000;
+}
+
+function mockAggregate(range){
   const byType = {}, byPart = {};
+  const recent = range === 'recent';
+  const cutoff = recent ? mkRecentCutoff() : '';
+  const cutoffTs = recent ? mkRecentCutoffTs() : 0;
 
   DATA.mockRecords.forEach(r => {
-    if(gran && gran !== 'all' && r.granularity !== gran) return;
+    if(recent && String(r.date || '') < cutoff) return;   // 近十天：'YYYY-MM-DD' 字典序即时间序
 
     // ① 口语整卷模考记录 → 联动到「分项模考」口语统计
     if(isSpeakingMockRec(r)){
@@ -599,7 +619,7 @@ function mockAggregate(gran){
   // ③ 口语既没有整卷模考、也没有分项模考 → 回退到口语页日常练习评分
   const speakingHasMock = byType.speaking && byType.speaking.wsum > 0;
   if(!speakingHasMock){
-    const sp = aggregateSpeakingPracticeScores();
+    const sp = aggregateSpeakingPracticeScores(cutoffTs);   // 近十天下传：日常练习评分同样只算窗口内
     if(sp.overall){
       byType.speaking = byType.speaking || { c:0, t:0, sum:0, wsum:0 };
       byType.speaking.sum += sp.overall.sum;
@@ -616,13 +636,16 @@ function mockAggregate(gran){
 }
 
 function renderMockStats(){
-  const gran = $('#mkFilter') ? $('#mkFilter').value : 'all';
-  const { byType, byPart } = mockAggregate(gran);
+  const range = $('#mkFilter') ? $('#mkFilter').value : 'all';   // 'all' | 'recent'（9/10 起不再按粒度筛）
+  const { byType, byPart } = mockAggregate(range);
   const keys = Object.keys(MOCK_TYPES);
   const hasAny = DATA.mockRecords.length > 0 || (aggregateSpeakingPracticeScores().overall != null);
+  const hasData = keys.some(k => byType[k] && (byType[k].wsum > 0 || byType[k].t > 0));
   const tbox = $('#mkTypeStats');
   if(!hasAny){
     tbox.innerHTML = renderEmpty('还没有分项模考记录，录一条就能看题型表现。');
+  } else if(range === 'recent' && !hasData){
+    tbox.innerHTML = renderEmpty('近十天还没有模考记录。');
   } else {
     tbox.innerHTML = '<div class="stat-grid">' + keys.map(ty => {
       const cfg = MOCK_TYPES[ty], a = byType[ty];
@@ -637,7 +660,7 @@ function renderMockStats(){
     }).join('') + '</div>';
   }
   const pbox = $('#mkPartStats');
-  if(!hasAny){
+  if(!hasAny || (range === 'recent' && !hasData)){
     pbox.innerHTML = renderEmpty('暂无数据。');
   } else {
     pbox.innerHTML = keys.map(ty => {

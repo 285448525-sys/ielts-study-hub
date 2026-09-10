@@ -37,7 +37,7 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20260909b"></script>
 <script defer src="js/common.js?v=20260910a"></script>
-<script defer src="js/scores.js?v=20260830v"></script>
+<script defer src="js/scores.js?v=20260910a"></script>
 <script defer src="js/history.js?v=20260904d"></script>
 <script defer src="js/mock-report.js?v=20260830u"></script>
 <script defer src="js/mock-history.js?v=20260830u"></script>
@@ -76,8 +76,8 @@
             <div class="form-row">
               <div><label>粒度</label>
                 <select id="mkGran">
-                  <option value="whole">整卷（录全部 Part）</option>
-                  <option value="part">单项（只录一个 Part）</option>
+                  <option value="part">单项</option>
+                  <option value="whole">整卷</option>
                 </select>
               </div>
               <div><label>题型</label>
@@ -89,14 +89,11 @@
                 </select>
               </div>
               <div><label>日期</label><input type="date" id="mkDate" /></div>
+              <div id="mkPartPick" style="flex:0 0 110px;min-width:90px"><label>选择 Part</label><select id="mkPart"></select></div>
+              <div id="mkPartInputWrap" style="flex:1;min-width:160px"><label id="mkPartInputLabel">答对题数</label><input type="number" id="mkPartInput" min="0" placeholder="0" /></div>
             </div>
 
-            <div class="form-row" id="mkPartPick" hidden>
-              <div style="flex:0 0 110px;min-width:90px"><label>选择 Part</label><select id="mkPart"></select></div>
-              <div style="flex:1;min-width:160px"><label id="mkPartInputLabel">答对题数</label><input type="number" id="mkPartInput" min="0" placeholder="0" /></div>
-            </div>
-
-            <div id="mkParts" class="mk-parts"></div>
+            <div id="mkParts" class="mk-parts" hidden></div>
 
             <button class="btn btn-primary" id="mkAdd">保存分项</button>
           </div>
@@ -108,8 +105,7 @@
             <div class="mk-filter-wrap"><label>范围</label>
               <select id="mkFilter">
                 <option value="all">全部</option>
-                <option value="whole">仅整卷</option>
-                <option value="part">仅单项</option>
+                <option value="recent">近十天</option>
               </select>
             </div>
           </div>
