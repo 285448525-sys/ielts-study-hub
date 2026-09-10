@@ -3173,3 +3173,13 @@ body.has-dock main.container{ padding-bottom:0; }
 .rw-row + .rw-row{ border-top:1px dashed rgba(0,0,0,.07); }
 .rw-row b{ font-size:14px; color:var(--ink); flex:none; }
 .rw-row .rw-cn{ font-size:12.5px; color:var(--ink-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+
+/* ===== 回顾·分项记录列表 紧凑化（9/10 方案 A：单行高密度，Part 明细跟标题同行）===== */
+#mkList .mk-row{align-items:center;gap:8px;padding:10px 14px;border-bottom:1px dashed var(--n-100,#eaeef2)}
+#mkList .mk-row:last-child{border-bottom:none}
+#mkList .mk-parts-inline{display:inline-flex;flex-wrap:wrap;gap:6px;flex:1 1 auto;min-width:0}
+#mkList .mk-parts-inline .badge{font-weight:400;opacity:.82}
+#mkList .mk-note{flex:0 1 100%;font-size:12px;opacity:.7;margin-top:2px}
+#mkList .mk-del{margin-left:auto;opacity:.4;transition:opacity .15s ease}
+#mkList .mk-row:hover .mk-del{opacity:1}
+@media (max-width:560px){#mkList .mk-row{flex-wrap:wrap}#mkList .mk-parts-inline{flex:1 1 100%}}

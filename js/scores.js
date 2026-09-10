@@ -713,14 +713,14 @@ function renderMockList(){
       const band = estimateBand(r.type, tc, tt);
       if(band != null) estBadge = ` <span class="badge up">约 ${band.toFixed(1)} 分</span>`;
     }
-    return `<div class="score-row" style="align-items:flex-start">
-      <strong style="min-width:88px">${r.date}</strong>
+    return `<div class="score-row mk-row">
+      <strong style="min-width:70px">${r.date}</strong>
       <span class="badge ${r.type[0]}">${cfg.icon} ${cfg.name}</span>
       <span class="badge">${r.granularity==='whole'?'整卷':'单项'}</span>
       ${overallBadge}${estBadge}
-      <div style="flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">${partsHtml}</div>
-      ${r.note ? `<div class="muted" style="flex-basis:100%">${escapeHtml(r.note)}</div>` : ''}
-      <button class="plan-del" data-del="${r.id}" title="删除" style="margin-left:auto">✕</button>
+      <span class="mk-parts-inline">${partsHtml}</span>
+      <button class="plan-del mk-del" data-del="${r.id}" title="删除">✕</button>
+      ${r.note ? `<div class="muted mk-note">${escapeHtml(r.note)}</div>` : ''}
     </div>`;
   }).join('');
   box.querySelectorAll('button[data-del]').forEach(b => b.addEventListener('click', () => {
