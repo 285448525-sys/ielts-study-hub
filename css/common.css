@@ -2589,37 +2589,47 @@ body.exam-fullscreen #writeTabs{display:none}
   100%{outline:.4em solid transparent; outline-offset:.4em}
 }
 
-/* ===== 登录 / 绑定按钮 .user-profile（Uiverse reglobby 改写，作用域仅 #syncBindBtn）=====
-     内胆 #1a1a1a → var(--n-900)（等价，走 token 不写 hex）；蓝色 #2e8eff 按之之给的原色保留。
-     ⚠️ 站点主色是 teal（--primary-500 #3a9a93），若要统一为 teal：把本块 4 处
-     #2e8eff / rgba(46,142,255,…) 换成 var(--primary) / rgba(58,154,147,…) 即可。
-     原 .ui-slide-btn（teal 滑出图标按钮）已被本组件替代并移除（全站仅此一处使用）。 */
+/* ===== 登录 / 绑定按钮 .user-profile（9/10 二次改版：并入站点 teal 主色系）=====
+   之之反馈原 Uiverse 蓝 #2e8eff + 黑内胆与全站白底 teal 风不协调 → 配色改走 --primary 三级
+   （默认 500 / hover 600 / 按下 700，与「保存」等主按钮同源），形状沿用 131×51 r15 胶囊；
+   focus 3px 柔光环、disabled 灰阶、active 轻下压。作用域仅 #syncBindBtn，不碰其他按钮。 */
 .user-profile{
   width:131px;
   height:51px;
   border-radius:15px;
   cursor:pointer;
   transition:.3s ease;
-  background:linear-gradient(to bottom right, #2e8eff 0%, rgba(46,142,255,0) 30%);
-  background-color:rgba(46,142,255,.2);
+  background:var(--primary-500);
   display:flex;
   align-items:center;
   justify-content:center;
   border:none;
   padding:0;
   font-family:inherit;
+  box-shadow:0 1px 3px rgba(0,0,0,.12);
 }
-.user-profile:hover,
-.user-profile:focus{
-  background-color:rgba(46,142,255,.7);
-  box-shadow:0 0 10px rgba(46,142,255,.5);
+.user-profile:hover{
+  background:var(--primary-600);
+  box-shadow:0 2px 8px rgba(58,154,147,.35);
+}
+.user-profile:active{
+  background:var(--primary-700);
+  box-shadow:none;
+}
+.user-profile:focus-visible{
   outline:none;
+  box-shadow:0 0 0 3px rgba(58,154,147,.30);
+}
+.user-profile:disabled{
+  background:var(--n-300);
+  box-shadow:none;
+  cursor:not-allowed;
 }
 .user-profile-inner{
   width:127px;
   height:47px;
   border-radius:13px;
-  background-color:var(--n-900);
+  background:transparent;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -2635,6 +2645,8 @@ body.exam-fullscreen #writeTabs{display:none}
   fill:#fff;
   flex:none;
 }
+.user-profile:disabled .user-profile-inner{ color:var(--n-600); }
+.user-profile:disabled .user-profile-inner svg{ fill:var(--n-600); }
 
 /* ===== 通用搜索输入 ui-search（Uiverse ozgeozkaraa01 改写：indigo rgba(129,140,248)→teal --primary；slate #f8fafc/#94a3b8/#0d0c22→--surface-2/--muted/--ink；原 .group/.input/.icon 超通用改名 .ui-search*，且原 input:hover 裸元素选择器会污染全站输入框 → 改 .ui-search-input:hover 作用域） ===== */
 .ui-search{
