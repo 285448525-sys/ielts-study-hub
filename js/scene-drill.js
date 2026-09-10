@@ -21,11 +21,15 @@ var SD_SCENES = (typeof window !== 'undefined' && window.__pdScenesCache) || nul
 var SD_WEAKNESS = (typeof window !== 'undefined' && window.__pdWeaknessCache) || null;
 
 var SD_SCENE_PER_DAY = 1;   // design/07 §十三：每日一关
-var SD_CUR = null;          // { scene, steps, idx, log, date, stuck }
+var SD_CUR = null;          // { scene, steps, idx, log, date, stuck, recordedStuck }
 var SD_BUSY = false;        // 判定进行中，防连点
 var SD_AUTO_NEXT = null;    // 答对自动流转定时器
 var SD_HINT_SHOWN = 0;      // 当前句提示层级：0=只显中文(L0) 1=提示单词(L1) 2=结构规则(L2，=卡住)
 var SD_WRONG_N = 0;         // 当前句已错次数：1=只给 fix 可重交，2=给整句+看答案进下一句（design/09 改动 4）
+/* 阶段 3 换词连练（design/10 §3.2）：顶层 var 声明带初始化 → 软导航重跑自动清残留 */
+var SD_VARIANT = null;      // { list:[{fill,pattern}], i:0, src: lineObj } 进行中的换词子队列
+var SD_VARIANT_FILL = '';   // 当前换词目标句（用于判定）
+var SD_VARIANT_PATTERN = '';// 当前换词句型（用于提示）
 
 /* ── 本地判定（design/07 §六）：本地优先 AI 兜底 ──
    归一化 → token 序列比对。放过（判对口径同 PD_JUDGE_SYS 5.5）：
@@ -140,7 +144,8 @@ function sdTakeOver(){
 }
 function sdBind(){
   var sub = sd$('sdSubmit'); if(sub) sub.onclick = sdOnSubmit;          // onclick 单通道
-  var hb = sd$('sdHintBtn'); if(hb) hb.onclick = sdOnHint;
+  var hb = sd$('sdHintBtn');
+  if(hb) hb.onclick = function(){ if(SD_VARIANT) sdVariantHint(); else sdOnHint(); };   // 阶段 3：换词态提示分流
   var nx = sd$('sdNext'); if(nx) nx.onclick = sdAdvance;
   var ans = sd$('sdAnswer');
   if(ans) ans.onkeydown = function(e){ if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); sdOnSubmit(); } };
@@ -177,15 +182,109 @@ function sdRender(){
   ans.value = ''; ans.disabled = false;
   fb.className = 'pd-feedback'; fb.innerHTML = '';
   st.textContent = '';
-  sub.disabled = false; sub.textContent = '提交';
+  sub.disabled = false; sub.textContent = '提交'; sub.onclick = sdOnSubmit;   // 单通道恢复（上一句可能停在「看答案」态）
   hb.style.display = ''; nx.style.display = 'none';
   sdRenderHints();
+}
+
+/* ── 阶段 3 · 换词连练（design/10 §三）──
+   每场景 variants[]: { after: lineId, pattern, fills[] }，pattern 用 X/Y/Z 占位符标要换的词。
+   该 line 答对后自动进入换词子队列，逐条按 pattern 说出 fills 目标句，全部连完才进下一句。 */
+/* 取某 line 的换词变体（pattern 占位符 X/Y/Z 标注要换的词） */
+function sdVariantsOf(lineId){
+  var c = SD_CUR; if(!c || !c.scene.variants) return null;
+  var out = [];
+  (c.scene.variants || []).forEach(function(v){
+    if(v.after === lineId && Array.isArray(v.fills)){
+      v.fills.forEach(function(f){ out.push({ fill: f, pattern: v.pattern || '' }); });
+    }
+  });
+  return out.length ? out : null;
+}
+/* 从 pattern 抽出要换的词做 L1 提示：单占位符显该词；多占位符直接显整句（稳妥） */
+function sdVariantSlot(pattern, fill){
+  if(!/[XYZ]/.test(pattern)) return fill;          // 无占位符 → 直接给整句
+  var pt = pattern.replace(/（[^）]*）/g,' ').replace(/\([^)]*\)/g,' ').split(/\s+/);
+  var ft = fill.split(/\s+/);
+  var slots = [];
+  for(var i=0;i<pt.length;i++){ if(/^[XYZ]$/.test(pt[i]) && ft[i]) slots.push(ft[i]); }
+  return slots.length ? slots.join(', ') : fill;
+}
+/* 渲染一条换词练习 */
+function sdRenderVariant(){
+  var c = SD_CUR, v = SD_VARIANT; if(!c || !v) return;
+  var fill = v.list[v.i].fill, pat = v.list[v.i].pattern || '';
+  var tag = sd$('sdSceneTag'), step = sd$('sdSceneStep'), cn = sd$('sdCn'), ans = sd$('sdAnswer');
+  var fb = sd$('sdFeedback'), st = sd$('sdStatus'), sub = sd$('sdSubmit'), hb = sd$('sdHintBtn'), nx = sd$('sdNext');
+  var fillp = sd$('sdProgressFill'), flow = sd$('sdFlow'), hints = sd$('sdHints');
+  if(!tag) return;
+  tag.textContent = c.scene.topic + ' · ' + c.scene.part + ' · 换词连练';
+  step.textContent = '换词 ' + (v.i+1) + ' / ' + v.list.length;
+  if(fillp) fillp.style.width = Math.round((c.idx + (v.i+1)/(v.list.length+1)) / (c.steps.length+1) * 100) + '%';
+  var html = '';
+  if(c.scene.goal) html += '<div class="pd-note" style="margin-top:0">本关目标：' + sdEsc(c.scene.goal) + '</div>';
+  if(v.src.cn) html += '<div class="sd-hint">原句：' + sdEsc(v.src.cn) + '</div>';
+  if(pat) html += '<div class="sd-hint">换词句型：' + sdEsc(pat) + '</div>';
+  if(flow) flow.innerHTML = html;
+  cn.textContent = '用上面的句型，换一个说法说出口';
+  ans.value=''; ans.disabled=false;
+  fb.className='pd-feedback'; fb.innerHTML=''; st.textContent='';
+  sub.disabled=false; sub.textContent='提交'; sub.onclick=sdOnSubmit;   // 单通道恢复
+  hb.style.display=''; nx.style.display='none'; nx.onclick=sdAdvance;
+  SD_HINT_SHOWN=0; c.stuck=false; c.recordedStuck=false; SD_WRONG_N=0;
+  if(hints) hints.innerHTML='';
+  SD_VARIANT_FILL = fill; SD_VARIANT_PATTERN = pat;
+}
+/* 换词提示按钮：单占位符显「换 X」，多占位符显整句 */
+function sdVariantHint(){
+  var hints = sd$('sdHints'); if(!hints || !SD_VARIANT) return;
+  var slot = sdVariantSlot(SD_VARIANT_PATTERN, SD_VARIANT_FILL);
+  hints.innerHTML = '<div class="sd-hint">提示：' + sdEsc(slot) + '</div>';
+}
+/* 换词全部连完 → 回到单句流程进下一句 */
+function sdVariantNext(){
+  var c = SD_CUR; if(!c || !SD_VARIANT) return;
+  if(SD_AUTO_NEXT){ clearTimeout(SD_AUTO_NEXT); SD_AUTO_NEXT = null; }
+  SD_VARIANT.i++;
+  if(SD_VARIANT.i < SD_VARIANT.list.length){ sdRenderVariant(); return; }
+  SD_VARIANT = null;
+  sdAdvanceLine();
+}
+/* 换词条目判定结果（design/10 §3.5：本地判，判对自动连下一条；判错立刻给正确句锁死，兜底出口进下一条） */
+function sdHandleVariantResult(ok){
+  var c = SD_CUR, v = SD_VARIANT; if(!c || !v) return;
+  var fb = sd$('sdFeedback'), st = sd$('sdStatus'), sub = sd$('sdSubmit');
+  var ans = sd$('sdAnswer'), nx = sd$('sdNext'), hb = sd$('sdHintBtn');
+  if(ok){
+    if(fb){ fb.className = 'pd-feedback ok'; fb.textContent = '过了'; }
+    if(st) st.textContent = '';
+    SD_AUTO_NEXT = setTimeout(sdVariantNext, 1100);   // 答对自动连下一条
+  } else {
+    if(SD_AUTO_NEXT){ clearTimeout(SD_AUTO_NEXT); SD_AUTO_NEXT = null; }   // 清掉 ok 时设的自动流转：判错锁死态不被旧定时器跳走
+    if(fb){
+      fb.className = 'pd-feedback bad';
+      fb.innerHTML = '<b>正确句：</b>' + sdEsc(SD_VARIANT_FILL);
+    }
+    if(st) st.textContent = '';
+    if(hb) hb.style.display = 'none';
+    if(sub) sub.disabled = true;
+    if(nx){ nx.style.display = ''; nx.textContent = '看答案，下一句 ▸'; nx.onclick = sdVariantNext; }   // 单通道：换词态下一句
+    if(ans) ans.disabled = true;
+  }
 }
 function sdOnHint(){
   var c = SD_CUR; if(!c || SD_BUSY) return;
   if(SD_HINT_SHOWN >= 2) return;
   SD_HINT_SHOWN++;
-  if(SD_HINT_SHOWN >= 2) c.stuck = true;    // 卡住定义 = 显过 L2（§七），阶段 4 用它回写
+  if(SD_HINT_SHOWN >= 2){
+    c.stuck = true;    // 卡住定义 = 显过 L2（§七），阶段 4 用它回写
+    /* 阶段 4（design/10 §4.2.2）：卡住即记一条，c.recordedStuck 防与随后的错句回写双记 */
+    if(!c.recordedStuck){
+      c.recordedStuck = true;
+      var ln = c.steps[c.idx].line;
+      sdRecordWrong({ cn: ln.cn, wrong: '(卡住未答)', right: ln.right, focus: ln.focus, note: '卡在 ' + (ln.fix || ''), stuck: true });
+    }
+  }
   sdRenderHints();
 }
 async function sdOnSubmit(){
@@ -197,13 +296,24 @@ async function sdOnSubmit(){
   var sub = sd$('sdSubmit'), st = sd$('sdStatus');
   if(sub) sub.disabled = true;
   if(st) st.textContent = '判定中…';
+  /* 阶段 3：换词态判定分流（right = SD_VARIANT_FILL，design/10 §3.5） */
+  if(SD_VARIANT){
+    var okV = sdLocalJudge(answer, SD_VARIANT_FILL);
+    if(!okV){
+      /* 判错 → 立刻回写（换词错句 focus 用原句 focus）并给整句锁死 */
+      sdRecordWrong({ cn: SD_VARIANT.src.cn + '（换词）', wrong: answer, right: SD_VARIANT_FILL, focus: SD_VARIANT.src.focus, note: '换词连练', stuck: false });
+    }
+    SD_BUSY = false;
+    sdHandleVariantResult(okV);
+    return;
+  }
   var line = c.steps[c.idx].line;
   var ok = sdLocalJudge(answer, line.right);
   var fix = '';
   if(!ok){
     var r = await sdAskAI(line, answer);
-    /* B2（阶段 4 补）：超时/异常放行目前无 pending 标记，该句会被算成「一次说过」。
-       v1 可接受；阶段 4 建 pdRecordWrong 时一并给超时错句补 pending/不计「一次说过」。 */
+    /* B2（design/10 §五，已按此口径）：超时/异常 r.ok===null → 静默放行不记回写，
+       仅 r.ok===false 走下面的 wrong 分支（sdRecordWrong 只在 wrong 分支调用）。 */
     ok = (r.ok !== false);        // 超时/异常放行，绝不卡流程（design/06 口径）
     fix = r.fix || '';
   }
@@ -219,9 +329,14 @@ function sdHandleResult(ok, fix, answer, line){
     c.log.push({ ok: true, tries: SD_WRONG_N, right: line.right, focus: line.focus || '', answer: answer, stuck: !!c.stuck });
     if(fb){ fb.className = 'pd-feedback ok'; fb.textContent = '过了'; }
     if(st) st.textContent = '';
-    SD_AUTO_NEXT = setTimeout(sdAdvance, 1100);   // 答对自动流转；答错停住手动进（9/9 定版）
+    SD_AUTO_NEXT = setTimeout(sdAfterLinePassed, 1100);   // 答对 → 先看有没有换词连练，再进下一句（阶段 3）
   } else {
     SD_WRONG_N++;
+    if(SD_AUTO_NEXT){ clearTimeout(SD_AUTO_NEXT); SD_AUTO_NEXT = null; }   // 清掉可能残留的自动流转：答错停住态不被旧定时器跳走
+    /* 阶段 4（design/10 §4.2.1）：line 答错回写；卡住已记过（recordedStuck）则跳过防双记 */
+    if(!c.recordedStuck){
+      sdRecordWrong({ cn: line.cn, wrong: answer, right: line.right, focus: line.focus, note: (fix || line.fix || ''), stuck: !!c.stuck });
+    }
     if(SD_WRONG_N === 1){
       /* 第 1 次错：只给 fix（不给整句正确句），ans/sub 不禁用可重交，判对才过（design/09 改动 4） */
       if(fb){
@@ -247,15 +362,30 @@ function sdHandleResult(ok, fix, answer, line){
     }
   }
 }
-function sdAdvance(){
+/* 阶段 3 拆分（design/10 §3.4）：sdAdvanceLine = 原进下一句逻辑；sdAfterLinePassed = 答对后先换词再进下一句 */
+function sdAdvanceLine(){
   var c = SD_CUR; if(!c) return;
   if(SD_AUTO_NEXT){ clearTimeout(SD_AUTO_NEXT); SD_AUTO_NEXT = null; }
   c.idx++;
   if(c.idx >= c.steps.length){ sdFinish(); return; }
   SD_HINT_SHOWN = 0;
-  c.stuck = false;
+  SD_WRONG_N = 0;
+  c.stuck = false; c.recordedStuck = false;
   sdRender();
-  // TODO 阶段 3：此处插入同句型换词连练（scene.variants after=当前 lineId）
+}
+/* 答对后入口：有换词 → 进换词子队列；无 → 直接进下一句 */
+function sdAfterLinePassed(){
+  var c = SD_CUR; if(!c) return;
+  if(!SD_VARIANT){
+    var line = c.steps[c.idx].line;
+    var list = sdVariantsOf(line.id);
+    if(list){ SD_VARIANT = { list: list, i: 0, src: line }; sdRenderVariant(); return; }
+  }
+  sdAdvanceLine();
+}
+function sdAdvance(){
+  /* 答错兜底出口（看答案，下一句）：直接进下一句，不进换词——卡住的句不连练，避免加压（design/10 §3.4） */
+  sdAdvanceLine();
 }
 function sdFinish(){
   var c = SD_CUR; if(!c) return;
@@ -279,7 +409,40 @@ function sdFinish(){
   var fb = sd$('sdFeedback'); if(fb){ fb.className = 'pd-feedback ok'; fb.textContent = '通关，明天继续下一关'; }
   var st = sd$('sdStatus'); if(st) st.textContent = '';
   // TODO 阶段 5：完成页加「这周哪类在变好」排行（weakness 聚合，文字+小数字）
-  // TODO 阶段 4：答错/卡住的句子回写 custom(src:practice) + weakness 计数
+  // TODO 阶段 6：整段无提示复现
+}
+
+/* ── 阶段 4 · 错句回写 + weakness 计数（design/10 §四）──
+   落库格式对齐 pattern-drill.js custom 条目（id 前缀 P / src:practice / focus / added）。
+   同日同句限速（§十六）：只 +wrongCount 不复制条目；focus 空跳过（lead 引导句不计，§5.5）。 */
+function sdRecordWrong(o){
+  var focus = (o.focus || '').trim();
+  if(!focus) return;                                  // lead / 空 focus 不计
+  var today = (typeof pdIsoDate === 'function') ? pdIsoDate() : new Date().toISOString().slice(0,10);
+  var w = (typeof DATA !== 'undefined' && DATA.patternDrill) ? DATA.patternDrill : null;
+  if(!w) return;
+  w.custom = w.custom || [];
+  var sigFn = (typeof pdErrSig === 'function') ? pdErrSig : function(a,b){ return (a+'→'+b).toLowerCase().replace(/\s+/g,' ').trim(); };
+  var sig = sigFn(o.wrong, o.right);
+  var hit = null;
+  for(var i=0;i<w.custom.length;i++){
+    var it = w.custom[i];
+    if(it && it.src === 'practice' && it.added === today && sigFn(it.wrong, it.right) === sig){ hit = it; break; }
+  }
+  if(hit){ hit.wrongCount = (Number(hit.wrongCount)||0)+1; hit.lastWrongAt = today; }
+  else {
+    w.custom.push({
+      id: 'P' + Date.now().toString(36) + Math.floor(Math.random()*1000),
+      cn: o.cn || '', wrong: o.wrong || '', right: o.right || '',
+      fix: o.note || '', focus: focus, src: 'practice', added: today,
+      wrongCount: 1, lastWrongAt: today
+    });
+  }
+  var wk = sdWeakness();                              // window.__pdWeaknessCache 或 DATA.patternDrill.weakness
+  if(!wk[focus]) wk[focus] = { wrongCount: 0, lastWrongAt: '' };
+  wk[focus].wrongCount = (Number(wk[focus].wrongCount)||0) + 1;
+  wk[focus].lastWrongAt = today;
+  if(typeof hubSave === 'function') hubSave();        // 落 localStorage + 云同步
 }
 
 /* ── 启动 ── */
@@ -294,8 +457,10 @@ async function sdBoot(){
     //（5 句量无实害，验收 B3 按实修正注释；若未来要真续练，需挂 window 缓存恢复）。
     var scene = sdPickScene(scenes.scenes);
     if(!scene) return;
-    SD_CUR = { scene: scene, steps: sdStepsOf(scene), idx: 0, log: [], date: sdToday(), stuck: false };
+    SD_CUR = { scene: scene, steps: sdStepsOf(scene), idx: 0, log: [], date: sdToday(), stuck: false, recordedStuck: false };
     SD_HINT_SHOWN = 0;
+    SD_WRONG_N = 0;
+    SD_VARIANT = null;                // 防软导航重跑残留（design/10 §3.2）
     if(SD_CUR.steps && !SD_CUR.steps.length){ SD_CUR = null; return; }
   }
   sdTakeOver();
