@@ -93,6 +93,37 @@ async function sdAskAI(line, answer){
   }
 }
 
+/* 换词 / 自由组句专用裁判（之之 9/10 反馈定稿）：
+   与主线 PD_JUDGE_SYS 的区别——主线是「句子修复」（有唯一参考正确句），
+   换词态是「自由组句」：用词内容完全自由，只判句型骨架 + 本关语法目标。 */
+var SD_VARIANT_JUDGE_SYS = `你是雅思口语 5.5 分目标的句型裁判。用户在做「自由组句」练习：给她一个句型（含 X/Y/Z 占位符）和本关语法目标，她要按句型自己组一句，用词内容完全自由。
+【只判结构与语法】：句型骨架对不对、并列是否同词性、该用形容词/名词/动词的地方对不对，以及词序、时态、双动词、缺 be 动词、缺主语/助动词等严重影响理解的错误。
+【内容自由】：她用的词和参考例句不一样、换了一批形容词或名词、表达的具体意思不同，一律判 ok。绝不能因为"用词跟参考句不同"判错。
+【一律放过】：单复数、a/an/the 漏用、三单 -s、大小写、标点、拼写（除非改变词义）、英式美式差异。
+输出严格 JSON，不要任何前后文字、不要解释、不要寒暄：
+- 正确：{"ok":true}
+- 错误：{"ok":false,"fix":"在她原句基础上做最小改正后的完整英文句子——保留她自己的用词和意思，只改错的地方","reason":"中文一句话点出错在哪"}
+绝不另造一个全新的示范句，绝不输出 6 分以上水平的改写。`;
+
+/* 换词态 AI 判定：同 sdAskAI 约定（3.2s 超时/异常 → ok:null 放行不卡流程） */
+async function sdAskAIVariant(answer){
+  try{
+    var goal = (SD_CUR && SD_CUR.scene && SD_CUR.scene.goal) || '';
+    var raw = await sdWithTimeout(
+      callRelay('pattern_judge',
+        [{ role: 'system', content: SD_VARIANT_JUDGE_SYS },
+         { role: 'user', content: '句型：' + (SD_VARIANT_PATTERN || '') + '\n本关目标：' + goal + '\n参考例句（仅示范，用词不必相同）：' + (SD_VARIANT_FILL || '') + '\n用户答案：' + answer + '\n只判定用户答案是否符合句型与本关目标（内容/用词不同不算错）。' }],
+        0, { max_tokens: 150 }),
+      3200);
+    if(raw === '__TIMEOUT__') return { ok: null, err: '判定超时' };
+    var j = aiJson(raw);
+    if(!j || typeof j.ok !== 'boolean') return { ok: null, err: '判定结果异常' };
+    return { ok: !!j.ok, fix: j.fix || '', reason: j.reason || '' };
+  }catch(e){
+    return { ok: null, err: (e && e.message) || 'AI 调用失败' };
+  }
+}
+
 /* ── 数据 ── */
 async function sdLoadScenes(){
   if(window.__pdScenesCache){ SD_SCENES = window.__pdScenesCache; return SD_SCENES; }
@@ -285,8 +316,10 @@ function sdVariantNext(){
   SD_VARIANT = null;
   sdAdvanceLine();
 }
-/* 换词条目判定结果（design/10 §3.5：本地判，判对自动连下一条；判错立刻给正确句锁死，兜底出口进下一条） */
-function sdHandleVariantResult(ok){
+/* 换词条目判定结果（design/10 §3.5：判对自动连下一条；判错给改正版锁死，兜底出口进下一条）
+   之之 9/10 反馈：自由组句内容不限只判句型/语法；且判错时给的必须是「在她原句基础上改正」，
+   不能甩一条预置示范句（原来直接打 SD_VARIANT_FILL，看着像"必须照这句说"，实际只是参考）。 */
+function sdHandleVariantResult(ok, fix, reason){
   var c = SD_CUR, v = SD_VARIANT; if(!c || !v) return;
   var fb = sd$('sdFeedback'), st = sd$('sdStatus'), sub = sd$('sdSubmit');
   var ans = sd$('sdAnswer'), nx = sd$('sdNext'), hb = sd$('sdHintBtn');
@@ -298,7 +331,11 @@ function sdHandleVariantResult(ok){
     if(SD_AUTO_NEXT){ clearTimeout(SD_AUTO_NEXT); SD_AUTO_NEXT = null; }   // 清掉 ok 时设的自动流转：判错锁死态不被旧定时器跳走
     if(fb){
       fb.className = 'pd-feedback bad';
-      fb.innerHTML = '<b>正确句：</b>' + sdEsc(SD_VARIANT_FILL);
+      var vhtml = fix
+        ? '<b>你这句改成：</b>' + sdEsc(fix)          // 在她原句基础上改
+        : '<b>正确句：</b>' + sdEsc(SD_VARIANT_FILL); // AI 未给改正版才兜底显示预置句
+      if(reason) vhtml += '<br>' + sdEsc(reason);
+      fb.innerHTML = vhtml;
     }
     if(st) st.textContent = '';
     if(hb) hb.style.display = 'none';
@@ -333,15 +370,24 @@ async function sdOnSubmit(){
   var sub = sd$('sdSubmit'), st = sd$('sdStatus');
   if(sub) sub.disabled = true;
   if(st) st.textContent = '判定中…';
-  /* 阶段 3：换词态判定分流（right = SD_VARIANT_FILL，design/10 §3.5） */
+  /* 阶段 3：换词态判定分流（design/10 §3.5 + 之之 9/10 反馈修正）
+     ① 本地严匹配 fill → 直接过（免 AI 延迟）；② 不相等 → 交给 AI 按「句型 + 本关语法目标」判，
+     内容/用词不限（原来只有 ①，导致「They should be patient, helpful and careful.」
+     这种完全正确、只是用词不同的句子被判错）。 */
   if(SD_VARIANT){
     var okV = sdLocalJudge(answer, SD_VARIANT_FILL);
+    var fixV = '', reasonV = '';
     if(!okV){
-      /* 判错 → 立刻回写（换词错句 focus 用原句 focus）并给整句锁死 */
-      sdRecordWrong({ cn: SD_VARIANT.src.cn + '（换词）', wrong: answer, right: SD_VARIANT_FILL, focus: SD_VARIANT.src.focus, note: '换词连练', stuck: false });
+      var rv = await sdAskAIVariant(answer);
+      okV = (rv.ok !== false);        // 超时/异常放行，绝不卡流程（主线 B2 同口径）
+      fixV = rv.fix || ''; reasonV = rv.reason || '';
+      if(rv.ok === false){
+        /* 判错 → 回写；right 记「她原句的改正版」，不记预置示范句 */
+        sdRecordWrong({ cn: SD_VARIANT.src.cn + '（换词）', wrong: answer, right: (fixV || SD_VARIANT_FILL), focus: SD_VARIANT.src.focus, note: reasonV || '换词连练', stuck: false });
+      }
     }
     SD_BUSY = false;
-    sdHandleVariantResult(okV);
+    sdHandleVariantResult(okV, fixV, reasonV);
     return;
   }
   var line = c.steps[c.idx].line;
