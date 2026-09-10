@@ -39,9 +39,8 @@
 <meta name="mobile-web-app-capable" content="yes" />
   <script defer src="js/data.js?v=20260909b"></script>
   <script defer src="js/common.js?v=20260910a"></script>
-  <script defer src="js/speaking.js?v=20260910a"></script>
+  <script defer src="js/speaking.js?v=20260910b"></script>
   <script defer src="js/materials.js?v=20260904z"></script>
-  <script defer src="js/progress.js?v=20260830u"></script>
   <script defer src="js/mock-report.js?v=20260830u"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
   <script defer src="js/mock.js?v=20260830v"></script>
@@ -524,7 +523,6 @@
       <button data-type="BANK" class="pill-tab">题库</button>
       <button data-type="MOCK" class="pill-tab">模考</button>
       <button data-type="MAT" class="pill-tab">素材</button>
-      <button data-type="PROGRESS" class="pill-tab">数据</button>
     </div>
   </div>
 
@@ -626,8 +624,6 @@
   <!-- 万能素材生成器（整合为口语页第 5 个 tab，复用 materials 生成逻辑） -->
   <div id="matView" hidden></div>
 
-  <!-- 学习情况（口语页第 6 个 tab：各 Part 练习可视化仪表盘，由 progress.js 渲染） -->
-  <div id="progressView" hidden></div>
 
   <!-- 练习 tab（口语页第 1 个 tab · 默认）：句型闯关引擎（pattern-drill.js），UI 与 pattern-drill.html 同构 -->
   <style>

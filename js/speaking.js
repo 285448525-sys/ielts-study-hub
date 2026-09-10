@@ -71,7 +71,7 @@ ready(() => {
     b.addEventListener('click', () => {
       const t = b.dataset.type;
       spActivateTab(t);
-      $('#listView').hidden = true; $('#detailView').hidden = true; $('#mockView').hidden = true; $('#matView').hidden = true; $('#progressView').hidden = true; $('#pdView').hidden = true;
+      $('#listView').hidden = true; $('#detailView').hidden = true; $('#mockView').hidden = true; $('#matView').hidden = true; $('#pdView').hidden = true;
       if(t === 'PRACTICE'){
         // 句型闯关引擎（pattern-drill.js）已在 ready 时启动；切回只显隐，不重建队列
         $('#pdView').hidden = false;
@@ -89,9 +89,6 @@ ready(() => {
       } else if(t === 'MAT'){
         $('#matView').hidden = false;
         if(typeof matGen !== 'undefined' && matGen.init) matGen.init();
-      } else if(t === 'PROGRESS'){
-        $('#progressView').hidden = false;
-        if(typeof renderProgress === 'function') renderProgress();
       } else {
         curType = t;
         populateFreqOptions();

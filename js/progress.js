@@ -1,6 +1,7 @@
-/* 口语页「学习情况」tab 渲染（Feature B，纯展示层，不动 DATA 结构）。
-   由 speaking.html 的 <script defer> 加载（定义 window.renderProgress），
-   speaking.js 在切到 PROGRESS tab 时调用 renderProgress() 实时计算并渲染。
+/* 口语练习数据（纯展示层，不动 DATA 结构）。
+   9/10 迁移：原「口语页 → 数据 tab」，现搬到「回顾页 → 口语 tab」下（之之要求），
+   口语页的 tab / progressView / progress.js 引用已全部移除。
+   由 review.html 的 <script defer> 加载，页面加载即自渲染（同 speaking-practice.js 约定）。
    依赖全局：DATA、escapeHtml、FREQ_LABEL（data.js）。 */
 (function () {
   // 聚合单个话题下所有单题手写练习记录
@@ -60,4 +61,7 @@
 
       + '<section class="card"><h2>Part 分块</h2><div class="prog-part"><span>P1 已练 <b>' + p1Done + '</b>/' + p1Total + '</span><span>P2 已练 <b>' + p2Done + '</b>/' + p2Total + '</span><span>P1 练习 <b>' + list.filter(s => s.type !== 'P2').reduce((a, s) => a + countOf(s), 0) + '</b> 遍</span><span>P2 练习 <b>' + list.filter(s => s.type === 'P2').reduce((a, s) => a + countOf(s), 0) + '</b> 遍</span></div></section>';
   };
+
+  // 自渲染（迁移后 #progressView 只在回顾页存在，加载即算一次）
+  ready(() => { if (typeof window.renderProgress === 'function') window.renderProgress(); });
 })();
