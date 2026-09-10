@@ -25,7 +25,7 @@
 })();
 </script>
 <title>写作 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20260910d" />
+<link rel="stylesheet" href="css/common.css?v=20260910e" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=6" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=6">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=6">
@@ -38,7 +38,7 @@
 <script defer src="js/data.js?v=20260909b"></script>
   <script defer src="js/common.js?v=20260910a"></script>
   <script defer src="js/writing_prompts.js?v=20260903ab"></script>
-  <script defer src="js/writing.js?v=20260904b"></script>
+  <script defer src="js/writing.js?v=20260910a"></script>
   <script defer src="js/wrongbook.js?v=20260903ab"></script>
 <style>
 
@@ -60,11 +60,10 @@
   @media(max-width:860px){ .write-layout{flex-direction:column} .cat-nav{width:100%;flex-direction:row;flex-wrap:wrap} }
 
   /* AI 评分 */
-  /* AI 作文评分 · 粘贴作文框（与 .exam-textarea 同款 Uiverse .input 深色样式，vw→px 换算见 common.css） */
-  .score-essay{width:100%;min-height:200px;padding:14px 16px;font:inherit;font-weight:500;font-size:15px;line-height:1.8;background-color:rgb(28,28,30);color:#fff;border:none;border-radius:8px;outline:none;box-shadow:0 0 8px rgba(0,0,0,.5),0 0 0 3px transparent;resize:vertical;box-sizing:border-box;transition:.4s}
-  .score-essay:hover{box-shadow:0 0 0 3px rgba(135,207,235,.186)}
-  .score-essay:focus{box-shadow:0 0 0 3px skyblue}
-  .score-essay::placeholder{color:rgba(255,255,255,.45)}
+  /* AI 作文评分 · 粘贴作文框（9/10 之之反馈「不要黑底」→ 恢复浅色：var(--bg) 底 + var(--line) 边框） */
+  .score-essay{width:100%;min-height:200px;padding:14px 16px;font:inherit;font-size:15px;line-height:1.8;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:12px;outline:none;resize:vertical;box-sizing:border-box;transition:border-color .15s}
+  .score-essay:focus{border-color:var(--primary)}
+  .score-essay::placeholder{color:var(--muted)}
   .score-result{margin-top:16px;display:none}
   .score-overall{font-size:28px;font-weight:700;color:var(--primary)}
   .score-breakdown{display:flex;gap:16px;margin:8px 0 16px;flex-wrap:wrap}
@@ -391,7 +390,7 @@
             <div class="exam-q-body" id="examQuestion"></div>
             <p class="exam-q-note" id="examQNote"></p>
           </div>
-          <details class="exam-essay-fold" id="examEssayFold">
+          <details class="exam-essay-fold" id="examEssayFold" hidden>
             <summary class="exam-essay-fold-sum">我的作文</summary>
             <div class="exam-essay-orig" id="examEssayOrig"></div>
           </details>

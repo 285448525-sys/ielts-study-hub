@@ -2136,6 +2136,10 @@ body.exam-fullscreen .side-collapse{display:none !important}
 body.exam-fullscreen main.container{padding:0 !important;max-width:none !important}
 body.exam-fullscreen .page-title{display:none}
 body.exam-fullscreen #writeTabs{display:none}
+/* 9/10 之之：全屏答题界面要固定住不滑动。.page-head-row 两子元素 hide 后空壳仍占 margin（同背词页 63f2007 坑）
+   → 整行 display:none；body 锁滚动，页面总高=100vh 整屏，长题目走 .exam-q 内部滚动 */
+body.exam-fullscreen .page-head-row{display:none !important}
+body.exam-fullscreen{overflow:hidden !important}
 
 #examPractice{display:flex;flex-direction:column;height:100vh;background:var(--bg);box-sizing:border-box}
 
@@ -2159,10 +2163,9 @@ body.exam-fullscreen #writeTabs{display:none}
    ⚠️ 原稿全用 vw（.8vw 字号在 1440 窗口=11.5px、手机 375=3px 不可读）→ 按桌面观感换算为固定 px：
    font .8vw→15px / radius·padding .4vw→8px·14-16px / 光环 .15vw→3px / 阴影 .4vw→8px。
    去掉原稿 max-width:190px（作文框需铺满）。 */
-.exam-textarea{flex:1;width:100%;border:none;border-radius:8px;padding:14px 16px;font:inherit;font-weight:500;font-size:15px;line-height:1.85;background-color:rgb(28,28,30);color:#fff;resize:none;box-sizing:border-box;outline:none;box-shadow:0 0 8px rgba(0,0,0,.5),0 0 0 3px transparent;transition:.4s}
-.exam-textarea:hover{box-shadow:0 0 0 3px rgba(135,207,235,.186)}
-.exam-textarea:focus{box-shadow:0 0 0 3px skyblue}
-.exam-textarea::placeholder{color:rgba(255,255,255,.45)}
+.exam-textarea{flex:1;width:100%;border:1px solid var(--line);border-radius:12px;padding:18px;font:inherit;font-size:15.5px;line-height:1.85;background:var(--bg);color:var(--ink);resize:none;box-sizing:border-box;outline:none;transition:border-color .15s}
+.exam-textarea:focus{border-color:var(--primary)}
+.exam-textarea::placeholder{color:var(--muted)}
 .exam-a-foot{display:flex;justify-content:flex-end;padding:10px 2px 14px}
 .exam-wc{font-size:13px;color:var(--muted);font-weight:600}
 

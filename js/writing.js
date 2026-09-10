@@ -1391,7 +1391,7 @@ function openExam(item, kind){
     $('#examWordCount').textContent = 'Word count: 0';
   }
   $('#examResult').hidden = true;
-  const fold = $('#examEssayFold'); if(fold) fold.open = false;   // 我的作文默认收起
+  const fold = $('#examEssayFold'); if(fold){ fold.hidden = true; fold.open = false; }   // 我的作文收起栏：提交后才显示，练习中隐藏（9/10 之之）
   const eo = $('#examEssayOrig'); if(eo) eo.textContent = '';
   $('#examEssay').hidden = false;   // 恢复输入区（上一题提交时被隐藏）
   const ft = $('#examAFoot'); if(ft) ft.hidden = false;
@@ -1464,6 +1464,7 @@ ${isTask1 ? RULES_TASK1 : RULES_TASK2}
       $('#examEssay').hidden = true;
       const ft2 = $('#examAFoot'); if(ft2) ft2.hidden = true;
       const eo2 = $('#examEssayOrig'); if(eo2) eo2.textContent = essay;
+      const fo2 = $('#examEssayFold'); if(fo2) fo2.hidden = false;   // 提交后左栏显示「我的作文」回看（9/10 之之）
       // 存盘：真题模考评分记录持久化（刷新不丢），并回流到回顾页「分项模考」看板
       try{
         const cur = examTimer.cur || {};
