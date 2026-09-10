@@ -1204,6 +1204,20 @@ function _mergeSpeaking(localSp, cloudSp){
   return { arr: base, changes };
 }
 
+/* 阶段 5（design/11 §2.2）：weakness.daily 按日期 sum 合并（跨设备收敛到各设备当日之和，幂等）。
+   键排序输出保证稳定，避免 JSON 比较抖动引发重复同步。 */
+function _sdMergeDaily(a, b){
+  var out = {};
+  var seen = {};
+  var keys = Object.keys(a || {}).concat(Object.keys(b || {}));
+  keys.sort();
+  keys.forEach(function(d){
+    if(seen[d]) return; seen[d] = 1;
+    out[d] = (Number((a || {})[d]) || 0) + (Number((b || {})[d]) || 0);
+  });
+  return out;
+}
+
 function mergeData(local, cloud){
   cloud = cloud || {};
   // 写作模板(writing)是官方共享题集，不进同步，合并时强制忽略云端版本，永远以本机默认模板为准。
@@ -1420,8 +1434,11 @@ function mergeData(local, cloud){
       const a = _lw[k] || {}, b = _cw[k] || {};
       const wc = Math.max(Number(a.wrongCount) || 0, Number(b.wrongCount) || 0);
       const lwa = String(a.lastWrongAt || '') >= String(b.lastWrongAt || '') ? (a.lastWrongAt || '') : (b.lastWrongAt || '');
-      _mw[k] = { wrongCount: wc, lastWrongAt: lwa };
+      const md = _sdMergeDaily(a.daily, b.daily);
+      _mw[k] = { wrongCount: wc, lastWrongAt: lwa, daily: md };
       if((Number(a.wrongCount) || 0) !== wc || String(a.lastWrongAt || '') !== lwa) _wCh++;
+      // daily 跨设备收敛：合并结果任一侧不等 → 计变化并上传，否则下次同步仍不一致
+      if(JSON.stringify(md) !== JSON.stringify(a.daily || {}) || JSON.stringify(md) !== JSON.stringify(b.daily || {})) _wCh++;
     });
     if(Object.keys(_lw).length !== Object.keys(_mw).length) _wCh++;
     _pdOut.weakness = _mw;

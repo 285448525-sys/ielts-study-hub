@@ -67,6 +67,12 @@ function pdMigrateSceneV1(){
   if(!p) return;
   var dirty = false;
   if(!p.weakness || typeof p.weakness !== 'object'){ p.weakness = {}; dirty = true; }
+  /* 阶段 5（design/11 §2.1）：确保既有 weakness 条目带 daily 明细（周对比必需），缺失则补空 {} */
+  if(p.weakness && typeof p.weakness === 'object'){
+    Object.keys(p.weakness).forEach(function(k){
+      if(p.weakness[k] && typeof p.weakness[k].daily === 'undefined'){ p.weakness[k].daily = {}; dirty = true; }
+    });
+  }
   if(!p._sceneV1){
     if(Array.isArray(p.custom)){
       for(var i = 0; i < p.custom.length; i++){

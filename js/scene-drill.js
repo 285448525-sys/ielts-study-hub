@@ -30,6 +30,7 @@ var SD_WRONG_N = 0;         // 当前句已错次数：1=只给 fix 可重交，
 var SD_VARIANT = null;      // { list:[{fill,pattern}], i:0, src: lineObj } 进行中的换词子队列
 var SD_VARIANT_FILL = '';   // 当前换词目标句（用于判定）
 var SD_VARIANT_PATTERN = '';// 当前换词句型（用于提示）
+var SD_REPLAY = false;      // 阶段 6 整段复现模式（design/11）：true=复现态，SD_CUR 重跑自动清残留
 
 /* ── 本地判定（design/07 §六）：本地优先 AI 兜底 ──
    归一化 → token 序列比对。放过（判对口径同 PD_JUDGE_SYS 5.5）：
@@ -130,6 +131,27 @@ function sdStepsOf(scene){
 function sdToday(){
   return (typeof pdIsoDate === 'function') ? pdIsoDate() : new Date().toISOString().slice(0, 10);
 }
+/* 日期偏移（design/11 阶段 5 周对比）：iso 'YYYY-MM-DD' 减 delta 天。
+   必须与 pdIsoDate() 同帧（本地日期），故用本地 getFullYear/Month/Date 拼回，
+   不能用 toISOString()（UTC）→ 中国 UTC+8 会整体回退一天，导致 W 窗口漏掉 today 自己的 daily。 */
+function sdDateOffset(iso, delta){
+  var d = new Date(iso + 'T00:00:00');   // 本地时间解析，与 pdIsoDate 帧一致
+  d.setDate(d.getDate() + delta);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+/* focus → 中文标签（design/11 §3.3，B 定稿，全量映射） */
+var SD_FOCUS_CN = {
+  'missing-be': '缺 be 动词',
+  'past-tense': '时态滑回（过去式）',
+  'word-choice': '用词错误',
+  'let-sb-do': 'let 后加 to',
+  'adj-after-feel': 'feel/makes 后跟形容词',
+  'parallel': '并列不同词性',
+  'plural': '泛指用复数',
+  'double-verb': '双动词',
+  'find-it-adj': 'find it + 形容词',
+  'negation': '否定借 don\'t'
+};
 function sdEsc(s){
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
@@ -305,6 +327,8 @@ async function sdOnSubmit(){
   var ans = sd$('sdAnswer');
   var answer = ((ans && ans.value) || '').trim();
   if(!answer){ toast('先说出/输入这句英文'); return; }
+  /* 阶段 6（design/11 §4.2）：复现态提交走独立判定分支，不碰换词/AI 流程 */
+  if(SD_REPLAY){ sdOnReplaySubmit(answer); return; }
   SD_BUSY = true;
   var sub = sd$('sdSubmit'), st = sd$('sdStatus');
   if(sub) sub.disabled = true;
@@ -380,7 +404,11 @@ function sdAdvanceLine(){
   var c = SD_CUR; if(!c) return;
   if(SD_AUTO_NEXT){ clearTimeout(SD_AUTO_NEXT); SD_AUTO_NEXT = null; }
   c.idx++;
-  if(c.idx >= c.steps.length){ sdFinish(); return; }
+  if(c.idx >= c.steps.length){
+    /* 阶段 6（design/11 §4.1）：全部练习步通关 → 首次进复现模式，二次才真正通关 */
+    if(!c.replayed){ c.replayed = true; sdEnterReplay(); } else { sdFinish(); }
+    return;
+  }
   SD_HINT_SHOWN = 0;
   SD_WRONG_N = 0;
   c.stuck = false; c.recordedStuck = false;
@@ -389,12 +417,73 @@ function sdAdvanceLine(){
 /* 答对后入口：有换词 → 进换词子队列；无 → 直接进下一句 */
 function sdAfterLinePassed(){
   var c = SD_CUR; if(!c) return;
+  /* 阶段 6（design/11 §4.3）：单句重练通过后 → 回到复现同一步继续，不重复整段 */
+  if(c.retryIdx != null){
+    var back = c.retryIdx; c.retryIdx = null; c.idx = back; SD_REPLAY = true;
+    sdRenderReplay(); return;
+  }
   if(!SD_VARIANT){
     var line = c.steps[c.idx].line;
     var list = sdVariantsOf(line.id);
     if(list){ SD_VARIANT = { list: list, i: 0, src: line }; sdRenderVariant(); return; }
   }
   sdAdvanceLine();
+}
+/* 阶段 6（design/11 §四）：整段无提示复现——自动最后一关，藏中文+全 hint、留引导句、可听一遍 */
+function sdEnterReplay(){
+  var c = SD_CUR; if(!c) return;
+  SD_REPLAY = true;
+  SD_HINT_SHOWN = 0; SD_WRONG_N = 0; c.stuck = false; c.recordedStuck = false;
+  c.idx = 0;
+  sdRenderReplay();
+}
+function sdRenderReplay(){
+  var c = SD_CUR; if(!c) return;
+  var tag = sd$('sdSceneTag'), step = sd$('sdSceneStep'), flow = sd$('sdFlow');
+  var cn = sd$('sdCn'), ans = sd$('sdAnswer'), fb = sd$('sdFeedback'), st = sd$('sdStatus');
+  var sub = sd$('sdSubmit'), hb = sd$('sdHintBtn'), nx = sd$('sdNext'), fill = sd$('sdProgressFill');
+  var hints = sd$('sdHints');
+  if(!tag) return;
+  tag.textContent = c.scene.topic + ' · ' + c.scene.part + ' · 复现';
+  step.textContent = '复现 ' + (c.idx + 1) + ' / ' + c.steps.length;
+  if(fill) fill.style.width = Math.round(c.idx / c.steps.length * 100) + '%';
+  var html = '';
+  if(c.scene.goal) html += '<div class="pd-note" style="margin-top:0">凭记忆说出整段——中文已隐藏，只看引导句</div>';
+  for(var i = 0; i < c.idx; i++){                                  // 已过句回显正确句（复现不计入 c.log）
+    var s = c.steps[i];
+    html += '<div class="sd-hint">' + sdEsc(s.line.right) + '</div>';
+  }
+  var cur = c.steps[c.idx];
+  if(cur.ask) html += '<div class="sd-hint">考官：' + sdEsc(cur.ask.right) + '</div>';   // 引导句可见，作上下文
+  if(flow) flow.innerHTML = html;
+  cn.textContent = '凭记忆说出这句';                              // 藏掉原中文（§十 核心）
+  ans.value = ''; ans.disabled = false;
+  fb.className = 'pd-feedback'; fb.innerHTML = '';
+  st.textContent = '';
+  sub.disabled = false; sub.textContent = '提交'; sub.onclick = sdOnSubmit;   // 单通道恢复
+  hb.style.display = 'none';                                     // 全 hint 不显（L0/L1/L2）
+  nx.style.display = 'none';
+  if(hints) hints.innerHTML = '';
+}
+/* 复现态提交：本地判定，错/卡住 → 回退该句单练（带 hint），练通后由 sdAfterLinePassed 回复现同一步 */
+function sdOnReplaySubmit(answer){
+  var c = SD_CUR; if(!c || SD_BUSY) return;
+  SD_BUSY = true;
+  var line = c.steps[c.idx].line;
+  var ok = sdLocalJudge(answer, line.right);
+  if(SD_AUTO_NEXT){ clearTimeout(SD_AUTO_NEXT); SD_AUTO_NEXT = null; }
+  SD_BUSY = false;
+  if(ok){
+    if(c.idx >= c.steps.length - 1){ sdFinish(); return; }       // 复现末句答对 → 通关触发阶段 5 排行
+    c.idx++;
+    SD_HINT_SHOWN = 0; SD_WRONG_N = 0; c.stuck = false; c.recordedStuck = false;
+    sdRenderReplay();
+  } else {
+    /* 阶段 6（design/11 §4.3）：回到该句单练（不退出场景），正常带 hint 形态重练 */
+    c.retryIdx = c.idx;
+    SD_REPLAY = false;
+    sdRender();
+  }
 }
 function sdAdvance(){
   /* 答错兜底出口（看答案，下一句）：直接进下一句，不进换词——卡住的句不连练，避免加压（design/10 §3.4） */
@@ -421,8 +510,44 @@ function sdFinish(){
   var nx = sd$('sdNext'); if(nx){ nx.style.display = 'none'; nx.textContent = '下一句 ▸'; }
   var fb = sd$('sdFeedback'); if(fb){ fb.className = 'pd-feedback ok'; fb.textContent = '通关，明天继续下一关'; }
   var st = sd$('sdStatus'); if(st) st.textContent = '';
-  // TODO 阶段 5：完成页加「这周哪类在变好」排行（weakness 聚合，文字+小数字）
-  // TODO 阶段 6：整段无提示复现
+  // 阶段 5（design/11 §三）：完成页「这周哪类在变好」排行
+  var trend = sdRenderTrend();
+  if(trend && box) box.innerHTML += trend;
+  // 阶段 6 复现提示已在 sdAdvanceLine 触发，此处不重复
+}
+/* 阶段 5（design/11 §三）：「这周哪类在变好」周对比文字块——无图表无新按钮，文字+小数字 */
+function sdRenderTrend(){
+  var wk = sdWeakness();
+  var today = sdToday();
+  var W = [], P = [];
+  for(var i = 0; i < 7; i++){ W.push(sdDateOffset(today, -i)); }      // 近 7 天 [today-6..today]
+  for(var j = 7; j < 14; j++){ P.push(sdDateOffset(today, -j)); }     // 前 7 天 [today-13..today-7]
+  var rows = [];
+  Object.keys(wk).forEach(function(f){
+    var e = wk[f]; if(!e) return;
+    var thisN = 0, prevN = 0;
+    W.forEach(function(d){ thisN += Number((e.daily && e.daily[d]) || 0); });
+    P.forEach(function(d){ prevN += Number((e.daily && e.daily[d]) || 0); });
+    if(thisN <= 0 && prevN <= 0) return;   // 两周都无数据 → 不显示
+    rows.push({ f: f, thisN: thisN, prevN: prevN });
+  });
+  if(!rows.length){
+    return '<div class="sd-hint"><b>这周哪类在变好</b></div><div class="sd-hint">这周练得很稳，明天继续。</div>';
+  }
+  rows.sort(function(a, b){ return b.thisN - a.thisN; });
+  var top = rows.slice(0, 5);
+  var html = '<div class="sd-hint"><b>这周哪类在变好</b></div>';
+  top.forEach(function(r){
+    var trend = r.thisN < r.prevN ? '↑ 变好' : (r.thisN > r.prevN ? '↓ 变差' : '— 持平');
+    var cls = r.thisN < r.prevN ? 'trend-up' : (r.thisN > r.prevN ? 'trend-down' : 'trend-flat');
+    var lineTxt = (r.prevN > 0)
+      ? (SD_FOCUS_CN[r.f] || r.f) + ' 错 ' + r.prevN + ' → ' + r.thisN + ' ' + trend
+      : (SD_FOCUS_CN[r.f] || r.f) + ' 新出现 ' + r.thisN;
+    html += '<div class="sd-hint ' + cls + '">' + sdEsc(lineTxt) + '</div>';
+  });
+  var topLabel = SD_FOCUS_CN[top[0].f] || top[0].f;
+  html += '<div class="sd-hint">你最该继续练的是「' + sdEsc(topLabel) + '」，明天我多给你这类。</div>';
+  return html;
 }
 
 /* ── 阶段 4 · 错句回写 + weakness 计数（design/10 §四）──
@@ -452,9 +577,11 @@ function sdRecordWrong(o){
     });
   }
   var wk = sdWeakness();                              // window.__pdWeaknessCache 或 DATA.patternDrill.weakness
-  if(!wk[focus]) wk[focus] = { wrongCount: 0, lastWrongAt: '' };
+  if(!wk[focus]) wk[focus] = { wrongCount: 0, lastWrongAt: '', daily: {} };
   wk[focus].wrongCount = (Number(wk[focus].wrongCount)||0) + 1;
   wk[focus].lastWrongAt = today;
+  if(!wk[focus].daily) wk[focus].daily = {};
+  wk[focus].daily[today] = (Number(wk[focus].daily[today]) || 0) + 1;   // 阶段 5 周对比明细
   if(typeof hubSave === 'function') hubSave();        // 落 localStorage + 云同步
 }
 
@@ -470,10 +597,11 @@ async function sdBoot(){
     //（5 句量无实害，验收 B3 按实修正注释；若未来要真续练，需挂 window 缓存恢复）。
     var scene = sdPickScene(scenes.scenes);
     if(!scene) return;
-    SD_CUR = { scene: scene, steps: sdStepsOf(scene), idx: 0, log: [], date: sdToday(), stuck: false, recordedStuck: false };
+    SD_CUR = { scene: scene, steps: sdStepsOf(scene), idx: 0, log: [], date: sdToday(), stuck: false, recordedStuck: false, replayed: false, retryIdx: null };
     SD_HINT_SHOWN = 0;
     SD_WRONG_N = 0;
     SD_VARIANT = null;                // 防软导航重跑残留（design/10 §3.2）
+    SD_REPLAY = false;               // 阶段 6：防软导航重跑残留（design/11 §4.1）
     if(SD_CUR.steps && !SD_CUR.steps.length){ SD_CUR = null; return; }
   }
   sdTakeOver();
