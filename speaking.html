@@ -37,9 +37,9 @@
 
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
-  <script defer src="js/data.js?v=20260909b"></script>
+  <script defer src="js/data.js?v=20260911a"></script>
   <script defer src="js/common.js?v=20260910a"></script>
-  <script defer src="js/speaking.js?v=20260910b"></script>
+  <script defer src="js/speaking.js?v=20260911a"></script>
   <script defer src="js/materials.js?v=20260904z"></script>
   <script defer src="js/mock-report.js?v=20260830u"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
@@ -76,6 +76,24 @@
   .sp-tag.freq-high{background:var(--warn);color:#fff;border-color:var(--warn)}
   .sp-tag.freq-medium{background:var(--mock);color:#fff;border-color:var(--mock)}
   .sp-tag.freq-low{background:var(--muted);color:#fff;border-color:var(--muted)}
+
+  /* === P2 SOP 骨架卡（design/12 一期：题库 P2 卡「骨架」按钮 + 内嵌 10 槽面板） === */
+  .sp-skel-btn{flex:none;align-self:flex-start;margin-top:8px;padding:3px 12px;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--muted);font:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+  .sp-skel-btn:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-soft)}
+  .sp-skel-panel{margin-top:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:12px 14px}
+  .sp-skel-head{font-size:12.5px;color:var(--muted);line-height:1.6;margin-bottom:10px}
+  .sp-skel-head b{color:var(--primary);font-weight:700}
+  .sp-skel-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;min-width:0}
+  .sp-skel-row label{flex:none;width:132px;font-size:12.5px;font-weight:600;color:var(--ink);line-height:1.3}
+  .sp-skel-row input{flex:1;min-width:0;padding:6px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:13px;background:var(--surface);color:var(--ink);outline:none;transition:border-color .15s}
+  .sp-skel-row input:focus{border-color:var(--primary)}
+  .sp-skel-row input::placeholder{color:var(--muted);opacity:.7}
+  .sp-skel-save{margin-top:8px}
+  @media(max-width:480px){
+    .sp-skel-row{flex-wrap:wrap}
+    .sp-skel-row label{width:100%}
+    .sp-skel-row input{width:100%;flex:none}
+  }
 
   /* 优先级/分类下拉筛选（联动） */
   .sp-filters{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin:8px 0 12px}
@@ -537,13 +555,14 @@
         <select id="freqSelect" class="sp-select"></select>
       </label>
       <label class="sp-filter"><span>分类</span>
+        <!-- 9/11 修坏筛选：旧 value(人/事/地/物/杂项) 与数据 category(人物/事件/地点/物品/抽象) 对不上永远筛空；现 value=数据值，类目口径统一为 人物/事件/地点/事物/日常 -->
         <select id="catSelect" class="sp-select">
           <option value="all">全部</option>
-          <option value="人">人</option>
-          <option value="事">事</option>
-          <option value="地">地</option>
-          <option value="物">物</option>
-          <option value="杂项">杂项</option>
+          <option value="人物">人物</option>
+          <option value="事件">事件</option>
+          <option value="地点">地点</option>
+          <option value="事物">事物</option>
+          <option value="日常">日常</option>
         </select>
       </label>
       <label class="sp-filter"><span>Part</span>

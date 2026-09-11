@@ -91,7 +91,7 @@ const SPEAKING_BANK = [
     titleEn:"Tiredness", titleZh:"疲劳",
     questions:["What do you do when you feel tired?","When would you feel tired?","Do you often feel tired?"],
     cue:'', content:'', keywords:'', linkedTo:"", proficiency:"没练" },
-{ id:"sb_p1_shoes", type:"P1", period:"2026-09-04", isNew:true, frequency:"high", category:"物品",
+{ id:"sb_p1_shoes", type:"P1", period:"2026-09-04", isNew:true, frequency:"high", category:"事物",
     titleEn:"Shoes", titleZh:"鞋子",
     questions:["Which do you prefer, fashionable shoes or comfortable shoes?","How much money do you usually spend on shoes?","Have you ever bought shoes online?","Do you like buying shoes? How often?"],
     cue:'', content:'', keywords:'', linkedTo:"", proficiency:"没练" },
@@ -136,11 +136,11 @@ const SPEAKING_BANK = [
     titleEn:"Tidiness", titleZh:"整洁",
     questions:["Do you like to keep things tidy?","Did you keep your room tidy as a child?","How do you keep your work or study space tidy?","Do you think that it is necessary to be tidy?"],
     cue:'', content:'', keywords:'', linkedTo:"可套框架③", proficiency:"没练" },
-{ id:"sb_p1_websites", type:"P1", period:"2026-09-04", isNew:false, frequency:"high", category:"物品",
+{ id:"sb_p1_websites", type:"P1", period:"2026-09-04", isNew:false, frequency:"high", category:"事物",
     titleEn:"Websites", titleZh:"网页",
     questions:["What kinds of websites do you often visit?","What is your favourite website?","Are there any changes to the websites you often visit?","What kinds of websites are popular in your country?","Do you prefer getting information from websites or books?","Would you like to have your own website?","What have you learned from websites that help with your life or studies?"],
     cue:'', content:'', keywords:'', linkedTo:"可套框架④", proficiency:"没练" },
-{ id:"sb_p1_watch", type:"P1", period:"2026-09-04", isNew:false, frequency:"medium", category:"物品",
+{ id:"sb_p1_watch", type:"P1", period:"2026-09-04", isNew:false, frequency:"medium", category:"事物",
     titleEn:"Watch", titleZh:"手表",
     questions:["Do you wear a watch?","Have you ever got a watch as a gift?","Why do some people wear expensive watches?","Do you think it is important to wear a watch? Why?"],
     cue:'', content:'', keywords:'', linkedTo:"可套框架④", proficiency:"没练" },
@@ -148,7 +148,7 @@ const SPEAKING_BANK = [
     titleEn:"Shopping", titleZh:"购物",
     questions:["Do you like shopping?","How often do you go shopping?","Do you prefer online shopping or in-store shopping?","Have you ever returned anything you bought online?"],
     cue:'', content:'', keywords:'', linkedTo:"可套框架③", proficiency:"没练" },
-{ id:"sb_p1_cars", type:"P1", period:"2026-09-04", isNew:false, frequency:"low", category:"物品",
+{ id:"sb_p1_cars", type:"P1", period:"2026-09-04", isNew:false, frequency:"low", category:"事物",
     titleEn:"Cars", titleZh:"汽车",
     questions:["Did you enjoy traveling by car when you were a kid?","What types of cars do you like?","Do you prefer to be a driver or a passenger?","What do you usually do when there is a traffic jam?","Do you think car colours are important?","Will you buy an expensive car in the future?"],
     cue:'', content:'', keywords:'', linkedTo:"可套框架④", proficiency:"没练" },
@@ -156,15 +156,15 @@ const SPEAKING_BANK = [
     titleEn:"Public gardens and parks", titleZh:"公园",
     questions:["Did you like going to parks as a child?","Do you still like going to parks now?","Would you like to see more parks in your city?","Are there any parks you want to go to in the future?","Would you prefer to play in a personal garden or public garden?","How are the parks today different from those you visited as a kid?","What do you like to do when visiting a park?"],
     cue:'', content:'', keywords:'', linkedTo:"", proficiency:"没练" },
-{ id:"sb_p1_science", type:"P1", period:"2026-09-04", isNew:false, frequency:"medium", category:"抽象",
+{ id:"sb_p1_science", type:"P1", period:"2026-09-04", isNew:false, frequency:"medium", category:"事物",
     titleEn:"Science", titleZh:"科学",
     questions:["Do you like science?","When did you start to learn about science?","Which science subject is interesting to you?","What kinds of interesting things have you done with science?","Do you like watching science TV programs?","Do Chinese people often visit science museums?"],
     cue:'', content:'', keywords:'', linkedTo:"可套框架⑥", proficiency:"没练" },
-{ id:"sb_p1_mirrors", type:"P1", period:"2026-09-04", isNew:false, frequency:"high", category:"物品",
+{ id:"sb_p1_mirrors", type:"P1", period:"2026-09-04", isNew:false, frequency:"high", category:"事物",
     titleEn:"Mirrors", titleZh:"镜子",
     questions:["Do you like looking at yourself in the mirror? How often?","Have you ever bought mirrors?","Do you usually take a mirror with you?","Would you use mirrors to decorate your room?"],
     cue:'', content:'', keywords:'', linkedTo:"可套框架④", proficiency:"没练" },
-{ id:"sb_p1_space", type:"P1", period:"2026-09-04", isNew:false, frequency:"medium", category:"抽象",
+{ id:"sb_p1_space", type:"P1", period:"2026-09-04", isNew:false, frequency:"medium", category:"事物",
     titleEn:"Outer space and stars", titleZh:"太空与星空",
     questions:["Have you ever learnt about outer space and stars?","Do you like science fiction movies? Why?","Do you want to know more about outer space?","Do you want to go into outer space in the future?"],
     cue:'', content:'', keywords:'', linkedTo:"可套框架⑥", proficiency:"没练" },
@@ -172,7 +172,7 @@ const SPEAKING_BANK = [
     titleEn:"Singing", titleZh:"唱歌",
     questions:["Do you like singing? Why?","Have you ever learnt how to sing?","Who do you want to sing for?","Do you think singing can bring happiness to people?","Do you like listening to others singing?","Have you ever taken a singing class?"],
     cue:'', content:'', keywords:'', linkedTo:"可套框架①", proficiency:"没练" },
-{ id:"sb_p1_clothing", type:"P1", period:"2026-09-04", isNew:false, frequency:"medium", category:"物品",
+{ id:"sb_p1_clothing", type:"P1", period:"2026-09-04", isNew:false, frequency:"medium", category:"事物",
     titleEn:"Clothing", titleZh:"衣服",
     questions:["What kind of clothes do you like to wear?","Do you prefer to wear comfortable and casual clothes or smart clothes?","Do you like wearing T-shirts?","Do you spend a lot of time choosing clothes?","Do you wear different styles of clothes on weekdays and weekends?","What colour clothes do you like?"],
     cue:'', content:'', keywords:'', linkedTo:"可套框架④", proficiency:"没练" },
@@ -180,7 +180,7 @@ const SPEAKING_BANK = [
     titleEn:"Jokes & Comedies", titleZh:"笑话与喜剧",
     questions:["Are you good at telling jokes?","Do your friends like to tell jokes?","Do you like to watch comedies?","Have you ever watched a live show?","Are comedy shows popular in your country?"],
     cue:'', content:'', keywords:'', linkedTo:"", proficiency:"没练" },
-{ id:"sb_p1_headphones", type:"P1", period:"2026-09-04", isNew:false, frequency:"high", category:"物品",
+{ id:"sb_p1_headphones", type:"P1", period:"2026-09-04", isNew:false, frequency:"high", category:"事物",
     titleEn:"Headphones", titleZh:"耳机",
     questions:["Do you use headphones?","What type of headphones do you use?","When would you use headphones?","In what conditions would you not use headphones?","Is wearing headphones comfortable?"],
     cue:'', content:'', keywords:'', linkedTo:"可套框架④", proficiency:"没练" },
@@ -301,7 +301,7 @@ const SPEAKING_BANK = [
     promptEn:"Describe a person who taught you a new skill.", promptZh:"描述一个教你新技能的人。",
     youShouldSay:["Who this person was","What the skill was","How you learned it","And explain how you felt about this person"],
     questions:[], cue:'', content:'', keywords:'', linkedTo:"", proficiency:"没练" },
-{ id:"sb_p2_leastfilm", type:"P2", period:"2026-09-04", isNew:true, frequency:"medium", category:"物品",
+{ id:"sb_p2_leastfilm", type:"P2", period:"2026-09-04", isNew:true, frequency:"medium", category:"事物",
     titleEn:"Your least favourite movie", titleZh:"最不喜欢的电影",
     promptEn:"Describe your least favourite movie.", promptZh:"描述一部你最不喜欢的电影。",
     youShouldSay:["When you watched it","Where you watched it","What it was about","And explain why it's your least favourite movie"],
@@ -312,7 +312,7 @@ const SPEAKING_BANK = [
     promptEn:"Describe a tall building you like or dislike.", promptZh:"描述一栋你喜欢或不喜欢的高建筑。",
     youShouldSay:["What it is used for","Where it is","What it looks like","And explain why you like or dislike it"],
     questions:[], cue:'', content:'', keywords:'', linkedTo:"", proficiency:"没练" },
-{ id:"sb_p2_video", type:"P2", period:"2026-09-04", isNew:false, frequency:"medium", category:"物品",
+{ id:"sb_p2_video", type:"P2", period:"2026-09-04", isNew:false, frequency:"medium", category:"事物",
     titleEn:"An interesting video", titleZh:"有趣视频",
     promptEn:"Describe an interesting video.", promptZh:"描述一个有趣的视频。",
     youShouldSay:["When and where you watched it","What it is about","Why you watched it","And explain how you feel about it"],
@@ -332,7 +332,7 @@ const SPEAKING_BANK = [
     promptEn:"Describe a person who loves to grow plants (e.g. vegetables, flowers) at home or in the garden.", promptZh:"描述一个喜欢在家/花园种菜（植物）的人。",
     youShouldSay:["Who this person is","What plants he/she grows","How he/she grows the plants","And explain why he/she loves growing plants"],
     questions:[], cue:'', content:'', keywords:'', linkedTo:"可套舅舅母本(种植物)", proficiency:"没练" },
-{ id:"sb_p2_newlaw", type:"P2", period:"2026-09-04", isNew:false, frequency:"medium", category:"抽象",
+{ id:"sb_p2_newlaw", type:"P2", period:"2026-09-04", isNew:false, frequency:"medium", category:"事件",
     titleEn:"A new law you would like to introduce", titleZh:"想颁布的新法律",
     promptEn:"Describe a new law you would like to introduce in your country.", promptZh:"描述一项你想在国家颁布的新法律。",
     youShouldSay:["What law it is","What changes this law brings","Whether this new law will be popular","How you came up with the new law","And explain how you feel about this new law"],
@@ -372,7 +372,7 @@ const SPEAKING_BANK = [
     promptEn:"Describe a live sports event you watched and liked.", promptZh:"描述一场你喜欢看的现场体育赛事。",
     youShouldSay:["What it was","When and where you watched it","Who you watched it with","And explain why you liked it"],
     questions:[], cue:'', content:'', keywords:'', linkedTo:"", proficiency:"没练" },
-{ id:"sb_p2_specialfood", type:"P2", period:"2026-09-04", isNew:false, frequency:"high", category:"物品",
+{ id:"sb_p2_specialfood", type:"P2", period:"2026-09-04", isNew:false, frequency:"high", category:"事物",
     titleEn:"Food for special occasions", titleZh:"特别场合的食物",
     promptEn:"Describe a food that people eat on special occasions/events.", promptZh:"描述一种人们在特殊场合吃的食物。",
     youShouldSay:["What it is","What the special event/occasion is","How it is cooked/made","And explain why people eat it on that special occasion/event"],
@@ -387,7 +387,7 @@ const SPEAKING_BANK = [
     promptEn:"Describe a challenging technological problem you faced.", promptZh:"描述一个你遇到的有挑战性的科技问题。",
     youShouldSay:["What the problem was","When and where you faced it","How challenging it was","And explain how you solved it"],
     questions:[], cue:'', content:'', keywords:'', linkedTo:"可套Leo母本(机智解决)", proficiency:"没练" },
-{ id:"sb_p2_adceleb", type:"P2", period:"2026-09-04", isNew:false, frequency:"high", category:"物品",
+{ id:"sb_p2_adceleb", type:"P2", period:"2026-09-04", isNew:false, frequency:"high", category:"事物",
     titleEn:"An advertisement with a famous person", titleZh:"名人出演的广告",
     promptEn:"Describe an advertisement with a famous person in it.", promptZh:"描述一个有名人出演的广告。",
     youShouldSay:["Who the person is","Where you can see it","What the advertisement is about","And explain how you feel about the advertisement"],
@@ -402,7 +402,7 @@ const SPEAKING_BANK = [
     promptEn:"Describe a home that you like to visit but do not want to live in.", promptZh:"描述一个你喜欢拜访但不想住的家。",
     youShouldSay:["Where it is","What it is like","Why you like to visit it","And explain why you would not like to live there"],
     questions:[], cue:'', content:'', keywords:'', linkedTo:"", proficiency:"没练" },
-{ id:"sb_p2_animalstory", type:"P2", period:"2026-09-04", isNew:false, frequency:"medium", category:"抽象",
+{ id:"sb_p2_animalstory", type:"P2", period:"2026-09-04", isNew:false, frequency:"medium", category:"事件",
     titleEn:"A story/book with animals", titleZh:"包含动物的故事或书",
     promptEn:"Describe a story/book with animals in it.", promptZh:"描述一个包含动物的故事或一本书。",
     youShouldSay:["What animals are in it","What the story/book is about","Why you read the story/book","And explain what you think of this story/book"],
@@ -412,7 +412,7 @@ const SPEAKING_BANK = [
     promptEn:"Describe a person who solved a problem in a smart way.", promptZh:"描述一个机智解决问题的人。",
     youShouldSay:["Who this person is","What the problem was","How he/she solved it","And explain why you think he/she did it in a smart way"],
     questions:[], cue:'', content:'', keywords:'', linkedTo:"", proficiency:"没练" },
-{ id:"sb_p2_lawenv", type:"P2", period:"2026-09-04", isNew:false, frequency:"low", category:"抽象",
+{ id:"sb_p2_lawenv", type:"P2", period:"2026-09-04", isNew:false, frequency:"low", category:"事件",
     titleEn:"A law on environmental protection", titleZh:"保护环境的法律",
     promptEn:"Describe a law on environmental protection.", promptZh:"描述一项保护环境的法律。",
     youShouldSay:["What it is","How you first learned about it","Who benefits from it","And explain how you feel about this law"],
@@ -422,7 +422,7 @@ const SPEAKING_BANK = [
     promptEn:"Describe a time when you sent a message or an email to someone but received no reply for a long time.", promptZh:"描述一次你发信息/邮件给某人但很久没收到回复的经历。",
     youShouldSay:["Who you sent it to","What the message/email was about","Whether you finally received the reply","And explain how you felt about the experience"],
     questions:[], cue:'', content:'', keywords:'', linkedTo:"", proficiency:"没练" },
-{ id:"sb_p2_ambition", type:"P2", period:"2026-09-04", isNew:false, frequency:"low", category:"抽象",
+{ id:"sb_p2_ambition", type:"P2", period:"2026-09-04", isNew:false, frequency:"low", category:"事件",
     titleEn:"A long-term goal/ambition", titleZh:"长久目标/抱负",
     promptEn:"Describe a long-term goal/ambition you would like to achieve.", promptZh:"描述一个你想实现的长期目标/抱负。",
     youShouldSay:["How long you have had this goal/ambition","What it is","How you will achieve it","And explain why you set it"],
@@ -432,7 +432,7 @@ const SPEAKING_BANK = [
     promptEn:"Describe a time when you changed an important opinion of yours.", promptZh:"描述一次你改变重要想法的经历。",
     youShouldSay:["When you changed your opinion","What the original opinion was","Why you changed it","And explain how you felt about the experience"],
     questions:[], cue:'', content:'', keywords:'', linkedTo:"", proficiency:"没练" },
-{ id:"sb_p2_ecolaw", type:"P2", period:"2026-09-04", isNew:false, frequency:"medium", category:"抽象",
+{ id:"sb_p2_ecolaw", type:"P2", period:"2026-09-04", isNew:false, frequency:"medium", category:"事件",
     titleEn:"An environmental law you would like to introduce", titleZh:"想要颁布的环保法律",
     promptEn:"Describe an environmental law you would like your country to introduce.", promptZh:"描述一项你想让国家颁布的环保法律。",
     youShouldSay:["What law it should be","Why people should follow the law","Whether the law will be popular","And explain how you feel about this law"],
@@ -452,7 +452,7 @@ const SPEAKING_BANK = [
 /* 口语题库版本号：每次题库大改（删题/建题/调档位）递增。
  * hubLoad 检测到本地 DATA.speakingVersion 落后于此值，则整体用最新库替换本地旧库，
  * 根治「旧 localStorage 累积 100+ 题 / 档位错乱清不掉」的问题（用户刷新即生效，无需手动清缓存）。 */
-const SPEAKING_BANK_VERSION = 5;
+const SPEAKING_BANK_VERSION = 6;
 
 /* 口语合并：以官方 SPEAKING_BANK 为基准，保留用户个人内容、丢弃非官方题。
    入参 localSpeaking = 用户本地/导入的口语数组（可能含旧 100+ 题、框架母本、已填 answers）。
@@ -473,7 +473,8 @@ function mergeSpeakingKeepAnswers(localSpeaking){
       if(local.answers) keep.answers = local.answers;
       if(local.speakingStories) keep.speakingStories = local.speakingStories;
       if(local.titleZh) keep.titleZh = local.titleZh;
-      if(local.category) keep.category = local.category;
+      // category 不再回填本地旧值（design/12：类目口径已统一为 人物/事件/地点/事物/日常，
+      // 官方库为准；老数据里的 物品/抽象 若回填会压掉新类目，筛选又会错位）
       if(local.frequency) keep.frequency = local.frequency;
       return keep;
     });
