@@ -15,9 +15,18 @@ var SENT_AUTO_T = null;           // 判对 1.1s 自动流转句柄（window 缓
 if(window.__SENT_CUR == null) window.__SENT_CUR = null;
 if(window.__SENT_OPEN == null) window.__SENT_OPEN = {};    // 列表折叠展开态（跨软导航保留）
 if(window.__SENT_WRONG_OPEN == null) window.__SENT_WRONG_OPEN = false;
+if(window.__SENT_QUEUE == null) window.__SENT_QUEUE = null;   // design/17 错题专项练队列（防软导航残留旧 bank 引用）
 if(window.__sentBankCache == null) window.__sentBankCache = null;
 
-var SENT_CHECK_SYS = '你是雅思口语句型教练。学生按中文句意输出英文，你只按以下尺度挑错：词序错误、时态错误、双动词（一个句子里两个谓语）、缺 be 动词、词性用错。单复数、a/an/the 冠词、三单 -s 一律不算错、不标。只输出 JSON：\n{"ok":true} 或 {"ok":false,"errors":[{"type":"时态","old":"is","note":"描述过去用 was，≤12字"}],"right":"完整标准句","fix":"一句话人话总结最关键错误"}\n错误片段 old 必须逐字摘自学生答案原文。';
+/* design/17 focus 中文映射（薄弱条用；未列出的显示原值） */
+var SENT_FOCUS_CN = {
+  'missing-be': '缺be动词', 'past-tense': '时态', 'word-choice': '用词搭配', 'double-verb': '双谓语',
+  'adj-after-feel': 'feel后用形容词', 'parallel': '并列结构', 'plural': '单复数',
+  'let-sb-do': 'let sb do结构', 'find-it-adj': 'find it+形容词', 'negation': '否定句'
+};
+function sentFocusCn(f){ return SENT_FOCUS_CN[f] || f || ''; }
+
+var SENT_CHECK_SYS = '你是雅思口语句型教练。学生按中文句意输出英文，你只按以下尺度挑错：词序错误、时态错误、双动词（一个句子里两个谓语）、缺 be 动词、词性用错。单复数、a/an/the 冠词、三单 -s 一律不算错、不标。只输出 JSON：\n{"ok":true} 或 {"ok":false,"errors":[{"type":"时态","old":"is","note":"描述过去用 was，≤12字"}],"right":"学生答案的最小改正版","fix":"一句话人话总结最关键错误"}\nright 必须基于学生答案改错：保留学生原有用词与句型，只改正 errors 中标出的错误，禁止重写成另一句标准句。\n错误片段 old 必须逐字摘自学生答案原文。';
 
 function sentEsc(s){
   return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -28,7 +37,7 @@ function sent$(id){ return document.getElementById(id); }
 async function sentLoadBank(){
   if(window.__sentBankCache){ SENT_BANK = window.__sentBankCache; return SENT_BANK; }
   try{
-    var res = await fetch('data/sentences.json?v=20260912a');
+    var res = await fetch('data/sentences.json?v=20260912b');
     SENT_BANK = await res.json();
     window.__sentBankCache = SENT_BANK;
     return SENT_BANK;
@@ -51,9 +60,87 @@ function sentMark(id, st){
   if(typeof hubSave === 'function') hubSave();
 }
 function sentWrongCount(){
-  var s = sentStatus(), n = 0;
-  for(var k in s){ if(s[k] && s[k].st === 'wrong') n++; }
+  /* design/17：按 bank 遍历计数——孤儿 id（旧库已删句型）不显示也不计数（列表/错题库同口径） */
+  var st = sentStatus(), bank = sentBank(), n = 0;
+  bank.cats.forEach(function(cat){
+    cat.sentences.forEach(function(s){ if(st[s.id] && st[s.id].st === 'wrong') n++; });
+  });
   return n;
+}
+
+/* ── design/17 3.1 薄弱条：源 A = patternDrill.weakness（存量），源 B = 错题库句型 focus 计数；
+   topFocus 取两源计数最大者，两源皆空 → 条隐藏 ── */
+function sentWeakTop(){
+  var wa = {}, best = null, bestN = 0, srcA = 0, srcB = 0;
+  var w = (typeof DATA !== 'undefined' && DATA.patternDrill && DATA.patternDrill.weakness) || {};
+  Object.keys(w).forEach(function(f){
+    var n = (w[f] && Number(w[f].wrongCount)) || 0;
+    if(n > 0){ wa[f] = n; if(n > bestN){ best = f; bestN = n; srcA = n; } }
+  });
+  var st = sentStatus(), bank = sentBank();
+  var wb = {};
+  bank.cats.forEach(function(cat){
+    cat.sentences.forEach(function(s){
+      if(st[s.id] && st[s.id].st === 'wrong' && s.focus){ wb[s.focus] = (wb[s.focus] || 0) + 1; }
+    });
+  });
+  Object.keys(wb).forEach(function(f){
+    if(wb[f] > bestN){ best = f; bestN = wb[f]; srcA = wa[f] || 0; srcB = wb[f]; }
+    else if(wb[f] > 0 && !best){ best = f; bestN = wb[f]; srcA = 0; srcB = wb[f]; }
+  });
+  return { focus: best, srcA: srcA, srcB: srcB };
+}
+/* 薄弱条点击：展开含该 focus 句型的第一个分类 → 滚动到位 */
+function sentWeakClick(){
+  var top = sentWeakTop();
+  if(!top.focus) return;
+  var bank = sentBank();
+  bank.cats.forEach(function(cat){
+    var hit = cat.sentences.some(function(s){ return s.focus === top.focus; });
+    if(hit) window.__SENT_OPEN[cat.id] = true;
+  });
+  window.__SENT_CUR = null;               // 若停在练习态，先回列表
+  sentRender();
+  var row = document.querySelector('[data-sent-weak]');
+  if(row && row.scrollIntoView) row.scrollIntoView({ block: 'start' });
+  window.__SENT_WEAK_JUMP = true;         // 展开后把含该 focus 的分类滚到可视区
+  setTimeout(function(){
+    var host = sent$('sentBody');
+    if(!host || !window.__SENT_WEAK_JUMP) return;
+    window.__SENT_WEAK_JUMP = false;
+    var cats = bank.cats.filter(function(c){ return c.sentences.some(function(s){ return s.focus === top.focus; }); });
+    for(var i = 0; i < cats.length; i++){
+      var el = host.querySelector('[data-sent-cat="' + cats[i].id + '"]');
+      if(el && el.scrollIntoView){ el.scrollIntoView({ block: 'start' }); break; }
+    }
+  }, 60);
+}
+function sentWeakHtml(){
+  var top = sentWeakTop();
+  if(!top.focus) return '';
+  var parts = ['最近常错【' + sentFocusCn(top.focus) + '】'];
+  if(top.srcA > 0) parts.push('（' + top.srcA + ' 次）');
+  if(top.srcB > 0) parts.push(' · 句型错题 ' + top.srcB + ' 题');
+  return '<div class="sent-weak" data-sent-weak>' + sentEsc(parts.join('')) + ' →</div>';
+}
+
+/* ── design/17 3.2 错题专项练队列 ── */
+function sentNextFromQueue(){
+  var q = window.__SENT_QUEUE;
+  if(!q || !q.length){ window.__SENT_QUEUE = null; return false; }
+  var nid = q.shift();
+  if(nid && sentFind(nid)){ sentStart(nid); return true; }
+  window.__SENT_QUEUE = null; return false;
+}
+function sentStartWrongAll(){
+  var st = sentStatus(), ids = [], bank = sentBank();
+  bank.cats.forEach(function(cat){
+    cat.sentences.forEach(function(s){ if(st[s.id] && st[s.id].st === 'wrong') ids.push(s.id); });
+  });
+  if(!ids.length){ toast('错题库是空的'); return; }
+  window.__SENT_QUEUE = ids.slice(1);
+  sentStart(ids[0]);
+  toast('专项练 ' + ids.length + ' 题，过完自动下一题');
 }
 
 /* ── 本地判定（5.5 放过：a/an/the 冠词、单复数、三单 -s、大小写、标点）── */
@@ -144,7 +231,8 @@ function sentRender(){
 /* 列表：薄弱条占位（P0 留空）+ 5 类折叠（顺序=sentences.json 固定 P2 答题顺序）+ 错题库入口 */
 function sentListHtml(){
   var bank = sentBank(), st = sentStatus();
-  var html = '<div id="sentWeakBar" hidden></div>';
+  var wh = sentWeakHtml();
+  var html = '<div id="sentWeakBar"' + (wh ? '' : ' hidden') + '>' + wh + '</div>';
   html += '<div class="sent-list">';
   bank.cats.forEach(function(cat){
     var mastered = cat.sentences.filter(function(s){ return st[s.id] && st[s.id].st === 'mastered'; }).length;
@@ -174,6 +262,7 @@ function sentListHtml(){
     bank.cats.forEach(function(cat){ cat.sentences.forEach(function(s){ if(st[s.id] && st[s.id].st === 'wrong') wrongIds.push(s); }); });
     html += '<div class="sent-wrong-list">';
     if(!wrongIds.length) html += '<div class="sent-err-note">错题库是空的，练错一句它就会出现在这里。</div>';
+    else html += '<div class="sent-wrong-all" data-sent-wrong-all>全部重练（' + wrongIds.length + ' 题）→</div>';
     wrongIds.forEach(function(s){
       html += '<div class="sent-item" data-sent-item="' + s.id + '"><span class="sent-item-cn">' + sentEsc(s.cn) + '</span><span class="sent-st st-wrong">错题</span></div>';
     });
@@ -221,11 +310,15 @@ function sentBindList(){
   });
   var we = host.querySelector('[data-sent-wrong]');
   if(we) we.addEventListener('click', function(){ window.__SENT_WRONG_OPEN = !window.__SENT_WRONG_OPEN; sentRender(); });
+  var wk = host.querySelector('[data-sent-weak]');
+  if(wk) wk.addEventListener('click', function(e){ e.stopPropagation(); sentWeakClick(); });
+  var wa = host.querySelector('[data-sent-wrong-all]');
+  if(wa) wa.addEventListener('click', function(e){ e.stopPropagation(); sentStartWrongAll(); });
 }
 function sentBindPractice(){
   var host = sent$('sentBody');
   var back = host.querySelector('[data-sent-back]');
-  if(back) back.addEventListener('click', function(){ window.__SENT_CUR = null; sentRender(); });
+  if(back) back.addEventListener('click', function(){ window.__SENT_QUEUE = null; window.__SENT_CUR = null; sentRender(); });
   var inp = sent$('sentAnswer');
   if(inp) inp.addEventListener('input', function(){ sentCur().draft = inp.value; });
   var sub = sent$('sentSubmit');
@@ -299,6 +392,8 @@ function sentPass(){
     } else {
       sentMark(c.sentId, 'mastered');
       toast('已掌握');
+      sentMaybeReplay(c.sentId);            // design/17 3.4：一类练满 → 拼接验证弹窗（过/跳过写 replay）
+      if(sentNextFromQueue()) return;       // design/17 专项练队列还有题 → 自动下一题
       window.__SENT_CUR = null;
       sentRender();
     }
@@ -314,10 +409,15 @@ function sentRenderFail(ai){
   var mark = sentRenderErrors(ans, ai.errors || []);
   /* 参考句按当前 phase 取：场景替换题 reveal 给该场景的 right，不给主句（学生答的是场景） */
   var ref = (c.phase === 'scene') ? ((sent.scene[c.sceneIdx] || {}).right || sent.right) : sent.right;
-  var right = (ai.right && sentLocalJudge(ai.right, ref)) ? ai.right : ref;  // 以数据为准
+  /* design/17 最小改正口径：reveal 首选「她原句的最小改正版」（AI right），只在改写与参考说法
+     本质不同时才另起一行给参考——判定口径不动，这里只管展示 */
+  var fixed = (ai.right && String(ai.right).trim()) ? String(ai.right).trim() : '';
+  var sameAsRef = fixed && sentLocalJudge(fixed, ref);
   var html = '<div class="sent-orig">' + mark.html + '</div>' + mark.notes;
   if(c.revealed){
-    html += '<div class="sent-right">✅ 正确句：' + sentEsc(right) + '</div>';
+    if(fixed){ html += '<div class="sent-right">✅ 改正后（只改错处）：' + sentEsc(fixed) + '</div>'; }
+    if(fixed && !sameAsRef){ html += '<div class="sent-note">📄 参考说法：' + sentEsc(ref) + '</div>'; }
+    if(!fixed){ html += '<div class="sent-right">✅ 正确句：' + sentEsc(ref) + '</div>'; }
   }
   if(c.phase === 'main'){
     html += '<div class="sent-formula">📌 ' + sentEsc(sent.formula || '') + '</div>';
@@ -347,9 +447,108 @@ function sentReveal(){
   if(c.phase === 'main' || c.phase === 'scene'){
     sentMark(c.sentId, 'wrong');
     toast('已放进错题库，下次重点练');
+    if(sentNextFromQueue()) return;         // design/17：专项练队列没过的留错题库，自动进下一题
   }
   window.__SENT_CUR = null;
   sentRender();
+}
+
+/* ── design/17 3.4 拼接验证：一类全部 mastered 且该类未 replay 过 → 弹面板拿真实 P2 题练一手 ── */
+function sentReplayDone(catId){
+  try{
+    var pd = (typeof DATA !== 'undefined' && DATA.patternDrill) ? DATA.patternDrill : null;
+    if(pd){
+      pd.sentences = pd.sentences || {};
+      pd.sentences.replay = pd.sentences.replay || {};
+      pd.sentences.replay[catId] = Date.now();
+      if(typeof hubSave === 'function') hubSave();
+    }
+  }catch(_){}
+  var m = document.getElementById('sentReplayMask');
+  if(m) m.remove();
+}
+async function sentReplaySubmit(cat, topic){
+  var inp = document.getElementById('sentReplayAns');
+  var go = document.getElementById('sentReplayGo');
+  var st = document.getElementById('sentReplayStatus');
+  var fb = document.getElementById('sentReplayFb');
+  var answer = ((inp && inp.value) || '').trim();
+  if(!answer){ toast('先写出这句英文'); return; }
+  if(go) go.disabled = true;
+  if(st) st.textContent = '判定中…';
+  var pseudo = {
+    cn: '为这道题写一句' + cat.name + '：' + (topic.titleZh || topic.titleEn || topic.title || ''),
+    right: (cat.sentences[0] || {}).right || ''
+  };
+  var ai = await sentAskAI(pseudo, answer);
+  var ok = (ai.ok === true);                    // design/15 口径：pending 不算过
+  if(go) go.disabled = false;
+  if(ok){
+    sentReplayDone(cat.id);
+    toast(cat.name + '通关 ✅');
+    return;
+  }
+  if(fb) fb.className = 'pd-feedback' + (ai && ai.ok === false ? ' bad' : '');
+  if(ai && ai.ok === false){
+    var mark = sentRenderErrors(answer, ai.errors || []);
+    if(fb) fb.innerHTML = '<div class="sent-orig">' + mark.html + '</div>' + mark.notes
+      + (ai.fix ? '<div class="sent-fix">' + sentEsc(ai.fix) + '</div>' : '');
+    if(st) st.textContent = '再试一次或跳过';
+  } else {
+    if(fb) fb.textContent = 'AI 没来得及判，这句不算过——再交一次或跳过';
+    if(st) st.textContent = '网络慢了，等一下再交';
+  }
+}
+function sentReplayOpen(cat, topic){
+  var old = document.getElementById('sentReplayMask');
+  if(old) old.remove();
+  var mask = document.createElement('div');
+  mask.id = 'sentReplayMask';
+  mask.className = 'sent-replay-mask';
+  var tName = topic.titleZh || topic.titleEn || topic.title || '';
+  mask.innerHTML = '<div class="sent-replay-panel">'
+    + '<div class="sent-replay-title">' + sentEsc(cat.name) + '通关 ✅</div>'
+    + '<div class="sent-replay-tip">拿真实题练一手：' + sentEsc(tName) + '——用这一类句型，为这道题写一句' + sentEsc(cat.name) + '位置的话。</div>'
+    + '<input id="sentReplayAns" class="pd-input" placeholder="用英文写出这句" autocomplete="off">'
+    + '<div class="pd-bar"><button class="btn btn-primary" id="sentReplayGo" type="button">提交</button>'
+    + '<span class="pd-status" id="sentReplayStatus" aria-live="polite"></span></div>'
+    + '<div class="pd-feedback" id="sentReplayFb"></div>'
+    + '<div class="sent-replay-skip" data-sent-replay-skip>跳过</div>'
+    + '</div>';
+  document.body.appendChild(mask);
+  var go = mask.querySelector('#sentReplayGo');
+  if(go) go.onclick = function(){ sentReplaySubmit(cat, topic); };   // onclick 单通道
+  var skip = mask.querySelector('[data-sent-replay-skip]');
+  if(skip) skip.addEventListener('click', function(){ sentReplayDone(cat.id); toast('已跳过，下次练满不再弹'); });
+  var inp = mask.querySelector('#sentReplayAns');
+  if(inp && inp.focus) inp.focus();
+}
+function sentMaybeReplay(sentId){
+  try{
+    var catId = null, cat = null;
+    sentBank().cats.forEach(function(x){
+      x.sentences.forEach(function(s){ if(s.id === sentId){ catId = x.id; cat = x; } });
+    });
+    if(!cat || !catId) return false;
+    var st = sentStatus();
+    var allDone = cat.sentences.every(function(s){ return st[s.id] && st[s.id].st === 'mastered'; });
+    if(!allDone) return false;
+    var rep = (DATA.patternDrill.sentences && DATA.patternDrill.sentences.replay) || {};
+    if(rep[catId]) return false;
+    var pool = (DATA.speaking || []).filter(function(s){
+      return s && s.type === 'P2' && !s.framework && !/^sp_p[12]_\d+$/.test(s.id || '');
+    });
+    if(!pool.length){                           // 无 P2 题可抽 → 不弹，直接写 replay 标记
+      DATA.patternDrill.sentences = DATA.patternDrill.sentences || {};
+      DATA.patternDrill.sentences.replay = rep;
+      rep[catId] = Date.now();
+      if(typeof hubSave === 'function') hubSave();
+      return false;
+    }
+    var topic = pool[Math.floor(Math.random() * pool.length)];
+    sentReplayOpen(cat, topic);
+    return true;
+  }catch(e){ return false; }
 }
 
 /* ── 启动 ── */

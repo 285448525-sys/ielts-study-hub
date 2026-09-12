@@ -59,8 +59,53 @@
 
       + '<section class="card"><h2>各档位进度</h2>' + bars + '</section>'
 
-      + '<section class="card"><h2>Part 分块</h2><div class="prog-part"><span>P1 已练 <b>' + p1Done + '</b>/' + p1Total + '</span><span>P2 已练 <b>' + p2Done + '</b>/' + p2Total + '</span><span>P1 练习 <b>' + list.filter(s => s.type !== 'P2').reduce((a, s) => a + countOf(s), 0) + '</b> 遍</span><span>P2 练习 <b>' + list.filter(s => s.type === 'P2').reduce((a, s) => a + countOf(s), 0) + '</b> 遍</span></div></section>';
+      + '<section class="card"><h2>Part 分块</h2><div class="prog-part"><span>P1 已练 <b>' + p1Done + '</b>/' + p1Total + '</span><span>P2 已练 <b>' + p2Done + '</b>/' + p2Total + '</span><span>P1 练习 <b>' + list.filter(s => s.type !== 'P2').reduce((a, s) => a + countOf(s), 0) + '</b> 遍</span><span>P2 练习 <b>' + list.filter(s => s.type === 'P2').reduce((a, s) => a + countOf(s), 0) + '</b> 遍</span></div></section>'
+
+      // design/17 3.5：句型闯关进度（x/y 读 patternDrill.sentences.status；总数从句型库取，取不到只显示 x）
+      + '<section class="card"><h2>句型闯关</h2><div class="prog-part"><span>已掌握 <b id="sentProgMastered">' + sentProgMasteredText() + '</b></span><span>错题 <b>' + sentProgWrong() + '</b></span><a class="prog-sent-go" href="speaking.html?senttab=1" style="color:var(--primary,#3a9a93);text-decoration:none;font-weight:600">去练 →</a></div></section>';
+    // 总数异步补齐（bank 未缓存时 fetch 一次，回填 x/35）
+    if(!(window.__sentBankCache && window.__sentBankCache.cats)){
+      fetch('data/sentences.json?v=20260912b').then(r => r.json()).then(b => {
+        if(b && b.cats && b.cats.length){
+          window.__sentBankCache = b;
+          const nel = document.getElementById('sentProgMastered');
+          if(nel) nel.textContent = sentProgMasteredText();
+        }
+      }).catch(() => {});
+    }
   };
+
+  /* design/17 3.5 helpers：句型闯关 x/y（全部读 patternDrill.sentences.status，库缺失时只显示 x） */
+  function sentProgCounts(){
+    const st = (DATA.patternDrill && DATA.patternDrill.sentences && DATA.patternDrill.sentences.status) || {};
+    let m = 0, w = 0;
+    // bank 已缓存时按 bank 遍历（孤儿 id 不计数，与句型页口径一致）
+    if(window.__sentBankCache && window.__sentBankCache.cats){
+      window.__sentBankCache.cats.forEach(cat => {
+        cat.sentences.forEach(s => {
+          const e = st[s.id];
+          if(e && e.st === 'mastered') m++;
+          else if(e && e.st === 'wrong') w++;
+        });
+      });
+      return { m: m, w: w };
+    }
+    Object.keys(st).forEach(k => {
+      if(st[k] && st[k].st === 'mastered') m++;
+      else if(st[k] && st[k].st === 'wrong') w++;
+    });
+    return { m: m, w: w };
+  }
+  function sentProgMasteredText(){
+    const c = sentProgCounts();
+    let t = 0;
+    if(window.__sentBankCache && window.__sentBankCache.cats){
+      window.__sentBankCache.cats.forEach(cat => { t += cat.sentences.length; });
+      return t ? (c.m + '/' + t) : String(c.m);
+    }
+    return String(c.m);
+  }
+  function sentProgWrong(){ return sentProgCounts().w; }
 
   // 自渲染（迁移后 #progressView 只在回顾页存在，加载即算一次）
   ready(() => { if (typeof window.renderProgress === 'function') window.renderProgress(); });

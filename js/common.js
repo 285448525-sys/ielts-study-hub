@@ -1445,6 +1445,7 @@ function mergeData(local, cloud){
     _pdCh += _wCh;
     // design/16：句型页进度 patternDrill.sentences = { status: { [句型id]: {st, ts} } }——
     // 按 ts 新者胜（两端同 id 各有状态时取 ts 大的一侧；单侧有则取有的一侧），幂等不累加。
+    // design/17：sentences.replay = { [catId]: ts }（拼接验证已做标记）同款按 ts 新者胜。
     const _lss = (local.patternDrill && local.patternDrill.sentences && local.patternDrill.sentences.status) || {};
     const _css = (cloud.patternDrill && cloud.patternDrill.sentences && cloud.patternDrill.sentences.status) || {};
     const _mss = {};
@@ -1453,7 +1454,17 @@ function mergeData(local, cloud){
       if(a && b) _mss[id] = ((Number(b.ts) || 0) > (Number(a.ts) || 0)) ? b : a;
       else _mss[id] = a || b;
     });
-    if(JSON.stringify(_mss) !== JSON.stringify(_lss)){ _pdOut.sentences = { status: _mss }; _pdCh++; }
+    const _lsr = (local.patternDrill && local.patternDrill.sentences && local.patternDrill.sentences.replay) || {};
+    const _csr = (cloud.patternDrill && cloud.patternDrill.sentences && cloud.patternDrill.sentences.replay) || {};
+    const _msr = {};
+    Array.from(new Set([...Object.keys(_lsr), ...Object.keys(_csr)])).forEach(id => {
+      const a = _lsr[id], b = _csr[id];
+      _msr[id] = (a && b) ? Math.max(Number(a) || 0, Number(b) || 0) : (a || b);
+    });
+    if(JSON.stringify(_mss) !== JSON.stringify(_lss) || JSON.stringify(_msr) !== JSON.stringify(_lsr)){
+      _pdOut.sentences = { status: _mss, replay: _msr };
+      _pdCh++;
+    }
     if(_pdCh){ out.patternDrill = _pdOut; changes += _pdCh; }
   }
   // 合并后同步镜像账号凭证到隔离键（云端可能带来/更新 Key/手机号/发音分，务必落盘镜像）

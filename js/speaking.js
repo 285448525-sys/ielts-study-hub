@@ -128,8 +128,16 @@ ready(() => {
     if(openId && (DATA.speaking || []).some(x => x && x.id === openId)){
       spActivateTab('BANK');
       $('#pdView').hidden = true;
+      $('#sentView').hidden = true;
       $('#listView').hidden = true;
       openDetail(openId);
+    }
+  }catch(_){}
+  // design/17 3.5：回顾页「去练」带 ?senttab=1——确保落练习 tab（默认即练习，兜底防其他参数抢占）
+  try{
+    if(new URLSearchParams(location.search).get('senttab')){
+      spActivateTab('PRACTICE');
+      if(window.__SENT_V2_ON){ $('#sentView').hidden = false; $('#pdView').hidden = true; }
     }
   }catch(_){}
 });
@@ -365,16 +373,21 @@ function openDetail(id){
     if(s.promptZh) html += '<div class="sp-detail-zh" style="margin-bottom:12px">' + escapeHtml(s.promptZh) + '</div>';
 
     html += '<div class="sp-p2-answer">';
+    // design/17 3.3：一句话备注（存 answers.p2.note，防抖 600ms 云同步）
+    html += '<input class="pd-input sp-note-input" id="p2Note" placeholder="一句话备注（提醒自己怎么答）" autocomplete="off">';
     html += '<textarea class="sp-ans" id="p2Ans" placeholder="在这里写下你的 Part 2 回答（目标写满 2 分钟的内容）…"></textarea>';
     html += '<div class="sp-q-btns">';
     html += '<button class="sp-diag" id="p2Diag" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;flex:none"><path d="M12 2l2.4 5.1 5.6.8-4 4.1 1 5.6-5-2.7-5 2.7 1-5.6-4-4.1 5.6-.8z"/></svg>AI 纠错</button>';
     html += '<button class="sp-ans-clear" id="p2Clear" type="button">清空</button>';
     html += '<button class="sp-timer-btn" id="p2TimerBtn" type="button" title="开始 2 分钟倒计时，逼自己讲满 2 分钟">⏱ 2分钟</button>';
+    html += '<button class="sp-diag" id="p2SentRefBtn" type="button">查句型</button>';
     html += '<span class="sp-timer-display" id="p2TimerDisplay" hidden>02:00</span>';
     html += '</div>';
     html += '<div class="sp-q-result" id="p2Result"></div>';
     html += '<div class="sp-rec-list" id="p2Records"></div>';
     html += '</div>';
+    // design/17 3.3：查句型只读面板（点击按钮展开，复用 sentence-drill 内容库）
+    html += '<div class="sp-sentref" id="spSentRef" hidden></div>';
   }
 
   // P2 串题素材（逻辑 + 原文）：来自 AI 串题方案，自动回填；头部带「AI 串题思路」生成按钮
@@ -458,6 +471,23 @@ function openDetail(id){
   if(s.type === 'P2'){
     const aiStoryLinkBtn = document.getElementById('aiStoryLinkBtn');
     if(aiStoryLinkBtn) aiStoryLinkBtn.addEventListener('click', () => aiStoryLink(id));
+    // design/17 3.3：备注框防抖保存（600ms → hubSave）+ 查句型面板开关
+    const note = document.getElementById('p2Note');
+    if(note){
+      let __nt = null;
+      note.addEventListener('input', () => {
+        clearTimeout(__nt);
+        __nt = setTimeout(() => {
+          s.answers = s.answers || {};
+          s.answers.p2 = s.answers.p2 || {};
+          s.answers.p2.note = note.value.trim();
+          s.answers.p2.noteTs = Date.now();
+          hubSave();
+        }, 600);
+      });
+    }
+    const srb = document.getElementById('p2SentRefBtn');
+    if(srb) srb.addEventListener('click', e => { e.stopPropagation(); spSentRefToggle(); });
   }
 
   // 逐题展开 + 语音 + AI 诊断 事件绑定（含 localStorage 回填）
@@ -627,6 +657,8 @@ function openDetail(id){
     if(s.answers && s.answers.p2){
       const ta = $('#p2Ans');
       if(ta && s.answers.p2.text) ta.value = s.answers.p2.text;
+      const noteEl = $('#p2Note');
+      if(noteEl && s.answers.p2.note) noteEl.value = s.answers.p2.note;   // design/17：备注回显
       const res = $('#p2Result');
       if(res && s.answers.p2.result){
         try{
@@ -666,6 +698,60 @@ function openDetail(id){
       }
     }, (i) => removeSubmitRecord(s, 'p2', i));
   }
+}
+
+/* === design/17 3.3：P2 卡「查句型」只读面板 + 「去练该类」跳转 ===
+   数据优先取 window.__sentBankCache（sentence-drill.js 排在 speaking.js 之前已缓存）；
+   为空则自行 fetch（try/catch 失败 toast 不崩）。面板只读：7 类名 + cn→right 清单 + 去练入口。 */
+async function spSentRefToggle(){
+  const panel = document.getElementById('spSentRef');
+  if(!panel) return;
+  if(!panel.hidden){ panel.hidden = true; return; }
+  panel.hidden = false;
+  if(panel.dataset.loaded === '1') return;
+  panel.innerHTML = '<div class="sp-sentref-loading">句型库加载中…</div>';
+  let bank = window.__sentBankCache;
+  if(!bank || !bank.cats || !bank.cats.length){
+    try{
+      const r = await fetch('data/sentences.json?v=20260912b');
+      bank = await r.json();
+      if(bank && bank.cats) window.__sentBankCache = bank;    // 回填全局缓存
+    }catch(e){
+      panel.innerHTML = '<div class="sp-sentref-loading">句型库加载失败，稍后再试</div>';
+      toast('句型库加载失败');
+      return;
+    }
+  }
+  if(!bank || !bank.cats || !bank.cats.length){
+    panel.innerHTML = '<div class="sp-sentref-loading">句型库为空</div>';
+    return;
+  }
+  let h = '';
+  bank.cats.forEach(cat => {
+    h += '<div class="sp-sentref-cat"><div class="sp-sentref-catname">' + escapeHtml(cat.name) + '</div>';
+    cat.sentences.forEach(s => {
+      h += '<div class="sp-sentref-row"><div class="sp-sentref-cn">' + escapeHtml(s.cn) + '</div>'
+        + '<div class="sp-sentref-en">' + escapeHtml(s.right) + '</div></div>';
+    });
+    h += '<div class="sp-sentref-go" data-sentref-go="' + escapeHtml(cat.id) + '">去练该类 →</div></div>';
+  });
+  panel.innerHTML = h;
+  panel.dataset.loaded = '1';
+  panel.querySelectorAll('[data-sentref-go]').forEach(el => {
+    el.addEventListener('click', () => spGoPracticeCat(el.getAttribute('data-sentref-go')));
+  });
+}
+function spGoPracticeCat(catId){
+  // 显隐对齐 PRACTICE tab 逻辑（speaking.js ready 里同款），并展开该类重渲染
+  spActivateTab('PRACTICE');
+  $('#listView').hidden = true; $('#detailView').hidden = true; $('#mockView').hidden = true; $('#matView').hidden = true; $('#pdView').hidden = true;
+  if(!window.__SENT_V2_ON){ $('#pdView').hidden = false; return; }   // 开关回滚时落老 pdView
+  $('#sentView').hidden = false;
+  window.__SENT_OPEN = window.__SENT_OPEN || {};
+  window.__SENT_OPEN[catId] = true;
+  window.__SENT_CUR = null;
+  if(typeof sentRender === 'function') sentRender();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 /* === P1 详情页「下一题」：跳到当前筛选列表里的下一道 P1 话题 ===
