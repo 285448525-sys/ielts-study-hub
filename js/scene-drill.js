@@ -21,6 +21,7 @@ var SD_SCENES = (typeof window !== 'undefined' && window.__pdScenesCache) || nul
 var SD_WEAKNESS = (typeof window !== 'undefined' && window.__pdWeaknessCache) || null;
 
 var SD_SCENE_PER_DAY = 1;   // design/07 §十三：每日一关
+var SD_VARIANTS_ON = false;   // design/14：换词连练停用（之之 9/12：泄答案+原地打转）。改 true 可整体恢复
 var SD_CUR = null;          // { scene, steps, idx, log, date, stuck, recordedStuck }
 var SD_BUSY = false;        // 判定进行中，防连点
 var SD_AUTO_NEXT = null;    // 答对自动流转定时器
@@ -258,6 +259,7 @@ function sdRender(){
    该 line 答对后自动进入换词子队列，逐条按 pattern 说出 fills 目标句，全部连完才进下一句。 */
 /* 取某 line 的换词变体（pattern 占位符 X/Y/Z 标注要换的词） */
 function sdVariantsOf(lineId){
+  if(!SD_VARIANTS_ON) return null;   // design/14：换词连练停用，恒返回 null（SD_VARIANT 相关分支自动成死代码，保留可回滚）
   var c = SD_CUR; if(!c || !c.scene.variants) return null;
   var out = [];
   (c.scene.variants || []).forEach(function(v){
@@ -395,15 +397,18 @@ async function sdOnSubmit(){
   var fix = '';
   if(!ok){
     var r = await sdAskAI(line, answer);
-    /* B2（design/10 §五，已按此口径）：超时/异常 r.ok===null → 静默放行不记回写，
-       仅 r.ok===false 走下面的 wrong 分支（sdRecordWrong 只在 wrong 分支调用）。 */
-    ok = (r.ok !== false);        // 超时/异常放行，绝不卡流程（design/06 口径）
+    /* design/15（9/12 修正原 B2 口径）：三态判定——true 过 / false 错 / null pending。
+       超时/异常不再静默放行：pending 交给 sdHandleResult 走「不算过+可重交」交互，
+       连续两次 pending 落「看答案，下一句」兜底——任何情况不卡死、不无声放过目标错误。
+       ⚠️ 必须用 === true：若写 !== false，pending(null) 会落进 ok 分支「过了」，pending 分支不可达。 */
+    ok = (r.ok === true);
+    var pending = (r.ok == null);   // 超时/异常 → pending，不算过
     fix = r.fix || '';
   }
   SD_BUSY = false;
-  sdHandleResult(ok, fix, answer, line);
+  sdHandleResult(ok, fix, answer, line, pending);
 }
-function sdHandleResult(ok, fix, answer, line){
+function sdHandleResult(ok, fix, answer, line, pending){
   var c = SD_CUR; if(!c) return;
   var fb = sd$('sdFeedback'), st = sd$('sdStatus'), sub = sd$('sdSubmit');
   var hb = sd$('sdHintBtn'), nx = sd$('sdNext'), ans = sd$('sdAnswer');
@@ -414,6 +419,17 @@ function sdHandleResult(ok, fix, answer, line){
     if(st) st.textContent = '';
     SD_AUTO_NEXT = setTimeout(sdAfterLinePassed, 1100);   // 答对 → 先看有没有换词连练，再进下一句（阶段 3）
   } else {
+    /* design/15：AI 超时/异常 → pending 态：不算过、可重交、零数据写入（不回写/不动 weakness/不记 log） */
+    if(pending){
+      SD_WRONG_N++;
+      if(fb){ fb.className = 'pd-feedback'; fb.textContent = 'AI 没来得及判，这句不算过——再交一次或看答案'; }
+      if(st) st.textContent = '';
+      if(hb) hb.style.display = 'none';
+      if(sub){ sub.disabled = false; sub.textContent = '再交一次'; }
+      if(nx) nx.style.display = 'none';
+      if(SD_WRONG_N >= 2 && ans){ ans.disabled = true; if(sub){ sub.textContent = '看答案，下一句 ▸'; sub.onclick = sdAdvance; } }
+      return;
+    }
     SD_WRONG_N++;
     if(SD_AUTO_NEXT){ clearTimeout(SD_AUTO_NEXT); SD_AUTO_NEXT = null; }   // 清掉可能残留的自动流转：答错停住态不被旧定时器跳走
     /* 阶段 4（design/10 §4.2.1）：line 答错回写；卡住已记过（recordedStuck）则跳过防双记 */
