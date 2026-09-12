@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "source": "之之 P2 答题骨架五段句型库（design/16）。顺序=P2 答题思考顺序，练完一类即掌握骨架一环。focus 沿用弱点标签体系供薄弱条映射；scene[] 为跨话题换场景巩固题（题干只给中文，禁只换一个名词）。词汇按 5.5 口径从简。",
+  "version": 2,
+  "source": "之之 口语句型库 v2（design/17）。定位=学习库：常用口语句型全覆盖，难度从简单句升级到复合句（从句/强调/虚拟/对比），目标「想到中文就能调出句型从容说英文」。前 5 类仍按 P2 骨架顺序，c6/c7 为全场景句型进阶。保留句沿用原 id（进度不丢）；删除的旧 id 不复用。focus 沿用弱点标签体系（6 值域）供薄弱条映射；scene[] 为跨话题换场景巩固题（题干只给中文）。",
   "cats": [
     {
       "id": "c1",
@@ -20,24 +20,12 @@
           ]
         },
         {
-          "id": "s_c1_2",
-          "cn": "我打算讲讲上个月我和家人的一次旅行。",
-          "right": "I'm going to talk about a trip with my family last month.",
-          "formula": "I'm going to talk about + 名词",
-          "focus": "past-tense",
-          "note": "与「I'd like to」互换；过去的时间放句尾交代。",
-          "scene": [
-            { "cn": "我打算讲讲我最喜欢的一个手机游戏。", "right": "I'm going to talk about my favourite mobile game." },
-            { "cn": "我打算讲讲我们的旧家庭轿车。", "right": "I'm going to talk about our old family car." }
-          ]
-        },
-        {
           "id": "s_c1_3",
           "cn": "我想描述的那个人是我的舅舅。",
           "right": "The person I'd like to describe is my uncle.",
           "formula": "The + 名词 + I'd like to describe is ...",
           "focus": "word-choice",
-          "note": "人物类话题专用开头，把「人/地方/东西」换掉就能迁移。",
+          "note": "自带定语从句的开头，把「人/地方/东西」换掉就能迁移，比 I'd like to 更显功力。",
           "scene": [
             { "cn": "我想描述的那个地方是我的大学。", "right": "The place I'd like to describe is my university." },
             { "cn": "我想描述的那样东西是我的旧手机。", "right": "The thing I'd like to describe is my old phone." }
@@ -53,30 +41,6 @@
           "scene": [
             { "cn": "说到美食，我想讲讲我妈做的面条。", "right": "When it comes to food, I'd like to talk about the noodles made by my mom." },
             { "cn": "说到运动，我想讲讲打羽毛球。", "right": "When it comes to sports, I'd like to talk about playing badminton." }
-          ]
-        },
-        {
-          "id": "s_c1_5",
-          "cn": "我最喜欢的家乡美食是红烧肉。",
-          "right": "My favourite food in my hometown is braised pork.",
-          "formula": "My favourite + 名词 + is ...",
-          "focus": "missing-be",
-          "note": "直给型开头，最简单不慌；别漏 is。",
-          "scene": [
-            { "cn": "我最喜欢的消遣是玩游戏。", "right": "My favourite pastime is playing games." },
-            { "cn": "我最喜欢的城市是杭州。", "right": "My favourite city is Hangzhou." }
-          ]
-        },
-        {
-          "id": "s_c1_6",
-          "cn": "今天我想告诉你一段有趣的经历。",
-          "right": "Today I want to tell you about an interesting experience.",
-          "formula": "I want to tell you about + 名词",
-          "focus": "word-choice",
-          "note": "经历类话题（一次经历/一天/一件事）开头；tell sb about sth，中间不加 to。",
-          "scene": [
-            { "cn": "今天我想告诉你我的一个爱好。", "right": "Today I want to tell you about one of my hobbies." },
-            { "cn": "今天我想告诉你我们学校的一个活动。", "right": "Today I want to tell you about an activity at my school." }
           ]
         }
       ]
@@ -111,51 +75,39 @@
           ]
         },
         {
-          "id": "s_c2_3",
-          "cn": "我第一次去那儿是在我十岁的时候。",
-          "right": "I first went there when I was ten.",
-          "formula": "I first went there when + 过去从句",
-          "focus": "past-tense",
-          "note": "交代第一次接触的时间点；when 从句也要过去式。",
-          "scene": [
-            { "cn": "我第一次读它是在初中的时候。", "right": "I first read it when I was in junior high school." },
-            { "cn": "我第一次见到他是在两年前。", "right": "I first met him two years ago." }
-          ]
-        },
-        {
           "id": "s_c2_4",
           "cn": "那是一个能让人放松的地方。",
           "right": "It's a place where you can relax.",
           "formula": "It's a place where + 主语 + can + 原形",
           "focus": "missing-be",
-          "note": "万能背景句，地点类通吃；别漏 It's。",
+          "note": "where 定语从句，万能背景句，地点类通吃；where 后接完整句。",
           "scene": [
             { "cn": "那是一个能吃到地道当地菜的地方。", "right": "It's a place where you can eat real local food." },
             { "cn": "那是一个能安静读书的地方。", "right": "It's a place where you can read quietly." }
           ]
         },
         {
-          "id": "s_c2_5",
-          "cn": "它看起来现代又干净。",
-          "right": "It looks modern and clean.",
-          "formula": "It looks/looked + 形容词（+ and + 形容词）",
-          "focus": "adj-after-feel",
-          "note": "外观描写；look 后用形容词；讲过去用 looked。",
+          "id": "s_c2_12",
+          "cn": "和大城市比起来，这里安静得多。",
+          "right": "Compared with big cities, it is much quieter.",
+          "formula": "Compared with + 对比对象, 主句 + 比较级",
+          "focus": "word-choice",
+          "note": "比较句开场；比较级前可加 much 加强（much quieter，不是 more quieter）。",
           "scene": [
-            { "cn": "它看起来旧但很温馨。", "right": "It looks old but warm." },
-            { "cn": "那座建筑当时看起来非常高。", "right": "That building looked very tall." }
+            { "cn": "和去年比起来，我的口语进步了很多。", "right": "Compared with last year, my spoken English has improved a lot." },
+            { "cn": "和我妹妹比起来，我更外向。", "right": "Compared with my younger sister, I am more outgoing." }
           ]
         },
         {
-          "id": "s_c2_6",
-          "cn": "里面有一个大湖和很多树。",
-          "right": "There is a big lake and many trees in it.",
-          "formula": "There is/are + 名词 + 地点",
-          "focus": "missing-be",
-          "note": "「里面有…」句式；is/are 看靠近的第一个名词。",
+          "id": "s_c2_13",
+          "cn": "那是我去过的最美的地方之一。",
+          "right": "It is one of the most beautiful places I have ever been to.",
+          "formula": "one of the + 最高级 + 复数名词 + I have ever + 过去分词",
+          "focus": "past-tense",
+          "note": "最高级 + 完成时，口语高分组合；句尾的 to 别丢（been to）。",
           "scene": [
-            { "cn": "里面有很多好玩的设施。", "right": "There are many fun facilities in it." },
-            { "cn": "那时候那儿几乎没有人。", "right": "There were almost no people there." }
+            { "cn": "那是我吃过的最好吃的一顿饭之一。", "right": "It is one of the best meals I have ever had." },
+            { "cn": "那是我看过的最精彩的电影之一。", "right": "It is one of the most exciting films I have ever watched." }
           ]
         }
       ]
@@ -183,46 +135,10 @@
           "right": "What we did there was take photos and have a picnic.",
           "formula": "What ... did was + 动词原形",
           "focus": "double-verb",
-          "note": "强调「做的事」；was 后直接原形，不加 to 也不用过去式。",
+          "note": "what 主语从句强调「做的事」；was 后直接原形，不加 to 也不用过去式。",
           "scene": [
             { "cn": "我上周做的事就是复习考试。", "right": "What I did last week was review for my exam." },
             { "cn": "我们在那儿做的事就是逛街和吃小吃。", "right": "What we did there was go shopping and eat snacks." }
-          ]
-        },
-        {
-          "id": "s_c3_3",
-          "cn": "我们在那儿待了整整一个下午。",
-          "right": "We spent a whole afternoon there.",
-          "formula": "主语 + spent + 时间 + (doing) + 地点",
-          "focus": "past-tense",
-          "note": "spend + 时间 + doing；讲过去用 spent。",
-          "scene": [
-            { "cn": "我花了两个小时完成作业。", "right": "I spent two hours finishing my homework." },
-            { "cn": "我们在那儿待了三天。", "right": "We spent three days there." }
-          ]
-        },
-        {
-          "id": "s_c3_4",
-          "cn": "之后我们去了一家小餐馆吃晚饭。",
-          "right": "After that, we went to a small restaurant for dinner.",
-          "formula": "After that, + 主语 + 过去式",
-          "focus": "past-tense",
-          "note": "叙事衔接句，把经历串成时间线；After that 后面最容易滑回现在时。",
-          "scene": [
-            { "cn": "之后我们坐公交回了家。", "right": "After that, we took a bus home." },
-            { "cn": "之后我给她发了一条消息。", "right": "After that, I sent her a message." }
-          ]
-        },
-        {
-          "id": "s_c3_5",
-          "cn": "我第一次尝试了攀岩。",
-          "right": "I tried rock climbing for the first time.",
-          "formula": "主语 + tried + 名词/doing + for the first time",
-          "focus": "past-tense",
-          "note": "「第一次…」经历句，自带新鲜感内容。",
-          "scene": [
-            { "cn": "我第一次尝了那个菜。", "right": "I tried that dish for the first time." },
-            { "cn": "我第一次独自坐了飞机。", "right": "I took a plane alone for the first time." }
           ]
         },
         {
@@ -235,6 +151,30 @@
           "scene": [
             { "cn": "完成这项任务花了我两天。", "right": "It took me two days to finish the task." },
             { "cn": "说服他花了我很长时间。", "right": "It took me a long time to convince him." }
+          ]
+        },
+        {
+          "id": "s_c3_11",
+          "cn": "我一到那儿就爱上了它。",
+          "right": "As soon as I got there, I fell in love with it.",
+          "formula": "As soon as + 过去时从句, 主句 + 过去时",
+          "focus": "past-tense",
+          "note": "「一…就…」；前后两个动作都用过去式，讲故事超好用。",
+          "scene": [
+            { "cn": "我一开始玩这个游戏就停不下来。", "right": "As soon as I started playing the game, I could not stop." },
+            { "cn": "我一见到那只小猫就喜欢上它了。", "right": "As soon as I saw the little cat, I fell in love with it." }
+          ]
+        },
+        {
+          "id": "s_c3_13",
+          "cn": "天气特别好，所以我们决定走路去那儿。",
+          "right": "The weather was so nice that we decided to walk there.",
+          "formula": "so + 形容词 + that + 从句",
+          "focus": "word-choice",
+          "note": "so...that = 太…以至于；that 后接完整从句，别写成 so...to。",
+          "scene": [
+            { "cn": "那家餐馆人特别多，我们等了快一个小时。", "right": "The restaurant was so crowded that we waited for almost an hour." },
+            { "cn": "我当时太紧张了，一句话都说不出来。", "right": "I was so nervous that I could not say a word." }
           ]
         }
       ]
@@ -250,22 +190,10 @@
           "right": "What impressed me most was the quietness there.",
           "formula": "What impressed me most was + 名词",
           "focus": "double-verb",
-          "note": "感受链起点，强调最深的印象；was 后接名词短语。",
+          "note": "what 主语从句，感受链起点，强调最深的印象；was 后接名词短语。",
           "scene": [
             { "cn": "最打动我的是他的耐心。", "right": "What impressed me most was his patience." },
             { "cn": "最打动我的是那里的美食。", "right": "What impressed me most was the food there." }
-          ]
-        },
-        {
-          "id": "s_c4_2",
-          "cn": "站上山顶的时候我特别兴奋。",
-          "right": "I felt really excited when I stood on the top.",
-          "formula": "主语 + felt + 形容词 + when 从句",
-          "focus": "adj-after-feel",
-          "note": "feel 后用形容词，不是副词。",
-          "scene": [
-            { "cn": "考完试的时候我特别放松。", "right": "I felt really relaxed after the exam." },
-            { "cn": "收到礼物的时候我特别开心。", "right": "I felt really happy when I got the gift." }
           ]
         },
         {
@@ -274,7 +202,7 @@
           "right": "That experience made me feel more confident.",
           "formula": "... made me feel + 形容词",
           "focus": "adj-after-feel",
-          "note": "「让某人感到…」；feel 后形容词（relaxed，不是 relax）。",
+          "note": "「让某人感到…」；feel 后形容词（confident，不是 confidently）。",
           "scene": [
             { "cn": "那部电影让我很感动。", "right": "That movie made me feel touched." },
             { "cn": "他的话让我很难过。", "right": "His words made me feel sad." }
@@ -286,34 +214,34 @@
           "right": "I used to be afraid of speaking in public, but now I'm not.",
           "formula": "主语 + used to + 原形, but now ...",
           "focus": "past-tense",
-          "note": "感受链「以前→现在」对比句；used to 后用原形。",
+          "note": "「以前→现在」对比句，P1/P3 万能；used to 后用原形。",
           "scene": [
             { "cn": "我以前不喜欢运动，但现在每周都跑步。", "right": "I used to dislike sports, but now I run every week." },
             { "cn": "我以前住在乡下，但现在住在城市。", "right": "I used to live in the countryside, but now I live in the city." }
           ]
         },
         {
-          "id": "s_c4_5",
-          "cn": "那是我第一次独自出远门。",
-          "right": "It was the first time I travelled far alone.",
-          "formula": "It was the first time + 主语 + 过去式",
-          "focus": "past-tense",
-          "note": "强调「第一次」的感受背景；从句用过去式。",
+          "id": "s_c4_11",
+          "cn": "那次旅行不仅是一段旅程，更是一堂课。",
+          "right": "That trip was not only a journey, but also a lesson for me.",
+          "formula": "not only + A, but also + B",
+          "focus": "word-choice",
+          "note": "升华句神器；前后结构要对称（名词对名词、doing 对 doing）。",
           "scene": [
-            { "cn": "那是我第一次做演讲。", "right": "It was the first time I gave a speech." },
-            { "cn": "那是我第一次见到海。", "right": "It was the first time I saw the sea." }
+            { "cn": "那个地方不仅有美食，还有故事。", "right": "That place is not only about food, but also about stories." },
+            { "cn": "这个游戏不仅好玩，还能帮我放松。", "right": "This game is not only fun, but also helps me relax." }
           ]
         },
         {
-          "id": "s_c4_6",
-          "cn": "说实话，我当时累坏了但很开心。",
-          "right": "To be honest, I was tired but happy at that time.",
-          "formula": "To be honest, I was + 形容词（+ but + 形容词）",
+          "id": "s_c4_12",
+          "cn": "现在回想起来，那是我最快乐的一段时光。",
+          "right": "Looking back, it was the happiest time of my life.",
+          "formula": "Looking back, + 主句",
           "focus": "past-tense",
-          "note": "口语化坦白句，自然不背稿；讲过去用 was。",
+          "note": "回忆口吻的开头，自然不背稿；逗号后接完整句。",
           "scene": [
-            { "cn": "说实话，我当时特别紧张。", "right": "To be honest, I was really nervous." },
-            { "cn": "说实话，那里比我想的更美。", "right": "To be honest, it was more beautiful than I thought." }
+            { "cn": "现在回想起来，我很庆幸当时坚持了下来。", "right": "Looking back, I am really glad that I did not give up." },
+            { "cn": "现在回想起来，那次比赛对我意义重大。", "right": "Looking back, that competition meant a lot to me." }
           ]
         }
       ]
@@ -329,7 +257,7 @@
           "right": "If I have a chance, I will definitely go there again.",
           "formula": "If I + 现在时, I will + 原形",
           "focus": "word-choice",
-          "note": "万能收尾；if 从句用现在时，主句才用 will。",
+          "note": "万能收尾；if 从句用现在时，主句才用 will（不双 will）。",
           "scene": [
             { "cn": "如果有时间，我会再读一遍这本书。", "right": "If I have time, I will read this book again." },
             { "cn": "如果他来杭州，我会带他逛西湖。", "right": "If he comes to Hangzhou, I will show him around the West Lake." }
@@ -341,7 +269,7 @@
           "right": "So I think that place is worth visiting.",
           "formula": "... be worth + doing",
           "focus": "word-choice",
-          "note": "worth 后直接 doing，不加 to。",
+          "note": "worth 后直接 doing，不加 to（worth to visit 是高频错）。",
           "scene": [
             { "cn": "我认为这本书值得一读。", "right": "I think this book is worth reading." },
             { "cn": "我认为这个习惯值得保持。", "right": "I think this habit is worth keeping." }
@@ -360,18 +288,6 @@
           ]
         },
         {
-          "id": "s_c5_4",
-          "cn": "所以如果你去那儿，千万别错过那个湖。",
-          "right": "So if you go there, don't miss the lake.",
-          "formula": "If you ..., don't + 原形",
-          "focus": "negation",
-          "note": "推荐型收尾，给考官一个具体画面；祈使否定 don't 后用原形。",
-          "scene": [
-            { "cn": "如果你尝它，别加糖。", "right": "If you try it, don't add sugar." },
-            { "cn": "如果你去看它，别忘了带相机。", "right": "If you go to see it, don't forget your camera." }
-          ]
-        },
-        {
           "id": "s_c5_5",
           "cn": "总之，那是一次难忘的旅行。",
           "right": "All in all, it was an unforgettable trip.",
@@ -384,15 +300,173 @@
           ]
         },
         {
-          "id": "s_c5_6",
-          "cn": "我希望有一天能带我爸妈去那儿。",
-          "right": "I hope I can take my parents there one day.",
-          "formula": "I hope I can + 原形 + one day",
+          "id": "s_c5_11",
+          "cn": "这就是为什么我总是把它推荐给朋友。",
+          "right": "That is why I always recommend it to my friends.",
+          "formula": "That is why + 主句",
           "focus": "word-choice",
-          "note": "展望型收尾，未来感强；can 后直接原形。",
+          "note": "收尾神句：前文给理由，这句给结论，逻辑感直接拉满。",
           "scene": [
-            { "cn": "我希望有一天能住在海边。", "right": "I hope I can live by the sea one day." },
-            { "cn": "我希望明年能通过考试。", "right": "I hope I can pass the exam next year." }
+            { "cn": "这就是为什么我到现在还在玩它。", "right": "That is why I am still playing it now." },
+            { "cn": "这就是为什么我想再回去一次。", "right": "That is why I want to go back there again." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c6",
+      "name": "从句进阶",
+      "pos": "P2/P3 全程通用",
+      "sentences": [
+        {
+          "id": "s_c6_1",
+          "cn": "厦门以海鲜闻名，这也是我爱它的原因。",
+          "right": "Xiamen is famous for its seafood, which is exactly why I love it.",
+          "formula": "陈述句, which + 补充说明（指前面整件事）",
+          "focus": "double-verb",
+          "note": "非限制性定语从句：which 前必须有逗号，which 后接完整从句，不能另起一句。",
+          "scene": [
+            { "cn": "我舅舅做菜特别好吃，这就是全家人都爱吃他做的饭的原因。", "right": "My uncle is really good at cooking, which is why the whole family loves his food." },
+            { "cn": "这个游戏一直在更新，这也是它还这么火的原因。", "right": "The game keeps updating, which is why it is still so popular." }
+          ]
+        },
+        {
+          "id": "s_c6_2",
+          "cn": "我喜欢那儿的最大原因是它足够安静。",
+          "right": "The reason why I like it is that it is quiet enough.",
+          "formula": "The reason why + 从句 is that + 从句",
+          "focus": "word-choice",
+          "note": "is 后面接 that，别写成 because（the reason...because 语义重复）。",
+          "scene": [
+            { "cn": "我学英语的最大原因是我想出国读研。", "right": "The reason why I study English is that I want to study abroad." },
+            { "cn": "我推荐它的原因是它完全免费。", "right": "The reason why I recommend it is that it is totally free." }
+          ]
+        },
+        {
+          "id": "s_c6_3",
+          "cn": "虽然那天下雨，我们还是玩得很开心。",
+          "right": "Although it was raining that day, we still had a great time.",
+          "formula": "Although + 从句, 主句",
+          "focus": "word-choice",
+          "note": "用了 Although 就不能用 but——一个句子只能要一个，中式英语头号坑。",
+          "scene": [
+            { "cn": "虽然我口语还不够好，但我一直在进步。", "right": "Although my speaking is not good enough, I am still making progress." },
+            { "cn": "虽然排了一个小时的队，它还是很值得。", "right": "Although we waited in line for an hour, it was still worth it." }
+          ]
+        },
+        {
+          "id": "s_c6_4",
+          "cn": "我正在拍照的时候突然下雨了。",
+          "right": "I was taking photos when it suddenly started to rain.",
+          "formula": "过去进行时 + when + 过去时（被打断）",
+          "focus": "past-tense",
+          "note": "正在做的事用 was doing，突然发生的事用过去式；讲故事画面感最强的一句。",
+          "scene": [
+            { "cn": "我正在写作业的时候我妹妹冲进了房间。", "right": "I was doing my homework when my younger sister rushed into my room." },
+            { "cn": "我们正在吃饭的时候手机响了。", "right": "We were having dinner when my phone rang." }
+          ]
+        },
+        {
+          "id": "s_c6_5",
+          "cn": "公园里有一个小湖，我们总在那儿拍照。",
+          "right": "There is a small lake in the park where we always take photos.",
+          "formula": "There is + 名词 + 地点 + where + 从句",
+          "focus": "missing-be",
+          "note": "There be + where 从句两连；where 前是地点名词，where 后接完整句。",
+          "scene": [
+            { "cn": "我家附近有一家小店，卖全城最好吃的包子。", "right": "There is a small shop near my home where they sell the best baozi in the city." },
+            { "cn": "那是一个我们全家每年都会去的地方。", "right": "That is a place where my family goes every year." }
+          ]
+        },
+        {
+          "id": "s_c6_6",
+          "cn": "我发现开口说出声才是最快的进步方式。",
+          "right": "I found that speaking out loud is the fastest way to improve.",
+          "formula": "I found that + 完整句",
+          "focus": "missing-be",
+          "note": "I found that 后接完整从句（可说一般事实）；里面主系表别缺 is。",
+          "scene": [
+            { "cn": "我发现说得慢一点反而听起来更流利。", "right": "I found that speaking slowly actually sounds more fluent." },
+            { "cn": "我发现他和我有不少共同爱好。", "right": "I found that he and I share a lot of hobbies." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c7",
+      "name": "表达升级",
+      "pos": "P2/P3 全程通用",
+      "sentences": [
+        {
+          "id": "s_c7_1",
+          "cn": "如果我家住海边，我每天都会去散步。",
+          "right": "If I lived by the sea, I would go for a walk every day.",
+          "formula": "If + 过去式, I would + 原形",
+          "focus": "past-tense",
+          "note": "虚拟语气：假设的事从句用过去式、主句 would；If I were you 同理（用 were 不用 was）。",
+          "scene": [
+            { "cn": "如果我有更多时间，我会学做饭。", "right": "If I had more time, I would learn to cook." },
+            { "cn": "如果我今晚早点睡，明天就会更有精神。", "right": "If I went to bed earlier tonight, I would feel more energetic tomorrow." }
+          ]
+        },
+        {
+          "id": "s_c7_2",
+          "cn": "是我舅舅第一次带我去那儿的。",
+          "right": "It was my uncle who took me there for the first time.",
+          "formula": "It was + 强调的人/物 + who/that + 剩余部分",
+          "focus": "past-tense",
+          "note": "强调句：去掉 It was...who 句子照样成立，它只负责强调谁干的。",
+          "scene": [
+            { "cn": "是我妹妹教会了我这个游戏。", "right": "It was my younger sister who taught me this game." },
+            { "cn": "是那次旅行让我爱上了旅行。", "right": "It was that trip that made me fall in love with travelling." }
+          ]
+        },
+        {
+          "id": "s_c7_3",
+          "cn": "独自旅行教会了我独立。",
+          "right": "Travelling alone taught me to be independent.",
+          "formula": "Doing sth + 谓语（动名词作主语，谓语用单数）",
+          "focus": "word-choice",
+          "note": "动作当主语用 doing；谓语按单数处理。",
+          "scene": [
+            { "cn": "每天背单词让我的词汇量大了很多。", "right": "Learning words every day has made my vocabulary much bigger." },
+            { "cn": "早起对我这种学生来说太难了。", "right": "Getting up early is really hard for a student like me." }
+          ]
+        },
+        {
+          "id": "s_c7_4",
+          "cn": "有些人喜欢大城市，而我更喜欢乡下。",
+          "right": "Some people love big cities, while I prefer the countryside.",
+          "formula": "A 句, while B 句（前后对比）",
+          "focus": "word-choice",
+          "note": "while 表对比，不是「当…时候」；前后各自是完整句。",
+          "scene": [
+            { "cn": "我的朋友喜欢手游，而我喜欢电脑游戏。", "right": "My friends like mobile games, while I prefer PC games." },
+            { "cn": "城市生活方便，而乡下生活安静。", "right": "Life in the city is convenient, while life in the countryside is quiet." }
+          ]
+        },
+        {
+          "id": "s_c7_5",
+          "cn": "这个地方变得越来越火了。",
+          "right": "This place is getting more and more popular.",
+          "formula": "get/become + more and more + 形容词",
+          "focus": "word-choice",
+          "note": "「越来越」= more and more；多音节形容词用 more，短形容词用 -er and -er（better and better）。",
+          "scene": [
+            { "cn": "用 AI 学英语变得越来越普遍。", "right": "Using AI to learn English is becoming more and more common." },
+            { "cn": "我妹妹的画越画越好了。", "right": "My younger sister is drawing better and better." }
+          ]
+        },
+        {
+          "id": "s_c7_6",
+          "cn": "我学英语已经学了三年了。",
+          "right": "I have been learning English for three years.",
+          "formula": "have been + doing + for + 时间",
+          "focus": "past-tense",
+          "note": "现在完成进行时：从过去一直持续到现在；聊爱好/习惯的经历必用，P1 加分。",
+          "scene": [
+            { "cn": "我玩这个游戏已经玩了一年。", "right": "I have been playing this game for a year." },
+            { "cn": "她一直在等他的回复。", "right": "She has been waiting for his reply." }
           ]
         }
       ]
