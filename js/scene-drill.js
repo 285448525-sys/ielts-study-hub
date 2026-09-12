@@ -12,7 +12,7 @@
 
 /* 上线开关：若外部已注入（真值/假值都算）则尊重外部，否则用默认 false。
    阶段 6 把 SD_DEFAULT_ON 改 true 即整体上线；改回 false 即整体回滚。 */
-var SD_DEFAULT_ON = true;   // design/10 §六：阶段 3/4 验证通过，整体上线（改回 false 即整体回滚到老模块，零数据损失）
+var SD_DEFAULT_ON = false;   // design/16 P0：场景闯关退场（句型页 sentence-drill.js 接管「练习」tab）。改回 true 即整体回滚，代码/数据零损失
 var SD_V2_ON = (typeof window !== 'undefined' && typeof window.__SCENE_V2_ON !== 'undefined') ? !!window.__SCENE_V2_ON : SD_DEFAULT_ON;
 window.__SCENE_V2_ON = SD_V2_ON;
 

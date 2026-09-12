@@ -1443,6 +1443,17 @@ function mergeData(local, cloud){
     if(Object.keys(_lw).length !== Object.keys(_mw).length) _wCh++;
     _pdOut.weakness = _mw;
     _pdCh += _wCh;
+    // design/16：句型页进度 patternDrill.sentences = { status: { [句型id]: {st, ts} } }——
+    // 按 ts 新者胜（两端同 id 各有状态时取 ts 大的一侧；单侧有则取有的一侧），幂等不累加。
+    const _lss = (local.patternDrill && local.patternDrill.sentences && local.patternDrill.sentences.status) || {};
+    const _css = (cloud.patternDrill && cloud.patternDrill.sentences && cloud.patternDrill.sentences.status) || {};
+    const _mss = {};
+    Array.from(new Set([...Object.keys(_lss), ...Object.keys(_css)])).forEach(id => {
+      const a = _lss[id], b = _css[id];
+      if(a && b) _mss[id] = ((Number(b.ts) || 0) > (Number(a.ts) || 0)) ? b : a;
+      else _mss[id] = a || b;
+    });
+    if(JSON.stringify(_mss) !== JSON.stringify(_lss)){ _pdOut.sentences = { status: _mss }; _pdCh++; }
     if(_pdCh){ out.patternDrill = _pdOut; changes += _pdCh; }
   }
   // 合并后同步镜像账号凭证到隔离键（云端可能带来/更新 Key/手机号/发音分，务必落盘镜像）

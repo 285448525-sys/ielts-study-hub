@@ -16,24 +16,6 @@ function __clearP2Timer(){
 var FREQ_ORDER = { P1:{ultra:0, high:1, medium:2, low:3}, P2:{ultra:0, high:1, medium:2, low:3} };
 function freqRank(f){ const t = FREQ_ORDER[curType] || FREQ_ORDER.P1; return (t[f] != null) ? t[f] : 9; }
 
-/* P2 SOP 骨架卡（design/12 一期：只做搭骨架；练答态/AI 结构体检留二期）。
-   10 槽 = 头 2（直答+一句话）+ 类别链 4（按该题 category 出对应链）+ 感受链 4。
-   时间账：直答 ~3s + 一句话 ~10s + 链 4×15s + 感受 4×12s ≈ 2 分钟。
-   存 s.answers.p2.skeleton = { slots:[10 个字符串], ts }，随 answers 全量云同步，不动 common.js。 */
-var P2_SOP_CHAINS = {
-  head: [
-    { k: 's1', label: 'STEP1 直答', hint: '≤3 个词回答题目核心（如 My grandpa）' },
-    { k: 's2', label: 'STEP2 一句话', hint: '一句话点题展开' }
-  ],
-  chains: {
-    '人物': ['是谁/什么关系', '怎么认识的/认识多久', '他/她做了什么', '为什么选他/为什么佩服'],
-    '事件': ['什么时候', '在哪里', '和谁/发生了什么', '经过/结果'],
-    '地点': ['在哪里/什么位置', '怎么知道的', '在那里做了什么', '为什么喜欢/特别'],
-    '事物': ['是什么', '怎么得到/接触到的', '什么样/包含什么', '为什么特别']
-  },
-  feel: ['以前什么感受', '什么事让它变了', '现在什么感受', '未来希望什么变化']
-};
-
 /* 顶部常量用 var（speaking.js 会被软导航 window.eval 重跑，const 会抛「已声明」） */
 var SYS_DIAG = `你是一位雅思口语纠错助手。你的唯一任务：找出考生回答里真正的「语法错误」和「用词错误」，并给出正确写法。不要评分、不要输出任何分数。
 
@@ -91,8 +73,14 @@ ready(() => {
       spActivateTab(t);
       $('#listView').hidden = true; $('#detailView').hidden = true; $('#mockView').hidden = true; $('#matView').hidden = true; $('#pdView').hidden = true;
       if(t === 'PRACTICE'){
-        // 句型闯关引擎（pattern-drill.js）已在 ready 时启动；切回只显隐，不重建队列
-        $('#pdView').hidden = false;
+        // design/16 P0：句型页（sentence-drill.js）接管「练习」tab；场景闯关/pdLegacy 退场（开关可回滚）
+        if(window.__SENT_V2_ON){
+          $('#pdView').hidden = true;
+          $('#sentView').hidden = false;
+        } else {
+          // 句型闯关引擎（pattern-drill.js）已在 ready 时启动；切回只显隐，不重建队列
+          $('#pdView').hidden = false;
+        }
       } else if(t === 'BANK'){
         curType = 'ALL';
         populateFreqOptions();
@@ -126,9 +114,14 @@ ready(() => {
   populateFreqOptions();
   $('#spSearch').addEventListener('input', () => { curSearch = $('#spSearch').value.trim().toLowerCase(); renderList(); });
   $('#backBtn').addEventListener('click', () => { $('#detailView').hidden = true; $('#listView').hidden = false; curDetailId = null; spActivateTab('BANK'); });
-  // 默认 tab = 练习（句型闯关）：题库列表先不渲染，pdView 由 pattern-drill.js 的 ready 启动
+  // 默认 tab = 练习：__SENT_V2_ON 时为句型页（sentence-drill.js 接管），否则老 pdView
   $('#listView').hidden = true;
-  $('#pdView').hidden = false;
+  if(window.__SENT_V2_ON){
+    $('#pdView').hidden = true;
+    $('#sentView').hidden = false;
+  } else {
+    $('#pdView').hidden = false;
+  }
   // P1：?open=<题id> 直达详情（素材页覆盖矩阵点题跳转用）——跳详情时落到题库 tab
   try{
     const openId = new URLSearchParams(location.search).get('open');
@@ -312,64 +305,15 @@ function renderList(){
       + '<div class="sp-card-title">' + escapeHtml(title) + scoreBadgeHtml(best, count, s) + '</div>'
       + (zh ? '<div class="sp-card-zh">' + escapeHtml(zh) + '</div>' : '')
       + '<div class="sp-card-tags">' + tagsHtml(s) + '</div>'
-      /* P2 SOP 骨架卡（design/12）：仅 P2 卡显示「骨架」按钮，点开该卡下方内嵌面板（非浮层） */
-      + (s.type === 'P2' ? '<button class="sp-skel-btn" data-skel="' + s.id + '" type="button">骨架</button><div class="sp-skel-panel" data-skel-panel="' + s.id + '" hidden></div>' : '')
       + '</div>';
   }).join('');
   container.querySelectorAll('[data-id]').forEach(c => {
-    c.addEventListener('click', e => {
-      // 骨架按钮/面板内的点击不触发进详情
-      if(e.target.closest('[data-skel]') || e.target.closest('[data-skel-panel]')) return;
-      openDetail(c.dataset.id);
-    });
-  });
-  container.querySelectorAll('[data-skel]').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      spToggleSkeleton(btn.dataset.skel);
-    });
+    c.addEventListener('click', () => openDetail(c.dataset.id));
   });
 }
 
-/* === P2 SOP 骨架卡（design/12 一期） ===
-   面板 = 头（类别 + 对应链提示）+ 10 槽（head 2 + 类别链 4 + 感受链 4）+ 保存。
-   存 s.answers.p2.skeleton = { slots:[10 字符串], ts } → hubSave → 随 answers 云同步。 */
-function spSkeletonSlots(s){
-  const chain = P2_SOP_CHAINS.chains[s.category] || P2_SOP_CHAINS.chains['事物'];
-  return P2_SOP_CHAINS.head.map(h => ({ label: h.label, hint: h.hint }))
-    .concat(chain.map(label => ({ label, hint: '2-5 个关键词，不写整句' })))
-    .concat(P2_SOP_CHAINS.feel.map(label => ({ label, hint: '2-5 个关键词，不写整句' })));
-}
-function spToggleSkeleton(id){
-  const panel = document.querySelector('[data-skel-panel="' + id + '"]');
-  if(!panel) return;
-  if(!panel.hidden){ panel.hidden = true; panel.innerHTML = ''; return; }
-  const s = DATA.speaking.find(x => x.id === id);
-  if(!s) return;
-  const chain = P2_SOP_CHAINS.chains[s.category] || P2_SOP_CHAINS.chains['事物'];
-  const chainName = (P2_SOP_CHAINS.chains[s.category] ? s.category : '事物') + '链';
-  const saved = (s.answers && s.answers.p2 && s.answers.p2.skeleton && Array.isArray(s.answers.p2.skeleton.slots)) ? s.answers.p2.skeleton.slots : [];
-  const slots = spSkeletonSlots(s);
-  let html = '<div class="sp-skel-head"><b>' + escapeHtml(chainName) + '：</b>' + escapeHtml(chain.join(' → '))
-    + '　＋　<b>感受链：</b>' + escapeHtml(P2_SOP_CHAINS.feel.join(' → ')) + '</div>';
-  slots.forEach((slot, i) => {
-    html += '<div class="sp-skel-row"><label>' + escapeHtml(slot.label) + '</label>'
-      + '<input type="text" data-skel-idx="' + i + '" placeholder="' + escapeHtml(slot.hint) + '" value="' + escapeHtml(saved[i] || '') + '"></div>';
-  });
-  html += '<button class="btn btn-primary sp-skel-save" data-skel-save="' + id + '" type="button">保存骨架</button>';
-  panel.innerHTML = html;
-  panel.hidden = false;
-  const saveBtn = panel.querySelector('[data-skel-save]');
-  saveBtn.addEventListener('click', e => {
-    e.stopPropagation();
-    const vals = Array.from(panel.querySelectorAll('[data-skel-idx]')).map(inp => inp.value.trim());
-    s.answers = s.answers || {};
-    s.answers.p2 = s.answers.p2 || {};
-    s.answers.p2.skeleton = { slots: vals, ts: Date.now() };
-    hubSave();
-    toast('已保存');
-  });
-}
+/* design/12 一期骨架卡已于 design/16 P0 退场（按钮/面板/链常量删除）；
+   s.answers.p2.skeleton 数据字段与云同步保留不删，已填数据他机仍可见。 */
 
 // 诊断/评分保存后，同步更新列表 badge 与详情页头部分数
 function refreshScoreAfterDiag(s){
