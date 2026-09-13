@@ -461,16 +461,18 @@ function sentReveal(){
 function sentReplayDone(catId){
   try{
     var pd = (typeof DATA !== 'undefined' && DATA.patternDrill) ? DATA.patternDrill : null;
-    if(pd){
+    if(pd && catId){                       // catId 为空 = 只是关闭（切 tab/切页），不写 replay 标记
       pd.sentences = pd.sentences || {};
       pd.sentences.replay = pd.sentences.replay || {};
       pd.sentences.replay[catId] = Date.now();
       if(typeof hubSave === 'function') hubSave();
     }
   }catch(_){}
+  if(window.__sentReplayKey){ document.removeEventListener('keydown', window.__sentReplayKey); window.__sentReplayKey = null; }
   var m = document.getElementById('sentReplayMask');
   if(m) m.remove();
 }
+function sentReplayClose(){ sentReplayDone(null); }   /* 关闭但不写 replay 标记：切 tab/切页用，下次练满还会再弹 */
 async function sentReplaySubmit(cat, topic){
   var inp = document.getElementById('sentReplayAns');
   var go = document.getElementById('sentReplayGo');
@@ -524,6 +526,15 @@ function sentReplayOpen(cat, topic){
   if(go) go.onclick = function(){ sentReplaySubmit(cat, topic); };   // onclick 单通道
   var skip = mask.querySelector('[data-sent-replay-skip]');
   if(skip) skip.addEventListener('click', function(){ sentReplayDone(cat.id); toast('已跳过，下次练满不再弹'); });
+  /* 9/13 修：给遮罩留自救出口。原实现只有「提交 / 跳过」两个按钮能关，
+     一旦她不处理就走人（切页/软导航），fixed inset:0 z-index:999 的遮罩会继续盖住整页，
+     之后所有点击全部失效（实测题库卡片 elementFromPoint 命中遮罩 = BLOCKED）。 */
+  mask.addEventListener('click', function(e){ if(e.target === mask){ sentReplayDone(cat.id); toast('已跳过，下次练满不再弹'); } });
+  if(window.__sentReplayKey) document.removeEventListener('keydown', window.__sentReplayKey);
+  window.__sentReplayKey = function(e){
+    if(e && (e.key === 'Escape' || e.key === 'Esc')){ sentReplayDone(cat.id); toast('已跳过，下次练满不再弹'); }
+  };
+  document.addEventListener('keydown', window.__sentReplayKey);
   var inp = mask.querySelector('#sentReplayAns');
   if(inp && inp.focus) inp.focus();
 }

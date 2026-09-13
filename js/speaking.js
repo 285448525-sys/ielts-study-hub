@@ -13,6 +13,46 @@ var curDetailId = null;
 function __clearP2Timer(){
   if(window.__p2TimerId){ clearInterval(window.__p2TimerId); window.__p2TimerId = null; }
 }
+
+/* 9/13 修：答案草稿自动保存（P1 小题 + P2 单窗口）。
+   原逻辑只有点「AI 诊断」才会把答案写进 s.answers[qi].text，而「保存」按钮对 P1 完全无效——
+   她写完 4 小题点「保存」，toast 说「已保存」但实际一个字都没落库，返回列表/刷新/换设备全部丢失。
+   现在：输入即防抖落库（700ms），「保存」另外做一次同步兜底。
+   ⚠️ 只写 text/ts，绝不整体替换 answers[qi]——否则会冲掉 records（历史提交）与 result（诊断结果）。 */
+var __SP_DRAFT_T = null;
+function spDraftSave(id, qi, text){
+  clearTimeout(__SP_DRAFT_T);
+  __SP_DRAFT_T = setTimeout(function(){
+    try{
+      var s = (typeof DATA !== 'undefined' && DATA.speaking) ? DATA.speaking.find(function(x){ return x.id === id; }) : null;
+      if(!s) return;
+      s.answers = s.answers || {};
+      if(qi === 'p2'){
+        s.answers.p2 = s.answers.p2 || {};
+        s.answers.p2.text = text;
+        s.answers.p2.ts = Date.now();
+      } else {
+        s.answers[qi] = Object.assign({}, s.answers[qi] || {}, { text: text, ts: Date.now() });
+      }
+      s.updatedAt = Date.now();
+      if(typeof hubSave === 'function') hubSave();
+    }catch(_){}
+  }, 700);
+}
+/* 离开页兜底：软导航只替换 main.innerHTML，挂在 body 上的全屏浮层不会跟着消失
+   （句型拼接验证弹窗 z-index 999 / 模考退出确认 z-index 200），切页后会继续盖住整页让所有点击失效。
+   借 common.js 已有的「离开旧页」钩子一并清掉，避免为这一行去 bump 全站 common.js 版本号。 */
+if(typeof window.hubClearOrphanPageTimers === 'function' && !window.__spHookLeave){
+  window.__spHookLeave = true;
+  var __origClearOrphan = window.hubClearOrphanPageTimers;
+  window.hubClearOrphanPageTimers = function(){
+    try{ __origClearOrphan.apply(this, arguments); }catch(_){}
+    try{
+      var m = document.getElementById('sentReplayMask'); if(m && m.remove) m.remove();
+      var e = document.getElementById('mockExitModal'); if(e && e.remove) e.remove();
+    }catch(_){}
+  };
+}
 var FREQ_ORDER = { P1:{ultra:0, high:1, medium:2, low:3}, P2:{ultra:0, high:1, medium:2, low:3} };
 function freqRank(f){ const t = FREQ_ORDER[curType] || FREQ_ORDER.P1; return (t[f] != null) ? t[f] : 9; }
 
@@ -71,6 +111,8 @@ ready(() => {
     b.addEventListener('click', () => {
       const t = b.dataset.type;
       spActivateTab(t);
+      // 9/13 修：句型拼接验证弹窗挂在 body 上、z-index 999，切 tab 不会跟着消失 → 先关掉（不写 replay 标记，下次练满还会弹）
+      if(typeof sentReplayClose === 'function') sentReplayClose();
       $('#listView').hidden = true; $('#detailView').hidden = true; $('#mockView').hidden = true; $('#matView').hidden = true; $('#pdView').hidden = true; $('#sentView').hidden = true;
       if(t === 'PRACTICE'){
         // design/16 P0：句型页（sentence-drill.js）接管「练习」tab；场景闯关/pdLegacy 退场（开关可回滚）
@@ -500,10 +542,14 @@ function openDetail(id){
   if(s.type === 'P2'){
     const p2Diag = document.getElementById('p2Diag');
     if(p2Diag) p2Diag.addEventListener('click', e => { e.stopPropagation(); diagnoseP2(id); });
+    // 9/13 修：P2 大答案框同样输入即存草稿（原只能靠点「保存」或 AI 诊断）
+    const p2AnsEl = document.getElementById('p2Ans');
+    if(p2AnsEl) p2AnsEl.addEventListener('input', () => spDraftSave(id, 'p2', p2AnsEl.value));
     const p2Clear = document.getElementById('p2Clear');
     if(p2Clear) p2Clear.addEventListener('click', e => {
       e.stopPropagation();
-      const ta = $('#p2Ans'); if(ta) ta.value = '';
+      const ta = $('#p2Ans');
+      if(ta){ ta.value = ''; ta.dispatchEvent(new Event('input', { bubbles: true })); }   // 9/13：同上，清空即落库
       const res = $('#p2Result'); if(res){ res.innerHTML = ''; res.style.display = 'none'; }
       // 仅清空当前编辑框与诊断结果，不删历史提交记录
     });
@@ -777,6 +823,16 @@ function saveDetail(id){
       s.answers.p2.text = ans.value.trim();
       s.answers.p2.ts = Date.now();
     }
+  } else {
+    // 9/13 修：P1 原来点「保存」什么都没存（只有 AI 诊断会写库），toast 却说「已保存」→ 假反馈丢数据。
+    // 现在把当前所有小题输入框的值同步写回；只补 text/ts，保留 records 与 result。
+    document.querySelectorAll('.sp-ans[data-qi]').forEach(ta => {
+      const qi = ta.getAttribute('data-qi');
+      const v = (ta.value || '').trim();
+      if(!v) return;
+      s.answers = s.answers || {};
+      s.answers[qi] = { ...(s.answers[qi] || {}), text: v, ts: Date.now() };
+    });
   }
   s.updatedAt = Date.now();
   hubSave();
@@ -1243,6 +1299,9 @@ function bindQuestionEvents(id){
     const ta = li.querySelector('.sp-ans[data-qi="' + qi + '"]');
     const resultEl = li.querySelector('.sp-q-result[data-qi="' + qi + '"]');
 
+    // 9/13 修：输入即存草稿（原只有点 AI 诊断才落库，写完直接返回=白写）
+    if(ta) ta.addEventListener('input', () => spDraftSave(id, qi, ta.value));
+
     // 回填上次答案 + 诊断结果
     if(s.answers[qi]){
       if(ta && s.answers[qi].text) ta.value = s.answers[qi].text;
@@ -1323,7 +1382,7 @@ function bindQuestionEvents(id){
     const clr = li.querySelector('.sp-ans-clear[data-qi="' + qi + '"]');
     if(clr) clr.addEventListener('click', e => {
       e.stopPropagation();
-      if(ta) ta.value = '';
+      if(ta){ ta.value = ''; ta.dispatchEvent(new Event('input', { bubbles: true })); }   // 9/13：派发 input 让草稿保存同步清空，否则清空后点保存旧答案又回来
       if(resultEl){ resultEl.innerHTML = ''; resultEl.style.display = 'none'; }
     });
   });
