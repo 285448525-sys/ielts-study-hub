@@ -39,7 +39,7 @@ ready(() => {
   $('#mkGran').addEventListener('change', onMockGran);
   $('#mkType').addEventListener('change', onMockType);
   $('#mkAdd').addEventListener('click', addMock);
-  if($('#mkFilter')) $('#mkFilter').addEventListener('change', renderMockStats);
+  if($('#mkFilter')) $('#mkFilter').addEventListener('change', renderMock);   // 9/13：统计+列表一起跟随范围筛选（原先只刷统计，列表不跟→口径分裂）
   onMockType();
   onMockGran();   // 9/10：默认粒度=单项，初始化时把「选择 Part / 答对题数」摆到可见态
   renderMock();
@@ -647,16 +647,17 @@ function renderMockStats(){
   } else if(range === 'recent' && !hasData){
     tbox.innerHTML = renderEmpty('近十天还没有模考记录。');
   } else {
+    /* 9/13 修「格式变来变去」：卡片标题此前随数据状态换文案（「🎧 听力 · 22/40」↔「🎧 听力（暂无）」↔「🗣 口语 均分」），
+       每次重排卡片宽窄都在跳。现在标题恒为「图标+科目」，数值位统一 有数据=数字 / 无数据=—，
+       明细（c/t、均分）由下方「各 Part 表现」承担。 */
     tbox.innerHTML = '<div class="stat-grid">' + keys.map(ty => {
       const cfg = MOCK_TYPES[ty], a = byType[ty];
       if(cfg.mode === 'score'){
-        if(!a || a.wsum === 0) return statCard(cfg.icon + ' ' + cfg.name + '（暂无）', '—', 'var(--muted)');
-        const avg = a.sum / a.wsum;
-        return statCard(cfg.icon + ' ' + cfg.name + ' 均分', avg.toFixed(1), cfg.color);
+        const has = a && a.wsum > 0;
+        return statCard(cfg.icon + ' ' + cfg.name, has ? (a.sum / a.wsum).toFixed(1) : '—', has ? cfg.color : 'var(--muted)');
       }
-      if(!a || a.t === 0) return statCard(cfg.icon + ' ' + cfg.name + '（暂无）', '—', 'var(--muted)');
-      const pct = Math.round(a.c / a.t * 100);
-      return statCard(cfg.icon + ' ' + cfg.name + ' · ' + a.c + '/' + a.t, pct + '%', cfg.color);
+      const has = a && a.t > 0;
+      return statCard(cfg.icon + ' ' + cfg.name, has ? Math.round(a.c / a.t * 100) + '%' : '—', has ? cfg.color : 'var(--muted)');
     }).join('') + '</div>';
   }
   const pbox = $('#mkPartStats');
@@ -684,8 +685,17 @@ function renderMockStats(){
 
 function renderMockList(){
   const box = $('#mkList');
-  const partRecs = DATA.mockRecords.filter(r => Array.isArray(r.parts)); // 仅展示分项记录；口语整卷模考走专属 tab
-  if(partRecs.length === 0){ box.innerHTML = renderEmpty('暂无记录。'); return; }
+  /* 9/13 修口径分裂：范围筛选（全部/近十天）此前只作用于上面的「表现统计」，
+     列表却永远显示全部——表现为「上面暂无、下面却有记录」，切筛选时模块看起来时有时无。
+     现在列表与统计同用 mkFilter 口径（'YYYY-MM-DD' 字典序即时间序，与 mockAggregate 一致）。 */
+  const range = $('#mkFilter') ? $('#mkFilter').value : 'all';
+  const cutoff = range === 'recent' ? mkRecentCutoff() : '';
+  let partRecs = DATA.mockRecords.filter(r => Array.isArray(r.parts)); // 仅展示分项记录；口语整卷模考走专属 tab
+  if(cutoff) partRecs = partRecs.filter(r => String(r.date || '') >= cutoff);
+  if(partRecs.length === 0){
+    box.innerHTML = renderEmpty(range === 'recent' ? '近十天没有分项模考记录（上方统计同口径）。' : '暂无记录。');
+    return;
+  }
   const list = partRecs.slice().sort((a,b) => String(b.date||'').localeCompare(String(a.date||''))).filter(r => MOCK_TYPES[r.type]);   // 缺日期/未知 type 的旧记录防崩（与 mockAggregate 口径一致）
   box.innerHTML = list.map(r => {
     const cfg = MOCK_TYPES[r.type];
