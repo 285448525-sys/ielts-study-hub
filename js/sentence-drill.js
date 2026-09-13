@@ -347,7 +347,11 @@ async function sentOnSubmit(){
   var ok = sentLocalJudge(answer, c.phase === 'scene' ? (sent.scene[c.sceneIdx] || {}).right || '' : sent.right);
   var ai = null;
   if(!ok){
-    ai = await sentAskAI(sent, answer);
+    /* 9/13 修：场景巩固态 AI 兜底必须按「场景句」判（cn/right 都取场景）——
+       原来传主句对象，AI 收到主句句意（如 人/舅舅），学生答的是场景句（如 地方/大学），
+       被误判「句意是描述人不是地点」、fix 让她反向改回主句，题干与判定自相矛盾。 */
+    var judgeSent = (c.phase === 'scene') ? (sent.scene[c.sceneIdx] || sent) : sent;
+    ai = await sentAskAI(judgeSent, answer);
     /* design/15 口径：三态。⚠️ ok 必须 === true 收敛——pending(null) 不算过（灰字可重交），
        绝不静默放行；连续两次（错+pending 合计 tries）落「看答案」兜底不卡死。 */
     ok = (ai.ok === true);
