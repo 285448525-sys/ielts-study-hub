@@ -71,7 +71,7 @@ ready(() => {
     b.addEventListener('click', () => {
       const t = b.dataset.type;
       spActivateTab(t);
-      $('#listView').hidden = true; $('#detailView').hidden = true; $('#mockView').hidden = true; $('#matView').hidden = true; $('#pdView').hidden = true;
+      $('#listView').hidden = true; $('#detailView').hidden = true; $('#mockView').hidden = true; $('#matView').hidden = true; $('#pdView').hidden = true; $('#sentView').hidden = true;
       if(t === 'PRACTICE'){
         // design/16 P0：句型页（sentence-drill.js）接管「练习」tab；场景闯关/pdLegacy 退场（开关可回滚）
         if(window.__SENT_V2_ON){
@@ -113,7 +113,7 @@ ready(() => {
   if(partSel) partSel.addEventListener('change', e => { curPart = e.target.value; renderList(); });
   populateFreqOptions();
   $('#spSearch').addEventListener('input', () => { curSearch = $('#spSearch').value.trim().toLowerCase(); renderList(); });
-  $('#backBtn').addEventListener('click', () => { $('#detailView').hidden = true; $('#listView').hidden = false; curDetailId = null; spActivateTab('BANK'); });
+  $('#backBtn').addEventListener('click', () => { $('#detailView').hidden = true; $('#listView').hidden = false; $('#sentView').hidden = true; $('#pdView').hidden = true; curDetailId = null; spActivateTab('BANK'); });
   // 默认 tab = 练习：__SENT_V2_ON 时为句型页（sentence-drill.js 接管），否则老 pdView
   $('#listView').hidden = true;
   if(window.__SENT_V2_ON){
