@@ -762,7 +762,7 @@ function renderQuestion(cur, isRehold){
 }
 
 // 9/9 之之需求：题干单词固定一行显示，字号按长度自动收缩（长词变小、短词不变）。
-// 做法：先清空 inline font-size 拿到 CSS 基准字号（普通态 38px / 全屏态 clamp(30px,7vh,52px)），
+// 做法：先清空 inline font-size 拿到 CSS 基准字号（9/13 起全屏/非全屏统一为 38px，矮屏 32px），
 // 再逐 1px 下调直到 scrollWidth 不超出容器宽度；下限 15px（≈36 字符仍可单行）。
 function fitWordOneLine(){
   const el = document.querySelector('#practiceBody .pw-en');

@@ -2017,116 +2017,66 @@ main.container{padding-top:40px}
 .history-wrap p.muted{padding:0 20px}
 #histPlans{padding:0 20px 18px}
 
-/* ===== 单词 · 全屏沉浸式背词（匹配参考图布局） ===== */
+/* ===== 单词 · 全屏沉浸式背词 =====
+   9/13 统一视觉语言（之之反馈：非全屏版更好看）：
+   保留「全屏」的功能语义 —— 无侧边栏 / 无页头 / 无悬浮物 / 整屏 / 答题态锁死不滚；
+   视觉上不再「整页铺灰 + 720 窄列 + vh 放大字号」，改为与非全屏同一套：
+   灰底舞台上一张白色圆角卡片（复用 .card 的白底/1px 边/16px 圆角/--shadow），
+   卡片宽对齐非全屏容器（1080），卡内所有尺寸·间距·排版一律回落到
+   .practice-card-fit / #practiceBody.practice-body-fit 的基础规则 = 两套模式同一份数值。
+   ⚠️ 这里只允许写「全屏专属」的事（显隐、舞台、卡片外壳、锁滚），
+   凡元素级字号/高度/间距都不要再复制一份，否则又会跟非全屏漂移。 */
 body.word-fullscreen{padding-left:0 !important;padding-right:0 !important;overflow-x:hidden !important;overflow-y:auto !important}
 body.word-fullscreen .top-nav{display:none !important}
 body.word-fullscreen .side-collapse{display:none !important}
-body.word-fullscreen main.container{padding:0 !important;max-width:none !important;min-height:100vh;display:flex;flex-direction:column;justify-content:flex-start;background:var(--bg)}
 body.word-fullscreen .page-title{display:none}
 body.word-fullscreen .page-head-row{display:none}   /* 空壳仍占 22px margin，全屏态直接摘掉 */
 body.word-fullscreen .word-tabs{display:none}
-body.word-fullscreen #studyView.study-view-fit{min-height:100vh;background:var(--bg)}
-body.word-fullscreen .practice-card.practice-card-fit{min-height:100vh;max-width:none;border-radius:0;margin:0;justify-content:flex-start;padding:32px 40px;background:var(--bg)}
 
-/* —— 全屏答题态：锁死视口禁止滑动，内容弹性压缩进一屏（之之 9/8）—— */
+/* ① 舞台：灰页面底 + 卡片在视口内水平·垂直居中（无页头遮挡，居中比顶对齐更稳）。
+   左右各留 32px（同非全屏 main.container 的 padding），保证窄窗口下卡片也不贴边；
+   上下留白随视口高自适应（12~32px）——矮窗口不被裁掉底部喇叭按钮。 */
+body.word-fullscreen main.container{
+  padding:clamp(12px,3vh,32px) 32px !important;max-width:none !important;min-height:100vh;
+  display:flex;flex-direction:column;justify-content:center;align-items:center;
+  background:var(--bg);
+}
+body.word-fullscreen #studyView.study-view-fit{
+  min-height:0;width:100%;background:transparent;
+  display:flex;flex-direction:column;justify-content:center;
+}
+
+/* ② 卡片外壳：只补「宽度 + 不撑满视口」，白底/圆角/描边/阴影全部沿用 .card 基础规则。
+   宽度 = 非全屏 main.container 的 1080 − 左右各 32 内边距 = 1016，两套模式下卡片一模一样宽，
+   卡内 960 内容列因此在两边都只剩 5px 富余（像素级一致）。 */
+body.word-fullscreen .practice-card.practice-card-fit{
+  min-height:0;width:100%;max-width:calc(1080px - 64px);margin:0 auto;
+  justify-content:flex-start;
+}
+
+/* ③ 全屏答题态：锁死视口禁止滑动（之之 9/8）。卡片改为内容高度 + 不撑满 100vh，上下留舞台内边距。 */
 html:has(body.word-fullscreen #practiceBody .opts-grid){overflow:hidden}
 body.word-fullscreen:has(#practiceBody .opts-grid){overflow:hidden !important}
 body.word-fullscreen:has(#practiceBody .opts-grid) main.container{height:100vh;overflow:hidden}
 body.word-fullscreen:has(#practiceBody .opts-grid) .practice-card.practice-card-fit{
-  height:100vh;min-height:0;overflow:hidden;
-  padding:clamp(10px,2.2vh,32px) clamp(20px,4vw,40px);
-}
-body.word-fullscreen #practiceBody.practice-body-fit{
-  display:flex;flex-direction:column;
-  align-items:center;
-  justify-content:flex-start;     /* 之之 9/8 晚反馈：块间空隙太大。evenly/around 都会均摊剩余空间（块间 40-50px），改为顶部对齐+固定小 gap，剩余留给底部拇指区 */
-  gap:clamp(12px,1.6vh,16px);
-  flex:1;min-height:0;            /* 关键：允许被压进 100vh 卡片 */
-  width:100%;max-width:720px;margin:0 auto;
+  max-height:calc(100vh - clamp(24px,6vh,64px));min-height:0;overflow:hidden;
 }
 body.word-fullscreen .practice-tools-row{ display:none !important; }
-/* 上一词回顾占位压缩：全屏态 gap1（工具行→单词）主要成分就是它（之之 9/8 晚反馈） */
-body.word-fullscreen #practiceBody.practice-body-fit .practice-topzone{ min-height:8px; }
-body.word-fullscreen #practiceBody.practice-body-fit .last-word{ font-size:12px;margin-bottom:0;padding:0; }
+/* ④ 全屏沉浸不留任何悬浮物：dock + 底部计时胶囊都要藏。
+   ⚠️ 9/13 修：这两条原来只写在 @media(max-width:860px) 里 → 桌面宽度（>860）全屏时
+   #floatTimer 不被隐藏（它没有响应式开关，一直 display:flex），会浮在卡片下沿、
+   矮窗口直接压在喇叭按钮上。移到全局作用域。 */
+body.word-fullscreen #hubDock{ display:none !important; }
+body.word-fullscreen #floatTimer{ display:none !important; }
 
-/* 全屏单词区（居中）：与非全屏保持同一比例，减少切换突变 */
-/* 全屏模式：同样居中题干（照抄 v5 原型，无例句 / 无题干词性） */
-body.word-fullscreen #practiceBody.practice-body-fit .practice-word-area{
-  position:relative;text-align:center;width:100%;
-  padding:12px 4px 14px;margin-bottom:14px;border-bottom:1px solid var(--line);
-  min-height:0;
-}
-body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap{
-  margin-top:14px;padding-top:14px;border-top:1px solid var(--line);
-  display:flex;justify-content:center;
-}
-body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap .tool-btn{
-  width:52px;height:52px;padding:0;border-radius:50%;
-  border:1.5px solid var(--line);background:#fff;color:var(--muted);
-  display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;
-}
-body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap .tool-btn:hover{
-  border-color:var(--primary);color:var(--primary);background:var(--primary-soft);
-}
-body.word-fullscreen #practiceBody.practice-body-fit .pw-en{
-  font-size:clamp(30px,7vh,52px);font-weight:800;letter-spacing:-.02em;line-height:1.25;color:var(--ink);
-  min-height:clamp(38px,8.75vh,65px);display:flex;align-items:center;justify-content:center;   /* 9/9：全屏基准更大，盒子同步锁到 52×1.25=65px 上限 */
-}
-body.word-fullscreen #practiceBody.practice-body-fit .pw-ipa{
-  font-family:serif;font-style:normal;font-size:15px;color:var(--muted);margin-top:6px;min-height:19px;
-}
-body.word-fullscreen #practiceBody.practice-body-fit .pw-cn{
-  font-size:15px;color:var(--ink-2);margin-top:5px;min-height:0;line-height:1.55;overflow:hidden;
-}
-
-/* 全屏选项网格 + 反馈（与 v5 一致） */
-body.word-fullscreen #practiceBody.practice-body-fit .opts-label{ display:none !important; }
-body.word-fullscreen #practiceBody.practice-body-fit .opts-grid{
-  display:grid;grid-template-columns:1fr 1fr;gap:clamp(10px,1.6vh,14px);width:100%;
-}
-body.word-fullscreen #practiceBody.practice-body-fit .opt-big{
-  position:relative;height:clamp(64px,14vh,104px);padding:10px 18px;
-  display:flex;flex-direction:column;align-items:flex-start;justify-content:center;
-  gap:6px;border:1.5px solid var(--neutral);border-radius:10px;background:#fff;cursor:pointer;
-  transition:all .15s ease;overflow:hidden;box-sizing:border-box;
-}
-/* 「不知道」按钮全屏态加高：内容整体放大吃空间，块间只留固定小 gap（之之 9/8 晚反馈） */
-body.word-fullscreen #practiceBody.practice-body-fit .abtn{ min-height:64px; }
-/* 矮屏（SE/小 iPhone ≤760px 高）兜底：压缩内容防溢出裁切（html overflow hidden 下溢出=看不见喇叭） */
-@media(max-height:760px){
-  body.word-fullscreen #practiceBody.practice-body-fit .abtn{ min-height:50px; }
-  body.word-fullscreen #practiceBody.practice-body-fit .opt-big{ height:clamp(60px,13vh,90px); }
-  body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap{ margin-top:10px;padding-top:10px; }
-  body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap .tool-btn{ width:44px;height:44px; }
-}
-body.word-fullscreen #practiceBody.practice-body-fit .opt-big:hover{ border-color:var(--muted); }
-body.word-fullscreen #practiceBody.practice-body-fit .opt-big-tag{ font-size:13px;color:var(--muted);font-weight:500;flex:0 0 auto;line-height:18px;min-height:18px; }
-body.word-fullscreen #practiceBody.practice-body-fit .opt-big-cn{
-  font-size:17px;font-weight:600;color:var(--ink);line-height:1.4;
-}
-body.word-fullscreen #practiceBody.practice-body-fit .opt-big-key{ display:none; }
-body.word-fullscreen #practiceBody.practice-body-fit .opt-big-en{ display:none; }
-body.word-fullscreen #practiceBody.practice-body-fit .opt-big.correct{
-  border-color:var(--ok);background:var(--ok-bg);
-}
-body.word-fullscreen #practiceBody.practice-body-fit .opt-big.correct .opt-big-tag{ color:var(--ok-text);font-weight:700;font-size:16px;line-height:18px; }
-body.word-fullscreen #practiceBody.practice-body-fit .opt-big.wrong{
-  border-color:var(--err);background:var(--err-bg);
-}
-body.word-fullscreen #practiceBody.practice-body-fit .opt-big.wrong .opt-big-tag{ color:var(--err-text);font-weight:700;font-size:16px;line-height:18px; }
-
-body.word-fullscreen #practiceBody.practice-body-fit .answer-btns{ margin-top:clamp(8px,2vh,20px);display:flex;justify-content:flex-start; }
-body.word-fullscreen #practiceBody.practice-body-fit .abtn-unknown{
-  width:auto;height:40px;padding:0 22px;border:1.5px solid var(--line);
-  border-radius:8px;background:transparent;color:var(--muted);
-  font-size:14px;font-weight:500;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;transition:all .15s;
-}
-body.word-fullscreen #practiceBody.practice-body-fit .abtn-unknown:hover{
-  border-color:var(--primary);color:var(--primary);background:var(--primary-soft);
-}
+/* ④ 卡内元素：不再复制一份覆盖（原来这里把题干/选项/按钮又写了一遍，导致两套模式漂移）。
+   以下全部回落到 .practice-card-fit / #practiceBody.practice-body-fit 的基础规则：
+   单词 38px · 选项 88px/14px 18px/gap 14 · 「不知道」52px 通栏 · 喇叭 48px ·
+   topzone 18px · word-area 4/4/8 + 下 6px · answer-btns 上 12px · speaker-wrap 上 14px/内 10px。 */
+/* 窄屏（手机）：卡片满宽铺平，省下左右留白（与非全屏手机态同一处理） */
 @media(max-width:860px){
-  body.word-fullscreen .practice-card.practice-card-fit{padding:18px 16px}
+  body.word-fullscreen main.container{ padding:16px 0 !important; }
+  body.word-fullscreen .practice-card.practice-card-fit{padding:16px 14px;border-radius:0;max-width:none;box-shadow:none;border-left:0;border-right:0}
 }
 
 /* ===== 写作真题 · 全屏沉浸式练习页 ===== */
@@ -2961,9 +2911,8 @@ body.has-dock main.container{ padding-bottom:0; }
   /* dock 贴合手机底部 + iOS 安全区 */
   #hubDock{ bottom:calc(10px + env(safe-area-inset-bottom, 0px)); }
   #hubFab{ bottom:calc(100px + env(safe-area-inset-bottom, 0px)); }
-  /* 全屏沉浸时隐藏全局 dock 与计时胶囊，不留悬浮物（验收 12：dock 与计时胶囊都不出现；胶囊不藏会叠在喇叭按钮上——9/8 晚补） */
-  body.word-fullscreen #hubDock{ display:none !important; }
-  body.word-fullscreen #floatTimer{ display:none !important; }
+  /* 全屏沉浸时隐藏全局 dock 与计时胶囊，不留悬浮物（验收 12：dock 与计时胶囊都不出现；
+     9/13：已上移到 .word-fullscreen 全局块——原来放这里导致桌面宽度全屏时胶囊照旧显示） */
 }
 @media (max-width:640px){
   /* 完成页勋章行窄屏竖排：勋章居中在上，大标题不再 42px 换三行 */
