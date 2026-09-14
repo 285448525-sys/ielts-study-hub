@@ -7,7 +7,11 @@
    - AI 三态：true 过 / false 错 / null pending（design/15 口径：pending 不算过可重交，绝不无声放行；
      ⚠️ ok 收敛必须 === true，!==false 会把 pending 放进「过了」分支——design/15 已踩坑）
    - 进度：DATA.patternDrill.sentences.status = { [句型id]: { st:'mastered'|'wrong', ts } }，随云同步
-     （common.js mergeData 按 ts 新者胜合并） */
+     （common.js mergeData 按 ts 新者胜合并）
+   - design/19 素材驱动通用化：题干/判定基准/AI 参照三者同源走 sentCurView()（9/13「AI 收到主句基准」
+     的教训固化）；内容层=data/sentences.json v3 模板 + data/materialsets.json 素材集，配置层=DATA.materialSets
+     （随云同步）。全路径回落：主题缺槽位 → 换主题 → 槽位示例值 → 原句。默认内置示例集通用虚构零个人信息；
+     关联素材只取 title/storyEn，禁读 persona。 */
 window.__SENT_V2_ON = true;
 
 var SENT_BANK = null;             // data/sentences.json 解析结果
@@ -37,7 +41,7 @@ function sent$(id){ return document.getElementById(id); }
 async function sentLoadBank(){
   if(window.__sentBankCache){ SENT_BANK = window.__sentBankCache; return SENT_BANK; }
   try{
-    var res = await fetch('data/sentences.json?v=20260912b');
+    var res = await fetch('data/sentences.json?v=20260914a');
     SENT_BANK = await res.json();
     window.__sentBankCache = SENT_BANK;
     return SENT_BANK;
@@ -47,6 +51,155 @@ async function sentLoadBank(){
   }
 }
 function sentBank(){ return window.__sentBankCache || SENT_BANK || { cats: [] }; }
+
+/* ═══════ design/19 素材驱动通用化：素材集 / 主题 / 模板填充 ═══════ */
+if(!('__sentSetsRaw' in window)) window.__sentSetsRaw = null;
+if(window.__SENT_TOPIC == null) window.__SENT_TOPIC = '';
+if(!('__SENT_MSET_OPEN' in window)) window.__SENT_MSET_OPEN = false;
+
+var SENT_LEVEL_RANK = { A1: 1, A2: 2, B1: 3, B2: 4, C1: 5 };
+var SENT_REVIEW_DAYS = 7;               // 主题超过 N 天没练 → 顶部复习提醒
+var SENT_SLOT_KEYS = ['who', 'what', 'where', 'when', 'why', 'feel'];
+var SENT_CAT_OPTS = ['place', 'person', 'event', 'thing', 'habit'];
+/* 主题 category → 题库类目（P2 题 category 为中文：人物/事件/地点/事物；habit 无对应 → 回落随机） */
+var SENT_CAT2BANK = { place: '地点', person: '人物', event: '事件', thing: '事物' };
+var SENT_LEVEL_OPTS = ['A1', 'A2', 'B1', 'B2'];
+
+/* 素材集 JSON（内容层，B 交付；window 级缓存，软导航重进不打第二次） */
+async function sentLoadSets(){
+  if(window.__sentSetsRaw) return window.__sentSetsRaw;
+  try{
+    var r = await fetch('data/materialsets.json?v=20260914a');
+    window.__sentSetsRaw = await r.json();
+  }catch(e){
+    window.__sentSetsRaw = null;         // 加载失败 = 无素材集，全路径回落原句，绝不崩
+  }
+  return window.__sentSetsRaw;
+}
+/* 用户配置：DATA.materialSets = { active, topic, enabled, sets:{...}, updatedAt } */
+function sentStore(){
+  if(typeof DATA === 'undefined') return null;
+  if(!DATA.materialSets || typeof DATA.materialSets !== 'object') DATA.materialSets = { active: '', topic: '', enabled: true, sets: {}, updatedAt: 0 };
+  var m = DATA.materialSets;
+  if(!m.sets || typeof m.sets !== 'object') m.sets = {};
+  if(typeof m.enabled !== 'boolean') m.enabled = true;
+  return m;
+}
+/* 内置集首次 / JSON 版本更新时写进 DATA（用户改过的内置主题按 _seedV 判断，不被覆盖掉 lastPracticedAt）。
+   ⚠️ 只改内存不落盘：播种是幂等版本门控的，下次 boot 会重跑；boot 期 hubSave 会把刚载入的
+   localStorage 整库回写，存在覆盖并发写入的竞态（9/14 smoke_sentp1 薄弱条被清实锤）。
+   用户真正改配置时（选主题/新增/开关）才由那条路径 hubSave。 */
+function sentSeedBuiltin(){
+  var raw = window.__sentSetsRaw, m = sentStore();
+  if(!raw || !raw.sets || !m) return;
+  var rv = Number(raw.version || 1);
+  Object.keys(raw.sets).forEach(function(k){
+    var s = raw.sets[k], cur = m.sets[k];
+    if(!cur || (cur.source === 'builtin' && Number(cur._seedV || 0) < rv)){
+      var cp = JSON.parse(JSON.stringify(s || {}));
+      cp._seedV = rv;
+      m.sets[k] = cp;
+    }
+  });
+  if(!m.active || !m.sets[m.active]) m.active = raw.active || 'builtin_demo';
+  if(!window.__SENT_TOPIC) window.__SENT_TOPIC = m.topic || '';
+}
+function sentUseMine(){ var m = sentStore(); return !!(m && m.enabled !== false); }
+/* 当前素材集：开关关 → 强制内置示例集（通用虚构，零个人信息，毕设投屏/换设备安全） */
+function sentActiveSet(){
+  var m = sentStore(); if(!m) return null;
+  var key = sentUseMine() ? (m.active || 'builtin_demo') : 'builtin_demo';
+  return m.sets[key] || m.sets['builtin_demo'] || null;
+}
+function sentActiveTopics(){
+  var s = sentActiveSet();
+  if(!s || s.enabled === false) return [];
+  return (s.topics || []).filter(function(t){ return t && t.slots; });
+}
+/* 挑主题：优先「当前主题」，缺所需槽位则换第一个含全部槽位的主题；都缺 → null（调用方回落）
+   excludeId：换场景时用，强制换一个不同的主题，保证「同句型 + 换话题」真跨话题 */
+function sentPickTopic(need, excludeId){
+  var ts = sentActiveTopics(); if(!ts.length) return null;
+  var need2 = need || [];
+  var cand = ts.filter(function(t){
+    if(!need2.length) return true;
+    for(var i = 0; i < need2.length; i++){ if(!(t.slots && t.slots[need2[i]])) return false; }
+    return true;
+  });
+  if(!cand.length) return null;
+  if(window.__SENT_TOPIC){
+    for(var i = 0; i < cand.length; i++){
+      if(cand[i].id === window.__SENT_TOPIC && cand[i].id !== excludeId) return cand[i];
+    }
+  }
+  for(var j = 0; j < cand.length; j++){ if(cand[j].id !== excludeId) return cand[j]; }
+  return cand[0];
+}
+/* 最后兜底：sentences.json 槽位元信息里的「例：xxx」（通用虚构），保证永不出现 {{占位符}} */
+function sentDefaultSlot(k){
+  var meta = (sentBank().slots || {})[k] || '';
+  var mm = /例[:：]\s*([^）)]+)/.exec(String(meta));
+  return mm ? String(mm[1]).trim() : '';
+}
+/* 填充：成功返回字符串；任一槽位连兜底都没有 → null（调用方回落原句）。英文句首自动大写 */
+function sentFill(str, topic){
+  if(str == null) return '';
+  var miss = false;
+  var out = String(str).replace(/\{\{(\w+)\}\}/g, function(_, k){
+    var v = (topic && topic.slots) ? topic.slots[k] : '';
+    if(!v) v = sentDefaultSlot(k);
+    if(!v){ miss = true; return ''; }
+    return v;
+  });
+  if(miss) return null;
+  if(/^[a-z]/.test(out)) out = out.charAt(0).toUpperCase() + out.slice(1);
+  return out;
+}
+/* 兜底清理：任何路径都不要把 {{占位符}} 甩到界面上——用槽位示例值补，实在没有就去掉 */
+function sentLoose(str){
+  var out = String(str == null ? '' : str);
+  if(out.indexOf('{{') < 0) return out;
+  return out.replace(/\{\{(\w+)\}\}/g, function(_, k){ return sentDefaultSlot(k) || ''; });
+}
+/* 取「句意对象」：填充成功用填充版，否则原句（scene 无占位符时原样） */
+function sentViewOf(sent, sceneIdx, excludeId){
+  var t = sentPickTopic(sent.slots || [], excludeId);
+  var base = (sceneIdx != null) ? (sent.scene[sceneIdx] || {}) : sent;
+  if(t && (sent.slots || []).length){
+    var cn = sentFill(base.cn, t), right = sentFill(base.right, t);
+    if(cn && right) return { cn: cn, right: right, topic: t };
+  }
+  return { cn: sentLoose(base.cn), right: sentLoose(base.right), topic: t };
+}
+/* 换场景巩固：有槽位的句 → 同模板 + 换一个主题（真跨话题）；主题不够 → 回落 scene[idx] 原句 */
+function sentSceneView(sent, c){
+  if((sent.slots || []).length){
+    var t = sentPickTopic(sent.slots, c.topicId);
+    if(t){
+      var cn = sentFill(sent.cn, t), right = sentFill(sent.right, t);
+      if(cn && right) return { cn: cn, right: right, topic: t, byTopic: true };
+    }
+  }
+  var v = sentViewOf(sent, c.sceneIdx, null);
+  v.byTopic = false;
+  return v;
+}
+/* ⭐ 当前题的「句意对象」：题干 / 判定基准 / AI 参照 三者同源（design/19 §2） */
+function sentCurView(){
+  var c = sentCur(), sent = sentFind(c.sentId);
+  if(!sent) return { cn: '', right: '', topic: null };
+  return (c.phase === 'scene') ? sentSceneView(sent, c) : sentViewOf(sent, null, null);
+}
+/* 练过就记时间（本地帧毫秒，禁 toISOString）；复习提醒按它算天数 */
+function sentTouchTopic(tid){
+  if(!tid) return;
+  var m = sentStore(), set = sentActiveSet();
+  if(!m || !set) return;
+  (set.topics || []).forEach(function(t){
+    if(t.id === tid){ t.lastPracticedAt = Date.now(); m.updatedAt = t.lastPracticedAt; }
+  });
+  if(typeof hubSave === 'function') hubSave();
+}
 
 /* ── 进度 ── */
 function sentStatus(){
@@ -165,12 +318,14 @@ function sentWithTimeout(p, ms){
     p.then(function(v){ clearTimeout(t); res(v); }, function(e){ clearTimeout(t); rej(e); });
   });
 }
-async function sentAskAI(sent, answer){
+/* topicName：design/19 素材主题名，作为上下文告知 AI（5.5 尺度与最小改正口径不动） */
+async function sentAskAI(sent, answer, topicName){
   try{
     var raw = await sentWithTimeout(
       callRelay('sentence_check',
         [{ role: 'system', content: SENT_CHECK_SYS },
-         { role: 'user', content: '句意：' + (sent.cn || '') + '\n标准句：' + (sent.right || '') + '\n学生答案：' + answer }],
+         { role: 'user', content: '句意：' + (sent.cn || '') + '\n标准句：' + (sent.right || '')
+           + '\n当前素材主题：' + (topicName || '通用') + '\n学生答案：' + answer }],
         0, { max_tokens: 200 }),
       3200);
     if(raw === '__TIMEOUT__') return { ok: null, err: '判定超时' };
@@ -212,7 +367,7 @@ function sentRenderErrors(answer, errors){
 /* ── 状态（跨软导航走 window）── */
 function sentCur(){
   if(!window.__SENT_CUR){
-    window.__SENT_CUR = { view: 'list', catId: '', sentId: '', phase: 'main', sceneIdx: 0, tries: 0, revealed: false, draft: '', fb: null };
+    window.__SENT_CUR = { view: 'list', catId: '', sentId: '', phase: 'main', sceneIdx: 0, topicId: '', curTopicId: '', tries: 0, revealed: false, draft: '', fb: null };
   }
   return window.__SENT_CUR;
 }
@@ -228,11 +383,86 @@ function sentRender(){
   if(c.view === 'list') sentBindList(); else sentBindPractice();
 }
 
+/* ── design/19 §4 素材集配置 UI（内联在 #sentBody 内，不新增任何 body 级浮层／悬浮元素）── */
+function sentMsetRowHtml(){
+  var set = sentActiveSet();
+  if(!set) return '';
+  var ts = sentActiveTopics(), t = null;
+  ts.forEach(function(x){ if(x.id === window.__SENT_TOPIC) t = x; });
+  if(!t) t = ts[0];
+  var name = (set.name || '素材集') + ' · ' + ((t && t.name) || '未选主题');
+  return '<div class="sent-mset" data-sent-mset>当前素材：' + sentEsc(name)
+    + '<span class="sent-caret">' + (window.__SENT_MSET_OPEN ? '▾' : '▸') + '</span></div>'
+    + (window.__SENT_MSET_OPEN ? sentMsetPanelHtml(set, ts) : '');
+}
+function sentMsetPanelHtml(set, ts){
+  var h = '<div class="sent-mset-panel">';
+  h += '<div class="sent-mset-lab">主题（单选）</div>';
+  if(!ts.length) h += '<div class="sent-err-note">这个素材集还没有主题，先新增或关联一个。</div>';
+  ts.forEach(function(x, i){
+    var on = (x.id === window.__SENT_TOPIC) || (!window.__SENT_TOPIC && i === 0);
+    h += '<div class="sent-mset-topic' + (on ? ' on' : '') + '" data-sent-topic="' + sentEsc(x.id) + '">'
+      + '<b>' + sentEsc(x.name) + '</b>'
+      + '<span class="sent-mset-meta">' + sentEsc((x.category || '') + ' · ' + (x.level || '')) + '</span></div>';
+  });
+  h += '<div class="sent-mset-lab">+ 新增主题</div>'
+    + '<input id="sentNewName" class="pd-input" placeholder="主题名（例：我的毕设）" autocomplete="off">'
+    + '<div class="sent-mset-row">'
+    + '<select id="sentNewCat" class="sp-select">' + SENT_CAT_OPTS.map(function(c){ return '<option value="' + c + '">' + c + '</option>'; }).join('') + '</select>'
+    + '<select id="sentNewLevel" class="sp-select">' + SENT_LEVEL_OPTS.map(function(c){ return '<option value="' + c + '"' + (c === 'A2' ? ' selected' : '') + '>' + c + '</option>'; }).join('') + '</select>'
+    + '</div>'
+    + '<div class="sent-mset-lab">槽位（可留空）</div><div class="sent-mset-slots">';
+  SENT_SLOT_KEYS.forEach(function(k){
+    h += '<input class="pd-input sent-slot" data-sent-slot="' + k + '" placeholder="' + k + '" autocomplete="off">';
+  });
+  h += '</div><button class="btn btn-primary" id="sentNewTopic" type="button">新增主题</button>';
+  /* 关联素材：只取 title / storyEn，禁读 persona（隐私红线） */
+  var mats = (typeof DATA !== 'undefined' && DATA.materials && DATA.materials.materials) || [];
+  h += '<div class="sent-mset-lab">关联素材（只取标题与故事，不读人设）</div>';
+  if(!mats.length) h += '<div class="sent-err-note">还没有素材卡，先去「素材」tab 生成。</div>';
+  else {
+    h += '<select id="sentLinkMat" class="sp-select">';
+    mats.forEach(function(m){
+      h += '<option value="' + sentEsc(m.id) + '">' + sentEsc(m.title || '未命名素材') + '</option>';
+    });
+    h += '</select><button class="btn" id="sentLinkGo" type="button">一键生成主题</button>';
+  }
+  h += '<div class="sent-mset-lab">导入 / 导出</div><div class="sent-mset-row">'
+    + '<button class="btn" id="sentSetsExport" type="button">导出 JSON</button>'
+    + '<button class="btn" id="sentSetsImport" type="button">导入 JSON</button></div>'
+    + '<textarea id="sentSetsJson" class="sp-p3-textarea" placeholder="把 JSON 粘到这里再点「导入 JSON」；点「导出」会填到这里"></textarea>'
+    + '<div class="sent-mset-sw" data-sent-mset-sw>用我的素材集：' + (sentUseMine() ? '开' : '关')
+    + '<span class="sent-mset-hint">关 = 只用内置示例集（通用虚构，零个人信息）</span></div>';
+  return h + '</div>';
+}
+/* 复习提醒：主题超过 SENT_REVIEW_DAYS 天没练 → 一行，点它切到该主题 */
+function sentReviewHtml(){
+  var set = sentActiveSet(); if(!set) return '';
+  var out = '';
+  (set.topics || []).forEach(function(t){
+    if(!t.lastPracticedAt) return;
+    var n = Math.floor((Date.now() - Number(t.lastPracticedAt)) / 86400000);
+    if(n > SENT_REVIEW_DAYS) out += '<div class="sent-review" data-sent-review="' + sentEsc(t.id) + '">'
+      + sentEsc(t.name) + ' 已经 ' + n + ' 天没练了 →</div>';
+  });
+  return out;
+}
+/* 难度提示：当前主题 level < B1 时，c6/c7 两类在类名旁加小字「进阶」（只提示，不改结构/可练性） */
+function sentAdvMark(catId){
+  if(catId !== 'c6' && catId !== 'c7') return '';
+  var t = sentPickTopic([], null);
+  if(!t || !t.level) return '';
+  if((SENT_LEVEL_RANK[t.level] || 0) >= SENT_LEVEL_RANK.B1) return '';
+  return '<span class="sent-adv">进阶</span>';
+}
+
 /* 列表：薄弱条占位（P0 留空）+ 5 类折叠（顺序=sentences.json 固定 P2 答题顺序）+ 错题库入口 */
 function sentListHtml(){
   var bank = sentBank(), st = sentStatus();
   var wh = sentWeakHtml();
   var html = '<div id="sentWeakBar"' + (wh ? '' : ' hidden') + '>' + wh + '</div>';
+  html += sentReviewHtml();                    // design/19：久未练的主题提醒
+  html += sentMsetRowHtml();                   // design/19：当前素材集 · 主题（点开=内联配置面板）
   html += '<div class="sent-list">';
   bank.cats.forEach(function(cat){
     var mastered = cat.sentences.filter(function(s){ return st[s.id] && st[s.id].st === 'mastered'; }).length;
@@ -240,6 +470,7 @@ function sentListHtml(){
     html += '<div class="sent-cat" data-sent-cat="' + cat.id + '">'
       + '<div class="sent-cat-row"><b>' + sentEsc(cat.name) + '</b>'
       + '<span class="sent-cat-pos">' + sentEsc(cat.pos || '') + '</span>'
+      + sentAdvMark(cat.id)
       + '<span class="sent-cat-count">已掌握 ' + mastered + '/' + cat.sentences.length + '</span>'
       + '<span class="sent-caret">' + (open ? '▾' : '▸') + '</span></div>';
     if(open){
@@ -248,7 +479,7 @@ function sentListHtml(){
         var stat = st[s.id] && st[s.id].st;
         var tag = stat === 'mastered' ? '<span class="sent-st st-mastered">已掌握</span>'
           : (stat === 'wrong' ? '<span class="sent-st st-wrong">错题</span>' : '');
-        html += '<div class="sent-item" data-sent-item="' + s.id + '"><span class="sent-item-cn">' + sentEsc(s.cn) + '</span>' + tag + '</div>';
+        html += '<div class="sent-item" data-sent-item="' + s.id + '"><span class="sent-item-cn">' + sentEsc(sentViewOf(s, null, null).cn) + '</span>' + tag + '</div>';
       });
       html += '</div>';
     }
@@ -264,7 +495,7 @@ function sentListHtml(){
     if(!wrongIds.length) html += '<div class="sent-err-note">错题库是空的，练错一句它就会出现在这里。</div>';
     else html += '<div class="sent-wrong-all" data-sent-wrong-all>全部重练（' + wrongIds.length + ' 题）→</div>';
     wrongIds.forEach(function(s){
-      html += '<div class="sent-item" data-sent-item="' + s.id + '"><span class="sent-item-cn">' + sentEsc(s.cn) + '</span><span class="sent-st st-wrong">错题</span></div>';
+      html += '<div class="sent-item" data-sent-item="' + s.id + '"><span class="sent-item-cn">' + sentEsc(sentViewOf(s, null, null).cn) + '</span><span class="sent-st st-wrong">错题</span></div>';
     });
     html += '</div>';
   }
@@ -282,9 +513,11 @@ function sentPracticeHtml(){
   if(c.revealed) btnText = c.phase === 'main' ? '看答案，回列表 ▸' : '看答案，回列表 ▸';
   else if(c.tries > 0) btnText = '再交一次';
   var sceneTag = c.phase === 'scene' ? ' · 换场景巩固 ' + (c.sceneIdx + 1) + '/2' : '';
+  var v = sentCurView();                       // design/19：题干取自同一个句意对象
+  c.curTopicId = (v.topic && v.topic.id) || '';// 供 sentTouchTopic / 换主题排除用（确定性派生，重渲染幂等）
   return '<div class="sent-back" data-sent-back>&larr; 返回句型列表</div>'
     + '<div class="sent-tag">【' + sentEsc(cat.name) + ' · ' + sentEsc(cat.pos || '') + '】' + sentEsc(sceneTag) + '</div>'
-    + '<div class="sent-cn">' + sentEsc(c.phase === 'scene' ? (sent.scene[c.sceneIdx] || {}).cn || '' : sent.cn) + '</div>'
+    + '<div class="sent-cn">' + sentEsc(v.cn) + '</div>'
     + '<input id="sentAnswer" class="pd-input" placeholder="用英文说出这句" autocomplete="off" value="' + sentEsc(c.draft) + '"' + (c.revealed ? ' disabled' : '') + '>'
     + '<div class="pd-bar"><button class="btn btn-primary" id="sentSubmit" type="button">' + btnText + '</button>'
     + '<span class="pd-status" id="sentStatus" aria-live="polite"></span></div>'
@@ -314,6 +547,120 @@ function sentBindList(){
   if(wk) wk.addEventListener('click', function(e){ e.stopPropagation(); sentWeakClick(); });
   var wa = host.querySelector('[data-sent-wrong-all]');
   if(wa) wa.addEventListener('click', function(e){ e.stopPropagation(); sentStartWrongAll(); });
+  sentBindMset(host);
+}
+
+/* ── design/19 素材集面板绑定（全部内联在 #sentBody 内，零浮层）── */
+function sentBindMset(host){
+  var ms = host.querySelector('[data-sent-mset]');
+  if(ms) ms.addEventListener('click', function(e){
+    e.stopPropagation();
+    window.__SENT_MSET_OPEN = !window.__SENT_MSET_OPEN;
+    sentRender();
+  });
+  host.querySelectorAll('[data-sent-topic]').forEach(function(el){
+    el.addEventListener('click', function(e){ e.stopPropagation(); sentSetTopic(el.getAttribute('data-sent-topic')); });
+  });
+  host.querySelectorAll('[data-sent-review]').forEach(function(el){
+    el.addEventListener('click', function(e){ e.stopPropagation(); sentSetTopic(el.getAttribute('data-sent-review')); });
+  });
+  var nt = sent$('sentNewTopic');
+  if(nt) nt.onclick = function(){
+    var name = ((sent$('sentNewName') || {}).value || '').trim();
+    if(!name){ toast('先给主题起个名'); return; }
+    var slots = {};
+    host.querySelectorAll('[data-sent-slot]').forEach(function(inp){
+      var v = (inp.value || '').trim();
+      if(v) slots[inp.getAttribute('data-sent-slot')] = v;
+    });
+    var t = sentAddTopic(name, (sent$('sentNewCat') || {}).value || 'event', (sent$('sentNewLevel') || {}).value || 'A2', slots);
+    if(t){ toast('已新增主题「' + name + '」'); }
+  };
+  var lg = sent$('sentLinkGo');
+  if(lg) lg.onclick = function(){
+    var id = (sent$('sentLinkMat') || {}).value || '';
+    var list = (typeof DATA !== 'undefined' && DATA.materials && DATA.materials.materials) || [];
+    var m = null;
+    list.forEach(function(x){ if(String(x.id) === String(id)) m = x; });
+    if(!m){ toast('没找到这张素材卡'); return; }
+    /* 隐私红线：只取 title / storyEn 两个字段，绝不读 persona 与任何个人字段 */
+    var t = sentAddTopic(String(m.title || '未命名素材').slice(0, 40), 'event', 'A2', {});
+    if(!t) return;
+    t.linkedMaterialId = m.id;
+    t.storyEn = String(m.storyEn || '').slice(0, 400);      // 仅故事正文，供她照着填槽位
+    var mm = sentStore(); if(mm) mm.updatedAt = Date.now();
+    if(typeof hubSave === 'function') hubSave();
+    sentRender();
+    toast('已生成主题，去填槽位就能用它出题');
+  };
+  var ex = sent$('sentSetsExport');
+  if(ex) ex.onclick = function(){
+    var ta = sent$('sentSetsJson');
+    var m = sentStore();
+    if(!ta || !m) return;
+    ta.value = JSON.stringify(m, null, 2);
+    toast('已导出到下方文本框，复制走即可');
+  };
+  var im = sent$('sentSetsImport');
+  if(im) im.onclick = function(){
+    var ta = sent$('sentSetsJson');
+    if(!ta) return;
+    var obj = null;
+    try{ obj = JSON.parse(ta.value || ''); }catch(e){ obj = null; }
+    if(!obj || !obj.sets || typeof obj.sets !== 'object'){ toast('JSON 不对，需要含 sets 字段'); return; }
+    var m = sentStore(); if(!m) return;
+    m.sets = obj.sets;
+    m.active = obj.active || Object.keys(obj.sets)[0] || 'builtin_demo';
+    m.topic = obj.topic || '';
+    m.enabled = obj.enabled !== false;
+    m.updatedAt = Date.now();
+    window.__SENT_TOPIC = m.topic || '';
+    if(typeof hubSave === 'function') hubSave();
+    sentRender();
+    toast('已导入素材配置');
+  };
+  var sw = host.querySelector('[data-sent-mset-sw]');
+  if(sw) sw.addEventListener('click', function(e){
+    e.stopPropagation();
+    var m = sentStore(); if(!m) return;
+    m.enabled = !sentUseMine();
+    m.updatedAt = Date.now();
+    if(typeof hubSave === 'function') hubSave();
+    sentRender();
+    toast(m.enabled ? '已开启：用我的素材集' : '已关闭：只用内置示例集（零个人信息）');
+  });
+}
+/* 用户自建主题落「我的素材集」，绝不写进内置集（否则下次 JSON 升级会被覆盖） */
+function sentUserSet(){
+  var m = sentStore(); if(!m) return null;
+  if(!m.sets.my_set) m.sets.my_set = { id: 'my_set', name: '我的素材集', enabled: true, updatedAt: 0, topics: [] };
+  return m.sets.my_set;
+}
+function sentAddTopic(name, cat, level, slots){
+  var m = sentStore(), set = sentUserSet();
+  if(!m || !set) return null;
+  var t = {
+    id: 't_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+    name: name, category: cat, level: level, tags: [],
+    slots: slots || {}, linkedMaterialId: null, lastPracticedAt: 0, source: 'user'
+  };
+  set.topics.push(t);
+  set.updatedAt = Date.now();
+  m.active = 'my_set';
+  m.topic = t.id;
+  m.updatedAt = set.updatedAt;
+  window.__SENT_TOPIC = t.id;
+  if(typeof hubSave === 'function') hubSave();
+  sentRender();
+  return t;
+}
+function sentSetTopic(id){
+  var m = sentStore(); if(!m) return;
+  window.__SENT_TOPIC = id || '';
+  m.topic = window.__SENT_TOPIC;
+  m.updatedAt = Date.now();
+  if(typeof hubSave === 'function') hubSave();
+  sentRender();
 }
 function sentBindPractice(){
   var host = sent$('sentBody');
@@ -326,7 +673,7 @@ function sentBindPractice(){
 }
 
 function sentStart(sentId){
-  window.__SENT_CUR = { view: 'practice', catId: '', sentId: sentId, phase: 'main', sceneIdx: 0, tries: 0, revealed: false, draft: '', fb: null };
+  window.__SENT_CUR = { view: 'practice', catId: '', sentId: sentId, phase: 'main', sceneIdx: 0, topicId: '', curTopicId: '', tries: 0, revealed: false, draft: '', fb: null };
   sentRender();
   var inp = sent$('sentAnswer');
   if(inp && inp.focus) inp.focus();
@@ -344,14 +691,14 @@ async function sentOnSubmit(){
   if(sub) sub.disabled = true;
   if(st) st.textContent = '判定中…';
   var sent = sentFind(c.sentId);
-  var ok = sentLocalJudge(answer, c.phase === 'scene' ? (sent.scene[c.sceneIdx] || {}).right || '' : sent.right);
+  /* design/19：判定基准走 sentCurView()——与题干、AI 参照三者同源。
+     原实现按 phase 分头取 scene[c.sceneIdx].right vs sent.right，场景态一旦是「换主题填充」
+     就对不上题干（9/13 同类 bug 的根因：基准取自另一层）。 */
+  var v = sentCurView();
+  var ok = sentLocalJudge(answer, v.right);
   var ai = null;
   if(!ok){
-    /* 9/13 修：场景巩固态 AI 兜底必须按「场景句」判（cn/right 都取场景）——
-       原来传主句对象，AI 收到主句句意（如 人/舅舅），学生答的是场景句（如 地方/大学），
-       被误判「句意是描述人不是地点」、fix 让她反向改回主句，题干与判定自相矛盾。 */
-    var judgeSent = (c.phase === 'scene') ? (sent.scene[c.sceneIdx] || sent) : sent;
-    ai = await sentAskAI(judgeSent, answer);
+    ai = await sentAskAI({ cn: v.cn, right: v.right }, answer, (v.topic && v.topic.name) || '');
     /* design/15 口径：三态。⚠️ ok 必须 === true 收敛——pending(null) 不算过（灰字可重交），
        绝不静默放行；连续两次（错+pending 合计 tries）落「看答案」兜底不卡死。 */
     ok = (ai.ok === true);
@@ -386,12 +733,16 @@ function sentPass(){
   if(st) st.textContent = '';
   if(inp) inp.disabled = true;
   if(sub) sub.disabled = true;
+  sentTouchTopic(c.curTopicId);               // design/19：练过就记主题时间（复习提醒用）
   SENT_AUTO_T = setTimeout(function(){
     if(c.phase === 'main'){
-      c.phase = 'scene'; c.sceneIdx = 0; c.tries = 0; c.revealed = false; c.draft = ''; c.fb = null; c.lastAi = null;
+      /* topicId = 上一题用过的主题 → 换场景时强制换一个（同句型 + 换话题） */
+      c.phase = 'scene'; c.sceneIdx = 0; c.topicId = c.curTopicId || '';
+      c.tries = 0; c.revealed = false; c.draft = ''; c.fb = null; c.lastAi = null;
       sentRender();
     } else if(c.sceneIdx === 0){
-      c.sceneIdx = 1; c.tries = 0; c.revealed = false; c.draft = ''; c.fb = null; c.lastAi = null;
+      c.sceneIdx = 1; c.topicId = c.curTopicId || '';
+      c.tries = 0; c.revealed = false; c.draft = ''; c.fb = null; c.lastAi = null;
       sentRender();
     } else {
       sentMark(c.sentId, 'mastered');
@@ -411,8 +762,8 @@ function sentRenderFail(ai){
   var sent = sentFind(c.sentId);
   var ans = c.draft;
   var mark = sentRenderErrors(ans, ai.errors || []);
-  /* 参考句按当前 phase 取：场景替换题 reveal 给该场景的 right，不给主句（学生答的是场景） */
-  var ref = (c.phase === 'scene') ? ((sent.scene[c.sceneIdx] || {}).right || sent.right) : sent.right;
+  /* 参考句同走 sentCurView()：与她看到的题干、AI 判定基准一致（design/19 §2） */
+  var ref = sentCurView().right;
   /* design/17 最小改正口径：reveal 首选「她原句的最小改正版」（AI right），只在改写与参考说法
      本质不同时才另起一行给参考——判定口径不动，这里只管展示 */
   var fixed = (ai.right && String(ai.right).trim()) ? String(ai.right).trim() : '';
@@ -505,16 +856,18 @@ async function sentReplaySubmit(cat, topic){
     if(st) st.textContent = '网络慢了，等一下再交';
   }
 }
-function sentReplayOpen(cat, topic){
+function sentReplayOpen(cat, topic, topicName){
   var old = document.getElementById('sentReplayMask');
   if(old) old.remove();
   var mask = document.createElement('div');
   mask.id = 'sentReplayMask';
   mask.className = 'sent-replay-mask';
   var tName = topic.titleZh || topic.titleEn || topic.title || '';
+  var msetTip = topicName ? '<div class="sent-replay-tip">素材主题：' + sentEsc(topicName) + '</div>' : '';
   mask.innerHTML = '<div class="sent-replay-panel">'
     + '<div class="sent-replay-title">' + sentEsc(cat.name) + '通关 ✅</div>'
     + '<div class="sent-replay-tip">拿真实题练一手：' + sentEsc(tName) + '——用这一类句型，为这道题写一句' + sentEsc(cat.name) + '位置的话。</div>'
+    + msetTip
     + '<input id="sentReplayAns" class="pd-input" placeholder="用英文写出这句" autocomplete="off">'
     + '<div class="pd-bar"><button class="btn btn-primary" id="sentReplayGo" type="button">提交</button>'
     + '<span class="pd-status" id="sentReplayStatus" aria-live="polite"></span></div>'
@@ -560,8 +913,14 @@ function sentMaybeReplay(sentId){
       if(typeof hubSave === 'function') hubSave();
       return false;
     }
-    var topic = pool[Math.floor(Math.random() * pool.length)];
-    sentReplayOpen(cat, topic);
+    /* design/19 §5：优先按「启用主题」的 category 抽同类的真实 P2 题（主题 → 题库类目映射）；
+       没匹配到（或主题是 habit 这类题库没有的类目）→ 回落原有全库随机，行为不变。 */
+    var t = sentPickTopic([], null);
+    var bankCat = SENT_CAT2BANK[(t && t.category) || ''] || '';
+    var pref = bankCat ? pool.filter(function(s){ return s.category === bankCat; }) : [];
+    var from = pref.length ? pref : pool;
+    var topic = from[Math.floor(Math.random() * from.length)];
+    sentReplayOpen(cat, topic, (t && t.name) || '');
     return true;
   }catch(e){ return false; }
 }
@@ -572,6 +931,8 @@ async function sentBoot(){
   if(!sent$('sentBody')) return;         // 不在口语页
   var bank = await sentLoadBank();
   if(!bank || !bank.cats || !bank.cats.length) return;
+  await sentLoadSets();                    // design/19：素材集（失败=无，全路径回落原句）
+  sentSeedBuiltin();
   var c = sentCur();
   if(c.view === 'practice' && !sentFind(c.sentId)){ window.__SENT_CUR = null; }   // 防脏状态
   sentRender();

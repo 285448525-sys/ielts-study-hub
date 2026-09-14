@@ -1467,6 +1467,44 @@ function mergeData(local, cloud){
     }
     if(_pdCh){ out.patternDrill = _pdOut; changes += _pdCh; }
   }
+  /* design/19：素材集配置 materialSets = { active, topic, enabled, sets:{ [setId]:{topics:[...]} }, updatedAt }
+     规则（与 patternDrill.sentences 同款思路，幂等不累加）：
+     ① 整体按 updatedAt 新者胜；② sets 逐 id 合并（同 id 时集内 topics 再逐 id 合并：
+        lastPracticedAt 取较大、slots 取并集「后者补缺」）；③ 内置集(builtin)永远由本地 JSON 播种，
+        合并只是补 lastPracticedAt，不让云端旧快照把本机内置集改回旧版。 */
+  if(cloud.materialSets && typeof cloud.materialSets === 'object'){
+    const _lm = (local.materialSets && typeof local.materialSets === 'object') ? local.materialSets : {};
+    const _cm = cloud.materialSets;
+    const _lTs = Number(_lm.updatedAt) || 0, _cTs = Number(_cm.updatedAt) || 0;
+    const _win = (_cTs > _lTs) ? _cm : _lm, _lose = (_cTs > _lTs) ? _lm : _cm;
+    const _sets = Object.assign({}, (_win.sets || {}));
+    Object.keys(_lose.sets || {}).forEach(k => {
+      const a = _sets[k], b = _lose.sets[k];
+      if(!b || typeof b !== 'object') return;
+      if(!a){ _sets[k] = b; return; }
+      const map = new Map();
+      [...(a.topics || []), ...(b.topics || [])].forEach(t => {
+        if(!t || t.id == null) return;
+        const ex = map.get(t.id);
+        if(!ex){ map.set(t.id, t); return; }
+        map.set(t.id, Object.assign({}, ex, t, {
+          slots: Object.assign({}, (ex.slots || {}), (t.slots || {})),
+          lastPracticedAt: Math.max(Number(ex.lastPracticedAt) || 0, Number(t.lastPracticedAt) || 0)
+        }));
+      });
+      _sets[k] = Object.assign({}, a, b, { topics: Array.from(map.values()),
+        updatedAt: Math.max(Number(a.updatedAt) || 0, Number(b.updatedAt) || 0) });
+    });
+    const _act = [(_win.active), (_lose.active)].find(x => x && _sets[x]) || Object.keys(_sets)[0] || 'builtin_demo';
+    const _outMs = {
+      active: _act,
+      topic: _win.topic || _lose.topic || '',
+      enabled: (typeof _win.enabled === 'boolean') ? _win.enabled : true,
+      sets: _sets,
+      updatedAt: Math.max(_lTs, _cTs)
+    };
+    if(JSON.stringify(_outMs) !== JSON.stringify(_lm)){ out.materialSets = _outMs; changes++; }
+  }
   // 合并后同步镜像账号凭证到隔离键（云端可能带来/更新 Key/手机号/发音分，务必落盘镜像）
   if(typeof saveCredsMirror === 'function') saveCredsMirror();
   return { data: out, changes };
