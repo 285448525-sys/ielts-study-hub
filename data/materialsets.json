@@ -1,0 +1,103 @@
+{
+  "version": 1,
+  "source": "design/18 内置示例素材集：通用、虚构、无版权、无个人信息，开箱即用。用户可在设置页新增/导入自己的素材集并切换 active。",
+  "active": "builtin_demo",
+  "sets": {
+    "builtin_demo": {
+      "id": "builtin_demo",
+      "name": "示例素材集",
+      "builtin": true,
+      "enabled": true,
+      "updatedAt": 0,
+      "topics": [
+        {
+          "id": "t_place_city",
+          "name": "一座你喜欢的城市",
+          "category": "place",
+          "level": "A2",
+          "tags": ["通用", "高频"],
+          "slots": {
+            "what": "a quiet park",
+            "where": "my hometown",
+            "when": "last summer",
+            "feel": "relaxed",
+            "why": "it helps me slow down"
+          },
+          "linkedMaterialId": null,
+          "lastPracticedAt": 0,
+          "source": "builtin"
+        },
+        {
+          "id": "t_person_friend",
+          "name": "一个对你重要的人",
+          "category": "person",
+          "level": "A2",
+          "tags": ["通用", "高频"],
+          "slots": {
+            "who": "my best friend",
+            "what": "her patience",
+            "when": "last year",
+            "feel": "grateful",
+            "why": "she always listens"
+          },
+          "linkedMaterialId": null,
+          "lastPracticedAt": 0,
+          "source": "builtin"
+        },
+        {
+          "id": "t_event_trip",
+          "name": "一次难忘的经历",
+          "category": "event",
+          "level": "A2",
+          "tags": ["通用"],
+          "slots": {
+            "who": "my friend",
+            "what": "a short trip",
+            "where": "a small town",
+            "when": "last summer",
+            "feel": "excited",
+            "why": "everything was new"
+          },
+          "linkedMaterialId": null,
+          "lastPracticedAt": 0,
+          "source": "builtin"
+        },
+        {
+          "id": "t_thing_app",
+          "name": "一个你常用的东西",
+          "category": "thing",
+          "level": "A2",
+          "tags": ["通用"],
+          "slots": {
+            "who": "my classmate",
+            "what": "an app I use every day",
+            "where": "my phone",
+            "when": "every evening",
+            "feel": "focused",
+            "why": "it is easy to use"
+          },
+          "linkedMaterialId": null,
+          "lastPracticedAt": 0,
+          "source": "builtin"
+        },
+        {
+          "id": "t_habit_reading",
+          "name": "一个日常习惯",
+          "category": "habit",
+          "level": "A2",
+          "tags": ["通用", "低频"],
+          "slots": {
+            "what": "reading before bed",
+            "where": "my room",
+            "when": "every night",
+            "feel": "calm",
+            "why": "it helps me sleep"
+          },
+          "linkedMaterialId": null,
+          "lastPracticedAt": 0,
+          "source": "builtin"
+        }
+      ]
+    }
+  }
+}
