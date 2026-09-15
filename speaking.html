@@ -42,7 +42,7 @@
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
   <script defer src="js/sentence-drill.js?v=20260914a"></script>
-  <script defer src="js/speaking.js?v=20260915c"></script>
+  <script defer src="js/speaking.js?v=20260915d"></script>
   <script defer src="js/materials.js?v=20260904z"></script>
   <script defer src="js/mock-report.js?v=20260830u"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
@@ -189,8 +189,10 @@
   }
 
   /* 详情页 */
-  .sp-detail-back{display:inline-flex;align-items:center;gap:4px;cursor:pointer;color:var(--primary);font-size:14px;margin-bottom:12px;font-weight:600}
-  .sp-detail-back:hover{text-decoration:underline}
+  /* 9/15 之之：返回按钮胶囊化（原纯文字+箭头不醒目） */
+  .sp-detail-back{display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:var(--primary);font-size:14px;margin-bottom:14px;font-weight:700;padding:8px 18px 8px 14px;border-radius:999px;background:var(--primary-soft);border:1px solid rgba(58,154,147,.28);transition:.15s;user-select:none}
+  .sp-detail-back svg{width:15px;height:15px}
+  .sp-detail-back:hover{background:var(--primary);color:#fff;border-color:var(--primary)}
   .sp-detail-title{font-size:20px;font-weight:700;letter-spacing:-.01em}
   .sp-detail-zh{font-size:15px;color:var(--muted);margin-top:2px}
   .sp-detail-tags{margin:10px 0 8px}
@@ -650,7 +652,7 @@
 
   <!-- 详情视图 -->
   <div id="detailView" hidden>
-    <span class="sp-detail-back" id="backBtn">&larr; 返回</span>
+    <span class="sp-detail-back" id="backBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M11 18l-6-6 6-6"/></svg>返回</span>
     <div id="detailBody"></div>
   </div>
 

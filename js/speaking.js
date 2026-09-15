@@ -424,9 +424,8 @@ function openDetail(id){
   const bestScore = getAggScore(s);
   if(bestScore != null) html += '<div class="sp-detail-best">' + (s.type === 'P1' ? 'P1 平均分' : '历史最高') + '：' + scoreLabel(bestScore) + '分</div>';
 
-  // P1 问题列表（逐题可点开 + 录 + 诊断）
+  // P1 问题列表（逐题可点开 + 录 + 诊断）；9/15 之之：删「Part 1 小问题…」说明行
   if(s.type === 'P1' && s.questions && s.questions.length){
-    html += '<div class="sp-q-list-head">Part 1 小问题（一题一卡，答完点「下一题」）</div>';
     html += '<ol class="sp-q-list">';
     s.questions.forEach((q, i) => { html += questionItemHtml(q, i, s); });
     html += '</ol>';
@@ -494,31 +493,15 @@ function openDetail(id){
     html += '</div>';
   }
 
-  // 底部动作区：P1 = 保存/删除/下一话题（P2 的动作已合并到上方 AI 串题思路同一行）
+  // 底部动作区：9/15 之之 — P1 删除「保存/删除此题/下一个话题」三按钮（草稿自动落库，无需保存）；
+  // P2 的动作已合并到上方 AI 串题思路同一行，此处仅 P2 占位
   html += '<div class="sp-detail-actions">';
-  if(s.type === 'P1'){
-    html += '<button class="btn btn-primary" id="saveBtn">保存</button>';
-    html += '<button class="btn btn-danger" id="delSpBtn">删除此题</button>';
-    html += '<button class="btn btn-med" id="nextTopicBtn" style="margin-left:auto">下一个话题 →</button>';
-  }
   html += '</div>';
 
   $('#detailBody').innerHTML = html;
   spAutoGrowAll();   // 9/15：已存草稿的输入框初始渲染即按内容增高
 
-  // 绑定事件
-  const saveBtn = $('#saveBtn');
-  if(saveBtn) saveBtn.addEventListener('click', () => saveDetail(id));
-  if(s.type === 'P1'){
-    const nextTopicBtn = document.getElementById('nextTopicBtn');
-    if(nextTopicBtn) nextTopicBtn.addEventListener('click', () => gotoNextTopic());
-  }
-  const delSpBtn = document.getElementById('delSpBtn');
-  if(delSpBtn) delSpBtn.addEventListener('click', () => {
-    if(confirm('确定删除这个口语题？删除后默认题库升级也不会再恢复它。')) deleteSpeaking(id);
-  });
-  // 修：原此处重复绑定了一次 nextTopicBtn（上面 P1 分支已绑过），导致点一次「下一个话题」
-  // 连跳两题。删除重复分支，P2 分支由 else if 改为独立 if（保持大括号配平）。
+  // 绑定事件（9/15 之之：P1 保存/删除/下一话题三按钮已删，草稿输入即自动落库）
   if(s.type === 'P2'){
     // P2：完成 = 返回列表；下一题 = 跳到筛选列表的下一道（沿用现有 gotoNextTopic）
     const fin = $('#p2FinishBtn');
@@ -1301,11 +1284,11 @@ function renderP3Helper(el, r){
 // 单题可点开项 HTML（text=可见文本，qi=题目索引）
 function questionItemHtml(text, qi, s){
   const ans = (s && s.answers) ? s.answers[qi] : null;
-  return '<li class="sp-q" data-qi="' + qi + '">'
-    + '<span class="sp-q-caret">▸</span>'
+  // 9/15 之之：回答面板默认展开、取消折叠（去 caret 箭头与 hidden）
+  return '<li class="sp-q open" data-qi="' + qi + '">'
     + '<span class="sp-q-text">' + escapeHtml(text) + '</span>'
     + ttsBtnHtml()
-    + '<div class="sp-q-panel" data-qi="' + qi + '" hidden>'
+    + '<div class="sp-q-panel" data-qi="' + qi + '">'
     +   '<div class="sp-mini-body" data-body="rec" data-qi="' + qi + '">'
     +     '<textarea class="sp-ans" data-qi="' + qi + '" placeholder="在这里写下你的回答…"></textarea>'
     +     '<div class="sp-rec-list" data-qi="' + qi + '"></div>'
@@ -1369,23 +1352,8 @@ function bindQuestionEvents(id){
       if(txt && txt.textContent.trim()) speakQuestion.speak(txt.textContent.trim(), tts);
     });
 
-    // 点开 / 收起
-    li.addEventListener('click', e => {
-      if(e.target.closest('.sp-q-panel')) return;
-      if(e.target.closest('.sp-tts')) return;
-      const panel = li.querySelector('.sp-q-panel[data-qi="' + qi + '"]');
-      if(!panel) return;
-      const willOpen = panel.hidden;
-      panel.hidden = !willOpen;
-      li.classList.toggle('open', willOpen);
-      const caret = li.querySelector('.sp-q-caret');
-      if(caret) caret.classList.toggle('open', willOpen);
-      // 进入（展开）一道小问题时自动朗读一次
-      if(willOpen){
-        const txt = li.querySelector('.sp-q-text');
-        if(txt && txt.textContent.trim()) speakQuestion.speak(txt.textContent.trim(), tts);
-      }
-    });
+    // 9/15 之之：回答面板默认展开、取消折叠——原「点题干展开/收起」交互删除，
+    // 朗读只由 p1FlowInit 切题时和喇叭按钮触发
 
     // AI 诊断
     const diag = li.querySelector('.sp-diag[data-qi="' + qi + '"]');
@@ -1921,7 +1889,7 @@ async function generateAIHelper(id, qi){
   if(resultEl){ resultEl.innerHTML = '<div class="diag-note">正在按你的人设生成思路和参考回答…</div>'; resultEl.style.display = 'block'; }
 
   try{
-    const sys = '你是雅思口语陪练。考生目标口语 5.5-6 分：句子以简单句为主，但允许混入 1-2 个稍高级的词汇和句型，像真人聊天，不要太难。\n'
+    const sys = '你是雅思口语陪练。考生目标口语 5.5-6 分：句子以简单句为主，词汇难度上限=高中词汇水平（如 important, enjoy, convenient, improve 这类常见词），严禁使用生僻词、学术词、GRE/雅思高级词汇（如 detrimental, paramount, facilitate 一律不行）；拿不准的词一律换成最简单的说法。\n'
       + '考生会给你一个 Part 1 问题和她的个人素材（人设/经历）。\n'
       + '请完成两件事：\n'
       + '1. 给一条中文「逻辑链」：只给 4-6 个简短的中文关键词组/短语，用中文横杠"—"串连。每个关键词组最多 6 个汉字，严禁写成完整句子，严禁加"表态：""原因1：""原因2：""细节：""感受："等任何前缀标签，严禁输出"[横杠]"这几个字。\n'
@@ -1932,7 +1900,8 @@ async function generateAIHelper(id, qi){
       + '   - 如果题目是一般疑问句（以 Do / Does / Are / Can / Have / Did / Would 等开头），第 1 句才用 Yes, I do. / No, not really. / Definitely. / To be honest, ... 这类表态开头。\n'
       + '   - 如果题目是特殊疑问句（以 What / Where / When / Why / Who / How long / How often / How many 等开头），**不要回答 Yes/No**，第 1 句直接给出事实答案（如 "I\'ve lived here for about 18 years." / "It\'s usually in the evening."），不要绕弯子。\n'
       + '   - 剩下的 1-2 句给原因或自然展开，把考生人设细节（身份/城市/爱好等）自然揉进回答，像真人聊天。\n'
-      + '「稍高级」示例（整段只混入 1-2 个稍高级结构，别句句都用）：like → be really into；good → enjoyable；可加一个 because/when 从句或 who/which 定语从句（如 the doctor who gave me medicine / a book which helps me relax）；可用 to be honest / actually / I\'d say 过渡。\n'
+      + '「稍高级」示例（整段最多 1-2 处，仍须是高中常见词/句型）：like → be really into；good → enjoyable；可加一个 because/when 从句或 who/which 定语从句（如 the doctor who gave me medicine / a book which helps me relax）；可用 to be honest / actually / I\'d say 过渡。\n'
+      + '【词汇难度红线】整段回答里每个词都必须是高中（含初中）学过的常见词；拿不准算不算超纲，就换成更简单的词。宁可朴素，绝不炫技。\n'
       + '要求：不要写复杂长句；参考回答不要超过 3 句；只使用素材里有的信息，不编造；输出严格 JSON：{"logicChain":"中文逻辑链","answer":"英文参考回答"}，不要任何解释文字。';
     const content = await callRelay('speaking_aihelper', [
       { role:'system', content: sys },
@@ -2018,23 +1987,27 @@ function p1FlowInit(s){
   var n = items.length;
   s.answers = s.answers || {};
 
-  // 默认聚焦第一道未做的题（全做完则回到第 1 题）
+  // 默认定位：9/15 之之草稿续练——第一个「无草稿且无成绩」的小题（练到第 3 题退出，重进直达第 3 题
+  // 且草稿还在）；全都有草稿/成绩时，回落到第一个没成绩的题；再回落第 1 题
   var cur = 0;
-  for(var i = 0; i < n; i++){ if(bestOfQuestion(s.answers[i]) == null){ cur = i; break; } }
+  var positioned = false;
+  for(var i = 0; i < n; i++){
+    var __a = s.answers[i];
+    var __hasText = __a && __a.text && String(__a.text).trim();
+    if(!__hasText && bestOfQuestion(__a) == null){ cur = i; positioned = true; break; }
+  }
+  if(!positioned){
+    for(var k = 0; k < n; k++){ if(bestOfQuestion(s.answers[k]) == null){ cur = k; break; } }
+  }
 
-  // ① 进度头（插到题卡列表前）
-  var head = document.createElement('div');
-  head.className = 'sp-flow-head';
-  head.innerHTML = '<div class="sp-flow-dots"></div><div class="sp-flow-count"></div>';
-  list.parentNode.insertBefore(head, list);
+  // ① 进度头（圆点 + n/n 徽章）：9/15 之之要求删除，不再渲染
 
-  // ② 步进导航（插到底部操作区之前）
+  // ② 步进导航（9/15：底部「保存/删除/下一话题」已删，插到题卡列表之后）
   var nav = document.createElement('div');
   nav.className = 'sp-flow-nav';
   nav.innerHTML = '<button class="sp-flow-prev" type="button">← 上一题</button>'
     + '<button class="sp-flow-next" type="button">下一题 →</button>';
-  var acts = document.querySelector('.sp-detail-actions');
-  if(acts) acts.parentNode.insertBefore(nav, acts);
+  list.insertAdjacentElement('afterend', nav);
 
   // ③ 已完成小结（插到题卡列表后）
   var done = document.createElement('div');
@@ -2053,14 +2026,7 @@ function p1FlowInit(s){
       if(qText && qText.textContent.trim()) speakQuestion.speak(qText.textContent.trim(), btn);
     }
 
-    // 进度点
-    var dotsHtml = '';
-    for(var i = 0; i < n; i++){
-      var cls = (i === cur) ? 'cur' : (i < cur ? 'past' : '');
-      dotsHtml += '<span class="sp-flow-dot ' + cls + '">' + (i < cur ? '✓' : '') + '</span>';
-    }
-    head.querySelector('.sp-flow-dots').innerHTML = dotsHtml;
-    head.querySelector('.sp-flow-count').textContent = (cur + 1) + ' / ' + n;
+    // 进度点：9/15 之之要求删除（圆点 + n/n 徽章不再渲染）
 
     // 步进按钮状态
     var prev = nav.querySelector('.sp-flow-prev');
