@@ -850,7 +850,7 @@ const SPEAKING_BANK = [
 /* 口语题库版本号：每次题库大改（删题/建题/调档位）递增。
  * hubLoad 检测到本地 DATA.speakingVersion 落后于此值，则整体用最新库替换本地旧库，
  * 根治「旧 localStorage 累积 100+ 题 / 档位错乱清不掉」的问题（用户刷新即生效，无需手动清缓存）。 */
-const SPEAKING_BANK_VERSION = 10;
+const SPEAKING_BANK_VERSION = 11;   /* 9/15：v10 已被部分浏览器以旧 frequency 污染（merge 曾回填本地档位），bump 11 强制全量重迁移 */
 
 /* 口语合并：以官方 SPEAKING_BANK 为基准，保留用户个人内容、丢弃非官方题。
    入参 localSpeaking = 用户本地/导入的口语数组（可能含旧 100+ 题、框架母本、已填 answers）。
@@ -894,9 +894,10 @@ function mergeSpeakingKeepAnswers(localSpeaking){
       if(local.answers) keep.answers = remapP1AnswersByQuestion(official, local);
       if(local.speakingStories) keep.speakingStories = local.speakingStories;
       if(local.titleZh) keep.titleZh = local.titleZh;
-      // category 不再回填本地旧值（design/12：类目口径已统一为 人物/事件/地点/事物/日常，
-      // 官方库为准；老数据里的 物品/抽象 若回填会压掉新类目，筛选又会错位）
-      if(local.frequency) keep.frequency = local.frequency;
+      // 9/15 之之实锤：本地旧 frequency 绝不能回填——频次是题库官方属性，不是用户个人内容。
+      // 旧这行让 localStorage 旧档位永远压掉官方新档位（表现=线上改了频次、她浏览器死活不变，
+      // 且 speakingVersion 已同步写 10 后门控不再触发迁移，刷新永远无效）。个人内容仅限
+      // answers / speakingStories / titleZh；category 同理以官方库为准。
       return keep;
     });
 }
