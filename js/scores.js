@@ -17,12 +17,15 @@ var MOCK_TYPES = {
 /* 模块 C：整卷客观题（听/读）按「答对率 → 雅思 band」近似估分。
    官方对照为 40 题满分制；若实际总题数不是 40，先按比例折算到 40 再查表。
    仅为练习参考，标签带「约」。口语/写作不估（评分制本身即 band）。 */
-/* 9/15 修「估分偏高」：对齐官方通用对照（听力 A/G 通用，阅读 A 类）。
-   旧表两处偏高：听力 18 题曾给 5.5（官方 16-19=5.0、20-22=5.5）；32 题曾给 7.5（官方 30-32=7.0、33-34=7.5）。
-   阅读 A 类同口径（主流对照：20-22=5.5、15-19=5.0，5.5 边界比 IDP 的 19 略保守）。 */
+/* 9/15 二次校准：以 IDP 官方（IELTS 主办方之一，ielts.idp.com「Listening band scores /
+   Academic Reading band scores」页，2026-09-15 查证）为准，并经 ielts.org 官方整数档锚点交叉验证
+   （听力 5=16/6=23/7=30/8=35；阅读A 5=15/6=23/7=30/8=35，全部吻合）。
+   注意：ielts.org 声明精确判分线每次考试按难度有 ±1 浮动，半档线官方从未公布——IDP 全表是现有最权威来源。
+   与民间流传版（16-19=5.0/20-22=5.5/30-32=7.0）的差异：听力 18-22 即 5.5、30-31 即 7.0、32 即 7.5。
+   低于 4 题（约 2.0 以下）不估分，与旧逻辑一致。 */
 var BAND_TABLE = {
-  reading: [ [39,9],[37,8.5],[35,8],[33,7.5],[30,7],[27,6.5],[23,6],[20,5.5],[15,5],[13,4.5],[10,4],[8,3.5],[6,3],[4,2.5] ],
-  listening: [ [39,9],[37,8.5],[35,8],[33,7.5],[30,7],[27,6.5],[23,6],[20,5.5],[16,5],[13,4.5],[10,4],[8,3.5],[6,3],[4,2.5] ],
+  reading: [ [39,9],[37,8.5],[35,8],[33,7.5],[30,7],[27,6.5],[23,6],[19,5.5],[15,5],[13,4.5],[10,4],[8,3.5],[6,3],[4,2.5] ],
+  listening: [ [39,9],[37,8.5],[35,8],[32,7.5],[30,7],[26,6.5],[23,6],[18,5.5],[16,5],[13,4.5],[11,4],[8,3.5],[6,3],[4,2.5] ],
 };
 
 ready(() => {
@@ -433,6 +436,12 @@ function addMock(){
     const tt = parts.reduce((s,p) => s + p.total, 0);
     const band = estimateBand(type, tc, tt);
     if(band != null) msg += '（' + cfg.name + '整卷约 ' + band.toFixed(1) + ' 分）';
+    // 9/15 距目标反馈：目标对个数由设置页目标分推导（听力 5.5→21，阅读 6.5→28）
+    const n = targetCorrectFor(type, (DATA.settings.targets || {})[type]);
+    if(n != null){
+      if(tc >= n) msg += '，已达' + cfg.name + '目标 ' + n + ' 个 ✓';
+      else msg += '，距' + cfg.name + '目标 ' + n + ' 个还差 ' + (n - tc) + ' 个';
+    }
   }
   toast(msg);
 }
@@ -451,6 +460,22 @@ function estimateBand(type, correct, total){
   const eq = correct / total * 40;
   if(eq < 4) return null;
   for(const [min, band] of tbl){ if(eq >= min) return band; }
+  return null;
+}
+
+/* 9/15 整卷「目标对个数」：由设置页目标分自动推导，无需新增设置项。
+   规则（之之 9/15 定版）：取该 band 档位正确题数区间的最低个数 + 2（上限 40）。
+   听力 5.5 → 18-22 → 18+2 = 20；阅读 6.5 → 27-29 → 27+2 = 29；听力 6.0 → 23-25 → 25。
+   未设目标分 / 口语写作（band 即评分，无客观题表）/ 目标分无对应档位 → 返回 null。 */
+function targetCorrectFor(type, bandTarget){
+  const tbl = BAND_TABLE[type];
+  const t = Number(bandTarget);
+  if(!tbl || !(t > 0)) return null;
+  for(let i = 0; i < tbl.length; i++){
+    if(tbl[i][1] === t){
+      return Math.min(40, tbl[i][0] + 2);
+    }
+  }
   return null;
 }
 
@@ -718,13 +743,17 @@ function renderMockList(){
     const partsHtml = r.parts.map(p => partIsScore(p)
       ? `<span class="badge">${p.label} · ${p.score}</span>`
       : `<span class="badge">${p.label} ${p.correct||0}/${p.total||0}</span>`).join(' ');
-    // 整卷客观题：顺带估算卷面分
+    // 整卷客观题：顺带估算卷面分 + 距目标反馈（目标对个数由设置页目标分推导，9/15）
     let estBadge = '';
     if(r.granularity === 'whole' && !hasScore){
       const tc = r.parts.reduce((s,p) => s + (p.correct||0), 0);
       const tt = r.parts.reduce((s,p) => s + (p.total||0), 0);
       const band = estimateBand(r.type, tc, tt);
       if(band != null) estBadge = ` <span class="badge up">约 ${band.toFixed(1)} 分</span>`;
+      const n = targetCorrectFor(r.type, (DATA.settings.targets || {})[r.type]);
+      if(n != null) estBadge += tc >= n
+        ? ` <span class="badge up">已达 ${n} 个 ✓</span>`
+        : ` <span class="badge">差 ${n - tc} 到 ${n}</span>`;
     }
     return `<div class="score-row mk-row">
       <strong style="min-width:70px">${r.date}</strong>
