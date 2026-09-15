@@ -196,11 +196,11 @@ body{
 /* ===== 侧边栏母导航 ===== */
 .top-nav{position:fixed;top:0;left:0;bottom:0;width:256px;background:rgba(255,255,255,.78);
   -webkit-backdrop-filter:saturate(180%) blur(24px);backdrop-filter:saturate(180%) blur(24px);
-  border-right:1px solid var(--line);z-index:50;display:flex;flex-direction:column;padding:12px 14px;gap:6px;overflow-y:auto;scrollbar-gutter:stable;box-shadow:0 1px 2px rgba(16,24,40,.04);transition:transform .25s, box-shadow .15s;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+  border-right:1px solid var(--line);z-index:50;display:flex;flex-direction:column;padding:10px 14px;gap:3px;overflow-y:auto;scrollbar-gutter:stable;box-shadow:0 1px 2px rgba(16,24,40,.04);transition:transform .25s, box-shadow .15s;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
 [data-theme="dark"] .top-nav{background:rgba(26,26,28,.72)}
 .top-nav::-webkit-scrollbar{width:8px}
 .top-nav::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
-.side-head{display:flex;justify-content:flex-start;align-items:center;gap:8px;padding:8px 12px 10px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.side-head{display:flex;justify-content:flex-start;align-items:center;gap:8px;padding:6px 12px 8px;border-bottom:1px solid var(--line);margin-bottom:2px}
 .side-head img{width:40px;height:40px;flex:none}
 .side-brand-mark{
   width:40px;height:40px;flex:none;
@@ -280,7 +280,7 @@ body{
 
 /* 侧边栏搜索框与标题、导航视觉统一（与 side-item 12px 圆角/内边距对齐，收紧留白） */
 .top-nav .ui-search{width:100%;max-width:none}
-.top-nav .ui-search-input{height:38px;padding:0 12px 0 44px;border-radius:12px;font-size:14px;background:var(--surface-2)}
+.top-nav .ui-search-input{height:36px;padding:0 12px 0 44px;border-radius:12px;font-size:14px;background:var(--surface-2)}   /* 9/15 收紧：38→36 */
 .top-nav .ui-search-input:focus,.top-nav .ui-search-input:hover{box-shadow:0 0 0 4px var(--primary-soft)}
 .top-nav .ui-search-icon{left:12px;width:18px;height:18px}
 
@@ -313,7 +313,7 @@ body.sheet-open .sheet{transform:translateY(0)}
 }
 /* ── 全局基础：容器/卡片/页题（9/15 从移动端媒体块之后上移到此——原位置同特异性覆盖了
    手机分支的 padding/字号，导致手机左右空隙一直偏大；上移后 @media 内的值才真正生效） ── */
-.container{max-width:1080px;margin:0 auto;padding:40px 24px 48px}   /* 9/15：左右 32→24（之之：桌面空隙也偏大） */
+.container{max-width:1160px;margin:0 auto;padding:40px 14px 48px}   /* 9/15 二修：左右 24→14、max-width 1080→1160（之之：桌面空隙还是太大，要明显缩小） */
 .page-title{margin:0 0 4px;font-size:25px;font-weight:800;letter-spacing:-.02em}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:24px;margin-bottom:24px;box-shadow:var(--shadow);transition:box-shadow .2s ease,transform .2s ease,border-color .2s ease}
 .card:hover{box-shadow:var(--shadow-card-hover);border-color:var(--primary-200);transform:translateY(-2px)}
@@ -1701,7 +1701,7 @@ main .quote{
 
 
 /* ====== 页头（标题+副标题+右侧统计 chip 通用） 2026-08-22 ====== */
-.page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin:0 0 18px;padding-left:48px;flex-wrap:wrap;max-width:1080px}
+.page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin:0 0 18px;padding-left:48px;flex-wrap:wrap;max-width:1160px}
 .page-head-l{min-width:0}
 .page-head-l .page-title{margin:0}
 .page-head-l .page-sub{margin:6px 0 0;font-size:13px;color:var(--muted)}
@@ -2989,7 +2989,7 @@ body.has-dock main.container{ padding-bottom:0; }
 .exam-essay-orig{padding:4px 28px 24px;white-space:pre-wrap;line-height:1.9;font-size:15px;color:var(--ink)}
 
 /* ── 侧边栏 AI 智能搜索下拉 ── */
-.side-search-wrap{position:relative;margin:4px 0 6px}
+.side-search-wrap{position:relative;margin:0 0 2px}   /* 9/15 收紧：4/6 → 0/2（之之：搜索栏上下空隙多） */
 .side-search-wrap .ui-search{margin:0}
 .ss-panel{position:absolute;top:calc(100% + 4px);left:0;right:0;min-width:230px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);z-index:80;max-height:60vh;overflow:auto;padding:6px}
 .ss-item{display:flex;align-items:center;gap:8px;width:100%;padding:9px 10px;border:none;background:transparent;border-radius:8px;font:inherit;font-size:13.5px;color:var(--ink);cursor:pointer;text-align:left}
@@ -3118,13 +3118,14 @@ body.has-dock main.container{ padding-bottom:0; }
 /* 9/15：中央凸起主钮已撤（之之要求背词与其他项风格完全一致），5 槽同构；dock-raised 旧规则删除 */
 
 @media (max-width:860px){
-  /* 9/15：dock 贴底通栏——去掉下沿 10-18px 悬浮缝（之之：底部多余白色空隙、断层感）；
-     左右只留 8px，底部安全区并入内边距（iPhone home indicator 不遮挡） */
+  /* 9/15 二修（之之截图：dock 下方仍有一条灰白缝）：根因是 safe-area 双重叠加——
+     bottom:env(safe-area) 把整个 dock 抬高 home indicator 高度，padding 又吃一遍。
+     改为 bottom:0 真贴底，safe-area 只并入内部 padding（图标不被 home indicator 挡住）。 */
   #hubDock{
     left:8px; right:8px; transform:none;
     width:auto; max-width:none;
-    bottom:env(safe-area-inset-bottom, 0px);
-    border-radius:20px 20px 14px 14px;
+    bottom:0;
+    border-radius:20px 20px 0 0;
     border-bottom:none;
     padding:7px 8px calc(7px + env(safe-area-inset-bottom, 0px));
   }
