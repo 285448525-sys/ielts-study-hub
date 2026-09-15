@@ -325,23 +325,11 @@ const SPEAKING_BANK = [
     "Why did you choose to study that subject?",
     "Do you think that your subject is popular in your country?",
     "Do you have any plans for your studies in the next five years?",
-    "What are the benefits of being your age?",
     "Do you want to change your major?",
-    "Do you prefer to study in the mornings or in the afternoons?",
-    "How much time do you spend on your studies each week?",
     "Are you looking forward to working?",
-    "What technology do you use when you study?",
-    "What changes would you like to see in your school?",
     "What work do you do?",
     "Why did you choose to do that type of work (or that job)?",
-    "Do you like your job?",
-    "What requirements did you need to meet to get your current job?",
-    "Do you have any plans for your work in the next five years?",
-    "What do you think is the most important at the moment?",
-    "Do you want to change to another job?",
-    "Do you miss being a student?",
-    "What technology do you use at work?",
-    "Who helps you the most? And how?"],
+    "Do you want to change to another job?"],
     cue:'', content:'', keywords:'', linkedTo:"必考题", proficiency:"没练" },
 { id:"sb_p1_home", type:"P1", period:"2026-09-14", isNew:false, frequency:"ultra", category:"地点",
     titleEn:"Home/accommodation", titleZh:"住所",
@@ -352,16 +340,9 @@ const SPEAKING_BANK = [
     "What part of your home do you like the most?",
     "How long have you lived there?",
     "Do you plan to live there for a long time?",
-    "the past?",
     "Can you describe the place where you live?",
-    "What room does your family spend most of the time in?",
-    "What's your favorite room in your apartment or house？",
-    "What makes you feel pleasant in your home？",
-    "Do you think it is important to live in a comfortable environment？",
     "Do you live in an apartment or a house?",
-    "Who do you live with?",
-    "What do you usually do in your apartment?",
-    "What kinds of accommodation do you live in?"],
+    "Who do you live with?"],
     cue:'', content:'', keywords:'', linkedTo:"必考题", proficiency:"没练" },
 { id:"sb_p1_hometown", type:"P1", period:"2026-09-14", isNew:false, frequency:"ultra", category:"地点",
     titleEn:"Hometown", titleZh:"家乡",
@@ -371,15 +352,11 @@ const SPEAKING_BANK = [
     "How long have you been living there?",
     "Do you think you will continue living there for a long time?",
     "Do you like your hometown?",
-    "Do you like living there?",
     "What do you like (most) about your hometown?",
     "Is there anything you dislike about it?",
     "What's your hometown famous for？",
-    "Did you learn about the history of your hometown at school？",
-    "Are there many young people in your hometown?",
     "Is your hometown a good place for young people to pursue their careers?",
-    "Have you learned anything about the history of your hometown?",
-    "Did you learn about the culture of your hometown in your childhood?"],
+    "Have you learned anything about the history of your hometown?"],
     cue:'', content:'', keywords:'', linkedTo:"可套框架②", proficiency:"没练" },
 { id:"sb_p1_area", type:"P1", period:"2026-09-14", isNew:false, frequency:"ultra", category:"地点",
     titleEn:"The area you live in", titleZh:"居住的地方",
@@ -399,11 +376,8 @@ const SPEAKING_BANK = [
     "Do you like this city? Why?",
     "How long have you lived in this city?",
     "Are there big changes in this city?",
-    "Is this city your permanent residence?",
     "Are there people of different ages living in this city?",
     "Are the people friendly in the city?",
-    "Is the city friendly to children and old people?",
-    "Do you often see your neighbors?",
     "What's the weather like where you live?",
     "Would you recommend your city to others?"],
     cue:'', content:'', keywords:'', linkedTo:"必考题", proficiency:"没练" },
@@ -881,12 +855,35 @@ const SPEAKING_BANK = [
 /* 口语题库版本号：每次题库大改（删题/建题/调档位）递增。
  * hubLoad 检测到本地 DATA.speakingVersion 落后于此值，则整体用最新库替换本地旧库，
  * 根治「旧 localStorage 累积 100+ 题 / 档位错乱清不掉」的问题（用户刷新即生效，无需手动清缓存）。 */
-const SPEAKING_BANK_VERSION = 8;
+const SPEAKING_BANK_VERSION = 9;
 
 /* 口语合并：以官方 SPEAKING_BANK 为基准，保留用户个人内容、丢弃非官方题。
    入参 localSpeaking = 用户本地/导入的口语数组（可能含旧 100+ 题、框架母本、已填 answers）。
    返回 = 与官方题库一一对应的新数组，仅回填用户同 id 题的个人内容（answers/串题答案/练习 records），
    绝不新增官方库以外的题、绝不覆盖官方题干。供 hubLoad 版本合并与 importData 导入共用。 */
+/* 9/15 v9：万年老题 P1 小问题精简去重后，旧 answers 键（小题序号）会错位。
+   这里按「题干文本」把旧 answers 重映射到新序号：题干在新库的，答案跟着题干走；
+   被合并掉的问题，其答案一并丢弃。P2 的 answers.p2（无小题概念）原样保留。
+   本地缺 questions 数组（异常旧数据）时退化为按原索引兜底（仍在官方范围内的才保留）。 */
+function remapP1AnswersByQuestion(official, local){
+  const a = local.answers || {};
+  const out = {};
+  const oldQs = Array.isArray(local.questions) ? local.questions : null;
+  const newTextToIdx = {};
+  (official.questions || []).forEach((q, i) => { if(newTextToIdx[q] == null) newTextToIdx[q] = i; });
+  Object.keys(a).forEach(k => {
+    if(k === 'p2'){ out.p2 = a[k]; return; }
+    const idx = Number(k);
+    if(isNaN(idx) || idx < 0) return;
+    let target = -1;
+    const oldText = oldQs ? oldQs[idx] : ((official.questions || [])[idx]);
+    if(oldText != null && newTextToIdx[oldText] != null) target = newTextToIdx[oldText];
+    else if(!oldQs && official.questions && idx < official.questions.length) target = idx;
+    if(target >= 0) out[target] = a[k];
+  });
+  return out;
+}
+
 function mergeSpeakingKeepAnswers(localSpeaking){
   if(!SPEAKING_BANK || !SPEAKING_BANK.length) return localSpeaking || [];
   const legacyDel = (DATA.settings && Array.isArray(DATA.settings.deletedSpeakingIds)) ? DATA.settings.deletedSpeakingIds : [];
@@ -899,7 +896,7 @@ function mergeSpeakingKeepAnswers(localSpeaking){
       const local = localById[official.id];
       if(!local) return Object.assign({}, official);
       const keep = Object.assign({}, official);
-      if(local.answers) keep.answers = local.answers;
+      if(local.answers) keep.answers = remapP1AnswersByQuestion(official, local);
       if(local.speakingStories) keep.speakingStories = local.speakingStories;
       if(local.titleZh) keep.titleZh = local.titleZh;
       // category 不再回填本地旧值（design/12：类目口径已统一为 人物/事件/地点/事物/日常，
