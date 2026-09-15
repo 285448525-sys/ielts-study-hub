@@ -2143,7 +2143,7 @@ function onHubPopState(){
    - 二次切同一页 = 零网络请求、零等待；
    - 首次也能命中「空闲预热」（见 prefetchAll）提前拉好的缓存；
    - 只活在当前会话（刷新即失效），部署新版（?v= 变化）不会被永久缓存住。 */
-const _navDocCache = new Map();     // file -> Document
+const _navDocCache = new Map();     // file -> { doc, v }（v=该页 HTML 引用的脚本版本，用于部署漂移检测）
 const _navCodeCache = new Map();    // src  -> 源码文本
 const NAV_FETCH_TIMEOUT = 20000;    // 单请求 20s 超时：极端慢网下让 softNavigate 走「整页跳转」兜底，绝不无限占住 _softNavBusy
 function navFetchOpts(){
@@ -2154,13 +2154,63 @@ function navFetchOpts(){
   }
   return { cache: 'default' };
 }
+/* 9/15 修「长驻标签页一直显示更新前的 UI」：内存缓存/已执行脚本只反映「本次 boot 时的版本」，
+   标签页跨睡眠/跨部署不关闭时，软导航永远用旧文档+旧脚本（表现为 9/13 模考 tab 改版、十天内筛选修复等
+   全部“没生效”），硬刷新才恢复。现每次取文档都校验其引用的脚本版本与启动版本一致，
+   不一致 = 检测到部署 → 注销 SW + 清 Cache Storage + 整页 reload（60s 节流防循环）。
+   启动版本取当前 document 里 common.js 的 ?v=；任一侧取不到版本则跳过校验（防误杀）。 */
+function bootScriptVersion(){
+  try{
+    const s = document.querySelector('script[src*="common.js"]');
+    const m = s ? (s.getAttribute('src').match(/v=([0-9a-z]+)/) || null) : null;
+    return m ? m[1] : '';
+  }catch(e){ return ''; }
+}
+const BOOT_SCRIPT_V = bootScriptVersion();
+function docScriptVersion(doc){
+  try{
+    const s = doc && doc.querySelector('script[src*="common.js"]');
+    const m = s ? (s.getAttribute('src').match(/v=([0-9a-z]+)/) || null) : null;
+    return m ? m[1] : '';
+  }catch(e){ return ''; }
+}
+let _navSelfHealing = false;
+function navSelfHealReload(){
+  if(_navSelfHealing) return;
+  try{
+    const last = Number(sessionStorage.getItem('hub_nav_v_rl') || 0);
+    if(Date.now() - last < 60000) return;   // 60s 内已自愈过：不再 reload（病态环境下防循环）
+    sessionStorage.setItem('hub_nav_v_rl', String(Date.now()));
+  }catch(e){ return; }                       // sessionStorage 不可用（隐私模式等）→ 放弃自愈，绝不敢乱 reload
+  _navSelfHealing = true;
+  try{
+    if('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations){
+      navigator.serviceWorker.getRegistrations().then(rs => (rs || []).forEach(r => { try{ r.unregister(); }catch(_){} })).catch(function(){});
+    }
+    if(window.caches && caches.keys){
+      caches.keys().then(ks => (ks || []).forEach(k => { try{ caches.delete(k); }catch(_){} })).catch(function(){});
+    }
+  }catch(e){}
+  location.reload();                         // 整页刷新：内存缓存随会话重建，新 HTML+JS 全量生效
+}
+function navVersionCheck(doc){
+  const v = docScriptVersion(doc);
+  if(!BOOT_SCRIPT_V || !v || v === BOOT_SCRIPT_V) return;
+  console.warn('[hub] 检测到站点已更新（运行 ' + BOOT_SCRIPT_V + ' / 页面 ' + v + '），自动刷新以加载新版');
+  navSelfHealReload();
+}
 function navCached(file){ return _navDocCache.has(file); }
 async function navGetDoc(file){
-  if(_navDocCache.has(file)) return _navDocCache.get(file);
+  if(_navDocCache.has(file)){
+    const hit = _navDocCache.get(file);
+    navVersionCheck(hit.doc);                // 内存命中也要校验：boot 后发生的部署同样要自愈
+    return hit.doc;
+  }
   const res = await fetch(file, navFetchOpts());   // 走 HTTP 缓存：未变动 304，部署后 ?v= 变化拿新
   if(!res.ok) throw new Error('HTTP ' + res.status);
   const doc = new DOMParser().parseFromString(await res.text(), 'text/html');
-  _navDocCache.set(file, doc);
+  navVersionCheck(doc);
+  _navDocCache.set(file, { doc, v: docScriptVersion(doc) });
   return doc;
 }
 async function navGetCode(src){
