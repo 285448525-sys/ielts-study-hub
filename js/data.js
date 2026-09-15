@@ -83,7 +83,9 @@ const SPEAKING_BANK = [
     titleEn:"Travelling", titleZh:"旅行",
     questions:[
     "Do you prefer to sit by the window when travelling?",
-    "Did you have a long journey with your family as a child?"],
+    "Did you have a long journey with your family as a child?",
+    "Do you like travelling?",
+    "Do you prefer travelling alone or with other people?"],
     cue:'', content:'', keywords:'', linkedTo:"", proficiency:"没练" },
 { id:"sb_p1_rubbish", type:"P1", period:"2026-09-14", isNew:true, frequency:"ultra", category:"日常",
     titleEn:"Rubbish and recycling", titleZh:"垃圾与回收",
@@ -165,7 +167,9 @@ const SPEAKING_BANK = [
     titleEn:"Opportunities", titleZh:"机会",
     questions:[
     "Should people try as many different things as they can?",
-    "Did you have any opportunities to take part in new activities as a child?"],
+    "Did you have any opportunities to take part in new activities as a child?",
+    "Have you had any opportunities to try new things recently?",
+    "What opportunities do you hope to have in the future?"],
     cue:'', content:'', keywords:'', linkedTo:"", proficiency:"没练" },
 /* ---------- Part 1 · 保留题（16） ---------- */
 { id:"sb_p1_music", type:"P1", period:"2026-09-14", isNew:false, frequency:"ultra", category:"日常",
@@ -358,26 +362,17 @@ const SPEAKING_BANK = [
     "Is your hometown a good place for young people to pursue their careers?",
     "Have you learned anything about the history of your hometown?"],
     cue:'', content:'', keywords:'', linkedTo:"可套框架②", proficiency:"没练" },
-{ id:"sb_p1_area", type:"P1", period:"2026-09-14", isNew:false, frequency:"ultra", category:"地点",
-    titleEn:"The area you live in", titleZh:"居住的地方",
-    questions:[
-    "Do you like the area that you live in?",
-    "Where do you like to go in that area?",
-    "Do you know any famous people in your area?",
-    "What are some changes in the area recently?",
-    "Do you know any of your neighbors?",
-    "Are the people in your neighborhood nice and friendly?",
-    "Do you live in a noisy or a quiet area?"],
-    cue:'', content:'', keywords:'', linkedTo:"可套框架②", proficiency:"没练" },
-{ id:"sb_p1_city", type:"P1", period:"2026-09-14", isNew:false, frequency:"ultra", category:"地点",
-    titleEn:"The city you live in", titleZh:"所在城市",
+{ id:"sb_p1_area", type:"P1", period:"2026-09-15", isNew:false, frequency:"ultra", category:"地点",
+    titleEn:"The area / city you live in", titleZh:"居住的地方/所在城市",
     questions:[
     "What city do you live in?",
-    "Do you like this city? Why?",
+    "Do you like the area that you live in?",
     "How long have you lived in this city?",
-    "Are there big changes in this city?",
-    "Are there people of different ages living in this city?",
-    "Are the people friendly in the city?",
+    "Do you live in a noisy or a quiet area?",
+    "What are some changes in the area recently?",
+    "Where do you like to go in that area?",
+    "Do you know any of your neighbors?",
+    "Are the people in your neighborhood nice and friendly?",
     "What's the weather like where you live?",
     "Would you recommend your city to others?"],
     cue:'', content:'', keywords:'', linkedTo:"必考题", proficiency:"没练" },
@@ -855,7 +850,7 @@ const SPEAKING_BANK = [
 /* 口语题库版本号：每次题库大改（删题/建题/调档位）递增。
  * hubLoad 检测到本地 DATA.speakingVersion 落后于此值，则整体用最新库替换本地旧库，
  * 根治「旧 localStorage 累积 100+ 题 / 档位错乱清不掉」的问题（用户刷新即生效，无需手动清缓存）。 */
-const SPEAKING_BANK_VERSION = 9;
+const SPEAKING_BANK_VERSION = 10;
 
 /* 口语合并：以官方 SPEAKING_BANK 为基准，保留用户个人内容、丢弃非官方题。
    入参 localSpeaking = 用户本地/导入的口语数组（可能含旧 100+ 题、框架母本、已填 answers）。
