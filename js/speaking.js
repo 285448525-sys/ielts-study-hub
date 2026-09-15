@@ -82,12 +82,33 @@ var SYS_DIAG = `你是一位雅思口语纠错助手。你的唯一任务：找�
   ]
 }
 没有错误时返回 {"errors":[]}。
+除 errors 外，必须额外返回 "improved" 字段：把考生回答整体改写成一个更通顺、更地道的版本（保留原意与口语风格，长度与原文相近，只优化表达，不添加新内容；纯符号 "/" 表示对应处直接删除）。
+【注意】corrected 里若某处只是删除（无替换词），用 "/" 表示；不要用省略号或其他写法。
 
 【示例】
 输入: "We are got a big mirror. I leave in my house every day."
 输出: {"errors":[{"original":"We are got","corrected":"We have got / We've got","type":"grammar","explanation":"没有 are got 结构，拥有用 have got"},{"original":"leave in my house","corrected":"leave my house","type":"grammar","explanation":"leave 是及物动词，不需要介词 in"}]}`;
 
 /* 录音 / 转写功能已移除：口语只保留「文本框手写 + AI 纠错 + 提交记录」。现已关闭 P1/P2 评分机制，诊断只返回语法/用词错误，不输出任何分数。 */
+
+/* 9/15 之之要求：回答输入框随内容自动增高（P1 小题/P2 大框/P3 通用），长文本完整展示；
+   极端长文封顶视口 50% 后内部滚动，不把页面顶爆。委托绑定一次，软导航重跑安全。 */
+function spAutoGrow(ta){
+  if(!ta || ta.tagName !== 'TEXTAREA') return;
+  ta.style.height = 'auto';
+  ta.style.height = Math.min(ta.scrollHeight, Math.max(160, Math.round(window.innerHeight * 0.5))) + 'px';
+}
+function spAutoGrowAll(){
+  document.querySelectorAll('.sp-ans, .sp-p3-textarea').forEach(spAutoGrow);
+}
+if(!window.__spAutoGrowBound){
+  window.__spAutoGrowBound = true;
+  document.addEventListener('input', e => {
+    const t = e.target;
+    if(t && t.tagName === 'TEXTAREA' && (t.classList.contains('sp-ans') || t.classList.contains('sp-p3-textarea'))) spAutoGrow(t);
+  });
+  window.addEventListener('resize', () => spAutoGrowAll());
+}
 
 // P2 专用诊断提示词（语法纠错 + 串题素材连接；复用 SYS_DIAG 通用规则，追加 P2 专属要求）
 var SYS_DIAG_P2 = SYS_DIAG
@@ -482,6 +503,7 @@ function openDetail(id){
   html += '</div>';
 
   $('#detailBody').innerHTML = html;
+  spAutoGrowAll();   // 9/15：已存草稿的输入框初始渲染即按内容增高
 
   // 绑定事件
   const saveBtn = $('#saveBtn');
@@ -744,7 +766,7 @@ function openDetail(id){
     }
     // 渲染 P2 提交历史记录
     renderSubmitRecords((s.answers.p2 && s.answers.p2.records) || [], $('#p2Records'), (rec) => {
-      const ta = $('#p2Ans'); if(ta && rec.text != null) ta.value = rec.text;
+      const ta = $('#p2Ans'); if(ta && rec.text != null){ ta.value = rec.text; ta.dispatchEvent(new Event('input', { bubbles: true })); }
       const res = $('#p2Result');
       if(res && rec.result){
         try{ const j = JSON.parse(rec.result); if(renderP2Diag(res, j, rec.text)){ res.style.display = 'block'; return; } }catch(_){}
@@ -1330,7 +1352,7 @@ function bindQuestionEvents(id){
       }
       // 渲染提交历史记录（每次手写提交都会记录，点击可回填，✕ 可删除）
       renderSubmitRecords(s.answers[qi].records, li.querySelector('.sp-rec-list[data-qi="' + qi + '"]'), (rec) => {
-        if(ta && rec.text != null) ta.value = rec.text;
+        if(ta && rec.text != null){ ta.value = rec.text; ta.dispatchEvent(new Event('input', { bubbles: true })); }
         if(resultEl && rec.result){
           try{ const j = JSON.parse(rec.result); renderDiag(resultEl, j, rec.result, rec.text); resultEl.style.display = 'block'; }
           catch(_){ resultEl.innerHTML = '<pre>' + escapeHtml(rec.result) + '</pre>'; resultEl.style.display = 'block'; }
@@ -1442,7 +1464,7 @@ function removeSubmitRecord(s, key, idx){
   hubSave();
   if(key === 'p2'){
     renderSubmitRecords(s.answers.p2.records, $('#p2Records'), (rec) => {
-      const ta = $('#p2Ans'); if(ta && rec.text != null) ta.value = rec.text;
+      const ta = $('#p2Ans'); if(ta && rec.text != null){ ta.value = rec.text; ta.dispatchEvent(new Event('input', { bubbles: true })); }
       const res = $('#p2Result');
       if(res && rec.result){
         try{ const j = JSON.parse(rec.result); if(renderP2Diag(res, j, rec.text)){ res.style.display = 'block'; return; } }catch(_){}
@@ -1456,7 +1478,7 @@ function removeSubmitRecord(s, key, idx){
     renderSubmitRecords(s.answers[key].records, container, (rec) => {
       const ta = li ? li.querySelector('.sp-ans[data-qi="' + key + '"]') : null;
       const resultEl = li ? li.querySelector('.sp-q-result[data-qi="' + key + '"]') : null;
-      if(ta && rec.text != null) ta.value = rec.text;
+      if(ta && rec.text != null){ ta.value = rec.text; ta.dispatchEvent(new Event('input', { bubbles: true })); }
       if(resultEl && rec.result){
         try{ const j = JSON.parse(rec.result); renderDiag(resultEl, j, rec.result, rec.text); resultEl.style.display = 'block'; }
         catch(_){ resultEl.innerHTML = '<pre>' + escapeHtml(rec.result) + '</pre>'; resultEl.style.display = 'block'; }
@@ -1510,7 +1532,7 @@ function renderP2Diag(el, j, answer){
   if(!j || !Array.isArray(j.errors)){ el.innerHTML = ''; return false; }
   const errs = cleanErrors(j.errors);
   let h = '<div class="diag-sec"><b>语法/用词纠错</b>' + diffSentenceHtml(answer, errs) + '</div>';   // 评分机制已关闭（P2 仅展示语法/用词错误 + 串题建议，不再显示分数）
-  if(j.rewrite) h += '<div class="diag-sec"><b>改进建议</b><div class="diag-rewrite">' + escapeHtml(j.rewrite) + '</div></div>';
+  if(j.rewrite) h += '<div class="diag-sec"><b>改进版表达</b><div class="diag-rewrite">' + escapeHtml(j.rewrite) + '</div></div>';
   if(j.storyLink) h += '<div class="diag-sec"><b>📌 串题素材连接</b><div class="diag-note">可以用你已准备的这些万能素材来回答这道题：</div>' + escapeHtml(j.storyLink) + '</div>';
   el.innerHTML = h;
   return true;
@@ -1574,7 +1596,7 @@ async function diagnoseP2(id){
     refreshScoreAfterDiag(s);
     // 刷新 P2 提交历史列表
     renderSubmitRecords(s.answers.p2.records, $('#p2Records'), (rec) => {
-      const ta = $('#p2Ans'); if(ta && rec.text != null) ta.value = rec.text;
+      const ta = $('#p2Ans'); if(ta && rec.text != null){ ta.value = rec.text; ta.dispatchEvent(new Event('input', { bubbles: true })); }
       const res = $('#p2Result');
       if(res && rec.result){
         try{ const j2 = JSON.parse(rec.result); if(renderP2Diag(res, j2, rec.text)){ res.style.display = 'block'; return; } }catch(_){}
@@ -1662,7 +1684,7 @@ function wordDiff(a, b){
   while(i < wa.length || j < wb.length){
     if(i < wa.length && j < wb.length && wa[i].toLowerCase() === wb[j].toLowerCase()){
       out.push({type:'same', text: wa[i]}); i++; j++;
-    } else if(j < wb.length && (i === wa.length || dp[i][j+1] >= dp[i+1][j])){
+    } else if(j < wb.length && (i === wa.length || dp[i][j+1] > dp[i+1][j])){   // 9/15：相等时优先 del——「先划原文、后见替换」之之定版语序
       out.push({type:'ins', text: wb[j]}); j++;
     } else if(i < wa.length){
       out.push({type:'del', text: wa[i]}); i++;
@@ -1671,7 +1693,8 @@ function wordDiff(a, b){
   return out;
 }
 
-// 在原句中 inline 标出修改：完整原句放中间，只划掉错误词，箭头+正确词写旁边，不加说明
+// 在原句中 inline 标出修改（9/15 之之定版）：错误原文划删除线，绿色替换文本直接并排显示；
+// 纯符号替换（AI 用 "/" 表示删除该词）不显示替换块，只留删除线；不再使用箭头对比形式
 function diffSentenceHtml(answer, errs){
   const ans = String(answer || '').trim();
   const clean = cleanErrors(errs);
@@ -1679,6 +1702,7 @@ function diffSentenceHtml(answer, errs){
   if(!clean.length && !broken) return '<div class="diag-ok">没发现明显错误，继续保持～</div>';
   if(!clean.length && broken) return '<div class="diag-warn">句子有明显语法问题（如缺 be 动词/时态/成分残缺），但 AI 未具体指出。建议重读原句或手动检查。</div>';
   if(!ans) return inlineErrorsHtml(clean);
+  const isPlaceholderFix = t => /^[\s\/\-–—|,.;!?、；。]*$/.test(String(t || ''));
 
   // 按 original 在原句中出现位置排序，从后往前替换，避免偏移
   const reps = [];
@@ -1692,10 +1716,9 @@ function diffSentenceHtml(answer, errs){
     let html = '';
     let prevType = null;
     parts.forEach(p => {
-      if(prevType && prevType !== 'same' && p.type !== 'same') html += ' ';
       if(p.type === 'same') html += (html ? ' ' : '') + escapeHtml(p.text);
       if(p.type === 'del') html += (html ? ' ' : '') + '<s class="diag-wrong">' + escapeHtml(p.text) + '</s>';
-      if(p.type === 'ins') html += (html ? ' ' : '') + '<span class="diag-arrow">→</span><span class="diag-right">' + escapeHtml(p.text) + '</span>';
+      if(p.type === 'ins' && !isPlaceholderFix(p.text)) html += (html ? ' ' : '') + '<span class="diag-right">' + escapeHtml(p.text) + '</span>';
       prevType = p.type;
     });
     reps.push({idx, len: orig.length, html});
@@ -1743,6 +1766,8 @@ function adaptDiag(j){
   }
   // 建议：suggestions → rewrite（渲染层作为"改进建议"显示）
   if(j.suggestions != null && j.rewrite == null) j.rewrite = j.suggestions;
+  // 9/15：improved（更通顺地道的改进版）→ rewrite，与旧字段共用渲染；improved 优先
+  if(j.improved != null && String(j.improved).trim()) j.rewrite = String(j.improved).trim();
   // 发音由前端用设置值接管：删掉 pronunciation（顶层或 score 内），避免与设置值混淆
   if(j.score && j.score.pronunciation != null) delete j.score.pronunciation;
   if(j.pronunciation != null) delete j.pronunciation;
@@ -1814,16 +1839,16 @@ function normalizeScore(j, answerText, rewriteText){
   return j;
 }
 
-// 渲染 inline 笔记式纠错（fallback：无法定位原句时使用）
+// 渲染 inline 笔记式纠错（fallback：无法定位原句时使用；9/15 去箭头，划线+绿色替换并排）
 function inlineErrorsHtml(errs){
   if(!errs.length) return '<div class="diag-ok">没发现明显错误，继续保持～</div>';
+  const isPlaceholderFix = t => /^[\s\/\-–—|,.;!?、；。]*$/.test(String(t || ''));
   return '<div class="diag-inline-list">' + errs.map((e, i) => {
     const issue = String(e.issue || '').trim();
     return (i > 0 ? '<span class="diag-sep">·</span>' : '')
       + '<span class="diag-inline-item">'
       + '<s class="diag-wrong">' + escapeHtml(e.original || '') + '</s>'
-      + '<span class="diag-arrow">→</span>'
-      + '<span class="diag-right">' + escapeHtml(e.fix || '') + '</span>'
+      + (isPlaceholderFix(e.fix) ? '' : '<span class="diag-right">' + escapeHtml(e.fix || '') + '</span>')
       + (issue ? '<span class="diag-inline-note">' + escapeHtml(issue) + '</span>' : '')
       + '</span>';
   }).join('') + '</div>';
@@ -1836,7 +1861,7 @@ function renderDiag(el, j, raw, answer){
   if(j && Array.isArray(j.errors)){
     const errs = cleanErrors(j.errors);
     let h = '<div class="diag-sec"><b>语法/用词纠错</b>' + diffSentenceHtml(answer, errs) + '</div>';
-    if(j.rewrite) h += '<div class="diag-sec"><b>改进建议</b><div class="diag-rewrite">' + escapeHtml(j.rewrite) + '</div></div>';
+    if(j.rewrite) h += '<div class="diag-sec"><b>改进版表达</b><div class="diag-rewrite">' + escapeHtml(j.rewrite) + '</div></div>';
     el.innerHTML = scoreHtml + h;
   } else {
     el.innerHTML = scoreHtml + '<div class="diag-note">（AI 返回非标准格式，已贴原文）</div><pre>' + escapeHtml(raw || '') + '</pre>';

@@ -1314,14 +1314,19 @@ main .eb-block + .eb-block{
 .diag-inline-item{
   display:inline-flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;
 }
+/* 9/15 之之反馈：删除线原来用 --err-bg（浅粉）几乎看不见 → 改为深红删除线+浅粉底块；
+   绿色替换加浅绿底块；每处纠错自成一块，清晰独立不连片 */
 .diag-wrong{
-  color:var(--err-text);text-decoration:line-through;text-decoration-color:var(--err-bg);
+  color:var(--err-text);font-weight:600;
+  text-decoration:line-through;text-decoration-color:var(--err-text);text-decoration-thickness:1.5px;
+  background:var(--err-bg);border-radius:4px;padding:1px 5px;margin:0 2px;
 }
 .diag-arrow{
   color:var(--muted);font-size:13px;padding:0 2px;
 }
 .diag-right{
-  color:var(--ok-text);font-weight:600;
+  color:var(--ok-text);font-weight:700;
+  background:var(--ok-bg);border-radius:4px;padding:1px 5px;margin:0 2px;
 }
 .diag-inline-note{
   color:var(--muted);font-size:12.5px;
@@ -1336,19 +1341,22 @@ main .eb-block + .eb-block{
   color:var(--warn-ink);font-size:14px;background:var(--warn-soft);border-radius:var(--radius-sm);padding:10px 12px;
 }
 
-/* 口语诊断：整句 diff 式纠错（原句放中间，只划错误词，箭头+正确词在旁边） */
+/* 口语诊断：整句 diff 式纠错（原句放中间，错误词划掉+绿色替换并排；9/15 去箭头改标记式） */
 .diag-sentence-diff{
-  font-size:15px;line-height:1.9;color:var(--ink);
+  font-size:15px;line-height:2.1;color:var(--ink);
   background:var(--surface-2);border-radius:var(--radius-sm);padding:14px 16px;
 }
 .diag-sentence-diff .diag-wrong{
-  color:var(--err-text);text-decoration:line-through;text-decoration-color:var(--err-bg);
+  color:var(--err-text);font-weight:600;
+  text-decoration:line-through;text-decoration-color:var(--err-text);text-decoration-thickness:1.5px;
+  background:var(--err-bg);border-radius:4px;padding:1px 5px;margin:0 2px;
 }
 .diag-sentence-diff .diag-arrow{
   color:var(--muted);font-size:13px;margin:0 4px;
 }
 .diag-sentence-diff .diag-right{
-  color:var(--ok-text);font-weight:600;
+  color:var(--ok-text);font-weight:700;
+  background:var(--ok-bg);border-radius:4px;padding:1px 5px;margin:0 2px;
 }
 
 /* 长难句原句：从斜体灰字升级为清晰 callout（仍是输入，非 AI 输出，但同页相邻顺手优化） */
