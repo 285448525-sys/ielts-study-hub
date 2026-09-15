@@ -2033,33 +2033,32 @@ body.word-fullscreen .page-title{display:none}
 body.word-fullscreen .page-head-row{display:none}   /* 空壳仍占 22px margin，全屏态直接摘掉 */
 body.word-fullscreen .word-tabs{display:none}
 
-/* ① 舞台：灰页面底 + 卡片在视口内水平·垂直居中（无页头遮挡，居中比顶对齐更稳）。
-   左右各留 32px（同非全屏 main.container 的 padding），保证窄窗口下卡片也不贴边；
-   上下留白随视口高自适应（12~32px）——矮窗口不被裁掉底部喇叭按钮。 */
+/* ① 舞台：9/15 之之要求全屏铺满——容器去内边距与居中，白卡直接铺满整个视口（不再灰底留边）。
+   上下左右留白全部交给卡片自身 clamp 内边距控制，大屏不散、小屏不贴边。 */
 body.word-fullscreen main.container{
-  padding:clamp(12px,3vh,32px) 32px !important;max-width:none !important;min-height:100vh;
-  display:flex;flex-direction:column;justify-content:center;align-items:center;
-  background:var(--bg);
+  padding:0 !important;max-width:none !important;min-height:100vh;
+  display:flex;flex-direction:column;
+  background:var(--surface,#fff);
 }
 body.word-fullscreen #studyView.study-view-fit{
-  min-height:0;width:100%;background:transparent;
-  display:flex;flex-direction:column;justify-content:center;
+  min-height:0;width:100%;flex:1;background:transparent;
+  display:flex;flex-direction:column;
 }
 
-/* ② 卡片外壳：只补「宽度 + 不撑满视口」，白底/圆角/描边/阴影全部沿用 .card 基础规则。
-   宽度 = 非全屏 main.container 的 1080 − 左右各 32 内边距 = 1016，两套模式下卡片一模一样宽，
-   卡内 960 内容列因此在两边都只剩 5px 富余（像素级一致）。 */
+/* ② 卡片外壳：铺满整个视口（去描边/圆角/阴影 = 无「框」感），内边距随视口弹性伸缩 */
 body.word-fullscreen .practice-card.practice-card-fit{
-  min-height:0;width:100%;max-width:calc(1080px - 64px);margin:0 auto;
+  flex:1;min-height:100vh;width:100%;max-width:none;margin:0;
+  border:none;border-radius:0;box-shadow:none;
+  padding:clamp(14px,2.5vh,32px) clamp(20px,4vw,60px);
   justify-content:flex-start;
 }
 
-/* ③ 全屏答题态：锁死视口禁止滑动（之之 9/8）。卡片改为内容高度 + 不撑满 100vh，上下留舞台内边距。 */
+/* ③ 全屏答题态：锁死视口禁止滑动（之之 9/8）。卡片 = 整个视口（height 100vh），内容由 ⑤ 弹性分布。 */
 html:has(body.word-fullscreen #practiceBody .opts-grid){overflow:hidden}
 body.word-fullscreen:has(#practiceBody .opts-grid){overflow:hidden !important}
 body.word-fullscreen:has(#practiceBody .opts-grid) main.container{height:100vh;overflow:hidden}
 body.word-fullscreen:has(#practiceBody .opts-grid) .practice-card.practice-card-fit{
-  max-height:calc(100vh - clamp(24px,6vh,64px));min-height:0;overflow:hidden;
+  height:100vh;max-height:none;min-height:0;overflow:hidden;
 }
 body.word-fullscreen .practice-tools-row{ display:none !important; }
 /* ④ 全屏沉浸不留任何悬浮物：dock + 底部计时胶囊都要藏。
@@ -2069,14 +2068,35 @@ body.word-fullscreen .practice-tools-row{ display:none !important; }
 body.word-fullscreen #hubDock{ display:none !important; }
 body.word-fullscreen #floatTimer{ display:none !important; }
 
-/* ④ 卡内元素：不再复制一份覆盖（原来这里把题干/选项/按钮又写了一遍，导致两套模式漂移）。
-   以下全部回落到 .practice-card-fit / #practiceBody.practice-body-fit 的基础规则：
-   单词 38px · 选项 88px/14px 18px/gap 14 · 「不知道」52px 通栏 · 喇叭 48px ·
-   topzone 18px · word-area 4/4/8 + 下 6px · answer-btns 上 12px · speaker-wrap 上 14px/内 10px。 */
-/* 窄屏（手机）：卡片满宽铺平，省下左右留白（与非全屏手机态同一处理） */
+/* ④b 内容列：铺满后加宽（960 → min(88vw,1120px)），题目/选项/按钮吃到全屏宽度红利 */
+body.word-fullscreen #practiceBody.practice-body-fit .last-word,
+body.word-fullscreen #practiceBody.practice-body-fit .practice-topzone,
+body.word-fullscreen #practiceBody.practice-body-fit .practice-word-area,
+body.word-fullscreen #practiceBody.practice-body-fit .opts-label,
+body.word-fullscreen #practiceBody.practice-body-fit .opts-grid,
+body.word-fullscreen #practiceBody.practice-body-fit .answer-btns,
+body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap,
+body.word-fullscreen #practiceBody.practice-body-fit .practice-tools-row{ width:100%;max-width:min(88vw,1120px); }
+
+/* ④c 垂直分布：内容块整体在视口内居中，块间距随视口高度弹性伸缩（大屏拉开、矮屏收紧，无大片留白）。
+   尺寸全部 clamp(vh) 单一来源随视口自适应——非全屏基础规则一字不动（9/15 用户授权全屏自由布局）。 */
+body.word-fullscreen #practiceBody.practice-body-fit{ justify-content:center; gap:clamp(8px,1.8vh,20px); }
+body.word-fullscreen #practiceBody.practice-body-fit .answer-btns,
+body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap{ margin-top:0; }
+body.word-fullscreen #practiceBody.practice-body-fit .practice-word-area{ min-height:clamp(120px,17vh,170px); margin-bottom:0; }
+body.word-fullscreen #practiceBody.practice-body-fit .pw-en{ font-size:clamp(38px,4.6vh,52px); }
+body.word-fullscreen #practiceBody.practice-body-fit .pw-ipa{ font-size:clamp(15px,1.9vh,18px); }
+body.word-fullscreen #practiceBody.practice-body-fit .pw-cn{ font-size:clamp(15px,1.9vh,18px); }
+body.word-fullscreen #practiceBody.practice-body-fit .opts-grid{ gap:clamp(12px,1.8vh,18px); }
+body.word-fullscreen #practiceBody.practice-body-fit .opt-big{ height:clamp(88px,13.5vh,122px); }
+body.word-fullscreen #practiceBody.practice-body-fit .opt-big-cn{ font-size:clamp(17px,2.2vh,21px); }
+body.word-fullscreen #practiceBody.practice-body-fit .abtn-unknown{ height:clamp(40px,5.5vh,48px); }
+body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap{ padding-top:0; }
+body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap .tool-btn{ width:clamp(48px,6.2vh,58px); height:clamp(48px,6.2vh,58px); }
+
+/* 窄屏（手机）：铺满态下只收窄卡片左右内边距 */
 @media(max-width:860px){
-  body.word-fullscreen main.container{ padding:16px 0 !important; }
-  body.word-fullscreen .practice-card.practice-card-fit{padding:16px 14px;border-radius:0;max-width:none;box-shadow:none;border-left:0;border-right:0}
+  body.word-fullscreen .practice-card.practice-card-fit{ padding:16px 16px; }
 }
 
 /* ===== 写作真题 · 全屏沉浸式练习页 ===== */
