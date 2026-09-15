@@ -274,11 +274,11 @@ function bindSideSearch(){
 /* ===== 全站玻璃底栏 dock（移动端 ≤860px 显示，作为移动端主底部导航；桌面用侧栏，不显示）===== */
 function injectGlobalDock(){
   if(document.getElementById('hubDock')) return;
-  // design/56（之之 9/8 定版「混搭AC」）：5 槽，背词为中央凸起主钮；写作收进「更多」弹层
+  // 9/15 之之要求：5 槽全部同构（图标+文字+active 胶囊），原中央凸起主钮风格撤除；写作收进「更多」弹层
   const items = [
     {id:'index',    label:'首页', icon:'<path d="M3 11l9-8 9 8M5 10v10h14V10"/>'},
     {id:'plans',    label:'计划', icon:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4"/>'},
-    {id:'practice', label:'背词', raised:true, icon:'<path d="M4 5h12a3 3 0 0 1 3 3v11H7a3 3 0 0 1-3-3V5zM4 5a3 3 0 0 1 3-3h9"/>'},
+    {id:'practice', label:'背词', icon:'<path d="M4 5h12a3 3 0 0 1 3 3v11H7a3 3 0 0 1-3-3V5zM4 5a3 3 0 0 1 3-3h9"/>'},
     {id:'speaking', label:'口语', icon:'<path d="M21 12a8 8 0 0 1-11.5 7.2L3 21l1.8-6.5A8 8 0 1 1 21 12z"/>'}
   ];
   const current = _hubCurrentFile || normalizePageFile(location.pathname.split('/').pop() || 'index.html');
@@ -289,13 +289,8 @@ function injectGlobalDock(){
     const file = p ? p.file : (it.id + '.html');
     // design/56：原写法 it.id === current 是错的（current 是文件名 practice.html，id 是 practice），dock 高亮从没生效过
     const active = (file === current) ? ' active' : '';
-    if(it.raised){
-      inner += '<a class="ui-menu-item dock-raised' + active + '" href="' + file + '" data-id="' + it.id + '" title="' + it.label + '">'
-        + '<span class="rb">' + svgOf(it) + '</span><span class="rb-lbl">' + it.label + '</span></a>';
-    }else{
-      inner += '<a class="ui-menu-item' + active + '" href="' + file + '" data-id="' + it.id + '" title="' + it.label + '">'
-        + svgOf(it) + '<span>' + it.label + '</span></a>';
-    }
+    inner += '<a class="ui-menu-item' + active + '" href="' + file + '" data-id="' + it.id + '" title="' + it.label + '">'
+      + svgOf(it) + '<span>' + it.label + '</span></a>';
   }
   const dock = document.createElement('nav');
   dock.id = 'hubDock';

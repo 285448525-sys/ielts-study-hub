@@ -311,6 +311,15 @@ body.sheet-open .sheet{transform:translateY(0)}
   body.side-collapsed .top-nav{transform:translateX(-100%)}
   body.side-collapsed .side-collapse{display:flex}
 }
+/* ── 全局基础：容器/卡片/页题（9/15 从移动端媒体块之后上移到此——原位置同特异性覆盖了
+   手机分支的 padding/字号，导致手机左右空隙一直偏大；上移后 @media 内的值才真正生效） ── */
+.container{max-width:1080px;margin:0 auto;padding:40px 24px 48px}   /* 9/15：左右 32→24（之之：桌面空隙也偏大） */
+.page-title{margin:0 0 4px;font-size:25px;font-weight:800;letter-spacing:-.02em}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:24px;margin-bottom:24px;box-shadow:var(--shadow);transition:box-shadow .2s ease,transform .2s ease,border-color .2s ease}
+.card:hover{box-shadow:var(--shadow-card-hover);border-color:var(--primary-200);transform:translateY(-2px)}
+.card h2{margin:0 0 14px;font-size:18px;font-weight:800;letter-spacing:-.02em}
+.card h3{margin:0 0 10px;font-size:14.5px;color:var(--muted);font-weight:600}
+
 /* 移动端：抽屉式 */
 .side-toggle{display:none}
 .side-backdrop{display:none}
@@ -322,8 +331,8 @@ body.sheet-open .sheet{transform:translateY(0)}
   .side-toggle{display:none!important}
   .side-backdrop{display:none!important}
   /* 内容区底部留白，避免被底部 dock 遮挡（旧 tabbar 已删，净空由 body.has-dock 规则接管） */
-  .container{padding:20px 16px calc(96px + env(safe-area-inset-bottom))}
-  .card{padding:18px;margin-bottom:16px}
+  .container{padding:20px 12px calc(96px + env(safe-area-inset-bottom))}   /* 9/15：左右 16→12（之之：缩小两边空隙减少浪费） */
+  .card{padding:18px 14px;margin-bottom:16px}
   .page-title{font-size:22px;margin-bottom:6px}
 
   .hero{padding:0}
@@ -336,8 +345,8 @@ body.sheet-open .sheet{transform:translateY(0)}
 }
 
 @media(max-width:560px){
-  .container{padding:18px 14px}
-  .card{padding:16px;margin-bottom:14px}
+  .container{padding:18px 10px}   /* 9/15：左右 14→10 */
+  .card{padding:16px 13px;margin-bottom:14px}
   .grid{grid-template-columns:1fr}
   .quick-links{grid-template-columns:1fr 1fr}
   .stat-grid{grid-template-columns:1fr 1fr}
@@ -345,14 +354,8 @@ body.sheet-open .sheet{transform:translateY(0)}
 }
 
 
-.container{max-width:1080px;margin:0 auto;padding:40px 32px 48px}
-.page-title{margin:0 0 4px;font-size:25px;font-weight:800;letter-spacing:-.02em}
-
-
-.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:24px;margin-bottom:24px;box-shadow:var(--shadow);transition:box-shadow .2s ease,transform .2s ease,border-color .2s ease}
-.card:hover{box-shadow:var(--shadow-card-hover);border-color:var(--primary-200);transform:translateY(-2px)}
-.card h2{margin:0 0 14px;font-size:18px;font-weight:800;letter-spacing:-.02em}
-.card h3{margin:0 0 10px;font-size:14.5px;color:var(--muted);font-weight:600}
+/* 9/15：手机端 .container/.card/.page-title 基础规则已上移到媒体块之前（原位置在其后，
+   同特异性按源顺序覆盖了手机分支 padding——手机左右空隙偏大的根因），此处仅留注释占位。 */
 
 /* ===== 计划页简化（2026-08-28） ===== */
 .plan-textarea{min-height:88px}
@@ -2924,13 +2927,7 @@ body.has-dock main.container{ padding-bottom:0; }
 }
 /* ===== 手机端浮层/完成页适配（之之 9/8：完成页按钮点不到、排版乱、dock 优化）===== */
 @media (max-width:860px){
-  /* 底部净空加大：dock 顶约 78px + 计时浮框上移后仍需余量，按钮行必须整体在浮层上方可点 */
-  body.has-dock main.container{ padding-bottom:132px; }
-  /* 计时浮框（z-index 8000 压过 dock）上移到 dock 上方，不再叠压 */
-  .float-timer{ bottom:calc(86px + env(safe-area-inset-bottom, 0px)); }
-  /* dock 贴合手机底部 + iOS 安全区 */
-  #hubDock{ bottom:calc(10px + env(safe-area-inset-bottom, 0px)); }
-  #hubFab{ bottom:calc(100px + env(safe-area-inset-bottom, 0px)); }
+  /* 9/15：dock 净空/计时胶囊/hubFab 的底部位置已统一移到下方 design/56 块（贴底通栏新版），此处不再重复 */
   /* 全屏沉浸时隐藏全局 dock 与计时胶囊，不留悬浮物（验收 12：dock 与计时胶囊都不出现；
      9/13：已上移到 .word-fullscreen 全局块——原来放这里导致桌面宽度全屏时胶囊照旧显示） */
 }
@@ -3115,30 +3112,28 @@ body.has-dock main.container{ padding-bottom:0; }
 }
 #hubDock .ui-menu-item.active{ background:var(--primary-50); color:var(--primary-700); }
 #hubDock .ui-menu-item.active > span{ font-weight:800; }
-/* 中央凸起主钮（背词） */
-#hubDock .ui-menu-item.dock-raised{ flex:1.15; gap:2px; }
-#hubDock .ui-menu-item.dock-raised.active{ background:none; }  /* 凸钮本身就是焦点，不套白胶囊 */
-#hubDock .dock-raised .rb{
-  width:52px; height:52px; border-radius:50%;
-  background:linear-gradient(135deg, var(--primary-400), var(--primary-500));
-  color:#fff; display:flex; align-items:center; justify-content:center;
-  border:3px solid rgba(255,255,255,.92);
-  box-shadow:0 8px 18px rgba(58,154,147,.45);
-  transform:translateY(-14px);
-}
-#hubDock .dock-raised .rb svg{ width:24px; height:24px; }
-#hubDock .dock-raised .rb-lbl{ font-size:11px; font-weight:800; color:var(--primary-700); margin-top:-6px; }
+/* 9/15：中央凸起主钮已撤（之之要求背词与其他项风格完全一致），5 槽同构；dock-raised 旧规则删除 */
 
 @media (max-width:860px){
-  /* design/56：抬高 8px 避开 iPhone home indicator（原 10px） */
-  #hubDock{ bottom:calc(18px + env(safe-area-inset-bottom, 0px)); }
-  /* 计时胶囊：挂到凸起钮正上方（104 实测与凸钮重叠 2px，+10 抬到 gap≈8px，验收要求 6-12px） */
+  /* 9/15：dock 贴底通栏——去掉下沿 10-18px 悬浮缝（之之：底部多余白色空隙、断层感）；
+     左右只留 8px，底部安全区并入内边距（iPhone home indicator 不遮挡） */
+  #hubDock{
+    left:8px; right:8px; transform:none;
+    width:auto; max-width:none;
+    bottom:env(safe-area-inset-bottom, 0px);
+    border-radius:20px 20px 14px 14px;
+    border-bottom:none;
+    padding:7px 8px calc(7px + env(safe-area-inset-bottom, 0px));
+  }
+  /* 背词凸钮撤除后 dock 变矮：计时胶囊/浮钮/页面底部净空同步下调 */
   .float-timer{
-    bottom:calc(114px + env(safe-area-inset-bottom, 0px));
+    bottom:calc(78px + env(safe-area-inset-bottom, 0px));
     background:var(--primary-700);
     padding:5px 6px 5px 11px;
     font-size:11.5px;
   }
+  #hubFab{ bottom:calc(88px + env(safe-area-inset-bottom, 0px)); }
+  body.has-dock main.container{ padding-bottom:118px; }
 }
 
 /* ===== 背词完成页「想再认一次的词」紧凑卡（之之 2026-09-09 反馈重设计：粉卡+提示条合一） ===== */
