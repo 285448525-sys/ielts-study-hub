@@ -2216,25 +2216,32 @@ async function navGetCode(src){
   _navCodeCache.set(src, code);
   return code;
 }
-/* 目标页要执行的脚本清单（主脚本在前，extras 保持 HTML 中声明顺序）
-   主脚本优先取 HTML 里带 ?v= 的 src（版本正确、可复用 HTTP 缓存），取不到才退回无版本路径。 */
+/* 目标页要执行的脚本清单（按 HTML 声明顺序；主脚本下标记在 list.mainIdx）
+   ⚠️ 9/15 之之实锤：旧版强制「主脚本在前」，破坏 HTML 声明顺序——speaking.html 里
+   sentence-drill.js（顶层置 window.__SENT_V2_ON 旗）声明在 speaking.js 之前，
+   软导航首进时 speaking.js 先 eval、读到旗还是 undefined → 默认落空 pdView（页面空白），
+   第二次进时旗已在 window 残留为 true 才正常。必须严格按声明顺序 eval。 */
 function pageScriptSources(id, doc){
   const list = [];
-  let mainSrc = 'js/' + id + '.js';
+  const mainBase = 'js/' + id + '.js';
+  let mainSrc = mainBase;
   if(doc){
-    const s = doc.querySelector('script[src*="js/' + id + '.js"]');
+    const s = doc.querySelector('script[src*="' + mainBase + '"]');
     if(s && s.getAttribute('src')) mainSrc = s.getAttribute('src');
   }
-  list.push(mainSrc);
+  let mainIdx = -1;
   if(doc){
     doc.querySelectorAll('script[src]').forEach(s => {
       const src = s.getAttribute('src');
       if(!src || !src.startsWith('js/')) return;
       const base = src.split('?')[0];
-      if(base === 'js/data.js' || base === 'js/common.js' || base === 'js/' + id + '.js') return;
+      if(base === 'js/data.js' || base === 'js/common.js') return;
+      if(base === mainBase){ mainIdx = list.length; list.push(mainSrc); return; }
       if(list.indexOf(src) === -1) list.push(src);
     });
   }
+  if(mainIdx === -1){ list.unshift(mainSrc); mainIdx = 0; }   // doc 缺失/无声明时退回主脚本在前
+  list.mainIdx = mainIdx;
   return list;
 }
 
@@ -2316,6 +2323,7 @@ async function runPageScript(id, doc){
   const p = PAGES.find(p => p.id === id);
   if(!p) return;
   const srcs = pageScriptSources(id, doc);
+  const MAIN = srcs.mainIdx || 0;   // 主脚本在声明顺序中的下标（主脚本失败才回退整页跳转）
   // ⚡ 并行拉取全部脚本（命中内存缓存时零网络）：旧实现串行 await，每多一个脚本多一个网络 RTT，
   //    口语页 6 个脚本 = 6 次串行往返；现在一次并发搞定，再按原顺序 eval（顺序不变，行为一致）。
   const got = await Promise.all(srcs.map(s =>
@@ -2323,7 +2331,7 @@ async function runPageScript(id, doc){
   ));
   for(let i = 0; i < srcs.length; i++){
     if(got[i].err){
-      if(i === 0){        // 主脚本失败：记日志后由 softNavigate 兜底走整页跳转，绝不卡死
+      if(i === MAIN){        // 主脚本失败：记日志后由 softNavigate 兜底走整页跳转，绝不卡死
         console.error('[soft-nav] 页面脚本执行失败，将回退整页跳转：', id, got[i].err);
         throw got[i].err;
       }
@@ -2333,7 +2341,7 @@ async function runPageScript(id, doc){
     try{
       window.eval(got[i].code);   // 幂等重跑：页面 ready 内部已各自清旧心跳 / 重绑事件，多次进入不叠加
     }catch(err){
-      if(i === 0){
+      if(i === MAIN){
         console.error('[soft-nav] 页面脚本执行失败，将回退整页跳转：', id, err);
         throw err;
       }
