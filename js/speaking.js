@@ -154,6 +154,14 @@ ready(() => {
   if(catSel) catSel.addEventListener('change', e => { curCat = e.target.value; renderList(); });
   if(partSel) partSel.addEventListener('change', e => { curPart = e.target.value; renderList(); });
   populateFreqOptions();
+  // 9/15：Part 下拉选项带各 Part 题数（之之要求 P1/P2 分开计数，一眼看清各有多少题）
+  (function(){
+    const bank = (DATA.speaking || []).filter(s => !s.framework && !/^sp_p[12]_\d+$/.test(s.id || ''));
+    const c1 = bank.filter(s => s.type === 'P1').length, c2 = bank.filter(s => s.type === 'P2').length;
+    const o1 = partSel && partSel.querySelector('option[value="P1"]'), o2 = partSel && partSel.querySelector('option[value="P2"]');
+    if(o1) o1.textContent = 'Part 1（' + c1 + ' 题）';
+    if(o2) o2.textContent = 'Part 2（' + c2 + ' 题）';
+  })();
   $('#spSearch').addEventListener('input', () => { curSearch = $('#spSearch').value.trim().toLowerCase(); renderList(); });
   $('#backBtn').addEventListener('click', () => { $('#detailView').hidden = true; $('#listView').hidden = false; $('#sentView').hidden = true; $('#pdView').hidden = true; curDetailId = null; spActivateTab('BANK'); });
   // 默认 tab = 练习：__SENT_V2_ON 时为句型页（sentence-drill.js 接管），否则老 pdView

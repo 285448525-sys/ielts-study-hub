@@ -876,36 +876,12 @@ const SPEAKING_BANK = [
     "Who was involved",
     "And explain why people were interested in it"],
     questions:[], cue:'', content:'', keywords:'', linkedTo:"", proficiency:"没练" },
-{ id:"sb_p2_describe_a_live_sports_event_you_watched29", type:"P2", period:"2026-09-14", isNew:false, frequency:"low", category:"事件",
-    titleEn:"A live sports event you watched and liked", titleZh:"喜欢的现场体育赛事",
-    promptEn:"Describe a live sports event you watched and liked What it was When and where you watched it Who you watched it with And explain why you liked it", promptZh:"描述一场你喜欢看的现场体育赛事。",
-    youShouldSay:[
-],
-    questions:[], cue:'', content:'', keywords:'', linkedTo:"", proficiency:"没练" },
-{ id:"sb_p2_ambition", type:"P2", period:"2026-09-14", isNew:false, frequency:"low", category:"事件",
-    titleEn:"A long-term goal/ambition", titleZh:"长久目标/抱负",
-    promptEn:"Describe a long-term goal/ambition you would like to achieve", promptZh:"描述一个你想实现的长期目标/抱负。",
-    youShouldSay:[
-    "How long you have had this goal/ambition",
-    "What it is",
-    "How you will achieve it",
-    "And explain why you set it"],
-    questions:[], cue:'', content:'', keywords:'', linkedTo:"", proficiency:"没练" },
-{ id:"sb_p2_change", type:"P2", period:"2026-09-14", isNew:false, frequency:"low", category:"事件",
-    titleEn:"A change you made recently", titleZh:"近期改变",
-    promptEn:"Describe a change that you made recently", promptZh:"描述你最近做出的一个改变。",
-    youShouldSay:[
-    "What the change was",
-    "What caused the change",
-    "What you did for the change",
-    "And explain how you feel about the change"],
-    questions:[], cue:'', content:'', keywords:'', linkedTo:"", proficiency:"没练" },
 ];
 
 /* 口语题库版本号：每次题库大改（删题/建题/调档位）递增。
  * hubLoad 检测到本地 DATA.speakingVersion 落后于此值，则整体用最新库替换本地旧库，
  * 根治「旧 localStorage 累积 100+ 题 / 档位错乱清不掉」的问题（用户刷新即生效，无需手动清缓存）。 */
-const SPEAKING_BANK_VERSION = 7;
+const SPEAKING_BANK_VERSION = 8;
 
 /* 口语合并：以官方 SPEAKING_BANK 为基准，保留用户个人内容、丢弃非官方题。
    入参 localSpeaking = 用户本地/导入的口语数组（可能含旧 100+ 题、框架母本、已填 answers）。
