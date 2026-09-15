@@ -802,6 +802,31 @@ function aiJson(content){
   try{ return JSON.parse(s); }catch(_){}
   const mObj = s.match(/\{[\s\S]*\}/);
   if(mObj){ try{ return JSON.parse(mObj[0]); }catch(_){} }
+  // 9/15 之之实锤：AI 偶发把同一段 JSON 输出两遍拼在一起（或前后夹说明文字）→ 贪婪正则
+  // 取「第一段开头+最后一段结尾」必然 parse 失败。改为扫描第一个括号平衡的 {...}
+  // （跳过字符串字面量内部的引号/转义/花括号），取到即解析返回。
+  const i0 = s.indexOf('{');
+  if(i0 !== -1){
+    let depth = 0, inStr = false, esc = false;
+    for(let i = i0; i < s.length; i++){
+      const ch = s[i];
+      if(inStr){
+        if(esc){ esc = false; continue; }
+        if(ch === '\\'){ esc = true; continue; }
+        if(ch === '"') inStr = false;
+        continue;
+      }
+      if(ch === '"'){ inStr = true; continue; }
+      if(ch === '{') depth++;
+      else if(ch === '}'){
+        depth--;
+        if(depth === 0){
+          try{ return JSON.parse(s.slice(i0, i + 1)); }catch(_){}
+          break;
+        }
+      }
+    }
+  }
   const mArr = s.match(/\[[\s\S]*\]/);
   if(mArr){ try{ return JSON.parse(mArr[0]); }catch(_){} }
   return null;
