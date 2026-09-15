@@ -2176,23 +2176,33 @@ function navFetchOpts(){
 }
 /* 9/15 修「长驻标签页一直显示更新前的 UI」：内存缓存/已执行脚本只反映「本次 boot 时的版本」，
    标签页跨睡眠/跨部署不关闭时，软导航永远用旧文档+旧脚本（表现为 9/13 模考 tab 改版、十天内筛选修复等
-   全部“没生效”），硬刷新才恢复。现每次取文档都校验其引用的脚本版本与启动版本一致，
+   全部“没生效”），硬刷新才恢复。现每次取文档都校验其引用的资产版本与启动版本一致，
    不一致 = 检测到部署 → 注销 SW + 清 Cache Storage + 整页 reload（60s 节流防循环）。
-   启动版本取当前 document 里 common.js 的 ?v=；任一侧取不到版本则跳过校验（防误杀）。 */
-function bootScriptVersion(){
+   9/15 二修（之之实锤：本次只 bump 了 data.js/scores.js/common.css，common.js 没动 → 单点比对失效，
+   回顾页首进旧渲染+旧样式、硬刷新才好）：指纹从 common.js 单点扩为「common.js + data.js + common.css」
+   三项全局共有资产（14 页同 bump 部署纪律保证三项永远同步变），任一不同即自愈。 */
+function assetVer(el){
   try{
-    const s = document.querySelector('script[src*="common.js"]');
-    const m = s ? (s.getAttribute('src').match(/v=([0-9a-z]+)/) || null) : null;
+    const ref = el.getAttribute('src') || el.getAttribute('href') || '';
+    const m = ref.match(/v=([0-9a-z]+)/);
     return m ? m[1] : '';
   }catch(e){ return ''; }
 }
-const BOOT_SCRIPT_V = bootScriptVersion();
-function docScriptVersion(doc){
+function assetSig(root){
   try{
-    const s = doc && doc.querySelector('script[src*="common.js"]');
-    const m = s ? (s.getAttribute('src').match(/v=([0-9a-z]+)/) || null) : null;
-    return m ? m[1] : '';
+    const parts = [];
+    ['common.js', 'data.js'].forEach(n => {
+      const el = root.querySelector('script[src*="' + n + '"]');
+      parts.push(n + ':' + (el ? assetVer(el) : ''));
+    });
+    const css = root.querySelector('link[href*="common.css"]');
+    parts.push('common.css:' + (css ? assetVer(css) : ''));
+    return parts.join('|');
   }catch(e){ return ''; }
+}
+const BOOT_SCRIPT_V = assetSig(document);
+function docScriptVersion(doc){
+  return assetSig(doc);
 }
 let _navSelfHealing = false;
 function navSelfHealReload(){
@@ -2219,8 +2229,35 @@ function navVersionCheck(doc){
   console.warn('[hub] 检测到站点已更新（运行 ' + BOOT_SCRIPT_V + ' / 页面 ' + v + '），自动刷新以加载新版');
   navSelfHealReload();
 }
+/* 9/15 二修补充——内存命中路径的残余漏洞：缓存命中时校验的是「缓存文档 vs 启动指纹」，
+   部署“之前”就已缓存的页面二者相同，永远检不出漂移（之之实锤：回顾页跨部署二次进入仍是旧渲染）。
+   现补后台部署探针：每次软导航触发（60s 节流）拉一次最新 index.html（no-store 绕过一切缓存），
+   解析资产指纹与启动指纹比对，不同 → navSelfHealReload。探测不阻塞导航（fire-and-forget），
+   60s 内多次切换只发一次请求，成本近乎为零。 */
+let _probeAt = 0, _probeBusy = false;
+function navDeployProbe(){
+  // 节流间隔可由 localStorage hub_probe_interval 覆盖（回归测试注入短间隔用；普通用户无此 key = 60s）
+  let iv = 60000;
+  try{ iv = Number(localStorage.getItem('hub_probe_interval')) || 60000; }catch(e){}
+  if(_probeBusy || Date.now() - _probeAt < iv) return;
+  _probeAt = Date.now(); _probeBusy = true;
+  fetch('index.html?_probe=' + Date.now(), { cache: 'no-store' })
+    .then(r => (r && r.ok) ? r.text() : '')
+    .then(t => {
+      _probeBusy = false;
+      if(!t || !BOOT_SCRIPT_V) return;
+      const doc = new DOMParser().parseFromString(t, 'text/html');
+      const v = docScriptVersion(doc);
+      if(v && v !== BOOT_SCRIPT_V){
+        console.warn('[hub] 探针检测到站点已更新（运行 ' + BOOT_SCRIPT_V + ' / 线上 ' + v + '），自动刷新');
+        navSelfHealReload();
+      }
+    })
+    .catch(() => { _probeBusy = false; });
+}
 function navCached(file){ return _navDocCache.has(file); }
 async function navGetDoc(file){
+  navDeployProbe();                        // 后台部署探针（节流）：内存命中路径也绕不开的漂移检测
   if(_navDocCache.has(file)){
     const hit = _navDocCache.get(file);
     navVersionCheck(hit.doc);                // 内存命中也要校验：boot 后发生的部署同样要自愈

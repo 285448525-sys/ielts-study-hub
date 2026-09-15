@@ -695,19 +695,21 @@ function renderMockStats(){
     pbox.innerHTML = keys.map(ty => {
       const cfg = MOCK_TYPES[ty];
       const modeTag = cfg.mode === 'score' ? '（各任务均分）' : '（正确率）';
+      /* 9/15 之之：没数据的 Part 行直接不渲染——满屏「（暂无）0%」让她以为统计坏了；
+         只显示有数据的科目组/行（与列表同口径，数据为空 ≠ 坏）。 */
       const rows = cfg.parts.map(p => {
         const a = byPart[ty + '|' + p.label];
         if(cfg.mode === 'score'){
-          if(!a || a.wsum === 0) return progressBar(cfg.icon + ' ' + p.label + '（暂无）', 0, 'var(--muted)');
+          if(!a || a.wsum === 0) return '';
           const avg = a.sum / a.wsum;
           return progressBar(cfg.icon + ' ' + p.label + '　' + avg.toFixed(1), avg / 9 * 100, cfg.color);
         }
-        if(!a || a.t === 0) return progressBar(cfg.icon + ' ' + p.label + '（暂无）', 0, 'var(--muted)');
+        if(!a || a.t === 0) return '';
         const pct = a.c / a.t * 100;
         return progressBar(cfg.icon + ' ' + p.label + '　' + a.c + '/' + a.t, pct, cfg.color);
-      }).join('');
-      return '<div class="mk-grp"><div class="mk-grp-title">' + cfg.icon + ' ' + cfg.name + ' ' + modeTag + '</div>' + rows + '</div>';
-    }).join('');
+      }).filter(Boolean).join('');
+      return rows ? '<div class="mk-grp"><div class="mk-grp-title">' + cfg.icon + ' ' + cfg.name + ' ' + modeTag + '</div>' + rows + '</div>' : '';
+    }).filter(Boolean).join('') || renderEmpty('已录科目之外的 Part 还没有数据。');
   }
 }
 
