@@ -418,11 +418,19 @@ function openDetail(id){
 
   const title = s.titleEn || s.title || '';
   const zh = s.titleZh || '';
-  let html = '<div class="sp-detail-title">' + escapeHtml(title) + '</div>';
-  if(zh) html += '<div class="sp-detail-zh">' + escapeHtml(zh) + '</div>';
-  html += '<div class="sp-detail-tags">' + tagsHtml(s) + '</div>';
+  // design/57 话题块：kicker + 标题/中文居左，标签同行右端（≤600px 折行）；best 降为 muted 小字置块底
+  let html = '<div class="sp-topic-block">'
+    + '<div class="sp-topic-row">'
+    + '<div class="sp-topic-main">'
+    + '<div class="sp-topic-kicker">SPEAKING · ' + (s.type === 'P1' ? 'PART 1' : 'PART 2') + '</div>'
+    + '<div class="sp-detail-title">' + escapeHtml(title) + '</div>'
+    + (zh ? '<div class="sp-detail-zh">' + escapeHtml(zh) + '</div>' : '')
+    + '</div>'
+    + '<div class="sp-detail-tags">' + tagsHtml(s) + '</div>'
+    + '</div>';
   const bestScore = getAggScore(s);
   if(bestScore != null) html += '<div class="sp-detail-best">' + (s.type === 'P1' ? 'P1 平均分' : '历史最高') + '：' + scoreLabel(bestScore) + '分</div>';
+  html += '</div>';
 
   // P1 问题列表（逐题可点开 + 录 + 诊断）；9/15 之之：删「Part 1 小问题…」说明行
   if(s.type === 'P1' && s.questions && s.questions.length){
@@ -2005,8 +2013,10 @@ function p1FlowInit(s){
   // ② 步进导航（9/15：底部「保存/删除/下一话题」已删，插到题卡列表之后）
   var nav = document.createElement('div');
   nav.className = 'sp-flow-nav';
-  nav.innerHTML = '<button class="sp-flow-prev" type="button">← 上一题</button>'
-    + '<button class="sp-flow-next" type="button">下一题 →</button>';
+  // design/57：计数居左（纯文本），上一题 ghost 胶囊、下一题 ink 胶囊（原 class 保留，事件绑定不变）
+  nav.innerHTML = '<span class="sp-flow-count"></span>'
+    + '<button class="sp-flow-prev btn-ghost" type="button">← 上一题</button>'
+    + '<button class="sp-flow-next btn-ink" type="button">下一题 →</button>';
   list.insertAdjacentElement('afterend', nav);
 
   // ③ 已完成小结（插到题卡列表后）
@@ -2031,6 +2041,8 @@ function p1FlowInit(s){
     // 步进按钮状态
     var prev = nav.querySelector('.sp-flow-prev');
     var next = nav.querySelector('.sp-flow-next');
+    var cnt = nav.querySelector('.sp-flow-count');
+    if(cnt) cnt.textContent = '第 ' + (cur + 1) + ' / ' + n + ' 题';
     prev.disabled = (cur === 0);
     next.textContent = (cur === n - 1) ? '完成 ✓' : '下一题 →';
 
