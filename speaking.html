@@ -126,6 +126,8 @@
   .sent-replay-skip{text-align:center;font-size:12.5px;color:var(--muted);cursor:pointer;padding:10px 0 0}
   .sent-replay-skip:hover{color:var(--primary,#3a9a93)}
   .sp-note-input{margin-bottom:10px;font-size:13.5px}
+  /* P2 备注是单行输入：压掉 .pd-input 的 min-height:90px（该规则在文件后段，需提高特异性覆盖） */
+  .sp-p2-answer .sp-note-input{min-height:0;height:42px;padding:0 14px;border-radius:var(--radius-sm)}
   .sp-sentref{margin-top:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
   .sp-sentref-loading{padding:14px 16px;font-size:13px;color:var(--muted)}
   .sp-sentref-cat{border-bottom:1px solid var(--line)}
@@ -525,12 +527,13 @@
   .sp-q-list .sp-q-caret{ display:none; }             /* 已无需折叠提示 */
   .sp-q-list .sp-q.open{ background:var(--surface); } /* 去掉仅用于展开的高亮，避免误导 */
 
-  /* 2) 主行动「AI 诊断 / 评分」：teal 胶囊（去通栏），其余按钮 ghost 形态见 design/57 形态区 */
-  .sp-q-btns{ display:flex; gap:8px; align-items:stretch; }
-  .sp-diag{ flex:0 0 auto; justify-content:center; width:auto; padding:0 26px; min-height:42px; font-size:14px; font-weight:700; border-radius:999px; box-shadow:0 6px 16px rgba(58,154,147,.32); }
+  /* 2) 主行动「AI 诊断 / 评分」：teal 胶囊（去通栏）；按钮文字禁换行，窄屏压缩内距保一行 */
+  .sp-q-btns{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .sp-diag{ flex:0 0 auto; justify-content:center; width:auto; padding:0 26px; min-height:42px; font-size:14px; font-weight:700; border-radius:999px; box-shadow:0 6px 16px rgba(58,154,147,.32); white-space:nowrap; }
   .sp-diag:hover{ background:var(--primary-700); opacity:1; }
   .sp-ans-clear{ flex:0 0 auto; }
-
+  /* P2「⏱ 2分钟」计时钮并入同套胶囊形态 */
+  .sp-p2-answer .sp-timer-btn{ border-radius:999px; min-height:42px; padding:0 16px; }
   /* 3) 作答框：浅灰填充无边框，聚焦白底 + teal 边 + 4px 软环（design/57）；min-height 与 spAutoGrow 不动 */
   .sp-ans{ min-height:88px; font-size:15px; background:var(--surface-2); border:1.5px solid transparent; transition:background .15s,border-color .15s,box-shadow .15s; }
   .sp-ans:focus{ background:var(--surface); border-color:var(--primary); box-shadow:0 0 0 4px var(--primary-soft); outline:none; }
@@ -571,12 +574,26 @@
   /* 3) 步进导航 + design/57 按钮形态：ghost=次级胶囊、ink=主步进胶囊（旧边框/底色规则删除，形态集中于此） */
   .sp-flow-nav{ display:flex; align-items:center; gap:10px; margin:16px 0 14px; }
   .sp-flow-count{ font-size:12.5px; font-weight:600; color:var(--muted); margin-right:auto; padding-left:4px; white-space:nowrap; }
-  .btn-ghost,.sp-ai-helper,.sp-ans-clear{ background:transparent; border:1.5px solid var(--n-400); color:var(--muted); border-radius:999px; font-weight:600; min-height:42px; padding:0 20px; display:inline-flex; align-items:center; justify-content:center; gap:6px; font:inherit; font-size:13.5px; cursor:pointer; transition:.15s; }
+  .btn-ghost,.sp-ai-helper,.sp-ans-clear{ background:transparent; border:1.5px solid var(--n-400); color:var(--muted); border-radius:999px; font-weight:600; min-height:42px; padding:0 20px; display:inline-flex; align-items:center; justify-content:center; gap:6px; font:inherit; font-size:13.5px; cursor:pointer; transition:.15s; white-space:nowrap; }
   .btn-ghost:hover,.sp-ai-helper:hover,.sp-ans-clear:hover{ border-color:var(--primary); color:var(--primary); background:transparent; }
   .sp-ai-helper:disabled{ opacity:.6; cursor:default; }
   .sp-flow-prev:disabled{ opacity:.4; cursor:default; }
   .btn-ink{ background:var(--ink); color:var(--n-0); border:none; border-radius:999px; min-height:42px; padding:0 24px; font:inherit; font-size:14px; font-weight:700; display:inline-flex; align-items:center; justify-content:center; gap:6px; cursor:pointer; transition:.15s; }
   .btn-ink:hover{ background:var(--n-900); }
+  /* 窄屏压缩：必须放在形态定义之后，否则被上面的 .btn-ghost/.sp-ai-helper 规则（同权重、更靠后）盖掉 */
+  @media(max-width:600px){
+    .sp-q-btns{ gap:6px; }
+    .sp-diag{ padding:0 16px; font-size:13.5px; }
+    .btn-ghost,.sp-ai-helper,.sp-ans-clear{ padding:0 12px; font-size:13px; }
+    .sp-p2-answer .sp-timer-btn{ padding:0 12px; }
+  }
+  /* ≤420px：三按钮力争一行（「清空」落单换行很难看），内距/字号/图标再压一档 */
+  @media(max-width:420px){
+    .sp-q-btns{ gap:5px; }
+    .sp-diag{ padding:0 12px; font-size:13px; }
+    .btn-ghost,.sp-ai-helper,.sp-ans-clear,.sp-p2-answer .sp-timer-btn{ padding:0 9px; font-size:12.5px; }
+    .sp-ai-helper svg,.sp-ans-clear svg,.sp-diag svg{ width:14px; height:14px; }
+  }
 
   /* 4) 已完成小结 */
   .sp-flow-done{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); margin-bottom:14px; overflow:hidden; }
