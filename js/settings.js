@@ -24,6 +24,7 @@ function populateSettingsForm(){
   if($('#sPron')) $('#sPron').value = (s.pronunciationScore != null ? s.pronunciationScore : '');
   if($('#sRelayToken')) $('#sRelayToken').value = s.relayToken || '';
   if($('#sChime')) $('#sChime').checked = s.chimeOnDone !== false;
+  if($('#sAdhd')) $('#sAdhd').checked = (typeof medsModuleOn === 'function') ? medsModuleOn() : true;
   if($('#sSyncCode')) $('#sSyncCode').value = s.syncCode || '';
 }
 
@@ -48,6 +49,23 @@ ready(() => {
     hubSave();
     if(DATA.settings.syncCode) scheduleCloudUpload(); // 已登录则同步主题到云端（theme 在 SYNC_SETTINGS_FIELDS）
   });
+  // 服药模块开关：即时生效（不必点「保存设置」），改完立刻重渲染侧栏与「更多」弹层
+  if($('#sAdhd')){
+    $('#sAdhd').addEventListener('change', () => {
+      const on = $('#sAdhd').checked;
+      DATA.settings = DATA.settings || {};
+      DATA.settings.adhd = on;
+      DATA.settings._fieldTs = DATA.settings._fieldTs || {};
+      DATA.settings._fieldTs.adhd = Date.now();
+      hubSave();
+      if(typeof injectNav === 'function') injectNav();
+      const sheet = document.getElementById('moreSheet'); if(sheet) sheet.remove();
+      const bd = document.getElementById('sheetBackdrop'); if(bd) bd.remove();   // 弹层内容下次打开时按新状态重建
+      if(DATA.settings.syncCode) scheduleCloudUpload();
+      toast(on ? '已开启服药模块' : '已关闭服药模块（数据保留）');
+    });
+  }
+
   $('#exportBtn').addEventListener('click', exportData);
   $('#importBtn').addEventListener('click', () => $('#importFile').click());
   $('#importFile').addEventListener('change', e => { if(e.target.files[0]) importData(e.target.files[0]); });
@@ -98,6 +116,7 @@ function saveSettings(){
   _set('autoSync', true); // 默认开启自动同步，与考研站一致（绑定后由 syncLoginOrRegister 控制）
   _set('pronunciationScore', ($('#sPron').value === '' ? null : (parseFloat($('#sPron').value) || null))); // 口语模考固定发音分（0–9），空=未设置
   _set('chimeOnDone', $('#sChime').checked);
+  if($('#sAdhd')) _set('adhd', $('#sAdhd').checked);   // 服药模块开关（未开启则入口全隐藏，数据保留）
   hubSave(); applyTheme();
   // 刷新考试倒计时显示（重新查元素：cdEl2 是 populateSettingsForm 的局部变量，此处不可跨函数访问）
   const cdEl2 = document.getElementById('settingsCountdown');

@@ -38,9 +38,14 @@ const PAGES = [
 /* 收藏页面（⭐）——侧边栏「常用」与首页「快捷入口」共用同一份，永远同步。
    从未收藏过时给 3 个新手默认项，避免入口空着。 */
 const DEFAULT_FAV = ['timer','practice','speaking'];
+/* 服药模块开关（9/15 之之：设置页「我是 ADHD」→ 选是才启用服药模块）。
+   默认开启 = 历史用户已有入口，不因新增开关而凭空消失；关闭后入口从侧栏/更多/搜索/收藏全部隐藏，
+   已记录的服药数据一律保留，随时可再开启。判定只认显式 false，undefined/true 都算开。 */
+function medsModuleOn(){ return !(DATA.settings && DATA.settings.adhd === false); }
 function favPageIds(){
   const f = DATA.settings && DATA.settings.fav;
-  return (f && f.length) ? f : DEFAULT_FAV.slice();
+  const list = (f && f.length) ? f : DEFAULT_FAV.slice();
+  return medsModuleOn() ? list : list.filter(id => id !== 'meds');
 }
 
 /* v5：简化后全部平铺，不再分折叠组（首页→回顾 一级；设置/服药 在分隔线下方） */
@@ -78,7 +83,10 @@ function injectNav(){
   html += '<div class="side-primary">';
   for(const pid of PRIMARY_NAV){ const p = pageById(pid); if(p) html += sideItem(p, current); }
   html += '<div class="side-sep" role="separator"></div>';
-  for(const pid of MORE_NAV){ const p = pageById(pid); if(p) html += sideItem(p, current); }
+  for(const pid of MORE_NAV){
+    if(pid === 'meds' && !medsModuleOn()) continue;    // 服药模块未开启 → 侧栏不出现
+    const p = pageById(pid); if(p) html += sideItem(p, current);
+  }
   html += '</div>';
   nav.innerHTML = html;
   bindSidebar();
@@ -110,6 +118,7 @@ function ssMatchPages(q){
   if(!q) return [];
   const hits = [];
   for(const p of SIDE_SEARCH_PAGES){
+    if(p.id === 'meds' && !medsModuleOn()) continue;    // 服药模块未开启 → 搜索不命中
     const page = PAGES.find(x => x.id === p.id);
     if(!page) continue;
     const hay = (page.name + ' ' + p.kw + ' ' + (page.desc || '')).toLowerCase();
@@ -512,7 +521,8 @@ function ensureMobileChrome(){
     const moreIds = MORE_NAV
       .concat(PRIMARY_NAV.filter(id => !TAB_NAV.includes(id)))
       .concat(['timer'])
-      .filter(id => !DOCK_IDS.includes(id));
+      .filter(id => !DOCK_IDS.includes(id))
+      .filter(id => id !== 'meds' || medsModuleOn());   // 服药模块未开启 → 更多弹层不出现
     let sh = '<div class="sheet-head"><span>更多功能</span>'
       + '<button class="sheet-close" type="button" aria-label="关闭">✕</button></div>'
       + '<div class="sheet-list">';
@@ -1087,7 +1097,7 @@ function stripCloudFields(d){
    用户要求登录手机号后个人全部数据自动恢复，包括 Key 与发音分，换设备/清缓存后登录即回，无需重填。
    syncCode 是账号标识本身不重复同步；autoSync 是本地开关、不跨设备同步（设计：绑了账号就自动同步）。
    合并规则见 mergeData：空值（未填/被清空）永不覆盖另一侧已填值，杜绝「空值带新时间戳把本机 Key 冲掉」。 */
-const SYNC_SETTINGS_FIELDS = ['name','examDate','examDates','targets','dailyGoalHours','relayToken','pronunciationScore','theme','chimeOnDone'];
+const SYNC_SETTINGS_FIELDS = ['name','examDate','examDates','targets','dailyGoalHours','relayToken','pronunciationScore','theme','chimeOnDone','adhd'];
 
 /* 安全取数字：非有限数→0 */
 function _num(x){ const n = Number(x); return isFinite(n) ? n : 0; }

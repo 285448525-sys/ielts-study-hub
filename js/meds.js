@@ -1,4 +1,16 @@
 ready(() => {
+  // 服药模块未开启（设置页取消勾选「我是 ADHD」）：URL/软导航直达时给引导，不渲染服药 UI、不启轮询
+  if(typeof medsModuleOn === 'function' && !medsModuleOn()){
+    const main = document.querySelector('main.container');
+    if(main){
+      main.innerHTML = '<h1 class="page-title">服药</h1>'
+        + '<section class="card"><h2>模块未开启</h2>'
+        + '<p class="muted" style="font-size:14px;line-height:1.8;margin:0 0 14px">当前设置里没有勾选「我是 ADHD」，服药模块处于关闭状态。'
+        + '已记录的服药数据都还在，重新开启后即可继续查看。</p>'
+        + '<a class="btn btn-med" href="settings.html">去设置开启</a></section>';
+    }
+    return;
+  }
   setMedInputsNow();
   $('#recordMed').addEventListener('click', recordMed);
   $('#resetMedTime').addEventListener('click', () => { setMedInputsNow(); toast('已重置为当前时间'); });
