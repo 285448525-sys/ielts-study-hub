@@ -84,6 +84,7 @@ var SYS_DIAG = `你是一位雅思口语纠错助手。你的唯一任务：找�
 没有错误时返回 {"errors":[]}。
 除 errors 外，必须额外返回 "improved" 字段：把考生回答整体改写成一个更通顺、更地道的版本（保留原意与口语风格，长度与原文相近，只优化表达，不添加新内容；纯符号 "/" 表示对应处直接删除）。
 【注意】corrected 里若某处只是删除（无替换词），用 "/" 表示；不要用省略号或其他写法。
+【最小片段铁律】original 和 corrected 只写「真正出错的那个词/短语」本身，前后没错的词一律不要带进来（例：错在 is → original 写 "is"，corrected 写 "has been"；绝不要把没错的 "artificial intelligence" 等上下文复述进 corrected）。
 
 【示例】
 输入: "We are got a big mirror. I leave in my house every day."
@@ -1693,6 +1694,19 @@ function wordDiff(a, b){
   return out;
 }
 
+// 9/15 之之二反馈：AI 常把没错的上下文也塞进 original/fix（如 original="artificial intelligence is"
+// fix="artificial intelligence has been"）→ 对错的词整段复述一遍绿色。先裁掉公共前后缀 token，
+// 只留真正不同的核心再 diff，保证「没错的词绝不重复出现」。
+function trimCommonAffixes(orig, fix){
+  const norm = t => String(t).toLowerCase().replace(/^[^a-z0-9']+|[^a-z0-9']+$/g, '');
+  const wa = String(orig || '').trim().split(/\s+/).filter(Boolean);
+  const wb = String(fix || '').trim().split(/\s+/).filter(Boolean);
+  const pre = [], post = [];
+  while(wa.length && wb.length && norm(wa[0]) === norm(wb[0]) && norm(wa[0]) !== ''){ pre.push(wa.shift()); wb.shift(); }
+  while(wa.length && wb.length && norm(wa[wa.length-1]) === norm(wb[wb.length-1]) && norm(wa[wa.length-1]) !== ''){ post.unshift(wa.pop()); wb.pop(); }
+  return { pre: pre.join(' '), a: wa.join(' '), b: wb.join(' '), post: post.join(' ') };
+}
+
 // 在原句中 inline 标出修改（9/15 之之定版）：错误原文划删除线，绿色替换文本直接并排显示；
 // 纯符号替换（AI 用 "/" 表示删除该词）不显示替换块，只留删除线；不再使用箭头对比形式
 function diffSentenceHtml(answer, errs){
@@ -1710,18 +1724,35 @@ function diffSentenceHtml(answer, errs){
     const orig = String(e.original || '');
     const fix = String(e.fix || '');
     if(!orig || !fix) return;
-    const idx = ans.toLowerCase().indexOf(orig.toLowerCase());
-    if(idx === -1) return;
-    const parts = wordDiff(orig, fix);
-    let html = '';
-    let prevType = null;
+    // 9/15：词边界匹配（"is" 不得命中 "this" 内部），失败再退回普通 indexOf
+    let idx = -1, len = orig.length;
+    try {
+      const esc = orig.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const m = ans.match(new RegExp('(?<![A-Za-z])' + esc + '(?![A-Za-z])', 'i'));
+      if(m){ idx = m.index; len = m[0].length; }
+    } catch(_) {}
+    if(idx === -1){
+      idx = ans.toLowerCase().indexOf(orig.toLowerCase());
+      if(idx === -1) return;
+    }
+    const t = trimCommonAffixes(orig, fix);
+    if(!t.a && !t.b) return;
+    const parts = wordDiff(t.a, t.b);
+    // 连续同类型 token 合并成一个标记（ins "has"+"been" → 一个绿块），词间就是一个普通空格
+    const seg = [];
     parts.forEach(p => {
-      if(p.type === 'same') html += (html ? ' ' : '') + escapeHtml(p.text);
-      if(p.type === 'del') html += (html ? ' ' : '') + '<s class="diag-wrong">' + escapeHtml(p.text) + '</s>';
-      if(p.type === 'ins' && !isPlaceholderFix(p.text)) html += (html ? ' ' : '') + '<span class="diag-right">' + escapeHtml(p.text) + '</span>';
-      prevType = p.type;
+      const lastSeg = seg[seg.length - 1];
+      if(lastSeg && lastSeg.type === p.type) lastSeg.text += ' ' + p.text;
+      else seg.push({ type: p.type, text: p.text });
     });
-    reps.push({idx, len: orig.length, html});
+    let html = t.pre ? escapeHtml(t.pre) + ' ' : '';   // 裁掉的前缀原样补回（本来就是对的）
+    seg.forEach(s => {
+      if(s.type === 'same') html += (html ? ' ' : '') + escapeHtml(s.text);
+      if(s.type === 'del') html += (html ? ' ' : '') + '<s class="diag-wrong">' + escapeHtml(s.text) + '</s>';
+      if(s.type === 'ins' && !isPlaceholderFix(s.text)) html += (html ? ' ' : '') + '<span class="diag-right">' + escapeHtml(s.text) + '</span>';
+    });
+    if(t.post) html += ' ' + escapeHtml(t.post);   // 裁掉的后缀原样补回
+    reps.push({idx, len, html});
   });
 
   if(!reps.length) return inlineErrorsHtml(clean);
@@ -1731,6 +1762,7 @@ function diffSentenceHtml(answer, errs){
   let html = '';
   let last = 0;
   reps.forEach(r => {
+    if(r.idx < last) return;   // 9/15：重叠的纠错只渲染第一条，防同段文本重复出现
     html += escapeHtml(ans.slice(last, r.idx)) + r.html;   // r.html 内部已各自 escapeHtml
     last = r.idx + r.len;
   });
