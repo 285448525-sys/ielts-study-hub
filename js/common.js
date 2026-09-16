@@ -967,6 +967,7 @@ function computeStreak(checkins){
 let _cloudTimer = null;
 let _lastUploadedHash = '';
 let _pendingUpload = false;
+let _firstPendingAt = 0;
 let _lastCloudHash = '';   // 上次拉到的云端内容哈希：相同则跳过 mergeData（性能优化，见 cloudDownload）
 function hashData(x){
   // 简单稳定哈希：把 DATA JSON 做 djb2，够用来判断「内容是否真变了」。
@@ -1003,12 +1004,22 @@ async function syncApi(method, body){
   return [res, data];
 }
 
+/* 60s 防抖：避免每次 hubSave（如 plans 页频繁写盘）都触发 PUT，导致 Cloudflare KV 日配额秒光。
+   ⚠️ 必须配 maxWait（CLOUD_MAX_WAIT），否则会被「饿死」——实测：
+      计时页 startHeartbeat 每 5s persistMirror→hubSave，背词/口语同样高频写盘，
+      纯 debounce 的 60s 定时器每次都被推后 → 连续写盘 75 秒 PUT = 0 次，
+      也就是「学习的时候一次都没上传，以为同步着其实是假的」。停止操作 60s 后才补一次。
+   取 3 分钟：连续学习 8 小时 ≈ 26 次 PUT，远低于 KV Free 每日 100 次写入配额。 */
+const CLOUD_DEBOUNCE = 60 * 1000;
+const CLOUD_MAX_WAIT = 3 * 60 * 1000;
 function scheduleCloudUpload(){
   if(!DATA.settings.autoSync || !DATA.settings.syncCode) return;
-  _pendingUpload = true;
+  const now = Date.now();
+  if(!_pendingUpload){ _pendingUpload = true; _firstPendingAt = now; }   // 首次挂起点：maxWait 的时间锚
   if(_cloudTimer) clearTimeout(_cloudTimer);
-  // 60 秒防抖：避免每次 hubSave（如 plans 页频繁写盘）都触发 PUT，导致 Cloudflare KV 日配额秒光。
-  _cloudTimer = setTimeout(() => { cloudUpload(false); }, 60 * 1000);
+  const waited = now - _firstPendingAt;
+  const wait = (waited >= CLOUD_MAX_WAIT) ? 0 : Math.min(CLOUD_DEBOUNCE, CLOUD_MAX_WAIT - waited);
+  _cloudTimer = setTimeout(() => { cloudUpload(false); }, wait);
 }
 async function cloudUpload(showToast, force){
   showToast = showToast !== false;
@@ -1042,8 +1053,10 @@ async function cloudUpload(showToast, force){
     syncSetStatus('同步失败：' + msg, 'error');
     renderLastSync();
     // 失败后恢复未传标记：beforeunload/切后台时 flushCloudUpload 仍会用 sendBeacon 尽力补传；
-    // 否则失败即清标记，本批改动既无提示也无任何补传通道（静默丢失窗口）
+    // 否则失败即清标记，本批改动既无提示也无任何补传通道（静默丢失窗口）。
+    // 同时把 maxWait 锚点推到「现在」，避免失败后 _firstPendingAt 一直超时 → 每次 hubSave 立刻重试、刷爆配额。
     _pendingUpload = true;
+    _firstPendingAt = Date.now();
     return false;
   }
 }
