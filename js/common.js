@@ -315,21 +315,8 @@ function injectGlobalDock(){
   if(moreBtn) moreBtn.addEventListener('click', openMoreSheet);
 }
 
-/* ===== 全站 + 浮动按钮（点击页面内 [data-fab-add] 触发新增）===== */
-function injectFab(){
-  if(document.getElementById('hubFab')) return;
-  const target = document.querySelector('[data-fab-add]');
-  if(!target) return;   // 当前页无新增入口则不加
-  const fab = document.createElement('button');
-  fab.id = 'hubFab';
-  fab.className = 'ui-plus';
-  fab.type = 'button';
-  fab.setAttribute('aria-label', '新增');
-  fab.title = '新增';
-  fab.innerHTML = '<svg class="ui-plus-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg>';
-  fab.addEventListener('click', () => { try{ target.click(); }catch(e){} });
-  document.body.appendChild(fab);
-}
+/* ===== 全站 + 浮动按钮（已砍，9/16 之之反馈不知道它是干嘛的：全站仅计划页有 data-fab-add 接杆，
+   且 fab 挂 body 上软导航残留，其他页面点了静默无效 = 死按钮。原 injectFab() 已删。）===== */
 
 /* ===== 列表页即时搜索（.ui-search 组件配套） =====
    用法：<input class="ui-search-input" data-search-input data-search-target="#planList" />
@@ -2485,7 +2472,7 @@ ready(() => { hubLoad();
   initBootLoader();                                    // 收起首屏内联遮罩（覆盖 Ctrl+F5 / 整页跳转的卡顿）
   initFloatTimer();                                   // 注入全站计时悬浮标签（跨页常驻，运行中显示）
   injectNav(); applyTheme(); restoreSideScroll(); initSoftNav();
-  injectGlobalDock(); injectFab();          // 全站玻璃底栏 dock + 新增浮动按钮
+  injectGlobalDock();                        // 全站玻璃底栏 dock（9/16 之之：+ FAB 砍掉——全站只有计划页有 data-fab-add 接杆，软导航残留后其他页全是死按钮）
   initListSearch();                          // 列表页 .ui-search 即时过滤（data-search-input + data-search-target）
   registerSW();
   // ⚡ 空闲时把其余页面的 HTML + 脚本预热进内存缓存，之后点任何 tab 都是零网络秒开

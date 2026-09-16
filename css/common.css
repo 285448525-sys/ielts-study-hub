@@ -2418,42 +2418,8 @@ body.exam-fullscreen{overflow:hidden !important}
 .ui-menu button.ui-menu-item span{ font-size:.8rem; font-weight:600; line-height:1; margin-top:4px; }
 .ui-menu button.ui-menu-item:active{ transform:scale(.98); }
 
-/* ===== 通用 + 按钮 ui-plus（Uiverse OnCloud125252 改写：黑 #000 → teal --primary；白描边/白三角/白图标保留，悬停白三角填充+图标转 teal 反转；原 .plusButton/.plusIcon 改名 .ui-plus/.ui-plus-icon 防冲突，配置变量改 kebab --plus-sz/--plus-tri；原版用自定义属性做动画实际不动，改 transition:border-width 真动画） ===== */
-.ui-plus{
-  --plus-sz:2.5rem;
-  --plus-tri:0.9rem;
-  position:relative;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  border:1px solid var(--on-primary);
-  width:var(--plus-sz);
-  height:var(--plus-sz);
-  background-color:var(--primary);
-  overflow:hidden;
-}
-.ui-plus::before{
-  position:absolute;
-  content:"";
-  top:0; right:0;
-  width:0; height:0;
-  border-width:0 var(--plus-tri) var(--plus-tri) 0;
-  border-style:solid;
-  border-color:transparent var(--on-primary) transparent transparent;
-  transition:border-width .2s ease-in-out;
-}
-.ui-plus:hover{ cursor:pointer; }
-.ui-plus:hover::before,
-.ui-plus:focus-visible::before{ --plus-tri:calc(var(--plus-sz) * 2); }
-.ui-plus > .ui-plus-icon{
-  fill:var(--on-primary);
-  width:calc(var(--plus-sz) * .7);
-  height:calc(var(--plus-sz) * .7);
-  z-index:1;
-  transition:fill .2s ease-in-out, transform .2s ease-in-out;
-}
-.ui-plus:hover > .ui-plus-icon,
-.ui-plus:focus-visible > .ui-plus-icon{ fill:var(--primary-d); transform:rotate(180deg); }
+/* 通用 + 按钮 ui-plus 已砍（9/16 之之反馈不知道是干嘛的：全站仅计划页有 data-fab-add 接杆，
+   fab 挂 body 上软导航残留后其他页全是死按钮。原 injectFab()/ui-plus 样式块已删。） */
 
 /* ===== 通用带下划线动画输入框 ui-input（Uiverse adamgiebl 改写：白字 #fff→var(--ink)；彩虹渐变 #FF6464/#FFBF59/#47C9FF→teal 渐变；未定义变量 --border-height/--border-before-color/--border-after-color 在 .ui-form-control 内给默认值；原 .input/.form-control/.input-alt 改名 .ui-input* 防冲突） ===== */
 .ui-form-control{
