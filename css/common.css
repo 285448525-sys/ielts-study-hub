@@ -690,8 +690,8 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
   margin-top:12px;display:flex;justify-content:flex-start;   /* 9/9 收紧：20→12 */
 }
 #practiceBody.practice-body-fit .abtn-unknown{
-  width:auto;height:40px;padding:0 22px;border:1.5px solid var(--line);border-radius:8px;
-  background:transparent;color:var(--muted);font-size:14px;font-weight:500;cursor:pointer;
+  width:auto;height:40px;padding:0 22px;border:1.5px solid transparent;border-radius:8px;
+  background:var(--primary-soft);color:var(--primary);font-size:14px;font-weight:600;cursor:pointer;   /* 9/16 之之：白底融进卡片看不出是按钮，加 teal 软底 */
   display:flex;align-items:center;justify-content:center;transition:all .15s;
 }
 #practiceBody.practice-body-fit .abtn-unknown:hover{
