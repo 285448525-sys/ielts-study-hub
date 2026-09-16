@@ -19,10 +19,14 @@ function __clearP2Timer(){
    她写完 4 小题点「保存」，toast 说「已保存」但实际一个字都没落库，返回列表/刷新/换设备全部丢失。
    现在：输入即防抖落库（700ms），「保存」另外做一次同步兜底。
    ⚠️ 只写 text/ts，绝不整体替换 answers[qi]——否则会冲掉 records（历史提交）与 result（诊断结果）。 */
-var __SP_DRAFT_T = null;
+/* 9/16 修：防抖句柄必须是「每题一个」。
+   原来全站共用一个 __SP_DRAFT_T，在 A 小题打完字后 700ms 内又去 B 小题打字，
+   clearTimeout 会连带把 A 的待保存任务取消 → A 那一题白写（实测 q0 丢失）。 */
+var __SP_DRAFT_T = {};
 function spDraftSave(id, qi, text){
-  clearTimeout(__SP_DRAFT_T);
-  __SP_DRAFT_T = setTimeout(function(){
+  const __dkey = id + '|' + qi;
+  clearTimeout(__SP_DRAFT_T[__dkey]);
+  __SP_DRAFT_T[__dkey] = setTimeout(function(){
     try{
       var s = (typeof DATA !== 'undefined' && DATA.speaking) ? DATA.speaking.find(function(x){ return x.id === id; }) : null;
       if(!s) return;
@@ -330,8 +334,11 @@ function scoreBadgeHtml(score, count, s){
   if(score == null){
     if(!count) return '';
     if(s && s.type === 'P1'){
+      // 9/16：小题总数按该题 questions 实际长度算（题库里 P1 小问 4~10 个不等，
+      // 原来硬写 4，work/hometown/area 这类 10 小题的话题会显示成「7/4 小题」）
+      const total = (s.questions || []).length || 4;
       const done = getP1Done(s);
-      const label = done === 4 ? '练过1次' : '练过1次（' + done + '/4 小题）';
+      const label = done >= total ? '练过1次' : '练过1次（' + done + '/' + total + ' 小题）';
       return '<span class="sp-score-badge practice">' + label + '</span>';
     }
     const label = count > 1 ? '练过' + count + '次' : '练过1次';
@@ -584,6 +591,16 @@ function openDetail(id){
       const fmt = s => { const m = Math.floor(s / 60), sec = s % 60; return String(m).padStart(2,'0') + ':' + String(sec).padStart(2,'0'); };
       p2TimerBtn.addEventListener('click', e => {
         e.stopPropagation();
+        // 9/16 修：按钮文案写的是「停止」，原来再点却是从 02:00 重来——文案与行为对不上。
+        // 现在：正在跑 → 真的停（收起计时显示、按钮回到「⏱ 2分钟」）；没在跑 → 重新开始。
+        if(window.__p2TimerId){
+          __clearP2Timer();
+          p2TimerDisp.hidden = true;
+          p2TimerDisp.classList.remove('sp-timer-end');
+          p2TimerBtn.textContent = '⏱ 2分钟';
+          p2TimerBtn.classList.remove('sp-timer-running');
+          return;
+        }
         __clearP2Timer();   // 修(f)：改用可跨页清理的句柄，原 p2TimerBtn._timer 随节点丢弃后无人清理
         let left = TOTAL;
         p2TimerDisp.hidden = false;
@@ -825,7 +842,14 @@ function spGoPracticeCat(catId){
 /* === P1 详情页「下一题」：跳到当前筛选列表里的下一道 P1 话题 ===
    沿用用户刚筛选的条件（curFreq/curCat/curSearch），到末尾循环回第一道，方便连续练。 */
 function gotoNextTopic(){
-  const list = getFiltered();
+  let list = getFiltered();
+  // 9/16 修：「下一题」只在同 Part 内轮（题库 tab 是 P1+P2 合并列表，
+  // 原来从 P2 一路点下去迟早会串到 P1 话题上，答 P2 的节奏被打断）
+  const cur = DATA.speaking.find(x => x.id === curDetailId);
+  if(cur && cur.type){
+    const same = list.filter(x => x.type === cur.type);
+    if(same.length) list = same;
+  }
   if(!list.length) return;
   const idx = list.findIndex(s => s.id === curDetailId);
   if(idx === -1){ openDetail(list[0].id); return; }   // 当前题不在筛选结果里（如刚改了筛选）→ 打开第一条
@@ -2019,11 +2043,12 @@ function p1FlowInit(s){
     + '<button class="sp-flow-next btn-ink" type="button">下一题 →</button>';
   list.insertAdjacentElement('afterend', nav);
 
-  // ③ 已完成小结（插到题卡列表后）
+  // ③ 已完成小结（9/16 修：插到 nav 之后而不是 list 之后——
+  //    原来两次 insertAdjacentElement('afterend', list) 导致小结反排在步进按钮前面）
   var done = document.createElement('div');
   done.className = 'sp-flow-done';
   done.hidden = true;
-  list.insertAdjacentElement('afterend', done);
+  nav.insertAdjacentElement('afterend', done);
 
   function render(){
     items.forEach(function(li, idx){ li.classList.toggle('active', idx === cur); });
@@ -2046,15 +2071,17 @@ function p1FlowInit(s){
     prev.disabled = (cur === 0);
     next.textContent = (cur === n - 1) ? '完成 ✓' : '下一题 →';
 
-    // 已完成小结（沿用 bestOfQuestion，与列表 badge 分数一致）
+    // 已完成小结（9/16 修：评分机制关闭后 bestOfQuestion 恒为 null，这块永远不显示——
+    // 改用 countOfQuestion（历史提交条数）判定「练过」，与列表 badge 同一口径）
     var rows = '';
     for(var j = 0; j < n; j++){
       var best = bestOfQuestion(s.answers[j]);
-      if(best == null) continue;
+      var cnt = countOfQuestion(s.answers[j]);
+      if(best == null && !cnt) continue;
       rows += '<div class="sp-flow-drow" data-i="' + j + '">'
         + '<span class="sp-flow-dnum">' + (j + 1) + '</span>'
         + '<span class="sp-flow-dtext">' + escapeHtml((s.questions[j] || '').slice(0, 30)) + '</span>'
-        + '<span class="sp-flow-dscore">' + scoreLabel(best) + '分</span>'
+        + '<span class="sp-flow-dscore">' + (best != null ? scoreLabel(best) + '分' : '练过' + cnt + '次') + '</span>'
         + '</div>';
     }
     if(rows){
