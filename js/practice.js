@@ -1124,6 +1124,10 @@ function maybeStartWordTimer(){
   if(window.__wordTimerAuto && window.active && !window.active.ended && window.active.moduleId === WORD_TIMER_MODULE) return;
   // 已有任意进行中的「背单词」计时（手动开的或其他入口）→ 不重复开、也不接管提交
   if(isWordTimerActive()) return;
+  // ⭐ 已有其他模块的进行中计时（听力/口语/手动）→ 绝不覆盖，本页保持无表状态
+  //（9/16 之之：计听力时误入单词页，自动开表把 DATA.activeTimer 硬覆盖，听力计时丢失；与 maybeStartPdTimer 同款双保险）
+  if(window.active && !window.active.ended) return;
+  if(DATA.activeTimer && !DATA.activeTimer.ended && DATA.activeTimer.timerId) return;
   const now = Date.now();
   const id = uid();
   const dev = wordTimerDeviceId();
