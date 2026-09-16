@@ -4,6 +4,14 @@ var curTab = 'tpl';
 var tplSearch = '';
 var bankSearch = '';
 
+/* 9/16 修：全文「词」的统计口径统一到这一个函数。改之前四处各算一套口水不平：
+   - AI 评分 tab 的实时词数用 /\S+/g
+   - 写作真题 tab 的实时词数用 /\b[\w'-]+\b/g（同一句/bootstrap两种数字，纯中文时前者算 1、后者算 0）
+   - scoreEssay / examStopAndScore 的门槛用 essay.length（那是**字符数**，30 词≈390 字符，直接放行）
+   雅思官方算法按「非空白字符段」计词，这里用 /\S+/g 对齐同站 AI 评分 tab 既有口径。 */
+function wtCountWords(text){ return (String(text || '').trim().match(/\S+/g) || []).length; }
+var WT_MIN_WORDS = 150;   // 评分门槛（词）。页面占位文案与 toast 都按这个数讲。
+
 function switchWriteTab(tab){
   curTab = tab;
   const btn = $('#writeTabs').querySelector('[data-tab="' + tab + '"]');
@@ -52,10 +60,11 @@ ready(() => {
   const wcEl = $('#scoreWordCount');
   const wcInput = $('#scoreEssay');
   if(wcEl && wcInput){
+    // 9/16 修：词数改走 wtCountWords，与评分门槛同一口径（原来这里是 /\S+/g、真题页是 /\b[\w'-]+\b/g）
     const updWc = () => {
-      const n = (wcInput.value.trim().match(/\S+/g) || []).length;
+      const n = wtCountWords(wcInput.value);
       wcEl.textContent = n + ' 词';
-      wcEl.style.color = n >= 150 ? 'var(--primary)' : 'var(--warn-ink)';
+      wcEl.style.color = n >= WT_MIN_WORDS ? 'var(--primary)' : 'var(--warn-ink)';
     };
     wcInput.addEventListener('input', updWc);
     updWc();
@@ -126,7 +135,10 @@ function renderCats(){
   });
   const nav = $('#catNav');
   if(cats.length === 0){ nav.innerHTML = '<div class="muted">暂无分类</div>'; $('#tplList').innerHTML=''; return; }
-  if(!curCat) curCat = cats[0];
+  // 9/16 修：原来只在 curCat 为空串/null 时才兜底。把某个分类里最后一条模板删掉后，
+  // 该分类从 cats 里消失而 curCat 还是旧值 → 分类栏一个高亮都没有（实测 active=0），
+  // 列表空着、用户不知道自己在哪。改成「不存在就回落到一个还存在的分类」。
+  if(!curCat || !cats.includes(curCat)) curCat = cats[0];
   nav.innerHTML = cats.map(c => '<button class="btn ' + (c===curCat?'active':'') + '" data-cat="' + escapeHtml(c) + '">' + escapeHtml(c) + '</button>').join('');
   nav.querySelectorAll('[data-cat]').forEach(b => b.addEventListener('click', () => { curCat = b.dataset.cat; renderCats(); renderList(); }));
   renderList();
@@ -527,6 +539,11 @@ function addTpl(){
   if(!title || !skeleton){ toast('请填标题和骨架'); return; }
   DATA.writing.push({ id: uid(), category: cat, title, skeleton, tips: $('#a_tips').value.trim() });
   hubSave();
+  // 9/16 修：原先保存后不清空表单（addPhrase 是清的，这里是遗漏）→ 再点「新增模板」时
+  // 上一条的标题/骨架/提示还躺在输入框里，连加几条就会把旧骨架当新模板存成重复项。
+  $('#a_title').value = '';
+  $('#a_skeleton').value = '';
+  $('#a_tips').value = '';
   curCat = cat;
   $('#addCard').hidden = true; $('#listCard').hidden = false;
   renderCats(); renderList();
@@ -747,7 +764,14 @@ function openTplDict(tplId){
   }
 
   // 输入与勾选变化 → 防抖存草稿（切走/刷新可续）
-  $('#wtDictInput').addEventListener('input', scheduleWtDictDraftSave);
+  // 9/16 修：#wtDictInput 是常驻 DOM，原先每进一次默写就 addEventListener 一次
+  // （实测进 3 次 = 3 个 input 监听）。这几个监听都指向同一个防抖句柄，互相 clearTimeout，
+  // 实际只落一次盘、没有可见后果，但闭包会一直累积。加一次性标记，只绑第一次。
+  const dictInp = $('#wtDictInput');
+  if(dictInp && !dictInp.dataset.dictBound){
+    dictInp.dataset.dictBound = '1';
+    dictInp.addEventListener('input', scheduleWtDictDraftSave);
+  }
   pick.querySelectorAll('.wt-dict-sent-chk').forEach(c => { c.addEventListener('change', scheduleWtDictDraftSave); });
 
   // 「重默错句」开关：开启时自动只勾选常错句（其余取消勾选），实现"每次做前重默错过的句子"
@@ -1077,7 +1101,10 @@ const RULES_TASK2 = [
 async function scoreEssay(){
   const essay = $('#scoreEssay').value.trim();
   const type = $('#scoreType').value;
-  if(essay.length < 150){ toast('作文太短，至少需要 150 词'); return; }
+  // 9/16 修：原来是 essay.length < 150 —— length 是「字符」不是「词」，30 词≈390 字符照样放行，
+  // 与 toast 文案（“至少需要 150 词”）和右下角实时词数完全不是一回事。改成按词数判。
+  const wc = wtCountWords(essay);
+  if(wc < WT_MIN_WORDS){ toast('作文太短，至少需要 ' + WT_MIN_WORDS + ' 词（当前 ' + wc + ' 词）'); return; }
 
   const isTask1 = type === '小作文';
   const dim = isTask1 ? 'TA（Task Achievement 任务完成）' : 'TR（Task Response 任务回应）';
@@ -1384,7 +1411,8 @@ function openExam(item, kind){
       try{ localStorage.removeItem('ielts_wt_draft_' + kind + '_' + item.no); }catch(e){}
       $('#examEssay').value = '';
     }
-    const n = ($('#examEssay').value.trim().match(/\b[\w'-]+\b/g) || []).length;
+    // 9/16 修：同样改走 wtCountWords（原 /\b[\w'-]+\b/g 遇到中文算 0 词，与 AI 评分 tab 口径不一致）
+    const n = wtCountWords($('#examEssay').value);
     $('#examWordCount').textContent = 'Word count: ' + n;
   } else {
     // 修：原写法在 if 块之后无条件把词数清零，刚恢复的草稿词数立刻被盖成 0
@@ -1402,7 +1430,9 @@ function examStopAndScore(){
   // 自动评分（复用官方 4 维度 prompt）。此处独立实现，避免依赖 scoreEssay 的 DOM。
   const essay = $('#examEssay').value.trim();
   const type = examTimer.cur && examTimer.cur.kind === 'big' ? '大作文' : '小作文';
-  if(essay.length < 150){ toast('作文太短，至少需要 150 词'); return; }
+  // 9/16 修：同 scoreEssay —— 原来 essay.length < 150 判的是字符数，30 词就能过关。
+  const wc2 = wtCountWords(essay);
+  if(wc2 < WT_MIN_WORDS){ toast('作文太短，至少需要 ' + WT_MIN_WORDS + ' 词（当前 ' + wc2 + ' 词）'); return; }
   const isTask1 = type === '小作文';
   const dim = isTask1 ? 'TA（Task Achievement 任务完成）' : 'TR（Task Response 任务回应）';
   const btn = $('#examScoreBtn');   // 手动评分按钮可能不存在（HTML 未提供），空值安全
@@ -1549,7 +1579,7 @@ function bindExam(){
   });
   const essay = $('#examEssay');
   if(essay) essay.addEventListener('input', () => {
-    const n = (essay.value.trim().match(/\b[\w'-]+\b/g) || []).length;
+    const n = wtCountWords(essay.value);
     $('#examWordCount').textContent = 'Word count: ' + n;
   });
   const sb = $('#examScoreBtn');
