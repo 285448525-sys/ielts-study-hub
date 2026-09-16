@@ -2085,12 +2085,13 @@ body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap,
 body.word-fullscreen #practiceBody.practice-body-fit .practice-tools-row{ width:100%;max-width:min(88vw,1120px); }
 
 /* ④c 垂直分布：9/16 之之反馈「红框空隙太大，中间整体上移」——
-   内容块改为顶部对齐（原来是 justify-content:center，视口一高上下各分 ~100px 空白），
-   喇叭用 margin-top:auto 钉在视口底部（底部不留大空白）；块间距随视口高度弹性伸缩。
+   内容块改为顶部对齐（原来是 justify-content:center，视口一高上下各分 ~100px 空白）；
+   喇叭跟随内容（9/16 二改：margin-top:auto 钉底在Desktop 高视口下吊在最底部不好看，取消钉底）。
    尺寸全部 clamp(vh) 单一来源随视口自适应——非全屏基础规则一字不动（9/15 用户授权全屏自由布局）。 */
 body.word-fullscreen #practiceBody.practice-body-fit{ justify-content:flex-start; gap:clamp(8px,1.4vh,16px); }
-body.word-fullscreen #practiceBody.practice-body-fit .answer-btns{ margin-top:0; }
-body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap{ margin-top:auto; padding-top:8px; }
+body.word-fullscreen #practiceBody.practice-body-fit .answer-btns,
+body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap{ margin-top:0; }
+body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap{ padding-top:4px; }
 body.word-fullscreen #practiceBody.practice-body-fit .practice-word-area{ min-height:clamp(110px,13.5vh,150px); margin-bottom:0; }   /* 9/16 收紧：17vh→13.5vh，音标→选项空隙跟着小 */
 body.word-fullscreen #practiceBody.practice-body-fit .pw-en{ font-size:clamp(38px,4.6vh,52px); }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-ipa{ font-size:clamp(15px,1.9vh,18px); }
