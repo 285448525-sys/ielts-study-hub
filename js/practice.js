@@ -1113,6 +1113,37 @@ function isWordTimerActive(){
   if(m && !m.ended && m.timerId && m.moduleId === WORD_TIMER_MODULE) return true;
   return false;
 }
+/* ⭐ 正规结算「其他模块」的进行中计时（听力/口语/手动）：时长记到当前时刻（暂停折算），绝不丢表。
+   （9/16 之之定版：背词打断其他计时=结束前一个再开新表；此前是无条件硬覆盖致听力计时丢失） */
+function settleForeignTimerForWord(){
+  const a = (window.active && !window.active.ended) ? window.active
+          : ((DATA.activeTimer && !DATA.activeTimer.ended && DATA.activeTimer.timerId) ? DATA.activeTimer : null);
+  if(!a || a.moduleId === WORD_TIMER_MODULE) return;   // 无表 / 本来就是背词表 → 交给既有逻辑
+  const timerId = a.timerId;
+  const endTs = Date.now();
+  let pause = Number(a.pauseAccum) || 0;
+  if(a.paused && a.pauseStart) pause += (endTs - a.pauseStart);
+  const durationSec = Math.max(0, Math.round((endTs - (a.startTs || endTs) - pause) / 1000));
+  if(durationSec > 0 && !(DATA.sessions || []).some(s => s.timerId && s.timerId === timerId)){
+    DATA.sessions = DATA.sessions || [];
+    const names = (typeof resolveTimerNames === 'function')
+      ? resolveTimerNames(a)
+      : { moduleName: a.moduleName || '学习', subName: a.subName || '' };
+    DATA.sessions.push({
+      id: uid(), timerId, date: todayKey(a.startTs),
+      moduleId: a.moduleId, subId: a.subId || a.moduleId,
+      moduleName: names.moduleName, subName: names.subName,
+      startTs: a.startTs, endTs, durationSec, pauseSec: Math.max(0, Math.round(pause / 1000))
+    });
+  }
+  window.active = null;
+  DATA.activeTimer = { timerId, ended: true, updatedAt: Date.now(), lastBeat: 0 };
+  hubSave();
+  try{
+    document.dispatchEvent(new CustomEvent('hub:session-saved', { detail: { date: todayKey() } }));
+    document.dispatchEvent(new CustomEvent('hub:timer-state'));
+  }catch(e){}
+}
 function maybeStartWordTimer(){
   // 一轮结束后处于「2 分钟宽限」中又开始学习 → 取消停止计时，保持连续（背单词合并成一段）
   if(window.__wordTimerStopTimer){
@@ -1124,10 +1155,9 @@ function maybeStartWordTimer(){
   if(window.__wordTimerAuto && window.active && !window.active.ended && window.active.moduleId === WORD_TIMER_MODULE) return;
   // 已有任意进行中的「背单词」计时（手动开的或其他入口）→ 不重复开、也不接管提交
   if(isWordTimerActive()) return;
-  // ⭐ 已有其他模块的进行中计时（听力/口语/手动）→ 绝不覆盖，本页保持无表状态
-  //（9/16 之之：计听力时误入单词页，自动开表把 DATA.activeTimer 硬覆盖，听力计时丢失；与 maybeStartPdTimer 同款双保险）
-  if(window.active && !window.active.ended) return;
-  if(DATA.activeTimer && !DATA.activeTimer.ended && DATA.activeTimer.timerId) return;
+  // ⭐ 其他模块的进行中计时（听力/口语/手动）→ 先正规结算（时长记到打断时刻，不丢），再往下开背词新表
+  //（9/16 之之定版：被打断=结束前一个再重新计；第一版「静默不开表」不合她的用法，已废弃）
+  settleForeignTimerForWord();
   const now = Date.now();
   const id = uid();
   const dev = wordTimerDeviceId();
