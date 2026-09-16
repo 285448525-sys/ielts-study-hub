@@ -2084,18 +2084,20 @@ body.word-fullscreen #practiceBody.practice-body-fit .answer-btns,
 body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap,
 body.word-fullscreen #practiceBody.practice-body-fit .practice-tools-row{ width:100%;max-width:min(88vw,1120px); }
 
-/* ④c 垂直分布：内容块整体在视口内居中，块间距随视口高度弹性伸缩（大屏拉开、矮屏收紧，无大片留白）。
+/* ④c 垂直分布：9/16 之之反馈「红框空隙太大，中间整体上移」——
+   内容块改为顶部对齐（原来是 justify-content:center，视口一高上下各分 ~100px 空白），
+   喇叭用 margin-top:auto 钉在视口底部（底部不留大空白）；块间距随视口高度弹性伸缩。
    尺寸全部 clamp(vh) 单一来源随视口自适应——非全屏基础规则一字不动（9/15 用户授权全屏自由布局）。 */
-body.word-fullscreen #practiceBody.practice-body-fit{ justify-content:center; gap:clamp(8px,1.8vh,20px); }
-body.word-fullscreen #practiceBody.practice-body-fit .answer-btns,
-body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap{ margin-top:0; }
-body.word-fullscreen #practiceBody.practice-body-fit .practice-word-area{ min-height:clamp(120px,17vh,170px); margin-bottom:0; }
+body.word-fullscreen #practiceBody.practice-body-fit{ justify-content:flex-start; gap:clamp(8px,1.4vh,16px); }
+body.word-fullscreen #practiceBody.practice-body-fit .answer-btns{ margin-top:0; }
+body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap{ margin-top:auto; padding-top:8px; }
+body.word-fullscreen #practiceBody.practice-body-fit .practice-word-area{ min-height:clamp(110px,13.5vh,150px); margin-bottom:0; }   /* 9/16 收紧：17vh→13.5vh，音标→选项空隙跟着小 */
 body.word-fullscreen #practiceBody.practice-body-fit .pw-en{ font-size:clamp(38px,4.6vh,52px); }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-ipa{ font-size:clamp(15px,1.9vh,18px); }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-cn{ font-size:clamp(15px,1.9vh,18px); }
-body.word-fullscreen #practiceBody.practice-body-fit .opts-grid{ gap:clamp(12px,1.8vh,18px); }
-body.word-fullscreen #practiceBody.practice-body-fit .opt-big{ height:clamp(88px,13.5vh,122px); }
-body.word-fullscreen #practiceBody.practice-body-fit .opt-big-cn{ font-size:clamp(15px,2.2vh,21px); }
+body.word-fullscreen #practiceBody.practice-body-fit .opts-grid{ gap:clamp(10px,1.5vh,16px); }   /* 9/16 收紧：1.8vh→1.5vh */
+body.word-fullscreen #practiceBody.practice-body-fit .opt-big{ height:clamp(80px,12vh,110px); }   /* 9/16 收紧：13.5vh→12vh（配合选项字号缩小） */
+body.word-fullscreen #practiceBody.practice-body-fit .opt-big-cn{ font-size:clamp(14px,1.8vh,17px); }   /* 9/16 之之：选项中文字体缩小（原 15/2.2vh/21） */
 body.word-fullscreen #practiceBody.practice-body-fit .abtn-unknown{ height:clamp(40px,5.5vh,48px); }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap{ padding-top:0; }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap .tool-btn{ width:clamp(48px,6.2vh,58px); height:clamp(48px,6.2vh,58px); }
