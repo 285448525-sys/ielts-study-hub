@@ -2017,6 +2017,21 @@ ready(initCloudSync);
 window.$ = s => document.querySelector(s);
 function ready(fn){ if(document.readyState !== 'loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
 
+/* 取某个 js 模块「页面实际声明的那份 URL」（含 ?v= 版本号），取不到再退回裸文件名。
+   ⚠️ 9/17 回顾页陈旧 UI 事故的根因类问题：凡是手工拼 'js/xxx.js' 去 fetch / 注入的地方，
+   URL 上没有 ?v= 版本号就等于在向「浏览器 HTTP 缓存里任意年代的旧副本」要代码，
+   eval 之后会把刚按页面声明装好的新版同名函数整体覆盖回去。
+   动态加载脚本一律走这里，跟页面声明同源，版本号永远不会漂移。 */
+function declaredSrc(name){
+  try{
+    const base = 'js/' + name.replace(/^.*\//, '');
+    const s = document.querySelector('script[src*="' + base + '"]');
+    const src = s && s.getAttribute('src');
+    if(src) return src;
+  }catch(e){}
+  return 'js/' + name.replace(/^.*\//, '');
+}
+
 /* =========================================================================
    软导航（SPA-lite）：点击站内链接只替换 <main>，不整页刷新 → 消除换页卡顿
    设计红线（保证导航永远不被改坏）：

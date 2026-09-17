@@ -137,8 +137,10 @@
       ['js/mock-report.js'].forEach(src => {
         if(document.querySelector('script[data-mocklib="'+src+'"]')) return;
         pending++;
+        // 带 ?v=：跟页面声明同源，避免拿到 HTTP 缓存里的旧副本把新版 MockReport 覆盖回去（9/17）
         const s = document.createElement('script');
-        s.src = src; s.defer = true; s.setAttribute('data-mocklib', src);
+        s.src = (typeof declaredSrc === 'function') ? declaredSrc('mock-report.js') : 'js/mock-report.js';
+        s.defer = true; s.setAttribute('data-mocklib', src);
         s.onload = () => { pending--; if(pending<=0) done(); };
         s.onerror = () => { pending--; if(pending<=0) done(); };
         document.head.appendChild(s);

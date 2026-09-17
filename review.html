@@ -36,7 +36,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20260917a"></script>
-<script defer src="js/common.js?v=20260917c"></script>
+<script defer src="js/common.js?v=20260917d"></script>
 <script defer src="js/scores.js?v=20260915c"></script>
 <script defer src="js/history.js?v=20260904d"></script>
 <script defer src="js/mock-report.js?v=20260830u"></script>
@@ -44,6 +44,10 @@
 <script defer src="js/mock-summary.js?v=20260830u"></script>
 <script defer src="js/speaking-practice.js?v=20260908a"></script>
 <script defer src="js/progress.js?v=20260913a"></script>
+<!-- 回顾页的协调脚本：软导航下由 common.js 按其 pageScriptSources 收集执行。
+     ⚠️ 必须带 ?v= 声明在这里 —— 否则 common.js 只能拿裸 URL 'js/review.js'，
+     等于向浏览器 HTTP 缓存要「任意年代的旧副本」，改动永远推不上去（9/17 陈旧 UI 事故根因）。 -->
+<script defer src="js/review.js?v=20260917a"></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
