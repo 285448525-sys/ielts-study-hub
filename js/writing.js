@@ -10,7 +10,9 @@ var bankSearch = '';
    - scoreEssay / examStopAndScore 的门槛用 essay.length（那是**字符数**，30 词≈390 字符，直接放行）
    雅思官方算法按「非空白字符段」计词，这里用 /\S+/g 对齐同站 AI 评分 tab 既有口径。 */
 function wtCountWords(text){ return (String(text || '').trim().match(/\S+/g) || []).length; }
-var WT_MIN_WORDS = 150;   // 评分门槛（词）。页面占位文案与 toast 都按这个数讲。
+/* 9/17 之之拍板：评分门槛按官方要求分题型 —— Task 1 ≥150 词、Task 2 ≥250 词。
+   真题页给考生的指令一直印着 "Write at least 250/150 words"，门槛必须跟它一致。 */
+function wtMinWords(type){ return type === '大作文' ? 250 : 150; }
 
 function switchWriteTab(tab){
   curTab = tab;
@@ -61,12 +63,16 @@ ready(() => {
   const wcInput = $('#scoreEssay');
   if(wcEl && wcInput){
     // 9/16 修：词数改走 wtCountWords，与评分门槛同一口径（原来这里是 /\S+/g、真题页是 /\b[\w'-]+\b/g）
+    // 9/17：染色阈值跟随所选题型（Task 1 150 / Task 2 250）
     const updWc = () => {
       const n = wtCountWords(wcInput.value);
+      const min = wtMinWords($('#scoreType') ? $('#scoreType').value : '大作文');
       wcEl.textContent = n + ' 词';
-      wcEl.style.color = n >= WT_MIN_WORDS ? 'var(--primary)' : 'var(--warn-ink)';
+      wcEl.style.color = n >= min ? 'var(--primary)' : 'var(--warn-ink)';
     };
     wcInput.addEventListener('input', updWc);
+    const stEl = $('#scoreType');
+    if(stEl) stEl.addEventListener('change', updWc);   // 换题型时阈值跟着换
     updWc();
   }
 
@@ -1101,10 +1107,11 @@ const RULES_TASK2 = [
 async function scoreEssay(){
   const essay = $('#scoreEssay').value.trim();
   const type = $('#scoreType').value;
-  // 9/16 修：原来是 essay.length < 150 —— length 是「字符」不是「词」，30 词≈390 字符照样放行，
-  // 与 toast 文案（“至少需要 150 词”）和右下角实时词数完全不是一回事。改成按词数判。
+  // 9/16 修：原来是 essay.length < 150 —— length 是「字符」不是「词」，30 词≈390 字符照样放行。
+  // 9/17 之之拍板：门槛按题型分（Task 1 ≥150 词 / Task 2 ≥250 词），与真题页印刷指令一致。
+  const min = wtMinWords(type);
   const wc = wtCountWords(essay);
-  if(wc < WT_MIN_WORDS){ toast('作文太短，至少需要 ' + WT_MIN_WORDS + ' 词（当前 ' + wc + ' 词）'); return; }
+  if(wc < min){ toast('作文太短，至少需要 ' + min + ' 词（当前 ' + wc + ' 词）'); return; }
 
   const isTask1 = type === '小作文';
   const dim = isTask1 ? 'TA（Task Achievement 任务完成）' : 'TR（Task Response 任务回应）';
@@ -1431,8 +1438,10 @@ function examStopAndScore(){
   const essay = $('#examEssay').value.trim();
   const type = examTimer.cur && examTimer.cur.kind === 'big' ? '大作文' : '小作文';
   // 9/16 修：同 scoreEssay —— 原来 essay.length < 150 判的是字符数，30 词就能过关。
+  // 9/17：门槛按题型分（Task 1 150 / Task 2 250）。
+  const min = wtMinWords(type);
   const wc2 = wtCountWords(essay);
-  if(wc2 < WT_MIN_WORDS){ toast('作文太短，至少需要 ' + WT_MIN_WORDS + ' 词（当前 ' + wc2 + ' 词）'); return; }
+  if(wc2 < min){ toast('作文太短，至少需要 ' + min + ' 词（当前 ' + wc2 + ' 词）'); return; }
   const isTask1 = type === '小作文';
   const dim = isTask1 ? 'TA（Task Achievement 任务完成）' : 'TR（Task Response 任务回应）';
   const btn = $('#examScoreBtn');   // 手动评分按钮可能不存在（HTML 未提供），空值安全

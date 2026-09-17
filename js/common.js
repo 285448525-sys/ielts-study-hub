@@ -1026,6 +1026,9 @@ async function cloudUpload(showToast, force){
   _pendingUpload = false;
   const phone = DATA.settings.syncCode;
   if(!phone){ if(showToast) toast('请先在「设置」绑定手机号'); return false; }
+  // 先给本机改过的条目打 updatedAt（可能改 DATA），hash 必须在打戳之后再算，
+  // 否则同一次修改会被判两次「有变化」。见 stampSyncItemsForUpload 的说明。
+  stampSyncItemsForUpload();
   const h = hashData();
   if(h === _lastUploadedHash && !force){
     // 数据自上次成功上传后没有实质变化，跳过本次 PUT，节省 KV 写入次数
@@ -1068,6 +1071,7 @@ function flushCloudUpload(){
   if(!_pendingUpload) return;
   if(!DATA.settings.autoSync || !DATA.settings.syncCode) return;
   try{
+    stampSyncItemsForUpload();   // 关页/切后台补传也要先打戳，保证云端拿到时间戳
     const payload = JSON.stringify({ data: stripCloudFields(DATA), ts: Date.now(), deviceId: getDeviceId() });
     if(payload.length > 60 * 1024) return; // sendBeacon 传不了，交给下次自动上传或手动同步
     navigator.sendBeacon('/api/sync?code=' + encodeURIComponent(DATA.settings.syncCode), new Blob([payload], { type: 'application/json' }));
@@ -1098,6 +1102,60 @@ function stripCloudFields(d){
    syncCode 是账号标识本身不重复同步；autoSync 是本地开关、不跨设备同步（设计：绑了账号就自动同步）。
    合并规则见 mergeData：空值（未填/被清空）永不覆盖另一侧已填值，杜绝「空值带新时间戳把本机 Key 冲掉」。 */
 const SYNC_SETTINGS_FIELDS = ['name','examDate','examDates','targets','dailyGoalHours','relayToken','pronunciationScore','theme','chimeOnDone','adhd'];
+
+/* ===== 同步条目时间戳维护（9/17 修：_mergeArray 缺时间戳导致云端修改永不并入）=====
+   根因：_mergeArray 以 ts/updatedAt 判「较新者胜」，但 11 个同步数组的条目大多只有 id、
+   没有任何时间戳 → tsOf 恒为 0、0>0 为假 → 本机一旦存在同 id 条目就永久压制云端，
+   另一台设备的修改永远合并不进来（实测 11/11 数组复现，之之确认两台设备在用）。
+   方案：上传出口按「内容指纹」检测变更条目并补 updatedAt（避开 hubSave 热路径，写盘频率太高）：
+   - 首次见到（无快照）→ 只记快照不打戳，防历史老数据突然变成「最新」反过来盖掉另一端；
+   - 指纹与上次不同 → 视为本机刚改 → updatedAt = now；
+   - 指纹相同 → 不动（幂等，不产生无意义 PUT）。
+   快照存内存 Map（不入库、不上传；指纹剔除 updatedAt/ts 自身防自指）。 */
+var _syncStampSnap = new Map();
+function _stampSyncItemFp(it){
+  const c = Object.assign({}, it);
+  delete c.updatedAt; delete c.ts;
+  try { return JSON.stringify(c); } catch(e){ return null; }
+}
+function _stampSyncItemKey(f, it, fp){
+  return f + '|' + (it && it.id != null ? ('id:' + it.id) : (it && it.ts != null ? ('ts:' + it.ts) : ('h:' + fp)));
+}
+/* 上传前调用：给本机改过的条目打 updatedAt。返回打戳条数。 */
+function stampSyncItemsForUpload(){
+  const now = Date.now();
+  let touched = 0;
+  for(const f of SYNC_ARRAY_FIELDS){
+    const arr = DATA[f];
+    if(!Array.isArray(arr)) continue;
+    for(const it of arr){
+      if(!it || typeof it !== 'object') continue;
+      const fp = _stampSyncItemFp(it);
+      if(fp == null) continue;
+      const key = _stampSyncItemKey(f, it, fp);
+      const prev = _syncStampSnap.get(key);
+      if(prev === undefined){ _syncStampSnap.set(key, fp); }        // 首次见到：只记快照
+      else if(prev !== fp){ it.updatedAt = now; _syncStampSnap.set(key, fp); touched++; }
+    }
+  }
+  return touched;
+}
+/* 云端合并写回后调用：用合并结果重建快照。
+   否则云端版本与本机旧快照指纹不同 → 下次上传会把云端来的条目误打上本机时间戳，
+   再传回另一端形成一轮无意义覆盖与「已合并 N 处」噪音。 */
+function refreshSyncStampSnap(){
+  _syncStampSnap.clear();
+  for(const f of SYNC_ARRAY_FIELDS){
+    const arr = DATA[f];
+    if(!Array.isArray(arr)) continue;
+    for(const it of arr){
+      if(!it || typeof it !== 'object') continue;
+      const fp = _stampSyncItemFp(it);
+      if(fp == null) continue;
+      _syncStampSnap.set(_stampSyncItemKey(f, it, fp), fp);
+    }
+  }
+}
 
 /* 安全取数字：非有限数→0 */
 function _num(x){ const n = Number(x); return isFinite(n) ? n : 0; }
@@ -1655,6 +1713,7 @@ async function cloudDownload(silent){
     const reallyChanged = JSON.stringify(_stripBeat(m.data)) !== JSON.stringify(_stripBeat(DATA));
     if(reallyChanged){
       DATA = m.data; // 合并而非覆盖：保留本机进度，并入云端新增/更新
+      refreshSyncStampSnap();   // 合并写回后重建时间戳快照，防云端来的条目被误打本机戳再传回去
       // 关键修复：背单词页内存中的 pq.queue 引用的是旧 DATA.words 里的对象；
       // 合并后 DATA.words 已换成新数组/副本，若不同步引用，用户继续答题改的是旧对象，
       // hubSave 保存的新数组不会包含这些修改 → 表现为「背了不计数/待学习不变」。
@@ -1727,6 +1786,7 @@ async function syncLoginOrRegister(){
       if(data && data.data){
         const m = mergeData(DATA, data.data);
         DATA = m.data;
+        refreshSyncStampSnap();   // 登录合并写回后重建时间戳快照（同 cloudDownload）
         // 登录合并后同步背单词页内存引用（同 cloudDownload 理由）
         if(typeof window !== 'undefined' && window.pq && Array.isArray(window.pq.queue) && Array.isArray(DATA.words)){
           window.pq.queue = window.pq.queue.map(oldW => {
