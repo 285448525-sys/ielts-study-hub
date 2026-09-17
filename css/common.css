@@ -2123,9 +2123,9 @@ body.word-fullscreen #practiceBody.practice-body-fit{
 }
 body.word-fullscreen #practiceBody.practice-body-fit .practice-topzone{ display:none; }
 body.word-fullscreen #practiceBody.practice-body-fit .practice-word-area{
-  flex:none;min-height:clamp(120px,15vh,140px);margin-bottom:0;
+  flex:none;min-height:clamp(135px,17vh,155px);margin-bottom:0;
   margin-top:clamp(12px,2vh,20px);
-  display:flex;flex-direction:column;justify-content:center;
+  display:flex;flex-direction:column;justify-content:flex-start;   /* 顶部对齐：词/音标位置恒定，答后释义向下生长（居中版会因内容变高重算导致词抖动——之之实测反馈） */
 }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-cn{ min-height:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
 body.word-fullscreen #practiceBody.practice-body-fit .opts-grid{ margin-top:12px; }
