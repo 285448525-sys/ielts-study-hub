@@ -41,7 +41,7 @@
   <script defer src="js/common.js?v=20260917a"></script>
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
-  <script defer src="js/sentence-drill.js?v=20260914a"></script>
+  <script defer src="js/sentence-drill.js?v=20260917a"></script>
   <script defer src="js/speaking.js?v=20260916a"></script>
   <script defer src="js/materials.js?v=20260904z"></script>
   <script defer src="js/mock-report.js?v=20260830u"></script>
@@ -113,6 +113,7 @@
   .sent-formula{font-size:13.5px;color:var(--primary);font-weight:600;margin:6px 0 2px;line-height:1.6}
   .sent-note{font-size:13px;color:var(--muted);line-height:1.7;margin:4px 0 0}
   .sent-fix{font-size:13.5px;color:var(--ink);line-height:1.7;margin-bottom:8px}
+  .sent-misread{font-size:13.5px;line-height:1.7;color:#92400e;background:#fff7ed;border:1px solid #fdba74;border-radius:8px;padding:8px 12px;margin-bottom:8px}
   /* === design/17 P1：薄弱条 / 全部重练 / 拼接验证弹窗 / 查句型面板 / 备注框 === */
   .sent-weak{display:flex;align-items:center;gap:6px;padding:10px 14px;margin-bottom:12px;background:var(--primary-soft,#eef6f5);border:1px solid var(--line);border-radius:var(--radius);font-size:13.5px;font-weight:600;color:var(--primary,#3a9a93);cursor:pointer;transition:all .15s}
   .sent-weak:hover{border-color:var(--primary,#3a9a93)}

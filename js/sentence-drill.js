@@ -30,7 +30,17 @@ var SENT_FOCUS_CN = {
 };
 function sentFocusCn(f){ return SENT_FOCUS_CN[f] || f || ''; }
 
-var SENT_CHECK_SYS = '你是雅思口语句型教练。学生按中文句意输出英文，你只按以下尺度挑错：词序错误、时态错误、双动词（一个句子里两个谓语）、缺 be 动词、词性用错。单复数、a/an/the 冠词、三单 -s 一律不算错、不标。只输出 JSON：\n{"ok":true} 或 {"ok":false,"errors":[{"type":"时态","old":"is","note":"描述过去用 was，≤12字"}],"right":"学生答案的最小改正版","fix":"一句话人话总结最关键错误"}\nright 必须基于学生答案改错：保留学生原有用词与句型，只改正 errors 中标出的错误，禁止重写成另一句标准句。\n错误片段 old 必须逐字摘自学生答案原文。';
+/* 9/17 之之拍板：批改分两条线——①题意线：对照「句意」判学生是否理解错题目（答非所问），
+   偏题时输出 misread + 贴题版改进表达（按她的用词改到题目上，禁甩标准句）；
+   ②语法线：只看学生答案本身的语法（5.5 尺度不变），与题意无关。 */
+var SENT_CHECK_SYS = '你是雅思口语句型教练。学生按中文句意输出英文。你做两件事，只输出 JSON：\n'
+  + '一、判题意：对照「句意」与学生答案，判断是否理解错题目（答非所问）。同义改写不算偏题，只判内容方向明显对不上句意的。字段："misread":true/false，"misreadNote"：一句话说题目在问什么、学生答了什么，≤25字；misread 为 false 时给空串。\n'
+  + '二、挑语法错：只看学生答案本身的语法，与题意无关，按以下尺度挑错：词序错误、时态错误、双动词（一个句子里两个谓语）、缺 be 动词、词性用错。单复数、a/an/the 冠词、三单 -s 一律不算错、不标。语法错照常标在学生原句上（即使偏题也照标）。\n'
+  + '输出：{"ok":true} 或 {"ok":false,"misread":false,"misreadNote":"","errors":[{"type":"时态","old":"is","note":"描述过去用 was，≤12字"}],"right":"…","fix":"…"}\n'
+  + 'ok=false 的条件：有语法错或 misread=true（偏题不算过）。\n'
+  + 'right 规则：未偏题=学生答案的最小改正版，保留学生原有用词与句型，只改正 errors 标出的错误，禁止重写成另一句标准句；misread=true=贴题版，用学生答案的用词与句式，把内容改到能回答题目在问的事（同样保留学生用词，不甩标准句），并顺带改掉语法错。\n'
+  + 'fix 规则：一句话人话总结最关键问题；misread=true 时先说偏在哪。\n'
+  + '错误片段 old 必须逐字摘自学生答案原文。';
 
 function sentEsc(s){
   return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -326,12 +336,14 @@ async function sentAskAI(sent, answer, topicName){
         [{ role: 'system', content: SENT_CHECK_SYS },
          { role: 'user', content: '句意：' + (sent.cn || '') + '\n标准句：' + (sent.right || '')
            + '\n当前素材主题：' + (topicName || '通用') + '\n学生答案：' + answer }],
-        0, { max_tokens: 200 }),
+        0, { max_tokens: 300 }),
       3200);
     if(raw === '__TIMEOUT__') return { ok: null, err: '判定超时' };
     var j = aiJson(raw);
     if(!j || typeof j.ok !== 'boolean') return { ok: null, err: '判定结果异常' };
-    return { ok: j.ok, errors: Array.isArray(j.errors) ? j.errors : [], right: j.right || '', fix: j.fix || '' };
+    /* 9/17：misread=理解错题目（答非所问），misreadNote=一句话说明偏在哪 */
+    return { ok: j.ok, errors: Array.isArray(j.errors) ? j.errors : [], right: j.right || '', fix: j.fix || '',
+      misread: j.misread === true, misreadNote: String(j.misreadNote || '') };
   }catch(e){
     return { ok: null, err: (e && e.message) || 'AI 调用失败' };
   }
@@ -756,6 +768,8 @@ function sentPass(){
 }
 
 /* 判错反馈：① 原文内标红+角标（5.5 尺度内错误）② 第 1 次不含整句 ③ 第 2 次给整句 + 看答案兜底
+   ④ 9/17 偏题标注：misread 时置顶「⚠️ 你可能理解错题目了」（第 1 次就给，她需要立刻知道重答方向），
+   reveal 态改进版标签随偏题切换为「贴着题目说」（AI 的 right 语义在偏题时=贴题版）
    📌 句型公式 / 💡 用法 仅主句态显示（替换题以 fix 为主，保持轻） */
 function sentRenderFail(ai){
   var c = sentCur();
@@ -768,9 +782,11 @@ function sentRenderFail(ai){
      本质不同时才另起一行给参考——判定口径不动，这里只管展示 */
   var fixed = (ai.right && String(ai.right).trim()) ? String(ai.right).trim() : '';
   var sameAsRef = fixed && sentLocalJudge(fixed, ref);
+  var misHtml = (ai.misread && ai.misreadNote)
+    ? '<div class="sent-misread">⚠️ 你可能理解错题目了：' + sentEsc(ai.misreadNote) + '</div>' : '';
   var html = '<div class="sent-orig">' + mark.html + '</div>' + mark.notes;
   if(c.revealed){
-    if(fixed){ html += '<div class="sent-right">✅ 改正后（只改错处）：' + sentEsc(fixed) + '</div>'; }
+    if(fixed){ html += '<div class="sent-right">✅ ' + (ai.misread ? '改进版（贴着题目说，用你的词）：' : '改正后（只改错处）：') + sentEsc(fixed) + '</div>'; }
     if(fixed && !sameAsRef){ html += '<div class="sent-note">📄 参考说法：' + sentEsc(ref) + '</div>'; }
     if(!fixed){ html += '<div class="sent-right">✅ 正确句：' + sentEsc(ref) + '</div>'; }
   }
@@ -779,6 +795,7 @@ function sentRenderFail(ai){
   }
   html += '<div class="sent-note">💡 ' + sentEsc(sent.note || '') + '</div>';
   if(ai.fix && !c.revealed) html = '<div class="sent-fix">' + sentEsc(ai.fix) + '</div>' + html;
+  if(misHtml) html = misHtml + html;
   c.fb = { cls: 'bad', html: html, notes: '' };
   var statusText = c.revealed ? '' : '再试一次：把这句重新说一遍';
   sentRender();
@@ -848,7 +865,8 @@ async function sentReplaySubmit(cat, topic){
   if(fb) fb.className = 'pd-feedback' + (ai && ai.ok === false ? ' bad' : '');
   if(ai && ai.ok === false){
     var mark = sentRenderErrors(answer, ai.errors || []);
-    if(fb) fb.innerHTML = '<div class="sent-orig">' + mark.html + '</div>' + mark.notes
+    if(fb) fb.innerHTML = ((ai.misread && ai.misreadNote) ? '<div class="sent-misread">⚠️ 你可能理解错题目了：' + sentEsc(ai.misreadNote) + '</div>' : '')
+      + '<div class="sent-orig">' + mark.html + '</div>' + mark.notes
       + (ai.fix ? '<div class="sent-fix">' + sentEsc(ai.fix) + '</div>' : '');
     if(st) st.textContent = '再试一次或跳过';
   } else {
