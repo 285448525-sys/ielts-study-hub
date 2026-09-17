@@ -1,4 +1,4 @@
-const WORD_FILTERS = { type: 'all', level: 'all' };
+const WORD_FILTERS = { type: 'all', level: 'all', err: 'all' };
 
 function setWordFilterType(type){
   WORD_FILTERS.type = type;
@@ -7,6 +7,159 @@ function setWordFilterType(type){
 function setWordFilterLevel(level){
   WORD_FILTERS.level = level;
   document.querySelectorAll('#filterLevel .chip').forEach(b => b.classList.toggle('active', b.dataset.level === level));
+}
+function setWordFilterErr(err){
+  WORD_FILTERS.err = err;
+  document.querySelectorAll('#filterErr .chip').forEach(b => b.classList.toggle('active', b.dataset.err === err));
+}
+
+/* ===== 词库列表：分组折叠 + 分页渲染 + 勾选练习（1400+ 词防卡顿，9/17）=====
+   渲染策略：默认按大类折叠（组头可点展开/收起），展开时每组先渲染 30 条、
+   「展开更多」按钮逐步追加；收起时清空组体释放 DOM。搜索时平铺分页。
+   删除/勾选/展开全部走 #wordList 容器级事件委托，不再逐条绑定。 */
+const BANK_PAGE_SIZE = 30;              // 每组首屏条数 / 「展开更多」步长
+let _bankExpanded = {};                 // 组折叠状态 {groupKey:bool}，默认全折叠
+let _bankShown = {};                    // 各组已渲染条数 {groupKey:n}
+let _bankChecked = new Set();           // 勾选中的词 id（内存，跨筛选保留）
+let _bankGroups = {};                   // 当前渲染的分组快照 {groupKey:[word,...]}，供「展开更多」取数
+
+function bankErrTier(w){
+  const e = Number((w.errTotal != null) ? w.errTotal : (w.mcLapses || 0)) || 0;
+  if(e <= 0) return null;
+  return e >= 5 ? '5p' : String(e);
+}
+function errTierLabel(t){ return t === '5p' ? '错 5 次及以上' : '错 ' + t + ' 次'; }
+
+/* 「错误」筛选 chips（带各档词数）。chips 随词库变化重建，调用点=renderWords 开头。 */
+function initErrFilter(){
+  const box = $('#filterErr');
+  if(!box) return;
+  const counts = { '1':0, '2':0, '3':0, '4':0, '5p':0 };
+  (DATA.words || []).forEach(w => { ensureWordV12(w); const t = bankErrTier(w); if(t) counts[t]++; });
+  let html = '<button class="chip" data-err="all">全部</button>';
+  ['1','2','3','4','5p'].forEach(t => {
+    if(counts[t] > 0) html += `<button class="chip" data-err="${t}">${errTierLabel(t)}（${counts[t]}）</button>`;
+  });
+  box.innerHTML = html;
+  // 该档已无词（删光）时回退「全部」，与 initLevelFilter 同口径
+  if(WORD_FILTERS.err !== 'all' && !box.querySelector(`[data-err="${WORD_FILTERS.err}"]`)){
+    WORD_FILTERS.err = 'all';
+  }
+  box.querySelectorAll('.chip').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.err === WORD_FILTERS.err);
+    btn.addEventListener('click', () => { setWordFilterErr(btn.dataset.err); renderWords(); });
+  });
+}
+
+function groupByType(list){
+  const word = [], phrase = [];
+  list.forEach(w => { (/\s/.test(String(w.en || '')) ? phrase : word).push(w); });
+  const groups = [];
+  if(word.length)   groups.push({ key:'t-word',   name:'单词', items:word });
+  if(phrase.length) groups.push({ key:'t-phrase', name:'词组', items:phrase });
+  return groups;
+}
+function groupByErr(list){
+  const buckets = { '5p':[], '4':[], '3':[], '2':[], '1':[] };
+  list.forEach(w => { const t = bankErrTier(w); if(t && buckets[t]) buckets[t].push(w); });
+  // 错得多的档在前；同档内错误次数多的词排前
+  return ['5p','4','3','2','1'].filter(t => buckets[t].length).map(t => {
+    buckets[t].sort((a,b) => (Number(b.errTotal) || 0) - (Number(a.errTotal) || 0));
+    return { key:'e' + t, name:errTierLabel(t), items:buckets[t] };
+  });
+}
+
+function groupHeadHtml(g){
+  const open = !!_bankExpanded[g.key];
+  return `
+  <div class="wl-group ${open ? 'open' : ''}" data-group="${g.key}">
+    <button class="wl-group-head" data-toggle="${g.key}" type="button">
+      <svg class="wl-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+      <span class="wl-group-name">${escapeHtml(g.name)}</span>
+      <span class="wl-group-count">${g.items.length}</span>
+    </button>
+    <div class="wl-group-body" data-body="${g.key}"><ul class="wl-group-list"></ul></div>
+  </div>`;
+}
+
+function bankItemHtml(w){
+  const lv = (w.level != null) ? (Number(w.level) || 0) : 0;
+  const isPhrase = /\s/.test(String(w.en || ''));
+  const meanHtml = isPhrase
+    ? `<span class="wl-sense"><span class="wl-sense-pos">phrase.</span><span class="wl-sense-cn">${escapeHtml(w.cn || '')}</span></span>`
+    : formatMean(w.pos, w.cn);
+  const errN = Number((w.errTotal != null) ? w.errTotal : (w.mcLapses || 0)) || 0;
+  const errHtml = errN > 0 ? `<span class="wl-err" title="累计答错 ${errN} 次">错 ${errN}</span>` : '';
+  return `
+    <li class="wl-item" data-en="${escapeHtml(w.en)}">
+      <input type="checkbox" class="wl-check" data-check="${w.id}" aria-label="选中 ${escapeHtml(w.en)}" />
+      <span class="wl-word">${escapeHtml(w.en)}</span>
+      <div class="wl-senses">${meanHtml}</div>
+      ${errHtml}
+      <span class="wl-lv">Lv ${lv}</span>
+      <button class="wl-del" data-del="${w.id}" title="删除" aria-label="删除">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </li>`;
+}
+
+/* 向组体追加下一页条目，并维护「展开更多」按钮 */
+function renderGroupSlice(gkey, items, body){
+  if(!body) return;
+  const shown = _bankShown[gkey] || 0;
+  const slice = items.slice(shown, shown + BANK_PAGE_SIZE);
+  _bankShown[gkey] = shown + slice.length;
+  const ul = body.querySelector('.wl-group-list');
+  if(ul){
+    ul.insertAdjacentHTML('beforeend', slice.map(w => bankItemHtml(w)).join(''));
+    ul.querySelectorAll('.wl-check').forEach(cb => { if(_bankChecked.has(cb.dataset.check)) cb.checked = true; });
+  }
+  let more = body.querySelector('.wl-more');
+  const rest = items.length - (_bankShown[gkey] || 0);
+  if(rest > 0){
+    if(!more){
+      more = document.createElement('button');
+      more.type = 'button';
+      more.className = 'wl-more';
+      body.appendChild(more);
+    }
+    more.dataset.more = gkey;
+    more.textContent = `展开更多（还有 ${rest} 个）`;
+  } else if(more) more.remove();
+}
+
+function toggleBankGroup(gkey){
+  const grp = document.querySelector(`.wl-group[data-group="${gkey}"]`);
+  if(!grp) return;
+  const body = grp.querySelector('.wl-group-body');
+  if(!body) return;
+  const open = !_bankExpanded[gkey];
+  _bankExpanded[gkey] = open;
+  grp.classList.toggle('open', open);
+  if(open && !body.dataset.init){
+    body.dataset.init = '1';
+    renderGroupSlice(gkey, _bankGroups[gkey] || [], body);
+  } else if(!open){
+    // 收起时清空组体释放 DOM（防展开过多后 DOM 常驻拖慢页面）
+    body.innerHTML = '<ul class="wl-group-list"></ul>';
+    delete body.dataset.init;
+    _bankShown[gkey] = 0;
+  }
+}
+
+function bankUpdateActionBar(){
+  const bar = $('#bankActionBar');
+  if(!bar) return;
+  const n = _bankChecked.size;
+  bar.hidden = n === 0;
+  const el = $('#bankCheckedN');
+  if(el) el.textContent = n;
+}
+
+/* 勾选词 id → 小写 en 列表（供 startSessionFromPool） */
+function bankCheckedEns(){
+  const ids = Array.from(_bankChecked);
+  return (DATA.words || []).filter(w => ids.includes(w.id)).map(w => String(w.en || '').trim().toLowerCase());
 }
 
 function initLevelFilter(){
@@ -37,6 +190,59 @@ ready(() => {
   });
   bindDrop();
   initLevelFilter();
+  // 词库列表事件委托（一次绑定，替代旧版逐条 addEventListener —— 1400+ 词不再卡顿）
+  const listBox = $('#wordList');
+  if(listBox){
+    listBox.addEventListener('click', e => {
+      const more = e.target.closest('.wl-more');
+      if(more){
+        const gkey = more.dataset.more;
+        const body = more.closest('.wl-group-body');
+        renderGroupSlice(gkey, _bankGroups[gkey] || [], body);
+        return;
+      }
+      const head = e.target.closest('.wl-group-head');
+      if(head){ toggleBankGroup(head.dataset.toggle); return; }
+      const del = e.target.closest('.wl-del');
+      if(del){
+        _bankChecked.delete(del.dataset.del);
+        deleteWord(del.dataset.del);
+        return;
+      }
+    });
+    listBox.addEventListener('change', e => {
+      const cb = e.target.closest('.wl-check');
+      if(!cb) return;
+      if(cb.checked) _bankChecked.add(cb.dataset.check);
+      else _bankChecked.delete(cb.dataset.check);
+      bankUpdateActionBar();
+    });
+  }
+  const pracBtn = $('#bankPracticeBtn');
+  if(pracBtn){
+    pracBtn.addEventListener('click', () => {
+      const ens = bankCheckedEns();
+      if(ens.length < 2){
+        const hint = $('#importHint');
+        if(hint) hint.textContent = '至少勾选 2 个词才能开始选词义练习。';
+        return;
+      }
+      const ok = (typeof startSessionFromPool === 'function') ? startSessionFromPool(ens) : false;
+      if(ok){
+        _bankChecked.clear();
+        document.querySelectorAll('#wordList .wl-check').forEach(cb => { cb.checked = false; });
+        bankUpdateActionBar();
+      }
+    });
+  }
+  const clrBtn = $('#bankClearBtn');
+  if(clrBtn){
+    clrBtn.addEventListener('click', () => {
+      _bankChecked.clear();
+      document.querySelectorAll('#wordList .wl-check').forEach(cb => { cb.checked = false; });
+      bankUpdateActionBar();
+    });
+  }
   renderWords();
 });
 
@@ -503,6 +709,7 @@ function formatMean(pos, cn){
 }
 
 function renderWords(){
+  initErrFilter();   // 错误档 chips 随词库变化重建（带各档词数）
   const kw = ($('#searchWord').value || '').toLowerCase();
   let list = DATA.words.slice().reverse();
   list.sort((a,b) => (a.level || 0) - (b.level || 0)); // 等级低的排在前面
@@ -517,31 +724,44 @@ function renderWords(){
   if(level !== 'all'){
     list = list.filter(w => String(Number(w.level) || 0) === level);   // 与 initLevelFilter 的 Number 归一口径一致
   }
+  const err = WORD_FILTERS.err;
+  if(err !== 'all'){
+    list = list.filter(w => bankErrTier(w) === err);
+  }
   if(kw) list = list.filter(w => (w.en+' '+w.cn).toLowerCase().includes(kw));
   // 旧 mc* → v1.2 迁移（幂等），迁移后落盘
   let migrated = false;
   list.forEach(w => { const b = JSON.stringify(w); ensureWordV12(w); if(JSON.stringify(w) !== b) migrated = true; });
   if(migrated) hubSave();
   $('#wordCount').textContent = DATA.words.length;
+
   const box = $('#wordList');
-  if(list.length === 0){ box.innerHTML = renderEmpty('没有匹配的单词。'); return; }
-  box.innerHTML = list.map(w => {
-    ensureWordV12(w);
-    const lv = (w.level != null) ? (Number(w.level) || 0) : 0;
-    const isPhrase = /\s/.test(String(w.en || ''));
-    const meanHtml = isPhrase
-      ? `<span class="wl-sense"><span class="wl-sense-pos">phrase.</span><span class="wl-sense-cn">${escapeHtml(w.cn || '')}</span></span>`
-      : formatMean(w.pos, w.cn);
-    return `
-      <li class="wl-item" data-en="${escapeHtml(w.en)}">
-        <span class="wl-word">${escapeHtml(w.en)}</span>
-        <div class="wl-senses">${meanHtml}</div>
-        <span class="wl-lv">Lv ${lv}</span>
-        <button class="wl-del" data-del="${w.id}" title="删除" aria-label="删除">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
-        </button>
-      </li>`;
-  }).join('');
-  box.querySelectorAll('.wl-del').forEach(b => b.addEventListener('click', () => deleteWord(b.dataset.del)));
+  _bankShown = {};   // 重置各组分页计数；折叠状态 _bankExpanded 保留
+  if(list.length === 0){
+    _bankGroups = {};
+    box.innerHTML = renderEmpty('没有匹配的单词。');
+    bankUpdateActionBar();
+    return;
+  }
+
+  if(kw){
+    // 搜索：平铺分页（无组头），快速定位
+    _bankGroups = { flat: list };
+    box.innerHTML = '<div class="wl-group open" data-group="flat"><div class="wl-group-body" data-body="flat"><ul class="wl-group-list"></ul></div></div>';
+    renderGroupSlice('flat', list, box.querySelector('.wl-group-body'));
+  } else {
+    // 错误筛选激活 → 按错误次数分组（错得多的在前）；其余 → 单词/词组分组，默认全折叠
+    const groups = (err !== 'all') ? groupByErr(list) : groupByType(list);
+    _bankGroups = {};
+    groups.forEach(g => { _bankGroups[g.key] = g.items; });
+    box.innerHTML = groups.map(g => groupHeadHtml(g)).join('');
+    groups.forEach(g => {   // 恢复此前展开的组（只渲染首屏）
+      if(_bankExpanded[g.key]){
+        const body = box.querySelector(`[data-body="${g.key}"]`);
+        if(body){ body.dataset.init = '1'; renderGroupSlice(g.key, g.items, body); }
+      }
+    });
+  }
+  bankUpdateActionBar();
 }
 

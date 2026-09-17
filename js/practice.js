@@ -475,10 +475,11 @@ function autoStartSeeWord(){
 
     // —— 题量收归：设置题量小于已锁定轮次词数时，截断到设定题量（保留已过的词，去除未开始的冗余词）——
     //    解决「设置改成 20 但当天已建过 50 词轮次、改设置不生效」的问题（之之 8/31 反馈）
+    //    勾选练习轮（poolMode）不收归：她勾多少词就练多少，不受 batchSize 影响（9/17）
     {
       const _c = pc();
       const _cap = (_c.batchSize > 0) ? _c.batchSize : session.planEn.length;
-      if(session.planEn.length > _cap){
+      if(!session.poolMode && session.planEn.length > _cap){
         const _passedSet = new Set((session.passed || []).map(e => String(e).trim().toLowerCase()));
         const _capEff = Math.max(_cap, _passedSet.size);   // 绝不丢弃已过的词
         const _order = (session.queueOrder && session.queueOrder.length) ? session.queueOrder : session.planEn;
@@ -545,6 +546,44 @@ function resetPractice(){
   cancelSpeak();
   pq = null;
   autoStartSeeWord();
+}
+
+// ======= 勾选练习：用词库勾选的词池强制开新轮（9/17 词库四件套）=======
+// 无视当天已锁定的轮次与 batchSize 截断；session 带 poolMode 标记，题量收归段跳过。
+function startSessionFromPool(poolEn){
+  const ens = (poolEn || []).map(e => String(e || '').trim().toLowerCase()).filter(Boolean);
+  const uniq = Array.from(new Set(ens));
+  if(uniq.length < 2) return false;
+  const words = uniq.map(en => findWordByEn(en)).filter(Boolean);
+  if(words.length < 2) return false;
+  try{
+    cancelSpeak();
+    removeMasteredBtn();
+    const c = pc();
+    let plan = words.slice();
+    if(c.shuffle) plan = shuffle(plan);
+    const session = {
+      date: todayKey(),
+      planEn: plan.map(w => String(w.en).trim().toLowerCase()),
+      passed: [],
+      queueOrder: plan.map(w => String(w.en).trim().toLowerCase()),
+      currentEn: null,
+      stats: { known:0, unknown:0 },
+      total: 0,
+      finished: false,
+      lastTouch: Date.now(),
+      sessionStart: Date.now(),
+      poolMode: true        // 勾选练习轮标记：不参与题量收归
+    };
+    DATA.dailySession = session;
+    hubSave();
+    pq = null;
+    switchWordTab('study');  // pq 为空 → autoStartSeeWord() 走「续上当天轮次」分支出题
+    return true;
+  }catch(err){
+    console.error('[practice] startSessionFromPool 失败', err);
+    return false;
+  }
 }
 
 // ======= 当日词表锁定 + 进度持久化（草稿自动存档）=======

@@ -939,6 +939,24 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 .wl-del{position:relative;width:28px;height:28px;border-radius:7px;border:1.5px solid var(--danger);background:var(--surface);color:var(--danger);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:.12s;flex:none;margin-top:1px}
 .wl-del::after{content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:44px;height:44px}
 .wl-del:hover{background:var(--danger);color:#fff}
+/* 词库分组折叠 + 勾选练习（9/17）：新类名，无层叠冲突 */
+.wl-group{border-bottom:1px solid var(--line)}
+.wl-group:last-child{border-bottom:none}
+.wl-group-head{display:flex;align-items:center;gap:8px;width:100%;padding:10px 6px;background:none;border:none;border-radius:8px;cursor:pointer;font:inherit;text-align:left;transition:background .12s}
+.wl-group-head:hover{background:var(--bg)}
+.wl-caret{width:14px;height:14px;color:var(--muted);flex:none;transition:transform .15s}
+.wl-group.open .wl-caret{transform:rotate(90deg)}
+.wl-group-name{font-size:14px;font-weight:700;color:var(--ink)}
+.wl-group-count{font-size:12px;font-weight:600;color:var(--muted);background:var(--bg);padding:1px 8px;border-radius:10px}
+.wl-group-body{padding:0 2px 6px 20px}
+.wl-group-list{list-style:none;display:flex;flex-direction:column;padding:0;margin:0}
+.wl-more{display:block;margin:8px auto 2px;padding:6px 18px;border-radius:18px;border:1px solid var(--line);background:var(--surface);color:var(--muted);font:inherit;font-size:12.5px;cursor:pointer;transition:border-color .12s,color .12s}
+.wl-more:hover{border-color:var(--primary);color:var(--primary)}
+.wl-check{width:16px;height:16px;accent-color:var(--primary);flex:none;margin-top:3px;cursor:pointer}
+.wl-err{font-size:11.5px;font-weight:700;color:var(--danger);border:1px solid var(--danger);border-radius:6px;padding:1px 7px;flex:none;margin-top:2px;white-space:nowrap}
+.wl-action-bar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:9px 12px;border:1px solid var(--primary);background:var(--primary-soft);border-radius:10px;margin-bottom:10px}
+.wl-action-hint{font-size:13px;color:var(--ink)}
+.wl-action-hint b{color:var(--primary)}
 
 /* dashboard hero */
 .hero{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
