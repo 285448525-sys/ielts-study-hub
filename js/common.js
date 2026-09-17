@@ -383,7 +383,7 @@ function renderSideTimer(){
     box.innerHTML =
       '<div class="side-timer running-badge" id="sideTimerBadge" role="button" tabindex="0" title="点击回到计时页">'
       + '<span class="st-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg></span>'
-      + '<span class="st-name">' + escapeHtml(a.moduleName || a.subName || '学习') + '</span>'
+      + '<span class="st-name">' + escapeHtml(a.subName || a.moduleName || '学习') + '</span>'   /* 9/17 任务名优先 */
       + '<span class="st-live" id="sideTimerLive">00:00:00</span>'
       + '<button class="st-stop" id="sideTimerStop" type="button" title="结束本次计时">结束</button>'
       + '</div>';
@@ -2109,7 +2109,7 @@ function syncFloatTimer(){
     if(!el.hasAttribute('hidden')) el.setAttribute('hidden', '');
     return;
   }
-  const name = src.moduleName || src.subName || '学习';
+  const name = src.subName || src.moduleName || '学习';   // 9/17 任务计时：subName=任务文本（如「听力 第3篇」），优先显示
   const label = document.getElementById('ft-label');
   if(label) label.textContent = (src.paused ? name + ' 暂停中' : name + ' 计时中');
   const t = document.getElementById('ft-time');

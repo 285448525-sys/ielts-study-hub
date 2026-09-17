@@ -13,6 +13,10 @@ var SUB = {
 var WEEK = ['周日','周一','周二','周三','周四','周五','周六'];
 var DAILY = ['词库复习 / 生词复盘 20 词','服专注达：把最难的任务放在药效前 6 小时'];
 var currentWeek = null;
+/* ⭐ TDZ 铁律：页面级 const 必须在 ready() 之前——ready 回调在脚本求值期同步执行，
+   声明放后面（render 附近）会在首次 render 时 hit TDZ 整页崩（9/17 reload 实测）。 */
+const PLAN_TIMER_PLAY = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="7.5 5 18.5 12 7.5 19 7.5 5"/></svg>';
+const PLAN_TIMER_STOP = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="1.5"/></svg>';
 
 /* ---------- 每日计划 ---------- */
 ready(() => {
@@ -33,6 +37,14 @@ ready(() => {
     hubSave();
     buildAndRender(getCustomTasks());
   });
+
+  // 计时状态变化（任务行/悬浮标签/计时页 开始与结束）→ 重渲染任务行按钮态。
+  // window 缓存句柄：软导航重进本页先摘旧监听再挂新的，防 document 级监听累积。
+  if(window.__plansTimerStateH) document.removeEventListener('hub:timer-state', window.__plansTimerStateH);
+  window.__plansTimerStateH = function(){
+    if(document.getElementById('planList')) render();
+  };
+  document.addEventListener('hub:timer-state', window.__plansTimerStateH);
 
   render();
 });
@@ -176,6 +188,45 @@ function startEdit(id){
   });
 }
 
+/* ---------- 9/17 任务行「直接计时」：点 ▶ 按任务科目开表，再点 ⏹ 手动结束；打钩照旧手动 ---------- */
+/* 任务文本 → 计时模块 id（识别不出 → null，该行不显示计时按钮） */
+function planModIdOf(text){
+  const t = String(text || '');
+  if(/背单词|背词|词库|单词/.test(t)) return 'vocab';
+  if(/口语|口\d/.test(t)) return 'speaking';
+  if(/听力|精听|听写/.test(t)) return 'listening';
+  if(/阅读|精读/.test(t)) return 'reading';
+  if(/写作|作文/.test(t)) return 'writing';
+  return null;
+}
+/* 当前活跃计时源：本标签页持有优先；刷新/直入后 window.active 为空 → 回落云端镜像（owner=本机） */
+function planActiveSrc(){
+  if(window.active && window.active.startTs && !window.active.ended) return window.active;
+  try{
+    const m = DATA.activeTimer;
+    if(m && !m.ended && m.startTs && (m.ownerDevice || '') === getDeviceId()) return m;
+  }catch(e){}
+  return null;
+}
+function onPlanTimerBtn(btn){
+  const id = btn.dataset.timer, mod = btn.dataset.mod;
+  const p = getPlan(currentDate()); if(!p) return;
+  const it = p.items.find(x => x.id === id); if(!it) return;
+  const src = planActiveSrc();
+  if(src && src.subName === it.text){
+    // 本任务计时中 → 结束（⏹）。本标签页持有走 mono 精确结算；刷新后无 active 走跨页安全结算
+    if(window.active && typeof stopSession === 'function') stopSession();
+    else if(typeof window.stopActiveSession === 'function') window.stopActiveSession();
+    return;
+  }
+  if(src){ toast('已有计时在进行：「' + (src.subName || src.moduleName || '学习') + '」，先结束再开新的'); return; }
+  if(typeof mirrorHeldByOther === 'function' && mirrorHeldByOther(DATA.activeTimer)){
+    toast('另一设备正在计时，请先在那边结束', 3500); return;
+  }
+  if(typeof startSession === 'function'){ startSession(mod, it.text); }   // hub:timer-state → render() 刷新按钮态
+  else toast('计时模块还没加载好，稍等一下再点');
+}
+
 function render(){
   const date = currentDate();
   // 自动延续：当查看的是「今天」且今天还没有任何计划条目时，
@@ -221,18 +272,30 @@ function render(){
     const carriedTip = carriedCount
       ? `<div class="plan-carry-tip">↻ 其中 ${carriedCount} 条是昨天未完成的，已自动延续到今天</div>`
       : '';
-    box.innerHTML = carriedTip + items.map(i => `
+    const srcActive = planActiveSrc();
+    const heldOther = (typeof mirrorHeldByOther === 'function') ? mirrorHeldByOther(DATA.activeTimer) : false;
+    box.innerHTML = carriedTip + items.map(i => {
+      const mod = planModIdOf(i.text);
+      const isThis = !!(srcActive && srcActive.subName === i.text);
+      const tbtn = mod
+        ? `<button class="plan-timer${isThis ? ' running' : ''}" data-timer="${i.id}" data-mod="${mod}"${(heldOther && !isThis) ? ' disabled' : ''} title="${isThis ? '结束计时' : '直接开始计时'}">${isThis ? PLAN_TIMER_STOP : PLAN_TIMER_PLAY}</button>`
+        : '';
+      return `
       <div class="plan-item ${i.done ? 'done' : ''} ${i.carried ? 'carried' : ''}">
         <input type="checkbox" ${i.done ? 'checked' : ''} data-toggle="${i.id}" />
         <span class="plan-text" data-id="${i.id}" title="点击编辑">${escapeHtml(i.text)}</span>
+        ${tbtn}
         <button class="plan-edit" data-edit="${i.id}" title="编辑">✎</button>
         <button class="plan-del" data-del="${i.id}" title="删除">✕</button>
       </div>
-    `).join('');
+    `;
+    }).join('');
     box.querySelectorAll('input[data-toggle]').forEach(c =>
       c.addEventListener('change', () => toggleItem(c.dataset.toggle)));
     box.querySelectorAll('.plan-text[data-id]').forEach(s =>
       s.addEventListener('click', () => startEdit(s.dataset.id)));
+    box.querySelectorAll('button[data-timer]').forEach(b =>
+      b.addEventListener('click', () => onPlanTimerBtn(b)));
     box.querySelectorAll('button[data-edit]').forEach(b =>
       b.addEventListener('click', () => startEdit(b.dataset.edit)));
     box.querySelectorAll('button[data-del]').forEach(b =>

@@ -344,8 +344,11 @@ function pauseMs(){
   return Math.max(0, ms);
 }
 
-/* 直接以「模块」开始计时（不再选子任务） */
-function startSession(moduleId){
+/* 直接以「模块」开始计时（不再选子任务）。
+   9/17 计划页任务行「直接计时」：subNameOpt = 任务文本（如「听力 第3篇」），入库/悬浮标签/
+   记录区都显示它；计时页模块卡不传此参 = 原行为（subName=模块名）。
+   DOM 写入全部判空：本文件现也在计划页加载，#activeInfo/#stopBtn/#pauseBtn 在那边不存在。 */
+function startSession(moduleId, subNameOpt){
   // 单一可信源守卫：若云端镜像显示「他人正持有活跃计时」，禁止本机再开（消除双端同时计时）
   if(mirrorHeldByOther(DATA.activeTimer)){
     renderTimer();
@@ -359,7 +362,8 @@ function startSession(moduleId){
   const modeEl = document.querySelector('#modeSeg .seg-btn.active');
   const mode = (modeEl && modeEl.dataset.mode) || 'up';
   const now = Date.now();
-  window.active = { timerId: uid(), ownerDevice: getDeviceId(), moduleId, moduleName: m.name, subId: m.id, subName: m.name,
+  const subName = (subNameOpt && String(subNameOpt).trim()) || m.name;
+  window.active = { timerId: uid(), ownerDevice: getDeviceId(), moduleId, moduleName: m.name, subId: m.id, subName,
     startTs: now, startMonoNs: safeMonoNowNs().toString(), paused: false, pauseStart: null, pauseAccum: 0,
     pauseStartMonoNs: null, pauseAccumMonoNs: 0,
     targetSec, mode, updatedAt: now, lastBeat: now };
@@ -367,13 +371,11 @@ function startSession(moduleId){
   persistMirror();        // 立即写云端可信源
   ensureAudio();
   if(DATA.settings.notifyOnDone && 'Notification' in window && Notification.permission === 'default'){ Notification.requestPermission(); }
-  $('#activeInfo').innerHTML = '<strong>' + m.name + '</strong> 进行中';
-  $('#focusInfo').textContent = '';
-  $('#stopBtn').disabled = false;
-  $('#pauseBtn').disabled = false;
-  $('#pauseBtn').textContent = '暂停';
-  $('#pauseBtn').className = 'btn';
-  toast('已开始：' + m.name);
+  const aiEl = $('#activeInfo'); if(aiEl) aiEl.innerHTML = '<strong>' + escapeHtml(subName) + '</strong> 进行中';
+  const foEl = $('#focusInfo'); if(foEl) foEl.textContent = '';
+  const stEl = $('#stopBtn'); if(stEl) stEl.disabled = false;
+  const paEl = $('#pauseBtn'); if(paEl){ paEl.disabled = false; paEl.textContent = '暂停'; paEl.className = 'btn'; }
+  toast('已开始：' + subName);
   startTick();
   startHeartbeat();   // 开始续租云端心跳，另一端据 lastBeat 判断本机在线
   renderTimer();
@@ -383,12 +385,12 @@ function startSession(moduleId){
 
 function togglePause(){
   if(!window.active) return;
+  const paBtn = $('#pauseBtn');   // 9/17 判空：本文件在计划页也会加载（无暂停按钮，仅防御）
   if(!window.active.paused){
     window.active.paused = true;
     window.active.pauseStart = Date.now();
     window.active.pauseStartMonoNs = safeMonoNowNs().toString();
-    $('#pauseBtn').textContent = '继续';
-    $('#pauseBtn').className = 'btn btn-primary';
+    if(paBtn){ paBtn.textContent = '继续'; paBtn.className = 'btn btn-primary'; }
     toast('已暂停，回来点「继续」就好');
   } else {
     const now = Date.now();
@@ -401,8 +403,7 @@ function togglePause(){
     window.active.paused = false;
     window.active.pauseStart = null;
     window.active.pauseStartMonoNs = null;
-    $('#pauseBtn').textContent = '暂停';
-    $('#pauseBtn').className = 'btn';
+    if(paBtn){ paBtn.textContent = '暂停'; paBtn.className = 'btn'; }
     toast('继续学习，加油');
   }
   persistLocalActive();
@@ -451,14 +452,11 @@ function stopSession(){
   // 通知首页/侧边栏刷新「今日已学」
   document.dispatchEvent(new CustomEvent('hub:session-saved', { detail: { date: todayKey() } }));
   document.dispatchEvent(new CustomEvent('hub:timer-state'));   // 通知全局徽标消失
-  $('#activeInfo').textContent = '当前没有进行中的学习';
-  $('#focusInfo').textContent = '';
-  $('#stopBtn').disabled = true;
-  $('#pauseBtn').disabled = true;
-  $('#pauseBtn').textContent = '暂停';
-  $('#pauseBtn').className = 'btn';
-  $('#liveTimer').textContent = '00:00:00';
-  $('#liveTimer').style.color = '';
+  const aiEl2 = $('#activeInfo'); if(aiEl2) aiEl2.textContent = '当前没有进行中的学习';   // 9/17 判空：计划页也可结束计时
+  const foEl2 = $('#focusInfo'); if(foEl2) foEl2.textContent = '';
+  const stEl2 = $('#stopBtn'); if(stEl2) stEl2.disabled = true;
+  const paEl2 = $('#pauseBtn'); if(paEl2){ paEl2.disabled = true; paEl2.textContent = '暂停'; paEl2.className = 'btn'; }
+  const lvEl2 = $('#liveTimer'); if(lvEl2){ lvEl2.textContent = '00:00:00'; lvEl2.style.color = ''; }
   renderTimer();
   renderMiniRecords();   // 入库后刷新「今日学习记录」列表（Bug：此前不刷新）
   if(already){
@@ -544,6 +542,31 @@ function maybeTakeover(){
 ready(() => {
   stopTick();   // 进页面第一件事：清掉上一次 eval 遗留的孤儿心跳
   stopHeartbeat();
+  /* 9/17：本文件现也在计划页加载（任务行「直接计时」用）。非计时页跳过计时页专属的
+     DOM 绑定与恢复 UI；若刷新/直入时本机还有未结束的计时（window.active 已随页面重载丢失，
+     云端镜像 owner=me 仍在），重建活跃态并续上心跳——否则 lastBeat 90s 过期会被另一端
+     判离线接管、10 分钟被遗弃结算。锚点/镜像仍在，行按钮与悬浮标签照常可结束。 */
+  if(!document.getElementById('liveTimer')){
+    try{
+      const mv = DATA.activeTimer;
+      if(!window.active && mv && !mv.ended && mv.timerId && mv.startTs
+         && (mv.ownerDevice || '') === getDeviceId()
+         && todayKey(_num(mv.startTs)) === todayKey()
+         && !DATA.sessions.some(s => s.timerId && s.timerId === mv.timerId)){
+        const revNames = resolveTimerNames(mv);
+        window.active = { timerId: mv.timerId, ownerDevice: getDeviceId(),
+          moduleId: mv.moduleId, moduleName: revNames.moduleName, subId: mv.subId || mv.moduleId, subName: revNames.subName,
+          startTs: _num(mv.startTs), startMonoNs: null, paused: !!mv.paused,
+          pauseStart: mv.pauseStart ? _num(mv.pauseStart) : null, pauseStartMonoNs: null,
+          pauseAccum: _num(mv.pauseAccum), pauseAccumMonoNs: _num(mv.pauseAccum),
+          targetSec: mv.targetSec || null, mode: mv.mode || 'up',
+          updatedAt: Date.now(), lastBeat: Date.now() };
+        persistLocalActive(); persistMirror(); startHeartbeat();
+        document.dispatchEvent(new CustomEvent('hub:timer-state'));
+      }
+    }catch(e){}
+    return;
+  }
   // 运行中不自动 reload——reload 会导致页面频繁刷新（手机端切前台触发 visibilitychange→cloudDownload→merged→reload 循环）。
   // 跨设备计时恢复改为仅在页面加载时（ready）从镜像恢复，运行中不自动重载。手动刷新即可看到最新状态。
   document.removeEventListener('hub:data-merged', window.__timerMerged);
