@@ -2113,27 +2113,23 @@ body.word-fullscreen #practiceBody.practice-body-fit .answer-btns,
 body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap,
 body.word-fullscreen #practiceBody.practice-body-fit .practice-tools-row{ width:100%;max-width:min(88vw,1120px); }
 
-/* ④c 垂直分布（9/17 三调，之之反馈：选项/不知道/喇叭分得太开 + 答题时按钮跳动）：
-   放弃 space-evenly（4 段大间隙把按钮拆散 + 答后释义撑高 evenly 全体重排）。
-   新体系：题干区 flex:1 独占弹性空间、内部垂直居中——
-   ① 选项/不知道/喇叭贴底聚拢成一个紧凑模块（间距 14/12px）；
-   ② 答题后释义撑高全部被题干区弹性吸收 → 按钮组纹丝不动（探针实测 opts/answer/speaker 位移=0）；
-   ③ 顶部 stats/工具行照旧贴顶。 */
+/* ④c 垂直分布（9/17 五调定稿，之之：普通态构图美观大方，全屏照搬——紧凑贴顶+底部自然留白，禁止把屏幕撑开塞空隙）：
+   全屏 = 普通态同一套间距（顶隙 12-20px、题干~选项 12px、按钮组 12px），仅题干区微放大；
+   word-area 锁高（≥答后词+音标+2行释义）→ 答题零抖动；剩余空间全部沉底。 */
 body.word-fullscreen #practiceBody.practice-body-fit{
   flex:1 1 auto;
   justify-content:flex-start;
-  gap:clamp(8px,1.2vh,14px);
+  gap:0;
 }
 body.word-fullscreen #practiceBody.practice-body-fit .practice-topzone{ display:none; }
-/* 题干区=唯一弹性元素：占满剩余空间，词+音标+释义在其中垂直居中（答后撑高向两侧均摊，题干视觉位移≈高度变化的一半且按钮不动）。
-   ⚠️ 不设 align-items:center：子项保持 stretch 拉满宽度，pw-en 的 clientWidth 才是 fitWordOneLine() 的正确缩字基准（收缩后长词永远不触发缩字）。 */
 body.word-fullscreen #practiceBody.practice-body-fit .practice-word-area{
-  flex:1 1 auto;min-height:0;margin-bottom:0;
+  flex:none;min-height:clamp(120px,15vh,140px);margin-bottom:0;
+  margin-top:clamp(12px,2vh,20px);
   display:flex;flex-direction:column;justify-content:center;
 }
-body.word-fullscreen #practiceBody.practice-body-fit .pw-cn{ min-height:0; }
-/* 按钮组聚拢：选项→不知道 14px，不知道→喇叭 12px（与普通态同量级，构成一个模块） */
-body.word-fullscreen #practiceBody.practice-body-fit .answer-btns{ margin-top:14px; }
+body.word-fullscreen #practiceBody.practice-body-fit .pw-cn{ min-height:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
+body.word-fullscreen #practiceBody.practice-body-fit .opts-grid{ margin-top:12px; }
+body.word-fullscreen #practiceBody.practice-body-fit .answer-btns{ margin-top:12px; }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap{ margin-top:12px; padding-top:0; }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-en{ font-size:clamp(38px,4.6vh,52px); }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-ipa{ font-size:clamp(15px,1.9vh,18px); }
