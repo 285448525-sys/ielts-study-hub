@@ -2056,7 +2056,7 @@ body.word-fullscreen .practice-card.practice-card-fit{
   flex:1;min-height:100vh;width:100%;max-width:none;margin:0;
   border:none;border-radius:0;box-shadow:none;
   padding:clamp(14px,2.5vh,32px) clamp(20px,4vw,60px);
-  justify-content:flex-start;
+  justify-content:center;   /* 9/17 之之「全屏很丑」：进度条/工具行/题干整块居中，消底部大空白 */
 }
 
 /* ③ 全屏答题态：锁死视口禁止滑动（之之 9/8）。卡片 = 整个视口（height 100vh），内容由 ⑤ 弹性分布。 */
@@ -2084,11 +2084,18 @@ body.word-fullscreen #practiceBody.practice-body-fit .answer-btns,
 body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap,
 body.word-fullscreen #practiceBody.practice-body-fit .practice-tools-row{ width:100%;max-width:min(88vw,1120px); }
 
-/* ④c 垂直分布：9/16 之之反馈「红框空隙太大，中间整体上移」——
-   内容块改为顶部对齐（原来是 justify-content:center，视口一高上下各分 ~100px 空白）；
-   喇叭跟随内容（9/16 二改：margin-top:auto 钉底在Desktop 高视口下吊在最底部不好看，取消钉底）。
-   尺寸全部 clamp(vh) 单一来源随视口自适应——非全屏基础规则一字不动（9/15 用户授权全屏自由布局）。 */
-body.word-fullscreen #practiceBody.practice-body-fit{ justify-content:flex-start; gap:clamp(8px,1.4vh,16px); }
+/* ④c 垂直分布：9/17 之之反馈「普通态好看，一全屏就很丑」——全屏改回垂直居中。
+   9/16 的顶部对齐是为了消「中部大空隙」；那个空隙的根源（word-area 17vh + 松散 gap）
+   9/16 已收紧，居中不再产生中部空洞，只把整块内容从视口顶部拉回中间，
+   消掉底部 ~240px 的头重脚轻空白。紧凑 gap / 收紧后的 word-area 全部保留不动。
+   ⚠️ 居中主体=整张卡片（②处 justify-content:center），practiceBody 必须放开 flex:1
+   （否则它把剩余空间吃光，卡片居中没得分）——它在 base 里 flex:1，这里覆盖。 */
+body.word-fullscreen #practiceBody.practice-body-fit{ flex:0 0 auto; justify-content:center; gap:clamp(8px,1.4vh,16px); }
+/* 矮视口保护：内容超出 100vh 锁滚卡片时回退贴顶，防 center 上下两端裁切 */
+@media(max-height:700px){
+  body.word-fullscreen .practice-card.practice-card-fit{ justify-content:flex-start; }
+  body.word-fullscreen #practiceBody.practice-body-fit{ flex:1 1 auto; }
+}
 body.word-fullscreen #practiceBody.practice-body-fit .answer-btns,
 body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap{ margin-top:0; }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap{ padding-top:4px; }
