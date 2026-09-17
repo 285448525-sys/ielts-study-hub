@@ -730,7 +730,7 @@ function renderQuestion(cur, isRehold){
   html += '<div class="practice-word-area">' +
     '<div class="pw-en">' + escapeHtml(cur.en) + '</div>' +
     '<div class="pw-ipa">' + (cur.ipa ? '/ ' + escapeHtml(cur.ipa) + ' /' : '&nbsp;') + '</div>' +
-    '<div class="pw-cn" id="pwCn">&nbsp;</div>' +
+    '<div class="pw-cn" id="pwCn"></div>' +   /* 9/17：不再放 &nbsp;——全屏 evenly 态 pw-cn min-height:0 需要真空才生效；普通态题干区 min-height:120px 兜底，视觉无变化 */
   '</div>';
 
   // ── 选项网格（2×2） ──

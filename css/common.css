@@ -2055,8 +2055,8 @@ body.word-fullscreen #studyView.study-view-fit{
 body.word-fullscreen .practice-card.practice-card-fit{
   flex:1;min-height:100vh;width:100%;max-width:none;margin:0;
   border:none;border-radius:0;box-shadow:none;
-  padding:clamp(14px,2.5vh,32px) clamp(20px,4vw,60px);
-  justify-content:center;   /* 9/17 之之「全屏很丑」：进度条/工具行/题干整块居中，消底部大空白 */
+  padding:clamp(16px,3vh,36px) clamp(20px,4vw,60px);
+  justify-content:flex-start;   /* 顶部饱满：内容从视口上方开始（之之 9/17「像秃头」——顶部大空隙否决） */
 }
 
 /* ③ 全屏答题态：锁死视口禁止滑动（之之 9/8）。卡片 = 整个视口（height 100vh），内容由 ⑤ 弹性分布。 */
@@ -2084,22 +2084,30 @@ body.word-fullscreen #practiceBody.practice-body-fit .answer-btns,
 body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap,
 body.word-fullscreen #practiceBody.practice-body-fit .practice-tools-row{ width:100%;max-width:min(88vw,1120px); }
 
-/* ④c 垂直分布：9/17 之之反馈「普通态好看，一全屏就很丑」——全屏改回垂直居中。
-   9/16 的顶部对齐是为了消「中部大空隙」；那个空隙的根源（word-area 17vh + 松散 gap）
-   9/16 已收紧，居中不再产生中部空洞，只把整块内容从视口顶部拉回中间，
-   消掉底部 ~240px 的头重脚轻空白。紧凑 gap / 收紧后的 word-area 全部保留不动。
-   ⚠️ 居中主体=整张卡片（②处 justify-content:center），practiceBody 必须放开 flex:1
-   （否则它把剩余空间吃光，卡片居中没得分）——它在 base 里 flex:1，这里覆盖。 */
-body.word-fullscreen #practiceBody.practice-body-fit{ flex:0 0 auto; justify-content:center; gap:clamp(8px,1.4vh,16px); }
-/* 矮视口保护：内容超出 100vh 锁滚卡片时回退贴顶，防 center 上下两端裁切 */
+/* ④c 垂直分布（9/17 终稿）：进度条/工具行贴顶紧凑，剩余空间由 practiceBody
+   space-evenly **均匀**分给题干/选项/按钮/喇叭之间的所有间隙（含首尾）——
+   每处间隙等宽、无单一巨大空隙：顶部不秃（之之）、底部不空屏（9/16）、
+   中间不悬（9/16 收紧成果保留）。矮视口回退贴顶防裁切（见下 @media）。 */
+body.word-fullscreen #practiceBody.practice-body-fit{
+  flex:1 1 auto;
+  justify-content:space-evenly;
+  gap:clamp(8px,1.2vh,14px);
+}
+/* evenly 体系下的收松微调（9/17）：
+   ① topzone 防跳占位不再需要（evenly 自动吸收换词高度差），且它白白多占一段间隙；
+   ② 题干区 min-height 回落到词+音标自然高度；
+   ③ pw-cn 答前空占位（24px+margin，普通态防答后跳动用）取消——evenly 段高自动吸收
+      答后撑高，砍掉后「音标→选项」的视觉空隙少 ~29px。 */
+body.word-fullscreen #practiceBody.practice-body-fit .practice-topzone{ display:none; }
+body.word-fullscreen #practiceBody.practice-body-fit .pw-cn{ min-height:0; }
+/* 矮视口保护：内容超出 100vh 锁滚卡片时回退贴顶顺排，防两端裁切 */
 @media(max-height:700px){
-  body.word-fullscreen .practice-card.practice-card-fit{ justify-content:flex-start; }
-  body.word-fullscreen #practiceBody.practice-body-fit{ flex:1 1 auto; }
+  body.word-fullscreen #practiceBody.practice-body-fit{ justify-content:flex-start; }
 }
 body.word-fullscreen #practiceBody.practice-body-fit .answer-btns,
 body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap{ margin-top:0; }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap{ padding-top:4px; }
-body.word-fullscreen #practiceBody.practice-body-fit .practice-word-area{ min-height:clamp(110px,13.5vh,150px); margin-bottom:0; }   /* 9/16 收紧：17vh→13.5vh，音标→选项空隙跟着小 */
+body.word-fullscreen #practiceBody.practice-body-fit .practice-word-area{ min-height:clamp(90px,10.5vh,120px); margin-bottom:0; }   /* 9/17 二调：13.5vh→10.5vh，题干区=词+音标自然高度，剩余空间 evenly 均匀分配 */
 body.word-fullscreen #practiceBody.practice-body-fit .pw-en{ font-size:clamp(38px,4.6vh,52px); }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-ipa{ font-size:clamp(15px,1.9vh,18px); }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-cn{ font-size:clamp(15px,1.9vh,18px); }
