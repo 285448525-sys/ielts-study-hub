@@ -162,6 +162,37 @@ function bankCheckedEns(){
   return (DATA.words || []).filter(w => ids.includes(w.id)).map(w => String(w.en || '').trim().toLowerCase());
 }
 
+/* ===== 大分类折叠面板（9/17 定稿：类型/等级/错误三个大分类按钮，默认全收起，
+   点哪个展开哪个的小分类 chips 行；筛选非「全部」时按钮高亮并显示当前值）===== */
+let _bankOpenCat = null;   // 'type' | 'level' | 'err' | null
+
+function catBtnValue(cat){
+  if(cat === 'type')  return WORD_FILTERS.type  === 'all'    ? '' : (WORD_FILTERS.type === 'phrase' ? '词组' : '单词');
+  if(cat === 'level') return WORD_FILTERS.level === 'all'    ? '' : 'Lv ' + WORD_FILTERS.level;
+  if(cat === 'err')   return WORD_FILTERS.err   === 'all'    ? '' : errTierLabel(WORD_FILTERS.err);
+  return '';
+}
+
+function syncCatBtns(){
+  ['type','level','err'].forEach(cat => {
+    const btn = document.querySelector(`.wl-cat-btn[data-cat="${cat}"]`);
+    if(!btn) return;
+    const val = catBtnValue(cat);
+    btn.classList.toggle('filtered', !!val);
+    btn.classList.toggle('open', _bankOpenCat === cat);
+    let lab = btn.querySelector('.wl-cat-val');
+    if(!lab){ lab = document.createElement('span'); lab.className = 'wl-cat-val'; btn.insertBefore(lab, btn.querySelector('.wl-cat-caret')); }
+    lab.textContent = val;
+    const panel = document.getElementById('catPanel-' + cat);
+    if(panel) panel.hidden = _bankOpenCat !== cat;
+  });
+}
+
+function toggleCatPanel(cat){
+  _bankOpenCat = (_bankOpenCat === cat) ? null : cat;
+  syncCatBtns();
+}
+
 function initLevelFilter(){
   const box = $('#filterLevel');
   if(!box) return;
@@ -190,6 +221,9 @@ ready(() => {
   });
   bindDrop();
   initLevelFilter();
+  document.querySelectorAll('.wl-cat-btn').forEach(btn => {
+    btn.addEventListener('click', () => toggleCatPanel(btn.dataset.cat));
+  });
   // 词库列表事件委托（一次绑定，替代旧版逐条 addEventListener —— 1400+ 词不再卡顿）
   const listBox = $('#wordList');
   if(listBox){
@@ -763,5 +797,6 @@ function renderWords(){
     });
   }
   bankUpdateActionBar();
+  syncCatBtns();   // 同步大分类按钮高亮/当前值（initErrFilter 可能回退 err=all）
 }
 

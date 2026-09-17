@@ -27,7 +27,7 @@
 })();
 </script>
 <title>单词 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20260917e" />
+<link rel="stylesheet" href="css/common.css?v=20260917f" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=6" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=6">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=6">
@@ -107,25 +107,26 @@
       <div class="wl-search-wrap">
         <input id="searchWord" class="wl-search" placeholder="搜索单词…" />
       </div>
-      <div class="wl-filter-row" id="wordFilters">
-        <div class="wl-filter-group">
-          <span class="wl-filter-label">类型</span>
-          <div class="wl-filter-chips" id="filterType">
-            <button class="chip active" data-type="all">全部</button>
-            <button class="chip" data-type="word">单词</button>
-            <button class="chip" data-type="phrase">词组</button>
-          </div>
+      <!-- 三个大分类按钮（默认全收起），点哪个展开哪个的小分类行 -->
+      <div class="wl-cats-row" id="wordCats">
+        <button class="wl-cat-btn" data-cat="type" type="button">类型<svg class="wl-cat-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+        <button class="wl-cat-btn" data-cat="level" type="button">等级<svg class="wl-cat-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+        <button class="wl-cat-btn" data-cat="err" type="button">错误<svg class="wl-cat-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+      </div>
+      <div class="wl-cat-panel" id="catPanel-type" hidden>
+        <div class="wl-filter-chips" id="filterType">
+          <button class="chip active" data-type="all">全部</button>
+          <button class="chip" data-type="word">单词</button>
+          <button class="chip" data-type="phrase">词组</button>
         </div>
-        <div class="wl-filter-group">
-          <span class="wl-filter-label">等级</span>
-          <div class="wl-filter-chips" id="filterLevel">
-            <button class="chip active" data-level="all">全部</button>
-          </div>
+      </div>
+      <div class="wl-cat-panel" id="catPanel-level" hidden>
+        <div class="wl-filter-chips" id="filterLevel">
+          <button class="chip active" data-level="all">全部</button>
         </div>
-        <div class="wl-filter-group">
-          <span class="wl-filter-label">错误</span>
-          <div class="wl-filter-chips" id="filterErr"></div>
-        </div>
+      </div>
+      <div class="wl-cat-panel" id="catPanel-err" hidden>
+        <div class="wl-filter-chips" id="filterErr"></div>
       </div>
       <!-- 勾选词后的批量操作条（勾选 >0 时出现） -->
       <div class="wl-action-bar" id="bankActionBar" hidden>

@@ -957,6 +957,17 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 .wl-action-bar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:9px 12px;border:1px solid var(--primary);background:var(--primary-soft);border-radius:10px;margin-bottom:10px}
 .wl-action-hint{font-size:13px;color:var(--ink)}
 .wl-action-hint b{color:var(--primary)}
+/* 大分类折叠按钮（9/17 定稿：三个大分类，默认全收起，点哪个展开哪个） */
+.wl-cats-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.wl-cat-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:20px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:border-color .12s,color .12s,background .12s}
+.wl-cat-btn:hover{border-color:var(--primary);color:var(--primary)}
+.wl-cat-btn.open{border-color:var(--primary);color:var(--primary);background:var(--primary-soft)}
+.wl-cat-btn.filtered{border-color:var(--primary);color:#fff;background:var(--primary)}
+.wl-cat-val{font-size:12px;font-weight:600;color:var(--primary)}
+.wl-cat-btn.filtered .wl-cat-val{color:#fff}
+.wl-cat-caret{width:13px;height:13px;flex:none;transition:transform .15s}
+.wl-cat-btn.open .wl-cat-caret{transform:rotate(180deg)}
+.wl-cat-panel{margin:-2px 0 10px}
 
 /* dashboard hero */
 .hero{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
