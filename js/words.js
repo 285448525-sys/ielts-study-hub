@@ -132,7 +132,9 @@ async function importSmart(){
     return;
   }
 
-  // ── 正常：调 DeepSeek 抽词 + 直出中文 ──
+  // ── 正常：调 DeepSeek 抽词 + 直出中文释义 → 再自动补词性/音标（导入即完全体，9/17 之之：
+  //    不再要求她导入后手动点「AI 补全」。两阶段制：阶段①抽词+释义输出小、绝不截断；
+  //    阶段②完全体（含 ipa/pos）按 20/批走「AI 补全」同一套批量逻辑，批间落盘渐进渲染。 ──
   btn.disabled = true; btn.textContent = 'AI 提取中…';
   if(hint) hint.textContent = 'AI 正在从内容里挑英文词并翻译…';
   const sys = '你是一个英文词库助手。从用户输入（可能是单个单词、一行词表、整段英文、或中英文混排）中，抽取所有值得记忆的英文单词或词组。' +
@@ -146,6 +148,7 @@ async function importSmart(){
     const byKey = new Map();
     DATA.words.forEach(w => { const k = String(w.en || '').toLowerCase(); if(k && !byKey.has(k)) byKey.set(k, w); });
     let added = 0, updated = 0, skippedDeleted = 0;
+    const touched = [];   // 本次导入涉及（新增+重置）的词对象：阶段②只对这批补全，不碰全库
     for(const item of arr){
       const en = String((item && item.en) || '').trim();
       const cn = String((item && item.cn) || '').trim();
@@ -158,19 +161,43 @@ async function importSmart(){
       if(exist){
         exist.cn = clean;          // 已有词：覆盖释义（同口径清洗）
         resetWordProgress(exist);  // + 进度回到第一阶段（hardWord/keyWord 保留）
+        touched.push(exist);
         updated++;
       } else {
         const w = newWordV12(en, clean);
         byKey.set(key, w);
         DATA.words.push(w);
+        touched.push(w);
         added++;
       }
     }
+    // 词组词性本地即统一 phrase.（与 backfillCn 同口径）：列表渲染本就自动显示 phrase.，
+    // 这里补齐字段让背词/练习页同源，且词组不进阶段②（cn 已有即完全体，音标可选不阻塞）
+    touched.forEach(w => { if(/\s/.test(w.en) && w.pos !== 'phrase.') w.pos = 'phrase.'; });
     hubSave(); $('#smartInput').value = ''; initLevelFilter(); renderWords();
     let msg = '成功导入 ' + added + ' 个';
     if(updated) msg += '，重置 ' + updated + ' 个已有词（释义已更新，进度回到第一阶段）';
     if(skippedDeleted) msg += '，跳过已掌握 ' + skippedDeleted + ' 个';
     toast(msg); if(hint) hint.textContent = msg;
+    // ── 阶段②：自动补全词性/音标（只对本次导入的词；失败不影响已导入的释义） ──
+    const miss2 = touched.filter(wordNeedsFill);
+    if(miss2.length){
+      try{
+        if(hint) hint.textContent = '导入完成，AI 正在补全词性与音标…（0/' + miss2.length + '）';
+        const r2 = await aiFillWords(miss2, hint);
+        if(r2 === 'format'){
+          const fMsg = msg + '；词性/音标补全格式异常，点「AI 补全」重试';
+          toast(fMsg); if(hint) hint.textContent = fMsg;
+        } else {
+          const left = DATA.words.filter(wordNeedsFill).length;
+          const okMsg = msg + (left ? '（其中 ' + left + ' 个 AI 查不到音标，不影响使用）' : '，均含词性与音标');
+          toast(okMsg); if(hint) hint.textContent = okMsg;
+        }
+      }catch(e2){
+        const fMsg = msg + '；词性/音标补全失败：' + e2.message + '（点「AI 补全」重试）';
+        toast(fMsg); if(hint) hint.textContent = fMsg;
+      }
+    }
   }catch(e){
     toast('AI 提取失败：' + e.message + '（可重试，或先去「设置」填 Key）');
     if(hint) hint.textContent = 'AI 提取失败：' + e.message;
@@ -230,7 +257,51 @@ function wordNeedsFill(w){
   return missCn || !(w.pos && w.pos.trim()) || !(w.ipa && w.ipa.trim());
 }
 
-/* 一键补全：给词库里「缺失中文释义 / 词性 / 音标」的词批量补 AI（每批 20 个，防超 token）。
+/* AI 完全体填充一批词（cn/pos/ipa），每批 20 个防超 token。
+   只补缺失字段、绝不覆盖已有数据；词组（含空格）词性统一为 phrase.，音标可选
+   （模型对词组常查不到，不作为「已补全」的阻塞条件）。
+   「AI 补全」与「AI 导入」共用（9/17 之之：导入时就该是完全体，不要二次点补全）。
+   返回 'ok' | 'format'（AI 返回无法解析为 JSON 数组，已打印控制台并中断）；
+   网络/接口异常直接 throw，由调用方定提示语。 */
+async function aiFillWords(words, hint){
+  const isPhrase = en => /\s/.test(String(en || ''));
+  for(let i=0; i<words.length; i+=20){      // 每批 20 个，防超 token
+    const chunk = words.slice(i, i+20);
+    const enList = chunk.map(w => w.en).join('\n');
+    const sys = '你是英文词库助手。下面每行一个英文单词或词组。请给每个词返回：' +
+      '①简洁中文释义（最多 3 个义项，用";"分隔）；' +
+      '②词性，用标准英文缩写（n./v./adj./adv./prep./conj./pron./num.），多个词性用分号分隔如 n.;v.；' +
+      '词组（含空格）务必输出 pos:"phrase."；' +
+      '③音标，用 IPA 格式，如 /ˈælɡərɪðəm/（单词尽量给出，词组查不到可留空字符串）。' +
+      '注意：每个词都必须给出①和②，不要留空；顺序与输入一致。' +
+      '只返回 JSON 数组：[{"en":"algorithm","cn":"算法；运算法则","pos":"n.","ipa":"/ˈælɡərɪðəm/"}, ...]，不要任何解释文字、不要 markdown 围栏。';
+    const content = await callRelay('words', [{ role:'system', content: sys }, { role:'user', content: enList }], 0.3);
+    const arr = aiJson(content);
+    if(!Array.isArray(arr)){
+      console.error('[aiFillWords] AI 返回无法解析为 JSON 数组：', content);
+      return 'format';
+    }
+    // 两端都 trim，避免模型在 en 上附带首尾空格导致匹配失败（旧逻辑因此漏填）
+    const map = {};
+    arr.forEach(x => { if(x && x.en) map[String(x.en).toLowerCase().trim()] = x; });
+    let filled = 0;
+    chunk.forEach(w => {
+      const it = map[String(w.en).toLowerCase().trim()];
+      if(!it) return;
+      if(!w.cn || !w.cn.trim()){ const c = String(it.cn || '').trim(); if(c){ w.cn = (salvageWordCn(c, w.ipa, isPhrase(w.en)).cn || c); filled++; } }
+      if(isPhrase(w.en)){
+        if(w.pos !== 'phrase.'){ w.pos = 'phrase.'; filled++; }   // 词组词性统一为 phrase.
+      } else if(!w.pos || !w.pos.trim()){ const p = normPos(it.pos); if(p){ w.pos = p; filled++; } }
+      if(!w.ipa || !w.ipa.trim()){ const ipa = String(it.ipa || '').trim(); if(ipa){ w.ipa = ipa; filled++; } }
+    });
+    hubSave(); renderWords();
+    if(hint) hint.textContent = 'AI 正在补全词性与音标… ' + Math.min(i+20, words.length) + '/' + words.length;
+    console.log('[aiFillWords] 批次', i/20+1, '命中', arr.length, '条，填充', filled, '处');
+  }
+  return 'ok';
+}
+
+/* 一键补全：给词库里「缺失中文释义 / 词性 / 音标」的词批量补 AI。
    只补缺失字段，不破坏已有数据；词组（含空格）补中文释义 + 音标（可选），且词性统一为 phrase.。
    已填的 cn / pos / ipa 不会被覆盖。
    修复：词组只需释义即可判定"已补全"（旧逻辑要求音标，而模型对词组基本不返回音标，
@@ -262,43 +333,11 @@ async function backfillCn(){
   if(!DATA.settings.relayToken){ toast('去「设置 / AI 接口」填 DeepSeek Key 才能补全'); return; }
   const btn = $('#backfillBtn');
   btn.disabled = true; btn.textContent = '补全中…';
-  let aborted = false;   // 格式异常中断标志：中断后不再覆盖提示（旧 bug：break 后循环外 toast 照常执行，把「AI 返回格式异常」盖掉）
   try{
-    for(let i=0; i<miss.length; i+=20){      // 每批 20 个，防超 token
-      const chunk = miss.slice(i, i+20);
-      const enList = chunk.map(w => w.en).join('\n');
-      const sys = '你是英文词库助手。下面每行一个英文单词或词组。请给每个词返回：' +
-        '①简洁中文释义（最多 3 个义项，用";"分隔）；' +
-        '②词性，用标准英文缩写（n./v./adj./adv./prep./conj./pron./num.），多个词性用分号分隔如 n.;v.；' +
-        '词组（含空格）务必输出 pos:"phrase."；' +
-        '③音标，用 IPA 格式，如 /ˈælɡərɪðəm/（单词尽量给出，词组查不到可留空字符串）。' +
-        '注意：每个词都必须给出①和②，不要留空；顺序与输入一致。' +
-        '只返回 JSON 数组：[{"en":"algorithm","cn":"算法；运算法则","pos":"n.","ipa":"/ˈælɡərɪðəm/"}, ...]，不要任何解释文字、不要 markdown 围栏。';
-      const content = await callRelay('words', [{ role:'system', content: sys }, { role:'user', content: enList }], 0.3);
-      const arr = aiJson(content);
-      if(!Array.isArray(arr)){
-        console.error('[backfillCn] AI 返回无法解析为 JSON 数组：', content);
-        toast('AI 返回格式异常，已打印到控制台（F12 → Console）');
-        aborted = true;
-        break;
-      }
-      // 两端都 trim，避免模型在 en 上附带首尾空格导致匹配失败（旧逻辑因此漏填）
-      const map = {};
-      arr.forEach(x => { if(x && x.en) map[String(x.en).toLowerCase().trim()] = x; });
-      let filled = 0;
-      chunk.forEach(w => {
-        const it = map[String(w.en).toLowerCase().trim()];
-        if(!it) return;
-        if(!w.cn || !w.cn.trim()){ const c = String(it.cn || '').trim(); if(c){ w.cn = (salvageWordCn(c, w.ipa, isPhrase(w.en)).cn || c); filled++; } }
-        if(isPhrase(w.en)){
-          if(w.pos !== 'phrase.'){ w.pos = 'phrase.'; filled++; }   // 词组词性统一为 phrase.
-        } else if(!w.pos || !w.pos.trim()){ const p = normPos(it.pos); if(p){ w.pos = p; filled++; } }
-        if(!w.ipa || !w.ipa.trim()){ const ipa = String(it.ipa || '').trim(); if(ipa){ w.ipa = ipa; filled++; } }
-      });
-      hubSave(); renderWords();
-      console.log('[backfillCn] 批次', i/20+1, '命中', arr.length, '条，填充', filled, '处');
-    }
-    if(!aborted){
+    const r = await aiFillWords(miss);
+    if(r === 'format'){
+      toast('AI 返回格式异常，已打印到控制台（F12 → Console）');
+    } else {
       const left = DATA.words.filter(wordNeedsFill).length;
       toast(left ? ('已补全一批，还剩 '+left+' 个（多为 AI 查不到释义的专名/片段），可手动补或忽略') : '全部已补全 ✅');
     }
