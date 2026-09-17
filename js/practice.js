@@ -104,6 +104,10 @@ function switchWordTab(tab){
 // 把旧 mc* 字段或裸词迁移为 v1.2 字段（幂等：已迁移则跳过）。新增 shortCount/lastShortTouch/cleanRounds。
 function ensureWordV12(w){
   if(!w) return w;
+  // id 缺失的老词（早期版本 / 云合并拿到的旧快照）必须就地补 id：
+  // 词库页的删除按钮 data-del 与勾选 data-check 都按 id 走 → 没 id 时所有老词共用一个
+  // "undefined" 键，表现为「勾一个全勾上 / 点了删除毫无反应」。幂等：已有 id 不动。
+  if(w.id == null || w.id === '') w.id = (typeof uid === 'function') ? uid() : ('w' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7));
   if(w.level != null && w.nextReview != null){
     if(w.cleared == null) w.cleared = !!w.lastReview;  // 已学过的词默认"已达标"(复习对1次即过)；新词需分散3次
     if(w.shortCount == null) w.shortCount = 0;
@@ -652,9 +656,12 @@ function masterWord(cur){
   DATA.words = (DATA.words || []).filter(w => !same(w));
   pq.queue = pq.queue.filter(w => !same(w));
   // 墓碑（与 words.js deleteWord 同格式 'en:'+小写）：不记墓碑的话，云同步合并会把已掌握的词复活回来
-  DATA.deletedIds = DATA.deletedIds || [];
-  const _tomb = 'en:' + String(cur.en || '').toLowerCase();
-  if(!DATA.deletedIds.includes(_tomb)) DATA.deletedIds.push(_tomb);
+  if(typeof addWordTombstone === 'function') addWordTombstone(cur.en);   // 内部已处理 deletedIds + 反向墓碑撤销
+  else {
+    DATA.deletedIds = DATA.deletedIds || [];
+    const _tomb = 'en:' + String(cur.en || '').toLowerCase();
+    if(!DATA.deletedIds.includes(_tomb)) DATA.deletedIds.push(_tomb);
+  }
   // 从当日计划移除（分母缩减，不计入已掌握进度）
   if(!pq.isWrongReview && DATA.dailySession && DATA.dailySession.date === todayKey()){
     const s = DATA.dailySession;

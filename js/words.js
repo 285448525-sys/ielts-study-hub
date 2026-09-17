@@ -317,8 +317,13 @@ function newWordV12(en, cn){
 /* 把单词进度归零到第一阶段（level 0 / 今天到期）。design/08：已有词重新导入时
    =「更新释义 + 重置进度」，与新建共用同一口径，保证两处字段永不漂移。
    只动客观进度字段：cn/pos/ipa 属内容、由调用方处理；hardWord / keyWord 是她的主观
-   标注（词还是难的、还是重点），重置进度时保留；ts / id / en 一律不动。 */
+   标注（词还是难的、还是重点），重置进度时保留；ts / id / en 一律不动。
+   ⚠️ resetEpoch（9/17）：每次重置 +1。云合并 _mergeWords 对 level/errTotal/nextReview 等
+   字段走「取较大/较晚」单向收敛，导致本机重置出来的 0 会被另一端旧的最大值拉回去
+   ——表现为「重新导入想从头背，过一会儿进度又变回去了」。epoch 让「重置」这个
+   主观意图能跨设备传播：epoch 大者该组进度字段整组胜出，epoch 相同才走原 max 口径。 */
 function resetWordProgress(w){
+  w.resetEpoch = (Number(w.resetEpoch) || 0) + 1;
   w.level = 0;
   w.nextReview = todayKey();
   w.errTotal = 0;
@@ -721,8 +726,9 @@ function excelRowsToEntries(rows){
 function deleteWord(id){
   const w = DATA.words.find(x => x.id === id);
   DATA.words = DATA.words.filter(x => x.id !== id);
-  DATA.deletedIds = DATA.deletedIds || [];
-  if(w && w.en){ const wkey = 'en:'+String(w.en).toLowerCase(); if(!DATA.deletedIds.includes(wkey)) DATA.deletedIds.push(wkey); }
+  // 统一走 addWordTombstone：写 'en:'+小写墓碑的同时撤销反向墓碑，
+  // 保证「删除 → 加回来 → 再删除」这条链闭得上（否则加回来过一次的词就永远删不掉了）。
+  if(w && w.en && typeof addWordTombstone === 'function') addWordTombstone(w.en);
   hubSave(); initLevelFilter(); renderWords();
 }
 

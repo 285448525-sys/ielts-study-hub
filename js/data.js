@@ -942,6 +942,7 @@ let DATA = {
   checkins: [],
   mockRecords: [],
   deletedIds: [],   // 全局墓碑：所有删除操作的 raw id 集合，跨同步传播删除
+  revivedIds: [],   // 反向墓碑（9/17）：单词被「加回来」的 key（'en:'+小写），随同步 union 传播；合并时 deleted \ revived
   deletedWrongKeys: [],   // 错句级墓碑：已删「标准句+错误写法」组合 key（sourceId|right|wrong），跨同步传播错句本/默写详情的单处删除
   speaking: SPEAKING_BANK,   // 纯官方题库（题目），框架母本(sp_p1_*/sp_p2_*)已移除，不再混入任何框架类内容
   speakingStories: [],
@@ -1085,7 +1086,7 @@ function hubLoad(){
     // 兜底：确保所有数组字段非 undefined（极端损坏数据时也不崩）
     const arrayFields = ['sessions','notes','meds','words','plans','corpus','scores','errorbook',
       'energy','checkins','speaking','writing','writingScores','speakingStories','writingPhrases','mockRecords',
-      'dictationSources','dictationLogs','longSent','deletedIds'];
+      'dictationSources','dictationLogs','longSent','deletedIds','revivedIds'];
     for(const f of arrayFields){ if(!Array.isArray(DATA[f])) DATA[f] = []; }
     // 2026-08-29 修复：早期默写记录(dictationLogs)可能无 id，删除墓碑(整条删光依赖 log.id)
     // 与部分删除的 updatedAt(合并按 id 取本地优先)都会失效，导致错句本「删了又复活」。

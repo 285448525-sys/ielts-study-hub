@@ -140,6 +140,44 @@ function ssNormPos(s){
   return Array.from(new Set(out)).join(';');
 }
 
+/* ===== 单词墓碑（9/17）=====
+   背景：practice.js 的「已掌握」与 words.js 的 deleteWord 会往 DATA.deletedIds 写 'en:'+小写
+   作为墓碑，mergeData 的 out.words 每轮合并都按墓碑过滤 → 已掌握/已删的词不会从云端复活。
+   此前只有 words.js 的三条导入路径查墓碑，另外四条「显式加词」入口（corpus/errorbook 的
+   「加入词库」、侧边搜索 AI 查词、通用 ssNewWord 调用方）完全没查 → 后果是「加进去了、
+   toast 也说了成功，下次合并（最长 30s）就被墓碑静默抹掉」，看起来就是同步丢了词。
+   口径（两条并行、不得混用）：
+   - 批量导入（AI 导入 / Excel / 粘贴）→ 命中墓碑就跳过，计数进「跳过已掌握 N 个」；
+   - 显式单个加词（点按钮收这一个词）→ 视为明确的「我要把它加回来」，撤销墓碑再加。 */
+function wordTombKey(en){ return 'en:' + String(en || '').trim().toLowerCase(); }
+function isWordTombstoned(en){
+  return (DATA.deletedIds || []).indexOf(wordTombKey(en)) >= 0;
+}
+function addWordTombstone(en){
+  const k = wordTombKey(en);
+  DATA.deletedIds = Array.isArray(DATA.deletedIds) ? DATA.deletedIds : [];
+  if(!DATA.deletedIds.includes(k)) DATA.deletedIds.push(k);
+  // 反向墓碑必须一并撤销：否则这个词一旦「加回来」过，就再也删不掉了
+  if(Array.isArray(DATA.revivedIds)){
+    const i = DATA.revivedIds.indexOf(k);
+    if(i >= 0) DATA.revivedIds.splice(i, 1);
+  }
+}
+function clearWordTombstone(en){
+  const k = wordTombKey(en);
+  let hit = false;
+  if(Array.isArray(DATA.deletedIds)){
+    const i = DATA.deletedIds.indexOf(k);
+    if(i >= 0){ DATA.deletedIds.splice(i, 1); hit = true; }
+  }
+  // 光删本机 deletedIds 不够：另一端那份会在下一次合并里被 union 回来、把词再次抹掉
+  // （探针 ⑨b 复现：A 撤了墓碑，B 一推又回来了）。
+  // revivedIds 与 deletedIds 同口径随同步 union 传播，合并时按 deleted \ revived 生效。
+  DATA.revivedIds = Array.isArray(DATA.revivedIds) ? DATA.revivedIds : [];
+  if(!DATA.revivedIds.includes(k)) DATA.revivedIds.push(k);
+  return hit;
+}
+
 /* 新建词条（newWordV12 的内置版，结构与词库 v1.2 完全一致；练习页在线时优先复用） */
 function ssNewWord(en, cn){
   if(typeof newWordV12 === 'function'){
@@ -210,6 +248,8 @@ function bindSideSearch(){
       let existed = false;
       let dup = null;
       (DATA.words || []).forEach(w => { if(String(w.en || '').trim().toLowerCase() === en) dup = w; });
+      // 已掌握/已删除（墓碑）：显式对它 AI 查词 = 明确的「加回来」→ 撤销墓碑，不再被下次合并抹掉
+      const _revived = !dup && isWordTombstoned(en) && clearWordTombstone(en);
       if(dup){
         existed = true;
         if(!dup.pos && pos) dup.pos = pos;
@@ -221,14 +261,15 @@ function bindSideSearch(){
         DATA.words.push(w);
       }
       hubSave();
-      const tag = existed ? '✓ 已在词库（释义已补全）' : '✓ 已自动加入词库（去「单词」页可背诵）';
+      const tag = existed ? '✓ 已在词库（释义已补全）'
+        : (_revived ? '✓ 已重新加入词库（已从「已掌握」移回）' : '✓ 已自动加入词库（去「单词」页可背诵）');
       const inner = '<span class="sc-en">' + escapeHtml(en) + '</span>'
         + (ipa ? '<span class="sc-ipa">' + escapeHtml(ipa) + '</span>' : '')
         + '<div class="sc-cn">' + (pos ? '<b>' + escapeHtml(pos) + '</b> ' : '') + escapeHtml(cn) + '</div>'
         + '<div class="sc-tag">' + tag + '</div>';
       card = list.querySelector('.ss-card');
       if(card) card.outerHTML = ssCardHtml(inner);
-      toast(existed ? '「' + en + '」已在词库' : '「' + en + '」已加入词库');
+      toast(existed ? '「' + en + '」已在词库' : (_revived ? '「' + en + '」已重新加入词库' : '「' + en + '」已加入词库'));
     }catch(e){
       if(token !== _ssAiToken) return;
       const msg = (e && e.message) ? e.message : '查询失败';
@@ -1178,6 +1219,11 @@ function _later(a, b){
 }
 /* 背单词：以 en（大小写不敏感）为 key，逐字段取「更掌握」状态，不丢任何一端进度。
    返回 {arr, changes}：changes = 云端新增词 + 被云端更新（更掌握/补 cn）的已有词数 */
+/* 受 resetEpoch 支配的「客观进度字段」：epoch 大者整组胜出（见 words.js resetWordProgress 注释）。
+   ⚠️ hardWord / keyWord 不在内——主观标注，重置也不清，永远取「或」。
+   ⚠️ cn / pos / ipa 属内容字段，无论 epoch 如何都按下方取优规则合并（重构不回退释义）。 */
+const WORD_PROG_FIELDS = ['level','nextReview','lastReview','errTotal','errStreak','fuzzyStreak',
+  'okStreak','shortCount','lastShortTouch','cleanRounds','cleared'];
 function _mergeWords(local, cloud){
   const map = new Map();
   (cloud||[]).forEach(w => { if(w && w.en) map.set(String(w.en).toLowerCase(), Object.assign({}, w)); });
@@ -1190,6 +1236,21 @@ function _mergeWords(local, cloud){
     const ex = map.get(k);
     if(!ex){ map.set(k, Object.assign({}, w)); continue; } // 本机独有：保留（非云端更新）
     let changed = false;
+    // id/ts：合并基准是「云端副本」，云端若来自没有 id 的老快照会把本机 id 抹掉
+    // （后果：词库页删除/勾选按 data-id 走 → 点了没反应）。缺则补，ts 取较晚。
+    if(!ex.id && w.id){ ex.id = w.id; changed = true; }
+    if(_num(w.ts) > _num(ex.ts)){ ex.ts = w.ts; changed = true; }
+    const _eq = (f) => JSON.stringify(ex[f]) === JSON.stringify(w[f]);
+    // ── 重置世代：谁更晚执行了「重置进度/重新导入」，谁的整组进度字段说了算 ──
+    const lep = _num(w.resetEpoch), cep = _num(ex.resetEpoch);
+    if(lep > cep){
+      WORD_PROG_FIELDS.forEach(f => { if(!_eq(f)){ ex[f] = w[f]; changed = true; } });
+      if(ex.resetEpoch !== lep){ ex.resetEpoch = lep; changed = true; }
+    } else if(cep > lep){
+      // 对端重置得更晚：沿用云端这份进度（ex 本就是云端副本），勿用本机旧最大值回填
+      WORD_PROG_FIELDS.forEach(f => { if(!_eq(f)) changed = true; });
+    } else {
+    // ── 同世代（含双方都从未重置）：回到原「单向取优」口径 ──
     const ns = Math.max(_num(ex.mcStreak), _num(w.mcStreak)); if(ns !== _num(ex.mcStreak)){ ex.mcStreak = ns; changed = true; }
     const ni = Math.max(_num(ex.mcInterval), _num(w.mcInterval)); if(ni !== _num(ex.mcInterval)){ ex.mcInterval = ni; changed = true; }
     const ne = Math.max(_num(ex.mcEase), _num(w.mcEase)); if(ne !== _num(ex.mcEase)){ ex.mcEase = ne; changed = true; }
@@ -1203,13 +1264,16 @@ function _mergeWords(local, cloud){
     const nest = Math.max(_num(ex.errStreak)||0, _num(w.errStreak)||0); if(nest !== (_num(ex.errStreak)||0)){ ex.errStreak = nest; changed = true; }
     const nfs = Math.max(_num(ex.fuzzyStreak)||0, _num(w.fuzzyStreak)||0); if(nfs !== (_num(ex.fuzzyStreak)||0)){ ex.fuzzyStreak = nfs; changed = true; }
     const nos = Math.max(_num(ex.okStreak)||0, _num(w.okStreak)||0); if(nos !== (_num(ex.okStreak)||0)){ ex.okStreak = nos; changed = true; }
-    const nh = !!(ex.hardWord || w.hardWord); if(nh !== !!ex.hardWord){ ex.hardWord = nh; changed = true; }
-    const nkey = !!(ex.keyWord || w.keyWord); if(nkey !== !!ex.keyWord){ ex.keyWord = nkey; changed = true; }
     const ncleared = !!(ex.cleared || w.cleared); if(ncleared !== !!ex.cleared){ ex.cleared = ncleared; changed = true; }
     // 短线分散进度字段：必须随单词同步，否则另一端/云端旧数据会把本机刚积累的 shortCount 清零
     const nsc = Math.max(_num(ex.shortCount)||0, _num(w.shortCount)||0); if(nsc !== (_num(ex.shortCount)||0)){ ex.shortCount = nsc; changed = true; }
     const ncr = Math.max(_num(ex.cleanRounds)||0, _num(w.cleanRounds)||0); if(ncr !== (_num(ex.cleanRounds)||0)){ ex.cleanRounds = ncr; changed = true; }
     const nlst = _later(ex.lastShortTouch, w.lastShortTouch); if(nlst !== (ex.lastShortTouch||'')){ ex.lastShortTouch = nlst; changed = true; }
+    }
+    // 主观标注：与「重置」无关（resetWordProgress 明确保留这两个），永远取「或」
+    const nh = !!(ex.hardWord || w.hardWord); if(nh !== !!ex.hardWord){ ex.hardWord = nh; changed = true; }
+    const nkey = !!(ex.keyWord || w.keyWord); if(nkey !== !!ex.keyWord){ ex.keyWord = nkey; changed = true; }
+    // 内容字段：无论哪侧重置过都按取优规则合并——重置进度不应该连带回退刚补全好的释义/词性/音标
     const cn1 = (ex.cn||'').trim(), cn2 = (w.cn||'').trim();
     const ncn = (cn1 && cn2) ? (cn1.length >= cn2.length ? cn1 : cn2) : (cn1 || cn2);
     if(ncn !== (ex.cn||'').trim()){ ex.cn = ncn; changed = true; }   // 与 trim 后比较，避免首尾空格造成每次误判"更新"
@@ -1314,6 +1378,9 @@ function mergeData(local, cloud){
   delete cloud.writing;
   const out = Object.assign({}, local);
   const deleted = new Set([...(local.deletedIds||[]), ...(cloud.deletedIds||[])]);
+  // 单词「加回来」的反向墓碑：deleted \ revived（见 clearWordTombstone 说明）
+  const revivedWords = new Set([...(local.revivedIds||[]), ...(cloud.revivedIds||[])]);
+  revivedWords.forEach(k => deleted.delete(k));
   const deletedWrong = new Set([...(local.deletedWrongKeys||[]), ...(cloud.deletedWrongKeys||[])]);  // 错句级墓碑（合并传播）
   const delKey = it => (it && it.id != null) ? it.id : (it && it.ts != null) ? it.ts : null;
   let changes = 0;
@@ -1392,6 +1459,7 @@ function mergeData(local, cloud){
     changes += ms.changes;
   }
   out.deletedIds = Array.from(deleted);
+  out.revivedIds = Array.from(revivedWords);   // 反向墓碑随合并传播（与 deletedIds 同口径 union）
   out.deletedWrongKeys = Array.from(deletedWrong);   // 错句级墓碑随合并传播
   // 当日背词会话（dailySession）：跨设备合并，杜绝云端旧/空会话覆盖本地新进度。
   // 同 date 时取 passed 并集、queueOrder/planEn 以本机为准、total/stats/lastTouch 取较大者，

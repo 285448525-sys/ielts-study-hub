@@ -1100,9 +1100,12 @@ function saveWord(en, cn){
   DATA.words = DATA.words || [];
   const exists = DATA.words.some(w => (w.en || '').toLowerCase() === key);   // 老数据可能缺 en
   if(exists){ toast(`「${en}」已在词库中`); return; }
+  // 已掌握/已删除（墓碑）：单独点「加入词库」= 明确的「我要加回来」→ 撤销墓碑。
+  // 不撤的话下一次云合并（最长 30s）会被 deletedIds 静默抹掉，表现为「收了词却没了」。
+  const revived = typeof isWordTombstoned === 'function' && isWordTombstoned(en) && clearWordTombstone(en);
   DATA.words.push({ id: uid(), en: en.trim(), cn: (cn || '').trim(), ts: Date.now() });
   hubSave();
-  toast(`已收录「${en}」到词库`);
+  toast(revived ? `「${en}」已重新收录到词库（已从「已掌握」移回）` : `已收录「${en}」到词库`);
 }
 
 /* 旧版 markdown 分段解析（兼容历史记录） */
