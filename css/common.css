@@ -654,7 +654,7 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 #practiceBody.practice-body-fit .opt-big{
   position:relative;height:88px;padding:14px 12px;   /* 9/15 收紧：左右 18→12 */
   display:flex;flex-direction:column;align-items:flex-start;justify-content:center;
-  gap:6px;border:1.5px solid var(--neutral);border-radius:10px;background:#fff;cursor:pointer;
+  gap:6px;border:1.5px solid var(--neutral);border-radius:10px;background:var(--surface);cursor:pointer;   /* 9/18 夜间适配：原硬编码 #fff 压过暗色 token → 选项卡白底+浅字洗白；浅色 --surface=#fff 零变化 */
   transition:all .15s ease;overflow:hidden;box-sizing:border-box;
 }
 #practiceBody.practice-body-fit .opt-big:hover{ border-color:var(--muted); }
@@ -705,7 +705,7 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 }
 #practiceBody.practice-body-fit .pw-speaker-wrap .tool-btn{
   width:48px;height:48px;padding:0;border-radius:50%;
-  border:1.5px solid var(--line);background:#fff;color:var(--muted);
+  border:1.5px solid var(--line);background:var(--surface);color:var(--muted);   /* 9/18 夜间适配：#fff→var(--surface)，浅色零变化 */
   display:flex;align-items:center;justify-content:center;cursor:pointer;
   transition:all .15s;
 }
@@ -3122,6 +3122,14 @@ body.has-dock main.container{ padding-bottom:0; }
 }
 #hubDock .ui-menu-item.active{ background:var(--primary-50); color:var(--primary-700); }
 #hubDock .ui-menu-item.active > span{ font-weight:800; }
+/* 9/18 夜间适配（之之截图：暗色下 dock 仍是白条）：浅玻璃是浅色专属，暗色同构图换深玻璃。
+   active 药丸走 --primary-50/--primary-700 token 自动翻转，无需覆盖。 */
+[data-theme="dark"] #hubDock{
+  background:rgba(26,26,28,.86);
+  border-color:rgba(255,255,255,.08);
+  box-shadow:0 10px 30px rgba(0,0,0,.35);
+}
+[data-theme="dark"] #hubDock .ui-menu-item:hover{ background:rgba(255,255,255,.06); color:var(--n-800); }
 /* 9/15：中央凸起主钮已撤（之之要求背词与其他项风格完全一致），5 槽同构；dock-raised 旧规则删除 */
 
 @media (max-width:860px){
