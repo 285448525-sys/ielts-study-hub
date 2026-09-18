@@ -362,8 +362,10 @@ function genDistractors(correct, allWords){
 }
 
 // 队列优先级排序（五关键字）
+// 之之 9/18：逾期越久越先背。① nextReview 升序天然满足「逾期久=日期小=靠前」；
+// 唯一缺口是从没排程的词（nextReview 空）按空串排最前、压住逾期词 → 空值垫底修正（先还旧账再学新词）。
 function dueCmp(a, b){
-  return (a.nextReview || '').localeCompare(b.nextReview || '') ||   // ① nextReview 升序
+  return (a.nextReview || '9999-12-31').localeCompare(b.nextReview || '9999-12-31') ||   // ① nextReview 升序（逾期越久越前；无排程垫底）
          (b.errTotal || 0) - (a.errTotal || 0) ||                    // ② errorCount 降序
          ((a.hardWord === b.hardWord) ? 0 : (a.hardWord ? -1 : 1)) || // ③ isHard(=hardWord) 降序
          ((a.keyWord === b.keyWord) ? 0 : (a.keyWord ? -1 : 1)) ||    // ④ isKey(=keyWord) 降序
@@ -456,7 +458,8 @@ function autoStartSeeWord(){
         clearDailySession();
         return;
       }
-      if(c.shuffle) plan = shuffle(plan);
+      // 之之 9/18：题序不再随机打乱——buildQueue 已按「逾期越久越先背」排序，shuffle 会把该顺序毁掉
+      //（旧默认 shuffle:true 是「逾期词不先出」的真凶）。选项顺序仍由 makeOptions 独立乱序，不受影响。
       // 固定题量：题量设置即每轮总题数；buildQueue 已按复习优先级排序，直接截断即可
       if(c.batchSize > 0 && plan.length > c.batchSize) plan = plan.slice(0, c.batchSize);
       // 之之 9/9 修正：开轮不再 markSeen（旧逻辑把整轮计划词在没背时就算「今日已练」→ 数字虚高、复用轮永远不动），
@@ -1319,7 +1322,7 @@ function renderCfgModal(){
       name:'答题', icon:'☑',
       items:[
         { key:'batchSize',     label:'题量',          type:'batch', presets:[{v:'20',t:'20 题'},{v:'50',t:'50 题'},{v:'100',t:'100 题'},{v:'200',t:'200 题'},{v:'-1',t:'全部'}] },
-        { key:'shuffle',       label:'随机乱序',      type:'toggle' },
+        { key:'shuffle',       label:'勾选练习乱序',  type:'toggle' },
         { key:'wrongHoldMs',   label:'答错停留',      type:'range', min:1000, max:5000, step:500, unit:'ms' },
         { key:'autoNextDelay', label:'自动间隔',      type:'range', min:300, max:3000, step:100, unit:'ms' },
       ]
