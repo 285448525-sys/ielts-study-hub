@@ -348,7 +348,11 @@ function scoreBadgeHtml(score, count, s){
   let label;
   if(s && s.type === 'P1'){
     const done = getP1Done(s);
-    label = '平均 ' + scoreLabel(score) + '分 · 练过1次' + (done < 4 ? '（' + done + '/4 小题）' : '');
+    /* 9/18：与 339 行同口径——小题总数按 questions 实际长度算。
+       硬写 4 会让 10 小题的 work/hometown/area 显示成「7/4 小题」。
+       （评分关闭期本分支暂不可达：getAggScore 恒 null；留着正确的写法防评分恢复后复发） */
+    const total = (s.questions || []).length || 4;
+    label = '平均 ' + scoreLabel(score) + '分 · 练过1次' + (done < total ? '（' + done + '/' + total + ' 小题）' : '');
   } else {
     const times = count > 1 ? ' · 练过' + count + '次' : '';
     label = (score >= 5.5 ? '✅ ' : '') + '最高 ' + scoreLabel(score) + '分' + times;

@@ -687,6 +687,11 @@ function sentBindPractice(){
 function sentStart(sentId){
   window.__SENT_CUR = { view: 'practice', catId: '', sentId: sentId, phase: 'main', sceneIdx: 0, topicId: '', curTopicId: '', tries: 0, revealed: false, draft: '', fb: null };
   sentRender();
+  /* 9/18 修：拼接验证弹窗（#sentReplayMask，fixed z-index 999）在场时不抢焦点。
+     原链：sentPass 分支里 sentMaybeReplay() 弹窗并 focus #sentReplayAns，紧接着
+     sentNextFromQueue()→sentStart() 又把焦点抢回被遮罩盖住的 #sentAnswer
+     → 她看着弹窗打字却一个字都进不去。触发条件：错题库「全部重练」且这句正好让某类首次练满。 */
+  if(document.getElementById('sentReplayMask')) return;
   var inp = sent$('sentAnswer');
   if(inp && inp.focus) inp.focus();
 }

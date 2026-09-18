@@ -1333,6 +1333,32 @@ function _mergeArray(local, cloud){
    1) 先用 mergeSpeakingKeepAnswers(local) 得到官方基准+本机答案（丢弃非官方题）
    2) 再按 id 把云端 speaking 的 answers 回填（云端有答案且本机无 → 取云端；都有 → 保留本机较新端）
    保证：跨设备恢复串题答案/练习记录，且不复活旧脏题库。 */
+/* 口语答案按「小题」粒度合并。
+   ⚠️ 9/18 之前这里的写法是「整份单向取本机」：
+       if(official.answers) keep.answers = official.answers; else if(cloud.answers) keep.answers = cloud.answers;
+     answers 的结构是 { 0:{text,ts,…}, 1:{…}, p2:{text,ts,p3:{…}} }，每个 key 是一条彼此独立的答案。
+     于是「本机只要在任何一小题上写过一个字」就把整份 answers 判成「本机较新」，导致：
+       ① 另一端在同一话题下的其它小题答案 / P2 答案 / P3 追问全被静默丢弃；
+       ② 本机已有的小题永远收不到云端的更新（A 改了 q0 文本，B 永远停在旧值）。
+     注意 speaking.js 的 spDraftSave 一直有在写 s.answers[qi].ts，合并函数却从没用过它。
+   现在：两端独有的小题各自保留；同 key 比 ts，大者胜（ts 相同且内容不同 → 操作端优先）。 */
+function _spAnsTs(a){ return Number(a && (a.ts || a.updatedAt || a.lastTs)) || 0; }
+function _mergeSpeakingAnswers(localAns, cloudAns){
+  const isObj = v => v && typeof v === 'object';
+  if(!isObj(localAns)) return isObj(cloudAns) ? Object.assign({}, cloudAns) : undefined;
+  if(!isObj(cloudAns)) return localAns;
+  const out = Object.assign({}, cloudAns);        // 起点=云端：保证云端独有的小题不丢
+  Object.keys(localAns).forEach(k => {
+    const l = localAns[k], c = out[k];
+    if(!isObj(l)) return;
+    if(!isObj(c)){ out[k] = l; return; }          // 本机独有该小题
+    const lt = _spAnsTs(l), ct = _spAnsTs(c);
+    if(lt > ct) out[k] = l;                                                     // 本机较新
+    else if(lt === ct && JSON.stringify(l) !== JSON.stringify(c)) out[k] = l;   // ts 相同内容不同：操作端优先
+    // lt < ct：保留云端的较新版本（原实现这里会永久停在旧值）
+  });
+  return out;
+}
 function _mergeSpeaking(localSp, cloudSp){
   if(!Array.isArray(localSp) && !Array.isArray(cloudSp)) return { arr: [], changes: 0 };
   // 基准：官方题 + 本机答案
@@ -1346,11 +1372,19 @@ function _mergeSpeaking(localSp, cloudSp){
     const cloud = cloudById[official.id];
     if(!cloud) return official;
     const keep = Object.assign({}, official);
-    // answers：本机有则保留本机（当前操作端较新），否则取云端
-    if(official.answers){ keep.answers = official.answers; }
-    else if(cloud.answers){ keep.answers = cloud.answers; changes++; }
-    if(official.speakingStories){ keep.speakingStories = official.speakingStories; }
-    else if(cloud.speakingStories){ keep.speakingStories = cloud.speakingStories; changes++; }
+    // answers：按小题 key 粒度合并（原来是整份覆盖，会把另一端的答案整片抹掉）
+    const beforeAns = JSON.stringify(keep.answers || null);
+    const mergedAns = _mergeSpeakingAnswers(keep.answers, cloud.answers);
+    if(mergedAns !== undefined) keep.answers = mergedAns;
+    if(beforeAns !== JSON.stringify(keep.answers || null)) changes++;
+    // 素材：按 id + ts 合并（原来也是「本机有就整份用本机」，另一端新建的素材一样收不到）
+    const ls = Array.isArray(official.speakingStories) ? official.speakingStories : [];
+    const cs = Array.isArray(cloud.speakingStories) ? cloud.speakingStories : [];
+    if(ls.length || cs.length){
+      const m = _mergeArray(ls, cs);
+      keep.speakingStories = m.arr;
+      changes += m.changes;
+    }
     return keep;
   });
   return { arr: base, changes };
