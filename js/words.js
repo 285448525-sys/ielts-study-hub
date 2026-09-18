@@ -84,6 +84,10 @@ function groupHeadHtml(g){
 
 function bankItemHtml(w){
   const lv = (w.level != null) ? (Number(w.level) || 0) : 0;
+  // design/58 块3：词库行内展示下次复习时间（只读，wordIntervalDesc 定义在 practice.js，同页全局可用）
+  const _info = (typeof wordIntervalDesc === 'function') ? wordIntervalDesc(w) : null;
+  const dueText = (_info && _info.next) ? _info.next : '';
+  const dueCls = (_info && _info.overdue) ? ' overdue' : '';
   const isPhrase = /\s/.test(String(w.en || ''));
   const meanHtml = isPhrase
     ? `<span class="wl-sense"><span class="wl-sense-pos">phrase.</span><span class="wl-sense-cn">${escapeHtml(w.cn || '')}</span></span>`
@@ -96,7 +100,7 @@ function bankItemHtml(w){
       <span class="wl-word">${escapeHtml(w.en)}</span>
       <div class="wl-senses">${meanHtml}</div>
       ${errHtml}
-      <span class="wl-lv">Lv ${lv}</span>
+      <span class="wl-lv">Lv ${lv}${dueText ? '<span class="wl-due' + dueCls + '">· ' + dueText + '</span>' : ''}</span>
       <button class="wl-del" data-del="${w.id}" title="删除" aria-label="删除">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
       </button>

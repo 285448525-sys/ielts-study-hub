@@ -2,10 +2,12 @@ name = "ielts-study-hub"
 compatibility_date = "2024-09-23"
 
 # ===== 云端同步 KV 绑定 =====
+# ⚠️ 9/18 按 design/58 指令清理：本项目实际走 GitHub main git-push 自动构建（CF Pages 控制台配 KV），
+# 本文件不被部署链路使用；下方 id 为早期无效残留，已注释防误用。如改用 wrangler CLI 部署再恢复。
 # 1) 创建命名空间：wrangler kv namespace create SYNC_KV --pages
 # 2) 把命令返回的 namespace id 填到下面 id 处
 # 3) 部署：wrangler pages deploy .  （在本项目根目录执行）
-[[kv_namespaces]]
-binding = "SYNC_KV"
-id = "2a4819ece7c94463878fb31a11c072ff"
+# [[kv_namespaces]]
+# binding = "SYNC_KV"
+# id = "2a4819ece7c94463878fb31a11c072ff"
 

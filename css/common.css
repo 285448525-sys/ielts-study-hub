@@ -3181,3 +3181,39 @@ body.has-dock main.container{ padding-bottom:0; }
 #mkList .mk-del{margin-left:auto;opacity:.4;transition:opacity .15s ease}
 #mkList .mk-row:hover .mk-del{opacity:1}
 @media (max-width:560px){#mkList .mk-row{flex-wrap:wrap}#mkList .mk-parts-inline{flex:1 1 100%}}
+
+/* ===== design/58 间隔重复算法可视化（之之 2026-09-18 · 纯只读展示层，零算法改动）===== */
+/* 块 1 · 记忆状态条：8 格方块 = Leitner 8 级（1/2/4/7/15/30/60/90 天），亮格 = 当前等级 */
+.lv-status{display:inline-flex;align-items:center;gap:6px;margin-left:auto}
+.lv-dots{display:inline-flex;gap:2px}
+.lv-dot{width:8px;height:8px;border-radius:2px;background:var(--n-200);box-shadow:inset 0 0 0 1px var(--n-400)}
+.lv-dot.on{background:var(--primary-500);box-shadow:none}
+.lv-meta{font-size:11px;font-weight:600;color:var(--ink);white-space:nowrap}
+.lv-sep{color:var(--n-500);margin:0 3px}
+.lv-next{color:var(--muted);font-weight:500}
+.lv-next.overdue{color:var(--warn-ink)}
+.lv-flag{width:6px;height:6px;border-radius:50%;display:inline-block}
+.lv-flag-hard{background:var(--warn)}
+.lv-flag-key{background:var(--speak)}
+/* 块 2 · 记忆曲线排程面板（默认收起；条形宽度按当日最大值等比缩放，非绝对词数） */
+.plan-panel{background:var(--n-50);border:1px solid var(--line);border-radius:var(--radius-sm);
+  padding:14px 16px;margin:0 0 12px}
+.plan-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.plan-title{font-size:13px;font-weight:700;color:var(--ink)}
+.plan-sec{font-size:12px;font-weight:600;color:var(--ink-2);margin:10px 0 6px}
+.plan-row{display:flex;align-items:center;gap:8px;margin:5px 0}
+.plan-lbl{width:74px;flex:0 0 74px;font-size:11px;color:var(--ink-2);white-space:nowrap}
+.plan-lbl em{font-style:normal;color:var(--n-500)}
+.plan-track{flex:1;height:8px;background:var(--n-200);border-radius:4px;overflow:hidden}
+.plan-bar{display:block;height:100%;background:var(--primary-300);border-radius:4px;
+  transition:width .24s ease-out}
+.plan-bar.today{background:var(--primary-500)}
+.plan-bar.box{background:var(--primary-200)}
+.plan-num{width:52px;flex:0 0 52px;text-align:right;font-size:11px;color:var(--ink);
+  font-variant-numeric:tabular-nums}
+.plan-div{height:1px;background:var(--line);margin:12px 0 4px}
+.plan-foot{margin-top:10px;font-size:11px;color:var(--muted)}
+.plan-empty{padding:6px 0;font-size:12.5px;color:var(--muted)}
+/* 块 3 · 词库列表「下次复习」（Lv N · 日期；逾期 warn 色） */
+.wl-due{color:var(--n-500);margin-left:4px;font-size:11px}
+.wl-due.overdue{color:var(--warn-ink)}
