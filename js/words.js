@@ -338,6 +338,7 @@ function resetWordProgress(w){
   w.shortCount = 0;
   w.lastShortTouch = null;
   w.cleanRounds = 0;
+  w.hist = [];   // design/59：重置进度=从零开始，作答历史随 resetEpoch 组语义一并清空
   return w;
 }
 
@@ -752,6 +753,25 @@ function formatMean(pos, cn){
   return `<span class="wl-sense"><span class="wl-sense-pos">${escapeHtml(posList[0])}</span><span class="wl-sense-cn">${escapeHtml(cnStr)}</span></span>`;
 }
 
+// design/59 · 词库掌握度统计条（纯只读，无事件绑定）。口径写死：
+// 已掌握 = cleared===true 且 level≥5（进入 30 天档）；学习中 = cleared===true 且 level<5；未掌握 = 其余（减法兜底，三项和恒等于总数）。
+// 全库口径：不受搜索/筛选影响，永远统计整个 DATA.words。
+function renderBankStats(){
+  const box = document.getElementById('bankStats');
+  if(!box) return;
+  const ws = DATA.words || [];
+  let mastered = 0, learning = 0;
+  ws.forEach(w => { if(!w) return; const lv = Number(w.level) || 0; if(w.cleared === true){ (lv >= 5) ? mastered++ : learning++; } });
+  const fresh = ws.length - mastered - learning;
+  const pct = n => ws.length ? (n / ws.length * 100) : 0;
+  box.innerHTML = '<span class="wl-stats-bar">' +
+      '<i class="wl-stats-seg s-ok" style="width:' + pct(mastered).toFixed(1) + '%"></i>' +
+      '<i class="wl-stats-seg s-mid" style="width:' + pct(learning).toFixed(1) + '%"></i>' +
+      '<i class="wl-stats-seg s-new" style="width:' + pct(fresh).toFixed(1) + '%"></i>' +
+    '</span>' +
+    '<span class="wl-stats-txt">已掌握 ' + mastered + ' · 学习中 ' + learning + ' · 未掌握 ' + fresh + '</span>';
+}
+
 function renderWords(){
   initErrFilter();   // 错误档 chips 随词库变化重建（带各档词数）
   const kw = ($('#searchWord').value || '').toLowerCase();
@@ -778,6 +798,7 @@ function renderWords(){
   list.forEach(w => { const b = JSON.stringify(w); ensureWordV12(w); if(JSON.stringify(w) !== b) migrated = true; });
   if(migrated) hubSave();
   $('#wordCount').textContent = DATA.words.length;
+  renderBankStats();   // design/59：统计条在 early return 之前渲染，空列表也显示 0/0/0
 
   const box = $('#wordList');
   _bankShown = {};   // 重置各组分页计数；折叠状态 _bankExpanded 保留

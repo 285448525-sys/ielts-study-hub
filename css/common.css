@@ -3207,3 +3207,11 @@ body.has-dock main.container{ padding-bottom:0; }
 /* 块 3 · 词库列表「下次复习」（Lv N · 日期；逾期 warn 色） */
 .wl-due{color:var(--n-500);margin-left:4px;font-size:11px}
 .wl-due.overdue{color:var(--warn-ink)}
+/* design/59 · 词库掌握度统计条（纯只读；--muted-light 不存在 → 按 :root 就近用 --muted） */
+.wl-stats{margin-top:8px}
+.wl-stats-bar{display:flex;height:4px;border-radius:2px;overflow:hidden;background:var(--line)}
+.wl-stats-seg{display:block;height:100%}
+.wl-stats-seg.s-ok{background:var(--primary-500)}
+.wl-stats-seg.s-mid{background:var(--primary-200)}
+.wl-stats-seg.s-new{background:var(--line)}
+.wl-stats-txt{display:block;margin-top:4px;font-size:12px;color:var(--muted)}

@@ -115,6 +115,7 @@ function ensureWordV12(w){
     if(w.cleanRounds == null) w.cleanRounds = 0;
     if(w.ipa == null) w.ipa = '';
     if(w.pos == null) w.pos = '';
+    if(w.hist == null) w.hist = [];   // design/59：作答历史（调度事件史）
     return w;
   }
   let level = 0;
@@ -138,6 +139,7 @@ function ensureWordV12(w){
   w.shortCount    = (w.shortCount    != null) ? w.shortCount    : 0;
   w.lastShortTouch = (w.lastShortTouch != null) ? w.lastShortTouch : null;
   w.cleanRounds   = (w.cleanRounds   != null) ? w.cleanRounds   : 0;
+  w.hist = (w.hist != null && Array.isArray(w.hist)) ? w.hist : [];   // design/59
   return w;
 }
 
@@ -165,6 +167,8 @@ function applyOverdue(w){
 // 长线升级（v4 §3.3 promoteLongTerm）：仅短线 3 次全对过关时调用
 // P0-1：改为「先按当前 level 算间隔，再升级」，让 level0 新词首次复习=1天（不再跳过 LEVEL_INTERVAL[0]）
 function promoteLongTerm(w, today){
+  w.hist = (Array.isArray(w.hist) ? w.hist : []); w.hist.push({ d: today, r: 'ok' });
+  if(w.hist.length > 20) w.hist = w.hist.slice(-20);   // design/59：截断保留最近 20 条（judge 分支已显式落盘，此处禁加 hubSave）
   let interval = LEVEL_INTERVAL[w.level || 0];               // ① 先用「当前」等级算间隔
   if(w.hardWord) interval = Math.ceil(interval * 0.5);       // 难词间隔×50%
   if(w.keyWord)  interval = Math.ceil(interval * 0.7);       // 重点词间隔×70%（叠乘）
@@ -186,6 +190,8 @@ function promoteLongTerm(w, today){
 // 长线降级（v4 §3.3 demoteLongTerm）：答错/不认识时调用
 // P1-1：isCompletelyUnknown=true（点了「完全不认识」）时追加惩罚：errTotal 额外+1、level 多降 1
 function demoteLongTerm(w, today, isCompletelyUnknown){
+  w.hist = (Array.isArray(w.hist) ? w.hist : []); w.hist.push({ d: today, r: isCompletelyUnknown ? 'unknown' : 'wrong' });
+  if(w.hist.length > 20) w.hist = w.hist.slice(-20);   // design/59：截断保留最近 20 条（judge 分支已显式落盘，此处禁加 hubSave）
   const drop = (w.level || 0) >= 5 ? 1 : 2;
   w.level = Math.max(0, (w.level || 0) - drop);
   w.nextReview = addDays(today, 1);        // 强制明天，不按 LEVEL_INTERVAL 计算

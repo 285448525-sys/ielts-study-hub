@@ -1223,7 +1223,7 @@ function _later(a, b){
    ⚠️ hardWord / keyWord 不在内——主观标注，重置也不清，永远取「或」。
    ⚠️ cn / pos / ipa 属内容字段，无论 epoch 如何都按下方取优规则合并（重构不回退释义）。 */
 const WORD_PROG_FIELDS = ['level','nextReview','lastReview','errTotal','errStreak','fuzzyStreak',
-  'okStreak','shortCount','lastShortTouch','cleanRounds','cleared'];
+  'okStreak','shortCount','lastShortTouch','cleanRounds','cleared','hist'];
 function _mergeWords(local, cloud){
   const map = new Map();
   (cloud||[]).forEach(w => { if(w && w.en) map.set(String(w.en).toLowerCase(), Object.assign({}, w)); });
@@ -1269,6 +1269,9 @@ function _mergeWords(local, cloud){
     const nsc = Math.max(_num(ex.shortCount)||0, _num(w.shortCount)||0); if(nsc !== (_num(ex.shortCount)||0)){ ex.shortCount = nsc; changed = true; }
     const ncr = Math.max(_num(ex.cleanRounds)||0, _num(w.cleanRounds)||0); if(ncr !== (_num(ex.cleanRounds)||0)){ ex.cleanRounds = ncr; changed = true; }
     const nlst = _later(ex.lastShortTouch, w.lastShortTouch); if(nlst !== (ex.lastShortTouch||'')){ ex.lastShortTouch = nlst; changed = true; }
+    // design/59 hist：同世代取「长者胜」，等长不动（幂等）；epoch 差异已由 WORD_PROG_FIELDS 整组覆盖
+    const _wh = Array.isArray(w.hist) ? w.hist : null, _eh = Array.isArray(ex.hist) ? ex.hist : null;
+    if(_wh && (!_eh || _wh.length > _eh.length)){ ex.hist = _wh.slice(); changed = true; }
     }
     // 主观标注：与「重置」无关（resetWordProgress 明确保留这两个），永远取「或」
     const nh = !!(ex.hardWord || w.hardWord); if(nh !== !!ex.hardWord){ ex.hardWord = nh; changed = true; }
