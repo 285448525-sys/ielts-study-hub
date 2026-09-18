@@ -459,6 +459,10 @@ function resolveTimerNames(a){
   }
   return { moduleName: moduleName || '学习', subName: subName || moduleName || '学习' };
 }
+/* 生僻词黑名单（系统规则，全站唯一数据源）：素材生成(materials.js)与串题(speaking.js)两端共用同一份。
+   只用于拼装给 AI 的提示词文本，**禁止对 AI 输出做正则过滤**（删词会把句子删残）。 */
+window.FORBIDDEN_WORDS = ['landmark','construct','symbolize','architecture','breathtaking',
+  'incredible','entrepreneurship','cognitive','authentic'];
 /* 跨页安全结束：复用 timer.js stopSession 的数据语义，但不依赖计时页 DOM（data.js 全局函数即可完成）。 */
 window.stopActiveSession = function(){
   const a = window.active || (function(){ try{ return loadActive(); }catch(e){ return null; } })();

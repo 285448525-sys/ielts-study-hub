@@ -915,9 +915,9 @@ function matLoadStore(){
 /* === 口语目标分 → 串题稿词数预算（P1：按考生目标语速校准，目标越低语速越慢/卡顿越多，稿子越短）=== */
 function storyWordBudget(){
   const t = parseFloat(DATA.settings && DATA.settings.targets && DATA.settings.targets.speaking) || 5.5;
-  if(t >= 6.5) return { target: t, min: 130, max: 160 };
-  if(t >= 6.0) return { target: t, min: 120, max: 140 };
-  return { target: t, min: 100, max: 125 };
+  if(t >= 6.5) return { target: t, min: 115, max: 120 };
+  if(t >= 6.0) return { target: t, min: 110, max: 120 };
+  return { target: t, min: 100, max: 120 };
 }
 
 async function aiStoryLink(id){
@@ -943,6 +943,7 @@ async function aiStoryLink(id){
       '【素材 ' + (i + 1) + '：' + (m.title || '未命名') + '】\n' +
       '英文可背故事：' + (m.storyEn || '') + '\n' +
       '中文逻辑链：' + (m.logicZh || '') + '\n' +
+      '万能句（任何题都能套，优先整句使用）：' + ((m.goldenEn || []).join(' | ')) + '\n' +
       '可套题族（搭边也行）：' + (m.coverage || []).map(c => c.topic + (c.fit === 'loose' ? '(搭边:' + c.note + ')' : '')).join('、')
     ).join('\n---\n');
 
@@ -955,20 +956,21 @@ async function aiStoryLink(id){
       matsText,
       '',
       '【铁律】',
-      '1. 素材优先级：默认使用第一个素材（考生最熟的素材）。该素材完全套不上本题时，才依次向后换下一个。其他素材只借关键词、不可展开编造。',
+      '1. 素材优先级：默认使用第一个素材（考生最熟的素材）。该素材完全套不上本题时，才依次向后换下一个。其他素材可借 1~2 个完整句子（严禁借用其他卡的 goldenEn 万能句，否则模板化痕迹过重）。',
       '1.1 情感基调跟随素材（重要）：article 的态度必须与所引素材本身的基调一致——素材里写的是 beautiful / amazing / like / relax 这类正面词，就绝不能把故事反转成 dislike / noisy / boring 的负面讲法（那是凭空篡改考生的经历，背起来也拧巴）。素材基调是负面的就如实讲负面；素材本身两种感受都有（如「酒店吵但日落很美」），优先选能**最多原句搬运语料库**的那一面来写。只有素材完全没提态度、题目又强制要求时，才由你合理定一个方向。',
-      '2. 搬运比例（硬性红线）：全文 **60% 以上的词从语料库原句直接搬运**，你新加/改写的内容（含点题句、开头结尾的改写）合计**不得超过全文词数的 40%**。在 40% 额度内优先保证串出来的故事读起来自然连贯——过渡句该加就加，不要为了压比例把句子写得干巴巴；但也严禁超出 40%。除点题句外，语料库原句只允许词级微调（时态/人称/单复数），严禁整句重写。严禁编造生僻细节（展览内容、建筑外观、名人成就、菜品味道等）；若题目所涉事物不在语料库，用 "Well, actually, ..." 明说，并硬套素材里的风景/感受类句子，绝不编造新内容。',
-      '3. 词汇天花板：只用初中词（happy, tired, relax, boring, beautiful, delicious, amazing, big, fresh, nice, good, like, feel, went, was, were, because, and）。严禁 landmark / construct / symbolize / architecture / breathtaking / incredible / entrepreneurship / cognitive / authentic 等生僻词。',
-      '4. 语法：只用简单句（主谓宾 / 主系表），禁止复杂从句、分词结构、被动语态。',
-      '4.1 新增句子限制（强制）：凡是语料库之外、本次由你补充加入的句子，必须为简单句——仅含单一主谓结构（一个主语 + 一个谓语），不得包含任何从句（定语/状语/名词性从句等）、不得用 and / but / or 等连词拼接并列复合句、不得出现分词短语或插入结构。新增句越短越直白越好，确保考生一眼能懂、直接念出。',
+      '2. 内容边界与句式边界：**（硬）全部事实细节（人物 / 时间 / 地点 / 物品 / 动作 / 感受）必须来自语料库**，严禁编造任何新事实；**（软）句子允许重新组织得更自然、更像临场说话**，不必逐字搬运，改编只改词（时态 / 人称 / 单复数 / 替换名词）；**（硬）语料库里的复合句与 goldenEn 万能句必须整句保留**（语法复杂度全靠它们），严禁把复合句拆成简单句；**（硬）同一件事、同一个「动作+宾语」组合不得在 article 里出现两次**——换主语、换时态、换同义词也算重复。严禁编造生僻细节（展览内容、建筑外观、名人成就、菜品味道等）；若题目所涉事物不在语料库，用 "Well, actually, ..." 明说，并硬套素材里的风景/感受类句子，绝不编造新内容。',
+      '3. 词汇分级：**来自素材原句与 goldenEn 的词照用**（可到高中常见词）；**本次由你新造的句子**仍只用初中词（happy, tired, relax, boring, beautiful, delicious, amazing, big, fresh, nice, good, like, feel, went, was, were, because, and）。两条路径都严禁 ' + window.FORBIDDEN_WORDS.join(' / ') + ' 等生僻词。',
+      '4. 语法分级：**来自素材的句子保留其原有句式**（含从句照留，这是考生背熟的部分）；**只有本次新加的过渡句 / 点题句**才守简单句（主谓宾 / 主系表，禁止复杂从句、分词结构、被动语态）。',
+      '4.1 新增句子限制（强制）：凡是语料库之外、本次由你补充加入的句子，必须为简单句——仅含单一主谓结构（一个主语 + 一个谓语），不得包含任何从句（定语/状语/名词性从句等）、不得用 and / but / or 等连词拼接并列复合句、不得出现分词短语或插入结构。新增句越短越直白越好，确保考生一眼能懂、直接念出。改编素材句子时**只改词，严禁把复合句拆成简单句**。',
       '5. 结构：article 必须自然覆盖 You should say 的每个要点（是什么 / 何时何地 / 具体细节 / 感受），缺一不可，顺序尽量与官方小问一致。',
       '6. 词数强制限定（按考生目标语速校准，不是越多越好）：article 总词数严格在 ' + wb.min + ' 到 ' + wb.max + ' 词之间。超出必须删减；不足可补语料库里的感受句，但不得越过上下限。',
       '7. 加时备用句 paddingEn：给 3~5 句与本题相关的简单句（感受 / 回忆 / 展望类，每句 8~15 词，同样只用语料库内容或极简新句），供考生说得偏快或说不满 2 分钟时自己插入。',
       '8. 黑体标注 = 新增内容：所有不属于语料库原文的新加/改动词句必须用 ** 包裹标黑体（考生靠黑体一眼看出哪些是临场要加的）；黑体部分总词数不得超过全文 40%，语料库原句一律不标。',
       '9. 开头固定用 "I\'d like to talk about..."。结尾按题型自然收束（必须是简单句）：人物题→用一句说明为什么欣赏 / 喜欢TA；地点题→用一句说明为什么喜欢去；事件 / 经历题→用一句说明这段经历对自己的意义。',
       '10. 逻辑链用中文短语横杠 "-" 连接，越长越细越好，严禁输出 "[横杠]" 这几个字。',
+      '11. mappingZh（中文映射讲解，教考生学会自己串）：固定四段——用哪张卡（素材标题）→ 走哪条链（人物 / 事件 / 事物 / 地点 + 该链槽位）→ 填了哪几个槽（素材里的具体细节）→ 点题句怎么转的（从素材的哪句话转到本题）。只讲映射逻辑，不要输出任何统计数字。',
       '',
-      '输出严格 JSON：{"article":"英文稿（含开头结尾，改动句用**标黑，总词数 ' + wb.min + '-' + wb.max + '）","paddingEn":["加时句1","加时句2","加时句3"],"logicChain":"关键词—关键词"}，不要任何解释文字。'
+      '输出严格 JSON：{"openEn":"≤3 词直答","bridgeEn":"1 句点题句 ≤15 词","chainType":"人物|事件|事物|地点","bodyEn":["主体句1","主体句2"],"feelEn":["以前感受","变化事件","现在感受","未来希望"],"paddingEn":["加时句1","加时句2"],"logicChain":"关键词—关键词","mappingZh":"中文映射讲解"}。**bodyEn / feelEn 不得为空块**（素材不足时用同素材其他链的内容补 1 句，或用素材卡的 goldenEn 兜底）。全部英文总词数仍受铁律 6 限制，不要任何解释文字。'
     ].join('\n');
 
     const user = 'P2 题目：' + (s.promptEn || s.title || '') +
@@ -1004,15 +1006,40 @@ function mdInline(t){
 
 function renderStoryLink(el, j){
   if(!el) return;
+  const CHAIN = { '人物':'人物链：是谁→如何得知→做了什么→为什么→感受', '事件':'事件链：时间→地点→人物→经过→感受', '事物':'事物链：是什么→如何得到→感受', '地点':'地点链：位置→如何得知→做了什么→为什么→感受' };
   let h = '<div class="mat-plan">';
   h += '<div class="mat-plan-head">🧩 串题素材（AI 根据万能故事库匹配）</div>';
-  if(j.logicChain) h += '<div class="mat-plan-sec"><b>串题逻辑</b><div class="mat-logic">' + escapeHtml(j.logicChain) + '</div></div>';
-  if(j.article) h += '<div class="mat-plan-sec"><b>串题原文</b><div class="mat-story-en">' + mdInline(j.article) + '</div></div>';
-  // P1：加时备用句——说得偏快 / 不满 2 分钟时自己插入，保证说满时长
-  if(Array.isArray(j.paddingEn) && j.paddingEn.length){
-    h += '<div class="mat-plan-sec"><b>加时备用句（说得偏快 / 不满 2 分钟时插入）</b><ul class="sp-padding">'
-      + j.paddingEn.map(s => '<li>' + mdInline(String(s)) + '</li>').join('')
-      + '</ul></div>';
+  if(j.article){
+    // 老结构（本期改版前已生成的数据）：维持原三块渲染，不得让历史串题变空白
+    if(j.logicChain) h += '<div class="mat-plan-sec"><b>串题逻辑</b><div class="mat-logic">' + escapeHtml(j.logicChain) + '</div></div>';
+    h += '<div class="mat-plan-sec"><b>串题原文</b><div class="mat-story-en">' + mdInline(j.article) + '</div></div>';
+    if(Array.isArray(j.paddingEn) && j.paddingEn.length){
+      h += '<div class="mat-plan-sec"><b>加时备用句（说得偏快 / 不满 2 分钟时插入）</b><ul class="sp-padding">'
+        + j.paddingEn.map(x => '<li>' + mdInline(String(x)) + '</li>').join('')
+        + '</ul></div>';
+    }
+  } else {
+    if(j.logicChain) h += '<div class="mat-plan-sec"><b>串题逻辑</b><div class="mat-logic">' + escapeHtml(j.logicChain) + '</div></div>';
+    if(j.openEn) h += '<div class="mat-plan-sec"><b>STEP1 直答（≤3 词）</b><div class="mat-story-en">' + mdInline(String(j.openEn)) + '</div></div>';
+    if(j.bridgeEn) h += '<div class="mat-plan-sec"><b>STEP2 点题句</b><div class="mat-story-en">' + mdInline(String(j.bridgeEn)) + '</div></div>';
+    if(Array.isArray(j.bodyEn) && j.bodyEn.length){
+      const ct = CHAIN[j.chainType] ? j.chainType : '';
+      h += '<div class="mat-plan-sec"><b>主体' + (ct ? ' · ' + escapeHtml(ct) + '链' : '') + '</b>'
+        + (CHAIN[j.chainType] ? '<div class="mat-logic">' + escapeHtml(CHAIN[j.chainType]) + '</div>' : '')
+        + '<div class="mat-story-en">' + j.bodyEn.map(x => mdInline(String(x))).join('<br>') + '</div></div>';
+    }
+    if(Array.isArray(j.feelEn) && j.feelEn.length){
+      const FEEL = ['以前', '变化', '现在', '希望'];
+      h += '<div class="mat-plan-sec"><b>STEP3 感受链</b><ul class="sp-padding">'
+        + j.feelEn.map((x, i) => '<li><b>' + (FEEL[i] || ('第' + (i + 1) + '句')) + '</b> · ' + mdInline(String(x)) + '</li>').join('')
+        + '</ul></div>';
+    }
+    if(Array.isArray(j.paddingEn) && j.paddingEn.length){
+      h += '<div class="mat-plan-sec"><b>加时备用句（说得偏快 / 不满 2 分钟时插入）</b><ul class="sp-padding">'
+        + j.paddingEn.map(x => '<li>' + mdInline(String(x)) + '</li>').join('')
+        + '</ul></div>';
+    }
+    if(j.mappingZh) h += '<div class="mat-plan-sec"><b>怎么串过来的（照这个逻辑自己也能串）</b><div class="mat-logic">' + escapeHtml(j.mappingZh) + '</div></div>';
   }
   h += '<div class="mat-plan-tips">💡 方案根据你的万能故事库跨故事拼细节生成；点「AI 串题思路」可重新生成。</div>';
   h += '</div>';
@@ -1977,10 +2004,10 @@ function buildPersonaContext(){
     if(Array.isArray(p.values) && p.values.length) parts.push('价值观：' + p.values.join('、'));
     if(Array.isArray(p.traits) && p.traits.length) parts.push('性格：' + p.traits.join('、'));
   }
-  const st = (m.materials || []).slice(0, 3)
-    .map(x => (x.storyEn || '').slice(0, 200))
+  const st = (m.materials || [])
+    .map(x => (x.storyEn || '').slice(0, 500))
     .filter(Boolean);
-  if(st.length) parts.push('可参考的小故事（简单句英文）：\n' + st.join('\n---\n'));
+  if(st.length) parts.push('可参考的小故事（素材英文，含从句，可直接引用）：\n' + st.join('\n---\n'));
   return parts.join('\n');
 }
 

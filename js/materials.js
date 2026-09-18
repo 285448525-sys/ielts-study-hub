@@ -21,18 +21,21 @@
   ];
 
   const SYS_MAT = '你是雅思口语串题素材教练。考生会给你一份人设 + 若干段真实生活经历（含可能来自你上一轮追问的补充回答）。\n'
-  + '你的任务：把全部经历整合成**数量尽量少的连贯故事**——**首要目标是 1 个完整大故事**：用自然的过渡（时间线/因果线，如「那次去厦门的路上…同行的朋友…」）把旅行、人物、物品、见闻、感受全部串成一条叙事线，而不是切成几个互不相干的小片段；只有当某段经历确实无法自然衔接进主线时才允许拆出第 2 个故事（最多 2~3 个，严禁凑数、严禁按题族切分）。**必须把考生填入的每一段经历的关键事实完整纳入最终故事，不得遗漏。** 故事要让考生直接背出来，且**背诵量最小化**：考生最终只需要背 storyEn + 每题一句 bridgeEn 点题句，不要产出多套需要分别背诵的平行故事。\n'
+  + '你的任务：把全部经历整合成**数量尽量少的连贯故事**——**首要目标是 1 个完整大故事**：用自然的过渡（时间线/因果线，如「那次去厦门的路上…同行的朋友…」）把旅行、人物、物品、见闻、感受全部串成一条叙事线，而不是切成几个互不相干的小片段。**必须把考生填入的每一段经历的关键事实完整纳入最终故事，不得遗漏。** 故事要让考生直接背出来，且**背诵量最小化 = 故事个数最小化**：优先产出 **1 个大故事**；只有当 1 个故事的题库覆盖率补不到 90%（见规则 5.3）时，才允许拆出第 2 个。**最多 2 个，严禁第 3 个。**\n'
   + '规则：\n'
-  + '1. 故事必须基于考生原话，真实不编造。**事实完整性优先于语言精简**：若把相关经历合并成一个故事，两段经历的关键事实（人物/地点/事件/感受）都必须出现在某个 storyEn 或 logicZh 里——信息不能丢，但语言允许压缩重写；宁可多生成一个小故事，也绝不丢弃考生填的事实。\n'
-  + '2. 每个故事含：title(标题) / storyEn(一段英文小故事，**90~120 词**——按考生口语水平校准，句子可简单但必须能背；用**基础词汇**、短到中等长度的句子，靠 and / so / because / but / actually 等连接词串成有「起因→经过→感受→结尾」的**连贯叙事**，读起来像在讲一件事而不是清单；严禁连续堆砌孤立短句、严禁连续同一主语/同一动词；**严禁超过 120 词**，宁可用两个短故事承载也不写超长故事；**storyEn 里严禁出现任何中文字符**——考生经历里的中文词（如「考研」「恋综」「 高考」）必须译成简单英文（考研→the postgraduate exam，高考→the college entrance exam），专名也用基础英文说法。) / logicZh(中文**逻辑链**：用若干中文短语以 "—"（中文横杠/破折号）串接，把故事的关键步骤、转折、感受、细节都铺开——越长越细越好、数量不固定，例如"朋友送手机壳—觉得很有心—每天用手机—看到就想起朋友—珍藏") / coverage(能套的当季 P2 题数组)。\n'
+  + '1. 故事必须基于考生原话，真实不编造。**事实完整性优先于语言精简**：若把相关经历合并成一个故事，两段经历的关键事实（人物/地点/事件/感受）都必须出现在某个 storyEn 或 logicZh 里——信息不能丢，但语言允许压缩重写；宁可把事实压缩进主线（哪怕只半句带过），也绝不为此新开故事。\n'
+  + '2. 每个故事含：title(标题) / storyEn(一段英文小故事，**不设死词数上限**——以「人物 / 地点 / 物品 / 事件 / 见闻与感受」五类元素齐全为准，齐全即收尾，通常落在 130~180 词；**190 词为硬顶**，超过时必须自行拆成两张卡；拆分优先级：**先拆次要补充情节与修饰性描述，主线故事与五类核心元素必须完整保留在一张卡里**，不得拆成两张都缺要素的残卡。**句子要能背，但不必都是简单句**——正文里至少 3~5 句带从句：because / when 状语从句、who / which / that 定语从句、and / but 并列句，其余句子保持 8~14 词简单句形成节奏差；词汇天花板从「初中」抬到「**高中常见词**」（如 realize / experience / especially / memory / although）；**单句硬顶 20 词**；严禁 ' + window.FORBIDDEN_WORDS.join(' / ') + ' 等生僻词（黑名单统一取全局常量 window.FORBIDDEN_WORDS，禁止硬编码）；**storyEn 里严禁出现任何中文字符**——考生经历里的中文词（如「考研」「恋综」「 高考」）必须译成简单英文（考研→the postgraduate exam，高考→the college entrance exam），专名也用基础英文说法。) / logicZh(中文**逻辑链**：用若干中文短语以 "—"（中文横杠/破折号）串接，把故事的关键步骤、转折、感受、细节都铺开——越长越细越好、数量不固定，例如"朋友送手机壳—觉得很有心—每天用手机—看到就想起朋友—珍藏") / coverage(能套的当季 P2 题数组)。\n'
   + '3. 人设一致：每个故事至少一处与考生人设（性格/价值观）自然呼应（如「理性」「喜欢无纸化学习」这类考生自己的特质），为 Part 3 追问时的人设一致性打底，不要让故事像另一个人经历。\n'
-  + '4. coverage 每个元素：{"topic":"题名","fit":"natural|loose","bridgeEn":"1 句英文点题句","note":"中文一句怎么套(如\'旅行中意识到环保法重要→套法律法规\';natural 可简写)"}。topic 必须**逐字取自下方【P2 题库对照清单】里的题目名**（这是考生网站当季真实题库），严禁自创题族名、严禁使用清单外的名字。bridgeEn 是把本故事嫁接到该题、考场可直接念的**英文简单句**（只用初中词汇、单一主谓结构，15 词以内）。\n'
+  + '4. coverage 每个元素：{"topic":"题名","fit":"natural|loose","bridgeEn":"1 句英文点题句","note":"中文一句怎么套(如\'旅行中意识到环保法重要→套法律法规\';natural 可简写)"}。topic 必须**逐字取自下方【P2 题库对照清单】里的题目名**（这是考生网站当季真实题库），严禁自创题族名、严禁使用清单外的名字。bridgeEn 是把本故事嫁接到该题、考场可直接念的**英文点题句**：1 句 ≤15 词，主体仍为主谓宾，**最多含 1 个 because**，可用高中常见词。\n'
   + '4.1 **覆盖宁多勿漏，默认=能串（重要）**：把下方清单全量扫一遍。判断标准不是「故事里有没有讲到这个」，而是「**站在考场上，把 storyEn 原样讲出来，能不能很自然地引到这道题**」——考场串题的实际情况是：90% 就是原样背故事，只临场加 1~2 句过渡点题。所以：**稍微搭边的就算能串（loose）；拿不准的，也按 loose 列上**；只有加一句话都实在圆不上的才不列。故事是个素材库：里面的人、地点、物品、瞬间、感受都能辐射成题——旅行/学校/家庭这类日常故事更是万能辐射源，场景里合理出现的一切都能挂（建筑、比赛、食物、遇到的人、拥挤、照片、天气……）。每张卡通常能列 10~20 题，宁多勿漏：考场上不合适临场放弃就行，没列上考生才真的亏。\n'
   + '4.2 **抽象/观点类题更要放开想象**：想颁布的法律、规则、想做的改变、想解决的问题、传统、挑战、认为重要的事——这些题考的不是「经历」而是「想法」，而任何经历都能自然生出一个想法（看到某件事 → 有个感受 → I want to… / I think…）。比如旅行路上见到有人破坏环境 → 顺理成章想颁布环保法律；旅行让你想去看更大的世界 → 就是长久目标/抱负。把清单里的抽象题逐个想一遍：「这段经历能不能让人生出这个想法？」只要不是完全牵强，就按 loose 列上，note 里写清那句过渡怎么讲。\n'
   + '4.3 **通用性优先（合并时的取舍标准）**：合并故事时，尽量让最终的大故事同时含有**「人物（同行的朋友/帮助过你的人）+ 地点（城市/场所）+ 物品/食物 + 事件（比赛/购物/意外）+ 见闻与感受（可引出观点的瞬间）」五类元素**——这样一个故事本身就是万能辐射源，里面每个人、地点、物品、见闻都能独立辐射一批题。若某段经历能自然嵌进主线增加元素，就嵌进去（哪怕只是半句带过）；不要为了「故事主题纯粹」而把能合并的经历拆出去。\n'
   + '5. 不要产出 keyword 骨架 / 不要拆分多切面列表——考生基础弱，给词也不会说句型，必须给**成段的、能直接背的英文小故事**（句子可简单但必须连贯，靠连接词串成一件事）。\n'
+  + '5.1 万能句 goldenEn（必填 3 句）：每张卡额外产出 **3 句不绑定本题故事细节的万能高级句**（如 It was the first time I had ever... / What I remember most is that... / The reason why...），任何话题都能直接套用。**每句 10~20 词，宁短不长**；允许从句；严禁出现本故事专有名词（人名/地名/事件名）；3 句之间不得重复句式；与 storyEn 里的任何一句不得实质重复。\n'
+  + '5.2 纯英文原样保护：若某段经历的**中文字符占比 <5%**，即视为纯英文，该段**整段原样进入 storyEn**——不得改词、不得缩写、不得合并、不得翻译，且**豁免规则 2 的单句 ≤20 词上限**（考生自己写的句子自己背得出）；只允许在它前后添加过渡词衔接。**严禁为原样保护的段落自动拆句**。\n'
+  + '5.3 覆盖率自检：生成后自评 coverageRate = 本题库中被 coverage 覆盖的题数 / 题库总题数（0~1 的小数）。**若 <0.9，必须靠往主线里补细节（见闻 / 感受 / 物品）把覆盖率补到 0.9 以上；只有确认补不上时，才允许拆出第 2 个故事。**\n'
   + '【P2 题库对照清单】\n{BANK_P2_LIST}\n'
-  + '输出严格 JSON：{"stories":[{"title":"","storyEn":"","logicZh":"","coverage":[{"topic":"","fit":"","bridgeEn":"","note":""}]}]}，不要任何解释文字。';
+  + '输出严格 JSON：{"stories":[{"title":"","storyEn":"","goldenEn":["","",""],"logicZh":"","coverage":[{"topic":"","fit":"","bridgeEn":"","note":""}]}],"coverageRate":0.9}，不要任何解释文字。';
   const SYS_PERSONA = '你是雅思口语人设分析师。根据用户一句话自我介绍，提取人设锚点，用于保证 Part 3 回答一致性。输出严格 JSON：{"persona":{"city":"城市","identity":"身份/专业或工作","values":["价值观1","价值观2"],"traits":["性格特点1","性格特点2"]}}';
   const SYS_GAP = '你是雅思 P2 覆盖分析师。给定已被素材（含搭边串题）覆盖的 P2 题族，以及考生当季真实 P2 题库清单，请列出**连搭边都难覆盖**、且该用户大概率会考到的题族（最多 6 条），每条给一个**澄清性问题**——用第二人称直接问考生真实经历，问题要具体、好回答，比如"你最近半年有没有搬过家？搬去哪了？"、"你有没有哪款小工具是每天都用的？说说怎么用的？"。只列真正缺口，不要编造已覆盖的。输出严格 JSON 数组：[{"topic":"题族","question":"澄清性问题"}]';
 
@@ -230,13 +233,19 @@
   }
 
   async function genMaterialsBatch(exps, personaText){
-    const expText = exps.map(e => '【' + e.title + '】\n' + e.raw).join('\n\n');
+    const expText = exps.map(e => {
+      const raw = String(e.raw || '');
+      const zhCount = (raw.match(/[\u4e00-\u9fff]/g) || []).length;
+      const isEn = raw.length > 0 && (zhCount / raw.length) < 0.05;
+      return '【' + e.title + '】' + (isEn ? '[原样保护·禁止改写]\n' : '\n') + raw;
+    }).join('\n\n');
     const user = '人设：' + (personaText || '（未提供）') + '\n\n全部经历（含追问补充）：\n' + expText + '\n\n请按规则整合为尽量少的连贯大故事（coverage 按规则 4.x 放开挂题），输出 stories JSON。';
     const content = await callRelay('material', [ { role:'system', content:buildSysMat() }, { role:'user', content:user } ], 0.7);
     const j = aiJson(content);
     if(!j || !Array.isArray(j.stories)) throw new Error('素材 JSON 解析失败');
     return {
       stories: j.stories.map((s, i) => normalizeMaterial(s, i)),
+      coverageRate: (typeof j.coverageRate === 'number' ? j.coverageRate : null),
       uncovered: Array.isArray(j.uncovered) ? j.uncovered.filter(u => u && u.topic).map(u => ({ topic:String(u.topic), reason:String(u.reason || '') })) : [],
       followups: Array.isArray(j.followups) ? j.followups.map(String) : []
     };
@@ -273,10 +282,17 @@
       seen.add(bt);
       covFixed.push({ topic: bt, fit: (String(c.fit) === 'natural' ? 'natural' : 'loose'), bridgeEn: String(c.bridgeEn || ''), note: String(c.note || '') });
     });
+    const goldenRaw = Array.isArray(s.goldenEn) ? s.goldenEn.map(x => String(x || '').trim()).filter(Boolean) : [];
+    const storyLower = String(s.storyEn || '').toLowerCase().replace(/[^a-z0-9 ]/g, '');
+    const golden = goldenRaw.filter(g => {
+      const key = g.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+      return key.length >= 8 && !storyLower.includes(key.slice(0, 40));
+    }).slice(0, 3);
     return {
       id: s.id || ('m' + Date.now() + '_' + i),
       title: s.title || ('故事' + (i + 1)),
       storyEn: s.storyEn || '',
+      goldenEn: golden,
       logicZh: s.logicZh || '',
       coverage: covFixed,
       confidence: s.confidence || 'high',
@@ -286,7 +302,7 @@
   function fallbackMaterialsBatch(exps){
     return exps.map((e, i) => ({
       id:'m' + Date.now() + '_' + i, title:e.title || ('故事' + (i + 1)),
-      storyEn:'', logicZh:e.raw || '（未填写）',
+      storyEn:'', goldenEn:[], logicZh:e.raw || '（未填写）',
       coverage:[], confidence:'low', _fallback:true
     }));
   }
@@ -537,12 +553,13 @@
         + '<div class="mat-body">';
       if(isEditing){
         h += '<div class="mat-sub">标题</div><input class="mat-edit-input" data-edit-title="' + i + '" value="' + escapeHtml(m.title || '') + '">'
-          + (m.storyEn != null ? '<div class="mat-sub">英文可背（连贯小故事）</div><textarea class="mat-edit-input mat-edit-area" data-edit-story="' + i + '" placeholder="英文小故事…">' + escapeHtml(m.storyEn) + '</textarea>' : '')
+          + (m.storyEn != null ? '<div class="mat-sub">英文可背（连贯小故事）（系统自动保留你录入的原文句式结构，不做改写）</div><textarea class="mat-edit-input mat-edit-area" data-edit-story="' + i + '" placeholder="英文小故事…">' + escapeHtml(m.storyEn) + '</textarea>' : '')
           + (m.logicZh != null ? '<div class="mat-sub">中文逻辑链</div><textarea class="mat-edit-input mat-edit-area" data-edit-logic="' + i + '" placeholder="中文逻辑…">' + escapeHtml(m.logicZh) + '</textarea>' : '')
           + '<div class="mat-edit-hint">保存后会<b>直接覆盖</b>这张素材，旧内容不再保留。</div>'
           + '<div class="mat-mat-actions"><button class="mat-mini btn-save" data-save="' + i + '">保存</button><button class="mat-mini" data-cancel="' + i + '">取消</button></div>';
       } else {
         h += (m.storyEn ? '<div class="mat-sub">英文可背（连贯小故事）</div><div class="mat-story-en">' + escapeHtml(m.storyEn) + '</div>' : '')
+          + ((Array.isArray(m.goldenEn) && m.goldenEn.length) ? '<div class="mat-sub">万能句（任何题都能套，优先背）</div><div class="mat-story-en">' + m.goldenEn.map(g => '<b>' + escapeHtml(String(g)) + '</b>').join('<br>') + '</div>' : '')
           + (m.logicZh ? '<div class="mat-sub">中文逻辑链</div><div class="mat-logic">' + escapeHtml(m.logicZh) + '</div>' : '')
           + '<div class="mat-mat-actions"><button class="mat-mini' + (m.pinned ? ' mat-pin-on' : '') + '" data-pin="' + i + '">' + (m.pinned ? '已置顶最熟 · 取消' : '置顶为最熟') + '</button><button class="mat-mini" data-regen-all="1" title="重新生成：全部素材整库替换为最新生成的版本">重新生成</button><button class="mat-mini danger" data-del="' + i + '">删除</button><button class="mat-mini" data-edit="' + i + '">更改</button></div>';
       }
