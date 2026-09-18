@@ -3182,19 +3182,9 @@ body.has-dock main.container{ padding-bottom:0; }
 #mkList .mk-row:hover .mk-del{opacity:1}
 @media (max-width:560px){#mkList .mk-row{flex-wrap:wrap}#mkList .mk-parts-inline{flex:1 1 100%}}
 
-/* ===== design/58 间隔重复算法可视化（之之 2026-09-18 · 纯只读展示层，零算法改动）===== */
-/* 块 1 · 记忆状态条：8 格方块 = Leitner 8 级（1/2/4/7/15/30/60/90 天），亮格 = 当前等级 */
-.lv-status{display:inline-flex;align-items:center;gap:6px;margin-left:auto}
-.lv-dots{display:inline-flex;gap:2px}
-.lv-dot{width:8px;height:8px;border-radius:2px;background:var(--n-200);box-shadow:inset 0 0 0 1px var(--n-400)}
-.lv-dot.on{background:var(--primary-500);box-shadow:none}
-.lv-meta{font-size:11px;font-weight:600;color:var(--ink);white-space:nowrap}
-.lv-sep{color:var(--n-500);margin:0 3px}
-.lv-next{color:var(--muted);font-weight:500}
-.lv-next.overdue{color:var(--warn-ink)}
-.lv-flag{width:6px;height:6px;border-radius:50%;display:inline-block}
-.lv-flag-hard{background:var(--warn)}
-.lv-flag-key{background:var(--speak)}
+/* ===== design/58 间隔重复算法可视化（之之 2026-09-18 · 纯只读展示层，零算法改动）=====
+   注：块 1 答题页记忆状态条已按之之 9/18 要求整体撤除（背词页保持定版样子）；
+   复习计划入口从答题页日历按钮改为词库卡「复习计划」按钮。 */
 /* 块 2 · 记忆曲线排程面板（默认收起；条形宽度按当日最大值等比缩放，非绝对词数） */
 .plan-panel{background:var(--n-50);border:1px solid var(--line);border-radius:var(--radius-sm);
   padding:14px 16px;margin:0 0 12px}

@@ -415,12 +415,10 @@ function autoStartSeeWord(){
 
     if(!Array.isArray(DATA.words) || DATA.words.length === 0){
       $('#practiceBody').innerHTML = '<div class="q-word">词库为空</div><div class="q-cn">切换到「词库」标签添加单词后再来学习。</div>';
-      renderLevelDots(null);
       return;
     }
     if(DATA.words.length < 2){
       $('#practiceBody').innerHTML = '<div class="q-word">词库至少需要 2 个单词</div><div class="q-cn">「看词选义」需要选项作干扰项，请先加至少 2 个词。</div>';
-      renderLevelDots(null);
       return;
     }
     const today = todayKey();
@@ -455,7 +453,6 @@ function autoStartSeeWord(){
           '<div class="q-cn">已学过的词都被记忆曲线排到了之后几天，今天不用复习。' +
           (pending ? '还有 ' + pending + ' 个没掌握的词，会在接下来按曲线依次出现。' : '') +
           '想多背可以去「词库」加词。</div>';
-        renderLevelDots(null);
         clearDailySession();
         return;
       }
@@ -544,7 +541,6 @@ function autoStartSeeWord(){
     $('#practiceBody').innerHTML = '<div class="q-word">练习加载失败</div>' +
       '<div class="q-cn">' + escapeHtml(String(err && err.message ? err.message : err)) + '</div>' +
       '<div style="margin-top:16px"><button class="btn btn-primary" id="retryStart">重试</button></div>';
-    renderLevelDots(null);
     const retry = $('#retryStart');
     if(retry) retry.addEventListener('click', () => { pq = null; autoStartSeeWord(); });
   }
@@ -724,7 +720,6 @@ function nextQuestion(){
     $('#practiceBody').innerHTML = '<div class="q-word">题目渲染失败</div>' +
       '<div class="q-cn">' + escapeHtml(String(err && err.message ? err.message : err)) + '</div>' +
       '<div style="margin-top:16px"><button class="btn" id="skipBad">跳过本题</button> <button class="btn btn-primary" id="retryStart2">重新开始</button></div>';
-    renderLevelDots(null);
     const skip = $('#skipBad'), retry = $('#retryStart2');
     if(skip) skip.addEventListener('click', () => { if(pq){ pq.queue.splice(pq.idx, 1); nextQuestion(); } });
     if(retry) retry.addEventListener('click', () => { pq = null; autoStartSeeWord(); });
@@ -806,7 +801,6 @@ function renderQuestion(cur, isRehold){
   const left0 = document.getElementById('unknownBtn');
   if(left0) left0.onclick = () => judge(cur, null, false, true);
   ensureMasteredBtn(cur);
-  renderLevelDots(cur);   // design/58 块1：题面渲染后刷新记忆状态条（逾期词经 applyOverdue 已消费为「今天」）
   const qsp = document.getElementById('qSpeaker');
   if(qsp) qsp.onclick = () => speakN(cur.en);
   if(c.autoPlay) setTimeout(() => speakN(cur.en), 300);   // autoPlay=false 时不自动朗读，仅手动点喇叭
@@ -1017,10 +1011,6 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
       const x2 = document.getElementById('x2Badge');
       if(x2) x2.hidden = true;
     }
-    // design/58：375px 窄屏实测，红心 chip 显出后 word-stats 行装不下三个子元素 → statProgress 换行撑高 24px（抖动回归）。
-    // 红心反馈期间让 lvStatus 暂时让位；下一题 renderQuestion → renderLevelDots 自动恢复。
-    const lv = document.getElementById('lvStatus');
-    if(lv) lv.hidden = true;
   }
 }
 
@@ -1076,7 +1066,6 @@ function finishPractice(){
     (wrong.length ? '<button class="btn" id="reviewWrongBtn">重练错词（' + wrong.length + '）</button>' : '') +
     '<button class="btn btn-primary" id="restartBtn">再来一轮</button></div>';
   $('#practiceBody').innerHTML = bodyHtml;
-  renderLevelDots(null);   // design/58：完成页无当前词，隐藏记忆状态条避免残留上一题等级
   $('#progBarWrap').hidden = true;
   removeMasteredBtn();   // 完成页没有当前词：移除「已掌握」按钮，防误点删除
   updateWordStats();
@@ -1510,25 +1499,6 @@ function wordIntervalDesc(w){
   return { level: lv, next: next, overdue: overdue };
 }
 
-// 块 1 · 记忆状态条：8 格方块 = Leitner 8 级（1/2/4/7/15/30/60/90 天），亮格数 = 当前等级
-function renderLevelDots(w){
-  const box = document.getElementById('lvStatus');
-  if(!box) return;
-  if(!w){ box.hidden = true; box.innerHTML = ''; return; }
-  const info = wordIntervalDesc(w);
-  const lv = Math.min(7, Math.max(0, info.level));
-  let dots = '';
-  for(let i = 0; i < 8; i++) dots += '<i class="lv-dot' + (i < lv ? ' on' : '') + '"></i>';
-  // hardWord/keyWord 标记：仅字段为真才渲染，不占默认空间
-  const flag = w.hardWord ? '<i class="lv-flag lv-flag-hard" title="难词"></i>'
-             : (w.keyWord ? '<i class="lv-flag lv-flag-key" title="重点词"></i>' : '');
-  box.innerHTML = flag +
-    '<span class="lv-dots">' + dots + '</span>' +
-    '<span class="lv-meta">Lv ' + lv + '<span class="lv-sep">·</span>' +
-      '<span class="lv-next' + (info.overdue ? ' overdue' : '') + '">' + escapeHtml(info.next) + '</span></span>';
-  box.hidden = false;
-}
-
 // 块 2 · 排程统计：未来 7 天复习量分桶（已逾期全部归「今天」）+ Leitner 盒子分布 0..7
 function buildPlanStats(){
   const words = (DATA.words || []).filter(w => w && typeof w.en === 'string' && w.en.trim());
@@ -1599,9 +1569,9 @@ ready(() => {
   });
   const fsBtn = $('#fullscreenBtn');
   if(fsBtn) fsBtn.addEventListener('click', () => toggleWordFullscreen());
-  // design/58 块2：日历按钮 → 记忆曲线排程面板（默认收起，点开即渲染最新数据，只读展示层）
-  const planBtn = document.getElementById('planBtn');
-  if(planBtn) planBtn.addEventListener('click', () => {
+  // design/58 块2：复习计划按钮（词库卡内）→ 记忆曲线排程面板（默认收起，点开即渲染最新数据，只读展示层）
+  const bankPlanBtn = document.getElementById('bankPlanBtn');
+  if(bankPlanBtn) bankPlanBtn.addEventListener('click', () => {
     const p = document.getElementById('planPanel');
     if(!p) return;
     if(p.hidden){ renderPlanPanel(); p.hidden = false; }
