@@ -77,7 +77,8 @@ function persistLocalActive(){
 }
 
 /* 写云端镜像（单一可信源）。仅在「本机是 owner 且未结束」时调用。 */
-function persistMirror(){
+var __lastMirrorFullSave = 0;      // 上次整库落盘时刻（心跳节流锚点；生命周期事件会重置）
+function mirrorFields(){
   if(!window.active) return;
   window.active.updatedAt = Date.now();
   window.active.lastBeat = Date.now();
@@ -88,7 +89,24 @@ function persistMirror(){
     targetSec: window.active.targetSec || null, mode: window.active.mode || 'up',
     updatedAt: window.active.updatedAt, lastBeat: window.active.lastBeat, ended: false
   };
+}
+function persistMirror(){
+  if(!window.active) return;
+  mirrorFields();
+  __lastMirrorFullSave = Date.now();
   hubSave();   // 走防抖上传，另一端 30s 内合并可见
+}
+/* 心跳专用（9/18 流畅度）：内存镜像每拍都新，整库落盘节流 ≥30s 一次。
+   原状：心跳每 5s persistMirror→hubSave 整库序列化+写盘，4000 词 1.25MB 实测 ~24ms/次
+   = 计时中每分钟 ~284ms 主线程占用，是整站最大稳态卡顿源。节流依据：
+   ① F5 恢复走本机 ACTIVE_KEY 锚点（persistLocalActive，生命周期事件时写），不依赖镜像整库实时性；
+   ② 运行中 elapsed 由 startTs 锚点现算，镜像中间态没有需要每拍落盘的字段；
+   ③ 云端可见节奏由 hubSave 的 60s 防抖 + 3min maxWait 决定，本地节流不改变实际上云频率；
+   ④ 另一端离线判定窗口 REMOTE_MS=90s，30s 级磁盘新鲜度仍在安全余量内。 */
+function persistMirrorBeat(){
+  if(!window.active) return;
+  mirrorFields();
+  if(Date.now() - __lastMirrorFullSave >= 30000) persistMirror();
 }
 /* 广播结束（带 timerId，另一端合并后清本地态、不二次入库） */
 function broadcastEnded(timerId){
@@ -511,7 +529,7 @@ function updateTimer(){
 function startHeartbeat(){
   stopHeartbeat();
   window.__timerBeat = setInterval(() => {
-    if(window.active && !window.active.paused){ persistMirror(); }   // 暂停时不续租：留给另一端判定托管
+    if(window.active && !window.active.paused){ persistMirrorBeat(); }   // 暂停时不续租：留给另一端判定托管（9/18 起整库落盘 30s 节流，见 persistMirrorBeat）
   }, 5000);
 }
 function stopHeartbeat(){
