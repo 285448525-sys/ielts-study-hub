@@ -1139,14 +1139,22 @@ const SYNC_ARRAY_FIELDS = ['sessions','notes','meds','corpus','scores','errorboo
 function stripCloudFields(d){
   const c = Object.assign({}, d);
   delete c.writing;    // 写作模板：所有用户一致，永远用本机默认模板
+  /* design/62：AI Key 严禁落云端。
+     ⚠️ 必须先浅拷贝 settings 再删——c.settings 与 DATA.settings 是同一引用，
+     直接 delete c.settings.relayToken 会把本机 Key 一起删掉，全站 AI 功能当场失效。 */
+  if(c.settings && typeof c.settings === 'object'){
+    c.settings = Object.assign({}, c.settings);
+    delete c.settings.relayToken;
+  }
   return c;
 }
 /* 设置里允许跨设备同步的字段。
-   说明：relayToken（AI Key）/ pronunciationScore（发音分）/ theme（主题）/ chimeOnDone（完成提示音）均纳入同步——
-   用户要求登录手机号后个人全部数据自动恢复，包括 Key 与发音分，换设备/清缓存后登录即回，无需重填。
+   说明：pronunciationScore（发音分）/ theme（主题）/ chimeOnDone（完成提示音）纳入同步。
+   ⚠️ relayToken（AI Key）自 design/62 起**不再同步**：上传出口 stripCloudFields 已剥离、服务端二次剥离；
+   换设备 / 清缓存后需在本机重填一次 Key。理由：手机号即全部凭证，Key 落云端等于额度可被凭手机号取走。
    syncCode 是账号标识本身不重复同步；autoSync 是本地开关、不跨设备同步（设计：绑了账号就自动同步）。
    合并规则见 mergeData：空值（未填/被清空）永不覆盖另一侧已填值，杜绝「空值带新时间戳把本机 Key 冲掉」。 */
-const SYNC_SETTINGS_FIELDS = ['name','examDate','examDates','targets','dailyGoalHours','relayToken','pronunciationScore','theme','chimeOnDone','adhd'];
+const SYNC_SETTINGS_FIELDS = ['name','examDate','examDates','targets','dailyGoalHours','pronunciationScore','theme','chimeOnDone','adhd'];
 
 /* ===== 同步条目时间戳维护（9/17 修：_mergeArray 缺时间戳导致云端修改永不并入）=====
    根因：_mergeArray 以 ts/updatedAt 判「较新者胜」，但 11 个同步数组的条目大多只有 id、

@@ -1156,8 +1156,8 @@ const WORD_TIMER_MODULE = 'vocab';
 const WORD_TIMER_NAME = '背单词';
 function wordTimerDeviceId(){
   try{
-    let id = localStorage.getItem('ielts_hub_device');
-    if(!id){ id = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); localStorage.setItem('ielts_hub_device', id); }
+    let id = localStorage.getItem('hub_device_id');
+    if(!id){ id = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); localStorage.setItem('hub_device_id', id); }
     return id;
   }catch(e){ return 'd' + Date.now().toString(36); }
 }

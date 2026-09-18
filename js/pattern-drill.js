@@ -635,8 +635,8 @@ var PD_ROUND_START = 0;   // 本轮开始时刻（完成页显示「本轮用时
 
 function pdTimerDev(){
   try{
-    var id = localStorage.getItem('ielts_hub_device');
-    if(!id){ id = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); localStorage.setItem('ielts_hub_device', id); }
+    var id = localStorage.getItem('hub_device_id');
+    if(!id){ id = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); localStorage.setItem('hub_device_id', id); }
     return id;
   }catch(e){ return 'd' + Date.now().toString(36); }
 }

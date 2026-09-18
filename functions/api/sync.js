@@ -87,6 +87,12 @@ export async function onRequest(context) {
     if (!body || typeof body !== 'object' || !body.data) {
       return json({ ok: false, error: '缺少 data 字段' }, 400);
     }
+    // design/62 安全兜底：AI Key 严禁落云端。
+    // 即使老客户端 / 旧缓存页面仍带 relayToken 上传，服务端也在此剥离；
+    // 下一次 PUT 会整体覆盖，云端存量 Key 随之被清掉。
+    if (body.data && body.data.settings && typeof body.data.settings === 'object') {
+      delete body.data.settings.relayToken;
+    }
     const stored = {
       data: body.data,
       ts: (body.ts != null && !isNaN(Number(body.ts))) ? Number(body.ts) : Date.now(),
