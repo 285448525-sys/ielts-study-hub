@@ -850,7 +850,11 @@ const SPEAKING_BANK = [
 /* 口语题库版本号：每次题库大改（删题/建题/调档位）递增。
  * hubLoad 检测到本地 DATA.speakingVersion 落后于此值，则整体用最新库替换本地旧库，
  * 根治「旧 localStorage 累积 100+ 题 / 档位错乱清不掉」的问题（用户刷新即生效，无需手动清缓存）。 */
-const SPEAKING_BANK_VERSION = 11;   /* 9/15：v10 已被部分浏览器以旧 frequency 污染（merge 曾回填本地档位），bump 11 强制全量重迁移 */
+/* 9/15：v10 已被部分浏览器以旧 frequency 污染（merge 曾回填本地档位），bump 11 强制全量重迁移。
+ * 9/19：bump 12 修复「刷新永久丢 1 题」——12 个页面顶部 autoCleanOldBank 把 sb_p1_home 写进脏 id 剔除名单，
+ *       而它已是官方题库的合法 P1 题（Home/accommodation，9 小问），每次刷新被删一次（83→82）且版本未变不重迁移。
+ *       bump 后强制跑一次 mergeSpeakingKeepAnswers：官方题全量补回，用户答案/串题按 id 保留。 */
+const SPEAKING_BANK_VERSION = 12;
 
 /* 口语合并：以官方 SPEAKING_BANK 为基准，保留用户个人内容、丢弃非官方题。
    入参 localSpeaking = 用户本地/导入的口语数组（可能含旧 100+ 题、框架母本、已填 answers）。

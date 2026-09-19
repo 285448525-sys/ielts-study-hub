@@ -17,7 +17,9 @@
     if(!parsed || !Array.isArray(parsed.speaking)) return;
     // ⚠️ 只精准清理已知旧脏框架题（特定 id），且只删这几条、绝不清空整个 HUB_KEY——
     // 旧逻辑用 "early morning" 子串误杀正常雅思话题，会连带把手机号/API Key/发音分/全部学习数据一起抹掉。
-    var dirtyIds = ['sb_p1_home','sb_p2_travel','sb_p2_earlymorning'];
+    // ⚠️ sb_p1_home 已于 9/19 移出剔除名单：它现在是官方题库 v10 的合法 P1 题
+    // （Home/accommodation，9 小问）。继续剔除会导致每次刷新永久丢 1 题（83→82）。
+    var dirtyIds = ['sb_p2_travel','sb_p2_earlymorning'];
     var before = parsed.speaking.length;
     var kept = parsed.speaking.filter(function(s){ return !(s && dirtyIds.indexOf(s.id) >= 0); });
     if(kept.length !== before){
@@ -38,7 +40,7 @@
 
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
-<script defer src="js/data.js?v=20260917a"></script>
+<script defer src="js/data.js?v=20260919a"></script>
   <script defer src="js/common.js?v=20260919a"></script>
   <script src="js/corpus.js?v=20260917a" defer></script>
 <style>

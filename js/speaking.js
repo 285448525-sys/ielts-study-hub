@@ -156,6 +156,11 @@ ready(() => {
         curCat = 'all';
         const ps = $('#partSelect'); if(ps) ps.value = 'all';
         curPart = 'all';
+        /* 9/19 修：切回题库时搜索框与 curSearch 一并清空。
+           原先只重置三个下拉、搜索词却留着 → 列表仍被旧关键词过滤（如只剩 3 条），
+           而下拉显示「全部」，用户会误以为题库只剩这几题。语义统一为「切回题库=回到全量」。 */
+        const ss = $('#spSearch'); if(ss) ss.value = '';
+        curSearch = '';
         $('#listView').hidden = false;
         renderList();
       } else if(t === 'MOCK'){
