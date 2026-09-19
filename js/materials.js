@@ -163,7 +163,7 @@
     (store.answers.extraMore || []).forEach(x => { if((x.text || '').trim()) experiences.push({ id:x.id, title:'补充经历', raw:x.text.trim() }); });
     // 生成口径（9/19 拍板）：以当前页面实际填写内容为准。追问回答只经 extra 参数参与本次生成，
     // 不再读取/写入 answers.followups、answers.gaps 历史存档（老存档字段保留但永不消费）。
-    (extra || []).forEach(x => { if(x && (x.raw || '').trim()) experiences.push({ id:x.id || ('G' + experiences.length), title:x.title || '追问补充', raw:x.raw.trim() }); });
+    (Array.isArray(extra) ? extra : []).forEach(x => { if(x && (x.raw || '').trim()) experiences.push({ id:x.id || ('G' + experiences.length), title:x.title || '追问补充', raw:x.raw.trim() }); });
     // 校验：A + B1~B5 必填
     const missing = [];
     if(!ans('A')) missing.push('A（自我介绍）');
