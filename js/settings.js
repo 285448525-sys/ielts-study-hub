@@ -136,7 +136,8 @@ function saveRelay(){
   DATA.settings._fieldTs.relayToken = Date.now();   // 记录本机 Key 保存时间，合并时按时间胜出，避免被云端旧值覆盖
   hubSave();
   if(DATA.settings.syncCode) scheduleCloudUpload();   // 已登录则立即同步到云端，避免 60s 延迟期间清缓存丢 Key
-  toast(DATA.settings.relayToken ? '已保存 AI 接口配置（已同步云端）' : '已清空 Key');
+  // Key 从不上传云端（不在 SYNC_SETTINGS_FIELDS 里），旧文案「已同步云端」是错的
+  toast(DATA.settings.relayToken ? '已保存 AI 接口配置（仅本机）' : '已清空 Key');
 }
 
 /* 讯飞语音配置已移除（录音 / 转写功能已下线，发音分改由设置里的固定分提供） */

@@ -1501,7 +1501,9 @@ function mergeData(local, cloud){
   const at = _mergeActiveTimer(local.activeTimer, cloud.activeTimer);
   if(JSON.stringify(at) !== JSON.stringify(local.activeTimer || null)){ out.activeTimer = at; changes++; }
   // 设置白名单：字段级「较新者胜」——对比本机与云端各自的 _fieldTs 时间戳，取更晚保存的一侧。
-  // 根治经典 bug：本机刚填的 relayToken/发音分，被 10 秒轮询拉到的云端旧值覆盖（"去别的模块回来 Key 又没了"）。
+  // 根治经典 bug：本机刚填的发音分等同步字段，被 10 秒轮询拉到的云端旧值覆盖（"去别的模块回来设置又没了"）。
+  // 注：relayToken（AI Key）自 design/62 起已彻底不进同步（上传剥离 + 服务端剥离 + 不在下方白名单），
+  //     它只存本机并由 CREDS_KEY 凭证镜像兜底恢复，这里的字段级合并与它无关。
   // 时间戳缺失时回退旧逻辑：云端非空且不同→取云端（兼容早期无 _fieldTs 的云端数据）。
   const ls = local.settings || {}; const cs = cloud.settings || {};
   out.settings = Object.assign({}, ls);
@@ -1924,10 +1926,15 @@ async function cloudDelete(){
    - 404 = 该手机号云端无数据 → 注册（直接 PUT 上传本机数据）；
    - 200 = 云端已有数据 → 直接登录（合并云端数据，非覆盖，避免本机进度被抹掉）；
    - 成功后自动开启自动同步。不做二次确认，与单按钮设计一致。 */
-async function syncLoginOrRegister(){
-  const phone = ($('#sSyncCode') ? $('#sSyncCode').value : '').replace(/\D/g, '');
-  if(!phone){ syncSetStatus('请先输入手机号', 'error'); return; }
-  if(phone.length < 6 || phone.length > 15){ syncSetStatus('手机号格式不正确（应为 6-15 位数字）', 'error'); return; }
+/* phone 形参只为「首次进入引导」复用同一条登录链路（引导遮罩不在设置页，没有 #sSyncCode）。
+   ⚠️ 形参必须按类型兜底：任何 el.onclick = syncLoginOrRegister 式的直接引用会把 MouseEvent 当第一参数传进来，
+   typeof 不是 string 就一律回落到「读设置页输入框」的老路径，绝不破坏既有调用点。
+   返回值 {ok, msg} 供调用方判断成败（引导据此决定进阶段二还是给重试出口）。 */
+async function syncLoginOrRegister(phone){
+  phone = (typeof phone === 'string') ? phone.replace(/\D/g, '')
+        : (($('#sSyncCode') ? $('#sSyncCode').value : '').replace(/\D/g, ''));
+  if(!phone){ syncSetStatus('请先输入手机号', 'error'); return { ok:false, msg:'请先输入手机号' }; }
+  if(phone.length < 6 || phone.length > 15){ syncSetStatus('手机号格式不正确（应为 6-15 位数字）', 'error'); return { ok:false, msg:'手机号格式不正确（应为 6-15 位数字）' }; }
   DATA.settings.syncCode = phone; hubSave();
   syncSetStatus('正在连接云端…', '');
   try{
@@ -1941,6 +1948,7 @@ async function syncLoginOrRegister(){
       initCloudSync();   // 登录后补启动轮询拉取（页面可能已加载，ready 里的 initCloudSync 当时因未登录跳过了）
       syncSetStatus('✅ 注册成功，数据已上传云端', 'ok');
       renderSyncState();
+      return { ok:true, msg:'注册成功' };
     } else if(probe.ok){
       // 登录：云端已有数据 → 合并（非覆盖），避免本机未同步新增被云端数据抹掉
       const [res2, data] = await syncApi('GET');
@@ -1965,17 +1973,22 @@ async function syncLoginOrRegister(){
         syncSetStatus('✅ 登录成功，已合并云端数据', 'ok');
         renderSyncState();
         // 注意：不调用 location.reload()——reload 会重新触发 autoClean 清空整个 HUB_KEY，
-        // 导致本机未同步的 syncCode 等字段丢失（syncCode 是账号标识，不进同步；relayToken/发音分已纳入 SYNC_SETTINGS_FIELDS 会自动恢复）。
+        // 导致本机未同步的 syncCode 等字段丢失（syncCode 是账号标识，不进同步；relayToken 也不在 SYNC_SETTINGS_FIELDS
+        // 里、从不上传云端，靠 CREDS_KEY 凭证镜像在本机恢复；只有 pronunciationScore 会随同步回来）。
         // 合并后已 hubSave + 重渲染 + 回填表单，页面状态已最新，无需刷新。
         toast('登录成功，云端数据已合并。目标分数/每日目标等已恢复。');
+        return { ok:true, msg:'登录成功' };
       } else {
         syncSetStatus('云端返回格式异常', 'error');
+        return { ok:false, msg:'云端返回格式异常' };
       }
     } else {
       syncSetStatus('云端连接失败（HTTP ' + probe.status + '）', 'error');
+      return { ok:false, msg:'云端连接失败（HTTP ' + probe.status + '）' };
     }
   }catch(e){
     syncSetStatus('云端连接失败：' + e.message, 'error');
+    return { ok:false, msg:e.message };
   }
 }
 /* 登录/注册成功后：写入手机号、默认开启自动同步、触发一次上传 */
@@ -2724,12 +2737,25 @@ function prefetchAll(curId){
   idle(step);
 }
 
+/* ⭐ 引导用的常量必须声明在「本文件末尾的引导函数区」之前：common.js 是 defer 脚本，
+   ready(fn) 在 readyState 已 interactive 时会同步执行 —— 若常量声明在文件末尾，
+   同步执行那一刻它们还在 TDZ 里，访问即抛 ReferenceError（且被 initOnboarding 的 try 吞掉，
+   表现为「引导死活不弹」）。同理：任何在启动流程里被同步用到的 const/let 都要写在启动块之前。 */
+const ONB_KEY = 'hub_onboarding_v1';
+const ONB_GOTO_BANK = 'hub_onb_goto_bank';   // 「去导入词库」跳转 practice.html 的一次性暗号（sessionStorage）
+/* 「老用户判定」只看个人内容字段，绝不能把随 data.js 自带的官方内容算进来：
+   speaking（官方题库）与 writing（写作模板）永远非空，用了会让所有新用户都被判成老用户。 */
+const ONB_USER_FIELDS = ['words','sessions','plans','speakingStories','errorbook','corpus','scores',
+  'mockRecords','writingScores','dictationSources','dictationLogs','checkins','longSent','energy'];
+let _onbShownThisLoad = false;
+
 ready(() => { hubLoad();
   if(typeof restoreCredsIfMissing === 'function') restoreCredsIfMissing();  // 早恢复：确保登录状态/Key/手机号在云端同步启动前已就位
   injectLoadingOverlay();                              // 注入全站跳转加载遮罩（默认隐藏，点击站内链接时显示）
   initBootLoader();                                    // 收起首屏内联遮罩（覆盖 Ctrl+F5 / 整页跳转的卡顿）
   initFloatTimer();                                   // 注入全站计时悬浮标签（跨页常驻，运行中显示）
   injectNav(); applyTheme(); restoreSideScroll(); initSoftNav();
+  initOnboarding();                          // 首次进入引导（全新浏览器才弹，老用户静默回填零打扰）
   injectGlobalDock();                        // 全站玻璃底栏 dock（9/16 之之：+ FAB 砍掉——全站只有计划页有 data-fab-add 接杆，软导航残留后其他页全是死按钮）
   initListSearch();                          // 列表页 .ui-search 即时过滤（data-search-input + data-search-target）
   registerSW();
@@ -2844,4 +2870,374 @@ function deleteWrongItem(key){
     removedIds.forEach(id => { if(!DATA.deletedIds.includes(id)) DATA.deletedIds.push(id); });
   }
   hubSave();
+}
+
+/* =========================================================================
+   首次进入引导（9/19）：阶段一 账号选择（手机号登录 / 游客）→ 阶段二 三步初始设置
+   设计要点：
+   - 状态独立存 localStorage 键 hub_onboarding_v1，不进 DATA、不参与云同步、不参与 autoCleanOldBank；
+   - 老用户零打扰（硬要求）：启动时若有有效 DATA → 按实际数据静默回填 done，绝不弹遮罩、不弹提示条；
+     只有「全新浏览器」（无 HUB_KEY 或数据为空）才走完整引导；
+   - 遮罩挂在 <body> 下、<main> 之外：软导航只替换 <main>，永远不会误删/重建它；
+   - z-index 99990 < #bootLoader 99999，且等首屏 bootLoader 收起后再显示，不抢首屏；
+   - 全程禁止 prompt/alert/confirm；用户输入一律 textContent / value，不拼 HTML。
+   ========================================================================= */
+function onbDefaults(){
+  return { account:'pending', mode:'guest', entered:false, setup:{ exam:false, words:false, key:false }, snoozed:false, ts:0 };
+}
+function getOnboarding(){
+  try{
+    const raw = localStorage.getItem(ONB_KEY);
+    if(!raw) return null;
+    const o = JSON.parse(raw);
+    if(!o || typeof o !== 'object') return null;
+    const d = onbDefaults();
+    return {
+      account: (o.account === 'done') ? 'done' : 'pending',
+      mode: (o.mode === 'logged') ? 'logged' : 'guest',
+      entered: !!o.entered,
+      setup: Object.assign({}, d.setup, (o.setup && typeof o.setup === 'object') ? o.setup : {}),
+      snoozed: !!o.snoozed,
+      ts: Number(o.ts) || 0
+    };
+  }catch(e){ return null; }
+}
+function setOnboarding(patch){
+  const cur = getOnboarding() || onbDefaults();
+  const next = Object.assign({}, cur, patch || {}, { ts: Date.now() });
+  next.setup = Object.assign({}, cur.setup, ((patch && patch.setup) || {}));
+  try{ localStorage.setItem(ONB_KEY, JSON.stringify(next)); }catch(e){}
+  return next;
+}
+/* 是否「已有有效数据」= 老用户判定：主 blob 里任一个人内容字段非空，或有任一设置痕迹。
+   （ONB_USER_FIELDS 常量声明在文件前部的启动块之前，见那里的说明。）
+   注意时序：本函数读的是 localStorage 里的原始 blob，不看内存 DATA —— 这样即使当前 DATA 还是默认值，
+   只要存储里已有用户内容就算老用户。 */
+function onbHasExistingData(){
+  let raw = null;
+  try{ raw = localStorage.getItem(HUB_KEY); }catch(e){ return false; }
+  if(!raw) return false;
+  try{
+    const d = JSON.parse(raw);
+    if(!d || typeof d !== 'object') return false;
+    for(const f of ONB_USER_FIELDS){
+      const v = d[f];
+      if(Array.isArray(v) ? v.length > 0 : (v != null && typeof v === 'object' ? Object.keys(v).length > 0 : !!v)) return true;
+    }
+    if(d.materials && typeof d.materials === 'object' && (Array.isArray(d.materials.materials) ? d.materials.materials.length > 0 : Object.keys(d.materials).length > 0)) return true;
+    if(d.activeTimer) return true;
+    const s = d.settings || {};
+    return !!(s.syncCode || s.relayToken || s.examDate || s.name);
+  }catch(e){ return false; }
+}
+/* 老用户静默回填：按真实数据把三步标成已完成，绝不弹任何东西 */
+function onbBackfillFromData(){
+  const s = (DATA && DATA.settings) || {};
+  return setOnboarding({
+    account: 'done',
+    mode: s.syncCode ? 'logged' : 'guest',
+    setup: {
+      exam: !!s.examDate,
+      words: !!(Array.isArray(DATA.words) && DATA.words.length),
+      key: !!s.relayToken
+    }
+  });
+}
+/* 遮罩容器：body 直属、main 之外；软导航替换 main 时不受影响 */
+function onbEnsureEl(){
+  let el = document.getElementById('onbOverlay');
+  if(el && el.parentNode === document.body) return el;
+  if(el && el.parentNode) el.parentNode.removeChild(el);
+  el = document.createElement('div');
+  el.id = 'onbOverlay';
+  el.className = 'onb-overlay';
+  el.hidden = true;
+  el.setAttribute('role', 'dialog');
+  el.setAttribute('aria-modal', 'true');
+  el.setAttribute('aria-label', '首次进入引导');
+  document.body.appendChild(el);
+  return el;
+}
+function onbClose(){
+  const el = document.getElementById('onbOverlay');
+  if(!el) return;
+  el.hidden = true;
+  el.innerHTML = '';
+}
+/* 等首屏 #bootLoader 收起再显示（bootLoader 元素 400ms 后才移除，这里等它打上 done 标记再 +300ms） */
+function _onbWhenBootDone(cb){
+  let waited = 0;
+  (function poll(){
+    const bl = document.getElementById('bootLoader');
+    if(!bl || bl.dataset.done === '1'){ setTimeout(cb, 300); return; }
+    if(waited >= 4000){ cb(); return; }        // 兜底：绝不因为等遮罩而卡住引导
+    waited += 80;
+    setTimeout(poll, 80);
+  })();
+}
+function initOnboarding(){
+  try{
+    // 引导里点了「去导入词库」→ 落到 practice.html 后自动切到词库 tab
+    let flag = null;
+    try{ flag = sessionStorage.getItem(ONB_GOTO_BANK); sessionStorage.removeItem(ONB_GOTO_BANK); }catch(e){}
+    if(flag === '1' && /practice\.html$/.test(location.pathname)) onbLandBankTab();
+
+    const st = getOnboarding();
+    if(st && st.account === 'done'){
+      if(typeof renderOnboardingBar === 'function') renderOnboardingBar();   // 仅首页渲染提示条
+      return;
+    }
+    // ⭐ 账号阶段没走完时，只要此刻已有有效数据就按老用户处理（静默回填、绝不打扰）。
+    // 两个真实场景都靠这条兜住：① 用户上过一次、后来清了引导状态；② 首次打开后数据才到位
+    //（云端登录合并 / 本地导入回填）——否则「先弹过引导」会一直弹下去。treated 见 onbHasExistingData 注释。
+    if(onbHasExistingData()){ onbBackfillFromData(); return; }     // 老用户：静默回填，零打扰
+    if(!st) setOnboarding({});                                     // 全新浏览器：落一份 pending
+    if(_onbShownThisLoad) return;
+    _onbShownThisLoad = true;
+    // ⭐ 真正弹遮罩前再判一次「是否已经有数据」：启动瞬间判定可能早于数据到位
+    //   （本地迁移写回 / 凭证恢复 / 云端合并都可能在其后完成），届时没有数据看起来像新用户。
+    //   放在这里二次确认，任何「先弹过引导、数据随后才到」的场景都不会误扰老用户。
+    _onbWhenBootDone(function(){
+      if(onbHasExistingData()){ onbBackfillFromData(); return; }
+      onbRenderAccount();
+    });
+  }catch(e){}
+}
+/* 落到词库 tab：practice.js 的 switchWordTab 可能还没执行到，轮询等它出现 */
+function onbLandBankTab(){
+  setTimeout(function(){
+    let n = 25;
+    (function wait(){
+      if(typeof switchWordTab === 'function'){ try{ switchWordTab('bank'); }catch(e){} return; }
+      if(n-- <= 0) return;
+      setTimeout(wait, 120);
+    })();
+  }, 200);
+}
+/* ---------- 阶段一：账号选择 ---------- */
+function onbRenderAccount(){
+  const el = onbEnsureEl();
+  el.innerHTML =
+      '<div class="onb-card">'
+    +   '<div class="onb-brand">IELTS 雅思备考 Hub</div>'
+    +   '<p class="onb-sub">背单词 · 口语串题 · 写作模板 · 计时打卡，一个站把雅思自学管起来。</p>'
+    +   '<button type="button" class="btn btn-primary onb-block" id="onbPhoneToggle">手机号登录</button>'
+    +   '<div class="onb-box" id="onbPhoneBox" hidden>'
+    +     '<input id="onbPhone" class="ui-box-input" type="tel" inputmode="numeric" maxlength="15" placeholder="输入手机号" autocomplete="off">'
+    +     '<div class="onb-err" id="onbPhoneErr" hidden></div>'
+    +     '<button type="button" class="btn btn-primary onb-block" id="onbLoginBtn">登录</button>'
+    +   '</div>'
+    +   '<p class="onb-note">手机号即同步账号，输入即登录，无需密码；多设备用同一个号就能同步进度。</p>'
+    +   '<button type="button" class="btn onb-block" id="onbGuestBtn">游客模式进入</button>'
+    +   '<p class="onb-note">游客数据只保存在这台设备，清浏览器缓存会丢失；随时可以在「设置」里绑定手机号。</p>'
+    + '</div>';
+  el.hidden = false;
+  const box = document.getElementById('onbPhoneBox');
+  const input = document.getElementById('onbPhone');
+  const toggle = document.getElementById('onbPhoneToggle');
+  if(toggle && box) toggle.addEventListener('click', function(){
+    box.hidden = !box.hidden;
+    if(!box.hidden && input) input.focus();
+  });
+  if(input){
+    input.addEventListener('input', function(){          // 实时过滤非数字
+      const v = input.value.replace(/\D/g, '');
+      if(v !== input.value) input.value = v;
+      const err = document.getElementById('onbPhoneErr');
+      if(err) err.hidden = true;
+    });
+  }
+  const guest = document.getElementById('onbGuestBtn');
+  if(guest) guest.addEventListener('click', function(){
+    setOnboarding({ account:'done', mode:'guest', entered:true });
+    onbRenderSetup(1);
+  });
+  const login = document.getElementById('onbLoginBtn');
+  if(login) login.addEventListener('click', onbDoLogin);
+}
+async function onbDoLogin(){
+  const input = document.getElementById('onbPhone');
+  const err = document.getElementById('onbPhoneErr');
+  const btn = document.getElementById('onbLoginBtn');
+  const phone = input ? input.value.replace(/\D/g, '') : '';
+  if(!/^\d{6,15}$/.test(phone)){                      // 不合规只显示行内红字，不发任何请求
+    if(err){ err.textContent = '手机号应为 6-15 位数字'; err.hidden = false; }
+    return;
+  }
+  if(err) err.hidden = true;
+  if(btn){ btn.disabled = true; btn.textContent = '正在登录…'; }
+  let r = null;
+  try{ r = await syncLoginOrRegister(phone); }catch(e){ r = { ok:false, msg:(e && e.message) || '网络异常' }; }
+  if(btn){ btn.disabled = false; btn.textContent = '登录'; }
+  if(r && r.ok){
+    setOnboarding({ account:'done', mode:'logged', entered:true });
+    onbRenderSetup(1);
+    return;
+  }
+  // 失败：给「重试」+「先以游客进入」两个出口，绝不卡死
+  const box = document.getElementById('onbPhoneBox');
+  if(box){
+    const old = document.getElementById('onbFailBox');
+    if(old) old.parentNode.removeChild(old);
+    const fb = document.createElement('div');
+    fb.id = 'onbFailBox';
+    fb.className = 'onb-box';
+    const p = document.createElement('p');
+    p.className = 'onb-err';
+    p.textContent = '登录失败：' + ((r && r.msg) || '网络异常');
+    const retry = document.createElement('button');
+    retry.type = 'button'; retry.className = 'btn btn-primary onb-block'; retry.textContent = '重试';
+    retry.addEventListener('click', onbDoLogin);
+    const asGuest = document.createElement('button');
+    asGuest.type = 'button'; asGuest.className = 'btn onb-block'; asGuest.textContent = '先以游客进入';
+    asGuest.addEventListener('click', function(){
+      setOnboarding({ account:'done', mode:'guest', entered:true });
+      onbRenderSetup(1);
+    });
+    fb.appendChild(p); fb.appendChild(retry); fb.appendChild(asGuest);
+    box.appendChild(fb);
+  }
+}
+/* ---------- 阶段二：三步初始设置 ---------- */
+function onbSetupState(){
+  const st = getOnboarding() || onbDefaults();
+  return st.setup;
+}
+function onbRenderSetup(step){
+  const el = onbEnsureEl();
+  const s = onbSetupState();
+  const dots = '<div class="onb-steps">'
+    + '<span class="onb-step' + (step === 1 ? ' cur' : (s.exam ? ' ok' : '')) + '">1 考试日期</span>'
+    + '<span class="onb-step' + (step === 2 ? ' cur' : (s.words ? ' ok' : '')) + '">2 词库</span>'
+    + '<span class="onb-step' + (step === 3 ? ' cur' : (s.key ? ' ok' : '')) + '">3 AI Key</span>'
+    + '</div>';
+  let body = '';
+  if(step === 1){
+    body =
+        '<h3 class="onb-h3">第 1 步 · 考试日期</h3>'
+      + '<p class="onb-note">填了之后首页会显示倒计时，计划也会按考试日倒排。</p>'
+      + '<label class="onb-label" for="onbExam">考试日期</label>'
+      + '<input id="onbExam" class="ui-box-input" type="date">'
+      + '<label class="onb-label" for="onbName">昵称（可选）</label>'
+      + '<input id="onbName" class="ui-box-input" type="text" maxlength="20" placeholder="怎么称呼你">'
+      + '<div class="onb-err" id="onbExamErr" hidden></div>';
+  } else if(step === 2){
+    body =
+        '<h3 class="onb-h3">第 2 步 · 词库</h3>'
+      + '<p class="onb-note">导入你自己的词库：AI 导入 / Excel / 粘贴三种方式都行。没有就先跳过，之后随时能加。</p>'
+      + '<button type="button" class="btn btn-primary onb-block" id="onbGoBank">去导入词库</button>'
+      + '<button type="button" class="btn onb-block" id="onbSkipWords">先跳过</button>';
+  } else {
+    body =
+        '<h3 class="onb-h3">第 3 步 · DeepSeek Key</h3>'
+      + '<p class="onb-note">串题素材、句型批改、写作批改、AI 导入都依赖它。Key 只存在这台设备，不会上传。</p>'
+      + '<p class="onb-note">获取：platform.deepseek.com → API Keys → 创建</p>'
+      + '<input id="onbKey" class="ui-box-input" type="password" autocomplete="off" placeholder="sk-...">'
+      + '<div class="onb-status" id="onbKeyStatus"></div>'
+      + '<button type="button" class="btn btn-primary onb-block" id="onbKeyTest">保存并测试</button>'
+      + '<button type="button" class="btn onb-block" id="onbKeySkip">跳过</button>';
+  }
+  el.innerHTML = '<div class="onb-card">' + dots + body
+    + '<div class="onb-actions"><button type="button" class="btn btn-ghost btn-sm" id="onbLater">稍后自己设置</button>'
+    + (step > 1 ? '<button type="button" class="btn btn-ghost btn-sm" id="onbBack">上一步</button>' : '')
+    + '</div></div>';
+  el.hidden = false;
+
+  const later = document.getElementById('onbLater');
+  if(later) later.addEventListener('click', function(){ onbFinish(false); });
+  const back = document.getElementById('onbBack');
+  if(back) back.addEventListener('click', function(){ onbRenderSetup(step - 1); });
+
+  if(step === 1){
+    const next = document.createElement('button');
+    next.type = 'button'; next.className = 'btn btn-primary onb-block'; next.textContent = '下一步';
+    next.addEventListener('click', function(){
+      const d = (document.getElementById('onbExam') || {}).value || '';
+      const err = document.getElementById('onbExamErr');
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){
+        if(err){ err.textContent = '请先选择考试日期'; err.hidden = false; }
+        return;
+      }
+      DATA.settings = DATA.settings || {};
+      DATA.settings.examDate = d;
+      DATA.settings.examDates = [];                       // 与 saveSettings 同款：examDate 是唯一有效来源
+      DATA.settings._fieldTs = DATA.settings._fieldTs || {};
+      DATA.settings._fieldTs.examDate = Date.now();
+      const nm = ((document.getElementById('onbName') || {}).value || '').trim();
+      if(nm){ DATA.settings.name = nm; DATA.settings._fieldTs.name = Date.now(); }
+      hubSave();
+      setOnboarding({ setup:{ exam:true } });
+      if(typeof renderDashV6 === 'function'){ try{ renderDashV6(); }catch(e){} }
+      onbRenderSetup(2);
+    });
+    const card = el.querySelector('.onb-card');
+    if(card) card.insertBefore(next, el.querySelector('.onb-actions'));
+  }
+  if(step === 2){
+    const go = document.getElementById('onbGoBank');
+    if(go) go.addEventListener('click', function(){
+      setOnboarding({ account:'done', entered:true, setup:{ words:false } });   // 标记「待完成」：跳过去导入，回来仍未完成
+      try{ sessionStorage.setItem(ONB_GOTO_BANK, '1'); }catch(e){}
+      location.href = 'practice.html';
+    });
+    const sk = document.getElementById('onbSkipWords');
+    if(sk) sk.addEventListener('click', function(){ onbRenderSetup(3); });
+  }
+  if(step === 3){
+    const st0 = getOnboarding() || onbDefaults();
+    if(st0.mode === 'guest'){
+      const card = el.querySelector('.onb-card');
+      if(card){
+        const tip = document.createElement('p');
+        tip.className = 'onb-note onb-tip';
+        tip.textContent = '你现在是游客模式：数据只在本机。建议去「设置」绑定手机号，换设备或清缓存也不丢。';
+        card.insertBefore(tip, el.querySelector('.onb-actions'));
+      }
+    }
+    const test = document.getElementById('onbKeyTest');
+    if(test) test.addEventListener('click', onbDoTestKey);
+    const sk = document.getElementById('onbKeySkip');
+    if(sk) sk.addEventListener('click', function(){ onbFinish(true); });
+  }
+}
+async function onbDoTestKey(){
+  const inp = document.getElementById('onbKey');
+  const status = document.getElementById('onbKeyStatus');
+  const btn = document.getElementById('onbKeyTest');
+  const key = inp ? inp.value.trim() : '';
+  if(!key){ if(status){ status.className = 'onb-status err'; status.textContent = '请先填写 Key'; } return; }
+  if(status){ status.className = 'onb-status'; status.textContent = '正在测试连接…'; }
+  if(btn) btn.disabled = true;
+  const prev = DATA.settings.relayToken || '';
+  try{
+    DATA.settings = DATA.settings || {};
+    DATA.settings.relayToken = key;                       // 与设置页 testAIConnection 同款：临时写入后探活
+    await callRelay('gpt', [{ role:'user', content:'Reply with exactly the single word: PONG' }], 0.1, { max_tokens: 16 });
+    DATA.settings.relayToken = key;
+    DATA.settings._fieldTs = DATA.settings._fieldTs || {};
+    DATA.settings._fieldTs.relayToken = Date.now();
+    hubSave();
+    setOnboarding({ setup:{ key:true } });
+    onbFinish(true);
+  }catch(e){
+    DATA.settings.relayToken = prev;                      // 探活失败 → 恢复原 Key，绝不把无效 key 留在内存
+    if(status){ status.className = 'onb-status err'; status.textContent = '连接失败：' + ((e && e.message) || '未知错误'); }
+    if(btn) btn.disabled = false;
+  }
+}
+/* 结束引导：关遮罩 + 首页提示条按状态重渲染 */
+function onbFinish(allDone){
+  const st = getOnboarding() || onbDefaults();
+  const s = st.setup || {};
+  const done = (s.exam ? 1 : 0) + (s.words ? 1 : 0) + (s.key ? 1 : 0);
+  if(allDone && done >= 3) setOnboarding({ snoozed:true });
+  onbClose();
+  if(typeof renderOnboardingBar === 'function'){ try{ renderOnboardingBar(); }catch(e){} }
+  if(typeof renderDashV6 === 'function'){ try{ renderDashV6(); }catch(e){} }
+  document.dispatchEvent(new CustomEvent('hub:onboarding-done'));
+}
+/* 首页提示条点某一步 → 重新打开对应引导 */
+function onbOpenSetup(step){
+  _onbShownThisLoad = true;
+  onbRenderSetup(step);
 }

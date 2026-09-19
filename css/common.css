@@ -3235,3 +3235,42 @@ body.has-dock main.container{ padding-bottom:0; }
 .wl-stats-seg.s-mid{background:var(--primary-200)}
 .wl-stats-seg.s-new{background:var(--line)}
 .wl-stats-txt{display:block;margin-top:4px;font-size:12px;color:var(--muted)}
+
+/* =========================================================================
+   首次进入引导（9/19）：账号选择遮罩 + 三步设置 + 首页提示条
+   - 只用 token（--surface/--line/--ink/--primary…），暗色随主题自动翻转，组件层不写死白底；
+   - 移动优先：默认单列铺满，≥560px 才收成 420px 居中卡片；
+   - 层级 99990：低于首屏 #bootLoader(99999)、高于 dock 与悬浮计时。
+   ========================================================================= */
+.onb-overlay{position:fixed;inset:0;z-index:99990;display:flex;align-items:center;justify-content:center;padding:16px;background:var(--n-900);background:rgba(16,20,24,.55);backdrop-filter:blur(3px);overflow:auto}
+.onb-overlay[hidden]{display:none}
+.onb-card{width:100%;max-width:420px;max-height:88vh;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 48px rgba(0,0,0,.22);padding:20px 18px;display:flex;flex-direction:column;gap:10px}
+.onb-brand{font-size:19px;font-weight:800;letter-spacing:.2px;color:var(--ink)}
+.onb-sub{margin:0;font-size:13px;line-height:1.6;color:var(--muted)}
+.onb-h3{margin:2px 0 0;font-size:16px;font-weight:700;color:var(--ink)}
+.onb-note{margin:0;font-size:12.5px;line-height:1.6;color:var(--muted)}
+.onb-tip{color:var(--warn);}
+.onb-label{font-size:12.5px;font-weight:600;color:var(--ink);margin-top:2px}
+.onb-err{font-size:12.5px;color:var(--danger);line-height:1.5}
+.onb-status{font-size:12.5px;color:var(--muted);line-height:1.5;min-height:18px}
+.onb-status.err{color:var(--danger)}
+.onb-box{display:flex;flex-direction:column;gap:8px;padding-top:6px}
+.onb-block{width:100%;padding:12px 16px}
+.onb-card .ui-box-input{width:100%;box-sizing:border-box}
+.onb-steps{display:flex;gap:6px;margin-bottom:2px}
+.onb-step{flex:1;text-align:center;font-size:11.5px;padding:6px 4px;border-radius:8px;background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.onb-step.cur{background:var(--primary);color:var(--on-primary);border-color:var(--primary);font-weight:700}
+.onb-step.ok{background:var(--primary-soft);color:var(--primary);border-color:var(--primary-soft)}
+.onb-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:4px;padding-top:6px;border-top:1px solid var(--line)}
+/* 首页引导提示条 */
+.onb-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 12px;margin-bottom:12px;border:1px solid var(--line);border-radius:12px;background:var(--primary-soft)}
+.onb-bar-title{font-size:13px;font-weight:700;color:var(--ink)}
+.onb-chip{font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;min-height:0}
+.onb-chip:hover{border-color:var(--primary);color:var(--primary)}
+.onb-chip.ok{background:var(--surface-2);color:var(--muted)}
+.onb-chip.ghost{background:transparent;color:var(--muted)}
+@media (min-width:560px){
+  .onb-card{padding:24px 22px;gap:12px}
+  .onb-brand{font-size:21px}
+}
+html[data-theme="dark"] .onb-overlay{background:rgba(0,0,0,.62)}

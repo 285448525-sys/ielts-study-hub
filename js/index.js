@@ -14,6 +14,9 @@ ready(() => {
   // v6 首页渲染（design/31 A 版）
   safe(renderDashV6);
 
+  // 首次进入引导提示条（仅首页）：三步没走完时出现，三步齐了或点「不再提示」后永久消失
+  safe(renderOnboardingBar);
+
   // 计时保存后整页指标就地刷新（软导航会重跑本文件：先移除旧监听再挂新监听）
   const prevHub = window.__hubSessionSaved;
   if(typeof prevHub === 'function') document.removeEventListener('hub:session-saved', prevHub);
@@ -126,4 +129,59 @@ function renderDashV6(){
 function hmParts(sec){
   const t = Math.max(0, Number(sec) || 0);
   return { h: Math.floor(t/3600), m: Math.floor((t % 3600) / 60) };
+}
+
+/* ===== 首次进入引导提示条（仅首页显示）=====
+   状态与遮罩共用 common.js 的 hub_onboarding_v1；只有「确实走过引导（entered）且未三步齐全」才显示，
+   老用户被静默回填的状态 entered=false → 永不打扰。三步齐全 / 点「不再提示」→ 写 snoozed 永久消失。 */
+function renderOnboardingBar(){
+  // ⭐ 定义在函数内：index.js 是 defer 脚本，ready() 会同步执行到本函数，
+  // 顶层 const 声明在文件末尾此时仍在 TDZ（访问即 ReferenceError）。引导三步骤的顺序表不需要跨函数共享。
+  const ONB_STEPS = [
+    { key:'exam',  n:1, name:'考试日期' },
+    { key:'words', n:2, name:'词库' },
+    { key:'key',   n:3, name:'Key' }
+  ];
+  const main = document.querySelector('main.container');
+  if(!main || typeof getOnboarding !== 'function') return;
+  let host = document.getElementById('onbBarHost');
+  if(!host){
+    host = document.createElement('div');
+    host.id = 'onbBarHost';
+    main.insertBefore(host, main.firstChild);
+  }
+  const st = getOnboarding();
+  if(!st){ host.hidden = true; host.innerHTML = ''; return; }
+  const s = st.setup || {};
+  const done = ONB_STEPS.filter(x => s[x.key]).length;
+  if(st.snoozed || !st.entered || st.account !== 'done' || done >= 3){
+    if(done >= 3 && !st.snoozed && typeof setOnboarding === 'function') setOnboarding({ snoozed:true });
+    host.hidden = true; host.innerHTML = ''; return;
+  }
+  host.hidden = false;
+  host.innerHTML = '';
+  const bar = document.createElement('div');
+  bar.className = 'onb-bar';
+  const title = document.createElement('span');
+  title.className = 'onb-bar-title';
+  title.textContent = '初始设置 ' + done + '/3';
+  bar.appendChild(title);
+  ONB_STEPS.forEach(function(x){
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'onb-chip' + (s[x.key] ? ' ok' : '');
+    b.textContent = s[x.key] ? (x.name + ' 已设 ✓') : (x.name + ' 未设置 →');
+    b.addEventListener('click', function(){ if(typeof onbOpenSetup === 'function') onbOpenSetup(x.n); });
+    bar.appendChild(b);
+  });
+  const close = document.createElement('button');
+  close.type = 'button';
+  close.className = 'onb-chip ghost';
+  close.textContent = '不再提示';
+  close.addEventListener('click', function(){
+    if(typeof setOnboarding === 'function') setOnboarding({ snoozed:true });
+    host.hidden = true; host.innerHTML = '';
+  });
+  bar.appendChild(close);
+  host.appendChild(bar);
 }
