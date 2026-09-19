@@ -1081,6 +1081,13 @@ function finishPractice(){
   if(!pq.isWrongReview && DATA.dailySession && DATA.dailySession.date === todayKey()){
     DATA.dailySession.finished = true; DATA.dailySession.currentEn = null; hubSave();
   }
+  // ⭐ 9/19 修「换设备背词丢一截」（她实测：电脑背 200 剩 900，手机打开显示还剩 950）：
+  // 旧上传链路有两个断点——① 正常通道 60s debounce，背完立刻关页/合盖就来不及传；
+  // ② 关页兜底 sendBeacon 超过 60KB 直接放弃，而整库词远超 60KB → 兜底对大词库永不生效。
+  // 结果=背词过程中每 3 分钟强制上传的批次都上云了，最后一批永远留在本机，
+  // 另一台设备拉到的就是「同步了一部分」。一轮结束是她必经的停顿点，在此立即静默上传；
+  // cloudUpload 内部有 hash 去重（数据没变化不 PUT），不浪费 KV 写入配额。
+  if(typeof cloudUpload === 'function'){ try{ cloudUpload(false); }catch(e){} }
   const rwb = document.getElementById('reviewWrongBtn');
   if(rwb) rwb.addEventListener('click', () => startWrongReview(wrong));
   const rb = document.getElementById('restartBtn');

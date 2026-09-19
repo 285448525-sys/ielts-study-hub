@@ -1088,7 +1088,7 @@ async function cloudUpload(showToast, force){
       throw new Error(detail);
     }
     DATA.settings.lastSyncTs = Date.now();
-    _lastUploadedHash = h;
+    _lastUploadedHash = hashData();   // ⭐ 9/19：成功后重算基线——lastSyncTs 在上传成功瞬间自变化，沿用上传前快照 h 会让下次比对永远失配，hash 去重形同虚设
     if(showToast) toast('已上传到云端');
     syncSetStatus('✅ 已同步到云端', 'ok');
     renderLastSync();
@@ -1122,7 +1122,15 @@ function flushCloudUpload(){
   }catch(e){}
 }
 window.addEventListener('beforeunload', flushCloudUpload);
-document.addEventListener('visibilitychange', () => { if(document.hidden) flushCloudUpload(); });
+document.addEventListener('visibilitychange', () => {
+  if(!document.hidden) return;
+  // ⭐ 9/19 修「换设备背词丢一截」：切后台时若数据超过 60KB（整库词库必然超过），
+  // flushCloudUpload 的 sendBeacon 会静默放弃 → 最后一批改动永远上不了云。
+  // 改为直接异步 PUT：切后台页面仍存活，fetch 能正常完成；成功后 _pendingUpload 清零，
+  // beforeunload 的 sendBeacon 兜底自动跳过（天然防双传）；失败则恢复 pending 交给下次。
+  if(_pendingUpload && typeof cloudUpload === 'function'){ try{ cloudUpload(false); }catch(e){} return; }
+  flushCloudUpload();
+});
 /* ===== 字段级合并（替代整份覆盖，避免双设备互相抹掉进度） ===== */
 /* plans/checkins 已改为特判合并（_mergePlans / Set 去重），不在通用数组里 */
 /* 同步字段白名单（个人数据，跨设备合并）。
