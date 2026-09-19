@@ -37,6 +37,7 @@ var SENT_CHECK_SYS = '你是雅思口语句型教练。学生按中文句意输�
   + '一、判题意：对照「句意」与学生答案，判断是否理解错题目（答非所问）。同义改写不算偏题，只判内容方向明显对不上句意的。字段："misread":true/false，"misreadNote"：一句话说题目在问什么、学生答了什么，≤25字；misread 为 false 时给空串。\n'
   + '二、挑语法错：只看学生答案本身的语法，与题意无关，按以下尺度挑错：词序错误、时态错误、双动词（一个句子里两个谓语）、缺 be 动词、词性用错。单复数、a/an/the 冠词、三单 -s 一律不算错、不标。语法错照常标在学生原句上（即使偏题也照标）。\n'
   + '输出：{"ok":true} 或 {"ok":false,"misread":false,"misreadNote":"","errors":[{"type":"时态","old":"is","note":"描述过去用 was，≤12字"}],"right":"…","fix":"…"}\n'
+  + '**misread=true 时 right 同样必填**（贴题版改进句，按规则见上），严禁只给 misreadNote 不给 right。\n'
   + 'ok=false 的条件：有语法错或 misread=true（偏题不算过）。\n'
   + 'right 规则：未偏题=学生答案的最小改正版，保留学生原有用词与句型，只改正 errors 标出的错误，禁止重写成另一句标准句；misread=true=贴题版，用学生答案的用词与句式，把内容改到能回答题目在问的事（同样保留学生用词，不甩标准句），并顺带改掉语法错。\n'
   + 'fix 规则：一句话人话总结最关键问题；misread=true 时先说偏在哪。\n'
@@ -336,7 +337,7 @@ async function sentAskAI(sent, answer, topicName){
         [{ role: 'system', content: SENT_CHECK_SYS },
          { role: 'user', content: '句意：' + (sent.cn || '') + '\n标准句：' + (sent.right || '')
            + '\n当前素材主题：' + (topicName || '通用') + '\n学生答案：' + answer }],
-        0, { max_tokens: 300 }),
+        0, { max_tokens: 600 }),
       3200);
     if(raw === '__TIMEOUT__') return { ok: null, err: '判定超时' };
     var j = aiJson(raw);
@@ -794,6 +795,11 @@ function sentRenderFail(ai){
     if(fixed){ html += '<div class="sent-right">✅ ' + (ai.misread ? '改进版（贴着题目说，用你的词）：' : '改正后（只改错处）：') + sentEsc(fixed) + '</div>'; }
     if(fixed && !sameAsRef){ html += '<div class="sent-note">📄 参考说法：' + sentEsc(ref) + '</div>'; }
     if(!fixed){ html += '<div class="sent-right">✅ 正确句：' + sentEsc(ref) + '</div>'; }
+  } else if(ai.misread){
+    /* 9/19：偏题首交也闭环——偏题不是改个词的事，不给方向她没法重答（语法错仍守「首交不含整句」）。
+       AI 给了贴题版 → 直接展示；AI 漏给 right（截断/省略）→ 退而给参考说法兜底。 */
+    if(fixed){ html += '<div class="sent-right">✅ 改进版（贴着题目说，用你的词，照这个方向再交一次）：' + sentEsc(fixed) + '</div>'; }
+    else { html += '<div class="sent-right">✅ 参考说法（照这个方向改）：' + sentEsc(ref) + '</div>'; }
   }
   if(c.phase === 'main'){
     html += '<div class="sent-formula">📌 ' + sentEsc(sent.formula || '') + '</div>';
