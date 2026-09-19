@@ -398,11 +398,10 @@ function updateSideTimerBadge(){
     if(window.__sideTimerTick){ clearInterval(window.__sideTimerTick); window.__sideTimerTick = null; }
     return;
   }
-  let ms = Date.now() - a.startTs - (a.pauseAccum || 0);
-  if(a.paused && a.pauseStart) ms -= (Date.now() - a.pauseStart);
-  ms = Math.max(0, ms);
+  /* 显示口径与悬浮条一致：倒计时模式显示剩余时间（floatDisplaySec），否则正计时 */
+  const dispSec = floatDisplaySec(a);
   const live = document.getElementById('sideTimerLive');
-  if(live) live.textContent = fmtHMS(ms/1000);
+  if(live) live.textContent = fmtHMS(dispSec);
   const badge = document.getElementById('sideTimerBadge');
   if(badge) badge.classList.toggle('paused', !!a.paused);
 }
@@ -2233,6 +2232,15 @@ function floatElapsedSec(src){
   if(src.paused && src.pauseStart) elapsed = (src.pauseStart - src.startTs - (Number(src.pauseAccum) || 0)) / 1000;
   return Math.max(0, elapsed);
 }
+/* 倒计时模式显示剩余时间，与计时页主卡口径一致（她 9/19 反馈：点倒计时 40 分钟，
+   悬浮标也得走倒计时，不能是正计时）。非倒计时/旧数据（无 mode/targetSec）回退正计时。 */
+function floatDisplaySec(src){
+  const elapsed = floatElapsedSec(src);
+  if(src && src.mode === 'down' && src.targetSec){
+    return Math.max(0, (Number(src.targetSec) || 0) - elapsed);
+  }
+  return elapsed;
+}
 function syncFloatTimer(){
   const src = floatTimerSource();
   const el = document.getElementById('floatTimer');
@@ -2245,7 +2253,7 @@ function syncFloatTimer(){
   const label = document.getElementById('ft-label');
   if(label) label.textContent = (src.paused ? name + ' 暂停中' : name + ' 计时中');
   const t = document.getElementById('ft-time');
-  if(t) t.textContent = (typeof fmtHMS === 'function') ? fmtHMS(floatElapsedSec(src)) : '00:00:00';
+  if(t) t.textContent = (typeof fmtHMS === 'function') ? fmtHMS(floatDisplaySec(src)) : '00:00:00';
   if(el.hasAttribute('hidden')) el.removeAttribute('hidden');
 }
 function floatStopTimer(){
