@@ -21,9 +21,9 @@
   ];
 
   const SYS_MAT = '你是雅思口语串题素材教练。考生会给你一份人设 + 若干段真实生活经历（含可能来自你上一轮追问的补充回答）。\n'
-  + '你的任务：把全部经历整合成**数量尽量少的连贯故事**——**首要目标是 1 个完整大故事**：用自然的过渡（时间线/因果线，如「那次去厦门的路上…同行的朋友…」）把旅行、人物、物品、见闻、感受全部串成一条叙事线，而不是切成几个互不相干的小片段。**必须把考生填入的每一段经历的关键事实完整纳入最终故事，不得遗漏。** 故事要让考生直接背出来，且**背诵量最小化 = 故事个数最小化**：优先产出 **1 个大故事**；只有当 1 个故事的题库覆盖率补不到 90%（见规则 5.3）时，才允许拆出第 2 个。**最多 2 个，严禁第 3 个。**\n'
+  + '你的任务：把考生的全部经历整理成**若干个各自独立、连贯的故事**（通常 2~4 个）：把**自然相关**的经历合并成一条叙事线（自然相关的判断标准：时间相连 / 同一个人物 / 同一个地点 / 有因果关系，至少占其一）。**关联弱的经历严禁硬编进同一条叙事线**——宁可独立成篇，也严禁用生硬过渡把不相关的事缝在一起；**严禁按题族切分**（不得拆成「人物题一个故事 + 地点题一个故事」这种按题目类别切的形态）。每个故事不看其他故事也能独立背、独立成立。**必须把考生填入的每一段经历的关键事实完整纳入某一个故事，不得遗漏**——分到哪个故事由自然相关性决定，不为凑个数强行合并。**能半句带过的次要经历就半句带过，不为此展开篇幅。**\n'
   + '规则：\n'
-  + '1. 故事必须基于考生原话，真实不编造。**事实完整性优先于语言精简**：若把相关经历合并成一个故事，两段经历的关键事实（人物/地点/事件/感受）都必须出现在某个 storyEn 或 logicZh 里——信息不能丢，但语言允许压缩重写；宁可把事实压缩进主线（哪怕只半句带过），也绝不为此新开故事。\n'
+  + '1. 故事必须基于考生原话，真实不编造。**事实完整性优先于语言精简**：若把几段相关经历合并成一个故事，它们的关键事实（人物/地点/事件/感受）都必须出现在**某一个** storyEn 或 logicZh 里——信息不能丢，但语言允许压缩重写；宁可把事实压缩成半句带过，也绝不丢弃考生填的事实，也绝不为此把不相关的经历硬并进同一条叙事线。\n'
   + '2. 每个故事含：title(标题) / storyEn(一段英文小故事，**不设死词数上限**——以「人物 / 地点 / 物品 / 事件 / 见闻与感受」五类元素齐全为准，齐全即收尾，通常落在 130~180 词；**190 词为硬顶**，超过时必须自行拆成两张卡；拆分优先级：**先拆次要补充情节与修饰性描述，主线故事与五类核心元素必须完整保留在一张卡里**，不得拆成两张都缺要素的残卡。**句子要能背，但不必都是简单句**——正文里至少 3~5 句带从句：because / when 状语从句、who / which / that 定语从句、and / but 并列句，其余句子保持 8~14 词简单句形成节奏差；词汇天花板从「初中」抬到「**高中常见词**」（如 realize / experience / especially / memory / although）；**单句硬顶 20 词**；严禁 ' + window.FORBIDDEN_WORDS.join(' / ') + ' 等生僻词（黑名单统一取全局常量 window.FORBIDDEN_WORDS，禁止硬编码）；**storyEn 里严禁出现任何中文字符**——考生经历里的中文词（如「考研」「恋综」「 高考」）必须译成简单英文（考研→the postgraduate exam，高考→the college entrance exam），专名也用基础英文说法。) / logicZh(中文**逻辑链**：用若干中文短语以 "—"（中文横杠/破折号）串接，把故事的关键步骤、转折、感受、细节都铺开——越长越细越好、数量不固定，例如"朋友送手机壳—觉得很有心—每天用手机—看到就想起朋友—珍藏") / coverage(能套的当季 P2 题数组)。\n'
   + '3. 人设一致：每个故事至少一处与考生人设（性格/价值观）自然呼应（如「理性」「喜欢无纸化学习」这类考生自己的特质），为 Part 3 追问时的人设一致性打底，不要让故事像另一个人经历。\n'
   + '4. coverage 每个元素：{"topic":"题名","fit":"natural|loose","bridgeEn":"1 句英文点题句","note":"中文一句怎么套(如\'旅行中意识到环保法重要→套法律法规\';natural 可简写)"}。topic 必须**逐字取自下方【P2 题库对照清单】里的题目名**（这是考生网站当季真实题库），严禁自创题族名、严禁使用清单外的名字。bridgeEn 是把本故事嫁接到该题、考场可直接念的**英文点题句**：1 句 ≤15 词，主体仍为主谓宾，**最多含 1 个 because**，可用高中常见词。\n'
@@ -33,7 +33,7 @@
   + '5. 不要产出 keyword 骨架 / 不要拆分多切面列表——考生基础弱，给词也不会说句型，必须给**成段的、能直接背的英文小故事**（句子可简单但必须连贯，靠连接词串成一件事）。\n'
   + '5.1 万能句 goldenEn（必填 3 句）：每张卡额外产出 **3 句不绑定本题故事细节的万能高级句**（如 It was the first time I had ever... / What I remember most is that... / The reason why...），任何话题都能直接套用。**每句 10~20 词，宁短不长**；允许从句；严禁出现本故事专有名词（人名/地名/事件名）；3 句之间不得重复句式；与 storyEn 里的任何一句不得实质重复。\n'
   + '5.2 纯英文原样保护：若某段经历的**中文字符占比 <5%**，即视为纯英文，该段**整段原样进入 storyEn**——不得改词、不得缩写、不得合并、不得翻译，且**豁免规则 2 的单句 ≤20 词上限**（考生自己写的句子自己背得出）；只允许在它前后添加过渡词衔接。**严禁为原样保护的段落自动拆句**。\n'
-  + '5.3 覆盖率自检：生成后自评 coverageRate = 本题库中被 coverage 覆盖的题数 / 题库总题数（0~1 的小数）。**若 <0.9，必须靠往主线里补细节（见闻 / 感受 / 物品）把覆盖率补到 0.9 以上；只有确认补不上时，才允许拆出第 2 个故事。**\n'
+  + '5.3 覆盖率自检：生成后自评 coverageRate = 本题库中被 coverage 覆盖的题数 / 题库总题数（0~1 的小数）。**若 <0.9，优先靠给现有故事补细节（见闻 / 感受 / 物品）把覆盖率补到 0.9 以上**；确实有大块相关经历没被利用时，才把它独立成篇补充覆盖。**严禁为凑覆盖率把不相关的经历硬并进同一条叙事线。**\n'
   + '【P2 题库对照清单】\n{BANK_P2_LIST}\n'
   + '输出严格 JSON：{"stories":[{"title":"","storyEn":"","goldenEn":["","",""],"logicZh":"","coverage":[{"topic":"","fit":"","bridgeEn":"","note":""}]}],"coverageRate":0.9}，不要任何解释文字。';
   const SYS_PERSONA = '你是雅思口语人设分析师。根据用户一句话自我介绍，提取人设锚点，用于保证 Part 3 回答一致性。输出严格 JSON：{"persona":{"city":"城市","identity":"身份/专业或工作","values":["价值观1","价值观2"],"traits":["性格特点1","性格特点2"]}}';
@@ -161,8 +161,9 @@
     const experiences = [];
     QUESTIONS.forEach(q => { const v = ans(q.id); if(v) experiences.push({ id:q.id, title:q.title, raw:v }); });
     (store.answers.extraMore || []).forEach(x => { if((x.text || '').trim()) experiences.push({ id:x.id, title:'补充经历', raw:x.text.trim() }); });
-    (store.answers.followups || []).forEach(f => { if((f.a || '').trim()) experiences.push({ id:'F' + experiences.length, title:f.q || '补充', raw:f.a.trim() }); });
-    (store.answers.gaps || []).forEach(g => { if((g.a || '').trim()) experiences.push({ id:'G' + experiences.length, title:g.topic + '（追问补充）', raw:g.a.trim() }); });
+    // 生成口径（9/19 拍板）：以当前页面实际填写内容为准。追问回答只经 extra 参数参与本次生成，
+    // 不再读取/写入 answers.followups、answers.gaps 历史存档（老存档字段保留但永不消费）。
+    (extra || []).forEach(x => { if(x && (x.raw || '').trim()) experiences.push({ id:x.id || ('G' + experiences.length), title:x.title || '追问补充', raw:x.raw.trim() }); });
     // 校验：A + B1~B5 必填
     const missing = [];
     if(!ans('A')) missing.push('A（自我介绍）');
@@ -392,17 +393,6 @@
         question: String(g.question || '')
       }));
       // 清空旧追问区（补齐缺题的追问是最新一轮）：
-      // 已输入未保存的旧追问回答先存档到 answers.followups，防丢字
-      const rootNow = rootEl();
-      if(rootNow){
-        const typed = [];
-        rootNow.querySelectorAll('[data-followup]').forEach(ta => {
-          const i = +ta.dataset.followup;
-          const q = (store.followups && store.followups[i]) || '';
-          if(ta.value.trim()) typed.push({ q: q, a: ta.value.trim() });
-        });
-        if(typed.length) store.answers.followups = (store.answers.followups || []).concat(typed);
-      }
       store.followups = [];
       saveStore();
       render();
@@ -553,7 +543,7 @@
         + '<div class="mat-body">';
       if(isEditing){
         h += '<div class="mat-sub">标题</div><input class="mat-edit-input" data-edit-title="' + i + '" value="' + escapeHtml(m.title || '') + '">'
-          + (m.storyEn != null ? '<div class="mat-sub">英文可背（连贯小故事）（系统自动保留你录入的原文句式结构，不做改写）</div><textarea class="mat-edit-input mat-edit-area" data-edit-story="' + i + '" placeholder="英文小故事…">' + escapeHtml(m.storyEn) + '</textarea>' : '')
+          + (m.storyEn != null ? '<div class="mat-sub">英文可背（连贯小故事）（若你录入的是纯英文，系统自动保留你的原文句式结构，不做改写）</div><textarea class="mat-edit-input mat-edit-area" data-edit-story="' + i + '" placeholder="英文小故事…">' + escapeHtml(m.storyEn) + '</textarea>' : '')
           + (m.logicZh != null ? '<div class="mat-sub">中文逻辑链</div><textarea class="mat-edit-input mat-edit-area" data-edit-logic="' + i + '" placeholder="中文逻辑…">' + escapeHtml(m.logicZh) + '</textarea>' : '')
           + '<div class="mat-edit-hint">保存后会<b>直接覆盖</b>这张素材，旧内容不再保留。</div>'
           + '<div class="mat-mat-actions"><button class="mat-mini btn-save" data-save="' + i + '">保存</button><button class="mat-mini" data-cancel="' + i + '">取消</button></div>';
@@ -572,13 +562,13 @@
       h += '<div class="mat-followup"><h3>🤖 AI 追问区</h3><div class="mat-followup-tip">回答下面的问题（能答几个答几个），点「继续生成」后 AI 会基于新回答重新整合素材、补全覆盖。</div>';
       if(hasFups){
         store.followups.forEach((q, i) => {
-          h += '<div class="mat-q"><div class="mat-q-head">' + escapeHtml(q) + '</div><textarea data-followup="' + i + '" placeholder="你的回答…">' + escapeHtml(((store.answers.followups || []).find(f => f.q === q) || {}).a || '') + '</textarea></div>';
+          h += '<div class="mat-q"><div class="mat-q-head">' + escapeHtml(q) + '</div><textarea data-followup="' + i + '" placeholder="你的回答…">' + escapeHtml('') + '</textarea></div>';
         });
       }
       if(hasGaps){
         store.gaps.forEach((g, i) => {
           const qtext = g.question || '你有没有和"' + g.topic + '"相关的真实经历？';
-          h += '<div class="mat-q mat-gap-q"><div class="mat-q-head"><span class="mat-gap-topic">【' + escapeHtml(g.topic) + '】</span>' + escapeHtml(qtext) + '</div><textarea data-gap="' + i + '" placeholder="你的回答…（没有相关经历可留空）">' + escapeHtml(((store.answers.gaps || []).find(p => p.topic === g.topic) || {}).a || '') + '</textarea></div>';
+          h += '<div class="mat-q mat-gap-q"><div class="mat-q-head"><span class="mat-gap-topic">【' + escapeHtml(g.topic) + '】</span>' + escapeHtml(qtext) + '</div><textarea data-gap="' + i + '" placeholder="你的回答…（没有相关经历可留空）">' + escapeHtml('') + '</textarea></div>';
         });
       }
       h += '<button class="btn btn-primary" id="matContinue">继续生成（含补充回答）</button></div>';
@@ -656,31 +646,17 @@
     });
     const mc = $('#matContinue');
     if(mc) mc.onclick = () => {
-      // 回答按题目归档合并（不覆写历史）：同题新答覆盖旧答，没出现的旧回答原样保留
-      const prevF = store.answers.followups || [];
-      root.querySelectorAll('[data-followup]').forEach(ta => {
-        const i = +ta.dataset.followup;
-        const q = (store.followups && store.followups[i]) || '';
-        const a = ta.value.trim();
-        if(!q) return;
-        const old = prevF.find(f => f.q === q);
-        if(old){ if(a) old.a = a; }
-        else prevF.push({ q: q, a: a });
-      });
-      store.answers.followups = prevF;
-      const prevGaps = store.answers.gaps || [];
+      // 生成口径（9/19 拍板）：以当前输入框实际内容为准——收集本轮追问回答作为 extra 传给本次生成，
+      // 不写任何存档、不做历史合并；下次生成不再自动带上本轮回答。
+      const extra = [];
       root.querySelectorAll('[data-gap]').forEach(ta => {
         const i = +ta.dataset.gap;
         const g = (store.gaps && store.gaps[i]) || {};
         if(!g.topic) return;
         const a = ta.value.trim();
-        const old = prevGaps.find(p => p.topic === g.topic);
-        if(old){ if(a) old.a = a; if(g.question) old.question = g.question; }
-        else prevGaps.push({ topic: g.topic, question: g.question || '', a: a });
+        if(a) extra.push({ id:'G' + i, title:g.topic + '（追问补充）', raw:a });
       });
-      store.answers.gaps = prevGaps;
-      saveStore();
-      generate();
+      generate(extra);
     };
     $('#matRegen').onclick = () => { mode = 'q'; shortWarned = false; render(); };
   }
