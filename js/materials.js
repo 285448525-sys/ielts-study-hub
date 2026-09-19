@@ -31,7 +31,7 @@
   + '4.2 **抽象/观点类题更要放开想象**：想颁布的法律、规则、想做的改变、想解决的问题、传统、挑战、认为重要的事——这些题考的不是「经历」而是「想法」，而任何经历都能自然生出一个想法（看到某件事 → 有个感受 → I want to… / I think…）。比如旅行路上见到有人破坏环境 → 顺理成章想颁布环保法律；旅行让你想去看更大的世界 → 就是长久目标/抱负。把清单里的抽象题逐个想一遍：「这段经历能不能让人生出这个想法？」只要不是完全牵强，就按 loose 列上，note 里写清那句过渡怎么讲。\n'
   + '4.3 **通用性优先（合并时的取舍标准）**：合并故事时，尽量让最终的大故事同时含有**「人物（同行的朋友/帮助过你的人）+ 地点（城市/场所）+ 物品/食物 + 事件（比赛/购物/意外）+ 见闻与感受（可引出观点的瞬间）」五类元素**——这样一个故事本身就是万能辐射源，里面每个人、地点、物品、见闻都能独立辐射一批题。若某段经历能自然嵌进主线增加元素，就嵌进去（哪怕只是半句带过）；不要为了「故事主题纯粹」而把能合并的经历拆出去。\n'
   + '5. 不要产出 keyword 骨架 / 不要拆分多切面列表——考生基础弱，给词也不会说句型，必须给**成段的、能直接背的英文小故事**（句子可简单但必须连贯，靠连接词串成一件事）。\n'
-  + '5.1 万能句 goldenEn（必填 3 句）：每张卡额外产出 **3 句不绑定本题故事细节的万能高级句**（如 It was the first time I had ever... / What I remember most is that... / The reason why...），任何话题都能直接套用。**每句 10~20 词，宁短不长**；允许从句；严禁出现本故事专有名词（人名/地名/事件名）；3 句之间不得重复句式；与 storyEn 里的任何一句不得实质重复。\n'
+  + '5.1 万能句 goldenEn（必填 3 句，**必须内嵌在 storyEn 正文里**）：每个故事要包含 **3 句万能高级句**（如 It was the first time I had ever... / What I remember most is that... / The reason why...），任何话题都能直接套用。**这 3 句必须原样作为 storyEn 正文的完整句子出现**——自然融进叙事，不得突兀；位置分散：约 1 句在故事前半、1 句在中后段转折/感受处、1 句收尾；并**逐字复制**进 goldenEn 数组（顺序与正文出现顺序一致）。**每句 10~20 词，宁短不长**；允许从句；严禁出现本故事专有名词（人名/地名/事件名），保证套任何题不用改词；3 句之间不得重复句式；3 句计入正文词数（正文 130~180 词口径与 190 硬顶不变）。若该卡含规则 5.2 的原样保护英文段，万能句编在该卡其余 AI 撰写的句子里，**严禁改动原样保护段的任何句子**。\n'
   + '5.2 纯英文原样保护：若某段经历的**中文字符占比 <5%**，即视为纯英文，该段**整段原样进入 storyEn**——不得改词、不得缩写、不得合并、不得翻译，且**豁免规则 2 的单句 ≤20 词上限**（考生自己写的句子自己背得出）；只允许在它前后添加过渡词衔接。**严禁为原样保护的段落自动拆句**。\n'
   + '5.3 覆盖率自检：生成后自评 coverageRate = 本题库中被 coverage 覆盖的题数 / 题库总题数（0~1 的小数）。**若 <0.9，优先靠给现有故事补细节（见闻 / 感受 / 物品）把覆盖率补到 0.9 以上**；确实有大块相关经历没被利用时，才把它独立成篇补充覆盖。**严禁为凑覆盖率把不相关的经历硬并进同一条叙事线。**\n'
   + '【P2 题库对照清单】\n{BANK_P2_LIST}\n'
@@ -293,9 +293,10 @@
     });
     const goldenRaw = Array.isArray(s.goldenEn) ? s.goldenEn.map(x => String(x || '').trim()).filter(Boolean) : [];
     const storyLower = String(s.storyEn || '').toLowerCase().replace(/[^a-z0-9 ]/g, '');
+    // design/68 新口径：万能句必须是 storyEn 正文的子句（能在正文原样匹配到），孤儿万能句丢弃
     const golden = goldenRaw.filter(g => {
       const key = g.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
-      return key.length >= 8 && !storyLower.includes(key.slice(0, 40));
+      return key.length >= 8 && storyLower.includes(key.slice(0, 40));
     }).slice(0, 3);
     return {
       id: s.id || ('m' + Date.now() + '_' + i),
@@ -549,8 +550,28 @@
           + '<div class="mat-edit-hint">保存后会<b>直接覆盖</b>这张素材，旧内容不再保留。</div>'
           + '<div class="mat-mat-actions"><button class="mat-mini btn-save" data-save="' + i + '">保存</button><button class="mat-mini" data-cancel="' + i + '">取消</button></div>';
       } else {
-        h += (m.storyEn ? '<div class="mat-sub">英文可背（连贯小故事）</div><div class="mat-story-en">' + escapeHtml(m.storyEn) + '</div>' : '')
-          + ((Array.isArray(m.goldenEn) && m.goldenEn.length) ? '<div class="mat-sub">万能句（任何题都能套，优先背）</div><div class="mat-story-en">' + m.goldenEn.map(g => '<b>' + escapeHtml(String(g)) + '</b>').join('<br>') + '</div>' : '')
+        // design/68 万能句内嵌：新口径卡 goldenEn ⊆ storyEn → 正文按句加粗、无独立万能句框；
+        // 旧数据卡（goldenEn 与正文互斥）保持旧样式，老卡不受影响。
+        const golden68 = Array.isArray(m.goldenEn) ? m.goldenEn.map(g => String(g || '').trim()).filter(Boolean) : [];
+        const story68 = String(m.storyEn || '');
+        const normEn = t => String(t || '').toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+        const storyNorm68 = normEn(story68);
+        const embedded68 = golden68.filter(g => { const k = normEn(g); return k.length >= 8 && storyNorm68.indexOf(k.slice(0, 40)) !== -1; });
+        const inline68 = story68 && embedded68.length >= 2;
+        let storyHtml68 = '';
+        if(story68){
+          if(inline68){
+            const sents = story68.match(/[^.!?]+[.!?]+[\"'\u201d\u2019)]*\s*|[^.!?]+$/g) || [story68];
+            storyHtml68 = sents.map(s => {
+              const hit = embedded68.some(g => normEn(g) === normEn(s));
+              return hit ? '<b>' + escapeHtml(s.trim()) + '</b>' : escapeHtml(s);
+            }).join(' ');
+          } else {
+            storyHtml68 = escapeHtml(story68);
+          }
+        }
+        h += (story68 ? '<div class="mat-sub">英文可背（连贯小故事）</div><div class="mat-story-en">' + storyHtml68 + '</div>' : '')
+          + (!inline68 && golden68.length ? '<div class="mat-sub">万能句（任何题都能套，优先背）</div><div class="mat-story-en">' + golden68.map(g => '<b>' + escapeHtml(String(g)) + '</b>').join('<br>') + '</div>' : '')
           + (m.logicZh ? '<div class="mat-sub">中文逻辑链</div><div class="mat-logic">' + escapeHtml(m.logicZh) + '</div>' : '')
           + '<div class="mat-mat-actions"><button class="mat-mini' + (m.pinned ? ' mat-pin-on' : '') + '" data-pin="' + i + '">' + (m.pinned ? '已置顶最熟 · 取消' : '置顶为最熟') + '</button><button class="mat-mini" data-regen-all="1" title="重新生成：全部素材整库替换为最新生成的版本">重新生成</button><button class="mat-mini danger" data-del="' + i + '">删除</button><button class="mat-mini" data-edit="' + i + '">更改</button></div>';
       }
