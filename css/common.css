@@ -2101,7 +2101,27 @@ body.word-fullscreen .practice-tools-row{ display:none !important; }
    #floatTimer 不被隐藏（它没有响应式开关，一直 display:flex），会浮在卡片下沿、
    矮窗口直接压在喇叭按钮上。移到全局作用域。 */
 body.word-fullscreen #hubDock{ display:none !important; }
-body.word-fullscreen #floatTimer{ display:none !important; }
+
+/* ④b 计时胶囊：全屏态**照常显示**，但换成「右上角极简版」。
+   ⚠️ 9/19 之之反馈：全屏背单词时看不到悬浮计时，不知道到底在不在计时 → 不再 display:none。
+   ⚠️ 位置不能回到默认的「底部居中」——9/13 实测会压在喇叭/按钮上（矮窗口尤其明显）。
+      改挂右上角：全屏态题干区（单词/音标/释义）整体居中、两侧留白，右上角只与
+      「居中单行单词」的空白侧边共存，不遮任何内容。
+   ⚠️ :not([hidden]) 必须写：`.float-timer[hidden]{display:none!important}` 特异性(0,2,0)
+      低于 `body.word-fullscreen #floatTimer`(1,1,1)，不加 :not 会让没在计时时也冒出空胶囊。
+   ⚠️ animation:none 必须写：ftIn 关键帧带 translate(-50%,…)，会覆盖上面的 transform:none
+      把胶囊拽回屏幕中间。 */
+body.word-fullscreen #floatTimer:not([hidden]){
+  display:flex !important;
+  left:auto; right:10px; top:8px; bottom:auto; transform:none;
+  padding:3px 9px; gap:6px; font-size:11px;
+  box-shadow:0 2px 8px -3px rgba(58,154,147,.45);
+  animation:none;
+}
+/* 全屏态只留「跳动的点 + 时间」：看见胶囊=在计时。标签文字和结束按钮都收起，
+   避免占宽压到题干、也避免全屏里误触结束。 */
+body.word-fullscreen #floatTimer .ft-label,
+body.word-fullscreen #floatTimer .ft-stop{ display:none !important; }
 
 /* ④b 内容列：铺满后加宽（960 → min(88vw,1120px)），题目/选项/按钮吃到全屏宽度红利 */
 body.word-fullscreen #practiceBody.practice-body-fit .last-word,
