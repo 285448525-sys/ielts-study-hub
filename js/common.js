@@ -1013,6 +1013,36 @@ let _lastUploadedHash = '';
 let _pendingUpload = false;
 let _firstPendingAt = 0;
 let _lastCloudHash = '';   // 上次拉到的云端内容哈希：相同则跳过 mergeData（性能优化，见 cloudDownload）
+let _bootPublishTried = false;   // ⭐ 9/19 每次页面加载只做一次「开机发布」（见 _maybePublishLocal）
+
+/* ⭐ 9/19 修「两台设备数据对不上/来回跳」第二刀：开机发布。
+ * 上一刀（eb5c9b9）修了「背完就传」，但只覆盖「本机刚写过」的场景；她实测又暴露出另一半：
+ * 手机上滞留的独有进度（早前没传出去的那批），在「只打开页面对比、不做任何操作」时永远没有上传出口——
+ * pull 合并只进不出，旧注释假设「本端独有数据会在下次操作时自然上传」，不成立。
+ * 同时两台设备各自把自己的快照推上云，云端在两份快照间来回翻（她看到 2h16m→3h7m 跳变）。
+ * 修法：每次页面加载的首次拉取完成（此刻 DATA=本机∪云端 并集）后，
+ * 若并集与云端内容不一致（或云端为空 404）→ 立即把「并集」回传云端。
+ * 云端从此只被「并集」覆盖，单调收敛不再互相踩；已收敛时内容一致→不推，不浪费 KV 配额。
+ * 只在首次拉取时机做一次（30s 轮询不推），最坏情况=每次打开页面 1 次 PUT，配额无压力。 */
+function _syncComparableSnapshot(src){
+  try{
+    const c = JSON.parse(JSON.stringify(src || {}));
+    if(c && c.settings){ delete c.settings.lastSyncTs; delete c.settings.relayToken; }   // 这两个是上传动作自身的副产品，不参与「内容是否一致」判断
+    return c;
+  }catch(e){ return null; }
+}
+function _maybePublishLocal(cloudEmpty, cloudBlob){
+  if(_bootPublishTried) return;
+  if(!DATA.settings.autoSync || !DATA.settings.syncCode) return;
+  _bootPublishTried = true;   // 先占位再尝试：失败也不重试（下次打开页面再试），防轮询期反复推
+  try{
+    if(cloudEmpty){ cloudUpload(false); return; }   // 云端没数据（404）=本机就是最全的 → 直接发布
+    const mine = JSON.stringify(_syncComparableSnapshot(stripCloudFields(DATA)));
+    const theirs = JSON.stringify(_syncComparableSnapshot(cloudBlob));
+    if(mine && theirs && mine !== theirs) cloudUpload(false);
+  }catch(e){}
+}
+
 function hashData(x){
   // 简单稳定哈希：把 DATA JSON 做 djb2，够用来判断「内容是否真变了」。
   // x 可选：传云端数据则哈希云端内容（cloudDownload 用它判断「云端是否变化」）；
@@ -1274,7 +1304,7 @@ function _mergeWords(local, cloud){
     const ni = Math.max(_num(ex.mcInterval), _num(w.mcInterval)); if(ni !== _num(ex.mcInterval)){ ex.mcInterval = ni; changed = true; }
     const ne = Math.max(_num(ex.mcEase), _num(w.mcEase)); if(ne !== _num(ex.mcEase)){ ex.mcEase = ne; changed = true; }
     const nd = Math.min(_num(ex.mcDiff), _num(w.mcDiff)); if(nd !== _num(ex.mcDiff)){ ex.mcDiff = nd; changed = true; }
-    const ndue = _later(ex.mcDue, w.mcDue); if(ndue !== ex.mcDue){ ex.mcDue = ndue; changed = true; }
+    const ndue = _later(ex.mcDue, w.mcDue); if(ndue !== (ex.mcDue||'')){ ex.mcDue = ndue; changed = true; }
     // ── v1.2 字段合并：level 取更高、间隔日期取更晚、计数取更大、布尔取或 ──
     const nl = Math.max(_num(ex.level)||0, _num(w.level)||0); if(nl !== (_num(ex.level)||0)){ ex.level = nl; changed = true; }
     const nrev = _later(ex.nextReview, w.nextReview); if(nrev !== (ex.nextReview||'')){ ex.nextReview = nrev; changed = true; }
@@ -1822,7 +1852,12 @@ async function cloudDownload(silent){
   if(!phone){ if(!silent) toast('请先在「设置」绑定手机号'); return false; }
   try{
     const [res, data] = await syncApi('GET');
-    if(res.status === 404){ if(!silent) toast('云端没有该手机号的数据'); return false; }
+    if(res.status === 404){
+      // ⭐ 9/19：云端没数据而本机有 → 开机发布本机（原语义只提示，两台设备都只拉不推时云端永远空着）
+      _maybePublishLocal(true, null);
+      if(!silent) toast('云端没有该手机号的数据');
+      return false;
+    }
     if(res.status === 503) throw new Error('云端存储未绑定（Cloudflare 后台需绑定 SYNC_KV）');
     if(!res.ok) throw new Error('HTTP ' + res.status);
     if(!data || !data.data) throw new Error('返回格式异常');
@@ -1862,6 +1897,8 @@ async function cloudDownload(silent){
     } else if(!silent){
       toast('云端没有比本机更新的内容');
     }
+    // ⭐ 9/19 开机发布：首次拉取合并完成后，DATA 已是「本机∪云端」并集；与云端不一致就回传并集
+    _maybePublishLocal(false, data.data);
     _lastCloudHash = _ch;   // 记录云端内容哈希：下次拉到相同哈希直接早退，不再跑合并
     return true;
   }catch(e){
