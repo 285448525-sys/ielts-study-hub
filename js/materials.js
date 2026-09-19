@@ -88,6 +88,14 @@
   function rootEl(){ return $('#matRoot') || $('#matView'); }
   function init(){
     store = loadStore();
+    // 9/19 事故自愈：旧版曾把 AI 失败的占位卡（storyEn 空、logicZh=问卷原话、_fallback:true）当素材保存。
+    // 若素材集 100% 为占位卡 → 清空回问卷态（内容全由问卷答案可再生，零损失）；
+    // saveStore 会打新 materialsEpoch，云端旧垃圾批次按「较新端整体替换」被覆盖，不会并回。
+    if(store.materials.length && store.materials.every(m => m && m._fallback)){
+      store.materials = [];
+      if(store.persona && store.persona._fallback) store.persona = null;
+      saveStore();
+    }
     mode = store.materials.length ? 'result' : 'q';
     render();
   }
@@ -179,18 +187,17 @@
     }
 
     const hasKey = !!(DATA.settings && DATA.settings.relayToken);
-    if(!hasKey) toast('未配置 AI Key（设置里填 DeepSeek Key），将用模板兜底生成（质量降级但可用）');
+    if(!hasKey) toast('未配置 AI Key（设置里填 DeepSeek Key），无法生成');
 
     setLoading('正在把你的故事整合成万能素材…');
     try{
-      // 1) 人设
+      // 1) 人设：失败沿用旧人设（没有旧的才用占位）；人设失败不拦截整批
       let persona = null;
-      try{ persona = await genPersona(ans('A')); }catch(e){ persona = fallbackPersona(ans('A')); }
-      // 2) 整批生成连贯大故事（coverage 由生成时一并给出，供口语页串题参考）
-      let result = { stories:[], uncovered:[], followups:[] };
-      try{ result = await genMaterialsBatch(experiences, ans('A')); }
-      catch(e){ result = { stories: fallbackMaterialsBatch(experiences), uncovered:[], followups:[] }; }
-      if(!result.stories || !result.stories.length) result = { stories: fallbackMaterialsBatch(experiences), uncovered:[], followups:[] };
+      try{ persona = await genPersona(ans('A')); }
+      catch(e){ persona = (store.persona && !store.persona._fallback) ? store.persona : fallbackPersona(ans('A')); }
+      // 2) 整批生成（9/19 定版：失败绝不落库——旧「模板兜底」会把问卷原话当素材卡存进库，已废）
+      const result = await genMaterialsBatch(experiences, ans('A'));
+      if(!result.stories || !result.stories.length) throw new Error('AI 没有返回任何故事');
 
       // 重新生成 = 整库替换：旧素材一律不留（用户的问卷/追问答案都在，重新生成即可复原等价故事）
       store.persona = persona; store.materials = result.stories; store.uncovered = [];
@@ -199,7 +206,7 @@
       store.materials.forEach(m => { if(m && m.id == null) m.id = 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); });
       // 英文故事混入中文词时自动重写为纯英文（自愈，仅在检测到中文时才多一次调用）
       setLoading('正在检查英文稿…');
-      await fixStoryEnglish();
+      try{ await fixStoryEnglish(); }catch(_){ /* 自愈失败不阻断批次 */ }
       // 覆盖率检查/深挖/缺题追问整套已移除（用户定案：素材出来直接去练，口语页串题即可）
       store.followups = []; store.gaps = [];
       store.materialsEpoch = Date.now();   // 生成批次戳：云端合并时凭此整体替换旧素材，避免旧卡片被并集回残留
@@ -208,7 +215,8 @@
       render();
       toast('已生成 ' + result.stories.length + ' 张全新素材卡，去口语页开练即可');
     }catch(e){
-      toast('生成中断：' + e.message);
+      console.error('[materials] 生成失败', e);
+      toast('素材生成失败：' + e.message + '（未保存任何内容，可重试）');
       render();
     }
   }
@@ -241,7 +249,7 @@
       return '【' + e.title + '】' + (isEn ? '[原样保护·禁止改写]\n' : '\n') + raw;
     }).join('\n\n');
     const user = '人设：' + (personaText || '（未提供）') + '\n\n全部经历（含追问补充）：\n' + expText + '\n\n请按规则整合为尽量少的连贯大故事（coverage 按规则 4.x 放开挂题），输出 stories JSON。';
-    const content = await callRelay('material', [ { role:'system', content:buildSysMat() }, { role:'user', content:user } ], 0.7);
+    const content = await callRelay('material', [ { role:'system', content:buildSysMat() }, { role:'user', content:user } ], 0.7, { max_tokens: 8192 });
     const j = aiJson(content);
     if(!j || !Array.isArray(j.stories)) throw new Error('素材 JSON 解析失败');
     return {
@@ -299,13 +307,6 @@
       confidence: s.confidence || 'high',
       pinned: false
     };
-  }
-  function fallbackMaterialsBatch(exps){
-    return exps.map((e, i) => ({
-      id:'m' + Date.now() + '_' + i, title:e.title || ('故事' + (i + 1)),
-      storyEn:'', goldenEn:[], logicZh:e.raw || '（未填写）',
-      coverage:[], confidence:'low', _fallback:true
-    }));
   }
   function fallbackPersona(text){
     return { city:'', identity:text || '', values:[], traits:[], _fallback:true };
