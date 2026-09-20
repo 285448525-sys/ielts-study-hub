@@ -9,7 +9,7 @@ const HUB_KEY = 'ielts_study_hub_v1';
    - 主 blob 被任何历史/未来 bug 抹掉时，本键仍完好，加载时自动回填 → 账号永不失联。
    写入点：hubSave()（覆盖所有保存路径）+ mergeData()（云端合并后）；读取点：hubLoad() + ready 早恢复。 */
 const CREDS_KEY = 'ielts_hub_credentials_v1';
-const CREDS_FIELDS = ['syncCode', 'relayToken', 'pronunciationScore', 'autoSync'];
+const CREDS_FIELDS = ['syncCode', 'relayToken', 'pronunciationScore', 'fluencyScore', 'autoSync'];
 function saveCredsMirror(){
   try{
     const s = DATA.settings || {};
@@ -17,6 +17,7 @@ function saveCredsMirror(){
       syncCode: s.syncCode || '',
       relayToken: s.relayToken || '',
       pronunciationScore: (s.pronunciationScore != null ? s.pronunciationScore : ''),
+      fluencyScore: (s.fluencyScore != null ? s.fluencyScore : ''),
       autoSync: !!s.autoSync,
       _fieldTs: (s._fieldTs && typeof s._fieldTs === 'object') ? s._fieldTs : {},
       ts: Date.now()

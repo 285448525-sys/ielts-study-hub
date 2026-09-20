@@ -22,6 +22,7 @@ function populateSettingsForm(){
   if($('#tSpeaking')) $('#tSpeaking').value = t.speaking || '';
 
   if($('#sPron')) $('#sPron').value = (s.pronunciationScore != null ? s.pronunciationScore : '');
+  if($('#sFlu')) $('#sFlu').value = (s.fluencyScore != null ? s.fluencyScore : '');
   if($('#sRelayToken')) $('#sRelayToken').value = s.relayToken || '';
   if($('#sChime')) $('#sChime').checked = s.chimeOnDone !== false;
   if($('#sAdhd')) $('#sAdhd').checked = (typeof medsModuleOn === 'function') ? medsModuleOn() : true;
@@ -114,9 +115,16 @@ function saveSettings(){
   });
   _set('syncCode', $('#sSyncCode').value.replace(/\D/g, ''));
   _set('autoSync', true); // 默认开启自动同步，与考研站一致（绑定后由 syncLoginOrRegister 控制）
-  // 9/20 恢复：固定发音分（0–9）由用户自填，空=不计入总分。该字段一直在云同步列表里（换设备会带回）。
-  // ⚠️ 绝不能在输入框缺失时把值写成 null —— 那会静默清掉用户已保存的发音分。
-  if($('#sPron')) _set('pronunciationScore', ($('#sPron').value === '' ? null : (parseFloat($('#sPron').value) || null)));
+  // 9/20 恢复：固定发音分 / 流利度分（0–9）由用户自填，空=不计入总分。字段一直在云同步列表里（换设备会带回）。
+  // ⚠️ 三条铁律：① 输入框缺失时**绝不写 null**（会静默清掉已存值）；② 空串 → null（不填=不计入）；
+  // ③ 0 是合法值必须落库（禁用 `parseFloat(x)||null`——会把 0 吞成没填）。
+  const _band = (sel) => {
+    const el = $(sel); if(!el) return undefined;          // 框不在：不动原值
+    const v = String(el.value).trim(); if(v === '') return null;
+    const x = parseFloat(v); return isNaN(x) ? null : x;
+  };
+  const _pron = _band('#sPron'); if(_pron !== undefined) _set('pronunciationScore', _pron);
+  const _flu = _band('#sFlu');   if(_flu  !== undefined) _set('fluencyScore', _flu);
   _set('chimeOnDone', $('#sChime').checked);
   if($('#sAdhd')) _set('adhd', $('#sAdhd').checked);   // 服药模块开关（未开启则入口全隐藏，数据保留）
   hubSave(); applyTheme();

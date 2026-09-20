@@ -19,9 +19,9 @@
 
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
-<script defer src="js/data.js?v=20260919a"></script>
-  <script defer src="js/common.js?v=20260920c"></script>
-  <script src="js/settings.js?v=20260920d" defer></script>
+<script defer src="js/data.js?v=20260920e"></script>
+  <script defer src="js/common.js?v=20260920e"></script>
+  <script src="js/settings.js?v=20260920e" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -97,9 +97,10 @@
 
   <section class="card">
     <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg>口语模考</h2>
-    <p class="muted">口语回答按 IELTS 官方 band 标准评「语法范围与准确性」和「词汇资源」两项。<b>流利度必须听录音才能评，纯文本评不了，因此不给分、也不计入总分。</b></p>
-    <p class="muted">发音由你自己在下面填一个固定分（0–9，比如你估自己是 5.5 就填 5.5），会和语法、词汇一起按雅思口径算进总分；不填则发音不计入。<b>注意：这是你自己估的数、不会随练习变化，不是机器测出来的成绩。</b></p>
+    <p class="muted">口语回答按 IELTS 官方 band 标准评「语法范围与准确性」和「词汇资源」两项。<b>流利度与发音必须听录音才能评，纯文本评不了，因此 AI 不评这两项。</b></p>
+    <p class="muted">发音、流利度由你自己在下面各填一个固定分（0–9），会和语法、词汇一起按雅思口径算进总分；不填的项不计入。<b>注意：这是你自己估的数、不会随练习变化，不是机器测出来的成绩。</b></p>
     <div class="form-row">
+      <div><label>固定流利度分（可选，0–9）</label><input id="sFlu" type="number" min="0" max="9" step="0.5" placeholder="如 6（不填则流利度不计入总分）" /></div>
       <div><label>固定发音分（可选，0–9）</label><input id="sPron" type="number" min="0" max="9" step="0.5" placeholder="如 6（不填则发音不计入总分）" /></div>
     </div>
   </section>

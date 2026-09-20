@@ -301,20 +301,21 @@ function tagsHtml(s){
 }
 
 // === 口语分数解析与展示 ===
-/* 分数解析（9/20 design/76 重写 + 之之 9/20 拍板恢复发音固定分）：
+/* 分数解析（9/20 design/76 重写 + 之之 9/20 拍板恢复发音/流利度自填固定分）：
    · grammar / vocabulary 由 AI 按 IELTS 官方 band descriptor 正向锚定评出（文本唯一能评准的两维）
-   · 流利度需要音频，一律 null、不计入
-   · 发音取设置里用户自己填的固定分（0–9）；没填 / 非法值 → null（不计入总分）
-   · overall = 已评维度的均分，四舍五入到 0.5（填了发音就是三项，否则两项） */
+   · 流利度、发音需音频，AI 一律不评不猜；取设置里用户自填的固定分（0–9），没填/非法值 → null（不计入）
+   · overall = 已评维度的均分，四舍五入到 0.5；四项全填时最接近雅思四项口径 */
 function parseScore(score){
   if(!score) return null;
   const n = v => { const x = parseFloat(v); return isNaN(x) ? null : x; };
   const grammar = n(score.grammar);
   const vocabulary = n(score.vocabulary);
-  // 发音固定分：用户自己在「设置 / 口语模考」里填；没填就不参与，绝不猜
-  const pronunciation = (DATA.settings && DATA.settings.pronunciationScore != null)
-    ? n(DATA.settings.pronunciationScore) : null;
+  // 自填固定分：用户在「设置 / 口语模考」里填；没填就不参与，绝不猜（0 是合法值，禁用 ||null 吞 0）
+  const sset = DATA.settings || {};
+  const pronunciation = (sset.pronunciationScore != null) ? n(sset.pronunciationScore) : null;
+  const fluency = (sset.fluencyScore != null) ? n(sset.fluencyScore) : null;
   const dims = [grammar, vocabulary].filter(v => v != null);
+  if(fluency != null) dims.push(fluency);
   if(pronunciation != null) dims.push(pronunciation);
   const overall = dims.length ? Math.round(dims.reduce((a, b) => a + b, 0) / dims.length * 2) / 2 : null;
   // 评分依据随分数一起落库：分数必须能自证，否则又变成"莫名其妙的低分"
@@ -322,15 +323,15 @@ function parseScore(score){
     grammar: (score.grammar_basis != null) ? String(score.grammar_basis) : '',
     vocabulary: (score.vocabulary_basis != null) ? String(score.vocabulary_basis) : ''
   };
-  return { overall, fluency: null, pronunciation, vocabulary, grammar, basis };
+  return { overall, fluency, pronunciation, vocabulary, grammar, basis };
 }
-/* 总分口径文案（UI 必须显示，绝不能被当成雅思总分）：
-   填了发音固定分 → 语法+词汇+发音(固定) 三项均分；没填 → 只有语法+词汇。流利度始终不含（需录音）。 */
+/* 总分口径文案（UI 必须显示，绝不能被当成雅思总分）：按实际参与计算的维度动态生成 */
 function scoreScopeTip(){
-  const hasPron = !!(DATA.settings && DATA.settings.pronunciationScore != null);
-  return hasPron
-    ? '语法、词汇与你自填的发音固定分三项的均分，不含流利度（流利度需录音才能评）'
-    : '语法与词汇两项的均分，不含流利度与发音（发音需录音才能评；可在设置里填固定分）';
+  const sset = (DATA && DATA.settings) || {};
+  const parts = ['语法', '词汇'];
+  if(sset.fluencyScore != null) parts.push('流利度(自填)');
+  if(sset.pronunciationScore != null) parts.push('发音(自填)');
+  return parts.join(' + ') + ' 的均分；未填的自填项不计入（可在设置里补）';
 }
 // 某小题的历史最高分：遍历每次诊断/提交记录取最高（用户规则：同一题反复刷分取最高值）；
 // 老数据没有 records 时回退到当前 score 字段
@@ -437,12 +438,13 @@ function scoreBadgeHtml(score, count, s){
 }
 function scoreHeaderHtml(score, title){
   if(!score || score.overall == null) return '';
+  // 维度按雅思官方顺序：流利度与连贯 → 词汇 → 语法 → 发音；自填项没填就不显示（不再摆一个「-」）
   const dims = [
-    {k:'fluency',l:'流利度'},
     {k:'vocabulary',l:'词汇'},
     {k:'grammar',l:'语法'}
   ];
-  if(score.pronunciation != null) dims.push({k:'pronunciation',l:'发音(固定)'});
+  if(score.fluency != null) dims.unshift({k:'fluency',l:'流利度(自填)'});
+  if(score.pronunciation != null) dims.push({k:'pronunciation',l:'发音(自填)'});
   let h = '<div class="sp-score-header">';
   h += '<div class="sp-score-total"><span class="sp-score-num">' + scoreLabel(score.overall) + '</span><span class="sp-score-label">' + (title || '总分') + '</span></div>';
   h += '<div class="sp-score-dims">';
@@ -518,10 +520,13 @@ function openDetail(id){
     + '<div class="sp-detail-tags">' + tagsHtml(s) + '</div>'
     + '</div>';
   const bestScore = getAggScore(s);
-  // 标注口径：填了发音固定分就是三项，否则两项 —— 避免被当成雅思总分（流利度需录音才能评）
+  // 标注口径：按实际参与的维度动态生成 —— 避免被当成雅思总分
   if(bestScore != null){
-    const scopeLab = (DATA.settings && DATA.settings.pronunciationScore != null) ? '语法+词汇+发音' : '语法+词汇';
-    html += '<div class="sp-detail-best" title="' + escapeHtml(scoreScopeTip()) + '">' + (s.type === 'P1' ? 'P1 平均分' : '历史最高') + '：' + scoreLabel(bestScore) + '分（' + scopeLab + '）</div>';
+    const sset = DATA.settings || {};
+    const labs = ['语法+词汇'];
+    if(sset.fluencyScore != null) labs.push('流利度');
+    if(sset.pronunciationScore != null) labs.push('发音');
+    html += '<div class="sp-detail-best" title="' + escapeHtml(scoreScopeTip()) + '">' + (s.type === 'P1' ? 'P1 平均分' : '历史最高') + '：' + scoreLabel(bestScore) + '分（' + labs.join('+') + '）</div>';
   }
   html += '</div>';
 

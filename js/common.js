@@ -1186,12 +1186,12 @@ function stripCloudFields(d){
   return c;
 }
 /* 设置里允许跨设备同步的字段。
-   说明：pronunciationScore（发音分）/ theme（主题）/ chimeOnDone（完成提示音）纳入同步。
+   说明：pronunciationScore（发音分）/ fluencyScore（流利度自填分）/ theme（主题）/ chimeOnDone（完成提示音）纳入同步。
    ⚠️ relayToken（AI Key）自 design/62 起**不再同步**：上传出口 stripCloudFields 已剥离、服务端二次剥离；
    换设备 / 清缓存后需在本机重填一次 Key。理由：手机号即全部凭证，Key 落云端等于额度可被凭手机号取走。
    syncCode 是账号标识本身不重复同步；autoSync 是本地开关、不跨设备同步（设计：绑了账号就自动同步）。
    合并规则见 mergeData：空值（未填/被清空）永不覆盖另一侧已填值，杜绝「空值带新时间戳把本机 Key 冲掉」。 */
-const SYNC_SETTINGS_FIELDS = ['name','examDate','examDates','targets','dailyGoalHours','pronunciationScore','theme','chimeOnDone','adhd'];
+const SYNC_SETTINGS_FIELDS = ['name','examDate','examDates','targets','dailyGoalHours','pronunciationScore','fluencyScore','theme','chimeOnDone','adhd'];
 
 /* ===== 同步条目时间戳维护（9/17 修：_mergeArray 缺时间戳导致云端修改永不并入）=====
    根因：_mergeArray 以 ts/updatedAt 判「较新者胜」，但 11 个同步数组的条目大多只有 id、
