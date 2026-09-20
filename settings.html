@@ -21,7 +21,7 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20260919a"></script>
   <script defer src="js/common.js?v=20260920c"></script>
-  <script src="js/settings.js?v=20260920a" defer></script>
+  <script src="js/settings.js?v=20260920d" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -97,8 +97,11 @@
 
   <section class="card">
     <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg>口语模考</h2>
-    <p class="muted">口语回答按 IELTS 官方 band 标准评「语法范围与准确性」和「词汇资源」两项。<b>流利度与发音必须听录音才能评，纯文本评不了，因此这两项不给分、也不计入总分。</b></p>
-    <p class="muted">「固定发音分」已停用：一个永远不变的数字占 25% 权重，只会刚性拉低总分。等录音功能上线后，发音才会按真实音频评估。</p>
+    <p class="muted">口语回答按 IELTS 官方 band 标准评「语法范围与准确性」和「词汇资源」两项。<b>流利度必须听录音才能评，纯文本评不了，因此不给分、也不计入总分。</b></p>
+    <p class="muted">发音由你自己在下面填一个固定分（0–9，比如你估自己是 5.5 就填 5.5），会和语法、词汇一起按雅思口径算进总分；不填则发音不计入。<b>注意：这是你自己估的数、不会随练习变化，不是机器测出来的成绩。</b></p>
+    <div class="form-row">
+      <div><label>固定发音分（可选，0–9）</label><input id="sPron" type="number" min="0" max="9" step="0.5" placeholder="如 6（不填则发音不计入总分）" /></div>
+    </div>
   </section>
 
   <section class="card">
@@ -129,11 +132,11 @@
     </div>
   </section>
 
-  <!-- 统一保存条：基本信息 / 目标分数 一次保存（发音分已停用，不再提供输入） -->
+  <!-- 统一保存条：基本信息 / 目标分数 / 固定发音分 一次保存 -->
   <section class="card" style="position:sticky;bottom:14px;padding:14px 18px;display:flex;align-items:center;gap:14px">
     <div style="flex:1;min-width:0">
       <div style="font-size:14.5px;font-weight:800">保存全部设置</div>
-      <div class="muted" style="font-size:12.5px;margin-top:2px">基本信息 · 目标分数 一次性保存</div>
+      <div class="muted" style="font-size:12.5px;margin-top:2px">基本信息 · 目标分数 · 固定发音分 一次性保存</div>
     </div>
     <button class="ui-ripple-btn flex-none" id="saveSettings" style="--main-size:1rem;min-width:130px;padding:.5em 1.3em">保存<span></span><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="0,0 5,5 0,10"/><polygon points="6,0 11,5 6,10"/><polygon points="12,0 17,5 12,10"/></svg></button>
   </section>

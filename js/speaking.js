@@ -301,25 +301,36 @@ function tagsHtml(s){
 }
 
 // === 口语分数解析与展示 ===
-/* 分数解析（9/20 design/76 重写）：只认 grammar / vocabulary 两项 —— 文本唯一能评准的两维。
-   · 流利度与发音需要音频，一律 null，不再读设置里的手填常量（那个常量占 25% 权重却永远不变，
-     是刚性拖分的根源，已停用）
-   · overall = 已评维度的均分（当前即语法+词汇的均分），仅在两项都有时给出；
-     UI 上必须标注为「文本分 · 不含流利度与发音」，绝不能当成雅思总分展示 */
+/* 分数解析（9/20 design/76 重写 + 之之 9/20 拍板恢复发音固定分）：
+   · grammar / vocabulary 由 AI 按 IELTS 官方 band descriptor 正向锚定评出（文本唯一能评准的两维）
+   · 流利度需要音频，一律 null、不计入
+   · 发音取设置里用户自己填的固定分（0–9）；没填 / 非法值 → null（不计入总分）
+   · overall = 已评维度的均分，四舍五入到 0.5（填了发音就是三项，否则两项） */
 function parseScore(score){
   if(!score) return null;
   const n = v => { const x = parseFloat(v); return isNaN(x) ? null : x; };
   const grammar = n(score.grammar);
   const vocabulary = n(score.vocabulary);
-  const overall = (grammar != null && vocabulary != null)
-    ? Math.round((grammar + vocabulary) / 2 * 2) / 2
-    : null;
+  // 发音固定分：用户自己在「设置 / 口语模考」里填；没填就不参与，绝不猜
+  const pronunciation = (DATA.settings && DATA.settings.pronunciationScore != null)
+    ? n(DATA.settings.pronunciationScore) : null;
+  const dims = [grammar, vocabulary].filter(v => v != null);
+  if(pronunciation != null) dims.push(pronunciation);
+  const overall = dims.length ? Math.round(dims.reduce((a, b) => a + b, 0) / dims.length * 2) / 2 : null;
   // 评分依据随分数一起落库：分数必须能自证，否则又变成"莫名其妙的低分"
   const basis = {
     grammar: (score.grammar_basis != null) ? String(score.grammar_basis) : '',
     vocabulary: (score.vocabulary_basis != null) ? String(score.vocabulary_basis) : ''
   };
-  return { overall, fluency: null, pronunciation: null, vocabulary, grammar, basis };
+  return { overall, fluency: null, pronunciation, vocabulary, grammar, basis };
+}
+/* 总分口径文案（UI 必须显示，绝不能被当成雅思总分）：
+   填了发音固定分 → 语法+词汇+发音(固定) 三项均分；没填 → 只有语法+词汇。流利度始终不含（需录音）。 */
+function scoreScopeTip(){
+  const hasPron = !!(DATA.settings && DATA.settings.pronunciationScore != null);
+  return hasPron
+    ? '语法、词汇与你自填的发音固定分三项的均分，不含流利度（流利度需录音才能评）'
+    : '语法与词汇两项的均分，不含流利度与发音（发音需录音才能评；可在设置里填固定分）';
 }
 // 某小题的历史最高分：遍历每次诊断/提交记录取最高（用户规则：同一题反复刷分取最高值）；
 // 老数据没有 records 时回退到当前 score 字段
@@ -410,8 +421,8 @@ function scoreBadgeHtml(score, count, s){
     return '<span class="sp-score-badge practice">' + label + '</span>';
   }
   const cls = score >= 5.5 ? 'sp-score-badge good' : (score >= 5 ? 'sp-score-badge ok' : 'sp-score-badge low');
-  // 分数是语法+词汇两项的均分，不是雅思总分（流利度/发音需录音）—— tooltip 里说清，避免误读
-  const tip = '语法与词汇两项的均分，不含流利度与发音（这两项需录音才能评）';
+  // 分数不是雅思总分（流利度始终需录音）—— tooltip 里说清当前口径，避免误读
+  const tip = scoreScopeTip();
   let label;
   if(s && s.type === 'P1'){
     const done = getP1Done(s);
@@ -481,7 +492,7 @@ function refreshScoreAfterDiag(s){
     if(bestScore != null){
       // 标注口径：只含语法+词汇，避免被当成雅思总分
       bestEl.textContent = (s.type === 'P1' ? 'P1 平均分' : '历史最高') + '：' + scoreLabel(bestScore) + '分（语法+词汇）';
-      bestEl.title = '语法与词汇两项的均分，不含流利度与发音（这两项需录音才能评）';
+      bestEl.title = scoreScopeTip();
     }
   }
 }
@@ -507,8 +518,11 @@ function openDetail(id){
     + '<div class="sp-detail-tags">' + tagsHtml(s) + '</div>'
     + '</div>';
   const bestScore = getAggScore(s);
-  // 标注口径：只含语法+词汇，避免被当成雅思总分（流利度/发音需录音才能评）
-  if(bestScore != null) html += '<div class="sp-detail-best" title="语法与词汇两项的均分，不含流利度与发音（这两项需录音才能评）">' + (s.type === 'P1' ? 'P1 平均分' : '历史最高') + '：' + scoreLabel(bestScore) + '分（语法+词汇）</div>';
+  // 标注口径：填了发音固定分就是三项，否则两项 —— 避免被当成雅思总分（流利度需录音才能评）
+  if(bestScore != null){
+    const scopeLab = (DATA.settings && DATA.settings.pronunciationScore != null) ? '语法+词汇+发音' : '语法+词汇';
+    html += '<div class="sp-detail-best" title="' + escapeHtml(scoreScopeTip()) + '">' + (s.type === 'P1' ? 'P1 平均分' : '历史最高') + '：' + scoreLabel(bestScore) + '分（' + scopeLab + '）</div>';
+  }
   html += '</div>';
 
   // P1 问题列表（逐题可点开 + 录 + 诊断）；9/15 之之：删「Part 1 小问题…」说明行
