@@ -2798,20 +2798,15 @@ ready(() => { hubLoad();
   });
 });
 
-/* 2026-09-04 性能优化：停用 Service Worker。
-   sw.js 现策略是「全部请求 respondWith(fetch(req)) 网络直通」——行为与浏览器原生加载等价，
-   却让每个资源请求多一层 SW 线程往返；且新开标签页时 SW 可能被回收需冷启动（加载+解析+启动），
-   期间请求被排队，弱网/低端机上「新开标签页变慢」明显。其历史使命（清旧缓存治「改了不生效」）
-   已由 ?v= 版本纪律 + Cloudflare Pages must-revalidate 接管，SW 成为纯开销 → 停用并主动注销。 */
+/* 2026-09-20 重新启用 Service Worker（sw.js 已重写：预缓存核心壳 + 分级缓存）。
+   演进脉络：8/30「全网络直通」治农村弱网回退旧缓存；9/4 因纯线程开销停用并主动注销；
+   现版 sw.js = HTML network-first（保新）+ 静态 SWR（缓存键去 ?v=）+ 核心壳预缓存，
+   弱网/离线可打开，且版本一致性由页面侧 navDeployProbe / navSelfHealReload 自愈兜底（禁删）。 */
 function registerSW(){
   try{
     if('serviceWorker' in navigator){
-      navigator.serviceWorker.getRegistrations().then(function(rs){
-        (rs || []).forEach(function(r){ try{ r.unregister(); }catch(_){} });
-      }).catch(function(){});
-    }
-    if(window.caches && caches.keys){
-      caches.keys().then(function(ks){ (ks || []).forEach(function(k){ try{ caches.delete(k); }catch(_){} }); }).catch(function(){});
+      // 根作用域注册；失败静默（隐私模式/极端环境照常在线使用，不影响任何功能）
+      navigator.serviceWorker.register('sw.js').catch(function(){});
     }
   }catch(e){}
 }
