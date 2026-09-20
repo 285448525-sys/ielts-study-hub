@@ -120,19 +120,23 @@ async function handleNavigate(req, url){
     if(cacheable(res)) putInCache(url, res);
     return res;
   }).catch(() => null);
+  // ⚠️ fetch 离线/失败时 netPromise 是「resolve(null)」而非 reject——
+  //    必须对「拿到 null」也走缓存兜底，绝不能把 null 交给 respondWith（= 网络错误页）
+  let net = null;
   try{
-    return await Promise.race([
+    net = await Promise.race([
       netPromise,
       new Promise((_, rej) => setTimeout(() => rej(new Error('nav timeout')), NAV_TIMEOUT_MS))
     ]);
   }catch(_){ /* 超时 → 走缓存兜底；netPromise 继续后台完成写缓存 */ }
+  if(net) return net;
   const cached = await caches.match(url.pathname);
   if(cached) return cached;
   const shell = await caches.match('/index.html');
   if(shell) return shell;
   // 缓存全无（如首次访问即弱网）：等网络最终结果，仍失败给明确 503（绝不白屏无响应）
-  const net = await netPromise;
-  return net || new Response('离线', { status: 503, statusText: 'Offline' });
+  const final = await netPromise;
+  return final || new Response('离线', { status: 503, statusText: 'Offline' });
 }
 
 /* ---- 分级②：静态资源 stale-while-revalidate ---- */
