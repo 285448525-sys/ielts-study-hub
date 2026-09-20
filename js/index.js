@@ -25,7 +25,7 @@ ready(() => {
 
   // 今日任务卡实时刷新：云合并 / 计时状态变化就地重渲染（同样先摘旧监听再挂，防软导航重复绑定）
   if(typeof window.__hubDashTasksMerged === 'function') document.removeEventListener('hub:data-merged', window.__hubDashTasksMerged);
-  window.__hubDashTasksMerged = () => safe(renderDashTasks);
+  window.__hubDashTasksMerged = () => { safe(renderDashTasks); safe(renderOnboardingBar); };
   document.addEventListener('hub:data-merged', window.__hubDashTasksMerged);
   if(typeof window.__hubDashTasksTimer === 'function') document.removeEventListener('hub:timer-state', window.__hubDashTasksTimer);
   window.__hubDashTasksTimer = () => safe(renderDashTasks);
@@ -244,7 +244,16 @@ function renderOnboardingBar(){
   const st = getOnboarding();
   if(!st){ host.hidden = true; host.innerHTML = ''; return; }
   const s = st.setup || {};
-  const done = ONB_STEPS.filter(x => s[x.key]).length;
+  // ⭐ 实际完成态：words 这一步除了 setup.words===true，还要看 DATA.words 是否真有词
+  // （引导第 2 步「去导入词库」把 setup.words 写死 false、之后无回填路径 → 已导入词库却永远显示「未设置」）。
+  // chip 文案 / done 计数 / done>=3 自动 snoozed 都用这个「实际完成」口径（design/74）。
+  const actualDone = {};
+  ONB_STEPS.forEach(function(x){
+    actualDone[x.key] = (x.key === 'words')
+      ? (s.words === true || (Array.isArray(DATA.words) && DATA.words.length > 0))
+      : !!s[x.key];
+  });
+  const done = ONB_STEPS.filter(x => actualDone[x.key]).length;
   if(st.snoozed || !st.entered || st.account !== 'done' || done >= 3){
     if(done >= 3 && !st.snoozed && typeof setOnboarding === 'function') setOnboarding({ snoozed:true });
     host.hidden = true; host.innerHTML = ''; return;
@@ -260,8 +269,8 @@ function renderOnboardingBar(){
   ONB_STEPS.forEach(function(x){
     const b = document.createElement('button');
     b.type = 'button';
-    b.className = 'onb-chip' + (s[x.key] ? ' ok' : '');
-    b.textContent = s[x.key] ? (x.name + ' 已设 ✓') : (x.name + ' 未设置 →');
+    b.className = 'onb-chip' + (actualDone[x.key] ? ' ok' : '');
+    b.textContent = actualDone[x.key] ? (x.name + ' 已设 ✓') : (x.name + ' 未设置 →');
     b.addEventListener('click', function(){ if(typeof onbOpenSetup === 'function') onbOpenSetup(x.n); });
     bar.appendChild(b);
   });

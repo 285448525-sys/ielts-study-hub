@@ -2979,6 +2979,15 @@ function initOnboarding(){
 
     const st = getOnboarding();
     if(st && st.account === 'done'){
+      // ⭐ 回填缺失的三步完成态：引导第 2 步「去导入词库」把 setup.words 写死 false 且之后无回填路径，
+      // 导致实际已导入词库的用户永远显示「词库 未设置 →」。这里按真实数据补齐（与 onbBackfillFromData 同口径），
+      // 仅把 false→true 升级、绝不降级（避免 DATA 尚未加载完时误清已有的 true）。写一次后即稳定。
+      const sset = (DATA && DATA.settings) || {};
+      const patch = {};
+      if(!st.setup.words && Array.isArray(DATA.words) && DATA.words.length) patch.words = true;
+      if(!st.setup.exam && sset.examDate) patch.exam = true;
+      if(!st.setup.key && sset.relayToken) patch.key = true;
+      if(Object.keys(patch).length) setOnboarding({ setup: patch });
       if(typeof renderOnboardingBar === 'function') renderOnboardingBar();   // 仅首页渲染提示条
       return;
     }
