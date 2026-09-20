@@ -2008,6 +2008,34 @@ main.container{padding-top:40px}
 .rec-row .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--primary-400),var(--primary-500));border-radius:999px;transition:width .6s cubic-bezier(.4,0,.2,1)}
 .rec-row .dur{font-size:13px;color:var(--muted);min-width:54px;text-align:right;font-weight:600}
 
+/* ===== 首页 · 今日任务卡（9/20：打开首页就知道今天该做什么）===== */
+/* 全部走 token 变量，暗色随 [data-theme="dark"] 自动翻转；任务行复用 .plan-item 勾选框/删除线组件 */
+.dash-tasks{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 20px;margin-bottom:12px}
+.dash-tasks-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px}
+.dash-tasks-h h3{margin:0;font-size:15px;font-weight:700}
+.dash-tasks-count{font-size:13px;color:var(--muted);flex:none}
+.dash-tasks-count b{color:var(--ink);font-weight:800}
+/* 细进度条（百分比） */
+.dash-tasks-bar{height:6px;background:var(--primary-50);border-radius:999px;overflow:hidden;margin-bottom:4px}
+[data-theme="dark"] .dash-tasks-bar{background:var(--surface-2)}
+.dash-tasks-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--primary-400),var(--primary-500));border-radius:999px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+/* 系统建议行：非任务、不可勾选；N=0 时无右侧链接 */
+.dash-tasks-tip{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;font-size:13.5px;color:var(--muted)}
+.dash-tasks-tip .txt{flex:1;min-width:0;word-break:break-word}
+.dash-tasks-tip a{color:var(--primary);font-weight:700;text-decoration:none;flex:none;white-space:nowrap}
+.dash-tasks-tip a:hover{text-decoration:underline}
+/* 任务行：复用 .plan-item（勾选框 18px / accent / 完成删除线置灰都在原样式里） */
+.dash-tasks .plan-item{padding:8px 0}
+/* 超长任务文本换行不撑破布局 */
+.dash-tasks .plan-text{flex:1;min-width:0;word-break:break-word;white-space:normal;cursor:default}
+/* 全部任务完成的正向反馈（不引入 XP/积分字段） */
+.dash-tasks-done{padding:8px 0 2px;font-size:13.5px;font-weight:700;color:var(--primary)}
+/* 空状态：引导去计划页 */
+.dash-tasks-empty{padding:4px 0 2px}
+.dash-tasks-empty .tip{font-size:13.5px;color:var(--muted);margin-bottom:10px}
+.dash-tasks-empty .btn-row{display:flex;gap:10px;flex-wrap:wrap}
+.dash-tasks-empty .btn{padding:8px 14px;font-size:13.5px}
+
 /* 首页去 teal 玻璃化：页面与卡片回退到中性白底，无浅绿渐变、无 hover 光晕 */
 .home{
   position:relative;

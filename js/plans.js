@@ -47,6 +47,16 @@ ready(() => {
   document.addEventListener('hub:timer-state', window.__plansTimerStateH);
 
   render();
+
+  // 首页「今日任务」空态卡「AI 帮我安排今天」的跳转信标：
+  // 跳到本页后聚焦输入框并清除（一次性），不触碰任何 AI 排程逻辑。软导航重进本页 ready 会重跑，同样生效。
+  try{
+    if(sessionStorage.getItem('hub_focus_plan_input')){
+      sessionStorage.removeItem('hub_focus_plan_input');
+      const box = document.getElementById('planText');
+      if(box){ box.focus(); box.scrollIntoView({ block:'center' }); }
+    }
+  }catch(e){}
 });
 
 function currentDate(){ return $('#planDate').value || todayKey(); }

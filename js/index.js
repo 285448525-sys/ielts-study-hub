@@ -22,6 +22,14 @@ ready(() => {
   if(typeof prevHub === 'function') document.removeEventListener('hub:session-saved', prevHub);
   window.__hubSessionSaved = () => safe(renderDashV6);
   document.addEventListener('hub:session-saved', window.__hubSessionSaved);
+
+  // 今日任务卡实时刷新：云合并 / 计时状态变化就地重渲染（同样先摘旧监听再挂，防软导航重复绑定）
+  if(typeof window.__hubDashTasksMerged === 'function') document.removeEventListener('hub:data-merged', window.__hubDashTasksMerged);
+  window.__hubDashTasksMerged = () => safe(renderDashTasks);
+  document.addEventListener('hub:data-merged', window.__hubDashTasksMerged);
+  if(typeof window.__hubDashTasksTimer === 'function') document.removeEventListener('hub:timer-state', window.__hubDashTasksTimer);
+  window.__hubDashTasksTimer = () => safe(renderDashTasks);
+  document.addEventListener('hub:timer-state', window.__hubDashTasksTimer);
 });
 
 /** v6 首页渲染：hero 倒计时 + 双卡 + 快速入口 + 今日记录（design/31 A 版） */
@@ -84,6 +92,10 @@ function renderDashV6(){
   if(dueEl) dueEl.innerHTML = due+'<span class="u">词</span>';
   if(hintEl) hintEl.textContent = due > 0 ? '建议先背待学习的词' : '暂无待学习单词';
 
+  // ---- 今日任务卡（9/20：到期词建议 + 今日计划清单，详见 renderDashTasks）----
+  // 注意：safe 是 ready() 闭包内常量，本函数在闭包外够不着 → renderDashTasks 自带 try/catch 兜底
+  renderDashTasks();
+
   // ---- 今日学习记录条形图 ----
   const bodyEl = $('#dashRecBody');
   const totalEl = $('#dashRecTotal');
@@ -129,6 +141,85 @@ function renderDashV6(){
 function hmParts(sec){
   const t = Math.max(0, Number(sec) || 0);
   return { h: Math.floor(t/3600), m: Math.floor((t % 3600) / 60) };
+}
+
+/* ===== 首页 · 今日任务卡（9/20）=====
+   打开首页就知道今天该做什么：顶部系统建议（今天到期词）+ DATA.plans 今日清单。
+   - 到期词口径严格同 practice.js buildQueue：en 非空 且（无 nextReview 或 nextReview<=今天）。
+     不引入 practice.js，只在本地按同条件过滤 DATA.words（纯计数，不做任何字段修复/写库）。
+   - 勾选立即写 item.done 并 hubSave()；不新增任何 DATA 字段（结构同 plans.js 现有口径）。
+   - 计划的新增/编辑/删除仍只在计划页；本卡只读展示 + 勾选回写。 */
+function renderDashTasks(){
+  // 自带兜底：本函数被 ready 闭包（safe 包裹）与顶层 renderDashV6 两处调用，闭包外的调用点没有 safe
+  try{
+  const host = document.getElementById('dashTodayTasks');
+  if(!host) return;
+  const tkey = todayKey();
+  const plan = (DATA.plans || []).find(p => p && p.date === tkey);
+  const items = (plan && Array.isArray(plan.items)) ? plan.items : [];
+  const doneN = items.filter(i => i && i.done).length;
+  const pct = items.length ? Math.round(doneN / items.length * 100) : 0;
+
+  // 到期词计数（buildQueue 同口径，不含任何副作用）
+  const dueWords = (DATA.words || []).filter(w =>
+    w && typeof w.en === 'string' && w.en.trim() !== '' &&
+    (!w.nextReview || w.nextReview <= tkey)
+  ).length;
+
+  // 卡头：标题 + 进度（有任务才显示）+ 细进度条
+  let html = '<div class="dash-tasks-h"><h3>今日任务</h3>'
+    + (items.length ? '<span class="dash-tasks-count">已完成 <b>' + doneN + '/' + items.length + '</b></span>' : '')
+    + '</div>';
+  if(items.length) html += '<div class="dash-tasks-bar"><i style="width:' + pct + '%"></i></div>';
+
+  // 系统建议行：非任务、不可勾选；N=0 时显示「今天没有到期单词」且不可点
+  html += '<div class="dash-tasks-tip"><span class="txt">'
+    + (dueWords > 0 ? '今天有 ' + dueWords + ' 个单词到期复习' : '今天没有到期单词')
+    + '</span>'
+    + (dueWords > 0 ? '<a href="practice.html">去背词 →</a>' : '')
+    + '</div>';
+
+  // 空状态（今天无计划或无 items）：引导去计划页
+  if(items.length === 0){
+    html += '<div class="dash-tasks-empty">'
+      + '<div class="tip">今天还没有学习计划</div>'
+      + '<div class="btn-row">'
+      + '<a class="btn" id="dashAiPlanBtn" href="plans.html">AI 帮我安排今天</a>'
+      + '<a class="btn" href="plans.html">手动添加</a>'
+      + '</div></div>';
+    host.innerHTML = html;
+    // AI 按钮跳转信标：计划页 ready() 读取后聚焦输入框并清除（不改 AI 排程逻辑）
+    const ai = document.getElementById('dashAiPlanBtn');
+    if(ai) ai.addEventListener('click', () => {
+      try{ sessionStorage.setItem('hub_focus_plan_input', '1'); }catch(e){}
+    });
+    return;
+  }
+
+  // 任务行：未完成在前、已完成在后（组内保持原顺序）；文本全部 escapeHtml
+  const sorted = items.slice().sort((a, b) => (a && a.done) === !!(b && b.done) ? 0 : (a && a.done ? 1 : -1));
+  html += sorted.map(i =>
+    '<div class="plan-item ' + (i && i.done ? 'done' : '') + '">'
+    + '<input type="checkbox" ' + (i && i.done ? 'checked' : '') + ' data-toggle="' + escapeHtml(String(i.id)) + '" />'
+    + '<span class="plan-text">' + escapeHtml(i && i.text) + '</span>'
+    + '</div>'
+  ).join('');
+  // 全部任务完成（items 非空且 done=100%）→ 一行正向反馈，不引入 XP/积分字段
+  if(doneN === items.length) html += '<div class="dash-tasks-done">今天的任务完成了</div>';
+  host.innerHTML = html;
+
+  // 勾选/取消：立即写 item.done + hubSave + 就地刷新（进度条/完成态同步更新）
+  host.querySelectorAll('input[data-toggle]').forEach(c => {
+    c.addEventListener('change', () => {
+      const p = (DATA.plans || []).find(x => x && x.date === todayKey());
+      const it = p && Array.isArray(p.items) ? p.items.find(x => x && String(x.id) === c.dataset.toggle) : null;
+      if(!it) return;
+      it.done = c.checked;
+      hubSave();
+      renderDashTasks();
+    });
+  });
+  }catch(e){ console.error('[index] 渲染失败 renderDashTasks', e); }
 }
 
 /* ===== 首次进入引导提示条（仅首页显示）=====

@@ -28,7 +28,7 @@
 })();
 </script>
 <title>首页 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20260919b" />
+<link rel="stylesheet" href="css/common.css?v=20260920a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=6" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=6">
 <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png?v=6">
@@ -39,7 +39,7 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20260919a"></script>
 <script defer src="js/common.js?v=20260919d"></script>
-<script defer src="js/index.js?v=20260919a"></script>
+<script defer src="js/index.js?v=20260920a"></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(0,0,0,.02),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -99,6 +99,9 @@
       </div>
     </a>
   </section>
+
+  <!-- L2.5 · 今日任务卡（9/20 新增：打开首页就知道今天该做什么——到期词建议 + 今日计划清单；内容由 index.js renderDashTasks 渲染） -->
+  <section class="dash-tasks" id="dashTodayTasks"></section>
 
   <!-- L3 · 4 模块快速入口（计时/单词去重后保留：计划 / 句子 / 口语 / 写作） -->
   <section class="quick qc-4">
