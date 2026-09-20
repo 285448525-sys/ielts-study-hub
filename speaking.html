@@ -2,8 +2,8 @@
 <html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="UTF-8" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://api.deepseek.com; object-src 'none'; base-uri 'none'; frame-ancestors 'none'" />
-<!-- frame-ancestors 权威来源是 HTTP 响应头（_headers，CF Pages）；按 CSP 规范 frame-ancestors 在 meta 中不生效，此处仅作声明性双保险 -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://api.deepseek.com; object-src 'none'; base-uri 'none'" />
+<!-- frame-ancestors 只由 HTTP 响应头下发（CF Pages 根目录 _headers）：按 CSP 规范它写在 meta 里会被浏览器忽略，本页 meta CSP 不再包含该指令 -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
@@ -46,7 +46,7 @@
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
   <script defer src="js/sentence-drill.js?v=20260919a"></script>
-  <script defer src="js/speaking.js?v=20260919b"></script>
+  <script defer src="js/speaking.js?v=20260920a"></script>
   <script defer src="js/materials.js?v=20260919d"></script>
   <script defer src="js/mock-report.js?v=20260830u"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
@@ -194,6 +194,23 @@
     .sp-score-header{flex-direction:column;align-items:flex-start;gap:10px}
     .sp-score-dims{width:100%}
   }
+
+  /* 9/20 诊断结果里的官方标准评分块：只显示真实评出的语法/词汇，流利度与发音标「待录音」 */
+  .diag-score{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  .diag-score-item{
+    flex:1 1 0;min-width:72px;display:flex;flex-direction:column;align-items:center;gap:2px;
+    padding:9px 6px;background:var(--surface-2);border-radius:var(--radius-sm);
+  }
+  .diag-score-item.pending{background:transparent;border:1px dashed var(--line)}
+  .diag-score-item.pending .diag-score-num{color:var(--muted)}
+  .diag-score-num{font-size:22px;font-weight:700;color:var(--primary);line-height:1.1}
+  .diag-score-lab{font-size:11.5px;color:var(--muted);text-align:center}
+  .diag-score-basis{
+    display:flex;flex-direction:column;gap:6px;
+    font-size:13px;line-height:1.65;color:var(--ink);
+    padding:10px 12px;background:var(--surface-2);border-radius:var(--radius-sm);margin-bottom:10px;
+  }
+  .diag-score-basis b{color:var(--primary)}
 
   /* 详情页 */
   /* 9/15 之之：返回按钮胶囊化（原纯文字+箭头不醒目） */

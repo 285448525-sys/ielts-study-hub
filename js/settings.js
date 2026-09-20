@@ -114,7 +114,9 @@ function saveSettings(){
   });
   _set('syncCode', $('#sSyncCode').value.replace(/\D/g, ''));
   _set('autoSync', true); // 默认开启自动同步，与考研站一致（绑定后由 syncLoginOrRegister 控制）
-  _set('pronunciationScore', ($('#sPron').value === '' ? null : (parseFloat($('#sPron').value) || null))); // 口语模考固定发音分（0–9），空=未设置
+  // 9/20：发音分输入已下线（固定常量占 25% 权重会刚性拖分）。字段保留以兼容旧数据与云同步，但不再写入。
+  if($('#sPron')) _set('pronunciationScore', ($('#sPron').value === '' ? null : (parseFloat($('#sPron').value) || null)));
+  else _set('pronunciationScore', null);
   _set('chimeOnDone', $('#sChime').checked);
   if($('#sAdhd')) _set('adhd', $('#sAdhd').checked);   // 服药模块开关（未开启则入口全隐藏，数据保留）
   hubSave(); applyTheme();

@@ -2,8 +2,8 @@
 <html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="UTF-8" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://api.deepseek.com; object-src 'none'; base-uri 'none'; frame-ancestors 'none'" />
-<!-- frame-ancestors 权威来源是 HTTP 响应头（_headers，CF Pages）；按 CSP 规范 frame-ancestors 在 meta 中不生效，此处仅作声明性双保险 -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://api.deepseek.com; object-src 'none'; base-uri 'none'" />
+<!-- frame-ancestors 只由 HTTP 响应头下发（CF Pages 根目录 _headers）：按 CSP 规范它写在 meta 里会被浏览器忽略，本页 meta CSP 不再包含该指令 -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />

@@ -61,17 +61,44 @@ var FREQ_ORDER = { P1:{ultra:0, high:1, medium:2, low:3}, P2:{ultra:0, high:1, m
 function freqRank(f){ const t = FREQ_ORDER[curType] || FREQ_ORDER.P1; return (t[f] != null) ? t[f] : 9; }
 
 /* 顶部常量用 var（speaking.js 会被软导航 window.eval 重跑，const 会抛「已声明」） */
-var SYS_DIAG = `你是一位雅思口语纠错助手。你的唯一任务：找出考生回答里真正的「语法错误」和「用词错误」，并给出正确写法。不要评分、不要输出任何分数。
+var SYS_DIAG = `你是一位雅思口语考官助手。你的任务有两件：
+1）找出回答里真正的「语法错误」和「用词错误」，并给出正确写法；
+2）按 IELTS 官方口语评分标准，给「语法范围与准确性」和「词汇资源」两个维度打分。
 
-【只检查这两类错误】
-1. 语法错误（grammar）：动词形式/时态、主谓一致、冠词、介词、代词、语序、连写句、片段句等真正影响理解的问题。
-2. 用词错误（vocabulary）：词性误用、搭配错误、词义混淆、用了不合适的词导致意思不对或表达别扭。
+【重要：只评这两项】
+流利度与连贯、发音 必须听音频才能评。你只看到文本，所以这两项一律不评、不给分、不要猜、不要在 JSON 里输出。
 
-【100% 不算错误，必须忽略】
+【评分方法：正向匹配，不是扣分制】
+雅思官方是"看答案达到哪一档的描述就给哪一档"，不是"数错误往下扣"。这是最容易搞错的地方：
+- 有语法错误不等于低分。6 分的官方描述明确允许"复杂结构会出错"，只要整体意思清楚就是 6。
+- 只有"错误造成理解困难"才降到 5；"几乎只用简单句且基本用错"才是 4。
+- 用简单句把意思说清楚 = 6 分，不是 5 分。不许因为句型简单、表达不够高级、不够地道而扣分。
+- 零错误但全篇简单句 = 语法 6（7 分要求"灵活使用多种复杂结构"）。
+
+【Grammatical Range & Accuracy 档位】
+7：灵活使用多种复杂结构，多数句子无错，个别错误不影响理解
+6：简单句与复杂句混用；复杂句比简单句更容易出错，但整体意思清楚
+5：以简单句为主，偶尔尝试复杂句但常出错，错误有时造成理解困难
+4：几乎只用简单句，复杂句罕见且基本用错
+
+【Lexical Resource 档位】
+7：词汇有范围和多样性，能换词说，偶有搭配不当
+6：词汇量够讨论熟悉话题，会尝试换词说但不总成功，错误不影响理解
+5：词汇量有限、重复较多，换词尝试常失败，偶尔造成理解困难
+4：只会用基本词，话题相关词匮乏，重复严重
+
+【校准锚点 - 你的打分必须对齐这几个例子】
+例A "I think it is good because it help me relax. I usually do it on weekend."（2 处小语法错，意思完全清楚）→ grammar 6, vocabulary 6
+例B "I very like read books. It make me happy. I read books every day."（词性误用、重复严重，但意思能懂）→ grammar 5, vocabulary 5
+例C "Although the internet has brought unprecedented convenience to our daily routines, there is a growing concern that excessive reliance on it may undermine our capacity for deep concentration."（复杂结构准确、词汇多样）→ grammar 7, vocabulary 7
+例D "I like reading books. I read books every day. It makes me happy."（全简单句、零错误、意思清楚、用词重复）→ grammar 6, vocabulary 5
+
+【100% 不算错误、也不扣分】
 - 大小写（句首小写、And/But/So 大写等）
 - 标点符号（缺逗号句号、逗号变句号等语音转写瑕疵）
 - 口语填充词（well, you know, like, actually）
 - 自然口语省略（如 "Think it's good" 在口语中可接受）
+- 简单句本身（用简单句不是错）
 - 发音/口音相关问题
 
 【输出格式 - 严格 JSON，不要 markdown 代码块，不要任何解释文字】
@@ -83,18 +110,28 @@ var SYS_DIAG = `你是一位雅思口语纠错助手。你的唯一任务：找�
       "type": "grammar 或 vocabulary",
       "explanation": "中文一句话说明为什么错、怎么改"
     }
-  ]
+  ],
+  "improved": "整体改写成一个更通顺、更地道的版本",
+  "score": {
+    "grammar": 6,
+    "grammar_basis": "一句话说明为什么是这个档：引用上面某条档位描述 + 具体证据（如「3 处时态错误但整体意思清楚」）",
+    "vocabulary": 6,
+    "vocabulary_basis": "同上"
+  }
 }
-没有错误时返回 {"errors":[]}。
-除 errors 外，必须额外返回 "improved" 字段：把考生回答整体改写成一个更通顺、更地道的版本（保留原意与口语风格，长度与原文相近，只优化表达，不添加新内容；纯符号 "/" 表示对应处直接删除）。
+没有错误时 errors 返回 []。分数必须是 1~9 之间、以 0.5 为最小步长的数字（如 5 / 5.5 / 6）。
+
+【improved 要求】把考生回答整体改写成一个更通顺、更地道的版本（保留原意与口语风格，长度与原文相近，只优化表达，不添加新内容；纯符号 "/" 表示对应处直接删除）。
 【注意】corrected 里若某处只是删除（无替换词），用 "/" 表示；不要用省略号或其他写法。
 【最小片段铁律】original 和 corrected 只写「真正出错的那个词/短语」本身，前后没错的词一律不要带进来（例：错在 is → original 写 "is"，corrected 写 "has been"；绝不要把没错的 "artificial intelligence" 等上下文复述进 corrected）。
 
 【示例】
 输入: "We are got a big mirror. I leave in my house every day."
-输出: {"errors":[{"original":"We are got","corrected":"We have got / We've got","type":"grammar","explanation":"没有 are got 结构，拥有用 have got"},{"original":"leave in my house","corrected":"leave my house","type":"grammar","explanation":"leave 是及物动词，不需要介词 in"}]}`;
+输出: {"errors":[{"original":"We are got","corrected":"We have got / We've got","type":"grammar","explanation":"没有 are got 结构，拥有用 have got"},{"original":"leave in my house","corrected":"leave my house","type":"grammar","explanation":"leave 是及物动词，不需要介词 in"}],"improved":"We've got a big mirror. I leave my house every day.","score":{"grammar":6,"grammar_basis":"简单句与复杂句混用，两处搭配错误但意思清楚，符合 6 分档","vocabulary":6,"vocabulary_basis":"用词够表达熟悉话题，无生造词"}}`;
 
-/* 录音 / 转写功能已移除：口语只保留「文本框手写 + AI 纠错 + 提交记录」。现已关闭 P1/P2 评分机制，诊断只返回语法/用词错误，不输出任何分数。 */
+/* 录音 / 转写功能已移除：口语只保留「文本框手写 + AI 纠错 + 提交记录」。
+   9/20 评分恢复（design/76）：改为按 IELTS 官方 band descriptor 正向锚定，只评「语法 GR&A」「词汇 LR」两项
+   （流利度/发音需音频，文本评不了，一律不给分不猜测）。旧的扣分制 + 拍脑袋兜底已删除。 */
 
 /* 9/15 之之要求：回答输入框随内容自动增高（P1 小题/P2 大框/P3 通用），长文本完整展示；
    极端长文封顶视口 50% 后内部滚动，不把页面顶爆。委托绑定一次，软导航重跑安全。 */
@@ -119,7 +156,7 @@ if(!window.__spAutoGrowBound){
 var SYS_DIAG_P2 = SYS_DIAG
   + `
 
-【Part 2 要求】考生做约 2 分钟连续陈述，允许更多从句和连接词。仍只找语法/用词错误，不评分。
+【Part 2 要求】考生做约 2 分钟连续陈述，允许更多从句和连接词。评分仍只给 grammar / vocabulary 两项（流利度/发音需音频，不评）。
 
 `
   + `【串题素材连接(storyLink)】考生会提供已准备的万能素材（见用户消息末尾）。若本题可套用其中某个素材，请在 JSON 末尾额外返回 "storyLink" 字段（中文，2-4 行，说明可怎么把素材嵌入本题回答）。无合适素材则不返回该字段。
@@ -264,32 +301,44 @@ function tagsHtml(s){
 }
 
 // === 口语分数解析与展示 ===
+/* 分数解析（9/20 design/76 重写）：只认 grammar / vocabulary 两项 —— 文本唯一能评准的两维。
+   · 流利度与发音需要音频，一律 null，不再读设置里的手填常量（那个常量占 25% 权重却永远不变，
+     是刚性拖分的根源，已停用）
+   · overall = 已评维度的均分（当前即语法+词汇的均分），仅在两项都有时给出；
+     UI 上必须标注为「文本分 · 不含流利度与发音」，绝不能当成雅思总分展示 */
 function parseScore(score){
   if(!score) return null;
   const n = v => { const x = parseFloat(v); return isNaN(x) ? null : x; };
-  const fluency = n(score.fluency);
-  const vocabulary = n(score.vocabulary);
   const grammar = n(score.grammar);
-  // 发音：只取设置里的固定分（发音评测已移除，不再用 AI / 讯飞测）；未设则不计发音
-  const pronunciation = (DATA.settings.pronunciationScore != null) ? Number(DATA.settings.pronunciationScore) : null;
-  // 总分：雅思四维度（流利度与连贯、词汇、语法、发音）平均；发音缺失则用前三维度平均
-  const dims = [fluency, vocabulary, grammar].filter(v => v != null);
-  if(pronunciation != null) dims.push(pronunciation);
-  const overall = dims.length ? Math.round(dims.reduce((a, b) => a + b, 0) / dims.length * 2) / 2 : null;
-  return { overall, fluency, pronunciation, vocabulary, grammar };
+  const vocabulary = n(score.vocabulary);
+  const overall = (grammar != null && vocabulary != null)
+    ? Math.round((grammar + vocabulary) / 2 * 2) / 2
+    : null;
+  // 评分依据随分数一起落库：分数必须能自证，否则又变成"莫名其妙的低分"
+  const basis = {
+    grammar: (score.grammar_basis != null) ? String(score.grammar_basis) : '',
+    vocabulary: (score.vocabulary_basis != null) ? String(score.vocabulary_basis) : ''
+  };
+  return { overall, fluency: null, pronunciation: null, vocabulary, grammar, basis };
 }
 // 某小题的历史最高分：遍历每次诊断/提交记录取最高（用户规则：同一题反复刷分取最高值）；
 // 老数据没有 records 时回退到当前 score 字段
+/* 只认 9/20 新口径的分数：新分数一定带 basis（评分依据）。
+   旧口径分数是「扣分制 + 拍脑袋兜底」打出来的，偏低且口径不同，一律不参与聚合，
+   避免历史低分重新冒出来打击信心。 */
+function isNewScore(sc){
+  return !!(sc && sc.overall != null && sc.basis);
+}
 function bestOfQuestion(a){
   if(!a) return null;
   let best = null;
   (a.records || []).forEach(r => {
-    if(r && r.score && r.score.overall != null){
+    if(r && isNewScore(r.score)){
       const v = parseFloat(r.score.overall);
       if(!isNaN(v) && (best === null || v > best)) best = v;
     }
   });
-  if(best === null && a.score && a.score.overall != null){
+  if(best === null && isNewScore(a.score)){
     const v = parseFloat(a.score.overall);
     if(!isNaN(v)) best = v;
   }
@@ -304,9 +353,9 @@ function getBestScore(s){
   });
   return best;
 }
-/* === 练习次数统计（评分机制关闭后专用）===
-   评分机制已关闭，不再有历史最高分/平均分。外面列表改为显示「练过几次」。
-   P1 的 4 小题只要有任一题有 records，就算「练过 1 次」，并显示已完成小题数。
+/* === 练习次数统计 ===
+   没有新口径分数时（旧数据 / 从未评分），列表显示「练过几次」而不是空白。
+   P1 的各小题只要有任一题有 records，就算「练过 1 次」，并显示已完成小题数。
    P2 直接按该题的 records 数量显示练过次数。 */
 function countOfQuestion(a){
   if(!a) return 0;
@@ -328,14 +377,25 @@ function getPracticeCount(s){
   if(s.type === 'P1') return getP1Done(s) > 0 ? 1 : 0;
   return countOfQuestion(s.answers.p2);
 }
+/* 聚合分（9/20 评分恢复）：
+   P1 = 各已练小题「历史最高分」的平均；P2 = 该题历史最高分。
+   只统计新口径分数（isNewScore），旧口径一律不计 —— 无新分数时返回 null，
+   列表继续显示「练过N次」。 */
 function getAggScore(s){
   if(!s || !s.answers) return null;
-  // 评分机制已关闭：不再聚合平均分/最高分，列表处统一返回 null，让 badge 只显示练过次数
-  return null;
+  if(s.type === 'P1'){
+    const vals = Object.keys(s.answers)
+      .filter(k => k !== 'p2')
+      .map(k => bestOfQuestion(s.answers[k]))
+      .filter(v => v != null);
+    if(!vals.length) return null;
+    return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 2) / 2;
+  }
+  return bestOfQuestion(s.answers.p2);
 }
 function scoreLabel(v){ return v == null ? '-' : (Math.round(v * 10) / 10).toFixed(v % 1 === 0 ? 0 : 1); }
 function scoreBadgeHtml(score, count, s){
-  // 评分关闭后：只显示练过次数；若分数仍存在（老数据/评分恢复）则保留原逻辑
+  // 没有新口径分数（旧数据 / 从未评分 / AI 未返回分数）→ 显示练过次数，不显示分数
   if(score == null){
     if(!count) return '';
     if(s && s.type === 'P1'){
@@ -350,19 +410,19 @@ function scoreBadgeHtml(score, count, s){
     return '<span class="sp-score-badge practice">' + label + '</span>';
   }
   const cls = score >= 5.5 ? 'sp-score-badge good' : (score >= 5 ? 'sp-score-badge ok' : 'sp-score-badge low');
+  // 分数是语法+词汇两项的均分，不是雅思总分（流利度/发音需录音）—— tooltip 里说清，避免误读
+  const tip = '语法与词汇两项的均分，不含流利度与发音（这两项需录音才能评）';
   let label;
   if(s && s.type === 'P1'){
     const done = getP1Done(s);
-    /* 9/18：与 339 行同口径——小题总数按 questions 实际长度算。
-       硬写 4 会让 10 小题的 work/hometown/area 显示成「7/4 小题」。
-       （评分关闭期本分支暂不可达：getAggScore 恒 null；留着正确的写法防评分恢复后复发） */
+    // 9/18：小题总数按 questions 实际长度算（硬写 4 会让 10 小题的 work/hometown 显示成「7/4 小题」）
     const total = (s.questions || []).length || 4;
     label = '平均 ' + scoreLabel(score) + '分 · 练过1次' + (done < total ? '（' + done + '/' + total + ' 小题）' : '');
   } else {
     const times = count > 1 ? ' · 练过' + count + '次' : '';
-    label = (score >= 5.5 ? '✅ ' : '') + '最高 ' + scoreLabel(score) + '分' + times;
+    label = '最高 ' + scoreLabel(score) + '分' + times;
   }
-  return '<span class="' + cls + '">' + label + '</span>';
+  return '<span class="' + cls + '" title="' + tip + '">' + label + '</span>';
 }
 function scoreHeaderHtml(score, title){
   if(!score || score.overall == null) return '';
@@ -419,7 +479,9 @@ function refreshScoreAfterDiag(s){
   if(bestEl){
     const bestScore = getAggScore(s);
     if(bestScore != null){
-      bestEl.textContent = (s.type === 'P1' ? 'P1 平均分' : '历史最高') + '：' + scoreLabel(bestScore) + '分';
+      // 标注口径：只含语法+词汇，避免被当成雅思总分
+      bestEl.textContent = (s.type === 'P1' ? 'P1 平均分' : '历史最高') + '：' + scoreLabel(bestScore) + '分（语法+词汇）';
+      bestEl.title = '语法与词汇两项的均分，不含流利度与发音（这两项需录音才能评）';
     }
   }
 }
@@ -445,7 +507,8 @@ function openDetail(id){
     + '<div class="sp-detail-tags">' + tagsHtml(s) + '</div>'
     + '</div>';
   const bestScore = getAggScore(s);
-  if(bestScore != null) html += '<div class="sp-detail-best">' + (s.type === 'P1' ? 'P1 平均分' : '历史最高') + '：' + scoreLabel(bestScore) + '分</div>';
+  // 标注口径：只含语法+词汇，避免被当成雅思总分（流利度/发音需录音才能评）
+  if(bestScore != null) html += '<div class="sp-detail-best" title="语法与词汇两项的均分，不含流利度与发音（这两项需录音才能评）">' + (s.type === 'P1' ? 'P1 平均分' : '历史最高') + '：' + scoreLabel(bestScore) + '分（语法+词汇）</div>';
   html += '</div>';
 
   // P1 问题列表（逐题可点开 + 录 + 诊断）；9/15 之之：删「Part 1 小问题…」说明行
@@ -1545,7 +1608,9 @@ async function diagnoseAnswer(id, qi, questionText, answerText){
     renderDiag(resultEl, j, content, answerText);
     s.answers = s.answers || {};
     const oldAns = s.answers[qi] || {};
-    const newScore = null;
+    // 9/20 评分恢复：把真实分数落库（AI 失败会走 catch 不落库；非 JSON 时 j 为 null → newScore 为 null，
+    // 列表继续显示「练过N次」，绝不编造分数）
+    const newScore = j ? parseScore(j.score) : null;
     s.answers[qi] = { ...oldAns, text: answerText, result: (j ? JSON.stringify(j) : content), ts: Date.now(), score: newScore };
     s.answers[qi].records = s.answers[qi].records || [];
     s.answers[qi].records.push({ text: answerText, ts: Date.now(), score: newScore, result: (j ? JSON.stringify(j) : content), raw: content });
@@ -1568,7 +1633,8 @@ function renderP2Diag(el, j, answer){
   normalizeScore(j, answer);
   if(!j || !Array.isArray(j.errors)){ el.innerHTML = ''; return false; }
   const errs = cleanErrors(j.errors);
-  let h = '<div class="diag-sec"><b>语法/用词纠错</b>' + diffSentenceHtml(answer, errs) + '</div>';   // 评分机制已关闭（P2 仅展示语法/用词错误 + 串题建议，不再显示分数）
+  let h = diagScoreHtml(j)
+    + '<div class="diag-sec"><b>语法/用词纠错</b>' + diffSentenceHtml(answer, errs) + '</div>';
   if(j.rewrite) h += '<div class="diag-sec"><b>改进版表达</b><div class="diag-rewrite">' + escapeHtml(j.rewrite) + '</div></div>';
   if(j.storyLink) h += '<div class="diag-sec"><b>📌 串题素材连接</b><div class="diag-note">可以用你已准备的这些万能素材来回答这道题：</div>' + escapeHtml(j.storyLink) + '</div>';
   el.innerHTML = h;
@@ -1621,7 +1687,8 @@ async function diagnoseP2(id){
 
     // 存结果 + 追加一条提交历史记录
     s.answers = s.answers || {};
-    const newScore = null;
+    // 9/20 评分恢复：真实分数落库（同上，AI 失败不落库；非 JSON 时保持 null 不编造）
+    const newScore = j ? parseScore(j.score) : null;
     // 修(b/g)：原写法整体替换 answers.p2，会把 p3（P3 追问题目/答案/AI辅助）、
     // aiStoryLink（串题素材）和已有 records 全部抹掉，导致每次「AI 纠错」后 P3 与串题消失、
     // 历史只剩 1 条。改为展开合并保留旧字段，与 diagnoseAnswer 的 { ...oldAns } 口径一致。
@@ -1865,45 +1932,26 @@ function hasObviousGrammarIssues(text){
   return false;
 }
 
-// AI 没报 errors 但 rewrite 大变 → 说明它在隐瞒错误
-function rewriteLooksSuspicious(answerText, rewriteText){
-  const a = String(answerText || '').trim().toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
-  const r = String(rewriteText || '').trim().toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
-  if(!a.length || !r.length) return false;
-  // 计算 rewrite 中有多少 token 出现在原句中
-  const aSet = new Set(a);
-  const common = r.filter(tok => aSet.has(tok)).length;
-  const ratio = common / r.length;
-  // 如果 rewrite 超过 40% 的词是原句没有的，且 rewrite 不短，认为可疑
-  return r.length >= 5 && ratio < 0.6;
+/* === 评分净化（9/20 design/76 重写） ===
+   旧版有一套「无错给 6 / 有错封顶 5.5 / 流利度硬拉 5.5」的兜底，那不是雅思标准而是拍脑袋，
+   正是评分偏低的根源 —— 已整体删除。现在只做安全钳制：
+   · 分数必须是 1~9 之间、0.5 步长的数字；非数字或越界一律丢弃（不猜、不兜底、不擅自拉高）
+   · 流利度与发音需要音频才能评，文本评不了 —— 一律置空，绝不让 AI 偷跑一个出来
+   · overall 由 parseScore 统一算，AI 给的一律删掉，避免口径不一致 */
+function clampBand(v){
+  if(v == null || v === '') return null;
+  const n = parseFloat(v);
+  if(!isFinite(n) || n < 1 || n > 9) return null;
+  return Math.round(n * 2) / 2;
 }
-
-// 强制评分兜底（用户规则）：无真错误 → 语法/词汇 ≥6.0；有错但 AI 能听懂（能列出错误=已读懂） → ≥5.5
-function normalizeScore(j, answerText, rewriteText){
-  if(!j || !j.score) return j;
-  const errs = cleanErrors(j.errors);
-  let broken = hasObviousGrammarIssues(answerText);
-  // 没报错但 rewrite 大变 = 偷偷改了没说
-  if(!broken && errs.length === 0 && rewriteLooksSuspicious(answerText, rewriteText || j.rewrite)) broken = true;
-
-  // 能给出评分 = AI 听懂了 → 流利度不低于 5.5（用户说"能明白意思就有5.5"）
-  if(j.score.fluency != null && Number(j.score.fluency) < 5.5) j.score.fluency = 5.5;
-
-  // 真无错且文本没有明显破洞、rewrite 也没偷偷大改 → 语法/词汇至少 6
-  // 否则 → 至少 5.5；如果 AI 漏报/隐瞒，封顶 5.5 防止它装瞎给 6
-  if(errs.length === 0 && !broken){
-    if(j.score.grammar != null && Number(j.score.grammar) < 6) j.score.grammar = 6;
-    if(j.score.vocabulary != null && Number(j.score.vocabulary) < 6) j.score.vocabulary = 6;
-  } else {
-    if(j.score.grammar != null){
-      const g = Number(j.score.grammar);
-      j.score.grammar = g < 5.5 ? 5.5 : (broken && g > 5.5 ? 5.5 : g);
-    }
-    if(j.score.vocabulary != null){
-      const v = Number(j.score.vocabulary);
-      j.score.vocabulary = v < 5.5 ? 5.5 : (broken && v > 5.5 ? 5.5 : v);
-    }
-  }
+function normalizeScore(j){
+  if(!j || typeof j !== 'object') return j;
+  if(!j.score || typeof j.score !== 'object') j.score = {};
+  j.score.grammar = clampBand(j.score.grammar);
+  j.score.vocabulary = clampBand(j.score.vocabulary);
+  j.score.fluency = null;         // 需音频，文本不评
+  j.score.pronunciation = null;   // 需音频，文本不评
+  delete j.score.overall;
   return j;
 }
 
@@ -1923,9 +1971,40 @@ function inlineErrorsHtml(errs){
 }
 
 // 渲染诊断结构化卡片（P1：语法/用词错误合并为一个模块展示，不显示分数）
+/* === 诊断结果里的评分块（9/20 design/76）===
+   只显示官方 band descriptor 下真实评出的「语法」「词汇」两项 + 各自依据；
+   流利度与发音明确标为「待录音」，绝不留给空白让人以为评过。
+   旧口径数据没有 basis（评分依据），这里直接不显示分数块 —— 分数必须能自证。 */
+function diagScoreHtml(j){
+  if(!j || !j.score) return '';
+  if(!j.score.grammar_basis && !j.score.vocabulary_basis) return '';
+  const sc = parseScore(j.score);
+  if(!sc || (sc.grammar == null && sc.vocabulary == null)) return '';
+  const item = (v, lab, pending) =>
+    '<div class="diag-score-item' + (pending ? ' pending' : '') + '">'
+    + '<span class="diag-score-num">' + (v == null ? '—' : scoreLabel(v)) + '</span>'
+    + '<span class="diag-score-lab">' + lab + (pending ? '（待录音）' : '') + '</span></div>';
+  let h = '<div class="diag-sec"><b>官方标准评分</b><div class="diag-score">';
+  h += item(sc.grammar, '语法');
+  h += item(sc.vocabulary, '词汇');
+  h += item(null, '流利度', true);
+  h += item(null, '发音', true);
+  h += '</div>';
+  const b = sc.basis || {};
+  if(b.grammar || b.vocabulary){
+    h += '<div class="diag-score-basis">';
+    if(b.grammar) h += '<div><b>语法</b>：' + escapeHtml(b.grammar) + '</div>';
+    if(b.vocabulary) h += '<div><b>词汇</b>：' + escapeHtml(b.vocabulary) + '</div>';
+    h += '</div>';
+  }
+  h += '<div class="diag-note">分数按 IELTS 官方 band 描述正向匹配给出（有错不等于低分，意思清楚就是 6 分档）。流利度与发音要听录音才评得准，纯文本评不了，所以这两项不给分。</div>';
+  h += '</div>';
+  return h;
+}
+
 function renderDiag(el, j, raw, answer){
   normalizeScore(j, answer);
-  const scoreHtml = '';   // 评分机制已关闭（P1/P2 仅展示语法/用词错误，不再显示分数）
+  const scoreHtml = diagScoreHtml(j);
   if(j && Array.isArray(j.errors)){
     const errs = cleanErrors(j.errors);
     let h = '<div class="diag-sec"><b>语法/用词纠错</b>' + diffSentenceHtml(answer, errs) + '</div>';
