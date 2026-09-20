@@ -2444,8 +2444,10 @@ function navFetchOpts(){
 }
 /* 9/15 修「长驻标签页一直显示更新前的 UI」：内存缓存/已执行脚本只反映「本次 boot 时的版本」，
    标签页跨睡眠/跨部署不关闭时，软导航永远用旧文档+旧脚本（表现为 9/13 模考 tab 改版、十天内筛选修复等
-   全部“没生效”），硬刷新才恢复。现每次取文档都校验其引用的资产版本与启动版本一致，
-   不一致 = 检测到部署 → 注销 SW + 清 Cache Storage + 整页 reload（60s 节流防循环）。
+   全部“没生效”），硬刷新才恢复。9/20 design/75 起改为「同页基线比对 + 探针兜底」两级自愈：
+   ① 同页基线（navVersionCheck）：本会话内同一页指纹变化才算真部署；② 探针（navDeployProbe，权威）：
+   线上 index.html（no-store）指纹 vs 启动指纹。动作端 soft heal=仅 reload，
+   hard heal（注销 SW + 清空缓存）仅在「连续 ≥2 轮探针仍漂移」时执行一次。
    9/15 二修（之之实锤：本次只 bump 了 data.js/scores.js/common.css，common.js 没动 → 单点比对失效，
    回顾页首进旧渲染+旧样式、硬刷新才好）：指纹从 common.js 单点扩为「common.js + data.js + common.css」
    三项全局共有资产（14 页同 bump 部署纪律保证三项永远同步变），任一不同即自愈。 */
@@ -2473,6 +2475,9 @@ function docScriptVersion(doc){
   return assetSig(doc);
 }
 let _navSelfHealing = false;
+/* 9/20 design/75 自愈去核武器化——SW v14 的分级缓存已是正式离线能力，9/4「SW 是故障源」时代的
+   「注销 SW + 清空全部 CacheStorage」核武动作降级为独立的 hard heal，只在「连续多轮探针仍报漂移、
+   普通 reload 无法恢复（真 SW 缓存病态）」时才执行一次。常规自愈（soft heal）只 reload。 */
 function navSelfHealReload(){
   if(_navSelfHealing) return;
   try{
@@ -2481,6 +2486,20 @@ function navSelfHealReload(){
     sessionStorage.setItem('hub_nav_v_rl', String(Date.now()));
   }catch(e){ return; }                       // sessionStorage 不可用（隐私模式等）→ 放弃自愈，绝不敢乱 reload
   _navSelfHealing = true;
+  location.reload();                         // 整页刷新：内存缓存随会话重建，新 HTML+JS 全量生效
+}
+/* hard heal（核武，仅 navDeployProbe 在 sessionStorage 计数 ≥2 时调用一次并清零计数）：
+   注销 SW + 清空 CacheStorage + reload。SW v14 的 SWR / network-first / SW_UPDATED 机制本身不动。 */
+function navHardHeal(){
+  try{
+    const lastHard = Number(sessionStorage.getItem('hub_nav_hard_rl') || 0);
+    if(Date.now() - lastHard < 60000) return;   // 60s 内已放过一次核武：绝不连放（防 unregister/reload 风暴）
+    sessionStorage.setItem('hub_nav_hard_rl', String(Date.now()));
+    sessionStorage.setItem('hub_nav_v_rl', String(Date.now()));   // 记入节流：hard heal 后 60s 内不再软自愈
+    sessionStorage.setItem('hub_nav_heal_n', '0');                // 清零漂移计数
+  }catch(e){ return; }
+  _navSelfHealing = true;
+  console.warn('[hub] 硬自愈：连续多轮探针漂移且 reload 无法恢复，注销 SW 并清空缓存重建');
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations){
       navigator.serviceWorker.getRegistrations().then(rs => (rs || []).forEach(r => { try{ r.unregister(); }catch(_){} })).catch(function(){});
@@ -2489,12 +2508,21 @@ function navSelfHealReload(){
       caches.keys().then(ks => (ks || []).forEach(k => { try{ caches.delete(k); }catch(_){} })).catch(function(){});
     }
   }catch(e){}
-  location.reload();                         // 整页刷新：内存缓存随会话重建，新 HTML+JS 全量生效
+  location.reload();
 }
-function navVersionCheck(doc){
+/* 9/20 design/75 检测端重写：「目标页指纹 vs BOOT_SCRIPT_V 跨页比对」在分页 buster 时代是设计缺陷
+   —— 某页 buster 与 boot 页静态不同（9/20 任务二漏改部分页 css buster 就真实发生过）→ 每次软导航
+   都误判部署漂移 → 核武自愈把离线能力整体打残。现改「同页基线比对」：
+   - 内存命中：不比对（命中即本会话已确认过该页）；
+   - 网络获取：与 _navDocCache 中同 file 旧记录的指纹比，不同 = 本会话内该页确实发生部署 → 自愈；
+   - 首次获取该页（无基线）绝不比对 —— 分页 buster 静态不一致因此永不触发。
+   权威兜底仍是 navDeployProbe（index.html no-store vs BOOT_SCRIPT_V，SW 对 _probe 已透传）。 */
+function navVersionCheck(file, doc){
+  const prev = _navDocCache.get(file);
+  if(!prev || !prev.v) return;               // 首次获取该页：没有同页基线，绝不比对
   const v = docScriptVersion(doc);
-  if(!BOOT_SCRIPT_V || !v || v === BOOT_SCRIPT_V) return;
-  console.warn('[hub] 检测到站点已更新（运行 ' + BOOT_SCRIPT_V + ' / 页面 ' + v + '），自动刷新以加载新版');
+  if(!v || v === prev.v) return;
+  console.warn('[hub] 检测到本页部署更新（基线 ' + prev.v + ' / 最新 ' + v + '），自动刷新以加载新版');
   navSelfHealReload();
 }
 /* 9/15 二修补充——内存命中路径的残余漏洞：缓存命中时校验的是「缓存文档 vs 启动指纹」，
@@ -2502,7 +2530,7 @@ function navVersionCheck(doc){
    现补后台部署探针：每次软导航触发（60s 节流）拉一次最新 index.html（no-store 绕过一切缓存），
    解析资产指纹与启动指纹比对，不同 → navSelfHealReload。探测不阻塞导航（fire-and-forget），
    60s 内多次切换只发一次请求，成本近乎为零。 */
-let _probeAt = 0, _probeBusy = false;
+let _probeAt = 0, _probeBusy = false, _probeHandledThisBoot = false;
 function navDeployProbe(){
   // 节流间隔可由 localStorage hub_probe_interval 覆盖（回归测试注入短间隔用；普通用户无此 key = 60s）
   let iv = 60000;
@@ -2517,8 +2545,23 @@ function navDeployProbe(){
       const doc = new DOMParser().parseFromString(t, 'text/html');
       const v = docScriptVersion(doc);
       if(v && v !== BOOT_SCRIPT_V){
-        console.warn('[hub] 探针检测到站点已更新（运行 ' + BOOT_SCRIPT_V + ' / 线上 ' + v + '），自动刷新');
+        // ⭐ 每个 boot 只做一次升级判定：prefetchAll 会在同一 boot 内连打多轮探针
+        //   （本地把 hub_probe_interval 压到 400ms 时一 boot 能打十几轮），
+        //   不闸门的话计数会被瞬间刷到 2 → 核武连放、reload 风暴。
+        if(_probeHandledThisBoot) return;
+        _probeHandledThisBoot = true;
+        // 漂移轮数（sessionStorage，跨 reload 保留）：≥2 说明普通 reload 无法恢复 → 才升级为 hard heal
+        let n = 0;
+        try{ n = Number(sessionStorage.getItem('hub_nav_heal_n') || 0); }catch(e){}
+        n += 1;
+        try{ sessionStorage.setItem('hub_nav_heal_n', String(n)); }catch(e){}
+        console.warn('[hub] 探针检测到站点已更新（运行 ' + BOOT_SCRIPT_V + ' / 线上 ' + v + '）' +
+          (n >= 2 ? '，连续 ' + n + ' 轮未恢复 → 硬自愈' : '，自动刷新'));
+        if(n >= 2){ navHardHeal(); return; }
         navSelfHealReload();
+      } else {
+        // 探针确认线上指纹与运行指纹一致 → 清零漂移计数（离线/取不到响应时不动计数，见 catch）
+        try{ sessionStorage.setItem('hub_nav_heal_n', '0'); }catch(e){}
       }
     })
     .catch(() => { _probeBusy = false; });
@@ -2528,13 +2571,12 @@ async function navGetDoc(file){
   navDeployProbe();                        // 后台部署探针（节流）：内存命中路径也绕不开的漂移检测
   if(_navDocCache.has(file)){
     const hit = _navDocCache.get(file);
-    navVersionCheck(hit.doc);                // 内存命中也要校验：boot 后发生的部署同样要自愈
-    return hit.doc;
+    return hit.doc;                            // 内存命中不再比对：同页基线机制下命中即本会话已知状态
   }
   const res = await fetch(file, navFetchOpts());   // 走 HTTP 缓存：未变动 304，部署后 ?v= 变化拿新
   if(!res.ok) throw new Error('HTTP ' + res.status);
   const doc = new DOMParser().parseFromString(await res.text(), 'text/html');
-  navVersionCheck(doc);
+  navVersionCheck(file, doc);                  // 与同页旧基线比对，首获该页不比对
   _navDocCache.set(file, { doc, v: docScriptVersion(doc) });
   return doc;
 }
