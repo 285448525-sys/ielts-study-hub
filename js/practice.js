@@ -1,5 +1,5 @@
 // =====================================================================
-//  单词 · 学习模块（v2.1）—— 长线 Leitner + 短线分散确认（v4 指令 + v4.1 优化）
+//  单词 · 学习模块（v2.1）—— 长线 DHP 策略表（design/77，Leitner 梯仅迁移初值）+ 短线分散确认（v4 指令 + v4.1 优化）
 //  算法层严格按「背单词模块_任务指令_A窗口_2026-08-28.md」v4 实现。
 //  v4.1 优化清单（P0+P1）：
 //    P0-1 promoteLongTerm 改为「先按当前 level 算间隔，再升级」→ 启用 LEVEL_INTERVAL[0]=1天
@@ -950,7 +950,7 @@ function bindOpts(cur){
 }
 
 // 统一处理一次作答（4 选 1 直接判 / 点「完全不认识」）。
-// 长线由 promote/demote 排程（Leitner）；短线由 shortCount + gapFor 间隔插回队列实现「分散 3 次成功才放行」。
+// 长线由 promote/demote 排程（design/77 DHP 策略表）；短线由 shortCount + gapFor 间隔插回队列实现「分散 3 次成功才放行」。
 // P0-2：答错 → 当场重考最多 1 次；重考答对 → shortCount=1 走正常 GAP；重考仍错 → 额外惩罚 + 隔 1 个词插回。
 function judge(cur, pickedEn, correct, isUnknownBtn){
   if(!pq || pq.revealed) return;
@@ -1657,11 +1657,12 @@ function wordIntervalDesc(w){
   return { level: lv, next: next, overdue: overdue };
 }
 
-// 块 2 · 排程统计：未来 7 天复习量分桶（已逾期全部归「今天」）+ Leitner 盒子分布 0..7
+// 块 2 · 排程统计：未来 7 天复习量分桶（已逾期全部归「今天」）。
+// design/77 清理（她 9/21 拍板）：Leitner 盒子分布整块删除——design/77 后 Lv 只是 dh 反推的显示代理，
+// 旧「1/2/4/7…90 天」档位文案会误导为仍在走固定梯子；真实节奏看词条行「· 半衰期 N 天」。
 function buildPlanStats(){
   const words = (DATA.words || []).filter(w => w && typeof w.en === 'string' && w.en.trim());
   const today = todayKey();
-  // ① 未来 7 天（含今天）；已逾期的都归入「今天」
   const days = [];
   for(let i = 0; i < 7; i++) days.push({ key: addDays(today, i), label: '', count: 0 });
   days[0].label = '今天';
@@ -1671,8 +1672,6 @@ function buildPlanStats(){
     const k = days[i].key;
     days[i].label = Number(k.slice(5,7)) + '/' + Number(k.slice(8,10));
   }
-  // ② Leitner 盒子分布 0..7
-  const boxes = new Array(8).fill(0);
   let mastered = 0;
   for(const w of words){
     const nr = toDateKey(w.nextReview);
@@ -1682,14 +1681,12 @@ function buildPlanStats(){
       const d = daysBetween(today, nr);
       if(d >= 0 && d < 7) days[d].count++;
     }
-    const lv = Math.min(7, Math.max(0, Number(w.level) || 0));
-    boxes[lv]++;
     if(w.cleared === true) mastered++;
   }
-  return { days, boxes, total: words.length, mastered, pending: words.length - mastered };
+  return { days, total: words.length, mastered, pending: words.length - mastered };
 }
 
-// 块 2 · 面板渲染：条形宽度按当日最大值等比缩放（不是绝对词数，防 Lv0 892 个把 Lv7 的 1 个压成线）
+// 块 2 · 面板渲染：条形宽度按当日最大值等比缩放（不是绝对词数，防「今天」巨量把后面几天压成线）
 function renderPlanPanel(){
   const box = document.getElementById('planPanel');
   if(!box) return;
@@ -1699,8 +1696,6 @@ function renderPlanPanel(){
     return;
   }
   const dayMax = Math.max(1, ...s.days.map(d => d.count));
-  const boxMax = Math.max(1, ...s.boxes);
-  const LBL = ['1天','2天','4天','7天','15天','30天','60天','90天'];
   let html = '<div class="plan-head"><span class="plan-title">记忆曲线排程</span></div>';
   html += '<div class="plan-sec">未来 7 天复习量</div>';
   html += s.days.map((d, i) => {
@@ -1708,14 +1703,6 @@ function renderPlanPanel(){
     return '<div class="plan-row"><span class="plan-lbl">' + escapeHtml(d.label) + '</span>' +
       '<span class="plan-track"><i class="plan-bar' + (i === 0 ? ' today' : '') + '" style="width:' + pct + '%"></i></span>' +
       '<span class="plan-num">' + d.count + ' 词</span></div>';
-  }).join('');
-  html += '<div class="plan-div"></div>';
-  html += '<div class="plan-sec">盒子分布（Leitner）</div>';
-  html += s.boxes.map((n, i) => {
-    const pct = Math.round(n / boxMax * 100);
-    return '<div class="plan-row"><span class="plan-lbl">Lv' + i + ' <em>' + LBL[i] + '</em></span>' +
-      '<span class="plan-track"><i class="plan-bar box" style="width:' + pct + '%"></i></span>' +
-      '<span class="plan-num">' + n + ' 词</span></div>';
   }).join('');
   html += '<div class="plan-foot">未掌握 ' + s.pending + ' / ' + s.total + ' · 已掌握 ' + s.mastered + '</div>';
   box.innerHTML = html;
