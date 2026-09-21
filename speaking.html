@@ -42,11 +42,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
   <script defer src="js/data.js?v=20260920e"></script>
-  <script defer src="js/common.js?v=20260920e"></script>
+  <script defer src="js/common.js?v=20260920f"></script>
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
-  <script defer src="js/sentence-drill.js?v=20260919a"></script>
-  <script defer src="js/speaking.js?v=20260920e"></script>
+  <script defer src="js/sentence-drill.js?v=20260920a"></script>
+  <script defer src="js/speaking.js?v=20260920f"></script>
   <script defer src="js/materials.js?v=20260919d"></script>
   <script defer src="js/mock-report.js?v=20260830u"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
@@ -118,6 +118,15 @@
   .sent-note{font-size:13px;color:var(--muted);line-height:1.7;margin:4px 0 0}
   .sent-fix{font-size:13.5px;color:var(--ink);line-height:1.7;margin-bottom:8px}
   .sent-misread{font-size:13.5px;line-height:1.7;color:#92400e;background:#fff7ed;border:1px solid #fdba74;border-radius:8px;padding:8px 12px;margin-bottom:8px}
+  /* === design/77「我的语法错题」：诊断纠错 → 改对练习 === */
+  .sent-del{flex:none;margin-left:6px;font-size:12px;color:var(--muted);padding:2px 5px;border-radius:6px;line-height:1.4}
+  .sent-del:hover{color:#ef4444;background:rgba(239,68,68,.08)}
+  .sent-fixtask{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:14px}
+  .sent-fixtask-lab{font-size:12.5px;color:var(--muted);margin-bottom:6px}
+  .sent-fixtask-src{font-size:17px;font-weight:700;color:var(--ink);line-height:1.6;word-break:break-word}
+  .diag-collect{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
+  .diag-collect .btn{padding:7px 14px;font-size:13px;min-height:0}
+  .diag-collect-tip{font-size:12px;color:var(--muted);line-height:1.6}
   /* === design/17 P1：薄弱条 / 全部重练 / 拼接验证弹窗 / 查句型面板 / 备注框 === */
   .sent-weak{display:flex;align-items:center;gap:6px;padding:10px 14px;margin-bottom:12px;background:var(--primary-soft,#eef6f5);border:1px solid var(--line);border-radius:var(--radius);font-size:13.5px;font-weight:600;color:var(--primary,#3a9a93);cursor:pointer;transition:all .15s}
   .sent-weak:hover{border-color:var(--primary,#3a9a93)}

@@ -1656,7 +1656,9 @@ function renderP2Diag(el, j, answer){
     + '<div class="diag-sec"><b>语法/用词纠错</b>' + diffSentenceHtml(answer, errs) + '</div>';
   if(j.rewrite) h += '<div class="diag-sec"><b>改进版表达</b><div class="diag-rewrite">' + escapeHtml(j.rewrite) + '</div></div>';
   if(j.storyLink) h += '<div class="diag-sec"><b>📌 串题素材连接</b><div class="diag-note">可以用你已准备的这些万能素材来回答这道题：</div>' + escapeHtml(j.storyLink) + '</div>';
+  h += diagCollectBar(errs, answer);              // design/77：一键收进句型练习
   el.innerHTML = h;
+  bindDiagCollect(el);
   return true;
 }
 
@@ -2021,6 +2023,42 @@ function diagScoreHtml(j){
   return h;
 }
 
+/* === design/77「收进句型练习」（9/20）===
+   诊断指出的语法/用词错误 → 一键收进句型页「我的语法错题」，之后在那里把它们改对。
+   ⚠️ 手动收、不自动：AI 误判的错误一旦自动进练习库就是永久污染（她得逐条删）。
+   落库位置 DATA.patternDrill.sentences.custom（随云同步），绝不写静态 data/sentences.json。 */
+function diagCollectBar(errs, answer){
+  if(!errs || !errs.length) return '';
+  window.__DIAG_SEQ = (window.__DIAG_SEQ || 0) + 1;
+  var seq = 'dg' + window.__DIAG_SEQ;
+  window.__DIAG_ERRS = window.__DIAG_ERRS || {};
+  window.__DIAG_ANS = window.__DIAG_ANS || {};
+  window.__DIAG_ERRS[seq] = errs;
+  window.__DIAG_ANS[seq] = answer || '';
+  /* 按钮文案按「这次有几条是新的」实时算：都收过了就置灰，别让她重复点 */
+  var fresh = (typeof sentCollectFresh === 'function') ? sentCollectFresh(errs, answer) : errs.length;
+  var btn = '<button class="btn" type="button" data-diag-collect="' + seq + '"' + (fresh ? '' : ' disabled') + '>'
+    + (fresh ? '＋ 收进句型练习（' + fresh + ' 处）' : '已在练习库里 ✓') + '</button>';
+  return '<div class="diag-collect">' + btn
+    + '<span class="diag-collect-tip">收进去之后，到「练习」tab 的「我的语法错题」里把它们改对</span></div>';
+}
+function bindDiagCollect(el){
+  if(!el) return;
+  var btn = el.querySelector('[data-diag-collect]');
+  if(!btn) return;
+  btn.onclick = function(){                      // onclick 单通道（照抄 pattern-drill 9/9 教训）
+    var seq = btn.getAttribute('data-diag-collect');
+    var errs = (window.__DIAG_ERRS || {})[seq] || [];
+    var ans = (window.__DIAG_ANS || {})[seq] || '';
+    if(typeof sentCollectErrors !== 'function'){ toast('句型练习模块还没加载，刷新一下'); return; }
+    var r = sentCollectErrors(errs, ans, '口语诊断');
+    if(!r.added){ toast('这 ' + r.total + ' 处已经收过啦'); return; }
+    toast('已收进 ' + r.added + ' 条 →「练习」tab 的「我的语法错题」');
+    btn.disabled = true;
+    btn.textContent = '已收进 ' + r.added + ' 条 ✓';
+  };
+}
+
 function renderDiag(el, j, raw, answer){
   normalizeScore(j, answer);
   const scoreHtml = diagScoreHtml(j);
@@ -2028,7 +2066,9 @@ function renderDiag(el, j, raw, answer){
     const errs = cleanErrors(j.errors);
     let h = '<div class="diag-sec"><b>语法/用词纠错</b>' + diffSentenceHtml(answer, errs) + '</div>';
     if(j.rewrite) h += '<div class="diag-sec"><b>改进版表达</b><div class="diag-rewrite">' + escapeHtml(j.rewrite) + '</div></div>';
+    h += diagCollectBar(errs, answer);            // design/77：一键收进句型练习
     el.innerHTML = scoreHtml + h;
+    bindDiagCollect(el);
   } else {
     el.innerHTML = scoreHtml + '<div class="diag-note">（AI 返回非标准格式，已贴原文）</div><pre>' + escapeHtml(raw || '') + '</pre>';
   }

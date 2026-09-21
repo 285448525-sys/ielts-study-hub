@@ -1705,8 +1705,29 @@ function mergeData(local, cloud){
       const a = _lsr[id], b = _csr[id];
       _msr[id] = (a && b) ? Math.max(Number(a) || 0, Number(b) || 0) : (a || b);
     });
-    if(JSON.stringify(_mss) !== JSON.stringify(_lss) || JSON.stringify(_msr) !== JSON.stringify(_lsr)){
-      _pdOut.sentences = { status: _mss, replay: _msr };
+    /* design/77：sentences.custom = 从口语诊断收进来的「我的语法错题」条目数组。
+       并集按 id（同 id 取 ts 新的一侧），再按 key（改正句归一化串）去重——
+       两端各自收了同一个错句时只留一条，绝不重复练。 */
+    const _lsc = Array.isArray(local.patternDrill && local.patternDrill.sentences && local.patternDrill.sentences.custom)
+      ? local.patternDrill.sentences.custom : [];
+    const _csc = Array.isArray(cloud.patternDrill && cloud.patternDrill.sentences && cloud.patternDrill.sentences.custom)
+      ? cloud.patternDrill.sentences.custom : [];
+    const _msc = [], _scSeen = {};
+    _lsc.concat(_csc).filter(x => x && x.id).forEach(x => {
+      const prev = _scSeen[x.id];
+      if(!prev){ _scSeen[x.id] = x; _msc.push(x); return; }
+      if((Number(x.ts) || 0) > (Number(prev.ts) || 0)) _msc[_msc.indexOf(prev)] = x, _scSeen[x.id] = x;
+    });
+    const _scOut = [], _scKey = {};
+    _msc.forEach(x => {
+      const k = x.key || ('id:' + x.id);
+      if(_scKey[k]) return;
+      _scKey[k] = true; _scOut.push(x);
+    });
+    if(JSON.stringify(_mss) !== JSON.stringify(_lss) || JSON.stringify(_msr) !== JSON.stringify(_lsr)
+       || JSON.stringify(_scOut) !== JSON.stringify(_lsc)){
+      _pdOut.sentences = Object.assign({}, (local.patternDrill && local.patternDrill.sentences) || {},
+        { status: _mss, replay: _msr, custom: _scOut });
       _pdCh++;
     }
     if(_pdCh){ out.patternDrill = _pdOut; changes += _pdCh; }
