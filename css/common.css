@@ -3351,3 +3351,18 @@ html[data-theme="dark"] .onb-overlay{background:rgba(0,0,0,.62)}
   #wbSwitcher .wb-seg{width:100%}
   .wb-seg-bank .wb-seg-btn{flex:1;padding:8px 10px;font-size:12.5px}
 }
+
+/* ===== design/79 离线状态灯（common.js 的 online/offline 监听驱动，SW 不参与） =====
+   离线不是错误 → warn 圆点 + 中性底，不用 danger 红；全 token 化，暗色自动跟随。
+   层级 99980：高于侧栏(50)/dock/悬浮计时，低于引导遮罩(99990)与首屏 loader(99999)
+   —— 引导遮罩必须能盖住它，它也绝不抢首屏。
+   顶部居中胶囊（不是整条横幅）：本站桌面是 256px 固定左栏，整条横幅会横跨侧栏顶部。 */
+.offline-bar{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:99980;
+  display:inline-flex;align-items:center;gap:8px;max-width:calc(100vw - 32px);
+  padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);
+  color:var(--ink);font-size:13px;font-weight:600;line-height:1.4;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;box-shadow:var(--shadow-md);pointer-events:none}
+.offline-bar::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--warn);flex:none}
+@media (max-width:860px){
+  .offline-bar{top:8px;font-size:12px;padding:6px 12px}
+}

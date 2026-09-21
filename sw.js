@@ -4,8 +4,10 @@
    - 9/4 改为「全网络直通 + 主动注销」——治了顽疾但离线完全不可用；
    - 现版：HTML network-first（保部署后先拿新 HTML）+ 静态资源 stale-while-revalidate
      （缓存键一律去 ?v= 的 pathname，不受手工版本号影响）+ 核心壳预缓存（离线首开可用）。
-     版本一致性兜底 = 页面侧 navDeployProbe / navSelfHealReload 自愈机制（common.js，禁删）。 */
-const CACHE = 'ielts-hub-v25';
+     版本一致性兜底 = 页面侧 navDeployProbe / navSelfHealReload 自愈机制（common.js，禁删）。
+     离线态（design/79）由 common.js 的 online/offline 监听在页面侧驱动（状态灯 + 自愈离线闸），
+     SW 不参与离线态的判定与渲染，缓存策略本文件零改动。 */
+const CACHE = 'ielts-hub-v26';
 
 /* 核心壳预缓存清单（Node 脚本枚举目录生成，2026-09-20；与 14 页实际引用核对无遗漏）。
    不含 js/vendor/xlsx.full.min.js（861KB 体积大 → 走运行时 SWR 缓存）。 */

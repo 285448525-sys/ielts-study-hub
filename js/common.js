@@ -2510,6 +2510,7 @@ let _navSelfHealing = false;
    「注销 SW + 清空全部 CacheStorage」核武动作降级为独立的 hard heal，只在「连续多轮探针仍报漂移、
    普通 reload 无法恢复（真 SW 缓存病态）」时才执行一次。常规自愈（soft heal）只 reload。 */
 function navSelfHealReload(){
+  if(_navOfflineHold) return;               // design/79 离线闸：离线期间不自愈（探针必失败，reload 只会连放）
   if(_navSelfHealing) return;
   try{
     const last = Number(sessionStorage.getItem('hub_nav_v_rl') || 0);
@@ -2522,6 +2523,7 @@ function navSelfHealReload(){
 /* hard heal（核武，仅 navDeployProbe 在 sessionStorage 计数 ≥2 时调用一次并清零计数）：
    注销 SW + 清空 CacheStorage + reload。SW v14 的 SWR / network-first / SW_UPDATED 机制本身不动。 */
 function navHardHeal(){
+  if(_navOfflineHold) return;               // design/79 离线闸：离线期间绝不注销 SW / 清缓存
   try{
     const lastHard = Number(sessionStorage.getItem('hub_nav_hard_rl') || 0);
     if(Date.now() - lastHard < 60000) return;   // 60s 内已放过一次核武：绝不连放（防 unregister/reload 风暴）
@@ -2562,7 +2564,73 @@ function navVersionCheck(file, doc){
    解析资产指纹与启动指纹比对，不同 → navSelfHealReload。探测不阻塞导航（fire-and-forget），
    60s 内多次切换只发一次请求，成本近乎为零。 */
 let _probeAt = 0, _probeBusy = false, _probeHandledThisBoot = false;
+
+/* ===== design/79 离线状态灯 + 自愈第三道闸（离线闸） =====
+   SW v25 已让全站离线可用（navigate 走缓存、静态 SWR），但断网时她完全无感知：分不清
+   「背单词生词卡住了」还是「网络挂了」，AI 功能（口语诊断/翻译）断网必失败会以为是自己 Key 出问题。
+   本段只做两件事：
+   ① 状态灯：offline 立即显示「当前离线 · 已显示缓存内容」，online 延迟 1.5s 收起
+      （弱网下 online/offline 会瞬时抖动，立即收起会「闪一下就没了」），常驻至恢复，不是 toast；
+   ② ⭐ 自愈第三道闸 _navOfflineHold：navDeployProbe 是网络请求，断网必失败；不闸住就会出现
+      「断网→探针判漂移→reload→再断网…」的连放风暴（与 9/20 那次数十次硬自愈同源）。
+      离线期间不判定/不计数/不 reload；恢复时清空漂移计数（断网期的「漂移」是假象，不该累积）。
+   ⚠️ 与 design/75 的两道防风暴闸门（_probeHandledThisBoot 每 boot 一次 + hard heal 60s 封顶）
+      是叠加关系：本闸只新增，不删改前两道。
+   节点直挂 body（软导航只换 <main>，天然不被误删），id 单例 + ensure-once，重复渲染不叠加。
+   ⭐ 与 design/78（SW 更新提示）互斥：78 接进来时，「发现新版本」提示只允许在
+      setOfflineState(false) 收起离线条之后显示（离线不可能有新版可刷）。 */
+const OFFLINE_BAR_ID = 'offlineBar';
+const OFFLINE_BAR_TEXT = '当前离线 · 已显示缓存内容';
+let _navOfflineHold = false;      // true = 离线期：自愈判定/计数/reload 一律不执行
+let _isOffline = false;           // 当前网络态（状态灯只在 true 时存在）
+let _offlineHideTimer = null;     // online 后的延迟收起计时器
+function setOfflineState(isOffline){
+  _isOffline = !!isOffline;
+  if(_isOffline){
+    if(_offlineHideTimer){ clearTimeout(_offlineHideTimer); _offlineHideTimer = null; }
+    _navOfflineHold = true;                       // 先落闸，再渲染（渲染异常也不能漏闸）
+    try{ if(document.body) renderOfflineBar(); }catch(e){}
+  } else {
+    // 重连：断网期间的漂移计数是假象 → 清零（键名以自愈实测为准：hub_nav_heal_n）
+    try{ sessionStorage.setItem('hub_nav_heal_n', '0'); }catch(e){}
+    if(_offlineHideTimer) clearTimeout(_offlineHideTimer);   // 抖动连发 online：只保留最后一个计时器
+    _offlineHideTimer = setTimeout(() => {
+      _offlineHideTimer = null;
+      _navOfflineHold = false;                    // 延迟撤闸：给网络一个稳定窗口，再允许自愈判定
+      removeOfflineBar();
+      /* design/78 接入口：此处（已在线且离线条已收起）才允许显示「发现新版本 · 点此刷新」。 */
+    }, 1500);
+  }
+}
+function renderOfflineBar(){
+  if(!document.body || document.getElementById(OFFLINE_BAR_ID)) return;   // 单例：已存在不重复插
+  const el = document.createElement('div');
+  el.id = OFFLINE_BAR_ID;
+  el.className = 'offline-bar';
+  el.setAttribute('role', 'status');
+  el.setAttribute('aria-live', 'polite');
+  el.textContent = OFFLINE_BAR_TEXT;
+  document.body.appendChild(el);
+}
+function removeOfflineBar(){
+  const el = document.getElementById(OFFLINE_BAR_ID);
+  if(el && el.parentNode) el.parentNode.removeChild(el);
+}
+function initOfflineBar(){
+  if(window.__offlineBarBound) return;            // 一次性守卫：软导航/重复调用不叠加监听
+  window.__offlineBarBound = true;
+  window.addEventListener('offline', () => setOfflineState(true));
+  window.addEventListener('online',  () => setOfflineState(false));
+  if(navigator.onLine === false) setOfflineState(true);   // 冷启动即断网（事件不会补发）
+  // 兜底轮询：部分代理/VPN 环境不触发 online/offline 事件。只读 navigator.onLine，不发任何请求。
+  setInterval(() => {
+    const off = (navigator.onLine === false);
+    if(off !== _isOffline) setOfflineState(off);
+  }, 30000);
+}
+
 function navDeployProbe(){
+  if(_navOfflineHold) return;   // design/79 离线闸：离线期间不探测（不判定、不计数、不 reload）
   // 节流间隔可由 localStorage hub_probe_interval 覆盖（回归测试注入短间隔用；普通用户无此 key = 60s）
   let iv = 60000;
   try{ iv = Number(localStorage.getItem('hub_probe_interval')) || 60000; }catch(e){}
@@ -2832,6 +2900,7 @@ ready(() => { hubLoad();
   injectGlobalDock();                        // 全站玻璃底栏 dock（9/16 之之：+ FAB 砍掉——全站只有计划页有 data-fab-add 接杆，软导航残留后其他页全是死按钮）
   initListSearch();                          // 列表页 .ui-search 即时过滤（data-search-input + data-search-target）
   registerSW();
+  initOfflineBar();                          // design/79 离线状态灯 + 自愈第三道闸（离线不判定、不计数、不自愈）
   // ⚡ 空闲时把其余页面的 HTML + 脚本预热进内存缓存，之后点任何 tab 都是零网络秒开
   (function(){
     const f = normalizePageFile(location.pathname.split('/').pop() || 'index.html');
