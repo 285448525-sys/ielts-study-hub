@@ -203,7 +203,7 @@ function sdBind(){
   var nx = sd$('sdNext'); if(nx) nx.onclick = sdAdvance;
   var sp = sd$('sdSpeakBtn'); if(sp) sp.onclick = sdSpeak;   // TTS 听一遍（design/07 §十二，之之已对齐）
   var ans = sd$('sdAnswer');
-  if(ans) ans.onkeydown = function(e){ if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); sdOnSubmit(); } };
+  if(ans && sub) bindEnterSubmit(ans, sub);   // 9/22 之之：回车即提交（原 Ctrl+Enter；跟 #sdSubmit 当前状态走）
 }
 /* TTS 听一遍：朗读当前目标句（换词态读目标 fill）。完成态无目标句 → 静默返回 */
 function sdSpeak(){

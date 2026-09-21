@@ -736,9 +736,8 @@ ready(async () => {
   /* design/09 改动 2：⛶ 全屏练习按钮（齿轮→导入面板由 pdImportInit 单通道绑定） */
   const pdFsBtn = document.getElementById('pdFullscreen');
   if(pdFsBtn) pdFsBtn.onclick = () => pdSetFullscreen(!document.body.classList.contains('pd-fullscreen'));
-  $('#pdAnswer').addEventListener('keydown', e => {
-    if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); pdOnSubmit(); }
-  });
+  // 9/22 之之：回车即提交（原 Ctrl+Enter；跟 #pdSubmit 当前状态走——判定/继续/下一题都由按钮 onclick 承载）
+  bindEnterSubmit($('#pdAnswer'), $('#pdSubmit'));
   /* 我的句型库：custom/mockSynced 缺字段补齐（老数据兼容）→ 自建组插队首 → 绑导入 UI */
   DATA.patternDrill.custom = DATA.patternDrill.custom || [];
   DATA.patternDrill.mockSynced = DATA.patternDrill.mockSynced || [];

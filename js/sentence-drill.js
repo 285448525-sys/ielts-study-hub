@@ -864,6 +864,7 @@ function sentBindPractice(){
   if(inp) inp.addEventListener('input', function(){ sentCur().draft = inp.value; });
   var sub = sent$('sentSubmit');
   if(sub) sub.onclick = sentOnSubmit;    // onclick 单通道（照抄 pattern-drill 9/9 教训）
+  bindEnterSubmit(inp, sub);   // 9/22 之之：回车即提交（已判定时输入框 disabled，Enter 天然失效）
 }
 
 function sentStart(sentId){
@@ -1103,6 +1104,7 @@ function sentReplayOpen(cat, topic, topicName){
   document.body.appendChild(mask);
   var go = mask.querySelector('#sentReplayGo');
   if(go) go.onclick = function(){ sentReplaySubmit(cat, topic); };   // onclick 单通道
+  bindEnterSubmit(mask.querySelector('#sentReplayAns'), go);   // 9/22 之之：回车即提交
   var skip = mask.querySelector('[data-sent-replay-skip]');
   if(skip) skip.addEventListener('click', function(){ sentReplayDone(cat.id); toast('已跳过，下次练满不再弹'); });
   /* 9/13 修：给遮罩留自救出口。原实现只有「提交 / 跳过」两个按钮能关，

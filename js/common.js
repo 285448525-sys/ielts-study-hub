@@ -652,6 +652,22 @@ function toast(msg){
   clearTimeout(toast._t); toast._t = setTimeout(() => t.hidden = true, 2400);
 }
 
+/* === 全站统一「回车即提交」（9/22 之之）===
+   Enter（无 Shift、非输入法组词态）→ 触发该输入框对应提交按钮的 click；
+   Shift+Enter = 换行；按钮 disabled（AI 忙碌/已判定）时 click 天然无效，防连击。
+   submitBtn 传当前状态下的主行动按钮——按钮 onclick 被状态改写的模块（pd/sd/sent）
+   传按钮元素本身即可，Enter 永远跟按钮当前行为一致，不会绕过状态机。 */
+function bindEnterSubmit(input, submitBtn){
+  if(!input || !submitBtn || typeof input.addEventListener !== 'function') return;
+  if(input.__enterSubmitBound) return;          // 防重复绑定（软导航重建后是新节点，不受影响）
+  input.__enterSubmitBound = true;
+  input.addEventListener('keydown', function(e){
+    if(e.key !== 'Enter' || e.shiftKey || e.isComposing || e.keyCode === 229) return;
+    e.preventDefault();
+    try{ submitBtn.click(); }catch(_){}
+  });
+}
+
 /* === 题目语音播放（Web Speech API，浏览器内置、离线可用，无需 API key）===
    雅思口语题目为英文，默认 en-GB 英音，贴合雅思考试。
    speakQuestion.speak(text, btn)：朗读文本并切换按钮 playing 态；btn 可选。

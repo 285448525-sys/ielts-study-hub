@@ -93,6 +93,16 @@ var SYS_DIAG = `你是一位雅思口语考官助手。你的任务有两件：
 例C "Although the internet has brought unprecedented convenience to our daily routines, there is a growing concern that excessive reliance on it may undermine our capacity for deep concentration."（复杂结构准确、词汇多样）→ grammar 7, vocabulary 7
 例D "I like reading books. I read books every day. It makes me happy."（全简单句、零错误、意思清楚、用词重复）→ grammar 6, vocabulary 5
 
+【半档判定规则（官方口径，必须遵守）】
+雅思半档（x.5）的官方定义：**完全达到 x 档的全部描述，并且部分达到 x+1 档的描述 → 给 x.5**。
+- 稳定符合 5 档、且部分表现够到 6 档（如复杂句尝试有一定成功率、错误基本不影响理解）→ 5.5
+- 稳定符合 6 档、且部分表现够到 7 档（如频繁出现无错句、能较灵活换词）→ 6.5
+- 表现介于两档之间时**必须用半档表达，禁止四舍五入成整数**。
+
+【半档校准锚点 - 与上面锚点同等效力】
+例E（5.5）"I very like play badminton because it make me healthy and I can made some friends who also very like sport."（词性/时态错误频繁但意思能懂；有连接尝试；词汇重复但能小幅换述）→ grammar 5.5, vocabulary 5.5
+例F（6.5）"Although many people believe that reading is boring, but for me it is a way to reduce stress. When I was young, my father gave me a book which changed my mind, and since then I have read almost every day."（多数句子无错、复杂结构用得起来，偶有 believe...but 连用等小错）→ grammar 6.5, vocabulary 6.5
+
 【100% 不算错误、也不扣分】
 - 大小写（句首小写、And/But/So 大写等）
 - 标点符号（缺逗号句号、逗号变句号等语音转写瑕疵）
@@ -119,7 +129,7 @@ var SYS_DIAG = `你是一位雅思口语考官助手。你的任务有两件：
     "vocabulary_basis": "同上"
   }
 }
-没有错误时 errors 返回 []。分数必须是 1~9 之间、以 0.5 为最小步长的数字（如 5 / 5.5 / 6）。
+没有错误时 errors 返回 []。分数必须是 4~8 之间、以 0.5 为最小步长的数字（合法值仅限：4 / 4.5 / 5 / 5.5 / 6 / 6.5 / 7 / 7.5 / 8）；表现介于两档之间时必须给半档，禁止只输出整数。
 
 【improved 要求】把考生回答整体改写成一个更通顺、更地道的版本（保留原意与口语风格，长度与原文相近，只优化表达，不添加新内容；纯符号 "/" 表示对应处直接删除）。
 【注意】corrected 里若某处只是删除（无替换词），用 "/" 表示；不要用省略号或其他写法。
@@ -344,7 +354,8 @@ function parseScore(score){
   const dims = [grammar, vocabulary].filter(v => v != null);
   if(fluency != null) dims.push(fluency);
   if(pronunciation != null) dims.push(pronunciation);
-  const overall = dims.length ? Math.round(dims.reduce((a, b) => a + b, 0) / dims.length * 2) / 2 : null;
+  // 9/20 拍板：至少两个维度才有 overall（单维度均分没有意义，不给总分）
+  const overall = (dims.length >= 2) ? Math.round(dims.reduce((a, b) => a + b, 0) / dims.length * 2) / 2 : null;
   // 评分依据随分数一起落库：分数必须能自证，否则又变成"莫名其妙的低分"
   const basis = {
     grammar: (score.grammar_basis != null) ? String(score.grammar_basis) : '',
@@ -628,18 +639,18 @@ function openDetail(id){
     html += '</details>';
     html += '</div>';
 
-    // 动作行：P3追问已收进折叠分组 B（design/82），此处只留 完成/下一题（右对齐自然收窄）
+    // 动作行：P3追问已收进折叠分组 B（design/82），此处只留 完成/下一大题（右对齐自然收窄）
     html += '<div class="sp-action-row" id="p2ActionRow">';
     html += '<div class="sp-action-row-right">';
     html += '<button class="btn btn-med" id="p2FinishBtn" type="button">完成</button>';
-    html += '<button class="btn btn-primary" id="p2NextBtn" type="button">下一题 →</button>';
+    html += '<button class="btn btn-primary" id="p2NextBtn" type="button">下一大题 →</button>';
     html += '</div>';
     html += '</div>';
 
-    // 底部动作栏：下一题/完成（P3 展示完后出现在最底）
+    // 底部动作栏：下一大题/完成（P3 展示完后出现在最底）
     html += '<div class="sp-bottom-bar" id="p2BottomBar" hidden>';
     html += '<button class="btn btn-med" id="p2FinishBtn2" type="button">完成</button>';
-    html += '<button class="btn btn-primary" id="p2NextBtn2" type="button">下一题 →</button>';
+    html += '<button class="btn btn-primary" id="p2NextBtn2" type="button">下一大题 →</button>';
     html += '</div>';
   }
 
@@ -653,24 +664,15 @@ function openDetail(id){
 
   // 绑定事件（9/15 之之：P1 保存/删除/下一话题三按钮已删，草稿输入即自动落库）
   if(s.type === 'P2'){
-    // P2：完成 = 返回列表；下一题 = 跳到筛选列表的下一道（沿用现有 gotoNextTopic）
+    // 9/22 之之：完成 = 回题库列表 + 明确反馈（toast/定位/高亮，spBackToListWithFeedback）；
+    // 下一大题 = 按当前筛选列表顺序直接进下一题（gotoNextTopic 同 Part 内轮转）
     const fin = $('#p2FinishBtn');
-    if(fin) fin.addEventListener('click', () => {
-      $('#listView').hidden = false;
-      $('#detailView').hidden = true;
-      renderList();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
+    if(fin) fin.addEventListener('click', () => spBackToListWithFeedback(curDetailId));
     const nx = $('#p2NextBtn');
     if(nx) nx.addEventListener('click', () => gotoNextTopic());
-    // 底部动作栏的「完成/下一题」复用同一逻辑
+    // 底部动作栏的「完成/下一大题」复用同一逻辑
     const fin2 = $('#p2FinishBtn2');
-    if(fin2) fin2.addEventListener('click', () => {
-      $('#listView').hidden = false;
-      $('#detailView').hidden = true;
-      renderList();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
+    if(fin2) fin2.addEventListener('click', () => spBackToListWithFeedback(curDetailId));
     const nx2 = $('#p2NextBtn2');
     if(nx2) nx2.addEventListener('click', () => gotoNextTopic());
   }
@@ -744,6 +746,8 @@ function openDetail(id){
     // 9/13 修：P2 大答案框同样输入即存草稿（原只能靠点「保存」或 AI 诊断）
     const p2AnsEl = document.getElementById('p2Ans');
     if(p2AnsEl) p2AnsEl.addEventListener('input', () => spDraftSave(id, 'p2', p2AnsEl.value));
+    // 9/22 之之：回车即 AI 纠错（Shift+Enter 换行；纠错中按钮 disabled 天然防连击）
+    bindEnterSubmit(p2AnsEl, p2Diag);
     const p2Clear = document.getElementById('p2Clear');
     if(p2Clear) p2Clear.addEventListener('click', e => {
       e.stopPropagation();
@@ -1072,6 +1076,35 @@ function gotoNextTopic(){
   if(idx === -1){ openDetail(list[0].id); return; }   // 当前题不在筛选结果里（如刚改了筛选）→ 打开第一条
   const nextIdx = (idx + 1) % list.length;
   openDetail(list[nextIdx].id);
+}
+
+/* 「完成」统一出口（9/22 之之：原 P1 流程「完成 ✓」只弹 toast、P2 完成静默切视图，反馈感为零）：
+   回题库列表 + 三层反馈——toast 练过题数、列表定位刚练的那张卡、1.5s 高亮闪烁。 */
+function spBackToListWithFeedback(id){
+  $('#listView').hidden = false;
+  $('#detailView').hidden = true;
+  renderList();
+  try{
+    const s = DATA.speaking.find(x => x.id === id);
+    let n = 0;
+    if(s && s.answers){
+      Object.keys(s.answers).forEach(k => {
+        const a = s.answers[k];
+        if(a && ((a.records && a.records.length) || (a.text && String(a.text).trim()) || a.result)) n++;
+      });
+    }
+    toast(n > 0 ? ('已保存 ✓ 本话题练过 ' + n + ' 题') : '已保存 ✓');
+    const card = document.querySelector('.sp-card[data-id="' + id + '"]');
+    if(card){
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.classList.add('sp-card-flash');
+      setTimeout(() => card.classList.remove('sp-card-flash'), 1600);
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }catch(e){
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 }
 
 function saveDetail(id){
@@ -1455,6 +1488,8 @@ function renderP3Step(s, container, i){
   if(aiBtn) aiBtn.addEventListener('click', e => { e.stopPropagation(); generateP3Helper(s.id, i); });
   const reviewBtn = div.querySelector('.sp-p3-review-btn');
   if(reviewBtn) reviewBtn.addEventListener('click', e => { e.stopPropagation(); reviewP3Answer(s.id, i); });
+  // 9/22 之之：回车即「老师帮我改」（Shift+Enter 换行）
+  bindEnterSubmit(div.querySelector('.sp-p3-textarea[data-i="' + i + '"]'), reviewBtn);
   const savedHelper = (Array.isArray(p3.aiHelper)) ? p3.aiHelper[i] : null;
   if(savedHelper && (savedHelper.main || savedHelper.extend || savedHelper.cn || savedHelper.raw)){
     const rEl = div.querySelector('.sp-p3-ai-result');
@@ -1802,6 +1837,8 @@ function bindQuestionEvents(id){
       }
       diagnoseAnswer(id, qi, questionText, answer);
     });
+    // 9/22 之之：回车即 AI 诊断（Shift+Enter 换行；诊断中按钮 disabled 天然防连击）
+    bindEnterSubmit(ta, diag);
 
     // AI 辅助：按人设一键生成
     const aiBtn = li.querySelector('.sp-ai-helper[data-qi="' + qi + '"]');
@@ -2521,6 +2558,17 @@ function p1FlowInit(s){
   done.hidden = true;
   nav.insertAdjacentElement('afterend', done);
 
+  // 9/22 之之：话题级出口（与 P2 动作行同款）——完成=回题库列表带反馈；下一大题=按列表顺序继续刷
+  var fnav = document.createElement('div');
+  fnav.className = 'sp-action-row';
+  fnav.innerHTML = '<div class="sp-action-row-right">'
+    + '<button class="btn btn-med" id="p1FinishBtn" type="button">完成</button>'
+    + '<button class="btn btn-primary" id="p1NextTopicBtn" type="button">下一大题 →</button>'
+    + '</div>';
+  done.insertAdjacentElement('afterend', fnav);
+  fnav.querySelector('#p1FinishBtn').addEventListener('click', function(){ spBackToListWithFeedback(s.id); });
+  fnav.querySelector('#p1NextTopicBtn').addEventListener('click', function(){ gotoNextTopic(); });
+
   function render(){
     items.forEach(function(li, idx){ li.classList.toggle('active', idx === cur); });
 
@@ -2577,7 +2625,7 @@ function p1FlowInit(s){
   nav.querySelector('.sp-flow-prev').addEventListener('click', function(){ if(cur > 0){ cur--; render(); } });
   nav.querySelector('.sp-flow-next').addEventListener('click', function(){
     if(cur < n - 1){ cur++; render(); }
-    else { toast('本话题 ' + n + ' 题完成 ✓'); }
+    else { spBackToListWithFeedback(s.id); }   // 9/22：最后一题的「完成 ✓」= 回题库列表带反馈（原只弹 toast）
   });
 
   render();

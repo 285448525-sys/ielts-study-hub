@@ -42,17 +42,17 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
   <script defer src="js/data.js?v=20260921j"></script>
-  <script defer src="js/common.js?v=20260921i"></script>
+  <script defer src="js/common.js?v=20260922a"></script>
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
-  <script defer src="js/sentence-drill.js?v=20260920a"></script>
-  <script defer src="js/speaking.js?v=20260921k"></script>
+  <script defer src="js/sentence-drill.js?v=20260922a"></script>
+  <script defer src="js/speaking.js?v=20260922b"></script>
   <script defer src="js/materials.js?v=20260921i"></script>
   <script defer src="js/mock-report.js?v=20260830u"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
-  <script defer src="js/mock.js?v=20260917a"></script>
-  <script defer src="js/pattern-drill.js?v=20260918g"></script>
-  <script defer src="js/scene-drill.js?v=20260912b"></script>
+  <script defer src="js/mock.js?v=20260922b"></script>
+  <script defer src="js/pattern-drill.js?v=20260922a"></script>
+  <script defer src="js/scene-drill.js?v=20260922a"></script>
 <style>
   /* === 极简口语模块 · 优化版（沿用全站 Teal Token） === */
 
@@ -608,6 +608,8 @@
   .sp-card{ position:relative; transition:background .15s, box-shadow .15s, transform .12s, border-color .15s; }
   .sp-card:hover{ background:var(--primary-soft); box-shadow:var(--shadow); transform:translateX(2px); border-color:var(--primary); }
   .sp-card:active{ transform:translateX(0) scale(.995); }
+  /* 9/22 之之：「完成」回列表后对刚练的话题卡高亮闪烁 1.5s（spBackToListWithFeedback） */
+  .sp-card-flash{ background:var(--primary-soft) !important; box-shadow:0 0 0 2px var(--primary), var(--shadow) !important; border-color:var(--primary) !important; }
 
   /* 6) P2：把「AI 串题思路」降为次级描边按钮，让「AI 评分 / 保存」成为主视觉 */
   #aiStoryLinkBtn{ background:var(--surface); color:var(--primary); border:1px solid var(--primary); }

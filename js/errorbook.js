@@ -25,6 +25,7 @@ ready(() => {
 
   /* 长难句拆解 */
   $('#analyzeBtn').addEventListener('click', analyze);
+  bindEnterSubmit($('#sentInput'), $('#analyzeBtn'));   // 9/22 之之：回车即拆解
   $('#copyBtn').addEventListener('click', copyResult);
   renderHistory();
   // 全局快捷键：S 收录当前悬停的单词

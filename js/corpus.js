@@ -58,6 +58,8 @@ ready(() => {
   on('importCorpus', 'click', importBulk);
   on('aiImportBtn', 'click', aiImportCorpus);
   on('addCorpus', 'click', addOne);
+  bindEnterSubmit(document.getElementById('corEn'), document.getElementById('addCorpus'));   // 9/22：回车即添加
+  bindEnterSubmit(document.getElementById('corCn'), document.getElementById('addCorpus'));
   on('startDict', 'click', startDict);   // 听力默写入口：HTML 尚未提供按钮时安全跳过（避免整段脚本崩溃）
   on('startWrite', 'click', startWrite);
   // 设置联动：设置实时保存到 localStorage（对应滑块缺失则跳过，用默认配置，避免整段脚本崩溃）
@@ -464,6 +466,8 @@ function renderWrite(q, cfg){
     });
   });
   $('#writeSubmit').addEventListener('click', () => gradeWrite(q, cfg));
+  // 9/22 之之：任一默写框回车即批改（gradeWrite 内有 3s 自愈防抖，防连击重复请求 AI）
+  document.querySelectorAll('#dictArea .write-en').forEach(inp => bindEnterSubmit(inp, $('#writeSubmit')));
   // 输入变化 → 防抖存草稿（切走/刷新可续）
   document.querySelectorAll('#dictArea .write-en').forEach(inp => inp.addEventListener('input', scheduleCorDraftSave));
   const dd = $('#corDiscardDraft');
@@ -471,6 +475,9 @@ function renderWrite(q, cfg){
 }
 
 async function gradeWrite(q, cfg){
+  if(window.__cwBusy) return;   // 9/22：回车/连点防抖（3s 自愈，不锁死重批入口）
+  window.__cwBusy = true;
+  setTimeout(() => { window.__cwBusy = false; }, 3000);
   const rows = document.querySelectorAll('#dictArea .write-row');   // 修复：#writeList 已不存在，行实际在 #dictArea 内
   const items = [];
   rows.forEach((row, i) => {
@@ -661,6 +668,7 @@ ready(() => {
 
   /* 长难句拆解 */
   $('#analyzeBtn').addEventListener('click', analyze);
+  bindEnterSubmit($('#sentInput'), $('#analyzeBtn'));   // 9/22 之之：回车即拆解
   $('#copyBtn').addEventListener('click', copyResult);
   renderHistory();
   // 全局快捷键：S 收录当前悬停的单词

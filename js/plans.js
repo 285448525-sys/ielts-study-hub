@@ -27,7 +27,7 @@ ready(() => {
   $('#planDate').addEventListener('change', render);
   $('#addPlan').addEventListener('click', addItem);
   $('#aiPlan').addEventListener('click', aiPlanItem);
-  $('#planText').addEventListener('keydown', e => { if(e.key === 'Enter' && e.ctrlKey) addItem(); });
+  bindEnterSubmit($('#planText'), $('#addPlan'));   // 9/22 之之：回车即添加（原 Ctrl+Enter；换行用 Shift+Enter）
 
   // 每周 AI 排程
   $('#weekTasks').value = DATA.settings.weeklyTasks || '';

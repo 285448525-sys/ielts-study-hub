@@ -519,11 +519,18 @@
     const block = answers.filter(a => a.part === part && !a.opening)
       .map(a => 'Q: ' + a.q + '\nA: ' + (a.transcript || '(空)')).join('\n\n');
     if(!block.trim()) return null;
-    const sys = 'You are an IELTS speaking examiner. Below are the candidate\'s typed answers to IELTS Speaking ' + part + ' questions.\n'
-      + 'Score this part ONLY on 3 of the official dimensions (pronunciation is handled separately by the user), each 0-9 in 0.5 steps:\n'
+    const sys = 'You are an IELTS speaking examiner. Below are the candidate\'s TYPED answers to IELTS Speaking ' + part + ' questions.\n'
+      + 'Score this part ONLY on 3 of the official dimensions (pronunciation is handled separately by the user):\n'
       + '- FC (Fluency & Coherence, 流利度与连贯)\n'
       + '- LR (Lexical Resource, 词汇资源)\n'
       + '- GRA (Grammatical Range & Accuracy, 语法多样性与准确性)\n'
+      + 'VALID SCORES (only these values are allowed, 0.5 steps): 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8.\n'
+      + 'HALF-BAND RULE (official IELTS): a half band x.5 means the performance FULLY matches band x AND PARTIALLY matches band x+1. When the performance sits between two bands, you MUST give the half band — never round to a whole number.\n'
+      + 'Band descriptors (condensed from the official public version):\n'
+      + 'FC: 5=usually maintains flow but relies on repetition/self-correction/slow speech; simple speech fluent, complex communication causes fluency problems | 6=willing to speak at length though may lose coherence at times; uses connectives and discourse markers but not always appropriately | 7=speaks at length with some hesitation; develops topics coherently; uses a range of connectives with some flexibility\n'
+      + 'LR: 5=manages familiar and unfamiliar topics but vocabulary flexibility is limited; paraphrase attempts with mixed success | 6=sufficient vocabulary for lengthy discussions; meaning is clear though word choice is sometimes inappropriate | 7=vocabulary used flexibly across topics; some less common items; occasional inappropriacies\n'
+      + 'GRA: 5=basic sentence forms with reasonable accuracy; limited range of complex structures, which usually contain errors | 6=mix of short and complex sentences; errors occur in complex structures but meaning is clear | 7=range of structures; frequent error-free sentences; some errors remain\n'
+      + 'CALIBRATION anchors: typed answers with clear meaning and a mix of simple/complex sentences but noticeable errors in complex structures → GRA 6; mostly simple sentences with frequent word-order/tense errors that never block understanding → GRA 5.5; varied structures with frequent error-free sentences but recurring tense slips → GRA 6.5.\n'
       + 'Then for EACH question, list the candidate\'s genuine grammar or vocabulary errors.\n'
       + 'RULES: this is speaking, not writing — punctuation and capitalization are always correct by default, NEVER mention them; only real errors, no "you could also say / more natural" filler; one error per entry, terse; if a question has no real error, "errors" must be an empty array. Include ALL questions in "fixes".\n'
       + 'Output ONLY JSON: {"fc":x,"lr":x,"gra":x,"summary":"一句话中文简评","fixes":[{"q":"question text","errors":[{"wrong":"...","correct":"...","note":"...short reason..."}]}]}. Do not output anything else.';
