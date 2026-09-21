@@ -2884,6 +2884,45 @@ function prefetchAll(curId){
    ready(fn) 在 readyState 已 interactive 时会同步执行 —— 若常量声明在文件末尾，
    同步执行那一刻它们还在 TDZ 里，访问即抛 ReferenceError（且被 initOnboarding 的 try 吞掉，
    表现为「引导死活不弹」）。同理：任何在启动流程里被同步用到的 const/let 都要写在启动块之前。 */
+/* ===== design/80 PWA 安装引导（加固版） =====
+   前提核实：manifest（start_url / display:standalone / 3 图标含 maskable）、SW 注册、图标**全已现成**，
+   她桌面也装过一次 PWA。所以本条不是「从零做安装能力」，只补「想装但不知道怎么装」的缺口。
+   ⭐ 三原则：① 只放设置页（新增浮动/交互默认被砍）；② 已装就彻底隐藏（不给点了没反应的按钮）；
+   ③ beforeinstallprompt 事件对象只能用一次 → 用完立刻清空，二次 prompt() 会 reject。
+   ⚠️ _deferredPrompt 必须在启动块之前声明：defer 脚本里 ready(fn) 会同步执行（TDZ 铁律）。 */
+let _deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  try{ e.preventDefault(); }catch(_){}          // 拦掉浏览器 mini-infobar，改由设置页自己给入口
+  _deferredPrompt = e;
+  try{ document.dispatchEvent(new CustomEvent('hub:pwa-available')); }catch(_){}
+});
+window.addEventListener('appinstalled', () => {
+  _deferredPrompt = null;                        // 已装：事件作废，卡片交给设置页隐藏
+  try{ document.dispatchEvent(new CustomEvent('hub:pwa-installed')); }catch(_){}
+});
+function hubPwaState(){
+  try{
+    const standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+      || window.navigator.standalone === true;
+    if(standalone) return 'installed';           // 已装：直接隐藏整块，绝不留死按钮
+    if(_deferredPrompt) return 'promptable';
+    const ua = navigator.userAgent || '';
+    const iOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && (navigator.maxTouchPoints || 0) > 1);
+    if(iOS) return 'ios-manual';                 // iOS 永远没有该事件，只能文字引导
+    return 'unsupported';
+  }catch(e){ return 'unsupported'; }
+}
+async function hubPwaInstall(){
+  const p = _deferredPrompt;
+  if(!p) return 'none';
+  _deferredPrompt = null;                        // ⭐ 该事件对象只能用一次，调 prompt 前先作废引用
+  try{
+    p.prompt();
+    const r = await p.userChoice;
+    return (r && r.outcome) || 'dismissed';
+  }catch(e){ return 'error'; }
+}
+
 const ONB_KEY = 'hub_onboarding_v1';
 const ONB_GOTO_BANK = 'hub_onb_goto_bank';   // 「去导入词库」跳转 practice.html 的一次性暗号（sessionStorage）
 /* 「老用户判定」只看个人内容字段，绝不能把随 data.js 自带的官方内容算进来：

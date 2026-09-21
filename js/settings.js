@@ -33,6 +33,8 @@ function populateSettingsForm(){
 ready(() => {
   populateSettingsForm();
   renderSyncState();
+  renderPwaCard();
+  bindPwaCard();
 
   $('#saveSettings').addEventListener('click', saveSettings);
   $('#saveRelay').addEventListener('click', saveRelay);
@@ -139,6 +141,51 @@ function saveSettings(){
   }
   if(DATA.settings.syncCode) scheduleCloudUpload();   // 已登录则立即同步（含发音分等）到云端
   toast(DATA.settings.syncCode ? '设置已保存（已同步云端）' : '设置已保存');   // 未登录不谎报「已同步」
+}
+
+/* ===== design/80 安装到桌面（四态渲染，只放设置页） =====
+   installed → 整块隐藏（她桌面已装，绝不给点了没反应的死按钮）；
+   promptable → 给按钮，点一下弹系统安装框（beforeinstallprompt 事件只能用一次，用完即废）；
+   ios-manual → 三步文字教程（iOS 永远没有该事件），文案不写死按钮名，只描述「方框带向上箭头」；
+   unsupported → 一行灰字提示，**不给按钮**（给假按钮点了没反应最伤）。 */
+function renderPwaCard(){
+  const card = document.getElementById('pwaCard');
+  if(!card || typeof hubPwaState !== 'function'){ if(card) card.hidden = true; return; }
+  const hint = document.getElementById('pwaHint');
+  const btn = document.getElementById('pwaInstallBtn');
+  const steps = document.getElementById('pwaSteps');
+  const actions = document.getElementById('pwaActions');
+  const st = hubPwaState();
+  if(st === 'installed'){ card.hidden = true; return; }
+  card.hidden = false;
+  if(actions) actions.hidden = (st !== 'promptable');
+  if(btn) btn.hidden = (st !== 'promptable');
+  if(steps) steps.hidden = (st !== 'ios-manual');
+  if(st === 'promptable'){
+    if(hint) hint.textContent = '把本站装到桌面，像 App 一样打开（离线也能进）。';
+    if(steps) steps.innerHTML = '';
+  } else if(st === 'ios-manual'){
+    if(hint) hint.textContent = 'iPhone / iPad 上请用 Safari 的「分享」按钮添加到主屏幕：';
+    if(steps) steps.innerHTML = ''
+      + '<li>点<b>分享</b>按钮（方框带向上箭头）</li>'
+      + '<li>在菜单里选<b>添加到主屏幕</b></li>'
+      + '<li>确认名称后点<b>添加</b></li>'
+      + '<li class="muted">不同 iOS 版本位置可能略有差异；装完从主屏幕打开后本节会自动隐藏</li>';
+  } else {
+    if(hint) hint.textContent = '当前浏览器未给出安装入口；可通过浏览器菜单里的「安装应用 / 添加到桌面」来安装。';
+    if(steps) steps.innerHTML = '';
+  }
+}
+function bindPwaCard(){
+  const btn = document.getElementById('pwaInstallBtn');
+  if(btn) btn.addEventListener('click', async () => {
+    const r = (typeof hubPwaInstall === 'function') ? await hubPwaInstall() : 'none';
+    if(r === 'accepted') toast('正在添加到桌面…');
+    else if(r === 'error' || r === 'none') toast('浏览器未响应安装，可用浏览器菜单里的「安装应用」');
+    renderPwaCard();
+  });
+  document.addEventListener('hub:pwa-available', renderPwaCard);
+  document.addEventListener('hub:pwa-installed', () => { toast('已添加到桌面'); renderPwaCard(); });
 }
 
 function saveRelay(){

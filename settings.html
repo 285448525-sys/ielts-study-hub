@@ -9,7 +9,7 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>设置 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20260921g" />
+<link rel="stylesheet" href="css/common.css?v=20260921h" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=6" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=6">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=6">
@@ -20,8 +20,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20260921f"></script>
-  <script defer src="js/common.js?v=20260921g"></script>
-  <script src="js/settings.js?v=20260921f" defer></script>
+  <script defer src="js/common.js?v=20260921h"></script>
+  <script src="js/settings.js?v=20260921h" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -152,6 +152,16 @@
       <button class="btn btn-sm" id="resetBtn" style="margin-left:auto;color:var(--danger);background:var(--danger-soft);border-color:transparent">清空所有数据</button>
     </div>
     <div id="importErr" class="ui-err-box" style="margin-top:10px"></div>
+  </section>
+
+  <!-- design/80：安装到桌面（只放设置页；已装/不支持时由 settings.js 整块隐藏，不留死按钮） -->
+  <section class="card" id="pwaCard" hidden>
+    <h2>安装到桌面</h2>
+    <p class="muted" id="pwaHint" style="margin:0 0 10px"></p>
+    <div id="pwaActions" style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-sm" id="pwaInstallBtn" hidden>安装到桌面</button>
+    </div>
+    <ol class="pwa-steps" id="pwaSteps" hidden></ol>
   </section>
 </main>
 
