@@ -25,7 +25,8 @@ function populateSettingsForm(){
   if($('#sFlu')) $('#sFlu').value = (s.fluencyScore != null ? s.fluencyScore : '');
   if($('#sRelayToken')) $('#sRelayToken').value = s.relayToken || '';
   if($('#sChime')) $('#sChime').checked = s.chimeOnDone !== false;
-  if($('#sAdhd')) $('#sAdhd').checked = (typeof medsModuleOn === 'function') ? medsModuleOn() : true;
+  // 9/21 翻转：服药模块默认关闭 → 无该函数时兜底 false（与 common.js 口径一致）
+  if($('#sAdhd')) $('#sAdhd').checked = (typeof medsModuleOn === 'function') ? medsModuleOn() : false;
   if($('#sSyncCode')) $('#sSyncCode').value = s.syncCode || '';
 }
 

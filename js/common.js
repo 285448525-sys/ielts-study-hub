@@ -41,7 +41,9 @@ const DEFAULT_FAV = ['timer','practice','speaking'];
 /* 服药模块开关（9/15 之之：设置页「我是 ADHD」→ 选是才启用服药模块）。
    默认开启 = 历史用户已有入口，不因新增开关而凭空消失；关闭后入口从侧栏/更多/搜索/收藏全部隐藏，
    已记录的服药数据一律保留，随时可再开启。判定只认显式 false，undefined/true 都算开。 */
-function medsModuleOn(){ return !(DATA.settings && DATA.settings.adhd === false); }
+/* 服药模块开关：判定只认显式 true，undefined/false 都算关（9/21 翻转：ADHD 专属模块默认不对新人露出）。
+   老用户（已有服药记录）由 data.js migrateMedsDefault 一次性显式开启。已记录数据一律保留，随时可再开启。 */
+function medsModuleOn(){ return !!(DATA.settings && DATA.settings.adhd === true); }
 function favPageIds(){
   const f = DATA.settings && DATA.settings.fav;
   const list = (f && f.length) ? f : DEFAULT_FAV.slice();

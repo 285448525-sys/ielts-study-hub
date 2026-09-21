@@ -1102,6 +1102,17 @@ function hubLoad(){
       if(_dmig) hubSave();
     }
     if(!DATA.settings || typeof DATA.settings !== 'object') DATA.settings = {};
+    // 服药模块默认值翻转（9/21）：新人默认关闭；升级前已记录过服药的老用户（站长本人）一次性显式开启，
+    // 防止升级后入口消失。只处理 adhd===undefined；用户显式 false（主动关过）必须尊重，不覆盖。
+    (function migrateMedsDefault(){
+      if(DATA.settings.adhd !== undefined) return;
+      if(Array.isArray(DATA.meds) && DATA.meds.length > 0){
+        DATA.settings.adhd = true;
+        if(!DATA.settings._fieldTs || typeof DATA.settings._fieldTs !== 'object') DATA.settings._fieldTs = {};
+        DATA.settings._fieldTs.adhd = Date.now();   // 与 settings.js 保存口径一致，防止云同步被旧值覆盖
+        hubSave();
+      }
+    })();
     // 口语题库版本控制（2026-08-23 重构：根治「升版本吞用户答案」）：
     //   以官方 SPEAKING_BANK（官方题库纯题目，题数以数组实际为准）为唯一基准，绝不整锅替换。
     //   合并规则：官方题永远保留；用户本地同 id 题的「个人内容」(answers/串题答案/练习 records)

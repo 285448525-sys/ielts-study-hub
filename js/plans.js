@@ -96,8 +96,11 @@ async function aiPlanItem(){
   const targetStr = '听' + (t.listening||'?') + '/读' + (t.reading||'?') + '/写' + (t.writing||'?') + '/口' + (t.speaking||'?');
   const cd = examCountdown();
   const dLeft = cd.daysLeft;
+  // 9/21：服药模块关闭时 AI prompt 不再拼服药上下文（此前无条件拼接，会把「专注达」发给无关用户）
+  const medOn = (typeof medsModuleOn === 'function') ? medsModuleOn() : false;
   const medToday = (DATA.meds || []).filter(m => m.date === todayKey()).sort((a,b)=>b.ts-a.ts)[0];
-  const medStr = medToday ? ('今天已服专注达，药效窗口参考服药时间') : '今天未记录专注达';
+  const medStr = !medOn ? ''
+    : (medToday ? '今天已服专注达，药效窗口参考服药时间' : '今天未记录专注达');
 
   const sys = '你是雅思备考日计划教练。考生会写一句话描述今天想完成的目标，常使用她自己的缩写习惯（L=听力篇数、R=阅读篇数）。请读懂考生真实意图，仅对用户明确提到的目标进行拆分与排序，生成今日任务清单。\n'
     + '\n'
@@ -124,7 +127,7 @@ async function aiPlanItem(){
     + '\n\n弱项排序（差得最多在前）：' + weakStr
     + '\n最近模考：' + latestStr + '\n目标：' + targetStr
     + (dLeft !== null && dLeft > 0 ? '\n距考试 ' + dLeft + ' 天' : '')
-    + '\n' + medStr
+    + (medStr ? '\n' + medStr : '')   // 模块关闭时完全不追加（留 '\n' 会喂给 AI 一行空噪声）
     + '\n\n请帮我安排今天的学习任务（JSON 数组），只输出任务名称，不要时间段和括号说明；考生明确说出的时长（如"背单词 40 分钟"）必须保留在任务名里，没说时长的任务不要编造时长。';
 
   const btn = $('#aiPlan');
