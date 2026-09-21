@@ -857,6 +857,15 @@ const SPEAKING_BANK = [
  *       bump 后强制跑一次 mergeSpeakingKeepAnswers：官方题全量补回，用户答案/串题按 id 保留。 */
 const SPEAKING_BANK_VERSION = 12;
 
+/* 口语题库元信息（design/81）：换库时只改 VERSION + META 两处，页面 banner 与题数全部现算，
+   不再在 speaking.html 里硬编码季度/日期/题数（硬编码必然随换库过期）。 */
+const SPEAKING_BANK_META = {
+  season: '2026 年 9–12 月',
+  region: '大陆考区',
+  updated: '2026-09-15',
+  note: '非大陆考区题已剔除，万年老题同义问法已合并；档位：超高频（原必考题）→ 高频 → 中频，本季低频题已出库。优先练超高频与高频，中频按需。'
+};
+
 /* 口语合并：以官方 SPEAKING_BANK 为基准，保留用户个人内容、丢弃非官方题。
    入参 localSpeaking = 用户本地/导入的口语数组（可能含旧 100+ 题、框架母本、已填 answers）。
    返回 = 与官方题库一一对应的新数组，仅回填用户同 id 题的个人内容（answers/串题答案/练习 records），

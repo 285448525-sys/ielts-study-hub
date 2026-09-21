@@ -41,12 +41,12 @@
 
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
-  <script defer src="js/data.js?v=20260921f"></script>
+  <script defer src="js/data.js?v=20260921j"></script>
   <script defer src="js/common.js?v=20260921i"></script>
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
   <script defer src="js/sentence-drill.js?v=20260920a"></script>
-  <script defer src="js/speaking.js?v=20260921i"></script>
+  <script defer src="js/speaking.js?v=20260921j"></script>
   <script defer src="js/materials.js?v=20260921i"></script>
   <script defer src="js/mock-report.js?v=20260830u"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
@@ -184,6 +184,21 @@
   .sp-filter{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--muted);font-weight:600}
   .sp-select{padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);font:inherit;font-size:14px;background:var(--surface);color:var(--ink);min-width:150px;cursor:pointer;transition:border-color .15s,box-shadow .15s}
   .sp-select:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-soft);outline:none}
+  /* design/81：随机抽题按钮（贴筛选行右侧，窄屏自动换行不挤压）；P3 二次确认警示态 */
+  .sp-random{margin-left:auto;padding:10px 16px;font-size:13.5px;font-weight:600;white-space:nowrap}
+  #p3GenBtn.confirming{border-color:var(--warn);color:var(--warn)}
+  .sp-confirm-cancel{border:0;background:none;color:var(--muted);cursor:pointer;font:inherit;font-size:12.5px;padding:4px 8px}
+  .sp-confirm-cancel:hover{color:var(--ink)}
+  /* design/81：空依赖引导卡（无 Key / 无素材时出现在结果区，替代一闪而过的 toast） */
+  .sp-guide{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow)}
+  .sp-guide-title{font-size:14px;font-weight:700;color:var(--ink);line-height:1.5}
+  .sp-guide-desc{font-size:12.5px;line-height:1.7;color:var(--muted);margin-top:5px}
+  .sp-guide-actions{display:flex;gap:8px;margin-top:10px}
+  .sp-guide-btn{min-height:0;padding:6px 14px;font-size:12.5px;font-weight:600;border-radius:999px}
+  /* design/81：串题稿工具条（复制英文稿 / 朗读全文）；.mat-plan-head 本身已是 flex（见下方面板区），这里只加工具条 */
+  .mp-actions{display:inline-flex;gap:6px;margin-left:auto}
+  .mp-btn{min-height:0;padding:3px 10px;font-size:12px;font-weight:600;border-radius:999px;white-space:nowrap}
+  .mp-btn.playing{color:var(--warn);border-color:var(--warn)}
 
   .sp-score-badge{font-size:12px;padding:2px 8px;border-radius:10px;margin-left:8px;vertical-align:1px;white-space:nowrap}
   .sp-score-badge.good{background:var(--primary-soft);color:var(--med)}
@@ -404,7 +419,7 @@
 
   /* === AI 串题方案面板 === */
   .mat-plan{margin-top:12px;padding:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);font-size:14px;line-height:1.8}
-  .mat-plan-head{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700;color:var(--primary);margin-bottom:10px}
+  .mat-plan-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:15px;font-weight:700;color:var(--primary);margin-bottom:10px}
   .mat-plan-mats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
   .mat-plan-mat{font-size:12px;padding:3px 10px;border-radius:20px;background:var(--primary-soft);color:var(--med);border:1px solid var(--line)}
   .mat-plan-step{margin-bottom:12px;padding-bottom:10px;border-bottom:1px dashed var(--line)}
@@ -669,9 +684,8 @@
 
   <!-- 列表视图 -->
   <div id="listView">
-    <div class="sp-banner" id="freqBanner">
-      <b>本季口语题库 9-12 月版 · 2026-09-15 更新</b>：2026 年 9-12 月<b>大陆考区</b>题库（<b>83 题：Part 1 共 31 · Part 2 共 52</b>；非大陆考区题已剔除，万年老题同义问法已合并），旧季度不在新库的题已自动移除。档位：<b>超高频（原必考题）→ 高频 → 中频</b>，本季低频题已按你的要求出库。优先练超高频与高频，中频按需。
-    </div>
+    <!-- design/81：季度 banner 数据化——内容由 speaking.js 从 SPEAKING_BANK_META + 题库现算渲染，此处仅留容器 -->
+    <div class="sp-banner" id="freqBanner"></div>
 
     <div class="sp-filters">
       <label class="sp-filter"><span>优先级</span>
@@ -695,6 +709,7 @@
           <option value="P2">Part 2</option>
         </select>
       </label>
+      <button class="btn sp-random" id="spRandomBtn" type="button" title="在当前筛选结果里随机抽一道题开练">🎲 随机来一道</button>
     </div>
 
     <input class="sp-search" id="spSearch" placeholder="搜索题目…" />

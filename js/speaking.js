@@ -169,6 +169,30 @@ function spActivateTab(type){
   $('#tabs').querySelectorAll('[data-type]').forEach(x => x.classList.toggle('active', x.dataset.type === type));
 }
 
+/* 季度 banner 数据化渲染（design/81）：season/region/updated/note 取自 SPEAKING_BANK_META，
+   P1/P2 题数从 DATA.speaking 现算（与列表同口径：剔 framework/旧母本）。
+   在 ready() 里调用——此时 hubLoad 的 mergeSpeakingKeepAnswers 已跑完，题数准确。 */
+function renderFreqBanner(){
+  const el = document.getElementById('freqBanner');
+  if(!el) return;
+  const M = (typeof SPEAKING_BANK_META !== 'undefined') ? SPEAKING_BANK_META : {};
+  const bank = (DATA.speaking || []).filter(s => s && !s.framework && !/^sp_p[12]_\d+$/.test(s.id || ''));
+  const c1 = bank.filter(s => s.type === 'P1').length;
+  const c2 = bank.filter(s => s.type === 'P2').length;
+  el.innerHTML = '<b>本季口语题库 ' + escapeHtml(M.season || '') + (M.region ? ' · ' + escapeHtml(M.region) : '') + '版'
+    + (M.updated ? ' · ' + escapeHtml(M.updated) + ' 更新</b>' : '</b>')
+    + '：<b>' + (c1 + c2) + ' 题：Part 1 共 ' + c1 + ' · Part 2 共 ' + c2 + '</b>' + (M.note ? '。' + escapeHtml(M.note) : '');
+}
+
+/* 题库「随机来一道」（design/81）：与 renderList 完全相同的过滤口径，随机开一道详情。
+   复用 openDetail = 与点卡片完全同路径（回填/TTS/事件绑定同源渲染）。 */
+function spRandomPick(){
+  const list = getFiltered();
+  if(!list.length){ toast('当前筛选下没有题目'); return; }
+  const pick = list[Math.floor(Math.random() * list.length)];
+  if(pick && pick.id) openDetail(pick.id);
+}
+
 ready(() => {
   $('#tabs').querySelectorAll('[data-type]').forEach(b => {
     b.addEventListener('click', () => {
@@ -231,6 +255,9 @@ ready(() => {
     if(o2) o2.textContent = 'Part 2（' + c2 + ' 题）';
   })();
   $('#spSearch').addEventListener('input', () => { curSearch = $('#spSearch').value.trim().toLowerCase(); renderList(); });
+  const rndBtn = document.getElementById('spRandomBtn');
+  if(rndBtn) rndBtn.addEventListener('click', () => spRandomPick());
+  renderFreqBanner();   // design/81：季度 banner 数据化（此时题库合并已完成，题数现算）
   $('#backBtn').addEventListener('click', () => { $('#detailView').hidden = true; $('#listView').hidden = false; $('#sentView').hidden = true; $('#pdView').hidden = true; curDetailId = null; spActivateTab('BANK'); });
   // 默认 tab = 练习：__SENT_V2_ON 时为句型页（sentence-drill.js 接管），否则老 pdView
   $('#listView').hidden = true;
@@ -786,12 +813,57 @@ function openDetail(id){
       e.stopPropagation();
       const p2Text = getP2TextForP3();
       if(!p2Text){ toast('请先在 P2 答题框写点东西，再生成 P3 追问'); return; }
-      if(!DATA.settings.relayToken){ toast('请先在「设置」配置 DeepSeek Key'); return; }
+      if(!DATA.settings.relayToken){
+        // design/81：无 Key 给引导卡（替代纯 toast）
+        const area0 = $('#p3Area'); if(area0) area0.hidden = false;
+        const list0 = $('#p3List');
+        if(list0){
+          list0.innerHTML = spGuideCardHtml('AI 追问需要 DeepSeek Key',
+            'P3 追问题由 AI 根据你的 P2 回答生成，只需在设置里填你自己的 DeepSeek Key。',
+            spKeyGuideBtn());
+        }
+        toast('请先在「设置」配置 DeepSeek Key');
+        return;
+      }
       const p3 = ensureP3();
-      // 已有题：提示重新生成会清空当前题目与回答，确认才重出
+      // 已有题：内联两步确认（design/81，替代原生 confirm）——第一次点变「再点一次确认清空」，
+      // 3 秒内未再点自动还原；第二次点才真正清空重出。点「取消」或超时零数据变化。
+      if(p3.questions.length && !p3GenBtn.dataset.confirming){
+        const orig = p3GenBtn.innerHTML;
+        clearTimeout(p3GenBtn._confirmT);
+        p3GenBtn.dataset.confirming = '1';
+        p3GenBtn.classList.add('confirming');
+        p3GenBtn.innerHTML = '<span class="sp-confirm-txt">再点一次确认清空</span>';
+        const cancel = document.createElement('button');
+        cancel.className = 'btn btn-sm sp-confirm-cancel';
+        cancel.type = 'button';
+        cancel.textContent = '取消';
+        cancel.addEventListener('click', ev => {
+          ev.stopPropagation();
+          clearTimeout(p3GenBtn._confirmT);
+          p3GenBtn.innerHTML = orig;
+          delete p3GenBtn.dataset.confirming;
+          p3GenBtn.classList.remove('confirming');
+          if(cancel.parentNode) cancel.parentNode.removeChild(cancel);
+        });
+        p3GenBtn.parentNode.insertBefore(cancel, p3GenBtn.nextSibling);
+        p3GenBtn._confirmT = setTimeout(() => {
+          if(cancel.parentNode) cancel.parentNode.removeChild(cancel);
+          p3GenBtn.innerHTML = orig;
+          delete p3GenBtn.dataset.confirming;
+          p3GenBtn.classList.remove('confirming');
+        }, 3000);
+        return;
+      }
+      // 第二次点击（确认）或首次无旧题：清理确认态后走原有生成流程
+      if(p3GenBtn.dataset.confirming){
+        clearTimeout(p3GenBtn._confirmT);
+        delete p3GenBtn.dataset.confirming;
+        p3GenBtn.classList.remove('confirming');
+        const cc = p3GenBtn.parentNode && p3GenBtn.parentNode.querySelector('.sp-confirm-cancel');
+        if(cc) cc.parentNode.removeChild(cc);
+      }
       if(p3.questions.length){
-        const ok = window.confirm('重新生成 P3 追问会清空当前已有的题目和你的回答，确定要重新生成吗？');
-        if(!ok) return;
         // 清空旧数据，从第 0 题重新出
         p3.questions = []; p3.answers = []; p3.aiHelper = [];
         const list = $('#p3List'); if(list) list.innerHTML = '';
@@ -1011,18 +1083,54 @@ function storyWordBudget(){
   return { target: t, min: 120, max: 140 };
 }
 
+/* 空依赖引导卡（design/81）：AI 功能撞到「没配 Key / 没素材」时给一张可点的下一步卡片，
+   替代一闪而过的 toast。btnHtml 由调用方传入（内部已 escape / 固定文案，不再二次处理）。 */
+function spGuideCardHtml(title, desc, btnHtml){
+  return '<div class="sp-guide"><div class="sp-guide-title">' + escapeHtml(title) + '</div>'
+    + '<div class="sp-guide-desc">' + desc + '</div>'
+    + (btnHtml ? '<div class="sp-guide-actions">' + btnHtml + '</div>' : '')
+    + '</div>';
+}
+function spKeyGuideBtn(){ return '<a class="btn btn-primary sp-guide-btn" href="settings.html">去设置填写</a>'; }
+/* 无素材引导卡的「去素材生成」：复用顶部 pill-tabs 的 MAT 按钮（点它 = 走现有切换入口，不另写切换） */
+function spBindMatGuideBtn(el){
+  const b = el && el.querySelector('#spGoMatBtn');
+  if(!b) return;
+  b.addEventListener('click', () => {
+    const tab = document.querySelector('#tabs [data-type="MAT"]');
+    if(tab) tab.click();
+  });
+}
+
 async function aiStoryLink(id){
   const s = DATA.speaking.find(x => x.id === id);
   if(!s) return;
-  if(!DATA.settings.relayToken){ toast('请先在「设置 / AI 接口」配置 API Key'); return; }
+  const resultEl = $('#aiResult');
 
+  // 无 Key / 无素材：不再 toast 一闪而过，直接在结果区给可点引导卡（design/81）
+  if(!DATA.settings.relayToken){
+    if(resultEl){
+      resultEl.innerHTML = spGuideCardHtml('AI 串题需要 DeepSeek Key',
+        '串题思路由 AI 根据你的万能素材生成，本站不内置 Key：只需在设置里填你自己的 DeepSeek Key，Key 只存在这台设备的浏览器里。',
+        spKeyGuideBtn());
+      resultEl.style.display = 'block';
+    }
+    toast('请先在「设置 / AI 接口」配置 API Key');
+    return;
+  }
   const store = matLoadStore();
   if(!store || !store.materials || !store.materials.length){
+    if(resultEl){
+      resultEl.innerHTML = spGuideCardHtml('还没有万能素材',
+        '先去素材 tab 用几段真实经历生成你的故事卡，之后每道 P2 都能自动串题。',
+        '<button class="btn btn-primary sp-guide-btn" id="spGoMatBtn" type="button">去素材生成</button>');
+      resultEl.style.display = 'block';
+      spBindMatGuideBtn(resultEl);
+    }
     toast('还没有万能素材，先去「素材」页生成');
     return;
   }
 
-  const resultEl = $('#aiResult');
   resultEl.style.display = 'block';
   resultEl.innerHTML = '<div class="diag-note">正在根据你的万能素材库自动匹配串题方案…</div>';
 
@@ -1114,11 +1222,67 @@ function mdInline(t){
   return escapeHtml(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
 }
 
+/* 串题稿 → 可复制/可朗读的纯英文全文（design/81）。
+   只取英文字段，中文的逻辑链 / 映射讲解一律不带（复制到备忘录里背时不需要，也避免中英混排）。
+   挂 window 便于探针单测。 */
+window.buildStoryPlainText = function(j){
+  if(!j || typeof j !== 'object') return '';
+  const parts = [];
+  const push = v => { const t = String(v == null ? '' : v).trim(); if(t) parts.push(t); };
+  const pushArr = a => { if(Array.isArray(a)) a.forEach(x => push(x)); };
+  if(j.article){
+    // 老结构：整段 article 即为正文
+    push(j.article);
+  } else {
+    push(j.openEn);
+    push(j.bridgeEn);
+    pushArr(j.bodyEn);
+    pushArr(j.feelEn);
+  }
+  let out = parts.join('\n');
+  if(Array.isArray(j.paddingEn) && j.paddingEn.length){
+    const pad = j.paddingEn.map(x => String(x == null ? '' : x).trim()).filter(Boolean);
+    if(pad.length) out += (out ? '\n\n' : '') + '【加时必背句】\n' + pad.join('\n');
+  }
+  return out.trim();
+};
+
+/* 复制：优先 navigator.clipboard，不可用时退回 textarea + execCommand（http/旧浏览器兜底） */
+function copyTextFallback(text){
+  try{
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '-1000px';
+    document.body.appendChild(ta);
+    ta.select();
+    const okd = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return !!okd;
+  }catch(e){ return false; }
+}
+function copyStoryText(text){
+  const done = () => toast('已复制英文稿，可粘贴去背');
+  const fail = () => toast('复制失败，可长按选中文本手动复制');
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(done, () => { copyTextFallback(text) ? done() : fail(); });
+      return;
+    }
+  }catch(e){}
+  copyTextFallback(text) ? done() : fail();
+}
+
 function renderStoryLink(el, j){
   if(!el) return;
   const CHAIN = { '人物':'人物链：是谁→如何得知→做了什么→为什么→感受', '事件':'事件链：时间→地点→人物→经过→感受', '事物':'事物链：是什么→如何得到→感受', '地点':'地点链：位置→如何得知→做了什么→为什么→感受' };
   let h = '<div class="mat-plan">';
-  h += '<div class="mat-plan-head">🧩 串题素材（AI 根据万能故事库匹配）</div>';
+  h += '<div class="mat-plan-head">🧩 串题素材（AI 根据万能故事库匹配）'
+    + '<span class="mp-actions">'
+    + '<button class="btn btn-sm mp-btn" id="storyCopyBtn" type="button">📋 复制英文稿</button>'
+    + '<button class="btn btn-sm mp-btn" id="storySpeakBtn" type="button">▶ 朗读全文</button>'
+    + '</span></div>';
   if(j.article){
     // 老结构（本期改版前已生成的数据）：维持原三块渲染，不得让历史串题变空白
     if(j.logicChain) h += '<div class="mat-plan-sec"><b>串题逻辑</b><div class="mat-logic">' + escapeHtml(j.logicChain) + '</div></div>';
@@ -1155,6 +1319,50 @@ function renderStoryLink(el, j){
   h += '</div>';
   el.innerHTML = h;
   el.style.display = 'block';
+  bindStoryTools(el, j);
+}
+
+/* 串题稿工具条：复制英文稿 / 朗读全文（新老结构都挂，文本统一走 buildStoryPlainText） */
+function bindStoryTools(el, j){
+  if(!el) return;
+  const copyBtn = el.querySelector('#storyCopyBtn');
+  const speakBtn = el.querySelector('#storySpeakBtn');
+  const getText = () => (typeof window.buildStoryPlainText === 'function') ? window.buildStoryPlainText(j) : '';
+  if(copyBtn) copyBtn.addEventListener('click', () => {
+    const t = getText();
+    if(!t){ toast('这份串题稿没有可复制的英文'); return; }
+    copyStoryText(t);
+  });
+  if(speakBtn) speakBtn.addEventListener('click', () => {
+    const t = getText();
+    if(!t){ toast('这份串题稿没有可朗读的英文'); return; }
+    if(speakBtn.classList.contains('playing')){ speakQuestion.stop(); resetSpeakBtn(speakBtn); return; }
+    speakBtn.classList.add('playing');
+    speakBtn.textContent = '■ 停止';
+    try{
+      // speakQuestion.speak 内部先 cancel，重复点击不会叠加朗读；但它不返回 utterance，
+      // 用「轮询 speechSynthesis 状态」感知结束（含点停止的 cancel），结束后还原文案。
+      speakQuestion.speak(t, speakBtn);
+      watchSpeakEnd(speakBtn);
+    }catch(e){ resetSpeakBtn(speakBtn); toast('朗读失败：' + e.message); }
+  });
+}
+/* 轮询朗读状态：speechSynthesis 不再说（播完 / 被 stop 的 cancel）→ 还原按钮。
+   首查延迟 ~350ms：speak() 调用后 speaking 标志需一拍才置位，立即查会误判成"没在播"。 */
+function watchSpeakEnd(btn){
+  if(!btn || !btn.isConnected) return;
+  setTimeout(() => {
+    if(!btn.isConnected) return;
+    let speaking = false;
+    try{ speaking = typeof speechSynthesis !== 'undefined' && !!(speechSynthesis.speaking || speechSynthesis.pending); }catch(e){}
+    if(!speaking){ resetSpeakBtn(btn); return; }
+    watchSpeakEnd(btn);
+  }, 350);
+}
+function resetSpeakBtn(btn){
+  if(!btn) return;
+  btn.classList.remove('playing');
+  btn.textContent = '▶ 朗读全文';
 }
 
 /* === P3 逐题追问渲染 ===
@@ -1660,8 +1868,15 @@ async function diagnoseAnswer(id, qi, questionText, answerText){
     hubSave();
     refreshScoreAfterDiag(s);
   }catch(e){
+    // design/81：缺 Key 撞墙给引导卡（可点去设置），其他错误维持原文案
     if(resultEl){
-      resultEl.innerHTML = '<div class="diag-note">AI 服务暂不可用：' + escapeHtml(e.message) + '\n\n请检查「设置」中的 AI 接口地址。</div>';
+      if(String(e.message || '').indexOf('未配置 API Key') !== -1){
+        resultEl.innerHTML = spGuideCardHtml('AI 纠错需要 DeepSeek Key',
+          '诊断打分由 AI 完成，本站不内置 Key：在设置里填你自己的 DeepSeek Key 即可，Key 只存在这台设备。',
+          spKeyGuideBtn());
+      } else {
+        resultEl.innerHTML = '<div class="diag-note">AI 服务暂不可用：' + escapeHtml(e.message) + '\n\n请检查「设置」中的 AI 接口地址。</div>';
+      }
       resultEl.style.display = 'block';
     }
     toast('AI 诊断失败：' + e.message);
@@ -1753,7 +1968,14 @@ async function diagnoseP2(id){
     }, (i) => removeSubmitRecord(s, 'p2', i));
 
   }catch(e){
-    resultEl.innerHTML = '<div class="diag-note">AI 服务暂不可用：' + escapeHtml(e.message) + '</div>';
+    // design/81：缺 Key 撞墙给引导卡，其他错误维持原文案
+    if(String(e.message || '').indexOf('未配置 API Key') !== -1){
+      resultEl.innerHTML = spGuideCardHtml('AI 纠错需要 DeepSeek Key',
+        '诊断打分由 AI 完成，本站不内置 Key：在设置里填你自己的 DeepSeek Key 即可，Key 只存在这台设备。',
+        spKeyGuideBtn());
+    } else {
+      resultEl.innerHTML = '<div class="diag-note">AI 服务暂不可用：' + escapeHtml(e.message) + '</div>';
+    }
     resultEl.style.display = 'block';
     toast('AI 纠错失败：' + e.message);
   }finally{

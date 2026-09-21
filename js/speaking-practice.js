@@ -40,7 +40,10 @@
   function scoreHeader(score) {
     if (!score || score.overall == null) return '';
     const label = v => (v == null ? '—' : (Math.round(v * 10) / 10).toFixed(v % 1 === 0 ? 0 : 1));
-    const dims = [['fluency', '流利度'], ['vocabulary', '词汇'], ['grammar', '语法']];
+    // 口径（design/81）：语法/词汇永远显示（AI 必评）；流利度/发音只有自填了固定分才有值，
+    // null 的死格只会永远显示「—」，直接不放。
+    const dims = [['vocabulary', '词汇'], ['grammar', '语法']];
+    if (score.fluency != null) dims.unshift(['fluency', '流利度']);
     if (score.pronunciation != null) dims.push(['pronunciation', '发音']);
     let h = '<div class="sp-score-header"><div class="sp-score-total"><span class="sp-score-num">' + label(score.overall) + '</span><span class="sp-score-label">得分</span></div><div class="sp-score-dims">';
     dims.forEach(d => { h += '<div class="sp-score-dim"><span class="sp-score-dim-val">' + label(score[d[0]]) + '</span><span class="sp-score-dim-lab">' + d[1] + '</span></div>'; });
