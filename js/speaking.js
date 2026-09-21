@@ -571,7 +571,9 @@ function openDetail(id){
   if(s.type === 'P2'){
     html += '<div class="sp-story-head">';
     html += '<span class="sp-story-title">串题素材（逻辑 + 原文）</span>';
-    html += '<button class="btn btn-med" id="aiStoryLinkBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>AI 串题思路</button>';
+    // 已有串题结果 → 按钮文案变「重新生成…」，让她一眼看出这题已经串过（SVG 图标保留）
+    const linkLabel = (s.answers && s.answers.p2 && s.answers.p2.aiStoryLink) ? '重新生成串题思路' : 'AI 串题思路';
+    html += '<button class="btn btn-med" id="aiStoryLinkBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>' + linkLabel + '</button>';
     html += '</div>';
     html += '<div class="sp-ai-result" id="aiResult"></div>';
 
@@ -1002,9 +1004,11 @@ function matLoadStore(){
 /* === 口语目标分 → 串题稿词数预算（P1：按考生目标语速校准，目标越低语速越慢/卡顿越多，稿子越短）=== */
 function storyWordBudget(){
   const t = parseFloat(DATA.settings && DATA.settings.targets && DATA.settings.targets.speaking) || 5.5;
-  if(t >= 6.5) return { target: t, min: 115, max: 120 };
-  if(t >= 6.0) return { target: t, min: 110, max: 120 };
-  return { target: t, min: 100, max: 120 };
+  // 口径（9/21 修订）：考生慢语速约 100wpm、卡顿较多；正文(open+bridge+body+feel)目标念 70–85 秒，
+  // 其余时间靠 paddingEn 加时句补足 2 分钟。padding 是必背项不是可选项。
+  if(t >= 6.5) return { target: t, min: 140, max: 160 };
+  if(t >= 6.0) return { target: t, min: 130, max: 150 };
+  return { target: t, min: 120, max: 140 };
 }
 
 async function aiStoryLink(id){
@@ -1022,17 +1026,24 @@ async function aiStoryLink(id){
   resultEl.style.display = 'block';
   resultEl.innerHTML = '<div class="diag-note">正在根据你的万能素材库自动匹配串题方案…</div>';
 
+  // 按钮进行中态：置灰 + 「⏳ 生成中…」（SVG 图标保留，只换文字）
+  const linkBtn = document.getElementById('aiStoryLinkBtn');
+  setStoryLinkBtn(linkBtn, '⏳ 生成中…', true);
+
   try{
     // 素材优先级数据驱动（P0）：置顶（pinned）的排最前，其余按数组原序——
     // 个人素材内容绝不硬编码进源码，谁最熟由用户在素材页「置顶为最熟」自己标记
     const mats = (store.materials || []).filter(Boolean).slice().sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
-    const matsText = mats.map((m, i) =>
-      '【素材 ' + (i + 1) + '：' + (m.title || '未命名') + '】\n' +
-      '英文可背故事：' + (m.storyEn || '') + '\n' +
-      '中文逻辑链：' + (m.logicZh || '') + '\n' +
-      '万能句（任何题都能套，优先整句使用）：' + ((m.goldenEn || []).join(' | ')) + '\n' +
-      '可套题族（搭边也行）：' + (m.coverage || []).map(c => c.topic + (c.fit === 'loose' ? '(搭边:' + c.note + ')' : '')).join('、')
-    ).join('\n---\n');
+    // 分级注入（省 50–70% 输入 token）：第 1 张（最熟）发全文；第 2 张起只发摘要——
+    // 正文 storyEn 是最长的字段，多卡时 90% 的输入 token 都烧在它身上，而默认只用第 1 张的正文。
+    const matsText = mats.map((m, i) => {
+      const head = '【素材 ' + (i + 1) + '：' + (m.title || '未命名') + '】';
+      const golden = '万能句（任何题都能套，优先整句使用）：' + ((m.goldenEn || []).join(' | '));
+      const cov = '可套题族（搭边也行）：' + (m.coverage || []).map(c => c.topic + (c.fit === 'loose' ? '(搭边:' + c.note + ')' : '')).join('、');
+      const logic = '中文逻辑链：' + (m.logicZh || '');
+      if(i === 0) return head + '\n英文可背故事：' + (m.storyEn || '') + '\n' + logic + '\n' + golden + '\n' + cov;
+      return head + '（仅摘要·无英文正文）\n' + logic + '\n' + golden + '\n' + cov;
+    }).join('\n---\n');
 
     // 把语料库写进 system（而非仅 user），弱模型读漏就会编，写死为唯一积木更稳
     const wb = storyWordBudget();
@@ -1045,13 +1056,14 @@ async function aiStoryLink(id){
       '【铁律】',
       '1. 素材优先级：默认使用第一个素材（考生最熟的素材）。该素材完全套不上本题时，才依次向后换下一个。其他素材可借 1~2 个完整句子（严禁借用其他卡的 goldenEn 万能句，否则模板化痕迹过重）。',
       '1.1 情感基调跟随素材（重要）：整篇答案（openEn + bridgeEn + bodyEn + feelEn 合计）的态度必须与所引素材本身的基调一致——素材里写的是 beautiful / amazing / like / relax 这类正面词，就绝不能把故事反转成 dislike / noisy / boring 的负面讲法（那是凭空篡改考生的经历，背起来也拧巴）。素材基调是负面的就如实讲负面；素材本身两种感受都有（如「酒店吵但日落很美」），优先选能**最多原句搬运语料库**的那一面来写。只有素材完全没提态度、题目又强制要求时，才由你合理定一个方向。',
+      '1.2 多卡使用口径（重要）：素材 1 提供了完整英文故事，是默认且唯一的正文原句来源。素材 2 及以后只提供中文逻辑链与万能句（出于篇幅）：需要借用时，只能把它们的 goldenEn 万能句**整句**搬入（仍受铁律 1"不得借用其他卡 goldenEn"的限制——该限制维持不变：默认卡够用时严禁借），其余事实只能依据其**中文逻辑链里明确写出的细节**用简单句重写（遵守铁律 4.1 新增句限制）；中文逻辑链里没有的事实一律视为不存在，严禁臆造。',
       '2. 内容边界与句式边界：**（硬）全部事实细节（人物 / 时间 / 地点 / 物品 / 动作 / 感受）必须来自语料库**，严禁编造任何新事实；**（软）句子允许重新组织得更自然、更像临场说话**，不必逐字搬运，改编只改词（时态 / 人称 / 单复数 / 替换名词）；**（硬）语料库里的复合句与 goldenEn 万能句必须整句保留**（语法复杂度全靠它们），严禁把复合句拆成简单句；**（硬）同一件事、同一个「动作+宾语」组合不得在整篇答案（openEn + bridgeEn + bodyEn + feelEn 合计）里出现两次**——换主语、换时态、换同义词也算重复。严禁编造生僻细节（展览内容、建筑外观、名人成就、菜品味道等）；若题目所涉事物不在语料库，用 "Well, actually, ..." 明说，并硬套素材里的风景/感受类句子，绝不编造新内容。',
       '3. 词汇分级：**来自素材原句与 goldenEn 的词照用**（可到高中常见词）；**本次由你新造的句子**仍只用初中词（happy, tired, relax, boring, beautiful, delicious, amazing, big, fresh, nice, good, like, feel, went, was, were, because, and）。两条路径都严禁 ' + window.FORBIDDEN_WORDS.join(' / ') + ' 等生僻词。',
       '4. 语法分级：**来自素材的句子保留其原有句式**（含从句照留，这是考生背熟的部分）；**只有本次新加的过渡句 / 点题句**才守简单句（主谓宾 / 主系表，禁止复杂从句、分词结构、被动语态）。',
       '4.1 新增句子限制（强制）：凡是语料库之外、本次由你补充加入的句子，必须为简单句——仅含单一主谓结构（一个主语 + 一个谓语），不得包含任何从句（定语/状语/名词性从句等）、不得用 and / but / or 等连词拼接并列复合句、不得出现分词短语或插入结构。新增句越短越直白越好，确保考生一眼能懂、直接念出。改编素材句子时**只改词，严禁把复合句拆成简单句**。',
       '5. 结构：整篇答案必须由 openEn + bridgeEn + bodyEn + feelEn 拼成，并自然覆盖 You should say 的每个要点（是什么 / 何时何地 / 具体细节 / 感受），缺一不可；要点主体落在 bodyEn，感受落在 feelEn，顺序尽量与官方小问一致。',
       '6. 词数强制限定（按考生目标语速校准，不是越多越好）：整篇答案（openEn + bridgeEn + bodyEn + feelEn 的全部英文词数合计，paddingEn 加时句不计入）严格在 ' + wb.min + ' 到 ' + wb.max + ' 词之间。超出必须删减；不足可补语料库里的感受句，但不得越过上下限。',
-      '7. 加时备用句 paddingEn：给 3~5 句与本题相关的简单句（感受 / 回忆 / 展望类，每句 8~15 词，同样只用语料库内容或极简新句），供考生说得偏快或说不满 2 分钟时自己插入。',
+      '7. 加时必背句 paddingEn：给 3~5 句与本题相关的简单句（感受 / 回忆 / 展望类，每句 8~15 词，只用语料库内容或极简新句）。**这些句子考生必须背熟**：正文（openEn+bridgeEn+bodyEn+feelEn）念完约 70~85 秒，考官未打断、需要说满 2 分钟时，按数组顺序补念这些句子；不得与正文句子重复。',
       '8. 黑体标注 = 本次新造的句子：**只有语料库之外、本次由你新造的句子**必须用 ** 包裹标黑体（考生靠黑体一眼看出哪些是临场要加的）。**素材原句的词级微调不算新加**——只改了时态 / 人称 / 单复数 / 替换名词的句子仍视为素材原句，一律不标黑体。黑体部分总词数不得超过全文 40%。',
       '9. 点题句 bridgeEn 用 "I\'d like to talk about..." 开头（**STEP1 直答 openEn 不受此限**，它只要 ≤3 词的直接回答，不要写成 "I\'d like to talk about..."）。结尾按题型自然收束（必须是简单句）：人物题→用一句说明为什么欣赏 / 喜欢TA；地点题→用一句说明为什么喜欢去；事件 / 经历题→用一句说明这段经历对自己的意义。',
       '10. 逻辑链用中文短语横杠 "-" 连接，越长越细越好，严禁输出 "[横杠]" 这几个字。',
@@ -1067,7 +1079,7 @@ async function aiStoryLink(id){
     const content = await callRelay('speaking_chuan', [
       { role:'system', content: sys },
       { role:'user', content: user }
-    ], 0.7);
+    ], 0.5);   // 结构化 JSON 输出：降温度减少同题重开的波动
     const j = aiJson(content);
 
     if(j && (j.article || j.openEn || j.bridgeEn || (Array.isArray(j.bodyEn) && j.bodyEn.length) || (Array.isArray(j.feelEn) && j.feelEn.length) || j.logicChain)){
@@ -1082,7 +1094,18 @@ async function aiStoryLink(id){
     }
   }catch(e){
     resultEl.innerHTML = '<div class="diag-note">AI 服务暂不可用：' + escapeHtml(e.message) + '</div>';
+  }finally{
+    // 本次跑完必然已有结果（成功）或保留旧结果（失败）→ 一律回到「重新生成」态
+    setStoryLinkBtn(linkBtn, '重新生成串题思路', false);
   }
+}
+
+/* 串题按钮换文案：只替换文字部分，保留 SVG 图标 */
+function setStoryLinkBtn(btn, text, disabled){
+  if(!btn) return;
+  const svg = btn.querySelector('svg');
+  btn.disabled = !!disabled;
+  btn.innerHTML = (svg ? svg.outerHTML : '') + text;
 }
 
 // 把 AI 输出的 **文字** 转成 <b>文字</b>（串题稿里改动句用 ** 标注）
@@ -1101,7 +1124,7 @@ function renderStoryLink(el, j){
     if(j.logicChain) h += '<div class="mat-plan-sec"><b>串题逻辑</b><div class="mat-logic">' + escapeHtml(j.logicChain) + '</div></div>';
     h += '<div class="mat-plan-sec"><b>串题原文</b><div class="mat-story-en">' + mdInline(j.article) + '</div></div>';
     if(Array.isArray(j.paddingEn) && j.paddingEn.length){
-      h += '<div class="mat-plan-sec"><b>加时备用句（说得偏快 / 不满 2 分钟时插入）</b><ul class="sp-padding">'
+      h += '<div class="mat-plan-sec"><b>加时必背句（正文约 1 分多钟；说得快或考官没打断时，按顺序补念，凑满 2 分钟）</b><ul class="sp-padding">'
         + j.paddingEn.map(x => '<li>' + mdInline(String(x)) + '</li>').join('')
         + '</ul></div>';
     }
@@ -1122,7 +1145,7 @@ function renderStoryLink(el, j){
         + '</ul></div>';
     }
     if(Array.isArray(j.paddingEn) && j.paddingEn.length){
-      h += '<div class="mat-plan-sec"><b>加时备用句（说得偏快 / 不满 2 分钟时插入）</b><ul class="sp-padding">'
+      h += '<div class="mat-plan-sec"><b>加时必背句（正文约 1 分多钟；说得快或考官没打断时，按顺序补念，凑满 2 分钟）</b><ul class="sp-padding">'
         + j.paddingEn.map(x => '<li>' + mdInline(String(x)) + '</li>').join('')
         + '</ul></div>';
     }
@@ -2095,7 +2118,7 @@ async function generateAIHelper(id, qi){
   if(resultEl){ resultEl.innerHTML = '<div class="diag-note">正在按你的人设生成思路和参考回答…</div>'; resultEl.style.display = 'block'; }
 
   try{
-    const sys = '你是雅思口语陪练。考生目标口语 5.5-6 分：句子以简单句为主，词汇难度上限=高中词汇水平（如 important, enjoy, convenient, improve 这类常见词），严禁使用生僻词、学术词、GRE/雅思高级词汇（如 detrimental, paramount, facilitate 一律不行）；拿不准的词一律换成最简单的说法。\n'
+    const sys = '你是雅思口语陪练。考生目标口语 5.5 分：句子以简单句为主，词汇难度上限=高中词汇水平（如 important, enjoy, convenient, improve 这类常见词），严禁使用生僻词、学术词、GRE/雅思高级词汇（如 detrimental, paramount, facilitate 一律不行）；拿不准的词一律换成最简单的说法。\n'
       + '考生会给你一个 Part 1 问题和她的个人素材（人设/经历）。\n'
       + '请完成两件事：\n'
       + '1. 给一条中文「逻辑链」：只给 4-6 个简短的中文关键词组/短语，用中文横杠"—"串连。每个关键词组最多 6 个汉字，严禁写成完整句子，严禁加"表态：""原因1：""原因2：""细节：""感受："等任何前缀标签，严禁输出"[横杠]"这几个字。\n'

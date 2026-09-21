@@ -213,7 +213,8 @@
       saveStore();
       mode = 'result';
       render();
-      toast('已生成 ' + result.stories.length + ' 张全新素材卡，去口语页开练即可');
+      const dropMsg = (result.goldenDropped > 0) ? '；另有 ' + result.goldenDropped + ' 句万能句因未内嵌故事正文被丢弃，建议重新生成' : '';
+      toast('已生成 ' + result.stories.length + ' 张全新素材卡，去口语页开练即可' + dropMsg);
     }catch(e){
       console.error('[materials] 生成失败', e);
       toast('素材生成失败：' + e.message + '（未保存任何内容，可重试）');
@@ -241,23 +242,67 @@
     document.getElementById('matShortGen').onclick = () => { div.remove(); generate(); };
   }
 
-  async function genMaterialsBatch(exps, personaText){
-    const expText = exps.map(e => {
+  /* 单次尝试：调一次 material，只做 JSON 解析（normalize 留到合并后统一过一遍，保证 id 下标连续） */
+  async function tryBatch(subset, personaText, batchLabel){
+    const expText = subset.map(e => {
       const raw = String(e.raw || '');
       const zhCount = (raw.match(/[\u4e00-\u9fff]/g) || []).length;
       const isEn = raw.length > 0 && (zhCount / raw.length) < 0.05;
       return '【' + e.title + '】' + (isEn ? '[原样保护·禁止改写]\n' : '\n') + raw;
     }).join('\n\n');
-    const user = '人设：' + (personaText || '（未提供）') + '\n\n全部经历（含追问补充）：\n' + expText + '\n\n请按规则整合为尽量少的连贯大故事（coverage 按规则 4.x 放开挂题），输出 stories JSON。';
+    // 拆批时明确告知 AI「只整合本批」，否则它会按全量答题、两批内容打架
+    const headNote = batchLabel ? '（这是考生全部经历的第 ' + batchLabel + ' 批，只整合本批经历，stories 与 coverage 照常输出）\n\n' : '';
+    const listNote = batchLabel ? '本批经历：\n' : '全部经历（含追问补充）：\n';
+    const user = '人设：' + (personaText || '（未提供）') + '\n\n' + headNote + listNote + expText + '\n\n请按规则整合为尽量少的连贯大故事（coverage 按规则 4.x 放开挂题），输出 stories JSON。';
     const content = await callRelay('material', [ { role:'system', content:buildSysMat() }, { role:'user', content:user } ], 0.7, { max_tokens: 8192 });
     const j = aiJson(content);
     if(!j || !Array.isArray(j.stories)) throw new Error('素材 JSON 解析失败');
+    return j;
+  }
+  function collectBatch(j){
     return {
-      stories: j.stories.map((s, i) => normalizeMaterial(s, i)),
+      stories: Array.isArray(j.stories) ? j.stories : [],
       coverageRate: (typeof j.coverageRate === 'number' ? j.coverageRate : null),
       uncovered: Array.isArray(j.uncovered) ? j.uncovered.filter(u => u && u.topic).map(u => ({ topic:String(u.topic), reason:String(u.reason || '') })) : [],
       followups: Array.isArray(j.followups) ? j.followups.map(String) : []
     };
+  }
+  function mergeBatch(a, b){
+    const seen = {};
+    const unc = a.uncovered.concat(b.uncovered).filter(u => {
+      if(seen[u.topic]) return false;
+      seen[u.topic] = 1; return true;
+    });
+    let rate = a.coverageRate;
+    if(b.coverageRate != null) rate = (rate == null) ? b.coverageRate : Math.max(rate, b.coverageRate);
+    return { stories: a.stories.concat(b.stories), coverageRate: rate, uncovered: unc, followups: a.followups.concat(b.followups) };
+  }
+  /* 截断自愈（9/21）：输出被 max_tokens 截断时 JSON 解析必然失败。此时按经历条数二分拆批重试，
+     最多两级拆分——正常路径请求次数与改前一致（1 次），拆批只是异常兜底。 */
+  async function genMaterialsBatch(exps, personaText){
+    const FAIL_MSG = '素材生成失败（返回内容被截断或格式错误），请少填几条经历后重试';
+    async function attempt(subset, depth, label){
+      try{
+        return collectBatch(await tryBatch(subset, personaText, label));
+      }catch(e){
+        // 全量失败要 >3 条才值得拆（≤3 条拆开也没多少 token 可省）；再往下最多拆到第二级
+        const canSplit = subset.length > 1 && depth < 2 && (depth === 0 ? subset.length > 3 : true);
+        if(!canSplit) throw new Error(FAIL_MSG);
+        const half = Math.ceil(subset.length / 2);
+        const ra = await attempt(subset.slice(0, half), depth + 1, '1/2');
+        const rb = await attempt(subset.slice(half), depth + 1, '2/2');
+        return mergeBatch(ra, rb);
+      }
+    }
+    const res = await attempt(exps, 0, null);
+    let dropped = 0;
+    const stories = res.stories.map((s, i) => {
+      const m = normalizeMaterial(s, i);
+      dropped += (m._goldenDropped || 0);
+      delete m._goldenDropped;      // 临时字段绝不落库
+      return m;
+    });
+    return { stories: stories, coverageRate: res.coverageRate, uncovered: res.uncovered, followups: res.followups, goldenDropped: dropped };
   }
   async function genPersona(text){
     const content = await callRelay('material_persona', [ { role:'system', content:SYS_PERSONA }, { role:'user', content:'自我介绍：' + text } ], 0.4);
@@ -294,11 +339,15 @@
     const goldenRaw = Array.isArray(s.goldenEn) ? s.goldenEn.map(x => String(x || '').trim()).filter(Boolean) : [];
     const storyLower = String(s.storyEn || '').toLowerCase().replace(/[^a-z0-9 ]/g, '');
     // design/68 新口径：万能句必须是 storyEn 正文的子句（能在正文原样匹配到），孤儿万能句丢弃
-    const golden = goldenRaw.filter(g => {
+    const goldenHit = goldenRaw.filter(g => {
       const key = g.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
       return key.length >= 8 && storyLower.includes(key.slice(0, 40));
-    }).slice(0, 3);
+    });
+    const golden = goldenHit.slice(0, 3);
+    // 孤儿万能句不再静默丢弃：计数回传，由 generate() 在成功 toast 里提示（临时字段，落库前剥掉）
+    const goldenDropped = goldenRaw.length - goldenHit.length;
     return {
+      _goldenDropped: goldenDropped,
       id: s.id || ('m' + Date.now() + '_' + i),
       title: s.title || ('故事' + (i + 1)),
       storyEn: s.storyEn || '',
@@ -524,6 +573,11 @@
   /* ---------- 结果页 ---------- */
   function renderResults(root){
     let h = '';
+    // 换季横幅：素材是在旧题库版本下生成的，题族映射可能已过时 → 一键重映射（复用 .mat-shortwarn 现有样式）
+    if((store.materials || []).length && store.bankVersion && store.bankVersion !== DATA.speakingVersion){
+      h += '<div class="mat-shortwarn" id="matBankWarn"><b>口语题库已换季</b>，你的素材题族映射可能过时。'
+        + '<div class="mat-shortwarn-actions"><button class="btn btn-primary" id="matRemapBtn">一键重新映射题族</button></div></div>';
+    }
     // 覆盖率矩阵 / 深挖 / 缺题追问整套已移除（用户定案：素材出来直接去口语页练，
     // 串题在练题时按需进行）。coverage 数据仍在生成时随卡产出，供口语页串题提示使用。
     // 人设卡
@@ -598,6 +652,15 @@
     // 行动
     h += '<div class="mat-actions"><a class="btn btn-primary" href="speaking.html">去练口语 →</a><button class="mat-add" id="matRegen">↻ 重新填写 / 生成</button></div>';
     root.innerHTML = h;
+
+    // 换季重映射：deepDigCoverage 内部逐卡落库并更新 store.bankVersion，完成后重渲横幅自然消失
+    const remapBtn = $('#matRemapBtn');
+    if(remapBtn) remapBtn.onclick = async () => {
+      remapBtn.disabled = true;
+      remapBtn.textContent = '⏳ 重新映射中…';
+      try{ await deepDigCoverage(false); }
+      finally{ render(); }
+    };
 
     root.querySelectorAll('[data-toggle]').forEach(el => {
       el.onclick = () => { const card = el.closest('.mat-mat'); card.classList.toggle('open'); };
