@@ -1272,7 +1272,7 @@ function _later(a, b){
    ⚠️ hardWord / keyWord 不在内——主观标注，重置也不清，永远取「或」。
    ⚠️ cn / pos / ipa 属内容字段，无论 epoch 如何都按下方取优规则合并（重构不回退释义）。 */
 const WORD_PROG_FIELDS = ['level','nextReview','lastReview','errTotal','errStreak','fuzzyStreak',
-  'okStreak','shortCount','lastShortTouch','cleanRounds','cleared','hist'];
+  'okStreak','shortCount','lastShortTouch','cleanRounds','cleared','hist','dh','dd'];   // design/77：dh/dd 随 resetEpoch 整组胜负
 function _mergeWords(local, cloud){
   const map = new Map();
   (cloud||[]).forEach(w => { if(w && w.en) map.set(String(w.en).toLowerCase(), Object.assign({}, w)); });
@@ -1318,6 +1318,16 @@ function _mergeWords(local, cloud){
     const nsc = Math.max(_num(ex.shortCount)||0, _num(w.shortCount)||0); if(nsc !== (_num(ex.shortCount)||0)){ ex.shortCount = nsc; changed = true; }
     const ncr = Math.max(_num(ex.cleanRounds)||0, _num(w.cleanRounds)||0); if(ncr !== (_num(ex.cleanRounds)||0)){ ex.cleanRounds = ncr; changed = true; }
     const nlst = _later(ex.lastShortTouch, w.lastShortTouch); if(nlst !== (ex.lastShortTouch||'')){ ex.lastShortTouch = nlst; changed = true; }
+    // design/77 DHP：(dh,dd) 成对合并，整对取 dh 更大一侧（记忆更强侧）胜出；dh 相等 dd 取大。
+    // 判变全走 (_num(x)||0) 口径防 undefined↔0 幻影（9/19 幻影物化教训）。
+    const adh = _num(ex.dh)||0, bdh = _num(w.dh)||0;
+    if(adh !== bdh){
+      const win = (bdh > adh) ? w : ex;
+      if((_num(ex.dh)||0) !== (_num(win.dh)||0)){ ex.dh = win.dh; changed = true; }
+      if((_num(ex.dd)||0) !== (_num(win.dd)||0)){ ex.dd = win.dd; changed = true; }
+    } else if((_num(ex.dd)||0) !== (_num(w.dd)||0)){
+      ex.dd = Math.max(_num(ex.dd)||0, _num(w.dd)||0); changed = true;
+    }
     // design/59 hist：同世代取「长者胜」，等长不动（幂等）；epoch 差异已由 WORD_PROG_FIELDS 整组覆盖
     const _wh = Array.isArray(w.hist) ? w.hist : null, _eh = Array.isArray(ex.hist) ? ex.hist : null;
     if(_wh && (!_eh || _wh.length > _eh.length)){ ex.hist = _wh.slice(); changed = true; }

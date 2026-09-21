@@ -5,7 +5,7 @@
    - 现版：HTML network-first（保部署后先拿新 HTML）+ 静态资源 stale-while-revalidate
      （缓存键一律去 ?v= 的 pathname，不受手工版本号影响）+ 核心壳预缓存（离线首开可用）。
      版本一致性兜底 = 页面侧 navDeployProbe / navSelfHealReload 自愈机制（common.js，禁删）。 */
-const CACHE = 'ielts-hub-v20';
+const CACHE = 'ielts-hub-v21';
 
 /* 核心壳预缓存清单（Node 脚本枚举目录生成，2026-09-20；与 14 页实际引用核对无遗漏）。
    不含 js/vendor/xlsx.full.min.js（861KB 体积大 → 走运行时 SWR 缓存）。 */
@@ -28,6 +28,7 @@ const PRECORE = [
   '/js/common.js',
   '/js/corpus.js',
   '/js/data.js',
+  '/js/dhp_policy.js',
   '/js/errorbook.js',
   '/js/history.js',
   '/js/index.js',

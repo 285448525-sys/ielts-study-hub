@@ -18,6 +18,7 @@ var _speakTimers = [];    // 朗读定时器，必须在 ready() 前初始化
 
 // 熟练度 0-7 级标准间隔（天）：索引 = 等级
 // 0→1天 1→2天 2→4天 3→7天 4→15天 5→30天 6→60天 7→90天
+// design/77 起 level 仅作显示代理（displayLevelFromH 由 dh 反推），长线间隔改由 DHP+SSP-MMC 策略表决定
 var LEVEL_INTERVAL = [1, 2, 4, 7, 15, 30, 60, 90];
 
 // 短线（v4）：分散成功几次才放行；GAP[k] 为答对后插回队列的间隔词数
@@ -26,6 +27,17 @@ var GAP = [0, 2, 5];      // GAP[0] 占位；k=1→隔2个、k=2→隔5个；k=3
 var GAP_HARD = [0, 1, 3]; // P0-3 难词加密：k=1→隔1个、k=2→隔3个
 var CLEAN_TO_EXIT = 3;    // P1-3 难词退出门槛：连续 3 轮短线过关才取消 hardWord
 var MAX_ATTEMPT = 15;     // 单个词本轮最多作答次数（防死循环，超出则移出队列留到明天）
+
+// ======= design/77 背词长线调度换装 DHP + SSP-MMC（KDD'22 墨墨开源版，2026-09-21）=======
+// 参数与结构逐字对照 maimemo/SSP-MMC（MIT）algo/main.cpp，不许改动数值。
+var DHP_BASE = 1.05;                 // 半衰期档底数：h_i = 1.05^(i-30)
+var DHP_MIN_INDEX = -30;             // 档位偏移（main.cpp min_index）
+var DHP_MAX_INDEX = 122;             // main.cpp max_index（表共 152 列 = 122-(-30)）
+var DHP_D_LIMIT = 18;                // 难度上限（main.cpp d_limit）
+var DHP_D_OFFSET = 2;                // 答错难度步进（main.cpp d_offset）
+var DHP_H_MAX = Math.pow(1.05, 122); // 毕业线 ≈ 414.6 天：达到即长期记忆达成
+var DHP_IDX_MAX = 151;               // 运行时查表上钳制（152 列的最后一列=吸收态占位）
+var DAILY_DUE_CAP = 60;              // 每日到期上限（含新词）：buildQueue 排序后截断，截掉的明天队首
 
 // ======= design/54 趣味性反馈（2026-09-07）=======
 // 连击门槛：每连对 STREAK_BOOST 题触发一次 ×2 高光；答错减半不归零。
@@ -108,6 +120,14 @@ function ensureWordV12(w){
   // 词库页的删除按钮 data-del 与勾选 data-check 都按 id 走 → 没 id 时所有老词共用一个
   // "undefined" 键，表现为「勾一个全勾上 / 点了删除毫无反应」。幂等：已有 id 不动。
   if(w.id == null || w.id === '') w.id = (typeof uid === 'function') ? uid() : ('w' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7));
+  // design/77 DHP 迁移：只补 dh/dd 字段，不重算 nextReview、不改 level 现值——切换当天体验零突变。
+  // 有复习史的词 dh0 = LEVEL_INTERVAL[level]（现体系认为该词撑得起这个间隔）；无史新词用初始公式。
+  // 放在两条 return 路径之前 → 两条路径都覆盖；幂等（已有 dh 跳过）。
+  if(w.dh == null){
+    const d0 = Math.min(12, Math.max(1, 2 + (w.errTotal || 0) + (w.hardWord ? 3 : 0) + (w.keyWord ? 1 : 0)));
+    w.dd = (w.dd != null) ? w.dd : d0;
+    w.dh = (w.dh != null) ? w.dh : (w.level != null ? LEVEL_INTERVAL[Math.min(7, w.level || 0)] : dhpStartH(w.dd));
+  }
   if(w.level != null && w.nextReview != null){
     if(w.cleared == null) w.cleared = !!w.lastReview;  // 已学过的词默认"已达标"(复习对1次即过)；新词需分散3次
     if(w.shortCount == null) w.shortCount = 0;
@@ -143,25 +163,49 @@ function ensureWordV12(w){
   return w;
 }
 
-// 逾期降级：在「复习前」对该词应用，降级后由 promote/demote 按新等级排程
-function applyOverdue(w){
-  const today = todayKey();
-  if(!w.nextReview || w.nextReview >= today) return;     // 未逾期
-  const overdueDays = daysBetween(w.nextReview, today);
-  let std = LEVEL_INTERVAL[w.level || 0] || 1;
-  if(w.hardWord) std = Math.ceil(std * 0.5);            // 难词×50%
-  if(w.keyWord)  std = Math.ceil(std * 0.7);            // 重点×70%（与难词相乘）
-  const forget = overdueDays / std;                     // 遗忘系数（分母=当次实际计划间隔）
-  let lvl = w.level || 0;
-  if(forget < 0.5)        lvl = Math.max(0, lvl - 1);
-  else if(forget <= 1)    lvl = Math.max(0, lvl - 2);
-  else { // forget >= 1
-    if(lvl <= 2) lvl = 0;
-    else lvl = Math.max(0, Math.ceil(lvl * 0.4));
+// ── design/77 DHP 函数组（applyOverdue 逾期降级退役：逾期由 p 衰减自然表达，无单独惩罚）──
+// p 一律先钳到 [0.01,0.99] 再进公式：防 (1-p)→0 导致答对不再涨、答错 ^-0.227 爆炸（方案 §2/§8）
+function clampP(p){
+  if(typeof p !== 'number' || isNaN(p)) return 0.01;
+  return Math.min(0.99, Math.max(0.01, p));
+}
+// 新词初始半衰期（main.cpp cal_start_halflife 原样）
+function dhpStartH(d){
+  return -1 / Math.log2(Math.max(0.925 - 0.05 * d, 0.025));
+}
+// 当前回忆概率 p = 2^(−Δt/dh)：无 dh 或无 lastReview（从没复习过）→ null（出题排序垫底）
+function dhpRecallP(w, today){
+  if(w.dh == null || !w.lastReview) return null;
+  return clampP(Math.pow(2, -daysBetween(w.lastReview, today) / w.dh));
+}
+// 答对后半衰期（=「认识」；main.cpp recall=1 分支原样，dd 不变）
+function dhpAfterRecall(h, d, p){
+  return h * (1 + Math.exp(3.81) * Math.pow(d, -0.534) * Math.pow(h, -0.127) * Math.pow(1 - p, 0.97));
+}
+// 答错后半衰期（=「模糊/不认识」，用旧 dd 算；main.cpp recall=0 分支原样）
+function dhpAfterForget(h, d, p){
+  return Math.exp(-0.041) * Math.pow(d, -0.041) * Math.pow(h, 0.377) * Math.pow(1 - p, -0.227);
+}
+// 半衰期 → 档位下标（main.cpp cal_halflife_index 原样；上钳制在查表处做）
+function dhpHIndex(h){
+  if(!(h > 0)) return 0;
+  return Math.max(Math.round(Math.log(h) / Math.log(DHP_BASE)) - DHP_MIN_INDEX, 0);
+}
+// 策略表查间隔：表未加载回退旧 LEVEL_INTERVAL 口径 + warn，绝不允许白屏（方案 §6）
+function dhpPolicyInterval(d, h){
+  if(typeof DHP_POLICY === 'undefined' || !DHP_POLICY){
+    console.warn('[dhp] 策略表未加载，回退 LEVEL_INTERVAL 口径');
+    return LEVEL_INTERVAL[Math.min(7, displayLevelFromH(h))] || 1;
   }
-  w.level = lvl;
-  w.nextReview = today;   // 消费逾期状态：本次复习已计惩罚，避免重复降级
-  hubSave();
+  const row = DHP_POLICY[String(Math.min(DHP_D_LIMIT, Math.max(1, Math.round(Number(d) || 1))))] || DHP_POLICY['1'];
+  const v = row ? row[Math.min(DHP_IDX_MAX, Math.max(0, dhpHIndex(h)))] : null;
+  return (v >= 1) ? v : (LEVEL_INTERVAL[Math.min(7, displayLevelFromH(h))] || 1);
+}
+// level 保留为显示代理：满足 LEVEL_INTERVAL[L] ≤ dh 的最大 L（词库页 Lv 徽标/筛选/统计条零改动）
+function displayLevelFromH(h){
+  let L = 0;
+  for(let i = 0; i < LEVEL_INTERVAL.length; i++){ if(h >= LEVEL_INTERVAL[i]) L = i; }
+  return L;
 }
 
 // 长线升级（v4 §3.3 promoteLongTerm）：仅短线 3 次全对过关时调用
@@ -169,12 +213,20 @@ function applyOverdue(w){
 function promoteLongTerm(w, today){
   w.hist = (Array.isArray(w.hist) ? w.hist : []); w.hist.push({ d: today, r: 'ok' });
   if(w.hist.length > 20) w.hist = w.hist.slice(-20);   // design/59：截断保留最近 20 条（judge 分支已显式落盘，此处禁加 hubSave）
-  let interval = LEVEL_INTERVAL[w.level || 0];               // ① 先用「当前」等级算间隔
-  if(w.hardWord) interval = Math.ceil(interval * 0.5);       // 难词间隔×50%
-  if(w.keyWord)  interval = Math.ceil(interval * 0.7);       // 重点词间隔×70%（叠乘）
-  w.nextReview = addDays(today, Math.max(1, interval));      // ② 再算出 nextReview
-  w.level = Math.min(7, (w.level || 0) + 1);                 // ③ 最后升级
-  w.cleared = true;
+  // design/77：选对=「认识」→ DHP 记忆增强（dd 不变）；间隔查 KDD'22 策略表；level=显示代理
+  const p = dhpRecallP(w, today);                            // 用旧 dh/lastReview 算 p，须在覆写前取
+  w.dd = (w.dd != null) ? w.dd : 3;
+  w.dh = (p == null) ? dhpStartH(w.dd) : dhpAfterRecall(w.dh, w.dd, p);
+  w.lastReview = today;                                      // 新增写点：下次 p 的基准
+  if(w.dh >= DHP_H_MAX){                                     // 毕业线：长期记忆达成，退出长线队列
+    w.cleared = true;
+    w.level = 7;
+    w.nextReview = addDays(today, 180);
+  } else {
+    w.nextReview = addDays(today, Math.max(1, dhpPolicyInterval(w.dd, w.dh)));
+    w.level = displayLevelFromH(w.dh);
+    w.cleared = true;
+  }
   // ★ 短线本轮结束，shortCount 归零、时间戳置空，下次经长线复习再入队时从 0 重新累计
   w.shortCount = 0;
   w.lastShortTouch = null;
@@ -192,13 +244,17 @@ function promoteLongTerm(w, today){
 function demoteLongTerm(w, today, isCompletelyUnknown){
   w.hist = (Array.isArray(w.hist) ? w.hist : []); w.hist.push({ d: today, r: isCompletelyUnknown ? 'unknown' : 'wrong' });
   if(w.hist.length > 20) w.hist = w.hist.slice(-20);   // design/59：截断保留最近 20 条（judge 分支已显式落盘，此处禁加 hubSave）
-  const drop = (w.level || 0) >= 5 ? 1 : 2;
-  w.level = Math.max(0, (w.level || 0) - drop);
-  w.nextReview = addDays(today, 1);        // 强制明天，不按 LEVEL_INTERVAL 计算
+  // design/77：选错=「模糊」、点「不认识」=「不认识」——墨墨模型 responses_dict {'1':1,'2':0,'3':0}，
+  // 两者都走遗忘转移（用旧 dd 算 h'，随后 dd+2，同 main.cpp 转移序）；语义差异保留在 errTotal/hist。
+  const p = dhpRecallP(w, today);          // 用旧 dh/lastReview 算 p，须在覆写前取
+  const dOld = (w.dd != null) ? w.dd : 3;
+  w.dh = (p == null) ? dhpStartH(dOld) : dhpAfterForget(w.dh || dhpStartH(dOld), dOld, p);
+  w.dd = Math.min(DHP_D_LIMIT, dOld + DHP_D_OFFSET);   // 先用旧 dd 算 h'，再抬难度
+  w.lastReview = today;
+  w.nextReview = addDays(today, 1);        // 强制明天，不按策略表计算（原样保留）
   w.errTotal = (w.errTotal || 0) + 1;      // 永久累计不重置
   if(isCompletelyUnknown){                 // P1-1：「完全不认识」= 毫无印象，惩罚更重
-    w.errTotal = (w.errTotal || 0) + 1;    // 错误数额外 +1
-    w.level = Math.max(0, w.level - 1);    // 等级再多降 1（最低 0）
+    w.errTotal = (w.errTotal || 0) + 1;    // 错误数额外 +1（level 额外降级已随 DHP 退役：难度由 dd 表达）
   }
   if(w.errTotal >= 2) w.hardWord = true;   // 自动标难词（无手动标记 UI）
   w.cleanRounds = 0;                       // 答错打断连续 clean（全局一行）
@@ -367,15 +423,21 @@ function genDistractors(correct, allWords){
   return shuffle([correct, ...uniq.slice(0, 3)]);
 }
 
-// 队列优先级排序（五关键字）
-// 之之 9/18：逾期越久越先背。① nextReview 升序天然满足「逾期久=日期小=靠前」；
-// 唯一缺口是从没排程的词（nextReview 空）按空串排最前、压住逾期词 → 空值垫底修正（先还旧账再学新词）。
-function dueCmp(a, b){
-  return (a.nextReview || '9999-12-31').localeCompare(b.nextReview || '9999-12-31') ||   // ① nextReview 升序（逾期越久越前；无排程垫底）
-         (b.errTotal || 0) - (a.errTotal || 0) ||                    // ② errorCount 降序
-         ((a.hardWord === b.hardWord) ? 0 : (a.hardWord ? -1 : 1)) || // ③ isHard(=hardWord) 降序
-         ((a.keyWord === b.keyWord) ? 0 : (a.keyWord ? -1 : 1)) ||    // ④ isKey(=keyWord) 降序
-         (a.level || 0) - (b.level || 0);                            // ⑤ level 升序
+// 队列优先级排序（design/77 DHP 口径，p 由 buildQueue 经 pMap 注入，禁落盘）
+// ① p 升序（快忘优先）：p 无法计算（从没复习过）垫底 = 先还旧账再学新词（之之 9/18 口径延续）
+// ② nextReview 升序（逾期久=日期小=靠前；无排程垫底）③ errTotal 降序 ④ hardWord ⑤ keyWord ⑥ dh 升序
+function dueCmp(a, b, pMap){
+  const pa = (pMap && pMap.get(a) != null) ? pMap.get(a) : null;
+  const pb = (pMap && pMap.get(b) != null) ? pMap.get(b) : null;
+  const pad = (pa == null) ? 1 : 0;
+  const pbd = (pb == null) ? 1 : 0;
+  return (pad - pbd) ||
+         ((pa != null && pb != null) ? (pa - pb) : 0) ||
+         (a.nextReview || '9999-12-31').localeCompare(b.nextReview || '9999-12-31') ||
+         (b.errTotal || 0) - (a.errTotal || 0) ||
+         ((a.hardWord === b.hardWord) ? 0 : (a.hardWord ? -1 : 1)) ||
+         ((a.keyWord === b.keyWord) ? 0 : (a.keyWord ? -1 : 1)) ||
+         ((a.dh || 0) - (b.dh || 0));
 }
 
 // 队列构建（v4 §3.9 buildQueue）：筛 nextReview<=today + reconcile + 排序 + P1-2 新词配额
@@ -387,10 +449,14 @@ function buildQueue(today, nowISO){
     return (!w.nextReview || w.nextReview <= today);
   });
   for(const w of due) reconcileShortCount(w, nowISO);   // 入队前恢复短线进度（仅变化时写库）
-  due.sort(dueCmp);
+  // design/77：p 只进内存 Map 传给排序闭包，不写词对象 → hubSave 序列化永不带上临时字段
+  const pMap = new Map();
+  for(const w of due) pMap.set(w, dhpRecallP(w, today));
+  due.sort((a, b) => dueCmp(a, b, pMap));
 
-  // 不再按 newPerDay 截断：固定题量由 autoStartSeeWord 的 batchSize 控制，复习词自然排在前面
-  return due;
+  // design/77：每日到期上限（含新词）。被截掉的词不动 nextReview，明天自然排在最前；
+  // 固定题量仍由 autoStartSeeWord 的 batchSize 控制，复习词自然排在前面
+  return due.slice(0, DAILY_DUE_CAP);
 }
 
 // ======= 今日已学词集合（跨轮累计，保证「第二轮不重复第一轮的词」）=======
@@ -759,8 +825,7 @@ function practiceSense(w){
 function renderQuestion(cur, isRehold){
   if(!pq) return;
   pq.answer = cur;
-  ensureWordV12(cur);
-  applyOverdue(cur);     // 复习前应用逾期降级
+  ensureWordV12(cur);    // design/77：applyOverdue 已退役——逾期由 p 衰减自然表达（出题排序 p 升序先考快忘的）
   const c = pc();
   pq.revealed = false;
   pq._picked = false;
@@ -1501,17 +1566,18 @@ function escapeRegExp(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'
    因此答对当场看不到跳格，下次再遇到该词才显示新等级 —— 这是算法真实行为，不许造假。 */
 
 // 把单个词的排程状态翻译成人话：等级 + 下次复习时间描述（含逾期态）
+// design/77：展示真实 DHP 口径——半衰期来自 dh，「N 天后」= nextReview 距今天数（策略表排程结果）
 function wordIntervalDesc(w){
   const lv = Number(w.level) || 0;
+  const dhTxt = (w.dh != null) ? ' · 半衰期 ' + (Math.round(Number(w.dh) * 10) / 10) + ' 天' : '';
   const nr = toDateKey(w.nextReview);
-  if(!nr) return { level: lv, next: '', overdue: false };
+  if(!nr) return { level: lv, next: (w.dh != null ? ('半衰期 ' + (Math.round(Number(w.dh) * 10) / 10) + ' 天') : ''), overdue: false };
   const d = daysBetween(todayKey(), nr);
   let next, overdue = false;
-  if(d < 0){ next = '已逾期 ' + Math.abs(d) + ' 天'; overdue = true; }
-  else if(d === 0) next = '今天';
-  else if(d === 1) next = '明天';
-  else if(d < 7)   next = d + ' 天后';
-  else next = Number(nr.slice(5,7)) + '月' + Number(nr.slice(8,10)) + '日';
+  if(d < 0){ next = '已逾期 ' + Math.abs(d) + ' 天'; overdue = true; }   // 逾期态文案原样（warn 色判定不受影响）
+  else if(d === 0) next = '今天' + dhTxt;
+  else if(d === 1) next = '明天' + dhTxt;
+  else next = d + ' 天后' + dhTxt;   // 原 ≥7 天显示日期 → 统一「N 天后」= 下次隔 N 天（策略表口径）
   return { level: lv, next: next, overdue: overdue };
 }
 
