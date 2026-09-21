@@ -3328,3 +3328,26 @@ body.has-dock main.container{ padding-bottom:0; }
   .onb-brand{font-size:21px}
 }
 html[data-theme="dark"] .onb-overlay{background:rgba(0,0,0,.62)}
+
+/* ===== design/78 · 双词库切换 =====
+   学习页 #wbStudyTag：紧凑段控件（「词库」标签 + 我的/AWL 两段）；
+   词库页 #wbSwitcher：分段切换条（我的词库（N）/ AWL（x/570））。
+   视觉对齐 .pill-tab：teal 实底激活 + 透明底未激活，token 全翻转、暗色不硬编码。 */
+#wbStudyTag{display:inline-flex;align-items:center;gap:6px;min-width:0}
+.wb-tag-label{font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap}
+.wb-seg{display:inline-flex;align-items:center;gap:2px;padding:2px;border:1px solid var(--line);border-radius:999px;background:var(--surface)}
+.wb-seg-btn{border:none;background:transparent;color:var(--muted);font-family:inherit;font-size:12.5px;font-weight:600;line-height:1;padding:6px 12px;border-radius:999px;cursor:pointer;white-space:nowrap;transition:all .18s cubic-bezier(.4,0,.2,1)}
+.wb-seg-btn:hover:not(.active){color:var(--ink);background:rgba(58,154,147,.12)}
+.wb-seg-btn.active{background:var(--primary);color:var(--on-primary);box-shadow:0 2px 8px rgba(58,154,147,.28)}
+.wb-seg-btn:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(58,154,147,.25)}
+#wbSwitcher{display:flex;margin-bottom:12px}
+.wb-seg-bank{padding:3px}
+.wb-seg-bank .wb-seg-btn{font-size:13px;padding:8px 16px}
+/* design/78：官方词库「重置进度」两步确认武装态（3 秒未复点由 words.js 还原） */
+.wb-danger-armed{background:var(--danger)!important;border-color:var(--danger)!important;color:var(--on-primary)!important}
+@media (max-width:390px){
+  .wb-tag-label{display:none}
+  .wb-seg-btn{padding:6px 10px;font-size:12px}
+  #wbSwitcher .wb-seg{width:100%}
+  .wb-seg-bank .wb-seg-btn{flex:1;padding:8px 10px;font-size:12.5px}
+}

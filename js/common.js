@@ -3057,7 +3057,7 @@ function initOnboarding(){
       // 仅把 false→true 升级、绝不降级（避免 DATA 尚未加载完时误清已有的 true）。写一次后即稳定。
       const sset = (DATA && DATA.settings) || {};
       const patch = {};
-      if(!st.setup.words && Array.isArray(DATA.words) && DATA.words.length) patch.words = true;
+      if(!st.setup.words && ((Array.isArray(DATA.words) && DATA.words.length) || (typeof wbActive === 'function' && wbActive() !== 'custom'))) patch.words = true;   // design/78：官方词库激活同样算已设
       if(!st.setup.exam && sset.examDate) patch.exam = true;
       if(!st.setup.key && sset.relayToken) patch.key = true;
       if(Object.keys(patch).length) setOnboarding({ setup: patch });
@@ -3203,6 +3203,7 @@ function onbRenderSetup(step){
         '<h3 class="onb-h3">第 2 步 · 词库</h3>'
       + '<p class="onb-note">导入你自己的词库：AI 导入 / Excel / 粘贴三种方式都行。没有就先跳过，之后随时能加。</p>'
       + '<button type="button" class="btn btn-primary onb-block" id="onbGoBank">去导入词库</button>'
+      + '<button type="button" class="btn onb-block" id="onbGoOfficial">用官方词库（AWL 570）</button>'
       + '<button type="button" class="btn onb-block" id="onbSkipWords">先跳过</button>';
   } else {
     body =
@@ -3255,6 +3256,14 @@ function onbRenderSetup(step){
     if(go) go.addEventListener('click', function(){
       setOnboarding({ account:'done', entered:true, setup:{ words:false } });   // 标记「待完成」：跳过去导入，回来仍未完成
       try{ sessionStorage.setItem(ONB_GOTO_BANK, '1'); }catch(e){}
+      location.href = 'practice.html';
+    });
+    // design/78：直接用官方词库——置 awl 为当前词源 + 词库步记完成 + 关闭引导 + 跳背词页
+    const goOff = document.getElementById('onbGoOfficial');
+    if(goOff) goOff.addEventListener('click', function(){
+      if(typeof wbSetActive === 'function') wbSetActive('awl');
+      setOnboarding({ account:'done', entered:true, setup:{ words:true } });
+      try{ onbClose(); }catch(e){}
       location.href = 'practice.html';
     });
     const sk = document.getElementById('onbSkipWords');

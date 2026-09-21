@@ -22,6 +22,7 @@ let _bankExpanded = {};                 // 组折叠状态 {groupKey:bool}，默
 let _bankShown = {};                    // 各组已渲染条数 {groupKey:n}
 let _bankChecked = new Set();           // 勾选中的词 id（内存，跨筛选保留）
 let _bankGroups = {};                   // 当前渲染的分组快照 {groupKey:[word,...]}，供「展开更多」取数
+let _bankReadonly = false;              // design/78：官方词库视图=只读行（无勾选/删除），renderWords 按词库设置
 
 function bankErrTier(w){
   const e = Number((w.errTotal != null) ? w.errTotal : (w.mcLapses || 0)) || 0;
@@ -35,7 +36,9 @@ function initErrFilter(){
   const box = $('#filterErr');
   if(!box) return;
   const counts = { '1':0, '2':0, '3':0, '4':0, '5p':0 };
-  (DATA.words || []).forEach(w => { ensureWordV12(w); const t = bankErrTier(w); if(t) counts[t]++; });
+  // design/78：数据源走 wbWords()（custom=DATA.words / official=内存词包）；ensureWordV12 迁移仅 custom 需要
+  const _ob = wbActive() !== 'custom';
+  (wbWords() || []).forEach(w => { if(!_ob) ensureWordV12(w); const t = bankErrTier(w); if(t) counts[t]++; });
   let html = '<button class="chip" data-err="all">全部</button>';
   ['1','2','3','4','5p'].forEach(t => {
     if(counts[t] > 0) html += `<button class="chip" data-err="${t}">${errTierLabel(t)}（${counts[t]}）</button>`;
@@ -107,6 +110,38 @@ function bankItemHtml(w){
     </li>`;
 }
 
+/* design/78：官方词包按 sl 子列表分组（awl.json sl 1–10，第 1 组=最高频 60 词，第 10 组=30 词）。
+   组名不带词数——wl-group-count 徽标已显示 items.length。 */
+function groupBySl(list){
+  const buckets = {};
+  list.forEach(w => { const s = Number(w.sl) || 10; (buckets[s] || (buckets[s] = [])).push(w); });
+  return Object.keys(buckets).map(Number).sort((a,b) => a-b).map(s => ({
+    key: 's' + s,
+    name: '第 ' + s + ' 组' + (s === 1 ? '・最高频' : ''),
+    items: buckets[s]
+  }));
+}
+
+/* design/78：官方词包只读行——复用 bankItemHtml 的 Lv / 下次复习 / 错次展示，
+   去掉 checkbox 与删除按钮，行点击无操作（详情面板是以后的任务）。 */
+function obBankItemHtml(w){
+  const lv = (w.level != null) ? (Number(w.level) || 0) : 0;
+  // design/58 块3：词库行内展示下次复习时间（只读，wordIntervalDesc 定义在 practice.js，同页全局可用）
+  const _info = (typeof wordIntervalDesc === 'function') ? wordIntervalDesc(w) : null;
+  const dueText = (_info && _info.next) ? _info.next : '';
+  const dueCls = (_info && _info.overdue) ? ' overdue' : '';
+  const meanHtml = formatMean(w.pos, w.cn);
+  const errN = Number((w.errTotal != null) ? w.errTotal : (w.mcLapses || 0)) || 0;
+  const errHtml = errN > 0 ? `<span class="wl-err" title="累计答错 ${errN} 次">错 ${errN}</span>` : '';
+  return `
+    <li class="wl-item">
+      <span class="wl-word">${escapeHtml(w.en)}</span>
+      <div class="wl-senses">${meanHtml}</div>
+      ${errHtml}
+      <span class="wl-lv">Lv ${lv}${dueText ? '<span class="wl-due' + dueCls + '">· ' + dueText + '</span>' : ''}</span>
+    </li>`;
+}
+
 /* 向组体追加下一页条目，并维护「展开更多」按钮 */
 function renderGroupSlice(gkey, items, body){
   if(!body) return;
@@ -115,7 +150,7 @@ function renderGroupSlice(gkey, items, body){
   _bankShown[gkey] = shown + slice.length;
   const ul = body.querySelector('.wl-group-list');
   if(ul){
-    ul.insertAdjacentHTML('beforeend', slice.map(w => bankItemHtml(w)).join(''));
+    ul.insertAdjacentHTML('beforeend', slice.map(w => _bankReadonly ? obBankItemHtml(w) : bankItemHtml(w)).join(''));
     ul.querySelectorAll('.wl-check').forEach(cb => { if(_bankChecked.has(cb.dataset.check)) cb.checked = true; });
   }
   let more = body.querySelector('.wl-more');
@@ -200,8 +235,8 @@ function toggleCatPanel(cat){
 function initLevelFilter(){
   const box = $('#filterLevel');
   if(!box) return;
-  // Number 归一：脏 level（字符串数字/乱值）不再产生重复 chip 或 NaN 排序
-  const levels = Array.from(new Set(DATA.words.map(w => Number(w.level) || 0))).sort((a,b) => a-b);
+  // Number 归一：脏 level（字符串数字/乱值）不再产生重复 chip 或 NaN 排序（design/78：数据源走 wbWords()）
+  const levels = Array.from(new Set((wbWords() || []).map(w => Number(w.level) || 0))).sort((a,b) => a-b);
   let html = '<button class="chip" data-level="all">全部</button>';
   levels.forEach(lv => { html += `<button class="chip" data-level="${lv}">Lv ${lv}</button>`; });
   box.innerHTML = html;
@@ -281,6 +316,50 @@ ready(() => {
       bankUpdateActionBar();
     });
   }
+  // ── design/78：官方词库视图按钮 ──
+  const offStart = $('#officialStartBtn');
+  if(offStart){
+    offStart.addEventListener('click', () => {
+      if(wbActive() !== 'awl') wbSetActive('awl');
+      pq = null;
+      switchWordTab('study');   // pq 为空 → switchWordTab 内部 autoStartSeeWord() 出题，不重复调用
+    });
+  }
+  const offReset = $('#officialResetBtn');
+  if(offReset){
+    offReset.addEventListener('click', () => {
+      // 两步内联确认：首次点击进入武装态（3 秒不复点自动还原），再点才真正重置
+      if(offReset.dataset.armed !== '1'){
+        offReset.dataset.armed = '1';
+        offReset.classList.add('wb-danger-armed');
+        offReset.textContent = '再点一次确认重置';
+        setTimeout(() => {
+          if(offReset.dataset.armed === '1'){
+            offReset.dataset.armed = '';
+            offReset.classList.remove('wb-danger-armed');
+            offReset.textContent = '重置进度';
+          }
+        }, 3000);
+        return;
+      }
+      offReset.dataset.armed = '';
+      offReset.classList.remove('wb-danger-armed');
+      offReset.textContent = '重置进度';
+      wbResetBank(wbActive());
+      pq = null;
+      toast('官方词库进度已重置');
+      renderWords();
+    });
+  }
+  // 切换词库：重置筛选与折叠/分页/勾选状态后重渲（renderWords 按 wbActive 取数）
+  document.addEventListener('wb:switched', () => {
+    setWordFilterType('all'); setWordFilterLevel('all'); setWordFilterErr('all');
+    _bankExpanded = {}; _bankShown = {}; _bankGroups = {};
+    _bankChecked.clear(); _bankOpenCat = null;
+    initLevelFilter();
+    renderWords();
+    bankUpdateActionBar();
+  });
   renderWords();
 });
 
@@ -759,18 +838,14 @@ function formatMean(pos, cn){
 function renderBankStats(){
   const box = document.getElementById('bankStats');
   if(!box) return;
-  const ws = DATA.words || [];
+  const ws = wbWords() || [];   // design/78：数据源走 wbWords()，计数随词库切换变化
   let mastered = 0, learning = 0;
   ws.forEach(w => { if(!w) return; const lv = Number(w.level) || 0; if(w.cleared === true){ (lv >= 5) ? mastered++ : learning++; } });
   const fresh = ws.length - mastered - learning;
   const pct = n => ws.length ? (n / ws.length * 100) : 0;
-  // 今日错词入口（9/21）：与学习页空态同口径（dailyWrong[today] 去重）；N=0 不渲染按钮
+  // 今日错词入口（9/21）：与学习页空态同口径；design/78 起按词库路由（wbTodayWrongEns），N=0 不渲染按钮
   let wrongEns = [];
-  try{
-    const t = (typeof todayKey === 'function') ? todayKey() : '';
-    const list = (DATA.dailyWrong && DATA.dailyWrong[t]) || [];
-    wrongEns = Array.from(new Set(list.map(x => String(x || '').trim().toLowerCase()).filter(Boolean)));
-  }catch(e){ wrongEns = []; }
+  try{ wrongEns = wbTodayWrongEns() || []; }catch(e){ wrongEns = []; }
   box.innerHTML = '<span class="wl-stats-bar">' +
       '<i class="wl-stats-seg s-ok" style="width:' + pct(mastered).toFixed(1) + '%"></i>' +
       '<i class="wl-stats-seg s-mid" style="width:' + pct(learning).toFixed(1) + '%"></i>' +
@@ -793,12 +868,22 @@ function renderBankStats(){
 }
 
 function renderWords(){
+  const official = wbActive() !== 'custom';   // design/78：词库 tab 双视图
+  _bankReadonly = official;
   initErrFilter();   // 错误档 chips 随词库变化重建（带各档词数）
+  renderBankHead(official);   // design/78：词库卡标题/按钮组/导入区按词库切换
   const kw = ($('#searchWord').value || '').toLowerCase();
-  let list = DATA.words.slice().reverse();
-  list.sort((a,b) => (a.level || 0) - (b.level || 0)); // 等级低的排在前面
+  const src = wbWords() || [];
+  let list = src.slice();
+  if(official){
+    // 官方词包保持 json 顺序（sl 1→10 已是文件序），仅按等级稳定排序（稳定排序不破坏组内 sl 序）
+    list.sort((a,b) => (a.level || 0) - (b.level || 0));
+  } else {
+    list.reverse();
+    list.sort((a,b) => (a.level || 0) - (b.level || 0)); // 等级低的排在前面
+  }
   const type = WORD_FILTERS.type;
-  if(type !== 'all'){
+  if(!official && type !== 'all'){
     list = list.filter(w => {
       const isPhrase = /\s/.test(String(w.en || ''));
       return type === 'phrase' ? isPhrase : !isPhrase;
@@ -813,30 +898,33 @@ function renderWords(){
     list = list.filter(w => bankErrTier(w) === err);
   }
   if(kw) list = list.filter(w => (w.en+' '+w.cn).toLowerCase().includes(kw));
-  // 旧 mc* → v1.2 迁移（幂等），迁移后落盘
-  let migrated = false;
-  list.forEach(w => { const b = JSON.stringify(w); ensureWordV12(w); if(JSON.stringify(w) !== b) migrated = true; });
-  if(migrated) hubSave();
-  $('#wordCount').textContent = DATA.words.length;
+  // 旧 mc* → v1.2 迁移（幂等），迁移后落盘——官方词包运行时只读，迁移仅 custom
+  if(!official){
+    let migrated = false;
+    list.forEach(w => { const b = JSON.stringify(w); ensureWordV12(w); if(JSON.stringify(w) !== b) migrated = true; });
+    if(migrated) hubSave();
+  }
+  $('#wordCount').textContent = src.length;
   renderBankStats();   // design/59：统计条在 early return 之前渲染，空列表也显示 0/0/0
 
   const box = $('#wordList');
   _bankShown = {};   // 重置各组分页计数；折叠状态 _bankExpanded 保留
   if(list.length === 0){
     _bankGroups = {};
-    box.innerHTML = renderEmpty('没有匹配的单词。');
+    // 官方词包固定 570 词不应为空；src 为空=词包尚未加载成功（走加载失败重试流程中）
+    box.innerHTML = (official && src.length === 0) ? renderEmpty('词包加载中…') : renderEmpty('没有匹配的单词。');
     bankUpdateActionBar();
     return;
   }
 
   if(kw){
-    // 搜索：平铺分页（无组头），快速定位
+    // 搜索：平铺分页（无组头），快速定位（官方视图同样跨组平铺）
     _bankGroups = { flat: list };
     box.innerHTML = '<div class="wl-group open" data-group="flat"><div class="wl-group-body" data-body="flat"><ul class="wl-group-list"></ul></div></div>';
     renderGroupSlice('flat', list, box.querySelector('.wl-group-body'));
   } else {
-    // 错误筛选激活 → 按错误次数分组（错得多的在前）；其余 → 单词/词组分组，默认全折叠
-    const groups = (err !== 'all') ? groupByErr(list) : groupByType(list);
+    // 错误筛选激活 → 按错误次数分组（错得多的在前）；官方 → 按 sl 子列表分组；custom → 单词/词组分组，默认全折叠
+    const groups = (err !== 'all') ? groupByErr(list) : (official ? groupBySl(list) : groupByType(list));
     _bankGroups = {};
     groups.forEach(g => { _bankGroups[g.key] = g.items; });
     box.innerHTML = groups.map(g => groupHeadHtml(g)).join('');
@@ -849,5 +937,37 @@ function renderWords(){
   }
   bankUpdateActionBar();
   syncCatBtns();   // 同步大分类按钮高亮/当前值（initErrFilter 可能回退 err=all）
+}
+
+/* design/78：词库卡头部按词库切换。custom 视图 DOM 与改造前逐字节等价（标题/按钮组还原）；
+   official：标题=meta.name、副标题=meta.desc（title 收 meta.source）、右侧「开始学习/重置进度」、
+   隐藏导入区/类型筛选/批量条/复习计划/AI 补全。 */
+function renderBankHead(official){
+  const title = document.getElementById('bankTitle');
+  const sub = document.getElementById('bankSub');
+  const customBtns = document.getElementById('bankCustomBtns');
+  const officialBtns = document.getElementById('bankOfficialBtns');
+  const importCard = document.getElementById('bankImportCard');
+  const planPanel = document.getElementById('planPanel');
+  const typeCatBtn = document.querySelector('.wl-cat-btn[data-cat="type"]');
+  const actionBar = document.getElementById('bankActionBar');
+  if(!title || !customBtns || !officialBtns) return;   // 元素未就绪（理论上不会发生）
+  const isOff = !!official;
+  if(isOff){
+    const meta = (wbBankMeta(wbActive()) || {});
+    title.textContent = meta.name || '学术阅读 AWL';
+    sub.textContent = meta.desc || '';
+    sub.title = meta.source || '';
+    sub.hidden = !sub.textContent;
+  } else {
+    title.textContent = '我的词库';
+    sub.textContent = ''; sub.title = ''; sub.hidden = true;
+  }
+  customBtns.hidden = isOff;
+  officialBtns.hidden = !isOff;
+  if(importCard) importCard.hidden = isOff;
+  if(typeCatBtn) typeCatBtn.hidden = isOff;   // 官方全是单词：类型筛选无意义
+  if(planPanel && isOff) planPanel.hidden = true;   // 复习计划面板官方视图不出现
+  if(actionBar && isOff) actionBar.hidden = true;   // 官方只读：批量条不出现
 }
 

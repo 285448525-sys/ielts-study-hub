@@ -3,9 +3,14 @@ const MAX_HINT_MODS = 2;
 // 倒计时日期的「周 X」后缀用
 const WEEKDAY_CN = ['日','一','二','三','四','五','六'];
 
-ready(() => {
+ready(async () => {
   const safe = fn => { try{ fn(); }catch(e){ console.error('[index] 渲染失败', fn.name || '', e); } };
   const s = (DATA && DATA.settings) || {};
+
+  // design/78：官方词库激活时先等词包就绪再渲染首页（custom 不 fetch、零额外请求）
+  if(typeof wbActive === 'function' && wbActive() !== 'custom' && typeof obBankReady === 'function'){
+    try{ await obBankReady(wbActive()); }catch(e){ console.error('[index] 官方词库加载失败', e); }
+  }
 
   safe(() => {
     $('#userName').textContent = s.name || '同学';
@@ -86,7 +91,8 @@ function renderDashV6(){
   // ⚠️ 与背单词页的「出题口径」不同：buildQueue(practice.js) 只取 nextReview≤今天的词，
   //    所以首页这个数会明显大于今天真正能背到的量（2026-09-08 修复「再来一轮显示没词」时确认）。
   //    两处口径是刻意保留的：首页看总进度，出题按记忆曲线；不要随手改成一致。
-  const due = (DATA.words||[]).filter(w => w.cleared !== true || (w.nextReview || '') <= tkey).length;
+  // design/78：词源走 wbWords()（custom=DATA.words 原样；official=官方词包），口径注释不变
+  const due = (wbWords()||[]).filter(w => w.cleared !== true || (w.nextReview || '') <= tkey).length;
   const dueEl = $('#dashDueWords');
   const hintEl = $('#dashDueHint');
   if(dueEl) dueEl.innerHTML = due+'<span class="u">词</span>';
@@ -160,11 +166,25 @@ function renderDashTasks(){
   const doneN = items.filter(i => i && i.done).length;
   const pct = items.length ? Math.round(doneN / items.length * 100) : 0;
 
-  // 到期词计数（buildQueue 同口径，不含任何副作用）
-  const dueWords = (DATA.words || []).filter(w =>
-    w && typeof w.en === 'string' && w.en.trim() !== '' &&
-    (!w.nextReview || w.nextReview <= tkey)
-  ).length;
+  // 到期词计数（buildQueue 同口径，不含任何副作用）；design/78：改走 wbDueCount（按词库路由取数）
+  const dueWords = wbDueCount(tkey) || 0;
+
+  // design/78：官方词库激活时「去背词」带暗号跳转（practice.html ready 读 hub_wb_goto 后切词源）；
+  // 新人「背官方词库」按钮写死 awl 暗号。两个链接都存在时各自绑定。
+  const bindWbLinks = () => {
+    const goP = document.getElementById('dashGoPractice');
+    if(goP && typeof wbActive === 'function' && wbActive() !== 'custom'){
+      goP.addEventListener('click', () => {
+        try{ sessionStorage.setItem('hub_wb_goto', wbActive()); }catch(e){}
+      });
+    }
+    const goOff = document.getElementById('dashGoOfficialBank');
+    if(goOff){
+      goOff.addEventListener('click', () => {
+        try{ sessionStorage.setItem('hub_wb_goto', 'awl'); }catch(e){}
+      });
+    }
+  };
 
   // 卡头：标题 + 进度（有任务才显示）+ 细进度条
   let html = '<div class="dash-tasks-h"><h3>今日任务</h3>'
@@ -172,12 +192,21 @@ function renderDashTasks(){
     + '</div>';
   if(items.length) html += '<div class="dash-tasks-bar"><i style="width:' + pct + '%"></i></div>';
 
-  // 系统建议行：非任务、不可勾选；N=0 时显示「今天没有到期单词」且不可点
-  html += '<div class="dash-tasks-tip"><span class="txt">'
-    + (dueWords > 0 ? '今天有 ' + dueWords + ' 个单词到期复习' : '今天没有到期单词')
-    + '</span>'
-    + (dueWords > 0 ? '<a href="practice.html">去背词 →</a>' : '')
-    + '</div>';
+  // 系统建议行：非任务、不可勾选。design/78：新人（custom 且词库为空）改为双选项文案；
+  // 其余按到期数显示（N=0 时显示「今天没有到期单词」且不可点）
+  const _off = (typeof wbActive === 'function' && wbActive() !== 'custom');
+  const _newbie = !_off && (!Array.isArray(DATA.words) || DATA.words.length === 0);
+  if(_newbie){
+    html += '<div class="dash-tasks-tip"><span class="txt">还没有自己的词库：可导入单词，或直接背官方 AWL 570 学术词</span>'
+      + '<a href="practice.html" id="dashGoOfficialBank">背官方词库 →</a>'
+      + '</div>';
+  } else {
+    html += '<div class="dash-tasks-tip"><span class="txt">'
+      + (dueWords > 0 ? '今天有 ' + dueWords + ' 个单词到期复习' : '今天没有到期单词')
+      + '</span>'
+      + (dueWords > 0 ? '<a href="practice.html" id="dashGoPractice">去背词 →</a>' : '')
+      + '</div>';
+  }
 
   // 空状态（今天无计划或无 items）：引导去计划页
   if(items.length === 0){
@@ -188,6 +217,7 @@ function renderDashTasks(){
       + '<a class="btn" href="plans.html">手动添加</a>'
       + '</div></div>';
     host.innerHTML = html;
+    bindWbLinks();
     // AI 按钮跳转信标：计划页 ready() 读取后聚焦输入框并清除（不改 AI 排程逻辑）
     const ai = document.getElementById('dashAiPlanBtn');
     if(ai) ai.addEventListener('click', () => {
@@ -207,6 +237,7 @@ function renderDashTasks(){
   // 全部任务完成（items 非空且 done=100%）→ 一行正向反馈，不引入 XP/积分字段
   if(doneN === items.length) html += '<div class="dash-tasks-done">今天的任务完成了</div>';
   host.innerHTML = html;
+  bindWbLinks();
 
   // 勾选/取消：立即写 item.done + hubSave + 就地刷新（进度条/完成态同步更新）
   host.querySelectorAll('input[data-toggle]').forEach(c => {
@@ -247,10 +278,11 @@ function renderOnboardingBar(){
   // ⭐ 实际完成态：words 这一步除了 setup.words===true，还要看 DATA.words 是否真有词
   // （引导第 2 步「去导入词库」把 setup.words 写死 false、之后无回填路径 → 已导入词库却永远显示「未设置」）。
   // chip 文案 / done 计数 / done>=3 自动 snoozed 都用这个「实际完成」口径（design/74）。
+  // design/78：官方词库激活（awl）同样算「词库已设」。
   const actualDone = {};
   ONB_STEPS.forEach(function(x){
     actualDone[x.key] = (x.key === 'words')
-      ? (s.words === true || (Array.isArray(DATA.words) && DATA.words.length > 0))
+      ? (s.words === true || (Array.isArray(DATA.words) && DATA.words.length > 0) || (typeof wbActive === 'function' && wbActive() !== 'custom'))
       : !!s[x.key];
   });
   const done = ONB_STEPS.filter(x => actualDone[x.key]).length;

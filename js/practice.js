@@ -289,19 +289,14 @@ function reconcileShortCount(w, nowISO){
 }
 
 // 记录当日答错词（供次日「前日错当日强制」复习，demote 已将 nextReview 设为明天，自然覆盖）
+// design/78：内部按 wbActive() 路由存储位置（custom=DATA.dailyWrong / official=banks[x].wrong），签名不变
 function recordDailyWrong(en){
-  DATA.dailyWrong = DATA.dailyWrong || {};
-  const t = todayKey();
-  if(!DATA.dailyWrong[t]) DATA.dailyWrong[t] = [];
-  const k = String(en).toLowerCase();
-  if(!DATA.dailyWrong[t].includes(k)) DATA.dailyWrong[t].push(k);
+  wbRecordWrong(en);
 }
 
 // 今日错词去重集合（en 小写）：供空态/词库页「今日错词」入口计数与重练（只读，不清空——当日入口持续在，次日按日期自然切换）
 function todayWrongEns(){
-  const t = todayKey();
-  const list = (DATA.dailyWrong && DATA.dailyWrong[t]) || [];
-  return Array.from(new Set(list.map(e => String(e || '').trim().toLowerCase()).filter(Boolean)));
+  return wbTodayWrongEns();
 }
 
 // 轻量词性推断（从英文后缀推断，纯 UI 显示用；数据有 pos 字段时优先使用）
@@ -452,7 +447,8 @@ function dueCmp(a, b, pMap){
 // 队列构建（v4 §3.9 buildQueue）：筛 nextReview<=today + reconcile + 排序 + P1-2 新词配额
 function buildQueue(today, nowISO){
   const c = pc();
-  const due = (DATA.words || []).filter(w => {
+  // design/78：数据源改走 wbWords()（custom = DATA.words 原样；官方 = 内存词数组）；过滤/排序/截断口径一字不动
+  const due = (wbWords() || []).filter(w => {
     if(!w || typeof w.en !== 'string' || w.en.trim() === '') return false;
     ensureWordV12(w);
     return (!w.nextReview || w.nextReview <= today);
@@ -469,25 +465,17 @@ function buildQueue(today, nowISO){
 }
 
 // ======= 今日已学词集合（跨轮累计，保证「第二轮不重复第一轮的词」）=======
+// design/78：内部按 wbActive() 路由（custom=DATA.wordSeenToday / official=banks[x].seen），对外签名不变
 function getTodaySeen(){
-  if(!DATA.wordSeenToday) DATA.wordSeenToday = { date: todayKey(), words: [] };
-  if(DATA.wordSeenToday.date !== todayKey()) DATA.wordSeenToday = { date: todayKey(), words: [] };
-  return DATA.wordSeenToday;
+  return wbSeen();
 }
 function markSeen(words){
-  const s = getTodaySeen();
-  const set = new Set(s.words);
-  // 兼容两种入参：词对象（{en}）与纯字符串（pq.passed 存的是小写 en 字符串）
-  for(const w of (words || [])){
-    const k = String((w && w.en) || (typeof w === 'string' ? w : '')).trim().toLowerCase();
-    if(k) set.add(k);
-  }
-  s.words = Array.from(set);
-  hubSave();
+  wbMarkSeen(words);
 }
 
 // ======= 进入学习（打开即按排程出题）=======
-function autoStartSeeWord(){
+// design/78：改为 async——官方词库先 await 词包加载（custom 立即过）；出题/排程逻辑一字不动
+async function autoStartSeeWord(){
   try{
     cancelSpeak();
     removeMasteredBtn();   // 离开答题态：移除顶部「已掌握」按钮（空态/开始页不显示）
@@ -496,17 +484,36 @@ function autoStartSeeWord(){
     const nextBtn = $('#nextBtn'); if(nextBtn) nextBtn.hidden = true;
     const prog1 = $('#progBarWrap'); if(prog1) prog1.hidden = true;
 
-    if(!Array.isArray(DATA.words) || DATA.words.length === 0){
-      $('#practiceBody').innerHTML = '<div class="q-word">词库为空</div><div class="q-cn">切换到「词库」标签添加单词后再来学习。</div>';
-      return;
+    // design/78：官方词库异步拉取词包；加载期间给占位，失败走底部统一重试 UI
+    if(wbActive() !== 'custom' && !(typeof wbLoaded === 'function' && wbLoaded(wbActive()))){
+      $('#practiceBody').innerHTML = '<div class="q-word">词库加载中…</div>';
     }
-    if(DATA.words.length < 2){
-      $('#practiceBody').innerHTML = '<div class="q-word">词库至少需要 2 个单词</div><div class="q-cn">「看词选义」需要选项作干扰项，请先加至少 2 个词。</div>';
-      return;
+    await obBankReady(wbActive());
+
+    const _wbAll = wbWords();
+    if(wbActive() === 'custom'){
+      if(!Array.isArray(_wbAll) || _wbAll.length === 0){
+        // design/78：空态仅 custom 显示，文案下并列「去导入我的词库 / 先背官方 AWL」两个出口
+        $('#practiceBody').innerHTML = '<div class="q-word">词库为空</div><div class="q-cn">切换到「词库」标签添加单词后再来学习。</div>' +
+          '<div style="margin-top:14px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">' +
+          '<button class="btn" id="emptyGoBank">去导入我的词库</button>' +
+          '<button class="btn btn-primary" id="emptyGoOfficial">先背官方・AWL 570 学术词</button></div>';
+        const _egb = document.getElementById('emptyGoBank');
+        if(_egb) _egb.addEventListener('click', () => switchWordTab('bank'));
+        const _ego = document.getElementById('emptyGoOfficial');
+        if(_ego) _ego.addEventListener('click', () => { wbSetActive('awl'); pq = null; autoStartSeeWord(); });
+        return;
+      }
+      if(_wbAll.length < 2){
+        $('#practiceBody').innerHTML = '<div class="q-word">词库至少需要 2 个单词</div><div class="q-cn">「看词选义」需要选项作干扰项，请先加至少 2 个词。</div>';
+        return;
+      }
+    } else if(!Array.isArray(_wbAll) || _wbAll.length === 0){
+      throw new Error('官方词库加载为空');   // 词包固定 570 词不应出现空态；ready 后异常为空按失败处理
     }
     const today = todayKey();
     // —— 恢复或首次锁定当日词表 ——
-    let session = DATA.dailySession;
+    let session = wbSession();
     // 防污染：若本机 session 里 planEn 内已被标记为 passed 的词 >=95%，视为本轮已结束，强制开新轮。
     // 这种情况通常由跨设备 passed 并集污染导致（例如云端把本机未背的词也标记为已背，一打开就显示 20/20）。
     if(session && session.date === today && Array.isArray(session.planEn) && session.planEn.length > 0 && !session.finished){
@@ -514,7 +521,7 @@ function autoStartSeeWord(){
       const _passedInPlan = (session.passed || []).filter(e => _planSet.has(String(e).trim().toLowerCase()));
       if(_passedInPlan.length / session.planEn.length >= 0.95){
         session.finished = true;
-        hubSave();
+        wbSave();
       }
     }
     // 上一轮已做完 -> 强制开新一轮（取全新待学习词）；否则续上当天未完成的轮次（不丢进度）
@@ -531,7 +538,7 @@ function autoStartSeeWord(){
       }
       if(plan.length === 0){
         // 今天确实没有到期词：未掌握的词被记忆曲线排在之后几天，空态要说清数字，避免与首页「待学习」互相矛盾
-        const pending = (DATA.words || []).filter(w => w && w.cleared !== true).length;
+        const pending = _wbAll.filter(w => w && w.cleared !== true).length;
         // 今日错词入口（9/21）：当天答错/不认识过的词随时可重练，不受到期排程限制；N=0 不显示
         const wrongEns = todayWrongEns();
         const wrongBtnHtml = (wrongEns.length && typeof startWrongReview === 'function')
@@ -570,8 +577,8 @@ function autoStartSeeWord(){
         lastTouch: Date.now(),
         sessionStart: Date.now()
       };
-      DATA.dailySession = session;
-      hubSave();
+      wbSetSession(session);
+      wbSave();
     }
 
     // —— 题量收归：设置题量小于已锁定轮次词数时，截断到设定题量（保留已过的词，去除未开始的冗余词）——
@@ -589,8 +596,8 @@ function autoStartSeeWord(){
         const _newPlan = _kept.concat(_rest).slice(0, _capEff);
         session.planEn = _newPlan;
         session.queueOrder = _newPlan;
-        DATA.dailySession = session;
-        hubSave();
+        wbSetSession(session);
+        wbSave();
       }
     }
 
@@ -618,7 +625,7 @@ function autoStartSeeWord(){
     updateWordStats();
 
     if(pq.queue.length === 0){
-      s.finished = true; s.currentEn = null; hubSave();
+      s.finished = true; s.currentEn = null; wbSave();
       finishPractice();
       return;
     }
@@ -676,8 +683,8 @@ function startSessionFromPool(poolEn){
       sessionStart: Date.now(),
       poolMode: true        // 勾选练习轮标记：不参与题量收归
     };
-    DATA.dailySession = session;
-    hubSave();
+    wbSetSession(session);
+    wbSave();
     pq = null;
     switchWordTab('study');  // pq 为空 → autoStartSeeWord() 走「续上当天轮次」分支出题
     return true;
@@ -688,20 +695,24 @@ function startSessionFromPool(poolEn){
 }
 
 // ======= 当日词表锁定 + 进度持久化（草稿自动存档）=======
-// 按 en（小写）在词库里取活词对象，用作当日 session 的稳定键
+// 按 en（小写）在词库里取活词对象，用作当日 session 的稳定键。
+// design/78：保留为 wbFind 的别名（数据源路由在 wordbank.js——custom 走 DATA.words、官方走内存词数组）
 function findWordByEn(en){
+  if(typeof wbFind === 'function') return wbFind(en);
   const k = String(en || '').trim().toLowerCase();
   if(!k) return null;
   return (DATA.words || []).find(w => String(w.en || '').trim().toLowerCase() === k) || null;
 }
 function clearDailySession(){
-  if(DATA && DATA.dailySession){ DATA.dailySession = null; hubSave(); }
+  if(wbSession()){ wbSetSession(null); wbSave(); }
 }
 // 把当前内存会话快照写入当日 session（仅当天有效），供刷新/跳转后恢复
+// design/78：session 读写经 wbSession/wbSetSession 路由（custom=DATA.dailySession / official=banks[x].session）
 function saveDailySession(){
-  if(!pq || !DATA || !DATA.dailySession) return;
+  if(!pq) return;
+  const s = wbSession();
+  if(!s) return;
   if(pq.isWrongReview) return;                   // 重练错词是临时模式，不覆盖正常 dailySession
-  const s = DATA.dailySession;
   if(s.date !== todayKey()) return;              // 只保存当天，跨天不污染
   s.passed = (pq.passed || []).slice();
   s.queueOrder = pq.queue.map(w => String(w.en || '').trim().toLowerCase());
@@ -712,7 +723,7 @@ function saveDailySession(){
   const cur = pq.queue[pq.idx];
   s.currentEn = cur ? String(cur.en || '').trim().toLowerCase() : null;
   s.lastTouch = Date.now();
-  hubSave();
+  wbSave();
 }
 // 清空当日 session 并重建（"再来一轮"用：当天内重新锁定一份词表）
 function restartToday(){
@@ -750,6 +761,28 @@ function masterWord(cur){
     if(cur.id && w.id) return w.id === cur.id;
     return String(w.en || '').trim().toLowerCase() === k;
   };
+  // design/78：官方词库静态只读——「已掌握」= 写入 prog 的毕业态（退出学习队列），不从词包删词
+  if(wbActive() !== 'custom'){
+    cur.cleared = true;
+    cur.level = 7;
+    cur.lastReview = todayKey();
+    cur.nextReview = addDays(todayKey(), 180);
+    pq.queue = pq.queue.filter(w => !same(w));
+    if(!pq.isWrongReview){
+      const s = wbSession();
+      if(s && s.date === todayKey()){
+        s.planEn = (s.planEn || []).filter(e => e !== k);
+        s.queueOrder = (s.queueOrder || []).filter(e => e !== k);
+        s.passed = (s.passed || []).filter(e => e !== k);
+        pq.initLen = s.planEn.length;
+      }
+    }
+    wbSave();
+    if(!pq.isWrongReview) saveDailySession();
+    toast('已掌握，该词不再出现在学习中');
+    nextQuestion();
+    return;
+  }
   DATA.words = (DATA.words || []).filter(w => !same(w));
   pq.queue = pq.queue.filter(w => !same(w));
   // 墓碑（与 words.js deleteWord 同格式 'en:'+小写）：不记墓碑的话，云同步合并会把已掌握的词复活回来
@@ -760,8 +793,8 @@ function masterWord(cur){
     if(!DATA.deletedIds.includes(_tomb)) DATA.deletedIds.push(_tomb);
   }
   // 从当日计划移除（分母缩减，不计入已掌握进度）
-  if(!pq.isWrongReview && DATA.dailySession && DATA.dailySession.date === todayKey()){
-    const s = DATA.dailySession;
+  if(!pq.isWrongReview && wbSession() && wbSession().date === todayKey()){
+    const s = wbSession();
     s.planEn = (s.planEn || []).filter(e => e !== k);
     s.queueOrder = (s.queueOrder || []).filter(e => e !== k);
     s.passed = (s.passed || []).filter(e => e !== k);
@@ -861,7 +894,7 @@ function renderQuestion(cur, isRehold){
   }
   const audioMode = (pq._curQMode === 'audio');
 
-  const opts = genDistractors(cur, DATA.words);
+  const opts = genDistractors(cur, wbWords());
 
   let html = '';
   // ── 顶部区：上一词回顾 ──
@@ -1017,8 +1050,8 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
       pq.correct++;
       pq.passed.push(String(cur.en).trim().toLowerCase());
       if(!pq.counted.has(k)){ pq.counted.add(k); pq.total++; }   // 完全过关才计入进度
-      if(DATA.dailySession && !pq.isWrongReview) DATA.dailySession.total = pq.total;  // 持久化，刷新续背时不丢
-      hubSave();
+      if(!pq.isWrongReview){ const _ws = wbSession(); if(_ws) _ws.total = pq.total; }  // 持久化，刷新续背时不丢（design/78 路由）
+      wbSave();
       result = 'pass';
     } else {
       // 答错/不认识的词 → 短线分散重复：需分散答对 SHORT_PASS(3) 次才过关
@@ -1030,8 +1063,8 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
         pq.passed.push(String(cur.en).trim().toLowerCase());
         pq.shortMode.delete(k);
         if(!pq.counted.has(k)){ pq.counted.add(k); pq.total++; }   // 过完 3 遍全对，此时才算过
-        if(DATA.dailySession && !pq.isWrongReview) DATA.dailySession.total = pq.total;
-        hubSave();
+        if(!pq.isWrongReview){ const _ws = wbSession(); if(_ws) _ws.total = pq.total; }
+        wbSave();
         result = 'pass';
         // 答题反馈 toast 已删（之之 9/7：黑框压在计时框后面，纯噪音，答题卡已有反馈）
       } else {
@@ -1042,7 +1075,7 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
         const pos = Math.min(pq.queue.length, pq.idx + gap);
         if(pos >= pq.queue.length) pq.queue.push(cur);
         else pq.queue.splice(pos, 0, cur);
-        hubSave();
+        wbSave();
         result = 'requeue';
         // toast 已删
       }
@@ -1060,13 +1093,13 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
       const pos = Math.min(pq.queue.length, pq.idx + 1);
       if(pos >= pq.queue.length) pq.queue.push(cur);
       else pq.queue.splice(pos, 0, cur);
-      hubSave();
+      wbSave();
       result = 'requeue';
       // toast 已删
     } else {
       // 第一次答错 → 展示答案后当场重考同一词（选项重新打乱）
       pq.reholdMap[k] = 1;
-      hubSave();   // 显式落盘：重练错词模式下 saveDailySession 会跳过，不落盘则本次降级/dailyWrong 全丢
+      wbSave();   // 显式落盘：重练错词模式下 saveDailySession 会跳过，不落盘则本次降级/dailyWrong 全丢（design/78 路由）
       result = 'rehold';
       // toast 已删
     }
@@ -1083,7 +1116,7 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
     if(!pq.wrongList.some(x => String(x.en).toLowerCase() === k)){
       pq.wrongList.push({ en: cur.en, cn: cur.cn || '', user: '(本轮放弃)', grade: 'unknown' });
     }
-    hubSave();
+    wbSave();
     result = 'requeue';
     // toast 已删
   }
@@ -1152,11 +1185,12 @@ function finishPractice(){
   if(pq) markSeen([].concat(pq.passed || [], pq.wrongList || []));
 
   // 今日已练 = 今天真正练过的 unique 词数（不是轮次位累加）
-  const seenToday = DATA.wordSeenToday && DATA.wordSeenToday.date === todayKey() ? DATA.wordSeenToday.words || [] : [];
+  const _seenObj = wbSeen();
+  const seenToday = _seenObj && _seenObj.date === todayKey() ? _seenObj.words || [] : [];
   const todayLearned = seenToday.length;
 
   // 剩余待学习：未掌握或今天到期的词数
-  const due = (DATA.words || []).filter(w => w && (w.cleared !== true || (w.nextReview || '') <= todayKey())).length;
+  const due = (wbWords() || []).filter(w => w && (w.cleared !== true || (w.nextReview || '') <= todayKey())).length;
 
   // 累加今日统计：时长累加，词数用今日 unique 数（覆盖，非累加）
   addTodayStats(todayLearned, wordMs);
@@ -1166,7 +1200,7 @@ function finishPractice(){
   const medalNum = pq ? (pq.correct || 0) : 0;
   // 今日清零终结态（9/21）：严格按 buildQueue 同口径（en 非空且无排程或已到期）计数今日到期词——
   // 不复用上方 due（那个口径含未掌握的未来词，会把「明天才再见」的词算成未清零）；isWrongReview 结束同样按此判定
-  const todayDue = (DATA.words || []).filter(w => w && typeof w.en === 'string' && w.en.trim() !== '' && (!w.nextReview || w.nextReview <= todayKey())).length;
+  const todayDue = (wbWords() || []).filter(w => w && typeof w.en === 'string' && w.en.trim() !== '' && (!w.nextReview || w.nextReview <= todayKey())).length;
   const zeroCard = (todayDue === 0)
     ? '<div class="finish-zero-card"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>今天到期的词全部背完了</div>'
     : '';
@@ -1199,8 +1233,9 @@ function finishPractice(){
   $('#progBarWrap').hidden = true;
   removeMasteredBtn();   // 完成页没有当前词：移除「已掌握」按钮，防误点删除
   updateWordStats();
-  if(!pq.isWrongReview && DATA.dailySession && DATA.dailySession.date === todayKey()){
-    DATA.dailySession.finished = true; DATA.dailySession.currentEn = null; hubSave();
+  if(!pq.isWrongReview){
+    const _fs = wbSession();   // design/78 路由
+    if(_fs && _fs.date === todayKey()){ _fs.finished = true; _fs.currentEn = null; wbSave(); }
   }
   // ⭐ 9/19 修「换设备背词丢一截」（她实测：电脑背 200 剩 900，手机打开显示还剩 950）：
   // 旧上传链路有两个断点——① 正常通道 60s debounce，背完立刻关页/合盖就来不及传；
@@ -1254,19 +1289,12 @@ function startWrongReview(wrongItems){
 }
 
 // ======= 每日单词学习统计（跨轮累计：再来一轮不清零）=======
+// design/78：存储位置按 wbActive() 路由（custom=DATA.wordDayStats / official=banks[x].dayStats），签名不变
 function getTodayStats(){
-  const key = todayKey();
-  if(!DATA.wordDayStats) DATA.wordDayStats = {};
-  if(!DATA.wordDayStats[key]) DATA.wordDayStats[key] = { totalWords:0, totalMs:0, sessions:0 };
-  return { key, st: DATA.wordDayStats[key] };
+  return { key: todayKey(), st: wbDayStats() };
 }
 function addTodayStats(wordsCount, ms){
-  const { st } = getTodayStats();
-  // 今日已练 = 今天真正练过的 unique 词数，直接覆盖（避免三轮×20被记成60的重复累加）
-  st.totalWords = Math.max(0, wordsCount || 0);
-  st.totalMs += Math.max(0, ms || 0);
-  st.sessions += 1;
-  hubSave();
+  wbAddDayStats(wordsCount, ms);
 }
 function formatMs(millis){
   const m = Math.floor(millis / 60000);
@@ -1415,9 +1443,9 @@ function updateWordStats(){
     // 9/7 口径：只数「完全过关」的词（答错进短线的词过完 3 遍全对才计入），不含正在看的题
     const current = Math.min(pq.counted ? pq.counted.size : 0, total);
     progress = current + ' / ' + total;   // 14:22 对齐 design/54 原型数字格式「7 / 20」
-  } else if(DATA.dailySession && DATA.dailySession.date === todayKey() && !DATA.dailySession.finished){
+  } else if(wbSession() && wbSession().date === todayKey() && !wbSession().finished){
     // 仅「进行中」的当日 session 才用其进度；已完成/过期的 session 不再当作当前进度（避免重开即显 20/20）
-    const s = DATA.dailySession;
+    const s = wbSession();
     const total = (s.planEn || []).length;
     const inPlanPassed = (s.passed || []).filter(en => (s.planEn || []).includes(en)).length;
     const answered = Math.min(total, inPlanPassed);
@@ -1661,7 +1689,7 @@ function wordIntervalDesc(w){
 // design/77 清理（她 9/21 拍板）：Leitner 盒子分布整块删除——design/77 后 Lv 只是 dh 反推的显示代理，
 // 旧「1/2/4/7…90 天」档位文案会误导为仍在走固定梯子；真实节奏看词条行「· 半衰期 N 天」。
 function buildPlanStats(){
-  const words = (DATA.words || []).filter(w => w && typeof w.en === 'string' && w.en.trim());
+  const words = (wbWords() || []).filter(w => w && typeof w.en === 'string' && w.en.trim());
   const today = todayKey();
   const days = [];
   for(let i = 0; i < 7; i++) days.push({ key: addDays(today, i), label: '', count: 0 });
@@ -1788,5 +1816,21 @@ ready(() => {
       if(live && live !== pq.answer) renderQuestion(live);
     }
   });
+  // design/78：切换词库 → 清空会话重新出题（词库页刷新/筛选重置由 words.js 自己监听同一事件）
+  document.addEventListener('wb:switched', () => {
+    cancelSpeak();
+    pq = null;
+    autoStartSeeWord();
+  });
+  // design/78 §四.10：跨页暗号——首页/引导页跳转带 sessionStorage hub_wb_goto，
+  // 落地后先切到目标词库再渲染/出题（处理完即删，只生效一次）
+  try{
+    const _goto = sessionStorage.getItem('hub_wb_goto');
+    if(_goto){
+      sessionStorage.removeItem('hub_wb_goto');
+      if(typeof wbSetActive === 'function' && _goto !== wbActive()) wbSetActive(_goto);
+    }
+  }catch(e){}
+  if(typeof wbRenderSwitchers === 'function') wbRenderSwitchers();
   autoStartSeeWord();
 });
