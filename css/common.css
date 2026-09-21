@@ -3366,3 +3366,23 @@ html[data-theme="dark"] .onb-overlay{background:rgba(0,0,0,.62)}
 @media (max-width:860px){
   .offline-bar{top:8px;font-size:12px;padding:6px 12px}
 }
+
+/* ===== design/78 SW 更新提示条（common.js 驱动，**绝不自动 reload**） =====
+   与离线条同族、同一顶部位；层级 99970 低于引导遮罩 99990、高于 hub-loader 9999。
+   两者不会同时出现（离线不弹新版提示），因此共用顶部槽位安全。
+   配色全 token：neutral 底 + --primary 主按钮（teal 实色单屏 ≤1），暗色自动跟随。 */
+.sw-update-bar{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:99970;
+  display:inline-flex;align-items:center;gap:10px;max-width:calc(100vw - 32px);
+  padding:8px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);
+  box-shadow:var(--shadow-md)}
+.sw-update-text{font-size:13px;font-weight:600;line-height:1.4;color:var(--ink);white-space:nowrap}
+.sw-update-btn{font-family:inherit;font-size:12.5px;font-weight:600;line-height:1.4;min-height:0;
+  padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:transparent;
+  color:var(--ink);cursor:pointer;white-space:nowrap}
+.sw-update-btn.btn-primary{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+.sw-update-btn:hover{box-shadow:0 0 0 3px rgba(58,154,147,.18)}
+@media (max-width:860px){
+  .sw-update-bar{top:8px;gap:8px;padding:7px 10px}
+  .sw-update-text{font-size:12px}
+  .sw-update-btn{font-size:12px;padding:4px 10px}
+}

@@ -2950,8 +2950,90 @@ function registerSW(){
   try{
     if('serviceWorker' in navigator){
       // 根作用域注册；失败静默（隐私模式/极端环境照常在线使用，不影响任何功能）
-      navigator.serviceWorker.register('sw.js').catch(function(){});
+      navigator.serviceWorker.register('sw.js').then(() => {
+        // design/78：接管 sw.js 在 activate 时发的 {type:'SW_UPDATED'}（此前全站零消费端）。
+        // ⚠️ 必须挂在 register 之后才安全：register 之前 navigator.serviceWorker 可能仍是 undefined。
+        try{
+          navigator.serviceWorker.addEventListener('message', e => {
+            if(e.data && e.data.type === 'SW_UPDATED') maybeShowSwUpdatePrompt(e.data.version);
+          });
+        }catch(_){}
+      }).catch(function(){});
     }
+  }catch(e){}
+}
+
+/* ===== design/78 SW 更新提示（SW_UPDATED 前端接管） =====
+   现状：SW 装好新版后靠 skipWaiting + clients.claim 静默接管，已打开的页面手里还是旧 HTML/JS，
+   只能等 Ctrl+F5 或撞上自愈 reload —— 她本人的体验就是「改了东西不知道有没有生效」。
+   现在：收到 SW_UPDATED → 顶部一条「发现新版本 · 刷新 / 稍后」。
+   ⭐ 三条硬约束（与 design/75 去核武器化同源）：
+   ① **绝不自动 reload**：只有她点「刷新」才 reload（自动刷新可能吃掉未落盘的作答）；
+   ② **与自愈完全解耦**：不写任何自愈计数、不调 navSelfHealReload / navDeployProbe、不改那两道闸门；
+   ③ 离线不弹（离线不可能拉到新版本）+ 答题中/引导遮罩中不弹（不打断心流）——
+      这两种情况只 return、**不记 sessionStorage**，下次收到消息仍可再判。
+   同一版本用 sessionStorage 守卫（hub_sw_prompted）→ 一次会话内不会反复弹；
+   节点 body 直挂 + id 单例（软导航只换 <main>，提示条跨页常驻直到她点掉——这正是「待办事项不是 toast」）。 */
+const SWU_BAR_ID = 'swUpdateBar';
+const SWU_SEEN_KEY = 'hub_sw_prompted';     // sessionStorage：本会话已处理过的版本（不再弹）
+const SWU_KNOWN_KEY = 'hub_sw_known';       // localStorage：本机已知装过的版本（区分「全新安装」与「真更新」）
+function swMarkSwHandled(version){
+  try{ sessionStorage.setItem(SWU_SEEN_KEY, String(version)); }catch(e){}
+  try{ localStorage.setItem(SWU_KNOWN_KEY, String(version)); }catch(e){}
+}
+/* 「答题中」判定：背词全屏 / 引导遮罩 / 背词已出题未判定。
+   ⚠️ pq 是 practice.js 的顶层 let —— 跨脚本可见但**不在 window 上**，必须用 typeof 探活
+   （方案里写的 window.pq 恒为 undefined，守卫会永远失效）。 */
+function swUpdateBusy(){
+  try{
+    if(document.body && document.body.classList.contains('word-fullscreen')) return true;
+    if(document.querySelector('#onbOverlay:not([hidden])')) return true;
+    if(typeof pq !== 'undefined' && pq && pq.revealed === false && pq.queue && pq.queue.length) return true;
+  }catch(e){}
+  return false;
+}
+function swRemoveUpdateBar(){
+  const el = document.getElementById(SWU_BAR_ID);
+  if(el && el.parentNode) el.parentNode.removeChild(el);
+}
+function maybeShowSwUpdatePrompt(version){
+  try{
+    if(!version || !document.body) return;
+    const v = String(version);
+    /* ⭐ 首次安装不发提示（方案未预见）：sw.js 的 activate 在「全新安装」时也会跑一次并 postMessage
+       （install→activate 一次跑完），此时她还没用过任何旧版，「发现新版本」是句废话、甚至像报错。
+       首次只把版本号记进 localStorage，之后**真的换了版本**才提示。必须先于 sessionStorage 守卫判。 */
+    let known = null;
+    try{ known = localStorage.getItem(SWU_KNOWN_KEY); }catch(e){}
+    if(!known){ try{ localStorage.setItem(SWU_KNOWN_KEY, v); }catch(e){} return; }
+    if(sessionStorage.getItem(SWU_SEEN_KEY) === v) return;                  // 同一版本本会话只弹一次
+    if(known === v) return;                                                 // 已知版本 = 无更新
+    if(_isOffline || navigator.onLine === false) return;                    // design/79 离线闸：离线不弹
+    if(swUpdateBusy()) return;                                              // 答题中/引导中不弹（且不计入已弹）
+    if(document.getElementById(SWU_BAR_ID)) return;                         // 单例
+    const bar = document.createElement('div');
+    bar.id = SWU_BAR_ID;
+    bar.className = 'sw-update-bar';
+    bar.setAttribute('role', 'status');
+    const txt = document.createElement('span');
+    txt.className = 'sw-update-text';
+    txt.textContent = '发现新版本';
+    const refresh = document.createElement('button');
+    refresh.className = 'btn btn-primary sw-update-btn';
+    refresh.textContent = '刷新';
+    refresh.addEventListener('click', () => {
+      swMarkSwHandled(version);
+      location.reload();
+    });
+    const later = document.createElement('button');
+    later.className = 'btn sw-update-btn later';
+    later.textContent = '稍后';
+    later.addEventListener('click', () => {
+      swMarkSwHandled(version);
+      swRemoveUpdateBar();
+    });
+    bar.appendChild(txt); bar.appendChild(refresh); bar.appendChild(later);
+    document.body.appendChild(bar);
   }catch(e){}
 }
 
