@@ -645,6 +645,20 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
   font-size:15px;color:var(--ink-2);margin-top:5px;min-height:24px;line-height:1.55;overflow:hidden;   /* 9/9：空占位 46→24（1 行），音标→选项的空隙从 84px 降到 46px */
 }
 
+/* ── 听音选义：音频题题干英文/音标 CSS 隐藏（DOM 原样保留），提示文案原位；判定揭示（.pw-reveal）后恢复 ── */
+/* 选择器不带 .practice-body-fit（非 fit 布局也要生效）；(1,2,0) 与上方 .pw-en 同级但源序在后 → 稳赢 */
+.pw-audio-hint{display:none}
+#practiceBody .pw-audio .pw-audio-hint{
+  display:flex;align-items:center;justify-content:center;
+  margin-top:6px;min-height:73px;   /* 补足被隐藏的 pw-en(48)+pw-ipa(19) 盒高，题干区恒高不塌 */
+  font-size:15px;color:var(--muted);
+}
+#practiceBody .pw-audio .pw-en,
+#practiceBody .pw-audio .pw-ipa{ display:none; }
+#practiceBody .pw-audio.pw-reveal .pw-en{ display:flex; }
+#practiceBody .pw-audio.pw-reveal .pw-ipa{ display:block; }
+#practiceBody .pw-audio.pw-reveal .pw-audio-hint{ display:none; }
+
 #practiceBody.practice-body-fit .opts-label{ display:none !important; }
 
 /* ═══ 选项网格（照抄 v5：第一行=词性，第二行=中文） ═══ */

@@ -56,6 +56,7 @@ var PC_DEFAULTS = {
   autoPlay: true,
   showCn: false,
   showEn: 0,              // 0=不显示 1=答错时显示 2=始终显示
+  questionMode: 'visual', // 听音选义：visual=看词选义（默认，一切照旧）/ audio=听音选义（题干英文音标隐藏，先听后选）/ mixed=混合（每题约 50% 听音）
   optCount: 4,
   wrongHoldMs: 2500,
   fxFeedback: true        // design/54：连击与反馈层开关（设置弹窗「连击与反馈」）
@@ -81,6 +82,7 @@ function pc(){
   c.autoPlay = !!c.autoPlay;
   c.showCn = !!c.showCn;
   c.showEn = clampNum(c.showEn, 0, 2, PC_DEFAULTS.showEn);
+  c.questionMode = (['visual','audio','mixed'].indexOf(c.questionMode) !== -1) ? c.questionMode : PC_DEFAULTS.questionMode;   // 白名单外（旧数据/云同步脏值）回退看词
   c.optCount = clampNum(c.optCount, 2, 10, PC_DEFAULTS.optCount);
   c.wrongHoldMs = clampNum(c.wrongHoldMs, 1000, 5000, PC_DEFAULTS.wrongHoldMs);
   c.fxFeedback = !!c.fxFeedback;
@@ -829,6 +831,14 @@ function renderQuestion(cur, isRehold){
   const c = pc();
   pq.revealed = false;
   pq._picked = false;
+  // 听音选义：决定本题呈现模式。当场重考（isRehold）沿用原模式（不让用户换题后从听切看）；
+  // 混合模式每题独立掷币约 50% 听音；visual/audio 模式其余一切行为与旧版逐字节相同。
+  if(!isRehold || !pq._curQMode){
+    pq._curQMode = (c.questionMode === 'audio') ? 'audio'
+      : (c.questionMode === 'mixed' ? (Math.random() < 0.5 ? 'audio' : 'visual')
+      : 'visual');
+  }
+  const audioMode = (pq._curQMode === 'audio');
 
   const opts = genDistractors(cur, DATA.words);
 
@@ -847,9 +857,12 @@ function renderQuestion(cur, isRehold){
 
   // ── 主区域（严格还原 v5 原型：单词+音标+中文居中，无例句无词性；中文答后才显示） ──
   // 已掌握按钮已上移至顶部 word-stats 行（见 ensureMasteredBtn），题干区不再放按钮
-  html += '<div class="practice-word-area">' +
+  // 听音选义：DOM 原样保留（pw-en/pw-ipa 内容照旧渲染），由 .pw-audio class + CSS 控制隐藏；
+  // 提示文案原位插入；judge() 揭示时加 .pw-reveal 恢复显示。
+  html += '<div class="practice-word-area' + (audioMode ? ' pw-audio' : '') + '">' +
     '<div class="pw-en">' + escapeHtml(cur.en) + '</div>' +
     '<div class="pw-ipa">' + (cur.ipa ? '/ ' + escapeHtml(cur.ipa) + ' /' : '&nbsp;') + '</div>' +
+    (audioMode ? '<div class="pw-audio-hint">听发音，选释义 · 点喇叭重播</div>' : '') +
     '<div class="pw-cn" id="pwCn"></div>' +   /* 9/17：不再放 &nbsp;——全屏 evenly 态 pw-cn min-height:0 需要真空才生效；普通态题干区 min-height:120px 兜底，视觉无变化 */
   '</div>';
 
@@ -878,7 +891,8 @@ function renderQuestion(cur, isRehold){
   const qsp = document.getElementById('qSpeaker');
   if(qsp) qsp.onclick = () => speakN(cur.en);
   if(c.autoPlay) setTimeout(() => speakN(cur.en), 300);   // autoPlay=false 时不自动朗读，仅手动点喇叭
-  fitWordOneLine();   // 9/9：渲染完立即按单词长度自适应字号，保证手机端/全屏态都不折行
+  if(audioMode && !c.autoPlay) setTimeout(() => speakN(cur.en), 300);   // 听音题必须先发音：即便关了自动播报，本题也强制读一次（喇叭可手动重播）
+  if(!audioMode) fitWordOneLine();   // 9/9：渲染完立即按单词长度自适应字号（听音题题干隐藏，揭示后再补算）
 }
 
 // 9/9 之之需求：题干单词固定一行显示，字号按长度自动收缩（长词变小、短词不变）。
@@ -943,6 +957,12 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
   const reveal = document.getElementById('pwCn');
   if(reveal && cur.cn){
     reveal.textContent = practiceSense(cur).cn;
+  }
+  // 听音题揭示：.pw-reveal 让 CSS 恢复题干英文/音标显示（提示文案随之隐藏），再按词长补一次自适应字号
+  const warea = document.querySelector('#practiceBody .practice-word-area');
+  if(warea && warea.classList.contains('pw-audio')){
+    warea.classList.add('pw-reveal');
+    fitWordOneLine();
   }
   const ub = document.getElementById('unknownBtn');
   if(ub){ ub.style.pointerEvents = 'none'; ub.disabled = true; }
@@ -1400,6 +1420,7 @@ function renderCfgModal(){
       name:'答题', icon:'☑',
       items:[
         { key:'batchSize',     label:'题量',          type:'batch', presets:[{v:'20',t:'20 题'},{v:'50',t:'50 题'},{v:'100',t:'100 题'},{v:'200',t:'200 题'},{v:'-1',t:'全部'}] },
+        { key:'questionMode',  label:'题型',          type:'select', opts:[{v:'visual',t:'看词选义'},{v:'audio',t:'听音选义'},{v:'mixed',t:'混合'}], desc:'听音选义：隐藏单词只播发音，听完选中文释义；混合=每题约一半听音' },
         { key:'shuffle',       label:'勾选练习乱序',  type:'toggle' },
         { key:'wrongHoldMs',   label:'答错停留',      type:'range', min:1000, max:5000, step:500, unit:'ms' },
         { key:'autoNextDelay', label:'自动间隔',      type:'range', min:300, max:3000, step:100, unit:'ms' },
@@ -1462,7 +1483,11 @@ function renderCfgModal(){
     el.addEventListener('change', () => { pcSave({ [el.dataset.key]: el.checked }); toggleCfgShowIf(); });
   });
   body.querySelectorAll('.cfg-select').forEach(el => {
-    el.addEventListener('change', () => pcSave({ [el.dataset.key]: parseInt(el.value, 10) }));
+    el.addEventListener('change', () => {
+      // questionMode 是字符串枚举（visual/audio/mixed），parseInt 会变 NaN——只有数值型 select 才转数字
+      const v = (el.dataset.key === 'questionMode') ? el.value : parseInt(el.value, 10);
+      pcSave({ [el.dataset.key]: v });
+    });
   });
   body.querySelectorAll('.cfg-range').forEach(el => {
     el.addEventListener('input', () => {
