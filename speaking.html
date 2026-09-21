@@ -46,7 +46,7 @@
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
   <script defer src="js/sentence-drill.js?v=20260920a"></script>
-  <script defer src="js/speaking.js?v=20260921j"></script>
+  <script defer src="js/speaking.js?v=20260921k"></script>
   <script defer src="js/materials.js?v=20260921i"></script>
   <script defer src="js/mock-report.js?v=20260830u"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
@@ -376,6 +376,22 @@
   /* P2 单窗口 */
   .sp-p2-answer{padding:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);margin-bottom:12px}
   .sp-timer{font-size:13px;font-weight:700;color:var(--primary);white-space:nowrap;margin-left:auto}
+
+  /* design/82 P2 渐进披露：更多工具折叠区（原生 details；明暗主题全走 token，不硬编码色值） */
+  .sp-tools-wrap{margin:2px 0 14px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--bg);overflow:hidden}
+  .sp-tools-title{padding:9px 14px 7px;font-size:12.5px;color:var(--muted);border-bottom:1px solid var(--line)}
+  .sp-tool-group{border-bottom:1px solid var(--line)}
+  .sp-tool-group:last-child{border-bottom:none}
+  .sp-tool-summary{display:flex;align-items:center;gap:9px;padding:10px 14px;cursor:pointer;list-style:none;user-select:none;min-width:0;transition:background .15s}
+  .sp-tool-summary::-webkit-details-marker{display:none}
+  .sp-tool-summary:hover{background:var(--surface-2)}
+  .sp-tool-caret{flex:none;color:var(--muted);font-size:10px;transition:transform .15s}
+  .sp-tool-group[open] .sp-tool-caret{transform:rotate(90deg)}
+  .sp-tool-name{flex:1;min-width:0;font-size:13.5px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sp-tool-act{flex:none;display:flex;align-items:center;gap:8px}
+  .sp-tool-body{padding:2px 14px 12px}
+  .sp-tool-body .sp-sentref{margin-top:4px}
+  .sp-tool-body .sp-story-head{margin:6px 0 2px}
 
   /* === P1 小题内（我的回答 + AI 辅助按钮）=== */
   .sp-mini-body{padding:8px 0}
