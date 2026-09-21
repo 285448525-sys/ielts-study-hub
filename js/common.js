@@ -276,7 +276,9 @@ function bindSideSearch(){
       if(token !== _ssAiToken) return;
       const msg = (e && e.message) ? e.message : '查询失败';
       let inner = '<div class="sc-err">「' + escapeHtml(word) + '」查询失败：' + escapeHtml(msg) + '</div>';
-      if(String(msg).indexOf('API Key') !== -1){
+      /* design/81：引导卡已挂屏时不再叠加这枚面板内跳转按钮（同一处撞墙只提示一次）；
+         她按过「不再提示」后卡片不出现，这里照旧给跳转。 */
+      if(String(msg).indexOf('API Key') !== -1 && !document.getElementById(AIKEY_CARD_ID)){
         inner += '<button class="ss-item" type="button" data-file="settings.html" style="margin-top:6px"><span class="ss-name">去设置填写 API Key</span></button>';
       }
       card = list.querySelector('.ss-card');
@@ -639,6 +641,11 @@ function applyTheme(theme){
 }
 
 function toast(msg){
+  /* design/81 去重：引导卡刚弹出后的短窗口内，调用方 catch 里那句含「未配置 API Key」的 toast
+     不再重复播（卡与 toast 二选一，方案 §5「双重提示」风险）。其余 toast 一律不受影响。 */
+  if(_aiKeyCardAt && (Date.now() - _aiKeyCardAt) < 2000
+     && String(msg).indexOf('未配置 API Key') !== -1
+     && document.getElementById(AIKEY_CARD_ID)) return;     // 卡片必须还挂在屏上才去重（关掉后立刻恢复 toast）
   let t = document.getElementById('toast');
   if(!t){ t = document.createElement('div'); t.id='toast'; t.className='toast'; document.body.appendChild(t); }
   t.textContent = msg; t.hidden = false;
@@ -785,6 +792,72 @@ function progressBar(label, percent, color){
 
 function renderEmpty(msg){ return `<div class="empty">${msg}</div>`; }
 
+/* ===== design/81 无 Key AI 引导卡 =====
+   只在 callRelay 因「未配置 Key」抛错时出现——把一句裸 toast 变成可操作的一张卡。
+   ⭐ callRelay 只负责发请求，不负责 UI：这里在 throw 处顺手渲染卡片，再由 toast() 做一次
+      短窗口去重（否则调用方 catch 里的 toast 会和卡片同时出现 = 双重提示，方案 §5 已列风险）。
+   ⭐ 不动任何调用点、不改请求逻辑：已填 Key 但失败（401/余额不足/超时）与本卡无关，走原错误提示。
+   ⭐ 文案边界：只说「本站不内置 Key，需自备」，不出现免费额度/保证/价格类承诺。 */
+const AIKEY_CARD_ID = 'aiKeyGuideCard';
+const AIKEY_OFF_KEY = 'hub_ai_key_hint_off';
+let _aiKeyCardAt = 0;                       // 卡片渲染时间戳，供 toast() 去重
+
+function aiKeyHintOff(){
+  try{ return localStorage.getItem(AIKEY_OFF_KEY) === '1'; }catch(e){ return false; }
+}
+function aiKeyDismissCard(){
+  const el = document.getElementById(AIKEY_CARD_ID);
+  if(el && el.parentNode) el.parentNode.removeChild(el);
+}
+/* 渲染引导卡。返回 true = 卡片已接管提示（调用方不用再 toast）；false = 回退原 toast。 */
+function showAiKeyGuide(){
+  try{
+    if(!document.body) return false;                              // 无 UI 容器（自动化/后台）→ 不弹
+    if(aiKeyHintOff()) return false;                              // 她按过「不再提示」→ 回退一句 toast
+    if(document.getElementById(AIKEY_CARD_ID)) return true;        // 单例
+    if(document.getElementById('onbOverlay')) return false;       // 首次引导中不叠层
+    const card = document.createElement('div');
+    card.id = AIKEY_CARD_ID;
+    card.className = 'ai-key-card';
+    card.setAttribute('role', 'dialog');
+    card.setAttribute('aria-label', 'AI 功能需要你自己的 Key');
+    const title = document.createElement('div');
+    title.className = 'ai-key-title';
+    title.textContent = 'AI 功能需要你自己的 Key';
+    const body = document.createElement('p');
+    body.className = 'ai-key-desc';
+    body.textContent = '本站是纯前端页面，不内置任何 Key：接口地址与模型已内置，只需填你自己的 DeepSeek Key。Key 只存在你这台设备的浏览器里，不会上传。';
+    const row = document.createElement('div');
+    row.className = 'ai-key-row';
+    const go = document.createElement('button');
+    go.className = 'btn btn-primary ai-key-btn';
+    go.type = 'button';
+    go.textContent = '去设置';
+    go.addEventListener('click', () => { aiKeyDismissCard(); location.href = 'settings.html#ai'; });
+    const off = document.createElement('button');
+    off.className = 'btn ai-key-btn';
+    off.type = 'button';
+    off.textContent = '不再提示';
+    off.addEventListener('click', () => {
+      try{ localStorage.setItem(AIKEY_OFF_KEY, '1'); }catch(e){}
+      aiKeyDismissCard();
+    });
+    const close = document.createElement('button');
+    close.className = 'ai-key-close';
+    close.type = 'button';
+    close.setAttribute('aria-label', '关闭');
+    close.textContent = '×';
+    close.addEventListener('click', aiKeyDismissCard);
+    row.appendChild(go); row.appendChild(off);
+    card.appendChild(close); card.appendChild(title); card.appendChild(body); card.appendChild(row);
+    document.body.appendChild(card);
+    _aiKeyCardAt = Date.now();
+    return true;
+  }catch(e){ return false; }
+}
+/* 缺 Key 时的统一入口：能弹卡就弹卡，弹不了（无容器/已关闭提示）就回退原 toast。 */
+function notifyNoKey(){ try{ showAiKeyGuide(); }catch(e){} }
+
 /* 共享：直接调用 DeepSeek（OpenAI 兼容 /chat/completions）。
    只需在「设置 / AI 接口」填一个 DeepSeek API Key，地址与模型已内置，降低门槛。
    Key 存在浏览器本地 localStorage；口语/翻译/长难句/写作等所有 AI 功能共用。
@@ -795,7 +868,12 @@ const AI_MODEL = 'deepseek-chat';
 async function callRelay(service, messages, temperature, opts){
   const s = DATA.settings || {};
   const key = s.relayToken || '';
-  if(!key){ throw new Error('未配置 API Key（去「设置 / AI 接口」填写）'); }
+  if(!key){
+    notifyNoKey();                                     // design/81：能弹引导卡就弹，不能就回退调用方的 toast
+    const e0 = new Error('未配置 API Key（去「设置 / AI 接口」填写）');
+    e0.code = 'NO_RELAY_KEY';
+    throw e0;
+  }
   // 所有文本 AI 固定走内置 DeepSeek（地址与模型已写死），彻底移除中转代理开关
   const base = AI_BASE;
   const model = AI_MODEL;

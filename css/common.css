@@ -3391,3 +3391,24 @@ html[data-theme="dark"] .onb-overlay{background:rgba(0,0,0,.62)}
 .pwa-steps{margin:8px 0 0;padding-left:20px;font-size:13px;line-height:1.85;color:var(--ink)}
 .pwa-steps li{margin:0}
 .pwa-steps li.muted{color:var(--muted);font-size:12.5px}
+
+/* ===== design/81 无 Key AI 引导卡（缺 Key 撞墙时才出现；与 78/79 提示条同族、层级更低 99960） =====
+   全 token 配色，暗色自动跟随；teal 实色只用一次（主按钮）。 */
+.ai-key-card{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:99960;
+  width:min(360px, calc(100vw - 32px));padding:14px 16px;border-radius:14px;
+  border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow-md)}
+.ai-key-title{font-size:14px;font-weight:700;line-height:1.5;color:var(--ink);padding-right:20px}
+.ai-key-desc{margin:6px 0 0;font-size:12.5px;line-height:1.7;color:var(--muted)}
+.ai-key-row{display:flex;gap:8px;margin-top:12px}
+.ai-key-btn{font-family:inherit;font-size:12.5px;font-weight:600;line-height:1.4;min-height:0;
+  padding:6px 14px;border-radius:999px;border:1px solid var(--line);background:transparent;
+  color:var(--ink);cursor:pointer;flex:1}
+.ai-key-btn.btn-primary{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+.ai-key-btn:hover{box-shadow:0 0 0 3px rgba(58,154,147,.18)}
+.ai-key-close{position:absolute;top:8px;right:10px;width:22px;height:22px;line-height:1;
+  border:0;background:transparent;color:var(--muted);font-size:18px;cursor:pointer;border-radius:6px}
+.ai-key-close:hover{background:var(--bg-hover, var(--line))}
+@media (max-width:860px){
+  .ai-key-card{top:8px;padding:12px 14px}
+  .ai-key-desc{font-size:12px}
+}
