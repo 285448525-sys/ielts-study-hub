@@ -297,6 +297,13 @@ function recordDailyWrong(en){
   if(!DATA.dailyWrong[t].includes(k)) DATA.dailyWrong[t].push(k);
 }
 
+// 今日错词去重集合（en 小写）：供空态/词库页「今日错词」入口计数与重练（只读，不清空——当日入口持续在，次日按日期自然切换）
+function todayWrongEns(){
+  const t = todayKey();
+  const list = (DATA.dailyWrong && DATA.dailyWrong[t]) || [];
+  return Array.from(new Set(list.map(e => String(e || '').trim().toLowerCase()).filter(Boolean)));
+}
+
 // 轻量词性推断（从英文后缀推断，纯 UI 显示用；数据有 pos 字段时优先使用）
 function inferPos(en){
   var w = (en || '').toLowerCase();
@@ -525,10 +532,23 @@ function autoStartSeeWord(){
       if(plan.length === 0){
         // 今天确实没有到期词：未掌握的词被记忆曲线排在之后几天，空态要说清数字，避免与首页「待学习」互相矛盾
         const pending = (DATA.words || []).filter(w => w && w.cleared !== true).length;
+        // 今日错词入口（9/21）：当天答错/不认识过的词随时可重练，不受到期排程限制；N=0 不显示
+        const wrongEns = todayWrongEns();
+        const wrongBtnHtml = (wrongEns.length && typeof startWrongReview === 'function')
+          ? '<div style="margin-top:14px"><button class="btn btn-primary" id="dailyWrongBtn" title="重练今天答错/不认识的词">重练今天错词（' + wrongEns.length + '）</button></div>'
+          : '';
         $('#practiceBody').innerHTML = '<div class="q-word">今天没有到期要复习的词</div>' +
           '<div class="q-cn">已学过的词都被记忆曲线排到了之后几天，今天不用复习。' +
           (pending ? '还有 ' + pending + ' 个没掌握的词，会在接下来按曲线依次出现。' : '') +
-          '想多背可以去「词库」加词。</div>';
+          '想多背可以去「词库」加词。</div>' + wrongBtnHtml;
+        if(wrongEns.length && typeof startWrongReview === 'function'){
+          const dwb = document.getElementById('dailyWrongBtn');
+          if(dwb) dwb.addEventListener('click', () => {
+            // 按 en 取活词对象（已不在词库的自动过滤），走通用重练通道
+            const words = wrongEns.map(en => findWordByEn(en)).filter(Boolean);
+            if(words.length) startWrongReview(words);
+          });
+        }
         clearDailySession();
         return;
       }
@@ -831,6 +851,7 @@ function renderQuestion(cur, isRehold){
   const c = pc();
   pq.revealed = false;
   pq._picked = false;
+  pq._qStartAt = Date.now();   // ETA：本题作答起点（重考/requeue 重置，重复作答时间自然累计；纯内存不落库）
   // 听音选义：决定本题呈现模式。当场重考（isRehold）沿用原模式（不让用户换题后从听切看）；
   // 混合模式每题独立掷币约 50% 听音；visual/audio 模式其余一切行为与旧版逐字节相同。
   if(!isRehold || !pq._curQMode){
@@ -868,7 +889,7 @@ function renderQuestion(cur, isRehold){
 
   // ── 选项网格（2×2） ──
   html += '<div class="opts-grid" id="opts"></div>';
-  html += '<div class="answer-btns"><button class="abtn abtn-unknown" id="unknownBtn">不知道</button></div>';
+  html += '<div class="answer-btns"><button class="abtn abtn-unknown" id="unknownBtn" title="不知道（按空格）">不知道</button></div>';
 
   // ── 底部喇叭大圆按钮（严格还原 v5 原型：居中 48px 圆） ──
   html += '<div class="pw-speaker-wrap"><button class="btn tool-btn" id="qSpeaker" title="再读一遍"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.4 5.6a9 9 0 0 1 0 12.8"/></svg></button></div>';
@@ -878,7 +899,7 @@ function renderQuestion(cur, isRehold){
   $('#opts').innerHTML = opts.map((o, i) => {
     const ps = practiceSense(o);
     const tag = singlePos(o.pos) || ps.tag || inferPos(o.en) || '';
-    return '<button class="opt-big" data-en="' + escapeHtml(o.en) + '" data-idx="' + i + '">' +
+    return '<button class="opt-big" data-en="' + escapeHtml(o.en) + '" data-idx="' + i + '" title="选项 ' + (i + 1) + '（按 ' + (i + 1) + '）">' +
       '<span class="opt-big-tag">' + escapeHtml(tag) + '</span>' +
       '<span class="opt-big-cn">' + escapeHtml(ps.cn) + '</span>' +
       '<span class="opt-big-en"></span>' +
@@ -1067,6 +1088,14 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
     // toast 已删
   }
 
+  // ETA 剩余时间预估（纯内存 pq，禁止落库/进云同步）：每次判定结算本段作答耗时；
+  // 完全过关（result='pass'）才计完成题数——重考/requeue 的重复作答时间都算进总耗时，滚动平均自然反映真实节奏
+  if(pq._qStartAt){
+    pq._etaMs = (pq._etaMs || 0) + Math.max(0, Date.now() - pq._qStartAt);
+    pq._qStartAt = null;
+  }
+  if(result === 'pass') pq._etaDone = (pq._etaDone || 0) + 1;
+
   updateProgBar();
   updateWordStats();
   saveDailySession();   // 每次作答后持久化进度（草稿自动存档）
@@ -1135,7 +1164,14 @@ function finishPractice(){
 
   // 之之 9/9 完成页改版：删三宫格（XP/最高连击按反馈去掉，待学习保留在统计行），勋章+标题+统计行保留
   const medalNum = pq ? (pq.correct || 0) : 0;
-  let bodyHtml = '<div class="finish-medal-row">' +
+  // 今日清零终结态（9/21）：严格按 buildQueue 同口径（en 非空且无排程或已到期）计数今日到期词——
+  // 不复用上方 due（那个口径含未掌握的未来词，会把「明天才再见」的词算成未清零）；isWrongReview 结束同样按此判定
+  const todayDue = (DATA.words || []).filter(w => w && typeof w.en === 'string' && w.en.trim() !== '' && (!w.nextReview || w.nextReview <= todayKey())).length;
+  const zeroCard = (todayDue === 0)
+    ? '<div class="finish-zero-card"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>今天到期的词全部背完了</div>'
+    : '';
+  let bodyHtml = zeroCard +
+      '<div class="finish-medal-row">' +
       '<div class="finish-medal"><div class="finish-medal-in">' + medalNum + '</div></div>' +
       '<div><div class="q-word" style="margin:0">完成！这一轮你坚持了 ' + formatMs(wordMs || todaySt.totalMs) + '</div>' +
       '<div style="margin-top:4px;font-size:14px;color:var(--muted)">今日已练 ' + todaySt.totalWords + ' 个 · 耗时 ' + formatMs(todaySt.totalMs) + ' · 剩余待学习 ' + due + ' 个</div></div>' +
@@ -1388,6 +1424,21 @@ function updateWordStats(){
     progress = answered + ' / ' + total;
   }
   const el = $('#statProgress'); if(el) el.textContent = progress;
+
+  // ETA 剩余时间预估（9/21，纯内存）：完全过关 ≥3 题且队列仍有未过词时，按滚动平均每题耗时 × 剩余词数估算。
+  // 样本不足/无剩余/完成页/空态一律隐藏；续背刷新后随答题自然收敛，不要求跨刷新精确。
+  const etaEl = document.getElementById('statEta');
+  if(etaEl){
+    let etaShow = false, etaTxt = '';
+    if(pq && (pq._etaDone || 0) >= 3 && pq.queue && pq.queue.length > 0 && pq._etaMs > 0){
+      const remainMs = (pq._etaMs / pq._etaDone) * pq.queue.length;
+      etaTxt = (remainMs < 60000) ? '<1 分' : ('约剩 ' + Math.min(999, Math.round(remainMs / 60000)) + ' 分');
+      etaShow = true;
+    }
+    etaEl.hidden = !etaShow;
+    etaEl.textContent = etaTxt;
+  }
+
   const bar = $('#wordStats'); if(bar) bar.hidden = false;
   const tools = document.getElementById('wordToolsRow'); if(tools) tools.hidden = false;   // 进度条下按钮行随练习态显示
 
@@ -1697,6 +1748,36 @@ ready(() => {
   $('#cfgClose').addEventListener('click', () => { $('#cfgModal').hidden = true; });
   $('#cfgModal').addEventListener('click', e => { if(e.target === $('#cfgModal')) $('#cfgModal').hidden = true; });
   document.addEventListener('keydown', e => { if(e.key === 'Escape' && !$('#cfgModal').hidden) $('#cfgModal').hidden = true; });
+  // ======= 电脑端键盘快捷键（9/21）：数字 1-4=选项 / 空格或 0=不知道 / R=重播；仅答题态生效 =======
+  // 软导航会重跑 ready 块 → window 一次性守卫防重复绑定（重复绑定=一次按键触发多次判定）
+  if(!window.__wordKbdBound){
+    window.__wordKbdBound = true;
+    document.addEventListener('keydown', function(e){
+      if(e.ctrlKey || e.metaKey || e.altKey) return;   // 不劫持浏览器/系统组合键（Cmd+R 刷新等）
+      if(!pq || pq.revealed || pq._picked) return;     // 已判定/已选择后按键一律忽略；完成页/空态 pq 无 opts 也不生效
+      const optsBox = document.getElementById('opts');
+      if(!optsBox) return;                             // 无选项区（完成页/空态/错误态）不绑键
+      const cfgM = document.getElementById('cfgModal');
+      if(cfgM && !cfgM.hidden) return;                 // 设置弹窗打开时不响应
+      const studyV = document.getElementById('studyView');
+      const bankV = document.getElementById('bankView');
+      if(!studyV || studyV.hidden || (bankV && !bankV.hidden)) return;   // 仅学习 tab 生效，词库 tab 不响应
+      const ae = document.activeElement;
+      if(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return;     // 焦点在输入控件时不劫持数字/空格
+      if(e.key >= '1' && e.key <= '4'){
+        const btns = optsBox.querySelectorAll('.opt-big');
+        const n = parseInt(e.key, 10) - 1;
+        if(n < btns.length) btns[n].click();           // 按实际存在的选项数量兜底（不足 4 个不误触）
+      } else if(e.key === ' ' || e.key === 'Spacebar' || e.key === '0'){
+        e.preventDefault();                            // 防空格滚动页面
+        const ub = document.getElementById('unknownBtn');
+        if(ub && !ub.disabled) ub.click();
+      } else if(e.key === 'r' || e.key === 'R'){
+        const qsp = document.getElementById('qSpeaker');
+        if(qsp) qsp.click();                           // 重播当前词发音
+      }
+    });
+  }
   $('#toolSpeaker').addEventListener('click', () => { if(!pq || !pq.answer) return; speakN(pq.answer.en); });
   // 解锁浏览器语音合成：自动播放策略要求首次朗读须在用户手势内/后触发，否则 Chrome/Edge 会把引擎
   // 卡在 paused，导致整轮静音。页面首次任意交互即唤醒引擎；同时预加载语音包。

@@ -764,12 +764,32 @@ function renderBankStats(){
   ws.forEach(w => { if(!w) return; const lv = Number(w.level) || 0; if(w.cleared === true){ (lv >= 5) ? mastered++ : learning++; } });
   const fresh = ws.length - mastered - learning;
   const pct = n => ws.length ? (n / ws.length * 100) : 0;
+  // 今日错词入口（9/21）：与学习页空态同口径（dailyWrong[today] 去重）；N=0 不渲染按钮
+  let wrongEns = [];
+  try{
+    const t = (typeof todayKey === 'function') ? todayKey() : '';
+    const list = (DATA.dailyWrong && DATA.dailyWrong[t]) || [];
+    wrongEns = Array.from(new Set(list.map(x => String(x || '').trim().toLowerCase()).filter(Boolean)));
+  }catch(e){ wrongEns = []; }
   box.innerHTML = '<span class="wl-stats-bar">' +
       '<i class="wl-stats-seg s-ok" style="width:' + pct(mastered).toFixed(1) + '%"></i>' +
       '<i class="wl-stats-seg s-mid" style="width:' + pct(learning).toFixed(1) + '%"></i>' +
       '<i class="wl-stats-seg s-new" style="width:' + pct(fresh).toFixed(1) + '%"></i>' +
     '</span>' +
-    '<span class="wl-stats-txt">已掌握 ' + mastered + ' · 学习中 ' + learning + ' · 未掌握 ' + fresh + '</span>';
+    '<span class="wl-stats-txt">已掌握 ' + mastered + ' · 学习中 ' + learning + ' · 未掌握 ' + fresh + '</span>' +
+    (wrongEns.length ? '<button class="btn btn-sm" id="dailyWrongBankBtn" style="margin-left:10px;flex:none" title="重练今天答错/不认识的词">今日错词（' + wrongEns.length + '）</button>' : '');
+  // 点击按 en 取活词对象（已不在词库的自动过滤）走通用重练通道；重练不修改/不清空 dailyWrong。
+  // 词库 tab 发起：先建 pq（题渲染在学习视图）再切回学习 tab（pq.queue 非空，switchWordTab 不会重开出题）
+  const dwb = document.getElementById('dailyWrongBankBtn');
+  if(dwb && typeof startWrongReview === 'function'){
+    dwb.addEventListener('click', () => {
+      const words = wrongEns.map(en => (typeof findWordByEn === 'function') ? findWordByEn(en) : null).filter(Boolean);
+      if(words.length){
+        startWrongReview(words);
+        if(typeof switchWordTab === 'function') switchWordTab('study');
+      }
+    });
+  }
 }
 
 function renderWords(){
