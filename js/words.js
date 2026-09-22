@@ -407,6 +407,7 @@ function newWordV12(en, cn){
    主观意图能跨设备传播：epoch 大者该组进度字段整组胜出，epoch 相同才走原 max 口径。 */
 function resetWordProgress(w){
   w.resetEpoch = (Number(w.resetEpoch) || 0) + 1;
+  w.lastPracticeAt = null;   // design/84：重置后清「最后练习时间」，避免旧值在同世代合并时把过期状态判为新
   w.level = 0;
   w.nextReview = todayKey();
   w.errTotal = 0;

@@ -213,6 +213,7 @@ function displayLevelFromH(h){
 // 长线升级（v4 §3.3 promoteLongTerm）：仅短线 3 次全对过关时调用
 // P0-1：改为「先按当前 level 算间隔，再升级」，让 level0 新词首次复习=1天（不再跳过 LEVEL_INTERVAL[0]）
 function promoteLongTerm(w, today){
+  w.lastPracticeAt = Date.now();   // design/84：最后练习时间——云合并同世代「最后练习者胜」的决胜字段
   w.hist = (Array.isArray(w.hist) ? w.hist : []); w.hist.push({ d: today, r: 'ok' });
   if(w.hist.length > 20) w.hist = w.hist.slice(-20);   // design/59：截断保留最近 20 条（judge 分支已显式落盘，此处禁加 hubSave）
   // design/77：选对=「认识」→ DHP 记忆增强（dd 不变）；间隔查 KDD'22 策略表；level=显示代理
@@ -244,6 +245,7 @@ function promoteLongTerm(w, today){
 // 长线降级（v4 §3.3 demoteLongTerm）：答错/不认识时调用
 // P1-1：isCompletelyUnknown=true（点了「完全不认识」）时追加惩罚：errTotal 额外+1、level 多降 1
 function demoteLongTerm(w, today, isCompletelyUnknown){
+  w.lastPracticeAt = Date.now();   // design/84：答错/不认识也是一次练习——退步（okStreak 归零/nextReview 提前）要靠它传到另一端
   w.hist = (Array.isArray(w.hist) ? w.hist : []); w.hist.push({ d: today, r: isCompletelyUnknown ? 'unknown' : 'wrong' });
   if(w.hist.length > 20) w.hist = w.hist.slice(-20);   // design/59：截断保留最近 20 条（judge 分支已显式落盘，此处禁加 hubSave）
   // design/77：选错=「模糊」、点「不认识」=「不认识」——墨墨模型 responses_dict {'1':1,'2':0,'3':0}，
@@ -1069,6 +1071,7 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
         // 答题反馈 toast 已删（之之 9/7：黑框压在计时框后面，纯噪音，答题卡已有反馈）
       } else {
         cur.shortCount = n;                          // 记录进度（持久化，续背接得上）
+        cur.lastPracticeAt = Date.now();             // design/84：短线中途答对也是练习，shortCount 进度要随最后练习者胜传出去
         pq.reholdMap[k] = 0;                         // 已在短线模式，不再当场重考
         pq.queue.splice(pq.idx, 1);
         const gap = gapFor(cur, n);                  // n=1→隔2、n=2→隔5（难词更密）

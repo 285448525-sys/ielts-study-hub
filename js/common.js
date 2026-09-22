@@ -1470,7 +1470,21 @@ function _mergeWords(local, cloud){
       // 对端重置得更晚：沿用云端这份进度（ex 本就是云端副本），勿用本机旧最大值回填
       WORD_PROG_FIELDS.forEach(f => { if(!_eq(f)) changed = true; });
     } else {
-    // ── 同世代（含双方都从未重置）：回到原「单向取优」口径 ──
+    // ── 同世代（含双方都从未重置）──
+    // design/84（9/22）：任一侧带 lastPracticeAt（练习写点戳的「最后练习时间」毫秒）→ 整组进度字段
+    // （WORD_PROG_FIELDS 含 level/nextReview/okStreak/dh/dd/hist 等）按「最后练习者胜」，取代逐字段
+    // max/later——答错造成的退步（okStreak 归零、nextReview 提前到明天、dh 缩短）才能传到另一端，
+    // 复习调度不再偏乐观。双方都没有 lastPracticeAt（两台设备都从未在新版练过该词）→ 回退原口径。
+    const _lpa = Number(w.lastPracticeAt) || 0, _epa = Number(ex.lastPracticeAt) || 0;
+    if(_lpa || _epa){
+      const winIsLocal = _lpa >= _epa;   // 最后练习者胜；相等=同一动作已同步，逐字段判变保幂等
+      if(winIsLocal){
+        WORD_PROG_FIELDS.forEach(f => { if(!_eq(f)){ ex[f] = w[f]; changed = true; } });
+        if(!_eq('lastPracticeAt')){ ex.lastPracticeAt = w.lastPracticeAt; changed = true; }
+      }
+      // 云端更新：ex 本就是云端副本，勿用本机旧值回填（同 resetEpoch 分支口径）
+    } else {
+    // ── 原「单向取优」口径（老数据兜底：双方都无 lastPracticeAt）──
     const ns = Math.max(_num(ex.mcStreak), _num(w.mcStreak)); if(ns !== _num(ex.mcStreak)){ ex.mcStreak = ns; changed = true; }
     const ni = Math.max(_num(ex.mcInterval), _num(w.mcInterval)); if(ni !== _num(ex.mcInterval)){ ex.mcInterval = ni; changed = true; }
     const ne = Math.max(_num(ex.mcEase), _num(w.mcEase)); if(ne !== _num(ex.mcEase)){ ex.mcEase = ne; changed = true; }
@@ -1502,6 +1516,7 @@ function _mergeWords(local, cloud){
     // design/59 hist：同世代取「长者胜」，等长不动（幂等）；epoch 差异已由 WORD_PROG_FIELDS 整组覆盖
     const _wh = Array.isArray(w.hist) ? w.hist : null, _eh = Array.isArray(ex.hist) ? ex.hist : null;
     if(_wh && (!_eh || _wh.length > _eh.length)){ ex.hist = _wh.slice(); changed = true; }
+    }   // 内层 else（老数据回退口径）闭合
     }
     // 主观标注：与「重置」无关（resetWordProgress 明确保留这两个），永远取「或」
     const nh = !!(ex.hardWord || w.hardWord); if(nh !== !!ex.hardWord){ ex.hardWord = nh; changed = true; }
