@@ -77,7 +77,7 @@ function injectNav(){
   html += '<div class="side-search-wrap">'
     + '<div class="ui-search">'
     + '<svg class="ui-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>'
-    + '<input class="ui-search-input" type="search" id="sideSearch" placeholder="" aria-label="搜索" autocomplete="off" title="输入中文搜功能；输入英文单词 AI 查词" /></div>'
+    + '<input class="ui-search-input" type="search" id="sideSearch" placeholder="搜功能 / 查单词" aria-label="搜索" autocomplete="off" title="输入中文搜功能；输入英文单词 AI 查词" /></div>'
     + '<div class="ss-panel" id="ssPanel" hidden><div id="ssList"></div></div>'
     + '</div>';
 
@@ -112,6 +112,7 @@ const SIDE_SEARCH_PAGES = [
 ];
 let _ssAiToken = 0;   // 查词请求序号：过期响应直接丢弃
 let _ssAiBusy = false;
+let _ssAiQuery = '';  // design/83：在飞请求的查询词（归一后），同词再回车防重复、异词顶替
 
 function ssNormQuery(q){ return String(q || '').trim().toLowerCase().replace(/\s+/g, ' '); }
 function ssHasCn(q){ return /[\u4e00-\u9fff]/.test(q); }
@@ -216,19 +217,27 @@ function bindSideSearch(){
     }
     if(!html && !q) html = '<div class="ss-empty">输入中文搜功能跳转；输入英文单词 AI 查词（自动加入词库）</div>';
     else if(!html) html = '<div class="ss-empty">没有匹配的功能' + (isEn ? '，可回车用 AI 查这个词' : '') + '</div>';
+    // design/83：结果卡归属词——输入新词（未回车）时旧词的结果卡丢弃；空 query 不保留任何卡
     const card = list.querySelector('.ss-card');
-    list.innerHTML = html + (card ? card.outerHTML : '');
+    const keep = (card && q && card.dataset.word === q) ? card.outerHTML : '';
+    list.innerHTML = html + keep;
     show();
   }
 
-  function ssCardHtml(inner){ return '<div class="ss-card">' + inner + '</div>'; }
+  function ssCardHtml(inner, word){
+    return '<div class="ss-card"' + (word ? ' data-word="' + escapeHtml(word) + '"' : '') + '>' + inner + '</div>';
+  }
 
   async function aiLookup(word){
-    if(_ssAiBusy){ return; }
+    const wq = ssNormQuery(word);
+    // design/83：查词进行中再回车——同词忽略防重复；异词不拦截，新请求顶替旧请求
+    // （旧响应返回时 `token !== _ssAiToken` 判定已会丢弃，finally 也按 token 复位 _ssAiBusy）
+    if(_ssAiBusy && wq === _ssAiQuery){ return; }
+    _ssAiQuery = wq;
     _ssAiBusy = true;
     const token = ++_ssAiToken;
     let card = list.querySelector('.ss-card');
-    const loading = ssCardHtml('<div class="sc-cn muted">AI 正在查询「' + escapeHtml(word) + '」…</div>');
+    const loading = ssCardHtml('<div class="sc-cn muted">AI 正在查询「' + escapeHtml(word) + '」…</div>', wq);
     if(card) card.outerHTML = loading; else list.insertAdjacentHTML('beforeend', loading);
     show();
     try{
@@ -249,6 +258,7 @@ function bindSideSearch(){
       if(!en) throw new Error('AI 返回的单词为空');
       let existed = false;
       let dup = null;
+      let addedId = null;   // design/83：本次新加入词的 id（撤销按钮用；复活词同样走新增分支）
       (DATA.words || []).forEach(w => { if(String(w.en || '').trim().toLowerCase() === en) dup = w; });
       // 已掌握/已删除（墓碑）：显式对它 AI 查词 = 明确的「加回来」→ 撤销墓碑，不再被下次合并抹掉
       const _revived = !dup && isWordTombstoned(en) && clearWordTombstone(en);
@@ -261,16 +271,24 @@ function bindSideSearch(){
         const w = ssNewWord(en, cn);
         w.pos = pos; w.ipa = ipa;
         DATA.words.push(w);
+        addedId = w.id;
       }
       hubSave();
       const tag = existed ? '✓ 已在词库（释义已补全）'
         : (_revived ? '✓ 已重新加入词库（已从「已掌握」移回）' : '✓ 已自动加入词库（去「单词」页可背诵）');
-      const inner = '<span class="sc-en">' + escapeHtml(en) + '</span>'
-        + (ipa ? '<span class="sc-ipa">' + escapeHtml(ipa) + '</span>' : '')
+      // design/83：喇叭朗读（复用全站 speakQuestion，en-GB）+ 操作行（去背词 / 撤销加入）
+      const speakBtn = '<button class="sc-speak" type="button" data-speak="' + escapeHtml(en) + '" aria-label="朗读">'
+        + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5L6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 6a9 9 0 0 1 0 12"/></svg></button>';
+      const inner = '<div class="sc-head"><span class="sc-en">' + escapeHtml(en) + '</span>' + speakBtn
+        + (ipa ? '<span class="sc-ipa">' + escapeHtml(ipa) + '</span>' : '') + '</div>'
         + '<div class="sc-cn">' + (pos ? '<b>' + escapeHtml(pos) + '</b> ' : '') + escapeHtml(cn) + '</div>'
-        + '<div class="sc-tag">' + tag + '</div>';
+        + '<div class="sc-tag">' + tag + '</div>'
+        + '<div class="sc-actions">'
+        + '<button class="ss-item sc-link" type="button" data-file="practice.html">去背词页背诵 →</button>'
+        + (!existed ? '<button class="ss-item sc-link" type="button" data-undo-en="' + escapeHtml(en) + '" data-undo-id="' + escapeHtml(String(addedId || '')) + '">撤销（不加入词库）</button>' : '')
+        + '</div>';
       card = list.querySelector('.ss-card');
-      if(card) card.outerHTML = ssCardHtml(inner);
+      if(card) card.outerHTML = ssCardHtml(inner, wq);
       toast(existed ? '「' + en + '」已在词库' : (_revived ? '「' + en + '」已重新加入词库' : '「' + en + '」已加入词库'));
     }catch(e){
       if(token !== _ssAiToken) return;
@@ -282,7 +300,7 @@ function bindSideSearch(){
         inner += '<button class="ss-item" type="button" data-file="settings.html" style="margin-top:6px"><span class="ss-name">去设置填写 API Key</span></button>';
       }
       card = list.querySelector('.ss-card');
-      if(card) card.outerHTML = ssCardHtml(inner);
+      if(card) card.outerHTML = ssCardHtml(inner, wq);
     }finally{
       if(token === _ssAiToken) _ssAiBusy = false;
     }
@@ -290,17 +308,52 @@ function bindSideSearch(){
 
   input.addEventListener('focus', renderMatch);
   input.addEventListener('input', renderMatch);
+  /* design/83：type=search 原生 × 只触发 search 不触发 input，结果清空后面板要跟着回空态。
+     注意 Chrome 里 Escape 也会清值并触发 search——Escape 分支刚把面板关掉 + blur，
+     此刻 input 已失焦，必须跳过重渲染，否则面板被 search 事件重新弹开。 */
+  input.addEventListener('search', () => {
+    if(document.activeElement !== input) return;
+    renderMatch();
+  });
+  // design/83：面板内可键盘选择的项（排除结果卡里的动作按钮，只含 ss-ai 查词条 + 功能跳转项）
+  function ssNavItems(){
+    return Array.prototype.filter.call(list.querySelectorAll('.ss-item'), el => !el.closest('.ss-card'));
+  }
+  function ssClearActive(){
+    list.querySelectorAll('.ss-active').forEach(el => el.classList.remove('ss-active'));
+  }
+  function gotoFile(f){ hide(); input.value = ''; location.href = f; }
+
   input.addEventListener('keydown', (e) => {
+    if(e.isComposing || e.keyCode === 229) return;   // design/83：中文输入法组词中不拦截方向键/回车
+    const nav = ssNavItems();
+    if(e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+      if(!nav.length) return;
+      e.preventDefault();
+      let idx = nav.findIndex(el => el.classList.contains('ss-active'));
+      if(e.key === 'ArrowDown') idx = (idx + 1) % nav.length;                       // 循环下移，不越界
+      else idx = (idx <= 0 ? nav.length - 1 : idx - 1);                             // 循环上移
+      ssClearActive();
+      nav[idx].classList.add('ss-active');
+      nav[idx].scrollIntoView({ block:'nearest' });
+      return;
+    }
     if(e.key === 'Enter'){
       const q = ssNormQuery(input.value);
       if(!q) return;
+      const active = list.querySelector('.ss-item.ss-active');
+      if(active){
+        if(active.dataset.file){ gotoFile(active.dataset.file); return; }
+        if(active.dataset.ai){ if(!ssHasCn(q)) aiLookup(q); return; }
+      }
       if(ssHasCn(q)){
         const hits = ssMatchPages(q);
-        if(hits[0]){ hide(); input.value = ''; location.href = hits[0].file; }
+        if(hits[0]){ gotoFile(hits[0].file); }
         return;
       }
       aiLookup(q);   // 英文：AI 查词
     } else if(e.key === 'Escape'){
+      ssClearActive();
       hide(); input.blur();
     }
   });
@@ -308,9 +361,7 @@ function bindSideSearch(){
     const fileBtn = e.target.closest('[data-file]');
     if(fileBtn){
       e.preventDefault();
-      const f = fileBtn.dataset.file;
-      hide(); input.value = '';
-      location.href = f;
+      gotoFile(fileBtn.dataset.file);
       return;
     }
     const aiBtn = e.target.closest('[data-ai]');
@@ -318,6 +369,30 @@ function bindSideSearch(){
       e.preventDefault();
       const q = ssNormQuery(input.value);
       if(q && !ssHasCn(q)) aiLookup(q);
+    }
+  });
+  /* design/83：结果卡动作（喇叭朗读 / 撤销加入）——click 委托 + stopPropagation */
+  panel.addEventListener('click', (e) => {
+    const sp = e.target.closest('.sc-speak');
+    if(sp){
+      e.stopPropagation();
+      speakQuestion.speak(sp.dataset.speak || '', sp);
+      return;
+    }
+    const undoBtn = e.target.closest('[data-undo-en]');
+    if(undoBtn){
+      e.stopPropagation();
+      const en = undoBtn.dataset.undoEn || '';
+      const wid = undoBtn.dataset.undoId || '';
+      if(wid){
+        const idx = (DATA.words || []).findIndex(w => w.id === wid);
+        if(idx >= 0) DATA.words.splice(idx, 1);   // 移除本次新增的词条（按 push 时记录的 id）
+      }
+      addWordTombstone(en);   // 打墓碑（内部同步清 revivedIds），云同步不会把词 union 回来
+      hubSave();
+      const c = undoBtn.closest('.ss-card');
+      if(c) c.outerHTML = '<div class="ss-card"><div class="sc-cn">已撤销，「' + escapeHtml(en) + '」不会进入背词列表</div></div>';
+      toast('已撤销，「' + en + '」不会进入背词列表');
     }
   });
   document.addEventListener('click', (e) => {

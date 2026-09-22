@@ -280,9 +280,21 @@ body{
 
 /* 侧边栏搜索框与标题、导航视觉统一（与 side-item 12px 圆角/内边距对齐，收紧留白） */
 .top-nav .ui-search{width:100%;max-width:none}
-.top-nav .ui-search-input{height:36px;padding:0 12px 0 44px;border-radius:12px;font-size:14px;background:var(--surface-2)}   /* 9/15 收紧：38→36 */
+/* design/83：升级为 id 特异性——全站表单重置 `input:not():not()` (0,2,1) 曾压过 (0,2,0) 的
+   .top-nav .ui-search-input，把左内边距 44px 打回 14px，放大镜图标(left:12px+宽18px=30px)盖住文字 */
+#mainNav .ui-search-input{height:36px;padding:0 34px 0 40px;border-radius:12px;font-size:14px;background:var(--surface-2)}   /* 左40=图标占30px+10px间隙；右34=给原生清除×留位 */
 .top-nav .ui-search-input:focus,.top-nav .ui-search-input:hover{box-shadow:0 0 0 4px var(--primary-soft)}
-.top-nav .ui-search-icon{left:12px;width:18px;height:18px}
+#mainNav .ui-search-icon{left:12px;width:18px;height:18px}
+
+/* design/83：查词卡动作（键盘高亮 / 喇叭 / 操作行）——明暗主题一律走 CSS 变量，禁硬编码颜色 */
+.ss-item.ss-active{background:var(--primary-soft)}
+.sc-speak{flex:none;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border:none;background:transparent;color:var(--primary);padding:2px 4px;border-radius:6px;cursor:pointer;transition:background .15s}
+.sc-speak:hover{background:var(--primary-soft)}
+.sc-speak svg{width:16px;height:16px}
+.sc-speak.playing{color:var(--primary-d)}
+.ss-card .sc-head{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.sc-actions{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap}
+.ss-item.sc-link{width:auto;padding:4px 10px;font-size:12.5px;border:1px solid var(--line);border-radius:8px}
 
 /* ===== 移动端「更多」弹层（底部导航由全站 dock 接管；旧 tabbar 组件已于 2026-09-08 删除） ===== */
 .sheet-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:60;opacity:0;transition:opacity .22s}
