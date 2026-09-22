@@ -1981,7 +1981,7 @@ function renderP2Diag(el, j, answer){
   const errs = cleanErrors(j.errors);
   let h = diagScoreHtml(j)
     + '<div class="diag-sec"><b>语法/用词纠错</b>' + diffSentenceHtml(answer, errs) + '</div>';
-  if(j.rewrite) h += '<div class="diag-sec"><b>改进版表达</b><div class="diag-rewrite">' + escapeHtml(j.rewrite) + '</div></div>';
+  if(j.rewrite) h += '<div class="diag-sec"><b>改进版表达</b><div class="diag-rewrite">' + highlightRewriteHtml(j.rewrite, errs) + '</div></div>';
   if(j.storyLink) h += '<div class="diag-sec"><b>📌 串题素材连接</b><div class="diag-note">可以用你已准备的这些万能素材来回答这道题：</div>' + escapeHtml(j.storyLink) + '</div>';
   h += diagCollectBar(errs, answer);              // design/77：一键收进句型练习
   el.innerHTML = h;
@@ -2335,15 +2335,17 @@ function diagScoreHtml(j){
   if(!j.score.grammar_basis && !j.score.vocabulary_basis) return '';
   const sc = parseScore(j.score);
   if(!sc || (sc.grammar == null && sc.vocabulary == null)) return '';
-  const item = (v, lab, pending) =>
-    '<div class="diag-score-item' + (pending ? ' pending' : '') + '">'
+  const item = (v, lab, tail) =>
+    '<div class="diag-score-item' + (tail === '（待录音）' ? ' pending' : '') + '">'
     + '<span class="diag-score-num">' + (v == null ? '—' : scoreLabel(v)) + '</span>'
-    + '<span class="diag-score-lab">' + lab + (pending ? '（待录音）' : '') + '</span></div>';
+    + '<span class="diag-score-lab">' + lab + (tail || '') + '</span></div>';
+  // 9/22：流利度/发音取设置里她自填的固定分——填了就显示数字并标「自填」，没填才「待录音」
+  const fSelf = (sc.fluency != null), pSelf = (sc.pronunciation != null);
   let h = '<div class="diag-sec"><b>官方标准评分</b><div class="diag-score">';
   h += item(sc.grammar, '语法');
   h += item(sc.vocabulary, '词汇');
-  h += item(null, '流利度', true);
-  h += item(null, '发音', true);
+  h += item(fSelf ? sc.fluency : null, '流利度', fSelf ? '（自填）' : '（待录音）');
+  h += item(pSelf ? sc.pronunciation : null, '发音', pSelf ? '（自填）' : '（待录音）');
   h += '</div>';
   const b = sc.basis || {};
   if(b.grammar || b.vocabulary){
@@ -2393,13 +2395,54 @@ function bindDiagCollect(el){
   };
 }
 
+/* 9/22：「改进版表达」里把真正改过的片段标出来（她反馈「看不出到底哪个词搭配不当」）。
+   拿清洗后 fix 的候选（"A / B" 多候选逐个试）在 rewrite 里做词边界匹配，命中就包 .diag-hl。
+   重叠区间只留先命中的（长片段优先），其余原样转义输出，绝不改动文案本身。 */
+function highlightRewriteHtml(rewrite, errs){
+  const text = String(rewrite || '');
+  if(!text) return '';
+  const cands = [];
+  (cleanErrors(errs) || []).forEach(e => {
+    String(e.fix || '').split('/').forEach(part => {
+      const t = String(part || '').trim();
+      if(t && !/^[\s\-–—|,.;!?、；。]*$/.test(t)) cands.push(t);
+    });
+  });
+  if(!cands.length) return escapeHtml(text);
+  const low = text.toLowerCase();
+  cands.sort((a, b) => b.length - a.length);
+  const ranges = [];
+  cands.forEach(c => {
+    const cl = c.toLowerCase();
+    let from = 0, idx;
+    while((idx = low.indexOf(cl, from)) !== -1){
+      const before = idx > 0 ? text[idx - 1] : ' ';
+      const end = idx + c.length;
+      const after = end < text.length ? text[end] : ' ';
+      const okEdge = !/[A-Za-z]/.test(before) && !/[A-Za-z]/.test(after);
+      const overlap = ranges.some(r => idx < r[1] && end > r[0]);
+      if(okEdge && !overlap) ranges.push([idx, end]);
+      from = idx + Math.max(1, c.length);
+    }
+  });
+  if(!ranges.length) return escapeHtml(text);
+  ranges.sort((a, b) => a[0] - b[0]);
+  let out = '', pos = 0;
+  ranges.forEach(r => {
+    out += escapeHtml(text.slice(pos, r[0]));
+    out += '<span class="diag-hl">' + escapeHtml(text.slice(r[0], r[1])) + '</span>';
+    pos = r[1];
+  });
+  return out + escapeHtml(text.slice(pos));
+}
+
 function renderDiag(el, j, raw, answer){
   normalizeScore(j, answer);
   const scoreHtml = diagScoreHtml(j);
   if(j && Array.isArray(j.errors)){
     const errs = cleanErrors(j.errors);
     let h = '<div class="diag-sec"><b>语法/用词纠错</b>' + diffSentenceHtml(answer, errs) + '</div>';
-    if(j.rewrite) h += '<div class="diag-sec"><b>改进版表达</b><div class="diag-rewrite">' + escapeHtml(j.rewrite) + '</div></div>';
+    if(j.rewrite) h += '<div class="diag-sec"><b>改进版表达</b><div class="diag-rewrite">' + highlightRewriteHtml(j.rewrite, errs) + '</div></div>';
     h += diagCollectBar(errs, answer);            // design/77：一键收进句型练习
     el.innerHTML = scoreHtml + h;
     bindDiagCollect(el);
@@ -2630,4 +2673,121 @@ function p1FlowInit(s){
 
   render();
 }
+
+/* ======= 口语自动计时接入「计时」模块（9/22，照搬 practice.js 背词自动计时同款）=======
+   用户常忘记开计时：开口语页即自动开一个「口语」计时（moduleId 与 data.js MODULES 的 speaking 一致），
+   离页/切后台/关标签时结算进 DATA.sessions（首页「今日学习时长」与计时页都读它）。
+   规则与 9/16 之之定版一致：已有别的模块在计 → 先正规结算前一个再开新表，绝不丢表、绝不双开。 */
+const SPK_TIMER_MODULE = 'speaking';
+const SPK_TIMER_NAME = '口语';
+function spkTimerDeviceId(){
+  try{
+    let id = localStorage.getItem('hub_device_id');
+    if(!id){ id = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); localStorage.setItem('hub_device_id', id); }
+    return id;
+  }catch(e){ return 'd' + Date.now().toString(36); }
+}
+function isSpkTimerActive(){
+  const a = window.active;
+  if(a && !a.ended && a.moduleId === SPK_TIMER_MODULE) return true;
+  const m = DATA.activeTimer;
+  if(m && !m.ended && m.timerId && m.moduleId === SPK_TIMER_MODULE) return true;
+  return false;
+}
+/* 正规结算「其他模块」的进行中计时（背词/听力/手动）：时长记到当前时刻，绝不丢表 */
+function spkSettleForeignTimer(){
+  const a = (window.active && !window.active.ended) ? window.active
+          : ((DATA.activeTimer && !DATA.activeTimer.ended && DATA.activeTimer.timerId) ? DATA.activeTimer : null);
+  if(!a || a.moduleId === SPK_TIMER_MODULE) return;
+  const timerId = a.timerId;
+  const endTs = Date.now();
+  let pause = Number(a.pauseAccum) || 0;
+  if(a.paused && a.pauseStart) pause += (endTs - a.pauseStart);
+  const durationSec = Math.max(0, Math.round((endTs - (a.startTs || endTs) - pause) / 1000));
+  if(durationSec > 0 && !(DATA.sessions || []).some(s => s.timerId && s.timerId === timerId)){
+    DATA.sessions = DATA.sessions || [];
+    const names = (typeof resolveTimerNames === 'function')
+      ? resolveTimerNames(a)
+      : { moduleName: a.moduleName || '学习', subName: a.subName || '' };
+    DATA.sessions.push({
+      id: uid(), timerId, date: todayKey(a.startTs),
+      moduleId: a.moduleId, subId: a.subId || a.moduleId,
+      moduleName: names.moduleName, subName: names.subName,
+      startTs: a.startTs, endTs, durationSec, pauseSec: Math.max(0, Math.round(pause / 1000))
+    });
+  }
+  window.active = null;
+  DATA.activeTimer = { timerId, ended: true, updatedAt: Date.now(), lastBeat: 0 };
+  hubSave();
+}
+function maybeStartSpkTimer(){
+  if(window.__spkTimerAuto && window.active && !window.active.ended && window.active.moduleId === SPK_TIMER_MODULE) return;
+  if(isSpkTimerActive()) return;               // 本机已有口语表（手动开的）→ 不重复开
+  spkSettleForeignTimer();                     // 别的模块在计 → 结算后再开新表
+  const now = Date.now();
+  const id = uid();
+  const dev = spkTimerDeviceId();
+  window.active = {
+    timerId: id, ownerDevice: dev, moduleId: SPK_TIMER_MODULE, moduleName: SPK_TIMER_NAME,
+    subId: SPK_TIMER_MODULE, subName: SPK_TIMER_NAME,
+    startTs: now, startMonoNs: null, paused: false, pauseStart: null, pauseAccum: 0,
+    pauseStartMonoNs: null, pauseAccumMonoNs: 0, targetSec: null, mode: 'up',
+    updatedAt: now, lastBeat: now
+  };
+  DATA.activeTimer = {
+    timerId: id, ownerDevice: dev, moduleId: SPK_TIMER_MODULE, moduleName: SPK_TIMER_NAME,
+    subId: SPK_TIMER_MODULE, subName: SPK_TIMER_NAME,
+    startTs: now, paused: false, pauseStart: null, pauseAccum: 0,
+    targetSec: null, mode: 'up', updatedAt: now, lastBeat: now, ended: false
+  };
+  window.__spkTimerAuto = true;
+  hubSave();
+}
+function commitSpkTimer(){
+  if(!window.__spkTimerAuto) return;
+  const a = window.active;
+  if(!a || a.ended || a.moduleId !== SPK_TIMER_MODULE){ window.__spkTimerAuto = false; return; }
+  const timerId = a.timerId;
+  const endTs = Date.now();
+  const durationSec = Math.max(0, Math.round((endTs - (a.startTs || endTs)) / 1000));
+  DATA.sessions = DATA.sessions || [];
+  const already = DATA.sessions.some(s => s.timerId && s.timerId === timerId);
+  if(!already && durationSec > 0){
+    DATA.sessions.push({
+      id: uid(), timerId, date: todayKey(), moduleId: a.moduleId, subId: a.subId,
+      moduleName: a.moduleName, subName: a.subName,
+      startTs: a.startTs, endTs, durationSec, pauseSec: 0
+    });
+  }
+  window.active = null;
+  DATA.activeTimer = { timerId, ended: true, updatedAt: Date.now(), lastBeat: 0 };
+  hubSave();
+  window.__spkTimerAuto = false;
+  try{
+    document.dispatchEvent(new CustomEvent('hub:session-saved', { detail: { date: todayKey() } }));
+    document.dispatchEvent(new CustomEvent('hub:timer-state'));
+  }catch(e){}
+}
+/* 心跳 30s 节流：只刷内存镜像 + lastBeat，同步交给 hubSave 自带 debounce */
+if(!window.__spkTimerBeat){
+  window.__spkTimerBeat = setInterval(() => {
+    if(!window.__spkTimerAuto) return;
+    const a = window.active;
+    if(!a || a.ended){ return; }
+    const now = Date.now();
+    a.lastBeat = now; a.updatedAt = now;
+    if(DATA.activeTimer && DATA.activeTimer.timerId === a.timerId){ DATA.activeTimer.lastBeat = now; DATA.activeTimer.updatedAt = now; }
+    hubSave();
+  }, 30000);
+}
+/* 离页兜底：切后台/关标签即结算本次计时；回前台再自动开新表（与背词页互抢时互相正规结算，不丢表） */
+if(!window.__spkTimerLeaveHook){
+  window.__spkTimerLeaveHook = true;
+  document.addEventListener('visibilitychange', () => {
+    if(document.visibilityState === 'hidden'){ try{ commitSpkTimer(); }catch(e){} }
+    else { try{ maybeStartSpkTimer(); }catch(e){} }
+  });
+  window.addEventListener('beforeunload', () => { try{ commitSpkTimer(); }catch(e){} });
+}
+ready(() => { try{ maybeStartSpkTimer(); }catch(e){} });
 

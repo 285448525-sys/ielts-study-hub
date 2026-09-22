@@ -1813,7 +1813,10 @@ function mergeData(local, cloud){
     });
     /* design/77：sentences.custom = 从口语诊断收进来的「我的语法错题」条目数组。
        并集按 id（同 id 取 ts 新的一侧），再按 key（改正句归一化串）去重——
-       两端各自收了同一个错句时只留一条，绝不重复练。 */
+       两端各自收了同一个错句时只留一条，绝不重复练。
+       9/22 墓碑：删除改为打 deleted 标记随云同步上行——物理删除会被这里的并集复活
+       （本地删了、云端那份还在，下次 pull 并回来，她实测「删了明天又回来」）。
+       同 id 时任一侧是墓碑 → 删除必胜；key 去重只对活项做，墓碑全保留（防线不拆）。 */
     const _lsc = Array.isArray(local.patternDrill && local.patternDrill.sentences && local.patternDrill.sentences.custom)
       ? local.patternDrill.sentences.custom : [];
     const _csc = Array.isArray(cloud.patternDrill && cloud.patternDrill.sentences && cloud.patternDrill.sentences.custom)
@@ -1822,10 +1825,15 @@ function mergeData(local, cloud){
     _lsc.concat(_csc).filter(x => x && x.id).forEach(x => {
       const prev = _scSeen[x.id];
       if(!prev){ _scSeen[x.id] = x; _msc.push(x); return; }
-      if((Number(x.ts) || 0) > (Number(prev.ts) || 0)) _msc[_msc.indexOf(prev)] = x, _scSeen[x.id] = x;
+      const pw = !!prev.deleted, cw = !!x.deleted;
+      let win;
+      if(pw !== cw) win = pw ? prev : x;                                   // 墓碑必胜
+      else win = ((Number(x.ts) || 0) > (Number(prev.ts) || 0)) ? x : prev; // 否则 ts 新者胜
+      if(win !== prev){ _msc[_msc.indexOf(prev)] = win; _scSeen[x.id] = win; }
     });
     const _scOut = [], _scKey = {};
     _msc.forEach(x => {
+      if(x && x.deleted){ _scOut.push(x); return; }                        // 墓碑全保留
       const k = x.key || ('id:' + x.id);
       if(_scKey[k]) return;
       _scKey[k] = true; _scOut.push(x);

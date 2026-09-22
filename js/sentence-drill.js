@@ -251,9 +251,11 @@ function sentCustomStore(){
   if(!Array.isArray(pd.sentences.custom)) pd.sentences.custom = [];
   return pd.sentences.custom;
 }
-/* 最新的在前：刚收进来的错句就在第一屏 */
+/* 最新的在前：刚收进来的错句就在第一屏。
+   9/22：墓碑（deleted）不渲染不练习——删除改打墓碑留证，防云同步按 id 并集复活 */
 function sentCustomItems(){
-  return sentCustomStore().slice().sort(function(a, b){ return (Number(b.ts) || 0) - (Number(a.ts) || 0); });
+  return sentCustomStore().filter(function(x){ return x && !x.deleted; })
+    .sort(function(a, b){ return (Number(b.ts) || 0) - (Number(a.ts) || 0); });
 }
 function sentFindCustom(id){
   var out = null;
@@ -327,40 +329,75 @@ function sentBuildFixItem(err, answer, src){
     id: SENT_CUSTOM_PREFIX + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
     cn: wrong, right: right, wrong: wrong,
     issue: issue, type: String(err.type || '').trim(), src: src || '',
-    ts: Date.now(), key: sentNormKey(right),
+    ts: Date.now(), key: sentNormKey(right), wkey: sentNormKey(wrong),
     fixMode: true, formula: '', note: issue, slots: []
   };
 }
-/* 收进练习库：逐条造题 → 按 key 去重（收过的不重复）→ 落库 */
+/* 收进练习库：逐条造题 → 按 key/wkey 双键去重（改正句撞了不行，**原句撞了也不行**——
+   同一句三个错=三个不同改正句，旧口径会录三遍，她实测 16 变 32）→ 落库。
+   墓碑项也占坑：她删过的句子不再被自动收回来（否则=变相复活）。 */
 function sentCollectErrors(errs, answer, src){
   var list = Array.isArray(errs) ? errs : [];
   var store = sentCustomStore(), have = {}, added = 0;
-  store.forEach(function(x){ if(x && x.key) have[x.key] = true; });
+  store.forEach(function(x){
+    if(!x) return;
+    if(x.key) have[x.key] = true;
+    var wk = x.wkey || (x.wrong ? sentNormKey(x.wrong) : '');
+    if(wk) have['w:' + wk] = true;
+  });
   list.forEach(function(e){
     var it = sentBuildFixItem(e, answer, src);
-    if(!it || have[it.key]) return;
-    have[it.key] = true; store.push(it); added++;
+    if(!it || have[it.key] || have['w:' + it.wkey]) return;
+    have[it.key] = true; have['w:' + it.wkey] = true;
+    store.push(it); added++;
   });
   if(added && typeof hubSave === 'function') hubSave();
   return { added: added, total: list.length };
 }
-/* 纯预判（渲染按钮文案用，不写库）：这次诊断里有几条是新的 */
+/* 纯预判（渲染按钮文案用，不写库）：这次诊断里有几条是新的（双键口径同上） */
 function sentCollectFresh(errs, answer){
   var list = Array.isArray(errs) ? errs : [];
   var store = sentCustomStore(), have = {}, n = 0;
-  store.forEach(function(x){ if(x && x.key) have[x.key] = true; });
+  store.forEach(function(x){
+    if(!x) return;
+    if(x.key) have[x.key] = true;
+    var wk = x.wkey || (x.wrong ? sentNormKey(x.wrong) : '');
+    if(wk) have['w:' + wk] = true;
+  });
   list.forEach(function(e){
     var it = sentBuildFixItem(e, answer, '');
-    if(it && !have[it.key]){ have[it.key] = true; n++; }
+    if(!it || have[it.key] || have['w:' + it.wkey]) return;
+    have[it.key] = true; have['w:' + it.wkey] = true; n++;
   });
   return n;
 }
-/* 删一条（AI 判错了 / 不想练这条）。只删这一条，status 一起清掉，别的不动 */
+/* 9/22 存量清洗：同一原句（wkey）只留 ts 最新一条活项——把老数据「一句录三遍」（16 变 32）清回一条。
+   幂等；墓碑一律保留（它们是并集复活的防线），不参与去重。返回丢弃条数，>0 时由调用方 hubSave。 */
+function sentPruneDuplicates(){
+  var store = sentCustomStore();
+  var alive = [], seen = {}, kept = [], dropped = 0;
+  store.forEach(function(x){ if(x && !x.deleted) alive.push(x); });
+  alive.sort(function(a, b){ return (Number(b.ts) || 0) - (Number(a.ts) || 0); });
+  alive.forEach(function(x){
+    var k = 'w:' + (x.wkey || (x.wrong ? sentNormKey(x.wrong) : ''));
+    if(!k || k === 'w:'){ kept.push(x); return; }
+    if(seen[k]){ dropped++; return; }
+    seen[k] = true; kept.push(x);
+  });
+  if(dropped){
+    store.filter(function(x){ return x && x.deleted; }).forEach(function(x){ kept.push(x); });
+    DATA.patternDrill.sentences.custom = kept;
+  }
+  return dropped;
+}
+/* 删一条（AI 判错了 / 不想练这条）。9/22 改打墓碑：原来物理 splice 后，云端那份 id 还在，
+   下次 pull 按 id 并集必复活（她实测「删了明天又回来」）；墓碑随云同步上行，合并时删除必胜 */
 function sentCustomRemove(id){
-  var store = sentCustomStore(), i = -1;
-  store.forEach(function(x, k){ if(x && x.id === id) i = k; });
-  if(i < 0) return false;
-  store.splice(i, 1);
+  var store = sentCustomStore(), hit = null;
+  store.forEach(function(x){ if(x && x.id === id && !x.deleted) hit = x; });
+  if(!hit) return false;
+  hit.deleted = true;
+  hit.delTs = Date.now();
   delete sentStatus()[id];
   if(typeof hubSave === 'function') hubSave();
   return true;
@@ -1161,6 +1198,7 @@ async function sentBoot(){
   if(!bank || !bank.cats || !bank.cats.length) return;
   await sentLoadSets();                    // design/19：素材集（失败=无，全路径回落原句）
   sentSeedBuiltin();
+  if(sentPruneDuplicates() && typeof hubSave === 'function'){ hubSave(); }   // 9/22：存量一句多录清洗
   var c = sentCur();
   if(c.view === 'practice' && !sentFind(c.sentId)){ window.__SENT_CUR = null; }   // 防脏状态
   sentRender();

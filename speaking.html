@@ -42,11 +42,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
   <script defer src="js/data.js?v=20260921j"></script>
-  <script defer src="js/common.js?v=20260922a"></script>
+  <script defer src="js/common.js?v=20260922b"></script>
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
-  <script defer src="js/sentence-drill.js?v=20260922a"></script>
-  <script defer src="js/speaking.js?v=20260922b"></script>
+  <script defer src="js/sentence-drill.js?v=20260922b"></script>
+  <script defer src="js/speaking.js?v=20260922c"></script>
   <script defer src="js/materials.js?v=20260921i"></script>
   <script defer src="js/mock-report.js?v=20260830u"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
@@ -368,6 +368,8 @@
   .diag-issue{color:var(--danger);font-size:12.5px}
   .diag-ok{color:var(--muted);font-size:13.5px;padding:6px 0}
   .diag-rewrite{padding:10px 12px;background:var(--primary-soft);border-radius:var(--radius-sm);font-size:14.5px;line-height:1.8;color:var(--ink)}
+  /* 9/22：改进版里真正改动过的片段高亮（她反馈「看不出到底哪个词搭配不当」） */
+  .diag-hl{background:rgba(58,154,147,.28);border-bottom:2px solid var(--primary);border-radius:2px;padding:0 2px;font-weight:600}
   .diag-note{color:var(--muted);font-size:12.5px;margin-bottom:6px}
   .diag-note+pre{white-space:pre-wrap;font-size:13px;background:var(--bg);padding:10px;border-radius:var(--radius-sm);border:1px solid var(--line);color:var(--ink);margin:0}
   .diag-sec ul{margin:4px 0 0;padding-left:18px}
