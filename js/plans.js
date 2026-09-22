@@ -75,7 +75,8 @@ function addItem(){
   const lines = raw.split('\n').map(s => s.trim()).filter(Boolean);
   if(!lines.length){ toast('先写点计划内容'); return; }
   const p = ensurePlan(currentDate());
-  lines.forEach(text => p.items.push({ id: uid(), text, done: false }));
+  const _now = Date.now();
+  lines.forEach(text => p.items.push({ id: uid(), text, done: false, updatedAt: _now }));
   hubSave();
   $('#planText').value = '';
   render();
@@ -142,7 +143,11 @@ async function aiPlanItem(){
     const tasks = arr.map(x => String(x).trim()).filter(Boolean);
     if(!tasks.length) throw new Error('AI 没有生成任务');
     const p = ensurePlan(currentDate());
-    tasks.forEach(text => p.items.push({ id: uid(), text, done: false }));
+    tasks.forEach(text => {
+      // design/84：本机 text 归一去重——同一天重复「AI 安排」不再堆重复条目（跨端重复由 _mergePlans 同 date 去重兜底）
+      if(p.items.some(i => String(i.text||'').trim().toLowerCase() === text.toLowerCase())) return;
+      p.items.push({ id: uid(), text, done: false, updatedAt: Date.now() });
+    });
     hubSave();
     // 软导航可能在 AI 等待期间离开计划页；数据已落盘，DOM 不存在则跳过渲染（f 类：跨页闭包隔离）。
     if(!document.getElementById('planText')) return;
@@ -160,6 +165,7 @@ function toggleItem(id){
   const p = getPlan(currentDate()); if(!p) return;
   const it = p.items.find(i => i.id === id); if(!it) return;
   it.done = !it.done;
+  it.updatedAt = Date.now();   // design/84：勾选/取消都戳时间戳——合并按新者整项胜，取消勾选才能传到另一端
   hubSave(); render();
 }
 
@@ -191,7 +197,7 @@ function startEdit(id){
   let cancelled = false;
   function finish(save){
     const v = input.value.trim();
-    if(save && v && v !== it.text){ it.text = v; hubSave(); }
+    if(save && v && v !== it.text){ it.text = v; it.updatedAt = Date.now(); hubSave(); }
     render();
   }
   input.addEventListener('blur', () => { if(!cancelled) finish(true); }, {once:true});
@@ -258,7 +264,7 @@ function render(){
         const carried = yPlan.items.filter(i => !i.done);
         if(carried.length){
           const tp = ensurePlan(date);
-          carried.forEach(i => tp.items.push({ id: uid(), text: i.text, done: false, carried: true }));
+          carried.forEach(i => tp.items.push({ id: uid(), text: i.text, done: false, carried: true, fromId: i.id, updatedAt: Date.now() }));
           tp.initialized = true;
           hubSave();
         }
@@ -436,7 +442,7 @@ function fillDay(idx){
   let plan = DATA.plans.find(p => p.date === day.key);
   if(!plan){ plan = { id: uid(), date: day.key, items: [] }; DATA.plans.push(plan); }
   const before = plan.items.length;
-  day.tasks.forEach(t => { if(!plan.items.some(i => i.text === t)) plan.items.push({ id: uid(), text: t, done: false }); });
+  day.tasks.forEach(t => { if(!plan.items.some(i => String(i.text||'').trim().toLowerCase() === String(t).trim().toLowerCase())) plan.items.push({ id: uid(), text: t, done: false, updatedAt: Date.now() }); });
   hubSave();
   toast('已把 ' + day.key + ' 的建议加入学习计划（新增 ' + (plan.items.length - before) + ' 项）');
 }

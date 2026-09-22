@@ -1965,6 +1965,12 @@ function mergeData(local, cloud){
 }
 
 /* plans 嵌套合并：外层按 date，内层 items 按 id 并集、done 冲突取 true */
+/* design/84 任务同步修正（9/22）：
+   ① 同 id item：双方都有 updatedAt（毫秒，勾选/取消/改名/新增时由 plans.js 写点统一戳）→ 新者整项胜，
+      修复「勾选只能 true 永远回不去 false」「编辑任务名不同步」两个单向合并硬伤；
+      任一侧缺 updatedAt（老数据）→ 回退旧口径（done 单向或、text 不动），保证旧快照平滑过渡。
+   ② 同 date 内 text 归一去重 + fromId 归并：两台设备同一天各自「自动延续」（各发新 uid）/各自 fillDay
+      /各自 AI 安排产生的重复条目，合并时按 fromId（延续来源 id）或归一 text 去重，保留 updatedAt 新者。 */
 function _mergePlans(local, cloud, deleted){
   local = Array.isArray(local) ? local : []; cloud = Array.isArray(cloud) ? cloud : [];
   const byDate = new Map(); let changes = 0;
@@ -1974,12 +1980,44 @@ function _mergePlans(local, cloud, deleted){
     if(!ex){ byDate.set(p.date, p); changes++; return; }
     const seen = new Set(ex.items.map(i => i.id));
     (p.items||[]).forEach(it => {
-      if(!seen.has(it.id)){ ex.items.push(it); changes++; }
-      else { const mine = ex.items.find(i => i.id === it.id); if(it.done && !mine.done){ mine.done = true; changes++; } }
+      if(!it || it.id == null) return;
+      if(!seen.has(it.id)){ ex.items.push(it); seen.add(it.id); changes++; return; }
+      const mine = ex.items.find(i => i.id === it.id);
+      const mt = Number(mine.updatedAt) || 0, ct = Number(it.updatedAt) || 0;
+      if(mt && ct){
+        // 双方都有时间戳：新者整项胜（含 done/text/updatedAt 全字段）；相等 = 同一动作已同步，不动（幂等）
+        if(ct > mt){ ex.items[ex.items.indexOf(mine)] = it; changes++; }
+      } else if(!mt && ct){
+        ex.items[ex.items.indexOf(mine)] = it;       // 仅云端有：云端是更新过的客户端，胜
+        changes++;
+      } else if(!mt && !ct){
+        // 双方都是老数据（从未被新写点动过）：回退旧口径（done 单向或、text 不动）
+        if(it.done && !mine.done){ mine.done = true; changes++; }
+      }
+      // mt && !ct：仅本机有 → 本机胜，不动
     });
   });
   for(const p of byDate.values()){
     if(p.items && deleted){ p.items = p.items.filter(it => !deleted.has(it.id)); }
+    if(Array.isArray(p.items) && p.items.length > 1){
+      const seen = new Map(); const kept = []; let deduped = false;
+      p.items.forEach(it => {
+        if(!it) return;
+        const k1 = (it.fromId != null) ? 'f:' + it.fromId : null;
+        const k2 = 't:' + String(it.text || '').trim().toLowerCase();
+        const hit = (k1 && seen.has(k1)) ? seen.get(k1) : (seen.has(k2) ? seen.get(k2) : null);
+        if(hit){
+          deduped = true;
+          const ht = Number(hit.updatedAt) || 0, nt = Number(it.updatedAt) || 0;
+          if(nt > ht){ kept[kept.indexOf(hit)] = it; if(k1){ seen.set(k1, it); } seen.set(k2, it); }
+          return;
+        }
+        kept.push(it);
+        if(k1) seen.set(k1, it);
+        seen.set(k2, it);
+      });
+      if(deduped){ p.items = kept; changes++; }
+    }
   }
   return { arr: Array.from(byDate.values()), changes };
 }
