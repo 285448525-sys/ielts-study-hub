@@ -1813,10 +1813,22 @@ ready(() => {
   document.addEventListener('hub:data-merged', () => {
     updateWordStats();
     updateProgBar();
-    // 合并后当前题目闭包还挂着旧 DATA.words 对象：未作答时用合并后的活对象重渲染当前题
-    if(pq && pq.answer && !pq.revealed && pq.queue.length > 0){
-      const live = findWordByEn(pq.answer.en);
-      if(live && live !== pq.answer) renderQuestion(live);
+    // 合并后当前题目/队列里可能还挂着旧 DATA.words 的孤儿对象 → 统一换成合并后的活对象引用，
+    // 保证 promote/demote 写回落盘不丢（judge() 里也有同口径兜底，这里是提前对齐）。
+    // ⚠️ 严禁在这里重渲染当前题：renderQuestion() 会重新抽干扰项并重排 4 个选项，
+    // 用户手指正点下去的瞬间选项瞬变 = 误点错误答案（她 9/22 实测反馈）。只换引用，界面零变化。
+    if(pq){
+      if(pq.answer && pq.answer.en){
+        const live = findWordByEn(pq.answer.en);
+        if(live && live !== pq.answer) pq.answer = live;
+      }
+      if(Array.isArray(pq.queue) && pq.queue.length){
+        pq.queue = pq.queue.map(w => {
+          if(!w || !w.en) return w;
+          const l = findWordByEn(w.en);
+          return (l && l !== w) ? l : w;
+        });
+      }
     }
   });
   // design/78：切换词库 → 清空会话重新出题（词库页刷新/筛选重置由 words.js 自己监听同一事件）
