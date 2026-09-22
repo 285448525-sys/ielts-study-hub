@@ -2018,8 +2018,11 @@ function _mergePlans(local, cloud, deleted){
       const seen = new Map(); const kept = []; let deduped = false;
       p.items.forEach(it => {
         if(!it) return;
-        const k1 = (it.fromId != null) ? 'f:' + it.fromId : null;
-        const k2 = 't:' + String(it.text || '').trim().toLowerCase();
+        // design/85 修正：去重键带完成态——同名任务一端已做完、另一端又新加一条（AI 再安排一轮）
+        // 是两个独立条目，不合；只有完成态相同的同名/同 fromId 才去重
+        const dFlag = it.done ? 'd' : 'o';
+        const k1 = (it.fromId != null) ? 'f:' + it.fromId + ':' + dFlag : null;
+        const k2 = 't:' + String(it.text || '').trim().toLowerCase() + ':' + dFlag;
         const hit = (k1 && seen.has(k1)) ? seen.get(k1) : (seen.has(k2) ? seen.get(k2) : null);
         if(hit){
           deduped = true;

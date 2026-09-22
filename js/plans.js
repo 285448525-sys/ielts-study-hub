@@ -143,17 +143,25 @@ async function aiPlanItem(){
     const tasks = arr.map(x => String(x).trim()).filter(Boolean);
     if(!tasks.length) throw new Error('AI 没有生成任务');
     const p = ensurePlan(currentDate());
+    let added = 0, skipped = 0;
     tasks.forEach(text => {
-      // design/84：本机 text 归一去重——同一天重复「AI 安排」不再堆重复条目（跨端重复由 _mergePlans 同 date 去重兜底）
-      if(p.items.some(i => String(i.text||'').trim().toLowerCase() === text.toLowerCase())) return;
+      // design/85 修正：去重只拦「还没完成的同名任务」（真重复，点了第二次 AI 安排不堆条目）；
+      // 同名任务今天已做完 = 她想再做一轮，照常添加为新条目。toast 报实际加入数，不再假报。
+      const dup = p.items.find(i => String(i.text||'').trim().toLowerCase() === text.toLowerCase());
+      if(dup && !dup.done){ skipped++; return; }
       p.items.push({ id: uid(), text, done: false, updatedAt: Date.now() });
+      added++;
     });
     hubSave();
     // 软导航可能在 AI 等待期间离开计划页；数据已落盘，DOM 不存在则跳过渲染（f 类：跨页闭包隔离）。
     if(!document.getElementById('planText')) return;
     $('#planText').value = '';
     render();
-    toast('AI 已安排今天 ' + tasks.length + ' 个任务');
+    if(added){
+      toast('AI 已安排今天 ' + added + ' 个任务' + (skipped ? '（' + skipped + ' 个未完成的同名任务已跳过）' : ''));
+    } else {
+      toast('这 ' + skipped + ' 个任务今天的计划里已经有了（还没完成），没有重复添加');
+    }
   }catch(e){
     toast('AI 安排失败：' + e.message);
   }finally{
