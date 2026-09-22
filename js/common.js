@@ -3418,7 +3418,9 @@ function onbHasExistingData(){
       if(Array.isArray(v) ? v.length > 0 : (v != null && typeof v === 'object' ? Object.keys(v).length > 0 : !!v)) return true;
     }
     if(d.materials && typeof d.materials === 'object' && (Array.isArray(d.materials.materials) ? d.materials.materials.length > 0 : Object.keys(d.materials).length > 0)) return true;
-    if(d.activeTimer) return true;
+    // 注意：activeTimer 不再算「已有数据」——9/22 起口语页进页面就自动开计时并写入 activeTimer，
+    // 全新用户深链 speaking.html 会被误判成老用户，直接跳过账号/手机号引导（onb 探针 ① 抓到）。
+    // 计时是运行时会话状态，不是用户产生的内容，老用户靠上面的内容字段/settings 痕迹照常识别。
     const s = d.settings || {};
     return !!(s.syncCode || s.relayToken || s.examDate || s.name);
   }catch(e){ return false; }

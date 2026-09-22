@@ -2721,6 +2721,14 @@ function spkSettleForeignTimer(){
   hubSave();
 }
 function maybeStartSpkTimer(){
+  // 首次引导没走完（全新用户，账号遮罩还挂着）时不自动开表：
+  // 否则引导耗时会被记成口语练习时长；引导完成后再进页面即恢复正常自动计时。
+  if(typeof getOnboarding === 'function'){
+    const o = getOnboarding();
+    const guided = o ? (o.account !== 'done')
+      : (typeof onbHasExistingData === 'function' ? !onbHasExistingData() : false);
+    if(guided) return;
+  }
   if(window.__spkTimerAuto && window.active && !window.active.ended && window.active.moduleId === SPK_TIMER_MODULE) return;
   if(isSpkTimerActive()) return;               // 本机已有口语表（手动开的）→ 不重复开
   spkSettleForeignTimer();                     // 别的模块在计 → 结算后再开新表
