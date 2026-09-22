@@ -1,150 +1,21 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="light">
+<html lang="zh-CN">
 <head>
 <meta charset="UTF-8" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://api.deepseek.com; object-src 'none'; base-uri 'none'" />
-<!-- frame-ancestors 只由 HTTP 响应头下发（CF Pages 根目录 _headers）：按 CSP 规范它写在 meta 里会被浏览器忽略，本页 meta CSP 不再包含该指令 -->
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; base-uri 'none'" />
+<!-- frame-ancestors 只由 HTTP 响应头下发（CF Pages 根目录 _headers）：按 CSP 规范它写在 meta 里会被浏览器忽略 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<script>
-(function autoCleanOldBank(){
-  try{
-    var key = 'ielts_study_hub_v1';
-    var raw = localStorage.getItem(key);
-    if(!raw) return;
-    var parsed = JSON.parse(raw);
-    if(!parsed || !Array.isArray(parsed.speaking)) return;
-    // ⚠️ sb_p1_home 已于 9/19 移出剔除名单：它现在是官方题库 v10 的合法 P1 题
-    // （Home/accommodation，9 小问）。继续剔除会导致每次刷新永久丢 1 题（83→82）。
-    var dirtyIds = ['sb_p2_travel','sb_p2_earlymorning'];
-    var before = parsed.speaking.length;
-    var kept = parsed.speaking.filter(function(s){ return !(s && dirtyIds.indexOf(s.id) >= 0); });
-    if(kept.length !== before){
-      parsed.speaking = kept;
-      localStorage.setItem(key, JSON.stringify(parsed));
-    }
-  }catch(e){}
-})();
-</script>
-<title>词句 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20260922c" />
-<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=6" />
-<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=6">
-<link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=6">
-<link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png?v=6">
-<link rel="manifest" href="/manifest.json" />
-<meta name="theme-color" content="#3a9a93" />
-
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="mobile-web-app-capable" content="yes" />
-<script defer src="js/data.js?v=20260921j"></script>
-  <script defer src="js/common.js?v=20260922e"></script>
-  <script src="js/errorbook.js?v=20260922a" defer></script>
-<style>
-  .eb-input{width:100%;min-height:190px;padding:14px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;font-size:14.5px;line-height:1.75;background:var(--bg);color:var(--ink);resize:vertical}
-  .eb-input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
-  .eb-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
-  .eb-card{border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:12px;background:var(--surface)}
-  .eb-head{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px}
-  .eb-title{font-size:15.5px;font-weight:700;line-height:1.5;margin-bottom:10px}
-  .eb-block{margin-top:10px}
-  .eb-block h4{margin:0 0 5px;font-size:13px;color:var(--muted);font-weight:700;letter-spacing:.02em}
-  .eb-block ol,.eb-block ul{margin:0;padding-left:20px;font-size:14px;line-height:1.75}
-  .eb-block p{margin:0;font-size:14px;line-height:1.75}
-  .eb-wrong{background:rgba(239,68,68,.07);border-left:3px solid var(--danger);padding:9px 12px;border-radius:8px;font-size:14px;line-height:1.7}
-  .eb-rule{background:var(--primary-soft);border-left:3px solid var(--primary);padding:9px 12px;border-radius:8px;font-size:14px;line-height:1.7}
-  .eb-words{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
-  .eb-chip{background:var(--bg);border:1px solid var(--line);border-radius:20px;padding:3px 10px;font-size:12.5px}
-  .eb-src{margin-top:12px;font-size:12.5px;color:var(--muted)}
-  .eb-src summary{cursor:pointer;user-select:none}
-  .eb-src pre{white-space:pre-wrap;word-break:break-word;margin:8px 0 0;padding:10px;background:var(--bg);border-radius:8px;border:1px solid var(--line);font:inherit;font-size:13px;line-height:1.7;max-height:260px;overflow:auto}
-  .eb-actions{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
-  .badge{display:inline-block;padding:2px 9px;border-radius:10px;font-size:12px;background:var(--bg);color:var(--ink);border:1px solid var(--line)}
-  .badge-trap{background:var(--warn);color:#fff;border-color:var(--warn)}
-  .badge-ok{background:var(--primary);color:#fff;border-color:var(--primary)}
-  .eb-list-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
-  .eb-list-head h2{margin:0}
-  .eb-list-head select{margin-left:auto}
-  .eb-loading{margin-top:14px;padding:14px;border:1px dashed var(--line);border-radius:var(--radius);color:var(--muted);font-size:14px}
-  .eb-long{margin-top:6px;padding:8px 10px;background:var(--bg);border-left:3px solid var(--primary);border-radius:8px}
-  .eb-long-s{font-size:14px;font-weight:600;color:var(--ink);line-height:1.6}
-  .eb-long-a{font-size:13.5px;color:var(--muted);margin-top:3px;line-height:1.7}
-
-</style>
-<style id="bootLoaderStyle">
-#bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
-#bootLoader.hide{opacity:0;pointer-events:none}
-#bootLoader .ui-loader{margin-bottom:8px}
-@media (prefers-reduced-motion: reduce){#bootLoader .ui-loader-dot,#bootLoader .ui-loader-shadow{animation:none}#bootLoader .ui-loader-dot{top:20px;height:20px;border-radius:50%;transform:none}#bootLoader .ui-loader-shadow{opacity:.5;transform:scaleX(1)}}
-</style>
+<title>错题本已迁移 · 雅思备考 Hub</title>
+<style>body{font-family:system-ui,sans-serif;background:#f6f9fb;color:#1f2d3d;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0;padding:24px}.box{text-align:center;line-height:1.8}a{color:#3a9a93}</style>
 </head>
 <body>
-<div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div></div>
-<nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
-
-<main class="container">
-  <div class="page-head-row">
-    <h1 class="page-title">词句</h1>
-    <div class="sub-tabs pill-tabs" id="wordTabs">
-      <button data-sub="ls" class="pill-tab active">长难句拆解</button>
-      <button data-sub="eb" class="pill-tab">错题本</button>
-    </div>
-  </div>
-
-  <!-- 长难句拆解（置前） -->
-  <div id="lsView">
-    <section class="card">
-      <h2>粘贴长难句</h2>
-      <textarea id="sentInput" placeholder="在此粘贴长难句，例如：The theory suggests the decline is a deeper imbalance."></textarea>
-      <div class="form-row row-end mt-10">
-        <button class="btn btn-primary" id="analyzeBtn">拆解分析</button>
-        <span id="sentStatus" class="word-status" aria-live="polite"></span>
-      </div>
-    </section>
-
-    <section class="card" id="resultCard" style="display:none">
-      <div class="card-head">
-        <h2>拆解结果</h2>
-        <button class="btn btn-sm btn-ghost" id="copyBtn">复制全文</button>
-      </div>
-      <blockquote id="origSent" class="quote"></blockquote>
-      <div id="resultBody"></div>
-    </section>
-
-    <section class="card" id="histCard" style="display:none">
-      <h2>我的拆解记录 · <span id="histCount">0</span></h2>
-      <div id="histList" class="grid ls-hist-grid"></div>
-    </section>
-  </div>
-
-  <!-- 错题本 -->
-  <div id="ebView" hidden>
-
-  <section class="card">
-    <textarea class="eb-input" id="ebInput" placeholder="粘贴错题讲解（截图回复/笔记均可），无需整理格式"></textarea>
-    <div class="eb-bar">
-      <button class="btn btn-primary" id="ebAnalyze"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="5" y="7" width="14" height="12" rx="3"/><path d="M12 7V3M9 3h6"/><circle cx="9.5" cy="12.5" r="1"/><circle cx="14.5" cy="12.5" r="1"/><path d="M9 16h6"/></svg>理清错因并归档</button>
-      <button class="btn" id="ebRaw">只存原文</button>
-      <span class="muted" style="font-size:12.5px">自动分析用的是「设置 / AI 接口」里的 DeepSeek Key</span>
-    </div>
-    <div id="ebLoading" class="eb-loading" hidden></div>
-  </section>
-
-  <section class="card">
-    <div class="eb-list-head">
-      <h2>已归档 · <span id="count">0</span> 条</h2>
-    </div>
-    <div class="ui-search" style="margin:8px 0 4px">
-      <svg class="ui-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      <input class="ui-search-input" type="search" id="ebSearch" placeholder="" aria-label="搜索错题" />
-    </div>
-    <div id="list"></div>
-    <div id="empty" class="muted" hidden>还没有记录。把你的错题笔记贴到上面那个框，点「理清错因并归档」。</div>
-  </section>
-  </div>
-</main>
-
+<div class="box">
+  <p>错题本已迁移到「句子 → 错题」标签页，正在跳转…</p>
+  <p><a href="corpus.html#eb">如果没有自动跳转，点这里</a></p>
+</div>
+<script>location.replace('corpus.html#eb');</script>
 </body>
 </html>

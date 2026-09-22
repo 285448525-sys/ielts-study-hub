@@ -951,7 +951,7 @@ let DATA = {
     _fieldTs: {}
   },
   errorbook: [],
-  longSent: [],           // 长难句拆解记录（合并进「词句」页，由 errorbook.js 读写）
+  longSent: [],           // 长难句拆解记录（合并进「词句」页，由 corpus.js 读写；errorbook.js 已撤并为跳转页）
   energy: [],
   checkins: [],
   mockRecords: [],

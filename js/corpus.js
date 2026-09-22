@@ -640,31 +640,48 @@ function finishDict(){
 function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
 function speak(text, lang){ try{ const u=new SpeechSynthesisUtterance(text); u.lang=lang; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u);}catch(e){} }
 
-/* ===== 语料合并：长难句拆解 + 错题本（原 js/errorbook.js，保留 errorbook.html 独立页） ===== */
-/* 错题本（极简版）：一个大框粘 AI 讲解 → AI 结构化 → 自动归档 + 错因统计
-   数据结构（kind:'ai'）：
+/* ===== 语料合并：长难句拆解 + 错题本（错题本唯一入口：corpus.html 错题 tab；errorbook.html 仅为跳转页） ===== */
+/* 错题本：一个大框粘 AI 讲解 → AI 结构化 → 自动归档 + 错因筛选统计
+   数据结构（kind:'ai'，design/85 起）：
    { id, date, kind:'ai', known, source,
-     title, subject, qtype, trap, howto:[], wrongPoint, rule:[], words:[], raw }
-   兼容老数据 kind:'question' / 'word'（只读渲染，不再提供录入表单）。 */
+     title, qtype, trap, myAnswer, correctAnswer,
+     questionText, passageSnippet, translation,
+     keyReasoning:{relation,evidence,compare}, rule,
+     structureAnalysis:{wordByWord:[],answerNote}, words:[], raw }
+   兼容老数据 kind:'question' / 'word' / 'capture'（只读渲染，不再提供录入表单）；
+   老 kind:'ai' 无新字段时由 cardHtml 兜底渲染（旧 answerNote 挪进核心判定区）。 */
 
 ready(() => {
-  /* 子 tab 切换：长难句 / 错题本 / 听力默写（默认长难句在前；null 保护兼容独立 errorbook.html 只有前两个 tab） */
-  const wordTabs = document.querySelectorAll('#wordTabs [data-sub]');
-  wordTabs.forEach(b => b.addEventListener('click', () => {
-    const s = b.dataset.sub;
-    wordTabs.forEach(x => x.classList.toggle('active', x === b));
+  /* 子 tab 切换：长难句 / 错题本 / 听力默写（默认长难句在前；null 保护兼容跳转页场景） */
+  /* design/85：抽成 switchCorpusSub 供 #eb hash 直达错题 tab（errorbook.html 跳转页落点） */
+  function switchCorpusSub(s){
+    const wordTabs = document.querySelectorAll('#wordTabs [data-sub]');
+    wordTabs.forEach(x => x.classList.toggle('active', x.dataset.sub === s));
     const ls = $('#lsView'), eb = $('#ebView'), dict = $('#dictView');
     if(ls) ls.hidden = (s !== 'ls');
     if(eb) eb.hidden = (s !== 'eb');
     if(dict) dict.hidden = (s !== 'dict');
     if(s === 'ls' && typeof renderHistory === 'function') renderHistory();
     if(s === 'dict' && typeof renderList === 'function') renderList();
-  }));
+  }
+  window.__switchCorpusSub = switchCorpusSub;
+  document.querySelectorAll('#wordTabs [data-sub]').forEach(b => b.addEventListener('click', () => switchCorpusSub(b.dataset.sub)));
+  if(location.hash === '#eb') switchCorpusSub('eb');
 
   /* 错题本 */
   $('#ebAnalyze').addEventListener('click', analyzeEntry);
   $('#ebRaw').addEventListener('click', saveRawEntry);
   render();
+
+  /* design/85：筛选/搜索控件——ready 绑定一次，render 里只读值 */
+  ['#ebQtypeFilter', '#ebTrapFilter'].forEach(sel => {
+    const el = document.querySelector(sel);
+    if(el) el.addEventListener('change', render);
+  });
+  const onlyOpen = document.querySelector('#ebOnlyOpen');
+  if(onlyOpen) onlyOpen.addEventListener('change', render);
+  const ebSearch = document.querySelector('#ebSearch');
+  if(ebSearch) ebSearch.addEventListener('input', render);
 
   /* 长难句拆解 */
   $('#analyzeBtn').addEventListener('click', analyze);
@@ -698,29 +715,41 @@ async function analyzeEntry(){
   const load = $('#ebLoading');
   btn.disabled = true; btn.textContent = 'AI 分析中…';
   load.hidden = false;
-  load.textContent = '正在把这段讲解拆成「题干拆解 / 翻译 / 生词」，大概十几秒…';
+  load.textContent = '正在拆解：答案判定 / 错因 / 题干精读，大概十几秒…';
 
   const messages = [
     { role:'system', content:
-`你是雅思错题诊断助手，服务对象是一名冲总分 6.0 的中国考生（弱项：听力、口语；阅读速度慢，且常把 FALSE 误判成 NOT GIVEN）。
+`你是雅思错题诊断助手，服务对象是一名目标总分 6.0 的中国考生（听力、口语、写作稳 5.5，阅读目标 6.5；阅读速度慢，且常把 FALSE 误判成 NOT GIVEN）。
 用户会粘贴一段关于某道错题的讲解——通常是别的 AI 对答题截图的回复，也可能是她自己的零散笔记，格式混乱、有多余的话都正常。
-你的任务：把它整理成结构化内容。全部用简体中文，务实、具体、能照着做，不要空话套话。
+你的任务：把它整理成结构化内容。全部用简体中文（英文题干、原文、答案、依据保留英文），务实、具体，不写空话套话。
+
+铁律：
+- 只依据粘贴资料里写明的信息，严禁编造题干、原文、答案或用户作答；资料里没有的内容一律留空字符串。
+- 尤其 myAnswer（用户选了什么）：资料没明说就留空，绝不允许根据正确答案反推。
 
 字段要求：
-- title：一句话说清这是哪道题/什么题，只概括题目内容本身（如「一道阅读判断题，关于布料材质」）。
-  ⚠️ 禁止写来源，不许出现「剑18」「剑桥」「来自XX」这类说法——你不知道出处，编出来是错的。
-- qtype：题型，如 判断(TFNG)、填空、匹配、选择、Heading、简答、地图题、多选 等；判断不出写「其他」。
-- questionText：题干原文。资料里没有题干就填空字符串。
-- passageSnippet：相关的原文/材料片段（如果有）。没有就空字符串。
-- translation：题干整句的自然中文翻译。
-- structureAnalysis：用「同声传译」方式拆解题干，逐词/逐意群对照，对象结构：
-  {"wordByWord":[{"en":"英文片段","cn":"中文直译"}],"natural":"自然通顺的整句理解","answerNote":"这题/这个空要你填什么（答案是什么类型）"}
-  其中 answerNote 举例：题干「这块布料由什么制成？」→ answerNote 应为「要填的是材料类型（如棉/羊毛），不是布料本身」。
-- words：讲解里出现的值得记的生词/短语，每项 {"en":"","cn":""}，没有就空数组。
+- title：一句话说清这是哪道题（如「一道阅读判断题，关于拜占庭皇帝获取蚕卵」），只概括题目内容。禁止写出处，不许出现「剑18」「剑桥」「来自XX」等说法。
+- qtype：题型，从以下选一个：判断(TFNG)、判断(YNNG)、填空、匹配、选择、Heading、简答、地图题、多选、听力填空、听力选择、其他；判断不出写「其他」。
+- trap：错因分类，从以下受控列表选 1 个最贴切的，判断不出写「其他」：
+  矛盾vs未提及混淆 / 定位错误 / 偷换概念或张冠李戴 / 同义替换没认出 / 语法或词性预判错 / 单复数或时态错 / 拼写或大小写错 / 逻辑方向反（肯否定、因果、比较级）/ 生词阻碍 / 字数超限 / 主旨或中心句误判 / 语音现象没听出（连读弱读）/ 其他
+- myAnswer：用户实际作答的答案（如 FALSE、A、或她填的单词）；资料没写明就留空字符串。
+- correctAnswer：正确答案；资料没写明就留空字符串。
+- questionText：题干原文（判断句/问题/填空题干），没有留空。
+- passageSnippet：相关的阅读原文或听力原文片段，没有留空。
+- translation：题干的自然中文翻译。全卡只此一处翻译，不要在其他字段重复整句翻译。
+- keyReasoning：核心判定，对象 {"relation":"","evidence":"","compare":""}：
+  · relation：仅判断题填写，按题面填 TRUE / FALSE / NOT GIVEN 或 YES / NO / NOT GIVEN；其他题型留空；
+  · evidence：原文中直接决定答案的那句或关键片段，英文照抄，不要翻译；
+  · compare：一句话讲清判定逻辑——判断题必须点明「题干哪里与原文矛盾」或「原文没提题干的哪部分」；填空题写定位线索加所需词性/词形；选择题写正确项为什么对、主要干扰项错在哪；Heading 题写中心句是哪句。
+- rule：一句话，下次遇到同类题怎么避免再错，必须可执行（例：「看到 only/all 这类绝对限定词先回原文找对应词，原文没有限定就是 NOT GIVEN」）。
+- structureAnalysis：题干逐词/逐意群对照（同声传译），对象 {"wordByWord":[{"en":"英文片段","cn":"中文直译"}],"answerNote":""}：
+  · answerNote 仅填空题填写：这个空要填的类型（词性/类别/单复数），其他题型一律留空；
+  · 不要输出 natural 字段，不要再给整句翻译（translation 已有）。
+- words：真正值得背的生词/短语，[{"en":"","cn":""}]，没有就 []。控制在 3-8 个，不要把 wordByWord 逐词再抄一遍。
 
 资料信息不足时，就基于已有信息给最有价值的部分，绝不编造原文内容。
 只输出 JSON，不要任何解释文字、不要 markdown 围栏：
-{"title":"","qtype":"","questionText":"","passageSnippet":"","translation":"","structureAnalysis":{"wordByWord":[{"en":"","cn":""}],"natural":"","answerNote":""},"words":[{"en":"","cn":""}]}` },
+{"title":"","qtype":"","trap":"","myAnswer":"","correctAnswer":"","questionText":"","passageSnippet":"","translation":"","keyReasoning":{"relation":"","evidence":"","compare":""},"rule":"","structureAnalysis":{"wordByWord":[{"en":"","cn":""}],"answerNote":""},"words":[{"en":"","cn":""}]}` },
     { role:'user', content: text }
   ];
 
@@ -734,12 +763,21 @@ async function analyzeEntry(){
       Object.assign(entry, {
         title: String(r.title || '').trim() || '（未命名错题）',
         qtype: String(r.qtype || '其他').trim(),
+        // design/85：错因受控枚举 + 答案对比 + 核心判定 + 下次怎么避免
+        trap: String(r.trap || '其他').trim() || '其他',
+        myAnswer: String(r.myAnswer || '').trim(),
+        correctAnswer: String(r.correctAnswer || '').trim(),
         questionText: String(r.questionText || '').trim(),
         passageSnippet: String(r.passageSnippet || '').trim(),
         translation: String(r.translation || '').trim(),
+        keyReasoning: (r.keyReasoning && typeof r.keyReasoning === 'object')
+          ? { relation: String(r.keyReasoning.relation || '').trim(),
+              evidence: String(r.keyReasoning.evidence || '').trim(),
+              compare: String(r.keyReasoning.compare || '').trim() }
+          : null,
+        rule: String(r.rule || '').trim(),
         structureAnalysis: (r.structureAnalysis && typeof r.structureAnalysis === 'object')
           ? { wordByWord: Array.isArray(r.structureAnalysis.wordByWord) ? r.structureAnalysis.wordByWord : [],
-              natural: String(r.structureAnalysis.natural || '').trim(),
               answerNote: String(r.structureAnalysis.answerNote || '').trim() }
           : null,
         words: Array.isArray(r.words)
@@ -750,6 +788,7 @@ async function analyzeEntry(){
       // AI 没按 JSON 回 → 原文照存，不丢东西
       Object.assign(entry, {
         title: '（AI 返回非标准格式，已存原文）', qtype:'其他',
+        trap:'其他', myAnswer:'', correctAnswer:'', keyReasoning:null, rule:'',
         questionText:'', passageSnippet:'', translation:'', structureAnalysis:null,
         words: [], raw: content
       });
@@ -779,7 +818,8 @@ function saveRawEntry(){
   DATA.errorbook.unshift({
     id: uid(), date: todayKey(), kind:'ai', known:false, source: text,
     title:'（未分析）' + text.slice(0, 24).replace(/\s+/g,' '),
-    qtype:'其他', questionText:'', passageSnippet:'', translation:'', structureAnalysis:null, words:[]
+    qtype:'其他', trap:'其他', myAnswer:'', correctAnswer:'', keyReasoning:null, rule:'',
+    questionText:'', passageSnippet:'', translation:'', structureAnalysis:null, words:[]
   });
   hubSave();
   box.value = '';
@@ -795,15 +835,17 @@ function saveRawEntry(){
    ⚠️ 数据安全铁律：必须「分析成功之后」才删旧记录。
    AI 分析有多条失败路径（原文过短 / 没配 Key / 网络异常），若先删后跑，
    任何一条失败都会让用户手打/粘贴的原始资料永久消失且不可恢复。 */
-async function reanalyze(id){
+async function reanalyze(id, force){
   const e = DATA.errorbook.find(x => x.id === id);
   if(!e || !e.source){ toast('这条没有原始资料，无法分析'); return; }
 
   const box = $('#ebInput');
-  // 输入框里可能还有用户没保存的草稿，别默默冲掉
+  // 输入框里可能还有用户没保存的草稿，别默默冲掉——有冲突且未确认（force）时不执行；
+  // UI 层的二次点击确认在 render 的 data-redo 绑定里（armed 两步），这里只做兜底防线
   const draft = box.value.trim();
-  if(draft && draft !== e.source.trim()){
-    if(!confirm('上面输入框里还有没归档的内容，继续会被这条记录的原文替换。要继续吗？')) return;
+  if(draft && draft !== e.source.trim() && !force){
+    toast('输入框里还有未归档内容，再点一次「补 AI 分析」确认覆盖');
+    return;
   }
 
   box.value = e.source;
@@ -840,26 +882,104 @@ function render(){
     .slice()
     .sort((a,b) => (b.date||'').localeCompare(a.date||''));
 
-  $('#count').textContent = list.length;
-  const box = $('#list');
-  $('#empty').hidden = DATA.errorbook.length > 0;
-  box.innerHTML = list.map(cardHtml).join('');
-  bindWordHover(box);
+  /* design/85：题型/错因筛选 + 关键词搜索 + 只看未掌握（筛选控件在 ready 绑定一次，这里只读取） */
+  const qtypeSel = $('#ebQtypeFilter'), trapSel = $('#ebTrapFilter');
+  const fQ = (qtypeSel && qtypeSel.value) || 'all';
+  const fT = (trapSel && trapSel.value) || 'all';
+  const fSearch = ($('#ebSearch') && $('#ebSearch').value.trim().toLowerCase()) || '';
+  const fOpen = !$('#ebOnlyOpen') || $('#ebOnlyOpen').checked;
 
-  box.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
-    if(confirm('确定删除这条记录？')){
+  /* 动态生成筛选选项（去重排序，「其他」排最后），保持当前选中值 */
+  if(qtypeSel){
+    const qtypes = Array.from(new Set(list.map(e => String(e.qtype || e.subject || '').trim()).filter(x => x && x !== '其他'))).sort();
+    qtypes.push('其他');
+    const keep = qtypeSel.value;
+    qtypeSel.innerHTML = '<option value="all">全部题型</option>' + qtypes.map(q => `<option value="${escapeHtml(q)}">${escapeHtml(q)}</option>`).join('');
+    if(qtypes.includes(keep)) qtypeSel.value = keep;
+  }
+  if(trapSel){
+    const traps = Array.from(new Set(list.map(e => String(e.trap || '').trim()).filter(x => x && x !== '其他'))).sort();
+    traps.push('其他');
+    const keep = trapSel.value;
+    trapSel.innerHTML = '<option value="all">全部错因</option>' + traps.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+    if(traps.includes(keep)) trapSel.value = keep;
+  }
+
+  const match = e => {
+    const q = String(e.qtype || e.subject || '').trim();
+    if(fQ !== 'all' && q !== fQ) return false;
+    const t = String(e.trap || '').trim();
+    if(fT !== 'all' && t !== fT) return false;
+    if(fSearch){
+      const hay = [e.title, e.questionText, e.passageSnippet, e.stem].map(x => String(x || '')).join(' ').toLowerCase();
+      if(hay.indexOf(fSearch) === -1) return false;
+    }
+    return true;
+  };
+  const open = list.filter(e => match(e) && !e.known);
+  const known = fOpen ? [] : list.filter(e => match(e) && e.known);   // 勾「只看未掌握」时已掌握区不显示（计数同步归零）
+
+  const cnt = $('#count'), kcnt = $('#knownCount');
+  if(cnt) cnt.textContent = open.length;
+  if(kcnt) kcnt.textContent = known.length;
+
+  const box = $('#list');
+  box.innerHTML = open.map(cardHtml).join('');
+  /* 已掌握沉底折叠区：默认收起；未掌握区为空时自动展开（否则筛完一片空白看不出有数据） */
+  const kw = $('#knownWrap');
+  if(kw){
+    const inner = $('#knownList');
+    if(inner) inner.innerHTML = known.map(cardHtml).join('');
+    kw.hidden = known.length === 0;
+    const sum = kw.querySelector('summary');
+    if(sum) sum.textContent = `已掌握（${known.length}）`;
+    if(!open.length && known.length) kw.open = true;
+  }
+  $('#empty').hidden = (open.length + known.length) > 0;
+
+  const bind = container => {
+    if(!container) return;
+    bindWordHover(container);
+    container.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
+      /* design/85：两步内联确认（3 秒不复点自动还原），替代原生 confirm */
+      if(b.dataset.armed !== '1'){
+        b.dataset.armed = '1';
+        b.classList.add('btn-armed');
+        b.textContent = '再点一次确认删除';
+        setTimeout(() => {
+          if(b.dataset.armed === '1'){ b.dataset.armed = ''; b.classList.remove('btn-armed'); b.textContent = '删除'; }
+        }, 3000);
+        return;
+      }
       const id = b.dataset.del;
       DATA.errorbook = DATA.errorbook.filter(x => x.id !== id);
       DATA.deletedIds = DATA.deletedIds || [];
       if(id != null && !DATA.deletedIds.includes(id)) DATA.deletedIds.push(id);
       hubSave(); render();
-    }
-  }));
-  box.querySelectorAll('[data-known]').forEach(b => b.addEventListener('click', () => {
-    const e = DATA.errorbook.find(x => x.id === b.dataset.known);
-    if(e){ e.known = !e.known; hubSave(); render(); }
-  }));
-  box.querySelectorAll('[data-redo]').forEach(b => b.addEventListener('click', () => reanalyze(b.dataset.redo)));
+    }));
+    container.querySelectorAll('[data-known]').forEach(b => b.addEventListener('click', () => {
+      const e = DATA.errorbook.find(x => x.id === b.dataset.known);
+      if(e){ e.known = !e.known; hubSave(); render(); }
+    }));
+    container.querySelectorAll('[data-redo]').forEach(b => b.addEventListener('click', () => {
+      const id = b.dataset.redo;
+      const e = DATA.errorbook.find(x => x.id === id);
+      const draft = ($('#ebInput') && $('#ebInput').value.trim()) || '';
+      const conflict = e && e.source && draft && draft !== e.source.trim();
+      if(conflict && b.dataset.armed !== '1'){
+        b.dataset.armed = '1';
+        b.classList.add('btn-armed');
+        b.textContent = '再点一次：覆盖输入框草稿';
+        setTimeout(() => {
+          if(b.dataset.armed === '1'){ b.dataset.armed = ''; b.classList.remove('btn-armed'); b.textContent = '补 AI 分析'; }
+        }, 3000);
+        return;
+      }
+      reanalyze(id, true);
+    }));
+  };
+  bind(box);
+  bind($('#knownList'));
 }
 
 function cardHtml(e){
@@ -869,46 +989,93 @@ function cardHtml(e){
 
   const badges = [
     e.qtype  && e.qtype  !== '其他' ? `<span class="badge">${escapeHtml(e.qtype)}</span>` : '',
+    e.trap   && e.trap   !== '其他' ? `<span class="badge badge-trap">${escapeHtml(e.trap)}</span>` : '',
     e.known ? '<span class="badge badge-ok">已掌握</span>' : ''
   ].join('');
+
+  /* design/85 答案条：复盘第一眼 = 我选了什么 → 该选什么。归一化比较（trim+大写）。 */
+  const mine = String(e.myAnswer || '').trim();
+  const correct = String(e.correctAnswer || '').trim();
+  const rel = (e.keyReasoning && e.keyReasoning.relation) ? String(e.keyReasoning.relation).trim() : '';
+  const correctShown = correct || rel;   // 判断题 correctAnswer 缺失时用 keyReasoning.relation 补位，两者都有不重复拼
+  let answerHtml = '';
+  if(mine || correct){
+    const same = mine && correct && mine.toUpperCase() === correct.toUpperCase();
+    if(same){
+      answerHtml = `<div class="eb-answer"><span class="eb-a-ok">我的答案 ${escapeHtml(mine)} ✓</span></div>`;
+    } else {
+      const minePart = mine ? `<span class="eb-a-mine">我的答案：<b>${escapeHtml(mine)}</b></span>` : '';
+      const correctPart = correctShown ? `<span class="eb-a-correct">正确答案：<b>${escapeHtml(correctShown)}</b></span>` : '';
+      answerHtml = (minePart || correctPart)
+        ? `<div class="eb-answer">${[minePart, correctPart].filter(Boolean).join('<span class="eb-a-arrow">→</span>')}</div>` : '';
+    }
+  }
+
+  /* design/85 核心判定：新数据用 keyReasoning（compare/evidence/rule）；老数据无 keyReasoning
+     时把旧 structureAnalysis.answerNote 挪到这里兜底显示（老卡也能一眼看到判定）。 */
+  const kr = e.keyReasoning;
+  const sa = e.structureAnalysis;
+  const legacyNote = (!kr && sa && sa.answerNote) ? String(sa.answerNote).trim() : '';
+  const keyCmp = kr ? String(kr.compare || '').trim() : legacyNote;
+  const keyEv = kr ? String(kr.evidence || '').trim() : '';
+  const ruleTxt = String(e.rule || '').trim();
+  const keyHtml = (keyCmp || keyEv || ruleTxt)
+    ? `<div class="eb-key">
+        ${keyCmp ? `<div class="eb-key-cmp">${escapeHtml(keyCmp)}</div>` : ''}
+        ${keyEv ? `<div class="eb-key-ev" lang="en">${escapeHtml(keyEv)}</div>` : ''}
+        ${ruleTxt ? `<div class="eb-key-rule">下次：${escapeHtml(ruleTxt)}</div>` : ''}
+      </div>` : '';
 
   const questionText = e.questionText
     ? `<div class="eb-block"><h4>题干原文</h4><p style="white-space:pre-wrap">${escapeHtml(e.questionText)}</p></div>` : '';
   const passageSnippet = e.passageSnippet
     ? `<div class="eb-block"><h4>对应原文</h4><p style="white-space:pre-wrap">${escapeHtml(e.passageSnippet)}</p></div>` : '';
-  const translation = e.translation
-    ? `<div class="eb-block"><h4>整句翻译</h4><p>${escapeHtml(e.translation)}</p></div>` : '';
-  const sa = e.structureAnalysis;
-  const splitHtml = (sa && sa.wordByWord && sa.wordByWord.length)
+
+  /* 精读折叠区（默认收起）：翻译（全卡仅此一处）+ 逐词对照 + 填空类型 + 生词紧凑 chip */
+  const wordList = (e.words && e.words.length) ? e.words : [];
+  const savedSet = _ebSavedWordSet();
+  const wbw = (sa && sa.wordByWord && sa.wordByWord.length)
     ? `<div class="eb-block"><h4>题干拆解 · 同声传译</h4>
         <div class="ls-wbw-grid">${sa.wordByWord.map(w => {
           const en = escapeHtml((w.en||'').trim()), cn = escapeHtml((w.cn||'').trim());
-          return en ? `<div class="ls-wbw-item" tabindex="0" data-en="${en}" data-cn="${cn}" title="点击收录 · 悬停按 S 一键收录"><span class="ls-wbw-en">${en}</span><span class="ls-wbw-cn">${cn}</span></div>` : '';
+          if(!en) return '';
+          const done = savedSet.has((w.en||'').trim().toLowerCase());
+          return `<div class="ls-wbw-item${done ? ' is-done' : ''}" tabindex="0" data-en="${en}" data-cn="${cn}" title="点击收录 · 悬停按 S 一键收录"><span class="ls-wbw-en">${en}</span><span class="ls-wbw-cn">${cn}</span></div>`;
         }).join('')}</div>
-        ${sa.natural ? `<div class="ls-natural" style="margin-top:8px">自然理解：${escapeHtml(sa.natural)}</div>` : ''}
-        ${sa.answerNote ? `<div class="eb-rule" style="margin-top:8px">这题要你填：${escapeHtml(sa.answerNote)}</div>` : ''}
+        ${sa.answerNote ? `<div class="muted" style="margin-top:8px;font-size:13px">填空类型：${escapeHtml(sa.answerNote)}</div>` : ''}
       </div>` : '';
-  const words = (e.words && e.words.length)
-    ? `<div class="eb-block"><h4>生词 · 点击收录</h4><div class="ls-kw-list">${e.words.map(w => {
+  const chips = wordList.length
+    ? `<div class="eb-block"><h4>生词 · 点击收录</h4><div class="ls-kw-chips">${wordList.map(w => {
         const en = escapeHtml(w.en||''), cn = escapeHtml(w.cn||'');
-        return `<div class="ls-kw-row" tabindex="0" data-en="${en}" data-cn="${cn}" title="点击收录 · 悬停按 S 一键收录"><div class="ls-kw-main"><span class="ls-kw-en">${en}</span><span class="ls-kw-cn">${cn}</span></div><button class="ls-kw-save" data-en="${en}" data-cn="${cn}">收录</button></div>`;
+        const done = savedSet.has(String(w.en||'').toLowerCase().trim());
+        return `<button type="button" class="ls-kw-chip${done ? ' is-done' : ''}" data-en="${en}" data-cn="${cn}">${en}${cn ? `<span class="ls-kw-cn">${cn}</span>` : ''}${done ? ' ✓' : ''}</button>`;
       }).join('')}</div></div>` : '';
+  const deepHtml = (e.translation || wbw || chips)
+    ? `<details class="eb-deep"><summary>精读拆解（翻译 · 逐词对照 · 生词）</summary>
+        ${e.translation ? `<div class="eb-block"><h4>整句翻译</h4><p>${escapeHtml(e.translation)}</p></div>` : ''}
+        ${wbw}${chips}
+      </details>` : '';
   const raw = e.raw
-    ? `<div class="eb-block"><h4>AI 原始回复</h4><p style="white-space:pre-wrap">${escapeHtml(e.raw)}</p></div>` : '';
+    ? `<details class="eb-src"><summary>AI 原始回复</summary><p style="white-space:pre-wrap">${escapeHtml(e.raw)}</p></details>` : '';
   const src = e.source
     ? `<details class="eb-src"><summary>看我粘进来的原始资料</summary><pre>${escapeHtml(e.source)}</pre></details>` : '';
   const needRedo = !e.structureAnalysis || !e.structureAnalysis.wordByWord || !e.structureAnalysis.wordByWord.length;
 
-  return `<div class="eb-card">
+  return `<div class="eb-card${e.known ? ' is-known' : ''}">
     <div class="eb-head">${badges}<span class="muted" style="margin-left:auto;font-size:12.5px">${escapeHtml(e.date||'')}</span></div>
     <div class="eb-title">${escapeHtml(e.title || '（未命名错题）')}</div>
-    ${questionText}${passageSnippet}${translation}${splitHtml}${words}${raw}${src}
+    ${answerHtml}${keyHtml}${questionText}${passageSnippet}${deepHtml}${raw}${src}
     <div class="eb-actions">
-      ${needRedo ? `<button class="btn btn-sm btn-primary" data-redo="${e.id}">🤖 补 AI 分析</button>` : ''}
+      ${needRedo ? `<button class="btn btn-sm btn-primary" data-redo="${e.id}">补 AI 分析</button>` : ''}
       <button class="btn btn-sm" data-known="${e.id}">${e.known ? '标为未掌握' : '标为已掌握'}</button>
       <button class="btn btn-sm btn-danger" data-del="${e.id}">删除</button>
     </div>
   </div>`;
+}
+
+/* design/85：当前词库内已有的词集合（渲染已收录态用） */
+function _ebSavedWordSet(){
+  return new Set((DATA.words || []).map(w => String(w.en || '').toLowerCase().trim()));
 }
 
 /* 截图识别条目渲染（视觉模型产出，含缩略图与新扩展字段） */
@@ -1107,13 +1274,26 @@ function saveWord(en, cn){
   const key = en.toLowerCase().trim();
   DATA.words = DATA.words || [];
   const exists = DATA.words.some(w => (w.en || '').toLowerCase() === key);   // 老数据可能缺 en
-  if(exists){ toast(`「${en}」已在词库中`); return; }
+  if(exists){ toast(`「${en}」已在词库中`); _ebMarkSaved(key); return; }
   // 已掌握/已删除（墓碑）：单独点「加入词库」= 明确的「我要加回来」→ 撤销墓碑。
   // 不撤的话下一次云合并（最长 30s）会被 deletedIds 静默抹掉，表现为「收了词却没了」。
   const revived = typeof isWordTombstoned === 'function' && isWordTombstoned(en) && clearWordTombstone(en);
   DATA.words.push({ id: uid(), en: en.trim(), cn: (cn || '').trim(), ts: Date.now() });
   hubSave();
+  _ebMarkSaved(key);
   toast(revived ? `「${en}」已重新收录到词库（已从「已掌握」移回）` : `已收录「${en}」到词库`);
+}
+
+/* design/85：收录成功后同页所有相同 data-en 元素就地变已收录态（含意群卡），不整卡重渲染 */
+function _ebMarkSaved(key){
+  document.querySelectorAll('[data-en]').forEach(el => {
+    if(String(el.dataset.en || '').toLowerCase().trim() !== key) return;
+    el.classList.add('is-done');
+    if(el.classList.contains('ls-kw-chip') && !el.dataset.doneMark){
+      el.dataset.doneMark = '1';
+      el.appendChild(document.createTextNode(' ✓'));
+    }
+  });
 }
 
 /* 旧版 markdown 分段解析（兼容历史记录） */
