@@ -57,6 +57,7 @@ var PC_DEFAULTS = {
   repeat: 1,
   intervalMs: 1800,
   batchSize: 50,          // 每轮固定题量（复习优先，不足时补新词；-1=全部）
+  newPerDay: 20,          // v7.1 每日新词上限（0=不限）：设置弹窗「每日新词上限」可调，复习词不受限
   shuffle: true,
   autoNext: true,
   autoNextDelay: 1000,
@@ -83,6 +84,9 @@ function pc(){
   c.batchSize = (typeof c.batchSize === 'number' && !isNaN(c.batchSize)) ? c.batchSize : (typeof c.batchSize === 'string' ? parseInt(c.batchSize, 10) : PC_DEFAULTS.batchSize);
   if(isNaN(c.batchSize)) c.batchSize = PC_DEFAULTS.batchSize;
   if([20,50,100,200,-1].indexOf(c.batchSize) === -1) c.batchSize = PC_DEFAULTS.batchSize;   // 白名单外(旧预设5/10/自定义残留)回退默认
+  c.newPerDay = (typeof c.newPerDay === 'number' && !isNaN(c.newPerDay)) ? c.newPerDay : (typeof c.newPerDay === 'string' ? parseInt(c.newPerDay, 10) : PC_DEFAULTS.newPerDay);
+  if(isNaN(c.newPerDay)) c.newPerDay = PC_DEFAULTS.newPerDay;
+  if([0,5,10,20,30,50,100].indexOf(c.newPerDay) === -1) c.newPerDay = PC_DEFAULTS.newPerDay;   // 0=不限
   c.shuffle = !!c.shuffle;
   c.autoNext = !!c.autoNext;
   c.autoNextDelay = clampNum(c.autoNextDelay, 100, 30000, PC_DEFAULTS.autoNextDelay);
@@ -483,10 +487,12 @@ function buildQueue(today, nowISO){
 
   // design/77：每日到期上限（含新词）。被截掉的词不动 nextReview，明天自然排在最前；
   // 固定题量仍由 autoStartSeeWord 的 batchSize 控制，复习词自然排在前面
-  // v7.1：复习词（cleared===true）全保留，新词（cleared!==true，含昨日首次答错回炉的）最多 NEW_PER_DAY 个
+  // v7.1：复习词（cleared===true）全保留，新词（cleared!==true，含昨日首次答错回炉的）上限=设置弹窗 newPerDay（0=不限）
+  const _npd = (c.newPerDay == null) ? NEW_PER_DAY : ((c.newPerDay > 0) ? c.newPerDay : Infinity);
   const _reviews = due.filter(w => w.cleared === true);
-  const _news = due.filter(w => w.cleared !== true);
-  return _reviews.concat(_news.slice(0, NEW_PER_DAY)).slice(0, DAILY_DUE_CAP);
+  let _news = due.filter(w => w.cleared !== true);
+  if(_npd !== Infinity) _news = _news.slice(0, _npd);
+  return _reviews.concat(_news).slice(0, DAILY_DUE_CAP);
 }
 
 // ======= 今日已学词集合（跨轮累计，保证「第二轮不重复第一轮的词」）=======
@@ -1532,6 +1538,7 @@ function renderCfgModal(){
       name:'答题', icon:'☑',
       items:[
         { key:'batchSize',     label:'题量',          type:'batch', presets:[{v:'20',t:'20 题'},{v:'50',t:'50 题'},{v:'100',t:'100 题'},{v:'200',t:'200 题'},{v:'-1',t:'全部'}] },
+        { key:'newPerDay',     label:'每日新词上限',  type:'batch', presets:[{v:'0',t:'不限'},{v:'5',t:'5 个'},{v:'10',t:'10 个'},{v:'20',t:'20 个'},{v:'30',t:'30 个'},{v:'50',t:'50 个'},{v:'100',t:'100 个'}], desc:'每天最多学多少个全新单词；复习词不受限制、永远优先出。选「不限」回到旧行为' },
         { key:'questionMode',  label:'题型',          type:'select', opts:[{v:'visual',t:'看词选义'},{v:'audio',t:'听音选义'},{v:'mixed',t:'混合'}], desc:'听音选义：隐藏单词只播发音，听完选中文释义；混合=每题约一半听音' },
         { key:'shuffle',       label:'勾选练习乱序',  type:'toggle' },
         { key:'wrongHoldMs',   label:'答错停留',      type:'range', min:1000, max:5000, step:500, unit:'ms' },
