@@ -2018,21 +2018,19 @@ function _mergePlans(local, cloud, deleted){
       const seen = new Map(); const kept = []; let deduped = false;
       p.items.forEach(it => {
         if(!it) return;
-        // design/85 修正：去重键带完成态——同名任务一端已做完、另一端又新加一条（AI 再安排一轮）
-        // 是两个独立条目，不合；只有完成态相同的同名/同 fromId 才去重
-        const dFlag = it.done ? 'd' : 'o';
-        const k1 = (it.fromId != null) ? 'f:' + it.fromId + ':' + dFlag : null;
-        const k2 = 't:' + String(it.text || '').trim().toLowerCase() + ':' + dFlag;
-        const hit = (k1 && seen.has(k1)) ? seen.get(k1) : (seen.has(k2) ? seen.get(k2) : null);
+        // 9/23 她拍板：同名任务她就是要重复做（同一天排两条「听力 第2篇」），text 去重会把
+        // 手动/AI 加的重复条目在跨端同步时吞掉 → 去掉 text 去重，只保留 fromId 去重——
+        // 跨端「自动延续」同源条目（不同 uid 同 fromId 同完成态）收敛为 1 条，保留 updatedAt 新者
+        const k1 = (it.fromId != null) ? 'f:' + it.fromId + ':' + (it.done ? 'd' : 'o') : null;
+        const hit = (k1 && seen.has(k1)) ? seen.get(k1) : null;
         if(hit){
           deduped = true;
           const ht = Number(hit.updatedAt) || 0, nt = Number(it.updatedAt) || 0;
-          if(nt > ht){ kept[kept.indexOf(hit)] = it; if(k1){ seen.set(k1, it); } seen.set(k2, it); }
+          if(nt > ht){ kept[kept.indexOf(hit)] = it; seen.set(k1, it); }
           return;
         }
         kept.push(it);
         if(k1) seen.set(k1, it);
-        seen.set(k2, it);
       });
       if(deduped){ p.items = kept; changes++; }
     }

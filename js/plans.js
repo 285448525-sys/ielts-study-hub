@@ -143,12 +143,10 @@ async function aiPlanItem(){
     const tasks = arr.map(x => String(x).trim()).filter(Boolean);
     if(!tasks.length) throw new Error('AI 没有生成任务');
     const p = ensurePlan(currentDate());
-    let added = 0, skipped = 0;
+    let added = 0;
     tasks.forEach(text => {
-      // design/85 修正：去重只拦「还没完成的同名任务」（真重复，点了第二次 AI 安排不堆条目）；
-      // 同名任务今天已做完 = 她想再做一轮，照常添加为新条目。toast 报实际加入数，不再假报。
-      const dup = p.items.find(i => String(i.text||'').trim().toLowerCase() === text.toLowerCase());
-      if(dup && !dup.done){ skipped++; return; }
+      // 9/23 她拍板：同名任务她就是要重复做（同一天排两条「听力 第2篇」），AI 安排的一律照加，
+      // 不做同名去重（之前「拦未完成同名」把她的重复需求吞了）。AI 单次返回内部的重复极罕见，不处理。
       p.items.push({ id: uid(), text, done: false, updatedAt: Date.now() });
       added++;
     });
@@ -157,11 +155,7 @@ async function aiPlanItem(){
     if(!document.getElementById('planText')) return;
     $('#planText').value = '';
     render();
-    if(added){
-      toast('AI 已安排今天 ' + added + ' 个任务' + (skipped ? '（' + skipped + ' 个未完成的同名任务已跳过）' : ''));
-    } else {
-      toast('这 ' + skipped + ' 个任务今天的计划里已经有了（还没完成），没有重复添加');
-    }
+    toast('AI 已安排今天 ' + added + ' 个任务');
   }catch(e){
     toast('AI 安排失败：' + e.message);
   }finally{
