@@ -832,7 +832,8 @@ function removeMasteredBtn(){
 
 function nextQuestion(){
   if(!pq) return;
-  maybeStartWordTimer();   // 进练习即自动开启「背单词」计时（若尚未在计）；不重复开手动计时
+  // 9/23 她改口径：进练习/出题不再自动开「背单词」计时——要等她答了第一题（judge 入口）才开表，
+  // 否则「只是打开页面看一眼」的时间也被算成背词时长。
   try{
     cancelSpeak();
     updateProgBar();
@@ -989,6 +990,8 @@ function bindOpts(cur){
 // P0-2：答错 → 当场重考最多 1 次；重考答对 → shortCount=1 走正常 GAP；重考仍错 → 额外惩罚 + 隔 1 个词插回。
 function judge(cur, pickedEn, correct, isUnknownBtn){
   if(!pq || pq.revealed) return;
+  // 9/23 她改口径：第一次作答才自动开「背单词」计时（原为进练习/出题即开——打开页面不动也算时长）
+  try{ maybeStartWordTimer(); }catch(e){}
   pq.revealed = true;
   // 云同步合并后页面闭包里的 cur 可能还是旧 DATA.words 的孤儿对象（common.js 只重映射 pq.queue）：
   // 作答前按 en 换成合并后的活对象，避免 promote/demote 写到旧对象上、hubSave 落盘时丢失。

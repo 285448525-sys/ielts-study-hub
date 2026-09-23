@@ -18,65 +18,29 @@ var currentWeek = null;
 const PLAN_TIMER_PLAY = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="7.5 5 18.5 12 7.5 19 7.5 5"/></svg>';
 const PLAN_TIMER_STOP = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="1.5"/></svg>';
 
-/* ---------- 口语冲刺日程（9/23–10/8 · 冲刺计划 v6 · 9/23 定稿） ----------
-   题库编号 = js/data.js SPEAKING_BANK 的数组顺序（1 起，频次从高到低、P1 在前 P2 在后）。
-   每天两段：from–to = 第一遍（15min/题）；hFrom–hTo = 二刷序号 H（7min/题，仅超高频+高频）。
-   10/5–10/8 一刷尾巴与二刷同天。她改了冲刺计划只需改这张表 + DRILL_H。 */
-var DRILL_PLAN = [
-  { date:'2026-09-23', from:1,  to:5,  min:75  },
-  { date:'2026-09-24', from:6,  to:12, min:105 },
-  { date:'2026-09-25', from:13, to:22, min:150 },
-  { date:'2026-09-26', from:23, to:29, min:105 },
-  { date:'2026-09-27', from:30, to:35, min:90  },
-  { date:'2026-09-28', from:36, to:41, min:90  },
-  { date:'2026-09-29', from:42, to:48, min:105 },
-  { date:'2026-09-30', from:49, to:55, min:105 },
-  { date:'2026-10-01', from:56, to:62, min:105 },
-  { date:'2026-10-02', from:63, to:69, min:105 },
-  { date:'2026-10-03', from:70, to:75, min:90  },
-  { date:'2026-10-04', from:76, to:82, min:105 },
-  { date:'2026-10-05', from:83, to:86, min:60,  hFrom:1,  hTo:6  },
-  { date:'2026-10-06', from:87, to:90, min:60,  hFrom:7,  hTo:12 },
-  { date:'2026-10-07', from:91, to:95, min:75,  hFrom:13, hTo:16 },
-  { date:'2026-10-08', from:96, to:100,min:75,  hFrom:17, hTo:21 },
-];
-/* 二刷序号 H1–H21 → 题库编号（1–11 = P1 超高频3+高频8；39、40–48 = P2 超高频1+高频9） */
-var DRILL_H = [1,2,3,4,5,6,7,8,9,10,11,39,40,41,42,43,44,45,46,47,48];
-function drillBankAt(n){ return (DATA.speaking || [])[n-1] || null; }
-function drillTitleAt(n){
-  const s = drillBankAt(n);
-  return s ? (s.titleEn || s.titleZh || ('第' + n + '题')) : ('第' + n + '题');
+/* 口语题库取题助手：题库编号 = DATA.speaking 数组顺序（1 起，口语页题库列表顺序一致）。
+   9/23 按她要求撤掉内置冲刺日程表/横幅/一键加入——每天练哪些题以 plan/29天冲刺计划.md 文件为准，
+   她把题号输进输入框，AI 识别后生成「口语 题库N」短任务，这里只负责补题名和跳转。 */
+function bankAt(n){
+  const q = (DATA.speaking || [])[Number(n) - 1];
+  return q || null;
 }
-function drillTitles(from, to){
-  const arr = [];
-  for(let n = from; n <= to; n++) arr.push(n + '.' + drillTitleAt(n));
-  return arr.join('、');
-}
-function drillDayOf(dateKey){ return DRILL_PLAN.find(d => d.date === dateKey) || null; }
-/* 某天的口语冲刺任务文本（一刷 1 条 + 二刷 1 条） */
-function drillTaskTexts(day){
-  const texts = [];
-  texts.push('口语冲刺·一刷 题库' + day.from + '–' + day.to + ' 题（' + drillTitles(day.from, day.to) + '）每题15min：列要点2+口述2遍6+回听记1点5+复述2');
-  if(day.hFrom){
-    const hs = DRILL_H.slice(day.hFrom - 1, day.hTo).map(n => n + '.' + drillTitleAt(n)).join('、');
-    texts.push('口语冲刺·二刷 H' + day.hFrom + '–H' + day.hTo + '（' + hs + '）每题7min：直接口述2遍不抠细节');
-  }
-  return texts;
-}
-/* 今天冲刺日程的 AI 上下文（含后续几天简表，供"补进度"用） */
-function drillAiContext(){
-  const today = todayKey();
-  const day = drillDayOf(today);
-  if(!day) return '';
-  const todayStr = '今天（' + day.date + '）口语冲刺：第一遍 题库' + day.from + '–' + day.to + ' 题（' + drillTitles(day.from, day.to) + '），每题15分钟'
-    + (day.hFrom ? ('；二刷 H' + day.hFrom + '–H' + day.hTo + '（' + DRILL_H.slice(day.hFrom - 1, day.hTo).map(n => n + '.' + drillTitleAt(n)).join('、') + '），每题7分钟') : '');
-  const rest = DRILL_PLAN.filter(d => d.date > today)
-    .map(d => d.date + '：一刷 ' + d.from + '–' + d.to + (d.hFrom ? (' + 二刷 H' + d.hFrom + '–H' + d.hTo) : ''))
-    .join('；');
-  return '\n【口语冲刺日程（题库编号=口语页题库列表顺序，1 起）】\n'
-    + todayStr + '\n'
-    + (rest ? ('后续日程：' + rest + '\n') : '')
-    + '考生提到口语（口N/口语N/口语冲刺/继续计划/补进度等）时，优先按今天的题单展开任务，任务名格式：「口语冲刺·一刷 题库X–Y 题（编号.题名、…）每题15min」；二刷用「口语冲刺·二刷 H…（编号.题名、…）每题7min」。考生说补进度则顺延到后续日程的下一批；不要发明日程之外的题号。\n';
+/* AI 返回的任务里「题库N」→ 自动补真实题名：「口语 题库1」→「口语 题库1 Feeling bored」。
+   AI 已自己带题名（题库N 后紧跟同题名）时不重复补；编号越界保持原样。 */
+function enrichSpeakingTasks(arr){
+  return (Array.isArray(arr) ? arr : []).map(t0 => {
+    const s = String(t0);
+    if(s.indexOf('题库') === -1) return s;
+    return s.replace(/题库(\d+)/g, (m, ns, off) => {
+      const q = bankAt(ns);
+      if(!q) return m;
+      const title = String(q.titleEn || q.titleZh || '').trim();
+      if(!title) return m;
+      const after = s.slice(off + m.length).replace(/^[\s：:、]*/, '');
+      if(after.slice(0, title.length).toLowerCase() === title.toLowerCase()) return m;
+      return '题库' + ns + ' ' + title;
+    });
+  });
 }
 
 /* ---------- 每日计划 ---------- */
@@ -170,7 +134,8 @@ async function aiPlanItem(){
     + '- L = 听力（篇数）。"L4" = 今天做 4 篇听力，展开成"听力 第1篇""听力 第2篇""听力 第3篇""听力 第4篇"四个独立任务；不写 S1/S2、S3/S4。\n'
     + '- R = 阅读（篇数）。"R3" = 今天做 3 篇阅读，展开成"阅读 第1篇"…"阅读 第3篇"；不写 P1/P2/P3。\n'
     + '- "L4 R3""L4+R3""听力4 阅读3"等都表示听力 4 篇 + 阅读 3 篇，各自展开成对应篇数的平白编号任务。\n'
-    + '- 口N / 口语N（N=数字）= 今天练 N 道口语题。⚠️ 若下方提供了【口语冲刺日程】，口语任务必须按冲刺日程的题号与命名格式展开（如「口语冲刺·一刷 题库1–5 题（1.Feeling bored、…）每题15min」），不用"口语 P1 第N题"泛称；没有冲刺日程时才按"P1 第1题 → P2 第1题 → …"轮流展开成 N 个独立任务，命名"口语 P1 第1题""口语 P2 第1题"…（一律用"第N题"，禁用"第N刷"）；她写明各 Part 题数（如"口1 P1 口2 P2"）则严格按写明的分布展开。\n'
+    + '- 口N / 口语N（N=数字）= 今天练 N 道口语题，展开成 N 个独立任务，命名"口语 P1 第1题""口语 P2 第1题"…（按 P1→P2 轮流编号，一律用"第N题"，禁用"第N刷"）；她写明各 Part 题数（如"口1 P1 口2 P2"）则严格按写明的分布展开。\n'
+    + '- ⚠️ 考生写了题库编号（如"题库1-5""口语题库12-16""口语 题3、7、9""题库20"）：每个编号一个独立任务，命名固定为「口语 题库N」（N 替换为编号，如"口语 题库1""口语 题库2"…"口语 题库20"）。**不要自己编题名、不要加时长/做法说明**——系统会自动在任务名后补上真实题名。她写"题库1-5"就是题库第 1 到第 5 共 5 个任务，逐个列出。\n'
     + '- 写N / 写作N（N=数字）或"写N篇" = 今天写 N 篇作文，全部拆开成"写作 第1篇""写作 第2篇"…"写作 第N篇"；她写明 Task1/Task2 则按写明的照写。\n'
     + '- 模考 = 完整限时模考（默认听力模考+阅读模考）；"口语1h"这类只写时长的口语 = 1 个任务按原话保留；背词/背单词 = 背单词（用户写了时长就按用户的写，没写才默认 30 分钟）。这些按用户原话保留，不擅自改动作。\n'
     + '\n'
@@ -185,8 +150,7 @@ async function aiPlanItem(){
     + '⑧ 口语题数缩写（口N/口语N）与写作篇数缩写（写N/写作N/写N篇）同样必须展开成独立任务，不得原样保留"口3""写2"；命名里的 P1/P2 仅限口语 Part 代号（如"口语 P1 第1题"），听力的 S1/S2、阅读的 P1/P2 仍然禁止。\n'
     + '\n'
     + '输出严格 JSON 数组：["任务1","任务2",...]。只输出 JSON，不要解释。';
-  const user = drillAiContext()
-    + '我今天想完成：' + raw
+  const user = '我今天想完成：' + raw
     + '\n\n弱项排序（差得最多在前）：' + weakStr
     + '\n最近模考：' + latestStr + '\n目标：' + targetStr
     + (dLeft !== null && dLeft > 0 ? '\n距考试 ' + dLeft + ' 天' : '')
@@ -202,7 +166,7 @@ async function aiPlanItem(){
     ], 0.5);
     const arr = aiJson(content);
     if(!Array.isArray(arr) || arr.length === 0) throw new Error('AI 返回格式异常');
-    const tasks = arr.map(x => String(x).trim()).filter(Boolean);
+    const tasks = enrichSpeakingTasks(arr.map(x => String(x).trim()).filter(Boolean));
     if(!tasks.length) throw new Error('AI 没有生成任务');
     const p = ensurePlan(currentDate());
     let added = 0;
@@ -310,49 +274,14 @@ function onPlanTimerBtn(btn){
   else toast('计时模块还没加载好，稍等一下再点');
 }
 
-/* 今日口语冲刺提示条：查看今天时显示当天题单（编号+题名+时长），未加入则给一键加入 */
-function drillTipHtml(date, items){
-  if(date !== todayKey()) return '';
-  const day = drillDayOf(date);
-  if(!day) return '';
-  const texts = drillTaskTexts(day);
-  const addedArr = texts.map(tx => items.find(i => String(i.text || '') === tx));
-  const allAdded = addedArr.every(Boolean);
-  const allDone = allAdded && addedArr.every(it => it.done);
-  const range = day.from + '–' + day.to + ' 题';
-  const hRange = day.hFrom ? ('；二刷 H' + day.hFrom + '–H' + day.hTo) : '';
-  if(allAdded){
-    return allDone ? '' : '<div class="plan-drill-tip added">🎯 今日口语冲刺已加入：一刷 ' + range + hRange + '（练完在任务列表打勾）</div>';
-  }
-  return '<div class="plan-drill-tip">'
-    + '<b>🎯 今日口语冲刺</b>：一刷 题库' + range + '（' + drillTitles(day.from, day.to) + '）每题15min'
-    + (day.hFrom ? ('<br>二刷 H' + day.hFrom + '–H' + day.hTo + '（' + DRILL_H.slice(day.hFrom - 1, day.hTo).map(n => n + '.' + drillTitleAt(n)).join('、') + '）每题7min') : '')
-    + '<br><button class="btn btn-sm" id="drillAddBtn">一键加入今日计划（' + texts.length + ' 条）</button>'
-    + '<span class="plan-drill-skip">落后了就跟 AI 说「补口语进度」，会顺延到下一批</span></div>';
-}
-function onDrillAdd(){
-  const day = drillDayOf(todayKey()); if(!day) return;
-  const texts = drillTaskTexts(day);
-  const p = ensurePlan(todayKey());
-  let added = 0;
-  texts.forEach(tx => {
-    if(!p.items.some(i => String(i.text || '') === tx)){
-      p.items.push({ id: uid(), text: tx, done: false, updatedAt: Date.now() });
-      added++;
-    }
-  });
-  hubSave(); render();
-  toast(added ? ('已加入今日口语冲刺 ' + added + ' 条任务') : '今日口语冲刺已在计划里');
-}
-
-/* 任务文本 → 站内跳转（口语可带 ?open=题id 直达该题详情；识别不出 → null 不显示按钮） */
+/* 任务文本 → 站内跳转（口语可带 ?open=题id 直达该题详情；识别不出 → null 不显示按钮）
+   9/23 口径：AI 生成的口语任务统一「口语 题库N」格式（enrichSpeakingTasks 已补题名），
+   按题库编号直达；旧的泛称任务（口语 P1 第N题）跳口语页不带 open。 */
 function planJumpInfo(text){
   const t = String(text || '');
   if(/口语/.test(t)){
     let m = t.match(/题库(\d+)/);
-    let n = m ? Number(m[1]) : null;
-    if(n == null){ m = t.match(/\bH(\d+)\b/); if(m) n = DRILL_H[Number(m[1]) - 1]; }
-    const s = n ? drillBankAt(n) : null;
+    const s = m ? bankAt(m[1]) : null;
     return { file: 'speaking.html', open: (s && s.id) || '', label: '去口语' + (s ? '（' + s.titleEn + '）' : '') };
   }
   if(/背单词|背词|词库|单词/.test(t)) return { file: 'practice.html', open: '', label: '去背词' };
@@ -405,8 +334,7 @@ function render(){
   $('#planProgress').innerHTML = progressBar('完成进度', pct, 'var(--med)');
 
   const box = $('#planList');
-  const drillTip = drillTipHtml(date, items);
-  if(total === 0 && !drillTip){
+  if(total === 0){
     box.innerHTML = renderEmpty('这天还没有计划，上面加一条吧。');
   } else {
     const carriedCount = items.filter(i => i.carried).length;
@@ -415,7 +343,7 @@ function render(){
       : '';
     const srcActive = planActiveSrc();
     const heldOther = (typeof mirrorHeldByOther === 'function') ? mirrorHeldByOther(DATA.activeTimer) : false;
-    box.innerHTML = drillTip + carriedTip + items.map(i => {
+    box.innerHTML = carriedTip + items.map(i => {
       const mod = planModIdOf(i.text);
       const isThis = !!(srcActive && srcActive.subName === i.text);
       const tbtn = mod
@@ -447,8 +375,6 @@ function render(){
       b.addEventListener('click', () => startEdit(b.dataset.edit)));
     box.querySelectorAll('button[data-del]').forEach(b =>
       b.addEventListener('click', () => deleteItem(b.dataset.del)));
-    const dab = document.getElementById('drillAddBtn');
-    if(dab) dab.addEventListener('click', onDrillAdd);
   }
 
   renderHistory(date);
@@ -631,7 +557,8 @@ async function aiWeekPlan(){
     + '- R = 阅读（Reading）。"R3" = 做 3 篇阅读练习；"R" 后数字 = 篇数。每篇约 40 分钟（做题 20 分钟 + 长难句/错题复盘 20 分钟）。展开时同样按"阅读 第1篇 / 第2篇…"平白编号，不写 P1/P2/P3。\n'
     + '- "L4 R3""L4+R3""听力4 阅读3"等都表示听力 4 篇 + 阅读 3 篇，必须各自展开成对应篇数的独立任务。\n'
     + '- 模考 = 完整限时模考。只写"模考"默认 = 听力模考（4 part，约 60 分钟）+ 阅读模考（3 passage，约 60 分钟）；可写"听力模考""阅读模考"单独一门。模考必须整体出现，不拆成段落；模考后必须紧跟对应复盘（听力重听错题 / 阅读错题复盘）。\n'
-    + '- 口N / 口语N（N=数字）= N 道口语题。⚠️ 若下方提供了【口语冲刺日程】，口语任务必须按冲刺日程的题号与命名格式展开（如「口语冲刺·一刷 题库1–5 题（1.Feeling bored、…）每题15min」），不用"口语 P1 第N题"泛称；没有冲刺日程时才展开成"口语 P1 第1题""口语 P2 第1题""口语 P1 第2题"…（按 P1→P2 轮流编号，N 个独立任务，可分摊到不同天；一律用"第N题"，禁用"第N刷"）；她写明各 Part 分布则严格照写。只写时长的（"口语 30min/1h"）仍记作 1 个任务，名称如"口语 30 分钟"。\n'
+    + '- 口N / 口语N（N=数字）= N 道口语题，展开成"口语 P1 第1题""口语 P2 第1题""口语 P1 第2题"…（按 P1→P2 轮流编号，N 个独立任务，可分摊到不同天；一律用"第N题"，禁用"第N刷"）；她写明各 Part 分布则严格照写。只写时长的（"口语 30min/1h"）仍记作 1 个任务，名称如"口语 30 分钟"。\n'
+    + '- ⚠️ 考生写了题库编号（如"题库1-5""口语题库12-16"）：每个编号一个独立任务，命名固定为「口语 题库N」——不要自己编题名、不要加时长/做法说明（系统会自动补真实题名）；"题库1-5"= 5 个任务，可分摊到不同天。\n'
     + '- 写N / 写作N（N=数字）或"写N篇" = N 篇作文，全部拆开成"写作 第1篇""写作 第2篇"…（每篇约 40 分钟：写作 20 分钟 + 对照模板复盘 20 分钟，可分摊到不同天）；模板背诵/套填/审题这类非成篇练习仍按原话 1 个任务。\n'
     + '- 背词 / 背单词 / 词库 = 背单词，固定每日约 30 分钟，记作"背单词 30 分钟"。\n'
     + '\n'
@@ -646,8 +573,7 @@ async function aiWeekPlan(){
     + '\n'
     + '只从下面提供的日期清单里选日期，不要发明其它日期：\n' + dateListStr + '\n'
     + '输出严格 JSON：{"days":[{"date":"YYYY-MM-DD（必须是上面清单里的某一天）","focus":"当天主题（如 听力突破 / 混合 / 写作）","tasks":["任务1","任务2",...]}]}。days 的数量由你根据任务量自行决定（通常 2–7 天）。只输出 JSON，不要解释。';
-  const user = drillAiContext()
-    + '接下来几天我想做的事（原文）：\n' + raw
+  const user = '接下来几天我想做的事（原文）：\n' + raw
     + '\n\n考生画像：\n弱项（差得最多在前）：' + weakStr
     + '\n最近模考：' + latestStr + '\n目标分数：' + targetStr
     + '\n每天目标学习时长：' + dailyHours + ' 小时'
@@ -675,7 +601,7 @@ async function aiWeekPlan(){
         date: dt,
         type: 'mix',
         focus: (Array.isArray(d.focus) ? d.focus.join(' / ') : (d.focus == null ? '' : String(d.focus))),
-        tasks: Array.isArray(d.tasks) ? d.tasks.map(String) : []
+        tasks: Array.isArray(d.tasks) ? enrichSpeakingTasks(d.tasks.map(String)) : []
       };
     }).sort((a, b) => a.key.localeCompare(b.key));
     // 软导航可能在 AI 等待期间离开计划页；仅当周计划容器仍在当前 DOM 才渲染（f 类：跨页闭包隔离）。

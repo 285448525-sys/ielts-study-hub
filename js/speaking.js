@@ -2792,14 +2792,28 @@ if(!window.__spkTimerBeat){
     hubSave();
   }, 30000);
 }
-/* 离页兜底：切后台/关标签即结算本次计时；回前台再自动开新表（与背词页互抢时互相正规结算，不丢表） */
+/* 离页兜底：切后台/关标签即结算本次计时（与背词页互抢时互相正规结算，不丢表）。
+   9/23 她改口径：不再「进页自动开表 / 回前台自动续表」——计时只由她点到回答框触发
+   （下方 focusin/click 委托），打开页面浏览不动笔的时间不算口语时长。 */
 if(!window.__spkTimerLeaveHook){
   window.__spkTimerLeaveHook = true;
   document.addEventListener('visibilitychange', () => {
     if(document.visibilityState === 'hidden'){ try{ commitSpkTimer(); }catch(e){} }
-    else { try{ maybeStartSpkTimer(); }catch(e){} }
   });
   window.addEventListener('beforeunload', () => { try{ commitSpkTimer(); }catch(e){} });
 }
-ready(() => { try{ maybeStartSpkTimer(); }catch(e){} });
+/* 计时触发点：点到回答框（P1/P2 的 .sp-ans、P3 的 .sp-p3-textarea）才开「口语」计时。
+   事件委托挂在 document 上：详情页是动态渲染的，focusin 冒泡覆盖所有现役/未来的作答框；
+   click 兜底（个别场景点输入框不一定触发 focus）。 */
+if(!window.__spkTimerFocusHook){
+  window.__spkTimerFocusHook = true;
+  const spkTimerTrigger = (e) => {
+    const t = e.target;
+    if(!t || !t.classList) return;
+    if(!(t.classList.contains('sp-ans') || t.classList.contains('sp-p3-textarea'))) return;
+    try{ maybeStartSpkTimer(); }catch(err){}
+  };
+  document.addEventListener('focusin', spkTimerTrigger);
+  document.addEventListener('click', spkTimerTrigger);
+}
 
