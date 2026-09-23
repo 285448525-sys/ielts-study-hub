@@ -1,4 +1,4 @@
-/* === 口语题库（极简版） · v20260923d（design/87：P2 串题要点驱动重构） === */
+/* === 口语题库（极简版） · v20260923g（design/87：P2 串题要点驱动重构） === */
 var curType = 'ALL';   // 题库 tab 合并 P1+P2（'ALL'）；P1/P2 仅保留为数据类型
 var curFreq = 'all';
 var curCat = 'all';
@@ -1600,7 +1600,7 @@ function renderChuanFinal(el, j, s){
       + (s && s.id ? ' · <a href="javascript:void(0)" id="spWeakFix">去补细节</a>' : '') + '</div>';
   }
   if(Array.isArray(j.aiInvented) && j.aiInvented.length){
-    h += '<div class="sp-weak-note">🧩 本次 AI 帮你补了 ' + j.aiInvented.length + ' 条细节，已存进素材碎片库——其他题串的时候会自动用上，不用重复记。</div>';
+    h += '<div class="sp-weak-note">🧩 AI 补的 ' + j.aiInvented.length + ' 条细节已存入素材库，其他题自动复用</div>';
   }
   if(j.mappingZh || j.logicChain){
     h += '<details class="sp-chuan-why"><summary>串题原理（想学怎么串再展开 ▸）</summary>';
@@ -1663,10 +1663,9 @@ function renderChuanSlotFill(el, j, s){
   });
   h += '<div class="sp-chuan-actions">'
     + '<button class="btn btn-primary" id="spFinalBtn" type="button">生成我的讲稿</button>'
-    + '<button class="btn" id="spAiFillBtn" type="button">让 AI 帮我补细节出稿</button>'
-    + '<button class="sp-linklike" id="spSkipSupBtn" type="button">不补，直接出稿（可能偏题）</button>'
+    + '<button class="btn" id="spAiFillBtn" type="button">AI 帮我补细节出稿</button>'
+    + '<button class="sp-linklike" id="spSkipSupBtn" type="button">不补，直接出稿</button>'
     + '<button class="sp-linklike" id="spGoMatBtn" type="button">这题放弃，去素材库补专属素材 →</button>'
-    + '<div class="sp-slot-evidence" style="margin-top:6px">「AI 帮我补」= AI 替你把缺的细节编好写进讲稿，编好的细节会自动存进素材库，其他题也能用——你只需要照着背。</div>'
     + '</div></div>';
   el.innerHTML = h;
   el.style.display = 'block';

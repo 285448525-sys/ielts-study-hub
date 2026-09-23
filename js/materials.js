@@ -1052,7 +1052,7 @@
     const bits86 = Array.isArray(store.detailBits) ? store.detailBits.filter(b => b && (b.en || b.zh)) : [];
     if(bits86.length){
       h += '<div class="mat-sec-title">记住的细节碎片 <span class="tag">' + bits86.length + ' 条 · 串题自动复用</span></div>';
-      h += '<div class="mat-shortwarn" style="background:var(--card);">串题时你自己补的、或让 AI 补的细节都存在这里——其他题串不动时，AI 会优先拿这些碎片当真实事实用，背一次到处用。'
+      h += '<div class="mat-shortwarn" style="background:var(--card);">串题时补过的细节都在这里，其他题自动复用。'
         + '<div style="margin-top:8px">' + bits86.map(b =>
           '<div class="sp-slot-row" style="display:flex;align-items:flex-start;gap:6px;margin-bottom:4px"><span style="flex:1">'
           + (b.en ? escapeHtml(b.en) : '') + (b.en && b.zh ? ' <span style="opacity:.65">（' + escapeHtml(b.zh) + '）</span>' : (b.zh ? escapeHtml(b.zh) : ''))

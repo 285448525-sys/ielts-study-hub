@@ -1537,9 +1537,9 @@ function renderCfgModal(){
     {
       name:'答题', icon:'☑',
       items:[
-        { key:'batchSize',     label:'每轮题量',      type:'numall', desc:'每组（每轮）背几个词，自由填写 1~500；勾「全部」= 一轮背完今天所有到期词' },
-        { key:'newPerDay',     label:'每日新词上限',  type:'num', min:0, max:999, unit:' 个', desc:'每天最多学多少个全新单词，自由填写；填 0 = 不限制。复习词不受影响、永远优先出' },
-        { key:'questionMode',  label:'题型',          type:'select', opts:[{v:'visual',t:'看词选义'},{v:'audio',t:'听音选义'},{v:'mixed',t:'混合'}], desc:'听音选义：隐藏单词只播发音，听完选中文释义；混合=每题约一半听音' },
+        { key:'batchSize',     label:'每轮题量',      type:'numall', desc:'1~500；勾「全部」= 不限' },
+        { key:'newPerDay',     label:'每日新词上限',  type:'num', min:0, max:999, unit:' 个', desc:'0 = 不限' },
+        { key:'questionMode',  label:'题型',          type:'select', opts:[{v:'visual',t:'看词选义'},{v:'audio',t:'听音选义'},{v:'mixed',t:'混合'}] },
         { key:'shuffle',       label:'勾选练习乱序',  type:'toggle' },
         { key:'wrongHoldMs',   label:'答错停留',      type:'range', min:1000, max:5000, step:500, unit:'ms' },
         { key:'autoNextDelay', label:'自动间隔',      type:'range', min:300, max:3000, step:100, unit:'ms' },
@@ -1557,7 +1557,7 @@ function renderCfgModal(){
     {
       name:'连击显示', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px" aria-hidden="true"><path d="M13 2L4.5 12.5H11L9.5 22 19 10h-6.5L13 2z"/></svg>',
       items:[
-        { key:'fxFeedback', label:'连击显示', type:'toggle', desc:'顶部连击计数与答错「再认一次」提示 chip；关闭后仅保留勾叉高亮与自动流转' },
+        { key:'fxFeedback', label:'连击显示', type:'toggle' },
       ]
     }
   ];
