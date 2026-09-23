@@ -1272,6 +1272,12 @@ function hubLoad(){
       DATA.dictationLogs.forEach(l => { if(l && l.id == null){ l.id = uid(); _dmig = true; } });
       if(_dmig) hubSave();
     }
+    // 9/23 冗余日志去重：8/23-24 旧版模板默写 bug 留下 5169 条内容完全相同的复制品（约 2.8MB UTF-16），
+    // 把 iPhone Safari 5MB 配额撑爆 → 手机端保存失败/无法同步。签名去重幂等，仅在确有重复时落盘；
+    // 本机清完后经云同步上行，云端与其它设备自动瘦身。
+    (function dedupeDictationLogsAtLoad(){
+      if(trimDictationDupes()) hubSave();
+    })();
     if(!DATA.settings || typeof DATA.settings !== 'object') DATA.settings = {};
     // 服药模块默认值翻转（9/21）：新人默认关闭；升级前已记录过服药的老用户（站长本人）一次性显式开启，
     // 防止升级后入口消失。只处理 adhd===undefined；用户显式 false（主动关过）必须尊重，不覆盖。
@@ -1617,13 +1623,54 @@ function hubLoad(){
   }catch(e){ console.warn('读取本地数据失败', e); }
 }
 
+/* 9/23：dictationLogs 内容签名去重（幂等，返回是否有清理）。
+   背景：8/23-24 旧版模板默写代码曾把同一次核对结果以新 id 重复写入 5169 条（内容完全相同、仅 id 不同），
+   占掉约 2.8MB（UTF-16 口径），把 iPhone Safari 约 5MB 的 localStorage 配额撑爆
+   → 手机端每次保存都抛 QuotaExceededError，表现为「保存失败：浏览器存储不可用 / 无法同步」。
+   （桌面 Chrome/Edge 配额 10MB，所以一直没炸。）
+   同一天同内容重复练习会被误并为一条——错句本按「标准句+错误写法」聚合、不受影响，可接受。 */
+function trimDictationDupes(){
+  if(!Array.isArray(DATA.dictationLogs) || DATA.dictationLogs.length < 2) return false;
+  const seen = new Set(); const kept = [];
+  for(const l of DATA.dictationLogs){
+    if(!l) continue;
+    const sig = JSON.stringify([l.sourceId || '', l.title || '', l.date || '', l.userText || '', l.correctText || '', l.mistakes || [], l.weakThisTime || null]);
+    if(seen.has(sig)) continue;
+    seen.add(sig); kept.push(l);
+  }
+  if(kept.length === DATA.dictationLogs.length) return false;
+  DATA.dictationLogs = kept;
+  return true;
+}
+
 function hubSave(){
   try{
     DATA._lastSaved = Date.now();   // 记录本机保存时间，供云端下载比对新旧（Bug17）
     localStorage.setItem(HUB_KEY, JSON.stringify(DATA));
     saveCredsMirror();              // 同步镜像账号凭证到隔离键，确保 Key/手机号永不因主 blob 被清而丢失
   }
-  catch(e){ alert('保存失败：浏览器存储不可用，请用「历史/设置」导出备份。'); }
+  catch(e){
+    // 9/23：区分「配额满」与「存储被禁」。iPhone Safari 配额按 UTF-16 算只有 ~5MB（桌面 Chrome/Edge 10MB），
+    // 数据膨胀超限时 setItem 抛 QuotaExceededError——先做一次冗余日志去重再重试；仍失败才告警，且每次会话最多弹一次
+    //（此前每次失败都 alert，一次合并触发几十次保存会连环弹窗）。
+    const quota = !!(e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014));
+    let saved = false;
+    if(quota){
+      try{
+        trimDictationDupes();
+        DATA._lastSaved = Date.now();
+        localStorage.setItem(HUB_KEY, JSON.stringify(DATA));
+        saveCredsMirror();
+        saved = true;
+      }catch(_e2){ saved = false; }
+    }
+    if(!saved && !window.__hubSaveAlerted){
+      window.__hubSaveAlerted = true;
+      alert(quota
+        ? '保存失败：本地存储空间已满（iPhone Safari 上限约 5MB），自动清理后仍放不下。请在「设置」导出备份，并把此提示截图反馈。'
+        : '保存失败：浏览器存储不可用（' + ((e && e.name) || '未知错误') + '）。若在 iPhone Safari：请检查是否开了无痕浏览，或设置里关闭了 Cookie。请用「历史/设置」导出备份。');
+    }
+  }
   // 云端自动同步（防抖）：仅当开启且已生成登录码；失败静默，不弹 toast
   if(typeof scheduleCloudUpload === 'function') scheduleCloudUpload();
 }
