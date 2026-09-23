@@ -1,4 +1,4 @@
-/* === 口语题库（极简版） === */
+/* === 口语题库（极简版） · v20260923d（design/87：P2 串题要点驱动重构） === */
 var curType = 'ALL';   // 题库 tab 合并 P1+P2（'ALL'）；P1/P2 仅保留为数据类型
 var curFreq = 'all';
 var curCat = 'all';
@@ -978,9 +978,9 @@ function openDetail(id){
           res.style.display = 'block';
         }
       }
-      // 回填 AI 串题方案
+      // 回填 AI 串题方案（design/87：新结构走 V2 渲染，旧结构在 V2 内部兜底走旧渲染原样保留）
       if(s.answers.p2.aiStoryLink){
-        renderStoryLink($('#aiResult'), s.answers.p2.aiStoryLink);
+        renderStoryLinkV2($('#aiResult'), s.answers.p2.aiStoryLink, s);
       }
       // 回填已生成的 P3 追问列表 + 答案
       if(s.answers.p2.p3 && Array.isArray(s.answers.p2.p3.questions) && s.answers.p2.p3.questions.length){
@@ -994,6 +994,15 @@ function openDetail(id){
         if(genBtn) genBtn.textContent = '重新生成 P3';
         const bottom = $('#p2BottomBar');
         if(bottom) bottom.hidden = false;
+      }
+    }
+    // design/87 草稿恢复：阶段一已跑（补槽中/成稿前）→ 打开详情即恢复草稿态，不重复调 AI。
+    // ⚠️ 不做「开题自动跑 AI」：doc 假设的抽题自动联动在历史版本中从未存在（68027df 起就是按钮触发，
+    // 原 1156 行注释只是 matLoadStore 段落壳），且自动触发会破坏 design/82 的干净收起态、每次开新题都烧 token。
+    if(s.type === 'P2' && $('#aiResult')){
+      const p2now = (s.answers && s.answers.p2) || {};
+      if(p2now.linkDraft && p2now.linkDraft.plan){
+        renderStoryLinkV2($('#aiResult'), p2now.linkDraft.plan, s);
       }
     }
     // 渲染 P2 提交历史记录
@@ -1189,6 +1198,81 @@ function spBindMatGuideBtn(el){
   });
 }
 
+/* === design/87：P2 串题要点驱动（bullet-driven）=== */
+/* 阶段一规划 prompt：{FORBIDDEN} 为禁词表占位，调用时替换，严禁硬编码。
+   她拍板（9/23）：只出一段整段稿、字数够用——不出「标准版/加时版」两版，词数固定 180~200（约 100wpm 念满 2 分钟）。 */
+const SYS_CHUAN_PLAN = `你是雅思口语 P2 串题规划师。考生基础弱、目标口语 5.5、语速慢。你拿到一道 P2 真题（含 You should say 四个 bullet）和考生的真实素材库。你的核心原则是【题目要点驱动】：不是把素材故事包装成这道题，而是先看题目要考生讲哪几件事，再去素材里找能回应这些要点的事实；严禁头尾点题、中间跑题的硬串。
+
+工作步骤：
+1. 建 slotCheck：把每个 bullet 作为一个槽位，逐个核对素材：
+   · covered：素材里有明确、直接的事实能回应（给 evidence，中文引素材原事实）；
+   · weak：沾边但不直接，需要换角度叙述（给 evidence 与换角度说明）；
+   · missing：素材里完全没有对应事实。
+2. 定 fit：
+   · natural：所有槽位 covered 或 weak，且素材故事的主体内容与题目同向（把故事原样讲、自然过渡即可）；
+   · adaptable：有 missing 槽，但题目主干可由素材承担，补几条真实细节就能完整回应；
+   · unfit：题目主干槽（题目核心动作/对象）missing，且素材主题与题目不相关——补一两句过渡也圆不上。
+3. adaptable 时给 missingQuestions：为每个 missing/weak 槽出一个补槽小问，2~5 个，严格遵守：
+   · 漏斗式：yesno 或 choice 为主（2~5 个具体口语化选项 + 固定末项「其他」自填），必要时才用 text；
+   · 带时间锚点（那次旅行 / 当时 / 出发前）；一次只问一件事；严禁「说说/讲讲/谈谈/你觉得」；
+   · k 为槽位短英文键；label 为中文问题；type 为 yesno|choice|text；options 为选项数组。
+4. natural 时直接给 fullEn（写作铁律见下）。
+5. unfit 时给 unfitReason（一句中文说明为什么串不动）和 suggestCard（建议补什么主题的素材，一句中文）。
+
+【讲稿写作铁律】
+A. 全部事实来自素材库，严禁编造；来自素材的句子保留原有句式（含从句），只允许改时态/人称/单复数/替换名词；只有新写的过渡句用简单句（单一主谓、初中词汇）。
+B. fullEn 为整段讲稿（只出一段，不出两版），词数严格在 120~150 词；按说话顺序排列：开头 1 句自然点题（I'd like to talk about... 或等价自然说法，融入正文，不要单列）→ 主体按 bullet 顺序逐点回应 → 结尾 1 句自然收束（事件题讲意义、人物题讲为什么重要、地点题讲为什么喜欢）。
+C. 扣题比例（硬约束）：fullEn 中直接回应 bullet 的句子 ≥60%；跑题的背景/氛围描述只能作细节点缀。生成后逐句自检，不达标就重写。
+D. 词汇：素材原词照用（可到高中常见词），新句只用初中词；严禁 {FORBIDDEN}。
+E. fullEn 为纯英文、可直接朗读；不要任何 STEP 编号、不要中文。
+F. logicChain：中文短语用横杠「-」串接的完整逻辑链；mappingZh：固定四段——用哪张卡 → 走哪个角度 → 各 bullet 用素材什么事实填 → 点题怎么转。
+
+输出严格 JSON，不要解释文字：
+{"fit":"natural|adaptable|unfit",
+ "slotCheck":[{"bullet":"","status":"covered|weak|missing","evidence":""}],
+ "missingQuestions":[{"k":"","type":"yesno|choice|text","label":"","options":[]}],
+ "fullEn":"",
+ "logicChain":"","mappingZh":"",
+ "unfitReason":"","suggestCard":""}`;
+
+/* 阶段二成稿 prompt：素材事实 + 考生补槽答案 → 一段完整独白 */
+const SYS_CHUAN_FINAL = `你是雅思口语 P2 串题成稿助手。考生对一道 P2 题已完成素材核对，并通过几个小问题补充了真实细节（见下）。请把【素材事实 + 考生补充答案】按题目 bullet 的顺序写成一段可直接朗读的完整独白。
+
+铁律：
+1. 考生补充的每条答案都是真实事实，必须自然写进对应 bullet 的段落，不得遗漏；补充答案与素材事实冲突时以补充答案为准。
+2. 若考生选择「不补直接出稿」（补充答案为空或部分为空）：没有事实的 bullet 严禁编造，用素材已有事实自然带过；并在 weakBullets 中列出仍偏弱的 bullet 下标（从 0 开始）。
+3. 其余沿用阶段一写作铁律 A~F：事实不编造、素材句保留句式、新句简单句、fullEn 120~150 词、扣题句 ≥60%、词汇分级与禁词（{FORBIDDEN}）、纯英文无 STEP。
+4. 开头点题与结尾收束自然成段，不要单列模块。
+
+输出严格 JSON：
+{"fit":"adaptable|natural","fullEn":"","logicChain":"","mappingZh":"","weakBullets":[]}`;
+
+/* 素材分级注入（沿用旧口径）：pinned 优先；第 1 张发全文，其余只发摘要（storyEn 是最长字段，多卡时 90% 输入 token 烧在它身上） */
+function chuanMatsText(){
+  const store = matLoadStore();
+  const mats = ((store && store.materials) || []).filter(Boolean).slice().sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+  return mats.map((m, i) => {
+    const head = '【素材 ' + (i + 1) + '：' + (m.title || '未命名') + '】';
+    const golden = '万能句（任何题都能套，优先整句使用）：' + ((m.goldenEn || []).join(' | '));
+    const cov = '可套题族（搭边也行）：' + (m.coverage || []).map(c => c.topic + (c.fit === 'loose' ? '(搭边:' + c.note + ')' : '')).join('、');
+    const logic = '中文逻辑链：' + (m.logicZh || '');
+    if(i === 0) return head + '\n英文可背故事：' + (m.storyEn || '') + '\n' + logic + '\n' + golden + '\n' + cov;
+    return head + '（仅摘要·无英文正文）\n' + logic + '\n' + golden + '\n' + cov;
+  }).join('\n---\n');
+}
+function chuanUserMsg(s){
+  return 'P2 题目：' + (s.promptEn || s.title || '') +
+    '\n中文题意：' + (s.promptZh || '') +
+    '\nYou should say: ' + ((s.youShouldSay || []).join('; '));
+}
+function chuanSysWithMats(base){
+  // 把语料库写进 system（而非仅 user），弱模型读漏就会编，写死为唯一积木更稳
+  return base + '\n\n【考生真实素材库】（唯一事实来源，严禁编造；已按考生标记的熟悉度排序，排在最前的最熟）：\n' + chuanMatsText();
+}
+function chuanFillPh(base){
+  return String(base).replace(/\{FORBIDDEN\}/g, window.FORBIDDEN_WORDS.join(' / '));
+}
+
 async function aiStoryLink(id){
   const s = DATA.speaking.find(x => x.id === id);
   if(!s) return;
@@ -1217,80 +1301,92 @@ async function aiStoryLink(id){
     toast('还没有万能素材，先去「素材」页生成');
     return;
   }
+  await planChuan(s);
+}
 
-  resultEl.style.display = 'block';
-  resultEl.innerHTML = '<div class="diag-note">正在根据你的万能素材库自动匹配串题方案…</div>';
-
-  // 按钮进行中态：置灰 + 「⏳ 生成中…」（SVG 图标保留，只换文字）
+/* design/87 阶段一：逐 bullet 核对素材。natural → 整段稿；adaptable → 补槽卡；unfit → 拒绝硬串卡 */
+async function planChuan(s){
+  const resultEl = $('#aiResult');
   const linkBtn = document.getElementById('aiStoryLinkBtn');
-  setStoryLinkBtn(linkBtn, '⏳ 生成中…', true);
-
+  setStoryLinkBtn(linkBtn, '⏳ 核对素材中…', true);
+  if(resultEl){ resultEl.style.display = 'block'; resultEl.innerHTML = '<div class="diag-note">正在逐条核对题目要点与你的素材库…</div>'; }
   try{
-    // 素材优先级数据驱动（P0）：置顶（pinned）的排最前，其余按数组原序——
-    // 个人素材内容绝不硬编码进源码，谁最熟由用户在素材页「置顶为最熟」自己标记
-    const mats = (store.materials || []).filter(Boolean).slice().sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
-    // 分级注入（省 50–70% 输入 token）：第 1 张（最熟）发全文；第 2 张起只发摘要——
-    // 正文 storyEn 是最长的字段，多卡时 90% 的输入 token 都烧在它身上，而默认只用第 1 张的正文。
-    const matsText = mats.map((m, i) => {
-      const head = '【素材 ' + (i + 1) + '：' + (m.title || '未命名') + '】';
-      const golden = '万能句（任何题都能套，优先整句使用）：' + ((m.goldenEn || []).join(' | '));
-      const cov = '可套题族（搭边也行）：' + (m.coverage || []).map(c => c.topic + (c.fit === 'loose' ? '(搭边:' + c.note + ')' : '')).join('、');
-      const logic = '中文逻辑链：' + (m.logicZh || '');
-      if(i === 0) return head + '\n英文可背故事：' + (m.storyEn || '') + '\n' + logic + '\n' + golden + '\n' + cov;
-      return head + '（仅摘要·无英文正文）\n' + logic + '\n' + golden + '\n' + cov;
-    }).join('\n---\n');
-
-    // 把语料库写进 system（而非仅 user），弱模型读漏就会编，写死为唯一积木更稳
-    const wb = storyWordBudget();
-    const sys = [
-      '你是雅思口语 P2 串题助手。考生目标口语 ' + wb.target + ' 分，语速较慢、卡顿较多，考场上必须能直接念出来而不卡壳。',
-      '',
-      '【考生真实语料库】（你的唯一素材来源，严禁自创新细节；已按考生标记的熟悉度排序，排在最前的最熟）：',
-      matsText,
-      '',
-      '【铁律】',
-      '1. 素材优先级：默认使用第一个素材（考生最熟的素材）。该素材完全套不上本题时，才依次向后换下一个。其他素材可借 1~2 个完整句子（严禁借用其他卡的 goldenEn 万能句，否则模板化痕迹过重）。',
-      '1.1 情感基调跟随素材（重要）：整篇答案（openEn + bridgeEn + bodyEn + feelEn 合计）的态度必须与所引素材本身的基调一致——素材里写的是 beautiful / amazing / like / relax 这类正面词，就绝不能把故事反转成 dislike / noisy / boring 的负面讲法（那是凭空篡改考生的经历，背起来也拧巴）。素材基调是负面的就如实讲负面；素材本身两种感受都有（如「酒店吵但日落很美」），优先选能**最多原句搬运语料库**的那一面来写。只有素材完全没提态度、题目又强制要求时，才由你合理定一个方向。',
-      '1.2 多卡使用口径（重要）：素材 1 提供了完整英文故事，是默认且唯一的正文原句来源。素材 2 及以后只提供中文逻辑链与万能句（出于篇幅）：需要借用时，只能把它们的 goldenEn 万能句**整句**搬入（仍受铁律 1"不得借用其他卡 goldenEn"的限制——该限制维持不变：默认卡够用时严禁借），其余事实只能依据其**中文逻辑链里明确写出的细节**用简单句重写（遵守铁律 4.1 新增句限制）；中文逻辑链里没有的事实一律视为不存在，严禁臆造。',
-      '2. 内容边界与句式边界：**（硬）全部事实细节（人物 / 时间 / 地点 / 物品 / 动作 / 感受）必须来自语料库**，严禁编造任何新事实；**（软）句子允许重新组织得更自然、更像临场说话**，不必逐字搬运，改编只改词（时态 / 人称 / 单复数 / 替换名词）；**（硬）语料库里的复合句与 goldenEn 万能句必须整句保留**（语法复杂度全靠它们），严禁把复合句拆成简单句；**（硬）同一件事、同一个「动作+宾语」组合不得在整篇答案（openEn + bridgeEn + bodyEn + feelEn 合计）里出现两次**——换主语、换时态、换同义词也算重复。严禁编造生僻细节（展览内容、建筑外观、名人成就、菜品味道等）；若题目所涉事物不在语料库，用 "Well, actually, ..." 明说，并硬套素材里的风景/感受类句子，绝不编造新内容。',
-      '3. 词汇分级：**来自素材原句与 goldenEn 的词照用**（可到高中常见词）；**本次由你新造的句子**仍只用初中词（happy, tired, relax, boring, beautiful, delicious, amazing, big, fresh, nice, good, like, feel, went, was, were, because, and）。两条路径都严禁 ' + window.FORBIDDEN_WORDS.join(' / ') + ' 等生僻词。',
-      '4. 语法分级：**来自素材的句子保留其原有句式**（含从句照留，这是考生背熟的部分）；**只有本次新加的过渡句 / 点题句**才守简单句（主谓宾 / 主系表，禁止复杂从句、分词结构、被动语态）。',
-      '4.1 新增句子限制（强制）：凡是语料库之外、本次由你补充加入的句子，必须为简单句——仅含单一主谓结构（一个主语 + 一个谓语），不得包含任何从句（定语/状语/名词性从句等）、不得用 and / but / or 等连词拼接并列复合句、不得出现分词短语或插入结构。新增句越短越直白越好，确保考生一眼能懂、直接念出。改编素材句子时**只改词，严禁把复合句拆成简单句**。',
-      '5. 结构：整篇答案必须由 openEn + bridgeEn + bodyEn + feelEn 拼成，并自然覆盖 You should say 的每个要点（是什么 / 何时何地 / 具体细节 / 感受），缺一不可；要点主体落在 bodyEn，感受落在 feelEn，顺序尽量与官方小问一致。',
-      '6. 词数强制限定（按考生目标语速校准，不是越多越好）：整篇答案（openEn + bridgeEn + bodyEn + feelEn 的全部英文词数合计，paddingEn 加时句不计入）严格在 ' + wb.min + ' 到 ' + wb.max + ' 词之间。超出必须删减；不足可补语料库里的感受句，但不得越过上下限。',
-      '7. 加时必背句 paddingEn：给 3~5 句与本题相关的简单句（感受 / 回忆 / 展望类，每句 8~15 词，只用语料库内容或极简新句）。**这些句子考生必须背熟**：正文（openEn+bridgeEn+bodyEn+feelEn）念完约 70~85 秒，考官未打断、需要说满 2 分钟时，按数组顺序补念这些句子；不得与正文句子重复。',
-      '8. 黑体标注 = 本次新造的句子：**只有语料库之外、本次由你新造的句子**必须用 ** 包裹标黑体（考生靠黑体一眼看出哪些是临场要加的）。**素材原句的词级微调不算新加**——只改了时态 / 人称 / 单复数 / 替换名词的句子仍视为素材原句，一律不标黑体。黑体部分总词数不得超过全文 40%。',
-      '9. 点题句 bridgeEn 用 "I\'d like to talk about..." 开头（**STEP1 直答 openEn 不受此限**，它只要 ≤3 词的直接回答，不要写成 "I\'d like to talk about..."）。结尾按题型自然收束（必须是简单句）：人物题→用一句说明为什么欣赏 / 喜欢TA；地点题→用一句说明为什么喜欢去；事件 / 经历题→用一句说明这段经历对自己的意义。',
-      '10. 逻辑链用中文短语横杠 "-" 连接，越长越细越好，严禁输出 "[横杠]" 这几个字。',
-      '11. mappingZh（中文映射讲解，教考生学会自己串）：固定四段——用哪张卡（素材标题）→ 走哪条链（人物 / 事件 / 事物 / 地点 + 该链槽位）→ 填了哪几个槽（素材里的具体细节）→ 点题句怎么转的（从素材的哪句话转到本题）。只讲映射逻辑，不要输出任何统计数字。',
-      '',
-      '输出严格 JSON：{"openEn":"≤3 词直答","bridgeEn":"1 句点题句 ≤15 词","chainType":"人物|事件|事物|地点","bodyEn":["主体句1","主体句2"],"feelEn":["以前感受","变化事件","现在感受","未来希望"],"paddingEn":["加时句1","加时句2"],"logicChain":"关键词—关键词","mappingZh":"中文映射讲解"}。**bodyEn / feelEn 不得为空块**（素材不足时用同素材其他链的内容补 1 句，或用素材卡的 goldenEn 兜底）。全部英文总词数仍受铁律 6 限制，不要任何解释文字。'
-    ].join('\n');
-
-    const user = 'P2 题目：' + (s.promptEn || s.title || '') +
-      '\n中文题意：' + (s.promptZh || '') +
-      '\nYou should say: ' + ((s.youShouldSay || []).join('; '));
-
-    const content = await callRelay('speaking_chuan', [
+    const sys = chuanSysWithMats(chuanFillPh(SYS_CHUAN_PLAN));
+    const user = chuanUserMsg(s);
+    const content = await callRelay('speaking_chuan_plan', [
       { role:'system', content: sys },
       { role:'user', content: user }
     ], 0.5);   // 结构化 JSON 输出：降温度减少同题重开的波动
     const j = aiJson(content);
-
-    if(j && (j.article || j.openEn || j.bridgeEn || (Array.isArray(j.bodyEn) && j.bodyEn.length) || (Array.isArray(j.feelEn) && j.feelEn.length) || j.logicChain)){
-      s.answers = s.answers || {};
-      s.answers.p2 = s.answers.p2 || {};
-      s.answers.p2.aiStoryLink = { ...j, ts: Date.now(), raw: content };
-      s.updatedAt = Date.now();
-      hubSave();
-      renderStoryLink(resultEl, j);
-    } else {
-      resultEl.innerHTML = '<div class="diag-note">AI 返回非标准格式，原文如下：</div><pre>' + escapeHtml(content || '') + '</pre>';
+    if(!(j && (j.fit === 'natural' || j.fit === 'adaptable' || j.fit === 'unfit') && Array.isArray(j.slotCheck) && j.slotCheck.length)){
+      throw new Error('__RAW__' + (content || ''));
     }
+    s.answers = s.answers || {};
+    s.answers.p2 = s.answers.p2 || {};
+    // 草稿（阶段一结果 + 已补答案）实时落库：关页/切题再回来可恢复；成稿后清掉
+    s.answers.p2.linkDraft = { plan: j, supplements: {}, ts: Date.now() };
+    s.updatedAt = Date.now();
+    hubSave();
+    renderStoryLinkV2(resultEl, j, s);
   }catch(e){
-    resultEl.innerHTML = '<div class="diag-note">AI 服务暂不可用：' + escapeHtml(e.message) + '</div>';
+    if(resultEl){
+      if(String(e && e.message || '').indexOf('__RAW__') === 0){
+        resultEl.innerHTML = '<div class="diag-note">AI 返回非标准格式，原文如下：</div><pre>' + escapeHtml(String(e.message).slice(7)) + '</pre>';
+      } else {
+        resultEl.innerHTML = '<div class="diag-note">AI 服务暂不可用：' + escapeHtml(e.message) + '</div>';
+      }
+    }
   }finally{
-    // 本次跑完必然已有结果（成功）或保留旧结果（失败）→ 一律回到「重新生成」态
+    setStoryLinkBtn(linkBtn, '重新生成串题思路', false);
+  }
+}
+
+/* design/87 阶段二：补槽答案 + 素材 → 一段完整讲稿。失败不落库、不盖旧结果（AI 红线） */
+async function finalChuan(s){
+  const resultEl = $('#aiResult');
+  const linkBtn = document.getElementById('aiStoryLinkBtn');
+  setStoryLinkBtn(linkBtn, '⏳ 出稿中…', true);
+  if(resultEl){ resultEl.style.display = 'block'; resultEl.innerHTML = '<div class="diag-note">正在把素材与你的补充细节整合成整段讲稿…</div>'; }
+  try{
+    const p2 = (s.answers && s.answers.p2) || {};
+    const draft = p2.linkDraft || {};
+    const plan = draft.plan || {};
+    const sup = draft.supplements || {};
+    const sys = chuanSysWithMats(chuanFillPh(SYS_CHUAN_FINAL));
+    const user = chuanUserMsg(s)
+      + '\n\n【阶段一素材核对结果】' + JSON.stringify(plan.slotCheck || [])
+      + (Array.isArray(plan.missingQuestions) && plan.missingQuestions.length ? '\n【补槽问题】' + JSON.stringify(plan.missingQuestions) : '')
+      + '\n【考生补充的真实细节】（空对象=不补直接出稿）' + JSON.stringify(sup);
+    const content = await callRelay('speaking_chuan_final', [
+      { role:'system', content: sys },
+      { role:'user', content: user }
+    ], 0.5);
+    const j = aiJson(content);
+    if(!(j && typeof j.fullEn === 'string' && j.fullEn.trim())){
+      throw new Error('__RAW__' + (content || ''));
+    }
+    const out = { ...j, fit: (j.fit === 'natural' ? 'natural' : 'adaptable'), v: 2, ts: Date.now(), raw: content };
+    s.answers = s.answers || {};
+    s.answers.p2 = s.answers.p2 || {};
+    s.answers.p2.aiStoryLink = out;
+    delete s.answers.p2.linkDraft;
+    s.updatedAt = Date.now();
+    hubSave();
+    renderStoryLinkV2(resultEl, out, s);
+    toast('讲稿已生成');
+  }catch(e){
+    // 失败不落库：数据里旧稿原样保留；界面回到草稿态（补槽/判定卡）让她能直接重试
+    if(resultEl){
+      if(String(e && e.message || '').indexOf('__RAW__') === 0){
+        resultEl.innerHTML = '<div class="diag-note">AI 返回非标准格式，原文如下：</div><pre>' + escapeHtml(String(e.message).slice(7)) + '</pre>';
+      } else {
+        resultEl.innerHTML = '<div class="diag-note">讲稿生成失败：' + escapeHtml(e.message) + '（旧稿保留未动，可直接重试）</div>';
+      }
+    }
+    toast('讲稿生成失败：' + (e.message || ''));
+    const p2b = (s.answers && s.answers.p2) || {};
+    if(p2b.linkDraft && p2b.linkDraft.plan) renderStoryLinkV2(resultEl, p2b.linkDraft.plan, s);
+  }finally{
     setStoryLinkBtn(linkBtn, '重新生成串题思路', false);
   }
 }
@@ -1312,8 +1408,12 @@ function mdInline(t){
 /* 串题稿 → 可复制/可朗读的纯英文全文（design/81）。
    只取英文字段，中文的逻辑链 / 映射讲解一律不带（复制到备忘录里背时不需要，也避免中英混排）。
    挂 window 便于探针单测。 */
-window.buildStoryPlainText = function(j){
+window.buildStoryPlainText = function(j, version){
   if(!j || typeof j !== 'object') return '';
+  // design/87 新结构（v2）：单版整段稿，version 参数仅为兼容旧调用签名（copy/朗读统一取 fullEn）
+  if(j.v === 2 || (typeof j.fullEn === 'string' && j.fullEn)){
+    return String(j.fullEn || '').trim();
+  }
   const parts = [];
   const push = v => { const t = String(v == null ? '' : v).trim(); if(t) parts.push(t); };
   const pushArr = a => { if(Array.isArray(a)) a.forEach(x => push(x)); };
@@ -1361,7 +1461,7 @@ function copyStoryText(text){
   copyTextFallback(text) ? done() : fail();
 }
 
-function renderStoryLink(el, j){
+function renderStoryLink(el, j, s){
   if(!el) return;
   const CHAIN = { '人物':'人物链：是谁→如何得知→做了什么→为什么→感受', '事件':'事件链：时间→地点→人物→经过→感受', '事物':'事物链：是什么→如何得到→感受', '地点':'地点链：位置→如何得知→做了什么→为什么→感受' };
   let h = '<div class="mat-plan">';
@@ -1403,10 +1503,169 @@ function renderStoryLink(el, j){
     if(j.mappingZh) h += '<div class="mat-plan-sec"><b>怎么串过来的（照这个逻辑自己也能串）</b><div class="mat-logic">' + escapeHtml(j.mappingZh) + '</div></div>';
   }
   h += '<div class="mat-plan-tips">💡 方案根据你的万能故事库跨故事拼细节生成；点「AI 串题思路」可重新生成。</div>';
+  // design/87：旧稿只读保留，但给一个手动入口走新逻辑（她拍板：不主动点旧稿永远原样）
+  if(s && s.id){
+    h += '<div class="sp-chuan-actions"><button class="mat-mini" id="spReplanV2" type="button">按新逻辑重新生成</button><span class="sp-slot-evidence">按题目要点逐条核对素材，出一段整段讲稿；会替换这份旧稿</span></div>';
+  }
   h += '</div>';
   el.innerHTML = h;
   el.style.display = 'block';
+  if(s && s.id){
+    const rv = el.querySelector('#spReplanV2');
+    if(rv) rv.addEventListener('click', () => aiStoryLink(s.id));
+  }
   bindStoryTools(el, j);
+}
+
+/* === design/87 新结构渲染分发：final 成稿态 / adaptable 补槽态 / unfit 拒绝卡；其余兜底旧渲染（旧稿只读保留，用户已拍板） === */
+function renderStoryLinkV2(el, j, s){
+  if(!el || !j || typeof j !== 'object'){ return; }
+  if(typeof j.fullEn === 'string' && j.fullEn){ renderChuanFinal(el, j, s); return; }
+  if(j.fit === 'adaptable' && Array.isArray(j.slotCheck) && j.slotCheck.length){ renderChuanSlotFill(el, j, s); return; }
+  if(j.fit === 'unfit' && Array.isArray(j.slotCheck) && j.slotCheck.length){ renderChuanUnfit(el, j, s); return; }
+  renderStoryLink(el, j, s);
+}
+
+/* 整段稿按语义粗分 2~3 自然段（句子计数均分），段间留白，无任何拼装痕迹 */
+function chuanParas(t){
+  const s0 = String(t || '').trim();
+  const sents = s0.match(/[^.!?]+[.!?]+["')\]]*\s*/g) || (s0 ? [s0] : []);
+  const per = Math.max(1, Math.ceil(sents.length / 3));
+  const paras = [];
+  for(let i = 0; i < sents.length; i += per) paras.push(sents.slice(i, i + per).join('').trim());
+  return paras.filter(Boolean);
+}
+
+/* A. 成稿态（natural 阶段一直出稿 / finalChuan 产物，j.fullEn 存在）。她拍板：单版一段稿，无版本切换 */
+function renderChuanFinal(el, j, s){
+  const fitBadge = j.fit === 'natural'
+    ? '<span class="sp-fit-badge nat">自然贴合</span>'
+    : '<span class="sp-fit-badge adp">改编串题</span>';
+  let h = '<div class="mat-plan">';
+  h += '<div class="mat-plan-head">🧩 串题讲稿 ' + fitBadge
+    + '<span class="mp-actions">'
+    + '<button class="btn btn-sm mp-btn" id="storyCopyBtn" type="button">📋 复制</button>'
+    + '<button class="btn btn-sm mp-btn" id="storySpeakBtn" type="button">▶ 朗读</button>'
+    + '</span></div>';
+  h += '<div class="mat-story-en sp-fulldraft">' + chuanParas(j.fullEn).map(p => '<p>' + escapeHtml(p) + '</p>').join('') + '</div>';
+  if(Array.isArray(j.weakBullets) && j.weakBullets.length){
+    h += '<div class="sp-weak-note">第 ' + j.weakBullets.map(n => Number(n) + 1).join('、') + ' 个要点素材偏弱，考官 P3 可能追问，建议补细节'
+      + (s && s.id ? ' · <a href="javascript:void(0)" id="spWeakFix">去补细节</a>' : '') + '</div>';
+  }
+  if(j.mappingZh || j.logicChain){
+    h += '<details class="sp-chuan-why"><summary>串题原理（想学怎么串再展开 ▸）</summary>';
+    if(j.mappingZh) h += '<div class="mat-logic">' + escapeHtml(j.mappingZh) + '</div>';
+    if(j.logicChain) h += '<div class="mat-logic">' + escapeHtml(j.logicChain) + '</div>';
+    h += '</details>';
+  }
+  if(s && s.id) h += '<div class="sp-chuan-actions"><button class="mat-mini" id="spRegenChuan" type="button">↻ 重新生成</button></div>';
+  h += '</div>';
+  el.innerHTML = h;
+  el.style.display = 'block';
+  const fix = el.querySelector('#spWeakFix');
+  if(fix) fix.addEventListener('click', () => aiStoryLink(s.id));
+  const regen = el.querySelector('#spRegenChuan');
+  if(regen) regen.addEventListener('click', () => aiStoryLink(s.id));
+  bindStoryTools(el, j);
+}
+
+/* B. 补槽态（fit=adaptable 且无 fullEn）：漏斗式小问，答案实时写 linkDraft.supplements（关页/切题回来不丢） */
+function renderChuanSlotFill(el, j, s){
+  const p2 = (s.answers && s.answers.p2) || {};
+  const draft = p2.linkDraft || { plan: j, supplements: {} };
+  draft.supplements = draft.supplements || {};
+  const sup = draft.supplements;
+  const miss = (Array.isArray(j.missingQuestions) ? j.missingQuestions : []).filter(q => q && q.k && q.label);
+  const MARK = { covered:'<span class="sp-slot-mark ok">✓ 有事实</span>', weak:'<span class="sp-slot-mark mid">△ 沾边</span>', missing:'<span class="sp-slot-mark bad">✗ 缺</span>' };
+  let h = '<div class="mat-plan">';
+  h += '<div class="mat-plan-head">🧩 补 ' + miss.length + ' 个小细节，这题就能串自然</div>';
+  h += '<div class="sp-slot-list">';
+  (j.slotCheck || []).forEach(sc => {
+    h += '<div class="sp-slot-row">' + (MARK[sc.status] || '<span class="sp-slot-mark mid">△</span>')
+      + '<span class="sp-slot-bullet">' + escapeHtml(sc.bullet || '') + '</span>'
+      + (sc.evidence ? '<div class="sp-slot-evidence">' + escapeHtml(sc.evidence) + '</div>' : '')
+      + '</div>';
+  });
+  h += '</div>';
+  miss.forEach(q => {
+    const val = sup[q.k];
+    h += '<div class="mat-step"><div class="mat-step-label">' + escapeHtml(q.label || '') + '</div>';
+    if(q.type === 'yesno'){
+      h += '<div class="mat-yn">'
+        + '<button type="button" class="' + (val === '有' ? 'on' : '') + '" data-slot-yn="' + escapeHtml(q.k) + '" data-slot-val="有">有</button>'
+        + '<button type="button" class="' + (val === '没有' ? 'on' : '') + '" data-slot-yn="' + escapeHtml(q.k) + '" data-slot-val="没有">没有</button>'
+        + '</div>';
+    } else if(q.type === 'choice' && Array.isArray(q.options) && q.options.length){
+      const arr = Array.isArray(val) ? val : [];
+      h += '<div class="mat-chips">' + q.options.map(o =>
+        '<button type="button" class="mat-chip pick' + ((arr.indexOf(o) >= 0 || val === o) ? ' on' : '') + '"'
+        + ' data-slot-pick="' + escapeHtml(q.k) + '" data-slot-opt="' + escapeHtml(o) + '"' + (q.multi ? ' data-multi="1"' : '') + '>'
+        + escapeHtml(o) + '</button>').join('') + '</div>';
+      const otherPicked = arr.indexOf('其他') >= 0 || val === '其他';
+      const otherText = (typeof val === 'string' && val && q.options.indexOf(val) < 0) ? val : (arr.filter(x => q.options.indexOf(x) < 0)[0] || '');
+      if(otherPicked || otherText){
+        h += '<input type="text" data-slot-text="' + escapeHtml(q.k) + '" value="' + escapeHtml(otherText || '') + '" placeholder="具体说说（其他）…">';
+      }
+    } else {
+      h += '<input type="text" data-slot-text="' + escapeHtml(q.k) + '" value="' + escapeHtml(val || '') + '" placeholder="用一句话回答…">';
+    }
+    h += '</div>';
+  });
+  h += '<div class="sp-chuan-actions">'
+    + '<button class="btn btn-primary" id="spFinalBtn" type="button">生成我的讲稿</button>'
+    + '<button class="btn" id="spSkipSupBtn" type="button">不补，直接出稿（可能偏题）</button>'
+    + '<button class="sp-linklike" id="spGoMatBtn" type="button">这题放弃，去素材库补专属素材 →</button>'
+    + '</div></div>';
+  el.innerHTML = h;
+  el.style.display = 'block';
+  const saveSup = () => {
+    s.answers = s.answers || {};
+    s.answers.p2 = s.answers.p2 || {};
+    s.answers.p2.linkDraft = draft;
+    s.updatedAt = Date.now();
+    hubSave();
+  };
+  el.querySelectorAll('[data-slot-yn]').forEach(b => b.addEventListener('click', () => {
+    sup[b.dataset.slotYn] = b.dataset.slotVal;
+    saveSup();
+    renderChuanSlotFill(el, j, s);
+  }));
+  el.querySelectorAll('[data-slot-pick]').forEach(b => b.addEventListener('click', () => {
+    const k = b.dataset.slotPick, o = b.dataset.slotOpt;
+    const q = miss.find(x => x.k === k) || {};
+    if(q.multi){
+      const arr = Array.isArray(sup[k]) ? sup[k].slice() : [];
+      const at = arr.indexOf(o);
+      if(at >= 0) arr.splice(at, 1); else arr.push(o);
+      sup[k] = arr;
+    } else {
+      sup[k] = (sup[k] === o) ? '' : o;   // 单选再点同项=取消
+    }
+    saveSup();
+    renderChuanSlotFill(el, j, s);
+  }));
+  el.querySelectorAll('[data-slot-text]').forEach(ta => ta.addEventListener('input', () => {
+    sup[ta.dataset.slotText] = ta.value;   // 文本输入静默保存不重渲（保光标）
+    saveSup();
+  }));
+  const fin = el.querySelector('#spFinalBtn');
+  if(fin) fin.addEventListener('click', () => finalChuan(s));
+  const skip = el.querySelector('#spSkipSupBtn');
+  if(skip) skip.addEventListener('click', () => finalChuan(s));   // supplements 原样传（可能为空），SYS_CHUAN_FINAL 第 2 条处理
+  spBindMatGuideBtn(el);
+}
+
+/* C. unfit 态：明说串不动，引导补素材卡；留「硬试」出口（supplements 为空，考官易判背题） */
+function renderChuanUnfit(el, j, s){
+  const desc = escapeHtml(j.unfitReason || '素材主题与这道题的核心要点对不上，硬串会像背范文。')
+    + (j.suggestCard ? '<br>建议补的素材卡：<b>' + escapeHtml(j.suggestCard) + '</b>' : '');
+  el.innerHTML = spGuideCardHtml('这道题和你的素材串不动', desc,
+    '<button class="btn btn-primary sp-guide-btn" id="spGoMatBtn" type="button">去素材库补：' + escapeHtml(j.suggestCard || '专属素材') + '</button>'
+    + '<button class="sp-linklike" id="spForceChuan" type="button">仍要硬试（不推荐，考官易判背题）</button>');
+  el.style.display = 'block';
+  spBindMatGuideBtn(el);
+  const force = el.querySelector('#spForceChuan');
+  if(force) force.addEventListener('click', () => { if(s) finalChuan(s); });
 }
 
 /* 串题稿工具条：复制英文稿 / 朗读全文（新老结构都挂，文本统一走 buildStoryPlainText） */
@@ -1414,7 +1673,7 @@ function bindStoryTools(el, j){
   if(!el) return;
   const copyBtn = el.querySelector('#storyCopyBtn');
   const speakBtn = el.querySelector('#storySpeakBtn');
-  const getText = () => (typeof window.buildStoryPlainText === 'function') ? window.buildStoryPlainText(j) : '';
+  const getText = () => (typeof window.buildStoryPlainText === 'function') ? window.buildStoryPlainText(j, 'long') : '';
   if(copyBtn) copyBtn.addEventListener('click', () => {
     const t = getText();
     if(!t){ toast('这份串题稿没有可复制的英文'); return; }

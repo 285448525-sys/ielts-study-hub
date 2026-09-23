@@ -46,7 +46,7 @@
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
   <script defer src="js/sentence-drill.js?v=20260922b"></script>
-  <script defer src="js/speaking.js?v=20260923c"></script>
+  <script defer src="js/speaking.js?v=20260923d"></script>
   <script defer src="js/materials.js?v=20260923c"></script>
   <script defer src="js/mock-report.js?v=20260830u"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
@@ -612,6 +612,31 @@
   .mat-legacy-item{ margin-top:8px; padding:8px 11px; background:var(--bg); border:1px dashed var(--line); border-radius:var(--radius-sm); }
   .mat-legacy-key{ font-size:12px; color:var(--muted); word-break:break-all; }
   .mat-legacy-text{ font-size:13px; color:var(--ink); white-space:pre-wrap; line-height:1.6; word-break:break-word; margin-top:2px; }
+
+  /* === design/87 · P2 串题要点驱动（fit 徽章 / 整段稿 / 补槽 / 拒绝卡；表单复用 design/86 的 mat-yn/mat-chip/mat-step） === */
+  .sp-fit-badge{ font-size:11px; font-weight:700; padding:2px 10px; border-radius:999px; vertical-align:2px; white-space:nowrap; }
+  .sp-fit-badge.nat{ background:var(--primary-soft); color:var(--med); }
+  .sp-fit-badge.adp{ background:#dbeafe; color:#1d4ed8; }
+  [data-theme="dark"] .sp-fit-badge.adp{ background:rgba(59,130,246,.18); color:#93c5fd; }
+  .sp-fulldraft p{ margin:0 0 10px; line-height:1.8; }
+  .sp-fulldraft p:last-child{ margin-bottom:0; }
+  .sp-slot-list{ margin:8px 0 4px; }
+  .sp-slot-row{ padding:7px 0; border-bottom:1px dashed var(--line); font-size:13.5px; line-height:1.6; color:var(--ink); }
+  .sp-slot-row:last-child{ border-bottom:none; }
+  .sp-slot-mark{ font-size:11.5px; font-weight:700; margin-right:8px; white-space:nowrap; }
+  .sp-slot-mark.ok{ color:var(--med); }
+  .sp-slot-mark.mid{ color:var(--warn); }
+  .sp-slot-mark.bad{ color:var(--danger); }
+  .sp-slot-bullet{ color:var(--ink); }
+  .sp-slot-evidence{ font-size:12px; color:var(--muted); margin-top:2px; line-height:1.6; }
+  .sp-weak-note{ font-size:12.5px; color:var(--muted); background:var(--bg); border:1px dashed var(--line); border-radius:var(--radius-sm); padding:8px 11px; margin:10px 0; line-height:1.6; }
+  .sp-weak-note a{ color:var(--primary); font-weight:600; }
+  .sp-chuan-why{ margin:10px 0; font-size:13px; }
+  .sp-chuan-why summary{ cursor:pointer; user-select:none; color:var(--muted); font-weight:600; }
+  .sp-chuan-why .mat-logic{ margin-top:8px; }
+  .sp-chuan-actions{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:14px 0 4px; }
+  .sp-chuan-actions .btn{ min-height:44px; }
+  .sp-linklike{ background:none; border:none; color:var(--primary); font:inherit; font-size:13px; cursor:pointer; padding:6px 2px; text-decoration:underline; }
 
   /* === 25 · 口语练习效率优化（降低使用门槛，纯视觉/布局，不动 JS） === */
 
