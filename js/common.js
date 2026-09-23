@@ -1184,6 +1184,7 @@ let _lastUploadedHash = '';
 let _pendingUpload = false;
 let _firstPendingAt = 0;
 let _lastCloudHash = '';   // 上次拉到的云端内容哈希：相同则跳过 mergeData（性能优化，见 cloudDownload）
+let _lastUploadedCloudHash = '';   // v7.1：最近一次成功上传的 payload 哈希——拉取命中它=自己刚传的回声，跳过合并不弹窗不计变更
 let _bootPublishTried = false;   // ⭐ 9/19 每次页面加载只做一次「开机发布」（见 _maybePublishLocal）
 
 /* ⭐ 9/19 修「两台设备数据对不上/来回跳」第二刀：开机发布。
@@ -1281,7 +1282,8 @@ async function cloudUpload(showToast, force){
     return true;   // 内容与云端一致，视为成功
   }
   try{
-    const [res, body] = await syncApi('PUT', { data: stripCloudFields(DATA), ts:  Date.now(), deviceId: getDeviceId() });
+    const _payload = stripCloudFields(DATA);   // v7.1：先落变量——成功后记它的哈希做「自回声」基线
+    const [res, body] = await syncApi('PUT', { data: _payload, ts:  Date.now(), deviceId: getDeviceId() });
     if(res.status === 404) throw new Error('云端未启用（需先部署 Functions）');
     if(res.status === 503) throw new Error('云端存储未绑定（Cloudflare 后台需绑定 SYNC_KV）');
     if(!res.ok){
@@ -1290,6 +1292,7 @@ async function cloudUpload(showToast, force){
     }
     DATA.settings.lastSyncTs = Date.now();
     _lastUploadedHash = hashData();   // ⭐ 9/19：成功后重算基线——lastSyncTs 在上传成功瞬间自变化，沿用上传前快照 h 会让下次比对永远失配，hash 去重形同虚设
+    _lastUploadedCloudHash = hashData(_payload);   // v7.1：自回声基线（云端存的就是这份，下次拉到相同哈希=自己传的，不再当「云端更新」合并）
     if(showToast) toast('已上传到云端');
     syncSetStatus('✅ 已同步到云端', 'ok');
     renderLastSync();
@@ -1317,9 +1320,11 @@ function flushCloudUpload(){
   if(!DATA.settings.autoSync || !DATA.settings.syncCode) return;
   try{
     stampSyncItemsForUpload();   // 关页/切后台补传也要先打戳，保证云端拿到时间戳
-    const payload = JSON.stringify({ data: stripCloudFields(DATA), ts: Date.now(), deviceId: getDeviceId() });
+    const _payloadObj = { data: stripCloudFields(DATA), ts: Date.now(), deviceId: getDeviceId() };
+    const payload = JSON.stringify(_payloadObj);
     if(payload.length > 60 * 1024) return; // sendBeacon 传不了，交给下次自动上传或手动同步
     navigator.sendBeacon('/api/sync?code=' + encodeURIComponent(DATA.settings.syncCode), new Blob([payload], { type: 'application/json' }));
+    try{ _lastUploadedCloudHash = hashData(_payloadObj.data); }catch(e){}   // v7.1：beacon 也记自回声基线
   }catch(e){}
 }
 window.addEventListener('beforeunload', flushCloudUpload);
@@ -2131,6 +2136,10 @@ async function cloudDownload(silent){
     // DATA 越大这波 CPU 越重，是「有时候卡」的头号来源；单设备用户基本用不上 10s 实时性）
     const _ch = hashData(data.data);
     if(_ch === _lastCloudHash) return true;
+    // v7.1 自回声短路：拉到的就是自己刚传上去的那份（单标签页上传后的常规轮询必然命中）
+    // → 跳过 mergeData + 跳过「已合并」判定。此前它会被当「云端更新」跑一次全量合并 + 计一次
+    // 「已合并 0 处更新」噪音弹窗；多标签页/双设备时表现为「每几十秒莫名其妙合并一次」。
+    if(_ch === _lastUploadedCloudHash){ _lastCloudHash = _ch; return true; }
     const m = mergeData(DATA, data.data);
     // 终极保险：比较合并前后内容，真的变化才算「更新」。
     // 场景：本机比云端进步（背单词 streak/释义更掌握）时，_mergeWords 内部 changes 每次都会计，
@@ -2154,7 +2163,9 @@ async function cloudDownload(silent){
       // 直接写 localStorage，不走 hubSave——避免「合并云端数据后又触发上传→另一端又拉到→乒乓刷屏」。
       // 本端独有数据会在用户下次操作（hubSave）时自然上传，无需在合并时立即回传。
       try{ localStorage.setItem(HUB_KEY, JSON.stringify(DATA)); }catch(e){}
-      toast('已合并云端 ' + m.changes + ' 处更新');
+      // v7.1：后台轮询（silent）一律不弹 toast——弹窗只留给手动同步；
+      // m.changes===0 说明只是字段规范化（如 materials 补默认结构），内容零变化，手动同步也不该弹「已合并 0 处」
+      if(!silent && m.changes > 0) toast('已合并云端 ' + m.changes + ' 处更新');
       document.dispatchEvent(new CustomEvent('hub:data-merged'));
       // 无缝刷新：合并成功后主动重渲染当前页面，无需用户手动刷新即可看到另一端的变化。
       renderAllOnMerge();
