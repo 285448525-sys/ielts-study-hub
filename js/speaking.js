@@ -1137,20 +1137,20 @@ function saveDetail(id){
   toast('已保存');
 }
 
-/* === 删除口语题（记录到黑名单，题库升级不再恢复）=== */
+/* === 删除口语题（9/23：不再记黑名单，官方题一律可恢复）===
+   旧逻辑把被删 id 写进 DATA.deletedIds「墓碑」，换季升级也不复活——她拍板取消：
+   题库里的官方题都是要练的范围，不该被永久隐藏（历史结果就是 100 题只显示 99）。
+   现在删除只影响当前会话的数组；升级/换设备同步后官方题全量回来（个人答案仍按 id 保留）。 */
 function deleteSpeaking(id){
   const s = DATA.speaking.find(x => x.id === id);
   if(!s) return;
   DATA.speaking = DATA.speaking.filter(x => x.id !== id);
-  DATA.deletedIds = DATA.deletedIds || [];
-  if(id != null && !DATA.deletedIds.includes(id)) DATA.deletedIds.push(id);
-  s.updatedAt = Date.now();
   hubSave();
   $('#detailView').hidden = true;
   $('#listView').hidden = false;
   curDetailId = null;
   renderList();
-  toast('已删除该口语题（不再被默认题库恢复）');
+  toast('已隐藏该口语题（下次题库升级会自动回来）');
 }
 
   /* === 素材生成器联动：P2 抽题命中个人素材 → AI 自动匹配串题方案 === */

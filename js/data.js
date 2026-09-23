@@ -1012,8 +1012,10 @@ const SPEAKING_BANK = [
 /* 9/15：v10 已被部分浏览器以旧 frequency 污染（merge 曾回填本地档位），bump 11 强制全量重迁移。
  * 9/19：bump 12 修复「刷新永久丢 1 题」——12 个页面顶部 autoCleanOldBank 把 sb_p1_home 写进脏 id 剔除名单，
  *       而它已是官方题库的合法 P1 题（Home/accommodation，9 小问），每次刷新被删一次（83→82）且版本未变不重迁移。
- *       bump 后强制跑一次 mergeSpeakingKeepAnswers：官方题全量补回，用户答案/串题按 id 保留。 */
-const SPEAKING_BANK_VERSION = 13;
+ *       bump 后强制跑一次 mergeSpeakingKeepAnswers：官方题全量补回，用户答案/串题按 id 保留。
+ * 9/23：bump 14 取消口语「删除黑名单」——官方题一律不隐藏（她拍板：题库里的题都要练），
+ *       并一次性清掉本地 sb_ 开头的旧墓碑；被拉黑过的题本版本重跑合并后全量回归（100 题）。 */
+const SPEAKING_BANK_VERSION = 14;
 
 /* 口语题库元信息（design/81）：换库时只改 VERSION + META 两处，页面 banner 与题数全部现算，
    不再在 speaking.html 里硬编码季度/日期/题数（硬编码必然随换库过期）。 */
@@ -1053,12 +1055,14 @@ function remapP1AnswersByQuestion(official, local){
 
 function mergeSpeakingKeepAnswers(localSpeaking){
   if(!SPEAKING_BANK || !SPEAKING_BANK.length) return localSpeaking || [];
-  const legacyDel = (DATA.settings && Array.isArray(DATA.settings.deletedSpeakingIds)) ? DATA.settings.deletedSpeakingIds : [];
-  const deletedIds = new Set([...(DATA.deletedIds||[]), ...legacyDel]);
+  /* 9/23 她拍板：口语官方题不设黑名单——「题库里的题肯定都是要练的」。
+     原先这里用 deletedIds + settings.deletedSpeakingIds 过滤官方题（历史遗留：旧版本有「删除本题」按钮，
+     删过的题记为墓碑，换季不再复活），结果官方库 100 题在她浏览器只显示 99（P1 被拉黑 1 题）。
+     官方题库是考试范围，题本身不该被隐藏；个人不想练的题靠频次排序/自己跳过即可。
+     ⚠️ deletedIds 仍服务于单词墓碑(en:)、素材/写作模板墓碑，只不再作用于口语题。 */
   const localById = {};
   (localSpeaking || []).forEach(s => { if(s && s.id) localById[s.id] = s; });
   return SPEAKING_BANK
-    .filter(official => !deletedIds.has(official.id))
     .map(official => {
       const local = localById[official.id];
       if(!local) return Object.assign({}, official);
@@ -1288,6 +1292,23 @@ function hubLoad(){
     //   不新增官方库以外的题、不覆盖官方题。
     // 优化：仅在口语题库版本变化时才重跑合并 + 落盘；否则跳过，
     // 避免每次加载都做一次整库写盘（数据越大越卡）。
+    // 9/23 一次性自愈：清掉历史残留的「口语题墓碑」（sb_ 开头）。
+    //   合并已不再读它们，但 deletedIds 会随云同步 union 传播——不清理的话，
+    //   另一台设备上传旧墓碑，本机合并后 deletedIds 里又出现 sb_* 条目（脏数据），
+    //   且体积只增不减。只清 sb_ 前缀：单词墓碑(en:)、素材/写作模板墓碑一律不动。
+    (function clearSpeakingTombstones(){
+      let dirty = false;
+      if(Array.isArray(DATA.deletedIds)){
+        const before = DATA.deletedIds.length;
+        DATA.deletedIds = DATA.deletedIds.filter(id => !(typeof id === 'string' && id.indexOf('sb_') === 0));
+        if(DATA.deletedIds.length !== before) dirty = true;
+      }
+      if(DATA.settings && Array.isArray(DATA.settings.deletedSpeakingIds)){
+        delete DATA.settings.deletedSpeakingIds;
+        dirty = true;
+      }
+      if(dirty) hubSave();
+    })();
     if(SPEAKING_BANK && SPEAKING_BANK.length && DATA.speakingVersion !== SPEAKING_BANK_VERSION){
       DATA.speaking = mergeSpeakingKeepAnswers(DATA.speaking);
       DATA.speakingVersion = SPEAKING_BANK_VERSION;
