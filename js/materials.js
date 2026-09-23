@@ -50,7 +50,7 @@
     + '2. 用最少的问题卡覆盖清单：通常 4~6 张，硬上限 8 张；每张卡通常辐射 8~20 题。严禁一题一问、严禁按题目类别机械切分（人物题一卡、地点题一卡）。目标覆盖率（被 topics 覆盖的题 / 清单总题数）≥0.9；达不到就靠调整卡片主题、增强卡片元素覆盖，而不是增加卡片数量。\n'
     + '3. 每张卡对应一个具体、单一的经历主题，必须是学生或刚工作的年轻人真实生活里一定有的素材（如：最近一次和朋友出门 / 一件硬学会的事 / 每天离不开的东西 / 最近在网上刷到的内容 / 一个有画面的地方 / 由经历引出的一个观点）。严禁抽象主题、需要编造或需要专业背景的主题。\n'
     + '4. 每张卡必须按「漏斗式提问」展开 4~6 个 steps：\n'
-    + '   ① 第一步必须是 yesno 或 choice，且带具体时间锚点（最近一周 / 最近半年 / 上周末 / 高中时 / 小时候），严禁无时间范围的「你有没有过……」；\n'
+    + '   ① 第一步必须是 yesno 或 choice，且带具体时间锚点（最近一周 / 最近半年 / 上周末 / 高中时 / 小时候），严禁无时间范围的「你有没有过……」；yesno 是这张卡的门问题：考生若答「没有」，前端会自动收起本卡后续所有问题——所以门问题必须问存在性事实（有没有做过/遇到过），后续步骤都是「答了有」之后的展开，严禁把存在性问题放后面；\n'
     + '   ② 每个 step 只提取一个事实（时间 / 人物地点 / 事件 / 细节 / 感受，每次一个），严禁连环问；严禁「说说 / 讲讲 / 描述 / 谈谈 / 你觉得」这类自由开放措辞；\n'
     + '   ③ choice 必须给 2~6 个具体、口语化的选项，并以「其他」为固定末项（选中后允许考生自填）；multi 题用 "multi":true；\n'
     + '   ④ 细节、感受类 step 设 "optional":true，允许留空；\n'
@@ -136,13 +136,23 @@
       if(store.persona && store.persona._fallback) store.persona = null;
       saveStore();
     }
-    mode = store.materials.length ? 'result' : 'q';
+    mode = restoreMode();
     render();
+  }
+
+  /* 视图态恢复：问卷填到一半被整页刷新（SW 更新/手动刷新）打回列表 = 她反馈的打断之一。
+     问卷态记入 sessionStorage；有 plan 时刷新后自动回到问卷（答案都在 DATA.materials.answers，零丢失）。 */
+  function restoreMode(){
+    let saved = null;
+    try{ saved = sessionStorage.getItem('hub_mat_mode'); }catch(e){}
+    if(saved === 'q' && store.plan && Array.isArray(store.plan.cards) && store.plan.cards.length) return 'q';
+    return store.materials.length ? 'result' : 'q';
   }
 
   /* ---------- 渲染分发 ---------- */
   function render(){
     const root = rootEl(); if(!root) return;
+    try{ sessionStorage.setItem('hub_mat_mode', mode); }catch(e){}
     if(mode === 'result' && store.materials.length){ renderResults(root); }
     else { renderQuestionnaire(root); }
   }
@@ -158,6 +168,10 @@
     const hasPlan = !!(plan && Array.isArray(plan.cards) && plan.cards.length);
     const bankLive = !!(DATA.speaking && DATA.speaking.length);
     let h = '<div class="mat-intro">先填一句人设，AI 会分析<b>当季最新题库</b>，只问你最少的几个问题；每步点选项就行，答不上的可以跳过，也能直接粘贴旧英文素材。</div>';
+    // 逃生口：已有素材卡但当前在问卷视图（restoreMode 因 saved='q' 回问卷）→ 给一条回去的路
+    if(store.materials && store.materials.length){
+      h += '<div style="margin:-6px 0 10px"><a href="javascript:void(0)" id="matBackToResult" style="color:var(--primary);font-weight:600;font-size:13px">← 查看已有素材卡（' + store.materials.length + ' 张）</a></div>';
+    }
     // 无 Key 提示（4.7.2）：规划/生成都要 Key，但自由填写与英文素材可先填
     if(!(DATA.settings && DATA.settings.relayToken)){
       h += '<div class="mat-shortwarn"><b>还没配置 AI Key</b>：去「设置」填 DeepSeek Key 后才能分析题库出题和生成素材。下面的自由经历和英文素材可以先填着。</div>';
@@ -292,6 +306,8 @@
         }
       });
     });
+    const backLink = $('#matBackToResult');
+    if(backLink) backLink.onclick = () => { mode = 'result'; render(); };
     // 规划 / 重新规划
     const pg = $('#matPlanGen');
     if(pg) pg.onclick = () => doPlan(!!(store.plan && Array.isArray(store.plan.cards) && store.plan.cards.length));
@@ -389,7 +405,18 @@
       h += '<details class="mat-topics"><summary>这张卡覆盖 ' + card.topics.length + ' 道当季题 ▸</summary>'
         + '<div class="mat-chips">' + card.topics.map(t => '<span class="mat-chip">' + escapeHtml(t) + '</span>').join('') + '</div></details>';
     }
-    (card.steps || []).forEach(step => { h += planStep(card.id, step, st.s[step.k]); });
+    // 门逻辑（她 9/23 反馈：答了「没有出去玩」还继续问「去了哪里」不通顺）：yesno 答「没有」→ 本卡后续步骤全部收起，
+    // 改回「有」即恢复（setStepVal 会重渲）。答案侧无需清理——空值在 formatCard 里本来就不进素材。
+    let gateClosed = false;
+    (card.steps || []).forEach(step => {
+      if(gateClosed) return;
+      const v = st.s[step.k];
+      h += planStep(card.id, step, v);   // 门步骤本身照常渲染（含 noHint），只收它后面的
+      if(step.type === 'yesno' && v === '没有') gateClosed = true;
+    });
+    if(gateClosed){
+      h += '<div class="mat-nohint">上一步选了「没有」，这张卡后面的问题先收起了——没有这段经历就不用编；点回「有」会恢复。</div>';
+    }
     h += '</div>';
     return h;
   }
@@ -1122,9 +1149,10 @@
   }
 
   /* ---------- 初始化 ---------- */
-  // materials.html：页面加载即渲染
+  // materials.html：页面加载即渲染（问卷态从 sessionStorage 恢复，填一半刷新不丢视图）
   ready(() => {
-    if(store.materials.length) mode = 'result'; else mode = 'q';
+    store = loadStore();
+    mode = restoreMode();
     render();
   });
   // 口语页 MAT tab：挂 window.matGen（tab 点击时 init 从 DATA.materials 重载并渲染）
@@ -1132,7 +1160,14 @@
   // deepDig 供程序化调用（深挖已并入生成流程，无手动按钮）
   window.matGen = { init: init, render: render, deepDig: function(){ return deepDigCoverage(false); } };
   try{
+    // 她反馈（9/23）：合并触发 init 会把 mode 强设回 result → 填到一半的问卷被打回素材列表。
+    // 问卷态原地重渲（答案实时存在 store 里，重渲后照常显示）；其余视图照旧走 init。
+    const mergeRender = function(){
+      store = loadStore();
+      if(mode === 'q'){ render(); return; }
+      init();
+    };
     window.__hubRenderers = window.__hubRenderers || [];
-    if(!window.__hubRenderers.includes(init)) window.__hubRenderers.push(init);
+    if(!window.__hubRenderers.includes(mergeRender)) window.__hubRenderers.push(mergeRender);
   }catch(_){}
 })();
