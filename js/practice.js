@@ -39,6 +39,13 @@ var DHP_H_MAX = Math.pow(1.05, 122); // 毕业线 ≈ 414.6 天：达到即长�
 var DHP_IDX_MAX = 151;               // 运行时查表上钳制（152 列的最后一列=吸收态占位）
 var DAILY_DUE_CAP = 60;              // 每日到期上限（含新词）：buildQueue 排序后截断，截掉的明天队首
 
+// ======= v7.1 三改（她拍板 2026-09-23）：控总量 + 熟词快速通道 + 难度回落 =======
+var NEW_PER_DAY = 20;                // 每日新词上限：到期的新词（cleared!==true）每天最多出 20 个，复习词不受限——复习优先，压住「越背越多」
+var FAST_FIRST_MS = 3000;            // 熟词快速通道：首次复习（无 lastReview）看词 3 秒内答对 → 初始间隔 +3 天起步
+var FAST_FIRST_AUDIO_MS = 5000;      // 听音题要等发音播完才能答，秒答阈值放宽到 5 秒
+var DHP_FAST_FIRST_DH = 14;          // 秒答视为「很熟」：dh 抬到该值（首刷间隔直接 +3 天不查表；dh=14 保证下一轮表查得 10 天+，自然衔接）
+var DD_RECOVER_AFTER = 3;            // dd 回落：连续 ≥3 次复习全对（hist 尾部 ok 连击，含本次）→ dd 每轮 -1（下限 1），老错词逐步恢复正常间隔
+
 // ======= design/54 趣味性反馈（2026-09-07）=======
 // 连击门槛：每连对 STREAK_BOOST 题触发一次 ×2 高光；答错减半不归零。
 // streak/xp 只存 pq 内存态（刷新即重置），禁止写 DATA、禁止走 hubSave、禁止参与 mergeData。
@@ -212,21 +219,34 @@ function displayLevelFromH(h){
 
 // 长线升级（v4 §3.3 promoteLongTerm）：仅短线 3 次全对过关时调用
 // P0-1：改为「先按当前 level 算间隔，再升级」，让 level0 新词首次复习=1天（不再跳过 LEVEL_INTERVAL[0]）
-function promoteLongTerm(w, today){
+function promoteLongTerm(w, today, opts){
   w.lastPracticeAt = Date.now();   // design/84：最后练习时间——云合并同世代「最后练习者胜」的决胜字段
   w.hist = (Array.isArray(w.hist) ? w.hist : []); w.hist.push({ d: today, r: 'ok' });
   if(w.hist.length > 20) w.hist = w.hist.slice(-20);   // design/59：截断保留最近 20 条（judge 分支已显式落盘，此处禁加 hubSave）
   // design/77：选对=「认识」→ DHP 记忆增强（dd 不变）；间隔查 KDD'22 策略表；level=显示代理
   const p = dhpRecallP(w, today);                            // 用旧 dh/lastReview 算 p，须在覆写前取
   w.dd = (w.dd != null) ? w.dd : 3;
-  w.dh = (p == null) ? dhpStartH(w.dd) : dhpAfterRecall(w.dh, w.dd, p);
+  // v7.1 熟词快速通道：首次复习（p==null ⇒ 从没练过）且秒答 → dh 抬到「很熟」档，表查得初始 +3 天起步（她拍板 9/23）
+  const _fastFirst = (p == null) && !!(opts && opts.fast);
+  w.dh = (p == null)
+    ? (_fastFirst ? Math.max(dhpStartH(w.dd), DHP_FAST_FIRST_DH) : dhpStartH(w.dd))
+    : dhpAfterRecall(w.dh, w.dd, p);
+  // v7.1 dd 回落：连续 ≥DD_RECOVER_AFTER 次复习全对（hist 已含本次 ok，取尾部连击数）→ dd 每轮 -1（下限 1）。
+  // dd 转移顺序：dh 增强按旧 dd 算（main.cpp 语义），dd 回落发生在 dh 之后、间隔查表之前 → 本次间隔即刻享受新 dd
+  if(p != null && w.dd > 1){
+    let _oks = 0;
+    for(let i = w.hist.length - 1; i >= 0; i--){ if(w.hist[i] && w.hist[i].r === 'ok') _oks++; else break; }
+    if(_oks >= DD_RECOVER_AFTER) w.dd = w.dd - 1;
+  }
   w.lastReview = today;                                      // 新增写点：下次 p 的基准
   if(w.dh >= DHP_H_MAX){                                     // 毕业线：长期记忆达成，退出长线队列
     w.cleared = true;
     w.level = 7;
     w.nextReview = addDays(today, 180);
   } else {
-    w.nextReview = addDays(today, Math.max(1, dhpPolicyInterval(w.dd, w.dh)));
+    // v7.1 熟词快速通道：首刷秒答不查表（策略表对常见 dd 无「+3 天」稳定档：dd=3 行有非单调凹陷、dd=2 行 2 直接跳 4），
+    // 直接排 +3 天起步；dh=DHP_FAST_FIRST_DH 已保证下一轮 p 衰减后经表查得更大间隔、自然衔接
+    w.nextReview = _fastFirst ? addDays(today, 3) : addDays(today, Math.max(1, dhpPolicyInterval(w.dd, w.dh)));
     w.level = displayLevelFromH(w.dh);
     w.cleared = true;
   }
@@ -463,7 +483,10 @@ function buildQueue(today, nowISO){
 
   // design/77：每日到期上限（含新词）。被截掉的词不动 nextReview，明天自然排在最前；
   // 固定题量仍由 autoStartSeeWord 的 batchSize 控制，复习词自然排在前面
-  return due.slice(0, DAILY_DUE_CAP);
+  // v7.1：复习词（cleared===true）全保留，新词（cleared!==true，含昨日首次答错回炉的）最多 NEW_PER_DAY 个
+  const _reviews = due.filter(w => w.cleared === true);
+  const _news = due.filter(w => w.cleared !== true);
+  return _reviews.concat(_news.slice(0, NEW_PER_DAY)).slice(0, DAILY_DUE_CAP);
 }
 
 // ======= 今日已学词集合（跨轮累计，保证「第二轮不重复第一轮的词」）=======
@@ -1042,6 +1065,10 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
 
   const c = pc();
   const today = todayKey();
+  // v7.1 秒答判定：本题展示到作答的耗时（pq._qStartAt 在 renderQuestion 重置）；听音题放宽阈值
+  const _fastMs = (pq && pq._qStartAt) ? (Date.now() - pq._qStartAt) : Infinity;
+  const _fastThresh = document.querySelector('#practiceBody .practice-word-area.pw-audio') ? FAST_FIRST_AUDIO_MS : FAST_FIRST_MS;
+  const _fast = _fastMs < _fastThresh;
   const nowStr = nowISO();
   const cnTxt = cur.cn ? ' · ' + cur.cn : '';
   let result;
@@ -1050,7 +1077,7 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
     // 从未答错过的词 → 选对直接过（v5 核心变更：一直对的词不重复3次）
     const inShort = pq.shortMode && pq.shortMode.has(k);
     if(!inShort){
-      promoteLongTerm(cur, today);
+      promoteLongTerm(cur, today, { fast: _fast });   // v7.1：秒答信息只对「首次复习」生效（p==null 分支内部判断）
       pq.queue.splice(pq.idx, 1);
       pq.correct++;
       pq.passed.push(String(cur.en).trim().toLowerCase());
