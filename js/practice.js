@@ -83,10 +83,10 @@ function pc(){
   c.intervalMs = clampNum(c.intervalMs, 100, 60000, PC_DEFAULTS.intervalMs);
   c.batchSize = (typeof c.batchSize === 'number' && !isNaN(c.batchSize)) ? c.batchSize : (typeof c.batchSize === 'string' ? parseInt(c.batchSize, 10) : PC_DEFAULTS.batchSize);
   if(isNaN(c.batchSize)) c.batchSize = PC_DEFAULTS.batchSize;
-  if([20,50,100,200,-1].indexOf(c.batchSize) === -1) c.batchSize = PC_DEFAULTS.batchSize;   // 白名单外(旧预设5/10/自定义残留)回退默认
+  if(!(c.batchSize === -1 || (c.batchSize >= 1 && c.batchSize <= 500))) c.batchSize = PC_DEFAULTS.batchSize;   // -1=全部；1~500 自由输入，其余回退默认
   c.newPerDay = (typeof c.newPerDay === 'number' && !isNaN(c.newPerDay)) ? c.newPerDay : (typeof c.newPerDay === 'string' ? parseInt(c.newPerDay, 10) : PC_DEFAULTS.newPerDay);
   if(isNaN(c.newPerDay)) c.newPerDay = PC_DEFAULTS.newPerDay;
-  if([0,5,10,20,30,50,100].indexOf(c.newPerDay) === -1) c.newPerDay = PC_DEFAULTS.newPerDay;   // 0=不限
+  if(!(c.newPerDay >= 0 && c.newPerDay <= 999)) c.newPerDay = PC_DEFAULTS.newPerDay;   // 0=不限；0~999 自由输入
   c.shuffle = !!c.shuffle;
   c.autoNext = !!c.autoNext;
   c.autoNextDelay = clampNum(c.autoNextDelay, 100, 30000, PC_DEFAULTS.autoNextDelay);
@@ -1537,8 +1537,8 @@ function renderCfgModal(){
     {
       name:'答题', icon:'☑',
       items:[
-        { key:'batchSize',     label:'题量',          type:'batch', presets:[{v:'20',t:'20 题'},{v:'50',t:'50 题'},{v:'100',t:'100 题'},{v:'200',t:'200 题'},{v:'-1',t:'全部'}] },
-        { key:'newPerDay',     label:'每日新词上限',  type:'batch', presets:[{v:'0',t:'不限'},{v:'5',t:'5 个'},{v:'10',t:'10 个'},{v:'20',t:'20 个'},{v:'30',t:'30 个'},{v:'50',t:'50 个'},{v:'100',t:'100 个'}], desc:'每天最多学多少个全新单词；复习词不受限制、永远优先出。选「不限」回到旧行为' },
+        { key:'batchSize',     label:'每轮题量',      type:'numall', desc:'每组（每轮）背几个词，自由填写 1~500；勾「全部」= 一轮背完今天所有到期词' },
+        { key:'newPerDay',     label:'每日新词上限',  type:'num', min:0, max:999, unit:' 个', desc:'每天最多学多少个全新单词，自由填写；填 0 = 不限制。复习词不受影响、永远优先出' },
         { key:'questionMode',  label:'题型',          type:'select', opts:[{v:'visual',t:'看词选义'},{v:'audio',t:'听音选义'},{v:'mixed',t:'混合'}], desc:'听音选义：隐藏单词只播发音，听完选中文释义；混合=每题约一半听音' },
         { key:'shuffle',       label:'勾选练习乱序',  type:'toggle' },
         { key:'wrongHoldMs',   label:'答错停留',      type:'range', min:1000, max:5000, step:500, unit:'ms' },
@@ -1590,6 +1590,15 @@ function renderCfgModal(){
         html += '<select class="cfg-batch-select" data-key="' + item.key + '">';
         for(const p of presets) html += '<option value="' + p.v + '"' + (String(val) === p.v ? ' selected' : '') + '>' + p.t + '</option>';
         html += '</select>';
+      } else if(item.type === 'num'){
+        // v7.2 自由数字输入（她拍板：参数不许只给档位）
+        html += '<input type="number" class="cfg-num" data-key="' + item.key + '" min="' + item.min + '" max="' + item.max + '" step="' + (item.step || 1) + '" value="' + Number(val) + '" style="width:76px;padding:4px 6px;border:1px solid var(--border,#ccc);border-radius:6px;background:var(--card,#fff);color:var(--text,#222)">';
+        if(item.unit) html += '<span class="cfg-range-val">' + escapeHtml(item.unit) + '</span>';
+      } else if(item.type === 'numall'){
+        // v7.2 每轮题量：自由数字 + 「全部」勾选（勾上= batchSize -1，输入框禁用）
+        const isAll = Number(val) === -1;
+        html += '<input type="number" class="cfg-num" data-key="' + item.key + '" min="1" max="500" step="1" value="' + (isAll ? PC_DEFAULTS.batchSize : Number(val)) + '"' + (isAll ? ' disabled' : '') + ' style="width:76px;padding:4px 6px;border:1px solid var(--border,#ccc);border-radius:6px;background:var(--card,#fff);color:var(--text,#222)">';
+        html += '<label style="display:inline-flex;align-items:center;gap:5px;margin-left:10px;font-size:12px;cursor:pointer"><input type="checkbox" class="cfg-num-all" data-key="' + item.key + '"' + (isAll ? ' checked' : '') + '>全部</label>';
       }
       html += '</div></div>';
     }
@@ -1617,6 +1626,30 @@ function renderCfgModal(){
   });
   body.querySelectorAll('.cfg-batch-select').forEach(el => {
     el.addEventListener('change', () => pcSave({ [el.dataset.key]: parseInt(el.value, 10) }));
+  });
+  // v7.2 自由数字输入：失焦/回车生效，钳位到 min~max，非法回退当前值
+  body.querySelectorAll('.cfg-num').forEach(el => {
+    el.addEventListener('change', () => {
+      let v = parseInt(el.value, 10);
+      if(isNaN(v)) v = pc()[el.dataset.key];
+      v = Math.max(Number(el.min), Math.min(Number(el.max), v));
+      el.value = v;
+      pcSave({ [el.dataset.key]: v });
+    });
+  });
+  body.querySelectorAll('.cfg-num-all').forEach(el => {
+    el.addEventListener('change', () => {
+      const numInput = body.querySelector('.cfg-num[data-key="' + el.dataset.key + '"]');
+      if(el.checked){
+        pcSave({ [el.dataset.key]: -1 });
+        if(numInput) numInput.disabled = true;
+      } else {
+        let v = numInput ? parseInt(numInput.value, 10) : NaN;
+        if(isNaN(v) || v < 1) v = PC_DEFAULTS.batchSize;
+        pcSave({ [el.dataset.key]: v });
+        if(numInput){ numInput.disabled = false; numInput.value = v; }
+      }
+    });
   });
   body.querySelectorAll('.cfg-m-cat').forEach(el => el.addEventListener('click', () => switchCfgCat(el.dataset.cat)));
   switchCfgCat(groups[0].name);
