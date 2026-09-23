@@ -503,7 +503,10 @@
           m.coverage.push({ topic: bt, fit: (String(c.fit) === 'natural' ? 'natural' : 'loose'), bridgeEn: String(c.bridgeEn || ''), note: String(c.note || '') });
         });
         applied++;
-        saveStore(); if(!silent) render();   // 逐卡落库：后面卡失败，前面已完成的也不丢
+        saveStore();
+        // 9/23 她反馈：逐卡 render 会把「⏳ 重新映射中…」按钮文字打回原样，看起来像点了没反应。
+        // 改为只更新按钮进度文字，不整页重渲；全部完成后（handler 里）再 render 一次。
+        if(!silent) remapProgress(applied, mats.length);
       }
       // 9/23 诚实口径：只要有失败卡就不对齐版本号（换季横幅保留，映射确实没完成，可再点重试）；
       // 旧代码全失败也盖版本号 → 横幅消失但映射还是旧的（假成功，违反「AI 失败绝不落库」）。
@@ -578,13 +581,24 @@
   }
 
   /* ---------- 结果页 ---------- */
+  /* 换季重映射运行态（模块级）：映射期间整页可能因软导航/切 tab 重渲，
+     把进度挂变量而不是按钮文字上，render 时按变量还原「⏳ 重新映射中…」。 */
+  var remapBusy = false, remapDone = 0, remapTotal = 0;
+  function remapProgress(done, total){
+    remapDone = done; remapTotal = total;
+    const btn = document.getElementById('matRemapBtn');
+    if(btn){ btn.disabled = true; btn.textContent = '⏳ 重新映射中… ' + done + '/' + total; }
+  }
   function renderResults(root){
     let h = '';
     // 换季横幅：素材是在旧题库版本下生成的，题族映射可能已过时 → 一键重映射（复用 .mat-shortwarn 现有样式）
     if((store.materials || []).length && store.bankVersion && store.bankVersion !== DATA.speakingVersion){
+      const busyBtn = remapBusy
+        ? '<button class="btn btn-primary" id="matRemapBtn" disabled>⏳ 重新映射中… ' + remapDone + '/' + remapTotal + '</button>'
+        : '<button class="btn btn-primary" id="matRemapBtn">一键重新映射题族</button>';
       h += '<div class="mat-shortwarn" id="matBankWarn"><b>口语题库已换季</b>：这些素材是在旧版题库下生成的，每张卡「能串哪些题」的对照可能过时。'
-        + '点下面的按钮，AI 会按当季题库把各卡重新串一遍（需要已配置 AI Key）。'
-        + '<div class="mat-shortwarn-actions"><button class="btn btn-primary" id="matRemapBtn">一键重新映射题族</button></div></div>';
+        + '点下面的按钮，AI 会按当季题库把各卡重新串一遍（每张卡几秒、共约 1 分钟，完成后横幅自动消失；需要已配置 AI Key）。'
+        + '<div class="mat-shortwarn-actions">' + busyBtn + '</div></div>';
     }
     // 覆盖率矩阵 / 深挖 / 缺题追问整套已移除（用户定案：素材出来直接去口语页练，
     // 串题在练题时按需进行）。coverage 数据仍在生成时随卡产出，供口语页串题提示使用。
@@ -661,13 +675,16 @@
     h += '<div class="mat-actions"><a class="btn btn-primary" href="speaking.html">去练口语 →</a><button class="mat-add" id="matRegen">↻ 重新填写 / 生成</button></div>';
     root.innerHTML = h;
 
-    // 换季重映射：deepDigCoverage 内部逐卡落库并更新 store.bankVersion，完成后重渲横幅自然消失
+    // 换季重映射：deepDigCoverage 内部逐卡落库并更新 store.bankVersion，完成后重渲横幅自然消失。
+    // remapBusy 防重复点击/软导航重渲后重复触发；进度显示走 remapProgress（不整页重渲）。
     const remapBtn = $('#matRemapBtn');
     if(remapBtn) remapBtn.onclick = async () => {
-      remapBtn.disabled = true;
-      remapBtn.textContent = '⏳ 重新映射中…';
-      try{ await deepDigCoverage(false); }
-      finally{ render(); }
+      if(remapBusy) return;
+      remapBusy = true;
+      try{
+        remapProgress(0, (store.materials || []).filter(m => m && (m.coverage || []).length).length);
+        await deepDigCoverage(false);
+      } finally{ remapBusy = false; render(); }
     };
 
     root.querySelectorAll('[data-toggle]').forEach(el => {
