@@ -461,7 +461,12 @@
     try{
       const bank = getBankP2List();
       const mats = (store.materials || []).filter(m => m && (m.coverage || []).length);
-      if(!bank || !mats.length) return { applied: 0, failed: [] };
+      if(!bank || !mats.length){
+        // 9/23 她反馈：没有带 coverage 的卡时这里直接 return，版本号永远不对齐 → 换季横幅永远不消失。
+        // 没有映射可过时，横幅已无意义：直接对齐版本号让横幅消失（bank 取不到时除外——那是数据异常，保留横幅）。
+        if(bank && !mats.length && store.bankVersion !== DATA.speakingVersion){ store.bankVersion = DATA.speakingVersion; saveStore(); }
+        return { applied: 0, failed: [] };
+      }
       const newList = bank.map(b => b.title + (b.req ? '（要点：' + b.req + '）' : '')).join('\n');
       const bankTitles = bank.map(b => b.title);
       // 逐卡调用（单卡输出远小于全量，避免长输出被截断导致整体失败），
@@ -500,7 +505,9 @@
         applied++;
         saveStore(); if(!silent) render();   // 逐卡落库：后面卡失败，前面已完成的也不丢
       }
-      store.bankVersion = DATA.speakingVersion;
+      // 9/23 诚实口径：只要有失败卡就不对齐版本号（换季横幅保留，映射确实没完成，可再点重试）；
+      // 旧代码全失败也盖版本号 → 横幅消失但映射还是旧的（假成功，违反「AI 失败绝不落库」）。
+      if(!failed.length) store.bankVersion = DATA.speakingVersion;
       saveStore();
       if(DATA.settings.autoSync && DATA.settings.syncCode && typeof cloudUpload === 'function') cloudUpload(true);
       if(!silent){
@@ -575,7 +582,8 @@
     let h = '';
     // 换季横幅：素材是在旧题库版本下生成的，题族映射可能已过时 → 一键重映射（复用 .mat-shortwarn 现有样式）
     if((store.materials || []).length && store.bankVersion && store.bankVersion !== DATA.speakingVersion){
-      h += '<div class="mat-shortwarn" id="matBankWarn"><b>口语题库已换季</b>，你的素材题族映射可能过时。'
+      h += '<div class="mat-shortwarn" id="matBankWarn"><b>口语题库已换季</b>：这些素材是在旧版题库下生成的，每张卡「能串哪些题」的对照可能过时。'
+        + '点下面的按钮，AI 会按当季题库把各卡重新串一遍（需要已配置 AI Key）。'
         + '<div class="mat-shortwarn-actions"><button class="btn btn-primary" id="matRemapBtn">一键重新映射题族</button></div></div>';
     }
     // 覆盖率矩阵 / 深挖 / 缺题追问整套已移除（用户定案：素材出来直接去口语页练，
