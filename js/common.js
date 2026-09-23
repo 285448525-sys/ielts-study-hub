@@ -2060,6 +2060,7 @@ function _mergeMaterials(local, cloud){
     if(cloud.persona && JSON.stringify(cloud.persona) !== JSON.stringify(local.persona)) out.persona = cloud.persona;
     if(Array.isArray(cloud.gaps) && cloud.gaps.length && JSON.stringify(cloud.gaps) !== JSON.stringify(local.gaps)) out.gaps = cloud.gaps;
     out.answers = Object.assign({}, cloud.answers||{}, local.answers||{});   // 答案本机优先，避免云端旧快照覆盖用户刚改的内容
+    _mergeDetailBitsInto(local, cloud, out);   // v7.2：细节碎片库跨设备并集（epoch 重生成也不丢碎片）
     const changes = Math.max(0, data.length - (local.materials||[]).length);
     return { data: out, changes };
   }
@@ -2079,8 +2080,25 @@ function _mergeMaterials(local, cloud){
   if(Array.isArray(cloud.gaps) && cloud.gaps.length && JSON.stringify(cloud.gaps) !== JSON.stringify(local.gaps)){ out.gaps = cloud.gaps; }
   // 答案本机优先（与上方 epoch 分支对齐）：云端旧快照不应覆盖用户刚在本机改的内容
   out.answers = Object.assign({}, cloud.answers||{}, local.answers||{});
+  _mergeDetailBitsInto(local, cloud, out);   // v7.2：细节碎片库跨设备并集
   const changes = Math.max(0, out.materials.length - (local.materials||[]).length);
   return { data: out, changes };
+}
+/* v7.2 细节碎片库（DATA.materials.detailBits）跨设备合并：按 id 并集（无 id 用内容哈希），
+   同 id 取 ts 较新者；单侧缺失照常并另一侧——她补的/AI 代补的细节不因重生成或换设备丢失 */
+function _mergeDetailBitsInto(local, cloud, out){
+  const dbL = Array.isArray(local.detailBits) ? local.detailBits : [];
+  const dbC = Array.isArray(cloud.detailBits) ? cloud.detailBits : [];
+  if(!dbL.length && !dbC.length) return;
+  const map = new Map();
+  const put = b => {
+    if(!b || (!String(b.en||'').trim() && !String(b.zh||'').trim())) return;
+    const k = b.id || ('t' + hashStr(String(b.en||'').trim() + '|' + String(b.zh||'').trim()));
+    const prev = map.get(k);
+    if(!prev || _num(b.ts) >= _num(prev.ts)) map.set(k, b);
+  };
+  dbL.forEach(put); dbC.forEach(put);
+  out.detailBits = Array.from(map.values());
 }
 /* 分类名防御性清洗：去掉「（xxx）」「(xxx)」等括号及括号内后缀（如「观点型（第一优先级）」→「观点型」）。
    上移到 common.js：错句本等不引入 writing.js 的页面也需要用到，避免 ReferenceError 导致整页渲染中断。 */

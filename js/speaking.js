@@ -1169,6 +1169,28 @@ function matLoadStore(){
   return null;
 }
 
+/* v7.2 细节碎片库：串题时考生自己补的细节 / AI 代补的细节，沉淀进素材库（DATA.materials.detailBits）。
+   她背过的每个细节都进池子，之后任何题串题时都注入给 AI 当真实事实用——记一次，处处复用，不浪费记忆。
+   按 (en|zh) 文本去重防重复入库；成功返回新增条数。 */
+function matAddDetailBits(bits){
+  if(!Array.isArray(bits) || !bits.length) return 0;
+  const store = matLoadStore();
+  if(!store) return 0;
+  if(!Array.isArray(store.detailBits)) store.detailBits = [];
+  const norm = x => String(x || '').trim().toLowerCase();
+  let added = 0;
+  bits.forEach(b => {
+    if(!b) return;
+    const en = String(b.en || '').trim(), zh = String(b.zh || '').trim();
+    if(!en && !zh) return;
+    if(store.detailBits.some(x => norm(x.en) === norm(en) && norm(x.zh) === norm(zh))) return;
+    store.detailBits.push({ id: 'db' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), en, zh, from: b.from || '', ts: Date.now() });
+    added++;
+  });
+  if(added) hubSave();
+  return added;
+}
+
 /* === 口语目标分 → 串题稿词数预算（P1：按考生目标语速校准，目标越低语速越慢/卡顿越多，稿子越短）=== */
 function storyWordBudget(){
   const t = parseFloat(DATA.settings && DATA.settings.targets && DATA.settings.targets.speaking) || 5.5;
@@ -1252,7 +1274,7 @@ const SYS_CHUAN_FINAL = `你是雅思口语 P2 串题成稿助手。考生对一
 function chuanMatsText(){
   const store = matLoadStore();
   const mats = ((store && store.materials) || []).filter(Boolean).slice().sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
-  return mats.map((m, i) => {
+  let t = mats.map((m, i) => {
     const head = '【素材 ' + (i + 1) + '：' + (m.title || '未命名') + '】';
     const golden = '万能句（任何题都能套，优先整句使用）：' + ((m.goldenEn || []).join(' | '));
     const cov = '可套题族（搭边也行）：' + (m.coverage || []).map(c => c.topic + (c.fit === 'loose' ? '(搭边:' + c.note + ')' : '')).join('、');
@@ -1260,6 +1282,13 @@ function chuanMatsText(){
     if(i === 0) return head + '\n英文可背故事：' + (m.storyEn || '') + '\n' + logic + '\n' + golden + '\n' + cov;
     return head + '（仅摘要·无英文正文）\n' + logic + '\n' + golden + '\n' + cov;
   }).join('\n---\n');
+  // v7.2 细节碎片库：她记住的细节（自己补的 + AI 代补的）随素材一起注入，任何题的槽位都能用
+  const bits = ((store && store.detailBits) || []).filter(b => b && (b.en || b.zh)).slice(-12);
+  if(bits.length){
+    t += (t ? '\n\n' : '') + '【考生已记住的细节碎片（真实事实，可直接用于填充任何题的槽位，优先使用）】';
+    t += bits.map((b, i) => '\n' + (i + 1) + '. ' + (b.en ? b.en + (b.zh ? '（' + b.zh + '）' : '') : b.zh)).join('');
+  }
+  return t;
 }
 function chuanUserMsg(s){
   return 'P2 题目：' + (s.promptEn || s.title || '') +
@@ -1342,22 +1371,27 @@ async function planChuan(s){
   }
 }
 
-/* design/87 阶段二：补槽答案 + 素材 → 一段完整讲稿。失败不落库、不盖旧结果（AI 红线） */
-async function finalChuan(s){
+/* v7.2 AI 代补模式附加指令：她不想自己补 → AI 按铁律 A 亲自为 missing/weak 槽位设计可信细节，
+   织进讲稿并逐条输出 inventedDetails（en=织进稿子的英文句，zh=中文对照），供存入细节碎片库 */
+const CHUAN_AIFILL_SUFFIX = `\n\n【AI 代补模式】考生明确不想自己补充细节。请你按写作铁律 A 的血肉细节规则，亲自为上面 slotCheck 中 missing/weak 的槽位设计可信细节（与故事骨架一致、不离谱、只用初高中常见词），把它们自然织进 fullEn；并额外输出 "inventedDetails" 数组：每项 {"slot":"槽位短句","en":"织进讲稿的英文细节句","zh":"中文对照"}。inventedDetails 里的英文句必须原样出现在 fullEn 中。`;
+
+/* design/87 阶段二：补槽答案 + 素材 → 一段完整讲稿。失败不落库、不盖旧结果（AI 红线）
+   v7.2 aiFill=true = AI 代补模式（她不想自己补细节，让 AI 编可信细节并沉淀进碎片库） */
+async function finalChuan(s, aiFill){
   const resultEl = $('#aiResult');
   const linkBtn = document.getElementById('aiStoryLinkBtn');
   setStoryLinkBtn(linkBtn, '⏳ 出稿中…', true);
-  if(resultEl){ resultEl.style.display = 'block'; resultEl.innerHTML = '<div class="diag-note">正在把素材与你的补充细节整合成整段讲稿…</div>'; }
+  if(resultEl){ resultEl.style.display = 'block'; resultEl.innerHTML = '<div class="diag-note">' + (aiFill ? '正在让 AI 替你补细节、整合成整段讲稿…' : '正在把素材与你的补充细节整合成整段讲稿…') + '</div>'; }
   try{
     const p2 = (s.answers && s.answers.p2) || {};
     const draft = p2.linkDraft || {};
     const plan = draft.plan || {};
     const sup = draft.supplements || {};
-    const sys = chuanSysWithMats(chuanFillPh(SYS_CHUAN_FINAL));
+    const sys = chuanSysWithMats(chuanFillPh(SYS_CHUAN_FINAL)) + (aiFill ? chuanFillPh(CHUAN_AIFILL_SUFFIX) : '');
     const user = chuanUserMsg(s)
       + '\n\n【阶段一素材核对结果】' + JSON.stringify(plan.slotCheck || [])
       + (Array.isArray(plan.missingQuestions) && plan.missingQuestions.length ? '\n【补槽问题】' + JSON.stringify(plan.missingQuestions) : '')
-      + '\n【考生补充的真实细节】（空对象=不补直接出稿）' + JSON.stringify(sup);
+      + '\n【考生补充的真实细节】（空对象=不补直接出稿' + (aiFill ? '，请按 AI 代补模式自行设计细节' : '') + '）' + JSON.stringify(sup);
     const content = await callRelay('speaking_chuan_final', [
       { role:'system', content: sys },
       { role:'user', content: user }
@@ -1367,14 +1401,26 @@ async function finalChuan(s){
       throw new Error('__RAW__' + (content || ''));
     }
     const out = { ...j, fit: (j.fit === 'natural' ? 'natural' : 'adaptable'), v: 2, ts: Date.now(), raw: content };
+    if(aiFill && Array.isArray(j.inventedDetails)){
+      out.aiInvented = j.inventedDetails.filter(d => d && (d.en || d.zh));
+    }
     s.answers = s.answers || {};
     s.answers.p2 = s.answers.p2 || {};
     s.answers.p2.aiStoryLink = out;
     delete s.answers.p2.linkDraft;
     s.updatedAt = Date.now();
+    // v7.2 沉淀进素材碎片库：①考生自己补的细节 ②AI 代补的细节——她记过的每一句都复用到别的题
+    const missQ = Array.isArray(plan.missingQuestions) ? plan.missingQuestions : [];
+    const supBits = Object.keys(sup || {}).map(k => {
+      const v = sup[k];
+      const zh = Array.isArray(v) ? v.join('、') : (typeof v === 'string' ? v.trim() : '');
+      return (zh && zh !== '有' && zh !== '没有') ? { zh, en: '', from: (s && s.id) || '' } : null;
+    }).filter(Boolean);
+    const invBits = (out.aiInvented || []).map(d => ({ en: String(d.en || '').trim(), zh: String(d.zh || '').trim(), from: (s && s.id) || '' }));
+    const addedBits = matAddDetailBits(supBits.concat(invBits));
     hubSave();
     renderStoryLinkV2(resultEl, out, s);
-    toast('讲稿已生成');
+    toast('讲稿已生成' + (addedBits ? '，' + addedBits + ' 条细节已存入素材库' : ''));
   }catch(e){
     // 失败不落库：数据里旧稿原样保留；界面回到草稿态（补槽/判定卡）让她能直接重试
     if(resultEl){
@@ -1553,6 +1599,9 @@ function renderChuanFinal(el, j, s){
     h += '<div class="sp-weak-note">第 ' + j.weakBullets.map(n => Number(n) + 1).join('、') + ' 个要点素材偏弱，考官 P3 可能追问，建议补细节'
       + (s && s.id ? ' · <a href="javascript:void(0)" id="spWeakFix">去补细节</a>' : '') + '</div>';
   }
+  if(Array.isArray(j.aiInvented) && j.aiInvented.length){
+    h += '<div class="sp-weak-note">🧩 本次 AI 帮你补了 ' + j.aiInvented.length + ' 条细节，已存进素材碎片库——其他题串的时候会自动用上，不用重复记。</div>';
+  }
   if(j.mappingZh || j.logicChain){
     h += '<details class="sp-chuan-why"><summary>串题原理（想学怎么串再展开 ▸）</summary>';
     if(j.mappingZh) h += '<div class="mat-logic">' + escapeHtml(j.mappingZh) + '</div>';
@@ -1614,8 +1663,10 @@ function renderChuanSlotFill(el, j, s){
   });
   h += '<div class="sp-chuan-actions">'
     + '<button class="btn btn-primary" id="spFinalBtn" type="button">生成我的讲稿</button>'
-    + '<button class="btn" id="spSkipSupBtn" type="button">不补，直接出稿（可能偏题）</button>'
+    + '<button class="btn" id="spAiFillBtn" type="button">让 AI 帮我补细节出稿</button>'
+    + '<button class="sp-linklike" id="spSkipSupBtn" type="button">不补，直接出稿（可能偏题）</button>'
     + '<button class="sp-linklike" id="spGoMatBtn" type="button">这题放弃，去素材库补专属素材 →</button>'
+    + '<div class="sp-slot-evidence" style="margin-top:6px">「AI 帮我补」= AI 替你把缺的细节编好写进讲稿，编好的细节会自动存进素材库，其他题也能用——你只需要照着背。</div>'
     + '</div></div>';
   el.innerHTML = h;
   el.style.display = 'block';
@@ -1651,6 +1702,8 @@ function renderChuanSlotFill(el, j, s){
   }));
   const fin = el.querySelector('#spFinalBtn');
   if(fin) fin.addEventListener('click', () => finalChuan(s));
+  const aif = el.querySelector('#spAiFillBtn');
+  if(aif) aif.addEventListener('click', () => finalChuan(s, true));   // v7.2：AI 代补模式，细节自动沉淀进素材库
   const skip = el.querySelector('#spSkipSupBtn');
   if(skip) skip.addEventListener('click', () => finalChuan(s));   // supplements 原样传（可能为空），SYS_CHUAN_FINAL 第 2 条处理
   spBindMatGuideBtn(el);

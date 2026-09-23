@@ -1048,9 +1048,30 @@
       }
       h += '</div></div>';
     });
+    // v7.2 细节碎片库：串题时她补的 / AI 代补的细节自动沉淀在这里，之后任何题串题都自动复用
+    const bits86 = Array.isArray(store.detailBits) ? store.detailBits.filter(b => b && (b.en || b.zh)) : [];
+    if(bits86.length){
+      h += '<div class="mat-sec-title">记住的细节碎片 <span class="tag">' + bits86.length + ' 条 · 串题自动复用</span></div>';
+      h += '<div class="mat-shortwarn" style="background:var(--card);">串题时你自己补的、或让 AI 补的细节都存在这里——其他题串不动时，AI 会优先拿这些碎片当真实事实用，背一次到处用。'
+        + '<div style="margin-top:8px">' + bits86.map(b =>
+          '<div class="sp-slot-row" style="display:flex;align-items:flex-start;gap:6px;margin-bottom:4px"><span style="flex:1">'
+          + (b.en ? escapeHtml(b.en) : '') + (b.en && b.zh ? ' <span style="opacity:.65">（' + escapeHtml(b.zh) + '）</span>' : (b.zh ? escapeHtml(b.zh) : ''))
+          + '</span><button class="mat-mini danger" data-delbit="' + escapeHtml(b.id || '') + '">删</button></div>').join('')
+        + '</div></div>';
+    }
     // 行动
     h += '<div class="mat-actions"><a class="btn btn-primary" href="speaking.html">去练口语 →</a><button class="mat-add" id="matRegen">↻ 重新填写 / 生成</button></div>';
     root.innerHTML = h;
+    // v7.2 删除单条细节碎片
+    root.querySelectorAll('[data-delbit]').forEach(b => {
+      b.onclick = () => {
+        const id = b.dataset.delbit;
+        store.detailBits = (store.detailBits || []).filter(x => (x.id || '') !== id);
+        saveStore();
+        render();
+        toast('已删除该细节碎片');
+      };
+    });
 
     // 换季重映射：deepDigCoverage 内部逐卡落库并更新 store.bankVersion，完成后重渲横幅自然消失。
     // remapBusy 防重复点击/软导航重渲后重复触发；进度显示走 remapProgress（不整页重渲）。
