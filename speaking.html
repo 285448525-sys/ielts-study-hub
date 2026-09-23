@@ -47,7 +47,7 @@
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
   <script defer src="js/sentence-drill.js?v=20260922b"></script>
   <script defer src="js/speaking.js?v=20260923c"></script>
-  <script defer src="js/materials.js?v=20260923b"></script>
+  <script defer src="js/materials.js?v=20260923c"></script>
   <script defer src="js/mock-report.js?v=20260830u"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
   <script defer src="js/mock.js?v=20260922b"></script>
@@ -583,6 +583,35 @@
   .mat-cov-badge.nat{ background:var(--primary-soft); color:var(--primary); }
   .mat-cov-note{ display:block; font-size:11.5px; color:var(--muted); margin-top:2px; }
   [data-theme="dark"] .mat-story-en{ background:var(--surface); color:var(--ink); }
+
+  /* === design/86 · 漏斗式动态问卷 + 故事骨架层 === */
+  .opt-tag{ font-size:11px; font-weight:600; color:var(--muted); background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:1px 7px; margin-left:6px; vertical-align:1px; }
+  .mat-step{ margin:12px 0 2px; }
+  .mat-step-label{ font-size:13.5px; font-weight:600; color:var(--ink); line-height:1.6; margin-bottom:6px; }
+  .mat-step input[type="text"]{ width:100%; box-sizing:border-box; min-height:44px; padding:9px 12px; border:1px solid var(--line); border-radius:var(--radius-sm); font:inherit; font-size:14px; background:var(--surface); color:var(--ink); transition:border-color .15s, box-shadow .15s; }
+  .mat-step input[type="text"]:focus{ border-color:var(--primary); box-shadow:0 0 0 3px var(--primary-soft); outline:none; }
+  .mat-yn{ display:flex; gap:10px; }
+  .mat-yn button{ flex:1; min-height:44px; border:1.5px solid var(--line); border-radius:var(--radius-sm); background:var(--surface); color:var(--ink); font:inherit; font-size:14px; font-weight:700; cursor:pointer; transition:border-color .15s, background .15s, color .15s; }
+  .mat-yn button:hover{ border-color:var(--primary); }
+  .mat-yn button.on{ border-color:var(--primary); background:var(--primary-soft); color:var(--primary); }
+  .mat-chips{ display:flex; flex-wrap:wrap; gap:8px; }
+  .mat-chip.pick{ cursor:pointer; font:inherit; font-size:12.5px; padding:8px 13px; transition:border-color .15s, background .15s, color .15s; }
+  .mat-chip.pick:hover{ border-color:var(--primary); color:var(--primary); }
+  .mat-chip.pick.on{ background:var(--primary); border-color:var(--primary); color:#fff; }
+  .mat-nohint{ font-size:12.5px; color:var(--muted); line-height:1.6; margin-top:6px; }
+  .mat-topics{ margin:8px 0 2px; font-size:12.5px; color:var(--muted); }
+  .mat-topics summary{ cursor:pointer; user-select:none; }
+  .mat-topics .mat-chips{ margin-top:8px; }
+  .mat-spine{ display:flex; flex-direction:column; gap:6px; margin:4px 0 8px; }
+  .mat-spine-line{ display:flex; align-items:flex-start; gap:8px; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:8px 11px; font-size:13.5px; line-height:1.6; color:var(--ink); }
+  .mat-spine-n{ flex:none; width:20px; height:20px; border-radius:50%; background:var(--primary-soft); color:var(--med); font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; margin-top:2px; }
+  .mat-mini.armed-danger{ background:var(--danger); border-color:var(--danger); color:#fff; }
+  .mat-plan-skipped{ border-style:dashed; color:var(--muted); font-size:13.5px; cursor:pointer; }
+  .mat-legacy{ margin:16px 0; }
+  .mat-legacy summary{ cursor:pointer; user-select:none; font-size:12.5px; font-weight:600; color:var(--muted); }
+  .mat-legacy-item{ margin-top:8px; padding:8px 11px; background:var(--bg); border:1px dashed var(--line); border-radius:var(--radius-sm); }
+  .mat-legacy-key{ font-size:12px; color:var(--muted); word-break:break-all; }
+  .mat-legacy-text{ font-size:13px; color:var(--ink); white-space:pre-wrap; line-height:1.6; word-break:break-word; margin-top:2px; }
 
   /* === 25 · 口语练习效率优化（降低使用门槛，纯视觉/布局，不动 JS） === */
 
