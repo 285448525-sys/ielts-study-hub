@@ -172,6 +172,10 @@ function renderDashTasks(){
   try{
   const host = document.getElementById('dashTodayTasks');
   if(!host) return;
+  // 她报的 bug：每天第一次开首页时今日任务为空（要先进一次计划页才有）——
+  // 原延续逻辑只在 plans.js render() 里触发，首页不进计划页就不搬。
+  // 现在首页也触发（common.js ensureTodayPlanCarried，幂等：今天有计划对象就 no-op）。
+  try{ ensureTodayPlanCarried(); }catch(e){}
   const tkey = todayKey();
   const plan = (DATA.plans || []).find(p => p && p.date === tkey);
   const items = (plan && Array.isArray(plan.items)) ? plan.items : [];
@@ -244,7 +248,7 @@ function renderDashTasks(){
   const sorted = items.slice().sort((a, b) => (a && a.done) === !!(b && b.done) ? 0 : (a && a.done ? 1 : -1));
   html += sorted.map(i => {
     const jmp = (typeof planJumpInfo === 'function') ? planJumpInfo(i && i.text) : null;
-    return '<div class="plan-item ' + (i && i.done ? 'done' : '') + (jmp ? ' jumpable' : '') + '"'
+    return '<div class="plan-item ' + (i && i.done ? 'done' : '') + (i && i.carried ? ' carried' : '') + (jmp ? ' jumpable' : '') + '"'
       + (jmp ? ' data-jfile="' + escapeHtml(jmp.file) + '"'
         + (jmp.open ? ' data-jopen="' + escapeHtml(jmp.open) + '"' : '')
         + ' title="' + escapeHtml((jmp.label || '去学习') + '，点击直达并计时') + '"' : '')

@@ -229,25 +229,8 @@ function render(){
   // 把「前一天」所有未勾选（done:false）的任务复制过来（新 id、done:false、标记 carried），
   // 实现「昨天没做完 → 今天自动续上」。
   if(date === todayKey()){
-    const todayPlan = getPlan(date);
-    // 仅在「今天计划对象还不存在」时自动延续一次（把昨天未完成的搬来）。
-    // 注意：不能用 items.length===0 当触发条件——否则用户把今天任务删光后会
-    // 反复把昨天的任务「复活」，表现为「删都删不掉」。
-    // 注意：绝不能在这里对「已存在但无 initialized 标记」的今天计划执行 ensurePlan+hubSave，
-    // 否则只看历史某天时也会反复写盘、触发云端同步乒乓，甚至把旧数据异常覆盖。
-    if(!todayPlan){
-      const yPlan = getPlan(addDays(date, -1));
-      if(yPlan && Array.isArray(yPlan.items) && yPlan.items.length){
-        const carried = yPlan.items.filter(i => !i.done);
-        if(carried.length){
-          const tp = ensurePlan(date);
-          carried.forEach(i => tp.items.push({ id: uid(), text: i.text, done: false, carried: true, fromId: i.id, updatedAt: Date.now() }));
-          tp.initialized = true;
-          hubSave();
-        }
-      }
-      // 今天计划对象已存在（包括被上面 ensurePlan 创建的）：不再做任何写盘操作
-    }
+    // 自动延续逻辑抽到 common.js ensureTodayPlanCarried()（首页也要触发，见 index.js）
+    ensureTodayPlanCarried();
   }
   const p = getPlan(date);
   const items = (p && Array.isArray(p.items)) ? p.items : [];

@@ -3818,3 +3818,24 @@ function planJumpUrl(jmp){
     ? (jmp.file + '?open=' + encodeURIComponent(jmp.open) + '&autostart=1')
     : (jmp.file + '?autostart=1');
 }
+
+/* ===== 今日计划自动延续（9/25 自 plans.js 抽出供首页共用） =====
+   她 9/25 实测的 bug：昨天没做完的任务，只有打开「计划」页才会被延续到今天（延续逻辑原来
+   只挂在 plans.js 的 render 里）→ 每天第一次打开首页「今日任务」永远是空的。
+   口径与原实现完全一致：仅当「今天还没有计划对象」时，把昨天未完成的条目复制过来
+   （新 id、done:false、carried:true、fromId 指回原条目——云端合并按 fromId 去重，跨端自动收敛）。
+   今天计划对象已存在（包括被删空）→ 绝不写盘，防止「删都删不掉」。 */
+function ensureTodayPlanCarried(){
+  const t = todayKey();
+  if((DATA.plans || []).some(p => p && p.date === t)) return false;
+  const yp = (DATA.plans || []).find(p => p && p.date === addDays(t, -1));
+  if(!yp || !Array.isArray(yp.items) || !yp.items.length) return false;
+  const carried = yp.items.filter(i => i && !i.done);
+  if(!carried.length) return false;
+  DATA.plans.push({
+    id: uid(), date: t, initialized: true,
+    items: carried.map(i => ({ id: uid(), text: i.text, done: false, carried: true, fromId: i.id, updatedAt: Date.now() }))
+  });
+  try{ hubSave(); }catch(e){}
+  return true;
+}
