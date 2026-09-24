@@ -15,16 +15,8 @@ var DAILY = ['词库复习 / 生词复盘 20 词','服专注达：把最难的�
 var currentWeek = null;
 /* ⭐ TDZ 铁律：页面级 const 必须在 ready() 之前——ready 回调在脚本求值期同步执行，
    声明放后面（render 附近）会在首次 render 时 hit TDZ 整页崩（9/17 reload 实测）。 */
-const PLAN_TIMER_PLAY = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="7.5 5 18.5 12 7.5 19 7.5 5"/></svg>';
-const PLAN_TIMER_STOP = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="1.5"/></svg>';
 
-/* 口语题库取题助手：题库编号 = DATA.speaking 数组顺序（1 起，口语页题库列表顺序一致）。
-   9/23 按她要求撤掉内置冲刺日程表/横幅/一键加入——每天练哪些题以 plan/29天冲刺计划.md 文件为准，
-   她把题号输进输入框，AI 识别后生成「口语 题库N」短任务，这里只负责补题名和跳转。 */
-function bankAt(n){
-  const q = (DATA.speaking || [])[Number(n) - 1];
-  return q || null;
-}
+/* 口语题库取题助手 bankAt 已迁 common.js（9/24：首页今日任务行也要用）。
 /* AI 返回的任务里「题库N」→ 自动补真实题名：「口语 题库1」→「口语 题库1 Feeling bored」。
    AI 已自己带题名（题库N 后紧跟同题名）时不重复补；编号越界保持原样。 */
 function enrichSpeakingTasks(arr){
@@ -62,14 +54,6 @@ ready(() => {
     hubSave();
     buildAndRender(getCustomTasks());
   });
-
-  // 计时状态变化（任务行/悬浮标签/计时页 开始与结束）→ 重渲染任务行按钮态。
-  // window 缓存句柄：软导航重进本页先摘旧监听再挂新的，防 document 级监听累积。
-  if(window.__plansTimerStateH) document.removeEventListener('hub:timer-state', window.__plansTimerStateH);
-  window.__plansTimerStateH = function(){
-    if(document.getElementById('planList')) render();
-  };
-  document.addEventListener('hub:timer-state', window.__plansTimerStateH);
 
   render();
 
@@ -235,66 +219,9 @@ function startEdit(id){
   });
 }
 
-/* ---------- 9/17 任务行「直接计时」：点 ▶ 按任务科目开表，再点 ⏹ 手动结束；打钩照旧手动 ---------- */
-/* 任务文本 → 计时模块 id（识别不出 → null，该行不显示计时按钮） */
-function planModIdOf(text){
-  const t = String(text || '');
-  if(/背单词|背词|词库|单词/.test(t)) return 'vocab';
-  if(/口语|口\d/.test(t)) return 'speaking';
-  if(/听力|精听|听写/.test(t)) return 'listening';
-  if(/阅读|精读/.test(t)) return 'reading';
-  if(/写作|作文/.test(t)) return 'writing';
-  return null;
-}
-/* 当前活跃计时源：本标签页持有优先；刷新/直入后 window.active 为空 → 回落云端镜像（owner=本机） */
-function planActiveSrc(){
-  if(window.active && window.active.startTs && !window.active.ended) return window.active;
-  try{
-    const m = DATA.activeTimer;
-    if(m && !m.ended && m.startTs && (m.ownerDevice || '') === getDeviceId()) return m;
-  }catch(e){}
-  return null;
-}
-function onPlanTimerBtn(btn){
-  const id = btn.dataset.timer, mod = btn.dataset.mod;
-  const p = getPlan(currentDate()); if(!p) return;
-  const it = p.items.find(x => x.id === id); if(!it) return;
-  const src = planActiveSrc();
-  if(src && src.subName === it.text){
-    // 本任务计时中 → 结束（⏹）。本标签页持有走 mono 精确结算；刷新后无 active 走跨页安全结算
-    if(window.active && typeof stopSession === 'function') stopSession();
-    else if(typeof window.stopActiveSession === 'function') window.stopActiveSession();
-    return;
-  }
-  if(src){ toast('已有计时在进行：「' + (src.subName || src.moduleName || '学习') + '」，先结束再开新的'); return; }
-  if(typeof mirrorHeldByOther === 'function' && mirrorHeldByOther(DATA.activeTimer)){
-    toast('另一设备正在计时，请先在那边结束', 3500); return;
-  }
-  if(typeof startSession === 'function'){ startSession(mod, it.text); }   // hub:timer-state → render() 刷新按钮态
-  else toast('计时模块还没加载好，稍等一下再点');
-}
-
-/* 任务文本 → 站内跳转（口语可带 ?open=题id 直达该题详情；识别不出 → null 不显示按钮）
-   9/23 口径：AI 生成的口语任务统一「口语 题库N」格式（enrichSpeakingTasks 已补题名），
-   按题库编号直达；旧的泛称任务（口语 P1 第N题）跳口语页不带 open。 */
-function planJumpInfo(text){
-  const t = String(text || '');
-  if(/口语/.test(t)){
-    let m = t.match(/题库(\d+)/);
-    const s = m ? bankAt(m[1]) : null;
-    return { file: 'speaking.html', open: (s && s.id) || '', label: '去口语' + (s ? '（' + s.titleEn + '）' : '') };
-  }
-  if(/背单词|背词|词库|单词/.test(t)) return { file: 'practice.html', open: '', label: '去背词' };
-  if(/写作|作文/.test(t)) return { file: 'writing.html', open: '', label: '去写作' };
-  if(/错题|错句本/.test(t)) return { file: 'wrongbook.html', open: '', label: '去错题本' };
-  if(/素材|串题/.test(t)) return { file: 'materials.html', open: '', label: '去素材库' };
-  return null;
-}
-function onPlanJump(btn){
-  const file = btn.dataset.jfile, open = btn.dataset.jopen;
-  if(!file) return;
-  location.href = open ? (file + '?open=' + encodeURIComponent(open)) : file;
-}
+/* 9/24 她拍板：计划页任务行只留 编辑 + 删除。
+   原「直接计时」(planModIdOf/planActiveSrc/onPlanTimerBtn) 与「↗ 跳转」(planJumpInfo/onPlanJump)
+   整块删除；跳转能力迁到首页今日任务行（common.js planJumpInfo/planJumpUrl）。 */
 
 function render(){
   const date = currentDate();
@@ -341,23 +268,11 @@ function render(){
     const carriedTip = carriedCount
       ? `<div class="plan-carry-tip">↻ 其中 ${carriedCount} 条是昨天未完成的，已自动延续到今天</div>`
       : '';
-    const srcActive = planActiveSrc();
-    const heldOther = (typeof mirrorHeldByOther === 'function') ? mirrorHeldByOther(DATA.activeTimer) : false;
     box.innerHTML = carriedTip + items.map(i => {
-      const mod = planModIdOf(i.text);
-      const isThis = !!(srcActive && srcActive.subName === i.text);
-      const tbtn = mod
-        ? `<button class="plan-timer${isThis ? ' running' : ''}" data-timer="${i.id}" data-mod="${mod}"${(heldOther && !isThis) ? ' disabled' : ''} title="${isThis ? '结束计时' : '直接开始计时'}">${isThis ? PLAN_TIMER_STOP : PLAN_TIMER_PLAY}</button>`
-        : '';
-      const jmp = planJumpInfo(i.text);
-      const jbtn = jmp
-        ? `<button class="plan-jump" data-jfile="${jmp.file}"${jmp.open ? (' data-jopen="' + escapeHtml(jmp.open) + '"') : ''} title="${escapeHtml(jmp.label)}">↗</button>`
-        : '';
       return `
       <div class="plan-item ${i.done ? 'done' : ''} ${i.carried ? 'carried' : ''}">
         <input type="checkbox" ${i.done ? 'checked' : ''} data-toggle="${i.id}" />
         <span class="plan-text" data-id="${i.id}" title="点击编辑">${escapeHtml(i.text)}</span>
-        ${tbtn}${jbtn}
         <button class="plan-edit" data-edit="${i.id}" title="编辑">✎</button>
         <button class="plan-del" data-del="${i.id}" title="删除">✕</button>
       </div>
@@ -367,10 +282,6 @@ function render(){
       c.addEventListener('change', () => toggleItem(c.dataset.toggle)));
     box.querySelectorAll('.plan-text[data-id]').forEach(s =>
       s.addEventListener('click', () => startEdit(s.dataset.id)));
-    box.querySelectorAll('button[data-timer]').forEach(b =>
-      b.addEventListener('click', () => onPlanTimerBtn(b)));
-    box.querySelectorAll('.plan-jump[data-jfile]').forEach(b =>
-      b.addEventListener('click', () => onPlanJump(b)));
     box.querySelectorAll('button[data-edit]').forEach(b =>
       b.addEventListener('click', () => startEdit(b.dataset.edit)));
     box.querySelectorAll('button[data-del]').forEach(b =>

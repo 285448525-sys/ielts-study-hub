@@ -3781,3 +3781,40 @@ function onbOpenSetup(step){
   _onbShownThisLoad = true;
   onbRenderSetup(step);
 }
+
+/* ===== 计划任务 → 站内跳转（9/24 自 plans.js 迁入：计划页删跳转钮，首页今日任务行整行可点） =====
+   口语题号解析：题库N = DATA.speaking 数组顺序（1 起）；「P1/P2 第N题」= 该 part 列表第 N 题
+   （排除框架母本，与口语页题库同口径）。autostart=1：落地页直接开始学习计时（她 9/24 拍板）。 */
+function bankAt(n){
+  const q = (DATA.speaking || [])[Number(n) - 1];
+  return q || null;
+}
+function planJumpInfo(text){
+  const t = String(text || '');
+  if(/口语/.test(t)){
+    let m = t.match(/题库(\d+)/);
+    if(m){
+      const s = bankAt(m[1]);
+      return { file: 'speaking.html', open: (s && s.id) || '', label: '去口语' + (s ? '（' + (s.titleEn || s.titleZh || '') + '）' : '') };
+    }
+    m = t.match(/P([12])\s*第(\d+)\s*题/);
+    if(m){
+      const list = (DATA.speaking || []).filter(x => x && x.type === ('P' + m[1]) && !x.framework && !/^sp_p[12]_\d+$/.test(x.id || ''));
+      const s = list[Number(m[2]) - 1] || null;
+      return { file: 'speaking.html', open: (s && s.id) || '', label: s ? ('去口语 ' + (s.titleEn || s.titleZh || '')) : '去口语' };
+    }
+    return { file: 'speaking.html', open: '', label: '去口语' };
+  }
+  if(/背单词|背词|词库|单词/.test(t)) return { file: 'practice.html', open: '', label: '去背词' };
+  if(/写作|作文/.test(t)) return { file: 'writing.html', open: '', label: '去写作' };
+  if(/错题|错句本/.test(t)) return { file: 'wrongbook.html', open: '', label: '去错题本' };
+  if(/素材|串题/.test(t)) return { file: 'materials.html', open: '', label: '去素材库' };
+  return null;
+}
+/* 跳转 URL：带 open 直达该题；一律带 autostart=1 → 落地即开计时 */
+function planJumpUrl(jmp){
+  if(!jmp || !jmp.file) return '';
+  return jmp.open
+    ? (jmp.file + '?open=' + encodeURIComponent(jmp.open) + '&autostart=1')
+    : (jmp.file + '?autostart=1');
+}

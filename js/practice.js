@@ -2083,5 +2083,8 @@ ready(() => {
   if(typeof wbRenderSwitchers === 'function') wbRenderSwitchers();
   repairResetDh();      // 9/24 一次性：重排「答对却被塌成 1 天」的词（幂等，跑完置 _repairResetDhV）
   repairDhReplay();     // 9/24 一次性：按 hist 全链重放，补回被 bug 吞掉的半衰期（幂等，_repairDhReplayV）
+  // 9/24：首页今日任务跳转带 autostart=1 → 落地即开「背单词」计时（她拍板：跳转过去直接开始计时）。
+  // maybeStartWordTimer 自带「已有背词表不重复开 + 他模块先正规结算」，重复调用安全。
+  try{ if(new URLSearchParams(location.search).get('autostart')) maybeStartWordTimer(); }catch(e){}
   autoStartSeeWord();
 });

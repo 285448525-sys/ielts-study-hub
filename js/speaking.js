@@ -289,6 +289,13 @@ ready(() => {
       $('#listView').hidden = true;
       openDetail(openId);
     }
+    // 9/24：首页今日任务跳转带 autostart=1 → 落地即开计时（她拍板：跳转过去直接开始计时）。
+    // maybeStartSpkTimer 自带引导期护栏 + 已有口语表不重复开，重复调用安全。
+    // ⭐ 必须 setTimeout(0)：ready 回调在脚本求值期同步执行，SPK_TIMER_MODULE 等 const
+    //   声明在文件后段（~3001 行）尚未初始化，直接调会 TDZ 且被本 try 吞掉（探针 3b 实测）。
+    if(new URLSearchParams(location.search).get('autostart')){
+      setTimeout(() => { try{ maybeStartSpkTimer(); }catch(_){} }, 0);
+    }
   }catch(_){}
   // design/17 3.5：回顾页「去练」带 ?senttab=1——确保落练习 tab（默认即练习，兜底防其他参数抢占）
   try{

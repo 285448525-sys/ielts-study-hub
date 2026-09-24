@@ -29,7 +29,7 @@
 })();
 </script>
 <title>计划 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20260923b" />
+<link rel="stylesheet" href="css/common.css?v=20260924a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=6" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=6">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=6">
@@ -40,24 +40,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20260923c"></script>
-  <script defer src="js/common.js?v=20260922j"></script>
-  <!-- 9/17 任务行「直接计时」：timer.js 供 plans.js 调 startSession/stopSession（含云端心跳续租）；
-       其 ready() 对非计时页早退（无 #liveTimer），不会跑计时页的 DOM 绑定 -->
-  <script defer src="js/timer.js?v=20260918g"></script>
-  <script src="js/plans.js?v=20260923c" defer></script>
+  <script defer src="js/common.js?v=20260924a"></script>
+  <script src="js/plans.js?v=20260924a" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
 #bootLoader .ui-loader{margin-bottom:8px}
 @media (prefers-reduced-motion: reduce){#bootLoader .ui-loader-dot,#bootLoader .ui-loader-shadow{animation:none}#bootLoader .ui-loader-dot{top:20px;height:20px;border-radius:50%;transform:none}#bootLoader .ui-loader-shadow{opacity:.5;transform:scaleX(1)}}
-</style>
-<style>
-/* 9/17 任务行「直接计时」按钮：与 ✎/✕ 同型的图标钮；计时中变主色实底 ⏹ */
-.plan-timer{background:none;border:none;cursor:pointer;flex:none;padding:2px 6px;border-radius:var(--radius-sm);color:var(--muted);display:inline-flex;align-items:center;justify-content:center;transition:background .15s,color .15s}
-.plan-timer:hover{color:var(--primary);background:var(--primary-soft)}
-.plan-timer.running{color:var(--on-primary);background:var(--primary)}
-.plan-timer.running:hover{opacity:.85}
-.plan-timer:disabled{opacity:.45;cursor:not-allowed}
 </style>
 </head>
 <body>

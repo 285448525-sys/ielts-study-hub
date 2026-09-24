@@ -236,14 +236,21 @@ function renderDashTasks(){
     return;
   }
 
-  // 任务行：未完成在前、已完成在后（组内保持原顺序）；文本全部 escapeHtml
+  // 任务行：未完成在前、已完成在后（组内保持原顺序）；文本全部 escapeHtml。
+  // 9/24：跳转能力从计划页迁来——能识别目标的任务整行可点，点击直达 + autostart=1 落地即开计时；
+  // 识别不出（如听力第N篇）不可点。题号任务（口语 P1 第N题）hover 提示显示解析出的真实题名。
   const sorted = items.slice().sort((a, b) => (a && a.done) === !!(b && b.done) ? 0 : (a && a.done ? 1 : -1));
-  html += sorted.map(i =>
-    '<div class="plan-item ' + (i && i.done ? 'done' : '') + '">'
-    + '<input type="checkbox" ' + (i && i.done ? 'checked' : '') + ' data-toggle="' + escapeHtml(String(i.id)) + '" />'
-    + '<span class="plan-text">' + escapeHtml(i && i.text) + '</span>'
-    + '</div>'
-  ).join('');
+  html += sorted.map(i => {
+    const jmp = (typeof planJumpInfo === 'function') ? planJumpInfo(i && i.text) : null;
+    return '<div class="plan-item ' + (i && i.done ? 'done' : '') + (jmp ? ' jumpable' : '') + '"'
+      + (jmp ? ' data-jfile="' + escapeHtml(jmp.file) + '"'
+        + (jmp.open ? ' data-jopen="' + escapeHtml(jmp.open) + '"' : '')
+        + ' title="' + escapeHtml((jmp.label || '去学习') + '，点击直达并计时') + '"' : '')
+      + '>'
+      + '<input type="checkbox" ' + (i && i.done ? 'checked' : '') + ' data-toggle="' + escapeHtml(String(i.id)) + '" />'
+      + '<span class="plan-text">' + escapeHtml(i && i.text) + '</span>'
+      + '</div>';
+  }).join('');
   // 全部任务完成（items 非空且 done=100%）→ 一行正向反馈，不引入 XP/积分字段
   if(doneN === items.length) html += '<div class="dash-tasks-done">今天的任务完成了</div>';
   host.innerHTML = html;
@@ -258,6 +265,15 @@ function renderDashTasks(){
       it.done = c.checked;
       hubSave();
       renderDashTasks();
+    });
+  });
+  // 9/24：整行点击 → 跳转（planJumpUrl 带 autostart=1，落地页直接开计时）。
+  // 点在勾选框上不跳（那是打钩）；识别不出目标的行没有 jumpable 类，根本不绑。
+  host.querySelectorAll('.plan-item.jumpable').forEach(row => {
+    row.addEventListener('click', e => {
+      if(e.target && e.target.tagName === 'INPUT') return;
+      const url = (typeof planJumpUrl === 'function') ? planJumpUrl({ file: row.dataset.jfile, open: row.dataset.jopen || '' }) : '';
+      if(url) location.href = url;
     });
   });
   }catch(e){ console.error('[index] 渲染失败 renderDashTasks', e); }

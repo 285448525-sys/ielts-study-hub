@@ -1046,9 +1046,7 @@ html[data-theme="dark"] .finish-zero-card{background:rgba(70,168,131,.16)}
 .plan-carry-tip{font-size:12.5px;color:var(--primary);background:var(--primary-soft);border-radius:var(--radius-sm);padding:7px 10px;margin-bottom:8px;line-height:1.5}
 .plan-item.carried{position:relative;padding-left:10px}
 .plan-item.carried::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:2px;background:var(--primary);opacity:.45}
-/* 任务行 ↗ 跳转按钮 */
-.plan-jump{background:none;border:none;cursor:pointer;flex:none;font-size:14px;padding:2px 7px;border-radius:var(--radius-sm);color:var(--primary);transition:background .15s,color .15s}
-.plan-jump:hover{color:var(--on-primary);background:var(--primary)}
+/* 任务行 ↗ 跳转按钮已删（9/24：跳转迁到首页今日任务整行，见下方 .dash-tasks .plan-item.jumpable） */
 
 /* scores */
 .score-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 0;border-top:1px dashed var(--line)}
@@ -2069,6 +2067,10 @@ main.container{padding-top:40px}
 .dash-tasks .plan-item{padding:8px 0}
 /* 超长任务文本换行不撑破布局 */
 .dash-tasks .plan-text{flex:1;min-width:0;word-break:break-word;white-space:normal;cursor:default}
+/* 9/24：能识别目标的任务整行可点 → 跳转 + 落地自动开计时；识别不出的行保持默认不可点 */
+.dash-tasks .plan-item.jumpable{cursor:pointer;border-radius:var(--radius-sm);margin:0 -6px;padding-left:6px;padding-right:6px}
+.dash-tasks .plan-item.jumpable:hover{background:var(--primary-soft)}
+.dash-tasks .plan-item.jumpable:hover .plan-text{color:var(--primary)}
 /* 全部任务完成的正向反馈（不引入 XP/积分字段） */
 .dash-tasks-done{padding:8px 0 2px;font-size:13.5px;font-weight:700;color:var(--primary)}
 /* 空状态：引导去计划页 */
