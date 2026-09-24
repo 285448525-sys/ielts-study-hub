@@ -111,16 +111,72 @@ function pcSave(obj){
   if(!DATA.settings || typeof DATA.settings !== 'object') DATA.settings = {};
   DATA.settings.practiceCfg = Object.assign(pc(), obj);
   hubSave();
+  // 9/25：改「每日学习上限」当场生效（目标数、剩余额度、完成卡状态都立刻按新上限重算）
+  if(obj && Object.prototype.hasOwnProperty.call(obj, 'dailyCap')){
+    try{ onDailyCapChanged(); }catch(e){}
+  }
+}
+
+/* ======= 今日已练（9/25 修复）：答一个记一个，不再等整轮结束 =======
+   旧口径 = wbDayStats().totalWords，只在 finishPractice 回写 → 背了几十个又改设置/刷新时
+   「已背」被算成 0、上限白改（她 9/25 实测：400 背了几十个改 300，目标变 300 但已背归零）。
+   新口径：内存 Set 实时记（每题作答即加），节流落盘（15 个 或 30s），离开页面前补一次 flush。 */
+let _practicedSet = null;          // 今日已作答 unique 词（小写 en）
+let _practicedDirty = 0;
+let _practicedFlushAt = 0;
+function practicedSet(){
+  if(_practicedSet) return _practicedSet;
+  _practicedSet = new Set();
+  try{
+    const rec = (typeof wbPracticed === 'function') ? wbPracticed() : null;
+    (rec && rec.words ? rec.words : []).forEach(k => { if(k) _practicedSet.add(String(k)); });
+  }catch(e){}
+  return _practicedSet;
+}
+function practicedCount(){ return practicedSet().size; }
+function markPracticed(en){
+  const k = String(en == null ? '' : en).trim().toLowerCase();
+  if(!k) return;
+  const s = practicedSet();
+  if(s.has(k)) return;
+  s.add(k);
+  _practicedDirty++;
+  const now = Date.now();
+  if(_practicedDirty >= 15 || (now - _practicedFlushAt) > 30000) flushPracticed();
+}
+function flushPracticed(){
+  if(!_practicedSet || _practicedSet.size === 0) return;
+  try{
+    if(typeof wbMarkPracticed === 'function') wbMarkPracticed(Array.from(_practicedSet));
+    _practicedDirty = 0;
+    _practicedFlushAt = Date.now();
+  }catch(e){}
 }
 
 /* 9/24：今日剩余配额 = 每日学习上限 − 今日已背。返回 null = 不限（沿用旧的「一轮 60 个」口径）。
-   今日已背取 wbDayStats().totalWords（今天真实背过的 unique 词数，finishPractice 落库）——
-   ⚠️ 中途退出不算数：只有背完一整轮才回写，所以「背了 220 个就关页面」时首页仍显示整轮前的额度。 */
+   9/25：已背改读 practiced（实时），改上限后立刻按「已背不动、只看新上限」重算。 */
 function dailyQuotaLeft(){
   const cap = Number(pc().dailyCap) || 0;
   if(cap <= 0) return null;
-  const done = (typeof wbDayStats === 'function') ? (Number(wbDayStats().totalWords) || 0) : 0;
-  return Math.max(0, cap - done);
+  return Math.max(0, cap - practicedCount());
+}
+
+/* 9/25：改完「每日学习上限」立刻生效（不用硬刷新）。
+   已背数不动，只按新上限重判：之前停在「今日目标完成」卡而现在又有额度 → 直接重新开始出题；
+   正在答题则不动队列，只提示新口径（已背 N / 新上限 M）。 */
+function onDailyCapChanged(){
+  try{ flushPracticed(); }catch(e){}
+  const cap = Number(pc().dailyCap) || 0;
+  const done = practicedCount();
+  const onDoneCard = !!window.__quotaDoneShown;
+  if(onDoneCard && (cap <= 0 || done < cap)){
+    window.__quotaDoneShown = false;
+    try{ pq = null; autoStartSeeWord(); }catch(e){}
+    toast('上限已调整为 ' + (cap <= 0 ? '不限' : cap) + '，今天已背 ' + done + ' 个，继续背');
+    return;
+  }
+  if(onDoneCard){ toast('今天已背 ' + done + ' 个，新上限 ' + cap + ' 仍是背满状态'); return; }
+  toast('今日已背 ' + done + ' 个 · 每日上限 ' + (cap <= 0 ? '不限' : cap));
 }
 
 // ======= 单词/词库 标签切换（保留各自独立状态）=======
@@ -617,8 +673,9 @@ function markSeen(words){
    与「今天没有到期词」的空态严格区分：这里是有词可背，只是她自己设的上限背完了。
    出口只给「重练今天错词」（不占用配额），不放「再来一轮」——放就等于上限没生效。 */
 function renderQuotaDone(){
+  window.__quotaDoneShown = true;   // 9/25：改上限时据此判断是否要重新出题
   const cap = Number(pc().dailyCap) || 0;
-  const done = (typeof wbDayStats === 'function') ? (Number(wbDayStats().totalWords) || 0) : 0;
+  const done = practicedCount();
   const left = (wbWords() || []).filter(w => w && (w.cleared !== true || (w.nextReview || '') <= todayKey())).length;
   const wrongEns = (typeof todayWrongEns === 'function') ? todayWrongEns() : [];
   const wrongBtnHtml = (wrongEns.length && typeof startWrongReview === 'function')
@@ -647,6 +704,7 @@ function renderQuotaDone(){
 // design/78：改为 async——官方词库先 await 词包加载（custom 立即过）；出题/排程逻辑一字不动
 async function autoStartSeeWord(){
   try{
+    window.__quotaDoneShown = false;   // 9/25：开新一轮 → 完成卡标记复位（改上限时据此重判）
     cancelSpeak();
     removeMasteredBtn();   // 离开答题态：移除顶部「已掌握」按钮（空态/开始页不显示）
     updateWordStats();
@@ -1010,6 +1068,12 @@ function nextQuestion(){
     cancelSpeak();
     updateProgBar();
     if(pq.idx >= pq.queue.length){ finishPractice(); return; }
+    // 9/25：上限中途被调低到「已背」以下 → 当场停（她拍板「背满就停」，不能靠剩下一轮慢慢扣）。
+    // 只在本轮还没背完时触发；正常背满时是上面那行 finishPractice 先跑，不重复。
+    if(!pq.isWrongReview && typeof dailyQuotaLeft === 'function' && dailyQuotaLeft() === 0){
+      try{ flushPracticed(); const s0 = wbSession(); if(s0 && s0.date === todayKey()){ s0.finished = true; saveDailySession(); } }catch(e){}
+      renderQuotaDone(); return;
+    }
     const cur = pq.queue[pq.idx];
     if(!cur || cur.en == null || String(cur.en).trim() === ''){
       pq.queue.splice(pq.idx, 1);          // 脏词直接剔除，避免死循环
@@ -1243,6 +1307,8 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
   if(ub){ ub.style.pointerEvents = 'none'; ub.disabled = true; }
 
   const k = String(cur.en).toLowerCase();
+  // 9/25：答一个记一个（今日已练 → 每日上限的已背数），与 counted（过关进度）是两套计数
+  try{ markPracticed(cur.en); }catch(e){}
   if(!pq.counted) pq.counted = new Set();
   // 进度计数口径（9/7 之之要求）：一个词「完全过去」才计数——答错进短线重复的词，要分散过完 3 遍全对才 +1。
   // counted/total 的自增移到下方两个 pass 分支；judge 入口只记对错 stats。
@@ -1381,10 +1447,9 @@ function finishPractice(){
   // 之之 9/9 口径修正：只把「本轮实际作答完成」的词计入今日已练（答完才记，不再开轮即记）
   if(pq) markSeen([].concat(pq.passed || [], pq.wrongList || []));
 
-  // 今日已练 = 今天真正练过的 unique 词数（不是轮次位累加）
-  const _seenObj = wbSeen();
-  const seenToday = _seenObj && _seenObj.date === todayKey() ? _seenObj.words || [] : [];
-  const todayLearned = seenToday.length;
+  // 今日已练 = 今天真正作答过的 unique 词数（9/25：与每日上限的已背口径统一，答一个记一个）
+  flushPracticed();
+  const todayLearned = practicedCount();
 
   // 剩余待学习：未掌握或今天到期的词数
   const due = (wbWords() || []).filter(w => w && (w.cleared !== true || (w.nextReview || '') <= todayKey())).length;
@@ -1624,9 +1689,10 @@ function commitWordTimer(endTsOverride){
   }catch(e){}
 }
 // 离页兜底：关标签页 / 切到别的程序时结算本次计时（防悬挂的进行中计时）
+// 9/25：顺手把「今日已练」未落盘的部分补写，避免背了几十个就切走时上限计数丢掉
 if(!window.__wordTimerLeaveHook){
   window.__wordTimerLeaveHook = true;
-  const _onLeave = () => { try{ commitWordTimer(); }catch(e){} };
+  const _onLeave = () => { try{ commitWordTimer(); }catch(e){} try{ flushPracticed(); }catch(e){} };
   document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'hidden') _onLeave(); });
   window.addEventListener('beforeunload', _onLeave);
 }

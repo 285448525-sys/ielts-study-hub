@@ -232,6 +232,34 @@
     wbSave();
   }
 
+  /* ---------- 今日已练（9/25 新增）：当天「作答过」的 unique 词，答完一个记一个 ----------
+     与 seen 严格分开：seen = 整轮完成后才写、用于「新一轮排除已出过的词」；
+     practiced = 每题作答即记（内存节流落盘），用于「每日学习上限」的已背计数。
+     分流原因：把 seen 提前到每题会影响下一轮出题与短线巩固，那是另一套语义，不动。 */
+  function wbPracticed(){
+    var t = todayKey();
+    var a = wbActive();
+    if(a === 'custom'){
+      if(!DATA.wordPracticedToday) DATA.wordPracticedToday = { date: t, words: [] };
+      if(DATA.wordPracticedToday.date !== t) DATA.wordPracticedToday = { date: t, words: [] };
+      return DATA.wordPracticedToday;
+    }
+    var rec = _rec(a);
+    if(!rec.practiced || rec.practiced.date !== t) rec.practiced = { date: t, words: [] };
+    return rec.practiced;
+  }
+  function wbMarkPracticed(words){
+    var s = wbPracticed();
+    var set = new Set(s.words);
+    for(var i = 0; i < (words || []).length; i++){
+      var w = words[i];
+      var k = String((w && w.en) || (typeof w === 'string' ? w : '')).trim().toLowerCase();
+      if(k) set.add(k);
+    }
+    s.words = Array.from(set);
+    wbSave();
+  }
+
   // ---------- 今日错词（对照 recordDailyWrong/todayWrongEns：去重、只写不清、按日期切换） ----------
   function wbRecordWrong(en){
     var t = todayKey();
@@ -389,6 +417,8 @@
   window.wbSetSession = wbSetSession;
   window.wbSeen = wbSeen;
   window.wbMarkSeen = wbMarkSeen;
+  window.wbPracticed = wbPracticed;
+  window.wbMarkPracticed = wbMarkPracticed;
   window.wbRecordWrong = wbRecordWrong;
   window.wbTodayWrongEns = wbTodayWrongEns;
   window.wbDayStats = wbDayStats;

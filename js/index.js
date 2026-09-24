@@ -99,7 +99,9 @@ function renderDashV6(){
   // ⚠️ 9/24 晚她追加：上限同时也是真配额——背满就停（practice 页不再开新一轮，见 renderQuotaDone）。
   //    「每日新词上限」是另一个设置（管每天引入多少生词），两者别混。
   const _cap = (DATA && DATA.settings && DATA.settings.practiceCfg) ? Number(DATA.settings.practiceCfg.dailyCap) : 0;
-  const _done = (typeof wbDayStats === 'function') ? (Number(wbDayStats().totalWords) || 0) : 0;
+  // 9/25：已背改读「今日已练习」practiced（背一个记一个，背词页节流落盘）——
+  // 旧口径 wbDayStats().totalWords 只在背完整轮时回写，中途改上限/刷新会显示成 0（她 9/25 实测的 bug）
+  const _done = (typeof wbPracticed === 'function') ? ((wbPracticed().words || []).length) : 0;
   const shown = (_cap > 0) ? Math.max(0, Math.min(due, _cap - _done)) : due;
   const dueEl = $('#dashDueWords');
   const hintEl = $('#dashDueHint');
