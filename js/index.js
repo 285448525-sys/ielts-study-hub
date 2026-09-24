@@ -248,7 +248,7 @@ function renderDashTasks(){
   const sorted = items.slice().sort((a, b) => (a && a.done) === !!(b && b.done) ? 0 : (a && a.done ? 1 : -1));
   html += sorted.map(i => {
     const jmp = (typeof planJumpInfo === 'function') ? planJumpInfo(i && i.text) : null;
-    return '<div class="plan-item ' + (i && i.done ? 'done' : '') + (i && i.carried ? ' carried' : '') + (jmp ? ' jumpable' : '') + '"'
+    return '<div class="plan-item ' + (i && i.done ? 'done' : '') + (jmp ? ' jumpable' : '') + '"'
       + (jmp ? ' data-jfile="' + escapeHtml(jmp.file) + '"'
         + (jmp.open ? ' data-jopen="' + escapeHtml(jmp.open) + '"' : '')
         + ' title="' + escapeHtml((jmp.label || '去学习') + '，点击直达并计时') + '"' : '')
