@@ -96,7 +96,8 @@ function renderDashV6(){
   // 9/24（她拍板）：首页显示改成「今日待学」= 今日配额剩余量，不再直接甩未掌握总数（1000+ 看着劝退）。
   // 口径 = max(0, min(剩余待学习, 每日学习上限 − 今日已背))；上限取设置「每日学习上限」（0=不限 → 退回原口径）。
   // 三个例子都对得上：待学习 2000 / 上限 400 → 400；已背 220 → 180；待学习 340 / 上限 400 → 340。
-  // ⚠️ 上限只影响这个数字的显示，不限制实际能背多少；「每日新词上限」是另一个设置（管每天引入多少生词），两者别混。
+  // ⚠️ 9/24 晚她追加：上限同时也是真配额——背满就停（practice 页不再开新一轮，见 renderQuotaDone）。
+  //    「每日新词上限」是另一个设置（管每天引入多少生词），两者别混。
   const _cap = (DATA && DATA.settings && DATA.settings.practiceCfg) ? Number(DATA.settings.practiceCfg.dailyCap) : 0;
   const _done = (typeof wbDayStats === 'function') ? (Number(wbDayStats().totalWords) || 0) : 0;
   const shown = (_cap > 0) ? Math.max(0, Math.min(due, _cap - _done)) : due;

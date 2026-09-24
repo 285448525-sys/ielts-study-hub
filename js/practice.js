@@ -3,8 +3,8 @@
 //  算法层严格按「背单词模块_任务指令_A窗口_2026-08-28.md」v4 实现。
 //  v4.1 优化清单（P0+P1）：
 //    P0-1 promoteLongTerm 改为「先按当前 level 算间隔，再升级」→ 启用 LEVEL_INTERVAL[0]=1天
-//    P0-2 答错当场重考仅 1 次；重考再错 → 额外惩罚 + 隔 1 个词插回，不再当场重考
-//    P0-3 难词短线间隔加密 GAP_HARD=[0,1,3]
+//    P0-2 答错当场重考（9/24 她拍板改为「重考到选对为止」，不再只重考 1 次后隔 1 个插回）
+//    P0-3 难词短线间隔加密 GAP_HARD（9/24 起 [0,1,3,6]）
 //    P1-1 「完全不认识」惩罚分级（errTotal 额外+1、level 多降 1）
 //    P1-2 newPerDay 仅限制新词（cleared!==true），复习词不占配额
 //    P1-3 难词退出门槛 cleanRounds 2 → 3
@@ -22,9 +22,11 @@ var _speakTimers = [];    // 朗读定时器，必须在 ready() 前初始化
 var LEVEL_INTERVAL = [1, 2, 4, 7, 15, 30, 60, 90];
 
 // 短线（v4）：分散成功几次才放行；GAP[k] 为答对后插回队列的间隔词数
-var SHORT_PASS = 3;
-var GAP = [0, 2, 5];      // GAP[0] 占位；k=1→隔2个、k=2→隔5个；k=3=过关不再插回
-var GAP_HARD = [0, 1, 3]; // P0-3 难词加密：k=1→隔1个、k=2→隔3个
+// 9/24 她拍板改口径（原 SHORT_PASS=3 / GAP [0,2,5]）：「前两次隔短点，第三次隔长点，留出模拟遗忘的时间」→
+//   分散答对 4 次才过关，三次插回间隔 = 隔 2 → 隔 4 → 隔 9（她给的数：2 / 3~5 / 8~10，取中值）。
+var SHORT_PASS = 4;
+var GAP = [0, 2, 4, 9];      // GAP[0] 占位；k=1→隔2个、k=2→隔4个、k=3→隔9个；k=4=过关不再插回
+var GAP_HARD = [0, 1, 3, 6]; // P0-3 难词加密（同比收紧）：k=1→隔1个、k=2→隔3个、k=3→隔6个
 var CLEAN_TO_EXIT = 3;    // P1-3 难词退出门槛：连续 3 轮短线过关才取消 hardWord
 var MAX_ATTEMPT = 15;     // 单个词本轮最多作答次数（防死循环，超出则移出队列留到明天）
 
@@ -61,9 +63,9 @@ var PC_DEFAULTS = {
   rate: 0.9,
   repeat: 1,
   intervalMs: 1800,
-  batchSize: 50,          // 每轮固定题量（复习优先，不足时补新词；-1=全部）
+  batchSize: 50,          // ⚠️ 9/24 下线（设置项已删、代码不再读）：每轮题量改由「每日学习上限」决定。字段保留只为老配置兼容
   newPerDay: 20,          // v7.1 每日新词上限（0=不限）：设置弹窗「每日新词上限」可调，复习词不受限
-  dailyCap: 0,            // 9/24 每日学习上限（0=不限）：只作用于首页「今日待学」的显示口径，不限制实际能背多少
+  dailyCap: 0,            // 9/24 每日学习上限（0=不限）：首页「今日待学」按它显示，且背满就停（不再开新一轮）
   shuffle: true,
   autoNext: true,
   autoNextDelay: 1000,
@@ -112,6 +114,16 @@ function pcSave(obj){
   if(!DATA.settings || typeof DATA.settings !== 'object') DATA.settings = {};
   DATA.settings.practiceCfg = Object.assign(pc(), obj);
   hubSave();
+}
+
+/* 9/24：今日剩余配额 = 每日学习上限 − 今日已背。返回 null = 不限（沿用旧的「一轮 60 个」口径）。
+   今日已背取 wbDayStats().totalWords（今天真实背过的 unique 词数，finishPractice 落库）——
+   ⚠️ 中途退出不算数：只有背完一整轮才回写，所以「背了 220 个就关页面」时首页仍显示整轮前的额度。 */
+function dailyQuotaLeft(){
+  const cap = Number(pc().dailyCap) || 0;
+  if(cap <= 0) return null;
+  const done = (typeof wbDayStats === 'function') ? (Number(wbDayStats().totalWords) || 0) : 0;
+  return Math.max(0, cap - done);
 }
 
 // ======= 单词/词库 标签切换（保留各自独立状态）=======
@@ -571,7 +583,9 @@ function dueCmp(a, b, pMap){
 }
 
 // 队列构建（v4 §3.9 buildQueue）：筛 nextReview<=today + reconcile + 排序 + P1-2 新词配额
-function buildQueue(today, nowISO){
+// _sliceCap：本轮最多出多少词。null/不传 = 旧的 DAILY_DUE_CAP(60)；9/24 起由「每日学习上限」的剩余配额传入，
+// 这样设了上限 400 就是一轮 400，不必靠点 7 次「再来一轮」凑够。
+function buildQueue(today, nowISO, _sliceCap){
   const c = pc();
   // design/78：数据源改走 wbWords()（custom = DATA.words 原样；官方 = 内存词数组）；过滤/排序/截断口径一字不动
   const due = (wbWords() || []).filter(w => {
@@ -586,13 +600,13 @@ function buildQueue(today, nowISO){
   due.sort((a, b) => dueCmp(a, b, pMap));
 
   // design/77：每日到期上限（含新词）。被截掉的词不动 nextReview，明天自然排在最前；
-  // 固定题量仍由 autoStartSeeWord 的 batchSize 控制，复习词自然排在前面
+  // 9/24：原来「每轮题量」在这里之后再截一次，现已下线——一轮背多少由 autoStartSeeWord 按每日配额截断
   // v7.1：复习词（cleared===true）全保留，新词（cleared!==true，含昨日首次答错回炉的）上限=设置弹窗 newPerDay（0=不限）
   const _npd = (c.newPerDay == null) ? NEW_PER_DAY : ((c.newPerDay > 0) ? c.newPerDay : Infinity);
   const _reviews = due.filter(w => w.cleared === true);
   let _news = due.filter(w => w.cleared !== true);
   if(_npd !== Infinity) _news = _news.slice(0, _npd);
-  return _reviews.concat(_news).slice(0, DAILY_DUE_CAP);
+  return _reviews.concat(_news).slice(0, (_sliceCap != null && _sliceCap > 0) ? _sliceCap : DAILY_DUE_CAP);
 }
 
 // ======= 今日已学词集合（跨轮累计，保证「第二轮不重复第一轮的词」）=======
@@ -602,6 +616,36 @@ function getTodaySeen(){
 }
 function markSeen(words){
   wbMarkSeen(words);
+}
+
+/* 9/24：今日配额用尽的完成态（她拍板「背满上限才算停止」）。
+   与「今天没有到期词」的空态严格区分：这里是有词可背，只是她自己设的上限背完了。
+   出口只给「重练今天错词」（不占用配额），不放「再来一轮」——放就等于上限没生效。 */
+function renderQuotaDone(){
+  const cap = Number(pc().dailyCap) || 0;
+  const done = (typeof wbDayStats === 'function') ? (Number(wbDayStats().totalWords) || 0) : 0;
+  const left = (wbWords() || []).filter(w => w && (w.cleared !== true || (w.nextReview || '') <= todayKey())).length;
+  const wrongEns = (typeof todayWrongEns === 'function') ? todayWrongEns() : [];
+  const wrongBtnHtml = (wrongEns.length && typeof startWrongReview === 'function')
+    ? '<div style="margin-top:14px"><button class="btn btn-primary" id="quotaWrongBtn" title="重练今天答错/不认识的词">重练今天错词（' + wrongEns.length + '）</button></div>'
+    : '';
+  const area = $('#practiceArea'); if(area) area.hidden = false;
+  const prog = $('#progBarWrap'); if(prog) prog.hidden = true;
+  const nb = $('#nextBtn'); if(nb) nb.hidden = true;
+  $('#practiceBody').innerHTML =
+    '<div class="q-word">今日目标完成</div>' +
+    '<div class="q-cn">今天已经背完 ' + done + ' / ' + cap + ' 个' +
+    (left ? ('，还有 ' + left + ' 个待学习的词明天再来。') : '。') +
+    '<br>想多背就去「设置 → 每日学习上限」把它调大。</div>' + wrongBtnHtml;
+  if(wrongEns.length && typeof startWrongReview === 'function'){
+    const qb = document.getElementById('quotaWrongBtn');
+    if(qb) qb.addEventListener('click', () => {
+      const words = wrongEns.map(en => findWordByEn(en)).filter(Boolean);
+      if(words.length) startWrongReview(words);
+    });
+  }
+  if(typeof removeMasteredBtn === 'function') removeMasteredBtn();
+  updateWordStats();
 }
 
 // ======= 进入学习（打开即按排程出题）=======
@@ -659,7 +703,10 @@ async function autoStartSeeWord(){
     const fresh = !session || session.date !== today || !Array.isArray(session.planEn) || session.planEn.length === 0 || session.finished === true;
     if(fresh){
       const c = pc();
-      const all = buildQueue(today, nowISO());
+      // 9/24：今日配额已用完 → 不再开新一轮（她拍板「背满每日上限才算停止」）
+      const _q = dailyQuotaLeft();
+      if(_q === 0){ renderQuotaDone(); return; }
+      const all = buildQueue(today, nowISO(), _q);   // _q=null（不限）时沿用旧的 60 个/轮
       // 排除「今天任何一轮已经出过的词」，保证新一轮与上一轮完全不重复
       const seen = getTodaySeen();
       let plan = all.filter(w => !seen.words.includes(String(w.en || '').trim().toLowerCase()));
@@ -692,8 +739,9 @@ async function autoStartSeeWord(){
       }
       // 之之 9/18：题序不再随机打乱——buildQueue 已按「逾期越久越先背」排序，shuffle 会把该顺序毁掉
       //（旧默认 shuffle:true 是「逾期词不先出」的真凶）。选项顺序仍由 makeOptions 独立乱序，不受影响。
-      // 固定题量：题量设置即每轮总题数；buildQueue 已按复习优先级排序，直接截断即可
-      if(c.batchSize > 0 && plan.length > c.batchSize) plan = plan.slice(0, c.batchSize);
+      // 9/24：「每轮题量」设置已下线 —— 一轮的词数改由「每日学习上限」的剩余配额决定
+      //（上限 0=不限时沿用旧口径：buildQueue 自己按 DAILY_DUE_CAP=60 截断）。buildQueue 已按复习优先级排序，直接截断即可。
+      if(_q != null && plan.length > _q) plan = plan.slice(0, _q);
       // 之之 9/9 修正：开轮不再 markSeen（旧逻辑把整轮计划词在没背时就算「今日已练」→ 数字虚高、复用轮永远不动），
       // 改为 finishPractice 答完才计入；跨轮防重复出题改用「今日真实背完的词」过滤，中途放弃的词下一轮会重新出现（更合理）。
       session = {
@@ -712,12 +760,12 @@ async function autoStartSeeWord(){
       wbSave();
     }
 
-    // —— 题量收归：设置题量小于已锁定轮次词数时，截断到设定题量（保留已过的词，去除未开始的冗余词）——
-    //    解决「设置改成 20 但当天已建过 50 词轮次、改设置不生效」的问题（之之 8/31 反馈）
-    //    勾选练习轮（poolMode）不收归：她勾多少词就练多少，不受 batchSize 影响（9/17）
+    // —— 题量收归：今日剩余配额小于已锁定轮次词数时，截断到配额（保留已过的词，去除未开始的冗余词）——
+    //    解决「设置改成 20 但当天已建过 50 词轮次、改设置不生效」的问题（之之 8/31 反馈；9/24 配额口径沿用）
+    //    勾选练习轮（poolMode）不收归：她勾多少词就练多少，不受配额影响（9/17）
     {
-      const _c = pc();
-      const _cap = (_c.batchSize > 0) ? _c.batchSize : session.planEn.length;
+      const _q = dailyQuotaLeft();
+      const _cap = (_q != null) ? _q : session.planEn.length;
       if(!session.poolMode && session.planEn.length > _cap){
         const _passedSet = new Set((session.passed || []).map(e => String(e).trim().toLowerCase()));
         const _capEff = Math.max(_cap, _passedSet.size);   // 绝不丢弃已过的词
@@ -1107,6 +1155,20 @@ window.addEventListener('resize', () => {
 function bindOpts(cur){
   document.querySelectorAll('#opts .opt-big').forEach(b => {
     b.addEventListener('click', () => {
+      // 9/24 她需求：答错的强制停顿期内，主动点中正确答案 → 立刻按「重考答对」结算并跳转下一题，
+      // 不用干等 wrongHoldMs；没点、或点的是错误选项 → 照旧等满停顿再重考（judge 的 rehold 分支）。
+      if(pq.revealed && pq._holdTimer){
+        if(b.dataset.en !== cur.en) return;            // 点错的不作数
+        const c2 = pq._holdCur || cur;
+        clearTimeout(pq._holdTimer); pq._holdTimer = null; pq._holdCur = null;
+        pq.revealed = false;
+        shortLineCorrect(c2, todayKey(), String(c2.en).trim().toLowerCase());
+        saveDailySession();
+        updateProgBar();
+        updateWordStats();
+        nextQuestion();
+        return;
+      }
       if(pq.revealed || pq._picked) return;
       pq._picked = true;
       judge(cur, b.dataset.en, b.dataset.en === cur.en, false);
@@ -1114,9 +1176,37 @@ function bindOpts(cur){
   });
 }
 
+/* 短线答对的统一出口（9/24）：judge() 的正常作答 与「答错停顿期内点中正确答案」走完全同一条口径，
+   避免两条线各写一份导致计数不一致。n = 已分散答对次数（含本次）；够 SHORT_PASS 才 promote 过关，
+   否则按 gapFor(n) 隔 N 个词插回。返回 'pass' / 'requeue'。 */
+function shortLineCorrect(cur, today, k){
+  const n = (cur.shortCount || 0) + 1;
+  pq.reholdMap[k] = 0;                           // 已答对，重考链清零
+  if(n >= SHORT_PASS){
+    promoteLongTerm(cur, today);
+    pq.queue.splice(pq.idx, 1);
+    pq.correct++;
+    pq.passed.push(k);
+    pq.shortMode.delete(k);
+    if(!pq.counted.has(k)){ pq.counted.add(k); pq.total++; }   // 分散答对满 4 次，此时才算过
+    if(!pq.isWrongReview){ const _ws = wbSession(); if(_ws) _ws.total = pq.total; }
+    wbSave();
+    return 'pass';
+  }
+  cur.shortCount = n;                            // 记录进度（持久化，续背接得上）
+  cur.lastPracticeAt = Date.now();               // design/84：短线中途答对也是练习，进度要随最后练习者胜传出去
+  pq.queue.splice(pq.idx, 1);
+  const gap = gapFor(cur, n);                    // n=1→隔2、n=2→隔4、n=3→隔9（难词更密）
+  const pos = Math.min(pq.queue.length, pq.idx + gap);
+  if(pos >= pq.queue.length) pq.queue.push(cur);
+  else pq.queue.splice(pos, 0, cur);
+  wbSave();
+  return 'requeue';
+}
+
 // 统一处理一次作答（4 选 1 直接判 / 点「完全不认识」）。
-// 长线由 promote/demote 排程（design/77 DHP 策略表）；短线由 shortCount + gapFor 间隔插回队列实现「分散 3 次成功才放行」。
-// P0-2：答错 → 当场重考最多 1 次；重考答对 → shortCount=1 走正常 GAP；重考仍错 → 额外惩罚 + 隔 1 个词插回。
+// 长线由 promote/demote 排程（design/77 DHP 策略表）；短线由 shortCount + gapFor 间隔插回队列实现「分散 4 次成功才放行」。
+// P0-2（9/24 她拍板改）：答错 → 当场重考，一直重考到选对为止（不再「只重考 1 次」）。
 function judge(cur, pickedEn, correct, isUnknownBtn){
   if(!pq || pq.revealed) return;
   // 9/23 她改口径：第一次作答才自动开「背单词」计时（原为进练习/出题即开——打开页面不动也算时长）
@@ -1139,7 +1229,9 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
     }
     if(isCorrect) x.classList.add('correct');
     if(isWrong) x.classList.add('wrong');
-    x.style.pointerEvents = 'none';
+    // 9/24：正确答案保持可点——答错停顿期内点中它即立刻跳转（见 bindOpts）；其余选项一律锁死。
+    // 答对场景点它无副作用（bindOpts 只在 pq._holdTimer 存在时才认，那是答错停顿期的凭证）。
+    if(!isCorrect) x.style.pointerEvents = 'none';
   });
   // 揭示题干中文释义（背词场景只显示最常用的第一义项，词组全显——9/7 之之要求）
   const reveal = document.getElementById('pwCn');
@@ -1192,56 +1284,19 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
       wbSave();
       result = 'pass';
     } else {
-      // 答错/不认识的词 → 短线分散重复：需分散答对 SHORT_PASS(3) 次才过关
-      const n = (cur.shortCount || 0) + 1;          // 本轮已分散答对次数
-      if(n >= SHORT_PASS){
-        promoteLongTerm(cur, today);                // 内部会把 shortCount 归零
-        pq.queue.splice(pq.idx, 1);
-        pq.correct++;
-        pq.passed.push(String(cur.en).trim().toLowerCase());
-        pq.shortMode.delete(k);
-        if(!pq.counted.has(k)){ pq.counted.add(k); pq.total++; }   // 过完 3 遍全对，此时才算过
-        if(!pq.isWrongReview){ const _ws = wbSession(); if(_ws) _ws.total = pq.total; }
-        wbSave();
-        result = 'pass';
-        // 答题反馈 toast 已删（之之 9/7：黑框压在计时框后面，纯噪音，答题卡已有反馈）
-      } else {
-        cur.shortCount = n;                          // 记录进度（持久化，续背接得上）
-        cur.lastPracticeAt = Date.now();             // design/84：短线中途答对也是练习，shortCount 进度要随最后练习者胜传出去
-        pq.reholdMap[k] = 0;                         // 已在短线模式，不再当场重考
-        pq.queue.splice(pq.idx, 1);
-        const gap = gapFor(cur, n);                  // n=1→隔2、n=2→隔5（难词更密）
-        const pos = Math.min(pq.queue.length, pq.idx + gap);
-        if(pos >= pq.queue.length) pq.queue.push(cur);
-        else pq.queue.splice(pos, 0, cur);
-        wbSave();
-        result = 'requeue';
-        // toast 已删
-      }
+      // 答错/不认识的词 → 短线分散重复：需分散答对 SHORT_PASS(4) 次才过关（9/24 她拍板，原 3 次）
+      result = shortLineCorrect(cur, today, k);
     }
   } else {
-    const wasRehold = (pq.reholdMap[k] || 0) >= 1;
     demoteLongTerm(cur, today, !!isUnknownBtn); // P1-1：点「完全不认识」时惩罚加重
     if(!pq.shortMode) pq.shortMode = new Set();
     pq.shortMode.add(k);                          // 标记：该词进入短线重复模式
-    if(wasRehold){
-      // P0-2 边界：重考仍错 → 额外记一次错误，插回到「隔 1 个词」的位置，不再当场重考
-      cur.errTotal = (cur.errTotal || 0) + 1;
-      pq.reholdMap[k] = 0;
-      pq.queue.splice(pq.idx, 1);
-      const pos = Math.min(pq.queue.length, pq.idx + 1);
-      if(pos >= pq.queue.length) pq.queue.push(cur);
-      else pq.queue.splice(pos, 0, cur);
-      wbSave();
-      result = 'requeue';
-      // toast 已删
-    } else {
-      // 第一次答错 → 展示答案后当场重考同一词（选项重新打乱）
-      pq.reholdMap[k] = 1;
-      wbSave();   // 显式落盘：重练错词模式下 saveDailySession 会跳过，不落盘则本次降级/dailyWrong 全丢（design/78 路由）
-      result = 'rehold';
-      // toast 已删
-    }
+    // 9/24 她拍板：答错就当场重考，一直重考到选对为止（原「只重考 1 次，再错就隔 1 个插回」）
+    // 兜底仍在：MAX_ATTEMPT(15) 次还没答对 → 移出本轮队列，留到明天（下方死循环防护）
+    // （errTotal 由 demoteLongTerm 每次 +1，此处不额外加，避免重考链把错误数刷爆）
+    pq.reholdMap[k] = (pq.reholdMap[k] || 0) + 1;
+    wbSave();   // 显式落盘：重练错词模式下 saveDailySession 会跳过，不落盘则本次降级/dailyWrong 全丢（design/78 路由）
+    result = 'rehold';
   }
 
   // 死循环防护：同一词本轮作答次数过多 → 强制移出队列（保持降级状态，明天再来）
@@ -1273,7 +1328,15 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
   saveDailySession();   // 每次作答后持久化进度（草稿自动存档）
 
   if(result === 'rehold'){
-    setTimeout(() => { if(pq && pq.revealed){ pq.revealed = false; renderQuestion(cur, true); } }, c.wrongHoldMs);
+    // 9/24 她需求：答错后的强制停顿期内，若她主动点中了正确答案 → 立刻算「重考答对」并跳转，
+    // 不用干等到 wrongHoldMs 结束（没点或点错了就照旧等满）。pq._holdTimer 是「停顿期」的凭证，
+    // 到期/被点掉都要清空，否则后续点击会误触发。
+    clearTimeout(pq._holdTimer);
+    pq._holdCur = cur;
+    pq._holdTimer = setTimeout(() => {
+      pq._holdTimer = null; pq._holdCur = null;
+      if(pq && pq.revealed){ pq.revealed = false; renderQuestion(cur, true); }
+    }, c.wrongHoldMs);
   } else {
     // 注意：cur 已从队列移除并被重新插到 idx 之后，队首已「滑」到 pq.idx，故不递增 idx
     const delay = correct ? c.autoNextDelay : 1400;
@@ -1637,9 +1700,9 @@ function renderCfgModal(){
     {
       name:'答题', icon:'☑',
       items:[
-        { key:'batchSize',     label:'每轮题量',      type:'numall', desc:'1~500；勾「全部」= 不限' },
+        // 9/24：batchSize（每轮题量）已下线——一轮背多少改由「每日学习上限」的剩余配额决定
         { key:'newPerDay',     label:'每日新词上限',  type:'num', min:0, max:999, unit:' 个', desc:'0 = 不限' },
-        { key:'dailyCap',      label:'每日学习上限',  type:'num', min:0, max:999, unit:' 个', desc:'0 = 不限；首页「今日待学」按它显示' },
+        { key:'dailyCap',      label:'每日学习上限',  type:'num', min:0, max:999, unit:' 个', desc:'0 = 不限；背满就停，首页「今日待学」按它显示' },
         { key:'questionMode',  label:'题型',          type:'select', opts:[{v:'visual',t:'看词选义'},{v:'audio',t:'听音选义'},{v:'mixed',t:'混合'}] },
         { key:'shuffle',       label:'勾选练习乱序',  type:'toggle' },
         { key:'wrongHoldMs',   label:'答错停留',      type:'range', min:1000, max:5000, step:500, unit:'ms' },
