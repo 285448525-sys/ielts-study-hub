@@ -1,12 +1,9 @@
-const WORD_FILTERS = { type: 'all', level: 'all', err: 'all' };
+// 9/24：等级（Lv）筛选已下线——DHP 上线后 Lv 只是半衰期的显示代理，筛选它没有实际意义。
+const WORD_FILTERS = { type: 'all', err: 'all' };
 
 function setWordFilterType(type){
   WORD_FILTERS.type = type;
   document.querySelectorAll('#filterType .chip').forEach(b => b.classList.toggle('active', b.dataset.type === type));
-}
-function setWordFilterLevel(level){
-  WORD_FILTERS.level = level;
-  document.querySelectorAll('#filterLevel .chip').forEach(b => b.classList.toggle('active', b.dataset.level === level));
 }
 function setWordFilterErr(err){
   WORD_FILTERS.err = err;
@@ -44,7 +41,7 @@ function initErrFilter(){
     if(counts[t] > 0) html += `<button class="chip" data-err="${t}">${errTierLabel(t)}（${counts[t]}）</button>`;
   });
   box.innerHTML = html;
-  // 该档已无词（删光）时回退「全部」，与 initLevelFilter 同口径
+  // 该档已无词（删光）时回退「全部」（重建 chips 后若当前档位已无对应词，筛选会空列表）
   if(WORD_FILTERS.err !== 'all' && !box.querySelector(`[data-err="${WORD_FILTERS.err}"]`)){
     WORD_FILTERS.err = 'all';
   }
@@ -203,17 +200,16 @@ function bankCheckedEns(){
 
 /* ===== 大分类折叠面板（9/17 定稿：类型/等级/错误三个大分类按钮，默认全收起，
    点哪个展开哪个的小分类 chips 行；筛选非「全部」时按钮高亮并显示当前值）===== */
-let _bankOpenCat = null;   // 'type' | 'level' | 'err' | null
+let _bankOpenCat = null;   // 'type' | 'err' | null
 
 function catBtnValue(cat){
   if(cat === 'type')  return WORD_FILTERS.type  === 'all'    ? '' : (WORD_FILTERS.type === 'phrase' ? '词组' : '单词');
-  if(cat === 'level') return WORD_FILTERS.level === 'all'    ? '' : 'Lv ' + WORD_FILTERS.level;
   if(cat === 'err')   return WORD_FILTERS.err   === 'all'    ? '' : errTierLabel(WORD_FILTERS.err);
   return '';
 }
 
 function syncCatBtns(){
-  ['type','level','err'].forEach(cat => {
+  ['type','err'].forEach(cat => {
     const btn = document.querySelector(`.wl-cat-btn[data-cat="${cat}"]`);
     if(!btn) return;
     const val = catBtnValue(cat);
@@ -232,25 +228,6 @@ function toggleCatPanel(cat){
   syncCatBtns();
 }
 
-function initLevelFilter(){
-  const box = $('#filterLevel');
-  if(!box) return;
-  // Number 归一：脏 level（字符串数字/乱值）不再产生重复 chip 或 NaN 排序（design/78：数据源走 wbWords()）
-  const levels = Array.from(new Set((wbWords() || []).map(w => Number(w.level) || 0))).sort((a,b) => a-b);
-  let html = '<button class="chip" data-level="all">全部</button>';
-  levels.forEach(lv => { html += `<button class="chip" data-level="${lv}">Lv ${lv}</button>`; });
-  box.innerHTML = html;
-  // 重建后恢复筛选状态：当前筛的等级还有词则保持高亮；已无词（如该等级删光）回退「全部」。
-  // 旧实现把「全部」硬编码为高亮，但 WORD_FILTERS.level 仍是旧值 → 界面显示「全部」、实际仍按旧等级过滤。
-  if(WORD_FILTERS.level !== 'all' && !levels.some(lv => String(lv) === String(WORD_FILTERS.level))){
-    WORD_FILTERS.level = 'all';
-  }
-  box.querySelectorAll('.chip').forEach(btn => {
-    btn.classList.toggle('active', String(btn.dataset.level) === String(WORD_FILTERS.level));
-    btn.addEventListener('click', () => { setWordFilterLevel(btn.dataset.level); renderWords(); });
-  });
-}
-
 ready(() => {
   $('#smartImport').addEventListener('click', importSmart);
   $('#searchWord').addEventListener('input', renderWords);
@@ -259,7 +236,7 @@ ready(() => {
     btn.addEventListener('click', () => { setWordFilterType(btn.dataset.type); renderWords(); });
   });
   bindDrop();
-  initLevelFilter();
+  
   document.querySelectorAll('.wl-cat-btn').forEach(btn => {
     btn.addEventListener('click', () => toggleCatPanel(btn.dataset.cat));
   });
@@ -353,10 +330,10 @@ ready(() => {
   }
   // 切换词库：重置筛选与折叠/分页/勾选状态后重渲（renderWords 按 wbActive 取数）
   document.addEventListener('wb:switched', () => {
-    setWordFilterType('all'); setWordFilterLevel('all'); setWordFilterErr('all');
+    setWordFilterType('all'); setWordFilterErr('all');
     _bankExpanded = {}; _bankShown = {}; _bankGroups = {};
     _bankChecked.clear(); _bankOpenCat = null;
-    initLevelFilter();
+    
     renderWords();
     bankUpdateActionBar();
   });
@@ -454,7 +431,7 @@ async function importSmart(){
         added++;
       }
     });
-    hubSave(); $('#smartInput').value = ''; initLevelFilter(); renderWords();
+    hubSave(); $('#smartInput').value = '';  renderWords();
     let msg = '成功导入 ' + added + ' 个（未配置 Key，未翻译）';
     if(updated) msg += '，重置 ' + updated + ' 个已有词（进度回到第一阶段）';
     if(skippedDeleted) msg += '，跳过已掌握 ' + skippedDeleted + ' 个';
@@ -504,7 +481,7 @@ async function importSmart(){
     // 词组词性本地即统一 phrase.（与 backfillCn 同口径）：列表渲染本就自动显示 phrase.，
     // 这里补齐字段让背词/练习页同源，且词组不进阶段②（cn 已有即完全体，音标可选不阻塞）
     touched.forEach(w => { if(/\s/.test(w.en) && w.pos !== 'phrase.') w.pos = 'phrase.'; });
-    hubSave(); $('#smartInput').value = ''; initLevelFilter(); renderWords();
+    hubSave(); $('#smartInput').value = '';  renderWords();
     let msg = '成功导入 ' + added + ' 个';
     if(updated) msg += '，重置 ' + updated + ' 个已有词（释义已更新，进度回到第一阶段）';
     if(skippedDeleted) msg += '，跳过已掌握 ' + skippedDeleted + ' 个';
@@ -752,7 +729,7 @@ async function handleExcelFile(f){
           added++;
         }
       });
-      hubSave(); $('#smartInput').value = ''; initLevelFilter(); renderWords();
+      hubSave(); $('#smartInput').value = '';  renderWords();
       let msg = 'Excel 直读导入 ' + added + ' 个（释义原样保留，未走 AI）';
       if(updated) msg += '，重置 ' + updated + ' 个已有词（释义已更新，进度回到第一阶段）';
       if(skippedDeleted) msg += '，跳过已掌握 ' + skippedDeleted + ' 个';
@@ -814,7 +791,7 @@ function deleteWord(id){
   // 统一走 addWordTombstone：写 'en:'+小写墓碑的同时撤销反向墓碑，
   // 保证「删除 → 加回来 → 再删除」这条链闭得上（否则加回来过一次的词就永远删不掉了）。
   if(w && w.en && typeof addWordTombstone === 'function') addWordTombstone(w.en);
-  hubSave(); initLevelFilter(); renderWords();
+  hubSave();  renderWords();
 }
 
 /* 把 pos + cn 拆成「词性+中文」释义块，多词性横向排列。
@@ -889,10 +866,6 @@ function renderWords(){
       const isPhrase = /\s/.test(String(w.en || ''));
       return type === 'phrase' ? isPhrase : !isPhrase;
     });
-  }
-  const level = WORD_FILTERS.level;
-  if(level !== 'all'){
-    list = list.filter(w => String(Number(w.level) || 0) === level);   // 与 initLevelFilter 的 Number 归一口径一致
   }
   const err = WORD_FILTERS.err;
   if(err !== 'all'){

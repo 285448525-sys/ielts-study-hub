@@ -63,6 +63,7 @@ var PC_DEFAULTS = {
   intervalMs: 1800,
   batchSize: 50,          // 每轮固定题量（复习优先，不足时补新词；-1=全部）
   newPerDay: 20,          // v7.1 每日新词上限（0=不限）：设置弹窗「每日新词上限」可调，复习词不受限
+  dailyCap: 0,            // 9/24 每日学习上限（0=不限）：只作用于首页「今日待学」的显示口径，不限制实际能背多少
   shuffle: true,
   autoNext: true,
   autoNextDelay: 1000,
@@ -92,6 +93,9 @@ function pc(){
   c.newPerDay = (typeof c.newPerDay === 'number' && !isNaN(c.newPerDay)) ? c.newPerDay : (typeof c.newPerDay === 'string' ? parseInt(c.newPerDay, 10) : PC_DEFAULTS.newPerDay);
   if(isNaN(c.newPerDay)) c.newPerDay = PC_DEFAULTS.newPerDay;
   if(!(c.newPerDay >= 0 && c.newPerDay <= 999)) c.newPerDay = PC_DEFAULTS.newPerDay;   // 0=不限；0~999 自由输入
+  c.dailyCap = (typeof c.dailyCap === 'number' && !isNaN(c.dailyCap)) ? c.dailyCap : (typeof c.dailyCap === 'string' ? parseInt(c.dailyCap, 10) : PC_DEFAULTS.dailyCap);
+  if(isNaN(c.dailyCap)) c.dailyCap = PC_DEFAULTS.dailyCap;
+  if(!(c.dailyCap >= 0 && c.dailyCap <= 999)) c.dailyCap = PC_DEFAULTS.dailyCap;       // 0=不限；0~999 自由输入
   c.shuffle = !!c.shuffle;
   c.autoNext = !!c.autoNext;
   c.autoNextDelay = clampNum(c.autoNextDelay, 100, 30000, PC_DEFAULTS.autoNextDelay);
@@ -1635,6 +1639,7 @@ function renderCfgModal(){
       items:[
         { key:'batchSize',     label:'每轮题量',      type:'numall', desc:'1~500；勾「全部」= 不限' },
         { key:'newPerDay',     label:'每日新词上限',  type:'num', min:0, max:999, unit:' 个', desc:'0 = 不限' },
+        { key:'dailyCap',      label:'每日学习上限',  type:'num', min:0, max:999, unit:' 个', desc:'0 = 不限；首页「今日待学」按它显示' },
         { key:'questionMode',  label:'题型',          type:'select', opts:[{v:'visual',t:'看词选义'},{v:'audio',t:'听音选义'},{v:'mixed',t:'混合'}] },
         { key:'shuffle',       label:'勾选练习乱序',  type:'toggle' },
         { key:'wrongHoldMs',   label:'答错停留',      type:'range', min:1000, max:5000, step:500, unit:'ms' },

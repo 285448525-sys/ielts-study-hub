@@ -47,8 +47,8 @@
   <script defer src="js/wordbank.js?v=20260921a"></script>
   <!-- design/77 DHP+SSP-MMC 策略表：必须在 practice.js 之前（defer 按文档序执行，表未加载时 practice.js 有回退兜底） -->
   <script defer src="js/dhp_policy.js?v=20260921a"></script>
-  <script src="js/practice.js?v=20260924c" defer></script>
-  <script src="js/words.js?v=20260922e" defer></script>
+  <script src="js/practice.js?v=20260924d" defer></script>
+  <script src="js/words.js?v=20260924a" defer></script>
 <style>
 </style>
 <style id="bootLoaderStyle">
@@ -131,10 +131,9 @@
       <div class="wl-search-wrap">
         <input id="searchWord" class="wl-search" placeholder="搜索单词…" />
       </div>
-      <!-- 三个大分类按钮（默认全收起），点哪个展开哪个的小分类行 -->
+      <!-- 两个大分类按钮（默认全收起），点哪个展开哪个的小分类行。9/24：等级筛选已下线 -->
       <div class="wl-cats-row" id="wordCats">
         <button class="wl-cat-btn" data-cat="type" type="button">类型<svg class="wl-cat-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
-        <button class="wl-cat-btn" data-cat="level" type="button">等级<svg class="wl-cat-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
         <button class="wl-cat-btn" data-cat="err" type="button">错误<svg class="wl-cat-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
       </div>
       <div class="wl-cat-panel" id="catPanel-type" hidden>
@@ -142,11 +141,6 @@
           <button class="chip active" data-type="all">全部</button>
           <button class="chip" data-type="word">单词</button>
           <button class="chip" data-type="phrase">词组</button>
-        </div>
-      </div>
-      <div class="wl-cat-panel" id="catPanel-level" hidden>
-        <div class="wl-filter-chips" id="filterLevel">
-          <button class="chip active" data-level="all">全部</button>
         </div>
       </div>
       <div class="wl-cat-panel" id="catPanel-err" hidden>

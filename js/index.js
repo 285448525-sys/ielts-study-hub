@@ -93,10 +93,19 @@ function renderDashV6(){
   //    两处口径是刻意保留的：首页看总进度，出题按记忆曲线；不要随手改成一致。
   // design/78：词源走 wbWords()（custom=DATA.words 原样；official=官方词包），口径注释不变
   const due = (wbWords()||[]).filter(w => w.cleared !== true || (w.nextReview || '') <= tkey).length;
+  // 9/24（她拍板）：首页显示改成「今日待学」= 今日配额剩余量，不再直接甩未掌握总数（1000+ 看着劝退）。
+  // 口径 = max(0, min(剩余待学习, 每日学习上限 − 今日已背))；上限取设置「每日学习上限」（0=不限 → 退回原口径）。
+  // 三个例子都对得上：待学习 2000 / 上限 400 → 400；已背 220 → 180；待学习 340 / 上限 400 → 340。
+  // ⚠️ 上限只影响这个数字的显示，不限制实际能背多少；「每日新词上限」是另一个设置（管每天引入多少生词），两者别混。
+  const _cap = (DATA && DATA.settings && DATA.settings.practiceCfg) ? Number(DATA.settings.practiceCfg.dailyCap) : 0;
+  const _done = (typeof wbDayStats === 'function') ? (Number(wbDayStats().totalWords) || 0) : 0;
+  const shown = (_cap > 0) ? Math.max(0, Math.min(due, _cap - _done)) : due;
   const dueEl = $('#dashDueWords');
   const hintEl = $('#dashDueHint');
-  if(dueEl) dueEl.innerHTML = due+'<span class="u">词</span>';
-  if(hintEl) hintEl.textContent = due > 0 ? '建议先背待学习的词' : '暂无待学习单词';
+  if(dueEl) dueEl.innerHTML = shown+'<span class="u">词</span>';
+  if(hintEl) hintEl.textContent = (_cap > 0)
+    ? ('每日计划 ' + _cap + ' 个 · 今日已背 ' + _done)
+    : (shown > 0 ? '建议先背待学习的词' : '暂无待学习单词');
 
   // ---- 今日任务卡（9/20：到期词建议 + 今日计划清单，详见 renderDashTasks）----
   // 注意：safe 是 ready() 闭包内常量，本函数在闭包外够不着 → renderDashTasks 自带 try/catch 兜底
