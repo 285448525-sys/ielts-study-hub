@@ -6,7 +6,7 @@
 //    P0-2 答错当场重考（9/24 她拍板改为「重考到选对为止」，不再只重考 1 次后隔 1 个插回）
 //    P0-3 难词短线间隔加密 GAP_HARD（9/24 起 [0,1,3,6]）
 //    P1-1 「完全不认识」惩罚分级（errTotal 额外+1、level 多降 1）
-//    P1-2 newPerDay 仅限制新词（cleared!==true），复习词不占配额
+//    P1-2 newPerDay 仅限制新词（cleared!==true）——9/25 已随「每日新词上限」设置项一起下线（她拍板：只按每日学习上限为准）
 //    P1-3 难词退出门槛 cleanRounds 2 → 3
 //  字段适配：v4 的 word/meaning/wordId → 本库 en/cn/en(id)；
 //           errorCount→errTotal、isHard→hardWord、isKey→keyWord；
@@ -47,7 +47,6 @@ var DHP_IDX_LAST = 149;              // 9/24：最后一个「真实策略」列
 var DAILY_DUE_CAP = 60;              // 每日到期上限（含新词）：buildQueue 排序后截断，截掉的明天队首
 
 // ======= v7.1 三改（她拍板 2026-09-23）：控总量 + 熟词快速通道 + 难度回落 =======
-var NEW_PER_DAY = 20;                // 每日新词上限：到期的新词（cleared!==true）每天最多出 20 个，复习词不受限——复习优先，压住「越背越多」
 var FAST_FIRST_MS = 3000;            // 熟词快速通道：首次复习（无 lastReview）看词 3 秒内答对 → 初始间隔 +3 天起步
 var FAST_FIRST_AUDIO_MS = 5000;      // 听音题要等发音播完才能答，秒答阈值放宽到 5 秒
 var DHP_FAST_FIRST_DH = 14;          // 秒答视为「很熟」：dh 抬到该值（首刷间隔直接 +3 天不查表；dh=14 保证下一轮表查得 10 天+，自然衔接）
@@ -64,7 +63,7 @@ var PC_DEFAULTS = {
   repeat: 1,
   intervalMs: 1800,
   batchSize: 50,          // ⚠️ 9/24 下线（设置项已删、代码不再读）：每轮题量改由「每日学习上限」决定。字段保留只为老配置兼容
-  newPerDay: 20,          // v7.1 每日新词上限（0=不限）：设置弹窗「每日新词上限」可调，复习词不受限
+  newPerDay: 20,          // ⚠️ 9/25 下线（设置项已删、代码不再读）：总量只按「每日学习上限」dailyCap 为准。字段保留只为老配置兼容
   dailyCap: 0,            // 9/24 每日学习上限（0=不限）：首页「今日待学」按它显示，且背满就停（不再开新一轮）
   shuffle: true,
   autoNext: true,
@@ -92,9 +91,7 @@ function pc(){
   c.batchSize = (typeof c.batchSize === 'number' && !isNaN(c.batchSize)) ? c.batchSize : (typeof c.batchSize === 'string' ? parseInt(c.batchSize, 10) : PC_DEFAULTS.batchSize);
   if(isNaN(c.batchSize)) c.batchSize = PC_DEFAULTS.batchSize;
   if(!(c.batchSize === -1 || (c.batchSize >= 1 && c.batchSize <= 500))) c.batchSize = PC_DEFAULTS.batchSize;   // -1=全部；1~500 自由输入，其余回退默认
-  c.newPerDay = (typeof c.newPerDay === 'number' && !isNaN(c.newPerDay)) ? c.newPerDay : (typeof c.newPerDay === 'string' ? parseInt(c.newPerDay, 10) : PC_DEFAULTS.newPerDay);
-  if(isNaN(c.newPerDay)) c.newPerDay = PC_DEFAULTS.newPerDay;
-  if(!(c.newPerDay >= 0 && c.newPerDay <= 999)) c.newPerDay = PC_DEFAULTS.newPerDay;   // 0=不限；0~999 自由输入
+  // newPerDay 已下线（9/25）：字段只做老配置兼容保留，钳位与读取一并撤销
   c.dailyCap = (typeof c.dailyCap === 'number' && !isNaN(c.dailyCap)) ? c.dailyCap : (typeof c.dailyCap === 'string' ? parseInt(c.dailyCap, 10) : PC_DEFAULTS.dailyCap);
   if(isNaN(c.dailyCap)) c.dailyCap = PC_DEFAULTS.dailyCap;
   if(!(c.dailyCap >= 0 && c.dailyCap <= 999)) c.dailyCap = PC_DEFAULTS.dailyCap;       // 0=不限；0~999 自由输入
@@ -601,11 +598,9 @@ function buildQueue(today, nowISO, _sliceCap){
 
   // design/77：每日到期上限（含新词）。被截掉的词不动 nextReview，明天自然排在最前；
   // 9/24：原来「每轮题量」在这里之后再截一次，现已下线——一轮背多少由 autoStartSeeWord 按每日配额截断
-  // v7.1：复习词（cleared===true）全保留，新词（cleared!==true，含昨日首次答错回炉的）上限=设置弹窗 newPerDay（0=不限）
-  const _npd = (c.newPerDay == null) ? NEW_PER_DAY : ((c.newPerDay > 0) ? c.newPerDay : Infinity);
+  // 9/25：「每日新词上限」（newPerDay）也下线（她拍板：总量只按每日学习上限为准）——复习词与新词都不再单独立限
   const _reviews = due.filter(w => w.cleared === true);
-  let _news = due.filter(w => w.cleared !== true);
-  if(_npd !== Infinity) _news = _news.slice(0, _npd);
+  const _news = due.filter(w => w.cleared !== true);
   return _reviews.concat(_news).slice(0, (_sliceCap != null && _sliceCap > 0) ? _sliceCap : DAILY_DUE_CAP);
 }
 
@@ -1701,7 +1696,7 @@ function renderCfgModal(){
       name:'答题', icon:'☑',
       items:[
         // 9/24：batchSize（每轮题量）已下线——一轮背多少改由「每日学习上限」的剩余配额决定
-        { key:'newPerDay',     label:'每日新词上限',  type:'num', min:0, max:999, unit:' 个', desc:'0 = 不限' },
+        // 9/25：newPerDay（每日新词上限）已下线——总量只按「每日学习上限」为准
         { key:'dailyCap',      label:'每日学习上限',  type:'num', min:0, max:999, unit:' 个', desc:'0 = 不限；背满就停，首页「今日待学」按它显示' },
         { key:'questionMode',  label:'题型',          type:'select', opts:[{v:'visual',t:'看词选义'},{v:'audio',t:'听音选义'},{v:'mixed',t:'混合'}] },
         { key:'shuffle',       label:'勾选练习乱序',  type:'toggle' },
