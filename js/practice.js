@@ -141,6 +141,16 @@ function ensureWordV12(w){
     w.dd = (w.dd != null) ? w.dd : d0;
     w.dh = (w.dh != null) ? w.dh : (w.level != null ? LEVEL_INTERVAL[Math.min(7, w.level || 0)] : dhpStartH(w.dd));
   }
+  // 9/24：lastReview 是 design/77（9/21）才新增的写点——9/21 之前 promote 过的老词全都没有这个字段。
+  // 缺它 → dhpRecallP 恒返回 null → 每次答对都走「首次复习」分支（p==null），dh 被重置回 dhpStartH(dd)
+  // （1~3.6 天），把迁移来的 dh（最高 90）全抹掉；策略表在 dh<4 区间对任何 dd 都只给 1 天 → 答对了也白答、
+  // 第二天全回来。她 9/24 实测：617 词里 615 个答对，295 个仍被排到明天。
+  // 给「已练过的老词」补基准：优先 hist 末条日期，否则 nextReview 前推 round(dh) 天。
+  // ⚠️ cleared!==true（从没练过）的真新词不补——它们走首次分支是设计（第二天巩固一次，答对后跳 5 天）。
+  if(w.lastReview == null && w.cleared === true){
+    const _lr = (Array.isArray(w.hist) && w.hist.length) ? (w.hist[w.hist.length - 1].d || null) : null;
+    w.lastReview = _lr || (w.nextReview ? addDays(w.nextReview, -Math.max(1, Math.round(w.dh))) : null);
+  }
   if(w.level != null && w.nextReview != null){
     if(w.cleared == null) w.cleared = !!w.lastReview;  // 已学过的词默认"已达标"(复习对1次即过)；新词需分散3次
     if(w.shortCount == null) w.shortCount = 0;
@@ -289,6 +299,48 @@ function demoteLongTerm(w, today, isCompletelyUnknown){
   w.shortCount = 0;
   w.lastShortTouch = null;                 // 清零时间戳置空
   recordDailyWrong(w.en);
+}
+
+// 9/24 一次性修复（她拍板）：今天答对、却因 lastReview 缺失被「首次复习」分支重置 dh、间隔塌成 1 天的词，
+// 用 hist 里「早于今天」的最后一条作为复习基准，按正常的答对公式重算 dh 与 nextReview。
+// 命中条件（避免误伤正常排程）：上次答对那天之后只排了 1 天 + dh 停在重置区间(<10) + 有更早的复习记录。
+// 重算后仍是 1 天的词不动；真新词（今天才第一次见，hist<2 条）不动。
+// 幂等：DATA._repairResetDhV 标记，只跑一次。真数据回放：命中 289、重排 285，明天到期 1109→824。
+function repairResetDh(){
+  try{
+    if(DATA && DATA._repairResetDhV) return 0;
+    if(DATA) DATA._repairResetDhV = true;
+    const list = (typeof wbWords === 'function') ? (wbWords() || []) : [];
+    if(!list.length) return 0;
+    const today = todayKey();
+    let n = 0;
+    for(const w of list){
+      if(!w || typeof w.en !== 'string' || !w.en.trim()) continue;
+      if(!(w.dh != null && w.dh < 10)) continue;                    // dh 处于「被重置」区间
+      if(!Array.isArray(w.hist) || w.hist.length < 2) continue;      // 今天才第一次见（真新词）不处理
+      const last = w.hist[w.hist.length - 1];
+      if(!last || last.r !== 'ok' || !last.d) continue;              // 只处理上次答对的
+      if(w.nextReview !== addDays(last.d, 1)) continue;              // 只处理「答对后只排了 1 天」的
+      let base = null;
+      for(let i = w.hist.length - 1; i >= 0; i--){
+        if(w.hist[i] && w.hist[i].d && w.hist[i].d !== today){ base = w.hist[i].d; break; }
+      }
+      if(!base) continue;                                            // 拿不到更早基准（纯粹今天才练）→ 不动
+      const dd = (w.dd != null) ? w.dd : 2;
+      const dt = Math.max(0, daysBetween(base, today));
+      const dh = dhpAfterRecall(w.dh, dd, clampP(Math.pow(2, -dt / w.dh)));
+      const interval = (dh >= DHP_H_MAX) ? 180 : Math.max(1, dhpPolicyInterval(dd, dh));
+      if(interval <= 1) continue;                                    // 重算仍是 1 天就别动
+      w.dh = dh;
+      w.level = displayLevelFromH(dh);
+      w.nextReview = addDays(today, interval);
+      if(dh >= DHP_H_MAX){ w.cleared = true; w.level = 7; }
+      // ⚠️ lastReview 不动：今天确实复习过，下次 p 的 Δt 要从今天起算（base 只用来算本次的遗忘程度）
+      n++;
+    }
+    if(n && typeof wbSave === 'function') wbSave();
+    return n;
+  }catch(e){ console.warn('[repairResetDh]', e); return 0; }
 }
 
 // P0-3：取该词本轮的短线间隔（难词走加密 GAP_HARD）
@@ -1917,5 +1969,6 @@ ready(() => {
     }
   }catch(e){}
   if(typeof wbRenderSwitchers === 'function') wbRenderSwitchers();
+  repairResetDh();      // 9/24 一次性：重排「答对却被塌成 1 天」的词（幂等，跑完置 _repairResetDhV）
   autoStartSeeWord();
 });
