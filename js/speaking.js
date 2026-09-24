@@ -2902,12 +2902,17 @@ function p1FlowInit(s){
   // ① 进度头（圆点 + n/n 徽章）：9/15 之之要求删除，不再渲染
 
   // ② 步进导航（9/15：底部「保存/删除/下一话题」已删，插到题卡列表之后）
+  // 9/24 她拍板：完成 / 下一大题 收进这一行，只在**最后一个小题**出现，顶掉「下一题」的位置 →
+  //   最后一小题 = 上一题 · 完成 · 下一大题（一行）；其余小题 = 上一题 · 下一题（这两个按钮根本不出现）。
+  //   原来 完成/下一大题 单独挂在页面最底另一行（sp-action-row），与计时条挤在一起还占两行，已删。
   var nav = document.createElement('div');
   nav.className = 'sp-flow-nav';
   // design/57：计数居左（纯文本），上一题 ghost 胶囊、下一题 ink 胶囊（原 class 保留，事件绑定不变）
   nav.innerHTML = '<span class="sp-flow-count"></span>'
     + '<button class="sp-flow-prev btn-ghost" type="button">← 上一题</button>'
-    + '<button class="sp-flow-next btn-ink" type="button">下一题 →</button>';
+    + '<button class="sp-flow-next btn-ink" type="button">下一题 →</button>'
+    + '<button class="btn btn-med sp-flow-finish" id="p1FinishBtn" type="button" hidden>完成</button>'
+    + '<button class="btn btn-primary sp-flow-topic" id="p1NextTopicBtn" type="button" hidden>下一大题 →</button>';
   list.insertAdjacentElement('afterend', nav);
 
   // ③ 已完成小结（9/16 修：插到 nav 之后而不是 list 之后——
@@ -2917,16 +2922,10 @@ function p1FlowInit(s){
   done.hidden = true;
   nav.insertAdjacentElement('afterend', done);
 
-  // 9/22 之之：话题级出口（与 P2 动作行同款）——完成=回题库列表带反馈；下一大题=按列表顺序继续刷
-  var fnav = document.createElement('div');
-  fnav.className = 'sp-action-row';
-  fnav.innerHTML = '<div class="sp-action-row-right">'
-    + '<button class="btn btn-med" id="p1FinishBtn" type="button">完成</button>'
-    + '<button class="btn btn-primary" id="p1NextTopicBtn" type="button">下一大题 →</button>'
-    + '</div>';
-  done.insertAdjacentElement('afterend', fnav);
-  fnav.querySelector('#p1FinishBtn').addEventListener('click', function(){ spBackToListWithFeedback(s.id); });
-  fnav.querySelector('#p1NextTopicBtn').addEventListener('click', function(){ gotoNextTopic(); });
+  // 9/22 之之：话题级出口——完成=回题库列表带反馈；下一大题=按列表顺序继续刷
+  // 9/24：两个按钮已挪进步进导航行（见上），此处不再单独成行
+  nav.querySelector('#p1FinishBtn').addEventListener('click', function(){ spBackToListWithFeedback(s.id); });
+  nav.querySelector('#p1NextTopicBtn').addEventListener('click', function(){ gotoNextTopic(); });
 
   function render(){
     items.forEach(function(li, idx){ li.classList.toggle('active', idx === cur); });
@@ -2941,13 +2940,18 @@ function p1FlowInit(s){
 
     // 进度点：9/15 之之要求删除（圆点 + n/n 徽章不再渲染）
 
-    // 步进按钮状态
+    // 步进按钮状态（9/24：最后一小题把「下一题」换成 完成 / 下一大题，其余小题不出现这两个按钮）
     var prev = nav.querySelector('.sp-flow-prev');
     var next = nav.querySelector('.sp-flow-next');
     var cnt = nav.querySelector('.sp-flow-count');
+    var finBtn = nav.querySelector('#p1FinishBtn');
+    var topicBtn = nav.querySelector('#p1NextTopicBtn');
+    var isLast = (cur === n - 1);
     if(cnt) cnt.textContent = '第 ' + (cur + 1) + ' / ' + n + ' 题';
     prev.disabled = (cur === 0);
-    next.textContent = (cur === n - 1) ? '完成 ✓' : '下一题 →';
+    next.hidden = isLast;
+    if(finBtn) finBtn.hidden = !isLast;
+    if(topicBtn) topicBtn.hidden = !isLast;
 
     // 已完成小结（9/16 修：评分机制关闭后 bestOfQuestion 恒为 null，这块永远不显示——
     // 改用 countOfQuestion（历史提交条数）判定「练过」，与列表 badge 同一口径）
@@ -2982,9 +2986,9 @@ function p1FlowInit(s){
   }
 
   nav.querySelector('.sp-flow-prev').addEventListener('click', function(){ if(cur > 0){ cur--; render(); } });
+  // 9/24：最后一小题时「下一题」已隐藏（让位给 完成/下一大题），这里只负责前进
   nav.querySelector('.sp-flow-next').addEventListener('click', function(){
     if(cur < n - 1){ cur++; render(); }
-    else { spBackToListWithFeedback(s.id); }   // 9/22：最后一题的「完成 ✓」= 回题库列表带反馈（原只弹 toast）
   });
 
   render();

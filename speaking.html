@@ -46,7 +46,7 @@
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
   <script defer src="js/sentence-drill.js?v=20260922b"></script>
-  <script defer src="js/speaking.js?v=20260923g"></script>
+  <script defer src="js/speaking.js?v=20260924a"></script>
   <script defer src="js/materials.js?v=20260923f"></script>
   <script defer src="js/mock-report.js?v=20260830u"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
@@ -692,7 +692,9 @@
   .sp-flow-dot.cur{ width:32px; height:32px; background:var(--primary); border-color:var(--primary); color:#fff; font-weight:700; box-shadow:0 2px 8px rgba(58,154,147,.35); }
 
   /* 3) 步进导航 + design/57 按钮形态：ghost=次级胶囊、ink=主步进胶囊（旧边框/底色规则删除，形态集中于此） */
-  .sp-flow-nav{ display:flex; align-items:center; gap:10px; margin:16px 0 14px; }
+  .sp-flow-nav{ display:flex; align-items:center; gap:10px; margin:16px 0 14px; flex-wrap:nowrap; }
+  /* 9/24：最后一小题的 完成/下一大题 并入本行（原来另起一行压着计时条）——锁死一行不换行 */
+  .sp-flow-finish,.sp-flow-topic{ min-height:42px; padding:0 18px; flex:none; }
   .sp-flow-count{ font-size:12.5px; font-weight:600; color:var(--muted); margin-right:auto; padding-left:4px; white-space:nowrap; }
   .btn-ghost,.sp-ai-helper,.sp-ans-clear{ background:transparent; border:1.5px solid var(--n-400); color:var(--muted); border-radius:999px; font-weight:600; min-height:42px; padding:0 20px; display:inline-flex; align-items:center; justify-content:center; gap:6px; font:inherit; font-size:13.5px; cursor:pointer; transition:.15s; white-space:nowrap; }
   .btn-ghost:hover,.sp-ai-helper:hover,.sp-ans-clear:hover{ border-color:var(--primary); color:var(--primary); background:transparent; }
