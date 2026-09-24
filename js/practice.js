@@ -36,7 +36,12 @@ var DHP_MAX_INDEX = 122;             // main.cpp max_index（表共 152 列 = 12
 var DHP_D_LIMIT = 18;                // 难度上限（main.cpp d_limit）
 var DHP_D_OFFSET = 2;                // 答错难度步进（main.cpp d_offset）
 var DHP_H_MAX = Math.pow(1.05, 122); // 毕业线 ≈ 414.6 天：达到即长期记忆达成
-var DHP_IDX_MAX = 151;               // 运行时查表上钳制（152 列的最后一列=吸收态占位）
+var DHP_IDX_MAX = 151;               // 表列数-1（共 152 列）
+var DHP_IDX_LAST = 149;              // 9/24：最后一个「真实策略」列——150/151 是吸收态占位
+                                     // （值塌到 1~3，只有 149 列的 ~1/3：dd2 由 3→1、dd18 由 7→3）。
+                                     // 直接按 151 钳制会把「半衰期 348~385 天、再答对一次就毕业」的词
+                                     // 又排回明天（死亡谷）。查表一律钳到本列：这类词拿到 149 列的间隔，
+                                     // 下次答对即跨过 DHP_H_MAX 毕业，不再被拉回来。
 var DAILY_DUE_CAP = 60;              // 每日到期上限（含新词）：buildQueue 排序后截断，截掉的明天队首
 
 // ======= v7.1 三改（她拍板 2026-09-23）：控总量 + 熟词快速通道 + 难度回落 =======
@@ -221,7 +226,7 @@ function dhpPolicyInterval(d, h){
     return LEVEL_INTERVAL[Math.min(7, displayLevelFromH(h))] || 1;
   }
   const row = DHP_POLICY[String(Math.min(DHP_D_LIMIT, Math.max(1, Math.round(Number(d) || 1))))] || DHP_POLICY['1'];
-  const v = row ? row[Math.min(DHP_IDX_MAX, Math.max(0, dhpHIndex(h)))] : null;
+  const v = row ? row[Math.min(DHP_IDX_LAST, Math.max(0, dhpHIndex(h)))] : null;
   return (v >= 1) ? v : (LEVEL_INTERVAL[Math.min(7, displayLevelFromH(h))] || 1);
 }
 // level 保留为显示代理：满足 LEVEL_INTERVAL[L] ≤ dh 的最大 L（词库页 Lv 徽标/筛选/统计条零改动）
