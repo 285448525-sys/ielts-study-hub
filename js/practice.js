@@ -348,6 +348,45 @@ function repairResetDh(){
   }catch(e){ console.warn('[repairResetDh]', e); return 0; }
 }
 
+// 9/24 一次性「旧账补偿」（她要求把 9/21–9/24 被 bug 反复拉回的重复劳动折成半衰期）：
+// 按 hist 全链重放——从首次复习的初始 dh 出发，逐条按真实日期间隔套用答对/答错公式，
+// 得到「这本该达到的 dh」。只补信用、绝不倒退：重放值 <= 当前 dh 的词不动。
+// 幂等：DATA._repairDhReplayV 标记，只跑一次。真数据回放：379 个词补回信用（dh 27→78），明天到期再少 69。
+function repairDhReplay(){
+  try{
+    if(DATA && DATA._repairDhReplayV) return 0;
+    if(DATA) DATA._repairDhReplayV = true;
+    const list = (typeof wbWords === 'function') ? (wbWords() || []) : [];
+    if(!list.length) return 0;
+    const today = todayKey();
+    let n = 0;
+    for(const w of list){
+      if(!w || typeof w.en !== 'string' || !w.en.trim()) continue;
+      if(!Array.isArray(w.hist) || w.hist.length < 2) continue;   // 没有可重放的链
+      const dd = (w.dd != null) ? w.dd : 2;
+      let dh = dhpStartH(dd), prev = null;
+      for(const e of w.hist){
+        if(!e || !e.d) continue;
+        if(prev){
+          const p = clampP(Math.pow(2, -Math.max(0, daysBetween(prev, e.d)) / dh));
+          dh = (e.r === 'ok') ? dhpAfterRecall(dh, dd, p) : dhpAfterForget(dh, dd, p);
+        }
+        prev = e.d;
+      }
+      if(!(dh > 0) || !isFinite(dh)) continue;
+      if(dh <= ((w.dh != null) ? w.dh : 0)) continue;             // 只补信用，不倒退
+      const interval = (dh >= DHP_H_MAX) ? 180 : Math.max(1, dhpPolicyInterval(dd, dh));
+      w.dh = dh;
+      w.level = displayLevelFromH(dh);
+      w.nextReview = addDays(today, interval);
+      if(dh >= DHP_H_MAX){ w.cleared = true; w.level = 7; }
+      n++;
+    }
+    if(n && typeof wbSave === 'function') wbSave();
+    return n;
+  }catch(e){ console.warn('[repairDhReplay]', e); return 0; }
+}
+
 // P0-3：取该词本轮的短线间隔（难词走加密 GAP_HARD）
 function gapFor(w, k){
   const g = (w && w.hardWord) ? GAP_HARD : GAP;
@@ -1975,5 +2014,6 @@ ready(() => {
   }catch(e){}
   if(typeof wbRenderSwitchers === 'function') wbRenderSwitchers();
   repairResetDh();      // 9/24 一次性：重排「答对却被塌成 1 天」的词（幂等，跑完置 _repairResetDhV）
+  repairDhReplay();     // 9/24 一次性：按 hist 全链重放，补回被 bug 吞掉的半衰期（幂等，_repairDhReplayV）
   autoStartSeeWord();
 });
