@@ -44,7 +44,7 @@
   <script defer src="js/data.js?v=20260923c"></script>
   <script defer src="js/common.js?v=20260925b"></script>
   <!-- design/78 双词库适配层：必须在 dhp_policy.js / practice.js / words.js 之前（defer 按文档序执行） -->
-  <script defer src="js/wordbank.js?v=20260925a"></script>
+  <script defer src="js/wordbank.js?v=20260926a"></script>
   <!-- design/77 DHP+SSP-MMC 策略表：必须在 practice.js 之前（defer 按文档序执行，表未加载时 practice.js 有回退兜底） -->
   <script defer src="js/dhp_policy.js?v=20260921a"></script>
   <script src="js/practice.js?v=20260926a" defer></script>
@@ -86,7 +86,6 @@
         <div class="prog-bar-track"><div class="prog-bar-fill" id="progBarFill" style="width:0%"></div></div>
       </div>
       <div class="word-tools-row" id="wordToolsRow" hidden>
-        <span id="wbStudyTag"></span>
         <button class="btn btn-sm icon-square-btn" id="cfgGear" title="练习设置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></button>
         <button class="btn btn-sm icon-square-btn" id="fullscreenBtn" title="全屏沉浸式背单词"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg></button>
       </div>

@@ -360,7 +360,8 @@
     _persist();
   }
 
-  // ---------- 词库切换控件（学习页 #wbStudyTag / 词库页 #wbSwitcher 共用渲染） ----------
+  // ---------- 词库切换控件（只渲染词库页 #wbSwitcher；9/26 她拍板：学习页不再显示词库切换器，
+  //            原 #wbStudyTag 紧凑段控件已删，要换词库去「词库」页切） ----------
   function _switcherHtml(active, compact){
     var html = '';
     if(compact) html += '<span class="wb-tag-label">词库</span>';
@@ -382,8 +383,6 @@
   }
   function wbRenderSwitchers(){
     var a = wbActive();
-    var tag = document.getElementById('wbStudyTag');
-    if(tag) tag.innerHTML = _switcherHtml(a, true);
     var sw = document.getElementById('wbSwitcher');
     if(sw) sw.innerHTML = _switcherHtml(a, false);
   }
