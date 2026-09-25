@@ -48,6 +48,11 @@
        · 清除记录并退出：清掉快照，返回开始卡
        · 继续模考：关闭对话框，留在当前题
      FAB 挂在 #mockStage 内（fixed 定位），舞台隐藏 / 切 tab / 显示报告时随父级自动消失，不污染其他页面。 */
+  /* 9/26 她拍板：点「开始模考」后整页只剩模考内容（隐藏侧栏与 tab 行，见 speaking.html .mock-immerse）。
+     出报告 / 中途退出 / 中断 / 切 tab 一律恢复常规布局——否则页面只剩模考且没有 tab 可点会卡死。 */
+  function setMockImmerse(on){
+    try{ document.body.classList.toggle('mock-immerse', !!on); }catch(e){}
+  }
   function injectExitButton(){
     if($('#mockExitFab')) return;
     const stage = $('#mockStage');
@@ -88,6 +93,7 @@
     stopTotalTimer();
     if(!save) clearResumeSnapshot();   // 保存则不清除，保留快照供续考
     removeExitButton();
+    setMockImmerse(false);          // 9/26：退出到开始卡 → 恢复常规布局
     mockState = null;
     $('#mockStage').hidden = true;
     $('#mockReport').hidden = true;
@@ -100,6 +106,7 @@
     if(!snap){ renderMockStart(); return; }
     mockState = { p1Set: snap.p1Set, p2Topic: snap.p2Topic, answers: snap.answers, pronSource: snap.pronSource, p3qs: snap.p3qs || [], totalRemaining: (snap.totalRemaining != null ? snap.totalRemaining : TOTAL_LIMIT) };
     $('#mockStart').hidden = true; $('#mockReport').hidden = true; $('#mockStage').hidden = false;
+    setMockImmerse(true);           // 9/26：续考也进沉浸
     injectExitButton();
     startTotalTimer();
     toast('已恢复上次未完成的模考，继续答题');
@@ -491,6 +498,7 @@
       stopTotalTimer();
       clearResumeSnapshot();
       removeExitButton();
+      setMockImmerse(false);        // 9/26：中断也要恢复常规布局
       $('#mockStage').hidden = true; $('#mockStart').hidden = false; renderMockStart();
     }
   }
@@ -626,6 +634,7 @@
 
     $('#mockStage').hidden = true;
     $('#mockReport').hidden = false;
+    setMockImmerse(false);          // 9/26：出报告 → 恢复常规布局（报告页要能点 tab / 侧栏）
     stopTotalTimer();
     const body = $('#mockReportBody');
     if(body) body.innerHTML = report
@@ -662,6 +671,7 @@
     $('#mockStart').hidden = true;
     $('#mockReport').hidden = true;
     $('#mockStage').hidden = false;
+    setMockImmerse(true);           // 9/26：开始模考 → 整页只剩模考内容
     injectExitButton();
 
     await runExam(null);

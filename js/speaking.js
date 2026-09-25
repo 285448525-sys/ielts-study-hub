@@ -212,6 +212,8 @@ ready(() => {
       spActivateTab(t);
       // 9/13 修：句型拼接验证弹窗挂在 body 上、z-index 999，切 tab 不会跟着消失 → 先关掉（不写 replay 标记，下次练满还会弹）
       if(typeof sentReplayClose === 'function') sentReplayClose();
+      // 9/26：切 tab 一律解除模考沉浸（否则侧栏/tab 被藏、页面只剩模考内容）
+      try{ document.body.classList.remove('mock-immerse'); }catch(e){}
       $('#listView').hidden = true; $('#detailView').hidden = true; $('#mockView').hidden = true; $('#matView').hidden = true; $('#pdView').hidden = true; $('#sentView').hidden = true;
       if(t === 'PRACTICE'){
         // design/16 P0：句型页（sentence-drill.js）接管「练习」tab；场景闯关/pdLegacy 退场（开关可回滚）

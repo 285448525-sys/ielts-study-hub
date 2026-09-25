@@ -46,11 +46,11 @@
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
   <script defer src="js/sentence-drill.js?v=20260922b"></script>
-  <script defer src="js/speaking.js?v=20260926b"></script>
+  <script defer src="js/speaking.js?v=20260926c"></script>
   <script defer src="js/materials.js?v=20260923f"></script>
   <script defer src="js/mock-report.js?v=20260830u"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
-  <script defer src="js/mock.js?v=20260922b"></script>
+  <script defer src="js/mock.js?v=20260926a"></script>
   <script defer src="js/pattern-drill.js?v=20260922a"></script>
   <script defer src="js/scene-drill.js?v=20260922a"></script>
 <style>
@@ -735,6 +735,12 @@
   .sp-topic-main{ min-width:0; }
   .sp-topic-kicker{ font-size:11.5px; font-weight:700; letter-spacing:.14em; color:var(--primary); margin-bottom:7px; }
   @media(max-width:600px){ .sp-detail-title{ font-size:26px; } .sp-topic-row{ align-items:flex-start; flex-direction:column; } }
+/* 9/26 她拍板：点「开始模考」后整页只剩模考内容（沉浸式）——隐藏顶部导航与「口语+tab 行」，
+   舞台铺满；出报告 / 中途退出 / 中断 / 切 tab 一律由 mock.js 移除该 class 恢复常规布局。 */
+body.mock-immerse #mainNav{display:none!important}
+body.mock-immerse .page-head-row{display:none!important}
+body.mock-immerse .container{padding-top:14px}
+body.mock-immerse #mockStage{border:0;box-shadow:none;background:transparent}
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
