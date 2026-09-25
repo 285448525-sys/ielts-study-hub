@@ -2495,7 +2495,13 @@ function diffSentenceHtml(answer, errs){
   const clean = cleanErrors(errs);
   const broken = hasObviousGrammarIssues(answer);
   if(!clean.length && !broken) return '<div class="diag-ok">没发现明显错误，继续保持～</div>';
-  if(!clean.length && broken) return '<div class="diag-warn">句子有明显语法问题（如缺 be 动词/时态/成分残缺），但 AI 未具体指出。建议重读原句或手动检查。</div>';
+  if(!clean.length && broken){
+    // 9/26（她报 bug）：AI 没给出具体位置时，用本地规则把「哪一段、什么问题」直接指出来
+    const f = findObviousGrammarIssue(answer);
+    if(f) return '<div class="diag-warn">检测到疑似问题：<span class="diag-hl">' + escapeHtml(f.hit) + '</span> —— ' + escapeHtml(f.msg)
+      + '。<div class="muted" style="margin-top:6px;font-size:12.5px">（AI 这次没给出具体位置，以上是站内规则兜底检测，仅供参考）</div></div>';
+    return '<div class="diag-warn">句子有明显语法问题（如缺 be 动词/时态/成分残缺），但 AI 未具体指出。建议重读原句或手动检查。</div>';
+  }
   if(!ans) return inlineErrorsHtml(clean);
   const isPlaceholderFix = t => /^[\s\/\-–—|,.;!?、；。]*$/.test(String(t || ''));
 
@@ -2588,26 +2594,30 @@ function adaptDiag(j){
 }
 
 // 文本粗检：句子有明显破洞但 AI 漏报时，不让他享受"无错6分"兜底
-function hasObviousGrammarIssues(text){
+// 9/26（她报 bug）：AI 识别到有错却不说具体位置时，兜底文案笼统到没法用。
+// 升级：本地规则检测升级为「能给出命中的具体片段 + 问题类型说明」，兜底时直接指出来（标注为站内规则，不冒充 AI）。
+function findObviousGrammarIssue(text){
   const raw = String(text || '').trim();
-  const t = ' ' + raw.toLowerCase().replace(/[.,!?;:'"]/g, ' ') + ' ';
-  // I never creating / I just watching / I always thinking（进行时缺 be）
-  if(/\bi\s+(never|always|often|sometimes|usually|just|already|also|still)\s+[a-z]+ing\b/.test(t)) return true;
-  // I just it's / I also it's / I never it's（缺谓语，后接 it's）
-  if(/\bi\s+(just|also|always|never|still)\s+it\s*is\b/.test(t)) return true;
-  // I it's / we it's / they it's（主语后直接跟 it's）
-  if(/\b(i|we|they|he|she)\s+it'?s\b/.test(t)) return true;
-  // I would say 后面啥也没有，话没说完
-  if(/\bi\s+would\s+say\s*$/.test(raw.toLowerCase())) return true;
-  // 过去时间状语 + 现在时动词：in the past I prefer / last year I like
-  if(/\b(in the past|last year|last month|last week|yesterday|when i was young)\b.*\b(i|you|we|they|he|she)\s+(prefer|like|love|hate|want|need|go|do|have|watch|listen|play|eat|read)\b/.test(t)) return true;
-  // about + 大写形容词/副词：about Popular / about Beautiful（词性误用）
-  if(/\babout\s+[A-Z][a-z]+\b/.test(raw)) return true;
-  // feel / make me feel ... and + 动词原形，但前面是形容词/名词：feel all right and slow down
-  if(/\bfeel\s+\w+(\s+\w+)?\s+and\s+\w+\s+down\b/.test(t)) return true;
-  // 主谓之间插 is：I use social media is frequent / She likes music is good
-  if(/\b(i|you|we|they|he|she)\s+\w+(\s+\w+){1,5}\s+is\s+\w+\b/.test(t)) return true;
-  return false;
+  const rules = [
+    { re: /\bi\s+(?:never|always|often|sometimes|usually|just|already|also|still)\s+[a-z]+ing\b/i,
+      msg: '进行时缺 be 动词（如 I never creating → I am never creating）' },
+    { re: /\bi\s+(?:just|also|always|never|still)\s+it\s*is\b/i, msg: '句子缺谓语动词' },
+    { re: /\b(?:i|we|they|he|she)\s+it'?s\b/i, msg: '主语后直接跟 it\'s，缺谓语' },
+    { re: /\bi\s+would\s+say\s*$/i, msg: 'I would say 后面话没说完，成分残缺' },
+    { re: /\b(?:in the past|last year|last month|last week|yesterday|when i was young)\b[\s\S]*?\b(?:i|you|we|they|he|she)\s+(?:prefer|like|love|hate|want|need|go|do|have|watch|listen|play|eat|read)\b/i,
+      msg: '过去时间状语配了现在时动词，时态不一致' },
+    { re: /\babout\s+[A-Z][a-z]+\b/, msg: 'about 后接了大写开头的词，疑似词性误用（应为动词/动名词）' },
+    { re: /\bfeel\s+\w+(?:\s+\w+)?\s+and\s+\w+\s+down\b/i, msg: 'feel … and … 结构疑似成分残缺' },
+    { re: /\b(?:i|you|we|they|he|she)\s+\w+(?:\s+\w+){1,5}\s+is\s+\w+\b/i, msg: '主谓之间多了 is，疑似中文式双谓语结构' }
+  ];
+  for(const r of rules){
+    const m = raw.match(r.re);
+    if(m) return { msg: r.msg, hit: m[0] };
+  }
+  return null;
+}
+function hasObviousGrammarIssues(text){
+  return !!findObviousGrammarIssue(text);
 }
 
 /* === 评分净化（9/20 design/76 重写） ===
