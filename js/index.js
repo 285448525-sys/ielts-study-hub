@@ -269,7 +269,8 @@ function renderDashTasks(){
       const it = p && Array.isArray(p.items) ? p.items.find(x => x && String(x.id) === c.dataset.toggle) : null;
       if(!it) return;
       it.done = c.checked;
-      hubSave();
+      it.updatedAt = Date.now();   // 9/25 修：首页勾选也必须戳时间戳——不戳则云端合并视为「旧数据」，
+      hubSave();                   // 另一端同条目带更新 ts 时会把勾选冲掉（她实测：勾了好多刷新就没了）
       renderDashTasks();
     });
   });

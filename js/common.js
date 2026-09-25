@@ -1994,7 +1994,18 @@ function mergeData(local, cloud){
 function _mergePlans(local, cloud, deleted){
   local = Array.isArray(local) ? local : []; cloud = Array.isArray(cloud) ? cloud : [];
   const byDate = new Map(); let changes = 0;
-  local.forEach(p => byDate.set(p.date, p));
+  // 9/25 修：本机同日双对象不再「后者整吞前者」——原 byDate.set 后写覆盖前写，
+  // 会把先到对象（可能含用户刚勾的条目）连壳丢掉。现条目并入先到对象（按 id 去重）。
+  local.forEach(p => {
+    if(!p || !p.date) return;
+    const ex = byDate.get(p.date);
+    if(!ex){ byDate.set(p.date, p); return; }
+    const seenIds = new Set((ex.items || []).map(i => i && i.id));
+    (p.items || []).forEach(it => {
+      if(!it || it.id == null || seenIds.has(it.id)) return;
+      ex.items.push(it); seenIds.add(it.id); changes++;
+    });
+  });
   cloud.forEach(p => {
     const ex = byDate.get(p.date);
     if(!ex){ byDate.set(p.date, p); changes++; return; }
@@ -2008,8 +2019,12 @@ function _mergePlans(local, cloud, deleted){
         // 双方都有时间戳：新者整项胜（含 done/text/updatedAt 全字段）；相等 = 同一动作已同步，不动（幂等）
         if(ct > mt){ ex.items[ex.items.indexOf(mine)] = it; changes++; }
       } else if(!mt && ct){
-        ex.items[ex.items.indexOf(mine)] = it;       // 仅云端有：云端是更新过的客户端，胜
-        changes++;
+        // 9/25 修：本机已勾选但条目无时间戳（老数据/旧版首页勾选）时，绝不被云端「未勾版」冲掉——
+        // 勾选是用户动作，进度不因合并倒退；其余字段仍以云端（另一端更新过）为准。
+        if(!(mine.done && !it.done)){
+          ex.items[ex.items.indexOf(mine)] = it;       // 仅云端有：云端是更新过的客户端，胜
+          changes++;
+        }
       } else if(!mt && !ct){
         // 双方都是老数据（从未被新写点动过）：回退旧口径（done 单向或、text 不动）
         if(it.done && !mine.done){ mine.done = true; changes++; }
@@ -2025,13 +2040,15 @@ function _mergePlans(local, cloud, deleted){
         if(!it) return;
         // 9/23 她拍板：同名任务她就是要重复做（同一天排两条「听力 第2篇」），text 去重会把
         // 手动/AI 加的重复条目在跨端同步时吞掉 → 去掉 text 去重，只保留 fromId 去重——
-        // 跨端「自动延续」同源条目（不同 uid 同 fromId 同完成态）收敛为 1 条，保留 updatedAt 新者
-        const k1 = (it.fromId != null) ? 'f:' + it.fromId + ':' + (it.done ? 'd' : 'o') : null;
+        // 9/25 修：fromId 去重键不再含 done 态。原「f:id+d/o 分键」会让同一来源的两个副本
+        // 在勾选态分歧后永久共存（两端各留一条，越合越多）；现统一收敛为 1 条，
+        // updatedAt 新者胜；等值时勾选态优先（进度不倒退）。
+        const k1 = (it.fromId != null) ? 'f:' + it.fromId : null;
         const hit = (k1 && seen.has(k1)) ? seen.get(k1) : null;
         if(hit){
           deduped = true;
           const ht = Number(hit.updatedAt) || 0, nt = Number(it.updatedAt) || 0;
-          if(nt > ht){ kept[kept.indexOf(hit)] = it; seen.set(k1, it); }
+          if(nt > ht || (nt === ht && it.done && !hit.done)){ kept[kept.indexOf(hit)] = it; seen.set(k1, it); }
           return;
         }
         kept.push(it);
