@@ -1698,10 +1698,15 @@ if(!window.__wordTimerLeaveHook){
 }
 
 function updateWordStats(){
-  // 进度条显示「本轮读到第几个 / 本轮总数」，例如 3/50
-  // 数字 = 已作答唯一词数 + 当前正在看的这一题；完成时 queue 为空，直接显示 total/total
+  // 9/26（她拍板）：设了「每日学习上限」（>0）→ 进度条显示「今日累计已背 / 上限」，
+  // 背了 100 再进来是「100 / 300」，不再是「0 / 200」（旧口径只数本轮、每轮重置，看着像从头开始）。
+  // 上限 = 0（不限）时维持原口径「本轮第几个 / 本轮总数」。
   let progress = '0/0';
-  if(pq){
+  const _progCap = Number(pc().dailyCap) || 0;
+  if(_progCap > 0){
+    progress = Math.min(practicedCount(), _progCap) + ' / ' + _progCap;
+  } else if(pq){
+    // 进度条显示「本轮读到第几个 / 本轮总数」，例如 3/50
     const total = pq.initLen || pq.queue.length || 0;
     // 9/7 口径：只数「完全过关」的词（答错进短线的词过完 3 遍全对才计入），不含正在看的题
     const current = Math.min(pq.counted ? pq.counted.size : 0, total);
