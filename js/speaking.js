@@ -3140,3 +3140,28 @@ if(!window.__spkTimerFocusHook){
   document.addEventListener('click', spkTimerTrigger);
 }
 
+/* 回车跳题（9/26 她拍板）：评分结果出来后按回车 = 下一题；最后一小题按回车 = 下一大题。
+   焦点在输入框/文本域时不抢（回车要换行）；按钮不可见不触发。
+   覆盖 P1 步进行（下一题 / 下一大题 / 完成）与 P2 详情页底部「下一大题」。 */
+if(!window.__spEnterHook){
+  window.__spEnterHook = true;
+  document.addEventListener('keydown', function(e){
+    if(e.key !== 'Enter' || e.shiftKey) return;
+    var t = e.target;
+    if(t && (t.tagName === 'TEXTAREA' || t.tagName === 'INPUT' || t.isContentEditable)) return;
+    var btn = null;
+    var nav = document.querySelector('.sp-flow-nav');
+    if(nav){
+      var cands = ['.sp-flow-next', '#p1NextTopicBtn', '#p1FinishBtn'];
+      for(var i = 0; i < cands.length; i++){
+        var b = nav.querySelector(cands[i]);
+        if(b && !b.hidden && b.offsetParent !== null){ btn = b; break; }
+      }
+    }
+    if(!btn){
+      var p2 = document.getElementById('p2NextBtn') || document.getElementById('p2NextBtn2');
+      if(p2 && !p2.hidden && p2.offsetParent !== null) btn = p2;
+    }
+    if(btn){ e.preventDefault(); try{ btn.click(); }catch(err){} }
+  });
+}
