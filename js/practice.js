@@ -1269,7 +1269,8 @@ function shortLineCorrect(cur, today, k){
 function judge(cur, pickedEn, correct, isUnknownBtn){
   if(!pq || pq.revealed) return;
   // 9/23 她改口径：第一次作答才自动开「背单词」计时（原为进练习/出题即开——打开页面不动也算时长）
-  try{ maybeStartWordTimer(); }catch(e){}
+  // 9/26：真作答开的表不算「跳转误开」，撤销 30s 门槛标记（门槛只拦「点了任务但没学就走」的碎片）
+  try{ window.__wordTimerByJump = false; maybeStartWordTimer(); }catch(e){}
   pq.revealed = true;
   // 云同步合并后页面闭包里的 cur 可能还是旧 DATA.words 的孤儿对象（common.js 只重映射 pq.queue）：
   // 作答前按 en 换成合并后的活对象，避免 promote/demote 写到旧对象上、hubSave 落盘时丢失。
@@ -1661,10 +1662,13 @@ function scheduleWordTimerStop(){
     commitWordTimer(window.__lastSegTs || Date.now());
   }, 120000);
 }
+// 9/26（她拍板 30s）：autostart 跳转自动开的计时，若 <30s 就结束 → 视为误点，不落 session。
+// ⚠️ 顶层 var 且必须在 commitWordTimer 之前（defer 脚本同步执行期就赋值，避免 TDZ）。
+var WORD_AUTO_MIN_SEC = 30;
 function commitWordTimer(endTsOverride){
   if(!window.__wordTimerAuto) return;
   const a = window.active;
-  if(!a || a.ended || a.moduleId !== WORD_TIMER_MODULE){ window.__wordTimerAuto = false; return; }
+  if(!a || a.ended || a.moduleId !== WORD_TIMER_MODULE){ window.__wordTimerAuto = false; window.__wordTimerByJump = false; return; }
   const timerId = a.timerId;
   // 正常离开：计到当前；处于「轮间宽限」时：只计到上一轮结束点（不把空隙算进学习时长）
   const endTs = (endTsOverride != null) ? endTsOverride
@@ -1672,7 +1676,10 @@ function commitWordTimer(endTsOverride){
   const durationSec = Math.max(0, Math.round((endTs - (a.startTs || endTs)) / 1000));
   DATA.sessions = DATA.sessions || [];
   const already = DATA.sessions.some(s => s.timerId && s.timerId === timerId);
-  if(!already && durationSec > 0){
+  // 9/26（她拍板 30s）：autostart 跳转开的表，若人没真学就走了（<30s）→ 不落库，避免几秒的碎片记录。
+  // 真答过题开的表（judge 里清标记）不受此限，短学也记。
+  const _minSec = window.__wordTimerByJump ? WORD_AUTO_MIN_SEC : 1;
+  if(!already && durationSec >= _minSec){
     DATA.sessions.push({
       id: uid(), timerId, date: todayKey(), moduleId: a.moduleId, subId: a.subId,
       moduleName: a.moduleName, subName: a.subName,
@@ -1683,6 +1690,7 @@ function commitWordTimer(endTsOverride){
   DATA.activeTimer = { timerId, ended: true, updatedAt: Date.now(), lastBeat: 0 };
   hubSave();
   window.__wordTimerAuto = false;
+  window.__wordTimerByJump = false;
   try{
     document.dispatchEvent(new CustomEvent('hub:session-saved', { detail: { date: todayKey() } }));
     document.dispatchEvent(new CustomEvent('hub:timer-state'));
@@ -2151,6 +2159,6 @@ ready(() => {
   repairDhReplay();     // 9/24 一次性：按 hist 全链重放，补回被 bug 吞掉的半衰期（幂等，_repairDhReplayV）
   // 9/24：首页今日任务跳转带 autostart=1 → 落地即开「背单词」计时（她拍板：跳转过去直接开始计时）。
   // maybeStartWordTimer 自带「已有背词表不重复开 + 他模块先正规结算」，重复调用安全。
-  try{ if(new URLSearchParams(location.search).get('autostart')) maybeStartWordTimer(); }catch(e){}
+  try{ if(new URLSearchParams(location.search).get('autostart')){ window.__wordTimerByJump = true; maybeStartWordTimer(); } }catch(e){}
   autoStartSeeWord();
 });

@@ -294,7 +294,7 @@ ready(() => {
     // ⭐ 必须 setTimeout(0)：ready 回调在脚本求值期同步执行，SPK_TIMER_MODULE 等 const
     //   声明在文件后段（~3001 行）尚未初始化，直接调会 TDZ 且被本 try 吞掉（探针 3b 实测）。
     if(new URLSearchParams(location.search).get('autostart')){
-      setTimeout(() => { try{ maybeStartSpkTimer(); }catch(_){} }, 0);
+      setTimeout(() => { try{ window.__spkTimerByJump = true; maybeStartSpkTimer(); }catch(_){} }, 0);
     }
   }catch(_){}
   // design/17 3.5：回顾页「去练」带 ?senttab=1——确保落练习 tab（默认即练习，兜底防其他参数抢占）
@@ -3078,16 +3078,20 @@ function maybeStartSpkTimer(){
   window.__spkTimerAuto = true;
   hubSave();
 }
+// 9/26（她拍板 30s）：autostart 跳转自动开的口语计时，<30s 结束 = 误点，不落 session。
+// ⚠️ 顶层 var、必须在 commitSpkTimer 之前（defer 同步执行期即赋值，避免 TDZ）。
+var SPK_AUTO_MIN_SEC = 30;
 function commitSpkTimer(){
   if(!window.__spkTimerAuto) return;
   const a = window.active;
-  if(!a || a.ended || a.moduleId !== SPK_TIMER_MODULE){ window.__spkTimerAuto = false; return; }
+  if(!a || a.ended || a.moduleId !== SPK_TIMER_MODULE){ window.__spkTimerAuto = false; window.__spkTimerByJump = false; return; }
   const timerId = a.timerId;
   const endTs = Date.now();
   const durationSec = Math.max(0, Math.round((endTs - (a.startTs || endTs)) / 1000));
   DATA.sessions = DATA.sessions || [];
   const already = DATA.sessions.some(s => s.timerId && s.timerId === timerId);
-  if(!already && durationSec > 0){
+  const _minSec = window.__spkTimerByJump ? SPK_AUTO_MIN_SEC : 1;
+  if(!already && durationSec >= _minSec){
     DATA.sessions.push({
       id: uid(), timerId, date: todayKey(), moduleId: a.moduleId, subId: a.subId,
       moduleName: a.moduleName, subName: a.subName,
@@ -3098,6 +3102,7 @@ function commitSpkTimer(){
   DATA.activeTimer = { timerId, ended: true, updatedAt: Date.now(), lastBeat: 0 };
   hubSave();
   window.__spkTimerAuto = false;
+  window.__spkTimerByJump = false;
   try{
     document.dispatchEvent(new CustomEvent('hub:session-saved', { detail: { date: todayKey() } }));
     document.dispatchEvent(new CustomEvent('hub:timer-state'));
@@ -3134,7 +3139,7 @@ if(!window.__spkTimerFocusHook){
     const t = e.target;
     if(!t || !t.classList) return;
     if(!(t.classList.contains('sp-ans') || t.classList.contains('sp-p3-textarea'))) return;
-    try{ maybeStartSpkTimer(); }catch(err){}
+    try{ window.__spkTimerByJump = false; maybeStartSpkTimer(); }catch(err){}
   };
   document.addEventListener('focusin', spkTimerTrigger);
   document.addEventListener('click', spkTimerTrigger);
