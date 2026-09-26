@@ -20,9 +20,11 @@
   var OB_KEY = 'ielts_hub_obank_v1';
   // prog 只存进度字段（与 resetWordProgress/ensureWordV12 同口径）；
   // 内容字段 en/cn/pos/ipa/sl 永远从 json 来，绝不复制进 localStorage。
+  // 9/26：补 lastPracticeAt —— design/84「最后练习者胜」的决胜字段，官方词库漏了它，
+  // 跨设备合并时就无法判断谁练得更晚（进度可能被另一端的旧状态反压）。
   var PROG_FIELDS = ['level','nextReview','errTotal','errStreak','okStreak','lastReview','cleared',
                      'shortCount','lastShortTouch','cleanRounds','hist','resetEpoch','dd','dh',
-                     'mcDue','hardWord','keyWord','ts'];
+                     'mcDue','hardWord','keyWord','ts','lastPracticeAt'];
 
   var state = {
     active: 'custom',     // 当前活动词库 id（'custom' 或注册表内的 bankId）
@@ -148,7 +150,13 @@
     return _findEnt(state.active) ? state.active : 'custom';   // 脏值兜底回 custom
   }
   function wbSetActive(id){
-    state.active = (id === 'custom' || !_findEnt(id)) ? 'custom' : id;
+    var next = (id === 'custom' || !_findEnt(id)) ? 'custom' : id;
+    if(next !== state.active){
+      // 9/26：切换前钩子—— practice.js 用它把「今日已练」记数先按**旧词库**落盘。
+      // 必须在改 state.active 之前调用：wbMarkPracticed 按 wbActive() 路由，切完再写就写错库了。
+      try{ if(typeof window.__onBeforeWbSwitch === 'function') window.__onBeforeWbSwitch(state.active, next); }catch(e0){}
+      state.active = next;
+    }
     _persist();
     // design/78：直接调用（非点击委托路径）也要刷新 #wbStudyTag/#wbSwitcher 高亮，
     // 否则 #emptyGoOfficial / onbGoOfficial / officialStartBtn 切库后标签停留旧态

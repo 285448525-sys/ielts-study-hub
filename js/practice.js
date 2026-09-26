@@ -124,8 +124,13 @@ function pcSave(obj){
 let _practicedSet = null;          // 今日已作答 unique 词（小写 en）
 let _practicedDirty = 0;
 let _practicedFlushAt = 0;
+let _practicedBank = null;         // 9/26：该缓存属于哪个词库（custom / awl …）——切库必须失效
 function practicedSet(){
-  if(_practicedSet) return _practicedSet;
+  // 9/26 修：切换词库后缓存不失效 → 新词库沿用旧库的「今日已背」，
+  // 「每日学习上限」按错库的数字算（如 custom 背了 5 个、切 AWL 后只能再背 5 个）。按库隔离缓存。
+  const _a = (typeof wbActive === 'function') ? wbActive() : 'custom';
+  if(_practicedSet && _practicedBank === _a) return _practicedSet;
+  _practicedBank = _a;
   _practicedSet = new Set();
   try{
     const rec = (typeof wbPracticed === 'function') ? wbPracticed() : null;
@@ -152,6 +157,13 @@ function flushPracticed(){
     _practicedFlushAt = Date.now();
   }catch(e){}
 }
+// 9/26：切换词库时调用——先按旧词库落盘（钩子已做，这里是保险），再让缓存失效重读
+function resetPracticedCache(){
+  try{ if(_practicedSet && _practicedSet.size) flushPracticed(); }catch(e){}
+  _practicedSet = null; _practicedDirty = 0; _practicedFlushAt = 0; _practicedBank = null;
+}
+// 9/26：wordbank.js wbSetActive 在真正切换词库**之前**调用这个钩子（按旧词库路由落盘，避免写错库）
+window.__onBeforeWbSwitch = function(){ try{ flushPracticed(); }catch(e){} };
 
 /* 9/24：今日剩余配额 = 每日学习上限 − 今日已背。返回 null = 不限（沿用旧的「一轮 60 个」口径）。
    9/25：已背改读 practiced（实时），改上限后立刻按「已背不动、只看新上限」重算。 */
@@ -684,9 +696,12 @@ function renderQuotaDone(){
   const area = $('#practiceArea'); if(area) area.hidden = false;
   const prog = $('#progBarWrap'); if(prog) prog.hidden = true;
   const nb = $('#nextBtn'); if(nb) nb.hidden = true;
+  // 9/26：已背数 > 当前上限（先不限背了很多、之后把上限调小）→ 别显示「60 / 20」这种荒谬数字
   $('#practiceBody').innerHTML =
     '<div class="q-word">今日目标完成</div>' +
-    '<div class="q-cn">今天已经背完 ' + done + ' / ' + cap + ' 个' +
+    '<div class="q-cn">' + (done > cap
+      ? ('今天已经背完 ' + done + ' 个，超出当前上限 ' + cap + ' 个。')
+      : ('今天已经背完 ' + done + ' / ' + cap + ' 个')) +
     (left ? ('，还有 ' + left + ' 个待学习的词明天再来。') : '。') +
     '<br>想多背就去「设置 → 每日学习上限」把它调大。</div>' + wrongBtnHtml;
   if(wrongEns.length && typeof startWrongReview === 'function'){
@@ -838,6 +853,7 @@ async function autoStartSeeWord(){
     // 只把「属于当前 planEn」的 passed 算进本轮进度；避免 mergeData 跨设备/跨轮次并集污染后 counted > initLen
     const sessionPassedInPlan = new Set((s.passed || []).filter(en => (s.planEn || []).includes(en)));
     pq = { mode:'study', queue:[], idx:0, initLen: s.planEn.length, correct: sessionPassedInPlan.size,
+           lastEn: null,          // 9/26：上一题 en（小写，供顶部「← 上一词」回顾；pq.idx 恒 0 不可用）
            revealed:false, answer:null, wrongList:[],
            stats: s.stats || { known:0, unknown:0 },
            counted: new Set(sessionPassedInPlan), // 已过的词不重复计数（仅限本轮 planEn 内）
@@ -1138,8 +1154,12 @@ function renderQuestion(cur, isRehold){
   let html = '';
   // ── 顶部区：上一词回顾 ──
   let top = '';
-  if(pq.idx > 0 && !isRehold){
-    const last = pq.queue[pq.idx - 1];
+  // 9/26 修：「上一词回顾」原判据 `pq.idx > 0` 恒不成立 —— pq.idx 全程为 0（过词一律
+  // splice(idx,1) 后队首滑到 idx，从不递增）→ 回顾区从未渲染过。改按 pq.lastEn 记录上一题。
+  // （isRehold=当场重考同一词，回顾保持不变）
+  const _lastEn = (!isRehold && pq.lastEn) ? pq.lastEn : '';
+  if(_lastEn){
+    const last = (typeof findWordByEn === 'function') ? findWordByEn(_lastEn) : null;
     if(last) top += '<div class="last-word">' +
       '<span class="lw-en">← ' + escapeHtml(last.en) + '</span>' +
       (last.ipa ? '<span class="lw-ipa">' + escapeHtml(last.ipa) + '</span>' : '') +
@@ -1178,6 +1198,8 @@ function renderQuestion(cur, isRehold){
     '</button>';
   }).join('');
   bindOpts(cur);
+  // 9/26：记录「上一题」（不看 pq.idx —— 那个值恒为 0），下一题渲染时用它出回顾条；重考不覆盖
+  if(!isRehold) pq.lastEn = String(cur.en).trim().toLowerCase();
   const left0 = document.getElementById('unknownBtn');
   if(left0) left0.onclick = () => judge(cur, null, false, true);
   ensureMasteredBtn(cur);
@@ -1531,6 +1553,7 @@ function startWrongReview(wrongItems){
     mode:'study',
     queue: shuffle(words.slice()),
     idx: 0,
+    lastEn: null,          // 9/26：重练模式下同样用 lastEn 记录上一题
     initLen: words.length,
     correct: 0,
     revealed: false,
@@ -2142,6 +2165,7 @@ ready(() => {
   // design/78：切换词库 → 清空会话重新出题（词库页刷新/筛选重置由 words.js 自己监听同一事件）
   document.addEventListener('wb:switched', () => {
     cancelSpeak();
+    try{ resetPracticedCache(); }catch(e){}   // 9/26：新词库的「今日已背」要按新库读，不能沿用旧库
     pq = null;
     autoStartSeeWord();
   });
