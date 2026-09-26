@@ -2184,7 +2184,7 @@ body.word-fullscreen #hubDock{ display:none !important; }
       把胶囊拽回屏幕中间。 */
 body.word-fullscreen #floatTimer:not([hidden]){
   display:flex !important;
-  left:auto; right:10px; top:8px; bottom:auto; transform:none;
+  left:50%; right:auto; top:auto; bottom:8px; transform:translateX(-50%);
   padding:3px 9px; gap:6px; font-size:11px;
   box-shadow:0 2px 8px -3px rgba(58,154,147,.45);
   animation:none;
@@ -2193,6 +2193,13 @@ body.word-fullscreen #floatTimer:not([hidden]){
    避免占宽压到题干、也避免全屏里误触结束。 */
 body.word-fullscreen #floatTimer .ft-label,
 body.word-fullscreen #floatTimer .ft-stop{ display:none !important; }
+/* 矮窗口回退档（9/26 实测分界）：视口高 ≤530px 时喇叭按钮底(~483px)会顶进胶囊区，
+   底部居中必叠（9/13 挪右上角的根因）→ 矮窗口自动回右上角，正常高度保持底部居中（她 9/26 拍板）。 */
+@media (max-height: 530px){
+  body.word-fullscreen #floatTimer:not([hidden]){
+    left:auto; right:10px; top:8px; bottom:auto; transform:none;
+  }
+}
 
 /* ④b 内容列：铺满后加宽（960 → min(88vw,1120px)），题目/选项/按钮吃到全屏宽度红利 */
 body.word-fullscreen #practiceBody.practice-body-fit .last-word,
