@@ -109,7 +109,15 @@ function pc(){
 }
 function pcSave(obj){
   if(!DATA.settings || typeof DATA.settings !== 'object') DATA.settings = {};
+  const _before = DATA.settings.practiceCfg;
   DATA.settings.practiceCfg = Object.assign(pc(), obj);
+  // 9/26：practiceCfg 已纳入跨端同步（SYNC_SETTINGS_FIELDS），合并按 _fieldTs 较新者胜。
+  // pcSave 不经过 settings.js 的 _set()，没人替它打戳 → 两端时间戳都是 0 时 mergeData 会
+  // 走「时间戳相同取云端」分支，本机刚改的「每日学习上限」会被云端旧值当场盖回去。
+  if(JSON.stringify(_before) !== JSON.stringify(DATA.settings.practiceCfg)){
+    DATA.settings._fieldTs = DATA.settings._fieldTs || {};
+    DATA.settings._fieldTs.practiceCfg = Date.now();
+  }
   hubSave();
   // 9/25：改「每日学习上限」当场生效（目标数、剩余额度、完成卡状态都立刻按新上限重算）
   if(obj && Object.prototype.hasOwnProperty.call(obj, 'dailyCap')){
@@ -2142,6 +2150,10 @@ ready(() => {
   document.addEventListener('touchstart', _unlockSpeech);
   // 云端合并后刷新当前统计：避免另一端/旧 session 合并进来后，顶部「待学习/本轮剩余/已复习」仍显示旧数
   document.addEventListener('hub:data-merged', () => {
+    // 9/26：合并后必须先让「今日已背」缓存失效——内存里的 _practicedSet 还是合并前的本机集合，
+    // 不重置就永远显示旧数字（云端并进来的那部分一个都看不到）。
+    // resetPracticedCache 内部会先把本机待落盘的部分 flush 掉，不会丢进度。
+    try{ resetPracticedCache(); }catch(e){}
     updateWordStats();
     updateProgBar();
     // 合并后当前题目/队列里可能还挂着旧 DATA.words 的孤儿对象 → 统一换成合并后的活对象引用，

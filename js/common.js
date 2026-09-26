@@ -1407,7 +1407,11 @@ function stripCloudFields(d){
    换设备 / 清缓存后需在本机重填一次 Key。理由：手机号即全部凭证，Key 落云端等于额度可被凭手机号取走。
    syncCode 是账号标识本身不重复同步；autoSync 是本地开关、不跨设备同步（设计：绑了账号就自动同步）。
    合并规则见 mergeData：空值（未填/被清空）永不覆盖另一侧已填值，杜绝「空值带新时间戳把本机 Key 冲掉」。 */
-const SYNC_SETTINGS_FIELDS = ['name','examDate','examDates','targets','dailyGoalHours','pronunciationScore','fluencyScore','theme','chimeOnDone','adhd'];
+/* 9/26：补 practiceCfg —— 背词设置整体（每日学习上限 dailyCap / 题型 / 选项数 / 自动发音 …）
+   以前不在白名单里，等于「背词设置完全不跨端」：电脑上把上限改成 200，手机仍是旧值。
+   ⚠️ 必须配套：practice.js pcSave 要自己打 _fieldTs.practiceCfg，否则两端时间戳都是 0 →
+   合并走「时间戳相同取云端」分支 → 本机刚改的上限会被云端旧值当场盖回去。 */
+const SYNC_SETTINGS_FIELDS = ['name','examDate','examDates','targets','dailyGoalHours','pronunciationScore','fluencyScore','theme','chimeOnDone','adhd','practiceCfg'];
 
 /* ===== 同步条目时间戳维护（9/17 修：_mergeArray 缺时间戳导致云端修改永不并入）=====
    根因：_mergeArray 以 ts/updatedAt 判「较新者胜」，但 11 个同步数组的条目大多只有 id、
@@ -1830,23 +1834,43 @@ function mergeData(local, cloud){
     out.dailySession = _cd; changes++;
   }
   // 今日背词进度跨设备合并（修复：网页端练了 50 个，手机端「今日已练」仍显示 0）
-  // wordSeenToday：同日取 unique 词集合并集（该集合长度即「今日已练」展示值）；wordDayStats：按时段 key 求和时长与轮次
+  // wordSeenToday / wordPracticedToday：同日取 unique 词集合并集（该集合长度即展示值）；wordDayStats：按天取 max
   {
     const _tk = todayKey();
-    const lt = local.wordSeenToday, ct = cloud.wordSeenToday;
-    let mergedSeen = null;
-    if(lt && ct){
-      if(lt.date === _tk && ct.date === _tk){
-        const _set = new Set([...(lt.words || []), ...(ct.words || [])]);
-        mergedSeen = { date: _tk, words: Array.from(_set) };
-      } else if(lt.date === _tk){ mergedSeen = lt; }
-      else if(ct.date === _tk){ mergedSeen = ct; }
-    } else if(lt || ct){
-      const _only = lt || ct;
-      mergedSeen = (_only.date === _tk) ? _only : null;   // 非今日的旧记录不回填（本机下次 getTodaySeen 会重置）
-    }
-    if(mergedSeen && JSON.stringify(mergedSeen) !== JSON.stringify(local.wordSeenToday || null)){
-      out.wordSeenToday = mergedSeen; changes++;
+    // ⭐ 9/26 修：wordPracticedToday（9/25 新增的「答一个记一个」，就是首页/背词页的「今日已背」）
+    // 此前根本没进合并分支，而 mergeData 的语义是「未显式处理的字段一律以本机为准」→ 云端那份
+    // 被整份丢弃、本机永远赢 → 两端各自守着自己的数字互不收敛（实测同时刻 26 vs 200，差的就是它）。
+    // 抽成闭包两处共用，避免以后再加「当日 xxx 词集合」时又漏一次。
+    const _mergeTodayWordSet = (key) => {
+      const lt = local[key], ct = cloud[key];
+      let merged = null;
+      if(lt && ct){
+        if(lt.date === _tk && ct.date === _tk){
+          merged = { date: _tk, words: Array.from(new Set([...(lt.words || []), ...(ct.words || [])])) };
+        } else if(lt.date === _tk){ merged = lt; }
+        else if(ct.date === _tk){ merged = ct; }
+      } else if(lt || ct){
+        const _only = lt || ct;
+        merged = (_only.date === _tk) ? _only : null;   // 非今日的旧记录不回填（本机下次 getTodaySeen 会重置）
+      }
+      if(merged && JSON.stringify(merged) !== JSON.stringify(local[key] || null)){
+        out[key] = merged; changes++;
+      }
+    };
+    _mergeTodayWordSet('wordSeenToday');
+    _mergeTodayWordSet('wordPracticedToday');
+    /* 当日错词 dailyWrong = { [dateKey]: [en] }：同上也从未进过合并分支
+       （9/26 补）——另一端今天答错的词在「今日错词/重练」里永远不出现。
+       按天逐 key 取 unique 并集；空的日期不写，避免往云端塞空对象。 */
+    {
+      const lw = (local.dailyWrong && typeof local.dailyWrong === 'object') ? local.dailyWrong : {};
+      const cw = (cloud.dailyWrong && typeof cloud.dailyWrong === 'object') ? cloud.dailyWrong : {};
+      const _mergedWrong = {};
+      for(const k of new Set([...Object.keys(lw), ...Object.keys(cw)])){
+        const u = Array.from(new Set([...(lw[k] || []), ...(cw[k] || [])]));
+        if(u.length) _mergedWrong[k] = u;
+      }
+      if(JSON.stringify(_mergedWrong) !== JSON.stringify(lw)){ out.dailyWrong = _mergedWrong; changes++; }
     }
     const lds = local.wordDayStats || {}, cds = cloud.wordDayStats || {};
     const _allKeys = new Set([...Object.keys(lds), ...Object.keys(cds)]);
