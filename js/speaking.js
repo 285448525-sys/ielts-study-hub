@@ -2307,6 +2307,7 @@ function renderP2Diag(el, j, answer){
   if(j.rewrite) h += '<div class="diag-sec"><b>改进版表达</b><div class="diag-rewrite">' + highlightRewriteHtml(j.rewrite, errs) + '</div></div>';
   if(j.storyLink) h += '<div class="diag-sec"><b>📌 串题素材连接</b><div class="diag-note">可以用你已准备的这些万能素材来回答这道题：</div>' + escapeHtml(j.storyLink) + '</div>';
   h += diagCollectBar(errs, answer);              // design/77：一键收进句型练习
+  h += diagErrSentBar(errs, answer);              // 9/26：一键收进错句本
   el.innerHTML = h;
   bindDiagCollect(el);
   return true;
@@ -2711,8 +2712,60 @@ function diagCollectBar(errs, answer){
   return '<div class="diag-collect">' + btn
     + '<span class="diag-collect-tip">收进去之后，到「练习」tab 的「我的语法错题」里把它们改对</span></div>';
 }
+/* 9/26：错句本沉淀（她拍板）——一处错误 = 一条记录：
+   src = 错误所在的整句（定位不到就退回错误片段），fix = 把这处改掉后的整句，type = 错误类型。
+   AI 没给具体位置但站内规则抓到问题时：整句存一条，改法留空让她自己补。 */
+function errSentEntriesFrom(errs, answer){
+  const ans = String(answer || '').trim();
+  const clean = cleanErrors(errs);
+  const out = [];
+  if(clean.length){
+    const sents = (ans.match(/[^.?!\n]+[.?!]*/g) || []).map(s => s.trim()).filter(Boolean);
+    clean.forEach(e => {
+      const orig = String(e.original || '').trim();
+      if(!orig) return;
+      const cand = String(e.fix || '').split('/').map(s => s.trim())
+        .find(s => s && !/^[\s\-–—|,.;!?、；。]*$/.test(s)) || '';
+      const lowOrig = orig.toLowerCase();
+      const src = sents.find(s => s.toLowerCase().indexOf(lowOrig) !== -1) || orig;
+      let fix = '';
+      if(cand){
+        const i = src.toLowerCase().indexOf(lowOrig);
+        fix = (i !== -1) ? (src.slice(0, i) + cand + src.slice(i + orig.length)) : cand;
+      }
+      out.push({ src: src, fix: fix, type: String(e.issue || e.type || '').trim() || '语法/用词' });
+    });
+  }
+  if(!out.length && ans){
+    const f = findObviousGrammarIssue(ans);
+    if(f) out.push({ src: ans, fix: '', type: f.msg });
+  }
+  return out;
+}
+function diagErrSentBar(errs, answer){
+  const entries = errSentEntriesFrom(errs, answer);
+  if(!entries.length) return '';
+  window.__DIAG_ES_SEQ = (window.__DIAG_ES_SEQ || 0) + 1;
+  var seq = 'es' + window.__DIAG_ES_SEQ;
+  window.__DIAG_ES = window.__DIAG_ES || {};
+  window.__DIAG_ES[seq] = entries;
+  return '<div class="diag-collect"><button class="btn" type="button" data-diag-essent="' + seq + '">＋ 收进错句本（' + entries.length + ' 处）</button>'
+    + '<span class="diag-collect-tip">收进去之后，到「句子」页的「错句」tab 里翻</span></div>';
+}
+
 function bindDiagCollect(el){
   if(!el) return;
+  var esBtn = el.querySelector('[data-diag-essent]');
+  if(esBtn) esBtn.onclick = function(){                 // onclick 单通道（照抄 pattern-drill 9/9 教训）
+    var seq = esBtn.getAttribute('data-diag-essent');
+    var entries = (window.__DIAG_ES || {})[seq] || [];
+    if(typeof errSentAdd !== 'function'){ toast('错句本模块还没加载，刷新一下'); return; }
+    var r = errSentAdd(entries);
+    if(!r.added){ toast('这 ' + r.total + ' 处已经收过啦'); return; }
+    toast('已收进 ' + r.added + ' 条 →「句子」页的「错句」tab');
+    esBtn.disabled = true;
+    esBtn.textContent = '已收进 ' + r.added + ' 条 ✓';
+  };
   var btn = el.querySelector('[data-diag-collect]');
   if(!btn) return;
   btn.onclick = function(){                      // onclick 单通道（照抄 pattern-drill 9/9 教训）
@@ -2777,6 +2830,7 @@ function renderDiag(el, j, raw, answer){
     let h = '<div class="diag-sec"><b>语法/用词纠错</b>' + diffSentenceHtml(answer, errs) + '</div>';
     if(j.rewrite) h += '<div class="diag-sec"><b>改进版表达</b><div class="diag-rewrite">' + highlightRewriteHtml(j.rewrite, errs) + '</div></div>';
     h += diagCollectBar(errs, answer);            // design/77：一键收进句型练习
+    h += diagErrSentBar(errs, answer);            // 9/26：一键收进错句本
     el.innerHTML = scoreHtml + h;
     bindDiagCollect(el);
   } else {

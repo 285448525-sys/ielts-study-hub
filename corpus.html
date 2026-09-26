@@ -41,9 +41,9 @@
 
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
-<script defer src="js/data.js?v=20260923c"></script>
-  <script defer src="js/common.js?v=20260925b"></script>
-  <script src="js/corpus.js?v=20260922b" defer></script>
+<script defer src="js/data.js?v=20260926a"></script>
+  <script defer src="js/common.js?v=20260926a"></script>
+  <script src="js/corpus.js?v=20260926a" defer></script>
 <style>
   /* 长难句 / 错题本 样式（原 errorbook.html 内联） */
   .eb-input{width:100%;min-height:190px;padding:14px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;font-size:14.5px;line-height:1.75;background:var(--bg);color:var(--ink);resize:vertical}
@@ -119,6 +119,7 @@
       <button data-sub="ls" class="pill-tab active">长难句</button>
       <button data-sub="eb" class="pill-tab">错题</button>
       <button data-sub="dict" class="pill-tab">听写</button>
+      <button data-sub="es" class="pill-tab">错句</button>
     </div>
   </div>
 
@@ -224,6 +225,17 @@
       </details>
     </section>
     <div id="dictArea"></div>
+  </div>
+
+  <!-- ④ 错句本（9/26）：口语 AI 纠错沉淀下来的错句，原句 / 改正句 / 错误类型 -->
+  <div id="esView" hidden>
+    <section class="card">
+      <div class="card-head" style="margin-bottom:8px">
+        <h2 style="margin:0">错句本 · <span id="esCount">0</span> 条</h2>
+      </div>
+      <div id="esList"></div>
+      <div id="esEmpty" class="muted" hidden>还没有错句。去口语页写完回答点「AI 诊断」，结果下面点「＋ 收进错句本」。</div>
+    </section>
   </div>
 
 </main>

@@ -181,6 +181,46 @@ function clearWordTombstone(en){
   return hit;
 }
 
+/* ===== 错句本（9/26，她拍板）=====
+   口语 AI 纠错一键沉淀：一处错误 = 一条记录 {id, src, fix, type, ts}（src=原句 / fix=改正句 / type=错误类型）。
+   ⚠️ 手动收、不自动：AI 误判的错误一旦自动进本子就是永久污染（她得逐条删）。
+   落库 DATA.errSents（已进 SYNC_ARRAY_FIELDS，按 id 并集跨设备同步），删除打 DATA.deletedIds 墓碑，
+   否则另一端会把删掉的行 union 回来。 */
+function errSentKey(src, fix){
+  return String(src || '').trim().toLowerCase() + '|' + String(fix || '').trim().toLowerCase();
+}
+function errSentList(){
+  if(!Array.isArray(DATA.errSents)) DATA.errSents = [];
+  const del = new Set(DATA.deletedIds || []);
+  return DATA.errSents.filter(x => x && x.id != null && !del.has(x.id));
+}
+/* entries: [{src, fix, type}]；按「原句+改正句」去重，返回 {added, total} */
+function errSentAdd(entries){
+  if(!Array.isArray(DATA.errSents)) DATA.errSents = [];
+  const have = new Set(errSentList().map(e => errSentKey(e.src, e.fix)));
+  let added = 0;
+  (Array.isArray(entries) ? entries : []).forEach(en => {
+    const src = String((en && en.src) || '').trim();
+    const fix = String((en && en.fix) || '').trim();
+    if(!src) return;
+    const k = errSentKey(src, fix);
+    if(have.has(k)) return;
+    have.add(k);
+    DATA.errSents.push({ id: 'es_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7),
+      src: src, fix: fix, type: String((en && en.type) || '').trim(), ts: Date.now() });
+    added++;
+  });
+  if(added) hubSave();
+  return { added: added, total: (Array.isArray(entries) ? entries : []).length };
+}
+function errSentDelete(id){
+  if(!Array.isArray(DATA.errSents)) DATA.errSents = [];
+  DATA.deletedIds = Array.isArray(DATA.deletedIds) ? DATA.deletedIds : [];
+  if(id != null && !DATA.deletedIds.includes(id)) DATA.deletedIds.push(id);
+  DATA.errSents = DATA.errSents.filter(x => !x || x.id !== id);
+  hubSave();
+}
+
 /* 新建词条（newWordV12 的内置版，结构与词库 v1.2 完全一致；练习页在线时优先复用） */
 function ssNewWord(en, cn){
   if(typeof newWordV12 === 'function'){
@@ -1346,7 +1386,7 @@ document.addEventListener('visibilitychange', () => {
  *    不再有旧脏题库复活风险，故放开同步。合并时按 id 双向回填 answers，题干以官方为准。 */
 const SYNC_ARRAY_FIELDS = ['sessions','notes','meds','corpus','scores','errorbook',
   'energy','writingScores','speakingStories','writingPhrases',
-  'mockRecords','dictationSources','dictationLogs','longSent'];
+  'mockRecords','dictationSources','dictationLogs','longSent','errSents'];
 /* 上传/合并前剔除「官方共享、个人不应同步」的字段（仅 writing 模板），保持 DATA 其余逻辑不变。
  * 注意：speaking 现已纳入同步，不再剔除。 */
 function stripCloudFields(d){

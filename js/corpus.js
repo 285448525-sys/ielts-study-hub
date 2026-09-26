@@ -651,18 +651,54 @@ function speak(text, lang){ try{ const u=new SpeechSynthesisUtterance(text); u.l
    兼容老数据 kind:'question' / 'word' / 'capture'（只读渲染，不再提供录入表单）；
    老 kind:'ai' 无新字段时由 cardHtml 兜底渲染（旧 answerNote 挪进核心判定区）。 */
 
+/* ===== 错句本 tab（9/26）=====
+   数据层在 common.js（errSentList / errSentAdd / errSentDelete），本页只负责渲染与删除。
+   删除两步内联确认 + 打墓碑（物理删除会被云同步的按 id 并集复活）。 */
+function esCardHtml(e){
+  return '<div class="eb-card">'
+    + '<div class="eb-head"><span class="badge">' + escapeHtml(e.type || '未分类') + '</span></div>'
+    + '<div class="eb-wrong">' + escapeHtml(e.src) + '</div>'
+    + (e.fix ? '<div class="eb-rule" style="margin-top:8px">' + escapeHtml(e.fix) + '</div>'
+             : '<div class="muted" style="margin-top:8px;font-size:13px">（AI 没给出具体改法，自己想一下怎么改）</div>')
+    + '<div class="eb-actions"><button class="btn btn-sm" type="button" data-es-del="' + escapeHtml(e.id) + '">删除</button></div>'
+    + '</div>';
+}
+function renderErrSents(){
+  const box = $('#esList');
+  if(!box) return;
+  const list = errSentList().slice().sort((a, b) => (b.ts || 0) - (a.ts || 0));
+  const cnt = $('#esCount'); if(cnt) cnt.textContent = list.length;
+  const empty = $('#esEmpty'); if(empty) empty.hidden = list.length > 0;
+  box.innerHTML = list.map(esCardHtml).join('');
+  box.querySelectorAll('[data-es-del]').forEach(b => b.addEventListener('click', () => {
+    if(b.dataset.armed !== '1'){          // 两步确认（3 秒不复点自动还原），与错题本同款
+      b.dataset.armed = '1';
+      b.classList.add('btn-armed');
+      b.textContent = '再点一次确认删除';
+      setTimeout(() => {
+        if(b.dataset.armed === '1'){ b.dataset.armed = ''; b.classList.remove('btn-armed'); b.textContent = '删除'; }
+      }, 3000);
+      return;
+    }
+    errSentDelete(b.dataset.esDel);
+    renderErrSents();
+  }));
+}
+
 ready(() => {
   /* 子 tab 切换：长难句 / 错题本 / 听力默写（默认长难句在前；null 保护兼容跳转页场景） */
   /* design/85：抽成 switchCorpusSub 供 #eb hash 直达错题 tab（errorbook.html 跳转页落点） */
   function switchCorpusSub(s){
     const wordTabs = document.querySelectorAll('#wordTabs [data-sub]');
     wordTabs.forEach(x => x.classList.toggle('active', x.dataset.sub === s));
-    const ls = $('#lsView'), eb = $('#ebView'), dict = $('#dictView');
+    const ls = $('#lsView'), eb = $('#ebView'), dict = $('#dictView'), es = $('#esView');
     if(ls) ls.hidden = (s !== 'ls');
     if(eb) eb.hidden = (s !== 'eb');
     if(dict) dict.hidden = (s !== 'dict');
+    if(es) es.hidden = (s !== 'es');
     if(s === 'ls' && typeof renderHistory === 'function') renderHistory();
     if(s === 'dict' && typeof renderList === 'function') renderList();
+    if(s === 'es' && typeof renderErrSents === 'function') renderErrSents();
   }
   window.__switchCorpusSub = switchCorpusSub;
   document.querySelectorAll('#wordTabs [data-sub]').forEach(b => b.addEventListener('click', () => switchCorpusSub(b.dataset.sub)));

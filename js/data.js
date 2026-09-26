@@ -1114,6 +1114,7 @@ let DATA = {
   },
   errorbook: [],
   longSent: [],           // 长难句拆解记录（合并进「词句」页，由 corpus.js 读写；errorbook.js 已撤并为跳转页）
+  errSents: [],           // 错句本（9/26）：口语 AI 纠错沉淀 [{id, src, fix, type, ts}]；src=原句 fix=改正句 type=错误类型
   energy: [],
   checkins: [],
   mockRecords: [],
