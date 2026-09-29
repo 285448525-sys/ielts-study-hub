@@ -1807,7 +1807,8 @@ function renderCfgModal(){
       items:[
         // 9/24：batchSize（每轮题量）已下线——一轮背多少改由「每日学习上限」的剩余配额决定
         // 9/25：newPerDay（每日新词上限）已下线——总量只按「每日学习上限」为准
-        { key:'dailyCap',      label:'每日学习上限',  type:'num', min:0, max:999, unit:' 个', desc:'0 = 不限；背满就停，首页「今日待学」按它显示' },
+        // 9/29 之之：小字说明删掉（嫌多余）；0=不限/背满就停的逻辑不变
+        { key:'dailyCap',      label:'每日学习上限',  type:'num', min:0, max:999, unit:' 个' },
         { key:'questionMode',  label:'题型',          type:'select', opts:[{v:'visual',t:'看词选义'},{v:'audio',t:'听音选义'},{v:'mixed',t:'混合'}] },
         { key:'shuffle',       label:'勾选练习乱序',  type:'toggle' },
         { key:'wrongHoldMs',   label:'答错停留',      type:'range', min:1000, max:5000, step:500, unit:'ms' },
