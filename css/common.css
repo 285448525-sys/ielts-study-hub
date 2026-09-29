@@ -1474,6 +1474,9 @@ main .quote{
 .review-pane > h2{margin:0 0 14px;font-size:18px;font-weight:800;letter-spacing:-.02em}
 .mk-note-flex{flex:3;min-width:0}
 .mk-filter-wrap{flex:none;margin-left:auto;display:flex;align-items:center;gap:8px}
+/* 9/29 之之：筛选器标签被挤成竖排（「科」「目」各占一行）——全局 label 是 display:block 且无 nowrap，
+   在窄 flex 项里会逐字折行。这里强制一行显示（「范围 / 科目 / 粒度」都是 2 字标签，横排才好看）。 */
+.mk-filter-wrap > label{flex:none;white-space:nowrap;margin-bottom:0;font-size:13px;font-weight:600;color:var(--muted)}
 .inline-h2{margin:0}
 /* 旧 .tabs/.tab-btn 全局样式已废弃：全站统一改用 .pill-tabs/.pill-tab（见上方「统一子 Tab」块）。仅 review.html 曾用，现由其 pill 类接管。 */
 .tab-panel{display:none}
