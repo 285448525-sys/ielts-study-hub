@@ -46,6 +46,9 @@ ready(() => {
   $('#mkType').addEventListener('change', onMockType);
   $('#mkAdd').addEventListener('click', addMock);
   if($('#mkFilter')) $('#mkFilter').addEventListener('change', renderMock);   // 9/13：统计+列表一起跟随范围筛选（原先只刷统计，列表不跟→口径分裂）
+  // 9/29 之之：分项记录列表自己的筛选（科目 / 整卷-单篇），只作用于列表，不影响上方统计口径
+  if($('#mkListType')) $('#mkListType').addEventListener('change', renderMockList);
+  if($('#mkListGran')) $('#mkListGran').addEventListener('change', renderMockList);
   onMockType();
   onMockGran();   // 9/10：默认粒度=单项，初始化时把「选择 Part / 答对题数」摆到可见态
   renderMock();
@@ -722,8 +725,16 @@ function renderMockList(){
   const cutoff = range === 'recent' ? mkRecentCutoff() : '';
   let partRecs = DATA.mockRecords.filter(r => Array.isArray(r.parts)); // 仅展示分项记录；口语整卷模考走专属 tab
   if(cutoff) partRecs = partRecs.filter(r => String(r.date || '') >= cutoff);
+  /* 9/29 之之：列表自己的筛选——科目（听/读/口/写）+ 粒度（整卷 whole / 单篇 part）。
+     粒度字段四科都有（录入表单本就分整卷/单篇），所以筛子通用，不用按科目禁用。 */
+  const fType = $('#mkListType') ? $('#mkListType').value : 'all';
+  const fGran = $('#mkListGran') ? $('#mkListGran').value : 'all';
+  const _filtered = fType !== 'all' || fGran !== 'all';
+  if(fType !== 'all') partRecs = partRecs.filter(r => r.type === fType);
+  if(fGran !== 'all') partRecs = partRecs.filter(r => (r.granularity || 'part') === fGran);
   if(partRecs.length === 0){
-    box.innerHTML = renderEmpty(range === 'recent' ? '近十天没有分项模考记录（上方统计同口径）。' : '暂无记录。');
+    box.innerHTML = renderEmpty(_filtered ? '该筛选条件下暂无记录。'
+      : (range === 'recent' ? '近十天没有分项模考记录（上方统计同口径）。' : '暂无记录。'));
     return;
   }
   const list = partRecs.slice().sort((a,b) => String(b.date||'').localeCompare(String(a.date||''))).filter(r => MOCK_TYPES[r.type]);   // 缺日期/未知 type 的旧记录防崩（与 mockAggregate 口径一致）

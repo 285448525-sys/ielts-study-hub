@@ -41,7 +41,7 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20260926a"></script>
 <script defer src="js/common.js?v=20260926b"></script>
-<script defer src="js/scores.js?v=20260915c"></script>
+<script defer src="js/scores.js?v=20260929a"></script>
 <script defer src="js/history.js?v=20260904d"></script>
 <script defer src="js/mock-report.js?v=20260830u"></script>
 <script defer src="js/mock-history.js?v=20260830u"></script>
@@ -124,7 +124,26 @@
         </section>
 
         <section class="card">
-          <h2>分项记录列表</h2>
+          <div class="form-row" style="align-items:center">
+            <h2 class="inline-h2">分项记录列表</h2>
+            <!-- 9/29 之之：分项记录加筛选——科目四选一 + 听/读/口/写通用的整卷/单篇粒度 -->
+            <div class="mk-filter-wrap" style="margin-left:auto"><label>科目</label>
+              <select id="mkListType">
+                <option value="all">全部</option>
+                <option value="listening">听力</option>
+                <option value="reading">阅读</option>
+                <option value="speaking">口语</option>
+                <option value="writing">写作</option>
+              </select>
+            </div>
+            <div class="mk-filter-wrap"><label>粒度</label>
+              <select id="mkListGran">
+                <option value="all">全部</option>
+                <option value="whole">整卷</option>
+                <option value="part">单篇</option>
+              </select>
+            </div>
+          </div>
           <div id="mkList"></div>
         </section>
       </div>
