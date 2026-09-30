@@ -496,15 +496,23 @@ section{padding:76px 0}
     <div class="signup">
       <div data-rev>
         <h2>数据存在你自己的账号里</h2>
-        <p>现在用手机号绑定就能跨设备同步；邮箱 + 验证码登录会在自有域名到位后接上，不用记密码。</p>
+        <p>邮箱 + 验证码登录，不用记密码；也可以直接用手机号绑定。</p>
         <p style="font-size:13px;color:var(--n-500)">数据默认存在本机，绑不绑号都能用。绑了才跨设备。</p>
       </div>
       <div class="form" data-rev style="--d:.1s">
-        <div class="act">
-          <a class="btn btn-primary" href="settings.html#sync">绑定手机号开始同步</a>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input id="lpEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" style="flex:1;min-width:170px;height:42px;border:1px solid var(--line);border-radius:10px;padding:0 12px;font-size:14px;color:var(--ink);background:#fff" />
+          <button class="btn btn-primary" id="lpSendCode" type="button" style="height:42px">获取验证码</button>
+        </div>
+        <div id="lpCodeRow" style="display:none;gap:8px;flex-wrap:wrap;margin-top:8px">
+          <input id="lpCode" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="邮件里的 6 位验证码" style="flex:1;min-width:150px;height:42px;border:1px solid var(--line);border-radius:10px;padding:0 12px;font-size:14px;color:var(--ink);background:#fff" />
+          <button class="btn btn-primary" id="lpStart" type="button" style="height:42px">验证并开始</button>
+        </div>
+        <p class="note" id="lpNote" style="margin-top:10px">邮箱 + 验证码，不用记密码。绑定后电脑背完，手机接着复习。</p>
+        <div class="act" style="margin-top:6px">
+          <a class="btn btn-ghost" href="settings.html#sync">用手机号绑定</a>
           <a class="btn btn-ghost" href="home.html">先不绑，直接开工</a>
         </div>
-        <p class="note">同步走你自己的账号：电脑背完，手机接着复习。</p>
         <p class="alt">已经有数据了？<a href="home.html" style="color:var(--primary-700);font-weight:500">直接进站开工 →</a></p>
       </div>
     </div>
@@ -593,6 +601,69 @@ section{padding:76px 0}
   var t2 = mk('text',{ x:cx, y:cy+15, 'font-size':11, fill:'var(--primary-700)', 'text-anchor':'middle' });
   t2.textContent = '你的真实经历'; gc.appendChild(t2);
   gn.appendChild(gc);
+})();
+
+/* ===== 底部邮箱验证码登录（/api/auth）=====
+   验证通过后把账号写进 localStorage 再进站：home.html 的 hubLoad 会按默认值补齐其余字段。
+   服务端未配发信服务时（503 mail_not_configured）明确提示改用手机号，绝不静默失败。 */
+(function(){
+  var mail = document.getElementById('lpEmail'),
+      sendBtn = document.getElementById('lpSendCode'),
+      codeRow = document.getElementById('lpCodeRow'),
+      codeIn = document.getElementById('lpCode'),
+      startBtn = document.getElementById('lpStart'),
+      note = document.getElementById('lpNote');
+  if(!mail || !sendBtn) return;
+  var EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/;
+  var curEmail = '';
+  function setNote(t, bad){ if(note){ note.textContent = t; note.style.color = bad ? '#c0392b' : ''; } }
+  function online(){ return location.protocol === 'http:' || location.protocol === 'https:'; }
+  function post(action, code){
+    return fetch('api/auth', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ action:action, email:curEmail, code:code || '' })
+    }).then(function(r){
+      return r.json().catch(function(){ return {}; }).then(function(j){ return { status:r.status, j:j }; });
+    });
+  }
+  sendBtn.addEventListener('click', function(){
+    curEmail = (mail.value || '').trim().toLowerCase();
+    if(!EMAIL_RE.test(curEmail)){ setNote('邮箱格式看起来不对，检查一下', true); return; }
+    if(!online()){ setNote('请在网站页面上打开这个表单（本地预览无法发信）', true); return; }
+    sendBtn.disabled = true; sendBtn.textContent = '发送中…';
+    post('send_code').then(function(r){
+      if(r.status === 503 && r.j.error === 'mail_not_configured'){
+        setNote('邮箱登录还没开通，先用下面的「用手机号绑定」', true);
+        sendBtn.disabled = false; sendBtn.textContent = '获取验证码'; return;
+      }
+      if(!r.j.ok){ setNote(r.j.msg || '验证码发送失败', true); sendBtn.disabled = false; sendBtn.textContent = '获取验证码'; return; }
+      codeRow.style.display = 'flex';
+      setNote('验证码已发往 ' + curEmail + '，5 分钟内有效（找不到看垃圾箱）', false);
+      var left = 60; sendBtn.textContent = left + 's 后重发';
+      var t = setInterval(function(){
+        left--;
+        if(left <= 0){ clearInterval(t); sendBtn.disabled = false; sendBtn.textContent = '获取验证码'; }
+        else sendBtn.textContent = left + 's 后重发';
+      }, 1000);
+    }).catch(function(){
+      setNote('网络异常，稍后再试', true); sendBtn.disabled = false; sendBtn.textContent = '获取验证码';
+    });
+  });
+  startBtn.addEventListener('click', function(){
+    var code = (codeIn.value || '').replace(/\D/g, '').slice(0, 6);
+    if(code.length !== 6){ setNote('请输入邮件里的 6 位验证码', true); return; }
+    startBtn.disabled = true; startBtn.textContent = '验证中…';
+    post('verify', code).then(function(r){
+      if(!r.j.ok){ setNote(r.j.msg || r.j.error || '验证码不对', true); startBtn.disabled = false; startBtn.textContent = '验证并开始'; return; }
+      try{
+        localStorage.setItem('ielts_study_hub_v1', JSON.stringify({ v:1, settings:{ syncCode: curEmail, autoSync: true, aiChannel:'auto' } }));
+      }catch(e){}
+      location.href = 'home.html?onb=1';
+    }).catch(function(){
+      setNote('网络异常，稍后再试', true); startBtn.disabled = false; startBtn.textContent = '验证并开始';
+    });
+  });
 })();
 </script>
 </body>

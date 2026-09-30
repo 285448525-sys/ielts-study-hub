@@ -1,7 +1,9 @@
 // Cloudflare Pages Function: /api/sync
 // 按「手机号」读写 KV（SYNC_KV）。
-//   账号 = 手机号（6~15 位数字），通过请求头 X-Sync-Key 传递（兼容 ?code= 查询参数）。
-//   相同手机号 = 同一份云端数据（多设备共享）。
+//   账号 = 手机号（6~15 位数字）或邮箱，通过请求头 X-Sync-Key 传递（兼容 ?code= 查询参数）。
+//   相同账号 = 同一份云端数据（多设备共享）。
+//   9/30 起支持邮箱账号（/api/auth 发验证码登录）：邮箱落在 sync:e:<邮箱> 独立命名空间，
+//   与既有手机号账号完全隔离——老用户换成邮箱登录 = 另一份空数据，不会覆盖也不会读到旧库。
 //
 // 前端约定：
 //   GET    /api/sync  (X-Sync-Key: <phone>) -> 返回 { data, ts, updatedAt } 或 404
@@ -79,18 +81,24 @@ export async function onRequest(context) {
   // 账号优先取 X-Sync-Key 请求头；兼容旧的 ?code= 查询参数
   const phone = (request.headers.get('X-Sync-Key') || url.searchParams.get('code') || '').trim();
 
-  // 账号必填，且必须是 6~15 位数字（手机号）
-  if (!phone || !/^\d{6,15}$/.test(phone)) {
-    return json({ ok: false, error: '无效的手机号（需 6-15 位数字）' }, 400);
+  // 9/30：账号 = 手机号（6~15 位数字）**或邮箱**（邮箱登录走 /api/auth 验证码，入口不同、凭证同级别）。
+  const isMail = phone.length <= 64 && /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(phone);
+  const isPhone = /^\d{6,15}$/.test(phone);
+  if (!phone || (!isPhone && !isMail)) {
+    return json({ ok: false, error: '无效的账号（需 6-15 位手机号或邮箱）' }, 400);
   }
+  // ⭐ 邮箱账号落在独立命名空间 sync:e:<邮箱>：
+  //    ① 与老手机号账号物理隔离，老数据一个字节都不会被动到；
+  //    ② 邮箱统一小写，避免 Foo@x.com 与 foo@x.com 变成两份数据。
+  const ns = isMail ? ('e:' + phone.toLowerCase()) : phone;
 
   // KV 未绑定：给出明确提示而非抛错（避免浏览器收到无 CORS 头的 500 → Failed to fetch）
   if (!env || !env.SYNC_KV) {
     return json({ ok: false, error: '云端存储未启用（请在 Cloudflare Pages 设置里绑定 SYNC_KV 命名空间）' }, 503);
   }
 
-  const key = 'sync:' + phone;
-  const metaKey = 'meta:' + phone;
+  const key = 'sync:' + ns;
+  const metaKey = 'meta:' + ns;
 
   if (request.method === 'GET') {
     // ⭐ 9/30：轻量探测。只回 {ts,bytes,hash}（约 200B），云端没变就不必搬运整份 1.7MB。

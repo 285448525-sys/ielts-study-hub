@@ -1213,8 +1213,9 @@ function computeStreak(checkins){
   return streak;
 }
 
-/* ===== 云端同步（Cloudflare Pages Function + KV，手机号账号） =====
-   账号 = 手机号（6~15 位数字），与考研站完全一致。相同手机号 = 同一份云端数据
+/* ===== 云端同步（Cloudflare Pages Function + KV） =====
+   9/30 起账号 = 手机号（6~15 位数字）或邮箱（走 /api/auth 验证码，落 sync:e:<邮箱> 独立命名空间）。
+   相同账号 = 同一份云端数据（多设备共享）。
    （多设备共享）。非 Cloudflare 部署时 /api/sync 会 404，所有调用都会优雅降级
    （不报错、不弹窗刷屏）。账号通过 X-Sync-Key 请求头传递，兼容旧的 ?code= 参数。 */
 let _cloudTimer = null;
@@ -1328,7 +1329,31 @@ function getDeviceId(){
   return id;
 }
 
-/* 统一的云端请求封装：自动带 X-Sync-Key 头（手机号即账号）。
+/* 邮箱验证码登录（/api/auth）：send_code 发码、verify 校验。
+   服务端没配发信服务时回 503 mail_not_configured —— 这里转成一句人话，前端照此引导回手机号。
+   返回服务端的 { ok:true, ... }；失败直接 throw（调用方 toast）。 */
+async function authApi(action, email, code){
+  let res = null;
+  try{
+    res = await fetch('api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: action, email: (email || '').trim().toLowerCase(), code: code || '' }),
+    });
+  }catch(e){ throw new Error('网络异常，稍后再试'); }
+  let j = null;
+  try{ j = await res.json(); }catch(_){}
+  if(!res.ok || !j || !j.ok){
+    const err = (j && j.error) || '';
+    const msg = (j && j.msg) || ('请求失败（HTTP ' + res.status + '）');
+    const e = new Error(err === 'mail_not_configured' ? '邮箱登录还没开通（站长未配置发信服务），先用手机号' : msg);
+    e.code = err || 'AUTH_FAIL';
+    throw e;
+  }
+  return j;
+}
+
+/* 统一的云端请求封装：自动带 X-Sync-Key 头（账号即手机号或邮箱）。
    path 可选：'/?meta=1' 之类的附加查询串（9/30 轻量探测用）。
    返回 [Response, json] 二元组，调用方自行判断 status。 */
 async function syncApi(method, body, path){
@@ -1381,7 +1406,7 @@ async function cloudUpload(showToast, force, opts){
   opts = opts || {};
   _pendingUpload = false;
   const phone = DATA.settings.syncCode;
-  if(!phone){ if(showToast) toast('请先在「设置」绑定手机号'); return false; }
+  if(!phone){ if(showToast) toast('请先在「设置」绑定手机号或邮箱'); return false; }
   // 先给本机改过的条目打 updatedAt（可能改 DATA），hash 必须在打戳之后再算，
   // 否则同一次修改会被判两次「有变化」。见 stampSyncItemsForUpload 的说明。
   stampSyncItemsForUpload();
@@ -2340,13 +2365,13 @@ function _cloudPollSoon(){
 
 async function cloudDownload(silent){
   const phone = DATA.settings.syncCode;
-  if(!phone){ if(!silent) toast('请先在「设置」绑定手机号'); return false; }
+  if(!phone){ if(!silent) toast('请先在「设置」绑定手机号或邮箱'); return false; }
   try{
     const [res, data] = await syncApi('GET');
     if(res.status === 404){
       // ⭐ 9/19：云端没数据而本机有 → 开机发布本机（原语义只提示，两台设备都只拉不推时云端永远空着）
       _maybePublishLocal(true, null);
-      if(!silent) toast('云端没有该手机号的数据');
+      if(!silent) toast('云端没有该账号的数据');
       return false;
     }
     if(res.status === 503) throw new Error('云端存储未绑定（Cloudflare 后台需绑定 SYNC_KV）');
@@ -2410,8 +2435,8 @@ async function cloudDownload(silent){
 }
 async function cloudDelete(){
   const phone = DATA.settings.syncCode;
-  if(!phone){ toast('请先在「设置」绑定手机号'); return; }
-  if(!confirm('确定删除云端该手机号的数据？此操作不可恢复。')) return;
+  if(!phone){ toast('请先在「设置」绑定手机号或邮箱'); return; }
+  if(!confirm('确定删除云端该账号的数据？此操作不可恢复。')) return;
   try{
     const [res] = await syncApi('DELETE');
     if(res.status === 404){ toast('云端未启用（需先部署 Functions）'); return; }
@@ -2428,11 +2453,24 @@ async function cloudDelete(){
    ⚠️ 形参必须按类型兜底：任何 el.onclick = syncLoginOrRegister 式的直接引用会把 MouseEvent 当第一参数传进来，
    typeof 不是 string 就一律回落到「读设置页输入框」的老路径，绝不破坏既有调用点。
    返回值 {ok, msg} 供调用方判断成败（引导据此决定进阶段二还是给重试出口）。 */
+/* 9/30：账号 = 手机号 或 邮箱（邮箱登录走 /api/auth 验证码，落到 sync:e:<邮箱> 独立命名空间）。
+   邮箱统一小写；手机号沿用「只保留数字」。 */
+function isEmailAccount(s){ return typeof s === 'string' && s.length <= 64 && /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(s.trim()); }
+function normalizeAccount(s){
+  s = (typeof s === 'string') ? s.trim() : '';
+  if(!s) return '';
+  return isEmailAccount(s) ? s.toLowerCase() : s.replace(/\D/g, '');
+}
+
 async function syncLoginOrRegister(phone){
-  phone = (typeof phone === 'string') ? phone.replace(/\D/g, '')
-        : (($('#sSyncCode') ? $('#sSyncCode').value : '').replace(/\D/g, ''));
-  if(!phone){ syncSetStatus('请先输入手机号', 'error'); return { ok:false, msg:'请先输入手机号' }; }
-  if(phone.length < 6 || phone.length > 15){ syncSetStatus('手机号格式不正确（应为 6-15 位数字）', 'error'); return { ok:false, msg:'手机号格式不正确（应为 6-15 位数字）' }; }
+  let acct = normalizeAccount((typeof phone === 'string') ? phone
+        : ($('#sSyncCode') ? $('#sSyncCode').value : ''));
+  if(!acct){ syncSetStatus('请先输入手机号或邮箱', 'error'); return { ok:false, msg:'请先输入手机号或邮箱' }; }
+  if(!isEmailAccount(acct) && (acct.length < 6 || acct.length > 15)){
+    syncSetStatus('手机号格式不正确（应为 6-15 位数字）', 'error');
+    return { ok:false, msg:'手机号格式不正确（应为 6-15 位数字）' };
+  }
+  phone = acct;
   DATA.settings.syncCode = phone; hubSave();
   syncSetStatus('正在连接云端…', '');
   try{
@@ -2503,7 +2541,7 @@ function enableAutoSyncAfterLogin(phone){
 /* 诊断：明确告诉用户后端到底卡在哪一步（不静默） */
 async function syncDiagnose(){
   const phone = DATA.settings.syncCode;
-  if(!phone){ syncSetStatus('请先在上方输入手机号并点「绑定并同步」', 'error'); return; }
+  if(!phone){ syncSetStatus('请先在上方输入手机号或邮箱并点「绑定并同步」', 'error'); return; }
   syncSetStatus('正在探测云端…', '');
   try{
     const [res, data] = await syncApi('GET');
@@ -2534,7 +2572,7 @@ function renderSyncState(){
   const el = $('#syncState');
   if(!el) return;
   const phone = DATA.settings.syncCode || '';
-  if(!phone){ el.textContent = '尚未绑定手机号'; renderLastSync(); return; }
+  if(!phone){ el.textContent = '尚未绑定账号'; renderLastSync(); return; }
   el.textContent = '已绑定：' + phone + (DATA.settings.autoSync ? '（自动同步：开）' : '（自动同步：关）');
   renderLastSync();
 }
@@ -2548,18 +2586,18 @@ function renderLastSync(){
 /* 强制：本机覆盖云端（无视合并，直接 PUT 整份）
    ⭐ 9/30 noLock：用户明确要本机覆盖，跳过乐观锁（否则会被 409 拦回去先合并，与本按钮语义相反） */
 function syncForcePush(){
-  if(!DATA.settings.syncCode){ toast('请先绑定手机号'); return; }
+  if(!DATA.settings.syncCode){ toast('请先绑定账号'); return; }
   cloudUpload(true, true, { noLock: true });
   setTimeout(renderLastSync, 1800);
 }
 /* 强制：云端覆盖本机（GET 后整体替换，不保留本机独有数据） */
 async function syncForcePull(){
   const phone = DATA.settings.syncCode;
-  if(!phone){ toast('请先绑定手机号'); return; }
+  if(!phone){ toast('请先绑定账号'); return; }
   if(!confirm('⚠️ 此操作将用云端数据替换本机所有数据（含素材），本机未同步的内容会丢失！确定继续？')) return;
   try{
     const [res, data] = await syncApi('GET');
-    if(res.status === 404){ toast('云端没有该手机号的数据'); return; }
+    if(res.status === 404){ toast('云端没有该账号的数据'); return; }
     if(!res.ok) throw new Error('HTTP ' + res.status);
     if(!data || !data.data) throw new Error('返回格式异常');
     // h 类防御：云端数据理论上只缺 writing（官方模板 stripCloudFields 剔除后从不上传）；

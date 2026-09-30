@@ -29,6 +29,9 @@ function populateSettingsForm(){
   // 9/21 翻转：服药模块默认关闭 → 无该函数时兜底 false（与 common.js 口径一致）
   if($('#sAdhd')) $('#sAdhd').checked = (typeof medsModuleOn === 'function') ? medsModuleOn() : false;
   if($('#sSyncCode')) $('#sSyncCode').value = s.syncCode || '';
+  // 9/30：已绑定的账号是邮箱就把「账号类型」回填成邮箱（软导航重进设置页也不会跳回手机号）
+  if($('#sAcctType')) $('#sAcctType').value = isEmailAccount(s.syncCode) ? 'email' : 'phone';
+  applyAcctType();
 }
 
 ready(() => {
@@ -77,7 +80,21 @@ ready(() => {
   $('#resetBtn').addEventListener('click', resetData);
 
   // 云端同步（手机号账号，单按钮：注册 / 登录统一入口）
-  $('#syncBindBtn').addEventListener('click', () => { syncLoginOrRegister(); });
+  // 9/30：账号类型（手机号 / 邮箱）。邮箱走 /api/auth 验证码登录。
+  $('#sAcctType').addEventListener('change', applyAcctType);
+  $('#emailCodeBtn').addEventListener('click', sendEmailCode);
+  $('#syncBindBtn').addEventListener('click', async () => {
+    if(acctTypeIsEmail()){
+      const email = ($('#sSyncCode') ? $('#sSyncCode').value.trim() : '');
+      const code = ($('#sEmailCode') ? $('#sEmailCode').value.trim() : '');
+      if(!isEmailAccount(email)){ syncSetStatus('请填写正确的邮箱', 'error'); return; }
+      if(!/^\d{6}$/.test(code)){ syncSetStatus('请先点「获取验证码」，再把邮件里的 6 位数字填进来', 'error'); return; }
+      syncSetStatus('正在校验验证码…', '');
+      try{ await authApi('verify', email, code); }
+      catch(e){ syncSetStatus('❌ ' + e.message, 'error'); return; }
+    }
+    syncLoginOrRegister();
+  });
   $('#sSyncCode').addEventListener('keydown', e => { if(e.key === 'Enter') syncLoginOrRegister(); });
   $('#syncDiagBtn').addEventListener('click', () => { syncDiagnose(); });
   $('#syncNowBtn').addEventListener('click', () => { cloudUpload(true, true); });
@@ -205,6 +222,48 @@ function saveRelay(){
 
 /* 讯飞语音配置已移除（录音 / 转写功能已下线，发音分改由设置里的固定分提供） */
 
+
+/* ===== 9/30 邮箱验证码登录 ===== */
+function acctTypeIsEmail(){ const el = $('#sAcctType'); return !!el && el.value === 'email'; }
+function applyAcctType(){
+  const isMail = acctTypeIsEmail();
+  const input = $('#sSyncCode'), label = $('#acctLabel'), wrap = $('#emailCodeWrap');
+  if(input){
+    input.type = isMail ? 'email' : 'text';
+    input.inputMode = isMail ? 'email' : 'numeric';
+    input.maxLength = isMail ? 64 : 15;
+    input.placeholder = isMail ? 'you@example.com' : '输入 6-15 位数字手机号';
+  }
+  if(label) label.textContent = isMail ? '邮箱（云端账号）' : '手机号（云端账号）';
+  if(wrap) wrap.style.display = isMail ? '' : 'none';
+}
+async function sendEmailCode(){
+  const email = ($('#sSyncCode') ? $('#sSyncCode').value.trim() : '');
+  if(!isEmailAccount(email)){ toast('请先填写正确的邮箱'); return; }
+  const btn = $('#emailCodeBtn');
+  if(btn) btn.disabled = true;
+  try{
+    const r = await authApi('send_code', email);
+    toast('✅ 验证码已发往 ' + email + '（5 分钟内有效）');
+    syncSetStatus('验证码已发送，去邮箱查收（找不到看垃圾箱）', 'ok');
+    startCodeCountdown((r && r.cooldown) || 60);
+  }catch(e){
+    toast('❌ ' + e.message);
+    syncSetStatus('❌ ' + e.message, 'error');
+    if(btn) btn.disabled = false;
+  }
+}
+function startCodeCountdown(sec){
+  const btn = $('#emailCodeBtn');
+  if(!btn) return;
+  let left = sec;
+  btn.disabled = true;
+  const t = setInterval(() => {
+    left--;
+    if(left <= 0){ clearInterval(t); btn.disabled = false; btn.textContent = '获取验证码'; }
+    else btn.textContent = left + 's 后重发';
+  }, 1000);
+}
 
 /* 测试连接：用输入框里的 Key 探活 DeepSeek，成功即自动保存 */
 async function testAIConnection(){
