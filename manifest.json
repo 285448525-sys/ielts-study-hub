@@ -2,7 +2,7 @@
   "name": "雅思备考 Hub",
   "short_name": "雅思Hub",
   "description": "雅思机考备考：计时学习、单词记忆曲线、口语对练、模考追踪。",
-  "start_url": "/index.html",
+  "start_url": "/home.html",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",

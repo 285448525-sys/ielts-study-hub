@@ -9,14 +9,15 @@
      SW 不参与离线态的判定与渲染，缓存策略本文件零改动。
      本文件 activate 时发的 `SW_UPDATED` 消费端也在 common.js（maybeShowSwUpdatePrompt，
      design/78）：页面收到后只弹提示条，**是否刷新由用户点击决定，SW 侧绝不自动 reload**。 */
-const CACHE = 'ielts-hub-v84';   // 9/30 云同步：乐观锁 + meta 探测 + leader 选举（含 functions/api/sync.js 部署）
+const CACHE = 'ielts-hub-v85';   // 9/30 落地页：根 / 交 landing，学习主页改名 home.html
 
 /* 核心壳预缓存清单（Node 脚本枚举目录生成，2026-09-20；与 14 页实际引用核对无遗漏）。
    不含 js/vendor/xlsx.full.min.js（861KB 体积大 → 走运行时 SWR 缓存）。 */
 const PRECORE = [
   '/corpus.html',
   '/errorbook.html',
-  '/index.html',
+  '/index.html',      // 9/30：根 = 落地页（产品介绍），仍要能离线打开
+  '/home.html',       // 9/30：学习主页由 index.html 改名而来（离线回退壳也用它）
   '/materials.html',
   '/meds.html',
   '/pattern-drill.html',
@@ -119,7 +120,7 @@ function putInCache(url, res){
     .catch(() => {});
 }
 
-/* ---- 分级①：页面导航 network-first（4s 超时）→ 缓存该页 → 缓存 /index.html ---- */
+/* ---- 分级①：页面导航 network-first（4s 超时）→ 缓存该页 → 缓存 /home.html ---- */
 async function handleNavigate(req, url){
   // 网络请求竞速 4s；成功顺手写缓存（后台继续，不阻塞响应路径）
   const netPromise = fetch(req).then(res => {
@@ -138,7 +139,7 @@ async function handleNavigate(req, url){
   if(net) return net;
   const cached = await caches.match(url.pathname);
   if(cached) return cached;
-  const shell = await caches.match('/index.html');
+  const shell = await caches.match('/home.html');   // 9/30：离线兜底进学习主页，不再回退落地页
   if(shell) return shell;
   // 缓存全无（如首次访问即弱网）：等网络最终结果，仍失败给明确 503（绝不白屏无响应）
   const final = await netPromise;

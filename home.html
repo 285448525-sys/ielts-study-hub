@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://api.deepseek.com; object-src 'none'; base-uri 'none'" />
+<!-- frame-ancestors 只由 HTTP 响应头下发（CF Pages 根目录 _headers）：按 CSP 规范它写在 meta 里会被浏览器忽略，本页 meta CSP 不再包含该指令 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<script>
+(function autoCleanOldBank(){
+  try{
+    var key = 'ielts_study_hub_v1';
+    var raw = localStorage.getItem(key);
+    if(!raw) return;
+    var parsed = JSON.parse(raw);
+    if(!parsed || !Array.isArray(parsed.speaking)) return;
+    // ⚠️ sb_p1_home 已于 9/19 移出剔除名单：它现在是官方题库 v10 的合法 P1 题
+    // （Home/accommodation，9 小问）。继续剔除会导致每次刷新永久丢 1 题（83→82）。
+    var dirtyIds = ['sb_p2_travel','sb_p2_earlymorning'];
+    var before = parsed.speaking.length;
+    var kept = parsed.speaking.filter(function(s){ return !(s && dirtyIds.indexOf(s.id) >= 0); });
+    if(kept.length !== before){
+      parsed.speaking = kept;
+      localStorage.setItem(key, JSON.stringify(parsed));
+    }
+  }catch(e){}
+})();
+</script>
+<title>首页 · 雅思备考 Hub</title>
+<link rel="stylesheet" href="css/common.css?v=20260930a" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=6" />
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=6">
+<link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png?v=6">
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#3a9a93" />
+
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<script defer src="js/data.js?v=20260929a"></script>
+<script defer src="js/common.js?v=20260930c"></script>
+<!-- design/78 双词库适配层：index.js 的 wbActive/wbDueCount 依赖它（defer 按文档序执行） -->
+<script defer src="js/wordbank.js?v=20260926b"></script>
+<script defer src="js/index.js?v=20260930a"></script>
+<style id="bootLoaderStyle">
+#bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(0,0,0,.02),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
+#bootLoader.hide{opacity:0;pointer-events:none}
+#bootLoader .ui-loader{margin-bottom:8px}
+@media (prefers-reduced-motion: reduce){#bootLoader .ui-loader-dot,#bootLoader .ui-loader-shadow{animation:none}#bootLoader .ui-loader-dot{top:20px;height:20px;border-radius:50%;transform:none}#bootLoader .ui-loader-shadow{opacity:.5;transform:scaleX(1)}}
+</style>
+</head>
+<body>
+<div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div></div>
+<nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
+
+<main class="container home">
+  <!-- v6 首页：hero 倒计时 + 紧凑双卡 + 快速入口 + 今日记录（design/31 A 版） -->
+
+  <!-- L1 · hero 倒计时主卡（问候/目标/连续天数已收进卡内，避免顶部独立横条造成左侧空白） -->
+  <section class="hero">
+    <div class="hero-greet">
+      <div class="hero-user">
+        <span class="hero-hi">你好，<span id="userName">Camille</span></span>
+        <span class="hero-date" id="dashDate"></span>
+        <span class="streak-chip" id="dashStreakChip"></span>
+      </div>
+    </div>
+    <div class="hero-main">
+      <div class="hero-left">
+        <div class="hero-num" id="dashHeroNum"><span class="big">--</span><span class="unit">天</span></div>
+      </div>
+      <div class="hero-right">
+        <a class="hero-cta" href="timer.html">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6,4 20,12 6,20"/></svg>
+          开始计时学习
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- L2 · 紧凑双卡（包 a 可点击，与下方 6 模块去重后作为唯一入口） -->
+  <section class="meta">
+    <a class="meta-card" href="timer.html">
+      <div class="meta-left">
+        <div class="label">今日学习</div>
+        <div class="val" id="dashTodayTime"></div>
+        <div class="hint" id="dashTodayMods"></div>
+      </div>
+      <div class="meta-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg>
+      </div>
+    </a>
+    <a class="meta-card" href="practice.html">
+      <div class="meta-left">
+        <div class="label">今日待学</div>
+        <div class="val" id="dashDueWords"></div>
+        <div class="hint" id="dashDueHint"></div>
+      </div>
+      <div class="meta-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h12a3 3 0 0 1 3 3v11H7a3 3 0 0 1-3-3V5zM4 5a3 3 0 0 1 3-3h9"/><path d="M9 9h7M9 13h5"/></svg>
+      </div>
+    </a>
+  </section>
+
+  <!-- L2.5 · 今日任务卡（9/20 新增：打开首页就知道今天该做什么——到期词建议 + 今日计划清单；内容由 index.js renderDashTasks 渲染） -->
+  <section class="dash-tasks" id="dashTodayTasks"></section>
+
+  <!-- L3 · 4 模块快速入口已删（9/25 她拍板：侧栏已可导航，模块卡多余） -->
+
+  <!-- 今日学习记录 -->
+  <section class="rec">
+    <div class="rec-h">
+      <h3>今日学习记录</h3>
+      <span class="rec-total">总计 <b id="dashRecTotal">0h0m</b></span>
+    </div>
+    <div class="rec-body" id="dashRecBody"></div>
+  </section>
+</main>
+
+</body>
+</html>

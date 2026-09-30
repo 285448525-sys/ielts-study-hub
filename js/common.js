@@ -16,8 +16,10 @@ const ICON = {
   wrongbook:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"/><path d="M9 7l1.5 3 3 .5-2 2 .5 3-3-1.5-3 1.5.5-3-2-2 3-.5z"/></svg>'
 };
 
+/* ⭐ 9/30：学习主页从 index.html 改名为 home.html（根 / 交给落地页 landing）。
+   软导航 / 侧栏高亮 / 部署探针 / 兜底跳转全部以这里为准，改文件名必须先改本表。 */
 const PAGES = [
-  { id:'index',     file:'index.html',     icon:ICON.home,      name:'首页',       desc:'今日概览' },
+  { id:'index',     file:'home.html',       icon:ICON.home,      name:'首页',       desc:'今日概览' },
   { id:'timer',     file:'timer.html',     icon:ICON.timer,     name:'计时',   desc:'选模块开计时' },
   { id:'plans',     file:'plans.html',     icon:ICON.plans,     name:'计划',   desc:'每日清单 + AI 排周' },
   { id:'practice',  file:'practice.html',  icon:ICON.practice,  name:'单词',       desc:'学习与管理你的单词' },
@@ -61,7 +63,7 @@ function injectNav(){
   const nav = document.getElementById('mainNav');
   if(!nav) return;
   if(DATA.settings && DATA.settings.collapsed) document.body.classList.add('side-collapsed');
-  const current = _hubCurrentFile || normalizePageFile(location.pathname.split('/').pop() || 'index.html');
+  const current = _hubCurrentFile || normalizePageFile(location.pathname.split('/').pop() || 'home.html');
   _hubCurrentFile = current;   // 记住真实当前页，供软导航期间被 injectNav 复用（pathname 此时滞后）
   const pageById = id => PAGES.find(p => p.id === id);
 
@@ -410,7 +412,7 @@ function injectGlobalDock(){
     {id:'practice', label:'背词', icon:'<path d="M4 5h12a3 3 0 0 1 3 3v11H7a3 3 0 0 1-3-3V5zM4 5a3 3 0 0 1 3-3h9"/>'},
     {id:'speaking', label:'口语', icon:'<path d="M21 12a8 8 0 0 1-11.5 7.2L3 21l1.8-6.5A8 8 0 1 1 21 12z"/>'}
   ];
-  const current = _hubCurrentFile || normalizePageFile(location.pathname.split('/').pop() || 'index.html');
+  const current = _hubCurrentFile || normalizePageFile(location.pathname.split('/').pop() || 'home.html');
   let inner = '';
   const svgOf = it => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + it.icon + '</svg>';
   for(const it of items){
@@ -862,7 +864,7 @@ function calcStreak(){
    软导航与直接访问的 pathname 可能不带 .html，但 PAGES 中统一存 .html。
    用此函数把文件名标准化，保证高亮匹配不出错。 */
 function normalizePageFile(file){
-  if(!file || file === '/' || file === '') return 'index.html';
+  if(!file || file === '/' || file === '') return 'home.html';   // 9/30：/ 现在是落地页，学习主页是 home.html
   if(!/\.html$/i.test(file)) return file + '.html';
   return file;
 }
@@ -2893,7 +2895,7 @@ function onHubLinkClick(e){
 }
 
 function onHubPopState(){
-  const file = normalizePageFile(location.pathname.split('/').pop() || 'index.html');
+  const file = normalizePageFile(location.pathname.split('/').pop() || 'home.html');
   const page = PAGES.find(p => p.file === file);
   if(page) softNavigate({ id: page.id, file: page.file, href: file }, true);
   else location.reload();
@@ -2922,7 +2924,7 @@ function navFetchOpts(){
    标签页跨睡眠/跨部署不关闭时，软导航永远用旧文档+旧脚本（表现为 9/13 模考 tab 改版、十天内筛选修复等
    全部“没生效”），硬刷新才恢复。9/20 design/75 起改为「同页基线比对 + 探针兜底」两级自愈：
    ① 同页基线（navVersionCheck）：本会话内同一页指纹变化才算真部署；② 探针（navDeployProbe，权威）：
-   线上 index.html（no-store）指纹 vs 启动指纹。动作端 soft heal=仅 reload，
+   线上 home.html（no-store）指纹 vs 启动指纹。动作端 soft heal=仅 reload，
    hard heal（注销 SW + 清空缓存）仅在「连续 ≥2 轮探针仍漂移」时执行一次。
    9/15 二修（之之实锤：本次只 bump 了 data.js/scores.js/common.css，common.js 没动 → 单点比对失效，
    回顾页首进旧渲染+旧样式、硬刷新才好）：指纹从 common.js 单点扩为「common.js + data.js + common.css」
@@ -2994,7 +2996,7 @@ function navHardHeal(){
    - 内存命中：不比对（命中即本会话已确认过该页）；
    - 网络获取：与 _navDocCache 中同 file 旧记录的指纹比，不同 = 本会话内该页确实发生部署 → 自愈；
    - 首次获取该页（无基线）绝不比对 —— 分页 buster 静态不一致因此永不触发。
-   权威兜底仍是 navDeployProbe（index.html no-store vs BOOT_SCRIPT_V，SW 对 _probe 已透传）。 */
+   权威兜底仍是 navDeployProbe（home.html no-store vs BOOT_SCRIPT_V，SW 对 _probe 已透传）。 */
 function navVersionCheck(file, doc){
   const prev = _navDocCache.get(file);
   if(!prev || !prev.v) return;               // 首次获取该页：没有同页基线，绝不比对
@@ -3005,7 +3007,7 @@ function navVersionCheck(file, doc){
 }
 /* 9/15 二修补充——内存命中路径的残余漏洞：缓存命中时校验的是「缓存文档 vs 启动指纹」，
    部署“之前”就已缓存的页面二者相同，永远检不出漂移（之之实锤：回顾页跨部署二次进入仍是旧渲染）。
-   现补后台部署探针：每次软导航触发（60s 节流）拉一次最新 index.html（no-store 绕过一切缓存），
+   现补后台部署探针：每次软导航触发（60s 节流）拉一次最新 home.html（no-store 绕过一切缓存），
    解析资产指纹与启动指纹比对，不同 → navSelfHealReload。探测不阻塞导航（fire-and-forget），
    60s 内多次切换只发一次请求，成本近乎为零。 */
 let _probeAt = 0, _probeBusy = false, _probeHandledThisBoot = false;
@@ -3081,7 +3083,7 @@ function navDeployProbe(){
   try{ iv = Number(localStorage.getItem('hub_probe_interval')) || 60000; }catch(e){}
   if(_probeBusy || Date.now() - _probeAt < iv) return;
   _probeAt = Date.now(); _probeBusy = true;
-  fetch('index.html?_probe=' + Date.now(), { cache: 'no-store' })
+  fetch('home.html?_probe=' + Date.now(), { cache: 'no-store' })
     .then(r => (r && r.ok) ? r.text() : '')
     .then(t => {
       _probeBusy = false;
@@ -3390,7 +3392,7 @@ ready(() => { hubLoad();
   initOfflineBar();                          // design/79 离线状态灯 + 自愈第三道闸（离线不判定、不计数、不自愈）
   // ⚡ 空闲时把其余页面的 HTML + 脚本预热进内存缓存，之后点任何 tab 都是零网络秒开
   (function(){
-    const f = normalizePageFile(location.pathname.split('/').pop() || 'index.html');
+    const f = normalizePageFile(location.pathname.split('/').pop() || 'home.html');
     const cur = (PAGES.find(p => p.file === f) || { id:null }).id;
     setTimeout(() => prefetchAll(cur), 1200);
   })();
@@ -3907,7 +3909,7 @@ function _onbStepNext(step){
       const s0 = st0.setup || {};
       const all = !!(s0.exam && s0.effort && s0.words);
       onbFinish(all);
-      if(!/index\.html$/.test(location.pathname) && !/\/$/.test(location.pathname)) location.href = 'index.html';
+      if(!/home\.html$/.test(location.pathname)) location.href = 'home.html';
       return;
     }
     _onbLastDir = 1;
