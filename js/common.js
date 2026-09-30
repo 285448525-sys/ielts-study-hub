@@ -951,20 +951,56 @@ function showAiKeyGuide(){
 /* 缺 Key 时的统一入口：能弹卡就弹卡，弹不了（无容器/已关闭提示）就回退原 toast。 */
 function notifyNoKey(){ try{ showAiKeyGuide(); }catch(e){} }
 
-/* 共享：直接调用 DeepSeek（OpenAI 兼容 /chat/completions）。
+/* 共享 AI 出口：站内中转（/api/ai）与自带 Key 直连 DeepSeek 两条路。
    只需在「设置 / AI 接口」填一个 DeepSeek API Key，地址与模型已内置，降低门槛。
    Key 存在浏览器本地 localStorage；口语/翻译/长难句/写作等所有 AI 功能共用。
    service ∈ 'gpt' | 'trans' | 'longsent' | 'speaking_assist' | 'writing_score' | 'words'
-   （统一用 deepseek-chat，service 仅作语义标记，不影响调用）。 */
+   （统一用 deepseek-chat，service 仅作语义标记，不影响调用）。
+
+   ⭐ 9/30 站内中转（functions/api/ai.js）：站点可以在 Cloudflare 环境变量里配一把站长的 Key，
+      这样访客不填 Key 也能用全部 AI 功能。通道由 settings.aiChannel 决定：
+        auto（默认）= 本机有 Key 用自己的，没有才走站内；site = 强制站内；own = 只用自己的 Key。
+      站内失败（未配置 / 限流 / 上游错）且本机有 Key 时静默回退到直连，不打断学习。 */
 const AI_BASE = 'https://api.deepseek.com/v1';
 const AI_MODEL = 'deepseek-chat';
+const SITE_AI_URL = 'api/ai';
+
+async function callSiteRelay(service, messages, temperature, opts){
+  const body = { service: service, messages: messages, temperature: temperature };
+  if(opts && opts.max_tokens) body.max_tokens = opts.max_tokens;
+  if(opts && opts.json_mode) body.json_mode = true;
+  const res = await fetch(SITE_AI_URL, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) });
+  const txt = await res.text();
+  let j = null; try{ j = JSON.parse(txt); }catch(_){}
+  if(res.status === 501 || (j && j.error === 'relay_not_configured')){
+    const e = new Error('站内通道未配置'); e.code = 'NO_SITE_RELAY'; throw e;
+  }
+  if(!res.ok){
+    const e = new Error((j && j.msg) || ('站内 AI 通道返回 ' + res.status));
+    e.code = (j && j.error) || 'SITE_RELAY_FAIL';
+    throw e;
+  }
+  if(j && j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content != null) return j.choices[0].message.content;
+  if(j && typeof j.content === 'string') return j.content;
+  throw new Error('站内 AI 通道返回格式异常');
+}
+
 async function callRelay(service, messages, temperature, opts){
   const s = DATA.settings || {};
   const key = s.relayToken || '';
+  const ch = s.aiChannel || 'auto';                 // auto | site | own
+  const wantSite = (ch === 'site') || (ch === 'auto' && !key);
+  let siteErr = null;
+  if(wantSite){
+    try{ return await callSiteRelay(service, messages, temperature, opts); }
+    catch(e){ siteErr = e; }                        // 站内没成 → 有 Key 就静默回退，没有才报错
+  }
   if(!key){
     notifyNoKey();                                     // design/81：能弹引导卡就弹，不能就回退调用方的 toast
-    const e0 = new Error('未配置 API Key（去「设置 / AI 接口」填写）');
-    e0.code = 'NO_RELAY_KEY';
+    const e0 = new Error(siteErr
+      ? ('站内 AI 通道不可用：' + siteErr.message + '。也可去「设置 / AI 接口」填自己的 Key')
+      : '未配置 API Key（去「设置 / AI 接口」填写）');
+    e0.code = siteErr ? (siteErr.code || 'SITE_RELAY_FAIL') : 'NO_RELAY_KEY';
     throw e0;
   }
   // 所有文本 AI 固定走内置 DeepSeek（地址与模型已写死），彻底移除中转代理开关

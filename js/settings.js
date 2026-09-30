@@ -24,6 +24,7 @@ function populateSettingsForm(){
   if($('#sPron')) $('#sPron').value = (s.pronunciationScore != null ? s.pronunciationScore : '');
   if($('#sFlu')) $('#sFlu').value = (s.fluencyScore != null ? s.fluencyScore : '');
   if($('#sRelayToken')) $('#sRelayToken').value = s.relayToken || '';
+  if($('#sAiChannel')) $('#sAiChannel').value = s.aiChannel || 'auto';   // 9/30：AI 通道（本机偏好，不同步到云端）
   if($('#sChime')) $('#sChime').checked = s.chimeOnDone !== false;
   // 9/21 翻转：服药模块默认关闭 → 无该函数时兜底 false（与 common.js 口径一致）
   if($('#sAdhd')) $('#sAdhd').checked = (typeof medsModuleOn === 'function') ? medsModuleOn() : false;
@@ -190,6 +191,10 @@ function bindPwaCard(){
 
 function saveRelay(){
   DATA.settings.relayToken = $('#sRelayToken').value.trim();
+  // 9/30：AI 通道（auto / site / own）。纯本机偏好，故意不进 SYNC_SETTINGS_FIELDS：
+  //       每台设备该用哪条通道由本机决定，不该被云端值覆盖。
+  const chEl = $('#sAiChannel');
+  if(chEl) DATA.settings.aiChannel = (chEl.value === 'site' || chEl.value === 'own') ? chEl.value : 'auto';
   DATA.settings._fieldTs = DATA.settings._fieldTs || {};
   DATA.settings._fieldTs.relayToken = Date.now();   // 记录本机 Key 保存时间，合并时按时间胜出，避免被云端旧值覆盖
   hubSave();
@@ -204,26 +209,38 @@ function saveRelay(){
 /* 测试连接：用输入框里的 Key 探活 DeepSeek，成功即自动保存 */
 async function testAIConnection(){
   const key = $('#sRelayToken').value.trim();
-  if(!key){ toast('请先填写 API Key'); return; }
+  const chEl = $('#sAiChannel');
+  const ch = chEl ? chEl.value : 'auto';
+  if(!key && ch === 'own'){ toast('请先填写 API Key（或把「AI 通道」改成自动 / 站内）'); return; }
   const btn = $('#testAiBtn');
   if(btn) btn.disabled = true;
   setAiLoading();
   const prev = DATA.settings.relayToken || '';
+  const prevCh = DATA.settings.aiChannel || 'auto';
+  // 9/30：没填 Key 时测的是「站内通道」是否可用 —— 临时切到 site，探完还原
+  const tmpSite = (!key && prevCh === 'auto');
+  if(tmpSite) DATA.settings.aiChannel = 'site';
   try{
-    DATA.settings.relayToken = key; // 临时用输入框的 key 探活（callRelay 从 settings 里读）
+    if(key) DATA.settings.relayToken = key; // 临时用输入框的 key 探活（callRelay 从 settings 里读）
     const r = await callRelay('gpt', [{ role:'user', content:'Reply with exactly the single word: PONG' }], 0.1);
-    DATA.settings.relayToken = key; // 探活成功 → 直接生效并保存（与 saveRelay 一致：记时间戳 + 调度云端同步）
-    DATA.settings._fieldTs = DATA.settings._fieldTs || {};
-    DATA.settings._fieldTs.relayToken = Date.now();
-    hubSave();
-    if(DATA.settings.syncCode) scheduleCloudUpload();
-    setAiStatus('✅ 连接成功：' + (r||'').slice(0,60), 'ok');
-    toast('✅ 连接成功，Key 已保存');
+    if(key){
+      DATA.settings.relayToken = key; // 探活成功 → 直接生效并保存（与 saveRelay 一致：记时间戳 + 调度云端同步）
+      DATA.settings._fieldTs = DATA.settings._fieldTs || {};
+      DATA.settings._fieldTs.relayToken = Date.now();
+      hubSave();
+      if(DATA.settings.syncCode) scheduleCloudUpload();
+      setAiStatus('✅ 连接成功：' + (r||'').slice(0,60), 'ok');
+      toast('✅ 连接成功，Key 已保存');
+    }else{
+      setAiStatus('✅ 站内 AI 通道可用：' + (r||'').slice(0,60), 'ok');
+      toast('✅ 站内 AI 通道可用，不用填 Key');
+    }
   }catch(e){
     DATA.settings.relayToken = prev;   // 探活失败 → 恢复原 Key：否则无效 key 残留内存态，后续任何 hubSave 都会把它持久化
     setAiStatus('❌ 连接失败：' + e.message, 'error');
     toast('❌ 连接失败：' + e.message);
   }finally{
+    if(tmpSite) DATA.settings.aiChannel = prevCh;   // 临时切站内探活 → 还原，不写进设置
     if(btn) btn.disabled = false;
   }
 }

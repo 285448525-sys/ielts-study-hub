@@ -20,8 +20,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20260929a"></script>
-  <script defer src="js/common.js?v=20260930c"></script>
-  <script src="js/settings.js?v=20260930c" defer></script>
+  <script defer src="js/common.js?v=20260930d"></script>
+  <script src="js/settings.js?v=20260930d" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -107,7 +107,15 @@
 
   <section class="card" id="ai">
     <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="5" y="7" width="14" height="12" rx="3"/><path d="M12 7V3M9 3h6"/><circle cx="9.5" cy="12.5" r="1"/><circle cx="14.5" cy="12.5" r="1"/><path d="M9 16h6"/></svg>AI 接口（DeepSeek）</h2>
-    <p class="muted">所有 AI 功能（口语对练、词库翻译、长难句拆解、写作批改、错题本讲解）都用 DeepSeek。只需填一个 Key，地址和模型已内置，无需任何其它配置。</p>
+    <p class="muted">所有 AI 功能（口语对练、词库翻译、长难句拆解、写作批改、串题素材）都用 DeepSeek。</p>
+    <div class="form-row" style="margin-bottom:6px">
+      <div style="flex:2;min-width:220px"><label>AI 通道</label><div class="ui-form-control" style="width:100%;max-width:420px"><select class="ui-input" id="sAiChannel">
+        <option value="auto">自动（本机有 Key 用 Key，没有就走站内通道）</option>
+        <option value="site">站内通道（不用自己填 Key）</option>
+        <option value="own">只用我自己的 Key</option>
+      </select><span class="ui-input-border"></span></div></div>
+    </div>
+    <p class="muted" style="margin:-2px 0 8px">「站内通道」由站长在服务端配的 Key 承担，你自己不用申请；额度有限，白天高峰可能排队。</p>
     <div class="form-row">
       <div style="flex:3"><label>DeepSeek API Key</label><div style="display:flex;gap:8px;align-items:center"><input id="sRelayToken" type="password" placeholder="sk-xxxxxx" autocomplete="off" style="flex:1" /><button class="btn btn-sm" id="toggleKey" type="button">显示</button></div></div>
       <div style="flex:none;align-self:flex-end"><button class="btn btn-primary" id="saveRelay">保存</button></div>
