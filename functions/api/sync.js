@@ -8,6 +8,18 @@
 //   PUT    /api/sync  (X-Sync-Key: <phone>) body { data, ts, deviceId } -> { ok:true, ts }
 //   DELETE /api/sync  (X-Sync-Key: <phone>) -> { ok:true }
 //
+// ⭐ 9/30 v2：乐观锁 + 影子 meta（修「同步经常不同步 / 被覆盖」）
+//   1) PUT 可携带 baseTs（= 客户端最后一次看到的云端 ts）。
+//      云端现存 ts 与之不符 -> 409 { ok:false, error:'conflict', ts:<服务端当前ts> }，
+//      服务端**拒绝覆盖**。客户端收到 409 后自行拉取云端 -> 合并 -> 带新 baseTs 重试。
+//      旧客户端不带 baseTs：维持原「无条件覆盖」语义，向后兼容（不做破坏性变更）。
+//      根因回顾：此前 PUT 完全无版本校验，任何一端都能无条件整份覆盖云端，
+//      两台设备各自 push 自己的快照 = 互相抹掉对方进度（她实测到的数据回滚/丢，不是配额问题）。
+//   2) meta 影子键 meta:<phone>，只存 { ts, bytes, hash }（约 200B）。
+//      GET ?meta=1 时先读它做「云端有没有变」的轻量探测 —— 没变就完全不下载 1.7MB 全量，
+//      流量与 CPU 降两个数量级（轮询因此可以加密到 12s 而不增加负担）。
+//      meta 缺失（本次部署前写入的老数据）时按需从主键算出来并懒写回，自愈。
+//
 // CORS：前端用自定义请求头 X-Sync-Key，浏览器会先发 OPTIONS 预检。本函数显式处理
 //       OPTIONS 并回完整的 CORS 响应头（Allow-Methods / Allow-Headers），否则预检失败
 //       浏览器会报 "Failed to fetch"，真实请求根本不会发出。
@@ -29,6 +41,30 @@ function json(obj, status) {
       'cache-control': 'no-store',
     }, CORS),
   });
+}
+
+/* djb2 字符串哈希 —— 必须与前端 js/common.js 的 hashData() 逐位一致，
+   否则「云端内容是否变化」的探测会永远失配（退化为每次全量下载——不省钱但功能仍正确）。
+   两边都用 <<5 触发 ToInt32，溢出行为完全一致。 */
+function djb2(s) {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h) + s.charCodeAt(i);
+  return String(h);
+}
+
+/* 从完整 blob 字符串里抽出 { ts, bytes, hash } 做 meta 影子键的小体积内容 */
+function metaFromRaw(raw) {
+  try {
+    const obj = JSON.parse(raw);
+    const dataStr = JSON.stringify(obj && obj.data !== undefined ? obj.data : null);
+    return {
+      ts: (obj && obj.ts != null && !isNaN(Number(obj.ts))) ? Number(obj.ts) : 0,
+      bytes: raw.length,
+      hash: djb2(dataStr),
+    };
+  } catch (e) {
+    return { ts: 0, bytes: raw.length, hash: djb2(raw) };
+  }
 }
 
 export async function onRequest(context) {
@@ -54,8 +90,27 @@ export async function onRequest(context) {
   }
 
   const key = 'sync:' + phone;
+  const metaKey = 'meta:' + phone;
 
   if (request.method === 'GET') {
+    // ⭐ 9/30：轻量探测。只回 {ts,bytes,hash}（约 200B），云端没变就不必搬运整份 1.7MB。
+    if (url.searchParams.get('meta') === '1') {
+      let mRaw = null;
+      try { mRaw = await env.SYNC_KV.get(metaKey); } catch (e) {}
+      if (mRaw) {
+        try { return json(JSON.parse(mRaw)); } catch (e) { /* meta 损坏：落到下面重算 */ }
+      }
+      const raw = await env.SYNC_KV.get(key);
+      if (!raw) return json({ ok: false, error: 'no data' }, 404);
+      const m = metaFromRaw(raw);
+      // 老数据（本次部署前写入的）没有 meta：顺手补写，下次起就是纯 200B 探测（自愈）
+      try {
+        const p = env.SYNC_KV.put(metaKey, JSON.stringify(m));
+        if (context && typeof context.waitUntil === 'function') context.waitUntil(p);
+      } catch (e) {}
+      return json(m);
+    }
+
     const raw = await env.SYNC_KV.get(key);
     if (!raw) return json({ ok: false, error: 'no data' }, 404);
     return new Response(raw, {
@@ -87,6 +142,27 @@ export async function onRequest(context) {
     if (!body || typeof body !== 'object' || !body.data) {
       return json({ ok: false, error: '缺少 data 字段' }, 400);
     }
+
+    /* ⭐ 9/30 乐观锁：带 baseTs 的请求必须建立在「客户端已知的最新云端版本」之上。
+       现存 ts 与 baseTs 不符 = 期间有别的设备/标签页写过 -> 拒绝整份覆盖，
+       让客户端先合并再重试。不带 baseTs（老客户端）维持无条件覆盖，向后兼容。 */
+    const hasBase = (body.baseTs != null && body.baseTs !== '' && !isNaN(Number(body.baseTs)));
+    const baseTs = hasBase ? Number(body.baseTs) : 0;
+    if (hasBase) {
+      const cur = await env.SYNC_KV.get(key);
+      if (cur) {
+        let curTs = 0;
+        try { const o = JSON.parse(cur); curTs = (o && o.ts != null && !isNaN(Number(o.ts))) ? Number(o.ts) : 0; } catch (e) {}
+        if (curTs !== baseTs) {
+          return json({
+            ok: false, error: 'conflict', conflict: true,
+            ts: curTs,   // 客户端拿它当新的 baseTs（也可先拉云merge）
+            updatedAt: Date.now(),
+          }, 409);
+        }
+      }
+    }
+
     // design/62 安全兜底：AI Key 严禁落云端。
     // 即使老客户端 / 旧缓存页面仍带 relayToken 上传，服务端也在此剥离；
     // 下一次 PUT 会整体覆盖，云端存量 Key 随之被清掉。
@@ -105,7 +181,15 @@ export async function onRequest(context) {
         return json({ ok: false, error: '单条数据超过 Cloudflare KV 25MB 上限（当前 ' + Math.round(value.length / 1024 / 1024) + 'MB）' }, 413);
       }
       await env.SYNC_KV.put(key, value);
-      return json({ ok: true, ts: stored.ts });
+      // meta 影子键：给轮询做 200B 级探测用。写入失败不影响主流程（下次按需重算）。
+      try {
+        const m = { ts: stored.ts, bytes: value.length, hash: djb2(JSON.stringify(stored.data)) };
+        const p = env.SYNC_KV.put(metaKey, JSON.stringify(m));
+        if (context && typeof context.waitUntil === 'function') context.waitUntil(p);
+        return json({ ok: true, ts: stored.ts, bytes: m.bytes, hash: m.hash });
+      } catch (e) {
+        return json({ ok: true, ts: stored.ts });
+      }
     } catch (e) {
       return json({ ok: false, error: 'KV 写入失败：' + (e && e.message ? e.message : String(e)) }, 500);
     }
@@ -113,6 +197,7 @@ export async function onRequest(context) {
 
   if (request.method === 'DELETE') {
     await env.SYNC_KV.delete(key);
+    try { await env.SYNC_KV.delete(metaKey); } catch (e) {}   // meta 跟着删，否则残留会让客户端以为云端还有数据
     return json({ ok: true });
   }
 

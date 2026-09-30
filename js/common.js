@@ -1187,6 +1187,60 @@ let _lastCloudHash = '';   // 上次拉到的云端内容哈希：相同则跳�
 let _lastUploadedCloudHash = '';   // v7.1：最近一次成功上传的 payload 哈希——拉取命中它=自己刚传的回声，跳过合并不弹窗不计变更
 let _bootPublishTried = false;   // ⭐ 9/19 每次页面加载只做一次「开机发布」（见 _maybePublishLocal）
 
+/* ===== 9/30「同步很憋屈」专项：乐观锁基线 + 自适应节流 + 多标签 leader =====
+ * 背景（她原话：「反正就是经常同步不上啊」「出现过同步失败或被覆盖」）：
+ * 之前 PUT 是无条件整份覆盖，两台设备各自推自己的快照 = 互相抹掉对方的进度。
+ * 服务端 9/30 起支持乐观锁（409），这里负责：带上 baseTs、遇到 409 先合并再重试。 */
+let _cloudBaseTs = 0;      // 最后一次「已验证」的云端 ts；0 = 还不知道（此时不锁，走老语义）
+let _lastPutAt = 0;        // 上次 PUT 成功时刻
+let _lastChangeAt = 0;     // 上次挂起变更的时刻（用于「静默一段时间后重置节流」）
+let _putGap = 6000;        // 当前两次 PUT 的最小间隔：安静时 6s，连续写盘时逐步放宽到 60s
+/* ⭐ 起步 6s、每次 ×1.6、上限 60s：6 → 9.6 → 15 → 25 → 39 → 60。
+   意思是「刚动第一下」基本秒到（≤10s），但如果是在连续做题/计时，一分钟内就自己退到几十秒一次，
+   8 小时连续学习约 150 次 PUT —— 比旧方案还省，且再也不会出现「写盘不停就永远不传」。 */
+const PUT_GAP_MIN = 6000, PUT_GAP_MAX = 60000, PUT_IDLE_RESET = 45000;
+
+/* ⭐ 9/30 多标签页 leader 选举：同一台机器开着 3 个标签页时，只有 leader 做定时轮询。
+ * 为什么需要：每个标签页各有自己的内存 DATA，各自拉各自合并，既浪费配额又互相制造冲突（409）。
+ * 现在：
+ *   - leader = 「前台标签优先，其次 id 最小」；一旦 leader 切到前台，会立刻接管（isLeader 变化时马上补一次探测）。
+ *   - 非 leader 完全不轮询，靠 leader 广播 'poll' 通知「云端有变化」再各拉一次。
+ *   - 不支持 BroadcastChannel（老浏览器）时恒为 leader —— 退化和今天一样，不会变砖。
+ * 注意：上传不做 leader 限制。谁改了谁传，正确性由乐观锁保证（409 会自动合并重试）。
+ * ⚠️ 必须在调用点之前初始化 —— defer 脚本的 ready() 回调可能同步执行，
+ *    写在文件后段的 const 会落进 TDZ，被 catch(_){} 静默吞掉（9/26 踩过的坑）。 */
+const _tabId = 't' + Math.random().toString(36).slice(2, 9);
+const _syncBC = (typeof BroadcastChannel !== 'undefined') ? new BroadcastChannel('hub-sync-v1') : null;
+let _syncPeers = {};      // tabId -> { ts, hidden }
+let _isLeader = true;     // 保守默认 true：单标签页时本来就该干活
+function _syncElectLeader(){
+  const now = Date.now();
+  Object.keys(_syncPeers).forEach(k => { if(now - _syncPeers[k].ts > 12000) delete _syncPeers[k]; });
+  const self = {}; self[_tabId] = { ts: now, hidden: !!(typeof document !== 'undefined' && document.hidden) };
+  const all = Object.assign({}, _syncPeers, self);
+  const ids = Object.keys(all).sort((a, b) => {
+    const ha = all[a].hidden ? 1 : 0, hb = all[b].hidden ? 1 : 0;
+    if(ha !== hb) return ha - hb;      // 前台优先
+    return a < b ? -1 : (a > b ? 1 : 0);
+  });
+  const was = _isLeader;
+  _isLeader = (ids[0] === _tabId);
+  if(_isLeader && !was && typeof _cloudPollSoon === 'function') _cloudPollSoon();   // 刚接任：立刻补一次
+}
+function _syncBcPing(){
+  try{ if(_syncBC) _syncBC.postMessage({ t:'ping', id:_tabId, hidden: !!(typeof document !== 'undefined' && document.hidden) }); }catch(e){}
+}
+if(_syncBC){
+  _syncBC.onmessage = function(ev){
+    const m = ev.data;
+    if(!m || !m.id || m.id === _tabId) return;
+    if(m.t === 'ping'){ _syncPeers[m.id] = { ts: Date.now(), hidden: !!m.hidden }; _syncElectLeader(); }
+    else if(m.t === 'bye'){ delete _syncPeers[m.id]; _syncElectLeader(); }
+    else if(m.t === 'poll'){ try{ cloudPollOnce(); }catch(e){} }   // leader 说云端变了
+    else if(m.t === 'uploaded'){ if(!_isLeader) try{ setTimeout(cloudPollOnce, 400); }catch(e){} }   // 别的标签页传过东西：跟一次，别等到下一轮轮询
+  };
+}
+
 /* ⭐ 9/19 修「两台设备数据对不上/来回跳」第二刀：开机发布。
  * 上一刀（eb5c9b9）修了「背完就传」，但只覆盖「本机刚写过」的场景；她实测又暴露出另一半：
  * 手机上滞留的独有进度（早前没传出去的那批），在「只打开页面对比、不做任何操作」时永远没有上传出口——
@@ -1237,38 +1291,56 @@ function getDeviceId(){
 }
 
 /* 统一的云端请求封装：自动带 X-Sync-Key 头（手机号即账号）。
+   path 可选：'/?meta=1' 之类的附加查询串（9/30 轻量探测用）。
    返回 [Response, json] 二元组，调用方自行判断 status。 */
-async function syncApi(method, body){
+async function syncApi(method, body, path){
   const headers = { 'Content-Type': 'application/json' };
   const phone = DATA.settings.syncCode || '';
   if(phone) headers['X-Sync-Key'] = phone;
   const opts = { method, headers };
   if(body) opts.body = JSON.stringify(body);
-  const res = await fetch('/api/sync', opts);
+  const res = await fetch('/api/sync' + (path || ''), opts);
   let data = null;
   try { data = await res.json(); } catch(e){}
   return [res, data];
 }
 
-/* 60s 防抖：避免每次 hubSave（如 plans 页频繁写盘）都触发 PUT，导致 Cloudflare KV 日配额秒光。
-   ⚠️ 必须配 maxWait（CLOUD_MAX_WAIT），否则会被「饿死」——实测：
-      计时页 startHeartbeat 每 5s persistMirror→hubSave，背词/口语同样高频写盘，
-      纯 debounce 的 60s 定时器每次都被推后 → 连续写盘 75 秒 PUT = 0 次，
-      也就是「学习的时候一次都没上传，以为同步着其实是假的」。停止操作 60s 后才补一次。
-   取 3 分钟：连续学习 8 小时 ≈ 26 次 PUT，远低于 KV Free 每日 100 次写入配额。 */
-const CLOUD_DEBOUNCE = 60 * 1000;
-const CLOUD_MAX_WAIT = 3 * 60 * 1000;
+/* ⭐ 9/30 重写「什么时候真的上传」——解决「改完另一头要等很久」。
+ * 旧口径：debounce 60s + maxWait 3min。意思是连续写盘时最长要 3 分钟才落地，
+ *        她体感就是「背完了另一台设备上看不到」。当时这么保守是担心 KV 写配额（1000/天）。
+ *        实测她的写量只有几十次/天，配额根本碰不到 —— 真正稀缺的是「及时」，不是省钱。
+ * 新口径（三层）：
+ *   1) 合并窗口 2.5s：连着改几下算一次，避免一次点击发好几个 PUT。
+ *   2) 最小上传间隔 _putGap：空闲后第一次改动 8s 内必达；同一次连续学习里逐步放宽到 60s。
+ *      →  bursts 不炸配额（最密 8s 一次，理论上限约 450 次/小时，只在疯狂连点时出现），
+ *         稳态退化为 60s 一次，8 小时连续学习 ≈ 30~60 次，配额压力小于旧方案的零散突发。
+ *   3) 硬上限 90s：任何情况下有变更不会超过 90s 不上传。
+ * 另外加宽到 macrotask 之外：首次改动后立刻排定时器，不等下一次写盘。
+ */
+const CLOUD_DEBOUNCE = 2500;
+const CLOUD_MAX_WAIT = 90 * 1000;
 function scheduleCloudUpload(){
   if(!DATA.settings.autoSync || !DATA.settings.syncCode) return;
   const now = Date.now();
-  if(!_pendingUpload){ _pendingUpload = true; _firstPendingAt = now; }   // 首次挂起点：maxWait 的时间锚
+  // 静默超过 45s 后重新开始改 → 节流档位重新从最快开始（ responsiveness 优先）
+  if(_lastChangeAt && now - _lastChangeAt > PUT_IDLE_RESET) _putGap = PUT_GAP_MIN;
+  _lastChangeAt = now;
+  if(!_pendingUpload){ _pendingUpload = true; _firstPendingAt = now; }
   if(_cloudTimer) clearTimeout(_cloudTimer);
-  const waited = now - _firstPendingAt;
-  const wait = (waited >= CLOUD_MAX_WAIT) ? 0 : Math.min(CLOUD_DEBOUNCE, CLOUD_MAX_WAIT - waited);
-  _cloudTimer = setTimeout(() => { cloudUpload(false); }, wait);
+  let target = Math.max(_lastPutAt + _putGap, now + CLOUD_DEBOUNCE);
+  if(target > _firstPendingAt + CLOUD_MAX_WAIT) target = _firstPendingAt + CLOUD_MAX_WAIT;
+  const wait = Math.max(0, target - Date.now());
+  _cloudTimer = setTimeout(function(){
+    // 到点才发现距离上次 PUT 还不够久（被 maxWait 提前叫醒）→ 再睡够剩下的时间，绝不放宽节奏
+    const gapLeft = _lastPutAt + _putGap - Date.now();
+    if(gapLeft > 0){ _cloudTimer = setTimeout(function(){ cloudUpload(false); }, gapLeft + 30); return; }
+    cloudUpload(false);
+  }, wait);
 }
-async function cloudUpload(showToast, force){
+/* showToast 是否提示；force 是否跳过「内容未变化」早退；opts.noLock 跳过乐观锁（重置/强制覆盖云端时用） */
+async function cloudUpload(showToast, force, opts){
   showToast = showToast !== false;
+  opts = opts || {};
   _pendingUpload = false;
   const phone = DATA.settings.syncCode;
   if(!phone){ if(showToast) toast('请先在「设置」绑定手机号'); return false; }
@@ -1283,9 +1355,24 @@ async function cloudUpload(showToast, force){
   }
   try{
     const _payload = stripCloudFields(DATA);   // v7.1：先落变量——成功后记它的哈希做「自回声」基线
-    const [res, body] = await syncApi('PUT', { data: _payload, ts:  Date.now(), deviceId: getDeviceId() });
+    const putBody = { data: _payload, ts: Date.now(), deviceId: getDeviceId() };
+    // ⭐ 乐观锁：已知云端版本才带 baseTs（0=还不知道 → 不带，维持老的无条件覆盖语义）
+    if(_cloudBaseTs && !opts.noLock) putBody.baseTs = _cloudBaseTs;
+    const [res, body] = await syncApi('PUT', putBody);
     if(res.status === 404) throw new Error('云端未启用（需先部署 Functions）');
     if(res.status === 503) throw new Error('云端存储未绑定（Cloudflare 后台需绑定 SYNC_KV）');
+    if(res.status === 409){
+      // ⭐ 9/30 核心修复：期间有别端（另一台设备 / 另一个标签页）写过。
+      //    绝不硬覆盖——先把它拉下来合并，再基于新版本重试。最多 2 次，防死循环。
+      const tries = (opts.retry || 0) + 1;
+      if(tries <= 2){
+        syncSetStatus('云端有新版本，先合并再上传…', '');
+        const dl = await cloudDownload(true);
+        // cloudDownload 已把 _cloudBaseTs 更新到服务端最新 ts
+        if(dl) return await cloudUpload(showToast, true, { retry: tries, noLock: opts.noLock });
+      }
+      throw new Error('云端在此期间被其他设备更新，已自动重试仍未成功，请点「立即同步」再试一次');
+    }
     if(!res.ok){
       const detail = body && body.error ? body.error : ('HTTP ' + res.status);
       throw new Error(detail);
@@ -1293,6 +1380,13 @@ async function cloudUpload(showToast, force){
     DATA.settings.lastSyncTs = Date.now();
     _lastUploadedHash = hashData();   // ⭐ 9/19：成功后重算基线——lastSyncTs 在上传成功瞬间自变化，沿用上传前快照 h 会让下次比对永远失配，hash 去重形同虚设
     _lastUploadedCloudHash = hashData(_payload);   // v7.1：自回声基线（云端存的就是这份，下次拉到相同哈希=自己传的，不再当「云端更新」合并）
+    _lastPutAt = Date.now();
+    _putGap = Math.min(Math.round(_putGap * 1.6), PUT_GAP_MAX);   // 连续写盘时逐步退让，稳态 60s 一次
+    // PUT 成功即等于「云端此刻的内容已知」：下一次 PUT 可以直接当乐观锁基线，
+    // 轮询也可以直接短路（省掉一次全量下载）
+    if(body && body.ts) _cloudBaseTs = Number(body.ts) || _cloudBaseTs;
+    if(body && body.hash) _lastCloudHash = String(body.hash);
+    if(_syncBC){ try{ _syncBC.postMessage({ t:'uploaded', id:_tabId }); }catch(e){} }
     if(showToast) toast('已上传到云端');
     syncSetStatus('✅ 已同步到云端', 'ok');
     renderLastSync();
@@ -2177,6 +2271,35 @@ function _mergeActiveTimer(a, b){
   return na || nb;   // 规则4
 }
 /* 从云端合并拉取（替代整份覆盖）。silent=true 时仅在有更新时提示，用于自动拉取 */
+/* ⭐ 9/30 轮询改用「廉价探测」替代「整份下载」：
+ * 服务端新增 meta 影子键（约 200B：ts / bytes / hash）。轮询先问 meta，
+ * 哈希没变就直接回来 —— 不搬运那份 1.7MB、不跑 mergeData、不打扰 UI。
+ * 只有真的变了才走 cloudDownload 的原合并链路。
+ * ⚠️ 服务端还是旧版时会把 ?meta=1 当普通 GET（回整份）—— meta.hash 取不到 → 自动退回全量，
+ *    功能不受影响，只是省不了流量。升级部署自然生效，无需开关。 */
+async function cloudPollOnce(){
+  if(!DATA.settings.autoSync || !DATA.settings.syncCode) return false;
+  try{
+    const [res, meta] = await syncApi('GET', null, '?meta=1');
+    if(res.status === 404){ _maybePublishLocal(true, null); return false; }
+    if(!res.ok) return false;
+    // 服务端还是旧版时不认 ?meta=1，会直接回整份：那就自己算哈希去重，别白下去再拉一次
+    if(meta && meta.data){
+      if(meta.ts) _cloudBaseTs = Number(meta.ts) || _cloudBaseTs;
+      const _ch = hashData(meta.data);
+      if(_ch === _lastCloudHash || _ch === _lastUploadedCloudHash){ _lastCloudHash = _ch; return true; }
+      return await cloudDownload(true);
+    }
+    if(meta && meta.hash && meta.hash === _lastCloudHash) return true;   // 最常见：零下载
+    return await cloudDownload(true);
+  }catch(e){ return false; }
+}
+let _pollSoonTimer = null;
+function _cloudPollSoon(){
+  if(_pollSoonTimer) clearTimeout(_pollSoonTimer);
+  _pollSoonTimer = setTimeout(function(){ try{ cloudPollOnce(); }catch(e){} }, 250);
+}
+
 async function cloudDownload(silent){
   const phone = DATA.settings.syncCode;
   if(!phone){ if(!silent) toast('请先在「设置」绑定手机号'); return false; }
@@ -2191,6 +2314,7 @@ async function cloudDownload(silent){
     if(res.status === 503) throw new Error('云端存储未绑定（Cloudflare 后台需绑定 SYNC_KV）');
     if(!res.ok) throw new Error('HTTP ' + res.status);
     if(!data || !data.data) throw new Error('返回格式异常');
+    if(data.ts) _cloudBaseTs = Number(data.ts) || _cloudBaseTs;   // ⭐ 9/30：记下云端版本，PUT 时当乐观锁基线
     // 性能优化：云端内容哈希未变则跳过合并（省去每次轮询的 mergeData + 两次全量 stringify 比较，
     // DATA 越大这波 CPU 越重，是「有时候卡」的头号来源；单设备用户基本用不上 10s 实时性）
     const _ch = hashData(data.data);
@@ -2226,6 +2350,8 @@ async function cloudDownload(silent){
       // m.changes===0 说明只是字段规范化（如 materials 补默认结构），内容零变化，手动同步也不该弹「已合并 0 处」
       if(!silent && m.changes > 0) toast('已合并云端 ' + m.changes + ' 处更新');
       document.dispatchEvent(new CustomEvent('hub:data-merged'));
+      // ⭐ 9/30：告诉同机的其他标签页「云端刚刚有变化」，别各自每隔几十秒重复拉同一份 1.7MB
+      if(_syncBC){ try{ _syncBC.postMessage({ t:'poll', id:_tabId }); }catch(e){} }
       // 无缝刷新：合并成功后主动重渲染当前页面，无需用户手动刷新即可看到另一端的变化。
       renderAllOnMerge();
       syncSetStatus('✅ 已同步（已合并云端更新）', 'ok');
@@ -2276,8 +2402,11 @@ async function syncLoginOrRegister(phone){
     if(probe.status === 404){
       // 注册：上传本机数据（剔除官方共享题库/模板，避免脏数据污染云端）
       // 必须检查 PUT 结果：失败仍走「成功」分支会误报「已上传云端」且开启轮询，实际云端是空的
-      const [putRes] = await syncApi('PUT', { data: stripCloudFields(DATA), ts: Date.now(), deviceId: getDeviceId() });
+      const [putRes, putBody] = await syncApi('PUT', { data: stripCloudFields(DATA), ts: Date.now(), deviceId: getDeviceId() });
       if(!putRes.ok) throw new Error('上传本机数据失败（HTTP ' + putRes.status + '），请稍后重试');
+      // ⭐ 9/30：注册帧本身就确立了云端版本，直接当乐观锁起点（否则下一次 PUT 会因为 baseTs=0 退回无锁语义）
+      _cloudBaseTs = (putBody && putBody.ts) || Date.now();
+      _lastPutAt = Date.now();
       enableAutoSyncAfterLogin(phone);
       initCloudSync();   // 登录后补启动轮询拉取（页面可能已加载，ready 里的 initCloudSync 当时因未登录跳过了）
       syncSetStatus('✅ 注册成功，数据已上传云端', 'ok');
@@ -2287,6 +2416,7 @@ async function syncLoginOrRegister(phone){
       // 登录：云端已有数据 → 合并（非覆盖），避免本机未同步新增被云端数据抹掉
       const [res2, data] = await syncApi('GET');
       if(data && data.data){
+        if(data.ts) _cloudBaseTs = Number(data.ts) || _cloudBaseTs;   // ⭐ 9/30 登录合并前先记云端版本
         const m = mergeData(DATA, data.data);
         DATA = m.data;
         refreshSyncStampSnap();   // 登录合并写回后重建时间戳快照（同 cloudDownload）
@@ -2377,10 +2507,11 @@ function renderLastSync(){
   const ts = DATA.settings.lastSyncTs;
   el.textContent = ts ? ('上次同步：' + new Date(ts).toLocaleString('zh-CN')) : '尚未同步';
 }
-/* 强制：本机覆盖云端（无视合并，直接 PUT 整份） */
+/* 强制：本机覆盖云端（无视合并，直接 PUT 整份）
+   ⭐ 9/30 noLock：用户明确要本机覆盖，跳过乐观锁（否则会被 409 拦回去先合并，与本按钮语义相反） */
 function syncForcePush(){
   if(!DATA.settings.syncCode){ toast('请先绑定手机号'); return; }
-  cloudUpload(true);
+  cloudUpload(true, true, { noLock: true });
   setTimeout(renderLastSync, 1800);
 }
 /* 强制：云端覆盖本机（GET 后整体替换，不保留本机独有数据） */
@@ -2434,7 +2565,7 @@ function initCloudSync(){
     if(localStorage.getItem('hub_reset_pending') === '1'){
       localStorage.removeItem('hub_reset_pending');
       skipFirstDownload = true;
-      Promise.resolve(cloudUpload(false, true)).then(ok => {
+      Promise.resolve(cloudUpload(false, true, { noLock: true })).then(ok => {
         if(ok === false){ try{ localStorage.setItem('hub_reset_pending', '1'); }catch(e){} }   // 仍失败：重记标记，下次启动再补传
       });
     }
@@ -2445,10 +2576,21 @@ function initCloudSync(){
     if(typeof requestIdleCallback === 'function') requestIdleCallback(function(){ cloudDownload(true); }, { timeout: 2000 });
     else setTimeout(function(){ cloudDownload(true); }, 800);
   }
-  // 轮询拉取：30 秒一次（页面可见时）。单设备用户基本用不上 10s 实时性，30s 足够在另一台设备保存后自动合并；
-  // 内容未变时 hash 早退（不进 mergeData），进一步省 CPU；请求量降至 1/3，CF Functions 额度更宽裕。
-  setInterval(() => { if(!document.hidden) cloudDownload(true); }, 30 * 1000);
-  document.addEventListener('visibilitychange', () => { if(!document.hidden) cloudDownload(true); });
+  /* ⭐ 9/30 leader 心跳 + 轮询改道：
+   * - 每 4s 广播一次 ping（前台/后台状态），12s 收不到就认为对方已关 → 自动重新选举。
+   *   所以「唯一的标签页」永远是 leader，绝不会出现「没人干活 → 同步彻底停摆」。
+   * - 轮询只由 leader 执行，且从整份下载降级为 200B 的 meta 探测，因此 30s → 12s 也不增加负担。
+   * - 非 leader 靠 leader 的 'poll'/'uploaded' 广播被动跟进；切前台/回来还会再补一次。 */
+  _syncBcPing();
+  _syncElectLeader();
+  setInterval(function(){ _syncBcPing(); _syncElectLeader(); }, 4000);
+  setInterval(() => { if(!document.hidden && _isLeader) cloudPollOnce(); }, 12 * 1000);
+  document.addEventListener('visibilitychange', () => {
+    if(document.hidden) return;
+    _syncBcPing();
+    if(_isLeader) cloudPollOnce();   // 回到前台立刻问一次（200B），不用等下一轮
+  });
+  window.addEventListener('beforeunload', function(){ try{ if(_syncBC) _syncBC.postMessage({ t:'bye', id:_tabId }); }catch(e){} });
 }
 ready(initCloudSync);
 

@@ -333,7 +333,9 @@ function resetData(){
     // 否则本机清空后云端仍是旧数据，下次拉取会被整份合并回来——清空等于白清。
     const reload = () => setTimeout(() => location.reload(), 500);
     if(settings.syncCode && typeof cloudUpload === 'function'){
-      Promise.resolve(cloudUpload(false, true)).then(ok => {
+      // ⭐ 9/30 noLock：清数据是「刻意要用空数据覆盖云端」，必须跳过乐观锁。
+      //     不跳的话会因为 baseTs 陈旧而拿到 409 → 自动 cloudDownload 合并 → 刚清空的数据被云端整份复活。
+      Promise.resolve(cloudUpload(false, true, { noLock: true })).then(ok => {
         if(ok === false){
           // 上传失败（断网等）：本地已清但云端仍是旧数据。记补传标记，下次启动 initCloudSync 强制补传，
           // 避免云端旧数据抢先合并回来复活。
