@@ -3063,8 +3063,10 @@ function maybeStartSpkTimer(){
   // 首次引导没走完（全新用户，账号遮罩还挂着）时不自动开表：
   // 否则引导耗时会被记成口语练习时长；引导完成后再进页面即恢复正常自动计时。
   if(typeof getOnboarding === 'function'){
+    // 9/30：新版引导（hub_onboarding_v2）用 finished 标记，不再有 account 字段 —— 继续读 account
+    // 会让它恒为 undefined !== 'done' → 母语计时永远不自动开（静默故障）。
     const o = getOnboarding();
-    const guided = o ? (o.account !== 'done')
+    const guided = o ? (o.finished !== true)
       : (typeof onbHasExistingData === 'function' ? !onbHasExistingData() : false);
     if(guided) return;
   }

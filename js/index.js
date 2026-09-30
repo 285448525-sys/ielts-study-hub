@@ -293,9 +293,9 @@ function renderOnboardingBar(){
   // ⭐ 定义在函数内：index.js 是 defer 脚本，ready() 会同步执行到本函数，
   // 顶层 const 声明在文件末尾此时仍在 TDZ（访问即 ReferenceError）。引导三步骤的顺序表不需要跨函数共享。
   const ONB_STEPS = [
-    { key:'exam',  n:1, name:'考试日期' },
-    { key:'words', n:2, name:'词库' },
-    { key:'key',   n:3, name:'Key' }
+    { key:'exam',   n:2, name:'考试日期' },
+    { key:'effort', n:3, name:'每日投入' },
+    { key:'words',  n:4, name:'词库' }
   ];
   const main = document.querySelector('main.container');
   if(!main || typeof getOnboarding !== 'function') return;
@@ -308,18 +308,21 @@ function renderOnboardingBar(){
   const st = getOnboarding();
   if(!st){ host.hidden = true; host.innerHTML = ''; return; }
   const s = st.setup || {};
-  // ⭐ 实际完成态：words 这一步除了 setup.words===true，还要看 DATA.words 是否真有词
-  // （引导第 2 步「去导入词库」把 setup.words 写死 false、之后无回填路径 → 已导入词库却永远显示「未设置」）。
-  // chip 文案 / done 计数 / done>=3 自动 snoozed 都用这个「实际完成」口径（design/74）。
-  // design/78：官方词库激活（awl）同样算「词库已设」。
+  // ⭐ 实际完成态（见 design/74 / 9/30 新版三步）：除「标记已完成」外还要按真实数据算，
+  //  否则出现「明明填过却永远显示未设置」。chip 文案 / done 计数 / 自动 snoozed 都用这个口径。
+  //  - exam：settings.examDate 有值
+  //  - effort：每日时长或背词上限任一 > 0
+  //  - words：自定义词库有词，或当前词源是官方库（design/78）
+  const _pcfg = ((DATA.settings || {}).practiceCfg) || {};
   const actualDone = {};
   ONB_STEPS.forEach(function(x){
-    actualDone[x.key] = (x.key === 'words')
-      ? (s.words === true || (Array.isArray(DATA.words) && DATA.words.length > 0) || (typeof wbActive === 'function' && wbActive() !== 'custom'))
-      : !!s[x.key];
+    if(x.key === 'exam') actualDone[x.key] = !!(s.exam || (DATA.settings || {}).examDate);
+    else if(x.key === 'effort') actualDone[x.key] = !!(s.effort || Number(DATA.settings.dailyGoalHours) > 0 || Number(_pcfg.dailyCap) > 0);
+    else actualDone[x.key] = (s.words === true || (Array.isArray(DATA.words) && DATA.words.length > 0) || (typeof wbActive === 'function' && wbActive() !== 'custom'));
   });
   const done = ONB_STEPS.filter(x => actualDone[x.key]).length;
-  if(st.snoozed || !st.entered || st.account !== 'done' || done >= 3){
+  // 显示条件：确实走过引导（entered）+ 没有被按下「不再提示」+ 还有没配完的项
+  if(st.snoozed || !st.entered || done >= ONB_STEPS.length){
     if(done >= 3 && !st.snoozed && typeof setOnboarding === 'function') setOnboarding({ snoozed:true });
     host.hidden = true; host.innerHTML = ''; return;
   }

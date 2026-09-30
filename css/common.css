@@ -3439,3 +3439,47 @@ html[data-theme="dark"] .onb-overlay{background:rgba(0,0,0,.62)}
   .ai-key-card{top:8px;padding:12px 14px}
   .ai-key-desc{font-size:12px}
 }
+
+/* ===== 9/30 新版五步引导（Onboarding v2）=====
+   骨架：全屏遮罩 + 顶部 3px 细进度条 + 640px 居中卡 + 步骤左右横滑 + 底部导航（返回 / n 步 / 继续）。
+   皮肤沿用本站 token：teal 主色 + 白卡 + 细边框，跟「计划/课程卡」同一套观感，不引入新色。 */
+.onb2-overlay{background:rgba(16,20,24,.55)}
+.onb2-wrap{width:100%;max-width:640px;background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 48px rgba(0,0,0,.22);overflow:hidden}
+.onb2-bar{height:3px;background:var(--surface-2)}
+.onb2-bar > i{display:block;height:100%;background:var(--primary);transition:width .28s ease}
+.onb2-stage{padding:26px 26px 6px}
+.onb2-step{animation:onb2In .26s cubic-bezier(.16,1,.3,1) both}
+.onb2-step.from-l{animation-name:onb2InL}
+@keyframes onb2In{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}
+@keyframes onb2InL{from{opacity:0;transform:translateX(-40px)}to{opacity:1;transform:none}}
+.onb2-kicker{font-size:12px;font-weight:700;letter-spacing:.14em;color:var(--primary);margin-bottom:8px}
+.onb2-h{margin:0 0 8px;font-size:19px;font-weight:800;line-height:1.35;color:var(--ink)}
+.onb2-note{margin:0 0 14px;font-size:13px;line-height:1.7;color:var(--muted)}
+.onb2-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.onb2-list li{display:flex;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2)}
+.onb2-list b{flex:none;width:92px;font-size:13px;color:var(--ink)}
+.onb2-list span{font-size:12.5px;line-height:1.6;color:var(--muted)}
+.onb2-label{display:block;margin:12px 0 6px;font-size:12.5px;font-weight:700;color:var(--ink)}
+.onb2-wrap .ui-box-input{width:100%;box-sizing:border-box}
+.onb2-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.onb2-chip{font-size:12px;padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;min-height:0}
+.onb2-chip:hover{border-color:var(--primary);color:var(--primary)}
+.onb2-err{margin-top:8px;font-size:12.5px;line-height:1.5;color:var(--danger)}
+.onb2-block{width:100%;padding:12px 16px;margin-top:10px}
+.onb2-sum{margin:4px 0 14px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.onb2-sum-row{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line)}
+.onb2-sum-row:last-child{border-bottom:0}
+.onb2-sum-row span{font-size:12.5px;color:var(--muted)}
+.onb2-sum-row b{font-size:14px;color:var(--ink)}
+.onb2-check{width:44px;height:44px;margin-bottom:12px;border-radius:50%;display:grid;place-items:center;font-size:22px;font-weight:800;color:var(--on-primary);background:var(--primary)}
+.onb2-nav{display:flex;align-items:center;gap:10px;margin-top:10px;padding:12px 26px 18px;border-top:1px solid var(--line)}
+.onb2-ind{margin:0 auto;font-size:12px;color:var(--muted)}
+.onb2-nav .btn-sm{padding:8px 14px}
+@media (max-width:520px){
+  .onb2-stage{padding:20px 18px 4px}
+  .onb2-nav{padding:10px 18px 16px}
+  .onb2-list li{flex-direction:column;gap:4px}
+  .onb2-list b{width:auto}
+}
+html[data-theme="dark"] .onb2-overlay{background:rgba(0,0,0,.62)}
+@media (prefers-reduced-motion:reduce){ .onb2-step{animation:none} }
