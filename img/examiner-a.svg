@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="IELTS examiner">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#eef4f2"/>
+      <stop offset="1" stop-color="#d9e7e3"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#bg)"/>
+  <!-- 背景陈设：右侧书架剪影 + 柔光 -->
+  <g opacity=".55">
+    <rect x="640" y="180" width="120" height="300" rx="8" fill="#c3d6d1"/>
+    <rect x="652" y="200" width="96" height="10" rx="3" fill="#aebfb9"/>
+    <rect x="652" y="250" width="96" height="10" rx="3" fill="#aebfb9"/>
+    <rect x="652" y="300" width="96" height="10" rx="3" fill="#aebfb9"/>
+    <rect x="656" y="216" width="16" height="28" rx="3" fill="#9db3ac"/>
+    <rect x="678" y="212" width="14" height="32" rx="3" fill="#b0c4be"/>
+    <rect x="698" y="218" width="18" height="26" rx="3" fill="#93a8a1"/>
+    <rect x="660" y="266" width="20" height="28" rx="3" fill="#a3b8b1"/>
+    <rect x="688" y="270" width="16" height="24" rx="3" fill="#95aaa3"/>
+  </g>
+  <circle cx="150" cy="120" r="150" fill="#ffffff" opacity=".28"/>
+  <!-- 人物 -->
+  <g>
+    <!-- 西装 -->
+    <path d="M215 600 C222 486 288 440 400 440 C512 440 578 486 585 600 Z" fill="#2c4a5e"/>
+    <!-- 衬衫 V 区 -->
+    <path d="M352 448 C368 476 380 500 400 540 C420 500 432 476 448 448 C432 438 416 434 400 434 C384 434 368 438 352 448 Z" fill="#ffffff"/>
+    <!-- 西装翻领 -->
+    <path d="M352 448 L376 470 L368 520 L330 470 Z" fill="#24405255"/>
+    <path d="M448 448 L424 470 L432 520 L470 470 Z" fill="#24405255"/>
+    <!-- 脖子 -->
+    <path d="M372 380 L428 380 L428 452 C428 452 412 462 400 462 C388 462 372 452 372 452 Z" fill="#e5b392"/>
+    <path d="M372 388 C384 404 416 404 428 388 L428 380 L372 380 Z" fill="#d8a484"/>
+    <!-- 后发（披肩） -->
+    <path d="M292 300 C288 210 330 158 400 158 C470 158 512 210 508 300 C514 356 520 396 534 430 L470 452 C462 420 460 386 460 356 L340 356 C340 386 338 420 330 452 L266 430 C280 396 286 356 292 300 Z" fill="#5a4030"/>
+    <!-- 脸 -->
+    <ellipse cx="400" cy="288" rx="92" ry="102" fill="#edbe9d"/>
+    <!-- 前发（侧分刘海） -->
+    <path d="M308 268 C300 190 342 156 400 156 C458 156 500 190 492 268 C486 240 470 218 452 210 C448 226 444 236 436 244 C420 216 386 202 350 210 C330 216 316 240 308 268 Z" fill="#6b4c38"/>
+    <!-- 耳朵 + 耳环 -->
+    <circle cx="310" cy="298" r="14" fill="#e5b392"/>
+    <circle cx="490" cy="298" r="14" fill="#e5b392"/>
+    <circle cx="308" cy="316" r="5" fill="#e0a32e"/>
+    <circle cx="492" cy="316" r="5" fill="#e0a32e"/>
+    <!-- 眉毛 -->
+    <path d="M338 262 C348 254 366 252 378 258" stroke="#5a4030" stroke-width="6" stroke-linecap="round" fill="none"/>
+    <path d="M422 258 C434 252 452 254 462 262" stroke="#5a4030" stroke-width="6" stroke-linecap="round" fill="none"/>
+    <!-- 眼镜 -->
+    <g fill="none" stroke="#5f6b76" stroke-width="5">
+      <rect x="332" y="272" width="58" height="42" rx="20"/>
+      <rect x="410" y="272" width="58" height="42" rx="20"/>
+      <path d="M390 290 C395 285 405 285 410 290"/>
+      <path d="M332 288 L318 292"/>
+      <path d="M468 288 L482 292"/>
+    </g>
+    <!-- 眼睛 -->
+    <circle cx="361" cy="294" r="7.5" fill="#43302a"/>
+    <circle cx="439" cy="294" r="7.5" fill="#43302a"/>
+    <circle cx="364" cy="291" r="2.5" fill="#ffffff"/>
+    <circle cx="442" cy="291" r="2.5" fill="#ffffff"/>
+    <!-- 鼻子 -->
+    <path d="M400 302 C397 314 394 322 396 326 C398 330 404 330 406 327" stroke="#d8a484" stroke-width="5" stroke-linecap="round" fill="none"/>
+    <!-- 微笑 -->
+    <path d="M368 352 C384 368 416 368 432 352" stroke="#b5836a" stroke-width="6" stroke-linecap="round" fill="none"/>
+    <!-- 腮红 -->
+    <ellipse cx="338" cy="330" rx="14" ry="8" fill="#f0a48c" opacity=".45"/>
+    <ellipse cx="462" cy="330" rx="14" ry="8" fill="#f0a48c" opacity=".45"/>
+  </g>
+</svg>

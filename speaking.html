@@ -50,7 +50,7 @@
   <script defer src="js/materials.js?v=20261001f"></script>
   <script defer src="js/mock-report.js?v=20260830u"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
-  <script defer src="js/mock.js?v=20261001f"></script>
+  <script defer src="js/mock.js?v=20261001h"></script>
   <script defer src="js/pattern-drill.js?v=20261001f"></script>
   <script defer src="js/scene-drill.js?v=20260922a"></script>
 <style>
@@ -733,6 +733,43 @@ body.mock-immerse #mainNav{display:none!important}
 body.mock-immerse .page-head-row{display:none!important}
 body.mock-immerse .container{padding-top:14px}
 body.mock-immerse #mockStage{border:0;box-shadow:none;background:transparent}
+
+/* === 10/1 批3 · 考官视频窗（她拍板「考官的脸出现在屏幕上」） ===
+   P1/P3：大窗居中在上（像视频通话）；P2：#mockStage.p2-mode 两栏——左题目 + 右小窗。
+   呼吸动画 subtle（teal 光晕 3.6s），prefers-reduced-motion 全关。 */
+.mock-main{display:flex;flex-direction:column;align-items:stretch;gap:14px}
+.mock-examiner{display:flex;flex-direction:column;align-items:center;gap:8px;order:-1}
+.me-video{position:relative;width:min(340px,100%);aspect-ratio:4/3;border-radius:16px;overflow:hidden;background:var(--bg);border:1px solid var(--line);box-shadow:0 12px 32px rgba(19,35,41,.12);isolation:isolate}
+.me-video::before{content:'';position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 0 2px rgba(58,154,147,0);animation:me-breathe 3.6s ease-in-out infinite;pointer-events:none;z-index:2}
+@keyframes me-breathe{0%,100%{box-shadow:inset 0 0 0 2px rgba(58,154,147,0)}50%{box-shadow:inset 0 0 0 2px rgba(58,154,147,.4)}}
+.me-video img{width:100%;height:100%;object-fit:cover;display:block;user-select:none;-webkit-user-drag:none}
+.me-live{position:absolute;top:10px;left:10px;z-index:3;display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:rgba(15,23,42,.55);color:#fff;font-size:11px;font-weight:700;letter-spacing:.08em;backdrop-filter:blur(4px)}
+.me-live-dot{width:7px;height:7px;border-radius:50%;background:#ef4444;animation:me-blink 1.6s ease infinite}
+@keyframes me-blink{0%,100%{opacity:1}50%{opacity:.3}}
+.me-state{position:absolute;bottom:10px;left:10px;z-index:3;padding:3px 11px;border-radius:999px;background:rgba(15,23,42,.55);color:#fff;font-size:11.5px;font-weight:600;backdrop-filter:blur(4px)}
+.me-state:empty{display:none}
+.me-name{display:inline-flex;align-items:baseline;gap:7px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px 15px;box-shadow:var(--shadow)}
+.me-name b{font-size:13.5px;font-weight:700;color:var(--ink);letter-spacing:.01em}
+.me-name span{font-size:10.5px;font-weight:600;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+/* P2 两栏：左题目占主区，右考官小窗（贴她描述「考官的脸在右边，左边一大块显示 P2 题目」） */
+#mockStage.p2-mode .mock-main{flex-direction:row;align-items:flex-start}
+#mockStage.p2-mode .mock-left{flex:1;min-width:0}
+#mockStage.p2-mode .mock-examiner{order:0;flex:none;width:236px;position:sticky;top:12px}
+@media(max-width:760px){
+  /* 窄屏两栏放不下：塌回单列，考官小窗置顶（order:-1 恢复，宽度收窄不喧宾夺主） */
+  #mockStage.p2-mode .mock-main{flex-direction:column}
+  #mockStage.p2-mode .mock-examiner{width:min(240px,72%);order:-1}
+  .me-video{box-shadow:0 8px 20px rgba(19,35,41,.10)}
+}
+/* P2 倒计时改小徽章（她拍板「P2 有个小小的倒计时显示就行，不用太紧张」）：
+   覆盖 common.css 的 .mock-timer 全宽 warn 文字；剩 10s 内 .low 才转警示红。 */
+#mockStage .mock-timer{display:inline-flex;align-items:center;gap:6px;width:auto;margin:12px 0 0;align-self:flex-start;padding:4px 13px;border-radius:999px;background:var(--bg);border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--muted)}
+#mockStage .mock-timer svg{width:14px;height:14px}
+#mockStage .mock-timer #mockTimer{font-variant-numeric:tabular-nums;letter-spacing:.02em}
+#mockStage .mock-timer.low{color:#dc2626;border-color:rgba(220,38,38,.45);background:rgba(220,38,38,.06)}
+@media(prefers-reduced-motion:reduce){
+  .me-video::before,.me-live-dot{animation:none}
+}
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -810,7 +847,7 @@ body.mock-immerse #mockStage{border:0;box-shadow:none;background:transparent}
       <div id="mockPreCheck" class="mock-precheck"></div>
       <div class="mock-start-rail">
         <div class="ms-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg>开始一次口语模考</div>
-        <div class="ms-sub">P1 多个话题 → P2 准备+陈述 → P3 追问，全程手写，考完 AI 出 Band 报告。</div>
+        <div class="ms-sub">考官视频连线：P1/P3 考官面对面提问 → P2 左侧题目卡 + 右侧考官窗 → P3 追问。全程手写，考完 AI 出四维 Band 报告。</div>
         <button class="btn btn-lg" id="mockStartBtn">开始模考 →</button>
       </div>
       <!-- 9/29 之之：说明小字删除（与上方 ms-sub 重复「全程手写」） -->
@@ -823,19 +860,34 @@ body.mock-immerse #mockStage{border:0;box-shadow:none;background:transparent}
         整场剩余 <b id="mockTotalTimer">15:00</b>
         <span class="mock-total-timer-note">真题总时长约 12–15 分钟，用于自控节奏（时间到不强制收卷）</span>
       </div>
-      <div class="mock-phase" id="mockPhase">Part 1</div>
-      <div class="mock-qcard">
-        <div class="mock-q" id="mockQ"></div>
-        <div class="mock-timer" id="mockTimerWrap" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg> <span id="mockTimer">--</span></div>
-        <div class="mock-live" id="mockLive" aria-live="polite"></div>
-        <div class="mock-controls">
-          <button class="btn btn-primary" id="mockSubmit">提交 / 下一题</button>
+      <!-- 10/1 批3（她拍板「考官的脸出现在屏幕上」）：考官视频窗模拟。
+           默认（P1/P3）大窗居中在上；#mockStage.p2-mode 时两栏：左题目 + 右小窗。
+           考官形象 = SVG 插画（每场随机 a/b + 英文名牌），由 mock.js 注入。 -->
+      <div class="mock-main" id="mockMain">
+        <div class="mock-left">
+          <div class="mock-phase" id="mockPhase">Part 1</div>
+          <div class="mock-qcard">
+            <div class="mock-q" id="mockQ"></div>
+            <div class="mock-timer" id="mockTimerWrap" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg> <span id="mockTimer">--</span></div>
+            <div class="mock-live" id="mockLive" aria-live="polite"></div>
+            <div class="mock-controls">
+              <button class="btn btn-primary" id="mockSubmit">提交 / 下一题</button>
+            </div>
+            <div class="mock-manual">
+              <label for="mockManual">写下 / 粘贴你的英文回答：</label>
+              <textarea id="mockManual" rows="3" placeholder="在此输入你的英文回答…"></textarea>
+            </div>
+            <p class="mock-hint" id="mockHint"></p>
+          </div>
         </div>
-        <div class="mock-manual">
-          <label for="mockManual">写下 / 粘贴你的英文回答：</label>
-          <textarea id="mockManual" rows="3" placeholder="在此输入你的英文回答…"></textarea>
-        </div>
-        <p class="mock-hint" id="mockHint"></p>
+        <aside class="mock-examiner" id="mockExaminer" aria-label="考官视频窗">
+          <div class="me-video">
+            <img id="mockExaminerImg" src="" alt="" draggable="false" />
+            <div class="me-live"><span class="me-live-dot"></span>LIVE</div>
+            <div class="me-state" id="mockExaminerState"></div>
+          </div>
+          <div class="me-name"><b id="mockExaminerName"></b><span>IELTS Examiner</span></div>
+        </aside>
       </div>
     </section>
 

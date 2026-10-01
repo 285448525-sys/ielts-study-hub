@@ -4,6 +4,7 @@
    - 输入层：考生直接在页面文本框手写 / 粘贴英文回答（录音 / 语音转写已移除）
    - 大脑层：callRelay → DeepSeek（生成 P3 追问 + 读文字评分）
    - 发音分：只取设置里的固定分（发音评测已移除，不再做讯飞 / AI 估算）
+   - 考官窗（10/1 批3）：每场随机 SVG 插画考官 + 名牌；P1/P3 大窗居中，P2 切 #mockStage.p2-mode 两栏
    红线：不碰 callRelay / DATA.scores；发音分走设置；PAGES 只追加 mock；题库只读。 */
 (function(){
   let mockState = null;
@@ -22,6 +23,7 @@
         answers: mockState.answers,
         pronSource: mockState.pronSource,
         p3qs: mockState.p3qs || [],
+        examiner: mockState.examiner || null,   // 10/1 批3：考官随快照保存，续考刷新后仍是同一位考官
         totalRemaining: mockState.totalRemaining != null ? mockState.totalRemaining : TOTAL_LIMIT,
         phase: phase,
         index: index,
@@ -94,6 +96,7 @@
     if(!save) clearResumeSnapshot();   // 保存则不清除，保留快照供续考
     removeExitButton();
     setMockImmerse(false);          // 9/26：退出到开始卡 → 恢复常规布局
+    setP2Mode(false);               // 10/1 批3：清理两栏模式，下次开考干净入场
     mockState = null;
     $('#mockStage').hidden = true;
     $('#mockReport').hidden = true;
@@ -105,6 +108,14 @@
     const snap = loadResumeSnapshot();
     if(!snap){ renderMockStart(); return; }
     mockState = { p1Set: snap.p1Set, p2Topic: snap.p2Topic, answers: snap.answers, pronSource: snap.pronSource, p3qs: snap.p3qs || [], totalRemaining: (snap.totalRemaining != null ? snap.totalRemaining : TOTAL_LIMIT) };
+    // 考官：优先用快照里的（续考不换人）；老快照没有该字段则现场随机补一位
+    mockState.examiner = snap.examiner || sampleOne(EXAMINERS);
+    renderExaminer(mockState.examiner);
+    // 10/1 批3 修复：#mockView 默认 hidden（默认 tab=句型练习），自动续考只解开了 #mockStage，
+    // 外层容器仍藏着 → 续考界面不可见。这里同步显容器 + 把 tab 高亮切到「模考」，视觉状态一致。
+    const mv = $('#mockView');
+    if(mv) mv.hidden = false;
+    document.querySelectorAll('#tabs .pill-tab').forEach(b => b.classList.toggle('active', b && b.dataset && b.dataset.type === 'MOCK'));
     $('#mockStart').hidden = true; $('#mockReport').hidden = true; $('#mockStage').hidden = false;
     setMockImmerse(true);           // 9/26：续考也进沉浸
     injectExitButton();
@@ -119,6 +130,29 @@
   function sampleOne(a){ return a[Math.floor(Math.random()*a.length)]; }
   function fmtClock(sec){ const m=Math.floor(sec/60), s=sec%60; return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0'); }
   function setPhase(t){ const el=$('#mockPhase'); if(el) el.textContent=t; }
+
+  /* ---------- 考官视频窗（10/1 批3 · 她拍板「考官的脸出现在屏幕上」） ----------
+     形象 = SVG 插画（img/examiner-*.svg，无肖像权/版权问题；未来可换 AI 实拍图）。
+     每场随机一位 + 英文名牌；P1/P3 大窗居中，P2 时 #mockStage 加 p2-mode 切两栏（左题目 + 右小窗）。 */
+  const EXAMINERS = [
+    { id: 'a', name: 'Emily Carter', img: 'img/examiner-a.svg' },
+    { id: 'b', name: 'James Wilson', img: 'img/examiner-b.svg' }
+  ];
+  function renderExaminer(ex){
+    const img = $('#mockExaminerImg'), nm = $('#mockExaminerName');
+    if(!img) return;
+    if(ex && ex.img){ img.src = ex.img; img.alt = 'Examiner ' + (ex.name || ''); }
+    if(nm) nm.textContent = (ex && ex.name) ? ex.name : 'IELTS Examiner';
+    setExaminerState('');
+  }
+  function setExaminerState(t){
+    const el = $('#mockExaminerState');
+    if(el) el.textContent = t || '';
+  }
+  function setP2Mode(on){
+    const st = $('#mockStage');
+    if(st) st.classList.toggle('p2-mode', !!on);
+  }
   function setMockStep(part){
     const steps = document.querySelectorAll('#mockSteps .mock-step');
     steps.forEach(s => {
@@ -234,6 +268,8 @@
     return new Promise(resolve => {
       if(window.__mockTick){ clearInterval(window.__mockTick); window.__mockTick = null; }
       setPhase(opts.phaseLabel || '');
+      // 考官窗状态文案：P2 准备 = 考官在等你打草稿；其余 = 考官正在提问
+      setExaminerState(opts.isPrep ? '准备时间 · 考官在等你' : '考官提问中');
       const qEl = $('#mockQ');
       if(qEl){
         if(opts.allowTts){
@@ -264,24 +300,31 @@
       let resolved = false;
 
       // 计时（P2 准备 / 陈述）。恢复时从 opts.remaining 续计时，而非从头 timeLimit 开始。
+      // 10/1 批3 修复：runExam 把剩余秒数放在 opts.resume.remaining，原代码只读 opts.remaining
+      // → 断点续考时该题计时总是从头开始（秒数恢复从未生效过）。两处都兜住。
       if(opts.timeLimit && timerWrap && timerEl){
         timerWrap.hidden = false;
-        let left = (opts.remaining != null) ? opts.remaining : opts.timeLimit;
+        const resumeLeft = (opts.resume && opts.resume.remaining != null) ? opts.resume.remaining : opts.remaining;
+        let left = (resumeLeft != null) ? resumeLeft : opts.timeLimit;
         timerEl.textContent = fmtClock(left);
+        timerWrap.classList.toggle('low', left <= 10);   // 10/1 批3：剩 10s 内小徽章转警示红
         window.__mockTick = setInterval(() => {
           left--;
           if(left <= 0){
             clearInterval(window.__mockTick); window.__mockTick = null;
             timerEl.textContent = '00:00';
+            timerWrap.classList.add('low');
             if(hint) hint.textContent = opts.isPrep ? '准备时间到，可以开始陈述了。' : '时间到，请提交你刚才的回答。';
             if(opts.resume) saveResumeSnapshot(opts.resume.phase, opts.resume.index, 0);
           } else {
             timerEl.textContent = fmtClock(left);
+            timerWrap.classList.toggle('low', left <= 10);
             if(opts.resume) saveResumeSnapshot(opts.resume.phase, opts.resume.index, left);
           }
         }, 1000);
       } else if(timerWrap){
         timerWrap.hidden = true;
+        timerWrap.classList.remove('low');
       }
 
       // 提交（直接取文本框内容，无录音）
@@ -435,6 +478,7 @@
 
     try{
       // ---- P1 ----
+      setP2Mode(false);   // 10/1 批3：P1/P3 大窗居中（先关掉可能残留的 P2 两栏模式）
       if(doP1){
         const startIdx = (snap && rp === 'P1') ? snap.index : 0;
         let firstRemain = (snap && rp === 'P1' && snap.remaining != null) ? snap.remaining : undefined;
@@ -452,6 +496,7 @@
       // ---- P2 准备 ----
       if(doP2prep || doP2talk) setMockStep('2');
       if(doP2prep){
+        setP2Mode(true);    // 10/1 批3：P2 切两栏（左题目 + 右考官小窗，贴真实机考布局）
         const prepRemain = (snap && rp === 'P2-prep' && snap.remaining != null) ? snap.remaining : undefined;
         await askQuestion({ phaseLabel:'Part 2 · 准备（1 min）', qHtml:promptHtml, allowRecord:false, isPrep:true, timeLimit:60, submitLabel:'结束准备，开始陈述', resume:{ phase:'P2-prep', index:0, remaining:prepRemain } });
         saveResumeSnapshot('P2-talk', 0);
@@ -466,6 +511,7 @@
       // ---- P3 ----
       let p3qs = (snap && snap.p3qs && snap.p3qs.length) ? snap.p3qs : (mockState.p3qs || []);
       if(doP3){
+        setP2Mode(false);   // 10/1 批3：P3 回到大窗居中（含「从 P3 快照直接恢复」的场景）
         if(!p3qs.length){
           setPhase('Part 3');
           $('#mockQ').innerHTML = '正在生成 P3 追问…';
@@ -498,6 +544,7 @@
       clearResumeSnapshot();
       removeExitButton();
       setMockImmerse(false);        // 9/26：中断也要恢复常规布局
+      setP2Mode(false);             // 10/1 批3：中断同样清两栏模式
       $('#mockStage').hidden = true; $('#mockStart').hidden = false; renderMockStart();
     }
   }
@@ -634,6 +681,7 @@
     $('#mockStage').hidden = true;
     $('#mockReport').hidden = false;
     setMockImmerse(false);          // 9/26：出报告 → 恢复常规布局（报告页要能点 tab / 侧栏）
+    setP2Mode(false);               // 10/1 批3：出报告清两栏模式
     stopTotalTimer();
     const body = $('#mockReportBody');
     if(body) body.innerHTML = report
@@ -659,9 +707,10 @@
     const pronSource = (fixed != null) ? 'fixed' : 'none';
     // 全新开考前先清掉任何旧快照，避免与上一次未完成的模考串档
     clearResumeSnapshot();
-    mockState = { p1Set: buildP1Set(p1), p2Topic: pickP2Topic(p2), answers: [], pronSource, p3qs: [], totalRemaining: TOTAL_LIMIT };
+    mockState = { p1Set: buildP1Set(p1), p2Topic: pickP2Topic(p2), answers: [], pronSource, p3qs: [], totalRemaining: TOTAL_LIMIT, examiner: sampleOne(EXAMINERS) };
     // 真题固定开场问：每场模考第一个问题固定为姓名确认（ID 热身，不参与评分，但会出现在完整记录里）
     mockState.p1Set.unshift({ topic: 'Opening', q: 'Can you tell me your full name?', opening: true });
+    renderExaminer(mockState.examiner);   // 10/1 批3：每场随机考官上屏
     startTotalTimer();
 
     $('#mockStart').hidden = true;
