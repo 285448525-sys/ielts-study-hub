@@ -32,10 +32,13 @@ function populateSettingsForm(){
 ready(() => {
   populateSettingsForm();
   renderSyncState();
-  renderPwaCard();
-  bindPwaCard();
 
-  $('#saveSettings').addEventListener('click', saveSettings);
+  // 10/1 晚 · 自动保存（她拍板删「保存全部设置」条）：任一设置项 change → 600ms 防抖 → saveSettings
+  // 主题开关/服药开关有自己的即时 handler，不走这条防抖通道
+  const AUTO_SAVE_IDS = ['sName','sExam','sGoal','tOverall','tListening','tReading','tWriting','tSpeaking','sPron','sFlu','sChime'];
+  let _autoSaveTimer = null;
+  const autoSave = () => { clearTimeout(_autoSaveTimer); _autoSaveTimer = setTimeout(saveSettings, 600); };
+  AUTO_SAVE_IDS.forEach(id => { const el = document.getElementById(id); if(el) el.addEventListener('change', autoSave); });
   $('#sThemeToggle').addEventListener('change', () => {
     const dark = $('#sThemeToggle').checked;
     DATA.settings.theme = dark ? 'dark' : 'light';
@@ -97,8 +100,7 @@ ready(() => {
     await authLogout();
     renderAuthUI();
   });
-  $('#syncDiagBtn').addEventListener('click', () => { syncDiagnose(); });
-  $('#syncNowBtn').addEventListener('click', () => { cloudUpload(true, true); });
+  // 检查同步状态 / 立即同步到云端 两按钮已删（她 10/1 晚拍板：自动同步足够，syncDiagnose 函数保留备用）
   renderAuthUI();
 
   // 云端合并完成后回填表单：登录/其他设备同步后，让「目标分数/每日目标」等立即可见。
@@ -164,49 +166,8 @@ function saveSettings(){
 }
 
 /* ===== design/80 安装到桌面（四态渲染，只放设置页） =====
-   installed → 整块隐藏（她桌面已装，绝不给点了没反应的死按钮）；
-   promptable → 给按钮，点一下弹系统安装框（beforeinstallprompt 事件只能用一次，用完即废）；
-   ios-manual → 三步文字教程（iOS 永远没有该事件），文案不写死按钮名，只描述「方框带向上箭头」；
-   unsupported → 一行灰字提示，**不给按钮**（给假按钮点了没反应最伤）。 */
-function renderPwaCard(){
-  const card = document.getElementById('pwaCard');
-  if(!card || typeof hubPwaState !== 'function'){ if(card) card.hidden = true; return; }
-  const hint = document.getElementById('pwaHint');
-  const btn = document.getElementById('pwaInstallBtn');
-  const steps = document.getElementById('pwaSteps');
-  const actions = document.getElementById('pwaActions');
-  const st = hubPwaState();
-  if(st === 'installed'){ card.hidden = true; return; }
-  card.hidden = false;
-  if(actions) actions.hidden = (st !== 'promptable');
-  if(btn) btn.hidden = (st !== 'promptable');
-  if(steps) steps.hidden = (st !== 'ios-manual');
-  if(st === 'promptable'){
-    if(hint) hint.textContent = '把本站装到桌面，像 App 一样打开（离线也能进）。';
-    if(steps) steps.innerHTML = '';
-  } else if(st === 'ios-manual'){
-    if(hint) hint.textContent = 'iPhone / iPad 上请用 Safari 的「分享」按钮添加到主屏幕：';
-    if(steps) steps.innerHTML = ''
-      + '<li>点<b>分享</b>按钮（方框带向上箭头）</li>'
-      + '<li>在菜单里选<b>添加到主屏幕</b></li>'
-      + '<li>确认名称后点<b>添加</b></li>'
-      + '<li class="muted">不同 iOS 版本位置可能略有差异；装完从主屏幕打开后本节会自动隐藏</li>';
-  } else {
-    if(hint) hint.textContent = '当前浏览器未给出安装入口；可通过浏览器菜单里的「安装应用 / 添加到桌面」来安装。';
-    if(steps) steps.innerHTML = '';
-  }
-}
-function bindPwaCard(){
-  const btn = document.getElementById('pwaInstallBtn');
-  if(btn) btn.addEventListener('click', async () => {
-    const r = (typeof hubPwaInstall === 'function') ? await hubPwaInstall() : 'none';
-    if(r === 'accepted') toast('正在添加到桌面…');
-    else if(r === 'error' || r === 'none') toast('浏览器未响应安装，可用浏览器菜单里的「安装应用」');
-    renderPwaCard();
-  });
-  document.addEventListener('hub:pwa-available', renderPwaCard);
-  document.addEventListener('hub:pwa-installed', () => { toast('已添加到桌面'); renderPwaCard(); });
-}
+   10/1 晚整卡已删（她拍板）：renderPwaCard/bindPwaCard 连同 #pwaCard 一起退役，
+   安装入口保留在首页底部轻量条「📦 安装到桌面」。 */
 
 /* AI Key 设置模块已下线（她 10/1 拍板：商业化后 AI 一律走站内通道，用户不接触 Key）。
    saveRelay/testAIConnection/setAiStatus/setAiLoading 已删；存量 DATA.settings.relayToken

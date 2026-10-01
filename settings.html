@@ -9,7 +9,7 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>设置 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261001j" />
+<link rel="stylesheet" href="css/common.css?v=20261001l" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=6" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=6">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=6">
@@ -21,7 +21,7 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20260930g"></script>
   <script defer src="js/common.js?v=20261001n"></script>
-  <script src="js/settings.js?v=20261001g" defer></script>
+  <script src="js/settings.js?v=20261001h" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -79,7 +79,7 @@
         <input type="checkbox" id="sAdhd" />
         <span>启用「服药」模块（ADHD 专注达药效窗口记录）</span>
       </label>
-      <p class="muted" style="flex:1 1 100%;font-size:12.5px;margin:-6px 0 0">默认关闭。开启后「服药」入口出现在侧边栏、更多与搜索中；关闭后入口隐藏，已记录的服药数据全部保留，随时可重新开启。</p>
+      <!-- 服药说明行已删（她 10/1 晚拍板：冗余） -->
     </div>
   </section>
 
@@ -96,8 +96,8 @@
 
   <section class="card">
     <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg>口语模考</h2>
-    <p class="muted">口语回答按 IELTS 官方 band 标准评「语法范围与准确性」和「词汇资源」两项。<b>流利度与发音必须听录音才能评，纯文本评不了，因此 AI 不评这两项。</b></p>
-    <p class="muted">发音、流利度由你自己在下面各填一个固定分（0–9），会和语法、词汇一起按雅思口径算进总分；不填的项不计入。<b>注意：这是你自己估的数、不会随练习变化，不是机器测出来的成绩。</b></p>
+    <!-- 口语说明两段并一段（她 10/1 晚拍板：瘦身） -->
+    <p class="muted">口语按官方 band 评「语法」和「词汇」；<b>流利度与发音 AI 评不了</b>，由你在下面自填固定分（0–9，不填不计入总分）。注意：这是你自己的估分，不会随练习变化，不是机器测出来的。</p>
     <div class="form-row">
       <div><label>固定流利度分（可选，0–9）</label><input id="sFlu" type="number" min="0" max="9" step="0.5" placeholder="如 6（不填则流利度不计入总分）" /></div>
       <div><label>固定发音分（可选，0–9）</label><input id="sPron" type="number" min="0" max="9" step="0.5" placeholder="如 6（不填则发音不计入总分）" /></div>
@@ -109,7 +109,7 @@
 
   <section class="card">
     <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M17.5 19a4.5 4.5 0 0 0 .4-9A6.5 6.5 0 0 0 5.3 12.6 4 4 0 0 0 6.5 19h11z"/></svg>云端同步</h2>
-    <p class="muted">手机号 / 用户名 + 密码登录，多设备数据互通。老用户（之前只填过手机号）在「设置密码」里补个密码即可，数据自动接上。</p>
+    <p class="muted">手机号 / 用户名 + 密码登录，多设备数据互通。</p>
     <!-- 未登录：登录 / 设密码 -->
     <div id="syncLoginForm">
       <div class="form-row">
@@ -122,9 +122,8 @@
         <button class="btn" id="syncRegisterBtn" type="button">设置密码（首次）</button>
       </div>
     </div>
-    <!-- 已登录：账号信息 + 改密码 + 退出 -->
+    <!-- 已登录：改密码 + 退出（「已登录」一行已删：与下方 syncState 状态行重复；检查/立即同步按钮已删——她拍板自动同步足够 10/1 晚） -->
     <div id="syncUserBox" style="display:none">
-      <p style="margin:0 0 8px">已登录：<b id="syncUserAcct"></b></p>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn" id="syncChangeBtn" type="button">修改密码</button>
         <button class="btn" id="syncLogoutBtn" type="button">退出登录</button>
@@ -140,20 +139,10 @@
     <p id="syncStatus" class="muted" style="margin:6px 0 0"></p>
     <p id="syncState" class="muted" style="margin:2px 0 0"></p>
     <p id="lastSyncTs" class="muted" style="margin:2px 0 0"></p>
-    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn" id="syncDiagBtn">检查同步状态</button>
-      <button class="btn" id="syncNowBtn">立即同步到云端</button>
-    </div>
+    <!-- 检查同步状态 / 立即同步到云端 两按钮已删（她 10/1 晚拍板：自动同步足够） -->
   </section>
 
-  <!-- 统一保存条：基本信息 / 目标分数 / 固定发音分 一次保存 -->
-  <section class="card" style="position:sticky;bottom:14px;padding:14px 18px;display:flex;align-items:center;gap:14px">
-    <div style="flex:1;min-width:0">
-      <div style="font-size:14.5px;font-weight:800">保存全部设置</div>
-      <div class="muted" style="font-size:12.5px;margin-top:2px">基本信息 · 目标分数 · 固定发音分 一次性保存</div>
-    </div>
-    <button class="ui-ripple-btn flex-none" id="saveSettings" style="--main-size:1rem;min-width:130px;padding:.5em 1.3em">保存<span></span><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="0,0 5,5 0,10"/><polygon points="6,0 11,5 6,10"/><polygon points="12,0 17,5 12,10"/></svg></button>
-  </section>
+  <!-- 「保存全部设置」条已删（她 10/1 晚拍板）：改为编辑即自动保存（settings.js change 事件 → 防抖 saveSettings） -->
 
   <section class="card">
     <h2>数据管理</h2>
@@ -167,15 +156,7 @@
     <div id="importErr" class="ui-err-box" style="margin-top:10px"></div>
   </section>
 
-  <!-- design/80：安装到桌面（只放设置页；已装/不支持时由 settings.js 整块隐藏，不留死按钮） -->
-  <section class="card" id="pwaCard" hidden>
-    <h2>安装到桌面</h2>
-    <p class="muted" id="pwaHint" style="margin:0 0 10px"></p>
-    <div id="pwaActions" style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn btn-sm" id="pwaInstallBtn" hidden>安装到桌面</button>
-    </div>
-    <ol class="pwa-steps" id="pwaSteps" hidden></ol>
-  </section>
+  <!-- design/80 PWA 安装卡已删（她 10/1 晚拍板）：安装入口保留在首页底部轻量条「📦 安装到桌面」 -->
 
   <!-- 站长联系方式（她 10/1：设置页放微信，用户有问题可私信反馈） -->
   <section class="card">

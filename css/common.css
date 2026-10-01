@@ -911,7 +911,8 @@ html[data-theme="dark"] .finish-zero-card{background:rgba(70,168,131,.16)}
 .theme-switch__checkbox:checked + .theme-switch__container .theme-switch__stars-container{top:50%;-webkit-transform:translateY(-50%);-ms-transform:translateY(-50%);transform:translateY(-50%)}
 
 /* 主题开关小尺寸变体：设置页紧凑排列用 */
-.theme-switch.theme-switch--sm{--toggle-size:14px}
+/* 10/1 晚：设置页开关整体缩小（她拍板太大）——--sm 仅设置页使用，可放心缩 */
+.theme-switch.theme-switch--sm{--toggle-size:12px;--container-width:4.1em;--container-height:1.9em;--circle-container-diameter:2.6em;--sun-moon-diameter:1.6em}
 
 /* 设置页紧凑选项行：主题开关 + 复选框并排，标签紧贴控件 */
 .settings-option{display:flex;align-items:center;gap:10px;flex:0 0 auto;min-width:0;white-space:nowrap;font-size:14px;color:var(--ink)}
@@ -3528,13 +3529,15 @@ html[data-theme="dark"] .onb2-overlay{background:rgba(0,0,0,.62)}
 
 /* ===== 首页 · 考前冲刺卡（9/30 新增，js/sprint.js 渲染）=====
    只在距考试 ≤14 天时出现，考完自动消失。
-   10/1 UI v2：容器升级琥珀渐变底（示意稿口径），内部子卡保持白底不受影响。 */
-.sprint{background:linear-gradient(135deg,#fffbeb,var(--warn-soft));border:1px solid #fde68a;border-left:4px solid var(--warn);border-radius:var(--radius);padding:16px 20px;margin-bottom:12px;box-shadow:var(--shadow)}
-[data-theme="dark"] .sprint{background:linear-gradient(135deg,rgba(255,149,0,.10),rgba(255,149,0,.05));border-color:rgba(255,149,0,.28)}
+   10/1 晚改版：琥珀渐变 → teal 渐变（她拍板：整体绿色 UI 里突然一块黄太突兀）；
+   二改：去掉左边条（她拍板：其他卡都没有左条，单独一根很怪）——与普通卡片统一边框语言。
+   柱色 ok/near/bad 保留三色语义（那是数据警示，不是装饰）。 */
+.sprint{background:linear-gradient(135deg,var(--primary-50),var(--n-0));border:1px solid var(--primary-200);border-radius:var(--radius);padding:16px 20px;margin-bottom:12px;box-shadow:var(--shadow)}
+[data-theme="dark"] .sprint{background:linear-gradient(135deg,rgba(58,154,147,.14),rgba(58,154,147,.05));border-color:rgba(58,154,147,.30)}
 .sprint .sp-card{background:var(--surface)}
 .sprint[hidden]{display:none}
 .sp-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.sp-days{font-size:26px;font-weight:800;color:var(--warn-ink);line-height:1;font-variant-numeric:tabular-nums}
+.sp-days{font-size:26px;font-weight:800;color:var(--primary-700);line-height:1;font-variant-numeric:tabular-nums}
 .sp-days em{font-size:13px;font-style:normal;font-weight:600;margin-left:2px}
 .sp-head-t{font-size:14px;font-weight:700;color:var(--ink)}
 .sp-head-a{margin-left:auto;font-size:12.5px;color:var(--muted);text-decoration:none}
