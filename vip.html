@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'" />
+<!-- frame-ancestors 只由 HTTP 响应头下发（CF Pages 根目录 _headers）：按 CSP 规范它写在 meta 里会被浏览器忽略 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<title>会员 · 雅思备考 Hub</title>
+<link rel="stylesheet" href="css/common.css?v=20261001g" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=6" />
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=6">
+<link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=6">
+<link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png?v=6">
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#3a9a93" />
+
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<script defer src="js/data.js?v=20260930f"></script>
+  <script defer src="js/common.js?v=20261001g"></script>
+  <script src="js/vip.js?v=20261001a" defer></script>
+<style id="bootLoaderStyle">
+#bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
+#bootLoader.hide{opacity:0;pointer-events:none}
+#bootLoader .ui-loader{margin-bottom:8px}
+@media (prefers-reduced-motion: reduce){#bootLoader .ui-loader-dot,#bootLoader .ui-loader-shadow{animation:none}#bootLoader .ui-loader-dot{top:20px;height:20px;border-radius:50%;transform:none}#bootLoader .ui-loader-shadow{opacity:.5;transform:scaleX(1)}}
+</style>
+</head>
+<body>
+<div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div></div>
+<nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
+
+<main class="container">
+
+  <!-- 当前状态卡（js/vip.js 实时查 /api/auth vip_status 渲染） -->
+  <section class="card" id="vipHero"></section>
+
+  <!-- 会员方案：价格卡由 js/vip.js 按 VIP_PLANS 常量渲染（改价只动那里一处） -->
+  <section class="card">
+    <div class="card-head">
+      <h2 style="margin:0">会员方案</h2>
+      <span class="badge">AI 无限用</span>
+    </div>
+    <div id="vipPlans" style="display:flex;flex-wrap:wrap;gap:14px;margin-top:14px"></div>
+    <p class="muted" style="font-size:12px;margin:12px 0 0">所有方案权益完全相同，只是时长与日均价不同；会员跟账号走，手机/电脑登录同一账号都生效。</p>
+  </section>
+
+  <!-- 权益对比 -->
+  <section class="card">
+    <h2 style="margin:0 0 14px">免费版 vs 会员</h2>
+    <div style="overflow-x:auto">
+      <table class="vip-cmp" style="width:100%;border-collapse:collapse;font-size:14px">
+        <thead>
+          <tr style="text-align:left;color:var(--muted)">
+            <th style="padding:10px 8px;border-bottom:1px solid var(--line);font-weight:600">功能</th>
+            <th style="padding:10px 8px;border-bottom:1px solid var(--line);font-weight:600">免费版</th>
+            <th style="padding:10px 8px;border-bottom:1px solid var(--line);font-weight:600;color:var(--primary)">会员</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="padding:10px 8px;border-bottom:1px solid var(--line)">全部学习功能<br /><span class="muted" style="font-size:12px">词库 · 口语题库 · 计划 · 回顾 · 计时 · 错句本…</span></td>
+            <td style="padding:10px 8px;border-bottom:1px solid var(--line)">✓</td>
+            <td style="padding:10px 8px;border-bottom:1px solid var(--line)">✓</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 8px;border-bottom:1px solid var(--line)">AI 功能<br /><span class="muted" style="font-size:12px">AI 安排今天 / AI 智能分配 / 写作评分 / 口语助手 / 长难句 / 查词…</span></td>
+            <td style="padding:10px 8px;border-bottom:1px solid var(--line)">每日 <b>10</b> 次</td>
+            <td style="padding:10px 8px;border-bottom:1px solid var(--line)"><b style="color:var(--primary)">无限次</b></td>
+          </tr>
+          <tr>
+            <td style="padding:10px 8px;border-bottom:1px solid var(--line)">会员专属功能<br /><span class="muted" style="font-size:12px">学习报告导出 / 专属主题 / 深度专注 / 效率报告</span></td>
+            <td style="padding:10px 8px;border-bottom:1px solid var(--line)">—</td>
+            <td style="padding:10px 8px;border-bottom:1px solid var(--line)"><span class="badge">即将上线</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 开通流程（10/1 先手动收款：免签支付有二清风险，跑通后再接自动发货） -->
+  <section class="card" id="vipHowto">
+    <h2 style="margin:0 0 14px">如何开通</h2>
+    <div style="display:flex;flex-direction:column;gap:12px;font-size:14px">
+      <div><b>1.</b> 上面选好方案，记下价格</div>
+      <div><b>2.</b> 微信 / 支付宝扫码转账对应金额</div>
+      <div><b>3.</b> 转账时<b>备注你的站内账号</b>（手机号或用户名）</div>
+      <div><b>4.</b> 站长收到后在后台开通，<b>约 10 分钟内</b>生效；回到本页刷新即可看到会员状态</div>
+    </div>
+    <!-- ⚠️ 站长要做的：把收款码图片放进项目（如 img/pay_wechat.png / img/pay_alipay.png），
+         把下面两个占位框里的说明文字替换成 <img src="…" style="width:100%;border-radius:10px" />。
+         没放图之前页面显示占位提示，不影响其他功能。 -->
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:16px">
+      <div style="flex:1;min-width:150px;max-width:230px;border:2px dashed var(--line);border-radius:12px;padding:18px 12px;text-align:center;color:var(--muted);font-size:13px">【微信收款码<br />站长贴图占位】</div>
+      <div style="flex:1;min-width:150px;max-width:230px;border:2px dashed var(--line);border-radius:12px;padding:18px 12px;text-align:center;color:var(--muted);font-size:13px">【支付宝收款码<br />站长贴图占位】</div>
+    </div>
+  </section>
+
+  <!-- 常见问题 -->
+  <section class="card">
+    <h2 style="margin:0 0 8px">常见问题</h2>
+    <details style="padding:10px 0;border-bottom:1px solid var(--line)">
+      <summary style="cursor:pointer;font-weight:600">AI 额度 10 次是怎么算的？</summary>
+      <p class="muted" style="font-size:13px;margin:8px 0 0">所有 AI 功能共享：AI 安排今天、AI 智能分配、写作评分、口语助手、长难句解析、AI 查词等，每次调用算 1 次，每天零点重置。</p>
+    </details>
+    <details style="padding:10px 0;border-bottom:1px solid var(--line)">
+      <summary style="cursor:pointer;font-weight:600">可以退款吗？</summary>
+      <p class="muted" style="font-size:13px;margin:8px 0 0">开通 7 天内、AI 累计使用不到 5 次，联系站长可全额退款。</p>
+    </details>
+    <details style="padding:10px 0;border-bottom:1px solid var(--line)">
+      <summary style="cursor:pointer;font-weight:600">会员到期后会怎样？</summary>
+      <p class="muted" style="font-size:13px;margin:8px 0 0">学习数据全部保留，只是 AI 额度回到免费版每日 10 次；随时可以续费，续费时长在原到期日基础上顺延。</p>
+    </details>
+    <details style="padding:10px 0">
+      <summary style="cursor:pointer;font-weight:600">换设备 / 重装后会员还在吗？</summary>
+      <p class="muted" style="font-size:13px;margin:8px 0 0">在。会员跟账号走，任何设备登录你的账号都能看到会员状态。</p>
+    </details>
+  </section>
+
+</main>
+
+</body>
+</html>

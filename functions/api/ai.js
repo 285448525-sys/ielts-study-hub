@@ -9,8 +9,9 @@
 //   AI_MODEL             选填，默认 deepseek-chat
 //   AI_DAILY_LIMIT       选填，全站每日总调用上限，默认 3000
 //   AI_IP_LIMIT          选填，单 IP 每日上限，默认 200
-//   AI_USER_DAILY_LIMIT  选填，单账号每日 AI 额度（免费/会员分层用），默认 0 = 不限；
-//                        她拍板具体数值后配这个变量即可，代码不用动。会员自动跳过此闸。
+//   AI_USER_DAILY_LIMIT  选填，单账号每日 AI 额度（免费/会员分层用）。
+//                        10/1 付费方案上线：默认改为 10（与 vip.js FREE_AI_DAILY / vip.html 对比表口径一致）；
+//                        配这个变量可覆盖默认值。会员自动跳过此闸。
 //   AI_RATE_PER_MIN      选填，单账号每分钟调用上限（防脚本刷量），默认 10；会员同样受限
 // 访问规则（她 10/1 拍板「必须登录才能用 AI」）：登录闸先于一切——未登录（无/无效 X-Session）
 // 一律 401 auth_required，即使 AI_API_KEY 未配也不给未登录用户探出任何信息。
@@ -165,9 +166,9 @@ export async function onRequest(context) {
     isVip = !!(v && v.expire && v.expire > Date.now());
   } catch (e) {}
 
-  /* 按账号每日额度（免费/会员分层）：AI_USER_DAILY_LIMIT 环境变量，0 = 不限（默认）。
-     具体免费额度数值等她拍板后配环境变量即可，代码无需再动。会员跳过此闸。 */
-  const acctLimit = parseInt((env && env.AI_USER_DAILY_LIMIT) || '0', 10) || 0;
+  /* 按账号每日额度（免费/会员分层）：AI_USER_DAILY_LIMIT 环境变量，默认 10（10/1 付费方案上线口径）。
+     配环境变量可覆盖。会员跳过此闸。 */
+  const acctLimit = parseInt((env && env.AI_USER_DAILY_LIMIT) != null ? env.AI_USER_DAILY_LIMIT : '10', 10) || 0;
   if (acctLimit > 0 && !isVip) {
     const usedAcct = await sumBuckets(env.SYNC_KV, 'aiqa:' + acct, day);
     if (usedAcct >= acctLimit) {

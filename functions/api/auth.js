@@ -183,6 +183,19 @@ export async function onRequest(context) {
     return json({ ok: true });
   }
 
+  /* ---------- 查询会员状态（需登录态；会员中心页实时校验用） ----------
+     vip:<acct> 只存服务端（面板 vip_grant 发放），前端只读；过期自动判 null。 */
+  if (action === 'vip_status') {
+    const sess = await sessionOf(kv, request, body);
+    if (!sess) return json({ ok: false, error: 'unauthorized', msg: '登录已过期，请重新登录' }, 401);
+    let vip = null;
+    try {
+      const v = JSON.parse((await kv.get('vip:' + sess.acct)) || 'null');
+      if (v && v.expire && v.expire > Date.now()) vip = { type: v.type || 'base', expire: v.expire };
+    } catch (e) {}
+    return json({ ok: true, acct: sess.acct, vip });
+  }
+
   /* ---------- 登出 ---------- */
   if (action === 'logout') {
     const sess = await sessionOf(kv, request, body);

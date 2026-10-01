@@ -13,7 +13,9 @@ const ICON = {
   writing:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L18.5 9.5l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>',
   review:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4v16h15"/><path d="M9 14v4M13 10v8M17 6v12"/></svg>',
   settings:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>',
-  wrongbook:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"/><path d="M9 7l1.5 3 3 .5-2 2 .5 3-3-1.5-3 1.5.5-3-2-2 3-.5z"/></svg>'
+  wrongbook:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"/><path d="M9 7l1.5 3 3 .5-2 2 .5 3-3-1.5-3 1.5.5-3-2-2 3-.5z"/></svg>',
+  /* vip：钻石图标 stroke 写死金色（转化入口要跟学习模块区分开；不动 CSS 免全站 bump） */
+  vip:'<svg viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20M9.5 9L12 3l2.5 6M12 21L9.5 9M12 21l2.5-12"/></svg>'
 };
 
 /* ⭐ 9/30：学习主页从 index.html 改名为 home.html（根 / 交给落地页 landing）。
@@ -33,6 +35,7 @@ const PAGES = [
   { id:'writing',   file:'writing.html',   icon:ICON.writing,   name:'写作',       desc:'模板 + AI 评分' },
   { id:'wrongbook', file:'wrongbook.html', icon:ICON.wrongbook, name:'错句本',     desc:'写作/语料默写错句汇总' },
   { id:'review',    file:'review.html',    icon:ICON.review,    name:'回顾',       desc:'模考成绩 + 学习轨迹' },
+  { id:'vip',       file:'vip.html',       icon:ICON.vip,       name:'会员',       desc:'AI 无限用 + 专属权益' },  // 10/1 付费方案：非学习功能，不进 PRIMARY_NAV
   { id:'settings',  file:'settings.html',  icon:ICON.settings,  name:'设置',       desc:'同步 / AI / 数据' },
   { id:'meds',      file:'meds.html',      icon:ICON.meds,      name:'服药',   desc:'专注达药效窗口' },  // ← 移到最后
 ];
@@ -54,7 +57,8 @@ function favPageIds(){
 
 /* v5：简化后全部平铺，不再分折叠组（首页→回顾 一级；设置/服药 在分隔线下方） */
 const PRIMARY_NAV = ['index','timer','plans','practice','corpus','speaking','writing'];
-const MORE_NAV    = ['review','meds','settings'];
+/* 10/1 付费方案：vip 放分隔线下方首位（销售入口显眼但不挤占学习导航；她看过效果可再调位置） */
+const MORE_NAV    = ['vip','review','meds','settings'];
 const TAB_NAV     = ['index','timer','practice','speaking'];   // 旧 tabbar 主项（组件已删，仅用于计算「更多」弹层要收纳哪些页面）
 // 底部 Tab 标签覆盖：practice 在站内含「单词」，但原型/验收确认为「背词」，单独对齐（不改 PAGES 以免影响桌面侧栏）
 const TAB_LABEL   = { practice:'背词' };
@@ -930,6 +934,12 @@ async function callRelay(service, messages, temperature, opts){
       const ea = new Error('请先登录，登录后即可使用 AI 功能');
       ea.code = 'AUTH_REQUIRED';
       throw ea;
+    }
+    if(siteErr && siteErr.code === 'user_limit'){       // 10/1 免费额度用完：明确引导升级会员（不自动跳页，她拍板要不要自动弹/跳）
+      toast('今日免费 AI 额度已用完，升级会员无限用 → 侧栏「会员」');
+      const eu = new Error('今日免费 AI 额度已用完，升级会员无限用');
+      eu.code = 'USER_LIMIT';
+      throw eu;
     }
     notifyNoKey();                                     // AI 不可用：一句 toast（引导卡已随「自备 Key」下线）
     const e0 = new Error(siteErr

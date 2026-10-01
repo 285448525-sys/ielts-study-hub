@@ -9,7 +9,7 @@
      SW 不参与离线态的判定与渲染，缓存策略本文件零改动。
      本文件 activate 时发的 `SW_UPDATED` 消费端也在 common.js（maybeShowSwUpdatePrompt，
      design/78）：页面收到后只弹提示条，**是否刷新由用户点击决定，SW 侧绝不自动 reload**。 */
-const CACHE = 'ielts-hub-v97';   // 10/1 计划页拆两个子 Tab（今日/规划，她拍板拆分、Tab 名我定可改）。上一版：全站大标题删除 v96
+const CACHE = 'ielts-hub-v98';   // 10/1 付费方案第一批：会员中心页 vip.html + 侧栏会员入口 + 免费 AI 额度默认 10 次/天（授权我先定方案，她看完加意见）。上一版：计划页拆 Tab v97
 
 /* 核心壳预缓存清单（Node 脚本枚举目录生成，2026-09-20；与 14 页实际引用核对无遗漏）。
    不含 js/vendor/xlsx.full.min.js（861KB 体积大 → 走运行时 SWR 缓存）。 */
@@ -30,6 +30,7 @@ const PRECORE = [
   '/timer.html',
   '/writing.html',
   '/wrongbook.html',
+  '/vip.html',        // 10/1 付费方案：会员中心页（价格/权益/开通流程）
   '/css/common.css',
   '/js/common.js',
   '/js/corpus.js',
@@ -55,6 +56,7 @@ const PRECORE = [
   '/js/speaking-practice.js',
   '/js/speaking.js',
   '/js/timer.js',
+  '/js/vip.js',
   '/js/wordbank.js',
   '/js/words.js',
   '/js/writing.js',
