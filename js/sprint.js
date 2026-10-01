@@ -52,10 +52,10 @@
   }
 
   function minsText(m) {
-    if (!m) return '0 分钟';
-    if (m < 60) return m + ' 分钟';
+    if (!m) return '0M';
+    if (m < 60) return m + 'M';
     const h = Math.floor(m / 60), r = m % 60;
-    return h + ' 小时' + (r ? ' ' + r + ' 分' : '');
+    return r ? h + 'H' + r + 'M' : h + 'H';   /* 10/1 晚（她拍板）：紧凑时长格式，手机端不再折行 */
   }
 
   function phaseOf(d) {

@@ -2300,6 +2300,9 @@ body.exam-fullscreen{padding-left:0 !important;padding-right:0 !important}
 body.exam-fullscreen .top-nav{display:none !important}
 body.exam-fullscreen .side-collapse{display:none !important}
 body.exam-fullscreen main.container{padding:0 !important;max-width:none !important}
+body.exam-fullscreen{overflow:hidden !important;height:100dvh}
+body.exam-fullscreen main.container{height:100dvh;overflow:hidden;display:flex;flex-direction:column}
+body.exam-fullscreen main.container > *{min-height:0;overflow:auto}
 body.exam-fullscreen .page-title{display:none}
 body.exam-fullscreen #writeTabs{display:none}
 /* 9/10 之之：全屏答题界面要固定住不滑动。.page-head-row 两子元素 hide 后空壳仍占 margin（同背词页 63f2007 坑）
@@ -3079,6 +3082,8 @@ body.exam-fullscreen{overflow:hidden !important}
 
 /* ===== 全站玻璃底栏 dock（移动端主导航；桌面隐藏，用侧栏） + 新增浮动按钮 ===== */
 #hubDock{ position:fixed; left:50%; bottom:18px; transform:translateX(-50%); z-index:45; display:none; }
+/* 10/1 晚（她拍板）：全站禁止左右滑动 */
+html,body{overflow-x:clip}
 body.has-dock main.container{ padding-bottom:0; }
 @media (max-width:860px){
   #hubDock{ display:flex; }

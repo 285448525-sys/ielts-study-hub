@@ -29,7 +29,7 @@
 })();
 </script>
 <title>回顾 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261001q" />
+<link rel="stylesheet" href="css/common.css?v=20261001r" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=6" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=6">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=6">
@@ -39,6 +39,29 @@
 
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
+<style>
+/* ===== 10/1 晚 · 回顾页手机端瘦身（她拍板：添加记录卡 ≤1/3 屏、列表收紧、禁左右滑） ===== */
+@media(max-width:560px){
+  /* 添加分项记录：两列网格 + 小标签，整卡高度压到 ~1/3 屏 */
+  .card:has(.mk-entry-row),.card:has(.mk-list-head){padding:14px}
+  .mk-entry-row{display:grid !important;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:6px}
+  .mk-entry-row > div{min-width:0 !important;flex:none !important}
+  .mk-entry-row label{font-size:11px;margin:0 0 2px;display:block}
+  .mk-entry-row select,.mk-entry-row input{width:100%;min-width:0;padding:7px 9px;font-size:13px}
+  .mk-entry-row #mkAdd{grid-column:1 / -1;min-height:38px;width:100%;margin-top:2px}
+  .mk-list-head{display:grid !important;grid-template-columns:1fr 1fr;gap:6px 10px;margin-bottom:6px}
+  .mk-list-head .inline-h2{grid-column:1 / -1;font-size:16px}
+  .mk-list-head .mk-filter-wrap{display:flex;align-items:center;gap:6px;margin-left:0 !important;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:2px 4px 2px 10px}
+  .mk-list-head .mk-filter-wrap > label{font-size:11px;color:var(--muted);font-weight:600}
+  .mk-list-head select{width:100%;min-width:0;border:none;padding:8px 2px;font-size:13px;background:transparent}
+  /* 记录行收紧 */
+  .score-row.mk-row{padding:9px 10px;margin:0 0 8px}
+  .score-row.mk-row .mk-note{font-size:12px}
+  /* 表现统计头（范围筛选）同行化 */
+  .card .form-row .mk-filter-wrap{flex:1;min-width:0;margin-left:0}
+  .card .form-row .mk-filter-wrap select{width:100%;min-width:0;padding:8px 10px;font-size:13.5px}
+}
+</style>
 <script defer src="js/data.js?v=20261001a"></script>
 <script defer src="js/common.js?v=20261001o"></script>
 <script defer src="js/scores.js?v=20261001d"></script>
@@ -53,7 +76,7 @@
      等于向浏览器 HTTP 缓存要「任意年代的旧副本」，改动永远推不上去（9/17 陈旧 UI 事故根因）。 -->
 <script defer src="js/review.js?v=20261001b"></script>
 <!-- 考前冲刺卡：距考试 ≤14 天才渲染，依赖 common.js 的 ready/examCountdown（10/1 从首页迁入） -->
-<script defer src="js/sprint.js?v=20261001f"></script>
+<script defer src="js/sprint.js?v=20261001g"></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -85,7 +108,7 @@
         <section class="card">
           <h2>添加分项记录</h2>
           <div>
-            <div class="form-row">
+            <div class="form-row mk-entry-row">
               <div><label>粒度</label>
                 <select id="mkGran">
                   <option value="part">单项</option>
@@ -128,7 +151,7 @@
         </section>
 
         <section class="card">
-          <div class="form-row" style="align-items:center">
+          <div class="form-row mk-list-head" style="align-items:center">
             <h2 class="inline-h2">分项记录列表</h2>
             <!-- 9/29 之之：分项记录加筛选——科目四选一 + 听/读/口/写通用的整卷/单篇粒度 -->
             <div class="mk-filter-wrap" style="margin-left:auto"><label>科目</label>

@@ -31,7 +31,7 @@
 })();
 </script>
 <title>口语 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261001q" />
+<link rel="stylesheet" href="css/common.css?v=20261001r" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=6" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=6">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=6">
@@ -46,8 +46,8 @@
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
   <script defer src="js/sentence-drill.js?v=20261001i"></script>
-  <script defer src="js/speaking.js?v=20261001m"></script>
-  <script defer src="js/materials.js?v=20261001g"></script>
+  <script defer src="js/speaking.js?v=20261001n"></script>
+  <script defer src="js/materials.js?v=20261001h"></script>
   <script defer src="js/mock-report.js?v=20260830u"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
   <script defer src="js/mock.js?v=20261001k"></script>
@@ -776,6 +776,11 @@ body.mock-immerse{overflow:hidden;height:100dvh}
 body.mock-immerse .container{height:100dvh;display:flex;flex-direction:column;overflow:hidden;padding-bottom:12px}
 body.mock-immerse #mockStage{flex:1;min-height:0;overflow:auto}
 body.mock-immerse #mockStage{border:0;box-shadow:none;background:transparent}
+/* 10/1 晚（她拍板）：句型闯关全屏同样整页锁定 */
+body.pd-fullscreen{overflow:hidden;height:100dvh}
+body.pd-fullscreen #hubDock{display:none!important}
+body.pd-fullscreen .container{height:100dvh;display:flex;flex-direction:column;overflow:hidden;padding-bottom:10px}
+body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
 
 /* === 10/1 批3 · 考官视频窗（她拍板「考官的脸出现在屏幕上」） ===
    P1/P3：大窗居中在上（像视频通话）；P2：#mockStage.p2-mode 两栏——左题目 + 右小窗。
