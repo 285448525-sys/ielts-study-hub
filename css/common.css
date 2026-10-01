@@ -2049,14 +2049,6 @@ main.container{padding-top:40px}
 .meta-ico{width:52px;height:52px;border-radius:15px;background:var(--primary-50);color:var(--primary-500);display:inline-flex;align-items:center;justify-content:center;flex:none}
 .meta-ico svg{width:24px;height:24px}
 .meta-ico.blue{background:var(--vocab-soft);color:var(--vocab-text)}
-/* AI 次数卡：转化植入点——琥珀金微边 +「会员无限」角标；额度用尽时前端加 .ai-low（数字标红） */
-.meta-card.ai-card{border-color:rgba(217,119,6,.28);cursor:pointer}
-.meta-card.ai-card .meta-ico{background:var(--warn-soft);color:var(--warn-ink)}
-.ai-chip{position:absolute;top:13px;right:15px;font-size:10px;font-weight:800;color:var(--warn-ink);background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #fcd34d;border-radius:999px;padding:2px 8px;white-space:nowrap}
-[data-theme="dark"] .meta-card.ai-card{border-color:rgba(251,191,36,.30)}
-[data-theme="dark"] .ai-chip{background:rgba(251,191,36,.16);color:#fcd34d;border-color:rgba(251,191,36,.35)}
-.meta-card.ai-card.ai-low{border-color:var(--danger)}
-.meta-card.ai-card.ai-low .val{color:var(--danger-text)}
 
 /* 底部轻量条（10/1 UI v2：PWA 安装小字链接；fs-vip 升级会员入口已整体下线——她拍板会员/非会员都不显示 10/1 晚） */
 .foot-strip{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px 22px;padding:14px 0 2px;font-size:12.5px;color:var(--n-500)}
@@ -3472,26 +3464,6 @@ html[data-theme="dark"] .onb-overlay{background:rgba(0,0,0,.62)}
 .pwa-steps li{margin:0}
 .pwa-steps li.muted{color:var(--muted);font-size:12.5px}
 
-/* ===== design/81 无 Key AI 引导卡（缺 Key 撞墙时才出现；与 78/79 提示条同族、层级更低 99960） =====
-   全 token 配色，暗色自动跟随；teal 实色只用一次（主按钮）。 */
-.ai-key-card{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:99960;
-  width:min(360px, calc(100vw - 32px));padding:14px 16px;border-radius:14px;
-  border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow-md)}
-.ai-key-title{font-size:14px;font-weight:700;line-height:1.5;color:var(--ink);padding-right:20px}
-.ai-key-desc{margin:6px 0 0;font-size:12.5px;line-height:1.7;color:var(--muted)}
-.ai-key-row{display:flex;gap:8px;margin-top:12px}
-.ai-key-btn{font-family:inherit;font-size:12.5px;font-weight:600;line-height:1.4;min-height:0;
-  padding:6px 14px;border-radius:999px;border:1px solid var(--line);background:transparent;
-  color:var(--ink);cursor:pointer;flex:1}
-.ai-key-btn.btn-primary{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
-.ai-key-btn:hover{box-shadow:0 0 0 3px rgba(58,154,147,.18)}
-.ai-key-close{position:absolute;top:8px;right:10px;width:22px;height:22px;line-height:1;
-  border:0;background:transparent;color:var(--muted);font-size:18px;cursor:pointer;border-radius:6px}
-.ai-key-close:hover{background:var(--bg-hover, var(--line))}
-@media (max-width:860px){
-  .ai-key-card{top:8px;padding:12px 14px}
-  .ai-key-desc{font-size:12px}
-}
 
 /* ===== 9/30 新版五步引导（Onboarding v2）=====
    骨架：全屏遮罩 + 顶部 3px 细进度条 + 640px 居中卡 + 步骤左右横滑 + 底部导航（返回 / n 步 / 继续）。

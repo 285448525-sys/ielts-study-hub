@@ -4084,26 +4084,6 @@ function _onbStepNext(step){
     onbRenderSetup(Math.min(ONB_TOTAL, step + 1));
   }catch(e){}
 }
-function onbPaintWelcome(pane){
-  const k = document.createElement('div');
-  k.className = 'onb2-kicker'; k.textContent = '雅思备考 Hub';
-  pane.appendChild(k);
-  pane.appendChild(_onbH('把这三件事配好，就可以开工了'));
-  pane.appendChild(_onbNote('考试日期 · 每日投入 · 你的词库。大约 30 秒，之后随时能在「设置」里改。'));
-  const list = document.createElement('ul');
-  list.className = 'onb2-list';
-  [['倒计时与倒排', '填了考试日期，首页有倒计时，计划按剩余天数倒排'],
-   ['每天该背多少', '背词有配额，背满就收工，不硬凑'],
-   ['词库随你带', '导入自己的词库，或先用内置的 AWL 570']
-  ].forEach(function(x){
-    const li = document.createElement('li');
-    const b = document.createElement('b'); b.textContent = x[0];
-    const sp = document.createElement('span'); sp.textContent = x[1];
-    li.appendChild(b); li.appendChild(sp);
-    list.appendChild(li);
-  });
-  pane.appendChild(list);
-}
 function onbPaintExam(pane, withIntro){
   if(withIntro){
     const k = document.createElement('div');
@@ -4199,40 +4179,6 @@ function onbDaysLeft(){
     const t = new Date(d + 'T00:00:00');
     return Math.ceil((t.getTime() - Date.now()) / 86400000);
   }catch(e){ return null; }
-}
-function onbPaintDone(pane){
-  const s = (DATA && DATA.settings) || {};
-  const pc = (s.practiceCfg && typeof s.practiceCfg === 'object') ? s.practiceCfg : {};
-  const cap = Number(pc.dailyCap) || 0;
-  const hours = Number(s.dailyGoalHours) || 0;
-  const target = Number((s.targets || {}).overall || 0);
-  const days = onbDaysLeft();
-  const mark = document.createElement('div');
-  mark.className = 'onb2-check'; mark.textContent = '✓';
-  pane.appendChild(mark);
-  pane.appendChild(_onbH('配好了，开工吧'));
-  const rows = [
-    ['距考试', days == null ? '未设置' : (days > 0 ? (days + ' 天') : (days === 0 ? '就是今天' : '已过'))],
-    ['目标总分', target > 0 ? target.toFixed(1) : '未设置'],
-    ['每日投入', (hours > 0 ? (hours + ' 小时') : '未设置') + ' · 背词 ' + (cap > 0 ? (cap + ' 个') : '不限')]
-  ];
-  const sum = document.createElement('div');
-  sum.className = 'onb2-sum';
-  rows.forEach(function(x){
-    const row = document.createElement('div');
-    row.className = 'onb2-sum-row';
-    const a = document.createElement('span'); a.textContent = x[0];
-    const b = document.createElement('b'); b.textContent = x[1];
-    row.appendChild(a); row.appendChild(b);
-    sum.appendChild(row);
-  });
-  pane.appendChild(sum);
-  pane.appendChild(_onbNote('现在这些数据只存在这台设备，清缓存会丢。去「设置」绑定手机号后，换设备打开同一个号就能同步。'));
-  const bind = document.createElement('button');
-  bind.type = 'button'; bind.className = 'btn onb2-block onb2-bind';
-  bind.textContent = '去设置绑定手机号';
-  bind.addEventListener('click', function(){ location.href = 'settings.html'; });
-  pane.appendChild(bind);
 }
 /* 结束引导：关遮罩 + 首页提示条按状态重渲染 */
 function onbFinish(allDone){
