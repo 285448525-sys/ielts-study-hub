@@ -208,6 +208,8 @@ function bindSideSearch(){
 
   function renderMatch(){
     const q = ssNormQuery(input.value);
+    /* 10/1 晚（她拍板）：空输入（刚点搜索框还没打字）不弹白色提示框——面板只在有实际内容时出现 */
+    if(!q){ list.innerHTML = ''; hide(); return; }
     const hits = ssMatchPages(q);
     const isEn = q && !ssHasCn(q);
     let html = '';
