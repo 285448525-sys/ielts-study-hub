@@ -29,7 +29,7 @@
 })();
 </script>
 <title>首页 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261001j" />
+<link rel="stylesheet" href="css/common.css?v=20261001k" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=6" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=6">
 <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png?v=6">
@@ -42,16 +42,16 @@
 <script defer src="js/common.js?v=20261001n"></script>
 <!-- design/78 双词库适配层：index.js 的 wbActive/wbDueCount 依赖它（defer 按文档序执行） -->
 <script defer src="js/wordbank.js?v=20261001a"></script>
-<script defer src="js/index.js?v=20261001d"></script>
+<script defer src="js/index.js?v=20261001e"></script>
 <style id="homePageStyle">
 /* hero 会员小标（10/1：AI 转化卡删掉后的低调会员态展示，她拍板「不明显但不能不显示」。
    样式放页内不动 common.css 免全站 bump；.ai-card/.ai-chip 死样式等清理待办一起删） */
-.vip-chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800;line-height:1;border-radius:999px;padding:4px 9px;white-space:nowrap;text-decoration:none}
-.vip-chip svg{width:11px;height:11px}
-.vip-chip.vip{background:linear-gradient(135deg,#fef3c7,#fde68a);color:#b45309;border:1px solid #fcd34d}
-.vip-chip.free{background:rgba(148,163,184,.14);color:var(--muted);border:1px solid rgba(148,163,184,.28)}
-[data-theme="dark"] .vip-chip.vip{background:rgba(251,191,36,.16);color:#fcd34d;border-color:rgba(251,191,36,.35)}
-[data-theme="dark"] .vip-chip.free{background:rgba(148,163,184,.16);color:#94a3b8;border-color:rgba(148,163,184,.30)}
+/* 10/1 晚改版：会员小标从气泡改纯文字——会员=黄色 VIP，非会员=灰色 免费版（她拍板：气泡太显眼） */
+.vip-chip{display:inline-flex;align-items:center;font-size:12.5px;font-weight:800;line-height:1;letter-spacing:.5px;white-space:nowrap;text-decoration:none}
+.vip-chip.vip{color:#d9a400}
+.vip-chip.free{color:var(--muted)}
+[data-theme="dark"] .vip-chip.vip{color:#fcd34d}
+[data-theme="dark"] .vip-chip.free{color:#94a3b8}
 /* 双卡布局 override（common.css .meta 仍写死三列等死样式清理；1100px 断点同为两列无需写，760px 恢复单列） */
 .home .meta{grid-template-columns:repeat(2,1fr)}
 @media(max-width:760px){ .home .meta{grid-template-columns:1fr} }
@@ -133,10 +133,9 @@
     <div class="rec-body" id="dashRecBody"></div>
   </section>
 
-  <!-- 10/1 UI v2 · 底部轻量条：PWA 安装 + 会员引导（小字链接，不弹窗） -->
+  <!-- 10/1 UI v2 · 底部轻量条：PWA 安装（fs-vip 升级会员入口已按她拍板整体下线 10/1 晚） -->
   <div class="foot-strip">
     <a href="javascript:void(0)" id="footInstallTip">📦 安装到桌面，离线也能用</a>
-    <a class="fs-vip" href="vip.html">✨ 升级会员，AI 无限用</a>
   </div>
 </main>
 

@@ -2049,14 +2049,11 @@ main.container{padding-top:40px}
 .meta-card.ai-card.ai-low{border-color:var(--danger)}
 .meta-card.ai-card.ai-low .val{color:var(--danger-text)}
 
-/* 底部轻量条（10/1 UI v2：PWA 安装 + 会员引导，小字链接低打扰） */
+/* 底部轻量条（10/1 UI v2：PWA 安装小字链接；fs-vip 升级会员入口已整体下线——她拍板会员/非会员都不显示 10/1 晚） */
 .foot-strip{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px 22px;padding:14px 0 2px;font-size:12.5px;color:var(--n-500)}
 .foot-strip a{color:var(--n-600);text-decoration:none;border-bottom:1px dotted var(--n-400);padding-bottom:1px;cursor:pointer;transition:color .16s,border-color .16s}
 .foot-strip a:hover{color:var(--primary-600);border-bottom-color:var(--primary-500)}
-.foot-strip a.fs-vip{color:var(--warn-ink);border-bottom-color:rgba(217,119,6,.45)}
-.foot-strip a.fs-vip:hover{color:#92400e;border-bottom-color:var(--warn)}
 [data-theme="dark"] .foot-strip a{color:var(--muted);border-bottom-color:var(--line)}
-[data-theme="dark"] .foot-strip a.fs-vip{color:#fcd34d;border-bottom-color:rgba(251,191,36,.4)}
 
 /* 额度/会员轻条（10/1）：底部浮出小提示条 = 文案 + 「开会员」按钮 + 关闭；8s 自动消失 */
 #hubLimitStrip{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:99960;

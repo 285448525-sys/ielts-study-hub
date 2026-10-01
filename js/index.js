@@ -61,7 +61,7 @@ function initFootInstall(){
   });
 }
 
-// 10/1 晚 · hero 会员小标：登录才显示；会员=金色 VIP 标，非会员=灰色「免费」标；点击跳会员页。
+// 10/1 晚 · hero 会员小标：登录才显示；会员=黄色「VIP」纯文字，非会员=灰色「免费版」；点击跳会员页。
 // vip_status 实时查不缓存（会员状态必须准，与 vip.html 同口径）；未登录/请求失败保持隐藏，绝不打扰首屏。
 async function initVipChip(){
   const el = document.getElementById('heroVipChip');
@@ -79,11 +79,11 @@ async function initVipChip(){
     if(!j || j.ok !== true) return;
     if(j.vip){
       el.className = 'vip-chip vip';
-      el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h10l4 6-9 12L3 9z"/><path d="M3 9h18M12 21 8.5 9 12 3l3.5 6z"/></svg>VIP';
+      el.textContent = 'VIP';   // 10/1 晚：气泡改纯文字（她拍板），皇冠 svg 退役
       el.hidden = false;
     } else {
       el.className = 'vip-chip free';
-      el.textContent = '免费';
+      el.textContent = '免费版';
       el.hidden = false;
     }
   }catch(e){}
