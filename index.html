@@ -113,7 +113,14 @@ body.ready .pbar .tr i{width:62%}
 
 /* ---------- 深度区 ---------- */
 section{padding:76px 0}
-.spot{display:grid;grid-template-columns:1fr 1fr;gap:52px;align-items:center}
+.spot{display:grid;grid-template-columns:1fr 1fr;gap:44px;align-items:center}
+.s-side{display:flex;flex-direction:column;gap:16px;min-width:0}
+.s-side .claim{margin-top:0}
+.s-side .fig{margin:0}
+.fig-note{display:flex;align-items:center;gap:9px;margin-top:12px;padding:11px 14px;background:var(--primary-50);border:1px solid var(--primary-100);border-radius:10px;font-size:13px;color:var(--primary-900);font-weight:500}
+.fig-note i{flex:none;width:7px;height:7px;border-radius:2px;background:var(--primary-500)}
+.gain{margin-left:auto;background:var(--primary-50);border:1px solid var(--primary-100);color:var(--primary-700);font-size:12.5px;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.algo .src .dis{display:block}
 .spot.rev .s-txt{order:2}
 .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:var(--primary-700);margin-bottom:12px}
 .eyebrow s{width:22px;height:1px;background:var(--primary-500);text-decoration:none;display:block}
@@ -171,34 +178,50 @@ section{padding:76px 0}
 .card h3{margin:0 0 8px;font-size:16px;font-weight:600;color:var(--n-900)}
 .card p{margin:0;font-size:14px;color:var(--muted)}
 
-.panel{display:grid;grid-template-columns:1.15fr .85fr;gap:20px}
+.panel{display:grid;grid-template-columns:.92fr 1.08fr;gap:20px;align-items:stretch}
+.col-l{display:flex;flex-direction:column;gap:20px;min-width:0}
+.col-l .pulse{flex:1}
+.chart{display:flex;flex-direction:column;min-width:0}
+.chart .bars{flex:1;min-height:200px;height:auto}
 .chart,.stat{background:var(--n-0);border:1px solid var(--line);border-radius:var(--r);padding:24px;box-shadow:var(--shadow)}
 .chart .hd{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:20px}
 .chart .hd b{font-size:16px;font-weight:600;color:var(--n-900)}
 .chart .hd span{font-size:12px;color:var(--muted)}
-.bars{display:flex;align-items:flex-end;gap:14px;height:180px}
+.bars{display:flex;align-items:stretch;gap:14px;height:180px}
 .bars .b{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:8px}
-.bars .b i{display:block;width:100%;height:0;border-radius:8px 8px 0 0;background:var(--primary-200);transition:height 1s cubic-bezier(.16,.84,.44,1)}
+.bars .trk{flex:1 1 0;width:100%;min-height:0;display:flex;flex-direction:column;justify-content:flex-end}
+.bars .b i{display:block;width:100%;height:0;flex-shrink:0;border-radius:8px 8px 0 0;background:linear-gradient(180deg,var(--primary-300),var(--primary-200));transition:height 1s cubic-bezier(.16,.84,.44,1)}
 .bars.in .b i{height:var(--h)}
-.bars .b.hi i{background:var(--primary-500)}
-.bars .b u{text-decoration:none;font-size:12px;color:var(--muted)}
-.bars .b em{font-style:normal;font-size:11px;color:var(--n-700);font-variant-numeric:tabular-nums}
-.bars .b.hi em{color:var(--primary-500);font-weight:600}
+.bars .b.hi i{background:linear-gradient(180deg,var(--primary-500),var(--primary-600));box-shadow:0 8px 16px -8px rgba(58,154,147,.55)}
+.bars .b:hover i{filter:brightness(1.06)}
+.bars .b u{text-decoration:none;font-size:12px;color:var(--n-600)}
+.bars .b em{font-style:normal;font-size:12px;color:var(--n-700);font-weight:500;font-variant-numeric:tabular-nums}
+.bars .b.hi em{color:var(--primary-700);font-weight:600;background:var(--primary-50);border:1px solid var(--primary-100);padding:2px 9px;border-radius:999px}
 .stat{display:flex;flex-direction:column;gap:18px}
+.pulse{background:linear-gradient(160deg,var(--primary-50),#fff 72%);border:1px solid var(--primary-100);border-radius:16px;padding:24px 26px;display:flex;flex-direction:column;gap:18px;box-shadow:var(--shadow)}
+.pulse-row{display:flex;gap:13px;align-items:flex-start}
+.pulse-row .pi{flex:none;width:36px;height:36px;border-radius:11px;background:#fff;border:1px solid var(--primary-100);display:grid;place-items:center;font-size:16px}
+.pulse-row b{display:block;font-size:16px;color:var(--n-900);font-weight:600;font-variant-numeric:tabular-nums}
+.pulse-row small{display:block;margin-top:2px;font-size:12.5px;color:var(--muted)}
+.pulse-hint{margin:auto 0 0;font-size:12.5px;color:var(--muted);border-top:1px dashed var(--primary-100);padding-top:14px}
+.stat .row b{font-variant-numeric:tabular-nums}
 .stat .row{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:14px;border-bottom:1px dashed var(--line)}
 .stat .row:last-of-type{border:0;padding-bottom:0}
 .stat .row > span{font-size:14px;color:var(--muted)}
 .stat .row b{font-size:22px;font-weight:600;color:var(--n-900);font-variant-numeric:tabular-nums}
 
 /* ---------- 结尾 ---------- */
-.finale{padding:84px 0;background:var(--primary-900);color:#fff;text-align:center}
-.finale h2{font-size:38px;margin:0 0 14px;font-weight:600;letter-spacing:-.5px}
-.finale p{margin:0 auto 30px;max-width:560px;color:rgba(255,255,255,.76);font-size:16px}
-.finale .btn-primary{background:#fff;color:var(--primary-900)}
-.finale .btn-primary:hover{background:var(--primary-50)}
-.finale .btn-ghost{background:transparent;border-color:rgba(255,255,255,.4);color:#fff}
-.finale .btn-ghost:hover{border-color:#fff}
-.finale .small{font-size:12.5px;color:rgba(255,255,255,.5);margin-top:22px}
+.closing{background:linear-gradient(165deg,var(--primary-900) 0%,#12332f 100%);color:#fff;padding:72px 0 0}
+.closing-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center;padding-bottom:64px}
+.closing h2{font-size:36px;line-height:1.25;margin:0 0 14px;font-weight:600;letter-spacing:-.5px;color:#fff}
+.closing .c-txt p{margin:0;color:rgba(255,255,255,.78);font-size:16px;max-width:440px}
+.closing .c-small{margin-top:18px !important;font-size:12.5px !important;color:rgba(255,255,255,.5) !important}
+.c-card{background:var(--n-0);border-radius:18px;padding:26px 28px;display:flex;flex-direction:column;gap:12px;box-shadow:0 28px 56px -28px rgba(0,0,0,.5)}
+.c-card>b{font-size:17px;color:var(--n-900)}
+.c-card>p{margin:0;font-size:13.5px;color:var(--muted)}
+.c-card .cbtn{width:100%;box-sizing:border-box;justify-content:center}
+.c-card .alt{font-size:12px;color:var(--n-500);text-align:center;margin-top:2px}
+.closing .footbar{border-top:1px solid rgba(255,255,255,.14);color:rgba(255,255,255,.55)}
 
 /* ---------- 底部 ---------- */
 .foot{background:var(--n-0);border-top:1px solid var(--line);padding:60px 0 0}
@@ -213,14 +236,14 @@ section{padding:76px 0}
 .footbar{margin-top:48px;border-top:1px solid var(--line);padding:20px 0;font-size:13px;color:var(--n-500);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
 
 @media (max-width:980px){
-  .hero-grid,.spot,.panel,.signup{grid-template-columns:1fr;gap:34px}
+  .hero-grid,.spot,.panel,.signup,.closing-grid{grid-template-columns:1fr;gap:34px}
   .spot.rev .s-txt{order:0}
   .cmp{grid-template-columns:1fr;gap:22px}
   .cmp .mid{flex-direction:row;padding:0;justify-content:center}
   .steps,.grid3{grid-template-columns:1fr 1fr}
   h1{font-size:34px}
   .spot h2{font-size:28px}
-  .finale h2{font-size:28px}
+  .closing h2{font-size:30px}
   .navlinks{display:none}
 }
 @media (max-width:600px){
@@ -343,41 +366,42 @@ section{padding:76px 0}
       <h2 data-rev style="--d:.05s">背过的词，<br>不会白背</h2>
 
       <div class="algo" data-rev style="--d:.08s">
-        <div class="t"><s></s>升级版艾宾浩斯遗忘曲线算法</div>
-        <div class="d">记忆效果一样，可节省约 <b>30%</b> 的复习时间。</div>
-        <div class="src">算法依据：KDD'22 论文《A Stochastic Shortest Path Algorithm for Optimizing Spaced Repetition Scheduling》
-          <a href="https://dl.acm.org/doi/10.1145/3534678.3539081" target="_blank" rel="noopener">查看论文 →</a></div>
-        <div class="dis">30% 为论文与同类应用的公开口径，本站按同一算法实现，未做独立实测。</div>
+        <div class="t"><s></s>升级版艾宾浩斯遗忘曲线算法<b class="gain">省约 30% 复习时间</b></div>
+        <div class="src">依据 KDD'22 论文《A Stochastic Shortest Path Algorithm for Optimizing Spaced Repetition Scheduling》
+          <a href="https://dl.acm.org/doi/10.1145/3534678.3539081" target="_blank" rel="noopener">查看论文 →</a>
+          <span class="dis">30% 为论文与同类应用的公开口径，本站按同一算法实现，未做独立实测。</span></div>
       </div>
 
-      <p class="sub" data-rev style="--d:.1s">排复习的不是感觉，是那篇论文里的策略表——它算的是「下一次最佳复习间隔」。</p>
       <ul class="blist">
         <li data-rev style="--d:.15s"><span class="k">1</span><div><b>间隔由算法算，不由你猜</b><span>每个词记着自己的难度与半衰期，系统按 <b>DHP + SSP-MMC</b> 策略表给出下一次复习日，正好卡在快忘还没忘的时候。</span></div></li>
         <li data-rev style="--d:.2s"><span class="k">2</span><div><b>什么词表都能倒进来</b><span>别家软件导出的、Excel、CSV，或者随手复制的一段英文——粘贴进去自动挑词、直出中文释义，批量入库。官方 AWL 570 也现成。</span></div></li>
         <li data-rev style="--d:.25s"><span class="k">3</span><div><b>答错当场重考到会为止</b><span>错词立刻回到本轮再考，不留到明天；每日上限自己定，背满就停，不留尾巴。</span></div></li>
       </ul>
-      <div class="claim" data-rev style="--d:.3s">你唯一要做的，是每天点开它——复习顺序它已经替你排好了。</div>
-      <div class="pillrow" data-rev style="--d:.34s">
+    </div>
+    <div class="s-side">
+      <div class="fig" data-rev style="--d:.12s" id="figVocab">
+      <div class="cap"><b>记忆强度 · 复习点自动排</b><span>示意图</span></div>
+      <svg viewBox="0 0 460 300" role="img" aria-label="记忆强度随复习次数递增的示意曲线">
+        <line x1="40" y1="258" x2="440" y2="258" stroke="var(--n-300)" stroke-width="1"/>
+        <line x1="40" y1="30" x2="40" y2="258" stroke="var(--n-300)" stroke-width="1"/>
+        <text x="14" y="42" font-size="11" fill="var(--n-500)">强</text>
+        <text x="14" y="254" font-size="11" fill="var(--n-500)">弱</text>
+        <g id="vocabPaths"></g>
+        <text x="40" y="276" font-size="11" fill="var(--n-500)">第 1 天</text>
+        <text x="196" y="276" font-size="11" fill="var(--n-500)">第 12 天</text>
+        <text x="404" y="276" font-size="11" fill="var(--n-500)">第 30 天</text>
+      </svg>
+      <div class="fig-note"><i></i>每次复习都把强度拉回高位——间隔越拉越长，复习次数越来越少。</div>
+      <p class="hint">示意图：曲线用于说明机制，非真实测算数据。</p>
+      </div>
+      <div class="claim" data-rev style="--d:.2s">你唯一要做的，是每天点开它——复习顺序它已经替你排好了。</div>
+      <div class="pillrow" data-rev style="--d:.24s">
         <span class="pill">DHP + SSP-MMC 策略表</span>
         <span class="pill">官方 AWL 570</span>
         <span class="pill">自建词库</span>
         <span class="pill">每日上限自由定</span>
         <span class="pill">自动发音</span>
       </div>
-    </div>
-    <div class="fig" data-rev style="--d:.12s" id="figVocab">
-      <div class="cap"><b>记忆强度 · 复习点自动排</b><span>示意图</span></div>
-      <svg viewBox="0 0 460 220" role="img" aria-label="记忆强度随复习次数递增的示意曲线">
-        <line x1="40" y1="190" x2="440" y2="190" stroke="var(--n-300)" stroke-width="1"/>
-        <line x1="40" y1="20" x2="40" y2="190" stroke="var(--n-300)" stroke-width="1"/>
-        <text x="14" y="30" font-size="11" fill="var(--n-500)">强</text>
-        <text x="14" y="186" font-size="11" fill="var(--n-500)">弱</text>
-        <g id="vocabPaths"></g>
-        <text x="40" y="206" font-size="11" fill="var(--n-500)">第 1 天</text>
-        <text x="196" y="206" font-size="11" fill="var(--n-500)">第 12 天</text>
-        <text x="404" y="206" font-size="11" fill="var(--n-500)">第 30 天</text>
-      </svg>
-      <p class="hint">示意图：曲线用于说明机制，非真实测算数据。</p>
     </div>
   </div>
 </section>
@@ -448,6 +472,9 @@ section{padding:76px 0}
 </section>
 
 <!-- ============ 数据 ============ -->
+<style>
+#data{background:radial-gradient(620px 320px at 72% 30%,rgba(58,154,147,.09),transparent 70%),radial-gradient(circle at 1px 1px,rgba(26,69,66,.05) 1px,transparent 1.4px);background-size:auto,21px 21px}
+</style>
 <section id="data">
   <div class="wrap">
     <div class="sec-head" data-rev>
@@ -455,62 +482,54 @@ section{padding:76px 0}
       <p>不用纠结「我这周是不是偷懒了」，柱子在那儿摆着。</p>
     </div>
     <div class="panel">
-      <p style="margin:0 0 8px;font-size:12.5px;color:var(--muted)">👆 进站后这里会是你自己的真实数据</p>
+      <div class="col-l">
+        <div class="pulse" data-rev>
+          <div class="pulse-row"><span class="pi">📈</span><div><b>比上周 +38m</b><small>连续第三周往上走</small></div></div>
+          <div class="pulse-row"><span class="pi">🔥</span><div><b>周四 2h08m · 本周峰值</b><small>大任务日反而练得最久</small></div></div>
+          <p class="pulse-hint">👆 进站后这里会是你自己的真实数据</p>
+        </div>
+        <div class="stat" data-rev style="--d:.1s">
+          <div class="row"><span>连续学习</span><b><span class="cnt" data-to="9">0</span> 天</b></div>
+          <div class="row"><span>本周累计</span><b><span class="cnt" data-to="8">0</span>h 42m</b></div>
+          <div class="row"><span>已掌握词</span><b class="cnt" data-to="1268">0</b></div>
+          <div class="row"><span>口语 P2 已串</span><b><span class="cnt" data-to="21">0</span> / 34</b></div>
+          <p class="hint">示例数字，进站后按你的真实统计渲染。</p>
+        </div>
+      </div>
       <div class="chart" data-rev>
         <div class="hd"><b>本周每日学习时长</b><span>示例数据</span></div>
         <div class="bars" id="bars">
-          <div class="b"><em>48m</em><i style="--h:38%"></i><u>一</u></div>
-          <div class="b"><em>1h22m</em><i style="--h:64%"></i><u>二</u></div>
-          <div class="b"><em>32m</em><i style="--h:25%"></i><u>三</u></div>
-          <div class="b hi"><em>2h08m</em><i style="--h:100%"></i><u>四</u></div>
-          <div class="b"><em>57m</em><i style="--h:45%"></i><u>五</u></div>
-          <div class="b"><em>1h45m</em><i style="--h:82%"></i><u>六</u></div>
-          <div class="b"><em>38m</em><i style="--h:30%"></i><u>日</u></div>
+          <div class="b"><em>48m</em><span class="trk"><i style="--h:38%"></i></span><u>一</u></div>
+          <div class="b"><em>1h22m</em><span class="trk"><i style="--h:64%"></i></span><u>二</u></div>
+          <div class="b"><em>32m</em><span class="trk"><i style="--h:25%"></i></span><u>三</u></div>
+          <div class="b hi"><em>2h08m</em><span class="trk"><i style="--h:100%"></i></span><u>四</u></div>
+          <div class="b"><em>57m</em><span class="trk"><i style="--h:45%"></i></span><u>五</u></div>
+          <div class="b"><em>1h45m</em><span class="trk"><i style="--h:82%"></i></span><u>六</u></div>
+          <div class="b"><em>38m</em><span class="trk"><i style="--h:30%"></i></span><u>日</u></div>
         </div>
         <p class="hint">示意图：柱高为示例，页面展示的是你自己的真实统计。</p>
-      </div>
-      <div class="stat" data-rev style="--d:.1s">
-        <div class="row"><span>连续学习</span><b><span class="cnt" data-to="9">0</span> 天</b></div>
-        <div class="row"><span>本周累计</span><b><span class="cnt" data-to="8">0</span>h 42m</b></div>
-        <div class="row"><span>已掌握词</span><b class="cnt" data-to="1268">0</b></div>
-        <div class="row"><span>口语 P2 已串</span><b><span class="cnt" data-to="21">0</span> / 34</b></div>
-        <p class="hint">示例数字，进站后按你的真实统计渲染。</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ============ 结尾 ============ -->
-<div class="finale">
-  <div class="wrap" data-rev>
-    <h2>今天该背的那批词，已经排好了</h2>
-    <p>填一次考试日期，之后每天点开就练。剩下的判断，交给系统。</p>
-    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-      <a class="btn btn-primary btn-lg" href="home.html">进站开工</a>
-      <a class="btn btn-ghost btn-lg" href="home.html?onb=1">先看一遍引导</a>
+<!-- ============ 结尾 · 登录 ============ -->
+<div class="closing" id="login">
+  <div class="wrap closing-grid">
+    <div class="c-txt" data-rev>
+      <h2>今天该背的那批词，<br>已经排好了</h2>
+      <p>填一次考试日期，之后每天点开就练。剩下的判断，交给系统。</p>
+      <p class="c-small">一个人，为自己要考的那场试，写的一套系统。</p>
     </div>
-    <p class="small">一个人，为自己要考的那场试，写的一套系统。</p>
+    <div class="c-card" data-rev style="--d:.08s">
+      <b>登录 / 注册</b>
+      <p>手机号或用户名 + 密码登录，多设备进度互通。数据默认存在本机，绑不绑号都能用，绑了才跨设备。</p>
+      <a class="btn btn-primary btn-lg cbtn" href="login.html">登录 / 注册，同步我的进度 →</a>
+      <a class="btn btn-ghost cbtn" href="home.html">先不绑，直接开工</a>
+      <span class="alt">登录后电脑背完，手机接着复习；换设备登录同一账号即可恢复全部数据。</span>
+    </div>
   </div>
-</div>
-
-<!-- ============ 底部 ============ -->
-<div class="foot" id="login">
   <div class="wrap">
-    <div class="signup">
-      <div data-rev>
-        <h2>数据存在你自己的账号里</h2>
-        <p>手机号或用户名 + 密码登录，多设备进度互通。</p>
-        <p style="font-size:13px;color:var(--n-500)">数据默认存在本机，绑不绑号都能用。绑了才跨设备。</p>
-      </div>
-      <div class="form" data-rev style="--d:.1s">
-        <a class="btn btn-primary btn-lg" href="login.html" style="width:100%;text-align:center;display:block">登录 / 注册，同步我的进度 →</a>
-        <p class="note" style="margin-top:10px">登录后电脑背完，手机接着复习；换设备登录同一账号即可恢复全部数据。</p>
-        <div class="act" style="margin-top:6px">
-          <a class="btn btn-ghost" href="home.html">先不绑，直接开工</a>
-        </div>
-        <p class="alt">已经有数据了？<a href="login.html" style="color:var(--primary-700);font-weight:500">去登录 →</a></p>
-      </div>
-    </div>
     <div class="footbar">
       <span>雅思备考 Hub · 一个人做给自己用的备考系统</span>
       <span>本页为产品介绍 · 学习入口在「进站开工」</span>
@@ -557,7 +576,7 @@ section{padding:76px 0}
   function mk(tag, attrs){ var e = document.createElementNS(NS, tag); for(var k in attrs) e.setAttribute(k, attrs[k]); return e; }
 
   var days = [0,1,4,12,30], X = function(d){ return 40 + d*(400/30); };
-  var lows = [150,138,126,112], top = 46;
+  var lows = [225,203,180,152], top = 55;
   var g = document.getElementById('vocabPaths');
   for(var i=0;i<4;i++){
     var x0 = X(days[i]), x1 = X(days[i+1]), y1 = lows[i];
@@ -570,7 +589,7 @@ section{padding:76px 0}
     }
     var c = mk('circle',{ cx:x0, cy:top, r:4.5, fill:'var(--primary-500)', class:'dotp' });
     g.appendChild(c); c.style.transitionDelay = (i*0.28)+'s'; c.style.animationDelay = (i*0.28+1.2)+'s';
-    var lb = mk('text',{ x:x0, y:top-12, 'font-size':11, fill:'var(--primary-700)', 'text-anchor':'middle', class:'fadee' });
+    var lb = mk('text',{ x:x0, y:top-12-(i%2)*16, 'font-size':11, fill:'var(--primary-700)', 'text-anchor':'middle', class:'fadee' });
     lb.textContent = '第'+(i+1)+'次'; lb.style.transitionDelay = (i*0.28+0.1)+'s'; g.appendChild(lb);
   }
 
