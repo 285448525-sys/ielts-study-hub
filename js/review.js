@@ -49,8 +49,32 @@
     window.renderSpeakingPractice();
   }
 
+  // ③ 轨迹折叠（她 10/1 拍板：每日记录/口语练习默认折叠，展开态 sessionStorage 本会话记忆）
+  function initRvFold() {
+    const KEY = 'hub_rev_fold';
+    let st = {};
+    try { st = JSON.parse(sessionStorage.getItem(KEY) || '{}'); } catch (e) {}
+    const secs = document.querySelectorAll('.rv-fold');
+    for (let i = 0; i < secs.length; i++) {
+      const sec = secs[i];
+      const key = sec.getAttribute('data-foldkey');
+      const head = sec.querySelector('.rv-fold-head');
+      const body = sec.querySelector('.rv-fold-body');
+      if (!key || !head || !body) continue;
+      const apply = open => { sec.classList.toggle('open', open); body.hidden = !open; };
+      apply(st[key] === true);
+      head.addEventListener('click', () => {
+        const open = body.hidden;
+        apply(open);
+        st[key] = open;
+        try { sessionStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {}
+      });
+    }
+  }
+
   ready(() => {
     ensureMockHistory();
     ensureSpeakingPractice();
+    initRvFold();
   });
 })();

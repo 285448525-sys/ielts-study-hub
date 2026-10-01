@@ -29,7 +29,7 @@
 })();
 </script>
 <title>回顾 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261001i" />
+<link rel="stylesheet" href="css/common.css?v=20261001j" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=6" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=6">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=6">
@@ -39,8 +39,8 @@
 
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
-<script defer src="js/data.js?v=20260930f"></script>
-<script defer src="js/common.js?v=20261001i"></script>
+<script defer src="js/data.js?v=20260930g"></script>
+<script defer src="js/common.js?v=20261001j"></script>
 <script defer src="js/scores.js?v=20261001d"></script>
 <script defer src="js/history.js?v=20260904d"></script>
 <script defer src="js/mock-report.js?v=20260830u"></script>
@@ -51,7 +51,7 @@
 <!-- 回顾页的协调脚本：软导航下由 common.js 按其 pageScriptSources 收集执行。
      ⚠️ 必须带 ?v= 声明在这里 —— 否则 common.js 只能拿裸 URL 'js/review.js'，
      等于向浏览器 HTTP 缓存要「任意年代的旧副本」，改动永远推不上去（9/17 陈旧 UI 事故根因）。 -->
-<script defer src="js/review.js?v=20260917a"></script>
+<script defer src="js/review.js?v=20260917b"></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -209,14 +209,14 @@
           <div class="cal-legend" id="heatLegend"></div>
         </section>
 
-        <section class="card">
-          <h2>每日记录</h2>
-          <div id="dayList"></div>
+        <section class="card rv-fold" data-foldkey="day">
+          <h2 class="rv-fold-head">每日记录 <span class="muted" style="font-size:12px;font-weight:400">点击展开 / 收起</span><span class="rv-arrow">▸</span></h2>
+          <div class="rv-fold-body" hidden><div id="dayList"></div></div>
         </section>
 
-        <section class="card" id="spPractice">
-          <h2>口语日常练习 <span class="muted" id="spPracticeCount"></span></h2>
-          <div id="spPracticeList"></div>
+        <section class="card rv-fold" id="spPractice" data-foldkey="sp">
+          <h2 class="rv-fold-head">口语日常练习 <span class="muted" id="spPracticeCount"></span><span class="rv-arrow">▸</span></h2>
+          <div class="rv-fold-body" hidden><div id="spPracticeList"></div></div>
         </section>
       </div>
     </section>

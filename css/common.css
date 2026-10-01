@@ -3587,3 +3587,9 @@ html[data-theme="dark"] .onb2-overlay{background:rgba(0,0,0,.62)}
   .sp-sp-v{width:66px}
   .sprint{padding:14px 16px}
 }
+
+/* 10/1 轨迹折叠（回顾页 record tab：每日记录/口语练习默认折叠，她拍板） */
+.rv-fold .rv-fold-head{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+.rv-fold .rv-fold-head:hover{opacity:.85}
+.rv-fold .rv-arrow{margin-left:auto;font-size:13px;color:var(--muted);transition:transform .18s ease}
+.rv-fold.open .rv-arrow{transform:rotate(90deg)}
