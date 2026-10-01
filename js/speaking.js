@@ -3,6 +3,7 @@ var curType = 'ALL';   // 题库 tab 合并 P1+P2（'ALL'）；P1/P2 仅保留�
 var curFreq = 'all';
 var curCat = 'all';
 var curPart = 'all';
+var curState = 'all';   // design/88：练习状态筛选 all/new/done
 var curSearch = '';
 var curDetailId = null;
 
@@ -231,6 +232,8 @@ ready(() => {
         curCat = 'all';
         const ps = $('#partSelect'); if(ps) ps.value = 'all';
         curPart = 'all';
+        // design/88：状态筛选重置（切回题库=回到全量语义）
+        curState = 'all'; const stSel = $('#stateSelect'); if(stSel) stSel.value = 'all';
         /* 9/19 修：切回题库时搜索框与 curSearch 一并清空。
            原先只重置三个下拉、搜索词却留着 → 列表仍被旧关键词过滤（如只剩 3 条），
            而下拉显示「全部」，用户会误以为题库只剩这几题。语义统一为「切回题库=回到全量」。 */
@@ -250,6 +253,8 @@ ready(() => {
         curCat = 'all';
         const ps = $('#partSelect'); if(ps) ps.value = 'all';
         curPart = 'all';
+        // design/88：状态筛选重置
+        curState = 'all'; const stSel2 = $('#stateSelect'); if(stSel2) stSel2.value = 'all';
         $('#listView').hidden = false;
         renderList();
       }
@@ -259,6 +264,9 @@ ready(() => {
   if(freqSel) freqSel.addEventListener('change', e => { curFreq = e.target.value; renderList(); });
   if(catSel) catSel.addEventListener('change', e => { curCat = e.target.value; renderList(); });
   if(partSel) partSel.addEventListener('change', e => { curPart = e.target.value; renderList(); });
+  // design/88：状态筛选
+  const stateSel = $('#stateSelect');
+  if(stateSel) stateSel.addEventListener('change', e => { curState = e.target.value; renderList(); });
   populateFreqOptions();
   // 9/15：Part 下拉选项带各 Part 题数（之之要求 P1/P2 分开计数，一眼看清各有多少题）
   (function(){
@@ -323,6 +331,8 @@ function getFiltered(){
   if(curFreq !== 'all') list = list.filter(s => s.frequency === curFreq);
   if(curCat !== 'all') list = list.filter(s => s.category === curCat);
   if(curPart !== 'all') list = list.filter(s => s.type === curPart);
+  // design/88：练习状态筛选（getPracticeCount 是函数声明有提升）
+  if(curState !== 'all') list = list.filter(s => (getPracticeCount(s) > 0) === (curState === 'done'));
   if(curSearch){
     list = list.filter(s => {
       const t = ((s.titleEn || '') + ' ' + (s.titleZh || '') + ' ' + (s.title || '') + ' ' + (s.promptEn || '') + ' ' + (s.promptZh || '') + ' ' + (s.questions || []).join(' ')).toLowerCase();
@@ -337,6 +347,25 @@ function getFiltered(){
 function freqTag(freq){
   const label = (typeof FREQ_LABEL !== 'undefined' && FREQ_LABEL[freq]) || freq;
   return '<span class="sp-tag freq-' + freq + '">' + label + '</span>';
+}
+
+/* design/88：状态下拉选项带题数。
+   题数口径：按「当前其他筛选（类型/优先级/分类/Part）已生效后」的剩余池统计，
+   不含 curState 自身（否则选了「未练过」后列表只剩 new，done 永远显示 0 就没意义了）。
+   跟随 renderList 调用，Part/优先级/分类切换时自动刷新。 */
+function refreshStateOptions(){
+  const sel = $('#stateSelect');
+  if(!sel) return;
+  // 复刻 getFiltered 但跳过 curState 过滤
+  let pool = DATA.speaking.filter(s => (curType === 'ALL' || s.type === curType) && !s.framework && !/^sp_p[12]_\d+$/.test(s.id || ''));
+  if(curFreq !== 'all') pool = pool.filter(s => s.frequency === curFreq);
+  if(curCat !== 'all') pool = pool.filter(s => s.category === curCat);
+  if(curPart !== 'all') pool = pool.filter(s => s.type === curPart);
+  let nDone = 0, nNew = 0;
+  pool.forEach(s => { if(getPracticeCount(s) > 0) nDone++; else nNew++; });
+  const oNew = sel.querySelector('option[value="new"]'), oDone = sel.querySelector('option[value="done"]');
+  if(oNew) oNew.textContent = '未练过（' + nNew + ' 题）';
+  if(oDone) oDone.textContent = '已练过（' + nDone + ' 题）';
 }
 
 function tagsHtml(s){
@@ -506,6 +535,8 @@ function scoreHeaderHtml(score, title){
 }
 
 function renderList(){
+  // design/88：状态下拉选项带题数（跟随其他筛选刷新，题数按当前其他筛选已生效后的剩余池统计）
+  refreshStateOptions();
   const list = getFiltered();
   const container = $('#spList');
   if(list.length === 0){
@@ -1246,6 +1277,7 @@ D. fullEn 为整段讲稿（只出一段，不出两版），词数 130~180；�
 E. 扣题比例（硬约束）：fullEn 中直接回应 bullet 的句子 ≥60%；跑题的背景/氛围描述只能作细节点缀。生成后逐句自检，不达标就重写。
 F. fullEn 为纯英文、可直接朗读；不要任何 STEP 编号、不要中文。
 G. logicChain：中文短语用横杠「-」串接的完整逻辑链（事件内核-情感内核-可迁移点）；mappingZh：固定四段——用哪张卡 → 走哪个角度 → 各 bullet 用素材什么事实填 → 点题怎么转。
+H. keywords：从 fullEn 提取 8~14 个按叙事顺序排列的英文关键词短语，每项 2~5 个实词（保留稿中原文措辞，不解释、不编号、不写中文），覆盖开头点题→逐 bullet→结尾收束的完整脉络。
 
 输出严格 JSON，不要解释文字：
 {"fit":"natural|adaptable|unfit",
@@ -1253,6 +1285,7 @@ G. logicChain：中文短语用横杠「-」串接的完整逻辑链（事件内
  "missingQuestions":[{"k":"","type":"yesno|choice|text","label":"","options":[]}],
  "fullEn":"",
  "logicChain":"","mappingZh":"",
+ "keywords":[""],
  "unfitReason":"","suggestCard":""}`;
 
 /* 阶段二成稿 prompt：素材事实 + 考生补槽答案 → 一段完整独白 */
@@ -1265,7 +1298,7 @@ const SYS_CHUAN_FINAL = `你是雅思口语 P2 串题成稿助手。考生对一
 4. 开头点题与结尾收束自然成段，不要单列模块。
 
 输出严格 JSON：
-{"fit":"adaptable|natural","fullEn":"","logicChain":"","mappingZh":"","weakBullets":[]}`;
+{"fit":"adaptable|natural","fullEn":"","logicChain":"","mappingZh":"","keywords":[""],"weakBullets":[]}`;
 
 /* 素材分级注入（沿用旧口径）：pinned 优先；第 1 张发全文，其余只发摘要（storyEn 是最长字段，多卡时 90% 输入 token 烧在它身上） */
 function chuanMatsText(){
@@ -1571,17 +1604,29 @@ function chuanParas(t){
 }
 
 /* A. 成稿态（natural 阶段一直出稿 / finalChuan 产物，j.fullEn 存在）。她拍板：单版一段稿，无版本切换 */
-function renderChuanFinal(el, j, s){
+function renderChuanFinal(el, j, s, kwMode){
   const fitBadge = j.fit === 'natural'
     ? '<span class="sp-fit-badge nat">自然贴合</span>'
     : '<span class="sp-fit-badge adp">改编串题</span>';
+  const hasKw = Array.isArray(j.keywords) && j.keywords.length > 0;
   let h = '<div class="mat-plan">';
   h += '<div class="mat-plan-head">🧩 串题讲稿 ' + fitBadge
     + '<span class="mp-actions">'
     + '<button class="btn btn-sm mp-btn" id="storyCopyBtn" type="button">📋 复制</button>'
     + '<button class="btn btn-sm mp-btn" id="storySpeakBtn" type="button">▶ 朗读</button>'
+    // design/88：关键词切换/提取按钮
+    + (hasKw
+      ? '<button class="btn btn-sm mp-btn" id="storyKwBtn" type="button">' + (kwMode ? '📄 全文' : '🔑 关键词') + '</button>'
+      : '<button class="btn btn-sm mp-btn" id="storyKwBtn" type="button">🔑 提取关键词</button>')
     + '</span></div>';
-  h += '<div class="mat-story-en sp-fulldraft">' + chuanParas(j.fullEn).map(p => '<p>' + escapeHtml(p) + '</p>').join('') + '</div>';
+  // 讲稿渲染：kwMode=true 时显示 chips，否则显示段落
+  if(kwMode && hasKw){
+    h += '<div class="mat-story-en sp-fulldraft sp-story-kw">'
+      + j.keywords.map(k => '<span class="sp-kw-chip">' + escapeHtml(k) + '</span>').join('')
+      + '</div>';
+  } else {
+    h += '<div class="mat-story-en sp-fulldraft">' + chuanParas(j.fullEn).map(p => '<p>' + escapeHtml(p) + '</p>').join('') + '</div>';
+  }
   if(Array.isArray(j.weakBullets) && j.weakBullets.length){
     h += '<div class="sp-weak-note">第 ' + j.weakBullets.map(n => Number(n) + 1).join('、') + ' 个要点素材偏弱，考官 P3 可能追问，建议补细节'
       + (s && s.id ? ' · <a href="javascript:void(0)" id="spWeakFix">去补细节</a>' : '') + '</div>';
@@ -1603,7 +1648,59 @@ function renderChuanFinal(el, j, s){
   if(fix) fix.addEventListener('click', () => aiStoryLink(s.id));
   const regen = el.querySelector('#spRegenChuan');
   if(regen) regen.addEventListener('click', () => aiStoryLink(s.id));
+  // design/88：关键词按钮
+  const kwBtn = el.querySelector('#storyKwBtn');
+  if(kwBtn) kwBtn.addEventListener('click', async () => {
+    // 切换/提取前先停朗读（朗读取全文，状态挂死会闹）
+    if(typeof speakQuestion === 'function') speakQuestion.stop();
+    const resetBtn = el.querySelector('#storySpeakBtn');
+    if(resetBtn){ resetBtn.textContent = '▶ 朗读'; resetBtn.classList.remove('playing'); }
+    if(hasKw){
+      // 已有 keywords → 切换态
+      renderChuanFinal(el, j, s, !kwMode);
+    } else {
+      // 无 keywords → 走提取流程
+      if(typeof extractStoryKeywords === 'function') await extractStoryKeywords(el, j, s);
+    }
+  });
+  // 复制/朗读永远取全文（bindStoryTools 读 j.fullEn，不受 kwMode 影响）
   bindStoryTools(el, j);
+}
+
+/* design/88：旧稿（无 keywords）一次性提取关键词。
+   复用 speaking_chuan_final 计量组（会员闸/额度/分钟风控全部与出稿一致）。
+   AI 成功 → keywords 补进 j 对象 → hubSave 落库 → 以关键词态重渲；
+   AI 失败 → toast 提示 + 旧稿原样（沿用「AI 失败绝不落库」铁律）。 */
+async function extractStoryKeywords(el, j, s){
+  const btn = el.querySelector('#storyKwBtn');
+  if(btn){ btn.disabled = true; btn.textContent = '⏳ 提取中…'; }
+  try{
+    const sys = '从这段雅思口语 P2 讲稿提取 8~14 个按叙事顺序排列的英文关键词短语，每项 2~5 个实词，保留原文措辞。输出严格 JSON：{"keywords":["..."]}';
+    const user = j.fullEn || '';
+    const raw = await callRelay('speaking_chuan_final', [
+      { role:'system', content: sys },
+      { role:'user', content: user }
+    ], 0.3);
+    let j2 = null;
+    try{ j2 = JSON.parse(raw); } catch(e){}
+    if(!j2 || !Array.isArray(j2.keywords) || j2.keywords.length < 4){
+      throw new Error('AI 返回无效（可能短路），可重试');
+    }
+    // 成功：写入 keywords，**绝不改 fullEn/fit/mappingZh 等任何其他字段**
+    j.keywords = j2.keywords;
+    if(s && s.id){
+      s.updatedAt = Date.now();
+      if(typeof hubSave === 'function') hubSave();
+      else if(typeof saveData === 'function') saveData();
+    }
+    // 以关键词态重渲（用户点的就是看关键词）
+    renderChuanFinal(el, j, s, true);
+  } catch(e){
+    const msg = (e && e.message) || '未知错误';
+    toast('关键词提取失败：' + msg + '（旧稿未动，可重试）');
+    // 重渲恢复按钮
+    if(btn){ btn.disabled = false; btn.textContent = '🔑 提取关键词'; }
+  }
 }
 
 /* B. 补槽态（fit=adaptable 且无 fullEn）：漏斗式小问，答案实时写 linkDraft.supplements（关页/切题回来不丢） */

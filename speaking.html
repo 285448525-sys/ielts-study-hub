@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="UTF-8" />
@@ -46,7 +46,7 @@
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
   <script defer src="js/sentence-drill.js?v=20261001g"></script>
-  <script defer src="js/speaking.js?v=20261001g"></script>
+  <script defer src="js/speaking.js?v=20261001h"></script>
   <script defer src="js/materials.js?v=20261001f"></script>
   <script defer src="js/mock-report.js?v=20260830u"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
@@ -191,6 +191,9 @@
   .mp-actions{display:inline-flex;gap:6px;margin-left:auto}
   .mp-btn{min-height:0;padding:3px 10px;font-size:12px;font-weight:600;border-radius:999px;white-space:nowrap}
   .mp-btn.playing{color:var(--warn);border-color:var(--warn)}
+  /* design/88：关键词 chips */
+  .sp-story-kw{display:flex;flex-wrap:wrap;gap:8px;padding:12px;background:var(--bg);border:1px dashed var(--line);border-radius:8px}
+  .sp-kw-chip{font-size:13.5px;font-weight:600;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:5px 12px}
 
   .sp-score-badge{font-size:12px;padding:2px 8px;border-radius:10px;margin-left:8px;vertical-align:1px;white-space:nowrap}
   .sp-score-badge.good{background:var(--primary-soft);color:var(--med)}
@@ -831,6 +834,14 @@ body.mock-immerse #mockStage{border:0;box-shadow:none;background:transparent}
           <option value="all">全部</option>
           <option value="P1">Part 1</option>
           <option value="P2">Part 2</option>
+        </select>
+      </label>
+      <!-- design/88：练习状态筛选 -->
+      <label class="sp-filter"><span>状态</span>
+        <select id="stateSelect" class="sp-select">
+          <option value="all">全部</option>
+          <option value="new">未练过</option>
+          <option value="done">已练过</option>
         </select>
       </label>
       <button class="btn sp-random" id="spRandomBtn" type="button" title="在当前筛选结果里随机抽一道题开练">🎲 随机来一道</button>
