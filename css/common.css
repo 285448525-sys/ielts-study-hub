@@ -415,7 +415,8 @@ body.sheet-open .sheet{transform:translateY(0)}
 @keyframes breathe{0%,100%{box-shadow:0 0 0 0 var(--primary-soft)}50%{box-shadow:0 0 0 7px rgba(58,154,147,0)}}
 .running-badge{animation:breathe 2.6s ease-in-out infinite}
 
-/* 主操作按钮 hover 扫光（灵感 .ui-slide-btn；仅 teal 主按钮上明显） + 全局按钮点击水波纹（灵感 .ui-ripple-btn，teal 色深浅按钮均可见） */
+/* 主操作按钮 hover 扫光 + 按钮水波纹：原 Uiverse 参考类 .ui-slide-btn / .ui-ripple-btn 已于 10/2 随死样式清理删除（全站零引用），
+   其视觉效果按 design/53 也不再保留，此处仅留说明，勿再找这两个类 */
 .btn-primary{position:relative;overflow:hidden}
 /* design/53：删除 .btn-primary 扫光与 .btn 水波纹（属"复杂特效"，与克制定性冲突）
    改用色阶 + 1px 位移 + 阴影过渡表达交互 */
@@ -861,25 +862,6 @@ html[data-theme="dark"] .finish-zero-card{background:rgba(70,168,131,.16)}
 .alert-info{border-color:var(--med);border-left-color:var(--med);background:var(--primary-soft);color:var(--primary-d)}
 .alert-info .alert-ico{color:var(--med)}
 
-/* ===== 通用拟物勾选框 ui-check（Uiverse 改写：原名 .container/.checkmark 会覆盖站内容器，已改名；灰阶走 token，明暗自适应） ===== */
-.ui-check{position:relative;display:inline-block;cursor:pointer;user-select:none;font-size:18px;line-height:1;vertical-align:middle}
-.ui-check input{position:absolute;opacity:0;cursor:pointer;height:0;width:0}
-.ui-check-mark{position:relative;display:inline-block;height:1.3em;width:1.3em;border-radius:100%;background:var(--surface-2);box-shadow:3px 3px 5px rgba(16,40,38,.10),-3px -3px 5px rgba(255,255,255,.75);transition:box-shadow .25s ease,background .25s ease;vertical-align:middle}
-.ui-check input:checked ~ .ui-check-mark{box-shadow:inset 3px 3px 5px rgba(16,40,38,.12),inset -3px -3px 5px rgba(255,255,255,.7)}
-.ui-check-mark:after{content:"";position:absolute;opacity:0;left:.45em;top:.25em;width:.25em;height:.5em;border:solid var(--med);border-width:0 .15em .15em 0;transform:rotate(45deg);transition:opacity .2s ease}
-.ui-check input:checked ~ .ui-check-mark:after{opacity:1}
-[data-theme="dark"] .ui-check-mark{box-shadow:3px 3px 5px rgba(0,0,0,.35),-3px -3px 5px rgba(255,255,255,.05)}
-[data-theme="dark"] .ui-check input:checked ~ .ui-check-mark{box-shadow:inset 3px 3px 5px rgba(0,0,0,.4),inset -3px -3px 5px rgba(255,255,255,.04)}
-
-/* ===== 通用拨动开关 ui-switch（Uiverse 改写：on/off 文字拟物开关；蓝/深灰/灰走 token；修正原版怪位移为正常旋钮右滑） ===== */
-.ui-switch{position:relative;display:inline-block;width:70px;height:36px;vertical-align:middle}
-.ui-switch-toggle{position:absolute;opacity:0;width:0;height:0;cursor:pointer}
-.ui-switch-slider{position:absolute;top:0;left:0;right:0;bottom:0;background:var(--neutral);border:2px solid var(--ink);border-radius:100px;box-shadow:4px 4px var(--ink);cursor:pointer;transition:background .3s}
-.ui-switch-slider:before{content:"off";position:absolute;left:2px;bottom:1px;width:30px;height:30px;box-sizing:border-box;border:2px solid var(--ink);border-radius:100px;background:var(--surface);color:var(--ink);font-size:14px;font-weight:600;text-align:center;line-height:25px;transition:transform .3s}
-.ui-switch-toggle:checked + .ui-switch-slider{background:var(--primary)}
-.ui-switch-toggle:checked + .ui-switch-slider:before{content:"on";transform:translateX(32px)}
-[data-theme="dark"] .ui-switch-slider{box-shadow:4px 4px rgba(0,0,0,.5)}
-
 /* ===== 通用糖果滑块 kawaii range（Uiverse 改写：热粉 #fe8ce4 → teal --primary，边框 #fff → --surface，明暗自适应） ===== */
 .rangeWrapper{display:flex;flex-direction:column;justify-content:space-evenly;align-items:center;height:100%}
 [type="range"].kawaii{--base:var(--primary);--light:color-mix(in sRGB,var(--base) 60%,#fff);--lighter:color-mix(in sRGB,var(--base) 30%,#fff);--dark:color-mix(in sRGB,var(--base) 95%,#000);--transparent:color-mix(in sRGB,var(--base) 0%,#0000);appearance:none;font-size:1em;width:20em;height:2em;border:.5em solid var(--surface);border-radius:2em;box-shadow:0 0 1em #0001,0 .25em .5em #0001;overflow:hidden}
@@ -923,23 +905,6 @@ html[data-theme="dark"] .finish-zero-card{background:rgba(70,168,131,.16)}
   .settings-options{gap:12px !important}
   .settings-option{flex:1 1 100%;white-space:normal;min-height:36px}
 }
-
-/* ===== 通用按钮 ui-btn（Uiverse 改写：蓝 #1163ff/紫 #6c18ff → teal --primary/--primary-d；白字→--on-primary；tooltip 自适应；悬停文字上滑、图标从底滑入） ===== */
-.ui-btn{--width:100px;--height:35px;--tooltip-height:35px;--tooltip-width:90px;--gap-between-tooltip-to-button:18px;--button-color:var(--primary);--tooltip-color:var(--surface);--tooltip-text:var(--ink);width:var(--width);height:var(--height);background:var(--button-color);position:relative;text-align:center;border-radius:var(--radius-sm);transition:background .3s;font-family:inherit}
-.ui-btn::before{position:absolute;content:attr(data-tooltip);width:var(--tooltip-width);height:var(--tooltip-height);background-color:var(--tooltip-color);font-size:.9rem;color:var(--tooltip-text);border-radius:.25em;line-height:var(--tooltip-height);bottom:calc(var(--height) + var(--gap-between-tooltip-to-button) + 10px);left:calc(50% - var(--tooltip-width) / 2);z-index:5}
-.ui-btn::after{position:absolute;content:'';width:0;height:0;border:10px solid transparent;border-top-color:var(--tooltip-color);left:calc(50% - 10px);bottom:calc(100% + var(--gap-between-tooltip-to-button) - 10px);z-index:5}
-.ui-btn::after,.ui-btn::before{opacity:0;visibility:hidden;transition:all .5s}
-.ui-btn-wrapper,.ui-btn-text,.ui-btn-icon{overflow:hidden;position:absolute;width:100%;height:100%;left:0;color:var(--on-primary)}
-.ui-btn-text{display:flex;align-items:center;justify-content:center;top:0}
-.ui-btn-text,.ui-btn-icon{transition:top .5s}
-.ui-btn-icon{top:100%;display:flex;align-items:center;justify-content:center;color:var(--on-primary)}
-.ui-btn-icon svg{width:24px;height:24px}
-.ui-btn:hover{background:var(--primary-d)}
-.ui-btn:hover .ui-btn-text{top:-100%}
-.ui-btn:hover .ui-btn-icon{top:0}
-.ui-btn:hover:before,.ui-btn:hover:after{opacity:1;visibility:visible}
-.ui-btn:hover:after{bottom:calc(var(--height) + var(--gap-between-tooltip-to-button) - 20px)}
-.ui-btn:hover:before{bottom:calc(var(--height) + var(--gap-between-tooltip-to-button))}
 
 /* ===== 统一子 Tab：右上角药丸切换（全局） ===== */
 .page-head-row{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap}
@@ -2603,122 +2568,6 @@ body.exam-fullscreen{overflow:hidden !important}
 /* 通用 + 按钮 ui-plus 已砍（9/16 之之反馈不知道是干嘛的：全站仅计划页有 data-fab-add 接杆，
    fab 挂 body 上软导航残留后其他页全是死按钮。原 injectFab()/ui-plus 样式块已删。） */
 
-/* ===== 通用带下划线动画输入框 ui-input（Uiverse adamgiebl 改写：白字 #fff→var(--ink)；彩虹渐变 #FF6464/#FFBF59/#47C9FF→teal 渐变；未定义变量 --border-height/--border-before-color/--border-after-color 在 .ui-form-control 内给默认值；原 .input/.form-control/.input-alt 改名 .ui-input* 防冲突） ===== */
-.ui-form-control{
-  position:relative;
-  --width-of-input:300px;
-  --border-height:2px;
-  --border-before-color:var(--line);
-  --border-after-color:var(--primary);
-  width:var(--width-of-input);
-}
-.ui-input{
-  color:var(--ink);
-  font-size:.9rem;
-  font-family:inherit;
-  background-color:transparent;
-  width:100%;
-  box-sizing:border-box;
-  padding-inline:.5em;
-  padding-block:.7em;
-  border:none;
-  border-bottom:var(--border-height) solid var(--border-before-color);
-  box-shadow:0 2px 4px rgba(0,0,0,.1);
-}
-.ui-input-border{
-  position:absolute;
-  background:var(--border-after-color);
-  width:0%;
-  height:var(--border-height);
-  bottom:0; left:0;
-  transition:width .3s cubic-bezier(.6,-.28,.735,.045);
-}
-.ui-input:focus{ outline:none; }
-.ui-input:focus + .ui-input-border{ width:100%; }
-
-.ui-input-alt{
-  font-size:1.2rem;
-  padding-inline:1em;
-  padding-block:.8em;
-  box-shadow:0 4px 8px rgba(0,0,0,.1);
-}
-.ui-input-border-alt{
-  height:3px;
-  background:linear-gradient(90deg, var(--primary-d), var(--primary-bright));
-  transition:width .4s cubic-bezier(.42,0,.58,1);
-}
-.ui-input-alt:focus + .ui-input-border-alt{ width:100%; }
-
-/* ===== 通用动画药丸按钮 ui-ripple-btn（Uiverse Li-Deheng 改写：粉 #ff135a/#ff1472 → teal --primary/--primary-bright；三箭头 polygon 闪烁+滑入、ripple/colorize 动画保留；原 .button 超通用改名 .ui-ripple-btn，keyframes opacity/colorize/ripple 加 uiArrow 前缀防冲突；Poppins→inherit） ===== */
-.ui-ripple-btn{
-  --main-size:2em;
-  --color-text:var(--on-primary);
-  --color-background:var(--primary);
-  --color-background-hover:var(--primary-bright);
-  --color-outline:color-mix(in srgb, var(--primary) 25%, transparent);
-  --color-shadow:rgba(0,0,0,.25);
-  cursor:pointer;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  text-decoration:none;
-  border:none;
-  border-radius:calc(var(--main-size) * 100);
-  padding:.33em 0 .33em .66em;
-  font-family:inherit;
-  font-weight:600;
-  font-size:var(--main-size);
-  color:var(--color-text);
-  background:var(--color-background);
-  box-shadow:0 0 .2em 0 var(--color-background);
-  transition:1s;
-}
-.ui-ripple-btn:active{ transform:scale(.95); }
-.ui-ripple-btn:hover{
-  outline:.1em solid transparent;
-  outline-offset:.2em;
-  box-shadow:0 0 1em 0 var(--color-background);
-  animation:uiArrowRipple 1s linear infinite, uiArrowColorize 1s infinite;
-  transition:.5s;
-}
-.ui-ripple-btn span{ margin-right:.3em; transition:.5s; }
-.ui-ripple-btn:hover span{ text-shadow:5px 5px 5px var(--color-shadow); }
-.ui-ripple-btn:active span{ text-shadow:none; }
-.ui-ripple-btn svg{
-  height:.8em;
-  fill:var(--color-text);
-  margin-right:-.16em;
-  position:relative;
-  transition:.5s;
-}
-.ui-ripple-btn:hover svg{
-  margin-right:.66em;
-  transition:.5s;
-  filter:drop-shadow(5px 5px 2.5px var(--color-shadow));
-}
-.ui-ripple-btn:active svg{ filter:none; }
-.ui-ripple-btn svg polygon:nth-child(1){ transition:.4s; transform:translateX(-60%); }
-.ui-ripple-btn svg polygon:nth-child(2){ transition:.5s; transform:translateX(-30%); }
-.ui-ripple-btn:hover svg polygon:nth-child(1){ transform:translateX(0%); animation:uiArrowOpacity 1s infinite .6s; }
-.ui-ripple-btn:hover svg polygon:nth-child(2){ transform:translateX(0%); animation:uiArrowOpacity 1s infinite .4s; }
-.ui-ripple-btn:hover svg polygon:nth-child(3){ animation:uiArrowOpacity 1s infinite .2s; }
-
-@keyframes uiArrowOpacity{
-  0%{opacity:1}
-  50%{opacity:0}
-  100%{opacity:1}
-}
-@keyframes uiArrowColorize{
-  0%{background:var(--color-background)}
-  50%{background:var(--color-background-hover)}
-  100%{background:var(--color-background)}
-}
-@keyframes uiArrowRipple{
-  0%{outline:0em solid transparent; outline-offset:-.1em}
-  50%{outline:.2em solid var(--color-outline); outline-offset:.2em}
-  100%{outline:.4em solid transparent; outline-offset:.4em}
-}
-
 /* ===== 登录 / 绑定按钮 .user-profile（9/10 二次改版：并入站点 teal 主色系）=====
    之之反馈原 Uiverse 蓝 #2e8eff + 黑内胆与全站白底 teal 风不协调 → 配色改走 --primary 三级
    （默认 500 / hover 600 / 按下 700，与「保存」等主按钮同源），形状沿用 131×51 r15 胶囊；
@@ -2818,41 +2667,6 @@ body.exam-fullscreen{overflow:hidden !important}
   pointer-events:none;
 }
 
-/* ===== 通用浮动标签输入框 ui-float（Uiverse alexruix 改写：Material 蓝 #1a73e8/#2196f3 → teal --primary；近白字 #f5f5f5/#e8e8e8→--ink/--muted；原 .input-group/.input/.user-label 改名 .ui-float*；⚠️ 原 input:valid/input:focus 裸元素选择器会污染全站（所有 input+其后续 label）→ 改 .ui-float-input 作用域；并用 :placeholder-shown 替代 :valid（避免「空的非 required 输入框」标签提前上浮的怪相） ===== */
-.ui-float{ position:relative; }
-.ui-float-input{
-  border:solid 1.5px var(--line);
-  border-radius:1rem;
-  background:var(--surface);
-  padding:1rem;
-  font-size:1rem;
-  color:var(--ink);
-  font-family:inherit;
-  width:100%;
-  box-sizing:border-box;
-  transition:border 150ms cubic-bezier(.4,0,.2,1);
-}
-.ui-float-label{
-  position:absolute;
-  left:15px;
-  color:var(--muted);
-  pointer-events:none;
-  transform:translateY(1rem);
-  transition:150ms cubic-bezier(.4,0,.2,1);
-}
-.ui-float-input:focus,
-.ui-float-input:not(:placeholder-shown){
-  outline:none;
-  border-color:var(--primary);
-}
-.ui-float-input:focus ~ .ui-float-label,
-.ui-float-input:not(:placeholder-shown) ~ .ui-float-label{
-  transform:translateY(-50%) scale(.8);
-  background-color:var(--surface);
-  padding:0 .2em;
-  color:var(--primary);
-}
-
 /* ===== 通用加载跳动点 ui-loader（Uiverse mobinkakei 改写：白球 #fff→teal --primary；黑影 rgba(0,0,0,.9)→color-mix(--ink 30%) 明暗自适应；原 .wrapper/.circle/.shadow 改名 .ui-loader*；⚠️ 原用 :nth-child(2/3/4/5) 定位/延时，DOM 顺序错一点就崩 → 改 .m2/.m3 修饰类，顺序无关；keyframes circle7124/shadow046 加 uiLoader 前缀） ===== */
 .ui-loader{
   width:200px;
@@ -2899,7 +2713,7 @@ body.exam-fullscreen{overflow:hidden !important}
   100%{ transform:scaleX(.2); opacity:.4; }
 }
 
-/* ===== 通用圆角输入框 ui-box-input（Uiverse ErzenXz 改写：lightgrey/grey 命名色→teal token；原 .input 改名 .ui-box-input 防与 .ui-input 系列混淆；border 宽 1.5→2px 改为恒定 2px 仅变色，避免聚焦时 0.5px 布局抖动） ===== */
+/* ===== 通用圆角输入框 ui-box-input（Uiverse ErzenXz 改写：lightgrey/grey 命名色→teal token；原 .input 改名 .ui-box-input 防与通用 .input 混淆（.ui-input 下划线动画系列已于 10/2 随死样式清理删除）；border 宽 1.5→2px 改为恒定 2px 仅变色，避免聚焦时 0.5px 布局抖动） ===== */
 .ui-box-input{
   width:100%;
   max-width:220px;
@@ -2917,77 +2731,6 @@ body.exam-fullscreen{overflow:hidden !important}
 .ui-box-input:hover{ border-color:var(--muted); box-shadow:0 0 20px -17px; }
 .ui-box-input:active{ transform:scale(.95); }
 .ui-box-input:focus{ border-color:var(--primary); }
-
-/* ===== 通用玻璃卡片 ui-glass-card（Uiverse Javierrocadev 改写：紫 rgba(105,13,197,.103)→teal color-mix(--primary 10%,--surface)；aliceblue/near-white 字→--ink/--muted；navy svg 描边 rgb(38,59,126)→--primary；白环→teal 半透明；原 .card/.text/.subtitle/.icons/.btn/.svg-icon 全超通用（站里已有 section.card/.btn）→ 全改名 .ui-glass-card*；.icons justify-items(对 flex 无效)→justify-content） ===== */
-.ui-glass-card{
-  width:250px;
-  height:200px;
-  border-radius:15px;
-  background:color-mix(in srgb, var(--primary) 10%, var(--surface));
-  display:flex;
-  flex-direction:column;
-  position:relative;
-  overflow:hidden;
-}
-.ui-glass-card::before{
-  content:"";
-  height:100px;
-  width:100px;
-  position:absolute;
-  top:-40%;
-  left:-20%;
-  border-radius:50%;
-  border:35px solid color-mix(in srgb, var(--primary) 22%, transparent);
-  transition:all .8s ease;
-  filter:blur(.5rem);
-}
-.ui-glass-card-text{
-  flex-grow:1;
-  padding:15px;
-  display:flex;
-  flex-direction:column;
-  color:var(--ink);
-  font-weight:900;
-  font-size:1.2em;
-}
-.ui-glass-card-sub{
-  font-size:.6em;
-  font-weight:300;
-  color:var(--muted);
-}
-.ui-glass-card-icons{
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  width:250px;
-  border-radius:0 0 15px 15px;
-  overflow:hidden;
-}
-.ui-glass-card-btn{
-  border:none;
-  width:84px;
-  height:35px;
-  background-color:var(--surface-2);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  cursor:pointer;
-  transition:background-color .2s;
-}
-.ui-glass-card-btn:hover{ background-color:var(--primary-soft); }
-.ui-glass-card-icon{
-  width:25px;
-  height:25px;
-  stroke:var(--primary);
-  fill:none;
-}
-.ui-glass-card:hover::before{
-  width:140px;
-  height:140px;
-  top:-30%;
-  left:50%;
-  filter:blur(0rem);
-}
 
 /* ===== 通用深色描边药丸按钮 ui-dark-btn（Uiverse elijahgummer 改写：黑渐变 #171717/#242424/#292929/#000000/#252525 → teal 渐变 --primary-d/--primary；白字→--on-primary；原 .styled-button/.inner-button/.icon 改名 .ui-dark-btn*，drop-shadow 中性黑保留） ===== */
 .ui-dark-btn{
@@ -3021,56 +2764,9 @@ body.exam-fullscreen{overflow:hidden !important}
   transform:translateY(2px);
   box-shadow:0 1px 2px rgba(0,0,0,1), 0 5px 10px rgba(0,0,0,.4);
 }
-.ui-dark-btn-inner{
-  position:relative;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background:linear-gradient(to bottom, var(--primary-d), var(--primary));
-  width:40px;
-  height:40px;
-  margin-left:10px;
-  border-radius:50%;
-  box-shadow:0 0 1px rgba(0,0,0,1);
-  border:1px solid var(--primary-d);
-  transition:all .2s ease;
-}
-.ui-dark-btn-inner::before{
-  content:"";
-  position:absolute;
-  top:-2px; right:-1px; bottom:-1px; left:-1px;
-  background:linear-gradient(to bottom, var(--primary), var(--primary-d));
-  z-index:-1;
-  border-radius:9999px;
-  transition:all .2s ease;
-  opacity:1;
-}
-.ui-dark-btn-icon{
-  filter:drop-shadow(0 10px 20px rgba(26,25,25,.9)) drop-shadow(0 0 4px rgba(0,0,0,1));
-  transition:all .4s ease-in-out;
-}
-.ui-dark-btn-icon:hover{
-  filter:drop-shadow(0 10px 20px rgba(50,50,50,1)) drop-shadow(0 0 20px rgba(2,2,2,1));
-  transform:rotate(-35deg);
-}
 /* 小号变体：用于计时页等次要操作，避免原版 padding 过大撑满 */
 .ui-dark-btn--sm{ padding:.5rem 1.25rem; font-size:.95rem;
   box-shadow:0 1px 2px rgba(0,0,0,.5), 0 6px 12px rgba(0,0,0,.25); }
-
-/* ===== 通用分层阴影卡片 ui-shadow-card（Uiverse absoluteSTrange 改写：白底 white→--surface；灰环 rgb(190,190,190)→--line；原 .card/.shadow 改名 .ui-shadow-card/.ui-shadow-card-shadow（.card 站里已有 section.card → 必改名）；黑阴影中性保留 ===== */
-.ui-shadow-card{
-  width:190px;
-  height:254px;
-  background:var(--surface);
-  border-radius:10px;
-  transition:border-radius .5s cubic-bezier(.175,.885,.32,1.275);
-}
-.ui-shadow-card-shadow{
-  box-shadow:
-    inset 0 -3em 3em rgba(0,0,0,.1),
-    0 0 0 2px var(--line),
-    0.3em 0.3em 1em rgba(0,0,0,.3);
-}
 
 /* ===== 全站玻璃底栏 dock（移动端主导航；桌面隐藏，用侧栏） + 新增浮动按钮 ===== */
 #hubDock{ position:fixed; left:50%; bottom:18px; transform:translateX(-50%); z-index:45; display:none; }

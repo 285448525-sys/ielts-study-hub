@@ -9,7 +9,7 @@
      SW 不参与离线态的判定与渲染，缓存策略本文件零改动。
      本文件 activate 时发的 `SW_UPDATED` 消费端也在 common.js（maybeShowSwUpdatePrompt，
      design/78）：页面收到后只弹提示条，**是否刷新由用户点击决定，SW 侧绝不自动 reload**。 */
-const CACHE = 'ielts-hub-v135';  // 10/2：pdEnsureProgress 字段级兜底（pattern-drill），替换整体 || 兜底（truthy 空对象会漏，下游读 p.items 就炸）。上一版 v134 死样式/死代码清理批
+const CACHE = 'ielts-hub-v136';  // 10/2：清理死样式 ui-* 系列 9 块共 305 行（ui-check/ui-switch/ui-btn/ui-input/ui-ripple-btn/ui-float/ui-glass-card/ui-dark-btn-inner|-icon/ui-shadow-card，全站零引用）。上一版 v135 pdEnsureProgress 字段级兜底（pattern-drill）
 
 /* 核心壳预缓存清单（Node 脚本枚举目录生成，2026-09-20；与 14 页实际引用核对无遗漏）。
    不含 js/vendor/xlsx.full.min.js（861KB 体积大 → 走运行时 SWR 缓存）。 */
