@@ -2926,25 +2926,17 @@ function buildPersonaContext(){
 function renderAIHelper(el, ai){
   if(!el || !ai) return;
   let h = '';
-  // 逻辑链：显示在作答框下方，照着讲
+  // 英文参考回答：直接展开显示（不再折叠），默认可朗读/可复制
+  if(ai.answer){
+    h += '<div class="sp-ref-answer open">' + escapeHtml(ai.answer) + '</div>';
+  }
+  // 逻辑链：浅浅标注在参考英文下方（浅蓝底卡片，不抢眼）
   if(ai.logicChain){
     h += '<div class="sp-logic"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:14px;height:14px;vertical-align:-2px;margin-right:4px"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 1 4 10.5c-.8.7-1 1.5-1 2.5h-6c0-1-.2-1.8-1-2.5A6 6 0 0 1 12 3z"/></svg>逻辑链</b><span class="sp-logic-text">' + escapeHtml(ai.logicChain) + '</span></div>';
-  }
-  // 英文参考回答：默认折叠，不自动填入作答框
-  if(ai.answer){
-    h += '<button class="sp-ref-toggle" type="button" data-ref>📄 查看参考英文（可展开）</button>'
-      + '<div class="sp-ref-answer" data-ref-body>' + escapeHtml(ai.answer) + '</div>';
   }
   if(!h) h = '<div class="diag-note">（该题暂无 AI 辅助结果）</div>';
   el.innerHTML = h;
   el.style.display = 'block';
-  // 展开 / 收起参考英文
-  const t = el.querySelector('[data-ref]');
-  const b = el.querySelector('[data-ref-body]');
-  if(t && b) t.addEventListener('click', () => {
-    const open = b.classList.toggle('open');
-    t.textContent = open ? '🙈 收起参考英文' : '📄 查看参考英文（可展开）';
-  });
 }
 
 /* === 万能素材生成器：已统一到 js/materials.js（口语页 MAT tab 与 materials.html 共用一份代码） ===
