@@ -72,9 +72,175 @@
     }
   }
 
+  // ④ 弱项诊断（10/1 晚 Landing 卖点对版：任何时候都显示，不依赖考试日期）
+  //    用 MOCK_TYPES + BAND_TABLE + estimateBand（common.js 已装），
+  //    取近 30 天 mockRecords 分桶估科 → 对比目标分 → 最弱科行动建议
+  function renderWeakness(){
+    const host = document.getElementById('dashWeakness');
+    if(!host) return;
+    try{
+      const records = ((DATA && DATA.mockRecords) || []).slice()
+        .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+      const targets = (((DATA && DATA.settings) || {}).targets) || {};
+      const SKILLS = ['listening','reading','writing','speaking'];
+      const LABEL = { listening:'听力', reading:'阅读', writing:'写作', speaking:'口语' };
+      const ICONS = { listening:'🎧', reading:'📖', writing:'✏️', speaking:'🗣' };
+      const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30);
+      const cutoffStr = cutoff.getFullYear() + '-' + String(cutoff.getMonth()+1).padStart(2,'0') + '-' + String(cutoff.getDate()).padStart(2,'0');
+
+      function recentLevel(kind){
+        let any = false;
+        const buckets = {};
+        const fallback = { level: null, fromDate: null };
+        for(const r of records){
+          const isSp = (r.kind === 'speaking');
+          const ty = isSp ? 'speaking' : r.type;
+          if(ty !== kind) continue;
+          const date = String(r.date || '');
+          if(isSp){
+            const ov = parseFloat(r.overall);
+            if(!isNaN(ov)){
+              if(!fallback.level || date > fallback.fromDate){ fallback.level = ov; fallback.fromDate = date; }
+              if(date >= cutoffStr){ any = true; return ov; }
+            }
+            continue;
+          }
+          const cfg = MOCK_TYPES[ty]; if(!cfg) continue;
+          // buckets
+          for(const p of (r.parts || [])){
+            if(!p || !p.label) continue;
+            const b = buckets[p.label] || (buckets[p.label] = { n:0, c:0, tot:0, s:0, w:0 });
+            if(typeof p.score === 'number'){
+              b.s += p.score; b.w += typeof partWeight === 'function' ? partWeight(cfg, p.label) : 1; b.n += 1;
+            } else if(typeof p.correct === 'number' && typeof p.total === 'number' && p.total > 0){
+              b.c += p.correct; b.tot += p.total; b.n += 1;
+            }
+          }
+          if(!fallback.level){
+            // 单条独立估分（fallback 用最近一条的 bandFromRec）
+            try{
+              const parts = Array.isArray(r.parts) ? r.parts : [];
+              let lv = null;
+              if(cfg.mode === 'score'){
+                let num = 0, den = 0;
+                parts.forEach(p => {
+                  if(typeof p.score === 'number'){ const w = typeof partWeight === 'function' ? partWeight(cfg, p.label) : 1; num += p.score * w; den += w; }
+                });
+                if(den > 0) lv = num / den;
+              } else {
+                let c = 0, t = 0;
+                parts.forEach(p => { if(typeof p.correct === 'number' && typeof p.total === 'number'){ c += p.correct; t += p.total; } });
+                if(t > 0 && typeof estimateBand === 'function') lv = estimateBand(ty, c, t);
+              }
+              if(lv != null){ fallback.level = lv; fallback.fromDate = date; }
+            }catch(e){}
+          }
+          if(date >= cutoffStr) any = true;
+        }
+        if(any){
+          // 30 天内的数据用分桶估
+          const bucketed = {};
+          for(const r of records){
+            if(r.kind === 'speaking') continue;
+            const ty = r.type;
+            if(ty !== kind) continue;
+            const date = String(r.date || '');
+            if(date < cutoffStr) continue;
+            const cfg = MOCK_TYPES[ty]; if(!cfg) continue;
+            const bk = bucketed;
+            for(const p of (r.parts || [])){
+              if(!p || !p.label) continue;
+              const b = bk[p.label] || (bk[p.label] = { n:0, c:0, tot:0, s:0, w:0 });
+              if(typeof p.score === 'number'){
+                b.s += p.score; b.w += typeof partWeight === 'function' ? partWeight(cfg, p.label) : 1; b.n += 1;
+              } else if(typeof p.correct === 'number' && typeof p.total === 'number' && p.total > 0){
+                b.c += p.correct; b.tot += p.total; b.n += 1;
+              }
+            }
+          }
+          const cfg = MOCK_TYPES[kind];
+          if(bucketed && cfg){
+            if(cfg.mode === 'score'){
+              let num = 0, den = 0;
+              Object.keys(bucketed).forEach(k => {
+                const b = bucketed[k];
+                if(b.n > 0 && b.w > 0){ const w = b.w / b.n; num += (b.s / b.n) * w; den += w; }
+              });
+              if(den > 0) return { level: num / den, fromDate: cutoffStr };
+            } else {
+              let sum = 0, tot = 0;
+              Object.keys(bucketed).forEach(k => {
+                const b = bucketed[k];
+                if(b.n > 0){ sum += b.c / b.n; tot += b.tot / b.n; }
+              });
+              if(tot > 0 && typeof estimateBand === 'function') return { level: estimateBand(kind, sum, tot), fromDate: cutoffStr };
+            }
+          }
+        }
+        if(fallback.level != null) return fallback;
+        return { level: null, fromDate: null };
+      }
+
+      // 收集四科数据
+      const hasTarget = SKILLS.some(k => Number(targets[k]) > 0);
+      const hasData = records.length > 0;
+      if(!hasData){
+        host.innerHTML = '<h2 style="margin:0 0 10px">💡 你的弱项</h2>'
+          + '<p class="muted" style="margin:0;font-size:13px">还没录入过能估分的模考记录（整卷或单项都行）。在下方「添加分项记录」录一条，这里会自动算出你哪科最弱。</p>';
+        return;
+      }
+      if(!hasTarget){
+        host.innerHTML = '<h2 style="margin:0 0 10px">💡 你的弱项</h2>'
+          + '<p class="muted" style="margin:0;font-size:13px">还没设目标分数，去<a href="settings.html">设置</a>填一下，这里会按科算差距。</p>';
+        return;
+      }
+      const rows = [];
+      SKILLS.forEach(k => {
+        const t = Number(targets[k]) || 0;
+        if(!t) return;
+        const lv = recentLevel(k);
+        if(lv.level == null) return;
+        const gap = Math.round((lv.level - t) * 2) / 2;
+        rows.push({ k, label: LABEL[k], icon: ICONS[k], level: lv.level, target: t, gap });
+      });
+      if(rows.length === 0){
+        host.innerHTML = '<h2 style="margin:0 0 10px">💡 你的弱项</h2>'
+          + '<p class="muted" style="margin:0;font-size:13px">目标已设，但近 30 天没有对应科目的模考记录。去下方录一条，这里自动帮你找差距。</p>';
+        return;
+      }
+      rows.sort((a, b) => a.gap - b.gap);
+      const worst = rows[0];
+      let html = '<h2 style="margin:0 0 10px">💡 你的弱项</h2><div style="margin-bottom:10px;font-size:13px;color:var(--muted)">按近 30 天模考记录估分，对比目标分找差距</div>';
+      html += rows.map(r => {
+        const isWorst = r === worst && r.gap < 0;
+        const tag = r.gap < 0 ? '还差 ' + Math.abs(r.gap).toFixed(1) + ' 分'
+                  : (r.gap > 0 ? '已超 ' + r.gap.toFixed(1) + ' 分' : '已达标');
+        const cls = r.gap < 0 ? 'down' : 'up';
+        return '<div class="gap-row' + (isWorst ? ' gap-worst' : '') + '">'
+          + '<span class="gap-ic">' + r.icon + '</span>'
+          + '<span class="gap-name">' + r.label + '</span>'
+          + '<span class="gap-val">' + r.level.toFixed(1) + ' / 目标 ' + r.target.toFixed(1) + '</span>'
+          + '<span class="badge ' + cls + ' gap-tag">' + tag + '</span>'
+          + '</div>';
+      }).join('');
+      if(worst.gap < 0){
+        html += '<p style="margin:10px 0 0;font-size:13.5px">💡 最大缺口是 <b>' + worst.label + '</b>（差 ' + Math.abs(worst.gap).toFixed(1) + ' 分），建议优先练。</p>';
+      } else {
+        html += '<p style="margin:10px 0 0;font-size:13.5px">🎉 四项均已达目标，保持节奏即可～</p>';
+      }
+      host.innerHTML = html;
+    }catch(e){
+      host.innerHTML = '';
+    }
+  }
+
   ready(() => {
     ensureMockHistory();
     ensureSpeakingPractice();
     initRvFold();
+    renderWeakness();
+    // 云端合并后数据可能变（另一台设备刚录了成绩），重渲弱项诊断
+    document.addEventListener('hub:data-merged', renderWeakness);
+    document.addEventListener('hub:session-saved', renderWeakness);
   });
 })();

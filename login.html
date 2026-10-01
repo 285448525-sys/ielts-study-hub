@@ -97,6 +97,8 @@ input::placeholder{color:var(--n-500)}
         <button class="btn" id="goLogin" type="button">登 录</button>
         <p class="note" id="noteLogin"></p>
         <div class="links"><span class="dim">没有账号？</span><a id="toRegister">设置密码注册 · 1 分钟</a></div>
+        <div class="links" style="margin-top:8px"><a id="forgotPass">忘记密码？</a></div>
+        <p class="note" id="noteForgot" style="font-size:12.5px;margin-top:6px;color:#71767e"></p>
       </div>
 
       <!-- 注册模式 -->
@@ -168,6 +170,11 @@ input::placeholder{color:var(--n-500)}
   /* 模式切换 */
   $('toRegister').addEventListener('click', function(){ note('noteRegister',''); show('Register'); $('rAcct').value = $('acct').value; $('rAcct').focus(); });
   $('backLogin1').addEventListener('click', function(){ show('Login'); });
+  $('forgotPass').addEventListener('click', function(){
+    var n = $('noteForgot');
+    if(n.style.display === 'none'){ n.style.display = 'block'; }
+    n.innerHTML = '目前没有自助找回——联系站长微信 <b>g285448525</b> 帮你重开账号，老数据不会丢（数据跟账号走，只在你重新登录后恢复）。';
+  });
 
   /* 登录 */
   $('goLogin').addEventListener('click', function(){

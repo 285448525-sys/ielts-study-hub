@@ -3534,9 +3534,9 @@ async function hubPwaInstall(){
   }catch(e){ return 'error'; }
 }
 
-const ONB_KEY = 'hub_onboarding_v2';        // 9/30 新版五步引导；旧键自动迁移（见下面的迁移函数）
+const ONB_KEY = 'hub_onboarding_v2';        // 9/30 引导；10/1 晚从 5 步压到 3 步（删欢迎介绍和完成总结独立 pane，合并进 exam/words）
 const ONB_OLD_KEY = 'hub_onboarding_v1';    // 旧版引导状态键：读到它就迁成「已完成」，老用户零打扰
-const ONB_TOTAL = 5;                        // 引导步数：欢迎 / 考试日期 / 每日投入 / 词库 / 完成
+const ONB_TOTAL = 3;                        // 引导步数：考试日期 / 每日投入 / 词库（原 step1 欢迎文案并入 step1 导语，原 step5 done 总结并入 step3 底部）
 let _onbLastDir = 1;                        // 步骤横滑方向（1 前进、-1 后退）
 const ONB_GOTO_BANK = 'hub_onb_goto_bank';   // 「去导入词库」跳转 practice.html 的一次性暗号（sessionStorage）
 /* 「老用户判定」只看个人内容字段，绝不能把随 data.js 自带的官方内容算进来：
@@ -3987,11 +3987,9 @@ function onbRenderSetup(step){
   pane.className = 'onb2-step ' + (_onbLastDir < 0 ? 'from-l' : 'from-r');
   stage.appendChild(pane);
   wrap.appendChild(stage);
-  if(step === 1) onbPaintWelcome(pane);
-  else if(step === 2) onbPaintExam(pane);
-  else if(step === 3) onbPaintEffort(pane);
-  else if(step === 4) onbPaintWords(pane);
-  else onbPaintDone(pane);
+  if(step === 1) onbPaintExam(pane, true);       // 10/1：step1 exam 带欢迎导语
+  else if(step === 2) onbPaintEffort(pane);
+  else onbPaintWords(pane, true);               // 10/1：step3 words 带完成总结
   const nav = document.createElement('div');
   nav.className = 'onb2-nav';
   if(step > 1){
@@ -4010,7 +4008,7 @@ function onbRenderSetup(step){
   nav.appendChild(ind);
   const next = document.createElement('button');
   next.type = 'button'; next.className = 'btn btn-primary btn-sm onb2-next';
-  next.textContent = (step === 1 ? '开始 →' : (step === 4 ? '先跳过 →' : (step === 5 ? '进站开工 →' : '继续 →')));
+  next.textContent = (step === 1 ? '开始配置 →' : (step === 3 ? '进站开工 →' : '继续 →'));
   next.addEventListener('click', function(){ _onbStepNext(step); });
   nav.appendChild(next);
   wrap.appendChild(nav);
@@ -4027,7 +4025,8 @@ function onbRenderSetup(step){
 }
 function _onbStepNext(step){
   try{
-    if(step === 2){
+    // step 1 = exam (原 step 2)；step 2 = effort (原 step 3)；step 3 = words (原 step 4+5 合并)
+    if(step === 1){
       const d = ((document.getElementById('onb2Exam') || {}).value || '').trim();
       const err = document.getElementById('onb2Err');
       if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){
@@ -4038,7 +4037,7 @@ function _onbStepNext(step){
       try{
         DATA.settings = DATA.settings || {};
         DATA.settings.examDate = d;
-        DATA.settings.examDates = [];                 // 与 saveSettings 同口径：examDate 是唯一有效来源
+        DATA.settings.examDates = [];
         DATA.settings._fieldTs = DATA.settings._fieldTs || {};
         DATA.settings._fieldTs.examDate = Date.now();
         const tv = Number(((document.getElementById('onb2Target') || {}).value || '').trim());
@@ -4048,10 +4047,10 @@ function _onbStepNext(step){
       setOnboarding({ setup:{ exam:true } });
       try{ if(typeof renderDashV6 === 'function') renderDashV6(); }catch(_){}
       _onbLastDir = 1;
-      onbRenderSetup(3);
+      onbRenderSetup(2);
       return;
     }
-    if(step === 3){
+    if(step === 2){
       try{
         const rawH = ((document.getElementById('onb2Hours') || {}).value || '').trim();
         const h = Number(rawH);
@@ -4067,10 +4066,11 @@ function _onbStepNext(step){
       }catch(_){}
       setOnboarding({ setup:{ effort:true } });
       _onbLastDir = 1;
-      onbRenderSetup(4);
+      onbRenderSetup(3);
       return;
     }
-    if(step === 5){
+    if(step === 3){
+      // 词库步 + 完成合并：点「进站开工 →」即完成
       const st0 = getOnboarding() || onbDefaults();
       const s0 = st0.setup || {};
       const all = !!(s0.exam && s0.effort && s0.words);
@@ -4102,7 +4102,14 @@ function onbPaintWelcome(pane){
   });
   pane.appendChild(list);
 }
-function onbPaintExam(pane){
+function onbPaintExam(pane, withIntro){
+  if(withIntro){
+    const k = document.createElement('div');
+    k.className = 'onb2-kicker'; k.textContent = '雅思备考 Hub';
+    pane.appendChild(k);
+    pane.appendChild(_onbH('把这三件事配好，就可以开工了'));
+    pane.appendChild(_onbNote('考试日期 · 每日投入 · 你的词库。大约 30 秒，之后随时能在「设置」里改。'));
+  }
   const s = (DATA && DATA.settings) || {};
   pane.appendChild(_onbH('考试日期与目标总分'));
   pane.appendChild(_onbNote('日期填了首页才有倒计时；目标总分可以先不填。'));
@@ -4133,7 +4140,7 @@ function onbPaintEffort(pane){
   _onbField(pane, 'onb2Cap', '每日背词上限（个，0 = 不限）', 'number',
     { min:'0', max:'999', step:'1', value:'60', inputMode:'numeric' });
 }
-function onbPaintWords(pane){
+function onbPaintWords(pane, withDone){
   pane.appendChild(_onbH('你的词库'));
   pane.appendChild(_onbNote('导入自己的词库最有效；没有的话先用内置的官方 AWL 570，之后随时能换。'));
   const goImport = document.createElement('button');
@@ -4155,6 +4162,29 @@ function onbPaintWords(pane){
     location.href = 'practice.html';
   });
   pane.appendChild(goAwl);
+  // 10/1：原 step5 done 总结合并进来（点「进站开工 →」之前让用户看到自己配了什么）
+  if(withDone){
+    const s = (DATA && DATA.settings) || {};
+    const pc = (s.practiceCfg && typeof s.practiceCfg === 'object') ? s.practiceCfg : {};
+    const cap = Number(pc.dailyCap) || 0;
+    const hours = Number(s.dailyGoalHours) || 0;
+    const target = Number((s.targets || {}).overall || 0);
+    const days = onbDaysLeft();
+    const sep = document.createElement('div'); sep.style.height = '14px'; pane.appendChild(sep);
+    const list = document.createElement('ul');
+    list.className = 'onb2-list';
+    [['距考试', days == null ? '未设置' : (days > 0 ? (days + ' 天') : (days === 0 ? '就是今天' : '已过'))],
+     ['目标总分', target > 0 ? target.toFixed(1) : '未设置'],
+     ['每日投入', (hours > 0 ? (hours + ' 小时') : '未设置') + ' · 背词 ' + (cap > 0 ? (cap + ' 个') : '不限')]
+    ].forEach(function(x){
+      const li = document.createElement('li');
+      const b = document.createElement('b'); b.textContent = x[0];
+      const sp = document.createElement('span'); sp.textContent = x[1];
+      li.appendChild(b); li.appendChild(sp);
+      list.appendChild(li);
+    });
+    pane.appendChild(list);
+  }
 }
 function onbDaysLeft(){
   try{

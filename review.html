@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="UTF-8" />
@@ -40,7 +40,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20260930g"></script>
-<script defer src="js/common.js?v=20261001l"></script>
+<script defer src="js/common.js?v=20261001n"></script>
 <script defer src="js/scores.js?v=20261001d"></script>
 <script defer src="js/history.js?v=20260904d"></script>
 <script defer src="js/mock-report.js?v=20260830u"></script>
@@ -51,7 +51,7 @@
 <!-- 回顾页的协调脚本：软导航下由 common.js 按其 pageScriptSources 收集执行。
      ⚠️ 必须带 ?v= 声明在这里 —— 否则 common.js 只能拿裸 URL 'js/review.js'，
      等于向浏览器 HTTP 缓存要「任意年代的旧副本」，改动永远推不上去（9/17 陈旧 UI 事故根因）。 -->
-<script defer src="js/review.js?v=20260917b"></script>
+<script defer src="js/review.js?v=20261001b"></script>
 <!-- 考前冲刺卡：距考试 ≤14 天才渲染，依赖 common.js 的 ready/examCountdown（10/1 从首页迁入） -->
 <script defer src="js/sprint.js?v=20261001f"></script>
 <style id="bootLoaderStyle">
@@ -79,7 +79,9 @@
     <section class="review-pane">
       <!-- 分项模考 Tab（默认） -->
       <div id="tab-breakdown" class="tab-panel active">
-        <!-- 考前冲刺卡（10/1 从首页迁来，她拍板首页放不下；id 保留 dashSprint 供 sprint.js/探针复用） -->
+        <!-- 💡 弱项诊断（10/1 晚 Landing 卖点对版：任何时候都显示，不依赖考试日期） -->
+        <section class="card" id="dashWeakness"></section>
+        <!-- 考前冲刺卡（10/1 从首页迁入，她拍板首页放不下；id 保留 dashSprint 供 sprint.js/探针复用） -->
         <section class="sprint" id="dashSprint" hidden></section>
         <section class="card">
           <h2>添加分项记录</h2>

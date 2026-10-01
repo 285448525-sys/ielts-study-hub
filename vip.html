@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="UTF-8" />
@@ -20,7 +20,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20260930g"></script>
-  <script defer src="js/common.js?v=20261001l"></script>
+  <script defer src="js/common.js?v=20261001n"></script>
   <script src="js/vip.js?v=20261001e" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -111,7 +111,7 @@
           <tr>
             <td style="padding:10px 8px;border-bottom:1px solid var(--line)">会员专属功能<br /><span class="muted" style="font-size:12px">专属主题 / 深度专注 / 效率报告</span></td>
             <td style="padding:10px 8px;border-bottom:1px solid var(--line)"><span class="vip-no">—</span></td>
-            <td class="vip-col" style="padding:10px 8px;border-bottom:1px solid var(--line)"><span class="badge">即将上线</span></td>
+            <td class="vip-col" style="padding:10px 8px;border-bottom:1px solid var(--line)"><span class="muted" style="font-size:12px">持续更新中</span></td>
           </tr>
         </tbody>
       </table>
@@ -119,41 +119,12 @@
     <p class="muted" style="font-size:12.5px;margin:12px 0 0">学习功能本身全部免费且无差别——会员提升的是 <b>AI 额度</b>（模考 / 批改 / 素材 / 辅助）和后续专属功能。</p>
   </section>
 
-  <!-- 推广福利预告（她 10/1 拍板：先在会员页体现，功能后做——分享送周卡/高流量更高奖励，规则待定） -->
-  <section class="card" id="vipPromo">
-    <h2 style="margin:0 0 10px">🎁 推广福利 <span class="badge" style="vertical-align:3px">即将上线</span></h2>
-    <p style="font-size:14px;margin:0 0 8px">帮我们把网站分享给更多备考的同学，福利直接送到：</p>
-    <ul style="font-size:13.5px;margin:0 0 10px;padding-left:20px;line-height:2">
-      <li><b>分享就送</b>：通过你的分享来了新用户 → 送你 <b>周卡</b>（7 天会员）</li>
-      <li><b>带来越多，奖励越大</b>：流量高的同学可以拿季卡 / 年卡，甚至直接现金奖励</li>
-      <li>周卡同样享全部会员权益（AI 无限次等），时间从领取当天起算</li>
-    </ul>
-    <p class="muted" style="font-size:12.5px;margin:0">具体参与方式和统计规则正在准备中，上线后在这个页面公告——先把链接发给身边考雅思的朋友吧。</p>
-  </section>
-
-  <!-- 开通流程（10/1 先手动收款：免签支付有二清风险，跑通后再接自动发货。三步傻瓜化她拍板方向） -->
+  <!-- 开通方式（10/1 先手动收款，自动支付跑通后再接） -->
   <section class="card" id="vipHowto">
-    <h2 style="margin:0 0 14px">三步开通</h2>
-    <div style="display:flex;flex-direction:column;gap:14px;font-size:14px">
-      <div style="display:flex;gap:12px;align-items:flex-start">
-        <span style="flex:none;width:26px;height:26px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">1</span>
-        <div><b>扫码转账</b><br /><span class="muted" style="font-size:13px">选好方案，微信或支付宝扫码转账对应金额，<b>备注里写你的站内账号</b>（手机号或用户名）</span></div>
-      </div>
-      <div style="display:flex;gap:12px;align-items:flex-start">
-        <span style="flex:none;width:26px;height:26px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">2</span>
-        <div><b>加站长微信确认</b><br /><span class="muted" style="font-size:13px">加微信 <b>g285448525</b>，发一句「已转账 + 你的账号」，标明来意都会通过</span></div>
-      </div>
-      <div style="display:flex;gap:12px;align-items:flex-start">
-        <span style="flex:none;width:26px;height:26px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">3</span>
-        <div><b>等待生效</b><br /><span class="muted" style="font-size:13px">站长确认后<b>约 10 分钟内</b>开通，回到本页刷新即可看到会员状态</span></div>
-      </div>
-    </div>
-    <!-- ⚠️ 站长要做的：把收款码图片放进项目（如 img/pay_wechat.png / img/pay_alipay.png），
-         把下面两个占位框里的说明文字替换成 <img src="…" style="width:100%;border-radius:10px" />。
-         没放图之前页面显示占位提示，不影响其他功能。 -->
-    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:16px">
-      <div style="flex:1;min-width:150px;max-width:230px;border:2px dashed var(--line);border-radius:12px;padding:18px 12px;text-align:center;color:var(--muted);font-size:13px">【微信收款码<br />站长贴图占位】</div>
-      <div style="flex:1;min-width:150px;max-width:230px;border:2px dashed var(--line);border-radius:12px;padding:18px 12px;text-align:center;color:var(--muted);font-size:13px">【支付宝收款码<br />站长贴图占位】</div>
+    <h2 style="margin:0 0 14px">开通方式</h2>
+    <div style="background:#f6f8f9;border-radius:12px;padding:18px 20px">
+      <p style="margin:0 0 8px;font-size:14.5px"><b>加站长微信开通</b>：选好方案（周卡 ¥39 / 月卡 ¥69 / 季卡 ¥179 / 年卡 ¥499），加微信 <b>g285448525</b> 转账并报你的站内账号，<b>约 10 分钟内</b> 开通。</p>
+      <p class="muted" style="margin:0;font-size:13px">自动支付正在对接中，上线后页面会更新；现在走微信转账最稳。</p>
     </div>
   </section>
 
