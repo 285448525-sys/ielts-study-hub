@@ -196,6 +196,32 @@ export async function onRequest(context) {
     return json({ ok: true, acct: sess.acct, vip });
   }
 
+  /* ---------- 查询 AI 免费额度用量（10/1 分功能差异化口径；首页 AI 卡/功能入口置灰用） ----------
+     键与闸值必须与 ai.js 同源：aiqt:<acct>:<组>（终身）/ aiqd:<acct>:<day>（每日，UTC YYYYMMDD）。
+     默认阈值改这里要同步 ai.js + vip.html 对比表（三处口径一致）。day 计算与 ai.js dayKey 同口径。 */
+  if (action === 'ai_usage') {
+    const sess = await sessionOf(kv, request, body);
+    if (!sess) return json({ ok: false, error: 'unauthorized', msg: '登录已过期，请重新登录' }, 401);
+    let vip = null;
+    try {
+      const v = JSON.parse((await kv.get('vip:' + sess.acct)) || 'null');
+      if (v && v.expire && v.expire > Date.now()) vip = { type: v.type || 'base', expire: v.expire };
+    } catch (e) {}
+    const _p = n => String(n).padStart(2, '0');
+    const _d = new Date();
+    const day = _d.getUTCFullYear() + _p(_d.getUTCMonth() + 1) + _p(_d.getUTCDate());
+    const g = async k => { try { return parseInt((await kv.get(k)) || '0', 10) || 0; } catch (e) { return 0; } };
+    const mockUsed = await g('aiqt:' + sess.acct + ':mock');
+    const writingUsed = await g('aiqt:' + sess.acct + ':writing');
+    const transUsed = await g('aiqd:' + sess.acct + ':' + day);
+    return json({
+      ok: true, acct: sess.acct, vip,
+      mock:    { used: mockUsed,    total: 1 },   // env AI_FREE_MOCK_TOTAL 默认 1
+      writing: { used: writingUsed, total: 2 },   // env AI_FREE_WRITING_TOTAL 默认 2
+      trans:   { used: transUsed,   total: 1 },   // env AI_FREE_TRANS_DAILY 默认 1（translate/trans/longsent 每日合计）
+    });
+  }
+
   /* ---------- 登出 ---------- */
   if (action === 'logout') {
     const sess = await sessionOf(kv, request, body);

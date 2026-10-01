@@ -39,6 +39,8 @@ ready(async () => {
   // 10/1 UI v2 · 底部轻量条：PWA 安装链接（复用 design/80 的 hubPwaState/hubPwaInstall，零新机制）
   // 已装彻底隐藏（不留死按钮，原则②）；iOS 走文字引导；prompt 事件晚到也没关系——点击时实时查状态
   safe(initFootInstall);
+  // 10/1 批 B · AI 卡动态化：登录后查分功能额度（未登录保持静态默认；会员显示无限）
+  safe(initAiCard);
 });
 function initFootInstall(){
   const tip = document.getElementById('footInstallTip');
@@ -57,6 +59,36 @@ function initFootInstall(){
       toast('当前浏览器不支持一键安装，可在浏览器菜单里找「安装应用」');
     }
   });
+}
+
+// 10/1 批 B · 首页 AI 卡动态化：登录后查 /api/auth ai_usage，按分功能口径渲染剩余额度
+// 未登录/请求失败保持静态默认（3 项）；会员显示 ∞；异步轻请求不阻塞首屏
+async function initAiCard(){
+  const el = document.getElementById('dashAiLeft');
+  if(!el) return;
+  let token = '';
+  try{ token = localStorage.getItem('hub_auth_token') || ''; }catch(e){}
+  if(!token) return;
+  try{
+    const r = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Session': token },
+      body: JSON.stringify({ action: 'ai_usage' })
+    });
+    const j = await r.json();
+    if(!j || j.ok !== true) return;
+    const hint = document.getElementById('dashAiHint');
+    if(j.vip){
+      el.innerHTML = '∞';
+      if(hint) hint.textContent = '会员权益生效中 · AI 不限次';
+      return;
+    }
+    const left = g => Math.max(0, (g.total || 0) - (g.used || 0));
+    const m = left(j.mock || {}), w = left(j.writing || {}), t = left(j.trans || {});
+    const n = (m > 0 ? 1 : 0) + (w > 0 ? 1 : 0) + (t > 0 ? 1 : 0);
+    el.innerHTML = n > 0 ? (n + '<span class="u">项</span>') : '用完';
+    if(hint) hint.textContent = '口语 ' + (m > 0 ? m : '已用') + ' · 写作 ' + (w > 0 ? w : '已用') + ' · 翻译 ' + (t > 0 ? t + '/日' : '已用');
+  }catch(e){}
 }
 
 /** v6 首页渲染：hero 倒计时 + 双卡 + 快速入口 + 今日记录（design/31 A 版） */

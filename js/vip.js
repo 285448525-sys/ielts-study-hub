@@ -3,15 +3,17 @@
    ① 按 VIP_PLANS 常量渲染价格卡（改价只动这一处）
    ② 实时查 /api/auth vip_status 渲染顶部状态卡（会员跟账号走，不缓存本地——过期状态必须准） */
 
-/* ⭐ 定价唯一来源（她想调价就改这个数组；perDay 手算填，改价格记得同步改）
-   免费 AI 额度 10 次/天 写死在 functions/api/ai.js 的 AI_USER_DAILY_LIMIT 默认值，
-   两处口径必须一致：改免费额度 → ai.js 默认值 + 本文件 FREE_AI_DAILY + vip.html 对比表文案。 */
+/* ⭐ 定价唯一来源（她想调价就改这个数组；perDay/save 手算填，改价格记得同步改）
+   10/1 定价改按豆包全案口径（她拍板）：月 69 / 季 179 / 年 499（年卡默认高亮「推荐 · 最划算」+立省 329 元）。
+   免费额度 10/1 起为分功能差异化（口语模考 1 次 / 写作批改 2 次 / 翻译长难句每日 1 次 / 串题会员专属），
+   写死在 functions/api/ai.js（AI_FREE_MOCK_TOTAL / AI_FREE_WRITING_TOTAL / AI_FREE_TRANS_DAILY），
+   口径必须一致的处所：ai.js 默认值 + auth.js ai_usage + vip.html 对比表（改额度三处同步）。 */
 const VIP_PLANS = [
-  { id:'month',   name:'月卡', price:'19.9', unit:'月', perDay:'≈ 0.66 元/天', tag:'' },
-  { id:'quarter', name:'季卡', price:'49.9', unit:'季', perDay:'≈ 0.55 元/天', tag:'多数人选' },
-  { id:'year',    name:'年卡', price:'129',  unit:'年', perDay:'≈ 0.35 元/天', tag:'最划算' },
+  { id:'month',   name:'月卡', price:'69',  unit:'月', perDay:'≈ 2.3 元/天', save:'',           tag:'' },
+  { id:'quarter', name:'季卡', price:'179', unit:'季', perDay:'≈ 2.0 元/天', save:'',           tag:'' },
+  { id:'year',    name:'年卡', price:'499', unit:'年', perDay:'≈ 1.3 元/天', save:'立省 329 元', tag:'推荐 · 最划算' },
 ];
-const FREE_AI_DAILY = 10;
+const FREE_AI_DESC = '口语模考 1 次 · 写作批改 2 次 · 翻译/长难句每日 1 次';
 
 const VIP_ICON_GOLD = '<svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#eab308" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20M9.5 9L12 3l2.5 6M12 21L9.5 9M12 21l2.5-12"/></svg>';
 
@@ -31,7 +33,7 @@ function renderVipPlans(){
       ${p.tag ? `<span class="badge" style="position:absolute;top:-10px;right:12px;background:${featured ? 'var(--primary)' : 'var(--surface-2)'};color:${featured ? 'var(--on-primary)' : 'inherit'}">${escapeHtml(p.tag)}</span>` : ''}
       <div style="font-weight:700;font-size:15px">${escapeHtml(p.name)}</div>
       <div style="margin:8px 0 2px"><span style="font-size:28px;font-weight:800">¥${escapeHtml(p.price)}</span><span class="muted" style="font-size:13px"> / ${escapeHtml(p.unit)}</span></div>
-      <div class="muted" style="font-size:12px">${escapeHtml(p.perDay)}</div>
+      <div class="muted" style="font-size:12px">${escapeHtml(p.perDay)}${p.save ? ' · <b style="color:var(--warn-ink)">' + escapeHtml(p.save) + '</b>' : ''}</div>
       <ul class="muted" style="font-size:12px;margin:10px 0 14px;padding-left:18px;line-height:1.9">
         <li>AI 功能无限次</li>
         <li>会员专属功能（上线即用）</li>
@@ -103,7 +105,7 @@ async function loadVipStatus(){
         ${VIP_ICON_GOLD}
         <div style="flex:1;min-width:200px">
           <div style="font-weight:700;font-size:16px">当前是免费版${acct ? ' · ' + escapeHtml(acct) : ''}</div>
-          <div class="muted" style="font-size:13px;margin-top:4px">全部学习功能可用，AI 功能每天 ${FREE_AI_DAILY} 次额度；升级会员 AI 无限用。</div>
+          <div class="muted" style="font-size:13px;margin-top:4px">全部学习功能可用；AI 免费体验：${FREE_AI_DESC}；升级会员 AI 无限用。</div>
         </div>
         <button class="btn btn-primary" id="vipGoPlans">升级会员</button>
       </div>`;

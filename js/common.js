@@ -723,6 +723,28 @@ function toast(msg){
   clearTimeout(toast._t); toast._t = setTimeout(() => t.hidden = true, 2400);
 }
 
+/* 10/1 免费额度/会员专属轻条（她拍板口径：不打扰——不用大弹窗不自动跳页，
+   就一条底部小提示条带「开会员」小按钮，8 秒自动消失，可手动关）。
+   msg 用服务端返回的文案（单点维护在 ai.js）；同一时刻只保留一条。 */
+function limitStrip(msg){
+  try{
+    const old = document.getElementById('hubLimitStrip');
+    if(old) old.remove();
+    const strip = document.createElement('div');
+    strip.id = 'hubLimitStrip';
+    const txt = document.createElement('span');
+    txt.className = 'ls-txt'; txt.textContent = msg || '免费额度已用完';
+    const btn = document.createElement('a');
+    btn.className = 'ls-btn'; btn.href = 'vip.html'; btn.textContent = '开会员';
+    const x = document.createElement('button');
+    x.className = 'ls-x'; x.type = 'button'; x.setAttribute('aria-label', '关闭'); x.textContent = '✕';
+    x.addEventListener('click', () => strip.remove());
+    strip.appendChild(txt); strip.appendChild(btn); strip.appendChild(x);
+    document.body.appendChild(strip);
+    setTimeout(() => { try{ strip.remove(); }catch(e){} }, 8000);
+  }catch(e){}
+}
+
 /* === 全站统一「回车即提交」（9/22 之之）===
    Enter（无 Shift、非输入法组词态）→ 触发该输入框对应提交按钮的 click；
    Shift+Enter = 换行；按钮 disabled（AI 忙碌/已判定）时 click 天然无效，防连击。
@@ -935,10 +957,12 @@ async function callRelay(service, messages, temperature, opts){
       ea.code = 'AUTH_REQUIRED';
       throw ea;
     }
-    if(siteErr && siteErr.code === 'user_limit'){       // 10/1 免费额度用完：明确引导升级会员（不自动跳页，她拍板要不要自动弹/跳）
-      toast('今日免费 AI 额度已用完，升级会员无限用 → 侧栏「会员」');
-      const eu = new Error('今日免费 AI 额度已用完，升级会员无限用');
-      eu.code = 'USER_LIMIT';
+    /* 10/1 分功能额度闸的统一前端口径：服务端返回什么文案就显示什么（limitStrip 轻条+「开会员」按钮，
+       她拍板不弹窗不自动跳）。错误码映射见 ai.js；code 原样透传给调用方自行处理。 */
+    if(siteErr && /^(user_limit|mock_limit|writing_limit|trans_limit|vip_required)$/.test(siteErr.code)){
+      limitStrip(siteErr.message || '免费额度已用完，升级会员无限用');
+      const eu = new Error(siteErr.message || '免费额度已用完');
+      eu.code = siteErr.code;
       throw eu;
     }
     notifyNoKey();                                     // AI 不可用：一句 toast（引导卡已随「自备 Key」下线）

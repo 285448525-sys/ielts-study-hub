@@ -2058,6 +2058,20 @@ main.container{padding-top:40px}
 [data-theme="dark"] .foot-strip a{color:var(--muted);border-bottom-color:var(--line)}
 [data-theme="dark"] .foot-strip a.fs-vip{color:#fcd34d;border-bottom-color:rgba(251,191,36,.4)}
 
+/* 额度/会员轻条（10/1）：底部浮出小提示条 = 文案 + 「开会员」按钮 + 关闭；8s 自动消失 */
+#hubLimitStrip{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:99960;
+  display:flex;align-items:center;gap:12px;max-width:min(92vw,560px);
+  background:var(--surface);border:1px solid #f0e2c8;border-radius:14px;padding:11px 14px 11px 16px;
+  box-shadow:0 10px 34px rgba(20,30,40,.16);animation:hubLimitIn .22s ease}
+#hubLimitStrip .ls-txt{font-size:13px;font-weight:600;color:var(--ink);line-height:1.5}
+#hubLimitStrip .ls-btn{flex:none;font-size:12.5px;font-weight:800;text-decoration:none;color:#fff;
+  background:linear-gradient(135deg,var(--primary-400),var(--primary-600));border-radius:999px;padding:6px 14px}
+#hubLimitStrip .ls-btn:hover{filter:brightness(1.06)}
+#hubLimitStrip .ls-x{flex:none;border:none;background:none;color:var(--n-500);font-size:13px;cursor:pointer;padding:2px 4px}
+@keyframes hubLimitIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+[data-theme="dark"] #hubLimitStrip{background:var(--surface-2);border-color:rgba(251,191,36,.30);box-shadow:0 10px 34px rgba(0,0,0,.5)}
+@media (prefers-reduced-motion:reduce){ #hubLimitStrip{animation:none} }
+
 /* 6 模块快速入口（首页 .qc 走 6 列；其它页面若用 4 个走 .qc-4） */
 .quick{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:12px}
 .quick.qc-4{grid-template-columns:repeat(4,1fr)}
