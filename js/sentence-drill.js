@@ -520,13 +520,16 @@ function sentListHtml(){
   html += '<div class="sent-list">';
   bank.cats.forEach(function(cat){
     var mastered = cat.sentences.filter(function(s){ return st[s.id] && st[s.id].st === 'mastered'; }).length;
+    var total = cat.sentences.length;
+    var pct = total > 0 ? Math.round(mastered / total * 100) : 0;
     var open = !!window.__SENT_OPEN[cat.id];
     html += '<div class="sent-cat" data-sent-cat="' + cat.id + '">'
       + '<div class="sent-cat-row"><b>' + sentEsc(cat.name) + '</b>'
       + '<span class="sent-cat-pos">' + sentEsc(cat.pos || '') + '</span>'
       + sentAdvMark(cat.id)
-      + '<span class="sent-cat-count">已掌握 ' + mastered + '/' + cat.sentences.length + '</span>'
-      + '<span class="sent-caret">' + (open ? '▾' : '▸') + '</span></div>';
+      + '<span class="sent-cat-count">已掌握 ' + mastered + '/' + total + '</span>'
+      + '<span class="sent-caret">' + (open ? '▾' : '▸') + '</span></div>'
+      + '<div class="sent-cat-prog"><div class="sent-cat-prog-fill" style="width:' + pct + '%"></div></div>';
     if(open){
       html += '<div class="sent-cat-body">';
       cat.sentences.forEach(function(s){
@@ -541,7 +544,12 @@ function sentListHtml(){
   });
   html += '</div>';
   var wn = sentWrongCount();
-  html += '<div class="sent-wrong-entry" data-sent-wrong>错题库（' + wn + ' 题）<span class="sent-caret">' + (window.__SENT_WRONG_OPEN ? '▾' : '▸') + '</span></div>';
+  // 10/1 UI polish：错题库 0 题时降权为灰字提示，去掉实心背景
+  if(wn === 0){
+    html += '<div class="sent-wrong-entry sent-wrong-empty" data-sent-wrong>错题库（还空着）· 练错就自动出现</div>';
+  } else {
+    html += '<div class="sent-wrong-entry" data-sent-wrong>错题库（' + wn + ' 题）<span class="sent-caret">' + (window.__SENT_WRONG_OPEN ? '▾' : '▸') + '</span></div>';
+  }
   if(window.__SENT_WRONG_OPEN){
     var wrongIds = [];
     sentAllSentences().forEach(function(s){ if(st[s.id] && st[s.id].st === 'wrong') wrongIds.push(s); });

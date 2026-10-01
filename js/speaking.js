@@ -192,9 +192,44 @@ function renderFreqBanner(){
   const bank = (DATA.speaking || []).filter(s => s && !s.framework && !/^sp_p[12]_\d+$/.test(s.id || ''));
   const c1 = bank.filter(s => s.type === 'P1').length;
   const c2 = bank.filter(s => s.type === 'P2').length;
-  el.innerHTML = '<b>本季口语题库 ' + escapeHtml(M.season || '') + (M.region ? ' · ' + escapeHtml(M.region) : '') + '版'
-    + (M.updated ? ' · ' + escapeHtml(M.updated) + ' 更新</b>' : '</b>')
-    + '：<b>' + (c1 + c2) + ' 题：Part 1 共 ' + c1 + ' · Part 2 共 ' + c2 + '</b>' + (M.note ? '。' + escapeHtml(M.note) : '');
+  const season = escapeHtml(M.season || '') + (M.region ? ' · ' + escapeHtml(M.region) : '');
+  const updated = M.updated ? ' · ' + escapeHtml(M.updated) : '';
+  const note = M.note ? '。' + escapeHtml(M.note) : '';
+  const short = '📚 ' + season + '版 · ' + (c1 + c2) + ' 题';
+  const full = short + '（P1 共 ' + c1 + ' · P2 共 ' + c2 + '）' + updated + note;
+  // design/UI polish 10/1：改 <details> 折叠，展开=完整信息，折叠=一行小字
+  el.innerHTML = '<details class="sp-banner" open><summary>' + short + ' ▾</summary><div style="margin-top:6px"><b>' + full + '</b></div></details>';
+}
+
+/* 10/1 UI polish：口语模考 Tab 的「最近一次报告」入口。
+   从 DATA.mockRecords 取最后一条，有就渲染，没有就隐藏。
+   分数口径：speaking.mockRecords[].speaking = { overall, p1, p2, p3, fluency... } （mock.js line 663-678）。 */
+function renderMockRecent(){
+  const card = document.getElementById('mockRecent');
+  const body = document.getElementById('mockRecentBody');
+  if(!card || !body) return;
+  const recs = (DATA && DATA.mockRecords) || [];
+  const rec = recs.length > 0 ? recs[recs.length - 1] : null;
+  if(!rec || !rec.speaking){ card.hidden = true; return; }
+  const s = rec.speaking;
+  const overall = s.overall != null ? (typeof s.overall === 'number' ? s.overall.toFixed(1) : s.overall) : null;
+  const date = rec.ts ? new Date(rec.ts) : null;
+  const dateStr = date ? (date.getMonth() + 1) + '/' + date.getDate() + ' ' + String(date.getHours()).padStart(2,'0') + ':' + String(date.getMinutes()).padStart(2,'0') : '';
+  // 四项分展示
+  const parts = ['P1','P2','P3','发音'].map((label, idx) => {
+    const scores = [s.p1, s.p2, s.p3, s.pron];
+    const v = scores[idx];
+    const val = v != null ? (typeof v === 'number' ? v.toFixed(1) : v) : '—';
+    return '<span style="text-align:center"><div style="font-size:11px;color:var(--muted);font-weight:600">' + label + '</div><div style="font-size:18px;font-weight:700;color:var(--primary)">' + val + '</div></span>';
+  }).join('');
+  card.hidden = false;
+  body.innerHTML = '<div style="display:flex;align-items:center;gap:14px">'
+    + '<div style="flex:1;display:flex;gap:14px;align-items:center">'
+    + (overall ? '<b style="font-size:26px;font-weight:800;color:var(--primary)">' + overall + '</b>' : '')
+    + '<div style="display:flex;gap:18px">' + parts + '</div></div>'
+    + '<div style="font-size:12px;color:var(--muted);text-align:right">' + dateStr + '<br>共 ' + recs.length + ' 次</div>'
+    + '</div>'
+    + '<div style="margin-top:10px;font-size:12.5px;color:var(--muted)">报告详情在「回顾」页</div>';
 }
 
 /* 题库「随机来一道」（design/81）：与 renderList 完全相同的过滤口径，随机开一道详情。
@@ -243,6 +278,8 @@ ready(() => {
         renderList();
       } else if(t === 'MOCK'){
         $('#mockView').hidden = false;
+        // 10/1 UI polish：切到模考 Tab 时渲染最近一次报告入口
+        renderMockRecent();
       } else if(t === 'MAT'){
         $('#matView').hidden = false;
         if(typeof matGen !== 'undefined' && matGen.init) matGen.init();

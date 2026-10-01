@@ -183,7 +183,8 @@
     // 人设卡 A（固定）
     h += '<div class="mat-sec-title">人设卡 <span class="tag">1 题</span></div>';
     h += qCard('A');
-    h += '<div class="mat-actions"><button class="btn btn-primary btn-lg" id="matPlanGen">' + (hasPlan ? '↻ 重新分析题库出题' : '生成我的专属问题') + '</button></div>';
+    // 10/1 UI polish：hasPlan 时按钮降为次级（主操作是下方「生成我的专属素材」）
+    h += '<div class="mat-actions"><button class="btn ' + (hasPlan ? 'btn-ghost' : 'btn-primary btn-lg') + '" id="matPlanGen">' + (hasPlan ? '↻ 重新分析题库出题' : '生成我的专属问题') + '</button></div>';
 
     if(hasPlan){
       h += '<div class="mat-sec-title">你的专属经历问题 <span class="tag">' + plan.cards.length + ' 卡 · 按当季题库定制</span></div>';
