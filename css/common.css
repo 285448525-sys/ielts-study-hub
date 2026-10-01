@@ -1574,21 +1574,25 @@ main .quote{
 @keyframes timerBlink{0%,100%{opacity:1}50%{opacity:.45}}
 
 
-/* === 模考：退出按钮（10/1 晚三改：她拍板「别悬浮」）——嵌进「整场剩余」计时条右端内联 ===
-   mock.js 把按钮 append 进 #mockTotalTimerWrap（兜底 #mockStage）；随条显隐，不再独立悬浮 */
+/* === 模考：退出按钮（10/1 晚定版：舞台右上角橙色定位式，她确认「原来那版好看」） ===
+   挂在 #mockStage 内部（absolute）；舞台隐藏 / 切 tab / 显示报告时随父级自动隐藏 */
 #mockStage{position:relative}
 .mock-exit-fab{
-  position:static; margin-left:auto; flex:none;
+  position:absolute; top:78px; right:14px; z-index:60;
   display:inline-flex; align-items:center; gap:6px;
-  padding:7px 13px; border:none; border-radius:999px;
-  background:var(--warn); color:#fff; font-size:13px; font-weight:700;
+  padding:8px 14px; border:none; border-radius:10px;
+  background:var(--warn); color:#fff; font-size:13.5px; font-weight:600;
   cursor:pointer; box-shadow:0 3px 10px rgba(245,158,11,.30);
-  transition:filter .15s, transform .12s;
+  transition:transform .12s, box-shadow .12s, filter .12s;
 }
-.mock-exit-fab:hover{ filter:brightness(1.05); }
-.mock-exit-fab svg{ width:14px; height:14px; flex:none; }
-.mock-exit-fab:active{ transform:scale(.97); }
-.mock-total-timer .mock-total-timer-note{ flex:1 1 auto; min-width:0; }
+.mock-exit-fab:hover{ transform:translateY(-1px); filter:brightness(1.05); box-shadow:0 5px 14px rgba(245,158,11,.38); }
+.mock-exit-fab svg{ width:15px; height:15px; flex:none; }
+.mock-exit-fab:active{ transform:translateY(0); }
+/* 手机端：说明文字折行会给右上按钮让位（top:14 落在计时条右上空白区，互不遮挡） */
+@media(max-width:760px){
+  .mock-exit-fab{ top:14px; }
+  .mock-total-timer{ padding-right:120px; }
+}
 
 .mock-modal-backdrop{
   position:fixed; inset:0; z-index:200;
