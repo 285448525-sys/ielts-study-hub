@@ -70,8 +70,11 @@
     return '冲刺期';
   }
 
-  /* 目标分 vs 最近一次成绩（DATA.scores：回顾页「成绩」tab 录入的四科分数） */
-  function renderGap() {
+  /* 目标分 vs 最近一次成绩（DATA.scores：回顾页「成绩」tab 录入的四科分数）。
+     10/1 修三处：① tip 里的「9 天」是写死的，改成按剩余天数动态说；
+     ② got=0（该科没录分）原来会被算成「差 X 分」误导 → 没录分的科不参与对比；
+     ③ 只设了总分没设单科目标时 rows 为空 → 原来返回空卡，改成给提示。 */
+  function renderGap(d) {
     const tg = ((DATA && DATA.settings) && DATA.settings.targets) || {};
     const list = ((DATA && DATA.scores) || []).slice()
       .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
@@ -97,22 +100,32 @@
     SKILLS.forEach(k => {
       const t = Number(tg[k]) || 0;
       const got = Number(last[k]) || 0;
-      if (!t && !got) return;
+      if (!got) return;                        // 没录这一科的分就不比（0 不是真实成绩）
+      if (!t) return;                          // 没设这科的目标也没法比
       const diff = Math.round((got - t) * 2) / 2;
       if (worst === null || diff < worst.diff) worst = { k: k, diff: diff };
       const cls = diff >= 0 ? 'ok' : (diff >= -0.5 ? 'near' : 'bad');
       const dtxt = diff > 0 ? ('超 ' + diff.toFixed(1)) : (diff === 0 ? '持平' : ('差 ' + Math.abs(diff).toFixed(1)));
-      rows += '<div class="sp-gap-row">' 
+      rows += '<div class="sp-gap-row">'
         + '<span class="sp-gap-k">' + LABEL[k] + '</span>'
         + '<span class="sp-gap-bar"><i class="' + cls + '" style="width:' + Math.min(100, Math.round(got / 9 * 100)) + '%"></i></span>'
         + '<span class="sp-gap-v">' + (got ? got.toFixed(1) : '—') + '<em>/' + (t ? t.toFixed(1) : '—') + '</em></span>'
         + '<span class="sp-gap-d ' + cls + '">' + dtxt + '</span>'
         + '</div>';
     });
-    if (!rows) return '';
+    if (!rows) {
+      return '<div class="sp-card">'
+        + '<div class="sp-card-h">离目标还差多少</div>'
+        + '<p class="sp-empty">只设了总分，单科目标没填或这次成绩没录分，按科比不了。去'
+        + '<a href="settings.html">设置</a>把单科目标补上更直观。</p>'
+        + '</div>';
+    }
+    // 10/1 修：剩多少天说多少天，别再写死「9 天」
     const tip = (worst && worst.diff < 0)
-      ? '<p class="sp-tip">最大缺口是<b>' + LABEL[worst.k] + '</b>（差 ' + Math.abs(worst.diff).toFixed(1) + ' 分）——9 天里优先砸它，性价比最高。</p>'
-      : '<p class="sp-tip">四科都已达标，保持手感就行，别在最后几天换方法。</p>';
+      ? (d > 1
+        ? '<p class="sp-tip">最大缺口是<b>' + LABEL[worst.k] + '</b>（差 ' + Math.abs(worst.diff).toFixed(1) + ' 分）——最后 ' + d + ' 天优先砸它，性价比最高。</p>'
+        : '<p class="sp-tip">最大缺口是<b>' + LABEL[worst.k] + '</b>（差 ' + Math.abs(worst.diff).toFixed(1) + ' 分）——没时间补了，考场上先做有把握的题，别恋战。</p>')
+      : '<p class="sp-tip">都已达标，保持手感就行，别在最后几天换方法。</p>';
     return '<div class="sp-card">'
       + '<div class="sp-card-h">离目标还差多少<span class="sp-card-sub">' + escapeHtml(String(last.date || '')) + ' 的成绩</span></div>'
       + rows + tip + '</div>';
@@ -138,8 +151,16 @@
       + rows + '</div>';
   }
 
-  /* 今天该先练哪一科：四科里近 7 天练得最少的（0 分钟的排在最先） */
-  function renderToday() {
+  /* 今天该先练哪一科：四科里近 7 天练得最少的（0 分钟的排在最先）。
+     10/1 修：d===0（考试当天）不能再推「今天先练 XX」让人去做题 → 换成考试日提示。 */
+  function renderToday(d) {
+    if (d === 0) {
+      return '<div class="sp-today">'
+        + '<div class="sp-today-t">今天是考试日</div>'
+        + '<p class="sp-today-p">证件和准考证带好，提前 30 分钟到考点。别再练新题——把 P2 高频在脑子里过一遍、错词扫一眼就够了。祝顺利。</p>'
+        + '<a class="sp-today-go" href="review.html">扫一眼错词 →</a>'
+        + '</div>';
+    }
     const by = weekMinutes();
     const weak = SKILLS.slice().sort((a, b) => by[a] - by[b])[0];
     const m = by[weak] || 0;
@@ -203,8 +224,8 @@
         + '<span class="sp-head-t">距考试 ' + d + ' 天 · ' + phaseOf(d) + '</span>'
         + '<a class="sp-head-a" href="settings.html">改日期</a>'
         + '</div>'
-        + '<div class="sp-grid">' + renderGap() + renderSpread() + '</div>'
-        + renderToday()
+        + '<div class="sp-grid">' + renderGap(d) + renderSpread() + '</div>'
+        + renderToday(d)
         + checklist(d);
     } catch (e) {
       console.warn('sprint render failed', e);
