@@ -41,25 +41,27 @@
   + '输出严格 JSON：{"stories":[{"title":"","storyEn":"","spineEn":["","","","",""],"goldenEn":["","",""],"logicZh":"","coverage":[{"topic":"","fit":"","bridgeEn":"","note":""}]}],"coverageRate":0.9}，不要任何解释文字。';
   const SYS_PERSONA = '你是雅思口语人设分析师。根据用户一句话自我介绍，提取人设锚点，用于保证 Part 3 回答一致性。输出严格 JSON：{"persona":{"city":"城市","identity":"身份/专业或工作","values":["价值观1","价值观2"],"traits":["性格特点1","性格特点2"]}}';
 
-  /* design/86 SYS_PLAN：动态问卷规划——AI 分析当季 P2 题库后对症出 4~6 张漏斗式问题卡。
-     换季后题库清单变化，问卷必须重新生成；严禁拿本常量当「写死的问卷」。 */
-  const SYS_PLAN = '你是雅思口语素材规划师。考生会给你【当季真实 P2 题库全量清单】（网站当季真实考题；换季后清单会变化，你的问卷必须只针对当前清单）。考生基础弱、记忆提取困难：面对抽象问题想不起具体事情。你的任务：在考生动笔前，先分析题库，设计一份「问题最少、覆盖最高、每题都好答」的经历问卷。\n'
+  /* design/89 SYS_PLAN：动态问卷规划——真题锚定 + 独白答题 + 追问可选（design/86 漏斗版改版）。
+     换季后题库清单变化，问卷必须重新生成；严禁拿本常量当「写死的问卷」。
+     anchor 的 promptEn/req 由前端从题库取真值回填（AI 只出逐字 topic，防编造原题）。 */
+  const SYS_PLAN = '你是雅思口语素材规划师。考生会给你【当季真实 P2 题库全量清单】（网站当季真实考题；换季后清单会变化，你的问卷必须只针对当前清单）。考生基础弱、记忆提取困难：面对抽象问题想不起具体事情。你的任务：在考生动笔前，先分析题库，设计一份「真题锚定、问题最少、以独白作答」的经历问卷。\n'
     + '\n'
     + '工作方法：\n'
     + '1. 逐题通读清单，把「能被同一段真实生活经历辐射覆盖」的题目归为一组——判断标准：考场上把这段经历原样讲出来、再加一两句过渡就能引到该题。人物/地点/物品/事件/见闻感受五类元素齐全的一段日常经历是万能辐射源（例：一次和朋友的短途旅行，可同时辐射人物、地点、事件、照片、拥挤的地方、特别场合的食物、天气、一次散步、环保观点等）。\n'
-    + '2. 用最少的问题卡覆盖清单：通常 4~6 张，硬上限 8 张；每张卡通常辐射 8~20 题。严禁一题一问、严禁按题目类别机械切分（人物题一卡、地点题一卡）。目标覆盖率（被 topics 覆盖的题 / 清单总题数）≥0.9；达不到就靠调整卡片主题、增强卡片元素覆盖，而不是增加卡片数量。\n'
-    + '3. 每张卡对应一个具体、单一的经历主题，必须是学生或刚工作的年轻人真实生活里一定有的素材（如：最近一次和朋友出门 / 一件硬学会的事 / 每天离不开的东西 / 最近在网上刷到的内容 / 一个有画面的地方 / 由经历引出的一个观点）。严禁抽象主题、需要编造或需要专业背景的主题。\n'
-    + '4. 每张卡必须按「漏斗式提问」展开 4~6 个 steps：\n'
-    + '   ① 第一步必须是 yesno 或 choice，且带具体时间锚点（最近一周 / 最近半年 / 上周末 / 高中时 / 小时候），严禁无时间范围的「你有没有过……」；yesno 是这张卡的门问题：考生若答「没有」，前端会自动收起本卡后续所有问题——所以门问题必须问存在性事实（有没有做过/遇到过），后续步骤都是「答了有」之后的展开，严禁把存在性问题放后面；\n'
-    + '   ② 每个 step 只提取一个事实（时间 / 人物地点 / 事件 / 细节 / 感受，每次一个），严禁连环问；严禁「说说 / 讲讲 / 描述 / 谈谈 / 你觉得」这类自由开放措辞；\n'
+    + '2. 每张问题卡必须锚定当季真题：从清单里挑 1~2 道题绑定本卡（能被同一段经历覆盖的两道题合并绑一卡），放进 anchor 数组，topic 逐字取自清单题名。答题即练题：考生答完这张卡，锚定真题的素材就备好了。\n'
+    + '3. 题数由你判断、以少为优：能被同一段经历覆盖的题必须合并成一问；通常 4~8 张，能少则少，硬上限 10 张；严禁一题一问、严禁按题目类别机械切分（人物题一卡、地点题一卡）。目标覆盖率（被 topics 覆盖的题 / 清单总题数）≥0.9；达不到就靠调整卡片主题、增强卡片元素覆盖，而不是增加卡片数量。\n'
+    + '4. 每张卡对应一个具体、单一的经历主题，必须是学生或刚工作的年轻人真实生活里一定有的素材（如：最近一次和朋友出门 / 一件硬学会的事 / 每天离不开的东西 / 最近在网上刷到的内容 / 一个有画面的地方 / 由经历引出的一个观点）。严禁抽象主题、需要编造或需要专业背景的主题。\n'
+    + '5. 答题形态=独白为主：每张卡只给一个大独白框（type:"mono"），考生用中文口语把这段经历完整讲一遍（什么时候、和谁、发生了什么、细节、感受），越具体越好。严禁把大独白拆成一串小问题当主体、严禁连环追问式提问。\n'
+    + '6. 每张卡另附 2~3 个可选「追问题」（followups，沿用小问 schema），全部 "optional":true，只给答得短或想被引导的考生展开用：\n'
+    + '   ① 只用 text 或 choice 类型，严禁 yesno 门问题、严禁存在性问题；\n'
+    + '   ② 每问只提取一个事实（时间 / 人物地点 / 细节 / 感受），严禁连环问；严禁「说说 / 讲讲 / 描述 / 谈谈 / 你觉得」这类自由开放措辞；\n'
     + '   ③ choice 必须给 2~6 个具体、口语化的选项，并以「其他」为固定末项（选中后允许考生自填）；multi 题用 "multi":true；\n'
-    + '   ④ 细节、感受类 step 设 "optional":true，允许留空；\n'
-    + '   ⑤ yesno 必须给 noHint：选「没有」时展示的提示——引导考生回想具体时间节点（如「再想想：上周末、春节、暑假、谁的生日」），或提示可跳过此卡。\n'
-    + '5. 每张卡给 topics（该卡预期覆盖的题，逐字取自清单，宁多勿漏，拿不准也列上）和 reason（一句中文，说明为什么问这段、能覆盖什么）。\n'
-    + '6. 若考生提供了人设，主题与选项要贴合其身份：学生围绕学校/考试/同学/宿舍，工作者围绕职场/通勤/同事。\n'
+    + '   ④ 细节、感受类 followup 也一律 "optional":true（全部选填）。\n'
+    + '7. 每张卡给 topics（该卡预期覆盖的题，逐字取自清单，宁多勿漏，拿不准也列上）和 reason（一句中文，说明为什么问这段、能覆盖什么）。\n'
+    + '8. 若考生提供了人设，主题与选项要贴合其身份：学生围绕学校/考试/同学/宿舍，工作者围绕职场/通勤/同事。\n'
     + '\n'
     + '输出严格 JSON，不要任何解释文字：\n'
-    + '{"cards":[{"id":"q1","title":"具体经历主题","reason":"一句中文说明","topics":["逐字题名1","逐字题名2"],"steps":[{"k":"go","type":"yesno","label":"带时间锚点的封闭问题？","noHint":"选没有时的提示"},{"k":"when","type":"text","label":"单一事实小问","ph":"填写示例"},{"k":"pick","type":"choice","multi":true,"label":"挑你记得的","options":["具体选项1","具体选项2","其他"]},{"k":"detail","type":"text","optional":true,"label":"一个感官细节？","ph":"看到/听到/闻到（可留空）"},{"k":"feel","type":"choice","label":"当时什么感觉？","options":["开心","放松/踏实","累但值得","其他"]}]}]}';
+    + '{"cards":[{"id":"q1","type":"mono","title":"具体经历主题","anchor":[{"topic":"逐字题名1"},{"topic":"逐字题名2"}],"reason":"一句中文说明","topics":["逐字题名1","逐字题名2"],"followups":[{"k":"when","type":"text","optional":true,"label":"单一事实小问","ph":"填写示例"},{"k":"pick","type":"choice","optional":true,"multi":true,"label":"挑你记得的","options":["具体选项1","具体选项2","其他"]}]}]}';
 
   /* === 当季 P2 题库动态提取（P0：替代写死的 CANON 旧季快照）===
      每次生成/追问都以 DATA.speaking 真实题库为准（换季后自动跟随）；
@@ -69,7 +71,9 @@
     if(!arr.length) return null;
     return arr.map(s => ({
       title: s.titleZh || s.titleEn || '',
-      req: (s.youShouldSay || []).slice(0, 3).join('；')
+      promptEn: s.promptEn || '',
+      req: (s.youShouldSay || []).slice(0, 3).join('；'),
+      reqArr: (s.youShouldSay || []).slice(0, 3)
     })).filter(b => b.title);
   }
   function buildSysMat(){
@@ -167,7 +171,7 @@
     const plan = store.plan;
     const hasPlan = !!(plan && Array.isArray(plan.cards) && plan.cards.length);
     const bankLive = !!(DATA.speaking && DATA.speaking.length);
-    let h = '<div class="mat-intro">先填一句人设，AI 会分析<b>当季最新题库</b>，只问你最少的几个问题；每步点选项就行，答不上的可以跳过，也能直接粘贴旧英文素材。</div>';
+    let h = '<div class="mat-intro">先填一句人设，AI 会分析<b>当季最新题库</b>、锚定真题出最少的几张问题卡；每张卡用中文口语把那段经历讲一遍就行，答不上的可以跳过，也能直接粘贴旧英文素材。</div>';
     // 逃生口：已有素材卡但当前在问卷视图（restoreMode 因 saved='q' 回问卷）→ 给一条回去的路
     if(store.materials && store.materials.length){
       h += '<div style="margin:-6px 0 10px"><a href="javascript:void(0)" id="matBackToResult" style="color:var(--primary);font-weight:600;font-size:13px">← 查看已有素材卡（' + store.materials.length + ' 张）</a></div>';
@@ -286,10 +290,20 @@
     root.querySelectorAll('[data-step-card]').forEach(ta => {
       ta.addEventListener('input', () => {
         const cid = ta.dataset.stepCard, k = ta.dataset.stepK;
+        // mono 独白：自增高 + 字数提示
+        if(ta.tagName === 'TEXTAREA'){
+          ta.style.height = 'auto';
+          ta.style.height = (ta.scrollHeight + 2) + 'px';
+          if(k === 'mono'){
+            const mc = document.querySelector('[data-monochar="' + cid + '"]');
+            if(mc) mc.textContent = monoCounterTip(ta.value);
+          }
+        }
         // multi 卡「其他」自填：文本并入数组（已勾选项保留，严禁整键覆盖）；单选/text 直接存字符串
         let ps = null;
         const pc = (store.plan && Array.isArray(store.plan.cards)) ? store.plan.cards.find(c => c && c.id === cid) : null;
         if(pc && Array.isArray(pc.steps)) ps = pc.steps.find(st => st && st.k === k) || null;
+        if(pc && pc.type === 'mono' && Array.isArray(pc.followups)) ps = pc.followups.find(st => st && st.k === k) || null;
         if(ps && ps.multi){
           const st = cardState(cid);
           const prev = Array.isArray(st.s[k]) ? st.s[k] : [];
@@ -302,6 +316,11 @@
           setStepVal(cid, k, ta.value);
         }
       });
+    });
+    // mono 独白初始自增高（恢复已填内容时不被 rows=5 截断）
+    root.querySelectorAll('textarea[data-step-card][data-step-k="mono"]').forEach(ta => {
+      ta.style.height = 'auto';
+      ta.style.height = (ta.scrollHeight + 2) + 'px';
     });
     const backLink = $('#matBackToResult');
     if(backLink) backLink.onclick = () => { mode = 'result'; render(); };
@@ -388,8 +407,9 @@
     saveStore();
   }
 
-  /* 动态卡渲染（4.4.4） */
+  /* 动态卡渲染（4.4.4；design/89：mono 独白卡与旧 steps 卡双型分发，存量旧卡一行不动） */
   function planCard(card){
+    if(card && card.type === 'mono') return planMonoCard(card);
     const st = cardState(card.id);
     if(st.skipped){
       return '<div class="mat-q mat-plan-skipped" data-unskip-card="' + escapeHtml(card.id) + '" title="点此恢复">已跳过：' + escapeHtml(card.title || '') + ' · 点此恢复</div>';
@@ -416,6 +436,57 @@
     }
     h += '</div>';
     return h;
+  }
+  /* design/89：mono 独白卡渲染——锚定真题展示 + 大独白框 + 折叠追问（followups 全选填）。
+     独白走 data-step-card/data-step-k="mono" 复用既有存储链路（s.mono）；跳过/恢复逻辑照旧。 */
+  function planMonoCard(card){
+    const st = cardState(card.id);
+    if(st.skipped){
+      return '<div class="mat-q mat-plan-skipped" data-unskip-card="' + escapeHtml(card.id) + '" title="点此恢复">已跳过：' + escapeHtml(card.title || '') + ' · 点此恢复</div>';
+    }
+    let h = '<div class="mat-q mat-plan-card mat-mono-card">'
+      + '<div class="mat-q-head"><span class="mat-q-title">' + escapeHtml(card.title || '') + '</span>'
+      + '<button class="mat-mini" data-skip-card="' + escapeHtml(card.id) + '">跳过此卡</button></div>';
+    if(card.reason) h += '<div class="mat-q-hint">' + escapeHtml(card.reason) + '</div>';
+    // 锚定真题（anchor 已由 cleanPlanCards 用题库真值回填 promptEn/req）
+    const anchors = Array.isArray(card.anchor) ? card.anchor : [];
+    if(anchors.length){
+      h += '<div class="mat-anchor">';
+      anchors.forEach(a => {
+        h += '<div class="mat-anchor-q">';
+        if(a.topic) h += '<div class="mat-anchor-zh">' + escapeHtml(a.topic) + '</div>';
+        if(a.promptEn) h += '<div class="mat-anchor-en">' + escapeHtml(a.promptEn) + '</div>';
+        if(Array.isArray(a.req) && a.req.length){
+          h += '<div class="mat-anchor-req">' + a.req.map(r => '<div>· ' + escapeHtml(r) + '</div>').join('') + '</div>';
+        }
+        h += '</div>';
+      });
+      h += '</div>';
+    }
+    if(Array.isArray(card.topics) && card.topics.length){
+      h += '<details class="mat-topics"><summary>这张卡覆盖 ' + card.topics.length + ' 道当季题 ▸</summary>'
+        + '<div class="mat-chips">' + card.topics.map(t => '<span class="mat-chip">' + escapeHtml(t) + '</span>').join('') + '</div></details>';
+    }
+    // 大独白框（s.mono）
+    const monoVal = st.s.mono || '';
+    h += '<textarea class="mat-mono-ta" data-step-card="' + escapeHtml(card.id) + '" data-step-k="mono" rows="5" placeholder="用中文口语讲一遍这段经历，越具体越好：什么时候、和谁、发生了什么、你的感受…">' + escapeHtml(monoVal) + '</textarea>'
+      + '<div class="mat-char" data-monochar="' + escapeHtml(card.id) + '">' + monoCounterTip(monoVal) + '</div>';
+    // 折叠追问（followups 全部 optional，渲染复用 planStep；choice「其他」自填走既有链路）
+    const fus = Array.isArray(card.followups) ? card.followups : [];
+    if(fus.length){
+      h += '<details class="mat-fu"><summary>AI 追问 · ' + fus.length + ' 问（选填，想不起来细节再展开）▸</summary>';
+      fus.forEach(step => { h += planStep(card.id, step, st.s[step.k]); });
+      h += '</details>';
+    }
+    h += '</div>';
+    return h;
+  }
+  function monoCounterTip(v){
+    const n = String(v || '').trim().length;
+    if(!n) return '还没写。目标 80 字以上，细节越多，AI 归纳出的素材越好用';
+    if(n < 40) return '已写 ' + n + ' 字 · 偏短，AI 可能归纳不出足够细节，建议再补';
+    if(n < 80) return '已写 ' + n + ' 字 · 可以了，再补 1-2 个画面细节更好';
+    return '已写 ' + n + ' 字 · 够了';
   }
   function planStep(cid, step, val){
     const reqTag = step.optional ? '<span class="opt-tag">可留空</span>' : '';
@@ -445,10 +516,30 @@
     h += '</div>';
     return h;
   }
-  /* 卡答案 → 纯文本（喂给 SYS_MAT）。格式：label 去问号：值；多选顿号拼接；空步跳过（design/86 §6.2） */
+  /* 卡答案 → 纯文本（喂给 SYS_MAT）。格式：label 去问号：值；多选顿号拼接；空步跳过（design/86 §6.2）。
+     design/89：mono 独白卡 raw = 【锚定真题】+ 独白全文 + 已答 followups。 */
   function labelNoQ(label){ return String(label || '').replace(/[？?]+\s*$/, ''); }
   function formatCard(card, st){
     const s = (st && st.s) || {};
+    if(card && card.type === 'mono'){
+      const mono = String(s.mono || '').trim();
+      const fuParts = [];
+      (card.followups || []).forEach(step => {
+        if(!step || !step.k) return;
+        const v = s[step.k];
+        if(v == null) return;
+        if(Array.isArray(v)){ if(v.length) fuParts.push(labelNoQ(step.label) + '：' + v.join('、')); return; }
+        if(String(v).trim()) fuParts.push(labelNoQ(step.label) + '：' + String(v).trim());
+      });
+      if(!mono && !fuParts.length) return '';
+      const anchors = Array.isArray(card.anchor) ? card.anchor : [];
+      const zh = anchors.map(a => a && a.topic).filter(Boolean).join(' / ') || card.title || '';
+      const en = anchors.map(a => a && a.promptEn).filter(Boolean)[0] || '';
+      const lines = ['【锚定真题】' + zh + (en ? '（' + en + '）' : '')];
+      if(mono) lines.push('我的回答：' + mono);
+      if(fuParts.length) lines.push('追问补充：' + fuParts.join('；'));
+      return lines.join('\n');
+    }
     const parts = [];
     (card.steps || []).forEach(step => {
       const v = s[step.k];
@@ -476,14 +567,14 @@
         const raw = formatCard(c, oldAns[c.id]);
         return '· ' + (c.title || '') + '：' + (raw ? raw.slice(0, 300) : '（未填或已跳过）');
       }).join('\n');
-      sys += '\n考生在旧题库问卷下已填了答案，见下。请在输出的每张新卡 step 中，对能沿用旧答案的 step 增加 "prefill":"旧答案原文" 字段（键为该 step 的 k）；按事实语义匹配，迁移不了的严禁硬迁。\n旧问卷答案概要：\n' + summary;
+      sys += '\n考生在旧题库问卷下已填了答案，见下。请在输出的每张新卡 step 中，对能沿用旧答案的 step 增加 "prefill":"旧答案原文" 字段（键为该 step 的 k）；mono 独白卡对能沿用的旧独白，在卡片上增加 "prefillMono":"旧独白原文" 字段；按事实语义匹配，迁移不了的严禁硬迁。\n旧问卷答案概要：\n' + summary;
     }
     const user = '人设：' + (ans('A') || '（未提供）') + '\n\n【当季 P2 题库清单】\n' + listStr;
     const content = await callRelay('material_plan', [ { role:'system', content:sys }, { role:'user', content:user } ], 0.5, { max_tokens: 8192 });
     const j = aiJson(content);
     if(!j || !Array.isArray(j.cards) || !j.cards.length) throw new Error('问卷规划 JSON 解析失败');
     const bankTitles = bank ? bank.map(b => b.title) : null;
-    const cards = cleanPlanCards(j.cards, bankTitles, isFallback);
+    const cards = cleanPlanCards(j.cards, bankTitles, isFallback, bank);
     if(!cards.length) throw new Error('AI 没有返回可用的问题卡');
 
     // 4.6 老数据兼容：静态 QUESTIONS 时代的字符串答案（B1~B5/C1~C4 等）整体移入 _legacy 留底（A 人设沿用）
@@ -497,14 +588,30 @@
       }
     });
 
-    // 换季迁移对账（4.5）：旧卡已填 step 值未被任何新卡 prefill 采用 → 汇入 _legacy（严禁静默丢弃）
+    // 换季迁移对账（4.5 + design/89）：旧卡已填 step 值 / mono 独白未被任何新卡 prefill 采用 → 汇入 _legacy（严禁静默丢弃）
     if(oldPlan){
       const prefillVals = [];
-      cards.forEach(c => (c.steps || []).forEach(st => { if(st && st.prefill != null && String(st.prefill).trim()) prefillVals.push(String(st.prefill).trim()); }));
+      cards.forEach(c => {
+        if(c.type === 'mono'){
+          if(c.prefillMono != null && String(c.prefillMono).trim()) prefillVals.push(String(c.prefillMono).trim());
+          (c.followups || []).forEach(st => { if(st && st.prefill != null && String(st.prefill).trim()) prefillVals.push(String(st.prefill).trim()); });
+        } else {
+          (c.steps || []).forEach(st => { if(st && st.prefill != null && String(st.prefill).trim()) prefillVals.push(String(st.prefill).trim()); });
+        }
+      });
       const oldAns = store.answers.cards || {};
       oldPlan.cards.forEach(c => {
         const st = oldAns[c.id];
         if(!st || st.skipped) return;
+        if(c.type === 'mono'){
+          const mv = st.s && st.s.mono != null ? String(st.s.mono).trim() : '';
+          if(mv && !prefillVals.some(p => p === mv || p.indexOf(mv) >= 0 || mv.indexOf(p) >= 0)){
+            store.answers._legacy = store.answers._legacy || {};
+            const key = '旧卡·' + (c.title || c.id) + '·独白';
+            if(!store.answers._legacy[key]) store.answers._legacy[key] = mv;
+          }
+          return;
+        }
         (c.steps || []).forEach(step => {
           const v = st.s && st.s[step.k];
           if(v == null) return;
@@ -520,30 +627,47 @@
       });
     }
 
-    // prefill 预填：新卡带 prefill 的 step 写入 answers.cards 作初始值（不覆盖用户已填）
+    // prefill 预填：新卡带 prefill 的 step / mono 卡 prefillMono 写入 answers.cards 作初始值（不覆盖用户已填）
     store.answers.cards = store.answers.cards || {};
     cards.forEach(c => {
       const cur = store.answers.cards[c.id] || { s:{}, skipped:false };
-      (c.steps || []).forEach(st => {
-        if(st && st.prefill != null && String(st.prefill).trim() && cur.s[st.k] == null) cur.s[st.k] = String(st.prefill).trim();
-      });
+      if(c.type === 'mono'){
+        if(c.prefillMono != null && String(c.prefillMono).trim() && cur.s.mono == null) cur.s.mono = String(c.prefillMono).trim();
+        (c.followups || []).forEach(st => {
+          if(st && st.prefill != null && String(st.prefill).trim() && cur.s[st.k] == null) cur.s[st.k] = String(st.prefill).trim();
+        });
+      } else {
+        (c.steps || []).forEach(st => {
+          if(st && st.prefill != null && String(st.prefill).trim() && cur.s[st.k] == null) cur.s[st.k] = String(st.prefill).trim();
+        });
+      }
       store.answers.cards[c.id] = cur;
     });
     store.plan = { bankVersion: DATA.speakingVersion || 0, isFallback: !!isFallback, cards: cards };
     saveStore();
   }
-  /* AI 返回卡清洗（4.3.4，前端必须做，不信任 AI 自觉） */
-  function cleanPlanCards(rawCards, bankTitles, isFallback){
+  /* AI 返回卡清洗（4.3.4，前端必须做，不信任 AI 自觉）。
+     design/89：mono 独白卡（type:'mono'，anchor 锚定真题 + followups 折叠追问）与旧 steps 卡双型兼容；
+     anchor 的 topic 走 matchBankTitle 纠偏后，promptEn/req 一律由题库真值回填（AI 侧字段仅兜底）。 */
+  function cleanPlanCards(rawCards, bankTitles, isFallback, bankFull){
     const out = [];
     (Array.isArray(rawCards) ? rawCards : []).forEach((c, i) => {
-      if(!c || !c.title || !Array.isArray(c.steps) || !c.steps.length) return;
+      const isMono = !!(c && c.type === 'mono');
+      if(!c || !c.title) return;
+      if(!isMono && (!Array.isArray(c.steps) || !c.steps.length)) return;   // 旧 steps 卡仍要求 steps 非空
       const card = {
         id: String(c.id || ('q' + Date.now().toString(36) + i)),
         title: String(c.title),
         reason: String(c.reason || ''),
-        topics: [],
-        steps: []
+        topics: []
       };
+      if(isMono){
+        card.type = 'mono';
+        card.anchor = [];
+        card.followups = [];
+      } else {
+        card.steps = [];
+      }
       // topics 纠偏：落到当季题库真实题名（兜底模式跳过纠偏，原样保留 CANON 名）；去重
       const seenT = new Set();
       (Array.isArray(c.topics) ? c.topics : []).forEach(t => {
@@ -558,27 +682,71 @@
         seenT.add(name);
         card.topics.push(name);
       });
-      // steps：最多 6 个；type 白名单；choice 降级；「其他」末项；yesno 补 noHint
-      (c.steps || []).slice(0, 6).forEach(st => {
-        if(!st || !st.k || !st.label) return;
-        let type = ['yesno','choice','text'].indexOf(st.type) >= 0 ? st.type : 'text';
-        const step = { k: String(st.k), type: type, label: String(st.label) };
-        if(step.type === 'text' && st.ph) step.ph = String(st.ph);
-        if(st.optional) step.optional = true;
-        if(step.type === 'choice'){
-          let opts = Array.isArray(st.options) ? st.options.map(x => String(x || '').trim()).filter(Boolean) : [];
-          if(opts.length < 2){ step.type = 'text'; }   // choice 无 options/<2 → 降级 text
-          else {
-            if(opts[opts.length - 1] !== '其他') opts.push('其他');
-            step.options = opts.slice(0, 7);
-            if(st.multi) step.multi = true;
+      if(isMono){
+        // anchor：1~2 道真题，topic 纠偏；promptEn/req 从题库真值回填（AI 给的只做兜底）
+        const seenA = new Set();
+        (Array.isArray(c.anchor) ? c.anchor : []).slice(0, 2).forEach(a => {
+          if(!a) return;
+          let name = (typeof a === 'string') ? a.trim() : String(a.topic || '').trim();
+          if(!name || seenA.has(name)) return;
+          if(!isFallback && bankTitles){
+            const bt = matchBankTitle(name, bankTitles);
+            if(!bt) return;
+            name = bt;
           }
-        }
-        if(step.type === 'yesno' && !st.noHint) step.noHint = '再想想：上周末、春节、暑假、谁的生日这些时间点有没有过类似的事；实在没有就跳过此卡。';
-        if(st.prefill != null && String(st.prefill).trim()) step.prefill = String(st.prefill).trim();
-        card.steps.push(step);
-      });
-      if(card.steps.length) out.push(card);
+          seenA.add(name);
+          const hit = (Array.isArray(bankFull) ? bankFull : []).find(b => b.title === name);
+          card.anchor.push({
+            topic: name,
+            promptEn: (hit && hit.promptEn) || String(a.promptEn || ''),
+            req: (hit && hit.reqArr && hit.reqArr.length) ? hit.reqArr.slice() : (Array.isArray(a.req) ? a.req.map(x => String(x || '').trim()).filter(Boolean).slice(0, 3) : [])
+          });
+        });
+        // anchor 全部没锚上且非兜底模式 → 弃卡（锚定是 mono 卡的立卡前提）
+        if(!card.anchor.length && !isFallback) return;
+        // followups：最多 3 个；禁 yesno；强制 optional；choice 降级；「其他」末项
+        (Array.isArray(c.followups) ? c.followups : []).slice(0, 3).forEach(st => {
+          if(!st || !st.k || !st.label) return;
+          if(st.type === 'yesno') return;
+          let type = ['choice','text'].indexOf(st.type) >= 0 ? st.type : 'text';
+          const step = { k: String(st.k), type: type, label: String(st.label), optional: true };
+          if(step.type === 'text' && st.ph) step.ph = String(st.ph);
+          if(step.type === 'choice'){
+            let opts = Array.isArray(st.options) ? st.options.map(x => String(x || '').trim()).filter(Boolean) : [];
+            if(opts.length < 2){ step.type = 'text'; }   // choice 无 options/<2 → 降级 text
+            else {
+              if(opts[opts.length - 1] !== '其他') opts.push('其他');
+              step.options = opts.slice(0, 7);
+              if(st.multi) step.multi = true;
+            }
+          }
+          card.followups.push(step);
+        });
+        if(c.prefillMono != null && String(c.prefillMono).trim()) card.prefillMono = String(c.prefillMono).trim();
+        if(card.anchor.length || card.topics.length) out.push(card);
+      } else {
+        // steps：最多 6 个；type 白名单；choice 降级；「其他」末项；yesno 补 noHint
+        (c.steps || []).slice(0, 6).forEach(st => {
+          if(!st || !st.k || !st.label) return;
+          let type = ['yesno','choice','text'].indexOf(st.type) >= 0 ? st.type : 'text';
+          const step = { k: String(st.k), type: type, label: String(st.label) };
+          if(step.type === 'text' && st.ph) step.ph = String(st.ph);
+          if(st.optional) step.optional = true;
+          if(step.type === 'choice'){
+            let opts = Array.isArray(st.options) ? st.options.map(x => String(x || '').trim()).filter(Boolean) : [];
+            if(opts.length < 2){ step.type = 'text'; }   // choice 无 options/<2 → 降级 text
+            else {
+              if(opts[opts.length - 1] !== '其他') opts.push('其他');
+              step.options = opts.slice(0, 7);
+              if(st.multi) step.multi = true;
+            }
+          }
+          if(step.type === 'yesno' && !st.noHint) step.noHint = '再想想：上周末、春节、暑假、谁的生日这些时间点有没有过类似的事；实在没有就跳过此卡。';
+          if(st.prefill != null && String(st.prefill).trim()) step.prefill = String(st.prefill).trim();
+          card.steps.push(step);
+        });
+        if(card.steps.length) out.push(card);
+      }
     });
     return out;
   }
