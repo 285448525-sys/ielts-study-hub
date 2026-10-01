@@ -41,7 +41,7 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20260930g"></script>
   <script defer src="js/common.js?v=20261001j"></script>
-  <script src="js/plans.js?v=20261001g" defer></script>
+  <script src="js/plans.js?v=20261001h" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -55,12 +55,14 @@
 
 <main class="container">
 
-  <!-- 10/1 她拍板拆两个子 Tab：「今日」= 今天的任务，「规划」= 未来 N 天总体计划 + AI 智能分配。
+  <!-- 10/1 她拍板拆三个子 Tab：「今日」= 今天的任务，「规划」= 未来 N 天总体计划 + AI 智能分配，
+       「历史」= 历史计划（她 10/1 下午拍板：从两 Tab 外共享位置收进独立 Tab）。
        Tab 名按全站两字口径（练习/题库、学习/词库、拆解/总览），她不满意随时改。 -->
   <div class="page-head-row">
     <div class="pill-tabs" id="planTabs">
       <button data-ptab="today" class="pill-tab active">今日</button>
       <button data-ptab="plan" class="pill-tab">规划</button>
+      <button data-ptab="history" class="pill-tab">历史</button>
     </div>
   </div>
 
@@ -105,18 +107,21 @@
   </section>
   </div>
 
-  <!-- 历史计划：整模块默认折叠，两个 Tab 共享，移到最下面 -->
+  <!-- Tab 3 历史：她 10/1 拍板收进独立 Tab。details 壳默认展开（Tab 语义=进来直接看），
+       保留整体收起能力与「共 N 天」meta；每天内部的折叠照旧。零新增 CSS。 -->
+  <div class="tab-panel" id="ptabHistory">
   <section class="card history-folded">
-    <details class="history-wrap" id="historyWrap">
+    <details class="history-wrap" id="historyWrap" open>
       <summary>
         <div class="history-summary">
           <h2 style="margin:0">历史计划</h2>
-          <span class="muted" id="historyMeta">点击展开</span>
+          <span class="muted" id="historyMeta">共 0 天</span>
         </div>
       </summary>
       <div id="histPlans"></div>
     </details>
   </section>
+  </div>
 </main>
 
 </body>

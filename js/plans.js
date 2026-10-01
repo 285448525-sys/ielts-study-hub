@@ -50,8 +50,9 @@ function enrichSpeakingTasks(arr){
   });
 }
 
-/* ---------- 子 Tab（10/1 她拍板拆分：「今日」= 今天的任务，「规划」= 未来 N 天总体计划 + AI 分配） ----------
-   两个 panel 始终在 DOM 只显隐，AI 回调里对 planText/weekBox 的判空逻辑不受影响。
+/* ---------- 子 Tab（10/1 她拍板拆分：「今日」= 今天的任务，「规划」= 未来 N 天总体计划 + AI 分配；
+   10/1 下午她拍板历史计划收进第三个 Tab「历史」） ----------
+   三个 panel 始终在 DOM 只显隐，AI 回调里对 planText/weekBox 的判空逻辑不受影响。
    视图态存 sessionStorage（全站惯例）；软导航重进本页 ready 重跑，恢复上次所在 Tab。 */
 function setPlanTab(name){
   const tabs = document.querySelectorAll('#planTabs .pill-tab');
@@ -59,8 +60,10 @@ function setPlanTab(name){
   tabs.forEach(b => b.classList.toggle('active', b.dataset.ptab === name));
   const pt = document.getElementById('ptabToday');
   const pp = document.getElementById('ptabPlan');
+  const ph = document.getElementById('ptabHistory');
   if(pt) pt.classList.toggle('active', name === 'today');
   if(pp) pp.classList.toggle('active', name === 'plan');
+  if(ph) ph.classList.toggle('active', name === 'history');
   try{ sessionStorage.setItem('hub_plan_ptab', name); }catch(e){}
 }
 
@@ -75,10 +78,13 @@ ready(() => {
   $('#aiPlan').addEventListener('click', aiPlanItem);
   bindEnterSubmit($('#planText'), $('#addPlan'));   // 9/22 之之：回车即添加（原 Ctrl+Enter；换行用 Shift+Enter）
 
-  // 子 Tab 切换 + 恢复上次所在 Tab（默认「今日」）
+  // 子 Tab 切换 + 恢复上次所在 Tab（默认「今日」；支持「规划」「历史」）
   document.querySelectorAll('#planTabs .pill-tab').forEach(b =>
     b.addEventListener('click', () => setPlanTab(b.dataset.ptab)));
-  try{ if(sessionStorage.getItem('hub_plan_ptab') === 'plan') setPlanTab('plan'); }catch(e){}
+  try{
+    const lastTab = sessionStorage.getItem('hub_plan_ptab');
+    if(lastTab === 'plan' || lastTab === 'history') setPlanTab(lastTab);
+  }catch(e){}
 
   // 每周 AI 排程
   $('#weekTasks').value = DATA.settings.weeklyTasks || '';
@@ -314,7 +320,7 @@ function renderHistory(curDate){
     .filter(p => p.date !== curDate && Array.isArray(p.items) && p.items.length)
     .slice().sort((a,b) => b.date.localeCompare(a.date));
   const meta = $('#historyMeta');
-  if(meta) meta.textContent = others.length ? ('共 ' + others.length + ' 天 · 点击展开') : '暂无历史计划';
+  if(meta) meta.textContent = others.length ? ('共 ' + others.length + ' 天') : '暂无历史计划';
   const box = $('#histPlans');
   if(others.length === 0){
     box.innerHTML = renderEmpty('还没有其它日期的计划。');
@@ -342,7 +348,7 @@ function renderHistory(curDate){
   box.querySelectorAll('button[data-open]').forEach(b =>
     b.addEventListener('click', e => {
       e.stopPropagation();
-      setPlanTab('today');   // 「打开编辑这天」目标容器（日期/列表）在「今日」Tab
+      setPlanTab('today');   // 「打开编辑这天」：编辑器（日期/列表）在「今日」Tab，切回去填日期
       $('#planDate').value = b.dataset.open;
       render();
       const top = document.querySelector('.container .card');
