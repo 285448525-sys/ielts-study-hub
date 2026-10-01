@@ -880,18 +880,6 @@ function openDetail(id){
       const toolB2 = document.getElementById('p2ToolB'); if(toolB2) toolB2.open = true;
       const p2Text = getP2TextForP3();
       if(!p2Text){ toast('请先在 P2 答题框写点东西，再生成 P3 追问'); return; }
-      if(!DATA.settings.relayToken){
-        // design/81：无 Key 给引导卡（替代纯 toast）
-        const area0 = $('#p3Area'); if(area0) area0.hidden = false;
-        const list0 = $('#p3List');
-        if(list0){
-          list0.innerHTML = spGuideCardHtml('AI 追问需要 DeepSeek Key',
-            'P3 追问题由 AI 根据你的 P2 回答生成，只需在设置里填你自己的 DeepSeek Key。',
-            spKeyGuideBtn());
-        }
-        toast('请先在「设置」配置 DeepSeek Key');
-        return;
-      }
       const p3 = ensureP3();
       // 已有题：内联两步确认（design/81，替代原生 confirm）——第一次点变「再点一次确认清空」，
       // 3 秒内未再点自动还原；第二次点才真正清空重出。点「取消」或超时零数据变化。
@@ -1210,15 +1198,15 @@ function storyWordBudget(){
   return { target: t, min: 120, max: 140 };
 }
 
-/* 空依赖引导卡（design/81）：AI 功能撞到「没配 Key / 没素材」时给一张可点的下一步卡片，
-   替代一闪而过的 toast。btnHtml 由调用方传入（内部已 escape / 固定文案，不再二次处理）。 */
+/* 空依赖引导卡（design/81）：AI 功能撞到「没素材」等空态时给一张可点的下一步卡片，
+   替代一闪而过的 toast。btnHtml 由调用方传入（内部已 escape / 固定文案，不再二次处理）。
+   （「去设置填 Key」按钮 spKeyGuideBtn 已随设置页 AI 模块下线删除，10/1。） */
 function spGuideCardHtml(title, desc, btnHtml){
   return '<div class="sp-guide"><div class="sp-guide-title">' + escapeHtml(title) + '</div>'
     + '<div class="sp-guide-desc">' + desc + '</div>'
     + (btnHtml ? '<div class="sp-guide-actions">' + btnHtml + '</div>' : '')
     + '</div>';
 }
-function spKeyGuideBtn(){ return '<a class="btn btn-primary sp-guide-btn" href="settings.html">去设置填写</a>'; }
 /* 无素材引导卡的「去素材生成」：复用顶部 pill-tabs 的 MAT 按钮（点它 = 走现有切换入口，不另写切换） */
 function spBindMatGuideBtn(el){
   const b = el && el.querySelector('#spGoMatBtn');
@@ -1317,17 +1305,7 @@ async function aiStoryLink(id){
   if(!s) return;
   const resultEl = $('#aiResult');
 
-  // 无 Key / 无素材：不再 toast 一闪而过，直接在结果区给可点引导卡（design/81）
-  if(!DATA.settings.relayToken){
-    if(resultEl){
-      resultEl.innerHTML = spGuideCardHtml('AI 串题需要 DeepSeek Key',
-        '串题思路由 AI 根据你的万能素材生成，本站不内置 Key：只需在设置里填你自己的 DeepSeek Key，Key 只存在这台设备的浏览器里。',
-        spKeyGuideBtn());
-      resultEl.style.display = 'block';
-    }
-    toast('请先在「设置 / AI 接口」配置 API Key');
-    return;
-  }
+  // 无素材：直接在结果区给可点引导卡
   const store = matLoadStore();
   if(!store || !store.materials || !store.materials.length){
     if(resultEl){
@@ -1835,7 +1813,6 @@ async function toggleTranslateP3Q(id, i, btn){
     cnLine.hidden = !cnLine.hidden;
     return;
   }
-  if(!DATA.settings.relayToken){ toast('请先在「设置 / AI 接口」配置 API Key'); return; }
   btn.disabled = true; const old = btn.textContent; btn.textContent = '…';
   try{
     const out = await callRelay('trans', [
@@ -1938,7 +1915,6 @@ function parseP3Helper(content){
 async function generateP3Helper(id, i){
   const s = DATA.speaking.find(x => x.id === id);
   if(!s) return;
-  if(!DATA.settings.relayToken){ toast('请先在「设置 / AI 接口」配置 API Key'); return; }
   const p3 = s.answers && s.answers.p2 && s.answers.p2.p3;
   if(!p3 || !Array.isArray(p3.questions)){ toast('还没有 P3 题目，先点「P3追问」生成'); return; }
   const q = p3.questions[i];
@@ -1983,7 +1959,6 @@ async function reviewP3Answer(id, i){
   if(!ta || !btn || !resultEl) return;
   const userText = (ta.value || '').trim();
   if(!userText){ toast('先在上面写或贴一下你的 P3 回答'); ta.focus(); return; }
-  if(!DATA.settings.relayToken){ toast('请先在「设置 / AI 接口」配置 API Key'); return; }
   const p3 = s.answers && s.answers.p2 && s.answers.p2.p3;
   const q = (p3 && Array.isArray(p3.questions) && p3.questions[i]) || '';
   const p2TextEl = document.getElementById('p2Ans');
@@ -2280,15 +2255,8 @@ async function diagnoseAnswer(id, qi, questionText, answerText){
     hubSave();
     refreshScoreAfterDiag(s);
   }catch(e){
-    // design/81：缺 Key 撞墙给引导卡（可点去设置），其他错误维持原文案
     if(resultEl){
-      if(String(e.message || '').indexOf('未配置 API Key') !== -1){
-        resultEl.innerHTML = spGuideCardHtml('AI 纠错需要 DeepSeek Key',
-          '诊断打分由 AI 完成，本站不内置 Key：在设置里填你自己的 DeepSeek Key 即可，Key 只存在这台设备。',
-          spKeyGuideBtn());
-      } else {
-        resultEl.innerHTML = '<div class="diag-note">AI 服务暂不可用：' + escapeHtml(e.message) + '\n\n请检查「设置」中的 AI 接口地址。</div>';
-      }
+      resultEl.innerHTML = '<div class="diag-note">AI 服务暂不可用：' + escapeHtml(e.message) + '\n\n请稍后再试。</div>';
       resultEl.style.display = 'block';
     }
     toast('AI 诊断失败：' + e.message);
@@ -2380,14 +2348,7 @@ async function diagnoseP2(id){
     }, (i) => removeSubmitRecord(s, 'p2', i));
 
   }catch(e){
-    // design/81：缺 Key 撞墙给引导卡，其他错误维持原文案
-    if(String(e.message || '').indexOf('未配置 API Key') !== -1){
-      resultEl.innerHTML = spGuideCardHtml('AI 纠错需要 DeepSeek Key',
-        '诊断打分由 AI 完成，本站不内置 Key：在设置里填你自己的 DeepSeek Key 即可，Key 只存在这台设备。',
-        spKeyGuideBtn());
-    } else {
-      resultEl.innerHTML = '<div class="diag-note">AI 服务暂不可用：' + escapeHtml(e.message) + '</div>';
-    }
+    resultEl.innerHTML = '<div class="diag-note">AI 服务暂不可用：' + escapeHtml(e.message) + '</div>';
     resultEl.style.display = 'block';
     toast('AI 纠错失败：' + e.message);
   }finally{
@@ -2789,7 +2750,6 @@ function renderDiag(el, j, raw, answer){
 async function generateAIHelper(id, qi){
   const s = DATA.speaking.find(x => x.id === id);
   if(!s) return;
-  if(!DATA.settings.relayToken){ toast('请先在「设置 / AI 接口」配置 API Key'); return; }
 
   const li = document.querySelector('.sp-q[data-qi="' + qi + '"]');
   if(!li) return;

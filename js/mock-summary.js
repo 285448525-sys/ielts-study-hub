@@ -37,10 +37,6 @@
         .replace(/"/g,'&quot;').replace(/'/g,'&#39;'));
 
   async function generate(btn, box){
-    if(!DATA.settings.relayToken){
-      box.innerHTML = '<p class="muted">请先在「设置 / AI 接口」填写 DeepSeek Key 后再生成总结。</p>';
-      return;
-    }
     const errs = collectErrors();
     if(!errs.length){
       box.innerHTML = '<p class="muted">还没有任何模考纠错记录，先去「口语 → 模考」完成几场，再来生成总结。</p>';

@@ -162,7 +162,6 @@
     const box = $('#mockPreCheck');
     if(!box) return;
   const fixed = DATA.settings.pronunciationScore;
-  const hasKey = !!DATA.settings.relayToken;
   const row = (ok, label, val) =>
     '<div class="mock-precheck-row '+(ok?'ok':'warn')+'">'+label+'：'+(ok?val:'<span class="mock-need">'+val+'</span>')+'</div>';
   let pronVal;
@@ -170,7 +169,7 @@
   else pronVal = '未填固定分 → 发音不计入总分（去「设置」填一个固定分即可）';
   box.innerHTML =
     row(fixed != null, '🔊 发音分', pronVal) +
-    row(hasKey, '🤖 AI 接口', hasKey ? '已配置 DeepSeek Key' : '未配置（<a href="settings.html">去设置填</a>）');
+    row(true, '🤖 AI 接口', '站内通道（无需配置）');
 
   // 续考入口：若上次有未完成的模考（保存进度退出后，同会话内可直接「继续上次模考」），
   // 显示提示 + 续考按钮，并隐藏原本的「开始模考 →」（避免误点覆盖）。无快照时恢复显示。
@@ -649,9 +648,6 @@
 
   /* ---------- 全新开考入口（由「开始模考」按钮触发） ---------- */
   async function startExam(){
-    if(!DATA.settings.relayToken){
-      toast('请先在「设置 / AI 接口」填写 DeepSeek Key'); return;
-    }
     await ensureMockLib();   // 确保报告库（MockReport）就绪后再开考，避免 finishExam 渲染报告时缺库
     // 仅从纯官方题库抽题：剔除框架母本(带 framework 字段 / id 形如 sp_p[12]_*)及任何残留非题目项，杜绝抽到老题库/框架内容
     const p1 = DATA.speaking.filter(x => x.type === 'P1' && x.questions && x.questions.length && !x.framework && !/^sp_p[12]_\d+$/.test(x.id || ''));

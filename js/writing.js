@@ -250,7 +250,6 @@ async function hintBlank(btn){
   const box = wrap.querySelector('.ph-hint-box');
   if(!box) return;
   const ph = inp.dataset.ph;   // 占位提示文本仍用于拼 prompt
-  if(!DATA.settings.relayToken){ toast('还没填 DeepSeek Key，去「设置 / AI 接口」填一下'); return; }
   const t = DATA.writing.find(x => x.id === curId);
   const others = [];
   document.querySelectorAll('.ph-input').forEach(el => { const v = el.value.trim(); if(v) others.push(el.dataset.ph + ' → ' + v); });
@@ -346,7 +345,6 @@ async function scoreTemplate(){
   if(s.total === 0){ toast('这个模板没有填空位'); return; }
   if(s.blank === s.total){ toast('先把空填上再评分'); return; }
   if(s.blank > 0 && !confirm('还有 ' + s.blank + ' 个空没填，仍然要让 AI 评分吗？（留空的框不算错，AI 只评你填了的部分）')) return;
-  if(!DATA.settings.relayToken){ toast('还没填 DeepSeek Key，去「设置 / AI 接口」填一下'); return; }
 
   const isTask1 = /^(动态图|静态图|地图题|流程图)$/.test(s.tpl.category || '');
   const dimName = isTask1 ? 'TA（Task Achievement 任务完成）' : 'TR（Task Response 任务回应）';
@@ -820,7 +818,6 @@ async function submitWtDict(){
   if(!wtDictCurrent) return;
   const userText = $('#wtDictInput').value.trim();
   if(!userText){ toast('先把整段默出来再提交'); return; }
-  if(!DATA.settings.relayToken){ toast('还没填 DeepSeek Key，去「设置 / AI 接口」填一下'); return; }
 
   const btn = $('#wtDictSubmit');
   btn.disabled = true; btn.textContent = '核对中…';
@@ -973,7 +970,6 @@ async function aiImportPhrases(){
   const box = $('#ba_bulkInput');
   const raw = (box && box.value || '').trim();
   if(!raw){ toast('先粘贴要导入的内容'); return; }
-  if(!DATA.settings.relayToken){ toast('还没填 DeepSeek Key，去「设置 / AI 接口」填一下'); return; }
   const btn = $('#ba_aiImport');
   const hint = $('#ba_importHint');
   btn.disabled = true; btn.textContent = 'AI 识别中…';

@@ -111,7 +111,6 @@ function addItem(){
 async function aiPlanItem(){
   const raw = $('#planText').value.trim();
   if(!raw){ toast('先写一句今天想完成的目标'); return; }
-  if(!DATA.settings.relayToken){ toast('未配置 AI Key：请去「设置 / AI 接口」填写 DeepSeek Key'); return; }
 
   const weak = computeWeak();
   const latest = DATA.scores.slice().sort((a,b)=>b.date.localeCompare(a.date))[0];

@@ -432,10 +432,10 @@ async function importSmart(){
       }
     });
     hubSave(); $('#smartInput').value = '';  renderWords();
-    let msg = '成功导入 ' + added + ' 个（未配置 Key，未翻译）';
+    let msg = '成功导入 ' + added + ' 个（AI 暂不可用，未翻译）';
     if(updated) msg += '，重置 ' + updated + ' 个已有词（进度回到第一阶段）';
     if(skippedDeleted) msg += '，跳过已掌握 ' + skippedDeleted + ' 个';
-    toast(msg); if(hint) hint.textContent = msg + '。去「设置 / AI 接口」填 DeepSeek Key 后可自动翻译。';
+    toast(msg); if(hint) hint.textContent = msg + '。稍后 AI 可用时可用「AI 补全」自动翻译。';
     return;
   }
 
@@ -506,7 +506,7 @@ async function importSmart(){
       }
     }
   }catch(e){
-    toast('AI 提取失败：' + e.message + '（可重试，或先去「设置」填 Key）');
+    toast('AI 提取失败：' + e.message + '（可重试）');
     if(hint) hint.textContent = 'AI 提取失败：' + e.message;
   }finally{
     btn.disabled = false; btn.textContent = 'AI 导入';
@@ -637,7 +637,6 @@ async function backfillCn(){
   if(posN){ hubSave(); renderWords(); }
   const miss = DATA.words.filter(wordNeedsFill);
   if(!miss.length){ toast(posN ? ('已统一 '+posN+' 个词组词性为 phrase. ✅') : (cleanN ? ('格式化完成：清洗 '+cleanN+' 处 ✅') : '没有需要补全的词')); return; }
-  if(!DATA.settings.relayToken){ toast('去「设置 / AI 接口」填 DeepSeek Key 才能补全'); return; }
   const btn = $('#backfillBtn');
   btn.disabled = true; btn.textContent = '补全中…';
   try{

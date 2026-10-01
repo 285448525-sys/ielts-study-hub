@@ -142,7 +142,6 @@ async function aiImportCorpus(){
   const box = $('#aiImportBox');
   const raw = (box && box.value || '').trim();
   if(!raw){ toast('先粘贴要导入的内容'); return; }
-  if(!DATA.settings.relayToken){ toast('还没填 DeepSeek Key，去「设置 / AI 接口」填一下'); return; }
   const btn = $('#aiImportBtn');
   const hint = $('#aiImportHint');
   btn.disabled = true; btn.textContent = 'AI 识别中…';
@@ -705,10 +704,6 @@ async function analyzeEntry(){
   const box = $('#ebInput');
   const text = box.value.trim();
   if(text.length < 15){ toast('内容太短，把你的错题笔记整段贴进来'); return false; }
-  if(!DATA.settings.relayToken){
-    toast('还没填 DeepSeek Key，去「设置 / AI 接口」填一下；也可以先点「只存原文」');
-    return false;
-  }
 
   const btn = $('#ebAnalyze');
   const btnHtml = btn.innerHTML;
@@ -1174,7 +1169,6 @@ var _hoveredWord = null;
 async function analyze(){
   const sent = $('#sentInput').value.trim();
   if(!sent){ toast('先粘贴一个长难句'); return; }
-  if(!DATA.settings.relayToken){ toast('还没配置 API Key：去「设置 / AI 接口」填一下 DeepSeek Key 就能拆解'); return; }
   const status = $('#sentStatus');
   status.textContent = '拆解中…（长句可能要 10–20 秒）'; status.className = 'word-status loading';
   $('#analyzeBtn').disabled = true;

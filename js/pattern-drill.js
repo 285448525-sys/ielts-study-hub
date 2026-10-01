@@ -483,7 +483,6 @@ function pdRefreshQueueIfIdle(){
 
 /* 模考错句 → 自动同步（AI 只补中文提示，错/对句直接取报告） */
 async function pdAutoSyncMock(){
-  if(!DATA.settings.relayToken){ return; }
   const pending = pdSyncPending();
   if(!pending.length){ pdSetSyncNote(''); return; }
   const batch = pending.slice(0, 30);

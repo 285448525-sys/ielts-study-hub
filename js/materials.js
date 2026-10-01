@@ -172,10 +172,6 @@
     if(store.materials && store.materials.length){
       h += '<div style="margin:-6px 0 10px"><a href="javascript:void(0)" id="matBackToResult" style="color:var(--primary);font-weight:600;font-size:13px">← 查看已有素材卡（' + store.materials.length + ' 张）</a></div>';
     }
-    // 无 Key 提示（4.7.2）：规划/生成都要 Key，但自由填写与英文素材可先填
-    if(!(DATA.settings && DATA.settings.relayToken)){
-      h += '<div class="mat-shortwarn"><b>还没配置 AI Key</b>：去「设置」填 DeepSeek Key 后才能分析题库出题和生成素材。下面的自由经历和英文素材可以先填着。</div>';
-    }
     // 换季横幅（4.5）：plan 是按旧题库出的 → 提示手动重新出题（不自动重规划，避免打断填写）
     if(hasPlan && bankLive && plan.bankVersion !== (DATA.speakingVersion || 0)){
       h += '<div class="mat-shortwarn" id="matPlanStale"><b>口语题库已换季</b>，当前问题是按旧题库出的。<div class="mat-shortwarn-actions"><button class="btn btn-primary" id="matReplanBtn">按新题库重新出题</button><span class="mat-shortwarn-tip">会尽量把你已填的答案迁到新问题里</span></div></div>';
@@ -654,9 +650,6 @@
       showShortWarning(shortTitles);
       return;
     }
-
-    const hasKey = !!(DATA.settings && DATA.settings.relayToken);
-    if(!hasKey) toast('未配置 AI Key（设置里填 DeepSeek Key），无法生成');
 
     setLoading('正在把你的故事整合成万能素材…');
     try{
