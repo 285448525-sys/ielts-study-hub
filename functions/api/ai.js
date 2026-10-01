@@ -9,9 +9,12 @@
 //   AI_MODEL             选填，默认 deepseek-chat
 //   AI_DAILY_LIMIT       选填，全站每日总调用上限，默认 3000
 //   AI_IP_LIMIT          选填，单 IP 每日上限，默认 200
-//   AI_USER_DAILY_LIMIT  选填，单账号每日 AI 额度（免费/会员分层用）。
-//                        10/1 付费方案上线：默认改为 10（与 vip.js FREE_AI_DAILY / vip.html 对比表口径一致）；
-//                        配这个变量可覆盖默认值。会员自动跳过此闸。
+//   AI_USER_WEEKLY_LIMIT 选填，免费账号每周 AI 兜底额度，默认 5。
+//                        10/1 下午她拍板口径：口语模考免费每月 1 次 / 写作批改免费 0 次（会员专属）/
+//                        其余辅助 AI（含翻译·长难句）每周合计 5 次；会员跳过全部免费额度闸。
+//                        （原 AI_USER_DAILY_LIMIT=10 每日兜底口径同日退役。）
+//   AI_FREE_MOCK_MONTHLY 选填，口语模考免费次数/自然月，默认 1
+//   AI_FREE_WRITING_TOTAL 选填，写作批改免费次数，默认 0（=会员专属；配正数恢复终身体验额度）
 //   AI_RATE_PER_MIN      选填，单账号每分钟调用上限（防脚本刷量），默认 10；会员同样受限
 // 访问规则（她 10/1 拍板「必须登录才能用 AI」）：登录闸先于一切——未登录（无/无效 X-Session）
 // 一律 401 auth_required，即使 AI_API_KEY 未配也不给未登录用户探出任何信息。
@@ -55,6 +58,24 @@ function json(obj, status, env) {
 function dayKey(d) {
   const p = n => String(n).padStart(2, '0');
   return d.getUTCFullYear() + p(d.getUTCMonth() + 1) + p(d.getUTCDate());
+}
+
+/* 自然月键（UTC）：口语模考「每月 1 次」按自然月清零，键里带月份故 TTL 只防残留。 */
+function monthKey(d) {
+  const p = n => String(n).padStart(2, '0');
+  return d.getUTCFullYear() + '-' + p(d.getUTCMonth() + 1);
+}
+
+/* ISO 周键（UTC，周一起始）：「每周 5 次」兜底按自然周清零。标准 ISO 8601 周号算法。 */
+function isoWeekKey(d) {
+  const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  const dn = (t.getUTCDay() + 6) % 7;               // 周一=0 … 周日=6
+  t.setUTCDate(t.getUTCDate() - dn + 3);            // 移到本周四（ISO 周锚点）
+  const ft = new Date(Date.UTC(t.getUTCFullYear(), 0, 4));
+  const fdn = (ft.getUTCDay() + 6) % 7;
+  ft.setUTCDate(ft.getUTCDate() - fdn + 3);         // 1 月 4 日所在周的周四 = 第 1 周锚点
+  const week = 1 + Math.round((t - ft) / (7 * 86400000));
+  return t.getUTCFullYear() + '-W' + String(week).padStart(2, '0');
 }
 
 /* 计数键按 10 个桶轮转：同一秒内多次调用会散到不同 key，绕开 KV 写频率限制。 */
@@ -166,55 +187,54 @@ export async function onRequest(context) {
     isVip = !!(v && v.expire && v.expire > Date.now());
   } catch (e) {}
 
-  /* 按账号每日额度（免费/会员分层）：AI_USER_DAILY_LIMIT 环境变量，默认 10。
-     ⚠️ 10/1 起降级为「总兜底」：分功能差异化额度（她拍板按豆包口径）在上面各功能组先闸，
-     这里兜住「其他辅助 AI」（诊断/错题解析/听写检查等不设功能闸的调用）的每日总量。会员跳过。 */
-  const acctLimit = parseInt((env && env.AI_USER_DAILY_LIMIT) != null ? env.AI_USER_DAILY_LIMIT : '10', 10) || 0;
-  if (acctLimit > 0 && !isVip) {
-    const usedAcct = await sumBuckets(env.SYNC_KV, 'aiqa:' + acct, day);
-    if (usedAcct >= acctLimit) {
-      return json({ ok: false, error: 'user_limit', msg: '你今日的免费 AI 额度已用完，升级会员无限用' }, 429, env);
+  /* 按账号每周兜底额度（免费/会员分层）：AI_USER_WEEKLY_LIMIT 环境变量，默认 5。
+     ⚠️ 10/1 下午她拍板：原「每日 10 次」口径取消，改为每周 5 次兜底（口语模考/写作批改/
+     串题在下面对应功能闸先行；其余辅助 AI 全部走这里）。会员跳过。 */
+  const week = isoWeekKey(now);
+  const weekLimit = parseInt((env && env.AI_USER_WEEKLY_LIMIT) != null ? env.AI_USER_WEEKLY_LIMIT : '5', 10) || 0;
+  if (weekLimit > 0 && !isVip) {
+    let usedWeek = 0;
+    try { usedWeek = parseInt((await env.SYNC_KV.get('aiqw:' + acct + ':' + week)) || '0', 10) || 0; } catch (e) {}
+    if (usedWeek >= weekLimit) {
+      return json({ ok: false, error: 'user_limit', msg: '你本周的免费 AI 额度（' + weekLimit + ' 次）已用完，升级会员无限用' }, 429, env);
     }
   }
 
-  /* ---- 10/1 分功能差异化额度（她拍板按豆包口径，覆盖「统一 10 次/日」）----
-     ① 口语模考 mock_q：免费共 1 次（终身体验，开考出题时闸+计；评分/总结属同一场模考不重复计）
-     ② 写作批改 writing_score：免费共 2 次（终身）
-     ③ 词库翻译 translate/trans + 长难句 longsent：免费每日合计 1 次（自然日 UTC 清零）
-     ④ 串题素材 material_* / speaking_chuan_*：完全会员专属（免费 403 vip_required）
-     ⑤ 其余辅助 AI（口语诊断/错题/听写检查/周报等）：不设功能闸，只走上面总兜底
-     计量键：aiqt:<acct>:<组>（终身）/ aiqd:<acct>:<day>（每日）；会员跳过 ①②③④ 全部功能闸。
+  /* ---- 分功能差异化额度（10/1 下午她拍板新口径）----
+     ① 口语模考 mock_q：免费每月 1 次（自然月 UTC 清零；开考出题时闸+计，评分/总结属同场不重复计）
+     ② 写作批改 writing_score：免费 0 次 = 会员专属（她拍板删掉原「终身 2 次」；
+        env AI_FREE_WRITING_TOTAL 配正数可恢复终身体验额度）
+     ③ 串题素材 material_* / speaking_chuan_*：会员专属（免费 403 vip_required）
+     ④ 翻译/长难句不再单独设组，并入上面每周 5 次兜底（原 aiqd 每日键口径退役）
+     计量键：aiqmo:<acct>:<YYYY-MM>（月）/ aiqt:<acct>:writing（终身，默认 0 不启用）。
      默认阈值改这里要同步：auth.js ai_usage + vip.html 对比表（三处口径一致）。 */
   const service = String((body && body.service) || '').trim();
-  const LIFETIME_GROUPS = { mock_q: 'mock', writing_score: 'writing' };
-  const DAILY_TRANS = { translate: 1, trans: 1, longsent: 1 };
+  const month = monthKey(now);
   if (!isVip) {
-    // ④ 串题素材会员专属
+    // ③ 串题素材会员专属
     if (/^(material_|speaking_chuan_)/.test(service)) {
       return json({ ok: false, error: 'vip_required', msg: '串题素材是会员专属功能，升级会员无限生成' }, 403, env);
     }
-    // ①② 终身体验额度
-    const grp = LIFETIME_GROUPS[service];
-    if (grp) {
-      const dft = grp === 'mock' ? 1 : 2;
-      const envKey = grp === 'mock' ? 'AI_FREE_MOCK_TOTAL' : 'AI_FREE_WRITING_TOTAL';
-      const lt = parseInt((env && env[envKey]) != null ? env[envKey] : String(dft), 10) || 0;
-      let used = 0;
-      try { used = parseInt((await env.SYNC_KV.get('aiqt:' + acct + ':' + grp)) || '0', 10) || 0; } catch (e) {}
-      if (lt > 0 && used >= lt) {
-        return json({ ok: false, error: grp + '_limit',
-          msg: grp === 'mock'
-            ? '口语模考免费体验已用完（共 ' + lt + ' 次），升级会员无限练'
-            : '写作批改免费体验已用完（共 ' + lt + ' 次），升级会员无限批改' }, 429, env);
+    // ② 写作批改：免费默认 0（会员专属）
+    if (service === 'writing_score') {
+      const wt = parseInt((env && env.AI_FREE_WRITING_TOTAL) != null ? env.AI_FREE_WRITING_TOTAL : '0', 10) || 0;
+      if (wt <= 0) {
+        return json({ ok: false, error: 'vip_required', msg: '写作批改是会员专属功能，升级会员无限批改' }, 403, env);
+      }
+      let wUsed = 0;
+      try { wUsed = parseInt((await env.SYNC_KV.get('aiqt:' + acct + ':writing')) || '0', 10) || 0; } catch (e) {}
+      if (wUsed >= wt) {
+        return json({ ok: false, error: 'writing_limit', msg: '写作批改免费体验已用完（共 ' + wt + ' 次），升级会员无限批改' }, 429, env);
       }
     }
-    // ③ 翻译+长难句每日合计
-    if (DAILY_TRANS[service]) {
-      const tLimit = parseInt((env && env.AI_FREE_TRANS_DAILY) != null ? env.AI_FREE_TRANS_DAILY : '1', 10) || 0;
-      let tUsed = 0;
-      try { tUsed = parseInt((await env.SYNC_KV.get('aiqd:' + acct + ':' + day)) || '0', 10) || 0; } catch (e) {}
-      if (tLimit > 0 && tUsed >= tLimit) {
-        return json({ ok: false, error: 'trans_limit', msg: '今日翻译/长难句免费次数已用完（每日 ' + tLimit + ' 次），明天再来或升级会员' }, 429, env);
+    // ① 口语模考：每月 1 次
+    if (service === 'mock_q') {
+      const mLimit = parseInt((env && env.AI_FREE_MOCK_MONTHLY) != null ? env.AI_FREE_MOCK_MONTHLY : '1', 10) || 0;
+      let mUsed = 0;
+      try { mUsed = parseInt((await env.SYNC_KV.get('aiqmo:' + acct + ':' + month)) || '0', 10) || 0; } catch (e) {}
+      if (mLimit > 0 && mUsed >= mLimit) {
+        return json({ ok: false, error: 'mock_limit',
+          msg: '口语模考免费额度已用完（每月 ' + mLimit + ' 次），下月再来或升级会员无限练' }, 429, env);
       }
     }
   }
@@ -286,28 +306,35 @@ export async function onRequest(context) {
   bumpCount(env.SYNC_KV, 'aiq', day, bucket);
   bumpCount(env.SYNC_KV, 'aiqip:' + ip, day, bucket);
   bumpCount(env.SYNC_KV, 'aiqa:' + acct, day, bucket);   // 按账号计量（会员也计数：面板「今日 AI 次数」要看得到会员用量，只是会员不受额度闸限制）
-  /* 10/1 分功能计量（只对免费用户累计；会员无限用不必计功能组）：
-     终身组 aiqt:<acct>:<组>（无 TTL）/ 每日组 aiqd:<acct>:<day>（TTL 2 天自愈）。写失败不影响主流程。 */
+  /* 10/1 下午新口径分功能计量（只对免费用户累计；会员无限用不必计）：
+     月度模考 aiqmo:<acct>:<YYYY-MM>（TTL 40 天防残留）/ 写作终身 aiqt:<acct>:writing（默认 0 不启用）
+     / 周兜底 aiqw:<acct>:<YYYY-Www>（TTL 10 天防残留）。写失败不影响主流程。 */
   if (!isVip) {
-    const _grp = LIFETIME_GROUPS[service];
-    if (_grp) {
+    if (service === 'mock_q') {
       (async () => {
         try {
-          const lk = 'aiqt:' + acct + ':' + _grp;
+          const mk = 'aiqmo:' + acct + ':' + month;
+          const cur = parseInt((await env.SYNC_KV.get(mk)) || '0', 10) || 0;
+          await env.SYNC_KV.put(mk, String(cur + 1), { expirationTtl: 3456000 });
+        } catch (e) {}
+      })();
+    }
+    if (service === 'writing_score') {
+      (async () => {
+        try {
+          const lk = 'aiqt:' + acct + ':writing';
           const cur = parseInt((await env.SYNC_KV.get(lk)) || '0', 10) || 0;
           await env.SYNC_KV.put(lk, String(cur + 1));
         } catch (e) {}
       })();
     }
-    if (DAILY_TRANS[service]) {
-      (async () => {
-        try {
-          const dk = 'aiqd:' + acct + ':' + day;
-          const cur = parseInt((await env.SYNC_KV.get(dk)) || '0', 10) || 0;
-          await env.SYNC_KV.put(dk, String(cur + 1), { expirationTtl: 172800 });
-        } catch (e) {}
-      })();
-    }
+    (async () => {
+      try {
+        const wk = 'aiqw:' + acct + ':' + week;
+        const cur = parseInt((await env.SYNC_KV.get(wk)) || '0', 10) || 0;
+        await env.SYNC_KV.put(wk, String(cur + 1), { expirationTtl: 864000 });
+      } catch (e) {}
+    })();
   }
   /* 分钟风控计数（TTL 2 分钟自愈；写失败不影响主流程，与 bumpCount 同口径） */
   (async () => {

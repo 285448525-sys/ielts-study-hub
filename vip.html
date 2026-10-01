@@ -21,7 +21,7 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20260930g"></script>
   <script defer src="js/common.js?v=20261001j"></script>
-  <script src="js/vip.js?v=20261001b" defer></script>
+  <script src="js/vip.js?v=20261001c" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -48,7 +48,14 @@
     <p class="muted" style="font-size:12px;margin:12px 0 0">所有方案权益完全相同，只是时长与日均价不同；会员跟账号走，手机/电脑登录同一账号都生效。</p>
   </section>
 
-  <!-- 权益对比 -->
+  <!-- 权益对比（10/1 下午她拍板新口径：模考每月 1 / 写作批改会员专属 / 辅助 AI 每周 5；云同步永久免费）。
+       视觉策略：免费列适度 ✕、会员列金色调高亮（她授权「给人感觉开会员好处多」）。 -->
+  <style>
+    .vip-cmp td.vip-col{background:rgba(234,179,8,.06)}
+    .vip-cmp td.vip-col b{color:#b45309}
+    .vip-cmp thead th.vip-col{color:#b45309}
+    .vip-no{color:var(--muted)}
+  </style>
   <section class="card">
     <h2 style="margin:0 0 14px">免费版 vs 会员</h2>
     <div style="overflow-x:auto">
@@ -57,63 +64,77 @@
           <tr style="text-align:left;color:var(--muted)">
             <th style="padding:10px 8px;border-bottom:1px solid var(--line);font-weight:600">功能</th>
             <th style="padding:10px 8px;border-bottom:1px solid var(--line);font-weight:600">免费版</th>
-            <th style="padding:10px 8px;border-bottom:1px solid var(--line);font-weight:600;color:var(--primary)">会员</th>
+            <th class="vip-col" style="padding:10px 8px;border-bottom:1px solid var(--line);font-weight:600">会员</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td style="padding:10px 8px;border-bottom:1px solid var(--line)">全部学习功能<br /><span class="muted" style="font-size:12px">词库 · 口语题库 · 计划 · 回顾 · 计时 · 听写…</span></td>
             <td style="padding:10px 8px;border-bottom:1px solid var(--line)">✓</td>
-            <td style="padding:10px 8px;border-bottom:1px solid var(--line)">✓</td>
+            <td class="vip-col" style="padding:10px 8px;border-bottom:1px solid var(--line)">✓</td>
           </tr>
           <tr>
-            <td style="padding:10px 8px;border-bottom:1px solid var(--line)">口语模考（AI 出题 + 评分）</td>
-            <td style="padding:10px 8px;border-bottom:1px solid var(--line)"><b>1</b> 次体验</td>
-            <td style="padding:10px 8px;border-bottom:1px solid var(--line)"><b style="color:var(--primary)">无限次</b></td>
+            <td style="padding:10px 8px;border-bottom:1px solid var(--line)">口语模考（AI 出题 + 评分 + 四维报告）</td>
+            <td style="padding:10px 8px;border-bottom:1px solid var(--line)">每月 <b>1</b> 次</td>
+            <td class="vip-col" style="padding:10px 8px;border-bottom:1px solid var(--line)"><b>无限次</b></td>
           </tr>
           <tr>
-            <td style="padding:10px 8px;border-bottom:1px solid var(--line)">写作批改（AI 评分）</td>
-            <td style="padding:10px 8px;border-bottom:1px solid var(--line)"><b>2</b> 次体验</td>
-            <td style="padding:10px 8px;border-bottom:1px solid var(--line)"><b style="color:var(--primary)">无限次</b></td>
+            <td style="padding:10px 8px;border-bottom:1px solid var(--line)">写作批改（AI 四项评分 + 逐句点评）</td>
+            <td style="padding:10px 8px;border-bottom:1px solid var(--line)"><span class="vip-no">✕ 会员专属</span></td>
+            <td class="vip-col" style="padding:10px 8px;border-bottom:1px solid var(--line)"><b>无限次</b></td>
           </tr>
           <tr>
-            <td style="padding:10px 8px;border-bottom:1px solid var(--line)">串题素材生成<br /><span class="muted" style="font-size:12px">P2 一稿串多题</span></td>
-            <td style="padding:10px 8px;border-bottom:1px solid var(--line)">✕ 会员专属</td>
-            <td style="padding:10px 8px;border-bottom:1px solid var(--line)"><b style="color:var(--primary)">无限生成</b></td>
+            <td style="padding:10px 8px;border-bottom:1px solid var(--line)">串题素材生成<br /><span class="muted" style="font-size:12px">P2 一稿串多题 · AI 定制</span></td>
+            <td style="padding:10px 8px;border-bottom:1px solid var(--line)"><span class="vip-no">✕ 会员专属</span></td>
+            <td class="vip-col" style="padding:10px 8px;border-bottom:1px solid var(--line)"><b>无限生成</b></td>
           </tr>
           <tr>
-            <td style="padding:10px 8px;border-bottom:1px solid var(--line)">翻译 + 长难句解析</td>
-            <td style="padding:10px 8px;border-bottom:1px solid var(--line)">每日 <b>1</b> 次</td>
-            <td style="padding:10px 8px;border-bottom:1px solid var(--line)"><b style="color:var(--primary)">无限次</b></td>
+            <td style="padding:10px 8px;border-bottom:1px solid var(--line)">其他 AI 辅助<br /><span class="muted" style="font-size:12px">翻译 · 长难句解析 · AI 安排今天 · 智能分配 · 口语诊断 · 听写检查…</span></td>
+            <td style="padding:10px 8px;border-bottom:1px solid var(--line)">每周共享 <b>5</b> 次</td>
+            <td class="vip-col" style="padding:10px 8px;border-bottom:1px solid var(--line)"><b>无限次</b></td>
           </tr>
           <tr>
-            <td style="padding:10px 8px;border-bottom:1px solid var(--line)">其他 AI 辅助<br /><span class="muted" style="font-size:12px">AI 安排今天 / 智能分配 / 诊断 / 查词…</span></td>
-            <td style="padding:10px 8px;border-bottom:1px solid var(--line)">每日 <b>10</b> 次兜底</td>
-            <td style="padding:10px 8px;border-bottom:1px solid var(--line)"><b style="color:var(--primary)">无限次</b></td>
+            <td style="padding:10px 8px;border-bottom:1px solid var(--line)">多设备云同步</td>
+            <td style="padding:10px 8px;border-bottom:1px solid var(--line)">✓ 永久免费</td>
+            <td class="vip-col" style="padding:10px 8px;border-bottom:1px solid var(--line)">✓</td>
           </tr>
           <tr>
             <td style="padding:10px 8px;border-bottom:1px solid var(--line)">数据导出</td>
             <td style="padding:10px 8px;border-bottom:1px solid var(--line)">✓ 免费</td>
-            <td style="padding:10px 8px;border-bottom:1px solid var(--line)">✓</td>
+            <td class="vip-col" style="padding:10px 8px;border-bottom:1px solid var(--line)">✓</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 8px;border-bottom:1px solid var(--line)">新功能抢先体验</td>
+            <td style="padding:10px 8px;border-bottom:1px solid var(--line)"><span class="vip-no">—</span></td>
+            <td class="vip-col" style="padding:10px 8px;border-bottom:1px solid var(--line)"><b>会员优先</b></td>
           </tr>
           <tr>
             <td style="padding:10px 8px;border-bottom:1px solid var(--line)">会员专属功能<br /><span class="muted" style="font-size:12px">专属主题 / 深度专注 / 效率报告</span></td>
-            <td style="padding:10px 8px;border-bottom:1px solid var(--line)">—</td>
-            <td style="padding:10px 8px;border-bottom:1px solid var(--line)"><span class="badge">即将上线</span></td>
+            <td style="padding:10px 8px;border-bottom:1px solid var(--line)"><span class="vip-no">—</span></td>
+            <td class="vip-col" style="padding:10px 8px;border-bottom:1px solid var(--line)"><span class="badge">即将上线</span></td>
           </tr>
         </tbody>
       </table>
     </div>
+    <p class="muted" style="font-size:12.5px;margin:12px 0 0">学习功能本身全部免费且无差别——会员提升的是 <b>AI 额度</b>（模考 / 批改 / 素材 / 辅助）和后续专属功能。</p>
   </section>
 
-  <!-- 开通流程（10/1 先手动收款：免签支付有二清风险，跑通后再接自动发货） -->
+  <!-- 开通流程（10/1 先手动收款：免签支付有二清风险，跑通后再接自动发货。三步傻瓜化她拍板方向） -->
   <section class="card" id="vipHowto">
-    <h2 style="margin:0 0 14px">如何开通</h2>
-    <div style="display:flex;flex-direction:column;gap:12px;font-size:14px">
-      <div><b>1.</b> 上面选好方案，记下价格</div>
-      <div><b>2.</b> 微信 / 支付宝扫码转账对应金额</div>
-      <div><b>3.</b> 转账时<b>备注你的站内账号</b>（手机号或用户名）</div>
-      <div><b>4.</b> 站长收到后在后台开通，<b>约 10 分钟内</b>生效；回到本页刷新即可看到会员状态</div>
+    <h2 style="margin:0 0 14px">三步开通</h2>
+    <div style="display:flex;flex-direction:column;gap:14px;font-size:14px">
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <span style="flex:none;width:26px;height:26px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">1</span>
+        <div><b>扫码转账</b><br /><span class="muted" style="font-size:13px">选好方案，微信或支付宝扫码转账对应金额，<b>备注里写你的站内账号</b>（手机号或用户名）</span></div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <span style="flex:none;width:26px;height:26px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">2</span>
+        <div><b>加站长微信确认</b><br /><span class="muted" style="font-size:13px">加微信 <b>g285448525</b>，发一句「已转账 + 你的账号」，标明来意都会通过</span></div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <span style="flex:none;width:26px;height:26px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">3</span>
+        <div><b>等待生效</b><br /><span class="muted" style="font-size:13px">站长确认后<b>约 10 分钟内</b>开通，回到本页刷新即可看到会员状态</span></div>
+      </div>
     </div>
     <!-- ⚠️ 站长要做的：把收款码图片放进项目（如 img/pay_wechat.png / img/pay_alipay.png），
          把下面两个占位框里的说明文字替换成 <img src="…" style="width:100%;border-radius:10px" />。
@@ -124,12 +145,20 @@
     </div>
   </section>
 
-  <!-- 常见问题 -->
+  <!-- 常见问题（10/1 扩充到 7 条，她授权「加你觉得可以的」） -->
   <section class="card">
     <h2 style="margin:0 0 8px">常见问题</h2>
     <details style="padding:10px 0;border-bottom:1px solid var(--line)">
       <summary style="cursor:pointer;font-weight:600">免费版 AI 额度是怎么算的？</summary>
-      <p class="muted" style="font-size:13px;margin:8px 0 0">分功能给体验额度：口语模考共 1 次、写作批改共 2 次（终身体验，用完即止）；翻译 / 长难句每天 1 次（零点重置）；串题素材是会员专属；其他 AI 辅助（安排今天、诊断、查词等）共享每日 10 次兜底。升级会员后全部不限次。</p>
+      <p class="muted" style="font-size:13px;margin:8px 0 0">口语模考每月 1 次（自然月初重置）；其他 AI 辅助（翻译、长难句、AI 安排今天、口语诊断、听写检查等）每周合计 5 次（每周一重置）；写作批改和串题素材是会员专属。升级会员后全部不限次。</p>
+    </details>
+    <details style="padding:10px 0;border-bottom:1px solid var(--line)">
+      <summary style="cursor:pointer;font-weight:600">会员和免费版在学习功能上有区别吗？</summary>
+      <p class="muted" style="font-size:13px;margin:8px 0 0">没有。词库、口语题库、计划、回顾、计时、听写、云同步、数据导出这些学习功能完全一样、永久免费——会员提升的是 AI 额度和后续上线的专属功能。</p>
+    </details>
+    <details style="padding:10px 0;border-bottom:1px solid var(--line)">
+      <summary style="cursor:pointer;font-weight:600">为什么注册需要邀请码？</summary>
+      <p class="muted" style="font-size:13px;margin:8px 0 0">为了防批量注册薅 AI 额度，保证已注册用户的体验。向站长微信（g285448525）说明来意即可获取。</p>
     </details>
     <details style="padding:10px 0;border-bottom:1px solid var(--line)">
       <summary style="cursor:pointer;font-weight:600">可以退款吗？</summary>
@@ -137,11 +166,15 @@
     </details>
     <details style="padding:10px 0;border-bottom:1px solid var(--line)">
       <summary style="cursor:pointer;font-weight:600">会员到期后会怎样？</summary>
-      <p class="muted" style="font-size:13px;margin:8px 0 0">学习数据全部保留，AI 额度回到免费版口径（口语模考 1 次 / 写作批改 2 次 / 翻译每日 1 次）；随时可以续费，续费时长在原到期日基础上顺延。</p>
+      <p class="muted" style="font-size:13px;margin:8px 0 0">学习数据全部保留，AI 额度回到免费版口径（口语模考每月 1 次 / 其他 AI 每周 5 次，写作批改与串题素材回到会员专属）；随时可以续费，续费时长在原到期日基础上顺延。</p>
     </details>
-    <details style="padding:10px 0">
+    <details style="padding:10px 0;border-bottom:1px solid var(--line)">
       <summary style="cursor:pointer;font-weight:600">换设备 / 重装后会员还在吗？</summary>
       <p class="muted" style="font-size:13px;margin:8px 0 0">在。会员跟账号走，任何设备登录你的账号都能看到会员状态。</p>
+    </details>
+    <details style="padding:10px 0">
+      <summary style="cursor:pointer;font-weight:600">我的学习数据安全吗？</summary>
+      <p class="muted" style="font-size:13px;margin:8px 0 0">云同步的数据只存在你自己账号下面，仅用于跨设备同步，不做任何分析，也不会提供给任何第三方；导出 / 清空数据完全由你自己控制。</p>
     </details>
   </section>
 

@@ -211,14 +211,25 @@ export async function onRequest(context) {
     const _d = new Date();
     const day = _d.getUTCFullYear() + _p(_d.getUTCMonth() + 1) + _p(_d.getUTCDate());
     const g = async k => { try { return parseInt((await kv.get(k)) || '0', 10) || 0; } catch (e) { return 0; } };
-    const mockUsed = await g('aiqt:' + sess.acct + ':mock');
-    const writingUsed = await g('aiqt:' + sess.acct + ':writing');
-    const transUsed = await g('aiqd:' + sess.acct + ':' + day);
+    /* 10/1 下午她拍板新口径：模考=每月 1 次（aiqmo 月键）/ 写作批改免费 0（会员专属）/
+       翻译并入兜底 / 兜底=每周 5 次（aiqw 周键）。与 ai.js 阈值同源，改要三处同步。 */
+    const isoWeekOf = d => {
+      const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+      const dn = (t.getUTCDay() + 6) % 7;
+      t.setUTCDate(t.getUTCDate() - dn + 3);
+      const ft = new Date(Date.UTC(t.getUTCFullYear(), 0, 4));
+      const fdn = (ft.getUTCDay() + 6) % 7;
+      ft.setUTCDate(ft.getUTCDate() - fdn + 3);
+      const w = 1 + Math.round((t - ft) / (7 * 86400000));
+      return t.getUTCFullYear() + '-W' + String(w).padStart(2, '0');
+    };
+    const month = _d.getUTCFullYear() + '-' + _p(_d.getUTCMonth() + 1);
+    const mockUsed = await g('aiqmo:' + sess.acct + ':' + month);
+    const weeklyUsed = await g('aiqw:' + sess.acct + ':' + isoWeekOf(_d));
     return json({
       ok: true, acct: sess.acct, vip,
-      mock:    { used: mockUsed,    total: 1 },   // env AI_FREE_MOCK_TOTAL 默认 1
-      writing: { used: writingUsed, total: 2 },   // env AI_FREE_WRITING_TOTAL 默认 2
-      trans:   { used: transUsed,   total: 1 },   // env AI_FREE_TRANS_DAILY 默认 1（translate/trans/longsent 每日合计）
+      mock:   { used: mockUsed,   total: 1, reset: 'monthly' },  // env AI_FREE_MOCK_MONTHLY 默认 1
+      weekly: { used: weeklyUsed, total: 5 },                   // env AI_USER_WEEKLY_LIMIT 默认 5（含翻译/长难句等全部辅助 AI）
     });
   }
 

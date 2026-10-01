@@ -84,10 +84,10 @@ async function initAiCard(){
       return;
     }
     const left = g => Math.max(0, (g.total || 0) - (g.used || 0));
-    const m = left(j.mock || {}), w = left(j.writing || {}), t = left(j.trans || {});
-    const n = (m > 0 ? 1 : 0) + (w > 0 ? 1 : 0) + (t > 0 ? 1 : 0);
+    const m = left(j.mock || {}), w = left(j.weekly || {});
+    const n = (m > 0 ? 1 : 0) + (w > 0 ? 1 : 0);
     el.innerHTML = n > 0 ? (n + '<span class="u">项</span>') : '用完';
-    if(hint) hint.textContent = '口语 ' + (m > 0 ? m : '已用') + ' · 写作 ' + (w > 0 ? w : '已用') + ' · 翻译 ' + (t > 0 ? t + '/日' : '已用');
+    if(hint) hint.textContent = '模考 ' + (m > 0 ? m + '/月' : '本月已用') + ' · 其他 AI ' + (w > 0 ? w + '/周' : '本周已用');
   }catch(e){}
 }
 
