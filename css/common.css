@@ -14,7 +14,8 @@
   --n-900:#14161a;    /* 标题、核心数据强调 */
   /* === 中性层语义映射：全部引用新阶，禁硬编码 === */
   --bg:var(--n-200);
-  --bg-accent:rgba(0,0,0,.02);   /* 右上光晕去 teal 染色，改为极淡中性 */
+  /* 10/1 UI v2（她定稿示意稿）：光晕恢复极淡 teal（9/26 曾去 teal 染色，本次按新示意稿覆盖） */
+  --bg-accent:rgba(58,154,147,.06);   /* 右上 teal 光晕：极淡，只做氛围不抢内容 */
   --surface:var(--n-0);
   --surface-2:var(--n-50);
   --ink:var(--n-800);
@@ -1983,15 +1984,21 @@ main.container{padding-top:40px}
 
 /* hero 倒计时主卡（问候/目标/连续天数已收进卡内） */
 /* ⭐ 占满主区宽度，去掉 max-width 限制（避免右侧大片空白） */
-.hero{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:24px 28px;color:var(--ink);margin:0 0 16px;box-shadow:var(--shadow);position:relative;overflow:hidden;display:block}
-.hero::before,.hero::after{display:none}
-.hero::after{content:"";position:absolute;left:-40px;bottom:-80px;width:200px;height:200px;background:rgba(255,255,255,.06);border-radius:50%;pointer-events:none}
+/* 10/1 UI v2：hero 升级为浅青渐变主视觉（她定稿示意稿）——亮色浅青渐变，暗色深 teal 渐变白字 */
+.hero{background:linear-gradient(135deg,var(--primary-50),var(--primary-100));border:1px solid var(--primary-200);border-radius:var(--radius-lg);padding:24px 28px;color:var(--ink);margin:0 0 16px;box-shadow:0 1px 2px rgba(20,60,56,.04),0 10px 30px rgba(58,154,147,.10);position:relative;overflow:hidden;display:block}
+[data-theme="dark"] .hero{background:linear-gradient(132deg,var(--primary-800),var(--primary-900) 72%);border-color:rgba(255,255,255,.10);box-shadow:0 14px 40px rgba(0,0,0,.35);color:#f2f7f6}
+.hero::before{content:"";position:absolute;right:-70px;top:-90px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(58,154,147,.16),transparent 66%);pointer-events:none}
+[data-theme="dark"] .hero::before{background:radial-gradient(circle,rgba(255,255,255,.13),transparent 65%)}
+.hero::after{display:none}
 /* 问候行：替代原来的独立 .hello 横条 */
 .hero-greet{display:grid;grid-template-columns:auto 1fr auto;align-items:center;column-gap:16px;margin-bottom:14px;position:relative;z-index:1}
 .hero-user{display:flex;align-items:center;gap:10px;min-width:0;flex:none}
 .hero-hi{font-size:15px;font-weight:700;color:var(--ink);white-space:nowrap}
+[data-theme="dark"] .hero-hi{color:#fff}
 .hero-date{font-size:12.5px;color:var(--muted);white-space:nowrap}
+[data-theme="dark"] .hero-date{color:rgba(255,255,255,.66)}
 .streak-chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;background:var(--primary-50);color:var(--primary-700);border-radius:999px;padding:4px 10px;white-space:nowrap}
+[data-theme="dark"] .hero .streak-chip{background:rgba(255,255,255,.14);color:#fde68a;border:1px solid rgba(255,255,255,.20)}
 .streak-chip svg{width:13px;height:13px}
 .hero-greet-right{display:inline-flex;align-items:center;gap:8px;flex:none;flex-wrap:wrap;margin-left:auto}
 .hero-goal{font-size:12.5px;background:var(--primary-50);color:var(--primary-700);padding:5px 12px;border-radius:999px;font-weight:600;white-space:nowrap}
@@ -2003,29 +2010,53 @@ main.container{padding-top:40px}
 .hero-left{min-width:0;flex:1}
 .hero-right{display:flex;flex-direction:column;align-items:flex-end;gap:10px;flex:none}
 .hero-num{display:flex;align-items:baseline;gap:8px;position:relative;z-index:1;margin-bottom:6px}
-/* 核心数据用最深灰（不用 teal），单位用 teal 点睛 —— 避免与唯一主按钮争夺"彩色焦点" */
-.hero-num .big{font-size:64px;font-weight:900;letter-spacing:-.04em;line-height:1;color:var(--n-900)}
+/* 10/1 UI v2：核心数字换深 teal（示意稿口径，覆盖原「中性最深灰」）；等宽数字更板正 */
+.hero-num .big{font-size:64px;font-weight:900;letter-spacing:-.04em;line-height:1;color:var(--primary-900);font-variant-numeric:tabular-nums}
+[data-theme="dark"] .hero-num .big{color:#fff}
 .hero-num .unit{font-size:20px;font-weight:600;color:var(--primary-500)}
+[data-theme="dark"] .hero-num .unit{color:rgba(255,255,255,.78)}
 .hero-stat{display:flex;align-items:baseline;gap:8px;margin:6px 0 8px;position:relative;z-index:1}
 .hero-stat .s-num{font-size:30px;font-weight:900;letter-spacing:-.03em;line-height:1;color:var(--ink)}
 .hero-stat .s-num .slash{opacity:.6;font-weight:700;margin:0 1px}
 .hero-stat .s-unit{font-size:14px;font-weight:600;color:var(--muted)}
 .hero-stat .s-cap{font-size:12px;font-weight:600;color:var(--muted);margin-left:4px}
 .hero-foot-info{display:flex;flex-direction:column;gap:1px;min-width:0;line-height:1.5;font-size:12.5px;color:var(--muted)}
-.hero-cta{display:inline-flex;align-items:center;gap:8px;padding:12px 20px;background:var(--primary);color:var(--on-primary);border-radius:12px;font-weight:800;font-size:14.5px;text-decoration:none;box-shadow:0 4px 14px rgba(58,154,147,.25);flex:none;transition:transform .15s,box-shadow .15s}
-.hero-cta:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(58,154,147,.32)}
+/* 10/1 UI v2：唯一主行动按钮加大加亮（渐变底），点击跳计时页自动开表 */
+.hero-cta{display:inline-flex;align-items:center;gap:9px;padding:15px 30px;background:linear-gradient(135deg,var(--primary-400),var(--primary-600));color:var(--on-primary);border-radius:15px;font-weight:800;font-size:16px;text-decoration:none;box-shadow:0 8px 22px rgba(47,134,127,.38);flex:none;transition:transform .15s,box-shadow .15s}
+.hero-cta:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(47,134,127,.46);color:var(--on-primary)}
+[data-theme="dark"] .hero-cta{background:var(--surface);color:var(--primary-300);box-shadow:0 10px 26px rgba(0,0,0,.35)}
+[data-theme="dark"] .hero-cta:hover{color:var(--primary-200)}
 .hero-cta svg{width:16px;height:16px}
 
-/* 紧凑双卡 */
-.meta{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
-.meta-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px;display:flex;justify-content:space-between;align-items:center;transition:transform .2s,box-shadow .2s,border-color .2s;box-shadow:var(--shadow);text-decoration:none;color:var(--ink)}
+/* 紧凑三卡（10/1 UI v2：双卡→三卡，新增「剩余 AI 次数」转化卡；首页专属结构） */
+.meta{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:12px}
+@media(max-width:1100px){ .meta{grid-template-columns:1fr 1fr} }
+.meta-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px 22px;display:flex;justify-content:space-between;align-items:center;transition:transform .2s,box-shadow .2s,border-color .2s;box-shadow:var(--shadow);text-decoration:none;color:var(--ink);position:relative}
 .meta-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-card-hover);border-color:var(--primary-200)}
 .meta-left .label{font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:4px}
-.meta-left .val{font-size:22px;font-weight:800;letter-spacing:-.01em}
+.meta-left .val{font-size:22px;font-weight:800;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
 .meta-left .val .u{font-size:13px;color:var(--muted);font-weight:500;margin-left:2px}
 .meta-left .hint{font-size:12px;color:var(--muted);margin-top:2px}
-.meta-ico{width:46px;height:46px;border-radius:12px;background:var(--primary-50);color:var(--primary-500);display:inline-flex;align-items:center;justify-content:center;flex:none}
-.meta-ico svg{width:22px;height:22px}
+.meta-ico{width:52px;height:52px;border-radius:15px;background:var(--primary-50);color:var(--primary-500);display:inline-flex;align-items:center;justify-content:center;flex:none}
+.meta-ico svg{width:24px;height:24px}
+.meta-ico.blue{background:var(--vocab-soft);color:var(--vocab-text)}
+/* AI 次数卡：转化植入点——琥珀金微边 +「会员无限」角标；额度用尽时前端加 .ai-low（数字标红） */
+.meta-card.ai-card{border-color:rgba(217,119,6,.28);cursor:pointer}
+.meta-card.ai-card .meta-ico{background:var(--warn-soft);color:var(--warn-ink)}
+.ai-chip{position:absolute;top:13px;right:15px;font-size:10px;font-weight:800;color:var(--warn-ink);background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #fcd34d;border-radius:999px;padding:2px 8px;white-space:nowrap}
+[data-theme="dark"] .meta-card.ai-card{border-color:rgba(251,191,36,.30)}
+[data-theme="dark"] .ai-chip{background:rgba(251,191,36,.16);color:#fcd34d;border-color:rgba(251,191,36,.35)}
+.meta-card.ai-card.ai-low{border-color:var(--danger)}
+.meta-card.ai-card.ai-low .val{color:var(--danger-text)}
+
+/* 底部轻量条（10/1 UI v2：PWA 安装 + 会员引导，小字链接低打扰） */
+.foot-strip{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px 22px;padding:14px 0 2px;font-size:12.5px;color:var(--n-500)}
+.foot-strip a{color:var(--n-600);text-decoration:none;border-bottom:1px dotted var(--n-400);padding-bottom:1px;cursor:pointer;transition:color .16s,border-color .16s}
+.foot-strip a:hover{color:var(--primary-600);border-bottom-color:var(--primary-500)}
+.foot-strip a.fs-vip{color:var(--warn-ink);border-bottom-color:rgba(217,119,6,.45)}
+.foot-strip a.fs-vip:hover{color:#92400e;border-bottom-color:var(--warn)}
+[data-theme="dark"] .foot-strip a{color:var(--muted);border-bottom-color:var(--line)}
+[data-theme="dark"] .foot-strip a.fs-vip{color:#fcd34d;border-bottom-color:rgba(251,191,36,.4)}
 
 /* 6 模块快速入口（首页 .qc 走 6 列；其它页面若用 4 个走 .qc-4） */
 .quick{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:12px}
@@ -3485,8 +3516,11 @@ html[data-theme="dark"] .onb2-overlay{background:rgba(0,0,0,.62)}
 @media (prefers-reduced-motion:reduce){ .onb2-step{animation:none} }
 
 /* ===== 首页 · 考前冲刺卡（9/30 新增，js/sprint.js 渲染）=====
-   只在距考试 ≤14 天时出现，考完自动消失。左侧竖条用 warn 色，和普通卡片区分开。 */
-.sprint{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--warn);border-radius:var(--radius);padding:16px 20px;margin-bottom:12px;box-shadow:var(--shadow)}
+   只在距考试 ≤14 天时出现，考完自动消失。
+   10/1 UI v2：容器升级琥珀渐变底（示意稿口径），内部子卡保持白底不受影响。 */
+.sprint{background:linear-gradient(135deg,#fffbeb,var(--warn-soft));border:1px solid #fde68a;border-left:4px solid var(--warn);border-radius:var(--radius);padding:16px 20px;margin-bottom:12px;box-shadow:var(--shadow)}
+[data-theme="dark"] .sprint{background:linear-gradient(135deg,rgba(255,149,0,.10),rgba(255,149,0,.05));border-color:rgba(255,149,0,.28)}
+.sprint .sp-card{background:var(--surface)}
 .sprint[hidden]{display:none}
 .sp-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
 .sp-days{font-size:26px;font-weight:800;color:var(--warn-ink);line-height:1;font-variant-numeric:tabular-nums}

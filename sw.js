@@ -9,7 +9,7 @@
      SW 不参与离线态的判定与渲染，缓存策略本文件零改动。
      本文件 activate 时发的 `SW_UPDATED` 消费端也在 common.js（maybeShowSwUpdatePrompt，
      design/78）：页面收到后只弹提示条，**是否刷新由用户点击决定，SW 侧绝不自动 reload**。 */
-const CACHE = 'ielts-hub-v99';   // 10/1 「我的语法错题」整模块下线（她拍板：板块+收录功能+数据全删）。上一版：付费方案第一批 v98
+const CACHE = 'ielts-hub-v100';  // 10/1 首页 UI v2 落地（她定稿示意稿：hero 渐变主视觉+三卡+底部轻量条）。上一版：「我的语法错题」下线 v99
 
 /* 核心壳预缓存清单（Node 脚本枚举目录生成，2026-09-20；与 14 页实际引用核对无遗漏）。
    不含 js/vendor/xlsx.full.min.js（861KB 体积大 → 走运行时 SWR 缓存）。 */

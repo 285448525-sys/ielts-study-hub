@@ -29,7 +29,7 @@
 })();
 </script>
 <title>首页 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261001g" />
+<link rel="stylesheet" href="css/common.css?v=20261001h" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=6" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=6">
 <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png?v=6">
@@ -42,7 +42,7 @@
 <script defer src="js/common.js?v=20261001h"></script>
 <!-- design/78 双词库适配层：index.js 的 wbActive/wbDueCount 依赖它（defer 按文档序执行） -->
 <script defer src="js/wordbank.js?v=20260926b"></script>
-<script defer src="js/index.js?v=20260930a"></script>
+<script defer src="js/index.js?v=20261001a"></script>
 <!-- 考前冲刺卡：距考试 ≤14 天才渲染，依赖 common.js 的 ready/examCountdown -->
 <script defer src="js/sprint.js?v=20261001e"></script>
 <style id="bootLoaderStyle">
@@ -73,9 +73,9 @@
         <div class="hero-num" id="dashHeroNum"><span class="big">--</span><span class="unit">天</span></div>
       </div>
       <div class="hero-right">
-        <a class="hero-cta" href="timer.html">
+        <a class="hero-cta" href="timer.html?autostart=1">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6,4 20,12 6,20"/></svg>
-          开始计时学习
+          开始专注
         </a>
       </div>
     </div>
@@ -84,16 +84,27 @@
   <!-- L1.5 · 考前冲刺卡（9/30）：只在距考试 ≤14 天时出现，考完自动消失。由 js/sprint.js 渲染 -->
   <section class="sprint" id="dashSprint" hidden></section>
 
-  <!-- L2 · 紧凑双卡（包 a 可点击，与下方 6 模块去重后作为唯一入口） -->
+  <!-- L2 · 紧凑三卡（10/1 UI v2：双卡→三卡，新增 AI 次数转化卡；点击跳会员页） -->
   <section class="meta">
     <a class="meta-card" href="timer.html">
       <div class="meta-left">
-        <div class="label">今日学习</div>
+        <div class="label">今日专注</div>
         <div class="val" id="dashTodayTime"></div>
         <div class="hint" id="dashTodayMods"></div>
       </div>
       <div class="meta-ico">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg>
+      </div>
+    </a>
+    <a class="meta-card ai-card" href="vip.html">
+      <span class="ai-chip">会员无限</span>
+      <div class="meta-left">
+        <div class="label">剩余 AI 次数</div>
+        <div class="val" id="dashAiLeft">10<span class="u">次</span></div>
+        <div class="hint">今日免费额度 · 会员无限</div>
+      </div>
+      <div class="meta-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.6L20 10l-5 3.9L16.5 21 12 17.5 7.5 21 9 13.9 4 10l6.1-1.4z"/></svg>
       </div>
     </a>
     <a class="meta-card" href="practice.html">
@@ -102,7 +113,7 @@
         <div class="val" id="dashDueWords"></div>
         <div class="hint" id="dashDueHint"></div>
       </div>
-      <div class="meta-ico">
+      <div class="meta-ico blue">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h12a3 3 0 0 1 3 3v11H7a3 3 0 0 1-3-3V5zM4 5a3 3 0 0 1 3-3h9"/><path d="M9 9h7M9 13h5"/></svg>
       </div>
     </a>
@@ -121,6 +132,12 @@
     </div>
     <div class="rec-body" id="dashRecBody"></div>
   </section>
+
+  <!-- 10/1 UI v2 · 底部轻量条：PWA 安装 + 会员引导（小字链接，不弹窗） -->
+  <div class="foot-strip">
+    <a href="javascript:void(0)" id="footInstallTip">📦 安装到桌面，离线也能用</a>
+    <a class="fs-vip" href="vip.html">✨ 升级会员，AI 无限用</a>
+  </div>
 </main>
 
 </body>

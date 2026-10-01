@@ -35,7 +35,29 @@ ready(async () => {
   if(typeof window.__hubDashTasksTimer === 'function') document.removeEventListener('hub:timer-state', window.__hubDashTasksTimer);
   window.__hubDashTasksTimer = () => safe(renderDashTasks);
   document.addEventListener('hub:timer-state', window.__hubDashTasksTimer);
+
+  // 10/1 UI v2 · 底部轻量条：PWA 安装链接（复用 design/80 的 hubPwaState/hubPwaInstall，零新机制）
+  // 已装彻底隐藏（不留死按钮，原则②）；iOS 走文字引导；prompt 事件晚到也没关系——点击时实时查状态
+  safe(initFootInstall);
 });
+function initFootInstall(){
+  const tip = document.getElementById('footInstallTip');
+  if(!tip) return;
+  const st = (typeof hubPwaState === 'function') ? hubPwaState() : 'unsupported';
+  if(st === 'installed'){ tip.style.display = 'none'; return; }
+  tip.addEventListener('click', async () => {
+    const s = (typeof hubPwaState === 'function') ? hubPwaState() : 'unsupported';
+    if(s === 'promptable' && typeof hubPwaInstall === 'function'){
+      const r = await hubPwaInstall();
+      if(r === 'accepted'){ tip.style.display = 'none'; toast('安装成功，桌面直接打开'); }
+      // dismissed：不打扰，链接保留
+    }else if(s === 'ios-manual'){
+      toast('iOS：用 Safari 打开 → 分享 → 「添加到主屏幕」');
+    }else{
+      toast('当前浏览器不支持一键安装，可在浏览器菜单里找「安装应用」');
+    }
+  });
+}
 
 /** v6 首页渲染：hero 倒计时 + 双卡 + 快速入口 + 今日记录（design/31 A 版） */
 function renderDashV6(){
