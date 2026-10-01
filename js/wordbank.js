@@ -50,25 +50,53 @@
       return (v && typeof v === 'object' && v.banks) ? v : null;
     }catch(e){ return null; }
   }
-  function _persist(){
+  function _persist(skipMirror){
     if(state.memOnly) return;
     try{
       var out = { active: state.active, banks: {} };
       for(var id in state.banks){
         if(!Object.prototype.hasOwnProperty.call(state.banks, id)) continue;
         var b = state.banks[id];
-        out.banks[id] = { prog: b.prog, session: b.session, seen: b.seen, wrong: b.wrong, dayStats: b.dayStats };
+        out.banks[id] = { prog: b.prog, session: b.session, seen: b.seen, wrong: b.wrong, dayStats: b.dayStats,
+                          practiced: b.practiced || { date: '', words: [] } };
       }
       localStorage.setItem(OB_KEY, JSON.stringify(out));
     }catch(e){
       state.memOnly = true;
       _toastOnce('官方词库进度暂时无法保存（浏览器存储不可用），本次进度只保留在内存');
     }
+    // 10/1 背词进度云同步（她拍板）：把 prog/session/seen/practiced 镜像进 DATA.obank，
+    // 由 hubSave 走既有云同步链路（词库本体永不上云）。skipMirror=true = 云端合并回灌路径，
+    // 此时 DATA.obank 已是合并结果，只写本地独立存储、不再反向触发上传（防自回声循环）。
+    if(!skipMirror){
+      try{
+        if(_mirrorToData() && typeof hubSave === 'function') hubSave();
+      }catch(e1){}
+    }
+  }
+  // 镜像写入 DATA.obank；返回是否发生变化（无变化不触发 hubSave，防无谓整库序列化）
+  function _mirrorToData(){
+    if(state.memOnly) return false;
+    try{
+      if(typeof DATA === 'undefined' || !DATA || typeof hubSave !== 'function') return false;
+      if(!DATA.obank || typeof DATA.obank !== 'object') DATA.obank = {};
+      var changed = false;
+      for(var id in state.banks){
+        if(!Object.prototype.hasOwnProperty.call(state.banks, id)) continue;
+        var b = state.banks[id];
+        var next = { prog: b.prog || {}, session: b.session || null,
+                     seen: b.seen || { date: '', words: [] },
+                     practiced: b.practiced || { date: '', words: [] } };
+        if(JSON.stringify(DATA.obank[id]) !== JSON.stringify(next)){ DATA.obank[id] = next; changed = true; }
+      }
+      return changed;
+    }catch(e){ return false; }
   }
   function _rec(id){
     if(!state.banks[id]){
       state.banks[id] = { words: null, meta: null, prog: {}, session: null,
-                          seen: { date: '', words: [] }, wrong: {}, dayStats: {} };
+                          seen: { date: '', words: [] }, wrong: {}, dayStats: {},
+                          practiced: { date: '', words: [] } };
     }
     return state.banks[id];
   }
@@ -85,7 +113,27 @@
       rec.seen = (b.seen && typeof b.seen === 'object') ? b.seen : { date: '', words: [] };
       rec.wrong = (b.wrong && typeof b.wrong === 'object') ? b.wrong : {};
       rec.dayStats = (b.dayStats && typeof b.dayStats === 'object') ? b.dayStats : {};
+      // 10/1：practiced 之前漏存漏恢复（刷新即丢，与 9/25 自定义库同款 bug），补上
+      rec.practiced = (b.practiced && typeof b.practiced === 'object') ? b.practiced : { date: '', words: [] };
     }
+    // 10/1 背词进度云同步：从 DATA.obank 镜像补缺（新设备 / 清过浏览器存储，但本地 DATA blob
+    // 或云端合并带回了官方词库进度）。只补空缺不回退：本地独立存储里已有的词条/更新日期一律保留。
+    try{
+      if(typeof DATA !== 'undefined' && DATA && DATA.obank && typeof DATA.obank === 'object'){
+        for(var bid in DATA.obank){
+          var db = DATA.obank[bid];
+          if(!db || typeof db !== 'object' || !_findEnt(bid)) continue;
+          var r2 = _rec(bid);
+          var dp = (db.prog && typeof db.prog === 'object') ? db.prog : {};
+          for(var wk in dp){ if(!r2.prog[wk]) r2.prog[wk] = dp[wk]; }
+          var ds = (db.seen && typeof db.seen === 'object') ? db.seen : null;
+          if(ds && ds.date && (!r2.seen.date || String(r2.seen.date) < String(ds.date))) r2.seen = ds;
+          var dpr = (db.practiced && typeof db.practiced === 'object') ? db.practiced : null;
+          if(dpr && dpr.date && (!r2.practiced.date || String(r2.practiced.date) < String(dpr.date))) r2.practiced = dpr;
+          if(!r2.session && db.session) r2.session = db.session;
+        }
+      }
+    }catch(e){}
   })();
 
   function _findEnt(id){
@@ -355,13 +403,16 @@
     rec.seen = { date: '', words: [] };
     rec.wrong = {};
     rec.dayStats = {};
-    // 重建内存词数组：只留内容字段 + 新词初值，进度字段全部清掉
+    // 重建内存词数组：只留内容字段 + 新词初值，进度字段全部清掉。
+    // ts=now：云合并逐词按 (lastPracticeAt||ts) 新者胜——重置后每个词的 ts 基准晚于云端旧
+    // lastPracticeAt，重置结果不会被另一端的旧进度复活（与 words.js resetWordProgress 同思路）。
     if(rec.words){
+      var _now = Date.now();
       var fresh = [];
       for(var i = 0; i < rec.words.length; i++){
         var w = rec.words[i];
         fresh.push({ id: w.id, en: w.en, cn: w.cn, pos: w.pos, ipa: w.ipa, sl: w.sl,
-                     level: 0, nextReview: todayKey() });
+                     ts: _now, level: 0, nextReview: todayKey() });
       }
       rec.words = fresh;
     }
@@ -410,6 +461,57 @@
       try{ document.dispatchEvent(new CustomEvent('wb:switched', { detail: { id: id } })); }catch(e3){}
     });
   }
+
+  // ---------- 云端合并回灌（10/1 背词进度云同步）----------
+  // mergeData 把 DATA.obank（本机镜像 + 云端）合并好后广播 hub:data-merged；
+  // 这里把合并结果写回 rec（含已加载的内存词数组），再只写本地独立存储（skipMirror 防上传回环）。
+  function _applyMergedBank(id){
+    var d = DATA.obank[id];
+    if(!d || typeof d !== 'object') return false;
+    var rec = _rec(id);
+    var np = (d.prog && typeof d.prog === 'object') ? d.prog : {};
+    var ns = d.session || null;
+    var nsn = (d.seen && typeof d.seen === 'object') ? d.seen : { date: '', words: [] };
+    var npr = (d.practiced && typeof d.practiced === 'object') ? d.practiced : { date: '', words: [] };
+    // 12s 轮询每次合并都会走到这里：四件套完全一致就不动（防无谓写盘）
+    if(JSON.stringify(rec.prog) === JSON.stringify(np) && JSON.stringify(rec.session || null) === JSON.stringify(ns)
+       && JSON.stringify(rec.seen || null) === JSON.stringify(nsn) && JSON.stringify(rec.practiced || null) === JSON.stringify(npr)){
+      return false;
+    }
+    rec.prog = np;
+    rec.session = ns;
+    rec.seen = nsn;
+    rec.practiced = npr;
+    // 已加载的词数组：另一端更晚练习的词把进度刷回来（比词对象当前 (lastPracticeAt||ts) 新才刷）
+    if(rec.words){
+      for(var i = 0; i < rec.words.length; i++){
+        var w = rec.words[i]; if(!w || !w.en) continue;
+        var p = rec.prog[String(w.en).trim().toLowerCase()];
+        if(!p) continue;
+        var pk = Number(p.lastPracticeAt || p.ts) || 0;
+        var wk = Number(w.lastPracticeAt || w.ts) || 0;
+        if(pk > wk){
+          for(var j = 0; j < PROG_FIELDS.length; j++){
+            var f = PROG_FIELDS[j];
+            if(p[f] !== undefined) w[f] = p[f];
+          }
+        }
+      }
+    }
+    return true;
+  }
+  document.addEventListener('hub:data-merged', function(){
+    try{
+      if(typeof DATA === 'undefined' || !DATA || !DATA.obank || typeof DATA.obank !== 'object') return;
+      var touched = false;
+      for(var id in DATA.obank){
+        if(!Object.prototype.hasOwnProperty.call(DATA.obank, id)) continue;
+        if(!_findEnt(id)) continue;   // 只认注册表内的官方词库
+        if(_applyMergedBank(id)) touched = true;
+      }
+      if(touched) _persist(true);
+    }catch(e){}
+  });
 
   // ---------- 对外暴露 ----------
   window.OB_BANKS = OB_BANKS;

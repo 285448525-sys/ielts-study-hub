@@ -1799,6 +1799,46 @@ function _sdMergeDaily(a, b){
   return out;
 }
 
+/* 背词「当日 session」合并（10/1 从 mergeData 内联块抽取：DATA.dailySession 与官方词库
+   DATA.obank[bid].session 共用一套口径，防两边漂移）。
+   返回 { v, changed }：changed = 云端带来变化（本机视角）。
+   同 date 时取 passed 并集、queueOrder/planEn 以本机为准、total/stats/lastTouch 取较大者，
+   保证在 A 设备背的词在 B 设备合并后仍然保留，而不是被 B 刚打开页面时产生的空 session 冲掉。 */
+function _mergeWbSession(_ld, _cd){
+  if(_ld && _cd){
+    if(_ld.date !== _cd.date){
+      const _win = (_ld.date > _cd.date) ? _ld : _cd;
+      return { v: _win, changed: _win !== _ld };
+    }
+    const mergedSession = Object.assign({}, _ld);
+    // 只有两端锁定的是同一轮词表（planEn 完全一致）时，才合并 passed 实现续背；
+    // planEn 不同意味着不是同一轮，合并 passed 会把本机未背的词标记为已背，导致一打开就是 20/20。
+    const _normPlan = arr => (arr || []).map(e => String(e).trim().toLowerCase()).sort().join('\u0001');
+    const _samePlan = _normPlan(_ld.planEn) && _normPlan(_ld.planEn) === _normPlan(_cd.planEn);
+    const passedSet = _samePlan
+      ? new Set([...(_ld.passed || []), ...(_cd.passed || [])])
+      : new Set(_ld.passed || []);
+    mergedSession.passed = Array.from(passedSet);
+    mergedSession.total = Math.max(_ld.total || 0, _cd.total || 0);
+    mergedSession.stats = {
+      known: Math.max(((_ld.stats && _ld.stats.known) || 0), ((_cd.stats && _cd.stats.known) || 0)),
+      unknown: Math.max(((_ld.stats && _ld.stats.unknown) || 0), ((_cd.stats && _cd.stats.unknown) || 0))
+    };
+    mergedSession.lastTouch = Math.max(_ld.lastTouch || 0, _cd.lastTouch || 0);
+    mergedSession.sessionStart = Math.min(_ld.sessionStart || Date.now(), _cd.sessionStart || Date.now());
+    // planEn / queueOrder：本机已锁定的轮次计划优先；本机没有才取云端
+    mergedSession.planEn = (_ld.planEn && _ld.planEn.length) ? _ld.planEn : (_cd.planEn || []);
+    mergedSession.queueOrder = (_ld.queueOrder && _ld.queueOrder.length) ? _ld.queueOrder : (_cd.queueOrder || []);
+    // currentEn：取 lastTouch 较新的一侧；都不新则保持本机
+    mergedSession.currentEn = (_ld.lastTouch || 0) >= (_cd.lastTouch || 0) ? _ld.currentEn : _cd.currentEn;
+    // finished：仅当两端都结束才算结束，避免一端空 session 让本轮提前结束
+    mergedSession.finished = !!_ld.finished && !!_cd.finished;
+    return { v: mergedSession, changed: JSON.stringify(mergedSession) !== JSON.stringify(_ld) };
+  }
+  if(_cd && !_ld) return { v: _cd, changed: true };
+  return { v: _ld || null, changed: false };
+}
+
 function mergeData(local, cloud){
   cloud = cloud || {};
   // 写作模板(writing)是官方共享题集，不进同步，合并时强制忽略云端版本，永远以本机默认模板为准。
@@ -1893,43 +1933,10 @@ function mergeData(local, cloud){
   out.revivedIds = Array.from(revivedWords);   // 反向墓碑随合并传播（与 deletedIds 同口径 union）
   out.deletedWrongKeys = Array.from(deletedWrong);   // 错句级墓碑随合并传播
   // 当日背词会话（dailySession）：跨设备合并，杜绝云端旧/空会话覆盖本地新进度。
-  // 同 date 时取 passed 并集、queueOrder/planEn 以本机为准、total/stats/lastTouch 取较大者，
-  // 保证在 A 设备背的词在 B 设备合并后仍然保留，而不是被 B 刚打开页面时产生的空 session 冲掉。
-  const _ld = local.dailySession, _cd = cloud.dailySession;
-  if(_ld && _cd){
-    if(_ld.date !== _cd.date){
-      const _win = (_ld.date > _cd.date) ? _ld : _cd;
-      if(_win !== _ld){ out.dailySession = _win; changes++; }
-    } else {
-      const mergedSession = Object.assign({}, _ld);
-      // 只有两端锁定的是同一轮词表（planEn 完全一致）时，才合并 passed 实现续背；
-      // planEn 不同意味着不是同一轮，合并 passed 会把本机未背的词标记为已背，导致一打开就是 20/20。
-      const _normPlan = arr => (arr || []).map(e => String(e).trim().toLowerCase()).sort().join('\u0001');
-      const _samePlan = _normPlan(_ld.planEn) && _normPlan(_ld.planEn) === _normPlan(_cd.planEn);
-      const passedSet = _samePlan
-        ? new Set([...(_ld.passed || []), ...(_cd.passed || [])])
-        : new Set(_ld.passed || []);
-      mergedSession.passed = Array.from(passedSet);
-      mergedSession.total = Math.max(_ld.total || 0, _cd.total || 0);
-      mergedSession.stats = {
-        known: Math.max(((_ld.stats && _ld.stats.known) || 0), ((_cd.stats && _cd.stats.known) || 0)),
-        unknown: Math.max(((_ld.stats && _ld.stats.unknown) || 0), ((_cd.stats && _cd.stats.unknown) || 0))
-      };
-      mergedSession.lastTouch = Math.max(_ld.lastTouch || 0, _cd.lastTouch || 0);
-      mergedSession.sessionStart = Math.min(_ld.sessionStart || Date.now(), _cd.sessionStart || Date.now());
-      // planEn / queueOrder：本机已锁定的轮次计划优先；本机没有才取云端
-      mergedSession.planEn = (_ld.planEn && _ld.planEn.length) ? _ld.planEn : (_cd.planEn || []);
-      mergedSession.queueOrder = (_ld.queueOrder && _ld.queueOrder.length) ? _ld.queueOrder : (_cd.queueOrder || []);
-      // currentEn：取 lastTouch 较新的一侧；都不新则保持本机
-      mergedSession.currentEn = (_ld.lastTouch || 0) >= (_cd.lastTouch || 0) ? _ld.currentEn : _cd.currentEn;
-      // finished：仅当两端都结束才算结束，避免一端空 session 让本轮提前结束
-      mergedSession.finished = !!_ld.finished && !!_cd.finished;
-      if(JSON.stringify(mergedSession) !== JSON.stringify(_ld)){
-        out.dailySession = mergedSession; changes++;
-      }
-    }
-  } else if(_cd && !_ld){
-    out.dailySession = _cd; changes++;
+  // 10/1：逻辑抽到 _mergeWbSession（官方词库 obank session 共用同一套），行为逐字保留。
+  const _msess = _mergeWbSession(local.dailySession, cloud.dailySession);
+  if(_msess.changed && JSON.stringify(_msess.v) !== JSON.stringify(local.dailySession || null)){
+    out.dailySession = _msess.v; changes++;
   }
   // 今日背词进度跨设备合并（修复：网页端练了 50 个，手机端「今日已练」仍显示 0）
   // wordSeenToday / wordPracticedToday：同日取 unique 词集合并集（该集合长度即展示值）；wordDayStats：按天取 max
@@ -1987,6 +1994,55 @@ function mergeData(local, cloud){
     }
     if(JSON.stringify(_mergedStats) !== JSON.stringify(local.wordDayStats || {})){
       out.wordDayStats = _mergedStats; changes++;
+    }
+  }
+  /* ── 官方词库进度云同步（10/1 她拍板「背词进度纳入云同步」，Task #25）──
+     DATA.obank = { [bankId]: { prog, session, seen, practiced } }，镜像自 wordbank.js 的独立
+     localStorage（ielts_hub_obank_v1）。只同步进度四件套；词库本体（静态 json / wrong / dayStats）
+     永不上云。合并口径：
+     - prog：逐词取 (lastPracticeAt || ts) 更晚一侧（与 _mergeWords design/84「最后练习者胜」同源；
+       词库页重置进度会给每个词打新 ts 基准 → 重置结果不会被另一端旧进度复活）；
+       同刻视为同一动作已同步，内容相同不计变化（幂等）。
+     - seen / practiced：{date,words} 同日 unique 并集、异日取晚（与 wordSeenToday 同思路）。
+     - session：_mergeWbSession（与 dailySession 同一套口径）。 */
+  {
+    const lob = (local.obank && typeof local.obank === 'object') ? local.obank : {};
+    const cob = (cloud.obank && typeof cloud.obank === 'object') ? cloud.obank : {};
+    if(Object.keys(lob).length || Object.keys(cob).length){
+      const _pk = p => (Number(p && (p.lastPracticeAt || p.ts)) || 0);
+      const _daySet = (l, c) => {
+        if(l && c) return (l.date === c.date)
+          ? { date: l.date, words: Array.from(new Set([...(l.words || []), ...(c.words || [])])) }
+          : ((String(l.date || '') >= String(c.date || '')) ? l : c);
+        return l || c || { date: '', words: [] };
+      };
+      const _obOut = {};
+      let _obCh = 0;
+      const _bankIds = Array.from(new Set([...Object.keys(lob), ...Object.keys(cob)]));
+      for(const bid of _bankIds){
+        const lb = (lob[bid] && typeof lob[bid] === 'object') ? lob[bid] : {};
+        const cb = (cob[bid] && typeof cob[bid] === 'object') ? cob[bid] : {};
+        const lp = (lb.prog && typeof lb.prog === 'object') ? lb.prog : {};
+        const cp = (cb.prog && typeof cb.prog === 'object') ? cb.prog : {};
+        const mp = Object.assign({}, cp);   // 起点云端副本：云端独有词天然保留
+        for(const k in lp){
+          if(!Object.prototype.hasOwnProperty.call(lp, k)) continue;
+          const a = lp[k], b = mp[k];
+          if(!b || typeof b !== 'object'){ mp[k] = a; _obCh++; continue; }   // 本机独有词条
+          const ka = _pk(a), kb = _pk(b);
+          if(ka > kb){ mp[k] = a; _obCh++; }   // 本机练习得更晚：本机胜（含答错造成的退步）
+        }
+        const _s = _daySet(lb.seen, cb.seen);
+        const _pr = _daySet(lb.practiced, cb.practiced);
+        const _sess = _mergeWbSession(lb.session || null, cb.session || null);
+        const mb = { prog: mp, seen: _s, practiced: _pr, session: _sess.v };
+        if(JSON.stringify(_s) !== JSON.stringify(lb.seen || null)) _obCh++;
+        if(JSON.stringify(_pr) !== JSON.stringify(lb.practiced || null)) _obCh++;
+        if(_sess.changed) _obCh++;
+        _obOut[bid] = mb;
+      }
+      // 终闸：合并结果与本机完全一致就不写（防自回声噪音与无谓 PUT）
+      if(JSON.stringify(_obOut) !== JSON.stringify(lob)){ out.obank = _obOut; changes += _obCh; }
     }
   }
   /* 句型闯关（patternDrill）跨设备合并（2026-09-09 修复：云端拉取时整份丢弃 +
