@@ -99,20 +99,22 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:
   <!-- 邀请码 -->
   <div class="card">
     <h2>邀请码</h2>
-    <p class="desc">注册必须凭码，一码限次数；作废不影响已注册账号</p>
+    <p class="desc">注册已自由开放（不填码也能注册，吃免费额度）；邀请码 = <b>内测会员码</b>——用它注册的账号自动开会员（天数下面自定，0 = 只当普通码不送会员）</p>
     <div class="toolbar">
       <label class="muted">可用次数</label>
       <input class="small" id="invMax" type="number" min="1" max="1000" value="5" style="width:76px" />
+      <label class="muted">送会员天数</label>
+      <input class="small" id="invVipDays" type="number" min="0" max="3650" value="30" style="width:76px" />
       <label class="muted">自定义码（留空=随机）</label>
       <input class="small" id="invCode" placeholder="如 ZHIZI2026" style="width:150px" maxlength="16" />
       <button class="btn small" id="mintBtn" type="button">生成邀请码</button>
       <span class="err" id="invErr" style="margin:0"></span>
     </div>
     <table>
-      <thead><tr><th>邀请码</th><th>已用 / 限次</th><th>创建时间</th><th>操作</th></tr></thead>
+      <thead><tr><th>邀请码</th><th>已用 / 限次</th><th>送会员</th><th>创建时间</th><th>操作</th></tr></thead>
       <tbody id="invBody"></tbody>
     </table>
-    <p class="muted" id="invEmpty" style="margin-top:8px">还没有邀请码——生成一个发给用户，TA 在登录页注册时填入。</p>
+    <p class="muted" id="invEmpty" style="margin-top:8px">还没有邀请码——生成一个发给朋友，TA 在登录页注册时填入即送会员。</p>
   </div>
 
   <!-- 用户 -->
@@ -138,6 +140,7 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:
       <button class="btn ghost small" data-vdays="30" type="button">月(30)</button>
       <button class="btn ghost small" data-vdays="90" type="button">季(90)</button>
       <button class="btn ghost small" data-vdays="365" type="button">年(365)</button>
+      <label class="muted" style="white-space:nowrap"><input type="checkbox" id="vipPermanent" style="vertical-align:-2px;margin-right:4px" />永久（站长本人）</label>
       <label class="muted">备注</label>
       <input class="small" id="vipNote" placeholder="如：微信转账 ¥69" style="width:150px" maxlength="100" />
       <button class="btn small" id="grantBtn" type="button">开通 / 续费</button>
@@ -256,9 +259,13 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:
     $('invEmpty').style.display = invs.length ? 'none' : '';
     invs.forEach(function(v){
       var left = Math.max(0, (v.max||0) - (v.used||0));
+      var vipCell = v.vipDays
+        ? '<span class="tag ok">' + v.vipDays + ' 天</span>'
+        : '<span class="muted">—</span>';
       var tr = document.createElement('tr');
       tr.innerHTML = '<td><code class="inv">' + v.code + '</code></td>'
         + '<td>' + (v.used||0) + ' / ' + (v.max||0) + ' <span class="tag ' + (left>0?'ok':'full') + '">' + (left>0 ? ('剩 ' + left) : '已用完') + '</span></td>'
+        + '<td>' + vipCell + '</td>'
         + '<td>' + fmtTs(v.created) + '</td>'
         + '<td style="white-space:nowrap">'
         + '<button class="btn ghost small" data-copy="' + v.code + '" type="button">复制</button> '
@@ -273,7 +280,7 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:
     users.forEach(function(u, i){
       var v = vipMap[u.acct];
       var vipCell = v
-        ? '<span class="tag ok">' + v.daysLeft + ' 天</span>'
+        ? '<span class="tag ok">' + (v.permanent ? '永久' : (v.daysLeft + ' 天')) + '</span>'
         : '<span class="muted">—</span>';
       var tr = document.createElement('tr');
       tr.innerHTML = '<td>' + (i+1) + '</td>'
@@ -292,7 +299,7 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:
       tr.innerHTML = '<td><b>' + v.acct + '</b></td>'
         + '<td>' + (v.type || 'base') + '</td>'
         + '<td>' + fmtTs(v.expire) + '</td>'
-        + '<td>' + ((v.daysLeft||0) > 0 ? '<span class="tag ok">剩 ' + v.daysLeft + ' 天</span>' : '<span class="tag full">已过期</span>') + '</td>'
+        + '<td>' + ((v.permanent || (v.daysLeft||0) > 0) ? '<span class="tag ok">' + (v.permanent ? '永久' : ('剩 ' + v.daysLeft + ' 天')) + '</span>' : '<span class="tag full">已过期</span>') + '</td>'
         + '<td>' + (v.note ? v.note : '<span class="muted">—</span>') + '</td>'
         + '<td><button class="btn danger small" data-vrevoke="' + v.acct + '" type="button">撤销</button></td>';
       vb.appendChild(tr);
@@ -338,17 +345,18 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:
   $('grantBtn').addEventListener('click', function(){
     var acct = ($('vipAcct').value || '').trim().toLowerCase();
     var days = parseInt($('vipDays').value, 10);
+    var permanent = $('vipPermanent') && $('vipPermanent').checked;   // 她 10/1：站长本人永久会员
     var note = ($('vipNote').value || '').trim();
     $('vipErr').textContent = '';
     if(!/^[a-z0-9_]{6,20}$/.test(acct)){ $('vipErr').textContent = '账号格式：6-20 位数字/字母/下划线'; return; }
-    if(!(days >= 1 && days <= 3650)){ $('vipErr').textContent = '天数请填 1-3650'; return; }
+    if(!permanent && !(days >= 1 && days <= 3650)){ $('vipErr').textContent = '天数请填 1-3650'; return; }
     $('grantBtn').disabled = true;
-    api('vip_grant', { acct: acct, days: days, note: note }, function(r){
+    api('vip_grant', { acct: acct, days: days, permanent: permanent, note: note }, function(r){
       $('grantBtn').disabled = false;
       if(r.ok){
         load();
         $('vipErr').style.color = 'var(--ok)';
-        $('vipErr').textContent = '已开通：' + acct + '，剩余 ' + r.j.daysLeft + ' 天';
+        $('vipErr').textContent = r.j.permanent ? ('已开通：' + acct + '（永久会员）') : ('已开通：' + acct + '，剩余 ' + r.j.daysLeft + ' 天');
         setTimeout(function(){ $('vipErr').textContent = ''; $('vipErr').style.color = ''; }, 5000);
       } else {
         $('vipErr').style.color = '';
@@ -359,11 +367,13 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:
 
   $('mintBtn').addEventListener('click', function(){
     var max = parseInt($('invMax').value, 10);
+    var vipDays = parseInt($('invVipDays').value, 10);
     var code = ($('invCode').value || '').trim();
     $('invErr').textContent = '';
     if(!(max >= 1 && max <= 1000)){ $('invErr').textContent = '可用次数请填 1-1000'; return; }
+    if(!(vipDays >= 0 && vipDays <= 3650)){ $('invErr').textContent = '会员天数请填 0-3650（0=不送会员）'; return; }
     $('mintBtn').disabled = true;
-    api('invite_mint', { max: max, code: code }, function(r){
+    api('invite_mint', { max: max, vipDays: vipDays, code: code }, function(r){
       $('mintBtn').disabled = false;
       if(r.ok){
         $('invCode').value = '';
@@ -371,7 +381,7 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:
         var c = r.j.code;
         if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(c).catch(function(){});
         $('invErr').style.color = 'var(--ok)';
-        $('invErr').textContent = '已生成 ' + c + '（已复制到剪贴板）';
+        $('invErr').textContent = '已生成 ' + c + '（已复制到剪贴板）' + ((r.j.vipDays > 0) ? (' · 用它注册送会员 ' + r.j.vipDays + ' 天') : '');
         setTimeout(function(){ $('invErr').textContent = ''; $('invErr').style.color = ''; }, 4000);
       } else {
         $('invErr').style.color = '';

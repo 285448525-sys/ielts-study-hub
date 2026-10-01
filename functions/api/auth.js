@@ -9,7 +9,8 @@
 //   找回密码：暂未提供——恢复码机制已按她 10/1 拍板整套下线（太长记不住，比密码还难记）；
 //   手机验证码找回后续版本再做。在此之前忘记密码只能换新号重开（云端老数据归旧键名，不会丢）。
 //
-// 邀请码（她 10/1 拍板）：KV 键 inv:<CODE> = { max, used, created }；注册消耗一次。
+// 邀请码（她 10/1 二次拍板=内测会员码）：KV 键 inv:<CODE> = { max, used, created, vipDays? }；注册选填，
+// 用码注册成功自动开会员 vipDays 天（缺省 30）；不填码注册走免费额度。注册成功才消耗。
 // 发码/作废/看用量统一走 /api/admin（ADMIN_KEY 鉴权），页面化入口 = admin.html 站长面板
 // （她 10/1 要求：不进 CF 后台也能管用户/发码/看数据）。
 //
@@ -18,7 +19,7 @@
 //                  （rechash 是恢复码时代的遗留字段：存量账号还带着，新注册/改密不再写入，留着无害）
 //   sess:<token>   { acct }                           —— TTL 30 天（30 天后需重新登录）
 //   fail:<acct>    登录失败计数（10 次锁 15 分钟，防在线爆破；TTL 自愈）
-//   inv:<CODE>     { max, used, created }             —— 邀请码（注册必填；无 TTL）
+//   inv:<CODE>     { max, used, created, vipDays? }      —— 邀请码（注册选填；vipDays=送会员天数；无 TTL）
 //   数据键 sync:<acct> / meta:<acct> 仍归 /api/sync 管，老手机号账号键名不变，老数据原样保留。
 //
 // 兼容口径（老用户迁移）：
@@ -111,19 +112,22 @@ export async function onRequest(context) {
   const kv = env.SYNC_KV;
   const action = body && body.action;
 
-  /* ---------- 注册：账号（手机号/用户名）+ 密码 + 邀请码 ---------- */
+  /* ---------- 注册：账号（手机号/用户名）+ 密码 + 邀请码（选填） ---------- */
   if (action === 'register') {
     const acct = String(body.acct || body.phone || '').trim().toLowerCase();
     const password = String(body.password || '');
     const invCode = String(body.inviteCode || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
     if (badPhone(acct)) return json({ ok: false, error: 'bad_phone', msg: '账号格式：6-20 位数字/字母/下划线' }, 400);
     if (badPass(password)) return json({ ok: false, error: 'bad_password', msg: '密码至少 6 位（最长 64 位）' }, 400);
-    /* 邀请码闸（她 10/1 拍板）：注册必填有效邀请码，一码限 max 次——防批量注册薅免费额度 */
-    if (!invCode) return json({ ok: false, error: 'invite_required', msg: '请填写邀请码（向站长索取）' }, 403);
+    /* 邀请码（她 10/1 二次拍板）：注册自由开放（不填码也能注册，吃免费额度）；
+       填了有效码 = 内测码，注册成功自动开会员 inv.vipDays 天（站长发码时定天数，缺省 30）。
+       填了无效码照样报错（绝不静默降级成普通注册——否则朋友以为有会员结果没有）。 */
     let inv = null;
-    try { inv = JSON.parse((await kv.get('inv:' + invCode)) || 'null'); } catch (e) {}
-    if (!inv || !inv.max || (inv.used || 0) >= inv.max) {
-      return json({ ok: false, error: 'bad_invite', msg: '邀请码无效或已用完' }, 403);
+    if (invCode) {
+      try { inv = JSON.parse((await kv.get('inv:' + invCode)) || 'null'); } catch (e) {}
+      if (!inv || !inv.max || (inv.used || 0) >= inv.max) {
+        return json({ ok: false, error: 'bad_invite', msg: '邀请码无效或已用完' }, 403);
+      }
     }
     if (await kv.get('user:' + acct)) {
       return json({ ok: false, error: 'already_registered', msg: '该账号已设置过密码，直接登录即可' }, 409);
@@ -131,10 +135,17 @@ export async function onRequest(context) {
     const salt = randHex(16);
     const hash = await pbkdf2(password, salt);
     await kv.put('user:' + acct, JSON.stringify({ salt, hash, created: Date.now() }));
-    /* 注册成功才消耗邀请码（前面任何一步失败都不吃码） */
-    inv.used = (inv.used || 0) + 1;
-    await kv.put('inv:' + invCode, JSON.stringify(inv));
-    return json({ ok: true });
+    /* 注册成功才消耗邀请码（前面任何一步失败都不吃码）；内测码同时送会员 */
+    let vipGranted = 0;
+    if (inv) {
+      inv.used = (inv.used || 0) + 1;
+      await kv.put('inv:' + invCode, JSON.stringify(inv));
+      const days = Math.max(1, parseInt(inv.vipDays, 10) || 30);   // 发码时定的天数；老码无此字段按 30 兜底
+      const expire = Date.now() + days * 86400000;
+      await kv.put('vip:' + acct, JSON.stringify({ type: 'base', expire, grantedAt: Date.now(), note: 'invite:' + invCode }));
+      vipGranted = days;
+    }
+    return json({ ok: true, vipGranted });
   }
 
   /* ---------- 登录 ---------- */

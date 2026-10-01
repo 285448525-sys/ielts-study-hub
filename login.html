@@ -107,8 +107,8 @@ input::placeholder{color:var(--n-500)}
         <input id="rAcct" placeholder="手机号或自取用户名（6-20 位）" autocomplete="username" />
         <label>密码</label>
         <input id="rPass" type="password" placeholder="至少 6 位" autocomplete="new-password" />
-        <label>邀请码</label>
-        <input id="rInvite" placeholder="请填写邀请码（向站长索取）" autocomplete="off" style="text-transform:uppercase" />
+        <label>邀请码（选填）</label>
+        <input id="rInvite" placeholder="站长的内测码，填了注册即送会员" autocomplete="off" style="text-transform:uppercase" />
         <button class="btn" id="goRegister" type="button">设置密码并进入</button>
         <p class="note" id="noteRegister"></p>
         <div class="links"><a id="backLogin1">返回登录</a></div>
@@ -196,11 +196,13 @@ input::placeholder{color:var(--n-500)}
     var inv  = ($('rInvite').value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');   // 与服务端同口径归一化
     if(!ACCT_RE.test(acct)){ note('noteRegister','账号格式：6-20 位数字/字母/下划线', true); return; }
     if(pass.length < 6){ note('noteRegister','密码至少 6 位', true); return; }
-    if(!inv){ note('noteRegister','请填写邀请码（向站长索取）', true); return; }
+    /* 邀请码选填（她 10/1 二次拍板）：不填=普通注册吃免费额度；填内测码=注册即送会员（服务端开） */
     note('noteRegister','正在设置密码…', false);
     busy($('goRegister'), true, '设置中…');
     post({ action:'register', acct:acct, password:pass, inviteCode:inv }).then(function(r){
       if(r.j.ok){
+        /* 内测码送会员：让提示停留片刻再进站，否则用户根本不知道自己成了会员 */
+        if(r.j.vipGranted > 0) note('noteRegister','🎉 内测码生效：会员 ' + r.j.vipGranted + ' 天已开通，正在进入…', false);
         return post({ action:'login', acct:acct, password:pass }).then(function(r2){
           busy($('goRegister'), false, '设置密码并进入');
           if(r2.j.ok && r2.j.token){ enterStation(r2.j.acct || acct, r2.j.token); return; }

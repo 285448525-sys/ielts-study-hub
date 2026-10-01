@@ -2533,7 +2533,7 @@ async function authRegister(acct, password, inviteCode){
     syncSetStatus('❌ ' + e.message, 'error');
     return { ok:false, msg:e.message };
   }
-  return { ok:true, acct: acct, password: password };
+  return { ok:true, acct: acct, password: password, vipGranted: (j && j.vipGranted) || 0 };   // vipGranted>0 = 内测码注册送了会员 N 天（她 10/1 二次拍板）
 }
 /* 注册成功后：自动登录进同步状态 */
 async function authFinishRegister(acct, password){

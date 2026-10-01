@@ -97,7 +97,7 @@ export async function onRequest(context) {
     for (const name of invKeys) {
       try {
         const v = JSON.parse((await kv.get(name)) || '{}');
-        invites.push({ code: name.slice(4), max: v.max || 0, used: v.used || 0, created: v.created || null });
+        invites.push({ code: name.slice(4), max: v.max || 0, used: v.used || 0, created: v.created || null, vipDays: v.vipDays || 0 });
       } catch (e) {}
     }
     invites.sort((a, b) => (b.created || 0) - (a.created || 0));
@@ -117,7 +117,9 @@ export async function onRequest(context) {
 
     const sessCount = (await listAll(kv, 'sess:')).length;
 
-    /* 会员列表：vip:<acct> = { type, expire(ms), grantedAt, note }；到期剩余天数一并算好 */
+    /* 会员列表：vip:<acct> = { type, expire(ms), grantedAt, note }；到期剩余天数一并算好。
+       永久会员（她 10/1：站长本人）expire=9999999999999（2286 年）→ permanent 标记，前端显示「永久」不显示天数。 */
+    const VIP_PERMANENT_EXPIRE = 9999999999999;
     const vipKeys = await listAll(kv, 'vip:');
     const now = Date.now();
     const vips = [];
@@ -125,7 +127,7 @@ export async function onRequest(context) {
       try {
         const v = JSON.parse((await kv.get(name)) || 'null');
         if (!v || !v.expire) continue;
-        vips.push({ acct: name.slice(4), type: v.type || 'base', expire: v.expire, daysLeft: Math.ceil((v.expire - now) / 86400000), note: v.note || '' });
+        vips.push({ acct: name.slice(4), type: v.type || 'base', expire: v.expire, permanent: v.expire >= VIP_PERMANENT_EXPIRE, daysLeft: Math.ceil((v.expire - now) / 86400000), note: v.note || '' });
       } catch (e) {}
     }
     vips.sort((a, b) => a.expire - b.expire);   // 快到期的排前面
@@ -142,8 +144,12 @@ export async function onRequest(context) {
     if (!code) code = randInviteCode();
     if (code.length < 4 || code.length > 16) return json({ ok: false, error: 'bad_code', msg: '自定义邀请码须 4-16 位字母数字' }, 400);
     if (await kv.get('inv:' + code)) return json({ ok: false, error: 'invite_exists', msg: '该邀请码已存在' }, 409);
-    await kv.put('inv:' + code, JSON.stringify({ max: max, used: 0, created: Date.now() }));
-    return json({ ok: true, code: code, max: max });
+    /* vipDays（她 10/1 内测码语义）：>0 = 用此码注册自动开会员 N 天；0/留空 = 纯注册码不送会员 */
+    const vipDays = parseInt(body.vipDays, 10);
+    const rec = { max: max, used: 0, created: Date.now() };
+    if (Number.isFinite(vipDays) && vipDays > 0) rec.vipDays = Math.min(vipDays, 3650);
+    await kv.put('inv:' + code, JSON.stringify(rec));
+    return json({ ok: true, code: code, max: max, vipDays: rec.vipDays || 0 });
   }
 
   /* ---------- 作废邀请码 ---------- */
@@ -158,21 +164,23 @@ export async function onRequest(context) {
   if (action === 'vip_grant') {
     const acct = String(body.acct || '').trim().toLowerCase();
     if (!/^[a-z0-9_]{6,20}$/.test(acct)) return json({ ok: false, error: 'bad_acct', msg: '账号格式：6-20 位数字/字母/下划线' }, 400);
-    const days = parseInt(body.days, 10);
+    const permanent = !!body.permanent;   // 她 10/1 拍板：站长本人要永久会员——expire 用超大值（2286 年），所有判定（expire > now）零改动
+    const days = permanent ? 1 : parseInt(body.days, 10);
     if (!Number.isFinite(days) || days < 1 || days > 3650) return json({ ok: false, error: 'bad_days', msg: '会员天数限 1-3650' }, 400);
     if (!(await kv.get('user:' + acct))) return json({ ok: false, error: 'no_user', msg: '该账号还没注册（会员只开给已注册账号）' }, 404);
     let cur = null;
     try { cur = JSON.parse((await kv.get('vip:' + acct)) || 'null'); } catch (e) {}
-    /* 未过期则从现到期日顺延（续费不吃亏），已过期/新开从现在起算 */
-    const base = (cur && cur.expire > Date.now()) ? cur.expire : Date.now();
+    /* 未过期则从现到期日顺延（续费不吃亏），已过期/新开从现在起算；永久=直接覆盖成超大值 */
+    const VIP_PERMANENT_EXPIRE = 9999999999999;   // = 2286-11-20，够「永久」；date(0) 时代之上任意巨大值均可
+    const base = (!permanent && cur && cur.expire > Date.now() && cur.expire < VIP_PERMANENT_EXPIRE) ? cur.expire : Date.now();
     const rec = {
       type: 'base',                                        // 单档会员（她拍板：免费版→基础会员，无复杂分级）
-      expire: base + days * 86400000,
+      expire: permanent ? VIP_PERMANENT_EXPIRE : base + days * 86400000,
       grantedAt: Date.now(),
-      note: String(body.note || '').slice(0, 100),
+      note: permanent ? (String(body.note || '').slice(0, 90) + ' [永久]').slice(0, 100) : String(body.note || '').slice(0, 100),
     };
     await kv.put('vip:' + acct, JSON.stringify(rec));
-    return json({ ok: true, acct: acct, expire: rec.expire, daysLeft: Math.ceil((rec.expire - Date.now()) / 86400000) });
+    return json({ ok: true, acct: acct, permanent: permanent, expire: rec.expire, daysLeft: permanent ? null : Math.ceil((rec.expire - Date.now()) / 86400000) });
   }
 
   /* ---------- 撤销会员 ---------- */

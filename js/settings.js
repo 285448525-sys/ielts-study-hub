@@ -73,9 +73,10 @@ ready(() => {
   if($('#sPass')) $('#sPass').addEventListener('keydown', e => { if(e.key === 'Enter') $('#syncLoginBtn').click(); });
   $('#syncRegisterBtn').addEventListener('click', async () => {
     const inv = $('#sInvite') ? $('#sInvite').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '') : '';   // 与服务端同口径归一化
-    if(!inv){ syncSetStatus('请填写邀请码（向站长索取）', 'error'); return; }
+    /* 邀请码选填（她 10/1 二次拍板=内测会员码）：不填也能注册；填了有效码注册即送会员 */
     const r = await authRegister($('#sAcct') ? $('#sAcct').value : '', $('#sPass') ? $('#sPass').value : '', inv);
     if(!r.ok) return;   // 失败原因已写在状态行（含 needLogin 提示）
+    if(r.vipGranted > 0) syncSetStatus('🎉 内测码生效：会员 ' + r.vipGranted + ' 天已开通', 'ok');
     const r2 = await authFinishRegister(r.acct, r.password);   // 恢复码已下线：注册成功直接自动登录
     if(r2.ok) renderAuthUI();
   });

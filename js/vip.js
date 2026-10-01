@@ -88,14 +88,24 @@ async function loadVipStatus(){
     return;
   }
   if(vip && vip.expire){
-    const d = new Date(vip.expire + 'T00:00:00');
-    const left = Math.max(1, Math.ceil((vip.expire - Date.now()) / 86400000));
+    /* expire 兼容两种形态：毫秒数（login/vip_status 下发）与 YYYY-MM-DD 字符串（历史兜底）。
+       ⭐ 永久会员（她 10/1：站长本人）expire=9999999999999 → 显示「永久有效」不显示到期日。
+       （顺手修既有 bug：原来把毫秒数当字符串日期解析，正常会员到期日一直显示 Invalid Date。） */
+    const PERM = typeof vip.expire === 'number' && vip.expire >= 4102444800000;   // ≥ 2100-01-01 视为永久
+    let datePart;
+    if(PERM){
+      datePart = '永久有效';
+    } else {
+      const d = (typeof vip.expire === 'number') ? new Date(vip.expire) : new Date(String(vip.expire) + 'T00:00:00');
+      const left = Math.max(1, Math.ceil((d.getTime() - Date.now()) / 86400000));
+      datePart = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + ' 到期（还剩 ' + left + ' 天）';
+    }
     box.innerHTML = `
       <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
         ${VIP_ICON_GOLD}
         <div style="flex:1;min-width:200px">
           <div style="font-weight:700;font-size:16px">会员生效中 · ${escapeHtml(acct)}</div>
-          <div class="muted" style="font-size:13px;margin-top:4px">${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} 到期（还剩 ${left} 天）· AI 功能无限使用</div>
+          <div class="muted" style="font-size:13px;margin-top:4px">${datePart} · AI 功能无限使用</div>
         </div>
         <span class="badge" style="background:var(--primary);color:var(--on-primary)">VIP</span>
       </div>`;
