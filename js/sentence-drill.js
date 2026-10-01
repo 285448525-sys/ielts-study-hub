@@ -224,46 +224,15 @@ function sentMark(id, st){
   if(typeof hubSave === 'function') hubSave();
 }
 function sentWrongCount(){
-  /* design/17：按 bank 遍历计数——孤儿 id（旧库已删句型）不显示也不计数（列表/错题库同口径）
-     design/77：把「我的语法错题」里标错的条目也算进来（错题库一眼看全，口径统一） */
+  /* design/17：按 bank 遍历计数——孤儿 id（旧库已删句型）不显示也不计数（列表/错题库同口径） */
   var st = sentStatus(), n = 0;
   sentAllSentences().forEach(function(s){ if(st[s.id] && st[s.id].st === 'wrong') n++; });
   return n;
 }
 
-/* ═══════ design/77「我的语法错题」（9/20 之之拍板）═══════
-   口语诊断（P1/P2）指出的语法/用词错误 → 一键收进来 → 在句型页「练习」tab 用「修复模式」改对。
-   ⚠️ 只写 DATA.patternDrill.sentences.custom（随云同步），绝不写静态 data/sentences.json——
-      那是内容层交付物，用户数据不能污染它。
-   条目形状：{ id, cn(=错句), right(=改正句), wrong(=错句), issue, type, src, ts, key, fixMode:true }
-   · cn 存的是错句本身：修复模式的题干就是「她自己说过的原句」，不是中文句意
-   · key = 改正句归一化串，跨设备去重靠它（同一个错句只收一次）
-   ⚠️ id 前缀 sc_err_ 防撞官方库句型 id ══════ */
-var SENT_CUSTOM_PREFIX = 'sc_err_';
-var SENT_CUSTOM_CAT = { id: 'my_errors', name: '我的语法错题', pos: '把自己说错的句子改对' };
-if(window.__SENT_OPEN['my_errors'] === undefined) window.__SENT_OPEN['my_errors'] = true;
-
-function sentCustomStore(){
-  if(typeof DATA === 'undefined') return [];
-  if(!DATA.patternDrill || typeof DATA.patternDrill !== 'object') DATA.patternDrill = {};
-  var pd = DATA.patternDrill;
-  if(!pd.sentences || typeof pd.sentences !== 'object') pd.sentences = {};
-  if(!Array.isArray(pd.sentences.custom)) pd.sentences.custom = [];
-  return pd.sentences.custom;
-}
-/* 最新的在前：刚收进来的错句就在第一屏。
-   9/22：墓碑（deleted）不渲染不练习——删除改打墓碑留证，防云同步按 id 并集复活 */
-function sentCustomItems(){
-  return sentCustomStore().filter(function(x){ return x && !x.deleted; })
-    .sort(function(a, b){ return (Number(b.ts) || 0) - (Number(a.ts) || 0); });
-}
-function sentFindCustom(id){
-  var out = null;
-  sentCustomItems().forEach(function(x){ if(x && x.id === id) out = x; });
-  return out;
-}
-/* 去重键：改正句归一化（小写 + 去掉所有非字母数字） */
-function sentNormKey(s){ return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 160); }
+/* 「我的语法错题」整模块已于 10/1 下线（她拍板：板块和收录功能都不要了）。
+   收录/修复练习/分组/删除的代码全删；DATA.patternDrill.sentences.custom 不再被读写，
+   本地与云端的存量错题由 common.js mergeData 合并时强制清空洗掉。 */
 
 /* 断句（不用 lookbehind，老 Safari 也能跑）：保留句末标点 */
 function sentSplitSentences(text){
@@ -298,142 +267,12 @@ function sentLocate(hay, needle){
   var i = String(hay).toLowerCase().indexOf(String(needle).toLowerCase());
   return i >= 0 ? { at: i, len: String(needle).length } : null;
 }
-/* 一条 AI 纠错 {original, fix, issue, type} + 原回答 → 可练条目（纯函数，不写库）。
-   造不出来（定位不到 / 改正后和原句一样 / 不像一句话）→ null，绝不产出垃圾题 */
-function sentBuildFixItem(err, answer, src){
-  if(!err || typeof err !== 'object') return null;
-  var orig = String(err.original || '').trim();
-  var fix = sentOneFix(err.fix);
-  if(!orig || !fix) return null;
-  if(fix.toLowerCase() === orig.toLowerCase()) return null;
-  if(/[\u4e00-\u9fa5]/.test(fix)) return null;               // 中文说明不是改正句
-  var ans = String(answer || '').replace(/\s+/g, ' ').trim();
-  if(!ans) return null;
-  var sents = sentSplitSentences(ans), hit = null;
-  for(var i = 0; i < sents.length; i++){ if(sentLocate(sents[i], orig)){ hit = sents[i]; break; } }
-  if(!hit){
-    /* 多句里定位不到就别硬造（整段当题干她也没法改）；单句整段定位不到 → 用整段试 */
-    if(sents.length > 1 || ans.length > 200) return null;
-    hit = ans;
-  }
-  var loc = sentLocate(hit, orig);
-  if(!loc) return null;
-  var wrong = hit.replace(/\s+/g, ' ').trim();
-  var right = (hit.slice(0, loc.at) + fix + hit.slice(loc.at + loc.len)).replace(/\s+/g, ' ').trim();
-  if(!right || !wrong || right.toLowerCase() === wrong.toLowerCase()) return null;
-  if(right.length > 220 || wrong.length > 220) return null;
-  if(right.split(/\s+/).length < 2 || wrong.split(/\s+/).length < 2) return null;
-  if(/[{}<>]/.test(right) || /\/\s*\//.test(right)) return null;
-  var issue = String(err.issue || '').trim();
-  return {
-    id: SENT_CUSTOM_PREFIX + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-    cn: wrong, right: right, wrong: wrong,
-    issue: issue, type: String(err.type || '').trim(), src: src || '',
-    ts: Date.now(), key: sentNormKey(right), wkey: sentNormKey(wrong),
-    fixMode: true, formula: '', note: issue, slots: []
-  };
-}
-/* 收进练习库：逐条造题 → 按 key/wkey 双键去重（改正句撞了不行，**原句撞了也不行**——
-   同一句三个错=三个不同改正句，旧口径会录三遍，她实测 16 变 32）→ 落库。
-   墓碑项也占坑：她删过的句子不再被自动收回来（否则=变相复活）。 */
-function sentCollectErrors(errs, answer, src){
-  var list = Array.isArray(errs) ? errs : [];
-  var store = sentCustomStore(), have = {}, added = 0;
-  store.forEach(function(x){
-    if(!x) return;
-    if(x.key) have[x.key] = true;
-    var wk = x.wkey || (x.wrong ? sentNormKey(x.wrong) : '');
-    if(wk) have['w:' + wk] = true;
-  });
-  list.forEach(function(e){
-    var it = sentBuildFixItem(e, answer, src);
-    if(!it || have[it.key] || have['w:' + it.wkey]) return;
-    have[it.key] = true; have['w:' + it.wkey] = true;
-    store.push(it); added++;
-  });
-  if(added && typeof hubSave === 'function') hubSave();
-  return { added: added, total: list.length };
-}
-/* 纯预判（渲染按钮文案用，不写库）：这次诊断里有几条是新的（双键口径同上） */
-function sentCollectFresh(errs, answer){
-  var list = Array.isArray(errs) ? errs : [];
-  var store = sentCustomStore(), have = {}, n = 0;
-  store.forEach(function(x){
-    if(!x) return;
-    if(x.key) have[x.key] = true;
-    var wk = x.wkey || (x.wrong ? sentNormKey(x.wrong) : '');
-    if(wk) have['w:' + wk] = true;
-  });
-  list.forEach(function(e){
-    var it = sentBuildFixItem(e, answer, '');
-    if(!it || have[it.key] || have['w:' + it.wkey]) return;
-    have[it.key] = true; have['w:' + it.wkey] = true; n++;
-  });
-  return n;
-}
-/* 9/22 存量清洗：同一原句（wkey）只留 ts 最新一条活项——把老数据「一句录三遍」（16 变 32）清回一条。
-   幂等；墓碑一律保留（它们是并集复活的防线），不参与去重。返回丢弃条数，>0 时由调用方 hubSave。 */
-function sentPruneDuplicates(){
-  var store = sentCustomStore();
-  var alive = [], seen = {}, kept = [], dropped = 0;
-  store.forEach(function(x){ if(x && !x.deleted) alive.push(x); });
-  alive.sort(function(a, b){ return (Number(b.ts) || 0) - (Number(a.ts) || 0); });
-  alive.forEach(function(x){
-    var k = 'w:' + (x.wkey || (x.wrong ? sentNormKey(x.wrong) : ''));
-    if(!k || k === 'w:'){ kept.push(x); return; }
-    if(seen[k]){ dropped++; return; }
-    seen[k] = true; kept.push(x);
-  });
-  if(dropped){
-    store.filter(function(x){ return x && x.deleted; }).forEach(function(x){ kept.push(x); });
-    DATA.patternDrill.sentences.custom = kept;
-  }
-  return dropped;
-}
-/* 删一条（AI 判错了 / 不想练这条）。9/22 改打墓碑：原来物理 splice 后，云端那份 id 还在，
-   下次 pull 按 id 并集必复活（她实测「删了明天又回来」）；墓碑随云同步上行，合并时删除必胜 */
-function sentCustomRemove(id){
-  var store = sentCustomStore(), hit = null;
-  store.forEach(function(x){ if(x && x.id === id && !x.deleted) hit = x; });
-  if(!hit) return false;
-  hit.deleted = true;
-  hit.delTs = Date.now();
-  delete sentStatus()[id];
-  if(typeof hubSave === 'function') hubSave();
-  return true;
-}
-/* 官方库 + 我的语法错题 全量：错题库计数 / 全部重练 / 错题库列表统一走它，口径一致 */
+/* 官方句型库全量：错题库计数 / 全部重练 / 错题库列表统一走它，口径一致
+   （10/1 起「我的语法错题」已下线，只剩官方库） */
 function sentAllSentences(){
   var out = [];
   sentBank().cats.forEach(function(cat){ cat.sentences.forEach(function(s){ out.push(s); }); });
-  sentCustomItems().forEach(function(s){ out.push(s); });
   return out;
-}
-/* 「我的语法错题」分组（官方分类之上；一条都没有时整块不渲染，不占地方） */
-function sentMyErrCatHtml(){
-  var items = sentCustomItems();
-  if(!items.length) return '';
-  var st = sentStatus();
-  var mastered = items.filter(function(x){ return st[x.id] && st[x.id].st === 'mastered'; }).length;
-  var open = window.__SENT_OPEN['my_errors'] !== false;
-  var h = '<div class="sent-cat" data-sent-cat="my_errors">'
-    + '<div class="sent-cat-row"><b>我的语法错题</b>'
-    + '<span class="sent-cat-pos">从口语诊断收进来的，改对为止</span>'
-    + '<span class="sent-cat-count">已改对 ' + mastered + '/' + items.length + '</span>'
-    + '<span class="sent-caret">' + (open ? '▾' : '▸') + '</span></div>';
-  if(open){
-    h += '<div class="sent-cat-body">';
-    items.forEach(function(s){
-      var stat = st[s.id] && st[s.id].st;
-      var tag = stat === 'mastered' ? '<span class="sent-st st-mastered">已改对</span>'
-        : (stat === 'wrong' ? '<span class="sent-st st-wrong">还没改对</span>' : '');
-      h += '<div class="sent-item" data-sent-item="' + s.id + '">'
-        + '<span class="sent-item-cn">' + sentEsc(s.wrong || s.cn) + '</span>' + tag
-        + '<span class="sent-del" data-sent-del="' + s.id + '" title="从练习库删掉这条">✕</span></div>';
-    });
-    h += '</div>';
-  }
-  return h + '</div>';
 }
 
 /* ── design/17 3.1 薄弱条：源 A = patternDrill.weakness（存量），源 B = 错题库句型 focus 计数；
@@ -679,7 +518,6 @@ function sentListHtml(){
   html += sentReviewHtml();                    // design/19：久未练的主题提醒
   html += sentMsetRowHtml();                   // design/19：当前素材集 · 主题（点开=内联配置面板）
   html += '<div class="sent-list">';
-  html += sentMyErrCatHtml();                  // design/77：我的语法错题（没条目时整块不渲染）
   bank.cats.forEach(function(cat){
     var mastered = cat.sentences.filter(function(s){ return st[s.id] && st[s.id].st === 'mastered'; }).length;
     var open = !!window.__SENT_OPEN[cat.id];
@@ -723,8 +561,6 @@ function sentPracticeHtml(){
   var bank = sentBank(), c = sentCur();
   var cat = null, sent = null;
   bank.cats.forEach(function(x){ x.sentences.forEach(function(s){ if(s.id === c.sentId){ cat = x; sent = s; } }); });
-  /* design/77：官方库没有 → 走「我的语法错题」（伪分类；题干=她自己说过的原错句） */
-  if(!sent) { var _cu = sentFindCustom(c.sentId); if(_cu){ cat = SENT_CUSTOM_CAT; sent = _cu; } }
   if(!cat || !sent){ c.view = 'list'; return sentListHtml(); }
   var fb = c.fb || { cls: '', html: '', notes: '' };
   var btnText = '提交';
@@ -733,12 +569,8 @@ function sentPracticeHtml(){
   var sceneTag = c.phase === 'scene' ? ' · 换场景巩固 ' + (c.sceneIdx + 1) + '/2' : '';
   var v = sentCurView();                       // design/19：题干取自同一个句意对象
   c.curTopicId = (v.topic && v.topic.id) || '';// 供 sentTouchTopic / 换主题排除用（确定性派生，重渲染幂等）
-  /* design/77 修复模式：题干是她自己说错的英文原句（不是中文句意），要求改成对的 */
-  var taskHtml = sent.fixMode
-    ? '<div class="sent-fixtask"><div class="sent-fixtask-lab">把这句改对（这是你说错过的话）</div>'
-      + '<div class="sent-fixtask-src">' + sentEsc(sent.wrong || sent.cn) + '</div></div>'
-    : '<div class="sent-cn">' + sentEsc(v.cn) + '</div>';
-  var ph = sent.fixMode ? '改对后的英文' : '用英文说出这句';
+  var taskHtml = '<div class="sent-cn">' + sentEsc(v.cn) + '</div>';
+  var ph = '用英文说出这句';
   return '<div class="sent-back" data-sent-back>&larr; 返回句型列表</div>'
     + '<div class="sent-tag">【' + sentEsc(cat.name) + ' · ' + sentEsc(cat.pos || '') + '】' + sentEsc(sceneTag) + '</div>'
     + taskHtml
@@ -771,13 +603,6 @@ function sentBindList(){
   if(wk) wk.addEventListener('click', function(e){ e.stopPropagation(); sentWeakClick(); });
   var wa = host.querySelector('[data-sent-wrong-all]');
   if(wa) wa.addEventListener('click', function(e){ e.stopPropagation(); sentStartWrongAll(); });
-  /* design/77：删单条错题（✕ 在 .sent-item 里，必须 stopPropagation 否则会顺带开局） */
-  host.querySelectorAll('[data-sent-del]').forEach(function(el){
-    el.addEventListener('click', function(e){
-      e.stopPropagation();
-      if(sentCustomRemove(el.getAttribute('data-sent-del'))){ toast('已从练习库删掉这条'); sentRender(); }
-    });
-  });
   sentBindMset(host);
 }
 
@@ -935,11 +760,7 @@ async function sentOnSubmit(){
   var ok = sentLocalJudge(answer, v.right);
   var ai = null;
   if(!ok){
-    /* design/77：修复模式把「句意」换成原错句并明示是改错练习——否则 AI 会按「答非所问」误判 misread；
-       素材主题对改错题没有意义，也别传，免得干扰。 */
-    var aiCn = (sent && sent.fixMode) ? ('改错练习——把这句改对：' + (sent.wrong || '')) : v.cn;
-    var aiTopic = (sent && sent.fixMode) ? '' : ((v.topic && v.topic.name) || '');
-    ai = await sentAskAI({ cn: aiCn, right: v.right }, answer, aiTopic);
+    ai = await sentAskAI({ cn: v.cn, right: v.right }, answer, (v.topic && v.topic.name) || '');
     /* design/15 口径：三态。⚠️ ok 必须 === true 收敛——pending(null) 不算过（灰字可重交），
        绝不静默放行；连续两次（错+pending 合计 tries）落「看答案」兜底不卡死。 */
     ok = (ai.ok === true);
@@ -963,15 +784,12 @@ async function sentOnSubmit(){
 function sentFind(id){
   var out = null;
   sentBank().cats.forEach(function(x){ x.sentences.forEach(function(s){ if(s.id === id) out = s; }); });
-  /* design/77：官方库没有 → 查「我的语法错题」（同一个 status 表，判定与标记全复用） */
-  if(!out) out = sentFindCustom(id);
   return out;
 }
 
 /* 判对：主句 → 1.1s 后进换场景；场景 1 → 1.1s 后进场景 2；场景 2 → mastered 回列表 */
 function sentPass(){
   var c = sentCur();
-  var sent = sentFind(c.sentId);        // design/77：修复模式条目一次过即 mastered
   var fb = sent$('sentFeedback'), st = sent$('sentStatus'), sub = sent$('sentSubmit'), inp = sent$('sentAnswer');
   if(fb){ fb.className = 'pd-feedback ok'; fb.textContent = '过了'; }
   if(st) st.textContent = '';
@@ -979,15 +797,6 @@ function sentPass(){
   if(sub) sub.disabled = true;
   sentTouchTopic(c.curTopicId);               // design/19：练过就记主题时间（复习提醒用）
   SENT_AUTO_T = setTimeout(function(){
-    /* design/77：改错题一次改对就 mastered——它没有 scene 变体，「换场景巩固」不适用 */
-    if(sent && sent.fixMode){
-      sentMark(c.sentId, 'mastered');
-      toast('改对了');
-      if(sentNextFromQueue()) return;
-      window.__SENT_CUR = null;
-      sentRender();
-      return;
-    }
     if(c.phase === 'main'){
       /* topicId = 上一题用过的主题 → 换场景时强制换一个（同句型 + 换话题） */
       c.phase = 'scene'; c.sceneIdx = 0; c.topicId = c.curTopicId || '';
@@ -1198,7 +1007,6 @@ async function sentBoot(){
   if(!bank || !bank.cats || !bank.cats.length) return;
   await sentLoadSets();                    // design/19：素材集（失败=无，全路径回落原句）
   sentSeedBuiltin();
-  if(sentPruneDuplicates() && typeof hubSave === 'function'){ hubSave(); }   // 9/22：存量一句多录清洗
   var c = sentCur();
   if(c.view === 'practice' && !sentFind(c.sentId)){ window.__SENT_CUR = null; }   // 防脏状态
   sentRender();
