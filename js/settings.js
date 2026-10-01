@@ -188,6 +188,9 @@ function renderAuthUI(){
   if(loggedIn){
     const el = $('#syncUserAcct');
     if(el) el.textContent = DATA.settings.syncCode || '';
+  } else {
+    const el = $('#syncUserAcct');   // 10/1 晚：退出/未登录时账号位回填「未登录」（账号卡置顶版）
+    if(el) el.textContent = '未登录';
   }
 }
 

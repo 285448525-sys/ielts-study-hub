@@ -9,7 +9,7 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>设置 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261001l" />
+<link rel="stylesheet" href="css/common.css?v=20261001n" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=6" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=6">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=6">
@@ -19,9 +19,37 @@
 
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
+<style>
+/* ===== 10/1 晚 · 设置页 v2 重排（她拍板）：账号状态置顶深色卡 + 分区重组 =====
+   内容一项不删；全部 DOM 钩子保留，settings.js 零改动（renderAuthUI 除未登录回填「未登录」外）。 */
+.acct-card{position:relative;overflow:hidden;background:linear-gradient(168deg,#1f5350,#12332f 72%);border:none;color:#fff;box-shadow:0 24px 48px -26px rgba(18,51,47,.55)}
+.acct-card::before{content:'';position:absolute;inset:0;background:radial-gradient(420px 200px at 85% -60px,rgba(122,220,210,.16),transparent 70%);pointer-events:none}
+.acct-row{display:flex;align-items:center;gap:16px;position:relative}
+.acct-avatar{flex:none;width:52px;height:52px;border-radius:16px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);display:grid;place-items:center;color:rgba(255,255,255,.92)}
+.acct-avatar svg{width:26px;height:26px}
+.acct-main{display:flex;flex-direction:column;gap:2px;min-width:0}
+.acct-main>b{font-size:19px;font-weight:800;color:#fff;letter-spacing:.01em}
+.acct-sub{font-size:12.5px;color:rgba(255,255,255,.66)}
+.acct-sub2{font-size:11.5px;color:rgba(255,255,255,.45)}
+#syncStatus{position:relative;margin:12px 0 0;font-size:13px;color:rgba(255,255,255,.82)}
+#syncStatus:empty{display:none}
+.acct-actions{display:flex;gap:10px;flex-wrap:wrap;position:relative}
+.acct-btn{display:inline-flex;align-items:center;justify-content:center;padding:9px 18px;border-radius:999px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;transition:background .15s}
+.acct-btn:hover{background:rgba(255,255,255,.12)}
+.acct-btn--light{background:#fff;color:var(--primary-900);border-color:#fff}
+.acct-btn--light:hover{background:rgba(255,255,255,.92)}
+.acct-form-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;position:relative}
+.acct-input{flex:1;min-width:150px;height:42px;padding:0 14px;border:1px solid rgba(255,255,255,.25);border-radius:10px;background:rgba(255,255,255,.10);color:#fff;font:inherit;font-size:14px;outline:none;box-sizing:border-box;transition:border-color .15s,background .15s}
+.acct-input:focus{border-color:rgba(122,220,210,.7);background:rgba(255,255,255,.16)}
+.acct-input::placeholder{color:rgba(255,255,255,.42)}
+#syncUserBox,#syncLoginForm{position:relative;margin-top:16px}
+/* 联系站长一行条 */
+.wx-strip{display:flex;align-items:center;gap:8px;padding:14px 18px;font-size:13px;color:var(--muted)}
+.wx-strip b{color:var(--ink)}
+</style>
 <script defer src="js/data.js?v=20260930g"></script>
   <script defer src="js/common.js?v=20261001n"></script>
-  <script src="js/settings.js?v=20261001h" defer></script>
+  <script src="js/settings.js?v=20261001i" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -35,12 +63,54 @@
 
 <main class="container">
 
+  <!-- ① 账号 · 同步（置顶，她 10/1 晚拍板：进来第一眼就是账号状态）。
+       深色卡与模考 CTA/落地页收尾同一视觉语言。全部 DOM 钩子（syncUserAcct/syncState/
+       lastSyncTs/syncStatus/syncUserBox/syncLoginForm 及内部按钮 id）原样保留。 -->
+  <section class="card acct-card">
+    <div class="acct-row">
+      <div class="acct-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg></div>
+      <div class="acct-main">
+        <b id="syncUserAcct">未登录</b>
+        <span id="syncState" class="acct-sub"></span>
+        <span id="lastSyncTs" class="acct-sub2"></span>
+      </div>
+    </div>
+    <p id="syncStatus"></p>
+    <!-- 已登录：改密码 + 退出 -->
+    <div id="syncUserBox" style="display:none">
+      <div class="acct-actions">
+        <button class="acct-btn" id="syncChangeBtn" type="button">修改密码</button>
+        <button class="acct-btn acct-btn--ghost" id="syncLogoutBtn" type="button">退出登录</button>
+      </div>
+      <div id="syncChangeForm" style="display:none">
+        <div class="acct-form-row">
+          <input class="acct-input" id="sOldPass" type="password" placeholder="当前密码" autocomplete="current-password" />
+          <input class="acct-input" id="sNewPass" type="password" placeholder="新密码（至少 6 位）" autocomplete="new-password" />
+          <button class="acct-btn acct-btn--light" id="syncChangeSave" type="button">保存新密码</button>
+        </div>
+      </div>
+    </div>
+    <!-- 未登录：登录 / 设密码（邀请码选填，内测码注册即送会员） -->
+    <div id="syncLoginForm" style="display:none">
+      <div class="acct-form-row">
+        <input class="acct-input" id="sAcct" placeholder="手机号 / 用户名（6-20 位）" autocomplete="username" maxlength="20" />
+        <input class="acct-input" id="sPass" type="password" placeholder="密码（至少 6 位）" autocomplete="current-password" />
+        <input class="acct-input" id="sInvite" placeholder="邀请码（选填 · 内测码送会员）" autocomplete="off" maxlength="16" style="text-transform:uppercase" />
+      </div>
+      <div class="acct-actions">
+        <button class="acct-btn acct-btn--light" id="syncLoginBtn" type="button">登录</button>
+        <button class="acct-btn acct-btn--ghost" id="syncRegisterBtn" type="button">设置密码（首次）</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ② 学习偏好（原「基本信息」） -->
   <section class="card">
-    <h2>基本信息</h2>
+    <h2>学习偏好</h2>
     <div class="form-row">
       <div><label>昵称</label><input id="sName" /></div>
       <div><label>下次考试日期</label>
-        <div style="display:flex;align-items:center;gap:8px">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <input id="sExam" type="date" />
           <span id="settingsCountdown" class="badge" style="font-size:12.5px;white-space:nowrap"></span>
         </div>
@@ -79,10 +149,10 @@
         <input type="checkbox" id="sAdhd" />
         <span>启用「服药」模块（ADHD 专注达药效窗口记录）</span>
       </label>
-      <!-- 服药说明行已删（她 10/1 晚拍板：冗余） -->
     </div>
   </section>
 
+  <!-- ③ 目标分数 -->
   <section class="card">
     <h2>目标分数</h2>
     <div class="form-row">
@@ -94,9 +164,9 @@
     </div>
   </section>
 
+  <!-- ④ 口语模考自评 -->
   <section class="card">
-    <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg>口语模考</h2>
-    <!-- 口语说明两段并一段（她 10/1 晚拍板：瘦身） -->
+    <h2>口语自评（模考计分用）</h2>
     <p class="muted">口语按官方 band 评「语法」和「词汇」；<b>流利度与发音 AI 评不了</b>，由你在下面自填固定分（0–9，不填不计入总分）。注意：这是你自己的估分，不会随练习变化，不是机器测出来的。</p>
     <div class="form-row">
       <div><label>固定流利度分（可选，0–9）</label><input id="sFlu" type="number" min="0" max="9" step="0.5" placeholder="如 6（不填则流利度不计入总分）" /></div>
@@ -104,46 +174,9 @@
     </div>
   </section>
 
-  <!-- AI 接口设置模块已下线（她 10/1 拍板）：商业化后 AI 一律走站内通道（站长服务端 Key），用户不接触 Key。
-       id="ai" 锚点保留空壳防外链 settings.html#ai 死跳。 -->
+  <!-- AI 接口设置模块已下线（她 10/1 拍板）。id=ai 锚点空壳防外链死跳 -->
 
-  <section class="card">
-    <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M17.5 19a4.5 4.5 0 0 0 .4-9A6.5 6.5 0 0 0 5.3 12.6 4 4 0 0 0 6.5 19h11z"/></svg>云端同步</h2>
-    <p class="muted">手机号 / 用户名 + 密码登录，多设备数据互通。</p>
-    <!-- 未登录：登录 / 设密码 -->
-    <div id="syncLoginForm">
-      <div class="form-row">
-        <div style="flex:1;min-width:170px"><label>手机号 / 用户名</label><div class="ui-form-control" style="width:100%;max-width:280px"><input class="ui-input" id="sAcct" placeholder="手机号或用户名（6-20 位）" autocomplete="username" maxlength="20" /><span class="ui-input-border"></span></div></div>
-        <div style="flex:1;min-width:150px"><label>密码</label><div class="ui-form-control" style="width:100%;max-width:280px"><input class="ui-input" id="sPass" type="password" placeholder="至少 6 位" autocomplete="current-password" /><span class="ui-input-border"></span></div></div>
-        <div style="flex:1;min-width:150px"><label>邀请码（选填 · 内测码注册即送会员）</label><div class="ui-form-control" style="width:100%;max-width:280px"><input class="ui-input" id="sInvite" placeholder="不填也能注册" autocomplete="off" maxlength="16" style="text-transform:uppercase" /><span class="ui-input-border"></span></div></div>
-      </div>
-      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        <button class="btn" id="syncLoginBtn" type="button">登录</button>
-        <button class="btn" id="syncRegisterBtn" type="button">设置密码（首次）</button>
-      </div>
-    </div>
-    <!-- 已登录：改密码 + 退出（「已登录」一行已删：与下方 syncState 状态行重复；检查/立即同步按钮已删——她拍板自动同步足够 10/1 晚） -->
-    <div id="syncUserBox" style="display:none">
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn" id="syncChangeBtn" type="button">修改密码</button>
-        <button class="btn" id="syncLogoutBtn" type="button">退出登录</button>
-      </div>
-      <div id="syncChangeForm" style="display:none;margin-top:12px;border-top:1px dashed var(--line);padding-top:12px">
-        <div class="form-row">
-          <div style="flex:1;min-width:150px"><label>当前密码</label><div class="ui-form-control" style="width:100%;max-width:280px"><input class="ui-input" id="sOldPass" type="password" autocomplete="current-password" /><span class="ui-input-border"></span></div></div>
-          <div style="flex:1;min-width:150px"><label>新密码</label><div class="ui-form-control" style="width:100%;max-width:280px"><input class="ui-input" id="sNewPass" type="password" placeholder="至少 6 位" autocomplete="new-password" /><span class="ui-input-border"></span></div></div>
-        </div>
-        <div style="margin-top:8px"><button class="btn" id="syncChangeSave" type="button">保存新密码</button></div>
-      </div>
-    </div>
-    <p id="syncStatus" class="muted" style="margin:6px 0 0"></p>
-    <p id="syncState" class="muted" style="margin:2px 0 0"></p>
-    <p id="lastSyncTs" class="muted" style="margin:2px 0 0"></p>
-    <!-- 检查同步状态 / 立即同步到云端 两按钮已删（她 10/1 晚拍板：自动同步足够） -->
-  </section>
-
-  <!-- 「保存全部设置」条已删（她 10/1 晚拍板）：改为编辑即自动保存（settings.js change 事件 → 防抖 saveSettings） -->
-
+  <!-- ⑤ 数据管理 -->
   <section class="card">
     <h2>数据管理</h2>
     <p class="muted">所有数据存在本机浏览器。导出备份后再做危险操作。</p>
@@ -156,14 +189,9 @@
     <div id="importErr" class="ui-err-box" style="margin-top:10px"></div>
   </section>
 
-  <!-- design/80 PWA 安装卡已删（她 10/1 晚拍板）：安装入口保留在首页底部轻量条「📦 安装到桌面」 -->
-
-  <!-- 站长联系方式（她 10/1：设置页放微信，用户有问题可私信反馈） -->
-  <section class="card">
-    <h2>联系站长</h2>
-    <p class="muted" style="margin:0 0 8px;font-size:13.5px">使用中有任何问题或建议，欢迎加微信反馈：</p>
-    <p style="margin:0;font-size:15px"><b>微信：g285448525</b></p>
-    <p class="muted" style="margin:6px 0 0;font-size:12.5px">加的时候标一下来意（如「雅思站用户」），都会通过。</p>
+  <!-- ⑥ 联系站长（压成一行条） -->
+  <section class="card wx-strip">
+    <span>💬 使用中有问题或建议？加微信 <b>g285448525</b>（标明来意，都会通过）</span>
   </section>
 </main>
 
