@@ -1574,25 +1574,19 @@ main .quote{
 @keyframes timerBlink{0%,100%{opacity:1}50%{opacity:.45}}
 
 
-/* === 模考：退出按钮（10/1 晚定版：舞台右上角橙色定位式，她确认「原来那版好看」） ===
-   挂在 #mockStage 内部（absolute）；舞台隐藏 / 切 tab / 显示报告时随父级自动隐藏 */
-#mockStage{position:relative}
+/* === 模考：右下角红色退出按钮 + 退出确认对话框 === */
+/* FAB 挂在 #mockStage 内部（fixed 定位）；舞台隐藏 / 切 tab / 显示报告时随父级自动隐藏，不会跑到别的页面 */
 .mock-exit-fab{
-  position:absolute; top:78px; right:14px; z-index:60;
+  position:fixed; right:18px; bottom:18px; z-index:60;
   display:inline-flex; align-items:center; gap:6px;
-  padding:8px 14px; border:none; border-radius:10px;
-  background:var(--warn); color:#fff; font-size:13.5px; font-weight:600;
-  cursor:pointer; box-shadow:0 3px 10px rgba(245,158,11,.30);
-  transition:transform .12s, box-shadow .12s, filter .12s;
+  padding:11px 16px; border:none; border-radius:12px;
+  background:var(--err); color:var(--on-primary); font-size:14px; font-weight:600;
+  cursor:pointer; box-shadow:0 6px 18px rgba(199,85,82,.35);
+  transition:transform .12s, box-shadow .12s;
 }
-.mock-exit-fab:hover{ transform:translateY(-1px); filter:brightness(1.05); box-shadow:0 5px 14px rgba(245,158,11,.38); }
-.mock-exit-fab svg{ width:15px; height:15px; flex:none; }
+.mock-exit-fab:hover{ transform:translateY(-1px); box-shadow:0 8px 22px rgba(199,85,82,.42); }
+.mock-exit-fab svg{ width:16px; height:16px; flex:none; }
 .mock-exit-fab:active{ transform:translateY(0); }
-/* 手机端：说明文字折行会给右上按钮让位（top:14 落在计时条右上空白区，互不遮挡） */
-@media(max-width:760px){
-  .mock-exit-fab{ top:14px; }
-  .mock-total-timer{ padding-right:120px; }
-}
 
 .mock-modal-backdrop{
   position:fixed; inset:0; z-index:200;
@@ -1635,11 +1629,10 @@ main .quote{
 [data-theme="dark"] .sp-tts{background:rgba(45,212,191,.16)}
 .mock-timer{margin-top:10px;font-size:15px;font-weight:700;color:var(--warn-ink)}
 .mock-live{margin-top:12px;min-height:42px;padding:10px 12px;border-radius:10px;background:var(--bg);border:1px dashed var(--line);color:var(--ink);font-size:15px;line-height:1.5;white-space:pre-wrap}
-.mock-live[hidden]{display:none}
-/* 10/1 晚：答题框（原空灰框位置）——输入区提到「下一题」上方，标签+第二输入框已删 */
-.mock-answer{display:block;width:100%;box-sizing:border-box;margin-top:12px;padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.5;resize:vertical;font-family:inherit}
-.mock-answer:focus{outline:none;border-color:var(--primary);background:var(--surface)}
-.mock-controls{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;justify-content:flex-end}
+.mock-manual{margin-top:12px}
+.mock-manual label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+.mock-manual textarea{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font-size:14px;resize:vertical;font-family:inherit}
+.mock-controls{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
 .mock-hint{margin:10px 0 0;font-size:13px;color:var(--muted);min-height:1px}
 .mock-p2-prompt{font-size:18px;font-weight:700;color:var(--ink);line-height:1.5}
 .mock-p2-zh{font-size:14px;font-weight:600;color:var(--muted);margin-top:4px}

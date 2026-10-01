@@ -31,7 +31,7 @@
 })();
 </script>
 <title>口语 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261001o" />
+<link rel="stylesheet" href="css/common.css?v=20261001p" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=6" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=6">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=6">
@@ -936,12 +936,13 @@ body.mock-immerse #mockStage{border:0;box-shadow:none;background:transparent}
           <div class="mock-qcard">
             <div class="mock-q" id="mockQ"></div>
             <div class="mock-timer" id="mockTimerWrap" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg> <span id="mockTimer">--</span></div>
-            <div class="mock-live" id="mockLive" aria-live="polite" hidden></div>
-            <!-- 10/1 晚重排（她拍板）：输入框提到「下一题」按钮上方；原空灰框(mockLive)与
-                 「写下/粘贴你的英文回答」标签+第二输入框整块删除——只留这一个框 -->
-            <textarea id="mockManual" class="mock-answer" rows="3" placeholder="在此输入你的英文回答…" aria-label="英文回答"></textarea>
+            <div class="mock-live" id="mockLive" aria-live="polite"></div>
             <div class="mock-controls">
               <button class="btn btn-primary" id="mockSubmit">提交 / 下一题</button>
+            </div>
+            <div class="mock-manual">
+              <label for="mockManual">写下 / 粘贴你的英文回答：</label>
+              <textarea id="mockManual" rows="3" placeholder="在此输入你的英文回答…"></textarea>
             </div>
             <p class="mock-hint" id="mockHint"></p>
           </div>
