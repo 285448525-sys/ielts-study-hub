@@ -266,6 +266,7 @@ ready(() => {
         const cs = $('#catSelect'); if(cs) cs.value = 'all';
         curCat = 'all';
         const ps = $('#partSelect'); if(ps) ps.value = 'all';
+        if(window.__spClearPartSeg) window.__spClearPartSeg();
         curPart = 'all';
         // design/88：状态筛选重置（切回题库=回到全量语义）
         curState = 'all'; const stSel = $('#stateSelect'); if(stSel) stSel.value = 'all';
@@ -289,6 +290,7 @@ ready(() => {
         const cs = $('#catSelect'); if(cs) cs.value = 'all';
         curCat = 'all';
         const ps = $('#partSelect'); if(ps) ps.value = 'all';
+        if(window.__spClearPartSeg) window.__spClearPartSeg();
         curPart = 'all';
         // design/88：状态筛选重置
         curState = 'all'; const stSel2 = $('#stateSelect'); if(stSel2) stSel2.value = 'all';
@@ -301,6 +303,20 @@ ready(() => {
   if(freqSel) freqSel.addEventListener('change', e => { curFreq = e.target.value; renderList(); });
   if(catSel) catSel.addEventListener('change', e => { curCat = e.target.value; renderList(); });
   if(partSel) partSel.addEventListener('change', e => { curPart = e.target.value; renderList(); });
+  // 10/1 晚（她拍板）：Part 下拉退役 → P1/P2 小切换。点选=只看该 Part；再点已选中的=回到全部。
+  const partSeg = document.getElementById('spPartSeg');
+  if(partSeg){
+    partSeg.querySelectorAll('button[data-part]').forEach(b => {
+      b.addEventListener('click', () => {
+        const v = b.dataset.part;
+        curPart = (curPart === v) ? 'all' : v;
+        partSeg.querySelectorAll('button').forEach(x => x.classList.toggle('active', x.dataset.part === curPart));
+        renderList();
+      });
+    });
+  }
+  /* 切 tab 重置时同步清 P1/P2 高亮（curPart='all' 由原重置逻辑负责） */
+  window.__spClearPartSeg = () => { if(partSeg) partSeg.querySelectorAll('button').forEach(x => x.classList.remove('active')); };
   // design/88：状态筛选
   const stateSel = $('#stateSelect');
   if(stateSel) stateSel.addEventListener('change', e => { curState = e.target.value; renderList(); });
@@ -312,10 +328,16 @@ ready(() => {
     const o1 = partSel && partSel.querySelector('option[value="P1"]'), o2 = partSel && partSel.querySelector('option[value="P2"]');
     if(o1) o1.textContent = 'Part 1（' + c1 + ' 题）';
     if(o2) o2.textContent = 'Part 2（' + c2 + ' 题）';
+    const pb1 = document.querySelector('#spPartSeg [data-part="P1"]'), pb2 = document.querySelector('#spPartSeg [data-part="P2"]');
+    if(pb1) pb1.textContent = 'P1 · ' + c1;
+    if(pb2) pb2.textContent = 'P2 · ' + c2;
   })();
   $('#spSearch').addEventListener('input', () => { curSearch = $('#spSearch').value.trim().toLowerCase(); renderList(); });
   const rndBtn = document.getElementById('spRandomBtn');
   if(rndBtn) rndBtn.addEventListener('click', () => spRandomPick());
+  // 10/1 晚（她拍板）：模考不再是 tab——题库筛选行「模考」按钮 = 点隐藏的 MOCK tab（复用全部切换逻辑）
+  const mockJump = document.getElementById('spMockJumpBtn');
+  if(mockJump) mockJump.addEventListener('click', () => { const mb = document.querySelector('#tabs [data-type="MOCK"]'); if(mb) mb.click(); });
   renderFreqBanner();   // design/81：季度 banner 数据化（此时题库合并已完成，题数现算）
   $('#backBtn').addEventListener('click', () => { $('#detailView').hidden = true; $('#listView').hidden = false; $('#sentView').hidden = true; $('#pdView').hidden = true; curDetailId = null; spActivateTab('BANK'); });
   // 默认 tab = 练习：__SENT_V2_ON 时为句型页（sentence-drill.js 接管），否则老 pdView

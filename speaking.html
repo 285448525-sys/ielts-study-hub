@@ -46,7 +46,7 @@
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
   <script defer src="js/sentence-drill.js?v=20261001i"></script>
-  <script defer src="js/speaking.js?v=20261001k"></script>
+  <script defer src="js/speaking.js?v=20261001l"></script>
   <script defer src="js/materials.js?v=20261001g"></script>
   <script defer src="js/mock-report.js?v=20260830u"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
@@ -56,10 +56,10 @@
 <style>
   /* === 极简口语模块 · 优化版（沿用全站 Teal Token） === */
 
-  /* 10/1 晚（她拍板）：题库说明压成两行定高小条，不再 details 折叠 */
-  .sp-banner{padding:10px 16px;background:var(--primary-soft);color:var(--ink);border-radius:var(--radius);font-size:13px;line-height:1.6;margin:12px 0;box-shadow:none}
-  .sp-banner b{font-weight:700}
-  .sp-banner-sub{font-size:12px;color:var(--muted);margin-top:2px}
+  /* 10/1 晚二改（她拍板）：说明条再压——小字两行、浅底、小内距，视觉存在感降到最低 */
+  .sp-banner{padding:7px 12px;background:var(--primary-50);color:var(--ink);border-radius:10px;font-size:12px;line-height:1.55;margin:8px 0 10px;box-shadow:none;border:none}
+  .sp-banner b{font-weight:700;font-size:12px}
+  .sp-banner-sub{font-size:11px;color:var(--muted);margin-top:1px}
 
   .chip-row{display:flex;gap:8px;overflow-x:auto;padding:8px 0;scrollbar-width:none}
   .chip-row::-webkit-scrollbar{display:none}
@@ -71,6 +71,13 @@
 
   .sp-search{width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:var(--radius-sm);font:inherit;background:var(--surface);color:var(--ink);margin:8px 0 12px;box-sizing:border-box;transition:border-color .15s,box-shadow .15s}
   .sp-search:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-soft);outline:none}
+
+  /* 10/1 晚（她拍板「四个小 tab 凑一起太丑」）：分段式全宽 tab——等宽四格、圆角、active teal 填充 */
+  .sp-tabs{display:flex;flex:1;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px;box-shadow:var(--shadow);margin-bottom:4px}
+  .sp-tabs .pill-tab{flex:1;display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 8px;border-radius:10px;font-size:14px;font-weight:700;border:none;background:transparent;color:var(--muted);cursor:pointer;transition:background .15s,color .15s,box-shadow .15s}
+  .sp-tabs .pill-tab:hover{color:var(--primary)}
+  .sp-tabs .pill-tab.active{background:var(--primary);color:#fff;box-shadow:0 2px 8px rgba(58,154,147,.30)}
+  .sp-tabs .pill-tab.active:hover{color:#fff}
 
   /* 10/1 晚（她拍板）：题库列表从「连体卡」拆成独立卡片——卡片间留呼吸空隙，不再挤成一条 */
   .sp-list{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
@@ -187,7 +194,14 @@
   .sp-select{padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);font:inherit;font-size:14px;background:var(--surface);color:var(--ink);min-width:150px;cursor:pointer;transition:border-color .15s,box-shadow .15s}
   .sp-select:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-soft);outline:none}
   /* design/81：随机抽题按钮（贴筛选行右侧，窄屏自动换行不挤压）；P3 二次确认警示态 */
-  .sp-random{margin-left:auto;padding:10px 16px;font-size:13.5px;font-weight:600;white-space:nowrap}
+  /* 10/1 晚（她拍板）：🎲随机来一道退役 → 模考入口（琥珀强调，同退出按钮色系） */
+  .sp-mock-jump{margin-left:auto;padding:10px 18px;font-size:13.5px;font-weight:700;white-space:nowrap;background:var(--warn);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;box-shadow:0 3px 10px rgba(245,158,11,.30);transition:filter .15s,transform .12s}
+  .sp-mock-jump:hover{filter:brightness(1.05);transform:translateY(-1px)}
+  /* Part 下拉退役 → 筛选行下方 P1/P2 小切换（点已选中的再点一次=回到全部） */
+  .sp-part-seg{display:inline-flex;gap:6px;margin:-4px 0 10px}
+  .sp-part-seg button{font:inherit;font-size:12.5px;font-weight:700;padding:5px 16px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--muted);cursor:pointer;transition:all .15s}
+  .sp-part-seg button:hover{border-color:var(--primary);color:var(--primary)}
+  .sp-part-seg button.active{background:var(--primary);border-color:var(--primary);color:#fff}
   #p3GenBtn.confirming{border-color:var(--warn);color:var(--warn)}
   .sp-confirm-cancel{border:0;background:none;color:var(--muted);cursor:pointer;font:inherit;font-size:12.5px;padding:4px 8px}
   .sp-confirm-cancel:hover{color:var(--ink)}
@@ -816,7 +830,8 @@ body.mock-immerse #mockStage{border:0;box-shadow:none;background:transparent}
     <div class="sp-tabs pill-tabs" id="tabs">
       <button data-type="PRACTICE" class="pill-tab active">练习</button>
       <button data-type="BANK" class="pill-tab">题库</button>
-      <button data-type="MOCK" class="pill-tab">模考</button>
+      <!-- 10/1 晚（她拍板）：模考不再是顶部 tab——入口移到题库筛选行「模考」按钮；隐藏按钮保留承载切换逻辑 -->
+      <button data-type="MOCK" class="pill-tab" hidden>模考</button>
       <button data-type="MAT" class="pill-tab">素材</button>
     </div>
   </div>
@@ -841,14 +856,6 @@ body.mock-immerse #mockStage{border:0;box-shadow:none;background:transparent}
           <option value="日常">日常</option>
         </select>
       </label>
-      <label class="sp-filter"><span>Part</span>
-        <select id="partSelect" class="sp-select">
-          <option value="all">全部</option>
-          <option value="P1">Part 1</option>
-          <option value="P2">Part 2</option>
-        </select>
-      </label>
-      <!-- design/88：练习状态筛选 -->
       <label class="sp-filter"><span>状态</span>
         <select id="stateSelect" class="sp-select">
           <option value="all">全部</option>
@@ -856,7 +863,12 @@ body.mock-immerse #mockStage{border:0;box-shadow:none;background:transparent}
           <option value="done">已练过</option>
         </select>
       </label>
-      <button class="btn sp-random" id="spRandomBtn" type="button" title="在当前筛选结果里随机抽一道题开练">🎲 随机来一道</button>
+      <!-- 10/1 晚（她拍板）：🎲随机来一道退役 → 模考入口按钮（琥珀强调色）；Part 改为筛选行下方 P1/P2 小切换 -->
+      <button class="btn sp-mock-jump" id="spMockJumpBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:4px" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg>模考</button>
+    </div>
+    <div class="sp-part-seg" id="spPartSeg">
+      <button type="button" data-part="P1">P1</button>
+      <button type="button" data-part="P2">P2</button>
     </div>
 
     <input class="sp-search" id="spSearch" placeholder="搜索题目…" />
