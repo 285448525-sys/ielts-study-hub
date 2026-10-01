@@ -165,7 +165,7 @@ function openTpl(id){
   $('#listCard').hidden = true; $('#detailCard').hidden = false;
   document.querySelector('.write-layout')?.classList.add('detail-open');
   $('#dTitle').textContent = cleanCatName(t.title);
-  $('#skeleton').innerHTML = highlight(t.skeleton);
+  /* 「作文骨架」原文块已删（她 10/1：与填空练习/完整句重复）；骨架数据仍是填空/默写/评分的源，只删展示 */
   $('#tips').innerHTML = t.tips ? escapeHtml(t.tips).replace(/\n/g,'<br>') : '';
   const sb = $('#tplScoreBox');
   if(sb){ sb.hidden = true; sb.innerHTML = ''; }   // 换模板时清掉上一份评分
@@ -188,8 +188,6 @@ function renderTplWrong(sourceId){
       + '</div>').join('')
     + '</div></details>';
 }
-
-function highlight(s){ return escapeHtml(s).replace(/【(.+?)】/g, '【<span class="ph">$1</span>】'); }
 
 // 填空框宽度：用隐藏 mirror <span> 按真实渲染字体精确测量，保证随文字增长且不溢出
 let __phMirror = null;
