@@ -193,12 +193,12 @@ function renderFreqBanner(){
   const c1 = bank.filter(s => s.type === 'P1').length;
   const c2 = bank.filter(s => s.type === 'P2').length;
   const season = escapeHtml(M.season || '') + (M.region ? ' · ' + escapeHtml(M.region) : '');
-  const updated = M.updated ? ' · ' + escapeHtml(M.updated) : '';
-  const note = M.note ? '。' + escapeHtml(M.note) : '';
-  const short = '📚 ' + season + '版 · ' + (c1 + c2) + ' 题';
-  const full = short + '（P1 共 ' + c1 + ' · P2 共 ' + c2 + '）' + updated + note;
-  // design/UI polish 10/1：改 <details> 折叠，展开=完整信息，折叠=一行小字
-  el.innerHTML = '<details class="sp-banner" open><summary>' + short + ' ▾</summary><div style="margin-top:6px"><b>' + full + '</b></div></details>';
+  /* 10/1 晚（她拍板）：压成两行、不折叠——第一行=题库范围+题数，第二行=更新时间。
+     旧版长注释（频次口径/优先级策略/联系微信）整段退役；SPEAKING_BANK_META.note 字段保留但不再展示。 */
+  el.innerHTML = '<div class="sp-banner">'
+    + '<div><b>📚 ' + season + '题库 · ' + (c1 + c2) + ' 题</b><span style="color:var(--muted)">（P1 ' + c1 + ' · P2 ' + c2 + '）</span></div>'
+    + '<div class="sp-banner-sub">上次更新：' + escapeHtml(M.updated || '—') + '</div>'
+    + '</div>';
 }
 
 /* 10/1 UI polish：口语模考 Tab 的「最近一次报告」入口。

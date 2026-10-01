@@ -193,17 +193,8 @@
 
   /* ---------- 开始卡 ---------- */
   function renderMockStart(){
-    const box = $('#mockPreCheck');
-    if(!box) return;
-  const fixed = DATA.settings.pronunciationScore;
-  const row = (ok, label, val) =>
-    '<div class="mock-precheck-row '+(ok?'ok':'warn')+'">'+label+'：'+(ok?val:'<span class="mock-need">'+val+'</span>')+'</div>';
-  let pronVal;
-  if(fixed != null) pronVal = '用设置里填的固定分 <b>' + fixed + '</b>（发音不评测，直接取固定分）';
-  else pronVal = '未填固定分 → 发音不计入总分（去「设置」填一个固定分即可）';
-  box.innerHTML =
-    row(fixed != null, '🔊 发音分', pronVal) +
-    row(true, '🤖 AI 接口', '站内通道（无需配置）');
+    /* 10/1 晚：发音分/AI 接口两行自检已删（她拍板：没用）；mockPreCheck 容器一并移除。
+       下方续考逻辑不能省——renderMockStart 还负责「继续上次模考」入口。 */
 
   // 续考入口：若上次有未完成的模考（保存进度退出后，同会话内可直接「继续上次模考」），
   // 显示提示 + 续考按钮，并隐藏原本的「开始模考 →」（避免误点覆盖）。无快照时恢复显示。
