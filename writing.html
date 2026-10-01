@@ -29,7 +29,7 @@
 })();
 </script>
 <title>写作 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20260930a" />
+<link rel="stylesheet" href="css/common.css?v=20260930f" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=6" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=6">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=6">
@@ -39,10 +39,10 @@
 
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
-<script defer src="js/data.js?v=20260929a"></script>
+<script defer src="js/data.js?v=20260930f"></script>
   <script defer src="js/common.js?v=20260930e"></script>
   <script defer src="js/writing_prompts.js?v=20260903ab"></script>
-  <script defer src="js/writing.js?v=20260917a"></script>
+  <script defer src="js/writing.js?v=20260930f"></script>
   <script defer src="js/wrongbook.js?v=20260903ab"></script>
 <style>
 
@@ -167,6 +167,19 @@
   .eq-charts img{max-width:100%;border-radius:var(--radius);border:1px solid var(--line);background:#fff}
   .exam-timer{position:absolute;right:10px;bottom:8px;display:inline-flex;align-items:center;gap:4px;background:var(--primary);color:#fff;border-radius:20px;padding:4px 12px;font-weight:700;font-size:14px;box-shadow:0 2px 8px rgba(58,154,147,.25)}
   .exam-timer #examTimerBtn{color:#fff}
+  /* 9/30 考场模式：底部栏改为「词数 | 考场模式开关 | 计时」。计时器原本只有 CSS 没有 DOM（点了开始却看不见），一并补回。 */
+  .exam-a-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-start;padding:10px 2px 14px}
+  .exam-timer-inline{margin-left:auto;display:inline-flex;align-items:center;gap:8px;background:var(--primary);color:#fff;border-radius:20px;padding:4px 12px;font-weight:700;font-size:14px;box-shadow:0 2px 8px rgba(58,154,147,.25);font-variant-numeric:tabular-nums}
+  .exam-timer-inline.warn{background:var(--danger)}
+  .exam-timer-inline.over{background:var(--danger-text)}
+  .exam-timer-inline button{background:transparent;border:0;color:#fff;cursor:pointer;font-size:13px;line-height:1;padding:0 2px}
+  .exam-mode{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);cursor:pointer;user-select:none}
+  .exam-mode input{margin:0;cursor:pointer}
+  .exam-mode b{font-weight:700;color:var(--ink)}
+  .exam-timeup{display:flex;align-items:center;gap:10px;background:#fdeceb;border:1px solid #f3c3bd;color:#8a2b22;border-radius:10px;padding:9px 12px;font-size:13px;margin-bottom:10px}
+  .exam-timeup .tu-dot{width:8px;height:8px;border-radius:50%;background:var(--danger);flex-shrink:0}
+  .exam-timeup .tu-btn{margin-left:auto;background:transparent;border:1px solid #cf9189;color:#8a2b22;border-radius:8px;padding:3px 9px;font-size:12px;cursor:pointer;white-space:nowrap}
+  .exam-textarea:read-only{background:var(--danger-soft);border-color:var(--danger)}
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -397,9 +410,22 @@
         </article>
 
         <div class="exam-a">
+          <div class="exam-timeup" id="examTimeUpBar" hidden>
+            <span class="tu-dot"></span>
+            <span id="examTimeUpText">时间到 · 已停笔</span>
+            <button type="button" class="tu-btn" id="examUnlockBtn">解锁继续改（不再计入本次模拟）</button>
+          </div>
           <textarea id="examEssay" class="exam-textarea" placeholder="Type your response here..."></textarea>
           <div class="exam-a-foot" id="examAFoot">
             <span class="exam-wc" id="examWordCount">Word count: 0</span>
+            <label class="exam-mode" for="examModeChk" title="模拟机考：倒计时结束自动锁住输入框，和真实机考一样到点停笔">
+              <input type="checkbox" id="examModeChk" />
+              <span>考场模式 · <b id="examModeHint">40:00 倒计时</b></span>
+            </label>
+            <span class="exam-timer-inline" id="examTimerWrap">
+              <span id="examTimerText">00:00:00</span>
+              <button type="button" id="examTimerBtn" title="暂停 / 继续">⏸</button>
+            </span>
           </div>
           <div id="examResult" class="tpl-score" hidden></div>
         </div>

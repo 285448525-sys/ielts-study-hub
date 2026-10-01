@@ -29,7 +29,7 @@
 })();
 </script>
 <title>首页 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20260930a" />
+<link rel="stylesheet" href="css/common.css?v=20260930f" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=6" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=6">
 <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png?v=6">
@@ -38,11 +38,13 @@
 
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
-<script defer src="js/data.js?v=20260929a"></script>
+<script defer src="js/data.js?v=20260930f"></script>
 <script defer src="js/common.js?v=20260930e"></script>
 <!-- design/78 双词库适配层：index.js 的 wbActive/wbDueCount 依赖它（defer 按文档序执行） -->
 <script defer src="js/wordbank.js?v=20260926b"></script>
 <script defer src="js/index.js?v=20260930a"></script>
+<!-- 考前冲刺卡：距考试 ≤14 天才渲染，依赖 common.js 的 ready/examCountdown -->
+<script defer src="js/sprint.js?v=20260930f"></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(0,0,0,.02),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -78,6 +80,9 @@
       </div>
     </div>
   </section>
+
+  <!-- L1.5 · 考前冲刺卡（9/30）：只在距考试 ≤14 天时出现，考完自动消失。由 js/sprint.js 渲染 -->
+  <section class="sprint" id="dashSprint" hidden></section>
 
   <!-- L2 · 紧凑双卡（包 a 可点击，与下方 6 模块去重后作为唯一入口） -->
   <section class="meta">

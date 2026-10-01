@@ -53,15 +53,18 @@ const MODULES = [
     { id:'vocab_corpus', name:'听力词汇语料库', icon:'📋', practice:'corpus' },
     { id:'vocab_dict',   name:'默写单词·听读音', icon:'✍️', practice:'dictation' },
   ]},
+  /* ⚠️ 9/30 她拍板：听力 / 阅读站内没有题目，「点了开始只是个秒表」= 名不副实。
+     这两组的任务名统一加「真题网站 ·」前缀 —— 它们是**记账项**，记你在站外（真题网站）练的时间，
+     站内不会给你出题。id 一律不动（历史 sessions 记录按 id 引用）。 */
   { id:'listening', name:'听力', icon:'🎧', color:'#4f9fc0', children:[
-    { id:'listening_set',     name:'听力 S1+S4 填空 1 套', icon:'📝' },
-    { id:'listening_corpus',  name:'语料库听写 1 组', icon:'📋' },
-    { id:'listening_shadow',  name:'精听 + 跟读模仿 1 段', icon:'🎯' },
+    { id:'listening_set',     name:'真题网站 · 听力 1 套', icon:'📝' },
+    { id:'listening_corpus',  name:'语料库听写 1 组', icon:'📋' },   // 站内唯一真有内容的听力项（corpus.html）
+    { id:'listening_shadow',  name:'真题网站 · 精听跟读 1 段', icon:'🎯' },
   ]},
   { id:'reading', name:'阅读', icon:'📖', color:'#46a883', children:[
-    { id:'reading_p1',    name:'阅读 1 篇 P1（计时 20min）', icon:'⏱️' },
-    { id:'reading_tfng',  name:'FALSE / NOT GIVEN 专项 10 题', icon:'🔍' },
-    { id:'reading_rev',   name:'复盘错题：矛盾 vs 没提', icon:'🧠' },
+    { id:'reading_p1',    name:'真题网站 · 阅读 1 篇（20min）', icon:'⏱️' },
+    { id:'reading_tfng',  name:'真题网站 · 判断 T/F/NG 10 题', icon:'🔍' },
+    { id:'reading_rev',   name:'真题网站 · 复盘阅读错题', icon:'🧠' },
   ]},
   { id:'writing', name:'写作', icon:'✍️', color:'#d99a4e', children:[
     { id:'writing_t2',      name:'Task2 四段式练 1 篇', icon:'📝' },

@@ -1228,7 +1228,22 @@ function writeSyncMock(type, result){
    旧 setInterval 句柄随之丢失且无人清理 —— 离开写作页后旧心跳每秒照跑，而 #examTimerText 已不在 DOM，
    examTick 里 null.textContent 每秒抛一次 TypeError。重声明前先清旧句柄；examTick 内再做元素缺失自停兜底。 */
 if(window.examTimer && window.examTimer.tick){ clearInterval(window.examTimer.tick); }
-var examTimer = { start: 0, elapsed: 0, running: false, tick: null, cur: null };
+/* 9/30 考场模式：mode 'up' = 普通正计时（原行为）；'down' = 机考倒计时，到点强制停笔。
+   ⚠️ 修：#examTimerText 原本只有 CSS（.exam-timer）没有 DOM 元素，examStartTimer 一直在跑但页面上看不见任何计时
+   —— 计时器是隐形的。本次把计时 UI 补回 .exam-a-foot，倒计时/停笔才有地方显示。 */
+var examTimer = { start: 0, elapsed: 0, running: false, tick: null, cur: null,
+                  mode:'up', limitMs:0, locked:false };
+
+/* Task 2 = 40 分钟 / Task 1 = 20 分钟：与真题页印刷指令（wtMinWords 同份口径）一致 */
+var EXAM_LIMIT_MIN = { big: 40, small: 20 };
+var EXAM_MODE_KEY = 'ielts_wt_exam_mode_v1';   // 本机偏好：记住上次开/关。故意不进云同步（同 aiChannel 口径）
+function examModePref(){ try{ return localStorage.getItem(EXAM_MODE_KEY) === '1'; }catch(e){ return false; } }
+function setExamModePref(on){ try{ localStorage.setItem(EXAM_MODE_KEY, on ? '1' : '0'); }catch(e){} }
+function examLimitMs(isBig){ return (EXAM_LIMIT_MIN[isBig ? 'big' : 'small'] || 40) * 60000; }
+function examApplyModeHint(isBig){
+  const h = $('#examModeHint');
+  if(h) h.textContent = (EXAM_LIMIT_MIN[isBig ? 'big' : 'small'] || 40) + ':00 倒计时，到点强制停笔';
+}
 
 function fmtExamTime(ms){
   const s = Math.floor(ms/1000);
@@ -1236,19 +1251,73 @@ function fmtExamTime(ms){
   const p = n => String(n).padStart(2,'0');
   return p(h)+':'+p(m)+':'+p(sec);
 }
+function examUsedMs(){ return examTimer.elapsed + (examTimer.running ? Date.now()-examTimer.start : 0); }
 function examTick(){
   const el = $('#examTimerText');
   if(!el){   // 修(f)：元素已随页面切换销毁 → 自停心跳，避免每秒 TypeError、也堵住跨页残留
     if(examTimer.tick){ clearInterval(examTimer.tick); examTimer.tick = null; }
     return;
   }
-  const ms = examTimer.elapsed + (examTimer.running ? Date.now()-examTimer.start : 0);
-  el.textContent = fmtExamTime(ms);
+  const ms = examUsedMs();
+  const isDown = examTimer.mode === 'down';
+  const remain = isDown ? (examTimer.limitMs - ms) : 0;
+  el.textContent = fmtExamTime(isDown ? Math.max(0, remain) : ms);
+  const wrap = $('#examTimerWrap');
+  if(wrap){
+    wrap.classList.toggle('over', isDown && remain <= 0);
+    wrap.classList.toggle('warn', isDown && remain > 0 && remain <= 5 * 60000);
+  }
+  if(isDown && remain <= 0 && examTimer.running) examTimeUp();
 }
-function examStartTimer(){
+/* 到点停笔：锁输入框 + 顶部红条 + 存草稿（防止她直接关页面丢了 40 分钟的字） */
+function examTimeUp(){
+  if(examTimer.locked) return;
+  examTimer.locked = true;
+  examPauseTimer();
+  if(examTimer.tick){ clearInterval(examTimer.tick); examTimer.tick = null; }
+  const ta = $('#examEssay');
+  if(ta) ta.readOnly = true;
+  examSaveDraft();
+  const bar = $('#examTimeUpBar'); if(bar) bar.hidden = false;
+  const t = $('#examTimeUpText');
+  if(t){
+    const n = wtCountWords(ta ? ta.value : '');
+    const min = wtMinWords(examTimer.cur && examTimer.cur.kind === 'big' ? '大作文' : '小作文');
+    t.textContent = '时间到 · 已停笔。写了 ' + n + ' 词（要求至少 ' + min + ' 词）'
+      + (n < min ? ' —— 没写够，这正是机考最真实的卡点' : '');
+  }
+  const tb = $('#examTimerBtn'); if(tb) tb.textContent = '▶';
+  toast('时间到，已停笔');
+}
+function examResetLock(){
+  examTimer.locked = false;
+  const ta = $('#examEssay'); if(ta) ta.readOnly = false;
+  const bar = $('#examTimeUpBar'); if(bar) bar.hidden = true;
+  const wrap = $('#examTimerWrap'); if(wrap) wrap.classList.remove('over','warn');
+}
+function examUnlock(){
+  examResetLock();
+  toast('已解锁，接下来的修改不再计入本次模拟');
+}
+function examSaveDraft(){
+  try{
+    const cur = examTimer.cur || {};
+    const ta = $('#examEssay');
+    if(!cur.kind || cur.no == null || !ta) return;
+    const txt = ta.value || '';
+    const key = 'ielts_wt_draft_' + cur.kind + '_' + cur.no;
+    if(txt.trim()) localStorage.setItem(key, JSON.stringify({ essay: txt, date: Date.now() }));
+    else localStorage.removeItem(key);
+  }catch(e){ console.warn('draft save failed', e); }
+}
+function examStartTimer(mode, limitMs){
+  examTimer.mode = (mode === 'down' && Number(limitMs) > 0) ? 'down' : 'up';
+  examTimer.limitMs = Number(limitMs) || 0;
   examTimer.start = Date.now(); examTimer.elapsed = 0; examTimer.running = true;
+  examResetLock();
   if(examTimer.tick) clearInterval(examTimer.tick);
   examTimer.tick = setInterval(examTick, 1000); examTick();
+  const tb = $('#examTimerBtn'); if(tb) tb.textContent = '⏸';
 }
 function examPauseTimer(){
   if(!examTimer.running) return;
@@ -1430,7 +1499,12 @@ function openExam(item, kind){
   const eo = $('#examEssayOrig'); if(eo) eo.textContent = '';
   $('#examEssay').hidden = false;   // 恢复输入区（上一题提交时被隐藏）
   const ft = $('#examAFoot'); if(ft) ft.hidden = false;
-  examStartTimer();   // 点进去自动开始计时（不强制限时）
+  // 9/30 考场模式：开关沿用本机上次的选择（默认关 = 不改变原有体验）；Task 2 40min / Task 1 20min
+  const modeChk = $('#examModeChk');
+  const wantDown = examModePref();
+  if(modeChk) modeChk.checked = wantDown;
+  examApplyModeHint(isBig);
+  examStartTimer(wantDown ? 'down' : 'up', examLimitMs(isBig));
 }
 
 function examStopAndScore(){
@@ -1553,19 +1627,9 @@ function bindExam(){
   updateSubOptions();
 
   const exitExam = () => {
-    // 退出前自动保存草稿（仅当有内容）
-    try{
-      const cur = examTimer.cur || {};
-      const txt = $('#examEssay').value || '';
-      if(cur.kind && cur.no != null){
-        const key = 'ielts_wt_draft_' + cur.kind + '_' + cur.no;
-        if(txt.trim()){
-          localStorage.setItem(key, JSON.stringify({ essay: txt, date: Date.now() }));
-        } else {
-          localStorage.removeItem(key);
-        }
-      }
-    }catch(e){ console.warn('draft save failed', e); }
+    // 退出前自动保存草稿（仅当有内容）——9/30 抽成 examSaveDraft，停笔时也要存一份
+    examSaveDraft();
+    examResetLock();
     examStopTimer();
     document.body.classList.remove('exam-fullscreen');
     $('#examPractice').hidden = true;
@@ -1583,8 +1647,25 @@ function bindExam(){
 
   const tb = $('#examTimerBtn');
   if(tb) tb.addEventListener('click', () => {
+    if(examTimer.locked){ toast('时间已到，点红条里的「解锁」才能继续写'); return; }
     if(examTimer.running){ examPauseTimer(); tb.textContent = '▶'; }
     else { examResumeTimer(); tb.textContent = '⏸'; }
+  });
+  const ub = $('#examUnlockBtn');
+  if(ub) ub.addEventListener('click', examUnlock);
+  /* 考场模式开关：切换会重新开始计时（正计时与倒计时语义不同，无法无缝接续），
+     已经写了一段时间就先问一句，避免手滑把她 30 分钟的用时清零。 */
+  const mc = $('#examModeChk');
+  if(mc) mc.addEventListener('change', () => {
+    const isBig = !!(examTimer.cur && examTimer.cur.kind === 'big');
+    const usedSec = Math.floor(examUsedMs() / 1000);
+    if(usedSec > 60 && !window.confirm('切换会重新开始计时（已用 ' + Math.floor(usedSec/60) + ' 分钟）。确定切换吗？')){
+      mc.checked = !mc.checked; return;
+    }
+    setExamModePref(mc.checked);
+    examApplyModeHint(isBig);
+    examStartTimer(mc.checked ? 'down' : 'up', examLimitMs(isBig));
+    toast(mc.checked ? '考场模式：' + (EXAM_LIMIT_MIN[isBig?'big':'small']||40) + ' 分钟倒计时，到点强制停笔' : '已切回普通计时（不限时）');
   });
   const essay = $('#examEssay');
   if(essay) essay.addEventListener('input', () => {
