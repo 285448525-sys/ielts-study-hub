@@ -20,8 +20,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20260930f"></script>
-  <script defer src="js/common.js?v=20261001d"></script>
-  <script src="js/settings.js?v=20261001d" defer></script>
+  <script defer src="js/common.js?v=20261001e"></script>
+  <script src="js/settings.js?v=20261001e" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -137,19 +137,6 @@
       <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
         <button class="btn" id="syncLoginBtn" type="button">登录</button>
         <button class="btn" id="syncRegisterBtn" type="button">设置密码（首次）</button>
-        <a href="javascript:void(0)" id="syncForgotLink" class="muted" style="font-size:13px;text-decoration:underline">忘记密码？</a>
-      </div>
-      <!-- 找回密码 -->
-      <div id="syncForgotForm" style="display:none;margin-top:14px;border-top:1px dashed var(--line);padding-top:12px">
-        <p class="muted" style="margin:0 0 8px">凭「账号 + 注册时的恢复码」重置密码。恢复码是注册后显示的那串 XXXX-XXXX-XXXX。</p>
-        <div class="form-row">
-          <div style="flex:1;min-width:150px"><label>恢复码</label><div class="ui-form-control" style="width:100%;max-width:280px"><input class="ui-input" id="sRecCode" placeholder="XXXX-XXXX-XXXX" autocomplete="off" /><span class="ui-input-border"></span></div></div>
-          <div style="flex:1;min-width:150px"><label>新密码</label><div class="ui-form-control" style="width:100%;max-width:280px"><input class="ui-input" id="sNewPassReset" type="password" placeholder="至少 6 位" autocomplete="new-password" /><span class="ui-input-border"></span></div></div>
-        </div>
-        <div style="margin-top:8px;display:flex;gap:8px">
-          <button class="btn" id="syncResetBtn" type="button">重置密码并登录</button>
-          <button class="btn" id="syncForgotCancel" type="button">取消</button>
-        </div>
       </div>
     </div>
     <!-- 已登录：账号信息 + 改密码 + 退出 -->
@@ -165,16 +152,6 @@
           <div style="flex:1;min-width:150px"><label>新密码</label><div class="ui-form-control" style="width:100%;max-width:280px"><input class="ui-input" id="sNewPass" type="password" placeholder="至少 6 位" autocomplete="new-password" /><span class="ui-input-border"></span></div></div>
         </div>
         <div style="margin-top:8px"><button class="btn" id="syncChangeSave" type="button">保存新密码</button></div>
-      </div>
-    </div>
-    <!-- 恢复码展示（注册 / 改密码后各出现一次） -->
-    <div id="recCodePanel" style="display:none;margin-top:14px;background:var(--primary-50,#eef7f6);border:1.5px solid var(--primary-200,#a8d7d2);border-radius:12px;padding:14px 16px">
-      <b style="color:var(--primary-900,#1a4542)">🔑 你的恢复码（只显示这一次）</b>
-      <p class="muted" style="margin:6px 0 10px;font-size:13px">忘记密码时凭「账号 + 恢复码」重置。请截图或抄进备忘录保存，关掉就再也看不到。</p>
-      <code id="recCodeText" style="display:block;font-size:22px;font-weight:700;letter-spacing:3px;text-align:center;background:#fff;border:1px dashed var(--primary-200,#a8d7d2);border-radius:10px;padding:12px 0;margin-bottom:10px;font-family:ui-monospace,Consolas,monospace">-</code>
-      <div style="display:flex;gap:8px">
-        <button class="btn" id="recCopyBtn" type="button">复制</button>
-        <button class="btn" id="recSavedBtn" type="button">我已保存</button>
       </div>
     </div>
     <p id="syncStatus" class="muted" style="margin:6px 0 0"></p>

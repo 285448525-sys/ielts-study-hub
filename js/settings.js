@@ -85,25 +85,8 @@ ready(() => {
   $('#syncRegisterBtn').addEventListener('click', async () => {
     const r = await authRegister($('#sAcct') ? $('#sAcct').value : '', $('#sPass') ? $('#sPass').value : '');
     if(!r.ok) return;   // 失败原因已写在状态行（含 needLogin 提示）
-    showRecCode(r.recCode);
-    syncSetStatus('恢复码已生成：先保存，再点「我已保存」进入同步', '');
-    $('#recSavedBtn').onclick = async () => {   // 每次注册重新赋值，避免旧闭包
-      $('#recCodePanel').style.display = 'none';
-      const r2 = await authFinishRegister(r.acct, r.password);
-      if(r2.ok) renderAuthUI();
-    };
-  });
-  $('#syncForgotLink').addEventListener('click', () => {
-    const f = $('#syncForgotForm');
-    if(f) f.style.display = (f.style.display === 'none' || !f.style.display) ? '' : 'none';
-  });
-  $('#syncForgotCancel').addEventListener('click', () => { const f = $('#syncForgotForm'); if(f) f.style.display = 'none'; });
-  $('#syncResetBtn').addEventListener('click', async () => {
-    const r = await authReset($('#sAcct') ? $('#sAcct').value : '', $('#sRecCode') ? $('#sRecCode').value : '', $('#sNewPassReset') ? $('#sNewPassReset').value : '');
-    if(r.ok){
-      const f = $('#syncForgotForm'); if(f) f.style.display = 'none';
-      renderAuthUI();
-    }
+    const r2 = await authFinishRegister(r.acct, r.password);   // 恢复码已下线：注册成功直接自动登录
+    if(r2.ok) renderAuthUI();
   });
   $('#syncChangeBtn').addEventListener('click', () => {
     const f = $('#syncChangeForm');
@@ -115,7 +98,6 @@ ready(() => {
       const f = $('#syncChangeForm'); if(f) f.style.display = 'none';
       const o = $('#sOldPass'), n = $('#sNewPass');
       if(o) o.value = ''; if(n) n.value = '';
-      if(r.recCode) showRecCode(r.recCode);   // 服务端轮换了恢复码，旧码作废
     }
   });
   $('#syncLogoutBtn').addEventListener('click', async () => {
@@ -123,7 +105,6 @@ ready(() => {
     await authLogout();
     renderAuthUI();
   });
-  $('#recCopyBtn').addEventListener('click', copyRecCode);
   $('#syncDiagBtn').addEventListener('click', () => { syncDiagnose(); });
   $('#syncNowBtn').addEventListener('click', () => { cloudUpload(true, true); });
   renderAuthUI();
@@ -253,8 +234,8 @@ function saveRelay(){
 
 
 /* ===== 10/1 手机号/用户名 + 密码 认证 UI =====
-   服务端 /api/auth（register/login/change/reset/logout），session token 由 common.js 管理。
-   三态：未登录（登录/设密码/找回）、已登录（改密码/退出）、恢复码一次性展示。 */
+   服务端 /api/auth（register/login/change/logout），session token 由 common.js 管理。
+   两态：未登录（登录/设密码）、已登录（改密码/退出）。恢复码机制已整套下线（她 10/1 拍板）。 */
 function renderAuthUI(){
   const loggedIn = !!(DATA.settings.syncCode && typeof authToken === 'function' && authToken());
   const lf = $('#syncLoginForm'), ub = $('#syncUserBox');
@@ -265,20 +246,6 @@ function renderAuthUI(){
     const el = $('#syncUserAcct');
     if(el) el.textContent = DATA.settings.syncCode || '';
   }
-}
-/* 恢复码一次性展示（注册成功 / 改密码轮换后） */
-function showRecCode(code){
-  const p = $('#recCodePanel');
-  if(!p || !code) return;
-  $('#recCodeText').textContent = code;
-  p.style.display = '';
-  try{ p.scrollIntoView({ block:'nearest', behavior:'smooth' }); }catch(e){}
-}
-function copyRecCode(){
-  const t = $('#recCodeText').textContent || '';
-  const done = () => toast('恢复码已复制');
-  if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done).catch(() => window.prompt('手动复制：', t));
-  else window.prompt('手动复制：', t);
 }
 
 /* 测试连接：用输入框里的 Key 探活 DeepSeek，成功即自动保存 */

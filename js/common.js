@@ -2565,7 +2565,7 @@ async function authLogin(acct, password){
 }
 
 /* 首次设置密码（= 注册）。老用户（只绑过手机号）同样走这里，云端老数据自动接上。
-   成功返回 { ok, recCode, acct, password }——恢复码明文只此一次，由 UI 层展示并等确认后调 authFinishRegister。 */
+   成功返回 { ok, acct, password }（恢复码已按她 10/1 拍板整套下线，注册成功由 UI 层直接走 authFinishRegister 自动登录）。 */
 async function authRegister(acct, password){
   acct = normalizeAcct(acct);
   if(acctBad(acct)){ syncSetStatus('账号格式：6-20 位数字或字母', 'error'); return { ok:false }; }
@@ -2577,41 +2577,20 @@ async function authRegister(acct, password){
   try{ j = await authApiPost({ action:'register', acct: acct, password: password }); }
   catch(e){
     if(e.code === 'already_registered'){
-      syncSetStatus('该账号已设置过密码，直接登录即可；忘记密码用「找回密码」', 'error');
+      syncSetStatus('该账号已设置过密码，直接登录即可', 'error');
       return { ok:false, needLogin:true, msg:e.message };
     }
     syncSetStatus('❌ ' + e.message, 'error');
     return { ok:false, msg:e.message };
   }
-  return { ok:true, recCode: j.recCode, acct: acct, password: password };
+  return { ok:true, acct: acct, password: password };
 }
-/* 恢复码确认已保存后：自动登录进同步状态 */
+/* 注册成功后：自动登录进同步状态 */
 async function authFinishRegister(acct, password){
   return authLogin(acct, password);
 }
 
-/* 找回密码：账号 + 恢复码 + 新密码（服务端验证通过直接发新 session） */
-async function authReset(acct, recCode, newPassword){
-  acct = normalizeAcct(acct);
-  if(acctBad(acct)){ syncSetStatus('账号格式：6-20 位数字或字母', 'error'); return { ok:false }; }
-  if(typeof newPassword !== 'string' || newPassword.length < 6 || newPassword.length > 64){
-    syncSetStatus('新密码至少 6 位（最长 64 位）', 'error'); return { ok:false };
-  }
-  if(!recCode || recCode.replace(/[^A-Za-z0-9]/g, '').length < 8){ syncSetStatus('请输入完整的恢复码', 'error'); return { ok:false }; }
-  syncSetStatus('正在重置密码…', '');
-  let j;
-  try{ j = await authApiPost({ action:'reset', acct: acct, recCode: recCode, newPassword: newPassword }); }
-  catch(e){
-    syncSetStatus('❌ ' + e.message, 'error');
-    return { ok:false, msg:e.message };
-  }
-  applyAuthSuccess(acct, j.token);
-  syncSetStatus('✅ 密码已重置并登录', 'ok');
-  toast('密码已重置');
-  return { ok:true };
-}
-
-/* 修改密码（登录态）。服务端会轮换恢复码（旧的作废），UI 必须提示保存新码 */
+/* 修改密码（登录态）。session 保留，其他设备不受影响 */
 async function authChangePassword(oldPassword, newPassword){
   if(!authToken()){ syncSetStatus('登录已过期，请重新登录', 'error'); return { ok:false }; }
   if(typeof newPassword !== 'string' || newPassword.length < 6 || newPassword.length > 64){
@@ -2621,7 +2600,7 @@ async function authChangePassword(oldPassword, newPassword){
   try{
     const j = await authApiPost({ action:'change', token: authToken(), oldPassword: oldPassword, newPassword: newPassword });
     syncSetStatus('✅ 密码已修改', 'ok');
-    return { ok:true, recCode: j.recCode || '' };
+    return { ok:true };
   }catch(e){
     syncSetStatus('❌ ' + e.message, 'error');
     return { ok:false, msg:e.message };
