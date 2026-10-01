@@ -9,7 +9,7 @@
      SW 不参与离线态的判定与渲染，缓存策略本文件零改动。
      本文件 activate 时发的 `SW_UPDATED` 消费端也在 common.js（maybeShowSwUpdatePrompt，
      design/78）：页面收到后只弹提示条，**是否刷新由用户点击决定，SW 侧绝不自动 reload**。 */
-const CACHE = 'ielts-hub-v92';   // 10/1 落地页示意区：统计卡数字被压小修复（.row > span）+ 示例数据更真实（柱状图加时长标注）。上一版：冲刺卡修 bug + 写作考场模式
+const CACHE = 'ielts-hub-v93';   // 10/1 登录体系重构：手机号/用户名+密码+恢复码找回+session 鉴权（/api/auth 重写、/api/sync 改 X-Session、独立登录页 login.html）。上一版：落地页示意区修复
 
 /* 核心壳预缓存清单（Node 脚本枚举目录生成，2026-09-20；与 14 页实际引用核对无遗漏）。
    不含 js/vendor/xlsx.full.min.js（861KB 体积大 → 走运行时 SWR 缓存）。 */
@@ -18,6 +18,7 @@ const PRECORE = [
   '/errorbook.html',
   '/index.html',      // 9/30：根 = 落地页（产品介绍），仍要能离线打开
   '/home.html',       // 9/30：学习主页由 index.html 改名而来（离线回退壳也用它）
+  '/login.html',      // 10/1：独立登录页（落地页底部引导键/右上角登录键都跳这里）
   '/materials.html',
   '/meds.html',
   '/pattern-drill.html',

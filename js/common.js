@@ -1214,10 +1214,9 @@ function computeStreak(checkins){
 }
 
 /* ===== 云端同步（Cloudflare Pages Function + KV） =====
-   9/30 起账号 = 手机号（6~15 位数字）或邮箱（走 /api/auth 验证码，落 sync:e:<邮箱> 独立命名空间）。
-   相同账号 = 同一份云端数据（多设备共享）。
-   （多设备共享）。非 Cloudflare 部署时 /api/sync 会 404，所有调用都会优雅降级
-   （不报错、不弹窗刷屏）。账号通过 X-Sync-Key 请求头传递，兼容旧的 ?code= 参数。 */
+   10/1 起账号 = 手机号/用户名 + 密码（/api/auth），/api/sync 凭 session token（X-Session 头）读写。
+   旧「X-Sync-Key 手机号直连」通道已下线（无鉴权的安全账）。
+   非 Cloudflare 部署时 /api/sync 会 404，所有调用都会优雅降级（不报错、不弹窗刷屏）。 */
 let _cloudTimer = null;
 let _lastUploadedHash = '';
 let _pendingUpload = false;
@@ -1329,37 +1328,43 @@ function getDeviceId(){
   return id;
 }
 
-/* 邮箱验证码登录（/api/auth）：send_code 发码、verify 校验。
-   服务端没配发信服务时回 503 mail_not_configured —— 这里转成一句人话，前端照此引导回手机号。
-   返回服务端的 { ok:true, ... }；失败直接 throw（调用方 toast）。 */
-async function authApi(action, email, code){
+/* ===== 10/1 账号认证（手机号 + 密码）=====
+   老体系「手机号即凭证、X-Sync-Key 直连」已彻底下线（那正是本次要还的安全账）。
+   现在：/api/auth register/login/change/reset/logout，/api/sync 只认 session token。
+   token 存 localStorage['hub_auth_token']（绝不进 DATA——DATA 会整份上云）；
+   DATA.settings.syncCode 继续当「账号标识」用（大量旧逻辑读它），由登录流程写入。
+   忘记密码走「恢复码找回」（注册时生成、明文只显示一次，服务端只存哈希）——她拍板的方案。 */
+const AUTH_TOKEN_KEY = 'hub_auth_token';
+function authToken(){ try{ return localStorage.getItem(AUTH_TOKEN_KEY) || ''; }catch(e){ return ''; } }
+function setAuthToken(t){ try{ if(t) localStorage.setItem(AUTH_TOKEN_KEY, t); else localStorage.removeItem(AUTH_TOKEN_KEY); }catch(e){} }
+
+async function authApiPost(payload){
   let res = null;
   try{
     res = await fetch('api/auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: action, email: (email || '').trim().toLowerCase(), code: code || '' }),
+      body: JSON.stringify(payload),
     });
   }catch(e){ throw new Error('网络异常，稍后再试'); }
   let j = null;
   try{ j = await res.json(); }catch(_){}
   if(!res.ok || !j || !j.ok){
-    const err = (j && j.error) || '';
-    const msg = (j && j.msg) || ('请求失败（HTTP ' + res.status + '）');
-    const e = new Error(err === 'mail_not_configured' ? '邮箱登录还没开通（站长未配置发信服务），先用手机号' : msg);
-    e.code = err || 'AUTH_FAIL';
+    const e = new Error((j && j.msg) || ('请求失败（HTTP ' + res.status + '）'));
+    e.code = (j && j.error) || 'AUTH_FAIL';
+    e.status = res.status;
     throw e;
   }
   return j;
 }
 
-/* 统一的云端请求封装：自动带 X-Sync-Key 头（账号即手机号或邮箱）。
+/* 统一的云端请求封装：自动带 X-Session 头（session token）。
    path 可选：'/?meta=1' 之类的附加查询串（9/30 轻量探测用）。
    返回 [Response, json] 二元组，调用方自行判断 status。 */
 async function syncApi(method, body, path){
   const headers = { 'Content-Type': 'application/json' };
-  const phone = DATA.settings.syncCode || '';
-  if(phone) headers['X-Sync-Key'] = phone;
+  const tok = authToken();
+  if(tok) headers['X-Session'] = tok;
   const opts = { method, headers };
   if(body) opts.body = JSON.stringify(body);
   const res = await fetch('/api/sync' + (path || ''), opts);
@@ -1406,7 +1411,8 @@ async function cloudUpload(showToast, force, opts){
   opts = opts || {};
   _pendingUpload = false;
   const phone = DATA.settings.syncCode;
-  if(!phone){ if(showToast) toast('请先在「设置」绑定手机号或邮箱'); return false; }
+  if(!phone){ if(showToast) toast('请先登录（设置 → 云端同步）'); return false; }
+  if(!authToken()){ if(showToast) toast('登录已过期，请到「设置 → 云端同步」重新登录'); return false; }
   // 先给本机改过的条目打 updatedAt（可能改 DATA），hash 必须在打戳之后再算，
   // 否则同一次修改会被判两次「有变化」。见 stampSyncItemsForUpload 的说明。
   stampSyncItemsForUpload();
@@ -1424,6 +1430,10 @@ async function cloudUpload(showToast, force, opts){
     const [res, body] = await syncApi('PUT', putBody);
     if(res.status === 404) throw new Error('云端未启用（需先部署 Functions）');
     if(res.status === 503) throw new Error('云端存储未绑定（Cloudflare 后台需绑定 SYNC_KV）');
+    if(res.status === 401){
+      setAuthToken('');   // token 已失效，清掉让设置页显示「需要登录」；本机数据绝不动
+      throw new Error('登录已过期，请到「设置 → 云端同步」重新登录');
+    }
     if(res.status === 409){
       // ⭐ 9/30 核心修复：期间有别端（另一台设备 / 另一个标签页）写过。
       //    绝不硬覆盖——先把它拉下来合并，再基于新版本重试。最多 2 次，防死循环。
@@ -1469,18 +1479,20 @@ async function cloudUpload(showToast, force, opts){
   }
 }
 /* 页面关闭/切后台前，若还有未上传的变更，尽量上传一次。
-   sendBeacon 限制约 64KB，无法携带自定义头，故把账号放 URL 参数 code=（sync.js 兼容）。
+   sendBeacon 限制约 64KB，无法携带自定义头，故把 session token 放 URL 参数 session=（sync.js 兼容）。
    数据超过 60KB 时不在 beforeunload 中强传（会失败或阻塞），下次打开页面后 60s 内会自动补传，
    或用户可手动点「立即同步到云端」。 */
 function flushCloudUpload(){
   if(!_pendingUpload) return;
   if(!DATA.settings.autoSync || !DATA.settings.syncCode) return;
+  const tok = authToken();
+  if(!tok) return;   // 未登录：无凭证可传
   try{
     stampSyncItemsForUpload();   // 关页/切后台补传也要先打戳，保证云端拿到时间戳
     const _payloadObj = { data: stripCloudFields(DATA), ts: Date.now(), deviceId: getDeviceId() };
     const payload = JSON.stringify(_payloadObj);
     if(payload.length > 60 * 1024) return; // sendBeacon 传不了，交给下次自动上传或手动同步
-    navigator.sendBeacon('/api/sync?code=' + encodeURIComponent(DATA.settings.syncCode), new Blob([payload], { type: 'application/json' }));
+    navigator.sendBeacon('/api/sync?session=' + encodeURIComponent(tok), new Blob([payload], { type: 'application/json' }));
     try{ _lastUploadedCloudHash = hashData(_payloadObj.data); }catch(e){}   // v7.1：beacon 也记自回声基线
   }catch(e){}
 }
@@ -2342,8 +2354,10 @@ function _mergeActiveTimer(a, b){
  *    功能不受影响，只是省不了流量。升级部署自然生效，无需开关。 */
 async function cloudPollOnce(){
   if(!DATA.settings.autoSync || !DATA.settings.syncCode) return false;
+  if(!authToken()) return false;   // 未登录/已过期：轮询静默退出（401 提示由手动同步与上传链路给出）
   try{
     const [res, meta] = await syncApi('GET', null, '?meta=1');
+    if(res.status === 401){ setAuthToken(''); syncSetStatus('登录已过期，请重新登录', 'error'); renderSyncState(); return false; }
     if(res.status === 404){ _maybePublishLocal(true, null); return false; }
     if(!res.ok) return false;
     // 服务端还是旧版时不认 ?meta=1，会直接回整份：那就自己算哈希去重，别白下去再拉一次
@@ -2365,7 +2379,8 @@ function _cloudPollSoon(){
 
 async function cloudDownload(silent){
   const phone = DATA.settings.syncCode;
-  if(!phone){ if(!silent) toast('请先在「设置」绑定手机号或邮箱'); return false; }
+  if(!phone){ if(!silent) toast('请先登录（设置 → 云端同步）'); return false; }
+  if(!authToken()){ if(!silent) toast('登录已过期，请到「设置 → 云端同步」重新登录'); return false; }
   try{
     const [res, data] = await syncApi('GET');
     if(res.status === 404){
@@ -2375,6 +2390,10 @@ async function cloudDownload(silent){
       return false;
     }
     if(res.status === 503) throw new Error('云端存储未绑定（Cloudflare 后台需绑定 SYNC_KV）');
+    if(res.status === 401){
+      setAuthToken('');
+      throw new Error('登录已过期，请到「设置 → 云端同步」重新登录');
+    }
     if(!res.ok) throw new Error('HTTP ' + res.status);
     if(!data || !data.data) throw new Error('返回格式异常');
     if(data.ts) _cloudBaseTs = Number(data.ts) || _cloudBaseTs;   // ⭐ 9/30：记下云端版本，PUT 时当乐观锁基线
@@ -2435,7 +2454,8 @@ async function cloudDownload(silent){
 }
 async function cloudDelete(){
   const phone = DATA.settings.syncCode;
-  if(!phone){ toast('请先在「设置」绑定手机号或邮箱'); return; }
+  if(!phone){ toast('请先登录（设置 → 云端同步）'); return; }
+  if(!authToken()){ toast('登录已过期，请重新登录'); return; }
   if(!confirm('确定删除云端该账号的数据？此操作不可恢复。')) return;
   try{
     const [res] = await syncApi('DELETE');
@@ -2444,109 +2464,192 @@ async function cloudDelete(){
     toast('已删除云端数据');
   }catch(e){ toast('云端删除失败：' + e.message); }
 }
-/* 绑定并同步（注册 / 登录统一入口，单按钮）：
-   - 点一下按钮：先 GET 探活。
-   - 404 = 该手机号云端无数据 → 注册（直接 PUT 上传本机数据）；
-   - 200 = 云端已有数据 → 直接登录（合并云端数据，非覆盖，避免本机进度被抹掉）；
-   - 成功后自动开启自动同步。不做二次确认，与单按钮设计一致。 */
-/* phone 形参只为「首次进入引导」复用同一条登录链路（引导遮罩不在设置页，没有 #sSyncCode）。
-   ⚠️ 形参必须按类型兜底：任何 el.onclick = syncLoginOrRegister 式的直接引用会把 MouseEvent 当第一参数传进来，
-   typeof 不是 string 就一律回落到「读设置页输入框」的老路径，绝不破坏既有调用点。
-   返回值 {ok, msg} 供调用方判断成败（引导据此决定进阶段二还是给重试出口）。 */
-/* 9/30：账号 = 手机号 或 邮箱（邮箱登录走 /api/auth 验证码，落到 sync:e:<邮箱> 独立命名空间）。
-   邮箱统一小写；手机号沿用「只保留数字」。 */
-function isEmailAccount(s){ return typeof s === 'string' && s.length <= 64 && /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(s.trim()); }
-function normalizeAccount(s){
-  s = (typeof s === 'string') ? s.trim() : '';
-  if(!s) return '';
-  return isEmailAccount(s) ? s.toLowerCase() : s.replace(/\D/g, '');
+/* ===== 模考估分基础设施（10/1 从 scores.js 挪入：首页冲刺卡 sprint.js 也要用，而 home.html 不加载 scores.js） ===== */
+
+var MOCK_TYPES = {
+  listening: { name:'听力', icon:'🎧', mode:'accuracy', color:'var(--mock)',
+    parts:[ {label:'P1',defaultTotal:10},{label:'P2',defaultTotal:10},
+            {label:'P3',defaultTotal:10},{label:'P4',defaultTotal:10} ] },
+  reading:   { name:'阅读', icon:'📖', mode:'accuracy', color:'var(--vocab)',
+    parts:[ {label:'P1',defaultTotal:13},{label:'P2',defaultTotal:13},{label:'P3',defaultTotal:14} ] },
+  speaking:  { name:'口语', icon:'🗣', mode:'score', color:'var(--med)',
+    parts:[ {label:'流利度 Fluency',weight:1},{label:'词汇 Lexical',weight:1},{label:'语法 Grammar',weight:1},{label:'发音 Pronunciation',weight:1} ] },
+  writing:   { name:'写作', icon:'✏️', mode:'score', color:'var(--warn)',
+    parts:[ {label:'Task 1',weight:1},{label:'Task 2',weight:2} ] }, // Task 2 权重更高
+};
+
+/* 整卷客观题（听/读）按「答对率 → 雅思 band」近似估分（9/15 IDP 官方表二次校准，
+   官方整数档锚点：听力 5=16/6=23/7=30/8=35；阅读A 5=15/6=23/7=30/8=35）。
+   非满分 40 制先按比例折算再查表；低于 4 题（约 2.0 以下）不估分。 */
+var BAND_TABLE = {
+  reading: [ [39,9],[37,8.5],[35,8],[33,7.5],[30,7],[27,6.5],[23,6],[19,5.5],[15,5],[13,4.5],[10,4],[8,3.5],[6,3],[4,2.5] ],
+  listening: [ [39,9],[37,8.5],[35,8],[32,7.5],[30,7],[26,6.5],[23,6],[18,5.5],[16,5],[13,4.5],[11,4],[8,3.5],[6,3],[4,2.5] ],
+};
+
+function partIsScore(p){ return typeof p.score === 'number'; }
+function partWeight(cfg, label){
+  const p = (cfg.parts || []).find(x => x.label === label);
+  return (p && typeof p.weight === 'number') ? p.weight : 1;
+}
+function estimateBand(type, correct, total){
+  const tbl = BAND_TABLE[type];
+  if(!tbl || !(total > 0)) return null;
+  const eq = correct / total * 40;
+  if(eq < 4) return null;
+  for(const [min, band] of tbl){ if(eq >= min) return band; }
+  return null;
+}
+/* 9/15 整卷「目标对个数」：目标分对应档位最低个数 + 2（上限 40） */
+function targetCorrectFor(type, bandTarget){
+  const tbl = BAND_TABLE[type];
+  const t = Number(bandTarget);
+  if(!tbl || !(t > 0)) return null;
+  for(let i = 0; i < tbl.length; i++){
+    if(tbl[i][1] === t){
+      return Math.min(40, tbl[i][0] + 2);
+    }
+  }
+  return null;
+}
+/* 判定是否为口语整卷模考记录（口语页自动存；与 mock-history.js / mock.js 保持一致）
+   新版：kind==='speaking'；旧版：无 kind，但有 p1 且无数组 parts */
+function isSpeakingMockRec(r){
+  return r && (r.kind === 'speaking' || (!Array.isArray(r.parts) && r.p1));
 }
 
-async function syncLoginOrRegister(phone){
-  let acct = normalizeAccount((typeof phone === 'string') ? phone
-        : ($('#sSyncCode') ? $('#sSyncCode').value : ''));
-  if(!acct){ syncSetStatus('请先输入手机号或邮箱', 'error'); return { ok:false, msg:'请先输入手机号或邮箱' }; }
-  if(!isEmailAccount(acct) && (acct.length < 6 || acct.length > 15)){
-    syncSetStatus('手机号格式不正确（应为 6-15 位数字）', 'error');
-    return { ok:false, msg:'手机号格式不正确（应为 6-15 位数字）' };
-  }
-  phone = acct;
-  DATA.settings.syncCode = phone; hubSave();
-  syncSetStatus('正在连接云端…', '');
-  try{
-    const [probe] = await syncApi('GET');
-    if(probe.status === 404){
-      // 注册：上传本机数据（剔除官方共享题库/模板，避免脏数据污染云端）
-      // 必须检查 PUT 结果：失败仍走「成功」分支会误报「已上传云端」且开启轮询，实际云端是空的
-      const [putRes, putBody] = await syncApi('PUT', { data: stripCloudFields(DATA), ts: Date.now(), deviceId: getDeviceId() });
-      if(!putRes.ok) throw new Error('上传本机数据失败（HTTP ' + putRes.status + '），请稍后重试');
-      // ⭐ 9/30：注册帧本身就确立了云端版本，直接当乐观锁起点（否则下一次 PUT 会因为 baseTs=0 退回无锁语义）
-      _cloudBaseTs = (putBody && putBody.ts) || Date.now();
-      _lastPutAt = Date.now();
-      enableAutoSyncAfterLogin(phone);
-      initCloudSync();   // 登录后补启动轮询拉取（页面可能已加载，ready 里的 initCloudSync 当时因未登录跳过了）
-      syncSetStatus('✅ 注册成功，数据已上传云端', 'ok');
-      renderSyncState();
-      return { ok:true, msg:'注册成功' };
-    } else if(probe.ok){
-      // 登录：云端已有数据 → 合并（非覆盖），避免本机未同步新增被云端数据抹掉
-      const [res2, data] = await syncApi('GET');
-      if(data && data.data){
-        if(data.ts) _cloudBaseTs = Number(data.ts) || _cloudBaseTs;   // ⭐ 9/30 登录合并前先记云端版本
-        const m = mergeData(DATA, data.data);
-        DATA = m.data;
-        refreshSyncStampSnap();   // 登录合并写回后重建时间戳快照（同 cloudDownload）
-        // 登录合并后同步背单词页内存引用（同 cloudDownload 理由）
-        if(typeof window !== 'undefined' && window.pq && Array.isArray(window.pq.queue) && Array.isArray(DATA.words)){
-          window.pq.queue = window.pq.queue.map(oldW => {
-            const k = String(oldW.en || '').trim().toLowerCase();
-            if(!k) return oldW;
-            const newW = DATA.words.find(x => String(x.en || '').trim().toLowerCase() === k);
-            return newW || oldW;
-          });
-        }
-        if(typeof populateSettingsForm === 'function') populateSettingsForm(); // 登录后立即回填「目标分数/每日目标」等表单，无需手动刷新
-        enableAutoSyncAfterLogin(phone);
-        initCloudSync();   // 登录后补启动轮询拉取，立即能拉到另一端历史/进度
-        hubSave();
-        renderAllOnMerge(); // 重渲染当前页（分数对比/计划等）以反映合并后的云端数据
-        syncSetStatus('✅ 登录成功，已合并云端数据', 'ok');
-        renderSyncState();
-        // 注意：不调用 location.reload()——reload 会重新触发 autoClean 清空整个 HUB_KEY，
-        // 导致本机未同步的 syncCode 等字段丢失（syncCode 是账号标识，不进同步；relayToken 也不在 SYNC_SETTINGS_FIELDS
-        // 里、从不上传云端，靠 CREDS_KEY 凭证镜像在本机恢复；只有 pronunciationScore 会随同步回来）。
-        // 合并后已 hubSave + 重渲染 + 回填表单，页面状态已最新，无需刷新。
-        toast('登录成功，云端数据已合并。目标分数/每日目标等已恢复。');
-        return { ok:true, msg:'登录成功' };
-      } else {
-        syncSetStatus('云端返回格式异常', 'error');
-        return { ok:false, msg:'云端返回格式异常' };
-      }
-    } else {
-      syncSetStatus('云端连接失败（HTTP ' + probe.status + '）', 'error');
-      return { ok:false, msg:'云端连接失败（HTTP ' + probe.status + '）' };
+/* 账号 = 手机号或自定义用户名（6-20 位数字/字母/下划线，不区分大小写）。
+   只含数字且 6-15 位的老手机号账号，登录后键名不变，云端老数据无缝接上。 */
+function normalizeAcct(s){
+  return (typeof s === 'string') ? s.trim().toLowerCase().replace(/\s+/g, '') : '';
+}
+const ACCT_RE = /^[a-z0-9_]{6,20}$/;
+function acctBad(s){ return !ACCT_RE.test(s); }
+
+/* ===== 登录/注册/改密码/找回（服务端 /api/auth 真鉴权） ===== */
+
+/* 登录成功共用动作：存 token、记账号、启动同步、拉云端合并（404 时开机发布上传本机） */
+function applyAuthSuccess(acct, token){
+  setAuthToken(token);
+  DATA.settings.syncCode = acct;
+  DATA.settings.autoSync = true;
+  hubSave();
+  _cloudBaseTs = 0;   // 新 session、云端版本未知：PUT 成功 / 拉取成功后会重新确立
+  initCloudSync();    // 幂等：已启动则跳过
+  Promise.resolve(cloudDownload(true)).then(function(){
+    renderAllOnMerge();
+    if(typeof populateSettingsForm === 'function') populateSettingsForm();
+  });
+  renderSyncState();
+}
+
+/* 登录（手机号/用户名 + 密码） */
+async function authLogin(acct, password){
+  acct = normalizeAcct(acct);
+  if(acctBad(acct)){ syncSetStatus('账号格式：6-20 位数字或字母', 'error'); return { ok:false, msg:'账号格式不正确' }; }
+  if(!password){ syncSetStatus('请输入密码', 'error'); return { ok:false, msg:'请输入密码' }; }
+  syncSetStatus('正在登录…', '');
+  let j;
+  try{ j = await authApiPost({ action:'login', acct: acct, password: password }); }
+  catch(e){
+    if(e.code === 'no_user'){
+      syncSetStatus('该账号还没设置过密码：点「设置密码」完成首次绑定，本机/云端数据会自动接上', 'error');
+      return { ok:false, needRegister:true, msg:e.message };
     }
+    syncSetStatus('❌ ' + e.message, 'error');
+    return { ok:false, msg:e.message };
+  }
+  applyAuthSuccess(acct, j.token);
+  syncSetStatus('✅ 登录成功，云端数据已合并', 'ok');
+  toast('登录成功');
+  return { ok:true, msg:'登录成功' };
+}
+
+/* 首次设置密码（= 注册）。老用户（只绑过手机号）同样走这里，云端老数据自动接上。
+   成功返回 { ok, recCode, acct, password }——恢复码明文只此一次，由 UI 层展示并等确认后调 authFinishRegister。 */
+async function authRegister(acct, password){
+  acct = normalizeAcct(acct);
+  if(acctBad(acct)){ syncSetStatus('账号格式：6-20 位数字或字母', 'error'); return { ok:false }; }
+  if(typeof password !== 'string' || password.length < 6 || password.length > 64){
+    syncSetStatus('密码至少 6 位（最长 64 位）', 'error'); return { ok:false };
+  }
+  syncSetStatus('正在设置密码…', '');
+  let j;
+  try{ j = await authApiPost({ action:'register', acct: acct, password: password }); }
+  catch(e){
+    if(e.code === 'already_registered'){
+      syncSetStatus('该账号已设置过密码，直接登录即可；忘记密码用「找回密码」', 'error');
+      return { ok:false, needLogin:true, msg:e.message };
+    }
+    syncSetStatus('❌ ' + e.message, 'error');
+    return { ok:false, msg:e.message };
+  }
+  return { ok:true, recCode: j.recCode, acct: acct, password: password };
+}
+/* 恢复码确认已保存后：自动登录进同步状态 */
+async function authFinishRegister(acct, password){
+  return authLogin(acct, password);
+}
+
+/* 找回密码：账号 + 恢复码 + 新密码（服务端验证通过直接发新 session） */
+async function authReset(acct, recCode, newPassword){
+  acct = normalizeAcct(acct);
+  if(acctBad(acct)){ syncSetStatus('账号格式：6-20 位数字或字母', 'error'); return { ok:false }; }
+  if(typeof newPassword !== 'string' || newPassword.length < 6 || newPassword.length > 64){
+    syncSetStatus('新密码至少 6 位（最长 64 位）', 'error'); return { ok:false };
+  }
+  if(!recCode || recCode.replace(/[^A-Za-z0-9]/g, '').length < 8){ syncSetStatus('请输入完整的恢复码', 'error'); return { ok:false }; }
+  syncSetStatus('正在重置密码…', '');
+  let j;
+  try{ j = await authApiPost({ action:'reset', acct: acct, recCode: recCode, newPassword: newPassword }); }
+  catch(e){
+    syncSetStatus('❌ ' + e.message, 'error');
+    return { ok:false, msg:e.message };
+  }
+  applyAuthSuccess(acct, j.token);
+  syncSetStatus('✅ 密码已重置并登录', 'ok');
+  toast('密码已重置');
+  return { ok:true };
+}
+
+/* 修改密码（登录态）。服务端会轮换恢复码（旧的作废），UI 必须提示保存新码 */
+async function authChangePassword(oldPassword, newPassword){
+  if(!authToken()){ syncSetStatus('登录已过期，请重新登录', 'error'); return { ok:false }; }
+  if(typeof newPassword !== 'string' || newPassword.length < 6 || newPassword.length > 64){
+    syncSetStatus('新密码至少 6 位（最长 64 位）', 'error'); return { ok:false };
+  }
+  syncSetStatus('正在修改密码…', '');
+  try{
+    const j = await authApiPost({ action:'change', token: authToken(), oldPassword: oldPassword, newPassword: newPassword });
+    syncSetStatus('✅ 密码已修改', 'ok');
+    return { ok:true, recCode: j.recCode || '' };
   }catch(e){
-    syncSetStatus('云端连接失败：' + e.message, 'error');
+    syncSetStatus('❌ ' + e.message, 'error');
     return { ok:false, msg:e.message };
   }
 }
-/* 登录/注册成功后：写入手机号、默认开启自动同步、触发一次上传 */
-function enableAutoSyncAfterLogin(phone){
-  DATA.settings.syncCode = phone;
-  DATA.settings.autoSync = true;
+
+/* 退出登录：删云端 session + 清本地登录态。本机数据一律保留 */
+async function authLogout(){
+  try{ await authApiPost({ action:'logout', token: authToken() }); }catch(e){}
+  setAuthToken('');
+  DATA.settings.syncCode = '';
+  DATA.settings.autoSync = false;
   hubSave();
-  if(typeof scheduleCloudUpload === 'function') scheduleCloudUpload();
+  renderSyncState();
+  toast('已退出登录（本机数据保留）');
 }
 /* 诊断：明确告诉用户后端到底卡在哪一步（不静默） */
 async function syncDiagnose(){
   const phone = DATA.settings.syncCode;
-  if(!phone){ syncSetStatus('请先在上方输入手机号或邮箱并点「绑定并同步」', 'error'); return; }
+  if(!phone){ syncSetStatus('请先登录（手机号/用户名 + 密码）', 'error'); return; }
+  if(!authToken()){ syncSetStatus('账号 ' + phone + ' 还没设置密码或登录已过期：请重新登录', 'error'); return; }
   syncSetStatus('正在探测云端…', '');
   try{
     const [res, data] = await syncApi('GET');
     if(res.status === 404){
       syncSetStatus('探测结果：HTTP 404 —— 云端 Functions 未启用或未部署。即 Cloudflare Pages 项目的 Pages Functions 没开启，/api/sync 不存在。需在 Cloudflare 后台确认 Functions 已启用。', 'error');
+    } else if(res.status === 401){
+      syncSetStatus('探测结果：HTTP 401 —— 登录已过期，请重新登录。', 'error');
     } else if(res.status === 503){
       syncSetStatus('探测结果：HTTP 503 —— 云端存储未绑定。Cloudflare Pages 项目未绑定 KV 命名空间「SYNC_KV」。需在后台 Settings → Storage/KV 绑定一个名为 SYNC_KV 的命名空间。', 'error');
     } else     if(res.ok){
@@ -2567,13 +2670,14 @@ function syncSetStatus(msg, kind){
   el.textContent = msg || '';
   el.className = 'muted' + (kind ? ' sync-status-' + kind : '');
 }
-/* 设置页同步状态概览 */
+/* 设置页同步状态概览（三态：未登录 / 有账号未设密码（迁移）/ 已登录） */
 function renderSyncState(){
   const el = $('#syncState');
   if(!el) return;
   const phone = DATA.settings.syncCode || '';
   if(!phone){ el.textContent = '尚未绑定账号'; renderLastSync(); return; }
-  el.textContent = '已绑定：' + phone + (DATA.settings.autoSync ? '（自动同步：开）' : '（自动同步：关）');
+  if(!authToken()){ el.textContent = '账号 ' + phone + '：还没设置密码（或登录已过期），登录后才能同步'; renderLastSync(); return; }
+  el.textContent = '已登录：' + phone + (DATA.settings.autoSync ? '（自动同步：开）' : '（自动同步：关）');
   renderLastSync();
 }
 /* 上次同步时间（可读） */
@@ -2586,14 +2690,16 @@ function renderLastSync(){
 /* 强制：本机覆盖云端（无视合并，直接 PUT 整份）
    ⭐ 9/30 noLock：用户明确要本机覆盖，跳过乐观锁（否则会被 409 拦回去先合并，与本按钮语义相反） */
 function syncForcePush(){
-  if(!DATA.settings.syncCode){ toast('请先绑定账号'); return; }
+  if(!DATA.settings.syncCode){ toast('请先登录'); return; }
+  if(!authToken()){ toast('登录已过期，请重新登录'); return; }
   cloudUpload(true, true, { noLock: true });
   setTimeout(renderLastSync, 1800);
 }
 /* 强制：云端覆盖本机（GET 后整体替换，不保留本机独有数据） */
 async function syncForcePull(){
   const phone = DATA.settings.syncCode;
-  if(!phone){ toast('请先绑定账号'); return; }
+  if(!phone){ toast('请先登录'); return; }
+  if(!authToken()){ toast('登录已过期，请重新登录'); return; }
   if(!confirm('⚠️ 此操作将用云端数据替换本机所有数据（含素材），本机未同步的内容会丢失！确定继续？')) return;
   try{
     const [res, data] = await syncApi('GET');
@@ -2633,6 +2739,7 @@ let _cloudSyncStarted = false;
 function initCloudSync(){
   if(_cloudSyncStarted) return;   // 幂等：登录后补调用 / 重复 ready 都不重复起轮询
   if(!DATA.settings.autoSync || !  DATA.settings.syncCode) return;
+  if(!authToken()) return;   // ⭐ 10/1：无 session token（迁移老用户还没设密码）不启动云同步，设完密码 applyAuthSuccess 会再调进来
   _cloudSyncStarted = true;
   // 清空数据补传：resetData 时若云端上传失败（断网），本地已空、云端仍是旧数据，
   // 此时若先拉取会把旧数据整份合并回来复活。有补传标记则先强制推空、跳过本次首屏拉取（30s 轮询保留）。

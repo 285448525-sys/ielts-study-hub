@@ -28,10 +28,7 @@ function populateSettingsForm(){
   if($('#sChime')) $('#sChime').checked = s.chimeOnDone !== false;
   // 9/21 翻转：服药模块默认关闭 → 无该函数时兜底 false（与 common.js 口径一致）
   if($('#sAdhd')) $('#sAdhd').checked = (typeof medsModuleOn === 'function') ? medsModuleOn() : false;
-  if($('#sSyncCode')) $('#sSyncCode').value = s.syncCode || '';
-  // 9/30：已绑定的账号是邮箱就把「账号类型」回填成邮箱（软导航重进设置页也不会跳回手机号）
-  if($('#sAcctType')) $('#sAcctType').value = isEmailAccount(s.syncCode) ? 'email' : 'phone';
-  applyAcctType();
+  if($('#sAcct')) $('#sAcct').value = s.syncCode || '';   // 登录表单预填当前账号（重登方便）
 }
 
 ready(() => {
@@ -79,25 +76,57 @@ ready(() => {
   $('#importFile').addEventListener('change', e => { if(e.target.files[0]) importData(e.target.files[0]); });
   $('#resetBtn').addEventListener('click', resetData);
 
-  // 云端同步（手机号账号，单按钮：注册 / 登录统一入口）
-  // 9/30：账号类型（手机号 / 邮箱）。邮箱走 /api/auth 验证码登录。
-  $('#sAcctType').addEventListener('change', applyAcctType);
-  $('#emailCodeBtn').addEventListener('click', sendEmailCode);
-  $('#syncBindBtn').addEventListener('click', async () => {
-    if(acctTypeIsEmail()){
-      const email = ($('#sSyncCode') ? $('#sSyncCode').value.trim() : '');
-      const code = ($('#sEmailCode') ? $('#sEmailCode').value.trim() : '');
-      if(!isEmailAccount(email)){ syncSetStatus('请填写正确的邮箱', 'error'); return; }
-      if(!/^\d{6}$/.test(code)){ syncSetStatus('请先点「获取验证码」，再把邮件里的 6 位数字填进来', 'error'); return; }
-      syncSetStatus('正在校验验证码…', '');
-      try{ await authApi('verify', email, code); }
-      catch(e){ syncSetStatus('❌ ' + e.message, 'error'); return; }
-    }
-    syncLoginOrRegister();
+  // 云端同步（手机号/用户名 + 密码，10/1 起服务端真鉴权）
+  $('#syncLoginBtn').addEventListener('click', async () => {
+    const r = await authLogin($('#sAcct') ? $('#sAcct').value : '', $('#sPass') ? $('#sPass').value : '');
+    if(r.ok) renderAuthUI();
   });
-  $('#sSyncCode').addEventListener('keydown', e => { if(e.key === 'Enter') syncLoginOrRegister(); });
+  if($('#sPass')) $('#sPass').addEventListener('keydown', e => { if(e.key === 'Enter') $('#syncLoginBtn').click(); });
+  $('#syncRegisterBtn').addEventListener('click', async () => {
+    const r = await authRegister($('#sAcct') ? $('#sAcct').value : '', $('#sPass') ? $('#sPass').value : '');
+    if(!r.ok) return;   // 失败原因已写在状态行（含 needLogin 提示）
+    showRecCode(r.recCode);
+    syncSetStatus('恢复码已生成：先保存，再点「我已保存」进入同步', '');
+    $('#recSavedBtn').onclick = async () => {   // 每次注册重新赋值，避免旧闭包
+      $('#recCodePanel').style.display = 'none';
+      const r2 = await authFinishRegister(r.acct, r.password);
+      if(r2.ok) renderAuthUI();
+    };
+  });
+  $('#syncForgotLink').addEventListener('click', () => {
+    const f = $('#syncForgotForm');
+    if(f) f.style.display = (f.style.display === 'none' || !f.style.display) ? '' : 'none';
+  });
+  $('#syncForgotCancel').addEventListener('click', () => { const f = $('#syncForgotForm'); if(f) f.style.display = 'none'; });
+  $('#syncResetBtn').addEventListener('click', async () => {
+    const r = await authReset($('#sAcct') ? $('#sAcct').value : '', $('#sRecCode') ? $('#sRecCode').value : '', $('#sNewPassReset') ? $('#sNewPassReset').value : '');
+    if(r.ok){
+      const f = $('#syncForgotForm'); if(f) f.style.display = 'none';
+      renderAuthUI();
+    }
+  });
+  $('#syncChangeBtn').addEventListener('click', () => {
+    const f = $('#syncChangeForm');
+    if(f) f.style.display = (f.style.display === 'none' || !f.style.display) ? '' : 'none';
+  });
+  $('#syncChangeSave').addEventListener('click', async () => {
+    const r = await authChangePassword($('#sOldPass') ? $('#sOldPass').value : '', $('#sNewPass') ? $('#sNewPass').value : '');
+    if(r.ok){
+      const f = $('#syncChangeForm'); if(f) f.style.display = 'none';
+      const o = $('#sOldPass'), n = $('#sNewPass');
+      if(o) o.value = ''; if(n) n.value = '';
+      if(r.recCode) showRecCode(r.recCode);   // 服务端轮换了恢复码，旧码作废
+    }
+  });
+  $('#syncLogoutBtn').addEventListener('click', async () => {
+    if(!confirm('退出登录后停止云同步（本机数据保留）。确定退出？')) return;
+    await authLogout();
+    renderAuthUI();
+  });
+  $('#recCopyBtn').addEventListener('click', copyRecCode);
   $('#syncDiagBtn').addEventListener('click', () => { syncDiagnose(); });
   $('#syncNowBtn').addEventListener('click', () => { cloudUpload(true, true); });
+  renderAuthUI();
 
   // 云端合并完成后回填表单：登录/其他设备同步后，让「目标分数/每日目标」等立即可见。
   // 若用户正在表单里输入（焦点在某设置输入框），则不覆盖，避免打断输入。
@@ -134,7 +163,7 @@ function saveSettings(){
     writing: parseFloat($('#tWriting').value) || 0,
     speaking: parseFloat($('#tSpeaking').value) || 0,
   });
-  _set('syncCode', $('#sSyncCode').value.replace(/\D/g, ''));
+  // syncCode（云端账号）只由登录流程写入，不再随「保存设置」表单乱写——密码体系下账号=登录态的一部分
   _set('autoSync', true); // 默认开启自动同步，与考研站一致（绑定后由 syncLoginOrRegister 控制）
   // 9/20 恢复：固定发音分 / 流利度分（0–9）由用户自填，空=不计入总分。字段一直在云同步列表里（换设备会带回）。
   // ⚠️ 三条铁律：① 输入框缺失时**绝不写 null**（会静默清掉已存值）；② 空串 → null（不填=不计入）；
@@ -223,46 +252,33 @@ function saveRelay(){
 /* 讯飞语音配置已移除（录音 / 转写功能已下线，发音分改由设置里的固定分提供） */
 
 
-/* ===== 9/30 邮箱验证码登录 ===== */
-function acctTypeIsEmail(){ const el = $('#sAcctType'); return !!el && el.value === 'email'; }
-function applyAcctType(){
-  const isMail = acctTypeIsEmail();
-  const input = $('#sSyncCode'), label = $('#acctLabel'), wrap = $('#emailCodeWrap');
-  if(input){
-    input.type = isMail ? 'email' : 'text';
-    input.inputMode = isMail ? 'email' : 'numeric';
-    input.maxLength = isMail ? 64 : 15;
-    input.placeholder = isMail ? 'you@example.com' : '输入 6-15 位数字手机号';
-  }
-  if(label) label.textContent = isMail ? '邮箱（云端账号）' : '手机号（云端账号）';
-  if(wrap) wrap.style.display = isMail ? '' : 'none';
-}
-async function sendEmailCode(){
-  const email = ($('#sSyncCode') ? $('#sSyncCode').value.trim() : '');
-  if(!isEmailAccount(email)){ toast('请先填写正确的邮箱'); return; }
-  const btn = $('#emailCodeBtn');
-  if(btn) btn.disabled = true;
-  try{
-    const r = await authApi('send_code', email);
-    toast('✅ 验证码已发往 ' + email + '（5 分钟内有效）');
-    syncSetStatus('验证码已发送，去邮箱查收（找不到看垃圾箱）', 'ok');
-    startCodeCountdown((r && r.cooldown) || 60);
-  }catch(e){
-    toast('❌ ' + e.message);
-    syncSetStatus('❌ ' + e.message, 'error');
-    if(btn) btn.disabled = false;
+/* ===== 10/1 手机号/用户名 + 密码 认证 UI =====
+   服务端 /api/auth（register/login/change/reset/logout），session token 由 common.js 管理。
+   三态：未登录（登录/设密码/找回）、已登录（改密码/退出）、恢复码一次性展示。 */
+function renderAuthUI(){
+  const loggedIn = !!(DATA.settings.syncCode && typeof authToken === 'function' && authToken());
+  const lf = $('#syncLoginForm'), ub = $('#syncUserBox');
+  if(!lf || !ub) return;
+  lf.style.display = loggedIn ? 'none' : '';
+  ub.style.display = loggedIn ? '' : 'none';
+  if(loggedIn){
+    const el = $('#syncUserAcct');
+    if(el) el.textContent = DATA.settings.syncCode || '';
   }
 }
-function startCodeCountdown(sec){
-  const btn = $('#emailCodeBtn');
-  if(!btn) return;
-  let left = sec;
-  btn.disabled = true;
-  const t = setInterval(() => {
-    left--;
-    if(left <= 0){ clearInterval(t); btn.disabled = false; btn.textContent = '获取验证码'; }
-    else btn.textContent = left + 's 后重发';
-  }, 1000);
+/* 恢复码一次性展示（注册成功 / 改密码轮换后） */
+function showRecCode(code){
+  const p = $('#recCodePanel');
+  if(!p || !code) return;
+  $('#recCodeText').textContent = code;
+  p.style.display = '';
+  try{ p.scrollIntoView({ block:'nearest', behavior:'smooth' }); }catch(e){}
+}
+function copyRecCode(){
+  const t = $('#recCodeText').textContent || '';
+  const done = () => toast('恢复码已复制');
+  if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done).catch(() => window.prompt('手动复制：', t));
+  else window.prompt('手动复制：', t);
 }
 
 /* 测试连接：用输入框里的 Key 探活 DeepSeek，成功即自动保存 */

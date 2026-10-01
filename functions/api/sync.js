@@ -1,14 +1,14 @@
 // Cloudflare Pages Function: /api/sync
-// 按「手机号」读写 KV（SYNC_KV）。
-//   账号 = 手机号（6~15 位数字）或邮箱，通过请求头 X-Sync-Key 传递（兼容 ?code= 查询参数）。
+// 按「登录账号」读写 KV（SYNC_KV）。
+//   ⭐ 10/1 起账号 = 手机号 + 密码（/api/auth：register/login/change/reset/logout），
+//   本接口凭 session token（X-Session 头，sendBeacon 兜底走 ?session= 参数）读写数据——
+//   「手机号即凭证」的旧通道（X-Sync-Key / ?code=）已彻底下线，那正是本次改造要还的账。
 //   相同账号 = 同一份云端数据（多设备共享）。
-//   9/30 起支持邮箱账号（/api/auth 发验证码登录）：邮箱落在 sync:e:<邮箱> 独立命名空间，
-//   与既有手机号账号完全隔离——老用户换成邮箱登录 = 另一份空数据，不会覆盖也不会读到旧库。
 //
 // 前端约定：
-//   GET    /api/sync  (X-Sync-Key: <phone>) -> 返回 { data, ts, updatedAt } 或 404
-//   PUT    /api/sync  (X-Sync-Key: <phone>) body { data, ts, deviceId } -> { ok:true, ts }
-//   DELETE /api/sync  (X-Sync-Key: <phone>) -> { ok:true }
+//   GET    /api/sync  (X-Session: <token>) -> 返回 { data, ts, updatedAt } 或 404 / 401
+//   PUT    /api/sync  (X-Session: <token>) body { data, ts, deviceId } -> { ok:true, ts }
+//   DELETE /api/sync  (X-Session: <token>) -> { ok:true }
 //
 // ⭐ 9/30 v2：乐观锁 + 影子 meta（修「同步经常不同步 / 被覆盖」）
 //   1) PUT 可携带 baseTs（= 客户端最后一次看到的云端 ts）。
@@ -22,7 +22,7 @@
 //      流量与 CPU 降两个数量级（轮询因此可以加密到 12s 而不增加负担）。
 //      meta 缺失（本次部署前写入的老数据）时按需从主键算出来并懒写回，自愈。
 //
-// CORS：前端用自定义请求头 X-Sync-Key，浏览器会先发 OPTIONS 预检。本函数显式处理
+// CORS：前端用自定义请求头 X-Session，浏览器会先发 OPTIONS 预检。本函数显式处理
 //       OPTIONS 并回完整的 CORS 响应头（Allow-Methods / Allow-Headers），否则预检失败
 //       浏览器会报 "Failed to fetch"，真实请求根本不会发出。
 //
@@ -31,7 +31,7 @@
 const CORS = {
   'access-control-allow-origin': '*',
   'access-control-allow-methods': 'GET, PUT, POST, DELETE, OPTIONS',
-  'access-control-allow-headers': 'Content-Type, X-Sync-Key',
+  'access-control-allow-headers': 'Content-Type, X-Session',
   'access-control-max-age': '86400',
 };
 
@@ -78,25 +78,33 @@ export async function onRequest(context) {
   }
 
   const url = new URL(request.url);
-  // 账号优先取 X-Sync-Key 请求头；兼容旧的 ?code= 查询参数
-  const phone = (request.headers.get('X-Sync-Key') || url.searchParams.get('code') || '').trim();
 
-  // 9/30：账号 = 手机号（6~15 位数字）**或邮箱**（邮箱登录走 /api/auth 验证码，入口不同、凭证同级别）。
-  const isMail = phone.length <= 64 && /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(phone);
-  const isPhone = /^\d{6,15}$/.test(phone);
-  if (!phone || (!isPhone && !isMail)) {
-    return json({ ok: false, error: '无效的账号（需 6-15 位手机号或邮箱）' }, 400);
+  // ⭐ 10/1 鉴权：X-Session 头（sendBeacon 兜底走 ?session= 参数）→ 查 sess:<token> → 解出手机号。
+  //    无 token / token 过期 / 非法 → 401，前端据此提示重新登录（本机数据绝不动）。
+  const sid = (request.headers.get('X-Session') || url.searchParams.get('session') || '').trim();
+  if (!sid || !/^[0-9a-f]{32,128}$/.test(sid)) {
+    return json({ ok: false, error: 'unauthorized', msg: '未登录或登录已过期，请重新登录' }, 401);
   }
-  // ⭐ 邮箱账号落在独立命名空间 sync:e:<邮箱>：
-  //    ① 与老手机号账号物理隔离，老数据一个字节都不会被动到；
-  //    ② 邮箱统一小写，避免 Foo@x.com 与 foo@x.com 变成两份数据。
-  const ns = isMail ? ('e:' + phone.toLowerCase()) : phone;
 
   // KV 未绑定：给出明确提示而非抛错（避免浏览器收到无 CORS 头的 500 → Failed to fetch）
   if (!env || !env.SYNC_KV) {
     return json({ ok: false, error: '云端存储未启用（请在 Cloudflare Pages 设置里绑定 SYNC_KV 命名空间）' }, 503);
   }
 
+  let phone = '';
+  try {
+    const sRaw = await env.SYNC_KV.get('sess:' + sid);
+    if (sRaw) {
+      const s = JSON.parse(sRaw);
+      const a = ((s && (s.acct || s.phone)) || '').toLowerCase();
+      if (/^[a-z0-9_]{6,20}$/.test(a)) phone = a;
+    }
+  } catch (e) {}
+  if (!phone) {
+    return json({ ok: false, error: 'unauthorized', msg: '登录已过期，请重新登录' }, 401);
+  }
+
+  const ns = phone;
   const key = 'sync:' + ns;
   const metaKey = 'meta:' + ns;
 

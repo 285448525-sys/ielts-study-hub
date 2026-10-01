@@ -1,34 +1,39 @@
-// Cloudflare Pages Function: /api/auth —— 邮箱验证码登录（注册 / 登录同一入口）
+// Cloudflare Pages Function: /api/auth —— 账号（手机号/用户名）+ 密码登录（注册 / 登录 / 改密码 / 忘记密码 / 登出）
 //
-// POST /api/auth  { action:'send_code', email }   -> { ok:true, cooldown }   发 6 位验证码
-// POST /api/auth  { action:'verify',   email, code } -> { ok:true, account }  校验通过
+// 背景（10/1 她拍板）：邮箱验证码登录要买域名 + Resend（MAIL_API_KEY / MAIL_FROM），先不搞。
+// 改成「手机号 + 密码」，同时补上以前最大的安全洞——「手机号即凭证，任何知道号码的人都能读写云数据」：
+//   · register  手机号 + 密码 → PBKDF2 存哈希（绝不存明文），生成恢复码（明文只返回这一次）
+//   · login     验密码 → 发 30 天 session token，此后 /api/sync 凭 X-Session token 读写
+//   · change    登录态下验旧密码 → 换新密码（session 保留，其他设备不受影响）
+//   · reset     手机号 + 恢复码 + 新密码 → 重置密码并直接发新 token（恢复码长期有效）
+//   · logout    删 session
 //
-// 需要的环境变量（Cloudflare Pages → Settings → Environment variables，MAIL_API_KEY 建议设成 Secret）：
-//   MAIL_API_KEY   必填。Resend 的 API Key（re_xxxx）
-//   MAIL_FROM      必填。发信地址，如 "雅思备考站 <no-reply@你的域名>"
-//                  ⚠️ 域名必须先在 Resend 里验证过（加 SPF/DKIM 两条 TXT），否则 Resend 会拒绝发信。
-//   MAIL_PROVIDER  选填，默认 resend
+// KV 键（SYNC_KV）：
+//   user:<acct>    { salt, hash, rechash, created }  —— PBKDF2-SHA256 10 万次迭代 + 随机盐
+//   sess:<token>   { acct }                           —— TTL 30 天（30 天后需重新登录）
+//   fail:<acct>    登录失败计数（10 次锁 15 分钟，防在线爆破；TTL 自愈）
+//   failr:<acct>   恢复码失败计数（同上；恢复码 12 位无易混字符 ≈57bit，离线爆破不现实，这里只防在线试）
+//   数据键 sync:<acct> / meta:<acct> 仍归 /api/sync 管，老手机号账号键名不变，老数据原样保留。
 //
-// ⚠️ 未配 MAIL_API_KEY 时返回 503 mail_not_configured —— 前端据此提示「站长还没开通邮箱登录」，
-//    并引导回手机号，不会卡死在「点了没反应」。
-//
-// 安全口径：验证码 6 位数字、5 分钟有效、最多试 5 次；同一邮箱 60 秒内只能发一次、每天最多 10 次；
-// 同一 IP 每天最多 30 次发信（防刷短信/邮件轰炸）。
-// ⚠️ 与手机号账号一致：**验证码只证明「这个邮箱你能收信」，登录后账号凭证就是邮箱本身**
-//    （同 sync.js 的手机号口径，无会话 token）。要真做鉴权得再加 JWT + 每次请求校验，
-//    当前阶段与手机号账号保持同一安全级别，先把「对外可用」跑通。
+// 兼容口径（老用户迁移）：
+//   · 老用户只有手机号、没设过密码：register 允许「云端已有数据但无密码」的号直接设密码
+//     ——第一个设密码的人接管该号，与旧「手机号即凭证」同级；设完即安全（此后 register → 409）。
+//   · 邮箱账号体系（sync:e: 命名空间）随本次退役：从未真正上线（MAIL_API_KEY 一直没配），零影响。
 
 const CORS = {
   'access-control-allow-origin': '*',
   'access-control-allow-methods': 'POST, OPTIONS',
-  'access-control-allow-headers': 'Content-Type',
+  'access-control-allow-headers': 'Content-Type, X-Session',
   'access-control-max-age': '86400',
 };
-const CODE_TTL = 300;          // 验证码有效期（秒）
-const RESEND_COOLDOWN = 60;    // 同一邮箱重发间隔（秒）
-const MAX_TRIES = 5;
-const DAY_LIMIT_EMAIL = 10;
-const DAY_LIMIT_IP = 30;
+const PBKDF2_ITER = 100000;   // Workers 的 WebCrypto PBKDF2 是原生实现，10 万次在 CPU 限额内
+const SESS_TTL = 30 * 24 * 3600;          // session 30 天
+const LOCK_TTL = 15 * 60;                 // 失败锁定 15 分钟
+const MAX_FAILS = 10;
+// ⭐ 10/1 她拍板：账号 = 手机号 或 自定义用户名（6-20 位数字/字母/下划线，统一小写存储）。
+// 老手机号账号（6-15 位纯数字）天然满足该规则，登录键名不变，云端老数据无缝接上。
+const ACCT_RE = /^[a-z0-9_]{6,20}$/;
+const REC_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';   // 去掉 I/L/O/0/1 等易混字符
 
 function json(obj, status) {
   return new Response(JSON.stringify(obj), {
@@ -40,123 +45,176 @@ function json(obj, status) {
   });
 }
 
-function isEmail(s) {
-  return typeof s === 'string' && s.length <= 64 && /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(s);
-}
-function dayKey(d) {
-  const p = n => String(n).padStart(2, '0');
-  return d.getUTCFullYear() + p(d.getUTCMonth() + 1) + p(d.getUTCDate());
-}
-function ipOf(request) {
-  return (request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || 'unknown').split(',')[0].trim();
-}
+function badPhone(p) { return !ACCT_RE.test(String(p || '')); }
+function badPass(p) { return typeof p !== 'string' || p.length < 6 || p.length > 64; }
 
-function mailHtml(code) {
-  return '<div style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;max-width:480px;margin:0 auto;padding:24px">'
-    + '<div style="font-size:13px;color:#8a94a6;letter-spacing:.08em">IELTS 备考站</div>'
-    + '<h2 style="margin:8px 0 16px;font-size:20px;color:#1f2d3d">你的登录验证码</h2>'
-    + '<div style="font-size:32px;font-weight:800;letter-spacing:.32em;color:#3a9a93;background:#f2f8f7;border-radius:12px;padding:18px 0;text-align:center">' + code + '</div>'
-    + '<p style="color:#5b6675;font-size:14px;line-height:1.7;margin:18px 0 0">5 分钟内有效。如果不是你本人操作，忽略这封邮件即可，你的数据不会有任何变化。</p>'
-    + '</div>';
+function bufToHex(buf) {
+  const v = new Uint8Array(buf);
+  let s = '';
+  for (let i = 0; i < v.length; i++) s += v[i].toString(16).padStart(2, '0');
+  return s;
 }
+function hexToBuf(hex) {
+  const out = new Uint8Array(hex.length >> 1);
+  for (let i = 0; i < out.length; i++) out[i] = parseInt(hex.substr(i * 2, 2), 16);
+  return out;
+}
+function randHex(nBytes) {
+  const b = new Uint8Array(nBytes);
+  crypto.getRandomValues(b);
+  return bufToHex(b);
+}
+function randRecCode() {
+  const b = new Uint8Array(12);
+  crypto.getRandomValues(b);
+  let s = '';
+  for (let i = 0; i < 12; i++) s += REC_ALPHABET[b[i] % REC_ALPHABET.length];
+  return s.slice(0, 4) + '-' + s.slice(4, 8) + '-' + s.slice(8, 12);   // XXXX-XXXX-XXXX
+}
+const recNorm = (s) => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 
-async function sendMail(env, to, code) {
-  const provider = (env && env.MAIL_PROVIDER) || 'resend';
-  if (provider !== 'resend') return { ok: false, msg: '暂不支持的发信服务：' + provider };
-  const r = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'authorization': 'Bearer ' + env.MAIL_API_KEY,
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: env.MAIL_FROM,
-      to: [to],
-      subject: '【雅思备考站】登录验证码 ' + code,
-      html: mailHtml(code),
-    }),
-  });
-  if (r.ok) return { ok: true };
-  let msg = 'Resend 返回 ' + r.status;
+async function pbkdf2(password, saltHex) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: hexToBuf(saltHex), iterations: PBKDF2_ITER }, key, 256);
+  return bufToHex(bits);
+}
+async function sha256(s) {
+  const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return bufToHex(d);
+}
+/* 恢复码哈希：服务端随机 salt + 归一化恢复码。恢复码本身 57bit 高熵，单次 SHA-256 足够 */
+const recHashOf = (rec, salt) => sha256('rec:' + rec + ':' + salt);
+
+/* 失败计数：达到上限返回 true（已锁）。锁定期内直接拒绝，不给验证机会 */
+async function failLock(kv, kind, phone, fails) {
+  const key = 'fail' + kind + ':' + phone;
+  if (fails) {
+    const n = parseInt((await kv.get(key)) || '0', 10) + 1;
+    await kv.put(key, String(n), { expirationTtl: LOCK_TTL });
+    return n >= MAX_FAILS;
+  }
+  return parseInt((await kv.get(key)) || '0', 10) >= MAX_FAILS;
+}
+const failClear = (kv, kind, phone) => kv.delete('fail' + kind + ':' + phone).catch(() => {});
+
+/* 从 body 或 X-Session 头取 token；返回 sess 记录或 null */
+async function sessionOf(kv, request, body) {
+  const tok = String((request.headers.get('X-Session') || (body && body.token) || '')).trim();
+  if (!tok || !/^[0-9a-f]{32,128}$/.test(tok)) return null;
   try {
-    const j = await r.json();
-    if (j && (j.message || j.error)) msg = (typeof j.message === 'string' ? j.message : '') || j.error;
-  } catch (e) {}
-  return { ok: false, msg: msg };
+    const raw = await kv.get('sess:' + tok);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    const acct = (s && (s.acct || s.phone)) || '';
+    return (acct && ACCT_RE.test(acct)) ? { acct, tok } : null;
+  } catch (e) { return null; }
 }
 
 export async function onRequest(context) {
   const { request, env } = context;
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
   if (request.method !== 'POST') return json({ ok: false, error: '只支持 POST' }, 405);
-
   if (!env || !env.SYNC_KV) return json({ ok: false, error: 'kv_not_bound', msg: '云端存储未绑定（SYNC_KV）' }, 503);
-  if (!env.MAIL_API_KEY || !env.MAIL_FROM) {
-    return json({ ok: false, error: 'mail_not_configured', msg: '邮箱登录还没开通（缺 MAIL_API_KEY / MAIL_FROM）' }, 503);
-  }
 
   let body = null;
   try { body = await request.json(); } catch (e) { return json({ ok: false, error: 'bad_json', msg: '请求体不是合法 JSON' }, 400); }
-  const action = body && body.action;
-  const email = (body && typeof body.email === 'string') ? body.email.trim().toLowerCase() : '';
-  if (!isEmail(email)) return json({ ok: false, error: 'bad_email', msg: '邮箱格式不正确' }, 400);
-
   const kv = env.SYNC_KV;
-  const codeKey = 'authcode:' + email;
-  const cdKey = 'authcd:' + email;
-  const dayKeyEmail = 'authday:' + email + ':' + dayKey(new Date());
-  const dayKeyIp = 'authdayip:' + ipOf(request) + ':' + dayKey(new Date());
+  const action = body && body.action;
 
-  if (action === 'send_code') {
-    // 冷却：60 秒内不重发
-    const last = parseInt((await kv.get(cdKey)) || '0', 10);
-    const now = Date.now();
-    if (last && (now - last) < RESEND_COOLDOWN * 1000) {
-      const wait = Math.ceil((RESEND_COOLDOWN * 1000 - (now - last)) / 1000);
-      return json({ ok: false, error: 'cooldown', msg: '请 ' + wait + ' 秒后再试', wait: wait }, 429);
+  /* ---------- 注册：账号（手机号/用户名）+ 密码 ---------- */
+  if (action === 'register') {
+    const acct = String(body.acct || body.phone || '').trim().toLowerCase();
+    const password = String(body.password || '');
+    if (badPhone(acct)) return json({ ok: false, error: 'bad_phone', msg: '账号格式：6-20 位数字/字母/下划线' }, 400);
+    if (badPass(password)) return json({ ok: false, error: 'bad_password', msg: '密码至少 6 位（最长 64 位）' }, 400);
+    if (await kv.get('user:' + acct)) {
+      return json({ ok: false, error: 'already_registered', msg: '该账号已设置过密码，直接登录即可；忘记密码用「恢复码找回」' }, 409);
     }
-    const nEmail = parseInt((await kv.get(dayKeyEmail)) || '0', 10);
-    const nIp = parseInt((await kv.get(dayKeyIp)) || '0', 10);
-    if (nEmail >= DAY_LIMIT_EMAIL) return json({ ok: false, error: 'email_limit', msg: '该邮箱今日验证码已达上限' }, 429);
-    if (nIp >= DAY_LIMIT_IP) return json({ ok: false, error: 'ip_limit', msg: '当前网络今日请求过多，请稍后再试' }, 429);
-
-    // crypto.getRandomValues 在 Workers 里可用，比 Math.random 安全得多
-    const buf = new Uint32Array(1);
-    crypto.getRandomValues(buf);
-    const code = String(buf[0] % 1000000).padStart(6, '0');
-
-    await kv.put(codeKey, JSON.stringify({ code: code, exp: now + CODE_TTL * 1000, tries: 0 }), { expirationTtl: CODE_TTL });
-    await kv.put(cdKey, String(now), { expirationTtl: RESEND_COOLDOWN });
-    await kv.put(dayKeyEmail, String(nEmail + 1), { expirationTtl: 172800 });
-    await kv.put(dayKeyIp, String(nIp + 1), { expirationTtl: 172800 });
-
-    const r = await sendMail(env, email, code);
-    if (!r.ok) return json({ ok: false, error: 'mail_failed', msg: r.msg || '邮件发送失败' }, 502);
-    return json({ ok: true, cooldown: RESEND_COOLDOWN });
+    const salt = randHex(16);
+    const hash = await pbkdf2(password, salt);
+    const recCode = randRecCode();
+    // 哈希一律用归一化（去分隔符、大写）后的恢复码：用户回填时带不带 "-" 都能对上
+    const rechash = await recHashOf(recNorm(recCode), salt);
+    await kv.put('user:' + acct, JSON.stringify({ salt, hash, rechash, created: Date.now() }));
+    return json({ ok: true, recCode });
   }
 
-  if (action === 'verify') {
-    const code = String((body && body.code != null) ? body.code : '').replace(/\D/g, '').slice(0, 6);
-    if (code.length !== 6) return json({ ok: false, error: 'bad_code', msg: '验证码是 6 位数字' }, 400);
-    const raw = await kv.get(codeKey);
-    if (!raw) return json({ ok: false, error: 'no_code', msg: '验证码不存在或已过期，请重新获取' }, 400);
+  /* ---------- 登录 ---------- */
+  if (action === 'login') {
+    const acct = String(body.acct || body.phone || '').trim().toLowerCase();
+    const password = String(body.password || '');
+    if (badPhone(acct) || badPass(password)) return json({ ok: false, error: 'bad_credentials', msg: '账号或密码不正确' }, 400);
+    if (await failLock(kv, '', acct, false)) return json({ ok: false, error: 'locked', msg: '尝试次数过多，请 15 分钟后再试' }, 429);
     let rec = null;
-    try { rec = JSON.parse(raw); } catch (e) { return json({ ok: false, error: 'no_code', msg: '验证码异常，请重新获取' }, 400); }
-    if (!rec || Date.now() > (rec.exp || 0)) {
-      await kv.delete(codeKey);
-      return json({ ok: false, error: 'expired', msg: '验证码已过期，请重新获取' }, 400);
+    try { rec = JSON.parse((await kv.get('user:' + acct)) || 'null'); } catch (e) {}
+    if (!rec) return json({ ok: false, error: 'no_user', msg: '该账号还没设置过密码，先「设置密码」（老用户数据会自动接上）' }, 404);
+    const h = await pbkdf2(password, rec.salt);
+    if (h !== rec.hash) {
+      await failLock(kv, '', acct, true);
+      return json({ ok: false, error: 'bad_credentials', msg: '账号或密码不正确' }, 401);
     }
-    if ((rec.tries || 0) >= MAX_TRIES) {
-      await kv.delete(codeKey);
-      return json({ ok: false, error: 'too_many_tries', msg: '尝试次数过多，请重新获取验证码' }, 429);
+    await failClear(kv, '', acct);
+    const token = randHex(32);
+    await kv.put('sess:' + token, JSON.stringify({ acct }), { expirationTtl: SESS_TTL });
+    return json({ ok: true, token, acct });
+  }
+
+  /* ---------- 修改密码（需登录态） ---------- */
+  if (action === 'change') {
+    const sess = await sessionOf(kv, request, body);
+    if (!sess) return json({ ok: false, error: 'unauthorized', msg: '登录已过期，请重新登录' }, 401);
+    const oldPassword = String(body.oldPassword || '');
+    const newPassword = String(body.newPassword || '');
+    if (badPass(newPassword)) return json({ ok: false, error: 'bad_password', msg: '新密码至少 6 位（最长 64 位）' }, 400);
+    let rec = null;
+    try { rec = JSON.parse((await kv.get('user:' + sess.acct)) || 'null'); } catch (e) {}
+    if (!rec) return json({ ok: false, error: 'no_user', msg: '账号异常（无密码记录）' }, 404);
+    const oldH = await pbkdf2(oldPassword, rec.salt);
+    if (oldH !== rec.hash) return json({ ok: false, error: 'bad_old', msg: '当前密码不正确' }, 401);
+    const salt = randHex(16);
+    rec.salt = salt;
+    rec.hash = await pbkdf2(newPassword, salt);
+    /* 恢复码哈希绑定账号 salt：换 salt 后旧恢复码哈希无法重导 → 改密码时强制换新恢复码
+       （明文只此一次返回，旧恢复码作废），前端须提示重新保存。 */
+    const newRec = randRecCode();
+    rec.rechash = await recHashOf(recNorm(newRec), salt);
+    await kv.put('user:' + sess.acct, JSON.stringify(rec));
+    return json({ ok: true, recCode: newRec });
+  }
+
+  /* ---------- 忘记密码：账号 + 恢复码 ---------- */
+  if (action === 'reset') {
+    const acct = String(body.acct || body.phone || '').trim().toLowerCase();
+    const recCode = recNorm(body.recCode);
+    const newPassword = String(body.newPassword || '');
+    if (badPhone(acct)) return json({ ok: false, error: 'bad_phone', msg: '账号格式：6-20 位数字/字母/下划线' }, 400);
+    if (!recCode || recCode.length < 8) return json({ ok: false, error: 'bad_rec', msg: '恢复码不正确（12 位字母数字，形如 XXXX-XXXX-XXXX）' }, 400);
+    if (badPass(newPassword)) return json({ ok: false, error: 'bad_password', msg: '新密码至少 6 位（最长 64 位）' }, 400);
+    if (await failLock(kv, 'r', acct, false)) return json({ ok: false, error: 'locked', msg: '尝试次数过多，请 15 分钟后再试' }, 429);
+    let rec = null;
+    try { rec = JSON.parse((await kv.get('user:' + acct)) || 'null'); } catch (e) {}
+    if (!rec) return json({ ok: false, error: 'no_user', msg: '该账号还没设置过密码，直接「设置密码」即可' }, 404);
+    const rh = await recHashOf(recCode, rec.salt);
+    if (rh !== rec.rechash) {
+      await failLock(kv, 'r', acct, true);
+      return json({ ok: false, error: 'bad_rec', msg: '恢复码不正确' }, 401);
     }
-    if (String(rec.code) !== code) {
-      rec.tries = (rec.tries || 0) + 1;
-      await kv.put(codeKey, JSON.stringify(rec), { expirationTtl: CODE_TTL });
-      return json({ ok: false, error: 'bad_code', msg: '验证码不正确，还可试 ' + (MAX_TRIES - rec.tries) + ' 次' }, 400);
-    }
-    await kv.delete(codeKey);
-    return json({ ok: true, account: email });
+    await failClear(kv, 'r', acct);
+    const salt = randHex(16);
+    rec.salt = salt;
+    rec.hash = await pbkdf2(newPassword, salt);
+    rec.rechash = await recHashOf(recCode, salt);   // 恢复码本身继续有效（盐跟着账号 salt 一起换算过）
+    await kv.put('user:' + acct, JSON.stringify(rec));
+    const token = randHex(32);
+    await kv.put('sess:' + token, JSON.stringify({ acct }), { expirationTtl: SESS_TTL });
+    return json({ ok: true, token, acct });
+  }
+
+  /* ---------- 登出 ---------- */
+  if (action === 'logout') {
+    const sess = await sessionOf(kv, request, body);
+    if (sess) { try { await kv.delete('sess:' + sess.tok); } catch (e) {} }
+    return json({ ok: true });
   }
 
   return json({ ok: false, error: 'bad_action', msg: '未知 action' }, 400);

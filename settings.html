@@ -20,8 +20,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20260930f"></script>
-  <script defer src="js/common.js?v=20260930e"></script>
-  <script src="js/settings.js?v=20260930e" defer></script>
+  <script defer src="js/common.js?v=20261001d"></script>
+  <script src="js/settings.js?v=20261001d" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -127,19 +127,56 @@
 
   <section class="card">
     <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M17.5 19a4.5 4.5 0 0 0 .4-9A6.5 6.5 0 0 0 5.3 12.6 4 4 0 0 0 6.5 19h11z"/></svg>云端同步</h2>
-    <p class="muted">用手机号或邮箱绑定云端，多设备数据互通。绑定后默认自动同步，换设备登录同一账号即可恢复数据。</p>
-    <div class="form-row" style="margin-bottom:4px">
-      <div style="flex:2;min-width:200px"><label>账号类型</label><div class="ui-form-control" style="width:100%;max-width:280px"><select class="ui-input" id="sAcctType">
-        <option value="phone">手机号</option>
-        <option value="email">邮箱（验证码登录）</option>
-      </select><span class="ui-input-border"></span></div></div>
+    <p class="muted">手机号 / 用户名 + 密码登录，多设备数据互通。老用户（之前只填过手机号）在「设置密码」里补个密码即可，数据自动接上。</p>
+    <!-- 未登录：登录 / 设密码 -->
+    <div id="syncLoginForm">
+      <div class="form-row">
+        <div style="flex:1;min-width:170px"><label>手机号 / 用户名</label><div class="ui-form-control" style="width:100%;max-width:280px"><input class="ui-input" id="sAcct" placeholder="手机号或用户名（6-20 位）" autocomplete="username" maxlength="20" /><span class="ui-input-border"></span></div></div>
+        <div style="flex:1;min-width:150px"><label>密码</label><div class="ui-form-control" style="width:100%;max-width:280px"><input class="ui-input" id="sPass" type="password" placeholder="至少 6 位" autocomplete="current-password" /><span class="ui-input-border"></span></div></div>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <button class="btn" id="syncLoginBtn" type="button">登录</button>
+        <button class="btn" id="syncRegisterBtn" type="button">设置密码（首次）</button>
+        <a href="javascript:void(0)" id="syncForgotLink" class="muted" style="font-size:13px;text-decoration:underline">忘记密码？</a>
+      </div>
+      <!-- 找回密码 -->
+      <div id="syncForgotForm" style="display:none;margin-top:14px;border-top:1px dashed var(--line);padding-top:12px">
+        <p class="muted" style="margin:0 0 8px">凭「账号 + 注册时的恢复码」重置密码。恢复码是注册后显示的那串 XXXX-XXXX-XXXX。</p>
+        <div class="form-row">
+          <div style="flex:1;min-width:150px"><label>恢复码</label><div class="ui-form-control" style="width:100%;max-width:280px"><input class="ui-input" id="sRecCode" placeholder="XXXX-XXXX-XXXX" autocomplete="off" /><span class="ui-input-border"></span></div></div>
+          <div style="flex:1;min-width:150px"><label>新密码</label><div class="ui-form-control" style="width:100%;max-width:280px"><input class="ui-input" id="sNewPassReset" type="password" placeholder="至少 6 位" autocomplete="new-password" /><span class="ui-input-border"></span></div></div>
+        </div>
+        <div style="margin-top:8px;display:flex;gap:8px">
+          <button class="btn" id="syncResetBtn" type="button">重置密码并登录</button>
+          <button class="btn" id="syncForgotCancel" type="button">取消</button>
+        </div>
+      </div>
     </div>
-    <div class="form-row">
-      <div style="flex:2"><label id="acctLabel">手机号（云端账号）</label><div class="ui-form-control" style="width:100%;max-width:280px"><input class="ui-input" id="sSyncCode" placeholder="输入 6-15 位数字手机号" inputmode="numeric" maxlength="15" /><span class="ui-input-border"></span></div></div>
-      <div id="emailCodeWrap" style="flex:1;display:none;min-width:190px"><label>邮箱验证码</label><div style="display:flex;gap:6px;align-items:center"><input class="ui-input" id="sEmailCode" placeholder="6 位数字" inputmode="numeric" maxlength="6" autocomplete="one-time-code" style="width:110px" /><button class="btn btn-sm" id="emailCodeBtn" type="button">获取验证码</button></div></div>
-      <div style="flex:none;align-self:flex-end"><button class="user-profile" id="syncBindBtn" type="button"><span class="user-profile-inner"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg><span>绑定并同步</span></span></button></div>
+    <!-- 已登录：账号信息 + 改密码 + 退出 -->
+    <div id="syncUserBox" style="display:none">
+      <p style="margin:0 0 8px">已登录：<b id="syncUserAcct"></b></p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" id="syncChangeBtn" type="button">修改密码</button>
+        <button class="btn" id="syncLogoutBtn" type="button">退出登录</button>
+      </div>
+      <div id="syncChangeForm" style="display:none;margin-top:12px;border-top:1px dashed var(--line);padding-top:12px">
+        <div class="form-row">
+          <div style="flex:1;min-width:150px"><label>当前密码</label><div class="ui-form-control" style="width:100%;max-width:280px"><input class="ui-input" id="sOldPass" type="password" autocomplete="current-password" /><span class="ui-input-border"></span></div></div>
+          <div style="flex:1;min-width:150px"><label>新密码</label><div class="ui-form-control" style="width:100%;max-width:280px"><input class="ui-input" id="sNewPass" type="password" placeholder="至少 6 位" autocomplete="new-password" /><span class="ui-input-border"></span></div></div>
+        </div>
+        <div style="margin-top:8px"><button class="btn" id="syncChangeSave" type="button">保存新密码</button></div>
+      </div>
     </div>
-    <p class="muted" style="margin:6px 0 0">邮箱账号与手机号账号是两份独立数据（云端分开存放）。原先用手机号同步过的进度不会自动出现在邮箱账号里。</p>
+    <!-- 恢复码展示（注册 / 改密码后各出现一次） -->
+    <div id="recCodePanel" style="display:none;margin-top:14px;background:var(--primary-50,#eef7f6);border:1.5px solid var(--primary-200,#a8d7d2);border-radius:12px;padding:14px 16px">
+      <b style="color:var(--primary-900,#1a4542)">🔑 你的恢复码（只显示这一次）</b>
+      <p class="muted" style="margin:6px 0 10px;font-size:13px">忘记密码时凭「账号 + 恢复码」重置。请截图或抄进备忘录保存，关掉就再也看不到。</p>
+      <code id="recCodeText" style="display:block;font-size:22px;font-weight:700;letter-spacing:3px;text-align:center;background:#fff;border:1px dashed var(--primary-200,#a8d7d2);border-radius:10px;padding:12px 0;margin-bottom:10px;font-family:ui-monospace,Consolas,monospace">-</code>
+      <div style="display:flex;gap:8px">
+        <button class="btn" id="recCopyBtn" type="button">复制</button>
+        <button class="btn" id="recSavedBtn" type="button">我已保存</button>
+      </div>
+    </div>
     <p id="syncStatus" class="muted" style="margin:6px 0 0"></p>
     <p id="syncState" class="muted" style="margin:2px 0 0"></p>
     <p id="lastSyncTs" class="muted" style="margin:2px 0 0"></p>
