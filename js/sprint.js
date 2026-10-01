@@ -74,7 +74,7 @@
        Σ各 part 平均 = 虚拟整卷总答对数 → 按比例折 40 查 band 表得档位。
      - 写作：Task 1 平均、Task 2 平均，再按权重（T1×1、T2×2）合成（与列表「均分」口径一致）。
      - 口语：口语页整卷模考（kind==='speaking'，自动存）直接取 overall；手动录的四维单项按权重合成。
-     - 7 天内该科无数据 → 回退用该科最近一条可估分记录（任何日期），数值旁标注日期并在副标题说明。 */
+     - 7 天内该科无数据 → 回退用该科最近一条可估分记录（任何日期），口径由副标题说明（行内日期标注她嫌多余已删，10/1）。 */
   function sprint7dCutoff(){
     const d = new Date(); d.setDate(d.getDate() - 6);
     return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -202,7 +202,7 @@
       rows += '<div class="sp-gap-row">'
         + '<span class="sp-gap-k">' + LABEL[k] + '</span>'
         + '<span class="sp-gap-bar"><i class="' + cls + '" style="width:' + Math.min(100, Math.round(got / 9 * 100)) + '%"></i></span>'
-        + '<span class="sp-gap-v">' + got.toFixed(1) + '<em>/' + (t ? t.toFixed(1) : '—') + (fb ? ' · ' + fb.slice(5) : '') + '</em></span>'
+        + '<span class="sp-gap-v">' + got.toFixed(1) + '<em>/' + (t ? t.toFixed(1) : '—') + '</em></span>'
         + '<span class="sp-gap-d ' + cls + '">' + dtxt + '</span>'
         + '</div>';
     });
