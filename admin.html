@@ -67,7 +67,7 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:
 <div id="gate" class="card">
   <h2>站长面板</h2>
   <p class="desc">输入管理员密钥（ADMIN_KEY）进入</p>
-  <input id="keyInput" type="password" placeholder="ADMIN_KEY" autocomplete="off" />
+  <input aria-label="站长后台密钥" id="keyInput" type="password" placeholder="ADMIN_KEY" autocomplete="off" />
   <div class="err" id="gateErr"></div>
   <button class="btn" id="gateBtn" type="button">进 入</button>
   <p class="tip">密钥 = Cloudflare 环境变量 ADMIN_KEY，只存在本浏览器 sessionStorage，关标签页即失效。<br />面板与学习站数据完全隔离，任何操作不影响用户数据。</p>

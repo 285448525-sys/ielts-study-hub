@@ -91,8 +91,8 @@
       </div>
       <div id="syncChangeForm" style="display:none">
         <div class="acct-form-row">
-          <input class="acct-input" id="sOldPass" type="password" placeholder="当前密码" autocomplete="current-password" />
-          <input class="acct-input" id="sNewPass" type="password" placeholder="新密码（至少 6 位）" autocomplete="new-password" />
+          <input aria-label="当前密码" class="acct-input" id="sOldPass" type="password" placeholder="当前密码" autocomplete="current-password" />
+          <input aria-label="新密码" class="acct-input" id="sNewPass" type="password" placeholder="新密码（至少 6 位）" autocomplete="new-password" />
           <button class="acct-btn acct-btn--light" id="syncChangeSave" type="button">保存新密码</button>
         </div>
       </div>
@@ -100,9 +100,9 @@
     <!-- 未登录：登录 / 设密码（邀请码选填，内测码注册即送会员） -->
     <div id="syncLoginForm" style="display:none">
       <div class="acct-form-row">
-        <input class="acct-input" id="sAcct" placeholder="手机号 / 用户名（6-20 位）" autocomplete="username" maxlength="20" />
-        <input class="acct-input" id="sPass" type="password" placeholder="密码（至少 6 位）" autocomplete="current-password" />
-        <input class="acct-input" id="sInvite" placeholder="邀请码（选填 · 内测码送会员）" autocomplete="off" maxlength="16" style="text-transform:uppercase" />
+        <input aria-label="手机号或用户名" class="acct-input" id="sAcct" placeholder="手机号 / 用户名（6-20 位）" autocomplete="username" maxlength="20" />
+        <input aria-label="密码" class="acct-input" id="sPass" type="password" placeholder="密码（至少 6 位）" autocomplete="current-password" />
+        <input aria-label="邀请码（选填）" class="acct-input" id="sInvite" placeholder="邀请码（选填 · 内测码送会员）" autocomplete="off" maxlength="16" style="text-transform:uppercase" />
       </div>
       <div class="acct-actions">
         <button class="acct-btn acct-btn--light" id="syncLoginBtn" type="button">登录</button>
@@ -190,7 +190,7 @@
     <div class="form-row" style="gap:10px;align-items:center;margin-top:8px">
       <button class="btn btn-sm" id="exportBtn">导出 JSON</button>
       <button class="btn btn-sm" id="importBtn">导入 JSON</button>
-      <input type="file" id="importFile" accept="application/json" hidden />
+      <input aria-label="导入词库 JSON 文件" type="file" id="importFile" accept="application/json" hidden />
       <button class="btn btn-sm" id="resetBtn" style="margin-left:auto;color:var(--danger);background:var(--danger-soft);border-color:transparent">清空所有数据</button>
     </div>
     <div id="importErr" class="ui-err-box" style="margin-top:10px"></div>

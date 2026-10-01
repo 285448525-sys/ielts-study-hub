@@ -261,7 +261,7 @@
               <option value="动态图">动态图</option><option value="静态图">静态图</option><option value="地图题">地图题</option><option value="流程图">流程图</option>
               <option value="观点型">观点型</option><option value="讨论型">讨论型</option><option value="Report">Report</option>
             </select>
-            <input id="a_title" placeholder="模板标题" />
+            <input aria-label="模板标题" id="a_title" placeholder="模板标题" />
           </div>
           <textarea id="a_skeleton" placeholder="骨架原句，填空位用【】包裹，如 The figure for【A】was higher than【B】" style="width:100%;min-height:120px;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);resize:vertical;box-sizing:border-box"></textarea>
           <textarea id="a_tips" placeholder="使用提示（可选）" style="width:100%;min-height:60px;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);resize:vertical;box-sizing:border-box;margin-top:8px"></textarea>
@@ -321,11 +321,11 @@
               <option value="文化">文化</option><option value="社会">社会</option><option value="政府">政府</option><option value="经济">经济</option>
               <option value="犯罪">犯罪</option><option value="交通">交通</option><option value="工作">工作</option><option value="通用" selected>通用</option>
             </select>
-            <input id="ba_en" placeholder="英文词组/句式" />
+            <input aria-label="英文词组或句式" id="ba_en" placeholder="英文词组/句式" />
           </div>
-          <input id="ba_cn" placeholder="中文释义 / 用法说明" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);box-sizing:border-box;margin-top:8px" />
-          <input id="ba_tag" placeholder="功能标签（支持/反对/原因/方案/意义/影响/观点/对比/举例/因果/结论/建议，可选）" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);box-sizing:border-box;margin-top:8px" />
-          <input id="ba_ex" placeholder="例句（可选）" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);box-sizing:border-box;margin-top:8px" />
+          <input aria-label="中文释义或用法说明" id="ba_cn" placeholder="中文释义 / 用法说明" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);box-sizing:border-box;margin-top:8px" />
+          <input aria-label="功能标签（可选）" id="ba_tag" placeholder="功能标签（支持/反对/原因/方案/意义/影响/观点/对比/举例/因果/结论/建议，可选）" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);box-sizing:border-box;margin-top:8px" />
+          <input aria-label="例句（可选）" id="ba_ex" placeholder="例句（可选）" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);box-sizing:border-box;margin-top:8px" />
           <div class="form-row" style="align-items:flex-end;margin-top:10px">
             <button class="btn btn-primary" id="ba_save">保存</button>
           </div>
