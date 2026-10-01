@@ -749,10 +749,15 @@ function sentStart(sentId){
   if(inp && inp.focus) inp.focus();
 }
 
-/* ── 提交分派（onclick 单通道入口）── */
+/* ── 提交分派（onclick 单通道入口）──
+   10/1 晚修复：她实测「判定中…」永久卡死——原函数无 BUSY 锁、无 try/catch，
+   判定链路里任何一个同步异常（渲染/取视图/本地判定）都会让 async 函数静默 reject，
+   按钮停在 disabled + 「判定中…」永不恢复。三层保险：①SENT_BUSY 防重入
+   ②整体 try/catch 兜底恢复 ③8s 看门狗强制解锁。 */
+var SENT_BUSY = false;
 async function sentOnSubmit(){
   var c = sentCur();
-  if(!c || c.view !== 'practice') return;
+  if(!c || c.view !== 'practice' || SENT_BUSY) return;
   var inp = sent$('sentAnswer');
   var answer = ((inp && inp.value) || '').trim();
   if(!answer){ toast('先说出/输入这句英文'); return; }
@@ -760,32 +765,55 @@ async function sentOnSubmit(){
   var sub = sent$('sentSubmit'), st = sent$('sentStatus');
   if(sub) sub.disabled = true;
   if(st) st.textContent = '判定中…';
-  var sent = sentFind(c.sentId);
-  /* design/19：判定基准走 sentCurView()——与题干、AI 参照三者同源。
-     原实现按 phase 分头取 scene[c.sceneIdx].right vs sent.right，场景态一旦是「换主题填充」
-     就对不上题干（9/13 同类 bug 的根因：基准取自另一层）。 */
-  var v = sentCurView();
-  var ok = sentLocalJudge(answer, v.right);
-  var ai = null;
-  if(!ok){
-    ai = await sentAskAI({ cn: v.cn, right: v.right }, answer, (v.topic && v.topic.name) || '');
-    /* design/15 口径：三态。⚠️ ok 必须 === true 收敛——pending(null) 不算过（灰字可重交），
-       绝不静默放行；连续两次（错+pending 合计 tries）落「看答案」兜底不卡死。 */
-    ok = (ai.ok === true);
-  }
-  c.tries++;
-  c.draft = answer;
-  if(sub) sub.disabled = false;
-  if(ok){
-    sentPass();
-  } else if(ai && ai.ok === false){
-    c.lastAi = ai;
-    if(c.tries >= 2){ c.revealed = true; }
-    sentRenderFail(ai);
-  } else {
-    /* pending：超时/异常 → 灰字不算过、原答案保留可重交、零数据写入 */
-    if(c.tries >= 2){ c.revealed = true; }
-    sentRenderPending();
+  SENT_BUSY = true;
+  var watchdog = setTimeout(function(){
+    SENT_BUSY = false;
+    var s2 = sent$('sentStatus'), b2 = sent$('sentSubmit');
+    if(b2) b2.disabled = false;
+    if(s2) s2.textContent = '判定卡住了，再交一次试试';
+  }, 8000);
+  try{
+    var sent = sentFind(c.sentId);
+    /* design/19：判定基准走 sentCurView()——与题干、AI 参照三者同源。
+       原实现按 phase 分头取 scene[c.sceneIdx].right vs sent.right，场景态一旦是「换主题填充」
+       就对不上题干（9/13 同类 bug 的根因：基准取自另一层）。 */
+    var v = sentCurView();
+    var ok = sentLocalJudge(answer, v.right);
+    var ai = null;
+    if(!ok){
+      ai = await sentAskAI({ cn: v.cn, right: v.right }, answer, (v.topic && v.topic.name) || '');
+      /* design/15 口径：三态。⚠️ ok 必须 === true 收敛——pending(null) 不算过（灰字可重交），
+         绝不静默放行；连续两次（错+pending 合计 tries）落「看答案」兜底不卡死。 */
+      ok = (ai.ok === true);
+    }
+    c.tries++;
+    c.draft = answer;
+    if(ok){
+      sentPass();
+    } else if(ai && ai.ok === false){
+      c.lastAi = ai;
+      if(c.tries >= 2){ c.revealed = true; }
+      sentRenderFail(ai);
+    } else {
+      /* pending：超时/异常 → 灰字不算过、原答案保留可重交、零数据写入 */
+      if(c.tries >= 2){ c.revealed = true; }
+      sentRenderPending();
+    }
+  }catch(e){
+    try{ console.warn('sentOnSubmit 判定链路异常', e); }catch(_){}
+    if(c.tries >= 2){
+      c.revealed = true;
+      sentRenderPending();
+    } else {
+      c.fb = { cls: '', html: '判定出了点小问题——再交一次，或看答案', notes: '' };
+      sentRender();
+      var st3 = sent$('sentStatus');
+      if(st3) st3.textContent = '判定出错，可再交一次';
+    }
+  }finally{
+    clearTimeout(watchdog);
+    SENT_BUSY = false;
+    /* 按钮态不在这里恢复：sentPass（判过锁定）/sentRenderFail/Pending 各自管理 */
   }
 }
 
@@ -913,28 +941,36 @@ async function sentReplaySubmit(cat, topic){
   if(!answer){ toast('先写出这句英文'); return; }
   if(go) go.disabled = true;
   if(st) st.textContent = '判定中…';
-  var pseudo = {
-    cn: '为这道题写一句' + cat.name + '：' + (topic.titleZh || topic.titleEn || topic.title || ''),
-    right: (cat.sentences[0] || {}).right || ''
-  };
-  var ai = await sentAskAI(pseudo, answer);
-  var ok = (ai.ok === true);                    // design/15 口径：pending 不算过
-  if(go) go.disabled = false;
-  if(ok){
-    sentReplayDone(cat.id);
-    toast(cat.name + '通关 ✅');
-    return;
-  }
-  if(fb) fb.className = 'pd-feedback' + (ai && ai.ok === false ? ' bad' : '');
-  if(ai && ai.ok === false){
-    var mark = sentRenderErrors(answer, ai.errors || []);
-    if(fb) fb.innerHTML = ((ai.misread && ai.misreadNote) ? '<div class="sent-misread">⚠️ 你可能理解错题目了：' + sentEsc(ai.misreadNote) + '</div>' : '')
-      + '<div class="sent-orig">' + mark.html + '</div>' + mark.notes
-      + (ai.fix ? '<div class="sent-fix">' + sentEsc(ai.fix) + '</div>' : '');
-    if(st) st.textContent = '再试一次或跳过';
-  } else {
-    if(fb) fb.textContent = 'AI 没来得及判，这句不算过——再交一次或跳过';
-    if(st) st.textContent = '网络慢了，等一下再交';
+  /* 10/1 晚：与 sentOnSubmit 同批加 try/finally——弹窗判定链路抛错不再永久锁死按钮 */
+  try{
+    var pseudo = {
+      cn: '为这道题写一句' + cat.name + '：' + (topic.titleZh || topic.titleEn || topic.title || ''),
+      right: (cat.sentences[0] || {}).right || ''
+    };
+    var ai = await sentAskAI(pseudo, answer);
+    var ok = (ai.ok === true);                    // design/15 口径：pending 不算过
+    if(ok){
+      sentReplayDone(cat.id);
+      toast(cat.name + '通关 ✅');
+      return;
+    }
+    if(fb) fb.className = 'pd-feedback' + (ai && ai.ok === false ? ' bad' : '');
+    if(ai && ai.ok === false){
+      var mark = sentRenderErrors(answer, ai.errors || []);
+      if(fb) fb.innerHTML = ((ai.misread && ai.misreadNote) ? '<div class="sent-misread">⚠️ 你可能理解错题目了：' + sentEsc(ai.misreadNote) + '</div>' : '')
+        + '<div class="sent-orig">' + mark.html + '</div>' + mark.notes
+        + (ai.fix ? '<div class="sent-fix">' + sentEsc(ai.fix) + '</div>' : '');
+      if(st) st.textContent = '再试一次或跳过';
+    } else {
+      if(fb) fb.textContent = 'AI 没来得及判，这句不算过——再交一次或跳过';
+      if(st) st.textContent = '网络慢了，等一下再交';
+    }
+  }catch(e){
+    try{ console.warn('sentReplaySubmit 异常', e); }catch(_){}
+    if(fb) fb.textContent = '判定出了点小问题，再交一次或跳过';
+    if(st) st.textContent = '';
+  }finally{
+    if(go) go.disabled = false;
   }
 }
 function sentReplayOpen(cat, topic, topicName){
