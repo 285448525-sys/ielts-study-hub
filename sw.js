@@ -9,7 +9,7 @@
      SW 不参与离线态的判定与渲染，缓存策略本文件零改动。
      本文件 activate 时发的 `SW_UPDATED` 消费端也在 common.js（maybeShowSwUpdatePrompt，
      design/78）：页面收到后只弹提示条，**是否刷新由用户点击决定，SW 侧绝不自动 reload**。 */
-const CACHE = 'ielts-hub-v132';  // 10/1 深夜：design/89 mono 独白卡（materials）+ 计时页 v3 深色沉浸重做 + 全站 css r。上一版 v131 审计修复
+const CACHE = 'ielts-hub-v133';  // 10/1 深夜：FREQ_LABEL 口径统一（data.js 恢复唯一定义，progress.js 删本地副本）+ 全站 data.js a->b / review 的 progress.js b->c。上一版 v132 design/89 mono + 计时页 v3
 
 /* 核心壳预缓存清单（Node 脚本枚举目录生成，2026-09-20；与 14 页实际引用核对无遗漏）。
    不含 js/vendor/xlsx.full.min.js（861KB 体积大 → 走运行时 SWR 缓存）。 */

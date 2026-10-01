@@ -2,12 +2,8 @@
    9/10 迁移：原「口语页 → 数据 tab」，现搬到「回顾页 → 口语 tab」下（之之要求），
    口语页的 tab / progressView / progress.js 引用已全部移除。
    由 review.html 的 <script defer> 加载，页面加载即自渲染（同 speaking-practice.js 约定）。
-   依赖全局：DATA、escapeHtml。 */
+   依赖全局：DATA、escapeHtml、**FREQ_LABEL（data.js 唯一定义，5879483 换季误删后已在该处恢复）**。 */
 (function () {
-  /* design/89 补（修 5879483 回归）：5879483 换季时把 data.js 的 FREQ_LABEL 删了没补回，
-     本文件裸用导致 review.html pageerror「FREQ_LABEL is not defined」。
-     就地内联档位表（自备兜底，不再依赖 data.js）；data.js 若日后恢复该常量，此本地表同值无冲突。 */
-  var FREQ_LABEL = { ultra: '超高频', high: '高频', medium: '中频', low: '低频' };
   // 聚合单个话题下所有单题手写练习记录
   function topicRecords(s) {
     const out = [];
