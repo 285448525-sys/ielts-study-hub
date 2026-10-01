@@ -46,7 +46,7 @@
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
   <script defer src="js/sentence-drill.js?v=20261001i"></script>
-  <script defer src="js/speaking.js?v=20261001o"></script>
+  <script defer src="js/speaking.js?v=20261001p"></script>
   <script defer src="js/materials.js?v=20261001h"></script>
   <script defer src="js/mock-report.js?v=20260830u"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
@@ -104,7 +104,7 @@
   .sent-cat-prog-fill{height:100%;background:var(--primary);border-radius:4px;transition:width .35s ease}
   .sent-caret{color:var(--muted);font-size:12px;flex:none}
   .sent-cat-body{padding:2px 0 6px}
-  .sent-item{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;font-size:14px;color:var(--ink);transition:background .15s;position:relative}
+  .sent-item{display:flex;align-items:center;gap:10px;padding:10px 34px 10px 16px;cursor:pointer;font-size:14px;color:var(--ink);transition:background .15s;position:relative}
   /* 10/1 UI polish：句子行右侧 chevron + hover ring */
   .sent-item::after{content:'›';position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:18px;color:var(--muted);opacity:.4;transition:all .15s}
   .sent-item:hover::after{color:var(--primary);opacity:1;transform:translateY(-50%) translateX(2px)}
@@ -382,8 +382,6 @@
   .sp-logic[hidden]{display:none}
   .sp-logic>b{color:var(--primary);flex:0 0 auto;font-size:13px;line-height:1.75}
   .sp-logic-text{white-space:pre-wrap;word-break:break-word}
-  .sp-ref-toggle{display:block;margin-top:8px;font-size:12.5px;color:var(--med);cursor:pointer;background:none;border:none;padding:4px 0;text-decoration:underline dotted;text-align:left}
-  .sp-ref-toggle:hover{color:var(--primary)}
   .sp-ref-answer{display:none;margin-top:8px;padding:10px 12px;background:var(--bg);border:1px solid var(--line);border-radius:10px;font-size:14px;line-height:1.8;color:var(--ink);white-space:pre-wrap}
   .sp-ref-answer.open{display:block}
 
