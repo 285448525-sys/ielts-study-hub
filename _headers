@@ -1,3 +1,30 @@
+# 10/2 补充安全头与缓存策略（Cloudflare Pages 会按路径下发）
+#
+# 缓存策略为什么不给 immutable（一年强缓存）：
+#   sw.js 的 PRECORE 预缓存用的是**不带版本号**的 /js/common.js、/css/common.css，
+#   一旦给 /js/*、/css/* 上 immutable，新版 SW 安装时可能直接从 HTTP 缓存拿到旧文件，
+#   把「新 SW + 旧 JS」钉在一起 —— 就是 10/1 那个 css buster o->p->q 错位事故的同类隐患。
+#   页面引用虽然都带 ?v=，但 _headers 只能按路径匹配、没法按 query 区分，
+#   所以改走「短缓存 + 必须校验」：正常访问命中 5 分钟强缓存，SW 装新版最迟 5 分钟必拿新文件。
+#
+# 安全头说明：全站未使用 getUserMedia / MediaRecorder / geolocation / camera
+#   （口语只用到 speechSynthesis 朗读，不需要麦克风权限），所以可以放心收紧。
+#   ⚠️ 将来若真要加录音功能，必须先把 microphone 从 Permissions-Policy 里放出来。
+
 /*
   Content-Security-Policy: frame-ancestors 'none'
   X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: microphone=(), camera=(), geolocation=()
+
+/js/*
+  Cache-Control: public, max-age=300, must-revalidate
+/css/*
+  Cache-Control: public, max-age=300, must-revalidate
+
+/data/*
+  Cache-Control: public, max-age=3600, must-revalidate
+
+/img/*
+  Cache-Control: public, max-age=86400
