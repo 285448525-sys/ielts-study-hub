@@ -603,7 +603,6 @@ async function aiFillWords(words, hint){
     });
     hubSave(); renderWords();
     if(hint) hint.textContent = 'AI 正在补全词性与音标… ' + Math.min(i+20, words.length) + '/' + words.length;
-    console.log('[aiFillWords] 批次', i/20+1, '命中', arr.length, '条，填充', filled, '处');
   }
   return 'ok';
 }
@@ -630,7 +629,7 @@ async function backfillCn(){
       }catch(_){}
     }
   }
-  if(cleanN){ hubSave(); renderWords(); console.log('[backfillCn] 格式化清洗', cleanN, '处'); }
+  if(cleanN){ hubSave(); renderWords(); }
   // 先把所有词组词性统一为 phrase.（用户要求"统一成phrase"），与是否需补释义无关
   let posN = 0;
   DATA.words.forEach(w => { if(isPhrase(w.en) && w.pos !== 'phrase.'){ w.pos = 'phrase.'; posN++; } });
