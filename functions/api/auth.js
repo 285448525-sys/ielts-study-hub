@@ -2,18 +2,23 @@
 //
 // 背景（10/1 她拍板）：邮箱验证码登录要买域名 + Resend（MAIL_API_KEY / MAIL_FROM），先不搞。
 // 改成「手机号 + 密码」，同时补上以前最大的安全洞——「手机号即凭证，任何知道号码的人都能读写云数据」：
-//   · register  手机号/用户名 + 密码 → PBKDF2 存哈希（绝不存明文）
+//   · register  手机号/用户名 + 密码 + 邀请码 → PBKDF2 存哈希（绝不存明文）
 //   · login     验密码 → 发 30 天 session token，此后 /api/sync 凭 X-Session token 读写
 //   · change    登录态下验旧密码 → 换新密码（session 保留，其他设备不受影响）
 //   · logout    删 session
 //   找回密码：暂未提供——恢复码机制已按她 10/1 拍板整套下线（太长记不住，比密码还难记）；
 //   手机验证码找回后续版本再做。在此之前忘记密码只能换新号重开（云端老数据归旧键名，不会丢）。
 //
+// 邀请码（她 10/1 拍板）：KV 键 inv:<CODE> = { max, used, created }；注册消耗一次。
+// 发码/作废/看用量统一走 /api/admin（ADMIN_KEY 鉴权），页面化入口 = admin.html 站长面板
+// （她 10/1 要求：不进 CF 后台也能管用户/发码/看数据）。
+//
 // KV 键（SYNC_KV）：
 //   user:<acct>    { salt, hash, rechash?, created }  —— PBKDF2-SHA256 10 万次迭代 + 随机盐
 //                  （rechash 是恢复码时代的遗留字段：存量账号还带着，新注册/改密不再写入，留着无害）
 //   sess:<token>   { acct }                           —— TTL 30 天（30 天后需重新登录）
 //   fail:<acct>    登录失败计数（10 次锁 15 分钟，防在线爆破；TTL 自愈）
+//   inv:<CODE>     { max, used, created }             —— 邀请码（注册必填；无 TTL）
 //   数据键 sync:<acct> / meta:<acct> 仍归 /api/sync 管，老手机号账号键名不变，老数据原样保留。
 //
 // 兼容口径（老用户迁移）：
@@ -106,18 +111,29 @@ export async function onRequest(context) {
   const kv = env.SYNC_KV;
   const action = body && body.action;
 
-  /* ---------- 注册：账号（手机号/用户名）+ 密码 ---------- */
+  /* ---------- 注册：账号（手机号/用户名）+ 密码 + 邀请码 ---------- */
   if (action === 'register') {
     const acct = String(body.acct || body.phone || '').trim().toLowerCase();
     const password = String(body.password || '');
+    const invCode = String(body.inviteCode || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
     if (badPhone(acct)) return json({ ok: false, error: 'bad_phone', msg: '账号格式：6-20 位数字/字母/下划线' }, 400);
     if (badPass(password)) return json({ ok: false, error: 'bad_password', msg: '密码至少 6 位（最长 64 位）' }, 400);
+    /* 邀请码闸（她 10/1 拍板）：注册必填有效邀请码，一码限 max 次——防批量注册薅免费额度 */
+    if (!invCode) return json({ ok: false, error: 'invite_required', msg: '请填写邀请码（向站长索取）' }, 403);
+    let inv = null;
+    try { inv = JSON.parse((await kv.get('inv:' + invCode)) || 'null'); } catch (e) {}
+    if (!inv || !inv.max || (inv.used || 0) >= inv.max) {
+      return json({ ok: false, error: 'bad_invite', msg: '邀请码无效或已用完' }, 403);
+    }
     if (await kv.get('user:' + acct)) {
       return json({ ok: false, error: 'already_registered', msg: '该账号已设置过密码，直接登录即可' }, 409);
     }
     const salt = randHex(16);
     const hash = await pbkdf2(password, salt);
     await kv.put('user:' + acct, JSON.stringify({ salt, hash, created: Date.now() }));
+    /* 注册成功才消耗邀请码（前面任何一步失败都不吃码） */
+    inv.used = (inv.used || 0) + 1;
+    await kv.put('inv:' + invCode, JSON.stringify(inv));
     return json({ ok: true });
   }
 

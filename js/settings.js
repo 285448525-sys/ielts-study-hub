@@ -23,8 +23,6 @@ function populateSettingsForm(){
 
   if($('#sPron')) $('#sPron').value = (s.pronunciationScore != null ? s.pronunciationScore : '');
   if($('#sFlu')) $('#sFlu').value = (s.fluencyScore != null ? s.fluencyScore : '');
-  if($('#sRelayToken')) $('#sRelayToken').value = s.relayToken || '';
-  if($('#sAiChannel')) $('#sAiChannel').value = s.aiChannel || 'auto';   // 9/30：AI 通道（本机偏好，不同步到云端）
   if($('#sChime')) $('#sChime').checked = s.chimeOnDone !== false;
   // 9/21 翻转：服药模块默认关闭 → 无该函数时兜底 false（与 common.js 口径一致）
   if($('#sAdhd')) $('#sAdhd').checked = (typeof medsModuleOn === 'function') ? medsModuleOn() : false;
@@ -38,15 +36,6 @@ ready(() => {
   bindPwaCard();
 
   $('#saveSettings').addEventListener('click', saveSettings);
-  $('#saveRelay').addEventListener('click', saveRelay);
-  $('#testAiBtn').addEventListener('click', testAIConnection);
-  $('#toggleKey').addEventListener('click', () => {
-    const el = $('#sRelayToken');
-    if(!el) return;
-    const showing = el.type === 'text';
-    el.type = showing ? 'password' : 'text';
-    $('#toggleKey').textContent = showing ? '显示' : '隐藏';
-  });
   $('#sThemeToggle').addEventListener('change', () => {
     const dark = $('#sThemeToggle').checked;
     DATA.settings.theme = dark ? 'dark' : 'light';
@@ -83,7 +72,9 @@ ready(() => {
   });
   if($('#sPass')) $('#sPass').addEventListener('keydown', e => { if(e.key === 'Enter') $('#syncLoginBtn').click(); });
   $('#syncRegisterBtn').addEventListener('click', async () => {
-    const r = await authRegister($('#sAcct') ? $('#sAcct').value : '', $('#sPass') ? $('#sPass').value : '');
+    const inv = $('#sInvite') ? $('#sInvite').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '') : '';   // 与服务端同口径归一化
+    if(!inv){ syncSetStatus('请填写邀请码（向站长索取）', 'error'); return; }
+    const r = await authRegister($('#sAcct') ? $('#sAcct').value : '', $('#sPass') ? $('#sPass').value : '', inv);
     if(!r.ok) return;   // 失败原因已写在状态行（含 needLogin 提示）
     const r2 = await authFinishRegister(r.acct, r.password);   // 恢复码已下线：注册成功直接自动登录
     if(r2.ok) renderAuthUI();
@@ -216,19 +207,9 @@ function bindPwaCard(){
   document.addEventListener('hub:pwa-installed', () => { toast('已添加到桌面'); renderPwaCard(); });
 }
 
-function saveRelay(){
-  DATA.settings.relayToken = $('#sRelayToken').value.trim();
-  // 9/30：AI 通道（auto / site / own）。纯本机偏好，故意不进 SYNC_SETTINGS_FIELDS：
-  //       每台设备该用哪条通道由本机决定，不该被云端值覆盖。
-  const chEl = $('#sAiChannel');
-  if(chEl) DATA.settings.aiChannel = (chEl.value === 'site' || chEl.value === 'own') ? chEl.value : 'auto';
-  DATA.settings._fieldTs = DATA.settings._fieldTs || {};
-  DATA.settings._fieldTs.relayToken = Date.now();   // 记录本机 Key 保存时间，合并时按时间胜出，避免被云端旧值覆盖
-  hubSave();
-  if(DATA.settings.syncCode) scheduleCloudUpload();   // 已登录则立即同步到云端，避免 60s 延迟期间清缓存丢 Key
-  // Key 从不上传云端（不在 SYNC_SETTINGS_FIELDS 里），旧文案「已同步云端」是错的
-  toast(DATA.settings.relayToken ? '已保存 AI 接口配置（仅本机）' : '已清空 Key');
-}
+/* AI Key 设置模块已下线（她 10/1 拍板：商业化后 AI 一律走站内通道，用户不接触 Key）。
+   saveRelay/testAIConnection/setAiStatus/setAiLoading 已删；存量 DATA.settings.relayToken
+   字段保留原地（callRelay 的 auto 逻辑继续认它，本机已存 Key 的设备零迁移）。 */
 
 /* 讯飞语音配置已移除（录音 / 转写功能已下线，发音分改由设置里的固定分提供） */
 
@@ -248,61 +229,6 @@ function renderAuthUI(){
   }
 }
 
-/* 测试连接：用输入框里的 Key 探活 DeepSeek，成功即自动保存 */
-async function testAIConnection(){
-  const key = $('#sRelayToken').value.trim();
-  const chEl = $('#sAiChannel');
-  const ch = chEl ? chEl.value : 'auto';
-  if(!key && ch === 'own'){ toast('请先填写 API Key（或把「AI 通道」改成自动 / 站内）'); return; }
-  const btn = $('#testAiBtn');
-  if(btn) btn.disabled = true;
-  setAiLoading();
-  const prev = DATA.settings.relayToken || '';
-  const prevCh = DATA.settings.aiChannel || 'auto';
-  // 9/30：没填 Key 时测的是「站内通道」是否可用 —— 临时切到 site，探完还原
-  const tmpSite = (!key && prevCh === 'auto');
-  if(tmpSite) DATA.settings.aiChannel = 'site';
-  try{
-    if(key) DATA.settings.relayToken = key; // 临时用输入框的 key 探活（callRelay 从 settings 里读）
-    const r = await callRelay('gpt', [{ role:'user', content:'Reply with exactly the single word: PONG' }], 0.1);
-    if(key){
-      DATA.settings.relayToken = key; // 探活成功 → 直接生效并保存（与 saveRelay 一致：记时间戳 + 调度云端同步）
-      DATA.settings._fieldTs = DATA.settings._fieldTs || {};
-      DATA.settings._fieldTs.relayToken = Date.now();
-      hubSave();
-      if(DATA.settings.syncCode) scheduleCloudUpload();
-      setAiStatus('✅ 连接成功：' + (r||'').slice(0,60), 'ok');
-      toast('✅ 连接成功，Key 已保存');
-    }else{
-      setAiStatus('✅ 站内 AI 通道可用：' + (r||'').slice(0,60), 'ok');
-      toast('✅ 站内 AI 通道可用，不用填 Key');
-    }
-  }catch(e){
-    DATA.settings.relayToken = prev;   // 探活失败 → 恢复原 Key：否则无效 key 残留内存态，后续任何 hubSave 都会把它持久化
-    setAiStatus('❌ 连接失败：' + e.message, 'error');
-    toast('❌ 连接失败：' + e.message);
-  }finally{
-    if(tmpSite) DATA.settings.aiChannel = prevCh;   // 临时切站内探活 → 还原，不写进设置
-    if(btn) btn.disabled = false;
-  }
-}
-function setAiStatus(msg, kind){
-  const el = $('#aiStatus');
-  if(!el) return;
-  el.textContent = msg || '';
-  el.className = 'muted' + (kind ? ' sync-status-' + kind : '');
-}
-// 测试连接等待时，用弹跳 loader（.ui-loader）代替纯文字
-function setAiLoading(){
-  const el = $('#aiStatus');
-  if(!el) return;
-  el.className = 'muted';
-  el.innerHTML = '<div style="height:40px;overflow:hidden;display:flex;justify-content:center;align-items:flex-start">'
-    + '<div class="ui-loader" style="transform:scale(.6);transform-origin:top center;margin-top:2px">'
-    + '<div class="ui-loader-dot"></div><div class="ui-loader-dot m2"></div><div class="ui-loader-dot m3"></div>'
-    + '<div class="ui-loader-shadow"></div><div class="ui-loader-shadow m2"></div><div class="ui-loader-shadow m3"></div>'
-    + '</div></div>';
-}
 function exportData(){
   const blob = new Blob([JSON.stringify(DATA, null, 2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);

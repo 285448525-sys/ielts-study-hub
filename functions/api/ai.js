@@ -4,13 +4,16 @@
 // 长难句拆解、写作批改、串题素材…）。Key 只存在服务端环境变量里，永远不下发到浏览器。
 //
 // 需要的环境变量（Cloudflare Pages → Settings → Environment variables，密钥建议设成 Secret）：
-//   AI_API_KEY      必填。DeepSeek 的 sk-xxxx（也可填任何 OpenAI 兼容服务的 Key）
-//   AI_BASE_URL     选填，默认 https://api.deepseek.com/v1
-//   AI_MODEL        选填，默认 deepseek-chat
-//   AI_DAILY_LIMIT  选填，全站每日总调用上限，默认 3000
-//   AI_IP_LIMIT     选填，单 IP 每日上限，默认 200
-// 未配 AI_API_KEY 时返回 501 { ok:false, error:'relay_not_configured' }，
-// 前端收到后自动回退到「用户自己的 Key」，不会卡死。
+//   AI_API_KEY           必填。DeepSeek 的 sk-xxxx（也可填任何 OpenAI 兼容服务的 Key）
+//   AI_BASE_URL          选填，默认 https://api.deepseek.com/v1
+//   AI_MODEL             选填，默认 deepseek-chat
+//   AI_DAILY_LIMIT       选填，全站每日总调用上限，默认 3000
+//   AI_IP_LIMIT          选填，单 IP 每日上限，默认 200
+//   AI_USER_DAILY_LIMIT  选填，单账号每日 AI 额度（免费/会员分层用），默认 0 = 不限；
+//                        她拍板具体数值后配这个变量即可，代码不用动
+// 访问规则（她 10/1 拍板「必须登录才能用 AI」）：登录闸先于一切——未登录（无/无效 X-Session）
+// 一律 401 auth_required，即使 AI_API_KEY 未配也不给未登录用户探出任何信息。
+// 未配 AI_API_KEY 时（已登录用户）返回 501 { ok:false, error:'relay_not_configured' }。
 //
 // 为什么只透传白名单字段：请求体由浏览器提供，若整段转发上游，任何人都能借本站 Key
 // 调任意参数（甚至换 model 打贵模型）。因此只取 model/messages/temperature/max_tokens/
@@ -77,6 +80,19 @@ async function sumBuckets(kv, prefix, day) {
   return total;
 }
 
+/* 登录收口（她 10/1 拍板「必须登录才能用 AI」）：凭 X-Session 头查 sess:<token>，
+   与 /api/auth 的 session 同源。未登录 → 401 auth_required。 */
+async function sessAcctOf(kv, request) {
+  const tok = String(request.headers.get('X-Session') || '').trim();
+  if (!tok || !/^[0-9a-f]{32,128}$/.test(tok)) return null;
+  try {
+    const raw = await kv.get('sess:' + tok);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    return (s && s.acct) || null;
+  } catch (e) { return null; }
+}
+
 export async function onRequest(context) {
   const { request, env } = context;
 
@@ -86,13 +102,19 @@ export async function onRequest(context) {
   if (request.method !== 'POST') {
     return json({ ok: false, error: '只支持 POST' }, 405, env);
   }
+  if (!env || !env.SYNC_KV) {
+    return json({ ok: false, error: 'kv_not_bound', msg: '云端存储未绑定（SYNC_KV）' }, 503, env);
+  }
+
+  /* 登录闸：未登录一律 401（先于 AI_API_KEY 检查——没配 Key 时也别给未登录用户探出任何信息） */
+  const acct = await sessAcctOf(env.SYNC_KV, request);
+  if (!acct) {
+    return json({ ok: false, error: 'auth_required', msg: '请先登录，登录后即可使用 AI 功能' }, 401, env);
+  }
 
   const apiKey = (env && env.AI_API_KEY) || '';
   if (!apiKey) {
     return json({ ok: false, error: 'relay_not_configured', msg: '站内 AI 通道未配置（缺 AI_API_KEY）' }, 501, env);
-  }
-  if (!env || !env.SYNC_KV) {
-    return json({ ok: false, error: 'kv_not_bound', msg: '云端存储未绑定（SYNC_KV）' }, 503, env);
   }
 
   let body = null;
@@ -132,6 +154,15 @@ export async function onRequest(context) {
   const usedIp = await sumBuckets(env.SYNC_KV, 'aiqip:' + ip, day);
   if (usedIp >= ipLimit) {
     return json({ ok: false, error: 'ip_limit', msg: '今日调用次数已达上限' }, 429, env);
+  }
+  /* 按账号每日额度（免费/会员分层用）：AI_USER_DAILY_LIMIT 环境变量，0 = 不限（默认）。
+     具体免费额度数值等她拍板后配环境变量即可，代码无需再动。 */
+  const acctLimit = parseInt((env && env.AI_USER_DAILY_LIMIT) || '0', 10) || 0;
+  if (acctLimit > 0) {
+    const usedAcct = await sumBuckets(env.SYNC_KV, 'aiqa:' + acct, day);
+    if (usedAcct >= acctLimit) {
+      return json({ ok: false, error: 'user_limit', msg: '你今日的免费 AI 额度已用完' }, 429, env);
+    }
   }
 
   const base = ((env && env.AI_BASE_URL) || DEFAULT_BASE).replace(/\/+$/, '');
@@ -188,6 +219,7 @@ export async function onRequest(context) {
   /* 只有真的拿到 2xx 才计额度：上游报错 / 超时 / Key 失效不该吃掉用户配额 */
   bumpCount(env.SYNC_KV, 'aiq', day, bucket);
   bumpCount(env.SYNC_KV, 'aiqip:' + ip, day, bucket);
+  bumpCount(env.SYNC_KV, 'aiqa:' + acct, day, bucket);   // 按账号计量（免费额度框架，阈值 AI_USER_DAILY_LIMIT）
 
   // 直接透传上游响应体（前端现有解析逻辑 choices[0].message.content 不用改）
   return new Response(text, {

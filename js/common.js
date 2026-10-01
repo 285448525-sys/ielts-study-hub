@@ -296,11 +296,6 @@ function bindSideSearch(){
       if(token !== _ssAiToken) return;
       const msg = (e && e.message) ? e.message : '查询失败';
       let inner = '<div class="sc-err">「' + escapeHtml(word) + '」查询失败：' + escapeHtml(msg) + '</div>';
-      /* design/81：引导卡已挂屏时不再叠加这枚面板内跳转按钮（同一处撞墙只提示一次）；
-         她按过「不再提示」后卡片不出现，这里照旧给跳转。 */
-      if(String(msg).indexOf('API Key') !== -1 && !document.getElementById(AIKEY_CARD_ID)){
-        inner += '<button class="ss-item" type="button" data-file="settings.html" style="margin-top:6px"><span class="ss-name">去设置填写 API Key</span></button>';
-      }
       card = list.querySelector('.ss-card');
       if(card) card.outerHTML = ssCardHtml(inner, wq);
     }finally{
@@ -718,11 +713,6 @@ function applyTheme(theme){
 }
 
 function toast(msg){
-  /* design/81 去重：引导卡刚弹出后的短窗口内，调用方 catch 里那句含「未配置 API Key」的 toast
-     不再重复播（卡与 toast 二选一，方案 §5「双重提示」风险）。其余 toast 一律不受影响。 */
-  if(_aiKeyCardAt && (Date.now() - _aiKeyCardAt) < 2000
-     && String(msg).indexOf('未配置 API Key') !== -1
-     && document.getElementById(AIKEY_CARD_ID)) return;     // 卡片必须还挂在屏上才去重（关掉后立刻恢复 toast）
   let t = document.getElementById('toast');
   if(!t){ t = document.createElement('div'); t.id='toast'; t.className='toast'; document.body.appendChild(t); }
   t.textContent = msg; t.hidden = false;
@@ -885,82 +875,20 @@ function progressBar(label, percent, color){
 
 function renderEmpty(msg){ return `<div class="empty">${msg}</div>`; }
 
-/* ===== design/81 无 Key AI 引导卡 =====
-   只在 callRelay 因「未配置 Key」抛错时出现——把一句裸 toast 变成可操作的一张卡。
-   ⭐ callRelay 只负责发请求，不负责 UI：这里在 throw 处顺手渲染卡片，再由 toast() 做一次
-      短窗口去重（否则调用方 catch 里的 toast 会和卡片同时出现 = 双重提示，方案 §5 已列风险）。
-   ⭐ 不动任何调用点、不改请求逻辑：已填 Key 但失败（401/余额不足/超时）与本卡无关，走原错误提示。
-   ⭐ 文案边界：只说「本站不内置 Key，需自备」，不出现免费额度/保证/价格类承诺。 */
-const AIKEY_CARD_ID = 'aiKeyGuideCard';
-const AIKEY_OFF_KEY = 'hub_ai_key_hint_off';
-let _aiKeyCardAt = 0;                       // 卡片渲染时间戳，供 toast() 去重
+/* ===== AI 不可用提示（10/1 商业化改造）=====
+   站内通道（/api/ai，Key 只在站长服务端）成为默认路径，「用户自备 Key」概念随设置页 AI 模块
+   一起下线，design/81 的「去设置填 Key」引导卡整套退役。AI 不可用时只提示稍后再试。 */
+function notifyNoKey(){ toast('AI 服务暂时不可用，请稍后再试'); }
 
-function aiKeyHintOff(){
-  try{ return localStorage.getItem(AIKEY_OFF_KEY) === '1'; }catch(e){ return false; }
-}
-function aiKeyDismissCard(){
-  const el = document.getElementById(AIKEY_CARD_ID);
-  if(el && el.parentNode) el.parentNode.removeChild(el);
-}
-/* 渲染引导卡。返回 true = 卡片已接管提示（调用方不用再 toast）；false = 回退原 toast。 */
-function showAiKeyGuide(){
-  try{
-    if(!document.body) return false;                              // 无 UI 容器（自动化/后台）→ 不弹
-    if(aiKeyHintOff()) return false;                              // 她按过「不再提示」→ 回退一句 toast
-    if(document.getElementById(AIKEY_CARD_ID)) return true;        // 单例
-    if(document.getElementById('onbOverlay')) return false;       // 首次引导中不叠层
-    const card = document.createElement('div');
-    card.id = AIKEY_CARD_ID;
-    card.className = 'ai-key-card';
-    card.setAttribute('role', 'dialog');
-    card.setAttribute('aria-label', 'AI 功能需要你自己的 Key');
-    const title = document.createElement('div');
-    title.className = 'ai-key-title';
-    title.textContent = 'AI 功能需要你自己的 Key';
-    const body = document.createElement('p');
-    body.className = 'ai-key-desc';
-    body.textContent = '本站是纯前端页面，不内置任何 Key：接口地址与模型已内置，只需填你自己的 DeepSeek Key。Key 只存在你这台设备的浏览器里，不会上传。';
-    const row = document.createElement('div');
-    row.className = 'ai-key-row';
-    const go = document.createElement('button');
-    go.className = 'btn btn-primary ai-key-btn';
-    go.type = 'button';
-    go.textContent = '去设置';
-    go.addEventListener('click', () => { aiKeyDismissCard(); location.href = 'settings.html#ai'; });
-    const off = document.createElement('button');
-    off.className = 'btn ai-key-btn';
-    off.type = 'button';
-    off.textContent = '不再提示';
-    off.addEventListener('click', () => {
-      try{ localStorage.setItem(AIKEY_OFF_KEY, '1'); }catch(e){}
-      aiKeyDismissCard();
-    });
-    const close = document.createElement('button');
-    close.className = 'ai-key-close';
-    close.type = 'button';
-    close.setAttribute('aria-label', '关闭');
-    close.textContent = '×';
-    close.addEventListener('click', aiKeyDismissCard);
-    row.appendChild(go); row.appendChild(off);
-    card.appendChild(close); card.appendChild(title); card.appendChild(body); card.appendChild(row);
-    document.body.appendChild(card);
-    _aiKeyCardAt = Date.now();
-    return true;
-  }catch(e){ return false; }
-}
-/* 缺 Key 时的统一入口：能弹卡就弹卡，弹不了（无容器/已关闭提示）就回退原 toast。 */
-function notifyNoKey(){ try{ showAiKeyGuide(); }catch(e){} }
-
-/* 共享 AI 出口：站内中转（/api/ai）与自带 Key 直连 DeepSeek 两条路。
-   只需在「设置 / AI 接口」填一个 DeepSeek API Key，地址与模型已内置，降低门槛。
-   Key 存在浏览器本地 localStorage；口语/翻译/长难句/写作等所有 AI 功能共用。
+/* 共享 AI 出口：站内中转（/api/ai）为主路径，本机自带 Key 直连 DeepSeek 为遗留兼容。
+   10/1 商业化改造：设置页 AI 模块已删，「用户自备 Key」入口下线——新用户一律走站内；
+   存量设备 DATA 里还留着 relayToken/aiChannel 字段，auto 逻辑（有本机 Key 用本机）继续生效，零迁移。
    service ∈ 'gpt' | 'trans' | 'longsent' | 'speaking_assist' | 'writing_score' | 'words'
    （统一用 deepseek-chat，service 仅作语义标记，不影响调用）。
 
-   ⭐ 9/30 站内中转（functions/api/ai.js）：站点可以在 Cloudflare 环境变量里配一把站长的 Key，
-      这样访客不填 Key 也能用全部 AI 功能。通道由 settings.aiChannel 决定：
-        auto（默认）= 本机有 Key 用自己的，没有才走站内；site = 强制站内；own = 只用自己的 Key。
-      站内失败（未配置 / 限流 / 上游错）且本机有 Key 时静默回退到直连，不打断学习。 */
+   站内中转（functions/api/ai.js）：站长在 Cloudflare 环境变量 AI_API_KEY 里配 Key，
+      全站每日限额 AI_DAILY_LIMIT（默认 3000）、单 IP 每日 AI_IP_LIMIT（默认 200）。
+      aiChannel 兼容口径：auto（默认）= 本机有 Key 用自己的，没有走站内；site = 强制站内；own = 只用本机 Key。 */
 const AI_BASE = 'https://api.deepseek.com/v1';
 const AI_MODEL = 'deepseek-chat';
 const SITE_AI_URL = 'api/ai';
@@ -969,7 +897,8 @@ async function callSiteRelay(service, messages, temperature, opts){
   const body = { service: service, messages: messages, temperature: temperature };
   if(opts && opts.max_tokens) body.max_tokens = opts.max_tokens;
   if(opts && opts.json_mode) body.json_mode = true;
-  const res = await fetch(SITE_AI_URL, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) });
+  // ⭐ 10/1 收口登录：站内 AI 必须带 session token，服务端未登录直接 401 auth_required
+  const res = await fetch(SITE_AI_URL, { method:'POST', headers:{ 'Content-Type':'application/json', 'X-Session': (typeof authToken === 'function' ? (authToken() || '') : '') }, body: JSON.stringify(body) });
   const txt = await res.text();
   let j = null; try{ j = JSON.parse(txt); }catch(_){}
   if(res.status === 501 || (j && j.error === 'relay_not_configured')){
@@ -996,10 +925,16 @@ async function callRelay(service, messages, temperature, opts){
     catch(e){ siteErr = e; }                        // 站内没成 → 有 Key 就静默回退，没有才报错
   }
   if(!key){
-    notifyNoKey();                                     // design/81：能弹引导卡就弹，不能就回退调用方的 toast
+    if(siteErr && siteErr.code === 'auth_required'){    // 未登录：明确引导登录，不走「服务不可用」话术
+      toast('请先登录，登录后即可使用 AI 功能');
+      const ea = new Error('请先登录，登录后即可使用 AI 功能');
+      ea.code = 'AUTH_REQUIRED';
+      throw ea;
+    }
+    notifyNoKey();                                     // AI 不可用：一句 toast（引导卡已随「自备 Key」下线）
     const e0 = new Error(siteErr
-      ? ('站内 AI 通道不可用：' + siteErr.message + '。也可去「设置 / AI 接口」填自己的 Key')
-      : '未配置 API Key（去「设置 / AI 接口」填写）');
+      ? ('AI 服务暂时不可用：' + siteErr.message)
+      : 'AI 服务暂时不可用，请稍后再试');
     e0.code = siteErr ? (siteErr.code || 'SITE_RELAY_FAIL') : 'NO_RELAY_KEY';
     throw e0;
   }
@@ -2565,16 +2500,20 @@ async function authLogin(acct, password){
 }
 
 /* 首次设置密码（= 注册）。老用户（只绑过手机号）同样走这里，云端老数据自动接上。
+   inviteCode：站长邀请码（10/1 商业化拍板，注册必填；服务端校验 inv:<CODE> 键，注册成功才消耗）。
    成功返回 { ok, acct, password }（恢复码已按她 10/1 拍板整套下线，注册成功由 UI 层直接走 authFinishRegister 自动登录）。 */
-async function authRegister(acct, password){
+async function authRegister(acct, password, inviteCode){
   acct = normalizeAcct(acct);
   if(acctBad(acct)){ syncSetStatus('账号格式：6-20 位数字或字母', 'error'); return { ok:false }; }
   if(typeof password !== 'string' || password.length < 6 || password.length > 64){
     syncSetStatus('密码至少 6 位（最长 64 位）', 'error'); return { ok:false };
   }
   syncSetStatus('正在设置密码…', '');
+  const payload = { action:'register', acct: acct, password: password };
+  const ic = String(inviteCode || '').trim();
+  if(ic) payload.inviteCode = ic;
   let j;
-  try{ j = await authApiPost({ action:'register', acct: acct, password: password }); }
+  try{ j = await authApiPost(payload); }
   catch(e){
     if(e.code === 'already_registered'){
       syncSetStatus('该账号已设置过密码，直接登录即可', 'error');

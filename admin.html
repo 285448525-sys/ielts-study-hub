@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>站长面板 · 雅思备考站</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<style>
+:root{
+  --p-50:#eef7f6; --p-100:#d3ebe8; --p-200:#a8d7d2; --p-500:#3a9a93; --p-600:#2f867f; --p-700:#2c7873; --p-900:#1a4542;
+  --n-0:#fff; --n-300:#e6e8eb; --n-500:#a8adb5; --n-600:#71767e; --n-700:#4a4f57; --n-900:#14161a;
+  --line:#e6e8eb; --danger:#c0392b; --ok:#2e8b57;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;min-height:100vh;color:var(--n-700);
+  font-family:system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  background:linear-gradient(160deg,var(--p-50) 0%,#f6fbfa 45%,#eef4f9 100%);
+}
+.top{max-width:1080px;margin:0 auto;padding:18px 24px;display:flex;justify-content:space-between;align-items:center}
+.top b{color:var(--p-900);font-size:16px}
+.top .sub{font-size:12.5px;color:var(--n-500)}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px 60px}
+.card{background:var(--n-0);border-radius:14px;box-shadow:0 8px 28px rgba(26,69,66,.08);padding:22px 24px;margin-bottom:18px}
+.card h2{margin:0 0 4px;font-size:16.5px;color:var(--n-900)}
+.card .desc{margin:0 0 14px;font-size:13px;color:var(--n-600)}
+/* 密钥门 */
+#gate{max-width:420px;margin:12vh auto 0;text-align:center}
+#gate input{width:100%;height:46px;border:1.5px solid var(--line);border-radius:10px;padding:0 14px;font-size:15px;outline:none}
+#gate input:focus{border-color:var(--p-500)}
+#gate .btn{margin-top:14px}
+#gate .tip{font-size:12.5px;color:var(--n-500);margin-top:14px;line-height:1.7}
+.err{color:var(--danger);font-size:13px;margin-top:10px;min-height:16px}
+/* 通用 */
+.btn{height:38px;padding:0 16px;border:0;border-radius:9px;background:var(--p-500);color:#fff;font-size:14px;font-weight:600;cursor:pointer}
+.btn:hover{background:var(--p-600)}
+.btn.ghost{background:#fff;color:var(--p-700);border:1.5px solid var(--p-500)}
+.btn.ghost:hover{background:var(--p-50)}
+.btn.small{height:30px;padding:0 10px;font-size:12.5px;border-radius:7px}
+.btn.danger{background:#fff;color:var(--danger);border:1.5px solid var(--danger)}
+.btn:disabled{opacity:.55;cursor:default}
+input.small{height:36px;border:1.5px solid var(--line);border-radius:8px;padding:0 10px;font-size:14px;outline:none}
+input.small:focus{border-color:var(--p-500)}
+/* 总览 */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.stats div{background:#f6f8f9;border-radius:10px;padding:14px}
+.stats b{display:block;font-size:24px;color:var(--n-900)}
+.stats span{font-size:12.5px;color:var(--n-600)}
+/* 表格 */
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{ text-align:left;color:var(--n-600);font-weight:500;font-size:12.5px;padding:6px 8px;border-bottom:1.5px solid var(--line)}
+td{padding:8px;border-bottom:1px solid #f0f2f4;color:var(--n-700)}
+code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:700;letter-spacing:1.5px;color:var(--p-900)}
+.tag{display:inline-block;padding:1px 8px;border-radius:99px;font-size:12px;font-weight:600}
+.tag.ok{background:#e6f4ec;color:var(--ok)}
+.tag.full{background:#fdecea;color:var(--danger)}
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.muted{color:var(--n-500);font-size:12.5px}
+.hidden{display:none!important}
+@media (max-width:720px){ .stats{grid-template-columns:repeat(2,1fr)} }
+</style>
+</head>
+<body>
+
+<!-- 密钥门 -->
+<div id="gate" class="card">
+  <h2>站长面板</h2>
+  <p class="desc">输入管理员密钥（ADMIN_KEY）进入</p>
+  <input id="keyInput" type="password" placeholder="ADMIN_KEY" autocomplete="off" />
+  <div class="err" id="gateErr"></div>
+  <button class="btn" id="gateBtn" type="button">进 入</button>
+  <p class="tip">密钥 = Cloudflare 环境变量 ADMIN_KEY，只存在本浏览器 sessionStorage，关标签页即失效。<br />面板与学习站数据完全隔离，任何操作不影响用户数据。</p>
+</div>
+
+<!-- 面板主体 -->
+<div id="panel" class="wrap hidden">
+  <div class="top" style="padding:18px 0">
+    <div><b>站长面板</b> <span class="sub" id="dayTag"></span></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn ghost small" id="refreshBtn" type="button">刷新数据</button>
+      <button class="btn ghost small" id="lockBtn" type="button">锁定退出</button>
+    </div>
+  </div>
+
+  <!-- 总览 -->
+  <div class="card">
+    <h2>总览</h2>
+    <p class="desc">实时从云端 KV 聚合（UTC 日为 AI 计量口径）</p>
+    <div class="stats">
+      <div><b id="stUsers">-</b><span>注册用户</span></div>
+      <div><b id="stSess">-</b><span>活跃登录（30 天内）</span></div>
+      <div><b id="stAi">-</b><span>今日 AI 调用（全站）</span></div>
+      <div><b id="stInv">-</b><span>邀请码剩余可用</span></div>
+    </div>
+  </div>
+
+  <!-- 邀请码 -->
+  <div class="card">
+    <h2>邀请码</h2>
+    <p class="desc">注册必须凭码，一码限次数；作废不影响已注册账号</p>
+    <div class="toolbar">
+      <label class="muted">可用次数</label>
+      <input class="small" id="invMax" type="number" min="1" max="1000" value="5" style="width:76px" />
+      <label class="muted">自定义码（留空=随机）</label>
+      <input class="small" id="invCode" placeholder="如 ZHIZI2026" style="width:150px" maxlength="16" />
+      <button class="btn small" id="mintBtn" type="button">生成邀请码</button>
+      <span class="err" id="invErr" style="margin:0"></span>
+    </div>
+    <table>
+      <thead><tr><th>邀请码</th><th>已用 / 限次</th><th>创建时间</th><th>操作</th></tr></thead>
+      <tbody id="invBody"></tbody>
+    </table>
+    <p class="muted" id="invEmpty" style="margin-top:8px">还没有邀请码——生成一个发给用户，TA 在登录页注册时填入。</p>
+  </div>
+
+  <!-- 用户 -->
+  <div class="card">
+    <h2>注册用户</h2>
+    <p class="desc">账号 + 注册时间 + 今日 AI 调用次数（点击账号可复制）</p>
+    <table>
+      <thead><tr><th>#</th><th>账号</th><th>注册时间</th><th>今日 AI 次数</th></tr></thead>
+      <tbody id="userBody"></tbody>
+    </table>
+    <p class="muted" id="userEmpty" style="margin-top:8px">还没有注册用户。</p>
+  </div>
+
+  <p class="muted" style="text-align:center">会员开关 / 额度调整 / 数据导出：等会员体系落地后在面板扩展 · 10/1</p>
+</div>
+
+<script>
+(function(){
+  var KEY = 'hub_admin_key';
+  var $ = function(id){ return document.getElementById(id); };
+  var key = '';
+  try{ key = sessionStorage.getItem(KEY) || ''; }catch(e){}
+  if(key){ enter(); }
+
+  function enter(){
+    $('gate').classList.add('hidden');
+    $('panel').classList.remove('hidden');
+    load();
+  }
+
+  function gateTry(){
+    key = ($('keyInput').value || '').trim();
+    if(!key){ $('gateErr').textContent = '请输入密钥'; return; }
+    $('gateErr').textContent = '';
+    $('gateBtn').disabled = true;
+    api('overview', {}, function(r){
+      $('gateBtn').disabled = false;
+      if(r.ok){
+        try{ sessionStorage.setItem(KEY, key); }catch(e){}
+        enter();
+      } else {
+        $('gateErr').textContent = (r.j && r.j.msg) || ('校验失败（HTTP ' + r.status + '）');
+      }
+    }, true);
+  }
+  $('gateBtn').addEventListener('click', gateTry);
+  $('keyInput').addEventListener('keydown', function(e){ if(e.key === 'Enter') gateTry(); });
+
+  function api(action, payload, cb, skipEnter){
+    fetch('api/admin', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'X-Admin-Key': key },
+      body: JSON.stringify(Object.assign({ action: action }, payload || {}))
+    }).then(function(r){
+      return r.json().catch(function(){ return {}; }).then(function(j){ cb({ status:r.status, j:j, ok:r.ok && j.ok }); });
+    }).catch(function(){
+      cb({ status:0, j:{ msg:'网络异常' }, ok:false });
+    });
+  }
+
+  function fmtTs(ts){
+    if(!ts) return '—';
+    var d = new Date(ts);
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0')
+      + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  }
+
+  var DATA = null;
+
+  function load(){
+    $('refreshBtn').disabled = true;
+    api('overview', {}, function(r){
+      $('refreshBtn').disabled = false;
+      if(!r.ok){
+        if(r.status === 401){ /* 密钥失效：回密钥门 */
+          try{ sessionStorage.removeItem(KEY); }catch(e){}
+          $('panel').classList.add('hidden');
+          $('gate').classList.remove('hidden');
+          $('gateErr').textContent = (r.j && r.j.msg) || '密钥校验失败';
+          return;
+        }
+        alert('加载失败：' + ((r.j && r.j.msg) || ('HTTP ' + r.status)));
+        return;
+      }
+      DATA = r.j;
+      render();
+    });
+  }
+  $('refreshBtn').addEventListener('click', load);
+  $('lockBtn').addEventListener('click', function(){
+    try{ sessionStorage.removeItem(KEY); }catch(e){}
+    key = ''; DATA = null;
+    $('panel').classList.add('hidden');
+    $('gate').classList.remove('hidden');
+    $('keyInput').value = '';
+  });
+
+  function render(){
+    $('dayTag').textContent = 'AI 计量日 ' + (DATA.day || '');
+    $('stUsers').textContent = (DATA.users || []).length;
+    $('stSess').textContent = DATA.sessCount != null ? DATA.sessCount : '-';
+    $('stAi').textContent = DATA.aiToday != null ? DATA.aiToday : '-';
+
+    var invLeft = 0;
+    (DATA.invites || []).forEach(function(v){ invLeft += Math.max(0, (v.max||0) - (v.used||0)); });
+    $('stInv').textContent = invLeft;
+
+    /* 邀请码表 */
+    var tb = $('invBody'); tb.innerHTML = '';
+    var invs = DATA.invites || [];
+    $('invEmpty').style.display = invs.length ? 'none' : '';
+    invs.forEach(function(v){
+      var left = Math.max(0, (v.max||0) - (v.used||0));
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td><code class="inv">' + v.code + '</code></td>'
+        + '<td>' + (v.used||0) + ' / ' + (v.max||0) + ' <span class="tag ' + (left>0?'ok':'full') + '">' + (left>0 ? ('剩 ' + left) : '已用完') + '</span></td>'
+        + '<td>' + fmtTs(v.created) + '</td>'
+        + '<td style="white-space:nowrap">'
+        + '<button class="btn ghost small" data-copy="' + v.code + '" type="button">复制</button> '
+        + '<button class="btn danger small" data-revoke="' + v.code + '" type="button">作废</button></td>';
+      tb.appendChild(tr);
+    });
+
+    /* 用户表 */
+    var ub = $('userBody'); ub.innerHTML = '';
+    var users = DATA.users || [];
+    $('userEmpty').style.display = users.length ? 'none' : '';
+    users.forEach(function(u, i){
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td>' + (i+1) + '</td>'
+        + '<td style="cursor:pointer" title="点击复制" data-acct="' + u.acct + '"><b>' + u.acct + '</b></td>'
+        + '<td>' + fmtTs(u.created) + '</td>'
+        + '<td>' + ((DATA.usage || {})[u.acct] || 0) + '</td>';
+      ub.appendChild(tr);
+    });
+  }
+
+  /* 事件委托：复制 / 作废 / 点账号复制 */
+  document.addEventListener('click', function(e){
+    var t = e.target;
+    var copy = t.getAttribute && t.getAttribute('data-copy');
+    if(copy){
+      if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(copy).then(function(){ t.textContent = '已复制'; setTimeout(function(){ t.textContent = '复制'; }, 1200); }).catch(function(){ window.prompt('手动复制：', copy); });
+      else window.prompt('手动复制：', copy);
+      return;
+    }
+    var acct = t.getAttribute && t.getAttribute('data-acct');
+    if(acct){
+      if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(acct);
+      return;
+    }
+    var rev = t.getAttribute && t.getAttribute('data-revoke');
+    if(rev){
+      if(!confirm('作废邀请码 ' + rev + '？\n（已用此码注册的账号不受影响，只是不能再有人用它注册）')) return;
+      api('invite_revoke', { code: rev }, function(r){
+        if(r.ok) load();
+        else alert('作废失败：' + ((r.j && r.j.msg) || ('HTTP ' + r.status)));
+      });
+    }
+  });
+
+  $('mintBtn').addEventListener('click', function(){
+    var max = parseInt($('invMax').value, 10);
+    var code = ($('invCode').value || '').trim();
+    $('invErr').textContent = '';
+    if(!(max >= 1 && max <= 1000)){ $('invErr').textContent = '可用次数请填 1-1000'; return; }
+    $('mintBtn').disabled = true;
+    api('invite_mint', { max: max, code: code }, function(r){
+      $('mintBtn').disabled = false;
+      if(r.ok){
+        $('invCode').value = '';
+        load();
+        var c = r.j.code;
+        if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(c).catch(function(){});
+        $('invErr').style.color = 'var(--ok)';
+        $('invErr').textContent = '已生成 ' + c + '（已复制到剪贴板）';
+        setTimeout(function(){ $('invErr').textContent = ''; $('invErr').style.color = ''; }, 4000);
+      } else {
+        $('invErr').style.color = '';
+        $('invErr').textContent = (r.j && r.j.msg) || ('生成失败（HTTP ' + r.status + '）');
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>
