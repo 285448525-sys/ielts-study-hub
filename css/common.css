@@ -1032,16 +1032,24 @@ html[data-theme="dark"] .finish-zero-card{background:rgba(70,168,131,.16)}
 .plan-del{color:var(--muted)}
 .plan-del:hover{color:var(--danger);background:var(--err-bg)}
 .plan-input{flex:1;font-size:14px;padding:6px 8px;border:1px solid var(--primary);border-radius:var(--radius-sm);background:var(--surface);color:var(--ink);outline:none;box-shadow:0 0 0 3px var(--primary-soft)}
-.hist-plan{margin:0;padding:0;border-top:1px dashed var(--line)}
-.hist-plan > summary{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 4px;cursor:pointer;list-style:none}
+/* 10/1 晚 v2（她拍板重排）：历史计划「连体行 + 左侧怪点」→ 独立日卡：
+   日期块（大数字+月/周）+ 完成度进度条 + 徽章，点开看当天明细 */
+.hist-plan{margin:0 0 10px;padding:2px 16px;border:1px solid var(--line);border-radius:14px;background:var(--surface);box-shadow:var(--shadow)}
+.hist-plan > summary{display:flex;align-items:center;gap:14px;padding:12px 0;cursor:pointer;list-style:none}
 .hist-plan > summary::-webkit-details-marker{display:none}
-.hist-plan > summary::before{content:'▸';color:var(--muted);margin-right:2px;display:inline-block;transition:transform .2s;font-size:12px}
-.hist-plan[open] > summary::before{transform:rotate(90deg)}
-.hist-plan > summary:hover .hist-date{color:var(--primary)}
-.hist-date{font-weight:600;color:var(--ink)}
-.hist-chev{color:var(--muted);font-size:12px}
-.hist-body{padding:2px 4px 14px 20px}
-.hist-items{margin:0 0 10px;padding-left:18px;color:var(--ink);font-size:14px;line-height:1.9}
+.hist-date{display:flex;flex-direction:column;line-height:1.15;min-width:64px}
+.hist-date b{font-size:20px;font-weight:800;color:var(--n-900);font-variant-numeric:tabular-nums}
+.hist-date small{font-size:11.5px;color:var(--muted);white-space:nowrap}
+.hist-mid{flex:1;display:flex;align-items:center;gap:8px;min-width:0}
+.hist-bar{flex:1;height:6px;border-radius:999px;background:var(--line);overflow:hidden}
+.hist-bar i{display:block;height:100%;border-radius:999px;background:var(--primary)}
+.hist-bar i.full{background:var(--ok)}
+.hist-pct{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;width:36px;text-align:right}
+.hist-plan > summary:hover .hist-date b{color:var(--primary)}
+.hist-chev{color:var(--muted);font-size:12px;transition:transform .2s}
+.hist-plan[open] .hist-chev{transform:rotate(90deg)}
+.hist-body{padding:4px 0 12px;border-top:1px dashed var(--line)}
+.hist-items{margin:10px 0;padding-left:18px;color:var(--ink);font-size:14px;line-height:1.9}
 .hist-items li{margin:2px 0}
 .hist-items li.done{color:var(--muted);text-decoration:line-through}
 /* 昨日未完成自动延续提示 + 延续项左侧标记 */
@@ -1566,20 +1574,21 @@ main .quote{
 @keyframes timerBlink{0%,100%{opacity:1}50%{opacity:.45}}
 
 
-/* === 模考：退出按钮（10/1 晚改版：右下角红色悬浮 FAB → 舞台右上角橙色常规按钮，她拍板「辣眼睛」） === */
-/* 挂在 #mockStage 内部（absolute）；top 66px 避开顶部「整场剩余」计时条（她拍板：别盖住上面那块） */
+/* === 模考：退出按钮（10/1 晚三改：她拍板「别悬浮」）——嵌进「整场剩余」计时条右端内联 ===
+   mock.js 把按钮 append 进 #mockTotalTimerWrap（兜底 #mockStage）；随条显隐，不再独立悬浮 */
 #mockStage{position:relative}
 .mock-exit-fab{
-  position:absolute; top:78px; right:14px; z-index:60;
+  position:static; margin-left:auto; flex:none;
   display:inline-flex; align-items:center; gap:6px;
-  padding:8px 14px; border:none; border-radius:10px;
-  background:var(--warn); color:#fff; font-size:13.5px; font-weight:600;
+  padding:7px 13px; border:none; border-radius:999px;
+  background:var(--warn); color:#fff; font-size:13px; font-weight:700;
   cursor:pointer; box-shadow:0 3px 10px rgba(245,158,11,.30);
-  transition:transform .12s, box-shadow .12s, filter .12s;
+  transition:filter .15s, transform .12s;
 }
-.mock-exit-fab:hover{ transform:translateY(-1px); filter:brightness(1.05); box-shadow:0 5px 14px rgba(245,158,11,.38); }
-.mock-exit-fab svg{ width:15px; height:15px; flex:none; }
-.mock-exit-fab:active{ transform:translateY(0); }
+.mock-exit-fab:hover{ filter:brightness(1.05); }
+.mock-exit-fab svg{ width:14px; height:14px; flex:none; }
+.mock-exit-fab:active{ transform:scale(.97); }
+.mock-total-timer .mock-total-timer-note{ flex:1 1 auto; min-width:0; }
 
 .mock-modal-backdrop{
   position:fixed; inset:0; z-index:200;
@@ -2160,13 +2169,10 @@ main.container{padding-top:40px}
 
 /* ===== 计划页 · 历史计划整体折叠 ===== */
 .history-folded{padding:0}
-.history-wrap{margin:0}
-.history-wrap > summary{list-style:none;cursor:pointer;user-select:none}
-.history-wrap > summary::-webkit-details-marker{display:none}
-.history-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 20px}
+/* 10/1 晚：外层 details 壳已删（她拍板「那么大一块还能折叠太奇怪」），头部直接平铺 */
+.history-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:2px 0 14px}
 .history-summary h2{font-size:18px;font-weight:700;color:var(--ink)}
 .history-summary .muted{font-size:13px}
-.history-wrap > summary::after{content:"▸";color:var(--muted);font-size:14px;transition:transform .15s}
 .history-wrap[open] > summary::after{transform:rotate(90deg)}
 .history-wrap p.muted{padding:0 20px}
 #histPlans{padding:0 20px 18px}

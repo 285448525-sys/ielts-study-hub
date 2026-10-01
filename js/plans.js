@@ -326,16 +326,20 @@ function renderHistory(curDate){
     box.innerHTML = renderEmpty('还没有其它日期的计划。');
     return;
   }
-  // 可折叠：默认收起，只显示日期 + 完成数摘要；点开才展开当天任务明细。
+  // 10/1 晚 v2（她拍板）：每天一张独立日卡——日期块 + 完成度进度条 + 徽章；点开展开当天明细
   box.innerHTML = others.map(p => {
     const pItems = Array.isArray(p.items) ? p.items : [];
     const done = pItems.filter(i => i.done).length;
+    const pct = pItems.length ? Math.round(done / pItems.length * 100) : 0;
+    const dt = new Date(p.date + 'T00:00:00');
+    const wd = isNaN(dt) ? '' : ('周' + '日一二三四五六'.charAt(dt.getDay()));
     const itemsHtml = pItems.map(i =>
       `<li class="${i.done ? 'done' : ''}">${i.done ? '✓' : '○'} ${escapeHtml(i.text)}</li>`
     ).join('');
     return `<details class="hist-plan">
       <summary>
-        <span class="hist-date">${p.date}</span>
+        <span class="hist-date"><b>${escapeHtml(p.date.slice(8, 10))}</b><small>${escapeHtml(p.date.slice(5, 7))}月 ${wd}</small></span>
+        <span class="hist-mid"><span class="hist-bar"><i class="${pct === 100 ? 'full' : ''}" style="width:${pct}%"></i></span><small class="hist-pct">${pct}%</small></span>
         <span class="badge">${done} / ${p.items.length} 完成</span>
         <span class="hist-chev">▸</span>
       </summary>

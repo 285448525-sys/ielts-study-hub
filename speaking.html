@@ -31,7 +31,7 @@
 })();
 </script>
 <title>口语 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261001m" />
+<link rel="stylesheet" href="css/common.css?v=20261001n" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=6" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=6">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=6">
@@ -50,7 +50,7 @@
   <script defer src="js/materials.js?v=20261001g"></script>
   <script defer src="js/mock-report.js?v=20260830u"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
-  <script defer src="js/mock.js?v=20261001i"></script>
+  <script defer src="js/mock.js?v=20261001j"></script>
   <script defer src="js/pattern-drill.js?v=20261001f"></script>
   <script defer src="js/scene-drill.js?v=20260922a"></script>
 <style>
@@ -72,12 +72,7 @@
   .sp-search{width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:var(--radius-sm);font:inherit;background:var(--surface);color:var(--ink);margin:8px 0 12px;box-sizing:border-box;transition:border-color .15s,box-shadow .15s}
   .sp-search:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-soft);outline:none}
 
-  /* 10/1 晚（她拍板「四个小 tab 凑一起太丑」）：分段式全宽 tab——等宽四格、圆角、active teal 填充 */
-  .sp-tabs{display:flex;flex:1;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px;box-shadow:var(--shadow);margin-bottom:4px}
-  .sp-tabs .pill-tab{flex:1;display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 8px;border-radius:10px;font-size:14px;font-weight:700;border:none;background:transparent;color:var(--muted);cursor:pointer;transition:background .15s,color .15s,box-shadow .15s}
-  .sp-tabs .pill-tab:hover{color:var(--primary)}
-  .sp-tabs .pill-tab.active{background:var(--primary);color:#fff;box-shadow:0 2px 8px rgba(58,154,147,.30)}
-  .sp-tabs .pill-tab.active:hover{color:#fff}
+  /* 10/1 晚二改（她拍板）：tab 恢复全站标准 pill-tabs 尺寸（与回顾页等其他页完全同步），本页不再自定义 */
 
   /* 10/1 晚（她拍板）：题库列表从「连体卡」拆成独立卡片——卡片间留呼吸空隙，不再挤成一条 */
   .sp-list{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
@@ -189,19 +184,26 @@
   }
 
   /* 优先级/分类下拉筛选（联动） */
-  .sp-filters{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin:8px 0 12px}
-  .sp-filter{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--muted);font-weight:600}
+  /* 10/1 晚二改（她拍板）：三个筛选收成一行、标签内嵌进框里（文字不再顶在框上面） */
+  .sp-filters{display:flex;gap:8px;flex-wrap:nowrap;margin:8px 0 10px}
+  .sp-filter{flex:1;min-width:0;display:flex;flex-direction:row;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:2px 4px 2px 12px;font-size:12px;color:var(--muted);font-weight:600}
+  .sp-filter > span{flex:none;white-space:nowrap}
+  .sp-filter .sp-select{flex:1;min-width:0;border:none;box-shadow:none;background:transparent;padding:10px 6px}
+  .sp-filter .sp-select:focus{box-shadow:none;outline:none}
+  .sp-filter:focus-within{border-color:var(--primary)}
+  @media(max-width:560px){ .sp-filters{flex-wrap:wrap} .sp-filter{flex:1 1 45%} }
   .sp-select{padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);font:inherit;font-size:14px;background:var(--surface);color:var(--ink);min-width:150px;cursor:pointer;transition:border-color .15s,box-shadow .15s}
   .sp-select:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-soft);outline:none}
   /* design/81：随机抽题按钮（贴筛选行右侧，窄屏自动换行不挤压）；P3 二次确认警示态 */
-  /* 10/1 晚（她拍板）：🎲随机来一道退役 → 模考入口（琥珀强调，同退出按钮色系） */
-  .sp-mock-jump{margin-left:auto;padding:10px 18px;font-size:13.5px;font-weight:700;white-space:nowrap;background:var(--warn);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;box-shadow:0 3px 10px rgba(245,158,11,.30);transition:filter .15s,transform .12s}
-  .sp-mock-jump:hover{filter:brightness(1.05);transform:translateY(-1px)}
-  /* Part 下拉退役 → 筛选行下方 P1/P2 小切换（点已选中的再点一次=回到全部） */
-  .sp-part-seg{display:inline-flex;gap:6px;margin:-4px 0 10px}
-  .sp-part-seg button{font:inherit;font-size:12.5px;font-weight:700;padding:5px 16px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--muted);cursor:pointer;transition:all .15s}
+  /* 10/1 晚（她拍板）：Part 切换 + 模考入口一行；模考按钮渐变胶囊重设计（不再敷衍） */
+  .sp-filter-foot{display:flex;align-items:center;gap:10px;margin:0 0 10px;flex-wrap:wrap}
+  .sp-part-seg{display:inline-flex;gap:6px;margin:0}
+  .sp-part-seg button{font:inherit;font-size:12.5px;font-weight:700;padding:6px 16px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--muted);cursor:pointer;transition:all .15s}
   .sp-part-seg button:hover{border-color:var(--primary);color:var(--primary)}
   .sp-part-seg button.active{background:var(--primary);border-color:var(--primary);color:#fff}
+  .sp-mock-jump{margin-left:auto;display:inline-flex;align-items:center;gap:7px;background:linear-gradient(135deg,#fbbf24,#d97706);color:#fff;border:none;border-radius:999px;padding:11px 22px;font:inherit;font-size:13.5px;font-weight:700;white-space:nowrap;cursor:pointer;box-shadow:0 5px 14px rgba(245,158,11,.35);transition:filter .15s,transform .12s}
+  .sp-mock-jump:hover{filter:brightness(1.06);transform:translateY(-1px)}
+  .sp-mock-jump svg{width:16px;height:16px;margin:0;vertical-align:0}
   #p3GenBtn.confirming{border-color:var(--warn);color:var(--warn)}
   .sp-confirm-cancel{border:0;background:none;color:var(--muted);cursor:pointer;font:inherit;font-size:12.5px;padding:4px 8px}
   .sp-confirm-cancel:hover{color:var(--ink)}
@@ -761,6 +763,11 @@ body.mock-immerse .page-head-row{display:none!important}
 body.mock-immerse .container{padding-top:14px}
 /* 10/1 晚修复：侧栏藏了但 body 的 288px 侧栏留白还在 → 模考页左边一条大空隙（她抓包） */
 body.mock-immerse{padding-left:0!important;padding-right:0!important}
+/* 10/1 晚（她拍板）：模考沉浸式加固——藏底部 dock、整页锁定不滚动，舞台内部自己滚 */
+body.mock-immerse #hubDock{display:none!important}
+body.mock-immerse{overflow:hidden;height:100dvh}
+body.mock-immerse .container{height:100dvh;display:flex;flex-direction:column;overflow:hidden;padding-bottom:12px}
+body.mock-immerse #mockStage{flex:1;min-height:0;overflow:auto}
 body.mock-immerse #mockStage{border:0;box-shadow:none;background:transparent}
 
 /* === 10/1 批3 · 考官视频窗（她拍板「考官的脸出现在屏幕上」） ===
@@ -789,6 +796,17 @@ body.mock-immerse #mockStage{border:0;box-shadow:none;background:transparent}
   #mockStage.p2-mode .mock-main{flex-direction:column}
   #mockStage.p2-mode .mock-examiner{width:min(240px,72%);order:-1}
   .me-video{box-shadow:0 8px 20px rgba(19,35,41,.10)}
+}
+/* 10/1 晚（她拍板）：手机端模考顶部轻量化——考官窗缩到 132px 横排、计时条收紧、说明小字隐藏 */
+@media(max-width:760px){
+  .mock-examiner{flex-direction:row;justify-content:center;gap:10px;flex-wrap:wrap}
+  .me-video{width:132px;box-shadow:0 6px 16px rgba(19,35,41,.10)}
+  .me-name{padding:3px 10px}
+  .me-name b{font-size:12px}
+  .me-name span{font-size:9.5px}
+  .mock-total-timer{padding:8px 12px;font-size:13px;margin-bottom:10px}
+  .mock-total-timer b{font-size:15px}
+  .mock-total-timer-note{display:none}
 }
 /* P2 倒计时改小徽章（她拍板「P2 有个小小的倒计时显示就行，不用太紧张」）：
    覆盖 common.css 的 .mock-timer 全宽 warn 文字；剩 10s 内 .low 才转警示红。 */
@@ -863,12 +881,14 @@ body.mock-immerse #mockStage{border:0;box-shadow:none;background:transparent}
           <option value="done">已练过</option>
         </select>
       </label>
-      <!-- 10/1 晚（她拍板）：🎲随机来一道退役 → 模考入口按钮（琥珀强调色）；Part 改为筛选行下方 P1/P2 小切换 -->
-      <button class="btn sp-mock-jump" id="spMockJumpBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:4px" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg>模考</button>
+      <!-- 10/1 晚（她拍板）：🎲随机来一道退役；Part 下拉退役 → 下方一行 = P1/P2 小切换 + 模考渐变按钮 -->
     </div>
-    <div class="sp-part-seg" id="spPartSeg">
-      <button type="button" data-part="P1">P1</button>
-      <button type="button" data-part="P2">P2</button>
+    <div class="sp-filter-foot">
+      <div class="sp-part-seg" id="spPartSeg">
+        <button type="button" data-part="P1">P1</button>
+        <button type="button" data-part="P2">P2</button>
+      </div>
+      <button class="sp-mock-jump" id="spMockJumpBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg>模考</button>
     </div>
 
     <input class="sp-search" id="spSearch" placeholder="搜索题目…" />

@@ -66,7 +66,9 @@
     b.setAttribute('aria-label', '退出模考');
     b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg> 退出模考';
     b.onclick = () => showExitModal();
-    stage.appendChild(b);
+    /* 10/1 晚（她拍板「退出按钮别悬浮」）：嵌进「整场剩余」计时条右端，随条内联 */
+    const wrap = $('#mockTotalTimerWrap');
+    (wrap || stage).appendChild(b);
   }
   function removeExitButton(){ const b = $('#mockExitFab'); if(b) b.remove(); }
   function showExitModal(){
