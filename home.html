@@ -42,9 +42,20 @@
 <script defer src="js/common.js?v=20261001l"></script>
 <!-- design/78 双词库适配层：index.js 的 wbActive/wbDueCount 依赖它（defer 按文档序执行） -->
 <script defer src="js/wordbank.js?v=20261001a"></script>
-<script defer src="js/index.js?v=20261001c"></script>
-<!-- 考前冲刺卡：距考试 ≤14 天才渲染，依赖 common.js 的 ready/examCountdown -->
-<script defer src="js/sprint.js?v=20261001e"></script>
+<script defer src="js/index.js?v=20261001d"></script>
+<style id="homePageStyle">
+/* hero 会员小标（10/1：AI 转化卡删掉后的低调会员态展示，她拍板「不明显但不能不显示」。
+   样式放页内不动 common.css 免全站 bump；.ai-card/.ai-chip 死样式等清理待办一起删） */
+.vip-chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800;line-height:1;border-radius:999px;padding:4px 9px;white-space:nowrap;text-decoration:none}
+.vip-chip svg{width:11px;height:11px}
+.vip-chip.vip{background:linear-gradient(135deg,#fef3c7,#fde68a);color:#b45309;border:1px solid #fcd34d}
+.vip-chip.free{background:rgba(148,163,184,.14);color:var(--muted);border:1px solid rgba(148,163,184,.28)}
+[data-theme="dark"] .vip-chip.vip{background:rgba(251,191,36,.16);color:#fcd34d;border-color:rgba(251,191,36,.35)}
+[data-theme="dark"] .vip-chip.free{background:rgba(148,163,184,.16);color:#94a3b8;border-color:rgba(148,163,184,.30)}
+/* 双卡布局 override（common.css .meta 仍写死三列等死样式清理；1100px 断点同为两列无需写，760px 恢复单列） */
+.home .meta{grid-template-columns:repeat(2,1fr)}
+@media(max-width:760px){ .home .meta{grid-template-columns:1fr} }
+</style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(0,0,0,.02),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -66,6 +77,7 @@
         <span class="hero-hi">你好，<span id="userName">Camille</span></span>
         <span class="hero-date" id="dashDate"></span>
         <span class="streak-chip" id="dashStreakChip"></span>
+        <a class="vip-chip" id="heroVipChip" href="vip.html" hidden></a>
       </div>
     </div>
     <div class="hero-main">
@@ -81,10 +93,9 @@
     </div>
   </section>
 
-  <!-- L1.5 · 考前冲刺卡（9/30）：只在距考试 ≤14 天时出现，考完自动消失。由 js/sprint.js 渲染 -->
-  <section class="sprint" id="dashSprint" hidden></section>
+  <!-- L1.5 考前冲刺卡已迁回顾页·模考 Tab（10/1 她拍板：首页放琥珀大卡不美观） -->
 
-  <!-- L2 · 紧凑三卡（10/1 UI v2：双卡→三卡，新增 AI 次数转化卡；点击跳会员页） -->
+  <!-- L2 · 紧凑双卡（10/1 UI v2 三卡；同日晚她拍板删 AI 转化卡改双卡，会员态改 hero 问候旁小徽章） -->
   <section class="meta">
     <a class="meta-card" href="timer.html">
       <div class="meta-left">
@@ -94,17 +105,6 @@
       </div>
       <div class="meta-ico">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg>
-      </div>
-    </a>
-    <a class="meta-card ai-card" href="vip.html">
-      <span class="ai-chip">会员无限</span>
-      <div class="meta-left">
-        <div class="label">AI 免费体验</div>
-        <div class="val" id="dashAiLeft">2<span class="u">项</span></div>
-        <div class="hint" id="dashAiHint">模考 每月 1 · 其他 AI 每周 5</div>
-      </div>
-      <div class="meta-ico">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.6L20 10l-5 3.9L16.5 21 12 17.5 7.5 21 9 13.9 4 10l6.1-1.4z"/></svg>
       </div>
     </a>
     <a class="meta-card" href="practice.html">

@@ -39,8 +39,8 @@ ready(async () => {
   // 10/1 UI v2 · 底部轻量条：PWA 安装链接（复用 design/80 的 hubPwaState/hubPwaInstall，零新机制）
   // 已装彻底隐藏（不留死按钮，原则②）；iOS 走文字引导；prompt 事件晚到也没关系——点击时实时查状态
   safe(initFootInstall);
-  // 10/1 批 B · AI 卡动态化：登录后查分功能额度（未登录保持静态默认；会员显示无限）
-  safe(initAiCard);
+  // 10/1 晚 · 会员小标：AI 转化卡删掉后，会员态收进 hero 问候旁的小徽章（她拍板「不明显但不能不显示」）
+  safe(initVipChip);
 });
 function initFootInstall(){
   const tip = document.getElementById('footInstallTip');
@@ -61,10 +61,10 @@ function initFootInstall(){
   });
 }
 
-// 10/1 批 B · 首页 AI 卡动态化：登录后查 /api/auth ai_usage，按分功能口径渲染剩余额度
-// 未登录/请求失败保持静态默认（3 项）；会员显示 ∞；异步轻请求不阻塞首屏
-async function initAiCard(){
-  const el = document.getElementById('dashAiLeft');
+// 10/1 晚 · hero 会员小标：登录才显示；会员=金色 VIP 标，非会员=灰色「免费」标；点击跳会员页。
+// vip_status 实时查不缓存（会员状态必须准，与 vip.html 同口径）；未登录/请求失败保持隐藏，绝不打扰首屏。
+async function initVipChip(){
+  const el = document.getElementById('heroVipChip');
   if(!el) return;
   let token = '';
   try{ token = localStorage.getItem('hub_auth_token') || ''; }catch(e){}
@@ -73,21 +73,19 @@ async function initAiCard(){
     const r = await fetch('/api/auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Session': token },
-      body: JSON.stringify({ action: 'ai_usage' })
+      body: JSON.stringify({ action: 'vip_status' })
     });
     const j = await r.json();
     if(!j || j.ok !== true) return;
-    const hint = document.getElementById('dashAiHint');
     if(j.vip){
-      el.innerHTML = '∞';
-      if(hint) hint.textContent = '会员权益生效中 · AI 不限次';
-      return;
+      el.className = 'vip-chip vip';
+      el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h10l4 6-9 12L3 9z"/><path d="M3 9h18M12 21 8.5 9 12 3l3.5 6z"/></svg>VIP';
+      el.hidden = false;
+    } else {
+      el.className = 'vip-chip free';
+      el.textContent = '免费';
+      el.hidden = false;
     }
-    const left = g => Math.max(0, (g.total || 0) - (g.used || 0));
-    const m = left(j.mock || {}), w = left(j.weekly || {});
-    const n = (m > 0 ? 1 : 0) + (w > 0 ? 1 : 0);
-    el.innerHTML = n > 0 ? (n + '<span class="u">项</span>') : '用完';
-    if(hint) hint.textContent = '模考 ' + (m > 0 ? m + '/月' : '本月已用') + ' · 其他 AI ' + (w > 0 ? w + '/周' : '本周已用');
   }catch(e){}
 }
 
