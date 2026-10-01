@@ -53,9 +53,16 @@ function pdIsoDate(d){ d = d || new Date(); return d.getFullYear() + '-' + Strin
 function pdAddDays(iso, n){ const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate()+n); return pdIsoDate(d); }
 function pdWithTimeout(p, ms){ return new Promise((res, rej) => { const t = setTimeout(() => res('__TIMEOUT__'), ms); p.then(v => { clearTimeout(t); res(v); }, e => { clearTimeout(t); rej(e); }); }); }
 
+/* 字段级兜底（10/2）：原来用整体 `||` 兜底，遇到 truthy 但不完整的对象（云端合并出来只有部分字段、
+   或老数据的残缺结构）会直接放行，下游读 p.items.xxx 就炸。改成逐字段校验补齐。 */
 function pdEnsureProgress(){
-  DATA.patternDrill = DATA.patternDrill || { items:{}, lastDate:'', todayDone:[], weakness:{} };
-  PD_PROGRESS = DATA.patternDrill;
+  var p = (DATA.patternDrill && typeof DATA.patternDrill === 'object') ? DATA.patternDrill : {};
+  if(!p.items || typeof p.items !== 'object' || Array.isArray(p.items)) p.items = {};
+  if(typeof p.lastDate !== 'string') p.lastDate = '';
+  if(!Array.isArray(p.todayDone)) p.todayDone = [];
+  if(!p.weakness || typeof p.weakness !== 'object' || Array.isArray(p.weakness)) p.weakness = {};
+  DATA.patternDrill = p;
+  PD_PROGRESS = p;
   pdMigrateSceneV1();
 }
 
