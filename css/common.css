@@ -325,7 +325,7 @@ body.sheet-open .sheet{transform:translateY(0)}
 }
 /* ── 全局基础：容器/卡片/页题（9/15 从移动端媒体块之后上移到此——原位置同特异性覆盖了
    手机分支的 padding/字号，导致手机左右空隙一直偏大；上移后 @media 内的值才真正生效） ── */
-.container{max-width:1160px;margin:0 auto;padding:40px 14px 48px}   /* 9/15 二修：左右 24→14、max-width 1080→1160（之之：桌面空隙还是太大，要明显缩小） */
+.container{max-width:1160px;margin:0 auto;padding:28px 14px 48px}   /* 10/1：顶部 40→28（她：页面大标题整删后整体再上移一点点）；左右 24→14、max-width 1080→1160（9/15 二修） */
 .page-title{margin:0 0 4px;font-size:25px;font-weight:800;letter-spacing:-.02em}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:24px;margin-bottom:24px;box-shadow:var(--shadow);transition:box-shadow .2s ease,transform .2s ease,border-color .2s ease}
 .card:hover{box-shadow:var(--shadow-card-hover);border-color:var(--primary-200);transform:translateY(-2px)}
