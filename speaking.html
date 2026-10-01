@@ -46,7 +46,7 @@
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
   <script defer src="js/sentence-drill.js?v=20261001i"></script>
-  <script defer src="js/speaking.js?v=20261001n"></script>
+  <script defer src="js/speaking.js?v=20261001o"></script>
   <script defer src="js/materials.js?v=20261001h"></script>
   <script defer src="js/mock-report.js?v=20260830u"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
@@ -56,10 +56,11 @@
 <style>
   /* === 极简口语模块 · 优化版（沿用全站 Teal Token） === */
 
-  /* 10/1 晚三改（她拍板）：深绿底两行、几乎零空隙、最小视觉空间 */
-  .sp-banner{padding:8px 13px;background:linear-gradient(135deg,var(--primary-700),var(--primary-900));color:rgba(255,255,255,.95);border-radius:10px;font-size:12.5px;line-height:1.5;margin:0 0 8px;box-shadow:none;border:none}
+  /* 10/1 晚四改（她拍板）：单行深绿条，视觉空间=搜索框同级 */
+  .page-head-row{margin-bottom:12px}   /* 本页无页标题，tab 与内容的间距收窄（全局 22px 是给标题留的） */
+  .sp-banner{padding:7px 12px;background:linear-gradient(135deg,var(--primary-700),var(--primary-900));color:rgba(255,255,255,.95);border-radius:10px;font-size:12px;line-height:1.2;margin:0 0 8px;border:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .sp-banner b{font-weight:700;color:#fff}
-  .sp-banner-sub{font-size:11.5px;color:rgba(255,255,255,.62);margin-top:1px}
+  .sp-banner span{color:rgba(255,255,255,.6)}
 
   .chip-row{display:flex;gap:8px;overflow-x:auto;padding:8px 0;scrollbar-width:none}
   .chip-row::-webkit-scrollbar{display:none}
@@ -72,9 +73,8 @@
   .sp-search{width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:var(--radius-sm);font:inherit;background:var(--surface);color:var(--ink);margin:8px 0 12px;box-sizing:border-box;transition:border-color .15s,box-shadow .15s}
   .sp-search:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-soft);outline:none}
 
-  /* 10/1 晚三改（她拍板）：tab 适当放松——比标准略宽松，不到巨型分段 */
-  .sp-tabs{gap:8px;padding:5px;margin-bottom:10px}
-  .sp-tabs .pill-tab{padding:12px 30px;font-size:14.5px;font-weight:700}
+  /* 10/1 晚四改（她拍板）：tab 与其他页面完全统一，不再有任何自定义尺寸 */
+  .sp-tabs{margin-bottom:0}
 
   /* 10/1 晚（她拍板）：题库列表从「连体卡」拆成独立卡片——卡片间留呼吸空隙，不再挤成一条 */
   .sp-list{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}

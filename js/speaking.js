@@ -195,10 +195,9 @@ function renderFreqBanner(){
   const season = escapeHtml(M.season || '') + (M.region ? ' · ' + escapeHtml(M.region) : '');
   /* 10/1 晚（她拍板）：压成两行、不折叠——第一行=题库范围+题数，第二行=更新时间。
      旧版长注释（频次口径/优先级策略/联系微信）整段退役；SPEAKING_BANK_META.note 字段保留但不再展示。 */
-  el.innerHTML = '<div class="sp-banner">'
-    + '<div><b>📚 ' + season + '题库 · ' + (c1 + c2) + ' 题</b><span style="color:var(--muted)">（P1 ' + c1 + ' · P2 ' + c2 + '）</span></div>'
-    + '<div class="sp-banner-sub">上次更新：' + escapeHtml(M.updated || '—') + '</div>'
-    + '</div>';
+  /* 10/1 晚四改（她拍板）：单行——P1/P2 题数已在下方 P1·33/P2·55 切换钮上，不再重复 */
+  const upd = escapeHtml(M.updated || '').slice(5);
+  el.innerHTML = '<div class="sp-banner"><b>📚 ' + season + '题库 · ' + (c1 + c2) + ' 题</b><span> · 更新 ' + (upd || '—') + '</span></div>';
 }
 
 /* 10/1 UI polish：口语模考 Tab 的「最近一次报告」入口。
@@ -2885,6 +2884,7 @@ async function generateAIHelper(id, qi){
   try{
     const sys = '你是雅思口语陪练。考生目标口语 5.5 分：句子以简单句为主，词汇难度上限=高中词汇水平（如 important, enjoy, convenient, improve 这类常见词），严禁使用生僻词、学术词、GRE/雅思高级词汇（如 detrimental, paramount, facilitate 一律不行）；拿不准的词一律换成最简单的说法。\n'
       + '考生会给你一个 Part 1 问题和她的个人素材（人设/经历）。\n'
+      + '【取材优先级】① 优先用「人设」信息（城市/身份/性格）组织回答；② 人设覆盖不到的细节，用「可参考的小故事」（P2 素材）里的真实经历补；③ 两者都没有时，用最常见的考生生活场景自由发挥，不编造离谱经历。\n'
       + '【铁律：紧扣题目】先判断题目问的核心是什么（What kind of clothes=穿的衣服种类/风格/材质；How often=频率；Where=地点；Why=原因；Do you like=喜欢与否…）。逻辑链第一环、英文第 1 句都必须直接回答这个核心；后面的展开只能围绕这个核心补原因/细节。考生素材只是给理由加细节用的，绝不能把素材里的其他话题（如购物习惯、刷视频、打游戏）变成回答主体，更不能拿它们开头，否则就是答非所问。\n'
       + '请完成两件事：\n'
       + '1. 给一条中文「逻辑链」：只给 4-6 个简短的中文关键词组/短语，用中文横杠"—"串连。每个关键词组最多 6 个汉字，严禁写成完整句子，严禁加"表态：""原因1：""原因2：""细节：""感受："等任何前缀标签，严禁输出"[横杠]"这几个字。逻辑链第一环必须是题目所问的直接答案（如问穿什么衣服，第一环就写衣服类型，如「简单舒服—T恤牛仔裤—…」），严禁用别的行为（如「喜欢买衣服」）开头。\n'
