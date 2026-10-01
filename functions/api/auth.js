@@ -154,7 +154,14 @@ export async function onRequest(context) {
     await failClear(kv, '', acct);
     const token = randHex(32);
     await kv.put('sess:' + token, JSON.stringify({ acct }), { expirationTtl: SESS_TTL });
-    return json({ ok: true, token, acct });
+    /* 会员状态随登录响应下发（10/1 晚框架）：vip:<acct> 只在服务端（面板发放），
+       前端只读不可改；未开通/已过期 → vip: null。 */
+    let vip = null;
+    try {
+      const v = JSON.parse((await kv.get('vip:' + acct)) || 'null');
+      if (v && v.expire && v.expire > Date.now()) vip = { type: v.type || 'base', expire: v.expire };
+    } catch (e) {}
+    return json({ ok: true, token, acct, vip });
   }
 
   /* ---------- 修改密码（需登录态） ---------- */

@@ -10,7 +10,8 @@
 //   AI_DAILY_LIMIT       选填，全站每日总调用上限，默认 3000
 //   AI_IP_LIMIT          选填，单 IP 每日上限，默认 200
 //   AI_USER_DAILY_LIMIT  选填，单账号每日 AI 额度（免费/会员分层用），默认 0 = 不限；
-//                        她拍板具体数值后配这个变量即可，代码不用动
+//                        她拍板具体数值后配这个变量即可，代码不用动。会员自动跳过此闸。
+//   AI_RATE_PER_MIN      选填，单账号每分钟调用上限（防脚本刷量），默认 10；会员同样受限
 // 访问规则（她 10/1 拍板「必须登录才能用 AI」）：登录闸先于一切——未登录（无/无效 X-Session）
 // 一律 401 auth_required，即使 AI_API_KEY 未配也不给未登录用户探出任何信息。
 // 未配 AI_API_KEY 时（已登录用户）返回 501 { ok:false, error:'relay_not_configured' }。
@@ -155,14 +156,35 @@ export async function onRequest(context) {
   if (usedIp >= ipLimit) {
     return json({ ok: false, error: 'ip_limit', msg: '今日调用次数已达上限' }, 429, env);
   }
-  /* 按账号每日额度（免费/会员分层用）：AI_USER_DAILY_LIMIT 环境变量，0 = 不限（默认）。
-     具体免费额度数值等她拍板后配环境变量即可，代码无需再动。 */
+  /* 会员身份（10/1 晚框架先搭好）：vip:<acct>.expire 未过期 = 会员。
+     会员不受 AI_USER_DAILY_LIMIT 限制（权益口径先按豆包方案「会员无限 AI」实现，
+     她拍板改口径时只动这里）。vip 键只在服务端，绝不进 DATA 云同步（客户端可篡改）。 */
+  let isVip = false;
+  try {
+    const v = JSON.parse((await env.SYNC_KV.get('vip:' + acct)) || 'null');
+    isVip = !!(v && v.expire && v.expire > Date.now());
+  } catch (e) {}
+
+  /* 按账号每日额度（免费/会员分层）：AI_USER_DAILY_LIMIT 环境变量，0 = 不限（默认）。
+     具体免费额度数值等她拍板后配环境变量即可，代码无需再动。会员跳过此闸。 */
   const acctLimit = parseInt((env && env.AI_USER_DAILY_LIMIT) || '0', 10) || 0;
-  if (acctLimit > 0) {
+  if (acctLimit > 0 && !isVip) {
     const usedAcct = await sumBuckets(env.SYNC_KV, 'aiqa:' + acct, day);
     if (usedAcct >= acctLimit) {
-      return json({ ok: false, error: 'user_limit', msg: '你今日的免费 AI 额度已用完' }, 429, env);
+      return json({ ok: false, error: 'user_limit', msg: '你今日的免费 AI 额度已用完，升级会员无限用' }, 429, env);
     }
+  }
+
+  /* 分钟级风控（防脚本刷量，豆包 10/1 方案采纳；会员同样受限——防的是盗刷站内 Key）：
+     AI_RATE_PER_MIN 默认 10 次/分钟（豆包建议 1 次/分钟，太紧会误伤连续对话，先放宽到 10，
+     待她拍板）。键按分钟分片 + TTL 2 分钟自愈。 */
+  const ratePerMin = parseInt((env && env.AI_RATE_PER_MIN) || '10', 10) || 10;
+  const p2 = n => String(n).padStart(2, '0');
+  const minKey = 'aiqm:' + acct + ':' + day + ':' + p2(now.getUTCHours()) + p2(now.getUTCMinutes());
+  let usedMin = 0;
+  try { usedMin = parseInt((await env.SYNC_KV.get(minKey)) || '0', 10) || 0; } catch (e) {}
+  if (usedMin >= ratePerMin) {
+    return json({ ok: false, error: 'rate_limit', msg: '调用太频繁，请稍后再试' }, 429, env);
   }
 
   const base = ((env && env.AI_BASE_URL) || DEFAULT_BASE).replace(/\/+$/, '');
@@ -219,7 +241,14 @@ export async function onRequest(context) {
   /* 只有真的拿到 2xx 才计额度：上游报错 / 超时 / Key 失效不该吃掉用户配额 */
   bumpCount(env.SYNC_KV, 'aiq', day, bucket);
   bumpCount(env.SYNC_KV, 'aiqip:' + ip, day, bucket);
-  bumpCount(env.SYNC_KV, 'aiqa:' + acct, day, bucket);   // 按账号计量（免费额度框架，阈值 AI_USER_DAILY_LIMIT）
+  bumpCount(env.SYNC_KV, 'aiqa:' + acct, day, bucket);   // 按账号计量（会员也计数：面板「今日 AI 次数」要看得到会员用量，只是会员不受额度闸限制）
+  /* 分钟风控计数（TTL 2 分钟自愈；写失败不影响主流程，与 bumpCount 同口径） */
+  (async () => {
+    try {
+      const curMin = parseInt((await env.SYNC_KV.get(minKey)) || '0', 10) || 0;
+      await env.SYNC_KV.put(minKey, String(curMin + 1), { expirationTtl: 120 });
+    } catch (e) {}
+  })();
 
   // 直接透传上游响应体（前端现有解析逻辑 choices[0].message.content 不用改）
   return new Response(text, {

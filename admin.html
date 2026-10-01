@@ -43,7 +43,7 @@ body{
 input.small{height:36px;border:1.5px solid var(--line);border-radius:8px;padding:0 10px;font-size:14px;outline:none}
 input.small:focus{border-color:var(--p-500)}
 /* 总览 */
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
 .stats div{background:#f6f8f9;border-radius:10px;padding:14px}
 .stats b{display:block;font-size:24px;color:var(--n-900)}
 .stats span{font-size:12.5px;color:var(--n-600)}
@@ -92,6 +92,7 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:
       <div><b id="stSess">-</b><span>活跃登录（30 天内）</span></div>
       <div><b id="stAi">-</b><span>今日 AI 调用（全站）</span></div>
       <div><b id="stInv">-</b><span>邀请码剩余可用</span></div>
+      <div><b id="stVip">-</b><span>会员（有效期内）</span></div>
     </div>
   </div>
 
@@ -117,15 +118,39 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:
   <!-- 用户 -->
   <div class="card">
     <h2>注册用户</h2>
-    <p class="desc">账号 + 注册时间 + 今日 AI 调用次数（点击账号可复制）</p>
+    <p class="desc">账号 + 注册时间 + 今日 AI 调用次数 + 会员状态（点击账号可复制）</p>
     <table>
-      <thead><tr><th>#</th><th>账号</th><th>注册时间</th><th>今日 AI 次数</th></tr></thead>
+      <thead><tr><th>#</th><th>账号</th><th>注册时间</th><th>今日 AI 次数</th><th>会员</th></tr></thead>
       <tbody id="userBody"></tbody>
     </table>
     <p class="muted" id="userEmpty" style="margin-top:8px">还没有注册用户。</p>
   </div>
 
-  <p class="muted" style="text-align:center">会员开关 / 额度调整 / 数据导出：等会员体系落地后在面板扩展 · 10/1</p>
+  <!-- 会员管理 -->
+  <div class="card">
+    <h2>会员管理</h2>
+    <p class="desc">收到转账后在这里手动开通；会员状态只存服务端（用户改本地数据无效）；续费自动从现到期日顺延</p>
+    <div class="toolbar">
+      <label class="muted">账号</label>
+      <input class="small" id="vipAcct" placeholder="用户注册的手机号/用户名" style="width:190px" maxlength="20" />
+      <label class="muted">天数</label>
+      <input class="small" id="vipDays" type="number" min="1" max="3650" value="30" style="width:76px" />
+      <button class="btn ghost small" data-vdays="30" type="button">月(30)</button>
+      <button class="btn ghost small" data-vdays="90" type="button">季(90)</button>
+      <button class="btn ghost small" data-vdays="365" type="button">年(365)</button>
+      <label class="muted">备注</label>
+      <input class="small" id="vipNote" placeholder="如：微信转账 ¥69" style="width:150px" maxlength="100" />
+      <button class="btn small" id="grantBtn" type="button">开通 / 续费</button>
+      <span class="err" id="vipErr" style="margin:0"></span>
+    </div>
+    <table>
+      <thead><tr><th>账号</th><th>类型</th><th>到期时间</th><th>剩余</th><th>备注</th><th>操作</th></tr></thead>
+      <tbody id="vipBody"></tbody>
+    </table>
+    <p class="muted" id="vipEmpty" style="margin-top:8px">还没有会员。开通过程全自动，无需到 CF 后台。</p>
+  </div>
+
+  <p class="muted" style="text-align:center">会员状态以服务端 vip:&lt;账号&gt; 键为准 · 已接入 AI 额度闸（会员不受免费额度限制）· 10/1</p>
 </div>
 
 <script>
@@ -219,6 +244,12 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:
     (DATA.invites || []).forEach(function(v){ invLeft += Math.max(0, (v.max||0) - (v.used||0)); });
     $('stInv').textContent = invLeft;
 
+    var vips = DATA.vips || [];
+    var vipAlive = vips.filter(function(v){ return (v.daysLeft||0) > 0; });
+    $('stVip').textContent = vipAlive.length;
+    var vipMap = {};
+    vips.forEach(function(v){ if((v.daysLeft||0) > 0) vipMap[v.acct] = v; });
+
     /* 邀请码表 */
     var tb = $('invBody'); tb.innerHTML = '';
     var invs = DATA.invites || [];
@@ -235,17 +266,36 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:
       tb.appendChild(tr);
     });
 
-    /* 用户表 */
+    /* 用户表（含会员列） */
     var ub = $('userBody'); ub.innerHTML = '';
     var users = DATA.users || [];
     $('userEmpty').style.display = users.length ? 'none' : '';
     users.forEach(function(u, i){
+      var v = vipMap[u.acct];
+      var vipCell = v
+        ? '<span class="tag ok">' + v.daysLeft + ' 天</span>'
+        : '<span class="muted">—</span>';
       var tr = document.createElement('tr');
       tr.innerHTML = '<td>' + (i+1) + '</td>'
         + '<td style="cursor:pointer" title="点击复制" data-acct="' + u.acct + '"><b>' + u.acct + '</b></td>'
         + '<td>' + fmtTs(u.created) + '</td>'
-        + '<td>' + ((DATA.usage || {})[u.acct] || 0) + '</td>';
+        + '<td>' + ((DATA.usage || {})[u.acct] || 0) + '</td>'
+        + '<td>' + vipCell + '</td>';
       ub.appendChild(tr);
+    });
+
+    /* 会员表 */
+    var vb = $('vipBody'); vb.innerHTML = '';
+    $('vipEmpty').style.display = vips.length ? 'none' : '';
+    vips.forEach(function(v){
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td><b>' + v.acct + '</b></td>'
+        + '<td>' + (v.type || 'base') + '</td>'
+        + '<td>' + fmtTs(v.expire) + '</td>'
+        + '<td>' + ((v.daysLeft||0) > 0 ? '<span class="tag ok">剩 ' + v.daysLeft + ' 天</span>' : '<span class="tag full">已过期</span>') + '</td>'
+        + '<td>' + (v.note ? v.note : '<span class="muted">—</span>') + '</td>'
+        + '<td><button class="btn danger small" data-vrevoke="' + v.acct + '" type="button">撤销</button></td>';
+      vb.appendChild(tr);
     });
   }
 
@@ -270,7 +320,41 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:
         if(r.ok) load();
         else alert('作废失败：' + ((r.j && r.j.msg) || ('HTTP ' + r.status)));
       });
+      return;
     }
+    /* 会员天数快捷档：只填数字，不自动提交（她要自己确认） */
+    var vd = t.getAttribute && t.getAttribute('data-vdays');
+    if(vd){ $('vipDays').value = vd; return; }
+    var vr = t.getAttribute && t.getAttribute('data-vrevoke');
+    if(vr){
+      if(!confirm('撤销账号 ' + vr + ' 的会员？\n（立即失效；本机学习数据不受影响）')) return;
+      api('vip_revoke', { acct: vr }, function(r){
+        if(r.ok) load();
+        else alert('撤销失败：' + ((r.j && r.j.msg) || ('HTTP ' + r.status)));
+      });
+    }
+  });
+
+  $('grantBtn').addEventListener('click', function(){
+    var acct = ($('vipAcct').value || '').trim().toLowerCase();
+    var days = parseInt($('vipDays').value, 10);
+    var note = ($('vipNote').value || '').trim();
+    $('vipErr').textContent = '';
+    if(!/^[a-z0-9_]{6,20}$/.test(acct)){ $('vipErr').textContent = '账号格式：6-20 位数字/字母/下划线'; return; }
+    if(!(days >= 1 && days <= 3650)){ $('vipErr').textContent = '天数请填 1-3650'; return; }
+    $('grantBtn').disabled = true;
+    api('vip_grant', { acct: acct, days: days, note: note }, function(r){
+      $('grantBtn').disabled = false;
+      if(r.ok){
+        load();
+        $('vipErr').style.color = 'var(--ok)';
+        $('vipErr').textContent = '已开通：' + acct + '，剩余 ' + r.j.daysLeft + ' 天';
+        setTimeout(function(){ $('vipErr').textContent = ''; $('vipErr').style.color = ''; }, 5000);
+      } else {
+        $('vipErr').style.color = '';
+        $('vipErr').textContent = (r.j && r.j.msg) || ('开通失败（HTTP ' + r.status + '）');
+      }
+    });
   });
 
   $('mintBtn').addEventListener('click', function(){

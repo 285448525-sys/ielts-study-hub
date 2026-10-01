@@ -6,13 +6,20 @@
 //
 // 能力（她点名的「看到所有用户的数据」 + 商业化第一块基建）：
 //   overview       一次性拉全量：用户列表（账号+注册时间）、邀请码列表（码/限用/已用）、
-//                  今日每账号 AI 调用次数、活跃 session 数、全站今日 AI 总量
+//                  今日每账号 AI 调用次数、活跃 session 数、全站今日 AI 总量、会员列表
 //   invite_mint    生成邀请码（随机 8 位或自定义 4-16 位字母数字；max = 可用次数）
 //   invite_revoke  作废邀请码（直接删 inv:<code> 键；已注册的账号不受影响）
-// 不做（风险控制，等真需要再说）：改/删用户数据、踢 session、会员开关（会员字段体系落地后在面板加）。
+//   vip_grant      给账号开会员（10/1 晚她授权先搭框架）：KV 键 vip:<acct> = { type, expire, grantedAt, note }，
+//                  续费 = max(现 expire, now) + days 顺延；只允许给已注册账号开（防手滑开错号）
+//   vip_revoke     撤销会员（删 vip:<acct> 键）
+// 不做（风险控制，等真需要再说）：改/删用户数据、踢 session。
+//
+// ⚠️ 会员状态安全口径：vip:<acct> 只存 KV 服务端（站长面板发放），**绝不进 DATA 云同步 blob**
+//    ——DATA 在客户端可被用户随意改，会员状态进 DATA 等于白送。前端显示会员态走 /api/auth
+//    login 响应（vip 字段）或后续轻接口，一律以服务端为准。
 //
 // KV 键口径与 ai.js / auth.js 对齐：
-//   user:<acct> / sess:<token> / inv:<CODE>
+//   user:<acct> / sess:<token> / inv:<CODE> / vip:<acct>
 //   aiqa:<acct>:<YYYYMMDD>:<bucket>   —— ai.js 的按账号 AI 计量（10 个分钟桶轮转）
 
 const CORS = {
@@ -109,7 +116,21 @@ export async function onRequest(context) {
     }
 
     const sessCount = (await listAll(kv, 'sess:')).length;
-    return json({ ok: true, day: day, users: users, invites: invites, usage: usage, aiToday: aiToday, sessCount: sessCount });
+
+    /* 会员列表：vip:<acct> = { type, expire(ms), grantedAt, note }；到期剩余天数一并算好 */
+    const vipKeys = await listAll(kv, 'vip:');
+    const now = Date.now();
+    const vips = [];
+    for (const name of vipKeys) {
+      try {
+        const v = JSON.parse((await kv.get(name)) || 'null');
+        if (!v || !v.expire) continue;
+        vips.push({ acct: name.slice(4), type: v.type || 'base', expire: v.expire, daysLeft: Math.ceil((v.expire - now) / 86400000), note: v.note || '' });
+      } catch (e) {}
+    }
+    vips.sort((a, b) => a.expire - b.expire);   // 快到期的排前面
+
+    return json({ ok: true, day: day, users: users, invites: invites, usage: usage, aiToday: aiToday, sessCount: sessCount, vips: vips });
   }
 
   /* ---------- 生成邀请码 ---------- */
@@ -131,6 +152,35 @@ export async function onRequest(context) {
     if (!code) return json({ ok: false, error: 'bad_code', msg: '缺少邀请码' }, 400);
     await kv.delete('inv:' + code);
     return json({ ok: true, code: code });
+  }
+
+  /* ---------- 开通/续费会员（她收到转账后在这里手动开；档位价格是她的商业决策，面板只管时长） ---------- */
+  if (action === 'vip_grant') {
+    const acct = String(body.acct || '').trim().toLowerCase();
+    if (!/^[a-z0-9_]{6,20}$/.test(acct)) return json({ ok: false, error: 'bad_acct', msg: '账号格式：6-20 位数字/字母/下划线' }, 400);
+    const days = parseInt(body.days, 10);
+    if (!Number.isFinite(days) || days < 1 || days > 3650) return json({ ok: false, error: 'bad_days', msg: '会员天数限 1-3650' }, 400);
+    if (!(await kv.get('user:' + acct))) return json({ ok: false, error: 'no_user', msg: '该账号还没注册（会员只开给已注册账号）' }, 404);
+    let cur = null;
+    try { cur = JSON.parse((await kv.get('vip:' + acct)) || 'null'); } catch (e) {}
+    /* 未过期则从现到期日顺延（续费不吃亏），已过期/新开从现在起算 */
+    const base = (cur && cur.expire > Date.now()) ? cur.expire : Date.now();
+    const rec = {
+      type: 'base',                                        // 单档会员（她拍板：免费版→基础会员，无复杂分级）
+      expire: base + days * 86400000,
+      grantedAt: Date.now(),
+      note: String(body.note || '').slice(0, 100),
+    };
+    await kv.put('vip:' + acct, JSON.stringify(rec));
+    return json({ ok: true, acct: acct, expire: rec.expire, daysLeft: Math.ceil((rec.expire - Date.now()) / 86400000) });
+  }
+
+  /* ---------- 撤销会员 ---------- */
+  if (action === 'vip_revoke') {
+    const acct = String(body.acct || '').trim().toLowerCase();
+    if (!acct) return json({ ok: false, error: 'bad_acct', msg: '缺少账号' }, 400);
+    await kv.delete('vip:' + acct);
+    return json({ ok: true, acct: acct });
   }
 
   return json({ ok: false, error: 'bad_action', msg: '未知 action' }, 400);
