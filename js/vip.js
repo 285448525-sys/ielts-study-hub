@@ -5,10 +5,12 @@
 
 /* ⭐ 定价唯一来源（她想调价就改这个数组；perDay/save 手算填，改价格记得同步改）
    10/1 定价改按豆包全案口径（她拍板）：月 69 / 季 179 / 年 499（年卡默认高亮「推荐 · 最划算」+立省 329 元）。
+   10/1 晚加周卡 39（她拍板）：短期尝鲜 + 推广奖励用卡（分享送周卡=待定功能，预告已在 vip.html #vipPromo）。
    免费额度 10/1 下午起为她拍板新口径（口语模考每月 1 次 / 写作批改会员专属 / 其余 AI 每周 5 次），
    写死在 functions/api/ai.js（AI_FREE_MOCK_MONTHLY / AI_FREE_WRITING_TOTAL=0 / AI_USER_WEEKLY_LIMIT=5），
    口径必须一致的处所：ai.js 默认值 + auth.js ai_usage + vip.html 对比表（改额度三处同步）。 */
 const VIP_PLANS = [
+  { id:'week',    name:'周卡', price:'39',  unit:'周', perDay:'≈ 5.6 元/天', save:'',           tag:'' },
   { id:'month',   name:'月卡', price:'69',  unit:'月', perDay:'≈ 2.3 元/天', save:'',           tag:'' },
   { id:'quarter', name:'季卡', price:'179', unit:'季', perDay:'≈ 2.0 元/天', save:'',           tag:'' },
   { id:'year',    name:'年卡', price:'499', unit:'年', perDay:'≈ 1.3 元/天', save:'立省 329 元', tag:'推荐 · 最划算' },
