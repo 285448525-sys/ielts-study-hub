@@ -67,32 +67,116 @@
     return '冲刺期';
   }
 
-  /* 目标分 vs 近期成绩平均分（DATA.scores：回顾页「成绩」tab 录入的四科分数）。
-     10/1 她拍板：不能用「最近一次」当现在的水平（成绩随时间在变），要用**近期成绩的平均分**。
-     口径：按日期取最近 GAP_N 条记录，各科只平均录了分的那些条；N 写在卡片副标题上，随时可调。
-     10/1 修：① tip 的天数动态；② 没录分的科不参与对比；③ 只设总分时给「补单科目标」提示。 */
-  var GAP_N = 3;
-  function recentAvgs() {
-    const list = ((DATA && DATA.scores) || []).slice()
-      .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))
-      .slice(0, GAP_N);
-    const avg = {};
-    SKILLS.forEach(k => {
-      const vals = list.map(r => Number(r && r[k])).filter(v => v > 0);
-      avg[k] = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  /* 目标分 vs 当前水平（10/1 她拍板 v2）：数据源 = 回顾页「分项记录列表」DATA.mockRecords（她自己导入的数字）。
+     旧版用 DATA.scores（成绩 tab 手录，只有 8 月两条旧数据）→ 听力显示 4.5 被她抓包，口径报废。
+     窗口 = 最近 7 天（含今天）。算法（她设计的，要求"最精准"）：
+     - 听/读：按 part 分桶——整卷拆开、单项各自进桶；每桶「Σ答对 ÷ 考试次数」= 该 part 平均答对数；
+       Σ各 part 平均 = 虚拟整卷总答对数 → 按比例折 40 查 band 表得档位。
+     - 写作：Task 1 平均、Task 2 平均，再按权重（T1×1、T2×2）合成（与列表「均分」口径一致）。
+     - 口语：口语页整卷模考（kind==='speaking'，自动存）直接取 overall；手动录的四维单项按权重合成。
+     - 7 天内该科无数据 → 回退用该科最近一条可估分记录（任何日期），数值旁标注日期并在副标题说明。 */
+  function sprint7dCutoff(){
+    const d = new Date(); d.setDate(d.getDate() - 6);
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  }
+  /* 一条记录的 parts 按桶累加（accuracy 桶记 c/tot/n，score 桶记 s/w/n） */
+  function bucketAdd(buckets, r, cfg){
+    (r.parts || []).forEach(p => {
+      if(!p || !p.label) return;
+      const b = buckets[p.label] || (buckets[p.label] = { n:0, c:0, tot:0, s:0, w:0 });
+      if(typeof p.score === 'number'){
+        b.s += p.score; b.w += partWeight(cfg, p.label); b.n += 1;
+      } else if(typeof p.correct === 'number' && typeof p.total === 'number' && p.total > 0){
+        b.c += p.correct; b.tot += p.total; b.n += 1;
+      }
     });
-    return { used: list.length, avg: avg };
+  }
+  /* 分桶 → 该科 band。听/读：Σ各 part 平均答对 ÷ 平均题数 → 折 40 查表；
+     写作：各 part 平均后再按权重合成（T2 权重 2，练得多的 part 不会稀释另一个）。 */
+  function bandFromBuckets(type, cfg, buckets){
+    let any = false;
+    if(cfg.mode === 'score'){
+      let num = 0, den = 0;
+      Object.keys(buckets).forEach(k => {
+        const b = buckets[k];
+        if(b.n > 0 && b.w > 0){
+          const w = partWeight(cfg, k);
+          num += (b.s / b.n) * w; den += w; any = true;
+        }
+      });
+      return any ? num / den : null;
+    }
+    let sum = 0, tot = 0;
+    Object.keys(buckets).forEach(k => {
+      const b = buckets[k];
+      if(b.n > 0){ sum += b.c / b.n; tot += b.tot / b.n; any = true; }
+    });
+    return any ? estimateBand(type, sum, tot) : null;
+  }
+  /* 单条记录独立估分（供回退：7 天内没数据的科用最近一次） */
+  function bandFromRec(type, cfg, r){
+    const parts = Array.isArray(r.parts) ? r.parts : [];
+    if(cfg.mode === 'score'){
+      let num = 0, den = 0;
+      parts.forEach(p => {
+        if(typeof p.score === 'number'){ const w = partWeight(cfg, p.label); num += p.score * w; den += w; }
+      });
+      return den > 0 ? num / den : null;
+    }
+    let c = 0, t = 0;
+    parts.forEach(p => { if(typeof p.correct === 'number' && typeof p.total === 'number'){ c += p.correct; t += p.total; } });
+    return t > 0 ? estimateBand(type, c, t) : null;
+  }
+  function recentAvgs(){
+    const cutoff = sprint7dCutoff();
+    const recs = ((DATA && DATA.mockRecords) || [])
+      .filter(r => r && (MOCK_TYPES[r.type] || isSpeakingMockRec(r)))
+      .slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+    const buckets = {}, bands7 = {}, fallback = {};
+    SKILLS.forEach(k => { buckets[k] = {}; bands7[k] = []; });
+    recs.forEach(r => {
+      const isSpMock = isSpeakingMockRec(r);
+      const ty = isSpMock ? 'speaking' : r.type;
+      const cfg = MOCK_TYPES[ty]; if(!cfg) return;
+      const date = String(r.date || '');
+      const in7 = !!date && date >= cutoff;
+      if(isSpMock){
+        const ov = parseFloat(r.overall);
+        if(!isNaN(ov)){
+          if(in7) bands7.speaking.push(ov);
+          if(!fallback.speaking) fallback.speaking = { band: ov, date: date };
+        }
+        return;
+      }
+      if(!fallback[ty]){
+        const bd = bandFromRec(ty, cfg, r);
+        if(bd != null) fallback[ty] = { band: bd, date: date };
+      }
+      if(in7) bucketAdd(buckets[ty], r, cfg);
+    });
+    const avg = {}, fromFallback = {};
+    SKILLS.forEach(k => {
+      if(k === 'speaking'){
+        if(bands7.speaking.length) avg[k] = bands7.speaking.reduce((a, b) => a + b, 0) / bands7.speaking.length;
+      } else {
+        const bd = bandFromBuckets(k, MOCK_TYPES[k], buckets[k]);
+        if(bd != null) avg[k] = bd;
+      }
+      if(avg[k] == null && fallback[k]){ avg[k] = fallback[k].band; fromFallback[k] = fallback[k].date; }
+    });
+    return { avg: avg, fb: fromFallback };
   }
   function renderGap(d) {
     const tg = ((DATA && DATA.settings) && DATA.settings.targets) || {};
-    const anyScore = ((DATA && DATA.scores) || []).length > 0;
     const hasTarget = SKILLS.some(k => Number(tg[k]) > 0) || Number(tg.overall) > 0;
 
+    const rec = recentAvgs();
+    const anyScore = SKILLS.some(k => rec.avg[k] != null);
     if (!anyScore) {
       return '<div class="sp-card">'
         + '<div class="sp-card-h">离目标还差多少</div>'
-        + '<p class="sp-empty">还没录过成绩。先做一套模考、把四科分填进'
-        + '<a href="review.html">回顾页</a>，这里才会显示差距。</p>'
+        + '<p class="sp-empty">回顾页还没导入过能估分的模考记录（整卷或单项都行）。去'
+        + '<a href="review.html">回顾页</a>录入，这里按最近 7 天算你和目标的差距。</p>'
         + '</div>';
     }
     if (!hasTarget) {
@@ -102,13 +186,14 @@
         + '</div>';
     }
 
-    const rec = recentAvgs();
     let rows = '';
     let worst = null;
+    const fbKeys = [];
     SKILLS.forEach(k => {
       const t = Number(tg[k]) || 0;
       const got = rec.avg[k];
-      if (got == null) return;                 // 近期没录过这一科的分就不比（0 不是真实成绩）
+      if (got == null) return;                 // 从没录过这一科（连回退记录都没有）就不比
+      const fb = rec.fb[k]; if (fb) fbKeys.push(LABEL[k]);
       if (!t) return;                          // 没设这科的目标也没法比
       const diff = Math.round((got - t) * 10) / 10;
       if (worst === null || diff < worst.diff) worst = { k: k, diff: diff };
@@ -117,14 +202,14 @@
       rows += '<div class="sp-gap-row">'
         + '<span class="sp-gap-k">' + LABEL[k] + '</span>'
         + '<span class="sp-gap-bar"><i class="' + cls + '" style="width:' + Math.min(100, Math.round(got / 9 * 100)) + '%"></i></span>'
-        + '<span class="sp-gap-v">' + got.toFixed(1) + '<em>/' + (t ? t.toFixed(1) : '—') + '</em></span>'
+        + '<span class="sp-gap-v">' + got.toFixed(1) + '<em>/' + (t ? t.toFixed(1) : '—') + (fb ? ' · ' + fb.slice(5) : '') + '</em></span>'
         + '<span class="sp-gap-d ' + cls + '">' + dtxt + '</span>'
         + '</div>';
     });
     if (!rows) {
       return '<div class="sp-card">'
         + '<div class="sp-card-h">离目标还差多少</div>'
-        + '<p class="sp-empty">只设了总分，单科目标没填或近期成绩没录分，按科比不了。去'
+        + '<p class="sp-empty">只设了总分，单科目标没填或没导入过分项记录，按科比不了。去'
         + '<a href="settings.html">设置</a>把单科目标补上更直观。</p>'
         + '</div>';
     }
@@ -134,7 +219,7 @@
         ? '<p class="sp-tip">最大缺口是<b>' + LABEL[worst.k] + '</b>（差 ' + Math.abs(worst.diff).toFixed(1) + ' 分）——最后 ' + d + ' 天优先砸它，性价比最高。</p>'
         : '<p class="sp-tip">最大缺口是<b>' + LABEL[worst.k] + '</b>（差 ' + Math.abs(worst.diff).toFixed(1) + ' 分）——没时间补了，考场上先做有把握的题，别恋战。</p>')
       : '<p class="sp-tip">都已达标，保持手感就行，别在最后几天换方法。</p>';
-    const sub = '按最近 ' + rec.used + (rec.used >= 2 ? ' 次平均' : ' 次成绩');
+    const sub = '近 7 天模考均分' + (fbKeys.length ? ' · ' + fbKeys.join('、') + ' 按最近一次' : '');
     return '<div class="sp-card">'
       + '<div class="sp-card-h">离目标还差多少<span class="sp-card-sub">' + sub + '</span></div>'
       + rows + tip + '</div>';

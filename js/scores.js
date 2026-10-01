@@ -1,32 +1,6 @@
-/* mode:
-   - 'accuracy' 听/读：客观题，录「答对 / 总题数」，算正确率
-   - 'score'    口/写：评分制，只录「得分 0–9（含 .5）」，算加权平均
-   accuracy 的 part 带 defaultTotal（预填总题数）；score 的 part 带 weight（加权） */
-var MOCK_TYPES = {
-  listening: { name:'听力', icon:'🎧', mode:'accuracy', color:'var(--mock)',
-    parts:[ {label:'P1',defaultTotal:10},{label:'P2',defaultTotal:10},
-            {label:'P3',defaultTotal:10},{label:'P4',defaultTotal:10} ] },
-  reading:   { name:'阅读', icon:'📖', mode:'accuracy', color:'var(--vocab)',
-    parts:[ {label:'P1',defaultTotal:13},{label:'P2',defaultTotal:13},{label:'P3',defaultTotal:14} ] },
-  speaking:  { name:'口语', icon:'🗣', mode:'score', color:'var(--med)',
-    parts:[ {label:'流利度 Fluency',weight:1},{label:'词汇 Lexical',weight:1},{label:'语法 Grammar',weight:1},{label:'发音 Pronunciation',weight:1} ] },
-  writing:   { name:'写作', icon:'✏️', mode:'score', color:'var(--warn)',
-    parts:[ {label:'Task 1',weight:1},{label:'Task 2',weight:2} ] }, // Task 2 权重更高
-};
-
-/* 模块 C：整卷客观题（听/读）按「答对率 → 雅思 band」近似估分。
-   官方对照为 40 题满分制；若实际总题数不是 40，先按比例折算到 40 再查表。
-   仅为练习参考，标签带「约」。口语/写作不估（评分制本身即 band）。 */
-/* 9/15 二次校准：以 IDP 官方（IELTS 主办方之一，ielts.idp.com「Listening band scores /
-   Academic Reading band scores」页，2026-09-15 查证）为准，并经 ielts.org 官方整数档锚点交叉验证
-   （听力 5=16/6=23/7=30/8=35；阅读A 5=15/6=23/7=30/8=35，全部吻合）。
-   注意：ielts.org 声明精确判分线每次考试按难度有 ±1 浮动，半档线官方从未公布——IDP 全表是现有最权威来源。
-   与民间流传版（16-19=5.0/20-22=5.5/30-32=7.0）的差异：听力 18-22 即 5.5、30-31 即 7.0、32 即 7.5。
-   低于 4 题（约 2.0 以下）不估分，与旧逻辑一致。 */
-var BAND_TABLE = {
-  reading: [ [39,9],[37,8.5],[35,8],[33,7.5],[30,7],[27,6.5],[23,6],[19,5.5],[15,5],[13,4.5],[10,4],[8,3.5],[6,3],[4,2.5] ],
-  listening: [ [39,9],[37,8.5],[35,8],[32,7.5],[30,7],[26,6.5],[23,6],[18,5.5],[16,5],[13,4.5],[11,4],[8,3.5],[6,3],[4,2.5] ],
-};
+/* MOCK_TYPES / BAND_TABLE / partIsScore / partWeight / estimateBand / targetCorrectFor
+   已挪至 common.js（10/1：首页冲刺卡也要用这套估分，而 home.html 不加载 scores.js）。
+   本文件只保留回顾页的录入与渲染逻辑。 */
 
 ready(() => {
   $('#scoreDate').value = todayKey();
@@ -449,38 +423,7 @@ function addMock(){
   toast(msg);
 }
 
-/* 判定一个 part 录入是「分数」还是「正确率」：以字段为准，兼容旧记录
-   旧记录（改版前）口语/写作也曾存 correct/total —— 这里按字段判定，避免 NaN */
-function partIsScore(p){ return typeof p.score === 'number'; }
-function partWeight(cfg, label){
-  const p = (cfg.parts || []).find(x => x.label === label);
-  return (p && typeof p.weight === 'number') ? p.weight : 1;
-}
-
-function estimateBand(type, correct, total){
-  const tbl = BAND_TABLE[type];
-  if(!tbl || !(total > 0)) return null;
-  const eq = correct / total * 40;
-  if(eq < 4) return null;
-  for(const [min, band] of tbl){ if(eq >= min) return band; }
-  return null;
-}
-
-/* 9/15 整卷「目标对个数」：由设置页目标分自动推导，无需新增设置项。
-   规则（之之 9/15 定版）：取该 band 档位正确题数区间的最低个数 + 2（上限 40）。
-   听力 5.5 → 18-22 → 18+2 = 20；阅读 6.5 → 27-29 → 27+2 = 29；听力 6.0 → 23-25 → 25。
-   未设目标分 / 口语写作（band 即评分，无客观题表）/ 目标分无对应档位 → 返回 null。 */
-function targetCorrectFor(type, bandTarget){
-  const tbl = BAND_TABLE[type];
-  const t = Number(bandTarget);
-  if(!tbl || !(t > 0)) return null;
-  for(let i = 0; i < tbl.length; i++){
-    if(tbl[i][1] === t){
-      return Math.min(40, tbl[i][0] + 2);
-    }
-  }
-  return null;
-}
+/* partIsScore / partWeight / estimateBand 已挪至 common.js（10/1） */
 
 /* 从口语页日常练习记录聚合四维度均分。
    评分机制关闭后新记录可能无 score，但只要旧记录/评分恢复后仍有 score，就可用。
@@ -530,11 +473,7 @@ function aggregateSpeakingPracticeScores(cutoffTs){
   return { byPart, overall: totalW ? { sum: totalSum, wsum: totalW } : null };
 }
 
-/* 判定是否为口语整卷模考记录（与 mock-history.js / mock.js 保持一致）
-   新版：kind==='speaking'；旧版：无 kind，但有 p1 且无数组 parts */
-function isSpeakingMockRec(r){
-  return r && (r.kind === 'speaking' || (!Array.isArray(r.parts) && r.p1));
-}
+/* 判定是否为口语整卷模考记录 → 已挪至 common.js（10/1，isSpeakingMockRec） */
 
 /* 把一条口语整卷模考记录聚合成「分项模考」所需的四维结构。
    新版：parts.p1/p2/p3 含 {fc,lr,gra,overall}，发音取 pronunciationScore
