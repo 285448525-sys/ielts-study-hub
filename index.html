@@ -182,10 +182,12 @@ section{padding:76px 0}
 .bars.in .b i{height:var(--h)}
 .bars .b.hi i{background:var(--primary-500)}
 .bars .b u{text-decoration:none;font-size:12px;color:var(--muted)}
+.bars .b em{font-style:normal;font-size:11px;color:var(--n-700);font-variant-numeric:tabular-nums}
+.bars .b.hi em{color:var(--primary-500);font-weight:600}
 .stat{display:flex;flex-direction:column;gap:18px}
 .stat .row{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:14px;border-bottom:1px dashed var(--line)}
 .stat .row:last-of-type{border:0;padding-bottom:0}
-.stat .row span{font-size:14px;color:var(--muted)}
+.stat .row > span{font-size:14px;color:var(--muted)}
 .stat .row b{font-size:22px;font-weight:600;color:var(--n-900);font-variant-numeric:tabular-nums}
 
 /* ---------- 结尾 ---------- */
@@ -456,21 +458,21 @@ section{padding:76px 0}
       <div class="chart" data-rev>
         <div class="hd"><b>本周每日学习时长</b><span>示例数据</span></div>
         <div class="bars" id="bars">
-          <div class="b"><i style="--h:44%"></i><u>一</u></div>
-          <div class="b"><i style="--h:68%"></i><u>二</u></div>
-          <div class="b"><i style="--h:30%"></i><u>三</u></div>
-          <div class="b hi"><i style="--h:92%"></i><u>四</u></div>
-          <div class="b"><i style="--h:56%"></i><u>五</u></div>
-          <div class="b"><i style="--h:74%"></i><u>六</u></div>
-          <div class="b"><i style="--h:38%"></i><u>日</u></div>
+          <div class="b"><em>48m</em><i style="--h:38%"></i><u>一</u></div>
+          <div class="b"><em>1h22m</em><i style="--h:64%"></i><u>二</u></div>
+          <div class="b"><em>32m</em><i style="--h:25%"></i><u>三</u></div>
+          <div class="b hi"><em>2h08m</em><i style="--h:100%"></i><u>四</u></div>
+          <div class="b"><em>57m</em><i style="--h:45%"></i><u>五</u></div>
+          <div class="b"><em>1h45m</em><i style="--h:82%"></i><u>六</u></div>
+          <div class="b"><em>38m</em><i style="--h:30%"></i><u>日</u></div>
         </div>
         <p class="hint">示意图：柱高为示例，页面展示的是你自己的真实统计。</p>
       </div>
       <div class="stat" data-rev style="--d:.1s">
-        <div class="row"><span>连续学习</span><b class="cnt" data-to="12">0</b></div>
-        <div class="row"><span>本周累计</span><b><span class="cnt" data-to="11">0</span>h 40m</b></div>
-        <div class="row"><span>已掌握词</span><b class="cnt" data-to="1284">0</b></div>
-        <div class="row"><span>口语 P2 已串</span><b><span class="cnt" data-to="18">0</span> / 34</b></div>
+        <div class="row"><span>连续学习</span><b><span class="cnt" data-to="9">0</span> 天</b></div>
+        <div class="row"><span>本周累计</span><b><span class="cnt" data-to="8">0</span>h 42m</b></div>
+        <div class="row"><span>已掌握词</span><b class="cnt" data-to="1268">0</b></div>
+        <div class="row"><span>口语 P2 已串</span><b><span class="cnt" data-to="21">0</span> / 34</b></div>
         <p class="hint">示例数字，进站后按你的真实统计渲染。</p>
       </div>
     </div>

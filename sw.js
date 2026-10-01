@@ -9,7 +9,7 @@
      SW 不参与离线态的判定与渲染，缓存策略本文件零改动。
      本文件 activate 时发的 `SW_UPDATED` 消费端也在 common.js（maybeShowSwUpdatePrompt，
      design/78）：页面收到后只弹提示条，**是否刷新由用户点击决定，SW 侧绝不自动 reload**。 */
-const CACHE = 'ielts-hub-v89';   // 10/1 冲刺卡修 bug（考试日不推练习 / tip 动态天数 / 未录分科不比）（js/sprint.js，≤14 天出现）+ 写作考场模式（倒计时 / 到点强制停笔）。上一版：邮箱验证码登录
+const CACHE = 'ielts-hub-v92';   // 10/1 落地页示意区：统计卡数字被压小修复（.row > span）+ 示例数据更真实（柱状图加时长标注）。上一版：冲刺卡修 bug + 写作考场模式
 
 /* 核心壳预缓存清单（Node 脚本枚举目录生成，2026-09-20；与 14 页实际引用核对无遗漏）。
    不含 js/vendor/xlsx.full.min.js（861KB 体积大 → 走运行时 SWR 缓存）。 */
