@@ -50,6 +50,20 @@ function enrichSpeakingTasks(arr){
   });
 }
 
+/* ---------- 子 Tab（10/1 她拍板拆分：「今日」= 今天的任务，「规划」= 未来 N 天总体计划 + AI 分配） ----------
+   两个 panel 始终在 DOM 只显隐，AI 回调里对 planText/weekBox 的判空逻辑不受影响。
+   视图态存 sessionStorage（全站惯例）；软导航重进本页 ready 重跑，恢复上次所在 Tab。 */
+function setPlanTab(name){
+  const tabs = document.querySelectorAll('#planTabs .pill-tab');
+  if(!tabs.length) return;
+  tabs.forEach(b => b.classList.toggle('active', b.dataset.ptab === name));
+  const pt = document.getElementById('ptabToday');
+  const pp = document.getElementById('ptabPlan');
+  if(pt) pt.classList.toggle('active', name === 'today');
+  if(pp) pp.classList.toggle('active', name === 'plan');
+  try{ sessionStorage.setItem('hub_plan_ptab', name); }catch(e){}
+}
+
 /* ---------- 每日计划 ---------- */
 ready(() => {
   // 软导航重新进入本页时，重置上次遗留的周计划状态（模块级全局），
@@ -60,6 +74,11 @@ ready(() => {
   $('#addPlan').addEventListener('click', addItem);
   $('#aiPlan').addEventListener('click', aiPlanItem);
   bindEnterSubmit($('#planText'), $('#addPlan'));   // 9/22 之之：回车即添加（原 Ctrl+Enter；换行用 Shift+Enter）
+
+  // 子 Tab 切换 + 恢复上次所在 Tab（默认「今日」）
+  document.querySelectorAll('#planTabs .pill-tab').forEach(b =>
+    b.addEventListener('click', () => setPlanTab(b.dataset.ptab)));
+  try{ if(sessionStorage.getItem('hub_plan_ptab') === 'plan') setPlanTab('plan'); }catch(e){}
 
   // 每周 AI 排程
   $('#weekTasks').value = DATA.settings.weeklyTasks || '';
@@ -77,6 +96,7 @@ ready(() => {
   try{
     if(sessionStorage.getItem('hub_focus_plan_input')){
       sessionStorage.removeItem('hub_focus_plan_input');
+      setPlanTab('today');   // 首页「AI 帮我安排今天」信标 → 必落在「今日」Tab，聚焦输入框才可见
       const box = document.getElementById('planText');
       if(box){ box.focus(); box.scrollIntoView({ block:'center' }); }
     }
@@ -322,6 +342,7 @@ function renderHistory(curDate){
   box.querySelectorAll('button[data-open]').forEach(b =>
     b.addEventListener('click', e => {
       e.stopPropagation();
+      setPlanTab('today');   // 「打开编辑这天」目标容器（日期/列表）在「今日」Tab
       $('#planDate').value = b.dataset.open;
       render();
       const top = document.querySelector('.container .card');

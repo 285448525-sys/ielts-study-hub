@@ -9,7 +9,7 @@
      SW 不参与离线态的判定与渲染，缓存策略本文件零改动。
      本文件 activate 时发的 `SW_UPDATED` 消费端也在 common.js（maybeShowSwUpdatePrompt，
      design/78）：页面收到后只弹提示条，**是否刷新由用户点击决定，SW 侧绝不自动 reload**。 */
-const CACHE = 'ielts-hub-v96';   // 10/1 UI：全站页面大标题（page-title）删除、timer 副标题删除、container 顶部 40→28（她拍板：侧栏已标识页面，标题无用）。上一版：商业化第一批 v95
+const CACHE = 'ielts-hub-v97';   // 10/1 计划页拆两个子 Tab（今日/规划，她拍板拆分、Tab 名我定可改）。上一版：全站大标题删除 v96
 
 /* 核心壳预缓存清单（Node 脚本枚举目录生成，2026-09-20；与 14 页实际引用核对无遗漏）。
    不含 js/vendor/xlsx.full.min.js（861KB 体积大 → 走运行时 SWR 缓存）。 */

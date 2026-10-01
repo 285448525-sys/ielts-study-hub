@@ -41,7 +41,7 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20260930f"></script>
   <script defer src="js/common.js?v=20261001f"></script>
-  <script src="js/plans.js?v=20261001f" defer></script>
+  <script src="js/plans.js?v=20261001g" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -55,7 +55,17 @@
 
 <main class="container">
 
-  <!-- 今日计划：日期 + 添加 + 列表 合一 -->
+  <!-- 10/1 她拍板拆两个子 Tab：「今日」= 今天的任务，「规划」= 未来 N 天总体计划 + AI 智能分配。
+       Tab 名按全站两字口径（练习/题库、学习/词库、拆解/总览），她不满意随时改。 -->
+  <div class="page-head-row">
+    <div class="pill-tabs" id="planTabs">
+      <button data-ptab="today" class="pill-tab active">今日</button>
+      <button data-ptab="plan" class="pill-tab">规划</button>
+    </div>
+  </div>
+
+  <!-- Tab 1 今日：日期 + 添加 + 列表 合一 -->
+  <div class="tab-panel active" id="ptabToday">
   <section class="card">
     <div class="card-head">
       <h2>今日计划</h2>
@@ -78,8 +88,10 @@
       <div id="planList" style="margin-top:10px"></div>
     </div>
   </section>
+  </div>
 
-  <!-- 计划：自由输入 + AI 智能分配到每天 -->
+  <!-- Tab 2 规划：自由输入 + AI 智能分配到每天 -->
+  <div class="tab-panel" id="ptabPlan">
   <section class="card">
     <h2>计划</h2>
     <textarea id="weekTasks" class="plan-textarea" placeholder="列出任务，AI 帮你排到每天，如：周一背单词 / 周二写作文"></textarea>
@@ -91,8 +103,9 @@
     </div>
     <div id="weekBox" style="margin-top:16px"></div>
   </section>
+  </div>
 
-  <!-- 历史计划：整模块默认折叠，移到最下面 -->
+  <!-- 历史计划：整模块默认折叠，两个 Tab 共享，移到最下面 -->
   <section class="card history-folded">
     <details class="history-wrap" id="historyWrap">
       <summary>
