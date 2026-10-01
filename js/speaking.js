@@ -340,14 +340,13 @@ ready(() => {
   if(mockJump) mockJump.addEventListener('click', () => { const mb = document.querySelector('#tabs [data-type="MOCK"]'); if(mb) mb.click(); });
   renderFreqBanner();   // design/81：季度 banner 数据化（此时题库合并已完成，题数现算）
   $('#backBtn').addEventListener('click', () => { $('#detailView').hidden = true; $('#listView').hidden = false; $('#sentView').hidden = true; $('#pdView').hidden = true; curDetailId = null; spActivateTab('BANK'); });
-  // 默认 tab = 练习：__SENT_V2_ON 时为句型页（sentence-drill.js 接管），否则老 pdView
+  // 默认 tab = 题库（她 10/1 晚拍板：题库放练习前面 + 打开口语优先展示题库）。
+  // 程序化点 BANK tab：复用切换分支的全部重置/渲染逻辑，不另写一份。
   $('#listView').hidden = true;
-  if(window.__SENT_V2_ON){
-    $('#pdView').hidden = true;
-    $('#sentView').hidden = false;
-  } else {
-    $('#pdView').hidden = false;
-  }
+  $('#pdView').hidden = true;
+  $('#sentView').hidden = true;
+  const bankTabBtn = document.querySelector('#tabs [data-type="BANK"]');
+  if(bankTabBtn) bankTabBtn.click();
   // P1：?open=<题id> 直达详情（素材页覆盖矩阵点题跳转用）——跳详情时落到题库 tab
   try{
     const openId = new URLSearchParams(location.search).get('open');

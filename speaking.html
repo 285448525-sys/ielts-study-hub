@@ -46,7 +46,7 @@
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
   <script defer src="js/sentence-drill.js?v=20261001i"></script>
-  <script defer src="js/speaking.js?v=20261001l"></script>
+  <script defer src="js/speaking.js?v=20261001m"></script>
   <script defer src="js/materials.js?v=20261001g"></script>
   <script defer src="js/mock-report.js?v=20260830u"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
@@ -846,9 +846,10 @@ body.mock-immerse #mockStage{border:0;box-shadow:none;background:transparent}
 <main class="container">
   <div class="page-head-row">
     <div class="sp-tabs pill-tabs" id="tabs">
-      <button data-type="PRACTICE" class="pill-tab active">练习</button>
-      <button data-type="BANK" class="pill-tab">题库</button>
-      <!-- 10/1 晚（她拍板）：模考不再是顶部 tab——入口移到题库筛选行「模考」按钮；隐藏按钮保留承载切换逻辑 -->
+      <!-- 10/1 晚（她拍板）：题库放练习前面 + 打开口语默认展示题库 -->
+      <button data-type="BANK" class="pill-tab active">题库</button>
+      <button data-type="PRACTICE" class="pill-tab">练习</button>
+      <!-- 模考不再是顶部 tab——入口移到题库筛选行「模考」按钮；隐藏按钮保留承载切换逻辑 -->
       <button data-type="MOCK" class="pill-tab" hidden>模考</button>
       <button data-type="MAT" class="pill-tab">素材</button>
     </div>
