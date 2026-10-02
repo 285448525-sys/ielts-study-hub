@@ -52,10 +52,10 @@
   }
 
   function minsText(m) {
-    if (!m) return '0M';
-    if (m < 60) return m + 'M';
+    if (!m) return '0m';
+    if (m < 60) return m + 'm';
     const h = Math.floor(m / 60), r = m % 60;
-    return r ? h + 'H' + r + 'M' : h + 'H';   /* 10/1 晚（她拍板）：紧凑时长格式，手机端不再折行 */
+    return r ? h + 'h' + r + 'm' : h + 'h';   /* 10/2（她反馈）：大写 H/M 改小写 h/m，更窄不突兀（10/1 紧凑格式延续） */
   }
 
   function phaseOf(d) {
