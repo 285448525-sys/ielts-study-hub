@@ -95,6 +95,11 @@ function injectNav(){
     if(pid === 'meds' && !medsModuleOn()) continue;    // 服药模块未开启 → 侧栏不出现
     const p = pageById(pid); if(p) html += sideItem(p, current);
   }
+  /* 10/2 意见反馈（她拍板双入口：设置页 + 「更多」）。桌面侧栏与移动抽屉同款，
+     同样是 button（非跳转）——点击由 js/feedback.js 的 [data-fb-open] 委托接管。
+     ⚠️ 不进 PAGES/MORE_NAV 数组：那两个数组的元素都要求有对应 html 页面。 */
+  html += '<button class="side-item" data-fb-open type="button">'
+    + '<span class="nav-icon">💬</span><span class="side-label">意见反馈</span></button>';
   html += '</div>';
   nav.innerHTML = html;
   bindSidebar();
@@ -645,6 +650,10 @@ function ensureMobileChrome(){
       sh += `<a class="sheet-item ${active}" href="${p.file}" data-id="${p.id}">`
         + `<span class="nav-icon">${p.icon}</span><span class="side-label">${p.name}</span></a>`;
     }
+    /* 10/2 意见反馈入口（她拍板「更多抽屉 + 设置页各一个」）：非跳转项，所以是 button 不是 a。
+       点击由 js/feedback.js 的 [data-fb-open] 委托接管（打开全站共用弹层）。 */
+    sh += '<button class="sheet-item" data-fb-open type="button">'
+      + '<span class="nav-icon">💬</span><span class="side-label">意见反馈</span></button>';
     sh += '</div>';
     const bd = document.createElement('div'); bd.id = 'sheetBackdrop'; bd.className = 'sheet-backdrop';
     const sheet = document.createElement('div'); sheet.id = 'moreSheet'; sheet.className = 'sheet'; sheet.innerHTML = sh;

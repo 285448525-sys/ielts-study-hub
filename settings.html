@@ -9,7 +9,7 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>设置 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261002h" />
+<link rel="stylesheet" href="css/common.css?v=20261002i" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=6" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=6">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=6">
@@ -49,6 +49,7 @@
 </style>
 <script defer src="js/data.js?v=20261001b"></script>
   <script defer src="js/common.js?v=20261002c"></script>
+  <script defer src="js/feedback.js?v=20261002a"></script>
   <script src="js/settings.js?v=20261001j" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -189,6 +190,16 @@
       <button class="btn btn-sm" id="resetBtn" style="margin-left:auto;color:var(--danger);background:var(--danger-soft);border-color:transparent">清空所有数据</button>
     </div>
     <div id="importErr" class="ui-err-box" style="margin-top:10px"></div>
+  </section>
+
+  <!-- ⑤b 意见反馈（10/2 新增：与「更多」抽屉同一个弹层，未登录也能提交） -->
+  <section class="card">
+    <h2>意见反馈</h2>
+    <p class="muted">遇到 bug 或有建议，写下来我会看到。可附最多 3 张截图（自动压缩），未登录也能提交——我会自动带上你所在的页面和设备信息，方便定位。</p>
+    <div class="form-row" style="gap:10px;align-items:center;margin-top:8px">
+      <button class="btn btn-sm" id="fbOpenBtn" data-fb-open type="button">✎ 写反馈</button>
+      <span class="muted">也可以在「更多」菜单里找到入口</span>
+    </div>
   </section>
 
   <!-- ⑥ 联系站长（压成一行条） -->
