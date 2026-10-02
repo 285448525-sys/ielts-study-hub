@@ -9,7 +9,7 @@
      SW 不参与离线态的判定与渲染，缓存策略本文件零改动。
      本文件 activate 时发的 `SW_UPDATED` 消费端也在 common.js（maybeShowSwUpdatePrompt，
      design/78）：页面收到后只弹提示条，**是否刷新由用户点击决定，SW 侧绝不自动 reload**。 */
-const CACHE = 'ielts-hub-v157';  // 10/2：口语+写作去个人画像（B 方案施工）——speaking 4 处 prompt（串题{SP_TARGET}占位/P3 辅助/P3 老师改/P1 陪练）动态读设置页口语目标分（spTargetBand/spPersonaLine，没填兜底 5.5 老用户零感知）；writing 2 处（hintBlank/scoreTemplate）动态 wtTargetText+策略口吻中性化；上一版 v156 App 锁壳
+const CACHE = 'ielts-hub-v158';  // 10/2：计时页主卡浅化（她 10/2 反馈：深墨绿太深+整块太大）——墨绿渐变沉浸卡改浅色 token 卡（teal 淡渐变+primary-700 大数字，暗色主题自动跟随），大数字 84→56px、padding/按钮/间距全收一档；Forest 双栏布局与 timer.js 钩子不动；上一版 v157 去个人画像
 
 /* 核心壳预缓存清单（Node 脚本枚举目录生成，2026-09-20；与 14 页实际引用核对无遗漏）。
    不含 js/vendor/xlsx.full.min.js（861KB 体积大 → 走运行时 SWR 缓存）。 */
