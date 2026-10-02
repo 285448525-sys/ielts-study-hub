@@ -9,7 +9,7 @@
      SW 不参与离线态的判定与渲染，缓存策略本文件零改动。
      本文件 activate 时发的 `SW_UPDATED` 消费端也在 common.js（maybeShowSwUpdatePrompt，
      design/78）：页面收到后只弹提示条，**是否刷新由用户点击决定，SW 侧绝不自动 reload**。 */
-const CACHE = 'ielts-hub-v144';  // 10/2：计划页历史 Tab 瘦身——删「历史计划/共 N 天」头部文字，展开明细改圆点行式+弱化编辑按钮（她拍板）。上一版 v143 写作分类扩齐
+const CACHE = 'ielts-hub-v146';  // 10/2：iOS date/time 修复收口——删旧 #sExam 压高补丁（38px/14px，14px 还会触发 iOS 聚焦放大），统一走全局 appearance:none 根因修复。上一版 v145 首次重置
 
 /* 核心壳预缓存清单（Node 脚本枚举目录生成，2026-09-20；与 14 页实际引用核对无遗漏）。
    不含 js/vendor/xlsx.full.min.js（861KB 体积大 → 走运行时 SWR 缓存）。 */
