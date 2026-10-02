@@ -962,7 +962,7 @@ async function callRelay(service, messages, temperature, opts){
     /* 10/1 分功能额度闸的统一前端口径：服务端返回什么文案就显示什么（limitStrip 轻条+「开会员」按钮，
        她拍板不弹窗不自动跳）。错误码映射见 ai.js；code 原样透传给调用方自行处理。 */
     if(siteErr && /^(user_limit|mock_limit|writing_limit|trans_limit|vip_required)$/.test(siteErr.code)){
-      limitStrip(siteErr.message || '免费额度已用完，¥29 周卡立享无限用');
+      limitStrip(siteErr.message || '免费额度已用完，周卡首购 ¥19 立享无限用');
       const eu = new Error(siteErr.message || '免费额度已用完');
       eu.code = siteErr.code;
       throw eu;

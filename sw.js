@@ -9,7 +9,7 @@
      SW 不参与离线态的判定与渲染，缓存策略本文件零改动。
      本文件 activate 时发的 `SW_UPDATED` 消费端也在 common.js（maybeShowSwUpdatePrompt，
      design/78）：页面收到后只弹提示条，**是否刷新由用户点击决定，SW 侧绝不自动 reload**。 */
-const CACHE = 'ielts-hub-v147';  // 10/2：定价 v2（她拍板 B 方案）——7天29/30天69主推C位/90天129，年卡砍掉；额度用完提示只推¥29周卡（ai.js 5条+common兜底）；主推卡贴考试日倒计时。上一版 v146 iOS 时间框
+const CACHE = 'ielts-hub-v148';  // 10/2：周卡改新人首购价（¥39 划线原价+首购 ¥19，她设计促首购）+ 写作页手机端 Tab 窄屏平分（照口语页口径）。上一版 v147 定价 v2 三档
 
 /* 核心壳预缓存清单（Node 脚本枚举目录生成，2026-09-20；与 14 页实际引用核对无遗漏）。
    不含 js/vendor/xlsx.full.min.js（861KB 体积大 → 走运行时 SWR 缓存）。 */

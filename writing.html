@@ -40,7 +40,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20261001b"></script>
-  <script defer src="js/common.js?v=20261002a"></script>
+  <script defer src="js/common.js?v=20261002b"></script>
   <script defer src="js/writing_prompts.js?v=20260903ab"></script>
   <script defer src="js/writing.js?v=20261001i"></script>
   <script defer src="js/wrongbook.js?v=20260903ab"></script>
@@ -68,6 +68,11 @@
   .preview-box u{text-decoration:underline;color:var(--primary-d);font-weight:600}
   .tips-box{margin-top:10px;font-size:13px;color:var(--muted);line-height:1.7}
   @media(max-width:860px){ .write-layout{flex-direction:column} .cat-nav{width:100%;flex-direction:row;flex-wrap:wrap} }
+  /* 10/2（她反馈）：手机端四枚 Tab 挤在一起——照口语页已验证口径，窄屏平分一行不挤压 */
+  @media(max-width:560px){
+    .write-tabs{display:flex;width:100%}
+    .write-tabs .pill-tab{flex:1;justify-content:center;padding:9px 6px;font-size:13.5px}
+  }
 
   /* AI 评分 */
   /* AI 作文评分 · 粘贴作文框（9/10 之之反馈「不要黑底」→ 恢复浅色：var(--bg) 底 + var(--line) 边框） */

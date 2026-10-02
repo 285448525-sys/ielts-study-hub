@@ -7,15 +7,17 @@
    10/2 定价 v2（她拍板 B 窗口商业方案）：7 天卡 29（首购入口）/ 30 天卡 69（主推 C 位）/ 90 天卡 129（价格锚）；
    年卡砍掉——考生需求随考试日消失，无年需求（499 只会把页面衬贵）。
    90 天卡给两轮备考/单科重考（60 天窗口）人群摆着衬托 69 划算。
-   配套动作：① 免费额度用完提示只推 ¥29 周卡（functions/api/ai.js 文案同步改）
+   10/2 下午她拍板改周卡（她设计）：显示划线原价 ¥39 + 新人首购价 ¥19（orig 字段有值就画划线），
+   突出「便宜一半」促首购；额度用完提示同步推「首购 ¥19」（functions/api/ai.js + common.js 兜底）。
+   配套动作：① 免费额度用完提示只推周卡首购价（最低门槛先成交）
              ② 主推卡贴考试日：「距你的考试还有 N 天，30 天卡刚好覆盖」（读 settings.examDate，无则不显示）。
    免费额度 10/1 下午起为她拍板新口径（口语模考每月 1 次 / 写作批改会员专属 / 其余 AI 每周 5 次），
    写死在 functions/api/ai.js（AI_FREE_MOCK_MONTHLY / AI_FREE_WRITING_TOTAL=0 / AI_USER_WEEKLY_LIMIT=5），
    口径必须一致的处所：ai.js 默认值 + auth.js ai_usage + vip.html 对比表（改额度三处同步）。 */
 const VIP_PLANS = [
-  { id:'week',    name:'7 天卡',  price:'29',  unit:'7 天',  perDay:'≈ 4.1 元/天', save:'', tag:'' },
-  { id:'month',   name:'30 天卡', price:'69',  unit:'30 天', perDay:'≈ 2.3 元/天', save:'', tag:'主推 · 冲刺首选' },
-  { id:'quarter', name:'90 天卡', price:'129', unit:'90 天', perDay:'≈ 1.4 元/天', save:'', tag:'' },
+  { id:'week',    name:'7 天卡',  price:'19',  orig:'39', unit:'7 天',  perDay:'≈ 2.7 元/天', save:'', tag:'新人首购 ¥19' },
+  { id:'month',   name:'30 天卡', price:'69',  orig:'',   unit:'30 天', perDay:'≈ 2.3 元/天', save:'', tag:'主推 · 冲刺首选' },
+  { id:'quarter', name:'90 天卡', price:'129', orig:'',   unit:'90 天', perDay:'≈ 1.4 元/天', save:'', tag:'' },
 ];
 const FREE_AI_DESC = '口语模考每月 1 次 · 其他 AI 每周 5 次（写作批改/串题素材为会员专属）';
 
@@ -46,7 +48,7 @@ function renderVipPlans(){
     <div style="flex:1;min-width:180px;border:${featured ? '2px solid var(--primary)' : '1px solid var(--line)'};border-radius:var(--radius);padding:18px 16px;position:relative;background:${featured ? 'var(--primary-soft)' : 'var(--surface)'}">
       ${p.tag ? `<span class="badge" style="position:absolute;top:-10px;right:12px;background:${featured ? 'var(--primary)' : 'var(--surface-2)'};color:${featured ? 'var(--on-primary)' : 'inherit'}">${escapeHtml(p.tag)}</span>` : ''}
       <div style="font-weight:700;font-size:15px">${escapeHtml(p.name)}</div>
-      <div style="margin:8px 0 2px"><span style="font-size:28px;font-weight:800">¥${escapeHtml(p.price)}</span><span class="muted" style="font-size:13px"> / ${escapeHtml(p.unit)}</span></div>
+      <div style="margin:8px 0 2px"><span style="font-size:28px;font-weight:800">¥${escapeHtml(p.price)}</span><span class="muted" style="font-size:13px"> / ${escapeHtml(p.unit)}</span>${p.orig ? `<span class="muted" style="font-size:13.5px;margin-left:6px;text-decoration:line-through">¥${escapeHtml(p.orig)}</span>` : ''}</div>
       <div class="muted" style="font-size:12px">${escapeHtml(p.perDay)}${p.save ? ' · <b style="color:var(--warn-ink)">' + escapeHtml(p.save) + '</b>' : ''}</div>
       <ul class="muted" style="font-size:12px;margin:10px 0 14px;padding-left:18px;line-height:1.9">
         <li>AI 功能无限次</li>
