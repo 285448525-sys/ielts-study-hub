@@ -205,7 +205,13 @@ window.__COACH_ON = true;
 
   function scrollBottom(){
     var sc = $('coachScroll');
-    if(sc) sc.scrollTop = sc.scrollHeight;
+    if(!sc) return;
+    /* #coachScroll 自身不是滚动容器：≤860 App Shell 下 html/body 锁死、滚的是 main.container，
+       桌面才是 window。原代码写 sc.scrollTop 永远是 no-op（手机收到反馈不自动滚，要手滑）。
+       底部净空（main 的 dock+10、#coachScroll 72px）保证最后一条露在固定底栏上方。 */
+    var main = sc.closest ? sc.closest('main.container') : null;
+    if(main && main.scrollHeight > main.clientHeight) main.scrollTop = main.scrollHeight;
+    try{ window.scrollTo(0, document.documentElement.scrollHeight); }catch(_){}
   }
 
   function questionCardHtml(){
