@@ -22,20 +22,31 @@ var PD_NEW_GROUP_IDS = []; // 本轮新学涉及的组（决定 tip）
 var PD_BUSY = false;      // 判定进行中，防连点
 var PD_BOOTED = false;    // 引擎本页会话是否已启动（tab 切回不重建队列）
 
-var PD_JUDGE_SYS = `你是雅思口语 5.5 分目标的语法裁判。用户在做"句子修复"练习：给她一句中文和她自己说错的英文，她要 repair 成正确句。你只判断用户这次的答案是否"正确"（意思和基本结构对即可）。
+/* 裁判口径按设置页口语目标分分两档：<6 宽松放过（现状，老用户零感知）；≥6 冠词/单复数/三单也判。
+   读取口径与 speaking.js 的 spTargetBand 一致（没填兜底按宽松档，老用户零感知）。 */
+function pdJudgeStrict(){
+  const t = parseFloat(DATA.settings && DATA.settings.targets && DATA.settings.targets.speaking);
+  return !isNaN(t) && t >= 6;
+}
+function pdJudgeSys(){
+  const raw = parseFloat(DATA.settings && DATA.settings.targets && DATA.settings.targets.speaking);
+  const t = isNaN(raw) ? 5.5 : raw;   /* 未填/脏值兜底 5.5（与 spTargetBand 同口径），头部绝不能插 NaN */
+  const strict = pdJudgeStrict();
+  return `你是雅思口语 ${t} 分目标的语法裁判。用户在做"句子修复"练习：给考生一句中文和考生自己说错的英文，考生要 repair 成正确句。你只判断考生这次的答案是否"正确"（意思和基本结构对即可）。
 【只纠严重影响理解的错误】：词序错、时态错、双动词、缺 be 动词、词性混淆(形容词/名词/动词用错)、缺主语、缺助动词。
-【一律放过，判 ok】：单复数、a/an/the 漏用、三单 -s、大小写、标点、拼写(除非改变词义)、there is/are 小误、英式/美式拼写差异。
+【一律放过，判 ok】：${strict ? '大小写、标点、拼写(除非改变词义)、there is/are 小误、英式/美式拼写差异。' : '单复数、a/an/the 漏用、三单 -s、大小写、标点、拼写(除非改变词义)、there is/are 小误、英式/美式拼写差异。'}
 【用户自述打错(typo)不算错】。
 输出严格 JSON，不要任何前后文字、不要解释、不要寒暄：
 - 正确：{"ok":true}
-- 错误：{"ok":false,"fix":"中文一句话，点出错误在哪 + 怎么改","retry":"针对同一错误点的一句同类中文短句（新的句子，让她翻译重说）"}
-绝不输出 6 分以上水平的改写，不要给整句正确翻译。`;
+- 错误：{"ok":false,"fix":"中文一句话，点出错误在哪 + 怎么改","retry":"针对同一错误点的一句同类中文短句（新的句子，让考生翻译重说）"}
+改写水平与目标分匹配，不要给整句正确翻译。`;
+}
 
 /* PD_RETRY_SYS 补题判定提示词已随补题机制退役（design/09 改动 1：答错=提示→改→重交到对）。
-   PD_JUDGE_SYS 里的 retry 字段保留不动（判定口径红线），返回后忽略。 */
+   pdJudgeSys() 里的 retry 字段保留不动（判定口径红线），返回后忽略。 */
 
 var PD_IMPORT_SYS = `你在为雅思「句子修复」练习库做解析。用户会粘贴一段任意文本（可能是：中文句子、英文句子、他写错的英文+改正、句型笔记、混合内容）。把其中值得练习的内容解析成练习条目。
-每条格式：{"cn":"中文提示句（她看中文说英文）","wrong":"英文错句，没有就空字符串","right":"正确英文句","fix":"中文一句话点出易错点，没有就空字符串"}
+每条格式：{"cn":"中文提示句（考生看中文说英文）","wrong":"英文错句，没有就空字符串","right":"正确英文句","fix":"中文一句话点出易错点，没有就空字符串"}
 【规则】
 1. 只提完整句子，最多 12 条，宁缺毋滥；标题、说明文字等无关内容忽略。
 2. 原文是「错句 → 改正」对：wrong=错句，right=改正句，fix=点出错误类型。
@@ -288,7 +299,7 @@ async function pdOnSubmit(){
   let r;
   try{
     const it = PD_CUR.item;
-    r = await pdAskAI(PD_JUDGE_SYS, '题目：' + it.cn + '\n参考正确句：' + it.right + '\n用户答案：' + answer + '\n只判定用户答案是否正确（意思和基本结构对即可，细节如拼写/单复数放过）。');
+    r = await pdAskAI(pdJudgeSys(), '题目：' + it.cn + '\n参考正确句：' + it.right + '\n用户答案：' + answer + '\n只判定用户答案是否正确（意思和基本结构对即可' + (pdJudgeStrict() ? '，冠词/单复数等细节也要按目标分标准判）' : '，细节如拼写/单复数放过）') + '。');
   }catch(e){
     r = { ok:null, err: (e && e.message) ? e.message : 'AI 调用失败' };
   }

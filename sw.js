@@ -9,7 +9,7 @@
      SW 不参与离线态的判定与渲染，缓存策略本文件零改动。
      本文件 activate 时发的 `SW_UPDATED` 消费端也在 common.js（maybeShowSwUpdatePrompt，
      design/78）：页面收到后只弹提示条，**是否刷新由用户点击决定，SW 侧绝不自动 reload**。 */
-const CACHE = 'ielts-hub-v160';  // 10/2：意见反馈功能（她拍板）——新 /api/feedback（KV fb:/fbimg:/fbr: 三命名空间，同 IP 每天 5 条）、/js/feedback.js 全站共用弹层（入口：设置页卡片 + 桌面侧栏 + 移动端「更多」抽屉）、admin.html 反馈页签（列表/详情/已读/删除/导出 Markdown）；反馈数据单向只写服务端，绝不进 DATA/云同步 blob；css buster h→i（14 页）。上一版 v159 背词全屏态间距
+const CACHE = 'ielts-hub-v161';  // 10/2：句型闯关 AI 裁判口径动态化（商业化施工文档第 3 份，她拍板范围裁剪版）——pattern-drill 的 PD_JUDGE_SYS 写死「5.5 分目标」改为 pdJudgeSys() 按设置页口语目标分出两档（<6 宽松放过=现状老用户零感知；≥6 冠词/单复数/三单也判），调用点 user 提示同步分档（原写死「单复数放过」会跟严格档对冲）；PD_IMPORT_SYS「她」→「考生」；pattern-drill.js g→20261002a（3 处引用）；sentence-drill 本地判定引擎明确不动（等这批稳定后单独立项）。上一版 v160 意见反馈功能
 
 /* 核心壳预缓存清单（Node 脚本枚举目录生成，2026-09-20；与 14 页实际引用核对无遗漏）。
    不含 js/vendor/xlsx.full.min.js（861KB 体积大 → 走运行时 SWR 缓存）。 */
