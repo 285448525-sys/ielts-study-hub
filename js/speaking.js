@@ -1247,7 +1247,9 @@ function storyWordBudget(){
 /* 口语目标分动态画像（商业化）：全部 prompt 的「目标/基础」描述统一从这里出，不再写死 5.5 */
 function spTargetBand(){
   const t = parseFloat(DATA.settings && DATA.settings.targets && DATA.settings.targets.speaking);
-  return isNaN(t) ? 5.5 : t;
+  /* 10/2 修：空目标分落库是数字 0（data.js 默认/settings 保存口径），isNaN(0)=false 会穿透，
+     画像句变成「考生目标口语 0 分」，与「没填兜底 5.5」的设计相悖。0 一律按未填处理。 */
+  return t > 0 ? t : 5.5;
 }
 function spPersonaLine(){
   const t = spTargetBand();
@@ -1974,12 +1976,21 @@ function p3HelperSys(){
   const head = (t >= 6)
     ? `身份：雅思口语 Part 3 答题辅助工具，考生目标口语 ${t} 分。直接产出一句考场可说的完整英文回答——观点明确、带一个 because 拓展，词汇与句式与目标分匹配，仍须口语化。`
     : `身份：雅思口语 Part 3 答题辅助工具，面向目标口语 5.5 分上下的考生，输出严格匹配该水平：不输出明显高于目标分的词汇与句式。`;
+  /* 10/2 修：原实现只把头部按 ≥6 放开了，正文规则 1/答题逻辑仍是 5.5 词汇池硬锁，
+     ≥6 用户会同时收到「按 6/7 分给」和「只许用池内初高中词」两条互斥指令。
+     这里把冲突的两处正文也参数化；锚句库/输出格式两档共用，不动结构。 */
+  const p3Rule1 = (t >= 6)
+    ? '1. 词汇与句式：与目标口语 ' + t + ' 分匹配——可使用该分数段地道、自然的词汇与搭配（如 essential, efficient, responsibility, technology, environment 这一档），允许复合句与少量高级词；但必须像真人聊天一样口语化，不许堆砌书面大词、不许背书面语。锚句可按题目用同档词汇自然改写，但结构仍是「锚句 + because 尾巴」。'
+    : '1. 词汇：只用初中-高中最基础词。because 后面的理由（即「尾巴」）只能用以下「词汇池」里的词或其最简单变形：happy, tired, relax, relaxed, bored, boring, easy, hard, same, different, need, want, like, feel, study, work, family, friends, food, money, time, life, people, day。严禁使用 pool 以外的任何抽象词、学术词、生僻形容词/副词（如 cognitive, flexible, enhance, identity, landmark, concrete, construct, symbolize 等）。';
+  const p3PoolLogic = (t >= 6)
+    ? '- 如需结合当前题目微调，可在保持「锚句 + because 尾巴」结构的前提下，用与目标分匹配的地道词汇改写尾巴，但不要堆术语、不要写书面长句；'
+    : '- 如需结合当前题目微调，只能把尾巴里的词换成「词汇池」内的其他简单词（例如题目谈学习，就把 tired 换成 study is hard），不可引入 pool 外词汇；';
   return `${head}
 
 考生特点：P3 通常只能说 2-3 句话、说话会磨叽带停顿；听不懂题目时靠判断「题型」来兜底。你的任务：根据「当前 P3 题目 + 考生 P2 素材」，直接产出一句考场可说的完整英文回答——一句锚句（观点）紧跟一个 because 拓展，说完即止，不解释、不乱加。
 
 【绝对强制硬规则】
-1. 词汇：只用初中-高中最基础词。because 后面的理由（即「尾巴」）只能用以下「词汇池」里的词或其最简单变形：happy, tired, relax, relaxed, bored, boring, easy, hard, same, different, need, want, like, feel, study, work, family, friends, food, money, time, life, people, day。严禁使用 pool 以外的任何抽象词、学术词、生僻形容词/副词（如 cognitive, flexible, enhance, identity, landmark, concrete, construct, symbolize 等）。
+${p3Rule1}
 2. 输出只给「一句话英文」：结构 = 锚句 + 尾巴（尾巴里已含 because，直接拼接，绝对不要再额外写 because）。总长度 2-3 句、10-20 秒说完。
 3. 绝对禁止：for example / for instance / such as 举具体个人故事；禁止中文、禁止解释「为什么这样答」、禁止三段式拆解；禁止出现两个 because。
 4. 重复问题：若考生连续追问，可用 "Well, like I said..." / "Well, what I mean is..." 换词重复，但不超过两次，第三次直接简化。
@@ -2005,7 +2016,7 @@ function p3HelperSys(){
 【答题逻辑】
 - 先判断题型（看题目里的信号词），命中上面对应锚句；
 - 输出 = 该行「锚句」+「尾巴」，直接拼接（锚句结尾无句号，尾巴以 ", because" 开头）；绝对不要再单独写 because；
-- 如需结合当前题目微调，只能把尾巴里的词换成「词汇池」内的其他简单词（例如题目谈学习，就把 tired 换成 study is hard），不可引入 pool 外词汇；
+${p3PoolLogic}
 - 如果考生提供了 P2 素材且贴合，可在尾巴后用 and 接一个 pool 内简单词短语（不举具体人名/地名故事）。
 
 【输出格式：严格只输出下面这一句英文，不要任何前缀 / 解释 / 换行分段】
@@ -2020,12 +2031,23 @@ function p3ReviewSys(){
   const head = (t >= 6)
     ? `你是雅思口语Part3答题老师，考生目标口语 ${t} 分。直接给一版与目标分匹配的改动后回答（英文），表达自然、准确即可。`
     : `你是雅思口语Part3答题老师，考生目标口语 5.5 分上下，改动后的回答须严格匹配该水平，不引入超出目标分的词汇与句式。`;
+  /* 10/2 修：与 p3HelperSys 同病——头部按 ≥6 放开了，正文还写死「符合5.5分规则/初高中词汇」。
+     intro/规则1/规则2 的水平上限一并参数化；句数、禁例子、输出格式两档共用。 */
+  const rvIntro = (t >= 6)
+    ? '直接给一版与目标口语 ' + t + ' 分匹配的改动后回答（英文）：词汇句式自然达到该分数段，但口语化、不堆砌书面大词。'
+    : '直接给一版符合5.5分规则的改动后回答（英文）。';
+  const rvRule1 = (t >= 6)
+    ? '1. 词汇：与目标分匹配，可使用该分数段地道的口语词汇与搭配，允许复合句；表达必须准确、自然、口语化，不生硬堆大词。'
+    : '1. 词汇：只能用初中-高中最基础词汇，禁止identity, landmark, concrete, shape, construct, symbolize等；统一用look, famous, tall building等简单词。';
+  const rvRule2 = (t >= 6)
+    ? '2. 主回答铁则：2-3句、10-20秒；观点明确并带原因展开；绝对禁止for example/for instance/such as；允许与目标分匹配的复合结构。'
+    : '2. 主回答铁则：2句以内、10-15秒；只含观点+1个最简单原因；绝对禁止for example/for instance/such as；最多1个简单复合结构。';
   return `${head}
-考生会贴出自己针对某道P3题目的回答（可能是中文，也可能是英文）。请你只做一件事：直接给一版符合5.5分规则的改动后回答（英文）。不要挑问题、不要写中文说明、不要寒暄。
+考生会贴出自己针对某道P3题目的回答（可能是中文，也可能是英文）。请你只做一件事：${rvIntro}不要挑问题、不要写中文说明、不要寒暄。
 
 【绝对强制硬规则】
-1. 词汇：只能用初中-高中最基础词汇，禁止identity, landmark, concrete, shape, construct, symbolize等；统一用look, famous, tall building等简单词。
-2. 主回答铁则：2句以内、10-15秒；只含观点+1个最简单原因；绝对禁止for example/for instance/such as；最多1个简单复合结构。
+${rvRule1}
+${rvRule2}
 3. 追问拓展铁则：3句以内，必须含1个because从句；最多额外1个固定结构（especially for / which means二选一）；用抽象化P2素材举例，禁止具体个人故事。
 4. 若考生贴的是中文：按合规的2句英文主回答直接翻译，不解释。
 

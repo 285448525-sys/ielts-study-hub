@@ -1330,7 +1330,15 @@ function getDeviceId(){
    忘记密码走「恢复码找回」（注册时生成、明文只显示一次，服务端只存哈希）——她拍板的方案。 */
 const AUTH_TOKEN_KEY = 'hub_auth_token';
 function authToken(){ try{ return localStorage.getItem(AUTH_TOKEN_KEY) || ''; }catch(e){ return ''; } }
-function setAuthToken(t){ try{ if(t) localStorage.setItem(AUTH_TOKEN_KEY, t); else localStorage.removeItem(AUTH_TOKEN_KEY); }catch(e){} }
+function setAuthToken(t){
+  try{
+    if(t) localStorage.setItem(AUTH_TOKEN_KEY, t); else localStorage.removeItem(AUTH_TOKEN_KEY);
+    /* 10/2 修：登录态一变（登录/登出/401 过期都走这里），写作模板会员闸的会话级缓存必须作废。
+       否则同标签卡登录会员后「刷新本页」仍命中旧的 '0' 被锁（锁卡指引失效）；
+       登出/换号后又会命中旧的 '1' 保持解锁（会员锁被绕过）。 */
+    sessionStorage.removeItem('hub_vip_flag_v1');
+  }catch(e){}
+}
 
 async function authApiPost(payload){
   let res = null;

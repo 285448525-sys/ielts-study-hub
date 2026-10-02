@@ -17,8 +17,10 @@ function wtMinWords(type){ return type === '大作文' ? 250 : 150; }
 function wtTargetText(){
   const T = (DATA.settings && DATA.settings.targets) || {};
   const w = parseFloat(T.writing), o = parseFloat(T.overall);
-  if(!isNaN(w)) return '考生目标写作 ' + w + ' 分' + (!isNaN(o) ? '（总分 ' + o + '）' : '');
-  if(!isNaN(o)) return '考生目标总分 ' + o + ' 分（写作单项目标未单独填写，按与总分匹配的水平给分）';
+  /* 10/2 修：空目标分落库值是数字 0（data.js 默认/settings 保存口径），
+     不能只判 isNaN——0 会穿透成「目标写作 0 分（总分 0）」。0 一律按未填处理（全站同口径）。 */
+  if(w > 0) return '考生目标写作 ' + w + ' 分' + (o > 0 ? '（总分 ' + o + '）' : '');
+  if(o > 0) return '考生目标总分 ' + o + ' 分（写作单项目标未单独填写，按与总分匹配的水平给分）';
   return '考生未填写目标分，按雅思官方评分标准正常给分，不预设水平';
 }
 
@@ -224,7 +226,9 @@ function renderTplLocked(){
 /* 解锁恢复：会员进入详情时恢复被锁区块的显示 */
 function restoreTplBlocks(){
   document.querySelectorAll('#detailCard .tpl-edit, #detailCard .tpl-text').forEach(el => el.style.display = '');
-  ['tips','tplDictBtn','delBtn'].forEach(id => { const el = document.getElementById(id); if(el) el.style.display = ''; });
+  /* 10/2 修：名单必须与 renderTplLocked 的 hideIds 完全一致——之前漏了 tplWrongBox，
+     同一次会话里锁→解锁后「我的错句」折叠区带着内联 display:none，renderTplWrong 只翻 hidden 救不回来。 */
+  ['tips','tplWrongBox','tplDictBtn','delBtn'].forEach(id => { const el = document.getElementById(id); if(el) el.style.display = ''; });
   const lock = document.getElementById('tplLockCard'); if(lock) lock.hidden = true;
 }
 
@@ -325,6 +329,15 @@ async function hintBlank(btn){
   document.querySelectorAll('.ph-input').forEach(el => { const v = el.value.trim(); if(v) others.push(el.dataset.ph + ' → ' + v); });
   box.hidden = false;
   box.innerHTML = '<span class="ph-load">AI 想这个空的填法…</span>';
+  /* 10/2 修：词汇难度规则随目标分走（与上方 wtTargetText() 同口径）——之前头部动态化了，
+     规则 5 还硬编码「目标分只要 5.5」，≥6 分用户会同时收到两条互斥指令。
+     写作目标没填就看总分；都没填（0）按 5.5 档。 */
+  const _T = (DATA.settings && DATA.settings.targets) || {};
+  const _w = parseFloat(_T.writing), _o = parseFloat(_T.overall);
+  const _band = _w > 0 ? _w : (_o > 0 ? _o : 0);
+  const vocabRule = _band >= 6
+    ? '5. 【词汇难度与目标分匹配】考生目标分 ' + _band + ' 分：可以使用该分数段地道、准确的雅思写作词汇与搭配（如 phenomenon / significant / contribute to / play a role in 这一档），允许复合句；但用词必须自然准确，不许为了显高级堆砌生僻大词或自己没把握的表达。'
+    : '5. 【词汇难度硬限制】目标分只要 5.5，所以你给的英文**必须全部是高中（高考）词汇范围内的词**，绝对不许用雅思高级词/学术词/生僻词。判定标准：每个单词都应该是普通高中生认识、能拼写出来的词（如 people / job / money / important / because / improve / environment / health / problem / government / children）。禁止出现以下类型：长词（如 phenomenon / significant / crucial / beneficial / consequently / undermine）、抽象学术词、GRE/雅思词汇。如果某个意思只能用难词表达，就换一种更简单的说法，不要硬塞难词。填进去的词组合必须是她看得懂、自己也能写出来的词。';
   const messages = [
     { role:'system', content:
 `你是雅思写作陪练。本产品采用"模板骨架 + 现场填空"的备考方法，${wtTargetText()}。
@@ -336,7 +349,7 @@ async function hintBlank(btn){
 2. 优先给"按话题领域、能填进空里的实质内容词组"（如 get a good job / protect the environment / live a healthy life / help poor people）——也就是模板之外的"内容搭配"，而不是衔接词/过渡句（模板里 already 自带那些，无需再给）。
 3. 不要造长难句，填空就是填空，短而准。
 4. 若空是"观点/话题"类，给一个可替换的名词短语或 -ing 短语。
-5. 【词汇难度硬限制】目标分只要 5.5，所以你给的英文**必须全部是高中（高考）词汇范围内的词**，绝对不许用雅思高级词/学术词/生僻词。判定标准：每个单词都应该是普通高中生认识、能拼写出来的词（如 people / job / money / important / because / improve / environment / health / problem / government / children）。禁止出现以下类型：长词（如 phenomenon / significant / crucial / beneficial / consequently / undermine）、抽象学术词、GRE/雅思词汇。如果某个意思只能用难词表达，就换一种更简单的说法，不要硬塞难词。填进去的词组合必须是她看得懂、自己也能写出来的。` },
+${vocabRule}` },
     { role:'user', content:
 `模板分类：${t ? t.category : ''}
 模板标题：${t ? t.title : ''}
@@ -668,7 +681,10 @@ function tplScoreHtml(r, isTask1){
             (rs[k] ? '<div class="ts-dim-r">' + escapeHtml(rs[k]) + '</div>' : '') + '</div>';
   });
   html += '</div>';
-  html += gramSectionHtml(r.grammar);
+  /* 10/2 修：语法区块只对「真做过语法检查」的新记录渲染——P1 之前的记录没有 grammar 字段，
+     无条件渲染会给旧记录凭空加一句「没挑出明显语法错误」（当时根本没检查）。
+     新记录模型返回空数组时仍正常显示该句（那是真实结论）。 */
+  if(Array.isArray(r.grammar)) html += gramSectionHtml(r.grammar);
   html += goodHtml(r.good);
   const gapCard = gapHtml(r.gap, r.overall);
   if(gapCard){
@@ -703,7 +719,7 @@ function essayScoreHtml(r, isTask1){
   }
   h += goodHtml(r.good);
   h += gapHtml(r.gap, r.overall);
-  h += gramSectionHtml(r.grammar);
+  if(Array.isArray(r.grammar)) h += gramSectionHtml(r.grammar);   // 10/2 修：旧记录无 grammar 字段，不渲染语法区块
   if(Array.isArray(r.longSentences) && r.longSentences.length){
     h += '<div class="score-section"><h4>长 / 复杂句分析</h4><ul>';
     r.longSentences.forEach(ls => {
@@ -1653,7 +1669,9 @@ function renderExamList(){
     items.forEach(it => { it.subType = kind === 'big' ? detectBigSubType(it.en, it.meta) : detectSmallSubType(it.title); });
     const groups = {};
     items.forEach(it => { (groups[it.subType] = groups[it.subType] || []).push(it); });
-    const order = kind === 'big' ? ['观点型','讨论型','Report','未分类'] : ['动态图','静态图','地图题','流程图','未分类'];
+    /* 10/2 修：顺序表必须与 detectBigSubType 的全部分组一致——之前漏了新分出来的
+       「优缺点型/双问题型」，归进这两组的题（如大作文 #56）建了组却永不渲染。 */
+    const order = kind === 'big' ? ['观点型','讨论型','优缺点型','双问题型','Report','未分类'] : ['动态图','静态图','地图题','流程图','未分类'];
     order.filter(st => groups[st] && groups[st].length).forEach(st => {
       if(subFilter !== 'all' && st !== subFilter) return;
       const list = groups[st];
@@ -1803,7 +1821,7 @@ ${ANCHOR_TABLE_EN}
       }
       html += goodHtml(result.good);
       html += gapHtml(result.gap, result.overall);
-      html += gramSectionHtml(result.grammar);
+      if(Array.isArray(result.grammar)) html += gramSectionHtml(result.grammar);   // 10/2 修：旧模考记录无 grammar 字段，不渲染
       if(result.longSentences && result.longSentences.length){
         html += '<div class="ts-sec"><h4>长 / 复杂句分析</h4>';
         result.longSentences.forEach((ls,i) => {
@@ -1856,6 +1874,8 @@ function bindExam(){
     if(val === 'big'){
       opts += '<option value="观点型">观点型</option>'
             + '<option value="讨论型">讨论型</option>'
+            + '<option value="优缺点型">优缺点型</option>'
+            + '<option value="双问题型">双问题型</option>'
             + '<option value="Report">Report</option>';
     } else if(val === 'small'){
       opts += '<option value="动态图">动态图</option>'
