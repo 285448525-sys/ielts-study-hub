@@ -46,11 +46,11 @@
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
   <script defer src="js/sentence-drill.js?v=20261001i"></script>
-  <script defer src="js/speaking.js?v=20261001p"></script>
+  <script defer src="js/speaking.js?v=20261001q"></script>
   <script defer src="js/materials.js?v=20261001h"></script>
   <script defer src="js/mock-report.js?v=20260830u"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
-  <script defer src="js/mock.js?v=20261001k"></script>
+  <script defer src="js/mock.js?v=20261001l"></script>
   <script defer src="js/pattern-drill.js?v=20261001g"></script>
   <script defer src="js/scene-drill.js?v=20260922a"></script>
 <style>
@@ -58,7 +58,7 @@
 
   /* 10/1 晚四改（她拍板）：单行深绿条，视觉空间=搜索框同级 */
   .page-head-row{margin-bottom:12px}   /* 本页无页标题，tab 与内容的间距收窄（全局 22px 是给标题留的） */
-  .sp-banner{padding:7px 12px;background:linear-gradient(135deg,var(--primary-700),var(--primary-900));color:rgba(255,255,255,.95);border-radius:10px;font-size:12px;line-height:1.2;margin:0 0 8px;border:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sp-banner{padding:4px 10px;background:linear-gradient(135deg,var(--primary-700),var(--primary-900));color:rgba(255,255,255,.95);border-radius:9px;font-size:11px;line-height:1.2;margin:0 0 6px;border:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .sp-banner b{font-weight:700;color:#fff}
   .sp-banner span{color:rgba(255,255,255,.6)}
 
@@ -75,6 +75,11 @@
 
   /* 10/1 晚四改（她拍板）：tab 与其他页面完全统一，不再有任何自定义尺寸 */
   .sp-tabs{margin-bottom:0}
+  /* 10/2（她反馈）：手机端 Tab 粘在一起——窄屏三个 tab 均匀铺满整行、收窄内边距，拉开间距 */
+  @media(max-width:560px){
+    .sp-tabs{display:flex;width:100%}
+    .sp-tabs .pill-tab{flex:1;justify-content:center;padding:9px 6px;font-size:13.5px}
+  }
 
   /* 10/1 晚（她拍板）：题库列表从「连体卡」拆成独立卡片——卡片间留呼吸空隙，不再挤成一条 */
   .sp-list{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
@@ -807,7 +812,6 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
   #mockStage.p2-mode .mock-examiner{width:min(240px,72%);order:-1}
   .me-video{box-shadow:0 8px 20px rgba(19,35,41,.10)}
 }
-}
 /* P2 倒计时改小徽章（她拍板「P2 有个小小的倒计时显示就行，不用太紧张」）：
    覆盖 common.css 的 .mock-timer 全宽 warn 文字；剩 10s 内 .low 才转警示红。 */
 #mockStage .mock-timer{display:inline-flex;align-items:center;gap:6px;width:auto;margin:12px 0 0;align-self:flex-start;padding:4px 13px;border-radius:999px;background:var(--bg);border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--muted)}
@@ -911,25 +915,11 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
     <div id="detailBody"></div>
   </div>
 
-  <!-- 模考视图（整合口语模考为第 4 个 tab，复用 mock.js） -->
+  <!-- 模考视图（复用 mock.js）。
+       10/2（她拍板）：「开始一次口语模考」介绍卡 + 「最近一次模考」记录卡整删——
+       点题库页「模考」按钮直接进全屏考试（speaking.js MOCK 分支调 window.__mockEnter，
+       有未完成快照则自动续考）。报告仍在考完/回顾页展示。 -->
   <div id="mockView" hidden>
-    <!-- ① 开始卡 -->
-    <section class="card" id="mockStart">
-      <h2>开始一次口语模考</h2>
-      <!-- 10/1 晚：手写/AI纠错/发音分三枚标签 + 发音分/AI接口两行自检已删（她拍板：没用还占地方）；mockPreCheck 容器一并移除 -->
-      <div class="mock-start-rail">
-        <div class="ms-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg>开始一次口语模考</div>
-        <div class="ms-sub">考官视频连线：P1/P3 考官面对面提问 → P2 左侧题目卡 + 右侧考官窗 → P3 追问。全程手写，考完 AI 出四维 Band 报告。</div>
-        <button class="btn btn-lg" id="mockStartBtn">开始模考 →</button>
-      </div>
-    </section>
-
-    <!-- 10/1 UI polish：最近一次模考报告入口，有记录才显示 -->
-    <section class="card" id="mockRecent" hidden>
-      <h3 style="margin:0 0 10px;font-size:14px;color:var(--muted);font-weight:700">最近一次模考</h3>
-      <div id="mockRecentBody"></div>
-    </section>
-
     <!-- ② 考试舞台 -->
     <section class="card" id="mockStage" hidden>
       <div class="mock-total-timer" id="mockTotalTimerWrap" hidden>

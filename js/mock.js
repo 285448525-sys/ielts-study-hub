@@ -90,33 +90,36 @@
     const cancel = $('#mockExitCancel'); if(cancel) cancel.onclick = () => closeExitModal();
   }
   function closeExitModal(){ const m = $('#mockExitModal'); if(m) m.remove(); }
+  /* 10/2（她拍板）：开始卡已删——退出/中断后直接回「题库」tab（点隐藏 BANK tab 复用全部切换逻辑，
+     含解除沉浸/显隐视图；保存的快照下次点「模考」自动续考）。 */
+  function exitToBank(){
+    try{ const bt = document.querySelector('#tabs [data-type="BANK"]'); if(bt) bt.click(); }catch(e){}
+  }
   function exitToStart(save){
     if(window.__mockTick){ clearInterval(window.__mockTick); window.__mockTick = null; }
     stopTotalTimer();
     if(!save) clearResumeSnapshot();   // 保存则不清除，保留快照供续考
     removeExitButton();
-    setMockImmerse(false);          // 9/26：退出到开始卡 → 恢复常规布局
+    setMockImmerse(false);          // 9/26：退出模考 → 恢复常规布局
     setP2Mode(false);               // 10/1 批3：清理两栏模式，下次开考干净入场
     mockState = null;
     $('#mockStage').hidden = true;
     $('#mockReport').hidden = true;
-    $('#mockStart').hidden = false;
-    renderMockStart();
+    exitToBank();
     toast(save ? '已保存进度，下次进入模考可继续' : '已清除本次模考记录');
   }
   async function resumeFromSnapshot(){
     const snap = loadResumeSnapshot();
-    if(!snap){ renderMockStart(); return; }
+    if(!snap) return;
     mockState = { p1Set: snap.p1Set, p2Topic: snap.p2Topic, answers: snap.answers, pronSource: snap.pronSource, p3qs: snap.p3qs || [], totalRemaining: (snap.totalRemaining != null ? snap.totalRemaining : TOTAL_LIMIT) };
     // 考官：优先用快照里的（续考不换人）；老快照没有该字段则现场随机补一位
     mockState.examiner = snap.examiner || sampleOne(EXAMINERS);
     renderExaminer(mockState.examiner);
-    // 10/1 批3 修复：#mockView 默认 hidden（默认 tab=句型练习），自动续考只解开了 #mockStage，
-    // 外层容器仍藏着 → 续考界面不可见。这里同步显容器 + 把 tab 高亮切到「模考」，视觉状态一致。
+    // 10/1 批3 修复：#mockView 默认 hidden，自动续考要同步显容器 + 把 tab 高亮切到「模考」，视觉状态一致。
     const mv = $('#mockView');
     if(mv) mv.hidden = false;
     document.querySelectorAll('#tabs .pill-tab').forEach(b => b.classList.toggle('active', b && b.dataset && b.dataset.type === 'MOCK'));
-    $('#mockStart').hidden = true; $('#mockReport').hidden = true; $('#mockStage').hidden = false;
+    $('#mockReport').hidden = true; $('#mockStage').hidden = false;
     setMockImmerse(true);           // 9/26：续考也进沉浸
     injectExitButton();
     startTotalTimer();
@@ -191,66 +194,20 @@
     });
   }
 
-  /* ---------- 开始卡 ---------- */
-  function renderMockStart(){
-    /* 10/1 晚：发音分/AI 接口两行自检已删（她拍板：没用）；mockPreCheck 容器一并移除。
-       下方续考逻辑不能省——renderMockStart 还负责「继续上次模考」入口。 */
-
-  // 续考入口：若上次有未完成的模考（保存进度退出后，同会话内可直接「继续上次模考」），
-  // 显示提示 + 续考按钮，并隐藏原本的「开始模考 →」（避免误点覆盖）。无快照时恢复显示。
-  let resumeBox = $('#mockResumeBox'); if(resumeBox) resumeBox.remove();
-  const startBtn = $('#mockStartBtn');
-  const snap = loadResumeSnapshot();
-  if(snap){
-    if(startBtn) startBtn.hidden = true;
-    const sec = $('#mockStart');
-    if(sec){
-      resumeBox = document.createElement('div');
-      resumeBox.id = 'mockResumeBox';
-      resumeBox.className = 'mock-resume-box';
-      const when = snap.ts ? new Date(snap.ts).toLocaleString() : '';
-      resumeBox.innerHTML = '<div class="mock-resume-title">你有一场未完成的模考' + (when ? '（' + when + '）' : '') + '</div>'
-        + '<div class="mock-resume-actions">'
-        + '<button class="btn btn-primary" id="mockResumeBtn">继续上次模考 →</button>'
-        + '<button class="btn" id="mockNewBtn">开始新模考（覆盖）</button>'
-        + '</div>';
-      sec.appendChild(resumeBox);
-      const rb = $('#mockResumeBtn'); if(rb) rb.onclick = () => resumeFromSnapshot();
-      const nb = $('#mockNewBtn'); if(nb) nb.onclick = () => { if(confirm('确定放弃上次未完成的模考，开始新的一场吗？')) startExam(); };
-    }
-  } else {
-    if(startBtn) startBtn.hidden = false;
-  }
-  }
-
-  /* ---------- 事件委托：开始 / 重试 / 续考 / 新模考按钮 ----------
-     委托到稳定的 #mockView（该容器不会被云同步合并或任何重渲染替换），彻底规避两类竞态：
-       · 原 ready() 里 await ensureMockLib() 在冷加载（mock-report.js 未缓存）时会延迟点击绑定，
-         期间点「开始模考」无任何反应；
-       · 云同步合并成功触发 renderAllOnMerge() 重渲染当前页，直接绑在按钮上的 onclick 会随 DOM 替换丢失。
-     统一走委托后，按钮任何时刻都可点；ensureMockLib 改为在真正开考前（startExam / resumeFromSnapshot）才 await。 */
+  /* ---------- 事件委托：报告页「再来一次」----------
+     10/2（她拍板）：开始卡/续考按钮已删（点「模考」直达考试，快照自动续考），
+     委托只剩报告页重试。仍走 #mockView 委托（软导航/云同步重渲染不丢绑定）。 */
   function bindMockViewDelegation(){
     const view = $('#mockView');
     if(!view || view.__mockDelegated) return;   // 软导航重跑时 #mockView 被替换成新元素，flag 自然失效，不会重复绑定
     view.__mockDelegated = true;
     view.addEventListener('click', e => {
-      const startBtn = e.target.closest('#mockStartBtn');
-      if(startBtn && !startBtn.hidden){
+      const retry = e.target.closest('#mockRetryBtn');
+      if(retry){
         if(window.__mockTick){ clearInterval(window.__mockTick); window.__mockTick = null; }
         startExam();
         return;
       }
-      const retry = e.target.closest('#mockRetryBtn');
-      if(retry){
-        if(window.__mockTick){ clearInterval(window.__mockTick); window.__mockTick = null; }
-        $('#mockReport').hidden = true; $('#mockStage').hidden = true; $('#mockStart').hidden = false;
-        renderMockStart();
-        return;
-      }
-      const rb = e.target.closest('#mockResumeBtn');
-      if(rb){ resumeFromSnapshot(); return; }
-      const nb = e.target.closest('#mockNewBtn');
-      if(nb){ if(confirm('确定放弃上次未完成的模考，开始新的一场吗？')) startExam(); return; }
     });
   }
 
@@ -536,7 +493,8 @@
       removeExitButton();
       setMockImmerse(false);        // 9/26：中断也要恢复常规布局
       setP2Mode(false);             // 10/1 批3：中断同样清两栏模式
-      $('#mockStage').hidden = true; $('#mockStart').hidden = false; renderMockStart();
+      $('#mockStage').hidden = true; $('#mockReport').hidden = true;
+      exitToBank();
     }
   }
 
@@ -704,7 +662,6 @@
     renderExaminer(mockState.examiner);   // 10/1 批3：每场随机考官上屏
     startTotalTimer();
 
-    $('#mockStart').hidden = true;
     $('#mockReport').hidden = true;
     $('#mockStage').hidden = false;
     setMockImmerse(true);           // 9/26：开始模考 → 整页只剩模考内容
@@ -715,17 +672,18 @@
 
   /* ---------- 初始化 ---------- */
   ready(async () => {
-    // 事件委托先绑定（同步、不依赖任何 await）：无论 ensureMockLib 是否还在加载、或云同步合并后是否重渲染，
-    // 「开始模考 / 重试 / 续考」按钮都始终可点。
+    // 事件委托先绑定（同步、不依赖任何 await）：报告页「再来一次」任何时刻可点。
     bindMockViewDelegation();
-    if(!window.__mockMergedBound){
-      document.addEventListener('hub:data-merged', () => { renderMockStart(); });
-      window.__mockMergedBound = true;   // 全局只绑一次，避免软导航重跑重复叠加监听
-    }
+    /* 10/2（她拍板）：点「模考」直达全屏考试——speaking.js MOCK 分支调用本入口。
+       有未完成快照=自动续考；否则全新开考。 */
+    window.__mockEnter = async function(){
+      const snap = loadResumeSnapshot();
+      if(snap){ await resumeFromSnapshot(); }
+      else { await startExam(); }
+    };
     await ensureMockLib();
-    // 断点续考：若上次模考未做完就离开了，返回模考页时自动恢复现场
+    // 断点续考：若上次模考未做完就离开了，回到口语页时自动恢复现场（原有行为保留）
     const snap = loadResumeSnapshot();
     if(snap){ await resumeFromSnapshot(); }
-    else { renderMockStart(); }
   });
 })();

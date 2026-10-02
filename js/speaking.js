@@ -196,43 +196,14 @@ function renderFreqBanner(){
   /* 10/1 晚（她拍板）：压成两行、不折叠——第一行=题库范围+题数，第二行=更新时间。
      旧版长注释（频次口径/优先级策略/联系微信）整段退役；SPEAKING_BANK_META.note 字段保留但不再展示。 */
   /* 10/1 晚四改（她拍板）：单行——P1/P2 题数已在下方 P1·33/P2·55 切换钮上，不再重复 */
+  /* 10/2（她反馈 banner 太厚）：去掉内层 .sp-banner 包装（#freqBanner 本身就有该 class，
+     双层 = 双份 padding，视觉上厚一圈）；b/span 是后代选择器不受影响 */
   const upd = escapeHtml(M.updated || '').slice(5);
-  el.innerHTML = '<div class="sp-banner"><b>📚 ' + season + '题库 · ' + (c1 + c2) + ' 题</b><span> · 更新 ' + (upd || '—') + '</span></div>';
+  el.innerHTML = '<b>📚 ' + season + '题库 · ' + (c1 + c2) + ' 题</b><span> · 更新 ' + (upd || '—') + '</span>';
 }
 
-/* 10/1 UI polish：口语模考 Tab 的「最近一次报告」入口。
-   从 DATA.mockRecords 取最后一条 speaking 记录，有就渲染，没有就隐藏。
-   记录结构（mock.js 654-668）是扁平的：
-   rec = { ts, kind:'speaking', date, overall, pronunciationScore, parts:{p1:{overall},p2,p3}, ... } */
-function renderMockRecent(){
-  const card = document.getElementById('mockRecent');
-  const body = document.getElementById('mockRecentBody');
-  if(!card || !body) return;
-  const recs = (DATA && DATA.mockRecords) || [];
-  // 只取口语模考记录（listening/reading 等也在同一数组）
-  const rec = recs.filter(r => r && r.kind === 'speaking').pop() || null;
-  if(!rec || rec.overall == null){ card.hidden = true; return; }
-  const parts = rec.parts || {};
-  const fmt = v => (typeof v === 'number' ? v.toFixed(1) : (v != null ? String(v) : '—'));
-  const date = rec.ts ? new Date(rec.ts) : null;
-  const dateStr = date ? (date.getMonth() + 1) + '/' + date.getDate() + ' ' + String(date.getHours()).padStart(2,'0') + ':' + String(date.getMinutes()).padStart(2,'0') : (rec.date || '');
-  // 四项分展示（P1/P2/P3 取 parts[p].overall；发音取固定分）
-  const cells = [
-    ['P1', parts.p1 && parts.p1.overall],
-    ['P2', parts.p2 && parts.p2.overall],
-    ['P3', parts.p3 && parts.p3.overall],
-    ['发音', rec.pronunciationScore]
-  ].map(([label, v]) => '<span style="text-align:center"><div style="font-size:11px;color:var(--muted);font-weight:600">' + label + '</div><div style="font-size:18px;font-weight:700;color:var(--primary)">' + fmt(v) + '</div></span>').join('');
-  const total = recs.filter(r => r && r.kind === 'speaking').length;
-  card.hidden = false;
-  body.innerHTML = '<div style="display:flex;align-items:center;gap:14px">'
-    + '<div style="flex:1;display:flex;gap:14px;align-items:center">'
-    + '<b style="font-size:26px;font-weight:800;color:var(--primary)">' + fmt(rec.overall) + '</b>'
-    + '<div style="display:flex;gap:18px">' + cells + '</div></div>'
-    + '<div style="font-size:12px;color:var(--muted);text-align:right">' + dateStr + '<br>共 ' + total + ' 次</div>'
-    + '</div>'
-    + '<div style="margin-top:10px;font-size:12.5px;color:var(--muted)">完整四维报告在「回顾」页</div>';
-}
+/* 10/2（她拍板）：「最近一次模考」卡已删——renderMockRecent 整函数退役；
+   模考成绩完整记录仍在「回顾」页。 */
 
 /* 题库「随机来一道」（design/81）：与 renderList 完全相同的过滤口径，随机开一道详情。
    复用 openDetail = 与点卡片完全同路径（回填/TTS/事件绑定同源渲染）。 */
@@ -280,9 +251,10 @@ ready(() => {
         $('#listView').hidden = false;
         renderList();
       } else if(t === 'MOCK'){
+        // 10/2（她拍板）：开始卡/最近记录已删——点「模考」直接进全屏考试
+        //（window.__mockEnter 由 mock.js ready 暴露：有未完成快照=自动续考，否则全新开考）
         $('#mockView').hidden = false;
-        // 10/1 UI polish：切到模考 Tab 时渲染最近一次报告入口
-        renderMockRecent();
+        if(typeof window.__mockEnter === 'function') window.__mockEnter();
       } else if(t === 'MAT'){
         $('#matView').hidden = false;
         if(typeof matGen !== 'undefined' && matGen.init) matGen.init();
