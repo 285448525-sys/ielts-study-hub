@@ -36,6 +36,12 @@ var currentWeek = null;
    → 完整 N 天计划走会员（后续 commit）。诊断结果整体存 DATA.settings.diagnosis（已登记
    SYNC_SETTINGS_FIELDS，字段级较新者胜；保存必须自打 _fieldTs.diagnosis）。 */
 var DIAG_SUBS = [['listening','听力'],['reading','阅读'],['writing','写作'],['speaking','口语']];
+/* 来源标签 / 每 0.5 分保守需时（天，瓶颈取各科最大——官方口径「明显提分通常需数月/数百小时」，宁紧勿松）。
+   ⭐ 10/2 commit3 修：这两个 var 原在 700 行附近（ready 注册之后），defer 执行期 readyState='interactive'，
+   common.js ready(fn) 会同步执行 fn，首刷时 ready 回调内 diagBuildReport 读到的是提升后未赋值的
+   undefined →「已诊断且有缺口的用户刷新即崩」。所有顶层 var 必须在 ready() 之前赋值（TDZ/提升铁律）。 */
+var DIAG_SRC_LABEL = { mock:'模考记录', exam:'考试成绩', writing:'写作批改', practice:'口语练习', ref:'成绩换算', manual:'手动填写' };
+var DIAG_RATE = { listening:18, reading:18, writing:35, speaking:35 };
 /* 6 个可选时段（她自己的洞察：不问每天几小时，问一周哪些时段有空）。group: wd=工作日 / we=周末 */
 var DIAG_SLOTS = [
   { k:'wdMorning',   label:'工作日早上', group:'wd' },
@@ -112,6 +118,60 @@ var DIAG_AI_SYSTEM =
 + '  "refNote": "关于校外成绩换算可信度的一句说明；没有校外成绩给空字符串"\n'
 + '}\n'
 + '分数只允许 0.5 步进、范围 3.0-9.0；没有依据的科目给 null，不许编造。';
+
+/* =====================================================================================
+   完整备考计划生成（第三十三批 commit3，新 callRelay key 'studyplan'，会员专属）
+   定位：免费诊断 → 一键生成未来 14 天（距考更近按实际天数）每日任务：任务全部限定在
+   站内白名单功能（每条都能一键跳进对应页面）、每条自带时长与完成标准、按距考倒排四档。
+   护栏不达标整份不采；AI 失败绝不落库。落 DATA.plans（既有 plans 同步/墓碑机制，
+   item 新字段 module/action/params/gen 随整项透传，_mergePlans 零改动）。
+   ===================================================================================== */
+var PLAN_GEN_TAG = 'diag';   // 生成项标记：重新生成只替换同日同标记的「未完成」项；已完成项与手动项保留
+var PLAN_SPAN_MAX = 14;      // 单次排程上限（之后可重新生成滚动续排）
+var PLAN_WL = {
+  practice:  { file:'practice.html',  label:'听读练习', actions:{ listen:['part','count'], read:['part','count'], mock:['kind'] } },
+  speaking:  { file:'speaking.html',  label:'口语练习', actions:{ practice:['part','qno'] } },
+  materials: { file:'materials.html', label:'口语素材', actions:{ persona:[], story:[] } },
+  writing:   { file:'writing.html',   label:'写作',     actions:{ template:[], fill:[], essay:[] } },
+  words:     { file:'practice.html',  label:'背单词',   actions:{ review:[] } },
+  corpus:    { file:'corpus.html',    label:'长难句',   actions:{ parse:['count'] } },
+  wrongbook: { file:'wrongbook.html', label:'错题本',   actions:{ review:['count'] } }
+};
+/* ≤2 天保底三件套（本地硬护栏：AI 排别的也一律丢弃） */
+var PLAN_SAFE = { words:['review'], speaking:['practice'], writing:['template'] };
+var PLAN_AI_SYSTEM =
+  '你是资深雅思备考教练。根据考生的诊断数据，生成从今天到考试日的完整每日任务计划。只输出一个 JSON 对象，禁止输出 JSON 以外的任何字。\n'
+  + '\n'
+  + '【任务只能来自下面的站内功能白名单——每个任务都必须能一键跳进对应功能，严禁编造白名单以外的任务、资料或 App】\n'
+  + '1. {"module":"practice","action":"listen"} 听力精练：params.part 填 1-4（对应 Section 1-4），params.count 填篇数\n'
+  + '2. {"module":"practice","action":"read"} 阅读精练：params.part 填 1-3，params.count 填篇数\n'
+  + '3. {"module":"practice","action":"mock"} 限时模考：params.kind 只能填 listening、reading 或 full\n'
+  + '4. {"module":"speaking","action":"practice"} 口语题库练习：params.part 填 1 或 2，params.qno 填题号\n'
+  + '5. {"module":"materials","action":"persona"} 口语素材-人设准备；{"module":"materials","action":"story"} 口语素材-串题故事；均无 params\n'
+  + '6. {"module":"writing","action":"template"} 写作模板背诵默写；action 为 fill 是模板套填；action 为 essay 是完整成篇；均无 params\n'
+  + '7. {"module":"words","action":"review"} 背单词，无 params，固定 30 分钟\n'
+  + '8. {"module":"corpus","action":"parse"} 长难句拆解：params.count 填句数\n'
+  + '9. {"module":"wrongbook","action":"review"} 错题本复习：params.count 填题数\n'
+  + '\n'
+  + '【每条任务必须自带时长和完成标准】\n'
+  + 'text 格式：模块加具体内容与数量，括号内写阿拉伯数字加「分钟」，必须包含「分钟」二字。\n'
+  + '正例：听力 Section 4 第 1 篇精听（25 分钟）｜写作 观点型模板默写（30 分钟）｜口语 P1 题库第 3 题快答（20 分钟）｜背单词（30 分钟）\n'
+  + '反例（严禁）：练听力｜保持语感｜加强阅读｜背单词（不带分钟数）\n'
+  + '每个 task 对象：{"text":字符串,"module":白名单 key,"action":白名单 action,"params":{}}\n'
+  + '\n'
+  + '【倒排原则：越临近考试越保守】\n'
+  + '- 距考 ≥21 天：打基础，四科均衡略偏听读输入项；写作口语从模板和 Part 1 积累起步\n'
+  + '- 距考 8-20 天：向最大缺口科目倾斜，写作口语必须有成篇或开口输出\n'
+  + '- 距考 3-7 天：只排真题精练、限时模考、口语串题，严禁排新知识、新技巧、没做过的题型\n'
+  + '- 距考 ≤2 天：只允许三类保底任务：words/review 背单词（30 分钟）、speaking/practice 口语 Part 1 快答、writing/template 写作模板默写\n'
+  + '- 没有考试日期时：按基础期口径均衡排满给定天数\n'
+  + '\n'
+  + '【容量是硬约束】\n'
+  + 'dates 清单里每天给了 capMin（当天最多可学分钟）。当天所有任务分钟数之和严禁超过 capMin；宁可少排一件，也不许超。\n'
+  + '\n'
+  + '【输出 JSON（dates 里的每一天都要排，不许跳天、不许编造清单外日期）】\n'
+  + '{"days":[{"date":"YYYY-MM-DD","focus":"当天主题，10 字以内","tasks":[...]}]}\n'
+  + '每天 2-5 件任务。只输出 JSON。';
 
 /* ⭐ TDZ 铁律：页面级 const 必须在 ready() 之前——ready 回调在脚本求值期同步执行，
    声明放后面（render 附近）会在首次 render 时 hit TDZ 整页崩（9/17 reload 实测）。 */
@@ -649,10 +709,6 @@ async function aiWeekPlan(){
    诚实铁律：目标不切实际/时间不够/及格不等于够用——必须直说，不输出哄人的话。
    ===================================================================================== */
 
-var DIAG_SRC_LABEL = { mock:'模考记录', exam:'考试成绩', writing:'写作批改', practice:'口语练习', ref:'成绩换算', manual:'手动填写' };
-/* 每 0.5 分保守需时（天），瓶颈取各科最大——官方口径「明显提分通常需数月/数百小时」，宁紧勿松 */
-var DIAG_RATE = { listening:18, reading:18, writing:35, speaking:35 };
-
 function diagRoundHalf(n){ const x = Number(n); if(!(x > 0)) return null; return Math.round(x*2)/2; }
 
 /* ---------- 现状成绩提取：逐科独立降级（比方案的整份降级更诚实——哪科有据用哪科） ---------- */
@@ -963,10 +1019,15 @@ function renderDiagEntry(){
     + '<button type="button" id="dgRedo" class="dg-text-btn">重新诊断</button></div>'
     + '<div class="dg-verdict dg-v-' + r.verdict.k + '">' + escapeHtml(r.verdict.text) + '</div>'
     + '<div class="dg-chips">' + chips + '</div>'
+    + (d.plan ? '<div class="dg-planline"><span class="dg-planline-ic">🗓</span>已生成 '
+      + d.plan.days + ' 天计划 · ' + planMd(d.plan.firstDate) + ' 起 · ' + d.plan.tasks + ' 个任务'
+      + '<button type="button" id="dgGoToday" class="dg-text-btn">去今日任务</button></div>' : '')
     + '<button type="button" id="dgView" class="btn-primary dg-block-btn">查看完整诊断报告</button>'
     + '</div>';
   document.getElementById('dgRedo').addEventListener('click', openDiagForm);
   document.getElementById('dgView').addEventListener('click', () => openDiagReport());
+  const _go = document.getElementById('dgGoToday');
+  if(_go) _go.addEventListener('click', diagGoToday);
 }
 
 /* 「跳过，直接用默认」：提取成绩 + other 模板 + 默认时长，直接出报告（什么都没有也能出） */
@@ -1118,6 +1179,8 @@ function openDiagReport(d, aiMode){
     + '</ul></section>'
     /* AI 个性化评定：本地诚实底座之上的免费增量，五态：stored/loading/idle/error/login */
     + '<section class="dg-sec dg-ai" id="dgAi" aria-live="polite"></section>'
+    /* 完整备考计划生成（commit3）：会员专属，六态：idle/checking/loading/success/locked/error */
+    + '<section class="dg-sec dg-plan" id="dgPlan" aria-live="polite"></section>'
     + '</div>'
     + '<div class="dg-foot"><button type="button" id="dgRedo2" class="btn-primary dg-block-btn">重新诊断 / 修改答案</button></div>'
     + '</div>';
@@ -1134,6 +1197,10 @@ function openDiagReport(d, aiMode){
   }else{
     renderDiagAiBox('idle');
   }
+  /* 计划区：现读 d.plan 推断（重新诊断会造新 diagnosis 对象，旧元信息清空、已落库任务保留，
+     下次生成时 planPersist 按覆盖日期用墓碑替换同标记未完成项）。 */
+  const _dp = DATA.settings.diagnosis && DATA.settings.diagnosis.plan;
+  renderDiagPlanBox(_dp ? 'success' : 'idle');
   ov.scrollTop = 0;
 }
 
@@ -1279,4 +1346,257 @@ function renderDiagAiBox(mode, sub){
     + '<button type="button" class="btn-primary dg-block-btn" id="dgAiGo">免费获取 AI 评定</button>';
   document.getElementById('dgAiGo').addEventListener('click', () =>
     kick(d ? { bands:d.bands, src:d.bandSrc } : { bands:{}, src:{} }));
+}
+
+/* =====================================================================================
+   完整备考计划生成（commit3）
+   ===================================================================================== */
+
+/* 本次要排的日期清单：距考更近按实际天数（考试当天 0 天也排 1 天保底），否则排 14 天；
+   每天按工作日/周末给容量。已过考（负数）按无考试处理排满 14 天。 */
+function planSpanDates(daysLeft, caps){
+  const hasExamDays = daysLeft != null && daysLeft >= 0;
+  const raw = hasExamDays ? Math.max(1, daysLeft) : PLAN_SPAN_MAX;
+  const n = Math.max(1, Math.min(PLAN_SPAN_MAX, raw));
+  const arr = [];
+  for(let i = 0; i < n; i++){
+    const iso = addDays(todayKey(), i);
+    const dow = new Date(iso + 'T00:00:00').getDay();   // 禁 toISOString（UTC 跨日）
+    const weekend = dow === 0 || dow === 6;
+    arr.push({ iso, weekend, capMin: weekend ? caps.weMin : caps.wdMin });
+  }
+  return arr;
+}
+
+function planMd(iso){
+  if(!iso) return '';
+  const x = new Date(iso + 'T00:00:00');
+  return isNaN(x.getTime()) ? String(iso) : ((x.getMonth() + 1) + ' 月 ' + x.getDate() + ' 日');
+}
+
+/* 组装 studyplan 请求：system 锁白名单/时长/倒排/容量，user 喂诊断上下文与日期清单 */
+function planBuildMessages(d, r, dates){
+  const tg = {};
+  DIAG_SUBS.forEach(([k]) => { tg[k] = Number(r.tg[k]) > 0 ? Number(r.tg[k]) : null; });
+  if(Number(r.tg.overall) > 0) tg.overall = Number(r.tg.overall);
+  const payload = {
+    now: todayKey(),
+    exam: r.cd.hasExam ? { date:r.cd.raw, daysLeft:r.days } : null,
+    phase: r.phase ? r.phase.k : null,
+    target: tg,
+    bands: DIAG_SUBS.map(([k]) => ({ sub:k, band:(d.bands[k] == null ? null : d.bands[k]),
+      source:(d.bandSrc[k] ? d.bandSrc[k].s : null) })),
+    gaps: r.gaps,
+    capacity: { weekdayMin:r.caps.wdMin, weekendMin:r.caps.weMin, totalMinutesPerWeek:r.caps.weekMin },
+    localConclusion: { key:r.verdict.k, needDays:r.needDays, text:r.verdict.text },
+    dates: dates.map(x => ({ date:x.iso, weekend:x.weekend, capMin:x.capMin }))
+  };
+  return [
+    { role:'system', content:PLAN_AI_SYSTEM },
+    { role:'user', content:'请按约定的 JSON 格式为下面这位考生排完整每日计划：\n' + JSON.stringify(payload) }
+  ];
+}
+
+function planMinOf(text){
+  const m = String(text).match(/(\d+(?:\.\d+)?)\s*分钟/);
+  return m ? Math.round(parseFloat(m[1])) : 0;
+}
+
+/* 纯护栏：AI JSON → 可落库的 days（tasks 带 min）。
+   日期必须在清单内；module/action 必须在白名单；text 必须非空且含分钟数；
+   params 只留白名单键；同日同 text 去重；当天累计超 capMin×1.15 从尾部砍（首条保留防空天）；
+   ≤2 天只留保底三件套。任何不合规都只丢当条/当天；最终 0 天返回 null（调用方整份不采）。 */
+function planApplyAi(json, dates, daysLeft){
+  if(!json || typeof json !== 'object' || !Array.isArray(json.days)) return null;
+  const capOf = {};
+  dates.forEach(x => { capOf[x.iso] = x.capMin; });
+  const allowDate = iso => Object.prototype.hasOwnProperty.call(capOf, iso);
+  const safe = daysLeft != null && daysLeft >= 0 && daysLeft <= 2;
+  const out = [];
+  const seenDate = new Set();
+  for(const day of json.days){
+    if(!day || typeof day !== 'object' || !allowDate(day.date) || seenDate.has(day.date)) continue;
+    if(!Array.isArray(day.tasks)) continue;
+    seenDate.add(day.date);
+    const focus = (typeof day.focus === 'string') ? day.focus.trim().slice(0, 10) : '';
+    const cap = Math.round((capOf[day.date] || 0) * 1.15);
+    const tasks = [];
+    const seenText = new Set();
+    let usedMin = 0;
+    for(const t0 of day.tasks){
+      if(!t0 || typeof t0 !== 'object') continue;
+      const text = String(t0.text == null ? '' : t0.text).trim();
+      if(!text || text.length > 60) continue;
+      const min = planMinOf(text);
+      if(min <= 0) continue;
+      const mod = PLAN_WL[t0.module];
+      if(!mod || !Object.prototype.hasOwnProperty.call(mod.actions, t0.action)) continue;
+      if(safe && (PLAN_SAFE[t0.module] || []).indexOf(t0.action) === -1) continue;
+      const params = {};
+      const allowParams = mod.actions[t0.action] || [];
+      if(t0.params && typeof t0.params === 'object' && !Array.isArray(t0.params)){
+        allowParams.forEach(k => {
+          const v = t0.params[k];
+          if(typeof v === 'number' && isFinite(v)) params[k] = v;
+          else if(typeof v === 'string'){ const s = v.trim(); if(s && s.length <= 12) params[k] = s; }
+        });
+      }
+      if(seenText.has(text)) continue;
+      if(cap > 0 && tasks.length && usedMin + min > cap) continue;
+      seenText.add(text); usedMin += min;
+      tasks.push({ text, min, module:t0.module, action:t0.action, params });
+    }
+    if(tasks.length) out.push({ date:day.date, focus, tasks });
+  }
+  return out.length ? out : null;
+}
+
+/* 落库：覆盖日期内，旧的同标记未完成项登墓碑后替换；已完成生成项与手动项原样保留。
+   元信息写 d.plan（settings.diagnosis 子对象，随既有字段级同步走）。 */
+function planPersist(days){
+  let added = 0;
+  const tombstones = [];
+  days.forEach(day => {
+    const p = ensurePlan(day.date);
+    p.items = Array.isArray(p.items) ? p.items : [];
+    p.items.forEach(it => { if(it && it.gen === PLAN_GEN_TAG && !it.done) tombstones.push(it.id); });
+    p.items = p.items.filter(it => !(it && it.gen === PLAN_GEN_TAG && !it.done));
+    day.tasks.forEach(t => {
+      p.items.push({ id:uid(), text:t.text, done:false, updatedAt:Date.now(),
+        module:t.module, action:t.action, params:t.params, gen:PLAN_GEN_TAG });
+      added++;
+    });
+  });
+  if(tombstones.length){
+    DATA.deletedIds = DATA.deletedIds || [];
+    tombstones.forEach(id => { if(DATA.deletedIds.indexOf(id) === -1) DATA.deletedIds.push(id); });
+  }
+  const d = DATA.settings && DATA.settings.diagnosis;
+  if(d){
+    d.plan = { ts:Date.now(), days:days.length, firstDate:days[0].date,
+               lastDate:days[days.length - 1].date, tasks:added };
+    DATA.settings._fieldTs = DATA.settings._fieldTs || {};
+    DATA.settings._fieldTs.diagnosis = Date.now();
+  }
+  hubSave();
+  return { added, replaced:tombstones.length };
+}
+
+/* 会员闸：与 writing.js queryVipGate 完全同口径（共用 sessionStorage 键与 vip_status 接口；
+   plans 页不加载 writing.js，故在此内置；未登录/查询失败一律按非会员，锁是保守方向）。 */
+async function diagVipCheck(){
+  let flag = null;
+  try{ flag = sessionStorage.getItem('hub_vip_flag_v1'); }catch(e){}
+  if(flag === '1') return true;
+  if(flag === '0') return false;
+  if(typeof authToken !== 'function' || !authToken()) return false;
+  let isVip = false;
+  try{
+    const j = await authApiPost({ action:'vip_status', token:authToken() });
+    isVip = !!(j && j.vip && j.vip.expire);
+  }catch(e){ isVip = false; }
+  try{ sessionStorage.setItem('hub_vip_flag_v1', isVip ? '1' : '0'); }catch(e){}
+  return isVip;
+}
+
+function diagGoToday(){
+  closeDiagOverlay();
+  setPlanTab('today');
+  render();
+}
+
+/* 生成完整计划：会员闸 → studyplan → 护栏 → 落库 → 跳今日 Tab。任何失败不落库。 */
+async function diagGenPlan(){
+  const d0 = DATA.settings && DATA.settings.diagnosis;
+  if(!d0 || !document.getElementById('dgPlan')) return;
+  renderDiagPlanBox('checking');
+  let isVip = false;
+  try{ isVip = await diagVipCheck(); }catch(e){ isVip = false; }
+  if(!isVip){ renderDiagPlanBox('locked'); return; }
+  renderDiagPlanBox('loading');
+  try{
+    const d = DATA.settings.diagnosis;
+    const r = diagBuildReport(d);
+    const dates = planSpanDates(r.days, r.caps);
+    const raw = await callRelay('studyplan', planBuildMessages(d, r, dates), 0.4, { max_tokens:4000, json_mode:true });
+    const plan = planApplyAi(aiJson(raw), dates, r.days);
+    if(!plan){
+      if(document.getElementById('dgPlan')) renderDiagPlanBox('error', 'bad');
+      return;
+    }
+    const st = planPersist(plan);
+    renderDiagEntry();
+    toast('已生成 ' + plan.length + ' 天、' + st.added + ' 个任务，去今日 Tab 开始做');
+    diagGoToday();
+  }catch(e){
+    if(!document.getElementById('dgPlan')) return;
+    if(e && e.code === 'AUTH_REQUIRED') renderDiagPlanBox('error', 'login');
+    else if(e && e.code === 'vip_required') renderDiagPlanBox('locked');
+    else renderDiagPlanBox('error', 'fail');
+  }
+}
+
+/* #dgPlan 渲染：idle / checking / loading / success / locked / error(bad|fail|login)。只刷本 section。 */
+function renderDiagPlanBox(mode, sub){
+  const box = document.getElementById('dgPlan'); if(!box) return;
+  const d = DATA.settings && DATA.settings.diagnosis;
+  const head = '<div class="dg-ai-head"><span class="dg-plan-badge">计</span><strong>完整备考计划</strong>'
+    + '<span class="dg-ai-free">会员功能</span></div>';
+  const spanN = (function(){
+    if(!d) return PLAN_SPAN_MAX;
+    const r = diagBuildReport(d);
+    return planSpanDates(r.days, r.caps).length;
+  })();
+  if(mode === 'checking'){
+    box.innerHTML = head + '<div class="dg-ai-loading"><span class="dg-spinner" aria-hidden="true"></span>正在确认会员权益…</div>';
+    return;
+  }
+  if(mode === 'loading'){
+    box.innerHTML = head + '<div class="dg-ai-loading"><span class="dg-spinner" aria-hidden="true"></span>'
+      + '正在按你的容量倒排 ' + spanN + ' 天任务（全部可一键跳去做），通常 15 秒左右…</div>';
+    return;
+  }
+  if(mode === 'success' && d && d.plan){
+    const p = d.plan;
+    box.innerHTML = head
+      + '<div class="dg-plan-done">✓ 已生成计划：' + planMd(p.firstDate) + ' 起 ' + p.days + ' 天，共 ' + p.tasks + ' 个任务。'
+      + '任务已排进每日计划，做完一件勾一件。</div>'
+      + '<button type="button" class="btn-primary dg-block-btn" id="dgPlanGo">去今日任务开始做</button>'
+      + '<button type="button" class="dg-text-btn" id="dgPlanAgain">重新生成计划</button>';
+    document.getElementById('dgPlanGo').addEventListener('click', diagGoToday);
+    document.getElementById('dgPlanAgain').addEventListener('click', diagGenPlan);
+    return;
+  }
+  if(mode === 'locked'){
+    box.innerHTML = head
+      + '<div class="dg-plan-lock-msg">🔒 完整备考计划是会员功能。开通后一键得到：</div>'
+      + '<ul class="dg-plan-perks">'
+      + '<li>未来 ' + spanN + ' 天每天具体做什么，2-5 件事，全部能一键跳进对应功能</li>'
+      + '<li>严格按你每天可学的分钟数排，不超量；按距考天数倒排，越临近越保守</li>'
+      + '<li>每天免费自动重排：没做完的顺延不丢，时间不够按优先级压缩</li>'
+      + '</ul>'
+      + '<a class="btn-primary dg-block-btn" href="vip.html" style="text-decoration:none;text-align:center">开通会员 · 周卡 ¥19</a>'
+      + '<div class="dg-plan-note">诊断报告与每日重排永久免费。</div>';
+    return;
+  }
+  if(mode === 'error' && sub === 'login'){
+    box.innerHTML = head + '<div class="dg-ai-msg">登录后才能生成完整备考计划。</div>'
+      + '<a class="btn-primary dg-block-btn" href="login.html" style="text-decoration:none;text-align:center">去登录 / 注册</a>';
+    return;
+  }
+  if(mode === 'error'){
+    const msg = sub === 'bad' ? 'AI 这次排的计划没过本地校验（任务或时长不合规），没有落库，再试一次。'
+      : '计划暂时没拿到（网络或服务波动），没有写入任何任务，再试一次。';
+    box.innerHTML = head + '<div class="dg-ai-msg">' + msg + '</div>'
+      + '<button type="button" class="dg-text-btn" id="dgPlanRetry">重试生成</button>';
+    document.getElementById('dgPlanRetry').addEventListener('click', diagGenPlan);
+    return;
+  }
+  /* idle：从未生成 */
+  box.innerHTML = head
+    + '<div class="dg-ai-msg">把诊断变成每天的具体任务：AI 按你每天能学的时间，排好未来 ' + spanN
+    + ' 天的任务清单——每件都能一键跳进对应功能开始做，时间不够时还能每天免费重排。</div>'
+    + '<button type="button" class="btn-primary dg-block-btn" id="dgPlanGen">生成我的 ' + spanN + ' 天备考计划</button>'
+    + '<div class="dg-plan-note">诊断永久免费 · 完整计划为会员功能 · 每日重排免费</div>';
+  document.getElementById('dgPlanGen').addEventListener('click', diagGenPlan);
 }

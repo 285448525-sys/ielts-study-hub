@@ -219,6 +219,10 @@ export async function onRequest(context) {
     if (/^(material_|speaking_chuan_)/.test(service)) {
       return json({ ok: false, error: 'vip_required', msg: '串题素材是会员专属功能，周卡首购 ¥19 起开通' }, 403, env);
     }
+    // ③b 完整备考计划会员专属（10/2 拍板：diag 诊断免费，studyplan 生成完整 N 天计划收费；rebalance 每日重排免费）
+    if (service === 'studyplan') {
+      return json({ ok: false, error: 'vip_required', msg: '生成完整备考计划是会员专属功能，周卡首购 ¥19 起开通' }, 403, env);
+    }
     // ② 写作批改：免费默认 0（会员专属）
     if (service === 'writing_score') {
       const wt = parseInt((env && env.AI_FREE_WRITING_TOTAL) != null ? env.AI_FREE_WRITING_TOTAL : '0', 10) || 0;
