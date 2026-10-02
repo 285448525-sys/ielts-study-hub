@@ -4,16 +4,18 @@
    ② 实时查 /api/auth vip_status 渲染顶部状态卡（会员跟账号走，不缓存本地——过期状态必须准） */
 
 /* ⭐ 定价唯一来源（她想调价就改这个数组；perDay/save 手算填，改价格记得同步改）
-   10/1 定价改按豆包全案口径（她拍板）：月 69 / 季 179 / 年 499（年卡默认高亮「推荐 · 最划算」+立省 329 元）。
-   10/1 晚加周卡 39（她拍板）：短期尝鲜 + 推广奖励用卡（分享送周卡=待定功能，预告已在 vip.html #vipPromo）。
+   10/2 定价 v2（她拍板 B 窗口商业方案）：7 天卡 29（首购入口）/ 30 天卡 69（主推 C 位）/ 90 天卡 129（价格锚）；
+   年卡砍掉——考生需求随考试日消失，无年需求（499 只会把页面衬贵）。
+   90 天卡给两轮备考/单科重考（60 天窗口）人群摆着衬托 69 划算。
+   配套动作：① 免费额度用完提示只推 ¥29 周卡（functions/api/ai.js 文案同步改）
+             ② 主推卡贴考试日：「距你的考试还有 N 天，30 天卡刚好覆盖」（读 settings.examDate，无则不显示）。
    免费额度 10/1 下午起为她拍板新口径（口语模考每月 1 次 / 写作批改会员专属 / 其余 AI 每周 5 次），
    写死在 functions/api/ai.js（AI_FREE_MOCK_MONTHLY / AI_FREE_WRITING_TOTAL=0 / AI_USER_WEEKLY_LIMIT=5），
    口径必须一致的处所：ai.js 默认值 + auth.js ai_usage + vip.html 对比表（改额度三处同步）。 */
 const VIP_PLANS = [
-  { id:'week',    name:'周卡', price:'39',  unit:'周', perDay:'≈ 5.6 元/天', save:'',           tag:'' },
-  { id:'month',   name:'月卡', price:'69',  unit:'月', perDay:'≈ 2.3 元/天', save:'',           tag:'' },
-  { id:'quarter', name:'季卡', price:'179', unit:'季', perDay:'≈ 2.0 元/天', save:'',           tag:'' },
-  { id:'year',    name:'年卡', price:'499', unit:'年', perDay:'≈ 1.3 元/天', save:'立省 329 元', tag:'推荐 · 最划算' },
+  { id:'week',    name:'7 天卡',  price:'29',  unit:'7 天',  perDay:'≈ 4.1 元/天', save:'', tag:'' },
+  { id:'month',   name:'30 天卡', price:'69',  unit:'30 天', perDay:'≈ 2.3 元/天', save:'', tag:'主推 · 冲刺首选' },
+  { id:'quarter', name:'90 天卡', price:'129', unit:'90 天', perDay:'≈ 1.4 元/天', save:'', tag:'' },
 ];
 const FREE_AI_DESC = '口语模考每月 1 次 · 其他 AI 每周 5 次（写作批改/串题素材为会员专属）';
 
@@ -28,8 +30,18 @@ ready(() => {
 function renderVipPlans(){
   const box = document.getElementById('vipPlans');
   if(!box) return;
+  // 10/2 配套动作②：主推卡贴考试日（她拍板 B 方案）——读下一次考试日期算天数，没设就不显示
+  // （nextExamDate 返回 {raw,passed}，不带 Date 对象，天数自己从 raw 算）
+  const exam = (typeof nextExamDate === 'function') ? nextExamDate() : null;
+  let daysLeft = 0;
+  if(exam && !exam.passed && exam.raw){
+    const ed = new Date(exam.raw + 'T00:00:00');
+    const t0 = new Date(); t0.setHours(0,0,0,0);
+    const v = Math.round((ed - t0) / 86400000);
+    if(!isNaN(v) && v > 0) daysLeft = v;
+  }
   box.innerHTML = VIP_PLANS.map((p, i) => {
-    const featured = p.id === 'year';   // 转化设计：年卡默认最显眼（她不满意可以换 featured 的 id）
+    const featured = p.id === 'month';   // 转化设计：30 天卡主推 C 位（B 方案拍板；换主推改这个 id）
     return `
     <div style="flex:1;min-width:180px;border:${featured ? '2px solid var(--primary)' : '1px solid var(--line)'};border-radius:var(--radius);padding:18px 16px;position:relative;background:${featured ? 'var(--primary-soft)' : 'var(--surface)'}">
       ${p.tag ? `<span class="badge" style="position:absolute;top:-10px;right:12px;background:${featured ? 'var(--primary)' : 'var(--surface-2)'};color:${featured ? 'var(--on-primary)' : 'inherit'}">${escapeHtml(p.tag)}</span>` : ''}
@@ -41,6 +53,7 @@ function renderVipPlans(){
         <li>会员专属功能（上线即用）</li>
         <li>跟账号走，多设备通用</li>
       </ul>
+      ${featured && daysLeft > 0 ? `<div style="font-size:12.5px;font-weight:600;color:var(--primary);margin:-4px 0 10px">距你的考试还有 ${daysLeft} 天，30 天卡刚好覆盖 →</div>` : ''}
       <button class="btn ${featured ? 'btn-primary' : ''}" data-vbuy="${p.id}" style="width:100%">立即开通</button>
     </div>`;
   }).join('');

@@ -196,7 +196,7 @@ export async function onRequest(context) {
     let usedWeek = 0;
     try { usedWeek = parseInt((await env.SYNC_KV.get('aiqw:' + acct + ':' + week)) || '0', 10) || 0; } catch (e) {}
     if (usedWeek >= weekLimit) {
-      return json({ ok: false, error: 'user_limit', msg: '你本周的免费 AI 额度（' + weekLimit + ' 次）已用完，升级会员无限用' }, 429, env);
+      return json({ ok: false, error: 'user_limit', msg: '你本周的免费 AI 额度（' + weekLimit + ' 次）已用完，¥29 周卡立享无限用' }, 429, env);
     }
   }
 
@@ -213,18 +213,18 @@ export async function onRequest(context) {
   if (!isVip) {
     // ③ 串题素材会员专属
     if (/^(material_|speaking_chuan_)/.test(service)) {
-      return json({ ok: false, error: 'vip_required', msg: '串题素材是会员专属功能，升级会员无限生成' }, 403, env);
+      return json({ ok: false, error: 'vip_required', msg: '串题素材是会员专属功能，¥29 周卡起开通' }, 403, env);
     }
     // ② 写作批改：免费默认 0（会员专属）
     if (service === 'writing_score') {
       const wt = parseInt((env && env.AI_FREE_WRITING_TOTAL) != null ? env.AI_FREE_WRITING_TOTAL : '0', 10) || 0;
       if (wt <= 0) {
-        return json({ ok: false, error: 'vip_required', msg: '写作批改是会员专属功能，升级会员无限批改' }, 403, env);
+        return json({ ok: false, error: 'vip_required', msg: '写作批改是会员专属功能，¥29 周卡起开通' }, 403, env);
       }
       let wUsed = 0;
       try { wUsed = parseInt((await env.SYNC_KV.get('aiqt:' + acct + ':writing')) || '0', 10) || 0; } catch (e) {}
       if (wUsed >= wt) {
-        return json({ ok: false, error: 'writing_limit', msg: '写作批改免费体验已用完（共 ' + wt + ' 次），升级会员无限批改' }, 429, env);
+        return json({ ok: false, error: 'writing_limit', msg: '写作批改免费体验已用完（共 ' + wt + ' 次），¥29 周卡立享无限批改' }, 429, env);
       }
     }
     // ① 口语模考：每月 1 次
@@ -234,7 +234,7 @@ export async function onRequest(context) {
       try { mUsed = parseInt((await env.SYNC_KV.get('aiqmo:' + acct + ':' + month)) || '0', 10) || 0; } catch (e) {}
       if (mLimit > 0 && mUsed >= mLimit) {
         return json({ ok: false, error: 'mock_limit',
-          msg: '口语模考免费额度已用完（每月 ' + mLimit + ' 次），下月再来或升级会员无限练' }, 429, env);
+          msg: '口语模考免费额度已用完（每月 ' + mLimit + ' 次），下月再来，或 ¥29 周卡无限练' }, 429, env);
       }
     }
   }
