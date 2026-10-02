@@ -31,7 +31,7 @@
 })();
 </script>
 <title>口语 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261002c" />
+<link rel="stylesheet" href="css/common.css?v=20261002e" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=6" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=6">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=6">
@@ -42,7 +42,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
   <script defer src="js/data.js?v=20261001b"></script>
-  <script defer src="js/common.js?v=20261002b"></script>
+  <script defer src="js/common.js?v=20261002c"></script>
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
   <script defer src="js/sentence-drill.js?v=20261001i"></script>
@@ -925,7 +925,7 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
       <div class="mock-total-timer" id="mockTotalTimerWrap" hidden>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg>
         整场剩余 <b id="mockTotalTimer">15:00</b>
-        <span class="mock-total-timer-note">真题总时长约 12–15 分钟，用于自控节奏（时间到不强制收卷）</span>
+        <span class="mock-total-timer-note">真题约 12–15 分钟 · 时间到不强制收卷</span>
       </div>
       <!-- 10/1 批3（她拍板「考官的脸出现在屏幕上」）：考官视频窗模拟。
            默认（P1/P3）大窗居中在上；#mockStage.p2-mode 时两栏：左题目 + 右小窗。
@@ -937,12 +937,12 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
             <div class="mock-q" id="mockQ"></div>
             <div class="mock-timer" id="mockTimerWrap" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg> <span id="mockTimer">--</span></div>
             <div class="mock-live" id="mockLive" aria-live="polite"></div>
+            <div class="mock-manual">
+              <label class="sr-only" for="mockManual">写下 / 粘贴你的英文回答：</label>
+              <textarea id="mockManual" rows="3" placeholder="在此输入你的英文回答…"></textarea>
+            </div>
             <div class="mock-controls">
               <button class="btn btn-primary" id="mockSubmit">提交 / 下一题</button>
-            </div>
-            <div class="mock-manual">
-              <label for="mockManual">写下 / 粘贴你的英文回答：</label>
-              <textarea id="mockManual" rows="3" placeholder="在此输入你的英文回答…"></textarea>
             </div>
             <p class="mock-hint" id="mockHint"></p>
           </div>

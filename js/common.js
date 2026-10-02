@@ -2949,6 +2949,13 @@ function syncFloatTimer(){
   const src = floatTimerSource();
   const el = document.getElementById('floatTimer');
   if(!el) return;
+  /* 10/2（她反馈模考答题卡被悬浮胶囊挡住）：沉浸式模考进行中不显示跨页胶囊。
+     计时照跑不中断，只是不显示；退出模考（#mockView hidden）自动恢复。 */
+  const mockView = document.getElementById('mockView');
+  if(mockView && !mockView.hidden){
+    if(!el.hasAttribute('hidden')) el.setAttribute('hidden', '');
+    return;
+  }
   if(!src){
     if(!el.hasAttribute('hidden')) el.setAttribute('hidden', '');
     return;
