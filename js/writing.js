@@ -13,6 +13,14 @@ function wtCountWords(text){ return (String(text || '').trim().match(/\S+/g) || 
 /* 9/17 之之拍板：评分门槛按官方要求分题型 —— Task 1 ≥150 词、Task 2 ≥250 词。
    真题页给考生的指令一直印着 "Write at least 250/150 words"，门槛必须跟它一致。 */
 function wtMinWords(type){ return type === '大作文' ? 250 : 150; }
+/* 写作目标分动态画像（商业化）：prompt 里的目标分描述统一从这里出 */
+function wtTargetText(){
+  const T = (DATA.settings && DATA.settings.targets) || {};
+  const w = parseFloat(T.writing), o = parseFloat(T.overall);
+  if(!isNaN(w)) return '考生目标写作 ' + w + ' 分' + (!isNaN(o) ? '（总分 ' + o + '）' : '');
+  if(!isNaN(o)) return '考生目标总分 ' + o + ' 分（写作单项目标未单独填写，按与总分匹配的水平给分）';
+  return '考生未填写目标分，按雅思官方评分标准正常给分，不预设水平';
+}
 
 function switchWriteTab(tab){
   curTab = tab;
@@ -319,8 +327,8 @@ async function hintBlank(btn){
   box.innerHTML = '<span class="ph-load">AI 想这个空的填法…</span>';
   const messages = [
     { role:'system', content:
-`你是雅思写作陪练。考生用"模板骨架 + 现场填空"策略，目标分 5.5-6.0。
-现在她卡在一个填空位上，需要你给一个**适合填进这个空**的英文（短语或短句，1-6 词最佳，必须是地道的雅思写作表达）。
+`你是雅思写作陪练。本产品采用"模板骨架 + 现场填空"的备考方法，${wtTargetText()}。
+现在考生卡在一个填空位上，需要你给一个**适合填进这个空**的英文（短语或短句，1-6 词最佳，必须是地道的雅思写作表达）。
 只输出 JSON，不要解释、不要 markdown 围栏：
 {"fill":"填进空的英文（不要带括号、不要带句号）","why":"一句中文说明为什么合适、贴什么题"}
 规则：
@@ -584,7 +592,7 @@ async function scoreTemplate(){
   const messages = [
     { role:'system', content:
 `你是雅思写作考官，按官方四项评分标准给分：${dimName}、CC（Coherence & Cohesion 连贯与衔接）、LR（Lexical Resource 词汇）、GRA（Grammatical Range & Accuracy 语法）。
-考生目标分 5.5-6.0，策略是"背模板 + 现场填空"，这是既定策略。
+${wtTargetText()}。本产品的备考方法是"模板骨架 + 现场填空"，这是产品设定。
 
 ⚠️ 铁律（违反就算答错）：
 1. 这是"模板骨架 + 她填的内容"的产物，可能只有一句或一小段。不许因为篇幅短、字数不足、不是完整作文而扣分或提这件事。

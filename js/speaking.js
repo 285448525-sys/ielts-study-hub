@@ -1244,6 +1244,19 @@ function storyWordBudget(){
   return { target: t, min: 120, max: 140 };
 }
 
+/* 口语目标分动态画像（商业化）：全部 prompt 的「目标/基础」描述统一从这里出，不再写死 5.5 */
+function spTargetBand(){
+  const t = parseFloat(DATA.settings && DATA.settings.targets && DATA.settings.targets.speaking);
+  return isNaN(t) ? 5.5 : t;
+}
+function spPersonaLine(){
+  const t = spTargetBand();
+  if(t >= 7)   return '考生目标口语 ' + t + ' 分：可以使用较复杂的句式与少量高级词汇，但必须自然、口语化，不堆砌大词、不背书面语。';
+  if(t >= 6.5) return '考生目标口语 ' + t + ' 分：句子以简单句为主、适当穿插复合句，词汇可用少量较高级表达，整体仍须朴素自然、像真人聊天。';
+  if(t >= 6)   return '考生目标口语 ' + t + ' 分：句子以简单句为主，每段可有一个复合句，词汇以初高中常见词为主，避免生僻学术词。';
+  return '考生目标口语 ' + t + ' 分：句子以简单句为主，词汇难度上限=高中词汇水平（如 important, enjoy, convenient, improve 这类常见词），严禁使用生僻词、学术词、GRE/雅思高级词汇（如 detrimental, paramount, facilitate 一律不行）；拿不准的词一律换成最简单的说法。';
+}
+
 /* 空依赖引导卡（design/81）：AI 功能撞到「没素材」等空态时给一张可点的下一步卡片，
    替代一闪而过的 toast。btnHtml 由调用方传入（内部已 escape / 固定文案，不再二次处理）。
    （「去设置填 Key」按钮 spKeyGuideBtn 已随设置页 AI 模块下线删除，10/1。） */
@@ -1266,7 +1279,7 @@ function spBindMatGuideBtn(el){
 /* === design/87：P2 串题要点驱动（bullet-driven）=== */
 /* 阶段一规划 prompt：{FORBIDDEN} 为禁词表占位，调用时替换，严禁硬编码。
    她拍板（9/23）：只出一段整段稿、字数够用——不出「标准版/加时版」两版，词数固定 180~200（约 100wpm 念满 2 分钟）。 */
-const SYS_CHUAN_PLAN = `你是雅思口语 P2 串题规划师。考生基础弱、目标口语 5.5、语速慢。你拿到一道 P2 真题（含 You should say 四个 bullet）和考生的真实素材库。你的核心原则是【题目要点驱动】：不是把素材故事包装成这道题，而是先看题目要考生讲哪几件事，再去素材里找能回应这些要点的事实；严禁头尾点题、中间跑题的硬串。
+const SYS_CHUAN_PLAN = `你是雅思口语 P2 串题规划师。{SP_TARGET} 语速平稳。你拿到一道 P2 真题（含 You should say 四个 bullet）和考生的真实素材库。你的核心原则是【题目要点驱动】：不是把素材故事包装成这道题，而是先看题目要考生讲哪几件事，再去素材里找能回应这些要点的事实；严禁头尾点题、中间跑题的硬串。
 
 工作步骤：
 1. 建 slotCheck：把每个 bullet 作为一个槽位，逐个核对素材：
@@ -1345,7 +1358,9 @@ function chuanSysWithMats(base){
   return base + '\n\n【考生真实素材库】（唯一事实来源，严禁编造；已按考生标记的熟悉度排序，排在最前的最熟）：\n' + chuanMatsText();
 }
 function chuanFillPh(base){
-  return String(base).replace(/\{FORBIDDEN\}/g, window.FORBIDDEN_WORDS.join(' / '));
+  return String(base)
+    .replace(/\{FORBIDDEN\}/g, window.FORBIDDEN_WORDS.join(' / '))
+    .replace(/\{SP_TARGET\}/g, spPersonaLine());
 }
 
 async function aiStoryLink(id){
@@ -1953,8 +1968,13 @@ function renderP3All(s, container){
   for(let i = 0; i < n; i++) renderP3Step(s, container, i);
 }
 
-// P3 单题 AI 辅助的 system prompt（用户给定：基础极差 / 严格锁 5.5 分，绝不输出 6+ 水平 / 极简「废话框架」）
-const P3_HELPER_SYS = `身份：雅思口语 Part 3 答题辅助工具，面向英语基础很差、听力常听不懂题干的考生，目标分数严格锁定 5.5 分，绝不能输出 6 分以上水平。
+// P3 单题 AI 辅助的 system prompt（目标分动态：默认兜底 5.5 的「废话框架」策略；≥6 分时放开词汇与句式限制）
+function p3HelperSys(){
+  const t = spTargetBand();
+  const head = (t >= 6)
+    ? `身份：雅思口语 Part 3 答题辅助工具，考生目标口语 ${t} 分。直接产出一句考场可说的完整英文回答——观点明确、带一个 because 拓展，词汇与句式与目标分匹配，仍须口语化。`
+    : `身份：雅思口语 Part 3 答题辅助工具，面向目标口语 5.5 分上下的考生，输出严格匹配该水平：不输出明显高于目标分的词汇与句式。`;
+  return `${head}
 
 考生特点：P3 通常只能说 2-3 句话、说话会磨叽带停顿；听不懂题目时靠判断「题型」来兜底。你的任务：根据「当前 P3 题目 + 考生 P2 素材」，直接产出一句考场可说的完整英文回答——一句锚句（观点）紧跟一个 because 拓展，说完即止，不解释、不乱加。
 
@@ -1992,9 +2012,15 @@ const P3_HELPER_SYS = `身份：雅思口语 Part 3 答题辅助工具，面向�
 <锚句 + 尾巴，例如：Actually, I don't think there is much difference, because the feeling is the same.>
 
 输入参数：当前 P3 题目 + 用户的 P2 回答内容，请严格按照以上规则输出。`;
+}
 
-// P3「老师帮我改」：考生贴自己的回答（中/英），按同一套 5.5 硬规则挑问题 + 给改后合规版本
-const P3_REVIEW_SYS = `你是雅思口语Part3答题老师，面向英语基础极差的考生，目标分数严格锁定5.5分，绝对不可以输出6分以上水平的内容。
+// P3「老师帮我改」：目标分动态（默认兜底 5.5 硬规则；≥6 分给与目标分匹配的改后版本）
+function p3ReviewSys(){
+  const t = spTargetBand();
+  const head = (t >= 6)
+    ? `你是雅思口语Part3答题老师，考生目标口语 ${t} 分。直接给一版与目标分匹配的改动后回答（英文），表达自然、准确即可。`
+    : `你是雅思口语Part3答题老师，考生目标口语 5.5 分上下，改动后的回答须严格匹配该水平，不引入超出目标分的词汇与句式。`;
+  return `${head}
 考生会贴出自己针对某道P3题目的回答（可能是中文，也可能是英文）。请你只做一件事：直接给一版符合5.5分规则的改动后回答（英文）。不要挑问题、不要写中文说明、不要寒暄。
 
 【绝对强制硬规则】
@@ -2006,6 +2032,7 @@ const P3_REVIEW_SYS = `你是雅思口语Part3答题老师，面向英语基础�
 【输出格式：严格只输出下面两段，不要任何前缀/解释/寒暄】
 主回答：xxx（2句以内，无例子）
 追问拓展：xxx（3句以内，含because，可选）`;
+}
 
 // 把 AI 返回的 🔹 三段式文本拆成 {main, extend, cn}
 function parseP3Helper(content){
@@ -2044,7 +2071,7 @@ async function generateP3Helper(id, i){
 
   try{
     const content = await callRelay('p3_aihelper', [
-      { role:'system', content: P3_HELPER_SYS },
+      { role:'system', content: p3HelperSys() },
       { role:'user', content:'当前P3题目：' + q + '\n\n用户的P2回答内容：\n' + (p2Text || '（考生暂未填写 P2 回答，请用通用素材作答）') }
     ], 0.7);
     const parsed = parseP3Helper(content);
@@ -2081,7 +2108,7 @@ async function reviewP3Answer(id, i){
   resultEl.style.display = 'block';
   try{
     const content = await callRelay('p3_review', [
-      { role:'system', content: P3_REVIEW_SYS },
+      { role:'system', content: p3ReviewSys() },
       { role:'user', content:'当前P3题目：' + q + '\n\n用户的P2回答内容：\n' + (p2Text || '（考生暂未填写 P2 回答）') + '\n\n考生自己的P3回答（待修改）：\n' + userText }
     ], 0.6);
     const parsed = parseP3Review(content);
@@ -2840,8 +2867,8 @@ async function generateAIHelper(id, qi){
   if(resultEl){ resultEl.innerHTML = '<div class="diag-note">正在按你的人设生成思路和参考回答…</div>'; resultEl.style.display = 'block'; }
 
   try{
-    const sys = '你是雅思口语陪练。考生目标口语 5.5 分：句子以简单句为主，词汇难度上限=高中词汇水平（如 important, enjoy, convenient, improve 这类常见词），严禁使用生僻词、学术词、GRE/雅思高级词汇（如 detrimental, paramount, facilitate 一律不行）；拿不准的词一律换成最简单的说法。\n'
-      + '考生会给你一个 Part 1 问题和她的个人素材（人设/经历）。\n'
+    const sys = '你是雅思口语陪练。' + spPersonaLine() + '\n'
+      + '考生会给你一个 Part 1 问题和考生的个人素材（人设/经历）。\n'
       + '【取材优先级】① 优先用「人设」信息（城市/身份/性格）组织回答；② 人设覆盖不到的细节，用「可参考的小故事」（P2 素材）里的真实经历补；③ 两者都没有时，用最常见的考生生活场景自由发挥，不编造离谱经历。\n'
       + '【铁律：紧扣题目】先判断题目问的核心是什么（What kind of clothes=穿的衣服种类/风格/材质；How often=频率；Where=地点；Why=原因；Do you like=喜欢与否…）。逻辑链第一环、英文第 1 句都必须直接回答这个核心；后面的展开只能围绕这个核心补原因/细节。考生素材只是给理由加细节用的，绝不能把素材里的其他话题（如购物习惯、刷视频、打游戏）变成回答主体，更不能拿它们开头，否则就是答非所问。\n'
       + '请完成两件事：\n'
