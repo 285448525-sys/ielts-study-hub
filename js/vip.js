@@ -32,7 +32,7 @@ ready(() => {
 function renderVipPlans(){
   const box = document.getElementById('vipPlans');
   if(!box) return;
-  // 10/2 配套动作②：主推卡贴考试日（她拍板 B 方案）——读下一次考试日期算天数，没设就不显示
+  // 10/2 她拍板：推荐文案按剩余天数动态选卡（≤7天→7天卡 / 8-30→30天卡 / >30→90天卡），不再固定在 30 天卡上
   // （nextExamDate 返回 {raw,passed}，不带 Date 对象，天数自己从 raw 算）
   const exam = (typeof nextExamDate === 'function') ? nextExamDate() : null;
   let daysLeft = 0;
@@ -42,10 +42,13 @@ function renderVipPlans(){
     const v = Math.round((ed - t0) / 86400000);
     if(!isNaN(v) && v > 0) daysLeft = v;
   }
+  const recId = daysLeft > 0 ? (daysLeft <= 7 ? 'week' : (daysLeft <= 30 ? 'month' : 'quarter')) : '';
   box.innerHTML = VIP_PLANS.map((p, i) => {
     const featured = p.id === 'month';   // 转化设计：30 天卡主推 C 位（B 方案拍板；换主推改这个 id）
+    const isRec = p.id === recId;
+    const recTxt = isRec ? `距你的考试还有 ${daysLeft} 天，${p.name}刚好覆盖 →` : '';
     return `
-    <div style="flex:1;min-width:180px;border:${featured ? '2px solid var(--primary)' : '1px solid var(--line)'};border-radius:var(--radius);padding:18px 16px;position:relative;background:${featured ? 'var(--primary-soft)' : 'var(--surface)'}">
+    <div style="flex:1;min-width:180px;display:flex;flex-direction:column;border:${featured ? '2px solid var(--primary)' : '1px solid var(--line)'};border-radius:var(--radius);padding:18px 16px;position:relative;background:${featured ? 'var(--primary-soft)' : 'var(--surface)'}">
       ${p.tag ? `<span class="badge" style="position:absolute;top:-10px;right:12px;background:${featured ? 'var(--primary)' : 'var(--surface-2)'};color:${featured ? 'var(--on-primary)' : 'inherit'}">${escapeHtml(p.tag)}</span>` : ''}
       <div style="font-weight:700;font-size:15px">${escapeHtml(p.name)}</div>
       <div style="margin:8px 0 2px"><span style="font-size:28px;font-weight:800">¥${escapeHtml(p.price)}</span><span class="muted" style="font-size:13px"> / ${escapeHtml(p.unit)}</span>${p.orig ? `<span class="muted" style="font-size:13.5px;margin-left:6px;text-decoration:line-through">¥${escapeHtml(p.orig)}</span>` : ''}</div>
@@ -55,8 +58,8 @@ function renderVipPlans(){
         <li>会员专属功能（上线即用）</li>
         <li>跟账号走，多设备通用</li>
       </ul>
-      ${featured && daysLeft > 0 ? `<div style="font-size:12.5px;font-weight:600;color:var(--primary);margin:-4px 0 10px">距你的考试还有 ${daysLeft} 天，30 天卡刚好覆盖 →</div>` : ''}
-      <button class="btn ${featured ? 'btn-primary' : ''}" data-vbuy="${p.id}" style="width:100%">立即开通</button>
+      ${recTxt ? `<div style="font-size:12.5px;font-weight:600;color:var(--primary);margin:0 0 10px">${recTxt}</div>` : ''}
+      <button class="btn ${featured ? 'btn-primary' : ''}" data-vbuy="${p.id}" style="width:100%;margin-top:auto">立即开通</button>
     </div>`;
   }).join('');
   box.querySelectorAll('button[data-vbuy]').forEach(b =>
