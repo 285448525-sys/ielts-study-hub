@@ -223,10 +223,15 @@ ready(() => {
       if(typeof sentReplayClose === 'function') sentReplayClose();
       // 9/26：切 tab 一律解除模考沉浸（否则侧栏/tab 被藏、页面只剩模考内容）
       try{ document.body.classList.remove('mock-immerse'); }catch(e){}
-      $('#listView').hidden = true; $('#detailView').hidden = true; $('#mockView').hidden = true; $('#matView').hidden = true; $('#pdView').hidden = true; $('#sentView').hidden = true;
+      $('#listView').hidden = true; $('#detailView').hidden = true; $('#mockView').hidden = true; $('#matView').hidden = true; $('#pdView').hidden = true; $('#sentView').hidden = true; $('#coachView').hidden = true;
       if(t === 'PRACTICE'){
-        // design/16 P0：句型页（sentence-drill.js）接管「练习」tab；场景闯关/pdLegacy 退场（开关可回滚）
-        if(window.__SENT_V2_ON){
+        // 10/2：AI 陪练 coach 最优先接管「陪练」tab（旗子在 coach.js 顶层，去 script 引用即回滚）；
+        // 其次 design/16 P0 句型页（sentence-drill.js）；都关时落老 pdView
+        if(window.__COACH_ON){
+          $('#pdView').hidden = true; $('#sentView').hidden = true;
+          $('#coachView').hidden = false;
+          try{ window.__coachShow && window.__coachShow(); }catch(_){}
+        } else if(window.__SENT_V2_ON){
           $('#pdView').hidden = true;
           $('#sentView').hidden = false;
         } else {
@@ -343,7 +348,10 @@ ready(() => {
   try{
     if(new URLSearchParams(location.search).get('senttab')){
       spActivateTab('PRACTICE');
-      if(window.__SENT_V2_ON){ $('#sentView').hidden = false; $('#pdView').hidden = true; }
+      if(window.__COACH_ON){
+        $('#coachView').hidden = false; $('#sentView').hidden = true; $('#pdView').hidden = true;
+        try{ window.__coachShow && window.__coachShow(); }catch(_){}
+      } else if(window.__SENT_V2_ON){ $('#sentView').hidden = false; $('#pdView').hidden = true; }
     }
   }catch(_){}
 });
@@ -1105,6 +1113,13 @@ function spGoPracticeCat(catId){
   // 显隐对齐 PRACTICE tab 逻辑（speaking.js ready 里同款），并展开该类重渲染
   spActivateTab('PRACTICE');
   $('#listView').hidden = true; $('#detailView').hidden = true; $('#mockView').hidden = true; $('#matView').hidden = true; $('#pdView').hidden = true;
+  // 10/2：coach 接管后，题库详情「去练该类」统一进 AI 陪练（catId 是句型类别，coach 用不上忽略）
+  if(window.__COACH_ON){
+    $('#sentView').hidden = true; $('#coachView').hidden = false;
+    try{ window.__coachShow && window.__coachShow(); }catch(_){}
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
   if(!window.__SENT_V2_ON){ $('#pdView').hidden = false; return; }   // 开关回滚时落老 pdView
   $('#sentView').hidden = false;
   window.__SENT_OPEN = window.__SENT_OPEN || {};

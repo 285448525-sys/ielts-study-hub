@@ -47,7 +47,9 @@
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
   <script defer src="js/sentence-drill.js?v=20261001i"></script>
-  <script defer src="js/speaking.js?v=20261002c"></script>
+  <!-- coach 同例：必须在 speaking.js 之前，顶层 window.__COACH_ON 先立，tab 分支才接管得到 -->
+  <script defer src="js/coach.js?v=20261002a"></script>
+  <script defer src="js/speaking.js?v=20261002d"></script>
   <script defer src="js/materials.js?v=20261002b"></script>
   <script defer src="js/mock-report.js?v=20260830u"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
@@ -848,6 +850,57 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
 .sent-cat-row:hover b::before{opacity:1}
 /* 4) P2 工具折叠区 summary：hover 时组名轻提色（与题库卡 hover 呼应） */
 .sp-tool-summary:hover .sp-tool-name{color:var(--primary)}
+
+/* === AI 口语陪练 coach（10/2：接管「陪练」tab；全 id/#coachView 作用域，压 common.css 表单重置 0,2,1；色走全站 token） === */
+#coachWrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column}
+#coachTop{position:sticky;top:0;z-index:5;background:var(--bg);padding:4px 0 8px}
+.coach-seg{display:flex;gap:6px;background:var(--n-100);border-radius:12px;padding:4px}
+.coach-seg-btn{flex:1;min-height:44px;border:0;background:transparent;border-radius:9px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;transition:background .15s,color .15s}
+.coach-seg-btn.on{background:var(--surface);color:var(--primary-700);box-shadow:0 1px 3px rgba(0,0,0,.10)}
+#coachProg{font-size:12.5px;color:var(--muted);padding:8px 2px 0}
+#coachScroll{padding:10px 2px 104px;display:flex;flex-direction:column;gap:12px}
+.cq-card{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--primary);border-radius:12px;padding:14px 16px}
+.cq-tags{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.cq-part{font-size:11.5px;font-weight:700;color:var(--primary-700);background:var(--primary-50);border-radius:6px;padding:2px 8px}
+.cq-freq{font-size:11.5px;color:var(--muted)}
+.cq-en{font-size:17px;line-height:1.55;font-weight:600;color:var(--ink)}
+.cq-zh{font-size:13px;color:var(--muted);margin-top:6px}
+.cq-hint{margin-top:8px;font-size:13px;color:var(--warn-ink);background:var(--warn-soft);border-radius:8px;padding:6px 10px}
+.cq-yss{margin:8px 0 0;padding:0;list-style:none;counter-reset:coachY}
+.cq-yss li{counter-increment:coachY;position:relative;padding-left:26px;font-size:14.5px;line-height:1.55;margin-bottom:5px;color:var(--ink-2)}
+.cq-yss li::before{content:counter(coachY);position:absolute;left:0;top:2px;width:18px;height:18px;border-radius:50%;background:var(--primary-50);color:var(--primary-700);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.cq-tip{margin-top:10px;font-size:12.5px;line-height:1.5;color:var(--muted)}
+.cu-row{display:flex;justify-content:flex-end}
+.cu-bubble{max-width:84%;background:var(--primary-500);color:#fff;border-radius:14px 14px 4px 14px;padding:10px 14px;font-size:15px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+.cf{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.cf-praise{font-size:13.5px;color:var(--warn-ink);background:var(--warn-soft);border-radius:8px;padding:8px 10px;margin-bottom:10px}
+.cf-t{font-size:12.5px;font-weight:700;margin:10px 0 6px}
+.cf-t-fix{color:var(--danger-text)}
+.cf-fix{margin:0;padding:0;list-style:none}
+.cf-fix li{position:relative;padding-left:18px;font-size:14px;line-height:1.65;color:var(--ink-2)}
+.cf-fix li::before{content:'\2715';position:absolute;left:0;top:3px;color:var(--danger-text);font-size:11px}
+.cf-ok{font-size:13.5px;color:var(--primary-700)}
+.cf-t-nat{color:var(--primary-700)}
+.cf-nat{background:var(--primary-50);border-left:3px solid var(--primary);border-radius:0 10px 10px 0;padding:10px 12px;font-size:15px;line-height:1.65;color:var(--primary-900)}
+.cf-raw{font-size:14px;line-height:1.6;white-space:pre-wrap;color:var(--ink-2)}
+#coachBar{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--surface);border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom))}
+#coachBarInner{max-width:760px;margin:0 auto;display:flex;gap:8px;align-items:flex-end}
+#coachInput{flex:1;min-width:0;min-height:44px;max-height:96px;resize:none;border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:15px;line-height:1.4;background:var(--surface);color:var(--ink)}
+#coachInput:focus{outline:none;border-color:var(--primary)}
+#coachSend,#coachNext{flex:none;min-height:44px;border:0;border-radius:10px;padding:0 18px;font-size:14.5px;font-weight:600;white-space:nowrap;cursor:pointer}
+#coachSend{background:var(--primary);color:#fff}
+#coachSend:disabled{opacity:.55;cursor:default}
+#coachNext{background:var(--primary-50);color:var(--primary-700)}
+/* ≤860 必须与 common.css 的 dock/App Shell 断点一致：600 档漏掉平板宽度，dock 照样出现会盖住底栏 */
+@media (max-width:860px){
+  /* 底栏与通栏 dock 无缝叠放：bottom=dock 实测高（--dock-h 已含 safe-area，严禁再叠加）；
+     z-index 不动（40<dock45），几何不重叠即可。键盘弹起由 coach.js visualViewport 改写行内值 */
+  #coachBar{bottom:calc(var(--dock-h, 56px))}
+  /* main.container 已自带 dock+10px 净空，这里再让出底栏（44 输入+20 纵向 padding≈64）+呼吸 */
+  #coachScroll{padding-bottom:72px}
+  .cq-en{font-size:16px}
+  #coachSend,#coachNext{padding:0 14px}
+}
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -872,7 +925,7 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
     <div class="sp-tabs pill-tabs" id="tabs">
       <!-- 10/1 晚（她拍板）：题库放练习前面 + 打开口语默认展示题库 -->
       <button data-type="BANK" class="pill-tab active">题库</button>
-      <button data-type="PRACTICE" class="pill-tab">练习</button>
+      <button data-type="PRACTICE" class="pill-tab">陪练</button>
       <!-- 模考不再是顶部 tab——入口移到题库筛选行「模考」按钮；隐藏按钮保留承载切换逻辑 -->
       <button data-type="MOCK" class="pill-tab" hidden>模考</button>
       <button data-type="MAT" class="pill-tab">素材</button>
@@ -1112,6 +1165,10 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
   <div id="sentView" hidden>
     <div id="sentBody"></div>
   </div>
+
+  <!-- AI 口语陪练 coach（10/2 拍板接管陪练 tab）：骨架由 js/coach.js 首次切入时懒渲染；
+       旧句型引擎容器全部保留，去掉 coach.js 的 script 引用即完整回滚 -->
+  <div id="coachView" hidden></div>
 </main>
 
 </body>
