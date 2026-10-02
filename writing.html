@@ -42,7 +42,7 @@
 <script defer src="js/data.js?v=20261001b"></script>
   <script defer src="js/common.js?v=20261001q"></script>
   <script defer src="js/writing_prompts.js?v=20260903ab"></script>
-  <script defer src="js/writing.js?v=20261001h"></script>
+  <script defer src="js/writing.js?v=20261001i"></script>
   <script defer src="js/wrongbook.js?v=20260903ab"></script>
 <style>
 
@@ -50,6 +50,12 @@
   .cat-nav{width:160px;flex:none;display:flex;flex-direction:column;gap:6px}
   .cat-nav button{text-align:left}
   .cat-nav button.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+  /* 10/2：大/小作文分组标签 + 分类模板计数（全类型常驻显示） */
+  .cat-group-label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.05em;margin:8px 2px 0}
+  .cat-nav .cat-group-label:first-child{margin-top:0}
+  .cat-nav button{display:flex;align-items:center;justify-content:space-between;gap:6px}
+  .cat-nav button .cat-cnt{font-size:11px;color:var(--muted);font-weight:600}
+  .cat-nav button.active .cat-cnt{color:rgba(255,255,255,.85)}
   .write-main{flex:1;min-width:0}
   .write-layout.detail-open{display:block}
   .write-layout.detail-open .cat-nav{display:none}
@@ -259,7 +265,7 @@
           <div class="form-row">
             <select id="a_cat">
               <option value="动态图">动态图</option><option value="静态图">静态图</option><option value="地图题">地图题</option><option value="流程图">流程图</option>
-              <option value="观点型">观点型</option><option value="讨论型">讨论型</option><option value="Report">Report</option>
+              <option value="观点型">观点型</option><option value="讨论型">讨论型</option><option value="优缺点型">优缺点型</option><option value="Report">Report</option><option value="双问题型">双问题型</option>
             </select>
             <input aria-label="模板标题" id="a_title" placeholder="模板标题" />
           </div>

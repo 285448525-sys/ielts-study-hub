@@ -131,21 +131,22 @@ function migrateWritingCategoryNames(){
   if(changed) hubSave();
 }
 function renderCats(){
-  const cats = [];
-  DATA.writing.forEach(t => { const c = cleanCatName(t.category); if(!cats.includes(c)) cats.push(c); });
-  // 大作文在上、小作文在下；组内按雅思出题频率排序（高频靠前）
-  const CAT_ORDER = ['观点型','讨论型','Report','动态图','静态图','地图题','流程图'];
-  cats.sort((a, b) => {
-    const ia = CAT_ORDER.indexOf(a), ib = CAT_ORDER.indexOf(b);
-    return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
-  });
+  /* 10/2（她拍板）：分类栏固定显示雅思作文全类型——大作文补齐 5 类（新增「优缺点型」「双问题型」，
+     暂无模板的先空着显示 ·0），小作文 4 类不动；数据里的自定义分类追加在「自定义」组。 */
+  const CAT_TASK2 = ['观点型','讨论型','优缺点型','Report','双问题型'];
+  const CAT_TASK1 = ['动态图','静态图','地图题','流程图'];
+  const order = CAT_TASK2.concat(CAT_TASK1);
+  const extra = [];
+  DATA.writing.forEach(t => { const c = cleanCatName(t.category); if(!order.includes(c) && !extra.includes(c)) extra.push(c); });
+  const all = order.concat(extra);
+  const cntOf = c => DATA.writing.filter(t => cleanCatName(t.category) === c).length;
   const nav = $('#catNav');
-  if(cats.length === 0){ nav.innerHTML = '<div class="muted">暂无分类</div>'; $('#tplList').innerHTML=''; return; }
-  // 9/16 修：原来只在 curCat 为空串/null 时才兜底。把某个分类里最后一条模板删掉后，
-  // 该分类从 cats 里消失而 curCat 还是旧值 → 分类栏一个高亮都没有（实测 active=0），
-  // 列表空着、用户不知道自己在哪。改成「不存在就回落到一个还存在的分类」。
-  if(!curCat || !cats.includes(curCat)) curCat = cats[0];
-  nav.innerHTML = cats.map(c => '<button class="btn ' + (c===curCat?'active':'') + '" data-cat="' + escapeHtml(c) + '">' + escapeHtml(c) + '</button>').join('');
+  // 不存在就回落到一个还存在的分类（9/16 修的口径，保留）
+  if(!curCat || !all.includes(curCat)) curCat = all[0];
+  const btn = c => '<button class="btn' + (c===curCat?' active':'') + '" data-cat="' + escapeHtml(c) + '"><span class="cat-name">' + escapeHtml(c) + '</span><span class="cat-cnt">' + cntOf(c) + '</span></button>';
+  nav.innerHTML = '<div class="cat-group-label">大作文 · Task 2</div>' + CAT_TASK2.map(btn).join('')
+    + '<div class="cat-group-label">小作文 · Task 1</div>' + CAT_TASK1.map(btn).join('')
+    + (extra.length ? '<div class="cat-group-label">自定义</div>' + extra.map(btn).join('') : '');
   nav.querySelectorAll('[data-cat]').forEach(b => b.addEventListener('click', () => { curCat = b.dataset.cat; renderCats(); renderList(); }));
   renderList();
 }
@@ -1347,12 +1348,15 @@ function renderExamList(){
   const box = $('#examList');
   if(!box) return;
 
-  // 题型自动判定
+  // 题型自动判定（10/2：大作文扩到 5 类——优缺点型/双问题型从 Report/观点型 里分出来）
   function detectBigSubType(en, meta){
     const t = (en || '').toLowerCase(), m = (meta || '').toLowerCase();
     if(/discuss both (views|sides)|discuss these two points/.test(t)) return '讨论型';
+    if(/advantages? and disadvantages|advantages? outweigh|benefits? and drawbacks?|positive or negative/.test(t)) return '优缺点型';
     if(/to what extent do you agree or disagree|do you agree or disagree|what is your opinion/.test(t)) return '观点型';
-    if(/what are the (main )?(causes|reasons|problems|solutions|effects|impacts)|advantages outweigh|positive or negative/.test(t) || m.indexOf('report') >= 0) return 'Report';
+    if(/what are the (main )?(causes|reasons|problems|solutions|effects|impacts)/.test(t) || m.indexOf('report') >= 0) return 'Report';
+    /* 双问题型：一段题干里出现两个及以上问号（如 Why is this the case? Do you think…），且没落进上面任何一类 */
+    if(((en || '').match(/\?/g) || []).length >= 2) return '双问题型';
     return '观点型';
   }
   function detectSmallSubType(title){
