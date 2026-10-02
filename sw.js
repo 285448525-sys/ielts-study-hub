@@ -9,7 +9,7 @@
      SW 不参与离线态的判定与渲染，缓存策略本文件零改动。
      本文件 activate 时发的 `SW_UPDATED` 消费端也在 common.js（maybeShowSwUpdatePrompt，
      design/78）：页面收到后只弹提示条，**是否刷新由用户点击决定，SW 侧绝不自动 reload**。 */
-const CACHE = 'ielts-hub-v150';  // 10/2：作文模板=会员专属（她拍板）——免费用户列表见🔒角标，详情只显示会员锁卡，正文/填空/默写/评分全不渲染；会员判定 vip_status 会话级缓存。上一版 v149 倒计时动态推荐
+const CACHE = 'ielts-hub-v151';  // 10/2：写作批改含金量 P0——评分结果加考官标准原话锚点卡（anchorMatch 白名单防编造）/「考官会喜欢这句」正反馈卡/「距下一档只差这 N 步」gap 卡，模板+整篇+真题模考三链路，旧记录零影响。上一版 v150 模板会员锁
 
 /* 核心壳预缓存清单（Node 脚本枚举目录生成，2026-09-20；与 14 页实际引用核对无遗漏）。
    不含 js/vendor/xlsx.full.min.js（861KB 体积大 → 走运行时 SWR 缓存）。 */
