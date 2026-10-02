@@ -672,15 +672,7 @@ ready(() => {
   $('#ebRaw').addEventListener('click', saveRawEntry);
   render();
 
-  /* design/85：筛选/搜索控件——ready 绑定一次，render 里只读值 */
-  ['#ebQtypeFilter', '#ebTrapFilter'].forEach(sel => {
-    const el = document.querySelector(sel);
-    if(el) el.addEventListener('change', render);
-  });
-  const onlyOpen = document.querySelector('#ebOnlyOpen');
-  if(onlyOpen) onlyOpen.addEventListener('change', render);
-  const ebSearch = document.querySelector('#ebSearch');
-  if(ebSearch) ebSearch.addEventListener('input', render);
+  /* 10/2 大改版（她拍板）：筛选/搜索控件整删——列表就是时间倒序卡片流，无需绑定 */
 
   /* 长难句拆解 */
   $('#analyzeBtn').addEventListener('click', analyze);
@@ -860,7 +852,7 @@ async function reanalyze(id, force){
     if(load){
       const prev = load.hidden ? '' : (load.textContent + '　');
       load.hidden = false;
-      load.textContent = prev + '⚠️ 没分析成功，这条记录仍在下面列表里、原文没丢。原文已放进上面输入框，可以改完再点「理清错因并归档」（成功后记得删掉旧的那条）。';
+      load.textContent = prev + '⚠️ 没分析成功，这条记录仍在下面列表里、原文没丢。原文已放进上面输入框，可以改完再点「AI 收录错题」（成功后记得删掉旧的那条）。';
     }
   }
 }
@@ -872,47 +864,15 @@ function toArr(v){
 }
 
 /* ---------- 渲染 ---------- */
+/* 10/2 大改版（她拍板）：题型/错因筛选 + 搜索 + 只看未掌握全删——
+   列表 = 时间倒序卡片流；已掌握沉底折叠区，未掌握区空时自动展开。 */
 function render(){
   const list = DATA.errorbook
     .slice()
     .sort((a,b) => (b.date||'').localeCompare(a.date||''));
 
-  /* design/85：题型/错因筛选 + 关键词搜索 + 只看未掌握（筛选控件在 ready 绑定一次，这里只读取） */
-  const qtypeSel = $('#ebQtypeFilter'), trapSel = $('#ebTrapFilter');
-  const fQ = (qtypeSel && qtypeSel.value) || 'all';
-  const fT = (trapSel && trapSel.value) || 'all';
-  const fSearch = ($('#ebSearch') && $('#ebSearch').value.trim().toLowerCase()) || '';
-  const fOpen = !$('#ebOnlyOpen') || $('#ebOnlyOpen').checked;
-
-  /* 动态生成筛选选项（去重排序，「其他」排最后），保持当前选中值 */
-  if(qtypeSel){
-    const qtypes = Array.from(new Set(list.map(e => String(e.qtype || e.subject || '').trim()).filter(x => x && x !== '其他'))).sort();
-    qtypes.push('其他');
-    const keep = qtypeSel.value;
-    qtypeSel.innerHTML = '<option value="all">全部题型</option>' + qtypes.map(q => `<option value="${escapeHtml(q)}">${escapeHtml(q)}</option>`).join('');
-    if(qtypes.includes(keep)) qtypeSel.value = keep;
-  }
-  if(trapSel){
-    const traps = Array.from(new Set(list.map(e => String(e.trap || '').trim()).filter(x => x && x !== '其他'))).sort();
-    traps.push('其他');
-    const keep = trapSel.value;
-    trapSel.innerHTML = '<option value="all">全部错因</option>' + traps.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
-    if(traps.includes(keep)) trapSel.value = keep;
-  }
-
-  const match = e => {
-    const q = String(e.qtype || e.subject || '').trim();
-    if(fQ !== 'all' && q !== fQ) return false;
-    const t = String(e.trap || '').trim();
-    if(fT !== 'all' && t !== fT) return false;
-    if(fSearch){
-      const hay = [e.title, e.questionText, e.passageSnippet, e.stem].map(x => String(x || '')).join(' ').toLowerCase();
-      if(hay.indexOf(fSearch) === -1) return false;
-    }
-    return true;
-  };
-  const open = list.filter(e => match(e) && !e.known);
-  const known = fOpen ? [] : list.filter(e => match(e) && e.known);   // 勾「只看未掌握」时已掌握区不显示（计数同步归零）
+  const open = list.filter(e => !e.known);
+  const known = list.filter(e => e.known);
 
   const cnt = $('#count'), kcnt = $('#knownCount');
   if(cnt) cnt.textContent = open.length;
@@ -982,53 +942,57 @@ function cardHtml(e){
   if(e.kind === 'question') return oldQuestionCard(e);
   if(e.kind === 'capture')  return captureCard(e);
 
-  const badges = [
-    e.qtype  && e.qtype  !== '其他' ? `<span class="badge">${escapeHtml(e.qtype)}</span>` : '',
-    e.trap   && e.trap   !== '其他' ? `<span class="badge badge-trap">${escapeHtml(e.trap)}</span>` : '',
-    e.known ? '<span class="badge badge-ok">已掌握</span>' : ''
-  ].join('');
+  /* 10/2 大改版（她拍板的 5 块格式）：
+     ①标题 ②你答 X ✗ → 正确 Y ✓ ③为什么错（错因+判定逻辑）④原文依据 ⑤下次怎么避免
+     + 生词 chips（可点击收录）+ 展开看（题干/翻译/逐词对照/原文/原始资料，默认收起）。
+     题型/错因徽章不再单独摆——错因进「为什么错」行，题型本就写在标题里。 */
+  const dateHtml = `<span class="muted" style="margin-left:auto;font-size:12.5px;flex:none">${escapeHtml(e.date||'')}</span>`;
 
-  /* design/85 答案条：复盘第一眼 = 我选了什么 → 该选什么。归一化比较（trim+大写）。 */
+  /* 答案对比：你答 X ✗ → 正确 Y ✓（判断题 correctAnswer 缺失用 keyReasoning.relation 补位） */
   const mine = String(e.myAnswer || '').trim();
   const correct = String(e.correctAnswer || '').trim();
   const rel = (e.keyReasoning && e.keyReasoning.relation) ? String(e.keyReasoning.relation).trim() : '';
-  const correctShown = correct || rel;   // 判断题 correctAnswer 缺失时用 keyReasoning.relation 补位，两者都有不重复拼
+  const correctShown = correct || rel;
   let answerHtml = '';
-  if(mine || correct){
+  if(mine || correctShown){
     const same = mine && correct && mine.toUpperCase() === correct.toUpperCase();
     if(same){
-      answerHtml = `<div class="eb-answer"><span class="eb-a-ok">我的答案 ${escapeHtml(mine)} ✓</span></div>`;
+      answerHtml = `<div class="eb-answer"><span class="eb-a-ok">你答 ${escapeHtml(mine)} ✓</span></div>`;
     } else {
-      const minePart = mine ? `<span class="eb-a-mine">我的答案：<b>${escapeHtml(mine)}</b></span>` : '';
-      const correctPart = correctShown ? `<span class="eb-a-correct">正确答案：<b>${escapeHtml(correctShown)}</b></span>` : '';
+      const minePart = mine ? `<span class="eb-a-mine">你答 <b>${escapeHtml(mine)}</b> ✗</span>` : '';
+      const correctPart = correctShown ? `<span class="eb-a-correct">正确 <b>${escapeHtml(correctShown)}</b> ✓</span>` : '';
       answerHtml = (minePart || correctPart)
         ? `<div class="eb-answer">${[minePart, correctPart].filter(Boolean).join('<span class="eb-a-arrow">→</span>')}</div>` : '';
     }
   }
 
-  /* design/85 核心判定：新数据用 keyReasoning（compare/evidence/rule）；老数据无 keyReasoning
-     时把旧 structureAnalysis.answerNote 挪到这里兜底显示（老卡也能一眼看到判定）。 */
+  /* 为什么错：错因分类（非「其他」时）+ 判定逻辑一句话；老数据无 keyReasoning 用旧 answerNote 兜底 */
   const kr = e.keyReasoning;
   const sa = e.structureAnalysis;
   const legacyNote = (!kr && sa && sa.answerNote) ? String(sa.answerNote).trim() : '';
   const keyCmp = kr ? String(kr.compare || '').trim() : legacyNote;
   const keyEv = kr ? String(kr.evidence || '').trim() : '';
   const ruleTxt = String(e.rule || '').trim();
-  const keyHtml = (keyCmp || keyEv || ruleTxt)
+  const trapTxt = String(e.trap || '').trim();
+  const whyLabel = (trapTxt && trapTxt !== '其他') ? `为什么错（${escapeHtml(trapTxt)}）` : '为什么错';
+  const whyHtml = (keyCmp || keyEv || ruleTxt)
     ? `<div class="eb-key">
-        ${keyCmp ? `<div class="eb-key-cmp">${escapeHtml(keyCmp)}</div>` : ''}
+        ${keyCmp ? `<div class="eb-key-cmp"><span class="eb-why-label">${whyLabel}</span>${escapeHtml(keyCmp)}</div>` : ''}
         ${keyEv ? `<div class="eb-key-ev" lang="en">${escapeHtml(keyEv)}</div>` : ''}
         ${ruleTxt ? `<div class="eb-key-rule">下次：${escapeHtml(ruleTxt)}</div>` : ''}
       </div>` : '';
 
-  const questionText = e.questionText
-    ? `<div class="eb-block"><h4>题干原文</h4><p style="white-space:pre-wrap">${escapeHtml(e.questionText)}</p></div>` : '';
-  const passageSnippet = e.passageSnippet
-    ? `<div class="eb-block"><h4>对应原文</h4><p style="white-space:pre-wrap">${escapeHtml(e.passageSnippet)}</p></div>` : '';
-
-  /* 精读折叠区（默认收起）：翻译（全卡仅此一处）+ 逐词对照 + 填空类型 + 生词紧凑 chip */
+  /* 生词 chips（点击收录进词库，功能保留） */
   const wordList = (e.words && e.words.length) ? e.words : [];
   const savedSet = _ebSavedWordSet();
+  const chips = wordList.length
+    ? `<div class="eb-words-line">${wordList.map(w => {
+        const en = escapeHtml(w.en||''), cn = escapeHtml(w.cn||'');
+        const done = savedSet.has(String(w.en||'').toLowerCase().trim());
+        return `<button type="button" class="ls-kw-chip${done ? ' is-done' : ''}" data-en="${en}" data-cn="${cn}">${en}${cn ? `<span class="ls-kw-cn">${cn}</span>` : ''}${done ? ' ✓' : ''}</button>`;
+      }).join('')}</div>` : '';
+
+  /* 展开看（默认收起）：题干原文 / 整句翻译 / 逐词对照 / 对应原文 / 原始资料 */
   const wbw = (sa && sa.wordByWord && sa.wordByWord.length)
     ? `<div class="eb-block"><h4>题干拆解 · 同声传译</h4>
         <div class="ls-wbw-grid">${sa.wordByWord.map(w => {
@@ -1039,27 +1003,24 @@ function cardHtml(e){
         }).join('')}</div>
         ${sa.answerNote ? `<div class="muted" style="margin-top:8px;font-size:13px">填空类型：${escapeHtml(sa.answerNote)}</div>` : ''}
       </div>` : '';
-  const chips = wordList.length
-    ? `<div class="eb-block"><h4>生词 · 点击收录</h4><div class="ls-kw-chips">${wordList.map(w => {
-        const en = escapeHtml(w.en||''), cn = escapeHtml(w.cn||'');
-        const done = savedSet.has(String(w.en||'').toLowerCase().trim());
-        return `<button type="button" class="ls-kw-chip${done ? ' is-done' : ''}" data-en="${en}" data-cn="${cn}">${en}${cn ? `<span class="ls-kw-cn">${cn}</span>` : ''}${done ? ' ✓' : ''}</button>`;
-      }).join('')}</div></div>` : '';
-  const deepHtml = (e.translation || wbw || chips)
-    ? `<details class="eb-deep"><summary>精读拆解（翻译 · 逐词对照 · 生词）</summary>
-        ${e.translation ? `<div class="eb-block"><h4>整句翻译</h4><p>${escapeHtml(e.translation)}</p></div>` : ''}
-        ${wbw}${chips}
-      </details>` : '';
+  const deepParts = [
+    e.questionText ? `<div class="eb-block"><h4>题干原文</h4><p style="white-space:pre-wrap">${escapeHtml(e.questionText)}</p></div>` : '',
+    e.translation ? `<div class="eb-block"><h4>整句翻译</h4><p>${escapeHtml(e.translation)}</p></div>` : '',
+    wbw,
+    e.passageSnippet ? `<div class="eb-block"><h4>对应原文</h4><p style="white-space:pre-wrap">${escapeHtml(e.passageSnippet)}</p></div>` : '',
+    e.source ? `<div class="eb-block"><h4>我粘进来的原始资料</h4><pre style="white-space:pre-wrap;word-break:break-word;margin:0;padding:10px;background:var(--bg);border-radius:8px;border:1px solid var(--line);font:inherit;font-size:13px;line-height:1.7;max-height:260px;overflow:auto">${escapeHtml(e.source)}</pre></div>` : ''
+  ].filter(Boolean).join('');
+  const deepHtml = deepParts
+    ? `<details class="eb-deep"><summary>展开看：题干 / 翻译 / 逐词对照 / 原文</summary>${deepParts}</details>` : '';
   const raw = e.raw
     ? `<details class="eb-src"><summary>AI 原始回复</summary><p style="white-space:pre-wrap">${escapeHtml(e.raw)}</p></details>` : '';
-  const src = e.source
-    ? `<details class="eb-src"><summary>看我粘进来的原始资料</summary><pre>${escapeHtml(e.source)}</pre></details>` : '';
   const needRedo = !e.structureAnalysis || !e.structureAnalysis.wordByWord || !e.structureAnalysis.wordByWord.length;
 
   return `<div class="eb-card${e.known ? ' is-known' : ''}">
-    <div class="eb-head">${badges}<span class="muted" style="margin-left:auto;font-size:12.5px">${escapeHtml(e.date||'')}</span></div>
-    <div class="eb-title">${escapeHtml(e.title || '（未命名错题）')}</div>
-    ${answerHtml}${keyHtml}${questionText}${passageSnippet}${deepHtml}${raw}${src}
+    <div class="eb-head" style="display:flex;align-items:baseline;gap:8px">
+      <div class="eb-title" style="margin:0">${escapeHtml(e.title || '（未命名错题）')}</div>${dateHtml}
+    </div>
+    ${answerHtml}${whyHtml}${chips}${deepHtml}${raw}
     <div class="eb-actions">
       ${needRedo ? `<button class="btn btn-sm btn-primary" data-redo="${e.id}">补 AI 分析</button>` : ''}
       <button class="btn btn-sm" data-known="${e.id}">${e.known ? '标为未掌握' : '标为已掌握'}</button>

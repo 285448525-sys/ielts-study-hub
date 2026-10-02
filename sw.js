@@ -9,7 +9,7 @@
      SW 不参与离线态的判定与渲染，缓存策略本文件零改动。
      本文件 activate 时发的 `SW_UPDATED` 消费端也在 common.js（maybeShowSwUpdatePrompt，
      design/78）：页面收到后只弹提示条，**是否刷新由用户点击决定，SW 侧绝不自动 reload**。 */
-const CACHE = 'ielts-hub-v139';  // 10/2：设置页删距考试徽章+「学习偏好」改名「个人设置」（她拍板）。上一版 v138 计时芯片删除、v137 口语模考直达
+const CACHE = 'ielts-hub-v140';  // 10/2：错题本大改版：筛选/搜索全删+卡片 5 块格式（她拍板）。上一版 v139 设置页、v138 计时芯片
 
 /* 核心壳预缓存清单（Node 脚本枚举目录生成，2026-09-20；与 14 页实际引用核对无遗漏）。
    不含 js/vendor/xlsx.full.min.js（861KB 体积大 → 走运行时 SWR 缓存）。 */

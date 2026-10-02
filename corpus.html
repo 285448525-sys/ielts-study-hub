@@ -43,7 +43,7 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20261001b"></script>
   <script defer src="js/common.js?v=20261001p"></script>
-  <script src="js/corpus.js?v=20261001f" defer></script>
+  <script src="js/corpus.js?v=20261001g" defer></script>
 <style>
   /* 长难句 / 错题本 样式（原 errorbook.html 内联） */
   .eb-input{width:100%;min-height:190px;padding:14px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;font-size:14.5px;line-height:1.75;background:var(--bg);color:var(--ink);resize:vertical}
@@ -71,12 +71,10 @@
   .eb-list-head h2{margin:0}
   .eb-list-head select{margin-left:auto}
   /* design/85：筛选条 + 答案条 + 核心判定 + 精读折叠 + 生词 chip + 已掌握沉底 */
-  .eb-filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-  .eb-filters select{padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font-size:13.5px}
-  .eb-search{flex:1;min-width:200px}
-  .eb-onlyopen{font-size:13.5px;display:flex;gap:6px;align-items:center;cursor:pointer}
+  /* 10/2 大改版：筛选/搜索控件整删（她拍板），样式一并清掉 */
   .eb-answer{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:4px 0 10px;padding:10px 14px;border-radius:10px;background:var(--primary-soft);font-size:15px}
   .eb-a-mine{color:var(--danger);font-weight:700}
+  .eb-a-correct{color:var(--ink);font-weight:600}
   .eb-a-correct b{color:var(--primary);font-size:16px}
   .eb-a-ok{color:var(--primary);font-weight:700}
   .eb-a-arrow{color:var(--muted)}
@@ -86,7 +84,8 @@
   .eb-key-rule{margin-top:8px;font-size:13.5px;line-height:1.7;color:var(--primary)}
   .eb-deep{margin-top:12px;border-top:1px dashed var(--line);padding-top:8px}
   .eb-deep summary{cursor:pointer;font-size:13.5px;color:var(--muted);user-select:none}
-  .ls-kw-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .ls-kw-chips,.eb-words-line{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .eb-why-label{display:inline-block;margin-right:8px;padding:1px 8px;border-radius:999px;background:var(--primary-soft);color:var(--primary);font-size:12px;font-weight:700;vertical-align:1px}
   .ls-kw-chip{display:inline-flex;align-items:baseline;gap:6px;border:1px solid var(--line);background:var(--bg);border-radius:20px;padding:5px 12px;font-size:13.5px;cursor:pointer;color:var(--ink)}
   .ls-kw-chip .ls-kw-cn{color:var(--primary);font-size:12.5px}
   .ls-kw-chip:hover{border-color:var(--primary)}
@@ -154,32 +153,22 @@
     </section>
   </div>
 
-  <!-- ② 错题本 -->
+  <!-- ② 错题本（10/2 大改版·她拍板：贴进去点一下就收录；筛选/搜索全删） -->
   <div id="ebView" hidden>
     <section class="card">
-      <textarea class="eb-input" id="ebInput" placeholder="粘贴错题讲解（截图回复/笔记均可），无需整理格式"></textarea>
+      <textarea class="eb-input" id="ebInput" placeholder="把这道题相关的东西整段贴进来：题目、题干、你的答案、正确答案、解析…不用整理格式"></textarea>
       <div class="eb-bar">
-        <button class="btn btn-primary" id="ebAnalyze"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="5" y="7" width="14" height="12" rx="3"/><path d="M12 7V3M9 3h6"/><circle cx="9.5" cy="12.5" r="1"/><circle cx="14.5" cy="12.5" r="1"/><path d="M9 16h6"/></svg>理清错因并归档</button>
-        <button class="btn" id="ebRaw">只存原文</button>
-        <span class="muted" style="font-size:12.5px">自动分析用的是「设置 / AI 接口」里的 DeepSeek Key</span>
+        <button class="btn btn-primary" id="ebAnalyze"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="5" y="7" width="14" height="12" rx="3"/><path d="M12 7V3M9 3h6"/><circle cx="9.5" cy="12.5" r="1"/><circle cx="14.5" cy="12.5" r="1"/><path d="M9 16h6"/></svg>AI 收录错题</button>
+        <button class="btn btn-sm" id="ebRaw" title="不走 AI，先存原文，之后可补分析">只存原文</button>
       </div>
       <div id="ebLoading" class="eb-loading" hidden></div>
     </section>
 
     <section class="card">
-      <div class="eb-filters">
-        <select id="ebQtypeFilter" aria-label="按题型筛选"><option value="all">全部题型</option></select>
-        <select id="ebTrapFilter" aria-label="按错因筛选"><option value="all">全部错因</option></select>
-        <label class="eb-onlyopen"><input type="checkbox" id="ebOnlyOpen" checked> 只看未掌握</label>
-        <div class="ui-search eb-search">
-          <svg class="ui-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-          <input class="ui-search-input" type="search" id="ebSearch" placeholder="搜标题 / 题干 / 原文" aria-label="搜索错题" />
-        </div>
-      </div>
-      <h2 style="margin:10px 0">未掌握 <span id="count">0</span> 条 · 已掌握 <span id="knownCount">0</span> 条</h2>
+      <h2 style="margin:0 0 10px">未掌握 <span id="count">0</span> 条 · 已掌握 <span id="knownCount">0</span> 条</h2>
       <div id="list"></div>
       <details class="eb-known-wrap" id="knownWrap" hidden><summary>已掌握（0）</summary><div id="knownList"></div></details>
-      <div id="empty" class="muted" hidden>还没有记录。把你的错题笔记贴到上面那个框，点「理清错因并归档」。</div>
+      <div id="empty" class="muted" hidden>还没有记录。把错题整段贴到上面那个框，点「AI 收录错题」。</div>
     </section>
   </div>
 
