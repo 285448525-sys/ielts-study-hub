@@ -44,31 +44,33 @@
     }catch(e){ return null; }
   }
   function clearResumeSnapshot(){ try{ localStorage.removeItem(RESUME_KEY); }catch(e){} }
-  /* ---------- 右下角红色「退出」按钮 + 退出确认对话框 ----------
-     退出交互：点 FAB → 弹对话框，三选一：
+  /* ---------- 「退出模考」按钮（10/2 改：右下角悬浮红 FAB → 顶部黄条右半部分的实体小按钮） ----------
+     退出交互：点按钮 → 弹对话框，三选一：
        · 保存进度并退出：保留 localStorage 快照，返回开始卡（下次进入模考自动续考；同会话也可点「继续上次模考」）
        · 清除记录并退出：清掉快照，返回开始卡
        · 继续模考：关闭对话框，留在当前题
-     FAB 挂在 #mockStage 内（fixed 定位），舞台隐藏 / 切 tab / 显示报告时随父级自动消失，不污染其他页面。 */
+     她原话：不要悬浮状、要实体的、饱和低的橙黄且比黄框深一点、放在黄色框的右半部分、按钮稍小。
+     挂进 #mockTotalTimerWrap（黄条）内、用 margin-left:auto 顶到最右；黄条 hidden 时按钮一起隐藏，
+     舞台隐藏 / 切 tab / 显示报告时随父级自动消失，不污染其他页面。 */
   /* 9/26 她拍板：点「开始模考」后整页只剩模考内容（隐藏侧栏与 tab 行，见 speaking.html .mock-immerse）。
      出报告 / 中途退出 / 中断 / 切 tab 一律恢复常规布局——否则页面只剩模考且没有 tab 可点会卡死。 */
   function setMockImmerse(on){
     try{ document.body.classList.toggle('mock-immerse', !!on); }catch(e){}
   }
   function injectExitButton(){
-    if($('#mockExitFab')) return;
-    const stage = $('#mockStage');
-    if(!stage) return;
+    if($('#mockExitBtn')) return;
+    const host = $('#mockTotalTimerWrap') || $('#mockStage');
+    if(!host) return;
     const b = document.createElement('button');
-    b.id = 'mockExitFab';
+    b.id = 'mockExitBtn';
     b.type = 'button';
-    b.className = 'mock-exit-fab';
+    b.className = 'mock-exit-btn';
     b.setAttribute('aria-label', '退出模考');
     b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg> 退出模考';
     b.onclick = () => showExitModal();
-    stage.appendChild(b);
+    host.appendChild(b);
   }
-  function removeExitButton(){ const b = $('#mockExitFab'); if(b) b.remove(); }
+  function removeExitButton(){ const b = $('#mockExitBtn'); if(b) b.remove(); }
   function showExitModal(){
     if($('#mockExitModal')) return;
     const backdrop = document.createElement('div');

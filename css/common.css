@@ -1374,19 +1374,23 @@ main .quote{
 @keyframes timerBlink{0%,100%{opacity:1}50%{opacity:.45}}
 
 
-/* === 模考：右下角红色退出按钮 + 退出确认对话框 === */
-/* FAB 挂在 #mockStage 内部（fixed 定位）；舞台隐藏 / 切 tab / 显示报告时随父级自动隐藏，不会跑到别的页面 */
-.mock-exit-fab{
-  position:fixed; right:18px; bottom:18px; z-index:60;
-  display:inline-flex; align-items:center; gap:6px;
-  padding:11px 16px; border:none; border-radius:12px;
-  background:var(--err); color:var(--on-primary); font-size:14px; font-weight:600;
-  cursor:pointer; box-shadow:0 6px 18px rgba(199,85,82,.35);
-  transition:transform .12s, box-shadow .12s;
+/* === 模考：顶部黄条右半的「退出模考」实体小按钮 + 退出确认对话框 === */
+/* 10/2 她拍板：原右下角红色悬浮 FAB（position:fixed + 红底 + 投影）→ 改成挂在整场剩余黄条
+   里的实体小按钮。低饱和橙黄（比黄框底色深一档、但不发亮到跟计时数字抢眼），无投影无悬浮。 */
+.mock-exit-btn{
+  margin-left:auto; align-self:center;
+  display:inline-flex; align-items:center; gap:4px;
+  padding:5px 11px; border:1px solid var(--warn); border-radius:8px;
+  background:rgba(255,149,0,.20); color:var(--warn-ink);
+  font-size:12px; font-weight:700; line-height:1.2;
+  cursor:pointer; flex:none; white-space:nowrap;
+  transition:background .12s, border-color .12s;
 }
-.mock-exit-fab:hover{ transform:translateY(-1px); box-shadow:0 8px 22px rgba(199,85,82,.42); }
-.mock-exit-fab svg{ width:16px; height:16px; flex:none; }
-.mock-exit-fab:active{ transform:translateY(0); }
+.mock-exit-btn:hover{ background:rgba(255,149,0,.30); border-color:var(--warn-ink); }
+.mock-exit-btn:active{ background:rgba(255,149,0,.38); }
+.mock-exit-btn svg{ width:13px; height:13px; flex:none; }
+.mock-exit-btn:focus-visible{ outline:2px solid var(--warn-ink); outline-offset:2px; }
+/* 黄条被隐藏时按钮跟着消失（按钮是黄条的子元素，无需额外处理） */
 
 .mock-modal-backdrop{
   position:fixed; inset:0; z-index:200;
@@ -1436,7 +1440,8 @@ main .quote{
 .mock-manual{margin-top:12px}
 .mock-manual label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
 .mock-manual textarea{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font-size:14px;resize:vertical;font-family:inherit}
-.mock-controls{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+/* 10/2 她拍板：「下一题」从左下角挪到右下角（动作行右对齐） */
+.mock-controls{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;justify-content:flex-end}
 .mock-hint{margin:10px 0 0;font-size:13px;color:var(--muted);min-height:1px}
 .mock-p2-prompt{font-size:18px;font-weight:700;color:var(--ink);line-height:1.5}
 .mock-p2-zh{font-size:14px;font-weight:600;color:var(--muted);margin-top:4px}
