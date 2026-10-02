@@ -8,6 +8,12 @@
    红线：不碰 callRelay / DATA.scores；发音分走设置；PAGES 只追加 mock；题库只读。 */
 (function(){
   let mockState = null;
+  /* 10/2 修（二轮审查）：开考/续考入口竞态锁。ensureMockLib() 有最长 2.5s 的脚本注入窗口，
+     窗口内重复点「模考」tab、或首次进站自动续考与手动点击并发，会并发起两个 runExam：
+     双总计时器、mockState 互相覆盖、舞台状态撕裂 → 卡死只能刷新。
+     mockState 就位前用 mockEntering 同步挡重入；mockState 就位后由它接管
+     （考完出报告 / 中断 / 退出时置回 null）。 */
+  let mockEntering = false;
 
   /* ---------- 模考进度保持（localStorage 快照，软导航 / 刷新后自动恢复） ----------
      把"已答题目 + 当前阶段 + 题号 + 剩余秒数"序列化到 localStorage，
@@ -111,9 +117,12 @@
     toast(save ? '已保存进度，下次进入模考可继续' : '已清除本次模考记录');
   }
   async function resumeFromSnapshot(){
+    if(mockEntering || mockState) return;   // 10/2 修：注入窗口/考试进行中防并发双开
+    mockEntering = true;
     const snap = loadResumeSnapshot();
-    if(!snap) return;
+    if(!snap){ mockEntering = false; return; }
     mockState = { p1Set: snap.p1Set, p2Topic: snap.p2Topic, answers: snap.answers, pronSource: snap.pronSource, p3qs: snap.p3qs || [], totalRemaining: (snap.totalRemaining != null ? snap.totalRemaining : TOTAL_LIMIT) };
+    mockEntering = false;   // 10/2 修：状态已同步就位（本行在第一个 await 之前），重入改由 mockState 挡
     // 考官：优先用快照里的（续考不换人）；老快照没有该字段则现场随机补一位
     mockState.examiner = snap.examiner || sampleOne(EXAMINERS);
     renderExaminer(mockState.examiner);
@@ -493,6 +502,7 @@
       stopTotalTimer();
       clearResumeSnapshot();
       removeExitButton();
+      mockState = null;               // 10/2 修：中断终态释放，允许重新开考（快照已清，再进走全新开考）
       setMockImmerse(false);        // 9/26：中断也要恢复常规布局
       setP2Mode(false);             // 10/1 批3：中断同样清两栏模式
       $('#mockStage').hidden = true; $('#mockReport').hidden = true;
@@ -643,15 +653,18 @@
     // 模考完成：清理进度快照与「退出」按钮，下一次进入不再自动续考
     clearResumeSnapshot();
     removeExitButton();
+    mockState = null;   // 10/2 修：终态释放（报告数据上方已全部取出渲染），允许点「模考」/「再来一次」重新开考
   }
 
   /* ---------- 全新开考入口（由「开始模考」按钮触发） ---------- */
   async function startExam(){
+    if(mockEntering || mockState) return;   // 10/2 修：注入窗口/考试进行中防并发双开（报告页「再来一次」连点同此守卫）
+    mockEntering = true;
     await ensureMockLib();   // 确保报告库（MockReport）就绪后再开考，避免 finishExam 渲染报告时缺库
     // 仅从纯官方题库抽题：剔除框架母本(带 framework 字段 / id 形如 sp_p[12]_*)及任何残留非题目项，杜绝抽到老题库/框架内容
     const p1 = DATA.speaking.filter(x => x.type === 'P1' && x.questions && x.questions.length && !x.framework && !/^sp_p[12]_\d+$/.test(x.id || ''));
     const p2 = DATA.speaking.filter(x => x.type === 'P2' && x.promptEn && !x.framework && !/^sp_p[12]_\d+$/.test(x.id || ''));
-    if(!p1.length || !p2.length){ toast('口语题库为空，无法模考'); return; }
+    if(!p1.length || !p2.length){ toast('口语题库为空，无法模考'); mockEntering = false; return; }
 
     // 发音来源：填了固定分 → 'fixed'（发音取固定分）；否则 'none'（发音不计入总分，不再做发音评测）
     const fixed = DATA.settings.pronunciationScore;
@@ -659,6 +672,7 @@
     // 全新开考前先清掉任何旧快照，避免与上一次未完成的模考串档
     clearResumeSnapshot();
     mockState = { p1Set: buildP1Set(p1), p2Topic: pickP2Topic(p2), answers: [], pronSource, p3qs: [], totalRemaining: TOTAL_LIMIT, examiner: sampleOne(EXAMINERS) };
+    mockEntering = false;   // 10/2 修：状态已同步就位，此后重入由 mockState 挡（本句到 await runExam 之间全同步）
     // 真题固定开场问：每场模考第一个问题固定为姓名确认（ID 热身，不参与评分，但会出现在完整记录里）
     mockState.p1Set.unshift({ topic: 'Opening', q: 'Can you tell me your full name?', opening: true });
     renderExaminer(mockState.examiner);   // 10/1 批3：每场随机考官上屏
@@ -679,13 +693,16 @@
     /* 10/2（她拍板）：点「模考」直达全屏考试——speaking.js MOCK 分支调用本入口。
        有未完成快照=自动续考；否则全新开考。 */
     window.__mockEnter = async function(){
+      /* 10/2 修：统一入口守卫——ensureMockLib 注入窗口内连点、考试中再点，一律忽略，
+         杜绝两个 runExam 并发（ready 里的自动续考也改走本函数，见下）。 */
+      if(mockEntering || mockState) return;
       const snap = loadResumeSnapshot();
       if(snap){ await resumeFromSnapshot(); }
       else { await startExam(); }
     };
     await ensureMockLib();
     // 断点续考：若上次模考未做完就离开了，回到口语页时自动恢复现场（原有行为保留）
-    const snap = loadResumeSnapshot();
-    if(snap){ await resumeFromSnapshot(); }
+    // 10/2 修：统一走 __mockEnter（带竞态锁），避免「自动续考」与「用户手动点模考 tab」并发双开
+    if(loadResumeSnapshot()){ await window.__mockEnter(); }
   });
 })();
