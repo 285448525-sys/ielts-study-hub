@@ -43,7 +43,7 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20261001b"></script>
   <script defer src="js/common.js?v=20261001p"></script>
-  <script defer src="js/timer.js?v=20260918g"></script>
+  <script defer src="js/timer.js?v=20260918h"></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -130,12 +130,8 @@
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 
 <main class="container">
-  <div class="page-head" style="justify-content:flex-end">
-    <div class="page-head-r">
-      <span class="phr-chip" id="phrToday">今日 0h0m</span>
-      <span class="phr-chip" id="phrStreak">连续 0 天</span>
-    </div>
-  </div>
+  <!-- 10/2（她拍板）：顶部「今日 XhXm / 连续 N 天」两枚芯片整删（手机端顶着很丑）——
+       .page-head 行整行移除，计时卡直接顶上去；数据仍可在下方「今日学习记录/总计」看 -->
 
   <section class="card timer-stage">
     <div class="ts-status-wrap"><span class="ts-status" id="activeInfo">当前没有进行中的学习</span></div>

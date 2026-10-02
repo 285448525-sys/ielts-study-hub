@@ -250,17 +250,8 @@ function renderTimer(){
    Bug（用户反馈）：计时结束后下方记录区不刷新——根因是 stopSession 入库后只调了
    renderTimer()（刷新模块卡片），从未渲染记录区。这里补上独立渲染函数，并在
    stopSession 入库后 + ready 初始化时调用。 */
-/* 头部「今日 XhYm / 连续 N 天」芯片：与记录区同步刷新（之前从没被任何代码写过 → 永远显示 0）。
-   连续天数算法与首页一致：今日有记录才计数，往前逐日递减连续。 */
-function renderPhrChips(){
-  const todayEl = document.getElementById('phrToday');
-  const streakEl = document.getElementById('phrStreak');
-  const list = (DATA.sessions || []).filter(s => s && s.date === todayKey());
-  let totalSec = 0;
-  list.forEach(s => { totalSec += Number(s.durationSec || 0); });
-  if(todayEl) todayEl.textContent = '今日 ' + fmtHM(totalSec);
-  if(streakEl) streakEl.textContent = '连续 ' + calcStreak() + ' 天';   // 统一实现见 common.js
-}
+/* 头部「今日 XhYm / 连续 N 天」芯片已删（她 10/2 拍板）——renderPhrChips 整函数退役，
+   今日总量/连续在下方「今日学习记录」区仍有（recTotalMini / 回顾页）。 */
 function renderMiniRecords(){
   const grid = document.getElementById('recMiniGrid');
   const empty = document.getElementById('recEmpty');
@@ -271,7 +262,6 @@ function renderMiniRecords(){
   let totalSec = 0;
   list.forEach(s => { totalSec += Number(s.durationSec || 0); });
   if(totalEl) totalEl.textContent = fmtHM(totalSec);
-  renderPhrChips(); // 同步刷新头部今日/连续芯片
   if(!list.length){
     grid.innerHTML = '';
     if(empty) empty.hidden = false;
