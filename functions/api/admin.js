@@ -12,6 +12,10 @@
 //   vip_grant      给账号开会员（10/1 晚她授权先搭框架）：KV 键 vip:<acct> = { type, expire, grantedAt, note }，
 //                  续费 = max(现 expire, now) + days 顺延；只允许给已注册账号开（防手滑开错号）
 //   vip_revoke     撤销会员（删 vip:<acct> 键）
+//   fb_list        意见反馈列表（10/2 新增）：只含元数据（文字/页面/环境/已读态/图数），**绝不带图片体**
+//   fb_get         单条详情（含图片 base64，admin.html 前端拼 data URL 显示大图）
+//   fb_read        标记已读/未读 { id, read }
+//   fb_del         删除一条（连同图片体，不可恢复 → 前端必须 confirm）
 // 不做（风险控制，等真需要再说）：改/删用户数据、踢 session。
 //
 // ⚠️ 会员状态安全口径：vip:<acct> 只存 KV 服务端（站长面板发放），**绝不进 DATA 云同步 blob**
@@ -21,6 +25,7 @@
 // KV 键口径与 ai.js / auth.js 对齐：
 //   user:<acct> / sess:<token> / inv:<CODE> / vip:<acct>
 //   aiqa:<acct>:<YYYYMMDD>:<bucket>   —— ai.js 的按账号 AI 计量（10 个分钟桶轮转）
+//   fb:<id> / fbimg:<id>               —— feedback.js 的意见反馈（正文 / 图片体，分键避免列表拉图）
 
 const CORS = {
   'access-control-allow-origin': '*',
@@ -132,7 +137,21 @@ export async function onRequest(context) {
     }
     vips.sort((a, b) => a.expire - b.expire);   // 快到期的排前面
 
-    return json({ ok: true, day: day, users: users, invites: invites, usage: usage, aiToday: aiToday, sessCount: sessCount, vips: vips });
+    /* 意见反馈（10/2）：只拉元数据，图片体在 fbimg:<id> 另行按需取。
+       her 反馈量级很小（几十~几百条），一次性聚合进 overview 省一个往返。 */
+    const fbKeys = await listAll(kv, 'fb:');
+    const feedbacks = [];
+    for (const name of fbKeys) {
+      try {
+        const v = JSON.parse((await kv.get(name)) || 'null');
+        if (!v || !v.id) continue;
+        feedbacks.push(v);
+      } catch (e) {}
+    }
+    feedbacks.sort((a, b) => (b.ts || 0) - (a.ts || 0));   // 新的在前
+    const fbUnread = feedbacks.filter((v) => !v.read).length;
+
+    return json({ ok: true, day: day, users: users, invites: invites, usage: usage, aiToday: aiToday, sessCount: sessCount, vips: vips, feedbacks: feedbacks, fbUnread: fbUnread });
   }
 
   /* ---------- 生成邀请码 ---------- */
@@ -189,6 +208,59 @@ export async function onRequest(context) {
     if (!acct) return json({ ok: false, error: 'bad_acct', msg: '缺少账号' }, 400);
     await kv.delete('vip:' + acct);
     return json({ ok: true, acct: acct });
+  }
+
+  /* ---------- 意见反馈（10/2）----------
+     ⚠️ id 一律白名单化再拼键：fb:<id> 里的 id 来自用户提交，只允许 [0-9a-f-]{1,64}，
+        挡掉 '../' 'a:b' 这类把键写到别的命名空间去的构造。 */
+  const fbId = () => {
+    const s = String(body.id || '').trim();
+    return /^[0-9a-f-]{1,64}$/i.test(s) ? s : '';
+  };
+
+  if (action === 'fb_list') {
+    const keys = await listAll(kv, 'fb:');
+    const list = [];
+    for (const name of keys) {
+      try {
+        const v = JSON.parse((await kv.get(name)) || 'null');
+        if (v && v.id) list.push(v);
+      } catch (e) {}
+    }
+    list.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+    return json({ ok: true, feedbacks: list, unread: list.filter((v) => !v.read).length });
+  }
+
+  if (action === 'fb_get') {
+    const id = fbId();
+    if (!id) return json({ ok: false, error: 'bad_id', msg: '缺少/非法 id' }, 400);
+    let rec = null;
+    try { rec = JSON.parse((await kv.get('fb:' + id)) || 'null'); } catch (e) {}
+    if (!rec) return json({ ok: false, error: 'not_found', msg: '反馈不存在或已删除' }, 404);
+    let imgs = [];
+    if (rec.imgs) {
+      try { imgs = JSON.parse((await kv.get('fbimg:' + id)) || '[]') || []; } catch (e) {}
+    }
+    return json({ ok: true, fb: rec, imgs: imgs });
+  }
+
+  if (action === 'fb_read') {
+    const id = fbId();
+    if (!id) return json({ ok: false, error: 'bad_id', msg: '缺少/非法 id' }, 400);
+    let rec = null;
+    try { rec = JSON.parse((await kv.get('fb:' + id)) || 'null'); } catch (e) {}
+    if (!rec) return json({ ok: false, error: 'not_found', msg: '反馈不存在或已删除' }, 404);
+    rec.read = body.read ? 1 : 0;
+    await kv.put('fb:' + id, JSON.stringify(rec));
+    return json({ ok: true, id: id, read: rec.read });
+  }
+
+  if (action === 'fb_del') {
+    const id = fbId();
+    if (!id) return json({ ok: false, error: 'bad_id', msg: '缺少/非法 id' }, 400);
+    await kv.delete('fb:' + id);
+    await kv.delete('fbimg:' + id);
+    return json({ ok: true, id: id });
   }
 
   return json({ ok: false, error: 'bad_action', msg: '未知 action' }, 400);

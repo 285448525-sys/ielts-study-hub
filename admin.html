@@ -58,6 +58,42 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:
 .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
 .muted{color:var(--n-500);font-size:12.5px}
 .hidden{display:none!important}
+/* 页签（10/2 反馈批：总览/邀请码/用户/会员原本纵向平铺，加页签把反馈独立成页，不挤在一起） */
+.tabs{display:flex;gap:6px;margin:0 0 16px;background:#f1f5f4;padding:4px;border-radius:11px;width:fit-content}
+.tab{height:32px;padding:0 16px;border:0;border-radius:8px;background:transparent;color:var(--n-600);
+  font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit}
+.tab:hover{color:var(--p-700)}
+.tab.on{background:#fff;color:var(--p-700);box-shadow:0 1px 4px rgba(26,69,66,.12)}
+.tab .dot{display:inline-block;min-width:17px;height:17px;line-height:17px;padding:0 4px;margin-left:5px;
+  border-radius:99px;background:var(--p-500);color:#fff;font-size:11px;font-weight:700;vertical-align:1px}
+.tab .dot.zero{background:var(--n-500);opacity:.45}
+/* 反馈列表 */
+.fb-row{display:grid;grid-template-columns:14px 132px 1fr 84px 60px;gap:10px;align-items:center;
+  padding:10px 8px;border-bottom:1px solid #f0f2f4;cursor:pointer;font-size:13.5px}
+.fb-row:hover{background:#f8fbfb}
+.fb-row.unread{background:#f4faf9}
+.fb-dot{width:8px;height:8px;border-radius:99px;background:var(--p-500)}
+.fb-row.read .fb-dot{background:#dfe3e6}
+.fb-when{color:var(--n-500);font-size:12.5px}
+.fb-who b{color:var(--n-900)}
+.fb-who span{display:block;color:var(--n-500);font-size:12px;word-break:break-all}
+.fb-txt{color:var(--n-700);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fb-num{text-align:right;color:var(--n-500);font-size:12.5px}
+.fb-detail{background:#f8fbfb;border-radius:10px;padding:14px 16px;margin:4px 0 10px}
+.fb-detail .fb-full{white-space:pre-wrap;word-break:break-word;line-height:1.65;color:var(--n-900);font-size:14px}
+.fb-env{margin:10px 0 0;font-size:12px;color:var(--n-500);line-height:1.7}
+.fb-shots{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.fb-shots img{max-width:min(46vw,320px);max-height:260px;border-radius:9px;border:1px solid var(--line);
+  cursor:zoom-in;background:#fff}
+.fb-shots img.big{position:fixed;inset:0;max-width:none;max-height:none;width:100%;height:100%;
+  object-fit:contain;z-index:99;cursor:zoom-out;border-radius:0;background:rgba(15,20,22,.9)}
+.fb-acts{display:flex;gap:8px;margin-top:12px;align-items:center}
+@media (max-width:720px){
+  .fb-row{grid-template-columns:12px 1fr;grid-template-areas:'d t' 'w w';gap:4px 8px}
+  .fb-dot{grid-area:d}.fb-when{grid-area:t;text-align:right}
+  .fb-who{grid-area:w}.fb-txt{grid-area:w;display:none}
+  .fb-shots img{max-width:100%}
+}
 @media (max-width:720px){ .stats{grid-template-columns:repeat(2,1fr)} }
 </style>
 </head>
@@ -83,6 +119,13 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:
     </div>
   </div>
 
+  <!-- 页签（10/2 反馈批：反馈独立一页，不与数据卡混排） -->
+  <div class="tabs" id="tabs">
+    <button class="tab on" data-tab="data" type="button">数据</button>
+    <button class="tab" data-tab="fb" type="button">反馈<span class="dot zero" id="fbDot">0</span></button>
+  </div>
+
+  <div id="pgData">
   <!-- 总览 -->
   <div class="card">
     <h2>总览</h2>
@@ -153,7 +196,24 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:
     <p class="muted" id="vipEmpty" style="margin-top:8px">还没有会员。开通过程全自动，无需到 CF 后台。</p>
   </div>
 
-  <p class="muted" style="text-align:center">会员状态以服务端 vip:&lt;账号&gt; 键为准 · 已接入 AI 额度闸（会员不受免费额度限制）· 10/1</p>
+  <p class="muted" style="text-align:center">会员状态以服务端 vip:&lt;账号&gt; 键为准 · 已接入 AI 额度闸（会员不受免费额度限制）· 10/2</p>
+  </div><!-- /pgData -->
+
+  <!-- 意见反馈（10/2） -->
+  <div id="pgFb" class="hidden">
+    <div class="card">
+      <h2>意见反馈</h2>
+      <p class="desc">用户在设置页 /「更多」抽屉提交（可附最多 3 张截图，自动带页面路径与环境信息）。<b>未读</b>用圆点标；点一行看详情与大图。</p>
+      <div class="toolbar">
+        <button class="btn ghost small" id="fbAll" type="button">全部</button>
+        <button class="btn ghost small" id="fbUnreadBtn" type="button">只看未读</button>
+        <button class="btn ghost small" id="fbExport" type="button">导出全部（Markdown）</button>
+        <span class="muted" id="fbCount"></span>
+      </div>
+      <div id="fbList"></div>
+      <p class="muted" id="fbEmpty" style="margin-top:8px">还没有反馈。用户提交后会自动出现在这里（页签上的数字 = 未读数）。</p>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -304,7 +364,173 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:
         + '<td><button class="btn danger small" data-vrevoke="' + v.acct + '" type="button">撤销</button></td>';
       vb.appendChild(tr);
     });
+
+    renderFb();
   }
+
+  /* ---------- 页签（10/2）---------- */
+  function switchTab(name){
+    $('pgData').classList.toggle('hidden', name !== 'data');
+    $('pgFb').classList.toggle('hidden', name !== 'fb');
+    Array.prototype.forEach.call(document.querySelectorAll('#tabs .tab'), function(b){
+      b.classList.toggle('on', b.getAttribute('data-tab') === name);
+    });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('#tabs .tab'), function(b){
+    b.addEventListener('click', function(){ switchTab(b.getAttribute('data-tab')); });
+  });
+
+  /* ---------- 意见反馈（10/2）---------- */
+  var _fbOnlyUnread = false;
+  var _fbOpen = {};        /* id → true（当前展开了哪几条） */
+  var _fbImgs = {};        /* id → 图片数组（懒加载后缓存） */
+  var _fbLoading = {};     /* id → true（请求中，防连点） */
+
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+      return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+    });
+  }
+
+  function renderFb(){
+    var list = (DATA && DATA.feedbacks) || [];
+    var dot = $('fbDot');
+    var unread = list.filter(function(v){ return !v.read; }).length;
+    dot.textContent = unread;
+    dot.className = 'dot' + (unread ? '' : ' zero');
+
+    var shown = _fbOnlyUnread ? list.filter(function(v){ return !v.read; }) : list;
+    $('fbCount').textContent = list.length ? ('共 ' + list.length + ' 条，未读 ' + unread + ' 条') : '';
+    $('fbEmpty').style.display = list.length ? 'none' : '';
+
+    var box = $('fbList'); box.innerHTML = '';
+    if (!shown.length){
+      var tip = document.createElement('p');
+      tip.className = 'muted';
+      tip.style.padding = '10px 4px';
+      tip.textContent = list.length ? '没有未读的，全部已看过。' : '';
+      box.appendChild(tip);
+      return;
+    }
+    shown.forEach(function(v){
+      /* 展开的详情插在列表行之后（重新渲染时按 _fbOpen 复原） */
+      if (_fbOpen[v.id]) box.appendChild(fbDetailEl(v));
+      var row = document.createElement('div');
+      row.className = 'fb-row' + (v.read ? ' read' : ' unread');
+      row.setAttribute('data-fbrow', v.id);
+      row.innerHTML =
+        '<span class="fb-dot"></span>'
+        + '<span class="fb-when">' + fmtTs(v.ts) + '</span>'
+        + '<span class="fb-txt">' + esc(v.text) + '</span>'
+        + '<span class="fb-who">' + (v.acct ? ('<b>' + esc(v.acct) + '</b>') : ('<span>匿名 ' + esc(v.anon || '—') + '</span>'))
+          + '<span>' + esc(v.page || '（未记录页面）') + '</span></span>'
+        + '<span class="fb-num">' + (v.imgs ? ('图 ' + v.imgs) : '') + '</span>';
+      box.appendChild(row);
+    });
+  }
+
+  function fbDetailEl(v){
+    var wrap = document.createElement('div');
+    wrap.className = 'fb-detail';
+    wrap.setAttribute('data-fbdetail', v.id);
+    var env = v.env || {};
+    var envTxt = [env.w ? (env.w + '×' + env.h) : '', env.dpr ? (env.dpr + 'x') : '',
+      env.dark ? '深色' : '', env.tz || ''].filter(Boolean).join(' · ');
+    wrap.innerHTML =
+      '<div class="fb-full">' + esc(v.text) + '</div>'
+      + (v.contact ? ('<div class="fb-env">联系方式：' + esc(v.contact) + '</div>') : '')
+      + '<div class="fb-env">' + esc(v.page || '（未记录页面）') + (envTxt ? (' · ' + esc(envTxt)) : '') + (env.ua ? (' · ' + esc(env.ua)) : '') + '</div>'
+      + '<div class="fb-shots" id="fbShots_' + v.id + '">' + (_fbImgs[v.id] ? '' : '<span class="muted">' + (_fbLoading[v.id] ? '正在读图片…' : (v.imgs ? '点「重新读取」加载截图' : '')) + '</span>') + '</div>'
+      + '<div class="fb-acts">'
+      + '<button class="btn ghost small" data-fbreload="' + v.id + '" type="button">重新读取</button>'
+      + '<button class="btn ghost small" data-fbread="' + v.id + '" type="button">' + (v.read ? '标为未读' : '标记已读') + '</button>'
+      + '<button class="btn danger small" data-fbdel="' + v.id + '" type="button">删除</button>'
+      + '<button class="btn ghost small" data-fbclose="' + v.id + '" type="button">收起</button>'
+      + '</div>';
+    if (_fbImgs[v.id]) fillShots(v.id, _fbImgs[v.id]);
+    return wrap;
+  }
+
+  function fillShots(id, imgs){
+    var box = document.getElementById('fbShots_' + id);
+    if (!box) return;
+    box.innerHTML = '';
+    (imgs || []).forEach(function(im, i){
+      var img = document.createElement('img');
+      img.src = 'data:' + (im.mime || 'image/jpeg') + ';base64,' + (im.b64 || '');
+      img.alt = '截图 ' + (i + 1);
+      img.setAttribute('data-fbshot', id);
+      img.addEventListener('click', function(){ img.classList.toggle('big'); });
+      box.appendChild(img);
+    });
+  }
+
+  function fbLoadImgs(id){
+    if (_fbLoading[id]) return;
+    _fbLoading[id] = true;
+    api('fb_get', { id: id }, function(r){
+      _fbLoading[id] = false;
+      if (r.ok && r.j && r.j.imgs) _fbImgs[id] = r.j.imgs;
+      else alert('读取失败：' + ((r.j && r.j.msg) || ('HTTP ' + r.status)));
+      load();   /* 重渲染（详情区复原 + 图已缓存） */
+    });
+  }
+
+  /* 反馈相关点击（列表行/详情按钮/大图）——独立挂载，不动既有委托块 */
+  document.addEventListener('click', function(e){
+    var t = e.target;
+    if (!t || !t.getAttribute) return;
+    var row = t.getAttribute('data-fbrow');
+    if (row){
+      var v = ((DATA && DATA.feedbacks) || []).filter(function(x){ return x.id === row; })[0];
+      if (!v) return;
+      if (_fbOpen[row]) { delete _fbOpen[row]; }
+      else { _fbOpen[row] = true; if (v.imgs && !_fbImgs[row]) fbLoadImgs(row); }
+      renderFb();
+      return;
+    }
+    var reloadId = t.getAttribute('data-fbreload');
+    if (reloadId){ _fbImgs[reloadId] = null; fbLoadImgs(reloadId); return; }
+    var closeId = t.getAttribute('data-fbclose');
+    if (closeId){ delete _fbOpen[closeId]; renderFb(); return; }
+    var readId = t.getAttribute('data-fbread');
+    if (readId){
+      var cur = ((DATA && DATA.feedbacks) || []).filter(function(x){ return x.id === readId; })[0];
+      api('fb_read', { id: readId, read: cur && cur.read ? 0 : 1 }, function(r){
+        if (r.ok) load(); else alert('操作失败：' + ((r.j && r.j.msg) || ('HTTP ' + r.status)));
+      });
+      return;
+    }
+    var delId = t.getAttribute('data-fbdel');
+    if (delId){
+      if (!confirm('删除这条反馈？\n（含截图，删了就找不回来）')) return;
+      api('fb_del', { id: delId }, function(r){
+        if (r.ok){ delete _fbOpen[delId]; delete _fbImgs[delId]; load(); }
+        else alert('删除失败：' + ((r.j && r.j.msg) || ('HTTP ' + r.status)));
+      });
+    }
+  });
+
+  $('fbAll').addEventListener('click', function(){ _fbOnlyUnread = false; renderFb(); });
+  $('fbUnreadBtn').addEventListener('click', function(){ _fbOnlyUnread = true; renderFb(); });
+  $('fbExport').addEventListener('click', function(){
+    var list = (DATA && DATA.feedbacks) || [];
+    if (!list.length){ alert('还没有反馈可导出'); return; }
+    var out = ['# 意见反馈导出（' + fmtTs(Date.now()) + '，共 ' + list.length + ' 条）', ''];
+    list.forEach(function(v, i){
+      out.push('## ' + (i + 1) + '. ' + fmtTs(v.ts) + (v.read ? '' : '  [未读]'));
+      out.push('- 来源：' + (v.acct ? ('账号 ' + v.acct) : ('匿名 ' + (v.anon || '—'))) + ' · 页面 ' + (v.page || '—'));
+      if (v.contact) out.push('- 联系方式：' + v.contact);
+      if (v.env) out.push('- 环境：' + JSON.stringify(v.env));
+      out.push('', v.text, '');
+    });
+    var blob = new Blob([out.join('\n')], { type: 'text/markdown;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'feedback-' + new Date().toISOString().slice(0, 10) + '.md';
+    a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 3000);
+  });
 
   /* 事件委托：复制 / 作废 / 点账号复制 */
   document.addEventListener('click', function(e){
