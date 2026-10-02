@@ -42,7 +42,7 @@
 <script defer src="js/data.js?v=20261001b"></script>
   <script defer src="js/common.js?v=20261002b"></script>
   <script defer src="js/writing_prompts.js?v=20260903ab"></script>
-  <script defer src="js/writing.js?v=20261002b"></script>
+  <script defer src="js/writing.js?v=20261002c"></script>
   <script defer src="js/wrongbook.js?v=20260903ab"></script>
 <style>
 
@@ -126,6 +126,16 @@
   .ts-anchor{margin-top:6px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 9px;font-size:12.5px;color:var(--muted);line-height:1.7}
   .ts-anchor em{color:var(--primary-d)}
   .ts-gap{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 11px 8px 26px;font-size:13.5px;line-height:1.8}
+  .ts-gram-foot{display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap}
+  .ts-loc{border:none;background:none;color:var(--primary);cursor:pointer;font-size:12px;padding:0}
+  .ts-loc:hover{text-decoration:underline}
+  #practice .ph-loc{outline:2px solid var(--primary);outline-offset:1px;border-radius:3px}
+  .exam-essay-orig mark,mark{background:var(--primary-soft);color:inherit;padding:0 2px;border-radius:3px}
+  .hist-summary{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);padding:10px 12px;margin-bottom:10px}
+  .hist-spark{flex-shrink:0}
+  .hist-sum-t{display:flex;flex-direction:column;gap:4px;font-size:13px;min-width:0}
+  .hist-top{display:flex;gap:6px;flex-wrap:wrap}
+  .hist-tagchip{font-size:11px;padding:1px 8px;border-radius:10px;background:var(--primary-soft);color:var(--med);border:1px solid var(--line);white-space:nowrap}
 
   /* 填空 AI 按需提示 */
   .ph-wrap{position:relative;display:inline-block}
@@ -404,6 +414,7 @@
         <button class="btn" id="scoreHistClear" style="margin-left:auto;color:var(--muted)">清空记录</button>
       </div>
       <p class="muted" style="font-size:13px;margin:-4px 0 10px">每次模板评分 / 整篇评分自动存这里，点开可回看明细。</p>
+      <div id="scoreHistSummary"></div>
       <div id="scoreHistList"></div>
     </section>
   </div>

@@ -65,6 +65,16 @@ ready(() => {
   $('#tplScoreBtn').addEventListener('click', scoreTemplate);
   $('#tplCopyBtn').addEventListener('click', copyFilled);
 
+  // P1：语病卡「定位原文」事件委托（动态渲染的卡片无需重复绑定）
+  document.addEventListener('click', e => {
+    const locBtn = e.target.closest ? e.target.closest('.ts-loc') : null;
+    if(locBtn){
+      const gramCard = locBtn.closest('.ts-gram');
+      const sEl = gramCard ? gramCard.querySelector('s') : null;
+      if(!locateInPage(sEl ? sEl.textContent : '')) toast('原文里没定位到这句');
+    }
+  });
+
   // A4 实时词数
   const wcEl = $('#scoreWordCount');
   const wcInput = $('#scoreEssay');
@@ -463,6 +473,97 @@ function gapHtml(gap, overall){
          '<div class="ts-gap"><ol>' + steps.map(s => '<li>' + escapeHtml(s) + '</li>').join('') + '</ol></div></div>';
 }
 
+/* ===== P1：语病卡联动（定位原文 / tag 高频统计） ===== */
+const GRAM_TAGS = ['搭配','中式','时态','单复数','冠词','介词','句式','用词','其他'];
+
+// 共享语法区块：tplScoreHtml / essayScoreHtml / examStopAndScore 三处共用
+function gramSectionHtml(gram){
+  const g = (Array.isArray(gram) ? gram : []).filter(x => x && (x.wrong || x.fix));
+  let h = '<div class="ts-sec"><h4>语法 / 表达问题</h4>';
+  if(!g.length) return h + '<div class="muted" style="font-size:13.5px">没挑出明显语法错误。</div></div>';
+  g.forEach(item => {
+    h += '<div class="ts-gram">'
+       + (item.wrong ? '<s>' + escapeHtml(item.wrong) + '</s> → ' : '')
+       + '<b>' + escapeHtml(item.fix || '') + '</b>'
+       + (item.why ? '<br><span class="muted">' + escapeHtml(item.why) + '</span>' : '')
+       + '<span class="ts-gram-foot">'
+       + (item.tag ? '<span class="hist-tagchip">' + escapeHtml(item.tag) + '</span>' : '')
+       + '<button class="ts-loc" type="button">📍 定位原文</button>'
+       + '</span>'
+       + anchorHtml(item.anchor)
+       + '</div>';
+  });
+  return h + '</div>';
+}
+// 定位原文：整篇评分 textarea（选区高亮）→ 真题模考回看原文（mark 高亮）→ 模板填空框（描边高亮）
+function locateInPage(needle){
+  const n = (needle || '').trim();
+  if(!n) return false;
+  const nLow = n.toLowerCase();
+  const ta = document.getElementById('scoreEssay');
+  if(ta && ta.value && ta.offsetParent !== null){
+    const i = ta.value.toLowerCase().indexOf(nLow);
+    if(i >= 0){
+      ta.focus();
+      ta.setSelectionRange(i, i + n.length);
+      ta.scrollIntoView({ block:'center', behavior:'smooth' });
+      return true;
+    }
+  }
+  const orig = document.getElementById('examEssayOrig');
+  if(orig && orig.textContent && orig.offsetParent !== null){
+    const t = orig.textContent;
+    const i = t.toLowerCase().indexOf(nLow);
+    if(i >= 0){
+      orig.innerHTML = escapeHtml(t.slice(0, i)) + '<mark>' + escapeHtml(t.slice(i, i + n.length)) + '</mark>' + escapeHtml(t.slice(i + n.length));
+      orig.scrollIntoView({ block:'center', behavior:'smooth' });
+      return true;
+    }
+  }
+  const inputs = Array.from(document.querySelectorAll('#practice .ph-input'))
+    .filter(el => el.value && el.value.trim().length >= 2 && nLow.includes(el.value.trim().toLowerCase()));
+  if(inputs.length){
+    inputs.forEach(el => el.classList.add('ph-loc'));
+    inputs[0].scrollIntoView({ block:'center', behavior:'smooth' });
+    setTimeout(() => inputs.forEach(el => el.classList.remove('ph-loc')), 4000);
+    return true;
+  }
+  return false;
+}
+// 评分记录顶部摘要：近 10 次分数折线（虚线 = 目标 6.0）+ 高频错误 top3（按 tag 计数）
+function histSummaryHtml(){
+  const recs = (DATA.writingScores || []).filter(r => r && r.parsed && r.result && typeof r.result === 'object' && r.result.overall != null);
+  if(recs.length < 2) return '';
+  const scores = recs.slice(-10).map(r => Number(r.result.overall) || 0);
+  const avg = (scores.reduce((a,b) => a+b, 0) / scores.length).toFixed(1);
+  const cur = scores[scores.length-1].toFixed(1);
+  const W = 180, H = 44, P = 4;
+  const lo = Math.min(...scores, 5.5), hi = Math.max(...scores, 6.5);
+  const pts = scores.map((s, i) => {
+    const x = scores.length > 1 ? P + i * (W - 2*P) / (scores.length - 1) : W / 2;
+    const y = H - P - (s - lo) / ((hi - lo) || 1) * (H - 2*P);
+    return x.toFixed(1) + ',' + y.toFixed(1);
+  }).join(' ');
+  const yT = H - P - (6 - lo) / ((hi - lo) || 1) * (H - 2*P);
+  const tagCnt = {};
+  recs.slice(-10).forEach(r => (Array.isArray(r.result.grammar) ? r.result.grammar : []).forEach(g => {
+    if(g && g.tag) tagCnt[g.tag] = (tagCnt[g.tag] || 0) + 1;
+  }));
+  const top = Object.entries(tagCnt).sort((a,b) => b[1] - a[1]).slice(0, 3);
+  let h = '<div class="hist-summary">';
+  h += '<svg class="hist-spark" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="近10次评分趋势">'
+     + '<line x1="' + P + '" y1="' + yT.toFixed(1) + '" x2="' + (W-P) + '" y2="' + yT.toFixed(1) + '" stroke="var(--line)" stroke-width="1" stroke-dasharray="4 3"/>'
+     + '<polyline points="' + pts + '" fill="none" stroke="var(--primary)" stroke-width="2"/>'
+     + '</svg>';
+  h += '<div class="hist-sum-t"><b>近 ' + scores.length + ' 次均分 ' + avg + '</b>'
+     + '<span class="muted">最新 ' + cur + ' ｜ 虚线 = 目标 6.0</span>';
+  if(top.length){
+    h += '<div class="hist-top">' + top.map(t => '<span class="hist-tagchip">' + escapeHtml(t[0]) + ' ×' + t[1] + '</span>').join('') + '</div>';
+  }
+  h += '</div></div>';
+  return h;
+}
+
 async function scoreTemplate(){
   const s = filledState();
   if(!s.tpl){ toast('先打开一个模板'); return; }
@@ -495,13 +596,13 @@ async function scoreTemplate(){
 7. 完整文本里出现的 ____ 是她**主动整框留空、选择跳过的填空位，不是没写完，更不算错误**。绝对不要因为 ____ 的存在扣分、不要把它当成"遗漏/未完成"来评价、不要在语法问题里列出它。只评她实际填了文字的部分。
 
 8. good：从她填的内容里挑 1-2 句写得地道/立场清晰的原句（必须是完整文本里一字不改的原句），每条格式"原句 —— 半句说明为什么好"。没有够格的就给空数组。
-9. grammar 每条加 anchor 字段：从下方短语表挑一条与该错误最对应的官方评分原话，一字不改地照抄，标明分项与档位；表里没有贴切的就省略 anchor 字段，不要自己编原话。gap：如果这段整体水平要上一个 0.5 分档，写 2-3 条最关键的改法，每条不超过 30 字、点名分项（如 TR/CC/LR/GRA）。
+9. grammar 每条加 anchor 字段：从下方短语表挑一条与该错误最对应的官方评分原话，一字不改地照抄，标明分项与档位；表里没有贴切的就省略 anchor 字段，不要自己编原话。gap：如果这段整体水平要上一个 0.5 分档，写 2-3 条最关键的改法，每条不超过 30 字、点名分项（如 TR/CC/LR/GRA）。每条标 tag，只能从这个集合选：搭配/中式/时态/单复数/冠词/介词/句式/用词/其他。
 
 【官方评分原话短语表（引用时一字不改）】
 ${ANCHOR_TABLE_EN}
 
 只输出 JSON，不要解释、不要 markdown 围栏：
-{"overall":5.5,"breakdown":{"TR":5.5,"CC":6.0,"LR":5.5,"GRA":5.0},"reasons":{"TR":"","CC":"","LR":"","GRA":""},"grammar":[{"wrong":"","fix":"","why":"","anchor":{"dim":"TR","band":5,"quote":""}}],"good":["原句 —— 为什么好"],"gap":{"steps":["",""]},"fixes":[""]}
+{"overall":5.5,"breakdown":{"TR":5.5,"CC":6.0,"LR":5.5,"GRA":5.0},"reasons":{"TR":"","CC":"","LR":"","GRA":""},"grammar":[{"wrong":"","fix":"","why":"","tag":"搭配","anchor":{"dim":"TR","band":5,"quote":""}}],"good":["原句 —— 为什么好"],"gap":{"steps":["",""]},"fixes":[""]}
 （小作文时 breakdown/reasons 的第一项 key 也用 "TR"，我知道它代表 TA。fixes 是"这段最优先改的 1-2 件事"，gap 是升级版，两者都要给。）` },
     { role:'user', content:
 `模板分类：${s.tpl.category}
@@ -559,18 +660,7 @@ function tplScoreHtml(r, isTask1){
             (rs[k] ? '<div class="ts-dim-r">' + escapeHtml(rs[k]) + '</div>' : '') + '</div>';
   });
   html += '</div>';
-  const gram = Array.isArray(r.grammar) ? r.grammar : [];
-  if(gram.length){
-    html += '<div class="ts-sec"><h4>语法 / 表达问题</h4>';
-    gram.forEach(g => {
-      html += '<div class="ts-gram"><s>' + escapeHtml(g.wrong || '') + '</s> → <b>' + escapeHtml(g.fix || '') + '</b>' +
-              (g.why ? '<br><span class="muted">' + escapeHtml(g.why) + '</span>' : '') +
-              anchorHtml(g.anchor) + '</div>';
-    });
-    html += '</div>';
-  } else {
-    html += '<div class="ts-sec"><h4>语法 / 表达问题</h4><div class="muted" style="font-size:13.5px">这段没挑出明显语法错误。</div></div>';
-  }
+  html += gramSectionHtml(r.grammar);
   html += goodHtml(r.good);
   const gapCard = gapHtml(r.gap, r.overall);
   if(gapCard){
@@ -605,6 +695,7 @@ function essayScoreHtml(r, isTask1){
   }
   h += goodHtml(r.good);
   h += gapHtml(r.gap, r.overall);
+  h += gramSectionHtml(r.grammar);
   if(Array.isArray(r.longSentences) && r.longSentences.length){
     h += '<div class="score-section"><h4>长 / 复杂句分析</h4><ul>';
     r.longSentences.forEach(ls => {
@@ -624,6 +715,8 @@ function essayScoreHtml(r, isTask1){
 function renderScoreHist(){
   const box = $('#scoreHistList');
   if(!box) return;
+  const sumBox = document.getElementById('scoreHistSummary');
+  if(sumBox) sumBox.innerHTML = histSummaryHtml();
   const list = (DATA.writingScores || []).slice().reverse().slice(0, 20);
   if(!list.length){ box.innerHTML = '<div class="hist-empty">还没有评分记录，去上面评一篇吧。</div>'; return; }
   box.innerHTML = list.map((rec, i) => {
@@ -1284,12 +1377,13 @@ ${isTask1 ? RULES_TASK1 : RULES_TASK2}
 
 5. anchors：从下方短语表挑 1-3 条与这篇最突出的问题对应的官方评分原话（一字不改照抄），标明分项与档位；表里没有贴切的就给空数组，不要自己编原话。
 6. good：从作文里挑 1-2 句写得地道的原句（一字不改），每条格式"原句 —— 半句说明为什么好"；gap：距下一个 0.5 分档最关键的 2-3 条改法，每条 ≤30 字、点名分项。
+7. grammar：逐条列出语法/表达错误，含原错处、改法、一句错因；每条标 tag，只能从这个集合选：搭配/中式/时态/单复数/冠词/介词/句式/用词/其他；同类错误合并成一条；没有明显错误就给空数组。
 
 【官方评分原话短语表（引用时一字不改）】
 ${ANCHOR_TABLE_EN}
 
 只输出严格 JSON，不要其他文字：
-{"overall":6.0,"breakdown":{"TR":6.0,"CC":6.0,"LR":6.0,"GRA":5.5},"anchors":[{"dim":"TR","band":5,"quote":""}],"good":["原句 —— 为什么好"],"gap":{"steps":["",""]},"longSentences":[{"sentence":"原文句子","wordCount":42,"suggestion":"拆分建议"}],"suggestions":["建议1","建议2","建议3"]}` },
+{"overall":6.0,"breakdown":{"TR":6.0,"CC":6.0,"LR":6.0,"GRA":5.5},"anchors":[{"dim":"TR","band":5,"quote":""}],"good":["原句 —— 为什么好"],"gap":{"steps":["",""]},"grammar":[{"wrong":"","fix":"","why":"","tag":"搭配"}],"longSentences":[{"sentence":"原文句子","wordCount":42,"suggestion":"拆分建议"}],"suggestions":["建议1","建议2","建议3"]}` },
     { role:'user', content:'题型：' + type + '\n\n作文：\n' + essay }
   ];
 
@@ -1666,12 +1760,13 @@ ${isTask1 ? RULES_TASK1 : RULES_TASK2}
 4. 全部用简体中文。
 5. anchors：从下方短语表挑 1-3 条与这篇最突出的问题对应的官方评分原话（一字不改照抄），标明分项与档位；表里没有贴切的就给空数组，不要自己编原话。
 6. good：从作文里挑 1-2 句写得地道的原句（一字不改），每条格式"原句 —— 半句说明为什么好"；gap：距下一个 0.5 分档最关键的 2-3 条改法，每条 ≤30 字、点名分项。
+7. grammar：逐条列出语法/表达错误，含原错处、改法、一句错因；每条标 tag，只能从这个集合选：搭配/中式/时态/单复数/冠词/介词/句式/用词/其他；同类错误合并成一条；没有明显错误就给空数组。
 
 【官方评分原话短语表（引用时一字不改）】
 ${ANCHOR_TABLE_EN}
 
 只输出严格 JSON，不要其他文字：
-{"overall":6.0,"breakdown":{"TR":6.0,"CC":6.0,"LR":6.0,"GRA":5.5},"anchors":[{"dim":"TR","band":5,"quote":""}],"good":["原句 —— 为什么好"],"gap":{"steps":["",""]},"longSentences":[{"sentence":"原文句子","wordCount":42,"suggestion":"拆分建议"}],"suggestions":["建议1","建议2","建议3"]}` },
+{"overall":6.0,"breakdown":{"TR":6.0,"CC":6.0,"LR":6.0,"GRA":5.5},"anchors":[{"dim":"TR","band":5,"quote":""}],"good":["原句 —— 为什么好"],"gap":{"steps":["",""]},"grammar":[{"wrong":"","fix":"","why":"","tag":"搭配"}],"longSentences":[{"sentence":"原文句子","wordCount":42,"suggestion":"拆分建议"}],"suggestions":["建议1","建议2","建议3"]}` },
     { role:'user', content:'题型：' + type + '\n\n作文：\n' + essay }
   ];
   (async () => {
@@ -1700,6 +1795,7 @@ ${ANCHOR_TABLE_EN}
       }
       html += goodHtml(result.good);
       html += gapHtml(result.gap, result.overall);
+      html += gramSectionHtml(result.grammar);
       if(result.longSentences && result.longSentences.length){
         html += '<div class="ts-sec"><h4>长 / 复杂句分析</h4>';
         result.longSentences.forEach((ls,i) => {
