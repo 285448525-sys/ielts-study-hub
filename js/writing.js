@@ -22,7 +22,7 @@ function switchWriteTab(tab){
   $('#bankPanel').hidden = tab !== 'bank';
   $('#scorePanel').hidden = tab !== 'score';
   $('#examPanel').hidden = tab !== 'exam';
-  $('#wrongPanel').hidden = tab !== 'wrong';
+  /* 10/2（她拍板）：「错句」Tab 已删——错句本并入 tplPanel 底部折叠区（#wbArea），随模板面板显隐 */
   $('#dictationPanel').hidden = tab !== 'dictation';
   if(tab === 'bank') renderBank();
   if(tab === 'score') renderScoreHist();

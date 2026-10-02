@@ -42,7 +42,7 @@
 <script defer src="js/data.js?v=20261001b"></script>
   <script defer src="js/common.js?v=20261001q"></script>
   <script defer src="js/writing_prompts.js?v=20260903ab"></script>
-  <script defer src="js/writing.js?v=20261001g"></script>
+  <script defer src="js/writing.js?v=20261001h"></script>
   <script defer src="js/wrongbook.js?v=20260903ab"></script>
 <style>
 
@@ -206,7 +206,7 @@
       <button data-tab="bank" class="pill-tab">语料</button>
       <button data-tab="score" class="pill-tab">评分</button>
       <button data-tab="exam" class="pill-tab">真题</button>
-      <button data-tab="wrong" class="pill-tab">错句</button>
+      <!-- 10/2（她拍板）：「错句」Tab 删除——错句本并入模板区底部折叠区 -->
     </div>
   </div>
 
@@ -275,6 +275,20 @@
     <div class="form-row" style="margin-top:14px">
       <button class="btn btn-primary" id="addBtn">+ 新增模板</button>
     </div>
+
+    <!-- 10/2（她拍板）：错句本从独立 Tab 并入模板区底部（默认收起；原独立页 wrongbook.html 仍可直接访问） -->
+    <details class="tpl-wrong-wrap" id="wbArea" style="margin-top:14px">
+      <summary class="tpl-wrong-sum" style="cursor:pointer;padding:10px 14px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);font-size:13.5px;font-weight:600;user-select:none">我的错句 · <span id="wbCount">0</span> 条（点开回顾）</summary>
+      <div style="padding:12px 2px 0">
+        <div style="margin-bottom:10px;font-size:13px;color:var(--muted)">来源筛选：
+          <select id="wbSourceFilter" style="padding:5px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;background:var(--bg);color:var(--ink)">
+            <option value="all">全部</option>
+          </select>
+        </div>
+        <div id="wbList"></div>
+        <div id="wbEmpty" class="muted" hidden>还没有错句。去写作模板默写或语料库表格默写，写错的句子会自动收集到这里。</div>
+      </div>
+    </details>
   </div>
 
   <!-- 语料库面板 -->
@@ -454,21 +468,7 @@
     </section>
   </div>
 
-  <!-- 错句本面板（并入写作页；原独立页 wrongbook.html 仍可直接访问） -->
-  <div id="wrongPanel" hidden>
-    <section class="card">
-      <div class="card-head" style="margin-bottom:10px">
-        <h2 style="margin:0">我的错句 · <span id="wbCount">0</span> 条</h2>
-        <span class="muted" style="font-size:13px" id="wbSourceFilterWrap">来源筛选：
-          <select id="wbSourceFilter" style="padding:6px 10px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink)">
-            <option value="all">全部</option>
-          </select>
-        </span>
-      </div>
-      <div id="wbList"></div>
-      <div id="wbEmpty" class="muted" hidden>还没有错句。去写作模板默写或语料库表格默写，写错的句子会自动收集到这里。</div>
-    </section>
-  </div>
+  <!-- 10/2（她拍板）：错句本面板已并入 tplPanel 底部折叠区，wrongPanel 整块删除 -->
 
   <!-- 模板内联默写面板（自包含，不依赖 dictation.js） -->
   <div id="dictationPanel" hidden>
