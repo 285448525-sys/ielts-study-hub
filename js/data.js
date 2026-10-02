@@ -1011,6 +1011,7 @@ let DATA = {
     relayToken: '',
     syncCode: '',
     autoSync: true,
+    diagnosis: null,   // 10/2 备考诊断（第三十三批）：诊断问卷+评定结果+时段容量，整体子对象；合并走 SYNC_SETTINGS_FIELDS 字段级较新者胜
     _fieldTs: {}
   },
   errorbook: [],

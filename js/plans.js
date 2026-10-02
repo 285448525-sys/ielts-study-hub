@@ -31,6 +31,58 @@ var currentWeek = null;
 /* ⭐ TDZ 铁律：页面级 const 必须在 ready() 之前——ready 回调在脚本求值期同步执行，
    声明放后面（render 附近）会在首次 render 时 hit TDZ 整页崩（9/17 reload 实测）。 */
 
+/* ================= 备考诊断（第三十三批 · 规划 Tab 改造，10/2 她已拍板） =================
+   定位：面向未来新考生的通用功能。问卷全可选 → 本地提取成绩/换算 → 免费诊断报告（诚实铁律）
+   → 完整 N 天计划走会员（后续 commit）。诊断结果整体存 DATA.settings.diagnosis（已登记
+   SYNC_SETTINGS_FIELDS，字段级较新者胜；保存必须自打 _fieldTs.diagnosis）。 */
+var DIAG_SUBS = [['listening','听力'],['reading','阅读'],['writing','写作'],['speaking','口语']];
+/* 6 个可选时段（她自己的洞察：不问每天几小时，问一周哪些时段有空）。group: wd=工作日 / we=周末 */
+var DIAG_SLOTS = [
+  { k:'wdMorning',   label:'工作日早上', group:'wd' },
+  { k:'wdForenoon',  label:'工作日上午', group:'wd' },
+  { k:'wdAfternoon', label:'工作日下午', group:'wd' },
+  { k:'wdEvening',   label:'工作日晚上', group:'wd' },
+  { k:'weDay',       label:'周末白天',   group:'we' },
+  { k:'weNight',     label:'周末晚上',   group:'we' },
+];
+/* 身份 → 默认时段模板（她可在问卷里任意改勾，模板只负责预填） */
+var DIAG_IDENTITY = {
+  worker:   { label:'上班族',   slots:['wdEvening','weDay','weNight'] },
+  student:  { label:'在校生',   slots:['wdAfternoon','wdEvening','weDay','weNight'] },
+  fulltime: { label:'全职备考', slots:['wdMorning','wdForenoon','wdAfternoon','wdEvening','weDay','weNight'] },
+  other:    { label:'其他',     slots:['wdEvening','weDay'] },
+};
+/* 参考成绩 → 雅思 Band 锚点（降序）。施工方案 9.1 的换算基准；档间线性插值到 0.5。
+   ⚠️ 这是「无 AI/无 token 时」的本地保守兜底；commit2 接 AI（diag key）后由 AI 评定覆盖。
+   写作/口语锚点在方案只给了六级 550 一处，其余按「四六级与雅思写作口语体系不同、从低」补保守值。 */
+var DIAG_REF_TABLE = {
+  gaokao: { label:'高考英语', max:150, anchors:[
+    [140, { listening:6.0, reading:6.5, writing:6.0, speaking:6.0 }],
+    [130, { listening:5.75, reading:6.0, writing:5.5, speaking:5.5 }],
+    [120, { listening:5.25, reading:5.5, writing:5.0, speaking:5.0 }],
+  ], floorScore:90,  floorBand:{ listening:4.5, reading:4.5, writing:4.0, speaking:4.0 } },
+  cet4: { label:'大学英语四级', max:710, anchors:[
+    [550, { listening:6.0, reading:6.5, writing:5.5, speaking:5.5 }],
+    [500, { listening:5.5, reading:6.0, writing:5.0, speaking:5.0 }],
+    [425, { listening:4.75, reading:5.0, writing:4.5, speaking:4.5 }],
+  ], floorScore:380, floorBand:{ listening:4.0, reading:4.0, writing:3.5, speaking:3.5 } },
+  cet6: { label:'大学英语六级', max:710, anchors:[
+    [550, { listening:6.5, reading:7.0, writing:6.0, speaking:6.0 }],
+    [500, { listening:6.0, reading:6.5, writing:5.5, speaking:5.5 }],
+    [425, { listening:5.0, reading:5.5, writing:4.5, speaking:4.5 }],
+  ], floorScore:380, floorBand:{ listening:4.0, reading:4.5, writing:4.0, speaking:4.0 } },
+};
+var DIAG_PHASES = [
+  { k:'foundation', min:21,  label:'基础构建期', desc:'距考 ≥21 天：打基础，四科均衡偏听读（听读提分空间最大），写作口语开始积累素材。' },
+  { k:'weak',       min:8,   label:'弱项倾斜期', desc:'距考 8–20 天：向弱项倾斜，写作口语要开始成篇输出，听读保持题感。' },
+  { k:'sprint',     min:3,   label:'真题冲刺期', desc:'距考 3–7 天：只做真题 / 模考 + 口语串题，不碰新知识、不学新技巧。' },
+  { k:'safeguard',  min:-999,label:'考前保底期', desc:'距考 ≤2 天：只保能拿的分——背单词 30 分钟 + 口语 P1 快答 + 写作模板默写。' },
+];
+var diagFormState = null;   // 问卷进行中的临时态（仅内存，不落库；点生成才存）
+
+/* ⭐ TDZ 铁律：页面级 const 必须在 ready() 之前——ready 回调在脚本求值期同步执行，
+   声明放后面（render 附近）会在首次 render 时 hit TDZ 整页崩（9/17 reload 实测）。 */
+
 /* 口语题库取题助手 bankAt 已迁 common.js（9/24：首页今日任务行也要用）。
 /* AI 返回的任务里「题库N」→ 自动补真实题名：「口语 题库1」→「口语 题库1 Feeling bored」。
    AI 已自己带题名（题库N 后紧跟同题名）时不重复补；编号越界保持原样。 */
@@ -86,16 +138,21 @@ ready(() => {
     if(lastTab === 'plan' || lastTab === 'history') setPlanTab(lastTab);
   }catch(e){}
 
-  // 每周 AI 排程
-  $('#weekTasks').value = DATA.settings.weeklyTasks || '';
-  $('#aiWeek').addEventListener('click', aiWeekPlan);
-  $('#genWeek').addEventListener('click', () => {
-    DATA.settings.weeklyTasks = $('#weekTasks').value.trim();
-    hubSave();
-    buildAndRender(getCustomTasks());
-  });
+  // 每周 AI 排程（第三十三批：规划 Tab 改造为「备考诊断」后旧 DOM 已移除；
+  // aiWeekPlan/buildAndRender 函数一字未动地保留，仅在旧元素仍存在时绑定——软导航缓存页/旧预览不崩）
+  const _wt = document.getElementById('weekTasks');
+  if(_wt){
+    _wt.value = DATA.settings.weeklyTasks || '';
+    document.getElementById('aiWeek').addEventListener('click', aiWeekPlan);
+    document.getElementById('genWeek').addEventListener('click', () => {
+      DATA.settings.weeklyTasks = _wt.value.trim();
+      hubSave();
+      buildAndRender(getCustomTasks());
+    });
+  }
 
   render();
+  renderDiagEntry();   // 备考诊断入口卡 / 已诊断概览（规划 Tab）
 
   // 首页「今日任务」空态卡「AI 帮我安排今天」的跳转信标：
   // 跳到本页后聚焦输入框并清除（一次性），不触碰任何 AI 排程逻辑。软导航重进本页 ready 会重跑，同样生效。
@@ -550,4 +607,484 @@ async function aiWeekPlan(){
     const wb = document.getElementById('weekBox');
     if(wb) wb.innerHTML = '<div class="card"><div class="muted">AI 服务暂不可用：' + escapeHtml(e.message) + '</div></div>';
   }
+}
+
+/* =====================================================================================
+   备考诊断（第三十三批）
+   流程：入口卡 → 全屏问卷（自动提取成绩/手填/高考四六级换算 + 身份 + 6 时段）→ 免费本地报告
+   数据：DATA.settings.diagnosis（同步白名单已登记 'diagnosis'，保存自打 _fieldTs）
+   诚实铁律：目标不切实际/时间不够/及格不等于够用——必须直说，不输出哄人的话。
+   ===================================================================================== */
+
+var DIAG_SRC_LABEL = { mock:'模考记录', exam:'考试成绩', writing:'写作批改', practice:'口语练习', ref:'成绩换算', manual:'手动填写' };
+/* 每 0.5 分保守需时（天），瓶颈取各科最大——官方口径「明显提分通常需数月/数百小时」，宁紧勿松 */
+var DIAG_RATE = { listening:18, reading:18, writing:35, speaking:35 };
+
+function diagRoundHalf(n){ const x = Number(n); if(!(x > 0)) return null; return Math.round(x*2)/2; }
+
+/* ---------- 现状成绩提取：逐科独立降级（比方案的整份降级更诚实——哪科有据用哪科） ---------- */
+
+/* 听/读/写 模考记录 → band。whole 优先（单篇 P1 偏简单会虚高），同粒度取最新。
+   口径与 scores.js renderMockList 一致：score 型按 partWeight 加权；correct/total 汇总后 estimateBand。 */
+function diagMockTypeBand(type){
+  const recs = (DATA.mockRecords || []).filter(r => r && r.type === type && Array.isArray(r.parts) && MOCK_TYPES[r.type]);
+  const dateKey = r => String(r.date || '');
+  recs.sort((a,b) => dateKey(b).localeCompare(dateKey(a)) || ((b.ts||0)-(a.ts||0)));
+  for(const preferWhole of [true,false]){
+    for(const r of recs){
+      if(preferWhole && (r.granularity === 'part')) continue;
+      try{
+        const cfg = MOCK_TYPES[type];
+        if(r.parts.some(partIsScore)){
+          let s = 0, w = 0;
+          r.parts.filter(partIsScore).forEach(p => {
+            s += Number(p.score) * partWeight(cfg, p.label);
+            w += partWeight(cfg, p.label);
+          });
+          if(w > 0) return { band: diagRoundHalf(s/w), date:r.date };
+        }else{
+          const c = r.parts.reduce((x,p) => x + (Number(p.correct)||0), 0);
+          const t = r.parts.reduce((x,p) => x + (Number(p.total)||0), 0);
+          if(t > 0){ const b = estimateBand(type, c, t); if(b != null) return { band: diagRoundHalf(b), date:r.date }; }
+        }
+      }catch(e){}
+    }
+  }
+  return null;
+}
+
+function diagSpeakingMockBand(){
+  const recs = (DATA.mockRecords || []).filter(r => { try{ return isSpeakingMockRec(r); }catch(e){ return false; } });
+  recs.sort((a,b) => String(b.date||'').localeCompare(String(a.date||'')) || ((b.ts||0)-(a.ts||0)));
+  const r = recs[0];
+  if(r && Number(r.overall) > 0) return { band: diagRoundHalf(r.overall), date:r.date };
+  return null;
+}
+
+/* 写作批改分：parsed 且 result.overall 可用的最新一条（口径同 writing.js 列表过滤） */
+function diagWritingScoreBand(){
+  const recs = (DATA.writingScores || []).filter(r => r && r.parsed && r.result && typeof r.result === 'object' && r.result.overall != null);
+  recs.sort((a,b) => String(b.date||'').localeCompare(String(a.date||'')));
+  const r = recs[0];
+  return r ? { band: diagRoundHalf(r.result.overall), date:r.date } : null;
+}
+
+/* 口语日常练习四维均分。scores.js 可能已被软导航加载：在就直接用，不在用内置同口径轻量版。 */
+function diagSpeakingPracticeBand(){
+  let agg = null;
+  try{ if(typeof aggregateSpeakingPracticeScores === 'function') agg = aggregateSpeakingPracticeScores(); }catch(e){}
+  if(agg && agg.overall) return { band: diagRoundHalf(agg.overall.sum / agg.overall.wsum) };
+  let sum = 0, n = 0;
+  const eat = sc => { ['fluency','vocabulary','grammar','pronunciation'].forEach(k => {
+    const v = parseFloat(sc && sc[k]); if(!isNaN(v)){ sum += v; n++; }
+  });};
+  (DATA.speaking || []).forEach(s => {
+    if(!s || !s.answers) return;
+    Object.values(s.answers).forEach(a => {
+      (a && a.records || []).forEach(r => { if(r && r.score) eat(r.score); });
+      if(a && a.score && !Array.isArray(a.records)) eat(a.score);
+    });
+  });
+  return n ? { band: diagRoundHalf(sum/n) } : null;
+}
+
+function diagLatestExam(){
+  const arr = (DATA.scores || []).filter(s => s && s.date);
+  arr.sort((a,b) => String(b.date).localeCompare(String(a.date)));
+  return arr[0] || null;
+}
+
+/* → { bands:{listening:5.5|null,...}, src:{listening:{s,date}|null} } */
+function diagExtractBands(){
+  const bands = { listening:null, reading:null, writing:null, speaking:null };
+  const src = { listening:null, reading:null, writing:null, speaking:null };
+  const exam = diagLatestExam();
+  DIAG_SUBS.forEach(([k]) => {
+    let v = null;
+    if(k === 'speaking') v = diagSpeakingMockBand();
+    else v = diagMockTypeBand(k);   // listening / reading / writing
+    if(v){ bands[k] = v.band; src[k] = { s:'mock', date:v.date }; return; }
+    if(exam && Number(exam[k]) > 0){ bands[k] = diagRoundHalf(exam[k]); src[k] = { s:'exam', date:exam.date }; return; }
+    if(k === 'writing'){ const w = diagWritingScoreBand(); if(w){ bands[k] = w.band; src[k] = { s:'writing', date:w.date }; return; } }
+    if(k === 'speaking'){ const p = diagSpeakingPracticeBand(); if(p){ bands[k] = p.band; src[k] = { s:'practice' }; return; } }
+  });
+  return { bands, src };
+}
+
+/* ---------- 高考 / 四六级 → 雅思 Band 保守换算（锚点线性插值；无 AI 时的兜底） ---------- */
+
+function diagRefBands(type, scoreRaw){
+  const t = DIAG_REF_TABLE[type]; if(!t) return null;
+  const score = Number(scoreRaw); if(!(score > 0)) return null;
+  const out = {};
+  DIAG_SUBS.forEach(([k]) => {
+    const pts = t.anchors.map(a => [a[0], a[1][k]]);
+    let v;
+    if(score >= pts[0][0]){
+      const span = Math.max(1, t.max - pts[0][0]);   // 超最高档：外推到满分，最多 +0.5
+      v = pts[0][1] + 0.5 * Math.min(1, (score - pts[0][0]) / span);
+    }else{
+      v = null;
+      for(let i = 1; i < pts.length; i++){
+        if(score >= pts[i][0]){
+          v = pts[i][1] + (pts[i-1][1] - pts[i][1]) * (score - pts[i][0]) / (pts[i-1][0] - pts[i][0]);
+          break;
+        }
+      }
+      if(v == null){   // 低于最低锚：在 floorBand 与最低锚间线性；低于 floorScore 不给估计（不可信）
+        const lo = pts[pts.length - 1];
+        if(score >= t.floorScore) v = t.floorBand[k] + (lo[1] - t.floorBand[k]) * (score - t.floorScore) / (lo[0] - t.floorScore);
+      }
+    }
+    out[k] = v == null ? null : diagRoundHalf(v);
+  });
+  return out;
+}
+
+/* ---------- 档位 / 容量 / 诚实报告（纯函数，AI 版上线后本地版作为兜底保留） ---------- */
+
+function diagPhaseOf(days){
+  if(days == null) return null;
+  return DIAG_PHASES.find(p => days >= p.min) || DIAG_PHASES[DIAG_PHASES.length-1];
+}
+
+function diagCapacity(d){
+  const wdMin = Math.round((Math.max(0, Number(d.wdHours) || 0)) * 60);
+  const weMin = Math.round((Math.max(0, Number(d.weHours) || 0)) * 60);
+  const weekMin = wdMin * 5 + weMin * 2;
+  return { wdMin, weMin, weekMin, avgMin: Math.round(weekMin/7) };
+}
+
+function diagBuildReport(d){
+  const tg = (DATA.settings && DATA.settings.targets) || {};
+  const cd = examCountdown();
+  const days = cd.daysLeft;
+  const phase = diagPhaseOf(days);
+  const caps = diagCapacity(d);
+  const gaps = {};
+  DIAG_SUBS.forEach(([k]) => {
+    const cur = d.bands ? d.bands[k] : null, want = Number(tg[k]);
+    gaps[k] = (cur != null && want > 0) ? Math.round((want - cur) * 2) / 2 : null;
+  });
+  let maxGap = 0, maxSub = null;
+  DIAG_SUBS.forEach(([k,lab]) => { if(gaps[k] != null && gaps[k] > maxGap){ maxGap = gaps[k]; maxSub = k; } });
+  const maxLab = maxSub ? (DIAG_SUBS.find(x => x[0] === maxSub) || [])[1] : '';
+  const targetsMissing = DIAG_SUBS.filter(([k]) => !(Number(tg[k]) > 0)).map(([,lab]) => lab);
+  const bandsMissing = DIAG_SUBS.filter(([k]) => !d.bands || d.bands[k] == null).map(([,lab]) => lab);
+  let needDays = 0;
+  DIAG_SUBS.forEach(([k]) => { if(gaps[k] > 0) needDays = Math.max(needDays, Math.round(gaps[k]/0.5) * DIAG_RATE[k]); });
+  /* 瓶颈科现实可达分（时间不够时用它说实话） */
+  const reachable = {};
+  if(days != null && maxSub){
+    const cur = d.bands[maxSub] || 0;
+    reachable[maxSub] = diagRoundHalf(Math.min(Number(tg[maxSub])||9, cur + Math.floor(days / DIAG_RATE[maxSub] * 2) / 2));
+  }
+
+  let verdict = { k:'unknown', text:'信息还不够，没法给你打包票。' };
+  if(maxGap <= 0 && bandsMissing.length < 4 && DIAG_SUBS.some(([k]) => d.bands && d.bands[k] != null && Number(tg[k]) > 0 && d.bands[k] >= Number(tg[k]))){
+    verdict = { k:'reached', text:'按现有成绩，你已经达到目标分了。接下来重点是稳住状态、熟悉考试流程，别手生。' };
+  }else if(maxGap > 0){
+    if(days == null){
+      verdict = { k:'unknown', text:'缺口已经能看出来（' + maxLab + '差 ' + maxGap + ' 分），但你还没设考试日期，时间够不够没法判断——先去「我的」填上考试日期。' };
+    }else if(days <= 2){
+      verdict = { k:'no', text:'说实话：只剩 ' + days + ' 天，现在学新东西性价比极低，' + maxLab + '不可能在这几天提 ' + maxGap + ' 分。只做三件能保底的事：背单词 30 分钟、口语 Part 1 快答、写作模板默写。' };
+    }else if(days <= 7 && maxGap >= 1){
+      verdict = { k:'no', text:'说实话：' + days + ' 天内把' + maxLab + '从 ' + d.bands[maxSub] + ' 提到 ' + tg[maxSub] + '（+' + maxGap + '）基本不可能——雅思一次明显提分通常需要数百小时。别再铺新内容，这几天只做真题模考和保底三件事。' };
+    }else{
+      const longShot = d.bands[maxSub] <= 4.5 && Number(tg[maxSub]) >= 7;
+      if(longShot && days < 180){
+        verdict = { k:'no', text:'说实话：从 ' + d.bands[maxSub] + ' 分到 7.0 通常是 6 个月以上的工程，你只有 ' + days + ' 天。' + days + ' 天内' + maxLab + '现实可达约 ' + (reachable[maxSub]||'--') + ' 分。建议把这次考试当模考，同时报一场更晚的。' };
+      }else if(days >= needDays * 1.25){
+        verdict = { k:'yes', text:'时间够用：补上最大缺口（' + maxLab + ' +' + maxGap + '）约需 ' + needDays + ' 天，你有 ' + days + ' 天，还留得出复盘和模考的余量。' };
+      }else if(days >= needDays * 0.7){
+        verdict = { k:'tight', text:'时间偏紧：补' + maxLab + '的缺口约需 ' + needDays + ' 天，你有 ' + days + ' 天。时间必须集中投给' + maxLab + '；按现实节奏，' + days + ' 天' + maxLab + '大约能到 ' + (reachable[maxSub]||tg[maxSub]) + ' 分。' };
+      }else{
+        verdict = { k:'no', text:'说实话：时间不够。补' + maxLab + ' ' + maxGap + ' 分约需 ' + needDays + ' 天，你只有 ' + days + ' 天。' + days + ' 天内' + maxLab + '现实可达约 ' + (reachable[maxSub]||'--') + ' 分——要么调低目标，要么把这次当练兵、准备再考一次。' };
+      }
+    }
+  }else if(bandsMissing.length === 4){
+    verdict = { k:'unknown', text:'还没有任何现状成绩，先做一次模考，或填一个高考 / 四六级分数，结论会立刻具体起来。' };
+  }
+
+  const bullets = [];
+  if(!cd.hasExam) bullets.push('你还没设置考试日期，时间策略没法倒排。去「我的」填好考试日期后重新诊断，结论会准很多。');
+  if(targetsMissing.length) bullets.push('目标分没填全（缺：' + targetsMissing.join('、') + '），这些科目没算缺口。');
+  if(bandsMissing.length) bullets.push(bandsMissing.join('、') + ' 没有成绩依据，计划只能按目标分倒推；建议先做一次对应科目的模考校准。');
+  if(d.ref && DIAG_SUBS.some(([k]) => d.bandSrc && d.bandSrc[k] && d.bandSrc[k].s === 'ref')){
+    const refName = (DIAG_REF_TABLE[d.ref.type] || {}).label || '校外成绩';
+    bullets.push(refName + '与雅思的题型、评分差异很大，换算分只是保守起点，建议用一套雅思真题模考校准。');
+    if(d.ref.type === 'cet4' && d.ref.score < 500) bullets.push('特别提醒：四级及格不等于雅思够用——四级 425 大约只对应雅思 4.5–5.0，而多数学校门槛是 5.5 / 6.0。');
+  }
+  if(gaps.writing >= 1) bullets.push('写作差 ' + gaps.writing + ' 分：写作是输出项，每 0.5 分通常要 4–6 周成篇练习加批改，考前几天突击没有用。');
+  if(gaps.speaking >= 1) bullets.push('口语差 ' + gaps.speaking + ' 分：口语也是输出项，每 0.5 分约需 4–6 周持续开口，最后一周只能保流利度、提不了档。');
+  if((gaps.listening > 0 || gaps.reading > 0) && (gaps.listening < 1.5 && gaps.reading < 1.5)) bullets.push('听读是输入项、提分最快（每 0.5 分约 2–3 周精练），时间紧时优先把时间投在这里。');
+  if(gaps.listening >= 1.5 || gaps.reading >= 1.5) bullets.push('听读缺口不小：6.5 以下靠精练真题提分快，6.5 以上每一步都更慢，要留足时间。');
+  if(caps.weekMin <= 0) bullets.push('你填的每周可学时间是 0——计划排不出来，至少给工作日或周末填一点时间。');
+  else bullets.push('你一周约有 ' + (caps.weekMin/60).toFixed(1) + ' 小时可学（工作日 ' + (d.weHours!=null && d.wdHours!=null ? d.wdHours : '--') + ' 小时/天，周末 ' + d.weHours + ' 小时/天）。');
+  if(phase) bullets.push(phase.desc);
+
+  return { tg, cd, days, phase, caps, gaps, maxGap, maxSub, maxLab, needDays,
+           targetsMissing, bandsMissing, verdict, bullets, reachable };
+}
+
+/* ---------- 问卷临时态 ---------- */
+
+function diagDefaultForm(){
+  const ex = diagExtractBands();
+  const s = DATA.settings || {};
+  const dH = Number(s.dailyGoalHours) > 0 ? Number(s.dailyGoalHours) : 1.5;
+  return { identity:'other', slots:DIAG_IDENTITY.other.slots.slice(), wdHours:dH, weHours:4,
+           ref:null, bands:ex.bands, src:ex.src };
+}
+
+function diagCloneForm(d){
+  return { identity:d.identity || 'other', slots:(d.slots || []).slice(),
+           wdHours:d.wdHours, weHours:d.weHours, ref:d.ref || null,
+           bands:Object.assign({ listening:null, reading:null, writing:null, speaking:null }, d.bands || {}),
+           src:Object.assign({ listening:null, reading:null, writing:null, speaking:null }, d.bandSrc || {}) };
+}
+
+function diagCollectForm(){
+  const st = diagFormState; if(!st) return null;
+  DIAG_SUBS.forEach(([k]) => {
+    const el = document.getElementById('dgB_' + k);
+    const old = parseFloat(el.getAttribute('data-old'));
+    const v = parseFloat(el.value);
+    if(v >= 0 && v <= 9){
+      st.bands[k] = diagRoundHalf(v);
+      // 没动过预填值 → 保留原来源。必须数值比较：data-old="6.0" 而 String(6)==="6"，字符串比会误判手改
+      st.src[k] = (!isNaN(old) && Math.abs(v - old) < 1e-9) ? st.src[k] : { s:'manual' };
+    }else{
+      st.bands[k] = null; st.src[k] = null;   // 清空=她明确表示这科不评估
+    }
+  });
+  const rt = document.getElementById('dgRefType').value;
+  const rs = parseFloat(document.getElementById('dgRefScore').value);
+  st.ref = (rt && rs > 0) ? { type:rt, score:rs } : null;
+  if(st.ref){   // 换算只补仍为空的科目，不覆盖她填的雅思分
+    const rb = diagRefBands(st.ref.type, st.ref.score);
+    if(rb) DIAG_SUBS.forEach(([k]) => { if(st.bands[k] == null && rb[k] != null){ st.bands[k] = rb[k]; st.src[k] = { s:'ref' }; } });
+  }
+  st.identity = document.getElementById('dgIdentity').value || 'other';
+  st.slots = DIAG_SLOTS.map(s => s.k).filter(k => {
+    const el = document.getElementById('dgSlot_' + k); return el && el.checked;
+  });
+  const wd = parseFloat(document.getElementById('dgWdHours').value);
+  const we = parseFloat(document.getElementById('dgWeHours').value);
+  st.wdHours = (wd > 0) ? wd : 0;
+  st.weHours = (we > 0) ? we : 0;
+  return st;
+}
+
+function diagPersist(st){
+  const d = { v:1, ts:Date.now(), identity:st.identity, slots:st.slots,
+              wdHours:st.wdHours, weHours:st.weHours, ref:st.ref,
+              bands:st.bands, bandSrc:st.src };
+  DATA.settings.diagnosis = d;
+  DATA.settings._fieldTs = DATA.settings._fieldTs || {};
+  DATA.settings._fieldTs.diagnosis = Date.now();
+  hubSave();
+  return d;
+}
+
+/* ---------- 入口卡 / 概览（规划 Tab 内） ---------- */
+
+function diagBandTxt(v){ return v == null ? '<span class="dg-na">未评估</span>' : v.toFixed(1); }
+
+function renderDiagEntry(){
+  const root = document.getElementById('diagRoot'); if(!root) return;
+  const d = DATA.settings && DATA.settings.diagnosis;
+  if(!d){
+    root.innerHTML =
+      '<div class="card dg-hero">'
+      + '<div class="dg-hero-ic">🎯</div>'
+      + '<h2>备考诊断</h2>'
+      + '<p class="dg-hero-p">3 分钟，看清你现在的水平离目标多远、时间够不够、该把力气花在哪科。</p>'
+      + '<ul class="dg-hero-steps">'
+      + '<li>自动读取你在站内的模考与练习成绩，也可以手填，或用高考 / 四六级成绩换算</li>'
+      + '<li>告诉我们你一周哪些时段有空</li>'
+      + '<li>得到一份说实话的诊断报告——目标不切实际会直接告诉你，不哄人</li>'
+      + '</ul>'
+      + '<button type="button" id="dgStart" class="btn-primary dg-block-btn">开始诊断</button>'
+      + '<button type="button" id="dgSkip" class="dg-text-btn">跳过，直接用默认</button>'
+      + '</div>';
+    document.getElementById('dgStart').addEventListener('click', openDiagForm);
+    document.getElementById('dgSkip').addEventListener('click', diagQuickDefault);
+    return;
+  }
+  const r = diagBuildReport(d);
+  const chips = DIAG_SUBS.map(([k,lab]) => {
+    const cur = d.bands[k], t = Number(r.tg[k]);
+    const gap = r.gaps[k];
+    return '<div class="dg-chip"><span class="dg-chip-lab">' + lab + '</span>'
+      + '<span class="dg-chip-bands">' + diagBandTxt(cur) + ' → ' + (t > 0 ? t.toFixed(1) : '<span class="dg-na">--</span>') + '</span>'
+      + (gap > 0 ? '<span class="dg-chip-gap">差 ' + gap.toFixed(1) + '</span>' : (cur != null && t > 0 ? '<span class="dg-chip-ok">已达线</span>' : ''))
+      + '</div>';
+  }).join('');
+  root.innerHTML =
+    '<div class="card dg-summary">'
+    + '<div class="dg-sum-head"><div><div class="dg-sum-title">备考诊断</div>'
+    + '<div class="dg-sum-sub">' + (r.phase ? escapeHtml(r.phase.label) + ' · ' : '') + (r.cd.hasExam ? '距考试 ' + r.days + ' 天' : '未设置考试日期')
+    + ' · 每周约 ' + (r.caps.weekMin/60).toFixed(1) + ' 小时</div></div>'
+    + '<button type="button" id="dgRedo" class="dg-text-btn">重新诊断</button></div>'
+    + '<div class="dg-verdict dg-v-' + r.verdict.k + '">' + escapeHtml(r.verdict.text) + '</div>'
+    + '<div class="dg-chips">' + chips + '</div>'
+    + '<button type="button" id="dgView" class="btn-primary dg-block-btn">查看完整诊断报告</button>'
+    + '</div>';
+  document.getElementById('dgRedo').addEventListener('click', openDiagForm);
+  document.getElementById('dgView').addEventListener('click', () => openDiagReport(d));
+}
+
+/* 「跳过，直接用默认」：提取成绩 + other 模板 + 默认时长，直接出报告（什么都没有也能出） */
+function diagQuickDefault(){
+  diagFormState = diagDefaultForm();
+  const d = diagPersist(diagFormState);
+  renderDiagEntry();
+  openDiagReport(d);
+}
+
+/* ---------- 全屏覆盖层（问卷 / 报告两屏） ---------- */
+
+function closeDiagOverlay(){
+  const ov = document.getElementById('diagOverlay');
+  if(!ov) return;
+  ov.hidden = true;
+  ov.innerHTML = '';
+  diagFormState = null;
+}
+
+function openDiagForm(){
+  diagFormState = (DATA.settings && DATA.settings.diagnosis)
+    ? diagCloneForm(DATA.settings.diagnosis) : diagDefaultForm();
+  renderDiagForm();
+}
+
+function renderDiagForm(){
+  const st = diagFormState;
+  const ov = document.getElementById('diagOverlay'); if(!ov) return;
+  const tg = (DATA.settings && DATA.settings.targets) || {};
+  const cd = examCountdown();
+  const slotChk = (g) => DIAG_SLOTS.filter(s => s.group === g).map(s =>
+    '<label class="dg-slot" for="dgSlot_' + s.k + '"><input type="checkbox" id="dgSlot_' + s.k + '"'
+    + (st.slots.indexOf(s.k) >= 0 ? ' checked' : '') + '><span>' + s.label + '</span></label>').join('');
+  const bandInput = (k, lab) => {
+    const v = st.bands[k], sr = st.src[k];
+    return '<div class="dg-band-field"><label for="dgB_' + k + '">' + lab + '</label>'
+      + '<input type="number" id="dgB_' + k + '" class="dg-num" data-old="' + (v == null ? '' : v.toFixed(1)) + '"'
+      + ' value="' + (v == null ? '' : v.toFixed(1)) + '" min="0" max="9" step="0.5" inputmode="decimal" placeholder="--">'
+      + '<span class="dg-band-src">' + (sr ? escapeHtml(DIAG_SRC_LABEL[sr.s] || sr.s) + (sr.date ? ' ' + sr.date.slice(5) : '') : '可留空') + '</span></div>';
+  };
+  const identOpts = Object.keys(DIAG_IDENTITY).map(k =>
+    '<option value="' + k + '"' + (st.identity === k ? ' selected' : '') + '>' + DIAG_IDENTITY[k].label + '</option>').join('');
+  const refOpts = [['','没考过雅思，也不填校外成绩'],['gaokao','高考英语（满分 150）'],['cet4','大学英语四级'],['cet6','大学英语六级']]
+    .map(o => '<option value="' + o[0] + '"' + ((st.ref && st.ref.type) === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('');
+  const autoFound = DIAG_SUBS.some(([k]) => st.bands[k] != null && st.src[k] && st.src[k].s !== 'manual');
+  ov.innerHTML =
+    '<div class="dg-page">'
+    + '<div class="dg-top"><strong>备考诊断</strong><button type="button" id="dgClose" class="dg-x" aria-label="关闭">×</button></div>'
+    + '<div class="dg-body">'
+    + (!cd.hasExam ? '<div class="dg-warn">还没设置考试日期，时间策略没法倒排。<a href="settings.html">去设置考试日期</a>（设置完回到本页重新打开即可）</div>' : '')
+    + '<section class="dg-sec"><h3>① 你现在的水平</h3>'
+    + (autoFound ? '<p class="dg-hint">已自动读取你在站内的成绩（可直接修改，数字就是你的真实估计）：</p>'
+                : '<p class="dg-hint">没找到你的模考成绩。可以先做模考，或现在手填，也可以用下面的高考 / 四六级成绩换算。</p>')
+    + '<div class="dg-band-grid">' + DIAG_SUBS.map(([k,lab]) => bandInput(k, lab)).join('') + '</div>'
+    + '<div class="dg-ref-row"><select id="dgRefType">' + refOpts + '</select>'
+    + '<input type="number" id="dgRefScore" class="dg-num" value="' + (st.ref ? st.ref.score : '') + '" min="0" inputmode="numeric" placeholder="填分数，如 480 / 120"></div>'
+    + '<p class="dg-hint">校外成绩只用来补你留空的科目，且按保守口径换算；以雅思真题模考分为最准。</p>'
+    + '</section>'
+    + '<section class="dg-sec"><h3>② 你的目标与考试</h3>'
+    + '<div class="dg-readonly-row"><span>目标分</span><span>'
+    + DIAG_SUBS.map(([k,lab]) => lab + ' ' + (Number(tg[k]) > 0 ? tg[k] : '--')).join(' · ')
+    + (Number(tg.overall) > 0 ? ' · 总分 ' + tg.overall : '') + '</span>'
+    + '<a href="settings.html">修改</a></div>'
+    + '<div class="dg-readonly-row"><span>考试日期</span><span>' + (cd.hasExam ? cd.raw + '（' + cd.label + '）' : '未设置') + '</span>'
+    + '<a href="settings.html">修改</a></div>'
+    + '</section>'
+    + '<section class="dg-sec"><h3>③ 你一周哪些时段有空</h3>'
+    + '<div class="dg-field-row"><label for="dgIdentity">你的身份</label><select id="dgIdentity">' + identOpts + '</select></div>'
+    + '<p class="dg-hint">勾选通常能学习的时段（选身份会先帮你勾一套，可随意改）：</p>'
+    + '<div class="dg-slots"><div class="dg-slot-group"><span class="dg-slot-gl">工作日</span>' + slotChk('wd') + '</div>'
+    + '<div class="dg-slot-group"><span class="dg-slot-gl">周末</span>' + slotChk('we') + '</div></div>'
+    + '<div class="dg-field-row"><label for="dgWdHours">工作日每天能学</label>'
+    + '<input type="number" id="dgWdHours" class="dg-num dg-hours" value="' + st.wdHours + '" min="0" step="0.5" inputmode="decimal"> 小时</div>'
+    + '<div class="dg-field-row"><label for="dgWeHours">周末每天能学</label>'
+    + '<input type="number" id="dgWeHours" class="dg-num dg-hours" value="' + st.weHours + '" min="0" step="0.5" inputmode="decimal"> 小时</div>'
+    + '</section>'
+    + '</div>'
+    + '<div class="dg-foot"><button type="button" id="dgGen" class="btn-primary dg-block-btn">生成我的诊断报告（免费）</button>'
+    + '<button type="button" id="dgSkip2" class="dg-text-btn">全部跳过，直接用默认</button></div>'
+    + '</div>';
+  ov.hidden = false;
+  document.getElementById('dgClose').addEventListener('click', closeDiagOverlay);
+  document.getElementById('dgGen').addEventListener('click', () => {
+    const st2 = diagCollectForm();
+    const d = diagPersist(st2);
+    renderDiagEntry();
+    openDiagReport(d);
+  });
+  document.getElementById('dgSkip2').addEventListener('click', () => {
+    diagFormState = diagDefaultForm();
+    const d = diagPersist(diagFormState);
+    renderDiagEntry();
+    openDiagReport(d);
+  });
+  document.getElementById('dgIdentity').addEventListener('change', e => {
+    const tpl = DIAG_IDENTITY[e.target.value] || DIAG_IDENTITY.other;
+    DIAG_SLOTS.forEach(s => { const el = document.getElementById('dgSlot_' + s.k); if(el) el.checked = tpl.slots.indexOf(s.k) >= 0; });
+  });
+  /* 勾周末时段时给周末时长一个顺手默认（2h/段）；她手动改过数字后不再覆盖 */
+  let weTouched = false;
+  const weInput = document.getElementById('dgWeHours');
+  weInput.addEventListener('input', () => { weTouched = true; });
+  DIAG_SLOTS.filter(s => s.group === 'we').forEach(s => {
+    document.getElementById('dgSlot_' + s.k).addEventListener('change', () => {
+      if(weTouched) return;
+      const n = DIAG_SLOTS.filter(x => x.group === 'we' && document.getElementById('dgSlot_' + x.k).checked).length;
+      if(n > 0) weInput.value = n * 2;
+    });
+  });
+  ov.scrollTop = 0;
+}
+
+/* ---------- 报告屏 ---------- */
+
+function openDiagReport(d){
+  d = d || (DATA.settings && DATA.settings.diagnosis);
+  const ov = document.getElementById('diagOverlay'); if(!ov || !d) return;
+  const r = diagBuildReport(d);
+  const rows = DIAG_SUBS.map(([k,lab]) => {
+    const cur = d.bands[k], t = Number(r.tg[k]), gap = r.gaps[k], sr = d.bandSrc[k];
+    return '<tr><td>' + lab + '</td><td>' + (cur == null ? '--' : cur.toFixed(1))
+      + (sr ? '<div class="dg-rsrc">' + escapeHtml(DIAG_SRC_LABEL[sr.s] || sr.s) + (sr.date ? ' · ' + sr.date : '') + '</div>' : '') + '</td>'
+      + '<td>' + (t > 0 ? t.toFixed(1) : '--') + '</td>'
+      + '<td>' + (gap == null ? '--' : (gap > 0 ? '差 ' + gap.toFixed(1) : '已达线')) + '</td></tr>';
+  }).join('');
+  ov.innerHTML =
+    '<div class="dg-page">'
+    + '<div class="dg-top"><strong>诊断报告</strong><button type="button" id="dgClose" class="dg-x" aria-label="关闭">×</button></div>'
+    + '<div class="dg-body">'
+    + '<div class="dg-verdict dg-v-' + r.verdict.k + ' dg-verdict-lg">' + escapeHtml(r.verdict.text) + '</div>'
+    + '<div class="dg-cards">'
+    + '<div class="dg-mini card"><div class="dg-mini-k">距考试</div><div class="dg-mini-v">' + (r.cd.hasExam ? r.days + ' 天' : '--') + '</div>'
+    + '<div class="dg-mini-s">' + (r.phase ? escapeHtml(r.phase.label) : '先设考试日期') + '</div></div>'
+    + '<div class="dg-mini card"><div class="dg-mini-k">每周可学</div><div class="dg-mini-v">' + (r.caps.weekMin/60).toFixed(1) + 'h</div>'
+    + '<div class="dg-mini-s">工作日 ' + d.wdHours + 'h · 周末 ' + d.weHours + 'h</div></div>'
+    + '<div class="dg-mini card"><div class="dg-mini-k">最大缺口</div><div class="dg-mini-v">' + (r.maxSub ? r.maxLab + ' +' + r.maxGap.toFixed(1) : '--') + '</div>'
+    + '<div class="dg-mini-s">' + (r.needDays > 0 ? '约需 ' + r.needDays + ' 天' : '保持题感即可') + '</div></div>'
+    + '</div>'
+    + '<section class="dg-sec"><h3>四科明细</h3>'
+    + '<table class="dg-table"><thead><tr><th>科目</th><th>现状</th><th>目标</th><th>缺口</th></tr></thead><tbody>'
+    + rows + '</tbody></table></section>'
+    + '<section class="dg-sec"><h3>给你的实话</h3><ul class="dg-bullets">'
+    + r.bullets.map(b => '<li>' + escapeHtml(b).replace(
+        '去「我的」填好考试日期后重新诊断，结论会准很多。',
+        '<a href="settings.html">去「我的」填考试日期</a>，填完重新诊断结论会准很多。') + '</li>').join('')
+    + '</ul></section>'
+    + '</div>'
+    + '<div class="dg-foot"><button type="button" id="dgRedo2" class="btn-primary dg-block-btn">重新诊断 / 修改答案</button></div>'
+    + '</div>';
+  ov.hidden = false;
+  document.getElementById('dgClose').addEventListener('click', closeDiagOverlay);
+  document.getElementById('dgRedo2').addEventListener('click', openDiagForm);
+  ov.scrollTop = 0;
 }

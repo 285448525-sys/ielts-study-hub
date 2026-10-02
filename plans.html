@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="UTF-8" />
@@ -39,15 +39,96 @@
 
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
-<script defer src="js/data.js?v=20261001b"></script>
-  <script defer src="js/common.js?v=20261002d"></script>
+<script defer src="js/data.js?v=20261002a"></script>
+  <script defer src="js/common.js?v=20261002e"></script>
   <script defer src="js/feedback.js?v=20261002b"></script>
-  <script src="js/plans.js?v=20261002b" defer></script>
+  <script src="js/plans.js?v=20261002c" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
 #bootLoader .ui-loader{margin-bottom:8px}
 @media (prefers-reduced-motion: reduce){#bootLoader .ui-loader-dot,#bootLoader .ui-loader-shadow{animation:none}#bootLoader .ui-loader-dot{top:20px;height:20px;border-radius:50%;transform:none}#bootLoader .ui-loader-shadow{opacity:.5;transform:scaleX(1)}}
+</style>
+<!-- ===== 备考诊断样式（第三十三批）=====
+     铁律：common.css:438 全站表单重置权重 (0,2,1)，故本页新 input/select 的可样式化属性
+     一律挂在 #diagOverlay / #diagRoot 的 id 作用域下（权重 1,1,0+），不用裸 class。 -->
+<style id="diagStyle">
+#diagRoot .dg-hero{text-align:center;padding:28px 20px}
+#diagRoot .dg-hero-ic{font-size:40px;line-height:1;margin-bottom:10px}
+#diagRoot .dg-hero h2{margin:0 0 8px;font-size:20px}
+#diagRoot .dg-hero-p{color:var(--muted);font-size:14px;line-height:1.7;margin:0 auto 16px;max-width:30em}
+#diagRoot .dg-hero-steps{text-align:left;margin:0 0 20px;padding-left:20px;color:var(--ink);font-size:13.5px;line-height:1.9}
+.dg-block-btn{width:100%;padding:13px;font-size:15px;border-radius:var(--radius-sm)}
+.dg-text-btn{display:block;width:100%;margin-top:10px;padding:8px;background:none;border:0;color:var(--muted);font:inherit;font-size:13px;text-decoration:underline;cursor:pointer}
+.dg-sum-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.dg-sum-title{font-size:17px;font-weight:700}
+.dg-sum-sub{font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.6}
+#diagRoot .dg-sum-head .dg-text-btn{width:auto;margin:0;flex:none}
+.dg-verdict{margin:12px 0;padding:12px 14px;border-radius:var(--radius-sm);font-size:14px;line-height:1.7}
+.dg-v-yes,.dg-v-reached{background:var(--ok-soft);color:var(--ok-text)}
+.dg-v-tight{background:var(--warn-soft);color:var(--warn-ink)}
+.dg-v-no{background:var(--danger-soft);color:var(--danger-text)}
+.dg-v-unknown{background:rgba(120,130,140,.13);color:var(--muted)}
+.dg-chips{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px}
+.dg-chip{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--bg)}
+.dg-chip-lab{font-size:12px;color:var(--muted)}
+.dg-chip-bands{font-size:15px;font-weight:700}
+.dg-chip-gap{font-size:12px;color:var(--danger-text)}
+.dg-chip-ok{font-size:12px;color:var(--ok-text)}
+.dg-na{color:var(--muted);font-weight:400}
+#diagOverlay{position:fixed;inset:0;z-index:80;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch}
+#diagOverlay[hidden]{display:none}
+#diagOverlay .dg-page{max-width:560px;margin:0 auto;min-height:100%;display:flex;flex-direction:column}
+#diagOverlay .dg-top{position:sticky;top:0;display:flex;justify-content:space-between;align-items:center;padding:13px 16px;background:var(--surface);border-bottom:1px solid var(--line);z-index:2}
+#diagOverlay .dg-top strong{font-size:16px}
+#diagOverlay .dg-x{width:34px;height:34px;border:0;background:none;font:inherit;font-size:22px;line-height:34px;color:var(--muted);cursor:pointer;border-radius:50%;padding:0}
+#diagOverlay .dg-x:active{background:var(--line)}
+#diagOverlay .dg-body{flex:1;padding:14px 16px 24px}
+#diagOverlay .dg-foot{position:sticky;bottom:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--line)}
+#diagOverlay .dg-warn{margin-bottom:12px;padding:10px 12px;border-radius:var(--radius-sm);background:var(--warn-soft);color:var(--warn-ink);font-size:13px;line-height:1.7}
+#diagOverlay .dg-warn a{color:inherit;font-weight:700}
+#diagOverlay .dg-sec{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin:0 0 12px}
+#diagOverlay .dg-sec h3{margin:0 0 10px;font-size:15px}
+#diagOverlay .dg-hint{font-size:12.5px;color:var(--muted);line-height:1.7;margin:0 0 10px}
+#diagOverlay .dg-band-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+#diagOverlay .dg-band-field{display:flex;flex-direction:column;gap:4px}
+#diagOverlay .dg-band-field label{font-size:12.5px;color:var(--muted)}
+#diagOverlay input[type="number"],#diagOverlay select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:var(--radius-sm);font:inherit;font-size:14px;background:var(--surface);color:var(--ink);box-sizing:border-box}
+#diagOverlay input[type="number"]:focus,#diagOverlay select:focus{border-color:var(--primary);outline:0}
+#diagOverlay .dg-band-src{font-size:11.5px;color:var(--muted)}
+#diagOverlay .dg-ref-row{display:flex;gap:8px;margin-top:10px}
+#diagOverlay .dg-ref-row select{flex:1.2;min-width:0}
+#diagOverlay .dg-ref-row input{flex:1;min-width:0}
+#diagOverlay .dg-readonly-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line);font-size:13.5px}
+#diagOverlay .dg-readonly-row:last-child{border-bottom:0}
+#diagOverlay .dg-readonly-row>span:first-child{color:var(--muted);flex:none}
+#diagOverlay .dg-readonly-row>span:nth-child(2){flex:1;min-width:0;text-align:right}
+#diagOverlay .dg-readonly-row a{color:var(--primary);font-size:12.5px;flex:none}
+#diagOverlay .dg-field-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;font-size:14px}
+#diagOverlay .dg-field-row label{flex:none;color:var(--muted)}
+#diagOverlay .dg-field-row select{flex:1}
+#diagOverlay .dg-hours{max-width:96px;flex:none!important}
+#diagOverlay .dg-slots{display:flex;flex-direction:column;gap:8px;margin:8px 0 12px}
+#diagOverlay .dg-slot-group{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+#diagOverlay .dg-slot-gl{width:48px;font-size:12px;color:var(--muted);flex:none}
+#diagOverlay .dg-slot{display:inline-flex;align-items:center;gap:5px;padding:7px 11px;border:1px solid var(--line);border-radius:999px;font-size:13px;cursor:pointer;background:var(--surface);color:var(--ink)}
+#diagOverlay .dg-slot input{width:16px;height:16px;margin:0;accent-color:var(--primary)}
+#diagOverlay .dg-slot:has(input:checked){border-color:var(--primary);background:rgba(58,154,147,.09);color:var(--primary);font-weight:600}
+#diagOverlay .dg-verdict-lg{margin:0 0 12px;font-size:14.5px}
+#diagOverlay .dg-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+#diagOverlay .dg-mini{padding:10px 8px;margin:0;text-align:center}
+#diagOverlay .dg-mini-k{font-size:11.5px;color:var(--muted)}
+#diagOverlay .dg-mini-v{font-size:18px;font-weight:700;margin:2px 0;line-height:1.3}
+#diagOverlay .dg-mini-s{font-size:11px;color:var(--muted);line-height:1.4}
+#diagOverlay .dg-table{width:100%;border-collapse:collapse;font-size:13.5px}
+#diagOverlay .dg-table th,#diagOverlay .dg-table td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:center}
+#diagOverlay .dg-table th{color:var(--muted);font-weight:500;font-size:12px}
+#diagOverlay .dg-table th:first-child,#diagOverlay .dg-table td:first-child{text-align:left}
+#diagOverlay .dg-rsrc{font-size:11px;color:var(--muted);font-weight:400;margin-top:2px}
+#diagOverlay .dg-bullets{margin:0;padding-left:20px}
+#diagOverlay .dg-bullets li{font-size:13.5px;line-height:1.8;margin-bottom:6px}
+#diagOverlay .dg-bullets a{color:var(--primary)}
+@media(max-width:380px){#diagRoot .dg-chips{grid-template-columns:1fr}#diagOverlay .dg-cards{grid-template-columns:1fr 1fr}}
 </style>
 <meta name="description" content="学习计划：按考试日期倒排每日任务，今日 / 规划 / 历史三个视图。" />
 <link rel="canonical" href="https://ielts-study-hub.pages.dev/plans" />
@@ -100,19 +181,11 @@
   </section>
   </div>
 
-  <!-- Tab 2 规划：自由输入 + AI 智能分配到每天 -->
+  <!-- Tab 2 规划（第三十三批 10/2 拍板改造）：整个 Tab 改为「备考诊断」——
+       入口卡/已诊断概览由 js/plans.js renderDiagEntry() 渲染；全屏问卷+报告走 #diagOverlay。
+       旧周计划 DOM（weekTasks/aiWeek/genWeek/weekBox）已移除，旧 AI 排程函数保留不删。 -->
   <div class="tab-panel" id="ptabPlan">
-  <section class="card">
-    <h2>计划</h2>
-    <textarea id="weekTasks" class="plan-textarea" placeholder="列出任务，AI 帮你排到每天，如：周一背单词 / 周二写作文"></textarea>
-    <div class="plan-actions">
-      <div class="plan-actions-right">
-        <button class="btn" id="genWeek" style="flex:none">无 AI 也排</button>
-        <button class="btn btn-primary" id="aiWeek" style="flex:none"><svg aria-hidden="true" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l1.7 4.3L18 10l-4.3 1.7L12 16l-1.7-4.3L6 10l4.3-1.7L12 4z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2z"/></svg>AI 智能分配</button>
-      </div>
-    </div>
-    <div id="weekBox" style="margin-top:16px"></div>
-  </section>
+    <div id="diagRoot"></div>
   </div>
 
   <!-- Tab 3 历史：10/2 她拍板——「历史计划」标题与「共 N 天」meta 删掉（挤得丑），进来直接是日卡列表；
@@ -123,6 +196,9 @@
   </section>
   </div>
 </main>
+
+<!-- 备考诊断全屏覆盖层（第三十三批）：问卷/报告两屏都渲染进这里，不新开页面 -->
+<div id="diagOverlay" hidden></div>
 
 </body>
 </html>
