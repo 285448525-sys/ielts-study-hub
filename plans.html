@@ -29,7 +29,7 @@
 })();
 </script>
 <title>计划 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261001u" />
+<link rel="stylesheet" href="css/common.css?v=20261002a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=6" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=6">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=6">
@@ -41,7 +41,7 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20261001b"></script>
   <script defer src="js/common.js?v=20261001q"></script>
-  <script src="js/plans.js?v=20261001i" defer></script>
+  <script src="js/plans.js?v=20261002a" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -114,16 +114,10 @@
   </section>
   </div>
 
-  <!-- Tab 3 历史：她 10/1 拍板收进独立 Tab。details 壳默认展开（Tab 语义=进来直接看），
-       保留整体收起能力与「共 N 天」meta；每天内部的折叠照旧。零新增 CSS。 -->
-  <!-- Tab 3 历史：10/1 晚重排（她拍板）——外层 details 折叠壳删掉（太奇怪），头部平铺；
+  <!-- Tab 3 历史：10/2 她拍板——「历史计划」标题与「共 N 天」meta 删掉（挤得丑），进来直接是日卡列表；
        每天一张独立日卡（日期块+完成度进度条+徽章，点开看当天明细）。 -->
   <div class="tab-panel" id="ptabHistory">
-  <section class="card history-folded">
-    <div class="history-summary">
-      <h2 style="margin:0">历史计划</h2>
-      <span class="muted" id="historyMeta">共 0 天</span>
-    </div>
+  <section class="card">
     <div id="histPlans"></div>
   </section>
   </div>

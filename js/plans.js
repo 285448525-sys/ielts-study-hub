@@ -319,8 +319,6 @@ function renderHistory(curDate){
   const others = DATA.plans
     .filter(p => p.date !== curDate && Array.isArray(p.items) && p.items.length)
     .slice().sort((a,b) => b.date.localeCompare(a.date));
-  const meta = $('#historyMeta');
-  if(meta) meta.textContent = others.length ? ('共 ' + others.length + ' 天') : '暂无历史计划';
   const box = $('#histPlans');
   if(others.length === 0){
     box.innerHTML = renderEmpty('还没有其它日期的计划。');
@@ -334,7 +332,7 @@ function renderHistory(curDate){
     const dt = new Date(p.date + 'T00:00:00');
     const wd = isNaN(dt) ? '' : ('周' + '日一二三四五六'.charAt(dt.getDay()));
     const itemsHtml = pItems.map(i =>
-      `<li class="${i.done ? 'done' : ''}">${i.done ? '✓' : '○'} ${escapeHtml(i.text)}</li>`
+      `<div class="hist-item ${i.done ? 'done' : ''}"><span class="hist-dot">${i.done ? '✓' : ''}</span><span class="hist-txt">${escapeHtml(i.text)}</span></div>`
     ).join('');
     return `<details class="hist-plan">
       <summary>
@@ -344,8 +342,8 @@ function renderHistory(curDate){
         <span class="hist-chev">▸</span>
       </summary>
       <div class="hist-body">
-        <ul class="hist-items">${itemsHtml}</ul>
-        <button class="btn btn-sm" data-open="${p.date}">打开编辑这天</button>
+        ${itemsHtml}
+        <div class="hist-foot"><button class="btn btn-sm btn-ghost" data-open="${p.date}">打开编辑这天 ↗</button></div>
       </div>
     </details>`;
   }).join('');

@@ -914,10 +914,15 @@ html[data-theme="dark"] .finish-zero-card{background:rgba(70,168,131,.16)}
 .hist-plan > summary:hover .hist-date b{color:var(--primary)}
 .hist-chev{color:var(--muted);font-size:12px;transition:transform .2s}
 .hist-plan[open] .hist-chev{transform:rotate(90deg)}
-.hist-body{padding:4px 0 12px;border-top:1px dashed var(--line)}
-.hist-items{margin:10px 0;padding-left:18px;color:var(--ink);font-size:14px;line-height:1.9}
-.hist-items li{margin:2px 0}
-.hist-items li.done{color:var(--muted);text-decoration:line-through}
+/* 10/2 她拍板：展开区从 ul 列表改行式布局——状态圆点 + 文本，底部弱化编辑按钮 */
+.hist-body{padding:6px 0 12px;border-top:1px dashed var(--line)}
+.hist-item{display:flex;align-items:flex-start;gap:10px;padding:7px 0;font-size:14px;line-height:1.6}
+.hist-dot{flex:none;width:19px;height:19px;border-radius:50%;border:1.5px solid var(--line);background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;margin-top:2px}
+.hist-item.done .hist-dot{background:var(--ok);border-color:var(--ok)}
+.hist-txt{flex:1;min-width:0;word-break:break-word;color:var(--ink)}
+.hist-item.done .hist-txt{color:var(--muted);text-decoration:line-through}
+.hist-foot{display:flex;justify-content:flex-end;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}
+.hist-foot .btn-ghost{color:var(--primary);font-weight:600}
 /* 昨日未完成自动延续提示 + 延续项左侧标记 */
 .plan-carry-tip{font-size:12.5px;color:var(--primary);background:var(--primary-soft);border-radius:var(--radius-sm);padding:7px 10px;margin-bottom:8px;line-height:1.5}
 .plan-item.carried{position:relative;padding-left:10px}
@@ -1761,13 +1766,6 @@ main.container{padding-top:40px}
 .ms-sum-bar i{display:block;height:100%;border-radius:4px;transition:width .3s ease}
 .ms-sum-freq{font-size:13px;color:var(--ink-soft);line-height:1.6}
 .ms-sum-advice{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.6}
-
-/* ===== 计划页 · 历史计划整体折叠 ===== */
-.history-folded{padding:0}
-/* 10/1 晚：外层 details 壳已删（她拍板「那么大一块还能折叠太奇怪」），头部直接平铺 */
-.history-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:2px 0 14px}
-.history-summary h2{font-size:18px;font-weight:700;color:var(--ink)}
-.history-summary .muted{font-size:13px}
 #histPlans{padding:0 20px 18px}
 
 /* ===== 单词 · 全屏沉浸式背词 =====
