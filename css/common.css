@@ -2617,6 +2617,7 @@ body.has-dock main.container{ padding-bottom:0; }
   .mk-list-head{gap:6px}
   .mk-list-head .inline-h2{font-size:15px}
   /* 「科目/粒度」label 手机端让位（视觉隐藏，读屏保留）——下拉选项本身语义可辨 */
+  .mk-filter-wrap{position:relative}   /* sr-only label 的包含块必须收回本容器（否则逃逸到 html 层撑出 166px 幽灵滚动区） */
   .mk-filter-wrap > label{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   .mk-filter-wrap select{font-size:12.5px;padding:4px 24px 4px 8px}
   #mkList .mk-row{gap:5px;padding:8px 26px 8px 10px;position:relative}
@@ -2842,3 +2843,18 @@ html[data-theme="dark"] .onb2-overlay{background:rgba(0,0,0,.62)}
 .rv-fold .rv-fold-head:hover{opacity:.85}
 .rv-fold .rv-arrow{margin-left:auto;font-size:13px;color:var(--muted);transition:transform .18s ease}
 .rv-fold.open .rv-arrow{transform:rotate(90deg)}
+
+/* ===== 10/2 · 移动端 App 化外壳（她拍板：页面固定一屏、禁整页竖滚；内容区内部滚不截断） =====
+   适用 = 带 dock 的页面（body.has-dock，common.js 注入）；落地页/登录页无 dock 不锁。
+   沉浸态（模考 mock-immerse / 背词全屏 word-fullscreen）有自己的布局体系，不套壳。 */
+@media (max-width:860px){
+  html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+  body.has-dock:not(.mock-immerse):not(.word-fullscreen){
+    display:flex;flex-direction:column;
+  }
+  body.has-dock:not(.mock-immerse):not(.word-fullscreen) main.container{
+    flex:1 1 auto;min-height:0;overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    padding-bottom:calc(88px + env(safe-area-inset-bottom,0px));   /* dock 净空并入滚动容器 */
+  }
+}

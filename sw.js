@@ -9,7 +9,7 @@
      SW 不参与离线态的判定与渲染，缓存策略本文件零改动。
      本文件 activate 时发的 `SW_UPDATED` 消费端也在 common.js（maybeShowSwUpdatePrompt，
      design/78）：页面收到后只弹提示条，**是否刷新由用户点击决定，SW 侧绝不自动 reload**。 */
-const CACHE = 'ielts-hub-v155';  // 10/2：回顾页记录列表瘦身（她 10/2 反馈）——筛选框并排贴标题右一行（手机端 label 视觉隐藏）、标题「分项记录列表」→「记录列表」、记录条移动端紧凑化（日期/徽章/Part 行字号内边距全收一档）；上一版 v154 模考界面回退
+const CACHE = 'ielts-hub-v156';  // 10/2：App Shell 移动端锁壳（她拍板：页面固定一屏、禁整页竖滚；内容区内部滚不截断；落地/登录不锁、沉浸态不套壳）+ 记录列表 filter label 包含块逃逸修复（review html 幽灵滚动 166px 收净）；上一版 v155 记录列表瘦身
 
 /* 核心壳预缓存清单（Node 脚本枚举目录生成，2026-09-20；与 14 页实际引用核对无遗漏）。
    不含 js/vendor/xlsx.full.min.js（861KB 体积大 → 走运行时 SWR 缓存）。 */
