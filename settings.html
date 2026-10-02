@@ -49,7 +49,7 @@
 </style>
 <script defer src="js/data.js?v=20261001b"></script>
   <script defer src="js/common.js?v=20261001p"></script>
-  <script src="js/settings.js?v=20261001i" defer></script>
+  <script src="js/settings.js?v=20261001j" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -111,17 +111,12 @@
     </div>
   </section>
 
-  <!-- ② 学习偏好（原「基本信息」） -->
+  <!-- ② 个人设置（原「学习偏好」，她 10/2 改名） -->
   <section class="card">
-    <h2>学习偏好</h2>
+    <h2>个人设置</h2>
     <div class="form-row">
       <div><label>昵称</label><input id="sName" /></div>
-      <div><label>下次考试日期</label>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <input id="sExam" type="date" />
-          <span id="settingsCountdown" class="badge" style="font-size:12.5px;white-space:nowrap"></span>
-        </div>
-      </div>
+      <div><label>下次考试日期</label><input id="sExam" type="date" /></div>
       <div><label>每日目标（小时）</label><input id="sGoal" type="number" min="1" max="16" /></div>
     </div>
     <div class="form-row settings-options" style="gap:16px;align-items:center;margin-top:12px;flex-wrap:wrap">

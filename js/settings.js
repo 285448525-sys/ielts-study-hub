@@ -3,14 +3,7 @@ function populateSettingsForm(){
   const s = DATA.settings || {};
   if($('#sName')) $('#sName').value = s.name || '';
   if($('#sExam')) $('#sExam').value = s.examDate || '';
-  // 考试日期倒计时显示（从回顾页移来）
-  const cdEl2 = document.getElementById('settingsCountdown');
-  if(cdEl2 && typeof examCountdown === 'function'){
-    const cd = examCountdown();
-    cdEl2.textContent = cd.hasExam ? ('距考试 ' + cd.label) : '';
-    cdEl2.style.background = cd.hasExam ? 'var(--primary-soft)' : 'transparent';
-    cdEl2.style.color = cd.hasExam ? 'var(--primary)' : 'var(--muted)';
-  }
+  /* 10/2（她拍板）：「距考试 N 天」徽章整删（顶得布局很丑）——settingsCountdown 相关渲染退役；考试倒计时首页/冲刺卡仍有 */
   if($('#sGoal')) $('#sGoal').value = s.dailyGoalHours || '';
   if($('#sThemeToggle')) $('#sThemeToggle').checked = (s.theme === 'dark');
 
@@ -153,14 +146,6 @@ function saveSettings(){
   _set('chimeOnDone', $('#sChime').checked);
   if($('#sAdhd')) _set('adhd', $('#sAdhd').checked);   // 服药模块开关（未开启则入口全隐藏，数据保留）
   hubSave(); applyTheme();
-  // 刷新考试倒计时显示（重新查元素：cdEl2 是 populateSettingsForm 的局部变量，此处不可跨函数访问）
-  const cdEl2 = document.getElementById('settingsCountdown');
-  if(cdEl2 && typeof examCountdown === 'function'){
-    const cd2 = examCountdown();
-    cdEl2.textContent = cd2.hasExam ? ('距考试 ' + cd2.label) : '';
-    cdEl2.style.background = cd2.hasExam ? 'var(--primary-soft)' : 'transparent';
-    cdEl2.style.color = cd2.hasExam ? 'var(--primary)' : 'var(--muted)';
-  }
   if(DATA.settings.syncCode) scheduleCloudUpload();   // 已登录则立即同步（含发音分等）到云端
   toast(DATA.settings.syncCode ? '设置已保存（已同步云端）' : '设置已保存');   // 未登录不谎报「已同步」
 }
