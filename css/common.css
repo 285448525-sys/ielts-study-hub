@@ -2603,6 +2603,30 @@ body.has-dock main.container{ padding-bottom:0; }
 #mkList .mk-note{flex:0 1 100%;font-size:12px;opacity:.7;margin-top:2px}
 #mkList .mk-del{margin-left:auto;opacity:.4;transition:opacity .15s ease}
 #mkList .mk-row:hover .mk-del{opacity:1}
+/* 10/2（她 10/2 反馈）：①筛选框并排贴到「记录列表」标题右边，一行解决（不再一上一下）
+   ②记录条移动端收紧空隙（日期行/徽章行/Part 行挤成更少行、更矮） */
+.mk-list-head{flex-wrap:nowrap;align-items:center;gap:10px}
+.mk-list-head .inline-h2{flex:none;margin:0}
+.mk-filter-wrap{gap:6px}
+.mk-filter-wrap select{width:auto;min-width:0}
+.mk-date{font-size:14px}
+@media (max-width:640px){
+  /* 豁免 ≤640 的 .form-row 纵向堆叠（display:block + width:100%!important 就是「两个框一上一下」的根因） */
+  .form-row.mk-list-head{display:flex;flex-wrap:nowrap}
+  .form-row.mk-list-head > div{width:auto !important;flex:none !important;margin-bottom:0}
+  .mk-list-head{gap:6px}
+  .mk-list-head .inline-h2{font-size:15px}
+  /* 「科目/粒度」label 手机端让位（视觉隐藏，读屏保留）——下拉选项本身语义可辨 */
+  .mk-filter-wrap > label{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .mk-filter-wrap select{font-size:12.5px;padding:4px 24px 4px 8px}
+  #mkList .mk-row{gap:5px;padding:8px 26px 8px 10px;position:relative}
+  #mkList .mk-row .mk-date{font-size:13px;min-width:0}
+  #mkList .mk-row .badge{font-size:10.5px;padding:2px 6px}
+  #mkList .mk-del{position:absolute;top:8px;right:10px;margin-left:0}
+  #mkList .mk-parts-inline{gap:4px}
+  #mkList .mk-parts-inline .badge{font-size:10.5px;padding:2px 6px}
+  #mkList .mk-note{font-size:11px}
+}
 @media (max-width:560px){#mkList .mk-row{flex-wrap:wrap}#mkList .mk-parts-inline{flex:1 1 100%}}
 
 /* ===== design/58 间隔重复算法可视化（之之 2026-09-18 · 纯只读展示层，零算法改动）=====

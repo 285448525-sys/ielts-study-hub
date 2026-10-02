@@ -708,7 +708,7 @@ function renderMockList(){
         : ` <span class="badge">差 ${n - tc} 到 ${n}</span>`;
     }
     return `<div class="score-row mk-row">
-      <strong style="min-width:70px">${r.date}</strong>
+      <strong class="mk-date">${r.date}</strong>
       <span class="badge ${r.type[0]}">${cfg.icon} ${cfg.name}</span>
       <span class="badge">${r.granularity==='whole'?'整卷':'单项'}</span>
       ${overallBadge}${estBadge}

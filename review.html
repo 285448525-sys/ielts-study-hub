@@ -29,7 +29,7 @@
 })();
 </script>
 <title>回顾 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261002e" />
+<link rel="stylesheet" href="css/common.css?v=20261002f" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=6" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=6">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=6">
@@ -49,11 +49,11 @@
   .mk-entry-row label{font-size:11px;margin:0 0 2px;display:block}
   .mk-entry-row select,.mk-entry-row input{width:100%;min-width:0;padding:7px 9px;font-size:13px}
   .mk-entry-row #mkAdd{grid-column:1 / -1;min-height:38px;width:100%;margin-top:2px}
-  .mk-list-head{display:grid !important;grid-template-columns:1fr 1fr;gap:6px 10px;margin-bottom:6px}
-  .mk-list-head .inline-h2{grid-column:1 / -1;font-size:16px}
-  .mk-list-head .mk-filter-wrap{display:flex;align-items:center;gap:6px;margin-left:0 !important;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:2px 4px 2px 10px}
-  .mk-list-head .mk-filter-wrap > label{font-size:11px;color:var(--muted);font-weight:600}
-  .mk-list-head select{width:100%;min-width:0;border:none;padding:8px 2px;font-size:13px;background:transparent}
+  .mk-list-head{display:flex !important;flex-wrap:nowrap;align-items:center;gap:6px;margin-bottom:6px}
+  .mk-list-head .inline-h2{flex:none;font-size:15px;margin:0}
+  .mk-list-head .mk-filter-wrap{display:flex;align-items:center;gap:4px;margin-left:0 !important;min-width:0;flex:0 1 auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:2px 4px 2px 10px}
+  .mk-list-head .mk-filter-wrap > label{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .mk-list-head select{width:auto;min-width:0;flex:none;border:none;padding:5px 2px;font-size:13px;background:transparent}
   /* 记录行收紧 */
   .score-row.mk-row{padding:9px 10px;margin:0 0 8px}
   .score-row.mk-row .mk-note{font-size:12px}
@@ -64,7 +64,7 @@
 </style>
 <script defer src="js/data.js?v=20261001b"></script>
 <script defer src="js/common.js?v=20261002c"></script>
-<script defer src="js/scores.js?v=20261001d"></script>
+<script defer src="js/scores.js?v=20261002a"></script>
 <script defer src="js/history.js?v=20260904d"></script>
 <script defer src="js/mock-report.js?v=20260830u"></script>
 <script defer src="js/mock-history.js?v=20260830u"></script>
@@ -159,7 +159,7 @@
 
         <section class="card">
           <div class="form-row mk-list-head" style="align-items:center">
-            <h2 class="inline-h2">分项记录列表</h2>
+            <h2 class="inline-h2">记录列表</h2>
             <!-- 9/29 之之：分项记录加筛选——科目四选一 + 听/读/口/写通用的整卷/单篇粒度 -->
             <div class="mk-filter-wrap" style="margin-left:auto"><label>科目</label>
               <select id="mkListType">
