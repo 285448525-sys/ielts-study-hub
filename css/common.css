@@ -1028,6 +1028,21 @@ html[data-theme="dark"] .finish-zero-card{background:rgba(70,168,131,.16)}
 .ls-natural{padding:14px 16px;border-radius:12px;background:var(--surface);border-left:4px solid var(--primary);font-size:14px;line-height:1.7;color:var(--ink)}
 .ls-save-hint{font-size:12px;color:var(--muted);margin-top:8px}
 .ls-save-hint kbd{display:inline-block;padding:2px 6px;border-radius:6px;background:var(--surface-2);border:1px solid var(--line);font-family:monospace;font-size:11px}
+
+/* 结构拆解（商业版默认模式） */
+.ls-backbone{background:var(--surface-2,var(--bg));border:1px solid var(--line);border-left:3px solid var(--primary);border-radius:8px;padding:9px 12px;font-size:14px;line-height:1.7}
+.ls-clause{display:flex;align-items:baseline;gap:8px;padding:6px 0;border-bottom:1px dashed var(--line);flex-wrap:wrap}
+.ls-clause:last-child{border-bottom:none}
+.ls-clause-type{font-size:11px;padding:1px 8px;border-radius:10px;background:var(--primary-soft);color:var(--med);border:1px solid var(--line);white-space:nowrap;font-weight:600}
+.ls-clause-text{font-size:13.5px;line-height:1.6}
+.ls-clause-role{font-size:12.5px;color:var(--muted)}
+.ls-sig{display:flex;align-items:baseline;gap:8px;padding:6px 0;border-bottom:1px dashed var(--line);flex-wrap:wrap}
+.ls-sig:last-child{border-bottom:none}
+.ls-sig-word{font-size:13.5px}
+.ls-sig-logic{font-size:11px;padding:1px 8px;border-radius:10px;background:rgba(234,140,50,.12);color:#8a5a1a;border:1px solid rgba(234,140,50,.25);white-space:nowrap;font-weight:600}
+.ls-sig-exam{font-size:12.5px;color:var(--muted)}
+.ls-exam .ls-sec-title{color:var(--primary-d,var(--primary))}
+.ls-exam-lens{background:var(--primary-soft);border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-size:13.5px;line-height:1.7}
 .ls-kw-list{display:flex;flex-direction:column;gap:8px}
 .ls-kw-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:var(--surface);border:1px solid var(--line);transition:background .15s,border-color .15s;cursor:pointer}
 .ls-kw-row:hover,.ls-kw-row:focus{background:var(--surface-2);border-color:var(--primary);outline:none}
@@ -1774,7 +1789,7 @@ main.container{padding-top:40px}
 .ms-sum-count{font-size:13px;color:var(--muted);white-space:nowrap}
 .ms-sum-bar{height:6px;background:var(--line);border-radius:4px;margin:8px 0 6px;overflow:hidden}
 .ms-sum-bar i{display:block;height:100%;border-radius:4px;transition:width .3s ease}
-.ms-sum-freq{font-size:13px;color:var(--ink-soft);line-height:1.6}
+.ms-sum-freq{font-size:13px;color:var(--ink-2);line-height:1.6}
 .ms-sum-advice{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.6}
 #histPlans{padding:0 20px 18px}
 

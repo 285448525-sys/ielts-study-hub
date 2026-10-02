@@ -650,6 +650,34 @@ function speak(text, lang){ try{ const u=new SpeechSynthesisUtterance(text); u.l
    兼容老数据 kind:'question' / 'word' / 'capture'（只读渲染，不再提供录入表单）；
    老 kind:'ai' 无新字段时由 cardHtml 兜底渲染（旧 answerNote 挪进核心判定区）。 */
 
+/* ===================== 长难句拆解：模式常量与 prompt（必须位于 ready( 之前，TDZ 铁律） ===================== */
+/* 句子结构拆解（商业版默认模式）：主干 + 成分 + 逻辑信号 + 命题人视角 */
+var SYS_STRUCT = `你是一位资深雅思阅读教学老师。用户给你一个来自雅思阅读的长难句，请做「句子结构拆解」，输出以下 JSON（不要前言、不要解释、不要 markdown 围栏）：
+
+{"backbone":"句子主干：主谓宾核心，保留原词，可用 … 截断修饰成分",
+"clauses":[{"text":"从句/插入语等修饰成分原文","type":"宾语从句","role":"一句话：它说明/修饰的是什么"}],
+"signals":[{"word":"逻辑信号词","logic":"转折","exam":"一句话：命题人常用它怎么设坑"}],
+"translation":"自然通顺的中文译文",
+"keyWords":[{"en":"考点词","cn":"中文释义","note":"考点：同义替换/熟词僻义，及题目里怎么考"}],
+"examLens":"命题人视角，1-2 句：这句话最可能出什么题型，答案藏在哪个成分里"}
+
+要求：
+1. clauses 的 type 必须用标准语法术语：主语从句/宾语从句/表语从句/同位语从句/定语从句/状语从句/插入语/倒装/强调/并列结构/分词短语；句子简单没有从句就给空数组。
+2. signals 只挑真正影响解题的逻辑词（however/while/yet/whereas/because/in contrast 等），没有就空数组。
+3. keyWords 提取 3-6 个，note 必须具体（例：「pose 与 present/constitute 构成同义替换，判断题常考」），不写"重要词汇"这类空话。
+4. examLens 是本产品与普通翻译工具拉开差距的核心：站到出题人角度写，不许写"这句话很难"这类无信息量评价。
+5. 全部简体中文，英文片段保留英文。`;
+
+var LS_MODE_KEY = 'corpus_ls_mode';   // 'struct'（默认） | 'si'（同声传译，之之自用）
+function lsMode(){
+  try{ return localStorage.getItem(LS_MODE_KEY) === 'si' ? 'si' : 'struct'; }catch(e){ return 'struct'; }
+}
+function setLsMode(m){
+  try{ localStorage.setItem(LS_MODE_KEY, m === 'si' ? 'si' : 'struct'); }catch(e){}
+  const seg = document.getElementById('lsModeSeg');
+  if(seg) seg.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.lsmode === lsMode()));
+}
+
 ready(() => {
   /* 子 tab 切换：长难句 / 错题本 / 听力默写（默认长难句在前；null 保护兼容跳转页场景） */
   /* design/85：抽成 switchCorpusSub 供 #eb hash 直达错题 tab（errorbook.html 跳转页落点） */
@@ -675,6 +703,15 @@ ready(() => {
   /* 10/2 大改版（她拍板）：筛选/搜索控件整删——列表就是时间倒序卡片流，无需绑定 */
 
   /* 长难句拆解 */
+  /* P1 专业化：拆解模式切换（默认结构拆解；同传为自用模式），刷新后 localStorage 记忆 */
+  const lsSeg = document.getElementById('lsModeSeg');
+  if(lsSeg){
+    lsSeg.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.lsmode === lsMode()));
+    lsSeg.addEventListener('click', e => {
+      const btn = e.target.closest('button[data-lsmode]');
+      if(btn) setLsMode(btn.dataset.lsmode);
+    });
+  }
   $('#analyzeBtn').addEventListener('click', analyze);
   bindEnterSubmit($('#sentInput'), $('#analyzeBtn'));   // 9/22 之之：回车即拆解
   $('#copyBtn').addEventListener('click', copyResult);
@@ -706,7 +743,7 @@ async function analyzeEntry(){
 
   const messages = [
     { role:'system', content:
-`你是雅思错题诊断助手，服务对象是一名目标总分 6.0 的中国考生（听力、口语、写作稳 5.5，阅读目标 6.5；阅读速度慢，且常把 FALSE 误判成 NOT GIVEN）。
+`你是雅思错题诊断助手，面向所有备考雅思的考生，不要假设考生的水平或目标分数。
 用户会粘贴一段关于某道错题的讲解——通常是别的 AI 对答题截图的回复，也可能是她自己的零散笔记，格式混乱、有多余的话都正常。
 你的任务：把它整理成结构化内容。全部用简体中文（英文题干、原文、答案、依据保留英文），务实、具体，不写空话套话。
 
@@ -729,14 +766,15 @@ async function analyzeEntry(){
   · evidence：原文中直接决定答案的那句或关键片段，英文照抄，不要翻译；
   · compare：一句话讲清判定逻辑——判断题必须点明「题干哪里与原文矛盾」或「原文没提题干的哪部分」；填空题写定位线索加所需词性/词形；选择题写正确项为什么对、主要干扰项错在哪；Heading 题写中心句是哪句。
 - rule：一句话，下次遇到同类题怎么避免再错，必须可执行（例：「看到 only/all 这类绝对限定词先回原文找对应词，原文没有限定就是 NOT GIVEN」）。
-- structureAnalysis：题干逐词/逐意群对照（同声传译），对象 {"wordByWord":[{"en":"英文片段","cn":"中文直译"}],"answerNote":""}：
-  · answerNote 仅填空题填写：这个空要填的类型（词性/类别/单复数），其他题型一律留空；
-  · 不要输出 natural 字段，不要再给整句翻译（translation 已有）。
+- structureAnalysis：题干结构拆解，对象 {"backbone":"题干主干：主谓宾核心，保留原词","clauses":[{"text":"从句/插入语等修饰成分原文","type":"定语从句","role":"一句话：它说明/修饰的是什么"}],"note":""}：
+  · type 必须用标准语法术语（定语从句/状语从句/同位语从句/宾语从句/插入语等）；题干简单没有从句就给空数组；
+  · note 仅填空题填写：这个空要填的类型（词性/类别/单复数），其他题型一律留空；
+  · 不要输出 wordByWord 逐词直译，不要输出 natural 字段（translation 已有整句翻译）。
 - words：真正值得背的生词/短语，[{"en":"","cn":""}]，没有就 []。控制在 3-8 个，不要把 wordByWord 逐词再抄一遍。
 
 资料信息不足时，就基于已有信息给最有价值的部分，绝不编造原文内容。
 只输出 JSON，不要任何解释文字、不要 markdown 围栏：
-{"title":"","qtype":"","trap":"","myAnswer":"","correctAnswer":"","questionText":"","passageSnippet":"","translation":"","keyReasoning":{"relation":"","evidence":"","compare":""},"rule":"","structureAnalysis":{"wordByWord":[{"en":"","cn":""}],"answerNote":""},"words":[{"en":"","cn":""}]}` },
+{"title":"","qtype":"","trap":"","myAnswer":"","correctAnswer":"","questionText":"","passageSnippet":"","translation":"","keyReasoning":{"relation":"","evidence":"","compare":""},"rule":"","structureAnalysis":{"backbone":"","clauses":[{"text":"","type":"","role":""}],"note":""},"words":[{"en":"","cn":""}]}` },
     { role:'user', content: text }
   ];
 
@@ -765,7 +803,9 @@ async function analyzeEntry(){
         rule: String(r.rule || '').trim(),
         structureAnalysis: (r.structureAnalysis && typeof r.structureAnalysis === 'object')
           ? { wordByWord: Array.isArray(r.structureAnalysis.wordByWord) ? r.structureAnalysis.wordByWord : [],
-              answerNote: String(r.structureAnalysis.answerNote || '').trim() }
+              backbone: String(r.structureAnalysis.backbone || '').trim(),
+              clauses: Array.isArray(r.structureAnalysis.clauses) ? r.structureAnalysis.clauses : [],
+              note: String(r.structureAnalysis.note || '').trim() }
           : null,
         words: Array.isArray(r.words)
           ? r.words.map(w => ({ en: String(w.en || '').trim(), cn: String(w.cn || '').trim() })).filter(w => w.en)
@@ -1003,10 +1043,22 @@ function cardHtml(e){
         }).join('')}</div>
         ${sa.answerNote ? `<div class="muted" style="margin-top:8px;font-size:13px">填空类型：${escapeHtml(sa.answerNote)}</div>` : ''}
       </div>` : '';
+  /* 题干结构（新） ：老记录走上面 wbw 同传块，新记录走这里 */
+  const saStructHtml = (sa && sa.backbone)
+    ? `<div class="eb-block"><h4>题干结构</h4>
+        <div class="ls-backbone" lang="en">${escapeHtml(sa.backbone)}</div>
+        ${(sa.clauses && sa.clauses.length) ? `<div class="ls-clause-list">${sa.clauses.map(c => {
+          const t = escapeHtml((c.text||'').trim()), ty = escapeHtml((c.type||'').trim()), ro = escapeHtml((c.role||'').trim());
+          if(!t && !ty) return '';
+          return `<div class="ls-clause"><span class="ls-clause-type">${ty || '成分'}</span><span class="ls-clause-text" lang="en">${t}</span>${ro ? `<span class="ls-clause-role">${ro}</span>` : ''}</div>`;
+        }).join('')}</div>` : ''}
+        ${sa.note ? `<div class="muted" style="margin-top:8px;font-size:13px">填空类型：${escapeHtml(sa.note)}</div>` : ''}
+      </div>` : '';
   const deepParts = [
     e.questionText ? `<div class="eb-block"><h4>题干原文</h4><p style="white-space:pre-wrap">${escapeHtml(e.questionText)}</p></div>` : '',
     e.translation ? `<div class="eb-block"><h4>整句翻译</h4><p>${escapeHtml(e.translation)}</p></div>` : '',
     wbw,
+    saStructHtml,
     e.passageSnippet ? `<div class="eb-block"><h4>对应原文</h4><p style="white-space:pre-wrap">${escapeHtml(e.passageSnippet)}</p></div>` : '',
     e.source ? `<div class="eb-block"><h4>我粘进来的原始资料</h4><pre style="white-space:pre-wrap;word-break:break-word;margin:0;padding:10px;background:var(--bg);border-radius:8px;border:1px solid var(--line);font:inherit;font-size:13px;line-height:1.7;max-height:260px;overflow:auto">${escapeHtml(e.source)}</pre></div>` : ''
   ].filter(Boolean).join('');
@@ -1014,7 +1066,8 @@ function cardHtml(e){
     ? `<details class="eb-deep"><summary>展开看：题干 / 翻译 / 逐词对照 / 原文</summary>${deepParts}</details>` : '';
   const raw = e.raw
     ? `<details class="eb-src"><summary>AI 原始回复</summary><p style="white-space:pre-wrap">${escapeHtml(e.raw)}</p></details>` : '';
-  const needRedo = !e.structureAnalysis || !e.structureAnalysis.wordByWord || !e.structureAnalysis.wordByWord.length;
+  const needRedo = !e.structureAnalysis
+    || (!(e.structureAnalysis.wordByWord || []).length && !e.structureAnalysis.backbone);
 
   return `<div class="eb-card${e.known ? ' is-known' : ''}">
     <div class="eb-head" style="display:flex;align-items:baseline;gap:8px">
@@ -1113,6 +1166,8 @@ function oldWordCard(e){
 }
 
 /* ===================== 长难句拆解（从 longsent.js 合并，保留 DATA.longSent） ===================== */
+/* SYS_STRUCT / 模式函数已上移到 ready( 之前（TDZ 铁律：ready 回调同步执行） */
+
 var SYS_LONG = `你是一位资深的雅思阅读老师。用户会给你一个英文长难句，请按"同声传译"方式输出以下 JSON（不要前言、不要解释、不要背景知识，不要输出 markdown 代码块围栏）：
 
 {"wordByWord":[{"en":"英文片段","cn":"中文直译"}],"natural":"自然流畅的中文译文","keyWords":[{"en":"考点词","cn":"中文释义","note":"考点提示：同义替换/熟词僻义/学术用法等"}]}
@@ -1134,7 +1189,8 @@ async function analyze(){
   status.textContent = '拆解中…（长句可能要 10–20 秒）'; status.className = 'word-status loading';
   $('#analyzeBtn').disabled = true;
   try{
-    const text = await callLongsent([{ role:'system', content: SYS_LONG }, { role:'user', content: sent }]);
+    const sys = lsMode() === 'si' ? SYS_LONG : SYS_STRUCT;
+    const text = await callLongsent([{ role:'system', content: sys }, { role:'user', content: sent }]);
     _lastSentence = sent; _lastRaw = text;
     const body = $('#resultBody');
     body.innerHTML = renderResult(sent, text);
@@ -1155,8 +1211,11 @@ async function analyze(){
 /* 新格式：优先尝试解析 JSON；失败则回退到旧版 markdown 分段渲染（兼容历史记录） */
 function renderResult(sent, raw){
   const json = aiJson(raw);
+  if(json && json.backbone != null){
+    return renderStructResult(json);          // 结构拆解（新默认）
+  }
   if(json && Array.isArray(json.wordByWord) && typeof json.natural === 'string'){
-    return renderNewResult(json);
+    return renderNewResult(json);             // 同传对照（自用模式 + 历史记录）
   }
   return parseSections(raw).map(s => `<div class="rs-sec"><h3>${escapeHtml(s.title)}</h3>${renderBody(s.body)}</div>`).join('');
 }
@@ -1201,6 +1260,39 @@ function renderNewResult(json){
       <div class="ls-sec-title">重点词汇 · 点击/按 S 收录</div>
       <div class="ls-kw-list">${kws || renderEmpty('无重点词汇')}</div>
     </div>
+  `;
+}
+
+/* 结构拆解渲染（商业版默认）：主干/成分/逻辑信号/译文/考点词/命题人视角；考点词与同传模式同 data-en/data-cn 收录交互 */
+function renderStructResult(json){
+  const clauseList = (json.clauses || []).map(c => {
+    const t = escapeHtml((c.text || '').trim()), ty = escapeHtml((c.type || '').trim()), ro = escapeHtml((c.role || '').trim());
+    if(!t && !ty) return '';
+    return `<div class="ls-clause"><span class="ls-clause-type">${ty || '成分'}</span><span class="ls-clause-text" lang="en">${t}</span>${ro ? `<span class="ls-clause-role">${ro}</span>` : ''}</div>`;
+  }).join('');
+  const sigs = (json.signals || []).map(s => {
+    const w = escapeHtml((s.word || '').trim()), l = escapeHtml((s.logic || '').trim()), ex = escapeHtml((s.exam || '').trim());
+    if(!w) return '';
+    return `<div class="ls-sig"><b class="ls-sig-word" lang="en">${w}</b><span class="ls-sig-logic">${l}</span>${ex ? `<span class="ls-sig-exam">${ex}</span>` : ''}</div>`;
+  }).join('');
+  const kws = (json.keyWords || []).map(w => {
+    const en = escapeHtml((w.en || '').trim()), cn = escapeHtml((w.cn || '').trim()), note = escapeHtml((w.note || '').trim());
+    if(!en) return '';
+    return `<div class="ls-kw-row" tabindex="0" data-en="${en}" data-cn="${cn}" title="点击收录 · 悬停按 S 一键收录">
+      <div class="ls-kw-main"><span class="ls-kw-en">${en}</span><span class="ls-kw-cn">${cn}</span>${note ? `<span class="ls-kw-note">${note}</span>` : ''}</div>
+      <button class="ls-kw-save" data-en="${en}" data-cn="${cn}" title="按 S 一键收录">收录</button>
+    </div>`;
+  }).join('');
+  return `
+    <div class="ls-sec">
+      <div class="ls-sec-title">句子主干</div>
+      <div class="ls-backbone" lang="en">${escapeHtml(json.backbone || '')}</div>
+    </div>
+    ${clauseList ? `<div class="ls-sec"><div class="ls-sec-title">成分拆解</div><div class="ls-clause-list">${clauseList}</div></div>` : ''}
+    ${sigs ? `<div class="ls-sec"><div class="ls-sec-title">逻辑信号 · 考点预警</div><div class="ls-sig-list">${sigs}</div></div>` : ''}
+    <div class="ls-sec"><div class="ls-sec-title">译文</div><div class="ls-natural">${escapeHtml(json.translation || '')}</div></div>
+    <div class="ls-sec"><div class="ls-sec-title">考点词汇 · 点击/按 S 收录</div><div class="ls-kw-list">${kws || renderEmpty('无重点词汇')}</div></div>
+    ${json.examLens ? `<div class="ls-sec ls-exam"><div class="ls-sec-title">命题人视角</div><div class="ls-exam-lens">${escapeHtml(json.examLens)}</div></div>` : ''}
   `;
 }
 
@@ -1298,8 +1390,8 @@ async function copyResult(){
   if(!_lastRaw) return;
   const json = aiJson(_lastRaw);
   let text = '原句：\n' + _lastSentence + '\n\n';
-  if(json && typeof json.natural === 'string'){
-    text += '自然译文：\n' + json.natural + '\n\n';
+  if(json && (typeof json.natural === 'string' || typeof json.translation === 'string')){
+    text += (typeof json.translation === 'string' ? '译文：\n' + json.translation : '自然译文：\n' + json.natural) + '\n\n';
     text += '重点词汇：\n' + (json.keyWords || []).map(w => {
       const note = w.note ? '（' + w.note + '）' : '';
       return (w.en || '') + ' — ' + (w.cn || '') + note;
@@ -1348,6 +1440,7 @@ function renderHistory(){
 
 function firstSectionPreview(result){
   const json = aiJson(result);
+  if(json && json.translation) return '结构拆解：' + json.translation.slice(0, 60) + (json.translation.length > 60 ? '…' : '');
   if(json && json.natural) return '同声传译：' + json.natural.slice(0, 60) + (json.natural.length > 60 ? '…' : '');
   const secs = parseSections(result);
   if(!secs.length) return '';

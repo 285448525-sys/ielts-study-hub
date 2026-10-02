@@ -31,7 +31,7 @@
 })();
 </script>
 <title>句子 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261002c" />
+<link rel="stylesheet" href="css/common.css?v=20261002d" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=6" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=6">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=6">
@@ -43,7 +43,7 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20261001b"></script>
   <script defer src="js/common.js?v=20261002b"></script>
-  <script src="js/corpus.js?v=20261001g" defer></script>
+  <script src="js/corpus.js?v=20261002a" defer></script>
 <style>
   /* 长难句 / 错题本 样式（原 errorbook.html 内联） */
   .eb-input{width:100%;min-height:190px;padding:14px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;font-size:14.5px;line-height:1.75;background:var(--bg);color:var(--ink);resize:vertical}
@@ -131,6 +131,10 @@
   <div id="lsView">
     <section class="card">
       <h2>粘贴长难句</h2>
+      <div class="sub-tabs pill-tabs" id="lsModeSeg" style="margin:-4px 0 10px">
+        <button type="button" data-lsmode="struct" class="pill-tab active">结构拆解</button>
+        <button type="button" data-lsmode="si" class="pill-tab">同传对照</button>
+      </div>
       <textarea id="sentInput" placeholder="在此粘贴长难句，例如：The theory suggests the decline is a deeper imbalance."></textarea>
       <div class="form-row row-end mt-10">
         <button class="btn btn-primary" id="analyzeBtn">拆解分析</button>

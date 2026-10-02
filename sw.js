@@ -9,7 +9,7 @@
      SW 不参与离线态的判定与渲染，缓存策略本文件零改动。
      本文件 activate 时发的 `SW_UPDATED` 消费端也在 common.js（maybeShowSwUpdatePrompt，
      design/78）：页面收到后只弹提示条，**是否刷新由用户点击决定，SW 侧绝不自动 reload**。 */
-const CACHE = 'ielts-hub-v152';  // 10/2：写作批改含金量 P1——语病卡「📍 定位原文」三链路联动（textarea 选区/模考 mark 高亮/填空框描边）+ tag 标签芯片（九选一）+ 评分记录顶部摘要条（近10次折线+高频错误top3）；全部 optional 旧记录零影响。上一版 v151 含金量 P0
+const CACHE = 'ielts-hub-v153';  // 10/2：句子模块专业化——长难句默认「结构拆解」prompt+六段结构卡（主干/成分/逻辑信号/译文/考点词/命题人视角），同传保留为一键切换模式（localStorage 记忆）；错题本 prompt 去个人画像、题干拆解换标准语法结构（老同传记录照常回放）。上一版 v152 含金量 P1
 
 /* 核心壳预缓存清单（Node 脚本枚举目录生成，2026-09-20；与 14 页实际引用核对无遗漏）。
    不含 js/vendor/xlsx.full.min.js（861KB 体积大 → 走运行时 SWR 缓存）。 */
