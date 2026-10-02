@@ -42,7 +42,7 @@
 <script defer src="js/data.js?v=20261001b"></script>
   <script defer src="js/common.js?v=20261002b"></script>
   <script defer src="js/writing_prompts.js?v=20260903ab"></script>
-  <script defer src="js/writing.js?v=20261001i"></script>
+  <script defer src="js/writing.js?v=20261002a"></script>
   <script defer src="js/wrongbook.js?v=20260903ab"></script>
 <style>
 
@@ -237,6 +237,15 @@
             <h2 id="dTitle" style="margin:0"></h2>
             <button class="btn btn-primary" id="tplDictBtn" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4a3 3 0 0 1 6 0M9 10h6M9 14h6"/></svg>默写</button>
             <button class="btn" id="backBtn">返回</button>
+          </div>
+
+          <!-- 10/2 她拍板：模板=会员专属。免费用户点开只显示此锁卡，内容区块由 writing.js 隐藏 -->
+          <div id="tplLockCard" hidden style="text-align:center;padding:34px 16px">
+            <div style="font-size:40px;line-height:1" aria-hidden="true">🔒</div>
+            <h2 style="margin:12px 0 6px;font-size:19px">作文模板是会员专属</h2>
+            <p class="muted" style="font-size:13.5px;line-height:1.8;margin:0 auto 14px;max-width:420px">两套背诵模板 + 全部类型的填空练习、默写、AI 评分，开通会员即可无限使用。</p>
+            <a class="btn btn-primary" href="vip.html" style="text-decoration:none;display:inline-block;min-height:44px;line-height:44px;padding:0 22px">开通会员 · 首购 ¥19 起</a>
+            <p class="muted" style="font-size:12px;margin:12px 0 0">已开通会员？请在「设置 → 云端同步」登录同一账号后刷新本页。</p>
           </div>
 
           <div class="tpl-edit">

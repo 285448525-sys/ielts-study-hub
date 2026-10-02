@@ -29,6 +29,11 @@ function switchWriteTab(tab){
   if(tab === 'exam') renderExamList();
 }
 
+/* 10/2 模板会员闸状态：必须声明在 ready( 调用之前——common.js 的 ready 回调会同步执行（defer 场景），
+   声明放后面会 TDZ「Cannot access before initialization」（老坑，见 HANDOFF 铁律） */
+let tplVip = null;   // null=查询中（列表按未锁渲染，详情按锁定处理，查完回调刷新）
+const TPL_VIP_FLAG_KEY = 'hub_vip_flag_v1';
+
 ready(() => {
   // 迁移：清洗写作模板分类名/标题里的括号后缀（如「观点型（第一优先级）」→「观点型」），就地改写并保存
   migrateWritingCategoryNames();
@@ -40,6 +45,8 @@ ready(() => {
 
   // 模板库
   renderCats();
+  // 会员闸：查完刷新列表（🔓/🔒 角标）与当前详情（若停在锁定视图则解锁重渲染）
+  queryVipGate().then(v => { renderList(); if(curId && !$('#detailCard').hidden) openTpl(curId); });
   $('#backBtn').addEventListener('click', () => { $('#detailCard').hidden = true; $('#listCard').hidden = false; document.querySelector('.write-layout')?.classList.remove('detail-open'); });
   $('#addBtn').addEventListener('click', () => { $('#addCard').hidden = false; $('#listCard').hidden = true; $('#detailCard').hidden = true; });
   $('#a_cancel').addEventListener('click', () => { $('#addCard').hidden = true; $('#listCard').hidden = false; });
@@ -154,9 +161,53 @@ function renderCats(){
 function renderList(){
   let list = DATA.writing.filter(t => t.category === curCat);
   if(tplSearch){ list = list.filter(t => (cleanCatName(t.title)+' '+t.category).toLowerCase().indexOf(tplSearch) !== -1); }
-  $('#tplList').innerHTML = list.map(t => '<div class="card tpl-card" data-id="' + t.id + '"><b>' + escapeHtml(cleanCatName(t.title)) + '</b><div class="muted" style="font-size:13px;margin-top:4px">' + escapeHtml(t.category) + '</div></div>').join('');
+  const lockTag = (tplVip === true) ? '' : '<span class="badge" style="position:absolute;top:10px;right:10px" title="会员专属">🔒</span>';
+  $('#tplList').innerHTML = list.map(t => '<div class="card tpl-card" data-id="' + t.id + '" style="position:relative">' + lockTag + '<b>' + escapeHtml(cleanCatName(t.title)) + '</b><div class="muted" style="font-size:13px;margin-top:4px">' + escapeHtml(t.category) + '</div></div>').join('');
   $('#empty').hidden = list.length > 0;
   $('#tplList').querySelectorAll('[data-id]').forEach(c => c.addEventListener('click', () => openTpl(c.dataset.id)));
+}
+
+/* 10/2（她拍板）：作文模板 = 会员专属。展示层锁：
+   免费用户能看模板列表（标题+分类+🔒 角标，留转化钩子），点开详情只显示会员引导卡，
+   模板正文/填空练习/完整句/默写/评分入口全部不渲染。
+   ⚠️ 局限（如实告知）：模板数据仍在本地 DATA（随云同步分发），前端锁防的是「页面上看不了」，
+   防不住懂 devtools 的人从本地数据里翻；要硬隔离得把模板挪服务端按鉴权下发（破坏离线可用，暂不做）。
+   会员判定：调 authApiPost({action:'vip_status'})，结果存 sessionStorage（会话级，切会话重查）。
+   自建模板暂与官方模板同锁；若要「自建的自己能看」需给模板加内置/自建标记字段。 */
+
+
+async function queryVipGate(){
+  let v = null;
+  try{ v = sessionStorage.getItem(TPL_VIP_FLAG_KEY); }catch(e){}
+  if(v === '1' || v === '0'){ tplVip = (v === '1'); return tplVip; }
+  if(typeof authToken !== 'function' || !authToken()){
+    tplVip = false;
+  } else {
+    try{
+      const j = await authApiPost({ action:'vip_status', token: authToken() });
+      tplVip = !!(j && j.vip && j.vip.expire);
+    }catch(e){ tplVip = false; }   // 查询失败按非会员处理（锁是保守方向）
+  }
+  try{ sessionStorage.setItem(TPL_VIP_FLAG_KEY, tplVip ? '1' : '0'); }catch(e){}
+  return tplVip;
+}
+
+/* 锁定视图：隐藏全部模板内容块，显示会员引导卡 */
+function renderTplLocked(){
+  document.querySelectorAll('#detailCard .tpl-edit, #detailCard .tpl-text').forEach(el => el.style.display = 'none');
+  const hideIds = ['tips','tplWrongBox','tplDictBtn','delBtn'];
+  hideIds.forEach(id => { const el = document.getElementById(id); if(el) el.style.display = 'none'; });
+  const pr = document.getElementById('practice'); if(pr) pr.innerHTML = '';
+  const pv = document.getElementById('preview'); if(pv) pv.innerHTML = '';
+  const sb = document.getElementById('tplScoreBox'); if(sb){ sb.hidden = true; sb.innerHTML = ''; }
+  const lock = document.getElementById('tplLockCard'); if(lock) lock.hidden = false;
+}
+
+/* 解锁恢复：会员进入详情时恢复被锁区块的显示 */
+function restoreTplBlocks(){
+  document.querySelectorAll('#detailCard .tpl-edit, #detailCard .tpl-text').forEach(el => el.style.display = '');
+  ['tips','tplDictBtn','delBtn'].forEach(id => { const el = document.getElementById(id); if(el) el.style.display = ''; });
+  const lock = document.getElementById('tplLockCard'); if(lock) lock.hidden = true;
 }
 
 function openTpl(id){
@@ -166,6 +217,8 @@ function openTpl(id){
   $('#listCard').hidden = true; $('#detailCard').hidden = false;
   document.querySelector('.write-layout')?.classList.add('detail-open');
   $('#dTitle').textContent = cleanCatName(t.title);
+  if(tplVip !== true){ renderTplLocked(); return; }   // 会员闸：非会员只给锁卡（10/2 她拍板）
+  restoreTplBlocks();
   /* 「作文骨架」原文块已删（她 10/1：与填空练习/完整句重复）；骨架数据仍是填空/默写/评分的源，只删展示 */
   $('#tips').innerHTML = t.tips ? escapeHtml(t.tips).replace(/\n/g,'<br>') : '';
   const sb = $('#tplScoreBox');
