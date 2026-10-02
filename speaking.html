@@ -47,8 +47,8 @@
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
   <script defer src="js/sentence-drill.js?v=20261001i"></script>
-  <script defer src="js/speaking.js?v=20261002b"></script>
-  <script defer src="js/materials.js?v=20261002a"></script>
+  <script defer src="js/speaking.js?v=20261002c"></script>
+  <script defer src="js/materials.js?v=20261002b"></script>
   <script defer src="js/mock-report.js?v=20260830u"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
   <script defer src="js/mock.js?v=20261002b"></script>
@@ -368,6 +368,17 @@
   .sp-mic-hint{font-size:12px;color:var(--muted)}
   .sp-ans{width:100%;min-height:70px;max-height:min(50vh,360px);overflow-y:auto;padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);font:inherit;background:var(--surface);color:var(--ink);resize:vertical;box-sizing:border-box;line-height:1.7;margin-bottom:8px;transition:border-color .15s,box-shadow .15s}
   .sp-ans:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-soft);outline:none}
+  /* 10/2 她拍板：选填「想法」输入框——填一句中文/碎片英文，AI 辅助就按她的思路来；空=AI 自己全想。
+     做得轻（字号小、浅底、无边框感），不填时不抢眼。
+     ⚠️ 特异性必须压得住全站表单重置 `input:not([type=checkbox]):not([type=radio])` (0,2,1)——
+     它在 css/common.css:438，会吃掉 .sp-idea 的虚线边框（实测渲染成实线）。
+     本仓库同类坑已踩过一次（design/83 顶栏搜索框），那次用 id 提升特异性解的，这里照做：
+     #spIdea 单 id = (1,0,0) 稳压 (0,2,1)。id 由 questionItemHtml 渲染进每题输入框。 */
+  #spIdea{width:100%;min-height:44px;padding:9px 12px;margin:0 0 8px;border:1px dashed var(--line);border-radius:var(--radius-sm);font:inherit;font-size:13.5px;background:transparent;color:var(--ink);box-sizing:border-box;transition:border-color .15s,background .15s}
+  #spIdea::placeholder{color:var(--muted);opacity:.75}
+  #spIdea:hover{border-color:var(--primary);background:var(--primary-soft)}
+  #spIdea:focus{border-style:solid;border-color:var(--primary);background:var(--surface);box-shadow:0 0 0 4px var(--primary-soft);outline:none}
+  #spIdea:not(:placeholder-shown){border-style:solid;border-color:var(--primary);background:var(--primary-soft)}
   .sp-q-btns{display:flex;gap:8px;margin-bottom:8px}
   .sp-diag{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;border:1px solid var(--primary);background:var(--primary);color:#fff;cursor:pointer;font-size:13px;transition:.15s}
   .sp-diag:hover{opacity:.92}
@@ -391,6 +402,9 @@
   .sp-logic-text{white-space:pre-wrap;word-break:break-word}
   .sp-ref-answer{display:none;margin-top:8px;padding:10px 12px;background:var(--bg);border:1px solid var(--line);border-radius:10px;font-size:14px;line-height:1.8;color:var(--ink);white-space:pre-wrap}
   .sp-ref-answer.open{display:block}
+  /* 10/2：她填了「想法」时在结果区顶部标一句，让她一眼看出这次 AI 听了她的话（不显示任何框架名） */
+  .sp-ref-note{font-size:12.5px;color:var(--primary);margin:0 0 6px;display:flex;align-items:center;gap:5px}
+  .sp-ref-note::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--primary);flex:none}
 
   /* 诊断卡片 */
   .diag-sec{margin-bottom:12px}

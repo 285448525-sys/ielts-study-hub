@@ -2224,6 +2224,12 @@ function questionItemHtml(text, qi, s){
     +       '<button class="sp-diag" data-qi="' + qi + '" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;flex:none"><path d="M12 2l2.4 5.1 5.6.8-4 4.1 1 5.6-5-2.7-5 2.7 1-5.6-4-4.1 5.6-.8z"/></svg>AI 诊断</button>'
     +       '<button class="sp-ans-clear" data-qi="' + qi + '" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;flex:none"><circle cx="12" cy="12" r="9"/><path d="M8.5 8.5l7 7M15.5 8.5l-7 7"/></svg>清空</button>'
     +     '</div>'
+    /* 10/2 她拍板：选填「想法」框——空着点 AI 辅助=AI 自己全想（与原先一致）；
+      填一句中文/碎片英文再点=AI 严格按她的思路组织，只帮她变成地道英文。
+      不填就完全不显影（placeholder 提示），不新增按钮、不加模式切换。
+      id="spIdea" 单题复用于每题（HTML id 不要求唯一，这里靠 data-qi 区分），目的是用 id 级
+      特异性压过 common.css:438 的全站表单重置 input:not():not() (0,2,1)——否则虚线边框会被吃成实线。 */
+    +     '<input class="sp-idea" id="spIdea" data-qi="' + qi + '" type="text" maxlength="200" placeholder="想法（选填，中英文都行）" />'
     +     '<div class="sp-ai-result sp-q-result" data-qi="' + qi + '"></div>'
     +   '</div>'
     + '</div></li>';
@@ -2260,6 +2266,11 @@ function bindQuestionEvents(id){
       if(aiHelper && (aiHelper.logicChain || aiHelper.answer)){
         const aiRes = li.querySelector('.sp-q-result[data-qi="' + qi + '"]');
         if(aiRes) renderAIHelper(aiRes, aiHelper);
+        /* 10/2：把上次填过的「想法」回填进输入框——否则退出再进来她白填了一遍。 */
+        if(aiHelper.idea){
+          const ideaEl = li.querySelector('.sp-idea[data-qi="' + qi + '"]');
+          if(ideaEl && !ideaEl.value) ideaEl.value = aiHelper.idea;
+        }
       }
       // 渲染提交历史记录（每次手写提交都会记录，点击可回填，✕ 可删除）
       renderSubmitRecords(s.answers[qi].records, li.querySelector('.sp-rec-list[data-qi="' + qi + '"]'), (rec) => {
@@ -2903,18 +2914,51 @@ async function generateAIHelper(id, qi){
       + '   - 如果题目是特殊疑问句（以 What / Where / When / Why / Who / How long / How often / How many 等开头），**不要回答 Yes/No**，第 1 句直接给出事实答案（如 "I\'ve lived here for about 18 years." / "It\'s usually in the evening."），不要绕弯子。\n'
       + '   - 剩下的 1-2 句给原因或自然展开，把考生人设细节（身份/城市/爱好等）自然揉进回答，像真人聊天；但展开必须扣回题目核心，不能讲成另一个话题。\n'
       + '   - 答非所问反例（题目：What kind of clothes do you like to wear?）：把回答写成 "I\'m really into shopping, so I often buy new clothes when I watch short videos."——这是购物习惯，不是穿衣偏好，严禁这样写。正例："I usually wear simple and comfortable clothes, like T-shirts and jeans. I\'m a computer science student, so I sit in front of the computer a lot, and soft clothes help me relax."\n'
-      + '「稍高级」示例（整段最多 1-2 处，仍须是高中常见词/句型）：like → be really into；good → enjoyable；可加一个 because/when 从句或 who/which 定语从句（如 the doctor who gave me medicine / a book which helps me relax）；可用 to be honest / actually / I\'d say 过渡。\n'
+      + '「稍高级」示例（整段最多 1-2 处，仍须是高中常见词/句型）：可加一个 because/when 从句或 who/which 定语从句（如 the doctor who gave me medicine / a book which helps me relax）；可用 to be honest / actually / I\'d say 过渡。\n'
+      /* 10/2 她刷到的高频题型框架（DPF/DWC/DCF/OREO）——只当「结构骨架」用，**不生成整段模板给她背**。
+         考场上她不会去看框架名，所以框架名严禁出现在输出里；只用它决定回答先铺什么后铺什么。 */
+      + '【题型骨架：先判题型，再按对应骨架组织（严禁把骨架字母或名称写进输出）】\n'
+      + '- 喜好类（do you like / prefer A or B / favorite / what kind of）：先直答（用同义替换，别只说 yes/no）→ 补一个贴合人设的理由或细节 → 可补感受/频率/从什么时候起。\n'
+      + '- 频率与习惯类（how often / how many times）：**必须短答**，第一句直接给频率（如 almost every day / three times a week），后面最多补1 句原因或场合就收，**严禁展开成3 句**——把空间留给后面的 why 类追问。\n'
+      + '- 童年与过去类（did you…when you were a child / have you ever）：用过去式直答→ 补 5W1H 细节（和谁 / 在哪 / 什么时候 / 为什么）→ 说一句现在变了没有（but now I don\'t…as much as I used to）。\n'
+      + '- 事实与背景类（when / where / who / what）：直接给事实答案，再按上面相应骨架补 1-2 句即可。\n'
+      + '- 未来打算与愿望类（would you like to… / do you want to be）：表态（yes I\'d love to / no not really）→ 补条件（if I have a chance / if I have enough money）→ 补一句感受（it sounds amazing / it would be unforgettable）。\n'
+      + '- 细节描述与感受类（what is…like / how do you feel about）：先给观点或感受 → 补原因（because…）→ 补一个具体例子或场景（for example / such as / like when I…）→ 可选收尾。\n'
+      + '【直答句的同义替换：第 1 句别用裸yes/no，也别用裸 I like，按下表换说法】\n'
+      + '- yes → Absolutely. / Definitely. / Yes, definitely. / I\'d say so.\n'
+      + '- no → Not really. / Definitely not. / I don\'t think so. / Not at all.\n'
+      + '- I like it → I\'m really into it. / I\'m a big fan of it. / I\'m quite fond of it.\n'
+      + '- I don\'t like it → I\'m not that into it. / It\'s not really my thing. / I\'m not a big fan of it.\n'
+      + '- good → enjoyable. / lovely. / great.\n'
+      + '【频率四档：判到 how often 时只从这四档里挑一档，别自造】\n'
+      + '- 高频：almost every day. / It\'s part of my daily routine.\n'
+      + '- 中频：from time to time. / I do it three times a week.\n'
+      + '- 低频：I rarely do it. / once in a blue moon.\n'
+      + '- 零频：I never do it. / It\'s not my thing.\n'
+      /* 框架表结束。以下为考生自己填的「想法」——她懒得多填、只在有思路时填一句，此时以她的想法为准。 */
+      + '【考生填了「想法」时的处理规则（最高优先级，压倒上面所有骨架与替换表）】\n'
+      + '如果题目后面附了「考生想法」，说明考生已经有思路、只是不知道怎么用英文表达。此时：\n'
+      + '  a. **必须严格按考生的想法组织回答，不得另起炉灶、不得改成你自己的思路**；考生想法里没有的信息不要自己编。\n'
+      + '  b. 想法是中文或中英混杂的，直接翻成地道自然的高中词汇英文；考生写了英文的，沿用原词不必改。\n'
+      + '  c. 想法里没写全的部分（只写了「想说我很喜欢跑步」这种），允许按上面骨架补一两句把它说完整，但**不得偏离考生想表达的意思**。\n'
+      + '  d. 中文逻辑链的第一环必须直接对应考生想法的核心，不要换成别的说法。\n'
+      + '如果考生想法为空（没填），就完全按上面【题型骨架】自己组织。\n'
       + '【词汇难度红线】整段回答里每个词都必须是高中（含初中）学过的常见词；拿不准算不算超纲，就换成更简单的词。宁可朴素，绝不炫技。\n'
       + '要求：不要写复杂长句；参考回答不要超过 3 句；只使用素材里有的信息，不编造；输出严格 JSON：{"logicChain":"中文逻辑链","answer":"英文参考回答"}，不要任何解释文字。';
+    /* 10/2：读同题「想法」选填框（她在这一题有思路时填一句中文/碎片英文）。空 = AI 自己全想。 */
+    const ideaEl = li.querySelector('.sp-idea[data-qi="' + qi + '"]');
+    const idea = ideaEl ? String(ideaEl.value || '').trim() : '';
     const content = await callRelay('speaking_aihelper', [
       { role:'system', content: sys },
-      { role:'user', content:'P1 题目：' + questionText + '\n\n考生个人素材：\n' + (persona || '（暂无素材，请用通用回答）') }
+      { role:'user', content:'P1 题目：' + questionText
+        + (idea ? '\n\n考生想法（考生自己填的，可能不完整，请严格按此组织回答）：' + idea : '')
+        + '\n\n考生个人素材：\n' + (persona || '（暂无素材，请用通用回答）') }
     ], 0.7);
     const j = aiJson(content);
     if(j && (j.answer || j.logicChain)){
       s.answers = s.answers || {};
       s.answers[qi] = s.answers[qi] || {};
-      s.answers[qi].aiHelper = { answer: j.answer || '', logicChain: j.logicChain || '', ts: Date.now(), result: content };
+      s.answers[qi].aiHelper = { answer: j.answer || '', logicChain: j.logicChain || '', idea: idea, ts: Date.now(), result: content };
       s.updatedAt = Date.now();
       hubSave();
       if(resultEl) renderAIHelper(resultEl, s.answers[qi].aiHelper);
@@ -2954,6 +2998,8 @@ function buildPersonaContext(){
 function renderAIHelper(el, ai){
   if(!el || !ai) return;
   let h = '';
+  /* 10/2：她填了「想法」时标一句，让她一眼看出这次 AI 是按她的话答的（框架名绝不显示）。 */
+  if(ai.idea) h += '<div class="sp-ref-note">已按你填的想法生成</div>';
   // 英文参考回答：直接展开显示（不再折叠），默认可朗读/可复制
   if(ai.answer){
     h += '<div class="sp-ref-answer open">' + escapeHtml(ai.answer) + '</div>';
