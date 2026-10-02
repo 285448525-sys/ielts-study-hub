@@ -7,10 +7,28 @@
   const STORE_KEY = 'ielts_materials_v1';
   const CANON = ['喜欢的城市','水边的地方','难忘的旅行','常在一起的人','户外活动','你拍的照片','让你放松的事','家人','朋友','敬佩的人','帮助者','让我骄傲的人','学会的技能','克服的困难','目标','压力','习惯改变','搬家','电子设备','工具','礼物','离不开的东西','爱好','视频','网上学的','改观的事','喜欢的节目','书','电影','歌','诗','故事','网站','衣服','贵的东西','珍藏','法律','规则','传统','习俗','改变','分歧','犯错','投诉','道歉','尴尬','挑战'];
 
+  /* ===== 平台自带万用人设（10/2 她拍板：想不出自己的人设就用这些）=====
+     设计口径：全部写成「任何 P1/P2/P3 题都能往上套」的通用底子，不含任何真实个人信息。
+     她后续会喂一批好用的万用人设 —— 往这个数组里加一条即可，UI 与按钮零改动。 */
+  const PERSONA_PRESETS = [
+    { name:'大学生', text:'在校大学生，城市里读书，成绩中等偏上，平时喜欢刷手机、和朋友出去吃饭，性子偏慢热但熟人面前话很多。' },
+    { name:'考研/留学党', text:'正在集中备考的学生，每天大部分时间在自习室和图书馆，压力大但作息规律，不太擅长主动跟陌生人搭话，靠反复练习积累信心。' },
+    { name:'刚工作的年轻人', text:'毕业没几年，在一线城市上班，做需要天天跟人打交道的工作，通勤时间长，住的地方不大但收拾得很干净，周末喜欢在家躺着或者跟朋友短途出门。' },
+    { name:'独居自由职业', text:'一个人住，做自由职业/远程工作，时间自由但作息不规律，习惯一个人吃饭和散步，最近在学做饭，对生活品质有点要求。' },
+    { name:'爱旅行的人', text:'喜欢旅行，每年至少出门两三次，习惯提前做攻略、住青旅民宿，路上喜欢拍照记录，对当地food和人情最有兴趣。' },
+    { name:'爱运动的年轻人', text:'保持规律运动，每周会跑两三次步或者去健身房，平时喜欢球类运动，朋友不多但一起打球的关系都很铁。' },
+    { name:'爱看剧/看书的人', text:'下班后主要在家看剧、看书，最近迷上一部剧，习惯边看边在社交平台写短评，观点不算极端但愿意讲清楚理由。' },
+    { name:'养宠物的人', text:'养了一只猫（狗），每天固定时间照顾它，出门和旅行都要安排人上门喂，比较在意家里的整洁和安静，也因此少去人多的地方。' }
+  ];
+
   /* 已降级（design/86）：静态问卷仅作离线兜底参考，正常问卷由 SYS_PLAN 按当季题库动态生成；
      正常路径不再渲染 QUESTIONS。deepDigCoverage 仍读旧字符串答案作辅助上下文（兼容老数据）。 */
   const QUESTIONS = [
-    { id:'A',  group:'persona', required:true,  title:'一句话介绍你自己', hint:'城市、身份（学生/专业或工作）、性格、一个爱好。例：杭州，大三计算机，理性但开口说英语会紧张，喜欢无纸化学习。' },
+    /* 10/2 她拍板：标题只写「人设卡」，不要「一句话介绍你自己」这种一句话介绍式标题；
+       也不要在 hint 里举例子（原 hint 带「例：杭州，大三计算机…」被她明确否掉），
+       举例职责交给下面的 mat-persona-note 说明段。 */
+    { id:'A',  group:'persona', required:true,  title:'人设卡', hint:'城市、身份（学生/专业或工作）、性格、一个爱好。',
+      ph:'一句话说清你是谁、在哪、性格怎样、有什么爱好' },
     { id:'B1', group:'core', required:true,  title:'一次你和某个重要的人一起做的事 / 外出', hint:'写全：和谁 / 什么时候 / 去哪 / 具体做了什么 / 一个当时看到的细节 / 当时感受。例：去年八月和男友去厦门，鼓浪屿沙滩边吃现做的海蛎煎，晚上海边散步看对岸灯火，觉得很踏实。' },
     { id:'B2', group:'core', required:true,  title:'一件你学会 / 克服 / 坚持的事', hint:'写全：学什么 / 难在哪 / 怎么熬过来的 / 现在做得怎样 / 感受。例：备考雅思练口语，一开始开口就卡，每天用 AI 对话半小时，两个月后能说满 2 分钟，很有成就感。' },
     { id:'B3', group:'core', required:true,  title:'一个每天用或离不开的东西 / 日常爱好', hint:'写全：是什么 / 什么时候开始用 / 每天怎么用 / 一个具体场景 / 为什么离不开。例：笔记本电脑，学代码写作业全靠它，每天背单词软件刷 20 分钟，屏幕边贴着便利贴。' },
@@ -171,7 +189,7 @@
     const plan = store.plan;
     const hasPlan = !!(plan && Array.isArray(plan.cards) && plan.cards.length);
     const bankLive = !!(DATA.speaking && DATA.speaking.length);
-    let h = '<div class="mat-intro">先填一句人设，AI 会分析<b>当季最新题库</b>、锚定真题出最少的几张问题卡；每张卡用中文口语把那段经历讲一遍就行，答不上的可以跳过，也能直接粘贴旧英文素材。</div>';
+    let h = '<div class="mat-intro">先填人设，AI 会分析<b>当季最新题库</b>，只给你出<b>最少的几道</b>问题卡；每张卡用中文口语把那段经历讲一遍就行，答不上的可以跳过，也能直接粘贴旧英文素材。</div>';
     // 逃生口：已有素材卡但当前在问卷视图（restoreMode 因 saved='q' 回问卷）→ 给一条回去的路
     if(store.materials && store.materials.length){
       h += '<div style="margin:-6px 0 10px"><a href="javascript:void(0)" id="matBackToResult" style="color:var(--primary);font-weight:600;font-size:13px">← 查看已有素材卡（' + store.materials.length + ' 张）</a></div>';
@@ -185,8 +203,20 @@
       h += '<div class="mat-shortwarn">当前离线或题库缺失，下面的问题基于通用题类生成、不保证是当季题；联网后点「重新分析题库出题」获取对症问题。</div>';
     }
     // 人设卡 A（固定）
+    // 10/2 她拍板：① 人设卡区前加一段「串题优势」说明（简单填几个问题 → 生成几个专属题材 → 尽可能串多题）
+    // ② 人设卡本身加用途标注（专用于串题，期望写万用人设）+ 平台自带人设快捷填充
+    h += '<div class="mat-why"><div class="mat-why-t">为什么要先填人设？</div>'
+      + '<div class="mat-why-l">人设卡是<b>专门用来串题的</b>——它决定后面出的问题贴不贴你、生成的素材像不像你自己。'
+      + '填的时候尽量写一份<b>万用人设</b>：任何一道 P1 / P2 / P3 题都能往上套的那种（城市 + 身份 + 性格 + 一个爱好）。<br>'
+      + '串题的做法很简单：<b>简单填几个问题</b>，AI 就给你生成<b>几个独属于你的专属题材</b>，'
+      + '并且每个题材都会<b>尽可能串到更多的题</b>——同一段经历，考场上临场加一两句过渡就能接到好几道真题上，不用准备十篇范文。</div></div>';
     h += '<div class="mat-sec-title">人设卡 <span class="tag">1 题</span></div>';
     h += qCard('A');
+    // 平台自带万用人设：想不出自己的就点一条填进去，之后还能接着改
+    h += '<div class="mat-presets"><div class="mat-presets-t">想不出来？用平台自带的万用人设，点一下就填进去（填完可以继续改成你自己的）</div>'
+      + '<div class="mat-presets-row">'
+      + PERSONA_PRESETS.map((p, i) => '<button class="mat-mini" type="button" data-preset="' + i + '">' + escapeHtml(p.name) + '</button>').join('')
+      + '</div></div>';
     // 10/1 UI polish：hasPlan 时按钮降为次级（主操作是下方「生成我的专属素材」）
     h += '<div class="mat-actions"><button class="btn ' + (hasPlan ? 'btn-ghost' : 'btn-primary btn-lg') + '" id="matPlanGen">' + (hasPlan ? '↻ 重新分析题库出题' : '生成我的专属问题') + '</button></div>';
 
@@ -287,6 +317,19 @@
     root.querySelectorAll('[data-unskip-card]').forEach(b => {
       b.onclick = () => { setSkipped(b.dataset.unskipCard, false); render(); };
     });
+    // 10/2 平台自带万用人设：点一下把该 preset 填进人设卡输入框（不自动 submit，让她看清再改）
+    root.querySelectorAll('[data-preset]').forEach(b => {
+      b.onclick = () => {
+        const p = PERSONA_PRESETS[Number(b.dataset.preset)];
+        if (!p) return;
+        store.answers.A = p.text;
+        saveStore();
+        render();
+        const ta = document.querySelector('[data-q="A"]');
+        if (ta) { ta.focus(); if (ta.scrollIntoView) ta.scrollIntoView({ block:'center' }); }
+        toast('已填入「' + p.name + '」人设，可以直接改成你自己的');
+      };
+    });
     root.querySelectorAll('[data-step-card]').forEach(ta => {
       ta.addEventListener('input', () => {
         const cid = ta.dataset.stepCard, k = ta.dataset.stepK;
@@ -357,7 +400,8 @@
     } else fallback();
   }
 
-  /* 人设卡 A / 自由经历 extraMore 的 textarea 卡（QUESTIONS 静态表兜底沿用） */
+  /* 人设卡 A / 自由经历 extraMore 的 textarea 卡（QUESTIONS 静态表兜底沿用）
+     10/2：placeholder 优先用 q.ph（人设卡专用引导句），没有才退回标题。 */
   function qCard(id, isExtraMore){
     const q = QUESTIONS.find(x => x.id === id);
     const title = q ? q.title : '补充经历';
@@ -368,7 +412,7 @@
     return '<div class="mat-q' + optCls + '">'
       + '<div class="mat-q-head"><span class="mat-q-title">' + escapeHtml(title) + reqBadge + '</span></div>'
       + '<div class="mat-q-hint">' + escapeHtml(hint) + '</div>'
-      + '<textarea data-q="' + id + '" placeholder="' + (q ? escapeHtml(q.title) : '真实经历…') + '">' + escapeHtml(val) + '</textarea>'
+      + '<textarea data-q="' + id + '" placeholder="' + escapeHtml(q && q.ph ? q.ph : (q ? q.title : '真实经历…')) + '">' + escapeHtml(val) + '</textarea>'
       + '<div class="mat-char" data-char="' + id + '"></div>'
       + '</div>';
   }
@@ -418,10 +462,9 @@
       + '<div class="mat-q-head"><span class="mat-q-title">' + escapeHtml(card.title || '') + '</span>'
       + '<button class="mat-mini" data-skip-card="' + escapeHtml(card.id) + '">跳过此卡</button></div>';
     if(card.reason) h += '<div class="mat-q-hint">' + escapeHtml(card.reason) + '</div>';
-    if(Array.isArray(card.topics) && card.topics.length){
-      h += '<details class="mat-topics"><summary>这张卡覆盖 ' + card.topics.length + ' 道当季题 ▸</summary>'
-        + '<div class="mat-chips">' + card.topics.map(t => '<span class="mat-chip">' + escapeHtml(t) + '</span>').join('') + '</div></details>';
-    }
+    // 10/2 她拍板删掉「这张卡覆盖 N 道当季题」折叠区：填卡阶段只管讲经历，覆盖题数是出素材后
+    // 在口语页才用得上的信息，在这里show 出来只让人分心。card.topics 数据仍保留（formatCard
+    // 生成素材时照样喂给 AI，coverage 矩阵照旧），此处纯 UI 层删除。
     // 门逻辑（她 9/23 反馈：答了「没有出去玩」还继续问「去了哪里」不通顺）：yesno 答「没有」→ 本卡后续步骤全部收起，
     // 改回「有」即恢复（setStepVal 会重渲）。答案侧无需清理——空值在 formatCard 里本来就不进素材。
     let gateClosed = false;
@@ -448,25 +491,9 @@
       + '<div class="mat-q-head"><span class="mat-q-title">' + escapeHtml(card.title || '') + '</span>'
       + '<button class="mat-mini" data-skip-card="' + escapeHtml(card.id) + '">跳过此卡</button></div>';
     if(card.reason) h += '<div class="mat-q-hint">' + escapeHtml(card.reason) + '</div>';
-    // 锚定真题（anchor 已由 cleanPlanCards 用题库真值回填 promptEn/req）
-    const anchors = Array.isArray(card.anchor) ? card.anchor : [];
-    if(anchors.length){
-      h += '<div class="mat-anchor">';
-      anchors.forEach(a => {
-        h += '<div class="mat-anchor-q">';
-        if(a.topic) h += '<div class="mat-anchor-zh">' + escapeHtml(a.topic) + '</div>';
-        if(a.promptEn) h += '<div class="mat-anchor-en">' + escapeHtml(a.promptEn) + '</div>';
-        if(Array.isArray(a.req) && a.req.length){
-          h += '<div class="mat-anchor-req">' + a.req.map(r => '<div>· ' + escapeHtml(r) + '</div>').join('') + '</div>';
-        }
-        h += '</div>';
-      });
-      h += '</div>';
-    }
-    if(Array.isArray(card.topics) && card.topics.length){
-      h += '<details class="mat-topics"><summary>这张卡覆盖 ' + card.topics.length + ' 道当季题 ▸</summary>'
-        + '<div class="mat-chips">' + card.topics.map(t => '<span class="mat-chip">' + escapeHtml(t) + '</span>').join('') + '</div></details>';
-    }
+    // 10/2 她拍板删掉两处 UI：① 锚定真题块（把当季题目原文 + youShouldSay 要点整块写出来）
+    // ② 「这张卡覆盖 N 道当季题」折叠区。她说「只要提出一个简单的问题，然后给一个对话框就行」。
+    // anchor 数组本身一字未动 —— formatCard 生成素材时仍要靠它把真题喂给 AI，口语页覆盖矩阵照旧。
     // 大独白框（s.mono）
     const monoVal = st.s.mono || '';
     h += '<textarea class="mat-mono-ta" data-step-card="' + escapeHtml(card.id) + '" data-step-k="mono" rows="5" placeholder="用中文口语讲一遍这段经历，越具体越好：什么时候、和谁、发生了什么、你的感受…">' + escapeHtml(monoVal) + '</textarea>'

@@ -9,7 +9,7 @@
      SW 不参与离线态的判定与渲染，缓存策略本文件零改动。
      本文件 activate 时发的 `SW_UPDATED` 消费端也在 common.js（maybeShowSwUpdatePrompt，
      design/78）：页面收到后只弹提示条，**是否刷新由用户点击决定，SW 侧绝不自动 reload**。 */
-const CACHE = 'ielts-hub-v162';  // 10/2：模考退出按钮改实体 + 下一题右对齐（她截图四条）——①右下角红色悬浮 FAB（position:fixed + 红底 + 投影）改为挂进顶部整场剩余黄条 #mockTotalTimerWrap 内的实体小按钮，margin-left:auto 顶到黄条右半部分，低饱和橙黄 rgba(255,149,0,.20)+var(--warn-ink) 比黄框深一档、无投影（id/class 同步 mockExitFab→mockExitBtn、.mock-exit-fab→.mock-exit-btn）②.mock-controls 加 justify-content:flex-end，「下一题」从左下挪到右下；mock.js l→20261002b、css buster i→j（14 页）。上一版 v161 句型闯关裁判尺度动态化
+const CACHE = 'ielts-hub-v163';  // 10/2 串题页（materials）人设卡区改版（她截图两条）——①人设卡区前加「为什么要先填人设」串题优势说明（简单填几个问题 → 几个专属题材 → 尽量串多题）②卡标题「一句话介绍你自己」→「人设卡」、删掉 hint 里的举例、placeholder 改引导句 ③新增平台自带 8 条万用人设一键填充（PERSONA_PRESETS，点一下填入可再改，data-preset 委托）④问题卡删掉「覆盖 N 道当季题」折叠区 + 锚定真题块（题名/英文原题/youShouldSay 要点整块），只留「一个简单问题 + 一个对话框 + 折叠追问」——anchor/topics 数据层零改动，生成素材喂 AI 与口语页覆盖矩阵照旧；materials.js 20261001h→20261002a（materials.html + speaking.html 两处同步）。上一版 v162 模考退出按钮改实体 + 下一题右对齐
 
 /* 核心壳预缓存清单（Node 脚本枚举目录生成，2026-09-20；与 14 页实际引用核对无遗漏）。
    不含 js/vendor/xlsx.full.min.js（861KB 体积大 → 走运行时 SWR 缓存）。 */
