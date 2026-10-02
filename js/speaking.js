@@ -620,27 +620,10 @@ function openDetail(id){
   $('#detailView').hidden = false;
 
   const title = s.titleEn || s.title || '';
-  const zh = s.titleZh || '';
-  // design/57 话题块：kicker + 标题/中文居左，标签同行右端（≤600px 折行）；best 降为 muted 小字置块底
+  // 10/2（她拍板）：详情头部只留总标题——kicker（SPEAKING·PART x）/ 中文副标 / 标签行 / 平均分行全部删掉
   let html = '<div class="sp-topic-block">'
-    + '<div class="sp-topic-row">'
-    + '<div class="sp-topic-main">'
-    + '<div class="sp-topic-kicker">SPEAKING · ' + (s.type === 'P1' ? 'PART 1' : 'PART 2') + '</div>'
     + '<div class="sp-detail-title">' + escapeHtml(title) + '</div>'
-    + (zh ? '<div class="sp-detail-zh">' + escapeHtml(zh) + '</div>' : '')
-    + '</div>'
-    + '<div class="sp-detail-tags">' + tagsHtml(s) + '</div>'
     + '</div>';
-  const bestScore = getAggScore(s);
-  // 标注口径：按实际参与的维度动态生成 —— 避免被当成雅思总分
-  if(bestScore != null){
-    const sset = DATA.settings || {};
-    const labs = ['语法+词汇'];
-    if(sset.fluencyScore != null) labs.push('流利度');
-    if(sset.pronunciationScore != null) labs.push('发音');
-    html += '<div class="sp-detail-best" title="' + escapeHtml(scoreScopeTip()) + '">' + (s.type === 'P1' ? 'P1 平均分' : '历史最高') + '：' + scoreLabel(bestScore) + '分（' + labs.join('+') + '）</div>';
-  }
-  html += '</div>';
 
   // P1 问题列表（逐题可点开 + 录 + 诊断）；9/15 之之：删「Part 1 小问题…」说明行
   if(s.type === 'P1' && s.questions && s.questions.length){
@@ -3017,32 +3000,8 @@ function p1FlowInit(s){
     if(finBtn) finBtn.hidden = !isLast;
     if(topicBtn) topicBtn.hidden = !isLast;
 
-    // 已完成小结（9/16 修：评分机制关闭后 bestOfQuestion 恒为 null，这块永远不显示——
-    // 改用 countOfQuestion（历史提交条数）判定「练过」，与列表 badge 同一口径）
-    var rows = '';
-    for(var j = 0; j < n; j++){
-      var best = bestOfQuestion(s.answers[j]);
-      var cnt = countOfQuestion(s.answers[j]);
-      if(best == null && !cnt) continue;
-      rows += '<div class="sp-flow-drow" data-i="' + j + '">'
-        + '<span class="sp-flow-dnum">' + (j + 1) + '</span>'
-        + '<span class="sp-flow-dtext">' + escapeHtml((s.questions[j] || '').slice(0, 30)) + '</span>'
-        + '<span class="sp-flow-dscore">' + (best != null ? scoreLabel(best) + '分' : '练过' + cnt + '次') + '</span>'
-        + '</div>';
-    }
-    if(rows){
-      done.hidden = false;
-      done.innerHTML = '<div class="sp-flow-dhead"><span>已完成</span><button class="sp-flow-dtoggle" type="button">展开 / 收起</button></div>'
-        + '<div class="sp-flow-dbody">' + rows + '</div>';
-      done.querySelectorAll('.sp-flow-drow').forEach(function(row){
-        row.addEventListener('click', function(){ cur = +row.dataset.i; render(); });
-      });
-      var t = done.querySelector('.sp-flow-dtoggle');
-      var b = done.querySelector('.sp-flow-dbody');
-      t.addEventListener('click', function(e){ e.stopPropagation(); b.classList.toggle('open'); });
-    } else {
-      done.hidden = true;
-    }
+    // 已完成小结：10/2（她拍板）整块永久下线——「从来没点开看过」
+    done.hidden = true;
 
     // 切题后滚回题卡顶部
     var top = list.getBoundingClientRect().top + window.scrollY - 12;
