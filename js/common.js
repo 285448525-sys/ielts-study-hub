@@ -1542,7 +1542,7 @@ function stripCloudFields(d){
    以前不在白名单里，等于「背词设置完全不跨端」：电脑上把上限改成 200，手机仍是旧值。
    ⚠️ 必须配套：practice.js pcSave 要自己打 _fieldTs.practiceCfg，否则两端时间戳都是 0 →
    合并走「时间戳相同取云端」分支 → 本机刚改的上限会被云端旧值当场盖回去。 */
-const SYNC_SETTINGS_FIELDS = ['name','examDate','examDates','targets','dailyGoalHours','pronunciationScore','fluencyScore','theme','chimeOnDone','adhd','practiceCfg','diagnosis'];
+const SYNC_SETTINGS_FIELDS = ['name','examDate','examDates','targets','dailyGoalHours','pronunciationScore','fluencyScore','theme','chimeOnDone','adhd','practiceCfg','diagnosis','planLastOpen'];
 
 /* ===== 同步条目时间戳维护（9/17 修：_mergeArray 缺时间戳导致云端修改永不并入）=====
    根因：_mergeArray 以 ts/updatedAt 判「较新者胜」，但 11 个同步数组的条目大多只有 id、
@@ -4241,6 +4241,32 @@ function onbOpenSetup(step){
 /* ===== 计划任务 → 站内跳转（9/24 自 plans.js 迁入：计划页删跳转钮，首页今日任务行整行可点） =====
    口语题号解析：题库N = DATA.speaking 数组顺序（1 起）；「P1/P2 第N题」= 该 part 列表第 N 题
    （排除框架母本，与口语页题库同口径）。autostart=1：落地页直接开始学习计时（她 9/24 拍板）。 */
+
+/* 10/2 commit4：AI 生成任务（item.module/action/params，plans.js PLAN_WL 白名单同源）→ 落地页。
+   放 common 是因为首页（index.js，不加载 plans.js）与计划页都要用：结构化映射优先于下面的
+   planJumpInfo 文本猜测。file/label 必须与 plans.js PLAN_WL 保持一致（diag4 探针有一致性断言）。
+   目前落地页认的 query 只有 speaking 的 ?open=（题 id）与全站 ?autostart=1；speaking.practice 的
+   params.qno 按题库顺序换题 id 直达，其余模块落到功能页自动计时；其余 params 随任务数据保留。 */
+const PLAN_GEN_PAGES = {
+  practice:  { file:'practice.html',  label:'听读练习' },
+  speaking:  { file:'speaking.html', label:'口语练习' },
+  materials: { file:'materials.html', label:'口语素材' },
+  writing:   { file:'writing.html',   label:'写作' },
+  words:     { file:'practice.html',  label:'背单词' },
+  corpus:    { file:'corpus.html',    label:'长难句' },
+  wrongbook: { file:'wrongbook.html', label:'错题本' }
+};
+function planGenJump(item){
+  if(!item || !item.module) return null;
+  const g = PLAN_GEN_PAGES[item.module];
+  if(!g) return null;
+  let open = '';
+  if(item.module === 'speaking' && item.params && item.params.qno){
+    const s = bankAt(item.params.qno);
+    if(s && s.id) open = s.id;
+  }
+  return { file: g.file, open: open, label: g.label };
+}
 function bankAt(n){
   const q = (DATA.speaking || [])[Number(n) - 1];
   return q || null;
@@ -4280,7 +4306,9 @@ function planJumpUrl(jmp){
    只挂在 plans.js 的 render 里）→ 每天第一次打开首页「今日任务」永远是空的。
    口径与原实现完全一致：仅当「今天还没有计划对象」时，把昨天未完成的条目复制过来
    （新 id、done:false、carried:true、fromId 指回原条目——云端合并按 fromId 去重，跨端自动收敛）。
-   今天计划对象已存在（包括被删空）→ 绝不写盘，防止「删都删不掉」。 */
+   今天计划对象已存在（包括被删空）→ 绝不写盘，防止「删都删不掉」。
+   10/2 commit4：AI 生成项（module/action/params/gen）整组透传——顺延项仍能一键跳转、
+   重排时仍被识别为生成项；手动项没有这些键，行为与以前完全一致。 */
 function ensureTodayPlanCarried(){
   const t = todayKey();
   if((DATA.plans || []).some(p => p && p.date === t)) return false;
@@ -4290,8 +4318,48 @@ function ensureTodayPlanCarried(){
   if(!carried.length) return false;
   DATA.plans.push({
     id: uid(), date: t, initialized: true,
-    items: carried.map(i => ({ id: uid(), text: i.text, done: false, carried: true, fromId: i.id, updatedAt: Date.now() }))
+    items: carried.map(i => {
+      const row = { id: uid(), text: i.text, done: false, carried: true, fromId: i.id, updatedAt: Date.now() };
+      if(i.module){ row.module = i.module; row.action = i.action; row.params = i.params || {}; row.gen = i.gen; }
+      return row;
+    })
   });
   try{ hubSave(); }catch(e){}
   return true;
+}
+
+/* ===== 10/2 commit4：「最近打开今日计划」打卡（3 天未回来 → 计划页提示重排）=====
+   存 settings.planLastOpen（YYYY-MM-DD），字段级同步白名单已登记；跨天第一次写入才落盘并自打
+   _fieldTs（不打时间戳会同 practiceCfg 的教训：时间戳 0 被云端旧值盖回去）。返回距上次打开的天数
+   （首次/异常返回 0；调用方据此判断是否显示「计划过期」提示）。首页与计划页各调一次，幂等。 */
+function touchPlanOpen(){
+  try{
+    const s = DATA.settings;
+    const t = todayKey();
+    if(!s || s.planLastOpen === t) return 0;
+    let gap = 0;
+    if(s.planLastOpen){
+      const diff = Math.round((new Date(t + 'T00:00:00') - new Date(s.planLastOpen + 'T00:00:00')) / 86400000);
+      gap = diff > 0 ? diff : 0;
+    }
+    s.planLastOpen = t;
+    s._fieldTs = s._fieldTs || {};
+    s._fieldTs.planLastOpen = Date.now();
+    hubSave();
+    return gap;
+  }catch(e){ return 0; }
+}
+
+/* ===== 10/2 commit4：程序式软导航（任务行点击直达学习页）=====
+   与点侧栏链接同一条 softNavigate 通道（高亮/遮罩/历史栈都一致）；目标不在 PAGES（如
+   materials.html 非主导航页）或软导航异常时整页跳转兜底。href 可带 query（open/autostart）。 */
+function hubSoftGo(href){
+  try{
+    const file = String(href || '').split('?')[0].split('#')[0] || 'home.html';
+    const page = PAGES.find(p => p.file === file);
+    if(!page){ location.href = href; return; }
+    if(typeof showHubLoader === 'function') showHubLoader();
+    if(typeof updateActiveNav === 'function') updateActiveNav(file);
+    softNavigate({ id:page.id, file:page.file, href:href }, false);
+  }catch(e){ location.href = href; }
 }

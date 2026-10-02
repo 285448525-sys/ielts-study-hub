@@ -39,10 +39,10 @@
 
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
-<script defer src="js/data.js?v=20261002a"></script>
-  <script defer src="js/common.js?v=20261002e"></script>
+<script defer src="js/data.js?v=20261002b"></script>
+  <script defer src="js/common.js?v=20261002f"></script>
   <script defer src="js/feedback.js?v=20261002b"></script>
-  <script src="js/plans.js?v=20261002e" defer></script>
+  <script src="js/plans.js?v=20261002f" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -162,6 +162,19 @@
 #diagRoot .dg-planline{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:13px;color:var(--ink);background:rgba(58,154,147,.08);border:1px solid rgba(58,154,147,.25);border-radius:var(--radius-sm);padding:8px 12px;margin:0 0 12px}
 #diagRoot .dg-planline-ic{flex:none}
 #diagRoot .dg-planline .dg-text-btn{margin-left:auto;padding:2px 8px}
+/* ===== 每日重排工具条 + gen 任务行跳转（commit4）：#ptabToday/#rbBar/#rbStale 作用域，压表单重置 ===== */
+#ptabToday .plan-item.jumpable{cursor:pointer;border-radius:var(--radius-sm);margin:0 -6px;padding-left:6px;padding-right:6px}
+#ptabToday .plan-item.jumpable:hover{background:var(--primary-soft)}
+#ptabToday .plan-item.jumpable .plan-text{color:var(--primary)}
+#ptabToday .plan-item.jumpable .plan-text.js-jump-text::after{content:" ↗";font-size:12px;color:var(--primary);opacity:.7}
+#rbBar{margin-top:10px;border:1px solid rgba(58,154,147,.28);background:rgba(58,154,147,.06);border-radius:var(--radius-sm);padding:10px 12px}
+#rbBar .rb-bar-tip{font-size:12.5px;color:var(--muted);line-height:1.6;margin-bottom:8px}
+#rbBar .rb-bar-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#rbBar .rb-cap{font-size:13px;color:var(--ink);display:inline-flex;align-items:center;gap:6px}
+#rbBar #rbMin{width:76px;padding:5px 8px;border:1px solid var(--line);border-radius:var(--radius-sm);font:inherit;font-size:13.5px;background:var(--surface);color:var(--ink)}
+#rbBar .btn[disabled]{opacity:.55;cursor:not-allowed}
+#rbStale .rb-stale{font-size:13px;color:var(--ink);background:rgba(184,134,11,.08);border:1px solid rgba(184,134,11,.3);border-radius:var(--radius-sm);padding:8px 12px;margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;line-height:1.6}
+#rbStale .rb-stale .btn{margin-left:auto;flex:none}
 @media(max-width:380px){#diagRoot .dg-chips{grid-template-columns:1fr}#diagOverlay .dg-cards{grid-template-columns:1fr 1fr}#diagOverlay .dg-ai-bands{grid-template-columns:1fr}}
 </style>
 <meta name="description" content="学习计划：按考试日期倒排每日任务，今日 / 规划 / 历史三个视图。" />
@@ -210,6 +223,18 @@
     </div>
     <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line)">
       <div id="planProgress"></div>
+      <!-- commit4：3 天未回来的过期提示（renderRbStale 填充）与每日重排工具条（有 AI 任务才显示） -->
+      <div id="rbStale"></div>
+      <div id="rbBar" class="rb-bar" hidden>
+        <div class="rb-bar-tip">🔀 AI 重排永久免费：没做完的任务自动顺延到明天、绝不丢弃；时间不够时按「新知识 → 重复练习 → 保底」的顺序压缩，保底的背词/口语 P1/模板最后才动。</div>
+        <div class="rb-bar-row">
+          <button type="button" class="btn" id="rbAll">重新安排今天</button>
+          <span class="rb-cap">今天只能学
+            <input type="number" id="rbMin" min="10" max="600" step="5" inputmode="numeric" placeholder="30" /> 分钟
+            <button type="button" class="btn btn-sm" id="rbCapGo">压缩重排</button>
+          </span>
+        </div>
+      </div>
       <div id="planList" style="margin-top:10px"></div>
     </div>
   </section>

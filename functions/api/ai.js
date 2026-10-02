@@ -194,10 +194,11 @@ export async function onRequest(context) {
      ⚠️ 10/1 下午她拍板：原「每日 10 次」口径取消，改为每周 5 次兜底（口语模考/写作批改/
      串题在下面对应功能闸先行；其余辅助 AI 全部走这里）。会员跳过。
      10/2 拍板「备考诊断免费」：service='diag' 不占这 5 次（转化钩子要无门槛）；
-     diag 仍受上面全站日闸 / IP 闸与下面分钟风控约束，盗刷照样拦。 */
+     同日「每日重排 rebalance 也免费」（留存命脉：让用户每天回来，成本极低）；
+     diag/rebalance 仍受上面全站日闸 / IP 闸与下面分钟风控约束，盗刷照样拦。 */
   const week = isoWeekKey(now);
   const weekLimit = parseInt((env && env.AI_USER_WEEKLY_LIMIT) != null ? env.AI_USER_WEEKLY_LIMIT : '5', 10) || 0;
-  if (weekLimit > 0 && !isVip && service !== 'diag') {
+  if (weekLimit > 0 && !isVip && service !== 'diag' && service !== 'rebalance') {
     let usedWeek = 0;
     try { usedWeek = parseInt((await env.SYNC_KV.get('aiqw:' + acct + ':' + week)) || '0', 10) || 0; } catch (e) {}
     if (usedWeek >= weekLimit) {
@@ -337,8 +338,8 @@ export async function onRequest(context) {
       })();
     }
     (async () => {
-      // diag 免费：不占每周兜底计数（闸已在上面豁免，这里也要跳过，否则会把额度越攒越满）
-      if (service === 'diag') return;
+      // diag/rebalance 免费：不占每周兜底计数（闸已在上面豁免，这里也要跳过，否则会把额度越攒越满）
+      if (service === 'diag' || service === 'rebalance') return;
       try {
         const wk = 'aiqw:' + acct + ':' + week;
         const cur = parseInt((await env.SYNC_KV.get(wk)) || '0', 10) || 0;

@@ -228,6 +228,8 @@ function renderDashTasks(){
   // 原延续逻辑只在 plans.js render() 里触发，首页不进计划页就不搬。
   // 现在首页也触发（common.js ensureTodayPlanCarried，幂等：今天有计划对象就 no-op）。
   try{ ensureTodayPlanCarried(); }catch(e){}
+  // 10/2 commit4：首页也是「打开今日计划」——同步打卡，3 天未回来由计划页给重排提示
+  try{ touchPlanOpen(); }catch(e){}
   const tkey = todayKey();
   const plan = (DATA.plans || []).find(p => p && p.date === tkey);
   const items = (plan && Array.isArray(plan.items)) ? plan.items : [];
@@ -299,7 +301,9 @@ function renderDashTasks(){
   // 识别不出（如听力第N篇）不可点。题号任务（口语 P1 第N题）hover 提示显示解析出的真实题名。
   const sorted = items.slice().sort((a, b) => (a && a.done) === !!(b && b.done) ? 0 : (a && a.done ? 1 : -1));
   html += sorted.map(i => {
-    const jmp = (typeof planJumpInfo === 'function') ? planJumpInfo(i && i.text) : null;
+    // commit4：AI 生成项（module/action）优先走结构化跳转；识别不出再退回文本猜测
+    const jmp = ((typeof planGenJump === 'function') && planGenJump(i))
+      || ((typeof planJumpInfo === 'function') ? planJumpInfo(i && i.text) : null);
     return '<div class="plan-item ' + (i && i.done ? 'done' : '') + (jmp ? ' jumpable' : '') + '"'
       + (jmp ? ' data-jfile="' + escapeHtml(jmp.file) + '"'
         + (jmp.open ? ' data-jopen="' + escapeHtml(jmp.open) + '"' : '')
@@ -332,7 +336,11 @@ function renderDashTasks(){
     row.addEventListener('click', e => {
       if(e.target && e.target.tagName === 'INPUT') return;
       const url = (typeof planJumpUrl === 'function') ? planJumpUrl({ file: row.dataset.jfile, open: row.dataset.jopen || '' }) : '';
-      if(url) location.href = url;
+      // commit4：与站内链接同走软导航（不整页刷新）；hubSoftGo 内部对异常/非站内页有兜底
+      if(url){
+        if(typeof hubSoftGo === 'function') hubSoftGo(url);
+        else location.href = url;
+      }
     });
   });
   }catch(e){ console.error('[index] 渲染失败 renderDashTasks', e); }

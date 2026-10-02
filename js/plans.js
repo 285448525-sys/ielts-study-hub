@@ -173,6 +173,44 @@ var PLAN_AI_SYSTEM =
   + '{"days":[{"date":"YYYY-MM-DD","focus":"当天主题，10 字以内","tasks":[...]}]}\n'
   + '每天 2-5 件任务。只输出 JSON。';
 
+/* =====================================================================================
+   每日重排（第三十三批 commit4，新 callRelay key 'rebalance'，永久免费）
+   只重排「今天」：已完成项与手动项本地原样保留不送 AI；AI 只决定今天未完成的生成项
+   怎么重新分配。AI 没排进去的旧任务由本地顺延到明天（墓碑+carried，跨端不丢不重）。
+   「今天只能学 X 分钟」→ capMin 压到 X，AI 按三级优先级取舍，本地容量护栏再兜底。
+   ===================================================================================== */
+var REBALANCE_AI_SYSTEM =
+  '你是资深雅思备考教练。考生今天的计划需要重新安排。只输出今天一天的 JSON 对象，禁止输出 JSON 以外的任何字。\n'
+  + '\n'
+  + '【任务只能来自站内功能白名单，与生成完整计划时完全相同】\n'
+  + '{"module":"practice","action":"listen"} 听力精练（params.part 1-4、params.count 篇数）；'
+  + 'action="read" 阅读精练（part 1-3）；action="mock" 限时模考（params.kind=listening/reading/full）\n'
+  + '{"module":"speaking","action":"practice"} 口语题库（params.part 1 或 2、params.qno 题号）\n'
+  + '{"module":"materials","action":"persona"} 人设准备；{"module":"materials","action":"story"} 串题故事；无 params\n'
+  + '{"module":"writing","action":"template"} 模板默写；"fill" 模板套填；"essay" 完整成篇；无 params\n'
+  + '{"module":"words","action":"review"} 背单词，固定 30 分钟，无 params\n'
+  + '{"module":"corpus","action":"parse"} 长难句拆解（params.count 句数）\n'
+  + '{"module":"wrongbook","action":"review"} 错题本复习（params.count 题数）\n'
+  + '\n'
+  + '【铁律：未完成的任务严禁静默丢弃】\n'
+  + 'pending 里是今天还没做的任务，carried=true 的是「昨天未完成、已顺延到今天」的，必须优先安排，\n'
+  + '不得因为想换新任务就把它们吞掉。容量实在排不下时，优先保留 carried 与保底类，\n'
+  + '排不进的任务不要再写进输出（系统会自动把它们顺延到明天，不算丢弃），但绝不允许凭空忽略后什么都不交代。\n'
+  + '\n'
+  + '【容量是硬约束】capMin 是今天实际可用的分钟数，所有任务分钟数之和严禁超过 capMin，宁可少排。\n'
+  + '当 onlyMin 有值（考生说今天只能学这么多分钟）时，capMin 已经等于它，按下面顺序砍任务：\n'
+  + '① 先砍了解性/新知识类：materials.persona、materials.story、corpus.parse\n'
+  + '② 再砍重复练习类：practice.listen/read/mock、speaking.practice 的 Part 2、writing.fill、writing.essay、wrongbook.review\n'
+  + '③ 最后才动保底类：words.review 背单词、speaking.practice 的 Part 1 快答、writing.template 模板默写\n'
+  + '绝不允许简单按比例砍。时间再少也要尽量保住一件保底类。\n'
+  + '\n'
+  + '【每条 text 必须含具体内容数量与阿拉伯数字「分钟」，60 字以内，例如：听力 Section 3 第 1 篇精听（25 分钟）】\n'
+  + '\n'
+  + '【输出 JSON（只允许 date 等于今天这一天）】\n'
+  + '{"days":[{"date":"YYYY-MM-DD","focus":"今天主题，10 字以内","tasks":[...]}]}\n'
+  + '2-5 件任务。只输出 JSON。';
+var rbBusy = false;   // 重排请求进行中（防重复点；顶层 var 必须在 ready 前赋值，见 TDZ 铁律）
+
 /* ⭐ TDZ 铁律：页面级 const 必须在 ready() 之前——ready 回调在脚本求值期同步执行，
    声明放后面（render 附近）会在首次 render 时 hit TDZ 整页崩（9/17 reload 实测）。 */
 
@@ -222,6 +260,18 @@ ready(() => {
   $('#addPlan').addEventListener('click', addItem);
   $('#aiPlan').addEventListener('click', aiPlanItem);
   bindEnterSubmit($('#planText'), $('#addPlan'));   // 9/22 之之：回车即添加（原 Ctrl+Enter；换行用 Shift+Enter）
+
+  // commit4：每日重排工具条（静态 DOM，显隐由 render 管；只在有 AI 任务时可见）
+  const _rbAll = document.getElementById('rbAll');
+  if(_rbAll) _rbAll.addEventListener('click', () => diagRebalance(0));
+  const _rbCapGo = document.getElementById('rbCapGo');
+  const _rbMin = document.getElementById('rbMin');
+  if(_rbCapGo) _rbCapGo.addEventListener('click', () => {
+    const v = parseInt((_rbMin && _rbMin.value) || '0', 10);
+    if(!(v > 0)){ toast('填一下今天能学多少分钟，比如 30'); return; }
+    diagRebalance(v);
+  });
+  if(_rbMin) _rbMin.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); _rbCapGo.click(); } });
 
   // 子 Tab 切换 + 恢复上次所在 Tab（默认「今日」；支持「规划」「历史」）
   document.querySelectorAll('#planTabs .pill-tab').forEach(b =>
@@ -416,23 +466,32 @@ function startEdit(id){
 
 function render(){
   const date = currentDate();
+  const isToday = date === todayKey();
   // 自动延续：当查看的是「今天」且今天还没有任何计划条目时，
   // 把「前一天」所有未勾选（done:false）的任务复制过来（新 id、done:false、标记 carried），
   // 实现「昨天没做完 → 今天自动续上」。
-  if(date === todayKey()){
+  if(isToday){
     // 自动延续逻辑抽到 common.js ensureTodayPlanCarried()（首页也要触发，见 index.js）
     ensureTodayPlanCarried();
+    // commit4：今日打卡（跨天首次写盘）；返回距上次打开的天数 → 决定是否提示「计划过期」
+    var _openGap = touchPlanOpen();
   }
   const p = getPlan(date);
   const items = (p && Array.isArray(p.items)) ? p.items : [];
   const done = items.filter(i => i.done).length;
   const total = items.length;
 
-  $('#dateLabel').textContent = (date === todayKey() ? '今天 · ' : '') + date;
+  $('#dateLabel').textContent = (isToday ? '今天 · ' : '') + date;
   $('#planCount').textContent = done + ' / ' + total;
 
   const pct = total ? done / total * 100 : 0;
   $('#planProgress').innerHTML = progressBar('完成进度', pct, 'var(--med)');
+
+  /* commit4：重排工具条只在「今天且有未完成 AI 任务」时出现；3 天没回来给过期提示 */
+  const hasGenPending = items.some(i => i && i.module && !i.done);
+  const rbBar = document.getElementById('rbBar');
+  if(rbBar) rbBar.hidden = !(isToday && hasGenPending);
+  renderRbStale(isToday && hasGenPending && _openGap >= 3 ? _openGap : 0);
 
   const box = $('#planList');
   if(total === 0){
@@ -443,10 +502,13 @@ function render(){
       ? `<div class="plan-carry-tip">↻ 其中 ${carriedCount} 条是昨天未完成的，已自动延续到今天</div>`
       : '';
     box.innerHTML = carriedTip + items.map(i => {
+      const jmp = planGenJump(i);   // commit4：AI 生成项整行可点直达学习页；手动项照旧只能编辑
       return `
-      <div class="plan-item ${i.done ? 'done' : ''} ${i.carried ? 'carried' : ''}">
+      <div class="plan-item ${i.done ? 'done' : ''} ${i.carried ? 'carried' : ''} ${jmp ? 'jumpable' : ''}"${
+        jmp ? ` data-gfile="${escapeHtml(jmp.file)}"${jmp.open ? ` data-gopen="${escapeHtml(jmp.open)}"` : ''}`
+            + ` title="去${escapeHtml(jmp.label)}，点击直达并自动计时"` : ''}>
         <input type="checkbox" ${i.done ? 'checked' : ''} data-toggle="${i.id}" />
-        <span class="plan-text" data-id="${i.id}" title="点击编辑">${escapeHtml(i.text)}</span>
+        <span class="plan-text ${jmp ? 'js-jump-text' : ''}" data-id="${i.id}"${jmp ? '' : ' title="点击编辑"'}>${escapeHtml(i.text)}</span>
         <button class="plan-edit" data-edit="${i.id}" title="编辑">✎</button>
         <button class="plan-del" data-del="${i.id}" title="删除">✕</button>
       </div>
@@ -454,15 +516,34 @@ function render(){
     }).join('');
     box.querySelectorAll('input[data-toggle]').forEach(c =>
       c.addEventListener('change', () => toggleItem(c.dataset.toggle)));
-    box.querySelectorAll('.plan-text[data-id]').forEach(s =>
+    box.querySelectorAll('.plan-text[data-id]:not(.js-jump-text)').forEach(s =>
       s.addEventListener('click', () => startEdit(s.dataset.id)));
     box.querySelectorAll('button[data-edit]').forEach(b =>
       b.addEventListener('click', () => startEdit(b.dataset.edit)));
     box.querySelectorAll('button[data-del]').forEach(b =>
       b.addEventListener('click', () => deleteItem(b.dataset.del)));
+    /* commit4：gen 行点击软导航；点勾选框/编辑/删除不跳 */
+    box.querySelectorAll('.plan-item.jumpable').forEach(row => {
+      row.addEventListener('click', e => {
+        if(e.target && e.target.closest && e.target.closest('input,button')) return;
+        const url = planJumpUrl({ file: row.dataset.gfile, open: row.dataset.gopen || '' });
+        if(url) hubSoftGo(url);
+      });
+    });
   }
 
   renderHistory(date);
+}
+
+/* commit4：「3 天没回来」过期提示（#rbStale 在重排工具条上方） */
+function renderRbStale(gap){
+  const host = document.getElementById('rbStale');
+  if(!host) return;
+  if(!gap){ host.innerHTML = ''; return; }
+  host.innerHTML = '<div class="rb-stale">🗓 距你上次打开已 ' + gap
+    + ' 天，今天的计划可能已经不顺手了——<button type="button" class="btn btn-sm" id="rbStaleGo">重新安排今天</button></div>';
+  const b = document.getElementById('rbStaleGo');
+  if(b) b.addEventListener('click', () => diagRebalance(0));
 }
 
 function renderHistory(curDate){
@@ -1599,4 +1680,148 @@ function renderDiagPlanBox(mode, sub){
     + '<button type="button" class="btn-primary dg-block-btn" id="dgPlanGen">生成我的 ' + spanN + ' 天备考计划</button>'
     + '<div class="dg-plan-note">诊断永久免费 · 完整计划为会员功能 · 每日重排免费</div>';
   document.getElementById('dgPlanGen').addEventListener('click', diagGenPlan);
+}
+
+/* =====================================================================================
+   每日重排（commit4）：gen 任务一键跳转 + rebalance 免费重排 + 3 天未回来提示
+   ===================================================================================== */
+
+/* gen 任务 → 跳转信息 planGenJump 定义在 common.js（首页 index.js 不加载本文件，必须共用）：
+   module → PLAN_GEN_PAGES 落地页；speaking.practice 的 params.qno 经 bankAt 换题 id 走 ?open=，
+   其余落地 ?autostart=1；file 映射与本文件 PLAN_WL 同源（探针断言一致性）。 */
+
+/* rebalance 请求载荷：只送今天未完成的生成项（done 的与手动项本地保留，不送 AI）。 */
+function planRebalanceMessages(d, r, todayRow, capMin, onlyMin, pending){
+  const t = todayKey();
+  const p = getPlan(t);
+  const doneToday = (p && Array.isArray(p.items)) ? p.items.filter(i => i && i.done).length : 0;
+  const payload = {
+    today: todayRow.iso,
+    daysLeft: r.days,
+    phase: r.phase ? r.phase.k : null,
+    capacity: { weekdayMin:r.caps.wdMin, weekendMin:r.caps.weMin },
+    capMin: capMin,
+    onlyMin: onlyMin || 0,
+    gaps: r.gaps,
+    localConclusion: { key:r.verdict.k, text:r.verdict.text },
+    doneToday: doneToday,
+    pending: pending.map(i => ({
+      text: i.text, module: i.module, action: i.action,
+      carried: !!i.carried, minutes: planMinOf(i.text)
+    }))
+  };
+  return [
+    { role:'system', content:REBALANCE_AI_SYSTEM },
+    { role:'user', content:'请按约定的 JSON 格式重新安排考生今天的任务：\n' + JSON.stringify(payload) }
+  ];
+}
+
+/* 重排落库（只动今天）：
+   - 已完成项（含 gen）与手动项（无 module）原样保留；
+   - 今天所有未完成 gen 项被新清单替换，旧 id 全部登墓碑（跨端不复活）；
+   - AI 新清单没覆盖到的旧任务 → 顺延明天（新 id、carried:true、fromId 指回；明天已有同文本
+     未完成项则不重复），严禁静默丢弃；
+   - d.plan.ts 刷新（3 天过期提示以此为准）+ 自打 _fieldTs。 */
+function planRebalancePersist(day){
+  const t = todayKey();
+  const p = ensurePlan(t);
+  p.items = Array.isArray(p.items) ? p.items : [];
+  const oldGen = p.items.filter(i => i && i.module && !i.done);
+  const keep = p.items.filter(i => !(i && i.module && !i.done));
+  const newTexts = new Set(day.tasks.map(x => x.text));
+  const moved = oldGen.filter(i => !newTexts.has(i.text));
+
+  const tm = addDays(t, 1);
+  let movedAdded = 0;
+  if(moved.length){
+    const tp = ensurePlan(tm);
+    tp.items = Array.isArray(tp.items) ? tp.items : [];
+    const existTexts = new Set(tp.items.filter(i => i && !i.done).map(i => i.text));
+    moved.forEach(i => {
+      if(existTexts.has(i.text)) return;
+      existTexts.add(i.text);
+      tp.items.push({ id:uid(), text:i.text, done:false, updatedAt:Date.now(),
+        module:i.module, action:i.action, params:i.params || {}, gen:PLAN_GEN_TAG,
+        carried:true, fromId:i.id });
+      movedAdded++;
+    });
+  }
+
+  const tombstones = oldGen.map(i => i.id);
+  if(tombstones.length){
+    DATA.deletedIds = DATA.deletedIds || [];
+    tombstones.forEach(id => { if(DATA.deletedIds.indexOf(id) === -1) DATA.deletedIds.push(id); });
+  }
+
+  const now = Date.now();
+  const fresh = day.tasks.map(x => ({ id:uid(), text:x.text, done:false, updatedAt:now,
+    module:x.module, action:x.action, params:x.params, gen:PLAN_GEN_TAG }));
+  p.items = fresh.concat(keep);   // 新任务在前；keep 自身相对顺序不变（done 项渲染时沉底）
+
+  const d = DATA.settings && DATA.settings.diagnosis;
+  if(d && d.plan){
+    d.plan.ts = now;
+    /* tasks 元信息重数：原排程日期范围内的 gen 项总数（顺延到明天的滚动项不计入本程） */
+    let n = 0;
+    (DATA.plans || []).forEach(pl => {
+      if(pl && pl.date >= d.plan.firstDate && pl.date <= d.plan.lastDate && Array.isArray(pl.items)){
+        n += pl.items.filter(it => it && it.module).length;
+      }
+    });
+    d.plan.tasks = n;
+    DATA.settings._fieldTs = DATA.settings._fieldTs || {};
+    DATA.settings._fieldTs.diagnosis = now;
+  }
+  hubSave();
+  return { added: fresh.length, moved: movedAdded, replaced: oldGen.length };
+}
+
+function setRbBusy(busy){
+  rbBusy = !!busy;
+  ['rbAll','rbCapGo'].forEach(id => {
+    const b = document.getElementById(id);
+    if(b) b.disabled = busy;
+  });
+  const a = document.getElementById('rbAll');
+  if(a) a.textContent = busy ? '重排中…' : '重新安排今天';
+  const c = document.getElementById('rbCapGo');
+  if(c) c.textContent = busy ? '重排中…' : '压缩重排';
+}
+
+/* 每日重排：免费、无会员闸。onlyMin>0 = 「今天只能学 X 分钟」压缩。任何失败绝不落库。 */
+async function diagRebalance(onlyMin){
+  if(rbBusy) return;
+  const t = todayKey();
+  const p0 = getPlan(t);
+  const pending = (p0 && Array.isArray(p0.items)) ? p0.items.filter(i => i && i.module && !i.done) : [];
+  if(!pending.length){ toast('今天还没有可重排的 AI 任务'); return; }
+  const d = DATA.settings && DATA.settings.diagnosis;
+  if(!d){ toast('诊断数据缺失，先去「规划」完成诊断'); return; }
+
+  const r = diagBuildReport(d);
+  const dates = planSpanDates(r.days, r.caps);
+  const todayRow = dates[0];
+  let capMin = todayRow.capMin;
+  if(onlyMin && onlyMin > 0){
+    capMin = Math.max(10, Math.min(Math.round(onlyMin), todayRow.capMin));   // 下限 10 分钟，上限不超过日常容量
+  }
+
+  setRbBusy(true);
+  try{
+    const msgs = planRebalanceMessages(d, r, todayRow, capMin, (onlyMin && onlyMin > 0) ? capMin : 0, pending);
+    const raw = await callRelay('rebalance', msgs, 0.4, { max_tokens:1500, json_mode:true });
+    const out = planApplyAi(aiJson(raw), [{ iso:t, weekend:todayRow.weekend, capMin:capMin }], r.days);
+    const day = out && out.length === 1 && out[0].date === t ? out[0] : null;
+    if(!day){ toast('重排结果没过本地校验（任务或时长不合规），原计划未动'); return; }
+    const st = planRebalancePersist(day);
+    toast('已重新安排今天：' + st.added + ' 件任务' + (st.moved ? '，' + st.moved + ' 件顺延到明天' : ''));
+    render();
+    renderDiagEntry();
+  }catch(e){
+    if(e && e.code === 'AUTH_REQUIRED') toast('登录后才能使用每日重排');
+    else if(e && e.code === 'user_limit') toast(e.msg || '免费额度暂时用完，稍后再试');
+    else toast('重排没成功（网络或服务波动），原计划未动');
+  }finally{
+    setRbBusy(false);
+  }
 }
