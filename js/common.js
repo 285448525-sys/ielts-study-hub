@@ -441,6 +441,20 @@ function injectGlobalDock(){
   document.body.classList.add('has-dock');
   const moreBtn = dock.querySelector('[data-more]');
   if(moreBtn) moreBtn.addEventListener('click', openMoreSheet);
+  /* 10/2 dock 重设计（B 通栏扁平 · 之之拍板）：实测 dock 真实高度写进 :root 的 --dock-h。
+     全站「内容区净空 / 浮钮锚点 / toast / 额度轻条」一律读这个变量，不再写死 88px。
+     为什么必须实测：safe-area（iPhone 34 / iPad 20 / 安卓 0~24px）+ 系统字号放大都会让 dock
+     实际高度浮动，写死数字在真机上必然对不上——本批要消灭的正是「dock 上方 20px 幽灵白带」。
+     h > 0 守卫是必须的：沉浸态（模考 mock-immerse / 背词全屏）dock 是 display:none，rect 高 0，
+     照写会把 --dock-h 打成 0px 导致净空直接塌掉。 */
+  const syncDockH = () => {
+    const h = Math.round(dock.getBoundingClientRect().height);
+    if (h > 0) document.documentElement.style.setProperty('--dock-h', h + 'px');
+  };
+  syncDockH();
+  if (window.ResizeObserver) new ResizeObserver(syncDockH).observe(dock);
+  window.addEventListener('resize', syncDockH);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(syncDockH, () => {});
 }
 
 /* ===== 全站 + 浮动按钮（已砍，9/16 之之反馈不知道它是干嘛的：全站仅计划页有 data-fab-add 接杆，

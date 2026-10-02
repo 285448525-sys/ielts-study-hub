@@ -2389,7 +2389,8 @@ html,body{overflow-x:clip}
 body.has-dock main.container{ padding-bottom:0; }
 @media (max-width:860px){
   #hubDock{ display:flex; }
-  body.has-dock main.container{ padding-bottom:88px; }
+  /* 10/2：净空统一由 design/56 块（沉浸态 118px）与末尾 App Shell 块（非沉浸态 --dock-h）接管，
+     这里删除写死的 88px —— 三个魔法数字互相覆盖是旧 bug 的根源。 */
 }
 /* ===== 手机端浮层/完成页适配（之之 9/8：完成页按钮点不到、排版乱、dock 优化）===== */
 @media (max-width:860px){
@@ -2412,7 +2413,8 @@ body.has-dock main.container{ padding-bottom:0; }
   box-shadow:0 8px 20px rgba(0,0,0,.28);
 }
 @media (max-width:860px){
-  #hubFab{ bottom:96px; }   /* 避开移动端玻璃底栏 dock */
+  /* 10/2：#hubFab 的移动端锚点已统一到 design/56 块（var(--dock-h) + 18px），
+     这里删除写死的 96px，避免第二个魔法数字。 */
 }
 
 /* ===== 苹果极简 · Layer③ 模块色驱动：[data-mod] 决定每页身份色 --mod ===== */
@@ -2538,55 +2540,66 @@ body.has-dock main.container{ padding-bottom:0; }
   .streak-chip.boost,.finish-medal{animation:none !important}
 }
 
-/* ===== design/56 · 移动端底部 dock「混搭 AC」改版（之之 2026-09-08 定版）===== */
+/* ===== design/56 · 移动端底部 dock（B 通栏扁平 · 之之 10/2 拍板）=====
+   改造前：68px 浮空玻璃卡片（左右各 8px 缝 + 20px 上圆角 + 大投影），而内容区净空写死 88px
+           → dock 上方恒定 20px 幽灵白带，且「贴底 + 留边距 + 圆角 + 投影」四重自相矛盾。
+   改造后：56px 通栏 tab bar（iOS/微信原生观感）：无圆角、1px 顶分隔线、active 只染色不加药丸。
+   净空与所有浮层锚点统一读 --dock-h（common.js injectGlobalDock 实测写入），不再有魔法数字。 */
 #hubDock{
-  width:calc(100% - 24px); max-width:500px;
-  background:rgba(255,255,255,.86);
-  backdrop-filter:blur(18px) saturate(160%);
-  -webkit-backdrop-filter:blur(18px) saturate(160%);
-  border:1px solid rgba(255,255,255,.75);
-  box-shadow:0 10px 30px rgba(16,24,40,.14);
-  padding:7px;
+  width:100%; max-width:none;
+  background:rgba(255,255,255,.88);
+  backdrop-filter:blur(20px) saturate(180%);
+  -webkit-backdrop-filter:blur(20px) saturate(180%);
+  border-top:1px solid var(--line);
+  border-left:none; border-right:none; border-bottom:none;
+  box-shadow:0 -1px 2px rgba(16,24,40,.04);
+  padding:4px 0;
+  border-radius:0;
+  gap:0;
 }
-#hubDock::after{ display:none; }   /* 去 Uiverse 模板内阴影白高光（浅底上是雾感） */
-#hubDock .ui-menu-item{ color:var(--n-600); text-shadow:none; padding:9px 0 7px; }
+#hubDock::after{ display:none; }
+/* 5 槽同构（9/15 起中央凸起已撤）；active 只染主色、不给药丸底 —— iOS Tab Bar 观感 */
+#hubDock .ui-menu-item{
+  color:var(--n-500); text-shadow:none;
+  padding:7px 0 6px; border-radius:0;
+}
 #hubDock .ui-menu-item svg{ width:22px; height:22px; }
-#hubDock .ui-menu-item > span{ font-size:11px; font-weight:600; }
-#hubDock .ui-menu-item:hover{
-  background:rgba(20,22,26,.04); box-shadow:none; transform:none; color:var(--n-800);  /* 删模板 rotate(2.2deg) 彩蛋 */
-}
-#hubDock .ui-menu-item.active{ background:var(--primary-50); color:var(--primary-700); }
-#hubDock .ui-menu-item.active > span{ font-weight:800; }
-/* 9/18 夜间适配（之之截图：暗色下 dock 仍是白条）：浅玻璃是浅色专属，暗色同构图换深玻璃。
-   active 药丸走 --primary-50/--primary-700 token 自动翻转，无需覆盖。 */
+#hubDock .ui-menu-item > span{ font-size:11px; font-weight:500; margin-top:3px; }
+#hubDock .ui-menu-item:hover{ background:rgba(20,22,26,.04); box-shadow:none; transform:none; color:var(--n-800); }
+#hubDock .ui-menu-item.active{ background:none; color:var(--primary-600); }
+#hubDock .ui-menu-item.active > span{ font-weight:700; }
+#hubDock .ui-menu-item:active{ background:rgba(20,22,26,.05); }
+/* 暗色：浅玻璃是浅色专属，同构图换深玻璃；顶线用白 10% 维持 1px 分隔可辨 */
 [data-theme="dark"] #hubDock{
-  background:rgba(26,26,28,.86);
-  border-color:rgba(255,255,255,.08);
-  box-shadow:0 10px 30px rgba(0,0,0,.35);
+  background:rgba(22,24,28,.9);
+  border-top-color:rgba(255,255,255,.1);
+  box-shadow:0 -1px 2px rgba(0,0,0,.3);
 }
 [data-theme="dark"] #hubDock .ui-menu-item:hover{ background:rgba(255,255,255,.06); color:var(--n-800); }
-/* 9/15：中央凸起主钮已撤（之之要求背词与其他项风格完全一致），5 槽同构；dock-raised 旧规则删除 */
 
 @media (max-width:860px){
-  /* 9/15 二修（之之截图：dock 下方仍有一条灰白缝）：根因是 safe-area 双重叠加——
-     bottom:env(safe-area) 把整个 dock 抬高 home indicator 高度，padding 又吃一遍。
-     改为 bottom:0 真贴底，safe-area 只并入内部 padding（图标不被 home indicator 挡住）。 */
+  /* 10/2 B 方案：真通栏。left/right 归 0、transform 撤掉、圆角归 0；
+     safe-area 只并入内部 padding 一次（9/15 修过的双重叠加坑不要再犯）。 */
   #hubDock{
-    left:8px; right:8px; transform:none;
+    left:0; right:0; transform:none;
     width:auto; max-width:none;
     bottom:0;
-    border-radius:20px 20px 0 0;
-    border-bottom:none;
-    padding:7px 8px calc(7px + env(safe-area-inset-bottom, 0px));
+    border-radius:0;
+    padding:4px 0 calc(4px + env(safe-area-inset-bottom, 0px));
   }
-  /* 背词凸钮撤除后 dock 变矮：计时胶囊/浮钮/页面底部净空同步下调 */
+  /* 浮钮 / 吐司 / 额度轻条锚点：一律 = dock 实测高 + 各自呼吸值。
+     safe-area 已含在 --dock-h 里（实测的是含 padding 的 border-box 高），此处严禁再叠加。 */
   .float-timer{
-    bottom:calc(78px + env(safe-area-inset-bottom, 0px));
+    bottom:calc(var(--dock-h, 56px) + 10px);
     background:var(--primary-700);
     padding:5px 6px 5px 11px;
     font-size:11.5px;
   }
-  #hubFab{ bottom:calc(88px + env(safe-area-inset-bottom, 0px)); }
+  #hubFab{ bottom:calc(var(--dock-h, 56px) + 18px); }
+  .toast{ bottom:calc(var(--dock-h, 56px) + 16px); }
+  #hubLimitStrip{ bottom:calc(var(--dock-h, 56px) + 14px); }
+  /* 沉浸态（模考 mock-immerse / 背词全屏）维持原 118px 不动；
+     非沉浸态由文件末尾 App Shell 块接管（那里才用 --dock-h）。 */
   body.has-dock main.container{ padding-bottom:118px; }
 }
 
@@ -2867,7 +2880,7 @@ html[data-theme="dark"] .onb2-overlay{background:rgba(0,0,0,.62)}
   body.has-dock:not(.mock-immerse):not(.word-fullscreen) main.container{
     flex:1 1 auto;min-height:0;overflow-y:auto;
     -webkit-overflow-scrolling:touch;
-    padding-bottom:calc(88px + env(safe-area-inset-bottom,0px));   /* dock 净空并入滚动容器 */
+    padding-bottom:calc(var(--dock-h, 56px) + 10px);   /* = dock 实测高 + 10px 呼吸；不再写死 88px */
   }
 }
 

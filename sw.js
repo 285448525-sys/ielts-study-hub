@@ -9,7 +9,7 @@
      SW 不参与离线态的判定与渲染，缓存策略本文件零改动。
      本文件 activate 时发的 `SW_UPDATED` 消费端也在 common.js（maybeShowSwUpdatePrompt，
      design/78）：页面收到后只弹提示条，**是否刷新由用户点击决定，SW 侧绝不自动 reload**。 */
-const CACHE = 'ielts-hub-v163';  // 10/2 串题页（materials）人设卡区改版（她截图两条）——①人设卡区前加「为什么要先填人设」串题优势说明（简单填几个问题 → 几个专属题材 → 尽量串多题）②卡标题「一句话介绍你自己」→「人设卡」、删掉 hint 里的举例、placeholder 改引导句 ③新增平台自带 8 条万用人设一键填充（PERSONA_PRESETS，点一下填入可再改，data-preset 委托）④问题卡删掉「覆盖 N 道当季题」折叠区 + 锚定真题块（题名/英文原题/youShouldSay 要点整块），只留「一个简单问题 + 一个对话框 + 折叠追问」——anchor/topics 数据层零改动，生成素材喂 AI 与口语页覆盖矩阵照旧；materials.js 20261001h→20261002a（materials.html + speaking.html 两处同步）。上一版 v162 模考退出按钮改实体 + 下一题右对齐
+const CACHE = 'ielts-hub-v164';  // 10/2 手机端 dock 重设计（B 通栏扁平 · 她拍板 A/B/C 三选一 + 保留 5 个文字标签）——**病根不是「空隙多」而是三个魔法数字打架**：dock 实测仅 68px 而内容区净空写死 88px（css:2392/2590/2870 三处互相覆盖）→ dock 上方恒定 20px 幽灵白带；且 bottom:0 已贴底却留左右 8px 缝 + 20px 上圆角 + 大投影 = 浮空卡片感。改法：①design/56 整块重写为 56px 通栏 tab bar（无圆角 / 1px 顶分隔线 / 投影改 0 -1px 2px / active 只染主色不加药丸 = iOS·微信观感）②js/common.js injectGlobalDock 实测 dock 高度写进 :root 的 --dock-h，全站净空与浮层锚点（.float-timer / #hubFab / .toast / #hubLimitStrip）一律读它，换手机（safe-area 34/20/0px）或换系统字号都不会再错位③删净空三处与 #hubFab 96px 死值；沉浸态（mock-immerse/word-fullscreen）净空 118px 与 dock 隐藏态逐像素不变（h>0 守卫防 --dock-h 被写成 0）。实测 390×844：dock 68→58px、净空−dock高 20px→10px（白带归零）、三页几何一致、暗色同构图换深玻璃。版本 common.js c→d、css buster j→k（14 页）。上一版 v163 串题人设卡改版
 
 /* 核心壳预缓存清单（Node 脚本枚举目录生成，2026-09-20；与 14 页实际引用核对无遗漏）。
    不含 js/vendor/xlsx.full.min.js（861KB 体积大 → 走运行时 SWR 缓存）。 */
