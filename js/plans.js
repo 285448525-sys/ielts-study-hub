@@ -80,6 +80,39 @@ var DIAG_PHASES = [
 ];
 var diagFormState = null;   // 问卷进行中的临时态（仅内存，不落库；点生成才存）
 
+/* ---- commit2：AI 评定（diag key）常量。放 ready 前守 TDZ 铁律；函数声明在文件后部 ---- */
+var DIAG_AI_REAL_SRC = { mock:1, exam:1, writing:1, practice:1 };  // 雅思实证来源，AI 不许动这些科的分
+var DIAG_AI_SYSTEM =
+'你是雅思备考规划助手，正在为一位中国考生做「水平评定」。只输出一个 JSON 对象，不要输出 JSON 以外的任何文字，也不要 markdown 代码围栏。\n'
++ '\n'
++ '【换算基准（必须遵守，不得凭空夸大或贬低）】\n'
++ '高考英语 120/150 → 听力 5.0-5.5、阅读 5.5、口语 5.0、写作 5.0\n'
++ '高考英语 130/150 → 听力 5.5-6.0、阅读 6.0、口语 5.5、写作 5.5\n'
++ '高考英语 140+/150 → 听力 6.0+、阅读 6.5+、口语 6.0、写作 6.0\n'
++ 'CET-4 425 及格线 → 听力 4.5-5.0（注意：及格≠够用，四级 425 考雅思通常只有 4.5）\n'
++ 'CET-4 500+ → 听力 5.5、阅读 6.0\n'
++ 'CET-4 550+ → 听力 6.0、阅读 6.5\n'
++ 'CET-6 550+ → 听力 6.5、阅读 7.0、口语 6.0、写作 6.0\n'
++ '六级高分对雅思帮助有限：雅思口语写作的判分与四六级体系不同，必须说明这一点。\n'
++ '\n'
++ '【铁律：必须诚实】\n'
++ '- 四级及格线以上≠雅思 5.5，必须直说差距（例：这种情况听力大概 4.5-5.0，差距主要在词汇量）。\n'
++ '- 提分难度必须说清：听力阅读提分最快但高分段空间小；写作口语无法速成，只能靠持续稳定输出。\n'
++ '- 如果目标 7.0 而现状 4.5，必须明确说「需要 6 个月以上，不是短期能达成的」，不许迎合。\n'
++ '- 如果只剩 7 天却想提 1 分，必须说不可能，并给保底策略（背单词、口语 Part 1 快答、写作模板默写）。\n'
++ '- 输入里 source 为 mock/exam/writing/practice 的分数是考生的雅思实证成绩，必须原样沿用，不许改动、压低或抬高；你只对 source 为 ref（校外成绩换算）、manual（手填）或 null 的科目给估计。\n'
++ '\n'
++ '【输出 JSON 格式（只输出这个对象）】\n'
++ '{\n'
++ '  "bands": {"listening": 数字或 null, "reading": 数字或 null, "writing": 数字或 null, "speaking": 数字或 null},\n'
++ '  "bandNotes": {"listening": "给这个分数的一句依据", "reading": "...", "writing": "...", "speaking": "..."},\n'
++ '  "verdict": "2-4 句总评：现状离目标多远、时间够不够、最该做什么。必须诚实，不许哄人。",\n'
++ '  "bullets": ["4-8 条具体建议，每条一句话、可执行（说清做什么、做多少），禁止「多练听力」「保持语感」这类空话"],\n'
++ '  "focus": ["按优先级排列最该投入的科目 key，从 listening/reading/writing/speaking 中选，最多 4 个"],\n'
++ '  "refNote": "关于校外成绩换算可信度的一句说明；没有校外成绩给空字符串"\n'
++ '}\n'
++ '分数只允许 0.5 步进、范围 3.0-9.0；没有依据的科目给 null，不许编造。';
+
 /* ⭐ TDZ 铁律：页面级 const 必须在 ready() 之前——ready 回调在脚本求值期同步执行，
    声明放后面（render 附近）会在首次 render 时 hit TDZ 整页崩（9/17 reload 实测）。 */
 
@@ -923,7 +956,8 @@ function renderDiagEntry(){
   }).join('');
   root.innerHTML =
     '<div class="card dg-summary">'
-    + '<div class="dg-sum-head"><div><div class="dg-sum-title">备考诊断</div>'
+    + '<div class="dg-sum-head"><div><div class="dg-sum-title">备考诊断'
+    + (d.ai ? '<span class="dg-sum-ai">含 AI 评定</span>' : '') + '</div>'
     + '<div class="dg-sum-sub">' + (r.phase ? escapeHtml(r.phase.label) + ' · ' : '') + (r.cd.hasExam ? '距考试 ' + r.days + ' 天' : '未设置考试日期')
     + ' · 每周约 ' + (r.caps.weekMin/60).toFixed(1) + ' 小时</div></div>'
     + '<button type="button" id="dgRedo" class="dg-text-btn">重新诊断</button></div>'
@@ -932,7 +966,7 @@ function renderDiagEntry(){
     + '<button type="button" id="dgView" class="btn-primary dg-block-btn">查看完整诊断报告</button>'
     + '</div>';
   document.getElementById('dgRedo').addEventListener('click', openDiagForm);
-  document.getElementById('dgView').addEventListener('click', () => openDiagReport(d));
+  document.getElementById('dgView').addEventListener('click', () => openDiagReport());
 }
 
 /* 「跳过，直接用默认」：提取成绩 + other 模板 + 默认时长，直接出报告（什么都没有也能出） */
@@ -940,7 +974,7 @@ function diagQuickDefault(){
   diagFormState = diagDefaultForm();
   const d = diagPersist(diagFormState);
   renderDiagEntry();
-  openDiagReport(d);
+  openDiagReport(d, 'loading');
 }
 
 /* ---------- 全屏覆盖层（问卷 / 报告两屏） ---------- */
@@ -951,6 +985,8 @@ function closeDiagOverlay(){
   ov.hidden = true;
   ov.innerHTML = '';
   diagFormState = null;
+  /* AI 请求可能在报告打开期间刚回来（只刷了 #dgAi）；关闭时把入口卡的「含 AI 评定」标等状态补齐 */
+  if(document.getElementById('diagRoot')) renderDiagEntry();
 }
 
 function openDiagForm(){
@@ -1020,13 +1056,13 @@ function renderDiagForm(){
     const st2 = diagCollectForm();
     const d = diagPersist(st2);
     renderDiagEntry();
-    openDiagReport(d);
+    openDiagReport(d, 'loading');
   });
   document.getElementById('dgSkip2').addEventListener('click', () => {
     diagFormState = diagDefaultForm();
     const d = diagPersist(diagFormState);
     renderDiagEntry();
-    openDiagReport(d);
+    openDiagReport(d, 'loading');
   });
   document.getElementById('dgIdentity').addEventListener('change', e => {
     const tpl = DIAG_IDENTITY[e.target.value] || DIAG_IDENTITY.other;
@@ -1048,7 +1084,7 @@ function renderDiagForm(){
 
 /* ---------- 报告屏 ---------- */
 
-function openDiagReport(d){
+function openDiagReport(d, aiMode){
   d = d || (DATA.settings && DATA.settings.diagnosis);
   const ov = document.getElementById('diagOverlay'); if(!ov || !d) return;
   const r = diagBuildReport(d);
@@ -1080,11 +1116,167 @@ function openDiagReport(d){
         '去「我的」填好考试日期后重新诊断，结论会准很多。',
         '<a href="settings.html">去「我的」填考试日期</a>，填完重新诊断结论会准很多。') + '</li>').join('')
     + '</ul></section>'
+    /* AI 个性化评定：本地诚实底座之上的免费增量，五态：stored/loading/idle/error/login */
+    + '<section class="dg-sec dg-ai" id="dgAi" aria-live="polite"></section>'
     + '</div>'
     + '<div class="dg-foot"><button type="button" id="dgRedo2" class="btn-primary dg-block-btn">重新诊断 / 修改答案</button></div>'
     + '</div>';
   ov.hidden = false;
   document.getElementById('dgClose').addEventListener('click', closeDiagOverlay);
   document.getElementById('dgRedo2').addEventListener('click', openDiagForm);
+  /* aiMode：'loading'=刚提交自动请求；'stored'=已有评定直接展示；'idle'=没评过/上次没成（给手动入口）。
+     不传 aiMode（从概览重进）时现读 d.ai 自动推断——概览卡可能持有落库前的旧 d 闭包，不能信快照。 */
+  if(aiMode === 'loading'){
+    renderDiagAiBox('loading');
+    diagRequestAi({ bands:d.bands, src:d.bandSrc });
+  }else if(aiMode === 'stored' || (!aiMode && d.ai)){
+    renderDiagAiBox('stored');
+  }else{
+    renderDiagAiBox('idle');
+  }
   ov.scrollTop = 0;
+}
+
+/* =====================================================================================
+   AI 个性化评定（第三十三批 commit2，新 callRelay key 'diag'）
+   定位：本地诚实报告是永远可用的底座（verdict/缺口由我们自己的代码保证，AI 改不动它）；
+   AI 只做增量——逐科评定依据 + 个性化建议。任何失败都不影响底座、不落半截结果。
+   后端 functions/api/ai.js：diag 豁免每周 5 次兜底（10/2「诊断免费」拍板），仍需登录、
+   仍受全站日闸/IP/分钟风控。
+   ===================================================================================== */
+
+/* 组装 diag 请求：system 锁口径，user 喂问卷上下文（含本地结论，供 AI 解释但不许软化） */
+function diagAiMessages(st, r){
+  const tg = {};
+  DIAG_SUBS.forEach(([k]) => { tg[k] = Number(r.tg[k]) > 0 ? Number(r.tg[k]) : null; });
+  if(Number(r.tg.overall) > 0) tg.overall = Number(r.tg.overall);
+  const payload = {
+    now: todayKey(),
+    exam: r.cd.hasExam ? { date:r.cd.raw, daysLeft:r.days } : null,
+    target: tg,
+    bands: DIAG_SUBS.map(([k]) => ({ sub:k, band:(st.bands[k] == null ? null : st.bands[k]),
+      source:(st.src[k] ? st.src[k].s : null) })),
+    refExam: st.ref || null,
+    weeklyCapacity: { weekdayHoursPerDay:st.wdHours, weekendHoursPerDay:st.weHours, totalMinutesPerWeek:r.caps.weekMin },
+    identity: st.identity,
+    localConclusion: { key:r.verdict.k, needDays:r.needDays, text:r.verdict.text }
+  };
+  return [
+    { role:'system', content:DIAG_AI_SYSTEM },
+    { role:'user', content:'请按约定的 JSON 格式评定以下考生：\n' + JSON.stringify(payload) }
+  ];
+}
+
+/* 纯护栏：AI JSON → 可落库 d.ai；关键字段不合规返回 null（调用方保留本地底座，不采半截）。
+   实证科目（mock/考试/批改/练习）强制沿用她的真实分；AI 分值只对 ref/manual/空 科目生效。 */
+function diagApplyAi(st, ai){
+  if(!ai || typeof ai !== 'object' || Array.isArray(ai)) return null;
+  if(!Array.isArray(ai.bullets)) return null;
+  const bullets = ai.bullets.map(x => (typeof x === 'string') ? x.trim() : '').filter(Boolean).slice(0, 8);
+  if(!bullets.length) return null;
+  if(bullets.some(x => x.length > 120)) return null;   // 冗长失控整份不采（比悄悄截断诚实，调用方可重试）
+  const verdict = (typeof ai.verdict === 'string') ? ai.verdict.trim().slice(0, 500) : '';
+  if(!verdict) return null;
+  const clampBand = v => { const n = diagRoundHalf(v); return (n != null && n >= 3 && n <= 9) ? n : null; };
+  const bands = {}, bandNotes = {};
+  DIAG_SUBS.forEach(([k]) => {
+    const isReal = !!(st.src[k] && DIAG_AI_REAL_SRC[st.src[k].s] && st.bands[k] != null);
+    if(isReal) bands[k] = st.bands[k];   // 实证分：无视 AI 给值
+    else bands[k] = (ai.bands && typeof ai.bands === 'object') ? clampBand(ai.bands[k]) : null;
+    if(ai.bandNotes && typeof ai.bandNotes === 'object' && typeof ai.bandNotes[k] === 'string'){
+      const note = ai.bandNotes[k].trim();
+      if(note) bandNotes[k] = note.slice(0, 80);
+    }
+  });
+  const focus = Array.isArray(ai.focus)
+    ? ai.focus.map(x => String(x)).filter(k => DIAG_SUBS.some(([x2]) => x2 === k))
+          .filter((k, i, a) => a.indexOf(k) === i).slice(0, 4)
+    : [];
+  const refNote = (typeof ai.refNote === 'string') ? ai.refNote.trim().slice(0, 200) : '';
+  return { ts:Date.now(), bands, bandNotes, verdict, bullets, focus, refNote };
+}
+
+function diagFmtTs(ts){
+  const x = new Date(ts), p = n => String(n).padStart(2, '0');
+  return (x.getMonth() + 1) + '/' + x.getDate() + ' ' + p(x.getHours()) + ':' + p(x.getMinutes());
+}
+
+/* 请求 AI 评定。落库与 UI 解耦：成功必落 d.ai（覆盖层关了也不浪费），DOM 前一律先查元素。 */
+async function diagRequestAi(st){
+  try{
+    const d0 = DATA.settings && DATA.settings.diagnosis;
+    if(!d0) return;
+    const r = diagBuildReport(d0);
+    const raw = await callRelay('diag', diagAiMessages(st, r), 0.3, { max_tokens:2000, json_mode:true });
+    const ai = diagApplyAi(st, aiJson(raw));
+    if(!ai){
+      const box0 = document.getElementById('dgAi'); if(box0) renderDiagAiBox('error', 'bad');
+      return;
+    }
+    const d = DATA.settings && DATA.settings.diagnosis;
+    if(!d) return;
+    DATA.settings.diagnosis = Object.assign({}, d, { ai });
+    DATA.settings._fieldTs = DATA.settings._fieldTs || {};
+    DATA.settings._fieldTs.diagnosis = Date.now();
+    hubSave();
+    if(document.getElementById('dgAi')) renderDiagAiBox('stored');
+    else renderDiagEntry();   // 覆盖层已关：至少把入口卡的「含 AI 评定」刷出来
+  }catch(e){
+    if(!document.getElementById('dgAi')) return;   // 她已离开：静默，下次打开给手动重试
+    renderDiagAiBox('error', (e && e.code === 'AUTH_REQUIRED') ? 'login' : 'fail');
+  }
+}
+
+/* #dgAi 五态渲染：loading / stored / idle / error(fail|bad|login)。只刷本 section。 */
+function renderDiagAiBox(mode, sub){
+  const box = document.getElementById('dgAi'); if(!box) return;
+  const d = DATA.settings && DATA.settings.diagnosis;
+  const head = '<div class="dg-ai-head"><span class="dg-ai-badge">AI</span><strong>AI 个性化评定</strong>'
+    + '<span class="dg-ai-free">免费 · 不占每周额度</span></div>';
+  const kick = (st) => { renderDiagAiBox('loading'); diagRequestAi(st); };
+  if(mode === 'loading'){
+    box.innerHTML = head + '<div class="dg-ai-loading"><span class="dg-spinner" aria-hidden="true"></span>'
+      + '正在结合你的成绩与备考时间做评定，通常 10 秒左右…</div>';
+    return;
+  }
+  if(mode === 'stored' && d && d.ai){
+    const ai = d.ai;
+    const bandCards = DIAG_SUBS.map(([k, lab]) => {
+      const v = ai.bands[k], real = !!(d.bandSrc[k] && DIAG_AI_REAL_SRC[d.bandSrc[k].s] && d.bands[k] != null);
+      return '<div class="dg-ai-band"><span class="dg-ai-band-lab">' + lab + (real ? '<i class="dg-ai-tag">沿用你的'
+        + escapeHtml(DIAG_SRC_LABEL[d.bandSrc[k].s] || d.bandSrc[k].s) + '</i>' : '') + '</span>'
+        + '<b>' + (v == null ? '--' : v.toFixed(1)) + '</b>'
+        + (ai.bandNotes[k] ? '<span class="dg-ai-band-note">' + escapeHtml(ai.bandNotes[k]) + '</span>' : '') + '</div>';
+    }).join('');
+    const focus = ai.focus.length
+      ? '<div class="dg-ai-focus">' + ai.focus.map(k =>
+          '<span class="dg-ai-fchip">' + escapeHtml((DIAG_SUBS.find(x => x[0] === k) || [,''])[1]) + ' 优先</span>').join('') + '</div>' : '';
+    box.innerHTML = head
+      + '<p class="dg-ai-verdict">' + escapeHtml(ai.verdict) + '</p>'
+      + focus
+      + '<div class="dg-ai-bands">' + bandCards + '</div>'
+      + '<ul class="dg-ai-bullets">' + ai.bullets.map(b => '<li>' + escapeHtml(b) + '</li>').join('') + '</ul>'
+      + (ai.refNote ? '<div class="dg-ai-ref">' + escapeHtml(ai.refNote) + '</div>' : '')
+      + '<div class="dg-ai-ts">AI 评定时间 ' + diagFmtTs(ai.ts) + '（结论仅供参考，最终以你的雅思真题模考分为准）</div>';
+    return;
+  }
+  if(mode === 'error' && sub === 'login'){
+    box.innerHTML = head + '<div class="dg-ai-msg">登录后可以免费获取 AI 个性化评定（不占每周免费 AI 额度）。</div>'
+      + '<a class="btn-primary dg-block-btn" href="login.html" style="text-decoration:none;text-align:center">去登录 / 注册</a>';
+    return;
+  }
+  if(mode === 'error'){
+    const msg = sub === 'bad' ? 'AI 这次返回的内容不完整，换个时间再试一次。'
+      : 'AI 评定暂时没拿到（网络或服务波动）。上面的本地评定不受影响，可以先用。';
+    box.innerHTML = head + '<div class="dg-ai-msg">' + msg + '</div>'
+      + '<button type="button" class="dg-text-btn" id="dgAiRetry">重试 AI 评定</button>';
+    document.getElementById('dgAiRetry').addEventListener('click', () =>
+      kick(d ? { bands:d.bands, src:d.bandSrc } : { bands:{}, src:{} }));
+    return;
+  }
+  /* idle：未评定（含上次失败后重进） */
+  box.innerHTML = head + '<div class="dg-ai-msg">想让 AI 结合你的具体成绩、考试日期和每周可学时间，给一份个性化的水平评定与备考重心吗？免费，一次约 10 秒。</div>'
+    + '<button type="button" class="btn-primary dg-block-btn" id="dgAiGo">免费获取 AI 评定</button>';
+  document.getElementById('dgAiGo').addEventListener('click', () =>
+    kick(d ? { bands:d.bands, src:d.bandSrc } : { bands:{}, src:{} }));
 }

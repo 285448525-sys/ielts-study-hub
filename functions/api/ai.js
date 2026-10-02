@@ -162,6 +162,9 @@ export async function onRequest(context) {
     return json({ ok: false, error: '输入过长（上限 ' + MAX_INPUT_CHARS + ' 字符）' }, 413, env);
   }
 
+  // service 在所有配额闸之前就要用（diag 免费豁免周兜底，见下）
+  const service = String((body && body.service) || '').trim();
+
   /* ---- 配额：全站每日 + 单 IP 每日 ---- */
   const now = new Date();
   const day = dayKey(now);
@@ -189,10 +192,12 @@ export async function onRequest(context) {
 
   /* 按账号每周兜底额度（免费/会员分层）：AI_USER_WEEKLY_LIMIT 环境变量，默认 5。
      ⚠️ 10/1 下午她拍板：原「每日 10 次」口径取消，改为每周 5 次兜底（口语模考/写作批改/
-     串题在下面对应功能闸先行；其余辅助 AI 全部走这里）。会员跳过。 */
+     串题在下面对应功能闸先行；其余辅助 AI 全部走这里）。会员跳过。
+     10/2 拍板「备考诊断免费」：service='diag' 不占这 5 次（转化钩子要无门槛）；
+     diag 仍受上面全站日闸 / IP 闸与下面分钟风控约束，盗刷照样拦。 */
   const week = isoWeekKey(now);
   const weekLimit = parseInt((env && env.AI_USER_WEEKLY_LIMIT) != null ? env.AI_USER_WEEKLY_LIMIT : '5', 10) || 0;
-  if (weekLimit > 0 && !isVip) {
+  if (weekLimit > 0 && !isVip && service !== 'diag') {
     let usedWeek = 0;
     try { usedWeek = parseInt((await env.SYNC_KV.get('aiqw:' + acct + ':' + week)) || '0', 10) || 0; } catch (e) {}
     if (usedWeek >= weekLimit) {
@@ -208,7 +213,6 @@ export async function onRequest(context) {
      ④ 翻译/长难句不再单独设组，并入上面每周 5 次兜底（原 aiqd 每日键口径退役）
      计量键：aiqmo:<acct>:<YYYY-MM>（月）/ aiqt:<acct>:writing（终身，默认 0 不启用）。
      默认阈值改这里要同步：auth.js ai_usage + vip.html 对比表（三处口径一致）。 */
-  const service = String((body && body.service) || '').trim();
   const month = monthKey(now);
   if (!isVip) {
     // ③ 串题素材会员专属
@@ -329,6 +333,8 @@ export async function onRequest(context) {
       })();
     }
     (async () => {
+      // diag 免费：不占每周兜底计数（闸已在上面豁免，这里也要跳过，否则会把额度越攒越满）
+      if (service === 'diag') return;
       try {
         const wk = 'aiqw:' + acct + ':' + week;
         const cur = parseInt((await env.SYNC_KV.get(wk)) || '0', 10) || 0;

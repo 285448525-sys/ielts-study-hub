@@ -42,7 +42,7 @@
 <script defer src="js/data.js?v=20261002a"></script>
   <script defer src="js/common.js?v=20261002e"></script>
   <script defer src="js/feedback.js?v=20261002b"></script>
-  <script src="js/plans.js?v=20261002c" defer></script>
+  <script src="js/plans.js?v=20261002d" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -128,7 +128,30 @@
 #diagOverlay .dg-bullets{margin:0;padding-left:20px}
 #diagOverlay .dg-bullets li{font-size:13.5px;line-height:1.8;margin-bottom:6px}
 #diagOverlay .dg-bullets a{color:var(--primary)}
-@media(max-width:380px){#diagRoot .dg-chips{grid-template-columns:1fr}#diagOverlay .dg-cards{grid-template-columns:1fr 1fr}}
+/* ===== AI 个性化评定区（commit2）：teal 同色系，全部 #dgAi id 作用域 ===== */
+#diagOverlay #dgAi.dg-ai{background:rgba(58,154,147,.06);border-color:rgba(58,154,147,.28)}
+#diagOverlay .dg-ai-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+#diagOverlay .dg-ai-badge{background:var(--primary);color:#fff;font-size:11px;font-weight:800;border-radius:6px;padding:2px 7px;letter-spacing:.5px}
+#diagOverlay .dg-ai-free{margin-left:auto;font-size:11px;color:var(--primary);background:rgba(58,154,147,.12);border-radius:999px;padding:2px 9px;font-weight:700;white-space:nowrap}
+#diagOverlay .dg-ai-loading{color:var(--muted);font-size:13.5px;display:flex;align-items:center;gap:9px;line-height:1.6}
+#diagOverlay .dg-spinner{width:15px;height:15px;border:2px solid rgba(58,154,147,.25);border-top-color:var(--primary);border-radius:50%;animation:dgs .8s linear infinite;flex:none}
+@keyframes dgs{to{transform:rotate(360deg)}}
+#diagOverlay .dg-ai-msg{color:var(--muted);font-size:13.5px;line-height:1.7;margin:4px 0 6px}
+#diagOverlay .dg-ai-verdict{font-size:14.5px;line-height:1.8;color:var(--ink);margin:2px 0 12px}
+#diagOverlay .dg-ai-focus{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+#diagOverlay .dg-ai-fchip{font-size:12px;background:var(--surface);border:1px solid rgba(58,154,147,.4);color:var(--primary);border-radius:999px;padding:3px 11px;font-weight:600}
+#diagOverlay .dg-ai-bands{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 12px}
+#diagOverlay .dg-ai-band{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);padding:8px 10px}
+#diagOverlay .dg-ai-band-lab{font-size:12px;color:var(--muted);display:block}
+#diagOverlay .dg-ai-band b{font-size:18px}
+#diagOverlay .dg-ai-tag{font-style:normal;font-size:10.5px;color:var(--primary);margin-left:6px;font-weight:400}
+#diagOverlay .dg-ai-band-note{display:block;font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.5}
+#diagOverlay .dg-ai-bullets{margin:0 0 6px;padding-left:20px}
+#diagOverlay .dg-ai-bullets li{font-size:13.5px;line-height:1.75;color:var(--ink);margin-bottom:5px}
+#diagOverlay .dg-ai-ref{font-size:12px;color:var(--muted);line-height:1.7;border-top:1px dashed var(--line);padding-top:8px;margin-top:6px}
+#diagOverlay .dg-ai-ts{font-size:11px;color:var(--muted);margin-top:8px}
+#diagRoot .dg-sum-ai{display:inline-block;font-size:11px;color:var(--primary);background:rgba(58,154,147,.12);border-radius:999px;padding:2px 9px;margin-left:8px;font-weight:700;vertical-align:middle}
+@media(max-width:380px){#diagRoot .dg-chips{grid-template-columns:1fr}#diagOverlay .dg-cards{grid-template-columns:1fr 1fr}#diagOverlay .dg-ai-bands{grid-template-columns:1fr}}
 </style>
 <meta name="description" content="学习计划：按考试日期倒排每日任务，今日 / 规划 / 历史三个视图。" />
 <link rel="canonical" href="https://ielts-study-hub.pages.dev/plans" />
