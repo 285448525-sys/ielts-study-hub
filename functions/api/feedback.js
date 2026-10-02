@@ -128,7 +128,7 @@ export async function onRequest(context) {
   const day = dayKeyUTC(now);
   const ip = clientIp(request);
   if (await sumBuckets(kv, 'fbr:' + ip, day) >= DAILY_LIMIT) {
-    return json({ ok: false, error: 'daily_limit', msg: '今天已经提交过 ' + DAILY_LIMIT + ' 条了，明天再来吧（或直接加微信找我）' }, 429);
+    return json({ ok: false, error: 'daily_limit', msg: '今天已经提交过 ' + DAILY_LIMIT + ' 条了，明天再来吧（急事可在弹层底部点「等不及回复？加站长微信」直接找我）' }, 429);
   }
 
   /* ---- 3. 文字 ---- */
@@ -157,7 +157,7 @@ export async function onRequest(context) {
   /* ---- 5. 总量保护 ---- */
   let seq = parseInt((await kv.get('fbseq')) || '0', 10) || 0;
   if (seq >= TOTAL_LIMIT) {
-    return json({ ok: false, error: 'full', msg: '反馈箱暂时满了，请直接加微信 g285448525 告诉我' }, 503);
+    return json({ ok: false, error: 'full', msg: '反馈箱暂时满了，请点弹层底部的「等不及回复？加站长微信」直接告诉我' }, 503);
   }
 
   /* ---- 登录态（可选） ---- */

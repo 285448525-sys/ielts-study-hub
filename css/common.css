@@ -2936,6 +2936,47 @@ button.side-item, button.sheet-item{
 .fb-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 18px;
   border-top:1px solid var(--line);padding-bottom:calc(12px + env(safe-area-inset-bottom,0px))}
 .fb-tip{font-size:11.5px;color:var(--muted);line-height:1.4}
+
+/* 10/2（她拍板）：意见反馈弹层底部「等不及回复？加站长微信」超链接 + 原位展开的联系方式。
+   设计约束：
+   · 视觉层级压在 fb-err 之下、fb-foot 之上——不是主操作，用户不该被它抢注意力。
+   · 展开块用 primary-soft 浅底 + 左侧主色描边（与全站「串题优势块」同一套语言）。
+   · 微信号做成可点即复制的等宽块，命中区 ≥44px（ADHD 友好铁律）。
+   · 暗色走同构图换深色，不用纯黑/纯白。 */
+.fb-wxwrap{margin-top:4px}
+.fb-wxlink{display:inline-flex;align-items:center;gap:5px;min-height:44px;padding:6px 2px;
+  background:none;border:none;color:var(--primary-600);font-size:13.5px;font-weight:600;
+  font-family:inherit;cursor:pointer;text-align:left;border-radius:8px}
+.fb-wxlink:hover{color:var(--primary-700);text-decoration:underline}
+.fb-wxlink:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.fb-wxlink::after{content:'▾';font-size:11px;opacity:.7;transition:transform .18s ease}
+.fb-wxlink.on::after{transform:rotate(180deg)}
+
+/* 展开块：原位展开在弹层内，不遮挡任何已写内容 */
+.fb-wxbox{margin:2px 0 6px;padding:13px 15px;border-radius:13px;
+  background:var(--primary-soft);border:none;border-left:3px solid var(--primary);
+  animation:fbWxIn .18s ease}
+@keyframes fbWxIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.fb-wxbox[hidden]{display:none!important}
+.fb-wxbox-lb{font-size:11.5px;color:var(--muted);letter-spacing:.3px;margin-bottom:5px}
+.fb-wxbox-id{display:inline-flex;align-items:center;min-height:44px;padding:8px 15px;
+  border-radius:11px;background:var(--surface);border:1.5px dashed var(--primary);
+  color:var(--ink);font-size:16px;font-weight:700;letter-spacing:.5px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;cursor:pointer}
+.fb-wxbox-id:hover{background:var(--primary-soft)}
+.fb-wxbox-id:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.fb-wxbox-tip{font-size:12px;color:var(--muted);line-height:1.55;margin-top:8px}
+.fb-wxcopy{display:block;min-height:44px;margin-top:9px;padding:0 15px;border-radius:11px;
+  background:var(--primary);color:#fff;border:none;font-size:13px;font-weight:600;
+  font-family:inherit;cursor:pointer}
+.fb-wxcopy:hover{background:var(--primary-700)}
+.fb-wxcopy:focus-visible{outline:2px solid var(--primary-600);outline-offset:2px}
+
+/* 暗色：同构图换深玻璃 */
+[data-theme="dark"] .fb-wxbox{background:rgba(62,155,232,.1)}
+[data-theme="dark"] .fb-wxbox-id{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.28)}
+[data-theme="dark"] .fb-wxbox-id:hover{background:rgba(62,155,232,.16)}
+[data-theme="dark"] .fb-wxcopy{color:#0b1220}
 .fb-foot .btn{height:38px;padding:0 18px}
 /* 移动端：贴底抽屉（复用 sheet 观感），顶到 safe-area 之上、避开 dock */
 @media (max-width:860px){

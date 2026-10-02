@@ -1,12 +1,16 @@
-/* 意见反馈（她 10/2 拍板）——全站共用一个弹层，入口两处：设置页卡片 +「更多」抽屉/桌面侧栏。
+/* 意见反馈（她 10/2 拍板）——全站共用一个弹层，入口：侧栏/抽屉「意见反馈」大 Tab。
  *
  * 设计取舍（施工时确认过的）：
  *  · 本文件跟 data.js / common.js 一样**全站引入**，而不是「从设置页跳过来」。
  *    原因：项目有软导航（站内换页不重新加载文档），若只在 settings.html 引本文件，
  *    软导航进别的页后 openFeedbackSheet 就不存在了；而跨页跳转会丢掉「当前页面路径」——
- *    而那恰恰是定位问题最关键的一条。两处入口直达同一个弹层，行为完全一致。
+ *    而那恰恰是定位问题最关键的一条。入口直达同一个弹层，行为完全一致。
  *  · 提交是**只写服务端**的单向动作（POST /api/feedback），失败**保留用户已输入的内容**。
  *  · 图片前端压到≤120KB/张、最多 3 张；不上传任何学习数据，只带页面路径 + 屏幕 + UA + 是否登录。
+ *
+ * 10/2 追加（她拍板）：设置页的意见反馈卡与底部「加微信」条整块删除（已有独立大 Tab），
+ * 站长微信**全站唯一出口** = 本弹层底部「等不及回复？加站长微信」超链接 →
+ * 点击在弹层内**原位展开**联系方式（不新开弹窗 / 不跳页 / 不丢已写内容）。
  *
  * 与 App Shell 锁壳（≤860px 禁整页竖滚）共存：弹层是 body 直属的 fixed 层，自带内部滚动，
  * 不参与 main.container 的滚动体系，所以锁壳照样生效、弹层照样能滚。
@@ -18,9 +22,11 @@
   const MAX_TEXT = 1000;
   const MAX_IMGS = 3;
   const TARGET_KB = 120;          /* 单张压到这个以内（后端硬限 150KB，留余量） */
+  const FB_WX = 'g285448525';     /* ⚠️ 微信号全站唯一出口——别再往别处平铺 */
 
   let overlay = null;
   let submitting = false;
+  let wxOpen = false;            /* 联系方式块是否已展开（每次 open 收成收起态） */
 
   const $ = s => document.querySelector(s);
 
@@ -118,6 +124,16 @@
       +     '<label class="fb-lbl" for="fbContact">联系方式（选填）</label>'
       +     '<input id="fbContact" class="fb-input" maxlength="60" placeholder="微信号 / 邮箱，方便我回你" />'
       +     '<div class="fb-err" id="fbErr"></div>'
+      +     '<!-- 10/2 她拍板：急事出口。超链接 → 原位展开微信号（全站唯一出口，不新开弹窗、不丢已写内容） -->'
+      +     '<div class="fb-wxwrap">'
+      +       '<button class="fb-wxlink" id="fbWxLink" type="button" aria-expanded="false" aria-controls="fbWxBox">等不及回复？加站长微信</button>'
+      +       '<div class="fb-wxbox" id="fbWxBox" hidden>'
+      +         '<div class="fb-wxbox-lb">站长微信</div>'
+      +         '<div class="fb-wxbox-id" id="fbWxId" role="button" tabindex="0" title="点一下复制">' + esc(FB_WX) + '</div>'
+      +         '<div class="fb-wxbox-tip">备注来意（开通 / 支付 / bug / 严重问题）我都会通过。反馈表单我一般 1–2 天内看，微信当天回。</div>'
+      +         '<button class="fb-wxcopy" id="fbWxCopy" type="button">复制微信号</button>'
+      +       '</div>'
+      +     '</div>'
       +   '</div>'
       +   '<div class="fb-foot">'
       +     '<span class="fb-tip">未登录也能提交；图片只用于定位问题</span>'
@@ -138,9 +154,52 @@
     el.querySelector('#fbAdd').addEventListener('click', () => el.querySelector('#fbFile').click());
     el.querySelector('#fbFile').addEventListener('change', ev => { onPick(ev.target.files); ev.target.value = ''; });
     el.querySelector('#fbSubmit').addEventListener('click', submit);
+    /* 急事出口：原位展开/收起。展开后滚到可见（弹层自带内滚，App Shell 锁壳不影响） */
+    el.querySelector('#fbWxLink').addEventListener('click', () => toggleWx(!wxOpen));
+    el.querySelector('#fbWxCopy').addEventListener('click', copyWx);
+    el.querySelector('#fbWxId').addEventListener('click', copyWx);
+    el.querySelector('#fbWxId').addEventListener('keydown', ev => {
+      if (ev.key === 'Enter' || ev.key === ' '){ ev.preventDefault(); copyWx(); }
+    });
     document.addEventListener('keydown', ev => {
       if (ev.key === 'Escape' && el.classList.contains('on')) close();
     });
+  }
+
+  function toggleWx(next){
+    const el = ensureOverlay();
+    wxOpen = !!next;
+    const box = el.querySelector('#fbWxBox');
+    const link = el.querySelector('#fbWxLink');
+    box.hidden = !wxOpen;
+    link.setAttribute('aria-expanded', wxOpen ? 'true' : 'false');
+    link.classList.toggle('on', wxOpen);
+    link.textContent = wxOpen ? '收起联系方式' : '等不及回复？加站长微信';
+    if (wxOpen) setTimeout(() => { try { box.scrollIntoView({ block:'nearest' }); } catch(_){ box.scrollIntoView(); } }, 30);
+  }
+
+  function copyWx(){
+    const done = () => { if (window.toast) window.toast('微信号已复制：' + FB_WX); };
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(FB_WX).then(done).catch(() => fallbackCopy(done));
+    } else fallbackCopy(done);
+  }
+  function fallbackCopy(done){
+    /* 非 https / 老浏览器没有 clipboard API，退回 execCommand；再不行就 toast 原文让用户手打 */
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = FB_WX;
+      ta.setAttribute('readonly', '');
+      ta.style.cssText = 'position:fixed;left:-9999px;top:0';
+      document.body.appendChild(ta);
+      ta.select();
+      const okk = document.execCommand('copy');
+      document.body.removeChild(ta);
+      if (okk) done();
+      else if (window.toast) window.toast('微信号：' + FB_WX);
+    }catch(_){
+      if (window.toast) window.toast('微信号：' + FB_WX);
+    }
   }
 
   function open(){
@@ -151,6 +210,8 @@
       '页面 ' + (location.pathname.split('/').pop() || 'index.html')
       + ' · ' + (window.innerWidth || 0) + '×' + (window.innerHeight || 0)
       + ' · ' + (logged ? '已登录' : '未登录');
+    /* 每次打开都收成收起态：联系方式属于「临时看一眼」，不该跨次留着 */
+    if (wxOpen) toggleWx(false);
     el.hidden = false;
     requestAnimationFrame(() => el.classList.add('on'));
     setTimeout(() => { const t = el.querySelector('#fbText'); if (t) t.focus(); }, 60);
@@ -250,7 +311,7 @@
       close();
       if (window.toast) window.toast('谢谢反馈！我会看的');
     } catch (e){
-      err.textContent = '网络异常，提交没成功。你的文字还在，可以直接加微信告诉我';
+      err.textContent = '网络异常，提交没成功。你的文字还在——急事可点下面的「等不及回复？加站长微信」直接找我';
     } finally {
       submitting = false;
       btn.disabled = false; btn.textContent = '提交反馈';
