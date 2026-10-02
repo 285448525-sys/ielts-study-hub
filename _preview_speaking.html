@@ -41,7 +41,21 @@
 
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
-  <script defer src="js/data.js?v=20261001b"></script>
+  <script>
+/* 预览专用：?previewdata=1 注入示例设置。只写 8089 本地 origin。 */
+(function(){
+  if(!/[?&]previewdata=1/.test(location.search)) return;
+  var now = new Date();
+  function ymd(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  var data = {
+    settings:{ name:'Camille', examDate: ymd(new Date(now.getTime()+8*86400000)), dailyGoalHours:6, theme:'light',
+      pronunciationScore:6, targets:{ overall:6, listening:5.5, reading:6.5, writing:5.5, speaking:5.5 }, syncCode:'15715725815', autoSync:true },
+    words:[], plans:{items:[]}, sessions:[], mockRecords:[], meds:[]
+  };
+  try{ localStorage.setItem('ielts_study_hub_v1', JSON.stringify(data)); }catch(e){}
+})();
+</script>
+<script defer src="js/data.js?v=20261001b"></script>
   <script defer src="js/common.js?v=20261001q"></script>
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
@@ -58,7 +72,7 @@
 
   /* 10/1 晚四改（她拍板）：单行深绿条，视觉空间=搜索框同级 */
   .page-head-row{margin-bottom:12px}   /* 本页无页标题，tab 与内容的间距收窄（全局 22px 是给标题留的） */
-  .sp-banner{padding:4px 10px;background:linear-gradient(135deg,var(--primary-700),var(--primary-900));color:rgba(255,255,255,.95);border-radius:9px;font-size:11px;line-height:1.2;margin:0 0 6px;border:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sp-banner{padding:7px 12px;background:linear-gradient(135deg,var(--primary-700),var(--primary-900));color:rgba(255,255,255,.95);border-radius:10px;font-size:12px;line-height:1.2;margin:0 0 8px;border:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .sp-banner b{font-weight:700;color:#fff}
   .sp-banner span{color:rgba(255,255,255,.6)}
 
@@ -75,11 +89,6 @@
 
   /* 10/1 晚四改（她拍板）：tab 与其他页面完全统一，不再有任何自定义尺寸 */
   .sp-tabs{margin-bottom:0}
-  /* 10/2（她反馈）：手机端 Tab 粘在一起——窄屏三个 tab 均匀铺满整行、收窄内边距，拉开间距 */
-  @media(max-width:560px){
-    .sp-tabs{display:flex;width:100%}
-    .sp-tabs .pill-tab{flex:1;justify-content:center;padding:9px 6px;font-size:13.5px}
-  }
 
   /* 10/1 晚（她拍板）：题库列表从「连体卡」拆成独立卡片——卡片间留呼吸空隙，不再挤成一条 */
   .sp-list{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
@@ -109,7 +118,7 @@
   .sent-cat-prog-fill{height:100%;background:var(--primary);border-radius:4px;transition:width .35s ease}
   .sent-caret{color:var(--muted);font-size:12px;flex:none}
   .sent-cat-body{padding:2px 0 6px}
-  .sent-item{display:flex;align-items:center;gap:10px;padding:10px 34px 10px 16px;cursor:pointer;font-size:14px;color:var(--ink);transition:background .15s;position:relative}
+  .sent-item{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;font-size:14px;color:var(--ink);transition:background .15s;position:relative}
   /* 10/1 UI polish：句子行右侧 chevron + hover ring */
   .sent-item::after{content:'›';position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:18px;color:var(--muted);opacity:.4;transition:all .15s}
   .sent-item:hover::after{color:var(--primary);opacity:1;transform:translateY(-50%) translateX(2px)}
@@ -387,6 +396,8 @@
   .sp-logic[hidden]{display:none}
   .sp-logic>b{color:var(--primary);flex:0 0 auto;font-size:13px;line-height:1.75}
   .sp-logic-text{white-space:pre-wrap;word-break:break-word}
+  .sp-ref-toggle{display:block;margin-top:8px;font-size:12.5px;color:var(--med);cursor:pointer;background:none;border:none;padding:4px 0;text-decoration:underline dotted;text-align:left}
+  .sp-ref-toggle:hover{color:var(--primary)}
   .sp-ref-answer{display:none;margin-top:8px;padding:10px 12px;background:var(--bg);border:1px solid var(--line);border-radius:10px;font-size:14px;line-height:1.8;color:var(--ink);white-space:pre-wrap}
   .sp-ref-answer.open{display:block}
 
@@ -812,6 +823,7 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
   #mockStage.p2-mode .mock-examiner{width:min(240px,72%);order:-1}
   .me-video{box-shadow:0 8px 20px rgba(19,35,41,.10)}
 }
+}
 /* P2 倒计时改小徽章（她拍板「P2 有个小小的倒计时显示就行，不用太紧张」）：
    覆盖 common.css 的 .mock-timer 全宽 warn 文字；剩 10s 内 .low 才转警示红。 */
 #mockStage .mock-timer{display:inline-flex;align-items:center;gap:6px;width:auto;margin:12px 0 0;align-self:flex-start;padding:4px 13px;border-radius:999px;background:var(--bg);border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--muted)}
@@ -842,13 +854,6 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
 #bootLoader .ui-loader{margin-bottom:8px}
 @media (prefers-reduced-motion: reduce){#bootLoader .ui-loader-dot,#bootLoader .ui-loader-shadow{animation:none}#bootLoader .ui-loader-dot{top:20px;height:20px;border-radius:50%;transform:none}#bootLoader .ui-loader-shadow{opacity:.5;transform:scaleX(1)}}
 </style>
-<meta name="description" content="口语练习：P1/P2/P3 题库与答题框架、串题素材沉淀、AI 口语模考（考官画面 + 四维报告）。" />
-<link rel="canonical" href="https://ielts-study-hub.pages.dev/speaking" />
-<meta property="og:type" content="website" />
-<meta property="og:title" content="口语 · 雅思备考 Hub" />
-<meta property="og:description" content="口语练习：P1/P2/P3 题库与答题框架、串题素材沉淀、AI 口语模考（考官画面 + 四维报告）。" />
-<meta property="og:url" content="https://ielts-study-hub.pages.dev/speaking" />
-<meta name="twitter:card" content="summary" />
 </head>
 <body>
 <div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div></div>
@@ -903,7 +908,7 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
       <button class="sp-mock-jump" id="spMockJumpBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg>模考</button>
     </div>
 
-    <input aria-label="搜索题目" class="sp-search" id="spSearch" placeholder="搜索题目…" />
+    <input class="sp-search" id="spSearch" placeholder="搜索题目…" />
 
     <div class="sp-list" id="spList"></div>
     <div class="sp-empty" id="spEmpty" hidden>没有匹配的题目</div>
@@ -915,10 +920,7 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
     <div id="detailBody"></div>
   </div>
 
-  <!-- 模考视图（复用 mock.js）。
-       10/2（她拍板）：「开始一次口语模考」介绍卡 + 「最近一次模考」记录卡整删——
-       点题库页「模考」按钮直接进全屏考试（speaking.js MOCK 分支调 window.__mockEnter，
-       有未完成快照则自动续考）。报告仍在考完/回顾页展示。 -->
+  <!-- 模考视图（复用 mock.js）。10/2（她拍板）：开始卡/最近记录卡整删，点「模考」直达全屏考试 -->
   <div id="mockView" hidden>
     <!-- ② 考试舞台 -->
     <section class="card" id="mockStage" hidden>

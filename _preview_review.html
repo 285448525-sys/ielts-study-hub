@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="UTF-8" />
@@ -62,6 +62,26 @@
   .card .form-row .mk-filter-wrap select{width:100%;min-width:0;padding:8px 10px;font-size:13.5px}
 }
 </style>
+<script>
+/* 预览专用：?previewdata=1 注入示例分项记录。只写 8089 本地 origin。 */
+(function(){
+  if(!/[?&]previewdata=1/.test(location.search)) return;
+  var now = new Date();
+  function ymd(n){ var d=new Date(now.getTime()-n*86400000); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  var data = {
+    settings:{ name:'Camille', theme:'light', examDate: ymd(8) },
+    words:[], plans:{items:[]}, meds:[],
+    mockRecords:[
+      { date: ymd(0), type:'listening', parts:[{label:'P1',correct:5,total:10},{label:'P2',correct:4,total:10},{label:'P3',correct:5,total:10},{label:'P4',correct:2,total:10}] },
+      { date: ymd(1), type:'reading', parts:[{label:'P2',correct:7,total:13}] },
+      { date: ymd(2), type:'reading', parts:[{label:'P2',correct:9,total:13}] },
+      { date: ymd(2), type:'reading', parts:[{label:'P1',correct:11,total:13}] }
+    ],
+    sessions:[]
+  };
+  try{ localStorage.setItem('ielts_study_hub_v1', JSON.stringify(data)); }catch(e){}
+})();
+</script>
 <script defer src="js/data.js?v=20261001b"></script>
 <script defer src="js/common.js?v=20261001q"></script>
 <script defer src="js/scores.js?v=20261001d"></script>
@@ -70,11 +90,11 @@
 <script defer src="js/mock-history.js?v=20260830u"></script>
 <script defer src="js/mock-summary.js?v=20261001f"></script>
 <script defer src="js/speaking-practice.js?v=20260929b"></script>
-<script defer src="js/progress.js?v=20260913c"></script>
+<script defer src="js/progress.js?v=20260913a"></script>
 <!-- 回顾页的协调脚本：软导航下由 common.js 按其 pageScriptSources 收集执行。
      ⚠️ 必须带 ?v= 声明在这里 —— 否则 common.js 只能拿裸 URL 'js/review.js'，
      等于向浏览器 HTTP 缓存要「任意年代的旧副本」，改动永远推不上去（9/17 陈旧 UI 事故根因）。 -->
-<script defer src="js/review.js?v=20261001c"></script>
+<script defer src="js/review.js?v=20261001b"></script>
 <!-- 考前冲刺卡：距考试 ≤14 天才渲染，依赖 common.js 的 ready/examCountdown（10/1 从首页迁入） -->
 <script defer src="js/sprint.js?v=20261001g"></script>
 <style id="bootLoaderStyle">
@@ -83,13 +103,6 @@
 #bootLoader .ui-loader{margin-bottom:8px}
 @media (prefers-reduced-motion: reduce){#bootLoader .ui-loader-dot,#bootLoader .ui-loader-shadow{animation:none}#bootLoader .ui-loader-dot{top:20px;height:20px;border-radius:50%;transform:none}#bootLoader .ui-loader-shadow{opacity:.5;transform:scaleX(1)}}
 </style>
-<meta name="description" content="回顾：每日学习记录、冲刺卡与口语练习数据。" />
-<link rel="canonical" href="https://ielts-study-hub.pages.dev/review" />
-<meta property="og:type" content="website" />
-<meta property="og:title" content="回顾 · 雅思备考 Hub" />
-<meta property="og:description" content="回顾：每日学习记录、冲刺卡与口语练习数据。" />
-<meta property="og:url" content="https://ielts-study-hub.pages.dev/review" />
-<meta name="twitter:card" content="summary" />
 </head>
 <body>
 <div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div></div>

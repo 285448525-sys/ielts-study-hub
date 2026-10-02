@@ -41,6 +41,26 @@
 
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
+<script>
+/* 预览专用：?previewdata=1 注入示例计时记录。只写 8089 本地 origin。 */
+(function(){
+  if(!/[?&]previewdata=1/.test(location.search)) return;
+  var now = new Date();
+  function ymd(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  function hm(h,m){ var d=new Date(now); d.setHours(h,m,0,0); return d.getHours()*3600+d.getMinutes()*60; }
+  var data = {
+    settings:{ name:'Camille', dailyGoalHours:6, theme:'light' },
+    words:[], plans:{items:[]}, mockRecords:[], meds:[],
+    sessions:[
+      { date: ymd(now), moduleId:'listening', durationSec: 3420, startTs: hm(9,10) },
+      { date: ymd(now), moduleId:'vocab', durationSec: 480, startTs: hm(10,32) },
+      { date: ymd(now), moduleId:'reading', durationSec: 2100, startTs: hm(11,5) },
+      { date: ymd(now), moduleId:'writing', durationSec: 900, startTs: hm(14,20) }
+    ]
+  };
+  try{ localStorage.setItem('ielts_study_hub_v1', JSON.stringify(data)); }catch(e){}
+})();
+</script>
 <script defer src="js/data.js?v=20261001b"></script>
   <script defer src="js/common.js?v=20261001q"></script>
   <script defer src="js/timer.js?v=20260918h"></script>
@@ -51,88 +71,75 @@
 @media (prefers-reduced-motion: reduce){#bootLoader .ui-loader-dot,#bootLoader .ui-loader-shadow{animation:none}#bootLoader .ui-loader-dot{top:20px;height:20px;border-radius:50%;transform:none}#bootLoader .ui-loader-shadow{opacity:.5;transform:scaleX(1)}}
 </style>
 <style>
-/* ===== 10/1 晚 · 计时页 v3 彻底重做（她拍板「参考成功计时器，能多好看做多好看」）=====
-   参考 Forest / 番茄 ToDo：左 = 深色沉浸计时大卡（墨绿渐变+白字大数字），
-   右 = 紧凑任务列表 + 今日记录；整页一屏放下。timer.js 全部 DOM 钩子原样保留。 */
-.tm-grid{display:grid;grid-template-columns:460px 1fr;gap:24px;align-items:start}
-@media(max-width:920px){.tm-grid{grid-template-columns:1fr}}
-
-/* ── 左：深色沉浸计时卡 ── */
+/* ===== 10/1 晚 · 计时页 v2 大改版（她拍板「说不上来的丑，直接大更新」）=====
+   只动皮不动骨：timer.js 的全部 DOM 钩子（liveTimer/timerGoal/goalMin/modeSeg/
+   timerProgress/activeInfo/focusInfo/stopBtn/pauseBtn/timerMods/recMini*/phr*）原样保留。 */
 .timer-stage{
-  position:relative;max-width:none;margin:0;padding:38px 34px 32px;border-radius:24px;overflow:hidden;text-align:center;
-  background:linear-gradient(168deg,#1f5350,#12332f 72%);
-  border:none;box-shadow:0 28px 56px -26px rgba(18,51,47,.65);
+  position:relative;max-width:540px;margin:0 auto 8px;padding:32px 32px 30px;
+  border-radius:22px;overflow:hidden;text-align:center;
+  background:linear-gradient(165deg,var(--primary-50),var(--n-0) 65%);
+  border:1px solid var(--primary-100);
 }
-.timer-stage::before{content:'';position:absolute;inset:0;background:radial-gradient(480px 240px at 50% -70px,rgba(122,220,210,.18),transparent 70%);pointer-events:none}
-.ts-status-wrap{text-align:center;margin-bottom:14px;position:relative}
-.ts-status{display:inline-block;padding:5px 16px;border-radius:999px;background:rgba(255,255,255,.12);color:rgba(255,255,255,.88);font-size:12.5px;font-weight:600;backdrop-filter:blur(4px)}
-.live-timer{position:relative;font-size:clamp(58px,8.5vw,84px);font-weight:800;color:#fff!important;margin:6px 0 2px;font-variant-numeric:tabular-nums;letter-spacing:.01em;line-height:1.05;text-shadow:0 2px 18px rgba(0,0,0,.25)}
-.ts-focus{position:relative;min-height:20px;font-size:13px;color:rgba(255,255,255,.62)!important;margin:0 0 16px}
-.timer-goal{position:relative;display:flex;align-items:center;justify-content:center;gap:10px;margin:0 0 20px;flex-wrap:wrap}
-.timer-goal label{font-size:13px;color:rgba(255,255,255,.62);font-weight:600;white-space:nowrap}
-.timer-goal input.goal-input{width:64px;height:36px;padding:0 8px;border:1px solid rgba(255,255,255,.22);border-radius:10px;background:rgba(255,255,255,.10);color:#fff;font:inherit;font-size:14px;text-align:center;outline:none;transition:border-color .15s,background .15s}
-.timer-goal input.goal-input:focus{border-color:rgba(122,220,210,.7);background:rgba(255,255,255,.16)}
-.timer-goal input.goal-input::placeholder{color:rgba(255,255,255,.4)}
-.seg{display:inline-flex;border:1px solid rgba(255,255,255,.22);border-radius:10px;overflow:hidden;height:38px;background:rgba(255,255,255,.06)}
-.seg-btn{font:inherit;font-size:13px;font-weight:700;padding:0 16px;border:none;background:transparent;color:rgba(255,255,255,.62);cursor:pointer;transition:background .15s,color .15s}
-.seg-btn + .seg-btn{border-left:1px solid rgba(255,255,255,.14)}
-.seg-btn.active{background:#fff;color:var(--primary-900)}
-.timer-progress{position:relative;margin:0 0 18px;text-align:left}
+.timer-stage::before{content:'';position:absolute;inset:0;background:radial-gradient(460px 220px at 50% -70px,rgba(58,154,147,.12),transparent 70%);pointer-events:none}
+.ts-status-wrap{text-align:center;margin-bottom:12px;position:relative}
+.ts-status{display:inline-block;padding:4px 14px;border-radius:999px;background:var(--primary-soft);color:var(--primary-700);font-size:12.5px;font-weight:600}
+.live-timer{position:relative;font-size:clamp(52px,9vw,74px);font-weight:800;letter-spacing:.01em;color:var(--n-900);margin:0 0 4px;font-variant-numeric:tabular-nums;line-height:1.05}
+.ts-focus{position:relative;min-height:20px;font-size:13px;color:var(--muted);margin:0 0 12px}
+.timer-goal{position:relative;display:flex;align-items:center;justify-content:center;gap:10px;margin:0 0 18px;flex-wrap:wrap}
+.timer-goal label{font-size:13px;color:var(--muted);font-weight:600;white-space:nowrap}
+.timer-goal input.goal-input{width:64px;height:36px;padding:0 8px;border:none;border-radius:10px;background:var(--primary-soft);color:var(--ink);font:inherit;font-size:14px;text-align:center;outline:none}
+.timer-goal input.goal-input:focus{box-shadow:0 0 0 2px var(--primary)}
+.seg{display:inline-flex;border:1px solid var(--primary-100);border-radius:10px;overflow:hidden;height:38px;background:var(--surface)}
+.seg-btn{font:inherit;font-size:13px;font-weight:700;padding:0 15px;border:none;background:var(--surface);color:var(--muted);cursor:pointer;transition:background .15s,color .15s}
+.seg-btn + .seg-btn{border-left:1px solid var(--primary-100)}
+.seg-btn.active{background:var(--primary);color:var(--on-primary)}
+.seg-btn.active + .seg-btn{border-left-color:transparent}
+.timer-progress{position:relative;margin:0 0 16px;text-align:left}
 .timer-progress:empty{margin-bottom:0}
 .timer-btns{position:relative;display:flex;gap:12px;justify-content:center}
 .timer-btns .btn,.timer-btns .ui-dark-btn{
-  min-width:150px;min-height:48px;padding:0 26px;border-radius:999px;
+  min-width:148px;min-height:46px;padding:0 26px;border-radius:999px;
   font-size:15px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;
 }
-.timer-btns .ui-dark-btn{background:rgba(255,255,255,.10);color:#fff;border:1px solid rgba(255,255,255,.30);box-shadow:none}
-.timer-btns .ui-dark-btn:hover:not(:disabled){background:rgba(255,255,255,.18);color:#fff;border-color:rgba(255,255,255,.4);transform:none;box-shadow:none}
-.timer-btns .btn{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.35);box-shadow:none}
-.timer-btns .btn:hover:not(:disabled){background:rgba(255,255,255,.10)}
-.timer-btns .btn-primary{background:#fff;color:var(--primary-900);border-color:#fff}
-.timer-btns .btn-primary:hover:not(:disabled){background:rgba(255,255,255,.92)}
-.timer-btns button:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none}
+.timer-btns .ui-dark-btn{background:var(--surface);color:var(--ink);border:1px solid var(--line);box-shadow:none}
+.timer-btns .ui-dark-btn:hover:not(:disabled){border-color:var(--primary);color:var(--primary);transform:none;box-shadow:none}
+.timer-btns .btn-primary{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+.timer-btns button:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
 
-/* ── 右：任务列表（大卡 → 紧凑行）── */
-.tm-side .section-title{margin-top:2px}
-.timer-mods{display:flex;flex-direction:column;gap:9px;margin-top:10px}
+/* 任务选择：连体胶囊 → 独立竖卡（桌面 5 列 / 平板 3 列 / 手机 2 列） */
+.timer-mods{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:10px}
 .timer-mods .mod-card{
-  display:flex;flex-direction:row;align-items:center;gap:13px;
-  padding:12px 14px;border-radius:14px;
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+  padding:18px 12px 14px;border-radius:16px;
   background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);
   cursor:pointer;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease;
 }
-.timer-mods .mod-card:hover{transform:translateX(3px);box-shadow:var(--shadow-card-hover);border-color:var(--primary)}
+.timer-mods .mod-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-card-hover);border-color:var(--primary)}
 .timer-mods .mod-card.running{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
-.timer-mods .mod-ic{width:40px;height:40px;border-radius:12px;font-size:18px;flex:none}
-.timer-mods .mod-ic svg{width:20px;height:20px}
-.timer-mods .mod-name{flex:1;text-align:left;font-size:14.5px;font-weight:700}
-.timer-mods .timer-start{width:auto;margin:0;padding:8px 18px;font-size:13px;border-radius:999px;flex:none}
-
-/* 今日记录压进右栏 */
-.tm-side .rec-mini{padding:18px 20px;margin-top:22px;border-radius:18px}
-.rec-mini-grid{display:flex;flex-direction:column;gap:8px;margin-bottom:6px}
-.rec-mini-item{border:1px solid var(--line);border-radius:12px;padding:10px 14px;background:var(--surface)}
-@media(max-width:920px){
-  .timer-stage{padding:32px 22px 28px}
+.timer-mods .mod-ic{width:44px;height:44px;border-radius:13px;font-size:20px}
+.timer-mods .mod-ic svg{width:22px;height:22px}
+.timer-mods .mod-name{font-size:14.5px;font-weight:700}
+.timer-mods .timer-start{width:100%;margin:0;padding:7px 0;font-size:13px;border-radius:10px;justify-content:center}
+@media(max-width:760px){.timer-mods{grid-template-columns:repeat(3,1fr);gap:10px}}
+@media(max-width:480px){
+  .timer-mods{grid-template-columns:repeat(2,1fr)}
+  .timer-stage{padding:26px 18px 24px}
   .timer-btns .btn,.timer-btns .ui-dark-btn{min-width:0;flex:1;padding:0 18px}
 }
+
+/* 今日记录：行卡化 */
+.rec-mini{padding:20px 22px;margin-top:30px;border-radius:18px}
+.rec-mini-grid{display:flex;flex-direction:column;gap:9px;margin-bottom:6px}
+.rec-mini-item{border:1px solid var(--line);border-radius:12px;padding:10px 14px;background:var(--surface)}
+.rec-mini-item .rec-mini-dur{font-size:14px}
+@media(max-width:480px){.rec-mini{padding:16px 14px}}
 </style>
-<meta name="description" content="计时：专注计时与学习时长记录。" />
-<link rel="canonical" href="https://ielts-study-hub.pages.dev/timer" />
-<meta property="og:type" content="website" />
-<meta property="og:title" content="计时 · 雅思备考 Hub" />
-<meta property="og:description" content="计时：专注计时与学习时长记录。" />
-<meta property="og:url" content="https://ielts-study-hub.pages.dev/timer" />
-<meta name="twitter:card" content="summary" />
 </head>
 <body>
 <div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div></div>
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 
 <main class="container">
-  <!-- 10/2（她拍板）：顶部「今日 XhXm / 连续 N 天」两枚芯片整删（手机端顶着很丑）——
-       .page-head 行整行移除，计时卡直接顶上去；数据仍可在下方「今日学习记录/总计」看 -->
-
   <section class="card timer-stage">
     <div class="ts-status-wrap"><span class="ts-status" id="activeInfo">当前没有进行中的学习</span></div>
     <div class="live-timer" id="liveTimer">00:00:00</div>

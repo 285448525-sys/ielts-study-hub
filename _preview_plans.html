@@ -39,6 +39,26 @@
 
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
+<script>
+/* 预览专用：?previewdata=1 注入示例历史计划（含不同完成度）。只写 8089 本地 origin。 */
+(function(){
+  if(!/[?&]previewdata=1/.test(location.search)) return;
+  var now = new Date();
+  function ymd(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  function day(n){ return ymd(new Date(now.getTime()-n*86400000)); }
+  function mk(n, done, total){
+    var items=[]; for(var i=0;i<total;i++){ items.push({ text:'任务 '+(i+1)+'：'+(i%3===0?'听力 1 篇':(i%3===1?'阅读 1 篇':'背单词 60 个')), done: i<done }); }
+    return { date: day(n), items: items };
+  }
+  var data = {
+    settings:{ name:'Camille', dailyGoalHours:6, theme:'light' },
+    words:[], plans:{ items:[] }, sessions:[], mockRecords:[], meds:[],
+    scores:[]
+  };
+  data.plans = [ mk(1,8,70), mk(2,4,58), mk(3,8,47), mk(4,12,41), mk(5,0,30), mk(6,4,20), mk(7,33,33) ];
+  try{ localStorage.setItem('ielts_study_hub_v1', JSON.stringify(data)); }catch(e){}
+})();
+</script>
 <script defer src="js/data.js?v=20261001b"></script>
   <script defer src="js/common.js?v=20261001q"></script>
   <script src="js/plans.js?v=20261001i" defer></script>
@@ -48,13 +68,6 @@
 #bootLoader .ui-loader{margin-bottom:8px}
 @media (prefers-reduced-motion: reduce){#bootLoader .ui-loader-dot,#bootLoader .ui-loader-shadow{animation:none}#bootLoader .ui-loader-dot{top:20px;height:20px;border-radius:50%;transform:none}#bootLoader .ui-loader-shadow{opacity:.5;transform:scaleX(1)}}
 </style>
-<meta name="description" content="学习计划：按考试日期倒排每日任务，今日 / 规划 / 历史三个视图。" />
-<link rel="canonical" href="https://ielts-study-hub.pages.dev/plans" />
-<meta property="og:type" content="website" />
-<meta property="og:title" content="计划 · 雅思备考 Hub" />
-<meta property="og:description" content="学习计划：按考试日期倒排每日任务，今日 / 规划 / 历史三个视图。" />
-<meta property="og:url" content="https://ielts-study-hub.pages.dev/plans" />
-<meta name="twitter:card" content="summary" />
 </head>
 <body>
 <div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div></div>
@@ -89,7 +102,7 @@
       placeholder="写下今天的任务，如：精听 S1 填空 30 分钟"
       style="width:100%;min-height:64px;padding:10px;border:1px solid var(--line);border-radius:var(--radius-sm);font:inherit;font-size:14px;line-height:1.6;background:var(--surface);color:var(--ink);resize:vertical"></textarea>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px">
-      <button class="btn" id="aiPlan"><svg aria-hidden="true" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l1.7 4.3L18 10l-4.3 1.7L12 16l-1.7-4.3L6 10l4.3-1.7L12 4z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2z"/></svg>AI 安排今天</button>
+      <button class="btn" id="aiPlan"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l1.7 4.3L18 10l-4.3 1.7L12 16l-1.7-4.3L6 10l4.3-1.7L12 4z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2z"/></svg>AI 安排今天</button>
       <button class="btn btn-primary" id="addPlan">添加任务</button>
     </div>
     <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line)">
@@ -107,7 +120,7 @@
     <div class="plan-actions">
       <div class="plan-actions-right">
         <button class="btn" id="genWeek" style="flex:none">无 AI 也排</button>
-        <button class="btn btn-primary" id="aiWeek" style="flex:none"><svg aria-hidden="true" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l1.7 4.3L18 10l-4.3 1.7L12 16l-1.7-4.3L6 10l4.3-1.7L12 4z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2z"/></svg>AI 智能分配</button>
+        <button class="btn btn-primary" id="aiWeek" style="flex:none"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l1.7 4.3L18 10l-4.3 1.7L12 16l-1.7-4.3L6 10l4.3-1.7L12 4z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2z"/></svg>AI 智能分配</button>
       </div>
     </div>
     <div id="weekBox" style="margin-top:16px"></div>
