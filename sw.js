@@ -9,7 +9,7 @@
      SW 不参与离线态的判定与渲染，缓存策略本文件零改动。
      本文件 activate 时发的 `SW_UPDATED` 消费端也在 common.js（maybeShowSwUpdatePrompt，
      design/78）：页面收到后只弹提示条，**是否刷新由用户点击决定，SW 侧绝不自动 reload**。 */
-const CACHE = 'ielts-hub-v158';  // 10/2：计时页主卡浅化（她 10/2 反馈：深墨绿太深+整块太大）——墨绿渐变沉浸卡改浅色 token 卡（teal 淡渐变+primary-700 大数字，暗色主题自动跟随），大数字 84→56px、padding/按钮/间距全收一档；Forest 双栏布局与 timer.js 钩子不动；上一版 v157 去个人画像
+const CACHE = 'ielts-hub-v159';  // 10/2：背词全屏态间距（她 iOS 反馈：顶部发淡+下移一点点+底部空隙不协调）——根因 = 窄屏覆盖 padding:16px 把桌面顶隙整个盖掉，内容顶进 iOS 玻璃淡化区；改 = 窄屏 padding-top 补 safe-area+clamp(18,4.2vh,46)、段间距 12→14、opts gap 1.6vh/18、opt-big 12.4vh/114；桌面不动；css buster g→h（14 页）。上一版 v158 计时主卡浅化
 
 /* 核心壳预缓存清单（Node 脚本枚举目录生成，2026-09-20；与 14 页实际引用核对无遗漏）。
    不含 js/vendor/xlsx.full.min.js（861KB 体积大 → 走运行时 SWR 缓存）。 */

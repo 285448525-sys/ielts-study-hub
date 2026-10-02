@@ -1835,7 +1835,10 @@ body.word-fullscreen #studyView.study-view-fit{
 body.word-fullscreen .practice-card.practice-card-fit{
   flex:1;min-height:100vh;width:100%;max-width:none;margin:0;
   border:none;border-radius:0;box-shadow:none;
-  padding:clamp(16px,3vh,36px) clamp(20px,4vw,60px);
+  /* 10/2 之之（iOS 26 实测）：viewport-fit=cover 下内容顶进状态栏玻璃淡化区 → 顶部「发淡」；
+     padding-top 补 safe-area + 适度上调（36→46px 顶），整体内容下移一点点，底部大空白同步收窄。
+     底部 padding 保持不动（剩余空间本来就沉底，无需再喂）。 */
+  padding:calc(env(safe-area-inset-top, 0px) + clamp(18px,4.2vh,46px)) clamp(20px,4vw,60px) clamp(16px,3vh,36px);
   justify-content:flex-start;   /* 顶部饱满：内容从视口上方开始（之之 9/17「像秃头」——顶部大空隙否决） */
 }
 
@@ -1899,22 +1902,26 @@ body.word-fullscreen #practiceBody.practice-body-fit .practice-word-area{
   display:flex;flex-direction:column;justify-content:flex-start;   /* 顶部对齐：词/音标位置恒定，答后释义向下生长（居中版会因内容变高重算导致词抖动——之之实测反馈） */
 }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-cn{ min-height:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
-body.word-fullscreen #practiceBody.practice-body-fit .opts-grid{ margin-top:12px; }
-body.word-fullscreen #practiceBody.practice-body-fit .answer-btns{ margin-top:12px; }
-body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap{ margin-top:12px; padding-top:0; }
+body.word-fullscreen #practiceBody.practice-body-fit .opts-grid{ margin-top:14px; }   /* 10/2 她反馈「下面空隙太多、整体不协调」：段间距 12→14 微调（9/16 收紧的口径不推翻，只 +2） */
+body.word-fullscreen #practiceBody.practice-body-fit .answer-btns{ margin-top:14px; }
+body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap{ margin-top:14px; padding-top:0; }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-en{ font-size:clamp(38px,4.6vh,52px); }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-ipa{ font-size:clamp(15px,1.9vh,18px); }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-cn{ font-size:clamp(15px,1.9vh,18px); }
-body.word-fullscreen #practiceBody.practice-body-fit .opts-grid{ gap:clamp(10px,1.5vh,16px); }   /* 9/16 收紧：1.8vh→1.5vh */
-body.word-fullscreen #practiceBody.practice-body-fit .opt-big{ height:clamp(80px,12vh,110px); }   /* 9/16 收紧：13.5vh→12vh（配合选项字号缩小） */
+body.word-fullscreen #practiceBody.practice-body-fit .opts-grid{ gap:clamp(10px,1.6vh,18px); }   /* 10/2 微放宽：1.5vh/16 → 1.6vh/18（她「间隙更协调」；9/16 收紧口径大体保留） */
+body.word-fullscreen #practiceBody.practice-body-fit .opt-big{ height:clamp(80px,12.4vh,114px); }   /* 10/2 微放宽：12vh/110 → 12.4vh/114（吃掉底部空白 ~8px） */
 body.word-fullscreen #practiceBody.practice-body-fit .opt-big-cn{ font-size:clamp(14px,1.8vh,17px); }   /* 9/16 之之：选项中文字体缩小（原 15/2.2vh/21） */
 body.word-fullscreen #practiceBody.practice-body-fit .abtn-unknown{ height:clamp(40px,5.5vh,48px); }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap{ padding-top:0; }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap .tool-btn{ width:clamp(48px,6.2vh,58px); height:clamp(48px,6.2vh,58px); }
 
-/* 窄屏（手机）：铺满态下只收窄卡片左右内边距 */
+/* 窄屏（手机）：铺满态下只收窄卡片左右内边距。
+   ⚠️ 10/2 她实测（iOS 26）：这条原来写死 padding:16px 16px，把桌面版新顶隙（safe-area+4.2vh）
+   整个盖掉 → 内容贴死浏览器顶栏玻璃淡化区「连击行发淡」。改为与桌面同一套上下顶隙、只保留左右 16。 */
 @media(max-width:860px){
-  body.word-fullscreen .practice-card.practice-card-fit{ padding:16px 16px; }
+  body.word-fullscreen .practice-card.practice-card-fit{
+    padding:calc(env(safe-area-inset-top, 0px) + clamp(18px,4.2vh,46px)) 16px clamp(16px,3vh,36px);
+  }
 }
 
 /* ===== 写作真题 · 全屏沉浸式练习页 ===== */
