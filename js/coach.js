@@ -215,19 +215,27 @@ window.__COACH_ON = true;
   }
 
   function topicCardHtml(t){
-    var tag = t.isP2 ? '<span class="cq-part">P2 连讲</span>' : '<span class="cq-part">P1 真题</span>';
+    var tag = t.isP2 ? '<span class="cq-part">P2 连讲</span>' : '<span class="cq-part">P1</span>';
     var freq = t.freq ? '<span class="cq-freq">' + escapeHtml(FREQ_ZH[t.freq] || '') + '</span>' : '';
     var body = '<div class="cq-en">' + escapeHtml(t.en) + '</div>'
       + '<div class="cq-zh">' + (t.isP2 ? '话题：' : '') + escapeHtml(t.zh || '') + '</div>';
     if(t.isP2 && t.yss.length){
       body += '<ul class="cq-yss">' + t.yss.map(function(y){ return '<li>' + escapeHtml(y) + '</li>'; }).join('') + '</ul>'
-        + '<div class="cq-tip">像考场一样连续讲约 2 分钟，把每个点用 because / so / and I felt 接成一条线。</div>';
+        + '<div class="cq-hint">像考场一样连续讲约 2 分钟，把每个点用 because / so / and I felt 接成一条线。</div>';
     }
-    return '<div class="cq-card"><div class="cq-tags">' + tag + freq + '</div>' + body + '</div>';
+    /* B 版：题卡加 teal 渐变头部条（P1 徽标 + 频次 + 真题出处） */
+    return '<div class="cq-card"><div class="cq-head">' + tag + freq
+      + '<span class="cq-src">真题 · 站内题库</span></div>'
+      + '<div class="cq-body">' + body + '</div></div>';
   }
 
+  /* B 版：AI 气泡加学士帽头像（此前 AI 与用户都无头像，一眼看不出谁在说）。
+     静态写死 SVG —— JS innerHTML 拼的内联 SVG 不渲染（铁律）。 */
+  var AV_AI = '<span class="coach-av" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3 2 8l10 5 10-5-10-5Z"/><path d="M6 10.5V16c0 1.5 3 3 6 3s6-1.5 6-3v-5.5"/></svg></span>';
+  var AV_ME = '<span class="coach-av" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg></span>';
+
   function userHtml(text){
-    return '<div class="cu-row"><div class="cu-bubble">'
+    return '<div class="cu-row">' + AV_ME + '<div class="cu-bubble">'
       + escapeHtml(text).replace(/\n/g, '<br>') + '</div></div>';
   }
 
@@ -259,7 +267,7 @@ window.__COACH_ON = true;
       }
       return '<p class="ca-p">' + b.split('\n').map(function(l){ return inline(escapeHtml(l)); }).join('<br>') + '</p>';
     }).join('');
-    return '<div class="ca-row"><div class="ca-bubble">' + inner + '</div></div>';
+    return '<div class="ca-row">' + AV_AI + '<div class="ca-bubble">' + inner + '</div></div>';
   }
 
   function chipsHtml(){
@@ -391,12 +399,16 @@ window.__COACH_ON = true;
     if(!a.length){
       ul.innerHTML = '<li class="coach-ctx-empty">还没记住什么 · 多聊几轮就会出现在这里</li>';
     }else{
+      /* B 版：常驻面板里要一眼看清「它记住了什么」，故完整显示（不再截断 30 字），
+         圆点由 CSS ::before 出，不额外拼元素。 */
       ul.innerHTML = a.slice(-CTX_MAX_MEM).reverse().map(function(x){
         var t = String((x && x.text) || '');
-        return '<li>' + escapeHtml(t.length > 30 ? t.slice(0, 30) + '…' : t) + '</li>';
+        return '<li>' + escapeHtml(t.length > 40 ? t.slice(0, 40) + '…' : t) + '</li>';
       }).join('');
     }
     var n2 = $('coachMemN2'); if(n2) n2.textContent = String(a.length);
+    var n1 = $('coachMemN');
+    if(n1) n1.textContent = String(a.length);
   }
   function renderCtx(){
     if(!$('coachCtxBar')) return;
@@ -406,7 +418,7 @@ window.__COACH_ON = true;
     bar.style.width = pct + '%';
     var wrap = $('coachCtxBarWrap');
     if(wrap) wrap.setAttribute('aria-valuenow', String(pct));
-    var tn = $('coachCtxTurn'); if(tn) tn.textContent = n + ' 轮';
+    var tn = $('coachCtxTurn'); if(tn) tn.textContent = String(n);
     var tt = $('coachCtxTime');
     if(tt) tt.textContent = ctxFmtDur(ctxT0 ? Math.floor((Date.now() - ctxT0) / 1000) : 0);
     renderCtxMem();
@@ -423,11 +435,12 @@ window.__COACH_ON = true;
     var aside = $('coachCtx'); if(!aside) return;
     aside.classList.toggle('coach-ctx-mini', col);
     var btn = $('coachCtxToggle');
-    if(btn) btn.setAttribute('aria-expanded', col ? 'false' : 'true');
-    var tx = $('coachCtxToggleTx');
-    if(tx) tx.textContent = col ? '上下文' : '收起';
-    var ch = $('coachCtxChev');
-    if(ch) ch.textContent = col ? '‹' : '›';
+    if(btn){
+      btn.setAttribute('aria-expanded', col ? 'false' : 'true');
+      /* B 版：折叠按钮收进面板头部（不再是面板顶部的独立一行竖排文字），
+         折叠态按钮转 90° 竖排以适配 40px 窄条 */
+      btn.textContent = col ? '展开' : '收起';
+    }
   }
   function ctxToggle(){
     DATA.settings.coachCtxCollapsed = !DATA.settings.coachCtxCollapsed;
@@ -451,39 +464,51 @@ window.__COACH_ON = true;
     /* 10/3 B→A 版重设计：#coachWrap 由「单列居中」改为「三栏 flex 容器」。
        聊天列 #coachCol 左（自适应），上下文栏 #coachCtx 右（可折叠）。
        记忆弹层 #coachMemPop 移出 #coachWrap —— 避免被三栏的 overflow/flex 影响定位。 */
+    /* 10/3 B 版「双栏工作台」重设计：右栏从 40px 窄条改为**常驻 274px 真面板**——
+       上下文（模式/目标/轮次/时长）改成 2×2 指标卡，「它记住的事」直接列在面板里常驻可见，
+       底部加一句常驻提示（说「别纠语法」可关纠错）—— 该功能此前完全无可发现性。
+       id 全部沿用（coach.js 动态绑定 14 个 id，改 id 功能直接坏），
+       记忆弹层 #coachMemPop 仍移出 #coachWrap —— 避免被三栏的 flex/overflow 影响定位。 */
     view.innerHTML =
       '<div id="coachWrap">'
       + '<div id="coachCol">'
       +   '<div id="coachTop">'
-      +     '<button id="coachMemBtn" type="button" class="coach-mem-btn" aria-haspopup="dialog">长期记忆 <span id="coachMemN">0</span></button>'
+      +     '<div class="coach-who">'
+      +       '<span class="coach-who-av" aria-hidden="true">'
+      +         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3 2 8l10 5 10-5-10-5Z"/><path d="M6 10.5V16c0 1.5 3 3 6 3s6-1.5 6-3v-5.5"/></svg>'
+      +       '</span>'
+      +       '<span class="coach-who-tx"><b>AI 口语陪练</b><span>自由对话</span></span>'
+      +     '</div>'
+      /* 「它记住 N 件事」在B 版不再是飘在顶栏的孤立药丸，而是与面板内的记忆列表同一份数据的入口 */
+      +     '<button id="coachMemBtn" type="button" class="coach-mem-btn" aria-haspopup="dialog">它记住 <span id="coachMemN">0</span> 件事</button>'
       +   '</div>'
       +   '<div id="coachScroll" aria-live="polite"></div>'
       +   '<div id="coachBar"><div id="coachBarInner">'
-      +     '<textarea id="coachInput" rows="1" maxlength="2000" placeholder="说英语，或直接下指令"></textarea>'
+      +     '<div class="coach-cbox"><textarea id="coachInput" rows="1" maxlength="2000" placeholder="说英语，或直接下指令"></textarea></div>'
       +     '<button id="coachSend" type="button">发送</button>'
       +   '</div></div>'
       + '</div>'
-      /* 上下文栏：常驻，桌面展开/可折叠成40px 竖条；≤860 用 CSS 整体隐藏（退化为单列）。
-         刻意放在 #coachScroll 之外 —— scroll 内是动态追加的聊天流，塞进去会被对话推走。 */
-      + '<aside id="coachCtx" class="coach-ctx" aria-label="本轮上下文">'
-      +   '<button type="button" id="coachCtxToggle" class="coach-ctx-toggle" aria-expanded="true" aria-controls="coachCtxBody" title="收起/展开上下文">'
-      +     '<span id="coachCtxChev" aria-hidden="true">›</span><span class="coach-ctx-toggle-tx" id="coachCtxToggleTx">收起</span>'
-      +   '</button>'
-      +   '<div id="coachCtxBody" class="coach-ctx-body">'
-      +     '<div class="coach-ctx-card">'
-      +       '<div class="coach-ctx-t">本轮</div>'
-      +       '<div class="coach-ctx-row"><span>模式</span><b id="coachCtxMode">自由对话</b></div>'
-      +       '<div class="coach-ctx-row"><span>目标</span><b id="coachCtxGoal">6.0 · 口语 5.5</b></div>'
-      +       '<div class="coach-ctx-row"><span>已练</span><b id="coachCtxTurn">0 轮</b></div>'
-      +       '<div class="coach-ctx-bar" id="coachCtxBarWrap" role="progressbar" aria-label="本轮进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="coachCtxBar"></i></div>'
-      +       '<div class="coach-ctx-row coach-ctx-time"><span>时长</span><b id="coachCtxTime">0′00″</b></div>'
-      +     '</div>'
-      +     '<div class="coach-ctx-t">它记住的</div>'
-      +     '<div class="coach-ctx-card">'
-      +       '<ul class="coach-ctx-mem" id="coachCtxMem"><li class="coach-ctx-empty">还没记住什么 · 多聊几轮就会出现在这里</li></ul>'
-      +       '<button type="button" id="coachCtxMore" class="coach-ctx-more">全部记忆<span id="coachMemN2">0</span> →</button>'
-      +     '</div>'
+      /* 右栏：常驻真面板（274px）。仍在 #coachScroll 之外 —— scroll 内是动态追加的聊天流。 */
+      + '<aside id="coachCtx" class="coach-ctx" aria-label="本轮教练台">'
+      +   '<div class="coach-ctx-head">'
+      +     '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20h-20"/></svg>'
+      +     '<b>本轮教练台</b>'
+      +     '<button type="button" id="coachCtxToggle" class="coach-ctx-toggle" aria-expanded="true" aria-controls="coachCtxBody" title="收起/展开上下文">收起</button>'
       +   '</div>'
+      +   '<div id="coachCtxBody" class="coach-ctx-body">'
+      +     '<div class="coach-ctx-blk-t">本轮</div>'
+      +     '<div class="coach-ctx-metrics">'
+      +       '<div class="coach-ctx-m hl"><span>已练轮次</span><b id="coachCtxTurn">0</b></div>'
+      +       '<div class="coach-ctx-m hl"><span>时长</span><b id="coachCtxTime">0′00″</b></div>'
+      +       '<div class="coach-ctx-m"><span>模式</span><b id="coachCtxMode">自由对话</b></div>'
+      +       '<div class="coach-ctx-m"><span>目标</span><b id="coachCtxGoal">6.0 · 口语 5.5</b></div>'
+      +     '</div>'
+      +     '<div class="coach-ctx-bar" id="coachCtxBarWrap" role="progressbar" aria-label="本轮进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="coachCtxBar"></i></div>'
+      +     '<div class="coach-ctx-blk-t">它记住的事 · <span id="coachMemN2">0</span></div>'
+      +     '<ul class="coach-ctx-mem" id="coachCtxMem"><li class="coach-ctx-empty">还没记住什么 · 多聊几轮就会出现在这里</li></ul>'
+      +     '<button type="button" id="coachCtxMore" class="coach-ctx-more">全部记忆 →</button>'
+      +   '</div>'
+      +   '<div class="coach-ctx-hint"><b>说「别纠语法」</b>可在本轮关掉纠错，说「继续纠」恢复。</div>'
       + '</aside>'
       + '<div id="coachMemPop" hidden>'
       +   '<div class="cmp-mask"></div>'

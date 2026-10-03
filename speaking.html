@@ -48,7 +48,7 @@
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
   <script defer src="js/sentence-drill.js?v=20261001i"></script>
   <!-- coach 同例：必须在 speaking.js 之前，顶层 window.__COACH_ON 先立，tab 分支才接管得到 -->
-  <script defer src="js/coach.js?v=20261003b"></script>
+  <script defer src="js/coach.js?v=20261003c"></script>
   <script defer src="js/speaking.js?v=20261002d"></script>
   <script defer src="js/materials.js?v=20261002b"></script>
   <script defer src="js/mock-report.js?v=20260830u"></script>
@@ -966,126 +966,265 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
 }
 
 /* ==========================================================================
-   10/3 A 版重设计：三栏 + 上下文栏可折叠
+   10/3 B 版重设计：双栏工作台（左聊天 + 右常驻教练台 274px）
    —— 作用域全部用 #coachView 前缀，压 common.css 的全站表单重置 (0,2,1)
    —— 色一律走 token，禁硬编码
+   —— 关键约束（都是踩过的坑，别改回去）：
+     1) 聊天列不能用 margin:0 auto —— flex 容器里 auto 外边距会把它推离起点与右栏重叠（实测 gap=-91px）
+     2) 右栏不能用 position:sticky + align-self:flex-start —— 会脱离 flex 流换行到下方
+     3) 右栏高度不跟随 #coachScroll 的 min-height，靠 align-items:stretch 由父级决定，
+        内部 .coach-ctx-body 自己 overflow-y:auto 滚
+   —— 与 A 版差异（右栏 40px 窄条 → 常驻 274px 真面板）：
+     上下文改 2×2 指标卡（信息密度高、不占高）、记忆列表常驻可见、底部加常驻提示
+     （「说别纠语法可关纠错」此前完全无可发现性）
    ========================================================================== */
-
-/* 骨架：#coachWrap 由单列居中改为两容器并排（左聊天 + 右上下文）。
-   关键约束（都是踩过的坑）：
-   1) 聊天列不能用 margin:0 auto —— flex 容器里 auto 外边距会把它推离起点与右栏重叠（gap=-91px）
-   2) 右栏不能用 position:sticky + align-self:flex-start —— 会脱离 flex 流换行到下方
-   3) 右栏高度不跟随 #coachScroll 的 min-height，靠 align-items:stretch 由父级决定，
-      内部 .coach-ctx-body 自己 overflow-y:auto 滚 */
 #coachView #coachWrap{
   margin:0 auto;display:flex;
   flex-direction:row;          /* 必须显式写：855 行的 #coachWrap{flex-direction:column} 会继承下来 */
   align-items:stretch;
+  max-width:1060px             /* 聊天列 760 + 右栏 274 + gap 26 */
 }
 #coachView #coachCol{
   flex:1 1 0;min-width:0;max-width:760px;
   display:flex;flex-direction:column;
 }
 
-/* ---------- 上下文栏（展开态） ---------- */
+/* ---------- 顶栏：身份 + 记忆入口 ---------- */
+#coachView #coachTop{
+  position:static;background:transparent;padding:0 0 11px;
+  border-bottom:1px solid var(--line);
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+}
+#coachView .coach-who{display:flex;align-items:center;gap:9px;min-width:0}
+#coachView .coach-who-av{
+  width:30px;height:30px;border-radius:9px;flex:none;
+  background:linear-gradient(135deg,var(--primary-400),var(--primary-700));
+  display:flex;align-items:center;justify-content:center;color:#fff;
+}
+#coachView .coach-who-av svg{width:18px;height:18px}
+#coachView .coach-who-tx{min-width:0}
+#coachView .coach-who-tx b{display:block;font-size:13.5px;font-weight:700;color:var(--n-900);line-height:1.25}
+#coachView .coach-who-tx span{display:block;font-size:11px;color:var(--muted);margin-top:1px}
+#coachView .coach-mem-btn{
+  display:inline-flex;align-items:center;flex:none;
+  height:32px;padding:0 13px;
+  border:1px solid var(--primary-200);background:var(--primary-50);color:var(--primary-700);
+  font-size:11.5px;font-weight:600;font-family:inherit;border-radius:999px;cursor:pointer;
+  transition:background .15s,border-color .15s;
+}
+#coachView .coach-mem-btn:hover{background:var(--primary-soft);border-color:var(--primary-300)}
+
+/* ---------- 右栏：常驻真面板 ---------- */
 #coachView .coach-ctx{
-  flex:0 0 250px;width:250px;min-width:0;
-  border-left:1px solid var(--line);background:var(--surface-2);
-  padding:14px 14px 20px;display:flex;flex-direction:column;gap:10px;
+  flex:0 0 274px;width:274px;min-width:0;
+  border-left:1px solid var(--line);background:var(--surface);
+  padding:0;display:flex;flex-direction:column;
+  border-radius:0 var(--radius) var(--radius) 0;
   max-height:calc(100vh - 96px);
 }
+#coachView .coach-ctx-head{
+  flex:none;display:flex;align-items:center;gap:7px;
+  padding:12px 15px 10px;border-bottom:1px solid var(--line);color:var(--primary-500);
+}
+#coachView .coach-ctx-head b{font-size:12.5px;font-weight:700;color:var(--n-900)}
 #coachView .coach-ctx-toggle{
-  display:inline-flex;align-items:center;gap:5px;align-self:flex-start;
-  min-height:32px;padding:6px 9px;cursor:pointer;font-family:inherit;
-  font-size:11.5px;font-weight:600;color:var(--muted);
-  background:var(--surface);border:1px solid var(--line);border-radius:8px;
+  margin-left:auto;flex:none;
+  height:32px;padding:0 11px;cursor:pointer;font-family:inherit;
+  font-size:11px;font-weight:600;color:var(--muted);
+  background:transparent;border:1px solid var(--line);border-radius:8px;
   transition:border-color .15s,color .15s;
 }
 #coachView .coach-ctx-toggle:hover{border-color:var(--primary-300);color:var(--primary-700)}
-#coachView .coach-ctx-chev{font-size:13px;line-height:1}
-#coachView .coach-ctx-body{display:flex;flex-direction:column;gap:10px;overflow-y:auto}
-#coachView .coach-ctx-card{
-  background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:11px;
+#coachView .coach-ctx-body{
+  flex:1;min-height:0;display:flex;flex-direction:column;gap:9px;
+  padding:13px 15px 16px;overflow-y:auto;
 }
-#coachView .coach-ctx-t{
-  font-size:11px;font-weight:700;letter-spacing:.05em;color:var(--muted);margin-bottom:7px;
+#coachView .coach-ctx-blk-t{
+  font-size:10.5px;font-weight:800;color:var(--muted);letter-spacing:.07em;
+  display:flex;align-items:center;gap:5px;
 }
-#coachView .coach-ctx-row{
-  display:flex;justify-content:space-between;align-items:center;
-  font-size:11.5px;padding:3px 0;
+/* 2×2 指标卡：比原「一行 label: value」密度高且不占高 */
+#coachView .coach-ctx-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#coachView .coach-ctx-m{
+  border:1px solid var(--line);border-radius:11px;padding:9px 10px;background:var(--n-50);
 }
-#coachView .coach-ctx-row span{color:var(--muted)}
-#coachView .coach-ctx-row b{color:var(--ink);font-weight:700}
+#coachView .coach-ctx-m span{display:block;font-size:10.5px;color:var(--muted);margin-bottom:2px}
+#coachView .coach-ctx-m b{font-size:16px;font-weight:800;color:var(--n-900);letter-spacing:-.01em;line-height:1.25}
+#coachView .coach-ctx-m.hl{background:linear-gradient(135deg,var(--primary-50),var(--surface));border-color:var(--primary-200)}
+#coachView .coach-ctx-m.hl b{color:var(--primary-800)}
+/* 模式/目标两格文字长，字号降一档并允许换行 */
+#coachView .coach-ctx-m:nth-child(3) b,#coachView .coach-ctx-m:nth-child(4) b{font-size:12.5px;font-weight:700;line-height:1.35}
 #coachView .coach-ctx-bar{
-  height:5px;border-radius:3px;background:var(--n-300);overflow:hidden;margin:8px 0 4px;
+  height:6px;border-radius:4px;background:var(--n-100);overflow:hidden;flex:none;
 }
 #coachView .coach-ctx-bar i{
-  display:block;height:100%;width:0;border-radius:3px;
-  background:var(--primary-400);transition:width .3s;
+  display:block;height:100%;width:0;border-radius:4px;
+  background:linear-gradient(90deg,var(--primary-400),var(--primary-600));
+  transition:width .3s;
 }
-#coachView .coach-ctx-mem{list-style:none;margin:0;padding:0}
+#coachView .coach-ctx-mem{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
 #coachView .coach-ctx-mem li{
-  font-size:11.5px;line-height:1.55;color:var(--ink-2);
-  padding:5px 0;border-top:1px dashed var(--line);
+  position:relative;font-size:12.2px;line-height:1.5;color:var(--ink-2);
+  background:var(--n-50);border:1px solid var(--line);border-radius:9px;padding:8px 10px 8px 20px;
 }
-#coachView .coach-ctx-mem li:first-child{border-top:0;padding-top:0}
-#coachView .coach-ctx-mem li.coach-ctx-empty{color:var(--muted);border-top:0}
+/* teal圆点由 ::before 出，不额外拼元素 */
+#coachView .coach-ctx-mem li::before{
+  content:'';position:absolute;left:9px;top:14px;
+  width:5px;height:5px;border-radius:50%;background:var(--primary-500);
+}
+#coachView .coach-ctx-mem li.coach-ctx-empty{
+  color:var(--muted);background:transparent;border-style:dashed;
+  text-align:center;padding:16px 10px;
+}
+#coachView .coach-ctx-mem li.coach-ctx-empty::before{display:none}
 #coachView .coach-ctx-more{
-  display:block;width:100%;margin-top:9px;min-height:44px;
+  display:block;width:100%;flex:none;height:36px;
   border:0;background:transparent;cursor:pointer;font-family:inherit;
   font-size:11.5px;font-weight:700;color:var(--primary-700);
-  text-align:left;padding:8px 0 0;border-top:1px solid var(--line);
+  text-align:left;padding:0;border-top:1px dashed var(--line);
 }
 #coachView .coach-ctx-more:hover{color:var(--primary-900)}
+/* 底部常驻提示：让「别纠语法」这个功能有可发现性 */
+#coachView .coach-ctx-hint{
+  flex:none;padding:11px 15px;border-top:1px solid var(--line);background:var(--n-50);
+  font-size:11.5px;color:var(--muted);line-height:1.55;
+}
+#coachView .coach-ctx-hint b{color:var(--primary-800)}
 
-/* ---------- 上下文栏（折叠态 = 40px 竖条）：聊天列放开到容器全宽 ---------- */
+/* ---------- 折叠态 = 40px 竖条：聊天列放开 ---------- */
 #coachView .coach-ctx.coach-ctx-mini{
-  flex:0 0 40px;width:40px;padding:12px 0;align-items:center;gap:0;
-  background:var(--surface-2);
+  flex:0 0 40px;width:40px;border-radius:0;
+  background:var(--n-50);
 }
+#coachView #coachWrap:has(.coach-ctx.coach-ctx-mini){max-width:820px}
 #coachView #coachWrap:has(.coach-ctx.coach-ctx-mini) #coachCol{max-width:100%}
-#coachView .coach-ctx-mini .coach-ctx-body{display:none}
+#coachView .coach-ctx-mini .coach-ctx-head{
+  padding:12px 0;justify-content:center;border-bottom:0;
+}
+#coachView .coach-ctx-mini .coach-ctx-head svg,#coachView .coach-ctx-mini .coach-ctx-head b{display:none}
 #coachView .coach-ctx-mini .coach-ctx-toggle{
-  border:0;background:transparent;padding:6px 0;min-height:44px;align-self:center;
+  margin:0;border:0;background:transparent;padding:0;
+  width:100%;height:auto;min-height:44px;
+  writing-mode:vertical-rl;letter-spacing:.08em;font-size:11px;
 }
-#coachView .coach-ctx-mini .coach-ctx-toggle-tx{
-  writing-mode:vertical-rl;letter-spacing:.08em;font-size:11px;margin-top:4px;
+#coachView .coach-ctx-mini .coach-ctx-body,
+#coachView .coach-ctx-mini .coach-ctx-hint{display:none}
+
+/* ---------- 聊天流 ---------- */
+#coachView #coachScroll{min-height:40vh;padding:14px 0 12px;gap:13px}
+
+/* ---------- 题卡升级：teal 渐变头部条 + P1 徽标 + 真题出处 ---------- */
+#coachView .cq-card{
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  overflow:hidden;box-shadow:var(--shadow);
 }
-#coachView .coach-ctx-mini .coach-ctx-chev{display:block;transform:rotate(0deg)}
+#coachView .cq-head{
+  display:flex;align-items:center;gap:8px;
+  padding:9px 14px;background:linear-gradient(90deg,var(--primary-50),var(--surface));
+  border-bottom:1px solid var(--line);
+}
+#coachView .cq-part{
+  font-size:10.5px;font-weight:800;background:var(--primary-500);color:#fff;
+  border-radius:6px;padding:2.5px 9px;letter-spacing:.03em;
+}
+#coachView .cq-freq{font-size:11px;font-weight:600;color:var(--primary-700)}
+#coachView .cq-src{margin-left:auto;font-size:10.5px;color:var(--muted)}
+#coachView .cq-body{padding:13px 15px 14px}
+#coachView .cq-en{font-size:16px;line-height:1.55;font-weight:600;color:var(--n-900)}
+#coachView .cq-zh{font-size:12.5px;color:var(--muted);margin-top:6px}
+#coachView .cq-hint{
+  margin-top:10px;font-size:12px;color:var(--warn-ink);background:var(--warn-soft);
+  border-radius:9px;padding:7px 11px;line-height:1.55;
+}
 
-/* ---------- 修 300px 空白：内容少时气泡群不贴天花板，也不塞到视口底 ---------- */
-#coachView #coachScroll{min-height:46vh;justify-content:flex-end}
+/* ---------- 气泡加头像（此前 AI 与用户都无头像，一眼看不出谁在说） ---------- */
+#coachView .ca-row,#coachView .cu-row,#coachView .cf-row{display:flex;gap:8px;align-items:flex-start;max-width:88%}
+#coachView .cu-row{flex-direction:row-reverse;align-self:flex-end;margin-left:auto}
+#coachView .coach-av{
+  width:26px;height:26px;border-radius:8px;flex:none;
+  display:flex;align-items:center;justify-content:center;
+}
+#coachView .coach-av svg{width:15px;height:15px}
+#coachView .ca-row .coach-av{background:linear-gradient(135deg,var(--primary-400),var(--primary-700));color:#fff}
+#coachView .cu-row .coach-av,#coachView .cf-row .coach-av{
+  background:var(--n-200);border:1px solid var(--line);color:var(--muted);
+}
+#coachView .ca-bubble{
+  max-width:100%;background:var(--surface);border:1px solid var(--line);
+  border-radius:4px 13px 13px 13px;padding:10px 13px;
+  font-size:14.5px;line-height:1.62;color:var(--ink);box-shadow:var(--shadow);
+}
+#coachView .cu-bubble{
+  max-width:100%;background:var(--primary-500);color:#fff;
+  border-radius:13px 4px 13px 13px;padding:10px 13px;
+  font-size:14.5px;line-height:1.6;white-space:pre-wrap;word-break:break-word;
+}
+#coachView .cf{max-width:100%;background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:12px 14px}
 
-/* ---------- chip 视觉升级（不改 data-chip 与事件委托） ---------- */
+/* ---------- chip 视觉升级 ---------- */
+#coachView .cc-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:2px}
 #coachView .cc-row button{
-  background:var(--primary-50);color:var(--primary-700);
-  border:1px solid var(--primary-200);border-radius:999px;
-  padding:7px 14px;font-size:12.5px;font-weight:600;min-height:36px;font-family:inherit;
+  font-family:inherit;font-size:12.5px;font-weight:600;color:var(--primary-700);
+  background:var(--primary-50);border:1px solid var(--primary-200);border-radius:999px;
+  height:32px;padding:0 14px;cursor:pointer;
   transition:background .15s,border-color .15s,color .15s;
 }
 #coachView .cc-row button:hover{background:var(--primary-100);border-color:var(--primary-300)}
 
-/* ---------- ≤860 移动端：整体隐藏上下文栏（退化为单列），dock 5 项与底栏不动 ---------- */
-@media (max-width:860px){
-  #coachView #coachWrap{max-width:760px}
-  #coachView .coach-ctx{display:none}
-  #coachView #coachScroll{min-height:40vh}
-  #coachView .cc-row button{min-height:44px}   /* 触控命中区 ≥44px */
+/* ---------- 输入区：卡片式 + 聚焦光环 ---------- */
+#coachView #coachBar{background:var(--bg);padding:10px 0 4px;border-top:1px solid var(--line)}
+#coachView #coachBarInner{display:flex;gap:9px;align-items:flex-end}
+#coachView .coach-cbox{
+  flex:1;min-width:0;background:var(--surface);border:1.5px solid var(--line);
+  border-radius:12px;padding:4px 4px 4px 13px;box-shadow:var(--shadow);
+  transition:border-color .15s,box-shadow .15s;
 }
+#coachView .coach-cbox:focus-within{border-color:var(--primary);box-shadow:0 0 0 3.5px var(--primary-soft)}
+#coachView #coachInput{
+  width:100%;border:0;outline:0;resize:none;background:transparent;
+  font-family:inherit;font-size:14.5px;line-height:1.5;color:var(--ink);
+  padding:8px 0;height:38px;min-height:38px;
+}
+#coachView #coachInput::placeholder{color:var(--muted)}
+#coachView #coachSend{
+  flex:none;height:38px;min-height:38px;border:0;border-radius:9px;background:var(--primary-500);
+  color:#fff;padding:0 17px;font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer;
+  transition:background .15s;
+}
+#coachView #coachSend:hover:not(:disabled){background:var(--primary-600)}
+#coachView #coachSend:disabled{opacity:.55;cursor:default}
 
-/* ---------- ≤1180 中等屏：上下文栏收窄，避免挤压聊天 ---------- */
+/* ---------- ≤1180 中等屏：右栏收窄，避免挤压聊天 ---------- */
 @media (min-width:861px) and (max-width:1180px){
-  #coachView .coach-ctx{flex-basis:216px;width:216px;padding:12px 12px 18px}
+  #coachView #coachWrap{max-width:960px}
+  #coachView .coach-ctx{flex-basis:230px;width:230px}
   #coachView #coachCol{max-width:none}
+  #coachView .coach-ctx-m b{font-size:15px}
+}
+/* ---------- ≤860 移动端：整体隐藏右栏（退化为单列），dock 5 项与底栏不动 ---------- */
+@media (max-width:860px){
+  #coachView #coachWrap{max-width:760px;display:block}
+  #coachView #coachCol{max-width:100%}
+  #coachView .coach-ctx{display:none}
+  #coachView #coachScroll{min-height:34vh;padding:12px 0 10px}
+  #coachView #coachTop{padding-bottom:10px}
+  #coachView .cc-row button{height:44px;padding:0 16px}   /* 触控命中区 ≥44px */
+  #coachView #coachInput,#coachView #coachSend{height:44px;min-height:44px}
+  #coachView #coachBarInner{gap:8px}
 }
 
-/* ---------- 深色模式：显式覆盖卡片底色（沿用站的深色约定） ---------- */
+/* ---------- 深色模式：显式覆盖面板底色（沿用站的深色约定） ---------- */
 [data-theme="dark"] #coachView .coach-ctx{background:rgba(26,26,28,.72)}
-[data-theme="dark"] #coachView .coach-ctx-card{background:rgba(36,39,44,.9)}
+[data-theme="dark"] #coachView .coach-ctx-hint{background:rgba(36,39,44,.6);border-top-color:rgba(255,255,255,.10)}
+[data-theme="dark"] #coachView .coach-ctx-toggle{border-color:rgba(255,255,255,.14);color:#a8adb5}
+[data-theme="dark"] #coachView .coach-ctx-m{background:rgba(36,39,44,.9);border-color:rgba(255,255,255,.10)}
+[data-theme="dark"] #coachView .coach-ctx-m.hl{background:linear-gradient(135deg,rgba(58,154,147,.20),rgba(36,39,44,.9));border-color:rgba(124,202,194,.3)}
+[data-theme="dark"] #coachView .coach-ctx-m b{color:#e8eaed}
 [data-theme="dark"] #coachView .coach-ctx-bar{background:rgba(255,255,255,.14)}
-[data-theme="dark"] #coachView .coach-ctx-toggle{background:rgba(36,39,44,.9);border-color:rgba(255,255,255,.14);color:#a8adb5}
-[data-theme="dark"] #coachView .coach-ctx-mem li{border-top-color:rgba(255,255,255,.10)}
+[data-theme="dark"] #coachView .coach-ctx-mem li{background:rgba(36,39,44,.9);border-color:rgba(255,255,255,.10);color:#c8ccd1}
+[data-theme="dark"] #coachView .coach-ctx-mem li.coach-ctx-empty{background:transparent}
 [data-theme="dark"] #coachView .coach-ctx-more{border-top-color:rgba(255,255,255,.10)}
+
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
