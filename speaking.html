@@ -31,7 +31,7 @@
 })();
 </script>
 <title>口语 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261002m" />
+<link rel="stylesheet" href="css/common.css?v=20261002n" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=6" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=6">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=6">
@@ -858,7 +858,7 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
 .coach-seg-btn{flex:1;min-height:44px;border:0;background:transparent;border-radius:9px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;transition:background .15s,color .15s}
 .coach-seg-btn.on{background:var(--surface);color:var(--primary-700);box-shadow:0 1px 3px rgba(0,0,0,.10)}
 #coachProg{font-size:12.5px;color:var(--muted);padding:8px 2px 0}
-#coachScroll{padding:10px 2px 104px;display:flex;flex-direction:column;gap:12px}
+#coachScroll{padding:10px 0 104px;display:flex;flex-direction:column;gap:12px}
 .cq-card{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--primary);border-radius:12px;padding:14px 16px}
 .cq-tags{display:flex;gap:8px;align-items:center;margin-bottom:8px}
 .cq-part{font-size:11.5px;font-weight:700;color:var(--primary-700);background:var(--primary-50);border-radius:6px;padding:2px 8px}
@@ -900,6 +900,17 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
   #coachScroll{padding-bottom:72px}
   .cq-en{font-size:16px}
   #coachSend,#coachNext{padding:0 14px}
+}
+/* 10/3 她报桌面端陪练「整体像被缩小、tab 飘在左边」：题库/素材等 tab 下内容是 1160 满列，
+   tab 行靠左与内容左缘对齐是正常的；但陪练聊天列 #coachWrap 是居中 760，234px 的 tab 组
+   留在 1160 列左缘就与聊天列错位。陪练态（#coachView 显示）只在 ≥861 把 tab 组居中到
+   与聊天列同轴；题库/素材态 :has 不命中，零影响。 */
+@media (min-width:861px){
+  main.container:has(#coachView:not([hidden])) .page-head-row{justify-content:center}
+  /* 固定底栏原来 left/right 贴视口、760 内列相对整屏居中，桌面有 288 侧栏时偏左 128px，
+     与 #coachWrap 错位。按 body 的侧栏内边距（288/32）定位底栏，侧栏收起时回 0。 */
+  #coachBar{left:288px;right:32px}
+  body.side-collapsed #coachBar{left:0;right:0}
 }
 </style>
 <style id="bootLoaderStyle">

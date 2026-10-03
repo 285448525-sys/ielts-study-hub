@@ -358,7 +358,7 @@ body.sheet-open .sheet{transform:translateY(0)}
 }
 
 @media(max-width:560px){
-  .container{padding:18px 10px}   /* 9/15：左右 14→10 */
+  .container{padding:18px 12px}   /* 10/3：左右 10→12（她拍板：不要那么满、整体美观；实测卡片 x=12 w=366）；与 860 断点的 12px 对齐，全站手机端边距统一 */
   .card{padding:16px 13px;margin-bottom:14px}
   .grid{grid-template-columns:1fr}
   .stat-grid{grid-template-columns:1fr 1fr}
@@ -2881,6 +2881,13 @@ html[data-theme="dark"] .onb2-overlay{background:rgba(0,0,0,.62)}
     flex:1 1 auto;min-height:0;overflow-y:auto;
     -webkit-overflow-scrolling:touch;
     padding-bottom:calc(var(--dock-h, 56px) + 10px);   /* = dock 实测高 + 10px 呼吸；不再写死 88px */
+    /* 10/3 她手机端报「每页宽度不一样、切 tab 顶部平移、一会宽一会窄」：
+       上面 body 是 flex column，而 .container 基础规则 margin:0 auto——flex 子项的 auto
+       侧外边距会吃掉横向剩余空间，align-items:stretch 不再生效，容器宽度退化成内容固有宽
+       （实测 14 页 390/352/327/283 四种，plans 最窄 283；异步内容渲染后重算=抖动）。
+       width:100% 强制撑满（全站 *{box-sizing:border-box}，padding 含在内不会溢出），
+       auto margin 无剩余空间可分即归零，14 页宽度统一；桌面 ≥861 分支零影响。 */
+    width:100%;
   }
 }
 
