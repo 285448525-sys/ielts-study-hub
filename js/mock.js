@@ -30,6 +30,7 @@
         pronSource: mockState.pronSource,
         p3qs: mockState.p3qs || [],
         examiner: mockState.examiner || null,   // 10/1 批3：考官随快照保存，续考刷新后仍是同一位考官
+        notebook: mockState.notebook || '',    // 10/3 23:05：P2 准备阶段的笔记随快照存，续考/刷新不丢
         totalRemaining: mockState.totalRemaining != null ? mockState.totalRemaining : TOTAL_LIMIT,
         phase: phase,
         index: index,
@@ -121,7 +122,7 @@
     mockEntering = true;
     const snap = loadResumeSnapshot();
     if(!snap){ mockEntering = false; return; }
-    mockState = { p1Set: snap.p1Set, p2Topic: snap.p2Topic, answers: snap.answers, pronSource: snap.pronSource, p3qs: snap.p3qs || [], totalRemaining: (snap.totalRemaining != null ? snap.totalRemaining : TOTAL_LIMIT) };
+    mockState = { p1Set: snap.p1Set, p2Topic: snap.p2Topic, answers: snap.answers, pronSource: snap.pronSource, p3qs: snap.p3qs || [], totalRemaining: (snap.totalRemaining != null ? snap.totalRemaining : TOTAL_LIMIT), notebook: snap.notebook || '' };
     mockEntering = false;   // 10/2 修：状态已同步就位（本行在第一个 await 之前），重入改由 mockState 挡
     // 考官：优先用快照里的（续考不换人）；老快照没有该字段则现场随机补一位
     mockState.examiner = snap.examiner || pickExaminer();
@@ -235,6 +236,54 @@
     });
   }
 
+  /* ---------- 10/3 23:05 她报的两处修复 ----------
+     ① 「P2 准备阶段写的笔记，点结束准备后直接就消失了」→笔记必须留在屏幕上。
+        存在 mockState.notebook，renderMockNote() 负责上屏（prepare 阶段边打边更新，
+        提交时冻结，之后 P2 陈述 / P3 全程可见，本场结束才清）。
+     ② 「P2 回答框不会随文字变化，要滑动才看全」→ 文本框按内容实时 autoGrow。
+     ⚠️ 两条都必须挂 once/常驻绑定，不能每题重复绑（askQuestion 每题都跑）。 */
+
+  function renderMockNote(){
+    const box = $('#mockNote'), body = $('#mockNoteBody');
+    if(!box || !body) return;
+    const txt = ((mockState && mockState.notebook) || '').trim();
+    if(!txt){ box.hidden = true; body.textContent = ''; return; }
+    body.textContent = txt;
+    box.hidden = false;
+  }
+  /* 文本框自动长高：随内容涨高，能看全自己写的（她报「框不会随文字变化」）。
+     上限 maxH（默认 46vh），到顶后内部滚而不是继续撑破布局。 */
+  function autoGrowManual(){
+    const ta = $('#mockManual');
+    if(!ta) return;
+    ta.style.height = 'auto';
+    const maxH = Math.max(220, Math.round(window.innerHeight * 0.46));
+    ta.style.height = Math.min(ta.scrollHeight, maxH) + 'px';
+    ta.style.overflowY = ta.scrollHeight > maxH ? 'auto' : 'hidden';
+  }
+  /* 10/3 23:05：prepare 阶段才把输入实时存成笔记。
+     ⚠️ 踩坑：原本写 `mockState.phase === 'P2-prep'`，但 **mockState 从来没有 phase 字段**
+     （saveResumeSnapshot 存的是快照对象的 phase，不是 mockState 上的）→ 条件永假、边打边存从不生效。
+     改用 askQuestion 传下来的 opts.isPrep 标记（用模块级变量传给绑定函数）。 */
+  /* ⚠️ 不用 __mockGrowBound 做一次性守卫：P1 是最先到的阶段（isPrep=false），
+     若锁住首次绑定，到 P2 准备阶段 isPrep 就传不进去了 → 边打边存又失效。
+     改为每题解绑旧监听再绑新的（askQuestion 每题都调，节点是同一个 textarea）。 */
+  function bindManualAutoGrow(isPrep){
+    const ta = $('#mockManual');
+    if(!ta) return;
+    if(ta.__mockGrowFn) ta.removeEventListener('input', ta.__mockGrowFn);
+    const fn = () => {
+      autoGrowManual();
+      /* 准备阶段边打边把笔记存进 mockState（刷新/续考也不丢） */
+      if(isPrep && mockState){
+        mockState.notebook = ta.value;
+        renderMockNote();
+      }
+    };
+    ta.__mockGrowFn = fn;
+    ta.addEventListener('input', fn);
+  }
+
   /* ---------- 单题交互（手动输入文本框，无录音）---------- */
   function askQuestion(opts){
     return new Promise(resolve => {
@@ -264,7 +313,16 @@
         }
       }
       const liveEl = $('#mockLive'); if(liveEl) liveEl.textContent = '';
-      const manual = $('#mockManual'); if(manual) manual.value = '';
+      const manual = $('#mockManual');
+      if(manual){
+        manual.value = '';
+        /* 10/3 23:05：文本框按内容实时长高（她报「框不会随文字变化，要滑动才看全」） */
+        manual.style.height = 'auto';
+        manual.style.overflowY = 'hidden';
+        bindManualAutoGrow(!!opts.isPrep);
+      }
+      /* 10/3 23:05：笔记留屏。prepare 阶段上屏并边打边存；其余阶段只显示上一阶段存下的（全程可见）。 */
+      renderMockNote();
       const hint = $('#mockHint'); if(hint) hint.textContent = '';
       const submitBtn = $('#mockSubmit');
       const timerWrap = $('#mockTimerWrap');
@@ -307,6 +365,11 @@
           resolved = true;
           if(window.__mockTick){ clearInterval(window.__mockTick); window.__mockTick = null; }
           const transcript = manual ? manual.value.trim() : '';
+          /* 10/3 23:05：准备阶段提交时把草稿冻结进 notebook（之后 P2陈述/P3 都留在屏幕上） */
+          if(opts.isPrep && transcript){
+            mockState.notebook = transcript;
+            renderMockNote();
+          }
           resolve({ transcript: transcript });
         };
       }
@@ -383,16 +446,23 @@
     for(const t of arr){ r -= (FREQ_WEIGHT[t.frequency] || 1); if(r <= 0) return t; }
     return arr[arr.length - 1];
   }
-  /* 选 P1 大题集合：全局按"考过次数升序（最优先）+ 同次数高频优先"排序，取前 TOPIC_N 个大题。
-     题内小题再按同样的优先级取前 PER_TOPIC 个（从未考过的优先）。
-     超高频（原必考题）频率权重最高（见 FREQ_WEIGHT.ultra），故未考过的超高频题自然排前；一旦考过多次，
-     让位给仍新鲜的高频题，实现「轮换」——避免每场模考都抽到同样的大题（旧逻辑按题库顺序硬取，会重复）。 */
+  /* 选 P1 大题集合。
+     ⛔ 10/3 23:05 她拍板重写（她实测「至少回答了八九题必考题一个词卡里的题，这是不对的」）：
+       真实机考结构 = ① 姓名热身 1 题 → ②【必考题（超高频）只从【一个】词卡里挑 3 题】
+       → ③ 其余 8 题全部来自**非必考**词卡。
+       ⚠️ 旧逻辑是「取前 4 大题 × 每题 3 小题 = 12」，而超高频权重 5 会让**多个超高频词卡
+       挤进前 4 名**（每个再抽 3 小题）→ 必考题连着出七八题，正是她看到的问题。
+     —— 故改为：ultra 词卡只取【一个】（考过次数少的优先，其次高频），其余名额只从非 ultra 里取。 */
   function buildP1Set(pool){
     const taken = buildTakenCounts();
     const picked = new Set();
     const qa = [];
-    const PER_TOPIC = 3; // 每个大题抽 3 个小题
-    const TOPIC_N = 4;   // 固定 4 大题 × 3 小题 = 12，加开场姓名共 13
+    const PER_TOPIC = 3;   // 每个大题抽 3 个小题（她的口径：必考题=一个词卡里 3 题）
+    const ULTRA_TOPIC = 1; // ⛔ 必考词卡只取 1 个（原来靠权重隐式达成，现显式化）
+    // 总题量 = 开场姓名 1 + 必考 3 + 其余 8 = 12（她 23:05 拍板「1+3+8」）
+    // ⚠️ 整除约束：必考 3 题 = ULTRA_TOPIC(1) × PER_TOPIC(3)，其余 8 题**除不尽 3**。
+    //    最后一个大题用 tail=2 让总数正好 8（3+3+2），避免出现 13 题（超了她拍板的数量）。
+    const TOPIC_N = 3;
     // 一个大题的"新鲜度" = 其小题里被考次数最少的那条（因为我们会优先抽它最新鲜的小题）
     const topicLeastTaken = (t) => {
       const qs = t.questions || [];
@@ -411,13 +481,19 @@
         .sort((a, b) => (a.score - b.score) || (a.i - b.i))
         .slice(0, takeN)
         .sort((a, b) => a.i - b.i);
-      for(const r of ranked) qa.push({ topic: t.titleEn || t.titleZh || '', q: r.q });
+      for(const r of ranked) qa.push({ topic: t.titleEn || t.titleZh || '', q: r.q, core: t.frequency === 'ultra' });
     };
-    // 所有大题按全局优先级排序，取前 TOPIC_N 个（同分时频率越高越靠前，再随机破平）
-    pool.map(t => ({ t, score: takenPriority(topicLeastTaken(t), t.frequency) }))
-      .sort((a, b) => (a.score - b.score) || (Math.random() - 0.5))
-      .slice(0, TOPIC_N)
-      .forEach(x => takeTopic(x.t, PER_TOPIC));
+    const byFresh = (a, b) => (a.score - b.score) || (Math.random() - 0.5);
+    // 第① 段：必考题（ultra）——**只取 1 个**词卡，抽 3 小题
+    const ultraRanked = pool.filter(t => t.frequency === 'ultra')
+      .map(t => ({ t, score: topicLeastTaken(t) })).sort(byFresh).slice(0, ULTRA_TOPIC);
+    ultraRanked.forEach(x => takeTopic(x.t, PER_TOPIC));
+    // 第② 段：其余名额**只在非 ultra 里选**（`filter` 排除了 ultra → 后面不可能再出必考题）
+    // 3+3+2 = 8（最后一个大题只取 2 个，正好凑成她要的 8 题）
+    const restRanked = pool.filter(t => t.frequency !== 'ultra' && !picked.has(t.id))
+      .map(t => ({ t, score: takenPriority(topicLeastTaken(t), t.frequency) }))
+      .sort(byFresh).slice(0, TOPIC_N);
+    restRanked.forEach((x, i) => takeTopic(x.t, i === restRanked.length - 1 ? 2 : PER_TOPIC));
     return qa;
   }
 
@@ -481,31 +557,54 @@
         saveResumeSnapshot('P3', 0);
       }
       // ---- P3 ----
+      /* 10/3 23:05 她报「P3 不是根据我的回答来出题的，好像自己根据 P2 题目出题」。
+         🚨 根因：原实现是**一次性预生成 3 题**（common.js genSpeakingP3Three 里 prevA=''，
+         续题时 AI 手上只有上一题、没有考生任何回答 → 只能对着 P2 题面泛化追问）。
+         ✅ 修法：改为**逐题按需生成** —— 上一题你答完，把【你的答案】喂进去再问下一题。
+            这是真实考官的行为（她 10/3 补充：「上次考官问我为什么想当心理医生、
+            还问中国人普遍想干什么工作」，都是从我的回答里长出来的）。
+            断点续考兜底：快照里已有 p3qs 就复用（不重复调 AI、不重复计费）。 */
       let p3qs = (snap && snap.p3qs && snap.p3qs.length) ? snap.p3qs : (mockState.p3qs || []);
       if(doP3){
         setP2Mode(false);   // 10/1 批3：P3 回到大窗居中（含「从 P3 快照直接恢复」的场景）
-        if(!p3qs.length){
-          setPhase('Part 3');
-          $('#mockQ').innerHTML = '正在生成 P3 追问…';
-          try{
-            const p2ans = mockState.answers.find(x => x.part === 'P2');
-            p3qs = await genP3Questions(topic, p2ans ? p2ans.transcript : '');
-            mockState.p3qs = p3qs;
-          }catch(e){
-            // 绝不直接跳到出成绩：用预设题库兜底，停留在 P3 界面让考生继续作答
-            toast('P3 AI 生成失败：' + e.message + '（已用预设题库）');
-            p3qs = presetP3Questions(topic);
-            mockState.p3qs = p3qs;
-          }
-        }
+        const P3_N = 3;
         const startIdx = (snap && rp === 'P3') ? snap.index : 0;
+        const p2ans = mockState.answers.find(x => x.part === 'P2');
+        const p2Text = p2ans ? (p2ans.transcript || '') : '';
+        // 预生成过的题（续考/兜底）照用；空数组则每题现场生成
+        const pre = p3qs.length ? p3qs : [];
+        const newlyGenerated = [];
         let firstRemain = (snap && rp === 'P3' && snap.remaining != null) ? snap.remaining : undefined;
-        for(let i = startIdx; i < p3qs.length; i++){
+        for(let i = startIdx; i < P3_N; i++){
           setMockStep('3');
-          const qHtml = escapeHtml(p3qs[i]);
-          const res = await askQuestion({ phaseLabel:'Part 3（'+(i+1)+' / '+p3qs.length+'）', qHtml, ttsText:p3qs[i], allowTts:true, allowRecord:true, submitLabel:(i===p3qs.length-1?'完成 P3，出报告':'下一题'), resume: firstRemain != null ? { phase:'P3', index:i, remaining:firstRemain } : undefined });
+          setMockSubCount(i+1, P3_N);
+          let q = pre[i];
+          if(!q){
+            setPhase('Part 3');
+            const box = $('#mockQ');
+            if(box) box.innerHTML = '正在生成 P3 追问…';
+            try{
+              // 逐题：把**上一题 + 你的答案**都带进去（原来只带上一题、答案是空的）
+              const prevQ = i > 0 ? newlyGenerated[i-1] : null;
+              const prevA = i > 0 ? ((mockState.answers.filter(x => x.part === 'P3').slice(-1)[0] || {}).transcript || '') : null;
+              q = await window.MockGenP3.genNext(topic, p2Text, i, prevQ, prevA);
+              newlyGenerated.push(q);
+            }catch(e){
+              toast('P3 AI 生成失败：' + e.message + '（已用预设题库）');
+              q = (typeof window.MockGenP3.presetNext === 'function')
+                ? window.MockGenP3.presetNext(topic, p2Text, i, pre[i-1], '')
+                : 'Can you tell me more about that?';
+              newlyGenerated.push(q);
+            }
+            mockState.p3qs = newlyGenerated.slice();
+            saveResumeSnapshot('P3', i);   // 已生成的题存快照，刷新/续考不重复调 AI
+          } else {
+            newlyGenerated.push(q);
+          }
+          const qHtml = escapeHtml(q);
+          const res = await askQuestion({ phaseLabel:'Part 3（'+(i+1)+' / '+P3_N+'）', qHtml, ttsText:q, allowTts:true, allowRecord:true, submitLabel:(i===P3_N-1?'完成 P3，出报告':'下一题'), resume: firstRemain != null ? { phase:'P3', index:i, remaining:firstRemain } : undefined });
           firstRemain = undefined;
-          mockState.answers.push({ part:'P3', q: p3qs[i], transcript: res.transcript });
+          mockState.answers.push({ part:'P3', q: q, transcript: res.transcript });
           saveResumeSnapshot('P3', i+1);
         }
       }
@@ -684,7 +783,7 @@
     const pronSource = (fixed != null) ? 'fixed' : 'none';
     // 全新开考前先清掉任何旧快照，避免与上一次未完成的模考串档
     clearResumeSnapshot();
-    mockState = { p1Set: buildP1Set(p1), p2Topic: pickP2Topic(p2), answers: [], pronSource, p3qs: [], totalRemaining: TOTAL_LIMIT, examiner: pickExaminer() };
+    mockState = { p1Set: buildP1Set(p1), p2Topic: pickP2Topic(p2), answers: [], pronSource, p3qs: [], totalRemaining: TOTAL_LIMIT, examiner: pickExaminer(), notebook: '' };
     mockEntering = false;   // 10/2 修：状态已同步就位，此后重入由 mockState 挡（本句到 await runExam 之间全同步）
     // 真题固定开场问：每场模考第一个问题固定为姓名确认（ID 热身，不参与评分，但会出现在完整记录里）
     mockState.p1Set.unshift({ topic: 'Opening', q: 'Can you tell me your full name?', opening: true });

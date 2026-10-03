@@ -1166,6 +1166,32 @@ Question generation rules:
 4. Each turn ask ONLY ONE question. Output ONLY the single next question — do NOT add any preamble, acknowledgment, or connector before it (no "That's interesting.", no "Now,", no "So,", no "Let me ask you..."). The question itself must be the entire response.
 5. A normal P3 round runs 3-4 follow-ups, then STOP generating — no extra closing remark.
 
+*** ADAPT DIFFICULTY TO THE CANDIDATE (added 2026-10-03) ***
+A real examiner calibrates question difficulty to how the candidate is actually performing. Read the candidate's Part 2 answer (and any earlier answers) and pick the matching tier. This is NOT optional — it is the single most important rule here.
+
+TIER A — candidate's Part 2 was WEAK (many long pauses / restarts, short choppy sentences, grammar slips, very basic vocabulary, ran out of things to say):
+  → Ask SIMPLE questions. Keep the question UNDER 12 WORDS.
+  → Use only everyday words (grade-school level). No idioms, no phrasal verbs, no collocations, no abstract nouns.
+  → One idea per question. Prefer direct "Do you...?" / "Is it...?" / "Why do you...?" / "What about...?" forms.
+  → Do NOT stack two ideas with "and" or "or". Do NOT ask about reasons, impacts or comparisons yet.
+  → GOOD: "Do you like it?" · "Why do you like it?" · "Is it easy?" · "What do you think?"
+  → BAD: "To what extent has your attitude towards that particular phenomenon evolved over the past decade?"
+
+TIER B — candidate's Part 2 was ACCEPTABLE (some hesitation but can produce connected sentences, uses a mix of simple and intermediate vocabulary):
+  → Ask MEDIUM questions. Under 18 words. Everyday-to-intermediate vocabulary. May use one "because/why" clause.
+  → GOOD: "Why do you think people enjoy it?" · "Has that changed in recent years?"
+
+TIER C — candidate's Part 2 was STRONG (fluent, long connected sentences, varied and accurate vocabulary, clear opinions with reasons, easy to follow):
+  → Ask DEEPER questions. Up to 25 words. Intermediate-to-advanced vocabulary is fine. May use comparison, cause, impact, prediction.
+  → GOOD: "Why do you think some people are drawn to that while others aren't?" · "Has the way people approach it changed in the past ten years?"
+
+Default to TIER B when the answer is missing, very short, or you cannot tell.
+
+ALSO — the question must be rooted in WHAT THEY ACTUALLY SAID:
+- Build the question on a specific concrete thing they mentioned (a job, a place, a feeling, an object, a reason they gave). Example: if they said "my favourite job would be a psychologist", ask "What made you want to be a psychologist?" or "Do people in China often want that kind of job?" — NOT a generic "What is your favourite job?".
+- If an earlier answer mentions something specific, the next question may return to it from a wider angle.
+- If an earlier answer is vague or empty, ask something simple to draw more detail out, rather than jumping ahead.
+
 Output ONLY the single question string (or the brief acknowledgment + next question when continuing), no numbering, no quotes, no other text.`;
 
 /* P3 问题净化：剔除 AI 生成时附带的开场寒暄 / 过渡废话，仅保留核心问题。
@@ -1197,17 +1223,37 @@ async function genSpeakingP3(p2, p2Text, step, prevQ, prevA){
   const sys = P3_GEN_SYS
     + '\n\n--- CURRENT TURN ---'
     + (isFirst
-        ? '\nThis is the FIRST follow-up (Q1): explore a broad social phenomenon derived from the candidate\'s Part 2 topic category. Shallow difficulty.'
-        : '\nThis is a CONTINUING follow-up (Q' + (step + 1) + '): it must directly build on the candidate\'s PREVIOUS answer below — dig deeper (cause / impact / comparison / classification / prediction). Increase difficulty vs the previous question. Do NOT introduce an unrelated new topic.')
+        ? "\nThis is the FIRST follow-up (Q1): base it on something SPECIFIC the candidate actually said in their Part 2 talk (a detail, a person, a place, a feeling or a reason they gave) - then widen it to a general angle. Difficulty must already match their tier: if their Part 2 was weak, Q1 must be under 12 words and elementary."
+        : "\nThis is a CONTINUING follow-up (Q" + (step + 1) + "): it must directly build on the candidate's PREVIOUS answer below - dig deeper (cause / impact / comparison / classification / prediction). Stay on the SAME tier as Q1 unless their new answer clearly shows they can handle more; if it got weaker, step DOWN. Do NOT introduce an unrelated new topic.")
     + '\nGenerate ONLY the single next question string now.';
   let user = 'Part 2 cue card (English): ' + (p2.promptEn || '') + '\nChinese: ' + (p2.promptZh || '')
     + '\nYou should say: ' + ((p2.youShouldSay || []).join('; '))
     + '\n\nThe candidate\'s Part 2 talk:\n' + (p2Text || '(no answer given)');
+  /* 10/3 23:05 她报「P3 难度不随我 P2 表现变」：光在 system 里写规则不够，
+     必须在 user 里**显式给出水平判定依据**（长度/句数/停顿痕迹/用词），
+     否则模型没有客观标尺可依，只能按 TIER B 默认走。 */
+  if(p2Text){
+    const words = p2Text.trim().split(/\s+/).filter(Boolean).length;
+    const sents = p2Text.trim().split(/[.!?]+/).filter(s => s.trim()).length;
+    const avgLen = sents ? Math.round(words / sents) : words;
+    const fillers = (p2Text.match(/\b(um|uh|erm|er|like|you know|i mean|sort of|kind of)\b/gi) || []).length;
+    user += '\n\n--- Candidate performance analysis (use this to pick the difficulty tier) ---'
+      + '\nWord count: ' + words
+      + '\nSentence count: ' + sents
+      + '\nAverage sentence length: ' + avgLen + ' words'
+      + '\nHesitation/filler markers (' + fillers + '): ' + (fillers >= 3 ? 'MANY → hesitant delivery' : (fillers > 0 ? 'a few' : 'none'))
+      + '\nInterpret it as: WEAK if (words < 60 AND (fillers >= 3 OR avgLen < 7)) or avgLen < 7. '
+      + 'STRONG if words >= 130 AND avgLen >= 11 AND fillers <= 1. Otherwise ACCEPTABLE.'
+      + '\nThen apply the matching tier (A = under 12 words / elementary vocabulary / one idea; '
+      + 'B = under 18 words / everyday-to-intermediate; C = up to 25 words / may use cause, impact, comparison).';
+  }
   if(!isFirst){
     user += '\n\n--- Previous Part 3 exchange ---'
       + '\nExaminer asked: ' + (prevQ || '')
       + '\nCandidate answered: ' + (prevA || '(no answer given)')
-      + '\n\nNow ask the NEXT follow-up question that continues from the candidate\'s answer above.';
+      + '\n\nNow ask the NEXT follow-up question. It must grow out of a SPECIFIC thing the candidate '
+      + 'just said (a detail, a reason, a feeling, an object they mentioned) — not out of the Part 2 topic in general. '
+      + 'Match the difficulty to their overall performance as analysed above.';
   }
   const content = await callRelay('mock_q', [
     { role:'system', content:sys },
