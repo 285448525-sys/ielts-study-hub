@@ -495,6 +495,43 @@ function userHtml(text){
     window.addEventListener('resize', layoutCoach);
   }
 
+  /* 考官头像选择器（10/3 22:55 从设置页挪来）：顶栏点头像 → av-picker 弹层换考官。
+     ⚠️ speaking.html 已新引 av-picker.js（必须在 coach.js 之前），否则 avOpen 不存在、
+     点头像没反应。src 同步用「短轮询 + 结束即清」：av-picker 选完只改自己的 img
+     （syncAccountCard 只管设置页），本页要等它把新图刷过来。 */
+  function initExamAv(){
+    var btn = $('coachExamAvBtn'), img = $('coachExamAvImg');
+    if(!btn) return;
+    function sync(){
+      if(img && typeof window.avExamSrc === 'function'){
+        var want = window.avExamSrc();
+        if(img.getAttribute('src') !== want) img.setAttribute('src', want);
+      }
+    }
+    btn.addEventListener('click', function(){
+      if(typeof window.avOpen === 'function'){ window.avOpen('exam'); }
+      else { toast('头像选择器还在加载，稍等一下'); }
+    });
+    sync();
+    /* 10/3 22:55：换考官后要即时刷顶栏 img。原先用「弹层关掉就停」的轮询 ——
+       点完「完成」弹层立刻关 → 轮询在 DATA 落库生效前就停了 → src 永远不更新（探针抓到）。
+       改成：弹层开着期间持续 sync（覆盖用户点选的那一刻），关掉后再多跑 1.2s 收尾，
+       并在 8s 兜底停止，防定时器泄漏。 */
+    var iv = setInterval(function(){
+      sync();
+      if(btn.getAttribute('aria-expanded') !== 'true'){
+        clearInterval(iv);
+        setTimeout(function(){ clearInterval(iv); }, 0);
+      }
+    }, 300);
+    setTimeout(function(){ clearInterval(iv); }, 8000);
+    /* 兜底再刷一次（弹层关掉后 DATA 已落库，此时直接同步最稳） */
+    var card = document.getElementById('avatarCard');
+    if(card) card.addEventListener('click', function(e){
+      if(e.target && e.target.closest && e.target.closest('.av-opt')) setTimeout(sync, 60);
+    });
+  }
+
   /* 10/3 22:06：把 #coachView 限成「视口 - 顶栏实测高 - 输入条 - 净空」，
      让 #coachScroll 成为真正的滚动容器（CSS 静态兜底已写，此处按实测值校正，
      顶栏高度随视口/字体/缩放变化，写死会在某些窗口里又滑到底）。
@@ -533,11 +570,19 @@ function userHtml(text){
       + '<div id="coachCol">'
       +   '<div id="coachTop">'
       +     '<div class="coach-who">'
-      +       '<span class="coach-who-av" aria-hidden="true">'
-      +         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3 2 8l10 5 10-5-10-5Z"/><path d="M6 10.5V16c0 1.5 3 3 6 3s6-1.5 6-3v-5.5"/></svg>'
-      +       '</span>'
+      /* 10/3 22:55：考官头像选择器从设置页挪到这里（她拍板）。点它 → avOpen('exam') 弹层换考官形象。
+         空 src 时由 .coach-who-av-fb（学士帽 svg + teal 渐变底）兜底，不会破图。 */
+      +       '<button class="coach-who-av" id="coachExamAvBtn" type="button" aria-haspopup="dialog"'
+      +               ' aria-controls="avatarPop" aria-expanded="false" title="点击更换考官的样子">'
+      +         '<span class="coach-who-av-fb" aria-hidden="true">'
+      +           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3 2 8l10 5 10-5-10-5Z"/><path d="M6 10.5V16c0 1.5 3 3 6 3s6-1.5 6-3v-5.5"/></svg>'
+      +         '</span>'
+      +         '<img id="coachExamAvImg" src="" alt="" />'
+      +       '</button>'
       +       '<span class="coach-who-tx"><b>AI 口语陪练</b><span>自由对话</span></span>'
       +     '</div>'
+      /* 10/3 22:55：头像弹层容器（考官选择器）。设置页有同名容器，这里是陪练页自己的。 */
+      +     '<div id="avatarCard" hidden></div>'
       /* 10/3 22:06（她拍板文案「本轮教练台 ›」）：这个按钮现在是右栏的【展开/收回入口】——
          原先右栏收起时留了 40px 白色竖条当入口，她嫌「怪怪的」像没画完的残件，已删（CSS display:none），
          入口上移到这里。aria-expanded / aria-controls 指右栏，键盘可达性与原来一致。
@@ -586,6 +631,7 @@ function userHtml(text){
 
     $('coachSend').addEventListener('click', function(){ sendText(); });
     initCtx();           // 10/3 A版：初始化上下文栏（折叠状态 + 首渲染 + 事件）
+    initExamAv();        // 10/3 22:55：顶栏考官头像选择器（她拍板从设置页挪来）
     var ta = $('coachInput');
     ta.addEventListener('keydown', function(e){
       if(e.key === 'Enter' && !e.shiftKey && !e.isComposing){

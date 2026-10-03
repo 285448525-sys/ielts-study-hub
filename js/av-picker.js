@@ -85,6 +85,57 @@
   function renderAll(){
     renderGrid('avUserGrid', USER_AVATARS, avUser, 'avatar');
     renderGrid('avExamGrid', EXAM_AVATARS, avExam, 'examAvatar');
+    /* 10/3 22:55：设置页把「头像」整卡缩成弹层后，两个网格改为按页签互斥显示 */
+    avSwitchTab(document.body.getAttribute('data-avtab') === 'exam' ? 'exam' : 'user');
+  }
+
+  /* ==== 10/3 22:55：头像从「一整卡网格」改成「点头像弹层」 ====
+     她拍板：「不要摊开在下面，希望点头像才弹出来」。设置页点头像弹（kind='user'）；
+     口语陪练页顶栏点考官头像也走同一个（kind='exam'，从 coach.js 调 window.avOpen）。 */
+  function avSwitchTab(tab){
+    var u = document.getElementById('avUserGrid'), e = document.getElementById('avExamGrid');
+    var isExam = (tab === 'exam');
+    if(u) u.hidden = isExam;
+    if(e) e.hidden = !isExam;
+    var t = document.getElementById('avPopTitle'), h = document.getElementById('avPopHint'), c = document.getElementById('avPopCount');
+    if(t) t.textContent = isExam ? '换考官的样子' : '换我的头像';
+    if(h) h.textContent = isExam ? '口语模考和陪练里会出现，选定的那位优先被抽到' : '用在陪练聊天、侧边栏这些地方，换设备自动同步';
+    if(c) c.textContent = isExam ? ('共 ' + EXAM_AVATARS.length + ' 个形象') : ('共 ' + USER_AVATARS.length + ' 个形象');
+    var tabs = document.querySelectorAll('.av-tab');
+    for(var i = 0; i < tabs.length; i++){
+      var on = tabs[i].getAttribute('data-avtab') === tab;
+      tabs[i].classList.toggle('on', on);
+      tabs[i].setAttribute('aria-selected', on ? 'true' : 'false');
+    }
+    document.body.setAttribute('data-avtab', tab);
+  }
+  function avOpen(kind){
+    var card = document.getElementById('avatarCard');
+    if(!card) return;
+    /* 陪练页可能是 coach.js 后建的空壳 → 先确保弹层结构在（探针抓过：#avatarPop 为 null） */
+    ensurePop(card);
+    if(!card.querySelector('#avUserGrid').children.length) renderAll();
+    card.hidden = false;
+    avSwitchTab(kind || 'user');
+    var btn = document.getElementById('acctAvatarBtn');
+    if(btn) btn.setAttribute('aria-expanded', 'true');
+  }
+  function avClose(){
+    var card = document.getElementById('avatarCard');
+    if(card) card.hidden = true;
+    var btn = document.getElementById('acctAvatarBtn');
+    if(btn) btn.setAttribute('aria-expanded', 'false');
+  }
+  function avBind(){
+    var btn = document.getElementById('acctAvatarBtn');
+    if(btn) btn.addEventListener('click', function(){ avOpen('user'); });
+    var x = document.getElementById('avPopClose');   if(x) x.addEventListener('click', avClose);
+    var d = document.getElementById('avPopDone');    if(d) d.addEventListener('click', avClose);
+    var tabs = document.querySelectorAll('.av-tab');
+    for(var i = 0; i < tabs.length; i++){
+      tabs[i].addEventListener('click', function(){ avSwitchTab(this.getAttribute('data-avtab')); });
+    }
+    document.addEventListener('keydown', function(e){ if(e.key === 'Escape') avClose(); });
   }
 
   /** 顶部账户卡（52px）跟随选择 */
@@ -112,11 +163,43 @@
   window.avExamSrc = examSrc;
   window.avSyncAccountCard = syncAccountCard;
   window.avSyncSide = syncSide;
+  window.avOpen = avOpen;      // 10/3 22:55：陪练页顶栏点考官头像走这个开弹层
+  window.avClose = avClose;
+
+  /* 弹层骨架：设置页与陪练页各有一个 #avatarCard 空容器，本函数把同一份结构塞进去。
+     ⚠️ 10/3 22:55：陪练页（coach.js build）只输出 `<div id="avatarCard" hidden></div>` 空壳，
+     若不注入内容，avOpen() 会把空 div 显示出来而点不出任何东西 —— 探针实测 #avatarPop 为 null。 */
+  var POP_HTML =
+      '<div class="av-pop" id="avatarPop" role="dialog" aria-modal="true" aria-label="更换头像">'
+    +   '<div class="av-pop-head">'
+    +     '<div><b id="avPopTitle">换我的头像</b><span id="avPopHint">用在陪练聊天、侧边栏这些地方，换设备自动同步</span></div>'
+    +     '<button class="av-pop-x" id="avPopClose" type="button" aria-label="关闭">✕</button>'
+    +   '</div>'
+    +   '<div class="av-pop-tabs" role="tablist">'
+    +     '<button class="av-tab on" type="button" role="tab" aria-selected="true" data-avtab="user">我</button>'
+    +     '<button class="av-tab" type="button" role="tab" aria-selected="false" data-avtab="exam">考官</button>'
+    +   '</div>'
+    +   '<div class="av-grid" id="avUserGrid" role="radiogroup" aria-label="我的头像"></div>'
+    +   '<div class="av-grid av-grid-exam" id="avExamGrid" role="radiogroup" aria-label="考官头像" hidden></div>'
+    +   '<div class="av-pop-foot"><span id="avPopCount"></span>'
+    +     '<button class="av-pop-done" id="avPopDone" type="button">完成</button></div>'
+    + '</div>';
+  /* 只在容器为空时注入（设置页 HTML 已内联过同一份结构，不重复插） */
+  function ensurePop(card){
+    if(!card) return;
+    if(!card.querySelector('#avatarPop')) card.innerHTML = POP_HTML;
+  }
 
   /* 设置页 ready 后渲染一次；其它页只做账户卡同步（若页面上有这个元素） */
   function boot(){
     var box = document.getElementById('avatarCard');
-    if(box){ renderAll(); }
+    /* ⚠️ box 现在是 hidden 的弹层容器，**不能因为 hidden 就跳过渲染** ——
+       弹层里的网格要先填好，点开时才不会空白。 */
+    if(box){
+      ensurePop(box);
+      renderAll();
+      avBind();
+    }
     syncAccountCard();
     syncSide();
   }

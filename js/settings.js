@@ -19,7 +19,8 @@ function populateSettingsForm(){
   if($('#sChime')) $('#sChime').checked = s.chimeOnDone !== false;
   // 9/21 翻转：服药模块默认关闭 → 无该函数时兜底 false（与 common.js 口径一致）
   if($('#sAdhd')) $('#sAdhd').checked = (typeof medsModuleOn === 'function') ? medsModuleOn() : false;
-  if($('#sAcct')) $('#sAcct').value = s.syncCode || '';   // 登录表单预填当前账号（重登方便）
+  /* 10/3 22:55：#sAcct 登录表单已删（她拍板「未登录不裸填账号密码，改成引导去 login.html」），
+     预填逻辑一并移除。 */
 }
 
 ready(() => {
@@ -61,21 +62,10 @@ ready(() => {
   $('#importFile').addEventListener('change', e => { if(e.target.files[0]) importData(e.target.files[0]); });
   $('#resetBtn').addEventListener('click', resetData);
 
-  // 云端同步（手机号/用户名 + 密码，10/1 起服务端真鉴权）
-  $('#syncLoginBtn').addEventListener('click', async () => {
-    const r = await authLogin($('#sAcct') ? $('#sAcct').value : '', $('#sPass') ? $('#sPass').value : '');
-    if(r.ok) renderAuthUI();
-  });
-  if($('#sPass')) $('#sPass').addEventListener('keydown', e => { if(e.key === 'Enter') $('#syncLoginBtn').click(); });
-  $('#syncRegisterBtn').addEventListener('click', async () => {
-    const inv = $('#sInvite') ? $('#sInvite').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '') : '';   // 与服务端同口径归一化
-    /* 邀请码选填（她 10/1 二次拍板=内测会员码）：不填也能注册；填了有效码注册即送会员 */
-    const r = await authRegister($('#sAcct') ? $('#sAcct').value : '', $('#sPass') ? $('#sPass').value : '', inv);
-    if(!r.ok) return;   // 失败原因已写在状态行（含 needLogin 提示）
-    if(r.vipGranted > 0) syncSetStatus('🎉 内测码生效：会员 ' + r.vipGranted + ' 天已开通', 'ok');
-    const r2 = await authFinishRegister(r.acct, r.password);   // 恢复码已下线：注册成功直接自动登录
-    if(r2.ok) renderAuthUI();
-  });
+  /* 10/3 22:55：登录 / 设密码的表单与按钮已整块删除（她拍板「未登录就显示未登录 + 一个按钮
+     引导去专门的登录页」）。authLogin / authRegister / authFinishRegister 函数本身在
+     common.js 一字未动，login.html 继续用 —— 这里只是设置页不再调它们。
+     被删的绑定：#syncLoginBtn click / #sPass keydown(Enter) / #syncRegisterBtn click。 */
   $('#syncChangeBtn').addEventListener('click', () => {
     const f = $('#syncChangeForm');
     if(f) f.style.display = (f.style.display === 'none' || !f.style.display) ? '' : 'none';
@@ -161,22 +151,20 @@ function saveSettings(){
 /* 讯飞语音配置已移除（录音 / 转写功能已下线，发音分改由设置里的固定分提供） */
 
 
-/* ===== 10/1 手机号/用户名 + 密码 认证 UI =====
+/* ===== 10/1 手机号/用户名 + 密码 认证UI =====
    服务端 /api/auth（register/login/change/logout），session token 由 common.js 管理。
-   两态：未登录（登录/设密码）、已登录（改密码/退出）。恢复码机制已整套下线（她 10/1 拍板）。 */
+   10/3 22:55：未登录态不再裸填表单 —— 改成「未登录 + 说明 + 一个去 login.html 的引导键」
+   （DOM #syncLoginForm 整块删除，换成 #syncGuestBox；改密/退出仍留本页）。
+   恢复码机制已整套下线（她 10/1 拍板）。*/
 function renderAuthUI(){
   const loggedIn = !!(DATA.settings.syncCode && typeof authToken === 'function' && authToken());
-  const lf = $('#syncLoginForm'), ub = $('#syncUserBox');
-  if(!lf || !ub) return;
-  lf.style.display = loggedIn ? 'none' : '';
-  ub.style.display = loggedIn ? '' : 'none';
-  if(loggedIn){
-    const el = $('#syncUserAcct');
-    if(el) el.textContent = DATA.settings.syncCode || '';
-  } else {
-    const el = $('#syncUserAcct');   // 10/1 晚：退出/未登录时账号位回填「未登录」（账号卡置顶版）
-    if(el) el.textContent = '未登录';
-  }
+  const ub = $('#syncUserBox'), gb = $('#syncGuestBox');   // ← #syncLoginForm 已删
+  if(ub) ub.style.display = loggedIn ? '' : 'none';
+  if(gb) gb.hidden = loggedIn;
+  const el = $('#syncUserAcct');
+  if(el) el.textContent = loggedIn ? (DATA.settings.syncCode || '') : '未登录';
+  const st = $('#syncState');
+  if(st && !loggedIn) st.textContent = '数据只存在这台设备';
 }
 
 function exportData(){
