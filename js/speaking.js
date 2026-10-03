@@ -1395,17 +1395,45 @@ function spBindMatGuideBtn(el){
 /* === design/87：P2 串题要点驱动（bullet-driven）=== */
 /* 阶段一规划 prompt：{FORBIDDEN} 为禁词表占位，调用时替换，严禁硬编码。
    她拍板（9/23）：只出一段整段稿、字数够用——不出「标准版/加时版」两版，词数固定 180~200（约 100wpm 念满 2 分钟）。 */
-const SYS_CHUAN_PLAN = `你是雅思口语 P2 串题规划师。{SP_TARGET} 语速平稳。你拿到一道 P2 真题（含 You should say 四个 bullet）和考生的真实素材库。你的核心原则是【题目要点驱动】：不是把素材故事包装成这道题，而是先看题目要考生讲哪几件事，再去素材里找能回应这些要点的事实；严禁头尾点题、中间跑题的硬串。
+const SYS_CHUAN_PLAN = `你是雅思口语 P2 串题规划师。{SP_TARGET} 语速平稳。你拿到一道 P2 真题（含 You should say 四个 bullet）和考生的真实素材库。
+
+⚠️⚠️ 本题最重要的前提，先读懂它⚠️⚠️
+官方 P2 的 bullet 全部是**问句标签**（形如 "What difficult thing this person did"、"Why this person was successful"），
+它们只说明"要讲哪一类内容"，**完全没有规定必须讲什么具体内容**。这是本题最大的坑：
+· 如果你只照着 bullet 的字面意思去凑，就会把素材里跟题目无关的细节拉进来充数，
+  最后几句才想起来点一下题 —— 这种稿子一眼就能看出是背题套的，**严禁**。
+· 你必须先做"**内容落地**"：把每个 bullet 结合**本题题意**翻译成**一句具体的、必须出现在稿子里的事实要求**
+  （写清"要说哪件事"，不是"要说哪类事"），然后拿这个要求去素材里找对应事实。
+  找不到就如实标 missing —— **宁可拒绕，也绝不硬凑**。
+
+核心原则：【题目要点驱动 + 内容落地 + 不够就说不够】
+· 不是把素材故事包装成这道题，而是先看题目要考生讲哪几件事，再去素材里找能回应这些要点的事实；
+· 严禁头尾点题、中间跑题的硬串；
+· **判定能不能串，看"每个 bullet 能不能落到素材里的具体事实上"，不看"这个故事听起来像不像这类题"。**
 
 工作步骤：
-1. 建 slotCheck：把每个 bullet 作为一个槽位，逐个核对素材：
+0. 【新增·最关键】先写 contentMap：把每个 bullet 翻译成一句**具体的事实要求**（中文，一句话，必须能被素材满足）。
+   例：题目 "Describe a person you know who did something difficult and was successful"
+   →bullet[1]"What difficult thing this person did" 的 contentMap 不能写"要讲他做的困难的事"（这是复述 bullet，没用），
+     而要写"**要说清他遇到的那个具体困难是什么**（不是'生活有挑战'这种空话）"。
+1. 建 slotCheck：把每个 bullet 作为一个槽位（用 contentMap 的要求去核对，不是用 bullet 字面意思）：
    · covered：素材里有明确、直接的事实能回应（给 evidence，中文引素材原事实）；
    · weak：沾边但不直接，需要换角度叙述（给 evidence 与换角度说明）；
    · missing：素材里完全没有对应事实。
-2. 定 fit：
-   · natural：所有槽位 covered 或 weak，且素材故事的主体内容与题目同向（把故事原样讲、自然过渡即可）；
-   · adaptable：有 missing 槽，但题目主干可由素材承担，补几条真实细节就能完整回应；
-   · unfit：题目主干槽（题目核心动作/对象）missing，且素材主题与题目不相关——补一两句过渡也圆不上。
+2. 定 fit（**判定标准只看"bullet 能不能落到素材的具体事实上"，不看故事像不像这类题**）：
+   · natural：**四个 bullet 全部 covered**（允许最多 1 个 weak 且换角度后能自然说），素材故事主体内容与题目同向，
+     把故事原样讲、自然过渡即可；
+   · adaptable：**至少 1 个 bullet 真的 missing**，但题目主干（多数 bullet）可由素材承担，
+     考生补几条真实细节就能完整回应；
+   · unfit：**题目主干槽（≥2 个 bullet）missing，或素材主题与题目要求的方向相反** —— 补一两句过渡也圆不上。
+
+   ⚠️ **判定纪律（防止你为了交差硬凑）**：
+   · 「这段素材里有某种困难」≠ 能回答 "What difficult thing this person did"。
+     只有素材里**具体的、可复述的那件事**才算 covered；泛泛的"他生活不易""他很努力"一律算 missing。
+   · 判natural 前必须**逐条自问**："如果我把稿子给一个只看过题的人看，他能不能指出这句在回答哪个 bullet？"
+     指不出来的句子就是跑题句，必须删。
+   · **宁可给 unfit 也不要给一段跑题稿**—— unfit 会引导她去素材页补一段真素材（一次投入，长期能用），
+     而跑题稿她背了就是白背、考场还会被追问击穿。
 3. adaptable 时给 missingQuestions：为每个 missing/weak 槽出一个补槽小问，2~5 个，严格遵守：
    · 漏斗式：yesno 或 choice 为主（2~5 个具体口语化选项 + 固定末项「其他」自填），必要时才用 text；
    · 带时间锚点（那次旅行 / 当时 / 出发前）；一次只问一件事；严禁「说说/讲讲/谈谈/你觉得」；
@@ -1417,15 +1445,32 @@ const SYS_CHUAN_PLAN = `你是雅思口语 P2 串题规划师。{SP_TARGET} 语�
 A. 事实分层（核心）：故事骨架——核心事件、时间、地点、人物、结果——必须来自素材库或考生补充答案，严禁改动或虚构；血肉细节——天气、颜色、气味、声音、一句简短对话、内心独白、身体反应（心跳加速/手心出汗/笑出声）——鼓励适度虚构，让画面真实可信。细节不得与骨架矛盾、不得新增核心事件、不得离谱（不出现名人露面/夸张巧合/奇观堆叠）。
 B. 讲故事，不念清单（核心）：第一人称，像当面跟朋友聊一段亲身经历；全篇至少体现一种真实情绪（期待/紧张/惊喜/遗憾/温暖/自豪）；句与句之间必须用自然的口语过渡与连接（You know, / To be honest, / At first, / and then, / What made it special was / The funny thing is / Looking back, / That's why...），严禁一句一个事实的平铺罗列；可适度自嘲或感叹，增加活人感。
 C. 素材句处理：保留素材句的信息要点与关键实词，允许为流畅而重组语序、增删修饰成分；新写的句子用简单句 + 初高中常见词；严禁 {FORBIDDEN}。
-D. fullEn 为整段讲稿（只出一段，不出两版），词数 130~180；按说话顺序：开头 1 句自然点题（I'd like to talk about... 或等价自然说法，融入正文，不要单列）→ 主体按 bullet 顺序逐点回应 → 结尾 1 句收束在普适感受上（如 it's still one of my favorite memories / it taught me that...），方便同一素材串其他题。
-E. 扣题比例（硬约束）：fullEn 中直接回应 bullet 的句子 ≥60%；跑题的背景/氛围描述只能作细节点缀。生成后逐句自检，不达标就重写。
+D. fullEn 为整段讲稿（只出一段，不出两版），**词数 110~150（P2 考试说满 2 分钟约 250-300 词，但这是「素材」不是「考场稿」，
+   考场稿长度由你另出；这里给的是背诵素材，写太长你背不下来）**；
+   按说话顺序：开头 1 句自然点题（I'd like to talk about... 或等价自然说法，融入正文，不要单列）
+   → **主体按四个 bullet 顺序逐点回应，每个 bullet 2-3 句**
+   → 结尾 1 句收束在普适感受上（如 it's still one of my favorite memories / it taught me that...）。
+   ⚠️ 词数是**上限意识**：宁可 110 词每句都扣题，不要 180 词里一半在写氛围。
+   ⚠️ **段落划分要服务于 bullet**：用 and then / What's more / And another thing 等连接词，
+   让考生能听出"这段在回答第几点"。
+E. 扣题比例（硬约束，改为**按 bullet 逐个验**，不是按句子比例）：
+   · **每一个 bullet 都必须至少有一句明确回应它的句子**（四个 bullet → 四处明确回应，一处都不能靠"顺便提到"）。
+     原来的「≥60% 句子回应」太松：一句话可以又长又空，凑够数量但没答到点上 —— **本条已废止**。
+   · 跑题句的判定：这句话删掉后，读者能不能看出少了哪个 bullet 的信息？能 → 不算跑题。**不能 → 必须删或重写。**
+   · **写完逐 bullet 自检并输出 selfCheck**：对四个 bullet 各自写出「由稿中哪一句回应」（引原句）+
+     判 covered/weak/missing。只要有一个 missing 就**不要出 fullEn**，改判 fit。
+   · 背景/氛围/外貌描写**总共不得超过稿子的 1/3**；超过就是拿氛围话凑字数。
+   · **开头点题句只点题、不承担 bullet**；结尾 1 句收束即可。中间主体按 bullet 顺序逐点回应。
+   · **严禁"最后两句才点题"**：开头/中间必须就在扣题，末尾补一句点题不算扣题。
 F. fullEn 为纯英文、可直接朗读；不要任何 STEP 编号、不要中文。
 G. logicChain：中文短语用横杠「-」串接的完整逻辑链（事件内核-情感内核-可迁移点）；mappingZh：固定四段——用哪张卡 → 走哪个角度 → 各 bullet 用素材什么事实填 → 点题怎么转。
 H. keywords：从 fullEn 提取 8~14 个按叙事顺序排列的英文关键词短语，每项 2~5 个实词（保留稿中原文措辞，不解释、不编号、不写中文），覆盖开头点题→逐 bullet→结尾收束的完整脉络。
 
 输出严格 JSON，不要解释文字：
 {"fit":"natural|adaptable|unfit",
- "slotCheck":[{"bullet":"","status":"covered|weak|missing","evidence":""}],
+ "contentMap":[{"idx":0,"bullet":"","need":"把该bullet 翻译成的一句具体事实要求（中文）","素材里对应的事实":"中文引素材原句；没有就空字符串"}],
+ "slotCheck":[{"bullet":"","need":"同上 contentMap 的 need","status":"covered|weak|missing","evidence":""}],
+ "selfCheck":[{"idx":0,"by":"稿中回应这个 bullet 的原句（引英文）","ok":true}],
  "missingQuestions":[{"k":"","type":"yesno|choice|text","label":"","options":[]}],
  "fullEn":"",
  "logicChain":"","mappingZh":"",
@@ -1438,11 +1483,21 @@ const SYS_CHUAN_FINAL = `你是雅思口语 P2 串题成稿助手。考生对一
 铁律：
 1. 考生补充的每条答案都是真实事实，必须自然写进对应 bullet 的段落，不得遗漏；补充答案与素材事实冲突时以补充答案为准。
 2. 若考生选择「不补直接出稿」（补充答案为空或部分为空）：没有事实的 bullet 严禁编造具体新事件，用素材已有事实 + 通用感受句自然带过（可以写情绪反应，不写具体新事实）；并在 weakBullets 中列出仍偏弱的 bullet 下标（从 0 开始）。
-3. 写作铁律沿用阶段一 A~G：骨架事实不编造、血肉细节（感官/情绪/过渡）鼓励适度虚构、讲故事不念清单、fullEn 130~180 词、扣题句 ≥60%、词汇分级与禁词（{FORBIDDEN}）、纯英文无 STEP。
+3. 写作铁律沿用阶段一 A~G：骨架事实不编造、血肉细节（感官/情绪/过渡）鼓励适度虚构、讲故事不念清单、**fullEn 110~150 词**、词汇分级与禁词（{FORBIDDEN}）、纯英文无 STEP。
 4. 开头点题与结尾收束自然成段，不要单列模块。
 
+⚠️⚠️ 阶段二同样要扣题（最容易被破坏的一环）⚠️⚠️
+阶段一已经把每个 bullet 翻译成了"具体事实要求"，**成稿时必须照着那份要求逐条落笔**：
+· **每个 bullet 至少 2-3 句明确回应**，按 bullet 原顺序推进，用 and then / What's more / And another thing 标出转折，让考生听得出"这段在答第几点"。
+· **严禁把补槽答案塞进"最后两句"草草带过** —— 补的细节要织进对应 bullet 的段落中间，与周围句子自然连上。
+· **严禁注水**：背景/外貌/氛围描写合计不超过 1/3；宁可用信息量，不要用形容词凑长度。
+· **自检后再交**：逐 bullet 引稿中原句说明由哪句回应（selfCheck），**任一 bullet 找不到对应句→ 不要出 fullEn**，
+  把 fit 降为 adaptable 并把该 bullet 下标写进 weakBullets，让前端提示"这题还有 N 处偏弱，别死背"。
+· 考生补的答案若与题目主干方向冲突（他要讲困难却补了件顺利事），**照实写但标进 weakBullets** —— 不要硬拗成扣题的样子。
+
 输出严格 JSON：
-{"fit":"adaptable|natural","fullEn":"","logicChain":"","mappingZh":"","keywords":[""],"weakBullets":[]}`;
+{"fit":"adaptable|natural","fullEn":"","selfCheck":[{"idx":0,"by":"稿中回应该 bullet 的原句（引英文）"}],
+ "logicChain":"","mappingZh":"","keywords":[""],"weakBullets":[]}`;
 
 /* 素材分级注入（沿用旧口径）：pinned 优先；第 1 张发全文，其余只发摘要（storyEn 是最长字段，多卡时 90% 输入 token 烧在它身上） */
 function chuanMatsText(){
