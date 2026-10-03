@@ -393,12 +393,13 @@ body.sheet-open .sheet{transform:translateY(0)}
 .rs-list li b{color:var(--ink);font-weight:700}
 [data-theme="dark"] .rs-list li b{color:#fff}
 
-/* buttons */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:10px 18px;border-radius:var(--radius-sm);cursor:pointer;font-size:14px;font-weight:600;transition:background .15s,color .15s,border-color .15s,box-shadow .15s,transform .15s}
+/* buttons —— 按设计系统文档站 2026-10-03 组件规范升级：height 固定 44px、gap 7px、字号 14.5px、过渡 .18s ease、tight 3.5px 聚焦环 */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:0 20px;height:44px;line-height:1;border-radius:var(--radius-sm);cursor:pointer;font-size:14.5px;font-weight:600;font-family:inherit;text-decoration:none;transition:background .18s ease,color .18s ease,border-color .18s ease,box-shadow .18s ease,transform .12s ease}
 .btn:hover{border-color:var(--primary);color:var(--primary)}
-.btn:focus-visible{outline:none;box-shadow:0 0 0 4px var(--primary-soft);border-color:var(--primary)}
+.btn:focus-visible{outline:none;box-shadow:0 0 0 3.5px var(--primary-soft);border-color:var(--primary)}
 .btn-primary{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
-.btn-primary:hover{background:var(--primary-d);color:var(--on-primary);transform:translateY(-1px);box-shadow:var(--shadow-md)}
+.btn-primary:hover{background:var(--primary-600);color:var(--on-primary);box-shadow:0 6px 16px rgba(58,154,147,.28)}
+.btn-primary:active{background:var(--primary-700)}
 /* 全站按钮统一过渡 + 点击回弹（质感 + 微交互） */
 .btn:active{transform:translateY(0) scale(.97)}
 /* 计时"进行中"徽标：柔和呼吸光晕，安静提示正在计时 */
@@ -426,17 +427,32 @@ body.sheet-open .sheet{transform:translateY(0)}
 .side-timer .st-stop{background:rgba(255,255,255,.18);border:none;color:var(--on-primary);border-radius:8px;padding:3px 9px;font-size:12px;cursor:pointer;flex:none}
 .side-timer .st-stop:hover{background:rgba(255,255,255,.3)}
 .side-timer.running-badge{animation:breathe 2.6s ease-in-out infinite}
-.btn-med{background:var(--med);color:var(--on-primary);border-color:var(--med)}
-.btn-warn{background:var(--warn);color:var(--on-primary);border-color:var(--warn)}
+/* 设计系统文档站 2026-10-03：按钮四变体（primary/secondary/ghost/danger）+ success + 尺寸 sm/lg + block + disabled */
+.btn-secondary{background:var(--surface);color:var(--primary-text);border-color:var(--primary-200)}
+.btn-secondary:hover{background:var(--primary-soft-2);border-color:var(--primary-300)}
+.btn-secondary:active{background:var(--primary-soft)}
+.btn-success{background:var(--ok);color:#fff;border-color:var(--ok)}
+.btn-success:hover{background:var(--ok-text);border-color:var(--ok-text)}
 .btn-danger{background:var(--danger);color:var(--on-primary);border-color:var(--danger)}
+.btn-danger:hover{background:var(--err-text);border-color:var(--err-text)}
 .btn-ghost{background:transparent}
-.btn-sm{padding:6px 10px;font-size:13px}
-.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn-ghost:hover{background:var(--n-100);color:var(--n-900)}
+.btn-sm{height:34px;font-size:13px;padding:0 14px;border-radius:9px;gap:6px}
+.btn-lg{height:52px;font-size:16px;padding:0 28px;border-radius:14px;gap:8px}
+.btn-block{width:100%}
+.btn[disabled],.btn.is-disabled{background:var(--n-100);color:var(--n-500);border-color:var(--line);cursor:not-allowed;box-shadow:none;transform:none;opacity:.85}
+/* 站内特有变体（非设计系统四变体，但要保留）：计时/服药/紧急操作色 */
+.btn-med{background:var(--med);color:var(--on-primary);border-color:var(--med)}
+.btn-med:hover{background:var(--med-ink);border-color:var(--med-ink)}
+.btn-warn{background:var(--warn);color:var(--on-primary);border-color:var(--warn)}
+.btn-warn:hover{background:var(--warn-ink);border-color:var(--warn-ink)}
 
-/* forms */
+/* forms —— 按设计系统文档站 2026-10-03：height 44px tight、3.5px primary-soft-2 聚焦环 */
 /* 注意：以下全局 input/select/textarea 规则不作用于 checkbox/radio，避免它们被强制 width:100% 拉成巨型横条（2026-08-21 修复） */
-input:not([type=checkbox]):not([type=radio]),select,textarea{width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);color:var(--ink);font-family:inherit;font-size:14px;transition:border-color .15s,box-shadow .15s,background .15s}
-input:not([type=checkbox]):not([type=radio]):focus,select:focus,textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-soft);background:var(--surface)}
+input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea{width:100%;padding:0 14px;height:44px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);color:var(--ink);font-family:inherit;font-size:14.5px;transition:border-color .18s ease,box-shadow .18s ease,background .18s ease}
+input:not([type=checkbox]):not([type=radio]):not([type=range]):focus,select:focus,textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3.5px var(--primary-soft);background:var(--surface)}
+input:not([type=checkbox]):not([type=radio]):not([type=range]):hover,select:hover,textarea:hover{border-color:var(--n-500)}
+input:not([type=checkbox]):not([type=radio]):not([type=range])::placeholder,textarea::placeholder{color:var(--n-500)}
 input[type=checkbox],input[type=radio]{width:16px;height:16px;min-width:16px;flex:none;padding:0;border:0;background:transparent;cursor:pointer;accent-color:var(--primary);vertical-align:middle}
 input[type=checkbox]:focus,input[type=radio]:focus{outline:none;box-shadow:0 0 0 3px var(--primary-soft);border-radius:3px}
 /* 10/2 iOS 修复（她反馈手机端时间框比正常框「长出来一截」）：iOS Safari 对 date/time
@@ -449,11 +465,44 @@ input[type=date],input[type=time],input[type=datetime-local]{
   -webkit-min-logical-height:0;
   line-height:normal;
 }
-textarea{min-height:90px;resize:vertical}
+textarea{height:auto;min-height:88px;padding:12px 14px;line-height:1.6;resize:vertical}
 .form-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
 .form-row > *{flex:1;min-width:140px}
 .form-row > label{flex:0 0 auto;min-width:0}
 label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+
+/* ============================================================
+   设计系统文档站 2026-10-03 —— 新增标准组件类（全站可引用，全用 var token）
+   ============================================================ */
+
+/* 徽标 / 药丸 —— 状态、计数、标签 */
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;padding:4px 11px;border-radius:999px;border:1px solid var(--line);background:var(--n-100);color:var(--ink-2);line-height:1;white-space:nowrap}
+.pill-ok{background:var(--ok-bg);color:var(--ok-text);border-color:rgba(52,199,89,.3)}
+.pill-err{background:var(--err-bg);color:var(--err-text);border-color:rgba(224,52,44,.28)}
+.pill-warn{background:var(--warn-soft);color:var(--warn-ink);border-color:rgba(255,149,0,.3)}
+.pill-info{background:var(--primary-soft-2);color:var(--primary-text);border-color:var(--primary-100)}
+
+/* 区块标题 —— 设计站风格编号标题（01/02/03 + 标题 + 可选 desc） */
+.sec-head{display:flex;align-items:baseline;gap:10px;margin:32px 0 8px}
+.sec-head .sec-num{font-family:var(--mono);font-size:13px;color:var(--primary-600);font-weight:600}
+.sec-head h2,.sec-head h3{margin:0;color:var(--n-900);letter-spacing:-.01em}
+.sec-desc{font-size:13.5px;color:var(--muted);line-height:1.6;margin:0 0 16px}
+.eyebrow{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--primary-600);margin-bottom:6px}
+
+/* 模块卡 —— 统一 hover 动效，用于功能入口/诊断卡/推荐卡 */
+.dcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease;cursor:pointer;text-align:left;width:100%;display:block}
+.dcard:hover{transform:translateY(-4px);box-shadow:var(--shadow-card-hover);border-color:var(--primary-200)}
+.dcard-ico{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;margin-bottom:13px}
+.dcard h4{margin:0 0 7px;font-size:15.5px;font-weight:660;color:var(--n-900);letter-spacing:-.01em}
+.dcard p{margin:0 0 14px;font-size:13.5px;line-height:1.6;color:var(--muted)}
+.dcard-foot{display:flex;align-items:center;justify-content:space-between;font-size:12.5px;color:var(--primary-text);font-weight:600}
+.dcard-foot span{color:var(--n-500);font-weight:500}
+
+/* 表单容器 —— 统一 label + inp + hint/err 结构 */
+.field{display:flex;flex-direction:column;gap:6px;min-width:236px}
+.field label{font-size:12.5px;font-weight:600;color:var(--ink-2);margin-bottom:0}
+.field .hint{font-size:11.5px;color:var(--muted)}
+.field .err-msg{font-size:11.5px;color:var(--err-text);display:flex;align-items:center;gap:5px}
 
 /* stat cards */
 .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:18px}
