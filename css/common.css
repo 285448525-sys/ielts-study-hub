@@ -206,7 +206,7 @@ body{
 .side-brand-mark{
   width:40px;height:40px;flex:none;
   border-radius:11px;
-  background:linear-gradient(135deg,#4eb1a8 0%,#2c7873 100%);
+  background:linear-gradient(135deg,#56b3ab 0%,#2c7873 100%);
   color:var(--on-primary);
   display:inline-flex;align-items:center;justify-content:center;
   font-size:19px;font-weight:800;
