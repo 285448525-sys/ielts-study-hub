@@ -9,7 +9,7 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>会员 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261003h" />
+<link rel="stylesheet" href="css/common.css?v=20261003i" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -47,7 +47,8 @@
   <section class="card" id="vipHero"></section>
 
   <!-- 会员方案：价格卡由 js/vip.js 按 VIP_PLANS 常量渲染（改价只动那里一处） -->
-  <section class="card">
+  <section class="card rv">
+    <span class="kicker">Pricing · AI 无限用</span>
     <div class="card-head">
       <h2 style="margin:0">会员方案</h2>
       <span class="badge">AI 无限用</span>
@@ -63,8 +64,10 @@
     .vip-cmp td.vip-col b{color:#b45309}
     .vip-cmp thead th.vip-col{color:#b45309}
     .vip-no{color:var(--muted)}
+    .vip-cat th{border-bottom:1px solid var(--primary-200);border-top:1px solid var(--primary-200)}
   </style>
-  <section class="card">
+  <section class="card rv" data-d="1">
+    <span class="kicker">Compare · 差在哪</span>
     <h2 style="margin:0 0 14px">免费版 vs 会员</h2>
     <div style="overflow-x:auto">
       <table class="vip-cmp" style="width:100%;border-collapse:collapse;font-size:14px">
@@ -76,11 +79,13 @@
           </tr>
         </thead>
         <tbody>
+          <tr class="vip-cat"><th colspan="3" scope="colgroup" style="padding:8px;text-align:left;font-size:12.5px;font-weight:800;color:var(--primary-800);background:var(--primary-50);letter-spacing:.03em">学习功能（会员不独占）</th></tr>
           <tr>
             <td style="padding:10px 8px;border-bottom:1px solid var(--line)">全部学习功能<br /><span class="muted" style="font-size:12px">词库 · 口语题库 · 计划 · 回顾 · 计时 · 听写…</span></td>
             <td style="padding:10px 8px;border-bottom:1px solid var(--line)">✓</td>
             <td class="vip-col" style="padding:10px 8px;border-bottom:1px solid var(--line)">✓</td>
           </tr>
+          <tr class="vip-cat"><th colspan="3" scope="colgroup" style="padding:8px;text-align:left;font-size:12.5px;font-weight:800;color:var(--primary-800);background:var(--primary-50);letter-spacing:.03em">AI 能力（这里才是会员的核心）</th></tr>
           <tr>
             <td style="padding:10px 8px;border-bottom:1px solid var(--line)">口语模考（AI 出题 + 评分 + 四维报告）</td>
             <td style="padding:10px 8px;border-bottom:1px solid var(--line)">每月 <b>1</b> 次</td>
@@ -101,6 +106,7 @@
             <td style="padding:10px 8px;border-bottom:1px solid var(--line)">每周共享 <b>5</b> 次</td>
             <td class="vip-col" style="padding:10px 8px;border-bottom:1px solid var(--line)"><b>无限次</b></td>
           </tr>
+          <tr class="vip-cat"><th colspan="3" scope="colgroup" style="padding:8px;text-align:left;font-size:12.5px;font-weight:800;color:var(--primary-800);background:var(--primary-50);letter-spacing:.03em">数据与设备</th></tr>
           <tr>
             <td style="padding:10px 8px;border-bottom:1px solid var(--line)">多设备云同步</td>
             <td style="padding:10px 8px;border-bottom:1px solid var(--line)">✓ 永久免费</td>
@@ -128,7 +134,8 @@
   </section>
 
   <!-- 开通方式（10/1 先手动收款，自动支付跑通后再接） -->
-  <section class="card" id="vipHowto">
+  <section class="card rv" data-d="2" id="vipHowto">
+    <span class="kicker">How to · 开通</span>
     <h2 style="margin:0 0 14px">开通方式</h2>
     <div style="background:#f6f8f9;border-radius:12px;padding:18px 20px">
 <p style="margin:0 0 8px;font-size:14.5px"><b>联系站长开通</b>：选好方案（7 天卡新人首购 ¥19，原价 ¥39 / 30 天卡 ¥69 / 90 天卡 ¥129），去「意见反馈」里说明要开通的档位和你的站内账号，<b>约 10 分钟内</b>开通。</p>
@@ -137,7 +144,8 @@
   </section>
 
   <!-- 常见问题（10/1 扩充到 7 条，她授权「加你觉得可以的」） -->
-  <section class="card">
+  <section class="card rv" data-d="3">
+    <span class="kicker">FAQ</span>
     <h2 style="margin:0 0 8px">常见问题</h2>
     <details style="padding:10px 0;border-bottom:1px solid var(--line)">
       <summary style="cursor:pointer;font-weight:600">免费版 AI 额度是怎么算的？</summary>
@@ -178,5 +186,17 @@
 
 </main>
 
+<script>
+/* 10/4 01:45 丙方案：.rv 进场动画（本页静态区块用；价格卡由 js/vip.js 动态渲染不参与） */
+(function(){
+  var els = document.querySelectorAll('.rv');
+  if(!els.length) return;
+  if(!('IntersectionObserver' in window)){ els.forEach(function(e){ e.classList.add('in'); }); return; }
+  var io = new IntersectionObserver(function(es){
+    es.forEach(function(en){ if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
+  }, { threshold:.12 });
+  els.forEach(function(e){ io.observe(e); });
+})();
+</script>
 </body>
 </html>

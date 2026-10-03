@@ -9,7 +9,7 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>设置 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261003h" />
+<link rel="stylesheet" href="css/common.css?v=20261003i" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -246,7 +246,8 @@
 
   <div class="set-grid">
     <!-- 左列 -->
-    <section class="card set-card">
+    <section class="card set-card rv">
+      <span class="kicker">Profile</span>
       <h2>个人设置</h2>
       <p class="set-sub">昵称、考期和每天想学多久</p>
       <div class="set-fields">
@@ -288,7 +289,8 @@
     </section>
 
     <!-- 右列 -->
-    <section class="card set-card">
+    <section class="card set-card rv" data-d="1">
+      <span class="kicker">Targets</span>
       <h2>目标分数</h2>
       <p class="set-sub">AI 按这个口径给你建议</p>
       <div class="form-row set-bands">
@@ -302,7 +304,8 @@
     </section>
 
     <!-- 左列下 -->
-    <section class="card set-card">
+    <section class="card set-card rv" data-d="2">
+      <span class="kicker">Speaking</span>
       <h2>口语自评</h2>
       <p class="set-sub">模考计分用 · 只有这两项 AI 评不了</p>
       <div class="set-fields">
@@ -312,7 +315,8 @@
     </section>
 
     <!-- 右列下 -->
-    <section class="card set-card">
+    <section class="card set-card rv" data-d="3">
+      <span class="kicker">Data</span>
       <h2>数据管理</h2>
       <p class="set-sub">所有数据存在本机浏览器。危险操作前先导出备份。</p>
       <div class="set-btns">
@@ -331,5 +335,17 @@
 
 </main>
 
+<script>
+/* 10/4 01:45 丙方案：.rv 进场动画 */
+(function(){
+  var els = document.querySelectorAll('.rv');
+  if(!els.length) return;
+  if(!('IntersectionObserver' in window)){ els.forEach(function(e){ e.classList.add('in'); }); return; }
+  var io = new IntersectionObserver(function(es){
+    es.forEach(function(en){ if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
+  }, { threshold:.12 });
+  els.forEach(function(e){ io.observe(e); });
+})();
+</script>
 </body>
 </html>
