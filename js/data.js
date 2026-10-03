@@ -1023,6 +1023,7 @@ let DATA = {
   deletedIds: [],   // 全局墓碑：所有删除操作的 raw id 集合，跨同步传播删除
   revivedIds: [],   // 反向墓碑（9/17）：单词被「加回来」的 key（'en:'+小写），随同步 union 传播；合并时 deleted \ revived
   deletedWrongKeys: [],   // 错句级墓碑：已删「标准句+错误写法」组合 key（sourceId|right|wrong），跨同步传播错句本/默写详情的单处删除
+  coachMem: [],     // 10/3 AI 陪练长期记忆：[{t:时间戳, text:中文短句}]（她的常错点/喜好/长期要求）；mergeData 按 text 跨设备并集；她可在陪练里「全部忘记」
   speaking: SPEAKING_BANK,   // 纯官方题库（题目），框架母本(sp_p1_*/sp_p2_*)已移除，不再混入任何框架类内容
   speakingStories: [],
   writingScores: [],

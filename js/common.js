@@ -2006,6 +2006,18 @@ function mergeData(local, cloud){
   out.deletedIds = Array.from(deleted);
   out.revivedIds = Array.from(revivedWords);   // 反向墓碑随合并传播（与 deletedIds 同口径 union）
   out.deletedWrongKeys = Array.from(deletedWrong);   // 错句级墓碑随合并传播
+  // 10/3 AI 陪练长期记忆 coachMem：跨设备按 text 并集（同文本保留较新 t），按时间升序、上限 40。
+  // 不用 settings 字段级「较新整份胜」——两端各自追加事实时并集才不丢（e02adc05 铁律：新字段必须在此登记，否则云端那份被整份丢弃）。
+  if(Array.isArray(cloud.coachMem)){
+    const _normMem = x => (x && typeof x.text === 'string' && x.text.trim())
+      ? { t: Number(x.t) || 0, text: String(x.text).trim().slice(0, 80) } : null;
+    const _lm = (local.coachMem || []).map(_normMem).filter(Boolean);
+    const _cm = (cloud.coachMem || []).map(_normMem).filter(Boolean);
+    const _by = new Map();
+    _lm.concat(_cm).forEach(x => { const ex = _by.get(x.text); if(!ex || x.t > ex.t) _by.set(x.text, x); });
+    const _merged = Array.from(_by.values()).sort((a, b) => a.t - b.t).slice(-40);
+    if(JSON.stringify(_merged) !== JSON.stringify(_lm)){ out.coachMem = _merged; changes++; }
+  }
   // 当日背词会话（dailySession）：跨设备合并，杜绝云端旧/空会话覆盖本地新进度。
   // 10/1：逻辑抽到 _mergeWbSession（官方词库 obank session 共用同一套），行为逐字保留。
   const _msess = _mergeWbSession(local.dailySession, cloud.dailySession);

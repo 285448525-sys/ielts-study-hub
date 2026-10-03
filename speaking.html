@@ -41,14 +41,14 @@
 
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
-  <script defer src="js/data.js?v=20261002b"></script>
-  <script defer src="js/common.js?v=20261002h"></script>
+  <script defer src="js/data.js?v=20261003a"></script>
+  <script defer src="js/common.js?v=20261003a"></script>
   <script defer src="js/feedback.js?v=20261002b"></script>
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
   <script defer src="js/sentence-drill.js?v=20261001i"></script>
   <!-- coach 同例：必须在 speaking.js 之前，顶层 window.__COACH_ON 先立，tab 分支才接管得到 -->
-  <script defer src="js/coach.js?v=20261002b"></script>
+  <script defer src="js/coach.js?v=20261003a"></script>
   <script defer src="js/speaking.js?v=20261002d"></script>
   <script defer src="js/materials.js?v=20261002b"></script>
   <script defer src="js/mock-report.js?v=20260830u"></script>
@@ -858,6 +858,35 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
 .coach-seg-btn{flex:1;min-height:44px;border:0;background:transparent;border-radius:9px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;transition:background .15s,color .15s}
 .coach-seg-btn.on{background:var(--surface);color:var(--primary-700);box-shadow:0 1px 3px rgba(0,0,0,.10)}
 #coachProg{font-size:12.5px;color:var(--muted);padding:8px 2px 0}
+/* ===== 10/3 coach v2 自由对话：顶栏右对齐的记忆入口、AI 气泡、纠错卡、快捷 chips、记忆弹层 ===== */
+#coachTop{display:flex;justify-content:flex-end;align-items:center;gap:8px}
+.coach-mem-btn{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);background:var(--surface);color:var(--muted);font-size:12.5px;font-weight:600;font-family:inherit;border-radius:999px;padding:6px 13px;cursor:pointer;transition:border-color .15s,color .15s}
+.coach-mem-btn:active{border-color:var(--primary);color:var(--primary-700)}
+.ca-row{display:flex;justify-content:flex-start}
+.ca-bubble{max-width:92%;background:var(--surface);border:1px solid var(--line);border-radius:14px 14px 14px 4px;padding:11px 14px;font-size:15px;line-height:1.6;color:var(--ink);box-shadow:var(--shadow)}
+.ca-bubble strong{color:var(--primary-900)}
+.ca-p{margin:0 0 8px}
+.ca-p:last-child{margin-bottom:0}
+.ca-note{font-size:13px;color:var(--muted);margin-top:4px}
+.ca-fix{background:rgba(220,38,38,.06);border-radius:10px;padding:8px 12px;margin:8px 0}
+.ca-fix-t{font-size:12.5px;font-weight:700;color:var(--danger-text);margin-bottom:4px}
+.ca-fix ul{margin:0;padding:0;list-style:none}
+.ca-fix li{position:relative;padding-left:16px;font-size:14px;line-height:1.6;color:var(--ink-2)}
+.ca-fix li::before{content:'\2715';position:absolute;left:0;top:3px;color:var(--danger-text);font-size:10px}
+.ca-nat{background:var(--primary-50);border-left:3px solid var(--primary);border-radius:0 10px 10px 0;padding:9px 12px;margin:8px 0;font-size:15px;line-height:1.65;color:var(--primary-900)}
+.ca-nat-t{display:block;font-size:12.5px;font-weight:700;margin-bottom:3px}
+.cc-row{display:flex;gap:8px;flex-wrap:wrap}
+.cc-row button{min-height:38px;padding:8px 15px;border:1px solid var(--primary-200);background:var(--primary-50);color:var(--primary-700);border-radius:999px;font-size:13.5px;font-weight:600;font-family:inherit;cursor:pointer;transition:background .15s}
+.cc-row button:active{background:var(--primary-soft)}
+#coachMemPop{position:fixed;inset:0;z-index:60}
+.cmp-mask{position:absolute;inset:0;background:rgba(15,23,42,.42)}
+.cmp-card{position:absolute;top:50%;left:14px;right:14px;transform:translateY(-50%);max-width:420px;margin:0 auto;background:var(--surface);border-radius:18px;padding:18px;box-shadow:0 20px 50px rgba(15,23,42,.25);max-height:76vh;display:flex;flex-direction:column}
+.cmp-head{display:flex;align-items:center;justify-content:space-between;font-size:15.5px;margin-bottom:4px}
+.cmp-head button{border:0;background:transparent;font-size:15px;color:var(--muted);width:36px;height:36px;border-radius:50%;cursor:pointer}
+#cmpList{margin:8px 0 12px;padding:0;list-style:none;overflow-y:auto}
+#cmpList li{padding:9px 12px;border-radius:10px;background:var(--bg);border:1px solid var(--line);font-size:13.5px;line-height:1.55;color:var(--ink-2);margin-bottom:7px}
+#cmpList li.cmp-empty{border-style:dashed;color:var(--muted);text-align:center;padding:20px 14px}
+#cmpClear{flex:none;width:100%;min-height:44px;border:0;border-radius:11px;background:rgba(220,38,38,.08);color:var(--danger-text);font-size:14.5px;font-weight:700;font-family:inherit;cursor:pointer}
 #coachScroll{padding:10px 0 104px;display:flex;flex-direction:column;gap:12px}
 .cq-card{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--primary);border-radius:12px;padding:14px 16px}
 .cq-tags{display:flex;gap:8px;align-items:center;margin-bottom:8px}
@@ -900,6 +929,7 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
   #coachScroll{padding-bottom:72px}
   .cq-en{font-size:16px}
   #coachSend,#coachNext{padding:0 14px}
+  .cc-row button{min-height:44px}   /* v2 快捷 chips 手机端触控 ≥44px */
 }
 /* 10/3 她报桌面端陪练「整体像被缩小、tab 飘在左边」：题库/素材等 tab 下内容是 1160 满列，
    tab 行靠左与内容左缘对齐是正常的；但陪练聊天列 #coachWrap 是居中 760，234px 的 tab 组
