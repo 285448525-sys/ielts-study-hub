@@ -77,7 +77,8 @@ input::placeholder{color:var(--n-500)}
 <meta name="twitter:card" content="summary" />
 </head>
 <body>
-<div class="top"><a href="index.html">← 返回产品介绍</a></div>
+<!-- 10/4 00:20：带了 ?from= 的进来（设置页「去登录 →」），返回键回到来源页而不是落地页 -->
+<div class="top"><a href="#" id="backLink">← 返回产品介绍</a></div>
 
 <div class="stage">
   <div class="duo">
@@ -133,6 +134,17 @@ input::placeholder{color:var(--n-500)}
 (function(){
   var HUB_KEY = 'ielts_study_hub_v1', TOKEN_KEY = 'hub_auth_token';
   var $ = function(id){ return document.getElementById(id); };
+
+  /* 10/4 00:20：顶部返回键按 ?from= 回来源页（白名单同 nextAfterLogin），无参数时回落地页 */
+  (function(){
+    var back = $('backLink'); if(!back) return;
+    var f = '';
+    try{ f = new URLSearchParams(location.search).get('from') || ''; }catch(_){}
+    if(f){
+      back.textContent = '← 返回设置页';
+      back.href = 'settings.html';
+    }
+  })();
   var ACCT_RE = /^[a-z0-9_]{6,20}$/;
 
   /* 已登录（token + 本机账号）直接进站，不再看登录页 */
@@ -169,8 +181,21 @@ input::placeholder{color:var(--n-500)}
         localStorage.setItem(HUB_KEY, JSON.stringify({ v:1, settings:{ syncCode: acct, autoSync: true, aiChannel:'auto' } }));
       }
     }catch(e){}
-    location.href = 'home.html';
+    location.href = nextAfterLogin();
   }
+  /* 10/4 00:20（她 23:37 回话「登录后回哪？我就是想着回设置页呀」）：
+     设置页未登录态的「去登录 →」带 ?from=settings，登录/注册成功后要回设置页而不是 home.html。
+     ⚠️ 之前 enterStation 硬编码 home.html → ?from 被完全忽略，「回设置页」这个需求其实没成立。
+     —— 只认站内白名单里的 from 值（防 ?from= 注入外站地址），且必须是已知页面名。 */
+  function nextAfterLogin(){
+    var f = '';
+    try{ f = new URLSearchParams(location.search).get('from') || ''; }catch(_){ f = ''; }
+    var ALLOW = { settings:'settings.html', plans:'plans.html', speaking:'speaking.html',
+                  practice:'practice.html', writing:'writing.html', review:'review.html',
+                  timer:'timer.html', corpus:'corpus.html', vip:'vip.html' };
+    return ALLOW[f] || 'home.html';
+  }
+  window.nextAfterLogin = nextAfterLogin;   // 供验收探针读（生产无副作用）
   function post(payload){
     return fetch('api/auth', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload) })
       .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ return { status:r.status, j:j }; }); });
