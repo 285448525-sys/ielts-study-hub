@@ -31,7 +31,7 @@
 })();
 </script>
 <title>口语 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261003c" />
+<link rel="stylesheet" href="css/common.css?v=20261003d" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -42,7 +42,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
   <script defer src="js/data.js?v=20261003a"></script>
-  <script defer src="js/common.js?v=20261003c"></script>
+  <script defer src="js/common.js?v=20261003d"></script>
   <script defer src="js/feedback.js?v=20261002b"></script>
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
@@ -931,21 +931,34 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
   #coachSend,#coachNext{padding:0 14px}
   .cc-row button{min-height:44px}   /* v2 快捷 chips 手机端触控 ≥44px */
 }
-/* 10/3 她报桌面端陪练「tab 飘在中间」：这里原本用 justify-content:center 把 tab 组居中到
-   主区（main.container）内，但主区被 body{padding-left:288px} 整体推右，导致 tab 相对**整个
-   可视区**偏右 128px，视觉上既不靠左也不居中——正是她截图里"在中间"的成因。
+/* 10/3 她报「tab 打开是在中间的」——两次修错，最终正解见下。
+   实测（1440 视口）：侧栏右缘 256 → 容器 288~1393（宽 1105，max-width:1160 未触顶）
+   → 陪练内容区(聊天760+右栏250) = 302~1312，中心 807，视口中心 720。
+   即**内容区本身就比视口中心偏右 87px**（容器在侧栏右侧空间居中，多余空间全在右边）。
 
-   正确解：不用 justify-content 居中（那是以主区为轴），改为用负margin 把 tab 组左移半个侧栏宽度，
-   使它的视觉中心 = 视口中心。760 聊天列本身在主区内居中，主区左缘 = 288，故偏移 -144px。
-   侧栏收起时padding 回 0，偏移必须回 0，否则会过度左移。 */
+   ⇒ tab 正确的参照系是「内容区中心」，不是视口中心。
+     第1 次我用 justify-content:center，轴心=主区(偏右) → 相对视口偏 +128px；
+     第 2 次我加 translateX(-144px) 想拉到视口中心 → 变成相对内容区偏 -110px（更糟）。
+   ⇒ 真正的问题（她截图指出「tab 整个飘到中间去了」）：10/3 那次用 :has() 只给
+   陪练态加了 justify-content:center，题库/素材态仍是 space-between 左对齐 →
+   实测三态 tab 位置跳动 422px（题库 x=302 / 陪练 x=724）。她要的是**这个 tab
+   模块全站统一、任何 tab 态都不许动**。
+
+   ⇒ 正解：不写死像素、不用 :has() 特例，改由 CSS 变量把「陪练内容区实际宽度」
+     暴露出来，tab 组用同一个变量居中 —— 两边永远同一宽度、同一中轴。
+     折叠态右栏 40px、展开 250px，:has(.mini) 切换变量即可。 */
 @media (min-width:861px){
-  main.container:has(#coachView:not([hidden])) .page-head-row{
-    justify-content:center;
-    transform:translateX(-144px);   /* = -288 / 2，抵消侧栏 padding 造成的右偏 */
+  /* tab 组的居中基准 = 该 tab 态下「内容区的实际宽度」。
+     题库/素材态内容是 main.container 满列（1160）；陪练态是 1010（聊天760+右栏250），
+     折叠态 800（聊天760+竖条40）。两边共用同一变量 → 永不脱节。 */
+  main.container{--tab-align-w:1160px}
+  main.container:has(#coachView:not([hidden])){--tab-align-w:1010px}
+  main.container:has(#coachView:not([hidden]) .coach-ctx-mini){--tab-align-w:1060px}
+  main.container .sp-tabs{
+    max-width:var(--tab-align-w);
+    margin-left:auto;margin-right:auto;
   }
-  body.side-collapsed main.container:has(#coachView:not([hidden])) .page-head-row{
-    transform:none;                 /* 侧栏收起，主区左缘 = 0，不再需要补偿 */
-  }
+  #coachView #coachWrap{max-width:var(--tab-align-w)}
   /* 固定底栏原来 left/right 贴视口、760 内列相对整屏居中，桌面有 288 侧栏时偏左 128px，
      与 #coachWrap 错位。按 body 的侧栏内边距（288/32）定位底栏，侧栏收起时回 0。 */
   #coachBar{left:288px;right:32px}
@@ -965,7 +978,7 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
    3) 右栏高度不跟随 #coachScroll 的 min-height，靠 align-items:stretch 由父级决定，
       内部 .coach-ctx-body 自己 overflow-y:auto 滚 */
 #coachView #coachWrap{
-  max-width:1120px;margin:0 auto;display:flex;
+  margin:0 auto;display:flex;
   flex-direction:row;          /* 必须显式写：855 行的 #coachWrap{flex-direction:column} 会继承下来 */
   align-items:stretch;
 }
