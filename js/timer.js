@@ -252,6 +252,62 @@ function renderTimer(){
    stopSession 入库后 + ready 初始化时调用。 */
 /* 头部「今日 XhYm / 连续 N 天」芯片已删（她 10/2 拍板）——renderPhrChips 整函数退役，
    今日总量/连续在下方「今日学习记录」区仍有（recTotalMini / 回顾页）。 */
+
+/* ---------- 10/3 她拍板：同一项目的连续计时合并成一条 ----------
+   她的原话：「现在不是说很多个间隔开来、分开来计时的吗？既然连续的都是同一个项目，
+   就记在同一条里就行了，只不过中间是不是会有暂停、重新开始…可以标注一下分心了几次」
+   → 「不要一个项目分成这么多次记，看起来太怪了、太长了。当然如果中间间隔了其他项目，
+     那是可以间隔开来的。我是说连续的可以放在同一条」
+
+   规则（她 20:37 选定）：
+   · 相邻两条**同一项目**（moduleId + subName 都相同）且间隔 **≤5 分钟** → 合并成一条
+   · 间隔 >5 分钟或换了项目 → 另起一条
+   · 合并后只标「N 段」（最简，不写「中断」这种负面词）
+   · 删除按**整条**删（一次删掉所有段）
+
+   ⚠️ **只改渲染，数据一行不动** —— DATA.sessions 的每条仍原样保留（含 startTs/endTs/
+      durationSec/pauseSec），合并只在内存里算，所以：
+      · 今日总计、分项统计、回顾页口径**完全不变**
+      · 展开明细能看到原始每段（悬停 title）
+      · 想改回一条一段：删掉本函数即可，零数据风险 */
+const REC_MERGE_GAP_MS = 5 * 60 * 1000;   // 5 分钟内算「连续」
+
+/* 同一项目的判定：moduleId 相同 + 显示名相同（subName 可能是 undefined，两边都要容错） */
+function sameRecProj(a, b){
+  if(!a || !b) return false;
+  if(String(a.moduleId || '') !== String(b.moduleId || '')) return false;
+  return String(a.subName || '') === String(b.subName || '');
+}
+
+/* 把今日的原始 sessions 合并成「显示组」：
+   返回 [{ id, name, durationSec, startTs, endTs, segCount, gapSec, segs:[原s...] }] */
+function mergeRecSessions(list){
+  const arr = list.slice().sort((a, b) => (Number(a.startTs) || 0) - (Number(b.startTs) || 0));
+  const groups = [];
+  arr.forEach(s => {
+    const sStart = Number(s.startTs) || 0;
+    const prev = groups[groups.length - 1];
+    const prevEnd = prev ? Number(prev.endTs) || 0 : 0;
+    const gapMs = prev ? sStart - prevEnd : Infinity;
+    if(prev && sameRecProj(prev.segs[0], s) && gapMs >= 0 && gapMs <= REC_MERGE_GAP_MS){
+      // 连续同项目 → 并入上一组
+      prev.durationSec += Number(s.durationSec || 0);
+      prev.endTs = Number(s.endTs) || prev.endTs;
+      prev.gapSec += Math.max(0, Math.round(gapMs / 1000));
+      prev.segs.push(s);
+    }else{
+      groups.push({
+        id: (s.id || ('g' + sStart)), name: resolveTimerNames(s).subName || resolveTimerNames(s).moduleName,
+        durationSec: Number(s.durationSec || 0), startTs: sStart, endTs: Number(s.endTs) || 0,
+        gapSec: 0, segs: [s]
+      });
+    }
+  });
+  groups.forEach(g => { g.segCount = g.segs.length; });
+  // 展示：新→旧（与原行为一致）
+  return groups.reverse();
+}
+
 function renderMiniRecords(){
   const grid = document.getElementById('recMiniGrid');
   const empty = document.getElementById('recEmpty');
@@ -268,27 +324,39 @@ function renderMiniRecords(){
     return;
   }
   if(empty) empty.hidden = true;
-  grid.innerHTML = list.slice().reverse().map(s => {
-    const names = resolveTimerNames(s);
-    const name = names.subName || names.moduleName;
-    const t = s.startTs ? new Date(s.startTs) : null;
+  /* 10/3 合并显示：同一项目连续（≤5 分钟）的一段只占一行，右侧标「N 段」 */
+  const groups = mergeRecSessions(list);
+  grid.innerHTML = groups.map(g => {
+    const t = g.startTs ? new Date(g.startTs) : null;
     const hh = t ? String(t.getHours()).padStart(2,'0') : '--';
     const mm = t ? String(t.getMinutes()).padStart(2,'0') : '--';
-    return '<div class="rec-mini-item">'
-      + '<span class="rec-mini-mod">' + escapeHtml(name) + '</span>'
-      + '<span class="rec-mini-dur">' + fmtHM(Number(s.durationSec || 0)) + '</span>'
+    const multi = g.segCount > 1;
+    /* 悬停 title：把原始每段列出来（不占界面，但信息可查）。
+       ⚠️ **title 里绝对不能用换行**（10/3 踩了三次：'\n' 字符串 / String.fromCharCode(10) / '&#10;'
+          全都会让属性提前闭合 → 后面的 </span> 漏到 DOM 外 → **后续记录全被吞进 title、只剩 1 条正常显示**）。
+          一律用「·」分隔，浏览器行为确定。 */
+    const tip = multi ? (' title="共 ' + g.segCount + ' 段：' + g.segs.map((s, i) => {
+      const st = s.startTs ? new Date(s.startTs) : null;
+      const hh2 = st ? String(st.getHours()).padStart(2,'0') : '--';
+      const mm2 = st ? String(t.getMinutes()).padStart(2,'0') : '--';
+      return '第 ' + (i + 1) + ' 段 ' + hh2 + ':' + mm2 + ' ' + fmtHM(Number(s.durationSec || 0));
+    }).join(' · ') + '"') : '';
+    return '<div class="rec-mini-item"' + tip + '>'
+      + '<span class="rec-mini-mod">' + escapeHtml(g.name || '')
+        + (multi ? '<span class="rec-mini-segs">' + g.segCount + ' 段</span>' : '') + '</span>'
+      + '<span class="rec-mini-dur">' + fmtHM(g.durationSec) + '</span>'
       + '<span class="rec-mini-time">' + hh + ':' + mm + '</span>'
-      + '<button class="rec-mini-del" data-rid="' + (s.id || '') + '" type="button" title="删除本条记录">×</button>'
+      + '<button class="rec-mini-del" data-ids="' + g.segs.map(x => x.id || '').join(',') + '" type="button" title="删除本条记录">×</button>'
       + '</div>';
   }).join('');
-  // 绑定删除：单条误记（如「学习」19h）可直接清掉
+  // 绑定删除：她拍板「删整条」—— 一次删掉该组所有原始段（每段都登墓碑，防云同步拉回）
   grid.querySelectorAll('.rec-mini-del').forEach(btn => {
     btn.addEventListener('click', () => {
-      const rid = btn.dataset.rid;
-      if(!rid) return;
-      DATA.sessions = (DATA.sessions || []).filter(s => s.id !== rid);
+      const ids = String(btn.dataset.ids || '').split(',').map(x => x).filter(Boolean);
+      if(!ids.length) return;
+      DATA.sessions = (DATA.sessions || []).filter(s => ids.indexOf(s.id) < 0);
       DATA.deletedIds = DATA.deletedIds || [];
-      if(rid != null && !DATA.deletedIds.includes(rid)) DATA.deletedIds.push(rid);  // 墓碑：防云同步把这条误记/记录拉回来
+      ids.forEach(id => { if(!DATA.deletedIds.includes(id)) DATA.deletedIds.push(id); });
       hubSave();
       renderMiniRecords();
     });

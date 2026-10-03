@@ -44,7 +44,7 @@
 <script defer src="js/data.js?v=20261003b"></script>
   <script defer src="js/common.js?v=20261003c"></script>
   <script defer src="js/feedback.js?v=20261002b"></script>
-  <script defer src="js/timer.js?v=20260918h"></script>
+  <script defer src="js/timer.js?v=20261003b"></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -124,6 +124,14 @@ input#goalMin:not([type=checkbox]):not([type=radio]):not([type=range])::placehol
 .tm-side .rec-mini{padding:18px 20px;margin-top:22px;border-radius:18px}
 .rec-mini-grid{display:flex;flex-direction:column;gap:8px;margin-bottom:6px}
 .rec-mini-item{border:1px solid var(--line);border-radius:12px;padding:10px 14px;background:var(--surface)}
+/* 10/3 同一项目连续计时合并成一条后，在项目名右侧标「N 段」——
+   她拍板「只标 N 段」（最简），不写「中断」这种负面词；原始每段放在 title 里悬停可查。 */
+.rec-mini-segs{
+  display:inline-flex;align-items:center;margin-left:7px;padding:1px 7px;
+  font-size:10.5px;font-weight:600;line-height:1.6;color:var(--primary-700);
+  background:var(--primary-50);border:1px solid var(--primary-200);border-radius:999px;
+  vertical-align:1px;
+}
 @media(max-width:920px){
   .timer-stage{padding:20px 16px 18px}
   .timer-btns .btn,.timer-btns .ui-dark-btn{min-width:0;flex:1;padding:0 16px}
