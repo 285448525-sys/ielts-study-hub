@@ -31,16 +31,39 @@ body{
 .brand .mark i svg{display:block;width:100%;height:100%}
 .brand .mark b{font-size:17px;color:var(--n-900);font-weight:600}
 .brand .mark span{font-size:12px;color:var(--n-500);margin-left:2px}
-.brand h1{font-size:38px;line-height:1.22;color:var(--n-900);margin:0 0 16px;font-weight:700;letter-spacing:-.5px}
-.brand h1 em{font-style:normal;color:var(--p-600)}
-.brand .sub{font-size:14.5px;line-height:1.8;color:var(--n-600);margin:0 0 26px;max-width:400px}
-.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.facts div{background:#f6f8f9;border-radius:12px;padding:14px 12px}
-.facts b{display:block;font-size:19px;color:var(--n-900);font-weight:700;margin-bottom:3px}
-.facts span{font-size:12px;color:var(--n-600)}
+/* 10/4 01:10 A 版：深色大字块 + 四条功能标注（替代原「把节奏交给可坚持的系统」+ .facts 功能罗列）
+   —— 她 00:55 拍板：「要么就设几个大字吧…这网站是一个正在备考雅思的人做的」
+   —— 她 00:34 发过火「谁家好人在登录页面提收费的事情」→ 这页零价格、零套餐 */
+.brand .big{
+  background:var(--n-900);border-radius:18px;padding:22px 20px;margin:0 0 20px;position:relative;overflow:hidden;
+}
+.brand .big::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(340px 160px at 88% -50px,rgba(122,220,210,.18),transparent 70%)}
+.brand .big .who{font-size:12.5px;font-weight:700;color:var(--p-200);letter-spacing:.04em;margin-bottom:9px}
+.brand .big .l1{font-size:30px;line-height:1.22;color:#fff;font-weight:800;letter-spacing:-.03em;margin-bottom:9px}
+.brand .big .l2{font-size:14px;line-height:1.75;color:rgba(255,255,255,.72)}
+.brand .feats{display:flex;flex-direction:column}
+.brand .feat{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--n-300)}
+.brand .feat:last-child{border-bottom:0}
+.brand .feat .ic{width:30px;height:30px;border-radius:9px;background:var(--p-50);color:var(--p-700);
+  display:grid;place-items:center;flex:none;margin-top:1px}
+.brand .feat .ic svg{width:16px;height:16px}
+.brand .feat .tx b{display:block;font-size:14px;color:var(--n-900);letter-spacing:-.01em;margin-bottom:1px}
+.brand .feat .tx span{display:block;font-size:12.5px;color:var(--n-600);line-height:1.55}
+.brand .bfact{margin:16px 0 0;padding-top:13px;border-top:1px solid var(--n-300);font-size:12px;color:var(--n-500);line-height:1.6}
+/* ≤560 单列时大字缩一档，别把双栏卡挤爆 */
+@media (max-width:560px){
+  .brand .big .l1{font-size:25px}
+}
 /* 右：表单 */
 .form h2{font-size:24px;color:var(--n-900);margin:0 0 8px;font-weight:700}
 .form .desc{font-size:13.5px;color:var(--n-600);margin:0 0 24px}
+/* 10/4 01:15：左栏加了大字块 + 四条功能后变高了，右侧表单卡跟着被撑高、下半截空一大块。
+   这里让表单内容垂直居中 + 底部补一条「为什么要登录」，把空白填掉（内容不虚、信息不冗余）。 */
+.form{display:flex;flex-direction:column;justify-content:center}
+.form .why-log{border-top:1px solid var(--line);margin-top:22px;padding-top:16px}
+.form .why-log b{display:block;font-size:12.5px;color:var(--n-700);font-weight:700;margin-bottom:6px}
+.form .why-log span{display:block;font-size:12.5px;color:var(--n-600);line-height:1.7}
 label{display:block;font-size:13px;color:var(--n-700);font-weight:500;margin:14px 0 6px}
 input{
   width:100%;height:46px;border:1.5px solid var(--line);border-radius:11px;padding:0 14px;
@@ -82,16 +105,47 @@ input::placeholder{color:var(--n-500)}
 
 <div class="stage">
   <div class="duo">
-    <!-- 左：品牌 -->
+    <!-- 左：品牌（10/4 01:10 A 版「我自己在备考」+ 四条真实功能）
+     —— 她 00:55 拍板：「要么就设几个大字吧…这网站是一个正在备考雅思的人做的」
+     —— 零价格（她 00:34 发过火：「谁家好人在登录页面提收费的事情」→ 价格只属落地页与会员页）
+     —— 四个功能点全部 grep 核实过站里真有其功能，非编造 -->
     <div class="card brand">
-      <div class="mark"><i aria-hidden="true"><svg viewBox="0 0 512 512" fill="none" aria-hidden="true"><g fill="#ffffff" stroke="#ffffff" stroke-width="38" stroke-linejoin="round" stroke-linecap="round"><path d="M256 136 L344 194 L256 252 L168 194 Z"/><path d="M160 304 L212 304 L256 362 L300 304 L352 304 L352 354 Q352 394 256 394 Q160 394 160 354 Z"/></g></svg></i><b>雅思备考站</b><span>间隔重复驱动的备考系统</span></div>
-      <h1>把备考节奏交给<br /><em>可坚持</em> 的系统</h1>
-      <p class="sub">背词、口语串题、写作、错题、模考记在同一份进度里：今天该复习什么、离目标还差多少，打开就知道。</p>
-      <div class="facts">
-        <div><b>100 题</b><span>本季口语题库</span></div>
-        <div><b>570 词</b><span>官方 AWL 词表</span></div>
-        <div><b>25–40 分</b><span>专注任务块节奏</span></div>
+      <div class="mark"><i aria-hidden="true"><svg viewBox="0 0 512 512" fill="none" aria-hidden="true"><g fill="#ffffff" stroke="#ffffff" stroke-width="38" stroke-linejoin="round" stroke-linecap="round"><path d="M256 136 L344 194 L256 252 L168 194 Z"/><path d="M160 304 L212 304 L256 362 L300 304 L352 304 L352 354 Q352 394 256 394 Q160 394 160 354 Z"/></g></svg></i><b>雅思备考站</b><span>机考备考系统</span></div>
+
+      <div class="big">
+        <div class="who">这个网站，是</div>
+        <div class="l1">一个正在备考雅思的人<br />给自己做的</div>
+        <div class="l2">我 10 月 9 号机考。这套系统是我自己每天在用的——不是我做完就放下的产品。</div>
       </div>
+
+      <div class="feats">
+        <div class="feat">
+          <span class="ic" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg>
+          </span>
+          <span class="tx"><b>AI 定制你的备考方案</b><span>先诊断你的水平，再按考期倒排每天学什么；时间不够会自动重排</span></span>
+        </div>
+        <div class="feat">
+          <span class="ic" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.5-.7L3 21l1.8-5.2A8.3 8.3 0 0 1 4 11.5 8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5Z"/><path d="M8.5 11h.01M12.5 11h.01M16.5 11h.01"/></svg>
+          </span>
+          <span class="tx"><b>口语串题：一个故事多道题</b><span>把你的经历写成素材，AI 算出它能套哪些当季 P2</span></span>
+        </div>
+        <div class="feat">
+          <span class="ic" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20h-20"/></svg>
+          </span>
+          <span class="tx"><b>题库分高低频</b><span>超高频优先背，低频先放着——不浪费时间在不重要的题上</span></span>
+        </div>
+        <div class="feat">
+          <span class="ic" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z"/><path d="M19 11a7 7 0 0 1-14 0"/><path d="M12 18v3"/></svg>
+          </span>
+          <span class="tx"><b>AI 陪练口语</b><span>它读完你讲的故事才追问，难度跟着你的水平变</span></span>
+        </div>
+      </div>
+
+      <p class="bfact">当季 88 个话题卡 · 223 个 P2 考点 · 题库已迭代 15 版</p>
     </div>
 
     <!-- 右：表单 -->
@@ -109,6 +163,11 @@ input::placeholder{color:var(--n-500)}
         <div class="links"><span class="dim">没有账号？</span><a id="toRegister">设置密码注册 · 1 分钟</a></div>
         <div class="links" style="margin-top:8px"><a id="forgotPass">忘记密码？</a></div>
         <p class="note" id="noteForgot" style="font-size:12.5px;margin-top:6px;color:#71767e"></p>
+        <!-- 10/4 01:15：左栏加内容后右边空一大块，底部补一条「为什么要登录」把空白填实 -->
+        <div class="why-log">
+          <b>为什么要登录</b>
+          <span>不登录也能用，但数据只存在这台设备的浏览器里——换设备、清缓存就没了。<br />登录后自动同步到云端，换手机换电脑都接着用。</span>
+        </div>
       </div>
 
       <!-- 注册模式 -->
