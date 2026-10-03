@@ -31,7 +31,7 @@
 })();
 </script>
 <title>口语 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261003d" />
+<link rel="stylesheet" href="css/common.css?v=20261003e" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -42,7 +42,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
   <script defer src="js/data.js?v=20261003a"></script>
-  <script defer src="js/common.js?v=20261003d"></script>
+  <script defer src="js/common.js?v=20261003e"></script>
   <script defer src="js/feedback.js?v=20261002b"></script>
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
@@ -948,17 +948,17 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
      暴露出来，tab 组用同一个变量居中 —— 两边永远同一宽度、同一中轴。
      折叠态右栏 40px、展开 250px，:has(.mini) 切换变量即可。 */
 @media (min-width:861px){
-  /* tab 组的居中基准 = 该 tab 态下「内容区的实际宽度」。
-     题库/素材态内容是 main.container 满列（1160）；陪练态是 1010（聊天760+右栏250），
-     折叠态 800（聊天760+竖条40）。两边共用同一变量 → 永不脱节。 */
-  main.container{--tab-align-w:1160px}
-  main.container:has(#coachView:not([hidden])){--tab-align-w:1010px}
-  main.container:has(#coachView:not([hidden]) .coach-ctx-mini){--tab-align-w:1060px}
-  main.container .sp-tabs{
-    max-width:var(--tab-align-w);
-    margin-left:auto;margin-right:auto;
-  }
-  #coachView #coachWrap{max-width:var(--tab-align-w)}
+  /* 10/3 教训（三次修错方向）：
+     她要的是「tab 组跟全站其他页面一样**靠左对齐内容左缘**」，跨 tab 态不许动。
+     我前两次错在把 tab 往中间推——
+       ① 只给陪练态加 justify-content:center → 三态跳动 422px
+       ② 给所有 tab 加 margin:auto 居中 → **全站 tab 都被推走，句子页/写作页全错**
+     ⇒ 正解：sp-tabs 一律不加任何 margin/max-width，删掉 :has() 特例，
+       让 .page-head-row 的默认 space-between 决定位置 —— 与 corpus/wrongbook/
+       review 等页完全一致，跨 tab 态零跳动。
+     这里只保留陪练内容区自身的宽度控制（与 tab 无关）。 */
+  #coachView #coachWrap{max-width:1010px}
+  #coachView #coachWrap:has(.coach-ctx-mini){max-width:1060px}
   /* 固定底栏原来 left/right 贴视口、760 内列相对整屏居中，桌面有 288 侧栏时偏左 128px，
      与 #coachWrap 错位。按 body 的侧栏内边距（288/32）定位底栏，侧栏收起时回 0。 */
   #coachBar{left:288px;right:32px}
