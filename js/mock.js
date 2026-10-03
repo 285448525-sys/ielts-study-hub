@@ -643,8 +643,27 @@
      一行一条，不要「也可以 / 更自然」缓冲语。 */
   async function scorePart(part, answers){
     // 开场问（opening）不参与评分：真题里那是 ID 确认热身，不计分
-    const block = answers.filter(a => a.part === part && !a.opening)
-      .map(a => 'Q: ' + a.q + '\nA: ' + (a.transcript || '(空)')).join('\n\n');
+    /* 10/4 00:40 P0 修（她 22:27 实测报「P1 全跳过却给 5.5」）：
+       🚨 旧 bug = `A: (空)` 拼出来的 block **非空**（还有 Q: 题面），
+          `if(!block.trim()) return null` 拦不住 → 照样送 AI → AI 面对一屏"(空)"
+          按默认中位给 5.5 → 总分 (5.5+P2+P3)/3 被拉平。
+       ✅ 修法（她 00:38 拍板）：
+          ① 先按【实际作答】筛出有效题（全空的那个 Part 判为「未作答」）
+          ② **整Part 全空 → FC 直接给 4（雅思有效最低档）+ 单列不参与平均**（她的选择）
+          ③ **部分未答 → 只把答了的题送 AI，再按作答比例下调 FC**（她的选择）
+          ④ prompt 明写「未作答的题不给它编错误」，杜绝 fixes 里出现编造的逐题点评 */
+    const allQ = answers.filter(a => a.part === part && !a.opening);
+    const answered = allQ.filter(a => (a.transcript || '').trim());
+    const skipped = allQ.length - answered.length;
+    if(!allQ.length) return null;                       // 该 Part 压根没题（异常数据）
+    // ② 整个 Part 一题没答：FC = 4（雅思有效最低档），LR/GRA 同样给 4，标 unanswered 单列
+    if(!answered.length){
+      return { fc: 4, lr: 4, gra: 4, fixes: [], unanswered: true,
+               answeredCount: 0, questionCount: allQ.length,
+               summary: 'Part ' + part + ' 全部 ' + allQ.length + ' 题未作答，按有效最低档计分' };
+    }
+    // ①③ 只把真作答的题送 AI（未答的不进 block）
+    const block = answered.map(a => 'Q: ' + a.q + '\nA: ' + a.transcript.trim()).join('\n\n');
     if(!block.trim()) return null;
     const sys = 'You are an IELTS speaking examiner. Below are the candidate\'s TYPED answers to IELTS Speaking ' + part + ' questions.\n'
       + 'Score this part ONLY on 3 of the official dimensions (pronunciation is handled separately by the user):\n'
@@ -660,6 +679,9 @@
       + 'CALIBRATION anchors: typed answers with clear meaning and a mix of simple/complex sentences but noticeable errors in complex structures → GRA 6; mostly simple sentences with frequent word-order/tense errors that never block understanding → GRA 5.5; varied structures with frequent error-free sentences but recurring tense slips → GRA 6.5.\n'
       + 'Then for EACH question, list the candidate\'s genuine grammar or vocabulary errors.\n'
       + 'RULES: this is speaking, not writing — punctuation and capitalization are always correct by default, NEVER mention them; only real errors, no "you could also say / more natural" filler; one error per entry, terse; if a question has no real error, "errors" must be an empty array. Include ALL questions in "fixes".\n'
+      /* 10/4 00:40（她 00:38 拍板）：未作答的题【不送进 block】了，这里再加一条双保险 ——
+         她截图里报告曾出现「About more than 10 years → More than 10 years」这种**根本没作答的题的编造点评**。 */
+      + 'CRITICAL: only the questions shown below were actually answered. The candidate SKIPPED the others entirely. NEVER invent feedback, corrections, praise, or imagined answers for any question that is not present in the input — if a question is not listed here, it was not answered and you must say nothing about it.\n'
       + 'Output ONLY JSON: {"fc":x,"lr":x,"gra":x,"summary":"一句话中文简评","fixes":[{"q":"question text","errors":[{"wrong":"...","correct":"...","note":"...short reason..."}]}]}. Do not output anything else.';
     const user = 'Part ' + part + ' (questions and the candidate\'s typed answers):\n\n' + block;
     const content = await callRelay('mock_score', [
@@ -672,6 +694,21 @@
     if([p.fc, p.lr, p.gra].some(v => v == null)) throw new Error('AI 评分返回格式异常（Part ' + part + '）');
     p.fixes = Array.isArray(j.fixes) ? j.fixes.filter(f => f && f.q) : [];
     p.summary = j.summary || '';
+    /* ③ 部分未答 → 按作答比例下调 FC（她 00:38 拍板「按比例扣 FC」）
+       真实考试里跳过题 = 没有展示流利度 = FC 要掉；不扣分等于白送。
+       只调 FC（LR/GRA 靠实际用出来的词句，答了的题不受影响）。 */
+    p.answeredCount = answered.length;
+    p.questionCount = allQ.length;
+    p.unanswered = false;
+    if(skipped > 0){
+      const ratio = answered.length / allQ.length;
+      const before = p.fc;
+      p.fc = Math.max(4, Math.round(before * ratio * 2) / 2);
+      p.fcPenalty = Math.round((before - p.fc) * 2) / 2;
+      p.summary = (p.summary ? p.summary + ' ' : '')
+        + '（' + allQ.length + ' 题里有 ' + skipped + ' 题未作答，流利度按作答比例 ' + Math.round(ratio * 100) + '% 下调 '
+        + before + ' → ' + p.fc + '）';
+    }
     return p;
   }
 
@@ -710,7 +747,6 @@
 
     if(report){
       // 各部分四维 overall = (FC + LR + GRA + 发音)/4；未填发音固定分则只均 FC/LR/GRA
-      const partOv = [];
       ['p1','p2','p3'].forEach(k => {
         const p = report.parts[k];
         if(!p) return;
@@ -720,9 +756,26 @@
         } else if(vals.length){
           p.overall = Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 2) / 2;
         }
-        if(p.overall != null) partOv.push(p.overall);
       });
-      report.overall = partOv.length ? Math.round((partOv.reduce((a, b) => a + b, 0) / partOv.length) * 2) / 2 : null;
+      /* 10/4 00:40（她 00:38 拍板「给最低分4 并单列」）：
+         整 Part 未作答的**不参与总分平均** —— 否则一个 4 分的 0 作答 part
+         会把总分硬拉低，而它本来就不该代表她的真实水平。
+         但要在报告里单列出来 + 明写作答率，让「5.5 分」这种数字不再骗人。 */
+      const allP = ['p1','p2','p3'].map(k => report.parts[k]).filter(Boolean);
+      const scored = allP.filter(p => !p.unanswered);
+      const notAnswered = allP.filter(p => p.unanswered);
+      const qTotal = allP.reduce((s, p) => s + (p.questionCount || 0), 0);
+      const qAnswered = allP.reduce((s, p) => s + (p.answeredCount || 0), 0);
+      report.answeredParts = scored.length;
+      report.unansweredParts = notAnswered.map(p => p.part || null);
+      report.questionCount = qTotal;
+      report.answeredCount = qAnswered;
+      report.answerRate = qTotal ? Math.round(qAnswered / qTotal * 100) : 0;
+      report.overall = scored.length
+        ? Math.round((scored.map(p => p.overall).reduce((a, b) => a + b, 0) / scored.length) * 2) / 2
+        : null;
+      // 作答率过低 → 报告可信度提示（她截图那种"P1全跳过还5.5"的观感就是缺这个）
+      report.lowConfidence = qTotal > 0 && qAnswered / qTotal < 0.6;
       report.pronMode = source;
       report.pronDetail = null;
       report.pronunciationScore = pronunciation; // 供报告渲染四维中的「发音」

@@ -39,10 +39,26 @@
       { label:'GRA 语法', val:p.gra },
     ];
     if(pron != null) dims.push({ label:'发音', val:pron, note:'你在设置里填的固定分' });
-    let html = '<div class="mock-part-card">';
+    let html = '<div class="mock-part-card' + (p.unanswered ? ' is-unanswered' : '') + '">';
     html += '<div class="mock-part-head"><span class="mock-part-name">' + label + '</span>'
-      + (p.overall != null ? '<span class="mock-part-band" style="color:' + bandColor(p.overall) + '">' + fmt(p.overall) + '</span>' : '')
+      + (p.unanswered
+          ? '<span class="mock-part-flag">未作答 · 不计入总分</span>'
+          : (p.overall != null ? '<span class="mock-part-band" style="color:' + bandColor(p.overall) + '">' + fmt(p.overall) + '</span>' : ''))
       + '</div>';
+    /* 10/4 00:40：作答情况 + FC 扣分来源必须写在报告里，
+       否则「4 分」看起来像她答得很差，实际是整 part 没答。 */
+    if(p.unanswered){
+      html += '<div class="mock-part-note">这一部分 ' + (p.questionCount || 0) + ' 题<b>全部未作答</b>，'
+        + '按雅思有效最低档 4 分记，仅供参考、<b>不参与总 Band 平均</b>。真实考试里跳过整部分会大幅影响总分。</div>';
+    }else if(p.questionCount != null){
+      const skip = p.questionCount - (p.answeredCount || 0);
+      html += '<div class="mock-part-note">作答 <b>' + p.answeredCount + '/' + p.questionCount + '</b> 题'
+        + (skip > 0
+            ? '，有 <b>' + skip + ' 题未作答</b>。流利度已按作答比例下调'
+              + (p.fcPenalty ? '（' + (p.fc + p.fcPenalty) + ' → <b>' + p.fc + '</b>）' : '') + '。'
+            : '，全部作答。')
+        + '</div>';
+    }
     html += '<div class="mock-dims">';
     dims.forEach(x => { html = dimBar(html, x); });
     html += '</div>';
@@ -69,10 +85,21 @@
     const parts = report.parts || {};
     const pron = (report.pronunciationScore != null) ? report.pronunciationScore : null;
     let html = '';
+    /* 10/4 00:40（她 00:38 拍板）：总分必须标清「基于答了哪些部分 / 作答率多少」。
+       她截图那次 P1 全跳过却显示 5.5，观感就是缺这一层交代。 */
+    const naParts = (report.unansweredParts || []).length;
+    const ovLabel = '总 Band（'
+      + (naParts ? '仅含已作答的 Part' : 'P1 / P2 / P3 平均')
+      + (report.answeredCount != null && report.questionCount ? ' · 作答 ' + report.answeredCount + '/' + report.questionCount + ' 题' : '')
+      + '）';
     // 总分
     html += '<div class="mock-overall">';
     html += '<div class="mock-overall-score" style="color:' + bandColor(report.overall) + '">' + fmt(report.overall) + '</div>';
-    html += '<div class="mock-overall-label">总 Band（P1 / P2 / P3 平均）</div>';
+    html += '<div class="mock-overall-label">' + escapeHtml(ovLabel) + '</div>';
+    if(report.lowConfidence){
+      html += '<div class="mock-ov-warn">这份报告的作答率偏低（' + (report.answerRate != null ? report.answerRate : '?') + '%），'
+        + '未作答的题在真实考试里会影响流利度分，<b>这个总 Band 只能代表你答过的那部分水平</b>。</div>';
+    }
     html += '</div>';
     // 分部分四维
     html += renderPart('p1', 'Part 1', parts.p1, pron);
