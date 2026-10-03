@@ -31,7 +31,7 @@
 })();
 </script>
 <title>单词 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261003f" />
+<link rel="stylesheet" href="css/common.css?v=20261003g" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -41,16 +41,121 @@
 
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
-  <script defer src="js/data.js?v=20261003a"></script>
-  <script defer src="js/common.js?v=20261003e"></script>
+  <script defer src="js/data.js?v=20261003b"></script>
+  <script defer src="js/common.js?v=20261003c"></script>
   <script defer src="js/feedback.js?v=20261002b"></script>
   <!-- design/78 双词库适配层：必须在 dhp_policy.js / practice.js / words.js 之前（defer 按文档序执行） -->
   <script defer src="js/wordbank.js?v=20261001a"></script>
   <!-- design/77 DHP+SSP-MMC 策略表：必须在 practice.js 之前（defer 按文档序执行，表未加载时 practice.js 有回退兜底） -->
   <script defer src="js/dhp_policy.js?v=20260921a"></script>
   <script src="js/practice.js?v=20260929b" defer></script>
-  <script src="js/words.js?v=20261001g" defer></script>
+  <script src="js/words.js?v=20261003a" defer></script>
 <style>
+/* ============================================================
+   10/3 A 版「今日复习卡 + 学习状态分组」（她选的 A 版）
+   参考：墨墨「当日记忆曲线，红色段=优先复习」·扇贝「每日任务量+复习比例」
+   —— 全部色值走站内 token，禁硬编码
+   —— 数据全部来自现有字段（wordIntervalDesc / errTotal / level / wbTodayWrongEns），零新增存储
+   ============================================================ */
+
+/* ---------- 今日复习卡 ---------- */
+.wb-today{background:linear-gradient(135deg,var(--primary-700),var(--primary-900));border-radius:var(--radius);
+  padding:15px 17px;margin:0 0 12px;box-shadow:0 4px 16px rgba(44,120,115,.26);color:#fff}
+.wb-today-top{display:flex;align-items:center;gap:11px;margin-bottom:12px}
+.wb-today-ic{width:38px;height:38px;border-radius:11px;background:rgba(255,255,255,.16);
+  display:flex;align-items:center;justify-content:center;flex:none}
+.wb-today-ic svg{width:20px;height:20px}
+.wb-today-tx{flex:1;min-width:0}
+.wb-today-tx b{display:block;font-size:15.5px;font-weight:700;line-height:1.3}
+.wb-today-tx span{display:block;font-size:11.5px;opacity:.78;margin-top:2px}
+.wb-today-go{flex:none;height:38px;padding:0 20px;border:none;border-radius:999px;background:#fff;
+  color:var(--primary-800);font-family:inherit;font-size:13.5px;font-weight:700;cursor:pointer;white-space:nowrap}
+.wb-today-go:hover{background:var(--primary-50)}
+.wb-today-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+.wb-tcell{background:rgba(255,255,255,.13);border-radius:10px;padding:9px 11px}
+.wb-tcell span{display:block;font-size:10.5px;opacity:.76;margin-bottom:1px}
+.wb-tcell b{font-size:19px;font-weight:800;letter-spacing:-.02em;line-height:1.2}
+.wb-tcell-warn{background:rgba(255,180,90,.22)}
+.wb-tcell-err{background:rgba(255,120,110,.24)}
+@media (max-width:560px){
+  .wb-today-grid{grid-template-columns:repeat(2,1fr)}
+  .wb-today-top{flex-wrap:wrap}
+  .wb-today-go{width:100%;height:44px}
+}
+
+/* ---------- 掌握进度（放大版：从5px 条 + 12px 小字 → 11px 条 + 图例 + 百分比） ---------- */
+.wl-stats.amp{display:block}
+.wl-stats.amp .wl-stats-bar{height:11px;border-radius:6px;display:flex}
+.wl-stats.amp .wl-stats-seg{height:100%}
+.wl-stats.amp .wl-stats-seg.s-ok{background:linear-gradient(90deg,#34c759,#1a7f45)}
+.wl-stats.amp .wl-stats-seg.s-mid{background:linear-gradient(90deg,var(--primary-300),var(--primary-500))}
+.wl-stats.amp .wl-stats-seg.s-new{background:var(--line)}
+.wb-mastery{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:14px 17px;margin:0 0 12px;box-shadow:var(--shadow)}
+.wb-mlegend{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.wb-ml{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.wb-ml i{width:9px;height:9px;border-radius:3px;flex:none}
+.wb-ml b{color:var(--ink);font-weight:700}
+.wb-ml .pct{color:var(--muted);font-size:11.5px}
+
+/* ---------- AI 导入折叠条（从常驻 132px 卡 → 44px 条） ---------- */
+.wl-imp-card{padding:0;overflow:hidden}
+.wl-imp-bar{display:flex;align-items:center;gap:9px;width:100%;padding:10px 14px;
+  background:transparent;border:0;cursor:pointer;font-family:inherit;text-align:left}
+.wl-imp-bar:hover{background:var(--n-50)}
+.wl-imp-ic{width:24px;height:24px;border-radius:7px;background:var(--primary-50);color:var(--primary-700);
+  display:flex;align-items:center;justify-content:center;flex:none}
+.wl-imp-ic svg{width:14px;height:14px}
+.wl-imp-tx{flex:1;min-width:0;font-size:12.5px;color:var(--ink-2)}
+.wl-imp-tx b{color:var(--ink)}
+.wl-imp-caret{color:var(--muted);font-size:10px;transition:transform .15s;flex:none}
+.wl-imp-card.open .wl-imp-caret{transform:rotate(90deg)}
+.wl-imp-body{padding:0 14px 12px}
+
+/* ---------- 学习状态分组（今日要复习 / 答错过 / 学习中 / 已掌握 / 词组） ---------- */
+.wb-groups{margin:0 0 8px}
+.wb-grp{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);margin:0 0 10px;overflow:hidden}
+.wb-grp-head{display:flex;align-items:center;gap:8px;padding:11px 15px;background:var(--n-50);
+  border-bottom:1px solid var(--line);cursor:pointer;user-select:none;list-style:none;transition:background .15s}
+.wb-grp-head::-webkit-details-marker{display:none}
+.wb-grp-head:hover{background:var(--n-100)}
+.wb-grp-caret{color:var(--muted);font-size:9px;transition:transform .15s;flex:none}
+.wb-grp[open] > .wb-grp-head .wb-grp-caret{transform:rotate(90deg)}
+.wb-grp-ic{width:15px;height:15px;flex:none;color:var(--primary-500)}
+.wb-grp-head b{font-size:13px;font-weight:700;color:var(--ink)}
+.wb-grp-n{font-size:11.5px;color:var(--muted);font-weight:600}
+.wb-grp-desc{font-size:11.5px;color:var(--muted);margin-left:auto;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.wb-grp-body{padding:0}
+.wb-grp-empty{padding:12px 15px;font-size:12.5px;color:var(--muted)}
+
+/* 词条横向布局：勾选 + 单词（定宽）+ 释义（占满）+ 标签组 + 删除 */
+.wl-list{list-style:none;margin:0;padding:0}
+.wl-item.row{display:flex;align-items:center;gap:11px;padding:9px 15px;border-bottom:1px solid var(--n-50);
+  transition:background .15s}
+.wl-item.row:last-child{border-bottom:0}
+.wl-item.row:hover{background:var(--primary-50)}
+.wl-item.row .wl-check{flex:none}
+.wl-item.row .wl-word{flex:none;min-width:132px;font-size:15px;font-weight:600}
+.wl-item.row .wl-senses{flex:1;min-width:0;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wl-item.row .wl-sense-pos{color:var(--vocab,#5b6bbf);font-weight:600;margin-right:5px}
+.wl-item.row .wl-tags{flex:none;display:flex;align-items:center;gap:6px}
+.wl-item.row .wl-del{flex:none}
+.wl-tg{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:6px;background:var(--n-100);color:var(--ink-2)}
+.wl-tg.done{background:var(--ok-soft,rgba(52,199,89,.12));color:var(--ok-text,#1a7f45)}
+.wl-tg.err{background:var(--err-bg);color:var(--danger-text)}
+.wl-tg.lv{background:var(--vocab-bg,rgba(91,107,191,.10));color:#3f4d9e}
+.wl-tg.due{background:var(--warn-soft);color:var(--warn-ink)}
+.wl-tg.over{background:var(--err-bg);color:var(--danger-text)}
+.wb-grp-toggle-all{background:none;border:0;color:var(--primary-700);font-family:inherit;font-size:11.5px;
+  font-weight:600;cursor:pointer;padding:0 0 0 8px;white-space:nowrap}
+.wb-grp-toggle-all:hover{color:var(--primary-900);text-decoration:underline}
+@media (max-width:560px){
+  .wb-grp-desc{display:none}
+  .wl-item.row .wl-word{min-width:96px;font-size:14px}
+  .wl-item.row .wl-senses{font-size:12.5px}
+}
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -106,12 +211,41 @@
   <div id="bankView" hidden>
     <!-- design/78：词库切换分段条（我的词库 / 学术阅读 AWL），wbRenderSwitchers 渲染 -->
     <div id="wbSwitcher"></div>
-    <section class="card" id="bankImportCard">
-      <div id="dropZone" class="wl-import">
-        <textarea id="smartInput" class="wl-import-hint" placeholder="粘贴内容或拖入文件… 支持单词/列表/整段英文/.txt .md .csv .xlsx"></textarea>
-        <button class="btn btn-primary" id="smartImport">AI 导入</button>
+    <!-- 10/3 A 版「今日复习卡」：借鉴墨墨「当日记忆曲线，优先复习哪一段」+ 扇贝「每日任务量」。
+         **数据全部来自现有字段**（wordIntervalDesc 的 next/overdue + errTotal + level + wbTodayWrongEns），
+         **零新增存储**。官方词包（只读、无学习进度）不渲染这张卡。 -->
+    <section class="wb-today" id="wbTodayCard" hidden>
+      <div class="wb-today-top">
+        <span class="wb-today-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 2.8v3.4M16 2.8v3.4"/></svg></span>
+        <span class="wb-today-tx">
+          <b id="wbTodayTitle">今天要复习 0 个词</b>
+          <span id="wbTodaySub">正在算…</span>
+        </span>
+        <button class="wb-today-go" id="wbTodayGo" type="button">开始复习</button>
       </div>
-      <p class="muted" id="importHint" style="margin:8px 0 0"></p>
+      <div class="wb-today-grid">
+        <div class="wb-tcell wb-tcell-err"><span>已过期</span><b id="wbNOverdue">0</b></div>
+        <div class="wb-tcell"><span>新高频</span><b id="wbNNew">0</b></div>
+        <div class="wb-tcell wb-tcell-warn"><span>答错待巩固</span><b id="wbNWrong">0</b></div>
+        <div class="wb-tcell"><span>今日已学</span><b id="wbNLearned">0</b></div>
+      </div>
+    </section>
+
+    <!-- 10/3 A 版：AI 导入从常驻 132px 卡收成 44px 折叠条（偶尔用的功能不该占首屏 C 位）。
+         **所有 id 一律保留**（dropZone/smartInput/smartImport/importHint），导入逻辑零改动。 -->
+    <section class="card wl-imp-card" id="bankImportCard">
+      <button type="button" class="wl-imp-bar" id="wlImpBar" aria-expanded="false" aria-controls="wlImpBody">
+        <span class="wl-imp-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span>
+        <span class="wl-imp-tx"><b>批量导入单词</b> · 粘贴文本或拖入文件（.txt .md .csv .xlsx）</span>
+        <span class="wl-imp-caret" aria-hidden="true">▶</span>
+      </button>
+      <div class="wl-imp-body" id="wlImpBody" hidden>
+        <div id="dropZone" class="wl-import">
+          <textarea id="smartInput" class="wl-import-hint" placeholder="粘贴内容或拖入文件… 支持单词/列表/整段英文/.txt .md .csv .xlsx"></textarea>
+          <button class="btn btn-primary" id="smartImport">AI 导入</button>
+        </div>
+        <p class="muted" id="importHint" style="margin:8px 0 0"></p>
+      </div>
     </section>
 
     <section class="card">

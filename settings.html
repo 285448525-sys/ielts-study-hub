@@ -9,7 +9,7 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>设置 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261003f" />
+<link rel="stylesheet" href="css/common.css?v=20261003g" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -27,6 +27,29 @@
 .acct-row{display:flex;align-items:center;gap:16px;position:relative}
 .acct-avatar{flex:none;width:52px;height:52px;border-radius:16px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);display:grid;place-items:center;color:rgba(255,255,255,.92)}
 .acct-avatar svg{width:26px;height:26px}
+/* 10/3 头像选择器（设置页）：DiceBear CC0 素材，网格 + 选中环 */
+.av-sec{margin:0 0 14px}
+.av-sec:last-child{margin-bottom:0}
+.av-sec-t{font-size:12.5px;font-weight:700;color:var(--ink-2);margin-bottom:9px;display:flex;align-items:center;gap:8px}
+.av-sec-hint{font-size:11px;font-weight:500;color:var(--muted);background:var(--n-100);border-radius:999px;padding:2px 9px}
+.av-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:9px}
+.av-grid-exam{grid-template-columns:repeat(8,1fr)}
+@media(max-width:640px){
+  .av-grid,.av-grid-exam{grid-template-columns:repeat(4,1fr)}
+}
+.av-opt{border:0;background:transparent;padding:0;cursor:pointer;display:flex;flex-direction:column;
+  align-items:center;gap:5px;font-family:inherit;min-height:44px}
+.av-box{width:100%;aspect-ratio:1;border-radius:14px;border:1.5px solid var(--line);
+  background:var(--n-50);overflow:hidden;transition:border-color .15s,box-shadow .15s,transform .12s;position:relative}
+.av-box img{width:100%;height:100%;object-fit:cover;display:block}
+.av-opt:hover .av-box{border-color:var(--primary-400);transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.av-opt.on .av-box{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+.av-opt.on .av-box::after{content:'';position:absolute;right:4px;top:4px;width:14px;height:14px;border-radius:50%;
+  background:var(--primary) no-repeat center/9px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 12.5 9.5 18 20 6'/%3E%3C/svg%3E")}
+.av-lb{font-size:10.5px;color:var(--muted);line-height:1.2;text-align:center}
+/* 陪练气泡里的用户头像（coach.js 用） */
+.coach-av-user{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit}
+
 .acct-main{display:flex;flex-direction:column;gap:2px;min-width:0}
 .acct-main>b{font-size:19px;font-weight:800;color:#fff;letter-spacing:.01em}
 .acct-sub{font-size:12.5px;color:rgba(255,255,255,.66)}
@@ -44,9 +67,11 @@
 .acct-input::placeholder{color:rgba(255,255,255,.42)}
 #syncUserBox,#syncLoginForm{position:relative;margin-top:16px}
 </style>
-<script defer src="js/data.js?v=20261003a"></script>
-  <script defer src="js/common.js?v=20261003e"></script>
+<script defer src="js/data.js?v=20261003b"></script>
+  <script defer src="js/common.js?v=20261003c"></script>
   <script defer src="js/feedback.js?v=20261002b"></script>
+  <!-- 10/3 头像选择（DiceBear CC0 素材；必须在 data.js/common.js 之后 —— 它读 DATA.settings.avatar） -->
+  <script defer src="js/av-picker.js?v=20261003a"></script>
   <script src="js/settings.js?v=20261001j" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -73,7 +98,9 @@
        lastSyncTs/syncStatus/syncUserBox/syncLoginForm 及内部按钮 id）原样保留。 -->
   <section class="card acct-card">
     <div class="acct-row">
-      <div class="acct-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg></div>
+      <!-- 10/3：头像改为 <img>（原静态人像 icon），src 由 av-picker.js 按 DATA.settings.avatar 写。
+           默认仍是同款人像（img 加载失败时的 onerror 兜底），未选头像也不破图。 -->
+      <div class="acct-avatar"><img id="acctAvatarImg" src="img/avatars/user-f1.svg" alt="" width="52" height="52" style="width:100%;height:100%;border-radius:inherit;object-fit:cover;display:block" /></div>
       <div class="acct-main">
         <b id="syncUserAcct">未登录</b>
         <span id="syncState" class="acct-sub"></span>
@@ -149,6 +176,22 @@
         <input type="checkbox" id="sAdhd" />
         <span>启用「服药」模块（记录用药后的药效窗口）</span>
       </label>
+    </div>
+  </section>
+
+  <!-- ②-5 头像选择（10/3 新增）：用户 8 个（open-peeps）+ 考官 2 个（avataaars）
+       —— DiceBear CC0 1.0 免署名可商用，已剥掉 metadata。
+       —— 选中的只存文件名到 DATA.settings.avatar / examAvatar（字段级云同步）。 -->
+  <section class="card" id="avatarCard">
+    <h2>头像</h2>
+    <p class="muted" style="font-size:12.5px;margin:0 0 12px">选一个你喜欢的形象，会用在陪练聊天的头像、这里等地方，换设备自动同步。</p>
+    <div class="av-sec">
+      <div class="av-sec-t">我的头像</div>
+      <div class="av-grid" id="avUserGrid" role="radiogroup" aria-label="我的头像"></div>
+    </div>
+    <div class="av-sec">
+      <div class="av-sec-t">考官的样子<span class="av-sec-hint">口语模考时随机出现</span></div>
+      <div class="av-grid av-grid-exam" id="avExamGrid" role="radiogroup" aria-label="考官头像"></div>
     </div>
   </section>
 

@@ -59,6 +59,66 @@ function groupByType(list){
   if(phrase.length) groups.push({ key:'t-phrase', name:'词组', items:phrase });
   return groups;
 }
+/* ============================================================
+   10/3 A 版「按学习状态分组」—— 借鉴竞品的「优先复习」思路
+   五组：今天要复习 / 答错过的词 / 学习中 / 已掌握 / 词组·短语
+   **数据全部来自现有字段**（wordIntervalDesc / errTotal / level / cleared / en 含空格），
+   与筛选/搜索正交：只在「custom 视图 + 无搜索词 + 无筛选」时启用，其余走原分组。
+   ============================================================ */
+var WB_STATUS_ICONS = {
+  due:   '<path d="M12 3 2 8l10 5 10-5-10-5Z"/>',
+  wrong: '<path d="M4 20V10M10 20V4M16 20v-7M22 20h-20"/>',
+  learn: '<path d="M12 7v5l3 2"/><circle cx="12" cy="12" r="9"/>',
+  done:  '<path d="M5 12l5 5 9-9"/>',
+  phrase:'<path d="M4 6h16M4 12h16M4 18h10"/>',
+};
+function wbWordDue(w){
+  if(typeof wordIntervalDesc !== 'function') return null;
+  try{ return wordIntervalDesc(w); }catch(e){ return null; }
+}
+function groupByStatus(list){
+  const due = [], wrong = [], learning = [], mastered = [], phrase = [];
+  list.forEach(w => {
+    if(!w) return;
+    const en = String(w.en || '');
+    if(/\s/.test(en)){ phrase.push(w); return; }   // 词组独立成组，不进学习状态
+    const lv = Number(w.level) || 0;
+    const errN = Number(w.errTotal != null ? w.errTotal : (w.mcLapses || 0)) || 0;
+    const info = wbWordDue(w);
+    if(errN > 0) wrong.push(w);
+    /* 「今天要复习」= 已到期/过期 且尚未掌握（cleared=true 的已进「已掌握」，不重复计入）。
+       词可以同时出现在「答错过」和「今天要复习」里—— 两个视角不是互斥的，符合她「先刷错词」的习惯。 */
+    if(w.cleared !== true && info && (info.overdue || info.next)) due.push(w);
+    if(w.cleared === true){ (lv >= 5) ? mastered.push(w) : learning.push(w); }
+    else learning.push(w);
+  });
+  /* 组内排序：今天要复习按到期紧急度（过期优先）→ 答错次数多在前 */
+  const urg = w => { const i = wbWordDue(w); return (i && i.overdue) ? 0 : 1; };
+  due.sort((a,b) => urg(a) - urg(b) || ((Number(b.errTotal)||0) - (Number(a.errTotal)||0)));
+  wrong.sort((a,b) => (Number(b.errTotal)||0) - (Number(a.errTotal)||0));
+  const groups = [];
+  if(due.length)      groups.push({ key:'s-due',   name:'今天要复习', icon:'due',   desc:'已到期，优先刷',        items:due });
+  if(wrong.length)    groups.push({ key:'s-wrong', name:'答错过的词', icon:'wrong', desc:'错得多，重点巩固',      items:wrong });
+  if(learning.length) groups.push({ key:'s-learn', name:'学习中',     icon:'learn', desc:'还没到Lv 5',items:learning });
+  if(mastered.length) groups.push({ key:'s-done',  name:'已掌握',     icon:'done',  desc:'Lv ≥ 5，可忽略',        items:mastered });
+  if(phrase.length)   groups.push({ key:'s-phrase',name:'词组 / 短语', icon:'phrase',desc:'短语与固定搭配',items:phrase });
+  return groups;
+}
+function statusGroupHeadHtml(g){
+  const open = !!_bankExpanded[g.key];
+  const ic = WB_STATUS_ICONS[g.icon] || WB_STATUS_ICONS.learn;
+  return `
+  <details class="wb-grp" data-group="${g.key}"${open ? ' open' : ''}>
+    <summary class="wb-grp-head">
+      <span class="wb-grp-caret" aria-hidden="true">▶</span>
+      <svg class="wb-grp-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ic}</svg>
+      <b>${escapeHtml(g.name)}</b>
+      <span class="wb-grp-n">${g.items.length} 个</span>
+      <span class="wb-grp-desc">${escapeHtml(g.desc || '')}</span>
+    </summary>
+    <div class="wb-grp-body" data-body="${g.key}"><ul class="wl-group-list" data-list="${g.key}"></ul></div>
+  </details>`;
+}
 function groupByErr(list){
   const buckets = { '5p':[], '4':[], '3':[], '2':[], '1':[] };
   list.forEach(w => { const t = bankErrTier(w); if(t && buckets[t]) buckets[t].push(w); });
@@ -93,14 +153,20 @@ function bankItemHtml(w){
     ? `<span class="wl-sense"><span class="wl-sense-pos">phrase.</span><span class="wl-sense-cn">${escapeHtml(w.cn || '')}</span></span>`
     : formatMean(w.pos, w.cn);
   const errN = Number((w.errTotal != null) ? w.errTotal : (w.mcLapses || 0)) || 0;
-  const errHtml = errN > 0 ? `<span class="wl-err" title="累计答错 ${errN} 次">错 ${errN}</span>` : '';
+  /* 10/3 A 版：词条改横向行布局（.row）—— 勾选 + 单词（定宽 132px）+ 释义（占满）+ 标签组 + 删除。
+     标签从原来孤零零一个「Lv N」扩到最多 3 个（到期/过期 · 错 N · Lv N），三个维度一眼可辨。
+     官方词包仍走 obBankItemHtml（只读行，无 checkbox/删除），那边不受影响。 */
+  const tg = [];
+  if(dueCls === ' overdue') tg.push('<span class="wl-tg over">已过期</span>');
+  else if(dueText) tg.push('<span class="wl-tg due">' + escapeHtml(dueText) + '</span>');
+  if(errN > 0) tg.push('<span class="wl-tg err">错 ' + errN + '</span>');
+  tg.push('<span class="wl-tg lv">Lv ' + lv + '</span>');
   return `
-    <li class="wl-item" data-en="${escapeHtml(w.en)}">
+    <li class="wl-item row" data-en="${escapeHtml(w.en)}">
       <input type="checkbox" class="wl-check" data-check="${w.id}" aria-label="选中 ${escapeHtml(w.en)}" />
       <span class="wl-word">${escapeHtml(w.en)}</span>
       <div class="wl-senses">${meanHtml}</div>
-      ${errHtml}
-      <span class="wl-lv">Lv ${lv}${dueText ? '<span class="wl-due' + dueCls + '">· ' + dueText + '</span>' : ''}</span>
+      <span class="wl-tags">${tg.join('')}</span>
       <button class="wl-del" data-del="${w.id}" title="删除" aria-label="删除">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
       </button>
@@ -230,6 +296,17 @@ function toggleCatPanel(cat){
 
 ready(() => {
   $('#smartImport').addEventListener('click', importSmart);
+  /* 10/3 A 版：今日复习卡「开始复习」+ AI 导入折叠条展开/收起（两个纯 UI 状态，无数据改动） */
+  const wbGo = $('#wbTodayGo'); if(wbGo) wbGo.addEventListener('click', todayCardGo);
+  const impBar = $('#wlImpBar'), impBody = $('#wlImpBody'), impCard = $('#bankImportCard');
+  if(impBar && impBody && impCard){
+    impBar.addEventListener('click', () => {
+      const open = impBody.hidden;
+      impBody.hidden = !open;
+      impCard.classList.toggle('open', open);
+      impBar.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  }
   $('#searchWord').addEventListener('input', renderWords);
   $('#backfillBtn').addEventListener('click', backfillCn);
   document.querySelectorAll('#filterType .chip').forEach(btn => {
@@ -822,25 +899,110 @@ function renderBankStats(){
   // 今日错词入口（9/21）：与学习页空态同口径；design/78 起按词库路由（wbTodayWrongEns），N=0 不渲染按钮
   let wrongEns = [];
   try{ wrongEns = wbTodayWrongEns() || []; }catch(e){ wrongEns = []; }
+  const pc = n => pct(n).toFixed(1) + '%';
+  /* 10/3 A 版：进度条放大（原 5px → 11px）+ 图例带百分比。
+     原来那行「已掌握 1275 · 学习中 273 · 未掌握 236」是 12px 小字，扫一眼看不到。 */
+  box.classList.add('amp');
   box.innerHTML = '<span class="wl-stats-bar">' +
-      '<i class="wl-stats-seg s-ok" style="width:' + pct(mastered).toFixed(1) + '%"></i>' +
-      '<i class="wl-stats-seg s-mid" style="width:' + pct(learning).toFixed(1) + '%"></i>' +
-      '<i class="wl-stats-seg s-new" style="width:' + pct(fresh).toFixed(1) + '%"></i>' +
+      '<i class="wl-stats-seg s-ok" style="width:' + pc(mastered) + '"></i>' +
+      '<i class="wl-stats-seg s-mid" style="width:' + pc(learning) + '"></i>' +
+      '<i class="wl-stats-seg s-new" style="width:' + pc(fresh) + '"></i>' +
     '</span>' +
-    '<span class="wl-stats-txt">已掌握 ' + mastered + ' · 学习中 ' + learning + ' · 未掌握 ' + fresh + '</span>' +
-    (wrongEns.length ? '<button class="btn btn-sm" id="dailyWrongBankBtn" style="margin-left:10px;flex:none" title="重练今天答错/不认识的词">今日错词（' + wrongEns.length + '）</button>' : '');
+    '<span class="wb-mlegend">' +
+      '<span class="wb-ml"><i style="background:#1a7f45"></i>已掌握 <b>' + mastered + '</b> <span class="pct">' + pc(mastered) + '</span></span>' +
+      '<span class="wb-ml"><i style="background:var(--primary-500)"></i>学习中 <b>' + learning + '</b> <span class="pct">' + pc(learning) + '</span></span>' +
+      '<span class="wb-ml"><i style="background:var(--line)"></i>未掌握 <b>' + fresh + '</b> <span class="pct">' + pc(fresh) + '</span></span>' +
+      (wrongEns.length ? '<button class="btn btn-sm" id="dailyWrongBankBtn" style="margin-left:auto;flex:none" title="重练今天答错/不认识的词">今日错词（' + wrongEns.length + '）</button>' : '') +
+    '</span>';
   // 点击按 en 取活词对象（已不在词库的自动过滤）走通用重练通道；重练不修改/不清空 dailyWrong。
   // 词库 tab 发起：先建 pq（题渲染在学习视图）再切回学习 tab（pq.queue 非空，switchWordTab 不会重开出题）
   const dwb = document.getElementById('dailyWrongBankBtn');
   if(dwb && typeof startWrongReview === 'function'){
     dwb.addEventListener('click', () => {
       const words = wrongEns.map(en => (typeof findWordByEn === 'function') ? findWordByEn(en) : null).filter(Boolean);
-      if(words.length){
+      if(words){
         startWrongReview(words);
         if(typeof switchWordTab === 'function') switchWordTab('study');
       }
     });
   }
+  renderTodayCard();   // 10/3 A 版：今日复习卡（与统计条同源数据）
+}
+
+/* ============================================================
+   10/3 A 版「今日复习卡」—— 借鉴墨墨「当日记忆曲线，红色段=优先复习」
+   **数据全部来自现有字段，零新增存储**：
+     overdue/fresh ← wordIntervalDesc(w).next / .overdue（practice.js，同页全局可用）
+     wrong       ← wbTodayWrongEns()（今日错词，与 renderBankStats 同口径）
+     learnedToday← w.cleared===true 且有当天时间戳（clearedAt/clearedDate 兜底）
+   官方词包（只读、无个人进度）不渲染这张卡。
+   ============================================================ */
+function renderTodayCard(){
+  const card = document.getElementById('wbTodayCard');
+  if(!card) return;
+  // 官方词包视图：renderBankHead 会把 bankOfficialBtns 显出来 → 据此判断
+  const offBtn = document.getElementById('bankOfficialBtns');
+  const official = !!(offBtn && !offBtn.hidden);
+  const ws = wbWords() || [];
+  if(official || !ws.length){ card.hidden = true; return; }
+
+  let overdue = 0, fresh = 0, learnedToday = 0;
+  const hasInfo = (typeof wordIntervalDesc === 'function');
+  ws.forEach(w => {
+    if(!w) return;
+    if(w.cleared === true){
+      const ts = Number(w.clearedAt || w.clearedDate || 0);
+      if(ts){
+        const d = new Date(ts);
+        const t0 = new Date(); t0.setHours(0,0,0,0);
+        if(d >= t0) learnedToday++;
+      }
+    }
+    if(!hasInfo) return;
+    let info = null;
+    try{ info = wordIntervalDesc(w); }catch(e){ info = null; }
+    if(!info) return;
+    const lv = Number(w.level) || 0;
+    if(info.overdue) overdue++;
+    else if(info.next && lv < 5) fresh++;   // 「新高频」= 已到期但掌握度还低
+  });
+  let wrong = 0;
+  try{ wrong = (wbTodayWrongEns() || []).length; }catch(e){ wrong = 0; }
+
+  const set = (id, n) => { const el = document.getElementById(id); if(el) el.textContent = String(n); };
+  set('wbNOverdue', overdue); set('wbNNew', fresh);
+  set('wbNWrong', wrong);   set('wbNLearned', learnedToday);
+
+  const total = overdue + fresh;
+  const title = document.getElementById('wbTodayTitle');
+  const sub = document.getElementById('wbTodaySub');
+  const go = document.getElementById('wbTodayGo');
+  if(!total){
+    if(title) title.textContent = wrong ? ('今天没有到期词，有 ' + wrong + ' 个答错待巩固') : '今天没有到期的词';
+    if(sub) sub.textContent = wrong ? '点下面按钮重练错词' : '可以学新词，或去口语 / 写作练';
+    if(go) go.textContent = wrong ? '重练错词' : '去学新词';
+    card.hidden = false;
+    return;
+  }
+  if(title) title.textContent = '今天要复习 ' + total + ' 个词';
+  if(sub) sub.textContent = (overdue ? (overdue + ' 个已过期 · ') : '') + fresh + ' 个新高频' + (wrong ? (' · ' + wrong + ' 个答错待巩固') : '');
+  if(go) go.textContent = '开始复习';
+  card.hidden = false;
+}
+
+/* 「开始复习」：有错词先重练错词，否则进学习页（新词/到期词由学习页既有逻辑排） */
+function todayCardGo(){
+  let wrongEns = [];
+  try{ wrongEns = wbTodayWrongEns() || []; }catch(e){ wrongEns = []; }
+  if(wrongEns.length && typeof startWrongReview === 'function'){
+    const words = wrongEns.map(en => (typeof findWordByEn === 'function') ? findWordByEn(en) : null).filter(Boolean);
+    if(words.length){
+      startWrongReview(words);
+      if(typeof switchWordTab === 'function') switchWordTab('study');
+      return;
+    }
+  }
+  if(typeof switchWordTab === 'function') switchWordTab('study');
 }
 
 function renderWords(){
@@ -895,17 +1057,46 @@ function renderWords(){
     box.innerHTML = '<div class="wl-group open" data-group="flat"><div class="wl-group-body" data-body="flat"><ul class="wl-group-list"></ul></div></div>';
     renderGroupSlice('flat', list, box.querySelector('.wl-group-body'));
   } else {
-    // 错误筛选激活 → 按错误次数分组（错得多的在前）；官方 → 按 sl 子列表分组；custom → 单词/词组分组，默认全折叠
-    const groups = (err !== 'all') ? groupByErr(list) : (official ? groupBySl(list) : groupByType(list));
-    _bankGroups = {};
-    groups.forEach(g => { _bankGroups[g.key] = g.items; });
-    box.innerHTML = groups.map(g => groupHeadHtml(g)).join('');
-    groups.forEach(g => {   // 恢复此前展开的组（只渲染首屏）
-      if(_bankExpanded[g.key]){
-        const body = box.querySelector(`[data-body="${g.key}"]`);
-        if(body){ body.dataset.init = '1'; renderGroupSlice(g.key, g.items, body); }
-      }
-    });
+    /* 10/3 A 版：custom 视图 + 三个筛选都在「全部」时，按**学习状态**分五组
+       （今天要复习 / 答错过 / 学习中 / 已掌握 / 词组），默认展开前两组。
+       ⚠️ 任何筛选或搜索激活时一律走原分组（类型/错误/sl）—— 不改既有筛选行为。 */
+    const useStatus = !official && err === 'all' && (!WORD_FILTERS || WORD_FILTERS.type === 'all');
+    if(useStatus){
+      const groups = groupByStatus(list);
+      _bankGroups = {};
+      groups.forEach(g => { _bankGroups[g.key] = g.items; });
+      /* 默认展开「今天要复习」和「答错过的词」；其余组若用户显式收起过（===false）则保持收起，
+         否则（undefined，从未点过）默认收起 —— 五组全展开 1784 条太长，默认只看重点两组。
+         ⚠️ 用 ===false 判定而非 !xxx，这样「从未点过」与「手动收起」能区分开。 */
+      if(groups[0] && groups[0].key === 's-due' && _bankExpanded['s-due'] !== false) _bankExpanded['s-due'] = true;
+      if(groups[1] && groups[1].key === 's-wrong' && _bankExpanded['s-wrong'] !== false) _bankExpanded['s-wrong'] = true;
+      box.innerHTML = '<div class="wb-groups">' + groups.map(g => statusGroupHeadHtml(g)).join('') + '</div>';
+      groups.forEach(g => {
+        if(_bankExpanded[g.key]){
+          const body = box.querySelector(`[data-body="${g.key}"]`);
+          if(body){ body.dataset.init = '1'; renderGroupSlice(g.key, g.items, body); }
+        }
+      });
+    } else {
+      // 错误筛选激活 → 按错误次数分组（错得多的在前）；官方 → 按 sl 子列表分组；custom → 单词/词组分组，默认全折叠
+      const groups = (err !== 'all') ? groupByErr(list) : (official ? groupBySl(list) : groupByType(list));
+      _bankGroups = {};
+      groups.forEach(g => { _bankGroups[g.key] = g.items; });
+      /* 10/3 A 版接入后修的坑：筛选激活时若该组从未展开过（_bankExpanded 为空），
+         组壳会渲染出来但组体是空的 → 「筛了却看不到词」。
+         修法：没手动折叠过的组（undefined）默认展开；只有显式 false（用户点过收起）才保持收起。 */
+      groups.forEach(g => {
+        if(_bankExpanded[g.key] === false){ /* 用户显式收起过 → 尊重 */ }
+        else _bankExpanded[g.key] = true;
+      });
+      box.innerHTML = groups.map(g => groupHeadHtml(g)).join('');
+      groups.forEach(g => {   // 恢复此前展开的组（只渲染首屏）
+        if(_bankExpanded[g.key]){
+          const body = box.querySelector(`[data-body="${g.key}"]`);
+          if(body){ body.dataset.init = '1'; renderGroupSlice(g.key, g.items, body); }
+        }
+      });
+    }
   }
   bankUpdateActionBar();
   syncCatBtns();   // 同步大分类按钮高亮/当前值（initErrFilter 可能回退 err=all）

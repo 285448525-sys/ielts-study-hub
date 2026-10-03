@@ -124,7 +124,7 @@
     mockState = { p1Set: snap.p1Set, p2Topic: snap.p2Topic, answers: snap.answers, pronSource: snap.pronSource, p3qs: snap.p3qs || [], totalRemaining: (snap.totalRemaining != null ? snap.totalRemaining : TOTAL_LIMIT) };
     mockEntering = false;   // 10/2 修：状态已同步就位（本行在第一个 await 之前），重入改由 mockState 挡
     // 考官：优先用快照里的（续考不换人）；老快照没有该字段则现场随机补一位
-    mockState.examiner = snap.examiner || sampleOne(EXAMINERS);
+    mockState.examiner = snap.examiner || pickExaminer();
     renderExaminer(mockState.examiner);
     // 10/1 批3 修复：#mockView 默认 hidden，自动续考要同步显容器 + 把 tab 高亮切到「模考」，视觉状态一致。
     const mv = $('#mockView');
@@ -148,10 +148,23 @@
   /* ---------- 考官视频窗（10/1 批3 · 她拍板「考官的脸出现在屏幕上」） ----------
      形象 = SVG 插画（img/examiner-*.svg，无肖像权/版权问题；未来可换 AI 实拍图）。
      每场随机一位 + 英文名牌；P1/P3 大窗居中，P2 时 #mockStage 加 p2-mode 切两栏（左题目 + 右小窗）。 */
+  /* 10/3 头像选择：新增 2 个 DiceBear avataaars（CC0 免署名），可在设置页「考官的样子」里选。
+     选定的那位（window.avExamSrc()）排前面 → 优先被随机到；没选时随机池不变（仍是 4 位）。 */
+  const _pickedExam = (typeof window !== 'undefined' && typeof window.avExamSrc === 'function') ? window.avExamSrc() : '';
   const EXAMINERS = [
+    { id: 'af', name: 'Sophia Turner', img: 'img/avatars/exam-f.svg' },
+    { id: 'am', name: 'Daniel Hughes', img: 'img/avatars/exam-m.svg' },
     { id: 'a', name: 'Emily Carter', img: 'img/examiner-a.svg' },
     { id: 'b', name: 'James Wilson', img: 'img/examiner-b.svg' }
   ];
+  /* 选中的考官权重更高：50% 概率优先用ta。没选时退化为纯随机 4 位。 */
+  function pickExaminer(){
+    if(_pickedExam && Math.random() < 0.5){
+      const p = EXAMINERS.find(x => x.img === _pickedExam);
+      if(p) return p;
+    }
+    return sampleOne(EXAMINERS);
+  }
   function renderExaminer(ex){
     const img = $('#mockExaminerImg'), nm = $('#mockExaminerName');
     if(!img) return;
@@ -671,7 +684,7 @@
     const pronSource = (fixed != null) ? 'fixed' : 'none';
     // 全新开考前先清掉任何旧快照，避免与上一次未完成的模考串档
     clearResumeSnapshot();
-    mockState = { p1Set: buildP1Set(p1), p2Topic: pickP2Topic(p2), answers: [], pronSource, p3qs: [], totalRemaining: TOTAL_LIMIT, examiner: sampleOne(EXAMINERS) };
+    mockState = { p1Set: buildP1Set(p1), p2Topic: pickP2Topic(p2), answers: [], pronSource, p3qs: [], totalRemaining: TOTAL_LIMIT, examiner: pickExaminer() };
     mockEntering = false;   // 10/2 修：状态已同步就位，此后重入由 mockState 挡（本句到 await runExam 之间全同步）
     // 真题固定开场问：每场模考第一个问题固定为姓名确认（ID 热身，不参与评分，但会出现在完整记录里）
     mockState.p1Set.unshift({ topic: 'Opening', q: 'Can you tell me your full name?', opening: true });

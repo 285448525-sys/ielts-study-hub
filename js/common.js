@@ -72,9 +72,17 @@ function injectNav(){
   const pageById = id => PAGES.find(p => p.id === id);
 
   let html = '';
+  /* 10/3 头像选择：侧栏品牌位右侧加一枚用户头像（点它跳设置页选头像）。
+     ⚠️ 这里**内联解析**而不是依赖 window.avUserSrc —— 因为 common.js 早于 av-picker.js 执行
+       （av-picker 只在 settings/speaking 引，侧栏是全站 14 页都要显示的）。
+       读 DATA.settings.avatar 存的文件名，非法/未设回退默认；**只存文件名不存图片**。 */
+  const _AV_SET = new Set(['user-f1','user-f2','user-f3','user-f4','user-m1','user-m2','user-m3','user-m4']);
+  const _avRaw = (typeof DATA !== 'undefined' && DATA.settings) ? DATA.settings.avatar : '';
+  const _avMe2 = 'img/avatars/' + (_AV_SET.has(_avRaw) ? _avRaw : 'user-f1') + '.svg';
   html += '<div class="side-head">'
     + '<span class="side-brand-mark" aria-hidden="true"><svg viewBox="0 0 512 512" width="40" height="40" fill="none" style="display:block" aria-hidden="true"><g fill="#ffffff" stroke="#ffffff" stroke-width="38" stroke-linejoin="round" stroke-linecap="round"><path d="M256 136 L344 194 L256 252 L168 194 Z"/><path d="M160 304 L212 304 L256 362 L300 304 L352 304 L352 354 Q352 394 256 394 Q160 394 160 354 Z"/></g></svg></span>'
     + '<div class="side-brand"><span class="bn">IELTS</span><span class="bs">雅思备考站</span></div>'
+    + (_avMe2 ? '<a class="side-me" href="settings.html" title="换头像" aria-label="换头像"><img src="' + _avMe2 + '" alt=""></a>' : '')
     + '<button id="sideCollapseIn" class="side-collapse-in" type="button" aria-label="收起侧边栏" title="收起侧边栏">⟨</button>'
     + '</div>';
   // 方案1：全局计时徽标容器（任何页面常驻；计时进行中显示呼吸徽标 + 一键结束，解决 P1/P3）
@@ -1583,7 +1591,7 @@ function stripCloudFields(d){
    以前不在白名单里，等于「背词设置完全不跨端」：电脑上把上限改成 200，手机仍是旧值。
    ⚠️ 必须配套：practice.js pcSave 要自己打 _fieldTs.practiceCfg，否则两端时间戳都是 0 →
    合并走「时间戳相同取云端」分支 → 本机刚改的上限会被云端旧值当场盖回去。 */
-const SYNC_SETTINGS_FIELDS = ['name','examDate','examDates','targets','dailyGoalHours','pronunciationScore','fluencyScore','theme','chimeOnDone','adhd','practiceCfg','diagnosis','planLastOpen'];
+const SYNC_SETTINGS_FIELDS = ['name','examDate','examDates','targets','dailyGoalHours','pronunciationScore','fluencyScore','theme','chimeOnDone','adhd','practiceCfg','diagnosis','planLastOpen','avatar','examAvatar'];
 
 /* ===== 同步条目时间戳维护（9/17 修：_mergeArray 缺时间戳导致云端修改永不并入）=====
    根因：_mergeArray 以 ts/updatedAt 判「较新者胜」，但 11 个同步数组的条目大多只有 id、

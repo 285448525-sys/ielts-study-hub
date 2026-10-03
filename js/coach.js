@@ -229,13 +229,25 @@ window.__COACH_ON = true;
       + '<div class="cq-body">' + body + '</div></div>';
   }
 
-  /* B 版：AI 气泡加学士帽头像（此前 AI 与用户都无头像，一眼看不出谁在说）。
-     静态写死 SVG —— JS innerHTML 拼的内联 SVG 不渲染（铁律）。 */
+  /* B 版：气泡加头像（此前 AI 与用户都无头像，一眼看不出谁在说）。
+     静态写死 SVG —— JS innerHTML 拼的内联 SVG 不渲染（铁律）。
+     10/3：用户气泡头像改为读设置里选的（av-picker.js 暴露 window.avUserSrc()），没选时回退静态人像。 */
   var AV_AI = '<span class="coach-av" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3 2 8l10 5 10-5-10-5Z"/><path d="M6 10.5V16c0 1.5 3 3 6 3s6-1.5 6-3v-5.5"/></svg></span>';
-  var AV_ME = '<span class="coach-av" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg></span>';
+  /* 用户头像：<img src>（外部 SVG 文件可渲染，内联不行）。
+     avUserSrc 缺失（未引 av-picker.js）或图片加载失败时，CSS 让 img 隐藏、露出后面的静态人像兜底 —— 不用 inline onerror（多层引号太脆）。 */
+  var AV_ME_FALLBACK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>';
+  function avMeHtml(){
+    var src = (typeof window !== 'undefined' && typeof window.avUserSrc === 'function') ? window.avUserSrc() : '';
+    if(!src) return '<span class="coach-av">' + AV_ME_FALLBACK + '</span>';
+    return '<span class="coach-av coach-av-picked">' + AV_ME_FALLBACK
+         + '<img class="coach-av-user" src="' + src + '" alt=""></span>';
+  }
 
-  function userHtml(text){
-    return '<div class="cu-row">' + AV_ME + '<div class="cu-bubble">'
+/* 10/3 头像：把 userHtml 挂到 window 供探针/调试驱动（生产无副作用，外部不调就是 undefined）。
+   真实用户路径是 sendText() 调它 —— 那条要联网等 AI 回来，探针不方便等。 */
+window.__COACH_USER_HTML = function(t){ return userHtml(t); };
+function userHtml(text){
+    return '<div class="cu-row">' + avMeHtml() + '<div class="cu-bubble">'
       + escapeHtml(text).replace(/\n/g, '<br>') + '</div></div>';
   }
 
