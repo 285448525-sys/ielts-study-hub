@@ -49,7 +49,7 @@
   <script defer src="js/sentence-drill.js?v=20261001i"></script>
   <!-- coach 同例：必须在 speaking.js 之前，顶层 window.__COACH_ON 先立，tab 分支才接管得到 -->
   <script defer src="js/coach.js?v=20261003c"></script>
-  <script defer src="js/speaking.js?v=20261002d"></script>
+  <script defer src="js/speaking.js?v=20261003b"></script>
   <script defer src="js/materials.js?v=20261002b"></script>
   <script defer src="js/mock-report.js?v=20260830u"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
@@ -73,8 +73,8 @@
   .chip:focus-visible{outline:none;box-shadow:0 0 0 3px var(--primary-soft);border-color:var(--primary)}
   .chip-row-label{font-size:12px;color:var(--muted);padding:4px 0 0;margin-right:6px;flex:none;align-self:center}
 
-  .sp-search{width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:var(--radius-sm);font:inherit;background:var(--surface);color:var(--ink);margin:8px 0 12px;box-sizing:border-box;transition:border-color .15s,box-shadow .15s}
-  .sp-search:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-soft);outline:none}
+  /* 10/3 B 版：.sp-search 的正式定义挪到工具卡区块（约 210 行，含图标内嵌的 padding-left:32px）。
+     原来这里有一份旧定义，权重相同但位置在前，会把左内边距覆盖成 14px → 放大镜图标压在占位文字上。 */
 
   /* 10/1 晚四改（她拍板）：tab 与其他页面完全统一，不再有任何自定义尺寸 */
   .sp-tabs{margin-bottom:0}
@@ -193,34 +193,91 @@
     .sent-mset-slots{grid-template-columns:1fr}
   }
 
-  /* 优先级/分类下拉筛选（联动） */
-  /* 10/1 晚二改（她拍板）：三个筛选收成一行、标签内嵌进框里（文字不再顶在框上面） */
-  .sp-filters{display:flex;gap:8px;flex-wrap:nowrap;margin:8px 0 10px}
-  .sp-filter{flex:1;min-width:0;display:flex;flex-direction:row;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:2px 4px 2px 12px;font-size:12px;color:var(--muted);font-weight:600}
-  .sp-filter > span{flex:none;white-space:nowrap}
-  .sp-filter .sp-select{flex:1;min-width:0;border:none;box-shadow:none;background:transparent;padding:10px 6px}
-  .sp-filter .sp-select:focus{box-shadow:none;outline:none}
-  .sp-filter:focus-within{border-color:var(--primary)}
-  @media(max-width:560px){
-    .sp-filters{flex-wrap:nowrap;gap:6px}
-    .sp-filter{padding:2px 2px 2px 8px;gap:4px}
-    .sp-filter > span{font-size:11px}
-    .sp-filter .sp-select{padding:9px 2px;font-size:13px}
-  }
+  /* 10/3 B 版「双栏工作台」：优先级/分类/状态筛选 + P1P2 切换 + 模考 + 搜索
+     —— 全部收进一张 .sp-toolbar 卡（原来 5 条独立横条 → 2 行，纵向 176px → ~105px）
+     —— ⚠️ 所有 id 一律保留（freqSelect/catSelect/stateSelect/spPartSeg/spMockJumpBtn/spSearch），
+        speaking.js 的筛选/事件绑定零改动，只改视觉包装。 */
+  .sp-toolbar{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:11px 13px;margin:0 0 12px;box-shadow:var(--shadow)}
+  .sp-tb-row1{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+  .sp-tb-row2{display:flex;align-items:center;gap:8px}
+  /* P1/P2 切换：实底药丸组（原两枚独立药丸 → 一组，视觉上是一个分段控件） */
+  .sp-part-seg{display:inline-flex;gap:0;background:var(--n-100);border-radius:10px;padding:3px;flex:none}
+  .sp-part-seg button{font:inherit;font-size:12.5px;font-weight:700;padding:6px 16px;border:none;border-radius:8px;background:transparent;color:var(--muted);cursor:pointer;transition:background .15s,color .15s}
+  .sp-part-seg button:hover{color:var(--primary)}
+  .sp-part-seg button.active{background:var(--surface);color:var(--primary-700);box-shadow:0 1px 3px rgba(0,0,0,.10)}
+  /* 搜索：图标内嵌在框内（原来纯 input 没图标） */
+  .sp-search-wrap{position:relative;flex:1 1 auto;min-width:160px}
+  .sp-search-ic{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--muted);pointer-events:none}
+  /* ⚠️ 同 10/3 计时页那个坑：common.css:452 的裸 input 规则权重 (0,1,3) 压得住本页的 .sp-search (0,1,0)，
+     会把 padding-left 覆盖成 14px → 放大镜图标压在占位文字上。补同权重的 :not() 链压回。 */
+  input.sp-search:not([type=checkbox]):not([type=radio]):not([type=range]){width:100%;padding:10px 12px 10px 32px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:13.5px;background:var(--surface-2);color:var(--ink);box-sizing:border-box;transition:border-color .15s,box-shadow .15s}
+  input.sp-search:not([type=checkbox]):not([type=radio]):not([type=range]):focus{border-color:var(--primary);background:var(--surface);box-shadow:0 0 0 3.5px var(--primary-soft);outline:none}
+  .sp-search:focus{border-color:var(--primary);background:var(--surface);box-shadow:0 0 0 3.5px var(--primary-soft);outline:none}
+  /* 筛选：字段名做浮层小标签（值非「全部」时才显形，见 .sp-fsel.has-val，由 speaking.js 切换 class） */
+  .sp-fsel{position:relative;flex:0 1 auto;min-width:0}
+  .sp-fsel .sp-select{appearance:none;width:100%;padding:10px 30px 10px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:13px;background:var(--surface-2);color:var(--ink);min-width:0;cursor:pointer;transition:border-color .15s,box-shadow .15s;white-space:nowrap}
+  .sp-fsel.has-val .sp-select{padding-left:64px}
+  .sp-fsel::after{content:'';position:absolute;right:11px;top:50%;width:7px;height:7px;border-right:1.6px solid var(--muted);border-bottom:1.6px solid var(--muted);transform:translateY(-70%) rotate(45deg);pointer-events:none}
+  .sp-fsel-lb{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:600;color:var(--muted);pointer-events:none;opacity:0;transition:opacity .15s;white-space:nowrap}
+  .sp-fsel.has-val .sp-fsel-lb{opacity:1;color:var(--primary-700)}
+  .sp-fsel:focus-within .sp-select{border-color:var(--primary);background:var(--surface);box-shadow:0 0 0 3.5px var(--primary-soft)}
   .sp-select{padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);font:inherit;font-size:14px;background:var(--surface);color:var(--ink);min-width:150px;cursor:pointer;transition:border-color .15s,box-shadow .15s}
   .sp-select:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-soft);outline:none}
-  /* design/81：随机抽题按钮（贴筛选行右侧，窄屏自动换行不挤压）；P3 二次确认警示态 */
-  /* 10/1 晚（她拍板）：Part 切换 + 模考入口一行；模考按钮渐变胶囊重设计（不再敷衍） */
-  .sp-filter-foot{display:flex;align-items:center;gap:10px;margin:0 0 10px;flex-wrap:wrap}
-  .sp-part-seg{display:inline-flex;gap:6px;margin:0}
-  .sp-part-seg button{font:inherit;font-size:12.5px;font-weight:700;padding:6px 16px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--muted);cursor:pointer;transition:all .15s}
-  .sp-part-seg button:hover{border-color:var(--primary);color:var(--primary)}
-  .sp-part-seg button.active{background:var(--primary);border-color:var(--primary);color:#fff}
-  .sp-mock-jump{margin-left:auto;display:inline-flex;align-items:center;gap:7px;background:var(--primary);color:var(--on-primary);border:none;border-radius:999px;padding:10px 22px;font:inherit;font-size:13.5px;font-weight:700;white-space:nowrap;cursor:pointer;box-shadow:0 4px 12px rgba(58,154,147,.30);transition:filter .15s,transform .12s}
+  /* 模考入口：行尾渐变胶囊（id 不变） */
+  .sp-mock-jump{margin-left:auto;display:inline-flex;align-items:center;gap:6px;background:var(--primary);color:var(--on-primary);border:none;border-radius:999px;padding:9px 18px;font:inherit;font-size:13px;font-weight:700;white-space:nowrap;flex:none;cursor:pointer;box-shadow:0 3px 10px rgba(58,154,147,.30);transition:filter .15s,transform .12s}
   .sp-mock-jump:hover{filter:brightness(1.06);transform:translateY(-1px)}
-  .sp-mock-jump svg{width:16px;height:16px;margin:0;vertical-align:0}
+  .sp-mock-jump svg{width:15px;height:15px;margin:0;vertical-align:0}
+  @media(max-width:640px){
+    /*窄屏：第二行换行成两排，搜索独占一行；下拉允许收缩不挤掉搜索 */
+    .sp-tb-row2{flex-wrap:wrap}
+    .sp-search-wrap{flex:1 1 100%}
+    .sp-fsel{flex:1 1 0;min-width:88px}
+    .sp-fsel.has-val .sp-select{padding-left:12px}
+    .sp-fsel.has-val .sp-fsel-lb{display:none}
+    /* 触控命中区 ≥44px（移动端触控标准） */
+    .sp-mock-jump{height:44px;padding:0 16px}
+    .sp-part-seg button{min-height:44px;padding:0 18px}
+  }
+  /* ===== 倒计时提示条（10/3她拍板保留）：距考试越近越提示该只练高频 ===== */
+  .sp-countdown{display:flex;align-items:flex-start;gap:7px;padding:8px 12px;border-radius:10px;
+    background:var(--warn-soft);color:var(--warn-ink);font-size:12px;line-height:1.6;margin:0 0 11px}
+  .sp-countdown svg{width:14px;height:14px;flex:none;margin-top:2px}
+  .sp-countdown b{color:#8a4700;font-weight:700}
+  /* ===== 分组面板（<details> 原生折叠）：超高频/高频/中低频三组 ===== */
+  .sp-panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);margin:0 0 10px;overflow:hidden}
+  .sp-panel-head{display:flex;align-items:center;gap:8px;padding:11px 14px;background:var(--surface-2);
+    border-bottom:1px solid var(--line);cursor:pointer;user-select:none;list-style:none;transition:background .15s}
+  .sp-panel-head::-webkit-details-marker{display:none}
+  .sp-panel-head:hover{background:var(--n-100)}
+  .sp-panel-caret{color:var(--muted);font-size:9px;transition:transform .15s;flex:none}
+  .sp-panel[open] > .sp-panel-head .sp-panel-caret{transform:rotate(90deg)}
+  .sp-panel-ic{width:15px;height:15px;flex:none;color:var(--primary-500)}
+  .sp-panel-head b{font-size:13px;font-weight:700;color:var(--ink)}
+  .sp-panel-n{font-size:11.5px;color:var(--muted);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sp-panel-body{padding:5px 0;display:flex;flex-direction:column;gap:0}
+  /* 单组时（筛选后只剩一个频次段）renderGrouped 不套面板壳，题卡直接挂在 .sp-list 下——
+     此时它们仍是旧版纵向卡，要给回原样（面板内的才用横向行布局） */
+  #spList > .sp-card{padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--surface);box-shadow:var(--shadow)}
+  #spList > .sp-card:hover{background:var(--surface-2)}
+  /* ===== 题卡横向布局：左频次色条 + 中间英文/中文（占满）+ 右标签 + 右箭头 ===== */
+  .sp-card-row{display:flex;align-items:center;gap:12px;padding:10px 15px 10px 0;cursor:pointer;
+    border-bottom:1px solid var(--n-50);border-radius:0;box-shadow:none;transition:background .15s}
+  .sp-panel-body > .sp-card-row:last-child{border-bottom:0}
+  .sp-card-row:hover{background:var(--primary-50);box-shadow:none}
+  .sp-card-rail{width:3px;align-self:stretch;flex:none;background:var(--line);border-radius:0 3px 3px 0}
+  .sp-card-row[data-freq="ultra"] .sp-card-rail{background:linear-gradient(180deg,var(--primary-400),var(--primary-700))}
+  .sp-card-row[data-freq="high"] .sp-card-rail{background:var(--primary-300)}
+  .sp-card-main{flex:1;min-width:0}
+  .sp-card-row .sp-card-title{padding-right:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sp-card-row .sp-card-tags{flex:none;display:flex;align-items:center;gap:6px;margin-top:0;max-width:46%;overflow:hidden;flex-wrap:nowrap}
+  .sp-card-go{width:24px;height:24px;border-radius:50%;background:var(--n-100);color:var(--muted);flex:none;
+    display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s}
+  .sp-card-go svg{width:12px;height:12px}
+  .sp-card-row:hover .sp-card-go{background:var(--primary-100);color:var(--primary-700)}
+  .sp-tag-p{background:var(--primary-50);color:var(--primary-800)}
   #p3GenBtn.confirming{border-color:var(--warn);color:var(--warn)}
   .sp-confirm-cancel{border:0;background:none;color:var(--muted);cursor:pointer;font:inherit;font-size:12.5px;padding:4px 8px}
+
   .sp-confirm-cancel:hover{color:var(--ink)}
   /* design/81：空依赖引导卡（无 Key / 无素材时出现在结果区，替代一闪而过的 toast） */
   .sp-guide{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow)}
@@ -1260,40 +1317,51 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
   <div id="listView">
     <!-- design/81：季度 banner 数据化——内容由 speaking.js 从 SPEAKING_BANK_META + 题库现算渲染，此处仅留容器 -->
     <div class="sp-banner" id="freqBanner"></div>
+    <!-- 10/3 B 版「双栏工作台」：倒计时提示条（她拍板保留）+ 工具卡（原来 5 条独立横条 → 收成一张卡两行）
+         ⚠️ 结构变了但**所有 id 与选项一律保留**（freqSelect/catSelect/stateSelect/spPartSeg/spMockJumpBtn/spSearch），
+            speaking.js 的筛选与事件绑定零改动。 -->
+    <div class="sp-countdown" id="spCountdown" hidden></div>
 
-    <div class="sp-filters">
-      <label class="sp-filter"><span>优先级</span>
-        <select id="freqSelect" class="sp-select"></select>
-      </label>
-      <label class="sp-filter"><span>分类</span>
-        <!-- 9/11 修坏筛选：旧 value(人/事/地/物/杂项) 与数据 category(人物/事件/地点/物品/抽象) 对不上永远筛空；现 value=数据值，类目口径统一为 人物/事件/地点/事物/日常 -->
-        <select id="catSelect" class="sp-select">
-          <option value="all">全部</option>
-          <option value="人物">人物</option>
-          <option value="事件">事件</option>
-          <option value="地点">地点</option>
-          <option value="事物">事物</option>
-          <option value="日常">日常</option>
-        </select>
-      </label>
-      <label class="sp-filter"><span>状态</span>
-        <select id="stateSelect" class="sp-select">
-          <option value="all">全部</option>
-          <option value="new">未练过</option>
-          <option value="done">已练过</option>
-        </select>
-      </label>
-      <!-- 10/1 晚（她拍板）：🎲随机来一道退役；Part 下拉退役 → 下方一行 = P1/P2 小切换 + 模考渐变按钮 -->
-    </div>
-    <div class="sp-filter-foot">
-      <div class="sp-part-seg" id="spPartSeg">
-        <button type="button" data-part="P1">P1</button>
-        <button type="button" data-part="P2">P2</button>
+    <div class="sp-toolbar">
+      <div class="sp-tb-row1">
+        <div class="sp-part-seg" id="spPartSeg">
+          <button type="button" data-part="P1">P1</button>
+          <button type="button" data-part="P2">P2</button>
+        </div>
+        <button class="sp-mock-jump" id="spMockJumpBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg>模考</button>
       </div>
-      <button class="sp-mock-jump" id="spMockJumpBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg>模考</button>
+      <div class="sp-tb-row2">
+        <div class="sp-search-wrap">
+          <svg class="sp-search-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input aria-label="搜索题目" class="sp-search" id="spSearch" placeholder="搜索题目…" />
+        </div>
+        <div class="sp-fsel">
+          <label class="sp-fsel-lb" for="freqSelect">优先级</label>
+          <select id="freqSelect" class="sp-select"></select>
+        </div>
+        <div class="sp-fsel">
+          <label class="sp-fsel-lb" for="catSelect">分类</label>
+          <!-- 9/11 修坏筛选：旧 value 与数据 category 对不上永远筛空；现 value=数据值 -->
+          <select id="catSelect" class="sp-select">
+            <option value="all">全部</option>
+            <option value="人物">人物</option>
+            <option value="事件">事件</option>
+            <option value="地点">地点</option>
+            <option value="事物">事物</option>
+            <option value="日常">日常</option>
+          </select>
+        </div>
+        <div class="sp-fsel">
+          <label class="sp-fsel-lb" for="stateSelect">状态</label>
+          <select id="stateSelect" class="sp-select">
+            <option value="all">全部</option>
+            <option value="new">未练过</option>
+            <option value="done">已练过</option>
+          </select>
+        </div>
+      </div>
     </div>
 
-    <input aria-label="搜索题目" class="sp-search" id="spSearch" placeholder="搜索题目…" />
 
     <div class="sp-list" id="spList"></div>
     <div class="sp-empty" id="spEmpty" hidden>没有匹配的题目</div>

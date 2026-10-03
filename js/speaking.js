@@ -214,6 +214,19 @@ function spRandomPick(){
   if(pick && pick.id) openDetail(pick.id);
 }
 
+/* 10/3 B 版分组面板的分组定义 —— ⚠️ 必须声明在 ready 之前：
+   renderList 由 ready 同步调用，而 renderGrouped 读这个常量；
+   放在 ready 之后（函数体内）会导致首屏 SP_FREQ_GROUPS === undefined → .filter 抛错、列表空白。 */
+var SP_FREQ_GROUPS = [
+  { key:'ultra',  label:'超高频', desc:'考场出现率最高，优先背',  icon:'cap',    freqs:['ultra'],            open:true  },
+  { key:'high',   label:'高频',   desc:'常见题，值得练熟',          icon:'chart',  freqs:['high'],             open:true  },
+  { key:'midlow', label:'中低频', desc:'8-10 月新题，考场很少遇到', icon:'arrow', freqs:['medium','low'],     open:false },
+];
+var SP_ICONS = {
+  cap:   '<path d="M12 3 2 8l10 5 10-5-10-5Z"/>',
+  chart: '<path d="M4 20V10M10 20V4M16 20v-7M22 20h-20"/>',
+  arrow: '<path d="M5 12h14M12 5l7 7-7 7"/>',
+};
 ready(() => {
   $('#tabs').querySelectorAll('[data-type]').forEach(b => {
     b.addEventListener('click', () => {
@@ -253,6 +266,7 @@ ready(() => {
            而下拉显示「全部」，用户会误以为题库只剩这几题。语义统一为「切回题库=回到全量」。 */
         const ss = $('#spSearch'); if(ss) ss.value = '';
         curSearch = '';
+        if(window.__spSyncFselLabels) window.__spSyncFselLabels();
         $('#listView').hidden = false;
         renderList();
       } else if(t === 'MOCK'){
@@ -273,14 +287,25 @@ ready(() => {
         curPart = 'all';
         // design/88：状态筛选重置
         curState = 'all'; const stSel2 = $('#stateSelect'); if(stSel2) stSel2.value = 'all';
+        if(window.__spSyncFselLabels) window.__spSyncFselLabels();
         $('#listView').hidden = false;
         renderList();
       }
     });
   });
   const freqSel = $('#freqSelect'), catSel = $('#catSelect'), partSel = $('#partSelect');
-  if(freqSel) freqSel.addEventListener('change', e => { curFreq = e.target.value; renderList(); });
-  if(catSel) catSel.addEventListener('change', e => { curCat = e.target.value; renderList(); });
+  /* 10/3 B 版：三个筛选的字段名做成浮层小标签，只有选了非「全部」的值才显形（.sp-fsel.has-val）。
+     值全在现有逻辑里，只有这个 class 是新增的视觉状态。 */
+  const syncFselLabels = () => {
+    [['freqSelect', 'freqSel'], ['catSelect', 'catSel'], ['stateSelect', 'stateSel']].forEach(([id, key]) => {
+      const sel = document.getElementById(id); if(!sel) return;
+      const wrap = sel.closest('.sp-fsel');
+      if(wrap) wrap.classList.toggle('has-val', !!sel.value && sel.value !== 'all');
+    });
+  };
+  window.__spSyncFselLabels = syncFselLabels;
+  if(freqSel) freqSel.addEventListener('change', e => { curFreq = e.target.value; syncFselLabels(); renderList(); });
+  if(catSel) catSel.addEventListener('change', e => { curCat = e.target.value; syncFselLabels(); renderList(); });
   if(partSel) partSel.addEventListener('change', e => { curPart = e.target.value; renderList(); });
   // 10/1 晚（她拍板）：Part 下拉退役 → P1/P2 小切换。点选=只看该 Part；再点已选中的=回到全部。
   const partSeg = document.getElementById('spPartSeg');
@@ -298,7 +323,7 @@ ready(() => {
   window.__spClearPartSeg = () => { if(partSeg) partSeg.querySelectorAll('button').forEach(x => x.classList.remove('active')); };
   // design/88：状态筛选
   const stateSel = $('#stateSelect');
-  if(stateSel) stateSel.addEventListener('change', e => { curState = e.target.value; renderList(); });
+  if(stateSel) stateSel.addEventListener('change', e => { curState = e.target.value; syncFselLabels(); renderList(); });
   populateFreqOptions();
   // 9/15：Part 下拉选项带各 Part 题数（之之要求 P1/P2 分开计数，一眼看清各有多少题）
   (function(){
@@ -318,6 +343,7 @@ ready(() => {
   const mockJump = document.getElementById('spMockJumpBtn');
   if(mockJump) mockJump.addEventListener('click', () => { const mb = document.querySelector('#tabs [data-type="MOCK"]'); if(mb) mb.click(); });
   renderFreqBanner();   // design/81：季度 banner 数据化（此时题库合并已完成，题数现算）
+  syncFselLabels();    // 10/3 B 版：初始三个筛选都是「全部」→ 浮层标签不显形
   $('#backBtn').addEventListener('click', () => { $('#detailView').hidden = true; $('#listView').hidden = false; $('#sentView').hidden = true; $('#pdView').hidden = true; curDetailId = null; spActivateTab('BANK'); });
   // 默认 tab = 题库（她 10/1 晚拍板：题库放练习前面 + 打开口语优先展示题库）。
   // 程序化点 BANK tab：复用切换分支的全部重置/渲染逻辑，不另写一份。
@@ -410,8 +436,10 @@ function refreshStateOptions(){
 
 function tagsHtml(s){
   let html = '';
-  if(curType === 'ALL' && s.type) html += '<span class="sp-tag">' + (s.type === 'P1' ? 'Part 1' : 'Part 2') + '</span>';
-  if(s.frequency) html += freqTag(s.frequency);
+  if(curType === 'ALL' && s.type) html += '<span class="sp-tag sp-tag-p">' + (s.type === 'P1' ? 'P1' : 'P2') + '</span>';
+  /* 10/3 B 版：超高频/high 标签不再逐行显示 —— 分组面板的组标题已经说了「超高频 / 高频」，
+     行内重复是视觉噪音。频次改由左侧色条 + 分组归属表达。medium/low 组内仍标（区分中频/低频）。 */
+  if(s.frequency && s.frequency !== 'ultra' && s.frequency !== 'high') html += freqTag(s.frequency);
   if(s.category) html += '<span class="sp-tag">' + escapeHtml(s.category) + '</span>';
   if(s.framework) html += '<span class="sp-tag">' + escapeHtml(s.framework) + '</span>';
   return html;
@@ -574,7 +602,32 @@ function scoreHeaderHtml(score, title){
   return h;
 }
 
+/* ============================================================
+   10/3 B 版：倒计时提示条（她拍板保留）
+   读examCountdown()（common.js，跟诊断页同一数据源），距考试越近提示越强。
+   已过考期/ 未设日期 → 整条隐藏，不占位。
+   ============================================================ */
+function renderCountdownBar(){
+  const el = document.getElementById('spCountdown');
+  if(!el) return;
+  let cd = null;
+  try{ cd = (typeof examCountdown === 'function') ? examCountdown() : null; }catch(e){ cd = null; }
+  if(!cd || !cd.hasExam || cd.daysLeft == null || cd.daysLeft < 0){ el.hidden = true; return; }
+  const d = cd.daysLeft;
+  const ultra = (typeof DATA !== 'undefined' && Array.isArray(DATA.speaking))
+    ? DATA.speaking.filter(s => s.frequency === 'ultra' && !s.framework && !/^sp_p[12]_\d+$/.test(s.id || '')).length
+    : 0;
+  let tx;
+  if(d === 0) tx = '<b>今天就是考试日</b>，别再背新词了，把错词过一遍就行。';
+  else if(d <= 3) tx = '距考试 <b>' + d + ' 天</b>，只扫「超高频」' + (ultra ? ' ' + ultra + ' 题' : '') + ' 和错词，其余先放放。';
+  else if(d <= 7) tx = '距考试 <b>' + d + ' 天</b>，建议只练「超高频」' + (ultra ? ' ' + ultra + ' 题' : '') + ' —— 一天 ' + Math.max(1, Math.round(ultra / d)) + ' 题正好过一遍。';
+  else tx = '距考试 <b>' + d + ' 天</b>，高频题打牢，超高频 ' + (ultra ? ultra + ' 题' : '') + '优先。';
+  el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.5"/></svg>' + tx;
+  el.hidden = false;
+}
+
 function renderList(){
+  renderCountdownBar();
   // design/88：状态下拉选项带题数（跟随其他筛选刷新，题数按当前其他筛选已生效后的剩余池统计）
   refreshStateOptions();
   const list = getFiltered();
@@ -585,20 +638,66 @@ function renderList(){
     return;
   }
   $('#spEmpty').hidden = true;
-  container.innerHTML = list.map(s => {
-    const title = s.titleEn || s.title || '';
-    const zh = s.titleZh || '';
-    const best = getAggScore(s);
-    const count = getPracticeCount(s);
-    return '<div class="sp-card" data-id="' + s.id + '">'
-      + '<div class="sp-card-title">' + escapeHtml(title) + scoreBadgeHtml(best, count, s) + '</div>'
-      + (zh ? '<div class="sp-card-zh">' + escapeHtml(zh) + '</div>' : '')
-      + '<div class="sp-card-tags">' + tagsHtml(s) + '</div>'
-      + '</div>';
-  }).join('');
+  container.innerHTML = renderGrouped(list);
   container.querySelectorAll('[data-id]').forEach(c => {
     c.addEventListener('click', () => openDetail(c.dataset.id));
   });
+  // 10/3 B 版分组面板：折叠头绑一下（面板用 <details>，原生展开收起不需 JS，这里只做「组内全选」入口透传）
+  container.querySelectorAll('.sp-panel-head').forEach(h => {
+    h.addEventListener('click', ev => {
+      // 点组名= 折叠/展开；点「全部开始」= 打开组内第一题（不是真的批量开始，批量学习是另的事）
+      if(ev.target.closest('.sp-panel-go')) return;
+      const d = h.parentElement;
+      const b = d.querySelector('details > summary');
+      if(b) b.open = !b.open;
+    });
+  });
+}
+
+/* ============================================================
+   10/3 B 版「双栏工作台」下方：按频次分三段折叠面板（她选的合并版= A 工具条 + B 分组）
+   —— 频次只有 4 档（ultra/high/medium/low），合并成 3 组展示：
+      超高频 = ultra · 高频 = high · 中低频 = medium + low
+   —— 组标题带题数 + 说明；超高频组默认展开，其余收起（不强制她要展开）
+   —— ⚠️ 不改任何筛选逻辑，只是把 renderList 的输出按频次包一层 <details>
+   ============================================================ */
+function renderGrouped(list){
+  const used = SP_FREQ_GROUPS.filter(g => list.some(s => g.freqs.indexOf(s.frequency) >= 0));
+  if(used.length <= 1){
+    // 只有一组（或零组）时不做分组壳，省一层无意义的折叠
+    return list.map(s => spCardHtml(s)).join('');
+  }
+  return used.map(g => {
+    const items = list.filter(s => g.freqs.indexOf(s.frequency) >= 0);
+    if(!items.length) return '';
+    return '<details class="sp-panel" data-gkey="' + g.key + '"' + (g.open ? ' open' : '') + '>'
+      + '<summary class="sp-panel-head">'
+        + '<span class="sp-panel-caret" aria-hidden="true">▶</span>'
+        + '<svg class="sp-panel-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + SP_ICONS[g.icon] + '</svg>'
+        + '<b>' + g.label + '</b>'
+        + '<span class="sp-panel-n">' + items.length + ' 题 · ' + g.desc + '</span>'
+      + '</summary>'
+      + '<div class="sp-panel-body">' + items.map(s => spCardHtml(s)).join('') + '</div>'
+      + '</details>';
+  }).join('');
+}
+
+function spCardHtml(s){
+  const title = s.titleEn || s.title || '';
+  const zh = s.titleZh || '';
+  const best = getAggScore(s);
+  const count = getPracticeCount(s);
+  /* B 版：题卡改横向布局 —— 左频次色条 + 中间英文/中文（占满剩余）+ 右标签组 + 右箭头。
+     freq-* 类同时给左侧色条上色（CSS 用 [data-freq] 属性选择器）。 */
+  return '<div class="sp-card sp-card-row" data-id="' + s.id + '" data-freq="' + escapeHtml(s.frequency || '') + '">'
+    + '<span class="sp-card-rail" aria-hidden="true"></span>'
+    + '<div class="sp-card-main">'
+      + '<div class="sp-card-title">' + escapeHtml(title) + scoreBadgeHtml(best, count, s) + '</div>'
+      + (zh ? '<div class="sp-card-zh">' + escapeHtml(zh) + '</div>' : '')
+    + '</div>'
+    + '<div class="sp-card-tags">' + tagsHtml(s) + '</div>'
+    + '<span class="sp-card-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>'
+    + '</div>';
 }
 
 /* design/12 一期骨架卡已于 design/16 P0 退场（按钮/面板/链常量删除）；
