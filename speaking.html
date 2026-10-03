@@ -31,7 +31,7 @@
 })();
 </script>
 <title>口语 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261003b" />
+<link rel="stylesheet" href="css/common.css?v=20261003c" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -42,13 +42,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
   <script defer src="js/data.js?v=20261003a"></script>
-  <script defer src="js/common.js?v=20261003b"></script>
+  <script defer src="js/common.js?v=20261003c"></script>
   <script defer src="js/feedback.js?v=20261002b"></script>
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
   <script defer src="js/sentence-drill.js?v=20261001i"></script>
   <!-- coach 同例：必须在 speaking.js 之前，顶层 window.__COACH_ON 先立，tab 分支才接管得到 -->
-  <script defer src="js/coach.js?v=20261003a"></script>
+  <script defer src="js/coach.js?v=20261003b"></script>
   <script defer src="js/speaking.js?v=20261002d"></script>
   <script defer src="js/materials.js?v=20261002b"></script>
   <script defer src="js/mock-report.js?v=20260830u"></script>
@@ -931,17 +931,148 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
   #coachSend,#coachNext{padding:0 14px}
   .cc-row button{min-height:44px}   /* v2 快捷 chips 手机端触控 ≥44px */
 }
-/* 10/3 她报桌面端陪练「整体像被缩小、tab 飘在左边」：题库/素材等 tab 下内容是 1160 满列，
-   tab 行靠左与内容左缘对齐是正常的；但陪练聊天列 #coachWrap 是居中 760，234px 的 tab 组
-   留在 1160 列左缘就与聊天列错位。陪练态（#coachView 显示）只在 ≥861 把 tab 组居中到
-   与聊天列同轴；题库/素材态 :has 不命中，零影响。 */
+/* 10/3 她报桌面端陪练「tab 飘在中间」：这里原本用 justify-content:center 把 tab 组居中到
+   主区（main.container）内，但主区被 body{padding-left:288px} 整体推右，导致 tab 相对**整个
+   可视区**偏右 128px，视觉上既不靠左也不居中——正是她截图里"在中间"的成因。
+
+   正确解：不用 justify-content 居中（那是以主区为轴），改为用负margin 把 tab 组左移半个侧栏宽度，
+   使它的视觉中心 = 视口中心。760 聊天列本身在主区内居中，主区左缘 = 288，故偏移 -144px。
+   侧栏收起时padding 回 0，偏移必须回 0，否则会过度左移。 */
 @media (min-width:861px){
-  main.container:has(#coachView:not([hidden])) .page-head-row{justify-content:center}
+  main.container:has(#coachView:not([hidden])) .page-head-row{
+    justify-content:center;
+    transform:translateX(-144px);   /* = -288 / 2，抵消侧栏 padding 造成的右偏 */
+  }
+  body.side-collapsed main.container:has(#coachView:not([hidden])) .page-head-row{
+    transform:none;                 /* 侧栏收起，主区左缘 = 0，不再需要补偿 */
+  }
   /* 固定底栏原来 left/right 贴视口、760 内列相对整屏居中，桌面有 288 侧栏时偏左 128px，
      与 #coachWrap 错位。按 body 的侧栏内边距（288/32）定位底栏，侧栏收起时回 0。 */
   #coachBar{left:288px;right:32px}
   body.side-collapsed #coachBar{left:0;right:0}
 }
+
+/* ==========================================================================
+   10/3 A 版重设计：三栏 + 上下文栏可折叠
+   —— 作用域全部用 #coachView 前缀，压 common.css 的全站表单重置 (0,2,1)
+   —— 色一律走 token，禁硬编码
+   ========================================================================== */
+
+/* 骨架：#coachWrap 由单列居中改为两容器并排（左聊天 + 右上下文）。
+   关键约束（都是踩过的坑）：
+   1) 聊天列不能用 margin:0 auto —— flex 容器里 auto 外边距会把它推离起点与右栏重叠（gap=-91px）
+   2) 右栏不能用 position:sticky + align-self:flex-start —— 会脱离 flex 流换行到下方
+   3) 右栏高度不跟随 #coachScroll 的 min-height，靠 align-items:stretch 由父级决定，
+      内部 .coach-ctx-body 自己 overflow-y:auto 滚 */
+#coachView #coachWrap{
+  max-width:1120px;margin:0 auto;display:flex;
+  flex-direction:row;          /* 必须显式写：855 行的 #coachWrap{flex-direction:column} 会继承下来 */
+  align-items:stretch;
+}
+#coachView #coachCol{
+  flex:1 1 0;min-width:0;max-width:760px;
+  display:flex;flex-direction:column;
+}
+
+/* ---------- 上下文栏（展开态） ---------- */
+#coachView .coach-ctx{
+  flex:0 0 250px;width:250px;min-width:0;
+  border-left:1px solid var(--line);background:var(--surface-2);
+  padding:14px 14px 20px;display:flex;flex-direction:column;gap:10px;
+  max-height:calc(100vh - 96px);
+}
+#coachView .coach-ctx-toggle{
+  display:inline-flex;align-items:center;gap:5px;align-self:flex-start;
+  min-height:32px;padding:6px 9px;cursor:pointer;font-family:inherit;
+  font-size:11.5px;font-weight:600;color:var(--muted);
+  background:var(--surface);border:1px solid var(--line);border-radius:8px;
+  transition:border-color .15s,color .15s;
+}
+#coachView .coach-ctx-toggle:hover{border-color:var(--primary-300);color:var(--primary-700)}
+#coachView .coach-ctx-chev{font-size:13px;line-height:1}
+#coachView .coach-ctx-body{display:flex;flex-direction:column;gap:10px;overflow-y:auto}
+#coachView .coach-ctx-card{
+  background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:11px;
+}
+#coachView .coach-ctx-t{
+  font-size:11px;font-weight:700;letter-spacing:.05em;color:var(--muted);margin-bottom:7px;
+}
+#coachView .coach-ctx-row{
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:11.5px;padding:3px 0;
+}
+#coachView .coach-ctx-row span{color:var(--muted)}
+#coachView .coach-ctx-row b{color:var(--ink);font-weight:700}
+#coachView .coach-ctx-bar{
+  height:5px;border-radius:3px;background:var(--n-300);overflow:hidden;margin:8px 0 4px;
+}
+#coachView .coach-ctx-bar i{
+  display:block;height:100%;width:0;border-radius:3px;
+  background:var(--primary-400);transition:width .3s;
+}
+#coachView .coach-ctx-mem{list-style:none;margin:0;padding:0}
+#coachView .coach-ctx-mem li{
+  font-size:11.5px;line-height:1.55;color:var(--ink-2);
+  padding:5px 0;border-top:1px dashed var(--line);
+}
+#coachView .coach-ctx-mem li:first-child{border-top:0;padding-top:0}
+#coachView .coach-ctx-mem li.coach-ctx-empty{color:var(--muted);border-top:0}
+#coachView .coach-ctx-more{
+  display:block;width:100%;margin-top:9px;min-height:44px;
+  border:0;background:transparent;cursor:pointer;font-family:inherit;
+  font-size:11.5px;font-weight:700;color:var(--primary-700);
+  text-align:left;padding:8px 0 0;border-top:1px solid var(--line);
+}
+#coachView .coach-ctx-more:hover{color:var(--primary-900)}
+
+/* ---------- 上下文栏（折叠态 = 40px 竖条）：聊天列放开到容器全宽 ---------- */
+#coachView .coach-ctx.coach-ctx-mini{
+  flex:0 0 40px;width:40px;padding:12px 0;align-items:center;gap:0;
+  background:var(--surface-2);
+}
+#coachView #coachWrap:has(.coach-ctx.coach-ctx-mini) #coachCol{max-width:100%}
+#coachView .coach-ctx-mini .coach-ctx-body{display:none}
+#coachView .coach-ctx-mini .coach-ctx-toggle{
+  border:0;background:transparent;padding:6px 0;min-height:44px;align-self:center;
+}
+#coachView .coach-ctx-mini .coach-ctx-toggle-tx{
+  writing-mode:vertical-rl;letter-spacing:.08em;font-size:11px;margin-top:4px;
+}
+#coachView .coach-ctx-mini .coach-ctx-chev{display:block;transform:rotate(0deg)}
+
+/* ---------- 修 300px 空白：内容少时气泡群不贴天花板，也不塞到视口底 ---------- */
+#coachView #coachScroll{min-height:46vh;justify-content:flex-end}
+
+/* ---------- chip 视觉升级（不改 data-chip 与事件委托） ---------- */
+#coachView .cc-row button{
+  background:var(--primary-50);color:var(--primary-700);
+  border:1px solid var(--primary-200);border-radius:999px;
+  padding:7px 14px;font-size:12.5px;font-weight:600;min-height:36px;font-family:inherit;
+  transition:background .15s,border-color .15s,color .15s;
+}
+#coachView .cc-row button:hover{background:var(--primary-100);border-color:var(--primary-300)}
+
+/* ---------- ≤860 移动端：整体隐藏上下文栏（退化为单列），dock 5 项与底栏不动 ---------- */
+@media (max-width:860px){
+  #coachView #coachWrap{max-width:760px}
+  #coachView .coach-ctx{display:none}
+  #coachView #coachScroll{min-height:40vh}
+  #coachView .cc-row button{min-height:44px}   /* 触控命中区 ≥44px */
+}
+
+/* ---------- ≤1180 中等屏：上下文栏收窄，避免挤压聊天 ---------- */
+@media (min-width:861px) and (max-width:1180px){
+  #coachView .coach-ctx{flex-basis:216px;width:216px;padding:12px 12px 18px}
+  #coachView #coachCol{max-width:none}
+}
+
+/* ---------- 深色模式：显式覆盖卡片底色（沿用站的深色约定） ---------- */
+[data-theme="dark"] #coachView .coach-ctx{background:rgba(26,26,28,.72)}
+[data-theme="dark"] #coachView .coach-ctx-card{background:rgba(36,39,44,.9)}
+[data-theme="dark"] #coachView .coach-ctx-bar{background:rgba(255,255,255,.14)}
+[data-theme="dark"] #coachView .coach-ctx-toggle{background:rgba(36,39,44,.9);border-color:rgba(255,255,255,.14);color:#a8adb5}
+[data-theme="dark"] #coachView .coach-ctx-mem li{border-top-color:rgba(255,255,255,.10)}
+[data-theme="dark"] #coachView .coach-ctx-more{border-top-color:rgba(255,255,255,.10)}
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}

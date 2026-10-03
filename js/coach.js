@@ -295,6 +295,7 @@ window.__COACH_ON = true;
 
     appendHtml(userHtml(msg));
     st.thread.push({ role: 'user', text: msg });
+    ctxTouch();          // 10/3 A版：首条用户消息起启动本轮计时并刷新右栏
     hideChips();
     setBusy(true);
     scrollBottom();
@@ -312,6 +313,7 @@ window.__COACH_ON = true;
       st.thread.pop();
       var rows = document.querySelectorAll('#coachScroll .cu-row');
       if(rows.length) rows[rows.length - 1].remove();
+      renderCtx();    // 10/3 A版：失败已撤上下文，右栏轮次必须同步回退
       if(inp && text == null) inp.value = msg;
       setBusy(false);
       var code = failed.code;
@@ -326,6 +328,7 @@ window.__COACH_ON = true;
     saveMemFacts(r.facts);
     st.thread.push({ role: 'assistant', text: r.reply });
     appendHtml(assistantHtml(r.reply));
+    renderCtx();      // 10/3 A版：AI 回复里可能带 @@MEM@@ 新记忆，右栏同步刷新
     setBusy(false);
     scrollBottom();
   }
@@ -368,20 +371,120 @@ window.__COACH_ON = true;
   function openMem(){ renderMemList(); var p = $('coachMemPop'); if(p) p.hidden = false; }
   function closeMem(){ var p = $('coachMemPop'); if(p) p.hidden = true; }
 
+  /* ============ 10/3 A 版：常驻上下文栏（纯新增，不改既有函数体） ============ */
+  var CTX_MAX_MEM = 5;          // 右栏最多列几条记忆，其余引导去弹层
+  var CTX_TURN_FULL = 6;        // 6轮视为本轮练满（进度条 100%）
+  var ctxTimer = null, ctxT0 = 0;
+
+  function ctxFmtDur(sec){
+    var m = Math.floor(sec / 60), r = sec % 60;
+    return m + '′' + (r < 10 ? '0' : '') + r + '″';
+  }
+  function ctxTurns(){
+    try{
+      return (st && st.thread ? st.thread : []).filter(function(x){ return x && x.role === 'user'; }).length;
+    }catch(e){ return 0; }
+  }
+  function renderCtxMem(){
+    var ul = $('coachCtxMem'); if(!ul) return;
+    var a = memList();
+    if(!a.length){
+      ul.innerHTML = '<li class="coach-ctx-empty">还没记住什么 · 多聊几轮就会出现在这里</li>';
+    }else{
+      ul.innerHTML = a.slice(-CTX_MAX_MEM).reverse().map(function(x){
+        var t = String((x && x.text) || '');
+        return '<li>' + escapeHtml(t.length > 30 ? t.slice(0, 30) + '…' : t) + '</li>';
+      }).join('');
+    }
+    var n2 = $('coachMemN2'); if(n2) n2.textContent = String(a.length);
+  }
+  function renderCtx(){
+    if(!$('coachCtxBar')) return;
+    var n = ctxTurns();
+    var pct = Math.min(100, Math.round(n / CTX_TURN_FULL * 100));
+    var bar = $('coachCtxBar');
+    bar.style.width = pct + '%';
+    var wrap = $('coachCtxBarWrap');
+    if(wrap) wrap.setAttribute('aria-valuenow', String(pct));
+    var tn = $('coachCtxTurn'); if(tn) tn.textContent = n + ' 轮';
+    var tt = $('coachCtxTime');
+    if(tt) tt.textContent = ctxFmtDur(ctxT0 ? Math.floor((Date.now() - ctxT0) / 1000) : 0);
+    renderCtxMem();
+  }
+  function ctxStart(){
+    if(ctxTimer) return;
+    ctxT0 = Date.now();
+    ctxTimer = setInterval(renderCtx, 1000);
+  }
+  function ctxTouch(){ ctxStart(); renderCtx(); }
+  /* 折叠状态：复用站内存量DATA.settings.coachCtxCollapsed + hubSave()，与侧边栏收起同一套云同步机制 */
+  function ctxApplyState(){
+    var col = !!DATA.settings.coachCtxCollapsed;
+    var aside = $('coachCtx'); if(!aside) return;
+    aside.classList.toggle('coach-ctx-mini', col);
+    var btn = $('coachCtxToggle');
+    if(btn) btn.setAttribute('aria-expanded', col ? 'false' : 'true');
+    var tx = $('coachCtxToggleTx');
+    if(tx) tx.textContent = col ? '上下文' : '收起';
+    var ch = $('coachCtxChev');
+    if(ch) ch.textContent = col ? '‹' : '›';
+  }
+  function ctxToggle(){
+    DATA.settings.coachCtxCollapsed = !DATA.settings.coachCtxCollapsed;
+    hubSave();
+    ctxApplyState();
+  }
+  function initCtx(){
+    if(!$('coachCtx')) return;
+    ctxApplyState();
+    renderCtx();
+    var btn = $('coachCtxToggle');
+    if(btn) btn.addEventListener('click', ctxToggle);
+    var more = $('coachCtxMore');
+    if(more) more.addEventListener('click', openMem);
+  }
+
   /* ============ 骨架构建（懒：第一次切到陪练 tab 才建，整页生命周期只建一次） ============ */
   function build(){
     var view = $('coachView');
     if(!view) return;
+    /* 10/3 B→A 版重设计：#coachWrap 由「单列居中」改为「三栏 flex 容器」。
+       聊天列 #coachCol 左（自适应），上下文栏 #coachCtx 右（可折叠）。
+       记忆弹层 #coachMemPop 移出 #coachWrap —— 避免被三栏的 overflow/flex 影响定位。 */
     view.innerHTML =
       '<div id="coachWrap">'
-      + '<div id="coachTop">'
-      +   '<button id="coachMemBtn" type="button" class="coach-mem-btn" aria-haspopup="dialog">长期记忆 <span id="coachMemN">0</span></button>'
+      + '<div id="coachCol">'
+      +   '<div id="coachTop">'
+      +     '<button id="coachMemBtn" type="button" class="coach-mem-btn" aria-haspopup="dialog">长期记忆 <span id="coachMemN">0</span></button>'
+      +   '</div>'
+      +   '<div id="coachScroll" aria-live="polite"></div>'
+      +   '<div id="coachBar"><div id="coachBarInner">'
+      +     '<textarea id="coachInput" rows="1" maxlength="2000" placeholder="说英语，或直接下指令"></textarea>'
+      +     '<button id="coachSend" type="button">发送</button>'
+      +   '</div></div>'
       + '</div>'
-      + '<div id="coachScroll" aria-live="polite"></div>'
-      + '<div id="coachBar"><div id="coachBarInner">'
-      +   '<textarea id="coachInput" rows="1" maxlength="2000" placeholder="说英语，或直接下指令"></textarea>'
-      +   '<button id="coachSend" type="button">发送</button>'
-      + '</div></div>'
+      /* 上下文栏：常驻，桌面展开/可折叠成40px 竖条；≤860 用 CSS 整体隐藏（退化为单列）。
+         刻意放在 #coachScroll 之外 —— scroll 内是动态追加的聊天流，塞进去会被对话推走。 */
+      + '<aside id="coachCtx" class="coach-ctx" aria-label="本轮上下文">'
+      +   '<button type="button" id="coachCtxToggle" class="coach-ctx-toggle" aria-expanded="true" aria-controls="coachCtxBody" title="收起/展开上下文">'
+      +     '<span id="coachCtxChev" aria-hidden="true">›</span><span class="coach-ctx-toggle-tx" id="coachCtxToggleTx">收起</span>'
+      +   '</button>'
+      +   '<div id="coachCtxBody" class="coach-ctx-body">'
+      +     '<div class="coach-ctx-card">'
+      +       '<div class="coach-ctx-t">本轮</div>'
+      +       '<div class="coach-ctx-row"><span>模式</span><b id="coachCtxMode">自由对话</b></div>'
+      +       '<div class="coach-ctx-row"><span>目标</span><b id="coachCtxGoal">6.0 · 口语 5.5</b></div>'
+      +       '<div class="coach-ctx-row"><span>已练</span><b id="coachCtxTurn">0 轮</b></div>'
+      +       '<div class="coach-ctx-bar" id="coachCtxBarWrap" role="progressbar" aria-label="本轮进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="coachCtxBar"></i></div>'
+      +       '<div class="coach-ctx-row coach-ctx-time"><span>时长</span><b id="coachCtxTime">0′00″</b></div>'
+      +     '</div>'
+      +     '<div class="coach-ctx-t">它记住的</div>'
+      +     '<div class="coach-ctx-card">'
+      +       '<ul class="coach-ctx-mem" id="coachCtxMem"><li class="coach-ctx-empty">还没记住什么 · 多聊几轮就会出现在这里</li></ul>'
+      +       '<button type="button" id="coachCtxMore" class="coach-ctx-more">全部记忆<span id="coachMemN2">0</span> →</button>'
+      +     '</div>'
+      +   '</div>'
+      + '</aside>'
       + '<div id="coachMemPop" hidden>'
       +   '<div class="cmp-mask"></div>'
       +   '<div class="cmp-card" role="dialog" aria-modal="true" aria-label="陪练长期记忆">'
@@ -393,6 +496,7 @@ window.__COACH_ON = true;
       + '</div>';
 
     $('coachSend').addEventListener('click', function(){ sendText(); });
+    initCtx();           // 10/3 A版：初始化上下文栏（折叠状态 + 首渲染 + 事件）
     var ta = $('coachInput');
     ta.addEventListener('keydown', function(e){
       if(e.key === 'Enter' && !e.shiftKey && !e.isComposing){
