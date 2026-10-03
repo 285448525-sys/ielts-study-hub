@@ -4107,6 +4107,28 @@ function onbRenderSetup(step){
   wrap.appendChild(nav);
   el.appendChild(wrap);
   el.hidden = false;
+
+  /* P0 10/3 紧急修复：onbOverlay 偶尔 stuck visible（initOnboarding 之后无 handler 关闭）
+     —— 遮罩空白处点击关闭（onbFinish(false)）；Escape 键关闭；30s 自动关闭（兜底）
+     三条互不冲突，都是幂等安全（onbClose 重复调零成本）。 */
+  if(!el.dataset._onbDismissBound){
+    el.dataset._onbDismissBound = '1';
+    // 点遮罩空白处关闭（点到 wrap/dialog 内部：target !== el 不关闭）
+    el.addEventListener('click', function(e){ if(e && e.target === el){ onbFinish(false); } });
+    // Escape 键关闭（挂 document，避免 dialog 里 input 聚焦时收不到）
+    el._onbEscape = function(e){ if(e && e.key === 'Escape' && !el.hidden){ onbFinish(false); } };
+    document.addEventListener('keydown', el._onbEscape);
+    // 30s 自动关闭（兜底——防止任何原因导致 onbRenderSetup 之后无人调 onbFinish/onbClose）
+    el._onbAuto = setTimeout(function(){ if(!el.hidden){ onbFinish(false); } }, 30000);
+    // onbClose 时清理监听和计时器
+    const origClose = window.onbClose;
+    window.onbClose = function(){
+      if(el._onbEscape){ document.removeEventListener('keydown', el._onbEscape); el._onbEscape = null; }
+      if(el._onbAuto){ clearTimeout(el._onbAuto); el._onbAuto = null; }
+      origClose();
+    };
+  }
+
   // 回车 = 继续（避免在输入框里敲回车没反应）
   try{
     wrap.addEventListener('keydown', function(e){

@@ -2694,7 +2694,8 @@ body.has-dock main.container{ padding-bottom:0; }
    - 移动优先：默认单列铺满，≥560px 才收成 420px 居中卡片；
    - 层级 99990：低于首屏 #bootLoader(99999)、高于 dock 与悬浮计时。
    ========================================================================= */
-.onb-overlay{position:fixed;inset:0;z-index:99990;display:flex;align-items:center;justify-content:center;padding:16px;background:var(--n-900);background:rgba(16,20,24,.55);backdrop-filter:blur(3px);overflow:auto}
+.onb-overlay{position:fixed;inset:0;z-index:99990;display:flex;align-items:center;justify-content:center;padding:16px;background:var(--n-900);background:rgba(16,20,24,.55);backdrop-filter:blur(3px);overflow:auto;cursor:pointer}
+.onb-overlay > *{cursor:default}   /* 只有空白遮罩区是 pointer；dialog 内部按钮/输入恢复 default */
 .onb-overlay[hidden]{display:none}
 /* 首页引导提示条 */
 .onb-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 12px;margin-bottom:12px;border:1px solid var(--line);border-radius:12px;background:var(--primary-soft)}
