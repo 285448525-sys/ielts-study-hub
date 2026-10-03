@@ -38,13 +38,13 @@ header.solid{border-color:var(--line);background:rgba(242,243,245,.94)}
 .navlinks{display:flex;gap:22px;margin-left:14px;font-size:14px;color:var(--muted)}
 .navlinks a:hover{color:var(--primary-700)}
 .nav .spacer{flex:1}
-.btn{display:inline-flex;align-items:center;justify-content:center;height:40px;padding:0 18px;border-radius:10px;
-  font-size:14px;font-weight:500;border:1px solid transparent;cursor:pointer;transition:.16s}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:44px;padding:0 20px;border-radius:12px;
+  font-size:14.5px;font-weight:600;border:1px solid transparent;cursor:pointer;text-decoration:none;transition:.16s}
 .btn-primary{background:var(--primary-500);color:#fff}
 .btn-primary:hover{background:var(--primary-600);transform:translateY(-1px)}
 .btn-ghost{background:var(--n-0);border-color:var(--n-400);color:var(--ink)}
 .btn-ghost:hover{border-color:var(--primary-500);color:var(--primary-700)}
-.btn-lg{height:50px;padding:0 26px;font-size:15.5px;border-radius:12px}
+.btn-lg{height:52px;padding:0 28px;font-size:16px;border-radius:14px;gap:8px}
 
 [data-in]{opacity:0;transform:translateY(16px);transition:opacity .7s ease,transform .8s cubic-bezier(.16,.84,.44,1)}
 body.ready [data-in]{opacity:1;transform:none}
@@ -134,7 +134,7 @@ section{padding:76px 0}
 .blist li b{display:block;font-size:15px;font-weight:500;color:var(--n-900)}
 .blist li span{font-size:13.5px;color:var(--muted)}
 .pillrow{display:flex;gap:8px;flex-wrap:wrap}
-.pill{font-size:12.5px;color:var(--n-700);background:var(--n-0);border:1px solid var(--line);border-radius:8px;padding:5px 10px}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--n-700);background:var(--n-0);border:1px solid var(--line);border-radius:999px;padding:4px 11px;white-space:nowrap}
 .claim{margin-top:18px;padding:14px 16px;border-left:3px solid var(--primary-500);background:var(--primary-50);border-radius:0 10px 10px 0;font-size:15px;color:var(--primary-900);font-weight:500}
 
 /* 算法徽章 */
