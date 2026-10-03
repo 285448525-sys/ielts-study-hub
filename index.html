@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>雅思备考 Hub · 记忆曲线背单词 · 一个故事串半本口语题库</title>
-<meta name="description" content="雅思机考备考系统：按 KDD'22 间隔重复算法排复习点，P2 用一个核心故事串起多个话题，背词/口语/写作/错题/计时/回顾在一套数据里，跨设备自动同步。" />
+<meta name="description" content="雅思机考备考系统：口语几个故事串起全题库、写作模板默写到会为止、AI 口语模考与写作批改不限次，学习功能全部免费，跨设备自动同步。" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="manifest" href="/manifest.json" />
 <meta name="theme-color" content="#3a9a93" />
@@ -240,7 +240,7 @@ section{padding:76px 0}
   .hero-grid,.spot,.panel,.signup,.closing-grid{grid-template-columns:1fr;gap:34px}
   .spot.rev .s-txt{order:0}
   .cmp{grid-template-columns:1fr;gap:22px}
-  .cmp .mid{flex-direction:row;padding:0;justify-content:center}
+  .cmp .mid{flex-direction:row;padding:0;justify-content:center;gap:10px}
   .steps,.grid3{grid-template-columns:1fr 1fr}
   h1{font-size:34px}
   .spot h2{font-size:28px}
@@ -250,6 +250,10 @@ section{padding:76px 0}
 @media (max-width:600px){
   .steps,.grid3{grid-template-columns:1fr}
   .promises{gap:18px}
+  /* design/94：对比圆点 5→7 后横排会撑破 360 视口（7×34+gap=334>304），小屏缩点距/尺寸（320 也容得下） */
+  .cmp .mid{gap:8px}
+  .cmp .mid i{width:28px;height:28px}
+  .cmp .mid i::after{left:10px;top:8px}
 }
 @media (prefers-reduced-motion:reduce){
   *{animation:none!important;transition:none!important}
@@ -274,7 +278,7 @@ section{padding:76px 0}
 <link rel="canonical" href="https://ielts-study-hub.pages.dev" />
 <meta property="og:type" content="website" />
 <meta property="og:title" content="雅思备考 Hub · 记忆曲线背单词 · 一个故事串半本口语题库" />
-<meta property="og:description" content="雅思机考备考系统：按 KDD'22 间隔重复算法排复习点，P2 用一个核心故事串起多个话题，背词/口语/写作/错题/计时/回顾在一套数据里，跨设备自动同步。" />
+<meta property="og:description" content="雅思机考备考系统：口语几个故事串起全题库、写作模板默写到会为止、AI 口语模考与写作批改不限次，学习功能全部免费，跨设备自动同步。" />
 <meta property="og:url" content="https://ielts-study-hub.pages.dev" />
 <meta name="twitter:card" content="summary" />
 </head>
@@ -286,8 +290,9 @@ section{padding:76px 0}
   <div class="wrap nav">
     <div class="logo"><span class="mark" aria-hidden="true"><svg viewBox="0 0 512 512" fill="none" aria-hidden="true"><g fill="#ffffff" stroke="#ffffff" stroke-width="38" stroke-linejoin="round" stroke-linecap="round"><path d="M256 136 L344 194 L256 252 L168 194 Z"/><path d="M160 304 L212 304 L256 362 L300 304 L352 304 L352 354 Q352 394 256 394 Q160 394 160 354 Z"/></g></svg></span>雅思备考 Hub</div>
     <nav class="navlinks">
-      <a href="#vocab">背单词</a>
       <a href="#speak">口语串题</a>
+      <a href="#writing">写作模板</a>
+      <a href="#ai">AI 能力</a>
       <a href="#vs">和别人有什么不同</a>
       <a href="#start">怎么开始</a>
     </nav>
@@ -302,16 +307,16 @@ section{padding:76px 0}
   <div class="wrap hero-grid">
     <div>
       <div class="kicker" data-in>IELTS · 机考备考系统</div>
-      <h1 data-in style="transition-delay:.08s">雅思不是靠意志力<br>考过的，是靠<em>系统</em></h1>
-      <p class="lead" data-in style="transition-delay:.16s">什么时候复习哪个词，由记忆曲线算；半本口语题库，用一个你自己的故事串起来。今天做什么、哪里最弱，进去第一眼就看见。</p>
+      <h1 data-in style="transition-delay:.08s">口语不用<em>背稿</em>，<br>写作不用<em>练</em></h1>
+      <p class="lead" data-in style="transition-delay:.16s">口语，几个你自己的故事覆盖几乎全题库——考场上不是在背，是在聊自己的人生。写作，几套打磨到最不易失分的模板，背下来、填几个词就行。剩下的判断，交给系统。</p>
       <div class="cta" data-in style="transition-delay:.24s">
         <a class="btn btn-primary btn-lg" href="home.html">进站开工</a>
         <a class="btn btn-ghost btn-lg" href="#vs">它凭什么管用</a>
       </div>
       <div class="promises" data-in style="transition-delay:.32s">
-        <div><b>背过的不白背</b>复习点由算法排，卡在将忘未忘那一刻</div>
-        <div><b>一稿套多题</b>一个故事串起半本 P2 题库</div>
-        <div><b>换设备不掉线</b>改动几秒到另一头，不会互相覆盖</div>
+        <div><b>AI 口语模考不限次</b>市面上不少按次收费；这里出题、评分、四维报告随便练</div>
+        <div><b>学习功能全免费</b>词库、题库、计划、同步、计时，一分钱不收</div>
+        <div><b>作者本人每天在用</b>为自己 10 月的机考写的系统，不是 PPT 产品</div>
       </div>
     </div>
 
@@ -347,10 +352,12 @@ section{padding:76px 0}
           <li>想起来才复习，想不起来就忘了</li>
           <li>P2 一题写一篇稿，50 题背 50 篇</li>
           <li>换个设备进度对不上，重新来过</li>
+          <li>口语模考一次几十块，模不了几次</li>
+          <li>写作练完没人批，全靠感觉</li>
           <li>靠感觉判断「我最近练得还行」</li>
         </ul>
       </div>
-      <div class="mid" data-rev><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="mid" data-rev><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
       <div class="col r" data-rev class="fromR">
         <h4>这套系统</h4>
         <ul>
@@ -358,6 +365,8 @@ section{padding:76px 0}
           <li>复习点排在<b>将忘未忘那一刻</b></li>
           <li>准备<b>一个故事</b>，剩下的交给映射</li>
           <li>云端<b>自动合并</b>，几秒到另一头</li>
+          <li>AI 模考<b>不限次</b>，练到考前</li>
+          <li>AI 四项评分 + <b>逐句点评</b></li>
           <li>练了多少、哪块最弱，<b>看数字</b></li>
         </ul>
       </div>
@@ -365,63 +374,15 @@ section{padding:76px 0}
   </div>
 </div>
 
-<!-- ============ 单词 ============ -->
-<section id="vocab">
-  <div class="wrap spot">
-    <div class="s-txt">
-      <span class="eyebrow" data-rev><s></s>核心功能 01 · 背单词</span>
-      <h2 data-rev style="--d:.05s">背过的词，<br>不会白背</h2>
-
-      <div class="algo" data-rev style="--d:.08s">
-        <div class="t"><s></s>升级版艾宾浩斯遗忘曲线算法<b class="gain">省约 30% 复习时间</b></div>
-        <div class="src">依据 KDD'22 论文《A Stochastic Shortest Path Algorithm for Optimizing Spaced Repetition Scheduling》
-          <a href="https://dl.acm.org/doi/10.1145/3534678.3539081" target="_blank" rel="noopener">查看论文 →</a>
-          <span class="dis">30% 为论文与同类应用的公开口径，本站按同一算法实现，未做独立实测。</span></div>
-      </div>
-
-      <ul class="blist">
-        <li data-rev style="--d:.15s"><span class="k">1</span><div><b>间隔由算法算，不由你猜</b><span>每个词记着自己的难度与半衰期，系统按 <b>DHP + SSP-MMC</b> 策略表给出下一次复习日，正好卡在快忘还没忘的时候。</span></div></li>
-        <li data-rev style="--d:.2s"><span class="k">2</span><div><b>什么词表都能倒进来</b><span>别家软件导出的、Excel、CSV，或者随手复制的一段英文——粘贴进去自动挑词、直出中文释义，批量入库。官方 AWL 570 也现成。</span></div></li>
-        <li data-rev style="--d:.25s"><span class="k">3</span><div><b>答错当场重考到会为止</b><span>错词立刻回到本轮再考，不留到明天；每日上限自己定，背满就停，不留尾巴。</span></div></li>
-      </ul>
-    </div>
-    <div class="s-side">
-      <div class="fig" data-rev style="--d:.12s" id="figVocab">
-      <div class="cap"><b>记忆强度 · 复习点自动排</b><span>示意图</span></div>
-      <svg viewBox="0 0 460 300" role="img" aria-label="记忆强度随复习次数递增的示意曲线">
-        <line x1="40" y1="258" x2="440" y2="258" stroke="var(--n-300)" stroke-width="1"/>
-        <line x1="40" y1="30" x2="40" y2="258" stroke="var(--n-300)" stroke-width="1"/>
-        <text x="14" y="42" font-size="11" fill="var(--n-500)">强</text>
-        <text x="14" y="254" font-size="11" fill="var(--n-500)">弱</text>
-        <g id="vocabPaths"></g>
-        <text x="40" y="276" font-size="11" fill="var(--n-500)">第 1 天</text>
-        <text x="196" y="276" font-size="11" fill="var(--n-500)">第 12 天</text>
-        <text x="404" y="276" font-size="11" fill="var(--n-500)">第 30 天</text>
-      </svg>
-      <div class="fig-note"><i></i>每次复习都把强度拉回高位——间隔越拉越长，复习次数越来越少。</div>
-      <p class="hint">示意图：曲线用于说明机制，非真实测算数据。</p>
-      </div>
-      <div class="claim" data-rev style="--d:.2s">你唯一要做的，是每天点开它——复习顺序它已经替你排好了。</div>
-      <div class="pillrow" data-rev style="--d:.24s">
-        <span class="pill">DHP + SSP-MMC 策略表</span>
-        <span class="pill">官方 AWL 570</span>
-        <span class="pill">自建词库</span>
-        <span class="pill">每日上限自由定</span>
-        <span class="pill">自动发音</span>
-      </div>
-    </div>
-  </div>
-</section>
-
 <!-- ============ 口语 ============ -->
 <section id="speak" style="background:var(--n-0);border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
   <div class="wrap spot rev">
     <div class="s-txt">
-      <span class="eyebrow" data-rev><s></s>核心功能 02 · 口语</span>
-      <h2 data-rev style="--d:.05s">一个故事，<br>串起半本题库</h2>
-      <p class="sub" data-rev style="--d:.1s">P2 不是一题一稿地背。准备一个属于你自己的故事，剩下的交给串题体系——换题只改开头结尾，痕迹小、说得自然。</p>
+      <span class="eyebrow" data-rev><s></s>核心功能 01 · 口语</span>
+      <h2 data-rev style="--d:.05s">考场上，你不是在背稿，<br>是在聊自己的人生</h2>
+      <p class="sub" data-rev style="--d:.1s">别人串题，是三个题挤一个故事；这里几个故事，覆盖几乎全题库。素材大部分取自你自己的真实经历——背的其实是自己的事，考官听不出背的痕迹。</p>
       <ul class="blist">
-        <li data-rev style="--d:.15s"><span class="k">1</span><div><b>串题要点驱动，不整篇背诵</b><span>素材拆成要点 bullet，换题改的是切入方式，不是重背一篇新稿。</span></div></li>
+        <li data-rev style="--d:.15s"><span class="k">1</span><div><b>要点驱动，不整篇背诵</b><span>素材拆成要点，换题只换切入方式，不用重背一篇新稿。</span></div></li>
         <li data-rev style="--d:.2s"><span class="k">2</span><div><b>AI 会判断这题能不能套</b><span>遇到新题，它写出「怎么把你的素材嵌进去」的几行思路；套不上就直说，不硬凑。</span></div></li>
         <li data-rev style="--d:.25s"><span class="k">3</span><div><b>本季题库，P1 / P2 / P3 全覆盖</b><span>题库随换季更新；P1 逐小题推进，P2 按考试节奏计时，P3 追问也练得到。</span></div></li>
       </ul>
@@ -445,18 +406,67 @@ section{padding:76px 0}
   </div>
 </section>
 
+<!-- ============ 写作模板默写 ============ -->
+<section id="writing" style="background:var(--n-0);border-top:1px solid var(--line)">
+  <div class="wrap spot">
+    <div class="s-txt">
+      <span class="eyebrow" data-rev><s></s>核心功能 02 · 写作</span>
+      <h2 data-rev style="--d:.05s">不用练，<br>背下来就行</h2>
+      <p class="sub" data-rev style="--d:.1s">为「写不明白、也不想多受苦」的人设计的路线：几套按「最不易失分」打磨的模板，加一个会自己揪错的默写功能。</p>
+      <ul class="blist">
+        <li data-rev style="--d:.15s"><span class="k">1</span><div><b>几套模板，覆盖主要题型</b><span>留给自己的自由发挥越少越稳——模板占大头，自己只填少量内容。</span></div></li>
+        <li data-rev style="--d:.2s"><span class="k">2</span><div><b>默写功能，错了自动重默</b><span>默一遍，错的地方自动揪出来，第二遍专默错的——直到模板长在你手上。</span></div></li>
+        <li data-rev style="--d:.25s"><span class="k">3</span><div><b>题型判断 + 万能词填空</b><span>考场上认出题型、套对模板、填上几个万能词，就到位了。</span></div></li>
+      </ul>
+      <div class="claim" data-rev style="--d:.3s">这套功能是为背东西特别痛苦的人设计的——所以它对每个背东西痛苦的人都好使。</div>
+      <p class="muted" data-rev style="--d:.34s;font-size:13.5px;margin:14px 0 0">要冲 6.5+？AI 写作批改逐句给你改，见下方 AI 能力区。</p>
+    </div>
+    <div class="fig" data-rev style="--d:.12s">
+      <div class="cap"><b>默写 · 错处自动重默</b><span>示意图</span></div>
+      <!-- 方案 design/94：三步示意（第一遍→错词标红→第二遍只默错词），静态卡沿用本页 .fig + primary 色系 -->
+      <div style="padding:18px 6px;text-align:center">
+        <div style="display:flex;flex-direction:column;gap:10px;max-width:340px;margin:0 auto;text-align:left">
+          <div style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--n-50)"><b style="font-size:14px">第 1 遍默写</b><span class="muted" style="font-size:12.5px;display:block">整段模板过一遍</span></div>
+          <div style="border:1px solid var(--primary-200);border-radius:10px;padding:12px 14px;background:var(--primary-50)"><b style="font-size:14px;color:var(--primary-700)">错处自动标出</b><span class="muted" style="font-size:12.5px;display:block">哪几个词没记住，一眼看见</span></div>
+          <div style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--n-50)"><b style="font-size:14px">第 2 遍只默错的</b><span class="muted" style="font-size:12.5px;display:block">记住的不再浪费你的时间</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ AI 能力 ============ -->
+<section id="ai">
+  <div class="wrap">
+    <div class="sec-head" data-rev>
+      <h2>别处按次收费的 AI，这里随便用</h2>
+      <p>写作口语的反馈是备考最贵的一环——这也是会员的全部意义。</p>
+    </div>
+    <div class="grid3">
+      <div class="card" data-rev><div class="ico" style="background:var(--speak)">说</div><h3>AI 口语模考</h3><p>AI 出题 + 评分 + 四维报告，不限次练到考前。免费版每月 1 次体验。</p></div>
+      <div class="card" data-rev style="--d:.06s"><div class="ico" style="background:var(--corpus)">改</div><h3>AI 写作批改</h3><p>四项评分 + 逐句点评，给冲 6.5+ 的人。（会员专属）</p></div>
+      <div class="card" data-rev style="--d:.12s"><div class="ico" style="background:var(--primary-500)">串</div><h3>AI 串题思路</h3><p>遇到新题，写出你的素材怎么嵌进去；套不上就直说，不硬凑。（会员专属）</p></div>
+    </div>
+    <div style="margin-top:22px;padding:16px 20px;border:1px solid var(--primary-200);background:var(--primary-50);border-radius:var(--r);display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap" data-rev>
+      <div style="font-size:14.5px;color:var(--primary-900)"><b>学习功能永久免费</b> · 会员首购 <b>¥19</b> 起（原价 ¥39，仅限一次）</div>
+      <a class="btn btn-primary" href="vip.html" style="text-decoration:none">看会员方案 →</a>
+    </div>
+  </div>
+</section>
+
 <!-- ============ 三步 ============ -->
 <section id="start">
   <div class="wrap">
     <div class="sec-head" data-rev>
-      <h2>三步，今天就能开始</h2>
-      <p>不用先学怎么用，也不用先整理资料。填两件事就能开工。</p>
+      <h2>3 分钟，看清你的水平和每一天</h2>
+      <p>填几项资料，AI 给你一份诚实的诊断：你现在大概几分、缺口在哪、考前每一天该做什么。</p>
     </div>
     <div class="steps">
-      <div class="step" data-rev><div class="no">1</div><h3>填考试日期 + 目标分</h3><p>系统按你剩下的天数倒推每天该做多少，不用自己算。</p></div>
-      <div class="step" data-rev style="--d:.08s"><div class="no">2</div><h3>定今天背多少个</h3><p>上限你自己填，背满就停。改了当场生效，不会多给你塞。</p></div>
-      <div class="step" data-rev style="--d:.16s"><div class="no">3</div><h3>点开工，剩下的它排</h3><p>背词、口语、写作、错题今天各该练什么，进去就看见。</p></div>
+      <div class="step" data-rev><div class="no">1</div><h3>免费诊断，直说不哄人</h3><p>站内成绩自动读取，没有分就填高考 / 四六级，AI 换算成四科估计分。听力阅读提分快但空间小，写作口语无法速成——这种真话它也会说。</p></div>
+      <div class="step" data-rev style="--d:.08s"><div class="no">2</div><h3>考前每一天，替你排好</h3><p>每条任务都带时长和完成标准，点进去就是对应的练习页——不存在「多练听力」这种看了不知道去哪点的话。</p></div>
+      <div class="step" data-rev style="--d:.16s"><div class="no">3</div><h3>今天只有 30 分钟也能练</h3><p>任务自动压缩重排；昨天没做完的顺延到今天，绝不悄悄丢掉。</p></div>
     </div>
+    <p class="muted" style="text-align:center;margin:18px 0 0">诊断与每日重排免费 · 生成完整考前计划为会员功能</p>
   </div>
 </section>
 
@@ -465,15 +475,16 @@ section{padding:76px 0}
   <div class="wrap">
     <div class="sec-head" data-rev>
       <h2>备考的账，不止这两笔</h2>
-      <p>写、听、读、时间，全都记在同一份数据里。</p>
+      <p>口语、写作之外，这些也全都在——而且全部免费。</p>
     </div>
     <div class="grid3">
-      <div class="card" data-rev><div class="ico" style="background:var(--corpus)">写</div><h3>写作</h3><p>Task 1 / Task 2 模板与自检清单，写完自己对照，不靠感觉打分。</p></div>
+      <div class="card" data-rev><div class="ico" style="background:var(--vocab)">词</div><h3>背单词</h3><p>间隔重复算法排复习点，官方 AWL 570 现成，别家的词表粘贴进来就能用。</p></div>
       <div class="card" data-rev style="--d:.06s"><div class="ico" style="background:var(--amber)">错</div><h3>错题与长难句</h3><p>听力阅读错题按类型归档，长难句单独练，错过的会再回到你面前。</p></div>
       <div class="card" data-rev style="--d:.12s"><div class="ico" style="background:var(--med)">计</div><h3>专注计时</h3><p>番茄钟与任务块绑定，25–40 分钟一块，打勾就有反馈。</p></div>
       <div class="card" data-rev style="--d:.18s"><div class="ico" style="background:var(--vocab)">划</div><h3>计划</h3><p>今天没做完的自动挪到明天，不用每天重抄一遍清单。</p></div>
       <div class="card" data-rev style="--d:.24s"><div class="ico" style="background:var(--primary-500)">据</div><h3>数据回顾</h3><p>每日投入、分项记录、分题型正确率，一眼看到哪块最拖后腿。</p></div>
       <div class="card" data-rev style="--d:.3s"><div class="ico" style="background:var(--n-700)">同</div><h3>跨设备同步</h3><p>电脑背完手机接着复习，改动几秒到另一头，不会互相覆盖。</p></div>
+      <div class="card" data-rev style="--d:.36s"><div class="ico" style="background:var(--corpus)">写</div><h3>写作模板库</h3><p>几套最不易失分的模板 + 自检清单，配合上面的默写功能用。</p></div>
     </div>
   </div>
 </section>
@@ -526,7 +537,7 @@ section{padding:76px 0}
     <div class="c-txt" data-rev>
       <h2>今天该背的那批词，<br>已经排好了</h2>
       <p>填一次考试日期，之后每天点开就练。剩下的判断，交给系统。</p>
-      <p class="c-small">一个人，为自己要考的那场试，写的一套系统。</p>
+      <p>这套系统，是我为自己 10 月的机考写的——今天该背的词、该练的题，我自己每天在里面过。它不是面向市场设计出来的产品，是一个考生不肯多受苦的结果。</p>
     </div>
     <div class="c-card" data-rev style="--d:.08s">
       <b>登录 / 注册</b>
@@ -581,24 +592,6 @@ section{padding:76px 0}
 
   var NS = 'http://www.w3.org/2000/svg';
   function mk(tag, attrs){ var e = document.createElementNS(NS, tag); for(var k in attrs) e.setAttribute(k, attrs[k]); return e; }
-
-  var days = [0,1,4,12,30], X = function(d){ return 40 + d*(400/30); };
-  var lows = [225,203,180,152], top = 55;
-  var g = document.getElementById('vocabPaths');
-  for(var i=0;i<4;i++){
-    var x0 = X(days[i]), x1 = X(days[i+1]), y1 = lows[i];
-    var d = 'M'+x0+','+top+' Q'+(x0+(x1-x0)*0.3)+','+y1+' '+x1+','+y1;
-    var p = mk('path',{ d:d, fill:'none', stroke:'var(--primary-500)','stroke-width':2.2,'stroke-linecap':'round', class:'draw' });
-    g.appendChild(p); p.style.setProperty('--len', p.getTotalLength()); p.style.transitionDelay = (i*0.28)+'s';
-    if(i<3){
-      var v = mk('path',{ d:'M'+x1+','+y1+' L'+x1+','+(top+(3-i)*4), fill:'none', stroke:'var(--primary-300)','stroke-width':1.6,'stroke-dasharray':'3 3', class:'draw' });
-      g.appendChild(v); v.style.setProperty('--len', v.getTotalLength()); v.style.transitionDelay = (i*0.28+0.18)+'s';
-    }
-    var c = mk('circle',{ cx:x0, cy:top, r:4.5, fill:'var(--primary-500)', class:'dotp' });
-    g.appendChild(c); c.style.transitionDelay = (i*0.28)+'s'; c.style.animationDelay = (i*0.28+1.2)+'s';
-    var lb = mk('text',{ x:x0, y:top-12-(i%2)*16, 'font-size':11, fill:'var(--primary-700)', 'text-anchor':'middle', class:'fadee' });
-    lb.textContent = '第'+(i+1)+'次'; lb.style.transitionDelay = (i*0.28+0.1)+'s'; g.appendChild(lb);
-  }
 
   var cx = 230, cy = 132, R = 96;
   var topics = [['想去的地方',-160],['一次旅行',-108],['一件礼物',-56],['童年记忆',-12],['敬佩的人',36],['一次改变',92]];
