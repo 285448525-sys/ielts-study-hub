@@ -196,12 +196,17 @@ function renderList(){
       <td class="cor-idx">${i + 1}</td>
       <td class="cor-cell cor-cn">${c.cn ? escapeHtml(c.cn) : '<span class="muted">（无中文）</span>'}</td>
       <td class="cor-cell cor-en">${escapeHtml(c.en)}</td>
+      <td class="cor-act"><button type="button" class="btn btn-sm" data-cid="${escapeHtml(c.id)}">删除</button></td>
     </tr>`).join('');
   box.innerHTML = `
     <table class="corpus-table">
-      <thead><tr><th class="cor-idx">#</th><th>中文</th><th>英文</th></tr></thead>
+      <thead><tr><th class="cor-idx">#</th><th>中文</th><th>英文</th><th class="cor-act">操作</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
+  // 10/3：单条删除入口（deleteCorpus 一直存在但此前无 UI 调用，导错句子无法清理）
+  box.querySelectorAll('[data-cid]').forEach(b => b.addEventListener('click', () => {
+    if(confirm('确定删除这条语料？删除后它不会再出现在默写里。')) deleteCorpus(b.dataset.cid);
+  }));
 }
 
 // ========== 听写 ==========
