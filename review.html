@@ -61,6 +61,33 @@
   .card .form-row .mk-filter-wrap{flex:1;min-width:0;margin-left:0}
   .card .form-row .mk-filter-wrap select{width:100%;min-width:0;padding:8px 10px;font-size:13.5px}
 }
+/* ===== 记录列表头筛选器 · 桌面版（10/3 她报「这两个按钮太突兀」）=====
+   ⚠️ 这块**必须在 @media(max-width:560px) 之外**（媒体查询里那份是移动端微调）——
+   否则 1440px 桌面下整块不生效，元素就回退成 common.css:452 裸 select 的
+   44px 高 + 白底 + 1px 边框 + 14.5px 字号，在 15px 的标题行里显得格外突兀。
+   另：common.css:452 权重 (0,1,3) 高于普通类选择器，必须补 :not() 链压回。 */
+.mk-list-head{display:flex !important;flex-wrap:nowrap;align-items:center;gap:8px;margin-bottom:10px}
+.mk-list-head .inline-h2{flex:none;font-size:15px;margin:0}
+.card .form-row.mk-list-head .mk-filter-wrap{
+  display:flex;align-items:center;gap:4px;min-width:0;flex:0 1 auto;
+  background:var(--n-100);border:1px solid transparent;border-radius:999px;padding:0 4px 0 12px;
+  transition:background .15s,border-color .15s;
+}
+/* 标签隐藏后两个筛选器要贴到标题行最右（原来靠内联 margin-left:auto，现在由这条实现） */
+.card .form-row.mk-list-head .mk-filter-wrap:first-of-type{margin-left:auto !important}
+.card .form-row.mk-list-head .mk-filter-wrap:hover{background:var(--n-200);border-color:var(--line)}
+.card .form-row.mk-list-head .mk-filter-wrap:focus-within{background:var(--surface);border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+/* 字段名只给读屏器（视觉隐藏）—— 提权到含 .mk-list-head 的选择器，才压得住媒体查询外那条 .card .form-row */
+.card .form-row.mk-list-head .mk-filter-wrap > label{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip:rect(0 0 0 0);white-space:nowrap;border:0;
+}
+/* 补 :not() 链压回 common.css:452：44px→34px、白底→透明、1px 边框→无、14.5px→13px */
+.card .form-row.mk-list-head .mk-filter-wrap select:not([type=checkbox]):not([type=radio]):not([type=range]){
+  width:auto;min-width:0;flex:none;border:none;height:34px;padding:0 22px 0 4px;font-size:13px;
+  background:transparent;font-weight:600;color:var(--ink-2);
+}
+.card .form-row.mk-list-head .mk-filter-wrap select:focus{outline:none;box-shadow:none;background:transparent}
 </style>
 <script defer src="js/data.js?v=20261003b"></script>
 <script defer src="js/common.js?v=20261003c"></script>
@@ -161,8 +188,10 @@
         <section class="card">
           <div class="form-row mk-list-head" style="align-items:center">
             <h2 class="inline-h2">记录列表</h2>
-            <!-- 9/29 之之：分项记录加筛选——科目四选一 + 听/读/口/写通用的整卷/单篇粒度 -->
-            <div class="mk-filter-wrap" style="margin-left:auto"><label>科目</label>
+            <!-- 9/29 之之：分项记录加筛选——科目四选一 + 听/读/口/写通用的整卷/单篇粒度
+                 10/3 样式收口：去掉内联 margin-left:auto（改由 CSS 的 :first-of-type 统一控制，
+                 两个筛选器才贴到标题行最右）。「科目」「粒度」label 视觉隐藏，只给读屏器。 -->
+            <div class="mk-filter-wrap"><label>科目</label>
               <select id="mkListType">
                 <option value="all">全部</option>
                 <option value="listening">听力</option>
