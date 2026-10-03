@@ -1,5 +1,5 @@
 ready(() => {
-  // 服药模块未开启（设置页取消勾选「我是 ADHD」）：URL/软导航直达时给引导，不渲染服药 UI、不启轮询
+  // 服药模块未开启（设置页取消勾选「启用『服药』模块」）：URL/软导航直达时给引导，不渲染服药 UI、不启轮询
   if(typeof medsModuleOn === 'function' && !medsModuleOn()){
     const main = document.querySelector('main.container');
     if(main){

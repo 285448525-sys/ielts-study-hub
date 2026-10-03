@@ -349,7 +349,7 @@ body.sheet-open .sheet{transform:translateY(0)}
   .page-title{font-size:22px;margin-bottom:6px}
 
   .hero{padding:0}
-  /* 触控优化：保证可点击区域 ≥ 44px */
+  /* 触控优化：保证可点击区域 ≥ 44px（移动端通用触控标准） */
   .btn{min-height:44px}
   .sp-tabs button, .write-tabs button {padding:12px 0}
   .tab-btn{padding:12px 8px}
@@ -2941,7 +2941,7 @@ button.side-item, button.sheet-item{
    设计约束：
    · 视觉层级压在 fb-err 之下、fb-foot 之上——不是主操作，用户不该被它抢注意力。
    · 展开块用 primary-soft 浅底 + 左侧主色描边（与全站「串题优势块」同一套语言）。
-   · 微信号做成可点即复制的等宽块，命中区 ≥44px（ADHD 友好铁律）。
+   · 微信号做成可点即复制的等宽块，命中区 ≥44px（移动端触控标准）。
    · 暗色走同构图换深色，不用纯黑/纯白。 */
 .fb-wxwrap{margin-top:4px}
 .fb-wxlink{display:inline-flex;align-items:center;gap:5px;min-height:44px;padding:6px 2px;
