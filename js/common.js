@@ -965,7 +965,48 @@ async function callSiteRelay(service, messages, temperature, opts){
   throw new Error('站内 AI 通道返回格式异常');
 }
 
+/* 10/3 全站 AI 超时保护（她手机端报「计划按钮点了没反应，只能刷新」）。
+   根因：各 AI 按钮都是「点 → disabled + 文案改『安排中…』→ await callRelay → finally 解锁」。
+   弱网/网络挂住时 await 永不返回，finally 永不执行 → 按钮永久卡死；
+   且 callSiteRelay 内的 fetch 本身也无自带超时，等多久全看浏览器。
+
+   修法：**在最上游的 callRelay 加超时**，一处覆盖全部 AI 调用点
+   （corpus / pattern-drill / scene-drill / sentence-drill / speaking /
+     materials / mock-summary / feedback / plans / coach 等），以后新增 AI 功能自动免疫——
+   **不需要逐个改按钮，也不新增任何交互**。
+   超时后抛 code='AI_TIMEOUT' 的错，各调用点原有的 catch/finally 就能正常解锁按钮并提示。 */
+const AI_TIMEOUT_MS = 25000;   // 25 秒：够 DeepSeek 长回答（陪练 P2 连讲 + 资料 4096 token）跑完，又不至于让人干等
+function withTimeout(promise, ms){
+  ms = ms || AI_TIMEOUT_MS;
+  let timer = null;
+  /* 超时赢了之后，原始 promise 仍会在稍后 settle。若那时它是 reject 状态，
+     因为已经没人再挂 catch，会在控制台抛 unhandledrejection。
+     这里先挂一个 catch 把这个孤儿 rejection 吃掉。
+     注意：只在「超时已胜出」时才吞——正常路径下原始 promise 的错误照常抛给调用方。 */
+  let timedOut = false;
+  const guarded = Promise.resolve(promise).catch(e => {
+    if(timedOut) return undefined;    // 超时后迟到的错误：静默丢弃（用户已看到超时提示）
+    throw e;                          // 正常路径：错误原样上抛
+  });
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      timedOut = true;
+      const e = new Error('AI 响应超时（' + Math.round(ms / 1000) + ' 秒无响应），请重试');
+      e.code = 'AI_TIMEOUT';
+      e.isTimeout = true;
+      reject(e);
+    }, ms);
+  });
+  /* 无论成功失败都必须清掉定时器，否则每个调用都留一个 25 秒的孤儿 setTimeout
+     （页面开久了会堆积几百个）。finally 在 Promise.race 的两条路上都会跑。 */
+  return Promise.race([guarded, timeout]).finally(() => { if(timer) clearTimeout(timer); });
+}
+
 async function callRelay(service, messages, temperature, opts){
+  return withTimeout(callRelayInner(service, messages, temperature, opts), AI_TIMEOUT_MS);
+}
+
+async function callRelayInner(service, messages, temperature, opts){
   const s = DATA.settings || {};
   const key = s.relayToken || '';
   const ch = s.aiChannel || 'auto';                 // auto | site | own
