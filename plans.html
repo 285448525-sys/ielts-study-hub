@@ -42,7 +42,7 @@
 <script defer src="js/data.js?v=20261003b"></script>
   <script defer src="js/common.js?v=20261003d"></script>
   <script defer src="js/feedback.js?v=20261002b"></script>
-  <script src="js/plans.js?v=20261003a" defer></script>
+  <script src="js/plans.js?v=20261004a" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -176,12 +176,46 @@
 #ptabToday .plan-item.jumpable:hover{background:var(--primary-soft)}
 #ptabToday .plan-item.jumpable .plan-text{color:var(--primary)}
 #ptabToday .plan-item.jumpable .plan-text.js-jump-text::after{content:" ↗";font-size:12px;color:var(--primary);opacity:.7}
-#rbBar{margin-top:10px;border:1px solid rgba(58,154,147,.28);background:rgba(58,154,147,.06);border-radius:var(--radius-sm);padding:10px 12px}
-#rbBar .rb-bar-tip{font-size:12.5px;color:var(--muted);line-height:1.6;margin-bottom:8px}
-#rbBar .rb-bar-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-#rbBar .rb-cap{font-size:13px;color:var(--ink);display:inline-flex;align-items:center;gap:6px}
-#rbBar #rbMin{width:76px;padding:5px 8px;border:1px solid var(--line);border-radius:var(--radius-sm);font:inherit;font-size:13.5px;background:var(--surface);color:var(--ink)}
+/* ===== 10/4 01:15 丙版「单行极简」（她 23:30 报「重排怪、手机端更怪」+ 00:32 选丙）
+   —— 根因三条（已量）：① 提示文字手机端 4 行 80px，整条手机 208px vs 桌面 94px
+      ②「今天只能学 [30] 分钟 [压缩重排]」三元素塞在 inline <span> 里，手机被 flex-wrap 断成两截
+      ③ **本页从来没有 #rbBar 的移动端媒体查询**（只有 #diagRoot 的）→ 手机裸奔
+   —— 丙版：说明压成一行 + 主按钮；「今天只能学」收进「时间不够？」开关里，点开才出现。
+      手机整条 208px → 约 96px。功能与 id 全部不变。 */
+#rbBar{margin-top:10px;border:1px solid var(--line);background:var(--surface);border-radius:var(--radius-sm);padding:10px 12px}
+#rbBar .rb-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#rbBar .rb-txt{flex:1 1 220px;min-width:0;font-size:13px;color:var(--ink);line-height:1.55}
+#rbBar .rb-txt b{font-weight:700}
+#rbBar .rb-txt .sub{color:var(--muted)}
+#rbBar .rb-more{flex:none;background:none;border:0;padding:0;font:inherit;font-size:12.5px;font-weight:600;
+  color:var(--primary);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+#rbBar .rb-more:hover{color:var(--primary-900)}
+#rbBar .rb-more[disabled]{opacity:.55;cursor:not-allowed}
+#rbBar .rb-all{flex:none;white-space:nowrap}
+/* 「时间不够？」展开区：默认收起（只用 CSS class 控制，HTML 里不加 hidden 属性 ——
+   两者叠加时 display:flex 会被 hidden 的 UA 样式压掉，开关就失灵） */
+#rbBar .rb-numwrap{display:none;align-items:center;gap:8px;flex-wrap:wrap;width:100%;
+  margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+#rbBar.rb-open .rb-numwrap{display:flex}
+#rbBar .rb-numwrap .rb-cap{font-size:13px;color:var(--ink);display:inline-flex;align-items:center;gap:7px}
+/* ⚠️ common.css:452 裸 input 权重 (0,1,3) 压得住页内 .xxx (0,1,0) —— 必须同权重 :not() 链 */
+#rbBar #rbMin:not([type=checkbox]):not([type=radio]):not([type=range]){
+  width:74px;height:38px;padding:0 10px;border:1px solid var(--neutral);border-radius:9px;
+  font:inherit;font-size:14px;font-weight:700;text-align:center;background:var(--surface);color:var(--ink);
+}
 #rbBar .btn[disabled]{opacity:.55;cursor:not-allowed}
+/* ⭐ 补上本页从来没有的移动端媒体查询（原先只有 #diagRoot 的，手机端是裸奔） */
+@media(max-width:640px){
+  #rbBar{padding:9px 11px}
+  #rbBar .rb-line{flex-direction:column;align-items:stretch;gap:7px}
+  #rbBar .rb-txt{flex:none;font-size:12.5px}
+  #rbBar .rb-more{align-self:flex-start}
+  #rbBar .rb-all{width:100%}
+  #rbBar .rb-numwrap{align-items:stretch}
+  #rbBar .rb-numwrap .rb-cap{width:100%;flex-wrap:wrap}
+  #rbBar .rb-numwrap .btn{width:100%}
+  #rbBar #rbMin:not([type=checkbox]):not([type=radio]):not([type=range]){flex:1;min-width:70px}
+}
 #rbStale .rb-stale{font-size:13px;color:var(--ink);background:rgba(184,134,11,.08);border:1px solid rgba(184,134,11,.3);border-radius:var(--radius-sm);padding:8px 12px;margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;line-height:1.6}
 #rbStale .rb-stale .btn{margin-left:auto;flex:none}
 @media(max-width:380px){#diagRoot .dg-chips{grid-template-columns:1fr}#diagOverlay .dg-cards{grid-template-columns:1fr 1fr}#diagOverlay .dg-ai-bands{grid-template-columns:1fr}}
@@ -235,12 +269,16 @@
       <!-- commit4：3 天未回来的过期提示（renderRbStale 填充）与每日重排工具条（有 AI 任务才显示） -->
       <div id="rbStale"></div>
       <div id="rbBar" class="rb-bar" hidden>
-        <div class="rb-bar-tip">🔀 AI 重排永久免费：没做完的任务自动顺延到明天、绝不丢弃；时间不够时按「新知识 → 重复练习 → 保底」的顺序压缩，保底的背词/口语 P1/模板最后才动。</div>
-        <div class="rb-bar-row">
-          <button type="button" class="btn" id="rbAll">重新安排今天</button>
+        <!-- 丙版：说明一行 + 主按钮；「今天只能学」收进「时间不够？」开关 -->
+        <div class="rb-line">
+          <span class="rb-txt"><b>没做完的任务会自动顺延到明天</b> <span class="sub">· 绝不丢弃</span></span>
+          <button type="button" class="rb-more" id="rbMore" aria-expanded="false" aria-controls="rbNumWrap">时间不够？</button>
+          <button type="button" class="btn btn-primary rb-all" id="rbAll">重新安排</button>
+        </div>
+        <div class="rb-numwrap" id="rbNumWrap">
           <span class="rb-cap">今天只能学
-            <input type="number" id="rbMin" min="10" max="600" step="5" inputmode="numeric" placeholder="30" /> 分钟
-            <button type="button" class="btn btn-sm" id="rbCapGo">压缩重排</button>
+            <input type="number" id="rbMin" min="10" max="600" step="5" inputmode="numeric" placeholder="30" aria-label="今天只能学多少分钟" /> 分钟
+            <button type="button" class="btn btn-ghost" id="rbCapGo">压缩重排</button>
           </span>
         </div>
       </div>

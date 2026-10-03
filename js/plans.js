@@ -273,6 +273,25 @@ ready(() => {
   });
   if(_rbMin) _rbMin.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); _rbCapGo.click(); } });
 
+  /* 10/4 01:15 丙版：「时间不够？」展开/收起（纯 UI，不碰 diagRebalance 逻辑） */
+  const _rbMore = document.getElementById('rbMore');
+  const _rbBar  = document.getElementById('rbBar');
+  if(_rbMore && _rbBar){
+    const setOpen = (open) => {
+      _rbBar.classList.toggle('rb-open', open);
+      _rbMore.setAttribute('aria-expanded', open ? 'true' : 'false');
+      _rbMore.textContent = open ? '收起' : '时间不够？';
+      if(open){ const m = document.getElementById('rbMin'); if(m) m.focus(); }
+    };
+    _rbMore.addEventListener('click', () => setOpen(!_rbBar.classList.contains('rb-open')));
+    // 恢复态：已有分钟数就默认展开，否则用户以为上次填的值丢了
+    if(String((_rbMin && _rbMin.value) || '').trim()) setOpen(true);
+    // Esc 收起（只在展开态生效，且不影响输入框的正常 Esc 行为）
+    document.addEventListener('keydown', e => {
+      if(e.key === 'Escape' && _rbBar.classList.contains('rb-open')) setOpen(false);
+    });
+  }
+
   // 子 Tab 切换 + 恢复上次所在 Tab（默认「今日」；支持「规划」「历史」）
   document.querySelectorAll('#planTabs .pill-tab').forEach(b =>
     b.addEventListener('click', () => setPlanTab(b.dataset.ptab)));
@@ -1783,9 +1802,13 @@ function setRbBusy(busy){
     if(b) b.disabled = busy;
   });
   const a = document.getElementById('rbAll');
-  if(a) a.textContent = busy ? '重排中…' : '重新安排今天';
+  /* 10/4 01:15 丙版：#rbAll 文案由「重新安排今天」缩为「重新安排」（省宽度） */
+  if(a) a.textContent = busy ? '重排中…' : '重新安排';
   const c = document.getElementById('rbCapGo');
   if(c) c.textContent = busy ? '重排中…' : '压缩重排';
+  /* 10/4 01:15：AI 跑的时候连「时间不够？」开关一起禁掉，避免中途点开导致状态错乱 */
+  const m2 = document.getElementById('rbMore');
+  if(m2){ m2.disabled = busy; m2.style.opacity = busy ? '.55' : ''; }
 }
 
 /* 每日重排：免费、无会员闸。onlyMin>0 = 「今天只能学 X 分钟」压缩。任何失败绝不落库。 */
