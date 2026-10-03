@@ -9,7 +9,16 @@
      SW 不参与离线态的判定与渲染，缓存策略本文件零改动。
      本文件 activate 时发的 `SW_UPDATED` 消费端也在 common.js（maybeShowSwUpdatePrompt，
      design/78）：页面收到后只弹提示条，**是否刷新由用户点击决定，SW 侧绝不自动 reload**。 */
-const CACHE = 'ielts-hub-v198';  // 10/4 00:50 P0 修模考报告「未作答不扣分」（她 00:38 报「P1 全部跳过、P2P3 答得一坨屎，结果还给我打5.5」）——🚨 **根因（探针 outputs/design/_diag_score_empty.cjs 实锤）**：js/mock.js:646 用 `(a.transcript || '(空)')` 拼 block，**P1 全未答时拼出的 block 仍非空**（98 字符，因为还有 Q: 题面）→ 唯一防线 `if(!block.trim()) return null` **拦不住** → 照样调 AI → AI 面对一屏「(空)」按默认中位给 5.5 → 总分 (5.5+P2+P3)/3 把她的真实水平拉平。同时 fixes 里出现**根本没作答的题的编造点评**（她截图里「About more than 10 years → More than 10 years」）。
+const CACHE = 'ielts-hub-v199';  // 10/4 00:50 P0 修模考报告「未作答不扣分」（她 00:38 报「P1 全部跳过、P2P3 答得一坨屎，结果还给我打5.5」）——🚨 **根因（探针 outputs/design/_diag_score_empty.cjs 实锤）**：js/mock.js:646 用 `(a.transcript || '(空)')` 拼 block，**P1 全未答时拼出的 block 仍非空**（98 字符，因为还有 Q: 题面）→ 唯一防线 `if(!block.trim()) return null` **拦不住** → 照样调 AI → AI 面对一屏「(空)」按默认中位给 5.5 → 总分 (5.5+P2+P3)/3 把她的真实水平拉平。同时 fixes 里出现**根本没作答的题的编造点评**（她截图里「About more than 10 years → More than 10 years」）。
+  // 10/4 01:40 句子页语料表 B 版（她 23:37 选 B「工具条+双栏卡列表」）
+  // 表格 → 双栏卡列表：她 22:57 报语料表「手机上特别挤」——表格左中文右英文在 375px 下每列只剩 ~150px，
+  // 雅思长难句（普遍 15-30 词）被压成竖排。renderList()（js/corpus.js:192）的 <table> 输出改成 .cc-card 卡片：
+  // 桌面「中文左英文右」双栏观感保留；≤560 上下堆叠；删除按钮改右上角 44px 触控（原 36px）。
+  // 功能零回归：搜索过滤/空态 renderEmpty/倒序/删除 confirm+墓碑/计数 #corpusCount 全保留。
+  // 探针 outputs/design/_verify_corpusB.cjs 16/16（含删除墓碑验证）。
+  // ⚠️ 探针坑两个：a) 进语料表视图要用 switchCorpusSub('dict')（corpus.js:692），点文字「语料」的按钮匹配不到；
+  //    b) 列表倒序，第一条卡可能是「无英文」的测试卡（cc-en 里是空 span），量中英文布局要挑 en 非空的卡。
+  // 版本 corpus.js a→20261004a（仅 corpus.html）。SW v198→v199。
   // 10/4 01:25 计划页重排区丙版（她 23:30 报「重排怪、手机端更怪」+ 00:32 选丙，施工文档 plan/计划页重排区丙版_施工方案_2026-10-04.md）
   // 根因三条（探针 outputs/design/_diag_rb.cjs 量出）：① 提示文字手机端 4 行 80px（桌面 1 行）→ 整条手机 208px vs 桌面 94px
   // ② 「今天只能学 [30] 分钟 [压缩重排]」三元素塞在 inline <span> 里，手机被 flex-wrap 断成两截、中间大片空白

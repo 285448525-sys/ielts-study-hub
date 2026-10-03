@@ -44,7 +44,7 @@
 <script defer src="js/data.js?v=20261003b"></script>
   <script defer src="js/common.js?v=20261003d"></script>
   <script defer src="js/feedback.js?v=20261002b"></script>
-  <script src="js/corpus.js?v=20261003a" defer></script>
+  <script src="js/corpus.js?v=20261004a" defer></script>
 <style>
   /* 长难句 / 错题本 样式（原 errorbook.html 内联） */
   .eb-input{width:100%;min-height:190px;padding:14px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;font-size:14.5px;line-height:1.75;background:var(--bg);color:var(--ink);resize:vertical}
@@ -100,6 +100,29 @@
   .eb-long-s{font-size:14px;font-weight:600;color:var(--ink);line-height:1.6}
   .eb-long-a{font-size:13.5px;color:var(--muted);margin-top:3px;line-height:1.7}
 
+  /* ===== 10/4 01:30 语料表 B 版（她 23:37 选 B）：表格 → 双栏卡列表 =====
+     表格左中文右英文在 375px 下每列只剩 ~150px，雅思长难句被压成竖排。
+     卡片：上行中文、下行英文、右上删除；≤560 上下堆叠更易读。
+     桌面保持「中文左英文右」的双栏观感。 */
+  .cc-list{display:flex;flex-direction:column;gap:9px}
+  .cc-card{position:relative;display:flex;gap:12px;align-items:flex-start;
+    background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .cc-card .cc-body{flex:1;min-width:0;display:flex;gap:14px;align-items:baseline}
+  .cc-card .cc-cn{flex:1 1 46%;font-size:14px;line-height:1.7;color:var(--ink);word-break:break-word}
+  .cc-card .cc-en{flex:1 1 54%;font-size:14px;line-height:1.7;color:var(--ink-2);word-break:break-word}
+  .cc-card .cc-del{flex:none;width:36px;height:36px;border-radius:9px;border:1px solid var(--line);
+    background:var(--surface);color:var(--muted);display:grid;place-items:center;cursor:pointer;transition:.15s}
+  .cc-card .cc-del svg{width:15px;height:15px}
+  .cc-card .cc-del:hover{color:var(--danger);border-color:var(--danger);background:var(--danger-soft,var(--n-50))}
+  @media (max-width:560px){
+    .cc-card{flex-wrap:wrap;padding:11px 12px}
+    .cc-card .cc-body{flex-direction:column;gap:5px;width:100%}
+    .cc-card .cc-cn{flex:none;width:100%}
+    .cc-card .cc-en{flex:none;width:100%;color:var(--muted)}
+    /* 删除按钮改绝对定位右上角，44px 触控 */
+    .cc-card .cc-del{position:absolute;right:9px;top:9px;width:44px;height:44px;margin:0}
+    .cc-card .cc-body{padding-right:46px}
+  }
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
