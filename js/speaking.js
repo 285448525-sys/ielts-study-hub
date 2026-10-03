@@ -774,33 +774,40 @@ function openDetail(id){
     const storyHas = !!__p2a.aiStoryLink;
     const p3Has = !!(__p2a.p3 && Array.isArray(__p2a.p3.questions) && __p2a.p3.questions.length);
     const linkLabel = storyHas ? '重新生成串题思路' : 'AI 串题思路';
+    /*10/3 B 版（她 21:23 拍板）：「更多工具」灰盒整个拆掉，两个工具做成**并排两张常驻卡**。
+       ① 删「句型参考」整组（她说用不上；数据文件 patterns.json 不删，将来想恢复再加回来）
+       ② 「AI 串题思路」不再折叠 —— 它是写 P2 时最常用的功能，藏起来最亏
+       ③ 「P3 深度追问」不再折叠，提为常驻紫色卡（#p3Area 本来就在详情页容器内，与折叠无关）
+       所有业务 id 一律保留：aiStoryLinkBtn / aiResult / p3GenBtn / p3Area / p3List / p3NextWrap / p3NextBtn / p3SaveWrap / p3SaveBtn */
     html += '<div class="sp-tools-wrap" id="p2ToolsWrap">';
-    html += '<div class="sp-tools-title">🧰 更多工具（串题思路 · P3 追问 · 句型参考）</div>';
-    // 分组 A「AI 串题思路」：按钮留在 summary 上，收起时也能直接点；id 一律不变只挪位置
-    html += '<details class="sp-tool-group" id="p2ToolA"' + (storyHas ? ' open' : '') + '>';
-    html += '<summary class="sp-tool-summary"><span class="sp-tool-caret">▶</span><span class="sp-tool-name">AI 串题思路</span><span class="sp-tool-act"><button class="btn btn-med" id="aiStoryLinkBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>' + linkLabel + '</button></span></summary>';
-    html += '<div class="sp-tool-body">';
-    html += '<div class="sp-story-head"><span class="sp-story-title">串题素材（逻辑 + 原文）</span></div>';
-    html += '<div class="sp-ai-result" id="aiResult"></div>';
-    html += '</div>';
-    html += '</details>';
-    // 分组 B「P3 深度追问」：生成按钮在 summary，#p3Area 在折叠体内
-    html += '<details class="sp-tool-group" id="p2ToolB"' + (p3Has ? ' open' : '') + '>';
-    html += '<summary class="sp-tool-summary"><span class="sp-tool-caret">▶</span><span class="sp-tool-name">P3 深度追问</span><span class="sp-tool-act"><button class="btn btn-med" id="p3GenBtn" type="button">P3追问</button></span></summary>';
-    html += '<div class="sp-tool-body">';
-    html += '<div class="sp-p3-area" id="p3Area" data-p3-state="idle" hidden>';
-    html += '<div class="sp-p3-head">P3 提问</div>';
-    html += '<div class="sp-p3-list" id="p3List"></div>';
-    html += '<div class="sp-p3-next" id="p3NextWrap" hidden><button class="btn btn-med" id="p3NextBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:14px;height:14px;vertical-align:-2px;margin-right:5px"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>下一道追问</button></div>';
-    html += '<div class="sp-p3-save" id="p3SaveWrap" hidden><button class="btn btn-primary" id="p3SaveBtn" type="button">保存 P3 答案</button></div>';
-    html += '</div>';
-    html += '</div>';
-    html += '</details>';
-    // 分组 C「句型参考」：design/17 3.3 只读面板整体挪入，永远默认收起
-    html += '<details class="sp-tool-group" id="p2ToolC">';
-    html += '<summary class="sp-tool-summary"><span class="sp-tool-caret">▶</span><span class="sp-tool-name">句型参考</span><span class="sp-tool-act"><button class="sp-diag" id="p2SentRefBtn" type="button">查句型</button></span></summary>';
-    html += '<div class="sp-tool-body"><div class="sp-sentref" id="spSentRef" hidden></div></div>';
-    html += '</details>';
+    // 卡 A「AI 串题思路」：常驻，不再是 <details>
+    html += '<section class="sp-tool-card sp-tool-card-a" id="p2ToolA">';
+    html +=   '<div class="sp-tc-head">'
+      +     '<span class="sp-tc-ic">🌿</span>'
+      +     '<b>AI 串题思路</b>'
+      +     '<button class="btn btn-sm" id="aiStoryLinkBtn" type="button">'
+      +       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:14px;height:14px;margin-right:5px"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>'
+      +       escapeHtml(linkLabel)
+      +     '</button>'
+      +   '</div>';
+    html +=   '<div class="sp-tc-hint">把素材卡改写成这道题能用的版本；点一次重新换一个素材角度。</div>';
+    html +=   '<div class="sp-story-head"><span class="sp-story-title">串题素材（逻辑 + 原文）</span></div>';
+    html +=   '<div class="sp-ai-result" id="aiResult"></div>';
+    html += '</section>';
+    // 卡 B「P3 深度追问」：常驻，紫色系（与上方绿色卡区分），逐题追问
+    html += '<section class="sp-tool-card sp-tool-card-p3" id="p2ToolB"' + (p3Has ? ' data-has-p3="1"' : '') + '>';
+    html +=   '<div class="sp-tc-head">'
+      +     '<span class="sp-tc-badge">P3 追问</span>'
+      +     '<span class="sp-tc-sub" id="p3Hint">AI 读你刚讲的故事，一题一题追问</span>'
+      +     '<button class="btn btn-sm btn-p3" id="p3GenBtn" type="button">开始追问</button>'
+      +   '</div>';
+    html +=   '<div class="sp-p3-area" id="p3Area" data-p3-state="idle" hidden>';
+    html +=     '<div class="sp-p3-list" id="p3List"></div>';
+    html +=     '<div class="sp-p3-next" id="p3NextWrap" hidden><button class="btn btn-med" id="p3NextBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:14px;height:14px;vertical-align:-2px;margin-right:5px"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>再追问一题</button></div>';
+    html +=     '<div class="sp-p3-save" id="p3SaveWrap" hidden><button class="btn btn-primary" id="p3SaveBtn" type="button">保存本题</button></div>';
+    html +=     '<div class="sp-p3-exit" id="p3ExitWrap" hidden>不想再追问了？<button class="btn btn-sm" id="p3ExitBtn" type="button">练下一大题 →</button></div>';
+    html +=   '</div>';
+    html += '</section>';
     html += '</div>';
 
     // 动作行：P3追问已收进折叠分组 B（design/82），此处只留 完成/下一大题（右对齐自然收窄）
@@ -841,40 +848,36 @@ function openDetail(id){
     if(nx2) nx2.addEventListener('click', () => gotoNextTopic());
   }
   if(s.type === 'P2'){
-    // design/82：折叠区交互控制（只管展开/收起，不碰业务逻辑函数体）
-    const toolA = document.getElementById('p2ToolA');
-    const toolB = document.getElementById('p2ToolB');
-    const toolC = document.getElementById('p2ToolC');
-    // summary/分组内的按钮点击不得触发 details 折叠（preventDefault 取消 summary 默认 toggle；
-    // 委托到分组容器上，动态插入的「取消」按钮同样覆盖）
-    [toolA, toolB, toolC].forEach(g => {
-      if(g) g.addEventListener('click', e => {
-        if(e.target && e.target.closest && e.target.closest('button')) e.preventDefault();
-      });
-    });
+    /* 10/3 B 版（她 21:23 拍板）：「更多工具」灰盒拆掉，两个工具改成**并排常驻卡**（<section> 不是 <details>），
+       「句型参考」整组删除（data/patterns.json 数据文件保留，将来想恢复再加回来）。
+       —— 所以下面不再需要 toolA.open / toolB.open 的「展开分组」兜底，只保留「结果自动滚到可见」。 */
     const aiStoryLinkBtn = document.getElementById('aiStoryLinkBtn');
-    if(aiStoryLinkBtn) aiStoryLinkBtn.addEventListener('click', () => {
-      if(toolA) toolA.open = true;   // design/82：发起前先展开分组 A
-      aiStoryLink(id);
-    });
-    // 结果区渲染出内容（成功稿 / 无 Key 引导 / 无素材引导 / 失败提示）且分组还收着 → 自动展开并滚到可见
+    if(aiStoryLinkBtn) aiStoryLinkBtn.addEventListener('click', () => { aiStoryLink(id); });
+    // 串题结果渲染出内容（成稿 / 无 Key 引导 / 无素材引导 / 失败提示）→ 自动滚到可见（卡常驻，不存在"还收着"的情况）
     const aiRes = document.getElementById('aiResult');
-    if(toolA && aiRes){
+    if(aiRes){
+      let __lastChildN = 0;
       new MutationObserver(() => {
         if(!aiRes.childNodes.length) return;
-        if(!toolA.open){ toolA.open = true; aiRes.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
+        if(aiRes.childNodes.length !== __lastChildN){
+          __lastChildN = aiRes.childNodes.length;
+          aiRes.scrollIntoView({ behavior:'smooth', block:'nearest' });
+        }
       }).observe(aiRes, { childList: true });
     }
-    // 新 P3 题 / P3 引导卡渲染进 #p3List 且分组还收着 → 自动展开分组 B 并滚到 P3 区
+    // 新 P3 题 / 引导卡渲染进 #p3List → 自动滚到 P3 区
     const p3AreaEl = document.getElementById('p3Area');
     const p3ListEl = document.getElementById('p3List');
-    if(toolB && p3AreaEl && p3ListEl){
+    if(p3AreaEl && p3ListEl){
       new MutationObserver(() => {
         if(!p3ListEl.childNodes.length) return;
-        if(!toolB.open){ toolB.open = true; p3AreaEl.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
+        p3AreaEl.scrollIntoView({ behavior:'smooth', block:'nearest' });
       }).observe(p3ListEl, { childList: true });
     }
-    // design/17 3.3：备注框防抖保存（600ms → hubSave）+ 查句型面板开关
+    /* 10/3 B 版：P3 卡底部「不想再追问了？→ 练下一大题」出口（她 21:26 拍板要的第二个动作） */
+    const p3ExitBtn = document.getElementById('p3ExitBtn');
+    if(p3ExitBtn) p3ExitBtn.addEventListener('click', () => { gotoNextTopic(); });
+    // 备注框防抖保存（600ms → hubSave）
     const note = document.getElementById('p2Note');
     if(note){
       let __nt = null;
@@ -889,12 +892,6 @@ function openDetail(id){
         }, 600);
       });
     }
-    const srb = document.getElementById('p2SentRefBtn');
-    if(srb) srb.addEventListener('click', e => {
-      e.stopPropagation();
-      if(toolC) toolC.open = true;   // design/82：点查句型先展开分组 C，面板显示逻辑不变
-      spSentRefToggle();
-    });
   }
 
   // 逐题展开 + 语音 + AI 诊断 事件绑定（含 localStorage 回填）
@@ -985,10 +982,26 @@ function openDetail(id){
       const area = $('#p3Area'); if(area){ area.hidden = false; area.dataset.p3State = 'generated'; }
       const saveWrap = $('#p3SaveWrap'); if(saveWrap) saveWrap.hidden = false;
       const bottom = $('#p2BottomBar'); if(bottom) bottom.hidden = false;
-      // 已生成过题：「P3追问」按钮变为「重新生成 P3」，提示可重出
+      /* 10/3 B 版：底部「练下一大题」出口（她 21:26 拍板：「也可以选择直接练下一题」）。
+         每出一题都常驻可见 —— 答完当前题后两个出口并排：再追问一题 / 练下一大题。 */
+      const exitWrap = $('#p3ExitWrap'); if(exitWrap) exitWrap.hidden = false;
+      // 已生成过题：按钮变「重新生成 P3」，提示可重出
       const genBtn = $('#p3GenBtn');
       if(genBtn && area && area.dataset.p3State === 'generated'){
-        genBtn.textContent = '重新生成 P3';
+        genBtn.textContent = '重新生成';
+      }
+      // 顶栏提示更新为「已答 N 题」（她要能知道 AI 准备了几个、还剩几个）
+      /* ⚠️ p3.questions / p3.answers 的真实格式是【字符串数组】（见保存处 answers.push(ta.value)），
+         这里必须按字符串读；早先误按对象 a.text / q.q 统计，真实数据下恒为 0，提示永远退回默认文案。 */
+      const hint = $('#p3Hint');
+      if(hint){
+        const p3 = ensureP3();
+        const txtOf = v => (typeof v === 'string' ? v : (v && (v.text || v.q)) ) || '';
+        const answered = p3.answers.filter(a => String(txtOf(a)).trim()).length;
+        const total = p3.questions.filter(q => String(txtOf(q)).trim()).length;
+        hint.textContent = answered
+          ? ('已答 ' + answered + ' 题' + (total > answered ? '，这次共 ' + total + ' 题' : ''))
+          : 'AI 读你刚讲的故事，一题一题追问';
       }
     }
     function updateP3NextBtn(){
@@ -1132,18 +1145,13 @@ function openDetail(id){
       if(s.answers.p2.aiStoryLink){
         renderStoryLinkV2($('#aiResult'), s.answers.p2.aiStoryLink, s);
       }
-      // 回填已生成的 P3 追问列表 + 答案
+      /* 回填已生成的 P3 追问列表 + 答案。
+         10/3 B 版：统一走 showP3Area()（原先这里手抄了一份显示逻辑，漏掉了「已答 N 题」提示
+         和「练下一大题」出口 —— 有存量 P3 数据时这两个不显示，是同一根因）。 */
       if(s.answers.p2.p3 && Array.isArray(s.answers.p2.p3.questions) && s.answers.p2.p3.questions.length){
         renderP3All(s, $('#p3List'));
         updateP3NextBtn();
-        const saveWrap = $('#p3SaveWrap');
-        if(saveWrap) saveWrap.hidden = false;
-        const area = $('#p3Area');
-        if(area){ area.hidden = false; area.dataset.p3State = 'generated'; }
-        const genBtn = $('#p3GenBtn');
-        if(genBtn) genBtn.textContent = '重新生成 P3';
-        const bottom = $('#p2BottomBar');
-        if(bottom) bottom.hidden = false;
+        showP3Area();
       }
     }
     // design/87 草稿恢复：阶段一已跑（补槽中/成稿前）→ 打开详情即恢复草稿态，不重复调 AI。
@@ -1167,47 +1175,6 @@ function openDetail(id){
   }
 }
 
-/* === design/17 3.3：P2 卡「查句型」只读面板 + 「去练该类」跳转 ===
-   数据优先取 window.__sentBankCache（sentence-drill.js 排在 speaking.js 之前已缓存）；
-   为空则自行 fetch（try/catch 失败 toast 不崩）。面板只读：7 类名 + cn→right 清单 + 去练入口。 */
-async function spSentRefToggle(){
-  const panel = document.getElementById('spSentRef');
-  if(!panel) return;
-  if(!panel.hidden){ panel.hidden = true; return; }
-  panel.hidden = false;
-  if(panel.dataset.loaded === '1') return;
-  panel.innerHTML = '<div class="sp-sentref-loading">句型库加载中…</div>';
-  let bank = window.__sentBankCache;
-  if(!bank || !bank.cats || !bank.cats.length){
-    try{
-      const r = await fetch('data/sentences.json?v=20260912b');
-      bank = await r.json();
-      if(bank && bank.cats) window.__sentBankCache = bank;    // 回填全局缓存
-    }catch(e){
-      panel.innerHTML = '<div class="sp-sentref-loading">句型库加载失败，稍后再试</div>';
-      toast('句型库加载失败');
-      return;
-    }
-  }
-  if(!bank || !bank.cats || !bank.cats.length){
-    panel.innerHTML = '<div class="sp-sentref-loading">句型库为空</div>';
-    return;
-  }
-  let h = '';
-  bank.cats.forEach(cat => {
-    h += '<div class="sp-sentref-cat"><div class="sp-sentref-catname">' + escapeHtml(cat.name) + '</div>';
-    cat.sentences.forEach(s => {
-      h += '<div class="sp-sentref-row"><div class="sp-sentref-cn">' + escapeHtml(s.cn) + '</div>'
-        + '<div class="sp-sentref-en">' + escapeHtml(s.right) + '</div></div>';
-    });
-    h += '<div class="sp-sentref-go" data-sentref-go="' + escapeHtml(cat.id) + '">去练该类 →</div></div>';
-  });
-  panel.innerHTML = h;
-  panel.dataset.loaded = '1';
-  panel.querySelectorAll('[data-sentref-go]').forEach(el => {
-    el.addEventListener('click', () => spGoPracticeCat(el.getAttribute('data-sentref-go')));
-  });
-}
 function spGoPracticeCat(catId){
   // 显隐对齐 PRACTICE tab 逻辑（speaking.js ready 里同款），并展开该类重渲染
   spActivateTab('PRACTICE');
