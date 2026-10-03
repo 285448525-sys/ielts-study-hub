@@ -1100,8 +1100,8 @@ function renderDiagEntry(){
     + '<button type="button" id="dgRedo" class="dg-text-btn">重新诊断</button></div>'
     + '<div class="dg-verdict dg-v-' + r.verdict.k + '">' + escapeHtml(r.verdict.text) + '</div>'
     + '<div class="dg-chips">' + chips + '</div>'
-    + (d.plan ? '<div class="dg-planline"><span class="dg-planline-ic">🗓</span>已生成 '
-      + d.plan.days + ' 天计划 · ' + planMd(d.plan.firstDate) + ' 起 · ' + d.plan.tasks + ' 个任务'
+    + (d.plan ? '<div class="dg-planline"><span class="dg-planline-ic">🗓</span><span class="dg-planline-txt">已生成 '
+      + d.plan.days + ' 天计划 · ' + planMd(d.plan.firstDate) + ' 起 · ' + d.plan.tasks + ' 个任务</span>'
       + '<button type="button" id="dgGoToday" class="dg-text-btn">去今日任务</button></div>' : '')
     + '<button type="button" id="dgView" class="btn-primary dg-block-btn">查看完整诊断报告</button>'
     + '</div>';

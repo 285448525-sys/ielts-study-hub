@@ -42,7 +42,7 @@
 <script defer src="js/data.js?v=20261003a"></script>
   <script defer src="js/common.js?v=20261003e"></script>
   <script defer src="js/feedback.js?v=20261002b"></script>
-  <script src="js/plans.js?v=20261002f" defer></script>
+  <script src="js/plans.js?v=20261003a" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -161,7 +161,16 @@
 #diagOverlay .dg-plan-note{font-size:11.5px;color:var(--muted);text-align:center;margin-top:8px;line-height:1.6}
 #diagRoot .dg-planline{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:13px;color:var(--ink);background:rgba(58,154,147,.08);border:1px solid rgba(58,154,147,.25);border-radius:var(--radius-sm);padding:8px 12px;margin:0 0 12px}
 #diagRoot .dg-planline-ic{flex:none}
-#diagRoot .dg-planline .dg-text-btn{margin-left:auto;padding:2px 8px}
+#diagRoot .dg-planline-txt{flex:1 1 auto;min-width:0}
+/* 10/3 P0 修「按钮交互不了」：.dg-text-btn 基类 width:100%（第62行），进flex 行后抢满整行
+   宽度 → 文字被挤到第一行、按钮自己wrap 到第二行居中，25px 高灰字下划线，完全不像可点。
+   改回内容宽 + 44px 触控命中区 + 不换行，视觉上与「查看完整诊断报告」明确区分。 */
+#diagRoot .dg-planline .dg-text-btn{flex:none;width:auto;margin:0 0 0 auto;padding:0 14px;min-height:44px;display:inline-flex;align-items:center;white-space:nowrap;border-radius:var(--radius-sm);background:var(--surface);color:var(--primary-700);border:1px solid rgba(58,154,147,.4);text-decoration:none;font-weight:600}
+#diagRoot .dg-planline .dg-text-btn:hover{background:var(--primary-50)}
+#diagRoot .dg-planline .dg-text-btn:active{background:var(--primary-100)}
+@media (max-width:420px){
+  #diagRoot .dg-planline .dg-text-btn{width:100%;margin:0;justify-content:center}
+}
 /* ===== 每日重排工具条 + gen 任务行跳转（commit4）：#ptabToday/#rbBar/#rbStale 作用域，压表单重置 ===== */
 #ptabToday .plan-item.jumpable{cursor:pointer;border-radius:var(--radius-sm);margin:0 -6px;padding-left:6px;padding-right:6px}
 #ptabToday .plan-item.jumpable:hover{background:var(--primary-soft)}
