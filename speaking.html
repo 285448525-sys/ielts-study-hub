@@ -51,7 +51,7 @@
   <!-- 10/3 头像选择：必须在 coach.js 之前（陪练气泡头像渲染时就要读 window.avUserSrc） -->
   <script defer src="js/av-picker.js?v=20261003a"></script>
   <script defer src="js/coach.js?v=20261003d"></script>
-  <script defer src="js/speaking.js?v=20261003b"></script>
+  <script defer src="js/speaking.js?v=20261003c"></script>
   <script defer src="js/materials.js?v=20261002b"></script>
   <script defer src="js/mock-report.js?v=20260830u"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
@@ -323,6 +323,10 @@
   }
   .diag-score-item.pending{background:transparent;border:1px dashed var(--line)}
   .diag-score-item.pending .diag-score-num{color:var(--muted)}
+  /* 10/3：AI 漏给某一维时的新状态（区别于 pending 的「待录音」——那是永久评不了，这个是可重试的偶发） */
+  .diag-score-item.missing{background:transparent;border:1px dashed var(--warn-ink)}
+  .diag-score-item.missing .diag-score-num{color:var(--warn-ink);font-size:14px}
+  .diag-score-item.missing .diag-score-lab{color:var(--warn-ink);white-space:normal}
   .diag-score-num{font-size:19px;font-weight:700;color:var(--primary);line-height:1.1}
   .diag-score-lab{font-size:10.5px;color:var(--muted);text-align:center;white-space:nowrap}
   .diag-score-basis{

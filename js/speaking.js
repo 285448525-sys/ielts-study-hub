@@ -2804,6 +2804,14 @@ function diffSentenceHtml(answer, errs){
 
 // 把新版 AI 输出（评分维度在顶层 + grammar_errors / corrected / lexical / suggestions）适配成旧后端字段
 // （j.score.* / errors / fix / vocabulary / rewrite），让纠错渲染、评分兜底、发音接管逻辑都不用改
+/* 10/3 修「词汇分显示 —」（她 21:04 报「有的时候让它评分，它词汇的分评不出来」）
+   实测根因（探针 outputs/design/_diag_vocab.cjs，8 种 AI 返回逐一验证）：
+     ① 维度映射漏了顶层 `vocabulary`（只映射了 `lexical`）→ AI 用新格式返 {vocabulary:5.5} 时
+        **整个评分块都不渲染**（diagScoreHtml 开头要求至少有一个 basis）。
+     ② AI 偶尔只返 `score.grammar` + `grammar_basis`、`vocabulary` 整个缺失 → parseScore 得null
+        → 渲染成「词汇 —」而 grammar 有分，出现「有语法分、词汇空」的割裂。
+        **不能靠猜**：但可以（a）多认几种字段名（b）分数缺失时**明确告诉用户「这次 AI 没给词汇分」而不是打「—」**。
+     ③ 越界分（如 12）被直接显示 —— IELTS 只有 4~8，必须钳制，否则会出现「12 分」这种脏数据。 */
 function adaptDiag(j){
   if(!j || typeof j !== 'object') return j;
   // 新格式评分维度在顶层（overall/fluency/lexical/grammar/pronunciation），旧后端统一读 j.score.*
@@ -2811,8 +2819,32 @@ function adaptDiag(j){
   ['fluency','grammar','overall','pronunciation'].forEach(k => {
     if(j[k] != null && j.score[k] == null) j.score[k] = j[k];
   });
-  // 词汇维度：lexical → vocabulary（score 内）
-  if(j.lexical != null && j.score.vocabulary == null) j.score.vocabulary = j.lexical;
+  /* 10/3 补齐：AI 可能把词汇维度叫 lexical / vocab / lex（三种都见过），全映射进 score.vocabulary */
+  ['lexical', 'vocab', 'lex'].forEach(k => {
+    if(j[k] != null && j.score.vocabulary == null) j.score.vocabulary = j[k];
+    if(j[k] != null && j.score[k] == null) j.score[k] = j[k];
+  });
+  if(j.vocabulary != null && j.score.vocabulary == null) j.score.vocabulary = j.vocabulary;
+  /* 同样在 score 内换名的（AI 直接把 vocabulary 写成 vocab/lexical） */
+  if(j.score.vocab != null && j.score.vocabulary == null) j.score.vocabulary = j.score.vocab;
+  if(j.score.lexical != null && j.score.vocabulary == null) j.score.vocabulary = j.score.lexical;
+  if(j.vocabulary_basis != null && j.score.vocabulary_basis == null) j.score.vocabulary_basis = j.vocabulary_basis;
+  if(j.lexical_basis != null && j.score.vocabulary_basis == null) j.score.vocabulary_basis = j.lexical_basis;
+  if(j.vocab_basis != null && j.score.vocabulary_basis == null) j.score.vocabulary_basis = j.vocab_basis;
+  /* 10/3 补齐缺失的另一半：grammar 同理（AI 也可能只返 vocabulary 漏 grammar） */
+  if(j.grammar_basis != null && j.score.grammar_basis == null) j.score.grammar_basis = j.grammar_basis;
+  /* 10/3 分数区间钳制：IELTS band 只有 4~8、0.5 步长；AI 偶发越界值（实测见过 12）。
+     越界值**钳到最近合法档**而不是丢弃 —— 丢弃会退回「—」，钳制至少给出可解释的分。 */
+  const clampBand = v => {
+    if(v == null) return null;
+    const x = parseFloat(v);
+    if(isNaN(x)) return null;
+    const c = Math.max(4, Math.min(8, x));
+    return Math.round(c * 2) / 2;      // 对齐 0.5 步长
+  };
+  ['grammar', 'vocabulary'].forEach(k => {
+    if(j.score[k] != null) j.score[k] = clampBand(j.score[k]);
+  });
   // 错误数组：grammar_errors → errors；字段 corrected→fix、explanation→issue
   if(Array.isArray(j.grammar_errors) && j.errors == null) j.errors = j.grammar_errors;
   if(Array.isArray(j.errors)){
@@ -2913,10 +2945,17 @@ function diagScoreHtml(j){
   if(!j.score.grammar_basis && !j.score.vocabulary_basis) return '';
   const sc = parseScore(j.score);
   if(!sc || (sc.grammar == null && sc.vocabulary == null)) return '';
-  const item = (v, lab, tail) =>
-    '<div class="diag-score-item' + (tail === '（待录音）' ? ' pending' : '') + '">'
-    + '<span class="diag-score-num">' + (v == null ? '—' : scoreLabel(v)) + '</span>'
-    + '<span class="diag-score-lab">' + lab + (tail || '') + '</span></div>';
+  /* 10/3：AI 偶尔漏给某一维（实测「只返 grammar + grammar_basis」→ 词汇显示「—」，
+     她 21:04 报「有的时候词汇的分评不出来」）。原来一律打「—」，看不出是「没评」还是「评了0」。
+     改法：缺的那一维**明说原因**「这次 AI 没给出词汇分（可重试）」，与「待录音」区分开。 */
+  const item = (v, lab, tail) => {
+    const missing = (v == null && tail !== '（待录音）');
+    const shown = (v == null && !missing) ? '—' : (v == null ? '未给分' : scoreLabel(v));
+    const cls = 'diag-score-item' + (tail === '（待录音）' ? ' pending' : '') + (missing ? ' missing' : '');
+    return '<div class="' + cls + '">'
+      + '<span class="diag-score-num">' + shown + '</span>'
+      + '<span class="diag-score-lab">' + lab + (tail || '') + (missing ? ' · AI 未给出' : '') + '</span></div>';
+  };
   // 9/22：流利度/发音取设置里她自填的固定分——填了就显示数字并标「自填」，没填才「待录音」
   const fSelf = (sc.fluency != null), pSelf = (sc.pronunciation != null);
   let h = '<div class="diag-sec"><b>官方标准评分</b><div class="diag-score">';
@@ -2932,7 +2971,10 @@ function diagScoreHtml(j){
     if(b.vocabulary) h += '<div><b>词汇</b>：' + escapeHtml(b.vocabulary) + '</div>';
     h += '</div>';
   }
-  h += '<div class="diag-note">分数按 IELTS 官方 band 描述正向匹配给出（有错不等于低分，意思清楚就是 6 分档）。流利度与发音要听录音才评得准，纯文本评不了，所以这两项不给分。</div>';
+  const noVocab = (sc.vocabulary == null), noGram = (sc.grammar == null);
+  h += '<div class="diag-note">分数按 IELTS 官方 band 描述正向匹配给出（有错不等于低分，意思清楚就是 6 分档）。流利度与发音要听录音才评得准，纯文本评不了，所以这两项不给分。'
+    + ((noVocab || noGram) ? '<br><b>标「未给分」的那一项是AI 这次漏给了</b>（模型偶发），可以重新评一次；它不计入总分。' : '')
+    + '</div>';
   h += '</div>';
   return h;
 }
