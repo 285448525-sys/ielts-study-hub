@@ -31,7 +31,7 @@
 })();
 </script>
 <title>口语 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261003e" />
+<link rel="stylesheet" href="css/common.css?v=20261003f" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -131,15 +131,15 @@
   .sent-tag{font-size:12.5px;color:var(--muted);margin-bottom:8px}
   .sent-cn{font-size:21px;font-weight:700;color:var(--ink);line-height:1.55;letter-spacing:-.01em;margin-bottom:16px}
   .sent-orig{font-size:15.5px;line-height:1.8;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px;word-break:break-word}
-  .sent-err{color:#ef4444;font-weight:600}
+  .sent-err{color:var(--danger);font-weight:600}
   .sent-err sup{font-size:10px;font-weight:700}
   .sent-err-note{font-size:12.5px;color:var(--muted);line-height:1.7;margin-bottom:2px}
-  .sent-err-note sup{font-size:10px;color:#ef4444;font-weight:700;margin-right:2px}
+  .sent-err-note sup{font-size:10px;color:var(--danger);font-weight:700;margin-right:2px}
   .sent-right{font-size:14px;line-height:1.7;color:var(--ink);margin:8px 0 2px}
   .sent-formula{font-size:13.5px;color:var(--primary);font-weight:600;margin:6px 0 2px;line-height:1.6}
   .sent-note{font-size:13px;color:var(--muted);line-height:1.7;margin:4px 0 0}
   .sent-fix{font-size:13.5px;color:var(--ink);line-height:1.7;margin-bottom:8px}
-  .sent-misread{font-size:13.5px;line-height:1.7;color:#92400e;background:#fff7ed;border:1px solid #fdba74;border-radius:8px;padding:8px 12px;margin-bottom:8px}
+  .sent-misread{font-size:13.5px;line-height:1.7;color:var(--warn-ink);background:var(--warn-soft);border:1px solid rgba(255,149,0,.3);border-radius:8px;padding:8px 12px;margin-bottom:8px}
   /* 「我的语法错题」整模块 10/1 下线（她拍板）：.sent-del/.sent-fixtask*/.diag-collect* 死样式已随功能删除 */
   /* === design/17 P1：薄弱条 / 全部重练 / 拼接验证弹窗 / 查句型面板 / 备注框 === */
   .sent-weak{display:flex;align-items:center;gap:6px;padding:10px 14px;margin-bottom:12px;background:var(--primary-soft,#eef6f5);border:1px solid var(--line);border-radius:var(--radius);font-size:13.5px;font-weight:600;color:var(--primary,#3a9a93);cursor:pointer;transition:all .15s}
@@ -479,7 +479,7 @@
   .mat-link-nokey{font-size:12.5px;color:var(--warn-ink)}
   .mat-outline{margin-top:8px}
   .mat-outline-loading,.mat-outline-err{font-size:13px;color:var(--muted)}
-  .mat-outline-err{color:#b3261e}
+  .mat-outline-err{color:var(--err-text)}
   .mat-outline-head{font-size:13px;font-weight:700;color:var(--med);margin-bottom:4px}
   .mat-outline-list{margin:0;padding-left:20px}
   .mat-outline-list li{font-size:14px;line-height:1.7;color:var(--ink);margin:3px 0}
@@ -534,7 +534,7 @@
   @keyframes matspin{ to{ transform:rotate(360deg); } }
 
   /* 结果页 */
-  .mat-persona{ background:linear-gradient(135deg,var(--primary),#2f7d77); color:#fff; border-radius:var(--radius); padding:16px 18px; margin-bottom:16px; box-shadow:var(--shadow); }
+  .mat-persona{ background:linear-gradient(135deg,var(--primary),var(--primary-600)); color:#fff; border-radius:var(--radius); padding:16px 18px; margin-bottom:16px; box-shadow:var(--shadow); }
   .mat-persona h3{ margin:0 0 8px; font-size:14px; opacity:.85; font-weight:600; }
   .mat-persona .pp-line{ font-size:15px; line-height:1.7; }
   .mat-persona .pp-tags{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
@@ -628,7 +628,7 @@
   .mat-gap-topic{ font-weight:700; color:var(--primary); }
   .mat-gap-q .mat-q-head{ font-size:14px; font-weight:600; color:var(--ink); line-height:1.6; }
   .mat-cov-badge{ font-size:11px; padding:1px 6px; border-radius:6px; margin-right:4px; }
-  .mat-cov-badge.loose{ background:#fef3c7; color:#92400e; }
+  .mat-cov-badge.loose{ background:var(--warn-soft); color:var(--warn-ink); }
   .mat-cov-badge.nat{ background:var(--primary-soft); color:var(--primary); }
   .mat-cov-note{ display:block; font-size:11.5px; color:var(--muted); margin-top:2px; }
   [data-theme="dark"] .mat-story-en{ background:var(--surface); color:var(--ink); }
@@ -813,7 +813,7 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
 @keyframes me-breathe{0%,100%{box-shadow:inset 0 0 0 2px rgba(58,154,147,0)}50%{box-shadow:inset 0 0 0 2px rgba(58,154,147,.4)}}
 .me-video img{width:100%;height:100%;object-fit:cover;display:block;user-select:none;-webkit-user-drag:none}
 .me-live{position:absolute;top:10px;left:10px;z-index:3;display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:rgba(15,23,42,.55);color:#fff;font-size:11px;font-weight:700;letter-spacing:.08em;backdrop-filter:blur(4px)}
-.me-live-dot{width:7px;height:7px;border-radius:50%;background:#ef4444;animation:me-blink 1.6s ease infinite}
+.me-live-dot{width:7px;height:7px;border-radius:50%;background:var(--danger);animation:me-blink 1.6s ease infinite}
 @keyframes me-blink{0%,100%{opacity:1}50%{opacity:.3}}
 .me-state{position:absolute;bottom:10px;left:10px;z-index:3;padding:3px 11px;border-radius:999px;background:rgba(15,23,42,.55);color:#fff;font-size:11.5px;font-weight:600;backdrop-filter:blur(4px)}
 .me-state:empty{display:none}
@@ -835,7 +835,7 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
 #mockStage .mock-timer{display:inline-flex;align-items:center;gap:6px;width:auto;margin:12px 0 0;align-self:flex-start;padding:4px 13px;border-radius:999px;background:var(--bg);border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--muted)}
 #mockStage .mock-timer svg{width:14px;height:14px}
 #mockStage .mock-timer #mockTimer{font-variant-numeric:tabular-nums;letter-spacing:.02em}
-#mockStage .mock-timer.low{color:#dc2626;border-color:rgba(220,38,38,.45);background:rgba(220,38,38,.06)}
+#mockStage .mock-timer.low{color:var(--danger);border-color:rgba(224,52,44,.45);background:rgba(224,52,44,.06)}
 @media(prefers-reduced-motion:reduce){
   .me-video::before,.me-live-dot{animation:none}
 }
