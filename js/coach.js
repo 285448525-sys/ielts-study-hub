@@ -204,10 +204,12 @@ window.__COACH_ON = true;
   function scrollBottom(){
     var sc = $('coachScroll');
     if(!sc) return;
-    /* ≤860 App Shell 下滚的是 main.container，桌面是 window（v1 已验证） */
-    var main = sc.closest ? sc.closest('main.container') : null;
-    if(main && main.scrollHeight > main.clientHeight) main.scrollTop = main.scrollHeight;
-    try{ window.scrollTo(0, document.documentElement.scrollHeight); }catch(_){}
+    /* 10/3 22:06：滚动容器已改为 #coachScroll 自己（区间自滚）。
+       旧实现滚的是 main.container / window —— 现在那两个都不再是滚动容器，
+       继续用它们会导致「消息追加了但视图不动」。保持 window 兜底（移动端键盘弹起时）。 */
+    try{ sc.scrollTop = sc.scrollHeight; }catch(_){}
+    /* 展开右栏/折叠右栏后高度变了，必须再滚一次贴底 */
+    try{ layoutCoach(); sc.scrollTop = sc.scrollHeight; }catch(_){}
   }
   function appendHtml(html){
     var sc = $('coachScroll');
@@ -441,7 +443,9 @@ function userHtml(text){
     ctxTimer = setInterval(renderCtx, 1000);
   }
   function ctxTouch(){ ctxStart(); renderCtx(); }
-  /* 折叠状态：复用站内存量DATA.settings.coachCtxCollapsed + hubSave()，与侧边栏收起同一套云同步机制 */
+  /* 折叠状态：复用站内存量DATA.settings.coachCtxCollapsed + hubSave()，与侧边栏收起同一套云同步机制。
+     10/3 22:06：折叠态 CSS 从「40px 白条」改成 display:none（她嫌那条白条怪），
+     入口改到顶栏 #coachMemBtn —— 它的文案与 aria-expanded 随状态翻转。 */
   function ctxApplyState(){
     var col = !!DATA.settings.coachCtxCollapsed;
     var aside = $('coachCtx'); if(!aside) return;
@@ -449,10 +453,20 @@ function userHtml(text){
     var btn = $('coachCtxToggle');
     if(btn){
       btn.setAttribute('aria-expanded', col ? 'false' : 'true');
-      /* B 版：折叠按钮收进面板头部（不再是面板顶部的独立一行竖排文字），
-         折叠态按钮转 90° 竖排以适配 40px 窄条 */
-      btn.textContent = col ? '展开' : '收起';
+      btn.textContent = '收起';
     }
+    /* 顶栏按钮：折叠时提示可展开、展开时提示可收回
+       —— ≤860 右栏整体隐藏，按钮改为「记忆」入口，文案跟着变（否则点开是空的）。 */
+    var top = $('coachMemBtn');
+    if(top){
+      var narrow = window.matchMedia('(max-width:860px)').matches;
+      top.setAttribute('aria-expanded', col ? 'false' : 'true');
+      var label = top.querySelector('.coach-mem-label');
+      if(label) label.textContent = narrow ? '它记住的事' : '本轮教练台';
+      var caret = top.querySelector('.coach-mem-caret');
+      if(caret) caret.textContent = (col || narrow) ? '›' : '‹';
+    }
+    layoutCoach();
   }
   function ctxToggle(){
     DATA.settings.coachCtxCollapsed = !DATA.settings.coachCtxCollapsed;
@@ -465,8 +479,41 @@ function userHtml(text){
     renderCtx();
     var btn = $('coachCtxToggle');
     if(btn) btn.addEventListener('click', ctxToggle);
+    /* 顶栏按钮：桌面 = 右栏开关；≤860 右栏整体隐藏（CSS display:none），
+       点它开关没意义 → 改成打开长期记忆弹层。这是 10/3 22:06 才有的分流，
+       之前移动端点「它记住 N 件事」正是靠它开弹层，改造后不能把这个能力弄丢。 */
+    var mqNarrow = window.matchMedia('(max-width:860px)');
+    function topBtnOn(){
+      if(mqNarrow.matches){ openMem(); return; }
+      ctxToggle();
+    }
+    if(mqNarrow.addEventListener) mqNarrow.addEventListener('change', ctxApplyState);
+    var top = $('coachMemBtn');
+    if(top) top.addEventListener('click', topBtnOn);
     var more = $('coachCtxMore');
     if(more) more.addEventListener('click', openMem);
+    window.addEventListener('resize', layoutCoach);
+  }
+
+  /* 10/3 22:06：把 #coachView 限成「视口 - 顶栏实测高 - 输入条 - 净空」，
+     让 #coachScroll 成为真正的滚动容器（CSS 静态兜底已写，此处按实测值校正，
+     顶栏高度随视口/字体/缩放变化，写死会在某些窗口里又滑到底）。
+     —— 只在陪练可见时算，避免隐藏态 getBoundingClientRect 全是 0。 */
+  function layoutCoach(){
+    var view = $('coachView');
+    if(!view || view.hidden || !view.offsetParent) return;
+    var bar = $('coachBar');
+    var topH = 0;
+    var top = $('coachTop');
+    if(top) topH = Math.round(top.getBoundingClientRect().height);
+    var barH = bar ? Math.round(bar.getBoundingClientRect().height) : 69;
+    var cs = getComputedStyle(document.querySelector('main.container') || document.body);
+    var padT = parseInt(cs.paddingTop, 10) || 0;
+    var padB = parseInt(cs.paddingBottom, 10) || 0;
+    var gap = 18;
+    var h = window.innerHeight - padT - padB - topH - barH - gap;
+    if(h < 320) h = 320;
+    view.style.height = h + 'px';
   }
 
   /* ============ 骨架构建（懒：第一次切到陪练 tab 才建，整页生命周期只建一次） ============ */
@@ -491,8 +538,13 @@ function userHtml(text){
       +       '</span>'
       +       '<span class="coach-who-tx"><b>AI 口语陪练</b><span>自由对话</span></span>'
       +     '</div>'
-      /* 「它记住 N 件事」在B 版不再是飘在顶栏的孤立药丸，而是与面板内的记忆列表同一份数据的入口 */
-      +     '<button id="coachMemBtn" type="button" class="coach-mem-btn" aria-haspopup="dialog">它记住 <span id="coachMemN">0</span> 件事</button>'
+      /* 10/3 22:06（她拍板文案「本轮教练台 ›」）：这个按钮现在是右栏的【展开/收回入口】——
+         原先右栏收起时留了 40px 白色竖条当入口，她嫌「怪怪的」像没画完的残件，已删（CSS display:none），
+         入口上移到这里。aria-expanded / aria-controls 指右栏，键盘可达性与原来一致。
+         #coachMemN 保留为隐藏计数（updateMemBtn / renderCtx 会写它，探针也断言它，删了会静默失效）。 */
+      +     '<button id="coachMemBtn" type="button" class="coach-mem-btn" aria-haspopup="dialog"'
+      +       ' aria-controls="coachCtx" aria-expanded="true"><span class="coach-mem-label">本轮教练台</span> <span class="coach-mem-caret" aria-hidden="true">‹</span></button>'
+      +     '<span id="coachMemN" hidden>0</span>'
       +   '</div>'
       +   '<div id="coachScroll" aria-live="polite"></div>'
       +   '<div id="coachBar"><div id="coachBarInner">'
@@ -552,7 +604,9 @@ function userHtml(text){
       if(b) onChip(b.getAttribute('data-chip'));
     });
 
-    $('coachMemBtn').addEventListener('click', openMem);
+    /* 10/3 22:06：删掉这里的 $('coachMemBtn').addEventListener('click', openMem) ——
+       顶栏按钮已改由 initCtx() 的 topBtnOn 接管（桌面=切右栏 / ≤860=开记忆弹层）。
+       两处都绑会导致点一下既折叠右栏又弹记忆弹层（探针截图抓到的现象）。 */
     $('cmpClose').addEventListener('click', closeMem);
     document.querySelector('#coachMemPop .cmp-mask').addEventListener('click', closeMem);
     $('cmpClear').addEventListener('click', function(){
@@ -577,6 +631,10 @@ function userHtml(text){
     st.built = true;
     updateMemBtn();
 
+    /* 10/3 22:06：首屏布局校正延到下一帧 —— initCtx() 里调 layoutCoach 时，
+       本轮的问候气泡/chips 还没进 DOM，高度算不准（会算出一个偏矮的值把内容截掉）。 */
+    requestAnimationFrame(function(){ layoutCoach(); scrollBottom(); });
+
     /* 首次进陪练：本地问候 + chips（不耗 AI 调用） */
     if(!st.greeted){
       st.greeted = true;
@@ -591,5 +649,11 @@ function userHtml(text){
   /* speaking.js 三个 PRACTICE 入口统一调它：首次建骨架，之后只保状态 */
   window.__coachShow = function(){
     if(!st.built || !$('coachWrap')) build();
+    /* 10/3 22:06：软导航切进陪练 tab 后必须重算限高 —— #coachView 隐藏时
+       getBoundingClientRect 全是 0，build() 里算的高度对不上显示后的真实布局。 */
+    else { layoutCoach(); scrollBottom(); }
   };
+  /* 10/3 22:06：把 scrollBottom 挂到 window，供验收探针走真实贴底路径
+     （区间自滚改造后，探针不能再靠 window.scrollTo 模拟）。 */
+  window.__coachScrollBottom = scrollBottom;
 })();

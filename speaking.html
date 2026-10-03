@@ -50,7 +50,7 @@
   <!-- coach 同例：必须在 speaking.js 之前，顶层 window.__COACH_ON 先立，tab 分支才接管得到 -->
   <!-- 10/3 头像选择：必须在 coach.js 之前（陪练气泡头像渲染时就要读 window.avUserSrc） -->
   <script defer src="js/av-picker.js?v=20261003a"></script>
-  <script defer src="js/coach.js?v=20261003d"></script>
+  <script defer src="js/coach.js?v=20261003e"></script>
   <script defer src="js/speaking.js?v=20261003e"></script>
   <script defer src="js/materials.js?v=20261002b"></script>
   <script defer src="js/mock-report.js?v=20260830u"></script>
@@ -1070,12 +1070,21 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
   margin:0 auto;display:flex;
   flex-direction:row;          /* 必须显式写：855 行的 #coachWrap{flex-direction:column} 会继承下来 */
   align-items:stretch;
+  min-height:0;                /* 10/3 22:06：配合区间自滚，必须允许被父级高度压住 */
   max-width:1060px             /* 聊天列 760 + 右栏 274 + gap 26 */
 }
-#coachView #coachCol{
-  flex:1 1 0;min-width:0;max-width:760px;
+/* 10/3 22:06：#coachView / #coachCol / #coachWrap 补 flex 撑高链（区间自滚的前置条件）。
+   —— flex 子项默认 min-height:auto 不许比内容矮，#coachScroll 拿到 flex:1 也仍然会被内容顶开。
+   —— #coachView 的 inline height 由 js/coach.js 的 layoutCoach() 按实测写，
+      这里用 100dvh - 顶栏(96) - 输入条(69) - 净空(16) 作静态兜底。 */
+#coachView{
   display:flex;flex-direction:column;
+  height:calc(100dvh - 96px - 69px - 16px);
+  min-height:360px;
 }
+#coachView #coachWrap{flex:1 1 auto;min-height:0}
+#coachView #coachCol{flex:1 1 0;min-width:0;max-width:760px;min-height:0;display:flex;flex-direction:column}
+#coachView .coach-ctx{min-height:0}   /* 右栏高度跟随 stretch，body 自己内部滚 */
 
 /* ---------- 顶栏：身份 + 记忆入口 ---------- */
 #coachView #coachTop{
@@ -1085,11 +1094,11 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
 }
 #coachView .coach-who{display:flex;align-items:center;gap:9px;min-width:0}
 #coachView .coach-who-av{
-  width:30px;height:30px;border-radius:9px;flex:none;
+  width:40px;height:40px;border-radius:12px;flex:none;   /* 10/3 22:06：30→40px */
   background:linear-gradient(135deg,var(--primary-400),var(--primary-700));
   display:flex;align-items:center;justify-content:center;color:#fff;
 }
-#coachView .coach-who-av svg{width:18px;height:18px}
+#coachView .coach-who-av svg{width:24px;height:24px}
 #coachView .coach-who-tx{min-width:0}
 #coachView .coach-who-tx b{display:block;font-size:13.5px;font-weight:700;color:var(--n-900);line-height:1.25}
 #coachView .coach-who-tx span{display:block;font-size:11px;color:var(--muted);margin-top:1px}
@@ -1101,6 +1110,10 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
   transition:background .15s,border-color .15s;
 }
 #coachView .coach-mem-btn:hover{background:var(--primary-soft);border-color:var(--primary-300)}
+/* 10/3 22:06：顶栏按钮兼作右栏开关，右侧加个指向箭头，收起时朝右 › / 展开时朝左 ‹ */
+#coachView .coach-mem-caret{font-size:14px;line-height:1;margin-left:1px;opacity:.75}
+#coachView .coach-mem-btn[aria-expanded="true"]{background:var(--surface);border-color:var(--n-300);color:var(--n-700)}
+#coachView .coach-mem-btn[aria-expanded="true"]:hover{border-color:var(--primary-300);color:var(--primary-800)}
 
 /* ---------- 右栏：常驻真面板 ---------- */
 #coachView .coach-ctx{
@@ -1108,7 +1121,8 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
   border-left:1px solid var(--line);background:var(--surface);
   padding:0;display:flex;flex-direction:column;
   border-radius:0 var(--radius) var(--radius) 0;
-  max-height:calc(100vh - 96px);
+  /* 10/3 22:06：删掉 max-height:calc(100vh - 96px) —— 高度改由 #coachView 的 inline
+     限高 + align-items:stretch 决定，旧的 100vh 写死值会与之打架导致右栏比聊天列高/矮一截。 */
 }
 #coachView .coach-ctx-head{
   flex:none;display:flex;align-items:center;gap:7px;
@@ -1179,27 +1193,29 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
 }
 #coachView .coach-ctx-hint b{color:var(--primary-800)}
 
-/* ---------- 折叠态 = 40px 竖条：聊天列放开 ---------- */
-#coachView .coach-ctx.coach-ctx-mini{
-  flex:0 0 40px;width:40px;border-radius:0;
-  background:var(--n-50);
-}
+/* ---------- 折叠态 = 【完全消失】（她 10/3 22:06 拍板：删掉那条 40px 白色竖条）
+   —— 原设计是 flex:0 0 40px 窄条 + writing-mode 竖排「展开」二字，她实测报「怪怪的」，
+      白条悬在右边像没画完的残件。改为 display:none：不占任何宽度，聊天列吃满。
+   —— 入口改到顶栏 #coachMemBtn（文案「本轮教练台 ›」），点它展开、再点收回。
+   —— 面板自己的头部仍保留「收起」按钮，两个入口等价。 */
+#coachView .coach-ctx.coach-ctx-mini{display:none}
 #coachView #coachWrap:has(.coach-ctx.coach-ctx-mini){max-width:820px}
 #coachView #coachWrap:has(.coach-ctx.coach-ctx-mini) #coachCol{max-width:100%}
-#coachView .coach-ctx-mini .coach-ctx-head{
-  padding:12px 0;justify-content:center;border-bottom:0;
-}
-#coachView .coach-ctx-mini .coach-ctx-head svg,#coachView .coach-ctx-mini .coach-ctx-head b{display:none}
-#coachView .coach-ctx-mini .coach-ctx-toggle{
-  margin:0;border:0;background:transparent;padding:0;
-  width:100%;height:auto;min-height:44px;
-  writing-mode:vertical-rl;letter-spacing:.08em;font-size:11px;
-}
-#coachView .coach-ctx-mini .coach-ctx-body,
-#coachView .coach-ctx-mini .coach-ctx-hint{display:none}
 
-/* ---------- 聊天流 ---------- */
-#coachView #coachScroll{min-height:40vh;padding:14px 0 12px;gap:13px}
+/* ---------- 聊天流：改为【区内自滚】（10/3 22:06 修她报的「滑不下去、对话显示不全」）
+   —— 根因：#coachView 只有 451px 高（靠 min-height:40vh），内容却渲染到 1118px，
+      溢出后由 window 滚；而底部 #coachBar 是 position:fixed 盖住视口底 69px，
+      聊天区底部只有 12px 让位 → 最后一条气泡被压在输入条下面 459px，滑到底也看不到。
+   —— 修法：#coachView 限高（JS 按「视口 - 顶栏实测高 - 输入条 - 净空」写 inline height，
+      CSS 里这行是静态兜底），#coachScroll 成为唯一滚动容器（flex:1 + min-height:0 + overflow-y:auto），
+      底部只留 14px 内边距（输入条在容器外，不再需要让位）。
+   —— 顶栏与输入条随之固定不动，只有对话在滚 —— 与所有聊天产品的行为一致。 */
+#coachView #coachScroll{
+  flex:1 1 0;min-height:0;
+  overflow-y:auto;overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  padding:14px 4px 14px 0;gap:13px;
+}
 
 /* ---------- 题卡升级：teal 渐变头部条 + P1 徽标 + 真题出处 ---------- */
 #coachView .cq-card{
@@ -1229,10 +1245,10 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
 #coachView .ca-row,#coachView .cu-row,#coachView .cf-row{display:flex;gap:8px;align-items:flex-start;max-width:88%}
 #coachView .cu-row{flex-direction:row-reverse;align-self:flex-end;margin-left:auto}
 #coachView .coach-av{
-  width:26px;height:26px;border-radius:8px;flex:none;
+  width:34px;height:34px;border-radius:11px;flex:none;   /* 10/3 22:06：26→34px（她报「头像可以稍微再大一点」） */
   display:flex;align-items:center;justify-content:center;
 }
-#coachView .coach-av svg{width:15px;height:15px}
+#coachView .coach-av svg{width:19px;height:19px}
 /* 10/3 头像选择：用户气泡里 img 绝对定位盖在兜底人像上，img 没加载出来就自然露出人像（不用 inline onerror） */
 #coachView .coach-av{position:relative}
 #coachView .coach-av-picked .coach-av-user{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block;background:var(--n-100)}
@@ -1270,12 +1286,18 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
   border-radius:12px;padding:4px 4px 4px 13px;box-shadow:var(--shadow);
   transition:border-color .15s,box-shadow .15s;
 }
-#coachView .coach-cbox:focus-within{border-color:var(--primary);box-shadow:0 0 0 3.5px var(--primary-soft)}
+/* 10/3 22:06：focus 光环完全去掉（她 22:06 拍板「完全去掉光环」）。
+   原 :focus-within 的 3.5px teal 外发光实测是【常驻显示】的（focus 前后 boxShadow 值完全一样），
+   与输入框自身边框叠成内外两圈绿，看着像套了个绿框。改为只让边框变 teal，不发光。 */
+#coachView .coach-cbox:focus-within{border-color:var(--primary);box-shadow:var(--shadow)}
 #coachView #coachInput{
   width:100%;border:0;outline:0;resize:none;background:transparent;
   font-family:inherit;font-size:14.5px;line-height:1.5;color:var(--ink);
   padding:8px 0;height:38px;min-height:38px;
 }
+/* 10/3 22:06：focus 时不再给内框加 teal 边框 —— 外层 .coach-cbox 的边框已经变 teal，
+   两处同时变色就是她说的「内圈还有一圈绿」。 */
+#coachView #coachInput:focus{border:0;outline:0;box-shadow:none}
 #coachView #coachInput::placeholder{color:var(--muted)}
 #coachView #coachSend{
   flex:none;height:38px;min-height:38px;border:0;border-radius:9px;background:var(--primary-500);
@@ -1294,11 +1316,17 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
 }
 /* ---------- ≤860 移动端：整体隐藏右栏（退化为单列），dock 5 项与底栏不动 ---------- */
 @media (max-width:860px){
-  #coachView #coachWrap{max-width:760px;display:block}
-  #coachView #coachCol{max-width:100%}
+  /* ⚠️ display:block 下 flex:1 对子项【完全无效】—— 10/3 22:06 首版只把 display 留成 block，
+     导致 #coachCol 拿不到高度、#coachScroll 只剩 24px（探针 clientH=24 实测）。
+     这里必须显式给 #coachCol 一个确定高度（用 #coachView 的 100% - 顶栏高）。 */
+  #coachView #coachWrap{max-width:760px;display:flex;min-height:0;height:100%}
+  #coachView #coachCol{max-width:100%;flex:1 1 auto;min-height:0;height:100%}
   #coachView .coach-ctx{display:none}
-  #coachView #coachScroll{min-height:34vh;padding:12px 0 10px}
-  #coachView #coachTop{padding-bottom:10px}
+  /* 10/3 22:06：移动端右栏整体隐藏，顶栏按钮没有可展开的东西 → 改回「记忆」入口，
+     JS 侧按视口宽度自动切 openMem（见 coach.js initCtx 的 mql）。这里只保证按钮可点。 */
+  #coachView .coach-mem-caret{display:none}
+  #coachView #coachScroll{padding:12px 4px 12px 0}
+  #coachView #coachTop{padding-bottom:10px;flex:none}
   #coachView .cc-row button{height:44px;padding:0 16px}   /* 触控命中区 ≥44px */
   #coachView #coachInput,#coachView #coachSend{height:44px;min-height:44px}
   #coachView #coachBarInner{gap:8px}
