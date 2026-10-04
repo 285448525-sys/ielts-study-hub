@@ -215,12 +215,36 @@ setTimeout(__rvRescue,2500);
   <script defer src="js/feedback.js?v=20261002b"></script>
   <!-- 10/3 头像选择（DiceBear CC0 素材；必须在 data.js/common.js 之后 —— 它读 DATA.settings.avatar） -->
   <script defer src="js/av-picker.js?v=20261004c"></script>
-  <script src="js/settings.js?v=20261003a" defer></script>
+  <script src="js/settings.js?v=20261004a" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
 #bootLoader .ui-loader{margin-bottom:8px}
 @media (prefers-reduced-motion: reduce){#bootLoader .ui-loader-dot,#bootLoader .ui-loader-shadow{animation:none}#bootLoader .ui-loader-dot{top:20px;height:20px;border-radius:50%;transform:none}#bootLoader .ui-loader-shadow{opacity:.5;transform:scaleX(1)}}
+/* ===== 16:45 她 16:40 报「设置页面改了个寂寞，依旧点不动」——修「点了看不出变化」=====
+   诊断（tests/_diag_settings_touch.cjs，真·手指 tap）：四个标签 4/4 切组**全部成功**，
+   事件委托也正常。→ 她手机上跑的是旧版。
+   本批三件事：
+   ① 加一个**常驻版本标记**（右上角极小字），她一眼能自证跑的是哪一版 —— 以后再怀疑缓存不用来回猜。
+   ② 标签按下时给**明确的视觉冲击**（整块变深 + 轻微缩放 + 标签下方指示条滑动），
+      手指点下去立刻有反馈，不会再有「点了像没反应」。
+   ③ 切组后把新面板**从上方淡入**，配合视口归位，形成「换了一屏」的明确感知。 */
+.set-ver{position:absolute;right:16px;top:50%;transform:translateY(-50%) rotate(90deg);transform-origin:center;
+  font-size:9.5px;letter-spacing:.14em;color:rgba(255,255,255,.34);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  pointer-events:none;user-select:none;white-space:nowrap}
+@media(max-width:860px){.set-ver{display:none}}
+#setNavHit{position:absolute;left:0;bottom:0;height:3px;background:var(--primary-500);border-radius:0 0 3px 3px;
+  transition:transform .24s cubic-bezier(.32,.72,.35,1),width .24s cubic-bezier(.32,.72,.35,1);
+  transform-origin:left center;pointer-events:none;z-index:1}
+/* ⚠️ 不要在这里写 `.set-nav{position:relative}` —— 窄屏规则用 `position:sticky`（滑动时
+   始终知道自己在哪一组，16:45 那批加的），改回 relative 会把它降级掉（探针 _verify_mobile4
+   实锤抓到「sticky → relative」回归）。**sticky 本身就是 relative 的超集**，
+   指示条 #setNavHit 的 absolute 定位在 sticky 下同样成立，无需额外声明。 */
+.set-nav-item{transition:background .16s,color .16s,border-color .16s,transform .1s}
+.set-nav-item:active{background:var(--primary-700)!important;color:#fff!important;transform:scale(.94)}
+.set-pane{animation:setPaneIn .22s ease}
+@keyframes setPaneIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){.set-pane{animation:none}#setNavHit{transition:none}}
 </style>
 <meta name="description" content="设置：账号登录、数据云同步、词库导入导出与学习参数。" />
 <link rel="canonical" href="https://ielts-study-hub.pages.dev/settings" />
@@ -251,6 +275,9 @@ setTimeout(__rvRescue,2500);
       <span id="lastSyncTs" class="acct-sub2"></span>
     </div>
     <button class="set-topmore" type="button" data-goto="data">账号与同步 →</button>
+    <!-- 16:45 常驻版本标记（她报「改了个寂寞」后加的自证工具：一眼看出跑的是哪一版，
+         右上角竖排极小字，不干扰视觉；窄屏隐藏因为深绿框本来就窄） -->
+    <span class="set-ver" id="setVer" title="页面版本（排查缓存用）">v1004a</span>
 
     <!-- 头像弹层：挂在顶部状态行内（这里就是定位参照），切到任何一组都能弹出
          （#avatarCard id 保留，av-picker.js 靠它判开关） -->
@@ -281,6 +308,7 @@ setTimeout(__rvRescue,2500);
   <!-- 14:15 她拍板：深绿框下面「设置」标题 + 「共 4 组 · 数据只存在本机…」两行删掉（要清爽） -->
   <div class="set-layout">
     <nav class="set-nav" aria-label="设置分组">
+      <span id="setNavHit" aria-hidden="true"></span>
       <button class="set-nav-item on" type="button" data-goto="profile">个人设置</button>
       <button class="set-nav-item" type="button" data-goto="targets">目标分数</button>
       <button class="set-nav-item" type="button" data-goto="speaking">口语自评</button>
@@ -451,8 +479,17 @@ setTimeout(__rvRescue,2500);
     var hit = false;
     for(var i = 0; i < panes.length; i++){
       var on = panes[i].getAttribute('data-pane') === name;
-      panes[i].hidden = !on;
-      if(on) hit = true;
+      /* 16:45：只切 hidden 会让「窄屏换了一屏」几乎无感 → 命中的面板重播一次入场动画
+         （CSS @keyframes setPaneIn，淡入 + 轻微下移），配合视口归位形成明确「换屏」感知。 */
+      if(on){
+        panes[i].hidden = false;
+        panes[i].style.animation = 'none';
+        void panes[i].offsetWidth;        /* 强制回流，让 animation 能重播 */
+        panes[i].style.animation = '';
+        hit = true;
+      } else {
+        panes[i].hidden = true;
+      }
     }
     if(!hit) return;
     var items = nav.querySelectorAll('.set-nav-item');
@@ -461,6 +498,23 @@ setTimeout(__rvRescue,2500);
       items[j].classList.toggle('on', on2);
       items[j].setAttribute('aria-selected', on2 ? 'true' : 'false');
     }
+    moveHit(name);
+  }
+  /* 16:45：标签下方滑动指示条（微信分段控件同款）。
+     ⚠️ 偏移量算法踩过一次坑：nav 自身有 `padding:8px 14px`，`getBoundingClientRect().x`
+        量到的是**边框盒左缘**，而按钮的 br.left 也是相对视口 —— 直接相减得到的是
+        「按钮距 nav 左缘」，但指示条是 nav 的**绝对定位子元素**，它的坐标原点是
+        nav 的 **padding box 左缘**（= nav 左缘 + border-width，没有 padding）。
+        两者差值就是 14px 的 padding。**正确做法：用 offsetLeft 而不是 rect 相减** ——
+        offsetLeft 已经是相对 offsetParent 的定位原点的距离，天然不含自身 padding 的坑。 */
+  function moveHit(name){
+    var hit = document.getElementById('setNavHit');
+    if(!hit) return;
+    var btn = nav.querySelector('.set-nav-item[data-goto="' + name + '"]');
+    if(!btn){ hit.style.width = '0px'; return; }
+    var w = btn.offsetWidth, left = btn.offsetLeft;
+    hit.style.width = Math.round(w * 0.56) + 'px';
+    hit.style.transform = 'translateX(' + Math.round(left + w * 0.22) + 'px)';
   }
   document.addEventListener('click', function(e){
     if(!e.target || !e.target.closest) return;
@@ -487,6 +541,16 @@ setTimeout(__rvRescue,2500);
     catch(_){ window.scrollTo(0, top); }
   });
   go('profile');   /* 她拍板：默认停在「个人设置」，不记忆上次 */
+  moveHit('profile');
+  /* 窄屏横向滚动时指示条跟随（标签等分铺满，正常不触发；大字号/极窄屏会触发） */
+  nav.addEventListener('scroll', function(){
+    var on = nav.querySelector('.set-nav-item.on');
+    if(on) moveHit(on.getAttribute('data-goto'));
+  }, { passive:true });
+  window.addEventListener('resize', function(){
+    var on = document.querySelector('.set-nav-item.on');
+    if(on) moveHit(on.getAttribute('data-goto'));
+  });
 })();
 </script>
 </body>

@@ -32,7 +32,16 @@ ready(() => {
   const AUTO_SAVE_IDS = ['sName','sExam','sGoal','tOverall','tListening','tReading','tWriting','tSpeaking','sPron','sFlu','sChime'];
   let _autoSaveTimer = null;
   const autoSave = () => { clearTimeout(_autoSaveTimer); _autoSaveTimer = setTimeout(saveSettings, 600); };
-  AUTO_SAVE_IDS.forEach(id => { const el = document.getElementById(id); if(el) el.addEventListener('change', autoSave); });
+  /* 🔴 10/4 16:50：原来**只绑 change**。change 只在「值改变且失焦」时触发 ——
+     她 16:40 报「设置页改了个寂寞、点不动」，探针 `_tmp_inp` 实锤：逐字输入后
+     `DATA.settings.targets` 仍是 no-DATA（没失焦 → change 没跑 → **填的东西没存**）。
+     表现就是「我明明填了/点了，一刷新就没」，很容易被当成「点不动」。
+     修：**input（每次按键）+ change（失焦）都绑**，防抖 600ms 不变，输入过程本身就有可见反馈。 */
+  AUTO_SAVE_IDS.forEach(id => {
+    const el = document.getElementById(id); if(!el) return;
+    el.addEventListener('input', autoSave);
+    el.addEventListener('change', autoSave);
+  });
   $('#sThemeToggle').addEventListener('change', () => {
     const dark = $('#sThemeToggle').checked;
     DATA.settings.theme = dark ? 'dark' : 'light';
