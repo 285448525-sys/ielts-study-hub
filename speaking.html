@@ -53,7 +53,7 @@
   <script defer src="js/av-picker.js?v=20261004c"></script>
   <script defer src="js/coach.js?v=20261004d"></script>
   <script defer src="js/speaking.js?v=20261003e"></script>
-  <script defer src="js/materials.js?v=20261004a"></script>
+  <script defer src="js/materials.js?v=20261004b"></script>
   <script defer src="js/mock-report.js?v=20261004a"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
   <script defer src="js/mock.js?v=20261004a"></script>
@@ -749,8 +749,16 @@
   .mat-spine-n{ flex:none; width:20px; height:20px; border-radius:50%; background:var(--primary-soft); color:var(--med); font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; margin-top:2px; }
   .mat-mini.armed-danger{ background:var(--danger); border-color:var(--danger); color:#fff; }
   .mat-plan-skipped{ border-style:dashed; color:var(--muted); font-size:13.5px; cursor:pointer; }
-  .mat-legacy{ margin:16px 0; }
-  .mat-legacy summary{ cursor:pointer; user-select:none; font-size:12.5px; font-weight:600; color:var(--muted); }
+  /* 10/4 13:46 她拍板「旧卡不能删、要有个入口能翻出来看」→ 原 <details> 改成常驻按钮 + 显隐面板。 */
+  .mat-legacybar{ margin:14px 0 0; }
+  .mat-legacybar-btn{ width:100%; min-height:44px; display:flex; align-items:center; justify-content:center; gap:6px;
+    background:var(--bg); border:1px solid var(--line); border-radius:var(--radius-sm);
+    font:inherit; font-size:13px; font-weight:600; color:var(--muted); cursor:pointer; }
+  .mat-legacybar-btn:hover{ border-color:var(--primary-200); color:var(--primary-700,var(--med)); }
+  .mat-legacybar-btn:focus-visible{ outline:3.5px solid var(--primary-200); outline-offset:2px; }
+  .mat-legacybar-caret{ font-size:11px; }
+  .mat-legacy{ margin:8px 0 4px; }
+  .mat-legacy-tip{ font-size:12.5px; line-height:1.6; color:var(--muted); margin-bottom:4px; }
   .mat-legacy-item{ margin-top:8px; padding:8px 11px; background:var(--bg); border:1px dashed var(--line); border-radius:var(--radius-sm); }
   .mat-legacy-key{ font-size:12px; color:var(--muted); word-break:break-all; }
   .mat-legacy-text{ font-size:13px; color:var(--ink); white-space:pre-wrap; line-height:1.6; word-break:break-word; margin-top:2px; }

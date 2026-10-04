@@ -1,8 +1,13 @@
 /* === 万能口语素材生成器（design/86：题库对症的动态漏斗问卷 + 故事骨架层 + 现成英文素材复用） ===
-   输入：人设 A → AI 分析当季 P2 题库生成 4~6 张漏斗式动态问题卡（可跳过）→ 现成英文素材/自由经历
+   输入：人设 A → AI 分析当季 P2 题库生成 10~14 张漏斗式动态问题卡（可跳过）→ 现成英文素材/自由经历
    处理：DeepSeek 整合为连贯故事卡（含 spineEn 最小骨架），逐卡对照当季题库产出 coverage
    输出：人设锚点卡 + 素材卡（骨架/完整故事/万能句/中文逻辑，可编辑/重生成/删除）
-   红线：不动 mock 系列 / speaking 系列 / data.js / callRelay；纯前端 + 现有 DeepSeek relay。 */
+   红线：不动 mock 系列 / speaking 系列 / data.js / callRelay；纯前端 + 现有 DeepSeek relay。
+   🚨 10/4 13:43 P0（她报「出的题跟题库无关、跟上个赛季我自己弄的素材库相关、问的根本不是题目」）：
+       ① 旧答案 prefill 已整段删除 → 新卡一律从零出（旧答案全量进 _legacy，页面有常驻入口可查）
+       ② SYS_PLAN 加「title 必须是能直接开口的疑问句」硬规则 + 前端 ensureQuestionTitle 兜底
+       ③ 卡片数 4~8 → 10~14（覆盖 55 道 P2 要够密）
+       ④ P1 只给人设卡用，出题纯 P2 —— getBankP2List 保持只筛 P2，这是她的原话口径 */
 (function(){
   const STORE_KEY = 'ielts_materials_v1';
   const CANON = ['喜欢的城市','水边的地方','难忘的旅行','常在一起的人','户外活动','你拍的照片','让你放松的事','家人','朋友','敬佩的人','帮助者','让我骄傲的人','学会的技能','克服的困难','目标','压力','习惯改变','搬家','电子设备','工具','礼物','离不开的东西','爱好','视频','网上学的','改观的事','喜欢的节目','书','电影','歌','诗','故事','网站','衣服','贵的东西','珍藏','法律','规则','传统','习俗','改变','分歧','犯错','投诉','道歉','尴尬','挑战'];
@@ -66,22 +71,27 @@
      anchor 的 promptEn/req 由前端从题库取真值回填（AI 只出逐字 topic，防编造原题）。 */
   const SYS_PLAN = '你是雅思口语素材规划师。考生会给你【当季真实 P2 题库全量清单】（网站当季真实考题；换季后清单会变化，你的问卷必须只针对当前清单）。考生基础弱、记忆提取困难：面对抽象问题想不起具体事情。你的任务：在考生动笔前，先分析题库，设计一份「真题锚定、问题最少、以独白作答」的经历问卷。\n'
     + '\n'
+    + '⚠️ **这是纯 P2 任务**：清单里全是 P2 题，一道 P1 题都没有。不要提 P1、不要按 P1 的话题结构组织问题。\n'
     + '工作方法：\n'
     + '1. 逐题通读清单，把「能被同一段真实生活经历辐射覆盖」的题目归为一组——判断标准：考场上把这段经历原样讲出来、再加一两句过渡就能引到该题。人物/地点/物品/事件/见闻感受五类元素齐全的一段日常经历是万能辐射源（例：一次和朋友的短途旅行，可同时辐射人物、地点、事件、照片、拥挤的地方、特别场合的食物、天气、一次散步、环保观点等）。\n'
     + '2. 每张问题卡必须锚定当季真题：从清单里挑 1~2 道题绑定本卡（能被同一段经历覆盖的两道题合并绑一卡），放进 anchor 数组，topic 逐字取自清单题名。答题即练题：考生答完这张卡，锚定真题的素材就备好了。\n'
-    + '3. 题数由你判断、以少为优：能被同一段经历覆盖的题必须合并成一问；通常 4~8 张，能少则少，硬上限 10 张；严禁一题一问、严禁按题目类别机械切分（人物题一卡、地点题一卡）。目标覆盖率（被 topics 覆盖的题 / 清单总题数）≥0.9；达不到就靠调整卡片主题、增强卡片元素覆盖，而不是增加卡片数量。\n'
+    + '3. 卡片数量：**10~14 张**（这是硬要求，不是建议）。题少就说明没吃透题库。判断标准：把清单逐题过一遍，每道题都问自己「这段经历能不能自然引到它」——能归到某张卡就算这张卡覆盖了，**宁可多切几张薄卡，也不要几张大卡漏掉半份题库**。每张卡宁可只锚 1 道题。目标覆盖率（被 topics 覆盖的题 / 清单总题数）≥0.9；达不到就靠多切几张卡、增强卡片元素覆盖，绝不是减少卡片数。\n'
     + '4. 每张卡对应一个具体、单一的经历主题，必须是学生或刚工作的年轻人真实生活里一定有的素材（如：最近一次和朋友出门 / 一件硬学会的事 / 每天离不开的东西 / 最近在网上刷到的内容 / 一个有画面的地方 / 由经历引出的一个观点）。严禁抽象主题、需要编造或需要专业背景的主题。\n'
-    + '5. 答题形态=独白为主：每张卡只给一个大独白框（type:"mono"），考生用中文口语把这段经历完整讲一遍（什么时候、和谁、发生了什么、细节、感受），越具体越好。严禁把大独白拆成一串小问题当主体、严禁连环追问式提问。\n'
-    + '6. 每张卡另附 2~3 个可选「追问题」（followups，沿用小问 schema），全部 "optional":true，只给答得短或想被引导的考生展开用：\n'
+    + '5. 🔴 **title 必须是一个可以直接开口回答的疑问句，不是主题标签**。这是硬要求：\n'
+    + '   ✗ 错（主题标签，学员看着不知道要说什么）：「和同桌男友一起学语言、一起玩的经历」「边做项目边自学网页设计」「一个对穿搭有自己坚持的人」\n'
+    + '   ✓ 对（能直接开口问的问题）：「你有没有过一个关系特别好的同桌？后来变成男女朋友了吗？」「你学过什么技能是硬啃下来的？最难的是哪一段？」\n'
+    + '   自检：把 title 念给一个没读过卡片内容的人听，他应该能**不猜**就开始讲。带「的经历」「的人」「的一段」结尾的一律不合格，必须改写成疑问句或明显的口语提问。\n'
+    + '6. 答题形态=独白为主：每张卡只给一个大独白框（type:"mono"），考生用中文口语把这段经历完整讲一遍（什么时候、和谁、发生了什么、细节、感受），越具体越好。严禁把大独白拆成一串小问题当主体、严禁连环追问式提问。\n'
+    + '7. 每张卡另附 2~3 个可选「追问题」（followups，沿用小问 schema），全部 "optional":true，只给答得短或想被引导的考生展开用：\n'
     + '   ① 只用 text 或 choice 类型，严禁 yesno 门问题、严禁存在性问题；\n'
     + '   ② 每问只提取一个事实（时间 / 人物地点 / 细节 / 感受），严禁连环问；严禁「说说 / 讲讲 / 描述 / 谈谈 / 你觉得」这类自由开放措辞；\n'
     + '   ③ choice 必须给 2~6 个具体、口语化的选项，并以「其他」为固定末项（选中后允许考生自填）；multi 题用 "multi":true；\n'
     + '   ④ 细节、感受类 followup 也一律 "optional":true（全部选填）。\n'
-    + '7. 每张卡给 topics（该卡预期覆盖的题，逐字取自清单，宁多勿漏，拿不准也列上）和 reason（一句中文，说明为什么问这段、能覆盖什么）。\n'
-    + '8. 若考生提供了人设，主题与选项要贴合其身份：学生围绕学校/考试/同学/宿舍，工作者围绕职场/通勤/同事。\n'
+    + '8. 每张卡给 topics（该卡预期覆盖的题，逐字取自清单，宁多勿漏，拿不准也列上）和 reason（一句中文，说明为什么问这段、能覆盖什么类别；**不要在 reason 里写具体题名**）。\n'
+    + '9. 若考生提供了人设，主题与选项要贴合其身份：学生围绕学校/考试/同学/宿舍，工作者围绕职场/通勤/同事。\n'
     + '\n'
     + '输出严格 JSON，不要任何解释文字：\n'
-    + '{"cards":[{"id":"q1","type":"mono","title":"具体经历主题","anchor":[{"topic":"逐字题名1"},{"topic":"逐字题名2"}],"reason":"一句中文说明","topics":["逐字题名1","逐字题名2"],"followups":[{"k":"when","type":"text","optional":true,"label":"单一事实小问","ph":"填写示例"},{"k":"pick","type":"choice","optional":true,"multi":true,"label":"挑你记得的","options":["具体选项1","具体选项2","其他"]}]}]}';
+    + '{"cards":[{"id":"q1","type":"mono","title":"能直接开口回答的疑问句","anchor":[{"topic":"逐字题名1"},{"topic":"逐字题名2"}],"reason":"一句中文说明","topics":["逐字题名1","逐字题名2"],"followups":[{"k":"when","type":"text","optional":true,"label":"单一事实小问","ph":"填写示例"},{"k":"pick","type":"choice","optional":true,"multi":true,"label":"挑你记得的","options":["具体选项1","具体选项2","其他"]}]}]}';
 
   /* === 当季 P2 题库动态提取（P0：替代写死的 CANON 旧季快照）===
      每次生成/追问都以 DATA.speaking 真实题库为准（换季后自动跟随）；
@@ -195,7 +205,9 @@
        ① 顶部「mat-intro 绿条」+「mat-why 浅绿块」上下贴着像重复说话 → 合并成一段：
           intro 一行说明 + 「为什么要先填人设？」折叠（点开才展开那 8 行）
        ② 已有素材入口（原 matBackToResult 在下面）提到最顶（她拍板「顶部常驻」） */
-    let h = '<div class="mat-intro">先填一次<b>人设</b>，AI 会分析<b>当季最新题库</b>，只给你出<b>最少的几道</b>问题；每张卡用中文口语把那段经历讲一遍就行。'
+    let h = '<div class="mat-intro">先填一次<b>人设</b>，点下面的按钮，AI 会读一遍<b>当季最新题库</b>，'
+      + '自动出<b>十几道最能概括题库的问题</b>；你每题用中文口语把那段经历讲一遍就行，'
+      + '最后 AI 会把答案合成<b>几个能串住整份题库的故事</b>。'
       + '<button type="button" class="mat-why-link" id="matWhyToggle" aria-expanded="false" aria-controls="matWhyBody">为什么要先填人设？</button></div>';
     // ② 已有素材卡入口：提到页面最顶（她 00:57 拍板「顶部常驻」）
     if(store.materials && store.materials.length){
@@ -203,9 +215,9 @@
     }
     // 「为什么要先填人设」折叠体（原 mat-why 整块内容，收进来）
     h += '<div class="mat-why-fold" id="matWhyBody" hidden><div class="mat-why-l">人设卡是<b>专门用来串题的</b>——它决定后面出的问题贴不贴你、生成的素材像不像你自己。'
-      + '填的时候尽量写一份<b>万用人设</b>：任何一道 P1 / P2 / P3 题都能往上套的那种（城市 + 身份 + 性格 + 一个爱好）。<br>'
-      + '串题的做法很简单：<b>简单填几个问题</b>，AI 就给你生成<b>几个独属于你的专属题材</b>,'
-      + '并且每个题材都会<b>尽可能串到更多的题</b>——同一段经历，考场上临场加一两句过渡就能接到好几道真题上，不用准备十篇范文。</div></div>';
+      + '填的时候尽量写一份<b>万用人设</b>：城市 + 身份 + 性格 + 一个爱好，P1 / P2 / P3 都能往上套的那种。<br>'
+      + '接下来你只要<b>按顺序把十几张卡逐个讲一遍</b>，AI 会把答案合成几个故事——'
+      + '这些故事考场上加一两句过渡就能接到很多道真题上，<b>不用准备十篇范文</b>。你不需要知道哪道题对应哪张卡，照着问题讲就行。</div></div>';
     // 换季横幅（4.5）：plan 是按旧题库出的 → 提示手动重新出题（不自动重规划，避免打断填写）
     if(hasPlan && bankLive && plan.bankVersion !== (DATA.speakingVersion || 0)){
       h += '<div class="mat-shortwarn" id="matPlanStale"><b>口语题库已换季</b>，当前问题是按旧题库出的。<div class="mat-shortwarn-actions"><button class="btn btn-primary" id="matReplanBtn">按新题库重新出题</button><span class="mat-shortwarn-tip">会尽量把你已填的答案迁到新问题里</span></div></div>';
@@ -215,7 +227,9 @@
       h += '<div class="mat-shortwarn">当前离线或题库缺失，下面的问题基于通用题类生成、不保证是当季题；联网后点「重新分析题库出题」获取对症问题。</div>';
     }
     // 人设卡 A（固定）—— 三步之一
-    h += '<div class="mat-sec-title"><span class="mat-step-n">1</span>人设卡 <span class="tag">必答</span></div>';
+    // 🚨 10/4 13:43 她拍板：人设卡是**专门为 P1 准备的**（P2 能串则串，但主要串 P1）→ 卡上明写。
+    h += '<div class="mat-sec-title"><span class="mat-step-n">1</span>人设卡 <span class="tag">必答</span>'
+      + '<span class="mat-sec-note" style="font-weight:400;font-size:12.5px;color:var(--text-2,#6b7280);margin-left:8px">主要用来串 P1</span></div>';
     h += qCard('A');
     // 平台自带万用人设：想不出自己的就点一条填进去，之后还能接着改
     h += '<div class="mat-presets"><div class="mat-presets-t">想不出来？用平台自带的万用人设，点一下就填进去（填完可以继续改成你自己的）</div>'
@@ -247,17 +261,20 @@
     (store.answers.extraMore || []).forEach(x => { h += qCard(x.id, true); });
     h += '<div class="mat-actions"><button class="mat-add" id="matAdd">＋ 添加一段经历</button></div>';
 
-    // 旧答案留底折叠区（4.5/4.6：静态问卷时代字符串 + 换季未迁移答案；严禁静默丢弃）
+    // 旧答案留底区（她 13:46：「之前填过的 8 张旧卡不能完全删掉，点一下能显示之前填过的一些内容」）
+    //  → 提成**常驻可点入口**（原先只在有内容时渲染一个 <details>，换季后新卡一填就找不到旧内容了）
     const legacy = store.answers._legacy || {};
     const legacyKeys = Object.keys(legacy).filter(k => String(legacy[k] || '').trim());
+    h += '<div class="mat-legacybar"><button type="button" class="mat-legacybar-btn" id="matLegacyToggle" aria-expanded="false" aria-controls="matLegacyBody">'
+      + '我以前填过什么（' + legacyKeys.length + ' 条）<span class="mat-legacybar-caret">▸</span></button></div>';
     if(legacyKeys.length){
-      h += '<details class="mat-legacy"><summary>旧答案留底（' + legacyKeys.length + ' 条 · 可复制，不会丢）▸</summary>';
+      h += '<div class="mat-legacy" id="matLegacyBody" hidden><div class="mat-legacy-tip">这些是你之前填过的内容，<b>仅供参考、不会自动套进新问题</b>。想到哪段可以用，就复制到下面的框里。</div>';
       legacyKeys.forEach(k => {
         h += '<div class="mat-legacy-item"><div class="mat-legacy-key">' + escapeHtml(k) + '</div>'
           + '<div class="mat-legacy-text">' + escapeHtml(String(legacy[k])) + '</div>'
           + '<button class="mat-mini" data-copy-legacy="' + escapeHtml(k) + '">复制</button></div>';
       });
-      h += '</details>';
+      h += '</div>';
     }
 
     h += '<div class="mat-sec-title"><span class="mat-step-n">3</span>生成</div>';
@@ -388,6 +405,19 @@
     if(pg) pg.onclick = () => doPlan(!!(store.plan && Array.isArray(store.plan.cards) && store.plan.cards.length));
     const rp = $('#matReplanBtn');
     if(rp) rp.onclick = () => doPlan(true);
+    /* 10/4 13:46 她拍板：旧卡内容不能删，要有入口能翻出来看（原先是 <details> 原生折叠，
+       换季后新卡一填就找不到在哪 → 改成常驻按钮 + 显式 hidden 切换）。 */
+    const lgT = $('#matLegacyToggle'), lgB = $('#matLegacyBody');
+    if(lgT){
+      lgT.onclick = () => {
+        if(!lgB) return;
+        const open = lgB.hidden;
+        lgB.hidden = !open;
+        lgT.setAttribute('aria-expanded', open ? 'true' : 'false');
+        const car = lgT.querySelector('.mat-legacybar-caret');
+        if(car) car.textContent = open ? '▾' : '▸';
+      };
+    }
     // 旧答案复制
     root.querySelectorAll('[data-copy-legacy]').forEach(b => {
       b.onclick = () => {
@@ -472,10 +502,10 @@
     if(card && card.type === 'mono') return planMonoCard(card);
     const st = cardState(card.id);
     if(st.skipped){
-      return '<div class="mat-q mat-plan-skipped" data-unskip-card="' + escapeHtml(card.id) + '" title="点此恢复">已跳过：' + escapeHtml(card.title || '') + ' · 点此恢复</div>';
+      return '<div class="mat-q mat-plan-skipped" data-unskip-card="' + escapeHtml(card.id) + '" title="点此恢复">已跳过：' + escapeHtml(ensureQuestionTitle(card.title || '')) + ' · 点此恢复</div>';
     }
     let h = '<div class="mat-q mat-plan-card">'
-      + '<div class="mat-q-head"><span class="mat-q-title">' + escapeHtml(card.title || '') + '</span>'
+      + '<div class="mat-q-head"><span class="mat-q-title">' + escapeHtml(ensureQuestionTitle(card.title || '')) + '</span>'
       + '<button class="mat-mini" data-skip-card="' + escapeHtml(card.id) + '">跳过此卡</button></div>';
     if(card.reason) h += '<div class="mat-q-hint">' + escapeHtml(card.reason) + '</div>';
     // 10/2 她拍板删掉「这张卡覆盖 N 道当季题」折叠区：填卡阶段只管讲经历，覆盖题数是出素材后
@@ -501,18 +531,20 @@
   function planMonoCard(card){
     const st = cardState(card.id);
     if(st.skipped){
-      return '<div class="mat-q mat-plan-skipped" data-unskip-card="' + escapeHtml(card.id) + '" title="点此恢复">已跳过：' + escapeHtml(card.title || '') + ' · 点此恢复</div>';
+      return '<div class="mat-q mat-plan-skipped" data-unskip-card="' + escapeHtml(card.id) + '" title="点此恢复">已跳过：' + escapeHtml(ensureQuestionTitle(card.title || '')) + ' · 点此恢复</div>';
     }
     let h = '<div class="mat-q mat-plan-card mat-mono-card">'
-      + '<div class="mat-q-head"><span class="mat-q-title">' + escapeHtml(card.title || '') + '</span>'
+      + '<div class="mat-q-head"><span class="mat-q-title">' + escapeHtml(ensureQuestionTitle(card.title || '')) + '</span>'
       + '<button class="mat-mini" data-skip-card="' + escapeHtml(card.id) + '">跳过此卡</button></div>';
     if(card.reason) h += '<div class="mat-q-hint">' + escapeHtml(card.reason) + '</div>';
     // 10/2 她拍板删掉两处 UI：① 锚定真题块（把当季题目原文 + youShouldSay 要点整块写出来）
     // ② 「这张卡覆盖 N 道当季题」折叠区。她说「只要提出一个简单的问题，然后给一个对话框就行」。
     // anchor 数组本身一字未动 —— formatCard 生成素材时仍要靠它把真题喂给 AI，口语页覆盖矩阵照旧。
     // 大独白框（s.mono）
+    // 🚨 10/4 13:43 她报「又让我填一个框填东西，我不知道这是何意味」→ placeholder 改成
+    // 「把这道题当聊天题，answer 后面那几行」的口吻，明确「用中文讲就行、当聊天说」。
     const monoVal = st.s.mono || '';
-    h += '<textarea class="mat-mono-ta" data-step-card="' + escapeHtml(card.id) + '" data-step-k="mono" rows="5" placeholder="用中文口语讲一遍这段经历，越具体越好：什么时候、和谁、发生了什么、你的感受…">' + escapeHtml(monoVal) + '</textarea>'
+    h += '<textarea class="mat-mono-ta" data-step-card="' + escapeHtml(card.id) + '" data-step-k="mono" rows="5" placeholder="就像跟朋友聊天一样，用中文把上面这道题讲一遍：什么时候、和谁、发生了什么、有什么细节、当时什么感觉…想到哪说到哪，不用组织语言。">' + escapeHtml(monoVal) + '</textarea>'
       + '<div class="mat-char" data-monochar="' + escapeHtml(card.id) + '">' + monoCounterTip(monoVal) + '</div>';
     // 折叠追问（followups 全部 optional，渲染复用 planStep；choice「其他」自填走既有链路）
     const fus = Array.isArray(card.followups) ? card.followups : [];
@@ -594,7 +626,11 @@
   }
 
   /* ---- design/86 改动一：动态问卷规划 genQuestionPlan ----
-     AI 拿当季 P2 题库全量清单 → 聚类 → 4~6 张漏斗式问题卡（含预迁移 prefill）。 */
+     AI 拿当季 P2 题库全量清单 → 聚类 → 10~14 张漏斗式问题卡。
+     🚨 10/4 13:43 她报 P0：「出的题跟上个赛季我自己弄出来的素材库相关，完全跟题库无关」。
+        根因 = 本函数原先在 isReplan 时把旧卡已填答案整段拼进 prompt 并要求 AI 沿用，
+        AI 被旧素材牵着走。**现已整段删除旧答案 prefill —— 新卡一律从零出。**
+        旧卡答案不丢：全部汇入 answers._legacy（见下方「旧卡答案全量留底」），页面上有常驻入口可查可复制。 */
   async function genQuestionPlan(isReplan){
     const bank = getBankP2List();
     const isFallback = !bank;
@@ -602,16 +638,9 @@
       ? bank.map(b => b.title + (b.req ? '（要点：' + b.req + '）' : '')).join('\n')
       : CANON.join('、');
     let sys = SYS_PLAN;
-    // 换季重规划：携带旧卡已填答案概要，让 AI 尽量 prefill 迁移（4.5）
-    const oldPlan = (isReplan && store.plan && Array.isArray(store.plan.cards)) ? store.plan : null;
-    if(oldPlan){
-      const oldAns = store.answers.cards || {};
-      const summary = oldPlan.cards.map(c => {
-        const raw = formatCard(c, oldAns[c.id]);
-        return '· ' + (c.title || '') + '：' + (raw ? raw.slice(0, 300) : '（未填或已跳过）');
-      }).join('\n');
-      sys += '\n考生在旧题库问卷下已填了答案，见下。请在输出的每张新卡 step 中，对能沿用旧答案的 step 增加 "prefill":"旧答案原文" 字段（键为该 step 的 k）；mono 独白卡对能沿用的旧独白，在卡片上增加 "prefillMono":"旧独白原文" 字段；按事实语义匹配，迁移不了的严禁硬迁。\n旧问卷答案概要：\n' + summary;
-    }
+    /* 10/4 13:43 P0 修法：旧答案不再进 prompt（isReplan 参数保留仅用于日志/未来，
+       严禁再把 store.answers 的内容拼进 sys —— 那会让 AI 照着旧素材出题）。 */
+    void isReplan;
     const user = '人设：' + (ans('A') || '（未提供）') + '\n\n【当季 P2 题库清单】\n' + listStr;
     const content = await callRelay('material_plan', [ { role:'system', content:sys }, { role:'user', content:user } ], 0.5, { max_tokens: 8192 });
     const j = aiJson(content);
@@ -631,47 +660,38 @@
       }
     });
 
-    // 换季迁移对账（4.5 + design/89）：旧卡已填 step 值 / mono 独白未被任何新卡 prefill 采用 → 汇入 _legacy（严禁静默丢弃）
-    if(oldPlan){
-      const prefillVals = [];
-      cards.forEach(c => {
-        if(c.type === 'mono'){
-          if(c.prefillMono != null && String(c.prefillMono).trim()) prefillVals.push(String(c.prefillMono).trim());
-          (c.followups || []).forEach(st => { if(st && st.prefill != null && String(st.prefill).trim()) prefillVals.push(String(st.prefill).trim()); });
-        } else {
-          (c.steps || []).forEach(st => { if(st && st.prefill != null && String(st.prefill).trim()) prefillVals.push(String(st.prefill).trim()); });
-        }
+    /* 🚨 10/4 13:43：旧卡答案**全量**留底（原先只留「没被 prefill 采用的」，现在 prefill 已删，
+       等于全部旧答案都是「没被采用」→ 直接整体搬进 _legacy，一条不丢）。
+       新卡从零出，但玩家还能在页面上翻到之前填过什么。 */
+    const oldAnsAll = store.answers.cards || {};
+    Object.keys(oldAnsAll).forEach(cid => {
+      const st = oldAnsAll[cid];
+      if(!st) return;
+      const oldCard = (store.plan && Array.isArray(store.plan.cards) ? store.plan.cards : []).find(c => c && c.id === cid);
+      const title = (oldCard && oldCard.title) || ('旧卡 ' + cid);
+      const s = st.s || {};
+      if(s.mono != null && String(s.mono).trim()){
+        store.answers._legacy = store.answers._legacy || {};
+        const key = '旧卡·' + title + '·独白';
+        if(!store.answers._legacy[key]) store.answers._legacy[key] = String(s.mono).trim();
+      }
+      Object.keys(s).forEach(k => {
+        if(k === 'mono') return;
+        const v = s[k];
+        if(v == null) return;
+        const vs = Array.isArray(v) ? v.join('、') : String(v).trim();
+        if(!vs) return;
+        const step = ((oldCard && Array.isArray(oldCard.followups) ? oldCard.followups : [])
+          .concat((oldCard && Array.isArray(oldCard.steps) ? oldCard.steps : []))).find(x => x && x.k === k);
+        store.answers._legacy = store.answers._legacy || {};
+        const key = '旧卡·' + title + '·' + labelNoQ((step && step.label) || k);
+        if(!store.answers._legacy[key]) store.answers._legacy[key] = vs;
       });
-      const oldAns = store.answers.cards || {};
-      oldPlan.cards.forEach(c => {
-        const st = oldAns[c.id];
-        if(!st || st.skipped) return;
-        if(c.type === 'mono'){
-          const mv = st.s && st.s.mono != null ? String(st.s.mono).trim() : '';
-          if(mv && !prefillVals.some(p => p === mv || p.indexOf(mv) >= 0 || mv.indexOf(p) >= 0)){
-            store.answers._legacy = store.answers._legacy || {};
-            const key = '旧卡·' + (c.title || c.id) + '·独白';
-            if(!store.answers._legacy[key]) store.answers._legacy[key] = mv;
-          }
-          return;
-        }
-        (c.steps || []).forEach(step => {
-          const v = st.s && st.s[step.k];
-          if(v == null) return;
-          const vs = Array.isArray(v) ? v.join('、') : String(v).trim();
-          if(!vs) return;
-          const migrated = prefillVals.some(p => p === vs || p.indexOf(vs) >= 0 || vs.indexOf(p) >= 0);
-          if(!migrated){
-            store.answers._legacy = store.answers._legacy || {};
-            const key = '旧卡·' + (c.title || c.id) + '·' + labelNoQ(step.label);
-            if(!store.answers._legacy[key]) store.answers._legacy[key] = vs;
-          }
-        });
-      });
-    }
+    });
+    // 旧卡答案搬走后清空 cards（新卡从零填），但 _legacy 里已留底，不会丢
+    store.answers.cards = {};
 
-    // prefill 预填：新卡带 prefill 的 step / mono 卡 prefillMono 写入 answers.cards 作初始值（不覆盖用户已填）
-    store.answers.cards = store.answers.cards || {};
+    // 新卡若有 prefill 字段（AI 仍可能返回）也照收，但正常路径下不会有
     cards.forEach(c => {
       const cur = store.answers.cards[c.id] || { s:{}, skipped:false };
       if(c.type === 'mono'){
@@ -692,6 +712,42 @@
   /* AI 返回卡清洗（4.3.4，前端必须做，不信任 AI 自觉）。
      design/89：mono 独白卡（type:'mono'，anchor 锚定真题 + followups 折叠追问）与旧 steps 卡双型兼容；
      anchor 的 topic 走 matchBankTitle 纠偏后，promptEn/req 一律由题库真值回填（AI 侧字段仅兜底）。 */
+  /* 🚨 10/4 13:43 P0 兜底：AI 输出的卡片标题必须是「能直接开口回答的疑问句」，
+     不是「和同桌男友一起学语言的经历」这种主题标签（她原话：「问的根本就不是题目了，而是一句话陈述」）。
+     本函数只做展示层兜底 —— 把陈述句改写成问句；本来是问句的原样返回。 */
+  function ensureQuestionTitle(t){
+    let s = String(t || '').trim();
+    if(!s) return s;
+    // 🚨 只剥**句尾**标点：句中的问号必须留着
+    // （反例：「有没有一个关系特别好的同桌？后来怎么样了？」→ 中间那个 ? 不能被吃掉）
+    const clean = s.replace(/[。！!?]+$/g, '').trim();
+    // 已是问句：以问号收尾，或带「吗/呢/吧」等口语疑问语气
+    const hasQMark = /[？?]/.test(clean);
+    const hasQParticle = /(吗|呢|吧)[？?]?$/.test(clean);
+    // 以疑问词开头但**没有问号**（如「为什么你觉得自己适合这个专业」）—— 这类必须补问号，
+    // 否则学员看到还是不知道这是在问自己什么（10/4 单测实锤）。
+    const startsInterrogative = /^(你|您|有没有|是不是|为什么|怎么|什么|哪|谁|多少|能不能|要不要|会不会|哪个|哪些|什么时候)/.test(clean);
+    if(hasQMark || hasQParticle) return clean;
+    if(startsInterrogative) return clean + '？';
+    // 陈述句 → 按结尾特征改写
+    if(/(的经历|的一段|的人|的事|那次|那次经历)$/.test(clean)){
+      const stem = clean.replace(/(的经历|的一段|的人|的事)$/, '');
+      // 「A 的经历」→「关于 A，你还记得什么？」类
+      if(/(的人)$/.test(clean)){
+        const who = clean.replace(/的一个?人$/, '').replace(/的人$/, '');
+        return '你身边有没有这样一个人：' + who + '？他/她身上有什么让你印象深刻的？';
+      }
+      if(/(的经历|的一段)$/.test(clean)){
+        return '能不能讲讲' + stem + '这段经历？当时具体发生了什么？';
+      }
+      return '关于' + stem + '，你能讲讲具体是怎么发生的吗？';
+    }
+    if(/^一次/.test(clean)){
+      return '最近一次' + clean.replace(/^一次/, '') + '，是什么时候、和谁、发生了什么？';
+    }
+    // 兜底：句尾补一个中性追问
+    return clean + '——具体是什么时候、和谁一起发生的？';
+  }
   function cleanPlanCards(rawCards, bankTitles, isFallback, bankFull){
     const out = [];
     (Array.isArray(rawCards) ? rawCards : []).forEach((c, i) => {
@@ -704,6 +760,10 @@
         reason: String(c.reason || ''),
         topics: []
       };
+      /* 🚨 10/4 13:43 她报「问的根本不是题目，是一句话陈述」—— AI 仍可能无视 prompt 输出主题标签。
+         前端兜一层：把「…的经历 / …的人 / …的一段 / 一次…」这类陈述句改写成疑问句。
+         改不动的（本来就是问句）原样保留。**纯展示层兜底，不影响 AI 侧真值。** */
+      card.title = ensureQuestionTitle(card.title);
       if(isMono){
         card.type = 'mono';
         card.anchor = [];
