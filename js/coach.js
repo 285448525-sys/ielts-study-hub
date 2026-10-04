@@ -38,8 +38,10 @@ window.__COACH_ON = true;
     'Do you want to change to another job?'
   ];
 
-  var GREETING = '嗨，我在～今天想怎么练都行：直接用英语跟我聊，或者点下面抽道真题；'
-    + '也可以用中文吩咐我，比如「今天只练高频题」「先别纠语法」。';
+  /* 10/4 09:40 改（她 01:44：「我首先映入眼帘的是这个考官跟我说一句话，说今天准备练什么」）
+     旧版太笼统（「今天想怎么练都行」等于没说），新版明确抛问句 + 给可点的备选。 */
+  var GREETING = '嗨，我是你的口语陪练。今天准备练什么？'
+    + '\n\n可以直接用英语跟我说，或者点下面挑一个开始：';
 
   /* ============ 状态（挂 window 跨软导航；刷新即新会话） ============ */
   var st = window.__coachState || (window.__coachState = {
@@ -49,7 +51,10 @@ window.__COACH_ON = true;
     correctOn:true,     // 会话内纠错开关（她口头切换；刷新回默认开）
     greeted:false,
     topic:'',           // chips 抽出的当前真题（纯自由聊天时为空）
-    lastCard:''         // 防连抽同卡
+    lastCard:'',        // 防连抽同卡
+    /* 10/4 09:45：用户是否主动碰过输入框（focus 过）。build() 末尾只在 true 时才 ta.focus()，
+       首次进陪练不抢焦点 → 移动端不再自动弹键盘（她 01:44 报的问题）。 */
+    userTouched:false
   });
 
   /* ============ 长期记忆 ============ */
@@ -299,7 +304,9 @@ function userHtml(text){
     var inp = $('coachInput'), btn = $('coachSend');
     if(inp) inp.disabled = b;
     if(btn){ btn.disabled = b; btn.textContent = b ? '思考中…' : '发送'; }
-    if(!b && inp){ try{ inp.focus(); }catch(_){} }
+    /* 10/4 09:45：AI 回完话要不要把焦点还给输入框？只在用户自己碰过输入框时才还，
+       否则首次陪练/纯浏览时也会把焦点抢到输入框（移动端 = 键盘弹出来）。 */
+    if(!b && inp && st.userTouched){ try{ inp.focus(); }catch(_){} }
   }
 
   /* text 显式传入用于 chips 指令；undefined 时读输入框 */
@@ -462,7 +469,11 @@ function userHtml(text){
       var narrow = window.matchMedia('(max-width:860px)').matches;
       top.setAttribute('aria-expanded', col ? 'false' : 'true');
       var label = top.querySelector('.coach-mem-label');
-      if(label) label.textContent = narrow ? '它记住的事' : '本轮教练台';
+      /* 10/4 09:50 改（她 01:44：「它这里 UI 还是跟以前一样，就是一个旁边是一个它记住的事，
+         根本就跟以前的不一样」）：窄屏文案带上了条数，光看「它记住的事」不知道点开会是什么。 */
+      if(label) label.textContent = narrow
+        ? ('它记住的 ' + memList().length + ' 件事')
+        : '本轮教练台';
       var caret = top.querySelector('.coach-mem-caret');
       if(caret) caret.textContent = (col || narrow) ? '›' : '‹';
     }
@@ -633,6 +644,8 @@ function userHtml(text){
     initCtx();           // 10/3 A版：初始化上下文栏（折叠状态 + 首渲染 + 事件）
     initExamAv();        // 10/3 22:55：顶栏考官头像选择器（她拍板从设置页挪来）
     var ta = $('coachInput');
+    /* 10/4 09:45：记住用户主动碰过输入框 —— 之后 build()/setBusy 才允许自动聚焦回输入框 */
+    ta.addEventListener('focus', function(){ st.userTouched = true; });
     ta.addEventListener('keydown', function(e){
       if(e.key === 'Enter' && !e.shiftKey && !e.isComposing){
         e.preventDefault();
@@ -677,6 +690,8 @@ function userHtml(text){
     st.built = true;
     updateMemBtn();
 
+
+
     /* 10/3 22:06：首屏布局校正延到下一帧 —— initCtx() 里调 layoutCoach 时，
        本轮的问候气泡/chips 还没进 DOM，高度算不准（会算出一个偏矮的值把内容截掉）。 */
     requestAnimationFrame(function(){ layoutCoach(); scrollBottom(); });
@@ -689,7 +704,13 @@ function userHtml(text){
       appendHtml(chipsHtml());
     }
     scrollBottom();
-    try{ ta.focus(); }catch(_){}
+    /* 10/4 09:45 修「点进陪练手机端自动弹键盘」（她 01:44 报「每次点到陪练它会强制给我弄起来那个输入法」）
+       —— 根因就是这行**无条件 focus()**：build() 是切 tab 时跑的，用户还没点任何东西，
+          焦点就被抢到输入框 → 移动端立刻弹键盘。
+       —— 修法：只在「用户主动点过页面/输入框」之后才聚焦（st.userTouched 由输入框 focus 事件置位），
+          首次进来不抢焦点，键盘等他真要打字才弹。 */
+    if(st.userTouched){ try{ ta.focus(); }catch(_){} }
+    else { try{ ta.blur(); }catch(_){} }
   }
 
   /* speaking.js 三个 PRACTICE 入口统一调它：首次建骨架，之后只保状态 */

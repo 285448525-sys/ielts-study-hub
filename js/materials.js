@@ -191,11 +191,21 @@
     const plan = store.plan;
     const hasPlan = !!(plan && Array.isArray(plan.cards) && plan.cards.length);
     const bankLive = !!(DATA.speaking && DATA.speaking.length);
-    let h = '<div class="mat-intro">先填人设，AI 会分析<b>当季最新题库</b>，只给你出<b>最少的几道</b>问题卡；每张卡用中文口语把那段经历讲一遍就行，答不上的可以跳过，也能直接粘贴旧英文素材。</div>';
-    // 逃生口：已有素材卡但当前在问卷视图（restoreMode 因 saved='q' 回问卷）→ 给一条回去的路
+    /* 10/4 02:00 题库页 A 版（她 01:10 授权自选，选 A=分区清晰改动最小）
+       ① 顶部「mat-intro 绿条」+「mat-why 浅绿块」上下贴着像重复说话 → 合并成一段：
+          intro 一行说明 + 「为什么要先填人设？」折叠（点开才展开那 8 行）
+       ② 已有素材入口（原 matBackToResult 在下面）提到最顶（她拍板「顶部常驻」） */
+    let h = '<div class="mat-intro">先填一次<b>人设</b>，AI 会分析<b>当季最新题库</b>，只给你出<b>最少的几道</b>问题；每张卡用中文口语把那段经历讲一遍就行。'
+      + '<button type="button" class="mat-why-link" id="matWhyToggle" aria-expanded="false" aria-controls="matWhyBody">为什么要先填人设？</button></div>';
+    // ② 已有素材卡入口：提到页面最顶（她 00:57 拍板「顶部常驻」）
     if(store.materials && store.materials.length){
-      h += '<div style="margin:-6px 0 10px"><a href="javascript:void(0)" id="matBackToResult" style="color:var(--primary);font-weight:600;font-size:13px">← 查看已有素材卡（' + store.materials.length + ' 张）</a></div>';
+      h += '<div style="margin:-2px 0 10px"><a href="javascript:void(0)" id="matBackToResult" style="color:var(--primary);font-weight:600;font-size:13px">← 查看已有素材卡（' + store.materials.length + ' 张）</a></div>';
     }
+    // 「为什么要先填人设」折叠体（原 mat-why 整块内容，收进来）
+    h += '<div class="mat-why-fold" id="matWhyBody" hidden><div class="mat-why-l">人设卡是<b>专门用来串题的</b>——它决定后面出的问题贴不贴你、生成的素材像不像你自己。'
+      + '填的时候尽量写一份<b>万用人设</b>：任何一道 P1 / P2 / P3 题都能往上套的那种（城市 + 身份 + 性格 + 一个爱好）。<br>'
+      + '串题的做法很简单：<b>简单填几个问题</b>，AI 就给你生成<b>几个独属于你的专属题材</b>,'
+      + '并且每个题材都会<b>尽可能串到更多的题</b>——同一段经历，考场上临场加一两句过渡就能接到好几道真题上，不用准备十篇范文。</div></div>';
     // 换季横幅（4.5）：plan 是按旧题库出的 → 提示手动重新出题（不自动重规划，避免打断填写）
     if(hasPlan && bankLive && plan.bankVersion !== (DATA.speakingVersion || 0)){
       h += '<div class="mat-shortwarn" id="matPlanStale"><b>口语题库已换季</b>，当前问题是按旧题库出的。<div class="mat-shortwarn-actions"><button class="btn btn-primary" id="matReplanBtn">按新题库重新出题</button><span class="mat-shortwarn-tip">会尽量把你已填的答案迁到新问题里</span></div></div>';
@@ -204,15 +214,8 @@
     if(hasPlan && plan.isFallback){
       h += '<div class="mat-shortwarn">当前离线或题库缺失，下面的问题基于通用题类生成、不保证是当季题；联网后点「重新分析题库出题」获取对症问题。</div>';
     }
-    // 人设卡 A（固定）
-    // 10/2 她拍板：① 人设卡区前加一段「串题优势」说明（简单填几个问题 → 生成几个专属题材 → 尽可能串多题）
-    // ② 人设卡本身加用途标注（专用于串题，期望写万用人设）+ 平台自带人设快捷填充
-    h += '<div class="mat-why"><div class="mat-why-t">为什么要先填人设？</div>'
-      + '<div class="mat-why-l">人设卡是<b>专门用来串题的</b>——它决定后面出的问题贴不贴你、生成的素材像不像你自己。'
-      + '填的时候尽量写一份<b>万用人设</b>：任何一道 P1 / P2 / P3 题都能往上套的那种（城市 + 身份 + 性格 + 一个爱好）。<br>'
-      + '串题的做法很简单：<b>简单填几个问题</b>，AI 就给你生成<b>几个独属于你的专属题材</b>，'
-      + '并且每个题材都会<b>尽可能串到更多的题</b>——同一段经历，考场上临场加一两句过渡就能接到好几道真题上，不用准备十篇范文。</div></div>';
-    h += '<div class="mat-sec-title">人设卡 <span class="tag">1 题</span></div>';
+    // 人设卡 A（固定）—— 三步之一
+    h += '<div class="mat-sec-title"><span class="mat-step-n">1</span>人设卡 <span class="tag">必答</span></div>';
     h += qCard('A');
     // 平台自带万用人设：想不出自己的就点一条填进去，之后还能接着改
     h += '<div class="mat-presets"><div class="mat-presets-t">想不出来？用平台自带的万用人设，点一下就填进去（填完可以继续改成你自己的）</div>'
@@ -231,7 +234,7 @@
     }
 
     // 现成英文素材区块（design/86 改动三）
-    h += '<div class="mat-sec-title">复用我背过的英文素材 <span class="tag">选填</span></div>';
+    h += '<div class="mat-sec-title"><span class="mat-step-n">2</span>复用我背过的英文素材 <span class="tag">选填</span></div>';
     h += '<div class="mat-q"><div class="mat-q-hint">粘贴你以前背过的英文原文（可多段），<b>原样进入故事、AI 一字不改</b>。</div>';
     (store.answers.customEn || []).forEach(x => {
       h += '<textarea data-en="' + x.id + '" placeholder="粘贴一段英文原文…（原样保留，不会改写）">' + escapeHtml(x.text || '') + '</textarea>'
@@ -257,6 +260,7 @@
       h += '</details>';
     }
 
+    h += '<div class="mat-sec-title"><span class="mat-step-n">3</span>生成</div>';
     h += '<div class="mat-actions"><button class="btn btn-primary btn-lg" id="matGen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M5 15c-1.5 1.5-2 5-2 5s3.5-.5 5-2c.8-.8.8-2 0-2.8s-2-.8-3 0z"/><path d="M9 11l4 4"/><path d="M13 7l4 4 3-3a2 2 0 0 0-3-3l-4 2z"/><path d="M14 4l6 6"/></svg>生成我的专属素材</button></div>';
     root.innerHTML = h;
 
@@ -369,6 +373,16 @@
     });
     const backLink = $('#matBackToResult');
     if(backLink) backLink.onclick = () => { mode = 'result'; render(); };
+    /* 10/4 02:00 A 版：「为什么要先填人设？」折叠开关（原 8 行常驻 → 点开才展开） */
+    const whyT = $('#matWhyToggle'), whyB = $('#matWhyBody');
+    if(whyT && whyB){
+      whyT.onclick = () => {
+        const open = whyB.hidden;
+        whyB.hidden = !open;
+        whyT.setAttribute('aria-expanded', open ? 'true' : 'false');
+        whyT.classList.toggle('on', open);
+      };
+    }
     // 规划 / 重新规划
     const pg = $('#matPlanGen');
     if(pg) pg.onclick = () => doPlan(!!(store.plan && Array.isArray(store.plan.cards) && store.plan.cards.length));
