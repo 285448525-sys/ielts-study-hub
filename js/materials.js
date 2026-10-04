@@ -10,6 +10,14 @@
        ④ P1 只给人设卡用，出题纯 P2 —— getBankP2List 保持只筛 P2，这是她的原话口径 */
 (function(){
   const STORE_KEY = 'ielts_materials_v1';
+  /* 🚨 10/4 14:45 P0 第二次：出题算法改版后，**旧 plan 会一直赖着不走**。
+     原判断只有 `plan.bankVersion !== DATA.speakingVersion`（换季才提示）—— 但 14:00 这次改的是
+     **出题算法**（删旧答案 prefill / 卡片数 4~8→10~14 / title 必须是问句），题库版本没变（都 v15），
+     于是 `store.plan` 里那 8 张旧卡永远被当成有效结果渲染，她点了新按钮也一样看到旧内容
+     （截图实证：标题「和同桌男友从认识到一起」、正文「同桌变成男友」全是上赛季素材）。
+     修法：plan 里写 **独立的算法版本号 PLAN_ALGO**，与题库版本**独立判断**——
+     algo 变了就弹强制重出提示，且旧 plan 直接判定为不可用。 */
+  const PLAN_ALGO = 2;   // 1 = 旧算法（含 prefill 污染）；2 = 14:45 修复后的算法
   const CANON = ['喜欢的城市','水边的地方','难忘的旅行','常在一起的人','户外活动','你拍的照片','让你放松的事','家人','朋友','敬佩的人','帮助者','让我骄傲的人','学会的技能','克服的困难','目标','压力','习惯改变','搬家','电子设备','工具','礼物','离不开的东西','爱好','视频','网上学的','改观的事','喜欢的节目','书','电影','歌','诗','故事','网站','衣服','贵的东西','珍藏','法律','规则','传统','习俗','改变','分歧','犯错','投诉','道歉','尴尬','挑战'];
 
   /* ===== 平台自带万用人设（10/2 她拍板：想不出自己的人设就用这些）=====
@@ -199,8 +207,14 @@
       return;
     }
     const plan = store.plan;
-    const hasPlan = !!(plan && Array.isArray(plan.cards) && plan.cards.length);
     const bankLive = !!(DATA.speaking && DATA.speaking.length);
+    /* 🚨 14:45：旧算法出的 plan 一律判定不可用（与题库版本**独立**判断）。
+       14:00 改的是出题算法不是题库 → bankVersion 判断永远为 false → 旧 plan 一直赖着，
+       她的截图里「和同桌男友」那张卡就是这么来的。 */
+    const _hasPlan = !!(plan && Array.isArray(plan.cards) && plan.cards.length);
+    const planAlgo = plan ? (plan.algo || 1) : 0;
+    const algoStale = _hasPlan && planAlgo !== PLAN_ALGO;
+    const hasPlan = _hasPlan && !algoStale;
     /* 10/4 02:00 题库页 A 版（她 01:10 授权自选，选 A=分区清晰改动最小）
        ① 顶部「mat-intro 绿条」+「mat-why 浅绿块」上下贴着像重复说话 → 合并成一段：
           intro 一行说明 + 「为什么要先填人设？」折叠（点开才展开那 8 行）
@@ -218,6 +232,13 @@
       + '填的时候尽量写一份<b>万用人设</b>：城市 + 身份 + 性格 + 一个爱好，P1 / P2 / P3 都能往上套的那种。<br>'
       + '接下来你只要<b>按顺序把十几张卡逐个讲一遍</b>，AI 会把答案合成几个故事——'
       + '这些故事考场上加一两句过渡就能接到很多道真题上，<b>不用准备十篇范文</b>。你不需要知道哪道题对应哪张卡，照着问题讲就行。</div></div>';
+    /* 🚨 14:45 P0：出题算法改版（旧 plan 含 prefill 污染）→ 顶部强制重出提示。
+       与换季提示**并存但优先级更高**：换季只是题库变了，这个是「算法变了」，旧卡一律作废。 */
+    if(algoStale){
+      h += '<div class="mat-shortwarn mat-algo-stale"><b>这批问题是旧版算法出的</b>（会照着你以前填过的内容问，已经不准了）。'
+        + '<div class="mat-shortwarn-actions"><button class="btn btn-primary" id="matReplanBtn">按当前题库重新出题</button>'
+        + '<span class="mat-shortwarn-tip">你以前填的内容不会丢，会收进下面的「我以前填过什么」里</span></div></div>';
+    }
     // 换季横幅（4.5）：plan 是按旧题库出的 → 提示手动重新出题（不自动重规划，避免打断填写）
     if(hasPlan && bankLive && plan.bankVersion !== (DATA.speakingVersion || 0)){
       h += '<div class="mat-shortwarn" id="matPlanStale"><b>口语题库已换季</b>，当前问题是按旧题库出的。<div class="mat-shortwarn-actions"><button class="btn btn-primary" id="matReplanBtn">按新题库重新出题</button><span class="mat-shortwarn-tip">会尽量把你已填的答案迁到新问题里</span></div></div>';
@@ -243,10 +264,17 @@
       h += '<div class="mat-sec-title">你的专属经历问题 <span class="tag">' + plan.cards.length + ' 卡 · 按当季题库定制</span></div>';
       plan.cards.forEach(c => { h += planCard(c); });
     } else if(freeMode){
-      // 4.7.1 兜底：规划失败/无 Key 时的自由填写模式（不依赖 plan 也能生成）
+      /* 4.7.1 兜底：规划失败/无 Key 时的自由填写模式（不依赖 plan 也能生成）。
+         ⚠️ 14/45：**必须排在 algoStale 前面** —— 出题失败后 plan 仍是 stale 的，
+         若 stale 分支在前，freeMode 这段永远执行不到（我第一版就踩了）。 */
       h += '<div class="mat-sec-title">自由填写经历 <span class="tag">至少 1 段</span></div>';
+    } else if(algoStale){
+      /* 14/45：旧算法的 plan 一律不渲染。**但先把它的答案搬进留底** ——
+         否则她点「重新出题」时 answers.cards 被清空，这些内容就真没了（违反「严禁静默丢弃」）。 */
+      harvestLegacyFromStalePlan(plan);
+      saveStore();
+      h += '<div class="mat-empty-tip">下面是按<b>当前题库</b>重新出的问题。点上面的「按当前题库重新出题」生成。</div>';
     }
-
     // 现成英文素材区块（design/86 改动三）
     h += '<div class="mat-sec-title"><span class="mat-step-n">2</span>复用我背过的英文素材 <span class="tag">选填</span></div>';
     h += '<div class="mat-q"><div class="mat-q-hint">粘贴你以前背过的英文原文（可多段），<b>原样进入故事、AI 一字不改</b>。</div>';
@@ -625,6 +653,38 @@
     return parts.join('；');
   }
 
+  /* 把 store.plan 里那些卡的已填答案（独白 + 追问）全量搬进 answers._legacy。
+     14:45 抽成独立函数：两处调用 —— ① 渲染时发现 plan 是旧 algo（先把答案保住再丢弃 plan）
+     ② 重新出题成功后。**严禁静默丢弃用户已填内容**是本项目的硬约束。 */
+  function harvestLegacyFromStalePlan(plan){
+    const oldAnsAll = (store.answers && store.answers.cards) || {};
+    if(!Object.keys(oldAnsAll).length) return;
+    const cardsOf = (plan && Array.isArray(plan.cards)) ? plan.cards : [];
+    store.answers._legacy = store.answers._legacy || {};
+    Object.keys(oldAnsAll).forEach(cid => {
+      const st = oldAnsAll[cid];
+      if(!st) return;
+      const oldCard = cardsOf.find(c => c && c.id === cid);
+      const title = (oldCard && oldCard.title) || ('旧卡 ' + cid);
+      const s = st.s || {};
+      if(s.mono != null && String(s.mono).trim()){
+        const key = '旧卡·' + title + '·独白';
+        if(!store.answers._legacy[key]) store.answers._legacy[key] = String(s.mono).trim();
+      }
+      Object.keys(s).forEach(k => {
+        if(k === 'mono') return;
+        const v = s[k];
+        if(v == null) return;
+        const vs = Array.isArray(v) ? v.join('、') : String(v).trim();
+        if(!vs) return;
+        const step = ((oldCard && Array.isArray(oldCard.followups) ? oldCard.followups : [])
+          .concat((oldCard && Array.isArray(oldCard.steps) ? oldCard.steps : []))).find(x => x && x.k === k);
+        const key = '旧卡·' + title + '·' + labelNoQ((step && step.label) || k);
+        if(!store.answers._legacy[key]) store.answers._legacy[key] = vs;
+      });
+    });
+  }
+
   /* ---- design/86 改动一：动态问卷规划 genQuestionPlan ----
      AI 拿当季 P2 题库全量清单 → 聚类 → 10~14 张漏斗式问题卡。
      🚨 10/4 13:43 她报 P0：「出的题跟上个赛季我自己弄出来的素材库相关，完全跟题库无关」。
@@ -663,31 +723,7 @@
     /* 🚨 10/4 13:43：旧卡答案**全量**留底（原先只留「没被 prefill 采用的」，现在 prefill 已删，
        等于全部旧答案都是「没被采用」→ 直接整体搬进 _legacy，一条不丢）。
        新卡从零出，但玩家还能在页面上翻到之前填过什么。 */
-    const oldAnsAll = store.answers.cards || {};
-    Object.keys(oldAnsAll).forEach(cid => {
-      const st = oldAnsAll[cid];
-      if(!st) return;
-      const oldCard = (store.plan && Array.isArray(store.plan.cards) ? store.plan.cards : []).find(c => c && c.id === cid);
-      const title = (oldCard && oldCard.title) || ('旧卡 ' + cid);
-      const s = st.s || {};
-      if(s.mono != null && String(s.mono).trim()){
-        store.answers._legacy = store.answers._legacy || {};
-        const key = '旧卡·' + title + '·独白';
-        if(!store.answers._legacy[key]) store.answers._legacy[key] = String(s.mono).trim();
-      }
-      Object.keys(s).forEach(k => {
-        if(k === 'mono') return;
-        const v = s[k];
-        if(v == null) return;
-        const vs = Array.isArray(v) ? v.join('、') : String(v).trim();
-        if(!vs) return;
-        const step = ((oldCard && Array.isArray(oldCard.followups) ? oldCard.followups : [])
-          .concat((oldCard && Array.isArray(oldCard.steps) ? oldCard.steps : []))).find(x => x && x.k === k);
-        store.answers._legacy = store.answers._legacy || {};
-        const key = '旧卡·' + title + '·' + labelNoQ((step && step.label) || k);
-        if(!store.answers._legacy[key]) store.answers._legacy[key] = vs;
-      });
-    });
+    harvestLegacyFromStalePlan(store.plan);
     // 旧卡答案搬走后清空 cards（新卡从零填），但 _legacy 里已留底，不会丢
     store.answers.cards = {};
 
@@ -706,7 +742,7 @@
       }
       store.answers.cards[c.id] = cur;
     });
-    store.plan = { bankVersion: DATA.speakingVersion || 0, isFallback: !!isFallback, cards: cards };
+    store.plan = { bankVersion: DATA.speakingVersion || 0, isFallback: !!isFallback, cards: cards, algo: PLAN_ALGO };
     saveStore();
   }
   /* AI 返回卡清洗（4.3.4，前端必须做，不信任 AI 自觉）。
@@ -864,10 +900,18 @@
       toast('已按当季题库出好 ' + (store.plan.cards.length) + ' 张问题卡，逐卡点选就行');
     }catch(e){
       console.error('[materials] 问卷规划失败', e);
-      // 4.7.1 兜底：没有旧 plan 可用 → 自由填写模式（人设 + ≥3 段自由经历 + 英文素材，照样能生成）
-      const hasPlan = !!(store.plan && Array.isArray(store.plan.cards) && store.plan.cards.length);
-      if(!hasPlan){
+      /* 🚨 14:45 她 14:45 截图里「点了重新出题还是旧卡」的**真凶就在这**：
+         原来只判断 `store.plan` 有没有卡 → 旧算法 plan（stale）也算「有」→ 走 else 分支
+         「旧问题保留，可重试」→ **旧卡原封不动留在页面上**，她看到的就是「prompt 没用」。
+         修：stale plan 不算可用旧 plan（与渲染层 algoStale 同一把尺），
+             失败时直接进自由填写模式，**绝不把旧卡留在「专属经历问题」位上冒充新题**。 */
+      const planAlgoNow = store.plan ? (store.plan.algo || 1) : 0;
+      const hasUsablePlan = !!(store.plan && Array.isArray(store.plan.cards) && store.plan.cards.length)
+                            && planAlgoNow === PLAN_ALGO;
+      if(!hasUsablePlan){
         freeMode = true;
+        // 旧答案先进留底，别丢
+        try{ harvestLegacyFromStalePlan(store.plan); }catch(_){}
         store.answers.extraMore = store.answers.extraMore || [];
         while(store.answers.extraMore.length < 3) store.answers.extraMore.push({ id: 'X' + Date.now().toString(36) + Math.random().toString(36).slice(2,5), text: '' });
         saveStore();

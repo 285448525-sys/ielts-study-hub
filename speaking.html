@@ -53,7 +53,7 @@
   <script defer src="js/av-picker.js?v=20261004c"></script>
   <script defer src="js/coach.js?v=20261004d"></script>
   <script defer src="js/speaking.js?v=20261003e"></script>
-  <script defer src="js/materials.js?v=20261004b"></script>
+  <script defer src="js/materials.js?v=20261004c"></script>
   <script defer src="js/mock-report.js?v=20261004a"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
   <script defer src="js/mock.js?v=20261004a"></script>
@@ -722,6 +722,13 @@
   .mat-shortwarn-actions{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
   .mat-shortwarn-actions .btn{ min-height:44px; }
   .mat-shortwarn-tip{ font-size:12px; color:var(--muted); }
+  /* 14:45：旧算法 plan 的强制重出提示（她的截图里「和同桌男友」那张卡就是这么来的）——
+     用醒目描边 + 左侧色条区别于普通换季提示；配 .mat-empty-tip 占位。 */
+  .mat-algo-stale{ border-color:var(--danger); background:var(--danger-soft, rgba(220,38,38,.07)); box-shadow:0 0 0 1px rgba(220,38,38,.12); }
+  .mat-algo-stale b{ color:var(--danger-text, #b91c1c); }
+  .mat-algo-stale .mat-shortwarn-actions{ margin-top:10px; }
+  .mat-empty-tip{ margin:12px 0; padding:16px; border:1px dashed var(--line); border-radius:var(--radius);
+    background:var(--bg); color:var(--muted); font-size:13.5px; line-height:1.7; text-align:center; }
   .mat-followup{ margin-top:16px; background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:14px; }
   .mat-followup h3{ margin:0 0 6px; font-size:15px; }
   .mat-followup-tip{ font-size:12.5px; color:var(--muted); margin-bottom:12px; line-height:1.6; }
