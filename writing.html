@@ -43,7 +43,7 @@
   <script defer src="js/common.js?v=20261003d"></script>
   <script defer src="js/feedback.js?v=20261002b"></script>
   <script defer src="js/writing_prompts.js?v=20260903ab"></script>
-  <script defer src="js/writing.js?v=20261002d"></script>
+  <script defer src="js/writing.js?v=20261004a"></script>
   <script defer src="js/wrongbook.js?v=20260903ab"></script>
 <style>
 
@@ -73,6 +73,12 @@
   @media(max-width:560px){
     .write-tabs{display:flex;width:100%}
     .write-tabs .pill-tab{flex:1;justify-content:center;padding:9px 6px;font-size:13.5px}
+    /* 10/4：模板分类按钮手机端收紧 —— 9 个类型原本绕成 3 行、每颗又高又宽，很占竖向空间；
+       分组标签强制独占一行，避免和按钮挤在同一行。 */
+    .cat-nav{gap:6px}
+    .cat-nav button{min-height:38px;padding:0 12px;font-size:13px;border-radius:9px}
+    .cat-group-label{flex:0 0 100%;margin:8px 2px 0}
+    .tpl-card{padding:14px 16px}
   }
 
   /* AI 评分 */

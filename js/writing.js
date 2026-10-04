@@ -182,7 +182,18 @@ function renderList(){
   let list = DATA.writing.filter(t => t.category === curCat);
   if(tplSearch){ list = list.filter(t => (cleanCatName(t.title)+' '+t.category).toLowerCase().indexOf(tplSearch) !== -1); }
   const lockTag = (tplVip === true) ? '' : '<span class="badge" style="position:absolute;top:10px;right:10px" title="会员专属">🔒</span>';
-  $('#tplList').innerHTML = list.map(t => '<div class="card tpl-card" data-id="' + t.id + '" style="position:relative">' + lockTag + '<b>' + escapeHtml(cleanCatName(t.title)) + '</b><div class="muted" style="font-size:13px;margin-top:4px">' + escapeHtml(t.category) + '</div></div>').join('');
+  /* 10/4（她 12:57 反馈「模板列表里套了一层空壳卡片」）：
+     模板标题常与分类名相同（都叫「观点型」），原实现无条件渲染两行 → 同一句话显示两遍，
+     看起来像一张空壳卡。标题与分类一致时不再重复渲染分类行。 */
+  $('#tplList').innerHTML = list.map(t => {
+    const tt = cleanCatName(t.title);
+    const cat = t.category || '';
+    const sub = (cat && cat !== tt)
+      ? '<div class="muted" style="font-size:13px;margin-top:4px">' + escapeHtml(cat) + '</div>'
+      : '';
+    return '<div class="card tpl-card" data-id="' + t.id + '" style="position:relative">'
+      + lockTag + '<b>' + escapeHtml(tt) + '</b>' + sub + '</div>';
+  }).join('');
   $('#empty').hidden = list.length > 0;
   $('#tplList').querySelectorAll('[data-id]').forEach(c => c.addEventListener('click', () => openTpl(c.dataset.id)));
 }
