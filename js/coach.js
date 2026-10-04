@@ -239,7 +239,15 @@ window.__COACH_ON = true;
   /* B 版：气泡加头像（此前 AI 与用户都无头像，一眼看不出谁在说）。
      静态写死 SVG —— JS innerHTML 拼的内联 SVG 不渲染（铁律）。
      10/3：用户气泡头像改为读设置里选的（av-picker.js 暴露 window.avUserSrc()），没选时回退静态人像。 */
-  var AV_AI = '<span class="coach-av" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3 2 8l10 5 10-5-10-5Z"/><path d="M6 10.5V16c0 1.5 3 3 6 3s6-1.5 6-3v-5.5"/></svg></span>';
+  /* 10/4（她 13:20 拍板）：头像从顶栏搬到气泡左边 —— 顶栏只留「AI 口语陪练 / 自由对话」两行字。
+     气泡头像即考官形象入口：点它开同一个选考官弹层。未选形象时由 .coach-av-fb（学士帽）兜底，不破图。
+     ⚠️ 副作用（正向）：此前气泡恒为学士帽、顶栏才是考官形象，换考官后气泡不跟着变；
+        现在两者合一，换完考官所有气泡一起刷新（sync 见 initExamAv）。 */
+  var AV_AI = '<button type="button" class="coach-av" data-exam-av aria-haspopup="dialog"'
+    + ' aria-controls="avatarPop" aria-expanded="false" title="点击更换考官的样子">'
+    + '<span class="coach-av-fb" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3 2 8l10 5 10-5-10-5Z"/><path d="M6 10.5V16c0 1.5 3 3 6 3s6-1.5 6-3v-5.5"/></svg></span>'
+    + '<img class="coach-av-img" src="" alt="" />'
+    + '</button>';
   /* 用户头像：<img src>（外部 SVG 文件可渲染，内联不行）。
      avUserSrc 缺失（未引 av-picker.js）或图片加载失败时，CSS 让 img 隐藏、露出后面的静态人像兜底 —— 不用 inline onerror（多层引号太脆）。 */
   var AV_ME_FALLBACK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>';
@@ -462,20 +470,16 @@ function userHtml(text){
       btn.setAttribute('aria-expanded', col ? 'false' : 'true');
       btn.textContent = '收起';
     }
-    /* 顶栏按钮：折叠时提示可展开、展开时提示可收回
-       —— ≤860 右栏整体隐藏，按钮改为「记忆」入口，文案跟着变（否则点开是空的）。 */
+    /* 10/4（她 13:20 拍板）：文案固定「本轮教练台」，不再随屏幕变。
+       窄屏原本写成「它记住的 N 件事」且点开是记忆弹层 —— 名字对不上「教练台」、行为也不一致，
+       她明确要求统一成「点一下展开教练台、再点折叠」。 */
     var top = $('coachMemBtn');
     if(top){
-      var narrow = window.matchMedia('(max-width:860px)').matches;
       top.setAttribute('aria-expanded', col ? 'false' : 'true');
       var label = top.querySelector('.coach-mem-label');
-      /* 10/4 09:50 改（她 01:44：「它这里 UI 还是跟以前一样，就是一个旁边是一个它记住的事，
-         根本就跟以前的不一样」）：窄屏文案带上了条数，光看「它记住的事」不知道点开会是什么。 */
-      if(label) label.textContent = narrow
-        ? ('它记住的 ' + memList().length + ' 件事')
-        : '本轮教练台';
+      if(label) label.textContent = '本轮教练台';
       var caret = top.querySelector('.coach-mem-caret');
-      if(caret) caret.textContent = (col || narrow) ? '›' : '‹';
+      if(caret) caret.textContent = col ? '›' : '‹';
     }
     layoutCoach();
   }
@@ -490,14 +494,12 @@ function userHtml(text){
     renderCtx();
     var btn = $('coachCtxToggle');
     if(btn) btn.addEventListener('click', ctxToggle);
-    /* 顶栏按钮：桌面 = 右栏开关；≤860 右栏整体隐藏（CSS display:none），
-       点它开关没意义 → 改成打开长期记忆弹层。这是 10/3 22:06 才有的分流，
-       之前移动端点「它记住 N 件事」正是靠它开弹层，改造后不能把这个能力弄丢。 */
+    /* 10/4（她 13:20 拍板）：顶栏按钮统一 = 教练台开关，宽窄屏行为一致。
+       此前 ≤860 是「开长期记忆弹层」（10/3 22:06 的分流），与「本轮教练台」这个名字对不上。
+       ⚠️ 长期记忆入口没丢：面板内「全部记忆 ›」仍是 openMem（#coachCtxMore）；
+          窄屏教练台现在本身就能展开（CSS 改见 speaking.html ≤860 块）。 */
     var mqNarrow = window.matchMedia('(max-width:860px)');
-    function topBtnOn(){
-      if(mqNarrow.matches){ openMem(); return; }
-      ctxToggle();
-    }
+    function topBtnOn(){ ctxToggle(); }
     if(mqNarrow.addEventListener) mqNarrow.addEventListener('change', ctxApplyState);
     var top = $('coachMemBtn');
     if(top) top.addEventListener('click', topBtnOn);
@@ -511,39 +513,44 @@ function userHtml(text){
      点头像没反应。src 同步用「短轮询 + 结束即清」：av-picker 选完只改自己的 img
      （syncAccountCard 只管设置页），本页要等它把新图刷过来。 */
   function initExamAv(){
-    var btn = $('coachExamAvBtn'), img = $('coachExamAvImg');
-    if(!btn) return;
-    function sync(){
-      if(img && typeof window.avExamSrc === 'function'){
-        var want = window.avExamSrc();
-        if(img.getAttribute('src') !== want) img.setAttribute('src', want);
-      }
+    /* 10/4（她 13:20 拍板）：入口从顶栏搬到气泡头像（#coachExamAvBtn / #coachExamAvImg 已退役）。
+       气泡是动态渲染、且可能同时存在多条 —— 所以：
+       · 形象同步用选择器刷【全部】气泡头像，不再抓一个固定 id；
+       · 点击继续用 document 事件委托（气泡会被重渲染，直接绑节点一定会丢）。 */
+    function examImgs(){
+      return document.querySelectorAll('#coachView [data-exam-av] img');
     }
-    btn.addEventListener('click', function(){
-      if(typeof window.avOpen === 'function'){ window.avOpen('exam'); }
-      else { toast('头像选择器还在加载，稍等一下'); }
-    });
+    function sync(){
+      if(typeof window.avExamSrc !== 'function') return;
+      var want = window.avExamSrc();
+      examImgs().forEach(function(im){
+        if(im.getAttribute('src') !== want) im.setAttribute('src', want);
+      });
+    }
     /* 10/4 10:20 加固（她 01:44 报「陪练考官头像弹出来了，但点完成和✕ 没反应」）
-       —— 顶栏按钮是 build() 动态插进去的，弱网 / CF Pages 的 .html→/ 跳转会让它被丢弃重建。
+       —— 节点是 build() 动态插进去的，弱网 / CF Pages 的 .html→/ 跳转会让它被丢弃重建。
        —— 用【事件委托挂在 document 上】再绑一次：节点换了也照样生效。 */
     if(!window.__coachAvDelegated){
       window.__coachAvDelegated = true;
       document.addEventListener('click', function(e){
         var t = e.target;
         if(!t || !t.closest) return;
-        if(t.closest('#coachExamAvBtn') && typeof window.avOpen === 'function'){
-          window.avOpen('exam');
+        if(t.closest('[data-exam-av]')){
+          if(typeof window.avOpen === 'function'){ window.avOpen('exam'); }
+          else { toast('头像选择器还在加载，稍等一下'); }
         }
       }, true);
     }
     sync();
-    /* 10/3 22:55：换考官后要即时刷顶栏 img。原先用「弹层关掉就停」的轮询 ——
-       点完「完成」弹层立刻关 → 轮询在 DATA 落库生效前就停了 → src 永远不更新（探针抓到）。
+    /* 10/3 22:55：换考官后要即时刷头像。原先用「弹层关掉就停」的轮询 ——
+       点完「完成」弹层立刻关 → 轮询在 DATA 落库生效前就停了 → src 永远不更新（探针抓到过）。
        改成：弹层开着期间持续 sync（覆盖用户点选的那一刻），关掉后再多跑 1.2s 收尾，
-       并在 8s 兜底停止，防定时器泄漏。 */
+       并在 8s 兜底停止，防定时器泄漏。
+       ⚠️ 10/4：判据原本读顶栏按钮的 aria-expanded，该按钮已退役 → 改读 #avatarCard 的 hidden。 */
     var iv = setInterval(function(){
       sync();
-      if(btn.getAttribute('aria-expanded') !== 'true'){
+      var cardEl = document.getElementById('avatarCard');
+      if(cardEl && cardEl.hidden){
         clearInterval(iv);
         setTimeout(function(){ clearInterval(iv); }, 0);
       }
@@ -594,24 +601,17 @@ function userHtml(text){
       + '<div id="coachCol">'
       +   '<div id="coachTop">'
       +     '<div class="coach-who">'
-      /* 10/3 22:55：考官头像选择器从设置页挪到这里（她拍板）。点它 → avOpen('exam') 弹层换考官形象。
-         空 src 时由 .coach-who-av-fb（学士帽 svg + teal 渐变底）兜底，不会破图。 */
-      +       '<button class="coach-who-av" id="coachExamAvBtn" type="button" aria-haspopup="dialog"'
-      +               ' aria-controls="avatarPop" aria-expanded="false" title="点击更换考官的样子">'
-      +         '<span class="coach-who-av-fb" aria-hidden="true">'
-      +           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3 2 8l10 5 10-5-10-5Z"/><path d="M6 10.5V16c0 1.5 3 3 6 3s6-1.5 6-3v-5.5"/></svg>'
-      +         '</span>'
-      +         '<img id="coachExamAvImg" src="" alt="" />'
-      +       '</button>'
+      /* 10/4（她拍板）：顶栏头像已删 —— 头像统一放到气泡左边（见 AV_AI 的 data-exam-av）。
+         顶栏只剩昵称两行字；换考官入口随之搬到气泡头像，功能不丢。 */
       +       '<span class="coach-who-tx"><b>AI 口语陪练</b><span>自由对话</span></span>'
       +     '</div>'
       /* 10/3 22:55：头像弹层容器（考官选择器）。设置页有同名容器，这里是陪练页自己的。 */
       +     '<div id="avatarCard" hidden></div>'
-      /* 10/3 22:06（她拍板文案「本轮教练台 ›」）：这个按钮现在是右栏的【展开/收回入口】——
-         原先右栏收起时留了 40px 白色竖条当入口，她嫌「怪怪的」像没画完的残件，已删（CSS display:none），
-         入口上移到这里。aria-expanded / aria-controls 指右栏，键盘可达性与原来一致。
+      /* 10/4（她 13:20 拍板）：这个按钮固定叫「本轮教练台」，点一下展开教练台、再点折叠。
+         此前窄屏点它是「开记忆弹层」、宽屏才是切右栏 —— 行为随屏幕变，她明确要统一成面板开合。
+         去掉 aria-haspopup（它现在是展开/收起按钮，不是弹层入口）。
          #coachMemN 保留为隐藏计数（updateMemBtn / renderCtx 会写它，探针也断言它，删了会静默失效）。 */
-      +     '<button id="coachMemBtn" type="button" class="coach-mem-btn" aria-haspopup="dialog"'
+      +     '<button id="coachMemBtn" type="button" class="coach-mem-btn"'
       +       ' aria-controls="coachCtx" aria-expanded="true"><span class="coach-mem-label">本轮教练台</span> <span class="coach-mem-caret" aria-hidden="true">‹</span></button>'
       +     '<span id="coachMemN" hidden>0</span>'
       +   '</div>'

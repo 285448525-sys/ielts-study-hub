@@ -51,7 +51,7 @@
   <!-- 10/3 头像选择：必须在 coach.js 之前（陪练气泡头像渲染时就要读 window.avUserSrc）。
        10/3 22:55 扩展：同一份也供顶栏考官头像选择器用（avOpen/avExamSrc） -->
   <script defer src="js/av-picker.js?v=20261004c"></script>
-  <script defer src="js/coach.js?v=20261004b"></script>
+  <script defer src="js/coach.js?v=20261004c"></script>
   <script defer src="js/speaking.js?v=20261003e"></script>
   <script defer src="js/materials.js?v=20261004a"></script>
   <script defer src="js/mock-report.js?v=20261004a"></script>
@@ -1342,15 +1342,33 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
      这里必须显式给 #coachCol 一个确定高度（用 #coachView 的 100% - 顶栏高）。 */
   #coachView #coachWrap{max-width:760px;display:flex;min-height:0;height:100%}
   #coachView #coachCol{max-width:100%;flex:1 1 auto;min-height:0;height:100%}
-  #coachView .coach-ctx{display:none}
+  /* 10/4（她 13:20 拍板）：教练台在窄屏不再整块隐藏 —— 原先 display:none 导致顶栏按钮
+     「点了没东西可看」。展开时要把顺序排成「顶栏 → 教练台 → 聊天 → 输入条」，但面板是
+     #coachCol 的兄弟节点，光靠 order 只会整个挪到最前或最后（首版两稿分别盖住顶栏 / 跑到顶栏之上，实测抓到）。
+     解法：让 #coachCol 在展开态「透明化」（display:contents），它的三个子块直接参与 #coachWrap
+     的纵向排布，于是能用 order 精确排出正确顺序 —— 纯 CSS，不动 DOM 结构。 */
+  #coachView #coachWrap:has(.coach-ctx:not(.coach-ctx-mini)){flex-direction:column}
+  #coachView #coachWrap:has(.coach-ctx:not(.coach-ctx-mini)) #coachCol{display:contents}
+  #coachView #coachWrap:has(.coach-ctx:not(.coach-ctx-mini)) #coachTop{order:0;flex:none}
+  #coachView #coachWrap:has(.coach-ctx:not(.coach-ctx-mini)) #coachScroll{order:2;flex:1 1 auto;min-height:0}
+  #coachView #coachWrap:has(.coach-ctx:not(.coach-ctx-mini)) #coachBar{order:3;flex:none}
+  #coachView .coach-ctx:not(.coach-ctx-mini){
+    display:flex;flex-direction:column;position:static;
+    order:1;flex:0 0 auto;width:auto;max-height:50%;overflow:hidden;margin:10px 0;
+    border-radius:12px;
+  }
+  #coachView .coach-ctx.coach-ctx-mini{display:none}
   /* 10/3 22:06：移动端右栏整体隐藏，顶栏按钮没有可展开的东西 → 改回「记忆」入口，
-     JS 侧按视口宽度自动切 openMem（见 coach.js initCtx 的 mql）。这里只保证按钮可点。 */
-  #coachView .coach-mem-caret{display:none}
+     10/4 已统一为「本轮教练台」开合（见 coach.js ctxApplyState / topBtnOn），箭头恢复显示。 */
+  #coachView .coach-mem-caret{display:inline}
   #coachView #coachScroll{padding:12px 4px 12px 0}
   #coachView #coachTop{padding-bottom:10px;flex:none}
   #coachView .cc-row button{height:44px;padding:0 16px}   /* 触控命中区 ≥44px */
-  #coachView #coachInput,#coachView #coachSend{height:44px;min-height:44px}
-  #coachView #coachBarInner{gap:8px}
+  /* 10/4（她 13:20）：「发送框太高」→ 输入框收到一行标准高度。
+     原先这条把 44px 触控标准误套到了输入框上（发送按钮才需要 44px）。
+     输入框打字时仍会自动变高（coach.js 的 input 监听，上限 96px 按她选定保持不变）。 */
+  #coachView #coachInput{height:36px;min-height:36px;padding:7px 12px}
+  #coachView #coachSend{height:44px;min-height:44px}
 }
 
 /* ---------- 深色模式：显式覆盖面板底色（沿用站的深色约定） ---------- */
@@ -1390,6 +1408,19 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
         选择器权重 (3,0,0) 高于基础规则 #coachView #coachScroll (2,0,0)，不受书写顺序影响。 */
   #coachView #coachScroll:has(#coachChips){
     display:flex;flex-direction:column;justify-content:center;gap:13px;
+  }
+
+  /* ===== 10/4 陪练页：头像搬到气泡左边（她 13:20 拍板） =====
+     气泡头像由 <span> 改成 <button>（.coach-av[data-exam-av]），点它开选考官弹层。
+     原有 .coach-av 只定义了尺寸/圆角/底色 —— 按钮的 UA 边框与内边距要显式清掉，否则多出一圈灰边。
+     内部叠放顺序：学士帽兜底在下、考官形象 img 在上；img 为空 src 时直接不显示，兜底自然露出。 */
+  #coachView button.coach-av{padding:0;border:0;font:inherit;cursor:pointer;appearance:none;-webkit-appearance:none}
+  #coachView .coach-av-fb{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+  #coachView .coach-av-fb svg{width:19px;height:19px}
+  #coachView .coach-av-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block}
+  #coachView .coach-av-img:not([src]),#coachView .coach-av-img[src=""]{display:none}
+  @media (max-width:860px){
+    #coachView #coachBarInner{gap:8px}   /* 10/4 重建窄屏块时保留（原在 ≤860 块内） */
   }
 </style>
 <style id="bootLoaderStyle">
