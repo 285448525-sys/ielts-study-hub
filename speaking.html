@@ -1383,6 +1383,14 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
   @media (max-width:420px){
     .sp-banner{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.4}
   }
+
+  /* ===== 10/4 陪练页空态：竖向居中，别让下方空出一大片 =====
+     ⚠️ 纯 CSS 判定空态：#coachChips（三个快捷按钮）只在首屏出现，
+        用户一开口 coach.js 的 hideChips() 就把它移除 → 该选择器等价于「还没开始聊」。
+        选择器权重 (3,0,0) 高于基础规则 #coachView #coachScroll (2,0,0)，不受书写顺序影响。 */
+  #coachView #coachScroll:has(#coachChips){
+    display:flex;flex-direction:column;justify-content:center;gap:13px;
+  }
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
