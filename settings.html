@@ -32,8 +32,8 @@ setTimeout(__rvRescue,2500);
 <style>
 /* ===== 10/1 晚 · 设置页 v2 重排（她拍板）：账号状态置顶深色卡 + 分区重组 =====
    内容一项不删；全部 DOM 钩子保留，settings.js 零改动（renderAuthUI 除未登录回填「未登录」外）。 */
-.acct-card{position:relative;overflow:hidden;background:linear-gradient(168deg,#1f5350,#12332f 72%);border:none;color:#fff;box-shadow:0 24px 48px -26px rgba(18,51,47,.55)}
-.acct-card::before{content:'';position:absolute;inset:0;background:radial-gradient(420px 200px at 85% -60px,rgba(122,220,210,.16),transparent 70%);pointer-events:none}
+.acct-card{position:relative;background:linear-gradient(168deg,#1f5350,#12332f 72%);border:none;color:#fff;box-shadow:0 24px 48px -26px rgba(18,51,47,.55)}
+.acct-card::before{content:'';position:absolute;inset:0;border-radius:inherit;background:radial-gradient(420px 200px at 85% -60px,rgba(122,220,210,.16),transparent 70%);pointer-events:none}
 .acct-row{display:flex;align-items:center;gap:16px;position:relative}
 .acct-avatar{flex:none;width:52px;height:52px;border-radius:16px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);display:grid;place-items:center;color:rgba(255,255,255,.92)}
 .acct-avatar svg{width:26px;height:26px}
@@ -135,7 +135,14 @@ setTimeout(__rvRescue,2500);
   font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
 .av-tab.on{background:var(--surface);color:var(--primary-800);box-shadow:var(--shadow)}
 .av-pop .av-grid{grid-template-columns:repeat(8,1fr);gap:9px}
-@media(max-width:640px){.av-pop .av-grid{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:640px){
+  .av-pop .av-grid{grid-template-columns:repeat(4,1fr)}
+  /* 窄屏：弹层改为屏幕中间弹出（账户卡片下方空间不足，且露在卡片外的部分此前会被整块裁掉）。
+     ⚠️ .acct-card 的 :hover 位移动画会让 fixed 的包含块变成卡片本身 → 一并清掉，否则定位会错到卡片上。 */
+  .acct-card{transform:none}
+  .av-pop{position:fixed;left:12px;right:12px;top:50%;transform:translateY(-50%);
+    max-height:84vh;overflow-y:auto;z-index:80}
+}
 .av-pop-foot{margin-top:11px;padding-top:11px;border-top:1px solid var(--line);
   display:flex;align-items:center;justify-content:space-between}
 .av-pop-foot span{font-size:11.5px;color:var(--muted)}
