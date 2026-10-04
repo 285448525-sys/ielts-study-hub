@@ -241,10 +241,14 @@
     .sp-mock-jump{height:44px;padding:0 16px}
     .sp-part-seg button{min-height:44px;padding:0 18px}
   }
-  /* ===== 倒计时提示条（10/3她拍板保留）：距考试越近越提示该只练高频 ===== */
-  .sp-countdown{display:flex;align-items:flex-start;gap:7px;padding:8px 12px;border-radius:10px;
-    background:var(--warn-soft);color:var(--warn-ink);font-size:12px;line-height:1.6;margin:0 0 11px}
-  .sp-countdown svg{width:14px;height:14px;flex:none;margin-top:2px}
+  /* ===== 倒计时提示条（10/3她拍板保留）：距考试越近越提示该只练高频 =====
+     ⚠️ 10/4 修她报的「提示条文字错位」：本条原是 **flex 横排**，而脚本塞进来的内容是
+        「图标 + 文字 + <b>N 天</b> + 文字」共四段 → 每段各自成为独立排布单元，
+        一窄就分别逐字折行（截图上「距考 / 试」「6 / 天」被拆开正是这个原因）。
+        改为普通块级 + 图标左浮动 → 整句回到单一文本流，按正常文字规则换行。 */
+  .sp-countdown{display:block;padding:8px 12px;border-radius:10px;overflow:hidden;
+    background:var(--warn-soft);color:var(--warn-ink);font-size:12px;line-height:1.65;margin:0 0 11px}
+  .sp-countdown svg{float:left;width:14px;height:14px;margin:3px 7px 0 0}
   .sp-countdown b{color:#8a4700;font-weight:700}
   /* ===== 分组面板（<details> 原生折叠）：超高频/高频/中低频三组 ===== */
   .sp-panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);margin:0 0 10px;overflow:hidden}
@@ -1361,6 +1365,24 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
 [data-theme="dark"] #coachView .coach-ctx-mem li.coach-ctx-empty{background:transparent}
 [data-theme="dark"] #coachView .coach-ctx-more{border-top-color:rgba(255,255,255,.10)}
 
+  /* ===== 10/4 移动端适配（她 12:57 反馈整页在手机上挤） =====
+     ⚠️ 必须放在本页样式区最末：窄屏规则要与前面的基础规则同权重决胜，
+        写在基础规则之前会被后者按「后来者赢」覆盖掉（第一版就踩了这个坑）。 */
+  @media (max-width:640px){
+    /* 题卡标签不再被硬裁：原 max-width:46% + overflow:hidden 会把
+       「平均 6 分 · 练…」这类徽章截断。窄屏改为「标题 + 箭头」一行、标签整行换到第二行完整显示。 */
+    .sp-card-row{flex-wrap:wrap;row-gap:7px;padding:11px 12px 11px 0}
+    .sp-card-row .sp-card-main{order:1;flex:1 1 auto;min-width:0}
+    .sp-card-row .sp-card-go{order:2}
+    .sp-card-row .sp-card-tags{order:3;flex:1 1 100%;max-width:none;overflow:visible;
+      flex-wrap:wrap;padding-left:12px;gap:6px;margin-top:0}
+    /* 分组面板标题行的数量不再被裁切 */
+    .sp-panel-n{overflow:visible;text-overflow:clip}
+  }
+  /* 极窄屏：题库信息条允许换行，避免尾部「更新 MM-DD」被省略号吃掉 */
+  @media (max-width:420px){
+    .sp-banner{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.4}
+  }
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
