@@ -3065,12 +3065,16 @@ button.side-item, button.sheet-item{
 .kicker{display:block;font-size:12.5px;font-weight:700;letter-spacing:.09em;
   color:var(--primary-700);text-transform:uppercase;margin:0 0 3px}
 
-/* ② 进场动画：.rv 初始隐藏，IntersectionObserver 加 .in 后浮现。
-   用法：<div class="rv" data-d="1">（data-d 1/2/3 = 延迟 .07/.14/.21s 分级出场） */
-.rv{opacity:0;transform:translateY(16px);
-  transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1)}
-.rv.in{opacity:1;transform:none}
+/* ② 进场动画。🚨 10/4 10:20 改默认行为（她 10:08 报「会员页四张卡全空白」）：
+      原版把 .rv 硬编码成 opacity:0，等 IntersectionObserver 加 .in 才显示 ——
+      **脚本稍有差池（放错位置 / 被 CF 301 打断 / 弱网晚跑）内容就永久隐身**，
+      而且这类故障极难排查（页面能开、就是空）。
+      现在改成【默认可见】：html.js .rv 才隐藏（js 类由页内脚本在 <head> 早期加上），
+      没有 js 类、或 observer 没跑 → 内容一律正常显示，动画只是锦上添花。 */
+.js .rv{opacity:0;transform:translateY(16px)}
+.js .rv.in{opacity:1;transform:none}
+.rv{transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1)}
 .rv[data-d="1"]{transition-delay:.07s}
 .rv[data-d="2"]{transition-delay:.14s}
 .rv[data-d="3"]{transition-delay:.21s}
-@media (prefers-reduced-motion: reduce){.rv{opacity:1;transform:none;transition:none}}
+@media (prefers-reduced-motion: reduce){.js .rv{opacity:1;transform:none;transition:none}}

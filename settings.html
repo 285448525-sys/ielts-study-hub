@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="zh-CN" data-theme="light">
 <head>
+<script>/* 10/4 10:20 加 js 类：只有 JS 可用时 .rv 才隐藏（无 JS / 脚本失败 → 内容默认可见） */document.documentElement.className+=" js";</script>
+
 <meta charset="UTF-8" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://api.deepseek.com; object-src 'none'; base-uri 'none'" />
 <!-- frame-ancestors 只由 HTTP 响应头下发（CF Pages 根目录 _headers）：按 CSP 规范它写在 meta 里会被浏览器忽略，本页 meta CSP 不再包含该指令 -->
@@ -9,7 +11,7 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>设置 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261003i" />
+<link rel="stylesheet" href="css/common.css?v=20261003j" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -143,7 +145,7 @@
   <script defer src="js/common.js?v=20261003d"></script>
   <script defer src="js/feedback.js?v=20261002b"></script>
   <!-- 10/3 头像选择（DiceBear CC0 素材；必须在 data.js/common.js 之后 —— 它读 DATA.settings.avatar） -->
-  <script defer src="js/av-picker.js?v=20261004b"></script>
+  <script defer src="js/av-picker.js?v=20261004c"></script>
   <script src="js/settings.js?v=20261003a" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -345,6 +347,14 @@
     es.forEach(function(en){ if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
   }, { threshold:.12 });
   els.forEach(function(e){ io.observe(e); });
+  /* 🚨 兜底：observer 失效也要全部显示（动画只是锦上添花，不能永久藏内容） */
+  setTimeout(function(){
+    document.querySelectorAll('.rv').forEach(function(e){ e.classList.add('in'); });
+    /* 仍有 .rv 没显示 → 摘掉 js 类让 CSS 回落到「默认可见」，宁可没动画也不能隐形 */
+    if(document.querySelectorAll('.rv:not(.in)').length){
+      document.documentElement.className = document.documentElement.className.replace(/\bjs\b/,'').trim();
+    }
+  }, 1200);
 })();
 </script>
 </body>

@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="zh-CN" data-theme="light">
 <head>
+<script>/* 10/4 10:20 加 js 类：只有 JS 可用时 .rv 才隐藏（无 JS / 脚本失败 → 内容默认可见） */document.documentElement.className+=" js";</script>
+
 <meta charset="UTF-8" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'" />
 <!-- frame-ancestors 只由 HTTP 响应头下发（CF Pages 根目录 _headers）：按 CSP 规范它写在 meta 里会被浏览器忽略 -->
@@ -9,7 +11,7 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>会员 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261003i" />
+<link rel="stylesheet" href="css/common.css?v=20261003j" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -187,15 +189,30 @@
 </main>
 
 <script>
-/* 10/4 01:45 丙方案：.rv 进场动画（本页静态区块用；价格卡由 js/vip.js 动态渲染不参与） */
+/* 10/4 10:15 修（她 10:08 报「会员页渲染有问题」：四张卡全空白，只剩状态卡）
+   —— 根因：这段脚本原本写在 `</body>` 之后、`</html>` 之后，位置不对没跑到；
+      而 .rv 初始态是 opacity:0，observer 没跑 = 卡片永久隐身。
+   —— 修法：① 脚本移到 </body> 之前  ② **加 1.2s 兜底**（observer 没触发也强制全显示）*/
 (function(){
+  function showAll(){ document.querySelectorAll('.rv').forEach(function(e){ e.classList.add('in'); }); }
   var els = document.querySelectorAll('.rv');
   if(!els.length) return;
-  if(!('IntersectionObserver' in window)){ els.forEach(function(e){ e.classList.add('in'); }); return; }
+  if(!('IntersectionObserver' in window)){ showAll(); return; }
   var io = new IntersectionObserver(function(es){
     es.forEach(function(en){ if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
   }, { threshold:.12 });
   els.forEach(function(e){ io.observe(e); });
+  /* 🚨 兜底：无论 observer 触发与否，1.2s 后全部显示 —— 动画只是锦上添花，
+     绝不能因为它把内容永久藏起来（这正是 10:4 01:45 那版的严重失误）。 */
+  setTimeout(function(){
+    showAll();
+    /* 若仍有 .rv 没显示（observer 异常/元素动态插入），把 js 类摘掉 → CSS 回落到「默认可见」，
+       宁可没有动画，也绝不能让内容隐形。 */
+    var left = document.querySelectorAll('.rv:not(.in)').length;
+    if(left){
+      document.documentElement.className = document.documentElement.className.replace(/\bjs\b/,'').trim();
+    }
+  }, 1200);
 })();
 </script>
 </body>

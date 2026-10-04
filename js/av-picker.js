@@ -119,23 +119,35 @@
     avSwitchTab(kind || 'user');
     var btn = document.getElementById('acctAvatarBtn');
     if(btn) btn.setAttribute('aria-expanded', 'true');
+    /* 陪练页顶栏那个也要置上——coach.js initExamAv 的轮询靠它判断弹层是否开着 */
+    var cb = document.getElementById('coachExamAvBtn');
+    if(cb) cb.setAttribute('aria-expanded', 'true');
   }
   function avClose(){
     var card = document.getElementById('avatarCard');
     if(card) card.hidden = true;
     var btn = document.getElementById('acctAvatarBtn');
     if(btn) btn.setAttribute('aria-expanded', 'false');
+    /* 陪练页顶栏那个也要同步（initExamAv 的轮询靠它判断弹层是否还开着） */
+    var cb = document.getElementById('coachExamAvBtn');
+    if(cb) cb.setAttribute('aria-expanded', 'false');
   }
   function avBind(){
+    /* ⚠️ 幂等按「元素」打标记，不能用全局 __avBound 一次性封死：
+       第一次跑时陪练页的头像按钮还没被 coach.js 插进来，标记会把它永远排除在外。
+       改成逐元素判断（el.__avBound），元素换了（新节点）就重新绑一次。 */
+    function once(el, fn){ if(!el) return; if(el.__avBound) return; el.__avBound = true; el.addEventListener('click', fn); }
     var btn = document.getElementById('acctAvatarBtn');
-    if(btn) btn.addEventListener('click', function(){ avOpen('user'); });
-    var x = document.getElementById('avPopClose');   if(x) x.addEventListener('click', avClose);
-    var d = document.getElementById('avPopDone');    if(d) d.addEventListener('click', avClose);
+    once(btn, function(){ avOpen('user'); });
+    var x = document.getElementById('avPopClose');
+    once(x, avClose);
+    var d = document.getElementById('avPopDone');
+    once(d, avClose);
     var tabs = document.querySelectorAll('.av-tab');
     for(var i = 0; i < tabs.length; i++){
-      tabs[i].addEventListener('click', function(){ avSwitchTab(this.getAttribute('data-avtab')); });
+      once(tabs[i], function(){ avSwitchTab(this.getAttribute('data-avtab')); });
     }
-    document.addEventListener('keydown', function(e){ if(e.key === 'Escape') avClose(); });
+    if(!document.__avEscBound){ document.__avEscBound = true; document.addEventListener('keydown', function(e){ if(e.key === 'Escape') avClose(); }); }
   }
 
   /** 顶部账户卡（52px）跟随选择 */
@@ -216,12 +228,20 @@
            这样即便按钮节点被重建，委托依然生效。 */
   function avBindDelegated(){
     if(window.__avDelegated) return;
-    if(!document.getElementById('acctAvatarBtn')) return;   // 本页没有这个按钮 → 不绑
+    /* 🚨 10/4 10:45 二次修（她 10:08 图1「完成/✕ 点不动」）：
+       上一版我加了「本页要有任一头像入口才绑」的守卫 —— 但**陪练页的头像按钮是切 tab 时
+       才由 coach.js build() 动态插进去的**，而 av-picker 的 ready 早于那一刻 →
+       守卫判定「无入口」→ **委托从未绑定** → 完成/✕/页签全点不动。
+       探针 _diag_av_dbg.cjs 实锤：切 tab 前 coachExamAvBtn/avatarCard 全不存在，
+       `__avDelegated` 一直是 undefined。
+       正确做法：**无条件绑定**，靠 `closest()` 命中判断（没匹配到就什么都不做）。
+       这样无论元素何时被插进来，委托都已经在 document 上了。 */
     window.__avDelegated = true;
     document.addEventListener('click', function(e){
       var t = e.target;
       if(!t || !t.closest) return;
       if(t.closest('#acctAvatarBtn')){ avOpen('user'); return; }
+      if(t.closest('#coachExamAvBtn')){ avOpen('exam'); return; }
       if(t.closest('#avPopClose') || t.closest('#avPopDone')){ avClose(); return; }
       var tab = t.closest('.av-tab');
       if(tab){ avSwitchTab(tab.getAttribute('data-avtab')); }
@@ -238,4 +258,7 @@
   if(typeof ready === 'function') ready(avBindLate);
   setTimeout(avBindLate, 1200);
   window.addEventListener('load', avBindLate);
+  /* 第三道保险：陪练页的头像按钮是切 tab 时动态插入的，隔一小段时间再补一次
+     （委托已无条件绑上，这里只是把「直接绑定」也补齐，让 aria 状态与弹层同步）。 */
+  [2000, 4000, 6000].forEach(function(ms){ setTimeout(avBindLate, ms); });
 })();
