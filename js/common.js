@@ -38,6 +38,12 @@ const PAGES = [
   { id:'vip',       file:'vip.html',       icon:ICON.vip,       name:'会员',       desc:'AI 无限用 + 专属权益' },  // 10/1 付费方案：非学习功能，不进 PRIMARY_NAV
   { id:'settings',  file:'settings.html',  icon:ICON.settings,  name:'设置',       desc:'同步 / AI / 数据' },
   { id:'meds',      file:'meds.html',      icon:ICON.meds,      name:'服药',   desc:'专注达药效窗口' },  // ← 移到最后
+  /* 10/4 18:42 她拍板「我就要一整个界面就行了」：三个组页（真实页面，不是弹出的浮层）。
+     id 必须与文件名一致（软导航按 js/{id}.js 找主脚本）→ 组页共用 js/hubgroup.js，
+     所以在 PAGES 里显式声明 hubScript:'hubgroup'，由软导航那段特殊处理。 */
+  { id:'plans-hub', file:'plans-hub.html', icon:ICON.plans,     name:'计划组', desc:'计划 + 计时' },
+  { id:'study',     file:'study.html',     icon:ICON.practice,  name:'学习组', desc:'单词 · 口语 · 写作 · 句子' },
+  { id:'me',        file:'me.html',        icon:ICON.settings,  name:'我的组', desc:'回顾 · 会员 · 设置' }
 ];
 
 /* 收藏页面（⭐）——侧边栏「常用」与首页「快捷入口」共用同一份，永远同步。
@@ -453,11 +459,11 @@ function bindSideSearch(){
 const GROUPED_DOCK = [
   { id:'index',  label:'首页', icon:'<path d="M3 11l9-8 9 8M5 10v10h14V10"/>', page:'index' },
   { id:'plans',  label:'计划', icon:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4"/>',
-    members:['plans','timer'] },
+    page:'plans-hub', members:['plans','timer'] },
   { id:'study',  label:'学习', icon:'<path d="M4 19.5V6a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-1.5z"/><path d="M4 19.5A2 2 0 0 1 6 18h13"/>',
-    members:['practice','speaking','writing','corpus'] },
+    page:'study',     members:['practice','speaking','writing','corpus'] },
   { id:'me',     label:'我的', icon:'<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/>',
-    members:['review','vip','settings','meds'] }
+    page:'me',        members:['review','vip','settings','meds'] }
 ];
 
 /* 当前页属于哪个 dock 组 —— injectGlobalDock（首屏高亮）与 updateActiveNav（软导航高亮）
@@ -482,15 +488,14 @@ function injectGlobalDock(){
   let inner = '';
   for(const g of GROUPED_DOCK){
     const on = (g.id === curGroup) ? ' active' : '';
-    /* 弹层型（无 page）用 button，直达型用 a —— 语义要对，别全用 button */
-    const tag = g.page ? 'a' : 'button';
-    const href = g.page ? ' href="' + ((pageById(g.page) || {}).file || (g.page + '.html')) + '"' : ' type="button"';
-    inner += '<' + tag + ' class="ui-menu-item dock-group-item' + on + '"' + href
-      + ' data-dock-group="' + g.id + '"'
-      + (g.page ? ' data-id="' + g.page + '"' : '')
-      + ' title="' + g.label + '"'
-      + (g.page ? '' : ' aria-haspopup="dialog" aria-expanded="false"')
-      + '>' + svgOf(g.icon) + '<span>' + g.label + '</span></' + tag + '>';
+    /* 10/4 18:42 她拍板「我要一整个界面就行了」-> 四格**全部是 <a> 直达整页**：
+       首页 -> home.html；计划/学习/我的 -> 各自的组页（plans-hub / study / me）。
+       组内模块再由组页里的卡片跳原页面（plans.html / timer.html / …），原页面零改动。 */
+    const file = (pageById(g.page) || {}).file || (g.page + '.html');
+    inner += '<a class="ui-menu-item dock-group-item' + on + '" href="' + file + '"'
+      + ' data-dock-group="' + g.id + '" data-id="' + g.page + '"'
+      + ' title="' + g.label + '">'
+      + svgOf(g.icon) + '<span>' + g.label + '</span></a>';
   }
   const dock = document.createElement('nav');
   dock.id = 'hubDock';
@@ -500,7 +505,6 @@ function injectGlobalDock(){
   document.body.appendChild(dock);
   document.body.classList.add('has-dock');
 
-  bindDockGroups(dock, pageById, current);
   /* 10/2 dock 重设计（她拍板）：实测 dock 真实高度写进 :root 的 --dock-h。
      全站「内容区净空 / 浮钮锚点 / toast / 额度轻条」一律读这个变量，不写死 88px。
      为什么必须实测：safe-area（iPhone 34 / iPad 20）+ 系统字号放大都会让高度浮动，
@@ -517,67 +521,6 @@ function injectGlobalDock(){
   if(document.fonts && document.fonts.ready) document.fonts.ready.then(syncDockH, () => {});
 }
 
-/* ==========================================================================
-   组面板：从底部滑出的一张卡片（微信「+」那种），列出组内页面
-   —— 不再是「更多」那个全站弹层（那个还在，供侧栏/其他入口复用）
-   ========================================================================== */
-function ensureDockGroupSheet(){
-  let sheet = document.getElementById('dockGroupSheet');
-  if(sheet) return sheet;
-  /* 软导航换页时若上一轮面板还开着，body 上的 dgs-open 会残留 ->
-     遮罩留在 DOM 里挡住全页点击（页面能开但什么都点不动，onbOverlay 10/3 同类事故）。
-     建新面板前先把状态清干净。 */
-  document.body.classList.remove('dgs-open');
-  const bd = document.createElement('div');
-  bd.id = 'dockGroupBackdrop'; bd.className = 'sheet-backdrop';
-  sheet = document.createElement('div');
-  sheet.id = 'dockGroupSheet'; sheet.className = 'dock-group-sheet';
-  sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-modal', 'true');
-  sheet.innerHTML = '<div class="dgs-grab" aria-hidden="true"></div>'
-    + '<div class="dgs-head"><b id="dgsTitle">学习</b>'
-    + '<button class="dgs-close" type="button" aria-label="关闭">✕</button></div>'
-    + '<div class="dgs-list" id="dgsList"></div>';
-  document.body.appendChild(bd); document.body.appendChild(sheet);
-  bd.addEventListener('click', closeDockGroupSheet);
-  sheet.querySelector('.dgs-close').addEventListener('click', closeDockGroupSheet);
-  document.addEventListener('keydown', function(e){
-    if(e.key === 'Escape') closeDockGroupSheet();
-  });
-  return sheet;
-}
-function closeDockGroupSheet(){ document.body.classList.remove('dgs-open'); }
-
-function bindDockGroups(dock, pageById, current){
-  const sheet = ensureDockGroupSheet();
-  const list = document.getElementById('dgsList');
-  const title = document.getElementById('dgsTitle');
-  dock.querySelectorAll('[data-dock-group]').forEach(btn => {
-    btn.addEventListener('click', function(){
-      const g = GROUPED_DOCK.find(x => x.id === btn.getAttribute('data-dock-group'));
-      if(!g) return;
-      if(g.page){ return; }   /* 直达型就是 <a>，让浏览器自己跳 */
-      /* 组面板型：点已在当前组的按钮 → 仍弹列表（她拍板：这样能快速跳组里别的页） */
-      const ids = (g.members || []).filter(id => id !== 'meds' || medsModuleOn());
-      title.textContent = g.label;
-      list.innerHTML = ids.map(id => {
-        const p = pageById(id); if(!p) return '';
-        const on = (p.file === current) ? ' cur' : '';
-        return '<a class="dgs-item' + on + '" href="' + p.file + '" data-id="' + p.id + '">'
-          + '<span class="dgs-ic">' + p.icon + '</span>'
-          + '<span class="dgs-tx"><b>' + p.name + '</b>'
-          + (p.desc ? '<span>' + p.desc + '</span>' : '') + '</span></a>';
-      }).join('');
-      document.body.classList.add('dgs-open');
-      btn.setAttribute('aria-expanded', 'true');
-    });
-  });
-  /* 关闭时把 aria-expanded 复位 */
-  document.addEventListener('click', function(e){
-    if(!document.body.classList.contains('dgs-open')) return;
-    if(e.target.closest && (e.target.closest('#dockGroupSheet') || e.target.closest('[data-dock-group]'))) return;
-    closeDockGroupSheet();
-  });
-}
 
 /* ===== 全站 + 浮动按钮（已砍，9/16 之之反馈不知道它是干嘛的：全站仅计划页有 data-fab-add 接杆，
    且 fab 挂 body 上软导航残留，其他页面点了静默无效 = 死按钮。原 injectFab() 已删。）===== */
@@ -3585,7 +3528,19 @@ function pageScriptSources(id, doc){
       if(list.indexOf(src) === -1) list.push(src);
     });
   }
-  if(mainIdx === -1){ list.unshift(mainSrc); mainIdx = 0; }   // doc 缺失/无声明时退回主脚本在前
+  /* 🔴 10/4 18:42 组页（plans-hub / study / me）共用 js/hubgroup.js，**没有** js/{id}.js。
+     原写法 `if(mainIdx === -1){ list.unshift(mainSrc) }` 会把一个**不存在的 js/study.js**
+     硬塞进清单最前 -> 软导航时必然吃一发 404（虽然有 catch 静默，但会拖慢且污染控制台）。
+     正解：doc 存在且里面**确实声明了别的业务脚本**时就不补 mainSrc（那些声明才是真脚本）；
+     只有 doc 缺失（fetch 失败）才退回按 id 猜。 */
+  if(mainIdx === -1){
+    if(doc){
+      if(list.indexOf(mainSrc) === -1 && list.length > 0) mainIdx = 0;   // 已有声明 -> 用它，不补
+      else if(list.length === 0) throw new Error('no-script:' + id);     // 一个都没有 -> 交由上层兜底
+    }else{
+      list.unshift(mainSrc); mainIdx = 0;   // doc 缺失才退回按 id 猜
+    }
+  }
   list.mainIdx = mainIdx;
   return list;
 }

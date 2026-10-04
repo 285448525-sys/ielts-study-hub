@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>学习 · 雅思备考 Hub</title>
+<link rel="stylesheet" href="css/common.css?v=20261004c" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
+<link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
+<link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png?v=7">
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#3a9a93" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="description" content="学习：把常用的几个模块放一屏，不用再翻「更多」找入口。" />
+
+<script>
+/* 组页不需要题库清理逻辑（不读 DATA.speaking），占位以保持与其他页一致的结构。 */
+</script>
+</head>
+<!-- data-hub-group：js/hubgroup.js 靠它决定渲染哪个组（G 的唯一依据） -->
+<body data-hub-group="study">
+<div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div></div>
+<nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
+
+<main class="container">
+  <!-- 10/4 18:42 她拍板：「我就要一整个界面就行了」（不要底部弹出的浮层）。
+       这一屏把该组的模块全列成卡，点卡进原页面 —— 原页面零改动。 -->
+  <div id="hubGroupRoot">
+    <div class="empty">加载中…</div>
+  </div>
+</main>
+
+<script defer src="js/data.js?v=20261003b"></script>
+<script defer src="js/common.js?v=20261004c"></script>
+<script defer src="js/hubgroup.js?v=20261004b"></script>
+</body>
+</html>
