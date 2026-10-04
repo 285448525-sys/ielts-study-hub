@@ -206,4 +206,36 @@
   if(typeof ready === 'function') ready(boot);
   else if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
+
+  /* 10/4 10:20 加固（她 01:44 报「设置页头像点了没反应 / 弹层里完成和✕ 点不动」）
+     —— 探针 _diag_nav.cjs 抓到线上 `/settings.html` 会被 CF Pages 301 到 `/settings`（3 次导航），
+        弱网下 boot() 可能跑在导航前的旧文档里 → 事件绑在已被丢弃的节点上，点击毫无反应。
+     —— 两道保险：
+        ① avBind 幂等（__avBound 标记），可重复调用
+        ② 延迟兜底再绑一次（覆盖「DOM 已被换掉」的情况），并用事件委托挂在 document 上，
+           这样即便按钮节点被重建，委托依然生效。 */
+  function avBindDelegated(){
+    if(window.__avDelegated) return;
+    if(!document.getElementById('acctAvatarBtn')) return;   // 本页没有这个按钮 → 不绑
+    window.__avDelegated = true;
+    document.addEventListener('click', function(e){
+      var t = e.target;
+      if(!t || !t.closest) return;
+      if(t.closest('#acctAvatarBtn')){ avOpen('user'); return; }
+      if(t.closest('#avPopClose') || t.closest('#avPopDone')){ avClose(); return; }
+      var tab = t.closest('.av-tab');
+      if(tab){ avSwitchTab(tab.getAttribute('data-avtab')); }
+    }, true);
+  }
+  function avBindLate(){
+    try{ avBindDelegated(); }catch(_){}
+    try{
+      var box = document.getElementById('avatarCard');
+      if(box){ ensurePop(box); if(!box.querySelector('#avUserGrid').children.length) renderAll(); }
+      avBind();
+    }catch(_){}
+  }
+  if(typeof ready === 'function') ready(avBindLate);
+  setTimeout(avBindLate, 1200);
+  window.addEventListener('load', avBindLate);
 })();

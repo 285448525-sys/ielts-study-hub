@@ -523,6 +523,19 @@ function userHtml(text){
       if(typeof window.avOpen === 'function'){ window.avOpen('exam'); }
       else { toast('头像选择器还在加载，稍等一下'); }
     });
+    /* 10/4 10:20 加固（她 01:44 报「陪练考官头像弹出来了，但点完成和✕ 没反应」）
+       —— 顶栏按钮是 build() 动态插进去的，弱网 / CF Pages 的 .html→/ 跳转会让它被丢弃重建。
+       —— 用【事件委托挂在 document 上】再绑一次：节点换了也照样生效。 */
+    if(!window.__coachAvDelegated){
+      window.__coachAvDelegated = true;
+      document.addEventListener('click', function(e){
+        var t = e.target;
+        if(!t || !t.closest) return;
+        if(t.closest('#coachExamAvBtn') && typeof window.avOpen === 'function'){
+          window.avOpen('exam');
+        }
+      }, true);
+    }
     sync();
     /* 10/3 22:55：换考官后要即时刷顶栏 img。原先用「弹层关掉就停」的轮询 ——
        点完「完成」弹层立刻关 → 轮询在 DATA 落库生效前就停了 → src 永远不更新（探针抓到）。

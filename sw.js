@@ -9,7 +9,16 @@
      SW 不参与离线态的判定与渲染，缓存策略本文件零改动。
      本文件 activate 时发的 `SW_UPDATED` 消费端也在 common.js（maybeShowSwUpdatePrompt，
      design/78）：页面收到后只弹提示条，**是否刷新由用户点击决定，SW 侧绝不自动 reload**。 */
-const CACHE = 'ielts-hub-v201';  // 10/4 00:50 P0 修模考报告「未作答不扣分」（她 00:38 报「P1 全部跳过、P2P3 答得一坨屎，结果还给我打5.5」）——🚨 **根因（探针 outputs/design/_diag_score_empty.cjs 实锤）**：js/mock.js:646 用 `(a.transcript || '(空)')` 拼 block，**P1 全未答时拼出的 block 仍非空**（98 字符，因为还有 Q: 题面）→ 唯一防线 `if(!block.trim()) return null` **拦不住** → 照样调 AI → AI 面对一屏「(空)」按默认中位给 5.5 → 总分 (5.5+P2+P3)/3 把她的真实水平拉平。同时 fixes 里出现**根本没作答的题的编造点评**（她截图里「About more than 10 years → More than 10 years」）。
+const CACHE = 'ielts-hub-v202';  // 10/4 00:50 P0 修模考报告「未作答不扣分」（她 00:38 报「P1 全部跳过、P2P3 答得一坨屎，结果还给我打5.5」）——🚨 **根因（探针 outputs/design/_diag_score_empty.cjs 实锤）**：js/mock.js:646 用 `(a.transcript || '(空)')` 拼 block，**P1 全未答时拼出的 block 仍非空**（98 字符，因为还有 Q: 题面）→ 唯一防线 `if(!block.trim()) return null` **拦不住** → 照样调 AI → AI 面对一屏「(空)」按默认中位给 5.5 → 总分 (5.5+P2+P3)/3 把她的真实水平拉平。同时 fixes 里出现**根本没作答的题的编造点评**（她截图里「About more than 10 years → More than 10 years」）。
+  // 10/4 10:25 头像弹层交互加固（她 01:44 报「设置页头像点了没反应 / 弹层里完成和✕点不动 / 我这个字也交互不了」）
+  //探针 _diag_nav.cjs 抓到关键：线上 `/settings.html` 会被 **Cloudflare Pages 301 到 `/settings`（实测 3 次导航）**，
+  //   弱网下 boot() 可能跑在导航前的旧文档里 → 事件绑在已被丢弃的节点上，点什么都没反应。
+  // 修法（av-picker.js + coach.js）：除原有直接绑事件外，**再加一层 document 级事件委托**
+  //   （capture 阶段 + __avDelegated / __coachAvDelegated 幂等标记防重复绑）：
+  //   节点被 CF 跳转丢弃重建后，委托依然生效。并加 setTimeout(1200) + window load 兜底重绑。
+  //⚠️ 教训：跑多个探针别共用同一个端口（并发污染会报出假 FAIL，
+  //   我一度以为「加固导致重复触发」，单独复跑是 32/32 全过）。
+  // 版本 av-picker.js 20261004a→b（settings + speaking）· coach.js 20261004a→b。SW v201→v202。
   // 10/4 09:55 修她 01:44 报的三个交互 bug + 题库页 A 版（她 01:10 授权自选 A=分区清晰）
   // 🚨【P0 头像弹层全线失灵】根因：js/av-picker.js **不在 SW 的 PRECORE 名单里** → 只走 network-first，
   //    弱网/离线时拿不到或拿旧版 → 表现：设置页点头像没反应、陪练页弹层里「完成/✕/我页签」全点不动。
