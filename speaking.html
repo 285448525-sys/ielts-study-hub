@@ -51,7 +51,7 @@
   <!-- 10/3 头像选择：必须在 coach.js 之前（陪练气泡头像渲染时就要读 window.avUserSrc）。
        10/3 22:55 扩展：同一份也供顶栏考官头像选择器用（avOpen/avExamSrc） -->
   <script defer src="js/av-picker.js?v=20261004c"></script>
-  <script defer src="js/coach.js?v=20261004e"></script>
+  <script defer src="js/coach.js?v=20261004f"></script>
   <script defer src="js/speaking.js?v=20261003e"></script>
   <script defer src="js/materials.js?v=20261004d"></script>
   <script defer src="js/mock-report.js?v=20261004a"></script>
@@ -1644,6 +1644,79 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
 }
 #coachView .coach-empty b{display:block;font-size:15px;color:var(--n-900);margin-bottom:6px}
 #coachView .coach-empty span{display:block;font-size:13px;color:var(--muted);line-height:1.7}
+
+/* ==========================================================================
+   10/4 17:20 三个修正（她 17:12 手机截图逐条报）
+   ========================================================================== */
+
+/* ---------- A. 思考中气泡（她：「他思考的时候不能没有任何反馈」）---------- */
+#coachView .coach-thinking{align-items:center}
+#coachView .coach-thinking-b{
+  display:flex;align-items:center;gap:9px;
+  color:var(--ink-2);font-size:14px;line-height:1.4;padding:11px 15px;
+}
+/* 文案轻微呼吸感（比三点更慢，不喧宾夺主） */
+#coachView .coach-thinking-t{animation:coachBreathe 1.5s ease-in-out infinite}
+@keyframes coachBreathe{0%,100%{opacity:1}50%{opacity:.55}}
+/* 经典三点跳动 */
+#coachView .coach-dots{display:inline-flex;align-items:center;gap:4px;flex:none}
+#coachView .coach-dots i{
+  width:6px;height:6px;border-radius:50%;background:var(--primary-500);display:block;
+  animation:coachDot 1.25s ease-in-out infinite;
+}
+#coachView .coach-dots i:nth-child(2){animation-delay:.16s}
+#coachView .coach-dots i:nth-child(3){animation-delay:.32s}
+@keyframes coachDot{0%,60%,100%{transform:translateY(0);opacity:.42}30%{transform:translateY(-4px);opacity:1}}
+@media (prefers-reduced-motion: reduce){
+  #coachView .coach-thinking-t,#coachView .coach-dots i{animation:none}
+  #coachView .coach-dots i{opacity:1}
+}
+
+/* ---------- B. 输入条：与发送键**齐平**（她：「它的高度就不能跟发送键齐平吗」）----------
+   根因（截图实测）：`.coach-cbox` 靠 padding 撑高，textarea 又是 height:38px + padding:8px 0
+   → 输入框盒高与 `#coachSend` 的 44px 差一截，两者上下沿都不齐。
+   修法：**统一高度变量 + 两者都用它**；输入框内 textarea 高度交给 flex 自适应，
+        发送键 `align-self:stretch`（跟 cbox 等高），窄屏靠 ≥44px 触控标准兜底。 */
+#coachView #coachBarInner{align-items:stretch;gap:9px}
+#coachView .coach-cbox{
+  flex:1;min-width:0;
+  display:flex;align-items:center;
+  height:44px;padding:0 14px;      /* ← 固定 44px，与发送键同高；内部不再撑高 */
+  background:var(--surface);border:1.5px solid var(--line);
+  border-radius:12px;box-shadow:var(--shadow);
+  transition:border-color .15s,box-shadow .15s;
+}
+#coachView #coachInput{
+  flex:1;width:100%;min-width:0;
+  border:0;outline:0;resize:none;background:transparent;
+  font-family:inherit;font-size:14.5px;line-height:1.5;color:var(--ink);
+  padding:0;height:auto;min-height:22px;max-height:96px;   /* 多行时内部长高，不撑外框 */
+  /* 🔴 触控命中：textarea 自身盒高 = 行高 ≈22px，**远小于 44/36px 触控标准**
+     （探针实测「移动端输入/发送 ≥36px」量到的就是它）。修：min-height 撑到 36px，
+     外层 .coach-cbox 仍是 44px 且 flex 居中 → 视觉居中 + 命中区达标，两不耽误。 */
+}
+/* 宽屏 44px 命中 / 窄屏 36px 命中（10/3 她 13:20 拍板：发送框收 36，发送键保 44） */
+@media (max-width:860px){
+  #coachView #coachInput{min-height:36px}
+  #coachView .coach-cbox{height:44px}
+  #coachView #coachSend{min-height:44px}
+}
+#coachView #coachSend{
+  flex:none;align-self:stretch;      /* ← 与 cbox 等高 */
+  min-height:44px;height:auto;
+  display:flex;align-items:center;justify-content:center;
+  padding:0 20px;border-radius:12px;
+  font-size:14.5px;font-weight:600;white-space:nowrap;cursor:pointer;
+  background:var(--primary);color:#fff;border:0;
+  transition:background .15s,opacity .15s;
+}
+#coachView #coachSend:hover:not(:disabled){background:var(--primary-600)}
+#coachView #coachSend:disabled{opacity:.55;cursor:default}
+
+/* ---------- C. placeholder 文案**垂直居中**（她：「这几个字不能放在对话框的中间吗」）----------
+   根因：textarea 用 `padding:8px 0` + 固定 `height:38px`，行高 1.5 → 文字中心与盒中心差 1~2px，
+   再叠上外层 padding，视觉上明显偏上。修：flex 居中 + padding 归零（见上 B）。 */
+#coachView #coachInput::placeholder{color:var(--muted);opacity:1;line-height:1.5}
 
 </style>
 <style id="bootLoaderStyle">

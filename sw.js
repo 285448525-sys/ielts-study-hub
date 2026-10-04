@@ -30,7 +30,27 @@
 // 开合（窄屏原本点了开记忆弹层、且教练台整块隐藏→现在展开态显示为浮层）；发送框收到 36px。v212→v213
 // 10/4 13:36 她看过实机后补一条：手机端教练台改为**默认收起**（点开才出现）；
 // 桌面维持默认展开。窄屏开合只记内存、不写回设置，避免「手机收起把电脑右栏也收掉」。v213→v214
-const CACHE = 'ielts-hub-v220';  // 10/4 00:50 P0 修模考报告「未作答不扣分」（她 00:38 报「P1 全部跳过、P2P3 答得一坨屎，结果还给我打5.5」）——🚨 **根因（探针 outputs/design/_diag_score_empty.cjs 实锤）**：js/mock.js:646 用 `(a.transcript || '(空)')` 拼 block，**P1 全未答时拼出的 block 仍非空**（98 字符，因为还有 Q: 题面）→ 唯一防线 `if(!block.trim()) return null` **拦不住** → 照样调 AI → AI 面对一屏「(空)」按默认中位给 5.5 → 总分 (5.5+P2+P3)/3 把她的真实水平拉平。同时 fixes 里出现**根本没作答的题的编造点评**（她截图里「About more than 10 years → More than 10 years」）。
+const CACHE = 'ielts-hub-v221';  // 10/4 00:50 P0 修模考报告「未作答不扣分」（她 00:38 报「P1 全部跳过、P2P3 答得一坨屎，结果还给我打5.5」）——🚨 **根因（探针 outputs/design/_diag_score_empty.cjs 实锤）**：js/mock.js:646 用 `(a.transcript || '(空)')` 拼 block，**P1 全未答时拼出的 block 仍非空**（98 字符，因为还有 Q: 题面）→ 唯一防线 `if(!block.trim()) return null` **拦不住** → 照样调 AI → AI 面对一屏「(空)」按默认中位给 5.5 → 总分 (5.5+P2+P3)/3 把她的真实水平拉平。同时 fixes 里出现**根本没作答的题的编造点评**（她截图里「About more than 10 years → More than 10 years」）。
+  // 10/4 17:20 陪练三修（她 17:12 手机截图逐条报）：
+//  ① 每条 AI 气泡头像都是考官头像（她说「只有第一个对话框头像是那个头像，第二个就不对了」）
+//     根因：AV_AI 曾是**字符串常量**、img.src 写死空串，initExamAv 的 sync() 只在 build() 后跑一次
+//     -> 之后 assistantHtml() 每次新建的气泡都带空 src -> 露学士帽兜底。
+//     修：AV_AI 改成 **函数 avAiHtml()**，每次生成当场读 window.avExamSrc()（与 avMeHtml 同思路）。
+//  ② 「思考中」气泡（她说「他思考的时候得有个对话框在思考的动画」「文案要多个备选」）
+//     原来只有发送键文字变「思考中…」，聊天区完全没动静。
+//     新增 showThinking()/hideThinking()：3 个跳动圆点 + 8 条随机文案（她要「不要固定一句」）；
+//     🔴 失败分支必须 hideThinking()，否则思考中会留在屏幕上冒充答案。
+//  ③ 输入框与发送键齐平 + placeholder 垂直居中（她说「框看着非常不规整」）
+//     根因：.coach-cbox 靠 padding 撑高、textarea 又是 height:38px + padding:8px 0 -> 两者不等。
+//     修：统一 44px 固定高 + flex 居中 + padding 归零；发送键 align-self:stretch。
+//     ⚠️ 连带回归（探针 coachB 实锤）：textarea 自身盒高 = 行高 ≈22px，
+//     **远小于 36/44px 触控标准**（探针量到的就是它）-> 必须 min-height 撑起来，
+//     否则「视觉居中」修好了、「点击命中区」却破了。
+//
+// 🔴 探针坑（本批）：route 挂起后再 unroute 换 401 会抛「Route is already handled」未捕获异常
+//    -> 用**一个 route + 可变 mode 变量**，永不 unroute。
+//    验「多文案随机」不能对**同一个**思考节点重复采样（它只创建一次，必然永远是同一句）
+//    -> 必须反复「触发 -> 采样」，攒够样本。
   // 10/4 16:50 设置页「改了个寂寞、依旧点不动」（她 16:40 报）—— 三件事：
 //
 // ① 🔴 真 bug：自动保存**只绑 change**。change 只在「值改变且失焦」时触发，

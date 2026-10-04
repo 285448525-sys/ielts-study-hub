@@ -243,11 +243,20 @@ window.__COACH_ON = true;
      气泡头像即考官形象入口：点它开同一个选考官弹层。未选形象时由 .coach-av-fb（学士帽）兜底，不破图。
      ⚠️ 副作用（正向）：此前气泡恒为学士帽、顶栏才是考官形象，换考官后气泡不跟着变；
         现在两者合一，换完考官所有气泡一起刷新（sync 见 initExamAv）。 */
-  var AV_AI = '<button type="button" class="coach-av" data-exam-av aria-haspopup="dialog"'
-    + ' aria-controls="avatarPop" aria-expanded="false" title="点击更换考官的样子">'
-    + '<span class="coach-av-fb" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3 2 8l10 5 10-5-10-5Z"/><path d="M6 10.5V16c0 1.5 3 3 6 3s6-1.5 6-3v-5.5"/></svg></span>'
-    + '<img class="coach-av-img" src="" alt="" />'
-    + '</button>';
+  /* 🔴 10/4 17:20 她报「只有第一个对话框头像是头像，第二个就不对了」。
+     根因：AV_AI 曾是**字符串常量**，里面 img 的 src 写死空串；initExamAv 的 sync() 只在
+     build() 后跑一次，之后 assistantHtml() 每次新建的气泡都带一个**空 src** 的 img
+     → 露后面的学士帽兜底，于是同一条会话里头像一会对、下一对又不对。
+     修：改成**函数**，每次生成气泡时**当场读** window.avExamSrc() 写进 src，
+     与 avMeHtml()（用户头像）的做法完全一致。sync() 仍保留，用于换考官后刷新存量气泡。 */
+  function avAiHtml(){
+    var src = (typeof window !== 'undefined' && typeof window.avExamSrc === 'function') ? (window.avExamSrc() || '') : '';
+    return '<button type="button" class="coach-av" data-exam-av aria-haspopup="dialog"'
+      + ' aria-controls="avatarPop" aria-expanded="false" title="点击更换考官的样子">'
+      + '<span class="coach-av-fb" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3 2 8l10 5 10-5-10-5Z"/><path d="M6 10.5V16c0 1.5 3 3 6 3s6-1.5 6-3v-5.5"/></svg></span>'
+      + '<img class="coach-av-img" src="' + escapeHtml(src) + '" alt="" />'
+      + '</button>';
+  }
   /* 用户头像：<img src>（外部 SVG 文件可渲染，内联不行）。
      avUserSrc 缺失（未引 av-picker.js）或图片加载失败时，CSS 让 img 隐藏、露出后面的静态人像兜底 —— 不用 inline onerror（多层引号太脆）。 */
   var AV_ME_FALLBACK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>';
@@ -294,7 +303,7 @@ function userHtml(text){
       }
       return '<p class="ca-p">' + b.split('\n').map(function(l){ return inline(escapeHtml(l)); }).join('<br>') + '</p>';
     }).join('');
-    return '<div class="ca-row">' + AV_AI + '<div class="ca-bubble">' + inner + '</div></div>';
+    return '<div class="ca-row">' + avAiHtml() + '<div class="ca-bubble">' + inner + '</div></div>';
   }
 
   function chipsHtml(){
@@ -307,11 +316,41 @@ function userHtml(text){
   function hideChips(){ var el = $('coachChips'); if(el) el.remove(); }
 
   /* ============ 交互 ============ */
+  /* ===== 🔴 10/4 17:20 她报「他思考的时候不能没有任何反馈，得有个思考中的动画」=====
+     原来只有右下角按钮文字变「思考中…」，聊天区**完全没动静** —— 用户发完就盯着空白。
+     现在：发出后**立刻**在聊天流里插一个「思考中」气泡（三个跳动点 + 随机文案）。
+     ⚠️ 文案**刻意多个备选随机**：她原话「用同一个文案我觉得太无聊了」。
+     ⚠️ 失败时必须移除（走 failed 分支），不能让「思考中」留在屏幕上冒充答案。 */
+  var THINKING_TEXTS = [
+    '正在想…', '让我想想…', '组织一下语言…', '稍等一下…',
+    '正在回想你刚说的…', '在挑合适的说法…', '写完就发你…', '认真答你…'
+  ];
+  var _thinkEl = null;
+  function showThinking(){
+    hideThinking();
+    var sc = $('coachScroll'); if(!sc) return;
+    // 随机一条（同一条会话里连续两条也有变化概率）
+    var txt = THINKING_TEXTS[Math.floor(Math.random() * THINKING_TEXTS.length)];
+    var el = document.createElement('div');
+    el.className = 'ca-row coach-thinking';
+    el.innerHTML = avAiHtml()
+      + '<div class="ca-bubble coach-thinking-b"><span class="coach-thinking-t">' + escapeHtml(txt) + '</span>'
+      + '<span class="coach-dots" aria-hidden="true"><i></i><i></i><i></i></span></div>';
+    sc.appendChild(el);
+    _thinkEl = el;
+    scrollBottom();
+  }
+  function hideThinking(){
+    if(_thinkEl && _thinkEl.parentNode) _thinkEl.parentNode.removeChild(_thinkEl);
+    _thinkEl = null;
+  }
+
   function setBusy(b){
     st.busy = b;
     var inp = $('coachInput'), btn = $('coachSend');
     if(inp) inp.disabled = b;
     if(btn){ btn.disabled = b; btn.textContent = b ? '思考中…' : '发送'; }
+    if(b) showThinking(); else hideThinking();
     /* 10/4 09:45：AI 回完话要不要把焦点还给输入框？只在用户自己碰过输入框时才还，
        否则首次陪练/纯浏览时也会把焦点抢到输入框（移动端 = 键盘弹出来）。 */
     if(!b && inp && st.userTouched){ try{ inp.focus(); }catch(_){} }
@@ -334,7 +373,7 @@ function userHtml(text){
     st.thread.push({ role: 'user', text: msg });
     ctxTouch();          // 10/3 A版：首条用户消息起启动本轮计时并刷新右栏
     hideChips();
-    setBusy(true);
+    setBusy(true);          /* 内部会 showThinking()：思考气泡立刻出现在聊天流末尾 */
     scrollBottom();
 
     var msgs = [{ role: 'system', content: buildSystem() }];
@@ -350,6 +389,7 @@ function userHtml(text){
       st.thread.pop();
       var rows = document.querySelectorAll('#coachScroll .cu-row');
       if(rows.length) rows[rows.length - 1].remove();
+      hideThinking();     /* 🔴 思考气泡必须一起撤，否则留在屏幕上冒充答案 */
       renderCtx();    // 10/3 A版：失败已撤上下文，右栏轮次必须同步回退
       if(inp && text == null) inp.value = msg;
       setBusy(false);
@@ -366,7 +406,7 @@ function userHtml(text){
     st.thread.push({ role: 'assistant', text: r.reply });
     appendHtml(assistantHtml(r.reply));
     renderCtx();      // 10/3 A版：AI 回复里可能带 @@MEM@@ 新记忆，右栏同步刷新
-    setBusy(false);
+    setBusy(false);   /* 内部 hideThinking()：思考气泡撤掉，真气泡已在其上方 */
     scrollBottom();
   }
 
@@ -439,6 +479,8 @@ function userHtml(text){
     var n1 = $('coachMemN');
     if(n1) n1.textContent = String(a.length);
   }
+  /* 切走 / 重渲染时清掉残留思考气泡（防孤儿节点留在聊天流里） */
+  function clearThinkingOrphan(){ hideThinking(); }
   function renderCtx(){
     if(!$('coachCtxBar')) return;
     var n = ctxTurns();
