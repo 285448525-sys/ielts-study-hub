@@ -152,6 +152,43 @@ setTimeout(__rvRescue,2500);
 /* 旧 .av-sec* / .av-grid-exam 规则保留无害（弹层不再用 .av-sec） */
 [data-theme="dark"] .av-pop{background:var(--n-50)}
 [data-theme="dark"] .av-pop-done{background:var(--primary-500)}
+
+/* ===== 10/4 改版（她拍板方向二）：顶部状态行 + 左目录 + 右内容 ===== */
+.set-topbar{position:relative;display:flex;align-items:center;gap:14px;padding:13px 16px;margin-bottom:18px;
+  background:linear-gradient(168deg,#1f5350,#12332f 72%);border-radius:var(--radius);color:#fff;
+  box-shadow:0 20px 40px -24px rgba(18,51,47,.55)}
+.set-topbar::before{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:radial-gradient(420px 120px at 88% -60px,rgba(122,220,210,.16),transparent 70%)}
+.set-topbar .acct-main>b{font-size:16px}
+.set-topmore{margin-left:auto;flex:none;height:32px;padding:0 12px;border-radius:9px;cursor:pointer;
+  border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.10);color:#fff;
+  font:inherit;font-size:12.5px;font-weight:600}
+.set-topmore:hover{background:rgba(255,255,255,.18)}
+
+.set-layout{display:grid;grid-template-columns:200px minmax(0,1fr);gap:22px;align-items:start}
+.set-nav{display:flex;flex-direction:column;gap:4px;position:sticky;top:14px}
+.set-nav-item{width:100%;text-align:left;height:42px;padding:0 14px;border-radius:11px;cursor:pointer;
+  border:1px solid transparent;background:transparent;color:var(--ink);font:inherit;font-size:13.5px;font-weight:600}
+.set-nav-item:hover{background:var(--surface);border-color:var(--line)}
+.set-nav-item.on{background:var(--primary-soft);border-color:var(--primary-200);color:var(--primary-800)}
+.set-pane[hidden]{display:none}
+.set-pane .set-card{margin:0}
+.set-pane .set-card+.set-card{margin-top:18px}
+.set-pane .acct-card{margin:0}
+
+@media(max-width:860px){
+  .set-layout{grid-template-columns:1fr;gap:0}
+  /* 窄屏：目录变顶部分页标签，横向可滑，不占竖向空间 */
+  .set-nav{flex-direction:row;gap:6px;overflow-x:auto;position:static;margin-bottom:14px;
+    padding-bottom:2px;scrollbar-width:none}
+  .set-nav::-webkit-scrollbar{display:none}
+  .set-nav-item{width:auto;flex:none;height:38px;white-space:nowrap}
+}
+@media(max-width:640px){
+  .set-topbar{padding:11px 13px;gap:11px}
+  .set-topbar .acct-avatar{width:44px;height:44px;border-radius:13px}
+  .set-topbar .acct-main>b{font-size:15px}
+}
 </style>
 <script defer src="js/data.js?v=20261003b"></script>
   <script defer src="js/common.js?v=20261003d"></script>
@@ -179,52 +216,24 @@ setTimeout(__rvRescue,2500);
 
 <main class="container">
 
-  <!-- ① 账户横条（10/3 22:55 B 版重设计，她拍板）
-       —— 未登录【不再裸填账号密码】：只显示状态 + 说明 + 一个「去登录 →」按钮跳 login.html
-       —— 头像点头像弹层选（#avatarCard 从「一整卡 8+2 网格」缩成弹层容器）
+  <!-- ① 顶部极简状态行（10/4 改版方向二：原深绿账户横条压成一行，账号明细收进「账号与同步」分组）
        —— DOM 钩子全保留：syncUserAcct/syncState/lastSyncTs/syncStatus/syncUserBox/
-          syncChangeBtn/syncLogoutBtn/syncChangeForm/sOldPass/sNewPass/syncChangeSave/acctAvatarImg
-       —— 删掉的：#syncLoginForm 整块 + sAcct/sPass/sInvite/syncLoginBtn/syncRegisterBtn
-          （登录/注册统一去 login.html，settings.js:65-78 的绑定同步删） -->
-  <section class="card acct-card">
-    <div class="acct-row">
-      <!-- 点头像 → 弹层换头像（原右下角小笔角标她 10/4 反馈丑，已移除） -->
-      <button class="acct-avatar" id="acctAvatarBtn" type="button" aria-haspopup="dialog"
-              aria-controls="avatarPop" aria-expanded="false" title="点击更换头像">
-        <span class="acct-avatar-in"><img id="acctAvatarImg" src="img/avatars/user-f1.svg" alt="" /></span>
-      </button>
-      <div class="acct-main">
-        <b id="syncUserAcct">未登录</b>
-        <span id="syncState" class="acct-sub"></span>
-        <span id="lastSyncTs" class="acct-sub2"></span>
-      </div>
+          syncChangeBtn/syncLogoutBtn/syncChangeForm/sOldPass/sNewPass/syncChangeSave/acctAvatarImg -->
+  <div class="set-topbar">
+    <!-- 点头像 → 弹层换头像（原右下角小笔角标她 10/4 反馈丑，已移除） -->
+    <button class="acct-avatar" id="acctAvatarBtn" type="button" aria-haspopup="dialog"
+            aria-controls="avatarPop" aria-expanded="false" title="点击更换头像">
+      <span class="acct-avatar-in"><img id="acctAvatarImg" src="img/avatars/user-f1.svg" alt="" /></span>
+    </button>
+    <div class="acct-main">
+      <b id="syncUserAcct">未登录</b>
+      <span id="syncState" class="acct-sub"></span>
+      <span id="lastSyncTs" class="acct-sub2"></span>
     </div>
-    <p id="syncStatus"></p>
+    <button class="set-topmore" type="button" data-goto="account">账号与同步 →</button>
 
-    <!-- 已登录：改密码 + 退出 -->
-    <div id="syncUserBox" style="display:none">
-      <div class="acct-actions">
-        <button class="acct-btn" id="syncChangeBtn" type="button">修改密码</button>
-        <button class="acct-btn acct-btn--ghost" id="syncLogoutBtn" type="button">退出登录</button>
-      </div>
-      <div id="syncChangeForm" style="display:none">
-        <div class="acct-form-row">
-          <input aria-label="当前密码" class="acct-input" id="sOldPass" type="password" placeholder="当前密码" autocomplete="current-password" />
-          <input aria-label="新密码" class="acct-input" id="sNewPass" type="password" placeholder="新密码（至少 6 位）" autocomplete="new-password" />
-          <button class="acct-btn acct-btn--light" id="syncChangeSave" type="button">保存新密码</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 未登录：只给状态 + 一个引导键（10/3 22:55 她拍板：不要裸填账号密码） -->
-    <div id="syncGuestBox" hidden>
-      <p class="acct-guest-tip">数据现在只存在这台设备的浏览器里，换设备看不到。登录后自动同步到云端。</p>
-      <div class="acct-actions">
-        <a class="acct-btn acct-btn--light" id="syncGoLogin" href="login.html?from=settings">去登录 →</a>
-      </div>
-    </div>
-
-    <!-- 头像弹层：把原「头像」整卡缩成这个（#avatarCard id 保留，av-picker.js 靠它判开关） -->
+    <!-- 头像弹层：挂在顶部状态行内（这里就是定位参照），切到任何一组都能弹出
+         （#avatarCard id 保留，av-picker.js 靠它判开关） -->
     <div id="avatarCard" hidden>
       <div class="av-pop" id="avatarPop" role="dialog" aria-modal="true" aria-label="更换头像">
         <div class="av-pop-head">
@@ -246,17 +255,26 @@ setTimeout(__rvRescue,2500);
         </div>
       </div>
     </div>
-  </section>
+  </div>
 
-  <!-- ② 主体：10/3 22:55 B 版「单页分组」——
-       账户横条置顶（上面），下面两列网格。每张卡内容一项不删，DOM 钩子全保留。 -->
+  <!-- ② 主体：10/4 改版方向二「左目录 + 右内容」——每张卡内容一项不删，DOM 钩子全保留 -->
   <div class="set-head">
     <h1>设置</h1>
     <p>共 5 组 · 数据只存在本机，登录后自动同步到云端</p>
   </div>
 
-  <div class="set-grid">
-    <!-- 左列 -->
+  <div class="set-layout">
+    <nav class="set-nav" aria-label="设置分组">
+      <button class="set-nav-item on" type="button" data-goto="profile">个人设置</button>
+      <button class="set-nav-item" type="button" data-goto="targets">目标分数</button>
+      <button class="set-nav-item" type="button" data-goto="speaking">口语自评</button>
+      <button class="set-nav-item" type="button" data-goto="data">数据管理</button>
+      <button class="set-nav-item" type="button" data-goto="account">账号与同步</button>
+    </nav>
+
+    <div class="set-panes">
+      <!-- 个人设置 -->
+      <section class="set-pane on" data-pane="profile">
     <section class="card set-card rv">
       <span class="kicker">Profile</span>
       <h2>个人设置</h2>
@@ -298,8 +316,10 @@ setTimeout(__rvRescue,2500);
         </label>
       </div>
     </section>
+      </section>
 
-    <!-- 右列 -->
+      <!-- 目标分数 -->
+      <section class="set-pane" data-pane="targets" hidden>
     <section class="card set-card rv" data-d="1">
       <span class="kicker">Targets</span>
       <h2>目标分数</h2>
@@ -313,8 +333,10 @@ setTimeout(__rvRescue,2500);
       </div>
       <p class="set-note">口语按官方 band 评「语法」和「词汇」；<b>流利度与发音 AI 评不了</b>，在左边那张卡自己填。</p>
     </section>
+      </section>
 
-    <!-- 左列下 -->
+      <!-- 口语自评 -->
+      <section class="set-pane" data-pane="speaking" hidden>
     <section class="card set-card rv" data-d="2">
       <span class="kicker">Speaking</span>
       <h2>口语自评</h2>
@@ -325,7 +347,10 @@ setTimeout(__rvRescue,2500);
       </div>
     </section>
 
-    <!-- 右列下 -->
+      </section>
+
+      <!-- 数据管理 -->
+      <section class="set-pane" data-pane="data" hidden>
     <section class="card set-card rv" data-d="3">
       <span class="kicker">Data</span>
       <h2>数据管理</h2>
@@ -338,6 +363,38 @@ setTimeout(__rvRescue,2500);
       </div>
       <div id="importErr" class="ui-err-box" style="margin-top:10px"></div>
     </section>
+      </section>
+
+      <!-- 账号与同步（原账户横条的明细部分；保留深色卡片以沿用既有白字配色） -->
+      <section class="set-pane" data-pane="account" hidden>
+        <section class="card acct-card">
+          <p id="syncStatus"></p>
+
+          <!-- 已登录：改密码 + 退出 -->
+          <div id="syncUserBox" style="display:none">
+            <div class="acct-actions">
+              <button class="acct-btn" id="syncChangeBtn" type="button">修改密码</button>
+              <button class="acct-btn acct-btn--ghost" id="syncLogoutBtn" type="button">退出登录</button>
+            </div>
+            <div id="syncChangeForm" style="display:none">
+              <div class="acct-form-row">
+                <input aria-label="当前密码" class="acct-input" id="sOldPass" type="password" placeholder="当前密码" autocomplete="current-password" />
+                <input aria-label="新密码" class="acct-input" id="sNewPass" type="password" placeholder="新密码（至少 6 位）" autocomplete="new-password" />
+                <button class="acct-btn acct-btn--light" id="syncChangeSave" type="button">保存新密码</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 未登录：只给状态 + 一个引导键（10/3 22:55 她拍板：不要裸填账号密码） -->
+          <div id="syncGuestBox" hidden>
+            <p class="acct-guest-tip">数据现在只存在这台设备的浏览器里，换设备看不到。登录后自动同步到云端。</p>
+            <div class="acct-actions">
+              <a class="acct-btn acct-btn--light" id="syncGoLogin" href="login.html?from=settings">去登录 →</a>
+            </div>
+          </div>
+        </section>
+      </section>
+    </div>
   </div>
 
   <!-- AI 接口设置模块已下线（她 10/1 拍板）。id=ai 锚点空壳防外链死跳 -->
@@ -365,6 +422,39 @@ setTimeout(__rvRescue,2500);
       document.documentElement.className = document.documentElement.className.replace(/\bjs\b/,'').trim();
     }
   }, 1200);
+})();
+</script>
+<script>
+/* 10/4 改版方向二：设置页分组切换（左目录 / 窄屏顶部标签，默认「个人设置」）
+   —— 只切分组显示，不动任何表单行为；全部分组都在 DOM 里，切线不丢数据。 */
+(function(){
+  var nav = document.querySelector('.set-nav');
+  var panes = document.querySelectorAll('.set-pane');
+  if(!nav || !panes.length) return;
+  function go(name){
+    var hit = false;
+    for(var i = 0; i < panes.length; i++){
+      var on = panes[i].getAttribute('data-pane') === name;
+      panes[i].hidden = !on;
+      if(on) hit = true;
+    }
+    if(!hit) return;
+    var items = nav.querySelectorAll('.set-nav-item');
+    for(var j = 0; j < items.length; j++){
+      var on2 = items[j].getAttribute('data-goto') === name;
+      items[j].classList.toggle('on', on2);
+      items[j].setAttribute('aria-selected', on2 ? 'true' : 'false');
+    }
+  }
+  document.addEventListener('click', function(e){
+    if(!e.target || !e.target.closest) return;
+    var b = e.target.closest('.set-nav-item, .set-topmore');
+    if(!b) return;
+    e.preventDefault();
+    go(b.getAttribute('data-goto'));
+    try{ window.scrollTo({ top: 0, behavior: 'smooth' }); }catch(_){ window.scrollTo(0, 0); }
+  });
+  go('profile');   /* 她拍板：默认停在「个人设置」，不记忆上次 */
 })();
 </script>
 </body>
