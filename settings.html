@@ -107,7 +107,7 @@ setTimeout(__rvRescue,2500);
 .set-sw-check{justify-content:flex-start;cursor:pointer}
 .set-sw-check input[type=checkbox]{margin:0;flex:none}
 .set-btns{display:flex;flex-wrap:wrap;gap:9px}
-.set-btns .btn-sm{flex:1 1 96px}
+.set-btns .btn-sm{flex:1 1 96px;white-space:nowrap}
 .set-dgr{color:var(--danger-text)!important;background:var(--danger-soft)!important;border-color:transparent!important}
 
 /* 账户横条：头像改可点按钮 + 引导块 */
@@ -182,12 +182,22 @@ setTimeout(__rvRescue,2500);
   .set-nav{flex-direction:row;gap:6px;overflow-x:auto;position:static;margin-bottom:14px;
     padding-bottom:2px;scrollbar-width:none}
   .set-nav::-webkit-scrollbar{display:none}
-  .set-nav-item{width:auto;flex:none;height:38px;white-space:nowrap}
+  /* 10/4 她反馈：手机端 5 个标签要滑动 → 合并成 4 组后改为等宽铺满，不再需要滑动；
+     overflow-x 保留为极窄屏 / 大字号时的兜底 */
+  .set-nav-item{width:auto;flex:1 1 0;min-width:0;height:38px;padding:0 6px;
+    white-space:nowrap;text-align:center}
 }
 @media(max-width:640px){
   .set-topbar{padding:11px 13px;gap:11px}
   .set-topbar .acct-avatar{width:44px;height:44px;border-radius:13px}
   .set-topbar .acct-main>b{font-size:15px}
+  /* 数据管理三个按钮手机端各自整行占满：文字不被折行、也不溢出，顺带减少误触「清空」 */
+  .set-btns .btn-sm{flex:1 1 100%}
+}
+/* 极窄屏（≤360，老机型）：再收一档字号与内边距，保证 4 个标签始终铺得下、不用滑动 */
+@media(max-width:360px){
+  .set-nav{gap:4px}
+  .set-nav-item{font-size:12px;padding:0 3px;height:36px}
 }
 </style>
 <script defer src="js/data.js?v=20261003b"></script>
@@ -230,7 +240,7 @@ setTimeout(__rvRescue,2500);
       <span id="syncState" class="acct-sub"></span>
       <span id="lastSyncTs" class="acct-sub2"></span>
     </div>
-    <button class="set-topmore" type="button" data-goto="account">账号与同步 →</button>
+    <button class="set-topmore" type="button" data-goto="data">账号与同步 →</button>
 
     <!-- 头像弹层：挂在顶部状态行内（这里就是定位参照），切到任何一组都能弹出
          （#avatarCard id 保留，av-picker.js 靠它判开关） -->
@@ -260,7 +270,7 @@ setTimeout(__rvRescue,2500);
   <!-- ② 主体：10/4 改版方向二「左目录 + 右内容」——每张卡内容一项不删，DOM 钩子全保留 -->
   <div class="set-head">
     <h1>设置</h1>
-    <p>共 5 组 · 数据只存在本机，登录后自动同步到云端</p>
+    <p>共 4 组 · 数据只存在本机，登录后自动同步到云端</p>
   </div>
 
   <div class="set-layout">
@@ -268,8 +278,7 @@ setTimeout(__rvRescue,2500);
       <button class="set-nav-item on" type="button" data-goto="profile">个人设置</button>
       <button class="set-nav-item" type="button" data-goto="targets">目标分数</button>
       <button class="set-nav-item" type="button" data-goto="speaking">口语自评</button>
-      <button class="set-nav-item" type="button" data-goto="data">数据管理</button>
-      <button class="set-nav-item" type="button" data-goto="account">账号与同步</button>
+      <button class="set-nav-item" type="button" data-goto="data">数据与账号</button>
     </nav>
 
     <div class="set-panes">
@@ -363,11 +372,10 @@ setTimeout(__rvRescue,2500);
       </div>
       <div id="importErr" class="ui-err-box" style="margin-top:10px"></div>
     </section>
-      </section>
 
-      <!-- 账号与同步（原账户横条的明细部分；保留深色卡片以沿用既有白字配色） -->
-      <section class="set-pane" data-pane="account" hidden>
-        <section class="card acct-card">
+      <!-- 账号与同步（原账户横条的明细部分；保留深色卡片以沿用既有白字配色）
+           10/4 她反馈手机端 5 个标签要滑动 → 与上面的「数据管理」合并为同一组「数据与账号」 -->
+      <section class="card acct-card" style="margin-top:18px">
           <p id="syncStatus"></p>
 
           <!-- 已登录：改密码 + 退出 -->
