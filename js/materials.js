@@ -309,6 +309,26 @@
     h += '<div class="mat-actions"><button class="btn btn-primary btn-lg" id="matGen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M5 15c-1.5 1.5-2 5-2 5s3.5-.5 5-2c.8-.8.8-2 0-2.8s-2-.8-3 0z"/><path d="M9 11l4 4"/><path d="M13 7l4 4 3-3a2 2 0 0 0-3-3l-4 2z"/><path d="M14 4l6 6"/></svg>生成我的专属素材</button></div>';
     root.innerHTML = h;
 
+    /* ===== 10/4 15:30 她拍板新增：导入我已有的素材 → AI 整理成万能素材 =====
+       场景（她原话）：「我自己可能也有一套已经准备好了的素材，就不需要这个平台给我生成素材了」。
+       **独立入口，旁跳过人设与问卷** —— 不答题、不填人设，直接粘贴 → AI 整理。
+       输入是中英混杂的零散文字（她积累的句子/段落/笔记/范文都行）；
+       输出与「生成我的专属素材」完全同构（2~4 个故事卡 + coverage + spineEn + goldenEn），
+       复用同一套 SYS_MAT 规则与 normalizeMaterial / collectBatch / mergeBatch 链路，零新规则。 */
+    h += '<div class="mat-import">'
+      + '<button class="btn btn-ghost btn-block" type="button" id="matImportToggle" aria-expanded="false" aria-controls="matImportBody">'
+        + '我已经有素材了，直接导入整理</button>'
+      + '<div class="mat-import-body" id="matImportBody" hidden>'
+        + '<div class="mat-q-hint">把你以前积累的<b>任何文字</b>粘进来——中文经历、零散笔记、写过的英文句子或段落，<b>中英混着也行</b>。'
+          + 'AI 会合并去重、归类成几个能反复用的故事，并算出每段能串当季题库的哪些题。'
+          + '<b>不需要填人设、不需要答题。</b></div>'
+        + '<textarea id="matImportText" rows="9" placeholder="把你已有的素材粘在这里，一段一段分开写就行（空两行分段更清楚）…"></textarea>'
+        + '<div class="mat-char" id="matImportChar"></div>'
+        + '<div class="mat-actions"><button class="btn btn-primary" id="matImportGo" disabled>AI 整理成万能素材</button></div>'
+        + '<div class="mat-import-tip">AI 只会重新组织、合并、补过渡，<b>不会编造你没写过的经历</b>。纯英文段落按原样保留、一字不改。</div>'
+      + '</div></div>';
+    root.innerHTML = h;
+
     /* ---- 绑定 ---- */
     // 人设 A / 自由经历 extraMore（沿用原 textarea 链路）
     root.querySelectorAll('textarea[data-q]').forEach(ta => {
@@ -455,6 +475,82 @@
       };
     });
     $('#matGen').onclick = generate;
+    bindImport(root);
+  }
+
+  /* ================================================================
+     10/4 15:30 新功能：导入我已有的素材 → AI 整理成万能素材
+     —— 场景：她自己有一套准备好的素材，不需要平台再生成一遍。
+     —— 独立入口，**旁跳过人设与问卷**：不答题、不填人设，粘贴 → AI 整理。
+     —— 输出与「生成我的专属素材」同构，直接进 store.materials，走既有素材卡渲染
+        （可编辑 / 重生成 / 删除 / 详情看 coverage），零新渲染逻辑。
+     设计要点：复用 SYS_MAT 全部规则（合并去重 / 覆盖宁多勿漏 / 纯英文原样保护 /
+     spineEn / goldenEn / 130~180 词硬顶）—— 导入素材与答题素材**本质是同一件事**，
+     只是输入来源不同，所以不另立 prompt，只换一个 user 包装。 */
+  let importBusy = false;
+  function splitImportedText(txt){
+    // 空两行分段；单段内也允许用「1. / 2. / · 」这类序号行再切一刀，兼容她整坨粘贴
+    return String(txt || '').split(/\n\s*\n+/)
+      .map(s => s.trim()).filter(Boolean)
+      .map(seg => seg.length > 400
+        ? seg.split(/\n(?=\s*(?:\d+[.、)]|[-·*])\s)/).map(x => x.trim()).filter(Boolean)
+        : [seg])
+      .reduce((a, b) => a.concat(b), []);
+  }
+  function bindImport(root){
+    const tg = $('#matImportToggle'), body = $('#matImportBody');
+    const ta = $('#matImportText'), go = $('#matImportGo'), cnt = $('#matImportChar');
+    if(!tg || !body || !ta) return;
+    // 面板状态存 store（换 tab / 重渲染后保持展开，不丢她已粘的内容）
+    tg.onclick = () => {
+      const open = body.hidden;
+      body.hidden = !open;
+      tg.setAttribute('aria-expanded', open ? 'true' : 'false');
+      store.answers.importOpen = open;
+      saveStore();
+      if(open) setTimeout(() => ta.focus(), 60);
+    };
+    if(store.answers.importOpen){ body.hidden = false; tg.setAttribute('aria-expanded', 'true'); }
+    // 文本持久化（只存文本，不进 DATA.materials.plan，跨设备同步照旧走 answers）
+    const paint = () => {
+      const n = String(ta.value || '').trim().length;
+      if(cnt) cnt.textContent = n ? ('已粘 ' + n + ' 字 · 识别为 ' + splitImportedText(ta.value).length + ' 段') : '';
+      if(go) go.disabled = n < 10;
+    };
+    ta.value = store.answers.importText || '';
+    ta.addEventListener('input', () => { store.answers.importText = ta.value; saveStore(); paint(); });
+    paint();
+    if(go) go.onclick = () => doImport(ta.value);
+  }
+
+  async function doImport(txt){
+    if(importBusy) return;
+    const segs = splitImportedText(txt);
+    if(!segs.length){ toast('先粘点素材进来'); return; }
+    importBusy = true;
+    const go = $('#matImportGo');
+    const old = go ? go.textContent : '';
+    if(go){ go.disabled = true; go.textContent = 'AI 正在整理…'; }
+    try{
+      // 每段包成 {title, raw} 交给同一条链路；title 用「导入第 N 段」，
+      // 让 AI 在 logicZh / coverage 的说明里有可读的来源标识。
+      const exps = segs.map((s, i) => ({ id: 'IM' + i, title: '导入第 ' + (i + 1) + ' 段', raw: s }));
+      const res = await genMaterialsBatch(exps, ans('A'), true);   // 人设可选（她可能没填）；true = 导入整理模式
+      const stories = (res.stories || []).map((s, i) => { const m = normalizeMaterial(s, i); delete m._goldenDropped; return m; })
+                      .filter(m => m && String(m.storyEn || '').trim());
+      if(!stories.length) throw new Error('AI 没有整理出可用的素材（导入的文字可能太短，试试多粘几段）');
+      store.materials = stories;      // 直接替换 = 她的既有素材就是唯一真源，避免新旧混着看不清
+      saveStore();
+      mode = 'result';
+      render();
+      toast('已按你的素材整理出 ' + stories.length + ' 个故事，每段都算了能串哪些题');
+    }catch(e){
+      console.error('[materials] 导入整理失败', e);
+      toast('整理失败：' + e.message);
+      if(go){ go.disabled = false; go.textContent = old || 'AI 整理成万能素材'; }
+    }finally{
+      importBusy = false;
+    }
   }
 
   /* 文本复制（clipboard API 优先，execCommand 兜底） */
@@ -1018,7 +1114,7 @@
   }
 
   /* 单次尝试：调一次 material，只做 JSON 解析（normalize 留到合并后统一过一遍，保证 id 下标连续） */
-  async function tryBatch(subset, personaText, batchLabel){
+  async function tryBatch(subset, personaText, batchLabel, isImport){
     const expText = subset.map(e => {
       const raw = String(e.raw || '');
       const zhCount = (raw.match(/[\u4e00-\u9fff]/g) || []).length;
@@ -1028,7 +1124,18 @@
     // 拆批时明确告知 AI「只整合本批」，否则它会按全量答题、两批内容打架
     const headNote = batchLabel ? '（这是考生全部经历的第 ' + batchLabel + ' 批，只整合本批经历，stories 与 coverage 照常输出）\n\n' : '';
     const listNote = batchLabel ? '本批经历：\n' : '全部经历（含追问补充）：\n';
-    const user = '人设：' + (personaText || '（未提供）') + '\n\n' + headNote + listNote + expText + '\n\n请按规则整合为尽量少的连贯大故事（coverage 按规则 4.x 放开挂题），输出 stories JSON。';
+    /* 10/4 15:30 导入路径：她是自己已有的素材，不是答题填出来的经历。
+       换一句口径 + 三条纪律：① 素材里的人称一律当考生本人（她粘的可能是范文/别人的句子）
+       ② **严禁编造素材里没有的事实** —— 只能重组 / 合并 / 补过渡 ③ 纯英文按 5.2 原样保留 */
+    const importNote = isImport
+      ? '【本次是「导入整理」模式】下面这些文字是考生自己早就准备好的素材（可能中英混杂、可能是零散笔记或句子）。'
+        + '你的任务是**重新组织**它们，不是续写新内容。纪律：\n'
+        + '1. **严禁编造素材里没有的事实、人物、地点、事件**。素材没写的绝对不能出现。\n'
+        + '2. 允许做的事：合并同一件事的零散描述、补写连接片段的过渡句、把中英混杂统一成通顺英文、合并重复表述。\n'
+        + '3. 素材里的人称（I / he / she / you）一律视为**考生本人**；若原文是第三人称叙述某人，改成第一人称。\n'
+        + '4. 纯英文段落按规则 5.2 原样保留、一字不改。\n'
+      : '';
+    const user = '人设：' + (personaText || '（未提供）') + '\n\n' + importNote + headNote + listNote + expText + '\n\n请按规则整合为尽量少的连贯大故事（coverage 按规则 4.x 放开挂题），输出 stories JSON。';
     const content = await callRelay('material', [ { role:'system', content:buildSysMat() }, { role:'user', content:user } ], 0.7, { max_tokens: 8192 });
     const j = aiJson(content);
     if(!j || !Array.isArray(j.stories)) throw new Error('素材 JSON 解析失败');
@@ -1048,11 +1155,11 @@
   }
   /* 截断自愈（9/21）：输出被 max_tokens 截断时 JSON 解析必然失败。此时按经历条数二分拆批重试，
      最多两级拆分——正常路径请求次数与改前一致（1 次），拆批只是异常兜底。 */
-  async function genMaterialsBatch(exps, personaText){
+  async function genMaterialsBatch(exps, personaText, isImport){
     const FAIL_MSG = '素材生成失败（返回内容被截断或格式错误），请少填几条经历后重试';
     async function attempt(subset, depth, label){
       try{
-        return collectBatch(await tryBatch(subset, personaText, label));
+        return collectBatch(await tryBatch(subset, personaText, label, isImport));
       }catch(e){
         // 全量失败要 >3 条才值得拆（≤3 条拆开也没多少 token 可省）；再往下最多拆到第二级
         const canSplit = subset.length > 1 && depth < 2 && (depth === 0 ? subset.length > 3 : true);
@@ -1063,7 +1170,7 @@
         return mergeBatch(ra, rb);
       }
     }
-    const res = await attempt(exps, 0, null);
+    const res = await attempt(exps, 0, null, !!isImport);
     let dropped = 0;
     const stories = res.stories.map((s, i) => {
       const m = normalizeMaterial(s, i);
@@ -1369,7 +1476,28 @@
         + '</div></div>';
     }
     // 行动
-    h += '<div class="mat-actions"><a class="btn btn-primary" href="speaking.html">去练口语 →</a><button class="mat-add" id="matRegen">↻ 重新填写 / 生成</button></div>';
+    /* 15:45 她拍板：结果页底部加第三个按钮「＋ 添加素材」。点开一个弹层，里面：
+       ① 大文本框粘自己的文字 ② 两个选择 —— 「直接加上去」（自己的文字原样作为一张素材卡）
+       ③「AI 智能生成素材」（把刚粘的文字整理成故事卡 + 算能串哪些题）。
+       她原话：「自己写一些素材，然后点击AI可以自动帮我整理成几个万能素材，然后给我套」+
+       「加一些我自己的文字素材，直接加上去或者AI智能生成素材，都行」。 */
+    h += '<div class="mat-actions mat-result-acts">'
+      + '<a class="btn btn-primary" href="speaking.html">去练口语 →</a>'
+      + '<button class="mat-add" id="matRegen">↻ 重新填写 / 生成</button>'
+      + '<button class="mat-add" id="matAddMatToggle" aria-expanded="false" aria-controls="matAddMatBody">＋ 添加素材</button>'
+      + '</div>'
+      + '<div class="mat-import-body" id="matAddMatBody" hidden>'
+        + '<div class="mat-q-hint">把你自己写的<b>任何文字</b>粘进来（中文、英文、中英混着都行）。然后选一种加法：</div>'
+        + '<textarea id="matAddMatText" rows="8" placeholder="把你写的素材粘在这里，一段一段分开写（空两行分段更清楚）…"></textarea>'
+        + '<div class="mat-char" id="matAddMatChar"></div>'
+        + '<div class="mat-actions mat-add-mat-acts">'
+          + '<button class="btn btn-ghost" id="matAddRaw" disabled>直接加上去</button>'
+          + '<button class="btn btn-primary" id="matAddAI" disabled>AI 智能生成素材</button>'
+        + '</div>'
+        + '<div class="mat-import-tip"><b>直接加上去</b>：把你这段文字原样做成一张素材卡，不改一个字（适合你只想存起来、以后自己再改）。<br>'
+          + '<b>AI 智能生成素材</b>：AI 把它整理成能背的英文故事，并算出能串当季题库的哪些题。'
+          + '只会重新组织、合并、补过渡，<b>不会编造你没写过的经历</b>；纯英文段落按原样保留、一字不改。</div>'
+      + '</div>';
     root.innerHTML = h;
     // v7.2 删除单条细节碎片
     root.querySelectorAll('[data-delbit]').forEach(b => {
@@ -1476,6 +1604,96 @@
       };
     });
     $('#matRegen').onclick = () => { mode = 'q'; shortWarned = false; render(); };
+    bindAddMaterial(root);
+  }
+
+  /* ================================================================
+     10/4 15:45 她拍板：素材卡结果页底部第三个按钮「＋ 添加素材」
+     —— 场景：她自己也写了一些素材，想加进这个素材库里。
+     —— 两种加法（她原话「直接加上去或者 AI 智能生成素材，都行」）：
+        ① 直接加上去：她的文字**原样做成一张素材卡**，一字不改（不调 AI、不花额度）
+        ② AI 智能生成：粘进来的文字交给 AI 整理成能背的英文故事 + 算 coverage
+     —— 与「导入整理」入口的区别：那个是**整库替换**（她要的是自己的素材当唯一真源），
+        这个是**追加**（已有素材保留，她新写的补进去）。两者共用 tryBatch 的 import 口径。
+     ⚠️ store.materials 是数组，追加不覆盖；不写 plan / 不答题 / 不填人设。 */
+  let addMatBusy = false;
+  function bindAddMaterial(root){
+    const tg = $('#matAddMatToggle'), body = $('#matAddMatBody');
+    const ta = $('#matAddMatText'), cnt = $('#matAddMatChar');
+    const bRaw = $('#matAddRaw'), bAI = $('#matAddAI');
+    if(!tg || !body || !ta) return;
+    tg.onclick = () => {
+      const open = body.hidden;
+      body.hidden = !open;
+      tg.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if(open) setTimeout(() => ta.focus(), 60);
+    };
+    const paint = () => {
+      const n = String(ta.value || '').trim().length;
+      if(cnt) cnt.textContent = n ? ('已写 ' + n + ' 字 · ' + splitImportedText(ta.value).length + ' 段') : '';
+      if(bRaw) bRaw.disabled = n < 1;
+      if(bAI) bAI.disabled = n < 10;
+    };
+    ta.addEventListener('input', paint);
+    paint();
+    if(bRaw) bRaw.onclick = () => addMaterialRaw(ta.value);
+    if(bAI) bAI.onclick = () => addMaterialByAI(ta.value);
+  }
+
+  /* ① 直接加上去：原样做成素材卡。**零 AI 调用、零额度、零等待。**
+     🔴 10/4 15:50 修正：**逐段判定中英**，不是整段一起判 —— 她可能中英混粘，
+     整段判会把她那段纯英文塞进「中文逻辑链」栏（storyEn 空着没法背）。 */
+  function addMaterialRaw(txt){
+    const segs = splitImportedText(txt);
+    if(!segs.length){ toast('先写点内容'); return; }
+    store.materials = store.materials || [];
+    let nEn = 0, nZh = 0;
+    segs.forEach((s, i) => {
+      const zhCount = (s.match(/[一-鿿]/g) || []).length;
+      const isPureEn = s.length > 0 && (zhCount / s.length) < 0.05;
+      if(isPureEn) nEn++; else nZh++;
+      const firstLine = s.split('\n')[0].trim().slice(0, 24) || ('我的素材 ' + (i + 1));
+      store.materials.push({
+        title: segs.length > 1 ? (firstLine + '（' + (i + 1) + '）') : firstLine,
+        // 纯英文 → storyEn（能直接背）；含中文 → logicZh（等她写完或用 AI 补英文）
+        storyEn: isPureEn ? s : '',
+        logicZh: isPureEn ? '' : s,
+        spineEn: [], goldenEn: [], coverage: [], coverageRate: null,
+        pinned: false, _raw: true
+      });
+    });
+    saveStore();
+    render();
+    toast('已加上 ' + segs.length + ' 张素材卡（原样保存，一个字没改）'
+          + (nEn ? '，其中 ' + nEn + ' 段英文已放进「完整故事」' : '')
+          + (nZh ? '，' + nZh + ' 段中文放在「中文逻辑链」' : ''));
+  }
+
+  /* ② AI 智能生成：追加（不是替换）—— 她已有素材必须保留 */
+  async function addMaterialByAI(txt){
+    if(addMatBusy) return;
+    const segs = splitImportedText(txt);
+    if(!segs.length){ toast('先写点内容'); return; }
+    addMatBusy = true;
+    const btn = $('#matAddAI'), old = btn ? btn.textContent : '';
+    if(btn){ btn.disabled = true; btn.textContent = 'AI 正在整理…'; }
+    try{
+      const exps = segs.map((s, i) => ({ id: 'AM' + i, title: '我的素材第 ' + (i + 1) + ' 段', raw: s }));
+      const res = await genMaterialsBatch(exps, ans('A'), true);   // true = 导入整理口径（禁编造 + 人称归一）
+      const stories = (res.stories || []).map((s, i) => { const m = normalizeMaterial(s, i); delete m._goldenDropped; return m; })
+                      .filter(m => m && String(m.storyEn || '').trim());
+      if(!stories.length) throw new Error('AI 没有整理出可用的素材（内容可能太短，试试多写几段）');
+      store.materials = (store.materials || []).concat(stories);   // **追加，不覆盖已有**
+      saveStore();
+      render();
+      toast('AI 整理出 ' + stories.length + ' 个故事，已加到你现有素材后面');
+    }catch(e){
+      console.error('[materials] 添加素材（AI）失败', e);
+      toast('整理失败：' + e.message);
+      if(btn){ btn.disabled = false; btn.textContent = old || 'AI 智能生成素材'; }
+    }finally{
+      addMatBusy = false;
+    }
   }
 
   /* ---------- 初始化 ---------- */

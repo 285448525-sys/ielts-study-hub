@@ -53,7 +53,7 @@
   <script defer src="js/av-picker.js?v=20261004c"></script>
   <script defer src="js/coach.js?v=20261004d"></script>
   <script defer src="js/speaking.js?v=20261003e"></script>
-  <script defer src="js/materials.js?v=20261004c"></script>
+  <script defer src="js/materials.js?v=20261004d"></script>
   <script defer src="js/mock-report.js?v=20261004a"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
   <script defer src="js/mock.js?v=20261004a"></script>
@@ -729,6 +729,19 @@
   .mat-algo-stale .mat-shortwarn-actions{ margin-top:10px; }
   .mat-empty-tip{ margin:12px 0; padding:16px; border:1px dashed var(--line); border-radius:var(--radius);
     background:var(--bg); color:var(--muted); font-size:13.5px; line-height:1.7; text-align:center; }
+  /* ===== 10/4 15:30 导入已有素材（她拍板的新功能，旁跳过人设与问卷）===== */
+  .mat-import{ margin-top:18px; padding-top:16px; border-top:1px solid var(--line); }
+  .mat-import .btn-block{ width:100%; }
+  .mat-import-body{ margin-top:12px; }
+  .mat-import-body textarea{ width:100%; min-height:150px; }
+  .mat-import-body .mat-actions{ margin-top:10px; }
+  .mat-import-tip{ margin-top:10px; font-size:12px; line-height:1.7; color:var(--muted); }
+  .mat-import-tip b{ color:var(--ink-2,var(--ink)); }
+  /* ===== 15:45 结果页第三个按钮「＋ 添加素材」=====
+     两行排布：第一行「去练口语 / 重新填写生成」主操作，第二行「＋ 添加素材」次级（不抢主操作）。 */
+  .mat-result-acts{ flex-wrap:wrap; }
+  .mat-add-mat-acts{ margin-top:10px; }
+  .mat-add-mat-acts .btn{ flex:1 1 140px; }
   .mat-followup{ margin-top:16px; background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:14px; }
   .mat-followup h3{ margin:0 0 6px; font-size:15px; }
   .mat-followup-tip{ font-size:12.5px; color:var(--muted); margin-bottom:12px; line-height:1.6; }
