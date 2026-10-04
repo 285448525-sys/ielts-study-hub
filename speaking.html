@@ -51,7 +51,7 @@
   <!-- 10/3 头像选择：必须在 coach.js 之前（陪练气泡头像渲染时就要读 window.avUserSrc）。
        10/3 22:55 扩展：同一份也供顶栏考官头像选择器用（avOpen/avExamSrc） -->
   <script defer src="js/av-picker.js?v=20261004c"></script>
-  <script defer src="js/coach.js?v=20261004d"></script>
+  <script defer src="js/coach.js?v=20261004e"></script>
   <script defer src="js/speaking.js?v=20261003e"></script>
   <script defer src="js/materials.js?v=20261004d"></script>
   <script defer src="js/mock-report.js?v=20261004a"></script>
@@ -1462,6 +1462,189 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
   @media (max-width:860px){
     #coachView #coachBarInner{gap:8px}   /* 10/4 重建窄屏块时保留（原在 ≤860 块内） */
   }
+</style>
+<!-- 10/4 16:10 陪练页整体改版（她 16:00 拍板：微信聊天布局 + 卡片化 + 标题左对齐 + 教练台别占右边）
+     放在旧 coach 样式【之后】靠覆盖生效 —— 旧块里有大量 10/2~10/3 的实测约束（flex 撑高链、
+     区间自滚、气泡尾巴…），那些不冲突的部分全部保留，只压掉布局层。 -->
+<style id=coachRedesign20261004>
+/* ==========================================================================
+   10/4 16:10 陪练页整体改版（她 16:00 拍板，原话逐条对应）
+   —— 「AI 口语教练 这几个字肯定是要左边对齐的呀，不可能是放在中间的」
+   —— 「这个界面就是模仿微信聊天页面的那个界面」+「我觉得也可以弄一个卡片呀，
+      其他页面不都是有卡片的吗？这个页面也可以弄一个卡片」
+   —— 「这个什么本地教练台那个东西，放在右边。哎。」（她对右栏常驻不满）
+
+   改法（四处，纯 CSS + 少量 JS 位置调整，零业务逻辑改动）：
+   1. 顶栏「AI 口语教练 / 自由对话」**强制左对齐**：原 `#coachTop` 是
+      `justify-content:space-between` + 顶栏内容只有身份区 → 视觉上被推到中间。
+      改为 `justify-content:flex-start`，按钮用 `margin-left:auto` 靠右。
+   2. **整页卡片化**：聊天区包进一张白卡（`--surface` + `--radius` + `--shadow`），
+      顶栏与输入条收进卡内，卡片自身是唯一滚动容器 —— 微信聊天窗的经典结构。
+      卡内背景用极浅灰底衬托白色气泡（微信同款观感）。
+   3. **教练台改抽屉**：右栏不再是常驻 274px 面板，改成从卡片右侧滑出的
+      浮层（绝对定位 + 遮罩），聊天列吃满卡片宽度。默认收起。
+      —— 这同时解决她 10/4 13:36 的「手机端教练台默认收起」诉求，桌面端也一致。
+   4. 保留全部既有 CSS 变量与 id，只改布局层；`.coach-ctx` 的内部样式完全不动。
+   ========================================================================== */
+
+/* ---------- 1. 卡片外壳 ---------- */
+#coachView{
+  display:flex;flex-direction:column;
+  height:calc(100dvh - 96px - 69px - 16px);
+  min-height:360px;
+  /* 🔴 关键：整页不再靠 window 滚，卡片自己是滚动容器 —— 微信聊天窗的行为 */
+  padding:0;
+}
+#coachView #coachCard{
+  flex:1 1 auto;min-height:0;
+  display:flex;flex-direction:column;
+  position:relative;                 /* 抽屉的定位参照 */
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--radius-lg, 22px);
+  box-shadow:var(--shadow-md);
+  overflow:hidden;                    /* 圆角裁掉内部所有越界 */
+  max-width:1060px;width:100%;margin:0 auto;
+}
+#coachView #coachCard::before{
+  /* 卡内聊天区底色：极浅灰，衬托白气泡（微信同款观感）。
+     🔴 只给聊天区铺底，**不给顶栏/输入条铺** —— 它们是白的（面），聊天区是纸（浅灰），
+     这样「哪块能滚、哪块固定」一眼可辨。旧写法给整卡铺底 → 三块同色、层次全丢。 */
+  content:'';position:absolute;inset:0;background:var(--n-100);z-index:0;
+}
+#coachView #coachScroll{background:var(--n-100);position:relative;z-index:1}
+#coachView #coachTop,#coachView #coachBar{position:relative;z-index:2;background:var(--surface)}
+#coachView #coachWrap{position:relative;z-index:1}
+
+/* ---------- 2. 顶栏：强制左对齐（她「不可能放在中间」） ---------- */
+#coachView #coachTop{
+  position:static;background:var(--surface);
+  padding:12px 14px 11px 16px;
+  border-bottom:1px solid var(--line);
+  display:flex;
+  justify-content:flex-start;          /* 🔴 原 space-between 把身份区推到中间 */
+  align-items:center;gap:10px;
+  flex:none;
+}
+#coachView .coach-mem-btn{margin-left:auto}   /* 按钮自己靠右，不靠 space-between */
+#coachView .coach-who-av{width:36px;height:36px;border-radius:11px}
+#coachView .coach-who-av svg{width:21px;height:21px}
+#coachView .coach-who-tx b{font-size:14px}   /* 「AI 口语教练」14px 左对齐 */
+
+/* ---------- 3. 聊天区：区内自滚（改版后仍是唯一滚动容器） ---------- */
+#coachView #coachScroll{
+  flex:1 1 0;min-height:0;
+  overflow-y:auto;overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  padding:16px 18px 18px;             /* 卡内留白：微信聊天窗的内边距 */
+  gap:14px;
+  display:flex;flex-direction:column;
+}
+
+/* ---------- 4. 输入条：收进卡片底部 ---------- */
+/* 🔴 `position:fixed` 的来源是 speaking.html:1048 的 `#coachBar{...}`（**无 #coachView 前缀，
+   权重 0,1,0**）—— 改版块虽然写在它之后，但 id 权重更高（1,0,1）本该压住；
+   实测仍是 fixed → 说明存在同权重规则，靠**同权重 + 后写**才生效，这里显式写全四条不依赖顺序。
+   ⚠️ 也因此必须清掉 left/right/bottom/z-index，否则它会脱离卡片继续贴视口底。 */
+#coachView #coachBar{
+  position:static !important;
+  left:auto !important;right:auto !important;bottom:auto !important;
+  z-index:auto !important;
+  background:var(--surface);
+  padding:11px 16px 13px;
+  border-top:1px solid var(--line);
+  flex:none;
+}
+
+/* ---------- 4b. 聊天列吃满卡片宽度 ---------- */
+/* 旧块 `#coachCol{max-width:760px}` 在 flex 容器里只作上限，右侧又留着抽屉的
+   `#coachWrap{max-width:1060px}` + 聊天列 760 + gap → 实测聊天区只有 425px。
+   抽屉化之后右栏不再占位，聊天列应当吃满整张卡片。 */
+#coachView #coachWrap{max-width:none !important;width:100%}
+#coachView #coachCol{max-width:none !important;flex:1 1 100% !important}
+#coachView #coachWrap:has(.coach-ctx.coach-ctx-mini){max-width:none !important}
+#coachView #coachWrap:has(.coach-ctx.coach-ctx-mini) #coachCol{max-width:none !important}
+
+/* ---------- 5. 教练台：从右侧滑出的抽屉（不再是常驻栏） ---------- */
+/* 🔴 权重陷阱：旧块 :1395 有 `#coachView .coach-ctx:not(.coach-ctx-mini)`（**权重 0,3,0**），
+   比我这两条（0,2,0）高 → 它的 `display:block` 会压住抽屉态。
+   抽屉三态全部提到 (0,4,0)：`#coachView #coachCard .coach-ctx`（两 id + 一 class）。
+   ⚠️ 同理 `.coach-ctx-mini{display:none}`（:1400，权重 0,2,0）会把抽屉整个藏掉 ——
+      抽屉态要保持挂载（只靠 translateX 移出卡外），所以改成 display:flex 并提权。 */
+#coachView #coachCard .coach-ctx{
+  /* 浮层：贴卡片右侧、卡片内绝对定位，不占布局宽度 → 聊天列吃满 */
+  position:absolute;top:0;right:0;bottom:0;z-index:40;
+  width:min(300px, 84%);
+  /* 🔴 下面四条是**显式清掉旧块 :1395 的残留**（那边写着 max-height:50% / overflow:hidden
+     / margin:10px 0 / flex:0 0 auto —— 全是「常驻内联栏」时代的假设，浮层下会致命：
+     max-height:50% 会让抽屉只有半高、overflow:hidden 会裁掉内部列表）。 */
+  max-height:none !important;
+  overflow:visible;
+  margin:0;
+  flex:none;
+  border-left:1px solid var(--line);
+  background:var(--surface);
+  box-shadow:-10px 0 30px rgba(15,23,42,.12);
+  border-radius:0 var(--radius-lg, 22px) var(--radius-lg, 22px) 0;
+  transform:translateX(100%);          /* 默认滑出卡外 */
+  transition:transform .24s cubic-bezier(.32,.72,.35,1);
+  will-change:transform;
+  min-height:0;
+  display:flex;flex-direction:column;  /* 抽屉态必须保持挂载 + 纵向排（内部头/体/尾） */
+}
+#coachView #coachCard .coach-ctx.coach-ctx-open{transform:translateX(0)}   /* 滑入 */
+/* 折叠态：同样保持 display:flex（滑出卡外即可收起，不靠 display:none） */
+#coachView #coachCard .coach-ctx.coach-ctx-mini{display:flex}
+/* 抽屉遮罩：只在抽屉打开时出现，点击收起 */
+#coachView .coach-ctx-shade{
+  position:absolute;inset:0;z-index:35;
+  background:rgba(15,23,42,.28);
+  opacity:0;pointer-events:none;transition:opacity .24s;
+}
+#coachView .coach-ctx-shade.on{opacity:1;pointer-events:auto}
+/* 打开抽屉时，聊天列收窄让出空间（跟微信「会话详情」推挤式一致） */
+#coachView #coachCard.ctx-open #coachScroll,
+#coachView #coachCard.ctx-open #coachBar{padding-right:calc(min(300px, 84%) + 18px)}
+
+/* 抽屉头部：加一条醒目色带，明确它是浮层不是常驻栏 */
+#coachView .coach-ctx-head{
+  flex:none;display:flex;align-items:center;gap:7px;
+  padding:13px 15px 11px;border-bottom:1px solid var(--line);
+  background:var(--primary-50);
+  color:var(--primary-700);
+}
+#coachView .coach-ctx-head b{font-size:12.5px;font-weight:700;color:var(--n-900)}
+#coachView .coach-ctx-body{flex:1;min-height:0;overflow-y:auto;padding:13px 15px 16px}
+#coachView .coach-ctx-hint{flex:none}
+
+/* ---------- 6. 气泡：微信式圆角 + 尾巴 ---------- */
+#coachView .ca-row,#coachView .cu-row,#coachView .cf-row{max-width:82%}
+#coachView .ca-bubble{
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:4px 16px 16px 16px;
+  padding:11px 14px;font-size:14.5px;line-height:1.65;color:var(--ink);
+  box-shadow:var(--shadow);
+}
+#coachView .cu-bubble{
+  background:var(--primary-500);color:#fff;border:none;
+  border-radius:16px 4px 16px 16px;
+  padding:11px 14px;font-size:14.5px;line-height:1.62;
+  white-space:pre-wrap;word-break:break-word;box-shadow:0 2px 8px rgba(58,154,147,.22);
+}
+#coachView .coach-av{width:32px;height:32px;border-radius:10px}
+#coachView .coach-av svg{width:18px;height:18px}
+
+/* ---------- 7. 题卡 / 纠错卡 / chips：白底卡浮在浅灰聊天底上 ---------- */
+#coachView .cq-card{box-shadow:var(--shadow-md)}
+#coachView .cf{box-shadow:var(--shadow-md)}
+
+/* ---------- 8. 空态：微信式的居中提示 ---------- */
+#coachView .coach-empty{
+  margin:auto;text-align:center;max-width:340px;padding:28px 20px;
+}
+#coachView .coach-empty b{display:block;font-size:15px;color:var(--n-900);margin-bottom:6px}
+#coachView .coach-empty span{display:block;font-size:13px;color:var(--muted);line-height:1.7}
+
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}

@@ -465,19 +465,33 @@ function userHtml(text){
      两者互不干扰 —— 窄屏的开合只记在这个内存标志里，**不写回 DATA**，
      否则「手机上收起」会连带把桌面的右栏也收起来（同一个持久化开关）。 */
   var __narrowCtxCollapsed = true;
+  /* 10/4 16:10 改版：教练台从「常驻右栏」改成「**右侧抽屉**」（她原话：「这个什么本地教练台那个东西，
+     放在右边。哎。」）。
+     ⚠️ 宽度分流整个取消了 —— 此前「窄屏用内存标志、宽屏写 DATA.settings.coachCtxCollapsed」
+        的双轨制是为了应付「手机默认收起 / 桌面默认常驻」；
+        改版后**宽窄屏一律默认收起**（抽屉态），开合只写同一个持久化开关，
+        跨设备一致，也不再有「手机上收起把桌面也收起来」那种串扰。
+        DATA 字段沿用 coachCtxCollapsed（已登记 SYNC_SETTINGS_FIELDS，换季云同步照旧）。 */
   function ctxApplyState(){
-    var narrowNow = window.matchMedia('(max-width:860px)').matches;
-    var col = narrowNow ? __narrowCtxCollapsed : !!DATA.settings.coachCtxCollapsed;
+    var col = !!DATA.settings.coachCtxCollapsed;
     var aside = $('coachCtx'); if(!aside) return;
     aside.classList.toggle('coach-ctx-mini', col);
+    // 抽屉开：加 coach-ctx-open 让它滑进来；遮罩同步
+    aside.classList.toggle('coach-ctx-open', !col);
+    var card = $('coachCard');
+    if(card) card.classList.toggle('ctx-open', !col);
+    var shade = $('coachCtxShade');
+    if(shade){
+      shade.hidden = col;
+      shade.classList.toggle('on', !col);
+    }
     var btn = $('coachCtxToggle');
     if(btn){
       btn.setAttribute('aria-expanded', col ? 'false' : 'true');
       btn.textContent = '收起';
     }
-    /* 10/4（她 13:20 拍板）：文案固定「本轮教练台」，不再随屏幕变。
-       窄屏原本写成「它记住的 N 件事」且点开是记忆弹层 —— 名字对不上「教练台」、行为也不一致，
-       她明确要求统一成「点一下展开教练台、再点折叠」。 */
+    /* 文案固定「本轮教练台」（她 13:20 拍板）：名字对不上「教练台」、行为也不一致的问题
+       在 10/3 那批已修；这里保持。 */
     var top = $('coachMemBtn');
     if(top){
       top.setAttribute('aria-expanded', col ? 'false' : 'true');
@@ -489,12 +503,6 @@ function userHtml(text){
     layoutCoach();
   }
   function ctxToggle(){
-    /* 窄屏走内存标志（默认收起），宽屏走持久化设置 —— 理由见 __narrowCtxCollapsed 处注释。 */
-    if(window.matchMedia('(max-width:860px)').matches){
-      __narrowCtxCollapsed = !__narrowCtxCollapsed;
-      ctxApplyState();
-      return;
-    }
     DATA.settings.coachCtxCollapsed = !DATA.settings.coachCtxCollapsed;
     hubSave();
     ctxApplyState();
@@ -509,13 +517,22 @@ function userHtml(text){
        此前 ≤860 是「开长期记忆弹层」（10/3 22:06 的分流），与「本轮教练台」这个名字对不上。
        ⚠️ 长期记忆入口没丢：面板内「全部记忆 ›」仍是 openMem（#coachCtxMore）；
           窄屏教练台现在本身就能展开（CSS 改见 speaking.html ≤860 块）。 */
-    var mqNarrow = window.matchMedia('(max-width:860px)');
     function topBtnOn(){ ctxToggle(); }
-    if(mqNarrow.addEventListener) mqNarrow.addEventListener('change', ctxApplyState);
     var top = $('coachMemBtn');
     if(top) top.addEventListener('click', topBtnOn);
     var more = $('coachCtxMore');
     if(more) more.addEventListener('click', openMem);
+    /* 10/4 16:10 抽屉化：点遮罩 / 按 Esc 都能收起教练台（浮层必须有这两条常规关闭路径，
+       否则点外面没反应、页面看起来卡住 —— onbOverlay 10/3 那次同类事故的教训）。 */
+    var shade = $('coachCtxShade');
+    if(shade) shade.addEventListener('click', function(){
+      if(!DATA.settings.coachCtxCollapsed){ DATA.settings.coachCtxCollapsed = true; hubSave(); ctxApplyState(); }
+    });
+    document.addEventListener('keydown', function(e){
+      if(e.key !== 'Escape') return;
+      if(DATA.settings.coachCtxCollapsed) return;
+      DATA.settings.coachCtxCollapsed = true; hubSave(); ctxApplyState();
+    });
     window.addEventListener('resize', layoutCoach);
   }
 
@@ -593,6 +610,15 @@ function userHtml(text){
     var h = window.innerHeight - padT - padB - topH - barH - gap;
     if(h < 320) h = 320;
     view.style.height = h + 'px';
+    /* 10/4 16:10 改版：高度限制搬到了内层 #coachCard（卡片是唯一滚动容器）。
+       这里把**扣掉卡片自身边框与外边距后**的可用高度写到卡上，
+       否则 #coachScroll 会被撑出卡片 → 底部输入条被推出可视区（10/3 那类「滑不到底」复发）。
+       卡片宽度由 CSS 的 max-width 控制，不在此处写 width。 */
+    var card = $('coachCard');
+    if(card){
+      var ch = h - 2;   /* 上下各 1px 边框 */
+      card.style.maxHeight = (ch > 320 ? ch : 320) + 'px';
+    }
   }
 
   /* ============ 骨架构建（懒：第一次切到陪练 tab 才建，整页生命周期只建一次） ============ */
@@ -607,14 +633,21 @@ function userHtml(text){
        底部加一句常驻提示（说「别纠语法」可关纠错）—— 该功能此前完全无可发现性。
        id 全部沿用（coach.js 动态绑定 14 个 id，改 id 功能直接坏），
        记忆弹层 #coachMemPop 仍移出 #coachWrap —— 避免被三栏的 flex/overflow 影响定位。 */
+    /* 10/4 16:10 整体改版（她 16:00 拍板）：包一层 #coachCard 白卡壳 —— 微信聊天窗结构。
+       · 卡片内浅灰底 + 白色气泡（微信同款观感）
+       · 顶栏 / 聊天区 / 输入条全收进卡内，卡片自己是唯一滚动容器
+       · #coachCtx 改为**右侧抽屉**（绝对定位浮层），不再常驻占 274px
+       id 一个没改，只有结构包了一层 —— coach.js 全部动态绑定不受影响。 */
     view.innerHTML =
-      '<div id="coachWrap">'
+      '<div id="coachCard">'
+      + '<div class="coach-ctx-shade" id="coachCtxShade" hidden></div>'
+      + '<div id="coachWrap">'
       + '<div id="coachCol">'
       +   '<div id="coachTop">'
       +     '<div class="coach-who">'
       /* 10/4（她拍板）：顶栏头像已删 —— 头像统一放到气泡左边（见 AV_AI 的 data-exam-av）。
          顶栏只剩昵称两行字；换考官入口随之搬到气泡头像，功能不丢。 */
-      +       '<span class="coach-who-tx"><b>AI 口语陪练</b><span>自由对话</span></span>'
+      +       '<span class="coach-who-tx"><b>AI 口语教练</b><span>自由对话 · 当季题库话题</span></span>'
       +     '</div>'
       /* 10/3 22:55：头像弹层容器（考官选择器）。设置页有同名容器，这里是陪练页自己的。 */
       +     '<div id="avatarCard" hidden></div>'
@@ -623,7 +656,7 @@ function userHtml(text){
          去掉 aria-haspopup（它现在是展开/收起按钮，不是弹层入口）。
          #coachMemN 保留为隐藏计数（updateMemBtn / renderCtx 会写它，探针也断言它，删了会静默失效）。 */
       +     '<button id="coachMemBtn" type="button" class="coach-mem-btn"'
-      +       ' aria-controls="coachCtx" aria-expanded="true"><span class="coach-mem-label">本轮教练台</span> <span class="coach-mem-caret" aria-hidden="true">‹</span></button>'
+      +       ' aria-controls="coachCtx" aria-expanded="false"><span class="coach-mem-label">本轮教练台</span> <span class="coach-mem-caret" aria-hidden="true">›</span></button>'
       +     '<span id="coachMemN" hidden>0</span>'
       +   '</div>'
       +   '<div id="coachScroll" aria-live="polite"></div>'
@@ -632,7 +665,8 @@ function userHtml(text){
       +     '<button id="coachSend" type="button">发送</button>'
       +   '</div></div>'
       + '</div>'
-      /* 右栏：常驻真面板（274px）。仍在 #coachScroll 之外 —— scroll 内是动态追加的聊天流。 */
+      /* 右栏改抽屉（10/4 16:10）：仍在 #coachScroll 之外（scroll 内是动态追加的聊天流），
+         但不再是常驻占位栏 —— 由 CSS 定位成卡片右侧的浮层，聊天列吃满卡片宽度。 */
       + '<aside id="coachCtx" class="coach-ctx" aria-label="本轮教练台">'
       +   '<div class="coach-ctx-head">'
       +     '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20h-20"/></svg>'
@@ -665,6 +699,22 @@ function userHtml(text){
       + '</div>';
 
     $('coachSend').addEventListener('click', function(){ sendText(); });
+    /* 10/4 16:10：抽屉化后**首屏默认收起**（她 16:00 明确对常驻右栏不满）。
+       一次性迁移：用 `settings._ctxDrawerV1` 作标记，只在**首次**见到这个页面时
+       把 `coachCtxCollapsed` 无条件置 true（老库里是 false = 旧常驻态）。
+       🔴 两道坑都踩过：
+         1) 条件写成 `=== undefined || === false` → 用户主动展开成 false 也被改回收起，
+            变成「点开一刷新又关」（探针实锤）→ 所以必须用**独立标记字段**而不是值判断；
+         2) 没有标记 → 每次刷新都重置，用户永远无法保持展开。
+       尊重标记：迁移只在标记不存在时做一次，之后完全按用户的选择走。
+       ⚠️ 这两个字段**故意不登记 SYNC_SETTINGS_FIELDS** —— 抽屉开合是**设备本地 UI 偏好**
+       （跟 10/3 侧栏折叠同理），跨设备同步会让「手机展开、桌面也跟着展开」失去意义。
+       白名单制下未登记字段自动不参与合并，正是此处要的语义。 */
+    if(!DATA.settings._ctxDrawerV1){
+      DATA.settings.coachCtxCollapsed = true;
+      DATA.settings._ctxDrawerV1 = 1;
+      try{ hubSave(); }catch(_){}
+    }
     initCtx();           // 10/3 A版：初始化上下文栏（折叠状态 + 首渲染 + 事件）
     initExamAv();        // 10/3 22:55：顶栏考官头像选择器（她拍板从设置页挪来）
     var ta = $('coachInput');
