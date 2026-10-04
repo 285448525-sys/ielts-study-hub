@@ -461,8 +461,13 @@ function userHtml(text){
   /* 折叠状态：复用站内存量DATA.settings.coachCtxCollapsed + hubSave()，与侧边栏收起同一套云同步机制。
      10/3 22:06：折叠态 CSS 从「40px 白条」改成 display:none（她嫌那条白条怪），
      入口改到顶栏 #coachMemBtn —— 它的文案与 aria-expanded 随状态翻转。 */
+  /* 10/4（她拍板）：手机上教练台默认收起（点开才出现）；桌面维持原样（默认展开）。
+     两者互不干扰 —— 窄屏的开合只记在这个内存标志里，**不写回 DATA**，
+     否则「手机上收起」会连带把桌面的右栏也收起来（同一个持久化开关）。 */
+  var __narrowCtxCollapsed = true;
   function ctxApplyState(){
-    var col = !!DATA.settings.coachCtxCollapsed;
+    var narrowNow = window.matchMedia('(max-width:860px)').matches;
+    var col = narrowNow ? __narrowCtxCollapsed : !!DATA.settings.coachCtxCollapsed;
     var aside = $('coachCtx'); if(!aside) return;
     aside.classList.toggle('coach-ctx-mini', col);
     var btn = $('coachCtxToggle');
@@ -484,6 +489,12 @@ function userHtml(text){
     layoutCoach();
   }
   function ctxToggle(){
+    /* 窄屏走内存标志（默认收起），宽屏走持久化设置 —— 理由见 __narrowCtxCollapsed 处注释。 */
+    if(window.matchMedia('(max-width:860px)').matches){
+      __narrowCtxCollapsed = !__narrowCtxCollapsed;
+      ctxApplyState();
+      return;
+    }
     DATA.settings.coachCtxCollapsed = !DATA.settings.coachCtxCollapsed;
     hubSave();
     ctxApplyState();
