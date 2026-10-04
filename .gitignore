@@ -5,3 +5,10 @@ node_modules
 /outputs/
 
 /tests/
+
+# agent 工作规则：内含机考日期、同步接口弱点等内部信息，
+# 本仓库经 GitHub main 推送由 CF Pages 整仓库发布，故必须排除，勿移除。
+AGENTS.md
+CLAUDE.md
+AGENTS.local.md
+CLAUDE.local.md

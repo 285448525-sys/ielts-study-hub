@@ -1,7 +1,15 @@
 <!DOCTYPE html>
 <html lang="zh-CN" data-theme="light">
 <head>
-<script>/* 10/4 10:20 加 js 类：只有 JS 可用时 .rv 才隐藏（无 JS / 脚本失败 → 内容默认可见） */document.documentElement.className+=" js";</script>
+<script>/* 10/4 10:20 加 js 类：只有 JS 可用时 .rv 才隐藏（无 JS / 脚本失败 → 内容默认可见）
+   10/4 11:25 加自愈：页尾那段「负责显示」的程序若没跑起来（页面与样式版本不匹配等），自动解除隐藏，
+   宁可没有进场动画，也绝不让内容永久空白。 */
+document.documentElement.className+=" js";
+window.__rvAlive=false;
+function __rvRescue(){ if(!window.__rvAlive){ document.documentElement.className=document.documentElement.className.replace(/\bjs\b/,'').trim(); } }
+document.addEventListener('DOMContentLoaded',__rvRescue);
+setTimeout(__rvRescue,2500);
+</script>
 
 <meta charset="UTF-8" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://api.deepseek.com; object-src 'none'; base-uri 'none'" />
@@ -340,6 +348,7 @@
 <script>
 /* 10/4 01:45 丙方案：.rv 进场动画 */
 (function(){
+  window.__rvAlive = true;   /* 自愈标记：本程序跑到了，head 的兜底不必接管 */
   var els = document.querySelectorAll('.rv');
   if(!els.length) return;
   if(!('IntersectionObserver' in window)){ els.forEach(function(e){ e.classList.add('in'); }); return; }
