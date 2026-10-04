@@ -19,7 +19,7 @@ setTimeout(__rvRescue,2500);
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>设置 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261003j" />
+<link rel="stylesheet" href="css/common.css?v=20261004a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -168,9 +168,15 @@ setTimeout(__rvRescue,2500);
 .set-layout{display:grid;grid-template-columns:200px minmax(0,1fr);gap:22px;align-items:start}
 .set-nav{display:flex;flex-direction:column;gap:4px;position:sticky;top:14px}
 .set-nav-item{width:100%;text-align:left;height:42px;padding:0 14px;border-radius:11px;cursor:pointer;
-  border:1px solid transparent;background:transparent;color:var(--ink);font:inherit;font-size:13.5px;font-weight:600}
+  border:1px solid transparent;background:transparent;color:var(--ink);font:inherit;font-size:13.5px;font-weight:600;
+  transition:background .15s,border-color .15s,color .15s}
 .set-nav-item:hover{background:var(--surface);border-color:var(--line)}
-.set-nav-item.on{background:var(--primary-soft);border-color:var(--primary-200);color:var(--primary-800)}
+/* 14:15 她报「交互效果也不见了」→ 选中态加重：加左侧色条 + 按下即变色，
+   移动端没有 :hover，必须给 :active 明确反馈，否则点了「像没反应」。 */
+.set-nav-item:active{background:var(--n-100);transform:scale(.985)}
+.set-nav-item.on{background:var(--primary-soft);border-color:var(--primary-200);color:var(--primary-800);
+  box-shadow:inset 3px 0 0 var(--primary-500)}
+.set-nav-item:focus-visible{outline:3.5px solid var(--primary-200);outline-offset:2px}
 .set-pane[hidden]{display:none}
 .set-pane .set-card{margin:0}
 .set-pane .set-card+.set-card{margin-top:18px}
@@ -179,13 +185,17 @@ setTimeout(__rvRescue,2500);
 @media(max-width:860px){
   .set-layout{grid-template-columns:1fr;gap:0}
   /* 窄屏：目录变顶部分页标签，横向可滑，不占竖向空间 */
-  .set-nav{flex-direction:row;gap:6px;overflow-x:auto;position:static;margin-bottom:14px;
-    padding-bottom:2px;scrollbar-width:none}
+  .set-nav{flex-direction:row;gap:6px;overflow-x:auto;position:sticky;top:0;z-index:20;
+    margin:0 -14px 14px;padding:8px 14px 10px;scrollbar-width:none;
+    /* 移动端没有 :hover —— 标签常驻顶部 + 底部细边，滑动时始终知道自己在哪一组 */
+    background:var(--bg);box-shadow:0 1px 0 var(--line)}
   .set-nav::-webkit-scrollbar{display:none}
   /* 10/4 她反馈：手机端 5 个标签要滑动 → 合并成 4 组后改为等宽铺满，不再需要滑动；
      overflow-x 保留为极窄屏 / 大字号时的兜底 */
-  .set-nav-item{width:auto;flex:1 1 0;min-width:0;height:38px;padding:0 6px;
-    white-space:nowrap;text-align:center}
+  .set-nav-item{width:auto;flex:1 1 0;min-width:0;height:40px;padding:0 6px;
+    white-space:nowrap;text-align:center;font-size:13px}
+  /* 窄屏下左侧色条换到顶部（横向排列时左侧色条看不见） */
+  .set-nav-item.on{box-shadow:inset 0 3px 0 var(--primary-500)}
 }
 @media(max-width:640px){
   .set-topbar{padding:11px 13px;gap:11px}
@@ -268,11 +278,7 @@ setTimeout(__rvRescue,2500);
   </div>
 
   <!-- ② 主体：10/4 改版方向二「左目录 + 右内容」——每张卡内容一项不删，DOM 钩子全保留 -->
-  <div class="set-head">
-    <h1>设置</h1>
-    <p>共 4 组 · 数据只存在本机，登录后自动同步到云端</p>
-  </div>
-
+  <!-- 14:15 她拍板：深绿框下面「设置」标题 + 「共 4 组 · 数据只存在本机…」两行删掉（要清爽） -->
   <div class="set-layout">
     <nav class="set-nav" aria-label="设置分组">
       <button class="set-nav-item on" type="button" data-goto="profile">个人设置</button>
@@ -393,9 +399,11 @@ setTimeout(__rvRescue,2500);
             </div>
           </div>
 
-          <!-- 未登录：只给状态 + 一个引导键（10/3 22:55 她拍板：不要裸填账号密码） -->
+          <!-- 未登录：只给状态 + 一个引导键（10/3 22:55 她拍板：不要裸填账号密码）
+               14:15：顶部那句「数据只存在本机，登录后自动同步到云端」已删，这里是全站唯一说明，
+               文案相应收短，避免同一句话说两遍。 -->
           <div id="syncGuestBox" hidden>
-            <p class="acct-guest-tip">数据现在只存在这台设备的浏览器里，换设备看不到。登录后自动同步到云端。</p>
+            <p class="acct-guest-tip">数据只存在这台设备。登录后自动同步到云端。</p>
             <div class="acct-actions">
               <a class="acct-btn acct-btn--light" id="syncGoLogin" href="login.html?from=settings">去登录 →</a>
             </div>
@@ -459,8 +467,24 @@ setTimeout(__rvRescue,2500);
     var b = e.target.closest('.set-nav-item, .set-topmore');
     if(!b) return;
     e.preventDefault();
-    go(b.getAttribute('data-goto'));
-    try{ window.scrollTo({ top: 0, behavior: 'smooth' }); }catch(_){ window.scrollTo(0, 0); }
+    var name = b.getAttribute('data-goto');
+    var before = b.getAttribute('data-goto') === name && (function(){
+      for(var i=0;i<panes.length;i++){ if(panes[i].getAttribute('data-pane')===name && panes[i].hidden) return false; }
+      return true;
+    })();
+    go(name);
+    /* 14:15 她报「点了没反应 + 很卡顿」的真凶：切组只换内容、**不调视口**。
+       窄屏导航条已改 sticky，若此刻页面还滚在下面，用户看到的就是「内容变了但我站在原地」
+       → 观感等于没反应。**必须把视口拉回导航条下方**，并用 instant 不用 smooth
+       （smooth 在弱网低端机上会明显卡顿）。已点击当前组则不重复滚动。 */
+    if(before) return;
+    var top = 0;
+    try{
+      var nr = nav.getBoundingClientRect();
+      top = Math.max(0, (nr.top + window.pageYOffset) - (nav.offsetHeight + 8));
+    }catch(_){ top = 0; }
+    try{ window.scrollTo({ top: top, behavior: 'auto' }); }
+    catch(_){ window.scrollTo(0, top); }
   });
   go('profile');   /* 她拍板：默认停在「个人设置」，不记忆上次 */
 })();

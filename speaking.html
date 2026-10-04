@@ -31,7 +31,7 @@
 })();
 </script>
 <title>口语 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261003j" />
+<link rel="stylesheet" href="css/common.css?v=20261004a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -272,8 +272,16 @@
   .sp-panel-body > .sp-card-row:last-child{border-bottom:0}
   .sp-card-row:hover{background:var(--primary-50);box-shadow:none}
   .sp-card-rail{width:3px;align-self:stretch;flex:none;background:var(--line);border-radius:0 3px 3px 0}
-  .sp-card-row[data-freq="ultra"] .sp-card-rail{background:linear-gradient(180deg,var(--primary-400),var(--primary-700))}
-  .sp-card-row[data-freq="high"] .sp-card-rail{background:var(--primary-300)}
+  /* 🚨 14:15 她报「正常每个前面都有绿色条，但有一些没有」——探针实锤：**只定义了 ultra / high 两档，
+     medium(31 张) + low(26 张) 共 57 张落回 var(--line) 灰色**，等于 88 张里 65% 没绿条。
+     修：四档全给色，频率越高越深（递进：low 淡 → medium 中 → high 深 → ultra 最深 + 微光）。 */
+  .sp-card-row[data-freq="ultra"] .sp-card-rail{background:linear-gradient(180deg,var(--primary-400),var(--primary-700));box-shadow:0 0 6px rgba(92,179,171,.35)}
+  .sp-card-row[data-freq="high"] .sp-card-rail{background:var(--primary-500)}
+  .sp-card-row[data-freq="medium"] .sp-card-rail{background:var(--primary-300)}
+  .sp-card-row[data-freq="low"] .sp-card-rail{background:var(--primary-100)}
+  /* 无频次字段的兜底（不靠 data-freq 选择器，直接给默认淡色，绝不出现「没条」） */
+  .sp-card-row:not([data-freq]) .sp-card-rail,
+  .sp-card-row[data-freq=""] .sp-card-rail{background:var(--primary-100)}
   .sp-card-main{flex:1;min-width:0}
   .sp-card-row .sp-card-title{padding-right:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .sp-card-row .sp-card-tags{flex:none;display:flex;align-items:center;gap:6px;margin-top:0;max-width:46%;overflow:hidden;flex-wrap:nowrap}
@@ -942,10 +950,14 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
 }
 
 /* === 10/1 批3b · 练习页小幅打磨（她「原有基础上稍微优化一下」；纯 CSS 零 JS 零结构改动） === */
-/* 1) 题库列表卡：右侧 chevron「可点开」暗示（sp-card 已 relative，design/25 只做了 hover 位移） */
-.sp-card::after{content:'›';position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:20px;line-height:1;color:var(--muted);opacity:.55;transition:color .15s,opacity .15s,transform .15s;pointer-events:none}
-.sp-card:hover::after{color:var(--primary);opacity:1;transform:translateY(-50%) translateX(3px)}
-.sp-card-title,.sp-card-zh{padding-right:26px}
+/* 1) 🚨 14:15 她报「最右边两个小箭头重复了，一个有圆边框一个没有」——
+      旧规则这里有 `.sp-card::after{content:'›'}` 又画了一个**裸箭头**伪元素，
+      而 10/3 B 版已在卡内放了一个带圆形底的真箭头 `<span class="sp-card-go">`（.sp-card-go 有
+      border-radius:50% + var(--n-100) 底）→ 每张卡右端两个箭头。
+      **旧伪元素整条删除**，箭头唯一来源 = .sp-card-go。hover 位移效果由 .sp-card-go 承担。 */
+.sp-card:hover .sp-card-go{color:var(--primary);transform:translateX(3px)}
+/* 旧 `padding-right:26px` 是给已删除的 ::after 裸箭头留位的 —— 箭头唯一来源现在是卡内的
+   .sp-card-go（flex 布局自带占位），留着会让标题右侧凭空多空 26px。同步撤掉。 */
 /* 2) 句型练习分类行：标题前 teal 圆点，列表节奏感 */
 .sent-cat-row b::before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--primary);opacity:.75;margin-right:8px;vertical-align:2px}
 .sent-cat-row:hover b::before{opacity:1}

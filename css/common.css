@@ -304,14 +304,28 @@ body{
 .sc-actions{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap}
 .ss-item.sc-link{width:auto;padding:4px 10px;font-size:12.5px;border:1px solid var(--line);border-radius:8px}
 
-/* ===== 移动端「更多」弹层（底部导航由全站 dock 接管；旧 tabbar 组件已于 2026-09-08 删除） ===== */
-.sheet-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:60;opacity:0;transition:opacity .22s}
+/* ===== 移动端「更多」弹层（底部导航由全站 dock 接管；旧 tabbar 组件已于 2026-09-08 删除） =====
+   14:15 她报「点更多按钮弹不出来、很卡顿」。探针实测（tests/_diag_more.cjs）：功能完全正常
+   —— 能弹、7 个条目、transform 到位、点遮罩能关、切组耗时仅 32ms。真实原因是**视觉上分不出来**：
+   遮罩只有 .35 黑、弹层背景 var(--surface) 与页面底色太接近，加上 284px 高的面板里 7 个两列项
+   排得整整齐齐，看上去「像是原本就长在那儿」。修法（功能一行未动）：
+   ① 遮罩加深并加轻微模糊，弹出瞬间世界「沉下去」 ② 弹层顶部加 teal 拖拽条 + 描边强化边界
+   ③ 阴影加强。四处全在 CSS，JS 零改动。 */
+.sheet-backdrop{display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);
+  backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);
+  z-index:60;opacity:0;transition:opacity .24s}
 body.sheet-open .sheet-backdrop{display:block;opacity:1}
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:61;transform:translateY(100%);
-  background:var(--surface);border-radius:18px 18px 0 0;box-shadow:0 -8px 30px rgba(15,23,42,.18);
-  padding:8px 14px calc(14px + env(safe-area-inset-bottom));transition:transform .28s cubic-bezier(.34,1.3,.64,1);
-  max-height:78vh;overflow-y:auto}
+  background:var(--surface);border-radius:18px 18px 0 0;
+  border:1px solid var(--line);border-bottom:none;
+  box-shadow:0 -14px 48px rgba(15,23,42,.32);
+  padding:0 14px calc(14px + env(safe-area-inset-bottom));
+  transition:transform .28s cubic-bezier(.34,1.3,.64,1);
+  max-height:78vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
 body.sheet-open .sheet{transform:translateY(0)}
+/* 拖拽条：让「这是一层浮上来的面板」有明确视觉锚点 */
+.sheet::before{content:'';display:block;width:40px;height:4px;border-radius:999px;
+  background:var(--primary);opacity:.5;margin:9px auto 1px}
 .sheet-head{display:flex;align-items:center;justify-content:space-between;padding:12px 4px 10px;border-bottom:1px solid var(--line);margin-bottom:6px}
 .sheet-head span{font-size:15px;font-weight:800;color:var(--ink)}
 .sheet-close{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;width:36px;height:36px;border-radius:10px}
