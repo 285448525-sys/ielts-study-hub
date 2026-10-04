@@ -417,52 +417,166 @@ function bindSideSearch(){
 }
 
 /* ===== 全站玻璃底栏 dock（移动端 ≤860px 显示，作为移动端主底部导航；桌面用侧栏，不显示）===== */
+/* ==========================================================================
+   10/4 17:55 移动端底部 dock 分组重构（她 17:12 提 + 17:54 拍板「甲版」）
+
+   她的原话（17:12）：
+     「5 个栏…第一个是首页是确定的，然后把剩下的这些栏就是几个归到一个，然后放在一个页面，
+       几个归到一个放一个页面…第二个也可以是计划页，然后第三个页面可以是学习页，
+       学习页面点下去之后可以选择背单词、背口语、写作、句子等等，
+       哦对，然后计划和计时也可以放在一个板块，就是以此类推」
+   拍板（17:54）：**甲版 4 格**；「我的」组**没有错句本**（她不常用），
+     服药**平常不开着**所以默认不显示 → 我的组只有 **回顾 / 会员 / 设置** 3 项。
+
+   ── 为什么改（现状的病）──────────────────────────────────────────────
+   旧 dock = 4 格 +「更多」，13 个页面里 **8 个全藏在「更多」弹层**（vip/review/corpus/
+   writing/timer/settings/meds/wrongbook）—— 句子、写作、计时这些**每天都要用**的页面被埋到
+   第二层，找东西要「点更多 → 再找」。她 12:10 报过一次「入口找不到」，这次是彻底重做。
+
+   ── 新的结构（GROUPED_DOCK，单一数据源）──────────────────────────────
+     首页   → 直达 home.html（她 17:12 明确「第一个是首页是确定的」）
+     计划   → 组：plans / timer（她原话「计划和计时也可以放在一个板块」）
+     学习   → 组：practice / speaking / writing / corpus（17:54 拍板：不含计时）
+     我的   → 组：review / vip / settings + meds（仅开了服药才出现）
+
+   ── 为什么不进组、当场跳页 ───────────────────────────────────────────
+   首页组只有 1 项 → 弹列表是多余的一次点击，直接跳。她 17:54 问「计划要不要也弹列表」，
+   选了「弹」→ 计划组虽然只有 2 项也照样弹，保持 4 格交互一致（点哪格都是同一种行为）。
+
+   ── 错句本（wrongbook）去哪了 ───────────────────────────────────────
+   她 17:54 明说「我记得我的里面没有这个错句本」—— 但文件真实存在（writing.html 有入口、
+   sidebar 也有）。**本轮按她说的从「我的」组移除**，但**不删页面、不删侧栏入口**
+   （她自己以后想用还能从侧栏/写作页进）。⚠️ 若她之后发现还需要，加回「我的」组即可。
+   ========================================================================== */
+
+/* 分组定义：唯一的结构来源。g.page 存在 = 直达；无 page = 弹组面板。 */
+const GROUPED_DOCK = [
+  { id:'index',  label:'首页', icon:'<path d="M3 11l9-8 9 8M5 10v10h14V10"/>', page:'index' },
+  { id:'plans',  label:'计划', icon:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4"/>',
+    members:['plans','timer'] },
+  { id:'study',  label:'学习', icon:'<path d="M4 19.5V6a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-1.5z"/><path d="M4 19.5A2 2 0 0 1 6 18h13"/>',
+    members:['practice','speaking','writing','corpus'] },
+  { id:'me',     label:'我的', icon:'<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/>',
+    members:['review','vip','settings','meds'] }
+];
+
+/* 当前页属于哪个 dock 组 —— injectGlobalDock（首屏高亮）与 updateActiveNav（软导航高亮）
+   共同用这一个判定，避免两处口径漂移（漂移过一次：探针从学习组点进 writing.html 后 dock 全灰）。 */
+function dockGroupOfPage(file){
+  if(!file) return null;
+  const byId = id => PAGES.find(x => x.id === id);
+  for(const g of GROUPED_DOCK){
+    if(g.page && (byId(g.page) || {}).file === file) return g.id;
+    if(g.members && g.members.some(m => (byId(m) || {}).file === file)) return g.id;
+  }
+  return null;
+}
+
 function injectGlobalDock(){
   if(document.getElementById('hubDock')) return;
-  // 9/15 之之要求：5 槽全部同构（图标+文字+active 胶囊），原中央凸起主钮风格撤除；写作收进「更多」弹层
-  const items = [
-    {id:'index',    label:'首页', icon:'<path d="M3 11l9-8 9 8M5 10v10h14V10"/>'},
-    {id:'plans',    label:'计划', icon:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4"/>'},
-    {id:'practice', label:'背词', icon:'<path d="M4 5h12a3 3 0 0 1 3 3v11H7a3 3 0 0 1-3-3V5zM4 5a3 3 0 0 1 3-3h9"/>'},
-    {id:'speaking', label:'口语', icon:'<path d="M21 12a8 8 0 0 1-11.5 7.2L3 21l1.8-6.5A8 8 0 1 1 21 12z"/>'}
-  ];
   const current = _hubCurrentFile || normalizePageFile(location.pathname.split('/').pop() || 'home.html');
+  const pageById = id => PAGES.find(x => x.id === id);
+  const curGroup = dockGroupOfPage(current);
+
+  const svgOf = raw => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + raw + '</svg>';
   let inner = '';
-  const svgOf = it => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + it.icon + '</svg>';
-  for(const it of items){
-    const p = PAGES.find(x => x.id === it.id);
-    const file = p ? p.file : (it.id + '.html');
-    // design/56：原写法 it.id === current 是错的（current 是文件名 practice.html，id 是 practice），dock 高亮从没生效过
-    const active = (file === current) ? ' active' : '';
-    inner += '<a class="ui-menu-item' + active + '" href="' + file + '" data-id="' + it.id + '" title="' + it.label + '">'
-      + svgOf(it) + '<span>' + it.label + '</span></a>';
+  for(const g of GROUPED_DOCK){
+    const on = (g.id === curGroup) ? ' active' : '';
+    /* 弹层型（无 page）用 button，直达型用 a —— 语义要对，别全用 button */
+    const tag = g.page ? 'a' : 'button';
+    const href = g.page ? ' href="' + ((pageById(g.page) || {}).file || (g.page + '.html')) + '"' : ' type="button"';
+    inner += '<' + tag + ' class="ui-menu-item dock-group-item' + on + '"' + href
+      + ' data-dock-group="' + g.id + '"'
+      + (g.page ? ' data-id="' + g.page + '"' : '')
+      + ' title="' + g.label + '"'
+      + (g.page ? '' : ' aria-haspopup="dialog" aria-expanded="false"')
+      + '>' + svgOf(g.icon) + '<span>' + g.label + '</span></' + tag + '>';
   }
   const dock = document.createElement('nav');
   dock.id = 'hubDock';
-  dock.className = 'ui-menu';
+  dock.className = 'ui-menu ui-menu-grouped';
   dock.setAttribute('aria-label', '快捷导航');
-  inner += '<button class="ui-menu-item" type="button" data-more aria-label="更多功能">'
-    + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>'
-    + '<span>更多</span></button>';
   dock.innerHTML = inner;
   document.body.appendChild(dock);
   document.body.classList.add('has-dock');
-  const moreBtn = dock.querySelector('[data-more]');
-  if(moreBtn) moreBtn.addEventListener('click', openMoreSheet);
-  /* 10/2 dock 重设计（B 通栏扁平 · 之之拍板）：实测 dock 真实高度写进 :root 的 --dock-h。
-     全站「内容区净空 / 浮钮锚点 / toast / 额度轻条」一律读这个变量，不再写死 88px。
-     为什么必须实测：safe-area（iPhone 34 / iPad 20 / 安卓 0~24px）+ 系统字号放大都会让 dock
-     实际高度浮动，写死数字在真机上必然对不上——本批要消灭的正是「dock 上方 20px 幽灵白带」。
-     h > 0 守卫是必须的：沉浸态（模考 mock-immerse / 背词全屏）dock 是 display:none，rect 高 0，
-     照写会把 --dock-h 打成 0px 导致净空直接塌掉。 */
+
+  bindDockGroups(dock, pageById, current);
+  /* 10/2 dock 重设计（她拍板）：实测 dock 真实高度写进 :root 的 --dock-h。
+     全站「内容区净空 / 浮钮锚点 / toast / 额度轻条」一律读这个变量，不写死 88px。
+     为什么必须实测：safe-area（iPhone 34 / iPad 20）+ 系统字号放大都会让高度浮动，
+     写死数字在真机上必然对不上——本批要消灭的正是「dock 上方 20px 幽灵白带」。
+     h > 0 守卫是必须的：沉浸态（模考 / 背词全屏）dock 是 display:none，rect 高 0，
+     照写会把 --dock-h 打成 0px 导致净空塌掉。 */
   const syncDockH = () => {
     const h = Math.round(dock.getBoundingClientRect().height);
-    if (h > 0) document.documentElement.style.setProperty('--dock-h', h + 'px');
+    if(h > 0) document.documentElement.style.setProperty('--dock-h', h + 'px');
   };
   syncDockH();
-  if (window.ResizeObserver) new ResizeObserver(syncDockH).observe(dock);
+  if(window.ResizeObserver) new ResizeObserver(syncDockH).observe(dock);
   window.addEventListener('resize', syncDockH);
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(syncDockH, () => {});
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(syncDockH, () => {});
+}
+
+/* ==========================================================================
+   组面板：从底部滑出的一张卡片（微信「+」那种），列出组内页面
+   —— 不再是「更多」那个全站弹层（那个还在，供侧栏/其他入口复用）
+   ========================================================================== */
+function ensureDockGroupSheet(){
+  let sheet = document.getElementById('dockGroupSheet');
+  if(sheet) return sheet;
+  /* 软导航换页时若上一轮面板还开着，body 上的 dgs-open 会残留 ->
+     遮罩留在 DOM 里挡住全页点击（页面能开但什么都点不动，onbOverlay 10/3 同类事故）。
+     建新面板前先把状态清干净。 */
+  document.body.classList.remove('dgs-open');
+  const bd = document.createElement('div');
+  bd.id = 'dockGroupBackdrop'; bd.className = 'sheet-backdrop';
+  sheet = document.createElement('div');
+  sheet.id = 'dockGroupSheet'; sheet.className = 'dock-group-sheet';
+  sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-modal', 'true');
+  sheet.innerHTML = '<div class="dgs-grab" aria-hidden="true"></div>'
+    + '<div class="dgs-head"><b id="dgsTitle">学习</b>'
+    + '<button class="dgs-close" type="button" aria-label="关闭">✕</button></div>'
+    + '<div class="dgs-list" id="dgsList"></div>';
+  document.body.appendChild(bd); document.body.appendChild(sheet);
+  bd.addEventListener('click', closeDockGroupSheet);
+  sheet.querySelector('.dgs-close').addEventListener('click', closeDockGroupSheet);
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape') closeDockGroupSheet();
+  });
+  return sheet;
+}
+function closeDockGroupSheet(){ document.body.classList.remove('dgs-open'); }
+
+function bindDockGroups(dock, pageById, current){
+  const sheet = ensureDockGroupSheet();
+  const list = document.getElementById('dgsList');
+  const title = document.getElementById('dgsTitle');
+  dock.querySelectorAll('[data-dock-group]').forEach(btn => {
+    btn.addEventListener('click', function(){
+      const g = GROUPED_DOCK.find(x => x.id === btn.getAttribute('data-dock-group'));
+      if(!g) return;
+      if(g.page){ return; }   /* 直达型就是 <a>，让浏览器自己跳 */
+      /* 组面板型：点已在当前组的按钮 → 仍弹列表（她拍板：这样能快速跳组里别的页） */
+      const ids = (g.members || []).filter(id => id !== 'meds' || medsModuleOn());
+      title.textContent = g.label;
+      list.innerHTML = ids.map(id => {
+        const p = pageById(id); if(!p) return '';
+        const on = (p.file === current) ? ' cur' : '';
+        return '<a class="dgs-item' + on + '" href="' + p.file + '" data-id="' + p.id + '">'
+          + '<span class="dgs-ic">' + p.icon + '</span>'
+          + '<span class="dgs-tx"><b>' + p.name + '</b>'
+          + (p.desc ? '<span>' + p.desc + '</span>' : '') + '</span></a>';
+      }).join('');
+      document.body.classList.add('dgs-open');
+      btn.setAttribute('aria-expanded', 'true');
+    });
+  });
+  /* 关闭时把 aria-expanded 复位 */
+  document.addEventListener('click', function(e){
+    if(!document.body.classList.contains('dgs-open')) return;
+    if(e.target.closest && (e.target.closest('#dockGroupSheet') || e.target.closest('[data-dock-group]'))) return;
+    closeDockGroupSheet();
+  });
 }
 
 /* ===== 全站 + 浮动按钮（已砍，9/16 之之反馈不知道它是干嘛的：全站仅计划页有 data-fab-add 接杆，
@@ -655,14 +769,14 @@ function ensureMobileChrome(){
     const pageById = id => PAGES.find(p => p.id === id);
     const cur = _hubCurrentFile;
 
-    // dock 已接管移动端导航（含 index/plans/practice/speaking/writing），
-    // 把其余页面（含原 tabbar 主项 timer）收进「更多」弹层，避免丢失入口
-    const DOCK_IDS = ['index','plans','practice','speaking'];   // design/56：写作移入「更多」弹层
-    const moreIds = MORE_NAV
-      .concat(PRIMARY_NAV.filter(id => !TAB_NAV.includes(id)))
-      .concat(['timer'])
-      .filter(id => !DOCK_IDS.includes(id))
-      .filter(id => id !== 'meds' || medsModuleOn());   // 服药模块未开启 → 更多弹层不出现
+    /* 🔴 10/4 17:55 dock 分组重构：底部 dock 已经是 GROUPED_DOCK（首页/计划/学习/我的），
+       **每个页面都有组可归**，所以「更多」弹层**不再需要收纳入口**。
+       改法：moreIds 直接算空 → 弹层只剩「意见反馈」一个按钮（她 10/2 拍板要有）。
+       ⚠️ 为什么不是删掉整个弹层：openMoreSheet() 还被别处引用（侧栏 / 反馈入口），
+         删函数会连带炸 3 处调用点。这里让它退化成「只放反馈」，风险最小。
+       ⚠️ 错句本 wrongbook 按她 17:54 的话从「我的」组移除，但**侧栏仍是 13 项全列**
+         （desktopSidebarIds 没动）—— 她自己以后想用还能从侧栏进。 */
+    const moreIds = [];   // 分组 dock 后不再需要收纳任何页面
     let sh = '<div class="sheet-head"><span>更多功能</span>'
       + '<button class="sheet-close" type="button" aria-label="关闭">✕</button></div>'
       + '<div class="sheet-list">';
@@ -3536,11 +3650,22 @@ function updateActiveNav(file){
       a.classList.toggle('active', a.getAttribute('href') === file);
     });
   }
-  // 同步「更多」弹层 + 底部 dock 高亮（design/56：dock 走软导航后高亮也要跟随；单一写入点，避免闪烁；旧 tabbar 高亮已随组件删除）
-  document.querySelectorAll('.sheet-item[data-id], .ui-menu-item[data-id]').forEach(a => {
+  // 同步「更多」弹层高亮（design/56；旧 tabbar 高亮已随组件删除）
+  document.querySelectorAll('.sheet-item[data-id]').forEach(a => {
     const p = PAGES.find(pp => pp.id === a.dataset.id);
     a.classList.toggle('active', !!(p && p.file === file));
   });
+  /* 🔴 10/4 17:55 dock 分组后，dock 的高亮**不能**再靠 `.ui-menu-item[data-id]` ——
+     组按钮（计划/学习/我的）没有 data-id（它们是 button，data-id 只在直达型上）。
+     原写法会让软导航后 dock **一个都不亮**（探针实锤：从学习组点进 writing.html，
+     路径对了但 dock 全灰）。修：按「当前页属于哪个组」来点亮。
+     —— 仍走 updateActiveNav 这个单一写入点，避免闪烁。 */
+  if(typeof dockGroupOfPage === 'function'){
+    const gid = dockGroupOfPage(file);
+    document.querySelectorAll('#hubDock [data-dock-group]').forEach(b => {
+      b.classList.toggle('active', !!gid && b.getAttribute('data-dock-group') === gid);
+    });
+  }
 }
 
 /* 重新执行目标页脚本：

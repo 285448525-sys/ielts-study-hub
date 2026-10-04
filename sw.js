@@ -30,7 +30,34 @@
 // 开合（窄屏原本点了开记忆弹层、且教练台整块隐藏→现在展开态显示为浮层）；发送框收到 36px。v212→v213
 // 10/4 13:36 她看过实机后补一条：手机端教练台改为**默认收起**（点开才出现）；
 // 桌面维持默认展开。窄屏开合只记内存、不写回设置，避免「手机收起把电脑右栏也收掉」。v213→v214
-const CACHE = 'ielts-hub-v221';  // 10/4 00:50 P0 修模考报告「未作答不扣分」（她 00:38 报「P1 全部跳过、P2P3 答得一坨屎，结果还给我打5.5」）——🚨 **根因（探针 outputs/design/_diag_score_empty.cjs 实锤）**：js/mock.js:646 用 `(a.transcript || '(空)')` 拼 block，**P1 全未答时拼出的 block 仍非空**（98 字符，因为还有 Q: 题面）→ 唯一防线 `if(!block.trim()) return null` **拦不住** → 照样调 AI → AI 面对一屏「(空)」按默认中位给 5.5 → 总分 (5.5+P2+P3)/3 把她的真实水平拉平。同时 fixes 里出现**根本没作答的题的编造点评**（她截图里「About more than 10 years → More than 10 years」）。
+const CACHE = 'ielts-hub-v222';  // 10/4 00:50 P0 修模考报告「未作答不扣分」（她 00:38 报「P1 全部跳过、P2P3 答得一坨屎，结果还给我打5.5」）——🚨 **根因（探针 outputs/design/_diag_score_empty.cjs 实锤）**：js/mock.js:646 用 `(a.transcript || '(空)')` 拼 block，**P1 全未答时拼出的 block 仍非空**（98 字符，因为还有 Q: 题面）→ 唯一防线 `if(!block.trim()) return null` **拦不住** → 照样调 AI → AI 面对一屏「(空)」按默认中位给 5.5 → 总分 (5.5+P2+P3)/3 把她的真实水平拉平。同时 fixes 里出现**根本没作答的题的编造点评**（她截图里「About more than 10 years → More than 10 years」）。
+  // 10/4 17:55 移动端 dock 分组重构（她 17:12 提 + 17:54 拍板「甲版」）
+//  病根：旧 dock = 4 格 +「更多」，13 个页面里 **8 个全藏在「更多」弹层**（vip/review/corpus/
+//        writing/timer/settings/meds/wrongbook）—— 句子、写作、计时这些**每天都要用**的
+//        页面被埋到第二层。她 12:10 报过一次「入口找不到」，这次彻底重做。
+//
+//  新结构（GROUPED_DOCK，js/common.js 单一数据源）：
+//    首页 → 直达 home.html（她 17:12「第一个是首页是确定的」；组只有 1 项，弹面板是多余一跳）
+//    计划 → 组：plans / timer（她原话「计划和计时也可以放在一个板块」）
+//    学习 → 组：practice / speaking / writing / corpus（17:54 拍板：不含计时）
+//    我的 → 组：review / vip / settings + meds（**服药仅在 medsModuleOn() 时出现**，她 17:54「平常不开着」）
+//    错句本 wrongbook 按她 17:54「我的里面没有这个错句本」**从组里移除**，
+//      但**页面/侧栏入口一律不删**（她自己以后想用还能进；想加回「我的」组随时可以）。
+//
+//  🔴 三处必须记住的坑：
+//   ① updateActiveNav 的高亮**不能**再靠 `.ui-menu-item[data-id]` —— 组按钮是 <button>、
+//      没有 data-id，只在直达型上。原写法会让软导航后 dock **一个都不亮**（探针实锤：
+//      从学习组点进 writing.html，路径对了但 dock 全灰）。修：抽出全局 dockGroupOfPage(file)，
+//      首屏高亮与软导航高亮**共用这一个判定**，避免两处口径漂移。
+//   ② 旧「更多」弹层**不能删函数**（openMoreSheet 被侧栏/反馈入口引用，删会连带炸 3 处调用点），
+//      只把 moreIds 算空 → 退化成「只放意见反馈」。
+//   ③ ensureDockGroupSheet 建面板前必须 document.body.classList.remove('dgs-open') ——
+//      软导航换页时若上一轮面板还开着，遮罩会留在 DOM 里挡住全页点击
+//      （onbOverlay 10/3 同类事故：页面能开但什么都点不动）。
+//
+//  探针 tests/_verify_dockgroup.cjs 36/36（4 格结构 / 三组项数 2·4·3（+服药=4）/ 三种关闭方式 /
+//  软导航高亮跟随 / 跳转真的到位 / 13 个页面里 12 个可从组到达、仅错句本不可达 / 桌面侧栏与
+//  旧弹层未坏 / --dock-h 仍实测写入）。回归 mobile4 29/29（口径已改：底部无 [data-more] 了）。
   // 10/4 17:20 陪练三修（她 17:12 手机截图逐条报）：
 //  ① 每条 AI 气泡头像都是考官头像（她说「只有第一个对话框头像是那个头像，第二个就不对了」）
 //     根因：AV_AI 曾是**字符串常量**、img.src 写死空串，initExamAv 的 sync() 只在 build() 后跑一次
