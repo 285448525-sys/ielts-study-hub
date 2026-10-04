@@ -689,13 +689,23 @@ function spCardHtml(s){
   const count = getPracticeCount(s);
   /* B 版：题卡改横向布局 —— 左频次色条 + 中间英文/中文（占满剩余）+ 右标签组 + 右箭头。
      freq-* 类同时给左侧色条上色（CSS 用 [data-freq] 属性选择器）。 */
+  /* 🔴 10/4 19:20 她 19:10 报「住所 / 对结果开心的重要决定显示不全、被截掉一截」，说了好几遍。
+     探针实锤（tests/_verify_bankcards.cjs）：旧结构是**四块横排** rail|main|tags|go，
+     而 .sp-card-main 只有 min-width:0（可无限压缩）→ 英文标题一长（如
+     "An important decision you were happy with"），flex 空间不足时
+       · 标题被压成 nowrap+ellipsis 的一行（真正被「截掉」）
+       · 圆箭头 sp-card-go 被挤到**下一行再绕回最左**（实测 right=38，而卡右缘=377）
+       · .sp-card-tags 的 max-width:46% + overflow:hidden 在硬切标签
+     修：**改成两栏** —— 左栏（rail + 标题/中文/标签**竖排**）+ 右栏（箭头）。
+        标题改为**允许换行**（不再 nowrap+ellipsis），标签移到左栏底部跟着标题走。
+        这样无论标题多长，卡片只会变高，不会切内容、不会错位。 */
   return '<div class="sp-card sp-card-row" data-id="' + s.id + '" data-freq="' + escapeHtml(s.frequency || '') + '">'
     + '<span class="sp-card-rail" aria-hidden="true"></span>'
     + '<div class="sp-card-main">'
       + '<div class="sp-card-title">' + escapeHtml(title) + scoreBadgeHtml(best, count, s) + '</div>'
       + (zh ? '<div class="sp-card-zh">' + escapeHtml(zh) + '</div>' : '')
+      + '<div class="sp-card-tags">' + tagsHtml(s) + '</div>'
     + '</div>'
-    + '<div class="sp-card-tags">' + tagsHtml(s) + '</div>'
     + '<span class="sp-card-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>'
     + '</div>';
 }
