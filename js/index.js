@@ -2,6 +2,9 @@
 const MAX_HINT_MODS = 2;
 // 倒计时日期的「周 X」后缀用
 const WEEKDAY_CN = ['日','一','二','三','四','五','六'];
+// 10/5 路线图①-2「继续上次」折叠态键（纯本机 UI 偏好，**不进 DATA** ——
+// 进了就得登记 mergeData + 起合并探针，而折叠状态跨设备同步毫无价值）。
+const RESUME_FOLD_KEY = 'hub_resume_folded';
 
 ready(async () => {
   const safe = fn => { try{ fn(); }catch(e){ console.error('[index] 渲染失败', fn.name || '', e); } };
@@ -18,6 +21,9 @@ ready(async () => {
 
   // v6 首页渲染（design/31 A 版）
   safe(renderDashV6);
+
+  // 10/5 路线图①-2：顶部「继续上次」卡（无未完成事项时**不渲染**，不占首屏）
+  safe(renderResumeCard);
 
   // 首次进入引导提示条（仅首页）：三步没走完时出现，三步齐了或点「不再提示」后永久消失
   safe(renderOnboardingBar);
@@ -211,6 +217,93 @@ function renderDashV6(){
 function hmParts(sec){
   const t = Math.max(0, Number(sec) || 0);
   return { h: Math.floor(t/3600), m: Math.floor((t % 3600) / 60) };
+}
+
+/* ===== 10/5 路线图①-2 · 顶部「继续上次」卡 =====
+   豆包评审 P3：用户离开一天再回来，不知道从哪继续 → 首页给一个「一键回到上次那件事」。
+   口径（严格按优先级，只出 1 张卡，绝不做成入口堆）：
+     ① 模考有未完成快照（localStorage ielts_mock_resume_v1，mock.js 的续考锚）→ 继续模考
+     ② 今日计划有**未完成**项 → 继续第一件未完成（走 planJumpInfo，能识别目标才给）
+     ③ 今天已计时但今天还没做过任何事 → 提示今天还没开始（不冒充"上次"）
+   ⚠️ 三条都拿不到 → **整卡不渲染**（新用户首屏不被空卡占位）。
+   ⚠️ 与 renderDashTasks 的今日任务卡**不重复**：那张列全部任务，这张只给"一键回到上次那件事"。
+   折叠态存 localStorage（不进 DATA、不跨设备）：收过一次 → 之后默认折叠，但可用右上角按钮再展开。 */
+function resumeTarget(){
+  // ① 模考未完成快照：只判「键存在且能解析出有效结构」，解析逻辑不重写（mock.js 是唯一权威）
+  try{
+    const raw = localStorage.getItem('ielts_mock_resume_v1');
+    if(raw){
+      const s = JSON.parse(raw);
+      if(s && s.v === 1 && Array.isArray(s.p1Set) && s.p2Topic && Array.isArray(s.answers)
+         && ['P1','P2-prep','P2-talk','P3'].indexOf(s.phase) !== -1){
+        /* ⭐ 不带任何参数：mock.js 的 ready 里「有快照 = 自动续考 + 自动切 MOCK tab」是既有行为
+           （mock.js:871 resumeFromSnapshot），我们**不重写这条路径**，只负责把人送到 speaking 页。 */
+        return { kind:'mock', title:'继续上次的模考', sub:'上次没做完，接着考', file:'speaking.html', cta:'继续模考' };
+      }
+    }
+  }catch(e){}
+
+  // ② 今日计划里第一件未完成（能识别跳转目标才给，识别不出就跳过下一件）
+  const tkey = todayKey();
+  const plan = (DATA.plans || []).find(p => p && p.date === tkey);
+  const items = (plan && Array.isArray(plan.items)) ? plan.items : [];
+  for(const it of items){
+    if(!it || it.done) continue;
+    const jmp = ((typeof planGenJump === 'function') && planGenJump(it))
+      || ((typeof planJumpInfo === 'function') ? planJumpInfo(it.text) : null);
+    if(!jmp) continue;
+    const label = String(it.text || '').trim();
+    if(!label) continue;
+    return {
+      kind:'plan', title:'继续：' + label, sub:'今天还没做完的第一件事',
+      file: jmp.file, open: jmp.open || '', cta:'继续'
+    };
+  }
+  return null;
+}
+
+function renderResumeCard(){
+  const host = document.getElementById('resumeCard');
+  if(!host) return;
+  const t = resumeTarget();
+  if(!t){ host.hidden = true; host.innerHTML = ''; return; }
+
+  // 折叠态：读本机偏好（读不到默认展开 —— 首次/换设备要给足可见性）
+  let folded = false;
+  try{ folded = localStorage.getItem(RESUME_FOLD_KEY) === '1'; }catch(e){}
+  if(folded){
+    // 收起态：留一条窄窄的「继续上次」按钮（不能再占整卡高度，也不能让她找不到）
+    host.hidden = false;
+    host.innerHTML = '<button type="button" class="resume-fold" data-resume-open>'
+      + '<span class="rf-dot" aria-hidden="true"></span><span class="rf-tx">继续上次</span>'
+      + '<span class="rf-sub" aria-hidden="true">' + escapeHtml(t.title) + '</span>'
+      + '</button>';
+    const b = host.querySelector('[data-resume-open]');
+    if(b) b.addEventListener('click', () => {
+      try{ localStorage.setItem(RESUME_FOLD_KEY, '0'); }catch(e){}
+      renderResumeCard();
+    });
+    return;
+  }
+
+  const href = t.open ? (t.file + '?open=' + encodeURIComponent(t.open)) : t.file;
+  host.hidden = false;
+  host.innerHTML = '<div class="resume-card">'
+    + '<div class="resume-l">'
+      + '<div class="resume-t">' + escapeHtml(t.title) + '</div>'
+      + '<div class="resume-s">' + escapeHtml(t.sub) + '</div>'
+    + '</div>'
+    + '<div class="resume-r">'
+      + '<a class="resume-go" href="' + escapeHtml(href) + '">' + escapeHtml(t.cta) + '</a>'
+      + '<button type="button" class="resume-foldbtn" data-resume-fold aria-label="收起「继续上次」" title="收起">收起</button>'
+    + '</div>'
+    + '</div>';
+  // 收起：立刻落本机偏好 + 就地重渲染（不整页刷新）
+  const fb = host.querySelector('[data-resume-fold]');
+  if(fb) fb.addEventListener('click', () => {
+    try{ localStorage.setItem(RESUME_FOLD_KEY, '1'); }catch(e){}
+    renderResumeCard();
+  });
 }
 
 /* ===== 首页 · 今日任务卡（9/20）=====
