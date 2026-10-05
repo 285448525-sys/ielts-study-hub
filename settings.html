@@ -211,11 +211,11 @@ setTimeout(__rvRescue,2500);
 }
 </style>
 <script defer src="js/data.js?v=20261003b"></script>
-  <script defer src="js/common.js?v=20261004c"></script>
+  <script defer src="js/common.js?v=20261004d"></script>
   <script defer src="js/feedback.js?v=20261002b"></script>
   <!-- 10/3 头像选择（DiceBear CC0 素材；必须在 data.js/common.js 之后 —— 它读 DATA.settings.avatar） -->
   <script defer src="js/av-picker.js?v=20261004c"></script>
-  <script src="js/settings.js?v=20261004a" defer></script>
+  <script src="js/settings.js?v=20261004b" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -229,10 +229,7 @@ setTimeout(__rvRescue,2500);
    ② 标签按下时给**明确的视觉冲击**（整块变深 + 轻微缩放 + 标签下方指示条滑动），
       手指点下去立刻有反馈，不会再有「点了像没反应」。
    ③ 切组后把新面板**从上方淡入**，配合视口归位，形成「换了一屏」的明确感知。 */
-.set-ver{position:absolute;right:16px;top:50%;transform:translateY(-50%) rotate(90deg);transform-origin:center;
-  font-size:9.5px;letter-spacing:.14em;color:rgba(255,255,255,.34);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-  pointer-events:none;user-select:none;white-space:nowrap}
-@media(max-width:860px){.set-ver{display:none}}
+/* 10/5 删 .set-ver（那条竖排英文版本标记）—— 排查工具已完成使命，元素与样式一并移除 */
 #setNavHit{position:absolute;left:0;bottom:0;height:3px;background:var(--primary-500);border-radius:0 0 3px 3px;
   transition:transform .24s cubic-bezier(.32,.72,.35,1),width .24s cubic-bezier(.32,.72,.35,1);
   transform-origin:left center;pointer-events:none;z-index:1}
@@ -275,9 +272,11 @@ setTimeout(__rvRescue,2500);
       <span id="lastSyncTs" class="acct-sub2"></span>
     </div>
     <button class="set-topmore" type="button" data-goto="data">账号与同步 →</button>
-    <!-- 16:45 常驻版本标记（她报「改了个寂寞」后加的自证工具：一眼看出跑的是哪一版，
-         右上角竖排极小字，不干扰视觉；窄屏隐藏因为深绿框本来就窄） -->
-    <span class="set-ver" id="setVer" title="页面版本（排查缓存用）">v1004a</span>
+    <!-- 10/5 她 14:29 删：「账号与同步」右边那条竖排英文 = #setVer 版本标记（v1004a）。
+         它是 10/4 她报「改了个寂寞、依旧点不动」时我加的自证工具（#setVer 常驻版本号），
+         当时确实有用（5a084c8 靠它定位到真 bug 是自动保存只绑 change），
+         **排查任务已完成，不该留在产品界面上占视觉。** 元素与 CSS 一并删除。
+         ⚠️ 以后再需要排查缓存，用 DevTools → Application → SW，不该往页面上贴标记。 -->
 
     <!-- 头像弹层：挂在顶部状态行内（这里就是定位参照），切到任何一组都能弹出
          （#avatarCard id 保留，av-picker.js 靠它判开关） -->
@@ -309,9 +308,10 @@ setTimeout(__rvRescue,2500);
   <div class="set-layout">
     <nav class="set-nav" aria-label="设置分组">
       <span id="setNavHit" aria-hidden="true"></span>
+      <!-- 10/5 14:30 她要求合并「目标分数 + 口语自评」→ 左目录 4 项变 3 项。
+           ⚠️ data-goto 只留 profile / targets / data 三项，go() 与 moveHit() 零改动（按值匹配，不写死数量）。 -->
       <button class="set-nav-item on" type="button" data-goto="profile">个人设置</button>
-      <button class="set-nav-item" type="button" data-goto="targets">目标分数</button>
-      <button class="set-nav-item" type="button" data-goto="speaking">口语自评</button>
+      <button class="set-nav-item" type="button" data-goto="targets">分数与自评</button>
       <button class="set-nav-item" type="button" data-goto="data">数据与账号</button>
     </nav>
 
@@ -361,12 +361,14 @@ setTimeout(__rvRescue,2500);
     </section>
       </section>
 
-      <!-- 目标分数 -->
+      <!-- 目标分数 + 口语自评（10/5 14:30 她要求合并：两块都是「分数设置」，
+           目标分数卡里原本还写着「流利度与发音在左边那张卡自己填」指向另一块，合并后这句自动作废）
+           ⚠️ 只合并容器，所有 DOM id（tOverall/tListening/…/sFlu/sPron）原样保留 → settings.js 零改动 -->
       <section class="set-pane" data-pane="targets" hidden>
     <section class="card set-card rv" data-d="1">
       <span class="kicker">Targets</span>
-      <h2>目标分数</h2>
-      <p class="set-sub">AI 按这个口径给你建议</p>
+      <h2>分数目标与自评</h2>
+      <p class="set-sub">AI 按这个口径给你建议 · 模考计分也用这里的自评</p>
       <div class="form-row set-bands">
         <div><label for="tOverall">总分</label><input id="tOverall" type="number" step="0.5" min="0" max="9" /></div>
         <div><label for="tListening">听力</label><input id="tListening" type="number" step="0.5" min="0" max="9" /></div>
@@ -374,12 +376,10 @@ setTimeout(__rvRescue,2500);
         <div><label for="tWriting">写作</label><input id="tWriting" type="number" step="0.5" min="0" max="9" /></div>
         <div><label for="tSpeaking">口语</label><input id="tSpeaking" type="number" step="0.5" min="0" max="9" /></div>
       </div>
-      <p class="set-note">口语按官方 band 评「语法」和「词汇」；<b>流利度与发音 AI 评不了</b>，在左边那张卡自己填。</p>
+      <p class="set-note">口语按官方 band 评「语法」和「词汇」；<b>流利度与发音 AI 评不了</b>，在下面自己填。</p>
     </section>
-      </section>
 
-      <!-- 口语自评 -->
-      <section class="set-pane" data-pane="speaking" hidden>
+    <!-- 原「口语自评」卡（10/5 合并进来，data-d 从 2 起顺延避免动画错位） -->
     <section class="card set-card rv" data-d="2">
       <span class="kicker">Speaking</span>
       <h2>口语自评</h2>
@@ -389,7 +389,6 @@ setTimeout(__rvRescue,2500);
         <div><label for="sPron">固定发音分（可选，0–9）</label><input id="sPron" type="number" min="0" max="9" step="0.5" placeholder="如 6（不填则不计入总分）" /></div>
       </div>
     </section>
-
       </section>
 
       <!-- 数据管理 -->

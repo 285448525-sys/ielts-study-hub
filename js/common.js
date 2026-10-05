@@ -2859,7 +2859,10 @@ function renderSyncState(){
   const phone = DATA.settings.syncCode || '';
   if(!phone){ el.textContent = '尚未绑定账号'; renderLastSync(); return; }
   if(!authToken()){ el.textContent = '账号 ' + phone + '：还没设置密码（或登录已过期），登录后才能同步'; renderLastSync(); return; }
-  el.textContent = '已登录：' + phone + (DATA.settings.autoSync ? '（自动同步：开）' : '（自动同步：关）');
+  /* 10/5 她 14:29：「已登录已登录，它旁边这个自动同步开，这句话不用显示，反正都是默认开着的」
+     → 删掉「（自动同步：开/关）」。**但「关」的情况不能静默消失** —— 那是有用信息，
+     只在真的关掉时才提示（否则用户以为同步开着其实没开）。 */
+  el.textContent = '已登录：' + phone + (DATA.settings.autoSync ? '' : ' · 自动同步已关闭');
   renderLastSync();
 }
 /* 上次同步时间（可读） */

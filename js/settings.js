@@ -171,7 +171,10 @@ function renderAuthUI(){
   if(ub) ub.style.display = loggedIn ? '' : 'none';
   if(gb) gb.hidden = loggedIn;
   const el = $('#syncUserAcct');
-  if(el) el.textContent = loggedIn ? (DATA.settings.syncCode || '') : '未登录';
+  /* 10/5 她 14:29：「用户名不是显示已登录这个是账号吗？用户名可以用我填写的用户名」
+     → 顶栏大字改显示昵称（settings.name，即「个人设置」里填的 Camille）；
+       没填昵称时才退回账号（syncCode），避免顶部空白。 */
+  if(el) el.textContent = loggedIn ? ((DATA.settings.name || '').trim() || (DATA.settings.syncCode || '')) : '未登录';
   const st = $('#syncState');
   if(st && !loggedIn) st.textContent = '数据只存在这台设备';
 }
