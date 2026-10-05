@@ -2579,12 +2579,16 @@ async function cloudDownload(silent){
   const phone = DATA.settings.syncCode;
   if(!phone){ if(!silent) toast('请先登录（设置 → 云端同步）'); return false; }
   if(!authToken()){ if(!silent) toast('登录已过期，请到「设置 → 云端同步」重新登录'); return false; }
+  /* 10/5 14:52：显示"正在同步"转圈（她要的行为）。⛔ 只在**首屏那次**拉取显示 ——
+     12s 轮询的 cloudPollOnce 走的是 meta 探测（200B、很快），每次都闪一下会很刺眼。 */
+  if(!silent) syncTipShow('正在与云端同步…');
   try{
     const [res, data] = await syncApi('GET');
     if(res.status === 404){
       // ⭐ 9/19：云端没数据而本机有 → 开机发布本机（原语义只提示，两台设备都只拉不推时云端永远空着）
       _maybePublishLocal(true, null);
       if(!silent) toast('云端没有该账号的数据');
+      syncTipHide();   // 404 早退也要收起提示
       return false;
     }
     if(res.status === 503) throw new Error('云端存储未绑定（Cloudflare 后台需绑定 SYNC_KV）');
@@ -2598,11 +2602,14 @@ async function cloudDownload(silent){
     // 性能优化：云端内容哈希未变则跳过合并（省去每次轮询的 mergeData + 两次全量 stringify 比较，
     // DATA 越大这波 CPU 越重，是「有时候卡」的头号来源；单设备用户基本用不上 10s 实时性）
     const _ch = hashData(data.data);
-    if(_ch === _lastCloudHash) return true;
+    /* ⛔ 10/5：三个早退出口都要隐藏提示，否则转圈会卡住不消失。
+       （统一放这里逐个显式隐藏，而不是靠 finally —— 因为成功路径要"闪一下已更新"，
+         finally 会立刻把它清掉，两者冲突。） */
+    if(_ch === _lastCloudHash){ syncTipHide(); return true; }
     // v7.1 自回声短路：拉到的就是自己刚传上去的那份（单标签页上传后的常规轮询必然命中）
     // → 跳过 mergeData + 跳过「已合并」判定。此前它会被当「云端更新」跑一次全量合并 + 计一次
     // 「已合并 0 处更新」噪音弹窗；多标签页/双设备时表现为「每几十秒莫名其妙合并一次」。
-    if(_ch === _lastUploadedCloudHash){ _lastCloudHash = _ch; return true; }
+    if(_ch === _lastUploadedCloudHash){ _lastCloudHash = _ch; syncTipHide(); return true; }
     const m = mergeData(DATA, data.data);
     // 终极保险：比较合并前后内容，真的变化才算「更新」。
     // 场景：本机比云端进步（背单词 streak/释义更掌握）时，_mergeWords 内部 changes 每次都会计，
@@ -2636,6 +2643,11 @@ async function cloudDownload(silent){
       renderAllOnMerge();
       syncSetStatus('✅ 已同步（已合并云端更新）', 'ok');
       renderLastSync();
+      /* 10/5：合并完闪一句「已更新 N 处」再消失（她要"更新完立刻覆盖"的明确反馈）。
+         ⚠️ 有变化走 show+定时隐藏；**无变化/异常走 hide** —— 不能先 show 再无条件 hide，
+         否则定时器被立刻清掉、"闪一下"根本不显示（我第一版就犯了这个，已修）。 */
+      if(m.changes > 0 && !silent) syncTipShow('已更新 ' + m.changes + ' 处', 1600);
+      else syncTipHide();
     } else if(!silent){
       toast('云端没有比本机更新的内容');
     }
@@ -2647,6 +2659,7 @@ async function cloudDownload(silent){
     if(!silent) toast('云端下载失败：' + e.message);
     syncSetStatus('同步失败：' + e.message, 'error');
     renderLastSync();
+    syncTipHide();   // 失败也要收起提示（否则报错后还在转圈）
     return false;
   }
 }
@@ -2920,6 +2933,48 @@ function renderAllOnMerge(){
 }
 /* 自动双向同步：启动静默合并拉取一次 + 定时/回到页面时拉取（均为合并，不覆盖、不弹确认刷屏） */
 let _cloudSyncStarted = false;
+/* ===== 同步指示器（10/5 14:52 她要：打开立刻看本机内容 + 转圈提示「还在更新」+ 更新完自动覆盖）=====
+   ⚠️ **先澄清事实再改**：首屏拉取**本来就是非阻塞的**（下面 initCloudSync 用
+      `requestIdleCallback(..., {timeout:2000})` + 800ms 兜底），页面 DCL 实测 217~341ms。
+      她感受到的 4 秒 = 早就在看本机内容了，**只是没有任何"正在更新"的提示**，像是卡住。
+      所以本批**只加提示，不动同步时序** —— 时序是"检查与计数同链"级别的敏感区（P0 的教训），不动它。
+   用法：syncTipShow('正在与云端同步…') / syncTipHide()。元素懒建、幂等。
+   ⚠️ 弱网时可能长时间转圈 → 加 12s 自动隐藏兜底，绝不让提示常驻挡路（它 pointer-events:none 也不挡点击）。 */
+let _syncTipEl = null, _syncTipTimer = null, _syncTipOn = false;
+function syncTipEnsure(){
+  if(_syncTipEl) return _syncTipEl;
+  let el = document.getElementById('hubSyncTip');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'hubSyncTip';
+    el.setAttribute('role', 'status');
+    el.setAttribute('aria-live', 'polite');
+    el.textContent = '正在与云端同步…';
+    document.body.appendChild(el);
+  }
+  _syncTipEl = el;
+  return el;
+}
+function syncTipShow(text, holdMs){
+  if(!text) return;
+  try{
+    const el = syncTipEnsure();
+    if(text) el.textContent = text;
+    el.classList.add('on');
+    _syncTipOn = true;
+    clearTimeout(_syncTipTimer);
+    // 兜底：弱网/云端卡住时 12s 后自动消失，绝不常驻挡路
+    _syncTipTimer = setTimeout(syncTipHide, holdMs || 12000);
+  }catch(e){}
+}
+function syncTipHide(){
+  try{
+    clearTimeout(_syncTipTimer);
+    if(_syncTipEl) _syncTipEl.classList.remove('on');
+    _syncTipOn = false;
+  }catch(e){}
+}
+
 function initCloudSync(){
   if(_cloudSyncStarted) return;   // 幂等：登录后补调用 / 重复 ready 都不重复起轮询
   if(!DATA.settings.autoSync || !  DATA.settings.syncCode) return;

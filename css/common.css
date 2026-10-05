@@ -2823,6 +2823,32 @@ html[data-theme="dark"] .onb-overlay{background:rgba(0,0,0,.62)}
   .offline-bar{top:8px;font-size:12px;padding:6px 12px}
 }
 
+/* ===== 同步指示器（10/5 14:52 她要：打开立刻看本机内容 + 一个转圈提示还在更新 + 更新完自动覆盖）=====
+   ⚠️ 现状澄清：首屏拉取**本来就是非阻塞的**（initCloudSync 用 requestIdleCallback + 800ms 兜底），
+      她看到的 4 秒等待 = 已经在看本机内容了，只是**没有任何"正在更新"的提示**，
+      像是卡住。所以本批只加提示，**不动同步时序**（动时序风险大且没必要）。
+   ⚠️ z 值取 99940：**低于额度条 99960 / 离线条 99980 / 引导 99990** ——
+      它只是个"正在同步"的小提示，绝不该盖住真正需要用户操作的浮层。
+   ⚠️ 离线条 99980 会遮住它（同位置 top:10px）→ 离线时同步本来也做不了，不冲突。 */
+#hubSyncTip{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;z-index:99940;
+  display:inline-flex;align-items:center;gap:8px;max-width:calc(100vw - 32px);
+  padding:6px 13px;border-radius:999px;border:1px solid var(--line);background:var(--surface);
+  color:var(--ink);font-size:12.5px;font-weight:600;line-height:1.4;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;box-shadow:var(--shadow-md);pointer-events:none;
+  opacity:0;visibility:hidden;transition:opacity .18s ease,visibility .18s ease}
+#hubSyncTip.on{opacity:1;visibility:visible}
+#hubSyncTip::before{content:"";width:11px;height:11px;border-radius:50%;flex:none;
+  border:2px solid var(--primary-200);border-top-color:var(--primary-500);
+  animation:hubSyncSpin .7s linear infinite}
+@keyframes hubSyncSpin{to{transform:rotate(360deg)}}
+@media (max-width:860px){
+  #hubSyncTip{bottom:14px;font-size:12px;padding:5px 11px}
+}
+/* 尊重系统「减少动态效果」设置：转圈改成静态点（不该强行动画） */
+@media (prefers-reduced-motion: reduce){
+  #hubSyncTip::before{animation:none;border-top-color:var(--primary-500)}
+}
+
 /* ===== design/78 SW 更新提示条（common.js 驱动，**绝不自动 reload**） =====
    与离线条同族、同一顶部位；层级 99970 低于引导遮罩 99990、高于 hub-loader 9999。
    两者不会同时出现（离线不弹新版提示），因此共用顶部槽位安全。
