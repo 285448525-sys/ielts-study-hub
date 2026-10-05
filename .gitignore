@@ -6,6 +6,22 @@ node_modules
 
 /tests/
 
+# 本机工作件（不入库）：
+# _diag_*.js = 交付给站长本人的确诊脚本（她浏览器里 F12 粘贴跑，仓库不需要）
+# _preview_*.html = UI 改版预览件（design/ 的可视化草稿）
+# _shot_*.png = 探针截图
+# _upd_*.py / _commit_*.txt = 会话期临时工具
+# 20xx-xx-xx.md = 日志误拷进仓库根（真身在 .workbuddy/memory/）
+# ⚠️ gitignore 的 x 是字面量不是通配符，日期文件必须用 [0-9] 逐位匹配。
+#    位数别数错：`20` 已占 2 位，年份只需再补 2 位（写 4 位 = 6 位年份，永远不匹配）。
+_diag_*.js
+_preview_*.html
+_shot_*.png
+_upd_*.py
+_commit_*.txt
+ui-mockup.html
+/20[0-9][0-9]-[0-9][0-9]-[0-9][0-9].md
+
 # agent 工作规则：内含机考日期、同步接口弱点等内部信息，
 # 本仓库经 GitHub main 推送由 CF Pages 整仓库发布，故必须排除，勿移除。
 AGENTS.md
