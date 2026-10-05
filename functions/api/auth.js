@@ -117,6 +117,15 @@ export async function onRequest(context) {
     const acct = String(body.acct || body.phone || '').trim().toLowerCase();
     const password = String(body.password || '');
     const invCode = String(body.inviteCode || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    /* 10/5 P1 · 注册来源标记（修 admin 面板「真人/探针」判定失灵）
+       🔴 事故原委：面板判「真人」的三条硬信号之一是「有 AI 用量」，而**我写测试的探针号每个都真调了 AI**
+          → 满屏 pqb* 全被判成「真人 · 有AI用量」，把判定彻底打败（她 14:26 截图质问）。
+       ✅ 正解 = **让探针自报家门**：注册时带 src:'probe'，面板直接按标记判，不再靠推断。
+       - src 白名单化后才落库（只认 'probe'，其余一律记 'real'）—— 防任意字符串进 user: 键
+       - **判定优先级：src 标记 > 信号推断**（她手动改判的 manual: 仍最高，见 admin.js）
+       - ⚠️ 老账号（本次之前注册）没有 src 字段 → 按信号推断，行为与现在完全一致，零迁移。 */
+    const srcRaw = String(body.src || '').trim();
+    const src = srcRaw === 'probe' ? 'probe' : 'real';
     if (badPhone(acct)) return json({ ok: false, error: 'bad_phone', msg: '账号格式：6-20 位数字/字母/下划线' }, 400);
     if (badPass(password)) return json({ ok: false, error: 'bad_password', msg: '密码至少 6 位（最长 64 位）' }, 400);
     /* 邀请码（她 10/1 二次拍板）：注册自由开放（不填码也能注册，吃免费额度）；
@@ -134,7 +143,7 @@ export async function onRequest(context) {
     }
     const salt = randHex(16);
     const hash = await pbkdf2(password, salt);
-    await kv.put('user:' + acct, JSON.stringify({ salt, hash, created: Date.now() }));
+    await kv.put('user:' + acct, JSON.stringify({ salt, hash, created: Date.now(), src: src }));
     /* 注册成功才消耗邀请码（前面任何一步失败都不吃码）；内测码同时送会员 */
     let vipGranted = 0;
     if (inv) {

@@ -142,7 +142,15 @@ async function audit(kv, act, detail) {
      idle   待观察  —— 三条硬信号全无，名字也不像探针（可能刚注册还没动手）
    ⚠️ 允许人工推翻：手动标记存 manual:<acct>，覆盖自动判定。
    ⚠️ 绝不自动删号（删账号是破坏性操作，必须她本人勾选确认）。 */
-const PROBE_NAME_RE = /^(probe|test|qa|debug|tmp|demo|fake|ux|wx|kw|fix|ci)[-_0-9a-z]*/i;
+/* 探针账号名模式。⚠️ 名单必须覆盖**所有历史探针用过的前缀**，否则漏掉的前缀会靠
+   「有 AI 用量」信号被判成真人（10/5 她截图里满屏 pqb* 就是这样被判错的）。
+   已知前缀来源：
+     probe* / test*      —— 9/30~10/4 各批探针
+     ux* / wx* / kw* / fix*  —— 10/3 那批
+     pqa* pqb* pqc* pqd* pqf*  —— 10/5 我自己那批（额度探针段1~段6）
+     p1* / p3*（p1probe / p1v / p3v / p3tok / p1fin / p1probe）—— 10/5 P1/P3 验证
+   ⚠️ 只匹配**开头**且后面只接分隔符/数字/字母，`p1` 这类要写全避免误伤真人账号。 */
+const PROBE_NAME_RE = /^(probe|test|qa|debug|tmp|demo|fake|ux|wx|kw|fix|ci|pqa|pqb|pqc|pqd|pqe|pqf|p1probe|p1fin|p1v|p3probe|p3v|p3tok)[-_0-9a-z]*/i;
 async function judgeAccounts(kv, users, usageMonth) {
   /* 三个前缀各拉一次全量键，避免逐账号 N 次 kv.get */
   const syncKeys = await listAll(kv, 'sync:');
@@ -169,11 +177,24 @@ async function judgeAccounts(kv, users, usageMonth) {
     if (monthUsers.has(a)) sig.push('ai');
     if (/invite:/.test(vipNote[a] || '')) sig.push('invite');
     let verdict;
-    if (sig.length) verdict = 'real';
-    else if (PROBE_NAME_RE.test(a)) verdict = 'probe';
+    /* ⭐ 10/5 P1 修正（她 14:26 截图「这些全都是 AI 跑的呀」）：
+       **src 标记优先于一切信号推断**。事故原委 = 判「真人」的第二条信号是「有 AI 用量」，
+       而我写探针时每个废号都真调了 AI → 满屏 pqb* 全被判成「真人 · 有AI用量」，把判定打败。
+       现在探针注册时带 src:'probe' 自报家门 → 无论它发了多少次 AI、是否有云端数据，一律判探针。
+       判定优先级：**manual（她手动改） > src（注册来源，确证） > 名字线索 > 信号推断 > 待观察**。
+
+       ⚠️ 名字线索提到信号**之前**（10/5 二次修正）：本次之前注册的老探针号**没有 src 字段**，
+         改代码不会追溯回填 —— 若仍按「有信号 = 真人」，那批老号依旧显示「真人·有AI用量」
+         （她截图里就是这批）。**名字命中探针模式时直接判探针、不再看信号**，
+         宁可把极少数真人的 testuser 误判成探针（她可点「改」一键翻回来），
+         也不能让几十个探针号继续冒充真人污染统计。 */
+    const nameProbe = PROBE_NAME_RE.test(a);
+    if (u.src === 'probe') { verdict = 'probe'; sig.unshift('探针注册'); }
+    else if (nameProbe) verdict = 'probe';
+    else if (sig.length) verdict = 'real';
     else verdict = 'idle';
     u.sig = sig;
-    u.nameHint = PROBE_NAME_RE.test(a);
+    u.nameHint = nameProbe;
     /* 人工标记覆盖自动判定；manual 为 1=真人 0=探针 */
     if (manual[a] != null) u.verdict = (manual[a] === 1 || manual[a] === '1') ? 'real' : 'probe';
     else u.verdict = verdict;
@@ -218,9 +239,15 @@ export async function onRequest(context) {
     const users = [];
     for (const name of userKeys) {
       const acct = name.slice(5);
-      let created = null;
-      try { created = (JSON.parse((await kv.get(name)) || '{}') || {}).created || null; } catch (e) {}
-      users.push({ acct: acct, created: created });
+      let created = null, src = '';
+      try {
+        const rec = JSON.parse((await kv.get(name)) || '{}') || {};
+        created = rec.created || null;
+        /* 10/5 P1：读注册来源标记（auth.js register 写入，'probe' 或 'real'）。
+           老账号没有这个字段 → 空串 → 走信号推断，零迁移。 */
+        src = rec.src === 'probe' ? 'probe' : (rec.src === 'real' ? 'real' : '');
+      } catch (e) {}
+      users.push({ acct: acct, created: created, src: src });
     }
     users.sort((a, b) => (a.created || 0) - (b.created || 0));
 
