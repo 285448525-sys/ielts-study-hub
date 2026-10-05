@@ -5,6 +5,11 @@ const WEEKDAY_CN = ['日','一','二','三','四','五','六'];
 // 10/5 路线图①-2「继续上次」折叠态键（纯本机 UI 偏好，**不进 DATA** ——
 // 进了就得登记 mergeData + 起合并探针，而折叠状态跨设备同步毫无价值）。
 const RESUME_FOLD_KEY = 'hub_resume_folded';
+// 10/5 路线图②-2a「今天先做这三件事」的折叠态键（同上，纯本机）
+const THREE_FOLD_KEY = 'hub_three_folded';
+// ⚠️「落地直接抽 P1」的跨页暗号（QUICK_DRILL_KEY / QUICK_DRILL_VAL）**定义在 common.js** ——
+//   它是 index.js（写）与 speaking.js（读）之间的契约，两边都引 common.js 才有一处真值。
+//   曾把它写在本文件里，speaking.js 读不到 → 暗号读走但判定不成立 → 静默什么都不发生。
 
 ready(async () => {
   const safe = fn => { try{ fn(); }catch(e){ console.error('[index] 渲染失败', fn.name || '', e); } };
@@ -24,6 +29,9 @@ ready(async () => {
 
   // 10/5 路线图①-2：顶部「继续上次」卡（无未完成事项时**不渲染**，不占首屏）
   safe(renderResumeCard);
+
+  // 10/5 路线图②-2a：给新用户的「今天先做这三件事」（有真实数据才出，且已做过的不重复给）
+  safe(renderThreeThings);
 
   // 首次进入引导提示条（仅首页）：三步没走完时出现，三步齐了或点「不再提示」后永久消失
   safe(renderOnboardingBar);
@@ -303,6 +311,106 @@ function renderResumeCard(){
   if(fb) fb.addEventListener('click', () => {
     try{ localStorage.setItem(RESUME_FOLD_KEY, '1'); }catch(e){}
     renderResumeCard();
+  });
+}
+
+/* ===== 10/5 路线图②-2a · 「今天先做这三件事」 =====
+   豆包评审 P0（全站最大流失点）：新用户打开站点，30 秒内还在看说明 / 不知道点什么。
+   做法：**升级现有引导**、不新建页 —— 引导填完（填了考期 + 选了目标）→ 首页顶部直接给
+   3 件今天就能做完的小事，每件一个「开始」按钮直达。核心指标落地。
+
+   候选怎么选（全部按**她本机真实数据**算，给不存在的入口 = 骗人）：
+     ① 今天到期的单词（>0）→ 去背词  ⭐ 最高优先，间隔重复到期就该马上做
+     ② 今天有口语练习记录吗？有 → 提示去模考；没有 → 「练口语」（陪练抽 P1）
+     ③ 今天还没计时 → 「开一段专注」
+   ⚠️ 与「继续上次」卡**分工不重叠**：那张给「回到上次那件事」，这张给「今天还没做的第一件事」。
+   ⚠️ 已完成的候选直接剔除；一条都不剩 → **整卡不渲染**（不硬凑三条凑数）。
+   折叠态存 localStorage，不进 DATA。 */
+function threeThingsList(){
+  const tkey = todayKey();
+  const out = [];
+
+  // ① 今日到期词（口径同 practice.js buildQueue / wbDueCount，不做字段修复）
+  const due = (typeof wbDueCount === 'function') ? (wbDueCount(tkey) || 0) : 0;
+  if(due > 0){
+    out.push({
+      key:'words', title:'背 ' + due + ' 个到期单词',
+      sub:'间隔重复到期了，现在背最省力', file:'practice.html', cta:'开始'
+    });
+  }
+
+  // ② 今日是否已练口语（有记录 → 建议模考；没记录 → 去陪练抽题）
+  const spokeToday = (DATA.sessions || []).some(x => x && x.date === tkey && /口语/.test(String(x.moduleName || '')));
+  if(spokeToday){
+    out.push({
+      key:'mock', title:'来一次口语模考', sub:'今天练过了，用模考检验一下',
+      file:'speaking.html?tab=mock', cta:'去模考'
+    });
+  }else{
+    out.push({
+      key:'speak', title:'练一题口语', sub:'陪练会抽一道 P1 真题，直接开口说',
+      file:'speaking.html?drill=p1', cta:'开始'
+    });
+  }
+
+  // ③ 今天还没计时 → 给一段专注（站外真题网站练的计时入口也在这）
+  const studiedToday = (DATA.sessions || []).some(x => x && x.date === tkey && (x.durationSec || 0) > 0);
+  if(!studiedToday){
+    out.push({
+      key:'timer', title:'开一段专注', sub:'先学 25 分钟，边听边记',
+      file:'timer.html?autostart=1', cta:'开始'
+    });
+  }
+  return out;
+}
+
+function renderThreeThings(){
+  const host = document.getElementById('threeThings');
+  if(!host) return;
+  const list = threeThingsList();
+  if(!list.length){ host.hidden = true; host.innerHTML = ''; return; }
+
+  let folded = false;
+  try{ folded = localStorage.getItem(THREE_FOLD_KEY) === '1'; }catch(e){}
+  if(folded){
+    host.hidden = false;
+    host.innerHTML = '<button type="button" class="three-fold" data-three-open>'
+      + '<span class="tf-dot" aria-hidden="true"></span><span class="tf-tx">今天先做这些</span></button>';
+    const b = host.querySelector('[data-three-open]');
+    if(b) b.addEventListener('click', () => {
+      try{ localStorage.setItem(THREE_FOLD_KEY, '0'); }catch(e){}
+      renderThreeThings();
+    });
+    return;
+  }
+
+  const head = list.length === 1 ? '今天先做这件事' : '今天先做这三件事';
+  host.hidden = false;
+  host.innerHTML = '<div class="three-card">'
+    + '<div class="three-h"><h3>' + head + '</h3>'
+      + '<button type="button" class="three-foldbtn" data-three-fold aria-label="收起" title="收起">收起</button>'
+    + '</div>'
+    + list.map(t => '<div class="three-row">'
+        + '<div class="three-l"><div class="three-t">' + escapeHtml(t.title) + '</div>'
+        + '<div class="three-s">' + escapeHtml(t.sub) + '</div></div>'
+        + '<a class="three-go" href="' + escapeHtml(t.file) + '" data-three-key="' + t.key + '">' + escapeHtml(t.cta) + '</a>'
+      + '</div>').join('')
+    + '</div>';
+  const fb = host.querySelector('[data-three-fold]');
+  if(fb) fb.addEventListener('click', () => {
+    try{ localStorage.setItem(THREE_FOLD_KEY, '1'); }catch(e){}
+    renderThreeThings();
+  });
+  /* 「练口语」那一条：软导航到 speaking 页后直接抽题 —— 省掉「到了还要再点一次」。
+     ⚠️ 暗号值必须与 speaking.js 里的判定**逐字一致**（'p1'）：两处各写各的必然对不上，
+     而失败形态是「静默什么都不发生」—— 暗号被读走、判定不成立、什么都不报。
+     暗号值集中在下面 ONE 常量里，改只改这一处。 */
+  const sp = host.querySelector('[data-three-key="speak"]');
+  if(sp) sp.addEventListener('click', e => {
+    e.preventDefault();
+    try{ sessionStorage.setItem(QUICK_DRILL_KEY, QUICK_DRILL_VAL); }catch(e){}
+    if(typeof hubSoftGo === 'function') hubSoftGo('speaking.html?drill=' + QUICK_DRILL_VAL);
+    else location.href = 'speaking.html?drill=' + QUICK_DRILL_VAL;
   });
 }
 

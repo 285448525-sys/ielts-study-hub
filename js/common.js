@@ -3823,6 +3823,12 @@ const ONB_OLD_KEY = 'hub_onboarding_v1';    // 旧版引导状态键：读到它
 const ONB_TOTAL = 3;                        // 引导步数：考试日期 / 每日投入 / 词库（原 step1 欢迎文案并入 step1 导语，原 step5 done 总结并入 step3 底部）
 let _onbLastDir = 1;                        // 步骤横滑方向（1 前进、-1 后退）
 const ONB_GOTO_BANK = 'hub_onb_goto_bank';   // 「去导入词库」跳转 practice.html 的一次性暗号（sessionStorage）
+/* 10/5 路线图②-2a：「落地直接抽 P1」的跨页暗号。
+   ⚠️ 定义在 common.js 而不是写它的 index.js —— 它是 index.js（写）与 speaking.js（读）之间的**契约**，
+   两页都引 common.js，才有唯一真值。踩过的坑：先写在 index.js 里，speaking.js 读不到那个 const，
+   于是「暗号读走了但判定不成立」→ 点「练口语」过去什么都不发生、还不报错（最难查的一类静默失败）。 */
+const QUICK_DRILL_KEY = 'hub_coach_quick';
+const QUICK_DRILL_VAL = 'p1';
 /* 「老用户判定」只看个人内容字段，绝不能把随 data.js 自带的官方内容算进来：
    speaking（官方题库）与 writing（写作模板）永远非空，用了会让所有新用户都被判成老用户。 */
 const ONB_USER_FIELDS = ['words','sessions','plans','speakingStories','errorbook','corpus','scores',

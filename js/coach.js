@@ -485,6 +485,21 @@ function userHtml(text){
     return startTopic(t);
   };
 
+  /* 10/5 路线图②-2a：首页「今天先做这三件事」的「开始」直达入口 —— 落到陪练并**直接抽一道 P1**。
+     ⭐ 与 __coachDrill 共用 startTopic/drawP1，同一条口径。
+     为什么要它：豆包评审 P0 的核心指标是「新用户 30 秒内开始练第一道题」——
+     走到这一步若还要她自己再点一次 chips，就不是「30 秒」。 */
+  window.__coachQuickP1 = function(){
+    if(typeof st.busy !== 'undefined' && st.busy) return false;
+    var v = $('coachView');
+    if(v) v.hidden = false;
+    if(!st.built || !$('coachWrap')) build();
+    var t = drawP1();
+    if(!t){ toast('题库还没加载好，稍后再试'); return false; }
+    hideChips();
+    return startTopic(t);
+  };
+
   /* ============ 长期记忆弹层 ============ */
   function updateMemBtn(){
     var n = $('coachMemN');

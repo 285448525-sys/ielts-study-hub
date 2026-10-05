@@ -39,11 +39,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20261003b"></script>
-<script defer src="js/common.js?v=20261005a"></script>
+<script defer src="js/common.js?v=20261005b"></script>
   <script defer src="js/feedback.js?v=20261002b"></script>
 <!-- design/78 双词库适配层：index.js 的 wbActive/wbDueCount 依赖它（defer 按文档序执行） -->
 <script defer src="js/wordbank.js?v=20261001a"></script>
-<script defer src="js/index.js?v=20261005a"></script>
+<script defer src="js/index.js?v=20261005b"></script>
 <style id="homePageStyle">
 /* hero 会员小标（10/1：AI 转化卡删掉后的低调会员态展示，她拍板「不明显但不能不显示」。
    样式放页内不动 common.css 免全站 bump） */
@@ -103,6 +103,48 @@
   .resume-r{width:100%;justify-content:flex-end}
   .rf-sub{display:none}   /* 极窄屏收起态只留「继续上次」四字，横向空间优先给动作 */
 }
+
+/* ===== 10/5 路线图②-2a「今天先做这三件事」卡 =====
+   它是回答「我现在该点什么」的地方，所以每行必须有**一个明确动作**（不写"去学习"这类虚的）。
+   质感：白卡 + 细分隔线，标题靠字重不用大字号（她 10/3 的纠正）。 */
+#threeThings{margin-bottom:12px}
+.three-card{
+  background:var(--n-0);border:1px solid var(--n-200,var(--n-100));border-radius:var(--radius,16px);
+  padding:4px 14px 6px;box-shadow:var(--shadow,0 1px 2px rgba(16,24,40,.04));
+}
+.three-h{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:11px 0 8px}
+.three-h h3{margin:0;font-size:14px;font-weight:700;color:var(--ink);line-height:1.4}
+.three-foldbtn{
+  border:0;background:transparent;color:var(--muted);cursor:pointer;
+  font:inherit;font-size:12.5px;padding:6px 8px;border-radius:8px;flex:none;
+}
+.three-foldbtn:hover{background:var(--n-50,var(--n-100));color:var(--ink)}
+.three-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--n-100,var(--n-50))}
+.three-l{flex:1;min-width:0}
+.three-t{font-size:14.5px;font-weight:700;color:var(--ink);line-height:1.4;overflow-wrap:anywhere}
+.three-s{font-size:12.5px;color:var(--muted);margin-top:2px;line-height:1.4}
+.three-go{
+  display:inline-flex;align-items:center;justify-content:center;flex:none;
+  min-height:34px;padding:0 15px;border-radius:999px;
+  background:var(--primary-50);color:var(--primary-700);
+  border:1px solid var(--primary-200);
+  font-size:13.5px;font-weight:700;text-decoration:none;white-space:nowrap;
+  transition:background .15s;
+}
+.three-go:hover{background:var(--primary-100)}
+/* 收起态：与「继续上次」同样的窄按钮形态 */
+.three-fold{
+  display:flex;align-items:center;gap:8px;width:100%;text-align:left;cursor:pointer;
+  background:var(--n-0);border:1px dashed var(--n-200,var(--n-100));border-radius:var(--radius,16px);
+  padding:9px 13px;font:inherit;color:var(--muted);
+}
+.three-fold:hover{background:var(--n-50,var(--n-100))}
+.tf-dot{width:7px;height:7px;border-radius:50%;background:var(--primary);flex:none}
+.tf-tx{font-size:13px;font-weight:700;color:var(--ink)}
+@media(max-width:560px){
+  .three-row{flex-wrap:wrap}
+  .three-go{width:100%;min-height:40px}   /* 移动端：动作按钮整行，命中区达标 */
+}
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(0,0,0,.02),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -128,6 +170,11 @@
   <!-- 10/5 路线图①-2：顶部「继续上次」卡。有未完成事项才渲染（无事项整卡 hidden，不占新用户首屏）。
        折叠态存 localStorage（hub_resume_folded），不进 DATA、不跨设备。内容由 index.js renderResumeCard 写。 -->
   <section id="resumeCard" hidden></section>
+
+  <!-- 10/5 路线图②-2a：给新用户的「今天先做这三件事」（按她本机真实数据算，一条不剩则整卡不渲染）。
+       与上面的「继续上次」分工：那张回到上次那件事，这张给今天还没做的第一件事。
+       折叠态存 localStorage（hub_three_folded），不进 DATA。内容由 index.js renderThreeThings 写。 -->
+  <section id="threeThings" hidden></section>
 
   <!-- L1 · hero 倒计时主卡（问候/目标/连续天数已收进卡内，避免顶部独立横条造成左侧空白） -->
   <section class="hero">

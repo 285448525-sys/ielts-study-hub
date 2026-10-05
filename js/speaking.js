@@ -372,6 +372,21 @@ ready(() => {
   }catch(_){}
   // design/17 3.5：回顾页「去练」带 ?senttab=1——确保落练习 tab（默认即练习，兜底防其他参数抢占）
   try{
+    // 10/5 路线图②-2a：首页「今天先做这三件事」的「练口语」→ 落地直接抽一道 P1 真题。
+    // 暗号走 sessionStorage（软导航时 location.search 还没 pushState，query 读不到）；
+    // ?drill=p1 保留作整页直达的兜底。键与值都读 common.js 的唯一定义（QUICK_DRILL_KEY/VAL）。
+    let quick = '';
+    try{ quick = sessionStorage.getItem(QUICK_DRILL_KEY) || ''; sessionStorage.removeItem(QUICK_DRILL_KEY); }catch(_){}
+    if(!quick){ try{ quick = new URLSearchParams(location.search).get('drill') || ''; }catch(_){} }
+    if(quick === QUICK_DRILL_VAL && typeof window.__coachQuickP1 === 'function'){
+      // setTimeout(0)：本段在 ready 里同步执行，coach.js 的骨架/常量可能尚未就绪
+      // ⚠️ catch 里必须留一句 console.error：裸 catch(_){} 会把真实异常吞成「点了没反应」，
+      //   排查时完全看不出发生过什么（这正是本次暗号不匹配的同款静默失败形态）。
+      setTimeout(function(){
+        try{ window.__coachQuickP1(); }
+        catch(err){ console.error('[speaking] 落地直接抽题失败', err); }
+      }, 0);
+    }
     if(new URLSearchParams(location.search).get('senttab')){
       spActivateTab('PRACTICE');
       if(window.__COACH_ON){
