@@ -318,53 +318,66 @@ export async function onRequest(context) {
         结果 aiq / aiqa / aiqw / aiqmo / aiqm 五个键**一个都没写进去**。
         实测后果（修复前）：面板今日 AI 恒 0、免费用户周额度/模考月额度/分钟风控**全部失效**
         ——连发 13 次全 200（风控阈值 10 次/分），等于盗刷无闸、成本无上限。
-        修法 = 照抄本仓库 sync.js:125 已上线的 context.waitUntil()：响应先返回，后台把账记完。
+        修法：计数必须**在响应返回前落库**。
+        ⚠️ 10/5 二次修正：**这里必须 await，不能用 context.waitUntil()**。
+        闸门在 176-260 行是「先读 aiqw/aiqm 判超额 → 放行」，若计数拖到响应返回后才落库，
+        下一个请求读到的还是旧值 → 必然超发（首版 waitUntil 修法实测：周额度 5 次放行了 6 次、
+        分钟风控 10 次放到 12 次，探针段2/段3 各挂 2 条）。**「检查」与「计数」必须串成同一条
+        await 链，闸门才成立。** 代价是每次调用多等一个 KV 往返（与本函数已有的十几次 kv.get 同量级）。
         ⚠️ 只改结构：阈值 / 键名 / TTL / service 名 / 免费-会员分层一律不动。 */
-  const writes = (async () => {
-    /* ① 三个「日 + 10 桶轮转」计数：全站总量 / 单 IP / 按账号（面板读的就是 aiqa:） */
-    await Promise.all([
+  await (async () => {
+    /* 各分支相互独立，统一塞 jobs 后一次 Promise.all 等完 —— 只多等一个 KV 往返，不串行叠加 */
+    const jobs = [
+      /* ① 三个「日 + 10 桶轮转」计数：全站总量 / 单 IP / 按账号（面板读的就是 aiqa:） */
       bumpCount(env.SYNC_KV, 'aiq', day, bucket),
       bumpCount(env.SYNC_KV, 'aiqip:' + ip, day, bucket),
       bumpCount(env.SYNC_KV, 'aiqa:' + acct, day, bucket),   // 按账号计量（会员也计数：面板「今日 AI 次数」要看得到会员用量，只是会员不受额度闸限制）
-    ]);
+    ];
 
     /* ② 10/1 下午新口径分功能计量（只对免费用户累计；会员无限用不必计）：
        月度模考 aiqmo:<acct>:<YYYY-MM>（TTL 40 天防残留）/ 写作终身 aiqt:<acct>:writing（默认 0 不启用）
        / 周兜底 aiqw:<acct>:<YYYY-Www>（TTL 10 天防残留）。 */
     if (!isVip) {
       if (service === 'mock_q') {
-        try {
-          const mk = 'aiqmo:' + acct + ':' + month;
-          const cur = parseInt((await env.SYNC_KV.get(mk)) || '0', 10) || 0;
-          await env.SYNC_KV.put(mk, String(cur + 1), { expirationTtl: 3456000 });
-        } catch (e) {}
+        jobs.push((async () => {
+          try {
+            const mk = 'aiqmo:' + acct + ':' + month;
+            const cur = parseInt((await env.SYNC_KV.get(mk)) || '0', 10) || 0;
+            await env.SYNC_KV.put(mk, String(cur + 1), { expirationTtl: 3456000 });
+          } catch (e) {}
+        })());
       }
       if (service === 'writing_score') {
-        try {
-          const lk = 'aiqt:' + acct + ':writing';
-          const cur = parseInt((await env.SYNC_KV.get(lk)) || '0', 10) || 0;
-          await env.SYNC_KV.put(lk, String(cur + 1));
-        } catch (e) {}
+        jobs.push((async () => {
+          try {
+            const lk = 'aiqt:' + acct + ':writing';
+            const cur = parseInt((await env.SYNC_KV.get(lk)) || '0', 10) || 0;
+            await env.SYNC_KV.put(lk, String(cur + 1));
+          } catch (e) {}
+        })());
       }
       // diag/rebalance 免费：不占每周兜底计数（闸已在上面豁免，这里也要跳过，否则会把额度越攒越满）
       if (service !== 'diag' && service !== 'rebalance') {
-        try {
-          const wk = 'aiqw:' + acct + ':' + week;
-          const cur = parseInt((await env.SYNC_KV.get(wk)) || '0', 10) || 0;
-          await env.SYNC_KV.put(wk, String(cur + 1), { expirationTtl: 864000 });
-        } catch (e) {}
+        jobs.push((async () => {
+          try {
+            const wk = 'aiqw:' + acct + ':' + week;
+            const cur = parseInt((await env.SYNC_KV.get(wk)) || '0', 10) || 0;
+            await env.SYNC_KV.put(wk, String(cur + 1), { expirationTtl: 864000 });
+          } catch (e) {}
+        })());
       }
     }
 
     /* ③ 分钟风控计数（TTL 2 分钟自愈；写失败不影响主流程，与 bumpCount 同口径） */
-    try {
-      const curMin = parseInt((await env.SYNC_KV.get(minKey)) || '0', 10) || 0;
-      await env.SYNC_KV.put(minKey, String(curMin + 1), { expirationTtl: 120 });
-    } catch (e) {}
+    jobs.push((async () => {
+      try {
+        const curMin = parseInt((await env.SYNC_KV.get(minKey)) || '0', 10) || 0;
+        await env.SYNC_KV.put(minKey, String(curMin + 1), { expirationTtl: 120 });
+      } catch (e) {}
+    })());
+
+    await Promise.all(jobs);
   })();
-  /* 关键：交给 runtime 在响应返回后继续跑完（不 await 是不想让 KV 往返拖慢 AI 首字延迟）。
-     防御式判断 context：本地探针 / 单测可能传 undefined 或残缺对象，不能假设 waitUntil 一定存在。 */
-  if (context && typeof context.waitUntil === 'function') context.waitUntil(writes);
 
   // 直接透传上游响应体（前端现有解析逻辑 choices[0].message.content 不用改）
   return new Response(text, {
