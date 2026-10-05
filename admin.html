@@ -57,6 +57,13 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:
 .tag{display:inline-block;padding:1px 8px;border-radius:99px;font-size:12px;font-weight:600}
 .tag.ok{background:#e6f4ec;color:var(--ok)}
 .tag.full{background:#fdecea;color:var(--danger)}
+/* 10/5 P3 真人/探针判定标签：真人=绿、探针=灰（弱化，不抢眼）、待观察=淡黄 */
+.tag.v-real{background:#e6f4ec;color:var(--ok)}
+.tag.v-probe{background:#eef0f2;color:#8b949e}
+.tag.v-idle{background:#fdf6e3;color:#9a7b1f}
+.tag.v-sig{background:#f1f5f9;color:#64748b;font-weight:500;margin-left:4px}
+button.mini{font-size:11.5px;padding:1px 7px;border-radius:6px;border:1px solid var(--line);background:#fff;color:var(--n-700);cursor:pointer}
+button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
 .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
 .muted{color:var(--n-500);font-size:12.5px}
 .hidden{display:none!important}
@@ -120,9 +127,10 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:
     </div>
   </div>
 
-  <!-- 页签（10/2 反馈批：反馈独立一页，不与数据卡混排） -->
+  <!-- 页签（10/2 反馈批：反馈独立一页，不与数据卡混排；10/5 P3 加审计页） -->
   <div class="tabs" id="tabs">
     <button class="tab on" data-tab="data" type="button">数据</button>
+    <button class="tab" data-tab="audit" type="button">操作审计</button>
     <button class="tab" data-tab="fb" type="button">反馈<span class="dot zero" id="fbDot">0</span></button>
   </div>
 
@@ -133,10 +141,13 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:
     <p class="desc">实时从云端 KV 聚合（UTC 日为 AI 计量口径）</p>
     <div class="stats">
       <div><b id="stUsers">-</b><span>注册用户</span></div>
+      <div><b id="stReal">-</b><span>真人（判定）</span></div>
+      <div><b id="stProbe">-</b><span>探针账号</span></div>
       <div><b id="stSess">-</b><span>活跃登录（30 天内）</span></div>
       <div><b id="stAi">-</b><span>今日 AI 调用（全站）</span></div>
       <div><b id="stAiWeek">-</b><span>本周 AI 调用（全站）</span></div>
       <div><b id="stAiMonth">-</b><span>本月 AI 调用（全站）</span></div>
+      <div><b id="stCostMonth">-</b><span>本月 AI 成本</span></div>
       <div><b id="stInv">-</b><span>邀请码剩余可用</span></div>
       <div><b id="stVip">-</b><span>会员（有效期内）</span></div>
     </div>
@@ -166,9 +177,14 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:
   <!-- 用户 -->
   <div class="card">
     <h2>注册用户</h2>
-    <p class="desc">账号 + 注册时间 + AI 调用次数（今日 / 本周 / 本月）+ 会员状态（点击账号可复制）</p>
+    <p class="desc">账号 + 注册时间 + AI 调用次数（今日 / 本周 / 本月）+ 会员状态（点击账号可复制）。
+      <b>判定</b>列区分真人 / 探针：真人 = 有云端同步数据或 AI 用量；探针 = AI 写测试时注册的一次性账号（只登录、没碰业务）。可点「改」手动推翻。</p>
+    <div class="toolbar">
+      <label class="muted"><input type="checkbox" id="onlyReal" style="vertical-align:-2px;margin-right:4px" />只看真人（统计口径）</label>
+      <span class="muted" id="judgeSummary">—</span>
+    </div>
     <table>
-      <thead><tr><th>#</th><th>账号</th><th>注册时间</th><th>今日 AI</th><th>本周 AI</th><th>本月 AI</th><th>会员</th></tr></thead>
+      <thead><tr><th>#</th><th>账号</th><th>注册时间</th><th>判定</th><th>今日 AI</th><th>本周 AI</th><th>本月 AI</th><th>本月成本</th><th>会员</th></tr></thead>
       <tbody id="userBody"></tbody>
     </table>
     <p class="muted" id="userEmpty" style="margin-top:8px">还没有注册用户。</p>
@@ -201,6 +217,24 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:
 
   <p class="muted" style="text-align:center">会员状态以服务端 vip:&lt;账号&gt; 键为准 · 已接入 AI 额度闸（会员不受免费额度限制）· AI 用量统计自 10/5 修复计数丢失后开始累计（此前未计费，历史无数据）</p>
   </div><!-- /pgData -->
+
+  <!-- 操作审计（10/5 P3） -->
+  <div id="pgAudit" class="hidden">
+    <div class="card">
+      <h2>操作审计</h2>
+      <p class="desc">谁在什么时候对谁做了什么 —— 开通/续费/撤销会员、发码、判定标记全部留痕，留一年。<b>只增不删</b>，是「谁被开了什么」唯一可查的地方。</p>
+      <div class="toolbar">
+        <button class="btn ghost small" id="auditRefresh" type="button">刷新</button>
+        <button class="btn ghost small" id="auditExport" type="button">导出 Markdown</button>
+        <span class="muted" id="auditCount"></span>
+      </div>
+      <table>
+        <thead><tr><th>时间</th><th>动作</th><th>对象</th><th>详情</th></tr></thead>
+        <tbody id="auditBody"></tbody>
+      </table>
+      <p class="muted" id="auditEmpty" style="margin-top:8px">还没有操作记录。</p>
+    </div>
+  </div>
 
   <!-- 意见反馈（10/2） -->
   <div id="pgFb" class="hidden">
@@ -307,6 +341,13 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:
     $('stAi').textContent = DATA.aiToday != null ? DATA.aiToday : '-';
     $('stAiWeek').textContent = DATA.aiWeek != null ? DATA.aiWeek : '-';
     $('stAiMonth').textContent = DATA.aiMonth != null ? DATA.aiMonth : '-';
+    /* 10/5 P3：真人/探针分列 + 成本卡（单价未配时显示「未配置单价」不瞎算） */
+    $('stReal').textContent = DATA.nReal != null ? DATA.nReal : '-';
+    $('stProbe').textContent = DATA.nProbe != null ? DATA.nProbe : '-';
+    var costM = DATA.priceOk ? ('¥' + (Number(DATA.costMonthReal || 0)).toFixed(2)) : '未配单价';
+    $('stCostMonth').textContent = costM;
+    $('judgeSummary').textContent = '真人 ' + (DATA.nReal || 0) + ' · 探针 ' + (DATA.nProbe || 0) + ' · 待观察 ' + (DATA.nIdle || 0)
+      + '（真人本月 AI ' + (DATA.aiMonthReal || 0) + ' 次 / 成本 ' + (DATA.priceOk ? ('¥' + Number(DATA.costMonthReal || 0).toFixed(2)) : '未配单价') + '）';
 
     var invLeft = 0;
     (DATA.invites || []).forEach(function(v){ invLeft += Math.max(0, (v.max||0) - (v.used||0)); });
@@ -338,24 +379,49 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:
       tb.appendChild(tr);
     });
 
-    /* 用户表（含会员列 + AI 三维度） */
+    /* 用户表（含会员列 + AI 三维度 + 真人/探针判定 + 本月成本） */
     var ub = $('userBody'); ub.innerHTML = '';
-    var users = DATA.users || [];
+    var users = (DATA.users || []).slice();
     var uWeek = DATA.usageWeek || {};
     var uMonth = DATA.usageMonth || {};
+    var tokBy = DATA.tokByAcct || {};
+    var priceOk = !!DATA.priceOk;
     $('userEmpty').style.display = users.length ? 'none' : '';
+    /* 排序：真人 → 待观察 → 探针；同档按本月 AI 用量降序（活跃的排前面） */
+    var order = { real: 0, idle: 1, probe: 2 };
+    users.sort(function(a, b){
+      var d = (order[a.verdict] != null ? order[a.verdict] : 1) - (order[b.verdict] != null ? order[b.verdict] : 1);
+      if (d) return d;
+      return (uMonth[b.acct] || 0) - (uMonth[a.acct] || 0);
+    });
+    var onlyReal = $('onlyReal') && $('onlyReal').checked;
+    var shown = 0;
     users.forEach(function(u, i){
+      if (onlyReal && u.verdict !== 'real') return;
+      shown++;
       var v = vipMap[u.acct];
       var vipCell = v
         ? '<span class="tag ok">' + (v.permanent ? '永久' : (v.daysLeft + ' 天')) + '</span>'
         : '<span class="muted">—</span>';
+      /* 判定标签 + 依据（依据让判定可解释，不是一个光秃秃的结论） */
+      var sigTxt = (u.sig || []).map(function(s){
+        return (s === 'sync' ? '有云端数据' : s === 'ai' ? '有AI用量' : s === 'invite' ? '邀请码' : s);
+      }).join('·');
+      var vTag = '<span class="tag v-' + u.verdict + '">'
+        + (u.verdict === 'real' ? '真人' : u.verdict === 'probe' ? '探针' : '待观察')
+        + '</span>' + (sigTxt ? '<span class="tag v-sig" title="判定依据">' + sigTxt + '</span>' : '');
+      var costCell = priceOk ? ('¥' + (Number(tokBy[u.acct] || 0) / 1e6 * ((Number(DATA.priceIn) || 0) + (Number(DATA.priceOut) || 0))).toFixed(3))
+                             : '<span class="muted">—</span>';
       var tr = document.createElement('tr');
-      tr.innerHTML = '<td>' + (i+1) + '</td>'
+      tr.innerHTML = '<td>' + shown + '</td>'
         + '<td style="cursor:pointer" title="点击复制" data-acct="' + u.acct + '"><b>' + u.acct + '</b></td>'
         + '<td>' + fmtTs(u.created) + '</td>'
+        + '<td style="white-space:nowrap">' + vTag
+          + ' <button class="mini" data-judge="' + u.acct + '" data-to="' + (u.verdict === 'real' ? 'probe' : 'real') + '" type="button">改</button></td>'
         + '<td>' + ((DATA.usage || {})[u.acct] || 0) + '</td>'
         + '<td>' + (uWeek[u.acct] || 0) + '</td>'
         + '<td>' + (uMonth[u.acct] || 0) + '</td>'
+        + '<td>' + costCell + '</td>'
         + '<td>' + vipCell + '</td>';
       ub.appendChild(tr);
     });
@@ -377,14 +443,89 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:
     renderFb();
   }
 
-  /* ---------- 页签（10/2）---------- */
+  /* ---------- 页签（10/2；10/5 P3 加审计页）---------- */
   function switchTab(name){
     $('pgData').classList.toggle('hidden', name !== 'data');
+    $('pgAudit').classList.toggle('hidden', name !== 'audit');
     $('pgFb').classList.toggle('hidden', name !== 'fb');
     Array.prototype.forEach.call(document.querySelectorAll('#tabs .tab'), function(b){
       b.classList.toggle('on', b.getAttribute('data-tab') === name);
     });
+    /* 审计页的数据在 overview 里已带（audits 字段），切过去直接渲染，不用额外请求 */
+    if (name === 'audit' && DATA) renderAudits(DATA.audits);
   }
+
+  /* ---------- 操作审计（10/5 P3）---------- */
+  var AUDIT_LABEL = {
+    vip_grant: '开通会员', vip_renew: '续费会员', vip_set_permanent: '设为永久会员',
+    vip_revoke: '撤销会员', invite_mint: '生成邀请码', invite_revoke: '作废邀请码',
+    judge_mark_real: '标记为真人', judge_mark_probe: '标记为探针', judge_clear: '清除标记',
+  };
+  function auditDetailText(d) {
+    d = d || {};
+    if ('acct' in d) {
+      var t = [d.acct];
+      if (d.days) t.push(d.days + ' 天');
+      if (d.permanent) t.push('永久');
+      if (d.prevDaysLeft != null) t.push('原剩 ' + d.prevDaysLeft + ' 天');
+      if (d.hadVip === false) t.push('（原无会员）');
+      if (d.note) t.push('备注:' + d.note);
+      return t.join(' · ');
+    }
+    if ('code' in d) return d.code + ' · 限 ' + d.max + ' 次' + (d.vipDays ? ' · 送 ' + d.vipDays + ' 天会员' : ' · 不送会员');
+    return JSON.stringify(d);
+  }
+  function renderAudits(list) {
+    list = list || [];
+    var tb = $('auditBody'); tb.innerHTML = '';
+    $('auditEmpty').style.display = list.length ? 'none' : '';
+    $('auditCount').textContent = list.length ? (list.length + ' 条（最多显示 100 条）') : '';
+    list.forEach(function(a){
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td style="white-space:nowrap">' + fmtTs(a.ts) + '</td>'
+        + '<td><span class="tag ok">' + (AUDIT_LABEL[a.act] || a.act) + '</span></td>'
+        + '<td><b>' + ((a.detail && a.detail.acct) || (a.detail && a.detail.code) || '—') + '</b></td>'
+        + '<td class="muted">' + auditDetailText(a.detail) + '</td>';
+      tb.appendChild(tr);
+    });
+  }
+  function loadAudits() {
+    api('audit_list', {}, function(r){
+      if (r.ok) renderAudits(r.j.audits);
+      else alert('读取审计失败：' + ((r.j && r.j.msg) || ('HTTP ' + r.status)));
+    });
+  }
+  $('auditRefresh').addEventListener('click', loadAudits);
+  $('auditExport').addEventListener('click', function(){
+    var list = (DATA && DATA.audits) || [];
+    if (!list.length) { alert('没有可导出的记录'); return; }
+    var lines = ['# 站长面板操作审计', '', '| 时间 | 动作 | 对象 | 详情 |', '| --- | --- | --- | --- |'];
+    list.forEach(function(a){
+      lines.push('| ' + fmtTs(a.ts) + ' | ' + (AUDIT_LABEL[a.act] || a.act) + ' | '
+        + ((a.detail && a.detail.acct) || (a.detail && a.detail.code) || '—') + ' | '
+        + auditDetailText(a.detail) + ' |');
+    });
+    var blob = new Blob([lines.join('\n')], { type: 'text/markdown;charset=utf-8' });
+    var a2 = document.createElement('a');
+    a2.href = URL.createObjectURL(blob);
+    a2.download = '操作审计_' + (DATA.day || '') + '.md';
+    a2.click();
+  });
+
+  /* ---------- 真人/探针：只看真人开关 + 手动改判（10/5 P3）---------- */
+  $('onlyReal').addEventListener('change', render);
+  document.addEventListener('click', function(e){
+    var t = e.target.closest ? e.target.closest('[data-judge]') : null;
+    if (!t) return;
+    var acct = t.getAttribute('data-judge');
+    var to = t.getAttribute('data-to');
+    if (!confirm('把 ' + acct + ' 标记为「' + (to === 'real' ? '真人' : '探针') + '」？\n'
+      + '（只是改面板上的判定显示，不会删账号、不改任何数据）')) return;
+    api('judge_set', { acct: acct, verdict: to }, function(r){
+      if (r.ok) load();
+      else alert('标记失败：' + ((r.j && r.j.msg) || ('HTTP ' + r.status)));
+    });
+  });
   Array.prototype.forEach.call(document.querySelectorAll('#tabs .tab'), function(b){
     b.addEventListener('click', function(){ switchTab(b.getAttribute('data-tab')); });
   });

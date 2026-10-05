@@ -98,6 +98,89 @@ async function listAll(kv, prefix) {
   return out;
 }
 
+/* 由 'YYYYMMDD' 形式的 dayKey 反推其所属 ISO 周键。
+   aitok:<day> 的键里只有日期，要按周筛就得反推 —— 算法与 isoWeekKeyUTC 同款（周四锚点法），
+   改一处必须同步另两处（ai.js / auth.js）。 */
+function weekOfDayKey(ds) {
+  const s = String(ds || '');
+  /* ⚠️ 严格校验：'+'' === 0'，空串会通过 isFinite 检查 → 算出 1899-W48 这种垃圾周键。
+     必须先卡长度与「全数字」，再取值。 */
+  if (!/^\d{8}$/.test(s)) return '';
+  const y = parseInt(s.slice(0, 4), 10);
+  const m = parseInt(s.slice(4, 6), 10) - 1;
+  const d = parseInt(s.slice(6, 8), 10);
+  if (!isFinite(y) || !isFinite(m) || !isFinite(d) || m < 0 || m > 11 || d < 1 || d > 31) return '';
+  return isoWeekKeyUTC(new Date(Date.UTC(y, m, d)));
+}
+
+/* ---- 操作审计（10/5 P3）：谁在什么时候对谁做了什么 ----
+   键：audit:<毫秒时间戳>-<随机后缀>（毫秒保证天然按时间排序，随机后缀防同毫秒互相覆盖）
+   记录全部管理动作，是**只增不删**的账本 —— 将来内测多人时，"谁被谁开了会员"唯一可查的地方。
+   ⚠️ 不含任何密钥（X-Admin-Key 绝不入库）。 */
+async function audit(kv, act, detail) {
+  try {
+    const id = Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+    const rec = { ts: Date.now(), act: act, detail: detail || {} };
+    await kv.put('audit:' + id, JSON.stringify(rec), { expirationTtl: 31536000 });   // 留一年
+  } catch (e) { /* 审计写失败绝不能连带失败主操作 */ }
+}
+
+/* ---- 真人 / 探针判定（10/5 P3 她要「能区分到底是不是真人登录」）----
+   她站里的账号大部分是 AI 写探针时注册的一次性测试号（截图 16 个里约 14 个），
+   把它们混在真实用户里会污染所有用量/转化统计。
+
+   ⭐ 判定**不靠猜账号名**，靠三条硬信号（可靠度从高到低）：
+     ① 有云端数据  sync:<acct> 键存在 —— 真人注册后一定会同步学习数据；探针只登录不碰业务
+     ② 有 AI 用量  aiqmv:<acct>:<YYYY-MM> 有值 —— 真人用 AI 功能
+     ③ 走邀请码    vip:<acct>.note 含 'invite:' —— 她主动发码给的人
+   账号名只作**辅助提示**（probe/test/ux/wx 这类前缀），因为真人也可能叫 testuser，
+   反过来探针也可能起别的名 —— 命名永远不能当判据，只能当线索。
+
+   判定结果三态：
+     real  真人    —— 有 sync: 或 有 aiqmv:
+     probe  探针    —— 三条硬信号全无，且账号名命中探针模式
+     idle   待观察  —— 三条硬信号全无，名字也不像探针（可能刚注册还没动手）
+   ⚠️ 允许人工推翻：手动标记存 manual:<acct>，覆盖自动判定。
+   ⚠️ 绝不自动删号（删账号是破坏性操作，必须她本人勾选确认）。 */
+const PROBE_NAME_RE = /^(probe|test|qa|debug|tmp|demo|fake|ux|wx|kw|fix|ci)[-_0-9a-z]*/i;
+async function judgeAccounts(kv, users, usageMonth) {
+  /* 三个前缀各拉一次全量键，避免逐账号 N 次 kv.get */
+  const syncKeys = await listAll(kv, 'sync:');
+  const vipKeys = await listAll(kv, 'vip:');
+  const monthUsers = new Set(Object.keys(usageMonth || {}));
+  const hasSync = new Set(syncKeys.map(k => k.slice(5)));
+  const vipNote = {};
+  for (const k of vipKeys) {
+    try {
+      const v = JSON.parse((await kv.get(k)) || 'null');
+      if (v) vipNote[k.slice(4)] = String(v.note || '');
+    } catch (e) {}
+  }
+  /* 人工标记优先（她手动推翻的永远算数） */
+  const manual = {};
+  for (const k of await listAll(kv, 'manual:')) {
+    try { manual[k.slice(7)] = JSON.parse((await kv.get(k)) || 'null'); } catch (e) {}
+  }
+
+  for (const u of users) {
+    const a = u.acct;
+    const sig = [];
+    if (hasSync.has(a)) sig.push('sync');
+    if (monthUsers.has(a)) sig.push('ai');
+    if (/invite:/.test(vipNote[a] || '')) sig.push('invite');
+    let verdict;
+    if (sig.length) verdict = 'real';
+    else if (PROBE_NAME_RE.test(a)) verdict = 'probe';
+    else verdict = 'idle';
+    u.sig = sig;
+    u.nameHint = PROBE_NAME_RE.test(a);
+    /* 人工标记覆盖自动判定；manual 为 1=真人 0=探针 */
+    if (manual[a] != null) u.verdict = (manual[a] === 1 || manual[a] === '1') ? 'real' : 'probe';
+    else u.verdict = verdict;
+  }
+  return users;
+}
+
 /* 聚合一个「长 TTL 聚合键」前缀成 { acct: 次数 }。键形如 <prefix>:<acct>:<period>。
    只统计 period === 当前 period 的键（上周/上月的残值不串进本期）。
    键由 ai.js 在每次成功调用后写入（TTL 400 天），与 ai_usage 读的是同一份 KV 真值。 */
@@ -175,6 +258,64 @@ export async function onRequest(context) {
     const aiWeek = Object.keys(usageWeek).reduce((s, k) => s + usageWeek[k], 0);
     const aiMonth = Object.keys(usageMonth).reduce((s, k) => s + usageMonth[k], 0);
 
+    /* 10/5 P3 · 成本估算：aitok:<day>（全站当日 token）+ aitoku:<acct>:<day>（分账号）。
+       单价读环境变量 AI_PRICE_IN / AI_PRICE_OUT（元 / 百万 token）——**代码里不写死价**，
+       DeepSeek 调价只改 CF 环境变量。env 未配 → priceOk=false，前端显示「未配置单价」不瞎算。 */
+    const priceIn = parseFloat(env.AI_PRICE_IN);
+    const priceOut = parseFloat(env.AI_PRICE_OUT);
+    const priceOk = isFinite(priceIn) && isFinite(priceOut);
+    const yuanPerM = function (tok) { return priceOk ? (tok / 1e6) * (priceIn + priceOut) : 0; };
+    const tokToday = parseInt((await kv.get('aitok:' + day)) || '0', 10) || 0;
+    const tokWeek = 0, tokMonth = 0;
+    for (const k of await listAll(kv, 'aitok:')) {
+      const p = k.split(':');
+      if (p.length !== 2) continue;
+      const v = parseInt((await kv.get(k)) || '0', 10) || 0;
+      if (!v) continue;
+      /* 按天累加：周 = 最近 7 天、月 = 本月（自然月，与 aiqmv 口径一致）。
+         ⚠️ 键里只有日期无法判周，改用「键名日期落在当前 ISO 周 / 本月内」来筛。 */
+      const ds = p[1];
+      if (weekOfDayKey(ds) === week) tokWeek += v;
+      if (ds.slice(0, 6) === month.replace('-', '')) tokMonth += v;
+    }
+    const tokByAcct = {};
+    for (const k of await listAll(kv, 'aitoku:')) {
+      const p = k.split(':');
+      if (p.length !== 3 || p[2] !== day) continue;
+      const v = parseInt((await kv.get(k)) || '0', 10) || 0;
+      if (v) tokByAcct[p[1]] = (tokByAcct[p[1]] || 0) + v;
+    }
+    /* 分功能统计：aitoks:<service>:<day> —— 知道哪个功能最费钱 */
+    const byService = {};
+    for (const k of await listAll(kv, 'aitoks:')) {
+      const p = k.split(':');
+      if (p.length !== 3 || p[2] !== day) continue;
+      const v = parseInt((await kv.get(k)) || '0', 10) || 0;
+      if (v) byService[p[1]] = (byService[p[1]] || 0) + v;
+    }
+    const svcSorted = Object.keys(byService).map(k => ({ svc: k, n: byService[k] })).sort((a, b) => b.n - a.n);
+
+    /* 10/5 P3 · 真人/探针判定（她要「能区分到底是不是真人登录」） */
+    await judgeAccounts(kv, users, usageMonth);
+    const nReal = users.filter(u => u.verdict === 'real').length;
+    const nProbe = users.filter(u => u.verdict === 'probe').length;
+    /* 真人/探针各自的 AI 用量与成本（她真正关心的是这部分，不是被探针污染的全站数） */
+    const aiMonthReal = users.filter(u => u.verdict === 'real')
+      .reduce((s, u) => s + (usageMonth[u.acct] || 0), 0);
+    const costMonthReal = users.filter(u => u.verdict === 'real')
+      .reduce((s, u) => s + yuanPerM(tokByAcct[u.acct] || 0), 0);
+
+    /* 10/5 P3 · 操作审计（谁何时给谁开了会员 —— 内测多人时唯一可查的地方） */
+    const auditKeys = await listAll(kv, 'audit:');
+    const audits = [];
+    for (const name of auditKeys) {
+      try {
+        const v = JSON.parse((await kv.get(name)) || 'null');
+        if (v && v.ts) audits.push(v);
+      } catch (e) {}
+    }
+    audits.sort((a, b) => b.ts - a.ts);
+
     const sessCount = (await listAll(kv, 'sess:')).length;
 
     /* 会员列表：vip:<acct> = { type, expire(ms), grantedAt, note }；到期剩余天数一并算好。
@@ -211,6 +352,15 @@ export async function onRequest(context) {
       usage: usage, aiToday: aiToday,
       usageWeek: usageWeek, aiWeek: aiWeek,
       usageMonth: usageMonth, aiMonth: aiMonth,
+      /* 10/5 P3：真人/探针判定 + 只看真人的口径 */
+      nReal: nReal, nProbe: nProbe, nIdle: users.length - nReal - nProbe, aiMonthReal: aiMonthReal,
+      /* 10/5 P3：成本 + 分功能 */
+      priceOk: priceOk, priceIn: priceOk ? priceIn : 0, priceOut: priceOk ? priceOut : 0,
+      tokToday: tokToday, tokWeek: tokWeek, tokMonth: tokMonth, tokByAcct: tokByAcct,
+      costToday: yuanPerM(tokToday), costWeek: yuanPerM(tokWeek), costMonth: yuanPerM(tokMonth),
+      costMonthReal: costMonthReal, byService: svcSorted,
+      /* 10/5 P3：操作审计 */
+      audits: audits.slice(0, 100),
       sessCount: sessCount, vips: vips, feedbacks: feedbacks, fbUnread: fbUnread });
   }
 
@@ -228,6 +378,7 @@ export async function onRequest(context) {
     const rec = { max: max, used: 0, created: Date.now() };
     if (Number.isFinite(vipDays) && vipDays > 0) rec.vipDays = Math.min(vipDays, 3650);
     await kv.put('inv:' + code, JSON.stringify(rec));
+    await audit(kv, 'invite_mint', { code: code, max: max, vipDays: rec.vipDays || 0 });
     return json({ ok: true, code: code, max: max, vipDays: rec.vipDays || 0 });
   }
 
@@ -259,6 +410,13 @@ export async function onRequest(context) {
       note: permanent ? (String(body.note || '').slice(0, 90) + ' [永久]').slice(0, 100) : String(body.note || '').slice(0, 100),
     };
     await kv.put('vip:' + acct, JSON.stringify(rec));
+    /* 审计：区分「新开 / 续费 / 改永久」三种情形 —— 将来对账时这是唯一线索 */
+    const prevLeft = cur && cur.expire ? Math.ceil((cur.expire - Date.now()) / 86400000) : null;
+    const kind = permanent ? 'set_permanent' : (cur && cur.expire > Date.now() ? 'renew' : 'grant');
+    await audit(kv, 'vip_' + kind, {
+      acct: acct, days: permanent ? 0 : days, permanent: permanent,
+      expire: rec.expire, prevDaysLeft: prevLeft, note: rec.note || '',
+    });
     return json({ ok: true, acct: acct, permanent: permanent, expire: rec.expire, daysLeft: permanent ? null : Math.ceil((rec.expire - Date.now()) / 86400000) });
   }
 
@@ -266,8 +424,47 @@ export async function onRequest(context) {
   if (action === 'vip_revoke') {
     const acct = String(body.acct || '').trim().toLowerCase();
     if (!acct) return json({ ok: false, error: 'bad_acct', msg: '缺少账号' }, 400);
+    /* 撤销前先看一眼原值，审计里记清「撤的是个什么状态的会员」（否则事后无从追） */
+    let prev = null;
+    try { prev = JSON.parse((await kv.get('vip:' + acct)) || 'null'); } catch (e) {}
     await kv.delete('vip:' + acct);
+    await audit(kv, 'vip_revoke', {
+      acct: acct,
+      hadVip: !!(prev && prev.expire),
+      prevExpire: (prev && prev.expire) || 0,
+      prevNote: (prev && prev.note) || '',
+    });
     return json({ ok: true, acct: acct });
+  }
+
+  /* ---------- 人工标记真人/探针（10/5 P3 她要能自己推翻自动判定） ----------
+     存 manual:<acct> = 1（真人）/ 0（探针）。传 clear:1 则删除标记、回到自动判定。 */
+  if (action === 'judge_set') {
+    const acct = String(body.acct || '').trim().toLowerCase();
+    if (!/^[a-z0-9_]{6,20}$/.test(acct)) return json({ ok: false, error: 'bad_acct', msg: '账号格式：6-20 位数字/字母/下划线' }, 400);
+    if (body.clear) {
+      await kv.delete('manual:' + acct);
+      await audit(kv, 'judge_clear', { acct: acct });
+      return json({ ok: true, acct: acct, manual: null });
+    }
+    const isReal = (body.verdict === 'real' || body.verdict === 1 || body.verdict === '1') ? 1 : 0;
+    await kv.put('manual:' + acct, String(isReal));
+    await audit(kv, isReal ? 'judge_mark_real' : 'judge_mark_probe', { acct: acct });
+    return json({ ok: true, acct: acct, manual: isReal });
+  }
+
+  /* ---------- 操作审计列表（10/5 P3）---------- */
+  if (action === 'audit_list') {
+    const keys = await listAll(kv, 'audit:');
+    const list = [];
+    for (const name of keys) {
+      try {
+        const v = JSON.parse((await kv.get(name)) || 'null');
+        if (v && v.ts) list.push(v);
+      } catch (e) {}
+    }
+    list.sort((a, b) => b.ts - a.ts);          // 新的在前
+    return json({ ok: true, audits: list.slice(0, 200) });   // 一次最多回 200 条，够她看了
   }
 
   /* ---------- 意见反馈（10/2）----------

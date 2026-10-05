@@ -409,6 +409,40 @@ export async function onRequest(context) {
       } catch (e) {}
     })());
 
+    /* ⑤ 成本计量（10/5 P3 她要「DeepSeek 花了多少钱」）：从上游响应体的 usage 段取
+       prompt_tokens / completion_tokens，按天累加到 aitok:<day>（全站）与 aitoku:<acct>:<day>（分账号）。
+       ⚠️ 单价走环境变量 AI_PRICE_IN / AI_PRICE_OUT（元/百万 token），**不在代码里写死死价** ——
+          DeepSeek 调价时改 CF 环境变量即可，不用改代码。env 没配时下面按 0 计，面板显示「未配置单价」。
+       ⚠️ 与 aiqmv 一样只增不判，不参与闸门。写失败被 try/catch 吞掉，不影响主流程。 */
+    jobs.push((async () => {
+      try {
+        let pt = 0, ct = 0;
+        try {
+          const uj = JSON.parse(text);
+          if (uj && uj.usage) {
+            pt = parseInt(uj.usage.prompt_tokens, 10) || 0;
+            ct = parseInt(uj.usage.completion_tokens, 10) || 0;
+          }
+        } catch (e) {}
+        if (pt > 0 || ct > 0) {
+          /* 三个键相互独立，故各自独立 await（并发由 Promise.all 统一等） */
+          await env.SYNC_KV.put('aitok:' + day,
+            String((parseInt((await env.SYNC_KV.get('aitok:' + day)) || '0', 10) || 0) + pt + ct),
+            { expirationTtl: 34560000 });
+          await env.SYNC_KV.put('aitoku:' + acct + ':' + day,
+            String((parseInt((await env.SYNC_KV.get('aitoku:' + acct + ':' + day)) || '0', 10) || 0) + pt + ct),
+            { expirationTtl: 34560000 });
+          /* 分功能留痕（她 P3「按功能分类统计」的数据源）：aitoks:<service> 按天 +1。
+             service 白名单化后再拼键，避免把任意字符串写进 KV 命名空间。 */
+          const svc = /^[a-z0-9_]{1,32}$/.test(service) ? service : 'other';
+          const svcKey = 'aitoks:' + svc + ':' + day;
+          await env.SYNC_KV.put(svcKey,
+            String((parseInt((await env.SYNC_KV.get(svcKey)) || '0', 10) || 0) + 1),
+            { expirationTtl: 34560000 });
+        }
+      } catch (e) {}
+    })());
+
     await Promise.all(jobs);
   })();
 
