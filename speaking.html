@@ -51,7 +51,7 @@
   <!-- 10/3 头像选择：必须在 coach.js 之前（陪练气泡头像渲染时就要读 window.avUserSrc）。
        10/3 22:55 扩展：同一份也供顶栏考官头像选择器用（avOpen/avExamSrc） -->
   <script defer src="js/av-picker.js?v=20261004c"></script>
-  <script defer src="js/coach.js?v=20261005c"></script>
+  <script defer src="js/coach.js?v=20261005d"></script>
   <script defer src="js/speaking.js?v=20261005b"></script>
   <script defer src="js/materials.js?v=20261004d"></script>
   <script defer src="js/mock-report.js?v=20261004a"></script>
@@ -1580,7 +1580,9 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
 /* ---------- 2. 顶栏：强制左对齐（她「不可能放在中间」） ---------- */
 #coachView #coachTop{
   position:static;background:var(--surface);
-  padding:12px 14px 11px 16px;
+  /* 🔴 10/5 23:28 加高上下内边距（她 22:55 报「AI 口语教练这几个字为什么这么贴上面」）：
+     原 12px/11px 在 40px 视口缩放下贴得明显。给到 16/14，标题与卡片上沿之间有呼吸。 */
+  padding:16px 16px 14px 18px;
   border-bottom:1px solid var(--line);
   display:flex;
   justify-content:flex-start;          /* 🔴 原 space-between 把身份区推到中间 */
@@ -1678,20 +1680,35 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
 #coachView .coach-ctx-body{flex:1;min-height:0;overflow-y:auto;padding:13px 15px 16px}
 #coachView .coach-ctx-hint{flex:none}
 
-/* ---------- 6. 气泡：微信式圆角 + 尾巴 ---------- */
+/* ---------- 6. 气泡：微信式圆角 + 尾巴 ----------
+   🔴 10/5 23:22 加「随字变高、超长内部滚动」（她 22:55 原话：「字写多了之后，这个对话框要根据
+      这个字，随着这个字变多而变大……增长到一定长度它就不会长了，然后里面的内容可以滑动」）。
+      —— 改前实测：用户气泡 h=163px，max-height=none / overflow=visible
+         → 一段长答案会把整屏撑满、聊天区被推爆，且**无法在气泡内滚动查看**。
+      —— 微信同款行为：默认随内容长高，到上限（约视口 40%）停住，超出部分**在气泡内滚动**。
+      —— overflow-y:auto 必须配overflow-wrap:break-word（已有 word-break:break-word），
+         否则长英文单词会横向撑破气泡。 */
 #coachView .ca-row,#coachView .cu-row,#coachView .cf-row{max-width:82%}
 #coachView .ca-bubble{
   background:var(--surface);border:1px solid var(--line);
   border-radius:4px 16px 16px 16px;
   padding:11px 14px;font-size:14.5px;line-height:1.65;color:var(--ink);
   box-shadow:var(--shadow);
+  max-height:min(40vh,340px);overflow-y:auto;overscroll-behavior:contain;
 }
 #coachView .cu-bubble{
   background:var(--primary-500);color:#fff;border:none;
   border-radius:16px 4px 16px 16px;
   padding:11px 14px;font-size:14.5px;line-height:1.62;
   white-space:pre-wrap;word-break:break-word;box-shadow:0 2px 8px rgba(58,154,147,.22);
+  max-height:min(40vh,340px);overflow-y:auto;overscroll-behavior:contain;
 }
+/* 滚动条收细，别在气泡里画一条粗灰条（桌面端） */
+#coachView .ca-bubble::-webkit-scrollbar,
+#coachView .cu-bubble::-webkit-scrollbar{width:5px}
+#coachView .ca-bubble::-webkit-scrollbar-thumb,
+#coachView .cu-bubble::-webkit-scrollbar-thumb{background:rgba(120,130,140,.28);border-radius:3px}
+#coachView .cu-bubble::-webkit-scrollbar-thumb{background:rgba(255,255,255,.42)}
 #coachView .coach-av{width:32px;height:32px;border-radius:10px}
 #coachView .coach-av svg{width:18px;height:18px}
 
@@ -1737,12 +1754,23 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
    根因（截图实测）：`.coach-cbox` 靠 padding 撑高，textarea 又是 height:38px + padding:8px 0
    → 输入框盒高与 `#coachSend` 的 44px 差一截，两者上下沿都不齐。
    修法：**统一高度变量 + 两者都用它**；输入框内 textarea 高度交给 flex 自适应，
-        发送键 `align-self:stretch`（跟 cbox 等高），窄屏靠 ≥44px 触控标准兜底。 */
+        发送键 `align-self:stretch`（跟 cbox 等高），窄屏靠 ≥44px 触控标准兜底。
+
+   🔴 10/5 23:20 修正本块（她 22:55 实机报「字全部浮在对话框上面」+「题卡被遮掉一部分」）
+      —— 上一版把 cbox 改成 `height:44px` 写死来“对齐发送键”，autogrow 只改了**内层 textarea**
+         的高度（实测 207 字符 → 87px，超长 → 96px 上限），外框恒为 44px
+         → 溢出 43px，且 `align-items:center` 让文字**同时向上下两头溢出框外**
+         → 视觉上「字浮在框上面」+ **溢出部分正好盖住上方的题卡**（她第二个报障的真正元凶）。
+      —— 探针实测数据：taH=87 / cbH=44 / 溢出 43px / textOverhang=-21px（两头顶 21px）。
+      —— 正解：**外框高度改由内层 textarea 决定**（`height:auto` + `min-height:44px`），
+         发送键 `align-self:stretch` 自动跟到同一高度 —— 对齐效果与「随字变长」两个需求同时满足，
+         不再需要写死任何高度。overflow 留 visible 也会被 min-height 兜住，不再有溢出。 */
 #coachView #coachBarInner{align-items:stretch;gap:9px}
 #coachView .coach-cbox{
   flex:1;min-width:0;
   display:flex;align-items:center;
-  height:44px;padding:0 14px;      /* ← 固定 44px，与发送键同高；内部不再撑高 */
+  height:auto;min-height:44px;      /* 🔴 不再写死 44px：随 textarea 长高（微信式） */
+  padding:6px 14px;
   background:var(--surface);border:1.5px solid var(--line);
   border-radius:12px;box-shadow:var(--shadow);
   transition:border-color .15s,box-shadow .15s;
@@ -1759,7 +1787,7 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
 /* 宽屏 44px 命中 / 窄屏 36px 命中（10/3 她 13:20 拍板：发送框收 36，发送键保 44） */
 @media (max-width:860px){
   #coachView #coachInput{min-height:36px}
-  #coachView .coach-cbox{height:44px}
+  #coachView .coach-cbox{min-height:44px}   /* 🔴 原写死 height:44px → 改 min-height，才不会卡住长高 */
   #coachView #coachSend{min-height:44px}
 }
 #coachView #coachSend{

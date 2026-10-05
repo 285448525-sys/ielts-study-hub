@@ -606,7 +606,7 @@ function userHtml(text){
     if(top){
       top.setAttribute('aria-expanded', col ? 'false' : 'true');
       var label = top.querySelector('.coach-mem-label');
-      if(label) label.textContent = '本轮教练台';
+      if(label) label.textContent = '本轮控制台';
       var caret = top.querySelector('.coach-mem-caret');
       if(caret) caret.textContent = col ? '›' : '‹';
     }
@@ -708,20 +708,27 @@ function userHtml(text){
   function layoutCoach(){
     var view = $('coachView');
     if(!view || view.hidden || !view.offsetParent) return;
-    var bar = $('coachBar');
-    var topH = 0;
-    var top = $('coachTop');
-    if(top) topH = Math.round(top.getBoundingClientRect().height);
-    var barH = bar ? Math.round(bar.getBoundingClientRect().height) : 69;
-    var cs = getComputedStyle(document.querySelector('main.container') || document.body);
-    var padT = parseInt(cs.paddingTop, 10) || 0;
-    var padB = parseInt(cs.paddingBottom, 10) || 0;
-    var gap = 18;
-    var h = window.innerHeight - padT - padB - topH - barH - gap;
+    /* 🔴 10/5 23:25 修「卡片浮在画面中上方、下方空一大截」（她 22:55 报「下面空隙太多」）
+       —— 旧算法把**容器自身的 top 偏移**当成 0：只用 `innerHeight - padT - padB - topH - barH - gap`，
+          而 `padT` 取的是 main.container 的 paddingTop（实测 40px），
+          但 #coachView 真实 top 是 96px（top-nav 56 + padding 40）——
+          差的那 ~56px 就变成了卡片下方的空隙（探针实测 card.bottom=807 / vh=900 → 下方空 93px）。
+       —— 正解：**用卡片自身的实测 top 起点算**，不猜顶栏高度、不猜 gap 常量：
+          h = innerHeight - view 实测 top - 底部保留（dock 高，桌面为 0）。
+          这样视口一变（缩放/窗口缩放/软导航重排）都对齐，不需要维护任何魔法数。
+       —— ⚠️ 保留 min 320 兜底：窗口极矮时不要把卡片压成一条。 */
+    var vr = view.getBoundingClientRect();
+    var vTop = Math.round(vr.top);
+    /* 底部保留：移动端通栏 dock 会盖住视口底，必须给它让位；桌面 dockH=0 不让。
+       dock 高度实测取（含 safe-area），不写死 56。 */
+    var dock = document.getElementById('hubDock') || document.querySelector('.hub-dock,#hubDock');
+    var dockH = 0;
+    if(dock){ var dr = dock.getBoundingClientRect(); if(dr.height > 0) dockH = Math.round(dr.height); }
+    var h = window.innerHeight - vTop - dockH - 2;   /* 2 = 卡片上下边框各 1px */
     if(h < 320) h = 320;
     view.style.height = h + 'px';
     /* 10/4 16:10 改版：高度限制搬到了内层 #coachCard（卡片是唯一滚动容器）。
-       这里把**扣掉卡片自身边框与外边距后**的可用高度写到卡上，
+       这里把**扣掉卡片自身边框**后的可用高度写到卡上，
        否则 #coachScroll 会被撑出卡片 → 底部输入条被推出可视区（10/3 那类「滑不到底」复发）。
        卡片宽度由 CSS 的 max-width 控制，不在此处写 width。 */
     var card = $('coachCard');
@@ -766,7 +773,7 @@ function userHtml(text){
          去掉 aria-haspopup（它现在是展开/收起按钮，不是弹层入口）。
          #coachMemN 保留为隐藏计数（updateMemBtn / renderCtx 会写它，探针也断言它，删了会静默失效）。 */
       +     '<button id="coachMemBtn" type="button" class="coach-mem-btn"'
-      +       ' aria-controls="coachCtx" aria-expanded="false"><span class="coach-mem-label">本轮教练台</span> <span class="coach-mem-caret" aria-hidden="true">›</span></button>'
+      +       ' aria-controls="coachCtx" aria-expanded="false"><span class="coach-mem-label">本轮控制台</span> <span class="coach-mem-caret" aria-hidden="true">›</span></button>'
       +     '<span id="coachMemN" hidden>0</span>'
       +   '</div>'
       +   '<div id="coachScroll" aria-live="polite"></div>'
@@ -777,10 +784,10 @@ function userHtml(text){
       + '</div>'
       /* 右栏改抽屉（10/4 16:10）：仍在 #coachScroll 之外（scroll 内是动态追加的聊天流），
          但不再是常驻占位栏 —— 由 CSS 定位成卡片右侧的浮层，聊天列吃满卡片宽度。 */
-      + '<aside id="coachCtx" class="coach-ctx" aria-label="本轮教练台">'
+      + '<aside id="coachCtx" class="coach-ctx" aria-label="本轮控制台">'
       +   '<div class="coach-ctx-head">'
       +     '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20h-20"/></svg>'
-      +     '<b>本轮教练台</b>'
+      +     '<b>本轮控制台</b>'
       +     '<button type="button" id="coachCtxToggle" class="coach-ctx-toggle" aria-expanded="true" aria-controls="coachCtxBody" title="收起/展开上下文">收起</button>'
       +   '</div>'
       +   '<div id="coachCtxBody" class="coach-ctx-body">'
