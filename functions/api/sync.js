@@ -69,18 +69,22 @@ function metaFromRaw(raw) {
   }
 }
 
-/* 🔴 10/5 16:45 全局兜底（与 auth.js 同款）：把 Workers 的裸 500 翻译成人话。
-   她的截图里 `PUT /api/sync 500` 满屏红 —— 根因是同一天算力配额被烧穿（error code 1101），
-   浏览器只显示「Failed to load resource: 500」，看不出所以然。
-   ⚠️ 同步失败**绝不能静默**：本机数据一律不动，这里只把错误说清楚。 */
+/* 🔴 10/5 17:10 修正（16:45 版误诊为 CPU）：debug 实测 err = "KV put() limit exceeded for the day."
+   —— 她截图里 `PUT /api/sync 500` 的真凶 = **KV 每日写入配额耗尽**（我当天探针写爆的，
+   与 14:46 那次「云同步挂掉」是同一个配额的第二次烧穿）。
+   配额北京时间早 8 点重置，代码无法绕过；能做的是把错误说成人话 + 保证本机数据不动。 */
 export async function onRequest(context) {
   try {
     return await handleRequest(context);
   } catch (err) {
     const msg = String((err && err.message) || err || '');
-    if (/1101|Worker exceeded|K exceeded|CPU/i.test(msg)) {
+    if (/KV put\(\) limit exceeded|KV .* limit/i.test(msg)) {
+      return json({ ok: false, error: 'kv_busy',
+        msg: '云端存储今日写入配额已用完（每天北京时间 8 点重置）。本机数据完整无缺，明早会自动恢复同步。' }, 503);
+    }
+    if (/1101|Worker exceeded|K exceeded|CPU|crypto|quota/i.test(msg)) {
       return json({ ok: false, error: 'server_busy',
-        msg: '服务暂时繁忙（算力配额已用尽，通常是当天调用过多）。请稍后再试 —— 本机数据没有丢，只是没能同步上去。' }, 503);
+        msg: '服务暂时繁忙，请稍后再试 —— 本机数据没有丢，只是没能同步上去。' }, 503);
     }
     return json({ ok: false, error: 'server_error', msg: '同步服务出错了，请稍后再试（本机数据不受影响）' }, 500);
   }

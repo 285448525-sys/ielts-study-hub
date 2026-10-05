@@ -33,16 +33,15 @@ const CORS = {
   'access-control-allow-headers': 'Content-Type, X-Session',
   'access-control-max-age': '86400',
 };
-/* 🔴 10/5 16:45 降级（线上 500 error code 1101 止血）：
-   10 万次 PBKDF2 在 Workers **免费版 CPU 限额（10ms）** 下会超限 →
-   表现为 register / login 全部 500，而同文件的 logout 等不走 crypto 的 action 正常（200）。
-   症状：注册表与同步 PUT 报 "Failed to load resource: 500"。
-   ⚠️ 触发条件不是某次改动写错，而是**当天高频调用把每日 CPU 配额烧穿**（我 14:00-17:00
-   跑了十几轮探针，每轮多次真实登录注册）—— 同一天 16:26 我测时还好，16:45 就全挂了。
-   ⇒ 降到 1 万次（OWASP 2023 仍认可的下限，对她这种单用户站足够），
-      **并且**把 PBKDF2 放在 try/catch 里，CPU 超限时给出人话错误而不是裸 500。
-   ⚠️ 若日后升级 Workers Paid（CPU 限额 30s），可把这里调回 10 万。 */
-const PBKDF2_ITER = 10000;
+/* 🔴 10/5 17:10 修正诊断（此前误诊为 CPU/PBKDF2，已撤销）：
+   debug 字段实测 err = "KV put() limit exceeded for the day." ——
+   **真凶 = KV 免费版每日写入配额（1000 次/天）耗尽**，不是 CPU。
+   证据链：register(put user:) / login(put sess:) / sync(put sync:) 全 500；
+   logout（不写 KV）200 正常；pbkdf2 10 万次**每次都跑完了**（错误发生在 put 那一行）。
+   配额按 UTC 天重置（北京时间早 8 点），代码无法绕过 —— 能做的只有把错误说成人话。
+   ⚠️ 根因是我当天跑了十几轮探针（每轮多次注册/登录/同步，全是 KV 写）。
+   🔑 探针纪律：跑真接口的探针**当天写入次数也要预算**，别一天烧穿两次。 */
+const PBKDF2_ITER = 100000;
 const SESS_TTL = 30 * 24 * 3600;          // session 30 天
 const LOCK_TTL = 15 * 60;                 // 失败锁定 15 分钟
 const MAX_FAILS = 10;
@@ -131,21 +130,20 @@ export async function onRequest(context) {
   try {
     return await handleRequest(context);
   } catch (err) {
-    /* ⚠️ 匹配放宽：Workers 抛的 1101 常常**不落在 err.message 里**（实测 message 可能为空或
-       只有 "Internal Server Error"），所以不能只靠正则判断 —— 改为「先看显式 code，
-       再看消息，最后只要是 crypto 相关就归为 server_busy」。
-       另：把 err 完整打进响应体（仅本地调试用，她那边能看到就说明分类对了）。 */
-    const code = (err && err.code) || '';
+    /* 🔴 10/5 17:10：分类已按 debug 实测修正 —— 真凶是「KV put() limit exceeded for the day」，
+       不是 CPU（16:45 那版误诊，PBKDF2 已撤销降级恢复 10 万）。
+       响应不再带 debug 字段（信息已确认，不往外漏内部细节）。 */
     const msg = String((err && err.message) || err || '');
-    const isBusy = code === 'crypto_busy' || /1101|crypto|Worker exceeded|K exceeded|CPU|quota|subtle/i.test(msg);
-    const detail = JSON.stringify({ code: code, name: err && err.name, msg: msg, str: String(err) }).slice(0, 300);
-    if (isBusy) {
+    if (/KV put\(\) limit exceeded|KV .* limit/i.test(msg)) {
+      return json({ ok: false, error: 'kv_busy',
+        msg: '云端存储今日写入配额已用完（每天北京时间 8 点重置）。你的密码和本机数据都没问题，明早即可正常注册/登录/同步。' }, 503);
+    }
+    if (/crypto|1101|Worker exceeded|K exceeded|CPU|quota/i.test(msg)) {
       return json({ ok: false, error: 'server_busy',
-        msg: '服务暂时繁忙（算力配额已用尽，通常是当天调用过多）。请稍后再试 —— 你的密码和本机数据都没问题。',
-        debug: detail }, 503);
+        msg: '服务暂时繁忙，请稍后再试 —— 你的密码和本机数据都没问题。' }, 503);
     }
     return json({ ok: false, error: 'server_error',
-      msg: '服务出错了，请稍后再试', debug: detail }, 500);
+      msg: '服务出错了，请稍后再试' }, 500);
   }
 }
 
