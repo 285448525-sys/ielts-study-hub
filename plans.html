@@ -40,7 +40,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20261005a"></script>
-  <script defer src="js/common.js?v=20261005b"></script>
+  <script defer src="js/common.js?v=20261006a"></script>
   <script defer src="js/feedback.js?v=20261002b"></script>
   <script src="js/plans.js?v=20261004a" defer></script>
 <style id="bootLoaderStyle">
@@ -301,10 +301,19 @@
     <div id="histPlans"></div>
   </section>
   </div>
+
+<!-- 备考诊断全屏覆盖层（第三十三批）：问卷/报告两屏都渲染进这里，不新开页面
+     🔴 10/6 00:45 **必须放在 <main> 里面**：软导航（softNavigate）只替换 <main> 的内容、
+        从不搬运 main 之外的元素。原先它挂在 main 结束标签之后 → 从首页点进计划页时，
+        本文档里**根本不存在 #diagOverlay** → openDiagReport/openDiagForm 第一行
+        `if(!ov) return` 直接静默返回 → 「查看完整诊断报告 / 重新诊断」点了零反应零报错
+        （她连报 5 次「计划页交互不了」，而我一直用直接访问复现，所以测不出来）。
+        放进 main 后每次软导航都会带一份新的过来，且随旧 main 一起被回收，天然幂等。
+        ⚠️ 它是 position:fixed，放进来不影响定位 —— 已确认 main/.container/body
+        都没有 transform/filter/will-change/perspective（否则 fixed 会改以祖先为参照）。 -->
+<div id="diagOverlay" hidden></div>
 </main>
 
-<!-- 备考诊断全屏覆盖层（第三十三批）：问卷/报告两屏都渲染进这里，不新开页面 -->
-<div id="diagOverlay" hidden></div>
 
 </body>
 </html>

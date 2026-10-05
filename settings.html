@@ -211,7 +211,7 @@ setTimeout(__rvRescue,2500);
 }
 </style>
 <script defer src="js/data.js?v=20261005a"></script>
-  <script defer src="js/common.js?v=20261005b"></script>
+  <script defer src="js/common.js?v=20261006a"></script>
   <script defer src="js/feedback.js?v=20261002b"></script>
   <!-- 10/3 头像选择（DiceBear CC0 素材；必须在 data.js/common.js 之后 —— 它读 DATA.settings.avatar） -->
   <script defer src="js/av-picker.js?v=20261004c"></script>
@@ -574,7 +574,18 @@ setTimeout(__rvRescue,2500);
     catch(_){ window.scrollTo(0, top); }
   }
   /* 双事件绑定：pointerdown 先走（插件常只拦 click），click 再走（没被 pointerdown 拦的正常路径），
-     靠 _hitAt 的 600ms 去重保证同一次点击只切一次。pointerdown 用 capture 以保证最先把事件抓到。 */
+     靠 _hitAt 的 600ms 去重保证同一次点击只切一次。pointerdown 用 capture 以保证最先把事件抓到。
+     🔴 10/6 00:45 幂等重绑：软导航现在也会重跑本段内联脚本（见 common.js pageInlineScripts），
+        每次进来 nav/panes 都是**新 <main> 里的新节点**，但 document 级监听不会自动消失 ——
+        不先移除旧的，就会残留一批闭包指向已被替换掉的旧节点（操作幽灵 DOM，点了零变化），
+        且同一点击会被多个 handler 各切一次。保留上一次的引用以便精确解绑。 */
+  if(window.__hubSetNavHandler){
+    try{
+      document.removeEventListener('pointerdown', window.__hubSetNavHandler, true);
+      document.removeEventListener('click', window.__hubSetNavHandler);
+    }catch(_){}
+  }
+  window.__hubSetNavHandler = handleNavActivate;
   document.addEventListener('pointerdown', handleNavActivate, true);
   document.addEventListener('click', handleNavActivate);
   go('profile');   /* 她拍板：默认停在「个人设置」，不记忆上次 */

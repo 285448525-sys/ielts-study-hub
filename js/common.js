@@ -3716,6 +3716,30 @@ async function runPageScript(id, doc){
       console.warn('[soft-nav] 附加脚本执行失败，已跳过：', srcs[i], err);
     }
   }
+  /* 🔴 10/6 00:40 补（她连报 5 次「按钮点不了」的真根因）：**body 内联 <script> 也要重跑**。
+     此前只 eval script[src]，而软导航换的是 <main>、head/body 内联脚本从不执行，于是：
+       · settings.html 左目录切换（内联）→ 委托监听压根没绑 → 点了零反应、零报错
+       · vip / settings 的 .rv 进场动画（内联）→ 新插入的 .rv 停在 opacity:0 永久隐形
+       · 组页（me/study/plans-hub）自收 #bootLoader 遮罩（内联）→ 没人撤遮罩
+     安全边界：只取 **body 内**的内联脚本（head 的 cls/CSP 类逻辑不重复跑）；
+     脚本必须自身幂等（重绑前先 removeEventListener，见 settings.html 的 __hubSetNavHandler）。 */
+  const inlineCodes = pageInlineScripts(doc);
+  for(const code of inlineCodes){
+    try{ window.eval(code); }
+    catch(err){ console.warn('[soft-nav] 页面内联脚本执行失败，已跳过：', err); }
+  }
+}
+
+/* 收集目标页 body 内的内联脚本源码（无 src 的 <script>），供软导航时 eval。 */
+function pageInlineScripts(doc){
+  if(!doc || !doc.body || !doc.body.querySelectorAll) return [];
+  const out = [];
+  doc.body.querySelectorAll('script').forEach(s => {
+    if(s.hasAttribute('src')) return;                 // 外部脚本由 pageScriptSources 负责
+    const t = (s.textContent || '').trim();
+    if(t) out.push(t);
+  });
+  return out;
 }
 
 /* P0-A：清理上一页可能残留的全局心跳（计时 __timerTick / 服药 __medsTick / 模考 __mockTick）。
