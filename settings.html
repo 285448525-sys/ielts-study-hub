@@ -211,7 +211,7 @@ setTimeout(__rvRescue,2500);
 }
 </style>
 <script defer src="js/data.js?v=20261003b"></script>
-  <script defer src="js/common.js?v=20261004d"></script>
+  <script defer src="js/common.js?v=20261004e"></script>
   <script defer src="js/feedback.js?v=20261002b"></script>
   <!-- 10/3 头像选择（DiceBear CC0 素材；必须在 data.js/common.js 之后 —— 它读 DATA.settings.avatar） -->
   <script defer src="js/av-picker.js?v=20261004c"></script>
@@ -308,11 +308,14 @@ setTimeout(__rvRescue,2500);
   <div class="set-layout">
     <nav class="set-nav" aria-label="设置分组">
       <span id="setNavHit" aria-hidden="true"></span>
-      <!-- 10/5 14:30 她要求合并「目标分数 + 口语自评」→ 左目录 4 项变 3 项。
-           ⚠️ data-goto 只留 profile / targets / data 三项，go() 与 moveHit() 零改动（按值匹配，不写死数量）。 -->
+      <!-- 10/5 14:36 她要求：① 意见反馈收进设置页做最后一个分组；② 标题字数尽量统一，别 4 字 5 字混着。
+           字数方案：个人设置(4) / 分数自评(4) / 账号数据(4) / 意见反馈(4) —— **四个全是四字**。
+           （原「分数与自评」4 字、「数据与账号」5 字混排，她看着不协调。）
+           ⚠️ data-goto 只这四项，go() 与 moveHit() 按值匹配不写死数量，零 JS 改动。 -->
       <button class="set-nav-item on" type="button" data-goto="profile">个人设置</button>
-      <button class="set-nav-item" type="button" data-goto="targets">分数与自评</button>
-      <button class="set-nav-item" type="button" data-goto="data">数据与账号</button>
+      <button class="set-nav-item" type="button" data-goto="targets">分数自评</button>
+      <button class="set-nav-item" type="button" data-goto="data">账号数据</button>
+      <button class="set-nav-item" type="button" data-goto="fb">意见反馈</button>
     </nav>
 
     <div class="set-panes">
@@ -433,6 +436,23 @@ setTimeout(__rvRescue,2500);
             <p class="acct-guest-tip">数据只存在这台设备。登录后自动同步到云端。</p>
             <div class="acct-actions">
               <a class="acct-btn acct-btn--light" id="syncGoLogin" href="login.html?from=settings">去登录 →</a>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <!-- 意见反馈（10/5 14:36 她要求：从侧栏收进设置页做最后一个分组，不再单挂侧栏条目）
+           ⭐ 按钮直接带 data-fb-open → js/feedback.js 的 document 级委托（closest('[data-fb-open]')）接管，
+              **零 JS 改动**，弹层/截图/联系方式/加微信那条全都原样保留。 -->
+      <section class="set-pane" data-pane="fb" hidden>
+        <section class="card set-card rv" data-d="1">
+          <span class="kicker">Feedback</span>
+          <h2>意见反馈</h2>
+          <p class="set-sub">哪个页面、点了哪里、什么现象 —— 描述越具体我改得越准</p>
+          <div class="set-fields">
+            <div>
+              <button class="btn" data-fb-open type="button">写反馈 →</button>
+              <p class="set-note">可以附最多 3 张截图（自动带上页面路径与环境信息）。急事可以直接加我微信问。</p>
             </div>
           </div>
         </section>

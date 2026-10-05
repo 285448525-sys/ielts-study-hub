@@ -109,11 +109,10 @@ function injectNav(){
     if(pid === 'meds' && !medsModuleOn()) continue;    // 服药模块未开启 → 侧栏不出现
     const p = pageById(pid); if(p) html += sideItem(p, current);
   }
-  /* 10/2 意见反馈（她拍板双入口：设置页 + 「更多」）。桌面侧栏与移动抽屉同款，
-     同样是 button（非跳转）——点击由 js/feedback.js 的 [data-fb-open] 委托接管。
-     ⚠️ 不进 PAGES/MORE_NAV 数组：那两个数组的元素都要求有对应 html 页面。 */
-  html += '<button class="side-item" data-fb-open type="button">'
-    + '<span class="nav-icon">💬</span><span class="side-label">意见反馈</span></button>';
+  /* 10/5 她 14:36 要求：侧栏/抽屉不再单独挂「意见反馈」入口，**收进设置页最后一个分组**。
+     理由 = 设置页本来就是「个人配置 + 账号 + 反馈」的地方，侧栏条目越加越长反而不是核心功能。
+     ⚠️ 移动端「更多」抽屉（MORE_NAV 那条）**保留** —— 抽屉在窄屏是主导航，
+        反馈从抽屉里挪走会让手机用户找不到入口。桌面侧栏（下面这条）删掉。 */
   html += '</div>';
   nav.innerHTML = html;
   bindSidebar();
