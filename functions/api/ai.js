@@ -408,6 +408,21 @@ export async function onRequest(context) {
         await env.SYNC_KV.put(mk2, String(curM2 + 1), { expirationTtl: 34560000 });
       } catch (e) {}
     })());
+    /* ⑤ 按日调用次数（10/5 P3「用量趋势图」的数据源）：aiqa: 只有 48h TTL 存不下历史曲线，
+       故另写两份长 TTL 键，只增不判、不参与闸门：
+         aiday:<YYYYMMDD>          全站当日调用次数（TTL 400 天 → 可画 30 天曲线）
+         aidayu:<acct>:<YYYYMMDD>  分账号当日次数（同上）
+       代价 = 每次调用多 2 次 KV 写（与本函数已有十几次 get/put 同量级）。 */
+    jobs.push((async () => {
+      try {
+        const dKey = 'aiday:' + day;
+        await env.SYNC_KV.put(dKey,
+          String((parseInt((await env.SYNC_KV.get(dKey)) || '0', 10) || 0) + 1), { expirationTtl: 34560000 });
+        const dKeyU = 'aidayu:' + acct + ':' + day;
+        await env.SYNC_KV.put(dKeyU,
+          String((parseInt((await env.SYNC_KV.get(dKeyU)) || '0', 10) || 0) + 1), { expirationTtl: 34560000 });
+      } catch (e) {}
+    })());
 
     /* ⑤ 成本计量（10/5 P3 她要「DeepSeek 花了多少钱」）：从上游响应体的 usage 段取
        prompt_tokens / completion_tokens，按天累加到 aitok:<day>（全站）与 aitoku:<acct>:<day>（分账号）。

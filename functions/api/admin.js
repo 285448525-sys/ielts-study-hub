@@ -266,7 +266,10 @@ export async function onRequest(context) {
     const priceOk = isFinite(priceIn) && isFinite(priceOut);
     const yuanPerM = function (tok) { return priceOk ? (tok / 1e6) * (priceIn + priceOut) : 0; };
     const tokToday = parseInt((await kv.get('aitok:' + day)) || '0', 10) || 0;
-    const tokWeek = 0, tokMonth = 0;
+    /* ⚠️ 这里必须用 let —— 13:50 那批我写成 const，overview 跑到 tokWeek += v 会抛
+       "Assignment to constant variable."，**整个 /api/admin overview 直接 500**（面板全坏）。
+       教训：数值累加器的声明处若带初值 0，后续 += 用 const 必炸；探针当时只做源码断言、没跑聚合路径，漏掉了。 */
+    let tokWeek = 0, tokMonth = 0;
     for (const k of await listAll(kv, 'aitok:')) {
       const p = k.split(':');
       if (p.length !== 2) continue;
@@ -285,7 +288,39 @@ export async function onRequest(context) {
       const v = parseInt((await kv.get(k)) || '0', 10) || 0;
       if (v) tokByAcct[p[1]] = (tokByAcct[p[1]] || 0) + v;
     }
-    /* 分功能统计：aitoks:<service>:<day> —— 知道哪个功能最费钱 */
+    /* 10/5 P3 · 用量趋势（她要 30 天曲线）：读 aiday:<YYYYMMDD>（全站日次数）与
+       aitok:<YYYYMMDD>（日 token）。两者 TTL 均 400 天，够画一年。
+       ⚠️ 只回最近 30 天，且**不补零**——缺的那天前端直接跳过，免得图上出现假的 0。
+       键是「有才写」，所以 10/5 之前的历史天然没有（计数当时还没修好，本来就不存在数据）。 */
+    const TREND_DAYS = 30;
+    const dayKeys = new Set();
+    const nowMs = Date.now();
+    for (let i = 0; i < TREND_DAYS; i++) {
+      const dt = new Date(nowMs - i * 86400000);
+      const p = n => String(n).padStart(2, '0');
+      dayKeys.add(dt.getUTCFullYear() + p(dt.getUTCMonth() + 1) + p(dt.getUTCDate()));
+    }
+    const trendCalls = {}, trendTok = {};
+    for (const k of await listAll(kv, 'aiday:')) {
+      const p = k.split(':');
+      if (p.length !== 2 || !dayKeys.has(p[1])) continue;
+      const v = parseInt((await kv.get(k)) || '0', 10) || 0;
+      if (v) trendCalls[p[1]] = v;
+    }
+    for (const k of await listAll(kv, 'aitok:')) {
+      const p = k.split(':');
+      if (p.length !== 2 || !dayKeys.has(p[1])) continue;
+      const v = parseInt((await kv.get(k)) || '0', 10) || 0;
+      if (v) trendTok[p[1]] = v;
+    }
+    /* 排成时间升序的数组，前端直接画（不排序会让图乱序） */
+    const trend = Array.from(dayKeys).sort()
+      .map(d => ({ day: d, calls: trendCalls[d] || 0, tok: trendTok[d] || 0, cost: yuanPerM(trendTok[d] || 0) }))
+      .filter(x => x.calls > 0);          // 无数据的日期不返回
+    const trendTotals = { calls: 0, tok: 0, cost: 0 };
+    for (const t of trend) { trendTotals.calls += t.calls; trendTotals.tok += t.tok; trendTotals.cost += t.cost; }
+
+    /* 10/5 P3 · 分功能统计：aitoks:<service>:<day> —— 知道哪个功能最费钱 */
     const byService = {};
     for (const k of await listAll(kv, 'aitoks:')) {
       const p = k.split(':');
@@ -359,6 +394,8 @@ export async function onRequest(context) {
       tokToday: tokToday, tokWeek: tokWeek, tokMonth: tokMonth, tokByAcct: tokByAcct,
       costToday: yuanPerM(tokToday), costWeek: yuanPerM(tokWeek), costMonth: yuanPerM(tokMonth),
       costMonthReal: costMonthReal, byService: svcSorted,
+      /* 10/5 P3 · 用量趋势（近 30 天，无数据日不返回） */
+      trend: trend, trendTotals: trendTotals, trendDays: TREND_DAYS,
       /* 10/5 P3：操作审计 */
       audits: audits.slice(0, 100),
       sessCount: sessCount, vips: vips, feedbacks: feedbacks, fbUnread: fbUnread });

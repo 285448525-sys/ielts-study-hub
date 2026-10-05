@@ -174,6 +174,24 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
     <p class="muted" id="invEmpty" style="margin-top:8px">还没有邀请码——生成一个发给朋友，TA 在登录页注册时填入即送会员。</p>
   </div>
 
+  <!-- 用量趋势（10/5 P3） -->
+  <div class="card">
+    <h2>用量趋势</h2>
+    <p class="desc">近 30 天每天的 AI 调用次数与成本。<b>没有数据的日子不画</b>（不补零，免得图上出现假的 0）。统计自 10/5 修复计数丢失后开始累计。</p>
+    <div class="toolbar">
+      <label class="muted"><input type="radio" name="trendMetric" value="calls" checked style="vertical-align:-2px;margin-right:3px" />调用次数</label>
+      <label class="muted"><input type="radio" name="trendMetric" value="cost" style="vertical-align:-2px;margin-right:3px" />成本（元）</label>
+      <label class="muted"><input type="radio" name="trendMetric" value="tok" style="vertical-align:-2px;margin-right:3px" />Token</label>
+      <span class="muted" id="trendSum"></span>
+      <span style="flex:1"></span>
+      <button class="btn ghost small" id="csvBtn" type="button">导出用户 CSV</button>
+      <button class="btn ghost small" id="csvTrendBtn" type="button">导出趋势 CSV</button>
+      <button class="btn ghost small" id="csvSvcBtn" type="button">导出分功能 CSV</button>
+    </div>
+    <div id="trendChart"></div>
+    <p class="muted" id="trendEmpty" style="margin-top:8px">还没有用量数据 —— 10/5 之前调用未被计数，历史无数据。</p>
+  </div>
+
   <!-- 用户 -->
   <div class="card">
     <h2>注册用户</h2>
@@ -348,6 +366,7 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
     $('stCostMonth').textContent = costM;
     $('judgeSummary').textContent = '真人 ' + (DATA.nReal || 0) + ' · 探针 ' + (DATA.nProbe || 0) + ' · 待观察 ' + (DATA.nIdle || 0)
       + '（真人本月 AI ' + (DATA.aiMonthReal || 0) + ' 次 / 成本 ' + (DATA.priceOk ? ('¥' + Number(DATA.costMonthReal || 0).toFixed(2)) : '未配单价') + '）';
+    renderTrend();
 
     var invLeft = 0;
     (DATA.invites || []).forEach(function(v){ invLeft += Math.max(0, (v.max||0) - (v.used||0)); });
@@ -510,6 +529,138 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
     a2.href = URL.createObjectURL(blob);
     a2.download = '操作审计_' + (DATA.day || '') + '.md';
     a2.click();
+  });
+
+  /* ---------- 用量趋势图（10/5 P3）----------
+     用内联 SVG 画，不用 canvas：① 缩放不糊 ② 可直接 hover <title> 看数值 ③ 零依赖。
+     ⚠️ 用 JS innerHTML 拼 <svg> 在部分浏览器不渲染 —— 本项目已踩过（记忆铁律），
+        故这里用 document.createElementNS 逐节点建，不用字符串拼。 */
+  var trendMetric = 'calls';
+  function renderTrend() {
+    var data = (DATA && DATA.trend) || [];
+    var host = $('trendChart');
+    host.innerHTML = '';
+    $('trendEmpty').style.display = data.length ? 'none' : '';
+    if (!data.length) { $('trendSum').textContent = ''; return; }
+
+    var valOf = function(t){ return trendMetric === 'cost' ? t.cost : trendMetric === 'tok' ? t.tok : t.calls; };
+    var vals = data.map(valOf);
+    var maxV = Math.max.apply(null, vals.concat([1]));
+    var sumV = vals.reduce(function(a, b){ return a + b; }, 0);
+    var isCost = trendMetric === 'cost';
+    $('trendSum').textContent = data.length + ' 天有数据 · 合计 '
+      + (isCost ? ('¥' + sumV.toFixed(4)) : (trendMetric === 'tok' ? (sumV.toLocaleString() + ' tokens') : (sumV + ' 次')));
+
+    var W = 760, H = 190, padL = 46, padR = 12, padT = 14, padB = 26;
+    var iw = W - padL - padR, ih = H - padT - padB;
+    var NS = 'http://www.w3.org/2000/svg';
+    function el(tag, attrs, text){
+      var e = document.createElementNS(NS, tag);
+      for (var k in attrs) if (attrs[k] != null) e.setAttribute(k, attrs[k]);
+      if (text != null) e.textContent = text;
+      return e;
+    }
+    var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, width: '100%', height: H, role: 'img',
+      'aria-label': '近 ' + data.length + ' 天用量趋势，合计 ' + sumV });
+
+    /* y 轴网格 + 刻度（4 条） */
+    for (var g = 0; g <= 4; g++) {
+      var y = padT + ih - (ih * g / 4);
+      svg.appendChild(el('line', { x1: padL, y1: y, x2: W - padR, y2: y, stroke: '#e8ebed', 'stroke-width': 1 }));
+      var lv = maxV * g / 4;
+      svg.appendChild(el('text', { x: padL - 7, y: y + 3.5, 'text-anchor': 'end', 'font-size': 10, fill: '#8b949e' },
+        isCost ? ('¥' + lv.toFixed(3)) : (lv >= 1000 ? (Math.round(lv / 100) / 10) + 'k' : String(Math.round(lv * 10) / 10))));
+    }
+    /* 折线 + 面积（单点也能画：x 居中，不除以 0） */
+    var step = data.length > 1 ? (iw / (data.length - 1)) : 0;
+    var pts = data.map(function(t, i){
+      var x = data.length > 1 ? (padL + step * i) : (padL + iw / 2);
+      var y = padT + ih - (valOf(t) / maxV) * ih;
+      return { x: x, y: y, t: t };
+    });
+    var line = pts.map(function(p, i){ return (i ? 'L' : 'M') + p.x.toFixed(1) + ' ' + p.y.toFixed(1); }).join(' ');
+    if (pts.length === 1) line += ' L' + (pts[0].x + 1).toFixed(1) + ' ' + pts[0].y.toFixed(1);
+    var area = line + ' L' + pts[pts.length - 1].x.toFixed(1) + ' ' + (padT + ih) + ' L' + pts[0].x.toFixed(1) + ' ' + (padT + ih) + ' Z';
+    svg.appendChild(el('path', { d: area, fill: 'rgba(92,179,171,.14)' }));
+    svg.appendChild(el('path', { d: line, fill: 'none', stroke: '#5cb3ab', 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+    /* 点 + hover 提示（<title> 浏览器原生 tooltip，不引第三方库） */
+    pts.forEach(function(p){
+      var c = el('circle', { cx: p.x, cy: p.y, r: 3, fill: '#5cb3ab' });
+      c.appendChild(el('title', {}, p.t.day.slice(4, 6) + '-' + p.t.day.slice(6, 8) + '　'
+        + p.t.calls + ' 次 / ' + p.t.tok.toLocaleString() + ' tokens'
+        + (isCost ? (' / ¥' + p.t.cost.toFixed(4)) : '')));
+      svg.appendChild(c);
+    });
+    /* x 轴标签：最多 6 个，太多会挤 */
+    var every = Math.max(1, Math.ceil(data.length / 6));
+    pts.forEach(function(p, i){
+      if (i % every !== 0 && i !== pts.length - 1) return;
+      svg.appendChild(el('text', { x: p.x, y: H - 8, 'text-anchor': 'middle', 'font-size': 10, fill: '#8b949e' },
+        p.t.day.slice(4, 6) + '/' + p.t.day.slice(6, 8)));
+    });
+    host.appendChild(svg);
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('input[name="trendMetric"]'), function(r){
+    r.addEventListener('change', function(){ trendMetric = r.value; renderTrend(); });
+  });
+
+  /* ---------- 导出 CSV（10/5 P3 她要能把数据拿走）----------
+     ⚠️ CSV 注入防护：任何以 = + - @ 开头的单元格值会被 Excel 当公式执行 → 统一前置单引号。
+        账号名是用户可控的（注册时就能填），不做防护等于给面板开一个公式注入口。 */
+  function csvCell(v) {
+    var s = String(v == null ? '' : v);
+    if (/^[=+\-@]/.test(s)) s = "'" + s;
+    if (/[",\n]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+  function downloadText(filename, mime, text) {
+    var blob = new Blob(['﻿' + text], { type: mime + ';charset=utf-8' });   // ﻿ = BOM，Excel 认中文
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+  }
+  $('csvBtn').addEventListener('click', function(){
+    if (!DATA) { alert('数据还没加载'); return; }
+    var lines = ['账号,注册时间,判定,今日AI,本周AI,本月AI,本月token,本月成本(元),会员剩余天,会员状态'];
+    var priceIn = Number(DATA.priceIn) || 0, priceOut = Number(DATA.priceOut) || 0;
+    var vipMap2 = {};
+    (DATA.vips || []).forEach(function(v){ if ((v.daysLeft || 0) > 0) vipMap2[v.acct] = v; });
+    (DATA.users || []).forEach(function(u){
+      var v = vipMap2[u.acct];
+      var cost = DATA.priceOk ? ((Number((DATA.tokByAcct || {})[u.acct] || 0) / 1e6) * (priceIn + priceOut)) : '';
+      lines.push([
+        csvCell(u.acct),
+        csvCell(new Date(u.created || 0).toISOString().slice(0, 19).replace('T', ' ')),
+        csvCell(u.verdict === 'real' ? '真人' : u.verdict === 'probe' ? '探针' : '待观察'),
+        csvCell((DATA.usage || {})[u.acct] || 0),
+        csvCell((DATA.usageWeek || {})[u.acct] || 0),
+        csvCell((DATA.usageMonth || {})[u.acct] || 0),
+        csvCell((DATA.tokByAcct || {})[u.acct] || 0),
+        cost === '' ? '未配单价' : cost.toFixed(5),
+        csvCell(v ? (v.permanent ? '永久' : v.daysLeft) : ''),
+        csvCell(v ? '会员' : '免费'),
+      ].join(','));
+    });
+    downloadText('用户用量_' + (DATA.day || '') + '.csv', 'text/csv', lines.join('\n'));
+  });
+  $('csvTrendBtn').addEventListener('click', function(){
+    var data = (DATA && DATA.trend) || [];
+    if (!data.length) { alert('还没有用量数据'); return; }
+    var lines = ['日期,调用次数,token,成本(元)'];
+    data.forEach(function(t){
+      lines.push([csvCell(t.day.slice(0, 4) + '-' + t.day.slice(4, 6) + '-' + t.day.slice(6, 8)),
+                  csvCell(t.calls), csvCell(t.tok), csvCell(t.cost.toFixed(6))].join(','));
+    });
+    downloadText('用量趋势_' + (DATA.day || '') + '.csv', 'text/csv', lines.join('\n'));
+  });
+  $('csvSvcBtn').addEventListener('click', function(){
+    var svc = (DATA && DATA.byService) || [];
+    if (!svc.length) { alert('还没有分功能数据'); return; }
+    var lines = ['service,今日调用次数'];
+    svc.forEach(function(s){ lines.push([csvCell(s.svc), csvCell(s.n)].join(',')); });
+    downloadText('分功能用量_' + (DATA.day || '') + '.csv', 'text/csv', lines.join('\n'));
   });
 
   /* ---------- 真人/探针：只看真人开关 + 手动改判（10/5 P3）---------- */
