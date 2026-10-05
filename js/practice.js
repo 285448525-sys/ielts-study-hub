@@ -216,6 +216,11 @@ function switchWordTab(tab){
       autoStartSeeWord();
     }
   }
+  /* 🔴 10/6 01:55 切 tab 同样要回到顶部：这两个 view 共用同一个滚动容器（main.container），
+     在词库滚到底再切回「学习」，scrollTop 会原样保留 → 顶部两个 tab 被推出视口。
+     切完再按新内容高度决定要不要允许滑动。 */
+  hubResetPageScroll();
+  hubFitPageScroll();
 }
 
 // ======= v4 算法：单词字段迁移 / 弱持久化 / 长线升级降级 / 队列 =======
@@ -2080,6 +2085,9 @@ function renderPlanPanel(){
 }
 
 ready(() => {
+  /* 🔴 10/6 01:55 初次进入也按内容高度决定要不要允许滑动（内容是异步渲染的，延迟再校两次） */
+  setTimeout(function(){ hubFitPageScroll(); }, 350);
+  setTimeout(function(){ hubFitPageScroll(); }, 1200);
   document.querySelectorAll('.wtab').forEach(b => {
     b.addEventListener('click', () => switchWordTab(b.dataset.wtab));
   });

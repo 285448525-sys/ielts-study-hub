@@ -3620,6 +3620,11 @@ async function softNavigate(t, isPop){
        原来只有 onHubLinkClick 会写 _hubCurrentFile，popstate（浏览器后退）那条路根本不写 → 身份滞后。 */
     _hubCurrentFile = t.file;
     syncBodyPageAttrs(doc);
+    /* 🔴 10/6 01:55 换页必须回到顶部 —— 修「每次点进单词页都默认滑在底部，学习和词库被遮住」。
+       移动端真正的滚动容器是 `main.container`（css/common.css ≤860px 段给它 overflow-y:auto），
+       软导航只换 `main.innerHTML`、**容器本身没被替换**，于是上一页的 scrollTop 原样带过来。
+       浏览器原生的「新文档从顶部开始」在这里不成立，得自己归零。 */
+    hubResetPageScroll();
     // ⚠️ 性能修复（口语/写作打开卡顿）：runPageScript 会 eval 2140 行的 speaking.js + 4 个附加脚本并同步渲染
     //    官方题库/P2/P3 诊断树，若直接 await 会阻塞主线程、画面“冻住”。先让本次内容交换 + 高亮先 paint，
     //    再用 requestAnimationFrame 把重脚本执行推到下一帧，打开即流畅。
@@ -3735,7 +3740,32 @@ async function runPageScript(id, doc){
   }
 }
 
-  /* 🔴 10/6 01:12 同步 <body> 上的**页面级**属性 —— 修「点计划/我的，渲染出来全是学习页」。
+  /* 🔴 10/6 01:55 把页面的滚动位置归零（软导航换页用）。
+   同时处理两个可能的滚动容器：移动端的 `main.container`（overflow-y:auto）
+   与整文档（桌面端/无 dock 页面仍是 window 滚动）。
+   ⚠️ 不能用「有没有滚动条」来决定要不要归零 —— 容器存在就要写，写 0 无害。 */
+function hubResetPageScroll(){
+  try{
+    const m = document.querySelector('main.container');
+    if(m && m.scrollTop) m.scrollTop = 0;
+    if(window.scrollY) window.scrollTo(0, 0);
+  }catch(_){}
+}
+
+/* 🔴 10/6 01:55 「内容装得下就不要能滑动」——修「明明整屏能显示完却还能滑一点」。
+   移动端 `main.container` 带 `padding-bottom:calc(dock高 + 10px)` 用于避让底部 dock，
+   这段 padding 也让 scrollHeight 略大于 clientHeight，于是内容明明看得全却还能滑出一段空白。
+   ⚠️ 只在**连 padding 一起都装得下**时才禁滑 —— 此时内容必然没被 dock 遮住，安全。
+   （若内容溢出，保持 auto；否则用户够不到底部内容。） */
+function hubFitPageScroll(){
+  try{
+    const m = document.querySelector('main.container');
+    if(!m) return;
+    m.style.overflowY = (m.scrollHeight > m.clientHeight + 2) ? 'auto' : 'hidden';
+  }catch(_){}
+}
+
+/* 🔴 10/6 01:12 同步 <body> 上的**页面级**属性 —— 修「点计划/我的，渲染出来全是学习页」。
    背景：软导航只换 <main>，从不碰 <body>，于是 `body[data-hub-group]` 永远停留在
    **第一次硬加载的那张组页**（`<body data-hub-group="study">` 写在 HTML 里）。
    hubgroup.js 的 hostGroup() 又把它排在第一优先 → 之后进任何组页都渲染成那一个组。
