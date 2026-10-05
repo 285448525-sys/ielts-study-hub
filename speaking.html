@@ -51,7 +51,7 @@
   <!-- 10/3 头像选择：必须在 coach.js 之前（陪练气泡头像渲染时就要读 window.avUserSrc）。
        10/3 22:55 扩展：同一份也供顶栏考官头像选择器用（avOpen/avExamSrc） -->
   <script defer src="js/av-picker.js?v=20261004c"></script>
-  <script defer src="js/coach.js?v=20261004f"></script>
+  <script defer src="js/coach.js?v=20261005a"></script>
   <script defer src="js/speaking.js?v=20261004a"></script>
   <script defer src="js/materials.js?v=20261004d"></script>
   <script defer src="js/mock-report.js?v=20261004a"></script>
@@ -1075,7 +1075,9 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
 .cf-nat{background:var(--primary-50);border-left:3px solid var(--primary);border-radius:0 10px 10px 0;padding:10px 12px;font-size:15px;line-height:1.65;color:var(--primary-900)}
 .cf-raw{font-size:14px;line-height:1.6;white-space:pre-wrap;color:var(--ink-2)}
 #coachBar{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--surface);border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom))}
-#coachBarInner{max-width:760px;margin:0 auto;display:flex;gap:8px;align-items:flex-end}
+/* 10/5 16:10 她报「输入框也窄」→ 同 #coachCol 的病根（760px 死上限）。
+   陪练态下让输入条与聊天列吃满容器宽度（与上面的 #coachCol 同步改，保持左右对齐）。 */
+#coachBarInner{max-width:none;margin:0 auto;display:flex;gap:8px;align-items:flex-end}
 #coachInput{flex:1;min-width:0;min-height:44px;max-height:96px;resize:none;border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:15px;line-height:1.4;background:var(--surface);color:var(--ink)}
 #coachInput:focus{outline:none;border-color:var(--primary)}
 #coachSend,#coachNext{flex:none;min-height:44px;border:0;border-radius:10px;padding:0 18px;font-size:14.5px;font-weight:600;white-space:nowrap;cursor:pointer}
@@ -1157,7 +1159,18 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
   min-height:360px;
 }
 #coachView #coachWrap{flex:1 1 auto;min-height:0}
-#coachView #coachCol{flex:1 1 0;min-width:0;max-width:760px;min-height:0;display:flex;flex-direction:column}
+/* 10/5 16:10 修「陪练框尺寸怪、右边空一块」（她 16:10 报，100% 缩放下）
+   —— 真因是**两套规则打架**：
+      ① 1160 行 #coachCol{max-width:760px}（常驻右栏时代的写法，760 + 274 + gap 26 = 1060）
+      ② 1598 行 #coachCol{max-width:none}（抽屉化右栏时代写的，注释里实测过「聊天区只有 425px」）
+      ③ 1210 行 .coach-ctx{flex:0 0 274px} 右栏又变回**常驻**（coach.js 切窄屏时才加 .coach-ctx-mini）
+      → 右栏常态占 274px，但 ① 的 760px 上限在窄容器下没被 ② 覆盖（② 靠 :has(.coach-ctx-mini)，
+        常态下 .coach-ctx-mini 不存在）→ **聊天列被死卡在 760/更窄，右侧空一大块**。
+   —— 正解：**不写死聊天列上限**，让它按容器剩余空间自适应（flex:1 + max-width:none），
+      右栏保持常驻 274px（那是 10/3 她要的「记忆列表常驻可见」）。gap 26 保持。
+   —— ⚠️ 用 flex 自适应而不是 :has() 特例：记忆铁律「:has() 与文本长度会耦合」，
+      之前 10/4 已在口语页吃过亏（改开场白一个字宽度就变）。 */
+#coachView #coachCol{max-width:none;flex:1 1 0;min-width:0;min-height:0;display:flex;flex-direction:column}
 #coachView .coach-ctx{min-height:0}   /* 右栏高度跟随 stretch，body 自己内部滚 */
 
 /* ---------- 顶栏：身份 + 记忆入口 ---------- */

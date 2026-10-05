@@ -812,8 +812,18 @@ function userHtml(text){
        本轮的问候气泡/chips 还没进 DOM，高度算不准（会算出一个偏矮的值把内容截掉）。 */
     requestAnimationFrame(function(){ layoutCoach(); scrollBottom(); });
 
-    /* 首次进陪练：本地问候 + chips（不耗 AI 调用） */
-    if(!st.greeted){
+    /* 首次进陪练：本地问候 + chips（不耗 AI 调用）
+       🔴 10/5 16:10 修「跳去别的页面再回来，考官不见了」（她报的第三个问题）：
+         st 是 **window.__coachState 全局单例**，切页回来时 greeted=true 会保留 →
+         这里跳过插入；但软导航已把 #coachScroll 的 DOM 清空重建 →
+         **状态说"打过招呼"、DOM 里却没有那条气泡** = 考官凭空消失。
+         修法：**以 DOM 为准**，只在「线程里没有 AND DOM 里也没有」时才插。
+         两者任一存在就不重复插（避免同一段对话出现两次问候）。 */
+    var scrollHasContent = false;
+    try{ var sc=$('coachScroll'); scrollHasContent = !!(sc && sc.children.length > 0); }catch(_){}
+    var threadHasGreet = false;
+    try{ threadHasGreet = st.thread.some(function(m){ return m && m.role === 'assistant' && m.text === GREETING; }); }catch(_){}
+    if(!st.greeted || (!scrollHasContent && !threadHasGreet)){
       st.greeted = true;
       appendHtml(assistantHtml(GREETING));
       st.thread.push({ role: 'assistant', text: GREETING });
