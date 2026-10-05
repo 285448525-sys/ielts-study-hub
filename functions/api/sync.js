@@ -69,7 +69,24 @@ function metaFromRaw(raw) {
   }
 }
 
+/* 🔴 10/5 16:45 全局兜底（与 auth.js 同款）：把 Workers 的裸 500 翻译成人话。
+   她的截图里 `PUT /api/sync 500` 满屏红 —— 根因是同一天算力配额被烧穿（error code 1101），
+   浏览器只显示「Failed to load resource: 500」，看不出所以然。
+   ⚠️ 同步失败**绝不能静默**：本机数据一律不动，这里只把错误说清楚。 */
 export async function onRequest(context) {
+  try {
+    return await handleRequest(context);
+  } catch (err) {
+    const msg = String((err && err.message) || err || '');
+    if (/1101|Worker exceeded|K exceeded|CPU/i.test(msg)) {
+      return json({ ok: false, error: 'server_busy',
+        msg: '服务暂时繁忙（算力配额已用尽，通常是当天调用过多）。请稍后再试 —— 本机数据没有丢，只是没能同步上去。' }, 503);
+    }
+    return json({ ok: false, error: 'server_error', msg: '同步服务出错了，请稍后再试（本机数据不受影响）' }, 500);
+  }
+}
+
+async function handleRequest(context) {
   const { request, env } = context;
 
   // 预检请求：直接回 204 + CORS 头，不进入业务逻辑

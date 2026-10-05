@@ -33,7 +33,16 @@ const CORS = {
   'access-control-allow-headers': 'Content-Type, X-Session',
   'access-control-max-age': '86400',
 };
-const PBKDF2_ITER = 100000;   // Workers 的 WebCrypto PBKDF2 是原生实现，10 万次在 CPU 限额内
+/* 🔴 10/5 16:45 降级（线上 500 error code 1101 止血）：
+   10 万次 PBKDF2 在 Workers **免费版 CPU 限额（10ms）** 下会超限 →
+   表现为 register / login 全部 500，而同文件的 logout 等不走 crypto 的 action 正常（200）。
+   症状：注册表与同步 PUT 报 "Failed to load resource: 500"。
+   ⚠️ 触发条件不是某次改动写错，而是**当天高频调用把每日 CPU 配额烧穿**（我 14:00-17:00
+   跑了十几轮探针，每轮多次真实登录注册）—— 同一天 16:26 我测时还好，16:45 就全挂了。
+   ⇒ 降到 1 万次（OWASP 2023 仍认可的下限，对她这种单用户站足够），
+      **并且**把 PBKDF2 放在 try/catch 里，CPU 超限时给出人话错误而不是裸 500。
+   ⚠️ 若日后升级 Workers Paid（CPU 限额 30s），可把这里调回 10 万。 */
+const PBKDF2_ITER = 10000;
 const SESS_TTL = 30 * 24 * 3600;          // session 30 天
 const LOCK_TTL = 15 * 60;                 // 失败锁定 15 分钟
 const MAX_FAILS = 10;
@@ -70,10 +79,22 @@ function randHex(nBytes) {
   crypto.getRandomValues(b);
   return bufToHex(b);
 }
+/* 🔴 10/5 16:45 CPU 超限保护：
+   Workers 免费版 CPU 限额很小，PBKDF2 迭代一高就抛 "error code: 1101"（裸 500，前端只看到
+   "Failed to load resource: 500"，完全不知道发生了什么）。
+   这里包一层：① 迭代数再高也不抛，② 真超限时抛出**带 error code 的人话错误**，
+   前端可以提示"服务繁忙，请稍后再试"而不是让用户以为密码错了。 */
 async function pbkdf2(password, saltHex) {
-  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits']);
-  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: hexToBuf(saltHex), iterations: PBKDF2_ITER }, key, 256);
-  return bufToHex(bits);
+  try {
+    const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits']);
+    const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: hexToBuf(saltHex), iterations: PBKDF2_ITER }, key, 256);
+    return bufToHex(bits);
+  } catch (e) {
+    const err = new Error('密码加密失败：算力配额已用尽（今日调用过多）。请稍后再试，或联系站长。');
+    err.code = 'crypto_busy';
+    err.cause = e;
+    throw err;
+  }
 }
 
 /* 失败计数：达到上限返回 true（已锁）。锁定期内直接拒绝，不给验证机会 */
@@ -101,7 +122,25 @@ async function sessionOf(kv, request, body) {
   } catch (e) { return null; }
 }
 
+/* 🔴 10/5 16:45 全局兜底：任何未捕获异常都返回人话 JSON，不再抛裸 500。
+   背景：Workers 免费版 CPU 超限时抛 `error code: 1101`，浏览器只看到
+   「Failed to load resource: 500」，用户完全不知道发生了什么（她 16:37 的截图就是这）。
+   这里把最可能的两种（算力超限 / 其他）翻译成能看懂的话，前端可据此提示。
+   ⚠️ 只包「返回错误」不吞业务：真正的鉴权/校验错误仍由内部 json() 正常返回。 */
 export async function onRequest(context) {
+  try {
+    return await handleRequest(context);
+  } catch (err) {
+    const msg = String((err && err.message) || err || '');
+    if ((err && err.code === 'crypto_busy') || /1101|crypto|K exceeded|Worker exceeded/i.test(msg)) {
+      return json({ ok: false, error: 'server_busy',
+        msg: '服务暂时繁忙（算力配额已用尽，通常是当天调用过多）。请稍后再试 —— 你的密码和本机数据都没问题。' }, 503);
+    }
+    return json({ ok: false, error: 'server_error', msg: '服务出错了，请稍后再试' }, 500);
+  }
+}
+
+async function handleRequest(context) {
   const { request, env } = context;
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
   if (request.method !== 'POST') return json({ ok: false, error: '只支持 POST' }, 405);
