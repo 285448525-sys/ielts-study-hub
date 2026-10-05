@@ -43,7 +43,7 @@
   <script defer src="js/feedback.js?v=20261002b"></script>
 <!-- design/78 双词库适配层：index.js 的 wbActive/wbDueCount 依赖它（defer 按文档序执行） -->
 <script defer src="js/wordbank.js?v=20261001a"></script>
-<script defer src="js/index.js?v=20261005c"></script>
+<script defer src="js/index.js?v=20261005d"></script>
 <style id="homePageStyle">
 /* hero 会员小标（10/1：AI 转化卡删掉后的低调会员态展示，她拍板「不明显但不能不显示」。
    样式放页内不动 common.css 免全站 bump） */
@@ -95,9 +95,28 @@
 .three-fold:hover{background:var(--n-50,var(--n-100))}
 .tf-dot{width:7px;height:7px;border-radius:50%;background:var(--primary);flex:none}
 .tf-tx{font-size:13px;font-weight:700;color:var(--ink)}
+/* 10/5 23:45「还没布置今天？」双入口（她要求「还能选择自己去布置今天的任务」）。
+   放在卡底、与上面的建议行用虚线分隔 —— 它是**兜底**不是第4 条建议，
+   视觉上必须比 .three-row 轻（无独立边框、字更小），否则又变成一条并列推荐。 */
+.three-plan{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  margin-top:2px;padding:10px 0 8px;border-top:1px dashed var(--n-200,var(--n-100));
+}
+.three-plan-t{font-size:12.5px;color:var(--muted);margin-right:auto}
+.three-plan-b{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:34px;padding:0 13px;border-radius:999px;
+  border:1px solid var(--n-200,var(--n-100));background:var(--n-0);
+  color:var(--ink-2);font-size:12.5px;font-weight:600;text-decoration:none;white-space:nowrap;
+  transition:border-color .15s,color .15s;
+}
+.three-plan-b:hover{border-color:var(--primary-200);color:var(--primary-700)}
 @media(max-width:560px){
   .three-row{flex-wrap:wrap}
   .three-go{width:100%;min-height:40px}   /* 移动端：动作按钮整行，命中区达标 */
+  .three-plan{gap:7px}
+  .three-plan-t{width:100%;margin-right:0}      /* 文案独占一行，两个按钮并排 */
+  .three-plan-b{flex:1 1 0;min-height:40px}     /* 触控命中区 ≥40px */
 }
 </style>
 <style id="bootLoaderStyle">

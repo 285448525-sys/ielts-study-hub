@@ -22,11 +22,14 @@ ready(async () => {
     $('#userName').textContent = s.name || '同学';
   });
 
+  /* 10/5 路线图②-2a：给新用户的「今天先做这三件事」（有真实数据才出，且已做过的不重复给）
+     ⚠️ 10/5 23:40 **顺序有语义**：必须排在 renderDashV6 之前 ——
+        renderDashTasks（内含于 renderDashV6）要读「#threeThings 是否已渲染」来决定
+        自己是否让位给三件事卡。顺序颠倒 → 它永远读到「未渲染」→ 有任务时也把卡收掉。*/
+  safe(renderThreeThings);
+
   // v6 首页渲染（design/31 A 版）
   safe(renderDashV6);
-
-  // 10/5 路线图②-2a：给新用户的「今天先做这三件事」（有真实数据才出，且已做过的不重复给）
-  safe(renderThreeThings);
 
   // 首次进入引导提示条（仅首页）：三步没走完时出现，三步齐了或点「不再提示」后永久消失
   safe(renderOnboardingBar);
@@ -39,10 +42,13 @@ ready(async () => {
 
   // 今日任务卡实时刷新：云合并 / 计时状态变化就地重渲染（同样先摘旧监听再挂，防软导航重复绑定）
   if(typeof window.__hubDashTasksMerged === 'function') document.removeEventListener('hub:data-merged', window.__hubDashTasksMerged);
-  window.__hubDashTasksMerged = () => { safe(renderDashTasks); safe(renderOnboardingBar); };
+  /* 🔴 10/5 23:42 两个都要重渲染，且**顺序固定：先三件事、后任务卡** ——
+     云合并可能把「今天有任务」带进来/带走，两卡互斥，必须按同一顺序重算，
+     否则 renderDashTasks 又会读到上一轮的 #threeThings 状态。*/
+  window.__hubDashTasksMerged = () => { safe(renderThreeThings); safe(renderDashTasks); safe(renderOnboardingBar); };
   document.addEventListener('hub:data-merged', window.__hubDashTasksMerged);
   if(typeof window.__hubDashTasksTimer === 'function') document.removeEventListener('hub:timer-state', window.__hubDashTasksTimer);
-  window.__hubDashTasksTimer = () => safe(renderDashTasks);
+  window.__hubDashTasksTimer = () => { safe(renderThreeThings); safe(renderDashTasks); };
   document.addEventListener('hub:timer-state', window.__hubDashTasksTimer);
 
   // 10/1 UI v2 · 底部轻量条：PWA 安装链接（复用 design/80 的 hubPwaState/hubPwaInstall，零新机制）
@@ -280,6 +286,31 @@ function threeThingsList(){
 function renderThreeThings(){
   const host = document.getElementById('threeThings');
   if(!host) return;
+
+  /* 🔴 10/5 23:35 场景化（她 23:28 原话：「作为老用户，这个模块是个累赘……」
+     但「可能新用户会喜欢，我也说不清」→ 按**有没有今日任务**分场景，不按新老用户）：
+       ① 今天已有任务 → **整个模块不渲染**。理由：她明确说「我已经有今日任务放在这的，
+          你就不要给我这一块东西」—— 今日任务卡已经把「今天做什么」说清楚了，
+          再加一份「建议」是**重复且互相矛盾**的信息（一边让她背 570 词，一边她自己的任务表
+          已经排好了）。这跟当年「继续上次」是同一类错：**站内已有能力就别再叠一层推荐**。
+       ② 今天没任务 → 该模块**接管今日任务卡的位置**，并给「自己布置」的入口。
+          她原话：「把这个模块替换掉今日任务这个模块去……同时你还能选择自己去布置今天的任务」。
+     ⚠️ 判定必须读**同一个** plan 口径（todayKey + items 非空），与 renderDashTasks 完全一致；
+        另需 ensureTodayPlanCarried() 先跑（否则「昨天有任务今天延续」的正常用户在
+        判定时看到空 plan → 误判成新用户 → 又把建议塞回来）。
+     ⚠️ 不看「用户是不是 VIP / 有没有头像」这类身份标签 —— 按铁律禁用用户身份标签。*/
+  try{ ensureTodayPlanCarried(); }catch(e){}
+  let hasTasks = false;
+  try{
+    const _p = (DATA.plans || []).find(p => p && p.date === todayKey());
+    hasTasks = !!(_p && Array.isArray(_p.items) && _p.items.length);
+  }catch(e){}
+  if(hasTasks){
+    host.hidden = true;
+    host.innerHTML = '';
+    return;
+  }
+
   const list = threeThingsList();
   if(!list.length){ host.hidden = true; host.innerHTML = ''; return; }
 
@@ -299,6 +330,9 @@ function renderThreeThings(){
 
   const head = list.length === 1 ? '今天先做这件事' : '今天先做这三件事';
   host.hidden = false;
+  /* 无任务场景：底部给「自己布置今天」双入口（她要求「还能自己去布置今天的任务」）。
+     ① AI 安排：带 hub_focus_plan_input 暗号，计划页 ready 读它聚焦输入框（同 #dashAiPlanBtn 的做法）
+     ② 手动添加：直接去计划页。两条都是**跳转**，不新增任何 DATA 字段。 */
   host.innerHTML = '<div class="three-card">'
     + '<div class="three-h"><h3>' + head + '</h3>'
       + '<button type="button" class="three-foldbtn" data-three-fold aria-label="收起" title="收起">收起</button>'
@@ -308,11 +342,21 @@ function renderThreeThings(){
         + '<div class="three-s">' + escapeHtml(t.sub) + '</div></div>'
         + '<a class="three-go" href="' + escapeHtml(t.file) + '" data-three-key="' + t.key + '">' + escapeHtml(t.cta) + '</a>'
       + '</div>').join('')
+    + '<div class="three-plan">'
+      + '<span class="three-plan-t">还没布置今天？</span>'
+      + '<a class="three-plan-b" href="plans.html" data-three-ai>AI 帮我安排</a>'
+      + '<a class="three-plan-b" href="plans.html">自己添加</a>'
+    + '</div>'
     + '</div>';
   const fb = host.querySelector('[data-three-fold]');
   if(fb) fb.addEventListener('click', () => {
     try{ localStorage.setItem(THREE_FOLD_KEY, '1'); }catch(e){}
     renderThreeThings();
+  });
+  /* 「AI 帮我安排」→ 计划页并聚焦输入框（暗号与 #dashAiPlanBtn 共用同一个 key） */
+  const aiBtn = host.querySelector('[data-three-ai]');
+  if(aiBtn) aiBtn.addEventListener('click', () => {
+    try{ sessionStorage.setItem('hub_focus_plan_input', '1'); }catch(e){}
   });
   /* 「练口语」那一条：软导航到 speaking 页后直接抽题 —— 省掉「到了还要再点一次」。
      ⚠️ 暗号值必须与 speaking.js 里的判定**逐字一致**（'p1'）：两处各写各的必然对不上，
@@ -338,6 +382,9 @@ function renderDashTasks(){
   try{
   const host = document.getElementById('dashTodayTasks');
   if(!host) return;
+  /* 🔴 每次进来先恢复显示：上一轮无任务时本卡被 style.display='none' 收起来过，
+     这轮若用户已布置任务，必须显式复位，否则**卡永远不回来**（典型的「一次性开关」陷阱）。*/
+  host.style.display = '';
   // 她报的 bug：每天第一次开首页时今日任务为空（要先进一次计划页才有）——
   // 原延续逻辑只在 plans.js render() 里触发，首页不进计划页就不搬。
   // 现在首页也触发（common.js ensureTodayPlanCarried，幂等：今天有计划对象就 no-op）。
@@ -394,6 +441,19 @@ function renderDashTasks(){
 
   // 空状态（今天无计划或无 items）：引导去计划页
   if(items.length === 0){
+    /* 🔴 10/5 23:35「今天先做这些」接管空态（她 23:28：「把这个模块替换掉今日任务这个模块去」）
+       —— 无任务时，三件事卡**自己就是**「今天做什么」的答案，再摆一个「今天还没有学习计划 +
+          AI 帮我安排 + 手动添加」的空态卡就是**同一件事说两遍**。
+       —— 所以无任务时把本卡整个收掉，改由 #threeThings 顶上来（它底部已带布置入口）。
+       —— 有任务时照旧渲染本卡（此时三件事不渲染，见 renderThreeThings 的 hasTasks 分支）。
+       ⚠️ 这里用 style.display 而不是 hidden：`.dash-tasks` 有 CSS 兜底样式，
+          只切 hidden 会被样式表的 display 覆盖。*/
+    const three = document.getElementById('threeThings');
+    const threeShown = three && !three.hidden && three.innerHTML.trim() !== '';
+    if(threeShown){
+      host.style.display = 'none';
+      return;
+    }
     html += '<div class="dash-tasks-empty">'
       + '<div class="tip">今天还没有学习计划</div>'
       + '<div class="btn-row">'
