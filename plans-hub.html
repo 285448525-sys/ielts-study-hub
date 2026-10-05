@@ -31,8 +31,23 @@
   </div>
 </main>
 
-<script defer src="js/data.js?v=20261003b"></script>
-<script defer src="js/common.js?v=20261005a"></script>
+<!-- 10/5 15:04 组页提速：hubgroup.js 是自包含的（实测零引用 common.js 的任何符号），
+     所以 data.js(120K) + common.js(275K) 改为**动态加载**，让卡片先渲染出来。
+     病根：之前三个都是 defer 并行下载执行，而 initBootLoader(common.js) 与 hubgroup 的 boot()
+     在同一个 DOMContentLoaded 上抢跑 —— 慢的那次就把转圈遮罩留在屏幕上（实测 study/plans-hub 遮罩残留），
+     卡片其实早渲染好了、只是被盖住，看起来像「加载半天」。
+     修法：先渲染卡片（立刻可见、可点）→ 再异步补 common.js（导航/dock/主题/SW 随后到位）。 -->
 <script defer src="js/hubgroup.js?v=20261004b"></script>
+<script>
+  (function(){
+    function late(){
+      var d=document.createElement('script'); d.src='js/data.js?v=20261003b'; document.body.appendChild(d);
+      var c=document.createElement('script'); c.src='js/common.js?v=20261005a'; document.body.appendChild(c);
+    }
+    // requestIdleCallback：卡片渲染完再拉，弱网下先看到内容而不是空等
+    if(window.requestIdleCallback) requestIdleCallback(late,{timeout:1200});
+    else setTimeout(late,150);
+  })();
+</script>
 </body>
 </html>
