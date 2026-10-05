@@ -3616,6 +3616,10 @@ async function softNavigate(t, isPop){
     swapPageStyles(doc, t.id);                          // 同步页面专属 <style>，避免样式丢失
     main.innerHTML = newMain.innerHTML;                 // 只换内容区，侧边栏/全局状态保留
     if(doc.title) document.title = doc.title;
+    /* 🔴 10/6 01:12 「当前页身份」在这里一次性对齐 —— 覆盖**全部入口**（点击 / 后退 / 直接调用 softNavigate）。
+       原来只有 onHubLinkClick 会写 _hubCurrentFile，popstate（浏览器后退）那条路根本不写 → 身份滞后。 */
+    _hubCurrentFile = t.file;
+    syncBodyPageAttrs(doc);
     // ⚠️ 性能修复（口语/写作打开卡顿）：runPageScript 会 eval 2140 行的 speaking.js + 4 个附加脚本并同步渲染
     //    官方题库/P2/P3 诊断树，若直接 await 会阻塞主线程、画面“冻住”。先让本次内容交换 + 高亮先 paint，
     //    再用 requestAnimationFrame 把重脚本执行推到下一帧，打开即流畅。
@@ -3716,7 +3720,25 @@ async function runPageScript(id, doc){
       console.warn('[soft-nav] 附加脚本执行失败，已跳过：', srcs[i], err);
     }
   }
-  /* 🔴 10/6 00:40 补（她连报 5 次「按钮点不了」的真根因）：**body 内联 <script> 也要重跑**。
+  /* 🔴 10/6 01:12 同步 <body> 上的**页面级**属性 —— 修「点计划/我的，渲染出来全是学习页」。
+   背景：软导航只换 <main>，从不碰 <body>，于是 `body[data-hub-group]` 永远停留在
+   **第一次硬加载的那张组页**（`<body data-hub-group="study">` 写在 HTML 里）。
+   hubgroup.js 的 hostGroup() 又把它排在第一优先 → 之后进任何组页都渲染成那一个组。
+   ⭐ 探针证据（tests/_probe_dock_group_1006.cjs）：先硬开 study → 走到主页 → 点计划 → 渲染「学习」。
+   ⚠️ **只精确动 data-hub-group 这一族，不清空 body 的全部 data-*** ——
+      运行时还有别人在用 body 的 data-*：av-picker 的 `data-avtab`、words 的 `body.dataset.init`，
+      一把全删会把它们的中间状态抹掉。对这类只做「目标有就覆盖」，不删除。 */
+function syncBodyPageAttrs(doc){
+  try{
+    const src = doc && doc.body, cur = document.body;
+    if(!src || !cur) return;
+    const GROUP = 'data-hub-group';
+    const v = src.getAttribute(GROUP);
+    if(v) cur.setAttribute(GROUP, v); else cur.removeAttribute(GROUP);
+  }catch(_){}
+}
+
+/* 🔴 10/6 00:40 补（她连报 5 次「按钮点不了」的真根因）：**body 内联 <script> 也要重跑**。
      此前只 eval script[src]，而软导航换的是 <main>、head/body 内联脚本从不执行，于是：
        · settings.html 左目录切换（内联）→ 委托监听压根没绑 → 点了零反应、零报错
        · vip / settings 的 .rv 进场动画（内联）→ 新插入的 .rv 停在 opacity:0 永久隐形

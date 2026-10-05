@@ -69,10 +69,18 @@
     return null;
   }
   function hostGroup(){
+    /* 🔴 10/6 01:12 **优先级反转**（这就是「点计划/我的，渲染出来全是学习页」的正病根）。
+       旧写法把 `body[data-hub-group]` 排第一 —— 可软导航只换 <main> 不动 <body>，
+       那个属性永远停在**第一次硬加载的那张组页**上，于是之后进哪个组都渲染成同一个。
+       现在：① 当前文件（_hubCurrentFile，导航层在换 main 时统一写入，最可靠）
+            ② URL pathname（直接打开 / 浏览器后退时它先变）
+            ③ body 属性（最后兜底；软导航层现已同步它，见 common.js syncBodyPageAttrs） */
+    const byFile = fromFile(typeof _hubCurrentFile !== 'undefined' ? _hubCurrentFile : '')
+                || fromFile(location.pathname.split('/').pop() || '');
+    if(byFile && GROUPS[byFile]) return byFile;
     const byBody = document.body.getAttribute('data-hub-group');
     if(byBody && GROUPS[byBody]) return byBody;
-    return fromFile(location.pathname.split('/').pop() || '')
-        || fromFile(typeof _hubCurrentFile !== 'undefined' ? _hubCurrentFile : '');
+    return byFile || byBody;
   }
 
   function render(){

@@ -30,7 +30,7 @@
 // 开合（窄屏原本点了开记忆弹层、且教练台整块隐藏→现在展开态显示为浮层）；发送框收到 36px。v212→v213
 // 10/4 13:36 她看过实机后补一条：手机端教练台改为**默认收起**（点开才出现）；
 // 桌面维持默认展开。窄屏开合只记内存、不写回设置，避免「手机收起把电脑右栏也收掉」。v213→v214
-const CACHE = 'ielts-hub-v245';  // 10/6 00:45 P0 修「软导航后 body 内联脚本不执行 + main 之外的容器不搬运」（她连报 5 次「按钮点不了」的真根因）：① common.js 的 runPageScript 只 eval script[src]，body 内联脚本从不重跑 → settings 左目录切换的委托监听压根没绑（点了零反应零报错）、vip/settings 的 .rv 停在 opacity:0、组页自收 #bootLoader 遮罩没人撤；新增 pageInlineScripts() 一并 eval；② plans.html 的 #diagOverlay 原先挂在 main 结束标签之外，软导航不带它 → 「查看完整诊断报告/重新诊断」首行 if(!ov) return 静默退出；已移进 <main>（无 transform 祖先，fixed 定位不受影响）。上一版 v244 · 10/6 00:05 删除首页「安装到桌面」入口（beforeinstallprompt 首访不触发 = 死按钮）
+const CACHE = 'ielts-hub-v246';  // 10/6 01:15 P0 修移动端「点计划/学习/我的，渲染出来的全是同一个组页」：三个组页的 <body data-hub-group> 写死在 HTML 里，而软导航只换 <main> 从不更新 <body> → 该属性永久停留在**第一次硬加载的那张组页**上，hubgroup.js 的 hostGroup() 又把它排第一优先 → 之后进任何组都渲染成那一个。双修：① common.js syncBodyPageAttrs() 在换 main 时同步页面级 data-*（只精确动 data-hub-group，不清空全部 data-* —— av-picker 的 data-avtab、words 的 body.dataset.init 还在用）；② hubgroup.js hostGroup() 优先级反转为 当前文件 > URL > body 属性；③ softNavigate 显式写 _hubCurrentFile（覆盖后退那条路）。上一版 v245 · 10/6 00:45 修软导航不跑 body 内联脚本 + 不搬运 main 外容器
 // 10/5 14:35 设置页合并目标分数+口语自评 + 删竖排版本标记 + 顶栏显昵称（common.js/settings.js 改版）
   // 10/4 19:20 题库卡片「显示不全、被截掉一截」（她 19:10 报，点名「住所」与「对结果开心的重要决定」，说了好几遍）
 //
