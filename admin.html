@@ -42,10 +42,12 @@ body{
 .btn:disabled{opacity:.55;cursor:default}
 input.small{height:36px;border:1.5px solid var(--line);border-radius:8px;padding:0 10px;font-size:14px;outline:none}
 input.small:focus{border-color:var(--p-500)}
-/* 总览 */
-.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+/* 总览 —— 10/5 P1 由 5 格扩到 7 格。改用 auto-fit 自适应栅格：
+   5 格写死 repeat(5,1fr) 时每格最窄仅 ~180px，7 格在 1280px 下会挤到数字换行。
+   auto-fit + minmax 让格数随宽度自然换行，**不必再手写断点**，375px 手机上自动降到单列/双列。 */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:12px}
 .stats div{background:#f6f8f9;border-radius:10px;padding:14px}
-.stats b{display:block;font-size:24px;color:var(--n-900)}
+.stats b{display:block;font-size:24px;color:var(--n-900);font-variant-numeric:tabular-nums}
 .stats span{font-size:12.5px;color:var(--n-600)}
 /* 表格 */
 table{width:100%;border-collapse:collapse;font-size:13.5px}
@@ -94,7 +96,6 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:
   .fb-who{grid-area:w}.fb-txt{grid-area:w;display:none}
   .fb-shots img{max-width:100%}
 }
-@media (max-width:720px){ .stats{grid-template-columns:repeat(2,1fr)} }
 </style>
 </head>
 <body>
@@ -134,6 +135,8 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:
       <div><b id="stUsers">-</b><span>注册用户</span></div>
       <div><b id="stSess">-</b><span>活跃登录（30 天内）</span></div>
       <div><b id="stAi">-</b><span>今日 AI 调用（全站）</span></div>
+      <div><b id="stAiWeek">-</b><span>本周 AI 调用（全站）</span></div>
+      <div><b id="stAiMonth">-</b><span>本月 AI 调用（全站）</span></div>
       <div><b id="stInv">-</b><span>邀请码剩余可用</span></div>
       <div><b id="stVip">-</b><span>会员（有效期内）</span></div>
     </div>
@@ -163,9 +166,9 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:
   <!-- 用户 -->
   <div class="card">
     <h2>注册用户</h2>
-    <p class="desc">账号 + 注册时间 + 今日 AI 调用次数 + 会员状态（点击账号可复制）</p>
+    <p class="desc">账号 + 注册时间 + AI 调用次数（今日 / 本周 / 本月）+ 会员状态（点击账号可复制）</p>
     <table>
-      <thead><tr><th>#</th><th>账号</th><th>注册时间</th><th>今日 AI 次数</th><th>会员</th></tr></thead>
+      <thead><tr><th>#</th><th>账号</th><th>注册时间</th><th>今日 AI</th><th>本周 AI</th><th>本月 AI</th><th>会员</th></tr></thead>
       <tbody id="userBody"></tbody>
     </table>
     <p class="muted" id="userEmpty" style="margin-top:8px">还没有注册用户。</p>
@@ -196,7 +199,7 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:
     <p class="muted" id="vipEmpty" style="margin-top:8px">还没有会员。开通过程全自动，无需到 CF 后台。</p>
   </div>
 
-  <p class="muted" style="text-align:center">会员状态以服务端 vip:&lt;账号&gt; 键为准 · 已接入 AI 额度闸（会员不受免费额度限制）· 10/2</p>
+  <p class="muted" style="text-align:center">会员状态以服务端 vip:&lt;账号&gt; 键为准 · 已接入 AI 额度闸（会员不受免费额度限制）· AI 用量统计自 10/5 修复计数丢失后开始累计（此前未计费，历史无数据）</p>
   </div><!-- /pgData -->
 
   <!-- 意见反馈（10/2） -->
@@ -298,10 +301,12 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:
   });
 
   function render(){
-    $('dayTag').textContent = 'AI 计量日 ' + (DATA.day || '');
+    $('dayTag').textContent = 'AI 计量：今日 ' + (DATA.day || '') + ' · 本周 ' + (DATA.week || '') + ' · 本月 ' + (DATA.month || '');
     $('stUsers').textContent = (DATA.users || []).length;
     $('stSess').textContent = DATA.sessCount != null ? DATA.sessCount : '-';
     $('stAi').textContent = DATA.aiToday != null ? DATA.aiToday : '-';
+    $('stAiWeek').textContent = DATA.aiWeek != null ? DATA.aiWeek : '-';
+    $('stAiMonth').textContent = DATA.aiMonth != null ? DATA.aiMonth : '-';
 
     var invLeft = 0;
     (DATA.invites || []).forEach(function(v){ invLeft += Math.max(0, (v.max||0) - (v.used||0)); });
@@ -333,9 +338,11 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:
       tb.appendChild(tr);
     });
 
-    /* 用户表（含会员列） */
+    /* 用户表（含会员列 + AI 三维度） */
     var ub = $('userBody'); ub.innerHTML = '';
     var users = DATA.users || [];
+    var uWeek = DATA.usageWeek || {};
+    var uMonth = DATA.usageMonth || {};
     $('userEmpty').style.display = users.length ? 'none' : '';
     users.forEach(function(u, i){
       var v = vipMap[u.acct];
@@ -347,6 +354,8 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:
         + '<td style="cursor:pointer" title="点击复制" data-acct="' + u.acct + '"><b>' + u.acct + '</b></td>'
         + '<td>' + fmtTs(u.created) + '</td>'
         + '<td>' + ((DATA.usage || {})[u.acct] || 0) + '</td>'
+        + '<td>' + (uWeek[u.acct] || 0) + '</td>'
+        + '<td>' + (uMonth[u.acct] || 0) + '</td>'
         + '<td>' + vipCell + '</td>';
       ub.appendChild(tr);
     });

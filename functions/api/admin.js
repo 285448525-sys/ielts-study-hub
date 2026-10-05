@@ -6,7 +6,10 @@
 //
 // 能力（她点名的「看到所有用户的数据」 + 商业化第一块基建）：
 //   overview       一次性拉全量：用户列表（账号+注册时间）、邀请码列表（码/限用/已用）、
-//                  今日每账号 AI 调用次数、活跃 session 数、全站今日 AI 总量、会员列表
+//                  AI 用量三维度（今日 aiqa: / 本周 aiqwv: / 本月 aiqmv:，含全站合计与分账号明细）、
+//                  活跃 session 数、会员列表、意见反馈列表
+//                  ⚠️ 10/5 P1：周/月维度依赖 ai.js 侧新写的 aiqwv: / aiqmv: 长 TTL 聚合键
+//                     （TTL 400 天，自然月/ISO 周 UTC 口径，与额度闸同源）。
 //   invite_mint    生成邀请码（随机 8 位或自定义 4-16 位字母数字；max = 可用次数）
 //   invite_revoke  作废邀请码（直接删 inv:<code> 键；已注册的账号不受影响）
 //   vip_grant      给账号开会员（10/1 晚她授权先搭框架）：KV 键 vip:<acct> = { type, expire, grantedAt, note }，
@@ -24,7 +27,9 @@
 //
 // KV 键口径与 ai.js / auth.js 对齐：
 //   user:<acct> / sess:<token> / inv:<CODE> / vip:<acct>
-//   aiqa:<acct>:<YYYYMMDD>:<bucket>   —— ai.js 的按账号 AI 计量（10 个分钟桶轮转）
+//   aiqa:<acct>:<YYYYMMDD>:<bucket>   —— ai.js 的按账号 AI 计量（10 个分钟桶轮转，TTL 48h）
+//   aiqwv:<acct>:<YYYY-Www>           —— 面板「本周 AI 次数」（长 TTL 聚合键，TTL 400 天）
+//   aiqmv:<acct>:<YYYY-MM>            —— 面板「本月 AI 次数」（长 TTL 聚合键，自然月 UTC）
 //   fb:<id> / fbimg:<id>               —— feedback.js 的意见反馈（正文 / 图片体，分键避免列表拉图）
 
 const CORS = {
@@ -50,6 +55,29 @@ function dayKeyUTC(d) {
   return d.getUTCFullYear() + p(d.getUTCMonth() + 1) + p(d.getUTCDate());
 }
 
+/* 自然月键（UTC）：面板「本月 AI 次数」口径，与 ai.js 的 monthKey / auth.js ai_usage 三处同源。
+   她 10/5 拍板用自然月（对齐模考额度的 aiqmo 键），不用滚动 30 天。 */
+function monthKeyUTC(d) {
+  const p = n => String(n).padStart(2, '0');
+  return d.getUTCFullYear() + '-' + p(d.getUTCMonth() + 1);
+}
+
+/* ISO 周键（UTC，周一起始）：面板「本周 AI 次数」口径。
+   ⚠️ 这段算法必须与 ai.js 的 isoWeekKey()、auth.js ai_usage 里的 isoWeekOf() **逐位一致**（三处同款，
+   周四锚点法 + Math.round）。改任何一处必须同步另两处，否则面板周数会与额度扣减对不上。
+   已用已知答案验证：2026-01-01→2026-W01 / 2025-12-29→2026-W01 / 2024-12-30→2025-W01 /
+   2021-01-01→2020-W53 / 2026-10-05→2026-W41。 */
+function isoWeekKeyUTC(d) {
+  const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  const dn = (t.getUTCDay() + 6) % 7;
+  t.setUTCDate(t.getUTCDate() - dn + 3);
+  const ft = new Date(Date.UTC(t.getUTCFullYear(), 0, 4));
+  const fdn = (ft.getUTCDay() + 6) % 7;
+  ft.setUTCDate(ft.getUTCDate() - fdn + 3);
+  const w = 1 + Math.round((t - ft) / (7 * 86400000));
+  return t.getUTCFullYear() + '-W' + String(w).padStart(2, '0');
+}
+
 function randInviteCode() {
   const b = new Uint8Array(8);
   crypto.getRandomValues(b);
@@ -67,6 +95,22 @@ async function listAll(kv, prefix) {
     for (const k of (page.keys || [])) out.push(k.name);
     cursor = page.list_complete ? undefined : page.cursor;
   } while (cursor);
+  return out;
+}
+
+/* 聚合一个「长 TTL 聚合键」前缀成 { acct: 次数 }。键形如 <prefix>:<acct>:<period>。
+   只统计 period === 当前 period 的键（上周/上月的残值不串进本期）。
+   键由 ai.js 在每次成功调用后写入（TTL 400 天），与 ai_usage 读的是同一份 KV 真值。 */
+async function aggPeriod(kv, prefix, period) {
+  const out = {};
+  const keys = await listAll(kv, prefix);
+  for (const name of keys) {
+    const parts = name.split(':');
+    if (parts.length !== 3 || parts[2] !== period) continue;
+    const n = parseInt((await kv.get(name)) || '0', 10) || 0;
+    if (!n) continue;
+    out[parts[1]] = (out[parts[1]] || 0) + n;
+  }
   return out;
 }
 
@@ -120,6 +164,17 @@ export async function onRequest(context) {
       aiToday += n;
     }
 
+    /* 10/5 P1（她要「本月/本周」维度）：读 ai.js 侧新写的长 TTL 聚合键。
+       aiqa: 只有 48h TTL 存不下月维度，故 ai.js 另写 aiqwv:（周）/ aiqmv:（月），TTL 400 天。
+       口径：周 = ISO 周（周一至周日，UTC），月 = 自然月（UTC）—— 均与额度闸同源。
+       残值处理：只聚合 period === 当前 period 的键，上周/上月残值不串进本期。 */
+    const week = isoWeekKeyUTC(new Date());
+    const month = monthKeyUTC(new Date());
+    const usageWeek = await aggPeriod(kv, 'aiqwv:', week);
+    const usageMonth = await aggPeriod(kv, 'aiqmv:', month);
+    const aiWeek = Object.keys(usageWeek).reduce((s, k) => s + usageWeek[k], 0);
+    const aiMonth = Object.keys(usageMonth).reduce((s, k) => s + usageMonth[k], 0);
+
     const sessCount = (await listAll(kv, 'sess:')).length;
 
     /* 会员列表：vip:<acct> = { type, expire(ms), grantedAt, note }；到期剩余天数一并算好。
@@ -151,7 +206,12 @@ export async function onRequest(context) {
     feedbacks.sort((a, b) => (b.ts || 0) - (a.ts || 0));   // 新的在前
     const fbUnread = feedbacks.filter((v) => !v.read).length;
 
-    return json({ ok: true, day: day, users: users, invites: invites, usage: usage, aiToday: aiToday, sessCount: sessCount, vips: vips, feedbacks: feedbacks, fbUnread: fbUnread });
+    return json({ ok: true, day: day, week: week, month: month,
+      users: users, invites: invites,
+      usage: usage, aiToday: aiToday,
+      usageWeek: usageWeek, aiWeek: aiWeek,
+      usageMonth: usageMonth, aiMonth: aiMonth,
+      sessCount: sessCount, vips: vips, feedbacks: feedbacks, fbUnread: fbUnread });
   }
 
   /* ---------- 生成邀请码 ---------- */

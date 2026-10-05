@@ -26,6 +26,17 @@
 //
 // 限流实现说明：计数落在 SYNC_KV，键按「天 + 10 个轮转桶」打散，避开 KV「同一 key 每秒 1 次写」
 // 的限制。当前流量（每日几十~几百次）完全够用；真到每天上万次请换 D1 / Durable Objects。
+//
+// 计量键清单（admin 面板 /api/admin overview 聚合这些键）：
+//   aiq:<day>:<bucket>            全站今日总量（10 桶轮转，TTL 48h）
+//   aiqip:<ip>:<day>:<bucket>     单 IP 今日（TTL 48h）
+//   aiqa:<acct>:<day>:<bucket>    按账号今日（TTL 48h）—— 面板「今日 AI 次数」
+//   aiqw:<acct>:<YYYY-Www>        免费账号周兜底计数（TTL 10 天）
+//   aiqmo:<acct>:<YYYY-MM>        口语模考月额度（TTL 40 天）
+//   aiqt:<acct>:writing           写作批改终身额度（无 TTL）
+//   aiqm:<acct>:<day>:<HHMM>      分钟风控（TTL 2 分钟自愈）
+//   aiqwv:<acct>:<YYYY-Www>       面板「本周 AI 次数」（TTL 400 天，只增不判）
+//   aiqmv:<acct>:<YYYY-MM>        面板「本月 AI 次数」（TTL 400 天，自然月 UTC）
 
 /* 默认对任意来源开放（本站要能在 pages.dev / 本地 / 自定义域下都调用）。
    若担心别人盗刷额度，把环境变量 AI_ALLOW_ORIGIN 设成自己的域名（如 https://ielts.example.com），
@@ -373,6 +384,28 @@ export async function onRequest(context) {
       try {
         const curMin = parseInt((await env.SYNC_KV.get(minKey)) || '0', 10) || 0;
         await env.SYNC_KV.put(minKey, String(curMin + 1), { expirationTtl: 120 });
+      } catch (e) {}
+    })());
+
+    /* ④ 面板长周期聚合（10/5 P1 她要「本月/本周」维度）：aiqa: 的 TTL 只有 48 小时，
+       存不下月维度 → 这里另写两份长 TTL 键，只增不改，不影响任何闸门：
+         aiqwv:<acct>:<YYYY-Www>  TTL 400 天 → 面板「本周 AI 次数」
+         aiqmv:<acct>:<YYYY-MM>   TTL 400 天 → 面板「本月 AI 次数」
+       月口径 = **自然月 UTC**，与额度闸的 aiqmo / auth.js ai_usage 严格同源（她 10/5 拍板）。
+       ⚠️ 周键算法必须与 aiqw（额度闸）、auth.js ai_usage 三处逐位一致，改一处必须同步三处。
+       ⚠️ 会员也计数（面板要看得到会员用量）；写失败被 try/catch 吞掉，不影响主流程。 */
+    jobs.push((async () => {
+      try {
+        const wk2 = 'aiqwv:' + acct + ':' + week;
+        const curW2 = parseInt((await env.SYNC_KV.get(wk2)) || '0', 10) || 0;
+        await env.SYNC_KV.put(wk2, String(curW2 + 1), { expirationTtl: 34560000 });
+      } catch (e) {}
+    })());
+    jobs.push((async () => {
+      try {
+        const mk2 = 'aiqmv:' + acct + ':' + month;
+        const curM2 = parseInt((await env.SYNC_KV.get(mk2)) || '0', 10) || 0;
+        await env.SYNC_KV.put(mk2, String(curM2 + 1), { expirationTtl: 34560000 });
       } catch (e) {}
     })());
 
