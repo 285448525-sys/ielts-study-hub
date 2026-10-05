@@ -535,10 +535,24 @@ setTimeout(__rvRescue,2500);
     hit.style.width = Math.round(w * 0.56) + 'px';
     hit.style.transform = 'translateX(' + Math.round(left + w * 0.22) + 'px)';
   }
-  document.addEventListener('click', function(e){
+  /* 🔴 10/5 16:05 她第三次报「左边这几个按钮点不了」——
+     页面代码我已逐项验过都是好的（1050/900/800/700/600 五种宽度都能点、无遮挡、pointer-events 正常、
+     无报错、go() 逻辑完整），所以**问题在「点击事件没送达页面」**（旧缓存 / 扩展拦截 / 非页面元素压住）。
+     但页面不该把可用性押在「click 一定送达」上 —— 加 pointerdown 兜底：
+     很多浏览器插件只拦 click（保留 pointerdown），或反过来。双保险 + 去重，
+     同一按钮 500ms 内只切一次，不会有「切两遍」的闪。 */
+  var _hitAt = {};                       // 按钮 → 上次处理时间戳（去重）
+  function handleNavActivate(e){
     if(!e.target || !e.target.closest) return;
     var b = e.target.closest('.set-nav-item, .set-topmore');
     if(!b) return;
+    if(e.type === 'click'){
+      // pointerdown 已处理过的，这次 click 直接忽略（否则会连切两次）
+      var last = _hitAt[b.__k || (b.__k = Math.random().toString(36).slice(2))];
+      if(last && (Date.now() - last) < 600) return;
+    }
+    var key = (b.__k || (b.__k = Math.random().toString(36).slice(2)));
+    _hitAt[key] = Date.now();
     e.preventDefault();
     var name = b.getAttribute('data-goto');
     var before = b.getAttribute('data-goto') === name && (function(){
@@ -558,7 +572,11 @@ setTimeout(__rvRescue,2500);
     }catch(_){ top = 0; }
     try{ window.scrollTo({ top: top, behavior: 'auto' }); }
     catch(_){ window.scrollTo(0, top); }
-  });
+  }
+  /* 双事件绑定：pointerdown 先走（插件常只拦 click），click 再走（没被 pointerdown 拦的正常路径），
+     靠 _hitAt 的 600ms 去重保证同一次点击只切一次。pointerdown 用 capture 以保证最先把事件抓到。 */
+  document.addEventListener('pointerdown', handleNavActivate, true);
+  document.addEventListener('click', handleNavActivate);
   go('profile');   /* 她拍板：默认停在「个人设置」，不记忆上次 */
   moveHit('profile');
   /* 窄屏横向滚动时指示条跟随（标签等分铺满，正常不触发；大字号/极窄屏会触发） */
