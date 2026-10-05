@@ -30,7 +30,7 @@
 // 开合（窄屏原本点了开记忆弹层、且教练台整块隐藏→现在展开态显示为浮层）；发送框收到 36px。v212→v213
 // 10/4 13:36 她看过实机后补一条：手机端教练台改为**默认收起**（点开才出现）；
 // 桌面维持默认展开。窄屏开合只记内存、不写回设置，避免「手机收起把电脑右栏也收掉」。v213→v214
-const CACHE = 'ielts-hub-v229';  // 10/4 00:50 P0 修模考报告「未作答不扣分」（她 00:38 报「P1 全部跳过、P2P3 答得一坨屎，结果还给我打5.5」）——🚨 **根因（探针 outputs/design/_diag_score_empty.cjs 实锤）**：js/mock.js:646 用 `(a.transcript || '(空)')` 拼 block，**P1 全未答时拼出的 block 仍非空**（98 字符，因为还有 Q: 题面）→ 唯一防线 `if(!block.trim()) return null` **拦不住** → 照样调 AI → AI 面对一屏「(空)」按默认中位给 5.5 → 总分 (5.5+P2+P3)/3 把她的真实水平拉平。同时 fixes 里出现**根本没作答的题的编造点评**（她截图里「About more than 10 years → More than 10 years」）。
+const CACHE = 'ielts-hub-v230';  // 10/4 00:50 P0 修模考报告「未作答不扣分」（她 00:38 报「P1 全部跳过、P2P3 答得一坨屎，结果还给我打5.5」）——🚨 **根因（探针 outputs/design/_diag_score_empty.cjs 实锤）**：js/mock.js:646 用 `(a.transcript || '(空)')` 拼 block，**P1 全未答时拼出的 block 仍非空**（98 字符，因为还有 Q: 题面）→ 唯一防线 `if(!block.trim()) return null` **拦不住** → 照样调 AI → AI 面对一屏「(空)」按默认中位给 5.5 → 总分 (5.5+P2+P3)/3 把她的真实水平拉平。同时 fixes 里出现**根本没作答的题的编造点评**（她截图里「About more than 10 years → More than 10 years」）。
 // 10/5 14:35 设置页合并目标分数+口语自评 + 删竖排版本标记 + 顶栏显昵称（common.js/settings.js 改版）
   // 10/4 19:20 题库卡片「显示不全、被截掉一截」（她 19:10 报，点名「住所」与「对结果开心的重要决定」，说了好几遍）
 //
@@ -357,6 +357,13 @@ const PRECORE = [
   '/study.html',
   '/me.html',
   '/js/hubgroup.js',
+  // 10/5 15:25 站长面板 admin.html 必须进 PRECORE —— 她 15:24 报「手机端打不开」。
+  // 病根：① CF 会 308 把 /admin.html 跳到 /admin，而缓存键是 pathname（带 .html）→ 跳转后 caches.match 拿不到；
+  //       ② /admin.html 不在 PRECORE，弱网/离线时 handleNavigate 拿不到缓存 → 掉进 '/home.html' 兜底
+  //          → 手机上表现为「打不开」或「莫名跳到学习主页」（与 10/1 她撞过的 index 壳事故同款）。
+  // 预缓存 /admin.html 而不是 /admin：PRECORE 走 cache:'reload' 请求的是真实文件路径，
+  // 而 CF 只对 .html 文件名做 308 —— 两者一致才能在跳转后仍命中缓存。
+  '/admin.html',
   '/vip.html',        // 10/1 付费方案：会员中心页（价格/权益/开通流程）
   '/css/common.css',
   '/js/av-picker.js',  // 10/4 09:30 补缓存：设置页头像弹层 + 口语陪练考官选择器都依赖它。
@@ -472,8 +479,23 @@ async function handleNavigate(req, url){
     ]);
   }catch(_){ /* 超时 → 走缓存兜底；netPromise 继续后台完成写缓存 */ }
   if(net) return net;
-  const cached = await caches.match(url.pathname);
+  let cached = await caches.match(url.pathname);
+  /* 10/5 15:25 站长面板：CF 把 /admin.html **308 跳到 /admin**（无扩展名），
+     而 putInCache 的键是 pathname —— 首次网络失败时 caches.match('/admin') 拿不到
+     （预缓存里存的是 '/admin.html'），就掉进下面的 home 兜底 → 手机上「打不开/莫名跳主页」。
+     这里补一次「去扩展名再试」，覆盖所有同类 308 页面（不是只给 admin 打补丁）。 */
+  if(!cached && /\.html$/.test(url.pathname) === false){
+    const alt = await caches.match(url.pathname + '.html');
+    if(alt) cached = alt;
+  }
   if(cached) return cached;
+  /* 10/5：管理员页面**绝不能回退到学习主页** —— 那既是误导（她会以为自己在看学习站）
+     也等于把一个内部工具暴露给误点的人。给它明确 503，附一句人话说明。 */
+  if(url.pathname === '/admin' || url.pathname === '/admin.html'){
+    const finalAdmin = await netPromise;
+    return finalAdmin || new Response('站长面板暂时离线（网络未连通）。连上网络后重试；完整网址 + Ctrl+F5 可强制刷新。',
+      { status: 503, headers: { 'content-type': 'text/plain; charset=utf-8' } });
+  }
   const shell = await caches.match('/home.html');   // 9/30：离线兜底进学习主页，不再回退落地页
   if(shell) return shell;
   // 缓存全无（如首次访问即弱网）：等网络最终结果，仍失败给明确 503（绝不白屏无响应）
