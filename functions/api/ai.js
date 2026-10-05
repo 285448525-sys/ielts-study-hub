@@ -408,29 +408,21 @@ export async function onRequest(context) {
         await env.SYNC_KV.put(mk2, String(curM2 + 1), { expirationTtl: 34560000 });
       } catch (e) {}
     })());
-    /* ⑤ 按日调用次数（10/5 P3「用量趋势图」的数据源）：aiqa: 只有 48h TTL 存不下历史曲线，
-       故另写两份长 TTL 键，只增不判、不参与闸门：
-         aiday:<YYYYMMDD>          全站当日调用次数（TTL 400 天 → 可画 30 天曲线）
-         aidayu:<acct>:<YYYYMMDD>  分账号当日次数（同上）
-       代价 = 每次调用多 2 次 KV 写（与本函数已有十几次 get/put 同量级）。 */
-    jobs.push((async () => {
-      try {
-        const dKey = 'aiday:' + day;
-        await env.SYNC_KV.put(dKey,
-          String((parseInt((await env.SYNC_KV.get(dKey)) || '0', 10) || 0) + 1), { expirationTtl: 34560000 });
-        const dKeyU = 'aidayu:' + acct + ':' + day;
-        await env.SYNC_KV.put(dKeyU,
-          String((parseInt((await env.SYNC_KV.get(dKeyU)) || '0', 10) || 0) + 1), { expirationTtl: 34560000 });
-      } catch (e) {}
-    })());
+    /* ⑤ 面板统计合并写（10/5 14:42 P0 修 KV 配额事故）——
+       🔴 事故原委：Cloudflare 免费版 **KV 每天只有 1000 次写**（不是 1000MB，与单键体积无关）。
+          我今天为 P3 面板加了 5 个统计键（aiday/aidayu/aitok/aitoku/aitoks），
+          **把单次 AI 调用的写量从 5 翻到 10**，再连跑 8 轮探针 ≈2900 次写 → 配额爆 →
+          **她的云同步直接挂掉**（报 "KV put() limit exceeded for the day"）。
 
-    /* ⑤ 成本计量（10/5 P3 她要「DeepSeek 花了多少钱」）：从上游响应体的 usage 段取
-       prompt_tokens / completion_tokens，按天累加到 aitok:<day>（全站）与 aitoku:<acct>:<day>（分账号）。
-       ⚠️ 单价走环境变量 AI_PRICE_IN / AI_PRICE_OUT（元/百万 token），**不在代码里写死死价** ——
-          DeepSeek 调价时改 CF 环境变量即可，不用改代码。env 没配时下面按 0 计，面板显示「未配置单价」。
-       ⚠️ 与 aiqmv 一样只增不判，不参与闸门。写失败被 try/catch 吞掉，不影响主流程。 */
+       ✅ 修法（方案 A：5 个键合并成 1 个）：把当天要记的统计**打包进一个 JSON 值**，
+          一次 get + 一次 put 写完 → **单次调用写量 10 → 6**（省 40%），功能一项不减。
+          键名 aistat:<YYYYMMDD>，值形如 {"n":次数,"pt":promptTok,"ct":completionTok,"svc":{"mock_q":3,...}}
+          ⚠️ service 键白名单化后再进 JSON，避免任意字符串膨胀（外层键名已省掉，但值里仍要防）。
+          ⚠️ 读改写非原子（KV 无 incr），极端并发下可能少计 1~2 次 —— 只影响面板统计粒度，
+             **绝不影响任何额度闸门**（闸门走的是 ①②③ 那几个独立键，逻辑一个字没动）。 */
     jobs.push((async () => {
       try {
+        const sKey = 'aistat:' + day;
         let pt = 0, ct = 0;
         try {
           const uj = JSON.parse(text);
@@ -439,22 +431,16 @@ export async function onRequest(context) {
             ct = parseInt(uj.usage.completion_tokens, 10) || 0;
           }
         } catch (e) {}
-        if (pt > 0 || ct > 0) {
-          /* 三个键相互独立，故各自独立 await（并发由 Promise.all 统一等） */
-          await env.SYNC_KV.put('aitok:' + day,
-            String((parseInt((await env.SYNC_KV.get('aitok:' + day)) || '0', 10) || 0) + pt + ct),
-            { expirationTtl: 34560000 });
-          await env.SYNC_KV.put('aitoku:' + acct + ':' + day,
-            String((parseInt((await env.SYNC_KV.get('aitoku:' + acct + ':' + day)) || '0', 10) || 0) + pt + ct),
-            { expirationTtl: 34560000 });
-          /* 分功能留痕（她 P3「按功能分类统计」的数据源）：aitoks:<service> 按天 +1。
-             service 白名单化后再拼键，避免把任意字符串写进 KV 命名空间。 */
-          const svc = /^[a-z0-9_]{1,32}$/.test(service) ? service : 'other';
-          const svcKey = 'aitoks:' + svc + ':' + day;
-          await env.SYNC_KV.put(svcKey,
-            String((parseInt((await env.SYNC_KV.get(svcKey)) || '0', 10) || 0) + 1),
-            { expirationTtl: 34560000 });
-        }
+        const svc = /^[a-z0-9_]{1,32}$/.test(service) ? service : 'other';
+        let st = null;
+        try { st = JSON.parse((await env.SYNC_KV.get(sKey)) || 'null'); } catch (e) {}
+        if (!st || typeof st !== 'object') st = { n: 0, pt: 0, ct: 0, svc: {} };
+        if (!st.svc || typeof st.svc !== 'object') st.svc = {};
+        st.n = (st.n || 0) + 1;
+        st.pt = (st.pt || 0) + pt;
+        st.ct = (st.ct || 0) + ct;
+        st.svc[svc] = (st.svc[svc] || 0) + 1;
+        await env.SYNC_KV.put(sKey, JSON.stringify(st), { expirationTtl: 34560000 });
       } catch (e) {}
     })());
 

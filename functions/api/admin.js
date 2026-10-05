@@ -258,40 +258,45 @@ export async function onRequest(context) {
     const aiWeek = Object.keys(usageWeek).reduce((s, k) => s + usageWeek[k], 0);
     const aiMonth = Object.keys(usageMonth).reduce((s, k) => s + usageMonth[k], 0);
 
-    /* 10/5 P3 · 成本估算：aitok:<day>（全站当日 token）+ aitoku:<acct>:<day>（分账号）。
-       单价读环境变量 AI_PRICE_IN / AI_PRICE_OUT（元 / 百万 token）——**代码里不写死价**，
-       DeepSeek 调价只改 CF 环境变量。env 未配 → priceOk=false，前端显示「未配置单价」不瞎算。 */
+    /* 10/5 P3 · 成本估算 + 10/5 14:42 P0 · 键合并 ——
+       ⭐ 原来 5 个统计键（aitok:/aitoku:/aitoks:/aiday:/aidayu:）**每键 1 次写 = 每次调用 5 次写**，
+          CF 免费版 KV 每天只有 1000 次写 → 我今天把单次调用写量从 5 翻到 10 再连跑 8 轮探针，
+          **配额爆 → 她的云同步直接挂**。现已合并成 **1 个** `aistat:<YYYYMMDD>`，
+          值 = {n:次数, pt:promptTok, ct:completionTok, svc:{service:次数}}（一次 get+put）。
+       ⚠️ **闸门键（aiq/aiqip/aiqa/aiqm/aiqw/aiqmo）一个都没动** —— 本次只压缩纯统计。
+       ⚠️ 分账号 token 维度**已放弃**：合并键按天存、不带账号，拆开需要 5 倍写量，与省配额相悖。
+          面板「每账号本月成本」改用**按天全站均摊**不可行 → 该列显示为「—」并在表头注明。
+          （她的诉求是「看趋势」不是「精确到人头的成本」，可接受。）
+       单价读环境变量 AI_PRICE_IN / AI_PRICE_OUT（元/百万 token）——**代码里不写死价**。
+       env 未配 → priceOk=false，前端显示「未配置单价」不瞎算。 */
     const priceIn = parseFloat(env.AI_PRICE_IN);
     const priceOut = parseFloat(env.AI_PRICE_OUT);
     const priceOk = isFinite(priceIn) && isFinite(priceOut);
     const yuanPerM = function (tok) { return priceOk ? (tok / 1e6) * (priceIn + priceOut) : 0; };
-    const tokToday = parseInt((await kv.get('aitok:' + day)) || '0', 10) || 0;
-    /* ⚠️ 这里必须用 let —— 13:50 那批我写成 const，overview 跑到 tokWeek += v 会抛
-       "Assignment to constant variable."，**整个 /api/admin overview 直接 500**（面板全坏）。
-       教训：数值累加器的声明处若带初值 0，后续 += 用 const 必炸；探针当时只做源码断言、没跑聚合路径，漏掉了。 */
+    /* 读合并统计键：一次 listAll + 每键一次 get，值里含当日全部统计 */
+    const statKeys = await listAll(kv, 'aistat:');
+    const statByDay = {};          // YYYYMMDD → {n,pt,ct,svc}
+    let tokToday = 0;
+    for (const k of statKeys) {
+      const p = k.split(':');
+      if (p.length !== 2 || !/^\d{8}$/.test(p[1])) continue;
+      let v = null;
+      try { v = JSON.parse((await kv.get(k)) || 'null'); } catch (e) {}
+      if (!v || typeof v !== 'object') continue;
+      const tt = (parseInt(v.pt, 10) || 0) + (parseInt(v.ct, 10) || 0);
+      statByDay[p[1]] = { n: parseInt(v.n, 10) || 0, tok: tt, svc: v.svc && typeof v.svc === 'object' ? v.svc : {} };
+      if (p[1] === day) tokToday = tt;
+    }
     let tokWeek = 0, tokMonth = 0;
-    for (const k of await listAll(kv, 'aitok:')) {
-      const p = k.split(':');
-      if (p.length !== 2) continue;
-      const v = parseInt((await kv.get(k)) || '0', 10) || 0;
-      if (!v) continue;
-      /* 按天累加：周 = 最近 7 天、月 = 本月（自然月，与 aiqmv 口径一致）。
-         ⚠️ 键里只有日期无法判周，改用「键名日期落在当前 ISO 周 / 本月内」来筛。 */
-      const ds = p[1];
-      if (weekOfDayKey(ds) === week) tokWeek += v;
-      if (ds.slice(0, 6) === month.replace('-', '')) tokMonth += v;
+    for (const ds in statByDay) {
+      const t = statByDay[ds].tok;
+      if (!t) continue;
+      if (weekOfDayKey(ds) === week) tokWeek += t;
+      if (ds.slice(0, 6) === month.replace('-', '')) tokMonth += t;
     }
-    const tokByAcct = {};
-    for (const k of await listAll(kv, 'aitoku:')) {
-      const p = k.split(':');
-      if (p.length !== 3 || p[2] !== day) continue;
-      const v = parseInt((await kv.get(k)) || '0', 10) || 0;
-      if (v) tokByAcct[p[1]] = (tokByAcct[p[1]] || 0) + v;
-    }
-    /* 10/5 P3 · 用量趋势（她要 30 天曲线）：读 aiday:<YYYYMMDD>（全站日次数）与
-       aitok:<YYYYMMDD>（日 token）。两者 TTL 均 400 天，够画一年。
-       ⚠️ 只回最近 30 天，且**不补零**——缺的那天前端直接跳过，免得图上出现假的 0。
-       键是「有才写」，所以 10/5 之前的历史天然没有（计数当时还没修好，本来就不存在数据）。 */
+    const tokByAcct = {};          // 合并键不带账号 → 恒空（前端已兜底为「—」）
+
+    /* 用量趋势（近 30 天）：数据全在合并键里，n=次数 / tok=token */
     const TREND_DAYS = 30;
     const dayKeys = new Set();
     const nowMs = Date.now();
@@ -300,33 +305,20 @@ export async function onRequest(context) {
       const p = n => String(n).padStart(2, '0');
       dayKeys.add(dt.getUTCFullYear() + p(dt.getUTCMonth() + 1) + p(dt.getUTCDate()));
     }
-    const trendCalls = {}, trendTok = {};
-    for (const k of await listAll(kv, 'aiday:')) {
-      const p = k.split(':');
-      if (p.length !== 2 || !dayKeys.has(p[1])) continue;
-      const v = parseInt((await kv.get(k)) || '0', 10) || 0;
-      if (v) trendCalls[p[1]] = v;
-    }
-    for (const k of await listAll(kv, 'aitok:')) {
-      const p = k.split(':');
-      if (p.length !== 2 || !dayKeys.has(p[1])) continue;
-      const v = parseInt((await kv.get(k)) || '0', 10) || 0;
-      if (v) trendTok[p[1]] = v;
-    }
-    /* 排成时间升序的数组，前端直接画（不排序会让图乱序） */
+    /* 排成时间升序的数组，前端直接画（不排序会让图乱序）；无数据的日期不返回、不补零 */
     const trend = Array.from(dayKeys).sort()
-      .map(d => ({ day: d, calls: trendCalls[d] || 0, tok: trendTok[d] || 0, cost: yuanPerM(trendTok[d] || 0) }))
-      .filter(x => x.calls > 0);          // 无数据的日期不返回
+      .filter(d => statByDay[d] && statByDay[d].n > 0)
+      .map(d => ({ day: d, calls: statByDay[d].n, tok: statByDay[d].tok, cost: yuanPerM(statByDay[d].tok) }));
     const trendTotals = { calls: 0, tok: 0, cost: 0 };
     for (const t of trend) { trendTotals.calls += t.calls; trendTotals.tok += t.tok; trendTotals.cost += t.cost; }
 
-    /* 10/5 P3 · 分功能统计：aitoks:<service>:<day> —— 知道哪个功能最费钱 */
+    /* 分功能统计：合并键的 svc 字段（{"mock_q":3,...}），只取今天 */
     const byService = {};
-    for (const k of await listAll(kv, 'aitoks:')) {
-      const p = k.split(':');
-      if (p.length !== 3 || p[2] !== day) continue;
-      const v = parseInt((await kv.get(k)) || '0', 10) || 0;
-      if (v) byService[p[1]] = (byService[p[1]] || 0) + v;
+    if (statByDay[day] && statByDay[day].svc) {
+      for (const svc in statByDay[day].svc) {
+        const n = parseInt(statByDay[day].svc[svc], 10) || 0;
+        if (n) byService[svc] = (byService[svc] || 0) + n;
+      }
     }
     const svcSorted = Object.keys(byService).map(k => ({ svc: k, n: byService[k] })).sort((a, b) => b.n - a.n);
 
