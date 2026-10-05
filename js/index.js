@@ -51,30 +51,16 @@ ready(async () => {
   window.__hubDashTasksTimer = () => { safe(renderThreeThings); safe(renderDashTasks); };
   document.addEventListener('hub:timer-state', window.__hubDashTasksTimer);
 
-  // 10/1 UI v2 · 底部轻量条：PWA 安装链接（复用 design/80 的 hubPwaState/hubPwaInstall，零新机制）
-  // 已装彻底隐藏（不留死按钮，原则②）；iOS 走文字引导；prompt 事件晚到也没关系——点击时实时查状态
-  safe(initFootInstall);
+  /* 10/5 23:50 她拍板删除底部「安装到桌面」入口（此处原有一行 safe(安装初始化函数)）。
+     删因：manifest/图标/SW 全正常，但 beforeinstallprompt 要求「用户与站点足够交互」才触发，
+     首访几乎拿不到 → 点下去只弹「不支持一键安装」= **死按钮**。
+     她原话：「放在这里也碍事，然后又用不了」。
+     ⚠️ 函数体也已删掉，不留无人调用的死代码。
+        common.js 的 hubPwaState/hubPwaInstall **保留**（通用能力，日后重做入口可复用；
+        manifest.json 也保留 —— 装过的 PWA 与浏览器菜单「安装应用」仍靠它，离线能力不受影响）。 */
   // 10/1 晚 · 会员小标：AI 转化卡删掉后，会员态收进 hero 问候旁的小徽章（她拍板「不明显但不能不显示」）
   safe(initVipChip);
 });
-function initFootInstall(){
-  const tip = document.getElementById('footInstallTip');
-  if(!tip) return;
-  const st = (typeof hubPwaState === 'function') ? hubPwaState() : 'unsupported';
-  if(st === 'installed'){ tip.style.display = 'none'; return; }
-  tip.addEventListener('click', async () => {
-    const s = (typeof hubPwaState === 'function') ? hubPwaState() : 'unsupported';
-    if(s === 'promptable' && typeof hubPwaInstall === 'function'){
-      const r = await hubPwaInstall();
-      if(r === 'accepted'){ tip.style.display = 'none'; toast('安装成功，桌面直接打开'); }
-      // dismissed：不打扰，链接保留
-    }else if(s === 'ios-manual'){
-      toast('iOS：用 Safari 打开 → 分享 → 「添加到主屏幕」');
-    }else{
-      toast('当前浏览器不支持一键安装，可在浏览器菜单里找「安装应用」');
-    }
-  });
-}
 
 // 10/1 晚 · hero 会员小标：登录才显示；会员=黄色「VIP」纯文字，非会员=灰色「免费版」；点击跳会员页。
 // vip_status 实时查不缓存（会员状态必须准，与 vip.html 同口径）；未登录/请求失败保持隐藏，绝不打扰首屏。

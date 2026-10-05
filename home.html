@@ -43,7 +43,7 @@
   <script defer src="js/feedback.js?v=20261002b"></script>
 <!-- design/78 双词库适配层：index.js 的 wbActive/wbDueCount 依赖它（defer 按文档序执行） -->
 <script defer src="js/wordbank.js?v=20261001a"></script>
-<script defer src="js/index.js?v=20261005d"></script>
+<script defer src="js/index.js?v=20261005e"></script>
 <style id="homePageStyle">
 /* hero 会员小标（10/1：AI 转化卡删掉后的低调会员态展示，她拍板「不明显但不能不显示」。
    样式放页内不动 common.css 免全站 bump） */
@@ -213,10 +213,16 @@
     <div class="rec-body" id="dashRecBody"></div>
   </section>
 
-  <!-- 10/1 UI v2 · 底部轻量条：PWA 安装（fs-vip 升级会员入口已按她拍板整体下线 10/1 晚） -->
-  <div class="foot-strip">
-    <a href="javascript:void(0)" id="footInstallTip">📦 安装到桌面，离线也能用</a>
-  </div>
+  <!-- 10/5 23:50 她拍板删除：底部「📦 安装到桌面，离线也能用」入口整块下线。
+       删因（不是配置问题）：manifest / 图标 / SW 全部正常（线上 icons 全 200），
+       但 **beforeinstallprompt 在 Edge/Chrome 上要求「用户与站点有足够交互」才触发**，
+       首次访问基本拿不到那个事件 → hubPwaState() 返回 'unsupported' → 点下去只弹一句
+       「当前浏览器不支持一键安装」= **点了没反应的死按钮**。
+       她原话：「放在这里也碍事，然后又用不了」。
+       ⭐ 与「继续上次」「站内没有的能力不能出现在任何入口文案里」同一条铁律 ——
+          能力在不在不重要，**入口承诺了却做不到就是事故**。
+       ⚠️ manifest.json 与 sw.js 的离线能力**保留不动**（那是真的能用：装过的 PWA 仍可离线打开，
+          浏览器菜单里也仍可「安装应用」）；这里只删掉这个**站内自造的入口**。-->
 </main>
 
 </body>
