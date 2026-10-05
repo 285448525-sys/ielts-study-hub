@@ -642,6 +642,24 @@ function renderList(){
   container.querySelectorAll('[data-id]').forEach(c => {
     c.addEventListener('click', () => openDetail(c.dataset.id));
   });
+  /* 10/5 路线图①「一键开练」：题卡上的「练这道题」→ 切到陪练 tab 并出这道题。
+     ⚠️ 必须 stopPropagation —— 整行 click 绑的是 openDetail，不拦会同时进详情页。
+     走软导航不整页刷新（与站内链接同口径，hubSoftGo 内部对异常有兜底）。 */
+  container.querySelectorAll('[data-drill]').forEach(b => {
+    b.addEventListener('click', e => {
+      e.stopPropagation();
+      e.preventDefault();
+      const id = b.dataset.drill;
+      if(typeof window.__coachDrill !== 'function'){ toast('陪练没加载好，稍后再试'); return; }
+      /* 陪练在同页 tab 内（speaking.html 的 PRACTICE tab）→ 不需要软导航，
+         直接切 tab + 调 coach 入口。陪练不可用（未引 coach.js）时 toast，不静默失败。 */
+      const tab = document.querySelector('#tabs [data-type="PRACTICE"]');
+      if(!tab){ toast('陪练入口没找到'); return; }
+      tab.click();
+      const ok = window.__coachDrill(id);
+      if(!ok) toast('这道题暂时打不开，换一道试试');
+    });
+  });
   // 10/3 B 版分组面板：折叠头绑一下（面板用 <details>，原生展开收起不需 JS，这里只做「组内全选」入口透传）
   container.querySelectorAll('.sp-panel-head').forEach(h => {
     h.addEventListener('click', ev => {
@@ -705,6 +723,10 @@ function spCardHtml(s){
       + '<div class="sp-card-title">' + escapeHtml(title) + scoreBadgeHtml(best, count, s) + '</div>'
       + (zh ? '<div class="sp-card-zh">' + escapeHtml(zh) + '</div>' : '')
       + '<div class="sp-card-tags">' + tagsHtml(s) + '</div>'
+      /* 10/5 路线图①「一键开练」：题卡上直接开练，不必先进详情再找陪练。
+         ⚠️ 放在 .sp-card-main 竖排末尾（不是右栏）—— 右栏只有箭头是 10/4 定死的结构契约，
+         往那儿加元素会把箭头挤走。且必须 stopPropagation，否则会同时触发整行的 openDetail。 */
+      + '<button type="button" class="sp-card-drill" data-drill="' + escapeHtml(s.id) + '">练这道题</button>'
     + '</div>'
     + '<span class="sp-card-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>'
     + '</div>';

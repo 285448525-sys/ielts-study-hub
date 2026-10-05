@@ -51,8 +51,8 @@
   <!-- 10/3 头像选择：必须在 coach.js 之前（陪练气泡头像渲染时就要读 window.avUserSrc）。
        10/3 22:55 扩展：同一份也供顶栏考官头像选择器用（avOpen/avExamSrc） -->
   <script defer src="js/av-picker.js?v=20261004c"></script>
-  <script defer src="js/coach.js?v=20261005a"></script>
-  <script defer src="js/speaking.js?v=20261004a"></script>
+  <script defer src="js/coach.js?v=20261005b"></script>
+  <script defer src="js/speaking.js?v=20261005a"></script>
   <script defer src="js/materials.js?v=20261004d"></script>
   <script defer src="js/mock-report.js?v=20261004a"></script>
   <script defer src="js/mock-history.js?v=20260830u"></script>
@@ -318,6 +318,20 @@
     margin-top:1px}   /* 19:20：两栏布局下让箭头与标题第一行视觉齐平 */
   .sp-card-go svg{width:12px;height:12px}
   .sp-card-row:hover .sp-card-go{background:var(--primary-100);color:var(--primary-700)}
+  /* 10/5 路线图①「一键开练」按钮：题卡内左栏末尾。
+     视觉刻意低调（描边 + 13px），别抢标题/箭头；点击区 ≥32px 且卡内 44px 触控标准由 padding 补足。
+     ⚠️ 不动 .sp-card-row 的 flex 结构（两栏=10/4 定死契约），按钮只是 main 里的一个子行。 */
+  .sp-card-drill{
+    align-self:flex-start;margin-top:7px;
+    display:inline-flex;align-items:center;gap:4px;
+    font:inherit;font-size:13px;font-weight:600;line-height:1;
+    color:var(--primary-700);background:var(--primary-50);
+    border:1px solid var(--primary-200);border-radius:999px;
+    padding:7px 12px;cursor:pointer;transition:background .15s,border-color .15s;
+  }
+  .sp-card-drill:hover{background:var(--primary-100);border-color:var(--primary-400,var(--primary-300,var(--primary-200)))}
+  .sp-card-drill:active{background:var(--primary-200)}
+  [data-theme="dark"] .sp-card-drill{color:var(--primary-200)}
   .sp-tag-p{background:var(--primary-50);color:var(--primary-800)}
   #p3GenBtn.confirming{border-color:var(--warn);color:var(--warn)}
   .sp-confirm-cancel{border:0;background:none;color:var(--muted);cursor:pointer;font:inherit;font-size:12.5px;padding:4px 8px}

@@ -187,10 +187,41 @@ window.__COACH_ON = true;
   /* ============ 纯逻辑（挂 window 供探针直测） ============ */
   window.__coachInternal = {
     parseMemFacts: parseMemFacts, saveMemFacts: saveMemFacts, memList: memList,
-    buildSystem: buildSystem, drawP1: drawP1, drawP2: drawP2,
+    buildSystem: buildSystem, drawP1: drawP1, drawP2: drawP2, drawById: drawById,
     stripReply: stripReply, assistantHtml: assistantHtml,
     state: st, WORK_BLOCK: WORK_BLOCK, MEM_MARK: MEM_MARK
   };
+
+  /* 10/5 路线图①「一键开练」：从真题卡「练这道题」直达陪练 —— 按题 id 抽题（drawById）。
+     ⚠️ 必须与 chips 抽题共用同一条 startTopic 路径（同一个上下文注入口径、AI 严禁改题），
+     **不为「指定题」另写一套渲染/注入逻辑** —— 两套必然漂移。
+     cardsOf 读官方 SPEAKING_BANK；本机 DATA.speaking 可能含用户自建卡，故两边都找。
+     找不到该 id → 返回 null（调用方负责提示，绝不静默换一道别的题）。 */
+  function drawById(id){
+    if(!id) return null;
+    var card = cardsOf('P1').concat(cardsOf('P2')).filter(function(c){ return c && c.id === id; })[0];
+    if(!card && Array.isArray(DATA.speaking)){
+      card = DATA.speaking.filter(function(c){ return c && c.id === id && !c.framework; })[0] || null;
+    }
+    if(!card) return null;
+    if(card.type === 'P2'){
+      if(!card.promptEn) return null;
+      st.lastCard = card.id;
+      return {
+        en: card.promptEn, zh: card.promptZh || '', freq: card.frequency, isP2: true,
+        yss: (card.youShouldSay || []).slice()
+      };
+    }
+    var qs = (card.questions || []).map(function(_, i){ return i; }).filter(function(i){
+      return !(card.id === 'sb_p1_work' && WORK_BLOCK.indexOf(card.questions[i]) !== -1);
+    });
+    if(!qs.length) return null;
+    st.lastCard = card.id;
+    return {
+      en: card.questions[qs[0]], zh: card.titleZh || card.title || '', freq: card.frequency,
+      isP2: false, yss: []
+    };
+  }
 
   /* 把 @@MEM@@ 尾巴从正文剥掉，返回 {reply, facts} */
   function stripReply(content){
@@ -416,6 +447,14 @@ function userHtml(text){
     if(k === 'hi'){ sendText('今天我们只练高频/超高频题，其他题先不练'); return; }
     var t = k === 'p2' ? drawP2() : drawP1();
     if(!t){ toast('题库还没加载好，稍后再试'); appendHtml(chipsHtml()); return; }
+    startTopic(t);
+  }
+
+  /* 10/5 路线图①：把「出一道题并把它作为 AI 上下文」这段逻辑抽成独立函数。
+     chips 抽题（onChip）与「练这道题」指定题（__coachDrill）**必须共用这一条**：
+     渲染走 topicCardHtml、上下文注入口径、AI「严禁改题」约束全在函数内，只有一处口径。 */
+  function startTopic(t){
+    if(!t) return false;
     st.topic = (t.isP2 ? 'P2 连讲：' : 'P1：') + t.en;
     appendHtml(topicCardHtml(t));
     /* 真题以 assistant 上下文注入（渲染走题卡不走气泡）：AI 看到后知道题、她答后据此带练，
@@ -427,10 +466,24 @@ function userHtml(text){
       : '【系统安排的当前话题】（考试系统从真题库抽的题，你严禁改题/另出题）问题：' + t.en
         + '（' + t.zh + '）。用一句中文点一下问题意思、鼓励她直接开口作答，不要自问自答。';
     st.thread.push({ role: 'assistant', text: ctx });
-    /* 无 AI 开场调用：题卡即开场，等她开口；她的下一条消息一到，AI 带着题目上下文回应 */
     scrollBottom();
     try{ $('coachInput').focus(); }catch(_){}
+    return true;
   }
+
+  /* 10/5 路线图①：题库卡「练这道题」的唯一入口（speaking.js 调它）。
+     幂等 + 守卫齐：重复点、busy 中、骨架未建都不会把界面搞坏。
+     ⚠️ 找不到题必须明确提示，绝不静默抽一道别的题顶替（那会让她练到不相干的题还不知道）。 */
+  window.__coachDrill = function(cardId){
+    if(typeof st.busy !== 'undefined' && st.busy) return false;
+    var v = $('coachView');
+    if(v) v.hidden = false;
+    if(!st.built || !$('coachWrap')) build();
+    var t = drawById(cardId);
+    if(!t){ toast('这道题暂时打不开，换一道试试'); return false; }
+    hideChips();
+    return startTopic(t);
+  };
 
   /* ============ 长期记忆弹层 ============ */
   function updateMemBtn(){
