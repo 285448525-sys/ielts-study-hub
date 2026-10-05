@@ -43,7 +43,7 @@
   <script defer src="js/feedback.js?v=20261002b"></script>
 <!-- design/78 双词库适配层：index.js 的 wbActive/wbDueCount 依赖它（defer 按文档序执行） -->
 <script defer src="js/wordbank.js?v=20261001a"></script>
-<script defer src="js/index.js?v=20261005b"></script>
+<script defer src="js/index.js?v=20261005c"></script>
 <style id="homePageStyle">
 /* hero 会员小标（10/1：AI 转化卡删掉后的低调会员态展示，她拍板「不明显但不能不显示」。
    样式放页内不动 common.css 免全站 bump） */
@@ -57,52 +57,6 @@
 .home .meta{grid-template-columns:repeat(2,1fr)}
 @media(max-width:760px){ .home .meta{grid-template-columns:1fr} }
 
-/* ===== 10/5 路线图①-2「继续上次」卡 =====
-   设计判据：它是「回访用户的加速器」，不是新用户的入口堆 →
-     · 放在 hero 倒计时**之前**（回访的人第一眼就要看到，不必先看倒计时）
-     · 只给 1 个动作 + 1 个收起，不塞第二行
-     · 收起后留一条极窄的按钮（不是完全消失，否则等于没有）
-   质感靠层级（字重/颜色）不靠字号 —— 与她 10/3 的纠正一致。 */
-#resumeCard{margin-bottom:12px}
-.resume-card{
-  display:flex;align-items:center;gap:12px;
-  background:var(--n-0);border:1px solid var(--primary-200);border-radius:var(--radius,16px);
-  padding:13px 14px;box-shadow:var(--shadow,0 1px 2px rgba(16,24,40,.04));
-}
-.resume-l{flex:1;min-width:0}
-.resume-t{font-size:15px;font-weight:700;line-height:1.4;color:var(--ink);
-  overflow-wrap:anywhere}   /* 长任务名换行，绝不 ellipsis 切内容 */
-.resume-s{font-size:12.5px;color:var(--muted);margin-top:2px;line-height:1.4}
-.resume-r{display:flex;align-items:center;gap:8px;flex:none}
-.resume-go{
-  display:inline-flex;align-items:center;justify-content:center;
-  min-height:36px;padding:0 16px;border-radius:999px;
-  background:var(--primary-600,var(--primary));color:#fff;
-  font-size:14px;font-weight:700;text-decoration:none;white-space:nowrap;
-  transition:background .15s;
-}
-.resume-go:hover{background:var(--primary-700,var(--primary))}
-.resume-foldbtn{
-  min-height:36px;padding:0 10px;border-radius:999px;cursor:pointer;
-  background:transparent;border:1px solid var(--n-200,var(--n-100));color:var(--muted);
-  font:inherit;font-size:12.5px;transition:background .15s,color .15s;
-}
-.resume-foldbtn:hover{background:var(--n-50,var(--n-100));color:var(--ink)}
-/* 收起态：一条窄按钮，高度克制（别又占一整卡） */
-.resume-fold{
-  display:flex;align-items:center;gap:8px;width:100%;text-align:left;cursor:pointer;
-  background:var(--n-0);border:1px dashed var(--n-200,var(--n-100));border-radius:var(--radius,16px);
-  padding:9px 13px;font:inherit;color:var(--muted);
-}
-.resume-fold:hover{background:var(--n-50,var(--n-100))}
-.rf-dot{width:7px;height:7px;border-radius:50%;background:var(--primary);flex:none}
-.rf-tx{font-size:13px;font-weight:700;color:var(--ink);flex:none}
-.rf-sub{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-@media(max-width:560px){
-  .resume-card{flex-wrap:wrap}
-  .resume-r{width:100%;justify-content:flex-end}
-  .rf-sub{display:none}   /* 极窄屏收起态只留「继续上次」四字，横向空间优先给动作 */
-}
 
 /* ===== 10/5 路线图②-2a「今天先做这三件事」卡 =====
    它是回答「我现在该点什么」的地方，所以每行必须有**一个明确动作**（不写"去学习"这类虚的）。
@@ -167,13 +121,14 @@
 <main class="container home">
   <!-- v6 首页：hero 倒计时 + 紧凑双卡 + 快速入口 + 今日记录（design/31 A 版） -->
 
-  <!-- 10/5 路线图①-2：顶部「继续上次」卡。有未完成事项才渲染（无事项整卡 hidden，不占新用户首屏）。
-       折叠态存 localStorage（hub_resume_folded），不进 DATA、不跨设备。内容由 index.js renderResumeCard 写。 -->
-  <section id="resumeCard" hidden></section>
-
   <!-- 10/5 路线图②-2a：给新用户的「今天先做这三件事」（按她本机真实数据算，一条不剩则整卡不渲染）。
-       与上面的「继续上次」分工：那张回到上次那件事，这张给今天还没做的第一件事。
-       折叠态存 localStorage（hub_three_folded），不进 DATA。内容由 index.js renderThreeThings 写。 -->
+       折叠态存 localStorage（hub_three_folded），不进 DATA。内容由 index.js renderThreeThings 写。
+
+       ⚠️ 10/5 20:10 下线了原在这儿的「继续上次」卡（路线图①-2，commit b69e023）。
+          她实测指出：站内**没有听力/阅读内容**（9/30 拍板把这两组标成「真题网站 ·」= 站外记账项），
+          「继续上次」按计划任务文本猜跳转目标时会跳到不相干的模块 —— 看着像 bug。
+          ⭐ 教训（写在这里防止再犯）：**站内没有的能力，不能出现在任何入口文案里**。
+             听力/阅读的站内入口只有「计时」（记站外时长），别再给它们做任何跳转承诺。 -->
   <section id="threeThings" hidden></section>
 
   <!-- L1 · hero 倒计时主卡（问候/目标/连续天数已收进卡内，避免顶部独立横条造成左侧空白） -->
