@@ -3720,6 +3720,21 @@ async function runPageScript(id, doc){
       console.warn('[soft-nav] 附加脚本执行失败，已跳过：', srcs[i], err);
     }
   }
+
+/* 🔴 10/6 00:40 补（她连报 5 次「按钮点不了」的真根因）：**body 内联 <script> 也要重跑**。
+     此前只 eval script[src]，而软导航换的是 <main>、head/body 内联脚本从不执行，于是：
+       · settings.html 左目录切换（内联）→ 委托监听压根没绑 → 点了零反应、零报错
+       · vip / settings 的 .rv 进场动画（内联）→ 新插入的 .rv 停在 opacity:0 永久隐形
+       · 组页（me/study/plans-hub）自收 #bootLoader 遮罩（内联）→ 没人撤遮罩
+     安全边界：只取 **body 内**的内联脚本（head 的 cls/CSP 类逻辑不重复跑）；
+     脚本必须自身幂等（重绑前先 removeEventListener，见 settings.html 的 __hubSetNavHandler）。 */
+  const inlineCodes = pageInlineScripts(doc);
+  for(const code of inlineCodes){
+    try{ window.eval(code); }
+    catch(err){ console.warn('[soft-nav] 页面内联脚本执行失败，已跳过：', err); }
+  }
+}
+
   /* 🔴 10/6 01:12 同步 <body> 上的**页面级**属性 —— 修「点计划/我的，渲染出来全是学习页」。
    背景：软导航只换 <main>，从不碰 <body>，于是 `body[data-hub-group]` 永远停留在
    **第一次硬加载的那张组页**（`<body data-hub-group="study">` 写在 HTML 里）。
@@ -3736,20 +3751,6 @@ function syncBodyPageAttrs(doc){
     const v = src.getAttribute(GROUP);
     if(v) cur.setAttribute(GROUP, v); else cur.removeAttribute(GROUP);
   }catch(_){}
-}
-
-/* 🔴 10/6 00:40 补（她连报 5 次「按钮点不了」的真根因）：**body 内联 <script> 也要重跑**。
-     此前只 eval script[src]，而软导航换的是 <main>、head/body 内联脚本从不执行，于是：
-       · settings.html 左目录切换（内联）→ 委托监听压根没绑 → 点了零反应、零报错
-       · vip / settings 的 .rv 进场动画（内联）→ 新插入的 .rv 停在 opacity:0 永久隐形
-       · 组页（me/study/plans-hub）自收 #bootLoader 遮罩（内联）→ 没人撤遮罩
-     安全边界：只取 **body 内**的内联脚本（head 的 cls/CSP 类逻辑不重复跑）；
-     脚本必须自身幂等（重绑前先 removeEventListener，见 settings.html 的 __hubSetNavHandler）。 */
-  const inlineCodes = pageInlineScripts(doc);
-  for(const code of inlineCodes){
-    try{ window.eval(code); }
-    catch(err){ console.warn('[soft-nav] 页面内联脚本执行失败，已跳过：', err); }
-  }
 }
 
 /* 收集目标页 body 内的内联脚本源码（无 src 的 <script>），供软导航时 eval。 */

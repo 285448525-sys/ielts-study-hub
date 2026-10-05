@@ -30,7 +30,7 @@
 // 开合（窄屏原本点了开记忆弹层、且教练台整块隐藏→现在展开态显示为浮层）；发送框收到 36px。v212→v213
 // 10/4 13:36 她看过实机后补一条：手机端教练台改为**默认收起**（点开才出现）；
 // 桌面维持默认展开。窄屏开合只记内存、不写回设置，避免「手机收起把电脑右栏也收掉」。v213→v214
-const CACHE = 'ielts-hub-v246';  // 10/6 01:15 P0 修移动端「点计划/学习/我的，渲染出来的全是同一个组页」：三个组页的 <body data-hub-group> 写死在 HTML 里，而软导航只换 <main> 从不更新 <body> → 该属性永久停留在**第一次硬加载的那张组页**上，hubgroup.js 的 hostGroup() 又把它排第一优先 → 之后进任何组都渲染成那一个。双修：① common.js syncBodyPageAttrs() 在换 main 时同步页面级 data-*（只精确动 data-hub-group，不清空全部 data-* —— av-picker 的 data-avtab、words 的 body.dataset.init 还在用）；② hubgroup.js hostGroup() 优先级反转为 当前文件 > URL > body 属性；③ softNavigate 显式写 _hubCurrentFile（覆盖后退那条路）。上一版 v245 · 10/6 00:45 修软导航不跑 body 内联脚本 + 不搬运 main 外容器
+const CACHE = 'ielts-hub-v247';  // 10/6 01:30 🔴 紧急修复我自己刚引入的线上故障：syncBodyPageAttrs 误插进 runPageScript **函数体内部**，成了局部函数 → softNavigate 取不到 → ReferenceError → 软导航全线崩、每条站内跳转都退化成整页刷新（她说的「点了还要加载一下」就是我 30 分钟前弄的）。已把该函数搬到顶层（同层的 pageInlineScripts 之前）。上一版 v246 · 10/6 01:15 修移动端「点计划/学习/我的，渲染出来全是同一个组页」（body[data-hub-group] 不随软导航更新）
 // 10/5 14:35 设置页合并目标分数+口语自评 + 删竖排版本标记 + 顶栏显昵称（common.js/settings.js 改版）
   // 10/4 19:20 题库卡片「显示不全、被截掉一截」（她 19:10 报，点名「住所」与「对结果开心的重要决定」，说了好几遍）
 //
