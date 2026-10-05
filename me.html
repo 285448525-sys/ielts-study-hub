@@ -57,16 +57,7 @@
   })();
 </script>
 <script defer src="js/hubgroup.js?v=20261004b"></script>
-<script>
-  (function(){
-    function late(){
-      var d=document.createElement('script'); d.src='js/data.js?v=20261003b'; document.body.appendChild(d);
-      var c=document.createElement('script'); c.src='js/common.js?v=20261005a'; document.body.appendChild(c);
-    }
-    // requestIdleCallback：卡片渲染完再拉，弱网下先看到内容而不是空等
-    if(window.requestIdleCallback) requestIdleCallback(late,{timeout:1200});
-    else setTimeout(late,150);
-  })();
-</script>
+<script defer src="js/data.js?v=20261003b"></script>
+<script defer src="js/common.js?v=20261005a"></script>
 </body>
 </html>
