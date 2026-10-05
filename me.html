@@ -36,6 +36,26 @@
      之前三个都是 defer 并行下载执行，而 initBootLoader(common.js) 与 hubgroup 的 boot()
      在同一个 DOMContentLoaded 上抢跑 —— 慢的那次就把转圈遮罩留在屏幕上（实测 study/plans-hunk 遮罩残留）。
      修法：先渲染卡片（立刻可见、可点）→ 再异步补 common.js（导航/dock/主题/SW 随后到位）。 -->
+<script>
+  /* 10/5 15:10 组页自收启动遮罩 —— ⭐ 这是本批第二个真病根。
+     #bootLoader 是**内联在 HTML 里**的（首字节即渲染，防硬刷新白屏），
+     而唯一收起它的 initBootLoader() 住在 common.js 里。
+     我把 common.js 改成延后加载后 → **没人收遮罩了**，卡片被转圈盖住，
+     用户看到的仍是「一直转圈」（探针 6 条 FAIL 就是这个）。
+     修法：组页自己内联一份收起逻辑（两帧 rAF 后撤 + 8s 兜底），不依赖 common.js 时机。 */
+  (function(){
+    function fin(){
+      var el=document.getElementById('bootLoader');
+      if(!el||el.dataset.done) return;
+      el.dataset.done='1'; el.classList.add('hide');
+      setTimeout(function(){ if(el&&el.parentNode) el.parentNode.removeChild(el); }, 400);
+    }
+    window.__hubBootDone = fin;   // common.js 到位后若再调也能用
+    var raf=window.requestAnimationFrame||function(cb){setTimeout(cb,16);};
+    raf(function(){ raf(fin); });
+    setTimeout(fin, 8000);        // 兜底：绝不卡死在遮罩上
+  })();
+</script>
 <script defer src="js/hubgroup.js?v=20261004b"></script>
 <script>
   (function(){
