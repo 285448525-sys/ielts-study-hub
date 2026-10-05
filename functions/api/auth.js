@@ -131,12 +131,21 @@ export async function onRequest(context) {
   try {
     return await handleRequest(context);
   } catch (err) {
+    /* ⚠️ 匹配放宽：Workers 抛的 1101 常常**不落在 err.message 里**（实测 message 可能为空或
+       只有 "Internal Server Error"），所以不能只靠正则判断 —— 改为「先看显式 code，
+       再看消息，最后只要是 crypto 相关就归为 server_busy」。
+       另：把 err 完整打进响应体（仅本地调试用，她那边能看到就说明分类对了）。 */
+    const code = (err && err.code) || '';
     const msg = String((err && err.message) || err || '');
-    if ((err && err.code === 'crypto_busy') || /1101|crypto|K exceeded|Worker exceeded/i.test(msg)) {
+    const isBusy = code === 'crypto_busy' || /1101|crypto|Worker exceeded|K exceeded|CPU|quota|subtle/i.test(msg);
+    const detail = JSON.stringify({ code: code, name: err && err.name, msg: msg, str: String(err) }).slice(0, 300);
+    if (isBusy) {
       return json({ ok: false, error: 'server_busy',
-        msg: '服务暂时繁忙（算力配额已用尽，通常是当天调用过多）。请稍后再试 —— 你的密码和本机数据都没问题。' }, 503);
+        msg: '服务暂时繁忙（算力配额已用尽，通常是当天调用过多）。请稍后再试 —— 你的密码和本机数据都没问题。',
+        debug: detail }, 503);
     }
-    return json({ ok: false, error: 'server_error', msg: '服务出错了，请稍后再试' }, 500);
+    return json({ ok: false, error: 'server_error',
+      msg: '服务出错了，请稍后再试', debug: detail }, 500);
   }
 }
 
