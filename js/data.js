@@ -81,7 +81,7 @@ const MODULES = [
 
 /* 口语题库频次四档→中文标签（全站唯一定义；progress.js / speaking.js 都读这份，勿在各文件另建副本）。
    注：const 在经典脚本里是全局词法绑定，后续脚本可直接使用。 */
-const FREQ_LABEL = { ultra: '超高频', high: '高频', medium: '中频', low: '低频' };
+const FREQ_LABEL = { ultra: '必考题', high: '高频', medium: '中频', low: '低频' };
 
 /* ===== 9-12 月口语题库（2026-10-05 基于9月考生回忆重排，大陆考区；P1 27 / P2 32 = 59 题；P1四档：必考题/高频/中频/低频，P2三档：高频/中频/低频） ===== */
 const SPEAKING_BANK = [
@@ -1479,15 +1479,15 @@ const SPEAKING_BANK = [
  *       bump 后强制跑一次 mergeSpeakingKeepAnswers：官方题全量补回，用户答案/串题按 id 保留。
  * 9/23：bump 14 取消口语「删除黑名单」——官方题一律不隐藏（她拍板：题库里的题都要练），
  *       并一次性清掉本地 sb_ 开头的旧墓碑；被拉黑过的题本版本重跑合并后全量回归（100 题）。 */
-const SPEAKING_BANK_VERSION = 15;
+const SPEAKING_BANK_VERSION = 16;
 
 /* 口语题库元信息（design/81）：换库时只改 VERSION + META 两处，页面 banner 与题数全部现算，
    不再在 speaking.html 里硬编码季度/日期/题数（硬编码必然随换库过期）。 */
 const SPEAKING_BANK_META = {
   season: '2026 年 9–12 月',
   region: '大陆考区',
-  updated: '2026-10-01',
-  note: '1001 版：近10天（0922-1001）考场频次四档全量重标，P1 33 / P2 55 = 88 题；一题不落，旧库不在清单内的题已删除。'
+  updated: '2026-10-05',
+  note: '1005 版：基于9月考生回忆重排，删39道零出现题、增10道新题，P1 27 / P2 32 = 59 题；P1四档（必考题/高频/中频/低频），P2三档（高频/中频/低频）。'
 };
 
 /* 口语合并：以官方 SPEAKING_BANK 为基准，保留用户个人内容、丢弃非官方题。

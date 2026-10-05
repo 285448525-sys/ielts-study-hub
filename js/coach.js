@@ -28,7 +28,7 @@ window.__COACH_ON = true;
   var MEM_MAX = 40;              // 长期记忆条数上限
   var MEM_MARK = '@@MEM@@';      // AI 正文后的记忆块分隔符（用户不可见）
 
-  var FREQ_ZH = { ultra:'超高频', high:'高频', medium:'中频', low:'低频' };
+  var FREQ_ZH = { ultra:'必考题', high:'高频', medium:'中频', low:'低频' };
 
   /* 就业题前端硬黑名单（她是大学生）：抽题 chips 的代码级兜底。
      "Are you looking forward to working?" 保留——学生可答。 */
@@ -444,7 +444,7 @@ function userHtml(text){
   function onChip(k){
     if(st.busy) return;
     hideChips();
-    if(k === 'hi'){ sendText('今天我们只练高频/超高频题，其他题先不练'); return; }
+    if(k === 'hi'){ sendText('今天我们只练必考题/高频题，其他题先不练'); return; }
     var t = k === 'p2' ? drawP2() : drawP1();
     if(!t){ toast('题库还没加载好，稍后再试'); appendHtml(chipsHtml()); return; }
     startTopic(t);

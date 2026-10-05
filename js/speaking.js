@@ -218,9 +218,10 @@ function spRandomPick(){
    renderList 由 ready 同步调用，而 renderGrouped 读这个常量；
    放在 ready 之后（函数体内）会导致首屏 SP_FREQ_GROUPS === undefined → .filter 抛错、列表空白。 */
 var SP_FREQ_GROUPS = [
-  { key:'ultra',  label:'超高频', desc:'考场出现率最高，优先背',  icon:'cap',    freqs:['ultra'],            open:true  },
-  { key:'high',   label:'高频',   desc:'常见题，值得练熟',          icon:'chart',  freqs:['high'],             open:true  },
-  { key:'midlow', label:'中低频', desc:'8-10 月新题，考场很少遇到', icon:'arrow', freqs:['medium','low'],     open:false },
+  { key:'ultra',  label:'必考题', desc:'每场必考，优先背',        icon:'cap',   freqs:['ultra'],  open:true  },
+  { key:'high',   label:'高频',   desc:'考场常见题，值得练熟',    icon:'chart', freqs:['high'],   open:true  },
+  { key:'medium', label:'中频',   desc:'近期有考，建议过一遍',    icon:'arrow', freqs:['medium'], open:false },
+  { key:'low',    label:'低频',   desc:'考场很少遇到',            icon:'arrow', freqs:['low'],    open:false },
 ];
 var SP_ICONS = {
   cap:   '<path d="M12 3 2 8l10 5 10-5-10-5Z"/>',
@@ -401,7 +402,7 @@ ready(() => {
 function populateFreqOptions(){
   const sel = $('#freqSelect');
   if(!sel) return;
-  const opts = [['all','全部'],['ultra','超高频'],['high','高频'],['medium','中频'],['low','低频']];
+  const opts = [['all','全部'],['ultra','必考题'],['high','高频'],['medium','中频'],['low','低频']];
   sel.innerHTML = opts.map(o => '<option value="' + o[0] + '">' + o[1] + '</option>').join('');
   curFreq = 'all';
 }
@@ -634,9 +635,9 @@ function renderCountdownBar(){
     : 0;
   let tx;
   if(d === 0) tx = '<b>今天就是考试日</b>，别再背新词了，把错词过一遍就行。';
-  else if(d <= 3) tx = '距考试 <b>' + d + ' 天</b>，只扫「超高频」' + (ultra ? ' ' + ultra + ' 题' : '') + ' 和错词，其余先放放。';
-  else if(d <= 7) tx = '距考试 <b>' + d + ' 天</b>，建议只练「超高频」' + (ultra ? ' ' + ultra + ' 题' : '') + ' —— 一天 ' + Math.max(1, Math.round(ultra / d)) + ' 题正好过一遍。';
-  else tx = '距考试 <b>' + d + ' 天</b>，高频题打牢，超高频 ' + (ultra ? ultra + ' 题' : '') + '优先。';
+  else if(d <= 3) tx = '距考试 <b>' + d + ' 天</b>，只扫「必考题」' + (ultra ? ' ' + ultra + ' 题' : '') + ' 和错词，其余先放放。';
+  else if(d <= 7) tx = '距考试 <b>' + d + ' 天</b>，建议只练「必考题」' + (ultra ? ' ' + ultra + ' 题' : '') + ' —— 一天 ' + Math.max(1, Math.round(ultra / d)) + ' 题正好过一遍。';
+  else tx = '距考试 <b>' + d + ' 天</b>，高频题打牢，必考题 ' + (ultra ? ultra + ' 题' : '') + '优先。';
   el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.5"/></svg>' + tx;
   el.hidden = false;
 }
