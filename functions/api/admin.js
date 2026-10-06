@@ -256,7 +256,10 @@ export async function onRequest(context) {
   /* ---------- 面板一次拉全 ---------- */
   if (action === 'overview') {
     const _t0 = Date.now();
-    _kvReads = 0;          // 10/6 11:55：把聚合耗时返回去，别让她再靠猜
+    _kvReads = 0;
+    /* 10/6 12:20：默认**不读**「今日按账号」那 910 个键（面板最重的开销）。
+       前端要那列明细时传 withUsage:1 单独重拉。 */
+    const wantUsage = !!body.withUsage;          // 10/6 11:55：把聚合耗时返回去，别让她再靠猜
     const userKeys = await listAll(kv, 'user:');
     const _uRecs = await kvGetMany(kv, userKeys);          // 10/6 并发读（原来 N 次串行）
     const users = [];
@@ -285,22 +288,26 @@ export async function onRequest(context) {
     invites.sort((a, b) => (b.created || 0) - (a.created || 0));
 
     /* 今日 AI 用量：键形如 aiqa:<acct>:<day>:<bucket>，只聚合今天的 */
-    /* ⚠️ 大头：键形 aiqa:<acct>:<day>:<bucket>（桶 0-9）→ 91 账号 × 10 = **约 910 次**，
-       原来**串行**读 → 她实测「加载二十秒到一分钟」。改：先按 day 过滤掉 90% 的键，再分批并发读。 */
-    const usageKeys = (await listAll(kv, 'aiqa:')).filter(name => {
-      const p = name.split(':');
-      return p.length === 4 && p[2] === day;
-    });
-    const usageVals = await kvGetMany(kv, usageKeys);
+    /* ═══ 10/6 12:20「今日按账号」改按需读 ═══
+       这里是面板最重的开销：键形 aiqa:<acct>:<day>:<bucket>（桶 0-9）→ 91 账号 × 10 = **约 910 次**。
+       而它只服务两处：用户表的「今日 AI」列、以及给「真人本月/今日」做减数。
+       做法：**默认不读**（`wantUsage=0`）→ 概览只花约 210 次读（2-5 秒）；
+       真要看「今日每人多少」时，前端显式传 `withUsage=1` 单独重拉一次。
+       ⚠️ 「今日全站调用」这个数**不依赖它** —— `aistat:<day>` 里本来就记着当天总数（下面读它）。 */
     const usage = {};
     let aiToday = 0;
-    usageKeys.forEach((name, i) => {
-      const n = parseInt(usageVals[i] || '0', 10) || 0;
-      if (!n) return;
-      const acct = name.split(':')[1];
-      usage[acct] = (usage[acct] || 0) + n;
-      aiToday += n;
-    });
+    if (wantUsage) {
+      const usageKeys = (await listAll(kv, 'aiqa:')).filter(name => {
+        const p = name.split(':');
+        return p.length === 4 && p[2] === day;
+      });
+      const usageVals = await kvGetMany(kv, usageKeys);
+      usageKeys.forEach((name, i) => {
+        const n = parseInt(usageVals[i] || '0', 10) || 0;
+        if (!n) return;
+        usage[name.split(':')[1]] = (usage[name.split(':')[1]] || 0) + n;
+      });
+    }
 
     /* 10/5 P1（她要「本月/本周」维度）：读 ai.js 侧新写的长 TTL 聚合键。
        aiqa: 只有 48h TTL 存不下月维度，故 ai.js 另写 aiqwv:（周）/ aiqmv:（月），TTL 400 天。
@@ -366,7 +373,11 @@ export async function onRequest(context) {
       const tt = ptN + ctN;
       statByDay[p[1]] = { n: parseInt(v.n, 10) || 0, tok: tt, pt: ptN, ct: ctN,
         svc: v.svc && typeof v.svc === 'object' ? v.svc : {} };
-      if (p[1] === day) { tokToday = tt; tokTodayPt = ptN; tokTodayCt = ctN; }
+      if (p[1] === day) {
+        tokToday = tt; tokTodayPt = ptN; tokTodayCt = ctN;
+        /* 今日全站调用数直接用 aistat 里已记的 n（**不再依赖那 910 个 aiqa 键**） */
+        if (wantUsage) aiToday += 0; else aiToday = parseInt(v.n, 10) || 0;
+      }
     }
     let tokWeek = 0, tokMonth = 0, tokWeekPt = 0, tokWeekCt = 0, tokMonthPt = 0, tokMonthCt = 0;
     for (const ds in statByDay) {
@@ -485,7 +496,7 @@ export async function onRequest(context) {
       /* 10/5 P3：操作审计 */
       audits: audits.slice(0, 100),
       sessCount: sessCount, vips: vips, feedbacks: feedbacks, fbUnread: fbUnread,
-      tookMs: Date.now() - _t0, kvReads: _kvReads });
+      tookMs: Date.now() - _t0, kvReads: _kvReads, usageLoaded: wantUsage });
   }
 
   /* ---------- 设置 AI 单价（10/6 11:35）----------

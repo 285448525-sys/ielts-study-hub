@@ -227,6 +227,9 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
       <span class="muted" id="trendSum"></span>
       <span style="flex:1"></span>
       <button class="btn ghost small" id="priceSetBtn" type="button">设置单价</button>
+      <!-- 10/6 12:20：「今日每人用多少」要读 900 多个键，是面板最重的开销 → 改按需加载。
+           默认不读（打开面板只花约 210 次读，2-5 秒），点这个才单独拉一次。 -->
+      <button class="btn ghost small" id="usageBtn" type="button">显示今日用量</button>
       <button class="btn ghost small" id="csvBtn" type="button">导出用户 CSV</button>
       <button class="btn ghost small" id="csvTrendBtn" type="button">导出趋势 CSV</button>
       <button class="btn ghost small" id="csvSvcBtn" type="button">导出分功能 CSV</button>
@@ -599,7 +602,10 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
         var va, vb;
         if (sk === 'acct'){ va = a.acct; vb = b.acct; return va < vb ? -dir : (va > vb ? dir : 0); }
         if (sk === 'created'){ va = a.created || 0; vb = b.created || 0; return (va - vb) * dir; }
-        if (sk === 'aiToday'){ va = (DATA.usage || {})[a.acct] || 0; vb = (DATA.usage || {})[b.acct] || 0; return (va - vb) * dir; }
+        if (sk === 'aiToday'){
+          if (!DATA.usageLoaded) return 0;   // 没加载明细时按这一列排序没意义
+          va = (DATA.usage || {})[a.acct] || 0; vb = (DATA.usage || {})[b.acct] || 0; return (va - vb) * dir;
+        }
         if (sk === 'aiMonth'){ va = uMonth[a.acct] || 0; vb = uMonth[b.acct] || 0; return (va - vb) * dir; }
         if (sk === 'cost'){ va = tokBy[a.acct] || 0; vb = tokBy[b.acct] || 0; return (va - vb) * dir; }
         return 0;
@@ -632,7 +638,8 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
         + '<td>' + fmtTs(u.created) + '</td>'
         + '<td style="white-space:nowrap">' + vTag
           + ' <button class="mini" data-judge="' + u.acct + '" data-to="' + (u.verdict === 'real' ? 'probe' : 'real') + '" type="button">改</button></td>'
-        + '<td>' + ((DATA.usage || {})[u.acct] || 0) + '</td>'
+        + '<td>' + (DATA.usageLoaded ? ((DATA.usage || {})[u.acct] || 0)
+            : '<span class="muted" title="点上方「显示今日用量」加载">—</span>') + '</td>'
         + '<td>' + (uWeek[u.acct] || 0) + '</td>'
         + '<td>' + (uMonth[u.acct] || 0) + '</td>'
         + '<td>' + costCell + '</td>'
@@ -894,6 +901,18 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
   /* ---------- 真人/探针：只看真人开关 + 手动改判（10/5 P3）---------- */
   $('onlyReal').addEventListener('change', render);
   $('priceSetBtn').addEventListener('click', priceEdit);
+  /* 「今日用量」按需加载：点一次多等几秒换那一列明细，不拖累整页打开 */
+  $('usageBtn').addEventListener('click', function(){
+    var b = this; b.disabled = true; b.textContent = '正在算今日用量…';
+    api('overview', { withUsage: 1 }, function(r){
+      b.disabled = false;
+      if (!r.ok || !r.j || !r.j.ok){ b.textContent = '显示今日用量'; alert('加载失败：' + ((r.j && r.j.msg) || ('HTTP ' + r.status))); return; }
+      DATA.usage = r.j.usage || {}; DATA.aiToday = r.j.aiToday; DATA.usageLoaded = true;
+      DATA.tookMs = r.j.tookMs; DATA.kvReads = r.j.kvReads;
+      render();
+      b.textContent = '已加载今日用量';
+    });
+  });
   /* 10/6 11:35 新增交互：搜索 / 筛选 / 表头排序 / 行内开通 / 一键清探针 */
   $('userQ').addEventListener('input', render);
   $('userFilter').addEventListener('change', render);
