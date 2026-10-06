@@ -77,6 +77,12 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
   border-radius:99px;background:var(--p-500);color:#fff;font-size:11px;font-weight:700;vertical-align:1px}
 .tab .dot.zero{background:var(--n-500);opacity:.45}
 /* 反馈列表 */
+.price-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px;padding:9px 13px;
+  border:1px solid #fed7aa;background:#fff7ed;border-radius:10px;font-size:13px;color:#9a3412;line-height:1.6}
+.price-bar[hidden]{display:none}
+.price-bar.ok{border-color:#99f6e4;background:#f0fdfa;color:#115e59}
+.price-bar b{font-weight:700}
+.price-bar .btn{margin-left:auto}
 .stale-bar{display:flex;align-items:center;gap:9px;margin:0 0 14px;padding:9px 14px;
   border:1px solid #99f6e4;background:#f0fdfa;border-radius:10px;font-size:13px;color:#115e59;line-height:1.5}
 .stale-bar[hidden]{display:none}
@@ -210,13 +216,17 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
   <!-- 用量趋势（10/5 P3） -->
   <div class="card">
     <h2>用量趋势</h2>
-    <p class="desc">近 30 天每天的 AI 调用次数与成本。<b>没有数据的日子不画</b>（不补零，免得图上出现假的 0）。统计自 10/5 修复计数丢失后开始累计。</p>
+    <p class="desc">近 30 天每天的 AI 调用次数 / Token / 成本。<b>没有数据的日子不画</b>（不补零，免得图上出现假的 0）。统计自 10/5 修复计数丢失后开始累计。</p>
+    <!-- 10/6 11:35 她报「成本显示不出来」→ 根因是 env 没配单价。加一个面板内可配入口，
+         不用去 Cloudflare 后台；不写死官方价（公开价互相矛盾，写死等于骗人）。 -->
+    <div class="price-bar" id="priceBar"></div>
     <div class="toolbar">
       <label class="muted"><input type="radio" name="trendMetric" value="calls" checked style="vertical-align:-2px;margin-right:3px" />调用次数</label>
       <label class="muted"><input type="radio" name="trendMetric" value="cost" style="vertical-align:-2px;margin-right:3px" />成本（元）</label>
       <label class="muted"><input type="radio" name="trendMetric" value="tok" style="vertical-align:-2px;margin-right:3px" />Token</label>
       <span class="muted" id="trendSum"></span>
       <span style="flex:1"></span>
+      <button class="btn ghost small" id="priceSetBtn" type="button">设置单价</button>
       <button class="btn ghost small" id="csvBtn" type="button">导出用户 CSV</button>
       <button class="btn ghost small" id="csvTrendBtn" type="button">导出趋势 CSV</button>
       <button class="btn ghost small" id="csvSvcBtn" type="button">导出分功能 CSV</button>
@@ -719,7 +729,38 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
      ⚠️ 用 JS innerHTML 拼 <svg> 在部分浏览器不渲染 —— 本项目已踩过（记忆铁律），
         故这里用 document.createElementNS 逐节点建，不用字符串拼。 */
   var trendMetric = 'calls';
+  /* 单价状态：说清「成本为什么是 0」+ 一个就地设置入口（省得她去 Cloudflare 后台） */
+  function renderPriceBar(){
+    var bar = $('priceBar'); if(!bar) return;
+    if (DATA.priceOk){
+      var src = DATA.priceSource === 'env' ? '环境变量' : '本面板设置';
+      bar.className = 'price-bar ok';
+      bar.innerHTML = '成本按 <b>输入 ¥' + Number(DATA.priceIn) + ' / 输出 ¥' + Number(DATA.priceOut)
+        + '</b> 每百万 tokens 估算（来源：' + src + '）· <b>输入输出分开计价</b>，不是按均价糊。'
+        + '<button class="btn ghost small" id="priceEditBtn" type="button">改单价</button>';
+    }else{
+      bar.className = 'price-bar';
+      bar.innerHTML = '<b>成本暂时算不出来</b>：还没设置 AI 单价。填一次「输入 / 输出每百万 tokens 的人民币单价」就能看到每天花了多少钱。'
+        + '<button class="btn ghost small" id="priceEditBtn" type="button">现在设置</button>';
+    }
+    var eb = $('priceEditBtn');
+    if (eb) eb.addEventListener('click', priceEdit);
+  }
+  function priceEdit(){
+    var curIn = DATA.priceOk ? Number(DATA.priceIn) : '';
+    var curOut = DATA.priceOk ? Number(DATA.priceOut) : '';
+    var a = prompt('AI 单价（元 / 百万 tokens）\n\n输入 token 单价：', String(curIn));
+    if (a === null) return;
+    var b = prompt('输出 token 单价（通常比输入贵 2~4 倍）：', String(curOut));
+    if (b === null) return;
+    if (String(a).trim() === '' || String(b).trim() === ''){ alert('两个单价都要填（不知道就先按你 DeepSeek 账单上的数字填）。'); return; }
+    api('price_set', { in: Number(a), out: Number(b) }, function(r){
+      if (!r.ok || !r.j || !r.j.ok){ alert('保存失败：' + ((r.j && r.j.msg) || ('HTTP ' + r.status))); return; }
+      load();
+    });
+  }
   function renderTrend() {
+    renderPriceBar();
     var data = (DATA && DATA.trend) || [];
     var host = $('trendChart');
     host.innerHTML = '';
@@ -848,6 +889,7 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
 
   /* ---------- 真人/探针：只看真人开关 + 手动改判（10/5 P3）---------- */
   $('onlyReal').addEventListener('change', render);
+  $('priceSetBtn').addEventListener('click', priceEdit);
   /* 10/6 11:35 新增交互：搜索 / 筛选 / 表头排序 / 行内开通 / 一键清探针 */
   $('userQ').addEventListener('input', render);
   $('userFilter').addEventListener('change', render);

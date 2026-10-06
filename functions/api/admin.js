@@ -299,30 +299,51 @@ export async function onRequest(context) {
           （她的诉求是「看趋势」不是「精确到人头的成本」，可接受。）
        单价读环境变量 AI_PRICE_IN / AI_PRICE_OUT（元/百万 token）——**代码里不写死价**。
        env 未配 → priceOk=false，前端显示「未配置单价」不瞎算。 */
-    const priceIn = parseFloat(env.AI_PRICE_IN);
-    const priceOut = parseFloat(env.AI_PRICE_OUT);
+    /* 10/6 11:35 她 11:33 报「成本趋势显示不出来，懒得去 DeepSeek 平台看」。
+       根因：**环境变量 AI_PRICE_IN/OUT 从没配过** → priceOk=false → yuanPerM() 恒返回 0
+       → 成本曲线贴地、总览显示「未配单价」。我**不写死官方价**（查到的公开价互相矛盾，且模型端点
+       可能已下线，写死等于骗人）→ 改成**面板里可配**：她填一次存进 KV，之后成本曲线就有数。
+       优先级：环境变量 > KV 存的 > 未配置。priceSource 一起返回，前端要显示「依据是什么」。 */
+    let priceIn = parseFloat(env.AI_PRICE_IN);
+    let priceOut = parseFloat(env.AI_PRICE_OUT);
+    let priceSource = 'env';
+    if (!(isFinite(priceIn) && isFinite(priceOut))) {
+      let pv = null;
+      try { pv = JSON.parse((await kv.get('admin:price')) || 'null'); } catch (e) {}
+      if (pv && isFinite(parseFloat(pv.in)) && isFinite(parseFloat(pv.out))) {
+        priceIn = parseFloat(pv.in); priceOut = parseFloat(pv.out); priceSource = 'kv';
+      } else { priceSource = 'unset'; }
+    }
     const priceOk = isFinite(priceIn) && isFinite(priceOut);
-    const yuanPerM = function (tok) { return priceOk ? (tok / 1e6) * (priceIn + priceOut) : 0; };
+    /* ⚠️ 10/6 11:35 修成本公式：原来 `tok/1e6 * (priceIn + priceOut)` —— 把输入输出**合并成一个 tok**
+       再同时乘「输入价 + 输出价」，等于假设每个 token 输入费和输出费各收一次，**成本虚高约一倍**。
+       正确：`pt/1e6*priceIn + ct/1e6*priceOut`。`aistat:` 里本来就分开存了 pt/ct，这里要用上。 */
+    const yuanOf = function (pt, ct) {
+      if (!priceOk) return 0;
+      return (pt / 1e6) * priceIn + (ct / 1e6) * priceOut;
+    };
     /* 读合并统计键：一次 listAll + 每键一次 get，值里含当日全部统计 */
     const statKeys = await listAll(kv, 'aistat:');
     const statByDay = {};          // YYYYMMDD → {n,pt,ct,svc}
-    let tokToday = 0;
+    let tokToday = 0, tokTodayPt = 0, tokTodayCt = 0;
     for (const k of statKeys) {
       const p = k.split(':');
       if (p.length !== 2 || !/^\d{8}$/.test(p[1])) continue;
       let v = null;
       try { v = JSON.parse((await kv.get(k)) || 'null'); } catch (e) {}
       if (!v || typeof v !== 'object') continue;
-      const tt = (parseInt(v.pt, 10) || 0) + (parseInt(v.ct, 10) || 0);
-      statByDay[p[1]] = { n: parseInt(v.n, 10) || 0, tok: tt, svc: v.svc && typeof v.svc === 'object' ? v.svc : {} };
-      if (p[1] === day) tokToday = tt;
+      const ptN = parseInt(v.pt, 10) || 0, ctN = parseInt(v.ct, 10) || 0;
+      const tt = ptN + ctN;
+      statByDay[p[1]] = { n: parseInt(v.n, 10) || 0, tok: tt, pt: ptN, ct: ctN,
+        svc: v.svc && typeof v.svc === 'object' ? v.svc : {} };
+      if (p[1] === day) { tokToday = tt; tokTodayPt = ptN; tokTodayCt = ctN; }
     }
-    let tokWeek = 0, tokMonth = 0;
+    let tokWeek = 0, tokMonth = 0, tokWeekPt = 0, tokWeekCt = 0, tokMonthPt = 0, tokMonthCt = 0;
     for (const ds in statByDay) {
       const t = statByDay[ds].tok;
       if (!t) continue;
-      if (weekOfDayKey(ds) === week) tokWeek += t;
-      if (ds.slice(0, 6) === month.replace('-', '')) tokMonth += t;
+      if (weekOfDayKey(ds) === week) { tokWeek += t; tokWeekPt += statByDay[ds].pt; tokWeekCt += statByDay[ds].ct; }
+      if (ds.slice(0, 6) === month.replace('-', '')) { tokMonth += t; tokMonthPt += statByDay[ds].pt; tokMonthCt += statByDay[ds].ct; }
     }
     const tokByAcct = {};          // 合并键不带账号 → 恒空（前端已兜底为「—」）
 
@@ -338,7 +359,9 @@ export async function onRequest(context) {
     /* 排成时间升序的数组，前端直接画（不排序会让图乱序）；无数据的日期不返回、不补零 */
     const trend = Array.from(dayKeys).sort()
       .filter(d => statByDay[d] && statByDay[d].n > 0)
-      .map(d => ({ day: d, calls: statByDay[d].n, tok: statByDay[d].tok, cost: yuanPerM(statByDay[d].tok) }));
+      .map(d => ({ day: d, calls: statByDay[d].n, tok: statByDay[d].tok,
+        pt: statByDay[d].pt, ct: statByDay[d].ct,
+        cost: yuanOf(statByDay[d].pt, statByDay[d].ct) }));
     const trendTotals = { calls: 0, tok: 0, cost: 0 };
     for (const t of trend) { trendTotals.calls += t.calls; trendTotals.tok += t.tok; trendTotals.cost += t.cost; }
     /* 本周调用 = 最近 7 个自然日的 aistat 日数据累加（替代从不写入的 aiqwv:，零新增写量） */
@@ -368,8 +391,10 @@ export async function onRequest(context) {
     /* 真人/探针各自的 AI 用量与成本（她真正关心的是这部分，不是被探针污染的全站数） */
     const aiMonthReal = users.filter(u => u.verdict === 'real')
       .reduce((s, u) => s + (usageMonth[u.acct] || 0), 0);
+    /* ⚠️ 诚实口径：分账号的 pt/ct 已放弃（10/5 P3 键合并时明确弃用，5 倍写量不值），
+       只有合计 token → 真人的成本**无法精确拆分**，这里按「全站均值单价」折算，标注为估算。 */
     const costMonthReal = users.filter(u => u.verdict === 'real')
-      .reduce((s, u) => s + yuanPerM(tokByAcct[u.acct] || 0), 0);
+      .reduce((s, u) => s + (priceOk ? (tokByAcct[u.acct] || 0) / 1e6 * ((priceIn + priceOut) / 2) : 0), 0);
 
     /* 10/5 P3 · 操作审计（谁何时给谁开了会员 —— 内测多人时唯一可查的地方） */
     const auditKeys = await listAll(kv, 'audit:');
@@ -421,15 +446,38 @@ export async function onRequest(context) {
       /* 10/5 P3：真人/探针判定 + 只看真人的口径 */
       nReal: nReal, nProbe: nProbe, nIdle: users.length - nReal - nProbe, aiMonthReal: aiMonthReal,
       /* 10/5 P3：成本 + 分功能 */
-      priceOk: priceOk, priceIn: priceOk ? priceIn : 0, priceOut: priceOk ? priceOut : 0,
+      priceOk: priceOk, priceIn: priceOk ? priceIn : 0, priceOut: priceOk ? priceOut : 0, priceSource: priceSource,
       tokToday: tokToday, tokWeek: tokWeek, tokMonth: tokMonth, tokByAcct: tokByAcct,
-      costToday: yuanPerM(tokToday), costWeek: yuanPerM(tokWeek), costMonth: yuanPerM(tokMonth),
+      costToday: yuanOf(tokTodayPt, tokTodayCt), costWeek: yuanOf(tokWeekPt, tokWeekCt), costMonth: yuanOf(tokMonthPt, tokMonthCt),
       costMonthReal: costMonthReal, byService: svcSorted,
       /* 10/5 P3 · 用量趋势（近 30 天，无数据日不返回） */
       trend: trend, trendTotals: trendTotals, trendDays: TREND_DAYS,
       /* 10/5 P3：操作审计 */
       audits: audits.slice(0, 100),
       sessCount: sessCount, vips: vips, feedbacks: feedbacks, fbUnread: fbUnread });
+  }
+
+  /* ---------- 设置 AI 单价（10/6 11:35）----------
+     她 11:33 说「成本趋势显示不出来…懒得去 DeepSeek 平台看」。根因是 env 没配 `AI_PRICE_IN/OUT`
+     → `priceOk=false` → 成本恒为 0。我不写死官方价（公开价互相矛盾、端点可能已下线），
+     改成**在面板里填一次、存 KV**，之后成本曲线立刻有数。env 仍然优先（要改走 CF 后台）。
+     存键：`admin:price` = {in, out, at}（元 / 百万 tokens）。 */
+  if (action === 'price_set' || action === 'price_clear') {
+    if (action === 'price_clear') {
+      await kv.delete('admin:price');
+      await audit(kv, 'price_clear', {});
+      return json({ ok: true, cleared: true });
+    }
+    const pin = parseFloat(body.in), pout = parseFloat(body.out);
+    if (!isFinite(pin) || !isFinite(pout) || pin < 0 || pout < 0) {
+      return json({ ok: false, error: 'bad_price', msg: '单价要是非负数字（元 / 百万 tokens）' }, 400);
+    }
+    if (pin > 1000 || pout > 1000) {
+      return json({ ok: false, error: 'bad_price', msg: '单价看起来不对：每百万 tokens 不可能超过 ¥1000' }, 400);
+    }
+    await kv.put('admin:price', JSON.stringify({ in: pin, out: pout, at: Date.now() }));
+    await audit(kv, 'price_set', { in: pin, out: pout });
+    return json({ ok: true, in: pin, out: pout });
   }
 
   /* ---------- 生成邀请码 ---------- */
