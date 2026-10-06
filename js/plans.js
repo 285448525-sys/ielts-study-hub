@@ -146,6 +146,86 @@ var DIAG_AI_SYSTEM =
 + '}\n'
 + '分数只允许 0.5 步进、范围 3.0-9.0；没有依据的科目给 null，不许编造。';
 
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   会员专属 · 深度版诊断（10/6 10:50 她拍板）
+   ① 免费版**全部改成会员** —— 非会员只保留本地诚实底座（不调 AI）。
+   ② 深度版三块：老师评语 / 分项诊断 / 科目级处方 / 阶段计划+通过线。
+   ③ 接站内真实数据：我另查了 DATA 的实际结构（她原本以为「题库没内置所以做不了」）——
+      听力 mockRecords.parts = Section 1-4 对错；阅读 = Passage 1-3；写作 writingScores.result.breakdown
+      = TR/CC/LR/GRA；口语 mockRecords.parts = P1/P2/P3 × FC/LR/GRA。
+      → **Part/Section 级诊断本版就做**（她 10:52 拍板纳入）；
+        **考点级**（哪道题、哪种题型丢分）要有题目本体 + 逐题作答明细 → 已列待办。
+   ⚠️ 诚实铁律（10/6 定）：AI 只能「解释 evidence 里已有的数字」，**不许自己编分数或 Section 号** ——
+      护栏会把不在 evidence 里的 label 全部丢弃。宁可少说，不许编。 */
+var DIAG_PRO_SYSTEM =
+'你是一位雅思写作与口语主讲老师，同时是备考规划师 —— 你带过大量 5.5 冲 6.5、6 冲 7 的学生。\n'
++ '你的判断标准是「考官怎么给分」，不是「怎么让考生开心」。像老师备课那样：先算差距，再排投入次序。\n'
++ '只输出一个 JSON 对象，不要输出 JSON 以外的任何文字，也不要 markdown 代码围栏。\n'
++ '\n'
++ '【铁律 · 只解释，不编造】\n'
++ '输入里的 evidence 是系统从考生站内真实记录里取出来的原始数据。\n'
++ '- **只允许引用 evidence 里真实存在的数字与名称**（分数、对错数、Section/Passage/P1-P3 标签、日期）。\n'
++ '- **绝对不许自己编分数、不许编 Section/Passage/Part 名称、不许编「她错了哪道题」。**\n'
++ '- evidence 里某科没有数据 → parts 里就不给这一科；在 verdict 里用一句话说明「这科没有可依据的记录，先做一次模考」。\n'
++ '- 输入里 source 为 mock/exam/writing/practice 的分数是雅思实证成绩，必须原样沿用；你只对 ref（校外换算）、manual（手填）或 null 的科目给估计。\n'
++ '\n'
++ '【第一步 · 先算差距，再排优先级】\n'
++ '1) gap = 目标分 − 现状分（0.5 步进）。\n'
++ '2) **只有 gap ≥ 0.5 的科目才允许进 focus。**已达标科目绝对不许进 —— 给已达标的科目标「优先」在专业上说不通。\n'
++ '3) 四科全部达标时 focus 给空数组 []。\n'
++ '4) focus 内按「提分性价比 = gap ÷ 需要的有效投入」从高到低：听力/阅读靠技巧见效最快但高分段陡增；\n'
++ '   写作/口语判分主观、无法速成；距考 ≤ 14 天只保最容易拿到的那一科。\n'
++ '\n'
++ '【第二步 · 换算基准（校外成绩才用，不得凭空夸大或贬低）】\n'
++ '高考英语 120/150 → 听力 5.0-5.5、阅读 5.5、口语 5.0、写作 5.0\n'
++ '高考英语 130/150 → 听力 5.5-6.0、阅读 6.0、口语 5.5、写作 5.5\n'
++ '高考英语 140+/150 → 听力 6.0+、阅读 6.5+、口语 6.0、写作 6.0\n'
++ 'CET-4 425 及格线 → 听力 4.5-5.0（及格≠够用）；CET-4 500+ → 听力 5.5、阅读 6.0；CET-4 550+ → 听力 6.0、阅读 6.5\n'
++ 'CET-6 550+ → 听力 6.5、阅读 7.0、口语 6.0、写作 6.0；六级高分对雅思帮助有限（判分体系不同），必须说明。\n'
++ '\n'
++ '【第三步 · 诚实底线】\n'
++ '- 提分难度必须说清：听力阅读提分快但高分段空间小；写作口语无法速成。\n'
++ '- 目标 7.0 而现状 4.5，必须说「需要 6 个月以上」，不许迎合。\n'
++ '- 距考 ≤ 14 天：必须写明「这个目标现在来不及」，然后给**保底动作**，不许出现「再冲一冲」「加强练习」这类空话。\n'
++ '\n'
++ '【第四步 · verdict 老师评语】\n'
++ '- 一整段话（3-5 句、≤300 字），像真实老师写在成绩单末尾的评语，不要条目化、不要 markdown 列表。\n'
++ '- 结构：先说她的问题本质是什么 → 再说最该做的一件事 → 最后一句给心态（考前几天要给现实但不打击）。\n'
++ '- 出现「数据不足」的科目要在这里点明，不要假装有依据。\n'
++ '\n'
++ '【第五步 · parts 分项诊断（只用 evidence 里真实存在的标签）】\n'
++ '- 听力：逐 Section（label/correct/total）；阅读：逐 Passage；口语：逐 P1/P2/P3（可带 FC/LR/GRA）；写作：TR/CC/LR/GRA。\n'
++ '- 每项 note ≤ 40 字，必须基于它自己的 correct/total 或维度分说话（例：Section 3 正确率 6/10，是全卷最弱一节）。\n'
++ '- 不要评价 evidence 里没有的维度。\n'
++ '\n'
++ '【第六步 · prescriptions 科目级处方】\n'
++ '- 只给 focus 里的科目写；每科 2-3 个动作 + 1 条验收标准。\n'
++ '- 动作的 go 只能从这些里选（对应站内真实存在的功能，不许编）：\n'
++ '  practice:listen 听音练习 · practice:read 阅读练习 · practice:mock 听力阅读模考 ·\n'
++ '  speaking:practice 口语练习 · writing:template 写作模板 · writing:fill 写作填空 · writing:essay 写作批改 ·\n'
++ '  words:review 背单词 · materials:practice 口语素材\n'
++ '- 动作 text ≤ 40 字，说清做什么；验收 check ≤ 50 字，必须可判断（例：连续 7 天听写正确率 ≥ 70%）。\n'
++ '\n'
++ '【第七步 · stages 阶段计划】\n'
++ '- 2-4 个阶段；days 之和**不得超过**输入里的 daysLeft；每阶段给 title、days、do（≤3 条）、pass（≤40 字，可判断）。\n'
++ '- 阶段顺序 = 从「保最容易拿到的分」到「补最贵的分」；越临近考试越保守。\n'
++ '\n'
++ '【输出 JSON（只输出这个对象）】\n'
++ '{\n'
++ '  "bands": {"listening": 数字或 null, "reading": 数字或 null, "writing": 数字或 null, "speaking": 数字或 null},\n'
++ '  "bandNotes": {"listening": "一句依据", "reading": "...", "writing": "...", "speaking": "..."},\n'
++ '  "verdict": "3-5 句老师评语，一整段，不要列表",\n'
++ '  "focus": ["只放未达标科目，按性价比从高到低"],\n'
++ '  "weekly": [{"sub": "科目 key", "hours": 数字, "why": "为什么给这个时间"}],\n'
++ '  "parts": {"listening": [{"label": "Section 1", "note": "≤40 字"}], "reading": [], "speaking": [], "writing": []},\n'
++ '  "prescriptions": [{"sub": "科目 key", "why": "≤40 字", "actions": [{"text": "≤40 字", "go": "practice:listen"}], "check": "≤50 字"}],\n'
++ '  "stages": [{"title": "≤12 字", "days": 数字, "subs": ["科目 key"], "do": ["≤30 字"], "pass": "≤40 字"}],\n'
++ '  "bullets": ["4-6 条，每条 ≤60 字：做什么 · 每周多少量 · 怎么算完成"],\n'
++ '  "refNote": "校外成绩换算可信度一句说明；没有就给空字符串"\n'
++ '}\n'
++ '分数只允许 0.5 步进、范围 3.0-9.0；没有依据的科目给 null，不许编造。';
+
 /* =====================================================================================
    完整备考计划生成（第三十三批 commit3，新 callRelay key 'studyplan'，会员专属）
    定位：免费诊断 → 一键生成未来 14 天（距考更近按实际天数）每日任务：任务全部限定在
@@ -1361,6 +1441,184 @@ function diagAiMessages(st, r){
   ];
 }
 
+
+/* ── 深度版：站内实证数据摘要（10/6）────────────────────────────────────────
+   只汇总「站内真有的记录」，缺就是缺（AI 那边会在评语里点明「这科没数据」）。
+   ⚠️ 听力/阅读的 mock 记录里 parts 就是 Section / Passage 级对错（correct/total 或 score），
+      口语的 parts 是 p1/p2/p3 × fc/lr/gra，写作的 breakdown 是 TR/CC/LR/GRA —— 都已内置，**不需要题库**。
+      唯独「考点级」（错的是哪道题、哪种题型）需要题目本体 + 逐题作答明细 → 已列待办。 */
+function diagProEvidence(){
+  const D = DATA || {};
+  const mock = Array.isArray(D.mockRecords) ? D.mockRecords : [];
+  const byDate = (a, b) => String(b.date || '').localeCompare(String(a.date || '')) || ((b.ts || 0) - (a.ts || 0));
+  const num = v => (v == null || !isFinite(Number(v))) ? null : Number(v);
+  const ev = { mockBySub: {}, handScores: [], errorbookN: 0, checkinsN: 0, daysLeft: 0, note: '' };
+
+  ['listening', 'reading'].forEach(t => {
+    const recs = mock.filter(r => r && r.type === t && Array.isArray(r.parts) && r.parts.length).sort(byDate);
+    const r = recs[0];
+    if(!r) return;
+    ev.mockBySub[t] = {
+      date: r.date || '',
+      parts: r.parts.slice(0, 6).map(p => ({
+        label: String(p.label || ''),
+        score: num(p.score), correct: num(p.correct), total: num(p.total),
+      })).filter(p => p.label),
+    };
+  });
+
+  /* 口语整卷记录：kind==='speaking'（旧记录无 parts 但有 p1）*/
+  const spk = mock.filter(r => r && (r.kind === 'speaking' || (!Array.isArray(r.parts) && (r.p1 || r.p2)))).sort(byDate)[0];
+  if(spk){
+    const g = (p) => (p && typeof p === 'object' && !Array.isArray(p))
+      ? { fc: num(p.fc), lr: num(p.lr), gra: num(p.gra), unanswered: !!p.unanswered } : null;
+    const P = (spk.parts && typeof spk.parts === 'object') ? spk.parts : null;
+    if(P && (P.p1 || P.p2 || P.p3)){
+      ev.mockBySub.speaking = { date: spk.date || '', overall: num(spk.overall), p1: g(P.p1), p2: g(P.p2), p3: g(P.p3) };
+    }else if(spk.dims && typeof spk.dims === 'object'){
+      ev.mockBySub.speaking = { date: spk.date || '', overall: num(spk.overall), dims: spk.dims };
+    }
+  }
+
+  /* 写作：最近一次 AI 批改的官方四项（结构化存在 result.breakdown）*/
+  const ws = (Array.isArray(D.writingScores) ? D.writingScores : [])
+    .filter(x => x && x.parsed && x.result && typeof x.result === 'object' && x.result.breakdown)
+    .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+  if(ws[0]){
+    const bd = ws[0].result.breakdown || {};
+    ev.mockBySub.writing = {
+      date: ws[0].date || '', cat: ws[0].tplCat || '', overall: num(ws[0].result.overall),
+      TR: num(bd.TR), CC: num(bd.CC), LR: num(bd.LR), GRA: num(bd.GRA),
+    };
+  }
+
+  ev.handScores = (Array.isArray(D.scores) ? D.scores : []).slice(-4)
+    .map(x => ({ date: x.date || '', listening: num(x.listening), reading: num(x.reading), writing: num(x.writing), speaking: num(x.speaking) }));
+  ev.errorbookN = Array.isArray(D.errorbook) ? D.errorbook.length : 0;
+  ev.checkinsN = Array.isArray(D.checkins) ? D.checkins.length : 0;
+  ev.note = '以上全部来自站内真实记录；某科没有数据就直接说没有，不要推测。';
+  return ev;
+}
+
+/* 深度版 messages：本地问卷 + 站内实证证据 */
+function diagProMessages(st, r){
+  const tg = {};
+  DIAG_SUBS.forEach(([k]) => { tg[k] = Number(r.tg[k]) > 0 ? Number(r.tg[k]) : null; });
+  if(Number(r.tg.overall) > 0) tg.overall = Number(r.tg.overall);
+  const ev = diagProEvidence();
+  ev.daysLeft = r.cd.hasExam ? r.days : 0;
+  const payload = {
+    now: todayKey(),
+    exam: r.cd.hasExam ? { date: r.cd.raw, daysLeft: r.days } : null,
+    target: tg,
+    bands: DIAG_SUBS.map(([k]) => ({ sub: k, band: (st.bands[k] == null ? null : st.bands[k]), source: (st.src[k] ? st.src[k].s : null) })),
+    refExam: st.ref || null,
+    weeklyCapacity: { weekdayHoursPerDay: st.wdHours, weekendHoursPerDay: st.weHours, totalMinutesPerWeek: r.caps.weekMin },
+    identity: st.identity,
+    localConclusion: { key: r.verdict.k, needDays: r.needDays, text: r.verdict.text },
+    evidence: ev,
+  };
+  return [
+    { role: 'system', content: DIAG_PRO_SYSTEM },
+    { role: 'user', content: '请按约定的 JSON 格式，为下面这位考生做深度评定：\n' + JSON.stringify(payload) },
+  ];
+}
+
+/* 站内可跳转目标白名单（处方动作只能指到这里 —— 站内没有的能力不许出现在按钮里） */
+function diagProGoMap(){
+  const m = {};
+  Object.keys(PLAN_WL).forEach(mod => {
+    const acts = PLAN_WL[mod].actions || {};
+    Object.keys(acts).forEach(a => { m[mod + ':' + a] = { file: PLAN_WL[mod].file, label: PLAN_WL[mod].label }; });
+  });
+  return m;
+}
+
+/* ── 深度版护栏（10/6）──────────────────────────────────────────────────────
+   诚实第一：① parts 的 label 必须真实存在于 evidence（**编造的 Section 号会被丢掉**）
+             ② prescriptions 只给未达标科目写，动作必须映射到站内白名单
+             ③ stages 天数总和 ≤ 距考天数
+             任一关键块不合规就整份不采（沿用「AI 失败绝不落库」的既有口径）。 */
+function diagProApplyAi(st, ai, r){
+  const base = diagApplyAi(st, ai);
+  if(!base) return null;
+  const ev = diagProEvidence();
+
+  /* ① 分项诊断：label 白名单 = evidence 里真实存在的标签 */
+  const allowLabel = {};
+  const put = (k, lab) => { if(!allowLabel[k]) allowLabel[k] = []; if(lab && allowLabel[k].indexOf(lab) < 0) allowLabel[k].push(lab); };
+  const L = ev.mockBySub.listening, R = ev.mockBySub.reading, S = ev.mockBySub.speaking, W = ev.mockBySub.writing;
+  (L && L.parts || []).forEach(p => put('listening', p.label));
+  (R && R.parts || []).forEach(p => put('reading', p.label));
+  if(S){ ['p1', 'p2', 'p3'].forEach(k => { if(S[k]) put('speaking', k.toUpperCase()); }); }
+  if(W){ ['TR', 'CC', 'LR', 'GRA'].forEach(k => { if(W[k] != null) put('writing', k); }); }
+
+  const parts = {};
+  const src = (ai.parts && typeof ai.parts === 'object') ? ai.parts : {};
+  DIAG_SUBS.forEach(([k]) => {
+    const list = Array.isArray(src[k]) ? src[k] : [];
+    const rows = list.map(x => {
+      if(!x || typeof x !== 'object') return null;
+      const lab = String(x.label || '').trim();
+      if(!lab || !((allowLabel[k] || []).indexOf(lab) >= 0)) return null;   // 编造的标签 → 丢
+      const o = { label: lab, note: (typeof x.note === 'string' ? x.note.trim().slice(0, 40) : '') };
+      if(x.correct != null) o.correct = Number(x.correct);
+      if(x.total != null) o.total = Number(x.total);
+      if(x.dims && typeof x.dims === 'object'){
+        o.dims = {};
+        ['fc', 'lr', 'gra'].forEach(d => { if(x.dims[d] != null) o.dims[d] = Number(x.dims[d]); });
+        if(!Object.keys(o.dims).length) delete o.dims;
+      }
+      return (o.note || o.correct != null || o.dims) ? o : null;
+    }).filter(Boolean).slice(0, 6);
+    if(rows.length) parts[k] = rows;
+  });
+  if(!Object.keys(parts).length) return null;      // 一条分项都站不住 → 整份不采（不显示半截）
+
+  /* ② 处方：只给 focus 里的科目；动作必须映射到站内白名单 */
+  const goMap = diagProGoMap();
+  const focusSet = {};
+  base.focus.forEach(k => { focusSet[k] = 1; });
+  const prescriptions = (Array.isArray(ai.prescriptions) ? ai.prescriptions : []).map(x => {
+    if(!x || typeof x !== 'object') return null;
+    const k = String(x.sub || '');
+    if(!focusSet[k]) return null;                                     // 已达标科目不给处方
+    const actions = (Array.isArray(x.actions) ? x.actions : []).map(a => {
+      if(!a || typeof a !== 'object') return null;
+      const go = String(a.go || '');
+      if(!goMap[go]) return null;                                      // 站内没这个功能 → 丢
+      const text = (typeof a.text === 'string' ? a.text.trim().slice(0, 40) : '');
+      if(!text) return null;
+      return { text: text, go: go, file: goMap[go].file, label: goMap[go].label };
+    }).filter(Boolean).slice(0, 3);
+    const check = (typeof x.check === 'string' ? x.check.trim().slice(0, 50) : '');
+    if(!actions.length || !check) return null;                          // 动作全被丢 or 没验收线 → 丢整条
+    return { sub: k, why: (typeof x.why === 'string' ? x.why.trim().slice(0, 40) : ''), actions: actions, check: check };
+  }).filter(Boolean).slice(0, 4);
+  if(!prescriptions.length) return null;
+
+  /* ③ 阶段计划：2-4 个；days 正整数且总和 ≤ 距考天数；subs ⊆ focus */
+  const daysLeft = (r && r.cd && r.cd.hasExam) ? Number(r.days) : 0;
+  const cap = (daysLeft > 0) ? daysLeft : 14;
+  let used = 0;
+  const stages = (Array.isArray(ai.stages) ? ai.stages : []).map(x => {
+    if(!x || typeof x !== 'object') return null;
+    const dd = Math.round(Number(x.days));
+    if(!isFinite(dd) || dd <= 0) return null;
+    if(used + dd > cap) return null;                                   // 超过剩余天数 → 丢
+    const doList = (Array.isArray(x.do) ? x.do : []).map(v => String(v || '').trim()).filter(Boolean).slice(0, 3);
+    const pass = (typeof x.pass === 'string' ? x.pass.trim().slice(0, 40) : '');
+    const title = (typeof x.title === 'string' ? x.title.trim().slice(0, 12) : '');
+    if(!title || !doList.length || !pass) return null;
+    used += dd;
+    const subs = (Array.isArray(x.subs) ? x.subs : []).map(String).filter(k => focusSet[k]).slice(0, 4);
+    return { title: title, days: dd, subs: subs, do: doList, pass: pass };
+  }).filter(Boolean).slice(0, 4);
+  if(stages.length < 2) return null;
+
+  return Object.assign({}, base, { parts: parts, prescriptions: prescriptions, stages: stages, pro: 1 });
+}
+
 /* 纯护栏：AI JSON → 可落库 d.ai；关键字段不合规返回 null（调用方保留本地底座，不采半截）。
    实证科目（mock/考试/批改/练习）强制沿用她的真实分；AI 分值只对 ref/manual/空 科目生效。 */
 /* 🔴 10/6 10:17 她批「已达标的科目也显示成『XX 优先』，非常不合常理」（真 bug，两道门都漏了）。
@@ -1431,13 +1689,19 @@ function diagFmtTs(ts){
 }
 
 /* 请求 AI 评定。落库与 UI 解耦：成功必落 d.ai（覆盖层关了也不浪费），DOM 前一律先查元素。 */
+/* 深度版请求（10/6 10:50 起）：会员闸在前 + 后端 diagpro 也拦（双保险）。
+   老记录（d.ai）继续能看，但它没有 parts/prescriptions/stages —— 渲染层会自动标「轻量版 · 升级」。 */
 async function diagRequestAi(st){
   try{
     const d0 = DATA.settings && DATA.settings.diagnosis;
     if(!d0) return;
+    renderDiagAiBox('checking');
+    let isVip = false;
+    try{ isVip = await diagVipCheck(); }catch(e){ isVip = false; }
+    if(!isVip){ renderDiagAiBox('locked'); return; }
     const r = diagBuildReport(d0);
-    const raw = await callRelay('diag', diagAiMessages(st, r), 0.3, { max_tokens:2200, json_mode:true });
-    const ai = diagApplyAi(st, aiJson(raw));
+    const raw = await callRelay('diagpro', diagProMessages(st, r), 0.3, { max_tokens:3000, json_mode:true });
+    const ai = diagProApplyAi(st, aiJson(raw), r);
     if(!ai){
       const box0 = document.getElementById('dgAi'); if(box0) renderDiagAiBox('error', 'bad');
       return;
@@ -1457,73 +1721,146 @@ async function diagRequestAi(st){
 }
 
 /* #dgAi 五态渲染：loading / stored / idle / error(fail|bad|login)。只刷本 section。 */
+/* #dgAi 渲染（10/6 10:50 起 = 会员专属深度版）：七态
+   checking / locked / loading / stored / error(bad|fail|login) / idle
+   深度版四块：老师评语(verdict) + 分项诊断(parts) + 科目级处方(prescriptions) + 阶段计划(stages)，
+   下面是原有六段（分值 / 依据 / 优先 / 每周时间 / 建议 / 换算说明）。
+   ⚠️ 老记录（d.ai，无 pro 标记）仍能看，但会标「轻量版 · 升级深度版」——不假装它有深度内容。 */
 function renderDiagAiBox(mode, sub){
   const box = document.getElementById('dgAi'); if(!box) return;
   const d = DATA.settings && DATA.settings.diagnosis;
-  const head = '<div class="dg-ai-head"><span class="dg-ai-badge">AI</span><strong>AI 个性化评定</strong>'
-    + '<span class="dg-ai-free">免费 · 不占每周额度</span></div>';
+  const lab = (k) => (DIAG_SUBS.find(x => x[0] === k) || [,''])[1];
+  const head = '<div class="dg-ai-head"><span class="dg-ai-badge">AI</span><strong>AI 深度诊断</strong>'
+    + '<span class="dg-ai-free">会员功能</span></div>';
   const kick = (st) => { renderDiagAiBox('loading'); diagRequestAi(st); };
+
+  if(mode === 'checking'){
+    box.innerHTML = head + '<div class="dg-ai-loading"><span class="dg-spinner" aria-hidden="true"></span>正在确认会员权益…</div>';
+    return;
+  }
+  if(mode === 'locked'){
+    box.innerHTML = head
+      + '<div class="dg-plan-lock-msg">🔒 AI 深度诊断是会员功能。开通后得到：</div>'
+      + '<ul class="dg-plan-perks">'
+      + '<li>一段老师手写风格的评语：你的问题本质是什么、最该做哪一件事</li>'
+      + '<li>分项诊断：听力逐 Section、阅读逐 Passage、口语逐 P1-P3、写作 TR/CC/LR/GRA</li>'
+      + '<li>每个未达标科目一张处方：2-3 个动作（能一键跳进站内功能）+ 一条验收标准</li>'
+      + '<li>阶段计划：从保最容易拿的分，到补最贵的分，每阶段都有通过线</li>'
+      + '</ul>'
+      + '<a class="btn-primary dg-block-btn" href="vip.html" style="text-decoration:none;text-align:center">开通会员 · 周卡 ¥19</a>'
+      + '<div class="dg-plan-note">诊断结论与每日重排永久免费；深度诊断与完整计划是会员功能。</div>';
+    return;
+  }
   if(mode === 'loading'){
     box.innerHTML = head + '<div class="dg-ai-loading"><span class="dg-spinner" aria-hidden="true"></span>'
-      + '正在结合你的成绩与备考时间做评定，通常 10 秒左右…</div>';
+      + '正在读你的模考记录、批改结果与练习数据，做深度诊断，通常 15 秒左右…</div>';
     return;
   }
   if(mode === 'stored' && d && d.ai){
     const ai = d.ai;
-    const bandCards = DIAG_SUBS.map(([k, lab]) => {
+    const isPro = !!ai.pro;
+    const bandCards = DIAG_SUBS.map(([k, l]) => {
       const v = ai.bands[k], real = !!(d.bandSrc[k] && DIAG_AI_REAL_SRC[d.bandSrc[k].s] && d.bands[k] != null);
-      return '<div class="dg-ai-band"><span class="dg-ai-band-lab">' + lab + (real ? '<i class="dg-ai-tag">沿用你的'
+      return '<div class="dg-ai-band"><span class="dg-ai-band-lab">' + l + (real ? '<i class="dg-ai-tag">沿用你的'
         + escapeHtml(DIAG_SRC_LABEL[d.bandSrc[k].s] || d.bandSrc[k].s) + '</i>' : '') + '</span>'
         + '<b>' + (v == null ? '--' : v.toFixed(1)) + '</b>'
         + (ai.bandNotes[k] ? '<span class="dg-ai-band-note">' + escapeHtml(ai.bandNotes[k]) + '</span>' : '') + '</div>';
     }).join('');
-    /* focus 走同一套过滤（diagAiFocusList）—— 旧记录里已存了「四科全优先」的也会在这里被就地纠正 */
     const fList = diagAiFocusList(ai.bands, ai.focus);
     const focus = fList.length
-      ? '<div class="dg-ai-focus">' + fList.map(k =>
-          '<span class="dg-ai-fchip">' + escapeHtml((DIAG_SUBS.find(x => x[0] === k) || [,''])[1]) + ' 优先</span>').join('') + '</div>' : '';
-    /* 每周时间分配（新字段；老记录没有 → 整块不渲染，零影响） */
-    /* weekly 同样走过滤（已达标的不占时间）—— 落库层已过滤过，这里再过滤一次是为了
-       **就地纠正旧记录**（她的旧 ai 对象里可能已存着「写作 1 小时」这种已达标却分配的时间）。 */
-    const wList = (Array.isArray(ai.weekly) ? ai.weekly : [])
-      .filter(x => x && x.sub)
+      ? '<div class="dg-ai-focus">' + fList.map(k => '<span class="dg-ai-fchip">' + escapeHtml(lab(k)) + ' 优先</span>').join('') + '</div>' : '';
+    const wList = (Array.isArray(ai.weekly) ? ai.weekly : []).filter(x => x && x.sub)
       .filter(x => { const g = diagAiGap(ai.bands, x.sub); return g == null || g >= 0.5; });
     const weekly = wList.length
       ? '<div class="dg-ai-weekly"><div class="dg-ai-weekly-t">每周时间这样分</div>'
-        + wList.map(w => {
-            const lab = (DIAG_SUBS.find(x => x[0] === w.sub) || [,''])[1];
-            return '<div class="dg-ai-weekly-row"><span class="dg-ai-weekly-sub">' + escapeHtml(lab) + '</span>'
-              + '<span class="dg-ai-weekly-h">' + (Number(w.hours) || 0) + ' 小时</span>'
-              + (w.why ? '<span class="dg-ai-weekly-why">' + escapeHtml(w.why) + '</span>' : '') + '</div>';
-          }).join('')
+        + wList.map(w => '<div class="dg-ai-weekly-row"><span class="dg-ai-weekly-sub">' + escapeHtml(lab(w.sub)) + '</span>'
+          + '<span class="dg-ai-weekly-h">' + (Number(w.hours) || 0) + ' 小时</span>'
+          + (w.why ? '<span class="dg-ai-weekly-why">' + escapeHtml(w.why) + '</span>' : '') + '</div>').join('')
         + '</div>' : '';
+
+    /* ① 老师评语：整段，不条目化 */
+    const verdict = ai.verdict
+      ? '<div class="dg-pro-verdict"><span class="dg-pro-tag">老师评语</span><p>' + escapeHtml(ai.verdict) + '</p></div>' : '';
+
+    /* ② 分项诊断：label 已由护栏按 evidence 白名单校验过，这里只渲染 */
+    const partsHtml = (ai.parts && typeof ai.parts === 'object')
+      ? DIAG_SUBS.map(([k, l]) => {
+          const rows = Array.isArray(ai.parts[k]) ? ai.parts[k] : [];
+          if(!rows.length) return '';
+          return '<div class="dg-pro-parts"><div class="dg-pro-parts-t">' + escapeHtml(l) + '</div>'
+            + rows.map(p => {
+                let numTxt = '';
+                if (p.correct != null && p.total != null) numTxt = ' ' + p.correct + '/' + p.total;
+                else if(p.score != null) numTxt = ' ' + p.score;
+                let dims = '';
+                if(p.dims && typeof p.dims === 'object'){
+                  const dn = [];
+                  if(p.dims.fc != null) dn.push('流利 ' + p.dims.fc);
+                  if(p.dims.lr != null) dn.push('词汇 ' + p.dims.lr);
+                  if(p.dims.gra != null) dn.push('语法 ' + p.dims.gra);
+                  if(dn.length) dims = '（' + dn.join(' · ') + '）';
+                }
+                return '<div class="dg-pro-parts-row"><span class="dg-pro-parts-l">' + escapeHtml(p.label) + numTxt + dims + '</span>'
+                  + (p.note ? '<span class="dg-pro-parts-n">' + escapeHtml(p.note) + '</span>' : '') + '</div>';
+              }).join('') + '</div>';
+        }).join('')
+      : '';
+
+    /* ③ 科目级处方：动作只指向站内白名单（护栏已校验），点击直接跳对应功能 */
+    const rxHtml = (Array.isArray(ai.prescriptions) ? ai.prescriptions : []).map((x, ix) => {
+      const acts = (x.actions || []).map((a, ai2) => '<button type="button" class="dg-pro-act" data-pro-go="' + a.file + '" title="去' + escapeHtml(a.label) + '">' + escapeHtml(a.text) + '</button>').join('');
+      return '<div class="dg-pro-rx"><div class="dg-pro-rx-h"><span class="dg-pro-rx-sub">' + escapeHtml(lab(x.sub)) + '</span>'
+        + (x.why ? '<span class="dg-pro-rx-why">' + escapeHtml(x.why) + '</span>' : '') + '</div>'
+        + '<div class="dg-pro-acts">' + acts + '</div>'
+        + '<div class="dg-pro-check">验收 · ' + escapeHtml(x.check) + '</div></div>';
+    }).join('');
+
+    /* ④ 阶段计划 */
+    const stHtml = (Array.isArray(ai.stages) ? ai.stages : []).map(x =>
+      '<div class="dg-pro-stage"><div class="dg-pro-stage-h"><b>' + escapeHtml(x.title) + '</b><span>' + x.days + ' 天</span></div>'
+      + '<ul class="dg-pro-stage-do">' + (x.do || []).map(v => '<li>' + escapeHtml(v) + '</li>').join('') + '</ul>'
+      + '<div class="dg-pro-stage-p">通过线 · ' + escapeHtml(x.pass) + '</div></div>').join('');
+
     box.innerHTML = head
-      + '<p class="dg-ai-verdict">' + escapeHtml(ai.verdict) + '</p>'
+      + (isPro ? '' : '<div class="dg-pro-oldnote">这是升级前的轻量版评定。开通会员并重新评定，可得老师评语、分项诊断、处方与阶段计划。</div>')
+      + verdict
+      + (partsHtml ? '<div class="dg-pro-sec-t">分项诊断</div>' + partsHtml : '')
+      + (rxHtml ? '<div class="dg-pro-sec-t">弱项处方</div><div class="dg-pro-rxs">' + rxHtml + '</div>' : '')
+      + (stHtml ? '<div class="dg-pro-sec-t">阶段计划</div><div class="dg-pro-stages">' + stHtml + '</div>' : '')
+      + '<div class="dg-pro-sec-t">四科结论</div>'
+      + '<p class="dg-ai-verdict">' + escapeHtml(ai.verdict || '') + '</p>'
       + focus
       + '<div class="dg-ai-bands">' + bandCards + '</div>'
       + weekly
-      + '<ul class="dg-ai-bullets">' + ai.bullets.map(b => '<li>' + escapeHtml(b) + '</li>').join('') + '</ul>'
+      + '<ul class="dg-ai-bullets">' + (ai.bullets || []).map(b => '<li>' + escapeHtml(b) + '</li>').join('') + '</ul>'
       + (ai.refNote ? '<div class="dg-ai-ref">' + escapeHtml(ai.refNote) + '</div>' : '')
       + '<div class="dg-ai-ts">AI 评定时间 ' + diagFmtTs(ai.ts) + '（结论仅供参考，最终以你的雅思真题模考分为准）</div>';
+    box.querySelectorAll('[data-pro-go]').forEach(b => b.addEventListener('click', () => {
+      const url = b.getAttribute('data-pro-go');
+      if(url) hubSoftGo(url);
+    }));
     return;
   }
   if(mode === 'error' && sub === 'login'){
-    box.innerHTML = head + '<div class="dg-ai-msg">登录后可以免费获取 AI 个性化评定（不占每周免费 AI 额度）。</div>'
+    box.innerHTML = head + '<div class="dg-ai-msg">登录后可以获取 AI 深度诊断。</div>'
       + '<a class="btn-primary dg-block-btn" href="login.html" style="text-decoration:none;text-align:center">去登录 / 注册</a>';
     return;
   }
   if(mode === 'error'){
-    const msg = sub === 'bad' ? 'AI 这次返回的内容不完整，换个时间再试一次。'
-      : 'AI 评定暂时没拿到（网络或服务波动）。上面的本地评定不受影响，可以先用。';
+    const msg = sub === 'vip'
+      ? '深度诊断是会员功能，开通后即可获取。'
+      : (sub === 'bad' ? 'AI 这次返回的内容不完整，换个时间再试一次。'
+        : '深度诊断暂时没拿到（网络或服务波动）。上面的本地结论不受影响，可以先用。');
     box.innerHTML = head + '<div class="dg-ai-msg">' + msg + '</div>'
-      + '<button type="button" class="dg-text-btn" id="dgAiRetry">重试 AI 评定</button>';
+      + '<button type="button" class="dg-text-btn" id="dgAiRetry">重试深度诊断</button>';
     document.getElementById('dgAiRetry').addEventListener('click', () =>
       kick(d ? { bands:d.bands, src:d.bandSrc } : { bands:{}, src:{} }));
     return;
   }
   /* idle：未评定（含上次失败后重进） */
-  box.innerHTML = head + '<div class="dg-ai-msg">想让 AI 结合你的具体成绩、考试日期和每周可学时间，给一份个性化的水平评定与备考重心吗？免费，一次约 10 秒。</div>'
-    + '<button type="button" class="btn-primary dg-block-btn" id="dgAiGo">免费获取 AI 评定</button>';
+  box.innerHTML = head + '<div class="dg-ai-msg">AI 会读你的模考记录、批改结果与练习数据，给一段老师评语 + 分项诊断 + 弱项处方 + 阶段计划。会员功能，一次约 15 秒。</div>'
+    + '<button type="button" class="btn-primary dg-block-btn" id="dgAiGo">获取 AI 深度诊断</button>'
+    + '<div class="dg-plan-note">开通后一次生成，结论长期有效；改了答案可以重新评定。</div>';
   document.getElementById('dgAiGo').addEventListener('click', () =>
     kick(d ? { bands:d.bands, src:d.bandSrc } : { bands:{}, src:{} }));
 }

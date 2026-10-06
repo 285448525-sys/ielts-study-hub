@@ -209,6 +209,7 @@ export async function onRequest(context) {
      diag/rebalance 仍受上面全站日闸 / IP 闸与下面分钟风控约束，盗刷照样拦。 */
   const week = isoWeekKey(now);
   const weekLimit = parseInt((env && env.AI_USER_WEEKLY_LIMIT) != null ? env.AI_USER_WEEKLY_LIMIT : '5', 10) || 0;
+  // ⚠️ 豁免名单只放「本就免费」的服务；diagpro 是会员项，绝不能加进来（10/6 加闸时特意核过这一行）
   if (weekLimit > 0 && !isVip && service !== 'diag' && service !== 'rebalance') {
     let usedWeek = 0;
     try { usedWeek = parseInt((await env.SYNC_KV.get('aiqw:' + acct + ':' + week)) || '0', 10) || 0; } catch (e) {}
@@ -230,6 +231,11 @@ export async function onRequest(context) {
     // ③ 串题素材会员专属
     if (/^(material_|speaking_chuan_)/.test(service)) {
       return json({ ok: false, error: 'vip_required', msg: '串题素材是会员专属功能，周卡首购 ¥19 起开通' }, 403, env);
+    }
+    // ③c 深度版诊断会员专属（10/6 10:50 她拍板：免费版评定全部收回，非会员只保留本地诚实底座）
+    //     ⚠️ 必须**后端也拦**：只锁前端的话，API 裸奔等于没收费。照 studyplan 的写法。
+    if (service === 'diagpro') {
+      return json({ ok: false, error: 'vip_required', msg: '深度版诊断是会员专属功能，周卡首购 ¥19 起开通' }, 403, env);
     }
     // ③b 完整备考计划会员专属（10/2 拍板：diag 诊断免费，studyplan 生成完整 N 天计划收费；rebalance 每日重排免费）
     if (service === 'studyplan') {
