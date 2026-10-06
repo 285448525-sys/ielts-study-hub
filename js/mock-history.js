@@ -1,6 +1,6 @@
 /* 口语模考 · 历史记录渲染（可复用）
    从 DATA.mockRecords 中挑出口语整卷模考记录（kind==='speaking'，或旧记录无 parts 但有 p1），
-   渲染成「可展开的报告卡」：总分 Band + 六维 + AI 总评 + 逐题转写（P1/P2/P3）+ 删除。
+   渲染成「可展开的报告卡」：总分 + 六维 + AI 总评 + 逐题转写（P1/P2/P3）+ 删除。
    同时被 mock.html（常驻历史区）与 review.html（🎤 口语模考 tab）调用。
    注意：本文件只读取 DATA.mockRecords 与渲染，不修改业务数据；删除走 confirm + hubSave。 */
 (function(){
@@ -93,7 +93,7 @@
       return '<div class="mock-hist-card" data-id="' + r.id + '">'
         + '<div class="mock-hist-head">'
         +   '<div class="mock-hist-meta"><b>' + EH(r.date || '') + '</b>'
-        +     ' <span class="badge overall">总 Band ' + EH(String(overall)) + '</span>'
+        +     ' <span class="badge overall">总分 ' + EH(String(overall)) + '</span>'
         /* 10/6：发音分已移除（设置里的固定分，不是本次成绩）；补语法 / 词汇 */
         +     dimBadge('语法', dimAvg(r, 'gra'))
         +     dimBadge('词汇', dimAvg(r, 'lr'))

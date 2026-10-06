@@ -94,8 +94,8 @@
   <script defer src="js/feedback.js?v=20261002b"></script>
 <script defer src="js/scores.js?v=20261002a"></script>
 <script defer src="js/history.js?v=20260904d"></script>
-<script defer src="js/mock-report.js?v=20260830u"></script>
-<script defer src="js/mock-history.js?v=20261006a"></script>
+<script defer src="js/mock-report.js?v=20261006a"></script>
+<script defer src="js/mock-history.js?v=20261006b"></script>
 <script defer src="js/mock-summary.js?v=20261001f"></script>
 <script defer src="js/speaking-practice.js?v=20261006a"></script>
 <script defer src="js/progress.js?v=20260913c"></script>
@@ -122,7 +122,7 @@
 /* ===== 10/6 桌面端：回顾页「口语模考记录」表格化 =====
    实测：review.html 原本 min-width 断点 0 个，只有 2 个 max-width(560px) → 同样只做了移动端。
    改版前桌面每条记录是一张 1077px 宽的大卡，右侧 60% 全空，且四次成绩只能一行行往下看。
-   现在桌面按「日期 / 总 Band / 语法 / 词汇 / 操作」五列对齐，横向可直接对比多次成绩。
+   现在桌面按「日期 / 总分 / 语法 / 词汇 / 操作」五列对齐，横向可直接对比多次成绩。
    移动端：表头 display:none、卡片保持原形态 —— 零回归。 */
 /* ⚠️ 表头是「桌面才有的东西」，默认必须先藏起来。
    漏了这一句 → 手机端表头会以 block 显示在记录列表上方（探针 M1 抓到过）。 */
@@ -294,7 +294,7 @@
           <!-- 10/6 桌面端：记录列表改表格化（表头只在这里，列宽与下方 .mock-hist-card 共用 --mhcols）。
                手机端整行 display:none，列表仍是原来的卡片形态。 -->
           <div class="mock-hist-thead" aria-hidden="true">
-            <span>日期</span><span>总 Band</span><span>语法</span><span>词汇</span><span class="mh-ops">操作</span>
+            <span>日期</span><span>总分</span><span>语法</span><span>词汇</span><span class="mh-ops">操作</span>
           </div>
           <div id="mockHistoryList"></div>
         </section>
