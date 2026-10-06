@@ -8,7 +8,8 @@
 //   AI_BASE_URL          选填，默认 https://api.deepseek.com/v1
 //   AI_MODEL             选填，默认 deepseek-chat
 //   AI_DAILY_LIMIT       选填，全站每日总调用上限，默认 3000
-//   AI_IP_LIMIT          选填，单 IP 每日上限，默认 200
+//   AI_IP_LIMIT          选填，单 IP 每日上限，默认 1000（10/6 由 200 上调：这道闸在会员判断之前，
+//                          站长本人也受限；20 人规模下 200 不够）
 //   AI_USER_WEEKLY_LIMIT 选填，免费账号每周 AI 兜底额度，默认 5。
 //                        10/1 下午她拍板口径：口语模考免费每月 1 次 / 写作批改免费 0 次（会员专属）/
 //                        其余辅助 AI（含翻译·长难句）每周合计 5 次；会员跳过全部免费额度闸。
@@ -181,7 +182,15 @@ export async function onRequest(context) {
   const day = dayKey(now);
   const bucket = bucketOf(now);
   const dailyLimit = parseInt((env && env.AI_DAILY_LIMIT) || '3000', 10) || 3000;
-  const ipLimit = parseInt((env && env.AI_IP_LIMIT) || '200', 10) || 200;
+  /* 10/6 12:25 她拍板「IP 上限现在就调高」：200 → 1000。
+     为什么必须调：这道闸写在**「算你是不是会员」之前** → **连永久会员（她自己）也照样被限**。
+     10/6 她就因为「我跑探针把 200 次吃满」而当天没法用 AI（探针和她共用同一个 IP）。
+     1000 的依据：20 个用户就算全在同一个网络、每人 50 次/天，也才 1000；
+     单 IP 一天 1000 次 ≈ 300 万 token ≈ ¥6-10，作为「防小号刷子」的兜底成本仍可接受
+     （真正拦住刷子的是「注册要手机号」+「账号级每周 5 次」，不是这道 IP 闸）。
+     ⚠️ 想在 Cloudflare 后台随时改：配环境变量 `AI_IP_LIMIT` 即可覆盖这里的默认值。
+     ⚠️ 改了上限**不等于**可以放开跑真调 AI 的探针 —— 探针的默认跳过闸（ALLOW_LIVE_AI）必须留着。 */
+  const ipLimit = parseInt((env && env.AI_IP_LIMIT) || '1000', 10) || 1000;
   const ip = (request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || 'unknown').split(',')[0].trim();
 
   const usedTotal = await sumBuckets(env.SYNC_KV, 'aiq', day);
