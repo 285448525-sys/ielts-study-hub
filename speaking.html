@@ -51,7 +51,7 @@
   <!-- 10/3 头像选择：必须在 coach.js 之前（陪练气泡头像渲染时就要读 window.avUserSrc）。
        10/3 22:55 扩展：同一份也供顶栏考官头像选择器用（avOpen/avExamSrc） -->
   <script defer src="js/av-picker.js?v=20261004c"></script>
-  <script defer src="js/coach.js?v=20261005d"></script>
+  <script defer src="js/coach.js?v=20261006a"></script>
   <script defer src="js/speaking.js?v=20261005b"></script>
   <script defer src="js/materials.js?v=20261004d"></script>
   <script defer src="js/mock-report.js?v=20261004a"></script>
@@ -1333,6 +1333,15 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
   -webkit-overflow-scrolling:touch;
   padding:14px 4px 14px 0;gap:13px;
 }
+/* 🔴 10/6 10:20 她报「抽了两道题 → 两张题卡被压成一条横条」。
+   根因（量出来的）：#coachScroll 是 column flex 容器，而 .cq-card 用了 overflow:hidden
+   （为了把 teal 头部渐变裁进圆角）—— **flex 项目只要 overflow 不是 visible，
+   它的自动最小尺寸 min-height:auto 就变成 0**，于是内容一超过容器高度，
+   flex 就会按比例把卡片压扁；截图里那两条白条就是被压剩的 .cq-head 渐变条。
+   修法：滚动列表里的**直接子项一律 flex:0 0 auto**（保持自然高度、由容器自己滚）。
+   ⚠️ 不只给 .cq-card —— 同样的病会压扁很长的 AI 回复（.ca-bubble / .ca-fix 也可能溢出），
+   所以规则挂在 #coachScroll 的子项上，一次修掉整族。 */
+#coachView #coachScroll > *{flex:0 0 auto}
 
 /* ---------- 题卡升级：teal 渐变头部条 + P1 徽标 + 真题出处 ---------- */
 #coachView .cq-card{
