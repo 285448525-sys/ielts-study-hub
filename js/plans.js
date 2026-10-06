@@ -89,9 +89,23 @@ var diagFormState = null;   // 问卷进行中的临时态（仅内存，不落�
 /* ---- commit2：AI 评定（diag key）常量。放 ready 前守 TDZ 铁律；函数声明在文件后部 ---- */
 var DIAG_AI_REAL_SRC = { mock:1, exam:1, writing:1, practice:1 };  // 雅思实证来源，AI 不许动这些科的分
 var DIAG_AI_SYSTEM =
-'你是雅思备考规划助手，正在为一位中国考生做「水平评定」。只输出一个 JSON 对象，不要输出 JSON 以外的任何文字，也不要 markdown 代码围栏。\n'
+'你是一位雅思写作与口语主讲老师，同时是备考规划师 —— 你带过大量 5.5 冲 6.5、6 冲 7 的学生。\n'
++ '你的判断标准是「考官怎么给分」，不是「怎么让考生开心」。像老师备课那样：先算差距，再排投入次序。\n'
++ '只输出一个 JSON 对象，不要输出 JSON 以外的任何文字，也不要 markdown 代码围栏。\n'
 + '\n'
-+ '【换算基准（必须遵守，不得凭空夸大或贬低）】\n'
++ '【第一步 · 先算差距，再排优先级（顺序不许颠倒）】\n'
++ '1) 对每一科算 gap = 目标分 − 现状分（按 0.5 步进）。\n'
++ '2) **只有 gap ≥ 0.5 的科目才允许出现在 focus（优先清单）里。**\n'
++ '   已达标的科目（gap < 0.5）**绝对不许**写进 focus —— 给一个已达标的科目标「优先」在专业上说不通，\n'
++ '   等于告诉她「再往已经够用的科目上砸时间」，这是错误建议。已达标科目最多在 bullets 里出现一次，\n'
++ '   作为「保持现状即可、别加码」的提醒。\n'
++ '3) 四科全部达标时，focus 给空数组 []。\n'
++ '4) focus 内部按「提分性价比 = gap ÷ 需要的有效投入」从高到低排：\n'
++ '   · 听力 / 阅读：靠技巧与刷题就能见效，提分最快；但 6.5 以上空间陡增、成本高，别许诺速成。\n'
++ '   · 写作 / 口语：判分主观、无法速成，只能靠持续输出 + 被纠正，投入大、见效慢。\n'
++ '   · 距考 ≤ 14 天：只保「最容易拿到的那一科」，别把时间押在最贵的一科上。\n'
++ '\n'
++ '【第二步 · 换算基准（不得凭空夸大或贬低）】\n'
 + '高考英语 120/150 → 听力 5.0-5.5、阅读 5.5、口语 5.0、写作 5.0\n'
 + '高考英语 130/150 → 听力 5.5-6.0、阅读 6.0、口语 5.5、写作 5.5\n'
 + '高考英语 140+/150 → 听力 6.0+、阅读 6.5+、口语 6.0、写作 6.0\n'
@@ -101,20 +115,33 @@ var DIAG_AI_SYSTEM =
 + 'CET-6 550+ → 听力 6.5、阅读 7.0、口语 6.0、写作 6.0\n'
 + '六级高分对雅思帮助有限：雅思口语写作的判分与四六级体系不同，必须说明这一点。\n'
 + '\n'
-+ '【铁律：必须诚实】\n'
++ '【第三步 · 诚实底线（老师该说的话）】\n'
 + '- 四级及格线以上≠雅思 5.5，必须直说差距（例：这种情况听力大概 4.5-5.0，差距主要在词汇量）。\n'
-+ '- 提分难度必须说清：听力阅读提分最快但高分段空间小；写作口语无法速成，只能靠持续稳定输出。\n'
-+ '- 如果目标 7.0 而现状 4.5，必须明确说「需要 6 个月以上，不是短期能达成的」，不许迎合。\n'
-+ '- 如果只剩 7 天却想提 1 分，必须说不可能，并给保底策略（背单词、口语 Part 1 快答、写作模板默写）。\n'
-+ '- 输入里 source 为 mock/exam/writing/practice 的分数是考生的雅思实证成绩，必须原样沿用，不许改动、压低或抬高；你只对 source 为 ref（校外成绩换算）、manual（手填）或 null 的科目给估计。\n'
++ '- 提分难度必须说清：听力阅读提分快但高分段空间小；写作口语无法速成，只能靠持续稳定输出。\n'
++ '- 目标 7.0 而现状 4.5，必须明确说「需要 6 个月以上，不是短期能达成的」，不许迎合。\n'
++ '- 距考 ≤ 14 天：必须写明「这个目标现在来不及」，然后给**保底动作**（背单词维持词频、口语 Part 1 快答保流利度、\n'
++ '  写作模板默写作底），不许出现「再冲一冲」「加强练习」这类空话。\n'
++ '- 输入里 source 为 mock/exam/writing/practice 的分数是考生的雅思实证成绩，必须原样沿用，不许改动、压低或抬高；\n'
++ '  你只对 source 为 ref（校外成绩换算）、manual（手填）或 null 的科目给估计。\n'
++ '\n'
++ '【第四步 · weekly（每周时间分配）】\n'
++ '- 只给**未达标**的科目分时间；已达标科目不占时间。\n'
++ '- hours 为每周小时数（0.5 步进，0.5–20），所有 hours 之和不得超过输入里的每周总可用小时。\n'
++ '- why ≤ 40 字，说清「为什么这一科拿这个时间」（例：口语提分最慢，但你口语离达标最近）。\n'
++ '\n'
++ '【第五步 · bullets 规格（省额度 = 一次说清，不许注水）】\n'
++ '- 4-6 条，每条 ≤ 60 字，格式固定为「做什么 · 每周多少量 · 怎么算完成」。\n'
++ '- 每条要能今天就开始；禁止「多练」「保持语感」「坚持」「加强练习」这类空话。\n'
++ '- 按对提分的贡献从大到小排；已达标科目最多一条「保持」提醒。\n'
 + '\n'
 + '【输出 JSON 格式（只输出这个对象）】\n'
 + '{\n'
 + '  "bands": {"listening": 数字或 null, "reading": 数字或 null, "writing": 数字或 null, "speaking": 数字或 null},\n'
 + '  "bandNotes": {"listening": "给这个分数的一句依据", "reading": "...", "writing": "...", "speaking": "..."},\n'
-+ '  "verdict": "2-4 句总评：现状离目标多远、时间够不够、最该做什么。必须诚实，不许哄人。",\n'
-+ '  "bullets": ["4-8 条具体建议，每条一句话、可执行（说清做什么、做多少），禁止「多练听力」「保持语感」这类空话"],\n'
-+ '  "focus": ["按优先级排列最该投入的科目 key，从 listening/reading/writing/speaking 中选，最多 4 个"],\n'
++ '  "verdict": "3-4 句老师口吻的总评：现状离目标多远、时间够不够、最该做什么。必须诚实，不许哄人。",\n'
++ '  "focus": ["只放未达标科目（gap≥0.5），按性价比从高到低；全达标给空数组"],\n'
++ '  "weekly": [{"sub": "科目 key", "hours": 数字, "why": "为什么给这个时间"}],\n'
++ '  "bullets": ["4-6 条：做什么 · 每周多少量 · 怎么算完成"],\n'
 + '  "refNote": "关于校外成绩换算可信度的一句说明；没有校外成绩给空字符串"\n'
 + '}\n'
 + '分数只允许 0.5 步进、范围 3.0-9.0；没有依据的科目给 null，不许编造。';
@@ -1336,6 +1363,25 @@ function diagAiMessages(st, r){
 
 /* 纯护栏：AI JSON → 可落库 d.ai；关键字段不合规返回 null（调用方保留本地底座，不采半截）。
    实证科目（mock/考试/批改/练习）强制沿用她的真实分；AI 分值只对 ref/manual/空 科目生效。 */
+/* 🔴 10/6 10:17 她批「已达标的科目也显示成『XX 优先』，非常不合常理」（真 bug，两道门都漏了）。
+   过滤规则（**渲染层与落库层共用**，所以她**已经存过的旧记录**打开也会立刻变对）：
+   gap = 目标 − 现状（用合并后的最终分，实证分优先）；gap < 0.5 = 已达标 → 不进优先清单、不占每周时间。 */
+function diagAiGap(bands, k){
+  const tg = (DATA.settings && DATA.settings.targets) || {};
+  const t = Number(tg[k]) || 0;
+  if(!t) return null;                 // 没设目标 → 不参与
+  const v = bands ? bands[k] : null;
+  if(v == null) return null;          // AI 没能给分 → 不参与
+  return Math.round((t - v) * 2) / 2;
+}
+function diagAiFocusList(bands, raw){
+  return (Array.isArray(raw) ? raw : [])
+    .map(x => String(x))
+    .filter(k => DIAG_SUBS.some(([x2]) => x2 === k))
+    .filter((k, i, a) => a.indexOf(k) === i)
+    .filter(k => { const g = diagAiGap(bands, k); return g != null && g >= 0.5; })
+    .slice(0, 4);
+}
 function diagApplyAi(st, ai){
   if(!ai || typeof ai !== 'object' || Array.isArray(ai)) return null;
   if(!Array.isArray(ai.bullets)) return null;
@@ -1355,12 +1401,28 @@ function diagApplyAi(st, ai){
       if(note) bandNotes[k] = note.slice(0, 80);
     }
   });
-  const focus = Array.isArray(ai.focus)
-    ? ai.focus.map(x => String(x)).filter(k => DIAG_SUBS.some(([x2]) => x2 === k))
-          .filter((k, i, a) => a.indexOf(k) === i).slice(0, 4)
-    : [];
+  /* 🔴 10/6 10:17 她批「作文和口语已经达标，它却显示四门科全部都优先，非常不合常理」。
+     根因两层：① prompt 只写了「focus 按优先级排列最该投入的科目」，**从没说已达标的不许进**；
+             ② 前端校验只做了「合法 key + 去重 + 截 4 个」，**没剔除已达标的科目** → 两道门都漏了。
+     现在双保险：prompt 写死规则（已重写）+ 这里按本地算的 gap 硬过滤。
+     gap = 目标 − 现状，用**合并后的最终分**（实证分优先），<0.5 一律剔除；AI 没给分的科目也剔掉。 */
+  const focus = diagAiFocusList(bands, ai.focus);
+  /* 每周时间分配（新字段，缺失就整块不渲染，老记录零影响） */
+  const weekly = (Array.isArray(ai.weekly) ? ai.weekly : [])
+    .map(x => {
+      if(!x || typeof x !== 'object') return null;
+      const k = String(x.sub || '');
+      if(!DIAG_SUBS.some(([k2]) => k2 === k)) return null;
+      const h = Number(x.hours);
+      if(!isFinite(h) || h <= 0 || h > 20) return null;
+      const why = (typeof x.why === 'string') ? x.why.trim().slice(0, 40) : '';
+      return { sub:k, hours:Math.round(h * 2) / 2, why:why };
+    })
+    .filter(Boolean)
+    .filter(x => { const g = diagAiGap(bands, x.sub); return g == null || g >= 0.5; })   // 已达标的不占时间
+    .slice(0, 4);
   const refNote = (typeof ai.refNote === 'string') ? ai.refNote.trim().slice(0, 200) : '';
-  return { ts:Date.now(), bands, bandNotes, verdict, bullets, focus, refNote };
+  return { ts:Date.now(), bands, bandNotes, verdict, bullets, focus, weekly, refNote };
 }
 
 function diagFmtTs(ts){
@@ -1374,7 +1436,7 @@ async function diagRequestAi(st){
     const d0 = DATA.settings && DATA.settings.diagnosis;
     if(!d0) return;
     const r = diagBuildReport(d0);
-    const raw = await callRelay('diag', diagAiMessages(st, r), 0.3, { max_tokens:2000, json_mode:true });
+    const raw = await callRelay('diag', diagAiMessages(st, r), 0.3, { max_tokens:2200, json_mode:true });
     const ai = diagApplyAi(st, aiJson(raw));
     if(!ai){
       const box0 = document.getElementById('dgAi'); if(box0) renderDiagAiBox('error', 'bad');
@@ -1415,13 +1477,31 @@ function renderDiagAiBox(mode, sub){
         + '<b>' + (v == null ? '--' : v.toFixed(1)) + '</b>'
         + (ai.bandNotes[k] ? '<span class="dg-ai-band-note">' + escapeHtml(ai.bandNotes[k]) + '</span>' : '') + '</div>';
     }).join('');
-    const focus = ai.focus.length
-      ? '<div class="dg-ai-focus">' + ai.focus.map(k =>
+    /* focus 走同一套过滤（diagAiFocusList）—— 旧记录里已存了「四科全优先」的也会在这里被就地纠正 */
+    const fList = diagAiFocusList(ai.bands, ai.focus);
+    const focus = fList.length
+      ? '<div class="dg-ai-focus">' + fList.map(k =>
           '<span class="dg-ai-fchip">' + escapeHtml((DIAG_SUBS.find(x => x[0] === k) || [,''])[1]) + ' 优先</span>').join('') + '</div>' : '';
+    /* 每周时间分配（新字段；老记录没有 → 整块不渲染，零影响） */
+    /* weekly 同样走过滤（已达标的不占时间）—— 落库层已过滤过，这里再过滤一次是为了
+       **就地纠正旧记录**（她的旧 ai 对象里可能已存着「写作 1 小时」这种已达标却分配的时间）。 */
+    const wList = (Array.isArray(ai.weekly) ? ai.weekly : [])
+      .filter(x => x && x.sub)
+      .filter(x => { const g = diagAiGap(ai.bands, x.sub); return g == null || g >= 0.5; });
+    const weekly = wList.length
+      ? '<div class="dg-ai-weekly"><div class="dg-ai-weekly-t">每周时间这样分</div>'
+        + wList.map(w => {
+            const lab = (DIAG_SUBS.find(x => x[0] === w.sub) || [,''])[1];
+            return '<div class="dg-ai-weekly-row"><span class="dg-ai-weekly-sub">' + escapeHtml(lab) + '</span>'
+              + '<span class="dg-ai-weekly-h">' + (Number(w.hours) || 0) + ' 小时</span>'
+              + (w.why ? '<span class="dg-ai-weekly-why">' + escapeHtml(w.why) + '</span>' : '') + '</div>';
+          }).join('')
+        + '</div>' : '';
     box.innerHTML = head
       + '<p class="dg-ai-verdict">' + escapeHtml(ai.verdict) + '</p>'
       + focus
       + '<div class="dg-ai-bands">' + bandCards + '</div>'
+      + weekly
       + '<ul class="dg-ai-bullets">' + ai.bullets.map(b => '<li>' + escapeHtml(b) + '</li>').join('') + '</ul>'
       + (ai.refNote ? '<div class="dg-ai-ref">' + escapeHtml(ai.refNote) + '</div>' : '')
       + '<div class="dg-ai-ts">AI 评定时间 ' + diagFmtTs(ai.ts) + '（结论仅供参考，最终以你的雅思真题模考分为准）</div>';

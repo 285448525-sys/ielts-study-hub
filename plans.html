@@ -42,7 +42,7 @@
 <script defer src="js/data.js?v=20261006a"></script>
   <script defer src="js/common.js?v=20261006d"></script>
   <script defer src="js/feedback.js?v=20261006a"></script>
-  <script src="js/plans.js?v=20261004a" defer></script>
+  <script src="js/plans.js?v=20261006a" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -149,6 +149,14 @@
 #diagOverlay .dg-ai-bullets{margin:0 0 6px;padding-left:20px}
 #diagOverlay .dg-ai-bullets li{font-size:13.5px;line-height:1.75;color:var(--ink);margin-bottom:5px}
 #diagOverlay .dg-ai-ref{font-size:12px;color:var(--muted);line-height:1.7;border-top:1px dashed var(--line);padding-top:8px;margin-top:6px}
+/* 10/6 10:30 新增「每周时间这样分」——把 AI 评定从「说一堆」变成「怎么排时间」，逼它给可执行分配 */
+#diagOverlay .dg-ai-weekly{margin:0 0 14px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface)}
+#diagOverlay .dg-ai-weekly-t{font-size:12.5px;font-weight:700;color:var(--ink-2);margin-bottom:8px}
+#diagOverlay .dg-ai-weekly-row{display:flex;align-items:baseline;gap:10px;padding:5px 0;border-bottom:1px dashed var(--line)}
+#diagOverlay .dg-ai-weekly-row:last-child{border-bottom:0}
+#diagOverlay .dg-ai-weekly-sub{font-size:13.5px;font-weight:700;color:var(--ink);flex:none;width:34px}
+#diagOverlay .dg-ai-weekly-h{font-size:13px;font-weight:700;color:var(--primary-700);flex:none;width:56px;font-variant-numeric:tabular-nums}
+#diagOverlay .dg-ai-weekly-why{font-size:12.5px;color:var(--muted);line-height:1.6;min-width:0}
 #diagOverlay .dg-ai-ts{font-size:11px;color:var(--muted);margin-top:8px}
 #diagRoot .dg-sum-ai{display:inline-block;font-size:11px;color:var(--primary);background:rgba(58,154,147,.12);border-radius:999px;padding:2px 9px;margin-left:8px;font-weight:700;vertical-align:middle}
 /* ===== 完整备考计划区（commit3）：与 dgAi 同 teal 色系，#dgPlan / #diagRoot id 作用域 ===== */
