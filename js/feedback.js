@@ -117,10 +117,15 @@
       +     '<label class="fb-lbl" for="fbText">遇到什么问题？<span class="fb-req">必填</span></label>'
       +     '<textarea id="fbText" class="fb-text" rows="4" maxlength="' + MAX_TEXT + '" placeholder="比如：哪个页面、点了哪里、什么现象、当时在做什么"></textarea>'
       +     '<div class="fb-meta"><span id="fbCount">0 / ' + MAX_TEXT + '</span><span id="fbEnv"></span></div>'
-      +     '<label class="fb-lbl">截图（最多 ' + MAX_IMGS + ' 张，自动压缩）</label>'
+      /* 10/6 11:40 她要求：把设置页那行黄底说明删掉，改成在弹层里**轻轻标一行**。
+         原话「轻轻标注一下，最多 3 张，这样子」+「想发更多截图的话，可以多发几次反馈这样子」。
+         为什么上限是 3 张（她问过）：截图存在 Cloudflare KV，单条记录上限 1MB；
+         前端每张压到 ≈120KB，3 张 ≈380KB 留足余量，超了服务端会 413 拒收。 */
+      +     '<label class="fb-lbl">截图（最多 ' + MAX_IMGS + ' 张）</label>'
       +     '<div class="fb-picks" id="fbPicks"></div>'
       +     '<input id="fbFile" type="file" accept="image/*" multiple hidden />'
       +     '<button class="fb-add" id="fbAdd" type="button">＋ 添加截图</button>'
+      +     '<div class="fb-hint">想多发几张？分多次反馈就行，一次一张也能回得准。</div>'
       +     '<label class="fb-lbl" for="fbContact">联系方式（选填）</label>'
       +     '<input id="fbContact" class="fb-input" maxlength="60" placeholder="微信号 / 邮箱，方便我回你" />'
       +     '<div class="fb-err" id="fbErr"></div>'
