@@ -77,11 +77,25 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
   border-radius:99px;background:var(--p-500);color:#fff;font-size:11px;font-weight:700;vertical-align:1px}
 .tab .dot.zero{background:var(--n-500);opacity:.45}
 /* 反馈列表 */
-.fb-row{display:grid;grid-template-columns:14px 132px 1fr 84px 60px;gap:10px;align-items:center;
-  padding:10px 8px;border-bottom:1px solid #f0f2f4;cursor:pointer;font-size:13.5px}
+.flags{display:flex;flex-direction:column;gap:8px;margin:0 0 16px}
+.flags:empty{display:none}
+.flag{display:flex;align-items:flex-start;gap:10px;padding:10px 13px;border-radius:10px;font-size:13.5px;line-height:1.6}
+.flag.warn{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412}
+.flag.info{background:#f0fdfa;border:1px solid #99f6e4;color:#115e59}
+.flag b{font-weight:700}
+.flag .flag-act{margin-left:auto;flex:none}
+.st-tile .mini{margin-left:6px}
+/* 10/6 反馈改卡片式：原来是一行流水（时间/文本/账号挤在一行），卡片能放下截图与展开详情 */
+.fb-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 12px;padding:13px 15px;margin-bottom:10px;
+  border:1px solid var(--line);border-radius:12px;background:#fff;cursor:pointer}
+.fb-row .fb-dot{flex:none;width:8px;height:8px;border-radius:99px;background:var(--p-500);align-self:center}
+.fb-row .fb-when{flex:none;width:118px;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.fb-row .fb-txt{flex:1 1 320px;min-width:0;font-size:14px;line-height:1.6;color:var(--ink)}
+.fb-row .fb-who{flex:none;display:flex;flex-direction:column;gap:1px;font-size:12px;color:var(--muted)}
+.fb-row .fb-num{flex:none;font-size:12px;color:var(--muted)}
+.fb-row.unread{border-color:var(--p-200);background:#f0fdfa}
 .fb-row:hover{background:#f8fbfb}
-.fb-row.unread{background:#f4faf9}
-.fb-dot{width:8px;height:8px;border-radius:99px;background:var(--p-500)}
+.fb-row.read{opacity:.72}
 .fb-row.read .fb-dot{background:#dfe3e6}
 .fb-when{color:var(--n-500);font-size:12.5px}
 .fb-who b{color:var(--n-900)}
@@ -138,11 +152,13 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
   <!-- 总览 -->
   <div class="card">
     <h2>总览</h2>
+    <!-- 10/6 11:35 她要的「第一档」：需要她处理的事放最上面，别让 10 个同大小的数字卡把信号淹掉 -->
+    <div id="stFlags" class="flags"></div>
     <p class="desc">实时从云端 KV 聚合（UTC 日为 AI 计量口径）</p>
     <div class="stats">
       <div><b id="stUsers">-</b><span>注册用户</span></div>
       <div><b id="stReal">-</b><span>真人（判定）</span></div>
-      <div><b id="stProbe">-</b><span>探针账号</span></div>
+      <div><b id="stProbe">-</b><span>探针账号</span><button class="mini danger" id="probeCleanBtn" type="button" title="删除所有判定为探针的账号（不可恢复）">清理</button></div>
       <div><b id="stSess">-</b><span>活跃登录（30 天内）</span></div>
       <div><b id="stAi">-</b><span>今日 AI 调用（全站）</span></div>
       <div><b id="stAiWeek">-</b><span>本周 AI 调用（全站）</span></div>
@@ -198,11 +214,21 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
     <p class="desc">账号 + 注册时间 + AI 调用次数（今日 / 本周 / 本月）+ 会员状态（点击账号可复制）。
       <b>判定</b>列区分真人 / 探针：真人 = 有云端同步数据或 AI 用量；探针 = AI 写测试时注册的一次性账号（只登录、没碰业务）。可点「改」手动推翻。</p>
     <div class="toolbar">
+      <input class="small" id="userQ" placeholder="搜索账号" style="width:150px" />
+      <select class="small" id="userFilter">
+        <option value="all">全部</option>
+        <option value="real">真人</option>
+        <option value="probe">探针</option>
+        <option value="idle">待观察</option>
+        <option value="vip">会员</option>
+        <option value="ai">本月有 AI 用量</option>
+        <option value="noai">本月零调用</option>
+      </select>
       <label class="muted"><input type="checkbox" id="onlyReal" style="vertical-align:-2px;margin-right:4px" />只看真人（统计口径）</label>
-      <span class="muted" id="judgeSummary">—</span>
+      <span class="muted" id="userCount"></span><span class="muted" id="judgeSummary">—</span>
     </div>
     <table>
-      <thead><tr><th>#</th><th>账号</th><th>注册时间</th><th>判定</th><th>今日 AI</th><th>本周 AI</th><th>本月 AI</th><th>本月成本</th><th>会员</th></tr></thead>
+      <thead id="userTableHead"><tr><th>#</th><th data-usk="acct">账号</th><th data-usk="created">注册时间</th><th>判定</th><th data-usk="aiToday">今日 AI</th><th>本周 AI</th><th data-usk="aiMonth">本月 AI</th><th data-usk="cost">本月成本</th><th>会员</th><th>操作</th></tr></thead>
       <tbody id="userBody"></tbody>
     </table>
     <p class="muted" id="userEmpty" style="margin-top:8px">还没有注册用户。</p>
@@ -364,6 +390,37 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
     $('stProbe').textContent = DATA.nProbe != null ? DATA.nProbe : '-';
     var costM = DATA.priceOk ? ('¥' + (Number(DATA.costMonthReal || 0)).toFixed(2)) : '未配单价';
     $('stCostMonth').textContent = costM;
+    /* ── 10/6 11:35「需要注意」区：需要她处理的事放最上面 ──
+       原来 10 个数字卡一样大，扫一眼看不出该看哪个；现在把信号抽出来单列在最上方。 */
+    (function(){
+      var box = $('stFlags'); if(!box) return;
+      var nReal = DATA.nReal || 0, nProbe = DATA.nProbe || 0, nIdle = DATA.nIdle || 0;
+      var total = nReal + nProbe + nIdle;
+      var out = [];
+      if (nProbe > 0 && total > 0 && (nProbe / total) >= 0.5){
+        var ratio = Math.round(nProbe / total * 100);
+        out.push('<div class="flag warn"><span>探针账号 <b>' + nProbe + ' / ' + total + '</b>（' + ratio
+          + '%）已经盖过真人（' + nReal + ' 个）—— 总览里的「注册用户」大半是我自己测试留下的。</span></div>');
+      }
+      if (DATA.fbUnread > 0){
+        out.push('<div class="flag warn"><span>有 <b>' + DATA.fbUnread + '</b> 条未读反馈等你处理。</span>'
+          + '<button class="btn small flag-act" id="flagGoFb" type="button">去处理 →</button></div>');
+      }
+      if (nReal > 0 && (DATA.aiMonthReal || 0) === 0){
+        out.push('<div class="flag warn"><span><b>真人本月一次 AI 都没用过</b> —— 要么还没推给他们，要么接了没上手。</span></div>');
+      }
+      var left = 0; (DATA.invites || []).forEach(function(v){ left += Math.max(0, (v.max||0) - (v.used||0)); });
+      if (left === 0 && (DATA.invites || []).length){
+        out.push('<div class="flag info"><span>邀请码<b>已全部用完</b>，要加量得重新生成。</span></div>');
+      }
+      if (nReal > 0 && DATA.priceOk){
+        out.push('<div class="flag info"><span>本月 AI 成本 <b>¥' + Number(DATA.costMonthReal || 0).toFixed(2)
+          + '</b> ÷ 真人 ' + nReal + ' 人 = 单人 <b>¥' + (Number(DATA.costMonthReal || 0) / nReal).toFixed(2) + '</b></span></div>');
+      }
+      box.innerHTML = out.join('');
+      var go = $('flagGoFb');
+      if(go) go.addEventListener('click', function(){ switchTab('fb'); });
+    })();
     $('judgeSummary').textContent = '真人 ' + (DATA.nReal || 0) + ' · 探针 ' + (DATA.nProbe || 0) + ' · 待观察 ' + (DATA.nIdle || 0)
       + '（真人本月 AI ' + (DATA.aiMonthReal || 0) + ' 次 / 成本 ' + (DATA.priceOk ? ('¥' + Number(DATA.costMonthReal || 0).toFixed(2)) : '未配单价') + '）';
     renderTrend();
@@ -414,6 +471,36 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
       return (uMonth[b.acct] || 0) - (uMonth[a.acct] || 0);
     });
     var onlyReal = $('onlyReal') && $('onlyReal').checked;
+    /* 10/6 11:35 她说「清理探针」和「开通会员」都是常用操作 → 75 行 9 列的表必须能筛能搜。
+       搜索 + 筛选 + 表头排序（_userSort = {key, dir}），全在客户端做，数据量根本不需要后端分页。 */
+    var q = (($('userQ') && $('userQ').value) || '').trim().toLowerCase();
+    var flt = ($('userFilter') && $('userFilter').value) || 'all';
+    if (q) users = users.filter(function(u){ return String(u.acct || '').toLowerCase().indexOf(q) >= 0; });
+    if (flt === 'real' || flt === 'probe' || flt === 'idle'){
+      users = users.filter(function(u){ return u.verdict === flt; });
+    }else if(flt === 'vip'){
+      users = users.filter(function(u){ return !!vipMap[u.acct]; });
+    }else if(flt === 'ai'){
+      users = users.filter(function(u){ return (uMonth[u.acct] || 0) > 0; });
+    }else if(flt === 'noai'){
+      users = users.filter(function(u){ return (uMonth[u.acct] || 0) === 0; });
+    }
+    if (_userSort){
+      var sk = _userSort.key, dir = _userSort.dir === 'asc' ? 1 : -1;
+      users.sort(function(a, b){
+        var va, vb;
+        if (sk === 'acct'){ va = a.acct; vb = b.acct; return va < vb ? -dir : (va > vb ? dir : 0); }
+        if (sk === 'created'){ va = a.created || 0; vb = b.created || 0; return (va - vb) * dir; }
+        if (sk === 'aiToday'){ va = (DATA.usage || {})[a.acct] || 0; vb = (DATA.usage || {})[b.acct] || 0; return (va - vb) * dir; }
+        if (sk === 'aiMonth'){ va = uMonth[a.acct] || 0; vb = uMonth[b.acct] || 0; return (va - vb) * dir; }
+        if (sk === 'cost'){ va = tokBy[a.acct] || 0; vb = tokBy[b.acct] || 0; return (va - vb) * dir; }
+        return 0;
+      });
+    }
+    $('userEmpty').style.display = users.length ? 'none' : '';
+    $('userCount').textContent = users.length
+      ? ('显示 ' + users.length + ' / ' + (DATA.users || []).length + ' 个账号')
+      : '没有匹配的账号。';
     var shown = 0;
     users.forEach(function(u, i){
       if (onlyReal && u.verdict !== 'real') return;
@@ -441,7 +528,9 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
         + '<td>' + (uWeek[u.acct] || 0) + '</td>'
         + '<td>' + (uMonth[u.acct] || 0) + '</td>'
         + '<td>' + costCell + '</td>'
-        + '<td>' + vipCell + '</td>';
+        + '<td>' + vipCell + '</td>'
+        /* 行内快捷开通：她 10/50 说「开通会员/发码」是常用操作，不该每次跳到下面那张大表单 */
+        + '<td style="white-space:nowrap"><button class="mini" data-vipquick="' + u.acct + '" type="button">开通</button></td>';
       ub.appendChild(tr);
     });
 
@@ -665,6 +754,62 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
 
   /* ---------- 真人/探针：只看真人开关 + 手动改判（10/5 P3）---------- */
   $('onlyReal').addEventListener('change', render);
+  /* 10/6 11:35 新增交互：搜索 / 筛选 / 表头排序 / 行内开通 / 一键清探针 */
+  $('userQ').addEventListener('input', render);
+  $('userFilter').addEventListener('change', render);
+  Array.prototype.forEach.call(document.querySelectorAll('#userTableHead [data-usk]'), function(th){
+    th.style.cursor = 'pointer';
+    th.title = '点这个表头排序';
+    th.addEventListener('click', function(){
+      var k = th.getAttribute('data-usk');
+      if(_userSort && _userSort.key === k) _userSort.dir = (_userSort.dir === 'desc' ? 'asc' : 'desc');
+      else _userSort = { key: k, dir: 'desc' };
+      render();
+    });
+  });
+  /* 一键清理探针：先 dryRun 看清单，再让她输确认词才真删（真删不可逆） */
+  $('probeCleanBtn').addEventListener('click', function(){
+    var btn = this; btn.disabled = true;
+    api('probe_clean', {}, function(r){
+      btn.disabled = false;
+      if(!r.ok || !r.j || !r.j.ok){ alert('查询失败：' + ((r.j && r.j.msg) || ('HTTP ' + r.status))); return; }
+      var n = r.j.count || 0;
+      if(!n){ alert('没有判定为探针的账号，无需清理。'); return; }
+      var list = (r.j.accts || []).join('、');
+      if(list.length > 300) list = list.slice(0, 300) + ' …';
+      var msg = '将永久删除 ' + n + ' 个探针账号（含它们的 AI 计数）：\n\n' + list
+        + '\n\n⚠️ 删除不可恢复。你手动标成「真人」的账号不会被删。\n\n确定请输入：DELETE_PROBES';
+      var typed = prompt(msg);
+      if(typed === null) return;
+      if(String(typed).trim() !== 'DELETE_PROBES'){ alert('确认词不对，已取消（什么都没删）。'); return; }
+      if(!confirm('最后确认：真的要删掉这 ' + n + ' 个探针账号吗？')) return;
+      btn.disabled = true; btn.textContent = '删除中…';
+      api('probe_clean', { confirm: 'DELETE_PROBES' }, function(r2){
+        btn.disabled = false; btn.textContent = '清理';
+        if(!r2.ok || !r2.j || !r2.j.ok){ alert('删除失败：' + ((r2.j && r2.j.msg) || ('HTTP ' + r2.status))); return; }
+        alert('已删除 ' + r2.j.deleted + ' 个探针账号（连带 ' + r2.j.keys + ' 个 KV 键）。');
+        load();
+      });
+    });
+  });
+  /* 行内快捷开通会员：复用下面那张大表单的 vip_grant 接口，只是入口在用户表每一行 */
+  document.addEventListener('click', function(e){
+    var t = e.target.closest ? e.target.closest('[data-vipquick]') : null;
+    if(!t) return;
+    var acct = t.getAttribute('data-vipquick');
+    var days = prompt('给 ' + acct + ' 开多少天会员？（1-3650；填 0 = 永久）', '30');
+    if(days === null) return;
+    days = String(days).trim();
+    var permanent = (days === '0');
+    var n = permanent ? 1 : parseInt(days, 10);
+    if(!permanent && (!isFinite(n) || n < 1 || n > 3650)){ alert('天数要 1-3650（填 0 表示永久）'); return; }
+    var note = prompt('备注（选填，会写进审计，如「微信转账 ¥69」）', '') || '';
+    api('vip_grant', { acct: acct, days: permanent ? 1 : n, permanent: permanent, note: note }, function(r){
+      if(!r.ok || !r.j || !r.j.ok){ alert('开通失败：' + ((r.j && r.j.msg) || ('HTTP ' + r.status))); return; }
+      alert('已给 ' + acct + ' 开通：' + (permanent ? '永久' : (n + ' 天（剩 ' + r.j.daysLeft + ' 天）')));
+      load();
+    });
+  });
   document.addEventListener('click', function(e){
     var t = e.target.closest ? e.target.closest('[data-judge]') : null;
     if (!t) return;
@@ -683,6 +828,7 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
 
   /* ---------- 意见反馈（10/2）---------- */
   var _fbOnlyUnread = false;
+  var _userSort = null;   /* {key, dir} 表头排序；null = 默认（真人→待观察→探针，同档按本月用量降序） */
   var _fbOpen = {};        /* id → true（当前展开了哪几条） */
   var _fbImgs = {};        /* id → 图片数组（懒加载后缓存） */
   var _fbLoading = {};     /* id → true（请求中，防连点） */

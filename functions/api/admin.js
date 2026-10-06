@@ -495,6 +495,60 @@ export async function onRequest(context) {
 
   /* ---------- 人工标记真人/探针（10/5 P3 她要能自己推翻自动判定） ----------
      存 manual:<acct> = 1（真人）/ 0（探针）。传 clear:1 则删除标记、回到自动判定。 */
+  /* ---------- 清理探针账号（10/6 11:35 她要「一键清理按钮」）----------------
+     ⚠️ **不可逆**：真删 KV 键。所以三道保险：
+       ① 默认 **dryRun**，只回「将要删的清单 + 数量」，让她先看清再决定；
+       ② 真删必须回传 `confirm:'DELETE_PROBES'`，前端弹层要她手动输入确认；
+       ③ 全程写审计（谁在什么时候删了多少）。
+     判定口径**直接复用 listUsers 的 verdict**（含她手动改判的 manual 覆盖）——
+     也就是说：面板上显示为「探针」的才会被删，**她手动标成「真人」的探针号安全**（10/5 定的优先级：manual > src > 名字 > 推断）。
+     顺带清掉这些账号名下的 AI 计数键，否则删了号、计数还留着，总览成本会虚高。 */
+  if (action === 'probe_clean') {
+    /* 判定必须与面板显示**完全同一口径**，否则会出现「面板说是探针、删了却删错人」。
+       照抄 overview 的两步：先列 user: 造 users 数组 → judgeAccounts(kv, users, usageMonth) 打 verdict。 */
+    const userKeys = await listAll(kv, 'user:');
+    const users = [];
+    for (const name of userKeys) {
+      const acct = name.slice(5);
+      let created = null, src = '';
+      try {
+        const rec = JSON.parse((await kv.get(name)) || '{}') || {};
+        created = rec.created || null;
+        src = rec.src === 'probe' ? 'probe' : (rec.src === 'real' ? 'real' : '');
+      } catch (e) {}
+      users.push({ acct: acct, created: created, src: src });
+    }
+    const usageMonth = await aggPeriod(kv, 'aiqmv:', monthKeyUTC(new Date()));
+    const judged = await judgeAccounts(kv, users, usageMonth);
+    const probes = judged.filter(u => u.verdict === 'probe').map(u => u.acct);
+    if (String(body.confirm || '') !== 'DELETE_PROBES') {
+      return json({ ok: true, dryRun: true, count: probes.length, accts: probes.slice(0, 300) });
+    }
+    if (!probes.length) return json({ ok: true, deleted: 0, keys: 0, note: '没有判定为探针的账号' });
+    const set = {};
+    probes.forEach(a => { set[a] = 1; });
+    let deleted = 0, keys = 0;
+    for (const a of probes) {
+      for (const k of ['user:' + a, 'vip:' + a, 'manual:' + a, 'fb:' + a, 'fbimg:' + a]) {
+        try { if (await kv.get(k)) { await kv.delete(k); keys++; } } catch (e) {}
+      }
+      deleted++;
+    }
+    /* 按账号的 AI 计数键（键形 <prefix>:<acct>:…）——逐前缀扫一遍，别按账号扫 6 轮。
+       ⚠️ 前缀要与 ai.js 写入的完全一致：aiqa 今日(48h) / aiqwv 周 / aiqmv 月 / aiqmo 模考月 /
+          aiqt 写作批改 / aiqm 分钟风控。**全站的 aiq / aiqip 不带账号，不动。** */
+    for (const prefix of ['aiqa:', 'aiqwv:', 'aiqmv:', 'aiqmo:', 'aiqt:', 'aiqm:']) {
+      let names = [];
+      try { names = await listAll(kv, prefix); } catch (e) { continue; }
+      for (const name of names) {
+        const parts = name.split(':');
+        if (parts.length >= 2 && set[parts[1]]) { try { await kv.delete(name); keys++; } catch (e) {} }
+      }
+    }
+    await audit(kv, 'probe_clean', { deleted: deleted, keys: keys });
+    return json({ ok: true, deleted: deleted, keys: keys });
+  }
+
   if (action === 'judge_set') {
     const acct = String(body.acct || '').trim().toLowerCase();
     if (!/^[a-z0-9_]{6,20}$/.test(acct)) return json({ ok: false, error: 'bad_acct', msg: '账号格式：6-20 位数字/字母/下划线' }, 400);
