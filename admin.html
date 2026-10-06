@@ -871,12 +871,11 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
       if(!n){ alert('没有判定为探针的账号，无需清理。'); return; }
       var list = (r.j.accts || []).join('、');
       if(list.length > 300) list = list.slice(0, 300) + ' …';
-      var msg = '将永久删除 ' + n + ' 个探针账号（含它们的 AI 计数）：\n\n' + list
-        + '\n\n⚠️ 删除不可恢复。你手动标成「真人」的账号不会被删。\n\n确定请输入：DELETE_PROBES';
-      var typed = prompt(msg);
-      if(typed === null) return;
-      if(String(typed).trim() !== 'DELETE_PROBES'){ alert('确认词不对，已取消（什么都没删）。'); return; }
-      if(!confirm('最后确认：真的要删掉这 ' + n + ' 个探针账号吗？')) return;
+      /* 10/6 11:22 她原话：「为什么我删除探针账号还要填什么东西啊？就不能直接删掉吗？
+         我根本都不知道填什么。」→ 去掉「手打 DELETE_PROBES」那道门槛，
+         **只保留一次确认**（清单直接摊在确认框里，她看一眼点确定就行）。 */
+      if(!confirm('将永久删除 ' + n + ' 个探针账号（含它们的 AI 计数）：\n\n' + list
+        + '\n\n⚠️ 删除不可恢复。你手动标成「真人」的账号不会被删。\n\n点「确定」就删。')) return;
       btn.disabled = true; btn.textContent = '删除中…';
       api('probe_clean', { confirm: 'DELETE_PROBES' }, function(r2){
         btn.disabled = false; btn.textContent = '清理';

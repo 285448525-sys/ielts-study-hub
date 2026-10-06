@@ -280,9 +280,12 @@ export async function onRequest(context) {
        残值处理：只聚合 period === 当前 period 的键，上周/上月残值不串进本期。 */
     const week = isoWeekKeyUTC(new Date());
     const month = monthKeyUTC(new Date());
-    const usageWeek = await aggPeriod(kv, 'aiqwv:', week);
+    /* ⚠️ 10/6 11:22：`aiqwv:` 从来没被写入过（10/5 加维度时只写了读侧），所以这里的 aiWeek
+       一直是 0/残值。**不再依赖它** —— 改用已在写的 `aistat:` 日数据累加最近 7 天：
+       口径与「今日 AI 调用」「用量趋势」同源，且**零新增写量**。
+       `usageWeek`（按账号的本周分布）同理为空，面板那一列显示 — 不伪造。 */
+    const usageWeek = {};
     const usageMonth = await aggPeriod(kv, 'aiqmv:', month);
-    const aiWeek = Object.keys(usageWeek).reduce((s, k) => s + usageWeek[k], 0);
     const aiMonth = Object.keys(usageMonth).reduce((s, k) => s + usageMonth[k], 0);
 
     /* 10/5 P3 · 成本估算 + 10/5 14:42 P0 · 键合并 ——
@@ -338,6 +341,15 @@ export async function onRequest(context) {
       .map(d => ({ day: d, calls: statByDay[d].n, tok: statByDay[d].tok, cost: yuanPerM(statByDay[d].tok) }));
     const trendTotals = { calls: 0, tok: 0, cost: 0 };
     for (const t of trend) { trendTotals.calls += t.calls; trendTotals.tok += t.tok; trendTotals.cost += t.cost; }
+    /* 本周调用 = 最近 7 个自然日的 aistat 日数据累加（替代从不写入的 aiqwv:，零新增写量） */
+    const weekKeys = new Set();
+    for (let i = 0; i < 7; i++) {
+      const dt = new Date(nowMs - i * 86400000);
+      const p = n => String(n).padStart(2, '0');
+      weekKeys.add(dt.getUTCFullYear() + p(dt.getUTCMonth() + 1) + p(dt.getUTCDate()));
+    }
+    let aiWeek = 0;
+    for (const d of weekKeys) { if (statByDay[d] && statByDay[d].n > 0) aiWeek += statByDay[d].n; }
 
     /* 分功能统计：合并键的 svc 字段（{"mock_q":3,...}），只取今天 */
     const byService = {};

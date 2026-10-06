@@ -385,6 +385,23 @@ export async function onRequest(context) {
       }
     }
 
+    /* ②b 🔴 10/6 11:22 补上「本月按账号」计数键 `aiqmv:`（TTL 400 天）
+       起因：10/5 P1 有人加了面板的「本周/本月」维度 —— **读侧写了、写侧漏了**：
+       `aiqwv:` / `aiqmv:` 这两个键全仓没有任何地方写入，只在 admin.js 里被读。
+       后果实测：面板「本周/本月 AI 调用」从 10/5 起冻结在那天的残值（她看到 197/197），
+       派生出的「真人本月有没有用过 AI」恒为 0 → 面板误报「真人本月一次 AI 都没用过」。
+       ⚠️ 本周（`aiqwv:`）**仍然不补**：面板改用已有 `aistat:` 日数据累加近 7 天（见 admin.js），
+          零新增写量。这里只补月键，**单次调用写量 +1（get 不计配额，只有 put 计）**。
+       ⚠️ 口径：**所有用户都写（含会员）**，与 `aiqa:` 今日计量一致 —— 面板要看到会员用量。
+       ⚠️ 免费豁免的 service（diag/rebalance）也照写：它们同样在花 DeepSeek 的钱。 */
+    jobs.push((async () => {
+      try {
+        const mk = 'aiqmv:' + acct + ':' + month;
+        const cur = parseInt((await env.SYNC_KV.get(mk)) || '0', 10) || 0;
+        await env.SYNC_KV.put(mk, String(cur + 1), { expirationTtl: 34560000 });
+      } catch (e) {}
+    })());
+
     /* ③ 分钟风控计数（TTL 2 分钟自愈；写失败不影响主流程，与 bumpCount 同口径） */
     jobs.push((async () => {
       try {
