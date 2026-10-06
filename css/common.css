@@ -1543,6 +1543,10 @@ main .quote{
 .mock-hist-trans{margin-top:14px}
 .mock-hist-trans-title{font-weight:700;margin-bottom:6px;color:var(--ink)}
 .mock-hist-sec{font-weight:700;margin:10px 0 4px;color:var(--primary);font-size:14px}
+/* 10/6 09:27 她反馈：记录行删掉「发音分」（设置里的固定分，不是本次成绩），改显示语法 / 词汇。
+   语法词汇是弱信息（辅助判断短板在哪科），所以用中性灰底小字，总分继续用实心主色 —— 层级靠颜色不靠字号。 */
+.mock-hist-dim{font-size:12.5px;font-weight:600;color:var(--ink-2);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:2px 8px;white-space:nowrap}
+.mock-hist-dim b{color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums}
 .mock-hist-qa{margin:0;padding-left:18px}
 .mock-hist-qa li{margin:4px 0;font-size:13.5px;line-height:1.6;color:var(--ink)}
 .btn.sm{padding:5px 10px;font-size:13px;line-height:1.4}

@@ -29,7 +29,7 @@
 })();
 </script>
 <title>回顾 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261005a" />
+<link rel="stylesheet" href="css/common.css?v=20261006b" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -95,7 +95,7 @@
 <script defer src="js/scores.js?v=20261002a"></script>
 <script defer src="js/history.js?v=20260904d"></script>
 <script defer src="js/mock-report.js?v=20260830u"></script>
-<script defer src="js/mock-history.js?v=20260830u"></script>
+<script defer src="js/mock-history.js?v=20261006a"></script>
 <script defer src="js/mock-summary.js?v=20261001f"></script>
 <script defer src="js/speaking-practice.js?v=20261006a"></script>
 <script defer src="js/progress.js?v=20260913c"></script>
@@ -118,6 +118,38 @@
 <meta property="og:description" content="回顾：每日学习记录、冲刺卡与口语练习数据。" />
 <meta property="og:url" content="https://ielts-study-hub.pages.dev/review" />
 <meta name="twitter:card" content="summary" />
+<style id="desktopStyle">
+/* ===== 10/6 桌面端：回顾页「口语模考记录」表格化 =====
+   实测：review.html 原本 min-width 断点 0 个，只有 2 个 max-width(560px) → 同样只做了移动端。
+   改版前桌面每条记录是一张 1077px 宽的大卡，右侧 60% 全空，且四次成绩只能一行行往下看。
+   现在桌面按「日期 / 总 Band / 语法 / 词汇 / 操作」五列对齐，横向可直接对比多次成绩。
+   移动端：表头 display:none、卡片保持原形态 —— 零回归。 */
+/* ⚠️ 表头是「桌面才有的东西」，默认必须先藏起来。
+   漏了这一句 → 手机端表头会以 block 显示在记录列表上方（探针 M1 抓到过）。 */
+.mock-hist-thead{display:none}
+
+@media (min-width:1024px){
+  /* 列宽定义在 section 上，表头与每行共用同一个模板，改一处两处同步 */
+  #tab-speaking section:has(#mockHistoryList){--mhcols:128px 104px 84px 84px 1fr}
+  #tab-speaking .mock-hist-thead{
+    display:grid;grid-template-columns:var(--mhcols,128px 104px 84px 84px 1fr);column-gap:16px;
+    align-items:center;padding:0 16px 8px;margin:0 0 2px;
+    font-size:11.5px;font-weight:700;color:var(--muted);letter-spacing:.02em;
+  }
+  #tab-speaking .mock-hist-thead .mh-ops{text-align:right}
+  #tab-speaking .mock-hist-card{
+    display:grid;grid-template-columns:var(--mhcols,128px 104px 84px 84px 1fr);column-gap:16px;
+    align-items:center;padding:11px 16px;margin-bottom:8px;
+  }
+  /* head / meta 两层都摊平（display:contents），让日期·总分·语法·词汇直接落进上面那 5 列 */
+  #tab-speaking .mock-hist-head{display:contents}
+  #tab-speaking .mock-hist-meta{display:contents;align-items:center}
+  #tab-speaking .mock-hist-meta b{font-size:14px}
+  #tab-speaking .mock-hist-ops{grid-column:5;margin-left:0;justify-content:flex-end}
+  #tab-speaking .mock-hist-body{grid-column:1 / -1;margin-top:12px}
+  #tab-speaking .mock-hist-card:hover{border-color:var(--primary-200);background:var(--primary-50)}
+}
+</style>
 </head>
 <body>
 <div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div></div>
@@ -259,6 +291,11 @@
 
         <section class="card">
           <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg>口语整卷模考记录 <span class="muted mock-hist-count" id="mockHistCount"></span></h2>
+          <!-- 10/6 桌面端：记录列表改表格化（表头只在这里，列宽与下方 .mock-hist-card 共用 --mhcols）。
+               手机端整行 display:none，列表仍是原来的卡片形态。 -->
+          <div class="mock-hist-thead" aria-hidden="true">
+            <span>日期</span><span>总 Band</span><span>语法</span><span>词汇</span><span class="mh-ops">操作</span>
+          </div>
           <div id="mockHistoryList"></div>
         </section>
 

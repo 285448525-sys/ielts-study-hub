@@ -14,6 +14,34 @@
     return r && (r.kind === 'speaking' || (!Array.isArray(r.parts) && r.p1));
   }
 
+  /* ── 10/6 09:27 她反馈改造（记录行）────────────────────────────────────────
+     原渲染把「发音 N」和总分并排显示，她说「发音分不用显示，显示个总分就够了」——
+     查证后确认这个判断是对的：**发音分不是这次模考考出来的**，它是设置里手填的固定分
+     （pronunciationScore，AI 只给 FC 流利 / LR 词汇 / GRA 语法三维），4 条记录里基本同一个值，
+     放在成绩单里等于噪声，还容易让人误读成「这次发音考了几分」。
+     → 记录行改成：**总分（主）+ 语法 / 词汇（辅）**。语法词汇来自 parts.p1/p2/p3 的
+     gra / lr 三个值取平均（跳过未作答的那部分），旧记录（只有 dims 五维）读 dims.grammar / lexical。
+     ⚠️ 权重口径：只对 `!p.unanswered && p[key] != null` 的 Part 求平均 ——
+        没作答的 Part 拉低平均是错的（官方口径也是未作答不计分）。 */
+  function dimAvg(rec, key){
+    let vals = [];
+    const parts = rec && rec.parts;
+    if(parts){
+      ['p1','p2','p3'].forEach(k => {
+        const p = parts[k];
+        if(p && !p.unanswered && p[key] != null && isFinite(Number(p[key]))) vals.push(Number(p[key]));
+      });
+    }else if(rec && rec.dims){
+      const v = (key === 'gra') ? rec.dims.grammar : rec.dims.lexical;
+      if(v != null && isFinite(Number(v))) vals.push(Number(v));
+    }
+    if(!vals.length) return null;
+    const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+    return Math.round(avg * 10) / 10;          // 一位小数，够用
+  }
+  const dimBadge = (lab, v) => (v == null ? '' :
+    '<span class="mock-hist-dim">' + lab + ' <b>' + v.toFixed(1) + '</b></span>');
+
   function reportBlock(rec){
     // 新记录（2026-08-19 起，分 P1/P2/P3 四维 + 逐题纠错）：完整渲染「问题 / 回答 / 哪里错 / 改什么」
     if(rec.parts){
@@ -66,7 +94,9 @@
         + '<div class="mock-hist-head">'
         +   '<div class="mock-hist-meta"><b>' + EH(r.date || '') + '</b>'
         +     ' <span class="badge overall">总 Band ' + EH(String(overall)) + '</span>'
-        +     (r.pronunciationScore != null ? ' <span class="badge">发音 ' + r.pronunciationScore + '</span>' : '')
+        /* 10/6：发音分已移除（设置里的固定分，不是本次成绩）；补语法 / 词汇 */
+        +     dimBadge('语法', dimAvg(r, 'gra'))
+        +     dimBadge('词汇', dimAvg(r, 'lr'))
         +   '</div>'
         +   '<div class="mock-hist-ops">'
         +     '<button class="btn sm mock-hist-toggle" data-id="' + r.id + '">展开 ▾</button>'
