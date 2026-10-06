@@ -129,6 +129,38 @@
   let planLoading = false;   // design/86：动态问卷规划中（渲染 loading 态，防重复点击）
   let freeMode = false;      // design/86：规划失败兜底——自由填写模式（不依赖 plan 也能生成）
 
+  /* ===== 换季判定（10/6）=====
+     判据从 bankVersion 换成「季节」：bankVersion 每次改题库都会 +1（频次调整、加几道题也算），
+     拿它当「素材题族映射是否失效」的判据 → 每次小更新都弹黄框，很烦（她原话）。
+     真正的失效只发生在**整季换题库**（题族整批重排）。
+     ⚠️ 老数据没有 bankSeason 字段 → 一律视为「本季」（下面的回填会静默补齐），
+        绝不能因为这次上线让她的老素材突然弹一次框。 */
+  function bankSeasonNow(){
+    return (typeof SPEAKING_BANK_SEASON !== 'undefined' && SPEAKING_BANK_SEASON) ? SPEAKING_BANK_SEASON : '';
+  }
+  function isSeasonStale(rec){
+    const now = bankSeasonNow();
+    if(!now) return false;            // 拿不到季节常量 → 不打扰她
+    const s = rec && rec.bankSeason;
+    if(!s) return false;              // 老数据：没季节字段 = 本季（由回填补齐）
+    return s !== now;
+  }
+  /* 老数据回填：把当前季节补进 store / plan，**只补内存、不弹任何提示**。
+     ⚠️ 必须挂在 loadStore() 里，不能只挂 init() ——
+        materials.html 的首屏渲染走的是文件末尾那个 `ready(() => { store = loadStore(); … })` 块，
+        **它根本不调 init()**（init() 只有云同步合并后的 mergeRender 才会调）。
+        我第一版只加在 init()，探针实测 bankSeason 永远补不上（老数据 A 场景假 FAIL）。 */
+  let _seasonBackfilled = false;
+  function backfillSeason(s){
+    const now = bankSeasonNow();
+    if(!now || !s) return false;
+    let changed = false;
+    if(!s.bankSeason){ s.bankSeason = now; changed = true; }
+    if(s.plan && !s.plan.bankSeason){ s.plan.bankSeason = now; changed = true; }
+    if(changed) _seasonBackfilled = true;
+    return changed;
+  }
+
   function loadStore(){
     if(DATA.materials && typeof DATA.materials === 'object'){
       const s = DATA.materials; s.answers = s.answers || {};
@@ -139,6 +171,7 @@
       s.answers.customEn = s.answers.customEn || [];
       s.answers._legacy = s.answers._legacy || {};
       s.materials = s.materials || []; s.deletedIds = s.deletedIds || [];
+      backfillSeason(s);          // 10/6：老数据补季节字段（不弹框，见 backfillSeason 注释）
       return s;
     }
     // 一次性迁移：旧 localStorage 数据导入 DATA（此后走云同步）
@@ -151,6 +184,7 @@
         s.answers.customEn = s.answers.customEn || [];
         s.answers._legacy = s.answers._legacy || {};
         s.materials = s.materials || []; s.deletedIds = s.deletedIds || [];
+        backfillSeason(s);
         DATA.materials = s; return s;
       }
     }catch(_){}
@@ -170,6 +204,8 @@
   function rootEl(){ return $('#matRoot') || $('#matView'); }
   function init(){
     store = loadStore();
+    // 10/6：老素材没有 bankSeason → 静默补成当前季节（**不弹框**），补完存一次盘
+    if(_seasonBackfilled) saveStore();
     // 9/19 事故自愈：旧版曾把 AI 失败的占位卡（storyEn 空、logicZh=问卷原话、_fallback:true）当素材保存。
     // 若素材集 100% 为占位卡 → 清空回问卷态（内容全由问卷答案可再生，零损失）；
     // saveStore 会打新 materialsEpoch，云端旧垃圾批次按「较新端整体替换」被覆盖，不会并回。
@@ -240,7 +276,7 @@
         + '<span class="mat-shortwarn-tip">你以前填的内容不会丢，会收进下面的「我以前填过什么」里</span></div></div>';
     }
     // 换季横幅（4.5）：plan 是按旧题库出的 → 提示手动重新出题（不自动重规划，避免打断填写）
-    if(hasPlan && bankLive && plan.bankVersion !== (DATA.speakingVersion || 0)){
+    if(hasPlan && bankLive && isSeasonStale(plan)){
       h += '<div class="mat-shortwarn" id="matPlanStale"><b>口语题库已换季</b>，当前问题是按旧题库出的。<div class="mat-shortwarn-actions"><button class="btn btn-primary" id="matReplanBtn">按新题库重新出题</button><span class="mat-shortwarn-tip">会尽量把你已填的答案迁到新问题里</span></div></div>';
     }
     // 离线/题库缺失警示（4.4.3）
@@ -838,7 +874,7 @@
       }
       store.answers.cards[c.id] = cur;
     });
-    store.plan = { bankVersion: DATA.speakingVersion || 0, isFallback: !!isFallback, cards: cards, algo: PLAN_ALGO };
+    store.plan = { bankVersion: DATA.speakingVersion || 0, bankSeason: bankSeasonNow(), isFallback: !!isFallback, cards: cards, algo: PLAN_ALGO };
     saveStore();
   }
   /* AI 返回卡清洗（4.3.4，前端必须做，不信任 AI 自觉）。
@@ -1076,6 +1112,7 @@
       // 重新生成 = 整库替换：旧素材一律不留（用户的问卷答案都在，重新生成即可复原等价故事）
       store.persona = persona; store.materials = result.stories;
       store.bankVersion = DATA.speakingVersion;   // P2：记录生成时题库版本
+      store.bankSeason = bankSeasonNow();        // 10/6：季节也记一份，换季提示只看它（见 isSeasonStale）
       // 给每张素材卡补稳定 id（AI 未必返回），供删除墓碑与跨设备去重使用
       store.materials.forEach(m => { if(m && m.id == null) m.id = 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); });
       // 英文故事混入中文词时自动重写为纯英文（自愈，仅在检测到中文时才多一次调用）
@@ -1268,7 +1305,7 @@
       if(!bank || !mats.length){
         // 9/23 她反馈：没有带 coverage 的卡时这里直接 return，版本号永远不对齐 → 换季横幅永远不消失。
         // 没有映射可过时，横幅已无意义：直接对齐版本号让横幅消失（bank 取不到时除外——那是数据异常，保留横幅）。
-        if(bank && !mats.length && store.bankVersion !== DATA.speakingVersion){ store.bankVersion = DATA.speakingVersion; saveStore(); }
+        if(bank && !mats.length && store.bankVersion !== DATA.speakingVersion){ store.bankVersion = DATA.speakingVersion; store.bankSeason = bankSeasonNow(); saveStore(); }
         return { applied: 0, failed: [] };
       }
       const newList = bank.map(b => b.title + (b.req ? '（要点：' + b.req + '）' : '')).join('\n');
@@ -1314,7 +1351,7 @@
       }
       // 9/23 诚实口径：只要有失败卡就不对齐版本号（换季横幅保留，映射确实没完成，可再点重试）；
       // 旧代码全失败也盖版本号 → 横幅消失但映射还是旧的（假成功，违反「AI 失败绝不落库」）。
-      if(!failed.length) store.bankVersion = DATA.speakingVersion;
+      if(!failed.length){ store.bankVersion = DATA.speakingVersion; store.bankSeason = bankSeasonNow(); }
       saveStore();
       if(DATA.settings.autoSync && DATA.settings.syncCode && typeof cloudUpload === 'function') cloudUpload(true);
       if(!silent){
@@ -1396,7 +1433,7 @@
   function renderResults(root){
     let h = '';
     // 换季横幅：素材是在旧题库版本下生成的，题族映射可能已过时 → 一键重映射（复用 .mat-shortwarn 现有样式）
-    if((store.materials || []).length && store.bankVersion && store.bankVersion !== DATA.speakingVersion){
+    if((store.materials || []).length && isSeasonStale(store)){
       const busyBtn = remapBusy
         ? '<button class="btn btn-primary" id="matRemapBtn" disabled>⏳ 重新映射中… ' + remapDone + '/' + remapTotal + '</button>'
         : '<button class="btn btn-primary" id="matRemapBtn">一键重新映射题族</button>';
@@ -1700,6 +1737,7 @@
   // materials.html：页面加载即渲染（问卷态从 sessionStorage 恢复，填一半刷新不丢视图）
   ready(() => {
     store = loadStore();
+    if(_seasonBackfilled) saveStore();   // 10/6：loadStore 里补的季节要落一次盘（云同步/换设备才看得到）
     mode = restoreMode();
     render();
   });
