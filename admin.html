@@ -520,7 +520,14 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
           + '<button class="btn small flag-act" id="flagGoFb" type="button">去处理 →</button></div>');
       }
       if (nReal > 0 && (DATA.aiMonthReal || 0) === 0){
-        out.push('<div class="flag warn"><span><b>真人本月一次 AI 都没用过</b> —— 要么还没推给他们，要么接了没上手。</span></div>');
+        /* 12:45 她看到这条以为「统计坏了，识别不到」。加一句对照让她自己一眼判断：
+           「全站今天调用 N 次」作参照 —— 全站有、真人 0 = 确实没人用；全站也是 0 = 真的没人调。 */
+        var todayAll = Number(DATA.aiToday || 0);
+        var cmp = todayAll > 0
+          ? ('全站今天调用了 <b>' + todayAll + '</b> 次，但都不在真人账号上。')
+          : '全站今天也确实是 0 次。';
+        out.push('<div class="flag warn"><span><b>真人本月一次 AI 都没用过</b> —— 要么还没推给他们，要么接了没上手。'
+          + cmp + '</span></div>');
       }
       var left = 0; (DATA.invites || []).forEach(function(v){ left += Math.max(0, (v.max||0) - (v.used||0)); });
       if (left === 0 && (DATA.invites || []).length){
