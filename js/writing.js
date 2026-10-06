@@ -41,8 +41,7 @@ function switchWriteTab(tab){
 
 /* 10/2 模板会员闸状态：必须声明在 ready( 调用之前——common.js 的 ready 回调会同步执行（defer 场景），
    声明放后面会 TDZ「Cannot access before initialization」（老坑，见 HANDOFF 铁律） */
-let tplVip = null;   // null=查询中（列表按未锁渲染，详情按锁定处理，查完回调刷新）
-const TPL_VIP_FLAG_KEY = 'hub_vip_flag_v1';
+let tplVip = null;   // null=未知/查询中（详情暂锁，scheduleVipRecheck 复查）；true/false = 已确认
 
 ready(() => {
   // 迁移：清洗写作模板分类名/标题里的括号后缀（如「观点型（第一优先级）」→「观点型」），就地改写并保存
@@ -56,12 +55,24 @@ ready(() => {
   // 模板库
   renderCats();
   // 会员闸：查完刷新列表（🔓/🔒 角标）与当前详情（若停在锁定视图则解锁重渲染）
-  queryVipGate().then(v => { renderList(); if(curId && !$('#detailCard').hidden) openTpl(curId); });
+  queryVipGate().then(v => { renderList(); if(curId && !$('#detailCard').hidden) openTpl(curId); scheduleVipRecheck(); });
   $('#backBtn').addEventListener('click', () => { $('#detailCard').hidden = true; $('#listCard').hidden = false; document.querySelector('.write-layout')?.classList.remove('detail-open'); });
   $('#addBtn').addEventListener('click', () => { $('#addCard').hidden = false; $('#listCard').hidden = true; $('#detailCard').hidden = true; });
   $('#a_cancel').addEventListener('click', () => { $('#addCard').hidden = true; $('#listCard').hidden = false; });
   $('#a_save').addEventListener('click', addTpl);
   $('#delBtn').addEventListener('click', delTpl);
+  $('#tplRecheckBtn').addEventListener('click', async (e) => {
+    const btn = e.currentTarget; btn.disabled = true; btn.textContent = '检测中…';
+    queryVipGate._tries = 0;
+    await queryVipGate(true);          // 跳过缓存直查后端
+    renderList();
+    if(curId && !$('#detailCard').hidden) openTpl(curId);
+    scheduleVipRecheck();
+    btn.disabled = false; btn.textContent = '我是会员，重新检测一下';
+    if(tplVip === true) toast('已识别为会员，模板已解锁');
+    else if(tplVip === false) toast('这个账号当前不是会员，请到「会员」页查看');
+    else toast('网络不通，没查到。稍等几秒会自动再试一次');
+  });
 
   // 模板内联默写：把模板骨架当默写源（自包含默写 UI + AI 批改）
   $('#tplDictBtn').addEventListener('click', () => openTplDict(curId));
@@ -207,20 +218,30 @@ function renderList(){
    自建模板暂与官方模板同锁；若要「自建的自己能看」需给模板加内置/自建标记字段。 */
 
 
-async function queryVipGate(){
+/* 🔴 10/6 20:55 重写（她报「我明明是 VIP 号，写作页却给我锁了」）。
+   老口径的病：catch 里 tplVip=false 且把'0' 写进 sessionStorage —— 一次网络抖动/
+   Worker 超限(1101)/401 就被永久记成非会员，而 sessionStorage 跨刷新存活，
+   锁卡上「刷新本页」那句提示因此永远无效；vip.html 又是实时查的 → 两页自相矛盾。
+   新口径：查失败 = null（未知）→ 当作「先不锁」并稍后自动复查；真非会员才锁。 */
+async function queryVipGate(force){
   let v = null;
-  try{ v = sessionStorage.getItem(TPL_VIP_FLAG_KEY); }catch(e){}
-  if(v === '1' || v === '0'){ tplVip = (v === '1'); return tplVip; }
-  if(typeof authToken !== 'function' || !authToken()){
-    tplVip = false;
-  } else {
-    try{
-      const j = await authApiPost({ action:'vip_status', token: authToken() });
-      tplVip = !!(j && j.vip && j.vip.expire);
-    }catch(e){ tplVip = false; }   // 查询失败按非会员处理（锁是保守方向）
-  }
-  try{ sessionStorage.setItem(TPL_VIP_FLAG_KEY, tplVip ? '1' : '0'); }catch(e){}
+  try{ v = await authVipCheck(!!force); }catch(e){ v = null; }
+  tplVip = (v === null) ? null : v;   // null = 未知（不放行内容，但会复查）
   return tplVip;
+}
+
+/* 未知态的兜底复查：3 秒后再问一次，仍失败就一直重试（最多 3 次），避免永久锁死。
+   复查期间锁卡照常显示，但她刷新/切回页面时总能自愈，不必手动清缓存。 */
+function scheduleVipRecheck(){
+  if(tplVip !== null) return;
+  if((queryVipGate._tries || 0) >= 3) return;
+  queryVipGate._tries = (queryVipGate._tries || 0) + 1;
+  setTimeout(async () => {
+    await queryVipGate(true);
+    renderList();
+    if(curId && !$('#detailCard').hidden) openTpl(curId);
+    scheduleVipRecheck();
+  }, 3000);
 }
 
 /* 锁定视图：隐藏全部模板内容块，显示会员引导卡 */

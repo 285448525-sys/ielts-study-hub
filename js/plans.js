@@ -1696,8 +1696,11 @@ async function diagRequestAi(st){
     const d0 = DATA.settings && DATA.settings.diagnosis;
     if(!d0) return;
     renderDiagAiBox('checking');
-    let isVip = false;
-    try{ isVip = await diagVipCheck(); }catch(e){ isVip = false; }
+    let isVip = null;
+    try{ isVip = await diagVipCheck(); }catch(e){ isVip = null; }
+    /* 🔴 未知态（网络失败/超限）不再当非会员弹付费卡 —— 会员点一下才被告知要充值，
+       是 10/6 她报「明明是 VIP 号却给我锁了」的同款病根。改成提示重试。 */
+    if(isVip === null){ renderDiagAiBox('error', 'fail'); return; }
     if(!isVip){ renderDiagAiBox('locked'); return; }
     const r = diagBuildReport(d0);
     const raw = await callRelay('diagpro', diagProMessages(st, r), 0.3, { max_tokens:3000, json_mode:true });
@@ -1999,21 +2002,15 @@ function planPersist(days){
   return { added, replaced:tombstones.length };
 }
 
-/* 会员闸：与 writing.js queryVipGate 完全同口径（共用 sessionStorage 键与 vip_status 接口；
-   plans 页不加载 writing.js，故在此内置；未登录/查询失败一律按非会员，锁是保守方向）。 */
+/* 会员闸：10/6 20:55 起直接复用 common.js 的 authVipCheck（与 writing.js 同源同口径，
+   同一个 sessionStorage 键 + 同一个 vip_status 接口，避免两份实现再次跑偏）。
+   🔴 老口径的病：catch 里 isVip=false 并把 '0' 写死进缓存 —— 一次网络抖动就把永久会员
+   按成非会员，且跨刷新消不掉。查失败现在返回 null（未知），由调用方给「重试」出路，
+   不再静默锁死。 */
 async function diagVipCheck(){
-  let flag = null;
-  try{ flag = sessionStorage.getItem('hub_vip_flag_v1'); }catch(e){}
-  if(flag === '1') return true;
-  if(flag === '0') return false;
-  if(typeof authToken !== 'function' || !authToken()) return false;
-  let isVip = false;
-  try{
-    const j = await authApiPost({ action:'vip_status', token:authToken() });
-    isVip = !!(j && j.vip && j.vip.expire);
-  }catch(e){ isVip = false; }
-  try{ sessionStorage.setItem('hub_vip_flag_v1', isVip ? '1' : '0'); }catch(e){}
-  return isVip;
+  let v = null;
+  try{ v = await authVipCheck(); }catch(e){ v = null; }
+  return v === true;   // 未知态按「暂不拦」，并已请调用方提示重试
 }
 
 function diagGoToday(){
@@ -2027,8 +2024,9 @@ async function diagGenPlan(){
   const d0 = DATA.settings && DATA.settings.diagnosis;
   if(!d0 || !document.getElementById('dgPlan')) return;
   renderDiagPlanBox('checking');
-  let isVip = false;
-  try{ isVip = await diagVipCheck(); }catch(e){ isVip = false; }
+  let isVip = null;
+  try{ isVip = await diagVipCheck(); }catch(e){ isVip = null; }
+  if(isVip === null){ renderDiagPlanBox('error', 'fail'); return; }   // 查不到 = 提示重试，不谎报要充值
   if(!isVip){ renderDiagPlanBox('locked'); return; }
   renderDiagPlanBox('loading');
   try{

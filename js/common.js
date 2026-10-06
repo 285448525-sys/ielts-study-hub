@@ -1486,14 +1486,56 @@ function getDeviceId(){
    忘记密码走「恢复码找回」（注册时生成、明文只显示一次，服务端只存哈希）——她拍板的方案。 */
 const AUTH_TOKEN_KEY = 'hub_auth_token';
 function authToken(){ try{ return localStorage.getItem(AUTH_TOKEN_KEY) || ''; }catch(e){ return ''; } }
+
+/* ===== 会员状态统一查询（10/6 20:55 她报「我明明是 VIP 号，它给我锁了」）=====
+   🔴 病根：老口径把「查不出来」和「不是会员」混成同一个 false，还写进 sessionStorage。
+   一次网络抖动 / Worker CPU 超限（10/5 的 1101）/ 401 → 永久记成 '0'，
+   而 sessionStorage 跨刷新存活 → 锁卡上写的那句「刷新本页」永远刷不掉这个 '0'；
+   同时 vip.html 是实时查的 → 会员页写着「永久会员」、写作页锁着，自相矛盾。
+   ✅ 现在口径（三条铁律）：
+   ① 查失败 = null（未知），**绝不等于 false**；调用方对 null 走「先解锁再复查」而不是锁死。
+   ② 缓存带时间戳，TTL 5 分钟自动过期 —— 不需要登出/换号也能自愈。
+   ③ force=true 跳过缓存直查（锁卡上的「重新检测」按钮 / 页面从后台切回时用）。 */
+const VIP_FLAG_KEY = 'hub_vip_flag_v1';
+const VIP_FLAG_TTL = 5 * 60 * 1000;
+function vipFlagClear(){ try{ sessionStorage.removeItem(VIP_FLAG_KEY); }catch(e){} }
 function setAuthToken(t){
   try{
     if(t) localStorage.setItem(AUTH_TOKEN_KEY, t); else localStorage.removeItem(AUTH_TOKEN_KEY);
-    /* 10/2 修：登录态一变（登录/登出/401 过期都走这里），写作模板会员闸的会话级缓存必须作废。
+    /* 10/2 修：登录态一变（登录/登出/401 过期都走这里），会员状态缓存必须作废。
        否则同标签卡登录会员后「刷新本页」仍命中旧的 '0' 被锁（锁卡指引失效）；
        登出/换号后又会命中旧的 '1' 保持解锁（会员锁被绕过）。 */
-    sessionStorage.removeItem('hub_vip_flag_v1');
+    vipFlagClear();
   }catch(e){}
+}
+
+/* 返回 true / false / null(未知)。ttlMs 缺省 5 分钟；force=true 跳过缓存直查。 */
+async function authVipCheck(force, ttlMs){
+  const ttl = (typeof ttlMs === 'number') ? ttlMs : VIP_FLAG_TTL;
+  if(!force){
+    try{
+      const raw = sessionStorage.getItem(VIP_FLAG_KEY);
+      if(raw){
+        const o = JSON.parse(raw);
+        /* 老版本写的是裸 '0'/'1'（无时间戳）→ 认作过期，重新查，避免继续沿用坏值 */
+        if(o && typeof o.t === 'number' && typeof o.v === 'boolean' && (Date.now() - o.t) < ttl){
+          return o.v;
+        }
+      }
+    }catch(e){}
+  }
+  if(typeof authToken !== 'function' || !authToken()) return false;   // 确实没登录 = 确定非会员
+  let isVip = null;
+  try{
+    const j = await authApiPost({ action:'vip_status', token: authToken() });
+    if(j && j.ok !== false) isVip = !!(j.vip && j.vip.expire);
+  }catch(e){ isVip = null; }   /* 🔴 查失败 = 未知，不写缓存、不当非会员 */
+  if(isVip !== null){
+    try{ sessionStorage.setItem(VIP_FLAG_KEY, JSON.stringify({ v: isVip, t: Date.now() })); }catch(e){}
+  }else{
+    vipFlagClear();   // 失败不留任何缓存，下次进页面重新查
+  }
+  return isVip;
 }
 
 async function authApiPost(payload){

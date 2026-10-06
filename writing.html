@@ -40,10 +40,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20261006a"></script>
-  <script defer src="js/common.js?v=20261006a"></script>
+  <script defer src="js/common.js?v=20261006b"></script>
   <script defer src="js/feedback.js?v=20261006a"></script>
   <script defer src="js/writing_prompts.js?v=20260903ab"></script>
-  <script defer src="js/writing.js?v=20261004a"></script>
+  <script defer src="js/writing.js?v=20261006b"></script>
   <script defer src="js/wrongbook.js?v=20260903ab"></script>
 <style>
 
@@ -267,7 +267,9 @@
             <h2 style="margin:12px 0 6px;font-size:19px">作文模板是会员专属</h2>
             <p class="muted" style="font-size:13.5px;line-height:1.8;margin:0 auto 14px;max-width:420px">两套背诵模板 + 全部类型的填空练习、默写、AI 评分，开通会员即可无限使用。</p>
             <a class="btn btn-primary" href="vip.html" style="text-decoration:none;display:inline-block;min-height:44px;line-height:44px;padding:0 22px">开通会员 · 首购 ¥19 起</a>
-            <p class="muted" style="font-size:12px;margin:12px 0 0">已开通会员？请在「设置 → 云端同步」登录同一账号后刷新本页。</p>
+            <!-- 10/6 20:55 她报「明明是 VIP 号却给我锁了」：加一键自愈，不再让她去清缓存/换浏览器 -->
+            <div style="margin-top:12px"><button class="btn" id="tplRecheckBtn" type="button">我是会员，重新检测一下</button></div>
+            <p class="muted" style="font-size:12px;margin:12px 0 0">已开通会员？点上面的按钮即可重新检测（状态会自动刷新）。<br>仍显示未开通？请到「设置 → 云端同步」确认登录的是同一个账号。</p>
           </div>
 
           <div class="tpl-edit">
