@@ -472,6 +472,18 @@ export async function onRequest(context) {
         st.pt = (st.pt || 0) + pt;
         st.ct = (st.ct || 0) + ct;
         st.svc[svc] = (st.svc[svc] || 0) + 1;
+        /* 10/6 12:45 她要求「配单价好看到底花了多少」。两件配套（**同一个键多两个字段，0 额外写**）：
+           ① m = 上游响应里的真实模型名 —— 官方文档已把 `deepseek-chat` 下线换成 flash / v4-pro，
+              而 Cloudflare 后台的 `AI_MODEL` 我读不到，**只能靠响应里这个字段确认她实际用的哪个**；
+           ② pch = 缓存命中的输入 token。官方 flash「缓存命中」输入价只有未命中的 1/50（$0.003 vs $0.15），
+              本站 system prompt 长且固定，官方说这种情况命中率常 >80% → 不区分缓存，**成本会高估好几倍**。 */
+        try {
+          const uj = JSON.parse(text);
+          if (uj && uj.model) st.m = String(uj.model).slice(0, 40);
+          if (uj && uj.usage && uj.usage.prompt_cache_hit_tokens != null) {
+            st.pch = (st.pch || 0) + (parseInt(uj.usage.prompt_cache_hit_tokens, 10) || 0);
+          }
+        } catch (e) {}
         await env.SYNC_KV.put(sKey, JSON.stringify(st), { expirationTtl: 34560000 });
       } catch (e) {}
     })());

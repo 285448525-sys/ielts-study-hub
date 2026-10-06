@@ -500,6 +500,8 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
     $('stReal').textContent = DATA.nReal != null ? DATA.nReal : '-';
     $('stProbe').textContent = DATA.nProbe != null ? DATA.nProbe : '-';
     var costM = DATA.priceOk ? ('¥' + (Number(DATA.costMonthReal || 0)).toFixed(2)) : '未配单价';
+    // 「本月成本」用全站口径（含探针）比用 costMonthReal 更贴近她「我花了多少钱」的问题
+    if (DATA.priceOk && DATA.costMonth != null) costM = '¥' + Number(DATA.costMonth).toFixed(2);
     $('stCostMonth').textContent = costM;
     /* ── 10/6 11:35「需要注意」区：需要她处理的事放最上面 ──
        原来 10 个数字卡一样大，扫一眼看不出该看哪个；现在把信号抽出来单列在最上方。 */
@@ -743,17 +745,21 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
   /* 单价状态：说清「成本为什么是 0」+ 一个就地设置入口（省得她去 Cloudflare 后台） */
   function renderPriceBar(){
     var bar = $('priceBar'); if(!bar) return;
-    if (DATA.priceOk){
-      var src = DATA.priceSource === 'env' ? '环境变量' : '本面板设置';
-      bar.className = 'price-bar ok';
-      bar.innerHTML = '成本按 <b>输入 ¥' + Number(DATA.priceIn) + ' / 输出 ¥' + Number(DATA.priceOut)
-        + '</b> 每百万 tokens 估算（来源：' + src + '）· <b>输入输出分开计价</b>，不是按均价糊。'
-        + '<button class="btn ghost small" id="priceEditBtn" type="button">改单价</button>';
-    }else{
-      bar.className = 'price-bar';
-      bar.innerHTML = '<b>成本暂时算不出来</b>：还没设置 AI 单价。填一次「输入 / 输出每百万 tokens 的人民币单价」就能看到每天花了多少钱。'
-        + '<button class="btn ghost small" id="priceEditBtn" type="button">现在设置</button>';
+    /* 10/6 12:45：改成用**内置官方价**（不再显示「算不出来」），并把「实际用的模型」显示出来 ——
+       她 Cloudflare 后台配的 AI_MODEL 我读不到，只有上游响应里的 model 字段能作证。
+       缓存命中的输入价只有未命中的 2%，本站 prompt 长且固定、命中率高，所以单列出来。 */
+    var mdl = DATA.todayModel || '';
+    var mdlTxt = mdl ? ('　·　<b>实际用的模型：' + mdl + '</b>') : '';
+    var hitTxt = '';
+    if (DATA.todayPch > 0 && DATA.priceHit != null){
+      hitTxt = '　·　今日输入里 <b>' + (DATA.todayPch / 1000).toFixed(0) + 'K</b> 走了缓存（单价 ¥' + Number(DATA.priceHit).toFixed(4) + '）';
     }
+    bar.className = 'price-bar ok';
+    bar.innerHTML = '成本按 <b>输入 ¥' + Number(DATA.priceIn).toFixed(3) + ' / 输出 ¥' + Number(DATA.priceOut).toFixed(2)
+      + '</b> 每百万 tokens 估算' + hitTxt
+      + '<br><span style="opacity:.85">依据：' + (DATA.priceLabel || '官方价') + (DATA.priceSource === 'official' ? '（可在后台用 AI_BASE_URL 旁的设置覆盖）' : '') + '</span>'
+      + mdlTxt
+      + '<button class="btn ghost small" id="priceEditBtn" type="button">改单价</button>';
     var eb = $('priceEditBtn');
     if (eb) eb.addEventListener('click', priceEdit);
   }

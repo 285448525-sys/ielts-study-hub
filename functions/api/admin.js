@@ -339,28 +339,49 @@ export async function onRequest(context) {
        → 成本曲线贴地、总览显示「未配单价」。我**不写死官方价**（查到的公开价互相矛盾，且模型端点
        可能已下线，写死等于骗人）→ 改成**面板里可配**：她填一次存进 KV，之后成本曲线就有数。
        优先级：环境变量 > KV 存的 > 未配置。priceSource 一起返回，前端要显示「依据是什么」。 */
+    /* 10/6 12:45 她要求「配单价好看到底花了多少」。**内置官方价兜底** —— 不用她先去后台配才有数。
+       来源：DeepSeek 官方文档（api-docs.deepseek.com/quick_start/pricing，2026-10-06 查）
+             deepseek-flash 离峰价 $0.15 / $0.60 每百万 token，缓存命中 $0.003
+             × 汇率 6.71（当日中间价）= ¥1.0065 / ¥4.026 / ¥0.0201
+       ⚠️ 她 Cloudflare 后台配的 `AI_MODEL` 我读不到（代码只看得到默认值），
+          所以这里**先按 flash 配**；ai.js 从今天起会把上游响应里的真实模型名写进 aistat.m，
+          面板会显示「实际用的模型」—— 若不是 flash，按显示的那个改价即可（价差 4 倍）。
+       ⚠️ 官方有峰谷分时（UTC 01-04、06-10 点翻倍），这里是离峰价，属于**偏低估算**。 */
+    const OFFICIAL_FLASH = { in: 1.0065, hit: 0.0201, out: 4.026, label: 'DeepSeek 官方 deepseek-flash 离峰价（2026-10 官方文档 × 汇率 6.71）' };
     let priceIn = parseFloat(env.AI_PRICE_IN);
     let priceOut = parseFloat(env.AI_PRICE_OUT);
+    let priceHit = parseFloat(env.AI_PRICE_IN_HIT);
     let priceSource = 'env';
     if (!(isFinite(priceIn) && isFinite(priceOut))) {
       let pv = null;
       try { pv = JSON.parse((await kv.get('admin:price')) || 'null'); } catch (e) {}
       if (pv && isFinite(parseFloat(pv.in)) && isFinite(parseFloat(pv.out))) {
-        priceIn = parseFloat(pv.in); priceOut = parseFloat(pv.out); priceSource = 'kv';
-      } else { priceSource = 'unset'; }
+        priceIn = parseFloat(pv.in); priceOut = parseFloat(pv.out);
+        priceHit = isFinite(parseFloat(pv.hit)) ? parseFloat(pv.hit) : priceIn * 0.02;
+        priceSource = 'kv';
+      } else {
+        priceIn = OFFICIAL_FLASH.in; priceOut = OFFICIAL_FLASH.out; priceHit = OFFICIAL_FLASH.hit;
+        priceSource = 'official';
+      }
     }
-    const priceOk = isFinite(priceIn) && isFinite(priceOut);
+    if (!isFinite(priceHit)) priceHit = priceIn * 0.02;   // 缓存命中价没配就按 2% 估（官方 flash 恰好是这个比例）
+    const priceOk = true;                                   // 有内置官方价兜底 → 成本永远算得出来
+    const priceLabel = (priceSource === 'official') ? OFFICIAL_FLASH.label : (priceSource === 'env' ? '环境变量' : '本面板设置');
     /* ⚠️ 10/6 11:35 修成本公式：原来 `tok/1e6 * (priceIn + priceOut)` —— 把输入输出**合并成一个 tok**
        再同时乘「输入价 + 输出价」，等于假设每个 token 输入费和输出费各收一次，**成本虚高约一倍**。
        正确：`pt/1e6*priceIn + ct/1e6*priceOut`。`aistat:` 里本来就分开存了 pt/ct，这里要用上。 */
-    const yuanOf = function (pt, ct) {
-      if (!priceOk) return 0;
-      return (pt / 1e6) * priceIn + (ct / 1e6) * priceOut;
+    /* 缓存命中的输入价只有未命中的 2%（官方 flash：$0.003 vs $0.15），
+       本站 system prompt 长且固定、命中率常 >80% → **不区分会把成本高估好几倍**。 */
+    const yuanOf = function (pt, ct, pch) {
+      const hit = Math.min(pch || 0, pt || 0);
+      const miss = Math.max(0, (pt || 0) - hit);
+      return (miss / 1e6) * priceIn + (hit / 1e6) * priceHit + (ct / 1e6) * priceOut;
     };
     /* 读合并统计键：一次 listAll + 每键一次 get，值里含当日全部统计 */
     const statKeys = await listAll(kv, 'aistat:');
     const statByDay = {};          // YYYYMMDD → {n,pt,ct,svc}
-    let tokToday = 0, tokTodayPt = 0, tokTodayCt = 0;
+    let tokToday = 0, tokTodayPt = 0, tokTodayCt = 0, tokTodayPch = 0;
+    let todayModel = '';   // 10/6：从 aistat 里读出「实际用的模型」（她后台的 AI_MODEL 我读不到）
     const statVals = await kvGetMany(kv, statKeys);
     for (let si = 0; si < statKeys.length; si++) {
       const k = statKeys[si];
@@ -371,10 +392,12 @@ export async function onRequest(context) {
       if (!v || typeof v !== 'object') continue;
       const ptN = parseInt(v.pt, 10) || 0, ctN = parseInt(v.ct, 10) || 0;
       const tt = ptN + ctN;
-      statByDay[p[1]] = { n: parseInt(v.n, 10) || 0, tok: tt, pt: ptN, ct: ctN,
-        svc: v.svc && typeof v.svc === 'object' ? v.svc : {} };
+      const pchN = parseInt(v.pch, 10) || 0;
+      statByDay[p[1]] = { n: parseInt(v.n, 10) || 0, tok: tt, pt: ptN, ct: ctN, pch: pchN,
+        model: v.m ? String(v.m) : '', svc: v.svc && typeof v.svc === 'object' ? v.svc : {} };
+      if (v.m) todayModel = String(v.m);
       if (p[1] === day) {
-        tokToday = tt; tokTodayPt = ptN; tokTodayCt = ctN;
+        tokToday = tt; tokTodayPt = ptN; tokTodayCt = ctN; tokTodayPch = pchN;
         /* 今日全站调用数直接用 aistat 里已记的 n（**不再依赖那 910 个 aiqa 键**） */
         if (wantUsage) aiToday += 0; else aiToday = parseInt(v.n, 10) || 0;
       }
@@ -489,14 +512,15 @@ export async function onRequest(context) {
       /* 10/5 P3：成本 + 分功能 */
       priceOk: priceOk, priceIn: priceOk ? priceIn : 0, priceOut: priceOk ? priceOut : 0, priceSource: priceSource,
       tokToday: tokToday, tokWeek: tokWeek, tokMonth: tokMonth, tokByAcct: tokByAcct,
-      costToday: yuanOf(tokTodayPt, tokTodayCt), costWeek: yuanOf(tokWeekPt, tokWeekCt), costMonth: yuanOf(tokMonthPt, tokMonthCt),
+      costToday: yuanOf(tokTodayPt, tokTodayCt, tokTodayPch), costWeek: yuanOf(tokWeekPt, tokWeekCt, 0), costMonth: yuanOf(tokMonthPt, tokMonthCt, 0),
       costMonthReal: costMonthReal, byService: svcSorted,
       /* 10/5 P3 · 用量趋势（近 30 天，无数据日不返回） */
       trend: trend, trendTotals: trendTotals, trendDays: TREND_DAYS,
       /* 10/5 P3：操作审计 */
       audits: audits.slice(0, 100),
       sessCount: sessCount, vips: vips, feedbacks: feedbacks, fbUnread: fbUnread,
-      tookMs: Date.now() - _t0, kvReads: _kvReads, usageLoaded: wantUsage });
+      tookMs: Date.now() - _t0, kvReads: _kvReads, usageLoaded: wantUsage,
+      priceLabel: priceLabel, priceHit: priceHit, todayModel: todayModel, todayPch: tokTodayPch });
   }
 
   /* ---------- 设置 AI 单价（10/6 11:35）----------
