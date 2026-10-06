@@ -1381,7 +1381,12 @@ let _putGap = 6000;        // 当前两次 PUT 的最小间隔：安静时 6s，
 /* ⭐ 起步 6s、每次 ×1.6、上限 60s：6 → 9.6 → 15 → 25 → 39 → 60。
    意思是「刚动第一下」基本秒到（≤10s），但如果是在连续做题/计时，一分钟内就自己退到几十秒一次，
    8 小时连续学习约 150 次 PUT —— 比旧方案还省，且再也不会出现「写盘不停就永远不传」。 */
-const PUT_GAP_MIN = 6000, PUT_GAP_MAX = 60000, PUT_IDLE_RESET = 45000;
+/* ⚠️ 10/6 12:56 她决定「内测直接开 Workers Paid（$5/月 = KV 写 100 万/天）」，
+   并要求「电脑有任何改动，手机立刻有反应」→ **当初为省 KV 写配额而设的「逐步退让」现在纯亏体验**。
+   原值：PUT_GAP_MIN 6s / MAX 60s（连续写盘逐步退让，稳态 60s 一次 —— 这就是她体感的「越用越慢」）。
+   现值：固定 1.5s，不退让。写量核对：20 人 × 一天 100 次改动 × 30 天 = 6 万次/月，
+   **占 100 万额度的 6%** → 完全撑得住，不需要再为省配额牺牲速度。 */
+const PUT_GAP_MIN = 1500, PUT_GAP_MAX = 1500, PUT_IDLE_RESET = 45000;
 
 /* ⭐ 9/30 多标签页 leader 选举：同一台机器开着 3 个标签页时，只有 leader 做定时轮询。
  * 为什么需要：每个标签页各有自己的内存 DATA，各自拉各自合并，既浪费配额又互相制造冲突（409）。
@@ -1419,7 +1424,7 @@ if(_syncBC){
     if(!m || !m.id || m.id === _tabId) return;
     if(m.t === 'ping'){ _syncPeers[m.id] = { ts: Date.now(), hidden: !!m.hidden }; _syncElectLeader(); }
     else if(m.t === 'bye'){ delete _syncPeers[m.id]; _syncElectLeader(); }
-    else if(m.t === 'poll'){ try{ cloudPollOnce(); }catch(e){} }   // leader 说云端变了
+    else if(m.t === 'poll'){ try{ cloudPollOnce({ force: true }); }catch(e){} }   // leader 说云端变了
     else if(m.t === 'uploaded'){ if(!_isLeader) try{ setTimeout(cloudPollOnce, 400); }catch(e){} }   // 别的标签页传过东西：跟一次，别等到下一轮轮询
   };
 }
@@ -1538,8 +1543,8 @@ async function syncApi(method, body, path){
  *   3) 硬上限 90s：任何情况下有变更不会超过 90s 不上传。
  * 另外加宽到 macrotask 之外：首次改动后立刻排定时器，不等下一次写盘。
  */
-const CLOUD_DEBOUNCE = 2500;
-const CLOUD_MAX_WAIT = 90 * 1000;
+const CLOUD_DEBOUNCE = 1000;   // 10/6 2.5s → 1s：体感「立刻」，仍能压掉连续点击
+const CLOUD_MAX_WAIT = 6 * 1000;   // 10/6 90s → 6s：任何情况都不会「改了半小时才上去」
 function scheduleCloudUpload(){
   if(!DATA.settings.autoSync || !DATA.settings.syncCode) return;
   const now = Date.now();
@@ -1607,7 +1612,7 @@ async function cloudUpload(showToast, force, opts){
     _lastUploadedHash = hashData();   // ⭐ 9/19：成功后重算基线——lastSyncTs 在上传成功瞬间自变化，沿用上传前快照 h 会让下次比对永远失配，hash 去重形同虚设
     _lastUploadedCloudHash = hashData(_payload);   // v7.1：自回声基线（云端存的就是这份，下次拉到相同哈希=自己传的，不再当「云端更新」合并）
     _lastPutAt = Date.now();
-    _putGap = Math.min(Math.round(_putGap * 1.6), PUT_GAP_MAX);   // 连续写盘时逐步退让，稳态 60s 一次
+    _putGap = PUT_GAP_MIN;   // 10/6：不再退让（已开 Paid，写量有余）；固定 1.5s
     // PUT 成功即等于「云端此刻的内容已知」：下一次 PUT 可以直接当乐观锁基线，
     // 轮询也可以直接短路（省掉一次全量下载）
     if(body && body.ts) _cloudBaseTs = Number(body.ts) || _cloudBaseTs;
@@ -2550,9 +2555,23 @@ function _mergeActiveTimer(a, b){
  * 只有真的变了才走 cloudDownload 的原合并链路。
  * ⚠️ 服务端还是旧版时会把 ?meta=1 当普通 GET（回整份）—— meta.hash 取不到 → 自动退回全量，
  *    功能不受影响，只是省不了流量。升级部署自然生效，无需开关。 */
-async function cloudPollOnce(){
+/* 上一次轮询还没回就先跳过（自适应后最密 3 秒一次，弱网下会叠加）。
+   ⚠️ 10/6 修一个自己引入的 bug：定时器是固定 3 秒一跳，但我第一版把 `gap`（3s/20s）
+   只当参数传下去、**没真用来节流** → 静止时也会每 3 秒打一次，白烧读额度。
+   现在改成真节流：按 opt.gap 判断「距上次探测够久了吗」，另外 `force`（手动同步/回前台）不受限。 */
+let _pollInFlight = false, _lastPollAt = 0;
+async function cloudPollOnce(opt){
+  opt = opt || {};
   if(!DATA.settings.autoSync || !DATA.settings.syncCode) return false;
   if(!authToken()) return false;   // 未登录/已过期：轮询静默退出（401 提示由手动同步与上传链路给出）
+  if(_pollInFlight) return false;
+  var gap = opt.gap || 0;
+  if(!opt.force && gap && (Date.now() - _lastPollAt) < gap) return false;
+  _pollInFlight = true; _lastPollAt = Date.now();
+  try{ return await _cloudPollInner(); } finally { _pollInFlight = false; }
+}
+async function _cloudPollInner(){
+  if(!DATA.settings.autoSync || !DATA.settings.syncCode) return false;
   try{
     const [res, meta] = await syncApi('GET', null, '?meta=1');
     if(res.status === 401){ setAuthToken(''); syncSetStatus('登录已过期，请重新登录', 'error'); renderSyncState(); return false; }
@@ -2572,7 +2591,7 @@ async function cloudPollOnce(){
 let _pollSoonTimer = null;
 function _cloudPollSoon(){
   if(_pollSoonTimer) clearTimeout(_pollSoonTimer);
-  _pollSoonTimer = setTimeout(function(){ try{ cloudPollOnce(); }catch(e){} }, 250);
+  _pollSoonTimer = setTimeout(function(){ try{ cloudPollOnce({ force: true }); }catch(e){} }, 250);
 }
 
 async function cloudDownload(silent){
@@ -3006,11 +3025,25 @@ function initCloudSync(){
   _syncBcPing();
   _syncElectLeader();
   setInterval(function(){ _syncBcPing(); _syncElectLeader(); }, 4000);
-  setInterval(() => { if(!document.hidden && _isLeader) cloudPollOnce(); }, 12 * 1000);
+  /* 10/6 14:10 她要求「电脑有任何改动，手机就立刻有反应」→ 轮询 12s 改自适应：
+       · 刚操作过（2 分钟内有改动）→ **3 秒**（她正在用手机的时段，延迟要贴近 0）
+       · 静止超过 2 分钟 → **20 秒**（省读额度；反正在看的页面才会通知她）
+       · 页面隐藏 → 不轮询（回前台时 visibilitychange 会立刻问一次 → **打开就是最新的**）
+     ⚠️ 读额度核对（每次 meta 探测 = 1 次 KV 读；免费版 10 万/天、Paid 33 万/天）：
+       平均约 15 秒/次 → 20 人 ≈ **11.4 万次/天** → Paid 占 35% 安全；免费版会略超，
+       所以她已决定内测就开 Paid（$5/月）。
+     ⚠️ 为什么不用「真推送」：成熟产品（Docs/Notion）用 WebSocket，那是服务器主动推；
+        **KV 没有发布订阅能力**，纯 KV 拿不到推送 → 业界在这个约束下就是「短轮询 + 304 影子键」，
+        本站的 `meta:` 影子键就是 304 的等价物（未变时只读 200B，不下 1.7MB 全量）。 */
+  setInterval(function(){
+    if(document.hidden || !_isLeader) return;
+    var idle = _lastChangeAt && (Date.now() - _lastChangeAt > 120000);
+    cloudPollOnce(idle ? { gap: 20000 } : { gap: 3000 });
+  }, 3000);
   document.addEventListener('visibilitychange', () => {
     if(document.hidden) return;
     _syncBcPing();
-    if(_isLeader) cloudPollOnce();   // 回到前台立刻问一次（200B），不用等下一轮
+    if(_isLeader) cloudPollOnce({ force: true });   // 回到前台立刻问一次（200B），不用等下一轮
   });
   window.addEventListener('beforeunload', function(){ try{ if(_syncBC) _syncBC.postMessage({ t:'bye', id:_tabId }); }catch(e){} });
 }
