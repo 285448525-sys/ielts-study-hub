@@ -415,6 +415,9 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
     var d = new Date(ts);
     return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
   }
+  /* ⚠️ 10/6 11:55 修「文案说谎」：原来「无缓存」与「有缓存」两种情况**文案完全一样**
+     （都写「以下是上次的数据」），她看不到数据却以为有 → 骗人的。
+     现在分开说：没缓存就说「正在获取」，有缓存才说「以下是上次的数据」并给时间戳。 */
   function showStale(state, atTs){
     var bar = $('staleBar'); if(!bar) return;
     if(!state){ bar.hidden = true; return; }
@@ -422,7 +425,7 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
     bar.classList.toggle('fail', state === 'fail');
     $('staleTxt').textContent = state === 'fail'
       ? '更新失败，下面仍是上次成功获取的数据。'
-      : '正在更新，以下是上次的数据…';
+      : (atTs ? '正在更新，以下是上次的数据…' : '正在获取数据…（第一次打开要等云端算完）');
     $('staleAt').textContent = atTs ? ('上次更新 ' + fmtClock(atTs)) : '';
   }
 
@@ -435,7 +438,7 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
       render();
       showStale('updating', cached.ts);
     }else{
-      showStale('updating', 0);
+      showStale('updating', 0);   // 第一次打开：如实说「正在获取」，别谎称有旧数据
     }
     api('overview', {}, function(r){
       $('refreshBtn').disabled = false;
@@ -483,7 +486,8 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
   });
 
   function render(){
-    $('dayTag').textContent = 'AI 计量：今日 ' + (DATA.day || '') + ' · 本周 ' + (DATA.week || '') + ' · 本月 ' + (DATA.month || '');
+    $('dayTag').textContent = 'AI 计量：今日 ' + (DATA.day || '') + ' · 本周 ' + (DATA.week || '') + ' · 本月 ' + (DATA.month || '')
+      + (DATA.tookMs != null ? ('　·　本次聚合 ' + (DATA.tookMs / 1000).toFixed(1) + 's（读 ' + Number(DATA.kvReads || 0) + ' 个键）') : '');
     $('stUsers').textContent = (DATA.users || []).length;
     $('stSess').textContent = DATA.sessCount != null ? DATA.sessCount : '-';
     $('stAi').textContent = DATA.aiToday != null ? DATA.aiToday : '-';
@@ -906,8 +910,9 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
   /* 一键清理探针：先 dryRun 看清单，再让她输确认词才真删（真删不可逆） */
   $('probeCleanBtn').addEventListener('click', function(){
     var btn = this; btn.disabled = true;
+    btn.textContent = '正在查找…';       // 10/6 她报「点了没反应」—— 原来要等十几秒才弹框，视觉上像坏了
     api('probe_clean', {}, function(r){
-      btn.disabled = false;
+      btn.disabled = false; btn.textContent = '清理';
       if(!r.ok || !r.j || !r.j.ok){ alert('查询失败：' + ((r.j && r.j.msg) || ('HTTP ' + r.status))); return; }
       var n = r.j.count || 0;
       if(!n){ alert('没有判定为探针的账号，无需清理。'); return; }
@@ -917,7 +922,9 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
          我根本都不知道填什么。」→ 去掉「手打 DELETE_PROBES」那道门槛，
          **只保留一次确认**（清单直接摊在确认框里，她看一眼点确定就行）。 */
       if(!confirm('将永久删除 ' + n + ' 个探针账号（含它们的 AI 计数）：\n\n' + list
-        + '\n\n⚠️ 删除不可恢复。你手动标成「真人」的账号不会被删。\n\n点「确定」就删。')) return;
+        + '\n\n⚠️ 删除不可恢复。你手动标成「真人」的账号不会被删。'
+        + (r.j && r.j.tookMs != null ? ('\n（查找耗时 ' + (r.j.tookMs / 1000).toFixed(1) + 's）') : '')
+        + '\n\n点「确定」就删。')) return;
       btn.disabled = true; btn.textContent = '删除中…';
       api('probe_clean', { confirm: 'DELETE_PROBES' }, function(r2){
         btn.disabled = false; btn.textContent = '清理';

@@ -101,6 +101,25 @@ async function listAll(kv, prefix) {
 /* 由 'YYYYMMDD' 形式的 dayKey 反推其所属 ISO 周键。
    aitok:<day> 的键里只有日期，要按周筛就得反推 —— 算法与 isoWeekKeyUTC 同款（周四锚点法），
    改一处必须同步另两处（ai.js / auth.js）。 */
+/* ── KV 批量读（10/6 11:50）──────────────────────────────────────────────────
+   病根：overview 是「先 list、再**逐键串行** get」。CF KV 的 get 每次一个网络往返，
+   而她从国内访问 CF 免费版 RTT 约 150-250ms —— 串行上千次就是**几分钟**（她实测「快一分钟」）。
+   修法：分批并发。**Workers 免费版每次请求最多 6 个并发 I/O**，所以 batch 取 6（设 20 也被限到 6）。
+   ⚠️ 真正把量降下来的办法是把「按账号的日/月用量」从「每账号一个键」改成「每天/每月一个键里装
+   byAcct map」—— 那是下一步（P0-1b），本步先抢时间。 */
+let _kvReads = 0;          // 10/6：本次聚合读了多少个 KV 键（面板上显示，让她能判断快慢）
+const KV_BATCH = 6;
+async function kvGetMany(kv, keys) {
+  const out = new Array(keys.length);
+  _kvReads += keys.length;
+  for (let i = 0; i < keys.length; i += KV_BATCH) {
+    const slice = keys.slice(i, i + KV_BATCH);
+    const vals = await Promise.all(slice.map(k => Promise.resolve(kv.get(k)).catch(() => null)));
+    for (let j = 0; j < slice.length; j++) out[i + j] = vals[j];
+  }
+  return out;
+}
+
 function weekOfDayKey(ds) {
   const s = String(ds || '');
   /* ⚠️ 严格校验：'+'' === 0'，空串会通过 isFinite 检查 → 算出 1899-W48 这种垃圾周键。
@@ -208,13 +227,14 @@ async function judgeAccounts(kv, users, usageMonth) {
 async function aggPeriod(kv, prefix, period) {
   const out = {};
   const keys = await listAll(kv, prefix);
-  for (const name of keys) {
-    const parts = name.split(':');
-    if (parts.length !== 3 || parts[2] !== period) continue;
-    const n = parseInt((await kv.get(name)) || '0', 10) || 0;
-    if (!n) continue;
-    out[parts[1]] = (out[parts[1]] || 0) + n;
-  }
+  const periodKeys = keys.filter(name => { const p = name.split(':'); return p.length === 3 && p[2] === period; });
+  const vals = await kvGetMany(kv, periodKeys);
+  periodKeys.forEach((name, i) => {
+    const n = parseInt(vals[i] || '0', 10) || 0;
+    if (!n) return;
+    const acct = name.split(':')[1];
+    out[acct] = (out[acct] || 0) + n;
+  });
   return out;
 }
 
@@ -235,20 +255,23 @@ export async function onRequest(context) {
 
   /* ---------- 面板一次拉全 ---------- */
   if (action === 'overview') {
+    const _t0 = Date.now();
+    _kvReads = 0;          // 10/6 11:55：把聚合耗时返回去，别让她再靠猜
     const userKeys = await listAll(kv, 'user:');
+    const _uRecs = await kvGetMany(kv, userKeys);          // 10/6 并发读（原来 N 次串行）
     const users = [];
-    for (const name of userKeys) {
+    userKeys.forEach((name, _ui) => {
       const acct = name.slice(5);
       let created = null, src = '';
       try {
-        const rec = JSON.parse((await kv.get(name)) || '{}') || {};
+        const rec = JSON.parse(_uRecs[_ui] || '{}') || {};
         created = rec.created || null;
         /* 10/5 P1：读注册来源标记（auth.js register 写入，'probe' 或 'real'）。
            老账号没有这个字段 → 空串 → 走信号推断，零迁移。 */
         src = rec.src === 'probe' ? 'probe' : (rec.src === 'real' ? 'real' : '');
       } catch (e) {}
       users.push({ acct: acct, created: created, src: src });
-    }
+    });
     users.sort((a, b) => (a.created || 0) - (b.created || 0));
 
     const invKeys = await listAll(kv, 'inv:');
@@ -262,17 +285,22 @@ export async function onRequest(context) {
     invites.sort((a, b) => (b.created || 0) - (a.created || 0));
 
     /* 今日 AI 用量：键形如 aiqa:<acct>:<day>:<bucket>，只聚合今天的 */
-    const usageKeys = await listAll(kv, 'aiqa:');
+    /* ⚠️ 大头：键形 aiqa:<acct>:<day>:<bucket>（桶 0-9）→ 91 账号 × 10 = **约 910 次**，
+       原来**串行**读 → 她实测「加载二十秒到一分钟」。改：先按 day 过滤掉 90% 的键，再分批并发读。 */
+    const usageKeys = (await listAll(kv, 'aiqa:')).filter(name => {
+      const p = name.split(':');
+      return p.length === 4 && p[2] === day;
+    });
+    const usageVals = await kvGetMany(kv, usageKeys);
     const usage = {};
     let aiToday = 0;
-    for (const name of usageKeys) {
-      const parts = name.split(':');
-      if (parts.length !== 4 || parts[2] !== day) continue;
-      const n = parseInt((await kv.get(name)) || '0', 10) || 0;
-      if (!n) continue;
-      usage[parts[1]] = (usage[parts[1]] || 0) + n;
+    usageKeys.forEach((name, i) => {
+      const n = parseInt(usageVals[i] || '0', 10) || 0;
+      if (!n) return;
+      const acct = name.split(':')[1];
+      usage[acct] = (usage[acct] || 0) + n;
       aiToday += n;
-    }
+    });
 
     /* 10/5 P1（她要「本月/本周」维度）：读 ai.js 侧新写的长 TTL 聚合键。
        aiqa: 只有 48h TTL 存不下月维度，故 ai.js 另写 aiqwv:（周）/ aiqmv:（月），TTL 400 天。
@@ -326,11 +354,13 @@ export async function onRequest(context) {
     const statKeys = await listAll(kv, 'aistat:');
     const statByDay = {};          // YYYYMMDD → {n,pt,ct,svc}
     let tokToday = 0, tokTodayPt = 0, tokTodayCt = 0;
-    for (const k of statKeys) {
+    const statVals = await kvGetMany(kv, statKeys);
+    for (let si = 0; si < statKeys.length; si++) {
+      const k = statKeys[si];
       const p = k.split(':');
       if (p.length !== 2 || !/^\d{8}$/.test(p[1])) continue;
       let v = null;
-      try { v = JSON.parse((await kv.get(k)) || 'null'); } catch (e) {}
+      try { v = JSON.parse(statVals[si] || 'null'); } catch (e) {}
       if (!v || typeof v !== 'object') continue;
       const ptN = parseInt(v.pt, 10) || 0, ctN = parseInt(v.ct, 10) || 0;
       const tt = ptN + ctN;
@@ -454,7 +484,8 @@ export async function onRequest(context) {
       trend: trend, trendTotals: trendTotals, trendDays: TREND_DAYS,
       /* 10/5 P3：操作审计 */
       audits: audits.slice(0, 100),
-      sessCount: sessCount, vips: vips, feedbacks: feedbacks, fbUnread: fbUnread });
+      sessCount: sessCount, vips: vips, feedbacks: feedbacks, fbUnread: fbUnread,
+      tookMs: Date.now() - _t0, kvReads: _kvReads });
   }
 
   /* ---------- 设置 AI 单价（10/6 11:35）----------
@@ -564,25 +595,28 @@ export async function onRequest(context) {
      也就是说：面板上显示为「探针」的才会被删，**她手动标成「真人」的探针号安全**（10/5 定的优先级：manual > src > 名字 > 推断）。
      顺带清掉这些账号名下的 AI 计数键，否则删了号、计数还留着，总览成本会虚高。 */
   if (action === 'probe_clean') {
+    const _tp = Date.now();
     /* 判定必须与面板显示**完全同一口径**，否则会出现「面板说是探针、删了却删错人」。
        照抄 overview 的两步：先列 user: 造 users 数组 → judgeAccounts(kv, users, usageMonth) 打 verdict。 */
     const userKeys = await listAll(kv, 'user:');
+    const _uRecs = await kvGetMany(kv, userKeys);          // 10/6 并发读（原来 N 次串行）
     const users = [];
-    for (const name of userKeys) {
+    userKeys.forEach((name, _ui) => {
       const acct = name.slice(5);
       let created = null, src = '';
       try {
-        const rec = JSON.parse((await kv.get(name)) || '{}') || {};
+        const rec = JSON.parse(_uRecs[_ui] || '{}') || {};
         created = rec.created || null;
         src = rec.src === 'probe' ? 'probe' : (rec.src === 'real' ? 'real' : '');
       } catch (e) {}
       users.push({ acct: acct, created: created, src: src });
-    }
+    });
     const usageMonth = await aggPeriod(kv, 'aiqmv:', monthKeyUTC(new Date()));
     const judged = await judgeAccounts(kv, users, usageMonth);
     const probes = judged.filter(u => u.verdict === 'probe').map(u => u.acct);
     if (String(body.confirm || '') !== 'DELETE_PROBES') {
-      return json({ ok: true, dryRun: true, count: probes.length, accts: probes.slice(0, 300) });
+      return json({ ok: true, dryRun: true, count: probes.length, accts: probes.slice(0, 300),
+        tookMs: Date.now() - _tp, kvReads: _kvReads });
     }
     if (!probes.length) return json({ ok: true, deleted: 0, keys: 0, note: '没有判定为探针的账号' });
     const set = {};
