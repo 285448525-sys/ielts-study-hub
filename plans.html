@@ -227,6 +227,118 @@
 <meta property="og:description" content="学习计划：按考试日期倒排每日任务，今日 / 规划 / 历史三个视图。" />
 <meta property="og:url" content="https://ielts-study-hub.pages.dev/plans" />
 <meta name="twitter:card" content="summary" />
+<style id="desktopStyle">
+/* ===== 10/6 桌面端重设计（她 09:13 报「计划页只适配了手机，电脑端全是空的」）=====
+   改之前的实测事实（1440x900，探针 _shot_plans_tabs_1006 量出来的，不是猜的）：
+     · plans.html 里 **min-width 断点 = 0 个**，只有 3 个 max-width(420/640/380) → 只做了移动端
+     · 今日 Tab：单列一卡 1077px 宽，右侧空出约 450px 高
+     · 规划 Tab：dg-hero 1077x406，一条竖排文字占满整行
+     · 诊断弹窗：.dg-page{max-width:560px} = 1440 屏的 39%，两侧全空
+   手法（铁律：移动端一行都不能动）：
+     · 所有规则都关在 @media (min-width:1024px) 里
+     · HTML 只加了两个 class（pt-add / pt-list），没改任何 id、没改元素顺序
+     · 手机端 .pt-add 用 display:contents —— 包装层不参与布局，渲染结果与改版前完全一致
+     · 特异度对齐/超过原规则（表单重置在 common.css:452 有 (0,2,1) 权重，这里一律挂 id 作用域） */
+
+/* 手机端默认：包装层不参与布局（写在媒体查询外，保证 <1024px 零影响） */
+#ptabToday .pt-add{display:contents}
+
+@media (min-width:1024px){
+
+  /* ---------- ① 今日 Tab：左「写任务」/ 右「任务清单」 ---------- */
+  #ptabToday > .card{
+    display:grid;
+    grid-template-columns:minmax(320px,380px) minmax(0,1fr);
+    column-gap:36px;align-items:start;
+    padding:28px 32px;
+  }
+  #ptabToday > .card > .card-head{grid-column:1 / -1;margin-bottom:18px}
+  #ptabToday .pt-add{
+    display:block;grid-column:1;grid-row:2;
+    position:sticky;top:72px;   /* 桌面：滚动任务清单时输入区始终可见（手机上无此效果） */
+  }
+  #ptabToday .pt-list{
+    grid-column:2;grid-row:2;
+    margin-top:0 !important;padding-top:0 !important;border-top:0 !important;
+  }
+  /* 任务行在宽栏里给点呼吸感：勾选/文字/编辑/删除间距拉开 */
+  #ptabToday .plan-item{padding:11px 8px}
+  #ptabToday .plan-text{font-size:14.5px}
+
+  /* ---------- ② 规划 Tab：未诊断英雄卡 → 左文案 / 右三步 ---------- */
+  #diagRoot .dg-hero{
+    display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    column-gap:44px;align-items:center;text-align:left;
+    padding:36px 40px;
+  }
+  #diagRoot .dg-hero-ic{grid-column:1;font-size:44px;margin-bottom:16px}
+  #diagRoot .dg-hero h2{grid-column:1;margin:0 0 10px}
+  #diagRoot .dg-hero-p{grid-column:1;margin:0 0 22px;max-width:none;line-height:1.8}
+  #diagRoot .dg-hero .dg-block-btn{grid-column:1;max-width:320px;text-align:center}
+  #diagRoot .dg-hero .dg-text-btn{grid-column:1;max-width:320px;text-align:center}
+  /* 三步：竖排成三张带序号的卡（原来是一串居中的圆点列表，手机端保持原样） */
+  #diagRoot .dg-hero-steps{
+    grid-column:2;grid-row:1 / span 5;counter-reset:dgStep;
+    margin:0;padding:0;list-style:none;
+    display:flex;flex-direction:column;gap:12px;
+  }
+  #diagRoot .dg-hero-steps li{
+    counter-increment:dgStep;position:relative;
+    background:var(--bg);border:1px solid var(--line);border-radius:var(--radius-sm);
+    padding:15px 16px 15px 46px;font-size:13.5px;line-height:1.75;
+  }
+  #diagRoot .dg-hero-steps li::before{
+    content:counter(dgStep);position:absolute;left:15px;top:15px;
+    width:21px;height:21px;border-radius:50%;
+    background:var(--primary-soft);color:var(--primary-700);
+    font-size:11.5px;font-weight:700;line-height:21px;text-align:center;
+  }
+
+  /* ---------- ②b 规划 Tab：已诊断概览 —— 四科并排 + 头部对齐 ---------- */
+  #diagRoot .dg-sum-head{align-items:center}
+  #diagRoot .dg-chips{grid-template-columns:repeat(4,1fr);gap:10px}
+  #diagRoot .dg-chip{padding:12px 14px}
+  #diagRoot .dg-chip-bands{font-size:16px}
+  #diagRoot .dg-block-btn,#diagRoot .dg-summary .dg-block-btn{max-width:420px;text-align:center}
+
+  /* ---------- ③ 诊断弹窗：桌面加宽 + 问卷两栏 ---------- */
+  #diagOverlay .dg-page{max-width:980px}
+  #diagOverlay .dg-top{padding:15px 26px}
+  #diagOverlay .dg-top strong{font-size:17px}
+  /* 只有问卷屏（内含 .dg-band-grid）才分两栏；报告屏保持单栏、限宽居中，避免长行难读 */
+  #diagOverlay .dg-body:has(.dg-band-grid){
+    display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    gap:16px;align-items:start;padding:22px 26px 28px;
+  }
+  #diagOverlay .dg-body:has(.dg-band-grid) .dg-warn{grid-column:1 / -1}
+  #diagOverlay .dg-body:has(.dg-band-grid) .dg-sec{margin:0}
+  /* 分栏方式：①「你现在的水平」内容最多，独占左列并跨两行；②目标 + ③时段 在右列上下排。
+     第一版是「①②并排 / ③整行」，实测 ① 高 423px、② 只有 145px，右列下方空出约 280px；
+     换成现在这样两列高度 423 vs 511，缺口不到 90px。 */
+  #diagOverlay .dg-body:has(.dg-band-grid) .dg-sec:nth-of-type(1){grid-column:1;grid-row:1 / span 2}
+  #diagOverlay .dg-body:has(.dg-band-grid) .dg-sec:nth-of-type(2){grid-column:2;grid-row:1}
+  #diagOverlay .dg-body:has(.dg-band-grid) .dg-sec:nth-of-type(3){grid-column:2;grid-row:2}
+  #diagOverlay .dg-band-grid{grid-template-columns:repeat(2,1fr)}
+  #diagOverlay .dg-foot{padding:14px 26px calc(14px + env(safe-area-inset-bottom))}
+  #diagOverlay .dg-foot .dg-block-btn{max-width:460px;margin:0 auto;display:block;text-align:center}
+  /* 报告屏：单栏 + 限宽居中（不跟问卷一起分栏） */
+  #diagOverlay .dg-body:not(:has(.dg-band-grid)){max-width:780px;margin:0 auto;width:100%}
+
+  /* ---------- ④ 历史 Tab：日卡两列网格 ---------- */
+  #ptabHistory > .card{padding:22px 24px}
+  #ptabHistory #histPlans{
+    padding:0;display:grid;gap:12px;align-items:start;
+    grid-template-columns:repeat(auto-fill,minmax(330px,1fr));
+  }
+  #ptabHistory .hist-plan{margin:0}
+  #ptabHistory .hist-plan[open]{grid-column:1 / -1}   /* 展开的那张占满整行，明细不被挤进半栏 */
+}
+
+/* 中屏（平板 861–1023px）：只把诊断弹窗适度放宽，其余保持手机版，避免 2 栏被挤扁 */
+@media (min-width:861px) and (max-width:1023px){
+  #diagOverlay .dg-page{max-width:720px}
+}
+</style>
 </head>
 <body>
 <div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div></div>
@@ -252,6 +364,10 @@
       <h2>今日计划</h2>
       <span class="badge" id="planCount">0 / 0</span>
     </div>
+    <!-- 10/6 桌面端适配：下面三块（日期 / 输入框 / 按钮）包进 .pt-add。
+         手机端 .pt-add 是 display:contents —— 包装层不参与布局，与改版前逐像素一致；
+         桌面端（≥1024px）它才成为 grid 的左栏。id 一个没动，js 选择器不受影响。 -->
+    <div class="pt-add">
     <div class="form-row" style="align-items:center;margin-bottom:14px">
       <label style="font-size:13px;color:var(--muted);margin:0;white-space:nowrap;flex:none;min-width:0">选择日期</label>
       <input type="date" id="planDate" style="max-width:180px" />
@@ -264,7 +380,9 @@
       <button class="btn" id="aiPlan"><svg aria-hidden="true" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l1.7 4.3L18 10l-4.3 1.7L12 16l-1.7-4.3L6 10l4.3-1.7L12 4z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2z"/></svg>AI 安排今天</button>
       <button class="btn btn-primary" id="addPlan">添加任务</button>
     </div>
-    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line)">
+    </div><!-- /.pt-add -->
+
+    <div class="pt-list" style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line)">
       <div id="planProgress"></div>
       <!-- commit4：3 天未回来的过期提示（renderRbStale 填充）与每日重排工具条（有 AI 任务才显示） -->
       <div id="rbStale"></div>
