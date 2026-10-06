@@ -49,7 +49,7 @@
   <!-- design/77 DHP+SSP-MMC 策略表：必须在 practice.js 之前（defer 按文档序执行，表未加载时 practice.js 有回退兜底） -->
   <script defer src="js/dhp_policy.js?v=20260921a"></script>
   <script src="js/practice.js?v=20261006a" defer></script>
-  <script src="js/words.js?v=20261003a" defer></script>
+  <script src="js/words.js?v=20261006b" defer></script>
 <style>
 /* ============================================================
    10/3 A 版「今日复习卡 + 学习状态分组」（她选的 A 版）
@@ -153,8 +153,21 @@
 .wb-grp-toggle-all:hover{color:var(--primary-900);text-decoration:underline}
 @media (max-width:560px){
   .wb-grp-desc{display:none}
-  .wl-item.row .wl-word{min-width:96px;font-size:14px}
-  .wl-item.row .wl-senses{font-size:12.5px}
+  /* 🔴 10/6 02:20 移动端词条改**两行**：第一行 = 勾选 + 英文 + 词性/中文 + 删除；第二行 = 状态标签。
+     旧版五个元素硬挤一行：.wl-tags 是 flex:none（线上实测 182px：「今天 · 半衰期 1 天」+「错 2」+「Lv 0」），
+     把 flex:1 的 .wl-senses 挤成 **0px** → 中文释义一个字都看不见（她原话：等级和已过期把中文字全盖掉了）。
+     优先级必须是「英文 + 词性 + 中文」> 状态标签，所以让标签整组下沉一行；释义改允许换行（最多 2 行）。 */
+  .wl-item.row{flex-wrap:wrap;align-items:flex-start;row-gap:5px;padding:10px 15px}
+  .wl-item.row .wl-check{flex:none;margin-top:3px}
+  /* ⚠️ 必须连 width 一起覆盖：css/common.css:922 的 .wl-word 有 `width:22%`，
+     22% × 306px 行宽 = 67px —— 只改 flex 不改 width，词照样被砍成「internat…」。
+     （实测踩过：词宽 67px / 需要 136px，而 flex 已是 0 0 auto 且不缩。）
+     宽度优先级：英文完整 > 中文可读（中文给死 min-width:64px 的下限，不会再被挤没）。 */
+  .wl-item.row .wl-word{flex:0 0 auto;width:auto;min-width:0;max-width:55%;font-size:14.5px}
+  .wl-item.row .wl-senses{flex:1 1 64px;min-width:64px;white-space:normal;overflow:hidden;
+    display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-height:1.4;font-size:12.5px}
+  .wl-item.row .wl-del{flex:none;margin-top:1px}
+  .wl-item.row .wl-tags{order:9;flex:1 1 100%;margin-left:29px;flex-wrap:wrap;row-gap:4px}
 }
 
 /* ---------- 10/4 改版：词库卡头部改上下堆叠 ----------

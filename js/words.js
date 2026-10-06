@@ -344,6 +344,37 @@ ready(() => {
       else _bankChecked.delete(cb.dataset.check);
       bankUpdateActionBar();
     });
+    /* 🔴 10/6 02:25 修「学习中 / 已掌握 / 词组短语 点了没反应」。
+       这五个状态分组是用**原生 <details> + <summary>** 渲染的（statusGroupHeadHtml），
+       而条目是**懒渲染**的 —— 只有展开那一刻才 renderGroupSlice 往 <ul> 里塞词。
+       此前唯一会触发填充的入口是 `.wl-group-head` 那条 click 委托（那是**普通分组**用的自定义按钮），
+       <summary> 点开的 details 走浏览器原生展开，谁也不去填 → 组体里只有一个空 <ul>
+       → 展开了个寂寞，看起来就是「点了没反应」。
+       默认展开的两组（s-due「今天要复习」/ s-wrong「答错过的词」）因为渲染时就填过，所以只有那两组正常
+       —— 和她「就这三个模块点不动」完全对上。
+       ⚠️ toggle 事件**不冒泡**，只能在捕获阶段（第三参 true）从祖先上接到。
+       顺带把 _bankExpanded 同步了：以前用原生 details 展开后，下次 renderWords 又把它收回去。 */
+    listBox.addEventListener('toggle', e => {
+      const d = (e.target && e.target.closest) ? e.target.closest('details.wb-grp') : null;
+      if(!d) return;
+      const key = d.dataset.group || '';
+      /* ⚠️ 类名是 wb-grp-body（**wb**），别写成 wl-group-body —— 那是 groupHeadHtml 那套
+         「官方词包/筛选分组」用的容器名。两个函数各写各的，20261006 踩过一次：
+         写成 wl- → querySelector 返回 null → 下面 if(!body) return 直接静默退出
+         → 展开是个空壳，正是「这三个模块点了没反应」的成因。 */
+      const body = d.querySelector('.wb-grp-body');
+      if(!body) return;
+      _bankExpanded[key] = !!d.open;
+      if(d.open){
+        if(body.querySelector('.wl-group-list li')) return;   // 渲染时就展开的组已填过，别重复塞
+        body.dataset.init = '1';
+        renderGroupSlice(key, _bankGroups[key] || [], body);
+      }else{
+        body.innerHTML = '<ul class="wl-group-list"></ul>';   // 收起即释放 DOM，与 toggleBankGroup 同策略
+        delete body.dataset.init;
+        _bankShown[key] = 0;
+      }
+    }, true);
   }
   const pracBtn = $('#bankPracticeBtn');
   if(pracBtn){
