@@ -301,10 +301,33 @@
   #diagRoot .dg-chip-bands{font-size:16px}
   #diagRoot .dg-block-btn,#diagRoot .dg-summary .dg-block-btn{max-width:420px;text-align:center}
 
-  /* ---------- ③ 诊断弹窗：桌面加宽 + 问卷两栏 ---------- */
-  #diagOverlay .dg-page{max-width:980px}
-  #diagOverlay .dg-top{padding:15px 26px}
-  #diagOverlay .dg-top strong{font-size:17px}
+  /* ---------- ③ 诊断弹窗：改成「站内标准弹窗」（对齐 .fb-overlay 范式）----------
+     🔴 14:09 她 09:5x 截图批「我让你做电脑端适配，但它看起来完全不像电脑端，跟网站别的页面
+     完全不是一个风格，就明显看得出来是给手机端设计的」。
+     根因（对照 .fb-overlay 量出来的）：站内弹层的标准做法是
+       桌面 = 半透明遮罩 rgba(0,0,0,.42) + **居中白卡**（16px 圆角 + 同款阴影），
+       手机 = 贴底抽屉（≤860px 才 `align-items:flex-end`）。
+     而 #diagOverlay 一直是 `position:fixed;inset:0;background:var(--bg)` —— **两种端都全屏铺满灰底**，
+     把侧栏和顶栏全盖住 → 视觉上就成了「另一个 app 的全屏页」。
+     第一版我只把它加宽到 980 + 分两栏，宽度治不了「不像站内」这个病根。
+     下面按站内范式重做：遮罩 + 居中白卡（宽度对齐 main.container 实测 1105），
+     密度也一起对齐站点（卡片 padding 20 / 间距 20 / 小标题 16px / 输入框 38px ——
+     44px 是触控标准，那是手机的尺寸，桌面对话框里显得「手机放大版」）。 */
+  #diagOverlay{
+    display:flex;align-items:center;justify-content:center;
+    padding:32px 20px;background:rgba(0,0,0,.42);
+  }
+  #diagOverlay .dg-page{
+    width:100%;max-width:1105px;height:min(86vh,900px);min-height:0;
+    background:var(--surface);border:1px solid var(--line);border-radius:16px;
+    box-shadow:0 24px 60px -20px rgba(0,0,0,.4);
+    overflow:hidden;
+  }
+  /* 内部滚动交给 .dg-body（外层 fixed 不再滚）——与 .fb-panel 的 flex 列 + 体内滚同构 */
+  #diagOverlay .dg-body{overflow-y:auto;overscroll-behavior:contain;padding:22px 26px 24px}
+  #diagOverlay .dg-top{padding:16px 26px;background:var(--surface)}
+  #diagOverlay .dg-top strong{font-size:18px;font-weight:800;letter-spacing:-.01em}
+  #diagOverlay .dg-foot{padding:14px 26px;background:var(--surface)}
   /* 只有问卷屏（内含 .dg-band-grid）才分两栏；报告屏保持单栏、限宽居中，避免长行难读 */
   #diagOverlay .dg-body:has(.dg-band-grid){
     display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
@@ -319,8 +342,14 @@
   #diagOverlay .dg-body:has(.dg-band-grid) .dg-sec:nth-of-type(2){grid-column:2;grid-row:1}
   #diagOverlay .dg-body:has(.dg-band-grid) .dg-sec:nth-of-type(3){grid-column:2;grid-row:2}
   #diagOverlay .dg-band-grid{grid-template-columns:repeat(2,1fr)}
-  #diagOverlay .dg-foot{padding:14px 26px calc(14px + env(safe-area-inset-bottom))}
   #diagOverlay .dg-foot .dg-block-btn{max-width:460px;margin:0 auto;display:block;text-align:center}
+  /* 密度对齐站点（.card padding 24 / 间距 24 / h2 18px800 / 输入框 44 是触控尺寸） */
+  #diagOverlay .dg-sec{padding:18px 20px;margin:0 0 20px}
+  #diagOverlay .dg-sec h3{font-size:16px;font-weight:700;margin:0 0 12px}
+  #diagOverlay .dg-hint{font-size:12.5px;margin:0 0 12px}
+  #diagOverlay input[type="number"],#diagOverlay select{height:38px;font-size:14px;border-radius:10px}
+  #diagOverlay .dg-slot{padding:6px 11px;font-size:12.5px}
+  #diagOverlay .dg-band-src{font-size:11.5px}
   /* 报告屏：单栏 + 限宽居中（不跟问卷一起分栏） */
   #diagOverlay .dg-body:not(:has(.dg-band-grid)){max-width:780px;margin:0 auto;width:100%}
 
