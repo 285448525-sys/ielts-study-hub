@@ -77,6 +77,15 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
   border-radius:99px;background:var(--p-500);color:#fff;font-size:11px;font-weight:700;vertical-align:1px}
 .tab .dot.zero{background:var(--n-500);opacity:.45}
 /* 反馈列表 */
+.stale-bar{display:flex;align-items:center;gap:9px;margin:0 0 14px;padding:9px 14px;
+  border:1px solid #99f6e4;background:#f0fdfa;border-radius:10px;font-size:13px;color:#115e59;line-height:1.5}
+.stale-bar[hidden]{display:none}
+.stale-bar.fail{border-color:#fed7aa;background:#fff7ed;color:#9a3412}
+.stale-spin{width:13px;height:13px;flex:none;border:2px solid rgba(17,94,89,.25);border-top-color:#0d9488;
+  border-radius:50%;animation:staleRot .8s linear infinite}
+.stale-bar.fail .stale-spin{display:none}
+.stale-bar .stale-at{margin-left:auto;opacity:.75;font-size:12px;white-space:nowrap}
+@keyframes staleRot{to{transform:rotate(360deg)}}
 .flags{display:flex;flex-direction:column;gap:8px;margin:0 0 16px}
 .flags:empty{display:none}
 .flag{display:flex;align-items:flex-start;gap:10px;padding:10px 13px;border-radius:10px;font-size:13.5px;line-height:1.6}
@@ -142,6 +151,14 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
   </div>
 
   <!-- 页签（10/2 反馈批：反馈独立一页，不与数据卡混排；10/5 P3 加审计页） -->
+  <!-- 10/6 11:12 她报「每次刚进去全部是 '-'，观感不好」→ 改成 stale-while-revalidate：
+       先进场立刻渲染上次的结果（标「正在更新，以下是上次的数据」），拿到新的再覆盖。 -->
+  <div id="staleBar" class="stale-bar" hidden>
+    <span class="stale-spin" aria-hidden="true"></span>
+    <span id="staleTxt">正在更新，以下是上次的数据…</span>
+    <span class="stale-at" id="staleAt"></span>
+  </div>
+
   <div class="tabs" id="tabs">
     <button class="tab on" data-tab="data" type="button">数据</button>
     <button class="tab" data-tab="audit" type="button">操作审计</button>
@@ -300,6 +317,19 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
 <script>
 (function(){
   var KEY = 'hub_admin_key';
+  var CACHE_KEY = 'hub_admin_ov_cache_v1';
+  var CACHE_VER = 1;
+  /* ⚠️⚠️ **模块级 `var` 必须在 `if(key){ enter(); }` 之前赋值**（10/6 一次修掉两处同类事故）：
+       进面板那一刻 enter()→load()→render() 就会读到它们。写在后面的话此刻是 undefined。
+       · CACHE_VER 曾让 cacheRead() 恒返回 null（症状：二次进入还是空的，首访却正常）
+       · _fbOpen 曾让 renderFb() 抛 `Cannot read properties of undefined`（每次进面板控制台都在报错，
+         只因数字在它之前已渲染、看着「没事」—— 这类静默异常最容易被当成正常）
+     规则：模块级状态一律放 IIFE 最开头，别放在用到它的函数之后。 */
+  var DATA = null;
+  var _fbOnlyUnread = false;
+  var _fbOpen = {};        /* id → true（当前展开了哪几条） */
+  var _fbImgs = {};        /* id → 图片数组（懒加载后缓存） */
+  var _fbLoading = {};     /* id → true（请求中，防连点） */
   var $ = function(id){ return document.getElementById(id); };
   var key = '';
   try{ key = sessionStorage.getItem(KEY) || ''; }catch(e){}
@@ -348,12 +378,76 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
       + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
   }
 
-  var DATA = null;
+
+  /* ── 10/6 11:12 stale-while-revalidate ──────────────────────────────────────
+     她原话：「每次刚进去全部是没有数据的，也没有加载动画…观感特别不好，就是好几秒没有任何数据可以看」。
+     做法（业界通用）：
+       ① 进面板先读 localStorage 里**上次成功拿到的 overview**，立刻渲染 —— 页面永远不空；
+       ② 顶部挂一条「正在更新，以下是上次的数据 · 时间戳」，带转圈动画；
+       ③ 新的拿到 → 覆盖渲染 + 存缓存 + 提示条消失；
+       ④ 更新失败 → **不清空已有数据**，提示条转成橙色「更新失败，仍是上次的数据」。
+     ⚠️ 只在**过了密钥门禁之后**才读/写缓存（缓存里不放 KEY），所以不降低任何安全等级。
+     ⚠️ 缓存结构 {v:1, ts, payload}；v 变了直接丢弃（字段改名后不该拿旧结构硬渲染）。 */
+  function cacheRead(){
+    try{
+      var raw = localStorage.getItem(CACHE_KEY);
+      if(!raw) return null;
+      var o = JSON.parse(raw);
+      if(!o || o.v !== CACHE_VER || !o.payload) return null;
+      return o;
+    }catch(e){ return null; }
+  }
+  function cacheWrite(payload){
+    try{ localStorage.setItem(CACHE_KEY, JSON.stringify({ v: CACHE_VER, ts: Date.now(), payload: payload })); }
+    catch(e){ /* 配额满/隐私模式：缓存失败不影响主流程，静默 */ }
+  }
+  function fmtClock(ts){
+    var d = new Date(ts);
+    return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+  }
+  function showStale(state, atTs){
+    var bar = $('staleBar'); if(!bar) return;
+    if(!state){ bar.hidden = true; return; }
+    bar.hidden = false;
+    bar.classList.toggle('fail', state === 'fail');
+    $('staleTxt').textContent = state === 'fail'
+      ? '更新失败，下面仍是上次成功获取的数据。'
+      : '正在更新，以下是上次的数据…';
+    $('staleAt').textContent = atTs ? ('上次更新 ' + fmtClock(atTs)) : '';
+  }
 
   function load(){
     $('refreshBtn').disabled = true;
+    /* ① 先渲染上次的数据（没有缓存才空着，但那样至少不显示半截） */
+    var cached = cacheRead();
+    if(cached){
+      DATA = cached.payload;
+      render();
+      showStale('updating', cached.ts);
+    }else{
+      showStale('updating', 0);
+    }
     api('overview', {}, function(r){
       $('refreshBtn').disabled = false;
+      /* ④ 失败：有缓存就保留旧数据（只把提示条转橙），没缓存才走原来的错误提示 */
+      if(!r.ok){
+        if(cached){ showStale('fail', cached.ts); return; }
+        showStale(null, 0);
+        if(r.status === 401){ /* 密钥失效：回密钥门 */
+          try{ sessionStorage.removeItem(KEY); }catch(e){}
+          $('panel').classList.add('hidden');
+          $('gate').classList.remove('hidden');
+          $('gateErr').textContent = (r.j && r.j.msg) || '密钥校验失败';
+          return;
+        }
+        alert('加载失败：' + ((r.j && r.j.msg) || ('HTTP ' + r.status)));
+        return;
+      }
+      /* ③ 拿到新的：覆盖 + 存缓存 + 收提示条 */
+      DATA = r.j;
+      cacheWrite(r.j);
+      render();
+      showStale(null, 0);
       if(!r.ok){
         if(r.status === 401){ /* 密钥失效：回密钥门 */
           try{ sessionStorage.removeItem(KEY); }catch(e){}
@@ -827,11 +921,7 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
   });
 
   /* ---------- 意见反馈（10/2）---------- */
-  var _fbOnlyUnread = false;
   var _userSort = null;   /* {key, dir} 表头排序；null = 默认（真人→待观察→探针，同档按本月用量降序） */
-  var _fbOpen = {};        /* id → true（当前展开了哪几条） */
-  var _fbImgs = {};        /* id → 图片数组（懒加载后缓存） */
-  var _fbLoading = {};     /* id → true（请求中，防连点） */
 
   function esc(s){
     return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
