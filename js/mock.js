@@ -181,15 +181,12 @@
     const st = $('#mockStage');
     if(st) st.classList.toggle('p2-mode', !!on);
   }
-  function setMockStep(part){
-    const steps = document.querySelectorAll('#mockSteps .mock-step');
-    steps.forEach(s => {
-      const p = s.getAttribute('data-step');
-      s.classList.remove('active', 'done');
-      if(p === String(part)) s.classList.add('active');
-      else if(Number(p) < Number(part)) s.classList.add('done');
-    });
-  }
+  /* 10/6 代码质量清理：删掉 setMockStep()。
+     它查询的 `#mockSteps .mock-step` 在 speaking.html 与所有 js 里**都不存在**
+     （全站 grep 只有这一处引用，也没有任何 .mock-step 的 CSS），
+     → querySelectorAll 恒返回空 NodeList，forEach 什么都不做，**不报错**。
+     典型的「看起来在工作、实际是空转」的死代码（与 10/6 词库 B2 那类静默失效同族）。
+     它原本在 P1/P3 的每题循环里各调一次，等于每题白跑一次无用的全文档查询。 */
   function setMockSubCount(idx, total){
     const el = $('#mockSubCount');
     if(el) el.textContent = 'Q ' + idx + ' / ' + total;
@@ -531,7 +528,6 @@
         const startIdx = (snap && rp === 'P1') ? snap.index : 0;
         let firstRemain = (snap && rp === 'P1' && snap.remaining != null) ? snap.remaining : undefined;
         for(let i = startIdx; i < mockState.p1Set.length; i++){
-          setMockStep('1');
           setMockSubCount(i+1, mockState.p1Set.length);
           const item = mockState.p1Set[i];
           const qHtml = (item.topic ? '<span class="mock-q-topic">' + escapeHtml(item.topic) + '</span> · ' : '') + escapeHtml(item.q);
@@ -542,7 +538,6 @@
         }
       }
       // ---- P2 准备 ----
-      if(doP2prep || doP2talk) setMockStep('2');
       if(doP2prep){
         setP2Mode(true);    // 10/1 批3：P2 切两栏（左题目 + 右考官小窗，贴真实机考布局）
         const prepRemain = (snap && rp === 'P2-prep' && snap.remaining != null) ? snap.remaining : undefined;
@@ -576,7 +571,6 @@
         const newlyGenerated = [];
         let firstRemain = (snap && rp === 'P3' && snap.remaining != null) ? snap.remaining : undefined;
         for(let i = startIdx; i < P3_N; i++){
-          setMockStep('3');
           setMockSubCount(i+1, P3_N);
           let q = pre[i];
           if(!q){
