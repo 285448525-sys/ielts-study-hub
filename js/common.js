@@ -1319,18 +1319,21 @@ async function genSpeakingP3(p2, p2Text, step, prevQ, prevA){
   if(!q) throw new Error('AI 未返回有效的 P3 追问');
   return purifyP3Question(q);
 }
-/* 兜底：按步数给固定题（首题 / 续题），AI 失败时回退 */
+/* 兜底：按步数给固定题（首题 / 续题），AI 失败时回退。
+   10/8 P3 扩到 5 题：续题池补到 5 条（5 题一场内各不相同，(step-1)%5 正好不重复）。 */
 function presetSpeakingP3(step){
   step = step || 0;
   if(step === 0) return P3_PRESET[0];
   const cont = [
     'Why do you think that is the case?',
     'Can you give a reason or an example to support your point?',
-    'Do you think this might change in the future? Why or why not?'
+    'Do you think this might change in the future? Why or why not?',
+    'How do people in your country generally feel about this?',
+    'What could be done to make this better in the future?'
   ];
   return cont[(step - 1) % cont.length];
 }
-/* 向后兼容：模考场景仍需要一次性拿 3 题（P3 在模考里按固定 3 题推进）。
+/* 向后兼容：一次性拿 3 题的旧接口（模考现已按 P3_N=5 逐题推进，走 genNext，不再用本函数）。
    gen3 内部仍走"逐题追问"逻辑——首题基于 P2，续题基于上一题（无考生答，用 cue 续问）。 */
 async function genSpeakingP3Three(p2, p2Text){
   const out = [];

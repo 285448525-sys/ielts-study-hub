@@ -1,5 +1,5 @@
 /* 口语模考 · 主控制器（状态机）
-   流程：开始卡 → P1(2 必选大题 + 2 非必选大题·每题 3 小题·含开场姓名共 13 个) → P2(准备 1min + 陈述 2min) → P3(3 题 AI 追问，复用 common.js MockGenP3) → 报告
+   流程：开始卡 → P1(2 必选大题 + 2 非必选大题·每题 3 小题·含开场姓名共 13 个) → P2(准备 1min + 陈述 2min) → P3(5 题 AI 追问，复用 common.js MockGenP3) → 报告
    架构：
    - 输入层：考生直接在页面文本框手写 / 粘贴英文回答（录音 / 语音转写已移除）
    - 大脑层：callRelay → DeepSeek（生成 P3 追问 + 读文字评分）
@@ -601,7 +601,9 @@
       let p3qs = (snap && snap.p3qs && snap.p3qs.length) ? snap.p3qs : (mockState.p3qs || []);
       if(doP3){
         setP2Mode(false);   // 10/1 批3：P3 回到大窗居中（含「从 P3 快照直接恢复」的场景）
-        const P3_N = 3;
+        /* 10/8 她拍板：P3 从 3 题扩到 5 题（「P3 的题有点太少了」）。
+           逐题生成/快照/报告渲染全部由 P3_N 驱动，改这一个数即可；AI 成本 = 每场多 2 次追问调用（已开 Paid）。 */
+        const P3_N = 5;
         const startIdx = (snap && rp === 'P3') ? snap.index : 0;
         const p2ans = mockState.answers.find(x => x.part === 'P2');
         const p2Text = p2ans ? (p2ans.transcript || '') : '';
