@@ -214,16 +214,42 @@
   /* 右上角控制钮（官方深栏上的白描边幽灵钮：Text Size / Exit full screen） */
   .exam-font-btn,.exam-head .exam-exit-full{display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid rgba(255,255,255,.5);color:#fff;border-radius:7px;padding:6px 11px;font-size:12.5px;font-weight:600;cursor:pointer;transition:.15s;white-space:nowrap}
   .exam-font-btn:hover,.exam-head .exam-exit-full:hover{background:rgba(255,255,255,.12)}
-  /* 官方三档字号（Regular 20 / Large 23 / Extra large 27，IDP 官方口径），作用范围 = 题面 + 作答区 */
-  #examPractice.exam-fs-0 .exam-q-body,#examPractice.exam-fs-0 .exam-q-body .ei-en{font-size:20px}
-  #examPractice.exam-fs-0 .exam-q-body .ei-zh{font-size:21px}
+  /* 官方三档字号（Regular 20 / Large 23 / Extra large 27，IDP 官方口径）。
+     10/8 晚她反馈：三档必须覆盖左右两栏全部文字（深色顶栏/底栏不管），否则题目面板里「一些大一些小」。
+     层级保持：Part 标题 > 正文 > 引导行/指令 > 词数。 */
+  #examPractice.exam-fs-0 .exam-part{font-size:24px}
+  #examPractice.exam-fs-0 .exam-instr{font-size:15.5px}
+  #examPractice.exam-fs-0 .exam-q-lead{font-size:17px}
+  #examPractice.exam-fs-0 .exam-q-body,
+  #examPractice.exam-fs-0 .exam-q-body .ei-en,
+  #examPractice.exam-fs-0 .exam-q-body .ei-zh{font-size:20px}
+  #examPractice.exam-fs-0 .exam-q-note{font-size:16.5px}
+  #examPractice.exam-fs-0 .exam-essay-fold-sum{font-size:17px}
+  #examPractice.exam-fs-0 .exam-essay-orig{font-size:19px}
   #examPractice.exam-fs-0 .exam-textarea{font-size:20px}
-  #examPractice.exam-fs-1 .exam-q-body,#examPractice.exam-fs-1 .exam-q-body .ei-en{font-size:23px}
-  #examPractice.exam-fs-1 .exam-q-body .ei-zh{font-size:24px}
+  #examPractice.exam-fs-0 .exam-wc{font-size:15px}
+  #examPractice.exam-fs-1 .exam-part{font-size:27px}
+  #examPractice.exam-fs-1 .exam-instr{font-size:18px}
+  #examPractice.exam-fs-1 .exam-q-lead{font-size:20px}
+  #examPractice.exam-fs-1 .exam-q-body,
+  #examPractice.exam-fs-1 .exam-q-body .ei-en,
+  #examPractice.exam-fs-1 .exam-q-body .ei-zh{font-size:23px}
+  #examPractice.exam-fs-1 .exam-q-note{font-size:19px}
+  #examPractice.exam-fs-1 .exam-essay-fold-sum{font-size:20px}
+  #examPractice.exam-fs-1 .exam-essay-orig{font-size:22px}
   #examPractice.exam-fs-1 .exam-textarea{font-size:23px}
-  #examPractice.exam-fs-2 .exam-q-body,#examPractice.exam-fs-2 .exam-q-body .ei-en{font-size:27px}
-  #examPractice.exam-fs-2 .exam-q-body .ei-zh{font-size:28px}
+  #examPractice.exam-fs-1 .exam-wc{font-size:17px}
+  #examPractice.exam-fs-2 .exam-part{font-size:31px}
+  #examPractice.exam-fs-2 .exam-instr{font-size:21px}
+  #examPractice.exam-fs-2 .exam-q-lead{font-size:24px}
+  #examPractice.exam-fs-2 .exam-q-body,
+  #examPractice.exam-fs-2 .exam-q-body .ei-en,
+  #examPractice.exam-fs-2 .exam-q-body .ei-zh{font-size:27px}
+  #examPractice.exam-fs-2 .exam-q-note{font-size:22px}
+  #examPractice.exam-fs-2 .exam-essay-fold-sum{font-size:24px}
+  #examPractice.exam-fs-2 .exam-essay-orig{font-size:26px}
   #examPractice.exam-fs-2 .exam-textarea{font-size:27px}
+  #examPractice.exam-fs-2 .exam-wc{font-size:19px}
   /* Part 标题与指令移进左栏顶部（官方：指令框在题目面板顶部） */
   .exam-q-body-wrap .exam-part{margin:0 0 6px;font-size:20px;font-weight:800;color:var(--ink)}
   .exam-q-body-wrap .exam-instr{margin:0 0 18px;font-size:13.5px;color:var(--muted);line-height:1.5}

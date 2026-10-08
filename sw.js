@@ -30,7 +30,7 @@
 // 开合（窄屏原本点了开记忆弹层、且教练台整块隐藏→现在展开态显示为浮层）；发送框收到 36px。v212→v213
 // 10/4 13:36 她看过实机后补一条：手机端教练台改为**默认收起**（点开才出现）；
 // 桌面维持默认展开。窄屏开合只记内存、不写回设置，避免「手机收起把电脑右栏也收掉」。v213→v214
-const CACHE = 'ielts-hub-v282';  // 10/8 晚她反馈三修：①全屏下滑整页滚/底栏跑到中间 → 钉三段式(顶栏/内容/底栏)左右栏内部滚；②评分结果 flex:1 占满右栏；③写作 padding 收小。另加交卷落库回读自愈（防 localStorage 写入被静默吃掉）。writing.js→20261008i。上一版 v281 官方机考界面重排。  // 10/8 她拍板：字数不足也能交卷/评分（任务门槛拦截退役，只拦空白卷）——AI prompt 增【词数规则】：缺 ≤10 词不扣分、缺 >10 词才扣且 TR/TA 总差 ≤0.5 + gap 提醒；两处评分（examStopAndScore/scoreEssay）user content 均带实际词数。自练交卷后本场草稿自动清（防下轮恢复已交作文）。writing.js→20261008f。上一版 v278 真题全屏三连改。  // 10/8 她拍板三连改：①「保存题目，开始练」直通真题全屏（openExamCustom 复用 #examPractice 左题右答，examPanel 须同步打开）；②考场模式/强制停笔退役（checkbox/红条/解锁/locked 全删）→ 到点弹英文框 Time is up! 自选 Submit now / Keep writing（继续写=切正计时永不锁）；③真题页去中文（Exit full screen / My response / 删「页面状态正常」，评分结果区维持中文=批改反馈）；④自练评分带题目走切题度、记录修 examNo 'Tcustom' bug + 带 topic。writing.js→20261008e、common.css→20261008c（删死规则）。上一版 v277 题目框。  // 10/8 她要的「作文评分题目框」：评分面板加题干框（保存→聚焦开写→刷新回填，localStorage 草稿不进 DATA）；有题目时 AI 加判「切题度（切题/部分偏题/偏题）」+「这道题可以怎么讲」思路，记录带 topic 字段随 writingScores 走。writing.js→20261008d。上一版 v276 P3 扩 5 题。  // 10/8 她拍板：P3 从 3 题扩到 5 题（P3_N 单点驱动；AI 兜底续题池补到 5 条不重复；每场多 2 次追问调用，已开 Paid）。common.js→20261008b、mock.js→20261008c。上一版 v275 P2 体验三修；v274 导航优先。  // 10/8 P2 模考体验三修（她 10:32 截图+语音）：① 窄屏 p2-mode 补重置 position:sticky/align-items → 考官窗不再钉顶盖题、内容满宽无死区；② 完成 P3 后 AI 评分期间显示专门「正在生成报告」视图（果冻水珠）；③ 回车=提交/下一题（Shift+Enter 换行、IME 组合中不触发）。mock.js→20261008b。上一版 v274 导航优先；v273 P2 模考三修。：软导航进行中+结束后2s内，同步三路流量（3s meta 探测/全量下载/自动 PUT）与后台预热全部让路——她报「点每个页面跳转要加载好久，之前很快」（10/6 同步秒级化后手机网络被持续占满）。common.js→20261008a。上一版 v273 P2 模考三修；v272 补 sprint.js 进 PRECORE。
+const CACHE = 'ielts-hub-v283';  // 10/8 晚根治她侧「永远卡旧版」：install 预缓存每条加 10s 硬超时（慢网络下单条 fetch 挂起曾让 install 永不完成→skipWaiting 永不执行），activate 接管后用 Client.navigate 把已开旧页面直接带到新版（零操作）；字号三档扩到左右两栏全部文字（她反馈「一些大一些小」）。上一版 v282 三段式。  // 10/8 她拍板：字数不足也能交卷/评分（任务门槛拦截退役，只拦空白卷）——AI prompt 增【词数规则】：缺 ≤10 词不扣分、缺 >10 词才扣且 TR/TA 总差 ≤0.5 + gap 提醒；两处评分（examStopAndScore/scoreEssay）user content 均带实际词数。自练交卷后本场草稿自动清（防下轮恢复已交作文）。writing.js→20261008f。上一版 v278 真题全屏三连改。  // 10/8 她拍板三连改：①「保存题目，开始练」直通真题全屏（openExamCustom 复用 #examPractice 左题右答，examPanel 须同步打开）；②考场模式/强制停笔退役（checkbox/红条/解锁/locked 全删）→ 到点弹英文框 Time is up! 自选 Submit now / Keep writing（继续写=切正计时永不锁）；③真题页去中文（Exit full screen / My response / 删「页面状态正常」，评分结果区维持中文=批改反馈）；④自练评分带题目走切题度、记录修 examNo 'Tcustom' bug + 带 topic。writing.js→20261008e、common.css→20261008c（删死规则）。上一版 v277 题目框。  // 10/8 她要的「作文评分题目框」：评分面板加题干框（保存→聚焦开写→刷新回填，localStorage 草稿不进 DATA）；有题目时 AI 加判「切题度（切题/部分偏题/偏题）」+「这道题可以怎么讲」思路，记录带 topic 字段随 writingScores 走。writing.js→20261008d。上一版 v276 P3 扩 5 题。  // 10/8 她拍板：P3 从 3 题扩到 5 题（P3_N 单点驱动；AI 兜底续题池补到 5 条不重复；每场多 2 次追问调用，已开 Paid）。common.js→20261008b、mock.js→20261008c。上一版 v275 P2 体验三修；v274 导航优先。  // 10/8 P2 模考体验三修（她 10:32 截图+语音）：① 窄屏 p2-mode 补重置 position:sticky/align-items → 考官窗不再钉顶盖题、内容满宽无死区；② 完成 P3 后 AI 评分期间显示专门「正在生成报告」视图（果冻水珠）；③ 回车=提交/下一题（Shift+Enter 换行、IME 组合中不触发）。mock.js→20261008b。上一版 v274 导航优先；v273 P2 模考三修。：软导航进行中+结束后2s内，同步三路流量（3s meta 探测/全量下载/自动 PUT）与后台预热全部让路——她报「点每个页面跳转要加载好久，之前很快」（10/6 同步秒级化后手机网络被持续占满）。common.js→20261008a。上一版 v273 P2 模考三修；v272 补 sprint.js 进 PRECORE。
 // 10/5 14:35 设置页合并目标分数+口语自评 + 删竖排版本标记 + 顶栏显昵称（common.js/settings.js 改版）
   // 10/4 19:20 题库卡片「显示不全、被截掉一截」（她 19:10 报，点名「住所」与「对结果开心的重要决定」，说了好几遍）
 //
@@ -425,17 +425,27 @@ const PRECORE = [
 /* HTML 导航 network-first 的网络超时（弱网 4s 拿不到就回退缓存，绝不让用户干等白屏） */
 const NAV_TIMEOUT_MS = 4000;
 
+let _swIsUpdate = false;   // 10/8 晚：install 时记录本次是「更新」还是「首次安装」，activate 只在更新时迁移旧页面
+
 self.addEventListener('install', e => {
   e.waitUntil((async () => {
+    _swIsUpdate = !!self.registration.active;   // 已有 active SW = 本次是版本更替；无 = 首次安装
     const cache = await caches.open(CACHE);
     // 逐条预缓存且单条失败不炸整体（cache:'reload' 绕过 HTTP 缓存拿部署源最新）：
     // 某一条 404/弱网失败只丢那一条的离线可用，不能让整个 install 失败导致 SW 永远装不上
-    await Promise.all(PRECORE.map(async u => {
+    // ⚠️ 10/8 晚致命修复：慢网络下单条 fetch 可能无限挂起（不报错不返回）→ await 永远不结束
+    //    → skipWaiting 永远不执行 → 新版本永远不接管 → 用户无论怎么刷新都卡旧版（她 10/8 晚实锤，
+    //    无痕窗口正常+正常窗口卡旧版=唯一能解释的机制）。每条加 10s 硬超时，install 最坏 ~10s 必完成。
+    const fetchPrecache = async u => {
       try{
-        const res = await fetch(u, { cache: 'reload' });
+        const ctl = new AbortController();
+        const timer = setTimeout(() => ctl.abort(), 10000);
+        const res = await fetch(u, { cache: 'reload', signal: ctl.signal });
+        clearTimeout(timer);
         if(res && res.ok){ await cache.put(u, res); }
-      }catch(_){ /* 单条失败静默：只丢该条的离线可用 */ }
-    }));
+      }catch(_){ /* 单条失败/超时静默：只丢该条的离线可用 */ }
+    };
+    await Promise.all(PRECORE.map(fetchPrecache));
     await self.skipWaiting();
   })());
 });
@@ -446,10 +456,22 @@ self.addEventListener('activate', e => {
     const keys = await caches.keys();
     await Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)));
     await self.clients.claim();
-    // 通知已打开页面「SW 已更新」（可选通知：页面现有自愈机制决定是否 reload，SW 绝不自行强制刷新）
+    // 通知已打开页面「SW 已更新」。
+    // 10/8 晚升级：她要求「刷新之后立马可以用」——**仅版本更替时**（非首次安装）旧页面由新 SW 接管后
+    // 直接被导航到新版（Client.navigate 走新 SW 的 fetch handler → 新 PRECORE 必命中），用户零操作。
+    // navigate 失败才退回 postMessage 提示条（页面现有「发现新版本」横幅兜底）。
+    // 无循环风险：activate 只在版本更替时触发一次，重载后的页面不会再触发 activate。
     try{
-      const cs = await self.clients.matchAll();
-      cs.forEach(c => { try{ c.postMessage({ type: 'SW_UPDATED', version: CACHE }); }catch(_){} });
+      const cs = await self.clients.matchAll({ type: 'window' });
+      cs.forEach(c => {
+        try{
+          if(_swIsUpdate && c.url && c.url.indexOf(self.location.origin) === 0 && typeof c.navigate === 'function'){
+            c.navigate(c.url).catch(() => { try{ c.postMessage({ type: 'SW_UPDATED', version: CACHE }); }catch(_){} });
+          } else {
+            try{ c.postMessage({ type: 'SW_UPDATED', version: CACHE }); }catch(_){}
+          }
+        }catch(_){}
+      });
     }catch(_){}
   })());
 });
