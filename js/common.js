@@ -3589,6 +3589,15 @@ function initOfflineBar(){
     const off = (navigator.onLine === false);
     if(off !== _isOffline) setOfflineState(off);
   }, 30000);
+  /* ⭐ 10/8 晚：部署探针补第四触发源——定时器。
+     此前 navDeployProbe 只在软导航时触发（navGetDoc），她今晚整晚停在写作页里点 tab/考试，
+     没有任何软导航 → 自愈永远不跑 → 卡旧版整晚（10/8 第五次事故的直接放大器）。
+     每 60s 主动探一次（函数自带 60s 节流 + 每 boot 一次升级闸 + 离线闸，防风暴闸门全部沿用）。 */
+  setInterval(() => {
+    try{ if(typeof navDeployProbe === 'function' && !_navOfflineHold) navDeployProbe(); }catch(e){}
+  }, 60000);
+  // 首探延后 45s：给 boot 自身的 PRECORE/同步让路（她的慢网络），避免开机就抢带宽
+  setTimeout(() => { try{ if(!_navOfflineHold) navDeployProbe(); }catch(e){} }, 45000);
 }
 
 function navDeployProbe(){
