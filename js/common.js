@@ -501,6 +501,10 @@ function injectGlobalDock(){
   dock.className = 'ui-menu ui-menu-grouped';
   dock.setAttribute('aria-label', '快捷导航');
   dock.innerHTML = inner;
+  /* 10/8 晚：仅在「真触屏 + 窄屏」设备注入底栏（与 common.css 的媒体条件同口径）。
+     电脑端放大到 150% 时宽度虽 <860px，但指针是鼠标 → 不注入、不加 has-dock（连净空都不占）。 */
+  const isTouchPhone = (() => { try { return window.matchMedia('(max-width:860px) and (hover:none) and (pointer:coarse)').matches; } catch (e) { return false; } })();
+  if (!isTouchPhone) return;
   document.body.appendChild(dock);
   document.body.classList.add('has-dock');
 

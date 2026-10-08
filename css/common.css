@@ -1942,6 +1942,8 @@ body.word-fullscreen .practice-tools-row{ display:none !important; }
    #floatTimer 不被隐藏（它没有响应式开关，一直 display:flex），会浮在卡片下沿、
    矮窗口直接压在喇叭按钮上。移到全局作用域。 */
 body.word-fullscreen #hubDock{ display:none !important; }
+/* 10/8 晚：考试全屏（真题/自练）也彻底不显示底栏——她截图实抓 dock 压在真题页上 */
+body.exam-fullscreen #hubDock{ display:none !important; }
 
 /* ④b 计时胶囊：全屏态**照常显示**，但换成「右上角极简版」。
    ⚠️ 9/19 之之反馈：全屏背单词时看不到悬浮计时，不知道到底在不在计时 → 不再 display:none。
@@ -2467,10 +2469,17 @@ body.exam-fullscreen{overflow:hidden !important}
 /* 10/1 晚（她拍板）：全站禁止左右滑动 */
 html,body{overflow-x:clip}
 body.has-dock main.container{ padding-bottom:0; }
-@media (max-width:860px){
+@media (max-width:860px) and (hover:none) and (pointer:coarse){
   #hubDock{ display:flex; }
   /* 10/2：净空统一由 design/56 块（沉浸态 118px）与末尾 App Shell 块（非沉浸态 --dock-h）接管，
      这里删除写死的 88px —— 三个魔法数字互相覆盖是旧 bug 的根源。 */
+}
+/* 10/8 晚她反馈：电脑端把页面放大到 150%（等效 CSS 宽 720px）时，这个手机专用底栏弹出来压住考试界面。
+   根因 = 只按「宽度」判断手机。修法 = 加 (hover:none)+(pointer:coarse) 双条件（业界标准做法：
+   用指针类型而非宽度区分触屏设备）→ 鼠标/触控板设备无论怎么缩放、窗口多窄，永不显示。
+   camelCase 的 hover:hover/pointer:fine 设备（含 iPad+妙控键盘场景以粗指针为准）走侧栏导航。 */
+@media (max-width:860px) and (hover:hover) and (pointer:fine){
+  #hubDock{ display:none !important; }
 }
 /* ===== 手机端浮层/完成页适配（之之 9/8：完成页按钮点不到、排版乱、dock 优化）===== */
 @media (max-width:860px){
