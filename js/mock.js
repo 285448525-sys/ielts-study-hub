@@ -117,6 +117,18 @@
     exitToBank();
     toast(save ? '已保存进度，下次进入模考可继续' : '已清除本次模考记录');
   }
+  /* 10/8 修（探针实抓）：视图互斥只在 speaking.js 的 tab 点击处理器里做，
+     而「自动续考 / 开始模考」直接显示 #mockView 时**从不藏兄弟视图** →
+     #listView 等照常占位叠在模考上层（点击被拦截 / 舞台被挤）。
+     这里补上与 tab 处理器同一份互斥名单（speaking.js:240），单一职责：进模考 = 只剩模考。 */
+  function showOnlyMockView(){
+    ['#listView','#detailView','#matView','#pdView','#sentView','#coachView'].forEach(sel => {
+      try{ const el = document.querySelector(sel); if(el) el.hidden = true; }catch(e){}
+    });
+    const mv = $('#mockView');
+    if(mv) mv.hidden = false;
+  }
+
   async function resumeFromSnapshot(){
     if(mockEntering || mockState) return;   // 10/2 修：注入窗口/考试进行中防并发双开
     mockEntering = true;
@@ -128,8 +140,8 @@
     mockState.examiner = snap.examiner || pickExaminer();
     renderExaminer(mockState.examiner);
     // 10/1 批3 修复：#mockView 默认 hidden，自动续考要同步显容器 + 把 tab 高亮切到「模考」，视觉状态一致。
-    const mv = $('#mockView');
-    if(mv) mv.hidden = false;
+    // 10/8：改走 showOnlyMockView()（顺带藏掉 tab 默认显示的 #listView，续考不再叠层）
+    showOnlyMockView();
     document.querySelectorAll('#tabs .pill-tab').forEach(b => b.classList.toggle('active', b && b.dataset && b.dataset.type === 'MOCK'));
     $('#mockReport').hidden = true; $('#mockStage').hidden = false;
     setMockImmerse(true);           // 9/26：续考也进沉浸
@@ -233,12 +245,10 @@
     });
   }
 
-  /* ---------- 10/3 23:05 她报的两处修复 ----------
-     ① 「P2 准备阶段写的笔记，点结束准备后直接就消失了」→笔记必须留在屏幕上。
-        存在 mockState.notebook，renderMockNote() 负责上屏（prepare 阶段边打边更新，
-        提交时冻结，之后 P2 陈述 / P3 全程可见，本场结束才清）。
-     ② 「P2 回答框不会随文字变化，要滑动才看全」→ 文本框按内容实时 autoGrow。
-     ⚠️ 两条都必须挂 once/常驻绑定，不能每题重复绑（askQuestion 每题都跑）。 */
+  /* ---------- 笔记与回答框 ----------
+     10/3 23:05（历史）：① 笔记留屏（存 mockState.notebook，陈述/P3 全程可见）；② 回答框 autoGrow。
+     10/8 重做（她拍板）：笔记不再是回答框的镜像 —— 准备阶段 = 独立可编辑小纸条（写关键词），
+     「结束准备」后冻结只读、与她的陈述内容完全无关。见 bindNoteEditor / paintNoteForPhase。 */
 
   function renderMockNote(){
     const box = $('#mockNote'), body = $('#mockNoteBody');
@@ -258,25 +268,41 @@
     ta.style.height = Math.min(ta.scrollHeight, maxH) + 'px';
     ta.style.overflowY = ta.scrollHeight > maxH ? 'auto' : 'hidden';
   }
-  /* 10/3 23:05：prepare 阶段才把输入实时存成笔记。
-     ⚠️ 踩坑：原本写 `mockState.phase === 'P2-prep'`，但 **mockState 从来没有 phase 字段**
-     （saveResumeSnapshot 存的是快照对象的 phase，不是 mockState 上的）→ 条件永假、边打边存从不生效。
-     改用 askQuestion 传下来的 opts.isPrep 标记（用模块级变量传给绑定函数）。 */
+  /* 10/8 她拍板重做笔记机制：准备阶段笔记 = 可编辑小纸条（#mockNoteInput，写几个关键词），
+     与回答框（#mockManual）完全独立。
+     ⚠️ 旧病根（她报「笔记栏和回答栏完全一模一样同步」）：旧版没有独立笔记输入，
+     准备阶段把回答框内容实时镜像进 renderMockNote() → 笔记 = 回答，同步变化。
+     现在笔记只在准备阶段可写（实时存 mockState.notebook，刷新/续考不丢），
+     「结束准备」后冻结只读（#mockNoteBody 显示），陈述/P3 全程可见且不随回答变（10/3 留屏要求保留）。 */
+  function bindNoteEditor(){
+    const input = $('#mockNoteInput');
+    if(!input) return;
+    if(input.__noteSaveFn) input.removeEventListener('input', input.__noteSaveFn);
+    input.__noteSaveFn = () => { if(mockState) mockState.notebook = input.value; };
+    input.addEventListener('input', input.__noteSaveFn);
+  }
+  /* 笔记显隐按阶段切换：prep = 编辑态；其余 = 冻结只读（有内容才显示，P1 正常场为空 → 整卡隐藏）。 */
+  function paintNoteForPhase(isPrep){
+    const box = $('#mockNote'), body = $('#mockNoteBody'), input = $('#mockNoteInput');
+    if(!box || !body || !input) return;
+    if(isPrep){
+      input.hidden = false; body.hidden = true;
+      input.value = (mockState && mockState.notebook) || '';
+      box.hidden = false;
+      bindNoteEditor();
+    } else {
+      input.hidden = true; body.hidden = false;
+      renderMockNote();   // 无内容时整卡隐藏（含 P1）
+    }
+  }
   /* ⚠️ 不用 __mockGrowBound 做一次性守卫：P1 是最先到的阶段（isPrep=false），
      若锁住首次绑定，到 P2 准备阶段 isPrep 就传不进去了 → 边打边存又失效。
      改为每题解绑旧监听再绑新的（askQuestion 每题都调，节点是同一个 textarea）。 */
-  function bindManualAutoGrow(isPrep){
+  function bindManualAutoGrow(){
     const ta = $('#mockManual');
     if(!ta) return;
     if(ta.__mockGrowFn) ta.removeEventListener('input', ta.__mockGrowFn);
-    const fn = () => {
-      autoGrowManual();
-      /* 准备阶段边打边把笔记存进 mockState（刷新/续考也不丢） */
-      if(isPrep && mockState){
-        mockState.notebook = ta.value;
-        renderMockNote();
-      }
-    };
+    const fn = () => { autoGrowManual(); };
     ta.__mockGrowFn = fn;
     ta.addEventListener('input', fn);
   }
@@ -312,14 +338,17 @@
       const liveEl = $('#mockLive'); if(liveEl) liveEl.textContent = '';
       const manual = $('#mockManual');
       if(manual){
+        /* 10/8 准备阶段只写笔记、不写答案 → 回答框整块隐藏（prep 才藏，其他阶段照常显示） */
+        const manualWrap = manual.closest('.mock-manual');
+        if(manualWrap) manualWrap.hidden = !!opts.isPrep;
         manual.value = '';
         /* 10/3 23:05：文本框按内容实时长高（她报「框不会随文字变化，要滑动才看全」） */
         manual.style.height = 'auto';
         manual.style.overflowY = 'hidden';
-        bindManualAutoGrow(!!opts.isPrep);
+        bindManualAutoGrow();
       }
-      /* 10/3 23:05：笔记留屏。prepare 阶段上屏并边打边存；其余阶段只显示上一阶段存下的（全程可见）。 */
-      renderMockNote();
+      /* 10/8 笔记机制重做：prep = 可编辑小纸条；之后 = 冻结只读、与回答无关（详见 bindNoteEditor 上方注释）。 */
+      paintNoteForPhase(!!opts.isPrep);
       const hint = $('#mockHint'); if(hint) hint.textContent = '';
       const submitBtn = $('#mockSubmit');
       const timerWrap = $('#mockTimerWrap');
@@ -362,11 +391,8 @@
           resolved = true;
           if(window.__mockTick){ clearInterval(window.__mockTick); window.__mockTick = null; }
           const transcript = manual ? manual.value.trim() : '';
-          /* 10/3 23:05：准备阶段提交时把草稿冻结进 notebook（之后 P2陈述/P3 都留在屏幕上） */
-          if(opts.isPrep && transcript){
-            mockState.notebook = transcript;
-            renderMockNote();
-          }
+          /* 10/8：笔记在准备阶段由 #mockNoteInput 实时存 mockState.notebook，提交时无需再冻结
+             （旧「把草稿冻结进 notebook」随镜像机制一起退役）。 */
           resolve({ transcript: transcript });
         };
       }
@@ -516,7 +542,7 @@
     const promptHtml = '<div class="mock-p2-prompt">' + escapeHtml(topic.promptEn || '')
       + (topic.promptZh ? '<div class="mock-p2-zh">' + escapeHtml(topic.promptZh) + '</div>' : '') + '</div>'
       + (topic.youShouldSay && topic.youShouldSay.length ? '<div class="mock-p2-say">你应该说到：<ul>' + topic.youShouldSay.map(s => '<li>' + escapeHtml(s) + '</li>').join('') + '</ul></div>' : '')
-      + '<p class="mock-prephint">你有 1 分钟准备，下方输入框可打草稿（不录音）。时间到或点「结束准备」开始陈述。</p>';
+      + '<p class="mock-prephint">你有 1 分钟准备，在下方「你的笔记」里写几个关键词提醒自己要讲什么（不录音、不算分）。时间到或点「结束准备」开始陈述。</p>';
     const talkHtml = '<div class="mock-p2-prompt">' + escapeHtml(topic.promptEn || '')
       + (topic.promptZh ? '<div class="mock-p2-zh">' + escapeHtml(topic.promptZh) + '</div>' : '') + '</div>'
       + '<p class="mock-prephint">现在陈述 2 分钟（在下方输入框打字 / 粘贴你的英文回答）。时间到或点「完成 P2」提交。</p>';
@@ -839,6 +865,7 @@
 
     $('#mockReport').hidden = true;
     $('#mockStage').hidden = false;
+    showOnlyMockView();             // 10/8：进模考 = 只剩模考（含「再来一次」等非 tab 入口）
     setMockImmerse(true);           // 9/26：开始模考 → 整页只剩模考内容
     injectExitButton();
 
