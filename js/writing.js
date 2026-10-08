@@ -87,6 +87,10 @@ if(window.examTimer && window.examTimer.tick){ clearInterval(window.examTimer.ti
 var examTimer = { start: 0, elapsed: 0, running: false, tick: null, cur: null,
                   mode:'up', limitMs:0, locked:false };
 
+/* 10/8 晚：评分记录列表（reverse 后）缓存一份，点击行 → 全屏记录视图取原记录用。
+   ⚠️ 必须声明在 ready 之前：renderScoreHist 在 ready 链与 switchShareTab 里都会被更早调用。 */
+let _histList = [];
+
 let tplVip = null;   // null=未知/查询中（详情暂锁，scheduleVipRecheck 复查）；true/false = 已确认
 
 ready(() => {
@@ -780,6 +784,29 @@ function tplScoreHtml(r, isTask1){
 }
 
 /* 整篇评分渲染（scoreEssay 与 histDetailHtml 整篇路径共用） */
+/* 10/8 晚 她要求（仿爱听写）：四个维度可点开的手风琴，分项按官方评分标准子项。
+   共享给两条渲染路径：整篇评分（essayScoreHtml）与考试交卷（examStopAndScore）。
+   旧记录无 dims → 返回空串，两处自动跳过。 */
+function dimsAccordionHtml(r, isTask1){
+  if(!r || !r.dims || typeof r.dims !== 'object') return '';
+  const DIMN = { TR: (isTask1 ? '任务完成度 TA' : '任务回应 TR'), CC: '连贯与衔接 CC', LR: '词汇丰富度 LR', GRA: '语法多样性与准确性 GRA' };
+  let rows = '';
+  ['TR','CC','LR','GRA'].forEach(k => {
+    const d = r.dims[k]; if(!d) return;
+    const band = (r.breakdown && r.breakdown[k] != null) ? r.breakdown[k] : '';
+    const items = Array.isArray(d.items) ? d.items : [];
+    rows += '<details class="sc-dim">'
+      + '<summary><span class="sc-dim-name">' + escapeHtml(DIMN[k]) + '</span>'
+      +   '<b class="sc-dim-band">' + escapeHtml(String(band)) + '</b><span class="sc-dim-caret">▾</span></summary>'
+      + '<div class="sc-dim-body">' + (items.length ? items.map(it =>
+            '<div class="sc-dim-item"><b>' + escapeHtml(String(it && it.band != null ? it.band : '')) + '</b>'
+            + '<div><div class="sc-dim-item-name">' + escapeHtml((it && it.name) || '') + '</div>'
+            + (((it && it.note) ? '<div class="sc-dim-item-note">' + escapeHtml(it.note) + '</div>' : '')) + '</div></div>').join('')
+          : '<p class="muted" style="margin:0;font-size:13px">（本条记录没有分项明细）</p>') + '</div></details>';
+  });
+  return rows ? '<div class="score-section"><h4>评分详情（点开每个维度看分项）</h4>' + rows + '</div>' : '';
+}
+
 function essayScoreHtml(r, isTask1){
   let h = '';
   h += '<div class="score-overall" style="font-size:20px">预估总分：' + escapeHtml(r.overall != null ? r.overall : 'N/A') + '</div>';
@@ -804,6 +831,7 @@ function essayScoreHtml(r, isTask1){
     });
     h += '</div>';
   }
+  h += dimsAccordionHtml(r, isTask1);   // 四维度手风琴（共享实现，另一条路径在 examStopAndScore）
   const anchors = (Array.isArray(r.anchors) ? r.anchors : []).map(anchorHtml).filter(Boolean);
   if(anchors.length){
     h += '<div class="score-section"><h4>考官评分标准对照</h4>' + anchors.join('') + '</div>';
@@ -827,6 +855,9 @@ function essayScoreHtml(r, isTask1){
 }
 
 /* ===== 评分记录（A1） ===== */
+/* ⚠️ 10/8 晚自抓：_histList 原声明在此处，而 renderScoreHist 在 ready 链里（189 行）与
+   switchWriteTab（38 行）都会更早调用 → 又一次 TDZ（与我今晚修的那个同类）。
+   已上移到文件头部模块区（ready 之前）。 */
 function renderScoreHist(){
   const box = $('#scoreHistList');
   if(!box) return;
@@ -834,26 +865,39 @@ function renderScoreHist(){
   if(sumBox) sumBox.innerHTML = histSummaryHtml();
   const list = (DATA.writingScores || []).slice().reverse().slice(0, 20);
   if(!list.length){ box.innerHTML = '<div class="hist-empty">还没有评分记录，去上面评一篇吧。</div>'; return; }
+  _histList = list;   // 点击行时按下标取回原记录（已 reverse）
   box.innerHTML = list.map((rec, i) => {
     const modeTag = rec.mode === 'template' ? '模板评分' : (rec.mode === 'exam' ? '真题模考' : '整篇评分');
-    const title = rec.mode === 'template' ? (rec.tplTitle || '模板')
-                : rec.mode === 'exam' ? ((rec.examNo ? '#'+rec.examNo+' ' : '') + (rec.type || '真题'))
-                : (rec.type || '整篇');
+    /* 10/8 晚 她要求：横条上用**几个字概括题目在讲什么**（AI 的 brief 字段）；
+       旧记录没有 brief → 回退：自练用题干、真题用 #编号、模板用模板名。 */
+    const brief = (() => {
+      const b = rec.result && rec.result.brief;
+      if(b) return String(b);
+      if(rec.mode === 'template') return rec.tplTitle || '模板';
+      const q = rec.topic || '';
+      if(q) return q.length > 16 ? q.slice(0, 16) + '…' : q;
+      if(rec.examNo) return '真题 #' + rec.examNo;
+      return rec.type || '整篇';
+    })();
+    const tip = rec.topic || brief;
     const overall = (!rec.parsed || !rec.result || rec.result.overall == null) ? '未解析' : rec.result.overall;
-    return '<div class="hist-row" data-idx="' + i + '">'
+    return '<div class="hist-row" data-idx="' + i + '" title="' + escapeHtml(tip) + '">'
       + '<div class="hist-h">'
       +   '<span class="hist-date">' + escapeHtml(rec.date || '') + '</span>'
       +   '<span class="hist-tag">' + modeTag + '</span>'
-      +   '<span class="hist-title">' + escapeHtml(title) + '</span>'
+      +   '<span class="hist-title">' + escapeHtml(brief) + '</span>'
       +   '<span class="hist-score">' + escapeHtml(String(overall)) + '</span>'
-      +   '<span class="hist-caret">▶</span>'
+      +   '<span class="hist-caret">›</span>'
       + '</div>'
-      + '<div class="hist-body">' + histDetailHtml(rec) + '</div>'
       + '</div>';
   }).join('');
+  /* 10/8 晚 她要求：不要展开/折叠，点一下直接进「左边题目+我的作文 / 右边评分」的全屏视图 */
   box.querySelectorAll('.hist-row').forEach(row => {
-    const head = row.querySelector('.hist-h');
-    if(head) head.addEventListener('click', () => row.classList.toggle('open'));
+    row.addEventListener('click', () => {
+      const i = Number(row.dataset.idx);
+      const rec = _histList[i];
+      if(rec) openRecordExamView(rec);
+    });
   });
 }
 
@@ -1510,8 +1554,16 @@ ${topicBlock}
 【官方评分原话短语表（引用时一字不改）】
 ${ANCHOR_TABLE_EN}
 
+8. brief：≤10 个简体汉字，概括这道题在讲什么（评分记录列表用，例：广告是否让人乱花钱）。
+9. dims：按官方评分标准的**子项**拆解，四个维度各给 items（每项：name 中文分项名、band 0.5 粒度、note ≤50 字中文说明）：
+   TR/TA：任务回应、完整回应题目、立场清晰一致、论证充分具体、字数合适
+   CC：段落组织与推进、衔接手段使用、指代与逻辑清晰
+   LR：词汇量与多样性、搭配准确性、拼写与词形
+   GRA：句式多样性、语法准确性、标点与断句
+   每项 band 与该维度 breakdown 的差距不超过 1；每维度至少 2 项。
+
 只输出严格 JSON，不要其他文字：
-{"overall":6.0,"breakdown":{"TR":6.0,"CC":6.0,"LR":6.0,"GRA":5.5},"anchors":[{"dim":"TR","band":5,"quote":""}],"good":["原句 —— 为什么好"],"gap":{"steps":["",""]},"grammar":[{"wrong":"","fix":"","why":"","tag":"搭配"}],"longSentences":[{"sentence":"原文句子","wordCount":42,"suggestion":"拆分建议"}],"suggestions":["建议1","建议2","建议3"]}` },
+{"overall":6.0,"breakdown":{"TR":6.0,"CC":6.0,"LR":6.0,"GRA":5.5},"anchors":[{"dim":"TR","band":5,"quote":""}],"good":["原句 —— 为什么好"],"gap":{"steps":["",""]},"grammar":[{"wrong":"","fix":"","why":"","tag":"搭配"}],"longSentences":[{"sentence":"原文句子","wordCount":42,"suggestion":"拆分建议"}],"suggestions":["建议1","建议2","建议3"],"brief":"≤10字概括这道题讲什么","dims":{"TR":{"items":[{"name":"任务回应","band":6,"note":""}]},"CC":{"items":[{"name":"段落组织与推进","band":6,"note":""}]},"LR":{"items":[{"name":"词汇量与多样性","band":6,"note":""}]},"GRA":{"items":[{"name":"句式多样性","band":6,"note":""}]}}}` },
     { role:'user', content: (topic ? '题目：\n' + topic + '\n\n' : '') + '题型：' + type + '\n\n本次实际词数：' + wc + '（最低要求 ' + min + ' 词）\n\n作文：\n' + essay }
   ];
 
@@ -1807,6 +1859,52 @@ function examFontCycle(){
   toast('Text size: ' + ['Regular (20px)','Large (23px)','Extra large (27px)'][next]);
 }
 
+/* 10/8 晚 她要求：点评分记录 → 直接进「左题目 + 我的作文 / 右评分结果」全屏视图
+   （替代旧的展开折叠）。复用 #examPractice 布局；不启动计时、隐藏 Finish；退出回评分面板。 */
+function openRecordExamView(rec){
+  if(!rec || !rec.result) return;
+  const isBig = rec.type !== '小作文';
+  examTimer.cur = { viewRec: true };
+  $('#examPanel').hidden = false;
+  $('#tplPanel').hidden = true; $('#bankPanel').hidden = true; $('#scorePanel').hidden = true; $('#dictationPanel').hidden = true;
+  $('#examHome').hidden = true;
+  $('#examPractice').hidden = false;
+  document.body.classList.add('exam-fullscreen');
+  const partNo = isBig ? 2 : 1;
+  $('#examPartLabel').textContent = 'Part ' + partNo;
+  $('#examStepBadge').textContent = String(partNo);
+  $('#examStepLabel').textContent = 'Part ' + partNo;
+  $('#examInstr').textContent = isBig ? 'You should spend about 40 minutes on this task. Write at least 250 words.'
+                                      : 'You should spend about 20 minutes on this task. Write at least 150 words.';
+  /* 题目来源三级回退：自练记录存了题干 → 真题按编号从题库取（含图表）→ 模板记录用模板名 */
+  let qHtml = '';
+  if(rec.topic){
+    qHtml = '<div class="ei-en">' + escapeHtml(rec.topic) + '</div>';
+  } else if(rec.examNo){
+    const isSmall = String(rec.examNo).charAt(0) === 'T';
+    const no = Number(String(rec.examNo).replace(/^T/, ''));
+    const bank = window.WRITING_PROMPTS || { big: [], small: [] };
+    const it = (isSmall ? bank.small : bank.big).find(x => x.no === no);
+    if(it){
+      if(it.img && it.img.length){ qHtml += '<div class="eq-charts">' + it.img.map(f => '<img src="assets/writing/' + escapeHtml(f) + '" alt="chart">').join('') + '</div>'; }
+      qHtml += '<div class="ei-en">' + escapeHtml(isSmall ? (it.title || '') : (it.en || '')) + '</div>';
+    }
+  } else if(rec.tplTitle){
+    qHtml = '<div class="ei-en">' + escapeHtml(rec.tplTitle) + '</div>';
+  }
+  $('#examQuestion').innerHTML = qHtml || '<div class="muted">（这条记录没有保存题目）</div>';
+  $('#examQNote').textContent = '';
+  const fold = $('#examEssayFold'); if(fold){ fold.hidden = false; fold.open = true; }
+  const eo = $('#examEssayOrig'); if(eo) eo.textContent = rec.essay || '';
+  const ta = $('#examEssay'); if(ta){ ta.hidden = true; ta.value = ''; }
+  const ft = $('#examAFoot'); if(ft) ft.hidden = true;
+  const rbox = $('#examResult');
+  if(rbox){ rbox.hidden = false; rbox.innerHTML = essayScoreHtml(rec.result, rec.type === '小作文'); }
+  const tw = $('#examTimerWrap'); if(tw) tw.style.display = 'none';   // 回看记录不该显示计时器
+  const fin = $('#examFinish'); if(fin) fin.hidden = true;            // 也不该有 Finish
+  examFontApply();
+}
+
 function openExam(item, kind){
   if(!examTimer) return;   // 10/8 兜底：初始化异常时不许抛 TypeError 打断（她侧实抓过）
   examTimer.cur = { kind, no: item.no };
@@ -1866,6 +1964,8 @@ function openExam(item, kind){
   $('#examEssay').hidden = false;   // 恢复输入区（上一题提交时被隐藏）
   const ft = $('#examAFoot'); if(ft) ft.hidden = false;
   // 10/8 她拍板：考场模式 checkbox 退役 —— 恒倒计时（Task 2 40min / Task 1 20min），到点弹框自选
+  const _tw = $('#examTimerWrap'); if(_tw) _tw.style.display = '';   // 从「记录回看」视图回来时还原
+  const _fin = $('#examFinish'); if(_fin) _fin.hidden = false;
   examFontApply();   // 10/8 官方字号三档：进场应用本机档位
   examStartTimer('down', examLimitMs(isBig));
 }
@@ -1918,6 +2018,8 @@ function openExamCustom(){
   const eo = $('#examEssayOrig'); if(eo) eo.textContent = '';
   $('#examEssay').hidden = false;
   const ft = $('#examAFoot'); if(ft) ft.hidden = false;
+  const _tw = $('#examTimerWrap'); if(_tw) _tw.style.display = '';   // 从「记录回看」视图回来时还原
+  const _fin = $('#examFinish'); if(_fin) _fin.hidden = false;
   examFontApply();   // 10/8 官方字号三档：进场应用本机档位
   examStartTimer('down', examLimitMs(isBig));
 }
@@ -1973,8 +2075,16 @@ ${topicBlock}
 【官方评分原话短语表（引用时一字不改）】
 ${ANCHOR_TABLE_EN}
 
+8. brief：≤10 个简体汉字，概括这道题在讲什么（评分记录列表用，例：广告是否让人乱花钱）。
+9. dims：按官方评分标准的**子项**拆解，四个维度各给 items（每项：name 中文分项名、band 0.5 粒度、note ≤50 字中文说明）：
+   TR/TA：任务回应、完整回应题目、立场清晰一致、论证充分具体、字数合适
+   CC：段落组织与推进、衔接手段使用、指代与逻辑清晰
+   LR：词汇量与多样性、搭配准确性、拼写与词形
+   GRA：句式多样性、语法准确性、标点与断句
+   每项 band 与该维度 breakdown 的差距不超过 1；每维度至少 2 项。
+
 只输出严格 JSON，不要其他文字：
-{"overall":6.0,"breakdown":{"TR":6.0,"CC":6.0,"LR":6.0,"GRA":5.5},"anchors":[{"dim":"TR","band":5,"quote":""}],"good":["原句 —— 为什么好"],"gap":{"steps":["",""]},"grammar":[{"wrong":"","fix":"","why":"","tag":"搭配"}],"longSentences":[{"sentence":"原文句子","wordCount":42,"suggestion":"拆分建议"}],"suggestions":["建议1","建议2","建议3"]}` },
+{"overall":6.0,"breakdown":{"TR":6.0,"CC":6.0,"LR":6.0,"GRA":5.5},"anchors":[{"dim":"TR","band":5,"quote":""}],"good":["原句 —— 为什么好"],"gap":{"steps":["",""]},"grammar":[{"wrong":"","fix":"","why":"","tag":"搭配"}],"longSentences":[{"sentence":"原文句子","wordCount":42,"suggestion":"拆分建议"}],"suggestions":["建议1","建议2","建议3"],"brief":"≤10字概括这道题讲什么","dims":{"TR":{"items":[{"name":"任务回应","band":6,"note":""}]},"CC":{"items":[{"name":"段落组织与推进","band":6,"note":""}]},"LR":{"items":[{"name":"词汇量与多样性","band":6,"note":""}]},"GRA":{"items":[{"name":"句式多样性","band":6,"note":""}]}}}` },
     { role:'user', content: (customTopic ? '题目：\n' + customTopic + '\n\n' : '') + '题型：' + type + '\n\n本次实际词数：' + wc2 + '（最低要求 ' + min + ' 词）\n\n作文：\n' + essay }
   ];
   (async () => {
@@ -2008,6 +2118,7 @@ ${ANCHOR_TABLE_EN}
         });
         html += '</div>';
       }
+      html += dimsAccordionHtml(result, type === '小作文');   // 10/8 晚：交卷路径也接上四维度手风琴
       const anchors = (Array.isArray(result.anchors) ? result.anchors : []).map(anchorHtml).filter(Boolean);
       if(anchors.length){
         html += '<div class="ts-sec"><h4>考官评分标准对照</h4>' + anchors.join('') + '</div>';
@@ -2111,7 +2222,8 @@ function bindExam(){
     /* 10/8：自练题退回评分面板（题目框还留着）；真题流程照旧回列表。
        10/8 她要求：退出全屏后作文同步回评分面板的输入框——
        只在有内容且内容确实不同才覆盖（避免把她已粘的外层内容清掉），派发 input 让词数徽标一起刷新。 */
-    if(examTimer.cur && examTimer.cur.custom){
+    if(examTimer.cur && examTimer.cur.viewRec){ switchWriteTab('score'); }
+    else if(examTimer.cur && examTimer.cur.custom){
       const ee = $('#examEssay'), se = $('#scoreEssay');
       if(ee && se && ee.value.trim() && se.value.trim() !== ee.value.trim()){
         se.value = ee.value;

@@ -43,7 +43,7 @@
   <script defer src="js/common.js?v=20261008j"></script>
   <script defer src="js/feedback.js?v=20261006a"></script>
   <script defer src="js/writing_prompts.js?v=20260903ab"></script>
-  <script defer src="js/writing.js?v=20261008l"></script>
+  <script defer src="js/writing.js?v=20261008m"></script>
   <script defer src="js/wrongbook.js?v=20260903ab"></script>
 <style>
 
@@ -154,6 +154,22 @@
   .hist-sum-t{display:flex;flex-direction:column;gap:4px;font-size:13px;min-width:0}
   .hist-top{display:flex;gap:6px;flex-wrap:wrap}
   .hist-tagchip{font-size:11px;padding:1px 8px;border-radius:10px;background:var(--primary-soft);color:var(--med);border:1px solid var(--line);white-space:nowrap}
+
+  /* 10/8 晚 她要求（仿爱听写）：四个维度可点开的手风琴，点开看该维度分项明细 */
+  .sc-dim{border:1px solid var(--line);border-radius:10px;margin:8px 0;background:var(--surface);overflow:hidden}
+  .sc-dim > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:11px 14px;user-select:none}
+  .sc-dim > summary::-webkit-details-marker{display:none}
+  .sc-dim > summary:hover{background:var(--primary-soft)}
+  .sc-dim-name{flex:1;font-size:14px;font-weight:700;color:var(--ink)}
+  .sc-dim-band{font-size:15px;font-weight:800;color:var(--primary-d);min-width:28px;text-align:right}
+  .sc-dim-caret{color:var(--muted);font-size:12px;transition:transform .15s;transform:rotate(-90deg)}
+  .sc-dim[open] .sc-dim-caret{transform:none}
+  .sc-dim-body{padding:4px 14px 12px;border-top:1px solid var(--line)}
+  .sc-dim-item{display:flex;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line)}
+  .sc-dim-item:last-child{border-bottom:none}
+  .sc-dim-item > b{flex:none;min-width:26px;text-align:center;font-size:13px;font-weight:800;color:var(--primary-d)}
+  .sc-dim-item-name{font-size:13.5px;font-weight:700;color:var(--ink)}
+  .sc-dim-item-note{font-size:12.5px;color:var(--muted);line-height:1.65;margin-top:2px}
 
   /* 填空 AI 按需提示 */
   .ph-wrap{position:relative;display:inline-block}
