@@ -131,10 +131,9 @@ ready(() => {
       try{ localStorage.setItem(TOPIC_KEY, topicTa.value.trim()); }catch(e){}
       topicChipRender();
       if(topicTa.value.trim()){
-        toast('题目已存好，在下方开始写吧');
-        const es = $('#scoreEssay');
-        if(es){ es.scrollIntoView({ behavior:'smooth', block:'center' }); es.focus(); }
-      } else toast('题目已清空');
+        /* 10/8 她拍板：点保存 = 直通真题全屏（左题右答），不再只是聚焦输入框 */
+        openExamCustom();
+      } else toast('先把题干粘进上面的框');
     });
     $('#scoreTopicClear').addEventListener('click', () => { topicTa.value = ''; try{ localStorage.removeItem(TOPIC_KEY); }catch(e){} topicChipRender(); });
     topicChipRender();
@@ -1555,16 +1554,10 @@ if(window.examTimer && window.examTimer.tick){ clearInterval(window.examTimer.ti
 var examTimer = { start: 0, elapsed: 0, running: false, tick: null, cur: null,
                   mode:'up', limitMs:0, locked:false };
 
-/* Task 2 = 40 分钟 / Task 1 = 20 分钟：与真题页印刷指令（wtMinWords 同份口径）一致 */
+/* Task 2 = 40 分钟 / Task 1 = 20 分钟：与真题页印刷指令（wtMinWords 同份口径）一致。
+   10/8 她拍板：考场模式/强制停笔整块退役 —— 恒倒计时，到点弹框让她自己选（提交/继续写）。 */
 var EXAM_LIMIT_MIN = { big: 40, small: 20 };
-var EXAM_MODE_KEY = 'ielts_wt_exam_mode_v1';   // 本机偏好：记住上次开/关。故意不进云同步（同 aiChannel 口径）
-function examModePref(){ try{ return localStorage.getItem(EXAM_MODE_KEY) === '1'; }catch(e){ return false; } }
-function setExamModePref(on){ try{ localStorage.setItem(EXAM_MODE_KEY, on ? '1' : '0'); }catch(e){} }
 function examLimitMs(isBig){ return (EXAM_LIMIT_MIN[isBig ? 'big' : 'small'] || 40) * 60000; }
-function examApplyModeHint(isBig){
-  const h = $('#examModeHint');
-  if(h) h.textContent = (EXAM_LIMIT_MIN[isBig ? 'big' : 'small'] || 40) + ':00 倒计时，到点强制停笔';
-}
 
 function fmtExamTime(ms){
   const s = Math.floor(ms/1000);
@@ -1590,35 +1583,34 @@ function examTick(){
   }
   if(isDown && remain <= 0 && examTimer.running) examTimeUp();
 }
-/* 到点停笔：锁输入框 + 顶部红条 + 存草稿（防止她直接关页面丢了 40 分钟的字） */
+/* 10/8 她拍板重做到点行为：不再强制停笔（旧版锁输入框+红条+解锁打勾全部退役）——
+   暂停计时、存草稿，弹英文框让她自己选 Submit now / Keep writing。 */
 function examTimeUp(){
-  if(examTimer.locked) return;
-  examTimer.locked = true;
   examPauseTimer();
   if(examTimer.tick){ clearInterval(examTimer.tick); examTimer.tick = null; }
-  const ta = $('#examEssay');
-  if(ta) ta.readOnly = true;
   examSaveDraft();
-  const bar = $('#examTimeUpBar'); if(bar) bar.hidden = false;
-  const t = $('#examTimeUpText');
-  if(t){
-    const n = wtCountWords(ta ? ta.value : '');
-    const min = wtMinWords(examTimer.cur && examTimer.cur.kind === 'big' ? '大作文' : '小作文');
-    t.textContent = '时间到 · 已停笔。写了 ' + n + ' 词（要求至少 ' + min + ' 词）'
-      + (n < min ? ' —— 没写够，这正是机考最真实的卡点' : '');
-  }
+  const ta = $('#examEssay');
+  const n = wtCountWords(ta ? ta.value : '');
+  const min = wtMinWords(examTimer.cur && examTimer.cur.kind === 'big' ? '大作文' : '小作文');
+  const w = $('#examTuWords');
+  if(w) w.textContent = 'You wrote ' + n + ' words (min ' + min + ').' + (n < min ? ' Under the minimum — but it is your call.' : '');
   const tb = $('#examTimerBtn'); if(tb) tb.textContent = '▶';
-  toast('时间到，已停笔');
+  const m = $('#examTimeUpModal'); if(m) m.hidden = false;
+}
+/* 弹框两选：提交评分 / 继续写（切正计时，随时可 Finish，永不再锁） */
+function examTimeUpSubmit(){
+  const m = $('#examTimeUpModal'); if(m) m.hidden = true;
+  examStopAndScore();
+}
+function examTimeUpKeep(){
+  const m = $('#examTimeUpModal'); if(m) m.hidden = true;
+  examStartTimer('up', 0);
+  toast('计时切为正计时，继续写；随时点 Finish section 提交');
 }
 function examResetLock(){
-  examTimer.locked = false;
   const ta = $('#examEssay'); if(ta) ta.readOnly = false;
-  const bar = $('#examTimeUpBar'); if(bar) bar.hidden = true;
+  const m = $('#examTimeUpModal'); if(m) m.hidden = true;
   const wrap = $('#examTimerWrap'); if(wrap) wrap.classList.remove('over','warn');
-}
-function examUnlock(){
-  examResetLock();
-  toast('已解锁，接下来的修改不再计入本次模拟');
 }
 function examSaveDraft(){
   try{
@@ -1806,7 +1798,7 @@ function openExam(item, kind){
     }
   }catch(e){ console.warn('draft read failed', e); }
   if(draftEssay){
-    const ok = window.confirm('检测到这道题有未提交的草稿。\n\n点「确定」= 继续写（恢复草稿）\n点「取消」= 重新写（清空草稿）');
+    const ok = window.confirm('A draft was found for this task.\n\nOK = continue (restore draft)\nCancel = start over (clear draft)');
     if(ok){
       $('#examEssay').value = draftEssay;
     } else {
@@ -1825,23 +1817,68 @@ function openExam(item, kind){
   const eo = $('#examEssayOrig'); if(eo) eo.textContent = '';
   $('#examEssay').hidden = false;   // 恢复输入区（上一题提交时被隐藏）
   const ft = $('#examAFoot'); if(ft) ft.hidden = false;
-  // 9/30 考场模式：开关沿用本机上次的选择（默认关 = 不改变原有体验）；Task 2 40min / Task 1 20min
-  const modeChk = $('#examModeChk');
-  const wantDown = examModePref();
-  if(modeChk) modeChk.checked = wantDown;
-  examApplyModeHint(isBig);
-  examStartTimer(wantDown ? 'down' : 'up', examLimitMs(isBig));
+  // 10/8 她拍板：考场模式 checkbox 退役 —— 恒倒计时（Task 2 40min / Task 1 20min），到点弹框自选
+  examStartTimer('down', examLimitMs(isBig));
+}
+
+/* 10/8 她拍板：评分面板「保存题目，开始练」→ 直通真题全屏（左题右答，复用 #examPractice）。
+   cur.custom 标记自练题：评分走 examStopAndScore 同一条链（prompt 带题目 → 切题度判定），
+   落库 examNo 为空、topic 带题干。 */
+function openExamCustom(){
+  const isBig = $('#scoreType').value !== '小作文';
+  const topic = ($('#scoreTopic') ? $('#scoreTopic').value.trim() : '') || (function(){ try{ return localStorage.getItem('wt_score_topic_v1') || ''; }catch(e){ return ''; } })();
+  examTimer.cur = { kind: isBig ? 'big' : 'small', no: 'custom', custom: true };
+  /* ⚠️ #examPractice 住在 #examPanel 里，而入口在评分 tab —— examPanel 必须跟着打开，
+     否则页面结构在但整块 hidden（探针实抓：#examEssay not visible）。 */
+  $('#examPanel').hidden = false;
+  $('#examHome').hidden = true;
+  $('#examPractice').hidden = false;
+  document.body.classList.add('exam-fullscreen');
+  const partNo = isBig ? 2 : 1;
+  $('#examPartLabel').textContent = 'Part ' + partNo;
+  $('#examStepBadge').textContent = String(partNo);
+  $('#examStepLabel').textContent = 'Part ' + partNo;
+  $('#examInstr').textContent = isBig
+    ? 'You should spend about 40 minutes on this task. Write at least 250 words.'
+    : 'You should spend about 20 minutes on this task. Write at least 150 words.';
+  $('#examQuestion').innerHTML = '<div class="ei-en">' + escapeHtml(topic) + '</div>';
+  $('#examQNote').textContent = isBig
+    ? 'Give reasons for your answer and include any relevant examples from your own knowledge or experience.'
+    : 'Summarise the information by selecting and reporting the main features, and make comparisons where relevant.';
+  // 草稿恢复（同 openExam 的英文弹框口径）
+  let draftEssay = '';
+  try{
+    const raw = localStorage.getItem('ielts_wt_draft_' + examTimer.cur.kind + '_custom');
+    if(raw){ const d = JSON.parse(raw); if(d && d.essay && d.essay.trim()) draftEssay = d.essay; }
+  }catch(e){ console.warn('draft read failed', e); }
+  if(draftEssay){
+    const ok = window.confirm('A draft was found for this task.\n\nOK = continue (restore draft)\nCancel = start over (clear draft)');
+    $('#examEssay').value = ok ? draftEssay : '';
+    if(!ok){ try{ localStorage.removeItem('ielts_wt_draft_' + examTimer.cur.kind + '_custom'); }catch(e){} }
+  } else $('#examEssay').value = '';
+  const n = wtCountWords($('#examEssay').value);
+  $('#examWordCount').textContent = 'Word count: ' + n;
+  $('#examResult').hidden = true;
+  const fold = $('#examEssayFold'); if(fold){ fold.hidden = true; fold.open = false; }
+  const eo = $('#examEssayOrig'); if(eo) eo.textContent = '';
+  $('#examEssay').hidden = false;
+  const ft = $('#examAFoot'); if(ft) ft.hidden = false;
+  examStartTimer('down', examLimitMs(isBig));
 }
 
 function examStopAndScore(){
   // 自动评分（复用官方 4 维度 prompt）。此处独立实现，避免依赖 scoreEssay 的 DOM。
   const essay = $('#examEssay').value.trim();
-  const type = examTimer.cur && examTimer.cur.kind === 'big' ? '大作文' : '小作文';
+  const cur = examTimer.cur || {};
+  const type = cur.kind === 'big' ? '大作文' : '小作文';
+  /* 10/8 自练题（cur.custom）带题目评分：prompt 追加切题度判定（与评分面板 10/8 同款）；
+     真题流程无题目 → 与旧版 prompt 完全一致。 */
+  const customTopic = cur.custom ? (function(){ try{ return localStorage.getItem('wt_score_topic_v1') || ''; }catch(e){ return ''; } })() : '';
   // 9/16 修：同 scoreEssay —— 原来 essay.length < 150 判的是字符数，30 词就能过关。
   // 9/17：门槛按题型分（Task 1 150 / Task 2 250）。
   const min = wtMinWords(type);
   const wc2 = wtCountWords(essay);
-  if(wc2 < min){ toast('作文太短，至少需要 ' + min + ' 词（当前 ' + wc2 + ' 词）'); return; }
+  if(wc2 < min){ toast('Too short: at least ' + min + ' words (currently ' + wc2 + '). Keep writing, then Finish again.'); return; }
   const isTask1 = type === '小作文';
   const dim = isTask1 ? 'TA（Task Achievement 任务完成）' : 'TR（Task Response 任务回应）';
   const btn = $('#examScoreBtn');   // 手动评分按钮可能不存在（HTML 未提供），空值安全
@@ -1851,7 +1888,14 @@ function examStopAndScore(){
   if(btn){ btn.disabled = true; btn.textContent = '评分中…'; }
   const box = $('#examResult');
   box.hidden = false;
-  box.innerHTML = '<div class="ts-load">AI 正在按官方 4 维度评分，请稍候…</div>';
+  box.innerHTML = '<div class="ts-load">Scoring your response…</div>';
+  /* 10/8 有题目（自练题）时追加切题度判定要求 */
+  const topicBlock = customTopic ? `
+8. 用户消息里提供了「题目」。额外输出 topicJudge：
+   a. verdict：只能选「切题」「部分偏题」「偏题」——判全文是否真正回答了题目问的问题（立场有没有答、论点有没有跑出题目范围）。
+   b. reason：≤40 字说明判定理由；偏题时点出哪几段跑题。
+   c. approach：2-3 条「这道题可以怎么讲」——立场选项或论点方向，每条 ≤40 字，简体中文。
+   顶层 JSON 加 "topicJudge":{"verdict":"","reason":"","approach":["",""]}；没有题目就绝不输出该字段。` : '';
   const messages = [
     { role:'system', content:
 `你是雅思写作${isTask1 ? ' Task 1 小作文（学术类图表/数据题）' : ' Task 2 大作文（议论文）'}考官，严格按官方评分细则给分。
@@ -1865,13 +1909,13 @@ ${isTask1 ? RULES_TASK1 : RULES_TASK2}
 5. anchors：从下方短语表挑 1-3 条与这篇最突出的问题对应的官方评分原话（一字不改照抄），标明分项与档位；表里没有贴切的就给空数组，不要自己编原话。
 6. good：从作文里挑 1-2 句写得地道的原句（一字不改），每条格式"原句 —— 半句说明为什么好"；gap：距下一个 0.5 分档最关键的 2-3 条改法，每条 ≤30 字、点名分项。
 7. grammar：逐条列出语法/表达错误，含原错处、改法、一句错因；每条标 tag，只能从这个集合选：搭配/中式/时态/单复数/冠词/介词/句式/用词/其他；同类错误合并成一条；没有明显错误就给空数组。
-
+${topicBlock}
 【官方评分原话短语表（引用时一字不改）】
 ${ANCHOR_TABLE_EN}
 
 只输出严格 JSON，不要其他文字：
 {"overall":6.0,"breakdown":{"TR":6.0,"CC":6.0,"LR":6.0,"GRA":5.5},"anchors":[{"dim":"TR","band":5,"quote":""}],"good":["原句 —— 为什么好"],"gap":{"steps":["",""]},"grammar":[{"wrong":"","fix":"","why":"","tag":"搭配"}],"longSentences":[{"sentence":"原文句子","wordCount":42,"suggestion":"拆分建议"}],"suggestions":["建议1","建议2","建议3"]}` },
-    { role:'user', content:'题型：' + type + '\n\n作文：\n' + essay }
+    { role:'user', content: (customTopic ? '题目：\n' + customTopic + '\n\n' : '') + '题型：' + type + '\n\n作文：\n' + essay }
   ];
   (async () => {
     try{
@@ -1883,6 +1927,17 @@ ${ANCHOR_TABLE_EN}
         return;
       }
       let html = '<div class="ts-top"><span class="ts-overall">'+escapeHtml(result.overall || 'N/A')+'</span><span class="muted">预估总分</span></div>';
+      /* 10/8 切题度块（自练题带题目时 AI 返回 topicJudge；真题无该字段自动跳过） */
+      if(result.topicJudge && result.topicJudge.verdict){
+        const v = String(result.topicJudge.verdict);
+        const cls = v === '切题' ? 'var(--primary)' : (v === '偏题' ? 'var(--danger)' : 'var(--warn)');
+        html += '<div class="ts-sec" style="border-left:3px solid ' + cls + ';padding-left:12px"><h4>切题度：<span style="color:' + cls + '">' + escapeHtml(v) + '</span></h4>'
+          + (result.topicJudge.reason ? '<p style="margin:4px 0;font-size:13.5px;line-height:1.7">' + escapeHtml(result.topicJudge.reason) + '</p>' : '')
+          + (Array.isArray(result.topicJudge.approach) && result.topicJudge.approach.length
+              ? '<p style="margin:4px 0 0;font-size:13.5px;line-height:1.8"><b>这道题可以怎么讲：</b></p><ul style="margin:4px 0 0;padding-left:18px;font-size:13.5px;line-height:1.8">' + result.topicJudge.approach.map(x => '<li>' + escapeHtml(x) + '</li>').join('') + '</ul>'
+              : '')
+          + '</div>';
+      }
       if(result.breakdown){
         html += '<div class="ts-dims">';
         ['TR','CC','LR','GRA'].forEach(k => {
@@ -1925,7 +1980,8 @@ ${ANCHOR_TABLE_EN}
         DATA.writingScores = DATA.writingScores || [];
         DATA.writingScores.push({
           id: uid(), date: todayKey(), mode:'exam',
-          examNo: cur.no != null ? (cur.kind==='big' ? cur.no : 'T'+cur.no) : '',
+          examNo: cur.custom ? '' : (cur.no != null ? (cur.kind==='big' ? cur.no : 'T'+cur.no) : ''),   // 10/8 修：自练题不再算出 'Tcustom'
+          topic: cur.custom ? customTopic : undefined,
           type: examType, essay: essay, result: result, parsed: true
         });
         hubSave();
@@ -1975,7 +2031,9 @@ function bindExam(){
     examStopTimer();
     document.body.classList.remove('exam-fullscreen');
     $('#examPractice').hidden = true;
-    $('#examHome').hidden = false;
+    /* 10/8：自练题退回评分面板（题目框还留着）；真题流程照旧回列表 */
+    if(examTimer.cur && examTimer.cur.custom) switchWriteTab('score');
+    else $('#examHome').hidden = false;
   };
   const back = $('#examBack');
   if(back) back.addEventListener('click', exitExam);
@@ -1989,26 +2047,14 @@ function bindExam(){
 
   const tb = $('#examTimerBtn');
   if(tb) tb.addEventListener('click', () => {
-    if(examTimer.locked){ toast('时间已到，点红条里的「解锁」才能继续写'); return; }
     if(examTimer.running){ examPauseTimer(); tb.textContent = '▶'; }
     else { examResumeTimer(); tb.textContent = '⏸'; }
   });
-  const ub = $('#examUnlockBtn');
-  if(ub) ub.addEventListener('click', examUnlock);
-  /* 考场模式开关：切换会重新开始计时（正计时与倒计时语义不同，无法无缝接续），
-     已经写了一段时间就先问一句，避免手滑把她 30 分钟的用时清零。 */
-  const mc = $('#examModeChk');
-  if(mc) mc.addEventListener('change', () => {
-    const isBig = !!(examTimer.cur && examTimer.cur.kind === 'big');
-    const usedSec = Math.floor(examUsedMs() / 1000);
-    if(usedSec > 60 && !window.confirm('切换会重新开始计时（已用 ' + Math.floor(usedSec/60) + ' 分钟）。确定切换吗？')){
-      mc.checked = !mc.checked; return;
-    }
-    setExamModePref(mc.checked);
-    examApplyModeHint(isBig);
-    examStartTimer(mc.checked ? 'down' : 'up', examLimitMs(isBig));
-    toast(mc.checked ? '考场模式：' + (EXAM_LIMIT_MIN[isBig?'big':'small']||40) + ' 分钟倒计时，到点强制停笔' : '已切回普通计时（不限时）');
-  });
+  /* 10/8：到点弹框两选（考场模式 checkbox 与解锁按钮已随强制停笔机制退役） */
+  const tuSubmit = $('#examTuSubmit');
+  if(tuSubmit) tuSubmit.addEventListener('click', examTimeUpSubmit);
+  const tuKeep = $('#examTuKeep');
+  if(tuKeep) tuKeep.addEventListener('click', examTimeUpKeep);
   const essay = $('#examEssay');
   if(essay) essay.addEventListener('input', () => {
     const n = wtCountWords(essay.value);

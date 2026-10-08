@@ -29,7 +29,7 @@
 })();
 </script>
 <title>写作 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261006c" />
+<link rel="stylesheet" href="css/common.css?v=20261008c" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -43,7 +43,7 @@
   <script defer src="js/common.js?v=20261008b"></script>
   <script defer src="js/feedback.js?v=20261006a"></script>
   <script defer src="js/writing_prompts.js?v=20260903ab"></script>
-  <script defer src="js/writing.js?v=20261008d"></script>
+  <script defer src="js/writing.js?v=20261008e"></script>
   <script defer src="js/wrongbook.js?v=20260903ab"></script>
 <style>
 
@@ -206,12 +206,13 @@
   .exam-timer-inline.warn{background:var(--danger)}
   .exam-timer-inline.over{background:var(--danger-text)}
   .exam-timer-inline button{background:transparent;border:0;color:#fff;cursor:pointer;font-size:13px;line-height:1;padding:0 2px}
-  .exam-mode{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);cursor:pointer;user-select:none}
-  .exam-mode input{margin:0;cursor:pointer}
-  .exam-mode b{font-weight:700;color:var(--ink)}
-  .exam-timeup{display:flex;align-items:center;gap:10px;background:#fdeceb;border:1px solid #f3c3bd;color:#8a2b22;border-radius:10px;padding:9px 12px;font-size:13px;margin-bottom:10px}
-  .exam-timeup .tu-dot{width:8px;height:8px;border-radius:50%;background:var(--danger);flex-shrink:0}
-  .exam-timeup .tu-btn{margin-left:auto;background:transparent;border:1px solid #cf9189;color:#8a2b22;border-radius:8px;padding:3px 9px;font-size:12px;cursor:pointer;white-space:nowrap}
+  /* 10/8 到点弹框（替代强制停笔红条）：遮罩 + 白卡，英文沉浸 */
+  .exam-tu-overlay{position:fixed;inset:0;z-index:60;background:rgba(10,20,24,.5);display:flex;align-items:center;justify-content:center;padding:20px}
+  .exam-tu-overlay[hidden]{display:none}
+  .exam-tu-card{background:var(--surface);border-radius:16px;box-shadow:0 18px 48px rgba(0,0,0,.28);padding:26px 30px;max-width:380px;width:100%;text-align:center}
+  .exam-tu-title{margin:0 0 8px;font-size:20px;font-weight:800;color:var(--ink)}
+  .exam-tu-sub{margin:0 0 18px;font-size:13.5px;line-height:1.7;color:var(--muted)}
+  .exam-tu-actions{display:flex;gap:10px;justify-content:center}
   .exam-textarea:read-only{background:var(--danger-soft);border-color:var(--danger)}
 </style>
 <style id="bootLoaderStyle">
@@ -464,9 +465,9 @@
           <h1 class="exam-part" id="examPartLabel">Part 2</h1>
           <p class="exam-instr" id="examInstr">You should spend about 40 minutes on this task. Write at least 250 words.</p>
         </div>
-        <button class="exam-exit-full" id="examExitFull" type="button" title="退出全屏">
+        <button class="exam-exit-full" id="examExitFull" type="button" title="Exit full screen">
           <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4M15 3h4a2 2 0 0 1 2 2v4M9 21H5a2 2 0 0 1-2-2v-4M15 21h4a2 2 0 0 0 2-2v-4"/></svg>
-          退出全屏
+          Exit full screen
         </button>
       </header>
 
@@ -478,27 +479,18 @@
             <p class="exam-q-note" id="examQNote"></p>
           </div>
           <details class="exam-essay-fold" id="examEssayFold" hidden>
-            <summary class="exam-essay-fold-sum">我的作文</summary>
+            <summary class="exam-essay-fold-sum">My response</summary>
             <div class="exam-essay-orig" id="examEssayOrig"></div>
           </details>
         </article>
 
         <div class="exam-a">
-          <div class="exam-timeup" id="examTimeUpBar" hidden>
-            <span class="tu-dot"></span>
-            <span id="examTimeUpText">时间到 · 已停笔</span>
-            <button type="button" class="tu-btn" id="examUnlockBtn">解锁继续改（不再计入本次模拟）</button>
-          </div>
           <textarea id="examEssay" class="exam-textarea" placeholder="Type your response here..."></textarea>
           <div class="exam-a-foot" id="examAFoot">
             <span class="exam-wc" id="examWordCount">Word count: 0</span>
-            <label class="exam-mode" for="examModeChk" title="模拟机考：倒计时结束自动锁住输入框，和真实机考一样到点停笔">
-              <input type="checkbox" id="examModeChk" />
-              <span>考场模式 · <b id="examModeHint">40:00 倒计时</b></span>
-            </label>
             <span class="exam-timer-inline" id="examTimerWrap">
               <span id="examTimerText">00:00:00</span>
-              <button type="button" id="examTimerBtn" title="暂停 / 继续">⏸</button>
+              <button type="button" id="examTimerBtn" title="Pause / Resume">⏸</button>
             </span>
           </div>
           <div id="examResult" class="tpl-score" hidden></div>
@@ -509,7 +501,6 @@
         <div class="exam-bar-left">
           <span class="exam-step" id="examStepBadge">2</span>
           <span class="exam-step-label" id="examStepLabel">Part 2</span>
-          <span class="exam-status"><i class="exam-dot"></i>页面状态正常</span>
         </div>
         <div class="exam-bar-right">
           <button class="btn-exam-ghost" id="examFinish" type="button">
@@ -519,6 +510,18 @@
           <button class="btn-exam-exit" id="examExit" type="button">Exit</button>
         </div>
       </footer>
+
+      <!-- 10/8 她拍板：到点不再强制停笔，弹框让她自己选（提交 / 继续写）——英文保持沉浸 -->
+      <div id="examTimeUpModal" class="exam-tu-overlay" hidden>
+        <div class="exam-tu-card">
+          <p class="exam-tu-title">Time is up!</p>
+          <p class="exam-tu-sub" id="examTuWords"></p>
+          <div class="exam-tu-actions">
+            <button type="button" class="btn-exam-ghost" id="examTuSubmit">Submit now</button>
+            <button type="button" class="btn-exam-exit" id="examTuKeep">Keep writing</button>
+          </div>
+        </div>
+      </div>
     </section>
   </div>
 

@@ -2058,8 +2058,6 @@ body.exam-fullscreen{overflow:hidden !important}
 .exam-bar-left{display:flex;align-items:center;gap:14px}
 .exam-step{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:7px;background:var(--primary);color:var(--on-primary);font-size:13px;font-weight:800;flex:none}
 .exam-step-label{font-size:14px;font-weight:700;color:var(--ink)}
-.exam-status{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
-.exam-dot{width:8px;height:8px;border-radius:50%;background:var(--med);flex:none}
 .exam-bar-right{display:flex;align-items:center;gap:10px}
 .btn-exam-ghost{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--primary);background:var(--surface);color:var(--primary);border-radius:9px;padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer;transition:.15s}
 .btn-exam-ghost:hover{background:var(--primary-soft)}
