@@ -43,7 +43,7 @@
   <script defer src="js/common.js?v=20261008j"></script>
   <script defer src="js/feedback.js?v=20261006a"></script>
   <script defer src="js/writing_prompts.js?v=20260903ab"></script>
-  <script defer src="js/writing.js?v=20261008k"></script>
+  <script defer src="js/writing.js?v=20261008l"></script>
   <script defer src="js/wrongbook.js?v=20260903ab"></script>
 <style>
 
@@ -63,6 +63,17 @@
   .tpl-card{cursor:pointer}
   .ph{background:var(--warn);color:#fff;padding:0 4px;border-radius:4px;font-weight:600}
   #practice .ph-input{border:none;border-bottom:1px solid var(--muted);background:transparent;padding:2px 4px;font:inherit;font-size:15px;line-height:1.2;color:var(--ink);margin:0 2px;min-width:2ch;max-width:none;height:30px;box-sizing:border-box;vertical-align:middle}
+  /* 10/8 晚她反馈四修（模板 tab）：
+     ① 填空框长度跟灰色提示差不多、随输入增长（fitInput 里 min 60→34、上限 240、按可见占位符量宽）；
+     ② 超长提示（含例句的）改成框上方小字 caption，不再把输入框撑到 500px 宽；
+     ③ 「完整句（实时）」预告框不再整行铺满（限宽 600px）；
+     ④ AI 灯泡钮与复制钮不再被 .form-row > *{flex:1} 拉伸变形（实测曾被拉成 306px 椭圆）。 */
+  .ph-wrap-long{display:inline-flex;flex-direction:column;align-items:flex-start;vertical-align:bottom;margin:0 2px}
+  .ph-label{font-size:12px;color:var(--muted);line-height:1.35;max-width:260px;white-space:normal;text-align:left}
+  #practice .ph-wrap-long .ph-input{min-width:120px}   /* 必须带 #practice 前缀：基础规则用 ID 选择器压住了纯类名 */
+  .preview-box{max-width:640px;max-height:280px;overflow:auto}
+  .tpl-text .form-row > .ai-btn{flex:0 0 auto;min-width:0}
+  #tplCopyBtn{flex:0 0 auto;min-width:0}
   #practice .ph-input:focus{outline:none;border-bottom-color:var(--primary)}
   .skeleton-box{white-space:pre-wrap;line-height:1.9;font-size:15px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px}
   .preview-box{white-space:pre-wrap;line-height:1.9;font-size:15px;border:1px dashed var(--primary);border-radius:var(--radius);padding:14px;margin-top:8px}

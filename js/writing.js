@@ -380,7 +380,9 @@ function fitInput(inp){
     __phMirror.style.top = '0';
     document.body.appendChild(__phMirror);
   }
-  const t = (inp.value || inp.dataset.ph || ' ');
+  /* 10/8 晚：量宽基准从 data-ph（可能是长提示）改成「可见占位符」，否则长提示把框撑爆；
+     下限 60→34（短标签如「话题」不再被撑长）；上限 240（长句在框内滚动，不再无限变宽）。 */
+  const t = (inp.value || inp.placeholder || ' ');
   // 复制输入框的真实字体样式，保证测量与渲染完全一致（canvas 测字体栈会回退默认字体导致偏窄）
   const cs = window.getComputedStyle(inp);
   __phMirror.style.font = cs.font;
@@ -393,7 +395,7 @@ function fitInput(inp){
   // 真实占用宽度 = 文字宽 + 输入框左右内边距 + 左右边框（box-sizing:border-box 下都算进 width）
   const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
   const borderX = parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth);
-  const w = Math.max(__phMirror.offsetWidth + padX + borderX + 6, 60);   // +6px buffer，不封顶
+  const w = Math.min(Math.max(__phMirror.offsetWidth + padX + borderX + 6, 34), 240);   // +6px buffer；下限 34 / 上限 240
   inp.style.width = w + 'px';
 }
 
@@ -405,8 +407,13 @@ function buildPractice(skeleton){
     const m = p.match(/^【(.+?)】$/);
     if(m){
       const esc = escapeHtml(m[1]);
-      html += '<span class="ph-wrap" data-idx="' + phIdx + '">'
-            +   '<input class="ph-input" data-ph="' + esc + '" placeholder="' + esc + '">'
+      /* 10/8 晚她反馈：占位提示里塞了整句例句 → 输入框被撑到 525px。长提示（>10 字）改成框上方小字，
+         输入框本身不带长占位符（宽度只跟输入内容走），完整提示仍存 title + data-ph（拼 prompt 用）。 */
+      const longPh = String(m[1] || '').length > 10;
+      const phShown = longPh ? '' : esc;
+      html += '<span class="ph-wrap' + (longPh ? ' ph-wrap-long' : '') + '" data-idx="' + phIdx + '">'
+            +   (longPh ? '<span class="ph-label">' + esc + '</span>' : '')
+            +   '<input class="ph-input" data-ph="' + esc + '" placeholder="' + phShown + '" title="' + esc + '">'
             +   '<button class="ph-hint" type="button" data-ph="' + esc + '" title="AI 给这个空的建议"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;vertical-align:-2px" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 1 4 10.5c-.8.7-1 1.5-1 2.5h-6c0-1-.2-1.8-1-2.5A6 6 0 0 1 12 3z"/></svg></button>'
             +   '<span class="ph-hint-box" data-for="' + esc + '" hidden></span>'
             + '</span>';
