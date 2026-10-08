@@ -1836,8 +1836,13 @@ function openExamCustom(){
   const topic = ($('#scoreTopic') ? $('#scoreTopic').value.trim() : '') || (function(){ try{ return localStorage.getItem('wt_score_topic_v1') || ''; }catch(e){ return ''; } })();
   examTimer.cur = { kind: isBig ? 'big' : 'small', no: 'custom', custom: true };
   /* ⚠️ #examPractice 住在 #examPanel 里，而入口在评分 tab —— examPanel 必须跟着打开，
-     否则页面结构在但整块 hidden（探针实抓：#examEssay not visible）。 */
+     同时把其他 tab 面板（含评分面板自己）全部藏掉，否则全屏考试上面叠着一截评分页
+     （她 16:16 截图实抓；与模考 showOnlyMockView 同一族教训：视图互斥别指望 tab 切换器）。 */
   $('#examPanel').hidden = false;
+  $('#tplPanel').hidden = true;
+  $('#bankPanel').hidden = true;
+  $('#scorePanel').hidden = true;
+  $('#dictationPanel').hidden = true;
   $('#examHome').hidden = true;
   $('#examPractice').hidden = false;
   document.body.classList.add('exam-fullscreen');
