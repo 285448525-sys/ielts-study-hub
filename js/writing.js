@@ -41,6 +41,52 @@ function switchWriteTab(tab){
 
 /* 10/2 模板会员闸状态：必须声明在 ready( 调用之前——common.js 的 ready 回调会同步执行（defer 场景），
    声明放后面会 TDZ「Cannot access before initialization」（老坑，见 HANDOFF 铁律） */
+/* ===== P0 含金量：考官评分标准原话锚点（官方 band descriptor 短语，引用时一字不改） =====
+   🔴 10/8 晚 移到这里（原在 511 行，ready 调用之后）——她侧「开始练/真题全部点不开」的真根因：
+   ready 回调会同步执行（common.js 的 ready 在 defer/软导航场景立即跑），她保存过一条模板评分结果 →
+   启动渲染 essayScoreHtml→anchorHtml→anchorMatch 读 ANCHOR_PHRASES → 此时 const 还在 TDZ →
+   ReferenceError 打断整条 ready → 后面所有按钮绑定（#scoreTopicSave / bindExam）全都没执行。
+   铁律（10/3 已立）：**所有被 ready 同步调用链读取的模块级常量，一律声明在 ready 之前。** */
+const ANCHOR_TABLE_EN = [
+'TR·B7: presents a clear position throughout the response',
+'TR·B7: presents, extends and supports main ideas',
+'TR·B6: presents a relevant position although the conclusions may become unclear or repetitive',
+'TR·B6: presents relevant main ideas but some may be inadequately developed or unclear',
+'TR·B5: expresses a position but the development is not always clear throughout',
+'TR·B5: presents some main ideas but these are limitedly developed and repetitive',
+'TR·B4: presents a position but this is unclear',
+'CC·B7: logically organises information and ideas; there is clear progression throughout',
+'CC·B6: arranges information and ideas coherently and there is a clear overall progression',
+'CC·B6: uses cohesive devices effectively, but cohesion may be faulty or mechanical at times',
+'CC·B5: makes inadequate, inaccurate or over-use of cohesive devices',
+'CC·B4: presents information and ideas but these are not arranged coherently',
+'LR·B7: uses a sufficient range of vocabulary to allow some flexibility and precision',
+'LR·B6: uses an adequate range of vocabulary for the task',
+'LR·B6: attempts less common vocabulary but with some inaccuracy',
+'LR·B5: uses a limited range of vocabulary, but this is minimally adequate for simple tasks',
+'LR·B5: makes noticeable errors in spelling or word formation',
+'LR·B4: uses only basic vocabulary which may be used repetitively or with some inaccuracy',
+'GRA·B7: uses a variety of complex structures',
+'GRA·B7: produces frequent error-free sentences',
+'GRA·B6: uses a mix of simple and complex sentence forms',
+'GRA·B6: makes some errors in grammar and punctuation but they rarely reduce communication',
+'GRA·B5: uses only a limited range of structures',
+'GRA·B5: attempts complex sentences but these tend to be less accurate than simple sentences',
+'GRA·B4: uses only a very limited range of structures'
+].join('\n');
+
+const ANCHOR_PHRASES = ANCHOR_TABLE_EN.split('\n').map(l => {
+  const m = l.match(/^(TR|CC|LR|GRA|TA)·B(\d):\s*(.+)$/);
+  return m ? { dim: m[1], band: +m[2], ph: m[3] } : null;
+}).filter(Boolean);
+
+/* 🔴 10/8 晚 同理上移：examTimer 原在 1558 行（var 提升后值仍是 undefined）→ ready 链里任何
+   走到 exam* 的代码都会拿到 undefined（她侧实测 "Cannot set properties of undefined (setting 'cur')"）。
+   软导航重复执行前先清旧心跳句柄（原逻辑保留）。 */
+if(window.examTimer && window.examTimer.tick){ clearInterval(window.examTimer.tick); }
+var examTimer = { start: 0, elapsed: 0, running: false, tick: null, cur: null,
+                  mode:'up', limitMs:0, locked:false };
+
 let tplVip = null;   // null=未知/查询中（详情暂锁，scheduleVipRecheck 复查）；true/false = 已确认
 
 ready(() => {
@@ -479,45 +525,15 @@ function filledState(){
   return { text: out.trim(), total, blank, filled, skipped, tpl: t };
 }
 
-/* ===== P0 含金量：考官评分标准原话锚点（官方 band descriptor 短语，引用时一字不改） ===== */
-const ANCHOR_TABLE_EN = [
-'TR·B7: presents a clear position throughout the response',
-'TR·B7: presents, extends and supports main ideas',
-'TR·B6: presents a relevant position although the conclusions may become unclear or repetitive',
-'TR·B6: presents relevant main ideas but some may be inadequately developed or unclear',
-'TR·B5: expresses a position but the development is not always clear throughout',
-'TR·B5: presents some main ideas but these are limitedly developed and repetitive',
-'TR·B4: presents a position but this is unclear',
-'CC·B7: logically organises information and ideas; there is clear progression throughout',
-'CC·B6: arranges information and ideas coherently and there is a clear overall progression',
-'CC·B6: uses cohesive devices effectively, but cohesion may be faulty or mechanical at times',
-'CC·B5: makes inadequate, inaccurate or over-use of cohesive devices',
-'CC·B4: presents information and ideas but these are not arranged coherently',
-'LR·B7: uses a sufficient range of vocabulary to allow some flexibility and precision',
-'LR·B6: uses an adequate range of vocabulary for the task',
-'LR·B6: attempts less common vocabulary but with some inaccuracy',
-'LR·B5: uses a limited range of vocabulary, but this is minimally adequate for simple tasks',
-'LR·B5: makes noticeable errors in spelling or word formation',
-'LR·B4: uses only basic vocabulary which may be used repetitively or with some inaccuracy',
-'GRA·B7: uses a variety of complex structures',
-'GRA·B7: produces frequent error-free sentences',
-'GRA·B6: uses a mix of simple and complex sentence forms',
-'GRA·B6: makes some errors in grammar and punctuation but they rarely reduce communication',
-'GRA·B5: uses only a limited range of structures',
-'GRA·B5: attempts complex sentences but these tend to be less accurate than simple sentences',
-'GRA·B4: uses only a very limited range of structures'
-].join('\n');
-
-const ANCHOR_PHRASES = ANCHOR_TABLE_EN.split('\n').map(l => {
-  const m = l.match(/^(TR|CC|LR|GRA|TA)·B(\d):\s*(.+)$/);
-  return m ? { dim: m[1], band: +m[2], ph: m[3] } : null;
-}).filter(Boolean);
+/* 10/8 晚：ANCHOR_TABLE_EN / ANCHOR_PHRASES 已上移到文件头部（ready 之前）——原因见那里的注释。
+   原处保留占位说明，防止有人以为漏了。 */
 
 function normEn(s){
   return (s || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 // 防 AI 编造原话：quote 必须能与表内短语双向包含匹配，命中后一律用表内原话渲染；不命中返回 null（不渲染）
 function anchorMatch(a){
+  if(typeof ANCHOR_PHRASES === 'undefined' || !Array.isArray(ANCHOR_PHRASES)) return null;   // 10/8 兜底：表不可用也不许抛
   if(!a || !a.quote) return null;
   const q = normEn(a.quote);
   if(q.split(' ').length < 4) return null;
@@ -1551,12 +1567,7 @@ function writeSyncMock(type, result){
 /* 修(f 场景状态隔离)：writing.js 会被软导航 window.eval 重跑，这句 var 会把 examTimer 重置成新对象，
    旧 setInterval 句柄随之丢失且无人清理 —— 离开写作页后旧心跳每秒照跑，而 #examTimerText 已不在 DOM，
    examTick 里 null.textContent 每秒抛一次 TypeError。重声明前先清旧句柄；examTick 内再做元素缺失自停兜底。 */
-if(window.examTimer && window.examTimer.tick){ clearInterval(window.examTimer.tick); }
-/* 9/30 考场模式：mode 'up' = 普通正计时（原行为）；'down' = 机考倒计时，到点强制停笔。
-   ⚠️ 修：#examTimerText 原本只有 CSS（.exam-timer）没有 DOM 元素，examStartTimer 一直在跑但页面上看不见任何计时
-   —— 计时器是隐形的。本次把计时 UI 补回 .exam-a-foot，倒计时/停笔才有地方显示。 */
-var examTimer = { start: 0, elapsed: 0, running: false, tick: null, cur: null,
-                  mode:'up', limitMs:0, locked:false };
+/* 10/8 晚：examTimer 声明与旧心跳清理已上移到文件头部（ready 之前）——原因见那里的注释。 */
 
 /* Task 2 = 40 分钟 / Task 1 = 20 分钟：与真题页印刷指令（wtMinWords 同份口径）一致。
    10/8 她拍板：考场模式/强制停笔整块退役 —— 恒倒计时，到点弹框让她自己选（提交/继续写）。 */
@@ -1790,6 +1801,7 @@ function examFontCycle(){
 }
 
 function openExam(item, kind){
+  if(!examTimer) return;   // 10/8 兜底：初始化异常时不许抛 TypeError 打断（她侧实抓过）
   examTimer.cur = { kind, no: item.no };
   $('#examHome').hidden = true;
   $('#examPractice').hidden = false;
@@ -1855,6 +1867,7 @@ function openExam(item, kind){
    cur.custom 标记自练题：评分走 examStopAndScore 同一条链（prompt 带题目 → 切题度判定），
    落库 examNo 为空、topic 带题干。 */
 function openExamCustom(){
+  if(!examTimer) return;   // 10/8 兜底：初始化异常时不许抛 TypeError 打断（她侧实抓过）
   const isBig = $('#scoreType').value !== '小作文';
   const topic = ($('#scoreTopic') ? $('#scoreTopic').value.trim() : '') || (function(){ try{ return localStorage.getItem('wt_score_topic_v1') || ''; }catch(e){ return ''; } })();
   examTimer.cur = { kind: isBig ? 'big' : 'small', no: 'custom', custom: true };
