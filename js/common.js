@@ -1609,6 +1609,9 @@ function scheduleCloudUpload(){
 async function cloudUpload(showToast, force, opts){
   showToast = showToast !== false;
   opts = opts || {};
+  /* 10/8 导航优先：自动上传（showToast=false 的定时触发）在切页瞬间让路，导航结束自动重排；
+     手动「立即同步」（showToast=true）是用户明确动作，不拦。 */
+  if(showToast === false && navBusyGrace()){ _pendingUpload = true; scheduleCloudUpload(); return false; }
   _pendingUpload = false;
   const phone = DATA.settings.syncCode;
   if(!phone){ if(showToast) toast('请先登录（设置 → 云端同步）'); return false; }
@@ -2607,6 +2610,7 @@ async function cloudPollOnce(opt){
   if(!DATA.settings.autoSync || !DATA.settings.syncCode) return false;
   if(!authToken()) return false;   // 未登录/已过期：轮询静默退出（401 提示由手动同步与上传链路给出）
   if(_pollInFlight) return false;
+  if(navBusyGrace()) return false;   // 10/8 导航优先：切页瞬间探测让路（见 navBusyGrace 注释）
   var gap = opt.gap || 0;
   if(!opt.force && gap && (Date.now() - _lastPollAt) < gap) return false;
   _pollInFlight = true; _lastPollAt = Date.now();
@@ -3124,6 +3128,12 @@ function declaredSrc(name){
    ========================================================================= */
 let _softNavReady = false;
 let _softNavBusy = false;
+/* 10/8 「导航优先」闸（她 10:53 报「点每个页面跳转要加载好久，之前很快」）：
+   软导航进行中 + 结束后 2s 内，同步三路流量（3s meta 探测 / 全量下载 / 自动 PUT 上传）
+   与后台预热全部让路 —— 手机端这些请求与页面 HTML/JS 抢同一条到 pages.dev 的慢链路，
+   是「点哪都要转圈」的主因之一。只让路不砍功能：2s 后自动恢复 3s 节拍（10/6 她拍板的秒级同步语义不变）。 */
+let _lastNavAt = 0;
+function navBusyGrace(){ return _softNavBusy || (Date.now() - _lastNavAt < 2000); }
 
 /* ===== 全站跳转加载遮罩（果冻水珠 · 纯图案无文字） =====
    - 运行时注入 <body>，避免每页改 HTML。
@@ -3680,6 +3690,7 @@ function pageScriptSources(id, doc){
 async function softNavigate(t, isPop){
   if(_softNavBusy){ if(typeof toast === 'function') toast('页面切换中，请稍候…'); return; }
   _softNavBusy = true;
+  _lastNavAt = Date.now();   // 10/8 导航优先：同步三路流量让路（见 navBusyGrace 注释）
   try{
     if(window.matchMedia && window.matchMedia('(max-width:860px)').matches){ document.body.classList.remove('nav-open'); syncNavToggle(); }
     hubClearOrphanPageTimers();   // P0-A：离开旧页前清掉残留的计时/服药轮询心跳，避免软导航重进页面叠加“多个计时器同时跑 / 数字乱跳”
@@ -3723,6 +3734,7 @@ async function softNavigate(t, isPop){
     location.href = t.href;                            // 兜底：绝不让导航“卡死”
   }finally{
     _softNavBusy = false;
+    _lastNavAt = Date.now();   // 10/8 导航优先：宽限窗口从导航结束起算
     hideHubLoader();                                   // 兜底：任何异常路径下都不残留遮罩
   }
 }
@@ -3904,6 +3916,7 @@ function prefetchPage(id){
 }
 let _prefetchRunning = false;
 function prefetchAll(curId){
+  if(_softNavBusy) return;   // 10/8 导航优先：切页瞬间不排新的预热请求
   if(!navPrefetchAllowed()) return;
   if(_prefetchRunning) return;
   _prefetchRunning = true;
@@ -3918,6 +3931,7 @@ function prefetchAll(curId){
   PAGES.forEach(p => push(p.id));
   let i = 0;
   const step = () => {
+    if(_softNavBusy){ idle(step); return; }   // 10/8 导航优先：预热链在切页期间挂起（不丢进度，i 不前进）
     if(i >= order.length){ _prefetchRunning = false; return; }
     const id = order[i++];
     const p = PAGES.find(pp => pp.id === id);
