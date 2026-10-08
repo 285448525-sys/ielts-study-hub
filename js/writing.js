@@ -1437,11 +1437,11 @@ async function scoreEssay(){
   const essay = $('#scoreEssay').value.trim();
   const type = $('#scoreType').value;
   const topic = $('#scoreTopic') ? $('#scoreTopic').value.trim() : '';   // 10/8 题目框（可选）
-  // 9/16 修：原来是 essay.length < 150 —— length 是「字符」不是「词」，30 词≈390 字符照样放行。
-  // 9/17 之之拍板：门槛按题型分（Task 1 ≥150 词 / Task 2 ≥250 词），与真题页印刷指令一致。
+  // 9/16/9/17 的门槛拦截于 10/8 她拍板退役（与真题交卷同规则）：不写够也能评，AI 提醒最好写够；
+  // 缺 ≤10 词不扣分、缺 >10 词才扣（写进 prompt【词数规则】）。只拦空白。
   const min = wtMinWords(type);
   const wc = wtCountWords(essay);
-  if(wc < min){ toast('作文太短，至少需要 ' + min + ' 词（当前 ' + wc + ' 词）'); return; }
+  if(!wc){ toast('先粘贴或写下你的作文，再开始评分'); return; }
 
   const isTask1 = type === '小作文';
   const dim = isTask1 ? 'TA（Task Achievement 任务完成）' : 'TR（Task Response 任务回应）';
@@ -1480,12 +1480,16 @@ ${isTask1 ? RULES_TASK1 : RULES_TASK2}
 6. good：从作文里挑 1-2 句写得地道的原句（一字不改），每条格式"原句 —— 半句说明为什么好"；gap：距下一个 0.5 分档最关键的 2-3 条改法，每条 ≤30 字、点名分项。
 7. grammar：逐条列出语法/表达错误，含原错处、改法、一句错因；每条标 tag，只能从这个集合选：搭配/中式/时态/单复数/冠词/介词/句式/用词/其他；同类错误合并成一条；没有明显错误就给空数组。
 ${topicBlock}
+【词数规则（真实考试口径，10/8 她拍板）】用户消息会给出「本次实际词数 / 最低要求」。
+缺口 ≤10 词：不因词数扣分；缺口 >10 词：在 TR/TA 中体现但总差距不超过 0.5，并在 gap 里给一条「下次写够词数」提醒。
+绝不因词数单项把总分压到明显不合理的档位。
+
 【官方评分原话短语表（引用时一字不改）】
 ${ANCHOR_TABLE_EN}
 
 只输出严格 JSON，不要其他文字：
 {"overall":6.0,"breakdown":{"TR":6.0,"CC":6.0,"LR":6.0,"GRA":5.5},"anchors":[{"dim":"TR","band":5,"quote":""}],"good":["原句 —— 为什么好"],"gap":{"steps":["",""]},"grammar":[{"wrong":"","fix":"","why":"","tag":"搭配"}],"longSentences":[{"sentence":"原文句子","wordCount":42,"suggestion":"拆分建议"}],"suggestions":["建议1","建议2","建议3"]}` },
-    { role:'user', content: (topic ? '题目：\n' + topic + '\n\n' : '') + '题型：' + type + '\n\n作文：\n' + essay }
+    { role:'user', content: (topic ? '题目：\n' + topic + '\n\n' : '') + '题型：' + type + '\n\n本次实际词数：' + wc + '（最低要求 ' + min + ' 词）\n\n作文：\n' + essay }
   ];
 
   try{
@@ -1619,6 +1623,9 @@ function examSaveDraft(){
     if(!cur.kind || cur.no == null || !ta) return;
     const txt = ta.value || '';
     const key = 'ielts_wt_draft_' + cur.kind + '_' + cur.no;
+    /* 10/8 自练题已交卷 → 草稿必须清掉并不再回存（否则 Exit 再存一份已交卷的作文，
+       下一场弹「发现草稿」让她恢复一篇交过的——探针实抓的流程 bug） */
+    if(cur.custom && cur.submitted){ localStorage.removeItem(key); return; }
     if(txt.trim()) localStorage.setItem(key, JSON.stringify({ essay: txt, date: Date.now() }));
     else localStorage.removeItem(key);
   }catch(e){ console.warn('draft save failed', e); }
@@ -1874,11 +1881,11 @@ function examStopAndScore(){
   /* 10/8 自练题（cur.custom）带题目评分：prompt 追加切题度判定（与评分面板 10/8 同款）；
      真题流程无题目 → 与旧版 prompt 完全一致。 */
   const customTopic = cur.custom ? (function(){ try{ return localStorage.getItem('wt_score_topic_v1') || ''; }catch(e){ return ''; } })() : '';
-  // 9/16 修：同 scoreEssay —— 原来 essay.length < 150 判的是字符数，30 词就能过关。
-  // 9/17：门槛按题型分（Task 1 150 / Task 2 250）。
+  // 9/16/9/17 的「字数不足拦截」于 10/8 她拍板退役：不写够也能交，AI 在反馈里提醒最好写够。
+  // 真实规则：缺 ≤10 词不扣分，缺 >10 词才扣（写进 prompt，见【词数规则】）。只拦空白卷。
   const min = wtMinWords(type);
   const wc2 = wtCountWords(essay);
-  if(wc2 < min){ toast('Too short: at least ' + min + ' words (currently ' + wc2 + '). Keep writing, then Finish again.'); return; }
+  if(!wc2){ toast('Nothing to score yet — write your response first.'); return; }
   const isTask1 = type === '小作文';
   const dim = isTask1 ? 'TA（Task Achievement 任务完成）' : 'TR（Task Response 任务回应）';
   const btn = $('#examScoreBtn');   // 手动评分按钮可能不存在（HTML 未提供），空值安全
@@ -1910,12 +1917,16 @@ ${isTask1 ? RULES_TASK1 : RULES_TASK2}
 6. good：从作文里挑 1-2 句写得地道的原句（一字不改），每条格式"原句 —— 半句说明为什么好"；gap：距下一个 0.5 分档最关键的 2-3 条改法，每条 ≤30 字、点名分项。
 7. grammar：逐条列出语法/表达错误，含原错处、改法、一句错因；每条标 tag，只能从这个集合选：搭配/中式/时态/单复数/冠词/介词/句式/用词/其他；同类错误合并成一条；没有明显错误就给空数组。
 ${topicBlock}
+【词数规则（真实考试口径，10/8 她拍板）】用户消息会给出「本次实际词数 / 最低要求」。
+缺口 ≤10 词：不因词数扣分；缺口 >10 词：在 TR/TA 中体现但总差距不超过 0.5，并在 gap 里给一条「下次写够词数」提醒。
+绝不因词数单项把总分压到明显不合理的档位。
+
 【官方评分原话短语表（引用时一字不改）】
 ${ANCHOR_TABLE_EN}
 
 只输出严格 JSON，不要其他文字：
 {"overall":6.0,"breakdown":{"TR":6.0,"CC":6.0,"LR":6.0,"GRA":5.5},"anchors":[{"dim":"TR","band":5,"quote":""}],"good":["原句 —— 为什么好"],"gap":{"steps":["",""]},"grammar":[{"wrong":"","fix":"","why":"","tag":"搭配"}],"longSentences":[{"sentence":"原文句子","wordCount":42,"suggestion":"拆分建议"}],"suggestions":["建议1","建议2","建议3"]}` },
-    { role:'user', content: (customTopic ? '题目：\n' + customTopic + '\n\n' : '') + '题型：' + type + '\n\n作文：\n' + essay }
+    { role:'user', content: (customTopic ? '题目：\n' + customTopic + '\n\n' : '') + '题型：' + type + '\n\n本次实际词数：' + wc2 + '（最低要求 ' + min + ' 词）\n\n作文：\n' + essay }
   ];
   (async () => {
     try{
@@ -1986,6 +1997,12 @@ ${ANCHOR_TABLE_EN}
         });
         hubSave();
         writeSyncMock(examType, result); // 与整篇评分一致，回流分项模考看板
+        /* 10/8 自练题交卷成功 → 标记已交卷（Exit 存草稿时据此跳过）+ 清掉本场草稿：
+           不然下一场弹「发现草稿」让她恢复一篇已经交过卷的作文 */
+        if(cur.custom){
+          examTimer.cur.submitted = true;
+          try{ localStorage.removeItem('ielts_wt_draft_' + cur.kind + '_custom'); }catch(e){}
+        }
         renderScoreHist(); // 同步刷新「AI 评分」tab 的记录列表
       }catch(e){ console.warn('exam score save failed', e); }
       toast('评分完成');
