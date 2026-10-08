@@ -43,7 +43,7 @@
   <script defer src="js/common.js?v=20261008b"></script>
   <script defer src="js/feedback.js?v=20261006a"></script>
   <script defer src="js/writing_prompts.js?v=20260903ab"></script>
-  <script defer src="js/writing.js?v=20261008h"></script>
+  <script defer src="js/writing.js?v=20261008i"></script>
   <script defer src="js/wrongbook.js?v=20260903ab"></script>
 <style>
 
@@ -240,6 +240,17 @@
     .exam-font-btn,.exam-head .exam-exit-full{padding:5px 8px;font-size:11.5px}
     .exam-timer-inline{padding:4px 10px;font-size:14px}
   }
+  /* 10/8 晚她反馈三修（截图实抓）：①往下滑整页在滚、底栏跑到内容中间（整页滚动漏出）；
+     ②AI 评分结果没占满右栏、右边留白一大块；③写作时留白也偏大。
+     修法 = 全屏钉成「顶栏 / 内容 / 底栏」三段（flex 列 + overflow hidden），左右栏各自内部滚；
+     #examResult flex:1 占满右栏且内部滚（考官对照等长内容不再把整页撑破）；
+     写作/题目两栏 padding 收小让正文多用空间。 */
+  body.exam-fullscreen #examPanel{display:flex;flex-direction:column;overflow:hidden}
+  body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+  #examPractice #examResult{flex:1 1 auto;min-height:0;overflow-y:auto;margin:0 0 12px}
+  .exam-a{padding:16px 20px 0}
+  .exam-q .exam-q-body-wrap{padding:20px 22px 26px}
+  .exam-textarea{padding:14px 16px}
   /* 10/8 到点弹框（替代强制停笔红条）：遮罩 + 白卡，英文沉浸 */
   .exam-tu-overlay{position:fixed;inset:0;z-index:60;background:rgba(10,20,24,.5);display:flex;align-items:center;justify-content:center;padding:20px}
   .exam-tu-overlay[hidden]{display:none}

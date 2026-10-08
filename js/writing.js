@@ -2025,6 +2025,17 @@ ${ANCHOR_TABLE_EN}
           type: examType, essay: essay, result: result, parsed: true
         });
         hubSave();
+        /* 10/8 晚加固（她报「交卷→硬刷新→评分记录消失」，本地/线上按同路径复现不出=环境态劈叉嫌疑；
+           但 localStorage 写入可能被并发写/配额/私婉模式静默吃掉）→ 落库后立即回读校验：
+           记录不在就原样补存一次（hubSave 幂等），再不在就留告警供诊断，绝不静默丢。 */
+        try{
+          const _last = DATA.writingScores[DATA.writingScores.length - 1];
+          const _chk = JSON.parse(localStorage.getItem(HUB_KEY) || '{}');
+          if(!Array.isArray(_chk.writingScores) || !_chk.writingScores.some(x => x && x.id === _last.id)){
+            localStorage.setItem(HUB_KEY, JSON.stringify(DATA));
+            console.warn('exam score: localStorage 回读缺失，已补写一次', _last.id);
+          }
+        }catch(_e){ console.warn('exam score: 回读校验失败', _e); }
         writeSyncMock(examType, result); // 与整篇评分一致，回流分项模考看板
         /* 10/8 自练题交卷成功 → 标记已交卷（Exit 存草稿时据此跳过）+ 清掉本场草稿：
            不然下一场弹「发现草稿」让她恢复一篇已经交过卷的作文 */
