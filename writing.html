@@ -43,7 +43,7 @@
   <script defer src="js/common.js?v=20261008b"></script>
   <script defer src="js/feedback.js?v=20261006a"></script>
   <script defer src="js/writing_prompts.js?v=20260903ab"></script>
-  <script defer src="js/writing.js?v=20261006b"></script>
+  <script defer src="js/writing.js?v=20261008d"></script>
   <script defer src="js/wrongbook.js?v=20260903ab"></script>
 <style>
 
@@ -402,6 +402,15 @@
           <option value="大作文">大作文（Task 2）</option>
           <option value="小作文">小作文（Task 1）</option>
         </select>
+      </div>
+      <!-- 10/8 她要的「题目框」：粘题干 → 保存 → 下方开写 → AI 按题判切题度并给思路 -->
+      <div id="scoreTopicBox" style="margin-bottom:10px">
+        <textarea id="scoreTopic" rows="2" placeholder="（可选）把这道题的题干粘进来…AI 会按它判你有没有偏题，并给这道题的审题思路" style="width:100%;min-height:56px;padding:10px;border:1px dashed var(--line);border-radius:var(--radius);font:inherit;font-size:14px;line-height:1.6;background:var(--bg);color:var(--ink);resize:vertical;box-sizing:border-box"></textarea>
+        <div class="form-row" style="margin-top:6px;align-items:center">
+          <button class="btn" id="scoreTopicSave" style="flex:none">保存题目，开始练 ↓</button>
+          <button class="btn" id="scoreTopicClear" style="flex:none;display:none;color:var(--muted)">清除题目</button>
+          <span id="scoreTopicChip" class="muted" style="font-size:12px"></span>
+        </div>
       </div>
       <div style="position:relative">
         <textarea class="score-essay" id="scoreEssay" placeholder="在此粘贴你的作文（Task 1 ≥150 词 / Task 2 ≥250 词）…" style="padding-bottom:30px"></textarea>

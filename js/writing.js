@@ -114,6 +114,32 @@ ready(() => {
     updWc();
   }
 
+  // 10/8 题目框：草稿存 localStorage（wt_score_topic_v1），不进 DATA 顶层（免登记 mergeData）
+  const topicTa = $('#scoreTopic');
+  if(topicTa){
+    const TOPIC_KEY = 'wt_score_topic_v1';
+    const topicChipRender = () => {
+      const has = !!topicTa.value.trim();
+      const clearBtn = $('#scoreTopicClear'), chip = $('#scoreTopicChip');
+      if(clearBtn) clearBtn.style.display = has ? '' : 'none';
+      if(chip) chip.textContent = has ? '已存题目：AI 评分会按它判切题度并给思路' : '';
+    };
+    try{ const saved = localStorage.getItem(TOPIC_KEY); if(saved) topicTa.value = saved; }catch(e){}
+    topicTa.addEventListener('input', topicChipRender);
+    topicTa.addEventListener('change', () => { try{ localStorage.setItem(TOPIC_KEY, topicTa.value.trim()); }catch(e){} });   // 失焦自动存，防忘点保存
+    $('#scoreTopicSave').addEventListener('click', () => {
+      try{ localStorage.setItem(TOPIC_KEY, topicTa.value.trim()); }catch(e){}
+      topicChipRender();
+      if(topicTa.value.trim()){
+        toast('题目已存好，在下方开始写吧');
+        const es = $('#scoreEssay');
+        if(es){ es.scrollIntoView({ behavior:'smooth', block:'center' }); es.focus(); }
+      } else toast('题目已清空');
+    });
+    $('#scoreTopicClear').addEventListener('click', () => { topicTa.value = ''; try{ localStorage.removeItem(TOPIC_KEY); }catch(e){} topicChipRender(); });
+    topicChipRender();
+  }
+
   // A1 评分记录
   renderScoreHist();
   const histClear = $('#scoreHistClear');
@@ -735,6 +761,17 @@ function tplScoreHtml(r, isTask1){
 function essayScoreHtml(r, isTask1){
   let h = '';
   h += '<div class="score-overall" style="font-size:20px">预估总分：' + escapeHtml(r.overall != null ? r.overall : 'N/A') + '</div>';
+  /* 10/8 切题度块（有题目时 AI 返回 topicJudge；旧记录无该字段自动跳过） */
+  if(r.topicJudge && r.topicJudge.verdict){
+    const v = String(r.topicJudge.verdict);
+    const cls = v === '切题' ? 'var(--primary)' : (v === '偏题' ? 'var(--danger)' : 'var(--warn)');
+    h += '<div class="score-section" style="border-left:3px solid ' + cls + ';padding-left:12px;margin-bottom:14px"><h4>切题度：<span style="color:' + cls + '">' + escapeHtml(v) + '</span></h4>'
+      + (r.topicJudge.reason ? '<p style="margin:4px 0;font-size:13.5px;line-height:1.7">' + escapeHtml(r.topicJudge.reason) + '</p>' : '')
+      + (Array.isArray(r.topicJudge.approach) && r.topicJudge.approach.length
+          ? '<p style="margin:4px 0 0;font-size:13.5px;line-height:1.8"><b>这道题可以怎么讲：</b></p><ul style="margin:4px 0 0;padding-left:18px;font-size:13.5px;line-height:1.8">' + r.topicJudge.approach.map(x => '<li>' + escapeHtml(x) + '</li>').join('') + '</ul>'
+          : '')
+      + '</div>';
+  }
   if(r.breakdown){
     h += '<div class="score-breakdown">';
     ['TR','CC','LR','GRA'].forEach(k => {
@@ -1400,6 +1437,7 @@ const RULES_TASK2 = [
 async function scoreEssay(){
   const essay = $('#scoreEssay').value.trim();
   const type = $('#scoreType').value;
+  const topic = $('#scoreTopic') ? $('#scoreTopic').value.trim() : '';   // 10/8 题目框（可选）
   // 9/16 修：原来是 essay.length < 150 —— length 是「字符」不是「词」，30 词≈390 字符照样放行。
   // 9/17 之之拍板：门槛按题型分（Task 1 ≥150 词 / Task 2 ≥250 词），与真题页印刷指令一致。
   const min = wtMinWords(type);
@@ -1416,6 +1454,14 @@ async function scoreEssay(){
   const bodyEl = $('#scoreResultBody');
   resultEl.style.display = 'block';
   bodyEl.innerHTML = '<p class="muted">正在分析你的作文，请稍候…</p>';
+
+  /* 10/8 有题目时追加切题度判定要求（无题目 = 与旧版 prompt 完全一致） */
+  const topicBlock = topic ? `
+8. 用户消息里提供了「题目」。额外输出 topicJudge：
+   a. verdict：只能选「切题」「部分偏题」「偏题」——判全文是否真正回答了题目问的问题（立场有没有答、论点有没有跑出题目范围）。
+   b. reason：≤40 字说明判定理由；偏题时点出哪几段跑题。
+   c. approach：2-3 条「这道题可以怎么讲」——立场选项或论点方向，每条 ≤40 字，简体中文。
+   顶层 JSON 加 "topicJudge":{"verdict":"","reason":"","approach":["",""]}；没有题目就绝不输出该字段。` : '';
 
   const messages = [
     { role:'system', content:
@@ -1434,13 +1480,13 @@ ${isTask1 ? RULES_TASK1 : RULES_TASK2}
 5. anchors：从下方短语表挑 1-3 条与这篇最突出的问题对应的官方评分原话（一字不改照抄），标明分项与档位；表里没有贴切的就给空数组，不要自己编原话。
 6. good：从作文里挑 1-2 句写得地道的原句（一字不改），每条格式"原句 —— 半句说明为什么好"；gap：距下一个 0.5 分档最关键的 2-3 条改法，每条 ≤30 字、点名分项。
 7. grammar：逐条列出语法/表达错误，含原错处、改法、一句错因；每条标 tag，只能从这个集合选：搭配/中式/时态/单复数/冠词/介词/句式/用词/其他；同类错误合并成一条；没有明显错误就给空数组。
-
+${topicBlock}
 【官方评分原话短语表（引用时一字不改）】
 ${ANCHOR_TABLE_EN}
 
 只输出严格 JSON，不要其他文字：
 {"overall":6.0,"breakdown":{"TR":6.0,"CC":6.0,"LR":6.0,"GRA":5.5},"anchors":[{"dim":"TR","band":5,"quote":""}],"good":["原句 —— 为什么好"],"gap":{"steps":["",""]},"grammar":[{"wrong":"","fix":"","why":"","tag":"搭配"}],"longSentences":[{"sentence":"原文句子","wordCount":42,"suggestion":"拆分建议"}],"suggestions":["建议1","建议2","建议3"]}` },
-    { role:'user', content:'题型：' + type + '\n\n作文：\n' + essay }
+    { role:'user', content: (topic ? '题目：\n' + topic + '\n\n' : '') + '题型：' + type + '\n\n作文：\n' + essay }
   ];
 
   try{
@@ -1450,7 +1496,7 @@ ${ANCHOR_TABLE_EN}
     if(!result){
       // JSON 解析失败，降级显示原始文本
       bodyEl.innerHTML = '<div class="score-section"><h4>AI 返回（非标准格式）</h4><div style="white-space:pre-wrap;font-size:14px;line-height:1.8">' + escapeHtml(content) + '</div></div>';
-      DATA.writingScores.push({ id: uid(), date: todayKey(), type, essay, result: content, parsed: false });
+      DATA.writingScores.push({ id: uid(), date: todayKey(), type, topic, essay, result: content, parsed: false });
       hubSave();
       return;
     }
@@ -1459,7 +1505,7 @@ ${ANCHOR_TABLE_EN}
     bodyEl.innerHTML = essayScoreHtml(result, isTask1);
 
     // 保存记录
-    DATA.writingScores.push({ id: uid(), date: todayKey(), type, essay, result, parsed: true });
+    DATA.writingScores.push({ id: uid(), date: todayKey(), type, topic, essay, result, parsed: true });
     writeSyncMock(type, result);   // 方案 23：回流到分项模考看板
     hubSave();
     toast('评分完成');
