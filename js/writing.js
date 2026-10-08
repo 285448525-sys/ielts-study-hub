@@ -1767,6 +1767,28 @@ function renderExamList(){
   });
 }
 
+/* 10/8 字号三档（对齐官方机考 Text Size：Regular 20 / Large 23 / Extra large 27 —— 官方依据
+   IDP 官网「How IELTS on Computer works」+ 官方 Quick Guide，两个独立来源一致）。
+   0=Regular 1=Large 2=Extra large，本机记忆（不进 DATA，免登记 mergeData）；作用范围 = 题面 + 作答区。 */
+const EXAM_FONT_KEY = 'ielts_wt_font_v1';
+function examFontLevel(){
+  try{ const v = Number(localStorage.getItem(EXAM_FONT_KEY)); return (v === 1 || v === 2) ? v : 0; }catch(e){ return 0; }
+}
+function examFontApply(){
+  const pr = $('#examPractice'); if(!pr) return;
+  const lv = examFontLevel();
+  pr.classList.remove('exam-fs-0','exam-fs-1','exam-fs-2');
+  pr.classList.add('exam-fs-' + lv);
+  const b = $('#examFontBtn');
+  if(b) b.textContent = 'Aa · ' + ['Regular','Large','Extra large'][lv];
+}
+function examFontCycle(){
+  const next = (examFontLevel() + 1) % 3;
+  try{ localStorage.setItem(EXAM_FONT_KEY, String(next)); }catch(e){}
+  examFontApply();
+  toast('Text size: ' + ['Regular (20px)','Large (23px)','Extra large (27px)'][next]);
+}
+
 function openExam(item, kind){
   examTimer.cur = { kind, no: item.no };
   $('#examHome').hidden = true;
@@ -1825,6 +1847,7 @@ function openExam(item, kind){
   $('#examEssay').hidden = false;   // 恢复输入区（上一题提交时被隐藏）
   const ft = $('#examAFoot'); if(ft) ft.hidden = false;
   // 10/8 她拍板：考场模式 checkbox 退役 —— 恒倒计时（Task 2 40min / Task 1 20min），到点弹框自选
+  examFontApply();   // 10/8 官方字号三档：进场应用本机档位
   examStartTimer('down', examLimitMs(isBig));
 }
 
@@ -1875,6 +1898,7 @@ function openExamCustom(){
   const eo = $('#examEssayOrig'); if(eo) eo.textContent = '';
   $('#examEssay').hidden = false;
   const ft = $('#examAFoot'); if(ft) ft.hidden = false;
+  examFontApply();   // 10/8 官方字号三档：进场应用本机档位
   examStartTimer('down', examLimitMs(isBig));
 }
 
@@ -2053,8 +2077,17 @@ function bindExam(){
     examStopTimer();
     document.body.classList.remove('exam-fullscreen');
     $('#examPractice').hidden = true;
-    /* 10/8：自练题退回评分面板（题目框还留着）；真题流程照旧回列表 */
-    if(examTimer.cur && examTimer.cur.custom) switchWriteTab('score');
+    /* 10/8：自练题退回评分面板（题目框还留着）；真题流程照旧回列表。
+       10/8 她要求：退出全屏后作文同步回评分面板的输入框——
+       只在有内容且内容确实不同才覆盖（避免把她已粘的外层内容清掉），派发 input 让词数徽标一起刷新。 */
+    if(examTimer.cur && examTimer.cur.custom){
+      const ee = $('#examEssay'), se = $('#scoreEssay');
+      if(ee && se && ee.value.trim() && se.value.trim() !== ee.value.trim()){
+        se.value = ee.value;
+        se.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      switchWriteTab('score');
+    }
     else $('#examHome').hidden = false;
   };
   const back = $('#examBack');
@@ -2063,6 +2096,10 @@ function bindExam(){
   if(exitBtn) exitBtn.addEventListener('click', exitExam);
   const exitFull = $('#examExitFull');
   if(exitFull) exitFull.addEventListener('click', exitExam);
+
+  /* 10/8 官方字号三档：右上角 Aa 按钮循环 Regular → Large → Extra large（本机记忆） */
+  const fontBtn = $('#examFontBtn');
+  if(fontBtn) fontBtn.addEventListener('click', examFontCycle);
 
   const finish = $('#examFinish');
   if(finish) finish.addEventListener('click', () => { examStopAndScore(); });

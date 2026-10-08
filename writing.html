@@ -43,7 +43,7 @@
   <script defer src="js/common.js?v=20261008b"></script>
   <script defer src="js/feedback.js?v=20261006a"></script>
   <script defer src="js/writing_prompts.js?v=20260903ab"></script>
-  <script defer src="js/writing.js?v=20261008g"></script>
+  <script defer src="js/writing.js?v=20261008h"></script>
   <script defer src="js/wrongbook.js?v=20260903ab"></script>
 <style>
 
@@ -202,10 +202,44 @@
   .exam-timer #examTimerBtn{color:#fff}
   /* 9/30 考场模式：底部栏改为「词数 | 考场模式开关 | 计时」。计时器原本只有 CSS 没有 DOM（点了开始却看不见），一并补回。 */
   .exam-a-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-start;padding:10px 2px 14px}
-  .exam-timer-inline{margin-left:auto;display:inline-flex;align-items:center;gap:8px;background:var(--primary);color:#fff;border-radius:20px;padding:4px 12px;font-weight:700;font-size:14px;box-shadow:0 2px 8px rgba(58,154,147,.25);font-variant-numeric:tabular-nums}
-  .exam-timer-inline.warn{background:var(--danger)}
-  .exam-timer-inline.over{background:var(--danger-text)}
-  .exam-timer-inline button{background:transparent;border:0;color:#fff;cursor:pointer;font-size:13px;line-height:1;padding:0 2px}
+  /* 10/8 官方机考界面重排（对齐 IELTS on computer 真实布局，官方依据：IDP 官网「How IELTS on Computer works」
+     + 官方 Quick Guide：计时器在屏幕顶部中央；右上角 options 图标管 Text Size 三档 Regular/Large/Extra Large；
+     词数在作答区左下；上下深色栏、内容区白底）。 */
+  .exam-head{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;background:#3D4A54;padding:8px 16px;border-bottom:none}
+  .exam-head-right{justify-self:end;display:flex;align-items:center;gap:8px}
+  .exam-timer-inline{display:inline-flex;align-items:center;gap:8px;background:#fff;color:#26343C;border-radius:6px;padding:5px 14px;font-weight:700;font-size:15px;font-variant-numeric:tabular-nums;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+  .exam-timer-inline.warn{background:var(--danger);color:#fff}
+  .exam-timer-inline.over{background:var(--danger-text);color:#fff}
+  .exam-timer-inline button{background:transparent;border:0;color:inherit;cursor:pointer;font-size:13px;line-height:1;padding:0 2px}
+  /* 右上角控制钮（官方深栏上的白描边幽灵钮：Text Size / Exit full screen） */
+  .exam-font-btn,.exam-head .exam-exit-full{display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid rgba(255,255,255,.5);color:#fff;border-radius:7px;padding:6px 11px;font-size:12.5px;font-weight:600;cursor:pointer;transition:.15s;white-space:nowrap}
+  .exam-font-btn:hover,.exam-head .exam-exit-full:hover{background:rgba(255,255,255,.12)}
+  /* 官方三档字号（Regular 20 / Large 23 / Extra large 27，IDP 官方口径），作用范围 = 题面 + 作答区 */
+  #examPractice.exam-fs-0 .exam-q-body,#examPractice.exam-fs-0 .exam-q-body .ei-en{font-size:20px}
+  #examPractice.exam-fs-0 .exam-q-body .ei-zh{font-size:21px}
+  #examPractice.exam-fs-0 .exam-textarea{font-size:20px}
+  #examPractice.exam-fs-1 .exam-q-body,#examPractice.exam-fs-1 .exam-q-body .ei-en{font-size:23px}
+  #examPractice.exam-fs-1 .exam-q-body .ei-zh{font-size:24px}
+  #examPractice.exam-fs-1 .exam-textarea{font-size:23px}
+  #examPractice.exam-fs-2 .exam-q-body,#examPractice.exam-fs-2 .exam-q-body .ei-en{font-size:27px}
+  #examPractice.exam-fs-2 .exam-q-body .ei-zh{font-size:28px}
+  #examPractice.exam-fs-2 .exam-textarea{font-size:27px}
+  /* Part 标题与指令移进左栏顶部（官方：指令框在题目面板顶部） */
+  .exam-q-body-wrap .exam-part{margin:0 0 6px;font-size:20px;font-weight:800;color:var(--ink)}
+  .exam-q-body-wrap .exam-instr{margin:0 0 18px;font-size:13.5px;color:var(--muted);line-height:1.5}
+  /* 底部导航栏（官方深色 nav bar；按钮换白描边保持可读，功能不变） */
+  .exam-bar{background:#3D4A54;border-top:none}
+  .exam-bar .exam-step{background:#fff;color:#26343C}
+  .exam-bar .exam-step-label{color:#fff}
+  .exam-bar .btn-exam-ghost{border-color:rgba(255,255,255,.5);background:transparent;color:#fff}
+  .exam-bar .btn-exam-ghost:hover{background:rgba(255,255,255,.12);background-clip:padding-box}
+  .exam-bar .btn-exam-exit{background:transparent;border-color:rgba(255,130,130,.7);color:#ff9d9d}
+  .exam-bar .btn-exam-exit:hover{background:rgba(255,255,255,.12)}
+  @media(max-width:760px){
+    .exam-head{padding:6px 10px;gap:8px}
+    .exam-font-btn,.exam-head .exam-exit-full{padding:5px 8px;font-size:11.5px}
+    .exam-timer-inline{padding:4px 10px;font-size:14px}
+  }
   /* 10/8 到点弹框（替代强制停笔红条）：遮罩 + 白卡，英文沉浸 */
   .exam-tu-overlay{position:fixed;inset:0;z-index:60;background:rgba(10,20,24,.5);display:flex;align-items:center;justify-content:center;padding:20px}
   .exam-tu-overlay[hidden]{display:none}
@@ -458,22 +492,29 @@
       <div id="examList" class="exam-list" style="margin-top:12px"></div>
     </section>
 
-    <!-- 练习界面（全屏沉浸式） -->
+    <!-- 练习界面（全屏沉浸式）。10/8 官方机考布局：深色顶栏 = 计时器顶部居中 + 右上角 Text Size 三档 / Exit full screen；
+         Part 标题与指令在左栏顶部；词数在作答区左下；底部深色导航栏。元素 id 全部不变（JS 契约）。 -->
     <section id="examPractice" hidden>
       <header class="exam-head">
-        <div class="exam-head-left">
-          <h1 class="exam-part" id="examPartLabel">Part 2</h1>
-          <p class="exam-instr" id="examInstr">You should spend about 40 minutes on this task. Write at least 250 words.</p>
+        <div class="exam-head-left" aria-hidden="true"></div>
+        <span class="exam-timer-inline" id="examTimerWrap">
+          <span id="examTimerText">00:00:00</span>
+          <button type="button" id="examTimerBtn" title="Pause / Resume">⏸</button>
+        </span>
+        <div class="exam-head-right">
+          <button class="exam-font-btn" id="examFontBtn" type="button" title="Text size — same three sizes as IELTS on computer (Regular 20 / Large 23 / Extra large 27)">Aa · Regular</button>
+          <button class="exam-exit-full" id="examExitFull" type="button" title="Exit full screen">
+            <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4M15 3h4a2 2 0 0 1 2 2v4M9 21H5a2 2 0 0 1-2-2v-4M15 21h4a2 2 0 0 0 2-2v-4"/></svg>
+            Exit full screen
+          </button>
         </div>
-        <button class="exam-exit-full" id="examExitFull" type="button" title="Exit full screen">
-          <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4M15 3h4a2 2 0 0 1 2 2v4M9 21H5a2 2 0 0 1-2-2v-4M15 21h4a2 2 0 0 0 2-2v-4"/></svg>
-          Exit full screen
-        </button>
       </header>
 
       <div class="exam-split">
         <article class="exam-q">
           <div class="exam-q-body-wrap" id="examQBodyWrap">
+            <h1 class="exam-part" id="examPartLabel">Part 2</h1>
+            <p class="exam-instr" id="examInstr">You should spend about 40 minutes on this task. Write at least 250 words.</p>
             <p class="exam-q-lead">Write about the following topic:</p>
             <div class="exam-q-body" id="examQuestion"></div>
             <p class="exam-q-note" id="examQNote"></p>
@@ -488,10 +529,6 @@
           <textarea id="examEssay" class="exam-textarea" placeholder="Type your response here..."></textarea>
           <div class="exam-a-foot" id="examAFoot">
             <span class="exam-wc" id="examWordCount">Word count: 0</span>
-            <span class="exam-timer-inline" id="examTimerWrap">
-              <span id="examTimerText">00:00:00</span>
-              <button type="button" id="examTimerBtn" title="Pause / Resume">⏸</button>
-            </span>
           </div>
           <div id="examResult" class="tpl-score" hidden></div>
         </div>
