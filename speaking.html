@@ -56,7 +56,7 @@
   <script defer src="js/materials.js?v=20261006a"></script>
   <script defer src="js/mock-report.js?v=20261004a"></script>
   <script defer src="js/mock-history.js?v=20261006b"></script>
-  <script defer src="js/mock.js?v=20261008a"></script>
+  <script defer src="js/mock.js?v=20261008b"></script>
   <script defer src="js/pattern-drill.js?v=20261002a"></script>
   <script defer src="js/scene-drill.js?v=20260922a"></script>
 <style>
@@ -1002,9 +1002,13 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
 #mockStage.p2-mode .mock-left{flex:1;min-width:0}
 #mockStage.p2-mode .mock-examiner{order:0;flex:none;width:236px;position:sticky;top:12px}
 @media(max-width:760px){
-  /* 窄屏两栏放不下：塌回单列，考官小窗置顶（order:-1 恢复，宽度收窄不喧宾夺主） */
-  #mockStage.p2-mode .mock-main{flex-direction:column}
-  #mockStage.p2-mode .mock-examiner{width:min(240px,72%);order:-1}
+  /* 窄屏两栏放不下：塌回单列，考官小窗置顶（order:-1 恢复，宽度收窄不喧宾夺主）。
+     10/8 她报「考官窗盖住题目 + 下面一整个框显示不出内容」——桌面两栏规则在窄屏只重置了
+     flex-direction，**position:sticky 和 align-items:flex-start 漏重置**：
+     sticky 让考官窗滚动时钉在顶上盖住题目；flex-start 让单列内容缩宽左对齐、卡后留死区。
+     补 static + stretch（考官窗回到文档流，占位自然，不与内容重叠）。 */
+  #mockStage.p2-mode .mock-main{flex-direction:column;align-items:stretch}
+  #mockStage.p2-mode .mock-examiner{width:min(240px,72%);order:-1;position:static}
   .me-video{box-shadow:0 8px 20px rgba(19,35,41,.10)}
 }
 /* P2 倒计时改小徽章（她拍板「P2 有个小小的倒计时显示就行，不用太紧张」）：
@@ -1949,7 +1953,7 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
             <div class="mock-manual">
               <label class="sr-only" for="mockManual">写下 / 粘贴你的英文回答：</label>
               <!-- rows=3 只作初始高度；mock.js 会按内容实时 autoGrow（她报「框不会随文字变化，要滑动才看全」） -->
-              <textarea id="mockManual" rows="3" placeholder="在此输入你的英文回答…"></textarea>
+              <textarea id="mockManual" rows="3" placeholder="在此输入你的英文回答…（Enter 提交 / 下一题，Shift+Enter 换行）"></textarea>
             </div>
             <!-- 10/3 23:05 笔记留屏 + 文本框自动长高（作用域限 #mockView，不动 common.css 全站规则） -->
             <style>
@@ -1980,6 +1984,15 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
             }
             #mockView .mock-note-input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
             #mockView .mock-note-input[hidden]{display:none}
+            /* 10/8 评分中视图：AI 批改期间替代题目区（果冻水珠 + 进度文案，居中） */
+            #mockView #mockScoring{
+              display:flex;flex-direction:column;align-items:center;justify-content:center;
+              gap:6px;padding:72px 20px;text-align:center;min-height:46vh;
+            }
+            #mockView #mockScoring[hidden]{display:none}
+            #mockView #mockScoring .ui-loader{margin-bottom:10px}
+            #mockView .msc-title{margin:0;font-size:17px;font-weight:800;color:var(--ink)}
+            #mockView .msc-sub{margin:0;font-size:13px;line-height:1.7;color:var(--muted)}
             [data-theme="dark"] #mockView .mock-note{background:var(--n-100);border-color:var(--n-500)}
             [data-theme="dark"] #mockView .mock-note-b{color:var(--n-800)}
             </style>
@@ -1997,6 +2010,13 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
           </div>
           <div class="me-name"><b id="mockExaminerName"></b><span>IELTS Examiner</span></div>
         </aside>
+      </div>
+      <!-- 10/8 她报「完成 P3 后卡顿好多秒、没有动画像卡住」：AI 评分期间换成专门的「生成报告」视图
+           （果冻水珠动画 + 进度说明），评分完由 mock.js 恢复 .mock-main 并切到报告页。 -->
+      <div id="mockScoring" hidden>
+        <div class="ui-loader" role="status" aria-label="正在生成报告"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div>
+        <p class="msc-title">正在生成报告</p>
+        <p class="msc-sub">老师正在逐部分批改（P1 / P2 / P3），大概要十几秒。<br>这期间不用做任何操作，也别退出。</p>
       </div>
     </section>
 

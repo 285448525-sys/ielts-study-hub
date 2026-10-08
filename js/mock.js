@@ -142,6 +142,7 @@
     // 10/1 批3 修复：#mockView 默认 hidden，自动续考要同步显容器 + 把 tab 高亮切到「模考」，视觉状态一致。
     // 10/8：改走 showOnlyMockView()（顺带藏掉 tab 默认显示的 #listView，续考不再叠层）
     showOnlyMockView();
+    resetScoringView();             // 10/8：评分视图复位
     document.querySelectorAll('#tabs .pill-tab').forEach(b => b.classList.toggle('active', b && b.dataset && b.dataset.type === 'MOCK'));
     $('#mockReport').hidden = true; $('#mockStage').hidden = false;
     setMockImmerse(true);           // 9/26：续考也进沉浸
@@ -346,6 +347,18 @@
         manual.style.height = 'auto';
         manual.style.overflowY = 'hidden';
         bindManualAutoGrow();
+        /* 10/8 她要求「点回车 = 下一题快捷键」：Enter 直接触发提交按钮，Shift+Enter 换行。
+           ⚠️ isComposing 守卫：中文输入法里按回车是「确认候选词」，绝不能当提交（keyCode 229 同理）。
+           每题解绑重绑（textarea 是同一个节点，submitBtn.onclick 每题重设，转发点击即可）。 */
+        if(manual.__mockEnterFn) manual.removeEventListener('keydown', manual.__mockEnterFn);
+        manual.__mockEnterFn = (e) => {
+          if(e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229){
+            e.preventDefault();
+            const sb = $('#mockSubmit');
+            if(sb) sb.click();
+          }
+        };
+        manual.addEventListener('keydown', manual.__mockEnterFn);
       }
       /* 10/8 笔记机制重做：prep = 可编辑小纸条；之后 = 冻结只读、与回答无关（详见 bindNoteEditor 上方注释）。 */
       paintNoteForPhase(!!opts.isPrep);
@@ -752,6 +765,12 @@
   /* ---------- 收尾：报告 + 落库 ---------- */
   async function finishExam(){
     setPhase('评分中…');
+    /* 10/8 她报「完成 P3 后卡顿好多秒、没动画像卡住」：AI 评分是 P1/P2/P3 逐部分串行调用，
+       手机上十几秒起步。期间把题目区换成专门的「正在生成报告」视图（果冻水珠 + 说明文案），
+       评分完在报告渲染前恢复 .mockMain（下一场开考也要用）。 */
+    const scoringEl = $('#mockScoring'), mockMainEl = $('#mockMain');
+    if(scoringEl && mockMainEl){ mockMainEl.hidden = true; scoringEl.hidden = false; hubResetPageScroll(); }
+    const restoreStage = () => { if(scoringEl && mockMainEl){ scoringEl.hidden = true; mockMainEl.hidden = false; } };
     const source = mockState.pronSource; // 'fixed' | 'none'
     // 发音分：只取设置里的固定分（发音评测已移除，不再用讯飞/AI 估算）
     let pronunciation = null;
@@ -824,6 +843,7 @@
     DATA.mockRecords.push(rec);
     hubSave(); scheduleCloudUpload();
 
+    restoreStage();                 // 10/8：评分视图收起、题目区恢复（报告页/下一场开考都依赖干净状态）
     $('#mockStage').hidden = true;
     $('#mockReport').hidden = false;
     setMockImmerse(false);          // 9/26：出报告 → 恢复常规布局（报告页要能点 tab / 侧栏）
@@ -842,6 +862,13 @@
   }
 
   /* ---------- 全新开考入口（由「开始模考」按钮触发） ---------- */
+  /* 10/8 防御：任何进场路径都先把评分视图复位（防止上次异常中断把 #mockMain 留在 hidden） */
+  function resetScoringView(){
+    const se = $('#mockScoring'), mm = $('#mockMain');
+    if(se) se.hidden = true;
+    if(mm) mm.hidden = false;
+  }
+
   async function startExam(){
     if(mockEntering || mockState) return;   // 10/2 修：注入窗口/考试进行中防并发双开（报告页「再来一次」连点同此守卫）
     mockEntering = true;
@@ -865,7 +892,8 @@
 
     $('#mockReport').hidden = true;
     $('#mockStage').hidden = false;
-    showOnlyMockView();             // 10/8：进模考 = 只剩模考（含「再来一次」等非 tab 入口）
+    showOnlyMockView();             // 9/26：开始模考 → 整页只剩模考内容
+    resetScoringView();             // 10/8：评分视图复位
     setMockImmerse(true);           // 9/26：开始模考 → 整页只剩模考内容
     injectExitButton();
 
