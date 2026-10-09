@@ -28,3 +28,7 @@ AGENTS.md
 CLAUDE.md
 AGENTS.local.md
 CLAUDE.local.md
+
+# plan/ = 施工方案文档目录（既定规则：仓库内禁建非代码目录，plan/ 只在本地、不入库；
+# 10/9 把 10/4 误入库的 2 份施工文档移出版本库后，在此收口防止再犯）
+plan/
