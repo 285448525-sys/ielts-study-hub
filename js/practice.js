@@ -24,8 +24,10 @@ var LEVEL_INTERVAL = [1, 2, 4, 7, 15, 30, 60, 90];
 // 短线（v4）：分散成功几次才放行；GAP[k] 为答对后插回队列的间隔词数
 // 9/24 她拍板改口径（原 SHORT_PASS=3 / GAP [0,2,5]）：「前两次隔短点，第三次隔长点，留出模拟遗忘的时间」→
 //   分散答对 4 次才过关，三次插回间隔 = 隔 2 → 隔 4 → 隔 9（她给的数：2 / 3~5 / 8~10，取中值）。
-// 10/9 她考后再拍板（批②）：改回「总共对 3 次就过」——答错不消耗次数（当场重考到选对的机制不变），
+// 10/9 她考后拍板（批②）：改回「总共对 3 次就过」——答错不消耗次数（当场重考到选对的机制不变），
 //   累计答对 3 次即过关；插回间隔取她 9/24 给的区间前两段 = 隔 2 → 隔 4（原第三段「隔 9」随 4 次制一起退役）。
+// 10/9 她二次修正（同日）：「对 3 次」指**连续**答对——中途答错 = 打断，进度清零重新记（又要重新对 3 次）。
+//   清零发生在 judge 错误分支（答错入口），重考选对 = 新周期第 1 次。
 var SHORT_PASS = 3;
 var GAP = [0, 2, 4];         // GAP[0] 占位；k=1→隔2个、k=2→隔4个；k=3=过关不再插回（gapFor 只在 n<SHORT_PASS 时被调，索引不会越界）
 var GAP_HARD = [0, 1, 3];    // P0-3 难词加密（同比收紧）：k=1→隔1个、k=2→隔3个；k=3=过关
@@ -1273,8 +1275,8 @@ function bindOpts(cur){
 }
 
 /* 短线答对的统一出口（9/24）：judge() 的正常作答 与「答错停顿期内点中正确答案」走完全同一条口径，
-   避免两条线各写一份导致计数不一致。n = 已分散答对次数（含本次）；够 SHORT_PASS 才 promote 过关，
-   否则按 gapFor(n) 隔 N 个词插回。返回 'pass' / 'requeue'。 */
+   避免两条线各写一份导致计数不一致。n = 本轮**连续**答对次数（含本次；judge 错误分支答错时清零）；
+   连续够 SHORT_PASS 才 promote 过关，否则按 gapFor(n) 隔 N 个词插回。返回 'pass' / 'requeue'。 */
 function shortLineCorrect(cur, today, k){
   const n = (cur.shortCount || 0) + 1;
   pq.reholdMap[k] = 0;                           // 已答对，重考链清零
@@ -1284,7 +1286,7 @@ function shortLineCorrect(cur, today, k){
     pq.correct++;
     pq.passed.push(k);
     pq.shortMode.delete(k);
-    if(!pq.counted.has(k)){ pq.counted.add(k); pq.total++; }   // 分散答对满 3 次，此时才算过
+    if(!pq.counted.has(k)){ pq.counted.add(k); pq.total++; }   // 连续答对满 3 次，此时才算过
     if(!pq.isWrongReview){ const _ws = wbSession(); if(_ws) _ws.total = pq.total; }
     wbSave();
     return 'pass';
@@ -1301,7 +1303,7 @@ function shortLineCorrect(cur, today, k){
 }
 
 // 统一处理一次作答（4 选 1 直接判 / 点「完全不认识」）。
-// 长线由 promote/demote 排程（design/77 DHP 策略表）；短线由 shortCount + gapFor 间隔插回队列实现「分散 3 次成功才放行」（10/9 她拍板，原 4 次）。
+// 长线由 promote/demote 排程（design/77 DHP 策略表）；短线由 shortCount + gapFor 间隔插回队列实现「**连续** 3 次答对才放行」（10/9 她拍板改回 3 次，同日二次修正：中途答错清零，见下方错误分支）。
 // P0-2（9/24 她拍板改）：答错 → 当场重考，一直重考到选对为止（不再「只重考 1 次」）。
 function judge(cur, pickedEn, correct, isUnknownBtn){
   if(!pq || pq.revealed) return;
@@ -1383,13 +1385,19 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
       wbSave();
       result = 'pass';
     } else {
-      // 答错/不认识的词 → 短线分散重复：需分散答对 SHORT_PASS(3) 次才过关（10/9 她拍板改回 3 次，答错不消耗次数）
+      // 答错/不认识的词 → 短线分散重复：需连续答对 SHORT_PASS(3) 次才过关（10/9 她拍板改回 3 次；中途答错清零，见错误分支）
       result = shortLineCorrect(cur, today, k);
     }
   } else {
     demoteLongTerm(cur, today, !!isUnknownBtn); // P1-1：点「完全不认识」时惩罚加重
     if(!pq.shortMode) pq.shortMode = new Set();
     pq.shortMode.add(k);                          // 标记：该词进入短线重复模式
+    // 10/9 她二次拍板（批② 口径修正）：短线进度是「连续答对」计数——中途答错 = 连续被打断，
+    // 进度清零重新记（之后的重考选对 = 新周期第 1 次），不是累计 3 次。
+    if((cur.shortCount || 0) > 0){
+      cur.shortCount = 0;
+      cur.lastShortTouch = null;                  // 清零后时间戳置空（与 reconcileShortCount 清零惯例一致）
+    }
     // 9/24 她拍板：答错就当场重考，一直重考到选对为止（原「只重考 1 次，再错就隔 1 个插回」）
     // 兜底仍在：MAX_ATTEMPT(15) 次还没答对 → 移出本轮队列，留到明天（下方死循环防护）
     // （errTotal 由 demoteLongTerm 每次 +1，此处不额外加，避免重考链把错误数刷爆）
