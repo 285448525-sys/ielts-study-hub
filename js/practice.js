@@ -24,9 +24,11 @@ var LEVEL_INTERVAL = [1, 2, 4, 7, 15, 30, 60, 90];
 // 短线（v4）：分散成功几次才放行；GAP[k] 为答对后插回队列的间隔词数
 // 9/24 她拍板改口径（原 SHORT_PASS=3 / GAP [0,2,5]）：「前两次隔短点，第三次隔长点，留出模拟遗忘的时间」→
 //   分散答对 4 次才过关，三次插回间隔 = 隔 2 → 隔 4 → 隔 9（她给的数：2 / 3~5 / 8~10，取中值）。
-var SHORT_PASS = 4;
-var GAP = [0, 2, 4, 9];      // GAP[0] 占位；k=1→隔2个、k=2→隔4个、k=3→隔9个；k=4=过关不再插回
-var GAP_HARD = [0, 1, 3, 6]; // P0-3 难词加密（同比收紧）：k=1→隔1个、k=2→隔3个、k=3→隔6个
+// 10/9 她考后再拍板（批②）：改回「总共对 3 次就过」——答错不消耗次数（当场重考到选对的机制不变），
+//   累计答对 3 次即过关；插回间隔取她 9/24 给的区间前两段 = 隔 2 → 隔 4（原第三段「隔 9」随 4 次制一起退役）。
+var SHORT_PASS = 3;
+var GAP = [0, 2, 4];         // GAP[0] 占位；k=1→隔2个、k=2→隔4个；k=3=过关不再插回（gapFor 只在 n<SHORT_PASS 时被调，索引不会越界）
+var GAP_HARD = [0, 1, 3];    // P0-3 难词加密（同比收紧）：k=1→隔1个、k=2→隔3个；k=3=过关
 var CLEAN_TO_EXIT = 3;    // P1-3 难词退出门槛：连续 3 轮短线过关才取消 hardWord
 var MAX_ATTEMPT = 15;     // 单个词本轮最多作答次数（防死循环，超出则移出队列留到明天）
 
@@ -1282,7 +1284,7 @@ function shortLineCorrect(cur, today, k){
     pq.correct++;
     pq.passed.push(k);
     pq.shortMode.delete(k);
-    if(!pq.counted.has(k)){ pq.counted.add(k); pq.total++; }   // 分散答对满 4 次，此时才算过
+    if(!pq.counted.has(k)){ pq.counted.add(k); pq.total++; }   // 分散答对满 3 次，此时才算过
     if(!pq.isWrongReview){ const _ws = wbSession(); if(_ws) _ws.total = pq.total; }
     wbSave();
     return 'pass';
@@ -1290,7 +1292,7 @@ function shortLineCorrect(cur, today, k){
   cur.shortCount = n;                            // 记录进度（持久化，续背接得上）
   cur.lastPracticeAt = Date.now();               // design/84：短线中途答对也是练习，进度要随最后练习者胜传出去
   pq.queue.splice(pq.idx, 1);
-  const gap = gapFor(cur, n);                    // n=1→隔2、n=2→隔4、n=3→隔9（难词更密）
+  const gap = gapFor(cur, n);                    // n=1→隔2、n=2→隔4（难词更密）；n=3 已过关不走这里
   const pos = Math.min(pq.queue.length, pq.idx + gap);
   if(pos >= pq.queue.length) pq.queue.push(cur);
   else pq.queue.splice(pos, 0, cur);
@@ -1299,7 +1301,7 @@ function shortLineCorrect(cur, today, k){
 }
 
 // 统一处理一次作答（4 选 1 直接判 / 点「完全不认识」）。
-// 长线由 promote/demote 排程（design/77 DHP 策略表）；短线由 shortCount + gapFor 间隔插回队列实现「分散 4 次成功才放行」。
+// 长线由 promote/demote 排程（design/77 DHP 策略表）；短线由 shortCount + gapFor 间隔插回队列实现「分散 3 次成功才放行」（10/9 她拍板，原 4 次）。
 // P0-2（9/24 她拍板改）：答错 → 当场重考，一直重考到选对为止（不再「只重考 1 次」）。
 function judge(cur, pickedEn, correct, isUnknownBtn){
   if(!pq || pq.revealed) return;
@@ -1381,7 +1383,7 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
       wbSave();
       result = 'pass';
     } else {
-      // 答错/不认识的词 → 短线分散重复：需分散答对 SHORT_PASS(4) 次才过关（9/24 她拍板，原 3 次）
+      // 答错/不认识的词 → 短线分散重复：需分散答对 SHORT_PASS(3) 次才过关（10/9 她拍板改回 3 次，答错不消耗次数）
       result = shortLineCorrect(cur, today, k);
     }
   } else {
