@@ -262,12 +262,19 @@ function renderCats(){
   const btn = c => '<button class="btn' + (c===curCat?' active':'') + '" data-cat="' + escapeHtml(c) + '"><span class="cat-name">' + escapeHtml(c) + '</span><span class="cat-cnt">' + cntOf(c) + '</span></button>';
   /* 10/10 模板分档：目标分筛选（一档 0.5 分）。两条设计约束——
      ① **只在有模板的档位渲染按钮**：没有的档不显示「6.5 · 0」，否则看起来站内是空的；
-     ② 档位从数据里动态收集 → 以后加 6.0/6.5/7.0 模板时按钮自动出现，不用改代码。
+     ② 档位尽量自动：LV_ORDER 只用来**保证顺序**（5.5→7.0），数据里若出现了表外档位，
+        按首次出现顺序排在表内档位之后 —— 加新档位不用改这里的代码。
+        ⚠️ 10/11 修正：原注释写「档位从数据动态收集」**说大了** —— 实际只是固定表 LV_ORDER
+        按「有没有模板」过滤。7.0 能自动出现，是因为 7.0 本来就写在表里，不是因为动态收集。
+        探针用 8.0 验证时才暴露：表外档位根本不会出现按钮。现改为「固定表 ∪ 数据实际档位」。
      老数据没有 level 字段时按 5.5 处理（与 data.js 的补字段迁移同口径）。 */
   const LV_ORDER = ['5.5', '6.0', '6.5', '7.0'];
   const lvOf = t => t.level || '5.5';
   const lvCount = lv => DATA.writing.filter(t => lvOf(t) === lv).length;
-  const lvChips = LV_ORDER.filter(lv => lvCount(lv) > 0);
+  // 数据里出现、但不在 LV_ORDER 里的档位（按首次出现顺序排在其后）
+  const lvExtra = [];
+  DATA.writing.forEach(t => { const lv = lvOf(t); if(LV_ORDER.indexOf(lv) < 0 && lvExtra.indexOf(lv) < 0) lvExtra.push(lv); });
+  const lvChips = LV_ORDER.concat(lvExtra).filter(lv => lvCount(lv) > 0);
   if(curLevel !== 'all' && !lvChips.includes(curLevel)) curLevel = 'all';
   const lvBar = lvChips.length
     ? '<div class="lv-bar"><span class="lv-bar-lb">目标分</span>'
