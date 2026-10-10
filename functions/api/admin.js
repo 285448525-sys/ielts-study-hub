@@ -648,16 +648,24 @@ export async function onRequest(context) {
     });
     const usageMonth = await aggPeriod(kv, 'aiqmv:', monthKeyUTC(new Date()));
     const judged = await judgeAccounts(kv, users, usageMonth);
+    const createdOf = {};
+    users.forEach(u => { createdOf[u.acct] = u.created || 0; });
+    /* 10/11：一次最多删 CLEAN_LIMIT 个。原因：删一个探针 = 删 5 个基础键 + 扫 6 个 AI 计数前缀，
+       探针攒到几百个时单次请求会烧掉大把 KV 写配额 —— 她 10/5、10/6 各烧穿过一次（免费版 1000 写/天）。
+       按 created 升序删（最陈旧的先走），连点几次自然把积压清完，也不会每次都反复删同一批。 */
+    const CLEAN_LIMIT = 20;
     const probes = judged.filter(u => u.verdict === 'probe').map(u => u.acct);
+    probes.sort((a, b) => (createdOf[a] || 0) - (createdOf[b] || 0));
     if (String(body.confirm || '') !== 'DELETE_PROBES') {
       return json({ ok: true, dryRun: true, count: probes.length, accts: probes.slice(0, 300),
-        tookMs: Date.now() - _tp, kvReads: _kvReads });
+        tookMs: Date.now() - _tp, kvReads: _kvReads, limit: CLEAN_LIMIT });
     }
-    if (!probes.length) return json({ ok: true, deleted: 0, keys: 0, note: '没有判定为探针的账号' });
+    if (!probes.length) return json({ ok: true, deleted: 0, keys: 0, remaining: 0, note: '没有判定为探针的账号' });
+    const batch = probes.slice(0, CLEAN_LIMIT);
     const set = {};
-    probes.forEach(a => { set[a] = 1; });
+    batch.forEach(a => { set[a] = 1; });
     let deleted = 0, keys = 0;
-    for (const a of probes) {
+    for (const a of batch) {
       for (const k of ['user:' + a, 'vip:' + a, 'manual:' + a, 'fb:' + a, 'fbimg:' + a]) {
         try { if (await kv.get(k)) { await kv.delete(k); keys++; } } catch (e) {}
       }
@@ -674,8 +682,9 @@ export async function onRequest(context) {
         if (parts.length >= 2 && set[parts[1]]) { try { await kv.delete(name); keys++; } catch (e) {} }
       }
     }
-    await audit(kv, 'probe_clean', { deleted: deleted, keys: keys });
-    return json({ ok: true, deleted: deleted, keys: keys });
+    await audit(kv, 'probe_clean', { deleted: deleted, keys: keys, remaining: probes.length - batch.length });
+    return json({ ok: true, deleted: deleted, keys: keys,
+      remaining: probes.length - batch.length, limit: CLEAN_LIMIT });
   }
 
   if (action === 'judge_set') {
