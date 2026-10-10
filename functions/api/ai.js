@@ -39,12 +39,15 @@
 //   aiqwv:<acct>:<YYYY-Www>       面板「本周 AI 次数」（TTL 400 天，只增不判）
 //   aiqmv:<acct>:<YYYY-MM>        面板「本月 AI 次数」（TTL 400 天，自然月 UTC）
 
-/* 默认对任意来源开放（本站要能在 pages.dev / 本地 / 自定义域下都调用）。
-   若担心别人盗刷额度，把环境变量 AI_ALLOW_ORIGIN 设成自己的域名（如 https://ielts.example.com），
-   这里就只给这一个来源回 CORS 头 —— 浏览器层面其它站点直接调不通。 */
+/* 10/10 CORS 收紧（保密性加固 P0）：
+   优先用显式配置 AI_ALLOW_ORIGIN；否则用 onRequest 里算好的同源判定：
+     · 同源（Origin 的 host == 请求 host）→ 回显该 Origin；
+     · 异源 → 置 'null'（浏览器直接拒绝，拦住「别的网站借用户浏览器调本站 AI」）；
+     · 无 Origin（curl / 服务端脚本）→ 回 '*'，但这类请求**本来就不受 CORS 约束**，
+       所以那道闸（防盗刷额度）交给 Cloudflare Edge 的 Rate Limiting，不在这里假装能挡。 */
 function corsHeaders(env) {
   return {
-    'access-control-allow-origin': (env && env.AI_ALLOW_ORIGIN) || '*',
+    'access-control-allow-origin': (env && env.__allowOrigin) || (env && env.AI_ALLOW_ORIGIN) || '*',
     'access-control-allow-methods': 'POST, OPTIONS',
     'access-control-allow-headers': 'Content-Type',
     'access-control-max-age': '86400',
@@ -129,7 +132,20 @@ async function sessAcctOf(kv, request) {
 }
 
 export async function onRequest(context) {
-  const { request, env } = context;
+  const { request } = context;
+  /* 10/10 同源校验：没显式配 AI_ALLOW_ORIGIN 时，按「Origin 的 host 是否等于请求 host」判定，
+     结果挂在 env.__allowOrigin 上供 corsHeaders 读取（这样不用改 20 多个 json() 调用点）。
+     ⚠️ Object.assign 造副本而不是改 context.env —— CF 的 env 不该被就地污染。 */
+  const env = Object.assign({}, context.env);
+  if (!env.AI_ALLOW_ORIGIN) {
+    try {
+      const o = request.headers.get('Origin') || '';
+      if (o) {
+        const h = request.headers.get('host') || '';
+        env.__allowOrigin = (h && new URL(o).host === h) ? o : 'null';
+      }
+    } catch (e) { env.__allowOrigin = 'null'; }
+  }
 
   if (request.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders(env) });
