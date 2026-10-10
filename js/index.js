@@ -116,7 +116,8 @@ function renderDashV6(){
   const numEl = $('#dashHeroNum');
   if(numEl){
     if(!cd.hasExam || cd.daysLeft === null){
-      numEl.innerHTML = '<span class="big">--</span><span class="unit">天</span>';
+      // 10/10：原来渲染「--」（64px/900 字重下是两个粗黑块，看着像乱码）→ 换成有指向的入口
+      numEl.innerHTML = '<a class="hero-setdate" href="settings.html"><span class="hs-t">还没设考试日期</span><span class="hs-a">去设置 →</span></a>';
     } else if(cd.daysLeft >= 0){
       numEl.innerHTML = '<span class="big">'+cd.daysLeft+'</span><span class="unit">天</span>';
     } else {

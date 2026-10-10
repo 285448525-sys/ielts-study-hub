@@ -39,7 +39,7 @@ header.solid{border-color:var(--line);background:rgba(242,243,245,.94)}
 .navlinks a:hover{color:var(--primary-700)}
 .nav .spacer{flex:1}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:44px;padding:0 20px;border-radius:12px;
-  font-size:14.5px;font-weight:600;border:1px solid transparent;cursor:pointer;text-decoration:none;transition:.16s}
+  font-size:14.5px;font-weight:600;border:1px solid transparent;cursor:pointer;text-decoration:none;transition:.16s;white-space:nowrap}
 .btn-primary{background:var(--primary-500);color:#fff}
 .btn-primary:hover{background:var(--primary-600);transform:translateY(-1px)}
 .btn-ghost{background:var(--n-0);border-color:var(--n-400);color:var(--ink)}
@@ -250,6 +250,12 @@ section{padding:76px 0}
 @media (max-width:600px){
   .steps,.grid3{grid-template-columns:1fr}
   .promises{gap:18px}
+  /* 10/10：窄屏导航右侧两个按钮原来没有任何适配——被挤到「登录」竖排、「进站开工」断成两行。
+     收窄 gap/padding/字号并让品牌名小一档，保证首屏顶部干净。 */
+  .nav{gap:10px}
+  .nav .btn{padding:0 13px;font-size:13px;height:38px;border-radius:10px}
+  .logo{font-size:15px;gap:8px}
+  .logo .mark{width:26px;height:26px;border-radius:8px}
   /* design/94：对比圆点 5→7 后横排会撑破 360 视口（7×34+gap=334>304），小屏缩点距/尺寸（320 也容得下） */
   .cmp .mid{gap:8px}
   .cmp .mid i{width:28px;height:28px}
@@ -316,7 +322,7 @@ section{padding:76px 0}
       <div class="promises" data-in style="transition-delay:.32s">
         <div><b>AI 口语模考不限次</b>市面上不少按次收费；这里出题、评分、四维报告随便练</div>
         <div><b>学习功能全免费</b>词库、题库、计划、同步、计时，一分钱不收</div>
-        <div><b>作者本人每天在用</b>为自己 10 月的机考写的系统，不是 PPT 产品</div>
+        <div><b>作者本人每天在用</b>为了自己备考做的系统，不是 PPT 产品</div>
       </div>
     </div>
 
@@ -327,7 +333,7 @@ section{padding:76px 0}
         <div class="task done"><span class="dot" style="background:var(--vocab)">词</span><div class="t1"><b>背单词 60 个</b><small>算法排的今日新词 + 复习</small></div><span class="tick"></span></div>
         <div class="task done"><span class="dot" style="background:var(--speak)">说</span><div class="t1"><b>口语 P2 串题练 1 组</b><small>一个故事套多个话题</small></div><span class="tick"></span></div>
         <div class="task"><span class="dot" style="background:var(--corpus)">写</span><div class="t1"><b>写作 Task 2 一篇</b><small>模板 + 自检清单</small></div><span class="tick"></span></div>
-        <div class="task"><span class="dot" style="background:var(--med)">改</span><div class="t1"><b>听力错题回炉</b><small>按错误类型归类</small></div><span class="tick"></span></div>
+        <div class="task"><span class="dot" style="background:var(--med)">句</span><div class="t1"><b>长难句拆解 3 句</b><small>拆主干、修饰和逻辑信号</small></div><span class="tick"></span></div>
         <div class="pbar">
           <div class="lb"><span>今日投入</span><span>1h 20m / 2h</span></div>
           <div class="tr"><i></i></div>
@@ -537,7 +543,7 @@ section{padding:76px 0}
     <div class="c-txt" data-rev>
       <h2>今天该背的那批词，<br>已经排好了</h2>
       <p>填一次考试日期，之后每天点开就练。剩下的判断，交给系统。</p>
-      <p>这套系统，是我为自己 10 月的机考写的——今天该背的词、该练的题，我自己每天在里面过。它不是面向市场设计出来的产品，是一个考生不肯多受苦的结果。</p>
+      <p>这套系统，是我为了自己备考做的——今天该背的词、该练的题，我自己每天在里面过。它不是面向市场设计出来的产品，是一个考生不肯多受苦的结果。</p>
     </div>
     <div class="c-card" data-rev style="--d:.08s">
       <b>登录 / 注册</b>

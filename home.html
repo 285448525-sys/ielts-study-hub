@@ -43,7 +43,7 @@
   <script defer src="js/feedback.js?v=20261006a"></script>
 <!-- design/78 双词库适配层：index.js 的 wbActive/wbDueCount 依赖它（defer 按文档序执行） -->
 <script defer src="js/wordbank.js?v=20261001a"></script>
-<script defer src="js/index.js?v=20261005e"></script>
+<script defer src="js/index.js?v=20261010a"></script>
 <style id="homePageStyle">
 /* hero 会员小标（10/1：AI 转化卡删掉后的低调会员态展示，她拍板「不明显但不能不显示」。
    样式放页内不动 common.css 免全站 bump） */
@@ -119,6 +119,13 @@
   .three-plan-t{width:100%;margin-right:0}      /* 文案独占一行，两个按钮并排 */
   .three-plan-b{flex:1 1 0;min-height:40px}     /* 触控命中区 ≥40px */
 }
+/* 10/10：未设考试日期时 hero 倒计时的落点——原实现渲染「--」（.big 是 64px/900 字重，
+   两个短横看着像两块黑方块，像乱码）。改成有指向的入口。 */
+.hero-setdate{display:inline-flex;flex-direction:column;gap:3px;text-decoration:none;line-height:1.25;margin-bottom:2px}
+.hero-setdate .hs-t{font-size:19px;font-weight:800;color:var(--primary-900)}
+.hero-setdate .hs-a{font-size:13.5px;font-weight:700;color:var(--primary-500)}
+.hero-setdate:hover .hs-a{color:var(--primary-700);text-decoration:underline}
+[data-theme="dark"] .hero-setdate .hs-t{color:#fff}
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(0,0,0,.02),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
