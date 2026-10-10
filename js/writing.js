@@ -787,6 +787,161 @@ function tplScoreHtml(r, isTask1){
 /* 10/8 晚 她要求（仿爱听写）：四个维度可点开的手风琴，分项按官方评分标准子项。
    共享给两条渲染路径：整篇评分（essayScoreHtml）与考试交卷（examStopAndScore）。
    旧记录无 dims → 返回空串，两处自动跳过。 */
+/* ===== 10/10 批③：评分结果统一渲染（她点头的「左作文 / 右批改」形态）=====
+   三条路径共用：整篇评分（scoreEssay→#scoreResultBody）、真题交卷（examStopAndScore→#examResult）、
+   记录回看（openRecordExamView→#examResult）。
+   ⚠️ exam 全屏本身就是左右两栏（左题目/我的作文 · 右评分），所以那两处只接：
+     ① 右栏 #examResult = srPanelHtml（纯右栏内容，不含左栏）
+     ② 左栏 #examEssayOrig = srAnnotate（原文带内联标注）
+   原有区块**一个不删**（四维手风琴 / 考官标准对照 / 好句 / 距下一档 / 长难句 / 改进建议），只调呈现与顺序。
+   业界一致做法（爱宾果左原卷右解析 / iWrite 四维星级 / CSDN DeepSeek 批改的原文定位包裹）：见 design/95。 */
+
+/* 内联标注：grammar 的错处 → 红波浪；good 的原句 → 绿实线。找不到就跳过（AI 片段未必与原文逐字一致）。 */
+function srAnnotate(essay, r){
+  const src = String(essay || '');
+  if(!src) return '';
+  if(!r || typeof r !== 'object') return escapeHtml(src);
+  const cand = [];
+  (Array.isArray(r.grammar) ? r.grammar : []).forEach(g => {
+    if(!g || !g.wrong) return;
+    const tip = (g.fix ? '改成：' + g.fix : '') + (g.why ? ((g.fix ? ' ｜ ' : '') + g.why) : '');
+    cand.push({ text: String(g.wrong), cls: 'mk-bad', tip: tip });
+  });
+  (Array.isArray(r.good) ? r.good : []).forEach(s => {
+    const t = String(s || '').trim();
+    const sent = t.split(/\s+——\s+|\s+--\s+/)[0].trim();   // 「原句 —— 为什么好」
+    if(sent.length >= 8) cand.push({ text: sent, cls: 'mk-good', tip: t });
+  });
+  if(!cand.length) return escapeHtml(src);
+  const hay = src.toLowerCase();
+  const taken = [], hits = [];
+  // 长串优先占位，避免短串先占掉重叠区间；同一片段的重复只取第一处
+  cand.sort((a, b) => b.text.length - a.text.length).forEach(c => {
+    const needle = c.text.toLowerCase();
+    if(!needle) return;
+    let from = 0, idx = -1;
+    while((idx = hay.indexOf(needle, from)) >= 0){
+      const end = idx + needle.length;
+      if(!taken.some(p => idx < p[1] && end > p[0])){ taken.push([idx, end]); hits.push({ from: idx, to: end, cls: c.cls, tip: c.tip }); break; }
+      from = idx + 1;
+    }
+  });
+  if(!hits.length) return escapeHtml(src);
+  hits.sort((a, b) => a.from - b.from);
+  let out = '', pos = 0;
+  hits.forEach(h => {
+    out += escapeHtml(src.slice(pos, h.from))
+         + '<mark class="mk ' + h.cls + '" data-tip="' + escapeHtml(h.tip) + '">' + escapeHtml(src.slice(h.from, h.to)) + '</mark>';
+    pos = h.to;
+  });
+  return out + escapeHtml(src.slice(pos));
+}
+
+/* 逐句修改：原文（划线）→ 改成 → 原因（+ 标签 + 定位原文）。数据源 = r.grammar（与旧「语法/表达问题」同源，只换呈现）。 */
+function srFixList(gram){
+  const g = (Array.isArray(gram) ? gram : []).filter(x => x && (x.wrong || x.fix));
+  if(!g.length) return '';
+  let h = '<div class="sr-sec"><h2>逐句修改建议（' + g.length + ' 条）</h2>';
+  g.forEach(item => {
+    h += '<div class="fx">';
+    if(item.wrong) h += '<div class="fx-row fx-old"><span class="fx-k">原文</span><s>' + escapeHtml(item.wrong) + '</s></div>';
+    if(item.fix)   h += '<div class="fx-row fx-new"><span class="fx-k">改成</span><b>' + escapeHtml(item.fix) + '</b></div>';
+    if(item.why)   h += '<div class="fx-why">' + (item.tag ? '<span class="fx-tag">' + escapeHtml(item.tag) + '</span>' : '') + escapeHtml(item.why) + '</div>';
+    h += '<div class="fx-foot"><button class="ts-loc" type="button">📍 定位原文</button></div>';
+    h += anchorHtml(item.anchor);
+    h += '</div>';
+  });
+  return h + '</div>';
+}
+
+/* 四项分数方阵 */
+function srDimsGrid(r, isTask1){
+  const bd = (r && r.breakdown) || {};
+  const N = { TR: (isTask1 ? '任务完成' : '任务回应'), CC: '连贯衔接', LR: '词汇', GRA: '语法' };
+  const keys = ['TR', 'CC', 'LR', 'GRA'].filter(k => bd[k] != null);
+  if(!keys.length) return '';
+  let h = '<div class="sr-grid">';
+  keys.forEach(k => {
+    h += '<div class="sr-g"><b>' + escapeHtml(String(bd[k])) + '</b><span>' + escapeHtml(N[k]) + '</span><i>' + (k === 'TR' && isTask1 ? 'TA' : k) + '</i></div>';
+  });
+  return h + '</div>';
+}
+
+/* 切题度条（有题目时才出现；旧记录无该字段自动跳过） */
+function srTopicHtml(r){
+  const t = r && r.topicJudge;
+  if(!t || !t.verdict) return '';
+  const v = String(t.verdict);
+  const cls = v === '切题' ? '' : (v === '偏题' ? ' bad' : ' warn');
+  return '<div class="sr-topic' + cls + '"><b>切题度：' + escapeHtml(v) + '</b>'
+    + (t.reason ? '<p>' + escapeHtml(t.reason) + '</p>' : '')
+    + (Array.isArray(t.approach) && t.approach.length
+        ? '<p class="sr-topic-ap"><b>这道题可以怎么讲：</b></p><ul>' + t.approach.map(x => '<li>' + escapeHtml(x) + '</li>').join('') + '</ul>'
+        : '')
+    + '</div>';
+}
+
+/* 长 / 复杂句分析 */
+function srLongHtml(ls){
+  const a = (Array.isArray(ls) ? ls : []).filter(Boolean);
+  if(!a.length) return '';
+  let h = '<div class="sr-sec"><h2>长 / 复杂句分析</h2>';
+  a.forEach((x, i) => {
+    h += '<div class="fx"><div class="fx-row"><span class="fx-k">第 ' + (i + 1) + ' 句</span><span>' + escapeHtml(x.sentence || '') + '</span></div>'
+       + '<div class="fx-why">' + (x.wordCount != null ? '<span class="fx-tag">' + escapeHtml(String(x.wordCount)) + ' 词</span>' : '') + escapeHtml(x.suggestion || '') + '</div></div>';
+  });
+  return h + '</div>';
+}
+
+/* 改进建议 */
+function srSuggestHtml(sug){
+  const a = (Array.isArray(sug) ? sug : []).filter(Boolean);
+  if(!a.length) return '';
+  return '<div class="sr-sec"><h2>改进建议</h2><ul class="sr-ul">' + a.map(s => '<li>' + escapeHtml(s) + '</li>').join('') + '</ul></div>';
+}
+
+/* 右栏：分数 + 批改（三条路径共用）。opts.overall=false 时不输出总分条（两栏形态下总分在左栏头）。 */
+function srPanelHtml(r, isTask1, opts){
+  if(!r || typeof r !== 'object') return '';
+  const showOverall = !(opts && opts.overall === false);
+  let h = '';
+  if(showOverall){
+    h += '<div class="sr-scorehead"><span class="sr-overall">' + escapeHtml(r.overall != null ? r.overall : '—') + '</span><span class="sr-overall-u">预估总分</span></div>';
+  }
+  h += srDimsGrid(r, isTask1);
+  h += srTopicHtml(r);
+  h += dimsAccordionHtml(r, isTask1);
+  h += srFixList(r.grammar);
+  if(Array.isArray(r.grammar) && !r.grammar.filter(x => x && (x.wrong || x.fix)).length){
+    h += '<div class="sr-sec"><h2>逐句修改建议</h2><p class="muted" style="font-size:13px;margin:0">没挑出明显的语法或表达问题。</p></div>';
+  }
+  const anchors = (Array.isArray(r.anchors) ? r.anchors : []).map(anchorHtml).filter(Boolean);
+  if(anchors.length) h += '<div class="sr-sec"><h2>考官评分标准对照</h2>' + anchors.join('') + '</div>';
+  h += goodHtml(r.good);
+  h += gapHtml(r.gap, r.overall);
+  h += srLongHtml(r.longSentences);
+  h += srSuggestHtml(r.suggestions);
+  return h;
+}
+
+/* 整篇两栏：左作文（带内联标注）/ 右批改。用于没有左右结构的容器（评分面板 #scoreResultBody）。 */
+function srResultHtml(essay, r, isTask1){
+  const wc = wtCountWords(essay || '');
+  const ov = (r && r.overall != null) ? String(r.overall) : '—';
+  return '<div class="sr-wrap">'
+    + '<section class="sr-left">'
+    +   '<div class="sr-left-h">My response</div>'
+    +   '<article class="sr-essay">' + srAnnotate(essay, r) + '</article>'
+    +   '<div class="sr-legend"><span><i class="sw bad"></i>表达问题</span><span><i class="sw good"></i>好句</span></div>'
+    + '</section>'
+    + '<section class="sr-right">'
+    +   '<div class="sr-scorehead"><span class="sr-overall">' + escapeHtml(ov) + '</span><span class="sr-overall-u">预估总分</span>'
+    +     '<span class="sr-head-meta">' + (isTask1 ? '小作文 Task 1' : '大作文 Task 2') + ' · ' + wc + ' 词</span></div>'
+    +   srPanelHtml(r, isTask1, { overall: false })
+    + '</section>'
+    + '</div>';
+}
+
 function dimsAccordionHtml(r, isTask1){
   if(!r || !r.dims || typeof r.dims !== 'object') return '';
   const DIMN = { TR: (isTask1 ? '任务完成度 TA' : '任务回应 TR'), CC: '连贯与衔接 CC', LR: '词汇丰富度 LR', GRA: '语法多样性与准确性 GRA' };
@@ -807,52 +962,11 @@ function dimsAccordionHtml(r, isTask1){
   return rows ? '<div class="score-section"><h4>评分详情（点开每个维度看分项）</h4>' + rows + '</div>' : '';
 }
 
-function essayScoreHtml(r, isTask1){
-  let h = '';
-  h += '<div class="score-overall" style="font-size:20px">预估总分：' + escapeHtml(r.overall != null ? r.overall : 'N/A') + '</div>';
-  /* 10/8 切题度块（有题目时 AI 返回 topicJudge；旧记录无该字段自动跳过） */
-  if(r.topicJudge && r.topicJudge.verdict){
-    const v = String(r.topicJudge.verdict);
-    const cls = v === '切题' ? 'var(--primary)' : (v === '偏题' ? 'var(--danger)' : 'var(--warn)');
-    h += '<div class="score-section" style="border-left:3px solid ' + cls + ';padding-left:12px;margin-bottom:14px"><h4>切题度：<span style="color:' + cls + '">' + escapeHtml(v) + '</span></h4>'
-      + (r.topicJudge.reason ? '<p style="margin:4px 0;font-size:13.5px;line-height:1.7">' + escapeHtml(r.topicJudge.reason) + '</p>' : '')
-      + (Array.isArray(r.topicJudge.approach) && r.topicJudge.approach.length
-          ? '<p style="margin:4px 0 0;font-size:13.5px;line-height:1.8"><b>这道题可以怎么讲：</b></p><ul style="margin:4px 0 0;padding-left:18px;font-size:13.5px;line-height:1.8">' + r.topicJudge.approach.map(x => '<li>' + escapeHtml(x) + '</li>').join('') + '</ul>'
-          : '')
-      + '</div>';
-  }
-  if(r.breakdown){
-    h += '<div class="score-breakdown">';
-    ['TR','CC','LR','GRA'].forEach(k => {
-      if(r.breakdown[k] != null){
-        const label = (k === 'TR' && isTask1) ? 'TA' : k;
-        h += '<div class="score-item"><b>' + escapeHtml(r.breakdown[k]) + '</b><span>' + label + '</span></div>';
-      }
-    });
-    h += '</div>';
-  }
-  h += dimsAccordionHtml(r, isTask1);   // 四维度手风琴（共享实现，另一条路径在 examStopAndScore）
-  const anchors = (Array.isArray(r.anchors) ? r.anchors : []).map(anchorHtml).filter(Boolean);
-  if(anchors.length){
-    h += '<div class="score-section"><h4>考官评分标准对照</h4>' + anchors.join('') + '</div>';
-  }
-  h += goodHtml(r.good);
-  h += gapHtml(r.gap, r.overall);
-  if(Array.isArray(r.grammar)) h += gramSectionHtml(r.grammar);   // 10/2 修：旧记录无 grammar 字段，不渲染语法区块
-  if(Array.isArray(r.longSentences) && r.longSentences.length){
-    h += '<div class="score-section"><h4>长 / 复杂句分析</h4><ul>';
-    r.longSentences.forEach(ls => {
-      h += '<li><b>（' + escapeHtml(ls.wordCount != null ? ls.wordCount : '?') + ' 词）</b>' + escapeHtml(ls.sentence || '') + '<br><span class="muted">建议：' + escapeHtml(ls.suggestion || '') + '</span></li>';
-    });
-    h += '</ul></div>';
-  }
-  if(Array.isArray(r.suggestions) && r.suggestions.length){
-    h += '<div class="score-section"><h4>改进建议</h4><ul>';
-    r.suggestions.forEach(s => { h += '<li>' + escapeHtml(s) + '</li>'; });
-    h += '</ul></div>';
-  }
-  return h;
-}
+/* 10/10 批③：整篇评分的右栏内容统一走 srPanelHtml。
+   保留本函数名（向后兼容）——histDetailHtml / scoreEssay / openRecordExamView 三处调用点自动升级。
+   旧实现（总分条 + 切题度 inline 块 + score-breakdown 四项 + 手风琴 + 锚点 + good + gap + 语法卡 + 长难句 + 建议）
+   全部内容已并入 srPanelHtml，仅呈现与顺序按她点头的样子稿重排。 */
+function essayScoreHtml(r, isTask1){ return srPanelHtml(r, isTask1); }
 
 /* ===== 评分记录（A1） ===== */
 /* ⚠️ 10/8 晚自抓：_histList 原声明在此处，而 renderScoreHist 在 ready 链里（189 行）与
@@ -1580,7 +1694,8 @@ ${ANCHOR_TABLE_EN}
     }
 
     // 渲染结果（共享 essayScoreHtml：含考官锚点 / 正反馈 / gap 卡）
-    bodyEl.innerHTML = essayScoreHtml(result, isTask1);
+    // 10/10 批③：整篇评分 → 左作文（带内联标注）/ 右批改 两栏
+    bodyEl.innerHTML = srResultHtml(essay, result, isTask1);
 
     // 保存记录
     DATA.writingScores.push({ id: uid(), date: todayKey(), type, topic, essay, result, parsed: true });
@@ -1895,11 +2010,11 @@ function openRecordExamView(rec){
   $('#examQuestion').innerHTML = qHtml || '<div class="muted">（这条记录没有保存题目）</div>';
   $('#examQNote').textContent = '';
   const fold = $('#examEssayFold'); if(fold){ fold.hidden = false; fold.open = true; }
-  const eo = $('#examEssayOrig'); if(eo) eo.textContent = rec.essay || '';
+  const eo = $('#examEssayOrig'); if(eo) eo.innerHTML = srAnnotate(rec.essay || '', rec.result);
   const ta = $('#examEssay'); if(ta){ ta.hidden = true; ta.value = ''; }
   const ft = $('#examAFoot'); if(ft) ft.hidden = true;
   const rbox = $('#examResult');
-  if(rbox){ rbox.hidden = false; rbox.innerHTML = essayScoreHtml(rec.result, rec.type === '小作文'); }
+  if(rbox){ rbox.hidden = false; rbox.innerHTML = srPanelHtml(rec.result, rec.type === '小作文'); }
   const tw = $('#examTimerWrap'); if(tw) tw.style.display = 'none';   // 回看记录不该显示计时器
   const fin = $('#examFinish'); if(fin) fin.hidden = true;            // 也不该有 Finish
   examFontApply();
@@ -2096,53 +2211,13 @@ ${ANCHOR_TABLE_EN}
         toast('AI 返回格式异常，已显示原文');
         return;
       }
-      let html = '<div class="ts-top"><span class="ts-overall">'+escapeHtml(result.overall || 'N/A')+'</span><span class="muted">预估总分</span></div>';
-      /* 10/8 切题度块（自练题带题目时 AI 返回 topicJudge；真题无该字段自动跳过） */
-      if(result.topicJudge && result.topicJudge.verdict){
-        const v = String(result.topicJudge.verdict);
-        const cls = v === '切题' ? 'var(--primary)' : (v === '偏题' ? 'var(--danger)' : 'var(--warn)');
-        html += '<div class="ts-sec" style="border-left:3px solid ' + cls + ';padding-left:12px"><h4>切题度：<span style="color:' + cls + '">' + escapeHtml(v) + '</span></h4>'
-          + (result.topicJudge.reason ? '<p style="margin:4px 0;font-size:13.5px;line-height:1.7">' + escapeHtml(result.topicJudge.reason) + '</p>' : '')
-          + (Array.isArray(result.topicJudge.approach) && result.topicJudge.approach.length
-              ? '<p style="margin:4px 0 0;font-size:13.5px;line-height:1.8"><b>这道题可以怎么讲：</b></p><ul style="margin:4px 0 0;padding-left:18px;font-size:13.5px;line-height:1.8">' + result.topicJudge.approach.map(x => '<li>' + escapeHtml(x) + '</li>').join('') + '</ul>'
-              : '')
-          + '</div>';
-      }
-      if(result.breakdown){
-        html += '<div class="ts-dims">';
-        ['TR','CC','LR','GRA'].forEach(k => {
-          if(result.breakdown[k] != null){
-            const label = (k==='TR'&&isTask1) ? 'TA' : k;
-            html += '<div class="ts-dim"><div class="ts-dim-h">'+label+' <b>'+escapeHtml(result.breakdown[k])+'</b></div></div>';
-          }
-        });
-        html += '</div>';
-      }
-      html += dimsAccordionHtml(result, type === '小作文');   // 10/8 晚：交卷路径也接上四维度手风琴
-      const anchors = (Array.isArray(result.anchors) ? result.anchors : []).map(anchorHtml).filter(Boolean);
-      if(anchors.length){
-        html += '<div class="ts-sec"><h4>考官评分标准对照</h4>' + anchors.join('') + '</div>';
-      }
-      html += goodHtml(result.good);
-      html += gapHtml(result.gap, result.overall);
-      if(Array.isArray(result.grammar)) html += gramSectionHtml(result.grammar);   // 10/2 修：旧模考记录无 grammar 字段，不渲染
-      if(result.longSentences && result.longSentences.length){
-        html += '<div class="ts-sec"><h4>长 / 复杂句分析</h4>';
-        result.longSentences.forEach((ls,i) => {
-          html += '<div class="ts-gram"><b>第 '+(i+1)+' 句（'+(ls.wordCount||'?')+' 词）：</b>'+escapeHtml(ls.sentence||'')+'<br><span class="ts-fix">建议：'+escapeHtml(ls.suggestion||'')+'</span></div>';
-        });
-        html += '</div>';
-      }
-      if(result.suggestions && result.suggestions.length){
-        html += '<div class="ts-sec"><h4>改进建议</h4><ul>';
-        result.suggestions.forEach(s => { html += '<li>'+escapeHtml(s)+'</li>'; });
-        html += '</ul></div>';
-      }
-      box.innerHTML = html;
+      // 10/10 批③：右栏 = 统一批改面板（srPanelHtml，与整篇评分/记录回看同源）；
+      // 左栏「My response」= 原文带内联标注（grammar 错处红波浪 / good 好句绿线）
+      box.innerHTML = srPanelHtml(result, isTask1);
       // 提交后：右栏=AI 评分（隐藏输入区）；左栏题目保持展开，我的作文默认收起、可展开回看
       $('#examEssay').hidden = true;
       const ft2 = $('#examAFoot'); if(ft2) ft2.hidden = true;
-      const eo2 = $('#examEssayOrig'); if(eo2) eo2.textContent = essay;
+      const eo2 = $('#examEssayOrig'); if(eo2) eo2.innerHTML = srAnnotate(essay, result);
       const fo2 = $('#examEssayFold'); if(fo2) fo2.hidden = false;   // 提交后左栏显示「我的作文」回看（9/10 之之）
       // 存盘：真题模考评分记录持久化（刷新不丢），并回流到回顾页「分项模考」看板
       try{
