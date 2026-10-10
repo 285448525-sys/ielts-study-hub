@@ -45,6 +45,12 @@ header.solid{border-color:var(--line);background:rgba(242,243,245,.94)}
 .btn-ghost{background:var(--n-0);border-color:var(--n-400);color:var(--ink)}
 .btn-ghost:hover{border-color:var(--primary-500);color:var(--primary-700)}
 .btn-lg{height:52px;padding:0 28px;font-size:16px;border-radius:14px;gap:8px}
+/* 10/10：新手入门页入口（「怎么开始」段）——显眼但不抢主 CTA */
+.start-newbie{margin:14px 0 0}
+.start-newbie a{display:inline-flex;align-items:center;gap:6px;font-size:14.5px;font-weight:700;
+  color:var(--primary-700);text-decoration:none;background:var(--primary-50);border:1px solid var(--primary-200);
+  border-radius:999px;padding:8px 16px;transition:.16s}
+.start-newbie a:hover{border-color:var(--primary-500);color:var(--primary-500)}
 
 [data-in]{opacity:0;transform:translateY(16px);transition:opacity .7s ease,transform .8s cubic-bezier(.16,.84,.44,1)}
 body.ready [data-in]{opacity:1;transform:none}
@@ -466,6 +472,7 @@ section{padding:76px 0}
     <div class="sec-head" data-rev>
       <h2>3 分钟，看清你的水平和每一天</h2>
       <p>填几项资料，AI 给你一份诚实的诊断：你现在大概几分、缺口在哪、考前每一天该做什么。</p>
+      <p class="start-newbie"><a href="beginner.html">第一次考雅思？先花 3 分钟看这个 →</a></p>
     </div>
     <div class="steps">
       <div class="step" data-rev><div class="no">1</div><h3>免费诊断，直说不哄人</h3><p>站内成绩自动读取，没有分就填高考 / 四六级，AI 换算成四科估计分。听力阅读提分快但空间小，写作口语无法速成——这种真话它也会说。</p></div>
