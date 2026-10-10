@@ -1076,8 +1076,20 @@ function renderWords(){
   _bankShown = {};   // 重置各组分页计数；折叠状态 _bankExpanded 保留
   if(list.length === 0){
     _bankGroups = {};
-    // 官方词包固定 570 词不应为空；src 为空=词包尚未加载成功（走加载失败重试流程中）
-    box.innerHTML = (official && src.length === 0) ? renderEmpty('词包加载中…') : renderEmpty('没有匹配的单词。');
+    /* 10/10 批④ 空态修正：原来一律显示「没有匹配的单词。」——那是**搜索无结果**的文案，
+       出现在「整个词库为空」（用户根本没搜）时，会让人以为是自己搜错了、找不到入口。
+       现在分三种：官方词包未加载 / 词库为空（给导入指路）/ 有词但筛选无结果。 */
+    const _hasFilter = !!kw || WORD_FILTERS.err !== 'all' || WORD_FILTERS.type !== 'all';
+    if(official && src.length === 0){
+      // 官方词包固定 570 词不应为空；src 为空 = 词包尚未加载成功（走加载失败重试流程中）
+      box.innerHTML = renderEmpty('词包加载中…');
+    } else if(src.length === 0){
+      box.innerHTML = renderEmpty('还没有单词。点上面的「+ 批量导入单词」把词粘进来（一行一个，中文意思跟在后面），也可以切到上面的「AWL」直接用官方 570 个学术高频词。');
+    } else if(_hasFilter){
+      box.innerHTML = renderEmpty('没有匹配的单词。换个关键词，或把下面的筛选调回「全部」。');
+    } else {
+      box.innerHTML = renderEmpty('还没有单词。点上面的「+ 批量导入单词」把词粘进来（一行一个）。');
+    }
     bankUpdateActionBar();
     return;
   }

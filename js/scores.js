@@ -109,7 +109,8 @@ function render(){
   // bars (latest vs target) — 改为「差 X 分」对比，差距最大项红色置顶
   const barBox = $('#scoreBars');
   if(list.length === 0){
-    barBox.innerHTML = renderEmpty('暂无数据。');
+    // 10/10 批④：空态给指路（原「暂无数据。」纯占位，新用户不知道这页要自己录）
+    barBox.innerHTML = renderEmpty('还没有成绩记录。点上面的「实战」把一次模考的四科分填进去，这里就会显示各科与目标的差距。');
   } else if(!hasTargets){
     barBox.innerHTML = renderEmpty('还没设目标分数，去「设置 / 目标分数」填一下再对比。');
   } else {
@@ -163,7 +164,7 @@ function render(){
 
   // list
   const box = $('#scoreList');
-  if(list.length === 0){ box.innerHTML = renderEmpty('暂无记录。'); return; }
+  if(list.length === 0){ box.innerHTML = renderEmpty('还没有成绩记录。去上面的「实战」录一条，这里会按时间列出每次成绩。'); return; }
   box.innerHTML = list.map(x => {
     const lo = overall(x.listening, x.reading, x.writing, x.speaking);
     const diff = Math.round((lo - targetOverall) * 2) / 2;
@@ -613,7 +614,7 @@ function renderMockStats(){
   const hasData = keys.some(k => byType[k] && (byType[k].wsum > 0 || byType[k].t > 0));
   const tbox = $('#mkTypeStats');
   if(!hasAny){
-    tbox.innerHTML = renderEmpty('还没有分项模考记录，录一条就能看题型表现。');
+    tbox.innerHTML = renderEmpty('还没有分项模考记录。用上面的「添加分项记录」录一条（选科目、Part、答对题数），这里就能看题型正确率。');
   } else if(range === 'recent' && !hasData){
     tbox.innerHTML = renderEmpty('近十天还没有模考记录。');
   } else {
@@ -632,7 +633,8 @@ function renderMockStats(){
   }
   const pbox = $('#mkPartStats');
   if(!hasAny || (range === 'recent' && !hasData)){
-    pbox.innerHTML = renderEmpty('暂无数据。');
+    // 10/10 批④：空态给指路（原「暂无数据。」）
+    pbox.innerHTML = renderEmpty('还没有分项模考记录。用上面的「添加分项记录」录一条（选科目、Part、答对题数），各 Part 表现就出来了。');
   } else {
     pbox.innerHTML = keys.map(ty => {
       const cfg = MOCK_TYPES[ty];
@@ -672,8 +674,8 @@ function renderMockList(){
   if(fType !== 'all') partRecs = partRecs.filter(r => r.type === fType);
   if(fGran !== 'all') partRecs = partRecs.filter(r => (r.granularity || 'part') === fGran);
   if(partRecs.length === 0){
-    box.innerHTML = renderEmpty(_filtered ? '该筛选条件下暂无记录。'
-      : (range === 'recent' ? '近十天没有分项模考记录（上方统计同口径）。' : '暂无记录。'));
+    box.innerHTML = renderEmpty(_filtered ? '该筛选条件下暂无记录。换个科目或粒度试试。'
+      : (range === 'recent' ? '近十天没有分项模考记录（上方统计同口径）。' : '还没有分项记录。用上面的「添加分项记录」录一条，这里就会按时间列出来。'));
     return;
   }
   const list = partRecs.slice().sort((a,b) => String(b.date||'').localeCompare(String(a.date||''))).filter(r => MOCK_TYPES[r.type]);   // 缺日期/未知 type 的旧记录防崩（与 mockAggregate 口径一致）
