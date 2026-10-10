@@ -3,6 +3,9 @@ var curId = null;
 var curTab = 'tpl';
 var tplSearch = '';
 var bankSearch = '';
+/* 10/10：模板分档筛选（'all' 或 '5.5' / '6.0' / '6.5' / '7.0'）。
+   一档 = 0.5 分；只在**该档有模板时**才渲染按钮（没有的档不显示 0，避免看起来站内是空的）。 */
+var curLevel = 'all';
 
 /* 9/16 修：全文「词」的统计口径统一到这一个函数。改之前四处各算一套口水不平：
    - AI 评分 tab 的实时词数用 /\S+/g
@@ -257,28 +260,48 @@ function renderCats(){
   // 不存在就回落到一个还存在的分类（9/16 修的口径，保留）
   if(!curCat || !all.includes(curCat)) curCat = all[0];
   const btn = c => '<button class="btn' + (c===curCat?' active':'') + '" data-cat="' + escapeHtml(c) + '"><span class="cat-name">' + escapeHtml(c) + '</span><span class="cat-cnt">' + cntOf(c) + '</span></button>';
-  nav.innerHTML = '<div class="cat-group-label">大作文 · Task 2</div>' + CAT_TASK2.map(btn).join('')
+  /* 10/10 模板分档：目标分筛选（一档 0.5 分）。两条设计约束——
+     ① **只在有模板的档位渲染按钮**：没有的档不显示「6.5 · 0」，否则看起来站内是空的；
+     ② 档位从数据里动态收集 → 以后加 6.0/6.5/7.0 模板时按钮自动出现，不用改代码。
+     老数据没有 level 字段时按 5.5 处理（与 data.js 的补字段迁移同口径）。 */
+  const LV_ORDER = ['5.5', '6.0', '6.5', '7.0'];
+  const lvOf = t => t.level || '5.5';
+  const lvCount = lv => DATA.writing.filter(t => lvOf(t) === lv).length;
+  const lvChips = LV_ORDER.filter(lv => lvCount(lv) > 0);
+  if(curLevel !== 'all' && !lvChips.includes(curLevel)) curLevel = 'all';
+  const lvBar = lvChips.length
+    ? '<div class="lv-bar"><span class="lv-bar-lb">目标分</span>'
+      + '<button type="button" class="lv-chip' + (curLevel === 'all' ? ' active' : '') + '" data-lv="all">全部<span class="lv-cnt">' + DATA.writing.length + '</span></button>'
+      + lvChips.map(lv => '<button type="button" class="lv-chip' + (curLevel === lv ? ' active' : '') + '" data-lv="' + lv + '">' + lv + ' 分<span class="lv-cnt">' + lvCount(lv) + '</span></button>').join('')
+      + '</div>'
+    : '';
+  nav.innerHTML = lvBar
+    + '<div class="cat-group-label">大作文 · Task 2</div>' + CAT_TASK2.map(btn).join('')
     + '<div class="cat-group-label">小作文 · Task 1</div>' + CAT_TASK1.map(btn).join('')
     + (extra.length ? '<div class="cat-group-label">自定义</div>' + extra.map(btn).join('') : '');
   nav.querySelectorAll('[data-cat]').forEach(b => b.addEventListener('click', () => { curCat = b.dataset.cat; renderCats(); renderList(); }));
+  nav.querySelectorAll('[data-lv]').forEach(b => b.addEventListener('click', () => { curLevel = b.dataset.lv; renderCats(); renderList(); }));
   renderList();
 }
 
 function renderList(){
   let list = DATA.writing.filter(t => t.category === curCat);
+  // 10/10：目标分档筛选（老数据无 level → 视作 5.5，与 renderCats 同口径）
+  if(curLevel !== 'all') list = list.filter(t => (t.level || '5.5') === curLevel);
   if(tplSearch){ list = list.filter(t => (cleanCatName(t.title)+' '+t.category).toLowerCase().indexOf(tplSearch) !== -1); }
   const lockTag = (tplVip === true) ? '' : '<span class="badge" style="position:absolute;top:10px;right:10px" title="会员专属">🔒</span>';
   /* 10/4（她 12:57 反馈「模板列表里套了一层空壳卡片」）：
      模板标题常与分类名相同（都叫「观点型」），原实现无条件渲染两行 → 同一句话显示两遍，
-     看起来像一张空壳卡。标题与分类一致时不再重复渲染分类行。 */
+     看起来像一张空壳卡。标题与分类一致时不再重复渲染分类行。
+     10/10：该行改成「目标分徽章 +（可选的）分类」，让每张卡一眼能看出是哪个分数档的。 */
   $('#tplList').innerHTML = list.map(t => {
     const tt = cleanCatName(t.title);
     const cat = t.category || '';
-    const sub = (cat && cat !== tt)
-      ? '<div class="muted" style="font-size:13px;margin-top:4px">' + escapeHtml(cat) + '</div>'
-      : '';
+    const lv = t.level || '5.5';
+    const meta = '<div class="tpl-meta"><span class="tpl-lv">目标 ' + escapeHtml(lv) + ' 分</span>'
+      + ((cat && cat !== tt) ? '<span class="tpl-cat">' + escapeHtml(cat) + '</span>' : '') + '</div>';
     return '<div class="card tpl-card" data-id="' + t.id + '" style="position:relative">'
-      + lockTag + '<b>' + escapeHtml(tt) + '</b>' + sub + '</div>';
+      + lockTag + '<b>' + escapeHtml(tt) + '</b>' + meta + '</div>';
   }).join('');
   $('#empty').hidden = list.length > 0;
   $('#tplList').querySelectorAll('[data-id]').forEach(c => c.addEventListener('click', () => openTpl(c.dataset.id)));
