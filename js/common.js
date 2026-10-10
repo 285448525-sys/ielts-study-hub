@@ -4381,11 +4381,32 @@ function onbLandBankTab(){
   setTimeout(function(){
     let n = 25;
     (function wait(){
-      if(typeof switchWordTab === 'function'){ try{ switchWordTab('bank'); }catch(e){} return; }
+      if(typeof switchWordTab === 'function'){
+        try{ switchWordTab('bank'); }catch(e){}
+        try{ onbBankBackHint(); }catch(e){}
+        return;
+      }
       if(n-- <= 0) return;
       setTimeout(wait, 120);
     })();
   }, 200);
+}
+/* 10/10 批④：从引导点「去导入我的词库」跳过来的用户，落到词库页后**没有任何回来的线索**（走查实拍：
+   页面只有 0 个单词 + 「没有匹配的单词」，用户不知道导完要干嘛）。在词库容器顶部插一条一次性提示。 */
+function onbBankBackHint(){
+  const host = document.getElementById('bankView');
+  if(!host || document.getElementById('onbBankHint')) return;
+  const box = document.createElement('div');
+  box.id = 'onbBankHint';
+  box.className = 'onb-bank-hint';
+  const txt = document.createElement('span');
+  txt.textContent = '把单词贴进下面的「批量导入单词」就行。导好了回首页，继续把设置配完。';
+  const back = document.createElement('a');
+  back.className = 'btn btn-sm btn-primary';
+  back.href = 'home.html';
+  back.textContent = '回首页继续 →';
+  box.appendChild(txt); box.appendChild(back);
+  host.insertBefore(box, host.firstChild);
 }
 
 /* ---------- 设置写入：统一打时间戳（跨端同步靠它，漏一个就是「改了不生效」） ---------- */
@@ -4480,7 +4501,7 @@ function onbRenderSetup(step){
   nav.appendChild(ind);
   const next = document.createElement('button');
   next.type = 'button'; next.className = 'btn btn-primary btn-sm onb2-next';
-  next.textContent = (step === 1 ? '开始配置 →' : (step === 3 ? '进站开工 →' : '继续 →'));
+  next.textContent = (step === 1 ? '开始配置 →' : (step === 3 ? '进站，看今天做什么 →' : '继续 →'));
   next.addEventListener('click', function(){ _onbStepNext(step); });
   nav.appendChild(next);
   wrap.appendChild(nav);
@@ -4617,25 +4638,47 @@ function onbPaintEffort(pane){
 function onbPaintWords(pane, withDone){
   pane.appendChild(_onbH('你的词库'));
   pane.appendChild(_onbNote('导入自己的词库最有效；没有的话先用内置的官方 AWL 570，之后随时能换。'));
-  const goImport = document.createElement('button');
-  goImport.type = 'button'; goImport.className = 'btn btn-primary onb2-block onb2-goimport';
-  goImport.textContent = '去导入我的词库';
-  goImport.addEventListener('click', function(){
-    setOnboarding({ entered:true, setup:{ words:false } });   // 标记「待完成」：回来仍未完成 → 提示条继续提醒
-    try{ sessionStorage.setItem(ONB_GOTO_BANK, '1'); }catch(e){}
-    location.href = 'practice.html';
-  });
-  pane.appendChild(goImport);
-  const goAwl = document.createElement('button');
-  goAwl.type = 'button'; goAwl.className = 'btn onb2-block onb2-goawl';
-  goAwl.textContent = '用官方 AWL 570';
-  goAwl.addEventListener('click', function(){
-    try{ if(typeof wbSetActive === 'function') wbSetActive('awl'); }catch(e){}
-    setOnboarding({ entered:true, setup:{ words:true } });
-    try{ sessionStorage.setItem('hub_wb_goto', 'awl'); }catch(e){}
-    location.href = 'practice.html';
-  });
-  pane.appendChild(goAwl);
+  /* 10/10 批④：官方库**当场激活、不跳页**（原实现点了直接跳 practice.html，用户既看不到完成总结、
+     也不知道回来干嘛）。已激活状态改显示「已启用 ✓」+ 一个换库入口。 */
+  const _activeBank = (function(){ try{ return (typeof wbActive === 'function') ? wbActive() : 'custom'; }catch(e){ return 'custom'; } })();
+  if(_activeBank !== 'custom'){
+    const okBox = document.createElement('div');
+    okBox.className = 'onb2-okbox';
+    const okB = document.createElement('b'); okB.textContent = '✓ 已启用官方 AWL 570';
+    const okS = document.createElement('span'); okS.textContent = '学术高频词 · 570 个，直接开始背就行';
+    okBox.appendChild(okB); okBox.appendChild(okS);
+    pane.appendChild(okBox);
+    const swap = document.createElement('button');
+    swap.type = 'button'; swap.className = 'btn btn-ghost btn-sm onb2-block onb2-goimport';
+    swap.textContent = '换成我自己的词库 →';
+    swap.addEventListener('click', function(){
+      setOnboarding({ entered:true, setup:{ words:false } });
+      try{ sessionStorage.setItem(ONB_GOTO_BANK, '1'); }catch(e){}
+      location.href = 'practice.html';
+    });
+    pane.appendChild(swap);
+  } else {
+    const goImport = document.createElement('button');
+    goImport.type = 'button'; goImport.className = 'btn btn-primary onb2-block onb2-goimport';
+    goImport.textContent = '去导入我的词库';
+    goImport.addEventListener('click', function(){
+      setOnboarding({ entered:true, setup:{ words:false } });   // 标记「待完成」：回来仍未完成 → 提示条继续提醒
+      try{ sessionStorage.setItem(ONB_GOTO_BANK, '1'); }catch(e){}
+      location.href = 'practice.html';
+    });
+    pane.appendChild(goImport);
+    const goAwl = document.createElement('button');
+    goAwl.type = 'button'; goAwl.className = 'btn onb2-block onb2-goawl';
+    goAwl.textContent = '用官方 AWL 570';
+    goAwl.addEventListener('click', function(){
+      try{ if(typeof wbSetActive === 'function') wbSetActive('awl'); }catch(e){}
+      setOnboarding({ entered:true, setup:{ words:true } });
+      try{ if(typeof hubSave === 'function') hubSave(); }catch(e){}
+      _onbLastDir = 1;
+      onbRenderSetup(3);   // 就地重渲染 → 显示「已启用 ✓」，用户继续走完引导
+    });
+    pane.appendChild(goAwl);
+  }
   // 10/1：原 step5 done 总结合并进来（点「进站开工 →」之前让用户看到自己配了什么）
   if(withDone){
     const s = (DATA && DATA.settings) || {};
@@ -4649,7 +4692,8 @@ function onbPaintWords(pane, withDone){
     list.className = 'onb2-list';
     [['距考试', days == null ? '未设置' : (days > 0 ? (days + ' 天') : (days === 0 ? '就是今天' : '已过'))],
      ['目标总分', target > 0 ? target.toFixed(1) : '未设置'],
-     ['每日投入', (hours > 0 ? (hours + ' 小时') : '未设置') + ' · 背词 ' + (cap > 0 ? (cap + ' 个') : '不限')]
+     ['每日投入', (hours > 0 ? (hours + ' 小时') : '未设置') + ' · 背词 ' + (cap > 0 ? (cap + ' 个') : '不限')],
+     ['词库', _activeBank !== 'custom' ? '官方 AWL 570' : ((Array.isArray(DATA.words) && DATA.words.length) ? ('我自己的 ' + DATA.words.length + ' 个词') : '还没设')]
     ].forEach(function(x){
       const li = document.createElement('li');
       const b = document.createElement('b'); b.textContent = x[0];
@@ -4658,6 +4702,11 @@ function onbPaintWords(pane, withDone){
       list.appendChild(li);
     });
     pane.appendChild(list);
+    /* 10/10 批④：把「进站之后会看到什么」说清楚，与首页「今天先做这三件事」接上（原实现两边互不知情） */
+    const hint = document.createElement('p');
+    hint.className = 'onb2-note onb2-after';
+    hint.textContent = '进站后，首页会按你的进度告诉你今天先做哪三件事——照着做就行，别的先不用管。';
+    pane.appendChild(hint);
   }
 }
 function onbDaysLeft(){

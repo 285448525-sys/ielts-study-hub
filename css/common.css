@@ -2908,6 +2908,14 @@ html[data-theme="dark"] .onb-overlay{background:rgba(0,0,0,.62)}
 .onb2-chip:hover{border-color:var(--primary);color:var(--primary)}
 .onb2-err{margin-top:8px;font-size:12.5px;line-height:1.5;color:var(--danger)}
 .onb2-block{width:100%;padding:12px 16px;margin-top:10px}
+/* 10/10 批④：引导闭环三件套 —— 官方库「已启用」态 / 进站后预告 / 词库页返回提示 */
+.onb2-okbox{display:flex;flex-direction:column;gap:3px;padding:12px 14px;border:1px solid var(--primary-200);border-radius:12px;background:var(--primary-50)}
+.onb2-okbox b{font-size:13.5px;color:var(--primary-text)}
+.onb2-okbox span{font-size:12.5px;line-height:1.6;color:var(--muted)}
+.onb2-after{margin:14px 0 0;padding:10px 12px;border-radius:10px;background:var(--primary-50);color:var(--primary-text);font-size:12.5px;line-height:1.65}
+.onb-bank-hint{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 12px;padding:11px 14px;border:1px solid var(--primary-200);border-left:3px solid var(--primary);border-radius:10px;background:var(--primary-50);font-size:13px;line-height:1.6;color:var(--ink)}
+.onb-bank-hint span{flex:1;min-width:190px}
+.onb-bank-hint a{flex:none;text-decoration:none}
 .onb2-nav{display:flex;align-items:center;gap:10px;margin-top:10px;padding:12px 26px 18px;border-top:1px solid var(--line)}
 .onb2-ind{margin:0 auto;font-size:12px;color:var(--muted)}
 .onb2-nav .btn-sm{padding:8px 14px}
