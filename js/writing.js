@@ -362,6 +362,50 @@ function restoreTplBlocks(){
   const lock = document.getElementById('tplLockCard'); if(lock) lock.hidden = true;
 }
 
+/* 10/10 模板用法说明：进模板先看「怎么用」，练熟了可以收起。
+   「我记住了，收起」= 永久收起该模板的用法块（localStorage 记 id 列表）。
+   ⚠️ 刻意**不进 DATA.settings、不参与云同步** —— 这是轻量 UI 偏好，避免动 SYNC_SETTINGS_FIELDS
+   那份跨端契约（少一个字段就少一处「改了不生效」的风险）。收起后标题栏留「展开看用法」随时翻回来。 */
+const TPL_GUIDE_KEY = 'hub_tpl_guide_hidden_v1';
+function tplGuideHiddenList(){
+  try{
+    const a = JSON.parse(localStorage.getItem(TPL_GUIDE_KEY) || '[]');
+    return Array.isArray(a) ? a.filter(x => typeof x === 'string') : [];
+  }catch(e){ return []; }
+}
+function tplGuideSetHidden(id, hidden){
+  try{
+    const a = tplGuideHiddenList().filter(x => x !== id);
+    if(hidden) a.push(id);
+    localStorage.setItem(TPL_GUIDE_KEY, JSON.stringify(a));
+  }catch(e){}
+}
+function renderTplGuide(t){
+  const box = $('#tips'), body = $('#tipsBody'), btn = $('#tgToggle');
+  if(!box) return;
+  /* 用 style.display 而不是 hidden 属性 —— 与 renderTplLocked/restoreTplBlocks 的 hideIds 同一套机制，
+     两套混用会在「锁态→解锁」来回切时打出幽灵空框。 */
+  if(!t || !t.tips){ box.style.display = 'none'; return; }
+  box.style.display = '';
+  if(body) body.innerHTML = escapeHtml(t.tips).replace(/\n/g, '<br>');
+  const hid = tplGuideHiddenList().includes(t.id);
+  box.classList.toggle('collapsed', hid);
+  if(btn){
+    btn.textContent = hid ? '展开看用法' : '我记住了，收起';
+    btn.setAttribute('aria-expanded', String(!hid));
+    if(!btn.dataset.bound){
+      btn.dataset.bound = '1';
+      btn.addEventListener('click', function(){
+        const cur = DATA.writing.find(x => x.id === curId);
+        if(!cur) return;
+        const willHide = !$('#tips').classList.contains('collapsed');
+        tplGuideSetHidden(cur.id, willHide);
+        renderTplGuide(cur);
+      });
+    }
+  }
+}
+
 function openTpl(id){
   const t = DATA.writing.find(x => x.id === id);
   if(!t) return;
@@ -372,7 +416,7 @@ function openTpl(id){
   if(tplVip !== true){ renderTplLocked(); return; }   // 会员闸：非会员只给锁卡（10/2 她拍板）
   restoreTplBlocks();
   /* 「作文骨架」原文块已删（她 10/1：与填空练习/完整句重复）；骨架数据仍是填空/默写/评分的源，只删展示 */
-  $('#tips').innerHTML = t.tips ? escapeHtml(t.tips).replace(/\n/g,'<br>') : '';
+  renderTplGuide(t);   // 10/10：怎么用这个模板（含「我记住了，收起」）
   const sb = $('#tplScoreBox');
   if(sb){ sb.hidden = true; sb.innerHTML = ''; }   // 换模板时清掉上一份评分
   buildPractice(t.skeleton);

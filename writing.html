@@ -43,7 +43,7 @@
   <script defer src="js/common.js?v=20261010a"></script>
   <script defer src="js/feedback.js?v=20261006a"></script>
   <script defer src="js/writing_prompts.js?v=20260903ab"></script>
-  <script defer src="js/writing.js?v=20261010b"></script>
+  <script defer src="js/writing.js?v=20261010c"></script>
   <script defer src="js/wrongbook.js?v=20260903ab"></script>
 <style>
 
@@ -94,6 +94,18 @@
   .preview-box{white-space:pre-wrap;line-height:1.9;font-size:15px;border:1px dashed var(--primary);border-radius:var(--radius);padding:14px;margin-top:8px}
   .preview-box u{text-decoration:underline;color:var(--primary-d);font-weight:600}
   .tips-box{margin-top:10px;font-size:13px;color:var(--muted);line-height:1.7}
+  /* 10/10 模板用法说明：进模板先教怎么用，练熟了可收起（收起状态记在 localStorage）。
+     注：#tips 自带 .tips-box，靠下面的 .tpl-guide 覆盖它的 margin（同特异性、后定义者胜）。 */
+  .tpl-guide{margin:0 0 16px;padding:0;border:1px solid var(--primary-200);background:var(--primary-50);
+    border-radius:12px;overflow:hidden;font-size:13.5px;color:var(--ink-2);line-height:1.75}
+  .tpl-guide .tg-head{display:flex;align-items:center;gap:10px;padding:11px 14px}
+  .tpl-guide .tg-title{font-size:13.5px;font-weight:800;color:var(--primary-text)}
+  .tpl-guide .tg-toggle{margin-left:auto;flex:none;border:none;background:none;cursor:pointer;
+    font-size:12.5px;font-weight:700;color:var(--primary-700);padding:5px 10px;border-radius:8px;min-height:0;transition:.15s}
+  .tpl-guide .tg-toggle:hover{background:rgba(255,255,255,.75)}
+  .tpl-guide .tg-body{padding:0 14px 13px}
+  .tpl-guide.collapsed .tg-body{display:none}
+  .tpl-guide.collapsed .tg-head{padding-bottom:11px}
   @media(max-width:860px){ .write-layout{flex-direction:column} .cat-nav{width:100%;flex-direction:row;flex-wrap:wrap} }
   /* 10/2（她反馈）：手机端四枚 Tab 挤在一起——照口语页已验证口径，窄屏平分一行不挤压 */
   @media(max-width:560px){
@@ -443,6 +455,15 @@
           </div>
 
           <div class="tpl-edit">
+            <!-- 10/10：模板用法说明——原空 div#tips 挪到「填空练习」之前（进模板先看怎么用，再动手练），
+                 并加标题栏 +「我记住了，收起」。整块仍挂在 #tips 上 → 锁态的 hideIds 名单不用动。 -->
+            <div id="tips" class="tips-box tpl-guide">
+              <div class="tg-head">
+                <span class="tg-title">怎么用这个模板</span>
+                <button type="button" class="tg-toggle" id="tgToggle" aria-expanded="true">我记住了，收起</button>
+              </div>
+              <div class="tg-body" id="tipsBody"></div>
+            </div>
             <!-- 「作文骨架」原文块已删（她 10/1：和填空练习/完整句内容重复，三块连排像同一内容）。
                  填空练习直接从骨架数据构建，不依赖原文展示。 -->
             <h3>填空练习</h3>
@@ -461,7 +482,6 @@
             <div id="tplScoreBox" class="tpl-score" hidden></div>
           </div>
 
-          <div id="tips" class="tips-box"></div>
           <div id="tplWrongBox" hidden style="margin-top:12px"></div>
           <div class="form-row" style="margin-top:12px">
             <button class="btn btn-danger" id="delBtn">删除模板</button>
