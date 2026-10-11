@@ -30,7 +30,7 @@
 // 开合（窄屏原本点了开记忆弹层、且教练台整块隐藏→现在展开态显示为浮层）；发送框收到 36px。v212→v213
 // 10/4 13:36 她看过实机后补一条：手机端教练台改为**默认收起**（点开才出现）；
 // 桌面维持默认展开。窄屏开合只记内存、不写回设置，避免「手机收起把电脑右栏也收掉」。v213→v214
-const CACHE = 'ielts-hub-v311';  // 10/11 题库第 0 期：新增 bank.html（学习组第 5 成员）+ js/bank.js（读 bank/manifest.json 渲染只读目录：阅读 68 篇 / 听力 347 篇两个 tab）。PRECORE 加 /bank.html + /js/bank.js（bank/ 下数据不进 PRECORE，运行时按需拉）。common.js 加 PAGES.bank + GROUPED_DOCK 学习组 members + SIDE_SEARCH_PAGES；hubgroup.js 学习组加卡片。上一版 v310 批⑱ 清理探针限 20 个（7ae587a）。
+const CACHE = 'ielts-hub-v312';  // 10/11 模考大 tab 改版：题库 → 「模考」+ 四小 tab（阅读/听力/写作/口语）；阅读做题页上线（左文右题 + 答题卡 + 交卷自动判分 + 逐题解析）。common.js（改 PAGES/hubgroup 名称）→ 20261011b、hubgroup.js → 20261011b、bank.js → 20261011b。上一版 v311 题库第 0 期骨架（3923df3）。
 // 10/5 14:35 设置页合并目标分数+口语自评 + 删竖排版本标记 + 顶栏显昵称（common.js/settings.js 改版）
   // 10/4 19:20 题库卡片「显示不全、被截掉一截」（她 19:10 报，点名「住所」与「对结果开心的重要决定」，说了好几遍）
 //
