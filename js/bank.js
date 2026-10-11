@@ -105,13 +105,24 @@
     return h + '</ul>';
   }
 
+  /* 🔴 10/11 体检发现的真 bug：manifest（目录）还没下载完时，切 tab 会走到这里，
+     此时 units 是空的 → 渲染成「这一部分暂时没有篇目。」+「共 0 篇」。
+     那是**错误的陈述**（明明有 68 篇阅读 / 347 篇听力），用户第一眼会以为站是空的/坏了。
+     成熟做法：**加载中就明确说「加载中」，绝不用空态文案顶替**（空态只用于「确实没有」）。
+     修法 = 数据未到时统一走 .bank-loading，等 boot() 拿到 manifest 后 paintTab 会重画。 */
+  var LOADING_HTML = '<div class="bank-loading">目录加载中…</div>';
+  function paintLoading(host, meta){
+    if(host) host.innerHTML = LOADING_HTML;
+    if(meta) meta.textContent = '目录加载中…';
+  }
   function renderList(channel, part){
     var host = document.getElementById('bankList');
     if(!host) return;
     if(channel !== 'reading'){ host.innerHTML = ''; return; }
+    var meta = document.getElementById('partMeta');
+    if(!_manifest){ paintLoading(host, meta); return; }
     part = part || currentPart();
     var units = unitsOf(channel).filter(function(u){ return (u.partNum || 'Part 1') === part; });
-    var meta = document.getElementById('partMeta');
     if(meta){
       var perQ = units.length ? (units[0].qCount || 0) : 0;
       meta.textContent = part + ' · 共 ' + units.length + ' 篇' + (perQ ? (' · 每篇 ' + perQ + ' 题') : '');
@@ -131,6 +142,8 @@
   }
   function renderListenParts(){
     var host = document.getElementById('listenPartTabs'); if(!host) return;
+    /* 数据没到就别动它（保持 HTML 里静态的 Part 1–4），否则徽标会显示成 0 */
+    if(!_manifest) return;
     var all = unitsOf('listening');
     host.querySelectorAll('.pill-tab').forEach(function(b){
       var p = b.getAttribute('data-lpart');
@@ -140,10 +153,11 @@
   }
   function renderListenList(part){
     var host = document.getElementById('listenList'); if(!host) return;
-    if(!_manifest){ host.innerHTML = ''; return; }
+    var meta = document.getElementById('listenMeta');
+    /* 同上：加载中说加载中。⚠️ 原先这里是清空（把 HTML 里静态的「目录加载中…」也抹掉了 → 一片空白） */
+    if(!_manifest){ paintLoading(host, meta); return; }
     part = part || currentListenPart();
     var units = unitsOf('listening').filter(function(u){ return (u.partNum || 'Part 1') === part; });
-    var meta = document.getElementById('listenMeta');
     if(meta){
       var perQ = units.length ? (units[0].qCount || 0) : 0;
       meta.textContent = part + ' · 共 ' + units.length + ' 篇' + (perQ ? (' · 每篇 ' + perQ + ' 题') : '');
@@ -217,8 +231,11 @@
       .catch(function(err){
         _loading = false;
         if(window.console && console.error) console.error('[bank] manifest 加载失败：', err);
-        var h = document.getElementById('bankList');
-        if(h) h.innerHTML = '<div class="bank-empty"><p>目录加载失败，请刷新重试。</p></div>';
+        /* 🔴 10/11 顺带修：失败提示原先只写 #bankList，听力 tab 会一直停在「目录加载中…」 */
+        ['bankList', 'listenList'].forEach(function(id){
+          var h = document.getElementById(id);
+          if(h) h.innerHTML = '<div class="bank-empty"><p>目录加载失败，请刷新重试。</p></div>';
+        });
       });
   }
 
