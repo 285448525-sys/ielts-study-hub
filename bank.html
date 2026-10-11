@@ -21,13 +21,10 @@
 <style>
 /* ===== 模考页样式（页面内联，不动 common.css → 免全站 bump）===== */
 .mock-wrap{max-width:1080px;margin:0 auto}
-.mock-head h1{font-size:22px;font-weight:800;margin:0 0 6px}
-.mock-head p{color:var(--muted);font-size:14px;margin:0 0 18px;line-height:1.6}
-.mock-tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
-.mock-tab{appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);
-  font-size:14px;font-weight:600;padding:9px 20px;border-radius:10px;cursor:pointer;min-height:40px;transition:.15s}
-.mock-tab:hover{border-color:var(--primary);color:var(--primary)}
-.mock-tab.active{background:var(--primary);border-color:var(--primary);color:#fff}
+/* 小 tab 直接用全站 .pill-tabs / .pill-tab（css/common.css），此处不另造样式 */
+.mock-tabs{margin:0 0 12px}
+.partbar{display:flex;align-items:center;gap:16px;margin:0 0 10px;flex-wrap:wrap}
+.partmeta{font-size:12.5px;color:var(--muted);margin-left:auto;white-space:nowrap}
 
 .full-row{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:15px 18px;
   display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px}
@@ -42,15 +39,24 @@
 
 .bank-count{font-size:13px;color:var(--muted);margin:0 0 10px}
 .bank-items{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
-.bank-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 16px;border-top:1px solid var(--line);cursor:pointer}
+.bank-item{display:flex;align-items:center;gap:14px;padding:10px 16px;border-top:1px solid var(--line);cursor:pointer;transition:background .12s}
 .bank-item:first-child{border-top:none}
 .bank-item:hover{background:var(--surface-2)}
-.bank-item-main{display:flex;flex-direction:column;gap:2px;min-width:0}
-.bank-item-main b{font-size:15px;font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bank-item-zh{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bank-item-meta{display:flex;gap:6px;flex:none;align-items:center}
-.bank-tag{font-size:12px;color:var(--muted);background:var(--bg);border:1px solid var(--line);padding:3px 9px;border-radius:20px;white-space:nowrap}
-.bank-tag.ok{color:var(--primary-900);background:var(--primary-50);border-color:var(--primary-100);font-weight:700}
+.bank-item:hover .bi-tt b{color:var(--primary-700)}
+.bank-item:hover .bi-chev{color:var(--primary)}
+.bi-no{width:24px;flex:none;font-size:12px;font-weight:700;color:var(--n-500);text-align:right;font-variant-numeric:tabular-nums}
+.bi-tt{flex:1;min-width:0;display:flex;align-items:baseline;gap:9px;overflow:hidden}
+.bi-tt b{font-size:14.5px;font-weight:650;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .12s}
+.bi-tt i{font-style:normal;font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bi-chips{display:flex;gap:5px;flex:none}
+.bi-ch{font-size:11.5px;padding:2px 8px;border-radius:6px;white-space:nowrap;line-height:1.5}
+.bi-ch.t1{color:var(--primary-900);background:var(--primary-50);border:1px solid var(--primary-100)}
+.bi-ch.t2{color:#4a6b8a;background:#eef2f6;border:1px solid #dbe4ee}
+.bi-ch.t3{color:#8a6238;background:#f7f0e8;border:1px solid #eddfcd}
+.bi-qn{width:50px;flex:none;text-align:right;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.bi-st{width:58px;flex:none;text-align:right;font-size:12.5px;color:var(--n-500);font-variant-numeric:tabular-nums}
+.bi-st.ok{color:var(--primary-900);font-weight:700}
+.bi-chev{width:14px;flex:none;text-align:right;color:var(--n-400);font-size:15px;transition:color .12s}
 .bank-loading,.bank-empty{padding:40px 16px;text-align:center;color:var(--muted);font-size:14px;line-height:1.8}
 .bank-note{margin:18px 0 0;font-size:13px;color:var(--muted);line-height:1.7}
 .soon-box{background:var(--surface);border:1px dashed var(--line);border-radius:12px;padding:26px 20px;text-align:center;color:var(--muted);font-size:14px;line-height:1.9}
@@ -118,7 +124,9 @@
   .ex-article{border-right:none;border-bottom:1px solid var(--line);padding:16px 16px 40px}
   .ex-qcol{padding:14px 14px 90px}
   .ex-top{flex-wrap:wrap;gap:8px}
-  .mock-tab{flex:1;text-align:center;padding:9px 8px;font-size:13.5px}
+  .mock-tabs .pill-tab,.partbar .pill-tab{padding:9px 12px;font-size:13.5px}
+  .mock-tabs{width:100%}.mock-tabs .pill-tab{flex:1;justify-content:center}
+  .bi-chips{display:none}.bi-qn{width:44px}
 }
 </style>
 <style id="bootLoaderStyle">
@@ -134,22 +142,24 @@
 
 <main class="container">
   <!-- 🔴 软导航契约：功能容器必须在 <main> 之内 -->
-  <div class="mock-wrap" id="bankRoot" data-mock-tab="reading">
-    <div class="mock-head">
-      <h1>模考</h1>
-      <p>四科按真实机考的形式练：听力 30 分钟、阅读 60 分钟、写作 60 分钟、口语 14 分钟。</p>
-    </div>
-
-    <div class="mock-tabs" id="mockTabs" role="tablist">
-      <button class="mock-tab active" type="button" data-mtab="reading" role="tab">阅读</button>
-      <button class="mock-tab" type="button" data-mtab="listening" role="tab">听力</button>
-      <button class="mock-tab" type="button" data-mtab="writing" role="tab">写作</button>
-      <button class="mock-tab" type="button" data-mtab="speaking" role="tab">口语</button>
+  <div class="mock-wrap" id="bankRoot" data-mock-tab="reading" data-mock-part="Part 1">
+    <div class="mock-tabs pill-tabs" id="mockTabs" role="tablist">
+      <button class="pill-tab active" type="button" data-mtab="reading" role="tab">阅读</button>
+      <button class="pill-tab" type="button" data-mtab="listening" role="tab">听力</button>
+      <button class="pill-tab" type="button" data-mtab="writing" role="tab">写作</button>
+      <button class="pill-tab" type="button" data-mtab="speaking" role="tab">口语</button>
     </div>
 
     <section class="mock-pane" id="pane-reading">
+      <div class="partbar">
+        <div class="pill-tabs" id="partTabs">
+          <button class="pill-tab active" type="button" data-part="Part 1">Part 1</button>
+          <button class="pill-tab" type="button" data-part="Part 2">Part 2</button>
+          <button class="pill-tab" type="button" data-part="Part 3">Part 3</button>
+        </div>
+        <span class="partmeta" id="partMeta"></span>
+      </div>
       <div id="bankList"><div class="bank-loading">目录加载中…</div></div>
-      <p class="bank-note">每篇 = 一次完整阅读练习（13 或 14 题）。做完自动判分、逐题给解析。</p>
     </section>
 
     <section class="mock-pane" id="pane-listening" hidden>
@@ -172,6 +182,6 @@
 <!-- 🔴 加载顺序契约（10/5 铁律）：defer 顺序不可改 —— bank.js 依赖 common.js 的 PAGES -->
 <script defer src="js/data.js?v=20261011e"></script>
 <script defer src="js/common.js?v=20261011b"></script>
-<script defer src="js/bank.js?v=20261011b"></script>
+<script defer src="js/bank.js?v=20261011c"></script>
 </body>
 </html>

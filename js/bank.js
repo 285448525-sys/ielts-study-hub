@@ -74,24 +74,42 @@
     }
     return out;
   }
-  function renderList(channel){
+  var CHIP_CLS = { '判断': 't1', '填空': 't1', '配对': 't2', '选择': 't3', '多选': 't3', '地图': 't3' };
+  function chipCls(t, i){ return CHIP_CLS[t] || ('t' + ((i % 3) + 1)); }
+  function currentPart(){
+    var root = document.getElementById('bankRoot');
+    return (root && root.getAttribute('data-mock-part')) || 'Part 1';
+  }
+
+  function renderList(channel, part){
     var host = document.getElementById('bankList');
     if(!host) return;
     if(channel !== 'reading'){ host.innerHTML = ''; return; }
-    var units = unitsOf(channel);
-    if(!units.length){ host.innerHTML = '<div class="bank-empty"><p>题库准备中。</p></div>'; return; }
-    var h = '<div class="bank-count">共 ' + units.length + ' 篇</div><ul class="bank-items">';
+    part = part || currentPart();
+    var all = unitsOf(channel);
+    var units = all.filter(function(u){ return (u.partNum || 'Part 1') === part; });
+    var meta = document.getElementById('partMeta');
+    if(meta){
+      var perQ = units.length ? (units[0].qCount || 0) : 0;
+      meta.textContent = part + ' · 共 ' + units.length + ' 篇' + (perQ ? (' · 每篇 ' + perQ + ' 题') : '');
+    }
+    if(!units.length){ host.innerHTML = '<div class="bank-empty"><p>这一部分暂时没有篇目。</p></div>'; return; }
+    var h = '<ul class="bank-items">';
     for(var k = 0; k < units.length; k++){
-      var u = units[k], done = '';
+      var u = units[k], st = '', oc = '未做', chips = '';
       try{
         var rec = localStorage.getItem('hub_bank_last_' + u.id);
-        if(rec){ var r = JSON.parse(rec); done = '<span class="bank-tag ok">' + r.correct + '/' + r.total + '</span>'; }
+        if(rec){ var r = JSON.parse(rec); st = 'ok'; oc = r.correct + '/' + r.total; }
       }catch(e){}
+      (u.types || []).forEach(function(t, i){ chips += '<span class="bi-ch ' + chipCls(t, i) + '">' + esc(t) + '</span>'; });
       h += '<li class="bank-item" data-unit="' + esc(u.id) + '" data-ch="' + esc(channel) + '">'
-        +    '<span class="bank-item-main"><b>' + esc(u.title || '未命名') + '</b>'
-        +      (u.titleZh ? '<span class="bank-item-zh">' + esc(u.titleZh) + '</span>' : '') + '</span>'
-        +    '<span class="bank-item-meta">' + done
-        +      '<span class="bank-tag">' + (u.qCount || 0) + ' 题</span></span>'
+        +    '<span class="bi-no">' + (k + 1) + '</span>'
+        +    '<span class="bi-tt"><b>' + esc(u.title || '未命名') + '</b>'
+        +      (u.titleZh ? '<i>' + esc(u.titleZh) + '</i>' : '') + '</span>'
+        +    '<span class="bi-chips">' + chips + '</span>'
+        +    '<span class="bi-qn">' + (u.qCount || 0) + ' 题</span>'
+        +    '<span class="bi-st ' + st + '">' + esc(oc) + '</span>'
+        +    '<span class="bi-chev">›</span>'
         +  '</li>';
     }
     h += '</ul>';
@@ -104,7 +122,7 @@
     root.setAttribute('data-mock-tab', tab);
     var panes = root.querySelectorAll('.mock-pane');
     for(var i = 0; i < panes.length; i++) panes[i].hidden = (panes[i].id !== 'pane-' + tab);
-    var btns = root.querySelectorAll('#mockTabs .mock-tab');
+    var btns = root.querySelectorAll('#mockTabs .pill-tab');
     for(var j = 0; j < btns.length; j++) btns[j].classList.toggle('active', btns[j].getAttribute('data-mtab') === tab);
   }
 
@@ -461,9 +479,18 @@
 
     document.addEventListener('click', function(e){
       var t = e.target, el;
-      if((el = t.closest && t.closest('#mockTabs .mock-tab'))){
+      /* 一级：四科 */
+      if((el = t.closest && t.closest('#mockTabs .pill-tab'))){
         showTab(el.getAttribute('data-mtab'));
         if(el.getAttribute('data-mtab') === 'reading') renderList('reading');
+        return;
+      }
+      /* 二级：阅读的 Part 1 / 2 / 3 */
+      if((el = t.closest && t.closest('#partTabs .pill-tab'))){
+        var rt = document.getElementById('bankRoot');
+        if(rt) rt.setAttribute('data-mock-part', el.getAttribute('data-part'));
+        document.querySelectorAll('#partTabs .pill-tab').forEach(function(b){ b.classList.toggle('active', b === el); });
+        renderList('reading');
         return;
       }
       if((el = t.closest && t.closest('.bank-item[data-unit]'))){
