@@ -384,8 +384,15 @@
     /* 题目配图（听力地图题 / 带图填空题）：图在 static.9fnnn.com，公开可直引，不下载。
        🔴 10/11 踩过的坑：旧建库脚本的字段白名单把 groups[].imageUrl 丢了 →
           我据此误判「听力地图题全站没图」，实际源数据 37/37 都有图。
-          现已由 tests/_patch_bank_assets_1011.cjs 补回。查数据前先确认查的是不是源数据。 */
-    if(g.imageUrl) h += '<div class="ex-gimg"><img src="' + esc(g.imageUrl) + '" alt="" loading="lazy"></div>';
+          现已由 tests/_patch_bank_assets_1011.cjs 补回。查数据前先确认查的是不是源数据。
+       🔴 10/11 二次修正：**不要给这张图加 `loading="lazy"`**。实测「懒加载 + 未声明宽高」= 图片先占 24px、
+          几秒后撑到 536px，把下方题目整块往下推（教科书级 layout shift，正撞她「绝不切内容、绝不错位」的判据）；
+          而且这张图就在打开篇目的首屏附近、又是做题必需内容 → 属「关键内容例外」，不该懒加载。
+          多个独立来源口径一致（Cloudinary / Scrimba / OpenReplay / webperfclinic）：
+          **above-the-fold 与 LCP 图必须 eager；防 CLS 要给 width/height 或 aspect-ratio**。
+          我们没有图片尺寸信息（源数据未带），所以这里选「eager 加载」把抖动压到看不见，而不是留白占位。
+          以后若要恢复 lazy，必须先拿到真实宽高（拿不到就别 lazy）。 */
+    if(g.imageUrl) h += '<div class="ex-gimg"><img src="' + esc(g.imageUrl) + '" alt=""></div>';
     var qs = g.questions || [];
 
     if(g.type === 'fill-in-the-blank'){
