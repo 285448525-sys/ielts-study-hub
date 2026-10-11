@@ -232,6 +232,12 @@
     });
     return h + '</div>';
   }
+  /* 配对题：选项胶囊（拖进虚线框用） */
+  function chipHtml(o){
+    var v = String(o.optionNum || '');
+    var t = String(o.optionContent || o.option || '');
+    return '<span class="ex-chip" data-v="' + esc(v) + '">' + esc(v) + ' <b>' + esc(t) + '</b></span>';
+  }
   /* 单选题：圆点 + 字母加粗（对齐真机考） */
   function radioHtml(q){
     var h = '<div class="ex-opts ex-radio-box" data-q="' + esc(q.qNumber) + '">';
@@ -275,7 +281,7 @@
     return { html: '<div class="ex-html">' + html + '</div>', had: had };
   }
 
-  function groupHtml(g){
+  function groupHtml(g, idx){
     var h = '<div class="ex-group" data-gtype="' + esc(g.type) + '">';
     h += '<p class="ex-grp-h">Questions ' + esc(qRange(g)) + '</p>';
     h += '<p class="ex-grp-i">' + instrFor(g) + '</p>';
@@ -286,12 +292,15 @@
       h += f.html;
     } else if(g.type === 'matching'){
       var opts = (g.options && g.options.length) ? g.options : ((qs[0] && qs[0].options) || []);
-      h += '<div class="ex-hdbox">';
-      opts.forEach(function(o){ h += '<div><i>' + esc(o.optionNum || '') + '</i>' + esc(o.optionContent || o.option || '') + '</div>'; });
-      h += '</div>';
+      var gid = 'mg' + idx;
+      var isHead = opts.length && /^[ivx]+$/i.test(String(opts[0].optionNum || ''));
+      h += '<div class="ex-pool" data-g="' + gid + '">'
+        + (isHead ? '<div class="ex-pool-t">List of Headings</div>' : '')
+        + '<div class="ex-pool-c">' + opts.map(chipHtml).join('') + '</div></div>';
       qs.forEach(function(q){
         h += '<div class="ex-q"><span class="ex-qn" data-qn="' + esc(q.qNumber) + '">' + esc(q.qNumber) + '</span>'
-          + esc(plain(q.question)) + '<div style="margin-top:6px">' + selectHtml(q, opts) + '</div></div>';
+          + esc(plain(q.question))
+          + '<div class="ex-drop" data-q="' + esc(q.qNumber) + '" data-g="' + gid + '"></div></div>';
       });
     } else if(g.type === 'map'){
       h += '<p class="ex-grp-i">This map task is not available yet.</p>';
@@ -364,6 +373,41 @@
     startTimer(EX.channel === 'reading' ? 60 * 60 : 30 * 60);
   }
 
+  /* ===== 配对题拖拽（Pointer Events：鼠标 + 触屏通用；不用 HTML5 DnD —— 它在触屏完全不工作）===== */
+  var _dg = null, _ghost = null, _dgOff = { x: 0, y: 0 }, _dgStart = { x: 0, y: 0 }, _sel = null;
+  function dgDrops(){ return [].slice.call(document.querySelectorAll('#examRoot .ex-drop')); }
+  function dgPool(gid){ return document.querySelector('#examRoot .ex-pool[data-g="' + gid + '"]'); }
+  function dgPoolChip(v, gid){ var p = dgPool(gid); return p ? p.querySelector('.ex-chip[data-v="' + v + '"]') : null; }
+  function dgMark(v, used, gid){ var c = dgPoolChip(v, gid); if(c) c.classList.toggle('used', !!used); }
+  function dgClearSel(){ if(_sel){ _sel.classList.remove('sel'); _sel = null; } }
+  function dgReset(){
+    if(_ghost){ _ghost.remove(); _ghost = null; }
+    if(_dg && _dg.el) _dg.el.classList.remove('dragging');
+    _dg = null; dgClearSel();
+    dgDrops().forEach(function(d){ d.classList.remove('over'); });
+  }
+  function dgPlace(drop, v, silent){
+    var gid = drop.getAttribute('data-g');
+    var old = drop.getAttribute('data-v');
+    if(old) dgMark(old, false, gid);                        /* 换掉的退回池子 */
+    var src = dgPoolChip(v, gid);
+    drop.setAttribute('data-v', v);
+    drop.classList.add('filled');
+    drop.classList.remove('right', 'wrong');
+    drop.innerHTML = (src ? src.innerHTML : esc(v)) + '<span class="ex-x" title="Remove">✕</span>';
+    dgMark(v, true, gid);
+    if(!silent){ saveDraft(); paintSheet(); }
+  }
+  function dgClearEl(drop){
+    if(!drop || !drop.getAttribute('data-v')) return;
+    dgMark(drop.getAttribute('data-v'), false, drop.getAttribute('data-g'));
+    drop.removeAttribute('data-v');
+    drop.classList.remove('filled', 'right', 'wrong');
+    drop.innerHTML = '';
+    saveDraft(); paintSheet();
+  }
+  function dgDropAt(x, y){ var el = document.elementFromPoint(x, y); return el ? el.closest('.ex-drop') : null; }
+
   function applyAnswer(qn, val){
     var root = document.getElementById('examRoot'); if(!root) return;
     var inp = root.querySelector('input.ex-blank[data-q="' + qn + '"]');
@@ -379,7 +423,12 @@
     var pills = root.querySelector('.ex-pills[data-q="' + qn + '"]');
     if(pills){ pills.querySelectorAll('.ex-pill').forEach(function(p){ p.classList.toggle('on', p.getAttribute('data-v') === val); }); return; }
     var rb = root.querySelector('.ex-radio-box[data-q="' + qn + '"]');
-    if(rb){ rb.querySelectorAll('input').forEach(function(i){ i.checked = (i.value === val); }); }
+    if(rb){ rb.querySelectorAll('input').forEach(function(i){ i.checked = (i.value === val); }); return; }
+    var dp = root.querySelector('.ex-drop[data-q="' + qn + '"]');
+    if(dp){
+      var dv = (val == null) ? '' : String(val);
+      if(dv && dgPoolChip(dv, dp.getAttribute('data-g'))) dgPlace(dp, dv, true);
+    }
   }
 
   function collect(){
@@ -397,6 +446,10 @@
     });
     root.querySelectorAll('.ex-radio-box[data-q]').forEach(function(b){
       var c = b.querySelector('input:checked'); if(c) out[b.getAttribute('data-q')] = c.value;
+    });
+    root.querySelectorAll('.ex-drop[data-q]').forEach(function(d){
+      var v = d.getAttribute('data-v');
+      if(v) out[d.getAttribute('data-q')] = v;
     });
     root.querySelectorAll('select[data-q]').forEach(function(s){ if(s.value) out[s.getAttribute('data-q')] = s.value; });
     return out;
@@ -513,6 +566,12 @@
         if(v && rights.indexOf(v) > -1) lb.classList.add('right');
         else if(inp && inp.checked) lb.classList.add('wrong');
       });
+      /* 配对题：拖入的答案标对错 */
+      var dpEl = root.querySelector('.ex-drop[data-q="' + d.qn + '"]');
+      if(dpEl && dpEl.getAttribute('data-v')){
+        dpEl.classList.add(norm(dpEl.getAttribute('data-v')) === norm(d.right) ? 'right' : 'wrong');
+        dpEl.style.pointerEvents = 'none';
+      }
       var bl = root.querySelector('input.ex-blank[data-q="' + d.qn + '"]'); if(bl) bl.disabled = true;
       if(bl && !d.ok){ bl.style.borderBottomColor = '#e6b3ae'; bl.style.color = '#b3261e'; }
 
@@ -548,6 +607,7 @@
 
   function exitExam(){
     stopTimer();
+    dgReset();
     if(EX && !EX.submitted) saveDraft();
     EX = null;
     var host = document.getElementById('examRoot'); if(host){ host.hidden = true; host.innerHTML = ''; }
@@ -653,6 +713,82 @@
       var t = e.target;
       if(EX && !EX.submitted && t.matches && t.matches('input.ex-blank[data-q]')) paintSheet();
     });
+
+    /* 配对题拖拽：pointerdown/move/up（鼠标 + 触屏同一套） */
+    document.addEventListener('pointerdown', function(e){
+      if(!EX || EX.submitted) return;
+      var t = e.target, el, r;
+      if((el = t.closest && t.closest('.ex-x'))){ dgClearEl(el.closest('.ex-drop')); return; }
+      if((el = t.closest && t.closest('#examRoot .ex-chip'))){
+        if(el.classList.contains('used')) return;
+        e.preventDefault();
+        _dg = { el: el, from: 'pool', v: el.getAttribute('data-v'), moved: false };
+        _dgStart.x = e.clientX; _dgStart.y = e.clientY;
+        r = el.getBoundingClientRect();
+        _dgOff.x = e.clientX - r.left; _dgOff.y = e.clientY - r.top;
+        try{ el.setPointerCapture(e.pointerId); }catch(err){}
+        return;
+      }
+      if((el = t.closest && t.closest('#examRoot .ex-drop'))){
+        if(el.getAttribute('data-v')){
+          e.preventDefault();
+          _dg = { el: el, from: 'drop', v: el.getAttribute('data-v'), moved: false };
+          _dgStart.x = e.clientX; _dgStart.y = e.clientY;
+          r = el.getBoundingClientRect();
+          _dgOff.x = e.clientX - r.left; _dgOff.y = e.clientY - r.top;
+          try{ el.setPointerCapture(e.pointerId); }catch(err2){}
+          return;
+        }
+        if(_sel){ dgPlace(el, _sel.getAttribute('data-v')); dgClearSel(); return; }
+      }
+      if(_sel) dgClearSel();
+    });
+
+    document.addEventListener('pointermove', function(e){
+      if(!_dg) return;
+      if(!_dg.moved && (Math.abs(e.clientX - _dgStart.x) + Math.abs(e.clientY - _dgStart.y)) > 6){
+        _dg.moved = true;
+        _ghost = _dg.el.cloneNode(true);
+        var gx = _ghost.querySelector('.ex-x'); if(gx) gx.parentNode.removeChild(gx);
+        _ghost.classList.add('ghost');
+        _ghost.style.width = _dg.el.offsetWidth + 'px';
+        document.body.appendChild(_ghost);
+        _dg.el.classList.add('dragging');
+        dgClearSel();
+      }
+      if(!_dg.moved) return;
+      _ghost.style.left = (e.clientX - _dgOff.x) + 'px';
+      _ghost.style.top = (e.clientY - _dgOff.y) + 'px';
+      var hit = dgDropAt(e.clientX, e.clientY);
+      dgDrops().forEach(function(d){ d.classList.toggle('over', d === hit); });
+    });
+
+    document.addEventListener('pointerup', function(e){
+      if(!_dg) return;
+      var d = _dg; _dg = null;
+      dgDrops().forEach(function(x){ x.classList.remove('over'); });
+      if(_ghost){ _ghost.remove(); _ghost = null; }
+      d.el.classList.remove('dragging');
+      if(!d.moved){
+        if(d.from === 'pool'){
+          if(_sel === d.el){ dgClearSel(); }
+          else { dgClearSel(); _sel = d.el; d.el.classList.add('sel'); }
+        } else {
+          dgClearEl(d.el);
+        }
+        return;
+      }
+      var target = dgDropAt(e.clientX, e.clientY);
+      if(d.from === 'pool'){
+        if(target && target.getAttribute('data-v') !== d.v) dgPlace(target, d.v);
+      } else {
+        var mine = d.el;
+        if(target && target !== mine){ dgClearEl(mine); dgPlace(target, d.v); }
+        else if(!target){ dgClearEl(mine); }
+      }
+    });
+
+    document.addEventListener('pointercancel', function(){ dgReset(); });
   }
 
   /* ===== 启动 ===== */

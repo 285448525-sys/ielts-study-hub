@@ -103,6 +103,34 @@
 .ex-hdbox{border:1px solid var(--n-400);border-radius:4px;padding:12px 16px;margin-bottom:16px}
 .ex-hdbox div{font-size:.9em;margin:4px 0;line-height:1.7}
 .ex-hdbox i{font-style:normal;font-weight:700;display:inline-block;min-width:30px}
+/* ===== 配对题：选项池 + 拖拽入框（对齐真机考）===== */
+.ex-pool{border:1px solid #6a6f77;border-radius:4px;background:#fff;margin:0 0 18px}
+.ex-pool-t{font-size:.85em;font-weight:700;padding:8px 13px;background:#f7f8f9;border-bottom:1px solid var(--line)}
+.ex-pool-c{display:flex;flex-wrap:wrap;gap:8px;padding:12px 13px;min-height:52px}
+.ex-chip{display:inline-flex;align-items:center;gap:8px;border:1px solid #6a6f77;border-radius:999px;background:#fff;
+  padding:5px 14px;font-size:.82em;font-weight:700;cursor:grab;touch-action:none;transition:opacity .15s,box-shadow .15s}
+.ex-chip b{font-weight:400}
+.ex-chip:hover{box-shadow:0 1px 6px rgba(16,24,40,.12)}
+.ex-chip.used{opacity:.28;cursor:default;pointer-events:none}
+.ex-chip.sel{border-color:var(--primary);box-shadow:0 0 0 3px rgba(58,154,147,.22)}
+.ex-chip.dragging{opacity:.28}
+.ex-chip.ghost{position:fixed;z-index:9999;pointer-events:none;background:#fff;
+  box-shadow:0 8px 22px rgba(16,24,40,.22);transform:rotate(-1.5deg)}
+.ex-chip .ex-x{font-size:.8em;color:var(--muted);cursor:pointer;padding:0 2px}
+.ex-chip .ex-x:hover{color:#b3261e}
+.ex-chip.right{border-color:var(--primary);background:var(--primary-50)}
+.ex-chip.wrong{border-color:#b3261e;background:#fdf3f2;color:#b3261e}
+.ex-drop{display:flex;width:fit-content;min-width:132px;max-width:100%;align-items:center;gap:8px;
+  min-height:34px;margin:9px 0 0;border:1.5px dashed #9aa0a8;border-radius:999px;padding:5px 16px;
+  font-size:.82em;font-weight:700;color:#111;transition:.15s;touch-action:none;cursor:pointer}
+.ex-drop.over{border-color:var(--primary);background:var(--primary-50)}
+.ex-drop.dragging{opacity:.28}
+.ex-drop.filled{border-style:solid;border-color:#6a6f77;background:#fff;cursor:grab}
+.ex-drop.filled b{font-weight:400}
+.ex-drop .ex-x{font-size:.8em;color:var(--muted);cursor:pointer;padding:0 2px;font-weight:400}
+.ex-drop .ex-x:hover{color:#b3261e}
+.ex-drop.filled.right{border-color:var(--primary);background:var(--primary-50)}
+.ex-drop.filled.wrong{border-color:#b3261e;background:#fdf3f2;color:#b3261e}
 /* 选项组（单选=圆点 / 多选=方框，字母加粗）：对齐真机考 */
 .ex-opts{margin:10px 0 2px;display:flex;flex-direction:column;gap:1px}
 .ex-opt{display:flex;gap:9px;align-items:flex-start;padding:5px 9px;border-radius:4px;
@@ -155,8 +183,18 @@
 .ex-split.ct-dark .ex-opt input:checked{background:#fff;border-color:#fff}
 .ex-split.ct-dark .ex-opt input:checked::after{background:#1b1b1b}
 .ex-split.ct-dark .ex-opt input.ex-check:checked::before{border-color:#1b1b1b}
+.ex-split.ct-dark .ex-pool{background:#1b1b1b;border-color:#9aa0a8}
+.ex-split.ct-dark .ex-pool-t{background:#232323;color:#fff;border-color:#3a3f45}
+.ex-split.ct-dark .ex-chip{background:#1b1b1b;color:#fff;border-color:#9aa0a8}
+.ex-split.ct-dark .ex-drop{border-color:#9aa0a8;color:#fff}
+.ex-split.ct-dark .ex-drop.filled{background:#1b1b1b;border-color:#c9ced6;color:#fff}
 .ex-split.ct-yellow .ex-opt{color:#ffd400}
 .ex-split.ct-yellow .ex-opt input{border-color:#ffd400;background:#141414}
+.ex-split.ct-yellow .ex-pool{background:#141414;border-color:#ffd400}
+.ex-split.ct-yellow .ex-pool-t{background:#1e1e1e;color:#ffd400;border-color:#3a3f45}
+.ex-split.ct-yellow .ex-chip{background:#141414;color:#ffd400;border-color:#ffd400}
+.ex-split.ct-yellow .ex-drop{border-color:#ffd400;color:#ffd400}
+.ex-split.ct-yellow .ex-drop.filled{background:#141414;border-color:#ffd400;color:#ffd400}
 .ex-split.ct-yellow{background:#141414}
 .ex-split.ct-yellow .ex-article,.ex-split.ct-yellow .ex-qcol{background:#141414;color:#ffd400;border-color:#3a3f45}
 .ex-split.ct-yellow .ex-grp-h,.ex-split.ct-yellow .ex-grp-i,.ex-split.ct-yellow .ex-q{color:#ffd400}
@@ -223,6 +261,6 @@
 <!-- 🔴 加载顺序契约（10/5 铁律）：defer 顺序不可改 —— bank.js 依赖 common.js 的 PAGES -->
 <script defer src="js/data.js?v=20261011e"></script>
 <script defer src="js/common.js?v=20261011b"></script>
-<script defer src="js/bank.js?v=20261011f"></script>
+<script defer src="js/bank.js?v=20261011h"></script>
 </body>
 </html>
