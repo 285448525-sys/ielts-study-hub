@@ -2,7 +2,17 @@
 <html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="UTF-8" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://api.deepseek.com; object-src 'none'; base-uri 'none'" />
+<!-- 🔴 10/11 第 9 项：听力用的音频与地图配图托管在第三方图床 static.9fnnn.com，
+     原先 CSP 只有 img-src 'self' data: blob:、且**没有 media-src**——
+     按 CSP 规范 media-src 缺失时回落 default-src 'self'，于是远程 mp3 直接被拒：
+     控制台报「Media load rejected by URL safety check / The element has no supported sources」，
+     img 也会以失败原因 `csp` 被拦（本机探针实测：音频 readyState=0 networkState=3 error.code=4）。
+     修法 = 把该域按 host-source 显式列进 img-src + media-src（规范与最佳实践见
+     https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/media-src
+     MDN：media-src 管 <audio>/<video>/<track>，缺省回落 default-src；多个来源口径一致：
+     新增第三方媒体/图片域必须显式加进 media-src / img-src，而不是放宽 default-src）。
+     只放这一个域，不写通配；该域仅用于 img/media，不会执行脚本，风险面最小。 -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://static.9fnnn.com; media-src 'self' https://static.9fnnn.com; font-src 'self' data:; connect-src 'self' https://api.deepseek.com; object-src 'none'; base-uri 'none'" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
@@ -169,7 +179,10 @@
   padding:5px 14px;font-size:.82em;font-weight:700;cursor:grab;touch-action:none;transition:opacity .15s,box-shadow .15s}
 .ex-chip b{font-weight:400}
 .ex-chip:hover{box-shadow:0 1px 6px rgba(16,24,40,.12)}
-.ex-chip.used{opacity:.28;cursor:default;pointer-events:none}
+  /* 🔴 10/11 第 9 项修 bug：这里原本是 opacity:.28 + pointer-events:none（当「已用完」处理），
+     但雅思匹配题**同一个字母可以重复用**（全库 123 组 matching 里 23 组答案字母有重复，占 18.7%），
+     一旦禁用就等于那 18.7% 永远答不对。改成「用过」的轻提示：虚线边框 + 浅底，仍可再选。 */
+  .ex-chip.used{background:var(--n-50);border-style:dashed;border-color:#9aa0a8}
 .ex-chip.sel{border-color:var(--primary);box-shadow:0 0 0 3px rgba(58,154,147,.22)}
 .ex-chip.dragging{opacity:.28}
 .ex-chip.ghost{position:fixed;z-index:9999;pointer-events:none;background:#fff;
@@ -519,6 +532,53 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
     .sr-grid{grid-template-columns:repeat(2,1fr)}
     mark.mk::after{display:none}
   }
+  /* ===== 听力做题页（10/11 第 9 项）=====
+     做法先查了成熟站，来源已逐个核对（不凭印象）：
+     · 真机考规则：录音只播一遍，电脑版界面**只有音量控制，没有暂停/回退/重播**
+       （IDP 官方专家问答 ielts.idp.com/ielts-community?questionid=745213；
+         ielts.net/posts/how-many-times-is-the-recording-played-in-ielts；
+         careerlauncher.com/ielts/articles/tips-for-ielts-academic-listening-exam；
+         ieltsworldly.com/ielts-ac-gt-listening-faq-paper-based-and-computer-based ← 四处独立来源口径一致）
+     · 练习站的通行做法：British Council 官方练习页明确给两种玩法
+       ——「real exam conditions」或「practice mode：start and stop the audio as many times as you like」；
+       Zoju 叫 Strict mode / Breath mode；PrepAsk 用 "no pausing during each section" + 交卷后才给完整原文。
+     → 本站结论：音频条上放一个模式开关。**练习模式（可暂停/拖动/倍速）为默认**，
+       考试模式 = 直通不可控，用来还原真机考。
+     · 听力原文：**考中一律不可见**（她 10/11 拍板 + 上述站点口径一致），交卷后才出现。 */
+  .ex-audio{flex:none;display:flex;align-items:center;gap:12px;padding:9px 16px;border-bottom:1px solid var(--line);background:var(--surface)}
+  .ex-audio .ea-play{flex:none;width:34px;height:34px;border-radius:50%;border:none;background:var(--primary);color:#fff;font-size:13px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .ex-audio .ea-play[disabled]{opacity:.45;cursor:default}
+  .ex-audio .ea-label{flex:none;font-size:12.5px;font-weight:700;color:var(--primary-text);letter-spacing:.02em}
+  .ex-audio .ea-bar{flex:1;height:6px;border-radius:999px;background:var(--n-100);position:relative;cursor:pointer;min-width:80px}
+  .ex-audio .ea-bar .ea-fill{position:absolute;top:0;left:0;bottom:0;width:0;background:var(--primary);border-radius:999px}
+  .ex-audio .ea-bar .ea-knob{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;background:#fff;border:2px solid var(--primary);transform:translate(-50%,-50%);left:0;pointer-events:none}
+  .ex-audio .ea-time{flex:none;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:92px;text-align:right}
+  .ex-audio .ea-rate{flex:none;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:7px;padding:3px 8px;font-size:12px;cursor:pointer;font-family:inherit;font-variant-numeric:tabular-nums}
+  .ex-audio .ea-mode{flex:none;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:3px 11px;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap}
+  .ex-audio .ea-mode.exam{border-color:var(--warn-ink);color:var(--warn-ink);background:var(--warn-soft);font-weight:600}
+  .ex-audio .ea-mode[disabled]{opacity:.5;cursor:default}
+  .ex-audio.locked .ea-bar{cursor:default}
+  .ex-audio.locked .ea-bar .ea-knob{display:none}
+  /* 听力 Part 分栏上的篇数（阅读的 Part 分栏没有计数，只有听力加） */
+  #listenPartTabs .pt-n{font-weight:600;opacity:.6;font-variant-numeric:tabular-nums;margin-left:2px}
+  /* 题目配图（地图题 / 带图填空题）—— 图在 static.9fnnn.com，公开直引，不下载 */
+  .ex-gimg{margin:10px 0 4px;text-align:center}
+  .ex-gimg img{max-width:100%;border:1px solid var(--line);border-radius:10px;background:#fff}
+  /* 听力主区：固定全屏 flex 列里的滚动区（单栏，不做左右分栏 —— 听力没有独立文章区） */
+  .ex-listen{flex:1;min-height:0;overflow-y:auto;padding:22px 20px 24px}
+  .ex-listen-in{max-width:840px;margin:0 auto}
+  .ex-script{margin:0 0 20px;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
+  .ex-script>summary{padding:11px 14px;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--primary-text);list-style:none;display:flex;align-items:center;gap:8px}
+  .ex-script>summary::-webkit-details-marker{display:none}
+  .ex-script>summary::before{content:'\25B8';font-size:11px;color:var(--muted)}
+  .ex-script[open]>summary::before{content:'\25BE'}
+  .ex-script .sc-body{padding:0 16px 14px;font-size:14px;line-height:1.85;color:var(--n-700);max-height:340px;overflow:auto}
+  .ex-script .sc-body p{margin:0 0 9px}
+  @media (max-width:760px){
+    .ex-listen{padding:16px 12px 20px}
+    .ex-audio{flex-wrap:wrap;gap:8px}
+    .ex-audio .ea-time{min-width:auto}
+  }
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -555,7 +615,21 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
     </section>
 
     <section class="mock-pane" id="pane-listening" hidden>
-      <div class="soon-box">听力模考正在准备中。<br>要先备好音频素材（约 2.8GB），之后与阅读同款：左音频右题目、自动判分。</div>
+      <!-- 10/11 第 9 项：听力真题列表（347 篇，按 Part 1–4 分栏）。
+           结构与阅读 pane 同源（.partbar + .bank-items），但用独立的 id，
+           避免和阅读的 #partTabs / #bankList / #partMeta 互相覆盖。
+           题面/答案/图片/官方指令全部来自 bank/listening/<id>.json + bank/answers/<id>.json，
+           音频与地图题配图直引 static.9fnnn.com（公开 CDN，零下载）。 -->
+      <div class="partbar">
+        <div class="pill-tabs" id="listenPartTabs">
+          <button class="pill-tab active" type="button" data-lpart="Part 1">Part 1</button>
+          <button class="pill-tab" type="button" data-lpart="Part 2">Part 2</button>
+          <button class="pill-tab" type="button" data-lpart="Part 3">Part 3</button>
+          <button class="pill-tab" type="button" data-lpart="Part 4">Part 4</button>
+        </div>
+        <span class="partmeta" id="listenMeta"></span>
+      </div>
+      <div id="listenList"><div class="bank-loading">目录加载中…</div></div>
     </section>
 
     <section class="mock-pane" id="pane-writing" hidden>
@@ -619,6 +693,6 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common.js?v=20261011b"></script>
 <script defer src="js/writing_prompts.js?v=20260903ab"></script>
 <script defer src="js/writing.js?v=20261011b"></script>
-<script defer src="js/bank.js?v=20261011m"></script>
+<script defer src="js/bank.js?v=20261011n"></script>
 </body>
 </html>

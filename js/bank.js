@@ -82,19 +82,8 @@
     return (root && root.getAttribute('data-mock-part')) || 'Part 1';
   }
 
-  function renderList(channel, part){
-    var host = document.getElementById('bankList');
-    if(!host) return;
-    if(channel !== 'reading'){ host.innerHTML = ''; return; }
-    part = part || currentPart();
-    var all = unitsOf(channel);
-    var units = all.filter(function(u){ return (u.partNum || 'Part 1') === part; });
-    var meta = document.getElementById('partMeta');
-    if(meta){
-      var perQ = units.length ? (units[0].qCount || 0) : 0;
-      meta.textContent = part + ' · 共 ' + units.length + ' 篇' + (perQ ? (' · 每篇 ' + perQ + ' 题') : '');
-    }
-    if(!units.length){ host.innerHTML = '<div class="bank-empty"><p>这一部分暂时没有篇目。</p></div>'; return; }
+  /* 篇目列表的标记（阅读 / 听力共用同一套 .bank-items 结构，只是挂在不同容器上） */
+  function listHtml(units, channel){
     var h = '<ul class="bank-items">';
     for(var k = 0; k < units.length; k++){
       var u = units[k], st = '', oc = '未做', chips = '';
@@ -113,9 +102,54 @@
         +    '<span class="bi-chev">›</span>'
         +  '</li>';
     }
-    h += '</ul>';
-    host.innerHTML = h;
+    return h + '</ul>';
+  }
+
+  function renderList(channel, part){
+    var host = document.getElementById('bankList');
+    if(!host) return;
+    if(channel !== 'reading'){ host.innerHTML = ''; return; }
+    part = part || currentPart();
+    var units = unitsOf(channel).filter(function(u){ return (u.partNum || 'Part 1') === part; });
+    var meta = document.getElementById('partMeta');
+    if(meta){
+      var perQ = units.length ? (units[0].qCount || 0) : 0;
+      meta.textContent = part + ' · 共 ' + units.length + ' 篇' + (perQ ? (' · 每篇 ' + perQ + ' 题') : '');
+    }
+    if(!units.length){ host.innerHTML = '<div class="bank-empty"><p>这一部分暂时没有篇目。</p></div>'; return; }
+    host.innerHTML = listHtml(units, channel);
     renderFullEntry();
+  }
+
+  /* ===== 听力列表（10/11 第 9 项）=====
+     与阅读同一套 .bank-items，但挂 #listenPartTabs / #listenList（独立 id，互不覆盖）。
+     故意**不预筛地图题**：manifest 把 map 记成「匹配」，列表层认不出来；
+     而配图已在数据里补回（tests/_patch_bank_assets_1011.cjs），直接正常出题即可。 */
+  function currentListenPart(){
+    var el = document.querySelector('#listenPartTabs .pill-tab.active');
+    return (el && el.getAttribute('data-lpart')) || 'Part 1';
+  }
+  function renderListenParts(){
+    var host = document.getElementById('listenPartTabs'); if(!host) return;
+    var all = unitsOf('listening');
+    host.querySelectorAll('.pill-tab').forEach(function(b){
+      var p = b.getAttribute('data-lpart');
+      var n = all.filter(function(u){ return (u.partNum || 'Part 1') === p; }).length;
+      b.innerHTML = esc(p) + ' <span class="pt-n">' + n + '</span>';
+    });
+  }
+  function renderListenList(part){
+    var host = document.getElementById('listenList'); if(!host) return;
+    if(!_manifest){ host.innerHTML = ''; return; }
+    part = part || currentListenPart();
+    var units = unitsOf('listening').filter(function(u){ return (u.partNum || 'Part 1') === part; });
+    var meta = document.getElementById('listenMeta');
+    if(meta){
+      var perQ = units.length ? (units[0].qCount || 0) : 0;
+      meta.textContent = part + ' · 共 ' + units.length + ' 篇' + (perQ ? (' · 每篇 ' + perQ + ' 题') : '');
+    }
+    if(!units.length){ host.innerHTML = '<div class="bank-empty"><p>这一部分暂时没有篇目。</p></div>'; return; }
+    host.innerHTML = listHtml(units, 'listening');
   }
 
   /* ===== 列表页「完整模考」入口卡（3 篇一套 · 随机组卷）=====
@@ -159,11 +193,18 @@
     for(var j = 0; j < btns.length; j++) btns[j].classList.toggle('active', btns[j].getAttribute('data-mtab') === tab);
   }
 
+  /* 切到某个一级 tab 后要重画的东西（阅读列表一直是渲染着的；听力按需渲染） */
+  function paintTab(tab){
+    showTab(tab);
+    renderList('reading');
+    if(tab === 'listening'){ renderListenParts(); renderListenList(); }
+  }
+
   /* ===== 载入 manifest ===== */
   function boot(){
     var root = document.getElementById('bankRoot');
     if(!root) return;                                  // 不在本页
-    if(_manifest){ showTab(root.getAttribute('data-mock-tab') || 'reading'); renderList('reading'); return; }
+    if(_manifest){ paintTab(root.getAttribute('data-mock-tab') || 'reading'); return; }
     if(_loading) return;
     _loading = true;
     fetch(MANIFEST, { cache: 'no-cache' })
@@ -171,8 +212,7 @@
       .then(function(m){
         _manifest = m; _loading = false;
         var r2 = document.getElementById('bankRoot'); if(!r2) return;
-        showTab(r2.getAttribute('data-mock-tab') || 'reading');
-        renderList('reading');
+        paintTab(r2.getAttribute('data-mock-tab') || 'reading');
       })
       .catch(function(err){
         _loading = false;
@@ -183,30 +223,40 @@
   }
 
   /* ===== 做题页 ===== */
-  /* 每组题上面那行英文指令（按真机考的标准措辞，按题型给） */
-  function instrFor(g){
+  /* 每组题上面那行英文指令（按真机考的标准措辞，按题型给）
+     听力：源数据自带平台官方指令原文 group.description（748 组都有），**优先直接用** —— 比我们拼的准。
+     阅读：这一批刻意不动，仍走下面的拼接口径（避免顺手改出阅读的差异）。 */
+  function instrFor(g, channel){
+    var listen = (channel === 'listening');
+    if(listen){
+      var d = clean(String(g.description || '')).trim();
+      if(d) return d;
+    }
     var qs = g.questions || [], opts = ((qs[0] && qs[0].options) || []);
     var txt = opts.map(function(o){ return String(o.optionContent || ''); }).join(' ').toUpperCase();
+    var src = listen ? 'recording' : 'passage';
     if(g.type === 'fill-in-the-blank'){
       var isTable = /<table/i.test(String(g.contentHtml || ''));
       return isTable
-        ? 'Complete the table below.<br>Choose <b>ONE WORD AND/OR A NUMBER</b> from the passage for each answer.'
-        : 'Complete the notes below.<br>Choose <b>ONE WORD ONLY</b> from the passage for each answer.';
+        ? 'Complete the table below.<br>Choose <b>ONE WORD AND/OR A NUMBER</b> from the ' + src + ' for each answer.'
+        : 'Complete the notes below.<br>Choose <b>ONE WORD ONLY</b> from the ' + src + ' for each answer.';
     }
     if(g.type === 'matching'){
       var roman = opts.length && /^[ivx]+$/i.test(String(opts[0].optionNum || ''));
       return roman
-        ? 'The Reading Passage has several sections.<br>Choose the correct heading for each section from the list of headings below.'
+        ? 'The ' + (listen ? 'recording' : 'Reading Passage') + ' has several sections.<br>Choose the correct heading for each section from the list of headings below.'
         : 'Which section contains the following information?<br>Write the correct letter in each box.';
     }
-    if(g.type === 'map')
+    if(g.type === 'map'){
+      if(listen) return 'Label the map below.<br>Write the correct letter, <b>A</b>–<b>H</b>, next to each answer.';
       return 'The Reading Passage has several paragraphs.<br>Which paragraph contains the following information?<br>Write the correct letter in each box.';
+    }
     if(g.type === 'multiple-choice'){
       var want = /THREE/i.test(String((qs[0] && qs[0].question) || '')) ? 'THREE' : 'TWO';
       return 'Choose <b>' + want + '</b> letters.';
     }
     if(/TRUE|FALSE|NOT GIVEN/.test(txt))
-      return 'Do the following statements agree with the information given in the passage?<br>Write <b>TRUE</b> if the statement agrees with the information, <b>FALSE</b> if the statement contradicts the information, <b>NOT GIVEN</b> if there is no information on this.';
+      return 'Do the following statements agree with the information given in the ' + src + '?<br>Write <b>TRUE</b> if the statement agrees with the information, <b>FALSE</b> if the statement contradicts the information, <b>NOT GIVEN</b> if there is no information on this.';
     if(/YES|NO|NOT GIVEN/.test(txt))
       return 'Do the following statements agree with the claims of the writer?<br>Write <b>YES</b> if the statement agrees with the claims of the writer, <b>NO</b> if the statement contradicts the claims of the writer, <b>NOT GIVEN</b> if it is impossible to say what the writer thinks about this.';
     return 'Choose the correct letter, <b>A</b>, <b>B</b>, <b>C</b> or <b>D</b>.';
@@ -228,8 +278,11 @@
       EX = {
         unit: unit, channel: channel,
         answers: ansFile.answers || {}, alts: ansFile.alts || {},
-        user: {}, submitted: false, groups: [], total: 0, correct: 0
+        user: {}, submitted: false, groups: [], total: 0, correct: 0,
+        /* 听力专用：开始一律练习模式 + 音频未播过；倍速复位 */
+        listenMode: 'practice', audioStarted: false
       };
+      _rateIx = 0; _audioBound = null;
       try{ EX.user = JSON.parse(localStorage.getItem('hub_bank_draft_' + unitId) || '{}') || {}; }catch(e){ EX.user = {}; }
       renderExam();
     }).catch(function(err){
@@ -321,12 +374,18 @@
     return { html: '<div class="ex-html">' + html + '</div>', had: had };
   }
 
-  function groupHtml(g, idx, numOf){
+  function groupHtml(g, idx, numOf, channel){
     numOf = numOf || idNum();
+    channel = channel || (EX && EX.channel) || 'reading';
     var h = '<div class="ex-group" data-gtype="' + esc(g.type) + '">';
     var ns = qNums(g).map(numOf);
     h += '<p class="ex-grp-h">Questions ' + esc(ns.length ? (ns[0] + '–' + ns[ns.length - 1]) : '') + '</p>';
-    h += '<p class="ex-grp-i">' + instrFor(g) + '</p>';
+    h += '<p class="ex-grp-i">' + instrFor(g, channel) + '</p>';
+    /* 题目配图（听力地图题 / 带图填空题）：图在 static.9fnnn.com，公开可直引，不下载。
+       🔴 10/11 踩过的坑：旧建库脚本的字段白名单把 groups[].imageUrl 丢了 →
+          我据此误判「听力地图题全站没图」，实际源数据 37/37 都有图。
+          现已由 tests/_patch_bank_assets_1011.cjs 补回。查数据前先确认查的是不是源数据。 */
+    if(g.imageUrl) h += '<div class="ex-gimg"><img src="' + esc(g.imageUrl) + '" alt="" loading="lazy"></div>';
     var qs = g.questions || [];
 
     if(g.type === 'fill-in-the-blank'){
@@ -346,8 +405,10 @@
           + '<div class="ex-drop" data-q="' + esc(n) + '" data-g="' + gid + '"></div></div>';
       });
     } else if(g.type === 'map'){
-      /* 平台把这批「哪段包含以下信息」题标成 map（原始数据 image/imageUrl 全为 null，不是真地图题）
-         → 实际是段落信息匹配：每题自带 A~J 字母选项，渲染成一排字母 */
+      /* map 这一个 type 在题库里是两种题：
+         · 阅读 —— 实为「哪一段包含以下信息」的段落信息匹配：字母指段落，靠左边文章作答；
+         · 听力 —— 真地图标注题：字母指地图上的位置，靠上面的 g.imageUrl 配图作答。
+         两者渲染方式相同（题干 + 一排字母），差别只在有没有配图 → 上面统一挂图即可。 */
       qs.forEach(function(q){
         var n = numOf(q.qNumber);
         h += '<div class="ex-q"><span class="ex-qn" data-qn="' + esc(n) + '">' + esc(n) + '</span>'
@@ -421,12 +482,117 @@
       +  '</div>';
   }
 
+  /* ===== 听力音频条（10/11 第 9 项）=====
+     双模式做法来自成熟练习站（来源与结论见 bank.html 内联样式里那段注释）：
+       练习模式 = 可暂停 / 可拖进度 / 可倍速（默认）
+       考试模式 = 直通：不给暂停、不给拖动、不给倍速，还原「录音只播一遍」
+     首次播放后模式锁死（防考到一半切回练习模式）；交卷后解锁，可自由复听。 */
+  var AUDIO_RATES = [1, 1.25, 1.5, 0.75], _rateIx = 0, _audioBound = null;
+  /* 1 → "1.0×"，1.25 → "1.25×"（别用 toFixed(1)：1.25 会显示成 1.3，看着像另一个倍速） */
+  function rateLabel(r){ return (r % 1 === 0 ? r.toFixed(1) : String(r)) + '×'; }
+  function fmtClock(s){ if(!isFinite(s) || s < 0) s = 0; var m = Math.floor(s / 60), x = Math.floor(s % 60); return (m < 10 ? '0' : '') + m + ':' + (x < 10 ? '0' : '') + x; }
+  function listenPart(){
+    var parts = (EX && EX.unit && EX.unit.parts) || [];
+    for(var i = 0; i < parts.length; i++) if(parts[i].audioUrl) return parts[i];
+    return null;
+  }
+  function listenPartLabel(){ var p = listenPart(); return (p && p.partNum) || 'Audio'; }
+  function audioBarHtml(){
+    var p = listenPart();
+    if(!p || !p.audioUrl) return '<div class="ex-audio" id="exAudioBar"><span class="ea-label">本部分没有音频</span></div>';
+    var exam = EX.listenMode === 'exam';
+    return '<div class="ex-audio' + (exam ? ' locked' : '') + '" id="exAudioBar">'
+      + '<button class="ea-play" type="button" data-aplay aria-label="Play">▶</button>'
+      + '<span class="ea-label">' + esc(listenPartLabel()) + '</span>'
+      + '<div class="ea-bar" id="eaBar"><div class="ea-fill" id="eaFill"></div><span class="ea-knob" id="eaKnob"></span></div>'
+      + '<span class="ea-time" id="eaTime">00:00 / 00:00</span>'
+      + '<button class="ea-rate" type="button" data-arate' + (exam ? ' style="display:none"' : '') + '>' + rateLabel(AUDIO_RATES[_rateIx]) + '</button>'
+      + '<button class="ea-mode' + (exam ? ' exam' : '') + '" type="button" data-amode'
+      + (EX.audioStarted ? ' disabled' : '')
+      + ' title="' + (EX.audioStarted ? '已经开始播放，本次不能再切换' : '切到考试模式后音频直通，不能暂停/拖动') + '">'
+      + (exam ? '考试模式' : '练习模式') + '</button>'
+      + '</div>'
+      + '<audio id="exAudio" preload="metadata" src="' + esc(p.audioUrl) + '"></audio>';
+  }
+  function paintAudio(){
+    var a = document.getElementById('exAudio'); if(!a) return;
+    var d = a.duration || 0, c = a.currentTime || 0, pct = d ? (c / d * 100) : 0;
+    var fill = document.getElementById('eaFill'), knob = document.getElementById('eaKnob'),
+        tm = document.getElementById('eaTime'), btn = document.querySelector('#exAudioBar [data-aplay]');
+    if(fill) fill.style.width = pct + '%';
+    if(knob) knob.style.left = pct + '%';
+    if(tm) tm.textContent = fmtClock(c) + ' / ' + fmtClock(d);
+    if(btn) btn.textContent = a.paused ? '▶' : '❙❙';
+  }
+  function wireAudio(){
+    var a = document.getElementById('exAudio');
+    if(!a || a === _audioBound) return;                  /* 记住绑过哪个元素，别重复绑 */
+    _audioBound = a;
+    a.playbackRate = AUDIO_RATES[_rateIx];
+    a.addEventListener('loadedmetadata', paintAudio);
+    a.addEventListener('timeupdate', paintAudio);
+    a.addEventListener('play', function(){ if(EX) EX.audioStarted = true; lockAudioMode(); paintAudio(); });
+    a.addEventListener('pause', paintAudio);
+    a.addEventListener('ended', paintAudio);
+    paintAudio();
+  }
+  function lockAudioMode(){
+    var b = document.querySelector('#exAudioBar [data-amode]');
+    if(b && EX && EX.audioStarted && b.textContent !== '已交卷'){ b.disabled = true; b.title = '已经开始播放，本次不能再切换'; }
+  }
+  function audioToggle(){
+    var a = document.getElementById('exAudio'); if(!a || !EX) return;
+    if(a.paused) a.play();
+    else if(EX.listenMode !== 'exam') a.pause();          /* 考试模式：不给暂停 */
+  }
+  function audioSeek(e){
+    var a = document.getElementById('exAudio'); if(!a || !EX) return;
+    if(EX.listenMode === 'exam' && !EX.submitted) return;/* 考试模式：不给拖动（交卷后解锁） */
+    var bar = document.getElementById('eaBar'); if(!bar || !a.duration) return;
+    var r = bar.getBoundingClientRect();
+    a.currentTime = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * a.duration;
+  }
+  function audioSetMode(exam){
+    EX.listenMode = exam ? 'exam' : 'practice';
+    var bar = document.getElementById('exAudioBar'); if(!bar) return;
+    bar.classList.toggle('locked', !!exam);
+    var b = bar.querySelector('[data-amode]');
+    if(b){ b.classList.toggle('exam', !!exam); b.textContent = exam ? '考试模式' : '练习模式'; }
+    var rt = bar.querySelector('[data-arate]');
+    if(rt) rt.style.display = exam ? 'none' : '';
+  }
+  function audioToggleMode(){
+    if(!EX || EX.audioStarted) return;                   /* 已经开始播 → 锁死 */
+    audioSetMode(EX.listenMode !== 'exam');
+  }
+  /* 交卷后：听力原文出来 + 音频解锁（可自由回放/拖动复听 —— Zoju / PrepAsk 都是交卷后解锁） */
+  function showScript(){
+    var inner = document.getElementById('exListenIn'); if(!inner) return;
+    if(!inner.querySelector('.ex-script')){
+      var html = '';
+      ((EX && EX.unit && EX.unit.parts) || []).forEach(function(p){ html += clean(p.article || ''); });
+      if(html){
+        var d = document.createElement('details');
+        d.className = 'ex-script'; d.open = true;
+        d.innerHTML = '<summary>听力原文 Script</summary><div class="sc-body">' + html + '</div>';
+        inner.insertBefore(d, inner.firstChild);
+      }
+    }
+    audioSetMode(false);
+    var bar = document.getElementById('exAudioBar');
+    if(bar){
+      var b = bar.querySelector('[data-amode]');
+      if(b){ b.disabled = true; b.classList.remove('exam'); b.textContent = '已交卷'; }
+    }
+  }
+
   function renderExam(){
     var host = document.getElementById('examRoot'); if(!host || !EX) return;
     var u = EX.unit, parts = u.parts || [], groups = [];
     parts.forEach(function(p){ (p.groups || []).forEach(function(g){ groups.push(g); }); });
     EX.groups = groups;
     EX.flagged = EX.flagged || {};
+    if(EX.listenMode !== 'exam') EX.listenMode = 'practice';
     if(!EX.cur) EX.cur = 1;
 
     var nums = [];
@@ -434,19 +600,31 @@
     EX.total = nums.length;
     if(EX.cur == null && nums.length) EX.cur = Number(nums[0]);
 
-    var artHtml = '';
-    parts.forEach(function(p){ artHtml += clean(p.article || ''); });
+    var isListen = EX.channel === 'listening';
 
-    host.innerHTML = shellHtml(EX.channel === 'reading' ? 'Reading' : 'Listening', u.title,
-                        EX.channel === 'reading' ? '01:00:00' : '00:30:00')
-      + splitHtml(artHtml, groups.map(function(g, i){ return groupHtml(g, i); }).join(''))
-      + barHtml() + ctxHtml();
+    if(isListen){
+      /* 听力：顶部音频条 + 单栏题目（听力没有独立文章区，不做左右分栏）。
+         Highlight/Note 菜单依赖 #exArt，听力没有 → 不渲染，避免出现点不动的入口。 */
+      host.innerHTML = shellHtml('Listening', listenPartLabel() + ' · ' + u.title, '00:30:00')
+        + audioBarHtml()
+        + '<div class="ex-listen" id="exListen"><div class="ex-listen-in" id="exListenIn">'
+        + groups.map(function(g, i){ return groupHtml(g, i, null, 'listening'); }).join('')
+        + '</div></div>'
+        + barHtml();
+    } else {
+      var artHtml = '';
+      parts.forEach(function(p){ artHtml += clean(p.article || ''); });
+      host.innerHTML = shellHtml('Reading', u.title, '01:00:00')
+        + splitHtml(artHtml, groups.map(function(g, i){ return groupHtml(g, i, null, 'reading'); }).join(''))
+        + barHtml() + ctxHtml();
+    }
 
     Object.keys(EX.user || {}).forEach(function(qn){ applyAnswer(qn, EX.user[qn]); });
     paintSheet();
-    renderNotes();
-    replayMarks();
-    startTimer(EX.channel === 'reading' ? 60 * 60 : 30 * 60);
+    if(isListen) wireAudio();
+    else { renderNotes(); replayMarks(); }
+    if(EX.submitted){ if(isListen) showScript(); decoratePassage(EX.curP); }
+    startTimer(isListen ? 30 * 60 : 60 * 60);
   }
 
   /* ===== 完整模考（3 篇一套 · 40 题 / 60 分钟 · 随机组卷）=====
@@ -614,6 +792,16 @@
     for(var i = 0; i < t.length; i++){ if(raw >= t[i][0]) return t[i][1]; }
     return 0;
   }
+  /* 听力 raw score（40 题）→ 总分换算。听力表与阅读表**不一样**（门槛更低），别混用。
+     来源：ieltsworldly.com/ielts-ac-gt-listening-faq-paper-based-and-computer-based
+     （与 IDP 官方换算口径一致，两个独立来源核对过） */
+  function bandOfListening(raw){
+    var t = [[39,9],[37,8.5],[35,8],[32,7.5],[30,7],[26,6.5],[23,6],[18,5.5],
+             [16,5],[13,4.5],[11,4],[8,3.5],[6,3],[4,2.5],[3,2],[2,1.5],[1,1],[0,0]];
+    for(var i = 0; i < t.length; i++){ if(raw >= t[i][0]) return t[i][1]; }
+    return 0;
+  }
+  function isListen(){ return !!(EX && EX.channel === 'listening'); }
   function addScoreCard(res){
     var root = document.getElementById('examRoot'); if(!root) return;
     var old = root.querySelector('.fx-score'); if(old && old.parentNode) old.parentNode.removeChild(old);
@@ -631,11 +819,12 @@
         cards += '<div class="fx-pcard"><b>PASSAGE ' + pi + '</b><div>' + ok + ' / ' + tot + '</div></div>';
       });
     }
+    var lsn = isListen();
     var el = document.createElement('div');
     el.className = 'fx-score';
     el.innerHTML = '<div class="fx-top"><b>' + res.right + ' / ' + res.total + '</b>'
-      + '<span class="fx-band">总分 ' + Number(bandOfReading(raw)).toFixed(1) + '</span>'
-      + '<span>Academic Reading · ' + res.total + ' 题换算</span></div>'
+      + '<span class="fx-band">总分 ' + Number((lsn ? bandOfListening : bandOfReading)(raw)).toFixed(1) + '</span>'
+      + '<span>' + (lsn ? 'Listening' : 'Academic Reading') + ' · ' + res.total + ' 题换算</span></div>'
       + (cards ? '<div class="fx-pgrid">' + cards + '</div>' : '');
     var pt = root.querySelector('.ex-ptabs');
     root.insertBefore(el, pt || root.firstChild);
@@ -1008,6 +1197,7 @@
 
     decoratePassage(EX.curP);
     addScoreCard(res);
+    if(isListen()) showScript();                       /* 交卷后才给听力原文 + 解锁音频复听 */
 
     try{
       if(EX.full){
@@ -1035,6 +1225,9 @@
     stopTimer();
     dgReset();
     hlReset();
+    var au = document.getElementById('exAudio');
+    if(au){ try{ au.pause(); }catch(e){} }
+    _audioBound = null;                                /* 音频元素随 innerHTML 一起没了，解绑记录 */
     if(EX && !EX.submitted) saveDraft();
     EX = null;
     var host = document.getElementById('examRoot'); if(host){ host.hidden = true; host.innerHTML = ''; }
@@ -1079,8 +1272,7 @@
       /* 一级：四科 */
       if((el = t.closest && t.closest('#mockTabs .pill-tab'))){
         var _mt = el.getAttribute('data-mtab');
-        showTab(_mt);
-        if(_mt === 'reading') renderList('reading');
+        paintTab(_mt);
         /* 10/11 第 7 项：写作 pane 的真题列表由 writing.js 提供（函数挂在 window 上）。
            每次切进来重渲染一次 —— 刚练完一道题回来，✓/上次分数才会即时更新。 */
         if(_mt === 'writing' && typeof window.renderExamList === 'function') window.renderExamList();
@@ -1092,6 +1284,12 @@
         if(rt) rt.setAttribute('data-mock-part', el.getAttribute('data-part'));
         document.querySelectorAll('#partTabs .pill-tab').forEach(function(b){ b.classList.toggle('active', b === el); });
         renderList('reading');
+        return;
+      }
+      /* 二级：听力的 Part 1 / 2 / 3 / 4（10/11 第 9 项） */
+      if((el = t.closest && t.closest('#listenPartTabs .pill-tab'))){
+        document.querySelectorAll('#listenPartTabs .pill-tab').forEach(function(b){ b.classList.toggle('active', b === el); });
+        renderListenList(el.getAttribute('data-lpart'));
         return;
       }
       if((el = t.closest && t.closest('[data-fullstart]'))){ openFullTest(_fullSet); return; }
@@ -1109,6 +1307,17 @@
       }
       if(t.closest && t.closest('[data-exit]')){ exitExam(); return; }
       if(t.closest && t.closest('[data-submit]')){ submit(); return; }
+      /* 听力音频条（10/11 第 9 项）：播放/暂停、倍速、练习⇄考试模式、点进度条跳转 */
+      if(t.closest && t.closest('#exAudioBar [data-aplay]')){ audioToggle(); return; }
+      if((el = t.closest && t.closest('#exAudioBar [data-arate]'))){
+        var a1 = document.getElementById('exAudio'); if(!a1) return;
+        _rateIx = (_rateIx + 1) % AUDIO_RATES.length;
+        a1.playbackRate = AUDIO_RATES[_rateIx];
+        el.textContent = rateLabel(AUDIO_RATES[_rateIx]);
+        return;
+      }
+      if(t.closest && t.closest('#exAudioBar [data-amode]')){ audioToggleMode(); return; }
+      if(t.closest && t.closest('#eaBar')){ audioSeek(e); return; }
       if((el = t.closest && t.closest('.ex-pill')) && !(EX && EX.submitted)){
         var box = el.closest('.ex-pills');
         box.querySelectorAll('.ex-pill').forEach(function(p){ p.classList.remove('on'); });
@@ -1193,7 +1402,10 @@
       var t = e.target, el, r;
       if((el = t.closest && t.closest('.ex-x'))){ dgClearEl(el.closest('.ex-drop')); return; }
       if((el = t.closest && t.closest('#examRoot .ex-chip'))){
-        if(el.classList.contains('used')) return;
+        /* 🔴 10/11 第 9 项修 bug：原先是 `if(el.classList.contains('used')) return;`
+           —— 把「用过」当成不可再用。但雅思匹配题同一个字母允许重复用
+           （123 组 matching 里 23 组答案字母重复，占 18.7%），禁用就会让这些题永远答不对。
+           `used` 现在只是视觉提示（虚线边框），不再挡操作。 */
         e.preventDefault();
         _dg = { el: el, from: 'pool', v: el.getAttribute('data-v'), moved: false };
         _dgStart.x = e.clientX; _dgStart.y = e.clientY;
