@@ -61,6 +61,45 @@
 .bank-note{margin:18px 0 0;font-size:13px;color:var(--muted);line-height:1.7}
 .soon-box{background:var(--surface);border:1px dashed var(--line);border-radius:12px;padding:26px 20px;text-align:center;color:var(--muted);font-size:14px;line-height:1.9}
 
+/* ===== 完整模考入口卡（3 篇一套 · 40 题 / 60 分钟）===== */
+.full-card{background:var(--primary-900);color:#fff;border-radius:14px;padding:16px 20px;display:flex;
+  align-items:center;gap:18px;margin:0 0 16px}
+.full-card .fc-num{font-size:30px;font-weight:800;line-height:1;opacity:.92;flex:none;font-variant-numeric:tabular-nums}
+.full-card .fc-body{flex:1;min-width:0}
+.full-card .fc-body b{display:block;font-size:16px;font-weight:700;margin-bottom:4px}
+.full-card .fc-body>span{font-size:12.5px;opacity:.85}
+.full-card .fc-pills{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.full-card .fc-pill{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.26);border-radius:999px;
+  padding:3px 12px;font-size:12px;white-space:nowrap}
+.full-card .btn-primary{background:#fff;color:var(--primary-900);flex:none}
+.full-card .btn-primary:hover{background:#eef7f6}
+@media(max-width:860px){
+  .full-card{flex-direction:column;align-items:stretch;gap:12px}
+  .full-card .btn-primary{width:100%}
+}
+
+/* ===== 考试中：Passage 1/2/3 切换 ===== */
+.ex-ptabs{display:flex;gap:6px;padding:8px 16px;border-bottom:1px solid var(--line);background:#fff;flex:none;overflow:auto}
+.ex-ptab{border:1px solid var(--n-400);background:#fff;border-radius:999px;padding:6px 15px;font-size:13px;
+  font-weight:600;cursor:pointer;color:var(--muted);white-space:nowrap;flex:none;font-family:inherit}
+.ex-ptab.on{background:#111;border-color:#111;color:#fff}
+.ex-ptab .ex-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--n-400);margin-right:6px;vertical-align:1px}
+.ex-ptab.done .ex-dot{background:var(--primary)}
+.ex-ptab.on .ex-dot{background:#fff}
+
+/* ===== 交卷后的成绩卡（顶部横幅）===== */
+.fx-score{flex:none;background:var(--primary-50);border-bottom:1px solid var(--primary-100);padding:14px 18px}
+.fx-score .fx-top{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.fx-score .fx-top b{font-size:30px;font-weight:800;line-height:1;color:#111;font-variant-numeric:tabular-nums}
+.fx-score .fx-band{font-size:14px;font-weight:800;color:var(--primary-900);background:#fff;
+  border:1px solid var(--primary-100);border-radius:999px;padding:3px 12px}
+.fx-score .fx-top span{color:var(--muted);font-size:12.5px}
+.fx-score .fx-pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:11px}
+.fx-score .fx-pcard{border:1px solid var(--primary-100);background:#fff;border-radius:8px;padding:9px 12px}
+.fx-score .fx-pcard b{display:block;font-size:11.5px;color:var(--muted);letter-spacing:.04em;margin-bottom:3px}
+.fx-score .fx-pcard div{font-size:17px;font-weight:800;color:#111;font-variant-numeric:tabular-nums}
+@media(max-width:860px){.fx-score .fx-pgrid{grid-template-columns:1fr}}
+
 /* ===== 做题页（全屏 · 全英文 · 仿真机考）===== */
 #examRoot{position:fixed;inset:0;z-index:900;background:#fff;display:flex;flex-direction:column;--exfs:20px}
 #examRoot[hidden]{display:none}
@@ -271,6 +310,7 @@
     </div>
 
     <section class="mock-pane" id="pane-reading">
+      <div id="fullEntry"></div>
       <div class="partbar">
         <div class="pill-tabs" id="partTabs">
           <button class="pill-tab active" type="button" data-part="Part 1">Part 1</button>
@@ -302,6 +342,6 @@
 <!-- 🔴 加载顺序契约（10/5 铁律）：defer 顺序不可改 —— bank.js 依赖 common.js 的 PAGES -->
 <script defer src="js/data.js?v=20261011e"></script>
 <script defer src="js/common.js?v=20261011b"></script>
-<script defer src="js/bank.js?v=20261011j"></script>
+<script defer src="js/bank.js?v=20261011k"></script>
 </body>
 </html>
