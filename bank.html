@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://api.deepseek.com; object-src 'none'; base-uri 'none'" />
+<!-- frame-ancestors 只由 HTTP 响应头下发（CF Pages 根目录 _headers） -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<title>题库 · 雅思备考 Hub</title>
+<link rel="stylesheet" href="css/common.css?v=20261010a" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
+<link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
+<link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png?v=7">
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#3a9a93" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="description" content="机考真题练习：阅读、听力分门别类，做完自动判分（陆续开放）。" />
+<style>
+/* ===== 题库页样式（页面内联，不动 common.css → 免全站 bump） ===== */
+.bank-wrap{max-width:820px;margin:0 auto}
+.bank-head h1{font-size:22px;font-weight:800;margin:0 0 6px}
+.bank-head p{color:var(--muted);font-size:14px;margin:0 0 18px;line-height:1.6}
+.bank-tabs{display:flex;gap:8px;margin-bottom:16px}
+.bank-tab{appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--text);
+  font-size:14px;font-weight:600;padding:9px 18px;border-radius:10px;cursor:pointer;min-height:40px;transition:.15s}
+.bank-tab:hover{border-color:var(--primary);color:var(--primary)}
+.bank-tab.active{background:var(--primary);border-color:var(--primary);color:#fff}
+.bank-tab[disabled]{opacity:.45;cursor:not-allowed}
+.bank-count{font-size:13px;color:var(--muted);margin:0 0 10px}
+.bank-items{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
+.bank-item{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:13px 16px;border-top:1px solid var(--line)}
+.bank-item:first-child{border-top:none}
+.bank-item-main{display:flex;flex-direction:column;gap:2px;min-width:0}
+.bank-item-main b{font-size:15px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bank-item-zh{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bank-item-meta{display:flex;gap:6px;flex:none}
+.bank-tag{font-size:12px;color:var(--muted);background:var(--bg);border:1px solid var(--line);
+  padding:3px 9px;border-radius:20px;white-space:nowrap}
+.bank-loading,.bank-empty{padding:40px 16px;text-align:center;color:var(--muted);font-size:14px}
+.bank-note{margin:18px 0 0;font-size:13px;color:var(--muted);line-height:1.6}
+@media(max-width:560px){
+  .bank-item{padding:12px 13px}
+  .bank-item-main b{font-size:14.5px}
+}
+</style>
+<style id="bootLoaderStyle">
+#bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
+#bootLoader.hide{opacity:0;pointer-events:none}
+#bootLoader .ui-loader{margin-bottom:8px}
+@media (prefers-reduced-motion: reduce){#bootLoader .ui-loader-dot,#bootLoader .ui-loader-shadow{animation:none}#bootLoader .ui-loader-dot{top:20px;height:20px;border-radius:50%;transform:none}#bootLoader .ui-loader-shadow{opacity:.5;transform:scaleX(1)}}
+</style>
+</head>
+<body>
+<div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div></div>
+<nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
+
+<main class="container">
+  <!-- 🔴 软导航契约：功能容器 #bankRoot 必须在 <main> 之内（10/6 铁律） -->
+  <div class="bank-wrap" id="bankRoot" data-bank-tab="reading">
+    <div class="bank-head">
+      <h1>题库</h1>
+      <p>机考真题练习。先浏览套数，做题和判分功能陆续开放。</p>
+    </div>
+
+    <div class="bank-tabs" id="bankTabs" role="tablist">
+      <button class="bank-tab active" type="button" data-channel="reading" role="tab">阅读</button>
+      <button class="bank-tab" type="button" data-channel="listening" role="tab">听力</button>
+    </div>
+
+    <!-- 🔴 软导航契约：功能容器 #bankList 必须在 <main> 之内 -->
+    <div id="bankList"><div class="bank-loading">目录加载中…</div></div>
+
+    <p class="bank-note">每篇可单独当作一次练习。当前先开放目录浏览，做题功能正在开发中——想先练哪一类，可以在「设置 → 意见反馈」告诉我们。</p>
+  </div>
+</main>
+
+<!-- 🔴 加载顺序契约（10/5 15:40 铁律）：defer 顺序不可改 —— bank.js 依赖 common.js 的 PAGES 与样式 -->
+<script defer src="js/data.js?v=20261011e"></script>
+<script defer src="js/common.js?v=20261011a"></script>
+<script defer src="js/bank.js?v=20261011a"></script>
+</body>
+</html>

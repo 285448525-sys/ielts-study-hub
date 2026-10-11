@@ -23,11 +23,12 @@
       ]
     },
     study: {
-      key:'study', title:'学习', tagline:'背单词、口语、写作、句子——四个都在这儿',
+      key:'study', title:'学习', tagline:'单词、口语、写作、题库、句子——都在这儿',
       items:[
         { id:'practice', name:'单词', desc:'学习与管理你的单词' },
         { id:'speaking', name:'口语', desc:'题库 + AI 串题 + 陪练' },
         { id:'writing',  name:'写作', desc:'模板 + AI 评分' },
+        { id:'bank',     name:'题库', desc:'机考真题练习' },
         { id:'corpus',   name:'句子', desc:'长难句 · 错题 · 听写' }
       ]
     },

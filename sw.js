@@ -30,7 +30,7 @@
 // 开合（窄屏原本点了开记忆弹层、且教练台整块隐藏→现在展开态显示为浮层）；发送框收到 36px。v212→v213
 // 10/4 13:36 她看过实机后补一条：手机端教练台改为**默认收起**（点开才出现）；
 // 桌面维持默认展开。窄屏开合只记内存、不写回设置，避免「手机收起把电脑右栏也收掉」。v213→v214
-const CACHE = 'ielts-hub-v310';  // 10/11 批⑱：清理探针「一次最多删 20 个」—— 原实现一点「清理」会把**全部**探针一次删完（每个探针要删 5 个基础键 + 扫 6 个 AI 计数前缀），探针攒到几百个时单次请求就烧掉大把 KV 写配额（她 10/5、10/6 各烧穿一次，免费版 1000 写/天）。现改为：按 created 升序取前 20 个删（最陈旧的先走，连点几次自然清完），返回 remaining；前端确认框与结果框都明写「本次删几个 / 还剩几个 / 再点一次继续」。来源 = 考后待办清单 第二部分这条我提过她还没答的。上一版 v309 批⑰ 7.0 小作文（a1cf999）。
+const CACHE = 'ielts-hub-v311';  // 10/11 题库第 0 期：新增 bank.html（学习组第 5 成员）+ js/bank.js（读 bank/manifest.json 渲染只读目录：阅读 68 篇 / 听力 347 篇两个 tab）。PRECORE 加 /bank.html + /js/bank.js（bank/ 下数据不进 PRECORE，运行时按需拉）。common.js 加 PAGES.bank + GROUPED_DOCK 学习组 members + SIDE_SEARCH_PAGES；hubgroup.js 学习组加卡片。上一版 v310 批⑱ 清理探针限 20 个（7ae587a）。
 // 10/5 14:35 设置页合并目标分数+口语自评 + 删竖排版本标记 + 顶栏显昵称（common.js/settings.js 改版）
   // 10/4 19:20 题库卡片「显示不全、被截掉一截」（她 19:10 报，点名「住所」与「对结果开心的重要决定」，说了好几遍）
 //
@@ -352,6 +352,7 @@ const PRECORE = [
   '/timer.html',
   '/writing.html',
   '/wrongbook.html',
+  '/bank.html',       // 10/11：题库页（学习组第 5 成员）。不进 PRECORE 则弱网/直访会被回退成 index 壳
   // 10/4 18:42 三个组页（必须进 PRECORE：直接访问/弱网时否则会被回退成 index 壳，
   // 表现为「页面不存在跳回主页」—— 10/1 她撞过一次同款事故）
   '/plans-hub.html',
@@ -373,6 +374,7 @@ const PRECORE = [
   '/js/common.js',
   '/js/corpus.js',
   '/js/data.js',
+  '/js/bank.js',      // 10/11：题库页目录脚本。⚠️ bank/manifest.json 与 bank/*/*.json 不进 PRECORE（415 篇体积大，运行时 SWR 按需拉）
   '/js/feedback.js',
   '/js/dhp_policy.js',
   '/js/history.js',

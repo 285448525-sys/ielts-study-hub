@@ -33,6 +33,8 @@ const PAGES = [
   /* 句型闯关已并入口语页「练习」tab（2026-09-09 之之拍板），主导航不再单列入口；
      pattern-drill.html 保留为独立直达页 */
   { id:'writing',   file:'writing.html',   icon:ICON.writing,   name:'写作',       desc:'模板 + AI 评分' },
+  // 10/11 新增：题库（真经机考练习）。当前第 0 期只读目录，做题/判分后续。
+  { id:'bank',      file:'bank.html',      icon:ICON.mock,      name:'题库',       desc:'机考真题练习' },
   { id:'wrongbook', file:'wrongbook.html', icon:ICON.wrongbook, name:'错句本',     desc:'写作/语料默写错句汇总' },
   { id:'review',    file:'review.html',    icon:ICON.review,    name:'回顾',       desc:'模考成绩 + 学习轨迹' },
   { id:'vip',       file:'vip.html',       icon:ICON.vip,       name:'会员',       desc:'AI 无限用 + 专属权益' },  // 10/1 付费方案：非学习功能，不进 PRIMARY_NAV
@@ -62,7 +64,7 @@ function favPageIds(){
 }
 
 /* v5：简化后全部平铺，不再分折叠组（首页→回顾 一级；设置/服药 在分隔线下方） */
-const PRIMARY_NAV = ['index','timer','plans','practice','corpus','speaking','writing'];
+const PRIMARY_NAV = ['index','timer','plans','practice','corpus','speaking','writing','bank'];
 /* 10/1 付费方案：vip 放分隔线下方首位（销售入口显眼但不挤占学习导航；她看过效果可再调位置） */
 const MORE_NAV    = ['vip','review','meds','settings'];
 const TAB_NAV     = ['index','timer','practice','speaking'];   // 旧 tabbar 主项（组件已删，仅用于计算「更多」弹层要收纳哪些页面）
@@ -129,6 +131,7 @@ const SIDE_SEARCH_PAGES = [
   { id:'corpus',    kw:'句子 长难句 错题 听写 语料 翻译 解码 sentence' },
   { id:'speaking',  kw:'口语 题库 串题 跟读 影子 part1 part2 part3 speaking' },
   { id:'writing',   kw:'写作 作文 模板 真题 评分 大作文 小作文 task1 task2 writing' },
+  { id:'bank',      kw:'题库 机考 刷题 真题 阅读 听力 练习 bank' },
   { id:'wrongbook', kw:'错句本 错句 默写 wrong' },
   { id:'review',    kw:'回顾 复习 成绩 模考 记录 轨迹 历史 看板 review' },
   { id:'settings',  kw:'设置 配置 同步 api key 账号 数据 导出 导入 settings' },
@@ -460,7 +463,7 @@ const GROUPED_DOCK = [
   { id:'plans',  label:'计划', icon:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4"/>',
     page:'plans-hub', members:['plans','timer'] },
   { id:'study',  label:'学习', icon:'<path d="M4 19.5V6a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-1.5z"/><path d="M4 19.5A2 2 0 0 1 6 18h13"/>',
-    page:'study',     members:['practice','speaking','writing','corpus'] },
+    page:'study',     members:['practice','speaking','writing','bank','corpus'] },
   { id:'me',     label:'我的', icon:'<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/>',
     page:'me',        members:['review','vip','settings','meds'] }
 ];
