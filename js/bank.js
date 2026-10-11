@@ -214,6 +214,16 @@
   }
   function qRange(g){ var ns = qNums(g); return ns.length ? (ns[0] + '–' + ns[ns.length - 1]) : ''; }
 
+  /* 判断题：选项是 TRUE/FALSE/NOT GIVEN 或 YES/NO/NOT GIVEN → 三个内联方块 */
+  var TF_SET = ['TRUE', 'FALSE', 'NOT GIVEN', 'YES', 'NO'];
+  function isTFGroup(g){
+    if(g.type === 'matching' || g.type === 'multiple-choice') return false;
+    var qs = g.questions || [], opts = (qs[0] && qs[0].options) || [];
+    if(!opts.length || opts.length > 3) return false;
+    return opts.every(function(o){
+      return TF_SET.indexOf(String(o.optionContent || '').trim().toUpperCase()) > -1;
+    });
+  }
   function pillsHtml(q){
     var h = '<div class="ex-pills" data-q="' + esc(q.qNumber) + '">';
     (q.options || []).forEach(function(o){
@@ -222,12 +232,25 @@
     });
     return h + '</div>';
   }
-  function cboxHtml(q){
-    var h = '<div class="ex-cbox" data-q="' + esc(q.qNumber) + '">';
+  /* 单选题：圆点 + 字母加粗（对齐真机考） */
+  function radioHtml(q){
+    var h = '<div class="ex-opts ex-radio-box" data-q="' + esc(q.qNumber) + '">';
     (q.options || []).forEach(function(o){
       var v = o.optionNum || '';
-      h += '<label class="row"><input type="checkbox" value="' + esc(v) + '">'
-        + '<span><b>' + esc(v) + '.</b> ' + esc(o.optionContent || '') + '</span></label>';
+      h += '<label class="ex-opt" data-v="' + esc(v) + '">'
+        + '<input class="ex-radio" type="radio" name="exq_' + esc(q.qNumber) + '" value="' + esc(v) + '">'
+        + '<span><b>' + esc(v) + '</b>' + esc(o.optionContent || '') + '</span></label>';
+    });
+    return h + '</div>';
+  }
+  /* 多选题：方框 + 字母加粗（指令里已写 Choose TWO / THREE letters） */
+  function cboxHtml(q){
+    var h = '<div class="ex-cbox ex-opts" data-q="' + esc(q.qNumber) + '">';
+    (q.options || []).forEach(function(o){
+      var v = o.optionNum || '';
+      h += '<label class="ex-opt" data-v="' + esc(v) + '">'
+        + '<input class="ex-check" type="checkbox" value="' + esc(v) + '">'
+        + '<span><b>' + esc(v) + '</b>' + esc(o.optionContent || '') + '</span></label>';
     });
     return h + '</div>';
   }
@@ -278,9 +301,10 @@
           + clean(q.question) + cboxHtml(q) + '</div>';
       });
     } else {
+      var tf = isTFGroup(g);
       qs.forEach(function(q){
         h += '<div class="ex-q"><span class="ex-qn" data-qn="' + esc(q.qNumber) + '">' + esc(q.qNumber) + '</span>'
-          + clean(q.question) + pillsHtml(q) + '</div>';
+          + clean(q.question) + (tf ? pillsHtml(q) : radioHtml(q)) + '</div>';
       });
     }
     return h + '</div>';
@@ -353,7 +377,9 @@
       return;
     }
     var pills = root.querySelector('.ex-pills[data-q="' + qn + '"]');
-    if(pills){ pills.querySelectorAll('.ex-pill').forEach(function(p){ p.classList.toggle('on', p.getAttribute('data-v') === val); }); }
+    if(pills){ pills.querySelectorAll('.ex-pill').forEach(function(p){ p.classList.toggle('on', p.getAttribute('data-v') === val); }); return; }
+    var rb = root.querySelector('.ex-radio-box[data-q="' + qn + '"]');
+    if(rb){ rb.querySelectorAll('input').forEach(function(i){ i.checked = (i.value === val); }); }
   }
 
   function collect(){
@@ -368,6 +394,9 @@
     root.querySelectorAll('.ex-cbox[data-q]').forEach(function(b){
       var vals = []; b.querySelectorAll('input:checked').forEach(function(c){ vals.push(c.value); });
       if(vals.length) out[b.getAttribute('data-q')] = vals;
+    });
+    root.querySelectorAll('.ex-radio-box[data-q]').forEach(function(b){
+      var c = b.querySelector('input:checked'); if(c) out[b.getAttribute('data-q')] = c.value;
     });
     root.querySelectorAll('select[data-q]').forEach(function(s){ if(s.value) out[s.getAttribute('data-q')] = s.value; });
     return out;
@@ -476,6 +505,14 @@
       });
       var sel = root.querySelector('select[data-q="' + d.qn + '"]'); if(sel) sel.disabled = true;
       root.querySelectorAll('.ex-cbox[data-q="' + d.qn + '"] input').forEach(function(b){ b.disabled = true; });
+      /* 选项（单选/多选）：正确的标绿、选错的标红 */
+      var rights = String(d.right == null ? '' : d.right).toUpperCase().split(/[,\s\/]+/).filter(Boolean);
+      root.querySelectorAll('.ex-opts[data-q="' + d.qn + '"] .ex-opt').forEach(function(lb){
+        var inp = lb.querySelector('input'); if(inp) inp.disabled = true;
+        var v = String(lb.getAttribute('data-v') || '').toUpperCase();
+        if(v && rights.indexOf(v) > -1) lb.classList.add('right');
+        else if(inp && inp.checked) lb.classList.add('wrong');
+      });
       var bl = root.querySelector('input.ex-blank[data-q="' + d.qn + '"]'); if(bl) bl.disabled = true;
       if(bl && !d.ok){ bl.style.borderBottomColor = '#e6b3ae'; bl.style.color = '#b3261e'; }
 
@@ -608,7 +645,7 @@
         return;
       }
       if(!EX || EX.submitted) return;
-      if(t.matches && (t.matches('input.ex-blank[data-q]') || t.matches('.ex-cbox input') || t.matches('select[data-q]'))){
+      if(t.matches && (t.matches('input.ex-blank[data-q]') || t.matches('.ex-opts input') || t.matches('select[data-q]'))){
         saveDraft(); paintSheet();
       }
     });

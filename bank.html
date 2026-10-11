@@ -94,8 +94,8 @@
 .ex-qn{display:inline-block;min-width:20px;font-weight:700;margin-right:7px}
 .ex-qn.miss{color:#b3261e}
 .ex-qn.hit{color:var(--primary-900)}
-.ex-pills{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
-.ex-pill{border:1px solid var(--n-400);background:#fff;border-radius:3px;padding:5px 14px;font-size:.85em;cursor:pointer}
+.ex-pills{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap}
+.ex-pill{min-width:86px;text-align:center;border:1px solid var(--n-400);background:#fff;border-radius:3px;padding:6px 14px;font-size:.95em;cursor:pointer}
 .ex-pill:hover{border-color:#111}
 .ex-pill.on{background:#111;border-color:#111;color:#fff;font-weight:700}
 .ex-pill.right{background:var(--primary-50);border-color:var(--primary);color:var(--primary-900);font-weight:700}
@@ -103,9 +103,25 @@
 .ex-hdbox{border:1px solid var(--n-400);border-radius:4px;padding:12px 16px;margin-bottom:16px}
 .ex-hdbox div{font-size:.9em;margin:4px 0;line-height:1.7}
 .ex-hdbox i{font-style:normal;font-weight:700;display:inline-block;min-width:30px}
-.ex-cbox{margin:0 0 14px}
-.ex-cbox .row{display:flex;gap:10px;align-items:flex-start;font-size:.9em;line-height:1.75;padding:5px 0;cursor:pointer}
-.ex-cbox .row input{margin-top:5px;flex:none}
+/* 选项组（单选=圆点 / 多选=方框，字母加粗）：对齐真机考 */
+.ex-opts{margin:10px 0 2px;display:flex;flex-direction:column;gap:1px}
+.ex-opt{display:flex;gap:9px;align-items:flex-start;padding:5px 9px;border-radius:4px;
+  cursor:pointer;font-size:1em;line-height:1.7;color:#111}
+.ex-opt:hover{background:#f2f3f4}
+.ex-opt span{min-width:0}
+.ex-opt b{font-weight:700;margin-right:8px}
+.ex-opt input{appearance:none;-webkit-appearance:none;width:17px;height:17px;flex:none;margin:5px 0 0;padding:0;
+  border:1.5px solid #6a6f77;background:#fff;border-radius:50%;position:relative;cursor:pointer}
+.ex-opt input.ex-check{border-radius:3px}
+.ex-opt input:checked{border-color:#111;background:#111}
+.ex-opt input:checked::after{content:"";position:absolute;inset:3px;background:#fff;border-radius:50%}
+.ex-opt input.ex-check:checked::before{content:"";position:absolute;left:4.5px;top:1.5px;width:4px;height:8px;
+  border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.ex-opt input:disabled{cursor:default}
+.ex-opt.right{background:var(--primary-50)}
+.ex-opt.right b{color:var(--primary-900)}
+.ex-opt.wrong{background:#fdf3f2}
+.ex-opt.wrong b{color:#b3261e}
 .ex-html input[placeholder]{border:none;border-bottom:1px dashed #111;
   background:transparent;font:inherit;font-size:.9em;padding:0 6px;margin:0 4px;color:#111;min-width:104px}
 .ex-html input[placeholder]:focus{outline:none;border-bottom:1.5px solid var(--primary);background:var(--primary-50)}
@@ -133,6 +149,14 @@
 .ex-split.ct-dark .ex-grp-h,.ex-split.ct-dark .ex-grp-i,.ex-split.ct-dark .ex-q{color:#fff}
 .ex-split.ct-dark .ex-pill{background:#1b1b1b;color:#fff;border-color:#6a6f77}
 .ex-split.ct-dark .ex-hdbox{border-color:#6a6f77}
+.ex-split.ct-dark .ex-opt{color:#fff}
+.ex-split.ct-dark .ex-opt:hover{background:#2b2b2b}
+.ex-split.ct-dark .ex-opt input{border-color:#9aa0a8;background:#1b1b1b}
+.ex-split.ct-dark .ex-opt input:checked{background:#fff;border-color:#fff}
+.ex-split.ct-dark .ex-opt input:checked::after{background:#1b1b1b}
+.ex-split.ct-dark .ex-opt input.ex-check:checked::before{border-color:#1b1b1b}
+.ex-split.ct-yellow .ex-opt{color:#ffd400}
+.ex-split.ct-yellow .ex-opt input{border-color:#ffd400;background:#141414}
 .ex-split.ct-yellow{background:#141414}
 .ex-split.ct-yellow .ex-article,.ex-split.ct-yellow .ex-qcol{background:#141414;color:#ffd400;border-color:#3a3f45}
 .ex-split.ct-yellow .ex-grp-h,.ex-split.ct-yellow .ex-grp-i,.ex-split.ct-yellow .ex-q{color:#ffd400}
@@ -199,6 +223,6 @@
 <!-- 🔴 加载顺序契约（10/5 铁律）：defer 顺序不可改 —— bank.js 依赖 common.js 的 PAGES -->
 <script defer src="js/data.js?v=20261011e"></script>
 <script defer src="js/common.js?v=20261011b"></script>
-<script defer src="js/bank.js?v=20261011e"></script>
+<script defer src="js/bank.js?v=20261011f"></script>
 </body>
 </html>
