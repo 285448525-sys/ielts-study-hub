@@ -150,19 +150,39 @@
   }
 
   /* ===== 做题页 ===== */
-  var TYPE_HINT = {
-    'fill-in-the-blank': '按题号填空：在对应的空格里填词。',
-    'single-choice': '选择一个选项。',
-    'multiple-choice': '按题目要求选择（可能不止一个）。',
-    'matching': '为每一项选择对应的标题 / 选项。',
-    'map': '在图上选出对应的位置。'
-  };
+  /* 每组题上面那行英文指令（按真机考的标准措辞，按题型给） */
+  function instrFor(g){
+    var qs = g.questions || [], opts = ((qs[0] && qs[0].options) || []);
+    var txt = opts.map(function(o){ return String(o.optionContent || ''); }).join(' ').toUpperCase();
+    if(g.type === 'fill-in-the-blank'){
+      var isTable = /<table/i.test(String(g.contentHtml || ''));
+      return isTable
+        ? 'Complete the table below.<br>Choose <b>ONE WORD AND/OR A NUMBER</b> from the passage for each answer.'
+        : 'Complete the notes below.<br>Choose <b>ONE WORD ONLY</b> from the passage for each answer.';
+    }
+    if(g.type === 'matching'){
+      var roman = opts.length && /^[ivx]+$/i.test(String(opts[0].optionNum || ''));
+      return roman
+        ? 'The Reading Passage has several sections.<br>Choose the correct heading for each section from the list of headings below.'
+        : 'Which section contains the following information?<br>Write the correct letter in each box.';
+    }
+    if(g.type === 'map') return 'Label the map below.';
+    if(g.type === 'multiple-choice'){
+      var want = /THREE/i.test(String((qs[0] && qs[0].question) || '')) ? 'THREE' : 'TWO';
+      return 'Choose <b>' + want + '</b> letters.';
+    }
+    if(/TRUE|FALSE|NOT GIVEN/.test(txt))
+      return 'Do the following statements agree with the information given in the passage?<br>Write <b>TRUE</b> if the statement agrees with the information, <b>FALSE</b> if the statement contradicts the information, <b>NOT GIVEN</b> if there is no information on this.';
+    if(/YES|NO|NOT GIVEN/.test(txt))
+      return 'Do the following statements agree with the claims of the writer?<br>Write <b>YES</b> if the statement agrees with the claims of the writer, <b>NO</b> if the statement contradicts the claims of the writer, <b>NOT GIVEN</b> if it is impossible to say what the writer thinks about this.';
+    return 'Choose the correct letter, <b>A</b>, <b>B</b>, <b>C</b> or <b>D</b>.';
+  }
 
   function openExam(unitId, channel){
     var root = document.getElementById('bankRoot');
     if(root) root.style.display = 'none';
     var host = document.getElementById('examRoot');
-    if(host){ host.hidden = false; host.innerHTML = '<div class="bank-loading" style="padding:60px">正在加载题目…</div>'; }
+    if(host){ host.hidden = false; host.innerHTML = '<div class="bank-loading" style="padding:60px">Loading…</div>'; }
 
     var p1 = fetch('bank/' + channel + '/' + unitId + '.json', { cache: 'no-cache' })
               .then(function(r){ if(!r.ok) throw new Error('unit ' + r.status); return r.json(); });
@@ -181,8 +201,8 @@
     }).catch(function(err){
       if(window.console && console.error) console.error('[bank] 题目加载失败：', err);
       var h = document.getElementById('examRoot');
-      if(h) h.innerHTML = '<div class="bank-empty" style="padding:60px"><p>题目加载失败，请返回重试。</p>'
-        + '<p><button class="btn-ghost" type="button" data-exit>返回</button></p></div>';
+      if(h) h.innerHTML = '<div class="bank-empty" style="padding:60px"><p>Could not load this test. Please go back and try again.</p>'
+        + '<p><button class="btn-ghost" type="button" data-exit>Back</button></p></div>';
       if(root) root.style.display = '';
     });
   }
@@ -212,7 +232,7 @@
     return h + '</div>';
   }
   function selectHtml(q, opts){
-    var h = '<select class="ex-sel" data-q="' + esc(q.qNumber) + '"><option value="">请选择</option>';
+    var h = '<select class="ex-sel" data-q="' + esc(q.qNumber) + '"><option value=""></option>';
     opts.forEach(function(o){
       var v = o.optionNum || o.option || '';
       h += '<option value="' + esc(v) + '">' + esc(v + '. ' + (o.optionContent || o.option || '')) + '</option>';
@@ -235,13 +255,12 @@
   function groupHtml(g){
     var h = '<div class="ex-group" data-gtype="' + esc(g.type) + '">';
     h += '<p class="ex-grp-h">Questions ' + esc(qRange(g)) + '</p>';
-    h += '<p class="ex-grp-i">' + esc(TYPE_HINT[g.type] || '作答后交卷判分。') + '</p>';
+    h += '<p class="ex-grp-i">' + instrFor(g) + '</p>';
     var qs = g.questions || [];
 
     if(g.type === 'fill-in-the-blank'){
       var f = fillHtml(g);
       h += f.html;
-      if(!f.had) h += '<p class="ex-grp-i">（这组填空题缺少可填的空位）</p>';
     } else if(g.type === 'matching'){
       var opts = (g.options && g.options.length) ? g.options : ((qs[0] && qs[0].options) || []);
       h += '<div class="ex-hdbox">';
@@ -252,7 +271,7 @@
           + esc(plain(q.question)) + '<div style="margin-top:6px">' + selectHtml(q, opts) + '</div></div>';
       });
     } else if(g.type === 'map'){
-      h += '<p class="ex-grp-i">地图题需要配图（素材待补），暂不可作答。</p>';
+      h += '<p class="ex-grp-i">This map task is not available yet.</p>';
     } else if(g.type === 'multiple-choice'){
       qs.forEach(function(q){
         h += '<div class="ex-q"><span class="ex-qn" data-qn="' + esc(q.qNumber) + '">' + esc(q.qNumber) + '</span>'
@@ -272,34 +291,53 @@
     var u = EX.unit, parts = u.parts || [], groups = [];
     parts.forEach(function(p){ (p.groups || []).forEach(function(g){ groups.push(g); }); });
     EX.groups = groups;
+    EX.flagged = EX.flagged || {};
+    if(!EX.cur) EX.cur = 1;
 
     var nums = [];
     groups.forEach(function(g){ (g.questions || []).forEach(function(q){ if(q.qNumber != null) nums.push(String(q.qNumber)); }); });
     EX.total = nums.length;
+    if(EX.cur == null && nums.length) EX.cur = Number(nums[0]);
 
     var artHtml = '';
     parts.forEach(function(p){ artHtml += clean(p.article || ''); });
 
     var h = '';
     h += '<div class="ex-top">'
-      +    '<div class="ex-name">' + esc(u.title || '') + (u.titleZh ? '<small>' + esc(u.titleZh) + '</small>' : '') + '</div>'
-      +    '<div class="ex-mid"><span id="exProg">已答 0/' + EX.total + '</span>'
-      +      (EX.channel === 'reading' ? '<span class="ex-timer" id="exTimer">60:00</span>' : '') + '</div>'
-      +    '<div class="ex-actions">'
-      +      '<button class="btn-ghost" type="button" data-exit>退出</button>'
-      +      '<button class="btn-primary" type="button" data-submit>交卷</button>'
+      +    '<div class="ex-name">' + (EX.channel === 'reading' ? 'Reading' : 'Listening')
+      +      (u.title ? '<small>' + esc(u.title) + '</small>' : '') + '</div>'
+      +    '<span class="ex-timer" id="exTimer">' + (EX.channel === 'reading' ? '60:00' : '30:00') + '</span>'
+      +    '<div class="ex-icons">'
+      +      '<button class="ex-ico" type="button" data-gear title="Settings">Aa</button>'
+      +      '<div class="ex-pop" id="exSetPop">'
+      +        '<h5>Text size</h5>'
+      +        '<label><input type="radio" name="exTs" value="regular" checked> Regular</label>'
+      +        '<label><input type="radio" name="exTs" value="large"> Large</label>'
+      +        '<label><input type="radio" name="exTs" value="xl"> Extra large</label>'
+      +        '<hr><h5>Contrast</h5>'
+      +        '<label><input type="radio" name="exCt" value="light" checked> Black on white</label>'
+      +        '<label><input type="radio" name="exCt" value="dark"> White on black</label>'
+      +        '<label><input type="radio" name="exCt" value="yellow"> Yellow on black</label>'
+      +      '</div>'
       +    '</div></div>';
-    h += '<div class="ex-split">'
+    h += '<div class="ex-split" id="exSplit">'
       +    '<div class="ex-article">' + artHtml + '</div>'
-      +    '<div class="ex-qcol">' + groups.map(groupHtml).join('') + '</div>'
+      +    '<div class="ex-qcol" id="exQCol">' + groups.map(groupHtml).join('') + '</div>'
       +  '</div>';
-    h += '<div class="ex-bar"><div class="ex-sheet" id="exSheet"></div>'
-      +    '<div class="ex-legend" id="exLegend">灰=未答 ｜ 绿=已答</div></div>';
+    h += '<div class="ex-bar">'
+      +    '<button class="ex-ico" type="button" data-flag title="Review">▣</button>'
+      +    '<div class="ex-sheet" id="exSheet"></div>'
+      +    '<div class="ex-actions">'
+      +      '<button class="ex-ico" type="button" data-prev title="Previous">‹</button>'
+      +      '<button class="ex-ico" type="button" data-next title="Next">›</button>'
+      +      '<button class="btn-ghost" type="button" data-exit>Exit</button>'
+      +      '<button class="btn-primary" type="button" data-submit>Submit</button>'
+      +    '</div></div>';
     host.innerHTML = h;
 
     Object.keys(EX.user || {}).forEach(function(qn){ applyAnswer(qn, EX.user[qn]); });
     paintSheet();
-    if(EX.channel === 'reading') startTimer(60 * 60);
+    startTimer(EX.channel === 'reading' ? 60 * 60 : 30 * 60);
   }
 
   function applyAnswer(qn, val){
@@ -348,19 +386,25 @@
 
   function paintSheet(){
     var root = document.getElementById('examRoot'); if(!root || !EX) return;
-    var user = collect(), nums = allNums();
-    var sheet = document.getElementById('exSheet');
-    if(sheet){
-      sheet.innerHTML = nums.map(function(n){
-        var done = user[n] != null && String(user[n]).length;
-        return '<span class="ex-sq' + (done ? ' done' : '') + '" data-jump="' + esc(n) + '">' + esc(n) + '</span>';
-      }).join('');
-    }
-    var prog = document.getElementById('exProg');
-    if(prog){
-      var c = 0; nums.forEach(function(n){ if(user[n] != null && String(user[n]).length) c++; });
-      prog.textContent = '已答 ' + c + '/' + EX.total;
-    }
+    var sheet = document.getElementById('exSheet'); if(!sheet) return;
+    var user = collect();
+    sheet.innerHTML = allNums().map(function(n){
+      var cls = 'ex-sq';
+      if(user[n] != null && String(user[n]).length) cls += ' done';
+      if(EX.flagged[n]) cls += ' flag';
+      if(String(EX.cur) === n) cls += ' cur';
+      if(EX.marks && EX.marks[n]) cls += ' ' + EX.marks[n];
+      return '<span class="' + cls + '" data-jump="' + esc(n) + '">' + esc(n) + '</span>';
+    }).join('');
+  }
+
+  function goTo(n){
+    if(!EX) return;
+    EX.cur = Number(n);
+    paintSheet();
+    var el = document.querySelector('#examRoot .ex-qn[data-qn="' + n + '"]')
+          || document.querySelector('#examRoot input.ex-blank[data-q="' + n + '"]');
+    if(el) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
   }
 
   /* ===== 计时（阅读 60 分钟）===== */
@@ -438,30 +482,30 @@
       var groupEl = anchor ? anchor.closest('.ex-group') : null;
       if(groupEl){
         var box = document.createElement('div'); box.className = 'ex-expl';
-        box.innerHTML = '<b>第 ' + esc(d.qn) + ' 题</b>　正确答案：<b>' + esc(d.right || '—') + '</b>'
-          + '　你的答案：' + (d.user ? esc(d.user) : '未作答') + buildExpl(d.q);
+        box.innerHTML = '<b>' + esc(d.qn) + '</b>　Correct: <b>' + esc(d.right || '—') + '</b>'
+          + '　Yours: ' + (d.user ? esc(d.user) : '—') + buildExpl(d.q);
         groupEl.appendChild(box);
       }
     });
 
-    var mid = document.querySelector('#examRoot .ex-mid');
-    if(mid){
+    /* 成绩条（英文） */
+    var qcol = document.getElementById('exQCol');
+    if(qcol){
       var raw = Math.round(res.right / (res.total || 1) * 40);
-      mid.innerHTML = '<b style="font-size:17px;font-weight:800">' + res.right + ' / ' + res.total + '</b>'
-        + '<span style="font-size:13px;color:var(--muted)">答对' + (EX.channel === 'reading' ? '（≈ ' + raw + '/40）' : '') + '</span>';
+      var barEl = document.createElement('div');
+      barEl.className = 'ex-expl';
+      barEl.style.cssText = 'font-size:14px;background:var(--primary-50);border-left-color:var(--primary)';
+      barEl.innerHTML = 'Score：<b>' + res.right + ' / ' + res.total + '</b>'
+        + (EX.channel === 'reading' ? '（raw ≈ ' + raw + '/40）' : '');
+      qcol.insertBefore(barEl, qcol.firstChild);
     }
     try{ localStorage.setItem('hub_bank_last_' + EX.unit.id, JSON.stringify({ correct: res.right, total: res.total, ts: Date.now() })); }catch(e){}
 
-    var sheet = document.getElementById('exSheet');
-    if(sheet){
-      sheet.innerHTML = res.detail.map(function(d){
-        return '<span class="ex-sq ' + (d.ok ? 'hit' : 'miss') + '">' + esc(d.qn) + '</span>';
-      }).join('');
-    }
-    var legend = document.getElementById('exLegend');
-    if(legend) legend.textContent = '绿=答对 ｜ 红=答错 ｜ 每题解析已展开，往下滚查看';
+    EX.marks = {};
+    res.detail.forEach(function(d){ EX.marks[d.qn] = d.ok ? 'hit' : 'miss'; });
+    paintSheet();
     var sb = document.querySelector('#examRoot [data-submit]');
-    if(sb){ sb.textContent = '已交卷'; sb.disabled = true; sb.style.opacity = '.6'; }
+    if(sb){ sb.disabled = true; sb.style.opacity = '.5'; }
   }
 
   function exitExam(){
@@ -507,16 +551,61 @@
         saveDraft(); paintSheet();
         return;
       }
-      if((el = t.closest && t.closest('.ex-sq[data-jump]'))){
-        var qn = el.getAttribute('data-jump');
-        var target = document.querySelector('#examRoot .ex-qn[data-qn="' + qn + '"], #examRoot input.ex-blank[data-q="' + qn + '"]');
-        if(target) target.scrollIntoView({ block: 'center' });
+      /* Settings 开关 */
+      if((el = t.closest && t.closest('[data-gear]'))){
+        var pop = document.getElementById('exSetPop');
+        if(pop) pop.classList.toggle('on');
+        return;
+      }
+      if(!t.closest || !t.closest('#exSetPop')){
+        var pop2 = document.getElementById('exSetPop');
+        if(pop2 && pop2.classList.contains('on')) pop2.classList.remove('on');
+      }
+      /* Review：标记当前题 */
+      if((el = t.closest && t.closest('[data-flag]')) && EX && !EX.submitted){
+        var cn = String(EX.cur);
+        EX.flagged[cn] = !EX.flagged[cn];
+        el.classList.toggle('on', !!EX.flagged[cn]);
+        el.style.background = EX.flagged[cn] ? '#111' : '';
+        el.style.color = EX.flagged[cn] ? '#fff' : '';
+        paintSheet();
+        return;
+      }
+      /* 上一题 / 下一题 */
+      if((el = t.closest && t.closest('[data-prev]')) && EX){
+        var an = allNums().map(Number), i0 = an.indexOf(Number(EX.cur));
+        goTo(an[Math.max(0, i0 - 1)]);
+        return;
+      }
+      if((el = t.closest && t.closest('[data-next]')) && EX){
+        var an2 = allNums().map(Number), i1 = an2.indexOf(Number(EX.cur));
+        goTo(an2[Math.min(an2.length - 1, i1 + 1)]);
+        return;
+      }
+      /* 答题卡跳题 */
+      if((el = t.closest && t.closest('.ex-sq[data-jump]')) && EX){
+        goTo(el.getAttribute('data-jump'));
         return;
       }
     }, true);
 
     document.addEventListener('change', function(e){
       var t = e.target;
+      /* 设置：字号 / 对比度 */
+      if(t.name === 'exTs'){
+        var sp = document.getElementById('exSplit'); if(!sp) return;
+        sp.classList.remove('ts-large', 'ts-xl');
+        if(t.value === 'large') sp.classList.add('ts-large');
+        if(t.value === 'xl') sp.classList.add('ts-xl');
+        return;
+      }
+      if(t.name === 'exCt'){
+        var sp2 = document.getElementById('exSplit'); if(!sp2) return;
+        sp2.classList.remove('ct-dark', 'ct-yellow');
+        if(t.value === 'dark') sp2.classList.add('ct-dark');
+        if(t.value === 'yellow') sp2.classList.add('ct-yellow');
+        return;
+      }
       if(!EX || EX.submitted) return;
       if(t.matches && (t.matches('input.ex-blank[data-q]') || t.matches('.ex-cbox input') || t.matches('select[data-q]'))){
         saveDraft(); paintSheet();
