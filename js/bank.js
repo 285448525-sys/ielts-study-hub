@@ -354,8 +354,12 @@
       +      '</div>'
       +    '</div></div>';
     h += '<div class="ex-split" id="exSplit">'
-      +    '<div class="ex-article">' + artHtml + '</div>'
+      +    '<div class="ex-article" id="exArt">' + artHtml + '</div>'
       +    '<div class="ex-qcol" id="exQCol">' + groups.map(groupHtml).join('') + '</div>'
+      +    '<aside class="ex-notes" id="exNotes">'
+      +      '<div class="ex-notes-h"><b>Notes</b><button type="button" id="exNoteClose" title="Hide">×</button></div>'
+      +      '<div id="exNoteList"></div>'
+      +    '</aside>'
       +  '</div>';
     h += '<div class="ex-bar">'
       +    '<button class="ex-ico" type="button" data-flag title="Review">▣</button>'
@@ -366,10 +370,19 @@
       +      '<button class="btn-ghost" type="button" data-exit>Exit</button>'
       +      '<button class="btn-primary" type="button" data-submit>Submit</button>'
       +    '</div></div>';
+    h += '<div class="ex-ctx" id="exCtx">'
+      +    '<button type="button" data-hact="hl">Highlight</button>'
+      +    '<button type="button" data-hact="note">Note</button>'
+      +    '<hr>'
+      +    '<button type="button" data-hact="clear">Clear</button>'
+      +    '<button type="button" data-hact="clearall">Clear all</button>'
+      +  '</div>';
     host.innerHTML = h;
 
     Object.keys(EX.user || {}).forEach(function(qn){ applyAnswer(qn, EX.user[qn]); });
     paintSheet();
+    renderNotes();
+    replayMarks();
     startTimer(EX.channel === 'reading' ? 60 * 60 : 30 * 60);
   }
 
@@ -407,6 +420,149 @@
     saveDraft(); paintSheet();
   }
   function dgDropAt(x, y){ var el = document.elementFromPoint(x, y); return el ? el.closest('.ex-drop') : null; }
+
+  /* ===== Highlight / Note（划词 → 右键；按篇存本地，下次打开还在）=====
+     ⚠️ 关键：右键按下那一下浏览器会把选区折叠掉 → 若只在 contextmenu 里读选区会拿不到划的词。
+     所以 pointerdown(button=2) 时先把选区 cloneRange() 缓存，contextmenu 优先用实时选区、没有就用缓存。 */
+  var _hlRange = null, _hlSpan = null, _hlCache = null;
+
+  function artEl(){ return document.getElementById('exArt'); }
+  function marksKey(){ return (EX && EX.unit) ? 'hub_bank_marks_' + EX.unit.id : ''; }
+  function loadMarks(){
+    try{ var a = JSON.parse(localStorage.getItem(marksKey()) || '[]'); return (a && a.length) ? a : []; }catch(e){ return []; }
+  }
+  function saveMarks(list){ try{ localStorage.setItem(marksKey(), JSON.stringify(list)); }catch(e){} }
+  function unwrapEl(el){
+    var p = el.parentNode; if(!p) return;
+    while(el.firstChild) p.insertBefore(el.firstChild, el);
+    p.removeChild(el);
+  }
+  function wrapRange(range, cls, id){
+    var span = document.createElement('span');
+    span.className = cls;
+    if(id) span.setAttribute('data-id', id);
+    try{ span.appendChild(range.extractContents()); range.insertNode(span); return span; }catch(e){ return null; }
+  }
+  function textMap(root){
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    var nodes = [], full = '', n;
+    while((n = walker.nextNode())){ nodes.push({ node: n, s: full.length }); full += n.nodeValue; }
+    return { nodes: nodes, full: full };
+  }
+  function locAt(map, off){
+    for(var i = 0; i < map.nodes.length; i++){
+      var it = map.nodes[i], len = it.node.nodeValue.length;
+      if(off >= it.s && off <= it.s + len) return { node: it.node, offset: off - it.s };
+    }
+    return null;
+  }
+  function selQuote(range){
+    var art = artEl(); if(!art || !range) return null;
+    var t = range.toString();
+    if(!t) return null;
+    var map = textMap(art), start = -1;
+    if(range.startContainer && range.startContainer.nodeType === 3){
+      for(var i = 0; i < map.nodes.length; i++){
+        if(map.nodes[i].node === range.startContainer){ start = map.nodes[i].s + range.startOffset; break; }
+      }
+    }
+    if(start < 0) return { text: t, pre: '', post: '' };
+    return {
+      text: t,
+      pre:  map.full.slice(Math.max(0, start - 24), start),
+      post: map.full.slice(start + t.length, start + t.length + 24)
+    };
+  }
+  function markRange(a, b, cls, id){
+    var r = document.createRange();
+    try{ r.setStart(a.node, a.offset); r.setEnd(b.node, b.offset); }catch(e){ return null; }
+    return wrapRange(r, cls, id);
+  }
+  /* 按「原文片段 + 前后文」把标注重新贴回文章（文本没变就能定位） */
+  function replayMarks(){
+    var art = artEl(); if(!art) return;
+    loadMarks().forEach(function(m){
+      if(!m || !m.text || art.querySelector('[data-id="' + m.id + '"]')) return;
+      var map = textMap(art), start = -1;
+      if(m.pre || m.post){
+        var i0 = map.full.indexOf((m.pre || '') + m.text + (m.post || ''));
+        if(i0 > -1) start = i0 + (m.pre ? m.pre.length : 0);
+      }
+      if(start < 0) start = map.full.indexOf(m.text);
+      if(start < 0) return;
+      var a = locAt(map, start), b = locAt(map, start + m.text.length);
+      if(!a || !b) return;
+      markRange(a, b, m.kind === 'hl' ? 'ex-hl' : 'ex-nt', m.id);
+    });
+  }
+  function renderNotes(){
+    var host = document.getElementById('exNoteList'); if(!host) return;
+    var list = loadMarks().filter(function(m){ return m.kind === 'nt'; });
+    host.innerHTML = list.length
+      ? list.map(function(m){
+          return '<div class="ex-ncard" data-id="' + esc(m.id) + '">'
+            + '<button class="ex-ndel" type="button" data-ndel="' + esc(m.id) + '" title="Delete">✕</button>'
+            + '<q>' + esc(String(m.text || '').slice(0, 90)) + '</q>'
+            + '<textarea placeholder="Type your note…">' + esc(m.note || '') + '</textarea></div>';
+        }).join('')
+      : '<p class="ex-notes-empty">Select text in the passage and right-click to add a note.</p>';
+  }
+  function focusNote(id){
+    var sp = document.getElementById('exSplit'); if(sp) sp.classList.add('hasnotes');
+    document.querySelectorAll('#examRoot .ex-ncard').forEach(function(c){ c.classList.remove('on'); });
+    var card = document.querySelector('#examRoot .ex-ncard[data-id="' + id + '"]');
+    if(card){ card.classList.add('on'); var t = card.querySelector('textarea'); if(t) t.focus(); }
+  }
+  function delNote(id){
+    var el = artEl() && artEl().querySelector('.ex-nt[data-id="' + id + '"]');
+    if(el) unwrapEl(el);
+    saveMarks(loadMarks().filter(function(m){ return m.id !== id; }));
+    renderNotes();
+  }
+  function newMarkId(p){ return p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  function doHlAct(act){
+    var art = artEl(); if(!art) return;
+    var list = loadMarks();
+    if(act === 'hl' && _hlRange){
+      var q = selQuote(_hlRange);
+      if(q){
+        var id = newMarkId('h');
+        if(wrapRange(_hlRange, 'ex-hl', id)){
+          list.push({ id: id, kind: 'hl', text: q.text, pre: q.pre, post: q.post });
+          saveMarks(list);
+        }
+      }
+      var s = window.getSelection(); if(s) s.removeAllRanges();
+    } else if(act === 'note' && _hlRange){
+      var q2 = selQuote(_hlRange);
+      if(q2){
+        var id2 = newMarkId('n');
+        if(wrapRange(_hlRange, 'ex-nt', id2)){
+          list.push({ id: id2, kind: 'nt', text: q2.text, pre: q2.pre, post: q2.post, note: '' });
+          saveMarks(list);
+          var sp = document.getElementById('exSplit'); if(sp) sp.classList.add('hasnotes');
+          renderNotes(); focusNote(id2);
+        }
+      }
+      var s2 = window.getSelection(); if(s2) s2.removeAllRanges();
+    } else if(act === 'clear' && _hlSpan){
+      var idc = _hlSpan.getAttribute('data-id');
+      unwrapEl(_hlSpan);
+      saveMarks(list.filter(function(m){ return m.id !== idc; }));
+      renderNotes();
+    } else if(act === 'clearall'){
+      art.querySelectorAll('.ex-hl, .ex-nt').forEach(unwrapEl);
+      saveMarks([]);
+      renderNotes();
+      var sp2 = document.getElementById('exSplit'); if(sp2) sp2.classList.remove('hasnotes');
+    }
+    _hlRange = null; _hlSpan = null;
+  }
+  function hlReset(){
+    _hlRange = null; _hlSpan = null; _hlCache = null;
+    var c = document.getElementById('exCtx'); if(c) c.classList.remove('on');
+    var sp = document.getElementById('exSplit'); if(sp) sp.classList.remove('hasnotes');
+  }
 
   function applyAnswer(qn, val){
     var root = document.getElementById('examRoot'); if(!root) return;
@@ -608,6 +764,7 @@
   function exitExam(){
     stopTimer();
     dgReset();
+    hlReset();
     if(EX && !EX.submitted) saveDraft();
     EX = null;
     var host = document.getElementById('examRoot'); if(host){ host.hidden = true; host.innerHTML = ''; }
@@ -621,6 +778,15 @@
 
     document.addEventListener('click', function(e){
       var t = e.target, el;
+      /* Highlight / Note：菜单项优先 */
+      if((el = t.closest && t.closest('#exCtx button'))){
+        doHlAct(el.getAttribute('data-hact'));
+        var cx = document.getElementById('exCtx'); if(cx) cx.classList.remove('on');
+        return;
+      }
+      if((el = t.closest && t.closest('#exNoteClose'))){ document.getElementById('exSplit').classList.remove('hasnotes'); return; }
+      if((el = t.closest && t.closest('[data-ndel]'))){ delNote(el.getAttribute('data-ndel')); return; }
+      if((el = t.closest && t.closest('#exArt .ex-nt'))){ focusNote(el.getAttribute('data-id')); return; }
       /* 一级：四科 */
       if((el = t.closest && t.closest('#mockTabs .pill-tab'))){
         showTab(el.getAttribute('data-mtab'));
@@ -684,6 +850,11 @@
       if((el = t.closest && t.closest('.ex-sq[data-jump]')) && EX){
         goTo(el.getAttribute('data-jump'));
         return;
+      }
+      /* 点菜单外 → 收起 Highlight 菜单 */
+      if(!t.closest || !t.closest('#exCtx')){
+        var c2 = document.getElementById('exCtx');
+        if(c2 && c2.classList.contains('on')) c2.classList.remove('on');
       }
     }, true);
 
@@ -789,6 +960,45 @@
     });
 
     document.addEventListener('pointercancel', function(){ dgReset(); });
+
+    /* Highlight / Note：右键按下时先缓存选区（右键那一下会把选区折叠掉） */
+    document.addEventListener('pointerdown', function(e){
+      if(e.button !== 2) return;
+      var art = artEl(); if(!art) return;
+      var s = window.getSelection();
+      if(s && !s.isCollapsed && s.anchorNode && art.contains(s.anchorNode)){
+        try{ _hlCache = s.getRangeAt(0).cloneRange(); }catch(err){ _hlCache = null; }
+      }
+    }, true);
+    document.addEventListener('contextmenu', function(e){
+      var art = artEl(); if(!art || !art.contains(e.target)) return;
+      var sel = window.getSelection();
+      _hlSpan = e.target.closest ? e.target.closest('.ex-hl, .ex-nt') : null;
+      var live = (sel && !sel.isCollapsed && sel.anchorNode && art.contains(sel.anchorNode))
+        ? sel.getRangeAt(0).cloneRange() : null;
+      var r = live || _hlCache;
+      if(!r && !_hlSpan) return;
+      e.preventDefault();
+      _hlRange = r; _hlCache = null;
+      var ctx = document.getElementById('exCtx'); if(!ctx) return;
+      ctx.style.left = Math.min(e.clientX, window.innerWidth - 190) + 'px';
+      ctx.style.top = Math.min(e.clientY, window.innerHeight - 170) + 'px';
+      ctx.classList.add('on');
+      ctx.querySelector('[data-hact="hl"]').style.display = r ? '' : 'none';
+      ctx.querySelector('[data-hact="note"]').style.display = r ? '' : 'none';
+      ctx.querySelector('[data-hact="clear"]').style.display = _hlSpan ? '' : 'none';
+    });
+    document.addEventListener('scroll', function(){
+      var c = document.getElementById('exCtx'); if(c) c.classList.remove('on');
+    }, true);
+    document.addEventListener('input', function(e){
+      var ta = e.target.closest && e.target.closest('#examRoot .ex-ncard textarea');
+      if(!ta) return;
+      var card = ta.closest('.ex-ncard'); if(!card) return;
+      var id = card.getAttribute('data-id'), list = loadMarks();
+      list.forEach(function(m){ if(m.id === id) m.note = ta.value; });
+      saveMarks(list);
+    });
   }
 
   /* ===== 启动 ===== */

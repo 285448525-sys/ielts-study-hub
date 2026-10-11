@@ -131,6 +131,33 @@
 .ex-drop .ex-x:hover{color:#b3261e}
 .ex-drop.filled.right{border-color:var(--primary);background:var(--primary-50)}
 .ex-drop.filled.wrong{border-color:#b3261e;background:#fdf3f2;color:#b3261e}
+/* ===== Highlight / Note（划词 → 右键）===== */
+.ex-hl{background:#8b3a2e;color:#fff;border-radius:2px;cursor:pointer}
+.ex-nt{background:#8ecdf0;color:#0d2b3a;border-radius:2px;cursor:pointer}
+.ex-hl:hover,.ex-nt:hover{outline:1px solid rgba(0,0,0,.35)}
+.ex-ctx{position:fixed;z-index:99;background:#fff;border:1px solid var(--n-400);border-radius:6px;
+  box-shadow:0 6px 20px rgba(0,0,0,.14);padding:5px;display:none;min-width:168px}
+.ex-ctx.on{display:block}
+.ex-ctx button{display:block;width:100%;text-align:left;border:none;background:transparent;font:inherit;
+  font-size:13.5px;color:#111;padding:8px 12px;border-radius:4px;cursor:pointer}
+.ex-ctx button:hover{background:var(--primary-50);color:var(--primary-900)}
+.ex-ctx hr{border:none;border-top:1px solid var(--line);margin:4px 6px}
+/* 便签栏（三分屏第三列）*/
+.ex-split.hasnotes{grid-template-columns:1.15fr .72fr 288px}
+.ex-notes{display:none;border-left:1px solid var(--line);background:#eef6fc;overflow:auto;padding:14px 14px 30px}
+.hasnotes .ex-notes{display:block}
+.ex-notes-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.ex-notes-h b{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#2c6b8f}
+.ex-notes-h button{border:none;background:transparent;font:inherit;font-size:17px;color:#6b8fa8;cursor:pointer;padding:0 4px;line-height:1}
+.ex-ncard{background:#fff;border:1px solid #cfe6f5;border-radius:6px;padding:9px 10px;margin-bottom:10px;position:relative}
+.ex-ncard.on{border-color:#7fb6db;box-shadow:0 0 0 3px rgba(127,182,219,.18)}
+.ex-ncard q{display:block;font-size:12px;color:#5b87a3;line-height:1.6;margin-bottom:6px;font-style:normal;padding-right:16px}
+.ex-ncard textarea{width:100%;border:1px solid #cfe6f5;border-radius:4px;font:inherit;font-size:13px;padding:6px 8px;
+  min-height:56px;resize:vertical;background:#fbfdff;color:#1f3542}
+.ex-ncard textarea:focus{outline:none;border-color:#7fb6db}
+.ex-ncard .ex-ndel{position:absolute;top:5px;right:7px;border:none;background:transparent;font-size:13px;color:#8fb0c4;cursor:pointer;padding:0}
+.ex-ncard .ex-ndel:hover{color:#b3261e}
+.ex-notes-empty{font-size:12.5px;color:#6b8fa8;line-height:1.7}
 /* 选项组（单选=圆点 / 多选=方框，字母加粗）：对齐真机考 */
 .ex-opts{margin:10px 0 2px;display:flex;flex-direction:column;gap:1px}
 .ex-opt{display:flex;gap:9px;align-items:flex-start;padding:5px 9px;border-radius:4px;
@@ -188,6 +215,18 @@
 .ex-split.ct-dark .ex-chip{background:#1b1b1b;color:#fff;border-color:#9aa0a8}
 .ex-split.ct-dark .ex-drop{border-color:#9aa0a8;color:#fff}
 .ex-split.ct-dark .ex-drop.filled{background:#1b1b1b;border-color:#c9ced6;color:#fff}
+.ex-split.ct-dark .ex-ctx{background:#232323;border-color:#4a4f57}
+.ex-split.ct-dark .ex-ctx button{color:#fff}
+.ex-split.ct-dark .ex-notes{background:#1b1b1b;border-color:#3a3f45}
+.ex-split.ct-dark .ex-notes-h b{color:#8fc4e8}
+.ex-split.ct-dark .ex-notes-empty{color:#8fc4e8}
+.ex-split.ct-dark .ex-ncard{background:#232323;border-color:#3a3f45}
+.ex-split.ct-dark .ex-ncard q{color:#8fc4e8}
+.ex-split.ct-dark .ex-ncard textarea{background:#16202a;color:#e8f2fa;border-color:#3a3f45}
+.ex-split.ct-yellow .ex-notes{background:#141414;border-color:#3a3f45}
+.ex-split.ct-yellow .ex-notes-h b{color:#ffd400}
+.ex-split.ct-yellow .ex-ncard{background:#1e1e1e;border-color:#3a3f45}
+.ex-split.ct-yellow .ex-ncard q{color:#ffd400}
 .ex-split.ct-yellow .ex-opt{color:#ffd400}
 .ex-split.ct-yellow .ex-opt input{border-color:#ffd400;background:#141414}
 .ex-split.ct-yellow .ex-pool{background:#141414;border-color:#ffd400}
@@ -200,6 +239,8 @@
 .ex-split.ct-yellow .ex-grp-h,.ex-split.ct-yellow .ex-grp-i,.ex-split.ct-yellow .ex-q{color:#ffd400}
 @media(max-width:860px){
   .ex-split{grid-template-columns:1fr;grid-template-rows:minmax(170px,36vh) 1fr}
+  .ex-split.hasnotes{grid-template-rows:minmax(140px,26vh) minmax(140px,26vh) 1fr}
+  .ex-notes{border-left:none;border-top:1px solid var(--line)}
   .ex-article{border-right:none;border-bottom:1px solid var(--line);padding:16px 16px 40px}
   .ex-qcol{padding:14px 14px 90px}
   .ex-top{flex-wrap:wrap;gap:8px}
@@ -261,6 +302,6 @@
 <!-- 🔴 加载顺序契约（10/5 铁律）：defer 顺序不可改 —— bank.js 依赖 common.js 的 PAGES -->
 <script defer src="js/data.js?v=20261011e"></script>
 <script defer src="js/common.js?v=20261011b"></script>
-<script defer src="js/bank.js?v=20261011h"></script>
+<script defer src="js/bank.js?v=20261011i"></script>
 </body>
 </html>
