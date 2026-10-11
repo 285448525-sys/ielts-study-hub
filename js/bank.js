@@ -1043,6 +1043,24 @@
     boot();
   }
 
+  /* ===== 口语模考入口（10/11 第 8 项）=====
+     点「开始模考」= 软导航到 speaking.html，导航 await 完成后替它点一下隐藏的「MOCK」tab。
+     为什么能这么接：speaking.js 的 tab 点击是 ready() 里 addEventListener 绑的，而 softNavigate
+     await 了 runPageScript → ready() 已同步跑完、处理器就位，外部 .click() 才生效。
+     好处 = **口语页一行都不用改**（它的模考逻辑/题库全部原样复用）。 */
+  function spkStartMock(){
+    var go = { id: 'speaking', file: 'speaking.html', href: 'speaking.html' };
+    if(typeof softNavigate !== 'function'){ location.href = 'speaking.html'; return; }
+    Promise.resolve(softNavigate(go, false)).then(function(){
+      var mb = document.querySelector('#tabs [data-type="MOCK"]');
+      if(mb) mb.click();
+    }).catch(function(err){
+      /* 不写裸 catch：软导航内部虽有整页兜底，这里也留痕，避免异常被吞成「点了没反应」 */
+      console.warn('[bank] 口语模考跳转失败，回退整页跳转', err);
+      location.href = 'speaking.html';
+    });
+  }
+
   /* ===== 事件委托 ===== */
   if(!window.__BANK_DELEGATE){
     window.__BANK_DELEGATE = true;
@@ -1077,6 +1095,8 @@
         return;
       }
       if((el = t.closest && t.closest('[data-fullstart]'))){ openFullTest(_fullSet); return; }
+      /* 10/11 第 8 项：口语 pane「开始模考」→ 软导航到口语页并自动进其模考流程 */
+      if((el = t.closest && t.closest('[data-spkstart]'))){ spkStartMock(); return; }
       /* 完整模考：Passage 1 / 2 / 3 切篇 */
       if((el = t.closest && t.closest('#exPtabs .ex-ptab')) && EX && EX.full){
         if(!EX.submitted) saveDraft();

@@ -78,6 +78,25 @@
   .full-card .btn-primary{width:100%}
 }
 
+/* ===== 口语模考入口页（10/11 第 8 项：注意事项 + 开始模考）=====
+   「开始模考」= 软导航到 speaking.html 并自动进入其现有模考流程（口语页零改动）。
+   入口卡沿用上面 .full-card（与阅读完整模考同一视觉语言）。 */
+.spk-notes{margin:0;padding:0;list-style:none;border:1px solid var(--line);border-radius:12px;
+  background:var(--surface);overflow:hidden}
+.spk-notes li{position:relative;padding:12px 16px 12px 36px;font-size:13.5px;line-height:1.68;color:var(--ink)}
+.spk-notes li+li{border-top:1px solid var(--line)}
+.spk-notes li::before{content:'';position:absolute;left:17px;top:19px;width:6px;height:6px;
+  border-radius:50%;background:var(--primary);flex:none}
+.spk-notes li b{font-weight:700;color:var(--ink)}
+.spk-notes li span{color:var(--muted)}
+.spk-notes-h{display:flex;align-items:baseline;gap:8px;margin:0 0 10px}
+.spk-notes-h b{font-size:14px;font-weight:700;color:var(--ink)}
+.spk-notes-h span{font-size:12.5px;color:var(--muted)}
+@media(max-width:860px){
+  .spk-notes li{padding:11px 14px 11px 32px;font-size:13px}
+  .spk-notes li::before{left:14px;top:17px}
+}
+
 /* ===== 考试中：Passage 1/2/3 切换 ===== */
 .ex-ptabs{display:flex;gap:6px;padding:8px 16px;border-bottom:1px solid var(--line);background:#fff;flex:none;overflow:auto}
 .ex-ptab{border:1px solid var(--n-400);background:#fff;border-radius:999px;padding:6px 15px;font-size:13px;
@@ -568,7 +587,24 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
     </section>
 
     <section class="mock-pane" id="pane-speaking" hidden>
-      <div class="soon-box">口语模考正在接入。<br>会先给一页注意事项 + 「开始模考」按钮，再进入现有口语模考流程；口语页本身的题库等功能不动。</div>
+      <!-- 10/11 第 8 项：口语模考入口页 = 注意事项 + 开始模考。
+           点「开始模考」→ 软导航到 speaking.html 并自动进入其现有模考流程（口语页零改动，
+           见 js/bank.js 的 spkStartMock）。元素 id `data-spkstart` 是点击契约定点。 -->
+      <div class="full-card" id="spkEntryCard">
+        <div class="fc-num">18</div>
+        <div class="fc-body"><b>Full Speaking Test · 完整口语模考</b>
+          <span>3 parts · 18 questions · 约 12–15 minutes</span>
+        </div>
+        <button class="btn-primary" type="button" data-spkstart>Start Test</button>
+      </div>
+      <div class="spk-notes-h"><b>考试说明</b><span>开始前看一眼，考中和真机考一致</span></div>
+      <ul class="spk-notes">
+        <li><b>全程约 12–15 分钟</b>：Part 1（12 小题，含开场自我介绍）→ Part 2（准备 1 分钟 + 陈述 2 分钟）→ Part 3（5 题追问）。</li>
+        <li><b>作答方式是打字</b>：把你想说的英文写进答题框（Enter 提交、Shift+Enter 换行）。考的是内容和表达，不是手速。</li>
+        <li><b>Part 2 有 1 分钟准备</b>：可以先写几个关键词当笔记，陈述和 Part 3 全程留在屏幕上给你看。</li>
+        <li><b>中途退出或刷新不丢</b>：这场的进度会存下来，下次进来自动接着考。</li>
+        <li><b>时间到不强制收卷</b>：按自己的节奏答完，交卷后出评估报告（总分 + 各 Part 建议）。</li>
+      </ul>
     </section>
   </div>
 
@@ -583,6 +619,6 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common.js?v=20261011b"></script>
 <script defer src="js/writing_prompts.js?v=20260903ab"></script>
 <script defer src="js/writing.js?v=20261011b"></script>
-<script defer src="js/bank.js?v=20261011l"></script>
+<script defer src="js/bank.js?v=20261011m"></script>
 </body>
 </html>
