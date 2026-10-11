@@ -287,6 +287,219 @@
   .mock-tabs{width:100%}.mock-tabs .pill-tab{flex:1;justify-content:center}
   .bi-chips{display:none}.bi-qn{width:44px}
 }
+
+/* ===== 写作 pane（10/11 第 7 项：写作真题从 writing.html 搬来）=====
+   基础 .exam-* 样式已在 css/common.css（#examPractice / .exam-head / .exam-split / .exam-q / .exam-a /
+   .exam-textarea / .exam-bar / .exam-step / .exam-essay-fold 等），此处只补「真题列表卡片」与「页面级微调」。
+   全部页面内联 → 不动 common.css（免全站 19 页 bump）。 */
+.exam-filter-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 14px}
+.exam-filter-bar select{padding:6px 10px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;
+  background:var(--bg);color:var(--ink);min-width:150px}
+.exam-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.exam-group-title{grid-column:1 / -1;display:flex;align-items:center;gap:6px;margin:4px 0 2px}
+.exam-group-title .exam-kind-tag{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--primary-soft);color:var(--med);font-weight:600;white-space:nowrap}
+.exam-group-title .exam-sub-tag{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--bg);color:var(--ink);border:1px solid var(--line);font-weight:600;white-space:nowrap}
+.exam-group-title .exam-count{font-size:12px;color:var(--muted)}
+.exam-item{border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;cursor:pointer;transition:border-color .15s,background .15s;display:flex;flex-direction:column;height:100%;position:relative}
+.exam-item:hover{border-color:var(--primary);background:var(--surface)}
+.exam-item.is-done{border-color:var(--primary);background:linear-gradient(0deg,var(--primary-soft),var(--primary-soft))}
+.exam-item .ei-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.exam-item .ei-no{font-size:12px;font-weight:700;color:var(--muted)}
+.exam-item .ei-done{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#22c55e;color:#fff;font-size:12px;font-weight:700;flex:none}
+.exam-item .ei-score{margin-left:auto;font-size:13px;font-weight:800;color:var(--med);background:var(--primary-soft);border-radius:10px;padding:1px 8px;white-space:nowrap}
+.exam-item .ei-score i{font-style:normal;font-weight:600;color:var(--muted);font-size:11px}
+.exam-item .ei-type{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--primary-soft);color:var(--med);font-weight:600;white-space:nowrap}
+.exam-item .ei-sub{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--bg);color:var(--ink);border:1px solid var(--line);font-weight:600;white-space:nowrap}
+.exam-item .ei-meta{font-size:12px;color:var(--muted)}
+.exam-item .ei-title{font-size:15px;font-weight:700;color:var(--ink);line-height:1.4;margin:2px 0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.exam-item .ei-prev{font-size:12.5px;color:var(--muted);line-height:1.55;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 9px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.exam-item .ei-prev-empty{color:var(--muted);font-style:italic}
+.exam-item .ei-zh{font-size:14px;color:var(--ink);line-height:1.6;flex:1}
+.exam-item .ei-en{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.6;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.exam-item .ei-chart{margin-top:10px;border-radius:var(--radius);overflow:hidden;background:var(--bg);border:1px solid var(--line);flex-shrink:0}
+.exam-item .ei-chart img{width:100%;height:140px;object-fit:contain;display:block}
+.eq-charts{display:flex;flex-direction:column;gap:12px;margin-bottom:14px}
+.eq-charts img{max-width:100%;border-radius:var(--radius);border:1px solid var(--line);background:#fff}
+.exam-a-foot{justify-content:flex-start}
+/* 全屏机考：writing.html 靠 body.exam-fullscreen 的 flex 链（#examPanel 是 main 直接子级）；
+   bank 页 #examPanel 挂在 pane 内 → 改用固定覆盖层（与阅读的 #examRoot 同款），并藏掉四小 tab。 */
+body.exam-fullscreen #mockTabs{display:none !important}
+body.exam-fullscreen #examPanel{position:fixed;inset:0;z-index:900;background:var(--bg);display:flex;flex-direction:column;overflow:hidden}
+body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden;height:auto}
+#examPractice #examResult{flex:1 1 auto;min-height:0;overflow-y:auto;margin:0 0 12px}
+.exam-q-body-wrap .exam-part{margin:0 0 6px;font-size:20px;font-weight:800;color:var(--ink)}
+.exam-q-body-wrap .exam-instr{margin:0 0 18px;font-size:13.5px;color:var(--muted);line-height:1.5}
+.exam-bar{background:#3D4A54;border-top:none}
+.exam-bar .exam-step{background:#fff;color:#26343C}
+.exam-bar .exam-step-label{color:#fff}
+.exam-bar .btn-exam-ghost{border-color:rgba(255,255,255,.5);background:transparent;color:#fff}
+.exam-bar .btn-exam-ghost:hover{background:rgba(255,255,255,.12)}
+.exam-bar .btn-exam-exit{background:transparent;border-color:rgba(255,130,130,.7);color:#ff9d9d}
+.exam-bar .btn-exam-exit:hover{background:rgba(255,255,255,.12)}
+.exam-a{padding:16px 20px 0}
+.exam-q .exam-q-body-wrap{padding:20px 22px 26px}
+.exam-textarea{padding:14px 16px}
+#examPractice.exam-fs-0 .exam-part{font-size:24px}
+#examPractice.exam-fs-0 .exam-instr{font-size:15.5px}
+#examPractice.exam-fs-0 .exam-q-lead{font-size:17px}
+#examPractice.exam-fs-0 .exam-q-body,#examPractice.exam-fs-0 .exam-q-body .ei-en,#examPractice.exam-fs-0 .exam-q-body .ei-zh{font-size:20px}
+#examPractice.exam-fs-0 .exam-q-note{font-size:16.5px}
+#examPractice.exam-fs-0 .exam-essay-fold-sum{font-size:17px}
+#examPractice.exam-fs-0 .exam-essay-orig{font-size:19px}
+#examPractice.exam-fs-0 .exam-textarea{font-size:20px}
+#examPractice.exam-fs-0 .exam-wc{font-size:15px}
+#examPractice.exam-fs-1 .exam-part{font-size:27px}
+#examPractice.exam-fs-1 .exam-instr{font-size:18px}
+#examPractice.exam-fs-1 .exam-q-lead{font-size:20px}
+#examPractice.exam-fs-1 .exam-q-body,#examPractice.exam-fs-1 .exam-q-body .ei-en,#examPractice.exam-fs-1 .exam-q-body .ei-zh{font-size:23px}
+#examPractice.exam-fs-1 .exam-q-note{font-size:19px}
+#examPractice.exam-fs-1 .exam-essay-fold-sum{font-size:20px}
+#examPractice.exam-fs-1 .exam-essay-orig{font-size:22px}
+#examPractice.exam-fs-1 .exam-textarea{font-size:23px}
+#examPractice.exam-fs-1 .exam-wc{font-size:17px}
+#examPractice.exam-fs-2 .exam-part{font-size:31px}
+#examPractice.exam-fs-2 .exam-instr{font-size:21px}
+#examPractice.exam-fs-2 .exam-q-lead{font-size:24px}
+#examPractice.exam-fs-2 .exam-q-body,#examPractice.exam-fs-2 .exam-q-body .ei-en,#examPractice.exam-fs-2 .exam-q-body .ei-zh{font-size:27px}
+#examPractice.exam-fs-2 .exam-q-note{font-size:22px}
+#examPractice.exam-fs-2 .exam-essay-fold-sum{font-size:24px}
+#examPractice.exam-fs-2 .exam-essay-orig{font-size:26px}
+#examPractice.exam-fs-2 .exam-textarea{font-size:27px}
+#examPractice.exam-fs-2 .exam-wc{font-size:19px}
+.exam-tu-overlay{position:fixed;inset:0;z-index:60;background:rgba(10,20,24,.5);display:flex;align-items:center;justify-content:center;padding:20px}
+.exam-tu-overlay[hidden]{display:none}
+.exam-tu-card{background:var(--surface);border-radius:16px;box-shadow:0 18px 48px rgba(0,0,0,.28);padding:26px 30px;max-width:380px;width:100%;text-align:center}
+.exam-tu-title{margin:0 0 8px;font-size:20px;font-weight:800;color:var(--ink)}
+.exam-tu-sub{margin:0 0 18px;font-size:13.5px;line-height:1.7;color:var(--muted)}
+.exam-tu-actions{display:flex;gap:10px;justify-content:center}
+.exam-textarea:read-only{background:var(--danger-soft);border-color:var(--danger)}
+/* ===== 评分结果面板（10/11 第 7 项：与 writing.html 内联同源复制）=====
+   bank 页写作交卷后 #examResult 渲染 srPanelHtml 的 .sr-*/.sc-dim*/.fx*/.ts-loc 等，
+   + 评分记录 .hist-*，此前这些类只在 writing.html 内联 → bank 页缺失致排版堆积。
+   源区间 = writing.html 第 133-255 行（逐行同步）。改这里必须同步改 writing.html，反之亦然。 */
+  .score-section{margin-bottom:14px}
+  .score-section h4{font-size:14px;margin:0 0 6px;color:var(--ink)}
+  .score-section ul{margin:0;padding-left:20px;line-height:1.8;font-size:14px}
+  .score-section li{margin-bottom:4px}
+
+  /* 评分记录（A1，仿 27-mockup） */
+  .hist{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+  .hist-row{border:1px solid var(--line);border-radius:var(--radius-sm);overflow:hidden}
+  .hist-h{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;transition:background .15s;flex-wrap:wrap}
+  .hist-h:hover{background:var(--surface-2)}
+  .hist-date{font-size:12px;color:var(--muted);white-space:nowrap}
+  .hist-tag{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--primary-soft);color:var(--med);border:1px solid var(--line);font-weight:600;white-space:nowrap}
+  .hist-title{flex:1;min-width:0;font-size:13.5px;color:var(--ink);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hist-score{font-size:14px;font-weight:800;color:var(--primary);white-space:nowrap}
+  .hist-caret{color:var(--muted);font-size:12px;transition:transform .2s}
+  .hist-row.open .hist-caret{transform:rotate(90deg)}
+  .hist-body{display:none;padding:12px;border-top:1px dashed var(--line);background:var(--surface-2);font-size:13px}
+  .hist-row.open .hist-body{display:block}
+  .hist-empty{font-size:13px;color:var(--muted);padding:18px 10px;text-align:center;border:1px dashed var(--line);border-radius:var(--radius-sm)}
+
+  /* 模板填空 → AI 评分（紧凑版） */
+  .tpl-score{margin-top:12px;border:1px solid var(--line);border-radius:var(--radius);padding:14px;background:var(--surface)}
+  .tpl-score .ts-load{color:var(--muted);font-size:14px}
+  .ts-top{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  .ts-overall{font-size:26px;font-weight:800;color:var(--primary);line-height:1}
+  .ts-dims{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-bottom:12px}
+  .ts-dim{border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:var(--bg)}
+  .ts-dim-h{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);font-weight:700}
+  .ts-dim-h b{font-size:16px;color:var(--primary)}
+  .ts-dim-r{font-size:13px;line-height:1.6;margin-top:4px}
+  .ts-sec{margin-top:10px}
+  .ts-sec h4{margin:0 0 6px;font-size:13px;color:var(--muted);font-weight:700}
+  .ts-gram{border-left:3px solid var(--danger);background:rgba(239,68,68,.06);border-radius:8px;padding:8px 11px;margin-bottom:6px;font-size:13.5px;line-height:1.7}
+  .ts-gram s{color:var(--muted)}
+  .ts-gram b{color:var(--primary-d)}
+  .ts-fix{border-left:3px solid var(--primary);background:var(--primary-soft);border-radius:8px;padding:8px 11px;font-size:13.5px;line-height:1.7}
+  /* 10/2 P0 含金量：正反馈卡 / 考官锚点卡 / gap 卡 */
+  .ts-good{border-left:3px solid #0f766e;background:rgba(15,118,110,.07);border-radius:8px;padding:8px 11px;margin-bottom:6px;font-size:13.5px;line-height:1.7;color:var(--ink)}
+  .ts-anchor{margin-top:6px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 9px;font-size:12.5px;color:var(--muted);line-height:1.7}
+  .ts-anchor em{color:var(--primary-d)}
+  .ts-gap{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 11px 8px 26px;font-size:13.5px;line-height:1.8}
+  .ts-gram-foot{display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap}
+  .ts-loc{border:none;background:none;color:var(--primary);cursor:pointer;font-size:12px;padding:0}
+  .ts-loc:hover{text-decoration:underline}
+  #practice .ph-loc{outline:2px solid var(--primary);outline-offset:1px;border-radius:3px}
+  .exam-essay-orig mark,mark{background:var(--primary-soft);color:inherit;padding:0 2px;border-radius:3px}
+  .hist-summary{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);padding:10px 12px;margin-bottom:10px}
+  .hist-spark{flex-shrink:0}
+  .hist-sum-t{display:flex;flex-direction:column;gap:4px;font-size:13px;min-width:0}
+  .hist-top{display:flex;gap:6px;flex-wrap:wrap}
+  .hist-tagchip{font-size:11px;padding:1px 8px;border-radius:10px;background:var(--primary-soft);color:var(--med);border:1px solid var(--line);white-space:nowrap}
+
+  /* 10/8 晚 她要求（仿爱听写）：四个维度可点开的手风琴，点开看该维度分项明细 */
+  .sc-dim{border:1px solid var(--line);border-radius:10px;margin:8px 0;background:var(--surface);overflow:hidden}
+  .sc-dim > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:11px 14px;user-select:none}
+  .sc-dim > summary::-webkit-details-marker{display:none}
+  .sc-dim > summary:hover{background:var(--primary-soft)}
+  .sc-dim-name{flex:1;font-size:14px;font-weight:700;color:var(--ink)}
+  .sc-dim-band{font-size:15px;font-weight:800;color:var(--primary-d);min-width:28px;text-align:right}
+  .sc-dim-caret{color:var(--muted);font-size:12px;transition:transform .15s;transform:rotate(-90deg)}
+  .sc-dim[open] .sc-dim-caret{transform:none}
+  .sc-dim-body{padding:4px 14px 12px;border-top:1px solid var(--line)}
+  .sc-dim-item{display:flex;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line)}
+  .sc-dim-item:last-child{border-bottom:none}
+  .sc-dim-item > b{flex:none;min-width:26px;text-align:center;font-size:13px;font-weight:800;color:var(--primary-d)}
+  .sc-dim-item-name{font-size:13.5px;font-weight:700;color:var(--ink)}
+  .sc-dim-item-note{font-size:12.5px;color:var(--muted);line-height:1.65;margin-top:2px}
+
+  /* ===== 10/10 批③：评分结果「左作文 / 右批改」（她点头的样子稿 → design/95）===== */
+  .sr-wrap{display:grid;grid-template-columns:minmax(0,1.32fr) minmax(0,1fr);gap:14px;align-items:start}
+  .sr-left,.sr-right{min-width:0}
+  .sr-left{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .sr-left-h{font-size:13px;font-weight:700;color:var(--muted);padding:11px 16px;border-bottom:1px solid var(--line);background:var(--surface-2)}
+  .sr-essay{padding:16px 18px;font-size:15.5px;line-height:1.95;color:var(--n-800);white-space:pre-wrap;word-break:break-word}
+  .sr-legend{display:flex;gap:16px;flex-wrap:wrap;padding:10px 18px 12px;border-top:1px dashed var(--line);font-size:12px;color:var(--muted)}
+  .sr-legend span{display:inline-flex;align-items:center;gap:6px}
+  .sr-legend .sw{width:20px;height:0;border-top-width:1.5px;border-top-style:solid}
+  .sr-legend .sw.bad{border-color:var(--danger);border-top-style:wavy}
+  .sr-legend .sw.good{border-color:var(--ok)}
+  /* 内联标注：覆盖全局 mark 底色（.exam-essay-orig mark,mark 有 teal 底） */
+  mark.mk{background:none;padding:0 .5px;border-radius:0;cursor:help;position:relative}
+  mark.mk-bad{text-decoration:underline wavy var(--danger);text-underline-offset:4px;text-decoration-thickness:1.5px}
+  mark.mk-good{text-decoration:underline solid var(--ok);text-underline-offset:4px;text-decoration-thickness:1.5px}
+  mark.mk::after{content:attr(data-tip);position:absolute;left:0;bottom:calc(100% + 8px);z-index:30;width:max-content;max-width:280px;background:var(--n-900);color:#fff;font-size:12.5px;line-height:1.6;padding:8px 10px;border-radius:8px;opacity:0;pointer-events:none;transform:translateY(4px);transition:.14s;box-shadow:0 8px 24px rgba(0,0,0,.18);font-weight:400;text-align:left;white-space:normal}
+  mark.mk:hover::after{opacity:1;transform:none}
+  /* 总分 + 四项方阵 */
+  .sr-scorehead{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+  .sr-overall{font-size:26px;font-weight:800;color:var(--primary-d);line-height:1;font-variant-numeric:tabular-nums}
+  .sr-overall-u{font-size:12.5px;color:var(--muted)}
+  .sr-head-meta{margin-left:auto;font-size:12.5px;color:var(--muted)}
+  .sr-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+  .sr-g{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px 6px;text-align:center}
+  .sr-g b{display:block;font-size:18px;color:var(--primary-d);line-height:1.2;font-variant-numeric:tabular-nums}
+  .sr-g span{display:block;font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap}
+  .sr-g i{font-style:normal;display:block;font-size:11px;color:var(--n-700);font-weight:700}
+  .sr-sec{margin-top:14px}
+  .sr-sec h2{font-size:13px;margin:0 0 8px;color:var(--muted);font-weight:700}
+  .sr-ul{margin:0;padding-left:20px;line-height:1.8;font-size:14px}
+  .sr-ul li{margin-bottom:4px}
+  /* 切题度条 */
+  .sr-topic{padding:11px 13px;border-radius:10px;background:var(--primary-soft-2);border-left:3px solid var(--primary);margin-bottom:12px}
+  .sr-topic.bad{background:var(--danger-soft);border-left-color:var(--danger)}
+  .sr-topic.warn{background:var(--warn-soft);border-left-color:var(--warn)}
+  .sr-topic b{display:block;font-size:13.5px;color:var(--primary-text)}
+  .sr-topic.bad b{color:var(--danger-text)}
+  .sr-topic.warn b{color:var(--warn-ink)}
+  .sr-topic p{margin:5px 0 0;font-size:12.5px;line-height:1.7;color:var(--n-700)}
+  .sr-topic ul{margin:2px 0 0;padding-left:18px;font-size:12.5px;line-height:1.75;color:var(--n-700)}
+  /* 逐句修改（diff 形态） */
+  .fx{padding:10px 0;border-bottom:1px dashed var(--line)}
+  .fx:last-child{border-bottom:none}
+  .fx-row{display:flex;gap:7px;align-items:flex-start;font-size:13.5px;line-height:1.75}
+  .fx-k{flex:none;font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:0 5px;margin-top:2px;line-height:1.6}
+  .fx-old s{color:var(--danger-text);text-decoration:line-through;text-decoration-color:var(--danger)}
+  .fx-new b{color:var(--primary-text);font-weight:600}
+  .fx-why{font-size:12.5px;color:var(--muted);line-height:1.65;margin-top:4px}
+  .fx-tag{display:inline-block;font-size:11px;padding:0 6px;border-radius:999px;background:var(--warn-soft);color:var(--warn-ink);margin-right:6px}
+  .fx-foot{margin-top:4px}
+  @media (max-width:1000px){
+    .sr-wrap{grid-template-columns:1fr}
+    .sr-grid{grid-template-columns:repeat(2,1fr)}
+    mark.mk::after{display:none}
+  }
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -327,7 +540,31 @@
     </section>
 
     <section class="mock-pane" id="pane-writing" hidden>
-      <div class="soon-box">写作模考正在接入。<br>沿用你现有的写作机考界面（左题目右作答 + 倒计时 + AI 批改）；写作页本身的模板等功能不动。</div>
+      <!-- 10/11 第 7 项（她拍板「整块删掉」写作页真题 tab）：写作真题整体搬到这里。
+           题目数据 = js/writing_prompts.js（大作文 70 + 小作文 25），渲染/机考/评分逻辑在 js/writing.js
+           （writeExam 那一段，同一份代码两页共用；本页无 #writeTabs → writing.js 只跑真题初始化）。
+           #examHome = 真题列表；#examPractice = 全屏机考（进入考试时 #examPanel 变固定覆盖层）。
+           元素 id 与写法与 writing.html 原版一字不差（JS 契约）。 -->
+      <div id="examPanel">
+        <section id="examHome">
+          <div class="exam-filter-bar">
+            <select id="examFilter" aria-label="按题型筛选">
+              <option value="all">全部</option>
+              <option value="big">大作文（Task 2）</option>
+              <option value="small">小作文（Task 1）</option>
+            </select>
+            <select id="examSubFilter" aria-label="按细分题型筛选">
+              <option value="all">全部题型</option>
+            </select>
+          </div>
+          <div id="examList" class="exam-list"></div>
+        </section>
+
+        <!-- 机考界面（全屏沉浸式）的 DOM 由 js/writing.js 的 ensureExamShell() 统一注入 ——
+             与 writing.html 的评分 tab「开始练」共用同一份源码，改一处两页同步。
+             这里只留空壳，元素 id 契约（#examPractice / #examEssay / #examExit …）由 shell 提供。 -->
+        <section id="examPractice" hidden></section>
+      </div>
     </section>
 
     <section class="mock-pane" id="pane-speaking" hidden>
@@ -339,9 +576,13 @@
   <div id="examRoot" hidden></div>
 </main>
 
-<!-- 🔴 加载顺序契约（10/5 铁律）：defer 顺序不可改 —— bank.js 依赖 common.js 的 PAGES -->
+<!-- 🔴 加载顺序契约（10/5 铁律）：defer 顺序不可改 —— bank.js 依赖 common.js 的 PAGES。
+     10/11 第 7 项：写作 pane 复用 js/writing.js（写作真题渲染 + 机考 + AI 评分）+ js/writing_prompts.js（题库数据）。
+     writing.js 靠「有没有 #writeTabs」自判页面：本页没有 → 只跑真题初始化，不碰写作页 DOM。 -->
 <script defer src="js/data.js?v=20261011e"></script>
 <script defer src="js/common.js?v=20261011b"></script>
-<script defer src="js/bank.js?v=20261011k"></script>
+<script defer src="js/writing_prompts.js?v=20260903ab"></script>
+<script defer src="js/writing.js?v=20261011b"></script>
+<script defer src="js/bank.js?v=20261011l"></script>
 </body>
 </html>

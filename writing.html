@@ -43,7 +43,7 @@
   <script defer src="js/common.js?v=20261011b"></script>
   <script defer src="js/feedback.js?v=20261006a"></script>
   <script defer src="js/writing_prompts.js?v=20260903ab"></script>
-  <script defer src="js/writing.js?v=20261011a"></script>
+  <script defer src="js/writing.js?v=20261011b"></script>
   <script defer src="js/wrongbook.js?v=20260903ab"></script>
 <style>
 
@@ -420,7 +420,8 @@
       <button data-tab="tpl" class="pill-tab active">模板</button>
       <button data-tab="bank" class="pill-tab">语料</button>
       <button data-tab="score" class="pill-tab">评分</button>
-      <button data-tab="exam" class="pill-tab">真题</button>
+      <!-- 10/11 第 7 项（她拍板「整块删掉」）：真题 tab 已下线 —— 写作真题搬进「模考」大 tab（bank.html → 写作 pane），
+           题目/练习记录/打勾都不变，只是换了入口位置。写作页自身模板/语料/评分三 tab 不动。 -->
       <!-- 10/2（她拍板）：「错句」Tab 删除——错句本并入模板区底部折叠区 -->
     </div>
   </div>
@@ -627,94 +628,13 @@
     </section>
   </div>
 
-  <!-- 写作真题面板 -->
+  <!-- 10/11 第 7 项（她拍板「真题 tab 整块删掉」）：真题**列表**已搬到「模考」大 tab（bank.html 写作 pane）。
+       这里保留 #examPanel 空壳 —— 评分 tab 的「保存题目，开始练」(openExamCustom) 复用同一套机考界面，
+       靠的就是 #examPanel / #examHome / #examPractice 这三个元素。机考界面的 DOM 由 js/writing.js 的
+       ensureExamShell() 统一注入（两页共用一份源码，不各抄一份）。#examHome 在写作页永不出内容、只被置 hidden。 -->
   <div id="examPanel" hidden>
-    <!-- 题目列表 -->
-    <section class="card" id="examHome">
-      <div class="form-row" style="align-items:center;gap:10px;flex-wrap:wrap">
-        <h2 style="margin:0">写作真题</h2>
-        <div class="exam-filter-bar" style="margin-left:auto">
-          <select id="examFilter">
-            <option value="all">全部</option>
-            <option value="big">大作文（Task 2）</option>
-            <option value="small">小作文（Task 1）</option>
-          </select>
-          <select id="examSubFilter">
-            <option value="all">全部题型</option>
-          </select>
-        </div>
-      </div>
-      <div id="examList" class="exam-list" style="margin-top:12px"></div>
-    </section>
-
-    <!-- 练习界面（全屏沉浸式）。10/8 官方机考布局：深色顶栏 = 计时器顶部居中 + 右上角 Text Size 三档 / Exit full screen；
-         Part 标题与指令在左栏顶部；词数在作答区左下；底部深色导航栏。元素 id 全部不变（JS 契约）。 -->
-    <section id="examPractice" hidden>
-      <header class="exam-head">
-        <div class="exam-head-left" aria-hidden="true"></div>
-        <span class="exam-timer-inline" id="examTimerWrap">
-          <span id="examTimerText">00:00:00</span>
-          <button type="button" id="examTimerBtn" title="Pause / Resume">⏸</button>
-        </span>
-        <div class="exam-head-right">
-          <button class="exam-font-btn" id="examFontBtn" type="button" title="Text size — same three sizes as IELTS on computer (Regular 20 / Large 23 / Extra large 27)">Aa · Regular</button>
-          <button class="exam-exit-full" id="examExitFull" type="button" title="Exit full screen">
-            <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4M15 3h4a2 2 0 0 1 2 2v4M9 21H5a2 2 0 0 1-2-2v-4M15 21h4a2 2 0 0 0 2-2v-4"/></svg>
-            Exit full screen
-          </button>
-        </div>
-      </header>
-
-      <div class="exam-split">
-        <article class="exam-q">
-          <div class="exam-q-body-wrap" id="examQBodyWrap">
-            <h1 class="exam-part" id="examPartLabel">Part 2</h1>
-            <p class="exam-instr" id="examInstr">You should spend about 40 minutes on this task. Write at least 250 words.</p>
-            <p class="exam-q-lead">Write about the following topic:</p>
-            <div class="exam-q-body" id="examQuestion"></div>
-            <p class="exam-q-note" id="examQNote"></p>
-          </div>
-          <details class="exam-essay-fold" id="examEssayFold" hidden>
-            <summary class="exam-essay-fold-sum">My response</summary>
-            <div class="exam-essay-orig" id="examEssayOrig"></div>
-          </details>
-        </article>
-
-        <div class="exam-a">
-          <textarea id="examEssay" class="exam-textarea" placeholder="Type your response here..."></textarea>
-          <div class="exam-a-foot" id="examAFoot">
-            <span class="exam-wc" id="examWordCount">Word count: 0</span>
-          </div>
-          <div id="examResult" class="tpl-score" hidden></div>
-        </div>
-      </div>
-
-      <footer class="exam-bar">
-        <div class="exam-bar-left">
-          <span class="exam-step" id="examStepBadge">2</span>
-          <span class="exam-step-label" id="examStepLabel">Part 2</span>
-        </div>
-        <div class="exam-bar-right">
-          <button class="btn-exam-ghost" id="examFinish" type="button">
-            <svg aria-hidden="true" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-            Finish section
-          </button>
-          <button class="btn-exam-exit" id="examExit" type="button">Exit</button>
-        </div>
-      </footer>
-
-      <!-- 10/8 她拍板：到点不再强制停笔，弹框让她自己选（提交 / 继续写）——英文保持沉浸 -->
-      <div id="examTimeUpModal" class="exam-tu-overlay" hidden>
-        <div class="exam-tu-card">
-          <p class="exam-tu-title">Time is up!</p>
-          <p class="exam-tu-sub" id="examTuWords"></p>
-          <div class="exam-tu-actions">
-            <button type="button" class="btn-exam-ghost" id="examTuSubmit">Submit now</button>
-            <button type="button" class="btn-exam-exit" id="examTuKeep">Keep writing</button>
-          </div>
-        </div>
-      </div>
-    </section>
+    <section id="examHome" hidden></section>
+    <section id="examPractice" hidden></section>
   </div>
 
   <!-- 10/2（她拍板）：错句本面板已并入 tplPanel 底部折叠区，wrongPanel 整块删除 -->

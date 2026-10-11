@@ -29,12 +29,15 @@ function wtTargetText(){
 
 function switchWriteTab(tab){
   curTab = tab;
-  const btn = $('#writeTabs').querySelector('[data-tab="' + tab + '"]');
-  $('#writeTabs').querySelectorAll('[data-tab]').forEach(x => x.classList.toggle('active', x === btn));
+  /* 10/11 第 7 项：模考页（bank.html）没有 #writeTabs / #examPanel —— 直接返回，
+     否则这里的 null 访问会抛错。真题流程本身不调本函数（exitExam 走 #examHome 分支）。 */
+  const _tabs = $('#writeTabs'); if(!_tabs) return;
+  const btn = _tabs.querySelector('[data-tab="' + tab + '"]');
+  _tabs.querySelectorAll('[data-tab]').forEach(x => x.classList.toggle('active', x === btn));
   $('#tplPanel').hidden = tab !== 'tpl';
   $('#bankPanel').hidden = tab !== 'bank';
   $('#scorePanel').hidden = tab !== 'score';
-  $('#examPanel').hidden = tab !== 'exam';
+  const _ep = $('#examPanel'); if(_ep) _ep.hidden = tab !== 'exam';   // 10/11：真题 tab 已下线，缺省容错
   /* 10/2（她拍板）：「错句」Tab 已删——错句本并入 tplPanel 底部折叠区（#wbArea），随模板面板显隐 */
   $('#dictationPanel').hidden = tab !== 'dictation';
   if(tab === 'bank') renderBank();
@@ -97,6 +100,15 @@ let _histList = [];
 let tplVip = null;   // null=未知/查询中（详情暂锁，scheduleVipRecheck 复查）；true/false = 已确认
 
 ready(() => {
+  /* 🔴 10/11 第 7 项：写作真题已搬进「模考」大 tab（bank.html）。
+     writing.js 现被两页共用：writing.html（模板/语料/评分，有 #writeTabs）与
+     bank.html（只跑「写作」pane 的真题，无 #writeTabs）。
+     判据 = 有没有 #writeTabs：没有 = 模考页 → 只初始化真题列表；
+     其余写作页 DOM 绑定整块跳过（那些元素在 bank 页不存在，不跳过会 null 报错打断整条 ready）。 */
+  if(!$('#writeTabs')){
+    if($('#examList')){ bindExam(); renderExamList(); }
+    return;
+  }
   // 迁移：清洗写作模板分类名/标题里的括号后缀（如「观点型（第一优先级）」→「观点型」），就地改写并保存
   migrateWritingCategoryNames();
 
@@ -1927,8 +1939,9 @@ function summarizeExamTitle(kind, it){
 
 function renderExamList(){
   const data = window.WRITING_PROMPTS || { big:[], small:[] };
-  const filter = $('#examFilter').value || 'all';
-  const subFilter = $('#examSubFilter').value || 'all';
+  const _fel = $('#examFilter'), _sel = $('#examSubFilter');   // 10/11 第 7 项：两页公用，缺省容错
+  const filter = (_fel ? _fel.value : '') || 'all';
+  const subFilter = (_sel ? _sel.value : '') || 'all';
   const box = $('#examList');
   if(!box) return;
 
@@ -2335,7 +2348,89 @@ ${ANCHOR_TABLE_EN}
   })();
 }
 
+/* ===== 写作机考外壳（#examPractice 的 DOM）=====
+   🔴 10/11 第 7 项：写作真题搬进「模考」大 tab 后，机考界面被**两个入口**用到 ——
+     ① writing.html：评分 tab「保存题目，开始练」→ openExamCustom()（自练题）
+     ② bank.html：写作 pane 点一道真题 → openExam()
+   同一段 DOM（顶栏 / 左题目 / 右作答 / 底栏 / 到点弹框）不再在两个 HTML 里各抄一份，
+   改由这里统一注入 —— 改一处即两页同步，不会漂移。
+   两页各放一个空的 <section id="examPractice" hidden></section>，ensureExamShell() 幂等填充。 */
+function examShellHtml(){
+  return `
+    <header class="exam-head">
+      <div class="exam-head-left" aria-hidden="true"></div>
+      <span class="exam-timer-inline" id="examTimerWrap">
+        <span id="examTimerText">00:00:00</span>
+        <button type="button" id="examTimerBtn" title="Pause / Resume">⏸</button>
+      </span>
+      <div class="exam-head-right">
+        <button class="exam-font-btn" id="examFontBtn" type="button" title="Text size — same three sizes as IELTS on computer (Regular 20 / Large 23 / Extra large 27)">Aa · Regular</button>
+        <button class="exam-exit-full" id="examExitFull" type="button" title="Exit full screen">
+          <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4M15 3h4a2 2 0 0 1 2 2v4M9 21H5a2 2 0 0 1-2-2v-4M15 21h4a2 2 0 0 0 2-2v-4"/></svg>
+          Exit full screen
+        </button>
+      </div>
+    </header>
+
+    <div class="exam-split">
+      <article class="exam-q">
+        <div class="exam-q-body-wrap" id="examQBodyWrap">
+          <h1 class="exam-part" id="examPartLabel">Part 2</h1>
+          <p class="exam-instr" id="examInstr">You should spend about 40 minutes on this task. Write at least 250 words.</p>
+          <p class="exam-q-lead">Write about the following topic:</p>
+          <div class="exam-q-body" id="examQuestion"></div>
+          <p class="exam-q-note" id="examQNote"></p>
+        </div>
+        <details class="exam-essay-fold" id="examEssayFold" hidden>
+          <summary class="exam-essay-fold-sum">My response</summary>
+          <div class="exam-essay-orig" id="examEssayOrig"></div>
+        </details>
+      </article>
+
+      <div class="exam-a">
+        <textarea id="examEssay" class="exam-textarea" placeholder="Type your response here..."></textarea>
+        <div class="exam-a-foot" id="examAFoot">
+          <span class="exam-wc" id="examWordCount">Word count: 0</span>
+        </div>
+        <div id="examResult" class="tpl-score" hidden></div>
+      </div>
+    </div>
+
+    <footer class="exam-bar">
+      <div class="exam-bar-left">
+        <span class="exam-step" id="examStepBadge">2</span>
+        <span class="exam-step-label" id="examStepLabel">Part 2</span>
+      </div>
+      <div class="exam-bar-right">
+        <button class="btn-exam-ghost" id="examFinish" type="button">
+          <svg aria-hidden="true" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          Finish section
+        </button>
+        <button class="btn-exam-exit" id="examExit" type="button">Exit</button>
+      </div>
+    </footer>
+
+    <!-- 10/8 她拍板：到点不再强制停笔，弹框让她自己选（提交 / 继续写）——英文保持沉浸 -->
+    <div id="examTimeUpModal" class="exam-tu-overlay" hidden>
+      <div class="exam-tu-card">
+        <p class="exam-tu-title">Time is up!</p>
+        <p class="exam-tu-sub" id="examTuWords"></p>
+        <div class="exam-tu-actions">
+          <button type="button" class="btn-exam-ghost" id="examTuSubmit">Submit now</button>
+          <button type="button" class="btn-exam-exit" id="examTuKeep">Keep writing</button>
+        </div>
+      </div>
+    </div>`;
+}
+function ensureExamShell(){
+  const host = document.getElementById('examPractice');
+  if(!host || host.getAttribute('data-shell') === '1') return;
+  host.innerHTML = examShellHtml();
+  host.setAttribute('data-shell', '1');
+}
+
 function bindExam(){
+  ensureExamShell();   // 先把机考外壳注进去（两页共用，见上）——必须在任何取 #examPractice 子元素之前
   const f = $('#examFilter');
   const sf = $('#examSubFilter');
   const updateSubOptions = () => {

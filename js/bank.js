@@ -1060,8 +1060,12 @@
       if((el = t.closest && t.closest('#exArt .ex-nt'))){ focusNote(el.getAttribute('data-id')); return; }
       /* 一级：四科 */
       if((el = t.closest && t.closest('#mockTabs .pill-tab'))){
-        showTab(el.getAttribute('data-mtab'));
-        if(el.getAttribute('data-mtab') === 'reading') renderList('reading');
+        var _mt = el.getAttribute('data-mtab');
+        showTab(_mt);
+        if(_mt === 'reading') renderList('reading');
+        /* 10/11 第 7 项：写作 pane 的真题列表由 writing.js 提供（函数挂在 window 上）。
+           每次切进来重渲染一次 —— 刚练完一道题回来，✓/上次分数才会即时更新。 */
+        if(_mt === 'writing' && typeof window.renderExamList === 'function') window.renderExamList();
         return;
       }
       /* 二级：阅读的 Part 1 / 2 / 3 */
