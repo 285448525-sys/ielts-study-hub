@@ -166,7 +166,8 @@
         ? 'The Reading Passage has several sections.<br>Choose the correct heading for each section from the list of headings below.'
         : 'Which section contains the following information?<br>Write the correct letter in each box.';
     }
-    if(g.type === 'map') return 'Label the map below.';
+    if(g.type === 'map')
+      return 'The Reading Passage has several paragraphs.<br>Which paragraph contains the following information?<br>Write the correct letter in each box.';
     if(g.type === 'multiple-choice'){
       var want = /THREE/i.test(String((qs[0] && qs[0].question) || '')) ? 'THREE' : 'TWO';
       return 'Choose <b>' + want + '</b> letters.';
@@ -303,7 +304,12 @@
           + '<div class="ex-drop" data-q="' + esc(q.qNumber) + '" data-g="' + gid + '"></div></div>';
       });
     } else if(g.type === 'map'){
-      h += '<p class="ex-grp-i">This map task is not available yet.</p>';
+      /* 平台把这批「哪段包含以下信息」题标成 map（原始数据 image/imageUrl 全为 null，不是真地图题）
+         → 实际是段落信息匹配：每题自带 A~J 字母选项，渲染成一排字母 */
+      qs.forEach(function(q){
+        h += '<div class="ex-q"><span class="ex-qn" data-qn="' + esc(q.qNumber) + '">' + esc(q.qNumber) + '</span>'
+          + esc(plain(q.question)) + pillsHtml(q) + '</div>';
+      });
     } else if(g.type === 'multiple-choice'){
       qs.forEach(function(q){
         h += '<div class="ex-q"><span class="ex-qn" data-qn="' + esc(q.qNumber) + '">' + esc(q.qNumber) + '</span>'
