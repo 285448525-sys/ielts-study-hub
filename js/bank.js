@@ -306,7 +306,7 @@
     h += '<div class="ex-top">'
       +    '<div class="ex-name">' + (EX.channel === 'reading' ? 'Reading' : 'Listening')
       +      (u.title ? '<small>' + esc(u.title) + '</small>' : '') + '</div>'
-      +    '<span class="ex-timer" id="exTimer">' + (EX.channel === 'reading' ? '60:00' : '30:00') + '</span>'
+      +    '<span class="ex-timer" id="exTimer">' + (EX.channel === 'reading' ? '01:00:00' : '00:30:00') + '</span>'
       +    '<div class="ex-icons">'
       +      '<button class="ex-ico" type="button" data-gear title="Settings">Aa</button>'
       +      '<div class="ex-pop" id="exSetPop">'
@@ -407,14 +407,15 @@
     if(el) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
   }
 
-  /* ===== 计时（阅读 60 分钟）===== */
+  /* ===== 计时（倒计时，格式与写作机考一致：时:分:秒）===== */
+  function pad2(n){ return (n < 10 ? '0' : '') + n; }
   function startTimer(sec){
     stopTimer();
     var left = sec, el = document.getElementById('exTimer');
     function tick(){
       if(el){
-        var m = Math.floor(left / 60), s = left % 60;
-        el.textContent = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+        var hh = Math.floor(left / 3600), mm = Math.floor((left % 3600) / 60), ss = left % 60;
+        el.textContent = pad2(hh) + ':' + pad2(mm) + ':' + pad2(ss);
         el.classList.toggle('warn', left <= 300);
       }
       if(left <= 0){ stopTimer(); return; }

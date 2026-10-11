@@ -315,15 +315,15 @@
   /* 10/8 官方机考界面重排（对齐 IELTS on computer 真实布局，官方依据：IDP 官网「How IELTS on Computer works」
      + 官方 Quick Guide：计时器在屏幕顶部中央；右上角 options 图标管 Text Size 三档 Regular/Large/Extra Large；
      词数在作答区左下；上下深色栏、内容区白底）。 */
-  .exam-head{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;background:#3D4A54;padding:8px 16px;border-bottom:none}
+  .exam-head{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;background:#f7f8f9;padding:8px 16px;border-bottom:1px solid var(--line)}
   .exam-head-right{justify-self:end;display:flex;align-items:center;gap:8px}
-  .exam-timer-inline{display:inline-flex;align-items:center;gap:8px;background:#fff;color:#26343C;border-radius:6px;padding:5px 14px;font-weight:700;font-size:15px;font-variant-numeric:tabular-nums;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+  .exam-timer-inline{display:inline-flex;align-items:center;gap:8px;background:#fff;color:#111;border:1px solid var(--n-400);border-radius:4px;padding:4px 14px;font-weight:700;font-size:15px;font-variant-numeric:tabular-nums}
   .exam-timer-inline.warn{background:var(--danger);color:#fff}
   .exam-timer-inline.over{background:var(--danger-text);color:#fff}
   .exam-timer-inline button{background:transparent;border:0;color:inherit;cursor:pointer;font-size:13px;line-height:1;padding:0 2px}
   /* 右上角控制钮（官方深栏上的白描边幽灵钮：Text Size / Exit full screen） */
-  .exam-font-btn,.exam-head .exam-exit-full{display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid rgba(255,255,255,.5);color:#fff;border-radius:7px;padding:6px 11px;font-size:12.5px;font-weight:600;cursor:pointer;transition:.15s;white-space:nowrap}
-  .exam-font-btn:hover,.exam-head .exam-exit-full:hover{background:rgba(255,255,255,.12)}
+  .exam-font-btn,.exam-head .exam-exit-full{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--n-400);color:#111;border-radius:6px;padding:6px 11px;font-size:12.5px;font-weight:600;cursor:pointer;transition:.15s;white-space:nowrap}
+  .exam-font-btn:hover,.exam-head .exam-exit-full:hover{border-color:#111}
   /* 官方三档字号（Regular 20 / Large 23 / Extra large 27，IDP 官方口径）。
      10/8 晚她反馈：三档必须覆盖左右两栏全部文字（深色顶栏/底栏不管），否则题目面板里「一些大一些小」。
      层级保持：Part 标题 > 正文 > 引导行/指令 > 词数。 */
