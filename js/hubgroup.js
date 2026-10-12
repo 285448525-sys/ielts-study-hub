@@ -23,12 +23,13 @@
       ]
     },
     study: {
-      key:'study', title:'学习', tagline:'单词、口语、写作、题库、句子——都在这儿',
+      key:'study', title:'学习', tagline:'模考、口语、写作、单词、句子——都在这儿',
       items:[
-        { id:'practice', name:'单词', desc:'学习与管理你的单词' },
+        /* 10/12 22:16 她拍板「模考优先」：与侧栏 PRIMARY_NAV 同口径重排 */
+        { id:'bank',     name:'模考', desc:'阅读 · 听力 · 写作 · 口语' },
         { id:'speaking', name:'口语', desc:'题库 + AI 串题 + 陪练' },
         { id:'writing',  name:'写作', desc:'模板 + AI 评分' },
-        { id:'bank',     name:'模考', desc:'阅读 · 听力 · 写作 · 口语' },
+        { id:'practice', name:'单词', desc:'学习与管理你的单词' },
         { id:'corpus',   name:'句子', desc:'长难句 · 错题 · 听写' }
       ]
     },
