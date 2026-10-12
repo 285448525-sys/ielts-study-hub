@@ -4841,6 +4841,22 @@ function bankAt(n){
 }
 function planJumpInfo(text){
   const t = String(text || '');
+  /* 10/12 C-2（她拍板 A：只补全正则覆盖面，不新增机制）。
+     原正则只认 口语/背词/写作/错题本/素材 五个，她高频用的 阅读、听力、长难句（句子）、
+     模考、回顾 全落空 → 手动/AI 纯文本任务点不动（静默形态：行不可点）。
+     🔴 顺序即优先级，两处必须这样排：
+       ① 「模考」必须**先于**各科目练习页判断 —— 10/11 第 6-8 项已把四科模考统一搬进
+          bank.html（大 tab「模考」+ 阅读/听力/写作/口语四小 tab）。若让 /写作|作文/ 先匹配，
+          「写作模考」会跳去 writing.html（那是旧的写作练习页）= 跳错模块，
+          正是 10/5「继续上次」下线的同款教训。
+       ② 「模考·阅读/听力」要在泛「模考」之前 —— 带上具体科语时落更准的小 tab 由 bank 自己认。 */
+  if(/模考|全套|一套题/.test(t)){
+    if(/阅读/.test(t)) return { file: 'bank.html', open: '', label: '去模考·阅读' };
+    if(/听力/.test(t)) return { file: 'bank.html', open: '', label: '去模考·听力' };
+    if(/写作|作文/.test(t)) return { file: 'bank.html', open: '', label: '去模考·写作' };
+    if(/口语/.test(t)) return { file: 'bank.html', open: '', label: '去模考·口语' };
+    return { file: 'bank.html', open: '', label: '去模考' };
+  }
   if(/口语/.test(t)){
     let m = t.match(/题库(\d+)/);
     if(m){
@@ -4856,9 +4872,13 @@ function planJumpInfo(text){
     return { file: 'speaking.html', open: '', label: '去口语' };
   }
   if(/背单词|背词|词库|单词/.test(t)) return { file: 'practice.html', open: '', label: '去背词' };
+  if(/阅读/.test(t)) return { file: 'bank.html', open: '', label: '去模考·阅读' };
+  if(/听力/.test(t)) return { file: 'bank.html', open: '', label: '去模考·听力' };
   if(/写作|作文/.test(t)) return { file: 'writing.html', open: '', label: '去写作' };
   if(/错题|错句本/.test(t)) return { file: 'wrongbook.html', open: '', label: '去错题本' };
   if(/素材|串题/.test(t)) return { file: 'materials.html', open: '', label: '去素材库' };
+  if(/长难句|句子/.test(t)) return { file: 'corpus.html', open: '', label: '去长难句' };
+  if(/回顾|轨迹|复盘/.test(t)) return { file: 'review.html', open: '', label: '去回顾' };
   return null;
 }
 /* 跳转 URL：带 open 直达该题；一律带 autostart=1 → 落地即开计时 */
