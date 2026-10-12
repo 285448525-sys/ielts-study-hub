@@ -679,7 +679,7 @@ function render(){
   $('#planCount').textContent = done + ' / ' + total;
 
   const pct = total ? done / total * 100 : 0;
-  $('#planProgress').innerHTML = progressBar('完成进度', pct, 'var(--med)');
+  $('#planProgress').innerHTML = progressBar('完成进度', pct, 'var(--primary)');   // 10/12 美化批：--med 药用紫与页内语境不符 → teal 主色
 
   /* commit4：重排工具条只在「今天且有未完成 AI 任务」时出现；3 天没回来给过期提示 */
   const hasGenPending = items.some(i => i && i.module && !i.done);
@@ -689,7 +689,12 @@ function render(){
 
   const box = $('#planList');
   if(total === 0){
-    box.innerHTML = renderEmpty('这天还没有计划，上面加一条吧。');
+    /* 10/12 美化批：一行小字 → 居中浅底空态卡（样式见 plans.html ptPolishStyle） */
+    box.innerHTML = '<div class="plan-empty">'
+      + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 10h18"/><path d="M9 15l2 2 4-4"/></svg>'
+      + '<b>这天还没有计划</b>'
+      + '<span>在上面写下任务加一条，或点「AI 安排今天」让 AI 帮你排</span>'
+      + '</div>';
   } else {
     const carriedCount = items.filter(i => i.carried).length;
     const carriedTip = carriedCount
@@ -1294,7 +1299,7 @@ function renderDiagEntry(){
     + '<button type="button" id="dgRedo" class="dg-text-btn">重新诊断</button></div>'
     + '<div class="dg-verdict dg-v-' + r.verdict.k + '">' + escapeHtml(r.verdict.text) + '</div>'
     + '<div class="dg-chips">' + chips + '</div>'
-    + (d.plan ? '<div class="dg-planline"><span class="dg-planline-ic">🗓</span><span class="dg-planline-txt">已生成 '
+    + (d.plan ? '<div class="dg-planline"><span class="dg-planline-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></span><span class="dg-planline-txt">已生成 '
       + d.plan.days + ' 天计划 · ' + planMd(d.plan.firstDate) + ' 起 · ' + d.plan.tasks + ' 个任务</span>'
       + '<button type="button" id="dgGoToday" class="dg-text-btn">去今日任务</button></div>' : '')
     + '<button type="button" id="dgView" class="btn-primary dg-block-btn">查看完整诊断报告</button>'
