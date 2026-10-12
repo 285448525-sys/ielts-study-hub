@@ -3268,3 +3268,15 @@ body.dgs-open .dock-group-sheet{transform:translateY(0)}
   35%{box-shadow:0 0 0 3px var(--primary-200),var(--shadow-md)}
 }
 @media (prefers-reduced-motion:reduce){.onb-landed{animation:none}}
+
+/* ===== 路线图3 · 3a（10/12）：今日记录卡内的「昨天 × 今天」小节 =====
+   复用 .rec 卡的既有视觉（小标题 + 弱化文字），不新增卡片容器；窄屏自适应。 */
+.rec-yday{margin:2px 0 10px;padding:10px 12px;background:var(--n-50);border-radius:10px}
+[data-theme="dark"] .rec-yday{background:rgba(255,255,255,.04)}
+.rec-yday-h{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.02em;margin-bottom:3px}
+.rec-yday-t{font-size:13.5px;line-height:1.6;color:var(--text)}
+.rec-yday-due{margin-top:0;background:transparent;padding:8px 2px 2px}
+.rec-yday-due a{font-size:13.5px}
+@media (max-width:560px){
+  .rec-yday-t{font-size:13px}
+}

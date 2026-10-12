@@ -225,6 +225,64 @@ function renderDashV6(){
     const hm = hmParts(totalSec);
     totalEl.textContent = hm.h+'h'+hm.m+'m';
   }
+
+  /* 路线图3 · 3a（10/12）：「昨天 × 今天」聚合 —— 昨日 sessions 汇总 + 今日到期复习行。
+     插在今日记录卡渲染链尾部（重入幂等：hub:session-saved / hub:data-merged 会再调 renderDashV6）。
+     昨日无 session → 整节不渲染（卡瘦，且不写「你昨天没学习」这类施压文案，她明确反感）。 */
+  try{ renderDashYesterday(); }catch(e){}
+}
+
+/** 路线图3 · 3a：昨日学习聚合 + 今日复习提示（纯读 DATA，零风险、零新字段）。
+ *  口径与今日记录卡完全同源：按 moduleName 归并 durationSec；topOf() 把子 id 归到顶层科目
+ *  （如「听力词汇·听义选义」→「背单词」），与 sprint.js 冲刺卡同一套归并，防两处口径打架。
+ *  昨日日期键用 `new Date(Date.now()-864e5)` 后 todayKey(d) 算，不手拼字符串（防月界/时区错）。 */
+function renderDashYesterday(){
+  const host = document.getElementById('dashRecBody');
+  if(!host) return;
+  let yd;
+  try{ yd = new Date(Date.now() - 864e5); }catch(e){ return; }
+  const ykey = (typeof todayKey === 'function') ? todayKey(yd) : '';
+  const yList = (DATA.sessions || []).filter(x => x && x.date === ykey && (x.durationSec || 0) > 0);
+  if(!yList.length) return;                      // 昨天零记录 → 整节不渲染
+
+  // 归并到顶层科目。⚠️ topOf() 返回的是 moduleId（如 vocab/listening），不是中文名
+  // （sprint.js 的 LABEL 表在它 IIFE 内部，外部取不到）→ 这里自己查 MODULES 拿 name，
+  // 否则会渲染出 "vocab 25 分钟" 这种英文字段名（10/12 施工时实踩，探针抓到）。
+  const byMod = {};
+  const nameOf = id => {
+    try{
+      for(const m of (MODULES || [])) if(m.id === id) return m.name;
+    }catch(e){}
+    return id;
+  };
+  yList.forEach(s => {
+    let key = s.moduleId || '', nm = s.moduleName || '未知';
+    try{ if(typeof topOf === 'function'){ const t = topOf(s.subId || s.moduleId); if(t) key = t; } }catch(e){}
+    if(key && key !== (s.moduleId || '')) nm = nameOf(key);   // 归并成功了才用顶层名
+    byMod[nm] = (byMod[nm] || 0) + (s.durationSec || 0);
+  });
+  const names = Object.keys(byMod);
+  const totalSec = names.reduce((a, k) => a + byMod[k], 0);
+  const parts = names.map(k => escapeHtml(k) + ' ' + Math.round(byMod[k] / 60) + ' 分钟');
+  const hm = hmParts(totalSec);
+
+  let html = '<div class="rec-yday">'
+    + '<div class="rec-yday-h">昨天</div>'
+    + '<div class="rec-yday-t">' + (hm.h > 0 ? hm.h + ' 小时 ' : '') + hm.m + ' 分钟 · ' + parts.join(' · ') + '</div>'
+    + '</div>';
+
+  // 今日复习行：N = wbDueCount(todayKey())，与首页「待复习」双卡 #dashDueWords 同一口径
+  // （index.js:418 dueWords 同款）—— 不算第二套；N=0 整行隐藏
+  try{
+    const due = (typeof wbDueCount === 'function') ? (wbDueCount(todayKey()) || 0) : 0;
+    if(due > 0){
+      html += '<div class="rec-yday rec-yday-due">'
+        + '<a href="practice.html" style="color:var(--primary);font-weight:700;text-decoration:none">今天有 ' + due + ' 个单词到期复习 →</a>'
+        + '</div>';
+    }
+  }catch(e){}
+
+  host.insertAdjacentHTML('afterbegin', html);
 }
 
 /** 秒 → {h, m}（均向下取整，与历史口径一致不进位；负值/脏数据按 0 处理）。
