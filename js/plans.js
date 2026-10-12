@@ -422,6 +422,7 @@ ready(() => {
 
   render();
   renderDiagEntry();   // 备考诊断入口卡 / 已诊断概览（规划 Tab）
+  renderPhaseBar();    // 路线图4 · 4a：备考阶段条（常驻三 Tab 之上，纯本地）
 
   // 首页「今日任务」空态卡「AI 帮我安排今天」的跳转信标：
   // 跳到本页后聚焦输入框并清除（一次性），不触碰任何 AI 排程逻辑。软导航重进本页 ready 会重跑，同样生效。
@@ -436,6 +437,73 @@ ready(() => {
 });
 
 function currentDate(){ return $('#planDate').value || todayKey(); }
+
+/* ===== 路线图4 · 4a（10/12）：备考阶段条（纯本地推导）=====
+   三段信息：阶段徽章（沿用 diagPhaseOf 四档，不造第二套命名）+ 距考N天·倒数第W周 + 本周重点。
+   零 AI 调用、零配额影响、免费/未登录可用；零 DATA 新字段（纯读）。
+   「本周」= 滚动 7 天（今天 → 今天+6）——备考以考试日为锚，自然周（周一进制）与冲刺节奏错位。
+   🔴 「本周重点」只聚合 **AI 生成项**（gen === PLAN_GEN_TAG，带 module）；
+      手动项只有 text 没 module，靠正则猜 = 10/5「跳错模块」的老毛病，故明确不参与（她 10/12 认可）。
+   三种边界：未设考试日期 → 引导去设置；已考完（daysLeft<0）→ 整条隐藏；本周无 AI 项 → 只隐重点段。 */
+function renderPhaseBar(){
+  var host = document.getElementById('phaseBar');
+  if(!host) return;
+
+  var cd = (typeof examCountdown === 'function') ? examCountdown() : null;
+  // 边界①：未设考试日期 → 引导文案（照首页 hero-setdate 先例的措辞风格）
+  if(!cd || !cd.hasExam || cd.daysLeft == null){
+    host.hidden = false;
+    host.className = 'phase-bar';
+    host.innerHTML = '<div class="pb-line"><span class="pb-empty">还没设考试日期，阶段规划会按天倒数 '
+      + '<a href="settings.html">去设置 →</a></span></div>';
+    return;
+  }
+  // 边界②：已考完 → 整条隐藏（阶段无意义，不占位）
+  if(cd.daysLeft < 0){ host.hidden = true; host.innerHTML = ''; return; }
+
+  var days = cd.daysLeft;
+  var ph = (typeof diagPhaseOf === 'function') ? diagPhaseOf(days) : null;
+  var week = Math.max(1, Math.ceil(days / 7));
+
+  // 本周重点：滚动 7 天内的 AI 生成项，按 module 聚合次数
+  var focusHtml = '';
+  try{
+    var tk = todayKey();
+    var keys = [];
+    for(var i = 0; i < 7; i++) keys.push(addDays(tk, i));
+    var cnt = {};
+    (DATA.plans || []).forEach(function(p){
+      if(!p || keys.indexOf(p.date) === -1) return;
+      (p.items || []).forEach(function(it){
+        if(!it || it.gen !== PLAN_GEN_TAG || !it.module) return;
+        cnt[it.module] = (cnt[it.module] || 0) + 1;
+      });
+    });
+    var top = Object.keys(cnt).sort(function(a, b){ return cnt[b] - cnt[a]; }).slice(0, 2);
+    if(top.length){
+      focusHtml = '<span class="pb-focus">本周重点：<b>' + top.map(moduleLabelOf).join(' · ') + '</b></span>';
+    }
+  }catch(e){}
+
+  // 边界③：无 AI 项 → focusHtml 为空，重点段不渲染（阶段+时间照常）
+  host.hidden = false;
+  host.className = 'phase-bar';
+  host.innerHTML = '<div class="pb-line">'
+    + '<span class="pb-badge ph-' + (ph ? ph.k : 'foundation') + '">' + (ph ? ph.label : '备考中') + '</span>'
+    + '<span class="pb-time">距考试 ' + days + ' 天 · 倒数第 ' + week + ' 周</span>'
+    + focusHtml
+    + '</div>';
+}
+/* module id → 中文科目名（复用 data.js MODULES 的 name，与侧栏/首页同源口径）。
+   ⚠️ 不用 sprint.js 的 LABEL 表（那在它 IIFE 内部，外部取不到）；取不到就退回 id 本身。 */
+function moduleLabelOf(id){
+  try{
+    for(var i = 0; i < (MODULES || []).length; i++){
+      if(MODULES[i].id === id) return MODULES[i].name;
+    }
+  }catch(e){}
+  return id;
+}
 
 function getPlan(date){ return DATA.plans.find(p => p.date === date); }
 
