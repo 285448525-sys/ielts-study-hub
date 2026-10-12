@@ -1400,7 +1400,7 @@ function matAddDetailBits(bits){
 
 /* === 口语目标分 → 串题稿词数预算（P1：按考生目标语速校准，目标越低语速越慢/卡顿越多，稿子越短）=== */
 function storyWordBudget(){
-  const t = parseFloat(DATA.settings && DATA.settings.targets && DATA.settings.targets.speaking) || 5.5;
+  const t = spTargetBand();   /* 10/12：与全站口语分档统一口径（原 parseFloat(...)||5.5 是独立第二套口径） */
   // 口径（9/21 修订）：考生慢语速约 100wpm、卡顿较多；正文(open+bridge+body+feel)目标念 70–85 秒，
   // 其余时间靠 paddingEn 加时句补足 2 分钟。padding 是必背项不是可选项。
   if(t >= 6.5) return { target: t, min: 140, max: 160 };
@@ -1410,11 +1410,28 @@ function storyWordBudget(){
 
 /* 口语目标分动态画像（商业化）：全部 prompt 的「目标/基础」描述统一从这里出，不再写死 5.5 */
 function spTargetBand(){
-  const t = parseFloat(DATA.settings && DATA.settings.targets && DATA.settings.targets.speaking);
+  const tg = (DATA && DATA.settings && DATA.settings.targets) || {};
+  const s = parseFloat(tg.speaking);
   /* 10/2 修：空目标分落库是数字 0（data.js 默认/settings 保存口径），isNaN(0)=false 会穿透，
-     画像句变成「考生目标口语 0 分」，与「没填兜底 5.5」的设计相悖。0 一律按未填处理。 */
-  return t > 0 ? t : 5.5;
+     画像句变成「考生目标口语 0 分」，与「没填兜底 5.5」的设计相悖。0 一律按未填处理。
+     10/12 分档改造：引导只写 overall（common.js onbWriteTarget），只走引导没进设置页的用户
+     speaking=0 → 兜底链升级 speaking>0 → overall>0 → 5.5，否则整站口语 AI 全按 5.5 档伺候 6.5 用户。 */
+  if(s > 0) return s;
+  const o = parseFloat(tg.overall);
+  if(o > 0) return o;
+  return 5.5;
 }
+/* P1/P2 纠错（speaking_diagnose）档位头：SYS_DIAG/SYS_DIAG_P2 常量本体零改动（P1 prompt 铁律），
+   只在调用点 system 前拼接目标分校准段，让 5 分和 7 分用户收到不同严格度的纠错（2026-10-12 四档改造）。 */
+function spDiagTierHead(){
+  const t = spTargetBand();
+  return '【考生目标分】口语 ' + t + ' 分。纠错的严格度、词汇建议的难度、改写示范的档位，全部按这个水平校准：'
+    + (t < 6
+        ? '目标分较低：只纠明确的硬错（时态/词序/双动词/缺 be/词性一类），不给超出该水平的高级改法与生僻表达。'
+        : '目标分较高：在纠错之外，可以给「更地道」的升级建议与更丰富的表达。')
+    + '考生没写错的部分绝不挑刺。\n\n';
+}
+
 function spPersonaLine(){
   const t = spTargetBand();
   if(t >= 7)   return '考生目标口语 ' + t + ' 分：可以使用较复杂的句式与少量高级词汇，但必须自然、口语化，不堆砌大词、不背书面语。';
@@ -2189,30 +2206,63 @@ function renderP3All(s, container){
   for(let i = 0; i < n; i++) renderP3Step(s, container, i);
 }
 
-// P3 单题 AI 辅助的 system prompt（目标分动态：默认兜底 5.5 的「废话框架」策略；≥6 分时放开词汇与句式限制）
-function p3HelperSys(){
+/* P3 四档映射：L1≤5.0 / L2 5.5 / L3 6.0 / L4≥6.5（2026-10-12 取代 10/2 的 <6/≥6 二档；
+   分档设计与档位文案经 Camille 批准，见 design/口语AI目标分分档_实施方案_2026-10-12.md。
+   动机：原 prompt 按她个人 5.5 基础定制，宣发后涌入不同基础用户 → 按口语目标分分档。 */
+function p3Tier(){
   const t = spTargetBand();
-  const head = (t >= 6)
-    ? `身份：雅思口语 Part 3 答题辅助工具，考生目标口语 ${t} 分。直接产出一句考场可说的完整英文回答——观点明确、带一个 because 拓展，词汇与句式与目标分匹配，仍须口语化。`
-    : `身份：雅思口语 Part 3 答题辅助工具，面向目标口语 5.5 分上下的考生，输出严格匹配该水平：不输出明显高于目标分的词汇与句式。`;
-  /* 10/2 修：原实现只把头部按 ≥6 放开了，正文规则 1/答题逻辑仍是 5.5 词汇池硬锁，
-     ≥6 用户会同时收到「按 6/7 分给」和「只许用池内初高中词」两条互斥指令。
-     这里把冲突的两处正文也参数化；锚句库/输出格式两档共用，不动结构。 */
-  const p3Rule1 = (t >= 6)
-    ? '1. 词汇与句式：与目标口语 ' + t + ' 分匹配——可使用该分数段地道、自然的词汇与搭配（如 essential, efficient, responsibility, technology, environment 这一档），允许复合句与少量高级词；但必须像真人聊天一样口语化，不许堆砌书面大词、不许背书面语。锚句可按题目用同档词汇自然改写，但结构仍是「锚句 + because 尾巴」。'
-    : '1. 词汇：只用初中-高中最基础词。because 后面的理由（即「尾巴」）只能用以下「词汇池」里的词或其最简单变形：happy, tired, relax, relaxed, bored, boring, easy, hard, same, different, need, want, like, feel, study, work, family, friends, food, money, time, life, people, day。严禁使用 pool 以外的任何抽象词、学术词、生僻形容词/副词（如 cognitive, flexible, enhance, identity, landmark, concrete, construct, symbolize 等）。';
-  const p3PoolLogic = (t >= 6)
-    ? '- 如需结合当前题目微调，可在保持「锚句 + because 尾巴」结构的前提下，用与目标分匹配的地道词汇改写尾巴，但不要堆术语、不要写书面长句；'
-    : '- 如需结合当前题目微调，只能把尾巴里的词换成「词汇池」内的其他简单词（例如题目谈学习，就把 tired 换成 study is hard），不可引入 pool 外词汇；';
+  return t <= 5 ? 'L1' : (t < 6 ? 'L2' : (t < 6.5 ? 'L3' : 'L4'));
+}
+
+// P3 单题 AI 辅助的 system prompt（四档化；结构仍是「锚句 + because 尾巴」，锚句库 8→12 条）
+function p3HelperSys(){
+  const t = spTargetBand(), tier = p3Tier();
+  const head = `身份：雅思口语 Part 3 答题辅助工具，考生目标口语 ${t} 分（${tier} 档）。直接产出考场可说的完整英文回答——观点明确、带一个 because 拓展，词汇与句式严格匹配目标分，仍须口语化。`;
+  /* 规则1 词汇四档：L1 保留 24 词池硬锁（低分用户举例子易跑偏）；L2 池优先+少量高中词；L3/L4 按分匹配 */
+  const p3Rule1 = {
+    L1: '1. 词汇：只用初中-高中最基础词。because 后面的理由（即「尾巴」）只能用以下「词汇池」里的词或其最简单变形：happy, tired, relax, relaxed, bored, boring, easy, hard, same, different, need, want, like, feel, study, work, family, friends, food, money, time, life, people, day。严禁使用 pool 以外的任何抽象词、学术词、生僻形容词/副词（如 cognitive, flexible, enhance, identity, landmark, concrete, construct, symbolize 等）。',
+    L2: '1. 词汇：优先用「词汇池」里的最简单词（happy, tired, relax, easy, hard, same, different, study, work, family, friends, time, life, people, day 等），允许少量高中常见词（如 popular, convenient, healthy, important, improve）；严禁学术词与生僻词（如 cognitive, enhance, identity, landmark, concrete）。',
+    L3: `1. 词汇与句式：与目标口语 ${t} 分匹配——可使用该分数段地道、自然的词汇与搭配（如 essential, efficient, responsibility, technology, environment 这一档），允许 1 个从句展开；必须像真人聊天一样口语化，不许堆砌书面大词。锚句可按题目用同档词汇自然改写，但结构仍是「锚句 + because 尾巴」。`,
+    L4: `1. 词汇与句式：与目标口语 ${t} 分匹配——地道习语与自然搭配，允许从句展开与较高级表达；但必须像真人聊天一样口语化，不许背书面语、不许堆砌大词。锚句仅作结构参考，可按题目用同档词汇自然改写。`
+  }[tier];
+  /* 规则2 长度四档（10-15s → 20-30s 梯度） */
+  const p3Rule2 = {
+    L1: '2. 输出只给「一句话英文」：结构 = 锚句 + 尾巴（尾巴里已含 because，直接拼接，绝对不要再额外写 because）。总长度 2 句以内、10-15 秒说完。',
+    L2: '2. 输出只给「一句话英文」：结构 = 锚句 + 尾巴（尾巴里已含 because，直接拼接，绝对不要再额外写 because）。总长度 2 句、10-20 秒说完。',
+    L3: '2. 输出给「一小段话英文」：结构 = 锚句 + because 尾巴（直接拼接，不要再额外写 because），再接一个泛化例子句。总长度 2-3 句、15-25 秒说完。',
+    L4: '2. 输出给「一小段话英文」：结构 = 锚句 + because 尾巴（直接拼接，不要再额外写 because），再接一个例子或补充句。总长度 3 句左右、20-30 秒说完。'
+  }[tier];
+  /* 规则3 例子环分档（原「全档禁 for example」是按 5.5 定制的短板：6 分最缺的正是展开一层） */
+  const p3Rule3 = {
+    L1: '3. 绝对禁止：for example / for instance / such as（一个都不许出现）；禁止中文、禁止解释「为什么这样答」、禁止三段式拆解；禁止出现两个 because。',
+    L2: '3. 绝对禁止：for example / for instance / such as（一个都不许出现）；禁止中文、禁止解释「为什么这样答」、禁止三段式拆解；禁止出现两个 because。',
+    L3: '3. 允许且仅允许一个泛化例子环：可用 "for example, ..." 引出概念性例子（如 for example, young people often...），禁止个人具体故事（不出现 I once / my family / last year 这类）；禁止中文与解释；禁止出现两个 because。',
+    L4: '3. 允许泛化例子环：可用 "for example, ..." 或 "such as" 引出概念性例子；仍禁止长篇个人故事；禁止中文与解释；禁止出现两个 because。'
+  }[tier];
+  const p3Rule4 = '4. 重复问题：若考生连续追问，可用 "Well, like I said..." / "Well, what I mean is..." 换词重复，但不超过两次，第三次直接简化。';
+  /* 答题逻辑的微调口径四档 */
+  const p3PoolLogic = {
+    L1: '- 如需结合当前题目微调，只能把尾巴里的词换成「词汇池」内的其他简单词（例如题目谈学习，就把 tired 换成 study is hard），不可引入 pool 外词汇；',
+    L2: '- 如需结合当前题目微调，优先把尾巴里的词换成池内简单词，允许用少量高中常见词改写（如 convenient, popular），不可引入学术词；',
+    L3: '- 如需结合当前题目微调，可在保持「锚句 + because 尾巴」结构的前提下，用与目标分匹配的地道词汇改写尾巴；例子句须泛化、贴合题目主题；',
+    L4: '- 如需结合当前题目微调，可在保持「锚句 + because 尾巴」结构的前提下，用地道搭配改写尾巴；例子句须泛化、贴合题目主题；'
+  }[tier];
+  /* 输出格式示例随档位变（L3/L4 含例子环） */
+  const tierOutEx = {
+    L1: "锚句 + 尾巴，例如：Actually, I don't think there is much difference, because the feeling is the same.",
+    L2: "锚句 + 尾巴，例如：Actually, I don't think there is much difference, because the feeling is the same.",
+    L3: "锚句 + 尾巴 + 泛化例子，例如：It has both good and bad sides, because it is convenient but sometimes boring. For example, it saves time but costs more.",
+    L4: "锚句 + 尾巴 + 例子或补充句，例如：It has both good and bad sides, because it is convenient but sometimes boring. For example, it saves time but costs more."
+  }[tier];
   return `${head}
 
-考生特点：P3 通常只能说 2-3 句话、说话会磨叽带停顿；听不懂题目时靠判断「题型」来兜底。你的任务：根据「当前 P3 题目 + 考生 P2 素材」，直接产出一句考场可说的完整英文回答——一句锚句（观点）紧跟一个 because 拓展，说完即止，不解释、不乱加。
+考生特点：P3 通常只能说 2-3 句话、说话会磨叽带停顿；听不懂题目时靠判断「题型」来兜底。你的任务：根据「当前 P3 题目 + 考生 P2 素材」，直接产出考场可说的完整英文回答——锚句（观点）紧跟 because 拓展，说完即止，不解释、不乱加。
 
 【绝对强制硬规则】
 ${p3Rule1}
-2. 输出只给「一句话英文」：结构 = 锚句 + 尾巴（尾巴里已含 because，直接拼接，绝对不要再额外写 because）。总长度 2-3 句、10-20 秒说完。
-3. 绝对禁止：for example / for instance / such as 举具体个人故事；禁止中文、禁止解释「为什么这样答」、禁止三段式拆解；禁止出现两个 because。
-4. 重复问题：若考生连续追问，可用 "Well, like I said..." / "Well, what I mean is..." 换词重复，但不超过两次，第三次直接简化。
+${p3Rule2}
+${p3Rule3}
+${p3Rule4}
 
 【题型 → 锚句库（按题型命中，不得自创；锚句不含 because，尾巴已含 because，直接拼接）】
 - 区别/变化类（听到 different / change / same）：Actually, I don't think there is much difference.
@@ -2229,6 +2279,14 @@ ${p3Rule1}
   尾巴：because it is true for some, not for all.
 - 重要性类（听到 important）：Yes, I think it is important.
   尾巴：because it makes life happier.
+- 过去与变化类（听到 did you ... when you were a child / used to）：Yes, I did when I was younger.
+  尾巴：because it was a big part of my life back then.
+- 喜好偏向类（听到 prefer / which do you like better）：I prefer the former, to be honest.
+  尾巴：because it fits my daily life better.
+- 频率习惯类（听到 how often / do you usually）：Not that often, maybe once or twice a week.
+  尾巴：because I am usually busy with study.
+- 感受描述类（听到 how do you feel about / what is it like）：It makes me feel relaxed.
+  尾巴：because it helps me slow down a little.
 - 没听懂/空白（听不清题）：That's a hard one.
   尾巴：because I just want to be happy and relaxed.
 
@@ -2236,31 +2294,37 @@ ${p3Rule1}
 - 先判断题型（看题目里的信号词），命中上面对应锚句；
 - 输出 = 该行「锚句」+「尾巴」，直接拼接（锚句结尾无句号，尾巴以 ", because" 开头）；绝对不要再单独写 because；
 ${p3PoolLogic}
-- 如果考生提供了 P2 素材且贴合，可在尾巴后用 and 接一个 pool 内简单词短语（不举具体人名/地名故事）。
+- 如果考生提供了 P2 素材且贴合，可在尾巴后用 and 接一个贴合素材的简单短语（不举具体人名/地名故事）。
 
-【输出格式：严格只输出下面这一句英文，不要任何前缀 / 解释 / 换行分段】
-<锚句 + 尾巴，例如：Actually, I don't think there is much difference, because the feeling is the same.>
-
-输入参数：当前 P3 题目 + 用户的 P2 回答内容，请严格按照以上规则输出。`;
+【输出格式：严格按下面示例的结构输出，不要任何前缀 / 解释 / 换行分段】
+<${tierOutEx}>`;
 }
 
-// P3「老师帮我改」：目标分动态（默认兜底 5.5 硬规则；≥6 分给与目标分匹配的改后版本）
+// P3「老师帮我改」：2026-10-12 四档化（取代 10/2 的 <6/≥6 二档，设计见 design/口语AI目标分分档_实施方案_2026-10-12.md）。
+// 🔴 输出格式两行也要按档参数化——原「（2句以内，无例子）」写死，L3/L4 放开例子环后会与规则互斥（10/2 互斥病同款）。
 function p3ReviewSys(){
-  const t = spTargetBand();
-  const head = (t >= 6)
-    ? `你是雅思口语Part3答题老师，考生目标口语 ${t} 分。直接给一版与目标分匹配的改动后回答（英文），表达自然、准确即可。`
-    : `你是雅思口语Part3答题老师，考生目标口语 5.5 分上下，改动后的回答须严格匹配该水平，不引入超出目标分的词汇与句式。`;
-  /* 10/2 修：与 p3HelperSys 同病——头部按 ≥6 放开了，正文还写死「符合5.5分规则/初高中词汇」。
-     intro/规则1/规则2 的水平上限一并参数化；句数、禁例子、输出格式两档共用。 */
-  const rvIntro = (t >= 6)
-    ? '直接给一版与目标口语 ' + t + ' 分匹配的改动后回答（英文）：词汇句式自然达到该分数段，但口语化、不堆砌书面大词。'
-    : '直接给一版符合5.5分规则的改动后回答（英文）。';
-  const rvRule1 = (t >= 6)
-    ? '1. 词汇：与目标分匹配，可使用该分数段地道的口语词汇与搭配，允许复合句；表达必须准确、自然、口语化，不生硬堆大词。'
-    : '1. 词汇：只能用初中-高中最基础词汇，禁止identity, landmark, concrete, shape, construct, symbolize等；统一用look, famous, tall building等简单词。';
-  const rvRule2 = (t >= 6)
-    ? '2. 主回答铁则：2-3句、10-20秒；观点明确并带原因展开；绝对禁止for example/for instance/such as；允许与目标分匹配的复合结构。'
-    : '2. 主回答铁则：2句以内、10-15秒；只含观点+1个最简单原因；绝对禁止for example/for instance/such as；最多1个简单复合结构。';
+  const t = spTargetBand(), tier = p3Tier();
+  const head = `你是雅思口语Part3答题老师，考生目标口语 ${t} 分（${tier} 档）。直接给一版与目标分匹配的改动后回答（英文），表达自然、准确即可，词汇句式严格匹配目标分。`;
+  const rvIntro = `直接给一版与目标口语 ${t} 分匹配的改动后回答（英文）：词汇句式自然达到该分数段，但口语化、不堆砌书面大词。`;
+  const rvRule1 = {
+    L1: '1. 词汇：只能用初中-高中最基础词汇，禁止identity, landmark, concrete, shape, construct, symbolize等；统一用look, famous, tall building等简单词。',
+    L2: '1. 词汇：优先初高中最基础词，允许少量高中常见词（如 popular, convenient, healthy, important）；禁止学术词与生僻词（identity, landmark, concrete, construct, symbolize等）。',
+    L3: `1. 词汇：与目标口语 ${t} 分匹配，可使用该分数段地道的口语词汇与搭配，允许 1 个从句展开；表达必须准确、自然、口语化，不生硬堆大词。`,
+    L4: `1. 词汇：与目标口语 ${t} 分匹配，地道习语与自然搭配，允许从句展开与较高级表达；表达必须准确、自然、口语化，不背书面语。`
+  }[tier];
+  const rvRule2 = {
+    L1: '2. 主回答铁则：2句以内、10-15秒；只含观点+1个最简单原因；绝对禁止for example/for instance/such as；最多1个简单复合结构。',
+    L2: '2. 主回答铁则：2句、10-20秒；观点明确并带原因展开；绝对禁止for example/for instance/such as；最多1个简单复合结构。',
+    L3: '2. 主回答铁则：2-3句、15-25秒；观点明确并带原因展开，可再接1个泛化例子句（for example + 概念性例子，禁止个人具体故事）；允许与目标分匹配的复合结构。',
+    L4: '2. 主回答铁则：3句左右、20-30秒；观点+原因展开+例子或补充；可用for example/such as引出概念性例子；允许自然长句。'
+  }[tier];
+  /* 输出格式行四档（防互斥指令） */
+  const rvFmt = {
+    L1: '主回答：xxx（2句以内，无例子）',
+    L2: '主回答：xxx（2句，无例子）',
+    L3: '主回答：xxx（2-3句，可含1个泛化例子）',
+    L4: '主回答：xxx（3句左右，可含例子）'
+  }[tier];
   return `${head}
 考生会贴出自己针对某道P3题目的回答（可能是中文，也可能是英文）。请你只做一件事：${rvIntro}不要挑问题、不要写中文说明、不要寒暄。
 
@@ -2268,10 +2332,10 @@ function p3ReviewSys(){
 ${rvRule1}
 ${rvRule2}
 3. 追问拓展铁则：3句以内，必须含1个because从句；最多额外1个固定结构（especially for / which means二选一）；用抽象化P2素材举例，禁止具体个人故事。
-4. 若考生贴的是中文：按合规的2句英文主回答直接翻译，不解释。
+4. 若考生贴的是中文：按合规的英文主回答直接翻译，不解释。
 
 【输出格式：严格只输出下面两段，不要任何前缀/解释/寒暄】
-主回答：xxx（2句以内，无例子）
+${rvFmt}
 追问拓展：xxx（3句以内，含because，可选）`;
 }
 
@@ -2308,7 +2372,7 @@ async function generateP3Helper(id, i){
   const resultEl = qDiv ? qDiv.querySelector('.sp-p3-ai-result') : null;
 
   if(btn){ btn.disabled = true; btn.innerHTML = 'AI 在生成…'; }
-  if(resultEl){ resultEl.innerHTML = '<div class="diag-note">正在按 5.5 分策略生成 P3 参考答案…</div>'; resultEl.style.display = 'block'; }
+  if(resultEl){ resultEl.innerHTML = '<div class="diag-note">正在按 ' + spTargetBand() + ' 分策略生成 P3 参考答案…</div>'; resultEl.style.display = 'block'; }
 
   try{
     const content = await callRelay('p3_aihelper', [
@@ -2345,7 +2409,7 @@ async function reviewP3Answer(id, i){
   const p2Text = (p2TextEl && p2TextEl.value && p2TextEl.value.trim()) || (s.answers.p2 && s.answers.p2.text) || '';
 
   btn.disabled = true; btn.innerHTML = '老师在看…';
-  resultEl.innerHTML = '<div class="diag-note">老师正在按 5.5 分规则看你刚写的回答…</div>';
+  resultEl.innerHTML = '<div class="diag-note">老师正在按 ' + spTargetBand() + ' 分规则看你刚写的回答…</div>';
   resultEl.style.display = 'block';
   try{
     const content = await callRelay('p3_review', [
@@ -2626,7 +2690,7 @@ async function diagnoseAnswer(id, qi, questionText, answerText){
   if(btn){ btn.disabled = true; btn.textContent = '诊断中…'; }
   try{
     const messages = [
-      { role:'system', content: SYS_DIAG },
+      { role:'system', content: spDiagTierHead() + SYS_DIAG },
       { role:'user', content: '题目：' + questionText + '\n\n我的回答：\n' + answerText }
     ];
     const content = await callRelay('speaking_diagnose', messages, 0.3);
@@ -2693,7 +2757,7 @@ async function diagnoseP2(id){
     ).join('\n===\n');
 
     const messages = [
-      { role:'system', content: SYS_DIAG_P2 },
+      { role:'system', content: spDiagTierHead() + SYS_DIAG_P2 },
       { role:'user', content:
         'P2 题目：' + (s.promptEn || s.title || '') +
         '\n中文描述：' + (s.promptZh || '') +
