@@ -475,6 +475,18 @@
           + flagHtml(n) + esc(plain(q.question))
           + '<div class="ex-drop" data-q="' + esc(n) + '" data-g="' + gid + '"></div></div>';
       });
+    } else if(g.type === 'map' && channel === 'reading'){
+      /* 段落信息匹配（她 10/12 22:16 截图反馈改版）：真机考形态 = 文章每段上方虚线槽 +
+         题号气泡拖入/点选放入。答案口径不变：EX.user[题号] = 段落字母 → 判分/落库/草稿全复用。
+         听力 map = 地图标注题（g.imageUrl 配图 + 字母胶囊），走下面原分支不动。 */
+      var gid = 'loh' + idx;
+      qs.forEach(function(q){
+        var n = numOf(q.qNumber);
+        h += '<div class="ex-q"><span class="ex-qn" data-qn="' + esc(n) + '">' + esc(n) + '</span>'
+          + flagHtml(n) + esc(plain(q.question))
+          + '<span class="ex-lohb" data-q="' + esc(n) + '" data-g="' + gid + '" title="拖到左侧对应段落的上方框里">' + esc(n) + '</span>'
+          + '<span class="ex-lohv" data-q="' + esc(n) + '"></span></div>';
+      });
     } else if(g.type === 'map'){
       /* map 这一个 type 在题库里是两种题：
          · 阅读 —— 实为「哪一段包含以下信息」的段落信息匹配：字母指段落，靠左边文章作答；
@@ -545,12 +557,20 @@
       +  '</div>';
   }
   function barHtml(){
-    /* 真机考底栏 = 题号条 + Finish section / Exit（样子稿 104 v4）：
-       Mark 旗子已移到每题右上（ex-flagq），prev/next 删除 —— 跳题走题号条和双击 Tab。
-       Submit 文案对齐真机考 Finish section（行为不变：仍走二次确认 → 判分）。 */
+    /* 10/12 批A：底栏重构为爱听写/真机考形态（她 22:03「切换考题不该放上面，要放下面」）。
+       结构 = .ex-nav（左：篇切换器 ‹ 当前篇·已答/总数 | 中：当前篇题号行 | 右：下一篇 ›）
+              + .ex-actions（左：Pause | 中：Exit | 右：Finish section）
+       · 题号行只列【当前篇】（根治「40 个题堆下面挤两行」）；全卷格子 .ex-sheet 退役
+       · 篇切换器 full 模式才有；单篇只有题号行；写作是 Task 1/2 切换（见 paintPgSwitch）
+       · Pause 属批 B-3（她 22:2x 确认加），此处先留按钮位，行为在 bank.js pauseExam/resumeExam */
     return '<div class="ex-bar">'
-      +    '<div class="ex-sheet" id="exSheet"></div>'
+      +    '<div class="ex-nav" id="exNav">'
+      +      '<button type="button" class="ex-pg" id="exPgPrev" data-pgprev></button>'
+      +      '<div class="ex-nums" id="exNums"></div>'
+      +      '<button type="button" class="ex-pg" id="exPgNext" data-pgnext></button>'
+      +    '</div>'
       +    '<div class="ex-actions">'
+      +      '<button type="button" class="btn-ghost ex-pause" id="exPauseBtn">Pause</button>'
       +      '<button class="btn-ghost" type="button" data-exit>Exit</button>'
       +      '<button class="btn-primary" type="button" data-submit>Finish section</button>'
       +    '</div></div>';
@@ -768,6 +788,7 @@
         + barHtml() + ctxHtml();
     }
 
+    if(!isListen) lohSlotsInto(document.getElementById('exArt'));   /* 段落信息匹配槽位须早于 applyAnswer */
     Object.keys(EX.user || {}).forEach(function(qn){ applyAnswer(qn, EX.user[qn]); });
     syncExamStates();
     paintSheet();
@@ -829,7 +850,7 @@
         var pnAll = [];
         gAll.forEach(function(g){ (g.questions || []).forEach(function(q){ if(q.qNumber != null) pnAll.push(q.qNumber); }); });
         host2.innerHTML = shellHtml('Reading Test', 'Full Test', '01:00:00')
-          + '<div class="ex-ptabs" id="exPtabs">' + ptabsInner() + '</div>'
+
           + partBannerHtml('Passage 1', pnAll.length ? pnAll[0] : null, pnAll.length ? pnAll[pnAll.length - 1] : null)
           + splitHtml('', '') + barHtml() + ctxHtml();
       }
@@ -888,7 +909,7 @@
       if(host2){
         host2.innerHTML = shellHtml('Listening Test', 'Full Test', '00:30:00')
           + '<div id="exAudioHost"></div>'
-          + '<div class="ex-ptabs" id="exPtabs">' + ptabsInner() + '</div>'
+
           + partBannerHtml('Part 1', null, null, false)
           + '<div class="ex-listen" id="exListen"><div class="ex-listen-in" id="exListenIn"></div></div>'
           + barHtml();
@@ -941,28 +962,6 @@
   function numOfPassage(pi){
     return function(loc){ var e = EX.byKey[pi + '|' + String(loc)]; return e ? e.g : loc; };
   }
-  function ptabsInner(){
-    var h = '';
-    /* 听力完整模考 = 4 个 Part；阅读 = 3 个 Passage。标签跟着 channel 走（她截图口径：听力只有 Part N）。 */
-    var isL = !!(EX && EX.channel === 'listening');
-    var n = isL ? 4 : 3, lbl = isL ? 'Part' : 'Passage';
-    for(var pi = 1; pi <= n; pi++){
-      h += '<button class="ex-ptab' + (pi === EX.curP ? ' on' : '') + '" type="button" data-ep="' + pi + '">'
-        + '<span class="ex-dot"></span>' + lbl + ' ' + pi + ' · ' + qsOfPassage(pi).length + ' Qs</button>';
-    }
-    return h;
-  }
-  function paintPtabs(){
-    var box = document.getElementById('exPtabs'); if(!box || !EX || !EX.full) return;
-    var user = collect();
-    box.innerHTML = ptabsInner();
-    box.querySelectorAll('.ex-ptab').forEach(function(b){
-      var pi = Number(b.getAttribute('data-ep')), all = 0, done = 0;
-      qsOfPassage(pi).forEach(function(e){ all++; if(user[e.g] != null && String(user[e.g]).length) done++; });
-      b.classList.toggle('done', all > 0 && done === all);
-    });
-  }
-
   function renderPassage(pi){
     if(!EX || !EX.full) return;
     EX.curP = pi;
@@ -973,6 +972,7 @@
       var ah = '';
       (pk.unit.parts || []).forEach(function(p){ ah += clean(p.article || ''); });
       art.innerHTML = ah; art.scrollTop = 0;
+      lohSlotsInto(art);                                  /* 段落信息匹配：段前插虚线槽（她 22:16 截图口径） */
     }
     if(qcol){
       var numOf = numOfPassage(pi), qi = 0, qh = '';
@@ -1022,6 +1022,12 @@
       if(dpEl && dpEl.getAttribute('data-v')){
         dpEl.classList.add(norm(dpEl.getAttribute('data-v')) === norm(d.right) ? 'right' : 'wrong');
         dpEl.style.pointerEvents = 'none';
+      }
+      /* 段落信息匹配：槽位按对错上色（答案字母 vs 正确字母） */
+      var psEl = root.querySelector('.ex-pslot[data-q="' + d.qn + '"]');
+      if(psEl && psEl.getAttribute('data-v')){
+        psEl.classList.add(norm(psEl.getAttribute('data-v')) === norm(d.right) ? 'right' : 'wrong');
+        psEl.style.pointerEvents = 'none';
       }
       var bl = root.querySelector('input.ex-blank[data-q="' + d.qn + '"]'); if(bl) bl.disabled = true;
       if(bl && !d.ok){ bl.style.borderBottomColor = '#e6b3ae'; bl.style.color = '#b3261e'; }
@@ -1080,13 +1086,12 @@
       + '<span class="fx-band">总分 ' + Number((lsn ? bandOfListening : bandOfReading)(raw)).toFixed(1) + '</span>'
       + '<span>' + (lsn ? 'Listening' : 'Academic Reading') + ' · ' + res.total + ' 题换算</span></div>'
       + (cards ? '<div class="fx-pgrid">' + cards + '</div>' : '');
-    var pt = root.querySelector('.ex-ptabs');
-    root.insertBefore(el, pt || root.firstChild);
+    root.insertBefore(el, root.firstChild);   // 10/12 批A：ptabs 已删，直接插最前
   }
 
   /* ===== 配对题拖拽（Pointer Events：鼠标 + 触屏通用；不用 HTML5 DnD —— 它在触屏完全不工作）===== */
   var _dg = null, _ghost = null, _dgOff = { x: 0, y: 0 }, _dgStart = { x: 0, y: 0 }, _sel = null;
-  function dgDrops(){ return [].slice.call(document.querySelectorAll('#examRoot .ex-drop')); }
+  function dgDrops(){ return [].slice.call(document.querySelectorAll('#examRoot .ex-drop, #examRoot .ex-pslot')); }
   function dgPool(gid){ return document.querySelector('#examRoot .ex-pool[data-g="' + gid + '"]'); }
   function dgPoolChip(v, gid){ var p = dgPool(gid); return p ? p.querySelector('.ex-chip[data-v="' + v + '"]') : null; }
   function dgMark(v, used, gid){ var c = dgPoolChip(v, gid); if(c) c.classList.toggle('used', !!used); }
@@ -1117,7 +1122,71 @@
     drop.innerHTML = '';
     saveDraft(); paintSheet();
   }
-  function dgDropAt(x, y){ var el = document.elementFromPoint(x, y); return el ? el.closest('.ex-drop') : null; }
+  function dgDropAt(x, y){ var el = document.elementFromPoint(x, y); return el ? el.closest('.ex-drop, .ex-pslot') : null; }
+
+  /* ===== 段落信息匹配（阅读 map 改版 · 她 10/12 22:16 截图要求的真机考形态）=====
+     文章每段上方虚线槽 + 题号气泡：Pointer Events 拖拽与点选两路（与配对题同一套手势层，
+     触屏可用——HTML5 DnD 在触屏完全不工作，10/12 教训）。
+     存储不变：答案 = 段落字母，EX.user[题号] = 字母，collect/判分/落库全部复用。 */
+  function lohSlots(){ return [].slice.call(document.querySelectorAll('#examRoot .ex-pslot')); }
+  function lohBubble(qn){ return document.querySelector('#examRoot .ex-lohb[data-q="' + qn + '"]'); }
+  function lohSlotOf(qn){ return document.querySelector('#examRoot .ex-pslot[data-q="' + qn + '"]'); }
+  function lohPaintRow(qn){
+    var b = lohBubble(qn); if(!b) return;
+    var row = b.closest('.ex-q'), v = row ? row.querySelector('.ex-lohv') : null;
+    var s = lohSlotOf(qn);
+    if(v){
+      v.textContent = s ? s.getAttribute('data-v') : '';
+      if(s) v.setAttribute('data-q', qn); else v.removeAttribute('data-q');
+    }
+    b.classList.toggle('used', !!s);
+  }
+  function lohPlace(slot, qn, silent){
+    qn = String(qn);
+    var old = slot.getAttribute('data-q');
+    lohSlots().forEach(function(s){ if(s !== slot && s.getAttribute('data-q') === qn) lohClear(s, true); });
+    slot.setAttribute('data-q', qn);
+    slot.classList.add('filled');
+    var box = slot.querySelector('.ex-psl-box'); if(box) box.textContent = qn;
+    lohPaintRow(qn);
+    if(old && old !== qn) lohPaintRow(old);
+    if(!silent){ saveDraft(); paintSheet(); }
+  }
+  function lohClear(slot, silent){
+    var qn = slot.getAttribute('data-q'); if(!qn) return;
+    slot.removeAttribute('data-q');
+    slot.classList.remove('filled', 'right', 'wrong');
+    var box = slot.querySelector('.ex-psl-box'); if(box) box.textContent = '';
+    lohPaintRow(qn);
+    if(!silent){ saveDraft(); paintSheet(); }
+  }
+  /* 文章侧：每个段落字母前插虚线槽。字母集取自该篇 map 组题目的 options（A–G），
+     只认块级元素开头的独立字母（飞书导出形态 = <strong>A</strong> 开头），不猜文本。
+     单篇练习走 EX.unit；完整模考走 EX.packs[EX.curP-1]。 */
+  function lohSlotsInto(art){
+    if(!art || !EX || EX.channel !== 'reading') return;
+    var pk = EX.full ? EX.packs[EX.curP - 1] : { unit: EX.unit };
+    if(!pk || !pk.unit) return;
+    var letters = [];
+    (pk.unit.parts || []).forEach(function(p){ (p.groups || []).forEach(function(g){
+      if(g.type !== 'map') return;
+      var q0 = (g.questions || [])[0];
+      (q0 && q0.options || []).forEach(function(o){ var v = String(o.optionNum || ''); if(v && letters.indexOf(v) < 0) letters.push(v); });
+    }); });
+    if(!letters.length) return;
+    var seen = {};
+    [].slice.call(art.querySelectorAll('.ace-line, p')).forEach(function(el){
+      var t = (el.textContent || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+      var m = /^([A-H])(\s|$)/.exec(t);
+      if(!m || letters.indexOf(m[1]) < 0 || seen[m[1]]) return;
+      seen[m[1]] = 1;
+      var slot = document.createElement('div');
+      slot.className = 'ex-pslot';
+      slot.setAttribute('data-v', m[1]);
+      slot.innerHTML = '<span class="ex-psl-l">' + m[1] + '</span><span class="ex-psl-box"></span>';
+      el.parentNode.insertBefore(slot, el);
+    });
+  }
 
   /* ===== Highlight / Note（划词即弹 · 按篇存本地，下次打开还在）=====
      10/12 改：原来**必须右键**才能出菜单 —— 与成熟站通例不符（Notion / Medium 的 selection
@@ -1365,6 +1434,15 @@
       var dv = (val == null) ? '' : String(val);
       if(dv && dgPoolChip(dv, dp.getAttribute('data-g'))) dgPlace(dp, dv, true);
     }
+    var ps = root.querySelector('.ex-pslot[data-v="' + esc(String(val == null ? '' : val)) + '"]:not([data-q])');
+    if(ps){ lohPlace(ps, qn, true); return; }
+    var lv = root.querySelector('.ex-lohb[data-q="' + qn + '"]');
+    if(lv){
+      /* 兜底：该字母的槽被别的题占了（数据里同字母多题）→ 只显示答案不进槽 */
+      var row = lv.closest('.ex-q'), v2 = row ? row.querySelector('.ex-lohv') : null;
+      if(v2){ v2.textContent = (val == null ? '' : String(val)); if(val != null && val !== '') v2.setAttribute('data-q', qn); else v2.removeAttribute('data-q'); }
+      return;
+    }
   }
   /* 多选限数的「选满变灰」：need 个勾满 → 未勾的选项 dis；否则全恢复。
      ⚠️ 统计口径必须与 CSS 选中态一致：选中靠 :has(input:checked) 渲染，
@@ -1411,6 +1489,9 @@
       var v = d.getAttribute('data-v');
       if(v) out[d.getAttribute('data-q')] = v;
     });
+    /* 段落信息匹配：槽位（data-q=题号, data-v=段落字母）为主，行尾答案为兜底 */
+    root.querySelectorAll('.ex-pslot[data-q]').forEach(function(s){ out[s.getAttribute('data-q')] = s.getAttribute('data-v'); });
+    root.querySelectorAll('.ex-lohv[data-q]').forEach(function(v){ var t = v.textContent.trim(); if(t) out[v.getAttribute('data-q')] = t; });
     root.querySelectorAll('select[data-q]').forEach(function(s){ if(s.value) out[s.getAttribute('data-q')] = s.value; });
     /* 完整模考：没渲染成控件的题（另外两篇 / 漏渲染）→ 保留 EX.user 里已存的值 */
     if(EX && EX.full){
@@ -1443,29 +1524,62 @@
 
   function paintSheet(){
     var root = document.getElementById('examRoot'); if(!root || !EX) return;
-    var sheet = document.getElementById('exSheet'); if(!sheet) return;
-    /* 真机考 Review 总览的四态（eickaopei 机考复盘 + 申友雅思答题卡口径一致）：
-       Not seen / No response / Completed / Marked。
-       「看过」以「当前题被画过」为准 —— paintSheet 在进考场/跳题/答题后都会跑，够用且不用额外钩子。 */
+    var box = document.getElementById('exNums'); if(!box) return;
+    /* 10/12 批A：题号行只列【当前篇】（她 22:03「所有题堆在下面」的根治点）。
+       三态（爱听写 + 新西兰官方 Quick Guide「答过的题上方出现线 / flag 由方变圆」）：
+       cur  = 当前题，黑框包裹数字；done = 已答，数字上方一条黑色粗线；flag = 数字外套细圈。
+       原四态（Not seen/No response/Completed/Marked）是 Review 总览口径，本产品无 Review 屏 → 退役。 */
     EX.seen = EX.seen || {};
     EX.seen[String(EX.cur)] = 1;
     var user = collect();
-    sheet.innerHTML = allNums().map(function(n){
+    /* full = 当前篇题号；单篇 = 本篇全部（allNums 本来就是单篇口径） */
+    var nums = EX.full ? qsOfPassage(EX.curP).map(function(e){ return e.g; }) : allNums();
+    box.innerHTML = nums.map(function(n){
       var answered = user[n] != null && String(user[n]).length;
-      var mk = EX.marks && EX.marks[n];
-      var cls = 'ex-sq';
-      if(answered) cls += ' done';
-      if(EX.flagged[n]) cls += ' flag';
-      if(!answered && EX.seen[n]) cls += ' seen';
-      if(mk) cls += ' ' + mk;
-      if(String(EX.cur) === n) cls += ' cur';
-      var st = mk ? (mk === 'hit' ? 'Correct' : 'Incorrect')
-             : EX.flagged[n] ? 'Marked'
-             : answered ? 'Completed'
-             : EX.seen[n] ? 'No response' : 'Not seen';
-      return '<span class="' + cls + '" data-jump="' + esc(n) + '" title="Q' + esc(n) + ' · ' + st + '">' + esc(n) + '</span>';
+      var cls = 'ex-num';
+      if(answered) cls += ' ex-num--done';
+      if(EX.flagged[n]) cls += ' ex-num--flag';
+      if(String(EX.cur) === String(n)) cls += ' ex-num--cur';
+      return '<button type="button" class="' + cls + '" data-jump="' + esc(n) + '" title="Q' + esc(n) + '">' + esc(n) + '</button>';
     }).join('');
-    paintPtabs();
+    paintPgSwitch();
+  }
+
+  /* A4. 篇切换器（full 模式）：左「‹ 当前篇 · 已答/总数」右「下一篇 · 0/总数 ›」，到头 disabled。
+     听力文案 = Part N；阅读 = Passage N；写作 = Task N（无篇概念时不渲染，由 channel 分支处理）。 */
+  function paintPgSwitch(){
+    var prev = document.getElementById('exPgPrev'), next = document.getElementById('exPgNext');
+    var nav = document.getElementById('exNav');
+    if(!prev || !next) return;
+    if(!EX || !EX.full){ nav.classList.add('ex-nav--plain'); prev.style.display = 'none'; next.style.display = 'none'; return; }
+    nav.classList.remove('ex-nav--plain');
+    prev.style.display = ''; next.style.display = '';
+    var isL = EX.channel === 'listening', isW = EX.channel === 'writing';
+    var lbl = isL ? 'Part' : (isW ? 'Task' : 'Passage');
+    var n = isL ? 4 : (isW ? 2 : 3);
+    var user = collect();
+    function pgLabel(pi){
+      var list = isW ? null : qsOfPassage(pi);
+      var tot = isW ? 0 : list.length, done = 0;
+      if(list) list.forEach(function(e){ if(user[e.g] != null && String(user[e.g]).length) done++; });
+      if(isW){
+        /* 写作：Task N · N words（字数实时读写作输入，initWriteExam 里挂 input 监听刷新） */
+        var wc = 0;
+        try{
+          var ta = document.querySelector(isL ? '#examRoot textarea' : '#examRoot .ex-essay, #examRoot textarea');
+          if(ta) wc = String(ta.value || '').trim().split(/\s+/).filter(Boolean).length;
+        }catch(e){}
+        return lbl + ' ' + pi + ' \u00b7 ' + wc + ' words';
+      }
+      return lbl + ' ' + pi + ' \u00b7 ' + done + '/' + tot;
+    }
+    prev.innerHTML = '<span class="ex-pgar">&#8249;</span> ' + pgLabel(EX.curP);
+    var hasNext = EX.curP < n;
+    next.innerHTML = hasNext ? (pgLabel(EX.curP + 1) + ' <span class="ex-pgar">&#8250;</span>') : '';
+    prev.disabled = EX.curP <= 1;
+    next.disabled = !hasNext;
+    prev.setAttribute('data-pg', String(EX.curP - 1));
+    next.setAttribute('data-pg', String(EX.curP + 1));
   }
 
   function goTo(n, edit){
@@ -1881,13 +1995,7 @@
       if((el = t.closest && t.closest('[data-lfullstart]'))){ openFullListenTest(_listenFullSet); return; }
       /* 10/11 第 8 项：口语 pane「开始模考」→ 软导航到口语页并自动进其模考流程 */
       if((el = t.closest && t.closest('[data-spkstart]'))){ spkStartMock(); return; }
-      /* 完整模考：Passage 1/2/3（阅读）或 Part 1–4（听力）切篇 */
-      if((el = t.closest && t.closest('#exPtabs .ex-ptab')) && EX && EX.full){
-        if(!EX.submitted) saveDraft();
-        if(EX.channel === 'listening') renderListenPart(Number(el.getAttribute('data-ep')));
-        else renderPassage(Number(el.getAttribute('data-ep')));
-        return;
-      }
+      /* 完整模考：Passage 1/2/3（阅读）或 Part 1–4（听力）切篇 —— 10/12 批A 已挪到底部切换器（paintPgSwitch） */
       if((el = t.closest && t.closest('.bank-item[data-unit]'))){
         openExam(el.getAttribute('data-unit'), el.getAttribute('data-ch'));
         return;
@@ -1942,9 +2050,18 @@
         if(inp) inp.focus();
         return;
       }
-      /* 答题卡跳题 */
-      if((el = t.closest && t.closest('.ex-sq[data-jump]')) && EX){
+      /* 题号行跳题（10/12 批A：.ex-sq 答题卡退役 → .ex-num 题号行） */
+      if((el = t.closest && t.closest('.ex-num[data-jump]')) && EX){
         goTo(el.getAttribute('data-jump'));
+        return;
+      }
+      /* 篇切换器（10/12 批A：‹ 当前篇 | 下一篇 › —— 她 22:03「切换考题要放下面」） */
+      if((el = t.closest && t.closest('.ex-pg[data-pg]')) && EX && !el.disabled){
+        var pi = Number(el.getAttribute('data-pg'));
+        if(pi >= 1 && pi !== EX.curP){
+          if(EX.channel === 'listening') renderListenPart(pi);
+          else renderPassage(pi);
+        }
         return;
       }
       /* 点菜单外 → 收起浮动工具条。
@@ -2072,6 +2189,16 @@
         try{ el.setPointerCapture(e.pointerId); }catch(err){}
         return;
       }
+      if((el = t.closest && t.closest('#examRoot .ex-lohb'))){
+        /* 段落信息匹配气泡：拖 / 点选两路（与 .ex-chip 同一套 _dg 状态机） */
+        e.preventDefault();
+        _dg = { el: el, from: 'lohb', v: el.getAttribute('data-q'), moved: false };
+        _dgStart.x = e.clientX; _dgStart.y = e.clientY;
+        r = el.getBoundingClientRect();
+        _dgOff.x = e.clientX - r.left; _dgOff.y = e.clientY - r.top;
+        try{ el.setPointerCapture(e.pointerId); }catch(err3){}
+        return;
+      }
       if((el = t.closest && t.closest('#examRoot .ex-drop'))){
         if(el.getAttribute('data-v')){
           e.preventDefault();
@@ -2083,6 +2210,12 @@
           return;
         }
         if(_sel){ dgPlace(el, _sel.getAttribute('data-v')); dgClearSel(); return; }
+      }
+      if((el = t.closest && t.closest('#examRoot .ex-pslot'))){
+        /* 段前槽：有选中气泡 = 放入（已占则替换，旧题号回气泡）；无选中且已占 = 点一下清除 */
+        e.preventDefault();
+        if(_sel && _sel.classList.contains('ex-lohb')){ lohPlace(el, _sel.getAttribute('data-q')); dgClearSel(); return; }
+        if(el.getAttribute('data-q')){ lohClear(el); return; }
       }
       if(_sel) dgClearSel();
     });
@@ -2113,7 +2246,7 @@
       if(_ghost){ _ghost.remove(); _ghost = null; }
       d.el.classList.remove('dragging');
       if(!d.moved){
-        if(d.from === 'pool'){
+        if(d.from === 'pool' || d.from === 'lohb'){
           if(_sel === d.el){ dgClearSel(); }
           else { dgClearSel(); _sel = d.el; d.el.classList.add('sel'); }
         } else {
@@ -2124,6 +2257,9 @@
       var target = dgDropAt(e.clientX, e.clientY);
       if(d.from === 'pool'){
         if(target && target.getAttribute('data-v') !== d.v) dgPlace(target, d.v);
+      } else if(d.from === 'lohb'){
+        /* 段落信息匹配：拖气泡到槽位（槽已被占 = 替换，旧题号回收） */
+        if(target && target.classList.contains('ex-pslot')) lohPlace(target, d.v);
       } else {
         var mine = d.el;
         if(target && target !== mine){ dgClearEl(mine); dgPlace(target, d.v); }
