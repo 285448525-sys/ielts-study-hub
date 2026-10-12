@@ -1604,6 +1604,62 @@
     addScoreCard(res);
     if(isListen()) showScript();                       /* 交卷后才给听力原文 + 解锁音频复听 */
 
+    /* C-1 回顾自动记录：阅读/听力模考成绩落库 DATA.mockRecords（回顾页直接消费，已登记云同步）
+       口径：完整模考=whole 每次追加（随机组卷）；单篇=part 同日同篇覆盖（仿 writeSyncMock）。
+       band 用全站统一 estimateBand（内部折算 40 题，<4 题不估分），不用本文件 bandOfXxx（口径未对齐）。 */
+    try {
+      var _ch = EX.channel === 'listening' ? 'listening' : 'reading';
+      var _parts = [], _unitId = '';
+      if (EX.full) {
+        EX.packs.forEach(function(pk, i) {
+          var tot = 0, ok = 0;
+          res.detail.forEach(function(d) {
+            var e = EX.byG[d.qn]; if (!e || e.p !== (i + 1)) return;
+            tot++; if (d.ok) ok++;
+          });
+          if (tot) _parts.push({ label: 'P' + (i + 1), correct: ok, total: tot });
+        });
+      } else {
+        /* 🔴 单篇不能用 EX.byG[d.qn] 逐篇统计 —— 单篇的 detail[].qn 是题号字符串（String(q.qNumber)），
+           而 EX.byG 的键是连续整数（EX.qs.length+1），两者对不上，逐题匹配恒 0 → _parts 空 → 静默不落库。
+           单篇就一段，直接用 score() 的汇总值（res.right/res.total），不需要逐题遍历。 */
+        _unitId = (EX.unit && EX.unit.id) || '';
+        _parts.push({ label: (EX.unit && EX.unit.title) || '单篇', correct: res.right, total: res.total });
+      }
+      if (_parts.length) {
+        /* 🔴 老账号数据（localStorage 里的旧 DATA）可能没有 mockRecords 字段 ——
+           指令只核了 data.js 的默认值，没核「旧数据迁移」这条路，首版直接 unshift 抛错被 try 吞掉
+           表现为静默失败（localStorage 兜底成功、mockRecords 恒 0）。老用户缺字段要兜底建数组。 */
+        if (!Array.isArray(DATA.mockRecords)) DATA.mockRecords = [];
+        var _band = estimateBand(_ch, res.right, res.total);
+        var _rec = {
+          id: uid(), date: todayKey(),
+          granularity: EX.full ? 'whole' : 'part',
+          type: _ch, parts: _parts,
+          src: 'bank', note: '模考自动记录'
+        };
+        if (_band != null) _rec.overall = _band;          /* estimateBand 可能返回 null（<4 题），此时不写 overall */
+        if (_unitId) _rec.unitId = _unitId;              /* 单篇覆盖匹配用 */
+        /* 单篇重做覆盖：同 date + type + src:bank + granularity:part + unitId → 改写旧条 */
+        var _old = null;
+        if (!EX.full && _unitId) {
+          _old = DATA.mockRecords.find(function(r) {
+            return r.src === 'bank' && r.granularity === 'part' && r.type === _ch
+              && r.date === _rec.date && r.unitId === _unitId;
+          });
+        }
+        if (_old) {
+          _old.parts = _rec.parts;
+          _old.overall = _rec.overall;                   /* 覆盖时 band 可能从 null→数字或反之 */
+          if (_old.overall == null) delete _old.overall;
+          _old.updatedAt = Date.now();
+        } else {
+          DATA.mockRecords.unshift(_rec);
+        }
+        hubSave();
+      }
+    } catch (e) { console.warn('[bank] mockRecords 落库失败', e); }
+
     try{
       if(EX.full){
         /* 三篇各自写各自的成绩 → 列表页每篇还能显示「上次成绩」 */
