@@ -62,8 +62,8 @@
   var _manifest = null, _loading = false;
   var EX = null;              // 当前做题会话
   var _timer = null;
-  var _fullSet = null;        // 当前列表页展示的「完整模考」随机组卷结果（3 篇）
-  var _listenFullSet = null;  // 听力完整模考随机组卷结果（Part 1–4 各一篇，10/12 第 10 项）
+  /* 10/12 23:2x 她「组卷改纯随机，不用提前写好题目在那」：原 _fullSet/_listenFullSet
+     「渲染入口卡时组一次并缓存」的两变量已删 —— 现在点 Start 的那一刻才随机抽篇（见 openFullTest）。 */
 
   /* ===== 列表 ===== */
   function unitsOf(channel){
@@ -168,9 +168,11 @@
     renderListenFullEntry();
   }
 
-  /* ===== 列表页「完整模考」入口卡（3 篇一套 · 随机组卷）=====
-     组卷方式：每次从 Part 1 / Part 2 / Part 3 各随机抽一篇（她 10/11 拍板「随机组卷」）。
-     卡上列出的三篇 = 点 Start 真正会用的那三篇（渲染时组一次，Start 直接用同一批）。 */
+  /* ===== 列表页「完整模考」入口卡（纯随机组卷，她 10/12 23:2x「不用提前写好题目在那」）=====
+     口径：卡上**不再预组卷、不列具体篇目**；点 Start 的那一刻才从 Part 1/2/3 各随机抽 1 篇
+     （openFullTest 内做，每次都不一样；退出回列表再进 = 再抽，与真机考「每套卷子都不同」体验一致）。
+     题数口径可写死 40：库里阅读 Part 1/2 每篇恒 13 题、Part 3 恒 14 题 → 任意组合恒 40（10/12 全库实测）。
+     composeFullTest 本体保持不变，只是调用时机从「渲染时」挪到「点 Start 时」。 */
   function composeFullTest(){
     var all = unitsOf('reading'), picked = [];
     ['Part 1', 'Part 2', 'Part 3'].forEach(function(part){
@@ -183,25 +185,27 @@
   function renderFullEntry(){
     var host = document.getElementById('fullEntry'); if(!host) return;
     if(!_manifest){ host.innerHTML = ''; return; }
-    if(!_fullSet) _fullSet = composeFullTest();
-    if(!_fullSet){ host.innerHTML = ''; return; }
-    var total = 0;
-    _fullSet.forEach(function(u){ total += (u.qCount || 0); });
+    /* 数据可用性检查：三个 Part 各至少 1 篇才出卡（Start 时 composeFullTest 还有兜底） */
+    var all = unitsOf('reading');
+    var ok = ['Part 1', 'Part 2', 'Part 3'].every(function(p){
+      return all.some(function(u){ return (u.partNum || 'Part 1') === p; });
+    });
+    if(!ok){ host.innerHTML = ''; return; }
     host.innerHTML = '<div class="full-card">'
-      + '<div class="fc-num">' + total + '</div>'
+      + '<div class="fc-num">40</div>'
       + '<div class="fc-body"><b>Full Reading Test · 完整阅读模考</b>'
-      +   '<span>3 passages · ' + total + ' questions · 60 minutes</span>'
-      +   '<div class="fc-pills">' + _fullSet.map(function(u, i){
-            return '<span class="fc-pill" data-unit="' + esc(u.id) + '">Passage ' + (i + 1) + ' · ' + esc(u.title || '') + '</span>';
-          }).join('') + '</div>'
+      +   '<span>3 passages · 40 questions · 60 minutes</span>'
+      +   '<div class="fc-pills"><span class="fc-pill">随机组卷 · Part 1/2/3 各抽 1 篇</span>'
+      +   '<span class="fc-pill">每次 Start 重新抽</span></div>'
       + '</div>'
       + '<button class="btn-primary" type="button" data-fullstart>Start Test</button>'
       + '</div>';
   }
 
-  /* ===== 听力「完整模考」入口卡（10/12 第 10 项）=====
-     与阅读同一套 .full-card（四科入口同构）。组卷：Part 1–4 各随机一篇 = 40 题 / 30 分钟
-     （她 10/11 拍板「随机组卷：退出回列表重新抽」同一口径）。卡上四篇 = Start 真正会用的那四篇。 */
+  /* ===== 听力「完整模考」入口卡（10/12 第 10 项；同日晚改纯随机口径）=====
+     与阅读同一套 .full-card（四科入口同构）。卡上不预组卷、不列篇目；点 Start 才从 Part 1–4
+     各随机抽 1 篇（她 10/11「随机组卷：退出回列表重新抽」+ 10/12「不用提前写好题目在那」）。
+     题数可写死 40：库里听力每篇恒 10 题 → 4 篇恒 40（10/12 全库实测）。 */
   function composeFullListenTest(){
     var all = unitsOf('listening'), picked = [];
     ['Part 1', 'Part 2', 'Part 3', 'Part 4'].forEach(function(part){
@@ -214,17 +218,17 @@
   function renderListenFullEntry(){
     var host = document.getElementById('listenFullEntry'); if(!host) return;
     if(!_manifest){ host.innerHTML = ''; return; }
-    if(!_listenFullSet) _listenFullSet = composeFullListenTest();
-    if(!_listenFullSet){ host.innerHTML = ''; return; }
-    var total = 0;
-    _listenFullSet.forEach(function(u){ total += (u.qCount || 0); });
+    var all = unitsOf('listening');
+    var ok = ['Part 1', 'Part 2', 'Part 3', 'Part 4'].every(function(p){
+      return all.some(function(u){ return (u.partNum || 'Part 1') === p; });
+    });
+    if(!ok){ host.innerHTML = ''; return; }
     host.innerHTML = '<div class="full-card">'
-      + '<div class="fc-num">' + total + '</div>'
+      + '<div class="fc-num">40</div>'
       + '<div class="fc-body"><b>Full Listening Test · 完整听力模考</b>'
-      +   '<span>4 parts · ' + total + ' questions · 30 minutes · audio plays once</span>'
-      +   '<div class="fc-pills">' + _listenFullSet.map(function(u, i){
-            return '<span class="fc-pill" data-unit="' + esc(u.id) + '">Part ' + (i + 1) + ' · ' + esc(u.title || '') + '</span>';
-          }).join('') + '</div>'
+      +   '<span>4 parts · 40 questions · 30 minutes · audio plays once</span>'
+      +   '<div class="fc-pills"><span class="fc-pill">随机组卷 · Part 1–4 各抽 1 篇</span>'
+      +   '<span class="fc-pill">每次 Start 重新抽</span></div>'
       + '</div>'
       + '<button class="btn-primary" type="button" data-lfullstart>Start Test</button>'
       + '</div>';
@@ -812,8 +816,9 @@
     });
   }
 
-  function openFullTest(set){
-    var picks = (set && set.length === 3) ? set : composeFullTest();
+  function openFullTest(){
+    /* 纯随机组卷（她 10/12「不用提前写好题目在那」）：点 Start 这一刻才抽篇，每次都不一样 */
+    var picks = composeFullTest();
     if(!picks) return;
     var root = document.getElementById('bankRoot');
     if(root) root.style.display = 'none';
@@ -872,8 +877,9 @@
      差异三点：① 单栏布局（听力无文章区）② 每个 Part 自己的音频，**整场只播一遍且不可回退**
      （真机考口径：官方录音只播一遍、不可暂停/拖动；切走再切回来也不能重播 —— 真机考各 Part
      录音只在「到这一部分」时播一次）③ 30 分钟总倒计时。 */
-  function openFullListenTest(set){
-    var picks = (set && set.length === 4) ? set : composeFullListenTest();
+  function openFullListenTest(){
+    /* 同阅读：点 Start 这一刻才随机抽 Part 1–4 各一篇 */
+    var picks = composeFullListenTest();
     if(!picks) return;
     var root = document.getElementById('bankRoot');
     if(root) root.style.display = 'none';
@@ -1924,8 +1930,7 @@
     EX = null;
     var host = document.getElementById('examRoot'); if(host){ host.hidden = true; host.innerHTML = ''; }
     var root = document.getElementById('bankRoot'); if(root) root.style.display = '';
-    _fullSet = null;                                   /* 回到列表 → 下次组一套新的（随机组卷） */
-    _listenFullSet = null;                             /* 听力完整模考同口径（10/12 第 10 项） */
+    /* 组卷缓存 _fullSet/_listenFullSet 已随「纯随机」口径删除（10/12）：每次 Start 现抽，无需重置 */
     boot();
   }
 
@@ -1991,8 +1996,8 @@
         renderListenList(el.getAttribute('data-lpart'));
         return;
       }
-      if((el = t.closest && t.closest('[data-fullstart]'))){ openFullTest(_fullSet); return; }
-      if((el = t.closest && t.closest('[data-lfullstart]'))){ openFullListenTest(_listenFullSet); return; }
+      if((el = t.closest && t.closest('[data-fullstart]'))){ openFullTest(); return; }
+      if((el = t.closest && t.closest('[data-lfullstart]'))){ openFullListenTest(); return; }
       /* 10/11 第 8 项：口语 pane「开始模考」→ 软导航到口语页并自动进其模考流程 */
       if((el = t.closest && t.closest('[data-spkstart]'))){ spkStartMock(); return; }
       /* 完整模考：Passage 1/2/3（阅读）或 Part 1–4（听力）切篇 —— 10/12 批A 已挪到底部切换器（paintPgSwitch） */
