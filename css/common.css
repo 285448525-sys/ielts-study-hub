@@ -644,6 +644,17 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
   align-items:center;
   width:100%;
 }
+/* 10/12 观感修：空态（词库为空/无到期词）时别把内容撑满一屏 ——
+   空态内部是居中布局，被撑高后底部空一大片（新用户第一眼「一半屏幕是空的」，像页面没做完）。
+   答题中（body 有 .opts-grid）仍保持 flex:1 撑满，一屏无滚动口径不推翻。
+   🔴 不能用「:has() 里嵌 :not(:has())」——浏览器对嵌套 :has 直接抛 querySelector 异常（10/12 实踩），
+   改用 JS 打标记：practice.js 在空态渲染时给 #studyView 加 .is-empty（唯一事实来源，无 CSS 猜）。 */
+#practiceBody.practice-body-fit:not(:has(.opts-grid)){
+  flex:0 0 auto;
+  justify-content:flex-start;
+}
+#studyView.study-view-fit.is-empty{ min-height:0; }
+#studyView.study-view-fit.is-empty .practice-card.practice-card-fit{ padding-bottom:22px; }
 #practiceBody.practice-body-fit .last-word, #practiceBody.practice-body-fit .practice-topzone, #practiceBody.practice-body-fit .practice-word-area, #practiceBody.practice-body-fit .opts-grid, #practiceBody.practice-body-fit .answer-btns, #practiceBody.practice-body-fit .pw-speaker-wrap, #practiceBody.practice-body-fit .practice-tools-row { width:100%;max-width:960px; }
 
 /* ── 上一词回顾 ── */

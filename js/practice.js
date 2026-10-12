@@ -734,6 +734,17 @@ function renderQuotaDone(){
 
 // ======= 进入学习（打开即按排程出题）=======
 // design/78：改为 async——官方词库先 await 词包加载（custom 立即过）；出题/排程逻辑一字不动
+/* 10/12 观感修：空态布局标记。
+   为什么用 JS 打标记而不用纯 CSS ：空态 DOM 与答题态不同（q-word/q-cn vs .opts-grid），
+   试过 `:has()` 嵌套 `:not(:has())` —— 浏览器对嵌套 :has 直接抛 querySelector 异常（实踩），
+   且 `:has()` 在 SW 缓存旧浏览器上不回退。JS 打标记是唯一可靠的事实来源。
+   ⚠️ 顶层 function 声明（放在 ready 之前），避免 TDZ：ready 回调同步执行期就会调到。 */
+function _markEmptyState(on){
+  try{
+    const v = document.getElementById('studyView');
+    if(v) v.classList.toggle('is-empty', !!on);
+  }catch(e){}
+}
 async function autoStartSeeWord(){
   try{
     window.__quotaDoneShown = false;   // 9/25：开新一轮 → 完成卡标记复位（改上限时据此重判）
@@ -747,6 +758,7 @@ async function autoStartSeeWord(){
     // design/78：官方词库异步拉取词包；加载期间给占位，失败走底部统一重试 UI
     if(wbActive() !== 'custom' && !(typeof wbLoaded === 'function' && wbLoaded(wbActive()))){
       $('#practiceBody').innerHTML = '<div class="q-word">词库加载中…</div>';
+      _markEmptyState(true);   // 10/12：占位也算空态布局（别撑一屏）
     }
     await obBankReady(wbActive());
 
@@ -762,15 +774,18 @@ async function autoStartSeeWord(){
         if(_egb) _egb.addEventListener('click', () => switchWordTab('bank'));
         const _ego = document.getElementById('emptyGoOfficial');
         if(_ego) _ego.addEventListener('click', () => { wbSetActive('awl'); pq = null; autoStartSeeWord(); });
+        _markEmptyState(true);   // 10/12：空态 → 取消「撑满一屏」，否则底部空一大片（新用户观感）
         return;
       }
       if(_wbAll.length < 2){
         $('#practiceBody').innerHTML = '<div class="q-word">词库至少需要 2 个单词</div><div class="q-cn">「看词选义」需要选项作干扰项，请先加至少 2 个词。</div>';
+        _markEmptyState(true);
         return;
       }
     } else if(!Array.isArray(_wbAll) || _wbAll.length === 0){
       throw new Error('官方词库加载为空');   // 词包固定 570 词不应出现空态；ready 后异常为空按失败处理
     }
+    _markEmptyState(false);   // 10/12：有词可学 → 恢复「一屏无滚动」撑满布局
     const today = todayKey();
     // —— 恢复或首次锁定当日词表 ——
     let session = wbSession();
