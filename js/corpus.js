@@ -60,8 +60,12 @@ ready(() => {
   on('addCorpus', 'click', addOne);
   bindEnterSubmit(document.getElementById('corEn'), document.getElementById('addCorpus'));   // 9/22：回车即添加
   bindEnterSubmit(document.getElementById('corCn'), document.getElementById('addCorpus'));
-  on('startDict', 'click', startDict);   // 听力默写入口：HTML 尚未提供按钮时安全跳过（避免整段脚本崩溃）
+  on('startDict', 'click', startDict);
   on('startWrite', 'click', startWrite);
+  /* 10/12 晚改版：添加面板开合 + 三方式 tab 切换（id 契约见 corpus.html dictView 注释） */
+  on('addToggle', 'click', openAddPanel);
+  document.querySelectorAll('#addPanel .add-tabs button').forEach(b =>
+    b.addEventListener('click', () => switchAddMode(b.getAttribute('data-amt'))));
   // 设置联动：设置实时保存到 localStorage（对应滑块缺失则跳过，用默认配置，避免整段脚本崩溃）
   const sRate = document.getElementById('sRate');
   if(sRate){
@@ -189,8 +193,27 @@ function renderList(){
   let arr = DATA.corpus;
   if(corpusSearch){ arr = arr.filter(c => ((c.en||'')+' '+(c.cn||'')).toLowerCase().indexOf(corpusSearch) !== -1); }
   $('#corpusCount').textContent = arr.length;
+  /* 10/12 晚改版：库空 → 两个练法按钮置灰（点了也白点，Quizlet 空态通例：先建材料再学习） */
+  const has = arr.length > 0;
+  ['startWrite','startDict'].forEach(id => {
+    const b = document.getElementById(id); if(!b) return;
+    b.disabled = !has;
+    b.title = has ? '' : '先在下面添加句子';
+  });
   const box = $('#corpusList');
-  if(arr.length === 0){ box.innerHTML = renderEmpty(corpusSearch ? '没有匹配“'+escapeHtml(corpusSearch)+'”的句子。' : '还没有句子，上面导几句吧。'); return; }
+  if(arr.length === 0){
+    if(corpusSearch){ box.innerHTML = renderEmpty('没有匹配“'+escapeHtml(corpusSearch)+'”的句子。'); return; }
+    /* 空态大 CTA：图标 + 一句话 + 三种导入方式的入口（原「还没有句子，上面导几句吧」一行小字退役） */
+    box.innerHTML = '<div class="cor-empty">'
+      + '<div class="ce-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5"/><path d="M3 17l9 5 9-5"/></svg></div>'
+      + '<b>先把要默写的句子存进来</b>'
+      + '<p>粘贴一段英文让 AI 自动切句补中文最快；也支持批量粘贴、一条一条加。<br>存好后上面两种练法随时开始。</p>'
+      + '<button type="button" class="btn btn-primary" id="corEmptyAdd">＋ 添加句子</button>'
+      + '</div>';
+    const eb = document.getElementById('corEmptyAdd');
+    if(eb) eb.addEventListener('click', openAddPanel);
+    return;
+  }
   /* 10/4 01:30 B 版（她 23:37 选 B）：表格 → 双栏卡列表
      —— 她 22:57 报语料表「手机上特别挤」。表格左中文右英文在 375px 下每列只剩 ~150px，
         雅思长难句（普遍 15-30 词）被压成竖排。B 版改卡片：上行中文、下行英文、右上删除。
@@ -213,6 +236,25 @@ function renderList(){
 }
 
 // ========== 听写 ==========
+/* 10/12 晚改版：添加面板开合（原嵌套两层 <details> 改平铺 tab，添加入口永远一级可达）
+   openAddPanel 供空态 CTA 和列表头「＋ 添加句子」两处调用 */
+function openAddPanel(){
+  const p = document.getElementById('addPanel'); if(p) p.hidden = false;
+  const t = document.getElementById('addToggle'); if(t) t.hidden = true;
+  try{ const el = document.getElementById('corEn'); if(el && !p.hidden) el.focus({ preventScroll:true }); }catch(e){}
+}
+function closeAddPanel(){
+  const p = document.getElementById('addPanel'); if(p) p.hidden = true;
+  const t = document.getElementById('addToggle'); if(t) t.hidden = false;
+}
+function switchAddMode(mode){
+  document.querySelectorAll('#addPanel .add-tabs button').forEach(b =>
+    b.classList.toggle('active', b.getAttribute('data-amt') === mode));
+  ['single','bulk','ai'].forEach(m => {
+    const el = document.getElementById('amt-' + m); if(el) el.hidden = (m !== mode);
+  });
+}
+
 function startDict(){
   if(DATA.corpus.length === 0){ toast('语料库是空的，先导入句子'); return; }
   const cfg = Object.assign({ rate:.9, repeat:3, intervalMs:2200, showCn:false, batchSize:10 }, DATA.settings.corpusCfg || {});

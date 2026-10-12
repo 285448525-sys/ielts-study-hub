@@ -44,7 +44,7 @@
 <script defer src="js/data.js?v=20261011e"></script>
   <script defer src="js/common.js?v=20261012f"></script>
   <script defer src="js/feedback.js?v=20261006a"></script>
-  <script src="js/corpus.js?v=20261004a" defer></script>
+  <script src="js/corpus.js?v=20261012a" defer></script>
 <style>
   /* 长难句 / 错题本 样式（原 errorbook.html 内联） */
   .eb-input{width:100%;min-height:190px;padding:14px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;font-size:14.5px;line-height:1.75;background:var(--bg);color:var(--ink);resize:vertical}
@@ -123,6 +123,41 @@
     .cc-card .cc-del{position:absolute;right:9px;top:9px;width:44px;height:44px;margin:0}
     .cc-card .cc-body{padding-right:46px}
   }
+
+  /* ===== 听写 tab 改版（10/12 晚，她「全面大更新…现在这样完全不对」）=====
+     成熟做法参考（她 10/6 铁律：动手前先搜，≥2 独立来源，10/12 实搜核实）：
+     ① ListenMemo（listenmemo.com）—— 雅思听写站通例：先「选择学习内容」再进练习；
+        练习/测试双模式并列成卡；错误自动归集错词本。
+     ② SubLearn（sublearn.com → Dictation Practice 指南）—— 听写界面通例：播放/重播 + 语速
+        分档 + 输入 + 提示系统（首字母/词数/翻译）。
+     ③ DictationToday（dictationtoday.com）—— 选课程 → 听 → 打字 → 复盘 四步流程。
+     结论：入口层先给「练法」两张模式卡（逐句默写 / 听写），句子库降为「材料区」；
+     空态给大 CTA 引导先建材料（Quizlet/Anki 同款）。原「语料表（左中文·右英文）」
+     「表格默写（隐藏英文列）」是开发者视角文案，整组退役。 */
+  .dict-modes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 14px}
+  .dm-card{display:flex;gap:12px;align-items:center;background:var(--surface);
+    border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  .dm-card .dm-ico{flex:none;width:40px;height:40px;border-radius:11px;display:grid;place-items:center;
+    background:var(--primary-50,var(--n-50));color:var(--primary)}
+  .dm-card .dm-ico svg{width:20px;height:20px}
+  .dm-card .dm-body{flex:1;min-width:0}
+  .dm-card .dm-body b{display:block;font-size:14.5px;font-weight:700;color:var(--ink)}
+  .dm-card .dm-body span{display:block;font-size:12.5px;color:var(--muted);margin-top:2px;line-height:1.55}
+  .dm-card .btn{flex:none}
+  @media (max-width:860px){ .dict-modes{grid-template-columns:1fr} }
+  /* 添加面板：三种导入方式平铺 tab（替代原嵌套两层 <details>） */
+  .add-tabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+  .add-tabs button{border:1px solid var(--line);background:var(--surface);color:var(--muted);
+    border-radius:999px;padding:6px 14px;font:inherit;font-size:13px;cursor:pointer}
+  .add-tabs button.active{background:var(--primary-50,var(--n-50));border-color:var(--primary);
+    color:var(--primary);font-weight:700}
+  /* 库空态：大图标 + 一句话 + 主 CTA（Quizlet/Anki 空态通例） */
+  .cor-empty{text-align:center;padding:34px 16px 30px}
+  .cor-empty .ce-ico{width:52px;height:52px;margin:0 auto 12px;border-radius:14px;display:grid;place-items:center;
+    background:var(--primary-50,var(--n-50));color:var(--primary)}
+  .cor-empty .ce-ico svg{width:26px;height:26px}
+  .cor-empty b{display:block;font-size:15px;font-weight:700;color:var(--ink);margin-bottom:5px}
+  .cor-empty p{margin:0 0 14px;font-size:13px;color:var(--muted);line-height:1.7}
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -202,51 +237,71 @@
     </section>
   </div>
 
-  <!-- ③ 语料表（中英对照，默认关闭） -->
+  <!-- ③ 听写（10/12 晚全面改版：模式双卡 + 句子库 + 平铺添加面板）
+       id 契约不变：startWrite/startDict/corpusCount/corpusSearch/corpusList/
+       corEn/corCn/addCorpus/bulkCorpus/importCorpus/importHint/aiImportBox/aiImportBtn/aiImportHint/dictArea
+       —— startDict 此前功能完整但页面从未给按钮（corpus.js on() 安全跳过），本次一并暴露。 -->
   <div id="dictView" hidden>
+    <div class="dict-modes">
+      <div class="dm-card">
+        <div class="dm-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
+        <div class="dm-body"><b>逐句默写</b><span>看中文提示，把英文默出来，AI 逐句判分挑错</span></div>
+        <button class="btn btn-primary" id="startWrite">开始默写</button>
+      </div>
+      <div class="dm-card">
+        <div class="dm-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.4 5.6a9 9 0 0 1 0 12.8"/></svg></div>
+        <div class="dm-body"><b>听写</b><span>播放英文整句，写下听到的，再逐词核对（语速可调）</span></div>
+        <button class="btn" id="startDict">开始听写</button>
+      </div>
+    </div>
+
     <section class="card">
       <div class="card-head" style="margin-bottom:10px">
-        <h2 style="margin:0">语料表（左中文 · 右英文）</h2>
+        <h2 style="margin:0">我的句子库</h2>
         <span class="muted" style="font-size:13px">共 <b id="corpusCount">0</b> 条</span>
-        <button class="btn btn-primary flex-none" id="startWrite">表格默写（隐藏英文列）</button>
+        <button class="btn flex-none" id="addToggle">＋ 添加句子</button>
       </div>
       <div class="ui-search" style="margin:8px 0 4px">
         <svg class="ui-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        <input class="ui-search-input" type="search" id="corpusSearch" placeholder="" aria-label="搜索语料" />
+        <input class="ui-search-input" type="search" id="corpusSearch" placeholder="搜英文或中文…" aria-label="搜索语料" />
       </div>
       <div id="corpusList"></div>
-      <details style="margin-top:12px">
-        <summary style="cursor:pointer;font-size:14px">＋ 添加语料（单条 / 批量 / AI 智能导入）</summary>
-        <div class="form-row" style="align-items:flex-end;gap:10px;flex-wrap:wrap;margin-top:10px">
-          <div>
-            <div class="muted" style="font-size:12px;margin-bottom:4px">英文</div>
-            <input aria-label="英文句子或词组" id="corEn" placeholder="英文句子 / 词组…" style="padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);width:260px" />
-          </div>
-          <div>
-            <div class="muted" style="font-size:12px;margin-bottom:4px">中文</div>
-            <input aria-label="对应中文" id="corCn" placeholder="对应中文…" style="padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);width:260px" />
-          </div>
-          <button class="btn btn-primary" id="addCorpus">添加</button>
+      <!-- 添加面板：三种方式平铺，点「＋ 添加句子」展开 -->
+      <div id="addPanel" hidden style="margin-top:12px;border-top:1px dashed var(--line);padding-top:12px">
+        <div class="add-tabs">
+          <button type="button" data-amt="single" class="active">单条添加</button>
+          <button type="button" data-amt="bulk">批量粘贴</button>
+          <button type="button" data-amt="ai">AI 识别导入</button>
         </div>
-        <div style="margin-top:12px">
-          <details>
-            <summary style="cursor:pointer;font-size:14px">批量导入（每行一句，英文与中文用空格/竖线/中文处自动分隔）</summary>
-            <textarea id="bulkCorpus" placeholder="批量导入：每行 英文 | 中文，如：The government should invest in public transport. | 政府应投资公交" style="width:100%;min-height:90px;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);resize:vertical;box-sizing:border-box;margin-top:8px"></textarea>
-            <div class="form-row" style="margin-top:8px;align-items:center">
-              <button class="btn btn-primary" id="importCorpus">导入</button>
-              <span id="importHint" class="muted" style="font-size:12.5px"></span>
+        <div id="amt-single">
+          <div class="form-row" style="align-items:flex-end;gap:10px;flex-wrap:wrap">
+            <div>
+              <div class="muted" style="font-size:12px;margin-bottom:4px">英文</div>
+              <input aria-label="英文句子或词组" id="corEn" placeholder="英文句子 / 词组…" style="padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);width:260px" />
             </div>
-          </details>
-          <div style="margin-top:10px;border-top:1px dashed var(--line);padding-top:10px">
-            <div class="muted" style="font-size:13px;margin-bottom:6px">AI 智能导入：粘贴短语 / 词 / 句子（可纯英文，AI 自动切分并补中文释义）</div>
-            <textarea id="aiImportBox" placeholder="粘贴要记的内容，例如：The government should invest in public transport." style="width:100%;min-height:80px;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);resize:vertical;box-sizing:border-box"></textarea>
-            <div class="form-row" style="margin-top:8px;align-items:center">
-              <button class="btn btn-primary" id="aiImportBtn">AI 识别并导入</button>
-              <span id="aiImportHint" class="muted" style="font-size:12.5px"></span>
+            <div>
+              <div class="muted" style="font-size:12px;margin-bottom:4px">中文</div>
+              <input aria-label="对应中文" id="corCn" placeholder="对应中文…" style="padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);width:260px" />
             </div>
+            <button class="btn btn-primary" id="addCorpus">添加</button>
           </div>
         </div>
-      </details>
+        <div id="amt-bulk" hidden>
+          <textarea id="bulkCorpus" placeholder="每行一句：英文 | 中文，如 The government should invest in public transport. | 政府应投资公交" style="width:100%;min-height:90px;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);resize:vertical;box-sizing:border-box"></textarea>
+          <div class="form-row" style="margin-top:8px;align-items:center">
+            <button class="btn btn-primary" id="importCorpus">导入</button>
+            <span id="importHint" class="muted" style="font-size:12.5px"></span>
+          </div>
+        </div>
+        <div id="amt-ai" hidden>
+          <div class="muted" style="font-size:13px;margin-bottom:6px">粘贴短语 / 词 / 句子（可纯英文），AI 自动切分并补中文释义</div>
+          <textarea id="aiImportBox" placeholder="粘贴要记的内容，例如：The government should invest in public transport." style="width:100%;min-height:80px;padding:8px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:var(--bg);color:var(--ink);resize:vertical;box-sizing:border-box"></textarea>
+          <div class="form-row" style="margin-top:8px;align-items:center">
+            <button class="btn btn-primary" id="aiImportBtn">AI 识别并导入</button>
+            <span id="aiImportHint" class="muted" style="font-size:12.5px"></span>
+          </div>
+        </div>
+      </div>
     </section>
     <div id="dictArea"></div>
   </div>
