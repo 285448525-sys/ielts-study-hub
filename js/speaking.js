@@ -568,7 +568,42 @@ function getAggScore(s){
   return bestOfQuestion(s.answers.p2);
 }
 function scoreLabel(v){ return v == null ? '-' : (Math.round(v * 10) / 10).toFixed(v % 1 === 0 ? 0 : 1); }
+/* 路线图3 · 3b（10/12）：题卡加「最近练习时间」小字。
+   数据 = max(answers[*].records[].ts) 现算（P1 数字键 + p2 各一份），无 records 不显示。
+   文案口径（她定案）：今天 / 昨天 / N 天前（N≤30）/ 超 1 个月。
+   ⚠️ 不用 data.js 的静态 proficiency 字段（那是死值，运行时从不维护，见指令调研）。 */
+function lastPracticeTs(s){
+  if(!s || !s.answers) return 0;
+  let mx = 0;
+  try{
+    Object.keys(s.answers).forEach(k => {
+      const a = s.answers[k];
+      if(a && Array.isArray(a.records)) a.records.forEach(r => { if(r && r.ts > mx) mx = r.ts; });
+    });
+  }catch(e){}
+  return mx;
+}
+function lastPracticeLabel(ts){
+  if(!ts) return '';
+  const now = new Date();
+  const dayMs = 864e5;
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  if(ts >= startOfToday) return '今天练过';
+  if(ts >= startOfToday - dayMs) return '昨天练过';
+  const days = Math.floor((startOfToday - ts) / dayMs) + 1;
+  if(days <= 30) return days + ' 天前练过';
+  return '超 1 个月没练';
+}
 function scoreBadgeHtml(score, count, s){
+  return _scoreBadgeInner(score, count, s) + _lastPracticeTail(s);
+}
+/* 3b：时间小字拼在徽章后面（独立 span，不碰上面四个 return 的任何字符串 ——
+   动 return 就得改四处、还容易漏；包一层只为「追加」，语义零风险）。 */
+function _lastPracticeTail(s){
+  const lb = lastPracticeLabel(lastPracticeTs(s));
+  return lb ? '<span class="sp-last-practice">' + escapeHtml(lb) + '</span>' : '';
+}
+function _scoreBadgeInner(score, count, s){
   // 没有新口径分数（旧数据 / 从未评分 / AI 未返回分数）→ 显示练过次数，不显示分数
   if(score == null){
     if(!count) return '';
