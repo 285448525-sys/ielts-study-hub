@@ -358,9 +358,9 @@
     });
     return h + '</div>';
   }
-  /* 多选题：方框 + 字母加粗（指令里已写 Choose TWO / THREE letters） */
-  function cboxHtml(q, numOf){
-    var h = '<div class="ex-cbox ex-opts" data-q="' + esc(numOf(q.qNumber)) + '">';
+  /* 多选题：方框 + 字母加粗；need = 题目要求勾几个（0 = 不限），选满其余变灰禁用（真机考行为） */
+  function cboxHtml(q, numOf, need){
+    var h = '<div class="ex-cbox ex-opts" data-q="' + esc(numOf(q.qNumber)) + '"' + (need ? ' data-need="' + need + '"' : '') + '>';
     (q.options || []).forEach(function(o){
       var v = o.optionNum || '';
       h += '<label class="ex-opt" data-v="' + esc(v) + '">'
@@ -385,10 +385,23 @@
       var n = pm ? pm[1] : '';
       if(n) had++;
       var gn = n ? numOf(n) : n;
-      return '<input class="ex-blank" type="text" data-q="' + gn + '" placeholder="' + gn + '"'
-        + ' autocomplete="off" spellcheck="false">';
+      /* 三态框（样子稿 104）：外层 .ex-blankw 管「数字/空白输入」切换，input 保持原类名供收集/判分 */
+      return '<span class="ex-blankw" data-q="' + gn + '"><b>' + gn + '</b>'
+        + '<input class="ex-blank" type="text" data-q="' + gn + '"'
+        + ' autocomplete="off" spellcheck="false"></span>';
     });
     return { html: '<div class="ex-html">' + html + '</div>', had: had };
+  }
+
+  /* 逐题旗子（Mark）：题干右上（样子稿 104，迁移自底栏 Mark 按钮） */
+  function flagHtml(n){
+    return '<button type="button" class="ex-flagq" data-qn="' + esc(n) + '" title="Mark">\u2691</button>';
+  }
+  /* 多选需要勾几个：从组指令里解析（Choose TWO/THREE/FOUR），解析不到就不限 */
+  function needOf(g){
+    var m = /TWO|THREE|FOUR/i.exec(plain(g.description || ''));
+    if(!m) return 0;
+    return { two: 2, three: 3, four: 4 }[m[0].toLowerCase()] || 0;
   }
 
   function groupHtml(g, idx, numOf, channel){
@@ -425,7 +438,7 @@
       qs.forEach(function(q){
         var n = numOf(q.qNumber);
         h += '<div class="ex-q"><span class="ex-qn" data-qn="' + esc(n) + '">' + esc(n) + '</span>'
-          + esc(plain(q.question))
+          + flagHtml(n) + esc(plain(q.question))
           + '<div class="ex-drop" data-q="' + esc(n) + '" data-g="' + gid + '"></div></div>';
       });
     } else if(g.type === 'map'){
@@ -436,44 +449,56 @@
       qs.forEach(function(q){
         var n = numOf(q.qNumber);
         h += '<div class="ex-q"><span class="ex-qn" data-qn="' + esc(n) + '">' + esc(n) + '</span>'
-          + esc(plain(q.question)) + pillsHtml(q, numOf) + '</div>';
+          + flagHtml(n) + esc(plain(q.question)) + pillsHtml(q, numOf) + '</div>';
       });
     } else if(g.type === 'multiple-choice'){
+      var need = needOf(g);
       qs.forEach(function(q){
         var n = numOf(q.qNumber);
         h += '<div class="ex-q"><span class="ex-qn" data-qn="' + esc(n) + '">' + esc(n) + '</span>'
-          + clean(q.question) + cboxHtml(q, numOf) + '</div>';
+          + flagHtml(n) + clean(q.question) + cboxHtml(q, numOf, need) + '</div>';
       });
     } else {
       var tf = isTFGroup(g);
       qs.forEach(function(q){
         var n = numOf(q.qNumber);
         h += '<div class="ex-q"><span class="ex-qn" data-qn="' + esc(n) + '">' + esc(n) + '</span>'
-          + clean(q.question) + (tf ? pillsHtml(q, numOf) : radioHtml(q, numOf)) + '</div>';
+          + flagHtml(n) + clean(q.question) + (tf ? pillsHtml(q, numOf) : radioHtml(q, numOf)) + '</div>';
       });
     }
     return h + '</div>';
   }
 
-  /* ===== 考试页外壳（单篇 / 完整模考共用，避免两份 HTML 漂移）===== */
+  /* ===== 考试页外壳（单篇 / 完整模考共用，避免两份 HTML 漂移）=====
+     10/12：顶栏照样子稿 104 窄单行；Aa 换三横杠 ☰ = Option 覆盖面板
+     （Colour = 原 Contrast 三档 exCt / Size = 原 Text size 三档 exTs，控件与委托不变只换皮）。*/
   function shellHtml(nameText, subText, timerText){
     return '<div class="ex-top">'
       +    '<div class="ex-name">' + esc(nameText)
       +      (subText ? '<small>' + esc(subText) + '</small>' : '') + '</div>'
       +    '<span class="ex-timer" id="exTimer">' + timerText + '</span>'
       +    '<div class="ex-icons">'
-      +      '<button class="ex-ico" type="button" data-gear title="Settings">Aa</button>'
-      +      '<div class="ex-pop" id="exSetPop">'
-      +        '<h5>Text size</h5>'
-      +        '<label><input type="radio" name="exTs" value="regular" checked> Regular</label>'
-      +        '<label><input type="radio" name="exTs" value="large"> Large</label>'
-      +        '<label><input type="radio" name="exTs" value="xl"> Extra large</label>'
-      +        '<hr><h5>Contrast</h5>'
-      +        '<label><input type="radio" name="exCt" value="light" checked> Black on white</label>'
-      +        '<label><input type="radio" name="exCt" value="dark"> White on black</label>'
-      +        '<label><input type="radio" name="exCt" value="yellow"> Yellow on black</label>'
-      +      '</div>'
-      +    '</div></div>';
+      +      '<button class="ex-ico ex-menubtn" type="button" title="Option">\u2630</button>'
+      +    '</div></div>'
+      + '<div class="ex-option" id="exOptionPanel">'
+      +    '<button type="button" class="ex-opx" data-opclose>\u2715</button>'
+      +    '<h3>Option</h3>'
+      +    '<div class="ex-oplist" id="exOptMain">'
+      +      '<div class="ex-oprow" data-sub="colour">Colour<span class="ar">\u203A</span></div>'
+      +      '<div class="ex-oprow" data-sub="size">Size<span class="ar">\u203A</span></div>'
+      +    '</div>'
+      +    '<div class="ex-opsub" id="exOptColour">'
+      +      '<label class="ex-oprow" data-theme=""><input type="radio" name="exCt" value="light" checked> Black on white</label>'
+      +      '<label class="ex-oprow" data-theme="dark"><input type="radio" name="exCt" value="dark"> White on black</label>'
+      +      '<label class="ex-oprow" data-theme="yellow"><input type="radio" name="exCt" value="yellow"> Yellow on black</label>'
+      +    '</div>'
+      +    '<div class="ex-opsub" id="exOptSize">'
+      +      '<label class="ex-oprow" data-fs=""><input type="radio" name="exTs" value="regular" checked> Regular</label>'
+      +      '<label class="ex-oprow" data-fs="large"><input type="radio" name="exTs" value="large"> Large</label>'
+      +      '<label class="ex-oprow" data-fs="xl"><input type="radio" name="exTs" value="xl"> Extra large</label>'
+      +    '</div>'
+      +    '<div class="ex-opback"><button type="button" data-opback>\u2039 Back</button></div>'
+      + '</div>';
   }
   function splitHtml(artHtml, qHtml){
     return '<div class="ex-split" id="exSplit">'
@@ -486,17 +511,14 @@
       +  '</div>';
   }
   function barHtml(){
-    /* 真机考屏幕下方四按钮 = Mark / Review / Previous / Next（eickaopei 机考复盘）。
-       Review 的职能由始终可见的答题卡承担（比弹层更直接），这里 ▣ 只做 Mark。
-       10/12 纠偏：原来 title 写 "Review" 但行为是标记当前题 → 名不副实。 */
+    /* 真机考底栏 = 题号条 + Finish section / Exit（样子稿 104 v4）：
+       Mark 旗子已移到每题右上（ex-flagq），prev/next 删除 —— 跳题走题号条和双击 Tab。
+       Submit 文案对齐真机考 Finish section（行为不变：仍走二次确认 → 判分）。 */
     return '<div class="ex-bar">'
-      +    '<button class="ex-ico" type="button" data-flag title="Mark" aria-label="Mark for review">▣</button>'
       +    '<div class="ex-sheet" id="exSheet"></div>'
       +    '<div class="ex-actions">'
-      +      '<button class="ex-ico" type="button" data-prev title="Previous">‹</button>'
-      +      '<button class="ex-ico" type="button" data-next title="Next">›</button>'
       +      '<button class="btn-ghost" type="button" data-exit>Exit</button>'
-      +      '<button class="btn-primary" type="button" data-submit>Submit</button>'
+      +      '<button class="btn-primary" type="button" data-submit>Finish section</button>'
       +    '</div></div>';
   }
   function ctxHtml(){
@@ -628,6 +650,35 @@
     }
   }
 
+  /* Part 横幅（样子稿 104）：一行淡绿，Part 名 + 题号范围；阅读附 20 分钟说明，
+     听力不附（她截图 1 口径：听力只有「Part 4 / Questions 31-40」）。完整模考切篇时更新内容。 */
+  function partBannerHtml(label, from, to, withTime){
+    var span = (from != null && to != null)
+      ? (withTime ? ' \u00b7 You should spend about 20 minutes on Questions ' + from + '\u2013' + to
+                  : ' \u00b7 Questions ' + from + '\u2013' + to)
+      : '';
+    return '<div class="ex-part" id="exPartBanner"><b>' + esc(label) + '</b><span>' + esc(span) + '</span></div>';
+  }
+  function updatePartBanner(label, from, to){
+    var el = document.getElementById('exPartBanner'); if(!el) return;
+    el.innerHTML = '<b>' + esc(label) + '</b><span>' + esc(from != null ? ' \u00b7 You should spend about 20 minutes on Questions ' + from + '\u2013' + to : '') + '</span>';
+  }
+
+  /* 渲染后统一同步：填空三态（草稿值→filled）、多选限数灰、旗子态 */
+  function syncExamStates(){
+    var root = document.getElementById('examRoot'); if(!root) return;
+    root.querySelectorAll('.ex-blankw').forEach(function(w){
+      var i = w.querySelector('input');
+      if(i) w.classList.toggle('filled', !!i.value);
+    });
+    root.querySelectorAll('.ex-cbox').forEach(syncCboxDis);
+    if(EX && EX.flagged){
+      root.querySelectorAll('.ex-flagq').forEach(function(b){
+        b.classList.toggle('on', !!EX.flagged[b.getAttribute('data-qn')]);
+      });
+    }
+  }
+
   function renderExam(){
     var host = document.getElementById('examRoot'); if(!host || !EX) return;
     var u = EX.unit, parts = u.parts || [], groups = [];
@@ -645,10 +696,11 @@
     var isListen = EX.channel === 'listening';
 
     if(isListen){
-      /* 听力：顶部音频条 + 单栏题目（听力没有独立文章区，不做左右分栏）。
+      /* 听力：窄顶栏（音频控制并入）+ Part 横幅 + 单栏题目（听力没有独立文章区，不做左右分栏）。
          Highlight/Note 菜单依赖 #exArt，听力没有 → 不渲染，避免出现点不动的入口。 */
-      host.innerHTML = shellHtml('Listening', listenPartLabel() + ' · ' + u.title, '00:30:00')
+      host.innerHTML = shellHtml(u.title, '', '00:30:00')
         + audioBarHtml()
+        + partBannerHtml((parts[0] && parts[0].partNum) || u.partNum || 'Part 1', nums.length ? nums[0] : null, nums.length ? nums[nums.length - 1] : null, false)
         + '<div class="ex-listen" id="exListen"><div class="ex-listen-in" id="exListenIn">'
         + groups.map(function(g, i){ return groupHtml(g, i, null, 'listening'); }).join('')
         + '</div></div>'
@@ -656,12 +708,14 @@
     } else {
       var artHtml = '';
       parts.forEach(function(p){ artHtml += clean(p.article || ''); });
-      host.innerHTML = shellHtml('Reading', u.title, '01:00:00')
+      host.innerHTML = shellHtml(u.title, '', '01:00:00')
+        + partBannerHtml((parts[0] && parts[0].partNum) || u.partNum || 'Part 1', nums.length ? nums[0] : null, nums.length ? nums[nums.length - 1] : null)
         + splitHtml(artHtml, groups.map(function(g, i){ return groupHtml(g, i, null, 'reading'); }).join(''))
         + barHtml() + ctxHtml();
     }
 
     Object.keys(EX.user || {}).forEach(function(qn){ applyAnswer(qn, EX.user[qn]); });
+    syncExamStates();
     paintSheet();
     if(isListen) wireAudio();
     else { renderNotes(); replayMarks(); }
@@ -716,8 +770,13 @@
 
       var host2 = document.getElementById('examRoot');
       if(host2){
+        var gAll = [];
+        packs.forEach(function(pk){ (pk.unit.parts || []).forEach(function(pt){ (pt.groups || []).forEach(function(g){ gAll.push(g); }); }); });
+        var pnAll = [];
+        gAll.forEach(function(g){ (g.questions || []).forEach(function(q){ if(q.qNumber != null) pnAll.push(q.qNumber); }); });
         host2.innerHTML = shellHtml('Reading Test', 'Full Test', '01:00:00')
           + '<div class="ex-ptabs" id="exPtabs">' + ptabsInner() + '</div>'
+          + partBannerHtml('Passage 1', pnAll.length ? pnAll[0] : null, pnAll.length ? pnAll[pnAll.length - 1] : null)
           + splitHtml('', '') + barHtml() + ctxHtml();
       }
       renderPassage(1);
@@ -776,8 +835,10 @@
     var list = qsOfPassage(pi);
     if(list.length) EX.cur = list[0].g;
     list.forEach(function(e){ if(EX.user[e.g] != null) applyAnswer(e.g, EX.user[e.g]); });
+    syncExamStates();
     if(EX.submitted) decoratePassage(pi);
     replayMarks();
+    updatePartBanner('Passage ' + pi, list.length ? list[0].g : null, list.length ? list[list.length - 1].g : null);
     paintSheet();
   }
 
@@ -1129,13 +1190,19 @@
   function applyAnswer(qn, val){
     var root = document.getElementById('examRoot'); if(!root) return;
     var inp = root.querySelector('input.ex-blank[data-q="' + qn + '"]');
-    if(inp){ inp.value = Array.isArray(val) ? (val[0] || '') : val; return; }
+    if(inp){
+      inp.value = Array.isArray(val) ? (val[0] || '') : val;
+      var w = inp.closest('.ex-blankw');
+      if(w) w.classList.toggle('filled', !!inp.value);   /* 三态同步：草稿恢复后显示内容而非数字 */
+      return;
+    }
     var sel = root.querySelector('select[data-q="' + qn + '"]');
     if(sel){ sel.value = val; return; }
     var box = root.querySelector('.ex-cbox[data-q="' + qn + '"]');
     if(box){
       var arr = Array.isArray(val) ? val : (val ? [val] : []);
       box.querySelectorAll('input[type=checkbox]').forEach(function(c){ c.checked = arr.indexOf(c.value) > -1; });
+      syncCboxDis(box);
       return;
     }
     var pills = root.querySelector('.ex-pills[data-q="' + qn + '"]');
@@ -1147,6 +1214,19 @@
       var dv = (val == null) ? '' : String(val);
       if(dv && dgPoolChip(dv, dp.getAttribute('data-g'))) dgPlace(dp, dv, true);
     }
+  }
+  /* 多选限数的「选满变灰」：need 个勾满 → 未勾的选项 dis；否则全恢复。
+     ⚠️ 统计口径必须与 CSS 选中态一致：选中靠 :has(input:checked) 渲染，
+     所以这里也统计 input.ex-check:checked，不能数 .on class（10/12 T14 实测踩坑）。 */
+  function syncCboxDis(box){
+    if(!box) return;
+    var need = Number(box.getAttribute('data-need') || 0);
+    if(!need) return;
+    var onN = box.querySelectorAll('input.ex-check:checked').length;
+    box.querySelectorAll('.ex-opt').forEach(function(lb){
+      var cb = lb.querySelector('input.ex-check');
+      lb.classList.toggle('dis', onN >= need && cb && !cb.checked);
+    });
   }
 
   function collect(){
@@ -1233,7 +1313,7 @@
     paintPtabs();
   }
 
-  function goTo(n){
+  function goTo(n, edit){
     if(!EX) return;
     n = Number(n);
     if(EX.full){
@@ -1244,6 +1324,7 @@
       var el2 = document.querySelector('#examRoot .ex-qn[data-qn="' + n + '"]')
              || document.querySelector('#examRoot input.ex-blank[data-q="' + n + '"]');
       if(el2) el2.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      if(edit && !EX.submitted) focusBlank(n);
       return;
     }
     EX.cur = n;
@@ -1251,6 +1332,12 @@
     var el = document.querySelector('#examRoot .ex-qn[data-qn="' + n + '"]')
           || document.querySelector('#examRoot input.ex-blank[data-q="' + n + '"]');
     if(el) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    if(edit && !EX.submitted) focusBlank(n);
+  }
+  /* 双击 Tab 跳到下一题：若该题是填空，直接进输入态 */
+  function focusBlank(n){
+    var w = document.querySelector('#examRoot .ex-blankw[data-q="' + n + '"]');
+    if(w){ var i = w.querySelector('input'); if(i) i.focus(); }
   }
 
   /* ===== 计时（倒计时，格式与写作机考一致：时:分:秒）=====
@@ -1336,15 +1423,15 @@
     closeSubmitConfirm();
     var ov = document.createElement('div');
     ov.className = 'ex-modal'; ov.id = 'exSubmitModal';
-    ov.innerHTML = '<div class="ex-modal-c" role="dialog" aria-modal="true" aria-label="Submit test">'
-      + '<h4>Submit test?</h4>'
+    ov.innerHTML = '<div class="ex-modal-c" role="dialog" aria-modal="true" aria-label="Finish section">'
+      + '<h4>Finish section?</h4>'
       + (unanswered
           ? '<p>You still have <b>' + unanswered + '</b> unanswered question' + (unanswered > 1 ? 's' : '') + '. '
-            + 'You can go back and check them, or submit now.</p>'
-          : '<p>You have answered all questions. Submit now?</p>')
+            + 'You can go back and check them, or finish now.</p>'
+          : '<p>You have answered all questions. Finish now?</p>')
       + '<div class="ex-modal-b">'
       + '<button class="btn-ghost" type="button" data-scancel>Keep working</button>'
-      + '<button class="btn-primary" type="button" data-sok>Submit</button>'
+      + '<button class="btn-primary" type="button" data-sok>Finish</button>'
       + '</div></div>';
     host.appendChild(ov);
   }
@@ -1506,35 +1593,22 @@
         saveDraft(); paintSheet();
         return;
       }
-      /* Settings 开关 */
-      if((el = t.closest && t.closest('[data-gear]'))){
-        var pop = document.getElementById('exSetPop');
-        if(pop) pop.classList.toggle('on');
-        return;
-      }
-      if(!t.closest || !t.closest('#exSetPop')){
-        var pop2 = document.getElementById('exSetPop');
-        if(pop2 && pop2.classList.contains('on')) pop2.classList.remove('on');
-      }
-      /* Review：标记当前题 */
-      if((el = t.closest && t.closest('[data-flag]')) && EX && !EX.submitted){
-        var cn = String(EX.cur);
-        EX.flagged[cn] = !EX.flagged[cn];
-        el.classList.toggle('on', !!EX.flagged[cn]);
-        el.style.background = EX.flagged[cn] ? '#111' : '';
-        el.style.color = EX.flagged[cn] ? '#fff' : '';
+      /* Option 面板（☰）交互在 common.js（bank.html 与 writing.html 共用壳，全站委托） */
+      /* 逐题旗子（Mark，从底栏迁到题干右上）：写 EX.flagged + 题号条联动 */
+      if((el = t.closest && t.closest('.ex-flagq')) && EX && !EX.submitted){
+        var qn = el.getAttribute('data-qn');
+        EX.flagged[qn] = !EX.flagged[qn];
+        el.classList.toggle('on', !!EX.flagged[qn]);
         paintSheet();
         return;
       }
-      /* 上一题 / 下一题 */
-      if((el = t.closest && t.closest('[data-prev]')) && EX){
-        var an = allNums().map(Number), i0 = an.indexOf(Number(EX.cur));
-        goTo(an[Math.max(0, i0 - 1)]);
-        return;
-      }
-      if((el = t.closest && t.closest('[data-next]')) && EX){
-        var an2 = allNums().map(Number), i1 = an2.indexOf(Number(EX.cur));
-        goTo(an2[Math.min(an2.length - 1, i1 + 1)]);
+      /* 填空框三态：点框即进输入态（数字消失）。
+         ⚠️ input 未点态是 display:none —— 对不可见元素 focus() 静默失败，
+         必须先挂 editing 类让 input 显示出来，再 focus（10/12 T17 实测踩坑）。 */
+      if((el = t.closest && t.closest('.ex-blankw')) && !(EX && EX.submitted)){
+        el.classList.add('editing');
+        var inp = el.querySelector('input');
+        if(inp) inp.focus();
         return;
       }
       /* 答题卡跳题 */
@@ -1555,21 +1629,7 @@
 
     document.addEventListener('change', function(e){
       var t = e.target;
-      /* 设置：字号 / 对比度 */
-      if(t.name === 'exTs'){
-        var sp = document.getElementById('exSplit'); if(!sp) return;
-        sp.classList.remove('ts-large', 'ts-xl');
-        if(t.value === 'large') sp.classList.add('ts-large');
-        if(t.value === 'xl') sp.classList.add('ts-xl');
-        return;
-      }
-      if(t.name === 'exCt'){
-        var sp2 = document.getElementById('exSplit'); if(!sp2) return;
-        sp2.classList.remove('ct-dark', 'ct-yellow');
-        if(t.value === 'dark') sp2.classList.add('ct-dark');
-        if(t.value === 'yellow') sp2.classList.add('ct-yellow');
-        return;
-      }
+      /* 字号（exTs）/对比度（exCt）已迁 common.js 统一处理（bank/writing 共用壳） */
       if(!EX || EX.submitted) return;
       if(t.matches && (t.matches('input.ex-blank[data-q]') || t.matches('.ex-opts input') || t.matches('select[data-q]'))){
         saveDraft(); paintSheet();
@@ -1588,7 +1648,78 @@
         try{ localStorage.setItem('hub_bank_vol', String(_audioVol)); }catch(e2){}
         return;
       }
-      if(EX && !EX.submitted && t.matches && t.matches('input.ex-blank[data-q]')) paintSheet();
+      /* 填空三态：有值 = filled（显示输入内容）；联动题号条 */
+      if(t.matches && t.matches('.ex-blankw input')){
+        var w = t.closest('.ex-blankw');
+        if(w) w.classList.toggle('filled', !!t.value.trim());
+        if(EX && !EX.submitted) paintSheet();
+        return;
+      }
+      if(EX && !EX.submitted && t.matches && t.matches('.ex-blank[data-q]')) paintSheet();
+    });
+    /* 填空三态：聚焦进编辑态（数字消失），失焦退出 */
+    document.addEventListener('focusin', function(e){
+      var w = e.target.closest && e.target.closest('.ex-blankw');
+      if(w) w.classList.add('editing');
+    });
+    document.addEventListener('focusout', function(e){
+      var w = e.target.closest && e.target.closest('.ex-blankw');
+      if(w) w.classList.remove('editing');
+    });
+    document.addEventListener('change', function(e){
+      var t = e.target;
+      if(t.matches && t.matches('#examRoot [name="exTs"]')){
+        /* 文字大小：三档字号 → 挂 .ex-split（写作页壳共用）*/
+        var sp = document.getElementById('exSplit'); if(!sp) return;
+        sp.classList.toggle('ts-large', t.value === 'large');
+        sp.classList.toggle('ts-xl', t.value === 'xl');
+        sp.style.setProperty('--exfs', t.value === 'large' ? '23px' : t.value === 'xl' ? '27px' : '');
+        return;
+      }
+      if(t.matches && t.matches('#examRoot [name="exCt"]')){
+        /* 对比度：整屏反色（Option>Colour 三档）—— 类挂 #examRoot（含顶栏底栏）*/
+        var root = document.getElementById('examRoot'); if(!root) return;
+        root.classList.toggle('ct-dark', t.value === 'dark');
+        root.classList.toggle('ct-yellow', t.value === 'yellow');
+        return;
+      }
+      /* 多选限数（真机考：Choose TWO 就只能勾两个，选满其余变灰禁用） */
+      if(t.matches && t.matches('#examRoot .ex-cbox .ex-check')){
+        var box = t.closest('.ex-cbox');
+        var need = Number(box.getAttribute('data-need') || 0);
+        if(need && t.checked){
+          var onN = box.querySelectorAll('.ex-check:checked').length;
+          if(onN > need){
+            t.checked = false;
+            return;
+          }
+        }
+        syncCboxDis(box);
+        if(EX && !EX.submitted) paintSheet();
+        return;
+      }
+      if(t.matches && t.matches('#examRoot .ex-radio')){
+        if(EX && !EX.submitted) paintSheet();
+        return;
+      }
+      if(EX && !EX.submitted && t.matches && t.matches('#examRoot .ex-opts input')) paintSheet();
+    });
+    /* 下一题快捷键 = 双击 Tab（她 10/12 指定；连按两次跳下一题并直接进输入态）。
+       判定放宽到「考场可见」——焦点在 body（如刚点过被移除的按钮）时也要能跳。 */
+    document.addEventListener('keydown', function(e){
+      if(e.key !== 'Tab') return;
+      var zone = document.getElementById('examRoot');
+      if(!zone || zone.hidden) return;
+      if(!EX) return;
+      e.preventDefault();
+      var now = Date.now();
+      if(now - (document.__lastBankTab || 0) < 600){
+        document.__lastBankTab = 0;
+        var an = allNums().map(Number), i = an.indexOf(Number(EX.cur));
+        goTo(an[Math.min(an.length - 1, i + 1)], true);
+      } else {
+        document.__lastBankTab = now;
+      }
     });
 
     /* 配对题拖拽：pointerdown/move/up（鼠标 + 触屏同一套） */

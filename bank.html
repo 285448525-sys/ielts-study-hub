@@ -129,48 +129,72 @@
 .fx-score .fx-pcard div{font-size:17px;font-weight:800;color:#111;font-variant-numeric:tabular-nums}
 @media(max-width:860px){.fx-score .fx-pgrid{grid-template-columns:1fr}}
 
-/* ===== 做题页（全屏 · 全英文 · 仿真机考）===== */
+/* ===== 做题页（全屏 · 全英文 · 仿真机考 · 10/12 对齐样子稿 104 v4，她拍板统一）===== */
 #examRoot{position:fixed;inset:0;z-index:900;background:#fff;display:flex;flex-direction:column;--exfs:20px}
 #examRoot[hidden]{display:none}
-.ex-top{display:flex;align-items:center;gap:12px;padding:9px 16px;background:#f7f8f9;border-bottom:1px solid var(--line);flex:none}
-.ex-name{font-size:14px;font-weight:700;color:#111;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ex-name small{font-weight:400;color:var(--muted);margin-left:8px}
-.ex-timer{margin:0 auto;font-variant-numeric:tabular-nums;font-weight:700;font-size:15px;color:#111;
-  background:#fff;border:1px solid var(--n-400);border-radius:4px;padding:3px 14px}
-.ex-timer.warn{color:#b3261e;border-color:#e6b3ae;background:#fdf3f2;animation:exblink 1s step-start infinite}
-/* 10/12 加：10 分钟档轻提醒（琥珀色常亮，不闪 —— 真机考「10 分钟和 5 分钟自动闪烁」，
-   但还有 10 分钟就开始闪会干扰答题，改成琥珀常亮 / 5 分钟才红闪） */
-.ex-timer.soon{color:#8a5a00;border-color:#e8cf9a;background:#fdf6e3}
+/* 顶栏：窄单行（照样子稿 104：考号/篇名 + 剩余时间 + ☰ Option）*/
+.ex-top{display:flex;align-items:center;gap:12px;padding:4px 14px;background:#fff;border-bottom:1px solid var(--line);flex:none;min-height:36px}
+.ex-name{font-size:12px;font-weight:700;color:#111;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:none}
+.ex-name small{font-weight:400;color:#333;margin-left:8px;font-size:11.5px}
+.ex-timer{margin:0 auto;font-variant-numeric:tabular-nums;font-weight:700;font-size:12px;color:#111;background:none;border:none;border-radius:0;padding:0}
+.ex-timer.warn{color:#b3261e;animation:exblink 1s step-start infinite}
+.ex-timer.soon{color:#8a5a00}
 @keyframes exblink{50%{opacity:.35}}
-.ex-icons{display:flex;gap:6px;margin-left:auto;position:relative}
-.ex-ico{width:34px;height:34px;border:1px solid var(--n-400);background:#fff;border-radius:6px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;color:#111;font-size:14px;font-weight:700;flex:none}
-.ex-ico:hover{border-color:#111}
-.ex-pop{position:absolute;top:42px;right:0;z-index:20;background:#fff;border:1px solid var(--n-400);border-radius:6px;
+.ex-icons{display:flex;gap:2px;margin-left:auto;position:relative}
+.ex-ico{border:none;background:none;font:inherit;color:#111;cursor:pointer;padding:4px 9px;border-radius:5px;font-size:15px;line-height:1.3}
+.ex-ico:hover{background:#f2f4f6}
+.ex-menubtn{font-size:16px}
+.ex-pop{position:absolute;top:34px;right:0;z-index:20;background:#fff;border:1px solid var(--n-400);border-radius:6px;
   box-shadow:0 6px 20px rgba(0,0,0,.12);padding:14px 16px;min-width:220px;display:none}
 .ex-pop.on{display:block}
 .ex-pop h5{margin:0 0 8px;font-size:11.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .ex-pop label{display:flex;align-items:center;gap:8px;font-size:13.5px;padding:4px 0;cursor:pointer;color:#111}
 .ex-pop hr{border:none;border-top:1px solid var(--line);margin:10px 0}
-.ex-split{flex:1;display:grid;grid-template-columns:1fr 1fr;min-height:0}
-.ex-article{overflow:auto;padding:26px 34px 60px;background:#fff;border-right:1px solid var(--line);
+/* Part 横幅：一行淡绿（照样子稿 104）*/
+.ex-part{flex:none;background:var(--primary-50);padding:7px 16px;border-bottom:1px solid var(--primary-100);font-size:13px;color:#111}
+.ex-part b{font-weight:800}
+.ex-part span{color:#333}
+.ex-split{flex:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);min-height:0}
+.ex-article{overflow:auto;padding:24px 32px 60px;background:#fff;border-right:1px solid var(--line);
   font-size:var(--exfs);line-height:1.95;color:#111}
 .ex-article img{max-width:100%}
-.ex-qcol{overflow:auto;padding:22px 26px 60px;background:#fff;font-size:var(--exfs)}
-.ex-group{margin:0 0 26px}
-.ex-grp-h{font-size:.85em;font-weight:800;margin:0 0 6px;color:#111}
-.ex-grp-i{font-size:.85em;line-height:1.75;color:#111;margin:0 0 14px}
-.ex-q{margin:0 0 16px;font-size:.9em;line-height:1.75;color:#111}
+.ex-qcol{overflow:auto;padding:18px 26px 60px;background:#fff;font-size:var(--exfs)}
+.ex-group{margin:0 0 28px}
+.ex-grp-h{font-size:18px;font-weight:800;margin:0 0 6px;color:#111}
+.ex-grp-i{font-size:15px;line-height:1.75;color:#222;margin:0 0 14px}
+.ex-q{margin:0 0 18px;font-size:.94em;line-height:1.75;color:#111;position:relative;padding-right:34px}
 .ex-q:last-child{margin-bottom:0}
-.ex-qn{display:inline-block;min-width:20px;font-weight:700;margin-right:7px}
-.ex-qn.miss{color:#b3261e}
-.ex-qn.hit{color:var(--primary-900)}
-.ex-pills{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap}
-.ex-pill{min-width:86px;text-align:center;border:1px solid var(--n-400);background:#fff;border-radius:3px;padding:6px 14px;font-size:.95em;cursor:pointer}
-.ex-pill:hover{border-color:#111}
-.ex-pill.on{background:#111;border-color:#111;color:#fff;font-weight:700}
-.ex-pill.right{background:var(--primary-50);border-color:var(--primary);color:var(--primary-900);font-weight:700}
-.ex-pill.wrong{background:#fdf3f2;border-color:#b3261e;color:#b3261e;font-weight:700}
+.ex-qn{display:inline-flex;align-items:center;justify-content:center;min-width:27px;height:27px;border:1.5px solid #111;border-radius:3px;font-weight:700;font-size:14px;margin-right:11px;vertical-align:-7px;background:#fff;padding:0 5px}
+.ex-qn.miss{color:#b3261e;border-color:#b3261e}
+.ex-qn.hit{color:var(--primary-900);border-color:var(--primary)}
+/* 选项（判断/单选/多选/字母匹配）：竖排整行，选中 = 圈实心 + 行浅 teal（样子稿 104，颜色本站 teal）
+   靠 :has() 按 input 状态渲染（Edge/Chrome 105+，全站现代浏览器） */
+.ex-pills{display:flex;flex-direction:column;gap:3px;margin-top:10px}
+.ex-pill{display:flex;align-items:center;gap:12px;min-height:37px;padding:8px 13px;border:1px solid transparent;border-radius:3px;background:#fff;font-size:.93em;cursor:pointer;color:#111;text-align:left}
+.ex-pill::before{content:"";flex:none;width:17px;height:17px;border:2px solid #8f959e;border-radius:50%;background:#fff}
+.ex-pill:hover{background:#f4f6f8;border-color:transparent}
+.ex-pill.on{background:var(--primary-50)}
+.ex-pill.on::before{border-color:var(--primary);background:radial-gradient(circle,var(--primary) 0 5px,transparent 5.5px)}
+.ex-pill.right{background:var(--primary-50);border-color:var(--primary)}
+.ex-pill.wrong{background:#fdf3f2;border-color:#b3261e;color:#b3261e}
+.ex-opts{display:flex;flex-direction:column;gap:3px;margin-top:10px}
+.ex-opt{display:flex;align-items:center;gap:12px;min-height:37px;padding:8px 13px;border:1px solid transparent;border-radius:3px;background:#fff;font-size:.93em;cursor:pointer;color:#111;position:relative}
+.ex-opt:hover{background:#f4f6f8}
+.ex-opt input{position:absolute;opacity:0;pointer-events:none;width:0;height:0}
+.ex-opt:has(input:checked){background:var(--primary-50)}
+.ex-opt:has(input:checked) b{color:var(--primary-900)}
+.ex-radio-box .ex-opt::before{content:"";flex:none;width:17px;height:17px;border:2px solid #8f959e;border-radius:50%;background:#fff}
+.ex-radio-box .ex-opt:has(input:checked)::before{border-color:var(--primary);background:radial-gradient(circle,var(--primary) 0 5px,transparent 5.5px)}
+.ex-cbox .ex-opt::before{content:"";flex:none;width:17px;height:17px;border:2px solid #8f959e;border-radius:3px;background:#fff}
+.ex-cbox .ex-opt:has(input:checked)::before{border-color:var(--primary);background:var(--primary)}
+.ex-cbox .ex-opt:has(input:checked)::after{content:"\2713";position:absolute;left:15px;top:50%;margin-top:-9px;color:#fff;font-size:12px;font-weight:800}
+.ex-opt.dis{opacity:.35;pointer-events:none}
+.ex-opt b{margin-right:2px}
+.ex-opt span{display:flex;align-items:baseline}
+/* 逐题旗子（Mark，迁移自底栏按钮）：题干行右上 */
+.ex-flagq{position:absolute;right:0;top:2px;border:none;background:none;color:#c3c8cf;font-size:16px;cursor:pointer;padding:2px 4px;line-height:1}
+.ex-flagq:hover{color:#8f959e}
+.ex-flagq.on{color:#111}
 .ex-hdbox{border:1px solid var(--n-400);border-radius:4px;padding:12px 16px;margin-bottom:16px}
 .ex-hdbox div{font-size:.9em;margin:4px 0;line-height:1.7}
 .ex-hdbox i{font-style:normal;font-weight:700;display:inline-block;min-width:30px}
@@ -205,6 +229,57 @@
 .ex-drop .ex-x:hover{color:#b3261e}
 .ex-drop.filled.right{border-color:var(--primary);background:var(--primary-50)}
 .ex-drop.filled.wrong{border-color:#b3261e;background:#fdf3f2;color:#b3261e}
+/* 填空框三态（样子稿 104）：未点 = 框中数字；点击 = 空白框输入；失焦有值显示值 */
+.ex-blankw{display:inline-flex;align-items:center;justify-content:center;min-width:120px;height:29px;border:1px solid #6b7280;border-radius:2px;background:#fff;margin:0 4px;vertical-align:middle;padding:0 10px;cursor:text}
+.ex-blankw:focus-within{border-color:#111;box-shadow:0 0 0 1px #111}
+.ex-blankw b{font-size:13.5px;color:#111;font-weight:700}
+.ex-blankw input{display:none;border:none;outline:none;background:none;font:inherit;font-size:14px;width:100%;text-align:center;padding:0;color:#111}
+.ex-blankw.editing b{display:none}
+.ex-blankw.editing input,.ex-blankw.filled input{display:block}
+.ex-blankw.filled b{display:none}
+.ex-blankw.filled{border-color:#374151}
+.ex-blankw.right{border-color:var(--primary)}
+.ex-blankw.wrong{border-color:#b3261e}
+.ex-blank.right{border-color:var(--primary);color:var(--primary-900)}
+.ex-blank.wrong{border-color:#b3261e;color:#b3261e}
+.ex-blankw.right input{color:var(--primary-900)}
+.ex-blankw.wrong input{color:#b3261e}
+/* 交卷后选项上色（兼容新选项行） */
+.ex-opt.right{background:var(--primary-50)}
+.ex-opt.wrong{background:#fdf3f2}
+.ex-opt.right::before,.ex-radio-box .ex-opt.right::before{border-color:var(--primary)}
+.ex-opt.wrong::before{border-color:#b3261e}
+/* Option 覆盖面板（☰ 菜单，照她截图的 Option 居中列表 + 子面板 + Back） */
+.ex-option{position:absolute;inset:0;background:rgba(255,255,255,.99);z-index:95;display:none;overflow:auto}
+.ex-option.on{display:block}
+.ex-option .ex-opx{position:absolute;top:18px;right:22px;border:none;background:#f1f3f5;color:#333;width:38px;height:38px;border-radius:50%;font-size:17px;cursor:pointer}
+.ex-option h3{text-align:center;font-size:20px;font-weight:600;margin:34px 0 22px;color:#111}
+.ex-oplist,.ex-opsub{max-width:560px;margin:0 auto;border:1px solid #e3e5e8}
+.ex-opsub{display:none}
+.ex-opsub.on{display:block}
+.ex-oprow{display:flex;align-items:center;gap:14px;padding:15px 22px;border-bottom:1px solid #e3e5e8;font-size:16px;cursor:pointer;background:#fff;color:#111}
+.ex-oprow:last-child{border-bottom:none}
+.ex-oprow:hover{background:#f7f8fa}
+.ex-opsub .ex-oprow{justify-content:center}
+.ex-oprow input{position:absolute;opacity:0;pointer-events:none}
+.ex-oprow:has(input:checked){background:var(--primary-50);font-weight:700}
+.ex-opback{max-width:560px;margin:14px auto 0;text-align:center}
+.ex-opback button{border:1px solid #c6ccd4;background:#fff;border-radius:7px;padding:7px 18px;font:inherit;font-size:13.5px;cursor:pointer}
+/* 三主题（官方档位：Black on white / White on black / Yellow on black；整屏反色） */
+#examRoot.ct-dark{background:#161616}
+#examRoot.ct-dark .ex-top,#examRoot.ct-dark .ex-foot,#examRoot.ct-dark .ex-bar,#examRoot.ct-dark .ex-main,#examRoot.ct-dark .ex-article,#examRoot.ct-dark .ex-qcol,#examRoot.ct-dark .ex-listen,#examRoot.ct-dark .ex-split{background:#161616;border-color:#5a5f66}
+#examRoot.ct-dark .ex-article,#examRoot.ct-dark .ex-qcol,#examRoot.ct-dark .ex-listen,#examRoot.ct-dark .ex-name,#examRoot.ct-dark .ex-timer,#examRoot.ct-dark .ex-ico,#examRoot.ct-dark .ex-part,#examRoot.ct-dark .ex-opt,#examRoot.ct-dark .ex-pill,#examRoot.ct-dark .ex-blankw,#examRoot.ct-dark .ex-drop,#examRoot.ct-dark .ex-chip,#examRoot.ct-dark .ex-gqh{background:#161616;color:#f2f2f2;border-color:#5a5f66}
+#examRoot.ct-dark .ex-part{background:#262a24}
+#examRoot.ct-dark .ex-gqd,#examRoot.ct-dark .ex-q,#examRoot.ct-dark .ex-html{color:#f2f2f2}
+#examRoot.ct-dark .ex-opt:hover,#examRoot.ct-dark .ex-pill:hover{background:#242628}
+#examRoot.ct-dark .ex-opt.on,#examRoot.ct-dark .ex-pill.on{background:#20302d}
+#examRoot.ct-yellow{background:#161616}
+#examRoot.ct-yellow .ex-top,#examRoot.ct-yellow .ex-foot,#examRoot.ct-yellow .ex-bar,#examRoot.ct-yellow .ex-main,#examRoot.ct-yellow .ex-article,#examRoot.ct-yellow .ex-qcol,#examRoot.ct-yellow .ex-listen,#examRoot.ct-yellow .ex-split{background:#161616;border-color:#5a5f66}
+#examRoot.ct-yellow .ex-article,#examRoot.ct-yellow .ex-qcol,#examRoot.ct-yellow .ex-listen,#examRoot.ct-yellow .ex-name,#examRoot.ct-yellow .ex-timer,#examRoot.ct-yellow .ex-ico,#examRoot.ct-yellow .ex-part,#examRoot.ct-yellow .ex-opt,#examRoot.ct-yellow .ex-pill,#examRoot.ct-yellow .ex-blankw,#examRoot.ct-yellow .ex-drop,#examRoot.ct-yellow .ex-chip,#examRoot.ct-yellow .ex-gqh{background:#161616;color:#f0e3a8;border-color:#5a5f66}
+#examRoot.ct-yellow .ex-part{background:#2a2718}
+#examRoot.ct-yellow .ex-gqd,#examRoot.ct-yellow .ex-q,#examRoot.ct-yellow .ex-html{color:#f0e3a8}
+#examRoot.ct-yellow .ex-opt:hover,#examRoot.ct-yellow .ex-pill:hover{background:#26241a}
+#examRoot.ct-yellow .ex-opt.on,#examRoot.ct-yellow .ex-pill.on{background:#2e2b1d}
 /* ===== Highlight / Note 标注色（10/12 定稿：棕底白字 + 重复高亮玫红）=====
    ⚠️ 色值以她之前定的 #8b3a2e（棕底白字）为准 —— 官方未公开 hex，她的决定是唯一权威来源。
    10/12 深夜差点被我用「新东方黄色底纹」改回黄底（那两条描述的是改版前旧界面），她纠正后定稿：
@@ -294,6 +369,8 @@
 .ex-sq.hit{background:var(--primary-50);border-color:var(--primary);color:var(--primary-900)}
 .ex-sq.miss{background:#fdf3f2;border-color:#b3261e;color:#b3261e}
 .ex-actions{display:flex;gap:8px;flex:none;margin-left:auto}
+.ex-actions .btn-ghost[data-exit]{border-color:var(--red,#d93025);color:#d93025}
+.ex-actions .btn-ghost[data-exit]:hover{background:#fdf3f2;border-color:#d93025;color:#d93025}
 .ex-split.ts-large{--exfs:23px}
 .ex-split.ts-xl{--exfs:27px}
 .ex-split.ct-dark{background:#1b1b1b}
@@ -720,9 +797,9 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
      10/11 第 7 项：写作 pane 复用 js/writing.js（写作真题渲染 + 机考 + AI 评分）+ js/writing_prompts.js（题库数据）。
      writing.js 靠「有没有 #writeTabs」自判页面：本页没有 → 只跑真题初始化，不碰写作页 DOM。 -->
 <script defer src="js/data.js?v=20261011e"></script>
-<script defer src="js/common.js?v=20261011b"></script>
+<script defer src="js/common.js?v=20261012b"></script>
 <script defer src="js/writing_prompts.js?v=20260903ab"></script>
 <script defer src="js/writing.js?v=20261011b"></script>
-<script defer src="js/bank.js?v=20261012a"></script>
+<script defer src="js/bank.js?v=20261012b"></script>
 </body>
 </html>

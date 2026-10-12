@@ -424,6 +424,55 @@ function bindSideSearch(){
   });
 }
 
+/* ===== 考试页 Option 面板（☰ 菜单：Colour / Size）=====
+   10/12 样子稿 104 v4 统一落地：bank.html 做题页与 writing.html 写作页共用同一份壳
+   （shellHtml/examShellHtml 注入 .ex-menubtn / .ex-option），但 writing.html 不加载 bank.js
+   → 交互必须放 common.js（全站都加载），否则写作页 ☰ 点不动。
+   Colour = name=exCt（整屏反色，类挂 #examRoot）/ Size = name=exTs（三档字号，挂 .ex-split）。*/
+window.showOptSub = function(which){
+  var main = document.getElementById('exOptMain');
+  var subC = document.getElementById('exOptColour');
+  var subS = document.getElementById('exOptSize');
+  var back = document.querySelector('.ex-opback');
+  if(main) main.style.display = which ? 'none' : '';
+  if(subC) subC.style.display = which === 'colour' ? 'block' : 'none';
+  if(subS) subS.style.display = which === 'size' ? 'block' : 'none';
+  if(back) back.style.display = which ? '' : 'none';
+  var h3 = document.querySelector('#exOptionPanel h3');
+  if(h3) h3.textContent = which === 'colour' ? 'Colour' : which === 'size' ? 'Size' : 'Option';
+};
+document.addEventListener('click', (e) => {
+  var t = e.target, el;
+  if((el = t.closest && t.closest('.ex-menubtn'))){
+    var op = document.getElementById('exOptionPanel');
+    if(op){ op.classList.add('on'); window.showOptSub(null); }
+    return;
+  }
+  if(t.closest && t.closest('[data-opclose]')){
+    var op2 = document.getElementById('exOptionPanel');
+    if(op2) op2.classList.remove('on');
+    return;
+  }
+  if(t.closest && t.closest('[data-opback]')){ window.showOptSub(null); return; }
+  if((el = t.closest && t.closest('.ex-oprow[data-sub]'))){ window.showOptSub(el.getAttribute('data-sub')); return; }
+});
+document.addEventListener('change', (e) => {
+  var t = e.target;
+  if(t.matches && t.matches('#examRoot [name="exTs"]')){
+    var sp = document.getElementById('exSplit'); if(!sp) return;
+    sp.classList.toggle('ts-large', t.value === 'large');
+    sp.classList.toggle('ts-xl', t.value === 'xl');
+    sp.style.setProperty('--exfs', t.value === 'large' ? '23px' : t.value === 'xl' ? '27px' : '');
+    return;
+  }
+  if(t.matches && t.matches('#examRoot [name="exCt"]')){
+    var root = document.getElementById('examRoot'); if(!root) return;
+    root.classList.toggle('ct-dark', t.value === 'dark');
+    root.classList.toggle('ct-yellow', t.value === 'yellow');
+    return;
+  }
+});
+
 /* ===== 全站玻璃底栏 dock（移动端 ≤860px 显示，作为移动端主底部导航；桌面用侧栏，不显示）===== */
 /* ==========================================================================
    10/4 17:55 移动端底部 dock 分组重构（她 17:12 提 + 17:54 拍板「甲版」）
