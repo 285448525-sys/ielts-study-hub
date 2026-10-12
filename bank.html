@@ -138,6 +138,9 @@
 .ex-timer{margin:0 auto;font-variant-numeric:tabular-nums;font-weight:700;font-size:15px;color:#111;
   background:#fff;border:1px solid var(--n-400);border-radius:4px;padding:3px 14px}
 .ex-timer.warn{color:#b3261e;border-color:#e6b3ae;background:#fdf3f2;animation:exblink 1s step-start infinite}
+/* 10/12 加：10 分钟档轻提醒（琥珀色常亮，不闪 —— 真机考「10 分钟和 5 分钟自动闪烁」，
+   但还有 10 分钟就开始闪会干扰答题，改成琥珀常亮 / 5 分钟才红闪） */
+.ex-timer.soon{color:#8a5a00;border-color:#e8cf9a;background:#fdf6e3}
 @keyframes exblink{50%{opacity:.35}}
 .ex-icons{display:flex;gap:6px;margin-left:auto;position:relative}
 .ex-ico{width:34px;height:34px;border:1px solid var(--n-400);background:#fff;border-radius:6px;cursor:pointer;
@@ -202,17 +205,37 @@
 .ex-drop .ex-x:hover{color:#b3261e}
 .ex-drop.filled.right{border-color:var(--primary);background:var(--primary-50)}
 .ex-drop.filled.wrong{border-color:#b3261e;background:#fdf3f2;color:#b3261e}
-/* ===== Highlight / Note（划词 → 右键）===== */
+/* ===== Highlight / Note 标注色（10/12 定稿：棕底白字 + 重复高亮玫红）=====
+   ⚠️ 色值以她之前定的 #8b3a2e（棕底白字）为准 —— 官方未公开 hex，她的决定是唯一权威来源。
+   10/12 深夜差点被我用「新东方黄色底纹」改回黄底（那两条描述的是改版前旧界面），她纠正后定稿：
+   · 2026 三个独立来源（课窝 ikewo.cn 两篇 / 搜狐 / 雅思无忧 yasi.cn）口径一致：
+     现行真机考高亮 = 棕底白字；同一内容重复高亮 = 自动变玫红；
+     新版还支持「单击已高亮文字直接选 Remove Highlight」。
+   · BC 官方页只写交互（拖选→右键→Highlight），不写颜色。
+   笔记 = 黄色下划线（乐问乐学「点击原文中带下划线的标注位置可调出笔记」；与棕色块一眼可分：块 vs 线）。 */
 .ex-hl{background:#8b3a2e;color:#fff;border-radius:2px;cursor:pointer}
-.ex-nt{background:#8ecdf0;color:#0d2b3a;border-radius:2px;cursor:pointer}
+.ex-hl.rep{background:#c7417b;color:#fff}
+.ex-nt{background:transparent;color:inherit;border-bottom:2px solid #f0a020;cursor:pointer}
 .ex-hl:hover,.ex-nt:hover{outline:1px solid rgba(0,0,0,.35)}
-.ex-ctx{position:fixed;z-index:99;background:#fff;border:1px solid var(--n-400);border-radius:6px;
-  box-shadow:0 6px 20px rgba(0,0,0,.14);padding:5px;display:none;min-width:168px}
-.ex-ctx.on{display:block}
-.ex-ctx button{display:block;width:100%;text-align:left;border:none;background:transparent;font:inherit;
-  font-size:13.5px;color:#111;padding:8px 12px;border-radius:4px;cursor:pointer}
+/* 划词浮动工具条（10/12 改：由「必须右键」改为「选中即弹」，横向一行）
+   来源：Notion / Medium 的 selection bubble menu 已是现代网页默认范式 ——
+   devl.dev《Floating toolbars》、21st.dev《Selection Bubble Menu》、bullet.so 与 spellapp 的 Notion 高亮教程，
+   四个独立来源口径一致：选中即弹 · 锚在选区上方 · 上方没空间翻下方 · 点按钮不清掉选区。
+   真机考本身两种都支持（申友雅思「点击鼠标右键单击 Highlight 和 Note」），故右键一并保留。 */
+.ex-ctx{position:fixed;z-index:99;background:#fff;border:1px solid var(--n-400);border-radius:10px;
+  box-shadow:0 6px 20px rgba(0,0,0,.18);padding:4px;display:none;gap:2px;align-items:center;max-width:92vw}
+.ex-ctx.on{display:flex}
+.ex-ctx button{display:inline-flex;align-items:center;gap:5px;border:none;background:transparent;font:inherit;
+  font-size:13px;color:#111;padding:7px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;min-height:36px}
 .ex-ctx button:hover{background:var(--primary-50);color:var(--primary-900)}
-.ex-ctx hr{border:none;border-top:1px solid var(--line);margin:4px 6px}
+.ex-ctx hr{flex:none;border:none;border-left:1px solid var(--line);width:0;height:20px;margin:0 3px}
+/* 交卷二次确认弹层（10/12 加；#examRoot 是 fixed，用 absolute 铺满它即可）*/
+.ex-modal{position:absolute;inset:0;z-index:950;background:rgba(17,24,39,.45);display:flex;align-items:center;justify-content:center;padding:20px}
+.ex-modal-c{background:#fff;border-radius:12px;box-shadow:0 18px 50px rgba(0,0,0,.25);max-width:380px;width:100%;padding:20px 22px}
+.ex-modal-c h4{margin:0 0 9px;font-size:17px;font-weight:800;color:#111}
+.ex-modal-c p{margin:0 0 18px;font-size:14px;line-height:1.6;color:#333}
+.ex-modal-c p b{color:#b3261e}
+.ex-modal-b{display:flex;gap:10px;justify-content:flex-end}
 /* 便签栏（三分屏第三列）*/
 .ex-split.hasnotes{grid-template-columns:1.15fr .72fr 288px}
 .ex-notes{display:none;border-left:1px solid var(--line);background:#eef6fc;overflow:auto;padding:14px 14px 30px}
@@ -262,7 +285,10 @@
 .ex-sheet{display:flex;gap:5px;flex:1;flex-wrap:wrap;align-items:center;max-height:72px;overflow:auto}
 .ex-sq{position:relative;width:30px;height:30px;border:1px solid var(--n-400);background:#fff;border-radius:3px;
   display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;cursor:pointer;flex:none;color:#111}
+.ex-sq.done{background:var(--primary-50);border-color:var(--primary-200)}
 .ex-sq.done::before{content:"";position:absolute;top:-5px;left:50%;width:11px;height:2.5px;margin-left:-5.5px;background:#111;border-radius:2px}
+/* 10/12 加：Review 总览四态里的「看过但没答」——浅灰底，和「没看过（纯白）」一眼可分 */
+.ex-sq.seen{background:#eef0f2}
 .ex-sq.flag{border-radius:50%}
 .ex-sq.cur{border-color:#111;border-width:2px}
 .ex-sq.hit{background:var(--primary-50);border-color:var(--primary);color:var(--primary-900)}
@@ -554,6 +580,10 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
   .ex-audio .ea-bar .ea-knob{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;background:#fff;border:2px solid var(--primary);transform:translate(-50%,-50%);left:0;pointer-events:none}
   .ex-audio .ea-time{flex:none;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:92px;text-align:right}
   .ex-audio .ea-rate{flex:none;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:7px;padding:3px 8px;font-size:12px;cursor:pointer;font-family:inherit;font-variant-numeric:tabular-nums}
+  /* 音量（10/12 加）：真机考只有音量可控 → 练习/考试两种模式都保留 */
+  .ex-audio .ea-vol{flex:none;border:1px solid var(--line);background:transparent;border-radius:7px;padding:2px 7px;font-size:12px;line-height:1.5;cursor:pointer;font-family:inherit}
+  .ex-audio .ea-vol:hover{border-color:#111}
+  .ex-audio .ea-vsl{flex:none;width:64px;accent-color:var(--primary);cursor:pointer;margin:0}
   .ex-audio .ea-mode{flex:none;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:3px 11px;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap}
   .ex-audio .ea-mode.exam{border-color:var(--warn-ink);color:var(--warn-ink);background:var(--warn-soft);font-weight:600}
   .ex-audio .ea-mode[disabled]{opacity:.5;cursor:default}
@@ -693,6 +723,6 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common.js?v=20261011b"></script>
 <script defer src="js/writing_prompts.js?v=20260903ab"></script>
 <script defer src="js/writing.js?v=20261011b"></script>
-<script defer src="js/bank.js?v=20261011p"></script>
+<script defer src="js/bank.js?v=20261012a"></script>
 </body>
 </html>

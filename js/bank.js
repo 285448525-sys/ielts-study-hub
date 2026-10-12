@@ -486,8 +486,11 @@
       +  '</div>';
   }
   function barHtml(){
+    /* 真机考屏幕下方四按钮 = Mark / Review / Previous / Next（eickaopei 机考复盘）。
+       Review 的职能由始终可见的答题卡承担（比弹层更直接），这里 ▣ 只做 Mark。
+       10/12 纠偏：原来 title 写 "Review" 但行为是标记当前题 → 名不副实。 */
     return '<div class="ex-bar">'
-      +    '<button class="ex-ico" type="button" data-flag title="Review">▣</button>'
+      +    '<button class="ex-ico" type="button" data-flag title="Mark" aria-label="Mark for review">▣</button>'
       +    '<div class="ex-sheet" id="exSheet"></div>'
       +    '<div class="ex-actions">'
       +      '<button class="ex-ico" type="button" data-prev title="Previous">‹</button>'
@@ -497,11 +500,14 @@
       +    '</div></div>';
   }
   function ctxHtml(){
+    /* 10/12 改：由竖排五项改横向浮动工具条；`unhl` 合并了原来的单项 Clear
+       （选中/右键压到已有标注时，Highlight/Note 会套娃 → 只给 Remove）。
+       显示哪一个由 paintCtxButtons() 按上下文决定。 */
     return '<div class="ex-ctx" id="exCtx">'
       +    '<button type="button" data-hact="hl">Highlight</button>'
       +    '<button type="button" data-hact="note">Note</button>'
       +    '<hr>'
-      +    '<button type="button" data-hact="clear">Clear</button>'
+      +    '<button type="button" data-hact="unhl">Remove</button>'
       +    '<button type="button" data-hact="clearall">Clear all</button>'
       +  '</div>';
   }
@@ -512,6 +518,14 @@
        考试模式 = 直通：不给暂停、不给拖动、不给倍速，还原「录音只播一遍」
      首次播放后模式锁死（防考到一半切回练习模式）；交卷后解锁，可自由复听。 */
   var AUDIO_RATES = [1, 1.25, 1.5, 0.75], _rateIx = 0, _audioBound = null;
+  /* 音量：真机考界面**只有音量控制，没有暂停/回退/重播**（IDP 官方问答等四处口径一致）
+     → 两种模式下都必须可用，且音量要跨页记住（练习场景比考场更需要）。
+     模块加载时就读回 —— audioBarHtml() 早于 wireAudio() 渲染，这里不读的话首屏滑杆会显示 100%。 */
+  var _audioVol = 1, _audioMuted = false;
+  try{
+    var _v0 = parseFloat(localStorage.getItem('hub_bank_vol'));
+    if(isFinite(_v0)){ _audioVol = Math.max(0, Math.min(1, _v0)); _audioMuted = _audioVol === 0; }
+  }catch(e){}
   /* 1 → "1.0×"，1.25 → "1.25×"（别用 toFixed(1)：1.25 会显示成 1.3，看着像另一个倍速） */
   function rateLabel(r){ return (r % 1 === 0 ? r.toFixed(1) : String(r)) + '×'; }
   function fmtClock(s){ if(!isFinite(s) || s < 0) s = 0; var m = Math.floor(s / 60), x = Math.floor(s % 60); return (m < 10 ? '0' : '') + m + ':' + (x < 10 ? '0' : '') + x; }
@@ -530,6 +544,8 @@
       + '<span class="ea-label">' + esc(listenPartLabel()) + '</span>'
       + '<div class="ea-bar" id="eaBar"><div class="ea-fill" id="eaFill"></div><span class="ea-knob" id="eaKnob"></span></div>'
       + '<span class="ea-time" id="eaTime">00:00 / 00:00</span>'
+      + '<button class="ea-vol" type="button" data-avol aria-label="Mute">' + (_audioMuted || _audioVol === 0 ? '🔇' : '🔊') + '</button>'
+      + '<input class="ea-vsl" type="range" min="0" max="1" step="0.05" value="' + (_audioMuted ? 0 : _audioVol) + '" data-avsl aria-label="Volume">'
       + '<button class="ea-rate" type="button" data-arate' + (exam ? ' style="display:none"' : '') + '>' + rateLabel(AUDIO_RATES[_rateIx]) + '</button>'
       + '<button class="ea-mode' + (exam ? ' exam' : '') + '" type="button" data-amode'
       + (EX.audioStarted ? ' disabled' : '')
@@ -552,6 +568,8 @@
     var a = document.getElementById('exAudio');
     if(!a || a === _audioBound) return;                  /* 记住绑过哪个元素，别重复绑 */
     _audioBound = a;
+    /* 音量：套用上次的值（模块加载时已回读） */
+    a.volume = _audioVol;
     a.playbackRate = AUDIO_RATES[_rateIx];
     a.addEventListener('loadedmetadata', paintAudio);
     a.addEventListener('timeupdate', paintAudio);
@@ -889,9 +907,13 @@
   }
   function dgDropAt(x, y){ var el = document.elementFromPoint(x, y); return el ? el.closest('.ex-drop') : null; }
 
-  /* ===== Highlight / Note（划词 → 右键；按篇存本地，下次打开还在）=====
-     ⚠️ 关键：右键按下那一下浏览器会把选区折叠掉 → 若只在 contextmenu 里读选区会拿不到划的词。
-     所以 pointerdown(button=2) 时先把选区 cloneRange() 缓存，contextmenu 优先用实时选区、没有就用缓存。 */
+  /* ===== Highlight / Note（划词即弹 · 按篇存本地，下次打开还在）=====
+     10/12 改：原来**必须右键**才能出菜单 —— 与成熟站通例不符（Notion / Medium 的 selection
+     bubble menu 都是「选中即弹」，四来源口径一致，详见 bank.html 内联注释）。
+     现在：mouseup 时若选区内是文章文字 → 直接在选区上方浮出工具条；
+     右键一并保留（真机考两种都支持：申友雅思「右键单击 Highlight 和 Note」）。
+     ⚠️ 两个坑：① 右键按下那一下浏览器会把选区折叠掉 → pointerdown(button=2) 先 cloneRange() 缓存；
+              ② 点工具条按钮的 mousedown 会把选区清掉 → 对 #exCtx 做 preventDefault。 */
   var _hlRange = null, _hlSpan = null, _hlCache = null;
 
   function artEl(){ return document.getElementById('exArt'); }
@@ -960,7 +982,8 @@
       if(start < 0) return;
       var a = locAt(map, start), b = locAt(map, start + m.text.length);
       if(!a || !b) return;
-      markRange(a, b, m.kind === 'hl' ? 'ex-hl' : 'ex-nt', m.id);
+      var sp = markRange(a, b, m.kind === 'hl' ? 'ex-hl' : 'ex-nt', m.id);
+      if(sp && m.rep) sp.classList.add('rep');          /* 玫红态（重复高亮）也要复原 */
     });
   }
   function renderNotes(){
@@ -973,7 +996,7 @@
             + '<q>' + esc(String(m.text || '').slice(0, 90)) + '</q>'
             + '<textarea placeholder="Type your note…">' + esc(m.note || '') + '</textarea></div>';
         }).join('')
-      : '<p class="ex-notes-empty">Select text in the passage and right-click to add a note.</p>';
+      : '<p class="ex-notes-empty">Select text in the passage, then pick Highlight or Note.</p>';
   }
   function focusNote(id){
     var sp = document.getElementById('exSplit'); if(sp) sp.classList.add('hasnotes');
@@ -992,12 +1015,23 @@
     var art = artEl(); if(!art) return;
     var list = loadMarks();
     if(act === 'hl' && _hlRange){
-      var q = selQuote(_hlRange);
-      if(q){
-        var id = newMarkId('h');
-        if(wrapRange(_hlRange, 'ex-hl', id)){
-          list.push({ id: id, kind: 'hl', text: q.text, pre: q.pre, post: q.post });
-          saveMarks(list);
+      /* 真机考 2026 新版行为（课窝/搜狐/雅思无忧三来源一致）：
+         对同一处重复高亮 → 变玫红（再点一次变回棕），双色分区标记定位词/干扰项。
+         → 选区压到已有高亮时不新建（会套娃），改为 toggle 这些高亮的玫红态。 */
+      var hitHl = marksInRange(_hlRange).filter(function(sp){ return sp.classList.contains('ex-hl'); });
+      if(hitHl.length){
+        var ids = {}, toRep = !hitHl[0].classList.contains('rep');
+        hitHl.forEach(function(sp){ var i = sp.getAttribute('data-id'); if(i) ids[i] = 1; sp.classList.toggle('rep', toRep); });
+        list.forEach(function(m){ if(ids[m.id]){ if(toRep) m.rep = 1; else delete m.rep; } });
+        saveMarks(list);
+      } else {
+        var q = selQuote(_hlRange);
+        if(q){
+          var id = newMarkId('h');
+          if(wrapRange(_hlRange, 'ex-hl', id)){
+            list.push({ id: id, kind: 'hl', text: q.text, pre: q.pre, post: q.post });
+            saveMarks(list);
+          }
         }
       }
       var s = window.getSelection(); if(s) s.removeAllRanges();
@@ -1013,11 +1047,19 @@
         }
       }
       var s2 = window.getSelection(); if(s2) s2.removeAllRanges();
-    } else if(act === 'clear' && _hlSpan){
-      var idc = _hlSpan.getAttribute('data-id');
-      unwrapEl(_hlSpan);
-      saveMarks(list.filter(function(m){ return m.id !== idc; }));
-      renderNotes();
+    } else if(act === 'unhl'){
+      /* 取消标注：选区压到几个就取消几个；右键只压到一个就走 _hlSpan 那条 */
+      var spans = _hlRange ? marksInRange(_hlRange) : (_hlSpan ? [_hlSpan] : []);
+      if(spans.length){
+        var ids = {};
+        spans.forEach(function(sp){
+          var i = sp.getAttribute('data-id'); if(i) ids[i] = 1;
+          unwrapEl(sp);
+        });
+        saveMarks(list.filter(function(m){ return !ids[m.id]; }));
+        renderNotes();
+        var s3 = window.getSelection(); if(s3) s3.removeAllRanges();
+      }
     } else if(act === 'clearall'){
       art.querySelectorAll('.ex-hl, .ex-nt').forEach(unwrapEl);
       saveMarks([]);
@@ -1028,8 +1070,60 @@
   }
   function hlReset(){
     _hlRange = null; _hlSpan = null; _hlCache = null;
-    var c = document.getElementById('exCtx'); if(c) c.classList.remove('on');
+    closeCtx();
     var sp = document.getElementById('exSplit'); if(sp) sp.classList.remove('hasnotes');
+  }
+
+  /* ===== 划词浮动工具条（选中即弹）—— 定位 / 显隐 / 开合 =====
+     成熟做法（四来源一致）：锚在选区上方、上方没空间翻下方、左右不出屏、点按钮不清选区。 */
+  function marksInRange(range){
+    var art = artEl(); if(!art || !range) return [];
+    var out = [];
+    art.querySelectorAll('.ex-hl, .ex-nt').forEach(function(sp){
+      try{ if(range.intersectsNode(sp)) out.push(sp); }catch(e){}
+    });
+    return out;
+  }
+  function closeCtx(){ var c = document.getElementById('exCtx'); if(c) c.classList.remove('on'); }
+  function placeCtx(rect){
+    var ctx = document.getElementById('exCtx'); if(!ctx || !rect) return;
+    ctx.classList.add('on');                        /* 先显示才能量到宽高 */
+    var w = ctx.offsetWidth, h = ctx.offsetHeight;
+    var x = rect.left + rect.width / 2 - w / 2;      /* 水平居中于选区 */
+    var y = rect.top - h - 8;                        /* 优先选区上方 */
+    if(y < 8) y = rect.bottom + 8;                   /* 上方没空间 → 翻到下方 */
+    x = Math.max(8, Math.min(x, window.innerWidth - w - 8));
+    y = Math.max(8, Math.min(y, window.innerHeight - h - 8));
+    ctx.style.left = x + 'px';
+    ctx.style.top = y + 'px';
+  }
+  /* 按钮显隐规则：有选区 → Highlight（压到已有高亮也显示：再点 = 玫红 toggle）；
+     压到已有笔记时 Note 隐藏（再记会套娃）；压到任何已有标注 → Remove；
+     有标注时永远给 Clear all。返回「有没有可显示的按钮」。 */
+  function paintCtxButtons(){
+    var ctx = document.getElementById('exCtx'); if(!ctx) return false;
+    var hasR = !!_hlRange, span = !!_hlSpan;
+    var spans = hasR ? marksInRange(_hlRange) : [];
+    var overlapHl = spans.some(function(sp){ return sp.classList.contains('ex-hl'); });
+    var overlapNt = spans.some(function(sp){ return sp.classList.contains('ex-nt'); });
+    var anyMark = loadMarks().length > 0;
+    function set(act, on){
+      var b = ctx.querySelector('[data-hact="' + act + '"]');
+      if(b) b.style.display = on ? '' : 'none';
+    }
+    set('hl', hasR);
+    set('note', hasR && !overlapNt);
+    set('unhl', overlapHl || overlapNt || span);
+    set('clearall', anyMark);
+    var hr = ctx.querySelector('hr');
+    if(hr) hr.style.display = (overlapHl || overlapNt || span) ? '' : 'none';
+    return hasR || span || anyMark;
+  }
+  function openCtx(range, spanEl, rect){
+    var ctx = document.getElementById('exCtx'); if(!ctx) return;
+    _hlRange = range || null; _hlSpan = spanEl || null;
+    if(!paintCtxButtons()){ closeCtx(); return; }
+    placeCtx(rect);
   }
 
   function applyAnswer(qn, val){
@@ -1115,14 +1209,26 @@
   function paintSheet(){
     var root = document.getElementById('examRoot'); if(!root || !EX) return;
     var sheet = document.getElementById('exSheet'); if(!sheet) return;
+    /* 真机考 Review 总览的四态（eickaopei 机考复盘 + 申友雅思答题卡口径一致）：
+       Not seen / No response / Completed / Marked。
+       「看过」以「当前题被画过」为准 —— paintSheet 在进考场/跳题/答题后都会跑，够用且不用额外钩子。 */
+    EX.seen = EX.seen || {};
+    EX.seen[String(EX.cur)] = 1;
     var user = collect();
     sheet.innerHTML = allNums().map(function(n){
+      var answered = user[n] != null && String(user[n]).length;
+      var mk = EX.marks && EX.marks[n];
       var cls = 'ex-sq';
-      if(user[n] != null && String(user[n]).length) cls += ' done';
+      if(answered) cls += ' done';
       if(EX.flagged[n]) cls += ' flag';
+      if(!answered && EX.seen[n]) cls += ' seen';
+      if(mk) cls += ' ' + mk;
       if(String(EX.cur) === n) cls += ' cur';
-      if(EX.marks && EX.marks[n]) cls += ' ' + EX.marks[n];
-      return '<span class="' + cls + '" data-jump="' + esc(n) + '">' + esc(n) + '</span>';
+      var st = mk ? (mk === 'hit' ? 'Correct' : 'Incorrect')
+             : EX.flagged[n] ? 'Marked'
+             : answered ? 'Completed'
+             : EX.seen[n] ? 'No response' : 'Not seen';
+      return '<span class="' + cls + '" data-jump="' + esc(n) + '" title="Q' + esc(n) + ' · ' + st + '">' + esc(n) + '</span>';
     }).join('');
     paintPtabs();
   }
@@ -1147,7 +1253,11 @@
     if(el) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
   }
 
-  /* ===== 计时（倒计时，格式与写作机考一致：时:分:秒）===== */
+  /* ===== 计时（倒计时，格式与写作机考一致：时:分:秒）=====
+     双档提醒对齐真机考「10 分钟和 5 分钟自动闪烁」（eickaopei 机考复盘）：
+       10 分钟 = 琥珀色常亮（轻提醒，不闪 —— 还有 10 分钟就闪会干扰答题）
+        5 分钟 = 红色闪烁（强提醒）
+     到点 = 强制交卷（所有成熟机考模拟器的通例；原文 `left<=0` 只是停表，考卷会一直挂在那）。 */
   function pad2(n){ return (n < 10 ? '0' : '') + n; }
   function startTimer(sec){
     stopTimer();
@@ -1156,9 +1266,10 @@
       if(el){
         var hh = Math.floor(left / 3600), mm = Math.floor((left % 3600) / 60), ss = left % 60;
         el.textContent = pad2(hh) + ':' + pad2(mm) + ':' + pad2(ss);
-        el.classList.toggle('warn', left <= 300);
+        el.classList.toggle('warn', left <= 300 && left > 0);
+        el.classList.toggle('soon', left <= 600 && left > 300);
       }
-      if(left <= 0){ stopTimer(); return; }
+      if(left <= 0){ stopTimer(); doSubmit(); return; }
       left--;
     }
     tick(); _timer = setInterval(tick, 1000);
@@ -1211,7 +1322,35 @@
     return out;
   }
 
+  /* ===== 交卷 =====
+     10/12 改：原来点 Submit 直接判分 → 与成熟机考不符（IDP / 申友 / 雅思哥模拟器交卷前都弹一次确认，
+     并告知还有几题没答）。现在先弹确认；「时间到」的强制交卷走 doSubmit() 不经确认（没时间犹豫）。 */
   function submit(){
+    if(!EX || EX.submitted) return;
+    var user = collect();
+    var unanswered = allNums().filter(function(n){ return user[n] == null || !String(user[n]).length; }).length;
+    showSubmitConfirm(unanswered);
+  }
+  function showSubmitConfirm(unanswered){
+    var host = document.getElementById('examRoot'); if(!host) return;
+    closeSubmitConfirm();
+    var ov = document.createElement('div');
+    ov.className = 'ex-modal'; ov.id = 'exSubmitModal';
+    ov.innerHTML = '<div class="ex-modal-c" role="dialog" aria-modal="true" aria-label="Submit test">'
+      + '<h4>Submit test?</h4>'
+      + (unanswered
+          ? '<p>You still have <b>' + unanswered + '</b> unanswered question' + (unanswered > 1 ? 's' : '') + '. '
+            + 'You can go back and check them, or submit now.</p>'
+          : '<p>You have answered all questions. Submit now?</p>')
+      + '<div class="ex-modal-b">'
+      + '<button class="btn-ghost" type="button" data-scancel>Keep working</button>'
+      + '<button class="btn-primary" type="button" data-sok>Submit</button>'
+      + '</div></div>';
+    host.appendChild(ov);
+  }
+  function closeSubmitConfirm(){ var m = document.getElementById('exSubmitModal'); if(m) m.remove(); }
+
+  function doSubmit(){
     if(!EX || EX.submitted) return;
     EX.submitted = true; stopTimer();
     var res = score(); EX.correct = res.right; EX.result = res;
@@ -1293,6 +1432,12 @@
       if((el = t.closest && t.closest('#exNoteClose'))){ document.getElementById('exSplit').classList.remove('hasnotes'); return; }
       if((el = t.closest && t.closest('[data-ndel]'))){ delNote(el.getAttribute('data-ndel')); return; }
       if((el = t.closest && t.closest('#exArt .ex-nt'))){ focusNote(el.getAttribute('data-id')); return; }
+      /* 真机考 2026 新版：单击已高亮文字直接出 Remove Highlight（搜狐来源口径一致）。
+         仅在选区折叠（真单击）时触发 —— 拖选结束浏览器补发的 click 不走这里。 */
+      if((el = t.closest && t.closest('#exArt .ex-hl')) && window.getSelection().isCollapsed){
+        openCtx(null, el, el.getBoundingClientRect());
+        return;
+      }
       /* 一级：四科 */
       if((el = t.closest && t.closest('#mockTabs .pill-tab'))){
         var _mt = el.getAttribute('data-mtab');
@@ -1331,6 +1476,8 @@
       }
       if(t.closest && t.closest('[data-exit]')){ exitExam(); return; }
       if(t.closest && t.closest('[data-submit]')){ submit(); return; }
+      if(t.closest && t.closest('[data-sok]')){ closeSubmitConfirm(); doSubmit(); return; }
+      if(t.closest && t.closest('[data-scancel]')){ closeSubmitConfirm(); return; }
       /* 听力音频条（10/11 第 9 项）：播放/暂停、倍速、练习⇄考试模式、点进度条跳转 */
       if(t.closest && t.closest('#exAudioBar [data-aplay]')){ audioToggle(); return; }
       if((el = t.closest && t.closest('#exAudioBar [data-arate]'))){
@@ -1341,6 +1488,15 @@
         return;
       }
       if(t.closest && t.closest('#exAudioBar [data-amode]')){ audioToggleMode(); return; }
+      if((el = t.closest && t.closest('#exAudioBar [data-avol]'))){
+        _audioMuted = !_audioMuted;
+        var au = document.getElementById('exAudio');
+        if(au) au.volume = _audioMuted ? 0 : _audioVol;
+        el.textContent = _audioMuted ? '🔇' : '🔊';
+        var sl0 = document.querySelector('#exAudioBar [data-avsl]');
+        if(sl0) sl0.value = _audioMuted ? 0 : _audioVol;
+        return;
+      }
       if(t.closest && t.closest('#eaBar')){ audioSeek(e); return; }
       if((el = t.closest && t.closest('.ex-pill')) && !(EX && EX.submitted)){
         var box = el.closest('.ex-pills');
@@ -1386,10 +1542,14 @@
         goTo(el.getAttribute('data-jump'));
         return;
       }
-      /* 点菜单外 → 收起 Highlight 菜单 */
+      /* 点菜单外 → 收起浮动工具条。
+         ⚠️ 但拖拽划词结束后浏览器仍可能补一个 click（落点是文章）→ 会把刚弹出的工具条立刻收掉。
+         判据：此刻若还有「文章内的活选区」，说明是刚划完 → 不收。 */
       if(!t.closest || !t.closest('#exCtx')){
-        var c2 = document.getElementById('exCtx');
-        if(c2 && c2.classList.contains('on')) c2.classList.remove('on');
+        var sel = window.getSelection();
+        var art = artEl();
+        var liveSel = !!(sel && !sel.isCollapsed && sel.anchorNode && art && art.contains(sel.anchorNode));
+        if(!liveSel){ closeCtx(); _hlCache = null; }   /* 左键点外面 = 新交互开始，旧选区缓存作废 */
       }
     }, true);
 
@@ -1417,6 +1577,17 @@
     });
     document.addEventListener('input', function(e){
       var t = e.target;
+      /* 听力音量：滑杆拖动实时生效 + 记住（两模式都可用 —— 真机考只有音量可控） */
+      if(t.matches && t.matches('#exAudioBar [data-avsl]')){
+        _audioVol = Math.max(0, Math.min(1, parseFloat(t.value) || 0));
+        _audioMuted = _audioVol === 0;
+        var au = document.getElementById('exAudio');
+        if(au) au.volume = _audioVol;
+        var vb = document.querySelector('#exAudioBar [data-avol]');
+        if(vb) vb.textContent = _audioMuted ? '🔇' : '🔊';
+        try{ localStorage.setItem('hub_bank_vol', String(_audioVol)); }catch(e2){}
+        return;
+      }
       if(EX && !EX.submitted && t.matches && t.matches('input.ex-blank[data-q]')) paintSheet();
     });
 
@@ -1499,7 +1670,13 @@
 
     document.addEventListener('pointercancel', function(){ dgReset(); });
 
-    /* Highlight / Note：右键按下时先缓存选区（右键那一下会把选区折叠掉） */
+    /* Highlight / Note：① 点浮动工具条不清选区 ② 右键按下先缓存选区
+       ⚠️ ① 必须挂在 mousedown 上（TipTap / ProseMirror 的 bubble menu 标准做法）：
+          mousedown 的默认动作 = 折叠选区，preventDefault 就能保住选区，且不影响 click 触发；
+          而 pointerdown 上 preventDefault 有把后续 click 一并吃掉的风险（按钮会点不动）。 */
+    document.addEventListener('mousedown', function(e){
+      if(e.target && e.target.closest && e.target.closest('#exCtx')) e.preventDefault();
+    }, true);
     document.addEventListener('pointerdown', function(e){
       if(e.button !== 2) return;
       var art = artEl(); if(!art) return;
@@ -1508,26 +1685,52 @@
         try{ _hlCache = s.getRangeAt(0).cloneRange(); }catch(err){ _hlCache = null; }
       }
     }, true);
+    /* 选中即弹：松开鼠标若选区内是文章文字 → 在选区上方浮出工具条；
+       选区已没了（点了别处 / 右键 up）→ 收起。 */
+    document.addEventListener('mouseup', function(e){
+      var art = artEl(); if(!art) return;
+      if(e.target && e.target.closest && e.target.closest('#exCtx')) return;   /* 点工具条自己 → 别动 */
+      var sel = window.getSelection();
+      if(!sel || sel.isCollapsed){ closeCtx(); return; }
+      if(!sel.anchorNode || !art.contains(sel.anchorNode)) return;
+      if(!sel.focusNode || !art.contains(sel.focusNode)) return;               /* 跨出文章的选区不接 */
+      try{
+        var r = sel.getRangeAt(0).cloneRange();
+        _hlCache = null;
+        openCtx(r, null, r.getBoundingClientRect());
+      }catch(err){}
+    });
+    /* selectionchange 只负责「持续缓存活选区」：
+       ⚠️ 两点血的教训（10/12 T13 真案）——
+       ① 右键 down 会把选区折叠 → 等 pointerdown 再抓偶发拿不到，这里活着就缓存，右键永远有得用；
+       ② selectionchange 是**异步派发**，右键「折叠 → contextmenu 开条」竞态里它会晚到，
+          若在这里收工具条，会把 contextmenu 刚开的条收掉（本地复现时序相反，极具迷惑性）。
+       收起职责归 mouseup（collapsed）/ click（点外面）/ scroll。 */
+    document.addEventListener('selectionchange', function(){
+      var sel = window.getSelection();
+      var art = artEl();
+      if(sel && !sel.isCollapsed && sel.anchorNode && art && art.contains(sel.anchorNode)
+         && sel.focusNode && art.contains(sel.focusNode) && sel.rangeCount){
+        try{ _hlCache = sel.getRangeAt(0).cloneRange(); }catch(err){}
+      }
+    });
     document.addEventListener('contextmenu', function(e){
       var art = artEl(); if(!art || !art.contains(e.target)) return;
       var sel = window.getSelection();
       _hlSpan = e.target.closest ? e.target.closest('.ex-hl, .ex-nt') : null;
-      var live = (sel && !sel.isCollapsed && sel.anchorNode && art.contains(sel.anchorNode))
+      var live = (sel && !sel.isCollapsed && sel.anchorNode && art.contains(sel.anchorNode)
+                  && sel.focusNode && art.contains(sel.focusNode))
         ? sel.getRangeAt(0).cloneRange() : null;
       var r = live || _hlCache;
       if(!r && !_hlSpan) return;
       e.preventDefault();
-      _hlRange = r; _hlCache = null;
-      var ctx = document.getElementById('exCtx'); if(!ctx) return;
-      ctx.style.left = Math.min(e.clientX, window.innerWidth - 190) + 'px';
-      ctx.style.top = Math.min(e.clientY, window.innerHeight - 170) + 'px';
-      ctx.classList.add('on');
-      ctx.querySelector('[data-hact="hl"]').style.display = r ? '' : 'none';
-      ctx.querySelector('[data-hact="note"]').style.display = r ? '' : 'none';
-      ctx.querySelector('[data-hact="clear"]').style.display = _hlSpan ? '' : 'none';
+      _hlCache = null;
+      var rect = r ? r.getBoundingClientRect()
+                   : _hlSpan.getBoundingClientRect();
+      openCtx(r, _hlSpan, rect);
     });
     document.addEventListener('scroll', function(){
-      var c = document.getElementById('exCtx'); if(c) c.classList.remove('on');
+      closeCtx();
     }, true);
     document.addEventListener('input', function(e){
       var ta = e.target.closest && e.target.closest('#examRoot .ex-ncard textarea');
