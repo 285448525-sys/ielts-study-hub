@@ -88,23 +88,33 @@
   .full-card .btn-primary{width:100%}
 }
 
-/* ===== 口语模考入口页（10/11 第 8 项：注意事项 + 开始模考）=====
+/* ===== 口语模考入口页（10/11 第 8 项；10/12 晚她「页面太空泛」→ 流程三卡 + 说明卡片化）=====
    「开始模考」= 软导航到 speaking.html 并自动进入其现有模考流程（口语页零改动）。
-   入口卡沿用上面 .full-card（与阅读完整模考同一视觉语言）。 */
-.spk-notes{margin:0;padding:0;list-style:none;border:1px solid var(--line);border-radius:12px;
-  background:var(--surface);overflow:hidden}
-.spk-notes li{position:relative;padding:12px 16px 12px 36px;font-size:13.5px;line-height:1.68;color:var(--ink)}
-.spk-notes li+li{border-top:1px solid var(--line)}
-.spk-notes li::before{content:'';position:absolute;left:17px;top:19px;width:6px;height:6px;
-  border-radius:50%;background:var(--primary);flex:none}
-.spk-notes li b{font-weight:700;color:var(--ink)}
-.spk-notes li span{color:var(--muted)}
+   入口卡沿用上面 .full-card（与阅读完整模考同一视觉语言）。
+   🔍 成熟做法参考（她 10/6 铁律：动手前先搜，≥2 独立来源，10/12 实搜核实）：
+   ① ieltsmentor.ai/ielts-speaking-mock-test ——「The format」把 Part 1/2/3 做成三段流程卡（时长+内容），
+     「Before you start」另起一节；流程与说明分离，不堆一条长列表；
+   ② ieltsbeacon.com/ielts-practice-tests/.../speaking/ —— 每 Part 一张卡：Part 名 + 题数 + 时长
+     （Part 2 标注 1 min prep · 2 min speaking），信息一眼可扫；
+   ③ english-secrets.com/ielts-speaking-practice —— 编号步骤卡 1/2/3（Part 名 + 一句内容 + 时长）。
+   结论：模考引导页通例 = 「Part 结构流程卡 + 说明条目小卡网格」，质感靠字重和留白，不靠字号。 */
+.spk-flow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 16px}
+.spk-flow .spk-step{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:12px 14px}
+.spk-flow .spk-step .no{display:block;font-size:11px;font-weight:800;letter-spacing:.1em;color:var(--primary)}
+.spk-flow .spk-step b{display:block;font-size:14px;font-weight:700;color:var(--ink);margin:3px 0 4px}
+.spk-flow .spk-step span{display:block;font-size:12.5px;line-height:1.6;color:var(--muted)}
+.spk-tips{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.spk-tips .spk-tip{border:1px solid var(--line);border-radius:12px;background:var(--surface);
+  padding:12px 14px;font-size:13.5px;line-height:1.68;color:var(--muted)}
+.spk-tips .spk-tip b{display:block;font-size:13.5px;font-weight:700;color:var(--ink);margin-bottom:3px}
+.spk-tips .spk-tip strong{font-weight:700;color:var(--ink)}
 .spk-notes-h{display:flex;align-items:baseline;gap:8px;margin:0 0 10px}
 .spk-notes-h b{font-size:14px;font-weight:700;color:var(--ink)}
 .spk-notes-h span{font-size:12.5px;color:var(--muted)}
 @media(max-width:860px){
-  .spk-notes li{padding:11px 14px 11px 32px;font-size:13px}
-  .spk-notes li::before{left:14px;top:17px}
+  .spk-flow{grid-template-columns:1fr}
+  .spk-tips{grid-template-columns:1fr}
+  .spk-tips .spk-tip{font-size:13px}
 }
 
 /* 10/12 批A：顶部 Passage/Part 切换（.ex-ptabs）已删 —— 挪到底部篇切换器，见 .ex-nav 区 */
@@ -815,18 +825,23 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
       <div class="full-card" id="spkEntryCard">
         <div class="fc-num">18</div>
         <div class="fc-body"><b>Full Speaking Test · 完整口语模考</b>
-          <span>3 parts · 18 questions · 约 12–15 minutes</span>
+          <span>3 parts · 18 questions · 约 12–15 minutes · 考中和真机考一致</span>
         </div>
         <button class="btn-primary" type="button" data-spkstart>Start Test</button>
       </div>
-      <div class="spk-notes-h"><b>考试说明</b><span>开始前看一眼，考中和真机考一致</span></div>
-      <ul class="spk-notes">
-        <li><b>全程约 12–15 分钟</b>：Part 1（12 小题，含开场自我介绍）→ Part 2（准备 1 分钟 + 陈述 2 分钟）→ Part 3（5 题追问）。</li>
-        <li><b>作答方式是打字</b>：把你想说的英文写进答题框（Enter 提交、Shift+Enter 换行）。考的是内容和表达，不是手速。</li>
-        <li><b>Part 2 有 1 分钟准备</b>：可以先写几个关键词当笔记，陈述和 Part 3 全程留在屏幕上给你看。</li>
-        <li><b>中途退出或刷新不丢</b>：这场的进度会存下来，下次进来自动接着考。</li>
-        <li><b>时间到不强制收卷</b>：按自己的节奏答完，交卷后出评估报告（总分 + 各 Part 建议）。</li>
-      </ul>
+      <div class="spk-notes-h"><b>怎么考</b><span>三个部分连着进行，和真机考同一顺序</span></div>
+      <div class="spk-flow">
+        <div class="spk-step"><span class="no">PART 1</span><b>开场自我介绍</b><span>12 小题 · 约 4–5 分钟，聊聊日常话题</span></div>
+        <div class="spk-step"><span class="no">PART 2</span><b>个人陈述</b><span>准备 1 分钟 + 陈述 2 分钟，话题卡全程留在屏幕上</span></div>
+        <div class="spk-step"><span class="no">PART 3</span><b>双向讨论</b><span>5 题追问 · 约 4–5 分钟，就 Part 2 话题往深里聊</span></div>
+      </div>
+      <div class="spk-notes-h"><b>考试说明</b><span>开始前看一眼</span></div>
+      <div class="spk-tips">
+        <div class="spk-tip"><b>作答方式是语音输入</b>用输入法的语音键把你想说的英文说出来，识别的文字直接进答题框——推荐用<strong>豆包输入法</strong>，识别得最准。考的是内容和表达，不是口音。</div>
+        <div class="spk-tip"><b>Part 2 有 1 分钟准备</b>可以先写几个关键词当笔记，陈述的时候别照着念，说人话就行。</div>
+        <div class="spk-tip"><b>中途退出或刷新不丢</b>这场的进度会存下来，下次进来自动接着考。</div>
+        <div class="spk-tip"><b>时间到不强制收卷</b>按自己的节奏答完，交卷后出评估报告（总分 + 各 Part 建议）。</div>
+      </div>
     </section>
   </div>
 
