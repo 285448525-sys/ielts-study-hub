@@ -4651,6 +4651,10 @@ function _onbStepNext(step){
       const s0 = st0.setup || {};
       const all = !!(s0.exam && s0.effort && s0.words);
       onbFinish(all);
+      /* 路线图2 · 2b（10/12）：给「今日 3 件事」留一次性落地标记 —— home 页读到就滚动定位 +
+         轻高亮，让引导预告的「首页会告诉你今天先做哪三件事」真的被看见（原落点不可控、常要滚动）。
+         sessionStorage 而非 localStorage：关标签自然失效；读后即删 = 一次性，刷新/重进不重复触发。 */
+      try{ sessionStorage.setItem('hub_onb_landed', '1'); }catch(e){}
       if(!/home\.html$/.test(location.pathname)) location.href = 'home.html';
       return;
     }

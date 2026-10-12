@@ -3259,3 +3259,12 @@ body.dgs-open .dock-group-sheet{transform:translateY(0)}
   margin:18px 2px 0;font-size:12.5px;line-height:1.75;color:var(--muted);
 }
 #hubGroupRoot .empty{padding:40px 0;text-align:center;color:var(--muted);font-size:14px}
+
+/* ===== 路线图2 · 2b（10/12）：引导完成落地，三件事卡轻高亮 =====
+   低饱和一圈光晕（不发光滤镜、不改布局），2.4s 自消。放末尾 = 避免被前面同名规则后到覆盖。 */
+.onb-landed{animation:onbGlow 2.4s ease}
+@keyframes onbGlow{
+  0%,100%{box-shadow:var(--shadow)}
+  35%{box-shadow:0 0 0 3px var(--primary-200),var(--shadow-md)}
+}
+@media (prefers-reduced-motion:reduce){.onb-landed{animation:none}}

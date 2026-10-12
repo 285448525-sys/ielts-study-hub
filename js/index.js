@@ -31,6 +31,25 @@ ready(async () => {
   // v6 首页渲染（design/31 A 版）
   safe(renderDashV6);
 
+  /* 路线图2 · 2b（10/12）：引导完成落地 → 三件事卡滚动定位 + 轻高亮（一次性）。
+     放在两个渲染都跑完之后：此刻卡片已按真实数据渲染完，定位/高亮才落在最终态上。
+     · sessionStorage 标记读后即删 → 刷新、重进 home、软导航重跑本文件都不再触发
+     · _tt.hidden 兜底：当天已有任务时三件事被任务卡顶掉 → 不滚动不高亮（任务卡优先，不抢）
+     · 折叠态（hub_three_folded）不展开、不翻转状态 —— 保持现状，别为一次高亮改用户偏好 */
+  try{
+    if(sessionStorage.getItem('hub_onb_landed')){
+      sessionStorage.removeItem('hub_onb_landed');
+      const _tt = document.getElementById('threeThings');
+      if(_tt && !_tt.hidden){
+        setTimeout(() => {
+          _tt.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          _tt.classList.add('onb-landed');
+          setTimeout(() => _tt.classList.remove('onb-landed'), 2600);
+        }, 350);   // 等首屏 bootLoader 收尾 + 渲染稳定 */
+      }
+    }
+  }catch(e){}
+
   // 首次进入引导提示条（仅首页）：三步没走完时出现，三步齐了或点「不再提示」后永久消失
   safe(renderOnboardingBar);
 
@@ -262,8 +281,14 @@ function threeThingsList(){
   // ③ 今天还没计时 → 给一段专注（站外真题网站练的计时入口也在这）
   const studiedToday = (DATA.sessions || []).some(x => x && x.date === tkey && (x.durationSec || 0) > 0);
   if(!studiedToday){
+    /* 路线图2 · 2c-C3（10/12）：文案吃上引导 step2 写的 dailyGoalHours —— 原泛泛的「开一段专注」
+       没利用刚收集的信息。阈值 15 分钟：低于 15 显示「专注 10 分钟」显得敷衍，回退原文案
+       （阈值为 A 窗口默认值，她若有意见再调）。 */
+    const _mins = Math.round((DATA.settings.dailyGoalHours || 0) * 60);
     out.push({
-      key:'timer', title:'开一段专注', sub:'先学 25 分钟，边听边记',
+      key:'timer',
+      title: _mins >= 15 ? '专注 ' + _mins + ' 分钟' : '开一段专注',
+      sub:'先学 25 分钟，边听边记',
       /* 10/12 C-3 顺带修：去掉 ?autostart=1 —— timer.html 没有消费该参数的代码（死参数，
          点了不自动开表，反而不如直接进页让她自己选模块开；speaking/practice 才有 autostart 链路）。 */
       file:'timer.html', cta:'开始'
@@ -317,7 +342,10 @@ function renderThreeThings(){
     return;
   }
 
-  const head = list.length === 1 ? '今天先做这件事' : '今天先做这三件事';
+  /* 路线图2 · 2c-C2（10/12）：标题按实际条数变 —— 原只有 1/3 两态，
+     新用户冷启动只有 2 件（wbDueCount=0 → 背词项自然剔除）却显示「这三件事」，名不副实。 */
+  const head = list.length === 1 ? '今天先做这件事'
+    : '今天先做这' + (['一','两','三','四','五'][list.length - 1] || String(list.length)) + '件事';
   host.hidden = false;
   /* 无任务场景：底部给「自己布置今天」双入口（她要求「还能自己去布置今天的任务」）。
      ① AI 安排：带 hub_focus_plan_input 暗号，计划页 ready 读它聚焦输入框（同 #dashAiPlanBtn 的做法）
