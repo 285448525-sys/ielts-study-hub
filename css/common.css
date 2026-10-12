@@ -3280,3 +3280,50 @@ body.dgs-open .dock-group-sheet{transform:translateY(0)}
 @media (max-width:560px){
   .rec-yday-t{font-size:13px}
 }
+
+/* ===== 定价卡与会员状态（10/12 全站设计改造批1：pricing.js / vip.js 共用，禁内联）=====
+   原 vip.js 内联样式 11+22 处全部搬到这里；DOM class 与原渲染结果等价（零视觉变化）。
+   ⚠️ 10/11 嵌套注释事故：CSS 注释里绝不再写注释（外层被提前闭合会吞掉整个 :root）。 */
+.plan-card{flex:1;min-width:180px;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--radius);padding:18px 16px;position:relative;background:var(--surface)}
+.plan-card--featured{border:2px solid var(--primary);background:var(--primary-soft)}
+.plan-card--free{border-style:dashed}
+.plan-badge{position:absolute;top:-10px;right:12px;background:var(--surface-2);color:inherit;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.plan-card--featured .plan-badge{background:var(--primary);color:var(--on-primary)}
+.plan-name{font-weight:700;font-size:15px}
+.plan-price{margin:8px 0 2px;display:flex;align-items:baseline;gap:2px;flex-wrap:wrap}
+.plan-price-num{font-size:28px;font-weight:800}
+.plan-price-unit{font-size:13px}
+.plan-price-orig{font-size:13.5px;margin-left:6px;text-decoration:line-through}
+.plan-perday{font-size:12px}
+.plan-save{color:var(--warn-ink)}
+.plan-list{font-size:12px;margin:10px 0 14px;padding-left:18px;line-height:1.9}
+.plan-rec{font-size:12.5px;font-weight:600;color:var(--primary);margin:0 0 10px}
+.plan-buy{width:100%;margin-top:auto}
+.plan-card a.plan-buy{text-decoration:none;text-align:center}
+#vipPlans{display:flex;gap:14px;flex-wrap:wrap;align-items:stretch}
+@media (max-width:640px){ #vipPlans{flex-direction:column} .plan-card{min-width:0} }
+
+/* 会员状态卡四分支（原 loadVipStatus 内联 22 处） */
+.vip-hero{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.vip-hero-main{flex:1;min-width:200px}
+.vip-hero-t{font-weight:700;font-size:16px}
+.vip-hero-s{font-size:13px;margin-top:4px}
+.vip-hero .badge{background:var(--primary);color:var(--on-primary)}
+.vip-hero .btn{text-decoration:none}
+@media (max-width:560px){ .vip-hero-main{min-width:0} }
+
+/* 对比矩阵（vip.html 8 行口径 + pricing.html 17 行口径共用） */
+.vip-cmp{overflow-x:auto}
+.vip-cmp table{width:100%;border-collapse:collapse;font-size:13px}
+.vip-cmp th,.vip-cmp td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.vip-cmp thead th{font-size:12px;color:var(--muted);font-weight:700}
+.vip-cmp tr.cat th{background:var(--n-50);font-size:12.5px;font-weight:700;color:var(--ink)}
+.vip-cmp tbody th{font-weight:600}
+.vip-cmp tbody th small{display:block;font-weight:400;font-size:11.5px;color:var(--muted);margin-top:2px}
+.vip-cmp td.yes{color:var(--primary-900)}
+.vip-cmp td.no{color:var(--muted)}
+.vip-cmp td.dash{color:var(--n-300)}
+.vip-cmp td.c3{font-weight:700}
+.vip-cmp .mx-foot{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:8px}
+.vip-cmp .mx-scroll{overflow-x:auto}
+.vip-cmp .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}

@@ -1,39 +1,47 @@
 /* === 会员中心（10/1 付费方案第一批） ===
-   页面骨架在 vip.html（对比表/流程/FAQ 静态写死），本文件只管两件事：
-   ① 按 VIP_PLANS 常量渲染价格卡（改价只动这一处）
-   ② 实时查 /api/auth vip_status 渲染顶部状态卡（会员跟账号走，不缓存本地——过期状态必须准） */
+   页面骨架在 vip.html，本文件只管两件事：
+   ① 按 Pricing.VIP_PLANS 渲染价格卡（10/12 起价格数据已移至 js/pricing.js —— 全站唯一前端来源）
+   ② 实时查 /api/auth vip_status 渲染顶部状态卡（会员跟账号走，不缓存本地——过期状态必须准）
+   ⚠️ 改价请改 js/pricing.js，本文件禁止再出现价格字面量（tests/_probe_price_ref_1012.cjs 钉住）。 */
 
-/* ⭐ 定价唯一来源（她想调价就改这个数组；perDay/save 手算填，改价格记得同步改）
-   10/2 定价 v2（她拍板 B 窗口商业方案）：7 天卡 29（首购入口）/ 30 天卡 69（主推 C 位）/ 90 天卡 129（价格锚）；
-   年卡砍掉——考生需求随考试日消失，无年需求（499 只会把页面衬贵）。
-   90 天卡给两轮备考/单科重考（60 天窗口）人群摆着衬托 69 划算。
-   10/2 下午她拍板改周卡（她设计）：显示划线原价 ¥39 + 新人首购价 ¥19（orig 字段有值就画划线），
-   突出「便宜一半」促首购；额度用完提示同步推「首购 ¥19」（functions/api/ai.js + common.js 兜底）。
-   配套动作：① 免费额度用完提示只推周卡首购价（最低门槛先成交）
-             ② 主推卡贴考试日：「距你的考试还有 N 天，30 天卡刚好覆盖」（读 settings.examDate，无则不显示）。
-   免费额度 10/1 下午起为她拍板新口径（口语模考每月 1 次 / 写作批改会员专属 / 其余 AI 每周 5 次），
-   写死在 functions/api/ai.js（AI_FREE_MOCK_MONTHLY / AI_FREE_WRITING_TOTAL=0 / AI_USER_WEEKLY_LIMIT=5），
-   口径必须一致的处所：ai.js 默认值 + auth.js ai_usage + vip.html 对比表（改额度三处同步）。 */
-const VIP_PLANS = [
-  { id:'week',    name:'7 天卡',  price:'19',  orig:'39', unit:'7 天',  perDay:'≈ 2.7 元/天', save:'', tag:'新人首购 ¥19' },
-  { id:'month',   name:'30 天卡', price:'69',  orig:'',   unit:'30 天', perDay:'≈ 2.3 元/天', save:'', tag:'主推 · 冲刺首选' },
-  { id:'quarter', name:'90 天卡', price:'129', orig:'',   unit:'90 天', perDay:'≈ 1.4 元/天', save:'', tag:'' },
-];
-const FREE_AI_DESC = '口语模考每月 1 次 · 其他 AI 每周 5 次（写作批改/串题素材为会员专属）';
+/* 免费额度口径：已移至 pricing.js（FREE_AI_DESC）。
+   🔴 不能在此再声明同名 const —— pricing.js 与本文件在同一全局作用域，重复 const 声明会直接
+   让整个 vip.js 挂掉（10/12 实踩：卡片/矩阵/状态卡全不渲染，报 Identifier has already been declared）。
+   要读就动态取：window.Pricing ? Pricing.FREE_AI_DESC : 回退字面量。 */
+function freeAiDesc(){
+  return (window.Pricing && window.Pricing.FREE_AI_DESC) || '口语模考每月 1 次 · 其他 AI 每周 5 次（写作批改/串题素材为会员专属）';
+}
 
 const VIP_ICON_GOLD = '<svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#eab308" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20M9.5 9L12 3l2.5 6M12 21L9.5 9M12 21l2.5-12"/></svg>';
 
 ready(() => {
   renderVipPlans();
+  renderVipMatrix();   // 10/12 批1：对比表由 pricing.js 渲染（原静态表搬入）
+  renderVipHowPrice(); // 10/12 批1：开通方式的价格句由 pricing.js 填充
   loadVipStatus();
 });
+
+/* ---------- 对比矩阵（原 vip.html 静态表 9 行口径，逐行等价搬入 pricing.js）---------- */
+function renderVipMatrix(){
+  const box = document.getElementById('vipMatrix');
+  if(!box || !window.Pricing) return;
+  Pricing.renderMatrix(box, { legacy:true });
+}
+
+/* ---------- 开通方式的价格句（原手写三档价格，改 JS 填充防改价漏改）---------- */
+function renderVipHowPrice(){
+  const el = document.getElementById('vipHowPrice');
+  if(!el || !window.Pricing) return;
+  el.innerHTML = Pricing.VIP_PLANS
+    .map(p => escapeHtml(Pricing.priceText(p.id === 'week' ? 'weekFirst' : p.id)))
+    .join(' / ');
+}
 
 /* ---------- 价格卡 ---------- */
 function renderVipPlans(){
   const box = document.getElementById('vipPlans');
   if(!box) return;
   // 10/2 她拍板：推荐文案按剩余天数动态选卡（≤7天→7天卡 / 8-30→30天卡 / >30→90天卡），不再固定在 30 天卡上
-  // （nextExamDate 返回 {raw,passed}，不带 Date 对象，天数自己从 raw 算）
   const exam = (typeof nextExamDate === 'function') ? nextExamDate() : null;
   let daysLeft = 0;
   if(exam && !exam.passed && exam.raw){
@@ -43,30 +51,8 @@ function renderVipPlans(){
     if(!isNaN(v) && v > 0) daysLeft = v;
   }
   const recId = daysLeft > 0 ? (daysLeft <= 7 ? 'week' : (daysLeft <= 30 ? 'month' : 'quarter')) : '';
-  box.innerHTML = VIP_PLANS.map((p, i) => {
-    const featured = p.id === 'month';   // 转化设计：30 天卡主推 C 位（B 方案拍板；换主推改这个 id）
-    const isRec = p.id === recId;
-    const recTxt = isRec ? `距你的考试还有 ${daysLeft} 天，${p.name}刚好覆盖 →` : '';
-    return `
-    <div style="flex:1;min-width:180px;display:flex;flex-direction:column;border:${featured ? '2px solid var(--primary)' : '1px solid var(--line)'};border-radius:var(--radius);padding:18px 16px;position:relative;background:${featured ? 'var(--primary-soft)' : 'var(--surface)'}">
-      ${p.tag ? `<span class="badge" style="position:absolute;top:-10px;right:12px;background:${featured ? 'var(--primary)' : 'var(--surface-2)'};color:${featured ? 'var(--on-primary)' : 'inherit'}">${escapeHtml(p.tag)}</span>` : ''}
-      <div style="font-weight:700;font-size:15px">${escapeHtml(p.name)}</div>
-      <div style="margin:8px 0 2px"><span style="font-size:28px;font-weight:800">¥${escapeHtml(p.price)}</span><span class="muted" style="font-size:13px"> / ${escapeHtml(p.unit)}</span>${p.orig ? `<span class="muted" style="font-size:13.5px;margin-left:6px;text-decoration:line-through">¥${escapeHtml(p.orig)}</span>` : ''}</div>
-      <div class="muted" style="font-size:12px">${escapeHtml(p.perDay)}${p.save ? ' · <b style="color:var(--warn-ink)">' + escapeHtml(p.save) + '</b>' : ''}</div>
-      <ul class="muted" style="font-size:12px;margin:10px 0 14px;padding-left:18px;line-height:1.9">
-        <li>AI 功能无限次</li>
-        <li>会员专属功能（上线即用）</li>
-        <li>跟账号走，多设备通用</li>
-      </ul>
-      ${recTxt ? `<div style="font-size:12.5px;font-weight:600;color:var(--primary);margin:0 0 10px">${recTxt}</div>` : ''}
-      <button class="btn ${featured ? 'btn-primary' : ''}" data-vbuy="${p.id}" style="width:100%;margin-top:auto">立即开通</button>
-    </div>`;
-  }).join('');
-  box.querySelectorAll('button[data-vbuy]').forEach(b =>
-    b.addEventListener('click', () => {
-      const how = document.getElementById('vipHowto');
-      if(how) how.scrollIntoView({ behavior:'smooth', block:'start' });
-    }));
+  // 卡片 DOM/文案由 pricing.js 统一产出（class 化样式在 common.css）；主推 30 天卡是 10/2 B 方案拍板位
+  if(window.Pricing) Pricing.renderPlanCards(box, { featured:'month', recId:recId, recDays:daysLeft });
 }
 
 /* ---------- 状态卡：未登录 / 会员生效中 / 免费版 ---------- */
@@ -135,7 +121,7 @@ async function loadVipStatus(){
         ${VIP_ICON_GOLD}
         <div style="flex:1;min-width:200px">
           <div style="font-weight:700;font-size:16px">当前是免费版${acct ? ' · ' + escapeHtml(acct) : ''}</div>
-          <div class="muted" style="font-size:13px;margin-top:4px">全部学习功能可用；AI 免费体验：${FREE_AI_DESC}；升级会员 AI 无限用。</div>
+          <div class="muted" style="font-size:13px;margin-top:4px">全部学习功能可用；AI 免费体验：${escapeHtml(freeAiDesc())}；升级会员 AI 无限用。</div>
         </div>
         <button class="btn btn-primary" id="vipGoPlans">升级会员</button>
       </div>`;
