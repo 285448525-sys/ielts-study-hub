@@ -3296,7 +3296,7 @@ body.dgs-open .dock-group-sheet{transform:translateY(0)}
    原 vip.js 内联样式 11+22 处全部搬到这里；DOM class 与原渲染结果等价（零视觉变化）。
    ⚠️ 10/11 嵌套注释事故：CSS 注释里绝不再写注释（外层被提前闭合会吞掉整个 :root）。 */
 .plan-card{flex:1;min-width:180px;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--radius);padding:18px 16px;position:relative;background:var(--surface)}
-.plan-card--featured{border:2px solid var(--primary);background:var(--primary-soft)}
+.plan-card--featured{border:2px solid var(--primary);background:var(--primary-soft);box-shadow:0 3px 14px rgba(58,154,147,.16)}
 .plan-card--free{border-style:dashed}
 .plan-badge{position:absolute;top:-10px;right:12px;background:var(--surface-2);color:inherit;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
 .plan-card--featured .plan-badge{background:var(--primary);color:var(--on-primary)}
@@ -3323,18 +3323,32 @@ body.dgs-open .dock-group-sheet{transform:translateY(0)}
 .vip-hero .btn{text-decoration:none}
 @media (max-width:560px){ .vip-hero-main{min-width:0} }
 
-/* 对比矩阵（vip.html 8 行口径 + pricing.html 17 行口径共用） */
+/* 对比矩阵（vip.html 8 行口径 + pricing.html 17 行口径共用）
+   10/13 修渲染 bug（她 23:52 截图：列宽失衡、表头漂移、图标全空）：
+   ① sprite #i-check/#i-lock 全站从未定义 → 勾/锁空白，且 <svg> 无尺寸默认 300×150px
+      把列撑爆 → 必须给 svg 固定尺寸（sprite 本体已补进 vip.html；pricing 页上线时同样要带）。
+   ② 会员列金色高亮：pricing.js 输出类是 c3，vip.html 旧内联样式写的 .vip-col 从未命中
+      （死代码已删），金色调统一收进这里（她 10/1 授权「会员列高亮」）。
+   ③ table-layout:fixed + 首列 44%：长 sub 不再把第一列撑到失控，三列严格对齐。 */
 .vip-cmp{overflow-x:auto}
-.vip-cmp table{width:100%;border-collapse:collapse;font-size:13px}
-.vip-cmp th,.vip-cmp td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.vip-cmp table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+.vip-cmp th,.vip-cmp td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;overflow-wrap:break-word;word-break:break-word}
 .vip-cmp thead th{font-size:12px;color:var(--muted);font-weight:700}
+.vip-cmp thead th:first-child{width:44%}
 .vip-cmp tr.cat th{background:var(--n-50);font-size:12.5px;font-weight:700;color:var(--ink)}
 .vip-cmp tbody th{font-weight:600}
 .vip-cmp tbody th small{display:block;font-weight:400;font-size:11.5px;color:var(--muted);margin-top:2px}
+.vip-cmp tbody tr:not(.cat):hover{background:var(--n-50)}
 .vip-cmp td.yes{color:var(--primary-900)}
 .vip-cmp td.no{color:var(--muted)}
 .vip-cmp td.dash{color:var(--n-300)}
-.vip-cmp td.c3{font-weight:700}
-.vip-cmp .mx-foot{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:8px}
+.vip-cmp td.c3{font-weight:700;background:rgba(234,179,8,.06)}
+.vip-cmp td.c3 b{color:#b45309}
+.vip-cmp thead th.c3{color:#b45309}
+/* sprite 图标：✓ 跟单元格文字色，🔒 同；无尺寸 svg 默认 300×150 正是撑爆列的元凶 */
+.vip-cmp td svg,.vip-cmp .mx-foot svg{width:15px;height:15px;vertical-align:-2.5px;flex:none}
+.vip-cmp td.no svg{color:var(--warn-ink,var(--muted))}
+.vip-cmp .mx-foot{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--muted);margin-top:8px}
+.vip-cmp .mx-foot svg{color:var(--primary)}
 .vip-cmp .mx-scroll{overflow-x:auto}
 .vip-cmp .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
