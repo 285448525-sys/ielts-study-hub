@@ -264,7 +264,9 @@ function threeThingsList(){
   if(!studiedToday){
     out.push({
       key:'timer', title:'开一段专注', sub:'先学 25 分钟，边听边记',
-      file:'timer.html?autostart=1', cta:'开始'
+      /* 10/12 C-3 顺带修：去掉 ?autostart=1 —— timer.html 没有消费该参数的代码（死参数，
+         点了不自动开表，反而不如直接进页让她自己选模块开；speaking/practice 才有 autostart 链路）。 */
+      file:'timer.html', cta:'开始'
     });
   }
   return out;

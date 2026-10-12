@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="UTF-8" />
@@ -43,7 +43,7 @@
   <script defer src="js/feedback.js?v=20261006a"></script>
 <!-- design/78 双词库适配层：index.js 的 wbActive/wbDueCount 依赖它（defer 按文档序执行） -->
 <script defer src="js/wordbank.js?v=20261001a"></script>
-<script defer src="js/index.js?v=20261010a"></script>
+<script defer src="js/index.js?v=20261012a"></script>
 <style id="homePageStyle">
 /* hero 会员小标（10/1：AI 转化卡删掉后的低调会员态展示，她拍板「不明显但不能不显示」。
    样式放页内不动 common.css 免全站 bump） */
@@ -172,7 +172,9 @@
         <div class="hero-num" id="dashHeroNum"><span class="big">--</span><span class="unit">天</span></div>
       </div>
       <div class="hero-right">
-        <a class="hero-cta" href="timer.html?autostart=1">
+        <!-- 10/12 C-3 顺带修：去掉 ?autostart=1 —— timer.html 没有消费该参数的代码（死参数，
+             点了不会自动开表；直接进页让她自己选模块开计时，语义更实） -->
+        <a class="hero-cta" href="timer.html">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6,4 20,12 6,20"/></svg>
           开始专注
         </a>

@@ -335,6 +335,7 @@
       _rateIx = 0; _audioBound = null;
       try{ EX.user = JSON.parse(localStorage.getItem('hub_bank_draft_' + unitId) || '{}') || {}; }catch(e){ EX.user = {}; }
       renderExam();
+      bankStartTimer();                               /* C-3：进考试即开专注计时（幂等，不会双开） */
     }).catch(function(err){
       if(window.console && console.error) console.error('[bank] 题目加载失败：', err);
       var h = document.getElementById('examRoot');
@@ -835,6 +836,7 @@
       renderPassage(1);
       renderNotes();
       startTimer(60 * 60);
+      bankStartTimer();                               /* C-3：完整模考（阅读）开专注计时 */
     }).catch(function(err){
       if(window.console && console.error) console.error('[bank] 完整模考加载失败：', err);
       var h = document.getElementById('examRoot');
@@ -893,6 +895,7 @@
       }
       renderListenPart(1);
       startTimer(30 * 60);
+      bankStartTimer();                               /* C-3：完整模考（听力）开专注计时 */
     }).catch(function(err){
       if(window.console && console.error) console.error('[bank] 听力完整模考加载失败：', err);
       var h = document.getElementById('examRoot');
@@ -1518,6 +1521,118 @@
   }
   function stopTimer(){ if(_timer){ clearInterval(_timer); _timer = null; } }
 
+  /* ===== C-3 模考时长计入「今日专注」（她 10/12 拍板「计入」，与口语/写作模考一致）=====
+     照搬 speaking.js maybeStartSpkTimer / commitSpkTimer 范式（那边 9/22 定版）：
+     · 开考即开一个「阅读/听力」计时表（moduleId 对齐 data.js MODULES 的 reading/listening）
+     · 三种结算路径全覆盖：交卷 doSubmit / 未交卷退出 exitExam / 刷新关闭（写 DATA.activeTimer
+       镜像，由 common.js settleOrphanActiveTimer 心跳>10min 遗弃自愈兜底，不自己造恢复逻辑）
+     · durationSec = 实际做题时长（startTs→结算，扣暂停），与页内考试倒计时并行不混用
+     · <30s 误点不落 session（与口语 autostart 同口径，她 9/26 拍板） */
+  var BANK_TIMER_MIN_SEC = 30;
+  function bankTimerModule(){
+    var ch = (EX && EX.channel) || 'reading';
+    return ch === 'listening'
+      ? { moduleId: 'listening', moduleName: '听力', subId: 'bank_listening', subName: '听力模考' }
+      : { moduleId: 'reading',   moduleName: '阅读', subId: 'bank_reading',   subName: '阅读模考' };
+  }
+  function bankStartTimer(){
+    if(!EX) return;
+    try{
+      /* 已有本模块的表在计（含刷新恢复的）→ 不重复开；别的模块在计 → 先正规结算再开新表 */
+      var m = DATA.activeTimer;
+      var cur = (window.active && !window.active.ended) ? window.active
+              : ((m && !m.ended && m.timerId) ? m : null);
+      if(cur && cur.moduleId === bankTimerModule().moduleId && cur.subId === bankTimerModule().subId) return;
+      if(cur) bankSettleForeignTimer();
+      var now = Date.now(), id = uid(), mm = bankTimerModule();
+      window.active = {
+        timerId: id, moduleId: mm.moduleId, moduleName: mm.moduleName,
+        subId: mm.subId, subName: mm.subName,
+        startTs: now, paused: false, pauseStart: null, pauseAccum: 0,
+        mode: 'up', updatedAt: now, lastBeat: now
+      };
+      DATA.activeTimer = {
+        timerId: id, moduleId: mm.moduleId, moduleName: mm.moduleName,
+        subId: mm.subId, subName: mm.subName,
+        startTs: now, paused: false, pauseStart: null, pauseAccum: 0,
+        mode: 'up', updatedAt: now, lastBeat: now, ended: false
+      };
+      hubSave();
+    }catch(e){ console.warn('[bank] 计时开表失败', e); }
+  }
+  /* 正规结算「其他模块」的进行中计时（背词/口语/手动）：时长记到当前时刻，绝不丢表。
+     与 speaking.js spkSettleForeignTimer 同构（含 resolveTimerNames 名称解析 + 同 timerId 去重）。 */
+  function bankSettleForeignTimer(){
+    var a = (window.active && !window.active.ended) ? window.active
+            : ((DATA.activeTimer && !DATA.activeTimer.ended && DATA.activeTimer.timerId) ? DATA.activeTimer : null);
+    if(!a) return;
+    var timerId = a.timerId, endTs = Date.now();
+    var pause = Number(a.pauseAccum) || 0;
+    if(a.paused && a.pauseStart) pause += (endTs - a.pauseStart);
+    var durationSec = Math.max(0, Math.round((endTs - (a.startTs || endTs) - pause) / 1000));
+    if(durationSec > 0 && !(DATA.sessions || []).some(function(s){ return s.timerId && s.timerId === timerId; })){
+      DATA.sessions = DATA.sessions || [];
+      var names = (typeof resolveTimerNames === 'function')
+        ? resolveTimerNames(a)
+        : { moduleName: a.moduleName || '学习', subName: a.subName || '' };
+      DATA.sessions.push({
+        id: uid(), timerId, date: todayKey(a.startTs),
+        moduleId: a.moduleId, subId: a.subId || a.moduleId,
+        moduleName: names.moduleName, subName: names.subName,
+        startTs: a.startTs, endTs, durationSec, pauseSec: Math.max(0, Math.round(pause / 1000))
+      });
+    }
+    window.active = null;
+    DATA.activeTimer = { timerId, ended: true, updatedAt: Date.now(), lastBeat: 0 };
+    hubSave();
+  }
+  function bankCommitTimer(){
+    try{
+      var a = window.active;
+      if(!a || a.ended){ window.active = null; return; }
+      var timerId = a.timerId, endTs = Date.now();
+      var pause = Number(a.pauseAccum) || 0;
+      if(a.paused && a.pauseStart) pause += (endTs - a.pauseStart);
+      var durationSec = Math.max(0, Math.round((endTs - (a.startTs || endTs) - pause) / 1000));
+      if(durationSec >= BANK_TIMER_MIN_SEC && !(DATA.sessions || []).some(function(s){ return s.timerId && s.timerId === timerId; })){
+        DATA.sessions = DATA.sessions || [];
+        DATA.sessions.push({
+          id: uid(), timerId, date: todayKey(a.startTs),
+          moduleId: a.moduleId, subId: a.subId || a.moduleId,
+          moduleName: a.moduleName, subName: a.subName,
+          startTs: a.startTs, endTs, durationSec, pauseSec: Math.max(0, Math.round(pause / 1000))
+        });
+      }
+      window.active = null;
+      DATA.activeTimer = { timerId, ended: true, updatedAt: Date.now(), lastBeat: 0 };
+      hubSave();
+      try{
+        document.dispatchEvent(new CustomEvent('hub:session-saved', { detail: { date: todayKey() } }));
+        document.dispatchEvent(new CustomEvent('hub:timer-state'));
+      }catch(e){}
+    }catch(e){ console.warn('[bank] 计时结算失败', e); }
+  }
+  /* 心跳 30s 节流：刷 lastBeat + DATA.activeTimer 镜像（settleOrphanActiveTimer 靠它判活，
+     缺心跳会被当遗弃表提前结算）。hubSave 自带 debounce，不担心写放大。 */
+  if(!window.__bankTimerBeat){
+    window.__bankTimerBeat = setInterval(function(){
+      var a = window.active;
+      if(!a || a.ended) return;
+      var now = Date.now();
+      a.lastBeat = now; a.updatedAt = now;
+      if(DATA.activeTimer && DATA.activeTimer.timerId === a.timerId){
+        DATA.activeTimer.lastBeat = now; DATA.activeTimer.updatedAt = now;
+      }
+      hubSave();
+    }, 30000);
+  }
+  /* 关标签兜底：beforeunload 结算（与口语同款）。刷新/崩溃没跑到的，
+     由 common.js settleOrphanActiveTimer 按心跳>10min 遗弃自愈，不自己造恢复逻辑。 */
+  if(!window.__bankTimerLeaveHook){
+    window.__bankTimerLeaveHook = true;
+    window.addEventListener('beforeunload', function(){ try{ bankCommitTimer(); }catch(e){} });
+  }
+
   /* ===== 判分 ===== */
   function judgeOne(key, alts, ua){
     if(Array.isArray(ua)){
@@ -1680,6 +1795,7 @@
     paintSheet();
     var sb = document.querySelector('#examRoot [data-submit]');
     if(sb){ sb.disabled = true; sb.style.opacity = '.5'; }
+    bankCommitTimer();                                /* C-3：交卷即结算专注计时（含 <30s 过滤） */
   }
 
   function exitExam(){
@@ -1690,6 +1806,7 @@
     if(au){ try{ au.pause(); }catch(e){} }
     _audioBound = null;                                /* 音频元素随 innerHTML 一起没了，解绑记录 */
     if(EX && !EX.submitted) saveDraft();
+    bankCommitTimer();                                /* C-3：未交卷退出也要结算（别只挂交卷上） */
     EX = null;
     var host = document.getElementById('examRoot'); if(host){ host.hidden = true; host.innerHTML = ''; }
     var root = document.getElementById('bankRoot'); if(root) root.style.display = '';
