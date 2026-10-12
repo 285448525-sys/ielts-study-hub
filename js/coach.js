@@ -316,6 +316,41 @@ function userHtml(text){
   function inline(t){
     return t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   }
+  /* 路线图3 · 3c（10/12）：把【必改】解析从 assistantHtml 提成独立纯函数。
+     为什么提：3c「结束本轮看错题」要遍历整条 thread 抽纠错清单，若另写一套解析，
+     两处规则必然分叉（免责话过滤 / 箭头判据 / 混合块处理各写各的）——
+     渲染与解析共用同一套，是防分叉的唯一办法。 */
+  function parseFixes(text){
+    var out = [];
+    var blocks = String(text == null ? '' : text).replace(/\r/g, '').split(/\n{2,}/);
+    var NOERR = /(没问题|没问题了|正确|这句也对|对的|OK|保留|不用改|无需改|不需改|已经很好|没毛病|不必改)/i;
+    blocks.forEach(function(b){
+      b = b.trim();
+      if(!b || b.indexOf('【必改】') !== 0) return;
+      var lines = b.replace(/^【必改】\s*/, '').split('\n');
+      var items = lines.filter(function(l){ return /^\s*[-•]/.test(l); });
+      // 免责话过滤（与 assistantHtml 同一判据：只看箭头后面那段）
+      var realErr = items.filter(function(l){
+        var parts = l.split('→');
+        if(parts.length < 2) return true;
+        var tail = parts.slice(1).join('→');
+        if(!tail.trim()) return true;
+        return !NOERR.test(tail);
+      });
+      // 整块全是免责话 → 不入清单（同 assistantHtml 的红框丢弃逻辑）
+      if(items.length > 0 && realErr.length === 0) return;
+      (realErr.length ? realErr : items).forEach(function(l){
+        var clean = l.replace(/^\s*[-•]\s*/, '');
+        var parts = clean.split('→');
+        out.push({
+          raw: clean,
+          orig: (parts[0] || '').trim(),
+          fix: parts.length > 1 ? parts.slice(1).join('→').trim() : ''
+        });
+      });
+    });
+    return out;
+  }
   /* AI 自由文本 → HTML：空行分块；【必改】/【更地道】起头的块渲染成卡片，其余普通段落 */
   function assistantHtml(s){
     var blocks = String(s == null ? '' : s).replace(/\r/g, '').split(/\n{2,}/);
@@ -538,6 +573,49 @@ function userHtml(text){
   }
   function openMem(){ renderMemList(); var p = $('coachMemPop'); if(p) p.hidden = false; }
   function closeMem(){ var p = $('coachMemPop'); if(p) p.hidden = true; }
+
+  /* ============ 路线图3 · 3c（10/12）：「结束本轮，看错题」 ============
+     她拍板交互：教练台抽屉底部显式按钮 → 只读错题面板（含「继续聊」返回，关闭后会话延续）。
+     🔴 约束（指令 §2-3c）：会话内一次性展示，**不写 DATA、不云同步** —— 跨会话留存另立项；
+     面板挂在 <main> 内（软导航契约，coachCtx 就在 main 里，满足）；
+     解析必须用 parseFixes（与 assistantHtml 同一套规则），不许另写。 */
+  function collectRoundFixes(){
+    try{
+      return (st && st.thread ? st.thread : [])
+        .filter(function(x){ return x && x.role === 'assistant' && x.text; })
+        .reduce(function(acc, x){ return acc.concat(parseFixes(x.text)); }, []);
+    }catch(e){ return []; }
+  }
+  function renderRoundFixes(){
+    var host = $('coachFixList');
+    if(!host) return;
+    var fixes = collectRoundFixes();
+    if(!fixes.length){
+      host.innerHTML = '<div class="cfx-empty">本轮没有需要改的句子 —— 聊得很干净。<br>'
+        + '<span class="cfx-empty-s">（只有出现【必改】的句子才会汇总到这里）</span></div>';
+      return;
+    }
+    host.innerHTML = fixes.map(function(f){
+      var hasPair = f.orig && f.fix;
+      return '<div class="cfx-item">'
+        + (hasPair
+            ? '<div class="cfx-orig">' + escapeHtml(f.orig) + '</div>'
+              + '<div class="cfx-arrow">改成</div>'
+              + '<div class="cfx-fix">' + escapeHtml(f.fix) + '</div>'
+            : '<div class="cfx-raw">' + escapeHtml(f.raw) + '</div>')
+        + '</div>';
+    }).join('');
+  }
+  function openRoundFixes(){
+    renderRoundFixes();
+    var p = $('coachFixPop');
+    if(p) p.hidden = false;
+  }
+  function closeRoundFixes(){
+    var p = $('coachFixPop');
+    if(p) p.hidden = true;
+    /* 关闭即「继续聊」：不动 thread、不清状态，会话原样延续 */
+  }
 
   /* ============ 10/3 A 版：常驻上下文栏（纯新增，不改既有函数体） ============ */
   var CTX_MAX_MEM = 5;          // 右栏最多列几条记忆，其余引导去弹层
@@ -826,6 +904,15 @@ function userHtml(text){
       +     '<ul class="coach-ctx-mem" id="coachCtxMem"><li class="coach-ctx-empty">还没记住什么 · 多聊几轮就会出现在这里</li></ul>'
       +     '<button type="button" id="coachCtxMore" class="coach-ctx-more">全部记忆 →</button>'
       +   '</div>'
+      /* 路线图3 · 3c（10/12 她拍板）：教练台抽屉底部加显式「结束本轮，看错题」按钮。
+         交互依据（她铁律「先搜成熟网站怎么做」+ WebSearch 两个独立来源）：
+         ① 流利说雅思（doyo.cn/downkuai）：模考结束点「获取报告」→ 报告页 —— 显式动作→立即出总结
+            是主流模考型标准动线；
+         ② Cambly 真人外教课（happyenglishuk.com）：约定时长结束→老师给反馈总结 ——
+            自由对话型的结束 = 用户主动动作。
+         BandUp/可栗/IELTSpeaking 属固定流程模考型（自动出报告），与 coach 自由对话形态不同，不照搬。
+         约束：会话内一次性展示，**不写 DATA、不云同步**（跨会话留存另立项，本批严禁顺手做）。 */
+      +     '<button type="button" id="coachFinishBtn" class="coach-finish-btn">结束本轮，看错题</button>'
       +   '<div class="coach-ctx-hint"><b>说「别纠语法」</b>可在本轮关掉纠错，说「继续纠」恢复。</div>'
       + '</aside>'
       + '<div id="coachMemPop" hidden>'
@@ -836,9 +923,32 @@ function userHtml(text){
       +     '<button id="cmpClear" type="button">全部忘记</button>'
       +   '</div>'
       + '</div>'
-      + '</div>';
-
+       /* 路线图3 · 3c（10/12）：「本轮错题」只读面板 —— 与记忆弹层同级的浮层，
+          挂 #coachWrap 外（避开三栏 flex/overflow 影响定位，与 coachMemPop 同一处理），
+          内容由 renderRoundFixes() 现算填充（不写 DATA、不云同步）。 */
+       + '<div id="coachFixPop" hidden>'
+       +   '<div class="cfx-mask"></div>'
+       +   '<div class="cfx-card" role="dialog" aria-modal="true" aria-label="本轮错题">'
+       +     '<div class="cfx-head"><b>本轮错题</b><button data-cfx-back type="button" aria-label="关闭">✕</button></div>'
+       +     '<div class="cfx-list" id="coachFixList"></div>'
+       +     '<button class="cfx-back" data-cfx-back type="button">继续聊</button>'
+       +   '</div>'
+       + '</div>'
     $('coachSend').addEventListener('click', function(){ sendText(); });
+    /* 路线图3 · 3c：绑定「结束本轮，看错题」按钮 + 面板的继续聊/遮罩关闭 */
+    var finBtn = $('coachFinishBtn');
+    if(finBtn) finBtn.addEventListener('click', openRoundFixes);
+    var fixPop = $('coachFixPop');
+    if(fixPop){
+      var fm = fixPop.querySelector('.cfx-mask');
+      if(fm) fm.addEventListener('click', closeRoundFixes);
+      /* 🔴 querySelector 只取第一个 [data-cfx-back]（头上的 ✕）—— 底部「继续聊」
+         也是同一个属性，会被漏掉 → 点了没反应（静默故障，她最恨的形态）。
+         必须 querySelectorAll 全绑（10/12 3c 实踩，探针当场抓到）。 */
+      fixPop.querySelectorAll('[data-cfx-back]').forEach(function(b){
+        b.addEventListener('click', closeRoundFixes);
+      });
+    }
     /* 10/4 16:10：抽屉化后**首屏默认收起**（她 16:00 明确对常驻右栏不满）。
        一次性迁移：用 `settings._ctxDrawerV1` 作标记，只在**首次**见到这个页面时
        把 `coachCtxCollapsed` 无条件置 true（老库里是 false = 旧常驻态）。
