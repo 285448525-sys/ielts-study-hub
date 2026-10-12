@@ -63,6 +63,7 @@
   var EX = null;              // 当前做题会话
   var _timer = null;
   var _fullSet = null;        // 当前列表页展示的「完整模考」随机组卷结果（3 篇）
+  var _listenFullSet = null;  // 听力完整模考随机组卷结果（Part 1–4 各一篇，10/12 第 10 项）
 
   /* ===== 列表 ===== */
   function unitsOf(channel){
@@ -164,6 +165,7 @@
     }
     if(!units.length){ host.innerHTML = '<div class="bank-empty"><p>这一部分暂时没有篇目。</p></div>'; return; }
     host.innerHTML = listHtml(units, 'listening');
+    renderListenFullEntry();
   }
 
   /* ===== 列表页「完整模考」入口卡（3 篇一套 · 随机组卷）=====
@@ -194,6 +196,37 @@
           }).join('') + '</div>'
       + '</div>'
       + '<button class="btn-primary" type="button" data-fullstart>Start Test</button>'
+      + '</div>';
+  }
+
+  /* ===== 听力「完整模考」入口卡（10/12 第 10 项）=====
+     与阅读同一套 .full-card（四科入口同构）。组卷：Part 1–4 各随机一篇 = 40 题 / 30 分钟
+     （她 10/11 拍板「随机组卷：退出回列表重新抽」同一口径）。卡上四篇 = Start 真正会用的那四篇。 */
+  function composeFullListenTest(){
+    var all = unitsOf('listening'), picked = [];
+    ['Part 1', 'Part 2', 'Part 3', 'Part 4'].forEach(function(part){
+      var pool = all.filter(function(u){ return (u.partNum || 'Part 1') === part; });
+      if(!pool.length){ picked.push(null); return; }
+      picked.push(pool[Math.floor(Math.random() * pool.length)]);
+    });
+    return picked.indexOf(null) > -1 ? null : picked;
+  }
+  function renderListenFullEntry(){
+    var host = document.getElementById('listenFullEntry'); if(!host) return;
+    if(!_manifest){ host.innerHTML = ''; return; }
+    if(!_listenFullSet) _listenFullSet = composeFullListenTest();
+    if(!_listenFullSet){ host.innerHTML = ''; return; }
+    var total = 0;
+    _listenFullSet.forEach(function(u){ total += (u.qCount || 0); });
+    host.innerHTML = '<div class="full-card">'
+      + '<div class="fc-num">' + total + '</div>'
+      + '<div class="fc-body"><b>Full Listening Test · 完整听力模考</b>'
+      +   '<span>4 parts · ' + total + ' questions · 30 minutes · audio plays once</span>'
+      +   '<div class="fc-pills">' + _listenFullSet.map(function(u, i){
+            return '<span class="fc-pill" data-unit="' + esc(u.id) + '">Part ' + (i + 1) + ' · ' + esc(u.title || '') + '</span>';
+          }).join('') + '</div>'
+      + '</div>'
+      + '<button class="btn-primary" type="button" data-lfullstart>Start Test</button>'
       + '</div>';
   }
 
@@ -561,6 +594,13 @@
     var p = listenPart();
     if(!p || !p.audioUrl) return '<div class="ex-audio" id="exAudioBar"><span class="ea-label">本部分没有音频</span></div>';
     var exam = EX.listenMode === 'exam';
+    /* 听力完整模考：全程考试模式，模式切换按钮整个不渲染（真机考没有「练习/考试」这一说） */
+    var fullL = !!(EX.full && EX.channel === 'listening');
+    var modeBtn = fullL ? '' :
+      '<button class="ea-mode' + (exam ? ' exam' : '') + '" type="button" data-amode'
+      + (EX.audioStarted ? ' disabled' : '')
+      + ' title="' + (EX.audioStarted ? '已经开始播放，本次不能再切换' : '切到考试模式后音频直通，不能暂停/拖动') + '">'
+      + (exam ? '考试模式' : '练习模式') + '</button>';
     return '<div class="ex-audio' + (exam ? ' locked' : '') + '" id="exAudioBar">'
       + '<button class="ea-play" type="button" data-aplay aria-label="Play">▶</button>'
       + '<span class="ea-label">' + esc(listenPartLabel()) + '</span>'
@@ -569,10 +609,7 @@
       + '<button class="ea-vol" type="button" data-avol aria-label="Mute">' + (_audioMuted || _audioVol === 0 ? '🔇' : '🔊') + '</button>'
       + '<input class="ea-vsl" type="range" min="0" max="1" step="0.05" value="' + (_audioMuted ? 0 : _audioVol) + '" data-avsl aria-label="Volume">'
       + '<button class="ea-rate" type="button" data-arate' + (exam ? ' style="display:none"' : '') + '>' + rateLabel(AUDIO_RATES[_rateIx]) + '</button>'
-      + '<button class="ea-mode' + (exam ? ' exam' : '') + '" type="button" data-amode'
-      + (EX.audioStarted ? ' disabled' : '')
-      + ' title="' + (EX.audioStarted ? '已经开始播放，本次不能再切换' : '切到考试模式后音频直通，不能暂停/拖动') + '">'
-      + (exam ? '考试模式' : '练习模式') + '</button>'
+      + modeBtn
       + '</div>'
       + '<audio id="exAudio" preload="metadata" src="' + esc(p.audioUrl) + '"></audio>';
   }
@@ -595,7 +632,16 @@
     a.playbackRate = AUDIO_RATES[_rateIx];
     a.addEventListener('loadedmetadata', paintAudio);
     a.addEventListener('timeupdate', paintAudio);
-    a.addEventListener('play', function(){ if(EX) EX.audioStarted = true; lockAudioMode(); paintAudio(); });
+    a.addEventListener('play', function(){
+      if(EX){
+        /* 听力完整模考：按 Part 记「这部分的音频已播过」→ 切走再切回来不许重播（整场只播一遍） */
+        if(EX.full && EX.channel === 'listening'){
+          EX.audioStartedBy = EX.audioStartedBy || {};
+          EX.audioStartedBy[EX.curP] = true;
+        }
+        EX.audioStarted = true; lockAudioMode(); paintAudio();
+      }
+    });
     a.addEventListener('pause', paintAudio);
     a.addEventListener('ended', paintAudio);
     paintAudio();
@@ -627,6 +673,7 @@
   }
   function audioToggleMode(){
     if(!EX || EX.audioStarted) return;                   /* 已经开始播 → 锁死 */
+    if(EX.full) return;                                  /* 听力完整模考全程考试模式，不提供切换（按钮也不渲染） */
     audioSetMode(EX.listenMode !== 'exam');
   }
   /* 交卷后：听力原文出来 + 音频解锁（可自由回放/拖动复听 —— Zoju / PrepAsk 都是交卷后解锁） */
@@ -659,9 +706,15 @@
       : '';
     return '<div class="ex-part" id="exPartBanner"><b>' + esc(label) + '</b><span>' + esc(span) + '</span></div>';
   }
-  function updatePartBanner(label, from, to){
+  function updatePartBanner(label, from, to, withTime){
+    /* withTime=false = 听力口径「Part N · Questions X–Y」（她截图 1：听力不附 20 分钟说明）；
+       缺省/true = 阅读口径（阅读完整模考切篇沿用原文案，行为不变）。 */
     var el = document.getElementById('exPartBanner'); if(!el) return;
-    el.innerHTML = '<b>' + esc(label) + '</b><span>' + esc(from != null ? ' \u00b7 You should spend about 20 minutes on Questions ' + from + '\u2013' + to : '') + '</span>';
+    var span = (from != null)
+      ? (withTime === false ? ' \u00b7 Questions ' + from + '\u2013' + to
+                            : ' \u00b7 You should spend about 20 minutes on Questions ' + from + '\u2013' + to)
+      : '';
+    el.innerHTML = '<b>' + esc(label) + '</b><span>' + esc(span) + '</span>';
   }
 
   /* 渲染后统一同步：填空三态（草稿值→filled）、多选限数灰、旗子态 */
@@ -791,16 +844,109 @@
     });
   }
 
+  /* ===== 听力完整模考（10/12 第 10 项 · Part 1–4 各一篇 = 40 题 / 30 分钟）=====
+     复用阅读完整模考的骨架（EX.full / packs / 卷面题号连续映射 / 答题卡 / 交卷确认），
+     差异三点：① 单栏布局（听力无文章区）② 每个 Part 自己的音频，**整场只播一遍且不可回退**
+     （真机考口径：官方录音只播一遍、不可暂停/拖动；切走再切回来也不能重播 —— 真机考各 Part
+     录音只在「到这一部分」时播一次）③ 30 分钟总倒计时。 */
+  function openFullListenTest(set){
+    var picks = (set && set.length === 4) ? set : composeFullListenTest();
+    if(!picks) return;
+    var root = document.getElementById('bankRoot');
+    if(root) root.style.display = 'none';
+    var host = document.getElementById('examRoot');
+    if(host){ host.hidden = false; host.innerHTML = '<div class="bank-loading" style="padding:60px">Loading…</div>'; }
+
+    Promise.all(picks.map(function(u){ return loadPack('listening', u.id); })).then(function(packs){
+      EX = {
+        full: true, channel: 'listening', packs: packs, ids: picks.map(function(u){ return u.id; }),
+        user: {}, submitted: false, flagged: {}, seen: {}, curP: 1, cur: 1, qs: [], byKey: {}, byG: {},
+        /* 听力完整模考全程考试模式（不给练习模式 —— 真机考没有这一说） */
+        listenMode: 'exam', audioStarted: false, audioStartedBy: {}
+      };
+      packs.forEach(function(pk, pi){
+        (pk.unit.parts || []).forEach(function(part){
+          (part.groups || []).forEach(function(g){
+            (g.questions || []).forEach(function(q){
+              if(q.qNumber == null) return;
+              var ent = { g: EX.qs.length + 1, p: pi + 1, loc: String(q.qNumber), q: q, pack: pk };
+              EX.qs.push(ent); EX.byKey[(pi + 1) + '|' + ent.loc] = ent; EX.byG[ent.g] = ent;
+            });
+          });
+        });
+      });
+      try{
+        var d = JSON.parse(localStorage.getItem('hub_bank_full_l_draft') || 'null');
+        if(d && d.ids && d.ids.join(',') === EX.ids.join(',') && d.user) EX.user = d.user;
+      }catch(e){}
+      EX.total = EX.qs.length;
+      if(EX.qs.length) EX.cur = EX.qs[0].g;
+
+      var host2 = document.getElementById('examRoot');
+      if(host2){
+        host2.innerHTML = shellHtml('Listening Test', 'Full Test', '00:30:00')
+          + '<div id="exAudioHost"></div>'
+          + '<div class="ex-ptabs" id="exPtabs">' + ptabsInner() + '</div>'
+          + partBannerHtml('Part 1', null, null, false)
+          + '<div class="ex-listen" id="exListen"><div class="ex-listen-in" id="exListenIn"></div></div>'
+          + barHtml();
+      }
+      renderListenPart(1);
+      startTimer(30 * 60);
+    }).catch(function(err){
+      if(window.console && console.error) console.error('[bank] 听力完整模考加载失败：', err);
+      var h = document.getElementById('examRoot');
+      if(h) h.innerHTML = '<div class="bank-empty" style="padding:60px"><p>Could not load this test. Please go back and try again.</p>'
+        + '<p><button class="btn-ghost" type="button" data-exit>Back</button></p></div>';
+      if(root) root.style.display = '';
+    });
+  }
+
+  /* 渲染某一个 Part（听力完整模考的「切篇」）：音频条随篇换 + 题目单栏 + 卷面题号映射。
+     与 renderPassage 平行（阅读用左右分栏 + 文章；听力单栏 + 音频条）。 */
+  function renderListenPart(pi){
+    if(!EX || !EX.full) return;
+    EX.curP = pi;
+    var pk = EX.packs[pi - 1];
+    EX.unit = pk.unit;                                  /* 音频条 / 原文按篇取 → 复用同一套取数路径 */
+    var barHost = document.getElementById('exAudioHost');
+    if(barHost) barHost.innerHTML = audioBarHtml();     /* 换篇 = 旧 <audio> 随 innerHTML 销毁（播放自动停） */
+    wireAudio();                                        /* ⚠️ 新 <audio> 元素必须重绑事件（play 监听 = 「只播一遍」的记号来源） */
+    var inner = document.getElementById('exListenIn');
+    var list = qsOfPassage(pi);
+    if(inner){
+      var numOf = numOfPassage(pi), qi = 0, qh = '';
+      (pk.unit.parts || []).forEach(function(p){
+        (p.groups || []).forEach(function(g){ qh += groupHtml(g, qi++, numOf, 'listening'); });
+      });
+      inner.innerHTML = qh; inner.scrollTop = 0;
+    }
+    if(list.length) EX.cur = list[0].g;
+    list.forEach(function(e){ if(EX.user[e.g] != null) applyAnswer(e.g, EX.user[e.g]); });
+    syncExamStates();
+    if(EX.submitted){ showScript(); decoratePassage(pi); }
+    else if(EX.audioStartedBy && EX.audioStartedBy[pi]){
+      /* 这个 Part 的音频已经播过 → 不可重播（整场只播一遍）。交卷后不在此列（解锁复听口径不变）。 */
+      var pb = document.querySelector('#exAudioBar [data-aplay]');
+      if(pb){ pb.disabled = true; pb.title = 'This audio has already been played.'; }
+    }
+    updatePartBanner('Part ' + pi, list.length ? list[0].g : null, list.length ? list[list.length - 1].g : null, false);
+    paintSheet();
+  }
+
   function qsOfPassage(pi){ return ((EX && EX.qs) || []).filter(function(e){ return e.p === pi; }); }
   function numOfPassage(pi){
     return function(loc){ var e = EX.byKey[pi + '|' + String(loc)]; return e ? e.g : loc; };
   }
   function ptabsInner(){
     var h = '';
-    [1, 2, 3].forEach(function(pi){
+    /* 听力完整模考 = 4 个 Part；阅读 = 3 个 Passage。标签跟着 channel 走（她截图口径：听力只有 Part N）。 */
+    var isL = !!(EX && EX.channel === 'listening');
+    var n = isL ? 4 : 3, lbl = isL ? 'Part' : 'Passage';
+    for(var pi = 1; pi <= n; pi++){
       h += '<button class="ex-ptab' + (pi === EX.curP ? ' on' : '') + '" type="button" data-ep="' + pi + '">'
-        + '<span class="ex-dot"></span>Passage ' + pi + ' · ' + qsOfPassage(pi).length + ' Qs</button>';
-    });
+        + '<span class="ex-dot"></span>' + lbl + ' ' + pi + ' · ' + qsOfPassage(pi).length + ' Qs</button>';
+    }
     return h;
   }
   function paintPtabs(){
@@ -911,16 +1057,18 @@
     var raw = Math.round(res.right / (res.total || 1) * 40);
     var cards = '';
     if(EX.full){
-      [1, 2, 3].forEach(function(pi){
+      var isLf = !!(EX && EX.channel === 'listening');
+      var pn = isLf ? 4 : 3, plabel = isLf ? 'PART ' : 'PASSAGE ';
+      for(var fpi = 1; fpi <= pn; fpi++){
         var tot = 0, ok = 0;
-        qsOfPassage(pi).forEach(function(e){
+        qsOfPassage(fpi).forEach(function(e){
           var d = null;
           for(var i = 0; i < res.detail.length; i++){ if(res.detail[i].qn === String(e.g)){ d = res.detail[i]; break; } }
           if(!d) return;
           tot++; if(d.ok) ok++;
         });
-        cards += '<div class="fx-pcard"><b>PASSAGE ' + pi + '</b><div>' + ok + ' / ' + tot + '</div></div>';
-      });
+        cards += '<div class="fx-pcard"><b>' + plabel + fpi + '</b><div>' + ok + ' / ' + tot + '</div></div>';
+      }
     }
     var lsn = isListen();
     var el = document.createElement('div');
@@ -1284,7 +1432,8 @@
     var c = collect();
     EX.user = c;
     try{
-      if(EX.full) localStorage.setItem('hub_bank_full_draft', JSON.stringify({ ids: EX.ids, user: c, ts: Date.now() }));
+      if(EX.full && EX.channel === 'listening') localStorage.setItem('hub_bank_full_l_draft', JSON.stringify({ ids: EX.ids, user: c, ts: Date.now() }));
+      else if(EX.full) localStorage.setItem('hub_bank_full_draft', JSON.stringify({ ids: EX.ids, user: c, ts: Date.now() }));
       else localStorage.setItem('hub_bank_draft_' + EX.unit.id, JSON.stringify(c));
     }catch(e){}
   }
@@ -1321,7 +1470,10 @@
     n = Number(n);
     if(EX.full){
       var ent = EX.byG[n]; if(!ent) return;
-      if(ent.p !== EX.curP) renderPassage(ent.p);      /* 跳到别的篇 → 先换篇 */
+      if(ent.p !== EX.curP){
+        if(EX.channel === 'listening') renderListenPart(ent.p);   /* 听力完整模考：切 Part（单栏壳） */
+        else renderPassage(ent.p);                                /* 阅读完整模考：切 Passage（分栏壳） */
+      }
       EX.cur = n;
       paintSheet();
       var el2 = document.querySelector('#examRoot .ex-qn[data-qn="' + n + '"]')
@@ -1463,7 +1615,7 @@
           });
           if(tot) localStorage.setItem('hub_bank_last_' + pk.id, JSON.stringify({ correct: ok, total: tot, ts: Date.now() }));
         });
-        localStorage.removeItem('hub_bank_full_draft');
+        localStorage.removeItem(EX.channel === 'listening' ? 'hub_bank_full_l_draft' : 'hub_bank_full_draft');
       } else {
         localStorage.setItem('hub_bank_last_' + EX.unit.id, JSON.stringify({ correct: res.right, total: res.total, ts: Date.now() }));
       }
@@ -1486,6 +1638,7 @@
     var host = document.getElementById('examRoot'); if(host){ host.hidden = true; host.innerHTML = ''; }
     var root = document.getElementById('bankRoot'); if(root) root.style.display = '';
     _fullSet = null;                                   /* 回到列表 → 下次组一套新的（随机组卷） */
+    _listenFullSet = null;                             /* 听力完整模考同口径（10/12 第 10 项） */
     boot();
   }
 
@@ -1552,12 +1705,14 @@
         return;
       }
       if((el = t.closest && t.closest('[data-fullstart]'))){ openFullTest(_fullSet); return; }
+      if((el = t.closest && t.closest('[data-lfullstart]'))){ openFullListenTest(_listenFullSet); return; }
       /* 10/11 第 8 项：口语 pane「开始模考」→ 软导航到口语页并自动进其模考流程 */
       if((el = t.closest && t.closest('[data-spkstart]'))){ spkStartMock(); return; }
-      /* 完整模考：Passage 1 / 2 / 3 切篇 */
+      /* 完整模考：Passage 1/2/3（阅读）或 Part 1–4（听力）切篇 */
       if((el = t.closest && t.closest('#exPtabs .ex-ptab')) && EX && EX.full){
         if(!EX.submitted) saveDraft();
-        renderPassage(Number(el.getAttribute('data-ep')));
+        if(EX.channel === 'listening') renderListenPart(Number(el.getAttribute('data-ep')));
+        else renderPassage(Number(el.getAttribute('data-ep')));
         return;
       }
       if((el = t.closest && t.closest('.bank-item[data-unit]'))){
