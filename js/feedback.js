@@ -102,6 +102,14 @@
   /* ---------- 弹层 ---------- */
   function ensureOverlay(){
     if (overlay && document.body.contains(overlay)) return overlay;
+    /* 10/13 美化批：弹层专属样式由本文件自注入（.fb-greet 一条），不动 common.css——
+       feedback.js 被 14 页引用，动 common.css 就得全站 bump 版本串；样式随 JS 走零 bump（弹层只由本文件创建，无 FOUC）。 */
+    if (!document.getElementById('fbStyle')){
+      const st = document.createElement('style'); st.id = 'fbStyle';
+      st.textContent = '.fb-greet{font-size:12.5px;color:var(--muted);line-height:1.7;margin:0 0 12px;padding-bottom:10px;border-bottom:1px dashed var(--line)}'
+        + '.fb-greet b{color:var(--ink-2);font-weight:600}';
+      document.head.appendChild(st);
+    }
     overlay = document.createElement('div');
     overlay.id = 'fbOverlay';
     overlay.className = 'fb-overlay';
@@ -114,19 +122,24 @@
       + '<div class="fb-panel">'
       +   '<div class="fb-head"><b>意见反馈</b><button class="fb-x" type="button" aria-label="关闭">✕</button></div>'
       +   '<div class="fb-body">'
-      +     '<label class="fb-lbl" for="fbText">遇到什么问题？<span class="fb-req">必填</span></label>'
-      +     '<textarea id="fbText" class="fb-text" rows="4" maxlength="' + MAX_TEXT + '" placeholder="比如：哪个页面、点了哪里、什么现象、当时在做什么"></textarea>'
-      +     '<div class="fb-meta"><span id="fbCount">0 / ' + MAX_TEXT + '</span><span id="fbEnv"></span></div>'
+      /* 10/13 文案真人化批（她「文案标识啥的写得真人感善解人意一点」）：
+         成熟口径（≥2 来源已核，10/13 搜）：corebee.ai 反馈模板「Every response is read by a real person /
+         even one sentence helps」+ userguiding.com 反馈弹层五要素（清晰简短 copy / 友好设计）。
+         站长第一人称 + 降低门槛（一句话也行）+ 技术元信息退到悬停提示，不再怼用户脸上。 */
+      +     '<p class="fb-greet">这个站就我一个人在做，你写下的每一条<b>我都会自己看</b>。遇到 bug、用着别扭、想要什么功能，都可以说。</p>'
+      +     '<label class="fb-lbl" for="fbText">你遇到什么了？</label>'
+      +     '<textarea id="fbText" class="fb-text" rows="4" maxlength="' + MAX_TEXT + '" placeholder="一句话也行。比如：点「添加任务」没反应 / 口语页句子显示不全 / 想要个某某功能……"></textarea>'
+      +     '<div class="fb-meta"><span id="fbCount">0 / ' + MAX_TEXT + '</span><span id="fbEnv" title=""></span></div>'
       /* 10/6 11:40 她要求：把设置页那行黄底说明删掉，改成在弹层里**轻轻标一行**。
          原话「轻轻标注一下，最多 3 张，这样子」+「想发更多截图的话，可以多发几次反馈这样子」。
          为什么上限是 3 张（她问过）：截图存在 Cloudflare KV，单条记录上限 1MB；
          前端每张压到 ≈120KB，3 张 ≈380KB 留足余量，超了服务端会 413 拒收。 */
-      +     '<label class="fb-lbl">截图（最多 ' + MAX_IMGS + ' 张）</label>'
+      +     '<label class="fb-lbl">截图能帮我更快定位<span class="fb-req" style="color:var(--muted)">（最多 ' + MAX_IMGS + ' 张）</span></label>'
       +     '<div class="fb-picks" id="fbPicks"></div>'
       +     '<input id="fbFile" type="file" accept="image/*" multiple hidden />'
       +     '<button class="fb-add" id="fbAdd" type="button">＋ 添加截图</button>'
       +     '<div class="fb-hint">想多发几张？分多次反馈就行，一次一张也能回得准。</div>'
-      +     '<label class="fb-lbl" for="fbContact">联系方式（选填）</label>'
+      +     '<label class="fb-lbl" for="fbContact">留个联系方式？（选填）</label>'
       +     '<input id="fbContact" class="fb-input" maxlength="60" placeholder="微信号 / 邮箱，方便我回你" />'
       +     '<div class="fb-err" id="fbErr"></div>'
       +     '<!-- 10/2 她拍板：急事出口。超链接 → 原位展开微信号（全站唯一出口，不新开弹窗、不丢已写内容） -->'
@@ -141,8 +154,8 @@
       +     '</div>'
       +   '</div>'
       +   '<div class="fb-foot">'
-      +     '<span class="fb-tip">未登录也能提交；图片只用于定位问题</span>'
-      +     '<button class="btn btn-sm" id="fbSubmit" type="button">提交反馈</button>'
+      +     '<span class="fb-tip">不用登录也能发；截图只用来定位问题，不会外传</span>'
+      +     '<button class="btn btn-sm" id="fbSubmit" type="button">发给站长</button>'
       +   '</div>'
       + '</div>';
     document.body.appendChild(overlay);
@@ -209,12 +222,16 @@
 
   function open(){
     const el = ensureOverlay();
-    /* 环境信息：只带页面路径/屏幕/UA/登录态，不带任何学习数据 */
+    /* 环境信息：只带页面路径/屏幕/UA/登录态，不带任何学习数据。
+       10/13 美化批：细节退到悬停提示（title），弹层里只说人话——「页面信息已自动附上」，
+       普通用户不需要看 settings.html · 1280×720 这种技术串（提交时仍原样带全，见 submit()）。 */
     const logged = !!(window.authToken && window.authToken());
-    el.querySelector('#fbEnv').textContent =
-      '页面 ' + (location.pathname.split('/').pop() || 'index.html')
+    const envDetail = '页面 ' + (location.pathname.split('/').pop() || 'index.html')
       + ' · ' + (window.innerWidth || 0) + '×' + (window.innerHeight || 0)
       + ' · ' + (logged ? '已登录' : '未登录');
+    const envEl = el.querySelector('#fbEnv');
+    envEl.textContent = '页面信息已自动附上';
+    envEl.title = envDetail + '（已随反馈一起带上，不用自己描述）';
     /* 每次打开都收成收起态：联系方式属于「临时看一眼」，不该跨次留着 */
     if (wxOpen) toggleWx(false);
     el.hidden = false;
@@ -284,7 +301,7 @@
     if (text.length > MAX_TEXT){ err.textContent = '文字太长了'; return; }
 
     submitting = true;
-    btn.disabled = true; btn.textContent = '提交中…';
+    btn.disabled = true; btn.textContent = '发送中…';
     err.textContent = '';
     const headers = { 'Content-Type': 'application/json' };
     const tok = (window.authToken && window.authToken()) || '';
@@ -319,7 +336,7 @@
       err.textContent = '网络异常，提交没成功。你的文字还在——急事可点下面的「等不及回复？加站长微信」直接找我';
     } finally {
       submitting = false;
-      btn.disabled = false; btn.textContent = '提交反馈';
+      btn.disabled = false; btn.textContent = '发给站长';
     }
   }
 
