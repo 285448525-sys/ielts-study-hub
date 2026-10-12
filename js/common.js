@@ -445,7 +445,7 @@ document.addEventListener('click', (e) => {
   var t = e.target, el;
   if((el = t.closest && t.closest('.ex-menubtn'))){
     var op = document.getElementById('exOptionPanel');
-    if(op){ op.classList.add('on'); window.showOptSub(null); }
+    if(op){ op.classList.toggle('on'); window.showOptSub(null); }
     return;
   }
   if(t.closest && t.closest('[data-opclose]')){
@@ -455,6 +455,11 @@ document.addEventListener('click', (e) => {
   }
   if(t.closest && t.closest('[data-opback]')){ window.showOptSub(null); return; }
   if((el = t.closest && t.closest('.ex-oprow[data-sub]'))){ window.showOptSub(el.getAttribute('data-sub')); return; }
+  /* 点面板空白处（target 是面板本身，而非列表/按钮）→ 关闭 */
+  if(t.classList && t.classList.contains('ex-option')){
+    t.classList.remove('on');
+    return;
+  }
 });
 document.addEventListener('change', (e) => {
   var t = e.target;
@@ -463,12 +468,16 @@ document.addEventListener('change', (e) => {
     sp.classList.toggle('ts-large', t.value === 'large');
     sp.classList.toggle('ts-xl', t.value === 'xl');
     sp.style.setProperty('--exfs', t.value === 'large' ? '23px' : t.value === 'xl' ? '27px' : '');
+    var p1 = document.getElementById('exOptionPanel');
+    if(p1) p1.classList.remove('on');   /* 选完字号立即关面板 —— 面板是 inset:0 全屏覆盖层，不关会挡住后面所有点击（v4 实测踩坑） */
     return;
   }
   if(t.matches && t.matches('#examRoot [name="exCt"]')){
     var root = document.getElementById('examRoot'); if(!root) return;
     root.classList.toggle('ct-dark', t.value === 'dark');
     root.classList.toggle('ct-yellow', t.value === 'yellow');
+    var p2 = document.getElementById('exOptionPanel');
+    if(p2) p2.classList.remove('on');
     return;
   }
 });

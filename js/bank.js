@@ -1217,7 +1217,8 @@
   }
   /* 多选限数的「选满变灰」：need 个勾满 → 未勾的选项 dis；否则全恢复。
      ⚠️ 统计口径必须与 CSS 选中态一致：选中靠 :has(input:checked) 渲染，
-     所以这里也统计 input.ex-check:checked，不能数 .on class（10/12 T14 实测踩坑）。 */
+     所以这里也统计 input.ex-check:checked，不能数 .on class（10/12 T14 实测踩坑）。
+     ⚠️ dis 必须同时禁用 input —— 只加 class 的话键盘 Tab 到 input 仍能勾，绕过限数（10/12 复查抓到的）。 */
   function syncCboxDis(box){
     if(!box) return;
     var need = Number(box.getAttribute('data-need') || 0);
@@ -1225,7 +1226,9 @@
     var onN = box.querySelectorAll('input.ex-check:checked').length;
     box.querySelectorAll('.ex-opt').forEach(function(lb){
       var cb = lb.querySelector('input.ex-check');
-      lb.classList.toggle('dis', onN >= need && cb && !cb.checked);
+      var dis = onN >= need && cb && !cb.checked;
+      lb.classList.toggle('dis', dis);
+      if(cb) cb.disabled = !!dis;
     });
   }
 
@@ -1711,6 +1714,7 @@
       var zone = document.getElementById('examRoot');
       if(!zone || zone.hidden) return;
       if(!EX) return;
+      if(document.getElementById('exSubmitModal')) return;   /* 交卷确认弹层开着时 Tab 归弹层（按钮间切换） */
       e.preventDefault();
       var now = Date.now();
       if(now - (document.__lastBankTab || 0) < 600){
