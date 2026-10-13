@@ -62,6 +62,16 @@ body{
    这里让表单内容垂直居中 + 底部补一条「为什么要登录」，把空白填掉（内容不虚、信息不冗余）。 */
 .form{display:flex;flex-direction:column;justify-content:center}
 .form .why-log{border-top:1px solid var(--line);margin-top:22px;padding-top:16px}
+  /* 10/13 注册三步弹层（她拍板：邮箱+密码 → 验证码 → 邀请码） */
+  .em-modal{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:20px}
+  .em-modal[hidden]{display:none}
+  .em-modal-mask{position:absolute;inset:0;background:rgba(15,23,42,.45)}
+  .em-modal-card{position:relative;background:var(--surface);border-radius:16px;padding:22px 20px;width:100%;max-width:360px;box-shadow:0 20px 50px rgba(15,23,42,.25)}
+  .em-modal-card h3{margin:0 0 6px;font-size:17px;font-weight:800;color:var(--ink)}
+  .em-modal-desc{margin:0 0 14px;font-size:13px;color:var(--muted);line-height:1.7}
+  .em-modal-card input{width:100%;box-sizing:border-box;margin-bottom:4px}
+  .em-modal-btns{display:flex;gap:10px;margin-top:14px}
+  .em-modal-btns .btn{flex:1}
 .form .why-log b{display:block;font-size:12.5px;color:var(--n-700);font-weight:700;margin-bottom:6px}
 .form .why-log span{display:block;font-size:12.5px;color:var(--n-600);line-height:1.7}
 label{display:block;font-size:13px;color:var(--n-700);font-weight:500;margin:14px 0 6px}
@@ -159,15 +169,40 @@ input::placeholder{color:var(--n-500)}
         <p class="desc">进入你的备考空间，继续背词、串题和刷题。</p>
         <label>邮箱</label>
         <input id="emEmail" type="email" placeholder="you@example.com" autocomplete="email" />
-        <div class="links" style="margin:0 0 14px"><button class="btn btn-sm" id="emSend" type="button">获取验证码</button></div>
-        <label>验证码</label>
-        <input id="emCode" placeholder="邮件里的 6 位数字" autocomplete="one-time-code" maxlength="6" />
         <label>密码</label>
-        <input id="emPass" type="password" placeholder="至少 6 位（之后登录用邮箱 + 密码）" autocomplete="new-password" />
-        <label>邀请码（选填，双方都得 7 天会员）</label>
-        <input id="emInvite" placeholder="朋友分享给你的邀请码" autocomplete="off" style="text-transform:uppercase" />
+        <input id="emPass" type="password" placeholder="至少 6 位" autocomplete="current-password" />
         <button class="btn" id="goEmail" type="button">登录 / 注册</button>
         <p class="note" id="noteEmail"></p>
+
+        <!-- ② 验证码弹层（新用户才出现） -->
+        <div id="emCodeModal" class="em-modal" hidden>
+          <div class="em-modal-mask"></div>
+          <div class="em-modal-card">
+            <h3>输入验证码</h3>
+            <p class="em-modal-desc">给 <b id="emCodeMail"></b> 发了一封 6 位数字的邮件，10 分钟内有效。</p>
+            <input id="emCode" placeholder="6 位数字" autocomplete="one-time-code" maxlength="6" />
+            <p class="note" id="noteCode"></p>
+            <div class="em-modal-btns">
+              <button class="btn btn-ghost" id="emCodeCancel" type="button">取消</button>
+              <button class="btn" id="emCodeOk" type="button">下一步</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ③ 邀请码弹层（注册前最后一步，选填） -->
+        <div id="emInvModal" class="em-modal" hidden>
+          <div class="em-modal-mask"></div>
+          <div class="em-modal-card">
+            <h3>有邀请码？（选填）</h3>
+            <p class="em-modal-desc">填朋友的邀请码，<b>双方都得 7 天会员</b>。不填也能直接用。</p>
+            <input id="emInvite" placeholder="朋友的邀请码" autocomplete="off" style="text-transform:uppercase" />
+            <p class="note" id="noteInv"></p>
+            <div class="em-modal-btns">
+              <button class="btn btn-ghost" id="emInvSkip" type="button">跳过</button>
+              <button class="btn" id="emInvOk" type="button">完成注册</button>
+            </div>
+          </div>
+        </div>
         <div class="links" style="margin-top:10px"><a id="toPassLogin">用账号密码登录（老用户）</a></div>
         <div class="links" style="margin-top:8px"><a id="forgotPass">忘记密码？</a></div>
         <p class="note" id="noteForgot" style="font-size:12.5px;margin-top:6px;color:#71767e"></p>
@@ -310,50 +345,84 @@ var ACCT_RE = /^(?:[a-z0-9_]{6,20}|[^\s@]+@[^\s@]+\.[^\s@]{2,})$/;
     });
   });
   $('pass').addEventListener('keydown', function(e){ if(e.key === 'Enter') $('goLogin').click(); });
-  /* ---------- 10/13 邮箱 + 验证码（她拍板：注册走邮箱验证，登录用邮箱+密码） ---------- */
-  var emCd = 0;   /* 冷却剩余秒数 */
-  function emTick(){
-    var b = $('emSend'); if(!b) return;
-    if(emCd > 0){ b.disabled = true; b.textContent = emCd + ' 秒后可重发'; emCd--; setTimeout(emTick, 1000); }
-    else { b.disabled = false; b.textContent = '获取验证码'; }
+  /* ---------- 10/13 三步注册（她拍板）----------
+     ① 填邮箱 + 密码 → 点「登录 / 注册」
+     ② 已注册且密码对 → 直接进站（不再弹任何框，邀请码仅注册时可填）
+     ③ 新用户 → 自动发验证码 → 弹验证码框 → 填完「下一步」→ 弹邀请码框（选填）→ 完成注册进站。
+     ⚠️ 邀请码只在注册这一步生效（仅 email_register 处理）。
+
+  var emCodeVal = '';
+
+  function showModal(id){
+    var codeM = $('emCodeModal'), invM = $('emInvModal');
+    if (codeM) codeM.hidden = (id !== 'emCodeModal');
+    if (invM) invM.hidden = (id !== 'emInvModal');
   }
-  function emNote(msg, bad){ note('noteEmail', msg, bad); }
-  $('emSend').addEventListener('click', function(){
+
+  /* 点「登录 / 注册」：先试密码登录（老用户直达）；新用户才发验证码并弹框 */
+  var ge = $('goEmail');
+  if (ge) ge.addEventListener('click', function(){
     var email = ($('emEmail').value || '').trim().toLowerCase();
-    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){ emNote('先填一个正确的邮箱', true); return; }
-    emNote('正在发送…', false);
-    busy($('emSend'), true, '发送中…');
-    post({ action:'email_code', email:email }).then(function(r){
-      busy($('emSend'), false, '获取验证码');
-      if(r.j.ok){ emNote(r.j.msg || '验证码已发送，10 分钟内有效', false); emCd = 60; emTick(); $('emCode').focus(); }
-      else emNote(r.j.msg || ('发送失败（HTTP ' + r.status + '）'), true);
-    }).catch(function(){
-      busy($('emSend'), false, '获取验证码');
-      emNote('网络异常，稍后再试', true);
-    });
-  });
-  $('goEmail').addEventListener('click', function(){
-    var email = ($('emEmail').value || '').trim().toLowerCase();
-    var code  = ($('emCode').value || '').trim();
-    var pass  = $('emPass') ? ($('emPass').value || '') : '';
-    var inv   = ($('emInvite').value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){ emNote('先填一个正确的邮箱', true); return; }
-    if(!/^\d{6}$/.test(code)){ emNote('填写邮件里的 6 位验证码', true); return; }
-    if(!pass){ emNote('设置一个密码（之后登录用邮箱 + 密码，不用再收码）', true); return; }
-    if(pass.length < 6){ emNote('密码至少 6 位', true); return; }
-    emNote('正在注册…', false);
-    busy($('goEmail'), true, '处理中…');
-    post({ action:'email_register', email:email, code:code, password:pass, inviteCode:inv }).then(function(r){
-      busy($('goEmail'), false, '登录 / 注册');
+    var pass  = $('emPass').value || '';
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){ note('noteEmail','先填一个正确的邮箱', true); return; }
+    if(pass.length < 6){ note('noteEmail','密码至少 6 位', true); return; }
+    note('noteEmail','正在登录…', false);
+    busy(ge, true, '请稍候');
+    post({ action:'login', acct:email, password:pass }).then(function(r){
+      busy(ge, false, '登录 / 注册');
       if(r.j.ok && r.j.token){ enterStation(r.j.acct || email, r.j.token); return; }
-      if(r.j.error === 'exists'){ emNote('这个邮箱已注册过，请直接用邮箱 + 密码登录', true); return; }
-      emNote(r.j.msg || ('失败（HTTP ' + r.status + '）'), true);
-    }).catch(function(){
-      busy($('goEmail'), false, '登录 / 注册');
-      emNote('网络异常，稍后再试', true);
-    });
+      /* no_user = 新邮箱 → 发验证码并弹验证码框；其他错误（如密码错）直接提示，不弹框 */
+      if(r.j.error === 'no_user'){
+        note('noteEmail','新邮箱，正在发验证码…', false);
+        post({ action:'email_code', email:email }).then(function(r2){
+          if(r2.j.ok){
+            var mm = $('emCodeMail'); if(mm) mm.textContent = email;
+            showModal('emCodeModal');
+            note('noteEmail','验证码已发送，去邮箱看', false);
+            var ci = $('emCode'); if(ci) ci.focus();
+          } else { note('noteEmail', r2.j.msg || '验证码没发出去', true); }
+        }).catch(function(){ note('noteEmail','网络异常，稍后再试', true); });
+        return;
+      }
+      note('noteEmail', r.j.msg || '登录失败', true);
+    }).catch(function(){ busy(ge, false, '登录 / 注册'); note('noteEmail','网络异常，稍后再试', true); });
   });
-  $('emCode').addEventListener('keydown', function(e){ if(e.key === 'Enter') $('goEmail').click(); });
+
+  /* 验证码框：填完点「下一步」→ 弹邀请码框 */
+  var cOk = $('emCodeOk');
+  if (cOk) cOk.addEventListener('click', function(){
+    var code = ($('emCode').value || '').trim();
+    if(!/^\d{6}$/.test(code)){ note('noteCode','填写 6 位数字', true); return; }
+    emCodeVal = code;
+    showModal('emInvModal');
+    var ii = $('emInvite'); if(ii) ii.focus();
+  });
+  var cCancel = $('emCodeCancel');
+  if (cCancel) cCancel.addEventListener('click', function(){ showModal(null); note('noteEmail','已取消', false); });
+  var ci2 = $('emCode');
+  if (ci2) ci2.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ var b=$('emCodeOk'); if(b) b.click(); } });
+
+  /* 邀请码框：选填 → 完成注册（或跳过）→ 真注册 */
+  function doRegister(inv){
+    var email = ($('emEmail').value || '').trim().toLowerCase();
+    var pass  = $('emPass').value || '';
+    var okBtn = $('emInvOk');
+    note('noteInv','正在注册…', false);
+    if(okBtn) busy(okBtn, true, '注册中…');
+    post({ action:'email_register', email:email, code:emCodeVal, password:pass, inviteCode:inv }).then(function(r){
+      if(okBtn) busy(okBtn, false, '完成注册');
+      if(r.j.ok && r.j.token){ showModal(null); enterStation(r.j.acct || email, r.j.token); return; }
+      note('noteInv', r.j.msg || '注册失败', true);
+    }).catch(function(){ if(okBtn) busy(okBtn, false, '完成注册'); note('noteInv','网络异常，稍后再试', true); });
+  }
+  var iOk = $('emInvOk');
+  if (iOk) iOk.addEventListener('click', function(){
+    doRegister(($('emInvite').value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, ''));
+  });
+  var iSkip = $('emInvSkip');
+  if (iSkip) iSkip.addEventListener('click', function(){ doRegister(''); });
+  var ii2 = $('emInvite');
+  if (ii2) ii2.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ var b=$('emInvOk'); if(b) b.click(); } });
 
   /* 模式切换：邮箱 ⇄ 账号密码 */
   function showMode(id){

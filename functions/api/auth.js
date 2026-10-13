@@ -52,6 +52,53 @@ const MAX_FAILS = 10;
 //    规则改为「6-20 位用户名/手机号」或「合法邮箱」，两者取或，老账号零影响。
 const ACCT_RE = /^(?:[a-z0-9_]{6,20}|[^\s@]+@[^\s@]+\.[^\s@]{2,})$/;
 
+/* ===== 邀请裂变常量与工具（10/13 她拍板）=====
+const INVITE_REWARD_DAYS = 7;    /* 双方各得 7 天 */
+const INVITE_CAP_DAYS = 30;      /* 每人累计收益上限 30 天（≈ 最多邀 4 人） */
+
+/* 邀请码 = 邮箱的 PBKDF2 哈希前 8 位：稳定（同邮箱永远同码）、不可逆、免存储。 */
+async function inviteCodeOf(kv, acct) {
+  try {
+    const salt = 'inv_salt_v1';
+    const h = await pbkdf2(String(acct || ''), salt);
+    return h.slice(0, 8).toUpperCase();
+  } catch (e) { return ''; }
+}
+
+/* 反查：邀请码 → 账号。邀请码是邮箱哈希，无法直接反推，
+   所以注册时把「邀请码 → 被邀人邮箱」的映射存下来（inv2e:<code>），仅用于发放。 */
+async function acctOfInvite(kv, code) {
+  try { return (await kv.get('inv2e:' + code)) || ''; } catch (e) { return ''; }
+}
+
+/* 发放：给邀请人和被邀人各加 INVITE_REWARD_DAYS 天会员。
+   上限判定只看邀请人累计（被邀人想再邀也走自己的码，互不占用）。 */
+async function grantInvite(kv, inviteCode, invitedAcct) {
+  const inviterAcct = await acctOfInvite(kv, inviteCode);
+  if (!inviterAcct || inviterAcct === invitedAcct) return { ok: false, msg: '自邀无效' };
+  let st = { invited: 0, earnedDays: 0 };
+  try { st = JSON.parse((await kv.get('invst:' + inviterAcct)) || 'null') || st; } catch (e) {}
+  const remaining = INVITE_CAP_DAYS - (st.earnedDays || 0);
+  if (remaining < INVITE_REWARD_DAYS) return { ok: false, msg: '对方邀请额度已用完' };
+  /* 被邀人得额度 */
+  await addVipDays(kv, invitedAcct, INVITE_REWARD_DAYS);
+  /* 邀请人得额度 + 累计 */
+  await addVipDays(kv, inviterAcct, INVITE_REWARD_DAYS);
+  st.invited = (st.invited || 0) + 1;
+  st.earnedDays = (st.earnedDays || 0) + INVITE_REWARD_DAYS;
+  await kv.put('invst:' + inviterAcct, JSON.stringify(st));
+  return { ok: true, earnedDays: st.earnedDays };
+}
+
+/* 给账号加会员天数（在现有 expire 上累加，已过期则从现在起算） */
+async function addVipDays(kv, acct, days) {
+  let cur = null;
+  try { cur = JSON.parse((await kv.get('vip:' + acct)) || 'null'); } catch (e) {}
+  const now = Date.now();
+  const base = (cur && cur.expire && cur.expire > now) ? cur.expire : now;
+  const expire = base + days * 86400000;
+  await kv.put('vip:' + acct, JSON.stringify({ type: (cur && cur.type) || 'invite', expire }));
+}
 /* 🔴 10/13：账号 → KV 键名统一入口。邮箱账号存 user:e:<email>（与老手机号/用户名账号隔离），
    其余（6-20 位用户名/手机号）仍用 user:<acct>，老数据键名不变、无缝登录。
    login/sessionOf/change 全部改走它，否则邮箱登录会拿裸邮箱当键名去查库 → 永远 no_user。 */
@@ -311,7 +358,15 @@ async function handleRequest(context) {
     }
     const salt = randHex(16);
     const rec = { email, via: 'email', created: Date.now(), salt, hash: await pbkdf2(password, salt) };
-    if (invCode) rec.invitedBy = invCode;   /* 批 2 裂变时据此发放双向额度 */
+    /* ---------- 邀请裂变（10/13 她拍板）----------
+       规则：邀请码 = 邀请人邮箱的稳定哈希（8 位）；被邀人注册时填别人的码 →
+       双方各得 INVITE_REWARD_DAYS（默认 7 天）会员；邀请人累计收益上限 INVITE_CAP_DAYS（30 天）→
+       最多邀请 4 人（4×7=28），第 5 人起不再发放（她原话：超过 30 天就不能薅了）。
+       幂等：同一邀请码只对一个被邀账号生效一次（invitedBy 落库即凭证，重复注册走 exists 拦）。 */
+    if (invCode) {
+      rec.invitedBy = invCode;
+      try { await grantInvite(kv, invCode, acct); } catch (e) { /* 发放失败不阻塞注册 */ }
+    }
     try { await kv.put(acctKey(acct), JSON.stringify(rec)); } catch (e) {
       if (/limit/i.test(String(e && e.message))) {
         return json({ ok: false, error: 'kv_busy', msg: '云端存储今日写入配额已用完，明早再注册' }, 503);
@@ -319,6 +374,9 @@ async function handleRequest(context) {
       throw e;
     }
     try { await kv.delete('ec:' + email); } catch (e) {}
+    /* 建邀请反查索引：别人注册时填我的码，服务端要能反查到「是我邀请的」。
+       码 = 邮箱哈希，不可逆，所以正查一遍存下来（幂等，重复注册不覆盖）。 */
+    try { await kv.put('inv2e:' + await inviteCodeOf(kv, acct), acct); } catch (e) {}
     /* 注册即登录：直接发 session，前端少一步 */
     const token = randHex(32);
     await kv.put('sess:' + token, JSON.stringify({ acct }), { expirationTtl: SESS_TTL });
@@ -369,6 +427,41 @@ async function handleRequest(context) {
     rec.hash = await pbkdf2(newPassword, salt);
     await kv.put(acctKey(sess.acct), JSON.stringify(rec));
     return json({ ok: true });
+  }
+
+  /* ---------- 我的邀请码（需登录态）----------
+     规则：码 = 邮箱 PBKDF2 哈希前 8 位（稳定、不可逆、不需要额外存储）。
+     随时可看（她 22:5x：自己的验证码随时可以看，用来分享给朋友）。 */
+  if (action === 'my_invite') {
+    const sess = await sessionOf(kv, request, body);
+    if (!sess) return json({ ok: false, error: 'unauthorized', msg: '登录已过期，请重新登录' }, 401);
+    const code = await inviteCodeOf(kv, sess.acct);
+    try { if (code) await kv.put('inv2e:' + code, sess.acct); } catch (e) {}   /* 兜底补索引 */
+    /* 顺手回邀请战绩：已邀几人 + 累计获得天数（她要看「我还差几人到顶」） */
+    let invited = 0, earnedDays = 0;
+    try {
+      const st = JSON.parse((await kv.get('invst:' + sess.acct)) || 'null');
+      if (st) { invited = st.invited || 0; earnedDays = st.earnedDays || 0; }
+    } catch (e) {}
+    return json({ ok: true, code, invited, earnedDays,
+      capDays: INVITE_CAP_DAYS, rewardDays: INVITE_REWARD_DAYS });
+  }
+
+  /* ---------- 查询某个邀请码是否有效（注册页实时校验用，不需要登录）----------
+     只回「有没有效 + 邀请人是谁（脱敏）」，不回任何会员/隐私信息。 */
+  if (action === 'invite_check') {
+    const code = String(body.code || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (!code) return json({ ok: false, error: 'bad_code', msg: '邀请码不能为空' }, 400);
+    const acct = await acctOfInvite(kv, code);
+    if (!acct) return json({ ok: false, error: 'not_found', msg: '这个邀请码不存在，检查一下？' }, 404);
+    let earnedDays = 0;
+    try {
+      const st = JSON.parse((await kv.get('invst:' + acct)) || 'null');
+      if (st) earnedDays = st.earnedDays || 0;
+    } catch (e) {}
+    const remaining = Math.max(0, INVITE_CAP_DAYS - earnedDays);
+    return json({ ok: true, valid: true, remainingDays: remaining,
+      msg: remaining > 0 ? ('有效 · 对方还能再邀 ' + Math.floor(remaining / INVITE_REWARD_DAYS) + ' 人') : '对方邀请额度已用完' });
   }
 
   /* ---------- 查询会员状态（需登录态；会员中心页实时校验用） ----------
