@@ -45,6 +45,8 @@ const PBKDF2_ITER = 100000;
 const SESS_TTL = 30 * 24 * 3600;          // session 30 天
 const LOCK_TTL = 15 * 60;                 // 失败锁定 15 分钟
 const MAX_FAILS = 10;
+/* 10/13 注册限流：邮箱验证码挡假邮箱；一人拿一批真邮箱仍可批量注册薅邀请 → 同 IP 每日上限 */
+const REG_PER_IP_PER_DAY = 10;
 // ⭐ 10/1 她拍板：账号 = 手机号 或 自定义用户名（6-20 位数字/字母/下划线，统一小写存储）。
 // 老手机号账号（6-15 位纯数字）天然满足该规则，登录键名不变，云端老数据无缝接上。
 // 🔴 10/13 放开邮箱：注册改「邮箱 + 验证码 + 密码」后，登录时 acct 传的就是邮箱
@@ -357,6 +359,17 @@ async function handleRequest(context) {
       return json({ ok: false, error: 'exists', msg: '这个邮箱已经注册过了，直接用邮箱 + 密码登录' }, 409);
     }
     const salt = randHex(16);
+    /* 同 IP 每日注册上限（只作用于邮箱注册；老 register 与找回密码 email_reset 都不受限） */
+    const _ip = String(request.headers.get('CF-Connecting-IP') || 'unknown');
+    const _dd = new Date();
+    const _day = _dd.getUTCFullYear() + String(_dd.getUTCMonth() + 1).padStart(2, '0') + String(_dd.getUTCDate()).padStart(2, '0');
+    const _ipKey = 'regip:' + _ip + ':' + _day;
+    const _ipN = parseInt((await kv.get(_ipKey)) || '0', 10) + 1;
+    if (_ipN > REG_PER_IP_PER_DAY) {
+      return json({ ok: false, error: 'too_many_reg', msg: '今天这台设备注册得够多了，明天再试' }, 429);
+    }
+    try { await kv.put(_ipKey, String(_ipN), { expirationTtl: 86400 }); } catch (e) {}
+
     const rec = { email, via: 'email', created: Date.now(), salt, hash: await pbkdf2(password, salt) };
     /* ---------- 邀请裂变（10/13 她拍板）----------
        规则：邀请码 = 邀请人邮箱的稳定哈希（8 位）；被邀人注册时填别人的码 →
