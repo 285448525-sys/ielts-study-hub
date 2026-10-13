@@ -433,6 +433,14 @@ async function handleRequest(context) {
      规则：码 = 邮箱 PBKDF2 哈希前 8 位（稳定、不可逆、不需要额外存储）。
      随时可看（她 22:5x：自己的验证码随时可以看，用来分享给朋友）。 */
   if (action === 'my_invite') {
+    /* 🔴 临时 debug（定位完删）：把真实异常回传，别再猜 */
+    try {
+      const _sess = await sessionOf(kv, request, body);
+      const _code = await inviteCodeOf(kv, _sess && _sess.acct);
+      return json({ ok: true, debug: 'ok', acct: (_sess && _sess.acct) || null, code: _code });
+    } catch (e) {
+      return json({ ok: false, debug: String((e && e.message) || e), stack: String((e && e.stack) || '').slice(0, 300) });
+    }
     const sess = await sessionOf(kv, request, body);
     if (!sess) return json({ ok: false, error: 'unauthorized', msg: '登录已过期，请重新登录' }, 401);
     const code = await inviteCodeOf(kv, sess.acct);
