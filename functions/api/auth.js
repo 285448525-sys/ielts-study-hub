@@ -463,9 +463,10 @@ async function handleRequest(context) {
       const st = JSON.parse((await kv.get('invst:' + acct)) || 'null');
       if (st) earnedDays = st.earnedDays || 0;
     } catch (e) {}
-    const remaining = Math.max(0, INVITE_CAP_DAYS - earnedDays);
+    /* 字面量 30/7（与 my_invite 同口径）；战绩读不到按 0 算 —— 码有效就放行，不因统计失败卡住注册 */
+    const remaining = Math.max(0, 30 - earnedDays);
     return json({ ok: true, valid: true, remainingDays: remaining,
-      msg: remaining > 0 ? ('有效 · 对方还能再邀 ' + Math.floor(remaining / INVITE_REWARD_DAYS) + ' 人') : '对方邀请额度已用完' });
+      msg: remaining > 0 ? ('有效 · 对方还能再邀 ' + Math.floor(remaining / 7) + ' 人') : '对方邀请额度已用完' });
     } catch (e) {
       return json({ ok: false, error: 'check_failed', msg: '这个邀请码暂时查不了，稍后再试' }, 500);
     }
