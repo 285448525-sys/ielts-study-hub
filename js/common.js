@@ -4944,6 +4944,16 @@ function planJumpInfo(text){
     if(/口语/.test(t)) return { file: 'bank.html', open: '', label: '去模考·口语' };
     return { file: 'bank.html', open: '', label: '去模考' };
   }
+  /* 10/13 补：计时/专注类任务（「计时 25 分钟」「开一段专注」）→ timer.html。
+     10/12 C-2 漏了这条，导致首页「开一段专注」的任务行不可点（点了没反应）。
+     🔴 不能只写 /专注/ —— DAILY 模板里有「服专注达：把最难的任务放在药效前 6 小时」
+     （服药提醒，含"专注"二字），会被误判成计时。所以要求：
+       · 「计时」「番茄」直接认（无歧义）；
+       · 「专注」必须搭配学习语义（一段/次/分钟/学习），排除「服专注达」。
+     ⚠️ 服药模块任务（meds）本来就没有跳转目标，保持不可点是对的。 */
+  if(/计时|番茄/.test(t)) return { file: 'timer.html', open: '', label: '去计时' };
+  if(/专注/.test(t) && /一段|一次|分钟|学习|小时/.test(t) && !/服|药/.test(t))
+    return { file: 'timer.html', open: '', label: '去计时' };
   if(/口语/.test(t)){
     let m = t.match(/题库(\d+)/);
     if(m){
