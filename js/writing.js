@@ -1,4 +1,4 @@
-var curCat = null;
+﻿var curCat = null;
 var curId = null;
 var curTab = 'tpl';
 var tplSearch = '';
@@ -815,7 +815,7 @@ ${s.text}` }
     const content = await callRelay('writing_score', messages, 0.35);
     const r = aiJson(content);
     if(!r){
-      box.innerHTML = '<div class="ts-sec"><h4>AI 返回（非标准格式）</h4><div style="white-space:pre-wrap;font-size:13.5px;line-height:1.8">' + escapeHtml(content) + '</div></div>';
+      box.innerHTML = '<div class="ts-sec"><h4>AI 原文（没按格式回）</h4><div style="white-space:pre-wrap;font-size:13.5px;line-height:1.8">' + escapeHtml(content) + '</div></div>';
       DATA.writingScores.push({ id: uid(), date: todayKey(), mode:'template', tplId: s.tpl.id, tplTitle: s.tpl.title, tplCat: s.tpl.category, essay: s.text, result: content, parsed:false });
       hubSave();
       return;
@@ -1479,7 +1479,7 @@ ${JSON.stringify(weakBefore)}` }
     const content = await callRelay('dictation_check', messages, 0.4);
     const r = aiJson(content);
     if(!r){
-      box.innerHTML = '<div class="ts-sec"><h4>AI 返回（非标准格式）</h4><div style="white-space:pre-wrap;font-size:13.5px;line-height:1.8">' + escapeHtml(content) + '</div></div>';
+      box.innerHTML = '<div class="ts-sec"><h4>AI 原文（没按格式回）</h4><div style="white-space:pre-wrap;font-size:13.5px;line-height:1.8">' + escapeHtml(content) + '</div></div>';
       return;
     }
     const rawMistakes = Array.isArray(r.mistakes) ? r.mistakes : [];
@@ -1773,7 +1773,7 @@ ${ANCHOR_TABLE_EN}
     const result = aiJson(content);
     if(!result){
       // JSON 解析失败，降级显示原始文本
-      bodyEl.innerHTML = '<div class="score-section"><h4>AI 返回（非标准格式）</h4><div style="white-space:pre-wrap;font-size:14px;line-height:1.8">' + escapeHtml(content) + '</div></div>';
+      bodyEl.innerHTML = '<div class="score-section"><h4>AI 原文（没按格式回）</h4><div style="white-space:pre-wrap;font-size:14px;line-height:1.8">' + escapeHtml(content) + '</div></div>';
       DATA.writingScores.push({ id: uid(), date: todayKey(), type, topic, essay, result: content, parsed: false });
       hubSave();
       return;
@@ -2295,7 +2295,7 @@ ${ANCHOR_TABLE_EN}
       const content = await callRelay('writing_score', messages, 0.4);
       const result = aiJson(content);
       if(!result){
-        box.innerHTML = '<div class="ts-sec"><h4>AI 返回（非标准格式）</h4><div style="white-space:pre-wrap;font-size:14px;line-height:1.8">'+escapeHtml(content)+'</div></div>';
+        box.innerHTML = '<div class="ts-sec"><h4>AI 原文（没按格式回）</h4><div style="white-space:pre-wrap;font-size:14px;line-height:1.8">'+escapeHtml(content)+'</div></div>';
         toast('AI 返回格式异常，已显示原文');
         return;
       }

@@ -1,4 +1,4 @@
-var dict = null; // {queue, idx, cfg, wrongList, total, correct, revealed}
+﻿var dict = null; // {queue, idx, cfg, wrongList, total, correct, revealed}
 
 // ---- 语料库表格默写草稿（瞬态 localStorage，切走/刷新可续；不进云同步）----
 var corDraftTimer = null;
@@ -864,7 +864,7 @@ async function analyzeEntry(){
     } else {
       // AI 没按 JSON 回 → 原文照存，不丢东西
       Object.assign(entry, {
-        title: '（AI 返回非标准格式，已存原文）', qtype:'其他',
+        title: '（AI 返回没按格式回，已存原文）', qtype:'其他',
         trap:'其他', myAnswer:'', correctAnswer:'', keyReasoning:null, rule:'',
         questionText:'', passageSnippet:'', translation:'', structureAnalysis:null,
         words: [], raw: content

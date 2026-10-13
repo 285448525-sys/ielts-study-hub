@@ -1,4 +1,4 @@
-/* === 口语题库（极简版） · v20260923g（design/87：P2 串题要点驱动重构） === */
+﻿/* === 口语题库（极简版） · v20260923g（design/87：P2 串题要点驱动重构） === */
 var curType = 'ALL';   // 题库 tab 合并 P1+P2（'ALL'）；P1/P2 仅保留为数据类型
 var curFreq = 'all';
 var curCat = 'all';
@@ -1649,7 +1649,7 @@ async function planChuan(s){
   }catch(e){
     if(resultEl){
       if(String(e && e.message || '').indexOf('__RAW__') === 0){
-        resultEl.innerHTML = '<div class="diag-note">AI 返回非标准格式，原文如下：</div><pre>' + escapeHtml(String(e.message).slice(7)) + '</pre>';
+        resultEl.innerHTML = '<div class="diag-note">AI 这次没按格式回，先把它说的原样贴在这儿：</div><pre>' + escapeHtml(String(e.message).slice(7)) + '</pre>';
       } else {
         resultEl.innerHTML = '<div class="diag-note">AI 服务暂不可用：' + escapeHtml(e.message) + '</div>';
       }
@@ -1713,7 +1713,7 @@ async function finalChuan(s, aiFill){
     // 失败不落库：数据里旧稿原样保留；界面回到草稿态（补槽/判定卡）让她能直接重试
     if(resultEl){
       if(String(e && e.message || '').indexOf('__RAW__') === 0){
-        resultEl.innerHTML = '<div class="diag-note">AI 返回非标准格式，原文如下：</div><pre>' + escapeHtml(String(e.message).slice(7)) + '</pre>';
+        resultEl.innerHTML = '<div class="diag-note">AI 这次没按格式回，先把它说的原样贴在这儿：</div><pre>' + escapeHtml(String(e.message).slice(7)) + '</pre>';
       } else {
         resultEl.innerHTML = '<div class="diag-note">讲稿生成失败：' + escapeHtml(e.message) + '（旧稿保留未动，可直接重试）</div>';
       }
@@ -2540,7 +2540,7 @@ function bindQuestionEvents(id){
           const j = JSON.parse(s.answers[qi].result);
           renderDiag(resultEl, j, s.answers[qi].result, s.answers[qi].text);
         }catch(_){
-          resultEl.innerHTML = '<div class="diag-note">（上次结果非标准格式，已贴原文）</div><pre>' + escapeHtml(s.answers[qi].result || '') + '</pre>';
+          resultEl.innerHTML = '<div class="diag-note">（上次 AI 没按格式回，已贴原文）</div><pre>' + escapeHtml(s.answers[qi].result || '') + '</pre>';
           resultEl.style.display = 'block';
         }
       }
@@ -2773,7 +2773,7 @@ async function diagnoseP2(id){
 
     // 渲染结果
     if(!renderP2Diag(resultEl, j, answer)){
-      resultEl.innerHTML = '<div class="diag-note">（AI 返回非标准格式，已贴原文）</div><pre>' + escapeHtml(content || '') + '</pre>';
+      resultEl.innerHTML = '<div class="diag-note">（AI 没按格式回，已贴原文）</div><pre>' + escapeHtml(content || '') + '</pre>';
     }
     resultEl.style.display = 'block';
 
@@ -3201,7 +3201,7 @@ function renderDiag(el, j, raw, answer){
     if(j.rewrite) h += '<div class="diag-sec"><b>改进版表达</b><div class="diag-rewrite">' + highlightRewriteHtml(j.rewrite, errs) + '</div></div>';
   el.innerHTML = scoreHtml + h;
   } else {
-    el.innerHTML = scoreHtml + '<div class="diag-note">（AI 返回非标准格式，已贴原文）</div><pre>' + escapeHtml(raw || '') + '</pre>';
+    el.innerHTML = scoreHtml + '<div class="diag-note">（AI 没按格式回，已贴原文）</div><pre>' + escapeHtml(raw || '') + '</pre>';
   }
   el.style.display = 'block';
 }
@@ -3288,7 +3288,7 @@ async function generateAIHelper(id, qi){
       hubSave();
       if(resultEl) renderAIHelper(resultEl, s.answers[qi].aiHelper);
     } else {
-      if(resultEl) resultEl.innerHTML = '<div class="diag-note">AI 返回非标准格式，原文如下：</div><pre>' + escapeHtml(content || '') + '</pre>';
+      if(resultEl) resultEl.innerHTML = '<div class="diag-note">AI 这次没按格式回，先把它说的原样贴在这儿：</div><pre>' + escapeHtml(content || '') + '</pre>';
     }
   }catch(e){
     if(resultEl) resultEl.innerHTML = '<div class="diag-note">生成失败：' + escapeHtml(e.message) + '</div>';
