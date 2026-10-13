@@ -67,6 +67,21 @@ setTimeout(__rvRescue,2500);
   <!-- 当前状态卡（js/vip.js 实时查 /api/auth vip_status 渲染） -->
   <section class="card" id="vipHero"></section>
 
+  <!-- 为什么收费（10/13 她 13:44 要求：「学人家怎么劝开会员但别太过营销，真诚一点；
+       要表达会员功能基本都是为 AI 服务——内置站长本人的 API key，使用有成本才收费」）。
+       调研基线（≥2 独立来源，铁律）：whatled《AI SaaS 定价指南》「定价应与实际成本挂钩」+
+       vmobify《AI App Unit Economics》「可预期性本身就是产品价值」+ grizzlypeak
+       「Communicate Value, Not Features」——先讲为什么再谈价格，规则摊开不设隐藏成本。 -->
+  <section class="card rv">
+    <span class="kicker">Why · 先说清楚</span>
+    <h2 style="margin:0 0 14px">这个站为什么收费</h2>
+    <div style="background:#f6f8f9;border-radius:12px;padding:18px 20px">
+      <p style="margin:0 0 10px;font-size:14.5px;line-height:1.85"><b>会员功能，基本都是在为 AI 买单。</b>站里的 AI 批改、口语陪练、模考评分，用的是站长本人购买的接口——你每提交一篇作文、每练一轮口语，都在产生真实的调用费用。会员收的钱，就是用来覆盖这部分成本的。</p>
+      <p style="margin:0 0 10px;font-size:14.5px;line-height:1.85"><b>不靠 AI 的功能，永久免费。</b>词库、口语题库、备考计划、回顾、计时、听写、长难句、云同步和数据导出——这些和会员没有任何区别，也不会变。</p>
+      <p style="margin:0;font-size:14.5px;line-height:1.85"><b>收费只为让站能一直开下去</b>，不玩套路：免费额度规则全部写在下面，7 天内不满意全额退，到期后学习数据一条不删。你付的每一分钱，都花在陪你练习的 AI 上。</p>
+    </div>
+  </section>
+
   <!-- 会员方案：价格卡由 js/vip.js 按 VIP_PLANS 常量渲染（改价只动那里一处） -->
   <section class="card rv">
     <span class="kicker">Pricing · AI 无限用</span>
@@ -85,7 +100,7 @@ setTimeout(__rvRescue,2500);
     <span class="kicker">Compare · 差在哪</span>
     <h2 style="margin:0 0 14px">免费版 vs 会员</h2>
     <div id="vipMatrix" class="vip-cmp"></div>
-    <p class="muted" style="font-size:12.5px;margin:12px 0 0">学习功能本身全部免费且无差别——会员提升的是 <b>AI 额度</b>（模考 / 批改 / 素材 / 辅助）和后续专属功能。</p>
+    <p class="muted" style="font-size:12.5px;margin:12px 0 0">学习功能本身全部免费且无差别（为什么收费，见上面「先说清楚」）——会员提升的是 <b>AI 额度</b>（模考 / 批改 / 素材 / 辅助）和后续专属功能。</p>
   </section>
 
   <!-- 开通方式（10/1 先手动收款，自动支付跑通后再接） -->
@@ -108,7 +123,7 @@ setTimeout(__rvRescue,2500);
     </details>
     <details style="padding:10px 0;border-bottom:1px solid var(--line)">
       <summary style="cursor:pointer;font-weight:600">会员和免费版在学习功能上有区别吗？</summary>
-      <p class="muted" style="font-size:13px;margin:8px 0 0">没有。词库、口语题库、计划、回顾、计时、听写、云同步、数据导出这些学习功能完全一样、永久免费——会员提升的是 AI 额度和后续上线的专属功能。</p>
+      <p class="muted" style="font-size:13px;margin:8px 0 0">没有。词库、口语题库、计划、回顾、计时、听写、云同步、数据导出这些学习功能完全一样、永久免费——会员提升的是 AI 额度和后续上线的专属功能（为什么这样分，见上面「先说清楚」）。</p>
     </details>
     <details style="padding:10px 0;border-bottom:1px solid var(--line)">
       <summary style="cursor:pointer;font-weight:600">为什么注册需要邀请码？</summary>
