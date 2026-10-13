@@ -221,6 +221,8 @@ body{
   border:1.5px solid var(--line);background:var(--primary-50);display:block;transition:border-color .15s,transform .12s}
 .side-me:hover{border-color:var(--primary);transform:translateY(-1px)}
 .side-me img{width:100%;height:100%;object-fit:cover;display:block}
+.side-me--guest svg{width:18px;height:18px;display:block;color:var(--muted)}
+.side-me--guest:hover svg{color:var(--primary)}
 .side-brand{display:flex;flex-direction:column;line-height:1.1;min-width:0}
 .side-brand .bn{font-size:15px;font-weight:800;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .side-brand .bs{font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:3px}

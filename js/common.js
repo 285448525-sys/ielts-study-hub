@@ -87,14 +87,22 @@ function injectNav(){
   /* 10/3 头像选择：侧栏品牌位右侧加一枚用户头像（点它跳设置页选头像）。
      ⚠️ 这里**内联解析**而不是依赖 window.avUserSrc —— 因为 common.js 早于 av-picker.js 执行
        （av-picker 只在 settings/speaking 引，侧栏是全站 14 页都要显示的）。
-       读 DATA.settings.avatar 存的文件名，非法/未设回退默认；**只存文件名不存图片**。 */
+       读 DATA.settings.avatar 存的文件名，非法/未设回退默认；**只存文件名不存图片**。
+     10/13 她无痕截图报「左上角那块有 bug」：根因 = 未登录也渲染默认头像（陌生默认女头像
+       冒出来，且点了跳设置页=未登录用户没有「选头像」的意义）。改为**登录态才显示头像**；
+       未登录 = 同尺寸「登录」入口（人头线条图标，跳 login.html）——侧栏本来没有登录路径，
+       未登录用户只能从落地页/settings 找登录，这个位正好补上。 */
   const _AV_SET = new Set(['user-f1','user-f2','user-f3','user-f4','user-m1','user-m2','user-m3','user-m4']);
   const _avRaw = (typeof DATA !== 'undefined' && DATA.settings) ? DATA.settings.avatar : '';
   const _avMe2 = 'img/avatars/' + (_AV_SET.has(_avRaw) ? _avRaw : 'user-f1') + '.svg';
+  const _meEl = authToken()
+    ? '<a class="side-me" href="settings.html" title="换头像" aria-label="换头像"><img src="' + _avMe2 + '" alt=""></a>'
+    : '<a class="side-me side-me--guest" href="login.html" title="去登录" aria-label="去登录">'
+      + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c1.2-3.6 4.1-5.4 7.5-5.4s6.3 1.8 7.5 5.4"/></svg></a>';
   html += '<div class="side-head">'
     + '<span class="side-brand-mark" aria-hidden="true"><svg viewBox="0 0 512 512" width="40" height="40" fill="none" style="display:block" aria-hidden="true"><g fill="#ffffff" stroke="#ffffff" stroke-width="38" stroke-linejoin="round" stroke-linecap="round"><path d="M256 136 L344 194 L256 252 L168 194 Z"/><path d="M160 304 L212 304 L256 362 L300 304 L352 304 L352 354 Q352 394 256 394 Q160 394 160 354 Z"/></g></svg></span>'
     + '<div class="side-brand"><span class="bn">IELTS</span><span class="bs">雅思备考站</span></div>'
-    + (_avMe2 ? '<a class="side-me" href="settings.html" title="换头像" aria-label="换头像"><img src="' + _avMe2 + '" alt=""></a>' : '')
+    + _meEl
     + '<button id="sideCollapseIn" class="side-collapse-in" type="button" aria-label="收起侧边栏" title="收起侧边栏">⟨</button>'
     + '</div>';
   // 方案1：全局计时徽标容器（任何页面常驻；计时进行中显示呼吸徽标 + 一键结束，解决 P1/P3）
