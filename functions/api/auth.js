@@ -433,14 +433,6 @@ async function handleRequest(context) {
      规则：码 = 邮箱 PBKDF2 哈希前 8 位（稳定、不可逆、不需要额外存储）。
      随时可看（她 22:5x：自己的验证码随时可以看，用来分享给朋友）。 */
   if (action === 'my_invite') {
-    /* 🔴 临时 debug（定位完删）：把真实异常回传，别再猜 */
-    try {
-      const _sess = await sessionOf(kv, request, body);
-      const _code = await inviteCodeOf(kv, _sess && _sess.acct);
-      return json({ ok: true, debug: 'ok', acct: (_sess && _sess.acct) || null, code: _code });
-    } catch (e) {
-      return json({ ok: false, debug: String((e && e.message) || e), stack: String((e && e.stack) || '').slice(0, 300) });
-    }
     const sess = await sessionOf(kv, request, body);
     if (!sess) return json({ ok: false, error: 'unauthorized', msg: '登录已过期，请重新登录' }, 401);
     const code = await inviteCodeOf(kv, sess.acct);
@@ -458,6 +450,8 @@ async function handleRequest(context) {
   /* ---------- 查询某个邀请码是否有效（注册页实时校验用，不需要登录）----------
      只回「有没有效 + 邀请人是谁（脱敏）」，不回任何会员/隐私信息。 */
   if (action === 'invite_check') {
+    /* 🔴 整体 try：别再让任何未捕获异常变成裸 500（注册页要靠它实时提示） */
+    try {
     const code = String(body.code || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
     if (!code) return json({ ok: false, error: 'bad_code', msg: '邀请码不能为空' }, 400);
     const acct = await acctOfInvite(kv, code);
@@ -470,6 +464,9 @@ async function handleRequest(context) {
     const remaining = Math.max(0, INVITE_CAP_DAYS - earnedDays);
     return json({ ok: true, valid: true, remainingDays: remaining,
       msg: remaining > 0 ? ('有效 · 对方还能再邀 ' + Math.floor(remaining / INVITE_REWARD_DAYS) + ' 人') : '对方邀请额度已用完' });
+    } catch (e) {
+      return json({ ok: false, error: 'check_failed', msg: '这个邀请码暂时查不了，稍后再试' }, 500);
+    }
   }
 
   /* ---------- 查询会员状态（需登录态；会员中心页实时校验用） ----------
