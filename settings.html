@@ -56,7 +56,8 @@ setTimeout(__rvRescue,2500);
 .av-opt.on .av-box{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
 .av-opt.on .av-box::after{content:'';position:absolute;right:4px;top:4px;width:14px;height:14px;border-radius:50%;
   background:var(--primary) no-repeat center/9px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 12.5 9.5 18 20 6'/%3E%3C/svg%3E")}
-.av-lb{font-size:10.5px;color:var(--muted);line-height:1.2;text-align:center}
+/* 10/13 她要求「头像下不写男生女生1234，直接显示头像」→ .av-lb 文字标签已删（死样式一并清）；
+   .av-opt 的 gap:5px 原是「图+文字」间距，现单子项无副作用保留 */
 /* 陪练气泡里的用户头像（coach.js 用） */
 .coach-av-user{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit}
 
@@ -214,7 +215,7 @@ setTimeout(__rvRescue,2500);
   <script defer src="js/common.js?v=20261012h"></script>
   <script defer src="js/feedback.js?v=20261013a"></script>
   <!-- 10/3 头像选择（DiceBear CC0 素材；必须在 data.js/common.js 之后 —— 它读 DATA.settings.avatar） -->
-  <script defer src="js/av-picker.js?v=20261004c"></script>
+  <script defer src="js/av-picker.js?v=20261004d"></script>
   <script src="js/settings.js?v=20261004b" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}

@@ -61,13 +61,14 @@
   function renderGrid(boxId, list, curFn, field){
     var box = document.getElementById(boxId);
     if(!box) return;
+    /* 10/13 她截图要求「头像下面不要写男生女生 1234，直接显示头像让人选」：
+       .av-lb 文字标签整块删；title/alt 改中性文案（alt 不能空——读屏需要）。 */
     box.innerHTML = list.map(function(a){
       var on = (curFn() === a.f) ? ' on' : '';
       return '<button type="button" class="av-opt' + on + '" data-av="' + a.f + '" role="radio"'
-        + ' aria-checked="' + (curFn() === a.f ? 'true' : 'false') + '" title="' + a.label + '">'
-        + '<span class="av-box"><img src="' + DIR + a.f + '.svg" alt="' + a.label + '" loading="lazy"'
-        + ' onerror="this.style.visibility=\'hidden\'"></span>'
-        + '<span class="av-lb">' + a.label + '</span></button>';
+        + ' aria-checked="' + (curFn() === a.f ? 'true' : 'false') + '" title="选择这个头像">'
+        + '<span class="av-box"><img src="' + DIR + a.f + '.svg" alt="头像" loading="lazy"'
+        + ' onerror="this.style.visibility=\'hidden\'"></span></button>';
     }).join('');
     box.onclick = function(e){
       var b = e.target.closest ? e.target.closest('.av-opt') : null;
