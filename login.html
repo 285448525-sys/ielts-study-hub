@@ -24,6 +24,10 @@ body{
 .top a:hover{color:var(--p-900)}
 .stage{flex:1;display:flex;align-items:center;justify-content:center;padding:12px 24px 48px}
 .duo{display:grid;grid-template-columns:1.15fr .85fr;gap:22px;max-width:1000px;width:100%}
+/* 10/13 UI 优化：表单挪左（桌面）/ 排最上（移动）—— 只改 order，不动 DOM。
+   品牌栏在 DOM 里是第一个、表单第二个；表单 order:-1 后两处都在前。 */
+.duo > .card.form{order:-1}
+.duo > .card.brand{order:0}
 .card{background:var(--n-0);border-radius:18px;box-shadow:0 18px 50px rgba(26,69,66,.10),0 2px 8px rgba(26,69,66,.05);padding:44px}
 /* 左：品牌 */
 .brand .mark{display:flex;align-items:center;gap:10px;margin-bottom:26px}
