@@ -490,10 +490,15 @@
 /* ===== 写作 pane（10/11 第 7 项：写作真题从 writing.html 搬来）=====
    基础 .exam-* 样式已在 css/common.css（#examPractice / .exam-head / .exam-split / .exam-q / .exam-a /
    .exam-textarea / .exam-bar / .exam-step / .exam-essay-fold 等），此处只补「真题列表卡片」与「页面级微调」。
-   全部页面内联 → 不动 common.css（免全站 19 页 bump）。 */
-.exam-filter-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 14px}
-.exam-filter-bar select{padding:6px 10px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;
-  background:var(--bg);color:var(--ink);min-width:150px}
+   全部页面内联 → 不动 common.css（免全站 19 页 bump）。
+   10/13 她报「筛选条太长各占一行 + 卡片一眼看不见重点」：
+   ① 筛选条 = 一行窄条（nowrap + 超宽横滑；select width:auto 不再被最长 option 拉宽，
+      选项文案缩短「全部作文/所有题型」）；② 卡片层级重排（标题升 16px/800 两行不切内容、
+      来源 meta 独立成行、空态去框弱化）。 */
+.exam-filter-bar{display:flex;gap:8px;align-items:center;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin;margin:0 0 14px}
+.exam-filter-bar select{padding:5px 9px;border:1px solid var(--line);border-radius:var(--radius-sm,10px);font:inherit;
+  background:var(--bg);color:var(--ink);width:auto;min-width:0;max-width:172px;font-size:13px;flex:none;cursor:pointer}
+.exam-filter-bar select:focus{outline:none;border-color:var(--primary)}
 .exam-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
 .exam-group-title{grid-column:1 / -1;display:flex;align-items:center;gap:6px;margin:4px 0 2px}
 .exam-group-title .exam-kind-tag{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--primary-soft);color:var(--med);font-weight:600;white-space:nowrap}
@@ -502,17 +507,21 @@
 .exam-item{border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;cursor:pointer;transition:border-color .15s,background .15s;display:flex;flex-direction:column;height:100%;position:relative}
 .exam-item:hover{border-color:var(--primary);background:var(--surface)}
 .exam-item.is-done{border-color:var(--primary);background:linear-gradient(0deg,var(--primary-soft),var(--primary-soft))}
-.exam-item .ei-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
-.exam-item .ei-no{font-size:12px;font-weight:700;color:var(--muted)}
+.exam-item .ei-top{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px}
+.exam-item .ei-no{font-size:12px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
 .exam-item .ei-done{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#22c55e;color:#fff;font-size:12px;font-weight:700;flex:none}
-.exam-item .ei-score{margin-left:auto;font-size:13px;font-weight:800;color:var(--med);background:var(--primary-soft);border-radius:10px;padding:1px 8px;white-space:nowrap}
+.exam-item .ei-score{margin-left:auto;font-size:13px;font-weight:800;color:var(--med);background:var(--primary-soft);border-radius:10px;padding:1px 8px;white-space:nowrap;font-variant-numeric:tabular-nums}
 .exam-item .ei-score i{font-style:normal;font-weight:600;color:var(--muted);font-size:11px}
 .exam-item .ei-type{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--primary-soft);color:var(--med);font-weight:600;white-space:nowrap}
 .exam-item .ei-sub{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--bg);color:var(--ink);border:1px solid var(--line);font-weight:600;white-space:nowrap}
-.exam-item .ei-meta{font-size:12px;color:var(--muted)}
-.exam-item .ei-title{font-size:15px;font-weight:700;color:var(--ink);line-height:1.4;margin:2px 0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 10/13：来源 meta 从顶行拆出、独立成行降为 12px 灰（顶行只留编号+题型+分数） */
+.exam-item .ei-meta{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:2px}
+/* 10/13：标题 = 卡片第一重点（16px/800，两行截断不切内容——她「可以变高，绝不切内容」判据） */
+.exam-item .ei-title{font-size:16px;font-weight:800;color:var(--ink);line-height:1.45;margin:2px 0 6px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* 10/13：空态弱化——去边框去底色，普通斜体灰字（原来带框的灰块视觉太重，抢标题） */
 .exam-item .ei-prev{font-size:12.5px;color:var(--muted);line-height:1.55;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 9px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.exam-item .ei-prev-empty{color:var(--muted);font-style:italic}
+.exam-item .ei-prev-empty{color:var(--muted);font-style:italic;background:none;border:none;padding:0}
 .exam-item .ei-zh{font-size:14px;color:var(--ink);line-height:1.6;flex:1}
 .exam-item .ei-en{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.6;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .exam-item .ei-chart{margin-top:10px;border-radius:var(--radius);overflow:hidden;background:var(--bg);border:1px solid var(--line);flex-shrink:0}
@@ -816,12 +825,12 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
         <section id="examHome">
           <div class="exam-filter-bar">
             <select id="examFilter" aria-label="按题型筛选">
-              <option value="all">全部</option>
-              <option value="big">大作文（Task 2）</option>
-              <option value="small">小作文（Task 1）</option>
+              <option value="all">全部作文</option>
+              <option value="big">大作文 Task 2</option>
+              <option value="small">小作文 Task 1</option>
             </select>
             <select id="examSubFilter" aria-label="按细分题型筛选">
-              <option value="all">全部题型</option>
+              <option value="all">所有题型</option>
             </select>
           </div>
           <div id="examList" class="exam-list"></div>
@@ -871,7 +880,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/data.js?v=20261011e"></script>
 <script defer src="js/common.js?v=20261012h"></script>
 <script defer src="js/writing_prompts.js?v=20260903ab"></script>
-<script defer src="js/writing.js?v=20261011b"></script>
+<script defer src="js/writing.js?v=20261011c"></script>
 <script defer src="js/bank.js?v=20261012i"></script>
 </body>
 </html>

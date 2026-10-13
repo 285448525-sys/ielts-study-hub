@@ -2000,10 +2000,11 @@ function renderExamList(){
       + '<div class="ei-top">'
       + '<span class="ei-no">#'+(kind==='big'?it.no:'T'+it.no)+'</span>'
       + doneMark
-      + scoreMark
       + '<span class="ei-type">'+typeLabel+'</span>'
       + '<span class="ei-sub">'+escapeHtml(subType)+'</span>'
-      + '<span class="ei-meta">'+escapeHtml(meta)+'</span></div>'
+      + scoreMark
+      + '</div>'
+      + '<div class="ei-meta">'+escapeHtml(meta)+'</div>'
       + '<div class="ei-title">'+escapeHtml(summary)+'</div>'
       + preview
       + chartThumb
@@ -2436,7 +2437,7 @@ function bindExam(){
   const updateSubOptions = () => {
     if(!sf) return;
     const val = f ? f.value : 'all';
-    let opts = '<option value="all">全部题型</option>';
+    let opts = '<option value="all">所有题型</option>';
     if(val === 'big'){
       opts += '<option value="观点型">观点型</option>'
             + '<option value="讨论型">讨论型</option>'
