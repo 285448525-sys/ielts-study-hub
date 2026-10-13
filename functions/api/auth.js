@@ -59,7 +59,7 @@ const INVITE_CAP_DAYS = 30;      /* 每人累计收益上限 30 天（≈ 最多
 /* 邀请码 = 邮箱的 PBKDF2 哈希前 8 位：稳定（同邮箱永远同码）、不可逆、免存储。 */
 async function inviteCodeOf(kv, acct) {
   try {
-    const salt = 'inv_salt_v1';
+    const salt = 'a1b2c3d4e5f60718';   /* 🔴 必须是合法 hex：pbkdf2() 内部走 hexToBuf(salt)，非 hex 会抛异常 → 500 */
     const h = await pbkdf2(String(acct || ''), salt);
     return h.slice(0, 8).toUpperCase();
   } catch (e) { return ''; }
