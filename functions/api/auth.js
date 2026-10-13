@@ -435,16 +435,18 @@ async function handleRequest(context) {
   if (action === 'my_invite') {
     const sess = await sessionOf(kv, request, body);
     if (!sess) return json({ ok: false, error: 'unauthorized', msg: '登录已过期，请重新登录' }, 401);
-    const code = await inviteCodeOf(kv, sess.acct);
-    try { if (code) await kv.put('inv2e:' + code, sess.acct); } catch (e) {}   /* 兜底补索引 */
+    /* 🔴 每一步独立 try：邀请码是「随时可看」的核心需求，任何一步（哈希/KV）出岔子
+       都只降级、绝不 500 —— 宁可少回战绩，也要把码给到她。 */
+    let code = '';
+    try { code = await inviteCodeOf(kv, sess.acct); } catch (e) {}
+    try { if (code) await kv.put('inv2e:' + code, sess.acct); } catch (e) {}
     /* 顺手回邀请战绩：已邀几人 + 累计获得天数（她要看「我还差几人到顶」） */
     let invited = 0, earnedDays = 0;
     try {
       const st = JSON.parse((await kv.get('invst:' + sess.acct)) || 'null');
       if (st) { invited = st.invited || 0; earnedDays = st.earnedDays || 0; }
     } catch (e) {}
-    return json({ ok: true, code, invited, earnedDays,
-      capDays: INVITE_CAP_DAYS, rewardDays: INVITE_REWARD_DAYS });
+    return json({ ok: true, code, invited, earnedDays, capDays: 30, rewardDays: 7 });
   }
 
   /* ---------- 查询某个邀请码是否有效（注册页实时校验用，不需要登录）----------
