@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8" />
@@ -206,6 +206,24 @@ input::placeholder{color:var(--n-500)}
         <div class="links" style="margin-top:10px"><a id="toPassLogin">用账号密码登录（老用户）</a></div>
         <div class="links" style="margin-top:8px"><a id="forgotPass">忘记密码？</a></div>
         <p class="note" id="noteForgot" style="font-size:12.5px;margin-top:6px;color:#71767e"></p>
+
+        <!-- 找回密码弹层（10/13 补齐：邮箱账号可自助重置，不用再找站长手工重开） -->
+        <div id="emResetModal" class="em-modal" hidden>
+          <div class="em-modal-mask"></div>
+          <div class="em-modal-card">
+            <h3>重置密码</h3>
+            <p class="em-modal-desc">邮箱账号可以自助重置：填邮箱收验证码，再设新密码。老手机号 / 用户名账号没绑邮箱，重置不了——去「意见反馈」找站长。</p>
+            <input id="rsEmail" type="email" placeholder="你的注册邮箱" autocomplete="email" />
+            <div class="em-modal-btns" style="margin-top:8px"><button class="btn btn-ghost" id="rsSend" type="button">获取验证码</button></div>
+            <input id="rsCode" placeholder="6 位验证码" autocomplete="one-time-code" maxlength="6" />
+            <input id="rsPass" type="password" placeholder="新密码（至少 6 位）" autocomplete="new-password" />
+            <p class="note" id="noteRs"></p>
+            <div class="em-modal-btns">
+              <button class="btn btn-ghost" id="rsCancel" type="button">取消</button>
+              <button class="btn" id="rsOk" type="button">确认重置</button>
+            </div>
+          </div>
+        </div>
         <!-- 10/4 01:15：左栏加内容后右边空一大块，底部补一条「为什么要登录」把空白填实 -->
         <div class="why-log">
           <b>为什么要登录</b>
@@ -322,9 +340,12 @@ var ACCT_RE = /^(?:[a-z0-9_]{6,20}|[^\s@]+@[^\s@]+\.[^\s@]{2,})$/;
   $('toRegister').addEventListener('click', function(){ note('noteRegister',''); show('Register'); $('rAcct').value = $('acct').value; $('rAcct').focus(); });
   $('backLogin1').addEventListener('click', function(){ show('Login'); });
   $('forgotPass').addEventListener('click', function(){
-    var n = $('noteForgot');
-    if(n.style.display === 'none'){ n.style.display = 'block'; }
-    n.innerHTML = '目前没有自助找回——去侧栏「意见反馈」写一句（注明你的站内账号和要找回哪个），我帮你重开；急事可在弹层底部点「等不及回复？加站长微信」直接拿联系方式。老数据不会丢（数据跟账号走，只在你重新登录后恢复）。';
+    var rm = $('emResetModal');
+    if(rm) rm.hidden = false;
+    var cm = $('emCodeModal'), im = $('emInvModal');
+    if(cm) cm.hidden = true;
+    if(im) im.hidden = true;
+    var re = $('rsEmail'); if(re) re.focus();
   });
 
   /* 登录 */
@@ -423,6 +444,45 @@ var ACCT_RE = /^(?:[a-z0-9_]{6,20}|[^\s@]+@[^\s@]+\.[^\s@]{2,})$/;
   if (iSkip) iSkip.addEventListener('click', function(){ doRegister(''); });
   var ii2 = $('emInvite');
   if (ii2) ii2.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ var b=$('emInvOk'); if(b) b.click(); } });
+
+  /* ---------- 重置密码弹层：发码 + 确认重置 ---------- */
+  var rsCd = 0;
+  function rsTick(){
+    var b = $('rsSend'); if(!b) return;
+    if(rsCd > 0){ b.disabled = true; b.textContent = rsCd + ' 秒后可重发'; rsCd--; setTimeout(rsTick, 1000); }
+    else { b.disabled = false; b.textContent = '获取验证码'; }
+  }
+  var rsSend = $('rsSend');
+  if (rsSend) rsSend.addEventListener('click', function(){
+    var email = ($('rsEmail').value || '').trim().toLowerCase();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){ note('noteRs','先填一个正确的邮箱', true); return; }
+    note('noteRs','正在发送…', false);
+    post({ action:'email_code', email:email }).then(function(r){
+      if(r.j.ok){ note('noteRs','验证码已发送，去邮箱看', false); rsCd = 60; rsTick(); }
+      else note('noteRs', r.j.msg || '没发出去', true);
+    }).catch(function(){ note('noteRs','网络异常，稍后再试', true); });
+  });
+  var rsOk = $('rsOk');
+  if (rsOk) rsOk.addEventListener('click', function(){
+    var email = ($('rsEmail').value || '').trim().toLowerCase();
+    var code  = ($('rsCode').value || '').trim();
+    var pass  = $('rsPass').value || '';
+    if(!/^\d{6}$/.test(code)){ note('noteRs','填写 6 位验证码', true); return; }
+    if(pass.length < 6){ note('noteRs','新密码至少 6 位', true); return; }
+    note('noteRs','正在重置…', false);
+    busy(rsOk, true, '重置中…');
+    post({ action:'email_reset', email:email, code:code, password:pass }).then(function(r){
+      busy(rsOk, false, '确认重置');
+      if(r.j.ok){
+        var rm = $('emResetModal'); if(rm) rm.hidden = true;
+        note('noteEmail', r.j.msg || '密码已重置，用新密码登录吧', false);
+        var em = $('emEmail'); if(em) em.value = email;
+        var ep = $('emPass'); if(ep){ ep.value = ''; ep.focus(); }
+      } else note('noteRs', r.j.msg || '重置失败', true);
+    }).catch(function(){ busy(rsOk, false, '确认重置'); note('noteRs','网络异常，稍后再试', true); });
+  });
+  var rsCancel = $('rsCancel');
+  if (rsCancel) rsCancel.addEventListener('click', function(){ var rm=$('emResetModal'); if(rm) rm.hidden = true; });
 
   /* 模式切换：邮箱 ⇄ 账号密码 */
   function showMode(id){

@@ -429,6 +429,44 @@ async function handleRequest(context) {
     return json({ ok: true });
   }
 
+  /* ---------- 找回密码：邮箱验证码重置（10/13 豆包评审点名补齐）----------
+     流程：输邮箱 → 收验证码（复用 email_code）→ 填验证码 + 新密码 → 这里重置。
+     ⚠️ 只服务邮箱账号（user:e:<email>）。老手机号/用户名账号没有绑定邮箱，
+        重置不了 —— 前端要如实说明，别给人「填了没反应」的错觉。 */
+  if (action === 'email_reset') {
+    const email = String(body.email || '').trim().toLowerCase();
+    const code = String(body.code || '').trim();
+    const password = String(body.password || '');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || !/^\d{6}$/.test(code)) {
+      return json({ ok: false, error: 'bad_params', msg: '邮箱或验证码格式不对' }, 400);
+    }
+    if (badPass(password)) {
+      return json({ ok: false, error: 'bad_password', msg: '新密码至少 6 位（最长 64 位）' }, 400);
+    }
+    const saved = await kv.get('ec:' + email);
+    if (!saved || saved !== code) {
+      return json({ ok: false, error: 'bad_code', msg: '验证码不对或已过期，重新发一个试试' }, 400);
+    }
+    const key = acctKey(email);          /* 邮箱账号 → user:e:<email> */
+    let rec = null;
+    try { rec = JSON.parse((await kv.get(key)) || 'null'); } catch (e) {}
+    if (!rec || !rec.hash) {
+      return json({ ok: false, error: 'no_user', msg: '这个邮箱还没注册过（老手机号账号请用「用账号密码登录」）' }, 404);
+    }
+    const salt = randHex(16);
+    rec.salt = salt;
+    rec.hash = await pbkdf2(password, salt);
+    try { await kv.put(key, JSON.stringify(rec)); } catch (e) {
+      if (/limit/i.test(String(e && e.message))) {
+        return json({ ok: false, error: 'kv_busy', msg: '云端存储今日写入配额已用完，明早再试' }, 503);
+      }
+      throw e;
+    }
+    /* 重置后把该账号的 session 全清掉（防旧密码的登录态继续有效） */
+    try { await kv.delete('ec:' + email); } catch (e) {}
+    return json({ ok: true, msg: '密码已重置，用新密码登录吧' });
+  }
+
   /* ---------- 我的邀请码（需登录态）----------
      规则：码 = 邮箱 PBKDF2 哈希前 8 位（稳定、不可逆、不需要额外存储）。
      随时可看（她 22:5x：自己的验证码随时可以看，用来分享给朋友）。 */
