@@ -244,6 +244,10 @@ function renderTimer(){
     if(m) box.appendChild(moduleCard(m));
   });
   bindStartButtons();
+  /* 10/13 新用户走查：没开表时「结束并保存/暂停」是禁用的，新用户不知道要点下面的「开始」。
+     这里按 stopBtn 的真实状态同步 body.timer-running，控制 #timerIdleHint 指引的显隐
+     ——放在每秒刷新的 renderTimer 里，一处覆盖全部启停路径（本地开表/结束/远端计时/刷新恢复）。 */
+  try{ document.body.classList.toggle('timer-running', !($('#stopBtn') || {}).disabled); }catch(_){}
 }
 
 /* 今日学习记录：把 DATA.sessions 中「今日」的计时渲染进 #recMiniGrid，并刷新总计。

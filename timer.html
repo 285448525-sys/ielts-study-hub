@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="UTF-8" />
@@ -44,7 +44,7 @@
 <script defer src="js/data.js?v=20261011e"></script>
   <script defer src="js/common.js?v=20261013"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
-  <script defer src="js/timer.js?v=20261003b"></script>
+  <script defer src="js/timer.js?v=20261004"></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -103,6 +103,10 @@ input#goalMin:not([type=checkbox]):not([type=radio]):not([type=range])::placehol
 .timer-btns .btn-primary{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
 .timer-btns .btn-primary:hover:not(:disabled){background:var(--primary-600);border-color:var(--primary-600)}
 .timer-btns button:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none}
+/* 10/13 空闲指引：没开表时告诉新用户「先选任务」（观感批，见 #timerIdleHint） */
+.timer-idle-hint{margin:10px 0 0;text-align:center;font-size:13px;color:var(--muted);line-height:1.6}
+.timer-idle-hint::before{content:"👆 ";font-size:12px}
+body.timer-running .timer-idle-hint{display:none}
 
 /* ── 右：任务列表（大卡 → 紧凑行）── */
 .tm-side .section-title{margin-top:2px}
@@ -170,6 +174,9 @@ input#goalMin:not([type=checkbox]):not([type=radio]):not([type=range])::placehol
       <button class="ui-dark-btn ui-dark-btn--sm" id="stopBtn" disabled>结束并保存</button>
       <button class="ui-dark-btn ui-dark-btn--sm" id="pauseBtn" disabled>暂停</button>
     </div>
+    <!-- 10/13 新用户走查：没开表时上面两个按钮是禁用的，新用户第一反应「这页坏了/我该点哪」。
+         加一句显式指引，把主流程说明白（观感批）。 -->
+    <p class="timer-idle-hint" id="timerIdleHint">先从下面选一个任务，点「开始」就会计时</p>
   </section>
 
   <p class="section-title">选择本次任务</p>
