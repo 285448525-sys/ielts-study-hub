@@ -4313,7 +4313,8 @@ function deleteWrongItem(key){
    - 全程禁止 prompt/alert/confirm；用户输入一律走 value / textContent，绝不拼进 HTML。
    ========================================================================= */
 function onbDefaults(){
-  return { v:2, entered:false, finished:false, setup:{ exam:false, effort:false, words:false }, snoozed:false, ts:0 };
+  /* exp:null = 未回答「考过雅思吗」（10/13 分流卡）；true/false = 已选，不再问 */
+  return { v:2, entered:false, finished:false, setup:{ exam:false, effort:false, words:false }, snoozed:false, exp:null, ts:0 };
 }
 /* 老 v1 → v2 迁移：一次性迁成「已完成 + 不再提示」，老用户零打扰。
    ⭐ 返回 null 的唯一含义是「全新浏览器」（既没 v2 也没 v1），只有这种情况才走引导。 */
@@ -4338,6 +4339,7 @@ function getOnboarding(){
       finished: !!o.finished,
       setup: Object.assign({}, d.setup, (o.setup && typeof o.setup === 'object') ? o.setup : {}),
       snoozed: !!o.snoozed,
+      exp: (o.exp === true || o.exp === false) ? o.exp : null,
       ts: Number(o.ts) || 0 };
   }catch(e){ return null; }
 }
@@ -4448,6 +4450,12 @@ function initOnboarding(){
     // ⭐ 真正弹遮罩前再判一次「是否已经有数据」：启动瞬间判定可能早于数据到位
     _onbWhenBootDone(function(){
       if(!force && onbHasExistingData()){ onbBackfillFromData(); return; }
+      /* 10/13 她要求「不要所有人进来都弹新手引导」→ 先问考过没考过（只问一次，exp 落 ONB）；
+         ?onb=1 强制重看跳过本卡直接进三步。 */
+      if(!force){
+        const stx = getOnboarding() || {};
+        if(stx.exp !== true && stx.exp !== false){ onbRenderGate(); return; }
+      }
       _onbLastDir = 1;
       onbRenderSetup(1);
     });
@@ -4585,26 +4593,9 @@ function onbRenderSetup(step){
   el.appendChild(wrap);
   el.hidden = false;
 
-  /* P0 10/3 紧急修复：onbOverlay 偶尔 stuck visible（initOnboarding 之后无 handler 关闭）
-     —— 遮罩空白处点击关闭（onbFinish(false)）；Escape 键关闭；30s 自动关闭（兜底）
-     三条互不冲突，都是幂等安全（onbClose 重复调零成本）。 */
-  if(!el.dataset._onbDismissBound){
-    el.dataset._onbDismissBound = '1';
-    // 点遮罩空白处关闭（点到 wrap/dialog 内部：target !== el 不关闭）
-    el.addEventListener('click', function(e){ if(e && e.target === el){ onbFinish(false); } });
-    // Escape 键关闭（挂 document，避免 dialog 里 input 聚焦时收不到）
-    el._onbEscape = function(e){ if(e && e.key === 'Escape' && !el.hidden){ onbFinish(false); } };
-    document.addEventListener('keydown', el._onbEscape);
-    // 30s 自动关闭（兜底——防止任何原因导致 onbRenderSetup 之后无人调 onbFinish/onbClose）
-    el._onbAuto = setTimeout(function(){ if(!el.hidden){ onbFinish(false); } }, 30000);
-    // onbClose 时清理监听和计时器
-    const origClose = window.onbClose;
-    window.onbClose = function(){
-      if(el._onbEscape){ document.removeEventListener('keydown', el._onbEscape); el._onbEscape = null; }
-      if(el._onbAuto){ clearTimeout(el._onbAuto); el._onbAuto = null; }
-      origClose();
-    };
-  }
+  /* 关闭兜底三件套（P0 10/3 紧急修复的 stuck visible）：遮罩空白/Escape/30s 自动关。
+     10/13 抽成 onbBindDismiss 共用（分流卡也要绑）。 */
+  onbBindDismiss(el);
 
   // 回车 = 继续（避免在输入框里敲回车没反应）
   try{
@@ -4614,6 +4605,68 @@ function onbRenderSetup(step){
   }catch(_){}
   try{ setTimeout(function(){ const f = pane.querySelector('input'); if(f) f.focus(); }, 80); }catch(_){}
   if(hook){ try{ hook(step); }catch(_){} }
+}
+/* 关闭兜底三件套（遮罩空白点击 / Escape / 30s 自动关）——10/13 抽成共用：
+   分流卡与三步卡都走它。幂等按 el.dataset._onbDismissBound 守卫。 */
+function onbBindDismiss(el){
+  if(!el || el.dataset._onbDismissBound) return;
+  el.dataset._onbDismissBound = '1';
+  // 点遮罩空白处关闭（点到 wrap/dialog 内部：target !== el 不关闭）
+  el.addEventListener('click', function(e){ if(e && e.target === el){ onbFinish(false); } });
+  // Escape 键关闭（挂 document，避免 dialog 里 input 聚焦时收不到）
+  el._onbEscape = function(e){ if(e && e.key === 'Escape' && !el.hidden){ onbFinish(false); } };
+  document.addEventListener('keydown', el._onbEscape);
+  // 30s 自动关闭（兜底——防止任何原因导致渲染之后无人调 onbFinish/onbClose）
+  el._onbAuto = setTimeout(function(){ if(!el.hidden){ onbFinish(false); } }, 30000);
+  // onbClose 时清理监听和计时器
+  const origClose = window.onbClose;
+  window.onbClose = function(){
+    if(el._onbEscape){ document.removeEventListener('keydown', el._onbEscape); el._onbEscape = null; }
+    if(el._onbAuto){ clearTimeout(el._onbAuto); el._onbAuto = null; }
+    origClose();
+  };
+}
+/* 10/13 她要求「不要所有人进来都弹新手引导——先问考过没考过，没考过才看新手页」：
+   引导前置分流卡。没考过 → 跳 beginner.html 看 3 分钟新手必读（回来后 initOnboarding
+   发现未 finished 会继续弹三步配置：考试日期/投入/词库照配）；考过 → 直接进三步。
+   exp 存 ONB（null=未选；选过不再问；?onb=1 强制重看也跳过本卡）。 */
+function onbRenderGate(){
+  const el = onbEnsureEl();
+  el.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.className = 'onb2-wrap';
+  const stage = document.createElement('div');
+  stage.className = 'onb2-stage';
+  const pane = document.createElement('div');
+  pane.className = 'onb2-step from-r';
+  pane.appendChild(_onbH('你之前考过雅思吗？'));
+  pane.appendChild(_onbNote('没考过 = 先带你用 3 分钟看完新手必读（考什么、怎么报名、机考要注意什么），再回来 30 秒配好开练。考过 = 直接开始配置。'));
+  const row = document.createElement('div');
+  row.className = 'onb2-gate';
+  const mk = (t, s, fn) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'onb2-gate-btn';
+    const bb = document.createElement('b'); bb.textContent = t;
+    const ss = document.createElement('span'); ss.textContent = s;
+    b.appendChild(bb); b.appendChild(ss);
+    b.addEventListener('click', fn);
+    return b;
+  };
+  row.appendChild(mk('没考过', '第一次考，先看新手必读', function(){
+    setOnboarding({ exp:false });
+    try{ location.href = 'beginner.html?from=onb'; }catch(e){}
+  }));
+  row.appendChild(mk('考过', '老考生，直接开始配置', function(){
+    setOnboarding({ exp:true });
+    _onbLastDir = 1;
+    onbRenderSetup(1);
+  }));
+  pane.appendChild(row);
+  stage.appendChild(pane);
+  wrap.appendChild(stage);
+  el.appendChild(wrap);
+  el.hidden = false;
+  onbBindDismiss(el);
 }
 function _onbStepNext(step){
   try{

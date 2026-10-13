@@ -126,7 +126,7 @@
          成熟口径（≥2 来源已核，10/13 搜）：corebee.ai 反馈模板「Every response is read by a real person /
          even one sentence helps」+ userguiding.com 反馈弹层五要素（清晰简短 copy / 友好设计）。
          站长第一人称 + 降低门槛（一句话也行）+ 技术元信息退到悬停提示，不再怼用户脸上。 */
-      +     '<p class="fb-greet">这个站就我一个人在做，你写下的每一条<b>我都会自己看</b>。遇到 bug、用着别扭、想要什么功能，都可以说。</p>'
+      +     '<p class="fb-greet">你写下的每一条都是<b>站长本人亲自看</b>，提的意见也会认真斟酌。遇到 bug、用着别扭、想要什么功能，都可以说。</p>'
       +     '<label class="fb-lbl" for="fbText">你遇到什么了？</label>'
       +     '<textarea id="fbText" class="fb-text" rows="4" maxlength="' + MAX_TEXT + '" placeholder="一句话也行。比如：点「添加任务」没反应 / 口语页句子显示不全 / 想要个某某功能……"></textarea>'
       +     '<div class="fb-meta"><span id="fbCount">0 / ' + MAX_TEXT + '</span><span id="fbEnv" title=""></span></div>'

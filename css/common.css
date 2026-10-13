@@ -2910,6 +2910,18 @@ html[data-theme="dark"] .onb-overlay{background:rgba(0,0,0,.62)}
 .onb2-kicker{font-size:12px;font-weight:700;letter-spacing:.14em;color:var(--primary);margin-bottom:8px}
 .onb2-h{margin:0 0 8px;font-size:19px;font-weight:800;line-height:1.35;color:var(--ink)}
 .onb2-note{margin:0 0 14px;font-size:13px;line-height:1.7;color:var(--muted)}
+/* 10/13 分流卡（她：「不要所有人进来都弹新手引导，先问考过没考过」）：
+   两个大按钮竖排/并排——44px 触控标准，主次用边框不靠颜色喊 */
+.onb2-gate{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+.onb2-gate-btn{display:flex;flex-direction:column;gap:3px;align-items:flex-start;text-align:left;
+  padding:14px 16px;min-height:44px;border:1px solid var(--line);border-radius:12px;background:var(--surface);
+  cursor:pointer;font-family:inherit;transition:border-color .15s,background .15s}
+.onb2-gate-btn b{font-size:15px;font-weight:800;color:var(--ink)}
+.onb2-gate-btn span{font-size:12.5px;line-height:1.5;color:var(--muted)}
+.onb2-gate-btn:hover{border-color:var(--primary);background:var(--primary-50)}
+.onb2-gate-btn:first-child{border-color:var(--primary-200);background:var(--primary-50)}
+.onb2-gate-btn:first-child:hover{background:var(--primary-100)}
+@media (max-width:560px){ .onb2-gate-btn{padding:13px 14px} }
 .onb2-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
 .onb2-list li{display:flex;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2)}
 .onb2-list b{flex:none;width:92px;font-size:13px;color:var(--ink)}
