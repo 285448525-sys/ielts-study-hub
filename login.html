@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8" />
@@ -150,17 +150,25 @@ input::placeholder{color:var(--n-500)}
 
     <!-- 右：表单 -->
     <div class="card form">
-      <!-- 登录模式 -->
+      <!-- 10/13 她拍板：主流程改「邮箱 + 验证码」——原「手机号/用户名 + 密码」的 ACCT_RE
+           只校验格式不校验真实，123456 都能注册，一个真人可无限换号薅邀请会员。
+           邮箱验证码把注册成本抬到「一个真实邮箱」，挡住批量薅羊毛。
+           下方保留「账号密码登录」入口给老账号（10/13 前注册的），数据不丢、照常登录。 -->
       <div id="modeLogin">
         <h2>登录学习台</h2>
         <p class="desc">进入你的备考空间，继续背词、串题和刷题。</p>
-        <label>手机号 / 用户名</label>
-        <input id="acct" placeholder="手机号或用户名（6-20 位）" autocomplete="username" />
+        <label>邮箱</label>
+        <input id="emEmail" type="email" placeholder="you@example.com" autocomplete="email" />
+        <div class="links" style="margin:0 0 14px"><button class="btn btn-sm" id="emSend" type="button">获取验证码</button></div>
+        <label>验证码</label>
+        <input id="emCode" placeholder="邮件里的 6 位数字" autocomplete="one-time-code" maxlength="6" />
         <label>密码</label>
-        <input id="pass" type="password" placeholder="至少 6 位" autocomplete="current-password" />
-        <button class="btn" id="goLogin" type="button">登 录</button>
-        <p class="note" id="noteLogin"></p>
-        <div class="links"><span class="dim">没有账号？</span><a id="toRegister">设置密码注册 · 1 分钟</a></div>
+        <input id="emPass" type="password" placeholder="至少 6 位（之后登录用邮箱 + 密码）" autocomplete="new-password" />
+        <label>邀请码（选填，双方都得 7 天会员）</label>
+        <input id="emInvite" placeholder="朋友分享给你的邀请码" autocomplete="off" style="text-transform:uppercase" />
+        <button class="btn" id="goEmail" type="button">登录 / 注册</button>
+        <p class="note" id="noteEmail"></p>
+        <div class="links" style="margin-top:10px"><a id="toPassLogin">用账号密码登录（老用户）</a></div>
         <div class="links" style="margin-top:8px"><a id="forgotPass">忘记密码？</a></div>
         <p class="note" id="noteForgot" style="font-size:12.5px;margin-top:6px;color:#71767e"></p>
         <!-- 10/4 01:15：左栏加内容后右边空一大块，底部补一条「为什么要登录」把空白填实 -->
@@ -170,16 +178,30 @@ input::placeholder{color:var(--n-500)}
         </div>
       </div>
 
-      <!-- 注册模式 -->
+      <!-- 账号密码登录（老用户） -->
+      <div id="modePassLogin" class="hidden">
+        <h2>账号密码登录</h2>
+        <p class="desc">10 月 13 日前注册的老账号请用这里登录，数据原样接上。</p>
+        <label>手机号 / 用户名</label>
+        <input id="acct" placeholder="手机号或用户名（6-20 位）" autocomplete="username" />
+        <label>密码</label>
+        <input id="pass" type="password" placeholder="至少 6 位" autocomplete="current-password" />
+        <button class="btn" id="goLogin" type="button">登 录</button>
+        <p class="note" id="noteLogin"></p>
+        <div class="links"><span class="dim">没有账号？</span><a id="toRegister">用邮箱注册 · 1 分钟</a></div>
+        <p class="note" id="noteForgot" style="font-size:12.5px;margin-top:6px;color:#71767e"></p>
+      </div>
+
+      <!-- 注册模式（老流程，10/13 前的老账号补密码用；新用户走邮箱） -->
       <div id="modeRegister" class="hidden">
         <h2>设置密码</h2>
-        <p class="desc">账号 + 密码完成绑定，多设备数据互通。老用户（之前只填过手机号）也在这里设密码，数据会自动接上。</p>
+        <p class="desc">老账号（之前只填过手机号）在这里设密码，数据会自动接上。</p>
         <label>手机号 / 用户名</label>
         <input id="rAcct" placeholder="手机号或自取用户名（6-20 位）" autocomplete="username" />
         <label>密码</label>
         <input id="rPass" type="password" placeholder="至少 6 位" autocomplete="new-password" />
         <label>邀请码（选填）</label>
-        <input id="rInvite" placeholder="站长的内测码，填了注册即送会员" autocomplete="off" style="text-transform:uppercase" />
+        <input id="rInvite" placeholder="朋友分享给你的邀请码" autocomplete="off" style="text-transform:uppercase" />
         <button class="btn" id="goRegister" type="button">设置密码并进入</button>
         <p class="note" id="noteRegister"></p>
         <div class="links"><a id="backLogin1">返回登录</a></div>
@@ -204,7 +226,8 @@ input::placeholder{color:var(--n-500)}
       back.href = 'settings.html';
     }
   })();
-  var ACCT_RE = /^[a-z0-9_]{6,20}$/;
+  /* 10/13：放开邮箱（注册改邮箱+验证码后，登录 acct 就是邮箱）。与服务端 auth.js 同口径。 */
+var ACCT_RE = /^(?:[a-z0-9_]{6,20}|[^\s@]+@[^\s@]+\.[^\s@]{2,})$/;
 
   /* 已登录（token + 本机账号）直接进站，不再看登录页 */
   try{
@@ -287,6 +310,60 @@ input::placeholder{color:var(--n-500)}
     });
   });
   $('pass').addEventListener('keydown', function(e){ if(e.key === 'Enter') $('goLogin').click(); });
+  /* ---------- 10/13 邮箱 + 验证码（她拍板：注册走邮箱验证，登录用邮箱+密码） ---------- */
+  var emCd = 0;   /* 冷却剩余秒数 */
+  function emTick(){
+    var b = $('emSend'); if(!b) return;
+    if(emCd > 0){ b.disabled = true; b.textContent = emCd + ' 秒后可重发'; emCd--; setTimeout(emTick, 1000); }
+    else { b.disabled = false; b.textContent = '获取验证码'; }
+  }
+  function emNote(msg, bad){ note('noteEmail', msg, bad); }
+  $('emSend').addEventListener('click', function(){
+    var email = ($('emEmail').value || '').trim().toLowerCase();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){ emNote('先填一个正确的邮箱', true); return; }
+    emNote('正在发送…', false);
+    busy($('emSend'), true, '发送中…');
+    post({ action:'email_code', email:email }).then(function(r){
+      busy($('emSend'), false, '获取验证码');
+      if(r.j.ok){ emNote(r.j.msg || '验证码已发送，10 分钟内有效', false); emCd = 60; emTick(); $('emCode').focus(); }
+      else emNote(r.j.msg || ('发送失败（HTTP ' + r.status + '）'), true);
+    }).catch(function(){
+      busy($('emSend'), false, '获取验证码');
+      emNote('网络异常，稍后再试', true);
+    });
+  });
+  $('goEmail').addEventListener('click', function(){
+    var email = ($('emEmail').value || '').trim().toLowerCase();
+    var code  = ($('emCode').value || '').trim();
+    var pass  = $('emPass') ? ($('emPass').value || '') : '';
+    var inv   = ($('emInvite').value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){ emNote('先填一个正确的邮箱', true); return; }
+    if(!/^\d{6}$/.test(code)){ emNote('填写邮件里的 6 位验证码', true); return; }
+    if(!pass){ emNote('设置一个密码（之后登录用邮箱 + 密码，不用再收码）', true); return; }
+    if(pass.length < 6){ emNote('密码至少 6 位', true); return; }
+    emNote('正在注册…', false);
+    busy($('goEmail'), true, '处理中…');
+    post({ action:'email_register', email:email, code:code, password:pass, inviteCode:inv }).then(function(r){
+      busy($('goEmail'), false, '登录 / 注册');
+      if(r.j.ok && r.j.token){ enterStation(r.j.acct || email, r.j.token); return; }
+      if(r.j.error === 'exists'){ emNote('这个邮箱已注册过，请直接用邮箱 + 密码登录', true); return; }
+      emNote(r.j.msg || ('失败（HTTP ' + r.status + '）'), true);
+    }).catch(function(){
+      busy($('goEmail'), false, '登录 / 注册');
+      emNote('网络异常，稍后再试', true);
+    });
+  });
+  $('emCode').addEventListener('keydown', function(e){ if(e.key === 'Enter') $('goEmail').click(); });
+
+  /* 模式切换：邮箱 ⇄ 账号密码 */
+  function showMode(id){
+    ['modeLogin','modePassLogin','modeRegister'].forEach(function(m){
+      var el = $(m); if(el) el.classList.toggle('hidden', m !== id);
+    });
+  }
+  var t1 = $('toPassLogin'); if(t1) t1.addEventListener('click', function(){ showMode('modePassLogin'); });
+  var t2 = $('toRegister');   if(t2) t2.addEventListener('click', function(){ showMode('modeRegister'); });
+
 
   /* 注册（设置密码）→ 成功后自动登录进站。
      服务端 register 只建账号不发 token，这里紧接一次 login 换 token（恢复码已下线，10/1）。 */

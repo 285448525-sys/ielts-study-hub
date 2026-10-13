@@ -47,7 +47,18 @@ const LOCK_TTL = 15 * 60;                 // 失败锁定 15 分钟
 const MAX_FAILS = 10;
 // ⭐ 10/1 她拍板：账号 = 手机号 或 自定义用户名（6-20 位数字/字母/下划线，统一小写存储）。
 // 老手机号账号（6-15 位纯数字）天然满足该规则，登录键名不变，云端老数据无缝接上。
-const ACCT_RE = /^[a-z0-9_]{6,20}$/;
+// 🔴 10/13 放开邮箱：注册改「邮箱 + 验证码 + 密码」后，登录时 acct 传的就是邮箱
+//    （如 camille@example.com）——原 ACCT_RE 不含 @/. 会把所有邮箱账号挡在登录外。
+//    规则改为「6-20 位用户名/手机号」或「合法邮箱」，两者取或，老账号零影响。
+const ACCT_RE = /^(?:[a-z0-9_]{6,20}|[^\s@]+@[^\s@]+\.[^\s@]{2,})$/;
+
+/* 🔴 10/13：账号 → KV 键名统一入口。邮箱账号存 user:e:<email>（与老手机号/用户名账号隔离），
+   其余（6-20 位用户名/手机号）仍用 user:<acct>，老数据键名不变、无缝登录。
+   login/sessionOf/change 全部改走它，否则邮箱登录会拿裸邮箱当键名去查库 → 永远 no_user。 */
+function acctKey(acct) {
+  const a = String(acct || '').trim().toLowerCase();
+  return a.indexOf('@') >= 0 ? 'user:e:' + a : 'user:' + a;
+}
 
 function json(obj, status) {
   return new Response(JSON.stringify(obj), {
@@ -184,12 +195,12 @@ async function handleRequest(context) {
         return json({ ok: false, error: 'bad_invite', msg: '邀请码无效或已用完' }, 403);
       }
     }
-    if (await kv.get('user:' + acct)) {
+    if (await kv.get(acctKey(acct))) {
       return json({ ok: false, error: 'already_registered', msg: '该账号已设置过密码，直接登录即可' }, 409);
     }
     const salt = randHex(16);
     const hash = await pbkdf2(password, salt);
-    await kv.put('user:' + acct, JSON.stringify({ salt, hash, created: Date.now(), src: src }));
+    await kv.put(acctKey(acct), JSON.stringify({ salt, hash, created: Date.now(), src: src }));
     /* 注册成功才消耗邀请码（前面任何一步失败都不吃码）；内测码同时送会员 */
     let vipGranted = 0;
     if (inv) {
@@ -203,6 +214,117 @@ async function handleRequest(context) {
     return json({ ok: true, vipGranted });
   }
 
+  /* ---------- 邮箱验证码：发送（10/13 她拍板：注册改邮箱+验证码，堵邀请码被薅）----------
+     为什么做：原「手机号/用户名 + 密码」的 ACCT_RE 只校验格式不校验真实性 → 123456/aaaaaa
+     都能注册，一个真人可无限换号薅邀请会员（她 21:4x 发现的风险，属实）。
+     邮箱验证码 = 每个账号必须能收信，注册成本从 0 变成「一个真实邮箱」。
+     档位：Resend 免费 3000 封/月（她去注册并配 MAIL_API_KEY / MAIL_FROM 到 CF 环境变量）。
+     ⚠️ 未配 MAIL_API_KEY 时返回 mail_not_configured，前端提示「验证码服务未开通」，
+        不影响原有 register/login（老账号照常登录，零回归）。 */
+  if (action === 'email_code') {
+    const email = String(body.email || '').trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+      return json({ ok: false, error: 'bad_email', msg: '邮箱格式不太对，检查一下？' }, 400);
+    }
+    if (!env.MAIL_API_KEY || !env.MAIL_FROM) {
+      return json({ ok: false, error: 'mail_not_configured', msg: '验证码服务还没开通（站长未配置邮件密钥）' }, 503);
+    }
+    /* 频率护栏（防刷信 + 防烧 KV）：
+       ① 同一邮箱 60 秒内只能发一次（ec_cd:<email>）
+       ② 同一邮箱每天最多 5 封（ec_d:<email>:<UTC day>）
+       ③ 验证码本身 TTL 10 分钟（ec:<email>） */
+    const _p = n => String(n).padStart(2, '0');
+    const _d = new Date();
+    const day = _d.getUTCFullYear() + _p(_d.getUTCMonth() + 1) + _p(_d.getUTCDate());
+    const cdKey = 'ec_cd:' + email;
+    if (await kv.get(cdKey)) {
+      return json({ ok: false, error: 'too_soon', msg: '验证码刚发过，60 秒后再试一次' }, 429);
+    }
+    const dayCnt = parseInt((await kv.get('ec_d:' + email + ':' + day)) || '0', 10) + 1;
+    if (dayCnt > 5) {
+      return json({ ok: false, error: 'too_many', msg: '今天验证码发得够多了，明天再试（或先用账号密码登录）' }, 429);
+    }
+    const code = String(Math.floor(Math.random() * 900000) + 100000);
+    try {
+      await kv.put('ec:' + email, code, { expirationTtl: 600 });
+      await kv.put(cdKey, '1', { expirationTtl: 60 });
+      await kv.put('ec_d:' + email + ':' + day, String(dayCnt), { expirationTtl: 86400 });
+    } catch (e) {
+      if (/limit/i.test(String(e && e.message))) {
+        return json({ ok: false, error: 'kv_busy', msg: '云端存储今日写入配额已用完，明早再试' }, 503);
+      }
+      throw e;
+    }
+    /* 发信（Resend REST）。失败不回滚 KV（码还在，让她重试「重新发送」即可），
+       但要把真实原因回给人话 —— 以前裸 500 她根本不知道发生了什么。 */
+    try {
+      const r = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { 'authorization': 'Bearer ' + env.MAIL_API_KEY, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          from: env.MAIL_FROM,
+          to: [email],
+          subject: '雅思备考 Hub · 登录验证码',
+          html: '<div style="font-family:-apple-system,Segoe UI,sans-serif;max-width:420px;margin:0 auto;padding:24px">'
+            + '<p style="font-size:15px;color:#111;margin:0 0 12px">你的登录验证码是：</p>'
+            + '<p style="font-size:32px;font-weight:800;letter-spacing:6px;color:#1a4542;margin:0 0 16px">' + code + '</p>'
+            + '<p style="font-size:13px;color:#666;margin:0">10 分钟内有效。如果这不是你本人操作，忽略这封邮件即可。</p>'
+            + '</div>'
+        })
+      });
+      if (!r.ok) {
+        const t = await r.text().catch(() => '');
+        return json({ ok: false, error: 'mail_failed', msg: '验证码没发出去（' + r.status + '），稍后再试' }, 502);
+      }
+    } catch (e) {
+      return json({ ok: false, error: 'mail_failed', msg: '验证码没发出去（网络问题），稍后再试' }, 502);
+    }
+    return json({ ok: true, msg: '验证码已发送，10 分钟内有效' });
+  }
+
+  /* ---------- 邮箱注册：验证码 + 设密码（10/13 她拍板「邮箱+密码+验证码注册」）----------
+     注册要验证码（证明邮箱真实存在，挡批量薅邀请）；**之后登录只走普通 login**
+     （账号填邮箱 + 密码，不用天天收码，体验顺）。
+     邮箱账号用 e:<email> 命名空间与老手机号账号（user:<acct>）隔离，互不覆盖。
+     inviteCode 选填：批 2 接裂变（双向 7 天）；本批先收下存着，不发放。 */
+  if (action === 'email_register') {
+    const email = String(body.email || '').trim().toLowerCase();
+    const code = String(body.code || '').trim();
+    const password = String(body.password || '');
+    const invCode = String(body.inviteCode || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || !/^\d{6}$/.test(code)) {
+      return json({ ok: false, error: 'bad_params', msg: '邮箱或验证码格式不对' }, 400);
+    }
+    if (badPass(password)) {
+      return json({ ok: false, error: 'bad_password', msg: '密码至少 6 位（最长 64 位）' }, 400);
+    }
+    const saved = await kv.get('ec:' + email);
+    if (!saved || saved !== code) {
+      return json({ ok: false, error: 'bad_code', msg: '验证码不对或已过期，重新发一个试试' }, 400);
+    }
+    const acct = email;   /* 键名前缀由 acctKey 统一加，这里存裸邮箱 */
+    /* 幂等：已注册过的邮箱直接提示去登录，不覆盖已有哈希（防重复注册把老号洗掉） */
+    let exist = null;
+    try { exist = JSON.parse((await kv.get(acctKey(acct))) || 'null'); } catch (e) {}
+    if (exist && exist.hash) {
+      return json({ ok: false, error: 'exists', msg: '这个邮箱已经注册过了，直接用邮箱 + 密码登录' }, 409);
+    }
+    const salt = randHex(16);
+    const rec = { email, via: 'email', created: Date.now(), salt, hash: await pbkdf2(password, salt) };
+    if (invCode) rec.invitedBy = invCode;   /* 批 2 裂变时据此发放双向额度 */
+    try { await kv.put(acctKey(acct), JSON.stringify(rec)); } catch (e) {
+      if (/limit/i.test(String(e && e.message))) {
+        return json({ ok: false, error: 'kv_busy', msg: '云端存储今日写入配额已用完，明早再注册' }, 503);
+      }
+      throw e;
+    }
+    try { await kv.delete('ec:' + email); } catch (e) {}
+    /* 注册即登录：直接发 session，前端少一步 */
+    const token = randHex(32);
+    await kv.put('sess:' + token, JSON.stringify({ acct }), { expirationTtl: SESS_TTL });
+    return json({ ok: true, token, acct: email, isNew: true, msg: '注册成功，已自动登录' });
+  }
+
   /* ---------- 登录 ---------- */
   if (action === 'login') {
     const acct = String(body.acct || body.phone || '').trim().toLowerCase();
@@ -210,7 +332,7 @@ async function handleRequest(context) {
     if (badPhone(acct) || badPass(password)) return json({ ok: false, error: 'bad_credentials', msg: '账号或密码不正确' }, 400);
     if (await failLock(kv, '', acct, false)) return json({ ok: false, error: 'locked', msg: '尝试次数过多，请 15 分钟后再试' }, 429);
     let rec = null;
-    try { rec = JSON.parse((await kv.get('user:' + acct)) || 'null'); } catch (e) {}
+    try { rec = JSON.parse((await kv.get(acctKey(acct))) || 'null'); } catch (e) {}
     if (!rec) return json({ ok: false, error: 'no_user', msg: '该账号还没设置过密码，先「设置密码」（老用户数据会自动接上）' }, 404);
     const h = await pbkdf2(password, rec.salt);
     if (h !== rec.hash) {
@@ -238,14 +360,14 @@ async function handleRequest(context) {
     const newPassword = String(body.newPassword || '');
     if (badPass(newPassword)) return json({ ok: false, error: 'bad_password', msg: '新密码至少 6 位（最长 64 位）' }, 400);
     let rec = null;
-    try { rec = JSON.parse((await kv.get('user:' + sess.acct)) || 'null'); } catch (e) {}
+    try { rec = JSON.parse((await kv.get(acctKey(sess.acct))) || 'null'); } catch (e) {}
     if (!rec) return json({ ok: false, error: 'no_user', msg: '账号异常（无密码记录）' }, 404);
     const oldH = await pbkdf2(oldPassword, rec.salt);
     if (oldH !== rec.hash) return json({ ok: false, error: 'bad_old', msg: '当前密码不正确' }, 401);
     const salt = randHex(16);
     rec.salt = salt;
     rec.hash = await pbkdf2(newPassword, salt);
-    await kv.put('user:' + sess.acct, JSON.stringify(rec));
+    await kv.put(acctKey(sess.acct), JSON.stringify(rec));
     return json({ ok: true });
   }
 
