@@ -4899,11 +4899,17 @@ function onbOpenSetup(step){
 
 /* 10/2 commit4：AI 生成任务（item.module/action/params，plans.js PLAN_WL 白名单同源）→ 落地页。
    放 common 是因为首页（index.js，不加载 plans.js）与计划页都要用：结构化映射优先于下面的
-   planJumpInfo 文本猜测。file/label 必须与 plans.js PLAN_WL 保持一致（diag4 探针有一致性断言）。
-   目前落地页认的 query 只有 speaking 的 ?open=（题 id）与全站 ?autostart=1；speaking.practice 的
-   params.qno 按题库顺序换题 id 直达，其余模块落到功能页自动计时；其余 params 随任务数据保留。 */
+   planJumpInfo 文本猜测。
+   🔴 10/13 修（她报「今日任务跳转页面都不对，点阅读跳去单词页」）：
+   10/11 第 6-8 项已把四科模考统一搬进 bank.html（大 tab「模考」+ 阅读/听力/写作/口语四小 tab），
+   但本表还停在 10/2 的老映射：practice/read 与 practice/listen 都指 practice.html（单词页）
+   → 阅读、听力任务点了跳去单词页。改为按 action 细分：
+     practice+read/listen/mock → bank.html（站内阅读/听力内容只在模考页）
+     words（背单词）→ practice.html
+   ⚠️ plans.js 的 PLAN_WL 有同名键但那是「AI 能生成哪些任务」的白名单，与落点页是两件事；
+     两边本就允许不同（words→practice.html 即先例），本次只纠正 read/listen 的落点。 */
 const PLAN_GEN_PAGES = {
-  practice:  { file:'practice.html',  label:'听读练习' },
+  practice:  { file:'bank.html',      label:'听读练习' },
   speaking:  { file:'speaking.html', label:'口语练习' },
   materials: { file:'materials.html', label:'口语素材' },
   writing:   { file:'writing.html',   label:'写作' },
@@ -4913,6 +4919,16 @@ const PLAN_GEN_PAGES = {
 };
 function planGenJump(item){
   if(!item || !item.module) return null;
+  /* 10/13：practice 下的「背单词」类任务（AI 偶尔用 practice/review 表达）仍应去单词页。
+     判定：action 属 read/listen/mock 且不带 words 语义 → 模考页；其余 practice 一律单词页。 */
+  if(item.module === 'practice'){
+    const act = String(item.action || '');
+    const txt = String((item.params && item.params.text) || item.text || '');
+    if(/read|listen|mock/i.test(act) && !/单词|词汇|词库/i.test(txt)){
+      return { file: 'bank.html', open: '', label: '去模考' };
+    }
+    return { file: 'practice.html', open: '', label: '去背词' };
+  }
   const g = PLAN_GEN_PAGES[item.module];
   if(!g) return null;
   let open = '';
