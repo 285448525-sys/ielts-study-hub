@@ -152,13 +152,15 @@ function renderDashV6(){
 
   const timeEl = $('#dashTodayTime');
   const modsEl = $('#dashTodayMods');
+  /* 10/13 新用户实测优化：零状态不干显示「0h0m + 今天还没开始学习」——
+     全新用户对 0 无感，需要一句「下一步做什么」的推动语（观感批，她 10/13 点头）。 */
   if(timeEl){
     const hm = hmParts(totalSec);
     timeEl.innerHTML = hm.h+'<span class="u">h</span>'+hm.m+'<span class="u">m</span>';
   }
   if(modsEl) modsEl.textContent = mods.size > 0
     ? [...mods].slice(0, MAX_HINT_MODS).join(' · ')
-    : '今天还没开始学习';
+    : (totalSec > 0 ? '今天还没开始学习' : '去「计时」开第一段专注，学了多久一清二楚');
 
   // 首页「待学习」= 未掌握总词数口径（cleared!==true 即计入，不管排到哪天）。
   // ⚠️ 与背单词页的「出题口径」不同：buildQueue(practice.js) 只取 nextReview≤今天的词，
@@ -178,10 +180,12 @@ function renderDashV6(){
   const shown = (_cap > 0) ? Math.max(0, Math.min(due, _cap - _done)) : due;
   const dueEl = $('#dashDueWords');
   const hintEl = $('#dashDueHint');
+  // 10/13 新用户实测优化：0 词时不写「暂无待学习单词」（全新用户看了不知道下一步），
+  // 改成带动作指引的引导语（观感批，她 10/13 点头）。
   if(dueEl) dueEl.innerHTML = shown+'<span class="u">词</span>';
   if(hintEl) hintEl.textContent = (_cap > 0)
     ? ('每日计划 ' + _cap + ' 个 · 今日已背 ' + _done)
-    : (shown > 0 ? '建议先背待学习的词' : '暂无待学习单词');
+    : (shown > 0 ? '建议先背待学习的词' : '去「单词」页挑第一批准词，或先背官方 AWL 570');
 
   // ---- 今日任务卡（9/20：到期词建议 + 今日计划清单，详见 renderDashTasks）----
   // 注意：safe 是 ready() 闭包内常量，本函数在闭包外够不着 → renderDashTasks 自带 try/catch 兜底
