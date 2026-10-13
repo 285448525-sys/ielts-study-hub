@@ -3359,9 +3359,13 @@ function syncFloatTimer(){
   const el = document.getElementById('floatTimer');
   if(!el) return;
   /* 10/2（她反馈模考答题卡被悬浮胶囊挡住）：沉浸式模考进行中不显示跨页胶囊。
-     计时照跑不中断，只是不显示；退出模考（#mockView hidden）自动恢复。 */
+     计时照跑不中断，只是不显示；退出模考（#mockView hidden）自动恢复。
+     10/13 她报「做题页左下绿框太明显」→ bank.html 考场（#examRoot 可见）同样隐藏，
+     改由 bank.js 在考场顶栏计时器旁显示小号徽章 #exFtMini（同数据源、不抢眼）。 */
   const mockView = document.getElementById('mockView');
-  if(mockView && !mockView.hidden){
+  const examRoot = document.getElementById('examRoot');
+  const immersive = (mockView && !mockView.hidden) || (examRoot && !examRoot.hidden);
+  if(immersive){
     if(!el.hasAttribute('hidden')) el.setAttribute('hidden', '');
     return;
   }

@@ -143,6 +143,13 @@
 .ex-timer.warn{color:#b3261e;animation:exblink 1s step-start infinite}
 .ex-timer.soon{color:#8a5a00}
 @keyframes exblink{50%{opacity:.35}}
+/* 10/13 顶栏计时小徽章（她报「左下绿胶囊太明显」→ 考场内隐藏全站 floatTimer，
+   改在顶栏时间旁显示小号徽章；数据源/口径与 floatTimer 一致，JS 见 bank.js paintFtMini） */
+.ex-ft{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:#6b7280;background:#f2f4f6;border:1px solid var(--line);border-radius:999px;padding:1px 8px;line-height:1.5;white-space:nowrap;font-variant-numeric:tabular-nums}
+.ex-ft[hidden]{display:none}
+.ex-ft i{width:5px;height:5px;border-radius:50%;background:var(--primary);flex:none}
+.ex-ft b{font-weight:600}
+#examRoot.ct-dark .ex-ft{background:#262a24;border-color:#5a5f66;color:#c8cbd0}
 .ex-icons{display:flex;gap:2px;margin-left:auto;position:relative}
 .ex-ico{border:none;background:none;font:inherit;color:#111;cursor:pointer;padding:4px 9px;border-radius:5px;font-size:15px;line-height:1.3}
 .ex-ico:hover{background:#f2f4f6}
@@ -239,6 +246,9 @@
 .ex-blankw input{display:none;border:none;outline:none;background:none;font:inherit;font-size:14px;width:100%;text-align:center;padding:0;color:#111}
 .ex-blankw.editing b{display:none}
 .ex-blankw.editing input,.ex-blankw.filled input{display:block}
+/* 10/13 她截图 3 口径：点击后数字不硬消失——input 的 placeholder 灰显题号，
+   光标在前、数字在后，输入第一个字符原生让位（BC 机考同款行为） */
+.ex-blankw input::placeholder{color:#9ca3af;opacity:1}
 .ex-blankw.filled b{display:none}
 .ex-blankw.filled{border-color:#374151}
 .ex-blankw.right{border-color:var(--primary)}
@@ -288,6 +298,7 @@
 #examRoot.ct-dark .ex-top,#examRoot.ct-dark .ex-foot,#examRoot.ct-dark .ex-bar,#examRoot.ct-dark .ex-main,#examRoot.ct-dark .ex-article,#examRoot.ct-dark .ex-qcol,#examRoot.ct-dark .ex-listen,#examRoot.ct-dark .ex-split{background:#161616;border-color:#5a5f66}
 #examRoot.ct-dark .ex-article,#examRoot.ct-dark .ex-qcol,#examRoot.ct-dark .ex-listen,#examRoot.ct-dark .ex-name,#examRoot.ct-dark .ex-timer,#examRoot.ct-dark .ex-ico,#examRoot.ct-dark .ex-part,#examRoot.ct-dark .ex-opt,#examRoot.ct-dark .ex-pill,#examRoot.ct-dark .ex-blankw,#examRoot.ct-dark .ex-drop,#examRoot.ct-dark .ex-chip,#examRoot.ct-dark .ex-gqh,#examRoot.ct-dark .ex-pslot,#examRoot.ct-dark .ex-lohb,#examRoot.ct-dark .ex-lohv{background:#161616;color:#f2f2f2;border-color:#5a5f66}
 #examRoot.ct-dark .ex-part{background:#262a24}
+#examRoot.ct-dark .ex-audio .ea-part{background:#262a24;border-color:#5a5f66;color:#f2f2f2}
 #examRoot.ct-dark .ex-gqd,#examRoot.ct-dark .ex-q,#examRoot.ct-dark .ex-html{color:#f2f2f2}
 #examRoot.ct-dark .ex-opt:hover,#examRoot.ct-dark .ex-pill:hover{background:#242628}
 #examRoot.ct-dark .ex-opt.on,#examRoot.ct-dark .ex-pill.on{background:#20302d}
@@ -295,6 +306,7 @@
 #examRoot.ct-yellow .ex-top,#examRoot.ct-yellow .ex-foot,#examRoot.ct-yellow .ex-bar,#examRoot.ct-yellow .ex-main,#examRoot.ct-yellow .ex-article,#examRoot.ct-yellow .ex-qcol,#examRoot.ct-yellow .ex-listen,#examRoot.ct-yellow .ex-split{background:#161616;border-color:#5a5f66}
 #examRoot.ct-yellow .ex-article,#examRoot.ct-yellow .ex-qcol,#examRoot.ct-yellow .ex-listen,#examRoot.ct-yellow .ex-name,#examRoot.ct-yellow .ex-timer,#examRoot.ct-yellow .ex-ico,#examRoot.ct-yellow .ex-part,#examRoot.ct-yellow .ex-opt,#examRoot.ct-yellow .ex-pill,#examRoot.ct-yellow .ex-blankw,#examRoot.ct-yellow .ex-drop,#examRoot.ct-yellow .ex-chip,#examRoot.ct-yellow .ex-gqh,#examRoot.ct-yellow .ex-pslot,#examRoot.ct-yellow .ex-lohb,#examRoot.ct-yellow .ex-lohv{background:#161616;color:#f0e3a8;border-color:#5a5f66}
 #examRoot.ct-yellow .ex-part{background:#2a2718}
+#examRoot.ct-yellow .ex-audio .ea-part{background:#2a2718;border-color:#5a5f66;color:#f2f2f2}
 #examRoot.ct-yellow .ex-gqd,#examRoot.ct-yellow .ex-q,#examRoot.ct-yellow .ex-html{color:#f0e3a8}
 #examRoot.ct-yellow .ex-opt:hover,#examRoot.ct-yellow .ex-pill:hover{background:#26241a}
 #examRoot.ct-yellow .ex-opt.on,#examRoot.ct-yellow .ex-pill.on{background:#2e2b1d}
@@ -376,9 +388,11 @@
 .ex-expl b{color:#111;font-weight:700}
 /* ===== 10/12 批A：爱听写/真机考底部条（她 22:03「切换考题要放下面」）=====
    结构 = .ex-bar > .ex-nav（切换器 + 题号行）+ .ex-actions（Pause/Exit/Finish）
-   高度 ≤64px（题号行 24 + 按钮行 36）；1440 放不下时按钮行与切换器各占一行（≤72px） */
-.ex-bar{flex:none;background:#f7f8f9;border-top:1px solid var(--line);padding:4px 12px 5px;display:flex;flex-direction:column;gap:4px}
-.ex-nav{display:flex;align-items:center;gap:8px;min-height:22px}
+   高度 ≤64px（题号行 24 + 按钮行 36）；1440 放不下时按钮行与切换器各占一行（≤72px）
+   10/13 她报「题号和 Pause/Exit/Finish 分成两行不好，并成一行、少占空间」→
+   桌面改单行 row（题号行 flex:1 占满 + 按钮行 flex:none 靠右）；≤860 移动端保持两行。 */
+.ex-bar{flex:none;background:#f7f8f9;border-top:1px solid var(--line);padding:4px 12px 5px;display:flex;flex-direction:row;align-items:center;gap:10px}
+.ex-nav{flex:1;min-width:0;display:flex;align-items:center;gap:8px;min-height:22px}
 .ex-pg{flex:none;border:1px solid var(--n-400);background:#fff;border-radius:5px;padding:3px 9px;font:inherit;
   font-size:12px;font-weight:600;color:#111;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;line-height:1.35}
 .ex-pg:hover:not([disabled]){background:#f2f4f6}
@@ -405,8 +419,8 @@
 #examRoot #exPauseBtn{min-width:64px}
 /* 移动端（≤860）：底部条压紧凑、题号行横向滚（爱听写同款）、切换器文案缩短防溢出 */
 @media(max-width:860px){
-  .ex-bar{padding:5px 8px 7px;gap:5px}
-  .ex-nav{gap:6px;min-height:22px}
+  .ex-bar{padding:5px 8px 7px;gap:5px;flex-direction:column}   /* 10/13：移动端 390 宽放不下 → 保持两行 */
+  .ex-nav{gap:6px;min-height:22px;width:100%}
   .ex-pg{padding:4px 8px;font-size:11.5px;gap:4px}
   .ex-pg .ex-pgar{font-size:12px}
   .ex-nums{gap:1px}
@@ -711,6 +725,8 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
   .ex-audio .ea-vol{flex:none;border:1px solid var(--line);background:transparent;border-radius:7px;padding:2px 7px;font-size:12px;line-height:1.5;cursor:pointer;font-family:inherit}
   .ex-audio .ea-vol:hover{border-color:#111}
   .ex-audio .ea-vsl{flex:none;width:64px;accent-color:var(--primary);cursor:pointer;margin:0}
+/* 10/13 Part 横幅并入音频条行首（她报「上面三行缩两行」）：胶囊 = Part N · Questions X–Y */
+.ex-audio .ea-part{flex:none;font-size:12px;font-weight:700;color:var(--primary-text);background:var(--primary-50);border:1px solid var(--primary-100);border-radius:6px;padding:2px 9px;white-space:nowrap}
   .ex-audio .ea-mode{flex:none;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:3px 11px;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap}
   .ex-audio .ea-mode.exam{border-color:var(--warn-ink);color:var(--warn-ink);background:var(--warn-soft);font-weight:600}
   .ex-audio .ea-mode[disabled]{opacity:.5;cursor:default}
@@ -853,9 +869,9 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
      10/11 第 7 项：写作 pane 复用 js/writing.js（写作真题渲染 + 机考 + AI 评分）+ js/writing_prompts.js（题库数据）。
      writing.js 靠「有没有 #writeTabs」自判页面：本页没有 → 只跑真题初始化，不碰写作页 DOM。 -->
 <script defer src="js/data.js?v=20261011e"></script>
-<script defer src="js/common.js?v=20261012f"></script>
+<script defer src="js/common.js?v=20261012g"></script>
 <script defer src="js/writing_prompts.js?v=20260903ab"></script>
 <script defer src="js/writing.js?v=20261011b"></script>
-<script defer src="js/bank.js?v=20261012h"></script>
+<script defer src="js/bank.js?v=20261012i"></script>
 </body>
 </html>

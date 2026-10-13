@@ -62,6 +62,7 @@
   var _manifest = null, _loading = false;
   var EX = null;              // 当前做题会话
   var _timer = null;
+  var _ftTimer = null;        // 顶栏计时小徽章刷新interval（10/13）
   /* 10/12 23:2x 她「组卷改纯随机，不用提前写好题目在那」：原 _fullSet/_listenFullSet
      「渲染入口卡时组一次并缓存」的两变量已删 —— 现在点 Start 的那一刻才随机抽篇（见 openFullTest）。 */
 
@@ -423,10 +424,13 @@
       var n = pm ? pm[1] : '';
       if(n) had++;
       var gn = n ? numOf(n) : n;
-      /* 三态框（样子稿 104）：外层 .ex-blankw 管「数字/空白输入」切换，input 保持原类名供收集/判分 */
+      /* 三态框（样子稿 104 → 10/13 她截图 3 口径修正）：外层 .ex-blankw 管「数字/空白输入」切换，
+         input 保持原类名供收集/判分。
+         10/13：点击后不再让数字「硬消失」——input 带 placeholder=题号（灰显），
+         光标在前、数字在后，输入第一个字符数字才让位（原生 placeholder 行为，她截图 3 指定口径）。 */
       return '<span class="ex-blankw" data-q="' + gn + '"><b>' + gn + '</b>'
         + '<input class="ex-blank" type="text" data-q="' + gn + '"'
-        + ' autocomplete="off" spellcheck="false"></span>';
+        + ' placeholder="' + esc(gn) + '" autocomplete="off" spellcheck="false"></span>';
     });
     return { html: '<div class="ex-html">' + html + '</div>', had: had };
   }
@@ -521,12 +525,15 @@
 
   /* ===== 考试页外壳（单篇 / 完整模考共用，避免两份 HTML 漂移）=====
      10/12：顶栏照样子稿 104 窄单行；Aa 换三横杠 ☰ = Option 覆盖面板
-     （Colour = 原 Contrast 三档 exCt / Size = 原 Text size 三档 exTs，控件与委托不变只换皮）。*/
+     （Colour = 原 Contrast 三档 exCt / Size = 原 Text size 三档 exTs，控件与委托不变只换皮）。
+     10/13：顶栏计时器旁加 #exFtMini 小徽章（她 10/13 报「左下绿胶囊太明显」→
+     考场内隐藏全站 floatTimer，改在顶栏时间旁边显示小号计时；数据源与 floatTimer 同口径）。 */
   function shellHtml(nameText, subText, timerText){
     return '<div class="ex-top">'
       +    '<div class="ex-name">' + esc(nameText)
       +      (subText ? '<small>' + esc(subText) + '</small>' : '') + '</div>'
       +    '<span class="ex-timer" id="exTimer">' + timerText + '</span>'
+      +    '<span class="ex-ft" id="exFtMini" hidden><i></i><b id="exFtLabel">计时中</b><span id="exFtTime">00:00:00</span></span>'
       +    '<div class="ex-icons">'
       +      '<button class="ex-ico ex-menubtn" type="button" title="Option">\u2630</button>'
       +    '</div></div>'
@@ -566,7 +573,13 @@
               + .ex-actions（左：Pause | 中：Exit | 右：Finish section）
        · 题号行只列【当前篇】（根治「40 个题堆下面挤两行」）；全卷格子 .ex-sheet 退役
        · 篇切换器 full 模式才有；单篇只有题号行；写作是 Task 1/2 切换（见 paintPgSwitch）
-       · Pause 属批 B-3（她 22:2x 确认加），此处先留按钮位，行为在 bank.js pauseExam/resumeExam */
+       10/13 她报两件：①「题号和 Pause/Exit/Finish 分成两行不好，并成一行」→ 桌面 .ex-bar 改
+         row（题号行 flex:1 占满，按钮行 flex:none 靠右）；≤860 移动端保持两行（390 宽放不下）。
+       ②「Pause 是个摆设」→ 本批实现 pauseExam/resumeExam（见下）。
+       ⚠️ Pause 只属于练习模式：真机考录音不可暂停（BC 官方 Progress Check FAQ「The Listening
+         and Speaking tests are a recording and cannot be paused」；Zoju Strict/Breath 双模式、
+         ieltsfreepractice Practice/Exam 双模式同口径）→ 考试模式与听力完整模考不渲染该按钮。 */
+    var showPause = !!(EX && !EX.submitted && EX.listenMode !== 'exam' && !(EX.full && EX.channel === 'listening'));
     return '<div class="ex-bar">'
       +    '<div class="ex-nav" id="exNav">'
       +      '<button type="button" class="ex-pg" id="exPgPrev" data-pgprev></button>'
@@ -574,7 +587,7 @@
       +      '<button type="button" class="ex-pg" id="exPgNext" data-pgnext></button>'
       +    '</div>'
       +    '<div class="ex-actions">'
-      +      '<button type="button" class="btn-ghost ex-pause" id="exPauseBtn">Pause</button>'
+      +      (showPause ? '<button type="button" class="btn-ghost ex-pause" id="exPauseBtn">Pause</button>' : '')
       +      '<button class="btn-ghost" type="button" data-exit>Exit</button>'
       +      '<button class="btn-primary" type="button" data-submit>Finish section</button>'
       +    '</div></div>';
@@ -615,7 +628,7 @@
     return null;
   }
   function listenPartLabel(){ var p = listenPart(); return (p && p.partNum) || 'Audio'; }
-  function audioBarHtml(){
+  function audioBarHtml(partLabel){
     var p = listenPart();
     if(!p || !p.audioUrl) return '<div class="ex-audio" id="exAudioBar"><span class="ea-label">本部分没有音频</span></div>';
     var exam = EX.listenMode === 'exam';
@@ -626,9 +639,12 @@
       + (EX.audioStarted ? ' disabled' : '')
       + ' title="' + (EX.audioStarted ? '已经开始播放，本次不能再切换' : '切到考试模式后音频直通，不能暂停/拖动') + '">'
       + (exam ? '考试模式' : '练习模式') + '</button>';
+    /* 10/13 她报「上面三行缩两行」→ Part 横幅并入音频条行首（Part N · Questions X–Y 胶囊）。
+       阅读没有音频条，仍走独立 partBannerHtml 横幅（renderExam 阅读分支不变）。 */
+    var partChip = partLabel ? '<span class="ea-part">' + esc(partLabel) + '</span>' : '';
     return '<div class="ex-audio' + (exam ? ' locked' : '') + '" id="exAudioBar">'
       + '<button class="ea-play" type="button" data-aplay aria-label="Play">▶</button>'
-      + '<span class="ea-label">' + esc(listenPartLabel()) + '</span>'
+      + partChip
       + '<div class="ea-bar" id="eaBar"><div class="ea-fill" id="eaFill"></div><span class="ea-knob" id="eaKnob"></span></div>'
       + '<span class="ea-time" id="eaTime">00:00 / 00:00</span>'
       + '<button class="ea-vol" type="button" data-avol aria-label="Mute">' + (_audioMuted || _audioVol === 0 ? '🔇' : '🔊') + '</button>'
@@ -637,6 +653,14 @@
       + modeBtn
       + '</div>'
       + '<audio id="exAudio" preload="metadata" src="' + esc(p.audioUrl) + '"></audio>';
+  }
+  /* Part 行内标签文案（音频条行首胶囊）：听力口径「Part N · Questions X–Y」（她 10/13 截图 1 口径） */
+  function partChipText(){
+    var u = EX && EX.unit, parts = (u && u.parts) || [];
+    var nums = [];
+    parts.forEach(function(pp){ (pp.groups || []).forEach(function(g){ (g.questions || []).forEach(function(q){ if(q.qNumber != null) nums.push(String(q.qNumber)); }); }); });
+    var lbl = (parts[0] && parts[0].partNum) || (u && u.partNum) || 'Part 1';
+    return nums.length ? (lbl + ' · Questions ' + nums[0] + '\u2013' + nums[nums.length - 1]) : lbl;
   }
   function paintAudio(){
     var a = document.getElementById('exAudio'); if(!a) return;
@@ -774,11 +798,11 @@
     var isListen = EX.channel === 'listening';
 
     if(isListen){
-      /* 听力：窄顶栏（音频控制并入）+ Part 横幅 + 单栏题目（听力没有独立文章区，不做左右分栏）。
-         Highlight/Note 菜单依赖 #exArt，听力没有 → 不渲染，避免出现点不动的入口。 */
+      /* 听力：窄顶栏（音频控制并入）+ Part 胶囊并入音频条行首 + 单栏题目（听力没有独立文章区，不做左右分栏）。
+         Highlight/Note 菜单依赖 #exArt，听力没有 → 不渲染，避免出现点不动的入口。
+         10/13 她报「上面三行缩两行」→ 原独立 Part 横幅（.ex-part）撤销，信息并入音频条。 */
       host.innerHTML = shellHtml(u.title, '', '00:30:00')
-        + audioBarHtml()
-        + partBannerHtml((parts[0] && parts[0].partNum) || u.partNum || 'Part 1', nums.length ? nums[0] : null, nums.length ? nums[nums.length - 1] : null, false)
+        + audioBarHtml(partChipText())
         + '<div class="ex-listen" id="exListen"><div class="ex-listen-in" id="exListenIn">'
         + groups.map(function(g, i){ return groupHtml(g, i, null, 'listening'); }).join('')
         + '</div></div>'
@@ -800,6 +824,7 @@
     else { renderNotes(); replayMarks(); }
     if(EX.submitted){ if(isListen) showScript(); decoratePassage(EX.curP); }
     startTimer(isListen ? 30 * 60 : 60 * 60);
+    startFtMini();                                       /* 10/13：顶栏计时小徽章（考场内替代全站 floatTimer） */
   }
 
   /* ===== 完整模考（3 篇一套 · 40 题 / 60 分钟 · 随机组卷）=====
@@ -862,6 +887,7 @@
       renderPassage(1);
       renderNotes();
       startTimer(60 * 60);
+      startFtMini();                                     /* 10/13：顶栏计时小徽章 */
       bankStartTimer();                               /* C-3：完整模考（阅读）开专注计时 */
     }).catch(function(err){
       if(window.console && console.error) console.error('[bank] 完整模考加载失败：', err);
@@ -913,15 +939,16 @@
 
       var host2 = document.getElementById('examRoot');
       if(host2){
+        /* 10/13 她报「上面三行缩两行」→ 听力完整模考不渲染独立 Part 横幅，
+           Part 信息并入音频条行首胶囊（renderListenPart 里随篇更新）。 */
         host2.innerHTML = shellHtml('Listening Test', 'Full Test', '00:30:00')
           + '<div id="exAudioHost"></div>'
-
-          + partBannerHtml('Part 1', null, null, false)
           + '<div class="ex-listen" id="exListen"><div class="ex-listen-in" id="exListenIn"></div></div>'
           + barHtml();
       }
       renderListenPart(1);
       startTimer(30 * 60);
+      startFtMini();                                     /* 10/13：顶栏计时小徽章 */
       bankStartTimer();                               /* C-3：完整模考（听力）开专注计时 */
     }).catch(function(err){
       if(window.console && console.error) console.error('[bank] 听力完整模考加载失败：', err);
@@ -940,7 +967,7 @@
     var pk = EX.packs[pi - 1];
     EX.unit = pk.unit;                                  /* 音频条 / 原文按篇取 → 复用同一套取数路径 */
     var barHost = document.getElementById('exAudioHost');
-    if(barHost) barHost.innerHTML = audioBarHtml();     /* 换篇 = 旧 <audio> 随 innerHTML 销毁（播放自动停） */
+    if(barHost) barHost.innerHTML = audioBarHtml(partChipText());   /* 换篇 = 旧 <audio> 随 innerHTML 销毁（播放自动停）；Part 胶囊随篇更新 */
     wireAudio();                                        /* ⚠️ 新 <audio> 元素必须重绑事件（play 监听 = 「只播一遍」的记号来源） */
     var inner = document.getElementById('exListenIn');
     var list = qsOfPassage(pi);
@@ -960,7 +987,7 @@
       var pb = document.querySelector('#exAudioBar [data-aplay]');
       if(pb){ pb.disabled = true; pb.title = 'This audio has already been played.'; }
     }
-    updatePartBanner('Part ' + pi, list.length ? list[0].g : null, list.length ? list[list.length - 1].g : null, false);
+    /* 10/13：Part 横幅已并入音频条行首胶囊（#exPartBanner 不存在了）→ 切篇只刷题号行 */
     paintSheet();
   }
 
@@ -1624,6 +1651,7 @@
         5 分钟 = 红色闪烁（强提醒）
      到点 = 强制交卷（所有成熟机考模拟器的通例；原文 `left<=0` 只是停表，考卷会一直挂在那）。 */
   function pad2(n){ return (n < 10 ? '0' : '') + n; }
+  /* 10/13 Pause 支持：暂停时把剩余秒数存 EX._leftSec，resume 用它重启倒计时（不重算、不丢已过时间）。 */
   function startTimer(sec){
     stopTimer();
     var left = sec, el = document.getElementById('exTimer');
@@ -1634,12 +1662,78 @@
         el.classList.toggle('warn', left <= 300 && left > 0);
         el.classList.toggle('soon', left <= 600 && left > 300);
       }
+      if(EX) EX._leftSec = left;
       if(left <= 0){ stopTimer(); doSubmit(); return; }
       left--;
     }
     tick(); _timer = setInterval(tick, 1000);
   }
   function stopTimer(){ if(_timer){ clearInterval(_timer); _timer = null; } }
+
+  /* ===== Pause / Resume（10/13 她报「Pause 是个摆设」→ 本批实现）=====
+     语义按成熟站双模式口径：真机考录音不可暂停（BC 官方 FAQ「The Listening and Speaking tests
+     are a recording and cannot be paused」；Zoju Strict/Breath、ieltsfreepractice Practice/Exam
+     同款）→ 本站 Pause 只属于练习模式（考试模式/听力完整模考连按钮都不渲染，见 barHtml）。
+     暂停 = 音频停 + 考试倒计时停（剩余秒数入 EX._leftSec）；按钮变 Resume，再点恢复。 */
+  function pauseExam(){
+    if(!EX || EX.submitted || EX.paused) return;
+    if(EX.listenMode === 'exam') return;                   /* 考试模式没有暂停（按钮也不渲染，双保险） */
+    EX.paused = true;
+    if(EX._leftSec == null) EX._leftSec = 60 * 60;
+    stopTimer();
+    var a = document.getElementById('exAudio');
+    EX._wasPlaying = !!(a && !a.paused);
+    if(a) a.pause();
+    var b = document.getElementById('exPauseBtn');
+    if(b){ b.textContent = 'Resume'; b.classList.add('on'); }
+    paintFtMini();
+  }
+  function resumeExam(){
+    if(!EX || !EX.paused) return;
+    EX.paused = false;
+    startTimer(EX._leftSec == null ? 60 * 60 : EX._leftSec);
+    var a = document.getElementById('exAudio');
+    if(a && EX._wasPlaying) a.play();
+    var b = document.getElementById('exPauseBtn');
+    if(b){ b.textContent = 'Pause'; b.classList.remove('on'); }
+    paintFtMini();
+  }
+
+  /* ===== 顶栏计时小徽章（#exFtMini，10/13 她报「左下绿胶囊太明显，放时间旁边、小一点」）=====
+     考场内隐藏全站 floatTimer（common.js syncFloatTimer 已扩判断），改在顶栏显示同数据源的小徽章：
+     window.active（计时页实时态）优先，回落 DATA.activeTimer 云端镜像；口径与 floatTimer 一致
+     （正计时/倒计时、暂停中/计时中）。暂停态由 pauseExam 直接 paintFtMini() 刷，不等 1s。 */
+  function ftSource(){
+    if(window.active && window.active.startTs && !window.active.ended) return window.active;
+    var m = (typeof DATA !== 'undefined') && DATA.activeTimer;
+    if(m && !m.ended && m.startTs) return m;
+    return null;
+  }
+  function ftSec(src){
+    if(!src || !src.startTs) return 0;
+    var now = Date.now(), pause = Number(src.pauseAccum) || 0;
+    if(src.paused && src.pauseStart) pause += (now - src.pauseStart);
+    var el = (now - src.startTs - pause) / 1000;
+    if(src.paused && src.pauseStart) el = (src.pauseStart - src.startTs - (Number(src.pauseAccum) || 0)) / 1000;
+    return Math.max(0, el);
+  }
+  function paintFtMini(){
+    var box = document.getElementById('exFtMini'); if(!box) return;
+    var src = ftSource();
+    if(!src){ box.hidden = true; return; }
+    /* 🔴 考试页零中文铁律（10/11 她定）：徽章文案纯英文最小集（Timing/Paused + 时间），
+       不显示中文模块名（ bankTimerModule 的「听力模考」只用于落库，不上屏）。 */
+    var lb = document.getElementById('exFtLabel'), tm = document.getElementById('exFtTime');
+    if(lb) lb.textContent = (src.paused || (EX && EX.paused)) ? 'Paused' : 'Timing';
+    if(tm){
+      var s = ftSec(src);
+      if(src.mode === 'down' && src.targetSec) s = Math.max(0, (Number(src.targetSec) || 0) - s);
+      tm.textContent = (typeof fmtHMS === 'function') ? fmtHMS(s) : '00:00:00';
+    }
+    box.hidden = false;
+  }
+  function startFtMini(){ stopFtMini(); paintFtMini(); _ftTimer = setInterval(paintFtMini, 1000); }
+  function stopFtMini(){ if(_ftTimer){ clearInterval(_ftTimer); _ftTimer = null; } }
 
   /* ===== C-3 模考时长计入「今日专注」（她 10/12 拍板「计入」，与口语/写作模考一致）=====
      照搬 speaking.js maybeStartSpkTimer / commitSpkTimer 范式（那边 9/22 定版）：
@@ -1829,7 +1923,7 @@
 
   function doSubmit(){
     if(!EX || EX.submitted) return;
-    EX.submitted = true; stopTimer();
+    EX.submitted = true; stopTimer(); stopFtMini();      /* 10/13：小徽章随交卷停 */
     var res = score(); EX.correct = res.right; EX.result = res;
 
     EX.marks = {};
@@ -1920,6 +2014,7 @@
 
   function exitExam(){
     stopTimer();
+    stopFtMini();                                        /* 10/13：顶栏小徽章随之停 */
     dgReset();
     hlReset();
     var au = document.getElementById('exAudio');
@@ -2011,6 +2106,11 @@
       if(t.closest && t.closest('[data-scancel]')){ closeSubmitConfirm(); return; }
       /* 听力音频条（10/11 第 9 项）：播放/暂停、倍速、练习⇄考试模式、点进度条跳转 */
       if(t.closest && t.closest('#exAudioBar [data-aplay]')){ audioToggle(); return; }
+      /* Pause / Resume（10/13 她报「Pause 是个摆设」→ 实现：暂停音频+倒计时，按钮互文切换） */
+      if(t.closest && t.closest('#exPauseBtn')){
+        if(EX && EX.paused) resumeExam(); else pauseExam();
+        return;
+      }
       if((el = t.closest && t.closest('#exAudioBar [data-arate]'))){
         var a1 = document.getElementById('exAudio'); if(!a1) return;
         _rateIx = (_rateIx + 1) % AUDIO_RATES.length;
@@ -2158,7 +2258,9 @@
       if(EX && !EX.submitted && t.matches && t.matches('#examRoot .ex-opts input')) paintSheet();
     });
     /* 下一题快捷键 = 双击 Tab（她 10/12 指定；连按两次跳下一题并直接进输入态）。
-       判定放宽到「考场可见」——焦点在 body（如刚点过被移除的按钮）时也要能跳。 */
+       判定放宽到「考场可见」——焦点在 body（如刚点过被移除的按钮）时也要能跳。
+       10/13：双击窗口 600→800ms（她报「双击 Tab 没反应」——人类双击间隔常见 300-700ms，
+       600ms 对慢双击太紧；本地探针两条焦点路径均验过再放款）。 */
     document.addEventListener('keydown', function(e){
       if(e.key !== 'Tab') return;
       var zone = document.getElementById('examRoot');
@@ -2167,7 +2269,7 @@
       if(document.getElementById('exSubmitModal')) return;   /* 交卷确认弹层开着时 Tab 归弹层（按钮间切换） */
       e.preventDefault();
       var now = Date.now();
-      if(now - (document.__lastBankTab || 0) < 600){
+      if(now - (document.__lastBankTab || 0) < 800){
         document.__lastBankTab = 0;
         var an = allNums().map(Number), i = an.indexOf(Number(EX.cur));
         goTo(an[Math.min(an.length - 1, i + 1)], true);
