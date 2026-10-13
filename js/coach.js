@@ -551,7 +551,9 @@ function userHtml(text){
         + '（' + t.zh + '）。用一句中文点一下问题意思、鼓励考生直接开口作答，不要自问自答。';
     st.thread.push({ role: 'assistant', text: ctx });
     scrollBottom();
-    try{ $('coachInput').focus(); }catch(_){}
+    /* 10/13 加 preventScroll:true —— focus() 默认元素滚进视野，会与软导航后的「回顶部」打架
+       （实测从首页点进来时 main.container 被顶到 2942）。滚到底已由上面的 scrollBottom 负责。 */
+    try{ $('coachInput').focus({ preventScroll:true }); }catch(_){ try{ $('coachInput').focus(); }catch(_2){} }
     return true;
   }
 
@@ -1068,8 +1070,11 @@ function userHtml(text){
        —— 根因就是这行**无条件 focus()**：build() 是切 tab 时跑的，用户还没点任何东西，
           焦点就被抢到输入框 → 移动端立刻弹键盘。
        —— 修法：只在「用户主动点过页面/输入框」之后才聚焦（st.userTouched 由输入框 focus 事件置位），
-          首次进来不抢焦点，键盘等他真要打字才弹。 */
-    if(st.userTouched){ try{ ta.focus(); }catch(_){} }
+          首次进来不抢焦点，键盘等他真要打字才弹。
+       10/13 补：focus() 默认会把元素滚进视野 —— 软导航从别页进来时，
+       main.container 的 scrollTop 被它从 0 顶到 2942（实测），用户看到的是页面中间、
+       题卡被切一半。加 preventScroll:true：焦点照给，但不许它滚页面（滚页面由 scrollBottom 负责）。 */
+    if(st.userTouched){ try{ ta.focus({ preventScroll:true }); }catch(_){ try{ ta.focus(); }catch(_2){} } }
     else { try{ ta.blur(); }catch(_){} }
   }
 

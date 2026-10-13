@@ -3924,12 +3924,30 @@ async function runPageScript(id, doc){
    同时处理两个可能的滚动容器：移动端的 `main.container`（overflow-y:auto）
    与整文档（桌面端/无 dock 页面仍是 window 滚动）。
    ⚠️ 不能用「有没有滚动条」来决定要不要归零 —— 容器存在就要写，写 0 无害。 */
+var _hubScrollLockUntil = 0;
 function hubResetPageScroll(){
   try{
     const m = document.querySelector('main.container');
     if(m && m.scrollTop) m.scrollTop = 0;
     if(window.scrollY) window.scrollTo(0, 0);
   }catch(_){}
+  /* 10/13：软导航后 600ms 内持续锁顶。
+     只归零一次不够 —— 页面脚本（runPageScript）在归零之后才跑，这期间任何 focus()/
+     scrollIntoView() 都会把容器重新顶走（实例：coach 输入框 focus() 默认把元素滚进视野，
+     从首页软导航进口语页时 scrollTop 被顶到 2942，用户看到页面中间、题卡被切一半）。 */
+  _hubScrollLockUntil = Date.now() + 600;
+  if(!window.__hubScrollLock){
+    window.__hubScrollLock = setInterval(function(){
+      if(Date.now() > _hubScrollLockUntil){
+        clearInterval(window.__hubScrollLock); window.__hubScrollLock = null; return;
+      }
+      try{
+        const m = document.querySelector('main.container');
+        if(m && m.scrollTop) m.scrollTop = 0;
+        if(window.scrollY) window.scrollTo(0, 0);
+      }catch(_){}
+    }, 50);
+  }
 }
 
 /* 🔴 10/6 01:55 「内容装得下就不要能滑动」——修「明明整屏能显示完却还能滑一点」。
