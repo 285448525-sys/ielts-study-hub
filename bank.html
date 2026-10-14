@@ -383,6 +383,28 @@
 #examRoot.ct-yellow .ex-qn{color:#f0e3a8;border-color:#6b6435}
 #examRoot.ct-dark .ex-blankw b{color:#f2f2f2}
 #examRoot.ct-yellow .ex-blankw b{color:#f0e3a8}
+
+/* 10/14 二轮主题适配（她截图：黄/黑主题下 Questions 标题、说明、加粗词、题号全看不见）。
+   用对比度扫描穷举出 18 处 <3 的元素，逐条修。 */
+/* ① 题组标题 / 说明 / 加粗词（原只覆盖 .ex-q，漏了这些） */
+#examRoot.ct-dark .ex-grp-h,#examRoot.ct-dark .ex-grp-i,#examRoot.ct-dark .ex-grp-i *,
+#examRoot.ct-dark .ex-qt b,#examRoot.ct-dark .ex-qt strong,#examRoot.ct-dark .ex-listen b,
+#examRoot.ct-dark .ex-listen strong{color:#f2f2f2 !important}
+#examRoot.ct-yellow .ex-grp-h,#examRoot.ct-yellow .ex-grp-i,#examRoot.ct-yellow .ex-grp-i *,
+#examRoot.ct-yellow .ex-qt b,#examRoot.ct-yellow .ex-qt strong,#examRoot.ct-yellow .ex-listen b,
+#examRoot.ct-yellow .ex-listen strong{color:#f0e3a8 !important}
+/* ② 顶栏副标题（Full Test）与 Part 横幅说明 */
+#examRoot.ct-dark .ex-top small,#examRoot.ct-dark .ex-part span{color:#b9bdc4 !important}
+#examRoot.ct-yellow .ex-top small,#examRoot.ct-yellow .ex-part span{color:#c9bd85 !important}
+/* ③ 反向修正：题号框和白底控件不要用主题色（否则白底黄字/白底浅字同样看不见） */
+#examRoot.ct-dark .ex-qn{color:#111 !important;border-color:#111 !important}
+#examRoot.ct-yellow .ex-qn{color:#111 !important;border-color:#111 !important}
+#examRoot.ct-dark .ex-pgar,#examRoot.ct-yellow .ex-pgar{color:#111 !important;border-color:#9ca3af !important}
+#examRoot.ct-dark .ex-lohsel,#examRoot.ct-yellow .ex-lohsel{color:#111 !important;background:#fff !important}
+#examRoot.ct-dark .ex-blankw b,#examRoot.ct-yellow .ex-blankw b{color:#111 !important}
+#examRoot.ct-dark .ex-drop b,#examRoot.ct-yellow .ex-drop b{color:#111 !important}
+/* ④ 填空框、选项在深色下的底色（保持白底深字，与真实机考一致：作答控件始终浅底） */
+#examRoot.ct-dark .ex-blankw input,#examRoot.ct-yellow .ex-blankw input{color:#111}
 #examRoot.ct-dark .ex-opt:hover,#examRoot.ct-dark .ex-pill:hover{background:#242628}
 #examRoot.ct-dark .ex-opt.on,#examRoot.ct-dark .ex-pill.on{background:#20302d}
 #examRoot.ct-yellow{background:#161616}
