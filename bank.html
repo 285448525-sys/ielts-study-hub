@@ -200,22 +200,22 @@
 /* 选项（判断/单选/多选/字母匹配）：竖排整行，选中 = 圈实心 + 行浅 teal（样子稿 104，颜色本站 teal）
    靠 :has() 按 input 状态渲染（Edge/Chrome 105+，全站现代浏览器） */
 .ex-pills{display:flex;flex-direction:column;gap:3px;margin-top:10px}
-.ex-pill{display:flex;align-items:center;gap:10px;min-height:32px;padding:6px 11px;border:1px solid transparent;border-radius:3px;background:#fff;font-size:.88em;cursor:pointer;color:#111;text-align:left}   /* 10/14 17.5→14.5px、行高 37→32px */
-.ex-pill::before{content:"";flex:none;width:17px;height:17px;border:2px solid #8f959e;border-radius:50%;background:#fff}
+.ex-pill{display:flex;align-items:center;gap:10px;min-height:34px;padding:7px 11px;border:1px solid transparent;border-radius:3px;background:#fff;font-size:.94em;cursor:pointer;color:#111;text-align:left}   /* 10/14 17.5→14.5px、行高 37→32px */
+.ex-pill::before{content:"";flex:none;width:14px;height:14px;border:1.5px solid #8f959e;border-radius:50%;background:#fff}   /* 10/14 她报圆圈太大：17+2 → 14+1.5（剑桥机考尺度） */
 .ex-pill:hover{background:#f4f6f8;border-color:transparent}
 .ex-pill.on{background:var(--primary-50)}
-.ex-pill.on::before{border-color:var(--primary);background:radial-gradient(circle,var(--primary) 0 5px,transparent 5.5px)}
+.ex-pill.on::before{border-color:var(--primary);background:radial-gradient(circle,var(--primary) 0 4px,transparent 4.5px)}
 .ex-pill.right{background:var(--primary-50);border-color:var(--primary)}
 .ex-pill.wrong{background:#fdf3f2;border-color:#b3261e;color:#b3261e}
 .ex-opts{display:flex;flex-direction:column;gap:3px;margin-top:10px}
-.ex-opt{display:flex;align-items:center;gap:10px;min-height:32px;padding:6px 11px;border:1px solid transparent;border-radius:3px;background:#fff;font-size:.88em;cursor:pointer;color:#111;position:relative}   /* 10/14 17.5→14.5px、行高 37→32px */
+.ex-opt{display:flex;align-items:center;gap:10px;min-height:34px;padding:7px 11px;border:1px solid transparent;border-radius:3px;background:#fff;font-size:.94em;cursor:pointer;color:#111;position:relative}   /* 10/14 17.5→14.5px、行高 37→32px */
 .ex-opt:hover{background:#f4f6f8}
 .ex-opt input{position:absolute;opacity:0;pointer-events:none;width:0;height:0}
 .ex-opt:has(input:checked){background:var(--primary-50)}
 .ex-opt:has(input:checked) b{color:var(--primary-900)}
-.ex-radio-box .ex-opt::before{content:"";flex:none;width:17px;height:17px;border:2px solid #8f959e;border-radius:50%;background:#fff}
-.ex-radio-box .ex-opt:has(input:checked)::before{border-color:var(--primary);background:radial-gradient(circle,var(--primary) 0 5px,transparent 5.5px)}
-.ex-cbox .ex-opt::before{content:"";flex:none;width:17px;height:17px;border:2px solid #8f959e;border-radius:3px;background:#fff}
+.ex-radio-box .ex-opt::before{content:"";flex:none;width:14px;height:14px;border:1.5px solid #8f959e;border-radius:50%;background:#fff}
+.ex-radio-box .ex-opt:has(input:checked)::before{border-color:var(--primary);background:radial-gradient(circle,var(--primary) 0 4px,transparent 4.5px)}
+.ex-cbox .ex-opt::before{content:"";flex:none;width:14px;height:14px;border:1.5px solid #8f959e;border-radius:3px;background:#fff}
 .ex-cbox .ex-opt:has(input:checked)::before{border-color:var(--primary);background:var(--primary)}
 .ex-cbox .ex-opt:has(input:checked)::after{content:"\2713";position:absolute;left:15px;top:50%;margin-top:-9px;color:#fff;font-size:12px;font-weight:800}
 .ex-opt.dis{opacity:.35;pointer-events:none}
@@ -248,21 +248,33 @@
 .ex-chip .ex-x:hover{color:#b3261e}
 .ex-chip.right{border-color:var(--primary);background:var(--primary-50)}
 .ex-chip.wrong{border-color:#b3261e;background:#fdf3f2;color:#b3261e}
-.ex-drop{display:flex;width:fit-content;min-width:132px;max-width:100%;align-items:center;gap:8px;
-  min-height:34px;margin:9px 0 0;border:1.5px dashed #9aa0a8;border-radius:999px;padding:5px 16px;
-  font-size:.82em;font-weight:700;color:#111;transition:.15s;touch-action:none;cursor:pointer}
+/* 10/14 视觉统一（她反馈这排虚线椭圆看不懂）：虚线胶囊(999px) → 实线圆角方框，
+   与填空框 / 字母框同款；拖放交互不变（真实机考就是拖放，她 10/12 拍板）。 */
+.ex-drop{display:flex;width:fit-content;min-width:110px;max-width:100%;align-items:center;gap:8px;
+  min-height:34px;margin:9px 0 0;border:1.5px solid #9aa0a8;border-radius:6px;padding:5px 14px;
+  font-size:.9em;font-weight:700;color:#111;background:#fff;transition:.15s;touch-action:none;cursor:pointer}
+.ex-drop::before{content:"\2192";font-size:.9em;color:#9aa0a8;font-weight:400;margin-right:2px}   /* 空槽提示：拖字母到这里 */
 .ex-drop.over{border-color:var(--primary);background:var(--primary-50)}
 .ex-drop.dragging{opacity:.28}
 .ex-drop.filled{border-style:solid;border-color:#6a6f77;background:#fff;cursor:grab}
+.ex-drop.filled::before{content:none}   /* 已填不显示箭头提示 */
 .ex-drop.filled b{font-weight:400}
 .ex-drop .ex-x{font-size:.8em;color:var(--muted);cursor:pointer;padding:0 2px;font-weight:400}
 .ex-drop .ex-x:hover{color:#b3261e}
 .ex-drop.filled.right{border-color:var(--primary);background:var(--primary-50)}
 .ex-drop.filled.wrong{border-color:#b3261e;background:#fdf3f2;color:#b3261e}
 /* 填空框三态（样子稿 104）：未点 = 框中数字；点击 = 空白框输入；失焦有值显示值 */
-.ex-blankw{display:inline-flex;align-items:center;justify-content:center;min-width:120px;height:36px;border:1.5px solid #9ca3af;border-radius:6px;background:#fff;vertical-align:middle;transition:border-color .15s,box-shadow .15s}
+/* 10/14 二轮（对齐她给的成熟样式稿）：
+   ① 边框加深 #9ca3af → #6b7280（原色在截图里几乎看不见，像断开的括号）
+   ② 宽度：flex:none + width:auto，紧贴文字不再被拉伸成 210px */
+.ex-blankw{display:inline-flex;align-items:center;justify-content:center;flex:none;width:auto;min-width:118px;max-width:200px;height:34px;border:1.5px solid #6b7280;border-radius:6px;background:#fff;vertical-align:middle;transition:border-color .15s,box-shadow .15s}
 .ex-blankw:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-50)}
 .ex-blankw b{display:none}   /* 10/14：题号走 input placeholder，聚焦时不再硬消失 */
+/* 10/14 表格单元格里的填空框会被 td 拉伸成 200px（截图里显得很宽）→ 固定宽度紧贴文字 */
+/* 10/14 修正：固定 118px 会撑破窄格子（截图里框压住了后面的文字）→ 改弹性：
+   有空间时目标 118px，格子不够时自动缩（min-width 只留 72px 保底可点）。 */
+.ex-html td .ex-blankw,.ex-html th .ex-blankw{width:118px;max-width:100%;min-width:72px;flex:0 1 auto}
+.ex-html td .ex-blankw input{width:100%}
 .ex-blankw input{display:block;border:none;outline:none;background:none;font:inherit;font-size:14.5px;width:100%;text-align:center;color:#111;padding:0 8px}
 .ex-blankw.editing b{display:none}   /* 10/14：input 常驻后此规则仅兜底 */
 .ex-blankw.editing input,.ex-blankw.filled input{display:block}
@@ -287,6 +299,19 @@
 .ex-pslot.over{border-color:var(--primary);background:var(--primary-50)}
 .ex-pslot.right{border-color:var(--primary)}
 .ex-pslot.wrong{border-color:#b3261e}
+/* 10/14 她拍板：段落信息匹配改表格行（题号 | 题干 | 右侧字母框）。
+   真实机考同形态（IDP 官方样题 + 104 样子稿）。字母框做成 select：点开选 A–H，
+   比拖放快，手机上也能用。 */
+.ex-q-lohr{align-items:flex-start}
+.ex-lohsel{flex:none;width:62px;height:34px;border:1.5px solid #9ca3af;border-radius:6px;background:#fff;
+  font:inherit;font-size:14.5px;font-weight:700;text-align:center;text-align-last:center;color:#111;
+  cursor:pointer;margin-left:auto;outline:none;transition:border-color .15s,box-shadow .15s}
+.ex-lohsel:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-50)}
+.ex-lohsel.filled{border-color:#374151}
+.ex-lohsel.right{border-color:var(--primary);color:var(--primary-900)}
+.ex-lohsel.wrong{border-color:#b3261e;color:#b3261e}
+#examRoot.ct-dark .ex-lohsel{background:#242628;border-color:#3a3f45;color:#e8eaed}
+#examRoot.ct-yellow .ex-lohsel{background:#24241a;border-color:#4a4526;color:#f0e3a8}
 .ex-lohb{display:inline-flex;align-items:center;justify-content:center;min-width:36px;height:24px;margin-left:10px;padding:0 8px;border:1px dashed #6b7280;border-radius:999px;font-size:12.5px;font-weight:700;color:#111;cursor:grab;vertical-align:middle;user-select:none;-webkit-user-select:none}
 .ex-lohb.sel{border-color:var(--primary);background:var(--primary-50)}
 .ex-lohb.used{opacity:.45;border-style:solid}
@@ -956,6 +981,6 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common.js?v=20261013ac"></script>
 <script defer src="js/writing_prompts.js?v=20260903ab"></script>
 <script defer src="js/writing.js?v=20261011e"></script>
-<script defer src="js/bank.js?v=20261012l"></script>
+<script defer src="js/bank.js?v=20261012m"></script>
 </body>
 </html>

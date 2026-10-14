@@ -487,13 +487,18 @@
       /* 段落信息匹配（她 10/12 22:16 截图反馈改版）：真机考形态 = 文章每段上方虚线槽 +
          题号气泡拖入/点选放入。答案口径不变：EX.user[题号] = 段落字母 → 判分/落库/草稿全复用。
          听力 map = 地图标注题（g.imageUrl 配图 + 字母胶囊），走下面原分支不动。 */
+      /* 10/14 她拍板改版：拖放槽 → **表格行**（题号 | 题干 | 右侧字母框），与真实机考一致。
+         答案口径完全不变：EX.user[题号] = 段落字母 → 判分/落库/草稿全复用。
+         字母框是 <select>（点开选 A–G），比拖放更快、手机上也能用。 */
       var gid = 'loh' + idx;
+      var letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').slice(0, 8);   /* 段落字母上限 8（阅读文章最多 8 段） */
       qs.forEach(function(q){
         var n = numOf(q.qNumber);
-        h += '<div class="ex-q"><span class="ex-qn" data-qn="' + esc(n) + '">' + esc(n) + '</span>'
+        var opts = letters.map(function(ch){ return '<option value="' + ch + '">' + ch + '</option>'; }).join('');
+        h += '<div class="ex-q ex-q-lohr"><span class="ex-qn" data-qn="' + esc(n) + '">' + esc(n) + '</span>'
           + flagHtml(n) + '<span class="ex-qt">' + esc(plain(q.question)) + '</span>'
-          + '<span class="ex-lohb" data-q="' + esc(n) + '" data-g="' + gid + '" title="拖到左侧对应段落的上方框里">' + esc(n) + '</span>'
-          + '<span class="ex-lohv" data-q="' + esc(n) + '"></span></div>';
+          + '<select class="ex-lohsel" data-q="' + esc(n) + '" data-g="' + gid + '" aria-label="段落字母">'
+          + '<option value=""></option>' + opts + '</select></div>';
       });
     } else if(g.type === 'map'){
       /* map 这一个 type 在题库里是两种题：
@@ -1204,29 +1209,10 @@
   /* 文章侧：每个段落字母前插虚线槽。字母集取自该篇 map 组题目的 options（A–G），
      只认块级元素开头的独立字母（飞书导出形态 = <strong>A</strong> 开头），不猜文本。
      单篇练习走 EX.unit；完整模考走 EX.packs[EX.curP-1]。 */
-  function lohSlotsInto(art){
-    if(!art || !EX || EX.channel !== 'reading') return;
-    var pk = EX.full ? EX.packs[EX.curP - 1] : { unit: EX.unit };
-    if(!pk || !pk.unit) return;
-    var letters = [];
-    (pk.unit.parts || []).forEach(function(p){ (p.groups || []).forEach(function(g){
-      if(g.type !== 'map') return;
-      var q0 = (g.questions || [])[0];
-      (q0 && q0.options || []).forEach(function(o){ var v = String(o.optionNum || ''); if(v && letters.indexOf(v) < 0) letters.push(v); });
-    }); });
-    if(!letters.length) return;
-    var seen = {};
-    [].slice.call(art.querySelectorAll('.ace-line, p')).forEach(function(el){
-      var t = (el.textContent || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
-      var m = /^([A-H])(\s|$)/.exec(t);
-      if(!m || letters.indexOf(m[1]) < 0 || seen[m[1]]) return;
-      seen[m[1]] = 1;
-      var slot = document.createElement('div');
-      slot.className = 'ex-pslot';
-      slot.setAttribute('data-v', m[1]);
-      slot.innerHTML = '<span class="ex-psl-l">' + m[1] + '</span><span class="ex-psl-box"></span>';
-      el.parentNode.insertBefore(slot, el);
-    });
+  function lohSlotsInto(){
+    /* 10/14 停用：段落信息匹配改表格行（她拍板），不再往文章里插拖放虚线槽。
+       保留函数名避免调用点报错；槽位相关交互（拖放/点选放入）随之下线。 */
+    return;
   }
 
   /* ===== Highlight / Note（划词即弹 · 按篇存本地，下次打开还在）=====
@@ -2235,6 +2221,16 @@
     });
     document.addEventListener('change', function(e){
       var t = e.target;
+      /* 10/14 段落信息匹配改表格行：select 选字母 → 写 EX.user（判分/落库/草稿口径不变） */
+      if(t.matches && t.matches('#examRoot .ex-lohsel[data-q]')){
+        var _q = t.getAttribute('data-q'), _v = t.value;
+        if(EX && !EX.submitted){
+          if(_v){ EX.user[_q] = _v; t.classList.add('filled'); }
+          else { delete EX.user[_q]; t.classList.remove('filled'); }
+          paintSheet();
+        }
+        return;
+      }
       if(t.matches && t.matches('#examRoot [name="exTs"]')){
         /* 文字大小：三档字号 → 挂 .ex-split（写作页壳共用）*/
         var sp = document.getElementById('exSplit'); if(!sp) return;
