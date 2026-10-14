@@ -945,6 +945,9 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
            元素 id 与写法与 writing.html 原版一字不差（JS 契约）。 -->
       <div id="examPanel">
         <section id="examHome">
+          <!-- 10/14 她要求：写作也要能组卷做完整模考（Task 1 小作文 + Task 2 大作文两篇连考，
+               共 60 分钟），与阅读/听力的 Start Test 对齐。卡片由 writing.js 填充并绑事件。 -->
+          <div id="writingFullEntry" class="full-entry"></div>
           <div class="exam-filter-bar">
             <select id="examFilter" aria-label="按题型筛选">
               <option value="all">全部作文</option>
@@ -1002,7 +1005,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/data.js?v=20261011e"></script>
 <script defer src="js/common.js?v=20261013ac"></script>
 <script defer src="js/writing_prompts.js?v=20260903ab"></script>
-<script defer src="js/writing.js?v=20261011e"></script>
+<script defer src="js/writing.js?v=20261011f"></script>
 <script defer src="js/bank.js?v=20261012m"></script>
 </body>
 </html>

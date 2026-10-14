@@ -1,4 +1,4 @@
-﻿var curCat = null;
+var curCat = null;
 var curId = null;
 var curTab = 'tpl';
 var tplSearch = '';
@@ -106,7 +106,7 @@ ready(() => {
      判据 = 有没有 #writeTabs：没有 = 模考页 → 只初始化真题列表；
      其余写作页 DOM 绑定整块跳过（那些元素在 bank 页不存在，不跳过会 null 报错打断整条 ready）。 */
   if(!$('#writeTabs')){
-    if($('#examList')){ bindExam(); renderExamList(); }
+    if($('#examList')){ bindExam(); renderExamList(); renderWritingFullEntry(); }   /* 10/14 加：完整作文模考入口卡 */
     return;
   }
   // 迁移：清洗写作模板分类名/标题里的括号后缀（如「观点型（第一优先级）」→「观点型」），就地改写并保存
@@ -1937,6 +1937,73 @@ function summarizeExamTitle(kind, it){
   return cleaned.slice(0, 30);   // 无 summary 时退化截取，30 字保证一句完整话
 }
 
+/* ===== 10/14 完整作文模考（她要求：写作也能组卷，Task 1 小作文 + Task 2 大作文两篇连考 60 分钟）=====
+   与阅读/听力的「完整模考」同构：入口卡 → 随机组卷 → 全屏机考 → 交卷。
+   差异点：两篇连考 —— Task 1 写完 (Finish section) 自动切 Task 2，共用 60 分钟总倒计时。
+   ⚠️ 复用 openExam 的既有渲染（题面/作答/字号/评分），只在它外面加一层「连考编排」。 */
+const WRT_FULL = { active: false, items: null, idx: 0, deadline: 0 };
+
+function renderWritingFullEntry(){
+  const box = $('#writingFullEntry');
+  if(!box) return;
+  const data = window.WRITING_PROMPTS || { big:[], small:[] };
+  const nBig = (data.big || []).length, nSmall = (data.small || []).length;
+  if(!nBig || !nSmall){ box.innerHTML = ''; return; }
+  box.innerHTML =
+    '<div class="full-card">'
+    +  '<div class="fc-num">2</div>'
+    +  '<div class="fc-body"><b>Full Writing Test · 完整写作模考</b>'
+    +    '<span>2 tasks · 60 minutes · Task 1 小作文 + Task 2 大作文</span>'
+    +    '<div class="fc-pills"><span class="fc-pill">随机组卷 · 大小作文各抽 1 篇</span>'
+    +    '<span class="fc-pill">每次 Start 重新抽</span>'
+    +    '<span class="fc-pill">两篇连考 · 到点不强制收卷</span></div>'
+    +  '</div>'
+    +  '<button class="btn-primary" type="button" id="wrtFullStart">Start Test</button>'
+    + '</div>';
+  const btn = $('#wrtFullStart');
+  if(btn) btn.addEventListener('click', startWritingFull);
+}
+
+function startWritingFull(){
+  const data = window.WRITING_PROMPTS || { big:[], small:[] };
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const small = pick(data.small || []);
+  const big = pick(data.big || []);
+  if(!small || !big){ if(typeof toast === 'function') toast('题库未加载完，稍后再试'); return; }
+  WRT_FULL.active = true;
+  WRT_FULL.items = { small, big };
+  WRT_FULL.idx = 0;
+  WRT_FULL.deadline = Date.now() + 60 * 60 * 1000;   /* 总 60 分钟（官方：Task1 20 + Task2 40） */
+  openFullTask();
+}
+
+/* 打开当前这一篇（Task 1 → Task 2 顺序） */
+function openFullTask(){
+  const it = WRT_FULL.idx === 0 ? WRT_FULL.items.small : WRT_FULL.items.big;
+  const kind = WRT_FULL.idx === 0 ? 'small' : 'big';
+  openExam(it, kind);
+  /* openExam 内部按单篇 20/40 分钟起表 —— 连考要的是总 60 分钟，这里覆盖成剩余总时长 */
+  const left = Math.max(1, Math.round((WRT_FULL.deadline - Date.now()) / 1000));
+  examStartTimer('down', left * 1000);
+  /* 顶栏标注进的是完整模考第几篇 */
+  const pl = $('#examPartLabel'); if(pl) pl.textContent = 'Part ' + (WRT_FULL.idx + 1);
+  const sb = $('#examStepBadge'); if(sb) sb.textContent = String(WRT_FULL.idx + 1);
+  const sl = $('#examStepLabel'); if(sl) sl.textContent = 'Part ' + (WRT_FULL.idx + 1);
+  const fin = $('#examFinish'); if(fin) fin.textContent = WRT_FULL.idx === 0 ? 'Finish section → Task 2' : 'Finish section';
+}
+
+/* Task 1 交卷 → 直接切 Task 2（不退出全屏）；Task 2 交卷 → 走原有评分流程 */
+function writingFullAdvance(){
+  if(!WRT_FULL.active) return false;
+  if(WRT_FULL.idx === 0){
+    WRT_FULL.idx = 1;
+    setTimeout(openFullTask, 60);
+    return true;   /* 已接管，不退出 */
+  }
+  WRT_FULL.active = false;
+  return false;    /* 最后一篇：交回原有流程 */
+}
+
 function renderExamList(){
   const data = window.WRITING_PROMPTS || { big:[], small:[] };
   const _fel = $('#examFilter'), _sel = $('#examSubFilter');   // 10/11 第 7 项：两页公用，缺省容错
@@ -2507,7 +2574,11 @@ function bindExam(){
   if(fontBtn) fontBtn.addEventListener('click', examFontCycle);
 
   const finish = $('#examFinish');
-  if(finish) finish.addEventListener('click', () => { examStopAndScore(); });
+  if(finish) finish.addEventListener('click', () => {
+    /* 10/14 完整作文模考：Task 1 交卷不退出，直接切 Task 2（总 60 分钟共用） */
+    if(writingFullAdvance()) return;
+    examStopAndScore();
+  });
 
   const tb = $('#examTimerBtn');
   if(tb) tb.addEventListener('click', () => {
