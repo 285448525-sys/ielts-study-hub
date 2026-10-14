@@ -548,6 +548,8 @@
       +    '<div class="ex-oplist" id="exOptMain">'
       +      '<div class="ex-oprow" data-sub="colour">Colour<span class="ar">\u203A</span></div>'
       +      '<div class="ex-oprow" data-sub="size">Size<span class="ar">\u203A</span></div>'
+      /* 10/14 她拍板：音量/倍速/静音从音频条移入这里（进度条折叠，三科顶栏一致） */
+      +      '<div class="ex-oprow" data-sub="audio">Audio<span class="ar">\u203A</span></div>'
       +    '</div>'
       +    '<div class="ex-opsub" id="exOptColour">'
       +      '<label class="ex-oprow" data-theme=""><input type="radio" name="exCt" value="light" checked> Black on white</label>'
@@ -558,6 +560,16 @@
       +      '<label class="ex-oprow" data-fs=""><input type="radio" name="exTs" value="regular" checked> Regular</label>'
       +      '<label class="ex-oprow" data-fs="large"><input type="radio" name="exTs" value="large"> Large</label>'
       +      '<label class="ex-oprow" data-fs="xl"><input type="radio" name="exTs" value="xl"> Extra large</label>'
+      +    '</div>'
+      /* 10/14 她拍板：音量滑杆与倍速从音频条移到这里（进度条折叠，三科顶栏一致）。
+         data 属性与音频条时代完全相同 → 事件绑定（data-avsl / data-arate / data-avol）零改动。 */
+      +    '<div class="ex-opsub" id="exOptAudio">'
+      +      '<div class="ex-oprow ex-op-audio-row"><span>音量</span>'
+      +        '<input type="range" min="0" max="1" step="0.05" value="' + (_audioMuted ? 0 : _audioVol) + '" data-avsl aria-label="Volume"></div>'
+      +      '<div class="ex-oprow ex-op-audio-row"><span>倍速</span>'
+      +        '<button class="ex-op-rate" type="button" data-arate>' + rateLabel(AUDIO_RATES[_rateIx]) + '</button></div>'
+      +      '<div class="ex-oprow ex-op-audio-row"><span>静音</span>'
+      +        '<button class="ex-op-mute" type="button" data-avol>' + (_audioMuted || _audioVol === 0 ? '🔇 已静音' : '🔊 开启中') + '</button></div>'
       +    '</div>'
       +    '<div class="ex-opback"><button type="button" data-opback>\u2039 Back</button></div>'
       + '</div>';
@@ -572,7 +584,56 @@
       +    '</aside>'
       +  '</div>';
   }
-  function barHtml(){
+  /* ===== 10/14 补 Option 面板交互 =====
+   既有 bug：Colour / Size / Audio 三个分组行点击无反应 —— .ex-opsub.on 这个类从来没有任何 JS 去加
+   （CSS 写好了显示规则，JS 侧缺失）。本批补齐：点分组 → 显示子页；点 Back/✕ → 回主列表。 */
+function optShowSub(key){
+  var panel = document.getElementById("exOptionPanel"); if(!panel) return;
+  /* 10/14 直接操作 style.display —— class 切换（.on）实测时灵时不灵
+     （疑与软导航二次 eval bank.js 有关：旧监听器引用旧函数、DOM 却是新的），
+     用最笨的 style 写法，100% 可控。 */
+  var MAP = { colour: "exOptColour", size: "exOptSize", audio: "exOptAudio" };
+  var want = MAP[key] || "";
+  var main = document.getElementById("exOptMain");
+  if(main) main.style.display = "none";
+  panel.querySelectorAll(".ex-opsub").forEach(function(x){
+    x.style.display = (x.id === want) ? "block" : "none";
+  });
+  var back = panel.querySelector("[data-opback]"); if(back) back.style.display = "";
+}
+function optShowMain(){
+  var panel = document.getElementById("exOptionPanel"); if(!panel) return;
+  var main = document.getElementById("exOptMain");
+  if(main) main.style.display = "";
+  panel.querySelectorAll(".ex-opsub").forEach(function(x){ x.style.display = "none"; });
+  var back = panel.querySelector("[data-opback]"); if(back) back.style.display = "none";
+}
+function wireOptionPanel(){
+  /* 10/14 元素级绑定（document 委托实测对 audio 行不触发 —— colour/size 行却正常，
+     查不出原因；元素级监听优先级最高、绝不丢失，且每次渲染重绑也不会叠）
+     ⚠️ 不用 __optPanelWired 守卫：渲染会重建 DOM，必须每次重新绑。 */
+  var panel = document.getElementById("exOptionPanel"); if(!panel) return;
+  panel.querySelectorAll(".ex-oprow[data-sub]").forEach(function(row){
+    if(row.__optBound) return; row.__optBound = true;
+    row.addEventListener("click", function(ev){
+      ev.stopPropagation();
+      optShowSub(row.getAttribute("data-sub"));
+    });
+  });
+  panel.querySelectorAll("[data-opback]").forEach(function(b){
+    if(b.__optBound) return; b.__optBound = true;
+    b.addEventListener("click", function(ev){ ev.stopPropagation(); optShowMain(); });
+  });
+  panel.querySelectorAll("[data-opclose]").forEach(function(c){
+    if(c.__optBound) return; c.__optBound = true;
+    c.addEventListener("click", function(ev){
+      ev.stopPropagation();
+      panel.classList.remove("on"); optShowMain();
+    });
+  });
+}
+
+function barHtml(){
     /* 10/12 批A：底栏重构为爱听写/真机考形态（她 22:03「切换考题不该放上面，要放下面」）。
        结构 = .ex-nav（左：篇切换器 ‹ 当前篇·已答/总数 | 中：当前篇题号行 | 右：下一篇 ›）
               + .ex-actions（左：Pause | 中：Exit | 右：Finish section）
@@ -652,9 +713,9 @@
       + partChip
       + '<div class="ea-bar" id="eaBar"><div class="ea-fill" id="eaFill"></div><span class="ea-knob" id="eaKnob"></span></div>'
       + '<span class="ea-time" id="eaTime">00:00 / 00:00</span>'
+      /* 10/14 她拍板：音量滑杆与倍速按钮移入 Option 面板（进度条折叠，三科顶栏一致）。
+         静音按钮保留（一键静音是常用操作，只占一个图标位）。 */
       + '<button class="ea-vol" type="button" data-avol aria-label="Mute">' + (_audioMuted || _audioVol === 0 ? '🔇' : '🔊') + '</button>'
-      + '<input class="ea-vsl" type="range" min="0" max="1" step="0.05" value="' + (_audioMuted ? 0 : _audioVol) + '" data-avsl aria-label="Volume">'
-      + '<button class="ea-rate" type="button" data-arate' + (exam ? ' style="display:none"' : '') + '>' + rateLabel(AUDIO_RATES[_rateIx]) + '</button>'
       + modeBtn
       + '</div>'
       + '<audio id="exAudio" preload="metadata" src="' + esc(p.audioUrl) + '"></audio>';
@@ -833,6 +894,7 @@
     paintSheet();
     if(isListen) wireAudio();
     else { renderNotes(); replayMarks(); }
+    wireOptionPanel();   /* 10/14 Option 面板交互（Colour/Size/Audio 分组点击） */
     if(EX.submitted){ if(isListen) showScript(); decoratePassage(EX.curP); }
     startTimer(isListen ? 30 * 60 : 60 * 60);
     startFtMini();                                       /* 10/13：顶栏计时小徽章（考场内替代全站 floatTimer） */
@@ -897,6 +959,7 @@
       }
       renderPassage(1);
       renderNotes();
+      wireOptionPanel();   /* 10/14 Option 面板交互 —— 完整模考不走 renderExam，必须在这里也调一次 */
       startTimer(60 * 60);
       startFtMini();                                     /* 10/13：顶栏计时小徽章 */
       bankStartTimer();                               /* C-3：完整模考（阅读）开专注计时 */
@@ -2111,7 +2174,7 @@
         if(EX && EX.paused) resumeExam(); else pauseExam();
         return;
       }
-      if((el = t.closest && t.closest('#exAudioBar [data-arate]'))){
+      if((el = t.closest && t.closest('#examRoot [data-arate]'))){
         var a1 = document.getElementById('exAudio'); if(!a1) return;
         _rateIx = (_rateIx + 1) % AUDIO_RATES.length;
         a1.playbackRate = AUDIO_RATES[_rateIx];
@@ -2119,12 +2182,12 @@
         return;
       }
       if(t.closest && t.closest('#exAudioBar [data-amode]')){ audioToggleMode(); return; }
-      if((el = t.closest && t.closest('#exAudioBar [data-avol]'))){
+      if((el = t.closest && t.closest('#examRoot [data-avol]'))){
         _audioMuted = !_audioMuted;
         var au = document.getElementById('exAudio');
         if(au) au.volume = _audioMuted ? 0 : _audioVol;
         el.textContent = _audioMuted ? '🔇' : '🔊';
-        var sl0 = document.querySelector('#exAudioBar [data-avsl]');
+        var sl0 = document.querySelector('#examRoot [data-avsl]');
         if(sl0) sl0.value = _audioMuted ? 0 : _audioVol;
         return;
       }
@@ -2191,12 +2254,12 @@
     document.addEventListener('input', function(e){
       var t = e.target;
       /* 听力音量：滑杆拖动实时生效 + 记住（两模式都可用 —— 真机考只有音量可控） */
-      if(t.matches && t.matches('#exAudioBar [data-avsl]')){
+      if(t.matches && t.matches('#examRoot [data-avsl]')){
         _audioVol = Math.max(0, Math.min(1, parseFloat(t.value) || 0));
         _audioMuted = _audioVol === 0;
         var au = document.getElementById('exAudio');
         if(au) au.volume = _audioVol;
-        var vb = document.querySelector('#exAudioBar [data-avol]');
+        var vb = document.querySelector('#examRoot [data-avol]');
         if(vb) vb.textContent = _audioMuted ? '🔇' : '🔊';
         try{ localStorage.setItem('hub_bank_vol', String(_audioVol)); }catch(e2){}
         return;

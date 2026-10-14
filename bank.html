@@ -374,6 +374,13 @@
 /* Option 面板（☰ 菜单）也要跟着变，否则深色下是白底刺眼 */
 #examRoot.ct-dark .ex-option{background:#1b1b1b;border-color:#3a3f45}
 #examRoot.ct-dark .ex-option *{color:#e8eaed}
+
+/* 10/14 音频控件（音量/倍速/静音）从音频条移入 Option 面板（她：进度条折叠，三科顶栏一致） */
+.ex-op-audio-row{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.ex-op-audio-row>span{font-size:14px;font-weight:600;color:#111;flex:none}
+.ex-op-audio-row input[type=range]{flex:1;max-width:200px;accent-color:var(--primary);height:24px}
+.ex-op-rate,.ex-op-mute{min-height:36px;padding:0 16px;border:1px solid #9ca3af;background:#fff;color:#111;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer}
+.ex-op-rate:hover,.ex-op-mute:hover{border-color:var(--primary);color:var(--primary)}
 #examRoot.ct-dark .ex-option .ex-oprow:hover{background:#242628}
 #examRoot.ct-dark .ex-top{background:#161616}
 #examRoot.ct-dark .ex-top .ex-name,#examRoot.ct-dark .ex-top .ex-timer{color:#f2f2f2}
@@ -1021,6 +1028,6 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common.js?v=20261013ac"></script>
 <script defer src="js/writing_prompts.js?v=20260903ab"></script>
 <script defer src="js/writing.js?v=20261011f"></script>
-<script defer src="js/bank.js?v=20261012m"></script>
+<script defer src="js/bank.js?v=20261012n"></script>
 </body>
 </html>
