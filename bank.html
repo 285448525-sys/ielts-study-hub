@@ -320,6 +320,44 @@
 #examRoot.ct-dark .ex-part{background:#262a24}
 #examRoot.ct-dark .ex-audio .ea-part{background:#262a24;border-color:#5a5f66;color:#f2f2f2}
 #examRoot.ct-dark .ex-gqd,#examRoot.ct-dark .ex-q,#examRoot.ct-dark .ex-html{color:#f2f2f2}
+
+/* 🔴 10/14 三主题适配补齐（她：三个主题 UI 适配优化）。
+   实测缺口：.ex-bar/.ex-top 背景已变深，但文字 color 没跟着变 → 深底深字看不见。 */
+#examRoot.ct-dark .ex-bar,#examRoot.ct-dark .ex-bar *{color:#e8eaed}
+#examRoot.ct-dark .ex-bar .ex-pg,#examRoot.ct-dark .ex-bar .ex-pg *{color:#e8eaed}
+#examRoot.ct-dark .ex-num{color:#b9bdc4;border-color:#3a3f45}
+#examRoot.ct-dark .ex-num--done{color:#e8eaed;border-color:#5a5f66}
+#examRoot.ct-dark .ex-num--cur{color:#fff;border-color:#fff}
+#examRoot.ct-dark .ex-actions .btn{background:#242628;color:#e8eaed;border-color:#3a3f45}
+#examRoot.ct-dark .ex-actions .btn-primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+#examRoot.ct-dark .ex-actions .btn-ghost{background:transparent;color:#e8eaed;border-color:#5a5f66}
+/* Option 面板（☰ 菜单）也要跟着变，否则深色下是白底刺眼 */
+#examRoot.ct-dark .ex-option{background:#1b1b1b;border-color:#3a3f45}
+#examRoot.ct-dark .ex-option *{color:#e8eaed}
+#examRoot.ct-dark .ex-option .ex-oprow:hover{background:#242628}
+#examRoot.ct-dark .ex-top{background:#161616}
+#examRoot.ct-dark .ex-top .ex-name,#examRoot.ct-dark .ex-top .ex-timer{color:#f2f2f2}
+
+/* 黄色主题：黑底黄字（真机考 Yellow on black）*/
+#examRoot.ct-yellow .ex-bar,#examRoot.ct-yellow .ex-bar *{color:#f0e3a8}
+#examRoot.ct-yellow .ex-bar .ex-pg,#examRoot.ct-yellow .ex-bar .ex-pg *{color:#f0e3a8}
+#examRoot.ct-yellow .ex-num{color:#c9bd85;border-color:#4a4526}
+#examRoot.ct-yellow .ex-num--done{color:#f0e3a8;border-color:#6b6435}
+#examRoot.ct-yellow .ex-num--cur{color:#ffd400;border-color:#ffd400}
+#examRoot.ct-yellow .ex-actions .btn{background:#24241a;color:#f0e3a8;border-color:#4a4526}
+#examRoot.ct-yellow .ex-actions .btn-primary{background:#ffd400;color:#161616;border-color:#ffd400}
+#examRoot.ct-yellow .ex-actions .btn-ghost{background:transparent;color:#f0e3a8;border-color:#6b6435}
+#examRoot.ct-yellow .ex-option{background:#1b1b1b;border-color:#4a4526}
+#examRoot.ct-yellow .ex-option *{color:#f0e3a8}
+#examRoot.ct-yellow .ex-option .ex-oprow:hover{background:#26241a}
+#examRoot.ct-yellow .ex-top{background:#161616}
+#examRoot.ct-yellow .ex-top .ex-name,#examRoot.ct-yellow .ex-top .ex-timer{color:#f0e3a8}
+
+/* 选中项/已答态在两主题下的可读性（题号与选项圈）*/
+#examRoot.ct-dark .ex-qn{color:#f2f2f2;border-color:#5a5f66}
+#examRoot.ct-yellow .ex-qn{color:#f0e3a8;border-color:#6b6435}
+#examRoot.ct-dark .ex-blankw b{color:#f2f2f2}
+#examRoot.ct-yellow .ex-blankw b{color:#f0e3a8}
 #examRoot.ct-dark .ex-opt:hover,#examRoot.ct-dark .ex-pill:hover{background:#242628}
 #examRoot.ct-dark .ex-opt.on,#examRoot.ct-dark .ex-pill.on{background:#20302d}
 #examRoot.ct-yellow{background:#161616}
