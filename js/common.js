@@ -4440,6 +4440,17 @@ function _onbWhenBootDone(cb){
 }
 function initOnboarding(){
   try{
+    /* 🔴 10/14 她拍板「只在首页问，其他页不弹」：新用户第一次就从模考页/单词页等进站时，
+       分流卡（你之前考过雅思吗？）会挡住正在使用的功能，很突兀。
+       首页（home.html / index.html）才问；其余页面直接跳过，等他自己点到首页再问。
+       ?onb=1 强制重看不受限（调试/演示用）。 */
+    let force0 = false;
+    try{ force0 = /(?:^|[?&])onb=1(?:&|$)/.test(location.search || ''); }catch(e){}
+    if(!force0){
+      const f = String((typeof _hubCurrentFile === 'string' && _hubCurrentFile) || location.pathname.split('/').pop() || '').toLowerCase();
+      const isHome = /^(home|index)\.html$/.test(f) || f === 'home' || f === 'index' || f === '';
+      if(!isHome) return;
+    }
     // 引导里点了「去导入词库」→ 落到 practice.html 后自动切到词库 tab
     let flag = null;
     try{ flag = sessionStorage.getItem(ONB_GOTO_BANK); sessionStorage.removeItem(ONB_GOTO_BANK); }catch(e){}
