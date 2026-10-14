@@ -480,7 +480,7 @@
       qs.forEach(function(q){
         var n = numOf(q.qNumber);
         h += '<div class="ex-q"><span class="ex-qn" data-qn="' + esc(n) + '">' + esc(n) + '</span>'
-          + flagHtml(n) + esc(plain(q.question))
+          + flagHtml(n) + '<span class="ex-qt">' + esc(plain(q.question)) + '</span>'
           + '<div class="ex-drop" data-q="' + esc(n) + '" data-g="' + gid + '"></div></div>';
       });
     } else if(g.type === 'map' && channel === 'reading'){
@@ -491,7 +491,7 @@
       qs.forEach(function(q){
         var n = numOf(q.qNumber);
         h += '<div class="ex-q"><span class="ex-qn" data-qn="' + esc(n) + '">' + esc(n) + '</span>'
-          + flagHtml(n) + esc(plain(q.question))
+          + flagHtml(n) + '<span class="ex-qt">' + esc(plain(q.question)) + '</span>'
           + '<span class="ex-lohb" data-q="' + esc(n) + '" data-g="' + gid + '" title="拖到左侧对应段落的上方框里">' + esc(n) + '</span>'
           + '<span class="ex-lohv" data-q="' + esc(n) + '"></span></div>';
       });
@@ -503,21 +503,21 @@
       qs.forEach(function(q){
         var n = numOf(q.qNumber);
         h += '<div class="ex-q"><span class="ex-qn" data-qn="' + esc(n) + '">' + esc(n) + '</span>'
-          + flagHtml(n) + esc(plain(q.question)) + pillsHtml(q, numOf) + '</div>';
+          + flagHtml(n) + '<span class="ex-qt">' + esc(plain(q.question)) + '</span>' + pillsHtml(q, numOf) + '</div>';
       });
     } else if(g.type === 'multiple-choice'){
       var need = needOf(g);
       qs.forEach(function(q){
         var n = numOf(q.qNumber);
         h += '<div class="ex-q"><span class="ex-qn" data-qn="' + esc(n) + '">' + esc(n) + '</span>'
-          + flagHtml(n) + clean(q.question) + cboxHtml(q, numOf, need) + '</div>';
+          + flagHtml(n) + '<span class="ex-qt">' + clean(q.question) + '</span>' + cboxHtml(q, numOf, need) + '</div>';
       });
     } else {
       var tf = isTFGroup(g);
       qs.forEach(function(q){
         var n = numOf(q.qNumber);
         h += '<div class="ex-q"><span class="ex-qn" data-qn="' + esc(n) + '">' + esc(n) + '</span>'
-          + flagHtml(n) + clean(q.question) + (tf ? pillsHtml(q, numOf) : radioHtml(q, numOf)) + '</div>';
+          + flagHtml(n) + '<span class="ex-qt">' + clean(q.question) + '</span>' + (tf ? pillsHtml(q, numOf) : radioHtml(q, numOf)) + '</div>';
       });
     }
     return h + '</div>';

@@ -172,9 +172,15 @@
 .ex-group{margin:0 0 28px}
 .ex-grp-h{font-size:18px;font-weight:800;margin:0 0 6px;color:#111}
 .ex-grp-i{font-size:15px;line-height:1.75;color:#222;margin:0 0 14px}
-.ex-q{margin:0 0 18px;font-size:.94em;line-height:1.75;color:#111;position:relative;padding-right:34px}
+/* 10/14 卷面格式对齐真实机考（她：跟真实机考差别很大，格式不规范）：
+   题号固定左列 + 题干/选项共享左边界。
+   依据：① IDP 官方机考界面（ielts.idp.com 样题）② 104 机考仿真样子稿（cb-qs/cb-g 结构）
+   —— 两处一致：题号是独立编号列，题干说明与选项左边界严格对齐，选项竖排等距。 */
+.ex-q{display:flex;align-items:flex-start;gap:11px;margin:0 0 18px;font-size:.94em;line-height:1.75;color:#111;position:relative;padding-right:34px}
+.ex-qt{flex:1;min-width:0}
+.ex-qt > .ex-drop,.ex-qt > .ex-pills,.ex-qt > .ex-opts,.ex-qt > .ex-pool{margin-top:8px}
 .ex-q:last-child{margin-bottom:0}
-.ex-qn{display:inline-flex;align-items:center;justify-content:center;min-width:27px;height:27px;border:1.5px solid #111;border-radius:3px;font-weight:700;font-size:14px;margin-right:11px;vertical-align:-7px;background:#fff;padding:0 5px}
+.ex-qn{flex:none;display:inline-flex;align-items:center;justify-content:center;min-width:27px;height:27px;border:1.5px solid #111;border-radius:3px;font-weight:700;font-size:14px;background:#fff;padding:0 5px;margin-top:2px}
 .ex-qn.miss{color:#b3261e;border-color:#b3261e}
 .ex-qn.hit{color:var(--primary-900);border-color:var(--primary)}
 /* 选项（判断/单选/多选/字母匹配）：竖排整行，选中 = 圈实心 + 行浅 teal（样子稿 104，颜色本站 teal）
@@ -888,6 +894,6 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common.js?v=20261013ab"></script>
 <script defer src="js/writing_prompts.js?v=20260903ab"></script>
 <script defer src="js/writing.js?v=20261011e"></script>
-<script defer src="js/bank.js?v=20261012i"></script>
+<script defer src="js/bank.js?v=20261012j"></script>
 </body>
 </html>
