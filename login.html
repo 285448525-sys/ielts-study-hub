@@ -28,19 +28,20 @@ body{
    品牌栏在 DOM 里是第一个、表单第二个；表单 order:-1 后两处都在前。 */
 .duo > .card.form{order:-1}
 .duo > .card.brand{order:0}
-.card{background:var(--n-0);border-radius:18px;box-shadow:0 18px 50px rgba(26,69,66,.10),0 2px 8px rgba(26,69,66,.05);padding:44px}
+.card{background:var(--n-0);border-radius:18px;box-shadow:0 18px 50px rgba(26,69,66,.10),0 2px 8px rgba(26,69,66,.05);padding:38px}
+/* 10/15 UI 优化：品牌卡改 teal 深渐变（原来白卡里嵌近黑块 .big，风格撕裂看着"怪"）→
+   一整张完整深色卡 + 右侧白表单，深浅对比清爽，也修了「灰字压深底看不清」的 bug。 */
+.card.brand{background:linear-gradient(158deg,#2f8f88 0%,#1c5f5a 100%);color:#fff;box-shadow:0 18px 44px rgba(28,95,90,.26)}
 /* 左：品牌 */
 .brand .mark{display:flex;align-items:center;gap:10px;margin-bottom:26px}
 .brand .mark i{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,#56b3ab 0%,#2c7873 100%);display:grid;place-items:center;font-style:normal;overflow:hidden}
 .brand .mark i svg{display:block;width:100%;height:100%}
-.brand .mark b{font-size:17px;color:var(--n-900);font-weight:600}
-.brand .mark span{font-size:12px;color:var(--n-500);margin-left:2px}
+.brand .mark b{font-size:17px;color:#fff;font-weight:600}
+.brand .mark span{font-size:12px;color:rgba(255,255,255,.72);margin-left:2px}
 /* 10/4 01:10 A 版：深色大字块 + 四条功能标注（替代原「把节奏交给可坚持的系统」+ .facts 功能罗列）
    —— 她 00:55 拍板：「要么就设几个大字吧…这网站是一个正在备考雅思的人做的」
    —— 她 00:34 发过火「谁家好人在登录页面提收费的事情」→ 这页零价格、零套餐 */
-.brand .big{
-  background:var(--n-900);border-radius:18px;padding:22px 20px;margin:0 0 20px;position:relative;overflow:hidden;
-}
+.brand .big{background:transparent;border-radius:0;padding:0;margin:0 0 18px;position:relative;overflow:hidden}   /* 10/15 去黑块底：整卡已深，无需再嵌一块 */
 .brand .big::after{content:'';position:absolute;inset:0;pointer-events:none;
   background:radial-gradient(340px 160px at 88% -50px,rgba(122,220,210,.18),transparent 70%)}
 .brand .big .who{font-size:12.5px;font-weight:700;color:var(--p-200);letter-spacing:.04em;margin-bottom:9px}
@@ -49,12 +50,12 @@ body{
 .brand .feats{display:flex;flex-direction:column}
 .brand .feat{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--n-300)}
 .brand .feat:last-child{border-bottom:0}
-.brand .feat .ic{width:30px;height:30px;border-radius:9px;background:var(--p-50);color:var(--p-700);
+.brand .feat .ic{width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,.16);color:#fff;
   display:grid;place-items:center;flex:none;margin-top:1px}
 .brand .feat .ic svg{width:16px;height:16px}
-.brand .feat .tx b{display:block;font-size:14px;color:var(--n-900);letter-spacing:-.01em;margin-bottom:1px}
-.brand .feat .tx span{display:block;font-size:12.5px;color:var(--n-600);line-height:1.55}
-.brand .bfact{margin:16px 0 0;padding-top:13px;border-top:1px solid var(--n-300);font-size:12px;color:var(--n-500);line-height:1.6}
+.brand .feat .tx b{display:block;font-size:14px;color:#fff;letter-spacing:-.01em;margin-bottom:1px}
+.brand .feat .tx span{display:block;font-size:12.5px;color:rgba(255,255,255,.8);line-height:1.55}
+.brand .bfact{margin:16px 0 0;padding-top:13px;border-top:1px solid rgba(255,255,255,.14);font-size:12px;color:rgba(255,255,255,.62);line-height:1.6}
 /* ≤560 单列时大字缩一档，别把双栏卡挤爆 */
 @media (max-width:560px){
   .brand .big .l1{font-size:25px}
