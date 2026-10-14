@@ -2047,6 +2047,24 @@ body.exam-fullscreen{overflow:hidden !important}
 
 /* 10/14 顶栏重组：padding 收紧（20→12），说明文字与标题同行由 writing.js DOM 保证 */
 .exam-head{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 28px;border-bottom:1px solid var(--line);background:var(--surface)}
+/* 10/14 写作壳对齐阅读听力（她：三科一起考，上下栏要长一样）。
+   依据 design/模考UI统一_设计方案_2026-10-11.md L168-170：
+   ① 顶部条模式 = 左「科目/篇名」· 中「计时器」· 右「工具图标」
+   ② 底部操作栏模式 = 左「次要操作」· 中「导航」· 右「主操作」
+   做法：不动 DOM，用 CSS 把写作壳的尺寸/间距/颜色对齐 .ex-top / .ex-bar。 */
+/* 顶栏：与 .ex-top 同高（12px 内边距）*/
+.exam-head{padding:8px 28px;border-bottom:1px solid var(--line);background:var(--surface);min-height:52px}   /* 10/14 压薄对齐阅读顶栏（阅读 38px，写作带 44px 工具钮故取 52） */
+/* 计时器：关键信息提到 20px/700（方案 L187）*/
+.exam-timer-inline{font-size:20px;font-weight:700;padding:4px 12px}
+.exam-timer-inline button{font-size:15px;min-width:30px}
+/* 工具按钮（Aa / Exit full screen）：34 → 44px 触控（方案 L187）*/
+.exam-font-btn,.exam-exit-full{min-height:44px;padding:0 14px;font-size:var(--mk-fs-body,15px)}
+/* 底栏：与 .ex-bar 同色同高，按钮 44px（方案 L190）*/
+.exam-bar{background:var(--surface);color:var(--ink);border-top:1px solid var(--line);padding:6px 28px;min-height:52px}   /* 10/14 与阅读底栏同色同高 */
+.exam-bar .exam-step{width:26px;height:26px;border-radius:7px;background:var(--primary);color:var(--on-primary);font-size:13px;font-weight:800}
+.exam-bar .exam-step-label{color:var(--ink);font-size:var(--mk-fs-body,15px);font-weight:700}
+.exam-bar button{min-height:44px;padding:0 18px;font-size:var(--mk-fs-body,15px);border-radius:var(--mk-radius-sm,9px)}
+
 .exam-part{margin:0;font-size:20px;font-weight:800;color:var(--ink);letter-spacing:-.01em;flex:none}
 .exam-instr{margin:0;font-size:13px;color:var(--muted);line-height:1.5}   /* 10/14 与标题同行，去掉上 margin */
 .exam-exit-full{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--bg);color:var(--muted);border-radius:9px;padding:7px 12px;font-size:12.5px;cursor:pointer;flex:none;transition:.15s}
@@ -3369,3 +3387,24 @@ body.dgs-open .dock-group-sheet{transform:translateY(0)}
 .vip-cmp .mx-foot svg{color:var(--primary)}
 .vip-cmp .mx-scroll{overflow-x:auto}
 .vip-cmp .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* 10/14 最终对齐（三科上下栏一致——她：这三门一起考，UI 要长得一样）。
+   ⚠️ 必须放文件末尾 + 用 #examPractice 提高优先级：前面同文件里的 .exam-bar / .exam-head
+      规则是「后写覆盖」，之前改的在中间加了却不生效（实测底栏底色没变、主按钮仍 34px）。 */
+#examPractice .exam-head{padding:8px 28px;min-height:52px;background:var(--surface);border-bottom:1px solid var(--line)}
+#examPractice .exam-bar{background:var(--surface);color:var(--ink);border-top:1px solid var(--line);padding:6px 28px;min-height:52px}
+#examPractice .exam-bar .exam-step{width:26px;height:26px;border-radius:7px;background:var(--primary);color:var(--on-primary);font-size:13px;font-weight:800}
+#examPractice .exam-bar .exam-step-label{color:var(--ink);font-weight:700;font-size:15px}
+#examPractice .exam-bar button{min-height:44px;padding:0 18px;font-size:15px;border-radius:9px}
+#examPractice .exam-timer-inline{font-size:20px;font-weight:700}
+#examPractice .exam-font-btn,#examPractice .exam-exit-full{min-height:44px;padding:0 14px;font-size:15px}
+
+/* 10/14 收尾：底栏底色与顶栏高度三科完全对齐（实测阅读底 #f7f8f9、写作 #fff；顶栏 54 vs 64） */
+#examPractice .exam-head{padding:6px 28px;min-height:46px}   /* 压到接近阅读的 38px（保留 44px 工具钮空间） */
+#examPractice .exam-bar{padding:5px 28px;min-height:54px;background:#f7f8f9}   /* 底色对齐阅读底栏 */
+
+/* 10/14 底栏浅色后的按钮配色（我改浅底时漏了按钮，截图里 Finish section 白字几乎看不见） */
+#examPractice .exam-bar .btn-exam-ghost{background:var(--primary);color:#fff;border-color:var(--primary);font-weight:600}
+#examPractice .exam-bar .btn-exam-ghost:hover{background:var(--primary-600);border-color:var(--primary-600)}
+#examPractice .exam-bar .btn-exam-exit{background:transparent;color:var(--err-text,#b3261e);border:1px solid var(--err,#d93025);font-weight:600}
+#examPractice .exam-bar .btn-exam-exit:hover{background:var(--err-bg,#fdf3f2);color:var(--err-text,#b3261e)}

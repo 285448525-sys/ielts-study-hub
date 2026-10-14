@@ -18,7 +18,7 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>模考 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261012g" />
+<link rel="stylesheet" href="css/common.css?v=20261012h" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -133,6 +133,21 @@
 @media(max-width:860px){.fx-score .fx-pgrid{grid-template-columns:1fr}}
 
 /* ===== 做题页（全屏 · 全英文 · 仿真机考 · 10/12 对齐样子稿 104 v4，她拍板统一）===== */
+/* ===== 10/14 模考 UI 统一变量（按 design/模考UI统一_设计方案_2026-10-11.md 批1 落地）=====
+   ⚠️ 考试内容区字号（文章/题干）由 --exfs 控制、用户可调 20/23/27px（对齐真机考）——那部分不动；
+   本组变量管的是 UI 壳（按钮/tab/标签/元信息/成绩），把 24 种字号收敛到 5 档。 */
+:root{
+  --mk-fs-mega:28px;   /* 成绩卡总分、入口卡题数 */
+  --mk-fs-h2:20px;     /* 分区标题、成绩卡标题 */
+  --mk-fs-body:15px;   /* 按钮、列表篇名、题组说明 */
+  --mk-fs-meta:13px;   /* 篇数、题数、状态、时间 */
+  --mk-fs-tag:12px;    /* 题型 chip、徽标 */
+  --mk-sp-1:4px; --mk-sp-2:8px; --mk-sp-3:12px; --mk-sp-4:16px; --mk-sp-5:20px; --mk-sp-6:24px; --mk-sp-8:32px;
+  --mk-radius:12px; --mk-radius-sm:9px; --mk-radius-xs:6px;
+  --mk-tap:44px; --mk-tap-sm:40px;
+  /* 主题三档统一走这三个变量（批 5 把 33 条硬编码子规则换成变量覆盖） */
+  --ex-bg:#fff; --ex-ink:#111; --ex-line:var(--line); --ex-ink-2:#222; --ex-ink-3:var(--muted);
+}
 #examRoot{position:fixed;inset:0;z-index:900;background:#fff;display:flex;flex-direction:column;--exfs:20px}
 #examRoot[hidden]{display:none}
 /* 顶栏：窄单行（照样子稿 104：考号/篇名 + 剩余时间 + ☰ Option）*/
@@ -519,8 +534,8 @@
    指令要求底栏 ≤64px（放不下 ≤72px）；高度靠 line-height + padding 双压缩，不缩字号（可读性优先）。 */
 /* 🔴 必须 !important：本页 L43/L47 的 .btn-primary/.btn-ghost 写死 min-height:40px，
    而 min-height 优先于 height —— 不带 !important 时按钮恒 40px，底栏压不到 ≤72px。 */
-#examRoot .ex-actions button{min-height:34px;height:34px;padding:0 14px;font-size:13px;line-height:1;display:inline-flex;align-items:center}
-#examRoot .ex-actions .btn-primary{min-height:34px;height:34px;padding:0 16px}
+#examRoot .ex-actions button{min-height:44px;height:44px;padding:0 16px;font-size:14px;line-height:1;display:inline-flex;align-items:center}   /* 10/14 触控 34→44（方案 L190） */
+#examRoot .ex-actions .btn-primary{min-height:44px;height:44px;padding:0 18px}   /* 10/14 34→44 触控达标（方案 L190） */
 #examRoot #exPauseBtn{min-width:64px}
 /* 移动端（≤860）：底部条压紧凑、题号行横向滚（爱听写同款）、切换器文案缩短防溢出 */
 @media(max-width:860px){
