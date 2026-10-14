@@ -633,6 +633,18 @@ function wireOptionPanel(){
   });
 }
 
+/* 10/15 修「模考突然刷新跳出」：把「我正在考试中」告诉 SW。
+   SW 更新时原本会 c.navigate() 强制刷新所有页面 —— 正在答题的人会被刷出去、考试中断。
+   上报后，SW 遇到 inExam:true 的客户端只发提示、不导航，等考完再刷。 */
+function reportExamState(inExam){
+  try{
+    if(navigator.serviceWorker && navigator.serviceWorker.controller){
+      navigator.serviceWorker.controller.postMessage({ type: 'EXAM_STATE', inExam: !!inExam });
+    }
+  }catch(e){}
+}
+window.__reportExamState = reportExamState;
+
 function barHtml(){
     /* 10/12 批A：底栏重构为爱听写/真机考形态（她 22:03「切换考题不该放上面，要放下面」）。
        结构 = .ex-nav（左：篇切换器 ‹ 当前篇·已答/总数 | 中：当前篇题号行 | 右：下一篇 ›）
@@ -895,6 +907,7 @@ function barHtml(){
     if(isListen) wireAudio();
     else { renderNotes(); replayMarks(); }
     wireOptionPanel();   /* 10/14 Option 面板交互（Colour/Size/Audio 分组点击） */
+    reportExamState(true);   /* 10/15 告诉 SW：我在考试中，别刷我 */
     if(EX.submitted){ if(isListen) showScript(); decoratePassage(EX.curP); }
     startTimer(isListen ? 30 * 60 : 60 * 60);
     startFtMini();                                       /* 10/13：顶栏计时小徽章（考场内替代全站 floatTimer） */
@@ -960,6 +973,7 @@ function barHtml(){
       renderPassage(1);
       renderNotes();
       wireOptionPanel();   /* 10/14 Option 面板交互 —— 完整模考不走 renderExam，必须在这里也调一次 */
+      reportExamState(true);
       startTimer(60 * 60);
       startFtMini();                                     /* 10/13：顶栏计时小徽章 */
       bankStartTimer();                               /* C-3：完整模考（阅读）开专注计时 */
@@ -2090,6 +2104,7 @@ function barHtml(){
     var root = document.getElementById('bankRoot'); if(root) root.style.display = '';
     /* 组卷缓存 _fullSet/_listenFullSet 已随「纯随机」口径删除（10/12）：每次 Start 现抽，无需重置 */
     boot();
+    reportExamState(false);   /* 10/15 考试结束，可以刷新了 */
   }
 
   /* ===== 口语模考入口（10/11 第 8 项）=====
