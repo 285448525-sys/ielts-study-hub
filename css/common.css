@@ -2057,9 +2057,9 @@ body.exam-fullscreen{overflow:hidden !important}
 .exam-q{width:42%;overflow-y:auto;padding:0;background:var(--surface);border-right:1px solid var(--line);box-sizing:border-box}
 .exam-q-body-wrap{padding:18px 24px 24px}   /* 10/14 题面内边距收紧 */
 .exam-q-lead{font-size:14px;color:var(--ink);margin:0 0 14px;font-weight:600}
-.exam-q-body{font-size:15px;line-height:1.65;color:var(--ink)}   /* 10/14 紧凑化：行高 1.85→1.65，省垂直空间 */
+.exam-q-body{font-size:15px;line-height:1.65;color:var(--ink)}   /* 写作题面基准；实际字号由 #examPractice.exam-fs-* 三档决定（官方 20/23/27） */
 .exam-q-body .ei-zh{font-size:16px;font-weight:700;line-height:1.7;margin-bottom:10px}
-.exam-q-body .ei-en{font-size:14.5px;color:var(--ink);line-height:1.7}   /* 10/14 题干略放大更易读 */
+.exam-q-body .ei-en{font-size:14.5px;color:var(--ink);line-height:1.7}
 .exam-q-note{margin:12px 0 0;font-size:12.5px;color:var(--muted);line-height:1.6}   /* 10/14 说明文字弱化 */
 
 .exam-a{width:58%;display:flex;flex-direction:column;min-height:0;padding:18px 28px 0;box-sizing:border-box}   /* 10/14 与 .exam-q 42/58 配套 */
@@ -2067,8 +2067,8 @@ body.exam-fullscreen{overflow:hidden !important}
    ⚠️ 原稿全用 vw（.8vw 字号在 1440 窗口=11.5px、手机 375=3px 不可读）→ 按桌面观感换算为固定 px：
    font .8vw→15px / radius·padding .4vw→8px·14-16px / 光环 .15vw→3px / 阴影 .4vw→8px。
    去掉原稿 max-width:190px（作文框需铺满）。 */
-.exam-textarea{flex:1;width:100%;border:1px solid var(--line);border-radius:12px;padding:18px;font:inherit;font-size:15.5px;line-height:1.85;background:var(--bg);color:var(--ink);resize:none;box-sizing:border-box;outline:none;transition:border-color .15s}
-.exam-textarea:focus{border-color:var(--primary)}
+.exam-textarea{flex:1;width:100%;border:1px solid var(--line);border-radius:12px;padding:18px;font:inherit;font-size:15.5px;line-height:1.85;background:var(--bg);color:var(--ink);resize:none;box-sizing:border-box;outline:none;transition:border-color .15s,box-shadow .15s}
+.exam-textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-50)}   /* 10/14 与填空框同款柔光环 */
 .exam-textarea::placeholder{color:var(--muted)}
 .exam-a-foot{display:flex;justify-content:flex-end;padding:10px 2px 14px}
 .exam-wc{font-size:13px;color:var(--muted);font-weight:600}
