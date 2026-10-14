@@ -2061,7 +2061,7 @@ function renderExamList(){
       ? '<div class="ei-prev">'+escapeHtml(rec.essay.replace(/\s+/g,' ').slice(0, 40))+(rec.essay.length > 40 ? '…' : '')+'</div>'
       : '<div class="ei-prev ei-prev-empty">尚未练习</div>';
     const chartThumb = (kind !== 'big' && it.img && it.img.length)
-      ? '<div class="ei-chart"><img src="assets/writing/'+escapeHtml(it.img[0])+'" alt="chart"></div>'
+      ? '<div class="ei-chart"><img src="assets/writing/'+escapeHtml(it.img[0])+'" alt="chart" loading="lazy" decoding="async"></div>'
       : '';
     return '<div class="exam-item'+(rec ? ' is-done' : '')+'" data-kind="'+kind+'" data-no="'+it.no+'">'
       + '<div class="ei-top">'
@@ -2156,7 +2156,7 @@ function openRecordExamView(rec){
     const bank = window.WRITING_PROMPTS || { big: [], small: [] };
     const it = (isSmall ? bank.small : bank.big).find(x => x.no === no);
     if(it){
-      if(it.img && it.img.length){ qHtml += '<div class="eq-charts">' + it.img.map(f => '<img src="assets/writing/' + escapeHtml(f) + '" alt="chart">').join('') + '</div>'; }
+      if(it.img && it.img.length){ qHtml += '<div class="eq-charts">' + it.img.map(f => '<img src="assets/writing/' + escapeHtml(f) + '" alt="chart" loading="lazy" decoding="async">').join('') + '</div>'; }
       qHtml += '<div class="ei-en">' + escapeHtml(isSmall ? (it.title || '') : (it.en || '')) + '</div>';
     }
   } else if(rec.tplTitle){
@@ -2213,7 +2213,7 @@ function openExam(item, kind){
     $('#examQNote').textContent = 'Give reasons for your answer and include any relevant examples from your own knowledge or experience.';
   } else {
     const charts = (item.img && item.img.length)
-      ? '<div class="eq-charts">' + item.img.map(f => '<img src="assets/writing/'+escapeHtml(f)+'" alt="chart">').join('') + '</div>'
+      ? '<div class="eq-charts">' + item.img.map(f => '<img src="assets/writing/'+escapeHtml(f)+'" alt="chart" loading="lazy" decoding="async">').join('') + '</div>'
       : '';
     $('#examQuestion').innerHTML = charts + '<div class="ei-en">' + escapeHtml(item.title) + '</div>';
     $('#examQNote').textContent = 'Summarise the information by selecting and reporting the main features, and make comparisons where relevant.';
