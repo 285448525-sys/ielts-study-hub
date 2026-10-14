@@ -260,11 +260,11 @@
 .ex-drop.filled.right{border-color:var(--primary);background:var(--primary-50)}
 .ex-drop.filled.wrong{border-color:#b3261e;background:#fdf3f2;color:#b3261e}
 /* 填空框三态（样子稿 104）：未点 = 框中数字；点击 = 空白框输入；失焦有值显示值 */
-.ex-blankw{display:inline-flex;align-items:center;justify-content:center;min-width:120px;height:29px;border:1px solid #6b7280;border-radius:2px;background:#fff;margin:0 4px;vertical-align:middle;padding:0 10px;cursor:text}
-.ex-blankw:focus-within{border-color:#111;box-shadow:0 0 0 1px #111}
-.ex-blankw b{font-size:13.5px;color:#111;font-weight:700}
-.ex-blankw input{display:none;border:none;outline:none;background:none;font:inherit;font-size:14px;width:100%;text-align:center;padding:0;color:#111}
-.ex-blankw.editing b{display:none}
+.ex-blankw{display:inline-flex;align-items:center;justify-content:center;min-width:120px;height:36px;border:1.5px solid #9ca3af;border-radius:6px;background:#fff;vertical-align:middle;transition:border-color .15s,box-shadow .15s}
+.ex-blankw:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-50)}
+.ex-blankw b{display:none}   /* 10/14：题号走 input placeholder，聚焦时不再硬消失 */
+.ex-blankw input{display:block;border:none;outline:none;background:none;font:inherit;font-size:14.5px;width:100%;text-align:center;color:#111;padding:0 8px}
+.ex-blankw.editing b{display:none}   /* 10/14：input 常驻后此规则仅兜底 */
 .ex-blankw.editing input,.ex-blankw.filled input{display:block}
 /* 10/13 她截图 3 口径：点击后数字不硬消失——input 的 placeholder 灰显题号，
    光标在前、数字在后，输入第一个字符原生让位（BC 机考同款行为） */
@@ -786,7 +786,17 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
      → 本站结论：音频条上放一个模式开关。**练习模式（可暂停/拖动/倍速）为默认**，
        考试模式 = 直通不可控，用来还原真机考。
      · 听力原文：**考中一律不可见**（她 10/11 拍板 + 上述站点口径一致），交卷后才出现。 */
-  .ex-audio{flex:none;display:flex;align-items:center;gap:12px;padding:9px 16px;border-bottom:1px solid var(--line);background:var(--surface)}
+  /* 10/14 她拍板：听力顶栏两行并一行省空间。
+   做法：标题行 shellHtml 照渲染（保住 Option 面板与 ☰ 的现成逻辑），但 CSS 压 0 高隐藏；
+        标题/整场计时/☰ 都并入音频条那一行（audioBarHtml 新增 nameText+timerText 参数）。 */
+#examRoot:has(#exAudioBar) .ex-top{display:none !important}   /* 10/14：有音频条=听力，标题行让位给一行式音频条（:has() 见 common.css 先例） */
+.ea-name{font-size:13.5px;font-weight:800;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:22%;flex:none}
+.ea-fulltimer{font-size:13.5px;font-weight:800;color:#111;font-variant-numeric:tabular-nums;background:#fff;border:1px solid var(--line);border-radius:7px;padding:3px 9px;flex:none}
+#examRoot.ct-dark .ea-fulltimer{background:#242628;border-color:#3a3f45;color:#e8eaed}
+#examRoot.ct-yellow .ea-fulltimer{background:#24241a;border-color:#4a4526;color:#f0e3a8}
+#examRoot.ct-dark .ea-name{color:#f2f2f2}
+#examRoot.ct-yellow .ea-name{color:#f0e3a8}
+.ex-audio{flex:none;display:flex;align-items:center;gap:12px;padding:9px 16px;border-bottom:1px solid var(--line);background:var(--surface)}
   .ex-audio .ea-play{flex:none;width:34px;height:34px;border-radius:50%;border:none;background:var(--primary);color:#fff;font-size:13px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
   .ex-audio .ea-play[disabled]{opacity:.45;cursor:default}
   .ex-audio .ea-label{flex:none;font-size:12.5px;font-weight:700;color:var(--primary-text);letter-spacing:.02em}
@@ -946,6 +956,6 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common.js?v=20261013ac"></script>
 <script defer src="js/writing_prompts.js?v=20260903ab"></script>
 <script defer src="js/writing.js?v=20261011e"></script>
-<script defer src="js/bank.js?v=20261012k"></script>
+<script defer src="js/bank.js?v=20261012l"></script>
 </body>
 </html>

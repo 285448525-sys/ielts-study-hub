@@ -533,7 +533,7 @@
       +    '<div class="ex-name">' + esc(nameText)
       +      (subText ? '<small>' + esc(subText) + '</small>' : '') + '</div>'
       +    '<span class="ex-timer" id="exTimer">' + timerText + '</span>'
-      +    '<span class="ex-ft" id="exFtMini" hidden><i></i><b id="exFtLabel">计时中</b><span id="exFtTime">00:00:00</span></span>'
+      + ''   /* 10/14 她拍板：顶栏计时徽章关掉（音频长短不一，与整场计时并存重复） */
       +    '<div class="ex-icons">'
       +      '<button class="ex-ico ex-menubtn" type="button" title="Option">\u2630</button>'
       +    '</div></div>'
@@ -628,21 +628,21 @@
     return null;
   }
   function listenPartLabel(){ var p = listenPart(); return (p && p.partNum) || 'Audio'; }
-  function audioBarHtml(partLabel){
+  function audioBarHtml(partLabel, nameText, timerText, showModes){
     var p = listenPart();
     if(!p || !p.audioUrl) return '<div class="ex-audio" id="exAudioBar"><span class="ea-label">本部分没有音频</span></div>';
     var exam = EX.listenMode === 'exam';
     /* 听力完整模考：全程考试模式，模式切换按钮整个不渲染（真机考没有「练习/考试」这一说） */
     var fullL = !!(EX.full && EX.channel === 'listening');
-    var modeBtn = fullL ? '' :
-      '<button class="ea-mode' + (exam ? ' exam' : '') + '" type="button" data-amode'
-      + (EX.audioStarted ? ' disabled' : '')
-      + ' title="' + (EX.audioStarted ? '已经开始播放，本次不能再切换' : '切到考试模式后音频直通，不能暂停/拖动') + '">'
-      + (exam ? '考试模式' : '练习模式') + '</button>';
-    /* 10/13 她报「上面三行缩两行」→ Part 横幅并入音频条行首（Part N · Questions X–Y 胶囊）。
-       阅读没有音频条，仍走独立 partBannerHtml 横幅（renderExam 阅读分支不变）。 */
+    /* 10/14 她拍板：去掉练习/考试切换，默认练习模式（可暂停/可拖/可倍速） */
+    var modeBtn = '';
     var partChip = partLabel ? '<span class="ea-part">' + esc(partLabel) + '</span>' : '';
+    /* 10/14 她拍板：两行并一行 —— 标题 + 整场倒计时并入音频条行首（原独立标题行撤销） */
+    var nameChip = nameText ? '<span class="ea-name">' + esc(nameText) + '</span>' : '';
+    var timerChip = timerText ? '<span class="ea-fulltimer" id="eaFullTimer">' + esc(timerText) + '</span>' : '';
     return '<div class="ex-audio' + (exam ? ' locked' : '') + '" id="exAudioBar">'
+      + nameChip + timerChip
+
       + '<button class="ea-play" type="button" data-aplay aria-label="Play">▶</button>'
       + partChip
       + '<div class="ea-bar" id="eaBar"><div class="ea-fill" id="eaFill"></div><span class="ea-knob" id="eaKnob"></span></div>'
@@ -801,12 +801,18 @@
       /* 听力：窄顶栏（音频控制并入）+ Part 胶囊并入音频条行首 + 单栏题目（听力没有独立文章区，不做左右分栏）。
          Highlight/Note 菜单依赖 #exArt，听力没有 → 不渲染，避免出现点不动的入口。
          10/13 她报「上面三行缩两行」→ 原独立 Part 横幅（.ex-part）撤销，信息并入音频条。 */
-      host.innerHTML = shellHtml(u.title, '', '00:30:00')
-        + audioBarHtml(partChipText())
+      /* 10/14 她拍板：两行并一行省空间——不渲染独立标题行，标题+计时并入音频条（见 audioBarHtml 第三参） */
+      host.classList.add('ex-listen-on');   /* 10/14：CSS 靠这个类把标题行压掉，只留音频条一行 */
+      host.innerHTML = shellHtml(u.title, '', '')
+        + audioBarHtml(partChipText(), u.title, '00:30:00')
         + '<div class="ex-listen" id="exListen"><div class="ex-listen-in" id="exListenIn">'
         + groups.map(function(g, i){ return groupHtml(g, i, null, 'listening'); }).join('')
         + '</div></div>'
         + barHtml();
+      /* 10/14 她拍板：两行并一行省空间。shellHtml 仍渲染（保住 Option 面板与 ☰ 的现成逻辑），
+         但标题行藏掉；标题/整场计时已在 audioBarHtml 里并入那一行。
+         ⚠️ 用 style.display 而非 class：examRoot 的 class 会被后续 render 重建清掉（实测踩过）。 */
+      var _tp = host.querySelector('.ex-top'); if(_tp) _tp.style.display = 'none';
     } else {
       var artHtml = '';
       parts.forEach(function(p){ artHtml += clean(p.article || ''); });
@@ -967,7 +973,9 @@
     var pk = EX.packs[pi - 1];
     EX.unit = pk.unit;                                  /* 音频条 / 原文按篇取 → 复用同一套取数路径 */
     var barHost = document.getElementById('exAudioHost');
-    if(barHost) barHost.innerHTML = audioBarHtml(partChipText());   /* 换篇 = 旧 <audio> 随 innerHTML 销毁（播放自动停）；Part 胶囊随篇更新 */
+    if(barHost) /* 10/14：计时文本从现有 DOM 读（tick 里会双向同步，见 startTimer），不新建函数 */
+    var _t = (document.getElementById('exTimer') || {}).textContent || '00:30:00';
+    barHost.innerHTML = audioBarHtml(partChipText(), (EX.unit && EX.unit.title) || '', _t);   /* 换篇 = 旧 <audio> 随 innerHTML 销毁（播放自动停）；Part 胶囊随篇更新 */
     wireAudio();                                        /* ⚠️ 新 <audio> 元素必须重绑事件（play 监听 = 「只播一遍」的记号来源） */
     var inner = document.getElementById('exListenIn');
     var list = qsOfPassage(pi);
@@ -1661,6 +1669,12 @@
         el.textContent = pad2(hh) + ':' + pad2(mm) + ':' + pad2(ss);
         el.classList.toggle('warn', left <= 300 && left > 0);
         el.classList.toggle('soon', left <= 600 && left > 300);
+      }
+      /* 10/14 听力顶栏一行化：音频条里的整场计时同步刷新（标题行 CSS 隐藏但 JS 仍跑，双写保平安） */
+      var ft = document.getElementById('eaFullTimer');
+      if(ft){
+        var fh = Math.floor(left / 3600), fm = Math.floor((left % 3600) / 60), fs2 = left % 60;
+        ft.textContent = pad2(fh) + ':' + pad2(fm) + ':' + pad2(fs2);
       }
       if(EX) EX._leftSec = left;
       if(left <= 0){ stopTimer(); doSubmit(); return; }
