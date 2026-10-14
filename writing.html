@@ -43,7 +43,7 @@
   <script defer src="js/common.js?v=20261013ab"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
   <script defer src="js/writing_prompts.js?v=20260903ab"></script>
-  <script defer src="js/writing.js?v=20261011d"></script>
+  <script defer src="js/writing.js?v=20261011e"></script>
   <script defer src="js/wrongbook.js?v=20260903ab"></script>
 <style>
 
@@ -312,6 +312,8 @@
   .exam-timer #examTimerBtn{color:#fff}
   /* 9/30 考场模式：底部栏改为「词数 | 考场模式开关 | 计时」。计时器原本只有 CSS 没有 DOM（点了开始却看不见），一并补回。 */
   .exam-a-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-start;padding:10px 2px 14px}
+  /* 10/14 字数不足时醒目（暖色）——与 bank.html 同款同口径 */
+.exam-wc.low{color:#b45309;font-weight:600}
   /* 10/8 官方机考界面重排（对齐 IELTS on computer 真实布局，官方依据：IDP 官网「How IELTS on Computer works」
      + 官方 Quick Guide：计时器在屏幕顶部中央；右上角 options 图标管 Text Size 三档 Regular/Large/Extra Large；
      词数在作答区左下；上下深色栏、内容区白底）。 */

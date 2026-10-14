@@ -529,6 +529,13 @@
 .eq-charts{display:flex;flex-direction:column;gap:12px;margin-bottom:14px}
 .eq-charts img{max-width:100%;border-radius:var(--radius);border:1px solid var(--line);background:#fff}
 .exam-a-foot{justify-content:flex-start}
+/* 10/14 字数不足时醒目（暖色 + 中等字重）——官方机考与成熟写作工具的做法：
+   不够字数要给明确反馈，否则用户写不够还不知道。达标时 JS 移除 .low 回到中性色。 */
+.exam-wc.low{color:#b45309;font-weight:600}
+#examPractice.exam-fs-0 .exam-wc.low{font-size:15px}
+#examPractice.exam-fs-1 .exam-wc.low{font-size:17px}
+#examPractice.exam-fs-2 .exam-wc.low{font-size:19px}
+
 /* 全屏机考：writing.html 靠 body.exam-fullscreen 的 flex 链（#examPanel 是 main 直接子级）；
    bank 页 #examPanel 挂在 pane 内 → 改用固定覆盖层（与阅读的 #examRoot 同款），并藏掉四小 tab。 */
 body.exam-fullscreen #mockTabs{display:none !important}
@@ -880,7 +887,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/data.js?v=20261011e"></script>
 <script defer src="js/common.js?v=20261013ab"></script>
 <script defer src="js/writing_prompts.js?v=20260903ab"></script>
-<script defer src="js/writing.js?v=20261011d"></script>
+<script defer src="js/writing.js?v=20261011e"></script>
 <script defer src="js/bank.js?v=20261012i"></script>
 </body>
 </html>

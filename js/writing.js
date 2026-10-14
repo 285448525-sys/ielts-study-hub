@@ -2108,6 +2108,23 @@ function openRecordExamView(rec){
   examFontApply();
 }
 
+/* 10/14 字数提示：不足目标字数时醒目提示（暖色 + 差多少词），达标恢复中性色。
+   分档：大作文 Task2 250 / 小作文 Task1 150（官方机考要求，IDP 官网口径）。
+   三处原本各写一遍 textContent，统一走它，避免漏改。 */
+function examShowCount(n, kind){
+  const el = document.getElementById('examWordCount');
+  if(!el) return;
+  const target = (kind === 'small') ? 150 : 250;
+  const label = (kind === 'small') ? 'Task 1' : 'Task 2';
+  if(n >= target){
+    el.textContent = 'Word count: ' + n + ' · 已达标';
+    el.classList.remove('low');
+  } else {
+    el.textContent = 'Word count: ' + n + ' · ' + label + ' 还需 ' + (target - n) + ' 词';
+    el.classList.add('low');
+  }
+}
+
 function openExam(item, kind){
   if(!examTimer) return;   // 10/8 兜底：初始化异常时不许抛 TypeError 打断（她侧实抓过）
   examTimer.cur = { kind, no: item.no };
@@ -2156,10 +2173,10 @@ function openExam(item, kind){
     }
     // 9/16 修：同样改走 wtCountWords（原 /\b[\w'-]+\b/g 遇到中文算 0 词，与 AI 评分 tab 口径不一致）
     const n = wtCountWords($('#examEssay').value);
-    $('#examWordCount').textContent = 'Word count: ' + n;
+    examShowCount(n, examTimer.cur ? examTimer.cur.kind : 'big');
   } else {
     // 修：原写法在 if 块之后无条件把词数清零，刚恢复的草稿词数立刻被盖成 0
-    $('#examWordCount').textContent = 'Word count: 0';
+    examShowCount(0, examTimer.cur ? examTimer.cur.kind : 'big');
   }
   $('#examResult').hidden = true;
   const fold = $('#examEssayFold'); if(fold){ fold.hidden = true; fold.open = false; }   // 我的作文收起栏：提交后才显示，练习中隐藏（9/10 之之）
@@ -2215,7 +2232,7 @@ function openExamCustom(){
     if(!ok){ try{ localStorage.removeItem('ielts_wt_draft_' + examTimer.cur.kind + '_custom'); }catch(e){} }
   } else $('#examEssay').value = '';
   const n = wtCountWords($('#examEssay').value);
-  $('#examWordCount').textContent = 'Word count: ' + n;
+  examShowCount(n, examTimer.cur ? examTimer.cur.kind : 'big');
   $('#examResult').hidden = true;
   const fold = $('#examEssayFold'); if(fold){ fold.hidden = true; fold.open = false; }
   const eo = $('#examEssayOrig'); if(eo) eo.textContent = '';
@@ -2505,7 +2522,7 @@ function bindExam(){
   const essay = $('#examEssay');
   if(essay) essay.addEventListener('input', () => {
     const n = wtCountWords(essay.value);
-    $('#examWordCount').textContent = 'Word count: ' + n;
+    examShowCount(n, examTimer.cur ? examTimer.cur.kind : 'big');
   });
   const sb = $('#examScoreBtn');
   if(sb) sb.addEventListener('click', examStopAndScore);
