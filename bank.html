@@ -165,28 +165,42 @@
 .ex-part b{font-weight:800}
 .ex-part span{color:#333}
 .ex-split{flex:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);min-height:0}
+/* 10/14 文章区显式字号：原继承 #examRoot --exfs:20px，文章字太大（她：卷子里字体太大）。
+   参考真实机考与大站长文：正文 14-16px、文章标题 17-18px。 */
+/* 10/14 她：卷子里字体太大。文章区整体基准 15px（原继承 #examRoot 20px）。
+   ⚠️ 题库 HTML 可能自带内联 font-size → 用 * 通吃 + !important 兜底，
+      随机组卷下每篇文章 DOM 结构不同，不挑子元素位置（实测 :first-child/:nth-child 都踩空）。 */
+.ex-article,.ex-article *{font-size:15px !important;line-height:1.7 !important}
+.ex-article b,.ex-article strong{font-size:15px !important;font-weight:700 !important}
+.ex-article h2,.ex-article h3{font-size:17px;line-height:1.5;margin:0 0 10px}
+
+.ex-article p{margin:0 0 12px}
+/* 10/14 实测：第一个子元素是 &nbsp; 空 DIV，真正的「标题+正文」在第二个 DIV，
+   且标题与正文在同一个 DIV 内用换行分隔（数据如此，不动数据）。
+   处理：第二个 DIV 整体 15.5px；其内首行靠 <b>（标题在数据里是粗体）抬到 17px。 */
+
 .ex-article{overflow:auto;padding:24px 32px 60px;background:#fff;border-right:1px solid var(--line);
   font-size:var(--exfs);line-height:1.95;color:#111}
 .ex-article img{max-width:100%}
 .ex-qcol{overflow:auto;padding:18px 26px 60px;background:#fff;font-size:var(--exfs)}
 .ex-group{margin:0 0 28px}
-.ex-grp-h{font-size:18px;font-weight:800;margin:0 0 6px;color:#111}
-.ex-grp-i{font-size:15px;line-height:1.75;color:#222;margin:0 0 14px}
+.ex-grp-h{font-size:15.5px;font-weight:800;margin:0 0 6px;color:#111}   /* 10/14 18→15.5px */
+.ex-grp-i{font-size:13px;line-height:1.6;color:#222;margin:0 0 12px}   /* 10/14 15→13px */
 /* 10/14 卷面格式对齐真实机考（她：跟真实机考差别很大，格式不规范）：
    题号固定左列 + 题干/选项共享左边界。
    依据：① IDP 官方机考界面（ielts.idp.com 样题）② 104 机考仿真样子稿（cb-qs/cb-g 结构）
    —— 两处一致：题号是独立编号列，题干说明与选项左边界严格对齐，选项竖排等距。 */
-.ex-q{display:flex;align-items:flex-start;gap:11px;margin:0 0 18px;font-size:.94em;line-height:1.75;color:#111;position:relative;padding-right:34px}
+.ex-q{display:flex;align-items:flex-start;gap:11px;margin:0 0 15px;font-size:.8em;line-height:1.6;color:#111;position:relative;padding-right:34px}   /* 10/14 字号 18.8→16px、行高 1.75→1.6（她：字体太大） */
 .ex-qt{flex:1;min-width:0}
 .ex-qt > .ex-drop,.ex-qt > .ex-pills,.ex-qt > .ex-opts,.ex-qt > .ex-pool{margin-top:8px}
 .ex-q:last-child{margin-bottom:0}
-.ex-qn{flex:none;display:inline-flex;align-items:center;justify-content:center;min-width:27px;height:27px;border:1.5px solid #111;border-radius:3px;font-weight:700;font-size:14px;background:#fff;padding:0 5px;margin-top:2px}
+.ex-qn{flex:none;display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;border:1.5px solid #111;border-radius:3px;font-weight:700;font-size:13px;background:#fff;padding:0 4px;margin-top:1px}   /* 10/14 14→13px、方框 27→24px */
 .ex-qn.miss{color:#b3261e;border-color:#b3261e}
 .ex-qn.hit{color:var(--primary-900);border-color:var(--primary)}
 /* 选项（判断/单选/多选/字母匹配）：竖排整行，选中 = 圈实心 + 行浅 teal（样子稿 104，颜色本站 teal）
    靠 :has() 按 input 状态渲染（Edge/Chrome 105+，全站现代浏览器） */
 .ex-pills{display:flex;flex-direction:column;gap:3px;margin-top:10px}
-.ex-pill{display:flex;align-items:center;gap:12px;min-height:37px;padding:8px 13px;border:1px solid transparent;border-radius:3px;background:#fff;font-size:.93em;cursor:pointer;color:#111;text-align:left}
+.ex-pill{display:flex;align-items:center;gap:10px;min-height:32px;padding:6px 11px;border:1px solid transparent;border-radius:3px;background:#fff;font-size:.88em;cursor:pointer;color:#111;text-align:left}   /* 10/14 17.5→14.5px、行高 37→32px */
 .ex-pill::before{content:"";flex:none;width:17px;height:17px;border:2px solid #8f959e;border-radius:50%;background:#fff}
 .ex-pill:hover{background:#f4f6f8;border-color:transparent}
 .ex-pill.on{background:var(--primary-50)}
@@ -194,7 +208,7 @@
 .ex-pill.right{background:var(--primary-50);border-color:var(--primary)}
 .ex-pill.wrong{background:#fdf3f2;border-color:#b3261e;color:#b3261e}
 .ex-opts{display:flex;flex-direction:column;gap:3px;margin-top:10px}
-.ex-opt{display:flex;align-items:center;gap:12px;min-height:37px;padding:8px 13px;border:1px solid transparent;border-radius:3px;background:#fff;font-size:.93em;cursor:pointer;color:#111;position:relative}
+.ex-opt{display:flex;align-items:center;gap:10px;min-height:32px;padding:6px 11px;border:1px solid transparent;border-radius:3px;background:#fff;font-size:.88em;cursor:pointer;color:#111;position:relative}   /* 10/14 17.5→14.5px、行高 37→32px */
 .ex-opt:hover{background:#f4f6f8}
 .ex-opt input{position:absolute;opacity:0;pointer-events:none;width:0;height:0}
 .ex-opt:has(input:checked){background:var(--primary-50)}
@@ -894,6 +908,6 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common.js?v=20261013ac"></script>
 <script defer src="js/writing_prompts.js?v=20260903ab"></script>
 <script defer src="js/writing.js?v=20261011e"></script>
-<script defer src="js/bank.js?v=20261012j"></script>
+<script defer src="js/bank.js?v=20261012k"></script>
 </body>
 </html>
