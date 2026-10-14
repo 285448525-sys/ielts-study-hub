@@ -2045,22 +2045,24 @@ body.exam-fullscreen{overflow:hidden !important}
 
 #examPractice{display:flex;flex-direction:column;height:100vh;background:var(--bg);box-sizing:border-box}
 
-.exam-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:20px 32px 14px;border-bottom:1px solid var(--line);background:var(--surface)}
-.exam-part{margin:0;font-size:22px;font-weight:800;color:var(--ink);letter-spacing:-.01em}
-.exam-instr{margin:4px 0 0;font-size:13.5px;color:var(--muted);line-height:1.5}
-.exam-exit-full{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--bg);color:var(--muted);border-radius:9px;padding:7px 12px;font-size:13px;cursor:pointer;flex:none;transition:.15s}
+/* 10/14 顶栏重组：padding 收紧（20→12），说明文字与标题同行由 writing.js DOM 保证 */
+.exam-head{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 28px;border-bottom:1px solid var(--line);background:var(--surface)}
+.exam-part{margin:0;font-size:20px;font-weight:800;color:var(--ink);letter-spacing:-.01em;flex:none}
+.exam-instr{margin:0;font-size:13px;color:var(--muted);line-height:1.5}   /* 10/14 与标题同行，去掉上 margin */
+.exam-exit-full{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--bg);color:var(--muted);border-radius:9px;padding:7px 12px;font-size:12.5px;cursor:pointer;flex:none;transition:.15s}
 .exam-exit-full:hover{color:var(--primary);border-color:var(--primary)}
 
 .exam-split{flex:1;display:flex;min-height:0}
-.exam-q{width:50%;overflow-y:auto;padding:0;background:var(--surface);border-right:1px solid var(--line);box-sizing:border-box}
-.exam-q-body-wrap{padding:24px 28px 28px}
+/* 10/14 UI 优化：栏宽 50/50 → 42/58 —— 写作以作答为主体，题面是参考（真实机考同取向） */
+.exam-q{width:42%;overflow-y:auto;padding:0;background:var(--surface);border-right:1px solid var(--line);box-sizing:border-box}
+.exam-q-body-wrap{padding:18px 24px 24px}   /* 10/14 题面内边距收紧 */
 .exam-q-lead{font-size:14px;color:var(--ink);margin:0 0 14px;font-weight:600}
-.exam-q-body{font-size:15.5px;line-height:1.85;color:var(--ink)}
+.exam-q-body{font-size:15px;line-height:1.65;color:var(--ink)}   /* 10/14 紧凑化：行高 1.85→1.65，省垂直空间 */
 .exam-q-body .ei-zh{font-size:16px;font-weight:700;line-height:1.7;margin-bottom:10px}
-.exam-q-body .ei-en{font-size:14px;color:var(--ink);line-height:1.8}
-.exam-q-note{margin:16px 0 0;font-size:13px;color:var(--muted);line-height:1.7}
+.exam-q-body .ei-en{font-size:14.5px;color:var(--ink);line-height:1.7}   /* 10/14 题干略放大更易读 */
+.exam-q-note{margin:12px 0 0;font-size:12.5px;color:var(--muted);line-height:1.6}   /* 10/14 说明文字弱化 */
 
-.exam-a{width:50%;display:flex;flex-direction:column;min-height:0;padding:28px 32px 0;box-sizing:border-box}
+.exam-a{width:58%;display:flex;flex-direction:column;min-height:0;padding:18px 28px 0;box-sizing:border-box}   /* 10/14 与 .exam-q 42/58 配套 */
 /* 写作真题 · 作文输入框（Uiverse Jaareet .input 改写，深色内胆 + skyblue 聚焦光环）
    ⚠️ 原稿全用 vw（.8vw 字号在 1440 窗口=11.5px、手机 375=3px 不可读）→ 按桌面观感换算为固定 px：
    font .8vw→15px / radius·padding .4vw→8px·14-16px / 光环 .15vw→3px / 阴影 .4vw→8px。
@@ -2082,10 +2084,11 @@ body.exam-fullscreen{overflow:hidden !important}
 .btn-exam-exit:hover{background:var(--err);color:var(--surface)}
 
 @media(max-width:860px){
+  /* 10/14 UI 优化：移动端作答区优先 —— 题面限高可滚（不再占满首屏），作答区至少 55vh */
   .exam-split{flex-direction:column;overflow-y:auto}
   .exam-q,.exam-a{width:100%;border-right:none}
-  .exam-q{border-bottom:1px solid var(--line)}
-  .exam-a{min-height:300px}
+  .exam-q{border-bottom:1px solid var(--line);max-height:42vh;overflow-y:auto;flex:none}
+  .exam-a{min-height:55vh;flex:1 1 auto}
   .exam-head,.exam-bar{padding-left:16px;padding-right:16px}
   .exam-q,.exam-a{padding-left:16px;padding-right:16px}
 }
