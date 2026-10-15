@@ -23,43 +23,36 @@ body{
 .top a{color:var(--p-700);text-decoration:none;font-size:14px;font-weight:500}
 .top a:hover{color:var(--p-900)}
 .stage{flex:1;display:flex;align-items:center;justify-content:center;padding:12px 24px 48px}
-.duo{display:grid;grid-template-columns:1.15fr .85fr;gap:22px;max-width:1000px;width:100%}
+.duo{width:100%;max-width:460px;margin:0 auto}   /* 10/15 单列居中（方案批准）：登录是工具页，去掉左侧大品牌区 */
 /* 10/13 UI 优化：表单挪左（桌面）/ 排最上（移动）—— 只改 order，不动 DOM。
    品牌栏在 DOM 里是第一个、表单第二个；表单 order:-1 后两处都在前。 */
 .duo > .card.form{order:-1}
-.duo > .card.brand{order:0}
 .card{background:var(--n-0);border-radius:18px;box-shadow:0 18px 50px rgba(26,69,66,.10),0 2px 8px rgba(26,69,66,.05);padding:38px}
-/* 10/15 UI 优化：品牌卡改 teal 深渐变（原来白卡里嵌近黑块 .big，风格撕裂看着"怪"）→
-   一整张完整深色卡 + 右侧白表单，深浅对比清爽，也修了「灰字压深底看不清」的 bug。 */
-.card.brand{background:linear-gradient(158deg,#2f8f88 0%,#1c5f5a 100%);color:#fff;box-shadow:0 18px 44px rgba(28,95,90,.26)}
-/* 左：品牌 */
-.brand .mark{display:flex;align-items:center;gap:10px;margin-bottom:26px}
-.brand .mark i{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,#56b3ab 0%,#2c7873 100%);display:grid;place-items:center;font-style:normal;overflow:hidden}
-.brand .mark i svg{display:block;width:100%;height:100%}
-.brand .mark b{font-size:17px;color:#fff;font-weight:600}
-.brand .mark span{font-size:12px;color:rgba(255,255,255,.72);margin-left:2px}
+/* ===== 10/15 登录页重做（方案批准：design/106-登录页与底部Part切换器_方案_2026-10-15.html）=====
+   单列居中 + 顶部小品牌条 + 输入框聚焦光圈 + 主按钮全宽 + 底部安抚文案。 */
+.mini-brand{display:flex;align-items:center;gap:10px;margin:0 0 22px}
+.mini-brand i{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#56b3ab 0%,#2c7873 100%);
+  display:grid;place-items:center;font-style:normal;overflow:hidden;flex:none}
+.mini-brand i svg{display:block;width:100%;height:100%}
+.mb-txt b{display:block;font-size:15px;font-weight:700;color:var(--n-900);line-height:1.3}
+.mb-txt span{display:block;font-size:11.5px;color:var(--n-500);line-height:1.3}
+/* 输入框：聚焦 teal 边框 + 柔光圈（与全站 focus 一致）*/
+.card.form input{transition:border-color .15s,box-shadow .15s}
+.card.form input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--p-50)}
+/* 主按钮全宽 48px（层级最重）*/
+/* 登录态与注册态之间的切换条 */
+.card.form .switch{margin:20px 0 0;padding:16px 0 0;border-top:1px solid var(--n-200);
+  text-align:center;font-size:13.5px;color:var(--n-500)}
+.card.form .switch a{color:var(--primary-900);font-weight:700;text-decoration:none;cursor:pointer;margin-left:4px}
+.card.form .switch a:hover{text-decoration:underline}
+/* 底部安抚文案（不提收费，合规）*/
+.card.form .reassure{margin:14px 0 0;text-align:center;font-size:12px;color:var(--n-500);line-height:1.6}
 /* 10/4 01:10 A 版：深色大字块 + 四条功能标注（替代原「把节奏交给可坚持的系统」+ .facts 功能罗列）
    —— 她 00:55 拍板：「要么就设几个大字吧…这网站是一个正在备考雅思的人做的」
    —— 她 00:34 发过火「谁家好人在登录页面提收费的事情」→ 这页零价格、零套餐 */
-.brand .big{background:transparent;border-radius:0;padding:0;margin:0 0 18px;position:relative;overflow:hidden}   /* 10/15 去黑块底：整卡已深，无需再嵌一块 */
-.brand .big::after{content:'';position:absolute;inset:0;pointer-events:none;
-  background:radial-gradient(340px 160px at 88% -50px,rgba(122,220,210,.18),transparent 70%)}
-.brand .big .who{font-size:12.5px;font-weight:700;color:var(--p-200);letter-spacing:.04em;margin-bottom:9px}
-.brand .big .l1{font-size:30px;line-height:1.22;color:#fff;font-weight:800;letter-spacing:-.03em;margin-bottom:9px}
-.brand .big .l2{font-size:14px;line-height:1.75;color:rgba(255,255,255,.72)}
-.brand .feats{display:flex;flex-direction:column}
-.brand .feat{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--n-300)}
-.brand .feat:last-child{border-bottom:0}
-.brand .feat .ic{width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,.16);color:#fff;
-  display:grid;place-items:center;flex:none;margin-top:1px}
-.brand .feat .ic svg{width:16px;height:16px}
-.brand .feat .tx b{display:block;font-size:14px;color:#fff;letter-spacing:-.01em;margin-bottom:1px}
-.brand .feat .tx span{display:block;font-size:12.5px;color:rgba(255,255,255,.8);line-height:1.55}
-.brand .bfact{margin:16px 0 0;padding-top:13px;border-top:1px solid rgba(255,255,255,.14);font-size:12px;color:rgba(255,255,255,.62);line-height:1.6}
 /* ≤560 单列时大字缩一档，别把双栏卡挤爆 */
 @media (max-width:560px){
-  .brand .big .l1{font-size:25px}
-}
+  }
 /* 右：表单 */
 .form h2{font-size:24px;color:var(--n-900);margin:0 0 8px;font-weight:700}
 .form .desc{font-size:13.5px;color:var(--n-600);margin:0 0 24px}
@@ -107,8 +100,9 @@ input::placeholder{color:var(--n-500)}
 @media (max-width:880px){
   .duo{grid-template-columns:1fr}
   .card{padding:32px 26px}
-  .brand h1{font-size:30px}
 }
+/* 10/15 主按钮全宽（必须放末尾：前面 .btn{} 的 width 会覆盖）*/
+.card.form .btn{width:100%;height:48px;font-size:15.5px;margin-top:8px}
 </style>
 <meta name="description" content="登录 / 注册：登录后可使用站内 AI 功能，并跨设备同步学习数据。" />
 <link rel="canonical" href="https://yasihub.com/login" />
@@ -124,51 +118,16 @@ input::placeholder{color:var(--n-500)}
 
 <div class="stage">
   <div class="duo">
-    <!-- 左：品牌（10/4 01:10 A 版「我自己在备考」+ 四条真实功能）
-     —— 她 00:55 拍板：「要么就设几个大字吧…这网站是一个正在备考雅思的人做的」
-     —— 零价格（她 00:34 发过火：「谁家好人在登录页面提收费的事情」→ 价格只属落地页与会员页）
-     —— 四个功能点全部 grep 核实过站里真有其功能，非编造 -->
-    <div class="card brand">
-      <div class="mark"><i aria-hidden="true"><svg viewBox="0 0 512 512" fill="none" aria-hidden="true"><g fill="#ffffff" stroke="#ffffff" stroke-width="38" stroke-linejoin="round" stroke-linecap="round"><path d="M256 136 L344 194 L256 252 L168 194 Z"/><path d="M160 304 L212 304 L256 362 L300 304 L352 304 L352 354 Q352 394 256 394 Q160 394 160 354 Z"/></g></svg></i><b>雅思备考站</b><span>机考备考系统</span></div>
-
-      <div class="big">
-        <div class="who">这个网站，是</div>
-        <div class="l1">一个正在备考雅思的人<br />给自己做的</div>
-        <div class="l2">备考时踩过的坑、没找到趁手工具的地方，我都做进了这套系统——它是我每天在用的，不是做完就放下的产品。</div>
-      </div>
-
-      <div class="feats">
-        <div class="feat">
-          <span class="ic" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg>
-          </span>
-          <span class="tx"><b>AI 定制你的备考方案</b><span>先诊断你的水平，再按考期倒排每天学什么；时间不够会自动重排</span></span>
-        </div>
-        <div class="feat">
-          <span class="ic" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.5-.7L3 21l1.8-5.2A8.3 8.3 0 0 1 4 11.5 8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5Z"/><path d="M8.5 11h.01M12.5 11h.01M16.5 11h.01"/></svg>
-          </span>
-          <span class="tx"><b>口语串题：一个故事多道题</b><span>把你的经历写成素材，AI 算出它能套哪些当季 P2</span></span>
-        </div>
-        <div class="feat">
-          <span class="ic" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20h-20"/></svg>
-          </span>
-          <span class="tx"><b>题库分高低频</b><span>必考题优先背，低频先放着——不浪费时间在不重要的题上</span></span>
-        </div>
-        <div class="feat">
-          <span class="ic" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z"/><path d="M19 11a7 7 0 0 1-14 0"/><path d="M12 18v3"/></svg>
-          </span>
-          <span class="tx"><b>AI 陪练口语</b><span>它读完你讲的故事才追问，难度跟着你的水平变</span></span>
-        </div>
-      </div>
-
-      <p class="bfact">当季 88 个话题卡 · 223 个 P2 考点 · 题库已迭代 15 版</p>
-    </div>
-
-    <!-- 右：表单 -->
+    <!-- 10/15 她批准方案（design/106-登录页与底部Part切换器_方案_2026-10-15.html）：
+         登录是「工具页」不是 landing 页 → 去掉左侧大品牌区，改单列居中；
+         品牌感收敛成表单卡顶部一条（logo+站名+一句话），零价格零套餐（她的铁律）。 -->
+    <!-- 表单卡（单列居中） -->
     <div class="card form">
+      <!-- 顶部小品牌条 -->
+      <div class="mini-brand">
+        <i aria-hidden="true"><svg viewBox="0 0 512 512" fill="none"><g fill="#ffffff" stroke="#ffffff" stroke-width="38" stroke-linejoin="round" stroke-linecap="round"><path d="M256 136 L344 194 L256 252 L168 194 Z"/><path d="M160 304 L212 304 L256 362 L300 304 L352 304 L352 354 Q352 394 256 394 Q160 394 160 354 Z"/></g></svg></i>
+        <div class="mb-txt"><b>雅思备考站</b><span>机考备考系统</span></div>
+      </div>
       <!-- 10/13 她拍板：主流程改「邮箱 + 验证码」——原「手机号/用户名 + 密码」的 ACCT_RE
            只校验格式不校验真实，123456 都能注册，一个真人可无限换号薅邀请会员。
            邮箱验证码把注册成本抬到「一个真实邮箱」，挡住批量薅羊毛。
@@ -182,9 +141,10 @@ input::placeholder{color:var(--n-500)}
         <input id="emPass" type="password" placeholder="至少 6 位" autocomplete="current-password" />
         <button class="btn" id="goEmail" type="button">登 录</button>
         <p class="note" id="noteEmail"></p>
-        <div class="links" style="margin-top:10px"><span class="dim">没有账号？</span><a id="toRegister">去注册</a></div>
-        <div class="links" style="margin-top:8px"><a id="forgotPass">忘记密码？</a></div>
-        <p class="note" id="noteForgot" style="font-size:12.5px;margin-top:6px;color:#71767e"></p>
+        <div class="links" style="margin-top:10px"><a id="forgotPass">忘记密码？</a></div>
+        <!-- 10/15 方案：登录态与注册态之间用顶部细线 + 弱链接分隔（不再与主按钮同重）-->
+        <div class="switch"><span class="dim">没有账号？</span><a id="toRegister">去注册</a></div>
+        <p class="reassure">不登录也能离线使用，数据只存本机</p>
 
         <!-- 验证码弹层（注册时用：给邮箱发 6 位数字） -->
         <div id="emCodeModal" class="em-modal" hidden>
@@ -216,8 +176,6 @@ input::placeholder{color:var(--n-500)}
           </div>
         </div>
 
-        <!-- 找回密码弹层（10/15 保留：邮箱账号可自助重置） -->
-        <div id="emCodeModal" class="em-modal" hidden>
         <p class="note" id="noteForgot" style="font-size:12.5px;margin-top:6px;color:#71767e"></p>
 
         <!-- 找回密码弹层（10/13 补齐：邮箱账号可自助重置，不用再找站长手工重开） -->
@@ -264,7 +222,7 @@ input::placeholder{color:var(--n-500)}
         <input id="rInvite" placeholder="朋友分享给你的邀请码" autocomplete="off" style="text-transform:uppercase" />
         <button class="btn" id="goRegister" type="button">注册并进入</button>
         <p class="note" id="noteRegister"></p>
-        <div class="links"><a id="backLogin1">返回登录</a></div>
+        <div class="switch"><span class="dim">已有账号？</span><a id="backLogin1">返回登录</a></div>
       </div>
     </div>
   </div>
