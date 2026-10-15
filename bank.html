@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="UTF-8" />
@@ -231,9 +231,11 @@
 .ex-opt:has(input:checked) b{color:var(--primary-900)}
 .ex-radio-box .ex-opt::before{content:"";flex:none;width:14px;height:14px;border:1.5px solid #8f959e;border-radius:50%;background:#fff}
 .ex-radio-box .ex-opt:has(input:checked)::before{border-color:var(--primary);background:radial-gradient(circle,var(--primary) 0 4px,transparent 4.5px)}
-.ex-cbox .ex-opt::before{content:"";flex:none;width:14px;height:14px;border:1.5px solid #8f959e;border-radius:3px;background:#fff}
-.ex-cbox .ex-opt:has(input:checked)::before{border-color:var(--primary);background:var(--primary)}
-.ex-cbox .ex-opt:has(input:checked)::after{content:"\2713";position:absolute;left:15px;top:50%;margin-top:-9px;color:#fff;font-size:12px;font-weight:800}
+/* 10/15 她：「多选题就是跟选择题一样的 UI，只不过限制只能选多选的个数而已」
+   → 视觉与单选 .ex-radio-box 完全一致（圆环）；多选语义由 JS 控制
+     （选满 need 个后其余 .ex-opt.dis 变灰禁用，见 syncCboxDis），不靠 checkbox 外形区分。 */
+.ex-cbox .ex-opt::before{content:"";flex:none;width:14px;height:14px;border:1.5px solid #8f959e;border-radius:50%;background:#fff}
+.ex-cbox .ex-opt:has(input:checked)::before{border-color:var(--primary);background:radial-gradient(circle,var(--primary) 0 4px,#fff 4.5px)}
 .ex-opt.dis{opacity:.35;pointer-events:none}
 .ex-opt b{margin-right:2px}
 .ex-opt span{display:flex;align-items:baseline}
