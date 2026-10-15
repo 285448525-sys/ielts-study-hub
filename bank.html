@@ -936,6 +936,53 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
     .ex-audio{flex-wrap:wrap;gap:8px}
     .ex-audio .ea-time{min-width:auto}
   }
+
+  /* ===== 10/15 写作模考：底栏 Task 1/2 切换器 + 写作壳配色三档 =====
+     注意作用域：bank 页的写作机考壳是 #examPractice（不是阅读的 #examRoot），
+     且本页 .ex-pg 是阅读底栏（浅色 .ex-bar）在用的类 → 切换器样式必须限定 .exam-bar 内，否则会污染阅读底栏。 */
+  .exam-bar .ex-nav.wrt-nav{display:flex;align-items:center;gap:8px;min-width:0}
+  .exam-bar .ex-pgs{display:flex;align-items:center;gap:6px}
+  .exam-bar .ex-pg{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 12px;
+    border:1px solid rgba(255,255,255,.32);border-radius:7px;background:transparent;color:rgba(255,255,255,.86);
+    font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;
+    transition:background .15s,color .15s,border-color .15s}
+  .exam-bar .ex-pg:hover:not([disabled]):not(.on){background:rgba(255,255,255,.14);color:#fff}
+  .exam-bar .ex-pg.on{background:#fff;border-color:#fff;color:#26343C}
+  .exam-bar .ex-pg[disabled]{opacity:.42;cursor:default}
+  .exam-bar .ex-pgbtn{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;
+    border:1px solid rgba(255,255,255,.28);background:transparent;color:#fff;font-size:14px;line-height:1;cursor:pointer}
+  .exam-bar .ex-pgbtn:hover:not([disabled]){background:rgba(255,255,255,.14)}
+  .exam-bar .ex-pgbtn[disabled]{opacity:.35;cursor:default}
+  .exam-bar .ex-pginfo{font-size:12px;color:rgba(255,255,255,.6);margin-left:2px}
+  @media(max-width:860px){.exam-bar .ex-pginfo{display:none}.exam-bar .ex-pg{padding:0 9px;font-size:12px}}
+
+  /* 写作壳配色（Option → Colour）：与写作页同口径，作用域 #examPractice */
+  #examPractice.ct-dark,#examPractice.ct-dark .exam-split,#examPractice.ct-dark .exam-a{background:#1b1b1b}
+  #examPractice.ct-dark .exam-head{background:#111;border-bottom-color:#3a3f45}
+  #examPractice.ct-dark .exam-part,#examPractice.ct-dark .exam-instr,#examPractice.ct-dark .exam-q-lead,
+  #examPractice.ct-dark .exam-q-body,#examPractice.ct-dark .exam-q-body .ei-en,#examPractice.ct-dark .exam-q-body .ei-zh,
+  #examPractice.ct-dark .exam-q-note,#examPractice.ct-dark .exam-group-title{color:#e8eaed}
+  #examPractice.ct-dark .exam-textarea{background:#141414;color:#e8eaed;border-color:#3a3f45}
+  #examPractice.ct-dark .exam-wc{color:#9aa0a6}
+  #examPractice.ct-dark .ex-option{background:#1b1b1b}
+  #examPractice.ct-dark .ex-option *{color:#e8eaed}
+  #examPractice.ct-dark .ex-oplist,#examPractice.ct-dark .ex-opsub{border-color:#3a3f45}
+  #examPractice.ct-dark .ex-oprow{background:#1b1b1b;border-bottom-color:#3a3f45}
+  #examPractice.ct-dark .ex-oprow:hover{background:#242628}
+  #examPractice.ct-dark .ex-opback button{background:#1b1b1b;border-color:#4a4f55;color:#e8eaed}
+  #examPractice.ct-yellow,#examPractice.ct-yellow .exam-split,#examPractice.ct-yellow .exam-a{background:#1b1b1b}
+  #examPractice.ct-yellow .exam-head{background:#111;border-bottom-color:#4a4526}
+  #examPractice.ct-yellow .exam-part,#examPractice.ct-yellow .exam-instr,#examPractice.ct-yellow .exam-q-lead,
+  #examPractice.ct-yellow .exam-q-body,#examPractice.ct-yellow .exam-q-body .ei-en,#examPractice.ct-yellow .exam-q-body .ei-zh,
+  #examPractice.ct-yellow .exam-q-note,#examPractice.ct-yellow .exam-group-title{color:#f0e3a8}
+  #examPractice.ct-yellow .exam-textarea{background:#141414;color:#f0e3a8;border-color:#4a4526}
+  #examPractice.ct-yellow .exam-wc{color:#c9b978}
+  #examPractice.ct-yellow .ex-option{background:#1b1b1b}
+  #examPractice.ct-yellow .ex-option *{color:#f0e3a8}
+  #examPractice.ct-yellow .ex-oplist,#examPractice.ct-yellow .ex-opsub{border-color:#4a4526}
+  #examPractice.ct-yellow .ex-oprow{background:#1b1b1b;border-bottom-color:#4a4526}
+  #examPractice.ct-yellow .ex-oprow:hover{background:#252317}
+  #examPractice.ct-yellow .ex-opback button{background:#1b1b1b;border-color:#6a6132;color:#f0e3a8}
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -1067,7 +1114,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/data.js?v=20261011e"></script>
 <script defer src="js/common.js?v=20261013ac"></script>
 <script defer src="js/writing_prompts.js?v=20260903ab"></script>
-<script defer src="js/writing.js?v=20261011g"></script>
+<script defer src="js/writing.js?v=20261011h"></script>
 <script defer src="js/bank.js?v=20261012p"></script>
 </body>
 </html>

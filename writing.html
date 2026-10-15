@@ -43,7 +43,7 @@
   <script defer src="js/common.js?v=20261013ac"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
   <script defer src="js/writing_prompts.js?v=20260903ab"></script>
-  <script defer src="js/writing.js?v=20261011g"></script>
+  <script defer src="js/writing.js?v=20261011h"></script>
   <script defer src="js/wrongbook.js?v=20260903ab"></script>
 <style>
 
@@ -397,6 +397,70 @@
   .exam-tu-sub{margin:0 0 18px;font-size:13.5px;line-height:1.7;color:var(--muted)}
   .exam-tu-actions{display:flex;gap:10px;justify-content:center}
   .exam-textarea:read-only{background:var(--danger-soft);border-color:var(--danger)}
+
+  /* ===== 10/15 写作模考：底栏 Task 1/2 切换器 + Option 面板（☰）+ 配色三档 =====
+     形态对标阅读/听力的做题壳（她 10/15 上午两条要求：作文模考要能两篇切来切去写 + 写作框架也要有 Option）。 */
+  /* 底栏切换器：底栏是深色（#3D4A54）→ 胶囊走白色描边，当前篇白底高亮 */
+  .ex-nav.wrt-nav{display:flex;align-items:center;gap:8px;min-width:0}
+  .ex-pgs{display:flex;align-items:center;gap:6px}
+  .ex-pg{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 12px;border:1px solid rgba(255,255,255,.32);
+    border-radius:7px;background:transparent;color:rgba(255,255,255,.86);font:inherit;font-size:13px;font-weight:600;
+    cursor:pointer;white-space:nowrap;transition:background .15s,color .15s,border-color .15s}
+  .ex-pg:hover:not([disabled]):not(.on){background:rgba(255,255,255,.14);color:#fff}
+  .ex-pg.on{background:#fff;border-color:#fff;color:#26343C}
+  .ex-pg[disabled]{opacity:.42;cursor:default}
+  .ex-pgbtn{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;
+    border:1px solid rgba(255,255,255,.28);background:transparent;color:#fff;font-size:14px;line-height:1;cursor:pointer}
+  .ex-pgbtn:hover:not([disabled]){background:rgba(255,255,255,.14)}
+  .ex-pgbtn[disabled]{opacity:.35;cursor:default}
+  .ex-pginfo{font-size:12px;color:rgba(255,255,255,.6);margin-left:2px}
+  @media(max-width:860px){.ex-pginfo{display:none}.ex-pg{padding:0 9px;font-size:12px}.ex-pgbtn{width:24px;height:24px}}
+
+  /* Option 面板（☰）：铺满考试壳的覆盖层，形态与阅读/听力一致（写作无 Audio 项） */
+  .ex-menubtn{font-size:16px}
+  #examPanel{position:relative}
+  #examPractice .ex-option{position:absolute;inset:0;background:rgba(255,255,255,.99);z-index:95;display:none;overflow:auto}
+  #examPractice .ex-option.on{display:block}
+  #examPractice .ex-option .ex-opx{position:absolute;top:18px;right:22px;border:none;background:#f1f3f5;color:#333;width:38px;height:38px;border-radius:50%;font-size:17px;cursor:pointer}
+  #examPractice .ex-option h3{text-align:center;font-size:20px;font-weight:600;margin:34px 0 22px;color:#111}
+  #examPractice .ex-oplist,#examPractice .ex-opsub{max-width:560px;margin:0 auto;border:1px solid #e3e5e8}
+  #examPractice .ex-opsub{display:none}
+  #examPractice .ex-oprow{display:flex;align-items:center;gap:14px;padding:15px 22px;border-bottom:1px solid #e3e5e8;font-size:16px;cursor:pointer;background:#fff;color:#111}
+  #examPractice .ex-oprow:last-child{border-bottom:none}
+  #examPractice .ex-oprow:hover{background:#f7f8fa}
+  #examPractice .ex-opsub .ex-oprow{justify-content:center}
+  #examPractice .ex-oprow input{position:absolute;opacity:0;pointer-events:none}
+  #examPractice .ex-oprow:has(input:checked){background:var(--primary-50);font-weight:700}
+  #examPractice .ex-opback{max-width:560px;margin:14px auto 0;text-align:center}
+  #examPractice .ex-opback button{border:1px solid #c6ccd4;background:#fff;border-radius:7px;padding:7px 18px;font:inherit;font-size:13.5px;cursor:pointer}
+
+  /* 配色三档（Option → Colour）：白底 / 黑底白字 / 黄底黑字；作用范围 = 考试壳 */
+  #examPractice.ct-dark,#examPractice.ct-dark .exam-split,#examPractice.ct-dark .exam-a{background:#1b1b1b}
+  #examPractice.ct-dark .exam-head{background:#111;border-bottom-color:#3a3f45}
+  #examPractice.ct-dark .exam-part,#examPractice.ct-dark .exam-instr,#examPractice.ct-dark .exam-q-lead,
+  #examPractice.ct-dark .exam-q-body,#examPractice.ct-dark .exam-q-body .ei-en,#examPractice.ct-dark .exam-q-body .ei-zh,
+  #examPractice.ct-dark .exam-q-note,#examPractice.ct-dark .exam-group-title{color:#e8eaed}
+  #examPractice.ct-dark .exam-textarea{background:#141414;color:#e8eaed;border-color:#3a3f45}
+  #examPractice.ct-dark .exam-wc{color:#9aa0a6}
+  #examPractice.ct-dark .ex-option{background:#1b1b1b}
+  #examPractice.ct-dark .ex-option *{color:#e8eaed}
+  #examPractice.ct-dark .ex-oplist,#examPractice.ct-dark .ex-opsub{border-color:#3a3f45}
+  #examPractice.ct-dark .ex-oprow{background:#1b1b1b;border-bottom-color:#3a3f45}
+  #examPractice.ct-dark .ex-oprow:hover{background:#242628}
+  #examPractice.ct-dark .ex-opback button{background:#1b1b1b;border-color:#4a4f55;color:#e8eaed}
+  #examPractice.ct-yellow,#examPractice.ct-yellow .exam-split,#examPractice.ct-yellow .exam-a{background:#1b1b1b}
+  #examPractice.ct-yellow .exam-head{background:#111;border-bottom-color:#4a4526}
+  #examPractice.ct-yellow .exam-part,#examPractice.ct-yellow .exam-instr,#examPractice.ct-yellow .exam-q-lead,
+  #examPractice.ct-yellow .exam-q-body,#examPractice.ct-yellow .exam-q-body .ei-en,#examPractice.ct-yellow .exam-q-body .ei-zh,
+  #examPractice.ct-yellow .exam-q-note,#examPractice.ct-yellow .exam-group-title{color:#f0e3a8}
+  #examPractice.ct-yellow .exam-textarea{background:#141414;color:#f0e3a8;border-color:#4a4526}
+  #examPractice.ct-yellow .exam-wc{color:#c9b978}
+  #examPractice.ct-yellow .ex-option{background:#1b1b1b}
+  #examPractice.ct-yellow .ex-option *{color:#f0e3a8}
+  #examPractice.ct-yellow .ex-oplist,#examPractice.ct-yellow .ex-opsub{border-color:#4a4526}
+  #examPractice.ct-yellow .ex-oprow{background:#1b1b1b;border-bottom-color:#4a4526}
+  #examPractice.ct-yellow .ex-oprow:hover{background:#252317}
+  #examPractice.ct-yellow .ex-opback button{background:#1b1b1b;border-color:#6a6132;color:#f0e3a8}
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}

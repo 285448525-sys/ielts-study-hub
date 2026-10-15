@@ -1941,7 +1941,45 @@ function summarizeExamTitle(kind, it){
    与阅读/听力的「完整模考」同构：入口卡 → 随机组卷 → 全屏机考 → 交卷。
    差异点：两篇连考 —— Task 1 写完 (Finish section) 自动切 Task 2，共用 60 分钟总倒计时。
    ⚠️ 复用 openExam 的既有渲染（题面/作答/字号/评分），只在它外面加一层「连考编排」。 */
-const WRT_FULL = { active: false, items: null, idx: 0, deadline: 0 };
+const WRT_FULL = { active: false, items: null, idx: 0, deadline: 0, drafts: {} };   /* 10/15 drafts[0/1] = Task1/Task2 草稿 */
+
+/* 10/15 Task 1/2 切换器（底栏，与阅读的篇切换器同款）。
+   她：「作文模考是可以两个作文切来切去写的」——之前只能单向，且草稿丢失。 */
+/* 10/15 元素级绑定（document 委托在 bank.html 软导航/eval 环境实测不触发 —— 点击后
+   WRT_FULL.idx 不变、Part 不变。改直接绑按钮，100% 可达。）*/
+function wrtBindSwitch(){
+  document.querySelectorAll('[data-wrt-switch]').forEach(function(btn){
+    if(btn.__wrtBound) return; btn.__wrtBound = true;
+    btn.addEventListener('click', function(ev){
+      ev.stopPropagation();
+      var to = parseInt(btn.getAttribute('data-wrt-switch'), 10);
+      if(to === WRT_FULL.idx) return;
+      wrtSaveDraft();
+      WRT_FULL.idx = to;
+      openFullTask();
+    });
+  });
+}
+
+function wrtSwitchHtml(){
+  if(!(WRT_FULL.active)) return "";
+  var cur = WRT_FULL.idx;
+  /* 10/15 修：必须把 #examStepBadge / #examStepLabel 一起输出。
+     原写法只输出切换器 → innerHTML 覆盖掉这两个节点 → 下次 openExam 里
+     $('#examStepLabel').textContent 直接 TypeError（无守卫）→ 切篇整个中断。
+     现在把 Part 标注放回切换器左侧，节点恒在，openExam 的赋值照旧生效。 */
+  return '<span class="exam-step" id="examStepBadge">' + (cur + 1) + '</span>'
+    + '<span class="exam-step-label" id="examStepLabel">Part ' + (cur + 1) + '</span>'
+    + '<div class="ex-nav wrt-nav">'
+    + '<button class="ex-pgbtn" type="button" data-wrt-switch="0"' + (cur === 0 ? ' disabled' : '') + '>&#8249;</button>'
+    + '<div class="ex-pgs">'
+    +   '<button class="ex-pg' + (cur === 0 ? ' on' : '') + '" type="button" data-wrt-switch="0">Task 1</button>'
+    +   '<button class="ex-pg' + (cur === 1 ? ' on' : '') + '" type="button" data-wrt-switch="1">Task 2</button>'
+    + '</div>'
+    + '<button class="ex-pgbtn" type="button" data-wrt-switch="1"' + (cur === 1 ? ' disabled' : '') + '>&#8250;</button>'
+    + '<span class="ex-pginfo">Task ' + (cur + 1) + ' / 2</span>'
+    + '</div>';
+}
 
 function renderWritingFullEntry(){
   const box = $('#writingFullEntry');
@@ -1978,6 +2016,43 @@ function startWritingFull(){
 }
 
 /* 打开当前这一篇（Task 1 → Task 2 顺序） */
+/* 10/15 双草稿：切走前存、切回后还原。
+   之前 applyAnswer/renderExam 会把 textarea 清掉，切回来 Task1 就白了。 */
+function wrtSaveDraft(){
+  var ta = document.querySelector('#examPractice textarea');
+  if(ta && WRT_FULL.active) WRT_FULL.drafts[WRT_FULL.idx] = ta.value;
+}
+function wrtRestoreDraft(){
+  var ta = document.querySelector('#examPractice textarea');
+  if(ta){
+    var v = WRT_FULL.drafts[WRT_FULL.idx];
+    ta.value = (typeof v === 'string') ? v : '';
+    ta.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+}
+
+/* 10/15 写作模考配色 + 字号（Option 面板 → Colour / Size）
+   字号复用 10/8 既有的 EXAM_FONT_KEY（examFontApply 三档 Regular20/Large23/XL27），不另起一套；
+   配色是本页新增（阅读/听力的三主题在 bank.html，写作页此前没有）。都走本机记忆，不进 DATA。 */
+const WRT_THEME_KEY = 'ielts_wt_theme_v1';
+function wrtThemeLevel(){ try{ const v = localStorage.getItem(WRT_THEME_KEY); return (v === 'dark' || v === 'yellow') ? v : 'light'; }catch(e){ return 'light'; } }
+function wrtThemeApply(){
+  const pr = document.getElementById('examPractice'); if(!pr) return;
+  pr.classList.remove('ct-dark','ct-yellow');
+  const lv = wrtThemeLevel();
+  if(lv === 'dark') pr.classList.add('ct-dark');
+  if(lv === 'yellow') pr.classList.add('ct-yellow');
+}
+function wrtThemeSet(v){ try{ localStorage.setItem(WRT_THEME_KEY, v); }catch(e){} wrtThemeApply(); }
+function wrtSizeSet(v){ try{ localStorage.setItem(EXAM_FONT_KEY, String(v === 'large' ? 1 : v === 'xl' ? 2 : 0)); }catch(e){} examFontApply(); }
+/* 打开面板时把当前档位勾上（否则永远显示默认值） */
+function wrtOptionSync(){
+  const t = wrtThemeLevel(), f = examFontLevel();
+  const ct = document.querySelector('#exOptionPanel input[name="exCt"][value="' + t + '"]'); if(ct) ct.checked = true;
+  const sz = f === 1 ? 'large' : f === 2 ? 'xl' : 'regular';
+  const ts = document.querySelector('#exOptionPanel input[name="exTs"][value="' + sz + '"]'); if(ts) ts.checked = true;
+}
+
 function openFullTask(){
   const it = WRT_FULL.idx === 0 ? WRT_FULL.items.small : WRT_FULL.items.big;
   const kind = WRT_FULL.idx === 0 ? 'small' : 'big';
@@ -1989,11 +2064,19 @@ function openFullTask(){
   const pl = $('#examPartLabel'); if(pl) pl.textContent = 'Part ' + (WRT_FULL.idx + 1);
   const sb = $('#examStepBadge'); if(sb) sb.textContent = String(WRT_FULL.idx + 1);
   const sl = $('#examStepLabel'); if(sl) sl.textContent = 'Part ' + (WRT_FULL.idx + 1);
-  const fin = $('#examFinish'); if(fin) fin.textContent = WRT_FULL.idx === 0 ? 'Finish section → Task 2' : 'Finish section';
+    const fin = $('#examFinish'); if(fin) fin.textContent = WRT_FULL.idx === 0 ? 'Finish section → Task 2' : 'Finish section';
+  wrtRestoreDraft();
+  const bar = document.querySelector('.exam-bar-left'); if(bar) bar.innerHTML = wrtSwitchHtml();
+  wrtBindSwitch();   /* 10/15 元素级绑定（document 委托在软导航下不触发） */
+  /* 10/15 补 Option 面板入口（写作页原本没有 ☰）*/
+  if(!document.getElementById('exOptionPanel')) wrtInjectOption();
+  /* 10/15 每次切篇都把配色/字号重新应用到当前壳（否则换篇后丢档位） */
+  wrtThemeApply(); examFontApply(); wrtOptionSync();
 }
 
 /* Task 1 交卷 → 直接切 Task 2（不退出全屏）；Task 2 交卷 → 走原有评分流程 */
 function writingFullAdvance(){
+  wrtSaveDraft();
   if(!WRT_FULL.active) return false;
   if(WRT_FULL.idx === 0){
     WRT_FULL.idx = 1;
@@ -2201,9 +2284,10 @@ function openExam(item, kind){
   const isBig = kind === 'big';
   const partNo = isBig ? 2 : 1;
   const typeLabel = isBig ? '大作文 Task 2' : '小作文 Task 1';
-  $('#examPartLabel').textContent = 'Part ' + partNo;
-  $('#examStepBadge').textContent = String(partNo);
-  $('#examStepLabel').textContent = 'Part ' + partNo;
+  /* 10/15 加空守卫：这三个节点在组卷模考里由切换器一并输出，任何一处缺失都不该让整段中断 */
+  const pl = $('#examPartLabel'); if(pl) pl.textContent = 'Part ' + partNo;
+  const sb = $('#examStepBadge'); if(sb) sb.textContent = String(partNo);
+  const sl = $('#examStepLabel'); if(sl) sl.textContent = 'Part ' + partNo;
   $('#examInstr').textContent = isBig
     ? 'You should spend about 40 minutes on this task. Write at least 250 words.'
     : 'You should spend about 20 minutes on this task. Write at least 150 words.';
@@ -2599,4 +2683,95 @@ function bindExam(){
   if(sb) sb.addEventListener('click', examStopAndScore);
 
 }
+
+/* ===== 10/15 写作模考补 Option 面板（☰ → Colour / Size）=====
+   她：「那个框架不是有一个 option 吗你也没弄啊」—— 阅读/听力顶栏有 ☰（Colour/Size/Audio），
+   写作原本没有。这里补同款（写作无音频，只有 Colour + Size 两项）。
+   样式复用 bank.html 的 .ex-option/.ex-oprow（bank 页内写作 pane 用的就是 bank.html 的 CSS）。 */
+function wrtInjectOption(){
+  if(document.getElementById('exOptionPanel')) return;
+  var panel = document.createElement('div');
+  panel.className = 'ex-option';
+  panel.id = 'exOptionPanel';
+  panel.innerHTML =
+      '<button type="button" class="ex-opx" data-opclose>\u2715</button>'
+    + '<h3>Option</h3>'
+    + '<div class="ex-oplist" id="exOptMain">'
+    +   '<div class="ex-oprow" data-sub="colour">Colour<span class="ar">\u203A</span></div>'
+    +   '<div class="ex-oprow" data-sub="size">Size<span class="ar">\u203A</span></div>'
+    + '</div>'
+    + '<div class="ex-opsub" id="exOptColour">'
+    +   '<label class="ex-oprow" data-theme=""><input type="radio" name="exCt" value="light" checked> Black on white</label>'
+    +   '<label class="ex-oprow" data-theme="dark"><input type="radio" name="exCt" value="dark"> White on black</label>'
+    +   '<label class="ex-oprow" data-theme="yellow"><input type="radio" name="exCt" value="yellow"> Yellow on black</label>'
+    + '</div>'
+    + '<div class="ex-opsub" id="exOptSize">'
+    +   '<label class="ex-oprow" data-fs=""><input type="radio" name="exTs" value="regular" checked> Regular</label>'
+    +   '<label class="ex-oprow" data-fs="large"><input type="radio" name="exTs" value="large"> Large</label>'
+    +   '<label class="ex-oprow" data-fs="xl"><input type="radio" name="exTs" value="xl"> Extra large</label>'
+    + '</div>'
+    + '<div class="ex-opback"><button type="button" data-opback>\u2039 Back</button></div>';
+  var root = document.getElementById('examPanel') || document.getElementById('examPractice') || document.body;
+  root.appendChild(panel);
+  /* 顶栏加 ☰ 按钮（写作顶栏左边原本是空的） */
+  var head = document.querySelector('.exam-head-left');
+  if(head && !head.querySelector('.ex-menubtn')){
+    head.removeAttribute('aria-hidden');   /* 10/15 原本 aria-hidden=true，里面放按钮会让它对读屏不可见 */
+    var btn = document.createElement('button');
+    btn.className = 'ex-ico ex-menubtn';
+    btn.type = 'button';
+    btn.title = 'Option';
+    btn.setAttribute('aria-label', 'Option');
+    btn.innerHTML = '\u2630';
+    head.appendChild(btn);
+  }
+  /* 10/15 改元素级绑定（panel 级委托在软导航/eval 环境实测不生效，已删）*/
+  wrtBindOption();
+}
+
+/* 10/15 Option 面板元素级绑定 */
+function wrtBindOption(){
+  var panel = document.getElementById('exOptionPanel');
+  if(!panel || panel.__bound) return;
+  panel.__bound = true;
+  panel.querySelectorAll('.ex-oprow[data-sub]').forEach(function(row){
+    row.addEventListener('click', function(ev){
+      ev.stopPropagation();
+      var key = row.getAttribute('data-sub');
+      var main = document.getElementById('exOptMain');
+      if(main) main.style.display = 'none';
+      panel.querySelectorAll('.ex-opsub').forEach(function(x){
+        x.style.display = (x.id === 'exOpt' + key.charAt(0).toUpperCase() + key.slice(1)) ? 'block' : 'none';
+      });
+      var back = panel.querySelector('[data-opback]'); if(back) back.style.display = '';
+    });
+  });
+  panel.querySelectorAll('[data-opback]').forEach(function(b){
+    b.addEventListener('click', function(ev){
+      ev.stopPropagation();
+      var m = document.getElementById('exOptMain'); if(m) m.style.display = '';
+      panel.querySelectorAll('.ex-opsub').forEach(function(x){ x.style.display = 'none'; });
+      b.style.display = 'none';
+    });
+  });
+  var oc = panel.querySelector('[data-opclose]');
+  if(oc) oc.addEventListener('click', function(ev){ ev.stopPropagation(); panel.classList.remove('on'); });
+  /* 10/15 ☰ 在顶栏里、不在面板内 —— 原写法在 panel 内部查恒 null（☰ 永远打不开面板），改成去顶栏找 */
+  var mb = document.querySelector('#examPractice .exam-head-left .ex-menubtn') || document.querySelector('.exam-head-left .ex-menubtn');
+  if(mb && !mb.__wrtBound){
+    mb.__wrtBound = true;
+    mb.addEventListener('click', function(ev){
+      ev.stopPropagation();
+      panel.classList.toggle('on');
+      if(panel.classList.contains('on')) wrtOptionSync();
+    });
+  }
+  panel.querySelectorAll('input[name="exCt"]').forEach(function(r){
+    r.addEventListener('change', function(){ if(r.checked) wrtThemeSet(r.value); });
+  });
+  panel.querySelectorAll('input[name="exTs"]').forEach(function(r){
+    r.addEventListener('change', function(){ if(r.checked) wrtSizeSet(r.value); });
+  });
+}
+
 
