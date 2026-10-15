@@ -477,6 +477,8 @@
       h += '<div class="ex-pool" data-g="' + gid + '">'
         + (isHead ? '<div class="ex-pool-t">List of Headings</div>' : '')
         + '<div class="ex-pool-c">' + opts.map(chipHtml).join('') + '</div></div>';
+      /* 10/15 回滚：她明确「heading 题就是要拖放的，你不要改错了」——
+         我一度把 isHead 改成表格行，改错了，恢复原拖放槽形态（她 10/12 亲自拍板）。 */
       qs.forEach(function(q){
         var n = numOf(q.qNumber);
         h += '<div class="ex-q"><span class="ex-qn" data-qn="' + esc(n) + '">' + esc(n) + '</span>'
@@ -484,14 +486,17 @@
           + '<div class="ex-drop" data-q="' + esc(n) + '" data-g="' + gid + '"></div></div>';
       });
     } else if(g.type === 'map' && channel === 'reading'){
-      /* 段落信息匹配（她 10/12 22:16 截图反馈改版）：真机考形态 = 文章每段上方虚线槽 +
-         题号气泡拖入/点选放入。答案口径不变：EX.user[题号] = 段落字母 → 判分/落库/草稿全复用。
-         听力 map = 地图标注题（g.imageUrl 配图 + 字母胶囊），走下面原分支不动。 */
-      /* 10/14 她拍板改版：拖放槽 → **表格行**（题号 | 题干 | 右侧字母框），与真实机考一致。
-         答案口径完全不变：EX.user[题号] = 段落字母 → 判分/落库/草稿全复用。
-         字母框是 <select>（点开选 A–G），比拖放更快、手机上也能用。 */
+      /* 🔴🔴 10/15 她纠正：「段落匹配题和 heading 题是两种题型，不能混为一谈」（我一度混过，改错了又回滚）。
+         这两种在题库里分别是：
+         · 本分支 = type "map" 的**段落匹配**（Matching Information：哪一段包含以下信息）
+           —— 题干是「a contrast between...」这类信息描述，**无选项**，答案是**文章段落字母 A–I**
+           —— 她 10/14 拍板：**字母框**（表格行：题号 | 题干 | 右侧字母下拉）
+         · 上面 matching 分支里的 isHead（List of Headings）= **Heading 题**
+           —— 题干是「Paragraph A」，选项是**罗马数字 i–x**
+           —— 她 10/12 拍板、10/15 再次强调：**必须拖放**，不许改成字母框
+         答案口径：EX.user[题号] = 段落字母 → 判分/落库/草稿全复用，与形态无关。 */
       var gid = 'loh' + idx;
-      var letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').slice(0, 8);   /* 段落字母上限 8（阅读文章最多 8 段） */
+      var letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').slice(0, 9);   /* 段落字母上限 9（长文最多 9 段） */
       qs.forEach(function(q){
         var n = numOf(q.qNumber);
         var opts = letters.map(function(ch){ return '<option value="' + ch + '">' + ch + '</option>'; }).join('');
