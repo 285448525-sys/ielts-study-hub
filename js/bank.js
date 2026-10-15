@@ -665,9 +665,11 @@ function barHtml(){
     var showPause = !!(EX && !EX.submitted && EX.listenMode !== 'exam' && !(EX.full && EX.channel === 'listening'));
     return '<div class="ex-bar">'
       +    '<div class="ex-nav" id="exNav">'
-      +      '<button type="button" class="ex-pg" id="exPgPrev" data-pgprev></button>'
+      /* 10/15 Part 并排切换器（她：「整卷考试的各个 Part 是可以这样切换的」，
+         对标爱听写/IDP 真机考的 Question Navigator）——full 模式才有，单篇不渲染。
+         内容由 paintPgSwitch() 填：Part 1 7/13 | Part 2 0/13 | Part 3 0/14 全部并排可见。 */
+      +      '<div class="ex-parts" id="exParts"></div>'
       +      '<div class="ex-nums" id="exNums"></div>'
-      +      '<button type="button" class="ex-pg" id="exPgNext" data-pgnext></button>'
       +    '</div>'
       +    '<div class="ex-actions">'
       +      (showPause ? '<button type="button" class="btn-ghost ex-pause" id="exPauseBtn">Pause</button>' : '')
@@ -1657,38 +1659,37 @@ function barHtml(){
   /* A4. 篇切换器（full 模式）：左「‹ 当前篇 · 已答/总数」右「下一篇 · 0/总数 ›」，到头 disabled。
      听力文案 = Part N；阅读 = Passage N；写作 = Task N（无篇概念时不渲染，由 channel 分支处理）。 */
   function paintPgSwitch(){
-    var prev = document.getElementById('exPgPrev'), next = document.getElementById('exPgNext');
+    /* 10/15 她拍板：Part 并排切换器（对标爱听写/IDP 真机考 Question Navigator）。
+       原「‹ Passage 1 · 0/13 ›」左右箭头一次只能看相邻两篇 →
+       改成 Part 1 | Part 2 | Part 3(4) 全部并排，每个带 已答/总数，当前篇白底高亮。
+       单篇练习（非 full）不渲染，只留题号行。 */
+    var parts = document.getElementById('exParts');
     var nav = document.getElementById('exNav');
-    if(!prev || !next) return;
-    if(!EX || !EX.full){ nav.classList.add('ex-nav--plain'); prev.style.display = 'none'; next.style.display = 'none'; return; }
+    if(!parts) return;
+    if(!EX || !EX.full){ if(parts) parts.innerHTML = ''; if(nav) nav.classList.add('ex-nav--plain'); return; }
     nav.classList.remove('ex-nav--plain');
-    prev.style.display = ''; next.style.display = '';
     var isL = EX.channel === 'listening', isW = EX.channel === 'writing';
-    var lbl = isL ? 'Part' : (isW ? 'Task' : 'Passage');
+    var lbl = isL ? 'Part' : (isW ? 'Task' : 'Part');
     var n = isL ? 4 : (isW ? 2 : 3);
     var user = collect();
-    function pgLabel(pi){
-      var list = isW ? null : qsOfPassage(pi);
-      var tot = isW ? 0 : list.length, done = 0;
-      if(list) list.forEach(function(e){ if(user[e.g] != null && String(user[e.g]).length) done++; });
-      if(isW){
-        /* 写作：Task N · N words（字数实时读写作输入，initWriteExam 里挂 input 监听刷新） */
-        var wc = 0;
-        try{
-          var ta = document.querySelector(isL ? '#examRoot textarea' : '#examRoot .ex-essay, #examRoot textarea');
-          if(ta) wc = String(ta.value || '').trim().split(/\s+/).filter(Boolean).length;
-        }catch(e){}
-        return lbl + ' ' + pi + ' \u00b7 ' + wc + ' words';
+    /* 手机缩写：P1/P2…（省宽度，390px 放 4 个 + Finish/Exit） */
+    var narrow = window.matchMedia && window.matchMedia('(max-width:860px)').matches;
+    var h = '';
+    for(var pi = 1; pi <= n; pi++){
+      var tot = 0, done = 0;
+      if(!isW){
+        var list = qsOfPassage(pi) || [];
+        tot = list.length;
+        list.forEach(function(e){ if(user[e.g] != null && String(user[e.g]).length) done++; });
       }
-      return lbl + ' ' + pi + ' \u00b7 ' + done + '/' + tot;
+      var on = (pi === EX.curP);
+      var txt = narrow ? ('P' + pi) : (lbl + ' ' + pi);
+      var prog = isW ? '' : ('<span class="ex-pt-n">' + done + '/' + tot + '</span>');
+      h += '<button type="button" class="ex-pt' + (on ? ' on' : '') + '" data-pg="' + pi + '"'
+        + (on ? ' aria-current="true"' : '') + '>'
+        + '<span class="ex-pt-t">' + txt + '</span>' + prog + '</button>';
     }
-    prev.innerHTML = '<span class="ex-pgar">&#8249;</span> ' + pgLabel(EX.curP);
-    var hasNext = EX.curP < n;
-    next.innerHTML = hasNext ? (pgLabel(EX.curP + 1) + ' <span class="ex-pgar">&#8250;</span>') : '';
-    prev.disabled = EX.curP <= 1;
-    next.disabled = !hasNext;
-    prev.setAttribute('data-pg', String(EX.curP - 1));
-    next.setAttribute('data-pg', String(EX.curP + 1));
+    parts.innerHTML = h;
   }
 
   function goTo(n, edit){
@@ -2243,8 +2244,8 @@ function barHtml(){
         goTo(el.getAttribute('data-jump'));
         return;
       }
-      /* 篇切换器（10/12 批A：‹ 当前篇 | 下一篇 › —— 她 22:03「切换考题要放下面」） */
-      if((el = t.closest && t.closest('.ex-pg[data-pg]')) && EX && !el.disabled){
+      /* Part 并排切换器（10/15：Part 1|2|3 全部并排，对标爱听写/IDP 真机考） */
+      if((el = t.closest && (t.closest('.ex-pt[data-pg]') || t.closest('.ex-pg[data-pg]'))) && EX && !el.disabled){
         var pi = Number(el.getAttribute('data-pg'));
         if(pi >= 1 && pi !== EX.curP){
           if(EX.channel === 'listening') renderListenPart(pi);

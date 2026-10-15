@@ -528,6 +528,34 @@
 .ex-pg:hover:not([disabled]){background:#f2f4f6}
 .ex-pg[disabled]{opacity:.4;cursor:default}
 .ex-pgar{color:var(--muted);font-size:13px;line-height:1}
+/* ===== 10/15 Part 并排切换器（她：「整卷考试的各个 Part 是可以这样切换的」，对标爱听写/IDP）=====
+   形态 = Part 1 7/13 | Part 2 0/13 | Part 3 0/14 全部并排；当前篇白底高亮，其余半透明。
+   桌面写「Part N」，≤860 手机写「P N」（省宽度，390 要放 4 个 + Finish/Exit）。 */
+.ex-parts{flex:none;display:flex;align-items:center;gap:6px}
+.ex-pt{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 11px;border:none;border-radius:7px;
+  background:rgba(17,24,28,.07);color:rgba(17,24,28,.55);font:inherit;font-size:12.5px;font-weight:700;
+  cursor:pointer;white-space:nowrap;transition:background .14s,color .14s}
+.ex-pt .ex-pt-t{letter-spacing:-.01em}
+.ex-pt .ex-pt-n{font-size:11px;font-weight:600;opacity:.72;font-variant-numeric:tabular-nums;
+  padding-left:7px;margin-left:1px;border-left:1px solid rgba(17,24,28,.14)}
+.ex-pt:hover{background:rgba(17,24,28,.12);color:rgba(17,24,28,.8)}
+.ex-pt.on{background:#fff;color:#14161a;box-shadow:0 1px 3px rgba(20,22,26,.16)}
+.ex-pt.on .ex-pt-n{color:var(--primary-900);opacity:1;border-left-color:rgba(20,22,26,.14)}
+.ex-pt.on .ex-pt-n{color:var(--primary-900);opacity:1}
+/* 三主题（Part 块在浅色底栏上，深色模式底栏变深 → 块色要跟着翻） */
+#examRoot.ct-dark .ex-pt{background:rgba(255,255,255,.10);color:rgba(255,255,255,.55)}
+#examRoot.ct-dark .ex-pt:hover{background:rgba(255,255,255,.18);color:rgba(255,255,255,.8)}
+#examRoot.ct-dark .ex-pt.on{background:#fff;color:#14161a}
+#examRoot.ct-yellow .ex-pt{background:rgba(255,212,0,.12);color:rgba(255,212,0,.7)}
+#examRoot.ct-yellow .ex-pt:hover{background:rgba(255,212,0,.2);color:#ffd400}
+#examRoot.ct-yellow .ex-pt.on{background:#ffd400;color:#161616}
+#examRoot.ct-yellow .ex-pt.on .ex-pt-n{color:#161616}
+/* 手机：Part 缩写 + 压缩（390 宽要放 4 个 + Finish/Exit） */
+@media (max-width:860px){
+  .ex-parts{gap:4px}
+  .ex-pt{height:32px;padding:0 8px;font-size:11.5px;gap:5px}
+  .ex-pt .ex-pt-n{font-size:10px}
+}
 .ex-nums{flex:1;min-width:0;display:flex;gap:2px;justify-content:center;overflow-x:auto;scrollbar-width:thin;padding:1px 0}
 .ex-nav--plain .ex-nums{justify-content:center}
 /* 题号三态（爱听写 + 新西兰官方 Quick Guide：答过的题上方出线 / flag 由方变圆） */
