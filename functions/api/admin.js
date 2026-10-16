@@ -98,6 +98,21 @@ async function listAll(kv, prefix) {
   return out;
 }
 
+/* ===== 10/16 邮箱账号支持（她报「换邮箱登录后一直未登录」时一并修的联动面）=====
+   口径与 /api/auth 完全一致（见其 acctKey()）：
+     · 账号本体（acct）= 裸邮箱 或 手机号/用户名；面板上显示、以及 vip:/manual:/aiq* 等
+       按账号存的键，**一律用裸 acct**（auth.js 就是这么写的）；
+     · 只有「用户记录」带命名空间前缀：邮箱 → user:e:<email>，其余 → user:<账号>。
+   所以：从 KV 键反推账号名时要**剥掉 e: 前缀**，读写用户记录时要**用 userKeyOf() 补前缀**。
+   此前面板只认 6-20 位用户名/手机号 → 邮箱账号在列表里显示成 e:xxx@yy.com、发会员写错键
+   （vip:e:... ≠ vip:xxx@yy.com → 登录读到的是 null，会员等于没开）。 */
+function isAcct(a) { return /^(?:[a-z0-9_]{6,20}|[^\s@]+@[^\s@]+\.[^\s@]{2,})$/.test(String(a || '')); }
+function bareAcct(keyName, prefixLen) { return String(keyName).slice(prefixLen).replace(/^e:/, ''); }
+function userKeyOf(acct) {
+  const a = String(acct || '').trim().toLowerCase();
+  return a.indexOf('@') >= 0 ? 'user:e:' + a : 'user:' + a;
+}
+
 /* 由 'YYYYMMDD' 形式的 dayKey 反推其所属 ISO 周键。
    aitok:<day> 的键里只有日期，要按周筛就得反推 —— 算法与 isoWeekKeyUTC 同款（周四锚点法），
    改一处必须同步另两处（ai.js / auth.js）。 */
@@ -175,7 +190,7 @@ async function judgeAccounts(kv, users, usageMonth) {
   const syncKeys = await listAll(kv, 'sync:');
   const vipKeys = await listAll(kv, 'vip:');
   const monthUsers = new Set(Object.keys(usageMonth || {}));
-  const hasSync = new Set(syncKeys.map(k => k.slice(5)));
+  const hasSync = new Set(syncKeys.map(k => bareAcct(k, 5)));   /* 10/16：sync:e:<email> 也算数 */
   const vipNote = {};
   for (const k of vipKeys) {
     try {
@@ -264,7 +279,7 @@ export async function onRequest(context) {
     const _uRecs = await kvGetMany(kv, userKeys);          // 10/6 并发读（原来 N 次串行）
     const users = [];
     userKeys.forEach((name, _ui) => {
-      const acct = name.slice(5);
+      const acct = bareAcct(name, 5);   /* 10/16：剥掉邮箱的 e: 前缀，账号本体才是判据 */
       let created = null, src = '';
       try {
         const rec = JSON.parse(_uRecs[_ui] || '{}') || {};
@@ -575,11 +590,11 @@ export async function onRequest(context) {
   /* ---------- 开通/续费会员（她收到转账后在这里手动开；档位价格是她的商业决策，面板只管时长） ---------- */
   if (action === 'vip_grant') {
     const acct = String(body.acct || '').trim().toLowerCase();
-    if (!/^[a-z0-9_]{6,20}$/.test(acct)) return json({ ok: false, error: 'bad_acct', msg: '账号格式：6-20 位数字/字母/下划线' }, 400);
+    if (!isAcct(acct)) return json({ ok: false, error: 'bad_acct', msg: '账号格式：邮箱 / 6-20 位数字字母下划线' }, 400);
     const permanent = !!body.permanent;   // 她 10/1 拍板：站长本人要永久会员——expire 用超大值（2286 年），所有判定（expire > now）零改动
     const days = permanent ? 1 : parseInt(body.days, 10);
     if (!Number.isFinite(days) || days < 1 || days > 3650) return json({ ok: false, error: 'bad_days', msg: '会员天数限 1-3650' }, 400);
-    if (!(await kv.get('user:' + acct))) return json({ ok: false, error: 'no_user', msg: '该账号还没注册（会员只开给已注册账号）' }, 404);
+    if (!(await kv.get(userKeyOf(acct)))) return json({ ok: false, error: 'no_user', msg: '该账号还没注册（会员只开给已注册账号）' }, 404);
     let cur = null;
     try { cur = JSON.parse((await kv.get('vip:' + acct)) || 'null'); } catch (e) {}
     /* 未过期则从现到期日顺延（续费不吃亏），已过期/新开从现在起算；永久=直接覆盖成超大值 */
@@ -637,7 +652,7 @@ export async function onRequest(context) {
     const _uRecs = await kvGetMany(kv, userKeys);          // 10/6 并发读（原来 N 次串行）
     const users = [];
     userKeys.forEach((name, _ui) => {
-      const acct = name.slice(5);
+      const acct = bareAcct(name, 5);   /* 10/16：剥掉邮箱的 e: 前缀（与 overview 同口径） */
       let created = null, src = '';
       try {
         const rec = JSON.parse(_uRecs[_ui] || '{}') || {};
@@ -666,7 +681,7 @@ export async function onRequest(context) {
     batch.forEach(a => { set[a] = 1; });
     let deleted = 0, keys = 0;
     for (const a of batch) {
-      for (const k of ['user:' + a, 'vip:' + a, 'manual:' + a, 'fb:' + a, 'fbimg:' + a]) {
+      for (const k of [userKeyOf(a), 'vip:' + a, 'manual:' + a, 'fb:' + a, 'fbimg:' + a]) {
         try { if (await kv.get(k)) { await kv.delete(k); keys++; } } catch (e) {}
       }
       deleted++;
@@ -689,7 +704,7 @@ export async function onRequest(context) {
 
   if (action === 'judge_set') {
     const acct = String(body.acct || '').trim().toLowerCase();
-    if (!/^[a-z0-9_]{6,20}$/.test(acct)) return json({ ok: false, error: 'bad_acct', msg: '账号格式：6-20 位数字/字母/下划线' }, 400);
+    if (!isAcct(acct)) return json({ ok: false, error: 'bad_acct', msg: '账号格式：邮箱 / 6-20 位数字字母下划线' }, 400);
     if (body.clear) {
       await kv.delete('manual:' + acct);
       await audit(kv, 'judge_clear', { acct: acct });

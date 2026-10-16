@@ -17,7 +17,8 @@
 //      旧客户端不带 baseTs：维持原「无条件覆盖」语义，向后兼容（不做破坏性变更）。
 //      根因回顾：此前 PUT 完全无版本校验，任何一端都能无条件整份覆盖云端，
 //      两台设备各自 push 自己的快照 = 互相抹掉对方进度（她实测到的数据回滚/丢，不是配额问题）。
-//   2) meta 影子键 meta:<phone>，只存 { ts, bytes, hash }（约 200B）。
+//   2) meta 影子键 meta:<ns>，只存 { ts, bytes, hash }（约 200B）。
+//      （ns = 账号命名空间：邮箱是 e:<email>，手机号/用户名是账号本身；见下方 acctKey 口径）
 //      GET ?meta=1 时先读它做「云端有没有变」的轻量探测 —— 没变就完全不下载 1.7MB 全量，
 //      流量与 CPU 降两个数量级（轮询因此可以加密到 12s 而不增加负担）。
 //      meta 缺失（本次部署前写入的老数据）时按需从主键算出来并懒写回，自愈。
@@ -100,7 +101,7 @@ async function handleRequest(context) {
 
   const url = new URL(request.url);
 
-  // ⭐ 10/1 鉴权：X-Session 头（sendBeacon 兜底走 ?session= 参数）→ 查 sess:<token> → 解出手机号。
+  // ⭐ 10/1 鉴权：X-Session 头（sendBeacon 兜底走 ?session= 参数）→ 查 sess:<token> → 解出账号。
   //    无 token / token 过期 / 非法 → 401，前端据此提示重新登录（本机数据绝不动）。
   const sid = (request.headers.get('X-Session') || url.searchParams.get('session') || '').trim();
   if (!sid || !/^[0-9a-f]{32,128}$/.test(sid)) {
@@ -112,20 +113,29 @@ async function handleRequest(context) {
     return json({ ok: false, error: '云端存储未启用（请在 Cloudflare Pages 设置里绑定 SYNC_KV 命名空间）' }, 503);
   }
 
-  let phone = '';
+  /* 🔴🔴 10/16 修（她报「换成邮箱登录后一直显示未登录」）：
+     旧口径只认 /^[a-z0-9_]{6,20}$/（用户名/手机号）→ **邮箱账号的 session 在这里被判非法**
+     → 本接口一律 401「登录已过期」→ 前端 401 处理会 setAuthToken('') 把 token 清掉
+     → 侧栏立刻变回「未登录」。表现就是「怎么登录都显示没登录」，登录本身其实是成功的。
+     成因：10/13 加邮箱注册时只改了 /api/auth（ACCT_RE + acctKey 命名空间），本文件漏改
+     （它最后一次改动是 10/5，早于邮箱体系）。
+     现与 /api/auth 的 ACCT_RE 口径一致；数据键命名空间也与 acctKey() 对齐：
+     邮箱 → sync:e:<email> / meta:e:<email>，其余（手机号/用户名）键名原样不变。 */
+  const ACCT_RE = /^(?:[a-z0-9_]{6,20}|[^\s@]+@[^\s@]+\.[^\s@]{2,})$/;
+  let acct = '';
   try {
     const sRaw = await env.SYNC_KV.get('sess:' + sid);
     if (sRaw) {
       const s = JSON.parse(sRaw);
-      const a = ((s && (s.acct || s.phone)) || '').toLowerCase();
-      if (/^[a-z0-9_]{6,20}$/.test(a)) phone = a;
+      const a = String((s && (s.acct || s.phone)) || '').trim().toLowerCase();
+      if (ACCT_RE.test(a)) acct = a;
     }
   } catch (e) {}
-  if (!phone) {
+  if (!acct) {
     return json({ ok: false, error: 'unauthorized', msg: '登录已过期，请重新登录' }, 401);
   }
 
-  const ns = phone;
+  const ns = acct.indexOf('@') >= 0 ? 'e:' + acct : acct;
   const key = 'sync:' + ns;
   const metaKey = 'meta:' + ns;
 

@@ -305,10 +305,18 @@ async function handleRequest(context) {
       throw e;
     }
     /* 发信（Resend REST）。失败不回滚 KV（码还在，让她重试「重新发送」即可），
-       但要把真实原因回给人话 —— 以前裸 500 她根本不知道发生了什么。 */
+       但要把真实原因回给人话 —— 以前裸 500 她根本不知道发生了什么。
+       🔴 10/16 修（线上 email_code 实测：合法邮箱稳定 502，20 秒无响应被 CF 掐断）：
+       原实现 fetch **没有超时**，上游一旦不响应（额度/密钥/DNS 任一异常），Worker 会一直挂到
+       被 CF 强制断开 → 返回的是 CF 自己的 502 纯文本页（不是我们的 JSON）→ 前端连错误码都拿不到，
+       邮箱注册整条路走不通，且无从定位。现在 10s 超时 + 把上游状态码与响应片段带回 detail
+       （前端只显示 msg；detail 只用于后台/探针定位真因）。 */
+    const ctrl = new AbortController();
+    const _to = setTimeout(function(){ try{ ctrl.abort(); }catch(e){} }, 10000);
     try {
       const r = await fetch('https://api.resend.com/emails', {
         method: 'POST',
+        signal: ctrl.signal,
         headers: { 'authorization': 'Bearer ' + env.MAIL_API_KEY, 'content-type': 'application/json' },
         body: JSON.stringify({
           from: env.MAIL_FROM,
@@ -321,12 +329,20 @@ async function handleRequest(context) {
             + '</div>'
         })
       });
+      clearTimeout(_to);
       if (!r.ok) {
-        const t = await r.text().catch(() => '');
-        return json({ ok: false, error: 'mail_failed', msg: '验证码没发出去（' + r.status + '），稍后再试' }, 502);
+        const t = await r.text().catch(function(){ return ''; });
+        return json({ ok: false, error: 'mail_failed',
+          detail: ('HTTP ' + r.status + ' ' + String(t || '')).slice(0, 240),
+          msg: '验证码没发出去（邮件服务返回 ' + r.status + '），稍后再试' }, 502);
       }
     } catch (e) {
-      return json({ ok: false, error: 'mail_failed', msg: '验证码没发出去（网络问题），稍后再试' }, 502);
+      clearTimeout(_to);
+      const abort = e && e.name === 'AbortError';
+      return json({ ok: false, error: 'mail_failed',
+        detail: String((e && (e.name || e.message)) || e).slice(0, 160),
+        msg: abort ? '验证码没发出去（邮件服务 10 秒没响应），稍后再试'
+                   : '验证码没发出去（网络问题），稍后再试' }, 502);
     }
     return json({ ok: true, msg: '验证码已发送，10 分钟内有效' });
   }
