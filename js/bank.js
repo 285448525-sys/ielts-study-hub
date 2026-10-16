@@ -317,6 +317,32 @@
     return 'Choose the correct letter, <b>A</b>, <b>B</b>, <b>C</b> or <b>D</b>.';
   }
 
+  /* 10/16：共享选项多选组的答案键补齐。
+     真机考「Questions X–Y Choose N letters」= 一份选项全组共用，但题库答案文件有时只把键登记在
+     组内第一个题上（实测 Playing Soccer 20/21 双键齐全、William Gilbert 仅 11 有键）→ 不补齐的
+     话同组其余题（12/13）即使勾对也永远判错。口径：取组内第一个非空键，补给同组缺失的题。
+     仅处理「共享形态」组（有题带选项 + 有题不带选项，全库 102 个）；每题自带选项的组不碰；
+     全组无键（10/15 新拉的 212 篇无答案）原样不动。 */
+  function fillSharedAnswers(unit, answers){
+    (unit.parts || []).forEach(function(p){
+      (p.groups || []).forEach(function(g){
+        if(g.type !== 'multiple-choice') return;
+        var qs = g.questions || [];
+        var withOpts = qs.filter(function(q){ return (q.options || []).length; }).length;
+        if(!withOpts || withOpts === qs.length) return;   /* 不是共享形态 → 不补 */
+        var first = null;
+        for(var i = 0; i < qs.length; i++){
+          var k = qs[i].qNumber;
+          if(k != null && answers[k] != null){ first = answers[k]; break; }
+        }
+        if(first == null) return;
+        qs.forEach(function(q){
+          if(q.qNumber != null && answers[q.qNumber] == null) answers[q.qNumber] = first;
+        });
+      });
+    });
+  }
+
   function openExam(unitId, channel){
     var root = document.getElementById('bankRoot');
     if(root) root.style.display = 'none';
@@ -330,6 +356,7 @@
 
     Promise.all([p1, p2]).then(function(res){
       var unit = res[0], ansFile = res[1] || {};
+      fillSharedAnswers(unit, ansFile.answers || {});   /* 10/16：共享选项组答案键补齐 */
       EX = {
         unit: unit, channel: channel,
         answers: ansFile.answers || {}, alts: ansFile.alts || {},
@@ -397,9 +424,14 @@
     });
     return h + '</div>';
   }
-  /* 多选题：方框 + 字母加粗；need = 题目要求勾几个（0 = 不限），选满其余变灰禁用（真机考行为） */
-  function cboxHtml(q, numOf, need){
-    var h = '<div class="ex-cbox ex-opts" data-q="' + esc(numOf(q.qNumber)) + '"' + (need ? ' data-need="' + need + '"' : '') + '>';
+  /* 多选题：方框 + 字母加粗；need = 题目要求勾几个（0 = 不限），选满其余变灰禁用（真机考行为）
+     share = 共享这份选项的其他题号（空格分隔）—— 真机考「Questions X–Y Choose N letters」
+     是**一份选项全组共用**，而题库数据里选项只挂在组内第一个题上（全库 109 个多选组
+     102 个如此），其余题若不共享就完全没有作答 UI。collect 时勾选值会同步写给每个共享题号。 */
+  function cboxHtml(q, numOf, need, share){
+    var h = '<div class="ex-cbox ex-opts" data-q="' + esc(numOf(q.qNumber)) + '"'
+      + (need ? ' data-need="' + need + '"' : '')
+      + (share ? ' data-share="' + esc(share) + '"' : '') + '>';
     (q.options || []).forEach(function(o){
       var v = o.optionNum || '';
       h += '<label class="ex-opt" data-v="' + esc(v) + '">'
@@ -439,9 +471,15 @@
   function flagHtml(n){
     return '<button type="button" class="ex-flagq" data-qn="' + esc(n) + '" title="Mark">\u2691</button>';
   }
-  /* 多选需要勾几个：从组指令里解析（Choose TWO/THREE/FOUR），解析不到就不限 */
+  /* 多选需要勾几个：从组指令里解析（Choose TWO/THREE/FOUR），解析不到就不限。
+     10/16 修（她实测「Choose TWO 却能勾 3 个」）：题库多选组的 description 字段全线缺失
+     （109/109 = undefined），原口径只读 description → need 恒 0 → 限数从未生效。
+     改兜底链：description → 组内题干文本（真机考「Which TWO/THREE of...」就写在题干里，
+     与 instrFor 的 Choose TWO/THREE 指令同源）。 */
   function needOf(g){
-    var m = /TWO|THREE|FOUR/i.exec(plain(g.description || ''));
+    var src = plain(g.description || '');
+    if(!src) src = (g.questions || []).map(function(q){ return plain(q.question || ''); }).join(' ');
+    var m = /TWO|THREE|FOUR/i.exec(src);
     if(!m) return 0;
     return { two: 2, three: 3, four: 4 }[m[0].toLowerCase()] || 0;
   }
@@ -513,21 +551,36 @@
       qs.forEach(function(q){
         var n = numOf(q.qNumber);
         h += '<div class="ex-q"><span class="ex-qn" data-qn="' + esc(n) + '">' + esc(n) + '</span>'
-          + flagHtml(n) + '<span class="ex-qt">' + esc(plain(q.question)) + '</span>' + pillsHtml(q, numOf) + '</div>';
+          + flagHtml(n) + '<span class="ex-qt">' + esc(plain(q.question)) + pillsHtml(q, numOf) + '</span></div>';
       });
     } else if(g.type === 'multiple-choice'){
       var need = needOf(g);
+      /* 🔴 10/16 修（她实测 Q9-10：题干被压成 40px 窄条 + 词中断 + Choose TWO 能勾 3 个 + Q10 无法作答）：
+         ① 选项原为 .ex-qt 的 flex 兄弟节点 → 长选项把题干栏（.ex-qt{flex:1;min-width:0}）压成窄条，
+            题干文字溢出后被选项行底色盖住 = 截图里的「词中断」（1440px 实测题干栏仅 40px）。
+            改：选项移入 .ex-qt 内部，题干下方整行竖排 —— 这正是 10/14 卷面格式批（597103d）
+            写下的 `.ex-qt > .ex-opts{margin-top:8px}` 规则的本意（当时只包了题干、没移选项，
+            那条 CSS 一直是死代码）。形态与 104 样子稿 cb-opts（题干下竖排整行）一致。
+         ② 共享选项组：题库数据里选项只挂在组内第一个题上（109 个多选组 102 个如此）→
+            承载题输出唯一一份 cbox 并用 data-share 列出共享此题选项的其他题号；无选项的题
+            只渲染题干（勾选值由 collect 同步写给每个共享题号，判分/草稿/答题卡全复用）。 */
       qs.forEach(function(q){
         var n = numOf(q.qNumber);
+        var inner = clean(q.question);
+        if((q.options || []).length){
+          var share = qs.filter(function(x){ return x !== q && !(x.options || []).length; })
+                        .map(function(x){ return numOf(x.qNumber); }).join(' ');
+          inner += cboxHtml(q, numOf, need, share);
+        }
         h += '<div class="ex-q"><span class="ex-qn" data-qn="' + esc(n) + '">' + esc(n) + '</span>'
-          + flagHtml(n) + '<span class="ex-qt">' + clean(q.question) + '</span>' + cboxHtml(q, numOf, need) + '</div>';
+          + flagHtml(n) + '<span class="ex-qt">' + inner + '</span></div>';
       });
     } else {
       var tf = isTFGroup(g);
       qs.forEach(function(q){
         var n = numOf(q.qNumber);
         h += '<div class="ex-q"><span class="ex-qn" data-qn="' + esc(n) + '">' + esc(n) + '</span>'
-          + flagHtml(n) + '<span class="ex-qt">' + clean(q.question) + '</span>' + (tf ? pillsHtml(q, numOf) : radioHtml(q, numOf)) + '</div>';
+          + flagHtml(n) + '<span class="ex-qt">' + clean(q.question) + (tf ? pillsHtml(q, numOf) : radioHtml(q, numOf)) + '</span></div>';
       });
     }
     return h + '</div>';
@@ -931,6 +984,7 @@ function barHtml(){
               .then(function(r){ return r.ok ? r.json() : {}; }).catch(function(){ return {}; });
     return Promise.all([p1, p2]).then(function(res){
       var a = res[1] || {};
+      fillSharedAnswers(res[0], a.answers || {});   /* 10/16：共享选项组答案键补齐（完整模考同路） */
       return { id: unitId, unit: res[0], answers: a.answers || {}, alts: a.alts || {} };
     });
   }
@@ -1530,7 +1584,7 @@ function barHtml(){
     }
     var sel = root.querySelector('select[data-q="' + qn + '"]');
     if(sel){ sel.value = val; return; }
-    var box = root.querySelector('.ex-cbox[data-q="' + qn + '"]');
+    var box = cboxForQ(qn);
     if(box){
       var arr = Array.isArray(val) ? val : (val ? [val] : []);
       box.querySelectorAll('input[type=checkbox]').forEach(function(c){ c.checked = arr.indexOf(c.value) > -1; });
@@ -1555,6 +1609,18 @@ function barHtml(){
       if(v2){ v2.textContent = (val == null ? '' : String(val)); if(val != null && val !== '') v2.setAttribute('data-q', qn); else v2.removeAttribute('data-q'); }
       return;
     }
+  }
+  /* 按题号找多选框：先找自带 data-q 的，再找 data-share 里共享给它的（10/16 共享选项组）。
+     草稿恢复/答案回显都要能通过共享题号找到那份唯一选项框。 */
+  function cboxForQ(qn){
+    var root = document.getElementById('examRoot'); if(!root) return null;
+    var boxes = root.querySelectorAll('.ex-cbox[data-q]');
+    for(var i = 0; i < boxes.length; i++){
+      if(boxes[i].getAttribute('data-q') === qn) return boxes[i];
+      var sh = (boxes[i].getAttribute('data-share') || '').split(/[\s,]+/);
+      if(sh.indexOf(qn) > -1) return boxes[i];
+    }
+    return null;
   }
   /* 多选限数的「选满变灰」：need 个勾满 → 未勾的选项 dis；否则全恢复。
      ⚠️ 统计口径必须与 CSS 选中态一致：选中靠 :has(input:checked) 渲染，
@@ -1592,7 +1658,15 @@ function barHtml(){
     });
     root.querySelectorAll('.ex-cbox[data-q]').forEach(function(b){
       var vals = []; b.querySelectorAll('input:checked').forEach(function(c){ vals.push(c.value); });
-      if(vals.length) out[b.getAttribute('data-q')] = vals;
+      /* 10/16 共享选项组（Questions X–Y Choose N）：一份选项全组共用 → 勾选值同步写给
+         data-share 里的每个题号；取消勾选时也要显式 delete（这些题号没有自己的 data-q 元素，
+         domKeys 兜底删不到，不删会残留上一条草稿的旧答案）。 */
+      var keys = [b.getAttribute('data-q')];
+      var sh = b.getAttribute('data-share') || '';
+      if(sh) keys = keys.concat(sh.split(/[\s,]+/).filter(Boolean));
+      keys.forEach(function(k){
+        if(vals.length) out[k] = vals.slice(); else delete out[k];
+      });
     });
     root.querySelectorAll('.ex-radio-box[data-q]').forEach(function(b){
       var c = b.querySelector('input:checked'); if(c) out[b.getAttribute('data-q')] = c.value;
