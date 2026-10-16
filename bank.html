@@ -657,8 +657,11 @@
   .ex-pg{padding:4px 7px;font-size:11px}
   .ex-nums{justify-content:flex-start}
 }
-.ex-actions .btn-ghost[data-exit]{border-color:var(--red,#d93025);color:#d93025}
-.ex-actions .btn-ghost[data-exit]:hover{background:#fdf3f2;border-color:#d93025;color:#d93025}
+/* 10/16 补 #examExit：写作壳的 Exit 是 <button class="btn-ghost" id="examExit">（无 data-exit，
+   点击由 writing.js 直接绑定），原选择器只认 [data-exit] → 它一直退化成灰边深字的普通 btn-ghost，
+   与 2893f31「三科上下栏统一、Exit 红描边」的口径不符。补 id 选择器，不动点击契约。 */
+.ex-actions .btn-ghost[data-exit],.ex-actions #examExit{border-color:var(--red,#d93025);color:#d93025}
+.ex-actions .btn-ghost[data-exit]:hover,.ex-actions #examExit:hover{background:#fdf3f2;border-color:#d93025;color:#d93025}
 .ex-split.ts-large{--exfs:23px}
 .ex-split.ts-xl{--exfs:27px}
 .ex-split.ct-dark{background:#1b1b1b}
