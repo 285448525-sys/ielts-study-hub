@@ -934,13 +934,10 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
   /* 10/14 她拍板：听力顶栏两行并一行省空间。
    做法：标题行 shellHtml 照渲染（保住 Option 面板与 ☰ 的现成逻辑），但 CSS 压 0 高隐藏；
         标题/整场计时/☰ 都并入音频条那一行（audioBarHtml 新增 nameText+timerText 参数）。 */
-#examRoot:has(#exAudioBar) .ex-top{display:none !important}   /* 10/14：有音频条=听力，标题行让位给一行式音频条（:has() 见 common.css 先例） */
-.ea-name{font-size:13.5px;font-weight:800;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:22%;flex:none}
-.ea-fulltimer{font-size:13.5px;font-weight:800;color:#111;font-variant-numeric:tabular-nums;background:#fff;border:1px solid var(--line);border-radius:7px;padding:3px 9px;flex:none}
-#examRoot.ct-dark .ea-fulltimer{background:#242628;border-color:#3a3f45;color:#e8eaed}
-#examRoot.ct-yellow .ea-fulltimer{background:#24241a;border-color:#4a4526;color:#f0e3a8}
-#examRoot.ct-dark .ea-name{color:#f2f2f2}
-#examRoot.ct-yellow .ea-name{color:#f0e3a8}
+/* 10/16 三科上下栏统一（她 15:0x：「先全部统一成阅读这个界面一样的上下栏」）：
+   原「有音频条=听力，标题行让位给一行式音频条」的隐藏规则**删除** —— 听力顶栏恢复阅读同款
+   三要素（篇名 | 计时 | ☰ Option，字体主题能调），音频条瘦身为纯播放条（标题/整场计时已在
+   顶栏，不重复），移到顶栏下方单独一条。音频条里调节音量倍速的界面晚点再说（她原话）。 */
 .ex-audio{flex:none;display:flex;align-items:center;gap:12px;padding:9px 16px;border-bottom:1px solid var(--line);background:var(--surface)}
   .ex-audio .ea-play{flex:none;width:34px;height:34px;border-radius:50%;border:none;background:var(--primary);color:#fff;font-size:13px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
   .ex-audio .ea-play[disabled]{opacity:.45;cursor:default}
@@ -1159,7 +1156,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/data.js?v=20261011e"></script>
 <script defer src="js/common.js?v=20261013ac"></script>
 <script defer src="js/writing_prompts.js?v=20260903ab"></script>
-<script defer src="js/writing.js?v=20261011i"></script>
-<script defer src="js/bank.js?v=20261012v"></script>
+<script defer src="js/writing.js?v=20261012a"></script>
+<script defer src="js/bank.js?v=20261012w"></script>
 </body>
 </html>

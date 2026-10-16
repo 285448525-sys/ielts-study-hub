@@ -1869,7 +1869,7 @@ function examTimeUp(){
   const min = wtMinWords(examTimer.cur && examTimer.cur.kind === 'big' ? '大作文' : '小作文');
   const w = $('#examTuWords');
   if(w) w.textContent = 'You wrote ' + n + ' words (min ' + min + ').' + (n < min ? ' Under the minimum — but it is your call.' : '');
-  const tb = $('#examTimerBtn'); if(tb) tb.textContent = '▶';
+  const tb = $('#examTimerBtn'); if(tb) tb.textContent = 'Resume';
   const m = $('#examTimeUpModal'); if(m) m.hidden = false;
 }
 /* 弹框两选：提交评分 / 继续写（切正计时，随时可 Finish，永不再锁） */
@@ -1917,7 +1917,7 @@ function examStartTimer(mode, limitMs){
   examResetLock();
   if(examTimer.tick) clearInterval(examTimer.tick);
   examTimer.tick = setInterval(examTick, 1000); examTick();
-  const tb = $('#examTimerBtn'); if(tb) tb.textContent = '⏸';
+  const tb = $('#examTimerBtn'); if(tb) tb.textContent = 'Pause';
 }
 function examPauseTimer(){
   if(!examTimer.running) return;
@@ -2075,7 +2075,7 @@ function openFullTask(){
   const sl = $('#examStepLabel'); if(sl) sl.textContent = 'Part ' + (WRT_FULL.idx + 1);
     const fin = $('#examFinish'); if(fin) fin.textContent = WRT_FULL.idx === 0 ? 'Finish section → Task 2' : 'Finish section';
   wrtRestoreDraft();
-  const bar = document.querySelector('.exam-bar-left'); if(bar) bar.innerHTML = wrtSwitchHtml();
+  const bar = document.getElementById('examBarLeft'); if(bar) bar.innerHTML = wrtSwitchHtml();
   wrtBindSwitch();   /* 10/15 元素级绑定（document 委托在软导航下不触发） */
   /* 10/15 补 Option 面板入口（写作页原本没有 ☰）*/
   if(!document.getElementById('exOptionPanel')) wrtInjectOption();
@@ -2211,8 +2211,7 @@ function examFontApply(){
   const lv = examFontLevel();
   pr.classList.remove('exam-fs-0','exam-fs-1','exam-fs-2');
   pr.classList.add('exam-fs-' + lv);
-  const b = $('#examFontBtn');
-  if(b) b.textContent = 'Aa · ' + ['Regular','Large','Extra large'][lv];
+  /* 10/16：Aa 字号钮已删，字号走 ☰ 的 Size（wrtSizeSet） */
 }
 function examFontCycle(){
   const next = (examFontLevel() + 1) % 3;
@@ -2533,21 +2532,29 @@ ${ANCHOR_TABLE_EN}
    同一段 DOM（顶栏 / 左题目 / 右作答 / 底栏 / 到点弹框）不再在两个 HTML 里各抄一份，
    改由这里统一注入 —— 改一处即两页同步，不会漂移。
    两页各放一个空的 <section id="examPractice" hidden></section>，ensureExamShell() 幂等填充。 */
+/* 🔴 10/16 三科上下栏统一：写作壳注入阅读同款 .ex-top/.ex-bar/.ex-option 样式
+   （逐值从 bank.html 内联提取，两处不会漂移；writing.html 没有内联 CSS，靠这里生效） */
+function wrtShellStyle(){
+  if(document.getElementById("wrtShellStyle")) return;
+  var st = document.createElement("style"); st.id = "wrtShellStyle";
+  st.textContent = ".ex-name{font-size:12px;font-weight:700;color:#111;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:none}\n.ex-name small{font-weight:400;color:#333;margin-left:8px;font-size:11.5px}\n.ex-timer{margin:0 auto;font-variant-numeric:tabular-nums;font-weight:700;font-size:12px;color:#111;background:none;border:none;border-radius:0;padding:0}\n.ex-timer.warn{color:#b3261e;animation:exblink 1s step-start infinite}\n.ex-timer.soon{color:#8a5a00}\n.ex-icons{display:flex;gap:2px;margin-left:auto;position:relative}\n.ex-ico{border:none;background:none;font:inherit;color:#111;cursor:pointer;padding:4px 9px;border-radius:5px;font-size:15px;line-height:1.3}\n.ex-ico:hover{background:#f2f4f6}\n.ex-menubtn{font-size:16px}\n.ex-saved.on{opacity:1}\n.ex-option.on{display:block}\n.ex-option .ex-opx{position:absolute;top:18px;right:22px;border:none;background:#f1f3f5;color:#333;width:38px;height:38px;border-radius:50%;font-size:17px;cursor:pointer}\n.ex-option h3{text-align:center;font-size:20px;font-weight:600;margin:34px 0 22px;color:#111}\n.ex-oplist,.ex-opsub{max-width:560px;margin:0 auto;border:1px solid #e3e5e8}\n.ex-opsub{display:none}\n.ex-opsub.on{display:block}\n.ex-oprow{display:flex;align-items:center;gap:14px;padding:15px 22px;border-bottom:1px solid #e3e5e8;font-size:16px;cursor:pointer;background:#fff;color:#111}\n.ex-oprow:last-child{border-bottom:none}\n.ex-oprow:hover{background:#f7f8fa}\n.ex-opsub .ex-oprow{justify-content:center}\n.ex-oprow input{position:absolute;opacity:0;pointer-events:none}\n.ex-oprow:has(input:checked){background:var(--primary-50);font-weight:700}\n.ex-opback{max-width:560px;margin:14px auto 0;text-align:center}\n.ex-opback button{border:1px solid #c6ccd4;background:#fff;border-radius:7px;padding:7px 18px;font:inherit;font-size:13.5px;cursor:pointer}\n#examRoot.ct-dark .ex-top,#examRoot.ct-dark .ex-foot,#examRoot.ct-dark .ex-bar,#examRoot.ct-dark .ex-main,#examRoot.ct-dark .ex-article,#examRoot.ct-dark .ex-qcol,#examRoot.ct-dark .ex-listen,#examRoot.ct-dark .ex-split{background:#161616;border-color:#5a5f66}\n#examRoot.ct-dark .ex-top{background:#161616}\n#examRoot.ct-dark .ex-top .ex-name,#examRoot.ct-dark .ex-top .ex-timer{color:#f2f2f2}\n#examRoot.ct-yellow .ex-top{background:#161616}\n#examRoot.ct-yellow .ex-top .ex-name,#examRoot.ct-yellow .ex-top .ex-timer{color:#f0e3a8}\n#examRoot.ct-yellow .ex-top small,#examRoot.ct-yellow .ex-part span{color:#c9bd85 !important}\n#examRoot.ct-yellow .ex-top,#examRoot.ct-yellow .ex-foot,#examRoot.ct-yellow .ex-bar,#examRoot.ct-yellow .ex-main,#examRoot.ct-yellow .ex-article,#examRoot.ct-yellow .ex-qcol,#examRoot.ct-yellow .ex-listen,#examRoot.ct-yellow .ex-split{background:#161616;border-color:#5a5f66}\n.ex-ctx.on{display:flex}\n.ex-ctx button{display:inline-flex;align-items:center;gap:5px;border:none;background:transparent;font:inherit;\n  font-size:13px;color:#111;padding:7px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;min-height:36px}\n.ex-ctx button:hover{background:var(--primary-50);color:var(--primary-900)}\n.ex-ctx hr{flex:none;border:none;border-left:1px solid var(--line);width:0;height:20px;margin:0 3px}\n.ex-nav{flex:1;min-width:0;display:flex;align-items:center;gap:8px;min-height:22px}\n.ex-pg{flex:none;border:1px solid var(--n-400);background:#fff;border-radius:5px;padding:3px 9px;font:inherit;\n  font-size:12px;font-weight:600;color:#111;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;line-height:1.35}\n.ex-pg:hover:not([disabled]){background:#f2f4f6}\n.ex-pg[disabled]{opacity:.4;cursor:default}\n.ex-pgar{color:var(--muted);font-size:13px;line-height:1}\n.ex-nav--plain .ex-nums{justify-content:center}\n.ex-num{position:relative;flex:none;width:26px;height:20px;border:none;background:none;padding:0;margin:0;\n  font:inherit;font-size:12.5px;font-weight:600;color:#111;cursor:pointer;font-variant-numeric:tabular-nums}\n.ex-num::before{content:\"\";position:absolute;left:4px;right:4px;top:0;height:2px;background:#c9ced6;border-radius:1px}\n.ex-num--done::before{height:2.5px;background:#111}\n.ex-num--cur{box-shadow:inset 0 0 0 1.5px #111;border-radius:3px}\n.ex-num--flag::after{content:\"\\u2691\";position:absolute;left:50%;top:-10px;transform:translateX(-50%);\n  font-size:10px;line-height:1;color:#b3261e;font-weight:400}\n.ex-num:hover{background:#eef0f2;border-radius:3px}\n.ex-num:hover{background:#eef0f2;border-radius:3px}\n.ex-actions{display:flex;gap:8px;flex:none;justify-content:flex-end;align-items:center}\n.ex-bar{padding:5px 8px 7px;gap:5px;flex-direction:column}\n.ex-pg{padding:4px 8px;font-size:11.5px;gap:4px}\n.ex-pg .ex-pgar{font-size:12px}\n.ex-nums{gap:1px}\n.ex-num{width:24px;font-size:12px}\n.ex-pg{padding:4px 7px;font-size:11px}\n.ex-nums{justify-content:flex-start}\n.ex-actions .btn-ghost[data-exit]{border-color:var(--red,#d93025);color:#d93025}\n.ex-actions .btn-ghost[data-exit]:hover{background:#fdf3f2;border-color:#d93025;color:#d93025}\n.ex-top{flex-wrap:wrap;gap:8px}";
+  document.head.appendChild(st);
+}
+
 function examShellHtml(){
+  /* 🔴 10/16 她：「上下栏全部同步成阅读这个界面一样，右上角一个键可以调节字体和主题，第三个调节音频的删掉」
+     → 顶栏/底栏改成与阅读壳（bank.js shellHtml/barHtml）**同构**：.ex-top（左篇名|中计时|右 ☰）
+       + .ex-bar（左 Task 切换器位 | 右 Pause/Exit/Finish，Exit 红描边、Finish teal 实心——与 .ex-actions 同款）。
+     样式由 wrtShellStyle() 注入（与 bank.html 内联的 .ex-top/.ex-bar 逐值同步；writing.html 无内联 CSS 也生效）。
+     删除：Aa·Regular 字号钮（收进 ☰ 的 Size）、Exit full screen（顶栏只留 ☰ 一个键）、顶栏 ⏸ 图标（挪底栏 Pause）。
+     原 id 全部保留（examTimerText/examFinish/examExit/examStepLabel…）→ 逻辑零迁移。 */
   return `
-    <header class="exam-head">
-      <div class="exam-head-left" aria-hidden="true"></div>
-      <span class="exam-timer-inline" id="examTimerWrap">
-        <span id="examTimerText">00:00:00</span>
-        <button type="button" id="examTimerBtn" title="Pause / Resume">⏸</button>
-      </span>
-      <div class="exam-head-right">
+    <header class="ex-top">
+      <div class="ex-name">Writing</div>
+      <span class="ex-timer" id="examTimerWrap"><span id="examTimerText">00:00:00</span></span>
+      <div class="ex-icons">
         <span class="ex-saved" id="wtSaved" hidden>Saved</span>
-        <button class="exam-font-btn" id="examFontBtn" type="button" title="Text size — same three sizes as IELTS on computer (Regular 20 / Large 23 / Extra large 27)">Aa · Regular</button>
-        <button class="exam-exit-full" id="examExitFull" type="button" title="Exit full screen">
-          <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4M15 3h4a2 2 0 0 1 2 2v4M9 21H5a2 2 0 0 1-2-2v-4M15 21h4a2 2 0 0 0 2-2v-4"/></svg>
-          Exit full screen
-        </button>
+        <button class="ex-ico ex-menubtn" type="button" title="Option">☰</button>
       </div>
     </header>
 
@@ -2575,17 +2582,17 @@ function examShellHtml(){
       </div>
     </div>
 
-    <footer class="exam-bar">
-      <div class="exam-bar-left">
-        <span class="exam-step" id="examStepBadge">2</span>
-        <span class="exam-step-label" id="examStepLabel">Part 2</span>
+    <footer class="ex-bar">
+      <div class="ex-nav" id="exNavW">
+        <div class="ex-nums" id="examBarLeft">
+          <span class="exam-step" id="examStepBadge">2</span>
+          <span class="exam-step-label" id="examStepLabel">Part 2</span>
+        </div>
       </div>
-      <div class="exam-bar-right">
-        <button class="btn-exam-ghost" id="examFinish" type="button">
-          <svg aria-hidden="true" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-          Finish section
-        </button>
-        <button class="btn-exam-exit" id="examExit" type="button">Exit</button>
+      <div class="ex-actions">
+        <button type="button" class="btn-ghost ex-pause" id="examTimerBtn">Pause</button>
+        <button type="button" class="btn-ghost" id="examExit">Exit</button>
+        <button type="button" class="btn-primary" id="examFinish">Finish section</button>
       </div>
     </footer>
 
@@ -2660,12 +2667,7 @@ function bindExam(){
   if(back) back.addEventListener('click', exitExam);
   const exitBtn = $('#examExit');
   if(exitBtn) exitBtn.addEventListener('click', exitExam);
-  const exitFull = $('#examExitFull');
-  if(exitFull) exitFull.addEventListener('click', exitExam);
-
-  /* 10/8 官方字号三档：右上角 Aa 按钮循环 Regular → Large → Extra large（本机记忆） */
-  const fontBtn = $('#examFontBtn');
-  if(fontBtn) fontBtn.addEventListener('click', examFontCycle);
+  /* 10/16：Exit full screen / Aa 字号钮已删（顶栏只留 ☰ 一个键，字号/主题在 ☰ 面板里） */
 
   const finish = $('#examFinish');
   if(finish) finish.addEventListener('click', () => {
@@ -2724,7 +2726,7 @@ function wrtInjectOption(){
   var root = document.getElementById('examPanel') || document.getElementById('examPractice') || document.body;
   root.appendChild(panel);
   /* 顶栏加 ☰ 按钮（写作顶栏左边原本是空的） */
-  var head = document.querySelector('.exam-head-left');
+  var head = document.querySelector('#examPractice .ex-top .ex-icons');
   if(head && !head.querySelector('.ex-menubtn')){
     head.removeAttribute('aria-hidden');   /* 10/15 原本 aria-hidden=true，里面放按钮会让它对读屏不可见 */
     var btn = document.createElement('button');
@@ -2767,7 +2769,7 @@ function wrtBindOption(){
   var oc = panel.querySelector('[data-opclose]');
   if(oc) oc.addEventListener('click', function(ev){ ev.stopPropagation(); panel.classList.remove('on'); });
   /* 10/15 ☰ 在顶栏里、不在面板内 —— 原写法在 panel 内部查恒 null（☰ 永远打不开面板），改成去顶栏找 */
-  var mb = document.querySelector('#examPractice .exam-head-left .ex-menubtn') || document.querySelector('.exam-head-left .ex-menubtn');
+  var mb = document.querySelector('#examPractice .ex-top .ex-menubtn');
   if(mb && !mb.__wrtBound){
     mb.__wrtBound = true;
     mb.addEventListener('click', function(ev){

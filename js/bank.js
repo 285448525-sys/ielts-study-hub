@@ -632,10 +632,7 @@
       +    '<div class="ex-oplist" id="exOptMain">'
       +      '<div class="ex-oprow" data-sub="colour">Colour<span class="ar">\u203A</span></div>'
       +      '<div class="ex-oprow" data-sub="size">Size<span class="ar">\u203A</span></div>'
-      /* 10/14 她拍板：音量/倍速/静音从音频条移入这里（进度条折叠，三科顶栏一致）。
-         10/16 修（体检发现）：Audio 子面板**只在有音频条的页显示**（阅读/写作没有音频，
-         点进去是一组控制空气的滑杆），且文案英文化（🔴 考试页零中文铁律）。 */
-      + (document.getElementById('exAudioBar') ? '<div class="ex-oprow" data-sub="audio">Audio<span class="ar">\u203A</span></div>' : '')
+      /* 10/16 她：「第三个调节音频的删掉」（音频调节界面晚点再说）→ Audio 子面板整套删除 */
       +    '</div>'
       +    '<div class="ex-opsub" id="exOptColour">'
       +      '<label class="ex-oprow" data-theme=""><input type="radio" name="exCt" value="light" checked> Black on white</label>'
@@ -650,14 +647,7 @@
       /* 10/14 她拍板：音量滑杆与倍速从音频条移到这里（进度条折叠，三科顶栏一致）。
          data 属性与音频条时代完全相同 → 事件绑定（data-avsl / data-arate / data-avol）零改动。
          🔴 10/16：文案英文化（音量→Volume / 倍速→Speed / 静音→Mute / 已静音→Muted / 开启中→On）。 */
-      +    '<div class="ex-opsub" id="exOptAudio">'
-      +      '<div class="ex-oprow ex-op-audio-row"><span>Volume</span>'
-      +        '<input type="range" min="0" max="1" step="0.05" value="' + (_audioMuted ? 0 : _audioVol) + '" data-avsl aria-label="Volume"></div>'
-      +      '<div class="ex-oprow ex-op-audio-row"><span>Speed</span>'
-      +        '<button class="ex-op-rate" type="button" data-arate>' + rateLabel(AUDIO_RATES[_rateIx]) + '</button></div>'
-      +      '<div class="ex-oprow ex-op-audio-row"><span>Mute</span>'
-      +        '<button class="ex-op-mute" type="button" data-avol>' + (_audioMuted || _audioVol === 0 ? '\uD83D\uDD07 Muted' : '\uD83D\uDD0A On') + '</button></div>'
-      +    '</div>'
+      /* 10/16 她：Audio 子面板已删（原音量/倍速/静音） */
       +    '<div class="ex-opback"><button type="button" data-opback>\u2039 Back</button></div>'
       + '</div>';
   }
@@ -679,7 +669,7 @@ function optShowSub(key){
   /* 10/14 直接操作 style.display —— class 切换（.on）实测时灵时不灵
      （疑与软导航二次 eval bank.js 有关：旧监听器引用旧函数、DOM 却是新的），
      用最笨的 style 写法，100% 可控。 */
-  var MAP = { colour: "exOptColour", size: "exOptSize", audio: "exOptAudio" };
+  var MAP = { colour: "exOptColour", size: "exOptSize" };   /* 10/16：audio 子面板已删 */
   var want = MAP[key] || "";
   var main = document.getElementById("exOptMain");
   if(main) main.style.display = "none";
@@ -795,7 +785,7 @@ function barHtml(){
     return null;
   }
   function listenPartLabel(){ var p = listenPart(); return (p && p.partNum) || 'Audio'; }
-  function audioBarHtml(partLabel, nameText, timerText, showModes){
+  function audioBarHtml(partLabel, nameText, timerText, showModes){   /* 10/16：nameText/timerText 参数保留签名兼容（顶栏已承载，不再渲染） */
     var p = listenPart();
     if(!p || !p.audioUrl) return '<div class="ex-audio" id="exAudioBar"><span class="ea-label">No audio for this part</span></div>';   /* 🔴 10/16：原「本部分没有音频」= 考场内中文，违反零中文铁律 */
     var exam = EX.listenMode === 'exam';
@@ -805,10 +795,9 @@ function barHtml(){
     var modeBtn = '';
     var partChip = partLabel ? '<span class="ea-part">' + esc(partLabel) + '</span>' : '';
     /* 10/14 她拍板：两行并一行 —— 标题 + 整场倒计时并入音频条行首（原独立标题行撤销） */
-    var nameChip = nameText ? '<span class="ea-name">' + esc(nameText) + '</span>' : '';
-    var timerChip = timerText ? '<span class="ea-fulltimer" id="eaFullTimer">' + esc(timerText) + '</span>' : '';
+    /* 10/16 三科上下栏统一：篇名与整场计时已在顶栏（阅读同款）→ 音频条瘦身为纯播放条
+       （播放 | Part 胶囊 | 进度 | 时间 | 静音），不再重复渲染标题/计时。 */
     return '<div class="ex-audio' + (exam ? ' locked' : '') + '" id="exAudioBar">'
-      + nameChip + timerChip
 
       + '<button class="ea-play" type="button" data-aplay aria-label="Play">▶</button>'
       + partChip
