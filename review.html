@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="UTF-8" />
@@ -88,11 +88,43 @@
   background:transparent;font-weight:600;color:var(--ink-2);
 }
 .card .form-row.mk-list-head .mk-filter-wrap select:focus{outline:none;box-shadow:none;background:transparent}
+
+/* ===== 10/17 #9 层次 2 · 记录行里的「逐题明细」展开块（只在回顾页 .mk-row 内用）=====
+   数据 = bank.js 交卷时落盘的 mockRecords[].detail[]（{qn,user,right,ok}）。
+   ⚠️ 这里的 selector 必须比 common.css 的 #mkList 规则更具体或同位在后，
+   否则 .mk-row 的 flex 布局会把 .mk-det 挤成一行里的一个小格（.mk-note 就靠 flex:0 1 100% 解决）。 */
+#mkList .mk-det-btn{
+  flex:none;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);
+  font-size:11.5px;font-weight:600;padding:3px 11px;border-radius:999px;min-height:26px;
+  cursor:pointer;font-family:inherit;transition:background .15s,border-color .15s,color .15s;
+}
+#mkList .mk-det-btn:hover{background:var(--n-100);border-color:var(--primary-200)}
+#mkList .mk-det-btn.on{background:var(--primary-soft);border-color:var(--primary-200);color:var(--primaryText,var(--primary-900))}
+#mkList .mk-det{flex:0 1 100%;min-width:0;margin-top:8px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);padding:10px 12px}
+#mkList .mk-det[hidden]{display:none}
+#mkList .mk-det-head{font-size:12px;font-weight:700;color:var(--ink-2);margin-bottom:8px}
+#mkList .mk-det-grid{display:flex;flex-wrap:wrap;gap:5px}
+/* 每格 = 一个题号。答对只给题号；答错额外给「正确答案 / 你的答案」两行小字 */
+#mkList .mk-dq{
+  display:inline-flex;flex-direction:column;align-items:center;gap:1px;
+  min-width:34px;padding:4px 7px;border-radius:7px;border:1px solid transparent;
+  font-size:11.5px;line-height:1.25;font-variant-numeric:tabular-nums;
+}
+#mkList .mk-dq b{font-weight:800;font-size:12px}
+#mkList .mk-dq.ok{background:#e7f6ef;border-color:#cfe6dd;color:#1f7a5c}
+#mkList .mk-dq.no{background:#fdeceb;border-color:#f0c9c4;color:#b3261e}
+#mkList .mk-dq.no i{font-style:normal;font-weight:700;font-size:10.5px;color:#1f7a5c;background:#fff;border-radius:4px;padding:0 4px;max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#mkList .mk-dq.no em{font-style:normal;font-size:10.5px;color:#b3261e;opacity:.85;max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#mkList .mk-det-legend{display:flex;align-items:center;gap:4px;margin-top:9px;font-size:10.5px;color:var(--muted);flex-wrap:wrap}
+#mkList .mk-det-legend .lg{display:inline-block;width:9px;height:9px;border-radius:3px;margin-left:6px}
+#mkList .mk-det-legend .lg:first-child{margin-left:0}
+#mkList .mk-det-legend .lg.ok{background:#e7f6ef;border:1px solid #cfe6dd}
+#mkList .mk-det-legend .lg.no{background:#fdeceb;border:1px solid #f0c9c4}
 </style>
 <script defer src="js/data.js?v=20261011e"></script>
 <script defer src="js/common.js?v=20261013ac"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
-<script defer src="js/scores.js?v=20261010a"></script>
+<script defer src="js/scores.js?v=20261017a"></script>
 <script defer src="js/history.js?v=20260904d"></script>
 <script defer src="js/mock-report.js?v=20261006a"></script>
 <script defer src="js/mock-history.js?v=20261006b"></script>

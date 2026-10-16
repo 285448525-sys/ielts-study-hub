@@ -657,6 +657,34 @@ function renderMockStats(){
   }
 }
 
+/* 10/17 #9 层次 2：把秒格式化成 M:SS（用时展示）。只在本页用，不占全局命名。 */
+function fmtUsedSec(sec){
+  sec = Math.max(0, Math.round(Number(sec) || 0));
+  const m = Math.floor(sec / 60), s = sec % 60;
+  return m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+/* 10/17 #9 层次 2：逐题明细展开块。
+   数据来自 bank.js doSubmit() 落盘的 mockRecords[].detail[]（{qn,user,right,ok}）。
+   🔴 在此之前逐题明细只活在内存里 —— 刷新就丢，所以历史上的记录没有 detail，
+   这里必须容忍缺失（没 detail 就不渲染这个入口，不是报错）。 */
+function mkDetailHtml(r){
+  const det = Array.isArray(r.detail) ? r.detail : null;
+  if(!det || !det.length) return '';
+  const wrong = det.filter(d => !d.ok).length;
+  const chips = det.map(d => d.ok
+    ? `<span class="mk-dq ok" title="答对"><b>${escapeHtml(d.qn)}</b></span>`
+    : `<span class="mk-dq no" title="答错"><b>${escapeHtml(d.qn)}</b><i>${escapeHtml(d.right || '—')}</i><em>${escapeHtml(d.user || '—')}</em></span>`
+  ).join('');
+  const head = (r.usedSec ? `用时 ${fmtUsedSec(r.usedSec)} · ` : '') + `逐题明细（${det.length} 题，错 ${wrong}）`;
+  return `<button type="button" class="mk-det-btn" data-det="${r.id}" aria-expanded="false">详情</button>`
+    + `<div class="mk-det" hidden>`
+    +   `<div class="mk-det-head">${head}</div>`
+    +   `<div class="mk-det-grid">${chips}</div>`
+    +   `<div class="mk-det-legend"><span class="lg ok"></span>答对<span class="lg no"></span>答错 · 灰底数字=正确答案，红字=你的答案</div>`
+    + `</div>`;
+}
+
 function renderMockList(){
   const box = $('#mkList');
   /* 9/13 修口径分裂：范围筛选（全部/近十天）此前只作用于上面的「表现统计」，
@@ -716,9 +744,20 @@ function renderMockList(){
       ${overallBadge}${estBadge}
       <span class="mk-parts-inline">${partsHtml}</span>
       <button class="plan-del mk-del" data-del="${r.id}" title="删除">✕</button>
+      ${mkDetailHtml(r)}
       ${r.note ? `<div class="muted mk-note">${escapeHtml(r.note)}</div>` : ''}
     </div>`;
   }).join('');
+  /* 10/17 #9 层次 2：详情展开 / 收起。就地 toggle，不重渲染整表（避免滚动位置丢失）。 */
+  box.querySelectorAll('button[data-det]').forEach(b => b.addEventListener('click', () => {
+    const det = b.parentNode.querySelector('.mk-det');
+    if(!det) return;
+    const open = det.hidden;
+    det.hidden = !open;
+    b.setAttribute('aria-expanded', open ? 'true' : 'false');
+    b.classList.toggle('on', open);
+    b.textContent = open ? '收起' : '详情';
+  }));
   box.querySelectorAll('button[data-del]').forEach(b => b.addEventListener('click', () => {
     if(confirm('删除这条分项模考？')){ DATA.mockRecords = DATA.mockRecords.filter(x => x.id !== b.dataset.del); DATA.deletedIds = DATA.deletedIds || []; if(b.dataset.del != null && !DATA.deletedIds.includes(b.dataset.del)) DATA.deletedIds.push(b.dataset.del); hubSave(); renderMock(); }
   }));
