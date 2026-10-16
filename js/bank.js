@@ -317,32 +317,6 @@
     return 'Choose the correct letter, <b>A</b>, <b>B</b>, <b>C</b> or <b>D</b>.';
   }
 
-  /* 10/16：共享选项多选组的答案键补齐。
-     真机考「Questions X–Y Choose N letters」= 一份选项全组共用，但题库答案文件有时只把键登记在
-     组内第一个题上（实测 Playing Soccer 20/21 双键齐全、William Gilbert 仅 11 有键）→ 不补齐的
-     话同组其余题（12/13）即使勾对也永远判错。口径：取组内第一个非空键，补给同组缺失的题。
-     仅处理「共享形态」组（有题带选项 + 有题不带选项，全库 102 个）；每题自带选项的组不碰；
-     全组无键（10/15 新拉的 212 篇无答案）原样不动。 */
-  function fillSharedAnswers(unit, answers){
-    (unit.parts || []).forEach(function(p){
-      (p.groups || []).forEach(function(g){
-        if(g.type !== 'multiple-choice') return;
-        var qs = g.questions || [];
-        var withOpts = qs.filter(function(q){ return (q.options || []).length; }).length;
-        if(!withOpts || withOpts === qs.length) return;   /* 不是共享形态 → 不补 */
-        var first = null;
-        for(var i = 0; i < qs.length; i++){
-          var k = qs[i].qNumber;
-          if(k != null && answers[k] != null){ first = answers[k]; break; }
-        }
-        if(first == null) return;
-        qs.forEach(function(q){
-          if(q.qNumber != null && answers[q.qNumber] == null) answers[q.qNumber] = first;
-        });
-      });
-    });
-  }
-
   function openExam(unitId, channel){
     var root = document.getElementById('bankRoot');
     if(root) root.style.display = 'none';
@@ -356,7 +330,7 @@
 
     Promise.all([p1, p2]).then(function(res){
       var unit = res[0], ansFile = res[1] || {};
-      fillSharedAnswers(unit, ansFile.answers || {});   /* 10/16：共享选项组答案键补齐 */
+      annotateGroups(unit, ansFile.answers || {});   /* 10/16：组级答案标注（共享组判分/限数用） */
       EX = {
         unit: unit, channel: channel,
         answers: ansFile.answers || {}, alts: ansFile.alts || {},
@@ -471,17 +445,45 @@
   function flagHtml(n){
     return '<button type="button" class="ex-flagq" data-qn="' + esc(n) + '" title="Mark">\u2691</button>';
   }
-  /* 多选需要勾几个：从组指令里解析（Choose TWO/THREE/FOUR），解析不到就不限。
-     10/16 修（她实测「Choose TWO 却能勾 3 个」）：题库多选组的 description 字段全线缺失
-     （109/109 = undefined），原口径只读 description → need 恒 0 → 限数从未生效。
-     改兜底链：description → 组内题干文本（真机考「Which TWO/THREE of...」就写在题干里，
-     与 instrFor 的 Choose TWO/THREE 指令同源）。 */
-  function needOf(g){
+  /* 多选要勾几个（Choose TWO/THREE/FOUR）。派生链（10/16 二修，她复报「多选能选超限」）：
+     ① 组内答案文件的字母并集大小 —— 最可靠：题库有 39 组把「Choose TWO」的两个字母**拆到两个
+        题号**（21="A" 22="C"，与 Playing Soccer 那种「两题都存 C,E」并存），题干也不一定写 TWO，
+        只有答案并集能还原真实需要数；
+     ② 题干文本（Which/Choose TWO/THREE…）；
+     ③ 兜底 = 组内题数。
+     实测全库 109 组 → need 全落在 2(99)/3(10)，无 0（10/16 一批只读 description → 109/109 缺 → 恒 0）。 */
+  function groupNeed(g){
+    var qs = g.questions || [];
     var src = plain(g.description || '');
-    if(!src) src = (g.questions || []).map(function(q){ return plain(q.question || ''); }).join(' ');
+    if(!src) src = qs.map(function(q){ return plain(q.question || ''); }).join(' ');
     var m = /TWO|THREE|FOUR/i.exec(src);
-    if(!m) return 0;
-    return { two: 2, three: 3, four: 4 }[m[0].toLowerCase()] || 0;
+    var stemNeed = m ? ({ two:2, three:3, four:4 }[m[0].toLowerCase()] || 0) : 0;
+    return Math.max(stemNeed, g._needAns || 0) || (qs.length > 1 ? qs.length : 0);
+  }
+  /* 共享选项形态：组内部分题带选项、部分不带（真机考「Questions X–Y Choose N」= 一份选项全组共用；
+     题库 109 个多选组 102 个如此）。 */
+  function isSharedGroup(g){
+    var qs = g.questions || [];
+    var withOpts = qs.filter(function(q){ return (q.options || []).length; }).length;
+    return withOpts > 0 && withOpts < qs.length;
+  }
+  /* 10/16：组级答案标注（加载时算一次，单篇与完整模考两条路径都挂）。
+     g._ansSet = 组内全部题号答案的**字母并集**（小写去重排序逗号串）——判分口径 = 勾选集合与它
+     相等（真机考 "21 & 22 IN EITHER ORDER: A, C"，不区分哪个字母归哪一题）；
+     g._needAns = 该并集大小 = 该组需要勾几个（答案文件是比题干更可靠的判据：39 组的题干没写 TWO）。 */
+  function annotateGroups(unit, answers){
+    (unit.parts || []).forEach(function(p){
+      (p.groups || []).forEach(function(g){
+        var set = {};
+        (g.questions || []).forEach(function(q){
+          var v = answers[q.qNumber];
+          if(v == null) return;
+          String(v).split(/[,\s\/]+/).forEach(function(c){ c = c.trim().toLowerCase(); if(c) set[c] = 1; });
+        });
+        g._ansSet = Object.keys(set).sort().join(',');
+        g._needAns = Object.keys(set).length;
+      });
+    });
   }
 
   function groupHtml(g, idx, numOf, channel){
@@ -554,27 +556,40 @@
           + flagHtml(n) + '<span class="ex-qt">' + esc(plain(q.question)) + pillsHtml(q, numOf) + '</span></div>';
       });
     } else if(g.type === 'multiple-choice'){
-      var need = needOf(g);
-      /* 🔴 10/16 修（她实测 Q9-10：题干被压成 40px 窄条 + 词中断 + Choose TWO 能勾 3 个 + Q10 无法作答）：
-         ① 选项原为 .ex-qt 的 flex 兄弟节点 → 长选项把题干栏（.ex-qt{flex:1;min-width:0}）压成窄条，
-            题干文字溢出后被选项行底色盖住 = 截图里的「词中断」（1440px 实测题干栏仅 40px）。
-            改：选项移入 .ex-qt 内部，题干下方整行竖排 —— 这正是 10/14 卷面格式批（597103d）
-            写下的 `.ex-qt > .ex-opts{margin-top:8px}` 规则的本意（当时只包了题干、没移选项，
-            那条 CSS 一直是死代码）。形态与 104 样子稿 cb-opts（题干下竖排整行）一致。
-         ② 共享选项组：题库数据里选项只挂在组内第一个题上（109 个多选组 102 个如此）→
-            承载题输出唯一一份 cbox 并用 data-share 列出共享此题选项的其他题号；无选项的题
-            只渲染题干（勾选值由 collect 同步写给每个共享题号，判分/草稿/答题卡全复用）。 */
-      qs.forEach(function(q){
-        var n = numOf(q.qNumber);
-        var inner = clean(q.question);
-        if((q.options || []).length){
-          var share = qs.filter(function(x){ return x !== q && !(x.options || []).length; })
-                        .map(function(x){ return numOf(x.qNumber); }).join(' ');
-          inner += cboxHtml(q, numOf, need, share);
+      var need = groupNeed(g);
+      /* 🔴 10/16 修（她实测 Q9-10：题干被压成 40px 窄条 + 词中断 + Choose TWO 能勾 3 个 + Q10 无法作答）
+         ＋ 10/16 二修（她复报「题型 UI 不像考试 / 多选能选超限 / 有题只有题干没选项」）：
+         ① 选项原为 .ex-qt 的 flex 兄弟节点 → 长选项把题干栏压成窄条（1440px 实测仅 40px），
+            文字溢出被选项底色盖住 = 截图里的「词中断」。改：选项移入 .ex-qt 内部（题干下竖排整行）
+            —— 10/14 卷面格式批（597103d）写下的 `.ex-qt > .ex-opts{margin-top:8px}` 本意，
+            当时只包了题干没移选项（死代码）。形态与 104 样子稿 cb-opts 一致。
+         ② 共享选项组（102/109）逐题渲染 → 非承载题成了「有题干无选项」的孤儿行（她截图里的第 10 题）。
+            真机考 = **合并题号 + 一份选项**（104 样子稿同形：`19-20` 合并框）→ 合并成一行「9–10」，
+            承载题输出唯一 cbox + data-share 列出其余题号（collect 同步写全组 / 判分按集合）。
+         ③ 选项形态对齐真机考（爱听写真题站逆向实证：多选 = checkbox 方框 + ✓，单选 = radio 圆环，
+            见 bank.html .ex-cbox 样式）。 */
+      if(isSharedGroup(g)){
+        var carrier = null, nums = [];
+        qs.forEach(function(q){
+          nums.push(numOf(q.qNumber));
+          if(carrier == null && (q.options || []).length) carrier = q;
+        });
+        if(carrier){
+          var label = nums.length > 1 ? (nums[0] + '–' + nums[nums.length - 1]) : nums[0];
+          var others = nums.filter(function(x){ return x !== numOf(carrier.qNumber); }).join(' ');
+          var cst = numOf(carrier.qNumber);
+          h += '<div class="ex-q ex-q--mgroup"><span class="ex-qn ex-qn--wide" data-qns="' + esc(nums.join(' ')) + '">' + esc(label) + '</span>'
+            + flagHtml(cst) + '<span class="ex-qt">' + clean(carrier.question) + cboxHtml(carrier, numOf, need, others) + '</span></div>';
         }
-        h += '<div class="ex-q"><span class="ex-qn" data-qn="' + esc(n) + '">' + esc(n) + '</span>'
-          + flagHtml(n) + '<span class="ex-qt">' + inner + '</span></div>';
-      });
+      } else {
+        qs.forEach(function(q){
+          var n = numOf(q.qNumber);
+          var inner = clean(q.question);
+          if((q.options || []).length) inner += cboxHtml(q, numOf, need, '');
+          h += '<div class="ex-q"><span class="ex-qn" data-qn="' + esc(n) + '">' + esc(n) + '</span>'
+            + flagHtml(n) + '<span class="ex-qt">' + inner + '</span></div>';
+        });
+      }
     } else {
       var tf = isTFGroup(g);
       qs.forEach(function(q){
@@ -984,7 +999,7 @@ function barHtml(){
               .then(function(r){ return r.ok ? r.json() : {}; }).catch(function(){ return {}; });
     return Promise.all([p1, p2]).then(function(res){
       var a = res[1] || {};
-      fillSharedAnswers(res[0], a.answers || {});   /* 10/16：共享选项组答案键补齐（完整模考同路） */
+      annotateGroups(res[0], a.answers || {});   /* 10/16：组级答案标注（完整模考同路） */
       return { id: unitId, unit: res[0], answers: a.answers || {}, alts: a.alts || {} };
     });
   }
@@ -1006,9 +1021,10 @@ function barHtml(){
       packs.forEach(function(pk, pi){
         (pk.unit.parts || []).forEach(function(part){
           (part.groups || []).forEach(function(g){
+            var gset = isSharedGroup(g) ? (g._ansSet || '') : '';   /* 10/16：共享组判分集合 */
             (g.questions || []).forEach(function(q){
               if(q.qNumber == null) return;
-              var ent = { g: EX.qs.length + 1, p: pi + 1, loc: String(q.qNumber), q: q, pack: pk };
+              var ent = { g: EX.qs.length + 1, p: pi + 1, loc: String(q.qNumber), q: q, pack: pk, gset: gset };
               EX.qs.push(ent); EX.byKey[(pi + 1) + '|' + ent.loc] = ent; EX.byG[ent.g] = ent;
             });
           });
@@ -1072,9 +1088,10 @@ function barHtml(){
       packs.forEach(function(pk, pi){
         (pk.unit.parts || []).forEach(function(part){
           (part.groups || []).forEach(function(g){
+            var gset = isSharedGroup(g) ? (g._ansSet || '') : '';   /* 10/16：共享组判分集合 */
             (g.questions || []).forEach(function(q){
               if(q.qNumber == null) return;
-              var ent = { g: EX.qs.length + 1, p: pi + 1, loc: String(q.qNumber), q: q, pack: pk };
+              var ent = { g: EX.qs.length + 1, p: pi + 1, loc: String(q.qNumber), q: q, pack: pk, gset: gset };
               EX.qs.push(ent); EX.byKey[(pi + 1) + '|' + ent.loc] = ent; EX.byG[ent.g] = ent;
             });
           });
@@ -1184,7 +1201,7 @@ function barHtml(){
         var ent = EX.byG[d.qn];
         if(!ent || ent.p !== pi) return;
       }
-      var qnEl = root.querySelector('.ex-qn[data-qn="' + d.qn + '"]');
+      var qnEl = root.querySelector('.ex-qn[data-qn="' + d.qn + '"]') || root.querySelector('.ex-qn[data-qns~="' + d.qn + '"]');
       if(qnEl) qnEl.classList.add(d.ok ? 'hit' : 'miss');
 
       root.querySelectorAll('.ex-pills[data-q="' + d.qn + '"] .ex-pill').forEach(function(p){
@@ -1586,7 +1603,10 @@ function barHtml(){
     if(sel){ sel.value = val; return; }
     var box = cboxForQ(qn);
     if(box){
-      var arr = Array.isArray(val) ? val : (val ? [val] : []);
+      var need = Number(box.getAttribute('data-need') || 0);
+      var arr = Array.isArray(val) ? val.slice() : (val ? [val] : []);
+      /* 10/16：旧草稿里可能存着超限的勾选（限数修复前留下的）→ 恢复时裁到 need，避免「又超限了」 */
+      if(need && arr.length > need) arr = arr.slice(0, need);
       box.querySelectorAll('input[type=checkbox]').forEach(function(c){ c.checked = arr.indexOf(c.value) > -1; });
       syncCboxDis(box);
       return;
@@ -1792,6 +1812,7 @@ function barHtml(){
       EX.cur = n;
       paintSheet();
       var el2 = document.querySelector('#examRoot .ex-qn[data-qn="' + n + '"]')
+             || document.querySelector('#examRoot .ex-qn[data-qns~="' + n + '"]')
              || document.querySelector('#examRoot input.ex-blank[data-q="' + n + '"]');
       if(el2) el2.scrollIntoView({ block: 'center', behavior: 'smooth' });
       if(edit && !EX.submitted) focusBlank(n);
@@ -1800,6 +1821,7 @@ function barHtml(){
     EX.cur = n;
     paintSheet();
     var el = document.querySelector('#examRoot .ex-qn[data-qn="' + n + '"]')
+          || document.querySelector('#examRoot .ex-qn[data-qns~="' + n + '"]')
           || document.querySelector('#examRoot input.ex-blank[data-q="' + n + '"]');
     if(el) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
     if(edit && !EX.submitted) focusBlank(n);
@@ -2018,7 +2040,15 @@ function barHtml(){
     window.addEventListener('beforeunload', function(){ try{ bankCommitTimer(); }catch(e){} });
   }
 
-  /* ===== 判分 ===== */
+  /* ===== 判分 =====
+     10/16 二修：共享选项组（一份选项全组共用）的判分必须按**组答案集合**比，不能按单题 key。
+     题库两种答案存储并存：① 同一对字母存两题（Playing Soccer 20/21 都存 "C,E"）
+     ② 两个字母拆到两题（Learning from the Romans 21="A" 22="C"）。collect 把整组勾选写给每题，
+     若逐题比单题 key，②型会全判错（用户勾 A,C → 与 key "A" 不等）。真机考口径 =
+     "21 & 22 IN EITHER ORDER: A, C" → 勾选集合 == 组答案集合 ⇒ 组内每题都算对。 */
+  function setEq(ua, gset){
+    return !!gset && ua.map(function(x){ return String(x).toLowerCase(); }).sort().join(',') === gset;
+  }
   function judgeOne(key, alts, ua){
     if(Array.isArray(ua)){
       var rset = String(key || '').toLowerCase().split(/[,\s\/]+/).filter(Boolean).sort().join(',');
@@ -2034,20 +2064,27 @@ function barHtml(){
         var key = e.pack.answers[e.loc], ua = user[e.g];
         var alts = (e.pack.alts && e.pack.alts[e.loc]) ? [].concat(e.pack.alts[e.loc]) : [];
         total++;
-        var j = judgeOne(key, alts, ua);
+        var j = (e.gset && Array.isArray(ua))
+          ? { ok: setEq(ua, e.gset), shown: ua.join(',') }
+          : judgeOne(key, alts, ua);
         if(j.ok) right++;
-        detail.push({ qn: String(e.g), user: j.shown == null ? '' : j.shown, right: key == null ? '' : key, ok: !!j.ok, q: e.q });
+        detail.push({ qn: String(e.g), user: j.shown == null ? '' : j.shown,
+                      right: e.gset ? e.gset.toUpperCase() : (key == null ? '' : key), ok: !!j.ok, q: e.q });
       });
       return { right: right, total: total, detail: detail };
     }
     EX.groups.forEach(function(g){
+      var gset = isSharedGroup(g) ? (g._ansSet || '') : '';
       (g.questions || []).forEach(function(q){
         var qn = String(q.qNumber), key = EX.answers[qn], ua = user[qn];
         var alts = (EX.alts && EX.alts[qn]) ? [].concat(EX.alts[qn]) : [];
         total++;
-        var j = judgeOne(key, alts, ua);
+        var j = (gset && Array.isArray(ua))
+          ? { ok: setEq(ua, gset), shown: ua.join(',') }
+          : judgeOne(key, alts, ua);
         if(j.ok) right++;
-        detail.push({ qn: qn, user: j.shown == null ? '' : j.shown, right: key == null ? '' : key, ok: !!j.ok, q: q });
+        detail.push({ qn: qn, user: j.shown == null ? '' : j.shown,
+                      right: gset ? gset.toUpperCase() : (key == null ? '' : key), ok: !!j.ok, q: q });
       });
     });
     return { right: right, total: total, detail: detail };

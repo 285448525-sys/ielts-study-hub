@@ -218,6 +218,8 @@
 .ex-qn{flex:none;display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;border:1.5px solid #111;border-radius:3px;font-weight:700;font-size:13px;background:#fff;padding:0 4px;margin-top:1px}   /* 10/14 14→13px、方框 27→24px */
 .ex-qn.miss{color:#b3261e;border-color:#b3261e}
 .ex-qn.hit{color:var(--primary-900);border-color:var(--primary)}
+/* 10/16 二修：共享选项组（Questions X–Y Choose N）合并题号框（如「9–10」）——真机考/104 样子稿同形 */
+.ex-qn--wide{min-width:46px;padding:0 7px;letter-spacing:.3px}
 /* 选项（判断/单选/多选/字母匹配）：竖排整行，选中 = 圈实心 + 行浅 teal（样子稿 104，颜色本站 teal）
    靠 :has() 按 input 状态渲染（Edge/Chrome 105+，全站现代浏览器） */
 .ex-pills{display:flex;flex-direction:column;gap:3px;margin-top:10px}
@@ -239,10 +241,16 @@
 /* 10/15 她：「多选题就是跟选择题一样的 UI，只不过限制只能选多选的个数而已」
    → 视觉与单选 .ex-radio-box 完全一致（圆环）；多选语义由 JS 控制
      （选满 need 个后其余 .ex-opt.dis 变灰禁用，见 syncCboxDis），不靠 checkbox 外形区分。 */
-.ex-cbox .ex-opt::before{content:"";flex:none;width:14px;height:14px;border:1.5px solid #8f959e;border-radius:50%;background:#fff}
-.ex-cbox .ex-opt:has(input:checked)::before{border-color:var(--primary);background:radial-gradient(circle,var(--primary) 0 4px,#fff 4.5px)}
+/* 10/16 二修：选项形态对齐**真机考**（爱听写真题站逆向实证：多选 = `input type=checkbox` 方框，
+   单选 = `type=radio` 圆环；104 样子稿同样是「多选 .cb 方框 + ✓ / 单选 .rd 圆环」）。
+   ⚠️ 推翻 10/15 10:28「多选与单选同 UI（圆环）」——她 10/16 复报「这个题型 ui 交互跟考试不一样」，
+   圆环会被误读成单选；多选必须用方框 + 勾，才能一眼看出可以勾多个。 */
+.ex-cbox .ex-opt::before{content:"";flex:none;width:15px;height:15px;border:1.5px solid #8f959e;border-radius:3px;background:#fff}
+/* 选中 = 方框填 teal + 白色勾（内联 SVG data-URI：CSP img-src 已允许 data:，比 ::after 定位准，且不挑字体） */
+.ex-cbox .ex-opt:has(input:checked)::before{border-color:var(--primary);background-color:var(--primary);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.4 8.5l3 3L12.7 5.3' fill='none' stroke='%23fff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-size:11px 11px;background-position:center;background-repeat:no-repeat}
 .ex-opt.dis{opacity:.35;pointer-events:none}
-.ex-opt b{margin-right:2px}
+/* 10/16：选项字母与文案的间距 2px → 7px（她截图里「BThey can provide…」黏在一起，真机考有明确间隔） */
+.ex-opt b{margin-right:7px}
 .ex-opt span{display:flex;align-items:baseline}
 /* 逐题旗子（Mark，迁移自底栏按钮）：题干行右上 */
 .ex-flagq{position:absolute;right:0;top:2px;border:none;background:none;color:#c3c8cf;font-size:16px;cursor:pointer;padding:2px 4px;line-height:1}
@@ -1127,6 +1135,6 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common.js?v=20261013ac"></script>
 <script defer src="js/writing_prompts.js?v=20260903ab"></script>
 <script defer src="js/writing.js?v=20261011i"></script>
-<script defer src="js/bank.js?v=20261012r"></script>
+<script defer src="js/bank.js?v=20261012s"></script>
 </body>
 </html>
