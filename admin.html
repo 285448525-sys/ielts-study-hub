@@ -270,7 +270,7 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
     <p class="desc">收到转账后在这里手动开通；会员状态只存服务端（用户改本地数据无效）；续费自动从现到期日顺延</p>
     <div class="toolbar">
       <label class="muted">账号</label>
-      <input class="small" id="vipAcct" placeholder="用户注册的手机号/用户名" style="width:190px" maxlength="20" />
+      <input class="small" id="vipAcct" placeholder="注册邮箱 / 手机号 / 用户名" style="width:240px" maxlength="60" />   <!-- 10/16：原 maxlength=20 邮箱根本输不完 + placeholder 没提邮箱 -->
       <label class="muted">天数</label>
       <input class="small" id="vipDays" type="number" min="1" max="3650" value="30" style="width:76px" />
       <button class="btn ghost small" data-vdays="30" type="button">月(30)</button>
@@ -1201,7 +1201,8 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
     var permanent = $('vipPermanent') && $('vipPermanent').checked;   // 她 10/1：站长本人永久会员
     var note = ($('vipNote').value || '').trim();
     $('vipErr').textContent = '';
-    if(!/^[a-z0-9_]{6,20}$/.test(acct)){ $('vipErr').textContent = '账号格式：6-20 位数字/字母/下划线'; return; }
+    /* 10/16 与 /api/admin 的 isAcct 口径对齐：邮箱账号（邮箱注册体系）同样可发会员 */
+    if(!/^(?:[a-z0-9_]{6,20}|[^\s@]+@[^\s@]+\.[^\s@]{2,})$/.test(acct)){ $('vipErr').textContent = '账号格式：邮箱 或 6-20 位数字/字母/下划线'; return; }
     if(!permanent && !(days >= 1 && days <= 3650)){ $('vipErr').textContent = '天数请填 1-3650'; return; }
     $('grantBtn').disabled = true;
     api('vip_grant', { acct: acct, days: days, permanent: permanent, note: note }, function(r){

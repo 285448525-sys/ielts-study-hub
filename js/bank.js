@@ -536,24 +536,25 @@
            —— 她 10/12 拍板、10/15 再次强调：**必须拖放**，不许改成字母框
          答案口径：EX.user[题号] = 段落字母 → 判分/落库/草稿全复用，与形态无关。 */
       var gid = 'loh' + idx;
-      var letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').slice(0, 9);   /* 段落字母上限 9（长文最多 9 段） */
-      /* 🔴🔴 10/16 修（她 15:19 发火：「不是说了段落匹配要用表格的形式来呈现吗为什么说了这么多次还是没改」）：
-         她 10/14 原话「匹配题是以表格的形式呈现的」→ 当时 3d4810f 只做成了「flex 行 + 右侧下拉」，
-         **没有表格外观**（无边框无网格），之后她 10/15、今天 14:02/15:19 又看到两三次都没变 → 本次真做表格。
-         形态对标爱听写 map-table（原生 `<table border="1" cellspacing="0">`，真机考同构）：
-         整组一张带边框表格，每行 = 题号 | 题干（内含旗标）| 字母下拉。答案口径与收集/判分零改动
-         （select 仍 data-q/data-g），主题（ct-dark/ct-yellow）边框同步适配。 */
-      h += '<table class="ex-lohtable"><tbody>';
+      var letters = 'ABCDEFGHI'.split('');   /* 官方矩阵固定 A–I 9 列（她 15:41 官方截图同款）；同一字母可被多题使用 → 每题独立 radio */
+      /* 🔴🔴 10/16 三修（她 15:41 官方截图：「表格不是这样下拉的，是这样的」）：
+         段落匹配的「表格」= **官方答题卡矩阵**——表头 A–I 列，每行题干，每格一个圆圈 radio，点选即答。
+         （15:19 我做成了「行+下拉」的表格，她指正形态不对。）
+         答案口径零改动：EX.user[题号] = 段落字母；radio 带 data-q（collect/domKeys/复盘全兼容）。
+         同一字母可重复使用（官方规则）→ 不做跨题互斥。 */
+      h += '<div class="ex-lomatrix-wrap"><table class="ex-lomatrix"><thead><tr><th class="mx-stem-h"></th>'
+        + letters.map(function(L){ return '<th>' + L + '</th>'; }).join('')
+        + '</tr></thead><tbody>';
       qs.forEach(function(q){
         var n = numOf(q.qNumber);
-        var opts = letters.map(function(ch){ return '<option value="' + ch + '">' + ch + '</option>'; }).join('');
         h += '<tr class="ex-q-lohr">'
-          + '<td class="ex-lt-no"><span class="ex-qn" data-qn="' + esc(n) + '">' + esc(n) + '</span></td>'
-          + '<td class="ex-lt-stem">' + flagHtml(n) + esc(plain(q.question)) + '</td>'
-          + '<td class="ex-lt-ans"><select class="ex-lohsel" data-q="' + esc(n) + '" data-g="' + gid + '" aria-label="paragraph letter">'
-          + '<option value=""></option>' + opts + '</select></td></tr>';
+          + '<td class="mx-stem">' + flagHtml(n) + '<b class="mx-no">' + esc(n) + '</b> ' + esc(plain(q.question)) + '</td>'
+          + letters.map(function(L){
+              return '<td class="mx-cell"><input type="radio" name="lomx-' + esc(n) + '" value="' + L + '" data-q="' + esc(n) + '" aria-label="Question ' + esc(n) + ' paragraph ' + L + '"></td>';
+            }).join('')
+          + '</tr>';
       });
-      h += '</tbody></table>';
+      h += '</tbody></table></div>';
     } else if(g.type === 'map'){
       /* map 这一个 type 在题库里是两种题：
          · 阅读 —— 实为「哪一段包含以下信息」的段落信息匹配：字母指段落，靠左边文章作答；
@@ -1243,6 +1244,15 @@ function barHtml(){
         psEl.classList.add(norm(psEl.getAttribute('data-v')) === norm(d.right) ? 'right' : 'wrong');
         psEl.style.pointerEvents = 'none';
       }
+      /* 10/16 三修：段落匹配矩阵——正确字母的格子标绿、错选标红、全部禁用（复盘口径与其他题型一致） */
+      root.querySelectorAll('#examRoot .ex-lomatrix input[type=radio][data-q="' + d.qn + '"]').forEach(function(r){
+        r.disabled = true;
+        var td = r.closest('td');
+        if(td){
+          if(norm(r.value) === norm(d.right)) td.classList.add('mx-right');
+          else if(r.checked) td.classList.add('mx-wrong');
+        }
+      });
       var bl = root.querySelector('input.ex-blank[data-q="' + d.qn + '"]'); if(bl) bl.disabled = true;
       if(bl && !d.ok){ bl.style.borderBottomColor = '#e6b3ae'; bl.style.color = '#b3261e'; }
 
@@ -1614,6 +1624,14 @@ function barHtml(){
     }
     var sel = root.querySelector('select[data-q="' + qn + '"]');
     if(sel){ sel.value = val; return; }
+    /* 10/16 三修：段落匹配矩阵 radio（官方答题卡形态）——草稿恢复/答案回显按 value 勾选 */
+    var mxr = root.querySelector('#examRoot .ex-lomatrix input[type=radio][data-q="' + qn + '"]');
+    if(mxr){
+      root.querySelectorAll('#examRoot .ex-lomatrix input[type=radio][data-q="' + qn + '"]').forEach(function(r){ r.checked = false; });
+      var hit = root.querySelector('#examRoot .ex-lomatrix input[type=radio][data-q="' + qn + '"][value="' + val + '"]');
+      if(hit) hit.checked = true;
+      return;
+    }
     var box = cboxForQ(qn);
     if(box){
       var need = Number(box.getAttribute('data-need') || 0);
@@ -1712,6 +1730,10 @@ function barHtml(){
     root.querySelectorAll('.ex-pslot[data-q]').forEach(function(s){ out[s.getAttribute('data-q')] = s.getAttribute('data-v'); });
     root.querySelectorAll('.ex-lohv[data-q]').forEach(function(v){ var t = v.textContent.trim(); if(t) out[v.getAttribute('data-q')] = t; });
     root.querySelectorAll('select[data-q]').forEach(function(s){ if(s.value) out[s.getAttribute('data-q')] = s.value; });
+    /* 10/16 三修：段落匹配矩阵（官方答题卡形态）——每题一格 radio，值 = 段落字母 */
+    root.querySelectorAll('#examRoot .ex-lomatrix input[type=radio]:checked').forEach(function(c){
+      out[c.getAttribute('data-q')] = c.value;
+    });
     /* 完整模考：没渲染成控件的题（另外两篇 / 漏渲染）→ 保留 EX.user 里已存的值 */
     if(EX && EX.full){
       qsOfPassage(EX.curP).forEach(function(e){
@@ -2443,6 +2465,16 @@ function barHtml(){
     });
     document.addEventListener('change', function(e){
       var t = e.target;
+      /* 10/16 三修：段落匹配矩阵 radio（官方答题卡形态）→ 写 EX.user（判分/落库/草稿口径不变） */
+      if(t.matches && t.matches('#examRoot .ex-lomatrix input[type=radio][data-q]')){
+        var _q = t.getAttribute('data-q'), _v = t.value;
+        if(EX && !EX.submitted){
+          if(t.checked){ EX.user[_q] = _v; }
+          else { delete EX.user[_q]; }
+          paintSheet();
+        }
+        return;
+      }
       /* 10/14 段落信息匹配改表格行：select 选字母 → 写 EX.user（判分/落库/草稿口径不变） */
       if(t.matches && t.matches('#examRoot .ex-lohsel[data-q]')){
         var _q = t.getAttribute('data-q'), _v = t.value;

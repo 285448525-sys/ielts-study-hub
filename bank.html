@@ -349,29 +349,30 @@
 /* 10/14 她拍板：段落信息匹配改表格行（题号 | 题干 | 右侧字母框）。
    真实机考同形态（IDP 官方样题 + 104 样子稿）。字母框做成 select：点开选 A–H，
    比拖放快，手机上也能用。 */
-/* 🔴🔴 10/16：段落匹配改**真表格**（她 10/14 原话「匹配题是以表格的形式呈现的」，10/14 批只做了行+下拉、
-   没做表格外观 → 她 10/15 / 10/16 两次又报。形态对标爱听写 map-table：原生 <table border=1>，真机考同构）。
-   ⚠️ 三种匹配题型口径不变：heading=拖放 / 普通字母匹配=拖放 / 段落匹配=表格行字母下拉（本次只改外观）。
-   字号全部 calc(var(--exfs)*系数)：默认档与改前一致，Size 三档一起放大。 */
-.ex-lohtable{width:100%;border-collapse:collapse;font-size:.8em;margin:2px 0 12px}
-.ex-lohtable td{border:1px solid #d7dbe0;padding:10px 12px;vertical-align:middle}
-.ex-lohtable .ex-lt-no{width:52px;text-align:center}
-.ex-lohtable .ex-lt-stem{position:relative;color:#111;line-height:1.65;padding-right:34px}
-.ex-lohtable .ex-lt-ans{width:calc(var(--exfs) * 4.8);text-align:center}
-.ex-lohtable .ex-flagq{top:50%;transform:translateY(-50%);right:6px}
-#examRoot.ct-dark .ex-lohtable td{border-color:#3a3f45}
-#examRoot.ct-dark .ex-lt-stem{color:#f2f2f2}
-#examRoot.ct-yellow .ex-lohtable td{border-color:#4a4526}
-#examRoot.ct-yellow .ex-lt-stem{color:#f0e3a8}
-.ex-lohsel{flex:none;width:calc(var(--exfs) * 3.1);height:calc(var(--exfs) * 1.7);border:1.5px solid #9ca3af;border-radius:6px;background:#fff;
-  font:inherit;font-size:calc(var(--exfs) * .725);font-weight:700;text-align:center;text-align-last:center;color:#111;
-  cursor:pointer;margin-left:auto;outline:none;transition:border-color .15s,box-shadow .15s}
-.ex-lohsel:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-50)}
-.ex-lohsel.filled{border-color:#374151}
-.ex-lohsel.right{border-color:var(--primary);color:var(--primary-900)}
-.ex-lohsel.wrong{border-color:#b3261e;color:#b3261e}
-#examRoot.ct-dark .ex-lohsel{background:#242628;border-color:#3a3f45;color:#e8eaed}
-#examRoot.ct-yellow .ex-lohsel{background:#24241a;border-color:#4a4526;color:#f0e3a8}
+/* 🔴🔴 10/16 三修（她 15:41 官方截图：「表格不是这样下拉的，是这样的」）：
+   段落匹配的「表格」= **官方答题卡矩阵**——表头 A–I 段落字母列，每行题干，每格一个圆圈 radio，
+   点选即答（同一字母可被多题使用 → 每题独立单选、跨题不互斥）。15:19 我做的「行+下拉」表格形态作废。
+   字号全部 calc(var(--exfs)*系数)：默认档与官方尺度一致，Size 三档整体放大。窄屏横向滚动。 */
+.ex-lomatrix-wrap{overflow-x:auto;margin:2px 0 12px}
+.ex-lomatrix{border-collapse:collapse;font-size:.8em;table-layout:fixed;width:100%;min-width:560px}   /* fixed：A–I 列固定宽、题干占剩余并换行；<560 窄屏横向滚 */
+.ex-lomatrix th,.ex-lomatrix td{border:1px solid #d7dbe0}
+.ex-lomatrix thead th{font-weight:800;background:#f7f8f9;padding:9px 6px;text-align:center;color:#111}
+.ex-lomatrix thead th:not(.mx-stem-h){width:calc(var(--exfs) * 1.7)}
+.ex-lomatrix .mx-stem-h{min-width:0}
+.ex-lomatrix .mx-stem{text-align:left;padding:12px 34px 12px 14px;line-height:1.65;color:#111;position:relative}
+.ex-lomatrix .mx-no{font-weight:800;margin-right:8px}
+.ex-lomatrix .mx-cell{padding:12px 4px;text-align:center}
+.ex-lomatrix input[type=radio]{width:15px;height:15px;accent-color:var(--primary);cursor:pointer;margin:0;vertical-align:middle}
+.ex-lomatrix td.mx-right{background:var(--primary-50)}
+.ex-lomatrix td.mx-wrong{background:#fdf3f2}
+.ex-lomatrix td.mx-right input[type=radio]{accent-color:var(--primary)}
+#examRoot.ct-dark .ex-lomatrix th,#examRoot.ct-dark .ex-lomatrix td{border-color:#3a3f45}
+#examRoot.ct-dark .ex-lomatrix thead th{background:#1c1f22;color:#f2f2f2}
+#examRoot.ct-dark .ex-lomatrix .mx-stem{color:#f2f2f2}
+#examRoot.ct-yellow .ex-lomatrix th,#examRoot.ct-yellow .ex-lomatrix td{border-color:#4a4526}
+#examRoot.ct-yellow .ex-lomatrix thead th{background:#24241a;color:#f0e3a8}
+#examRoot.ct-yellow .ex-lomatrix .mx-stem{color:#f0e3a8}
+/* 10/16 三修：.ex-lohsel（段落匹配下拉）整套样式已随矩阵形态退役删除 */
 .ex-lohb{display:inline-flex;align-items:center;justify-content:center;min-width:calc(var(--exfs) * 1.8);height:calc(var(--exfs) * 1.2);margin-left:10px;padding:0 8px;border:1px dashed #6b7280;border-radius:999px;font-size:calc(var(--exfs) * .625);font-weight:700;color:#111;cursor:grab;vertical-align:middle;user-select:none;-webkit-user-select:none}   /* 10/16：尺寸/字号跟 --exfs */
 .ex-lohb.sel{border-color:var(--primary);background:var(--primary-50)}
 .ex-lohb.used{opacity:.45;border-style:solid}
@@ -467,7 +468,6 @@
 #examRoot.ct-dark .ex-qn{color:#111 !important;border-color:#111 !important}
 #examRoot.ct-yellow .ex-qn{color:#111 !important;border-color:#111 !important}
 #examRoot.ct-dark .ex-pgar,#examRoot.ct-yellow .ex-pgar{color:#111 !important;border-color:#9ca3af !important}
-#examRoot.ct-dark .ex-lohsel,#examRoot.ct-yellow .ex-lohsel{color:#111 !important;background:#fff !important}
 #examRoot.ct-dark .ex-blankw b,#examRoot.ct-yellow .ex-blankw b{color:#111 !important}
 #examRoot.ct-dark .ex-drop b,#examRoot.ct-yellow .ex-drop b{color:#111 !important}
 /* ④ 填空框、选项在深色下的底色（保持白底深字，与真实机考一致：作答控件始终浅底） */
@@ -1160,6 +1160,6 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common.js?v=20261013ac"></script>
 <script defer src="js/writing_prompts.js?v=20260903ab"></script>
 <script defer src="js/writing.js?v=20261011i"></script>
-<script defer src="js/bank.js?v=20261012u"></script>
+<script defer src="js/bank.js?v=20261012v"></script>
 </body>
 </html>
