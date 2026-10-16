@@ -46,6 +46,14 @@
 .btn-ghost{appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-weight:600;
   font-size:14px;padding:9px 18px;border-radius:10px;cursor:pointer;min-height:40px;white-space:nowrap}
 .btn-ghost:hover{border-color:var(--primary);color:var(--primary)}
+/* 10/17：交卷后 Finish 按钮。此前只 disabled + inline opacity:.5 → 仍是实心 teal、文案不变，
+   看着像「还能点/没交上」（她 18:3x 报的第 2 个问题）。改：灰底 + 文案 Submitted（JS 改文案）。 */
+#examRoot .ex-actions .btn-primary.is-done,#examRoot .ex-actions .btn-primary:disabled{
+  background:var(--n-200);color:var(--n-600);cursor:default}
+/* 黄底档（ct-yellow）下 .btn-primary 是黄底黑字 → 交卷灰态要另给一套，
+   否则 L484 的 ct-yellow 规则特异性更高，disabled 仍是实心黄（看着像没交卷）。 */
+#examRoot.ct-yellow .ex-actions .btn-primary.is-done,#examRoot.ct-yellow .ex-actions .btn-primary:disabled{
+  background:#2a2a2a;color:#8a8a8a;border-color:#3a3f45;cursor:default}
 
 .bank-count{font-size:13px;color:var(--muted);margin:0 0 10px}
 .bank-items{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
@@ -64,8 +72,15 @@
 .bi-ch.t2{color:#4a6b8a;background:#eef2f6;border:1px solid #dbe4ee}
 .bi-ch.t3{color:#8a6238;background:#f7f0e8;border:1px solid #eddfcd}
 .bi-qn{width:50px;flex:none;text-align:right;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
-.bi-st{width:58px;flex:none;text-align:right;font-size:12.5px;color:var(--n-500);font-variant-numeric:tabular-nums}
+.bi-st{width:76px;flex:none;text-align:right;font-size:12.5px;color:var(--n-500);font-variant-numeric:tabular-nums}
 .bi-st.ok{color:var(--primary-900);font-weight:700}
+/* 10/17 #9 层次 1：列表页留痕 —— 做过的一行显示「分数 + 相对时间 + 细进度条」。
+   此前只有「8/13」三个字符，看不出是刚才做的还是上个月做的。 */
+.bi-st b{display:block;font-size:12.5px;line-height:1.3}
+.bi-st.ok b{color:var(--primary-900)}
+.bi-when{display:block;font-style:normal;font-size:11px;color:var(--n-500);font-weight:400;line-height:1.3;margin-top:1px}
+.bi-bar{display:block;height:3px;border-radius:2px;background:var(--n-300);margin-top:4px;overflow:hidden}
+.bi-bar > i{display:block;height:100%;background:var(--primary);border-radius:2px}
 .bi-chev{width:14px;flex:none;text-align:right;color:var(--n-400);font-size:15px;transition:color .12s}
 .bank-loading,.bank-empty{padding:40px 16px;text-align:center;color:var(--muted);font-size:14px;line-height:1.8}
 .bank-note{margin:18px 0 0;font-size:13px;color:var(--muted);line-height:1.7}
@@ -127,6 +142,25 @@
 .fx-score .fx-band{font-size:14px;font-weight:800;color:var(--primary-900);background:#fff;
   border:1px solid var(--primary-100);border-radius:999px;padding:3px 12px}
 .fx-score .fx-top span{color:var(--muted);font-size:12.5px}
+/* 10/17：成绩 meta 行（爱听写实证：顶部就是「分数/正确数/用时」一行，不是大数字卡） */
+.fx-score .fx-meta{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin-top:7px;
+  font-size:12.5px;color:var(--muted)}
+.fx-score .fx-meta b{color:#111;font-weight:800;font-variant-numeric:tabular-nums;margin-right:2px}
+/* 10/17：「All / Incorrect only」筛选 chip。药丸小 chip 与站内 .pill-tab 同族；
+   .on 态用 primary 底白字；未选中是白底描边。 */
+.fx-score .fx-filt{display:inline-flex;gap:4px;margin-left:auto}
+.fx-score .fx-chip{appearance:none;border:1px solid var(--line);background:#fff;color:var(--muted);
+  font-size:11.5px;font-weight:700;line-height:1;padding:5px 11px;border-radius:999px;cursor:pointer;
+  font-family:inherit;min-height:26px}
+.fx-score .fx-chip:hover{border-color:var(--primary-300);color:var(--primary-700)}
+.fx-score .fx-chip.on{background:var(--primary);border-color:var(--primary);color:#fff}
+@media(max-width:860px){.fx-score .fx-filt{margin-left:0}}
+/* 10/17：黄底（Option>Colour = yellow）下 meta 行的次级文字要跟着反色，
+   否则灰字 #71767e 压在 #ffd400 上对比不足。 */
+#examRoot.ct-yellow .fx-score .fx-meta{color:#161616}
+#examRoot.ct-yellow .fx-score .fx-meta b{color:#000}
+#examRoot.ct-yellow .fx-score .fx-chip{background:#141414;color:#ffd400;border-color:#ffd400}
+#examRoot.ct-yellow .fx-score .fx-chip.on{background:#ffd400;color:#161616;border-color:#ffd400}
 .fx-score .fx-pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:11px}
 .fx-score .fx-pcard{border:1px solid var(--primary-100);background:#fff;border-radius:8px;padding:9px 12px}
 .fx-score .fx-pcard b{display:block;font-size:11.5px;color:var(--muted);letter-spacing:.04em;margin-bottom:3px}
@@ -435,6 +469,10 @@
 #examRoot.ct-dark .ex-num--cur{color:#fff;border-color:#fff}
 #examRoot.ct-dark .ex-actions .btn{background:#242628;color:#e8eaed;border-color:#3a3f45}
 #examRoot.ct-dark .ex-actions .btn-primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+/* 深色档：交卷灰态要压过上面这条（同特异性、它在本行之后才能生效）——
+   否则 Finish 交卷后仍是实心 teal，等于深色下「看着像没交卷」的原 bug 复发。 */
+#examRoot.ct-dark .ex-actions .btn-primary.is-done,#examRoot.ct-dark .ex-actions .btn-primary:disabled{
+  background:#2c2f33;color:#8b9099;border-color:#3f4348;cursor:default}
 #examRoot.ct-dark .ex-actions .btn-ghost{background:transparent;color:#e8eaed;border-color:#5a5f66}
 /* Option 面板（☰ 菜单）也要跟着变，否则深色下是白底刺眼 */
 #examRoot.ct-dark .ex-option{background:#1b1b1b;border-color:#3a3f45}
@@ -456,6 +494,11 @@
 #examRoot.ct-yellow .ex-num{color:#c9bd85;border-color:#4a4526}
 #examRoot.ct-yellow .ex-num--done{color:#f0e3a8;border-color:#6b6435}
 #examRoot.ct-yellow .ex-num--cur{color:#ffd400;border-color:#ffd400}
+/* 10/17 复盘答题卡在黄底档下的配色（黑底 + 高对比绿/红，别用浅底 —— 浅底压在黄字上读不清） */
+#examRoot.ct-yellow .ex-num--hit{background:#123b2c;color:#7ee0b3}
+#examRoot.ct-yellow .ex-num--hit::before{background:#3ddb9a}
+#examRoot.ct-yellow .ex-num--miss{background:#3d1512;color:#ff9d95}
+#examRoot.ct-yellow .ex-num--miss::before{background:#ff6b60}
 #examRoot.ct-yellow .ex-actions .btn{background:#24241a;color:#f0e3a8;border-color:#4a4526}
 #examRoot.ct-yellow .ex-actions .btn-primary{background:#ffd400;color:#161616;border-color:#ffd400}
 #examRoot.ct-yellow .ex-actions .btn-ghost{background:transparent;color:#f0e3a8;border-color:#6b6435}
@@ -577,6 +620,27 @@
 .ex-expl{margin-top:8px;font-size:12.5px;color:var(--n-600);line-height:1.75;background:var(--surface-2);
   border-left:3px solid var(--line);border-radius:0 6px 6px 0;padding:8px 11px}
 .ex-expl b{color:#111;font-weight:700}
+/* ===== 10/17 复盘：逐题结论条（取代原来的 .ex-expl 平铺）=====
+   原实现每题把 Correct/Yours 直接 append 到题组末尾，答对的题也挂 → 整卷 40 题时
+   解析墙把题目顶下去（她 18:3x 报的「解析滚不完」）。改：默认折叠成一行条，点 Show 才展开。
+   ⚠️ 本站 analyses 实测 0 命中 → 不写「查看解析 / AI 解析」这类站内没有的能力（她的铁律）。 */
+.ex-rv{border:1px solid var(--line);border-radius:8px;background:var(--surface-2);margin-top:8px;overflow:hidden}
+.ex-rv.rv-no{border-color:#f0c9c4;background:#fdf6f5}
+.ex-rv.rv-ok{border-color:#cfe6dd;background:#f4faf8}
+.ex-rv-h{display:flex;align-items:center;gap:10px;padding:7px 11px}
+.ex-rv-no{font-size:12px;font-weight:800;color:var(--muted);font-variant-numeric:tabular-nums;flex:none}
+.ex-rv-v{font-size:12px;font-weight:700;flex:1;min-width:0}
+.ex-rv.rv-ok .ex-rv-v{color:#1f7a5c}
+.ex-rv.rv-no .ex-rv-v{color:#b3261e}
+.ex-rv-tg{border:1px solid var(--line);background:#fff;color:var(--ink);font:inherit;font-size:11.5px;
+  font-weight:700;border-radius:999px;padding:3px 11px;cursor:pointer;line-height:1.5;flex:none;min-height:28px}
+.ex-rv-tg:hover{background:var(--primary-50);border-color:var(--primary-200);color:var(--primary-900)}
+.ex-rv-b{display:none;padding:2px 11px 10px;gap:14px;flex-wrap:wrap}
+.ex-rv.open .ex-rv-b{display:flex}
+.ex-rv-b > div{font-size:12.5px;line-height:1.6}
+.ex-rv-b > div span{display:block;font-size:11px;color:var(--muted);letter-spacing:.03em}
+.ex-rv-b > div b{color:#111;font-weight:700;word-break:break-word}
+.ex-rv-b > div b.bad{color:#b3261e}
 /* ===== 10/12 批A：爱听写/真机考底部条（她 22:03「切换考题要放下面」）=====
    结构 = .ex-bar > .ex-nav（切换器 + 题号行）+ .ex-actions（Pause/Exit/Finish）
    高度 ≤64px（题号行 24 + 按钮行 36）；1440 放不下时按钮行与切换器各占一行（≤72px）
@@ -629,10 +693,18 @@
 .ex-num::before{content:"";position:absolute;left:4px;right:4px;top:0;height:2px;background:#c9ced6;border-radius:1px}
 .ex-num--done::before{height:2.5px;background:#111}
 .ex-num--cur{box-shadow:inset 0 0 0 1.5px #111;border-radius:3px}
+/* 10/17 复盘：交卷后题号行变答题卡 —— 绿=对 / 红=错（爱听写 bg-green-100 / bg-red-100 口径）。
+   此前交卷后只有「已答」态（一道黑线），用户看不出哪题错，只能一路滚页面逐条找。 */
+.ex-num--hit{background:#e7f6ef;border-radius:3px}
+.ex-num--hit::before{background:#2f7d61}
+.ex-num--miss{background:#fdeceb;border-radius:3px}
+.ex-num--miss::before{background:#b3261e}
+.ex-num--hit,.ex-num--miss{font-weight:700}
 .ex-num--flag::after{content:"\u2691";position:absolute;left:50%;top:-10px;transform:translateX(-50%);
   font-size:10px;line-height:1;color:#b3261e;font-weight:400}
-.ex-num:hover{background:#eef0f2;border-radius:3px}
-.ex-num:hover{background:#eef0f2;border-radius:3px}
+/* hover 排在 hit/miss 之后且同特异性 → 会把对错的底色盖掉（10/17 自查发现），
+   所以 hover 只对「未判对错」的题号生效。 */
+.ex-num:not(.ex-num--hit):not(.ex-num--miss):hover{background:#eef0f2;border-radius:3px}
 .ex-actions{display:flex;gap:8px;flex:none;justify-content:flex-end;align-items:center}
 /* 10/12 批A：按钮行压到 34px（原 .btn min-height:32 + padding 撑到 40 → 底栏 78px 超标）。
    指令要求底栏 ≤64px（放不下 ≤72px）；高度靠 line-height + padding 双压缩，不缩字号（可读性优先）。 */
@@ -1182,6 +1254,6 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common.js?v=20261013ac"></script>
 <script defer src="js/writing_prompts.js?v=20260903ab"></script>
 <script defer src="js/writing.js?v=20261012a"></script>
-<script defer src="js/bank.js?v=20261012z"></script>
+<script defer src="js/bank.js?v=20261012aa"></script>
 </body>
 </html>

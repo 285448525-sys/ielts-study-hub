@@ -84,14 +84,38 @@
     return (root && root.getAttribute('data-mock-part')) || 'Part 1';
   }
 
+  /* 列表页相对时间（中文短式，与列表页现有「未做 / 13 题」同一语言）。
+     ⚠️ 别复用 speaking.js/corpus.js 那两份中文 relTime：一个是「今天/昨天/N 天前」口径、
+     一个是「N 小时前/N 天前」口径，都不带分钟，且它们挂在各自页面作用域里拿不到。
+     本函数只服务题库列表，口径：刚刚 / N 分钟前 / N 小时前 / N 天前 / 超 30 天给 M/D。 */
+  function relTime(ts){
+    var d = Date.now() - Number(ts || 0);
+    if(!(d >= 0)) return '';
+    var m = Math.floor(d / 60000);
+    if(m < 1) return '刚刚';
+    if(m < 60) return m + ' 分钟前';
+    var h = Math.floor(m / 60);
+    if(h < 24) return h + ' 小时前';
+    var dd = Math.floor(h / 24);
+    if(dd <= 30) return dd + ' 天前';
+    var dt = new Date(Number(ts));
+    return (dt.getMonth() + 1) + '/' + dt.getDate();
+  }
+
   /* 篇目列表的标记（阅读 / 听力共用同一套 .bank-items 结构，只是挂在不同容器上） */
   function listHtml(units, channel){
     var h = '<ul class="bank-items">';
     for(var k = 0; k < units.length; k++){
-      var u = units[k], st = '', oc = '未做', chips = '';
+      var u = units[k], st = '', oc = '未做', chips = '', when = '', pct = -1;
       try{
         var rec = localStorage.getItem('hub_bank_last_' + u.id);
-        if(rec){ var r = JSON.parse(rec); st = 'ok'; oc = r.correct + '/' + r.total; }
+        if(rec){
+          var r = JSON.parse(rec); st = 'ok'; oc = r.correct + '/' + r.total;
+          /* 10/17 #9 层次 1：列表页留痕 —— 相对时间 + 细进度条。
+             此前只有「8/13」三个字符，用户看不出是刚才做的还是上个月做的。 */
+          if(r.ts) when = relTime(r.ts);
+          if(r.total > 0) pct = Math.round(r.correct / r.total * 100);
+        }
       }catch(e){}
       (u.types || []).forEach(function(t, i){ chips += '<span class="bi-ch ' + chipCls(t, i) + '">' + esc(t) + '</span>'; });
       h += '<li class="bank-item" data-unit="' + esc(u.id) + '" data-ch="' + esc(channel) + '">'
@@ -100,7 +124,11 @@
         +      (u.titleZh ? '<i>' + esc(u.titleZh) + '</i>' : '') + '</span>'
         +    '<span class="bi-chips">' + chips + '</span>'
         +    '<span class="bi-qn">' + (u.qCount || 0) + ' 题</span>'
-        +    '<span class="bi-st ' + st + '">' + esc(oc) + '</span>'
+        +    '<span class="bi-st ' + st + '">'
+        +      (st ? '<b>' + esc(oc) + '</b>' : esc(oc))
+        +      (when ? '<i class="bi-when">' + esc(when) + '</i>' : '')
+        +      (pct >= 0 ? '<i class="bi-bar"><i style="width:' + pct + '%"></i></i>' : '')
+        +    '</span>'
         +    '<span class="bi-chev">›</span>'
         +  '</li>';
     }
@@ -489,7 +517,7 @@
   function groupHtml(g, idx, numOf, channel){
     numOf = numOf || idNum();
     channel = channel || (EX && EX.channel) || 'reading';
-    var h = '<div class="ex-group" data-gtype="' + esc(g.type) + '">';
+    var h = '<div class="ex-group" data-gtype="' + esc(g.type) + '" data-g="g' + idx + '">';
     var ns = qNums(g).map(numOf);
     h += '<p class="ex-grp-h">Questions ' + esc(ns.length ? (ns[0] + '–' + ns[ns.length - 1]) : '') + '</p>';
     h += '<p class="ex-grp-i">' + instrFor(g, channel) + '</p>';
@@ -1230,6 +1258,37 @@ function barHtml(){
     paintSheet();
   }
 
+  /* ===== 复盘：逐题结论条（10/17）=====
+     背景：原实现把每题的 Correct/Yours 直接 append 到题组末尾，答对的题也挂 → 整卷 40 题时
+     解析墙把题目顶下去（她 18:3x 报的「解析滚不完」）。
+     改法（对齐爱听写实证）：
+       · 每题只留一条【折叠的结论条】= "Q14  Correct: X  Yours: Y"，默认收起
+       · 只有错题的结论条预置 ▶ 展开提示；答对的题不展开也不给解析入口
+       · 展开后列出该题的正确答案/你的答案（解析文本全站为空 → 不虚构「AI 解析」栏目）
+     ⚠️ 铁律：站内没有的能力不能出现在入口文案 —— analyses 实测 0 命中，所以不写「查看解析」。 */
+  var RVIEW_MAXN = 3;   /* 单组可完全展开的题数上限（爱听写同款防失控） */
+
+  /* 结论条展开/收起：组内同时展开数超上限时，自动收起最早展开的那一题 */
+  function rviewToggle(box){
+    if(!box || !EX || !EX._rview) return;
+    var gid = box.getAttribute('data-g') || '';
+    var qn = box.getAttribute('data-q') || '';
+    var open = EX._rview.open[gid] || (EX._rview.open[gid] = []);
+    var idx = open.indexOf(qn);
+    if(idx > -1){ open.splice(idx, 1); }
+    else {
+      if(open.length >= RVIEW_MAXN){
+        var oldest = open.shift();
+        var ob = document.querySelector('.ex-rv[data-g="' + gid + '"][data-q="' + oldest + '"]');
+        if(ob) ob.classList.remove('open');
+      }
+      open.push(qn);
+    }
+    box.classList.toggle('open', open.indexOf(qn) > -1);
+    var btn = box.querySelector('.ex-rv-tg');
+    if(btn) btn.textContent = box.classList.contains('open') ? 'Hide' : 'Show';
+  }
+
   /* 交卷后给「当前这一篇」逐题上色 + 挂解析（切篇时按篇重跑） */
   function decoratePassage(pi){
     var root = document.getElementById('examRoot'); if(!root || !EX || !EX.result) return;
@@ -1284,9 +1343,23 @@ function barHtml(){
       var anchor = qnEl || (bl ? bl.closest('.ex-group') : null);
       var groupEl = anchor ? anchor.closest('.ex-group') : null;
       if(groupEl){
-        var box = document.createElement('div'); box.className = 'ex-expl';
-        box.innerHTML = '<b>' + esc(d.qn) + '</b>　Correct: <b>' + esc(d.right || '—') + '</b>'
-          + '　Yours: ' + (d.user ? esc(d.user) : '—') + buildExpl(d.q);
+        /* 10/17：改挂「可折叠的结论条」（原 .ex-expl 平铺会把题目顶下去）。
+           错题默认收起但带 ▶ Show；答对的题也给条（要让用户能核对），只是不预展开。 */
+        var gid = groupEl.getAttribute('data-g') || ('g' + pi);
+        var box = document.createElement('div');
+        box.className = 'ex-rv' + (d.ok ? ' rv-ok' : ' rv-no');
+        box.setAttribute('data-g', gid);
+        box.setAttribute('data-q', String(d.qn));
+        var yourTxt = d.user ? esc(String(d.user)) : '—';
+        box.innerHTML = '<div class="ex-rv-h">'
+          +   '<span class="ex-rv-no">Q' + esc(d.qn) + '</span>'
+          +   '<span class="ex-rv-v">' + (d.ok ? 'Correct' : 'Incorrect') + '</span>'
+          +   '<button type="button" class="ex-rv-tg" data-rvtoggle="' + esc(d.qn) + '">Show</button>'
+          + '</div>'
+          + '<div class="ex-rv-b">'
+          +   '<div><span>Correct answer</span><b>' + esc(d.right || '—') + '</b></div>'
+          +   '<div><span>Your answer</span><b class="' + (d.ok ? '' : 'bad') + '">' + yourTxt + '</b></div>'
+          + '</div>';
         groupEl.appendChild(box);
       }
     });
@@ -1329,12 +1402,32 @@ function barHtml(){
       }
     }
     var lsn = isListen();
+    var wrong = res.detail.filter(function(d){ return !d.ok; }).length;
+    /* 用时 mm:ss（EX._usedSec 由 doSubmit 算好：开局秒 − 剩余秒） */
+    var used = Math.max(0, Math.round(EX._usedSec || 0));
+    var mm = Math.floor(used / 60), ss = used % 60;
+    var usedTxt = mm + ':' + (ss < 10 ? '0' : '') + ss;
     var el = document.createElement('div');
     el.className = 'fx-score';
     el.innerHTML = '<div class="fx-top"><b>' + res.right + ' / ' + res.total + '</b>'
       /* 🔴 10/16 修：成绩卡里的「总分」「题换算」是中文 → 违反「考试页零中文」铁律（体检抓到）。改英文。 */
       + '<span class="fx-band">Overall ' + Number((lsn ? bandOfListening : bandOfReading)(raw)).toFixed(1) + '</span>'
       + '<span>' + (lsn ? 'Listening' : 'Academic Reading') + ' · converted from ' + res.total + ' questions</span></div>'
+      /* 10/17：一行 meta（爱听写实证：成绩页顶部就是「分数 / 正确题数 / 用时」一行，不是大数字卡）
+         —— 版面让给答题卡和错题，不做 48px 大数字。 */
+      + '<div class="fx-meta">'
+      +   '<span><b>' + (res.total - wrong) + '</b> correct</span>'
+      +   '<span><b>' + wrong + '</b> incorrect</span>'
+      +   '<span>Time <b>' + usedTxt + '</b></span>'
+      /* 10/17：「只看错题」通道（她 18:3x 报的第 4 个问题）。
+         做法 = 让底部答题卡只列出错题号（点一下跳过去），而不是隐藏题目本身 ——
+         隐藏题目会改变页面内容与定位（违反她「绝不切内容、绝不错位」的判据），
+         而「答题卡筛选」是爱听写同款做法（答题卡在顶部/底部，颜色区分 + 点击跳转）。 */
+      +   '<span class="fx-filt">'
+      +     '<button type="button" class="fx-chip on" data-fxfilter="all">All</button>'
+      +     '<button type="button" class="fx-chip" data-fxfilter="wrong">Incorrect only</button>'
+      +   '</span>'
+      + '</div>'
       + (cards ? '<div class="fx-pgrid">' + cards + '</div>' : '');
     root.insertBefore(el, root.firstChild);   // 10/12 批A：ptabs 已删，直接插最前
   }
@@ -1892,13 +1985,28 @@ function barHtml(){
     var user = collect();
     /* full = 当前篇题号；单篇 = 本篇全部（allNums 本来就是单篇口径） */
     var nums = EX.full ? qsOfPassage(EX.curP).map(function(e){ return e.g; }) : allNums();
+    /* 10/17 复盘：交卷后题号行变「答题卡」—— 绿=对 / 红=错（爱听写 bg-green-100 / bg-red-100 口径）。
+       此前交卷后只有「已答」态（一道黑线），用户看不出哪题错，只能一路滚页面逐条找。
+       full 模式 EX.byG 才有连续题号键；单篇的 detail[].qn 是 String(qNumber)，两者都能命中 mark。 */
+    var mark = null;
+    if(EX.submitted && EX.result){
+      mark = {};
+      EX.result.detail.forEach(function(d){ mark[String(d.qn)] = !!d.ok; });
+    }
+    /* 10/17「只看错题」：EX._filt='wrong' 时答题卡只列错题号（点一下跳过去）。
+       不改题目本身的显示——隐藏内容会违反她「绝不切内容、绝不错位」的判据。 */
+    if(EX.submitted && EX._filt === 'wrong' && mark){
+      nums = nums.filter(function(n){ return mark[String(n)] === false; });
+    }
     box.innerHTML = nums.map(function(n){
-      var answered = user[n] != null && String(user[n]).length;
+      var k = String(n);
+      var answered = user[k] != null && String(user[k]).length;
       var cls = 'ex-num';
       if(answered) cls += ' ex-num--done';
-      if(EX.flagged[n]) cls += ' ex-num--flag';
-      if(String(EX.cur) === String(n)) cls += ' ex-num--cur';
-      return '<button type="button" class="' + cls + '" data-jump="' + esc(n) + '" title="Q' + esc(n) + '">' + esc(n) + '</button>';
+      if(EX.flagged[k]) cls += ' ex-num--flag';
+      if(String(EX.cur) === k) cls += ' ex-num--cur';
+      if(mark && Object.prototype.hasOwnProperty.call(mark, k)) cls += mark[k] ? ' ex-num--hit' : ' ex-num--miss';
+      return '<button type="button" class="' + cls + '" data-jump="' + esc(k) + '" title="Q' + esc(k) + '">' + esc(k) + '</button>';
     }).join('');
     paintPgSwitch();
   }
@@ -1982,6 +2090,8 @@ function barHtml(){
   /* 10/13 Pause 支持：暂停时把剩余秒数存 EX._leftSec，resume 用它重启倒计时（不重算、不丢已过时间）。 */
   function startTimer(sec){
     stopTimer();
+    /* 10/16：记下开局时长 —— 复盘要显示「用时」= 开局秒 − 剩余秒（此前没有 elapsed 概念） */
+    if(EX) EX._totalSec = sec;
     var left = sec, el = document.getElementById('exTimer');
     function tick(){
       if(el){
@@ -2278,6 +2388,11 @@ function barHtml(){
     EX.marks = {};
     res.detail.forEach(function(d){ EX.marks[d.qn] = d.ok ? 'hit' : 'miss'; });
 
+    /* 10/17：复盘状态初始化（结论条展开表）。必须在 decoratePassage 之前 —— 它要读 EX._rview。 */
+    EX._rview = { open: {}, expanded: false };
+    /* 用时 = 开局秒 − 剩余秒（startTimer 已记 _totalSec；EX._leftSec 每 tick 更新） */
+    EX._usedSec = (EX._totalSec && EX._leftSec != null) ? (EX._totalSec - EX._leftSec) : 0;
+
     decoratePassage(EX.curP);
     addScoreCard(res);
     if(isListen()) showScript();                       /* 交卷后才给听力原文 + 解锁音频复听 */
@@ -2318,6 +2433,15 @@ function barHtml(){
         };
         if (_band != null) _rec.overall = _band;          /* estimateBand 可能返回 null（<4 题），此时不写 overall */
         if (_unitId) _rec.unitId = _unitId;              /* 单篇覆盖匹配用 */
+        /* 10/17 #9 前提：逐题明细落盘。
+           此前只存 parts（篇级汇总），res.detail[]（每题 qn/user/right/ok）只活在内存 → 刷新即丢，
+           做「做题记录」必须先把它存住。体量：13~40 题 × 约 80B ≈ 1~3KB/次。
+           ⚠️ 只存标量，不存 d.q（整个 question 对象含题干/解析，体积大且没必要）。 */
+        _rec.detail = res.detail.map(function(d){
+          return { qn: String(d.qn), user: d.user == null ? '' : String(d.user),
+                   right: d.right == null ? '' : String(d.right), ok: !!d.ok };
+        });
+        if (EX._usedSec) _rec.usedSec = Math.round(EX._usedSec);   /* 复盘要看「用时」 */
         /* 单篇重做覆盖：同 date + type + src:bank + granularity:part + unitId → 改写旧条 */
         var _old = null;
         if (!EX.full && _unitId) {
@@ -2330,9 +2454,19 @@ function barHtml(){
           _old.parts = _rec.parts;
           _old.overall = _rec.overall;                   /* 覆盖时 band 可能从 null→数字或反之 */
           if (_old.overall == null) delete _old.overall;
+          _old.detail = _rec.detail;                     /* 明细随重做一起刷新 */
+          if (_rec.usedSec) _old.usedSec = _rec.usedSec;
           _old.updatedAt = Date.now();
         } else {
           DATA.mockRecords.unshift(_rec);
+        }
+        /* 10/17：条数上限（每类最近 200 条）。否则几年后 DATA 会大到拖慢云同步
+           （CF 免费版 KV 每天 1000 次写、单次 PUT 有体积上限）。
+           只淘汰 src==='bank' 的自动记录，手工记录（回顾页录入）不动。 */
+        var _bankRecs = DATA.mockRecords.filter(function(r){ return r.src === 'bank'; });
+        if (_bankRecs.length > 200) {
+          var _drop = _bankRecs.slice(200);
+          DATA.mockRecords = DATA.mockRecords.filter(function(r){ return _drop.indexOf(r) === -1; });
         }
         hubSave();
       }
@@ -2356,8 +2490,11 @@ function barHtml(){
     }catch(e){}
 
     paintSheet();
+    /* 10/17：交卷后 Finish 按钮必须「明确已交卷」——此前只 disabled + opacity .5，
+       按钮仍是实心 teal、文案还是 "Finish section"，用户（她 18:3x 原话）会以为没交上。
+       改成灰底 + 文案 Submitted，与 button:disabled 的状态语义一致。 */
     var sb = document.querySelector('#examRoot [data-submit]');
-    if(sb){ sb.disabled = true; sb.style.opacity = '.5'; }
+    if(sb){ sb.disabled = true; sb.textContent = 'Submitted'; sb.classList.add('is-done'); }
     bankCommitTimer();                                /* C-3：交卷即结算专注计时（含 <30s 过滤） */
   }
 
@@ -2448,6 +2585,23 @@ function barHtml(){
       /* 完整模考：Passage 1/2/3（阅读）或 Part 1–4（听力）切篇 —— 10/12 批A 已挪到底部切换器（paintPgSwitch） */
       if((el = t.closest && t.closest('.bank-item[data-unit]'))){
         openExam(el.getAttribute('data-unit'), el.getAttribute('data-ch'));
+        return;
+      }
+      if(t.closest && t.closest('[data-fxfilter]')){
+        /* 10/17：成绩卡「All / Incorrect only」——只筛底部答题卡，不动题目本身 */
+        if(EX && EX.submitted){
+          EX._filt = t.closest('[data-fxfilter]').getAttribute('data-fxfilter');
+          var fs = document.querySelectorAll('#examRoot .fx-chip');
+          for(var fi = 0; fi < fs.length; fi++){
+            fs[fi].classList.toggle('on', fs[fi].getAttribute('data-fxfilter') === EX._filt);
+          }
+          paintSheet();
+        }
+        return;
+      }
+      if(t.closest && t.closest('[data-rvtoggle]')){
+        /* 复盘结论条展开/收起 */
+        if(EX && EX._rview) rviewToggle(t.closest('.ex-rv'));
         return;
       }
       if(t.closest && t.closest('[data-exit]')){ exitExam(); return; }
