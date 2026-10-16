@@ -542,7 +542,7 @@
         var opts = letters.map(function(ch){ return '<option value="' + ch + '">' + ch + '</option>'; }).join('');
         h += '<div class="ex-q ex-q-lohr"><span class="ex-qn" data-qn="' + esc(n) + '">' + esc(n) + '</span>'
           + flagHtml(n) + '<span class="ex-qt">' + esc(plain(q.question)) + '</span>'
-          + '<select class="ex-lohsel" data-q="' + esc(n) + '" data-g="' + gid + '" aria-label="段落字母">'
+          + '<select class="ex-lohsel" data-q="' + esc(n) + '" data-g="' + gid + '" aria-label="paragraph letter">'
           + '<option value=""></option>' + opts + '</select></div>';
       });
     } else if(g.type === 'map'){
@@ -622,8 +622,10 @@
       +    '<div class="ex-oplist" id="exOptMain">'
       +      '<div class="ex-oprow" data-sub="colour">Colour<span class="ar">\u203A</span></div>'
       +      '<div class="ex-oprow" data-sub="size">Size<span class="ar">\u203A</span></div>'
-      /* 10/14 她拍板：音量/倍速/静音从音频条移入这里（进度条折叠，三科顶栏一致） */
-      +      '<div class="ex-oprow" data-sub="audio">Audio<span class="ar">\u203A</span></div>'
+      /* 10/14 她拍板：音量/倍速/静音从音频条移入这里（进度条折叠，三科顶栏一致）。
+         10/16 修（体检发现）：Audio 子面板**只在有音频条的页显示**（阅读/写作没有音频，
+         点进去是一组控制空气的滑杆），且文案英文化（🔴 考试页零中文铁律）。 */
+      + (document.getElementById('exAudioBar') ? '<div class="ex-oprow" data-sub="audio">Audio<span class="ar">\u203A</span></div>' : '')
       +    '</div>'
       +    '<div class="ex-opsub" id="exOptColour">'
       +      '<label class="ex-oprow" data-theme=""><input type="radio" name="exCt" value="light" checked> Black on white</label>'
@@ -636,14 +638,15 @@
       +      '<label class="ex-oprow" data-fs="xl"><input type="radio" name="exTs" value="xl"> Extra large</label>'
       +    '</div>'
       /* 10/14 她拍板：音量滑杆与倍速从音频条移到这里（进度条折叠，三科顶栏一致）。
-         data 属性与音频条时代完全相同 → 事件绑定（data-avsl / data-arate / data-avol）零改动。 */
+         data 属性与音频条时代完全相同 → 事件绑定（data-avsl / data-arate / data-avol）零改动。
+         🔴 10/16：文案英文化（音量→Volume / 倍速→Speed / 静音→Mute / 已静音→Muted / 开启中→On）。 */
       +    '<div class="ex-opsub" id="exOptAudio">'
-      +      '<div class="ex-oprow ex-op-audio-row"><span>音量</span>'
+      +      '<div class="ex-oprow ex-op-audio-row"><span>Volume</span>'
       +        '<input type="range" min="0" max="1" step="0.05" value="' + (_audioMuted ? 0 : _audioVol) + '" data-avsl aria-label="Volume"></div>'
-      +      '<div class="ex-oprow ex-op-audio-row"><span>倍速</span>'
+      +      '<div class="ex-oprow ex-op-audio-row"><span>Speed</span>'
       +        '<button class="ex-op-rate" type="button" data-arate>' + rateLabel(AUDIO_RATES[_rateIx]) + '</button></div>'
-      +      '<div class="ex-oprow ex-op-audio-row"><span>静音</span>'
-      +        '<button class="ex-op-mute" type="button" data-avol>' + (_audioMuted || _audioVol === 0 ? '🔇 已静音' : '🔊 开启中') + '</button></div>'
+      +      '<div class="ex-oprow ex-op-audio-row"><span>Mute</span>'
+      +        '<button class="ex-op-mute" type="button" data-avol>' + (_audioMuted || _audioVol === 0 ? '\uD83D\uDD07 Muted' : '\uD83D\uDD0A On') + '</button></div>'
       +    '</div>'
       +    '<div class="ex-opback"><button type="button" data-opback>\u2039 Back</button></div>'
       + '</div>';
@@ -784,7 +787,7 @@ function barHtml(){
   function listenPartLabel(){ var p = listenPart(); return (p && p.partNum) || 'Audio'; }
   function audioBarHtml(partLabel, nameText, timerText, showModes){
     var p = listenPart();
-    if(!p || !p.audioUrl) return '<div class="ex-audio" id="exAudioBar"><span class="ea-label">本部分没有音频</span></div>';
+    if(!p || !p.audioUrl) return '<div class="ex-audio" id="exAudioBar"><span class="ea-label">No audio for this part</span></div>';   /* 🔴 10/16：原「本部分没有音频」= 考场内中文，违反零中文铁律 */
     var exam = EX.listenMode === 'exam';
     /* 听力完整模考：全程考试模式，模式切换按钮整个不渲染（真机考没有「练习/考试」这一说） */
     var fullL = !!(EX.full && EX.channel === 'listening');
@@ -851,7 +854,7 @@ function barHtml(){
   }
   function lockAudioMode(){
     var b = document.querySelector('#exAudioBar [data-amode]');
-    if(b && EX && EX.audioStarted && b.textContent !== '已交卷'){ b.disabled = true; b.title = '已经开始播放，本次不能再切换'; }
+    if(b && EX && EX.audioStarted && b.textContent !== 'Submitted'){ b.disabled = true; b.title = 'Playback has started; the mode cannot be changed'; }
   }
   function audioToggle(){
     var a = document.getElementById('exAudio'); if(!a || !EX) return;
@@ -870,7 +873,7 @@ function barHtml(){
     var bar = document.getElementById('exAudioBar'); if(!bar) return;
     bar.classList.toggle('locked', !!exam);
     var b = bar.querySelector('[data-amode]');
-    if(b){ b.classList.toggle('exam', !!exam); b.textContent = exam ? '考试模式' : '练习模式'; }
+    if(b){ b.classList.toggle('exam', !!exam); b.textContent = exam ? 'Exam mode' : 'Practice mode'; }
     var rt = bar.querySelector('[data-arate]');
     if(rt) rt.style.display = exam ? 'none' : '';
   }
@@ -888,7 +891,7 @@ function barHtml(){
       if(html){
         var d = document.createElement('details');
         d.className = 'ex-script'; d.open = true;
-        d.innerHTML = '<summary>听力原文 Script</summary><div class="sc-body">' + html + '</div>';
+        d.innerHTML = '<summary>Script</summary><div class="sc-body">' + html + '</div>';   /* 🔴 10/16：原「听力原文 Script」= 考场内中文 */
         inner.insertBefore(d, inner.firstChild);
       }
     }
@@ -896,7 +899,7 @@ function barHtml(){
     var bar = document.getElementById('exAudioBar');
     if(bar){
       var b = bar.querySelector('[data-amode]');
-      if(b){ b.disabled = true; b.classList.remove('exam'); b.textContent = '已交卷'; }
+      if(b){ b.disabled = true; b.classList.remove('exam'); b.textContent = 'Submitted'; }
     }
   }
 
@@ -1285,8 +1288,9 @@ function barHtml(){
     var el = document.createElement('div');
     el.className = 'fx-score';
     el.innerHTML = '<div class="fx-top"><b>' + res.right + ' / ' + res.total + '</b>'
-      + '<span class="fx-band">总分 ' + Number((lsn ? bandOfListening : bandOfReading)(raw)).toFixed(1) + '</span>'
-      + '<span>' + (lsn ? 'Listening' : 'Academic Reading') + ' · ' + res.total + ' 题换算</span></div>'
+      /* 🔴 10/16 修：成绩卡里的「总分」「题换算」是中文 → 违反「考试页零中文」铁律（体检抓到）。改英文。 */
+      + '<span class="fx-band">Overall ' + Number((lsn ? bandOfListening : bandOfReading)(raw)).toFixed(1) + '</span>'
+      + '<span>' + (lsn ? 'Listening' : 'Academic Reading') + ' · converted from ' + res.total + ' questions</span></div>'
       + (cards ? '<div class="fx-pgrid">' + cards + '</div>' : '');
     root.insertBefore(el, root.firstChild);   // 10/12 批A：ptabs 已删，直接插最前
   }
