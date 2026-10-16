@@ -190,10 +190,14 @@
    参考真实机考与大站长文：正文 14-16px、文章标题 17-18px。 */
 /* 10/14 她：卷子里字体太大。文章区整体基准 15px（原继承 #examRoot 20px）。
    ⚠️ 题库 HTML 可能自带内联 font-size → 用 * 通吃 + !important 兜底，
-      随机组卷下每篇文章 DOM 结构不同，不挑子元素位置（实测 :first-child/:nth-child 都踩空）。 */
-.ex-article,.ex-article *{font-size:15px !important;line-height:1.7 !important}
-.ex-article b,.ex-article strong{font-size:15px !important;font-weight:700 !important}
-.ex-article h2,.ex-article h3{font-size:17px;line-height:1.5;margin:0 0 10px}
+      随机组卷下每篇文章 DOM 结构不同，不挑子元素位置（实测 :first-child/:nth-child 都踩空）。
+   🔴 10/16 修（她：Option>Size「只能调题目的字体大小，其他调不了」）：
+      原来写死 15px + !important → Size 三档只改了题干/选项（它们走 .em），**文章纹丝不动**。
+      现在全部改成 `calc(var(--exfs) * 系数)`：默认档（--exfs:20px）仍是 15px（外观零变化，
+      不回归 10/14 那次「字太大」），large(23) / xl(27) 时文章、组标题、组指令、填空框一起放大。 */
+.ex-article,.ex-article *{font-size:calc(var(--exfs) * .75) !important;line-height:1.7 !important}
+.ex-article b,.ex-article strong{font-size:calc(var(--exfs) * .75) !important;font-weight:700 !important}
+.ex-article h2,.ex-article h3{font-size:calc(var(--exfs) * .85) !important;line-height:1.5;margin:0 0 10px}
 
 .ex-article p{margin:0 0 12px}
 /* 10/14 实测：第一个子元素是 &nbsp; 空 DIV，真正的「标题+正文」在第二个 DIV，
@@ -205,8 +209,8 @@
 .ex-article img{max-width:100%}
 .ex-qcol{overflow:auto;padding:18px 26px 60px;background:#fff;font-size:var(--exfs)}
 .ex-group{margin:0 0 28px}
-.ex-grp-h{font-size:15.5px;font-weight:800;margin:0 0 6px;color:#111}   /* 10/14 18→15.5px */
-.ex-grp-i{font-size:13px;line-height:1.6;color:#222;margin:0 0 12px}   /* 10/14 15→13px */
+.ex-grp-h{font-size:calc(var(--exfs) * .775);font-weight:800;margin:0 0 6px;color:#111}   /* 10/14 18→15.5px；10/16 改跟 --exfs（原来写死 px，Size 调不动它） */
+.ex-grp-i{font-size:calc(var(--exfs) * .65);line-height:1.6;color:#222;margin:0 0 12px}   /* 10/14 15→13px；10/16 同上 */
 /* 10/14 卷面格式对齐真实机考（她：跟真实机考差别很大，格式不规范）：
    题号固定左列 + 题干/选项共享左边界。
    依据：① IDP 官方机考界面（ielts.idp.com 样题）② 104 机考仿真样子稿（cb-qs/cb-g 结构）
@@ -281,9 +285,9 @@
 .ex-chip.wrong{border-color:#b3261e;background:#fdf3f2;color:#b3261e}
 /* 10/14 视觉统一（她反馈这排虚线椭圆看不懂）：虚线胶囊(999px) → 实线圆角方框，
    与填空框 / 字母框同款；拖放交互不变（真实机考就是拖放，她 10/12 拍板）。 */
-.ex-drop{display:flex;width:fit-content;min-width:110px;max-width:100%;align-items:center;gap:8px;
-  min-height:34px;margin:9px 0 0;border:1.5px solid #9aa0a8;border-radius:6px;padding:5px 14px;
-  font-size:.9em;font-weight:700;color:#111;background:#fff;transition:.15s;touch-action:none;cursor:pointer}
+.ex-drop{display:flex;width:fit-content;min-width:calc(var(--exfs) * 5.5);max-width:100%;align-items:center;gap:8px;
+  min-height:calc(var(--exfs) * 1.7);margin:9px 0 0;border:1.5px solid #9aa0a8;border-radius:6px;padding:5px 14px;
+  font-size:.9em;font-weight:700;color:#111;background:#fff;transition:.15s;touch-action:none;cursor:pointer}   /* 10/16：min-width/height 跟 --exfs（默认档数值不变） */
 .ex-drop::before{content:"\2192";font-size:.9em;color:#9aa0a8;font-weight:400;margin-right:2px}   /* 空槽提示：拖字母到这里 */
 .ex-drop.over{border-color:var(--primary);background:var(--primary-50)}
 .ex-drop.dragging{opacity:.28}
@@ -302,7 +306,7 @@
    （爱听写 .question-input 实测：1px solid #808080、radius 0、padding 4px 8px、左对齐文字；
    原来我们的 1.5px 深灰边 + 6px 圆角 + 居中文字是自研形态，本次对齐）。
    placeholder 灰显题号、输第一字符让位的交互口径不变（BC 机考同款，10/13 她截图 3 定的）。 */
-.ex-blankw{display:inline-flex;align-items:center;flex:none;width:auto;min-width:118px;max-width:200px;height:32px;border:1px solid #808080;border-radius:0;background:#fff;vertical-align:middle;transition:border-color .15s,box-shadow .15s}
+.ex-blankw{display:inline-flex;align-items:center;flex:none;width:auto;min-width:118px;max-width:200px;height:calc(var(--exfs) * 1.6);border:1px solid #808080;border-radius:0;background:#fff;vertical-align:middle;transition:border-color .15s,box-shadow .15s}   /* 10/16：height 32px 写死 → 跟 --exfs（默认档仍是 32px，放大档才跟着长高） */
 .ex-blankw:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-50)}
 .ex-blankw b{display:none}   /* 10/14：题号走 input placeholder，聚焦时不再硬消失 */
 /* 10/14 表格单元格里的填空框会被 td 拉伸成 200px（截图里显得很宽）→ 固定宽度紧贴文字 */
@@ -310,7 +314,15 @@
    有空间时目标 118px，格子不够时自动缩（min-width 只留 72px 保底可点）。 */
 .ex-html td .ex-blankw,.ex-html th .ex-blankw{width:118px;max-width:100%;min-width:72px;flex:0 1 auto}
 .ex-html td .ex-blankw input{width:100%}
-.ex-blankw input{display:block;border:none;outline:none;background:none;font:inherit;font-size:14.5px;width:100%;text-align:left;color:#111;padding:0 8px}
+/* 🔴🔴 10/16 修（她：Option>Size「只能调题目的字体大小，其他调不了」——填空框算「其他」）：
+   真凶是**特异性**：common.css:475 的全局表单规则
+   `input:not([type=checkbox]):not([type=radio]):not([type=range]){font-size:14.5px;height:44px;padding:0 14px;border:1px solid…;border-radius:…}`
+   三个 :not([attr]) 让它到 (0,3,1)，压过原来的 `.ex-blankw input`(0,1,1) →
+   填空框的字号/高度/内边距/边框其实**一直由那条全局规则在管**（所以它恒 14.5px、改不动，
+   而且 input 实际是 44px 高、圆角 12px，只是被外层 32px 的 .ex-blankw 盖住看不出来）。
+   修法：加 #examRoot 前缀升到 (1,1,1)，并把被全局规则塞进来的属性一并复位；
+   height 改 100% 让它跟着 .ex-blankw（后者已随 --exfs 缩放）。 */
+#examRoot .ex-blankw input{display:block;border:none;outline:none;background:none;border-radius:0;box-shadow:none;font:inherit;font-size:calc(var(--exfs) * .725);width:100%;height:100%;text-align:left;color:#111;padding:0 8px}
 .ex-blankw.editing b{display:none}   /* 10/14：input 常驻后此规则仅兜底 */
 .ex-blankw.editing input,.ex-blankw.filled input{display:block}
 /* 10/13 她截图 3 口径：点击后数字不硬消失——input 的 placeholder 灰显题号，
@@ -327,9 +339,9 @@
 /* 段落信息匹配（她 10/12 22:16 截图要求的真机考形态）：文章每段上方虚线槽 + 题号气泡。
    槽 = .ex-pslot（细虚线，放入题号后变实线）；气泡 = .ex-lohb（可拖可点选）。
    判分色 .right/.wrong 与 .ex-drop 同款；交互见 bank.js loh* 函数组。 */
-.ex-pslot{display:flex;align-items:center;gap:8px;margin:2px 0 10px;padding:4px 10px;border:1px dashed #9aa0a8;border-radius:8px;min-height:30px;background:var(--n-50,#fafbfc)}
-.ex-pslot .ex-psl-l{flex:none;font-size:12px;font-weight:800;color:#6b7280}
-.ex-pslot .ex-psl-box{flex:1;min-height:20px;font-size:13.5px;font-weight:700;color:#111}
+.ex-pslot{display:flex;align-items:center;gap:8px;margin:2px 0 10px;padding:4px 10px;border:1px dashed #9aa0a8;border-radius:8px;min-height:calc(var(--exfs) * 1.5);background:var(--n-50,#fafbfc)}   /* 10/16：min-height 跟 --exfs */
+.ex-pslot .ex-psl-l{flex:none;font-size:calc(var(--exfs) * .6);font-weight:800;color:#6b7280}
+.ex-pslot .ex-psl-box{flex:1;min-height:calc(var(--exfs) * 1);font-size:calc(var(--exfs) * .675);font-weight:700;color:#111}
 .ex-pslot.filled{border-style:solid;border-color:#374151;background:#fff}
 .ex-pslot.over{border-color:var(--primary);background:var(--primary-50)}
 .ex-pslot.right{border-color:var(--primary)}
@@ -338,8 +350,8 @@
    真实机考同形态（IDP 官方样题 + 104 样子稿）。字母框做成 select：点开选 A–H，
    比拖放快，手机上也能用。 */
 .ex-q-lohr{align-items:flex-start}
-.ex-lohsel{flex:none;width:62px;height:34px;border:1.5px solid #9ca3af;border-radius:6px;background:#fff;
-  font:inherit;font-size:14.5px;font-weight:700;text-align:center;text-align-last:center;color:#111;
+.ex-lohsel{flex:none;width:calc(var(--exfs) * 3.1);height:calc(var(--exfs) * 1.7);border:1.5px solid #9ca3af;border-radius:6px;background:#fff;
+  font:inherit;font-size:calc(var(--exfs) * .725);font-weight:700;text-align:center;text-align-last:center;color:#111;
   cursor:pointer;margin-left:auto;outline:none;transition:border-color .15s,box-shadow .15s}
 .ex-lohsel:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-50)}
 .ex-lohsel.filled{border-color:#374151}
@@ -347,11 +359,11 @@
 .ex-lohsel.wrong{border-color:#b3261e;color:#b3261e}
 #examRoot.ct-dark .ex-lohsel{background:#242628;border-color:#3a3f45;color:#e8eaed}
 #examRoot.ct-yellow .ex-lohsel{background:#24241a;border-color:#4a4526;color:#f0e3a8}
-.ex-lohb{display:inline-flex;align-items:center;justify-content:center;min-width:36px;height:24px;margin-left:10px;padding:0 8px;border:1px dashed #6b7280;border-radius:999px;font-size:12.5px;font-weight:700;color:#111;cursor:grab;vertical-align:middle;user-select:none;-webkit-user-select:none}
+.ex-lohb{display:inline-flex;align-items:center;justify-content:center;min-width:calc(var(--exfs) * 1.8);height:calc(var(--exfs) * 1.2);margin-left:10px;padding:0 8px;border:1px dashed #6b7280;border-radius:999px;font-size:calc(var(--exfs) * .625);font-weight:700;color:#111;cursor:grab;vertical-align:middle;user-select:none;-webkit-user-select:none}   /* 10/16：尺寸/字号跟 --exfs */
 .ex-lohb.sel{border-color:var(--primary);background:var(--primary-50)}
 .ex-lohb.used{opacity:.45;border-style:solid}
 .ex-lohb.ghost{position:fixed;left:0;top:0;z-index:999;pointer-events:none;opacity:.92}
-.ex-lohv{margin-left:8px;font-size:13px;font-weight:700;color:var(--primary-900)}
+.ex-lohv{margin-left:8px;font-size:calc(var(--exfs) * .65);font-weight:700;color:var(--primary-900)}   /* 10/16：字号跟 --exfs */
 /* 交卷后选项上色（兼容新选项行） */
 .ex-opt.right{background:var(--primary-50)}
 .ex-opt.wrong{background:#fdf3f2}
