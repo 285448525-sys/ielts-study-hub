@@ -349,7 +349,20 @@
 /* 10/14 她拍板：段落信息匹配改表格行（题号 | 题干 | 右侧字母框）。
    真实机考同形态（IDP 官方样题 + 104 样子稿）。字母框做成 select：点开选 A–H，
    比拖放快，手机上也能用。 */
-.ex-q-lohr{align-items:flex-start}
+/* 🔴🔴 10/16：段落匹配改**真表格**（她 10/14 原话「匹配题是以表格的形式呈现的」，10/14 批只做了行+下拉、
+   没做表格外观 → 她 10/15 / 10/16 两次又报。形态对标爱听写 map-table：原生 <table border=1>，真机考同构）。
+   ⚠️ 三种匹配题型口径不变：heading=拖放 / 普通字母匹配=拖放 / 段落匹配=表格行字母下拉（本次只改外观）。
+   字号全部 calc(var(--exfs)*系数)：默认档与改前一致，Size 三档一起放大。 */
+.ex-lohtable{width:100%;border-collapse:collapse;font-size:.8em;margin:2px 0 12px}
+.ex-lohtable td{border:1px solid #d7dbe0;padding:10px 12px;vertical-align:middle}
+.ex-lohtable .ex-lt-no{width:52px;text-align:center}
+.ex-lohtable .ex-lt-stem{position:relative;color:#111;line-height:1.65;padding-right:34px}
+.ex-lohtable .ex-lt-ans{width:calc(var(--exfs) * 4.8);text-align:center}
+.ex-lohtable .ex-flagq{top:50%;transform:translateY(-50%);right:6px}
+#examRoot.ct-dark .ex-lohtable td{border-color:#3a3f45}
+#examRoot.ct-dark .ex-lt-stem{color:#f2f2f2}
+#examRoot.ct-yellow .ex-lohtable td{border-color:#4a4526}
+#examRoot.ct-yellow .ex-lt-stem{color:#f0e3a8}
 .ex-lohsel{flex:none;width:calc(var(--exfs) * 3.1);height:calc(var(--exfs) * 1.7);border:1.5px solid #9ca3af;border-radius:6px;background:#fff;
   font:inherit;font-size:calc(var(--exfs) * .725);font-weight:700;text-align:center;text-align-last:center;color:#111;
   cursor:pointer;margin-left:auto;outline:none;transition:border-color .15s,box-shadow .15s}
@@ -1147,6 +1160,6 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common.js?v=20261013ac"></script>
 <script defer src="js/writing_prompts.js?v=20260903ab"></script>
 <script defer src="js/writing.js?v=20261011i"></script>
-<script defer src="js/bank.js?v=20261012t"></script>
+<script defer src="js/bank.js?v=20261012u"></script>
 </body>
 </html>

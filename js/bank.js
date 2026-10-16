@@ -537,14 +537,23 @@
          答案口径：EX.user[题号] = 段落字母 → 判分/落库/草稿全复用，与形态无关。 */
       var gid = 'loh' + idx;
       var letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').slice(0, 9);   /* 段落字母上限 9（长文最多 9 段） */
+      /* 🔴🔴 10/16 修（她 15:19 发火：「不是说了段落匹配要用表格的形式来呈现吗为什么说了这么多次还是没改」）：
+         她 10/14 原话「匹配题是以表格的形式呈现的」→ 当时 3d4810f 只做成了「flex 行 + 右侧下拉」，
+         **没有表格外观**（无边框无网格），之后她 10/15、今天 14:02/15:19 又看到两三次都没变 → 本次真做表格。
+         形态对标爱听写 map-table（原生 `<table border="1" cellspacing="0">`，真机考同构）：
+         整组一张带边框表格，每行 = 题号 | 题干（内含旗标）| 字母下拉。答案口径与收集/判分零改动
+         （select 仍 data-q/data-g），主题（ct-dark/ct-yellow）边框同步适配。 */
+      h += '<table class="ex-lohtable"><tbody>';
       qs.forEach(function(q){
         var n = numOf(q.qNumber);
         var opts = letters.map(function(ch){ return '<option value="' + ch + '">' + ch + '</option>'; }).join('');
-        h += '<div class="ex-q ex-q-lohr"><span class="ex-qn" data-qn="' + esc(n) + '">' + esc(n) + '</span>'
-          + flagHtml(n) + '<span class="ex-qt">' + esc(plain(q.question)) + '</span>'
-          + '<select class="ex-lohsel" data-q="' + esc(n) + '" data-g="' + gid + '" aria-label="paragraph letter">'
-          + '<option value=""></option>' + opts + '</select></div>';
+        h += '<tr class="ex-q-lohr">'
+          + '<td class="ex-lt-no"><span class="ex-qn" data-qn="' + esc(n) + '">' + esc(n) + '</span></td>'
+          + '<td class="ex-lt-stem">' + flagHtml(n) + esc(plain(q.question)) + '</td>'
+          + '<td class="ex-lt-ans"><select class="ex-lohsel" data-q="' + esc(n) + '" data-g="' + gid + '" aria-label="paragraph letter">'
+          + '<option value=""></option>' + opts + '</select></td></tr>';
       });
+      h += '</tbody></table>';
     } else if(g.type === 'map'){
       /* map 这一个 type 在题库里是两种题：
          · 阅读 —— 实为「哪一段包含以下信息」的段落信息匹配：字母指段落，靠左边文章作答；
