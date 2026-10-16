@@ -545,6 +545,7 @@
       +    '<span class="ex-timer" id="exTimer">' + timerText + '</span>'
       + ''   /* 10/14 她拍板：顶栏计时徽章关掉（音频长短不一，与整场计时并存重复） */
       +    '<div class="ex-icons">'
+      +      '<span class="ex-saved" id="exSaved" hidden>Saved</span>'
       +      '<button class="ex-ico ex-menubtn" type="button" title="Option">\u2630</button>'
       +    '</div></div>'
       + '<div class="ex-option" id="exOptionPanel">'
@@ -1630,7 +1631,18 @@ function barHtml(){
       if(EX.full && EX.channel === 'listening') localStorage.setItem('hub_bank_full_l_draft', JSON.stringify({ ids: EX.ids, user: c, ts: Date.now() }));
       else if(EX.full) localStorage.setItem('hub_bank_full_draft', JSON.stringify({ ids: EX.ids, user: c, ts: Date.now() }));
       else localStorage.setItem('hub_bank_draft_' + EX.unit.id, JSON.stringify(c));
+      exSavedFlash();   /* 10/15 对标爱听写：顶栏右侧亮一下「Saved」，让她确信作答已落盘 */
     }catch(e){}
+  }
+
+  /* 10/15 自动保存指示（爱听写顶栏同款「Saved」）：写盘成功后亮 1.6s 再隐。
+     只在真的写成功时亮 —— 写失败（隐私模式/配额满）不亮，避免「假承诺」。 */
+  var _savedT = null;
+  function exSavedFlash(){
+    var el = document.getElementById('exSaved'); if(!el) return;
+    el.hidden = false; el.classList.add('on');
+    if(_savedT) clearTimeout(_savedT);
+    _savedT = setTimeout(function(){ el.classList.remove('on'); }, 1600);
   }
 
   function paintSheet(){
@@ -1669,7 +1681,9 @@ function barHtml(){
     if(!EX || !EX.full){ if(parts) parts.innerHTML = ''; if(nav) nav.classList.add('ex-nav--plain'); return; }
     nav.classList.remove('ex-nav--plain');
     var isL = EX.channel === 'listening', isW = EX.channel === 'writing';
-    var lbl = isL ? 'Part' : (isW ? 'Task' : 'Part');
+    /* 10/15 口径对齐官方/爱听写：阅读是 Passage 1/2/3（官方卷面用词），听力才是 Part 1–4，
+       写作两篇是 Task 1/2。此前阅读也写 Part（10/15 并排切换器那批的副作用），本次纠回。 */
+    var lbl = isL ? 'Part' : (isW ? 'Task' : 'Passage');
     var n = isL ? 4 : (isW ? 2 : 3);
     var user = collect();
     /* 手机缩写：P1/P2…（省宽度，390px 放 4 个 + Finish/Exit） */

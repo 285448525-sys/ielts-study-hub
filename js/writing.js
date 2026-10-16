@@ -1899,7 +1899,16 @@ function examSaveDraft(){
     if(cur.custom && cur.submitted){ localStorage.removeItem(key); return; }
     if(txt.trim()) localStorage.setItem(key, JSON.stringify({ essay: txt, date: Date.now() }));
     else localStorage.removeItem(key);
+    wtSavedFlash();   /* 10/15 对标爱听写：顶栏右侧亮一下「Saved」（只在真的写成功时亮） */
   }catch(e){ console.warn('draft save failed', e); }
+}
+/* 10/15 自动保存指示（写作壳） */
+var _wtSavedT = null;
+function wtSavedFlash(){
+  var el = document.getElementById('wtSaved'); if(!el) return;
+  el.hidden = false; el.classList.add('on');
+  if(_wtSavedT) clearTimeout(_wtSavedT);
+  _wtSavedT = setTimeout(function(){ el.classList.remove('on'); }, 1600);
 }
 function examStartTimer(mode, limitMs){
   examTimer.mode = (mode === 'down' && Number(limitMs) > 0) ? 'down' : 'up';
@@ -2533,6 +2542,7 @@ function examShellHtml(){
         <button type="button" id="examTimerBtn" title="Pause / Resume">⏸</button>
       </span>
       <div class="exam-head-right">
+        <span class="ex-saved" id="wtSaved" hidden>Saved</span>
         <button class="exam-font-btn" id="examFontBtn" type="button" title="Text size — same three sizes as IELTS on computer (Regular 20 / Large 23 / Extra large 27)">Aa · Regular</button>
         <button class="exam-exit-full" id="examExitFull" type="button" title="Exit full screen">
           <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4M15 3h4a2 2 0 0 1 2 2v4M9 21H5a2 2 0 0 1-2-2v-4M15 21h4a2 2 0 0 0 2-2v-4"/></svg>
