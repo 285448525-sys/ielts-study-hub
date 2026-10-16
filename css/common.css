@@ -3406,5 +3406,7 @@ body.dgs-open .dock-group-sheet{transform:translateY(0)}
 /* 10/14 底栏浅色后的按钮配色（我改浅底时漏了按钮，截图里 Finish section 白字几乎看不见） */
 #examPractice .exam-bar .btn-exam-ghost{background:var(--primary);color:#fff;border-color:var(--primary);font-weight:600}
 #examPractice .exam-bar .btn-exam-ghost:hover{background:var(--primary-600);border-color:var(--primary-600)}
-#examPractice .exam-bar .btn-exam-exit{background:transparent;color:var(--err-text,#b3261e);border:1px solid var(--err,#d93025);font-weight:600}
-#examPractice .exam-bar .btn-exam-exit:hover{background:var(--err-bg,#fdf3f2);color:var(--err-text,#b3261e)}
+/* 10/16 她拍板：写作壳 Exit 与 Finish 同款浅底、字色弱化（对齐爱听写 .btn !text-m 口径），
+   红色只留给真正危险的操作，退出考试不算。此前是红描边（10/14 底栏浅色那批的配色）。 */
+#examPractice .exam-bar .btn-exam-exit{background:transparent;color:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.5);font-weight:600}
+#examPractice .exam-bar .btn-exam-exit:hover{background:rgba(255,255,255,.12);color:#fff}

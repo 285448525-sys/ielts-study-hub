@@ -18,7 +18,7 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>模考 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261012h" />
+<link rel="stylesheet" href="css/common.css?v=20261012i" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -290,7 +290,11 @@
 /* 10/14 二轮（对齐她给的成熟样式稿）：
    ① 边框加深 #9ca3af → #6b7280（原色在截图里几乎看不见，像断开的括号）
    ② 宽度：flex:none + width:auto，紧贴文字不再被拉伸成 210px */
-.ex-blankw{display:inline-flex;align-items:center;justify-content:center;flex:none;width:auto;min-width:118px;max-width:200px;height:34px;border:1.5px solid #6b7280;border-radius:6px;background:#fff;vertical-align:middle;transition:border-color .15s,box-shadow .15s}
+/* 10/16 她拍板「填空框改成跟他（爱听写）一样的」：实线方框 = 1px 灰边 + 无圆角 + 左对齐
+   （爱听写 .question-input 实测：1px solid #808080、radius 0、padding 4px 8px、左对齐文字；
+   原来我们的 1.5px 深灰边 + 6px 圆角 + 居中文字是自研形态，本次对齐）。
+   placeholder 灰显题号、输第一字符让位的交互口径不变（BC 机考同款，10/13 她截图 3 定的）。 */
+.ex-blankw{display:inline-flex;align-items:center;flex:none;width:auto;min-width:118px;max-width:200px;height:32px;border:1px solid #808080;border-radius:0;background:#fff;vertical-align:middle;transition:border-color .15s,box-shadow .15s}
 .ex-blankw:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-50)}
 .ex-blankw b{display:none}   /* 10/14：题号走 input placeholder，聚焦时不再硬消失 */
 /* 10/14 表格单元格里的填空框会被 td 拉伸成 200px（截图里显得很宽）→ 固定宽度紧贴文字 */
@@ -298,7 +302,7 @@
    有空间时目标 118px，格子不够时自动缩（min-width 只留 72px 保底可点）。 */
 .ex-html td .ex-blankw,.ex-html th .ex-blankw{width:118px;max-width:100%;min-width:72px;flex:0 1 auto}
 .ex-html td .ex-blankw input{width:100%}
-.ex-blankw input{display:block;border:none;outline:none;background:none;font:inherit;font-size:14.5px;width:100%;text-align:center;color:#111;padding:0 8px}
+.ex-blankw input{display:block;border:none;outline:none;background:none;font:inherit;font-size:14.5px;width:100%;text-align:left;color:#111;padding:0 8px}
 .ex-blankw.editing b{display:none}   /* 10/14：input 常驻后此规则仅兜底 */
 .ex-blankw.editing input,.ex-blankw.filled input{display:block}
 /* 10/13 她截图 3 口径：点击后数字不硬消失——input 的 placeholder 灰显题号，
@@ -561,16 +565,21 @@
   .ex-pt{height:32px;padding:0 8px;font-size:11.5px;gap:5px}
   .ex-pt .ex-pt-n{font-size:10px}
 }
-.ex-nums{flex:1;min-width:0;display:flex;gap:2px;justify-content:center;overflow-x:auto;scrollbar-width:thin;padding:1px 0}
+/* 题号行（10/16 对齐爱听写实测 DOM + 官方 Quick Guide「答过的题上方出现线」）：
+   · 已答线移到题号【上方】（爱听写结构 = 线在数字上面；此前在下方，与其/官方都不一致）
+   · 线 = 2px；未答 = 浅灰 #c9ced6（爱听写 bg-gray-300 口径），已答 = 2.5px 黑
+   · 旗标 = 红色小旗标 ⚑ 挂在题号上方（爱听写 icon-biaoji text-red-600 口径），
+     不再是套在数字外的黑圈（那个是自研形态） */
+.ex-nums{flex:1;min-width:0;display:flex;gap:2px;justify-content:center;overflow-x:auto;scrollbar-width:thin;padding:11px 0 1px}
 .ex-nav--plain .ex-nums{justify-content:center}
-/* 题号三态（爱听写 + 新西兰官方 Quick Guide：答过的题上方出线 / flag 由方变圆） */
 .ex-num{position:relative;flex:none;width:26px;height:20px;border:none;background:none;padding:0;margin:0;
   font:inherit;font-size:12.5px;font-weight:600;color:#111;cursor:pointer;font-variant-numeric:tabular-nums}
-.ex-num::after{content:"";position:absolute;left:4px;right:4px;bottom:0;height:1.5px;background:var(--n-400);border-radius:1px}
-.ex-num--done::after{height:2.5px;background:#111}
+.ex-num::before{content:"";position:absolute;left:4px;right:4px;top:0;height:2px;background:#c9ced6;border-radius:1px}
+.ex-num--done::before{height:2.5px;background:#111}
 .ex-num--cur{box-shadow:inset 0 0 0 1.5px #111;border-radius:3px}
-.ex-num--flag{border:1.5px solid #111;border-radius:50%;width:24px;height:24px}
-.ex-num--flag.ex-num--cur{border-width:2px}
+.ex-num--flag::after{content:"\u2691";position:absolute;left:50%;top:-10px;transform:translateX(-50%);
+  font-size:10px;line-height:1;color:#b3261e;font-weight:400}
+.ex-num:hover{background:#eef0f2;border-radius:3px}
 .ex-num:hover{background:#eef0f2;border-radius:3px}
 .ex-actions{display:flex;gap:8px;flex:none;justify-content:flex-end;align-items:center}
 /* 10/12 批A：按钮行压到 34px（原 .btn min-height:32 + padding 撑到 40 → 底栏 78px 超标）。
@@ -712,8 +721,6 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 .exam-bar .exam-step-label{color:#fff}
 .exam-bar .btn-exam-ghost{border-color:rgba(255,255,255,.5);background:transparent;color:#fff}
 .exam-bar .btn-exam-ghost:hover{background:rgba(255,255,255,.12)}
-.exam-bar .btn-exam-exit{background:transparent;border-color:rgba(255,130,130,.7);color:#ff9d9d}
-.exam-bar .btn-exam-exit:hover{background:rgba(255,255,255,.12)}
 .exam-a{padding:16px 20px 0}
 .exam-q .exam-q-body-wrap{padding:20px 22px 26px}
 .exam-textarea{padding:14px 16px}
