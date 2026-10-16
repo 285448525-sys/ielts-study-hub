@@ -828,6 +828,22 @@ function barHtml(){
     if(tm) tm.textContent = fmtClock(c) + ' / ' + fmtClock(d);
     if(btn) btn.textContent = a.paused ? '▶' : '❙❙';
   }
+  /* 🔴 10/16 她报「听力音频播放不了」→ 本地/线上都复现不出（音频 200、duration 正常、无报错），
+     她那边是 00:00 / 00:00 + 进度条塌成小点 = 元数据没加载（旧缓存版布局也印证）。
+     不管根因是缓存还是网络/插件拦截，**失败必须是可见且可自救的**：在音频条上给提示 + 一键重试。 */
+  function showAudioErr(a){
+    var bar = document.getElementById('exAudioBar'); if(!bar) return;
+    if(bar.querySelector('.ea-err')) return;
+    var e = document.createElement('button');
+    e.type = 'button'; e.className = 'ea-err';
+    e.textContent = 'Audio failed to load — tap to retry';
+    e.addEventListener('click', function(){
+      e.remove();
+      try{ a.load(); }catch(err){}
+      if(EX && EX.listenMode !== 'exam'){ try{ a.play(); }catch(err){} }
+    });
+    bar.appendChild(e);
+  }
   function wireAudio(){
     var a = document.getElementById('exAudio');
     if(!a || a === _audioBound) return;                  /* 记住绑过哪个元素，别重复绑 */
@@ -837,6 +853,16 @@ function barHtml(){
     a.playbackRate = AUDIO_RATES[_rateIx];
     a.addEventListener('loadedmetadata', paintAudio);
     a.addEventListener('timeupdate', paintAudio);
+    /* 🔴 10/16 她报「听力音频播放不了」：先在本地/线上复现——都正常（duration 正常、无报错），
+       她那边时间停在 00:00 / 00:00 + 进度条塌成一个小圆点 = **元数据没加载**（旧缓存版本）。
+       不管她那边是缓存还是网络/插件拦截，现在的失败形态是**完全静默**的（只有 00:00/00:00，
+       谁也看不出原因）→ 加自解释：加载失败时在音频条上给明确提示 + 一键重试（reload）。 */
+    a.addEventListener('error', function(){ showAudioErr(a); });
+    /* 6 秒兜底：既没 error 也没 metadata（请求挂起/被拦）= 同样静默 → 也给提示 */
+    setTimeout(function(){
+      var cur = document.getElementById('exAudio');
+      if(cur && cur === a && !(cur.duration > 0) && !cur.error) showAudioErr(a);
+    }, 6000);
     a.addEventListener('play', function(){
       if(EX){
         /* 听力完整模考：按 Part 记「这部分的音频已播过」→ 切走再切回来不许重播（整场只播一遍） */

@@ -946,6 +946,9 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
   .ex-audio .ea-bar .ea-fill{position:absolute;top:0;left:0;bottom:0;width:0;background:var(--primary);border-radius:999px}
   .ex-audio .ea-bar .ea-knob{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;background:#fff;border:2px solid var(--primary);transform:translate(-50%,-50%);left:0;pointer-events:none}
   .ex-audio .ea-time{flex:none;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:92px;text-align:right}
+  /* 10/16：音频加载失败的自解释提示（她报「播放不了」时全站只有静默的 00:00/00:00） */
+  .ex-audio .ea-err{flex:none;border:1px solid #d93025;background:#fdf3f2;color:#b3261e;border-radius:7px;padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+  .ex-audio .ea-err:hover{background:#fbe6e4}
   .ex-audio .ea-rate{flex:none;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:7px;padding:3px 8px;font-size:12px;cursor:pointer;font-family:inherit;font-variant-numeric:tabular-nums}
   /* 音量（10/12 加）：真机考只有音量可控 → 练习/考试两种模式都保留 */
   .ex-audio .ea-vol{flex:none;border:1px solid var(--line);background:transparent;border-radius:7px;padding:2px 7px;font-size:12px;line-height:1.5;cursor:pointer;font-family:inherit}
@@ -1157,6 +1160,6 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common.js?v=20261013ac"></script>
 <script defer src="js/writing_prompts.js?v=20260903ab"></script>
 <script defer src="js/writing.js?v=20261012a"></script>
-<script defer src="js/bank.js?v=20261012w"></script>
+<script defer src="js/bank.js?v=20261012x"></script>
 </body>
 </html>
