@@ -298,6 +298,25 @@
 .ex-drop .ex-x:hover{color:#b3261e}
 .ex-drop.filled.right{border-color:var(--primary);background:var(--primary-50)}
 .ex-drop.filled.wrong{border-color:#b3261e;background:#fdf3f2;color:#b3261e}
+/* 🔴 10/16 她 18:16：「heading 题是把右边的选项拖到原文里的，每一段的上面会有一个虚像框让你拖的」
+   → 原文段落上方的虚线槽（.ex-hslot 同时带 .ex-drop 类，拖放/点选/清除/复盘上色全部复用既有手势层）。
+   槽里只显示罗马数字（heading 全文走 title 提示），避免长标题把文章排版撑乱。 */
+.ex-hslot{display:flex;align-items:center;min-width:calc(var(--exfs) * 5.5);max-width:min(340px,100%);
+  min-height:calc(var(--exfs) * 1.6);margin:0 0 6px;padding:4px 12px;border:1.5px dashed #9aa0a8;border-radius:6px;
+  background:var(--n-50,#fafbfc);font-size:.8em;font-weight:700;color:#111;cursor:pointer}
+.ex-hslot::before{content:"\2192";font-size:.95em;color:#9aa0a8;font-weight:400;margin-right:8px}
+.ex-hslot.filled{border-style:solid;border-color:#6a6f77;background:#fff}
+.ex-hslot.filled::before{content:none}
+.ex-hslot .ex-chip{border:none;background:none;padding:0;border-radius:0;font-size:1em;font-weight:700;gap:0}
+.ex-hslot .ex-chip b{display:none}
+.ex-hslot .ex-x{font-size:.85em;color:var(--muted);cursor:pointer;padding:0 2px;margin-left:auto}
+.ex-hslot.over{border-color:var(--primary);background:var(--primary-50)}
+.ex-hslot.right{border-color:var(--primary);background:var(--primary-50)}
+.ex-hslot.wrong{border-color:#b3261e;background:#fdf3f2;color:#b3261e}
+#examRoot.ct-dark .ex-hslot{background:#1c1f22;border-color:#5a5f66;color:#f2f2f2}
+#examRoot.ct-dark .ex-hslot.filled{background:#242628}
+#examRoot.ct-yellow .ex-hslot{background:#24241a;border-color:#4a4526;color:#f0e3a8}
+#examRoot.ct-yellow .ex-hslot.filled{background:#2a2718}
 /* 填空框三态（样子稿 104）：未点 = 框中数字；点击 = 空白框输入；失焦有值显示值 */
 /* 10/14 二轮（对齐她给的成熟样式稿）：
    ① 边框加深 #9ca3af → #6b7280（原色在截图里几乎看不见，像断开的括号）
@@ -1160,6 +1179,6 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common.js?v=20261013ac"></script>
 <script defer src="js/writing_prompts.js?v=20260903ab"></script>
 <script defer src="js/writing.js?v=20261012a"></script>
-<script defer src="js/bank.js?v=20261012x"></script>
+<script defer src="js/bank.js?v=20261012y"></script>
 </body>
 </html>

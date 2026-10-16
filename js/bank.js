@@ -1004,7 +1004,8 @@ function barHtml(){
         + barHtml() + ctxHtml();
     }
 
-    if(!isListen) lohSlotsInto(document.getElementById('exArt'));   /* 段落信息匹配槽位须早于 applyAnswer */
+    /* 10/16：heading 题的原文段落槽（她 18:16 口径）——须早于 applyAnswer，草稿恢复才找得到槽 */
+    if(!isListen) headSlotsInto();
     Object.keys(EX.user || {}).forEach(function(qn){ applyAnswer(qn, EX.user[qn]); });
     syncExamStates();
     paintSheet();
@@ -1202,7 +1203,7 @@ function barHtml(){
       var ah = '';
       (pk.unit.parts || []).forEach(function(p){ ah += clean(p.article || ''); });
       art.innerHTML = ah; art.scrollTop = 0;
-      lohSlotsInto(art);                                  /* 段落信息匹配：段前插虚线槽（她 22:16 截图口径） */
+      headSlotsInto();                                    /* 10/16：heading 题段前虚线槽（她 18:16 口径） */
     }
     if(qcol){
       var numOf = numOfPassage(pi), qi = 0, qh = '';
@@ -1248,11 +1249,12 @@ function barHtml(){
         else if(inp && inp.checked) lb.classList.add('wrong');
       });
       /* 配对题：拖入的答案标对错 */
-      var dpEl = root.querySelector('.ex-drop[data-q="' + d.qn + '"]');
-      if(dpEl && dpEl.getAttribute('data-v')){
+      /* 10/16：同题号可能有原文槽 + 题目区槽两个（heading 题）→ 都上色 */
+      root.querySelectorAll('.ex-drop[data-q="' + d.qn + '"]').forEach(function(dpEl){
+        if(!dpEl.getAttribute('data-v')) return;
         dpEl.classList.add(norm(dpEl.getAttribute('data-v')) === norm(d.right) ? 'right' : 'wrong');
         dpEl.style.pointerEvents = 'none';
-      }
+      });
       /* 段落信息匹配：槽位按对错上色（答案字母 vs 正确字母） */
       var psEl = root.querySelector('.ex-pslot[data-q="' + d.qn + '"]');
       if(psEl && psEl.getAttribute('data-v')){
@@ -1352,7 +1354,27 @@ function barHtml(){
     drop.classList.remove('right', 'wrong');
     drop.innerHTML = (src ? src.innerHTML : esc(v)) + '<span class="ex-x" title="Remove">✕</span>';
     dgMark(v, true, gid);
+    dgSyncQ(drop);
     if(!silent){ saveDraft(); paintSheet(); }
+  }
+  /* 10/16：同一题号可能有两个槽（原文段落上方 .ex-hslot + 题目区行内 .ex-drop）→ 填入/清除后互相同步 */
+  function dgSyncQ(drop){
+    var q = drop.getAttribute('data-q'); if(!q) return;
+    var v = drop.getAttribute('data-v');
+    document.querySelectorAll('#examRoot .ex-drop[data-q="' + q + '"]').forEach(function(o){
+      if(o === drop) return;
+      if(v){
+        if(o.getAttribute('data-v') === v) return;
+        var src = dgPoolChip(v, drop.getAttribute('data-g'));
+        o.setAttribute('data-v', v);
+        o.classList.add('filled'); o.classList.remove('right', 'wrong');
+        o.innerHTML = (src ? src.innerHTML : esc(v)) + '<span class="ex-x" title="Remove">✕</span>';
+      } else {
+        o.removeAttribute('data-v');
+        o.classList.remove('filled', 'right', 'wrong');
+        o.innerHTML = '';
+      }
+    });
   }
   function dgClearEl(drop){
     if(!drop || !drop.getAttribute('data-v')) return;
@@ -1360,6 +1382,7 @@ function barHtml(){
     drop.removeAttribute('data-v');
     drop.classList.remove('filled', 'right', 'wrong');
     drop.innerHTML = '';
+    dgSyncQ(drop);
     saveDraft(); paintSheet();
   }
   function dgDropAt(x, y){ var el = document.elementFromPoint(x, y); return el ? el.closest('.ex-drop, .ex-pslot') : null; }
@@ -1403,9 +1426,68 @@ function barHtml(){
   /* 文章侧：每个段落字母前插虚线槽。字母集取自该篇 map 组题目的 options（A–G），
      只认块级元素开头的独立字母（飞书导出形态 = <strong>A</strong> 开头），不猜文本。
      单篇练习走 EX.unit；完整模考走 EX.packs[EX.curP-1]。 */
+  /* 🔴🔴 10/16 五修（她 18:16：「这个 heading 题是把右边的选项拖到原文里的，每一段的上面会有一个
+     虚像框让你拖的」）——Heading 题（List of Headings）的落点从「只在题目区行内」扩到**原文每段上方**：
+     在 #exArt 里给每个段落字母（题干 "Paragraph A"）插一个虚线槽 .ex-drop.ex-hslot（data-q=该段题号，
+     data-g 与题目区同题号槽一致），拖放/点选/清除全部复用既有手势层（.ex-drop 选择器自动收录）。
+     两处槽（原文 + 题目区）同 data-q → dgSyncQ 保持显示一致；答案口径仍 EX.user[题号]=罗马数字。 */
+  function headSlotsInto(){
+    var art = document.getElementById('exArt');
+    if(!art || !EX) return;
+    art.querySelectorAll('.ex-hslot').forEach(function(s){ s.remove(); });     /* 幂等：重渲染先清 */
+    /* heading 组 = matching 且选项首项是罗马数字（与 groupHtml 的 isHead 同判据）。
+       ⚠️ 题库实测两种形态：① 题干带字母（"Paragraph A"，Termite Mounds 那种）；
+       ② **题干只有 "Paragraph"（字母缺失，如 Bird Migration）** → 退化按顺序对应（题号升序 ↔ 段落字母升序）。 */
+    var qns = [], hasLetter = false, letterMap = {};
+    (EX.groups || []).forEach(function(g){
+      var q0 = (g.questions || [])[0] || {};
+      var opts = q0.options || [];
+      if(!opts.length || !/^[ivx]+$/i.test(String(opts[0].optionNum || ''))) return;
+      (g.questions || []).forEach(function(q){
+        if(q.qNumber == null) return;
+        qns.push(String(q.qNumber));
+        var m = /(?:paragraph|section)\s+([A-Z])\b/i.exec(plain(q.question || ''));
+        if(m){ hasLetter = true; letterMap[m[1].toUpperCase()] = String(q.qNumber); }
+      });
+    });
+    if(!qns.length) return;
+    /* 扫文章块级元素找段落起始标记（题库形态 = 块首「A 正文…」或「(A) 正文…」），
+       用**字母增量序列**校验（A→B→C…）排除正文里偶然以大写字母开头的句子。 */
+    var seq = [], expected = 65;
+    art.querySelectorAll('p, div, h1, h2, h3, h4, li').forEach(function(b){
+      var t = (b.textContent || '').replace(/\u00a0/g, ' ').trim();
+      if(!t) return;
+      var m = /^\(([A-Z])\)/.exec(t) || /^([A-Z])[\s\.\)]/.exec(t);
+      if(!m) return;
+      if(m[1].charCodeAt(0) !== expected) return;
+      expected++;
+      seq.push({ L: m[1], el: b });
+    });
+    if(!seq.length) return;
+    var n = Math.min(seq.length, qns.length);
+    for(var i = 0; i < n; i++){
+      var L = seq[i].L;
+      var qn = hasLetter ? letterMap[L] : qns[i];
+      if(!qn) continue;
+      if(art.querySelector('.ex-hslot[data-q="' + qn + '"]')) continue;       /* 同题号只插一个 */
+      var host = art.querySelector('.ex-drop[data-q="' + qn + '"]');          /* 从题目区槽取同一个 gid */
+      var gid = host ? host.getAttribute('data-g') : '';
+      var slot = document.createElement('div');
+      slot.className = 'ex-drop ex-hslot';
+      slot.setAttribute('data-q', qn);
+      if(gid) slot.setAttribute('data-g', gid);
+      slot.setAttribute('title', 'Drag a heading here');
+      /* ⚠️ 10/16 踩坑：题库文章是**嵌套 div**，命中的段落块往往不是 #exArt 的直接子节点 →
+         `art.insertBefore(slot, block)` 会抛 NotFoundError（整个考场加载被 catch 吞掉、白屏）。
+         正确做法：插到**该块自己的父节点**里、紧挨它前面。 */
+      var parent = seq[i].el.parentNode;
+      if(!parent) continue;
+      parent.insertBefore(slot, seq[i].el);                                   /* 段落**上方** */
+    }
+  }
   function lohSlotsInto(){
     /* 10/14 停用：段落信息匹配改表格行（她拍板），不再往文章里插拖放虚线槽。
-       保留函数名避免调用点报错；槽位相关交互（拖放/点选放入）随之下线。 */
+       10/16 起：heading 题的原文段落槽走独立的 headSlotsInto()（她 18:16 要求），本函数保持空壳。 */
     return;
   }
 
