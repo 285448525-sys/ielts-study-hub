@@ -750,15 +750,23 @@ function barHtml(){
       +    '</div></div>';
   }
   function ctxHtml(){
-    /* 10/12 改：由竖排五项改横向浮动工具条；`unhl` 合并了原来的单项 Clear
-       （选中/右键压到已有标注时，Highlight/Note 会套娃 → 只给 Remove）。
+    /* 10/12 改：由竖排五项改横向浮动工具条。
+       🔴 10/16 按她的指示 + 真实机考实证再次校正（她 18:34 两条）：
+          · 选中**普通文字** → 只有 Note / Highlight
+            —— 原先多给的 "Clear all" **真题里没有**，已整块删掉（她原话「真题里没有的功能不要加」）。
+          · 选中**已高亮文字** → 只有 Clear Highlight
+            —— 她记的「好像是 delete」（NOTE 按钮删除笔记），实际这条是 Clear Highlight，
+               来源 = 爱听写（idictation.cn，还原机考的真题站）线上产物实证：
+               其划词工具条的取消按钮渲染的是两个独立 span → `<span>Clear</span><span>Highlight</span>`
+               （tests/_rea_out/idict/toolbar-702282c8.js 的 cancelHighlight 分支）；
+               未高亮时则是 `Note` + `Highlight` 两项，**没有 Clear all / Remove 这类第三项**。
+            → 「Remove」这个我自己编的词一并去掉，改成机考实际用的 Clear Highlight。
        显示哪一个由 paintCtxButtons() 按上下文决定。 */
     return '<div class="ex-ctx" id="exCtx">'
       +    '<button type="button" data-hact="hl">Highlight</button>'
       +    '<button type="button" data-hact="note">Note</button>'
       +    '<hr>'
-      +    '<button type="button" data-hact="unhl">Remove</button>'
-      +    '<button type="button" data-hact="clearall">Clear all</button>'
+      +    '<button type="button" data-hact="unhl">Clear Highlight</button>'
       +  '</div>';
   }
 
@@ -1644,12 +1652,10 @@ function barHtml(){
         renderNotes();
         var s3 = window.getSelection(); if(s3) s3.removeAllRanges();
       }
-    } else if(act === 'clearall'){
-      art.querySelectorAll('.ex-hl, .ex-nt').forEach(unwrapEl);
-      saveMarks([]);
-      renderNotes();
-      var sp2 = document.getElementById('exSplit'); if(sp2) sp2.classList.remove('hasnotes');
     }
+    /* 10/16 删：`clearall` 分支（清空本篇全部标注）—— 真实机考没有这个功能，她明确要求下线
+       （「真题里没有的功能不要加」）。按钮已从 ctxHtml 移除，这里一并删掉处理分支，
+       避免留下「没有入口却还能被调」的死路径。 */
     _hlRange = null; _hlSpan = null;
   }
   function hlReset(){
@@ -1681,27 +1687,30 @@ function barHtml(){
     ctx.style.left = x + 'px';
     ctx.style.top = y + 'px';
   }
-  /* 按钮显隐规则：有选区 → Highlight（压到已有高亮也显示：再点 = 玫红 toggle）；
-     压到已有笔记时 Note 隐藏（再记会套娃）；压到任何已有标注 → Remove；
-     有标注时永远给 Clear all。返回「有没有可显示的按钮」。 */
+  /* 按钮显隐规则（10/16 按真实机考校正）：
+      · 有选区且是普通文字 → Highlight + Note；
+      · 压到已有笔记 → Note 隐藏（再记会套娃）；
+      · 压到任何已有标注（或右键单个标注）→ Clear Highlight。
+     没有可显示的按钮就不弹工具条（返回 false）。 */
   function paintCtxButtons(){
-    var ctx = document.getElementById('exCtx'); if(!ctx) return false;
+    var ctx = document.getElementById('exCtx'); if(!ctx){ return false; }
     var hasR = !!_hlRange, span = !!_hlSpan;
     var spans = hasR ? marksInRange(_hlRange) : [];
     var overlapHl = spans.some(function(sp){ return sp.classList.contains('ex-hl'); });
     var overlapNt = spans.some(function(sp){ return sp.classList.contains('ex-nt'); });
-    var anyMark = loadMarks().length > 0;
+    var canClear = overlapHl || overlapNt || span;
     function set(act, on){
       var b = ctx.querySelector('[data-hact="' + act + '"]');
-      if(b) b.style.display = on ? '' : 'none';
+      if(b){ b.style.display = on ? '' : 'none'; }
     }
-    set('hl', hasR);
-    set('note', hasR && !overlapNt);
-    set('unhl', overlapHl || overlapNt || span);
-    set('clearall', anyMark);
+    set('hl', hasR && !canClear);
+    set('note', hasR && !overlapNt && !canClear);
+    set('unhl', canClear);
     var hr = ctx.querySelector('hr');
-    if(hr) hr.style.display = (overlapHl || overlapNt || span) ? '' : 'none';
-    return hasR || span || anyMark;
+    /* 分隔线只在「左半边确实有按钮」时才画：压到已有标注时 Highlight/Note 都藏了，
+       再留一条竖线会变成孤零零一根（她最反感的「多余标注」）。 */
+    if(hr){ hr.style.display = (hasR && !overlapNt && !canClear) ? '' : 'none'; }
+    return hasR || span;
   }
   function openCtx(range, spanEl, rect){
     var ctx = document.getElementById('exCtx'); if(!ctx) return;
