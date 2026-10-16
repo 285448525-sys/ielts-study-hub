@@ -2090,8 +2090,10 @@ function barHtml(){
   /* 10/13 Pause 支持：暂停时把剩余秒数存 EX._leftSec，resume 用它重启倒计时（不重算、不丢已过时间）。 */
   function startTimer(sec){
     stopTimer();
-    /* 10/16：记下开局时长 —— 复盘要显示「用时」= 开局秒 − 剩余秒（此前没有 elapsed 概念） */
-    if(EX) EX._totalSec = sec;
+    /* 10/16：记下开局时长 —— 复盘要显示「用时」= 开局秒 − 剩余秒（此前没有 elapsed 概念）。
+       🔴 只在头一次赋值：resumeExam() 也走 startTimer(EX._leftSec)，每次都覆盖的话
+       「开局时长」会被改写成「剩余秒」，暂停一次用时就算错。 */
+    if(EX && EX._totalSec == null) EX._totalSec = sec;
     var left = sec, el = document.getElementById('exTimer');
     function tick(){
       if(el){
@@ -2441,7 +2443,8 @@ function barHtml(){
           return { qn: String(d.qn), user: d.user == null ? '' : String(d.user),
                    right: d.right == null ? '' : String(d.right), ok: !!d.ok };
         });
-        if (EX._usedSec) _rec.usedSec = Math.round(EX._usedSec);   /* 复盘要看「用时」 */
+        /* 用时总是写（哪怕 0）：记录页要显示「用时」，字段时有时无会让上层到处判空 */
+        _rec.usedSec = Math.max(0, Math.round(EX._usedSec || 0));
         /* 单篇重做覆盖：同 date + type + src:bank + granularity:part + unitId → 改写旧条 */
         var _old = null;
         if (!EX.full && _unitId) {
@@ -2455,7 +2458,7 @@ function barHtml(){
           _old.overall = _rec.overall;                   /* 覆盖时 band 可能从 null→数字或反之 */
           if (_old.overall == null) delete _old.overall;
           _old.detail = _rec.detail;                     /* 明细随重做一起刷新 */
-          if (_rec.usedSec) _old.usedSec = _rec.usedSec;
+          _old.usedSec = _rec.usedSec;                   /* 用时随重做一起刷新 */
           _old.updatedAt = Date.now();
         } else {
           DATA.mockRecords.unshift(_rec);
