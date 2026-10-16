@@ -25,6 +25,10 @@
   --neutral:var(--n-400);
   --accent:var(--primary);
   --ink-sub:var(--muted);
+  /* 2026-10-16 补：以下三个被引用但从未定义，解析为空导致渲染异常 */
+  --ink-soft:var(--n-600);      /* writing.html .ei-prev 引用；原解析为空 → 文字变黑。与 --ink-sub 同档（次级说明文字） */
+  --text:var(--n-800);          /* common.css .rec-yday-t 引用；原解析为空 → 继承/黑。等同 --ink 的别名 */
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;  /* .sec-num/.eyebrow 引用；原解析为空 → 回退衬线字体，应为等宽 */
   /* === 品牌 teal 十阶（品牌锚点 500 = #3a9a93）===
      使用规则：默认 500 / hover 600 / 按下 700（严格三级）
      渐变一律 400→500（仅小面积）；白底 teal 文字必须用 900（AA ≥4.5:1） */
@@ -50,6 +54,9 @@
   --aux-clay-100:#f7f0e8;   --aux-clay-400:#dcb78d;   --aux-clay-500:#c89b6a;   --aux-clay-700:#8a6238;
   /* === 身份色（模块区分用） === */
   --med:#46a883;
+  /* 2026-10-16 补：--med-ink 被 .btn-med:hover 引用但从未定义 →
+     hover 背景/边框解析为空（按钮 hover 无变化）。按 --warn-ink 同款惯例补深一档。 */
+  --med-ink:#2f7d61;            /* med 在白底 hover 用深一档 */
   --med-soft:rgba(16,185,129,.12);
   --vocab:#007aff;              /* 单词/词汇：blue */
   --vocab-soft:rgba(0,122,255,.10);
@@ -123,6 +130,10 @@
   --line:#2e2e32;
   --ink-2:#aeaeb2;
   --neutral:#3a3a3c;
+  /* 2026-10-16 深色主题同步补三个缺失变量（见浅色主题同名处的说明） */
+  --ink-soft:#9a9aa0;           /* 深色下与 --muted 同档 */
+  --text:#f2f2f4;               /* 深色下与 --ink 同档 */
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   /* teal 用 400 档提亮；浅底改半透明 teal，避免深色下出现亮白块 */
   --primary-50:rgba(92,179,171,.14);
   --primary-100:rgba(92,179,171,.22);
@@ -136,6 +147,7 @@
   --primary-text:#7ccac2;
   --arrow-hover:rgba(92,179,171,.14);
   --med:#46a883;
+  --med-ink:#5cc396;            /* 2026-10-16 深色下 hover 用亮一档（见浅色主题同名处说明） */
   --med-soft:rgba(16,185,129,.16);
   --vocab:#0a84ff;
   --vocab-soft:rgba(10,132,255,.18);
