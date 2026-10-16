@@ -24,9 +24,7 @@ body{
 .top a:hover{color:var(--p-900)}
 .stage{flex:1;display:flex;align-items:center;justify-content:center;padding:12px 24px 48px}
 .duo{width:100%;max-width:460px;margin:0 auto}   /* 10/15 单列居中（方案批准）：登录是工具页，去掉左侧大品牌区 */
-/* 10/13 UI 优化：表单挪左（桌面）/ 排最上（移动）—— 只改 order，不动 DOM。
-   品牌栏在 DOM 里是第一个、表单第二个；表单 order:-1 后两处都在前。 */
-.duo > .card.form{order:-1}
+/* 10/16 修 S6：删 .duo > .card.form{order:-1} —— .duo 已不是 flex/grid 容器，order 失效（S5 同步删注释） */
 .card{background:var(--n-0);border-radius:18px;box-shadow:0 18px 50px rgba(26,69,66,.10),0 2px 8px rgba(26,69,66,.05);padding:38px}
 /* ===== 10/15 登录页重做（方案批准：design/106-登录页与底部Part切换器_方案_2026-10-15.html）=====
    单列居中 + 顶部小品牌条 + 输入框聚焦光圈 + 主按钮全宽 + 底部安抚文案。 */
@@ -36,28 +34,25 @@ body{
 .mini-brand i svg{display:block;width:100%;height:100%}
 .mb-txt b{display:block;font-size:15px;font-weight:700;color:var(--n-900);line-height:1.3}
 .mb-txt span{display:block;font-size:11.5px;color:var(--n-500);line-height:1.3}
-/* 输入框：聚焦 teal 边框 + 柔光圈（与全站 focus 一致）*/
-.card.form input{transition:border-color .15s,box-shadow .15s}
-.card.form input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--p-50)}
-/* 主按钮全宽 48px（层级最重）*/
-/* 登录态与注册态之间的切换条 */
-.card.form .switch{margin:20px 0 0;padding:16px 0 0;border-top:1px solid var(--n-200);
+/* 输入框：聚焦 teal 边框 + 柔光圈（与全站 focus 一致）
+   10/16 修 B1：--primary 站内不存在（站点约定 --p-*）→ 聚焦边框 var() 整条失效、
+   实测边框回退成近黑；同时光圈由 --p-50 加深到 --p-200（N2：键盘焦点可见度）。 */
+.card.form input:focus{outline:none;border-color:var(--p-500);box-shadow:0 0 0 3px var(--p-200)}
+/* 登录态与注册态之间的切换条（10/16 修 B1：--n-200 不存在 → 分隔线整条不渲染） */
+.card.form .switch{margin:20px 0 0;padding:16px 0 0;border-top:1px solid var(--n-300);
   text-align:center;font-size:13.5px;color:var(--n-500)}
-.card.form .switch a{color:var(--primary-900);font-weight:700;text-decoration:none;cursor:pointer;margin-left:4px}
+/* 10/16 修 B1：--primary-900 不存在 → 链接回退浅灰、看着像禁用 → 改 --p-700 深 teal */
+.card.form .switch a{color:var(--p-700);font-weight:700;text-decoration:none;cursor:pointer;margin-left:4px}
 .card.form .switch a:hover{text-decoration:underline}
-/* 底部安抚文案（不提收费，合规）*/
-.card.form .reassure{margin:14px 0 0;text-align:center;font-size:12px;color:var(--n-500);line-height:1.6}
-/* 10/4 01:10 A 版：深色大字块 + 四条功能标注（替代原「把节奏交给可坚持的系统」+ .facts 功能罗列）
-   —— 她 00:55 拍板：「要么就设几个大字吧…这网站是一个正在备考雅思的人做的」
-   —— 她 00:34 发过火「谁家好人在登录页面提收费的事情」→ 这页零价格、零套餐 */
-/* ≤560 单列时大字缩一档，别把双栏卡挤爆 */
-@media (max-width:560px){
-  }
+/* 10/16 修 S4：页内 .reassure 与页脚 foot-note 文案重复（同一句出现两次）→ 删页内这条，
+   保留页脚那条（同时含「登录即表示数据同步到云端」的同意声明，且注册态也看得到）。
+   10/16 修 S5：删 10/4 双栏时代的过期注释（深色大字块/四条功能标注均已删）。
+   红线沿用：这页零价格、零套餐。 */
+/* ≤560 单列时卡片内边距收小（10/16 修 S6：原空媒体查询 {} 里没内容，已并入下方 880 断点） */
 /* 右：表单 */
 .form h2{font-size:24px;color:var(--n-900);margin:0 0 8px;font-weight:700}
 .form .desc{font-size:13.5px;color:var(--n-600);margin:0 0 24px}
-/* 10/4 01:15：左栏加了大字块 + 四条功能后变高了，右侧表单卡跟着被撑高、下半截空一大块。
-   这里让表单内容垂直居中 + 底部补一条「为什么要登录」，把空白填掉（内容不虚、信息不冗余）。 */
+/* 10/16 修 S5：删 10/4 双栏时代的过期注释（左栏已删）。表单内容垂直居中保留（单列也好看）。 */
 .form{display:flex;flex-direction:column;justify-content:center}
 .form .why-log{border-top:1px solid var(--line);margin-top:22px;padding-top:16px}
   /* 10/13 注册三步弹层（她拍板：邮箱+密码 → 验证码 → 邀请码） */
@@ -94,15 +89,20 @@ input::placeholder{color:var(--n-500)}
 /* 10/15 注册区：验证码框 + 获取按钮同一行 */
 .code-row{display:flex;gap:10px;align-items:center}
 .code-row input{flex:1;min-width:0}
-.code-row .btn{flex:none;padding:0 14px;font-size:13px;min-height:44px;white-space:nowrap}
+/* 10/16 修 B2 补漏：基础 .btn{width:100%} 也会把行内按钮撑成整行（特异性压不过），
+   这里显式 width:auto 让按钮缩到内容宽；flex:none 防被 input 的 flex:1 挤没。 */
+.code-row .btn{flex:none;width:auto;padding:0 14px;font-size:13px;min-height:44px;white-space:nowrap}
 .hidden{display:none!important}
 .foot-note{max-width:1000px;margin:0 auto;padding:0 24px 26px;font-size:12.5px;color:var(--n-500);text-align:center}
 @media (max-width:880px){
-  .duo{grid-template-columns:1fr}
-  .card{padding:32px 26px}
+  .card{padding:32px 26px}   /* 10/16 修 S6：删 .duo{grid-template-columns:1fr} —— .duo 已非 grid 容器 */
 }
-/* 10/15 主按钮全宽（必须放末尾：前面 .btn{} 的 width 会覆盖）*/
-.card.form .btn{width:100%;height:48px;font-size:15.5px;margin-top:8px}
+/* 10/16 修 B2：主按钮全宽的规则原先写 .card.form .btn（特异性 0,3,0），
+   把注册区 .code-row 里「获取验证码」按钮也压成 384px 整行、验证码输入框被挤成 30px。
+   改为只作用两个主按钮（#goEmail / #goRegister），行内按钮不受影响。
+   ⚠️ 不能整条删：.btn 本身虽已是 width:100%，但这条还带了 font-size 16→15.5
+   与 margin-top 22→8 两个设计调整。 */
+#goEmail, #goRegister{width:100%;height:48px;font-size:15.5px;margin-top:8px}
 </style>
 <meta name="description" content="登录 / 注册：登录后可使用站内 AI 功能，并跨设备同步学习数据。" />
 <link rel="canonical" href="https://yasihub.com/login" />
@@ -144,7 +144,8 @@ input::placeholder{color:var(--n-500)}
         <div class="links" style="margin-top:10px"><a id="forgotPass">忘记密码？</a></div>
         <!-- 10/15 方案：登录态与注册态之间用顶部细线 + 弱链接分隔（不再与主按钮同重）-->
         <div class="switch"><span class="dim">没有账号？</span><a id="toRegister">去注册</a></div>
-        <p class="reassure">不登录也能离线使用，数据只存本机</p>
+        <!-- 10/16 修 S4：删页内「不登录也能离线使用」—— 与页脚 foot-note 重复；
+             离线承诺保留在页脚（登录/注册两态都可见，且含数据同步同意声明）。 -->
 
         <!-- 验证码弹层（注册时用：给邮箱发 6 位数字） -->
         <div id="emCodeModal" class="em-modal" hidden>
@@ -176,8 +177,6 @@ input::placeholder{color:var(--n-500)}
           </div>
         </div>
 
-        <p class="note" id="noteForgot" style="font-size:12.5px;margin-top:6px;color:#71767e"></p>
-
         <!-- 找回密码弹层（10/13 补齐：邮箱账号可自助重置，不用再找站长手工重开） -->
         <div id="emResetModal" class="em-modal" hidden>
           <div class="em-modal-mask"></div>
@@ -195,7 +194,8 @@ input::placeholder{color:var(--n-500)}
             </div>
           </div>
         </div>
-        <!-- 10/4 01:15：左栏加内容后右边空一大块，底部补一条「为什么要登录」把空白填实 -->
+        <!-- 10/16 修 S5：删 10/4 双栏时代的过期注释（「左栏加内容后右边空一大块」已不存在）。
+             why-log 块保留：登录态下解释「为什么要登录」，对首次来访仍有价值。 -->
         <div class="why-log">
           <b>为什么要登录</b>
           <span>不登录也能用，但数据只存在这台设备的浏览器里——换设备、清缓存就没了。<br />登录后自动同步到云端，换手机换电脑都接着用。</span>
@@ -324,6 +324,12 @@ var ACCT_RE = /^(?:[a-z0-9_]{6,20}|[^\s@]+@[^\s@]+\.[^\s@]{2,})$/;
      ② 已注册且密码对 → 直接进站（不再弹任何框，邀请码仅注册时可填）
      ③ 新用户 → 自动发验证码 → 弹验证码框 → 填完「下一步」→ 弹邀请码框（选填）→ 完成注册进站。
      ⚠️ 邀请码只在注册这一步生效（仅 email_register 处理）。
+     10/16 修 B3（审查报告 2026-10-15）：这段注释此前缺结束符，一路吃到下面
+     「10/15 她拍板：登录/注册彻底分开」那条注释的结尾，把中间的 var emCodeVal 与
+     function showModal 整段吞成注释文字 → showModal 未定义、验证码弹层一旦打开
+     就关不掉（弹层 position:fixed 全屏遮挡、登录按钮点不到）。在此补上结束符。
+     ⚠️ 教训：块注释里不能出现结束符那两个字符（会把注释自己截断），
+     描述它时用文字，别写字面量。 */
 
   var emCodeVal = '';
 
@@ -455,49 +461,13 @@ var ACCT_RE = /^(?:[a-z0-9_]{6,20}|[^\s@]+@[^\s@]+\.[^\s@]{2,})$/;
   var rsCancel = $('rsCancel');
   if (rsCancel) rsCancel.addEventListener('click', function(){ var rm=$('emResetModal'); if(rm) rm.hidden = true; });
 
-  /* 模式切换：邮箱 ⇄ 账号密码 */
-  function showMode(id){
-    ['modeLogin','modePassLogin','modeRegister'].forEach(function(m){
-      var el = $(m); if(el) el.classList.toggle('hidden', m !== id);
-    });
-  }
-  var t1 = $('toPassLogin'); if(t1) t1.addEventListener('click', function(){ showMode('modePassLogin'); });
-  var t2 = $('toRegister');   if(t2) t2.addEventListener('click', function(){ showMode('modeRegister'); });
-
-
-  /* 注册（设置密码）→ 成功后自动登录进站。
-     服务端 register 只建账号不发 token，这里紧接一次 login 换 token（恢复码已下线，10/1）。 */
-  $('goRegister').addEventListener('click', function(){
-    var acct = ($('rAcct').value || '').trim().toLowerCase();
-    var pass = $('rPass').value || '';
-    var inv  = ($('rInvite').value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');   // 与服务端同口径归一化
-    if(!ACCT_RE.test(acct)){ note('noteRegister','账号格式：6-20 位数字/字母/下划线', true); return; }
-    if(pass.length < 6){ note('noteRegister','密码至少 6 位', true); return; }
-    /* 邀请码选填（她 10/1 二次拍板）：不填=普通注册吃免费额度；填内测码=注册即送会员（服务端开） */
-    note('noteRegister','正在设置密码…', false);
-    busy($('goRegister'), true, '设置中…');
-    post({ action:'register', acct:acct, password:pass, inviteCode:inv }).then(function(r){
-      if(r.j.ok){
-        /* 内测码送会员：让提示停留片刻再进站，否则用户根本不知道自己成了会员 */
-        if(r.j.vipGranted > 0) note('noteRegister','🎉 内测码生效：会员 ' + r.j.vipGranted + ' 天已开通，正在进入…', false);
-        return post({ action:'login', acct:acct, password:pass }).then(function(r2){
-          busy($('goRegister'), false, '设置密码并进入');
-          if(r2.j.ok && r2.j.token){ enterStation(r2.j.acct || acct, r2.j.token); return; }
-          /* 极少见：自动登录失败（如网络抖动）。回登录页让用户手动登一次 */
-          note('noteLogin','设置成功，请用刚设置的密码登录一次', false);
-          $('acct').value = acct;
-          show('Login');
-        });
-      }
-      busy($('goRegister'), false, '设置密码并进入');
-      note('noteRegister', r.j.msg || ('注册失败（HTTP ' + r.status + '）'), true);
-    }).catch(function(){
-      note('noteRegister','网络异常，稍后再试', true);
-      busy($('goRegister'), false, '设置密码并进入');
-    });
-  });
-  $('rPass').addEventListener('keydown', function(e){ if(e.key === 'Enter') $('goRegister').click(); });
-  $('rInvite').addEventListener('keydown', function(e){ if(e.key === 'Enter') $('goRegister').click(); });
+  /* 10/16 修 S1/S2（审查报告 2026-10-15）：删除两段遗留脚本。
+     ① showMode() 及 t1/t2 绑定：引用已删除的 modePassLogin，且与 305 行 toRegister
+        的 show('Register') 重复绑定（同事件双绑，靠 busy() 的 disabled 兜底才没双提交）。
+     ② 旧 goRegister handler：引用已不存在的 #rAcct/#noteLogin/#acct，每次点「注册并进入」
+        都抛 Cannot read properties of null（注册能成功但控制台报错）——10/15 已改单页
+        四框注册（doRegister），这是旧「设置密码」流程残留。
+     ③ 507-508 的 rPass/rInvite keydown 重复绑定：414 行已有同款（→ doRegister）。 */
 })();
 </script>
 </body>
