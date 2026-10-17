@@ -1,0 +1,112 @@
+/* 10/17 拆分：只属于 review.html 的样式块（tests/_split_css_1017.cjs 生成，83 块）。
+   ⚠️ 这里的样式只在这一个页面生效；改这里不用管别的页面。 */
+
+
+/* stat cards */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:18px}
+
+/* history calendar */
+.cal-heatmap{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;max-width:320px}
+#dayList .chip-focus{
+  font-size:11px;color:var(--muted);padding:4px 10px;border-radius:6px;
+  background:var(--surface-2);border:1px dashed var(--line);margin-left:2px;
+}
+#dayList .chip-focus b{ color:var(--primary); }
+/* 任务行 ↗ 跳转按钮已删（9/24：跳转迁到首页今日任务整行，见下方 .dash-tasks .plan-item.jumpable） */
+
+/* scores */
+.score-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 0;border-top:1px dashed var(--line)}
+.score-row:first-child{border-top:none}
+.gap-row.gap-worst{border-color:var(--danger);background:rgba(217,120,119,.10);box-shadow:0 2px 8px rgba(217,120,119,.18)}
+.action-tip{margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--primary-soft);color:var(--ink);font-size:13px;line-height:1.7}
+.tip-link{color:var(--primary);font-weight:700;text-decoration:none}
+.tip-link:hover{text-decoration:underline}
+.gap-ic{font-size:18px;flex:none}
+.gap-name{font-weight:700;min-width:42px}
+.gap-val{color:var(--muted);font-size:13px;flex:1}
+.gap-tag{margin-left:auto}
+.detail-block{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:0 16px;margin-bottom:14px}
+.detail-block summary{cursor:pointer;font-size:15px;font-weight:700;color:var(--ink);padding:14px 0;list-style:none}
+.detail-block summary::-webkit-details-marker{display:none}
+.detail-block summary::before{content:'▸';color:var(--muted);margin-right:8px;display:inline-block;transition:transform .2s}
+.detail-block[open] summary::before{transform:rotate(90deg)}
+.detail-block > div{padding:0 0 16px}
+
+/* =========================================================================
+   回顾页 review（从 review.html 内联 <style> 收口而来 + 扁平化）
+   ========================================================================= */
+.review-pane{background:transparent;border:none;box-shadow:none;padding:0;margin-bottom:20px}
+.review-pane > h2{margin:0 0 14px;font-size:18px;font-weight:800;letter-spacing:-.02em}
+
+/* design/23 修正：添加分项记录表单紧凑布局 */
+.mk-parts{display:flex;gap:10px;margin:12px 0;align-items:flex-end}
+.mk-part{flex:1;margin-bottom:0}
+/* 听力/阅读 accuracy 模式：P1-P4 一行内紧凑 */
+.mk-part-inline{display:flex;align-items:center;gap:6px}
+.mk-part-inline .mk-part-label{flex:none;font-weight:700;font-size:14px;color:var(--ink)}
+.mk-part-inline input{flex:1;min-width:0}
+/* 口语/写作 score 模式：两列网格 */
+.mk-parts.mk-parts-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;align-items:stretch}
+.mk-part-grid{display:flex;flex-direction:column;gap:6px;align-items:stretch}
+.mk-part-label{font-weight:700;font-size:14px;color:var(--ink)}
+.mk-part-grid .mk-part-inputs{display:flex;gap:8px}
+.mk-part-grid .mk-part-inputs > div{flex:1}
+.mk-part-grid .mk-part-inputs input{width:100%}
+
+.mk-grp{margin-bottom:14px}
+.mk-grp-title{font-weight:700;margin:4px 0 6px}
+/* 历史模考记录（回顾） */
+.mock-hist-count{font-size:13px;font-weight:600}
+
+/* —— 回顾页「口语日常练习」 —— */
+.practice-summary{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin:6px 0 12px}
+.practice-summary b{color:var(--ink);font-variant-numeric:tabular-nums}
+.practice-list{margin-top:4px}
+.pi-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pi-title{font-weight:700;font-size:14.5px;min-width:0}
+.pi-q{color:var(--muted);font-size:13px;flex:1;min-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pi-time{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.part-badge{font-size:11px;font-weight:700;color:var(--on-primary);background:var(--mock);border-radius:10px;padding:2px 9px;flex:none}
+.pi-ans{font-size:14px;background:var(--surface-2);border-radius:10px;padding:10px 12px;white-space:pre-wrap;margin-bottom:8px;line-height:1.6}
+.practice-empty{padding:18px;text-align:center;color:var(--muted);font-size:13.5px}
+
+/* —— 口语页「学习情况」tab —— */
+.prog-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+.prog-bar-row{display:flex;align-items:center;gap:12px;margin:10px 0}
+.bar-num{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:60px;text-align:right}
+.prog-part{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.prog-part b{color:var(--ink);font-variant-numeric:tabular-nums}
+@media(max-width:640px){.prog-grid{grid-template-columns:repeat(2,1fr)}}
+
+/* ===== 回顾页 · 口语模考错误总结模块 ===== */
+.ms-sum-overall{font-size:14px;line-height:1.7;color:var(--primary-d);font-weight:600;margin:0 0 4px}
+.ms-sum-list{display:flex;flex-direction:column;gap:12px;margin-top:6px}
+.ms-sum-item{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.ms-sum-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.ms-sum-type{font-weight:600;font-size:15px;color:var(--ink)}
+.ms-sum-count{font-size:13px;color:var(--muted);white-space:nowrap}
+.ms-sum-bar{height:6px;background:var(--line);border-radius:4px;margin:8px 0 6px;overflow:hidden}
+.ms-sum-bar i{display:block;height:100%;border-radius:4px;transition:width .3s ease}
+.ms-sum-freq{font-size:13px;color:var(--ink-2);line-height:1.6}
+.ms-sum-advice{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.6}
+@media (max-width:560px){#mkList .mk-row{flex-wrap:wrap}#mkList .mk-parts-inline{flex:1 1 100%}}
+.sp-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.sp-days{font-size:26px;font-weight:800;color:var(--primary-700);line-height:1;font-variant-numeric:tabular-nums}
+.sp-days em{font-size:13px;font-style:normal;font-weight:600;margin-left:2px}
+.sp-head-t{font-size:14px;font-weight:700;color:var(--ink)}
+.sp-head-a{margin-left:auto;font-size:12.5px;color:var(--muted);text-decoration:none}
+.sp-head-a:hover{color:var(--primary)}
+.sp-card-h{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:10px;display:flex;align-items:baseline;gap:8px}
+.sp-card-sub{font-size:11.5px;font-weight:400;color:var(--muted);margin-left:auto}
+.sp-tip{font-size:12px;line-height:1.6;color:var(--muted);margin:10px 0 0;padding-top:9px;border-top:1px dashed var(--line)}
+.sp-tip b{color:var(--danger-text)}
+.sp-ck{margin-top:12px;border:1px solid var(--line);border-radius:var(--radius-sm);overflow:hidden}
+.sp-ck-sum{padding:11px 14px;font-size:13px;font-weight:700;color:var(--ink);cursor:pointer;display:flex;align-items:center;gap:8px;list-style:none}
+.sp-ck-sum::-webkit-details-marker{display:none}
+.sp-ck-n{font-size:11.5px;font-weight:400;color:var(--muted);margin-left:auto}
+.sp-ck-body{padding:0 14px 12px}
+.sp-ck-item{padding:8px 0;border-top:1px dashed var(--line);font-size:12.5px;line-height:1.65}
+.sp-ck-item>b{display:block;color:var(--ink);margin-bottom:2px}
+.sp-ck-item>span{color:var(--muted)}
+.sp-ck-item span b{display:inline;color:var(--ink)}
+.sp-ck-note{font-size:11.5px;color:var(--muted);margin:8px 0 0}

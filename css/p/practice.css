@@ -1,0 +1,178 @@
+/* 10/17 拆分：只属于 practice.html 的样式块（tests/_split_css_1017.cjs 生成，96 块）。
+   ⚠️ 这里的样式只在这一个页面生效；改这里不用管别的页面。 */
+
+/* 已掌握按钮（背词页顶部 word-stats 行，设置齿轮左侧）：绿色描边药丸（与全屏一致） */
+.mastered-btn{padding:6px 14px;border-radius:999px;border:1.5px solid var(--med);background:rgba(70,168,131,.08);color:var(--med);font-size:13px;font-weight:700;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all .15s;white-space:nowrap}
+.mastered-btn:hover{background:rgba(70,168,131,.16);border-color:#3aa86a;color:#2a8a54}
+.abtn{flex:1;min-height:52px;padding:13px 16px;border-radius:14px;border:1.5px solid var(--line);
+  font-size:16px;font-weight:700;cursor:pointer;transition:border-color .15s,background .15s,transform .1s,opacity .15s;
+  background:var(--bg);color:var(--ink);display:flex;align-items:center;justify-content:center}
+.abtn:active{transform:scale(.97)}
+.abtn:disabled{opacity:.4;cursor:not-allowed;background:var(--surface-2);color:var(--muted);border-color:var(--line)}
+
+/* ── 背词 ETA 剩余时间预估（9/21）：#wordStats 行内，仅答题态且样本足够时显示 ── */
+.stat-eta{font-size:12px;color:var(--muted);margin-left:10px;white-space:nowrap}
+
+/* ── 今日清零终结卡（9/21）：完成页统计区上方，todayDue=0 时显示；完成态配色复用 teal 变量 ── */
+.finish-zero-card{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  margin:0 0 14px;padding:10px 16px;border-radius:12px;
+  background:rgba(70,168,131,.1);color:var(--med);
+  font-weight:700;font-size:15px;
+}
+.finish-zero-card svg{width:20px;height:20px;flex:none}
+html[data-theme="dark"] .finish-zero-card{background:rgba(70,168,131,.16)}
+
+/* ── 听音选义：音频题题干英文/音标 CSS 隐藏（DOM 原样保留），提示文案原位；判定揭示（.pw-reveal）后恢复 ── *//* 选择器不带 .practice-body-fit（非 fit 布局也要生效）；(1,2,0) 与上方 .pw-en 同级但源序在后 → 稳赢 */
+.pw-audio-hint{display:none}
+
+/* ===== 词库 B：紧凑列表 ===== */
+.wl-import{display:flex;align-items:stretch;gap:10px;margin-bottom:14px}
+.wl-import.drag-over{border-color:var(--primary);background:var(--primary-soft)}
+.wl-import-hint{flex:1;width:100%;min-height:46px;padding:12px 14px;border:1.5px dashed var(--line);border-radius:10px;font:inherit;font-size:14px;line-height:1.5;background:var(--surface);color:var(--ink);resize:vertical;outline:none;transition:border-color .15s}
+.wl-import-hint:focus{border-color:var(--primary)}
+.wl-search-wrap{margin-bottom:10px}
+.wl-search{width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:14px;background:var(--surface);color:var(--ink);outline:none;transition:border-color .15s,box-shadow .15s}
+.wl-search:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-soft)}
+.wl-list{list-style:none;display:flex;flex-direction:column;padding:0;margin:0}
+.wl-item{display:flex;align-items:flex-start;gap:12px;padding:11px 0;border-radius:10px;transition:background .12s,border-color .12s;border:1px solid transparent}
+.wl-item:hover{background:var(--bg);border-color:var(--line);padding-left:10px;padding-right:10px;margin-left:-10px;margin-right:-10px}
+.wl-senses{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;flex:1;min-width:0;padding-top:1px}
+.wl-sense{display:inline-flex;align-items:baseline;gap:5px;max-width:100%}
+.wl-sense-pos{font-size:13px;font-weight:600;color:var(--vocab);white-space:nowrap;flex:none;font-family:var(--mono,ui-monospace,SFMono-Regular,Menlo,Consolas,monospace)}
+.wl-sense-cn{font-size:14px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+/* 视觉尺寸 28px 不变，用伪元素把触摸热区撑到 44px（iOS/Android 建议值），不影响列表排版 */
+.wl-del{position:relative;width:28px;height:28px;border-radius:7px;border:1.5px solid var(--danger);background:var(--surface);color:var(--danger);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:.12s;flex:none;margin-top:1px}
+.wl-del::after{content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:44px;height:44px}
+.wl-del:hover{background:var(--danger);color:#fff}
+.wl-group-head{display:flex;align-items:center;gap:8px;width:100%;padding:10px 6px;background:none;border:none;border-radius:8px;cursor:pointer;font:inherit;text-align:left;transition:background .12s}
+.wl-group-head:hover{background:var(--bg)}
+.wl-group-name{font-size:14px;font-weight:700;color:var(--ink)}
+.wl-group-count{font-size:12px;font-weight:600;color:var(--muted);background:var(--bg);padding:1px 8px;border-radius:10px}
+.wl-group-body{padding:0 2px 6px 20px}
+.wl-group-list{list-style:none;display:flex;flex-direction:column;padding:0;margin:0}
+.wl-more{display:block;margin:8px auto 2px;padding:6px 18px;border-radius:18px;border:1px solid var(--line);background:var(--surface);color:var(--muted);font:inherit;font-size:12.5px;cursor:pointer;transition:border-color .12s,color .12s}
+.wl-more:hover{border-color:var(--primary);color:var(--primary)}
+.wl-check{width:16px;height:16px;accent-color:var(--primary);flex:none;margin-top:3px;cursor:pointer}
+.wl-err{font-size:11.5px;font-weight:700;color:var(--danger);border:1px solid var(--danger);border-radius:6px;padding:1px 7px;flex:none;margin-top:2px;white-space:nowrap}
+.wl-action-bar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:9px 12px;border:1px solid var(--primary);background:var(--primary-soft);border-radius:10px;margin-bottom:10px}
+.wl-action-hint{font-size:13px;color:var(--ink)}
+.wl-action-hint b{color:var(--primary)}
+/* 大分类折叠按钮（9/17 定稿：三个大分类，默认全收起，点哪个展开哪个） */
+.wl-cats-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.wl-cat-val{font-size:12px;font-weight:600;color:var(--primary)}
+.wl-cat-panel{margin:-2px 0 10px}
+
+
+
+
+
+
+
+
+
+
+
+/* ====== 练习设置模态弹窗（参考爱听写）====== */
+.cfg-modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.35);
+  display:flex;align-items:center;justify-content:center;z-index:9999;
+}
+.cfg-modal-overlay[hidden]{display:none} /* 关键：覆盖 .cfg-modal-overlay 的 display:flex，否则 hidden 失效会常驻显示 */
+.cfg-modal{
+  background:var(--surface);border-radius:16px;
+  width:min(600px,92vw);max-height:80vh;
+  box-shadow:0 20px 60px rgba(0,0,0,.18);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.cfg-modal-head{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:16px 20px;border-bottom:1px solid var(--line);
+}
+.cfg-modal-close{
+  background:none;border:none;font-size:24px;cursor:pointer;
+  color:var(--muted);line-height:1;padding:0 4px;
+}
+.cfg-modal-close:hover{color:var(--ink);}
+.cfg-modal-body{overflow-y:auto;padding:0;}
+
+/* 左右分栏 */
+.cfg-m-cols{display:flex;min-height:280px;}
+.cfg-m-sidebar{width:140px;background:var(--surface-2);border-right:1px solid var(--line);padding:12px 0;flex-shrink:0}
+.cfg-m-main{flex:1;padding:16px 24px;}
+.cfg-m-row{display:flex;justify-content:space-between;align-items:center;
+  padding:10px 0;border-bottom:1px solid var(--line)}
+.cfg-m-row:last-child{border-bottom:none}
+.cfg-m-row.cfg-m-hidden{display:none}
+.cfg-m-label{font-size:14px;font-weight:500}
+.cfg-m-desc{font-size:12px;color:var(--muted);margin-top:2px}
+
+/* 控件 */
+.cfg-m-ctrl{display:flex;align-items:center;gap:8px}
+/* Toggle 开关 */
+.cfg-toggle{display:none}  /* 隐藏原生 checkbox */
+.cfg-toggle+label{
+  display:inline-block;width:44px;height:24px;
+  background:var(--line);border-radius:12px;position:relative;cursor:pointer;transition:.2s
+}
+.cfg-toggle+label::after{
+  content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;
+  background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.15)
+}
+.cfg-toggle:checked+label{background:var(--primary)}
+.cfg-toggle:checked+label::after{left:23px}
+/* Select 下拉 */
+.cfg-select{padding:6px 10px;border:1px solid var(--line);border-radius:8px;
+  font-size:13px;background:var(--surface);color:var(--ink);cursor:pointer}
+/* Range 滑块 */
+.cfg-range{width:100px;accent-color:var(--primary)}
+.cfg-range-val{font-size:12px;color:var(--muted);min-width:36px;text-align:right}
+
+/* ── 完成页：勋章 + 三宫格 + 复习激励条 ── */
+.finish-medal-row{display:flex;align-items:center;gap:16px}
+
+/* ===== 背词完成页「想再认一次的词」紧凑卡（之之 2026-09-09 反馈重设计：粉卡+提示条合一） ===== */
+/* min-width:0 必须：本卡是 .practice-body-fit（flex 列）的子项，默认 min-width:auto 时不许收缩，
+   会被 .rw-cn（nowrap 长释义）的固有宽度撑破父容器 → 手机窄屏整卡左右溢出、左侧切出屏幕外（9/9 实测 360px 复现） */
+.rw-card{
+  background:var(--err-bg); border:1px solid var(--err); border-radius:14px;
+  padding:12px 14px; margin-top:14px;
+  min-width:0; max-width:100%;
+}
+.rw-head{ display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; margin-bottom:2px; }
+.rw-t{ font-size:14px; font-weight:800; color:var(--danger); }
+.rw-n{ font-size:12.5px; font-weight:700; color:var(--danger); opacity:.85; }
+.rw-s{ font-size:11.5px; color:var(--muted); margin-left:auto; }
+.rw-row{ display:flex; align-items:baseline; gap:10px; padding:6px 0; }
+.rw-row + .rw-row{ border-top:1px dashed rgba(0,0,0,.07); }
+.rw-row b{ font-size:14px; color:var(--ink); flex:none; }
+.rw-row .rw-cn{ font-size:12.5px; color:var(--ink-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+
+/* ===== design/58 间隔重复算法可视化（之之 2026-09-18 · 纯只读展示层，零算法改动）=====
+   注：块 1 答题页记忆状态条已按之之 9/18 要求整体撤除（背词页保持定版样子）；
+   复习计划入口从答题页日历按钮改为词库卡「复习计划」按钮。 */
+/* 块 2 · 记忆曲线排程面板（默认收起；条形宽度按当日最大值等比缩放，非绝对词数） */
+.plan-panel{background:var(--n-50);border:1px solid var(--line);border-radius:var(--radius-sm);
+  padding:14px 16px;margin:0 0 12px}
+.plan-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.plan-title{font-size:13px;font-weight:700;color:var(--ink)}
+.plan-sec{font-size:12px;font-weight:600;color:var(--ink-2);margin:10px 0 6px}
+.plan-row{display:flex;align-items:center;gap:8px;margin:5px 0}
+.plan-lbl{width:74px;flex:0 0 74px;font-size:11px;color:var(--ink-2);white-space:nowrap}
+.plan-lbl em{font-style:normal;color:var(--n-500)}
+.plan-track{flex:1;height:8px;background:var(--n-200);border-radius:4px;overflow:hidden}
+.plan-num{width:52px;flex:0 0 52px;text-align:right;font-size:11px;color:var(--ink);
+  font-variant-numeric:tabular-nums}
+.plan-foot{margin-top:10px;font-size:11px;color:var(--muted)}
+/* 块 3 · 词库列表「下次复习」（Lv N · 日期；逾期 warn 色） */
+.wl-due{color:var(--n-500);margin-left:4px;font-size:11px}
+.wl-due.overdue{color:var(--warn-ink)}
+/* design/59 · 词库掌握度统计条（纯只读；--muted-light 不存在 → 按 :root 就近用 --muted） */
+.wl-stats{margin-top:8px}
+.wl-stats-bar{display:flex;height:4px;border-radius:2px;overflow:hidden;background:var(--line)}
+.wl-stats-seg{display:block;height:100%}
+.wl-stats-seg.s-ok{background:var(--primary-500)}
+.wl-stats-seg.s-mid{background:var(--primary-200)}
+.wl-stats-seg.s-new{background:var(--line)}
+/* design/78：官方词库「重置进度」两步确认武装态（3 秒未复点由 words.js 还原） */
+.wb-danger-armed{background:var(--danger)!important;border-color:var(--danger)!important;color:var(--on-primary)!important}

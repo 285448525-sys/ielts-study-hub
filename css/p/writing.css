@@ -1,0 +1,45 @@
+/* 10/17 拆分：只属于 writing.html 的样式块（tests/_split_css_1017.cjs 生成，9 块）。
+   ⚠️ 这里的样式只在这一个页面生效；改这里不用管别的页面。 */
+
+
+/* ===== 模板默写面板：功能条 / 句子勾选 / 常错标记 ===== */
+.dict-toolbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.dict-switch{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;cursor:pointer;user-select:none}
+.dict-switch input{width:16px;height:16px;accent-color:var(--primary);cursor:pointer}
+
+/* ===== 通用 AI 唤起按钮 ai-btn（Uiverse ilkhoeri 改写：Tailwind 黄 #efad21/#ffd60f/#ffea50 → teal --primary-d/--primary-bright；sparkle 脉冲 + 悬停放大/文字淡出交互保留；原 .group/.relative 等 Tailwind 工具类无站点冲突，改名 .ai-btn 零冲突） ===== */
+.ai-btn{
+  --sz-btn:48px;
+  --space:calc(var(--sz-btn) / 5.5);
+  --gen-sz:calc(var(--space) * 2);
+  --sz-text:calc(var(--sz-btn) - var(--gen-sz));
+  position:relative;
+  width:var(--sz-btn); height:var(--sz-btn);
+  border:1px solid transparent; border-radius:var(--radius-sm);
+  display:flex; align-items:center; justify-content:center;
+  aspect-ratio:1 / 1; cursor:pointer; outline:none;
+  background:linear-gradient(45deg, var(--primary-d), var(--primary-bright));
+  box-shadow:rgba(60,64,67,.30) 0 1px 2px 0, rgba(60,64,67,.15) 0 2px 6px 2px, rgba(0,0,0,.30) 0 30px 60px -30px, rgba(52,52,52,.35) 0 -2px 6px 0 inset;
+  transition:transform .2s;
+  font-family:inherit;
+}
+.ai-btn:active{ transform:scale(.95); }
+.ai-btn-spark{
+  position:absolute; z-index:10; overflow:visible;
+  color:var(--on-primary);
+  top:calc(var(--sz-text) / 7); left:calc(var(--sz-text) / 7);
+  width:var(--gen-sz); height:var(--gen-sz);
+  transition:all .3s;
+  animation:pulse 2s cubic-bezier(.4,0,.6,1) infinite;
+}
+.ai-btn:hover .ai-btn-spark{
+  color:var(--on-primary);
+  width:var(--sz-text); height:var(--sz-text);
+  left:calc(var(--sz-text) / 4); top:calc(var(--gen-sz) / 2);
+}
+.ai-btn-label{
+  font-size:var(--sz-text);
+  font-weight:800; line-height:1; color:var(--on-primary);
+  transition:opacity .2s;
+}
+.ai-btn:hover .ai-btn-label{ opacity:0; }

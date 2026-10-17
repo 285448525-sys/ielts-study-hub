@@ -1,0 +1,12 @@
+/* 10/17 拆分：只属于 meds.html 的样式块（tests/_split_css_1017.cjs 生成，4 块）。
+   ⚠️ 这里的样式只在这一个页面生效；改这里不用管别的页面。 */
+
+
+/* lists */
+.list-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px dashed var(--line)}
+.list-item:first-child{border-top:none}
+
+
+/* meds */
+.meds-bar-wrap{margin-top:12px}
+.meds-bar::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(255,255,255,.18),rgba(255,255,255,.18) 8px,transparent 8px,transparent 16px)}

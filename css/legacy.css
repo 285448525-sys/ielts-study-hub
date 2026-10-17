@@ -1,0 +1,227 @@
+/* 10/17 拆分：全站已无页面引用的历史残留样式（sidebar 改版前的旧类等）。
+   正式页面不引入；若确认永不再用，可整文件删除。 */
+
+.nav-logo{font-size:24px;filter:drop-shadow(0 2px 6px rgba(58,154,147,.28))}
+.side-today{font-size:12.5px;color:var(--muted);background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius-sm);padding:10px 12px;line-height:1.55}
+.side-today b{color:var(--ink);font-weight:700}
+
+
+
+
+.side-g-label{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.side-group-title:hover,.side-fav .side-group-title:hover{background:var(--surface-2);color:var(--ink)}
+
+/* 折叠箭头：≥40×40 可点热区 + 精致外观 */
+.side-toggle-arrow{margin-left:auto;flex:none;width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:12px;cursor:pointer;color:var(--muted);position:relative;background:transparent;transition:background .18s ease,color .18s ease,transform .25s cubic-bezier(.34,1.56,.64,1);-webkit-tap-highlight-color:transparent}
+.side-toggle-arrow:hover{background:var(--arrow-hover);color:var(--primary)}
+.side-toggle-arrow:active{transform:scale(.9)}
+.side-toggle-arrow:focus-visible{outline:none;box-shadow:0 0 0 3px var(--primary-soft)}
+.side-toggle-arrow .chev{width:16px;height:16px;display:block;transition:transform .34s cubic-bezier(.4,0,.2,1)}
+.side-star{background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:0 4px;flex:none;line-height:1;transition:color .15s,transform .15s;user-select:none;-webkit-user-select:none}
+.side-star:hover{color:var(--danger);transform:scale(1.2)}
+.side-star.is-fav{color:var(--danger)}
+
+/* 移动端：抽屉式 */
+.side-toggle{display:none}
+.side-backdrop{display:none}
+
+
+/* 9/15：手机端 .container/.card/.page-title 基础规则已上移到媒体块之前（原位置在其后，
+   同特异性按源顺序覆盖了手机分支 padding——手机左右空隙偏大的根因），此处仅留注释占位。 */
+
+/* ===== 计划页简化（2026-08-28） ===== */
+.plan-textarea{min-height:88px}
+.plan-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;flex-wrap:wrap}
+.plan-actions-right{display:flex;gap:8px;flex:none}
+/* 设计系统文档站 2026-10-03：按钮四变体（primary/secondary/ghost/danger）+ success + 尺寸 sm/lg + block + disabled */
+.btn-secondary{background:var(--surface);color:var(--primary-text);border-color:var(--primary-200)}
+.btn-secondary:hover{background:var(--primary-soft-2);border-color:var(--primary-300)}
+.btn-secondary:active{background:var(--primary-soft)}
+.btn-success{background:var(--ok);color:#fff;border-color:var(--ok)}
+.btn-success:hover{background:var(--ok-text);border-color:var(--ok-text)}
+.btn-warn{background:var(--warn);color:var(--on-primary);border-color:var(--warn)}
+.btn-warn:hover{background:var(--warn-ink);border-color:var(--warn-ink)}
+.pill-ok{background:var(--ok-bg);color:var(--ok-text);border-color:rgba(52,199,89,.3)}
+.pill-err{background:var(--err-bg);color:var(--err-text);border-color:rgba(224,52,44,.28)}
+.pill-warn{background:var(--warn-soft);color:var(--warn-ink);border-color:rgba(255,149,0,.3)}
+.pill-info{background:var(--primary-soft-2);color:var(--primary-text);border-color:var(--primary-100)}
+
+/* 区块标题 —— 设计站风格编号标题（01/02/03 + 标题 + 可选 desc） */
+.sec-head{display:flex;align-items:baseline;gap:10px;margin:32px 0 8px}
+.sec-head .sec-num{font-family:var(--mono);font-size:13px;color:var(--primary-600);font-weight:600}
+.sec-head h2,.sec-head h3{margin:0;color:var(--n-900);letter-spacing:-.01em}
+.sec-desc{font-size:13.5px;color:var(--muted);line-height:1.6;margin:0 0 16px}
+.eyebrow{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--primary-600);margin-bottom:6px}
+
+/* 模块卡 —— 统一 hover 动效，用于功能入口/诊断卡/推荐卡 */
+.dcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease;cursor:pointer;text-align:left;width:100%;display:block}
+.dcard:hover{transform:translateY(-4px);box-shadow:var(--shadow-card-hover);border-color:var(--primary-200)}
+.dcard-ico{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;margin-bottom:13px}
+.dcard h4{margin:0 0 7px;font-size:15.5px;font-weight:660;color:var(--n-900);letter-spacing:-.01em}
+.dcard p{margin:0 0 14px;font-size:13.5px;line-height:1.6;color:var(--muted)}
+.dcard-foot{display:flex;align-items:center;justify-content:space-between;font-size:12.5px;color:var(--primary-text);font-weight:600}
+.dcard-foot span{color:var(--n-500);font-weight:500}
+
+/* ===== 通用提示条 alert（4 色：ok/err/warn/info），原生 CSS，走 token，自动适配明暗 ===== */
+.alert{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:var(--radius-sm);border:1px solid var(--med);border-left-width:4px;background:var(--med-soft);color:var(--primary-d);font-size:14px;line-height:1.4;transition:transform .18s ease,box-shadow .18s ease}
+.alert p{margin:0;font-weight:600}
+.alert:hover{transform:scale(1.02);box-shadow:var(--shadow)}
+.settings-option-check{display:flex;align-items:center;gap:8px;cursor:pointer}
+.settings-option-check input[type=checkbox]{margin:0}
+
+/* 最近一次 vs 目标：「差 X 分」对比 */
+.gap-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);margin-bottom:8px;background:var(--surface)}
+
+/* chat (口语GPT) */
+.chat{max-height:60vh;overflow:auto;display:flex;flex-direction:column;gap:10px;padding:6px 2px}
+.hist-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;font-size:13px;line-height:1.5;color:var(--ink)}
+
+/* ======= 练习设置面板 ======= */
+.cfg-head{display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none}
+.cfg-chev{font-size:18px;color:var(--muted);transition:transform .2s}
+.cfg-body{margin-top:12px}
+.cfg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.cfg-item{display:flex;flex-direction:column;gap:4px}
+.cfg-item label{font-size:13px;font-weight:600;color:var(--ink-sub)}
+.cfg-ctrl{display:flex;align-items:center;gap:8px}
+.cfg-ctrl input[type=range]{width:100px;flex:none}
+.cfg-ctrl select{flex:none}
+.cfg-val{font-size:12px;color:var(--muted);min-width:42px}
+/* 大号播放按钮 */
+.btn-play-large{font-size:18px;padding:14px 28px;border-radius:14px}
+.mock-precheck{margin:14px 0 4px;display:flex;flex-direction:column;gap:6px}
+.mock-precheck-row{font-size:14px;padding:8px 12px;border-radius:10px;background:var(--surface);border:1px solid var(--line)}
+  .mock-precheck-row .mock-need a{color:var(--primary);font-weight:700}
+/* 模考开始卡 CTA（对齐 Dashboard hero-cta 语言） */
+.mock-start-rail{display:flex;flex-direction:column;gap:4px;background:linear-gradient(135deg,var(--primary),var(--primary-d));color:var(--on-primary);border-radius:18px;padding:20px 22px;box-shadow:var(--shadow-md)}
+.mock-start-rail .ms-title{font-size:19px;font-weight:800;letter-spacing:-.01em}
+.mock-start-rail .ms-sub{font-size:13.5px;opacity:.92;margin-bottom:12px}
+/* 考试舞台进度步进器（Part 级 + P1 小题计数） */
+.mock-steps{display:flex;align-items:center;gap:6px;margin-bottom:14px}
+.mock-step{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--muted);white-space:nowrap}
+.mock-step-sep{flex:1;height:2px;background:var(--line);border-radius:2px;min-width:14px}
+.mock-subcount{display:inline-block;font-size:12px;font-weight:700;color:var(--primary);background:var(--primary-soft);border-radius:8px;padding:2px 9px;margin-left:8px;vertical-align:middle}
+
+/* 开始卡：续考入口（保存进度退出后，同一会话内可直接「继续上次模考」） */
+.mock-resume-box{
+  margin-top:14px; padding:14px; border:1px dashed var(--primary); border-radius:12px;
+  background:var(--primary-soft);
+}
+.mock-resume-title{ font-size:14px; font-weight:600; color:var(--primary-d); margin-bottom:10px; }
+.mock-resume-actions{ display:flex; flex-wrap:wrap; gap:10px; }
+.mock-fixed-tag{font-size:11px;font-weight:700;color:var(--warn-ink);background:var(--warn-soft);border-radius:6px;padding:1px 6px;margin-left:4px}
+/* Zone3 今日概览（沿用 .card，仅微调内距） */
+/* Zone4 常用（折叠，专用类避免影响其他页） */
+.nav-detail{border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow);overflow:hidden}
+.nav-detail > summary{cursor:pointer;padding:14px 18px;font-weight:800;font-size:15px;color:var(--ink);list-style:none;display:flex;align-items:center;gap:8px}
+.nav-detail > summary::-webkit-details-marker{display:none}
+.page-head-l{min-width:0}
+.page-head-l .page-sub{margin:6px 0 0;font-size:13px;color:var(--muted)}
+.page-head-r{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}
+.phr-chip{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:5px 11px;border-radius:999px;
+  background:var(--primary-soft);color:var(--primary);
+  font-size:12.5px;font-weight:700;
+}
+
+/* 底部轻量条（10/1 UI v2：PWA 安装小字链接；fs-vip 升级会员入口已整体下线——她拍板会员/非会员都不显示 10/1 晚） */
+.foot-strip{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px 22px;padding:14px 0 2px;font-size:12.5px;color:var(--n-500)}
+.foot-strip a{color:var(--n-600);text-decoration:none;border-bottom:1px dotted var(--n-400);padding-bottom:1px;cursor:pointer;transition:color .16s,border-color .16s}
+.foot-strip a:hover{color:var(--primary-600);border-bottom-color:var(--primary-500)}
+[data-theme="dark"] .foot-strip a{color:var(--muted);border-bottom-color:var(--line)}
+.qc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 6px 12px;text-align:center;text-decoration:none;color:var(--ink);transition:transform .18s,box-shadow .18s,border-color .18s;display:flex;flex-direction:column;align-items:center;box-shadow:var(--shadow)}
+.qc:hover{transform:translateY(-3px);box-shadow:var(--shadow-md);border-color:var(--primary)}
+/* 48px 极低饱和浅底圆角方 + 单色图标（去厚重、去刺眼） */
+.qc-ico{width:48px;height:48px;margin:0 auto 6px;border-radius:14px;background:var(--mod-soft,var(--primary-50));color:var(--mod,var(--primary-500));display:inline-flex;align-items:center;justify-content:center;box-shadow:none}
+.qc-ico svg{width:24px;height:24px}
+.qc-nm{font-size:13.5px;font-weight:700}
+.exam-bar-left{display:flex;align-items:center;gap:14px}
+.exam-bar-right{display:flex;align-items:center;gap:10px}
+#hubFab{
+  position:fixed; right:18px; bottom:18px; z-index:60;
+  border-radius:50%; cursor:pointer; padding:0;
+  box-shadow:0 8px 20px rgba(0,0,0,.28);
+}
+.wl-stats-txt{display:block;margin-top:4px;font-size:12px;color:var(--muted)}
+
+/* ===== design/78 · 双词库切换 =====
+   学习页 #wbStudyTag：紧凑段控件（「词库」标签 + 我的/AWL 两段）；
+   词库页 #wbSwitcher：分段切换条（我的词库（N）/ AWL（x/570））。
+   视觉对齐 .pill-tab：teal 实底激活 + 透明底未激活，token 全翻转、暗色不硬编码。 */
+#wbStudyTag{display:inline-flex;align-items:center;gap:6px;min-width:0}
+.sp-today{margin-top:12px;padding:12px 14px;border-radius:var(--radius-sm);background:var(--primary-50);border:1px solid var(--primary-200)}
+.sp-today-t{font-size:14px;font-weight:700;color:var(--primary-700)}
+.sp-today-p{font-size:12.5px;line-height:1.65;color:var(--ink);margin:6px 0 0}
+.sp-today-p b{color:var(--primary-700)}
+.sp-today-go{display:inline-block;margin-top:9px;font-size:12.5px;font-weight:700;color:var(--primary-700);text-decoration:none}
+.sp-today-go:hover{text-decoration:underline}
+
+/* ==========================================================================
+   10/4 17:55 移动端 dock 分组（她 17:12 提 + 17:54 拍板甲版）
+   —— 4 格：首页(直达) / 计划 / 学习 / 我的，点后三格从底部滑出组面板
+   —— 详见 js/common.js 的 GROUPED_DOCK 注释（结构定义在那里）
+   ========================================================================== */
+/* 遮罩复用 .sheet-backdrop 的视觉，只多一个 body class 触发 */
+body.dgs-open #dockGroupBackdrop{display:block;opacity:1}
+/* 组面板：贴底卡片 + 顶部小抓手（微信底部动作面板同款） */
+.dock-group-sheet{
+  position:fixed;left:0;right:0;bottom:0;z-index:61;
+  transform:translateY(100%);
+  background:var(--surface);
+  border-radius:20px 20px 0 0;
+  border:1px solid var(--line);border-bottom:none;
+  box-shadow:0 -14px 48px rgba(15,23,42,.32);
+  padding:0 0 calc(10px + env(safe-area-inset-bottom));
+  transition:transform .28s cubic-bezier(.32,.72,.35,1);
+  max-height:76vh;display:flex;flex-direction:column;
+  will-change:transform;
+}
+body.dgs-open .dock-group-sheet{transform:translateY(0)}
+.dgs-grab{
+  width:38px;height:4px;border-radius:99px;background:var(--n-200);
+  margin:9px auto 3px;flex:none;
+}
+.dgs-head{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 18px 12px;border-bottom:1px solid var(--line);flex:none;
+}
+.dgs-head b{font-size:16px;font-weight:800;color:var(--n-900);letter-spacing:-.01em}
+.dgs-close{
+  margin-left:auto;width:32px;height:32px;flex:none;
+  border:1px solid var(--line);background:var(--surface);color:var(--muted);
+  border-radius:10px;font-size:13px;cursor:pointer;font-family:inherit;
+  transition:border-color .15s,color .15s;
+}
+.dgs-close:hover{border-color:var(--primary-300);color:var(--primary-700)}
+.dgs-list{
+  flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:8px 12px 6px;
+}
+.dgs-item{
+  display:flex;align-items:center;gap:12px;
+  min-height:56px;padding:10px 12px;border-radius:13px;
+  text-decoration:none;color:inherit;
+  transition:background .14s;
+}
+.dgs-item:active{background:var(--primary-50)}
+/* 44px 触控命中：图标盒 40px + min-height 56px */
+.dgs-ic{
+  width:40px;height:40px;flex:none;border-radius:12px;
+  background:var(--n-100);color:var(--ink-2);
+  display:flex;align-items:center;justify-content:center;
+  transition:background .15s,color .15s;
+}
+.dgs-ic svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.dgs-tx{min-width:0;flex:1}
+.dgs-tx b{display:block;font-size:15px;font-weight:700;color:var(--n-900);line-height:1.3}
+.dgs-tx span{display:block;font-size:12px;color:var(--muted);margin-top:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (prefers-reduced-motion: reduce){.dock-group-sheet{transition:none}}
+
+/* 会员状态卡四分支（原 loadVipStatus 内联 22 处） */
+.vip-hero{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.vip-hero-main{flex:1;min-width:200px}
+.vip-hero-t{font-weight:700;font-size:16px}
+.vip-hero-s{font-size:13px;margin-top:4px}
+@media (max-width:560px){ .vip-hero-main{min-width:0} }

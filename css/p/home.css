@@ -1,0 +1,46 @@
+/* 10/17 拆分：只属于 home.html 的样式块（tests/_split_css_1017.cjs 生成，31 块）。
+   ⚠️ 这里的样式只在这一个页面生效；改这里不用管别的页面。 */
+
+.hero-user{display:flex;align-items:center;gap:10px;min-width:0;flex:none}
+.hero-hi{font-size:15px;font-weight:700;color:var(--ink);white-space:nowrap}
+[data-theme="dark"] .hero-hi{color:#fff}
+.hero-date{font-size:12.5px;color:var(--muted);white-space:nowrap}
+[data-theme="dark"] .hero-date{color:rgba(255,255,255,.66)}
+.hero-left{min-width:0;flex:1}
+.meta-left .hint{font-size:12px;color:var(--muted);margin-top:2px}
+.rec-row .dur{font-size:13px;color:var(--muted);min-width:54px;text-align:right;font-weight:600}
+.dash-tasks-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px}
+.dash-tasks-h h3{margin:0;font-size:15px;font-weight:700}
+.dash-tasks-count{font-size:13px;color:var(--muted);flex:none}
+.dash-tasks-count b{color:var(--ink);font-weight:800}
+/* 细进度条（百分比） */
+.dash-tasks-bar{height:6px;background:var(--primary-50);border-radius:999px;overflow:hidden;margin-bottom:4px}
+[data-theme="dark"] .dash-tasks-bar{background:var(--surface-2)}
+.dash-tasks-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--primary-400),var(--primary-500));border-radius:999px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+.dash-tasks-tip a{color:var(--primary);font-weight:700;text-decoration:none;flex:none;white-space:nowrap}
+.dash-tasks-tip a:hover{text-decoration:underline}
+/* 全部任务完成的正向反馈（不引入 XP/积分字段） */
+.dash-tasks-done{padding:8px 0 2px;font-size:13.5px;font-weight:700;color:var(--primary)}
+[data-mod] .meta-ico,
+[data-mod] .qc-ico{color:var(--mod)}
+[data-mod] .hero-cta{background:var(--mod);border-color:var(--mod)}
+/* 首页引导提示条 */
+.onb-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 12px;margin-bottom:12px;border:1px solid var(--line);border-radius:12px;background:var(--primary-soft)}
+.onb-bar-title{font-size:13px;font-weight:700;color:var(--ink)}
+
+/* ===== 路线图2 · 2b（10/12）：引导完成落地，三件事卡轻高亮 =====
+   低饱和一圈光晕（不发光滤镜、不改布局），2.4s 自消。放末尾 = 避免被前面同名规则后到覆盖。 */
+.onb-landed{animation:onbGlow 2.4s ease}
+@media (prefers-reduced-motion:reduce){.onb-landed{animation:none}}
+
+/* ===== 路线图3 · 3a（10/12）：今日记录卡内的「昨天 × 今天」小节 =====
+   复用 .rec 卡的既有视觉（小标题 + 弱化文字），不新增卡片容器；窄屏自适应。 */
+.rec-yday{margin:2px 0 10px;padding:10px 12px;background:var(--n-50);border-radius:10px}
+[data-theme="dark"] .rec-yday{background:rgba(255,255,255,.04)}
+.rec-yday-h{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.02em;margin-bottom:3px}
+.rec-yday-t{font-size:13.5px;line-height:1.6;color:var(--text)}
+.rec-yday-due{margin-top:0;background:transparent;padding:8px 2px 2px}
+.rec-yday-due a{font-size:13.5px}
+@media (max-width:560px){
+  .rec-yday-t{font-size:13px}
+}

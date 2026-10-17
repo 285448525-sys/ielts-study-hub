@@ -35,3 +35,6 @@ plan/
 
 # 10/15 图片压缩前的原图备份（不进仓库，仅本机恢复用）
 _orig_backup/
+
+# 10/17 CSS 分片：预览用聚合样式表（只被 _preview_*.html 引用，本机件，不入库）
+css/_preview_all.css

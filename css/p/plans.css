@@ -1,0 +1,20 @@
+/* 10/17 拆分：只属于 plans.html 的样式块（tests/_split_css_1017.cjs 生成，12 块）。
+   ⚠️ 这里的样式只在这一个页面生效；改这里不用管别的页面。 */
+
+
+/* plans */
+.plan-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.plan-edit{color:var(--primary);margin-right:2px}
+.plan-edit:hover{color:var(--on-primary);background:var(--primary)}
+.plan-input{flex:1;font-size:14px;padding:6px 8px;border:1px solid var(--primary);border-radius:var(--radius-sm);background:var(--surface);color:var(--ink);outline:none;box-shadow:0 0 0 3px var(--primary-soft)}
+.hist-mid{flex:1;display:flex;align-items:center;gap:8px;min-width:0}
+.hist-pct{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;width:36px;text-align:right}
+.hist-chev{color:var(--muted);font-size:12px;transition:transform .2s}
+.hist-plan[open] .hist-chev{transform:rotate(90deg)}
+/* 昨日未完成自动延续提示 + 延续项左侧标记 */
+.plan-carry-tip{font-size:12.5px;color:var(--primary);background:var(--primary-soft);border-radius:var(--radius-sm);padding:7px 10px;margin-bottom:8px;line-height:1.5}
+
+/* weekly suggest */
+.suggest-list{margin:0;padding-left:18px;color:var(--ink);font-size:14px;line-height:1.9}
+.suggest-list li{margin:2px 0}
+#histPlans{padding:0 20px 18px}
