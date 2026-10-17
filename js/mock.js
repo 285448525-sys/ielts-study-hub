@@ -902,10 +902,39 @@
     await runExam(null);
   }
 
+  /* ---------- 离开口语页时的收尾（10/17 修「模考中跳走 → 整站布局错乱 / 像空白」）----------
+     症状：模考进行中 body 上有 mock-immerse（隐藏 #mainNav / #hubDock、body overflow:hidden、
+     .container 锁 100dvh）。站内的「软导航」只换 <main> 的 innerHTML，**body 上的 class 不会重置**
+     （与 10/6 修过的 data-hub-group 同族）→ 跳到首页/题库后侧栏顶栏全没了、页面还锁着滚动。
+     之前只有「点 speaking 自己的 tab」会清（speaking.js 的 tab 分支），跳去别的页面没人清。
+     做法：监听 <main> 的内容被替换（软导航/后退都会触发），一旦发现 #mockView 已经不在文档里，
+     就撤掉沉浸态。‼️ 只动 UI 状态，不动 mockState / 快照 —— 离开后仍要能断点续考。
+     ⚠️ 之所以不用 MutationObserver 以外的方案：本文件是按需加载的，且要覆盖「侧栏点击 / 后退 /
+     底部 dock」全部离开路径；观察 main 的内容变化是唯一一处与入口无关的可靠信号，
+     也避免了为改 common.js 而全站 bump 25 个页面的 common.js 版本串。 */
+  function bindPageLeaveGuard(){
+    if(window.__mockLeaveGuard) return;
+    const main = document.querySelector('main');
+    if(!main || typeof MutationObserver === 'undefined') return;
+    const check = function(){
+      if(!document.getElementById('mockView')){
+        try{ setMockImmerse(false); setP2Mode(false); }catch(e){}
+      }
+    };
+    const mo = new MutationObserver(function(muts){
+      for(let i = 0; i < muts.length; i++){
+        if(muts[i].type === 'childList' && muts[i].removedNodes.length){ check(); return; }
+      }
+    });
+    mo.observe(main, { childList: true });
+    window.__mockLeaveGuard = mo;
+  }
+
   /* ---------- 初始化 ---------- */
   ready(async () => {
     // 事件委托先绑定（同步、不依赖任何 await）：报告页「再来一次」任何时刻可点。
     bindMockViewDelegation();
+    bindPageLeaveGuard();   // 10/17：离开本页（软导航/后退）自动撤沉浸态，防整站布局被锁
     /* 10/2（她拍板）：点「模考」直达全屏考试——speaking.js MOCK 分支调用本入口。
        有未完成快照=自动续考；否则全新开考。 */
     window.__mockEnter = async function(){

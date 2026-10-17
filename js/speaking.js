@@ -274,6 +274,24 @@ function lateLoad(hostId){
   window.__spkLate[hostId] = _spkLate[hostId];
   return _spkLate[hostId];
 }
+/* 10/17 修：模考视图的 loading / 错误态占位。
+   ⚠️ 只能「插入一张卡」，绝不能像素材那样写 mv.innerHTML —— #mockView 里住着 #mockStage / #mockReport
+      两个静态容器，innerHTML 一写就把它们连同 mock.js 绑好的事件一起抹掉（舞台永远起不来）。 */
+function spMockTip(html){
+  const mv = $('#mockView');
+  if(!mv) return null;
+  let tip = document.getElementById('mockLoadTip');
+  if(!tip){
+    tip = document.createElement('div');
+    tip.id = 'mockLoadTip';
+    tip.className = 'card';
+    mv.insertBefore(tip, mv.firstChild);   // 插在最前：舞台/报告一旦显示，它在上面不影响布局
+  }
+  tip.innerHTML = html;
+  return tip;
+}
+function spMockTipClear(){ const t = document.getElementById('mockLoadTip'); if(t) t.remove(); }
+
 /* load 之后空闲预热：用户真去点「素材」时通常已经就位。
    放在 load 之后（而不是 ready 时）是为了绝不和首屏的 CSS / data.js / common.js / speaking.js 抢带宽。 */
 ready(function(){
@@ -331,10 +349,28 @@ ready(() => {
         // 10/2（她拍板）：开始卡/最近记录已删——点「模考」直接进全屏考试
         //（window.__mockEnter 由 mock.js ready 暴露：有未完成快照=自动续考，否则全新开考）
         // 10/17 性能批：mock.js / mock-report.js / mock-history.js 改按需加载（模考 tab 目前 hidden、功能未开）。
+        // 10/17 修：按需加载必须有 loading / 错误态 —— 之前脚本没到位时 #mockView 已被显示、
+        //   而 #mockStage 还是 hidden，用户看到的是**一整屏空白**，且失败只有一句 console.error（静默失败）。
         $('#mockView').hidden = false;
+        if(typeof window.__mockEnter !== 'function') spMockTip('<p class="muted" style="margin:0">模考加载中…</p>');
         lateLoad('mockView').then(function(){
-          try{ if(typeof window.__mockEnter === 'function') window.__mockEnter(); }
-          catch(err){ console.error('[speaking] 模考进入失败', err); }
+          if(typeof window.__mockEnter === 'function'){
+            spMockTipClear();
+            try{ window.__mockEnter(); }
+            catch(err){ console.error('[speaking] 模考进入失败', err); spMockTip('<p class="muted" style="margin:0">模考启动失败，请刷新页面重试。</p>'); }
+            return;
+          }
+          /* 脚本没到位（网络失败 / 被拦）→ 给可见的错误态 + 重试按钮。
+             lateLoad 失败时不缓存 promise（见其 catch），点重试会重新加载；
+             重试 = 再点一次隐藏的 MOCK tab，复用本分支的全部逻辑，不另写一份。 */
+          console.error('[speaking] 模考脚本未就绪：__mockEnter 不存在');
+          const tip = spMockTip('<p class="muted" style="margin:0">模考加载失败（网络问题），请重试。</p>'
+            + '<button type="button" class="btn" id="mockLoadRetry" style="margin-top:10px">重试</button>');
+          const rb = tip && document.getElementById('mockLoadRetry');
+          if(rb) rb.addEventListener('click', function(){
+            const mb = document.querySelector('#tabs [data-type="MOCK"]');
+            if(mb) mb.click();
+          });
         });
       } else if(t === 'MAT'){
         /* 10/17 性能批：materials.js(47KB) 改按需加载 —— 先给一个「加载中」占位，
