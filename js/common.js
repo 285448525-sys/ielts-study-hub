@@ -3307,7 +3307,26 @@ function initBootLoader(){
     // 在 DOMContentLoaded 前后即已完成，两帧 rAF（约 32ms）足以让首帧绘制发生，
     // 遮罩即可收起 → 新开标签页「可用」体感提前约 200ms。
     var raf = window.requestAnimationFrame || function(cb){ setTimeout(cb, 16); };
-    raf(function(){ raf(function(){ _finishBootLoader(); }); });
+    raf(function(){ raf(function(){
+      /* 10/17 性能批：页面可声明「我的首屏内容还没渲染完」，请求遮罩先别收。
+         动机：home.html 的 #threeThings 与 section.meta 是上下相邻关系，而
+         index.js 的 ready() 开头会 await 官方词库 json（obBankReady）。词库激活时
+         该 await 把两卡渲染推到遮罩收掉之后 2.3 秒 → 卡片撑开 393~490px 把
+         section.meta 推下去 = 完全可见的布局位移（实测 CLS 0.33，手机 Slow4G）。
+         握手协议（目前唯一使用方 = index.js，双向防竞态）：
+           · 页面置 window.__hubBootHold = true  →「还没画完，先别收」
+           · 页面置 window.__hubBootReady = true →「画完了，可以收」
+         两者到达顺序不定（custom 词库时 index.js 根本没有 await，会先于本函数执行到
+         release 那一行），所以两边都要能兜住对方：
+           · 本函数：hold 且未 ready → 把 _finishBootLoader 挂给页面，等它回头调
+           · 页面  ：若挂的函数还没出现，就先只置 ready 旗标，本函数随即自行收尾
+         ⚠️ 拿不到 release 也不会卡死：下面那条 8s 兜底 setTimeout 照旧生效。 */
+      if(window.__hubBootHold && !window.__hubBootReady){
+        window.__hubBootRelease = _finishBootLoader;
+        return;
+      }
+      _finishBootLoader();
+    }); });
   };
   if(document.readyState === 'complete' || document.readyState === 'interactive'){
     _bootFinishSoon();

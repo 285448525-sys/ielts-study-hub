@@ -211,24 +211,24 @@
     });
     return picked.indexOf(null) > -1 ? null : picked;
   }
+  /* 10/17 性能批 · 改为「静态卡 + 切状态」而不是 innerHTML 注入。
+     why：原先 manifest 到达后才插入这张 242px 高的卡，把下面 .partbar/#bankList 顶下去，
+     手机 Slow4G 实测 CLS 0.238（单次偏移占全部 99%，且发生在遮罩收起之后，用户看得见）。
+     现在卡的结构写在 bank.html 里（首帧即有高度），这里只负责：
+       ① 数据没到 → 保持 disabled（防止点 Start 什么都不发生）
+       ② 数据就绪 → 去掉 disabled
+       ③ 数据不足（某个 Part 没有篇目）→ 整块移除（此时移除发生在遮罩期/很早期，且是必须的行为） */
   function renderFullEntry(){
     var host = document.getElementById('fullEntry'); if(!host) return;
-    if(!_manifest){ host.innerHTML = ''; return; }
+    var btn = host.querySelector('[data-fullstart]');
+    if(!_manifest){ if(btn) btn.disabled = true; return; }
     /* 数据可用性检查：三个 Part 各至少 1 篇才出卡（Start 时 composeFullTest 还有兜底） */
     var all = unitsOf('reading');
     var ok = ['Part 1', 'Part 2', 'Part 3'].every(function(p){
       return all.some(function(u){ return (u.partNum || 'Part 1') === p; });
     });
     if(!ok){ host.innerHTML = ''; return; }
-    host.innerHTML = '<div class="full-card">'
-      + '<div class="fc-num">40</div>'
-      + '<div class="fc-body"><b>Full Reading Test · 完整阅读模考</b>'
-      +   '<span>3 passages · 40 questions · 60 minutes</span>'
-      +   '<div class="fc-pills"><span class="fc-pill">随机组卷 · Part 1/2/3 各抽 1 篇</span>'
-      +   '<span class="fc-pill">每次 Start 重新抽</span></div>'
-      + '</div>'
-      + '<button class="btn-primary" type="button" data-fullstart>Start Test</button>'
-      + '</div>';
+    if(btn) btn.disabled = false;
   }
 
   /* ===== 听力「完整模考」入口卡（10/12 第 10 项；同日晚改纯随机口径）=====
@@ -246,21 +246,18 @@
   }
   function renderListenFullEntry(){
     var host = document.getElementById('listenFullEntry'); if(!host) return;
-    if(!_manifest){ host.innerHTML = ''; return; }
+    var btn = host.querySelector('[data-lfullstart]');
+    if(!_manifest){ if(btn) btn.disabled = true; return; }
     var all = unitsOf('listening');
     var ok = ['Part 1', 'Part 2', 'Part 3', 'Part 4'].every(function(p){
       return all.some(function(u){ return (u.partNum || 'Part 1') === p; });
     });
+    /* 同阅读侧：结构静态写在 bank.html（首帧即有高度），这里只切 disabled / 移除。
+       听力 pane 首屏是 hidden 的（默认阅读 tab），所以它本来不会在首屏造成跳动；
+       但若用户首访就落在听力 tab，同一套「空 div → 晚注入」会让 .partbar 与
+       #listenList 被顶下去。两边保持同构，避免以后再踩一次。 */
     if(!ok){ host.innerHTML = ''; return; }
-    host.innerHTML = '<div class="full-card">'
-      + '<div class="fc-num">40</div>'
-      + '<div class="fc-body"><b>Full Listening Test · 完整听力模考</b>'
-      +   '<span>4 parts · 40 questions · 30 minutes · audio plays once</span>'
-      +   '<div class="fc-pills"><span class="fc-pill">随机组卷 · Part 1–4 各抽 1 篇</span>'
-      +   '<span class="fc-pill">每次 Start 重新抽</span></div>'
-      + '</div>'
-      + '<button class="btn-primary" type="button" data-lfullstart>Start Test</button>'
-      + '</div>';
+    if(btn) btn.disabled = false;
   }
 
   /* ===== 小 tab ===== */
@@ -301,6 +298,12 @@
         ['bankList', 'listenList'].forEach(function(id){
           var h = document.getElementById(id);
           if(h) h.innerHTML = '<div class="bank-empty"><p>目录加载失败，请刷新重试。</p></div>';
+        });
+        /* 10/17 性能批：入口卡已改为静态写在 HTML 里，目录失败时它不该再挂在那儿
+           （按钮虽 disabled 点不动，但「完整阅读模考」配一条失败提示会让人以为能用）。 */
+        ['fullEntry', 'listenFullEntry'].forEach(function(id){
+          var h = document.getElementById(id);
+          if(h) h.innerHTML = '';
         });
       });
   }

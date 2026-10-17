@@ -1154,7 +1154,25 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
     </div>
 
     <section class="mock-pane" id="pane-reading">
-      <div id="fullEntry"></div>
+      <!-- 10/17 性能批 · CLS 修复：完整模考入口卡改为**静态渲染**。
+           原先这里是空 div，靠 JS 在 manifest 到达后注入一张 242px 高的卡，
+           把下面的 .partbar / #bankList 整体顶下去 —— 手机 Slow4G 实测 CLS 0.238，
+           这**一次**偏移就占全部的 99%（@11121ms，遮罩早已收起，用户看得见）。
+           卡内是纯静态文案（唯一动态判断 =「Part 1/2/3 各至少 1 篇」），所以直接写死在 HTML：
+           高度从首帧就存在，下面的内容永远不会被顶走。
+           JS 侧 renderFullEntry() 只切状态：数据就绪 → 摘掉按钮 disabled；数据不足 → 整块移除。
+           ⚠️ 按钮必须先 disabled —— manifest 没到时点 Start 会 composeFullTest() 返回 null 什么也不发生。 -->
+      <div id="fullEntry">
+        <div class="full-card">
+          <div class="fc-num">40</div>
+          <div class="fc-body"><b>Full Reading Test · 完整阅读模考</b>
+            <span>3 passages · 40 questions · 60 minutes</span>
+            <div class="fc-pills"><span class="fc-pill">随机组卷 · Part 1/2/3 各抽 1 篇</span>
+            <span class="fc-pill">每次 Start 重新抽</span></div>
+          </div>
+          <button class="btn-primary" type="button" data-fullstart disabled>Start Test</button>
+        </div>
+      </div>
       <div class="partbar">
         <div class="pill-tabs" id="partTabs">
           <button class="pill-tab active" type="button" data-part="Part 1">Part 1</button>
@@ -1172,7 +1190,21 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
            避免和阅读的 #partTabs / #bankList / #partMeta 互相覆盖。
            题面/答案/图片/官方指令全部来自 bank/listening/<id>.json + bank/answers/<id>.json，
            音频与地图题配图直引 static.9fnnn.com（公开 CDN，零下载）。 -->
-      <div id="listenFullEntry"></div>
+      <!-- 10/17 性能批 · CLS 修复（与阅读侧 #fullEntry 同构，理由见那里的注释）。
+           听力 pane 首屏是 hidden 的，所以它不会造成首屏跳动；但若用户在 manifest
+           到达前就切到听力 tab，同样会看到「空壳 → 卡片插入 → #listenList 被顶下去」。
+           结构静态写死，JS 只切 disabled / 数据不足时整块移除。 -->
+      <div id="listenFullEntry">
+        <div class="full-card">
+          <div class="fc-num">40</div>
+          <div class="fc-body"><b>Full Listening Test · 完整听力模考</b>
+            <span>4 parts · 40 questions · 30 minutes · audio plays once</span>
+            <div class="fc-pills"><span class="fc-pill">随机组卷 · Part 1–4 各抽 1 篇</span>
+            <span class="fc-pill">每次 Start 重新抽</span></div>
+          </div>
+          <button class="btn-primary" type="button" data-lfullstart disabled>Start Test</button>
+        </div>
+      </div>
       <div class="partbar">
         <div class="pill-tabs" id="listenPartTabs">
           <button class="pill-tab active" type="button" data-lpart="Part 1">Part 1</button>
@@ -1251,9 +1283,9 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
      10/11 第 7 项：写作 pane 复用 js/writing.js（写作真题渲染 + 机考 + AI 评分）+ js/writing_prompts.js（题库数据）。
      writing.js 靠「有没有 #writeTabs」自判页面：本页没有 → 只跑真题初始化，不碰写作页 DOM。 -->
 <script defer src="js/data.js?v=20261011e"></script>
-<script defer src="js/common.js?v=20261013ac"></script>
+<script defer src="js/common.js?v=20261013ad"></script>
 <script defer src="js/writing_prompts.js?v=20260903ab"></script>
 <script defer src="js/writing.js?v=20261012a"></script>
-<script defer src="js/bank.js?v=20261012ab"></script>
+<script defer src="js/bank.js?v=20261012ac"></script>
 </body>
 </html>

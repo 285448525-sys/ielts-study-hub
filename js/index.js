@@ -13,6 +13,26 @@ ready(async () => {
   const safe = fn => { try{ fn(); }catch(e){ console.error('[index] 渲染失败', fn.name || '', e); } };
   const s = (DATA && DATA.settings) || {};
 
+  /* 🔴 10/17 性能批：首屏遮罩「按住不放」直到首屏两卡渲染完。
+     为什么：下面 L17-19 在官方词库激活时要 await 拉词包 json（慢网 ~2.5s），
+     而 #threeThings（三件事卡）与 section.meta（今日专注/今日待学）上下相邻 ——
+     词包没到 → 三件事卡后渲染 → 撑开 393~490px 把 section.meta 推下去。
+     遮罩此时已收（DOMContentLoaded+2 帧），所以这是一次**完全可见**的位移：
+     手机 Slow4G 实测 CLS 0.33（tests/_probe_clsawl_1017.cjs，AWL 激活态）。
+     做法：先按一下遮罩（common.js 的 _bootFinishSoon 会读这个旗标），
+     两卡渲染完再 window.__hubBootRelease() 放行 → 位移发生在遮罩还在的时候。
+     ⚠️ 双向握手防竞态：custom 词库时本函数没有 await，很可能**先于** common.js 的
+     _bootFinishSoon 两帧 rAF 跑完；此时 release 函数还没挂上，就只能先置 ready 旗标，
+     common.js 到点自己看到 ready 直接收遮罩。反之（词库激活）common.js 先到，
+     它会挂上 release，本函数渲染完回头调它。两条路都不会漏收。 */
+  window.__hubBootHold = true;
+  const releaseBoot = () => {
+    try{
+      window.__hubBootReady = true;
+      if(typeof window.__hubBootRelease === 'function') window.__hubBootRelease();
+    }catch(e){}
+  };
+
   // design/78：官方词库激活时先等词包就绪再渲染首页（custom 不 fetch、零额外请求）
   if(typeof wbActive === 'function' && wbActive() !== 'custom' && typeof obBankReady === 'function'){
     try{ await obBankReady(wbActive()); }catch(e){ console.error('[index] 官方词库加载失败', e); }
@@ -30,6 +50,17 @@ ready(async () => {
 
   // v6 首页渲染（design/31 A 版）
   safe(renderDashV6);
+
+  /* 10/17 性能批：首屏两卡（三件事 + v6 指标）都已渲染完 → 放行启动遮罩。
+     必须放在 renderDashV6 之后（#threeThings 自己撑高、section.meta 由 renderDashV6 填），
+     这两块正是上面实测到的位移源。renderOnboardingBar 在更后面且只影响页尾，不必等。
+     ⚠️ 必须**双 rAF**才够：DOM 刚改完时还没有 layout，若在同一帧里收遮罩，浏览器会把
+     「卡片撑开」和「opacity 开始降」合进同一次绘制 → layout-shift 的时间戳落在淡出过程
+     中（实测就是这样留下 0.332，单 rAF 也救不了）。双 rAF 的作用是：第一个 rAF 之后浏览器
+     先按「卡片已就位 + 遮罩仍 100% 不透明」绘制一帧（位移在这一帧发生，用户看不见），
+     第二个 rAF 里才放行收遮罩 → 位移与淡出彻底错开。代价只是遮罩多留一帧 ≈16ms。 */
+  const _raf = window.requestAnimationFrame || (fn => setTimeout(fn, 16));
+  _raf(() => _raf(releaseBoot));
 
   /* 路线图2 · 2b（10/12）：引导完成落地 → 三件事卡滚动定位 + 轻高亮（一次性）。
      放在两个渲染都跑完之后：此刻卡片已按真实数据渲染完，定位/高亮才落在最终态上。
