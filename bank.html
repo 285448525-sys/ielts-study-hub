@@ -1217,7 +1217,8 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
       <div id="listenList"><div class="bank-loading">目录加载中…</div></div>
     </section>
 
-    <section class="mock-pane" id="pane-writing" hidden>
+    <section class="mock-pane" id="pane-writing" hidden
+             data-late-src="js/writing_prompts.js?v=20260903ab,js/writing.js?v=20261012a">
       <!-- 10/11 第 7 项（她拍板「整块删掉」写作页真题 tab）：写作真题整体搬到这里。
            题目数据 = js/writing_prompts.js（大作文 70 + 小作文 25），渲染/机考/评分逻辑在 js/writing.js
            （writeExam 那一段，同一份代码两页共用；本页无 #writeTabs → writing.js 只跑真题初始化）。
@@ -1281,11 +1282,16 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 
 <!-- 🔴 加载顺序契约（10/5 铁律）：defer 顺序不可改 —— bank.js 依赖 common.js 的 PAGES。
      10/11 第 7 项：写作 pane 复用 js/writing.js（写作真题渲染 + 机考 + AI 评分）+ js/writing_prompts.js（题库数据）。
-     writing.js 靠「有没有 #writeTabs」自判页面：本页没有 → 只跑真题初始化，不碰写作页 DOM。 -->
+     writing.js 靠「有没有 #writeTabs」自判页面：本页没有 → 只跑真题初始化，不碰写作页 DOM。
+
+     🔴 10/17 性能批（第二批 · 传输层）：这两个脚本**不再进 defer 队列**，改为按需加载 ——
+     版本串搬到了上面 #pane-writing 的 data-late-src 属性里（仍只此一处，勿在别处再写）。
+     依据 = tests/_probe_ablate_1017.cjs 线上实测：单独拦掉它们，首屏照常渲染、零报错
+     （首屏不依赖），但它们合计 75KB 压缩体，和 common.css / common.js 抢同一条带宽
+     （手机慢网 ~50KB/s → 约 1.5 秒）。加载时机：点开「写作」tab 时按序插入；
+     首次 load 之后空闲再预热一次。承接代码在 js/bank.js 的 loadWritingScripts()。 -->
 <script defer src="js/data.js?v=20261011e"></script>
 <script defer src="js/common.js?v=20261013ad"></script>
-<script defer src="js/writing_prompts.js?v=20260903ab"></script>
-<script defer src="js/writing.js?v=20261012a"></script>
-<script defer src="js/bank.js?v=20261012ac"></script>
+<script defer src="js/bank.js?v=20261012ad"></script>
 </body>
 </html>

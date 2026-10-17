@@ -277,6 +277,47 @@
     if(tab === 'listening'){ renderListenParts(); renderListenList(); }
   }
 
+  /* ===== 10/17 性能批（第二批 · 传输层）：写作 pane 的两个脚本按需加载 =====
+     依据 = tests/_probe_ablate_1017.cjs 线上实测：单独拦掉 writing_prompts.js / writing.js，
+     首屏照常渲染、零报错 → 不在首屏关键路径上。但它们合计约 75KB（压缩体），
+     会和 common.css / common.js 抢同一条带宽（手机慢网 ~50KB/s ≈ 1.5 秒），
+     所以从 bank.html 的 defer 队列里摘出来（数据在 #pane-writing 的 data-late-src 上）。
+     ⚠️ 顺序契约不变：writing_prompts.js 必须先于 writing.js（后者用前者的题库数据）。
+     ⚠️ 放在 <main> 内的属性上（而不是 <body> 末尾的 script 标签）是有意的：
+       软导航只换 <main>，写在末尾的配置在软导航进来时就丢了。 */
+  var _wrtLate = null;
+  function loadWritingScripts(){
+    if(_wrtLate) return _wrtLate;
+    var host = document.getElementById('pane-writing');
+    var raw = host && host.getAttribute('data-late-src');
+    if(!raw) return Promise.resolve();
+    _wrtLate = raw.split(',').map(function(s){ return s.trim(); }).filter(Boolean).reduce(function(chain, u){
+      return chain.then(function(){
+        return new Promise(function(res, rej){
+          var s = document.createElement('script');
+          s.src = u;
+          s.onload = res;
+          s.onerror = function(){ rej(new Error('load failed ' + u)); };
+          document.head.appendChild(s);
+        });
+      });
+    }, Promise.resolve()).catch(function(e){
+      _wrtLate = null;                                  // 失败不缓存，下次切回来还能重试
+      if(window.console && console.error) console.error('[bank] 写作脚本加载失败：', e);
+    });
+    return _wrtLate;
+  }
+  /* 首屏画完之后空闲预热一次：用户真去点「写作」时通常已经就位；
+     放在 load 之后是为了绝不和首屏的 CSS / 三个核心脚本抢带宽（慢网下 load≈8s）。 */
+  (function wrtPrewarm(){
+    var go = function(){
+      var idle = window.requestIdleCallback || function(f){ setTimeout(f, 1200); };
+      idle(function(){ loadWritingScripts(); });
+    };
+    if(document.readyState === 'complete') go();
+    else window.addEventListener('load', go, { once: true });
+  })();
+
   /* ===== 载入 manifest ===== */
   function boot(){
     var root = document.getElementById('bankRoot');
@@ -2566,8 +2607,14 @@ function barHtml(){
         var _mt = el.getAttribute('data-mtab');
         paintTab(_mt);
         /* 10/11 第 7 项：写作 pane 的真题列表由 writing.js 提供（函数挂在 window 上）。
-           每次切进来重渲染一次 —— 刚练完一道题回来，✓/上次分数才会即时更新。 */
-        if(_mt === 'writing' && typeof window.renderExamList === 'function') window.renderExamList();
+           每次切进来重渲染一次 —— 刚练完一道题回来，✓/上次分数才会即时更新。
+           10/17 性能批：这两个脚本已改为按需加载（见 loadWritingScripts），所以这里
+           要先等它们到位再渲染；已加载过则直接进 then（缓存命中，无额外等待）。 */
+        if(_mt === 'writing'){
+          loadWritingScripts().then(function(){
+            if(typeof window.renderExamList === 'function') window.renderExamList();
+          });
+        }
         return;
       }
       /* 二级：阅读的 Part 1 / 2 / 3 */
