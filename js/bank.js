@@ -286,7 +286,16 @@
      ⚠️ 放在 <main> 内的属性上（而不是 <body> 末尾的 script 标签）是有意的：
        软导航只换 <main>，写在末尾的配置在软导航进来时就丢了。 */
   var _wrtLate = null;
+  /* 10/17 首屏减重第二步：写作模板与起步语料已搬出 js/data.js（见 js/factory-writing.js），
+     写作壳渲染强依赖它们 —— 先确保出厂内容就位，再上这两个脚本。
+     出厂内容加载失败也放行（页面降级为空列表），下次切回来 / 预热仍可重试。 */
   function loadWritingScripts(){
+    if(typeof HUB_FACTORY !== 'undefined' && typeof HUB_FACTORY.ensureWriting === 'function'){
+      return HUB_FACTORY.ensureWriting().then(function(){ return _wrtLoadOnce(); });
+    }
+    return _wrtLoadOnce();
+  }
+  function _wrtLoadOnce(){
     /* ⚠️ 10/17 回归修复：软导航会重新 eval 本文件，模块级 _wrtLate 归零 —— 若只看它，软导航绕回
        题库后再点「写作」（或预热再跑一次）会把 writing.js **再 append 一次**，而 writing.js 顶层有
        `const ANCHOR_TABLE_EN`，重复执行会抛 "Identifier 'ANCHOR_TABLE_EN' has already been declared"

@@ -1801,6 +1801,31 @@ const SYNC_ARRAY_FIELDS = ['sessions','notes','meds','corpus','scores','errorboo
   'mockRecords','dictationSources','dictationLogs','longSent'];
 /* 上传/合并前剔除「官方共享、个人不应同步」的字段（仅 writing 模板），保持 DATA 其余逻辑不变。
  * 注意：speaking 现已纳入同步，不再剔除。 */
+/* ── 写作出厂内容按需加载（2026-10-17 首屏减重第二步）──────────────────────────
+   写作模板 + 起步语料已从每页必下的 js/data.js 搬到 js/factory-writing.js（约 20KB brotli）。
+   ⚠️ 幂等：软导航来回切页会重复调用（10/17 口语按需加载踩过「脚本二次 append → 顶层 const
+   重复声明 → 整片空白」的真回归），故用固定 id + window 上的锚点去重。 */
+const FACTORY_WRITING_SRC = 'js/factory-writing.js?v=20261017a';
+if(typeof HUB_FACTORY !== 'undefined' && !HUB_FACTORY.loadWriting){
+  HUB_FACTORY.loadWriting = function(cb){
+    const done = ok => { try{ cb(ok); }catch(e){ console.error('[factory] 回调异常：', e); } };
+    const exist = document.getElementById('hubFactoryWriting');
+    if(exist){                                   // 已经引过（软导航/重试/静态标签）：等它就绪即可
+      if(HUB_FACTORY.readyWriting) return done(true);
+      exist.addEventListener('load', () => done(!!HUB_FACTORY.readyWriting));
+      exist.addEventListener('error', () => done(false));
+      return;
+    }
+    const s = document.createElement('script');
+    s.id = 'hubFactoryWriting';
+    s.src = FACTORY_WRITING_SRC;
+    s.async = true;
+    s.onload = () => done(!!HUB_FACTORY.readyWriting);
+    s.onerror = () => { console.error('[factory] 写作出厂内容加载失败（下次会重试）'); done(false); };
+    document.head.appendChild(s);
+  };
+}
+
 function stripCloudFields(d){
   const c = Object.assign({}, d);
   delete c.writing;    // 写作模板：所有用户一致，永远用本机默认模板
