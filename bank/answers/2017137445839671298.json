@@ -1,0 +1,38 @@
+{
+  "unitId": "2017137445839671298",
+  "title": "Wood",
+  "channel": "reading",
+  "qCount": 13,
+  "got": 13,
+  "dropped": [],
+  "answers": {
+    "1": "B",
+    "2": "A",
+    "3": "C",
+    "4": "B",
+    "5": "C",
+    "6": "A",
+    "7": "shipping costs",
+    "8": "export sector",
+    "9": "60,000",
+    "10": "softwood",
+    "11": "sustainability",
+    "12": "Scandinavian countries",
+    "13": "wood substitutes"
+  },
+  "raw": {
+    "1": "B",
+    "2": "A",
+    "3": "C",
+    "4": "B",
+    "5": "C",
+    "6": "A",
+    "7": "shipping costs",
+    "8": "export sector",
+    "9": "60,000",
+    "10": "softwood",
+    "11": "sustainability",
+    "12": "Scandinavian countries",
+    "13": "wood substitutes"
+  }
+}

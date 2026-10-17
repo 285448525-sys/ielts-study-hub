@@ -1,0 +1,38 @@
+{
+  "unitId": "2017137445827088386",
+  "title": "The Blockbuster Phenomenon",
+  "channel": "reading",
+  "qCount": 13,
+  "got": 13,
+  "dropped": [],
+  "answers": {
+    "1": "C",
+    "2": "A",
+    "3": "D",
+    "4": "C",
+    "5": "customers",
+    "6": "public relations skills",
+    "7": "museology",
+    "8": "tourist attractions",
+    "9": "A",
+    "10": "C",
+    "11": "C",
+    "12": "E",
+    "13": "G"
+  },
+  "raw": {
+    "1": "C",
+    "2": "A",
+    "3": "D",
+    "4": "C",
+    "5": "customers",
+    "6": "public relations skills",
+    "7": "museology",
+    "8": "tourist attractions",
+    "9": "A",
+    "10": "C",
+    "11": "C",
+    "12": "E",
+    "13": "G"
+  }
+}

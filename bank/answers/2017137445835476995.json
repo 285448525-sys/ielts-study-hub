@@ -1,0 +1,38 @@
+{
+  "unitId": "2017137445835476995",
+  "title": "Triumph of the City",
+  "channel": "reading",
+  "qCount": 13,
+  "got": 13,
+  "dropped": [],
+  "answers": {
+    "1": "disease",
+    "2": "political",
+    "3": "richer",
+    "4": "economy",
+    "5": "museum",
+    "6": "property",
+    "7": "contact",
+    "8": "consumption",
+    "9": "B",
+    "10": "C",
+    "11": "C",
+    "12": "B",
+    "13": "A"
+  },
+  "raw": {
+    "1": "disease",
+    "2": "political",
+    "3": "richer",
+    "4": "economy",
+    "5": "museum",
+    "6": "property",
+    "7": "contact",
+    "8": "consumption",
+    "9": "B",
+    "10": "C",
+    "11": "C",
+    "12": "B",
+    "13": "A"
+  }
+}
