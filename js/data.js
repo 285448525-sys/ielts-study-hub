@@ -1559,6 +1559,59 @@ function mergeSpeakingKeepAnswers(localSpeaking){
 
 
 
+/* ── 出厂内容就绪闸（2026-10-17 首屏减重第二步 · 第一步「先装保险」）────────────
+   背景：出厂内容（写作模板 DATA.writing + 起步语料 writingPhrases）此前内联在本文件里，
+        等于每个页面都要下载、解析它们；第二步会把它们搬到 js/factory-writing.js，
+        只在真正需要的页面/时机加载（写作壳、错题本、以及云同步合并时）。
+
+   为什么要装闸：出厂内容一旦「还没到位」，任何把空数组当成真相的路径都会写坏她的数据 ——
+     · 上传：本机 writingPhrases 为空却把空数组传上云 → 云端起步语料被清掉；
+     · 合并：云端的起步语料被本机的空数组参与合并（按 id 并集不会删，但会写入未就绪态）；
+     · 迁移：写作模板迁移依赖 DEFAULT_WRITING_TEMPLATES，未就绪时会算出「全部缺失」。
+
+   故立此闸：readyWriting 之前 —— 不上传该字段、不合并该字段、不跑模板迁移。
+   本机落盘（localStorage）不受影响：JSON 里写空数组是自愈的（下次 hubLoad 会用本机已存内容
+   覆盖默认值），拿到出厂内容后由模板迁移把缺失的官方条目补回来（墓碑 deletedIds 照旧尊重）。
+
+   测试缝：window.__HUB_FACTORY_FORCE_PENDING = 1 可强制「未就绪」，供探试验证闸真的拦得住。 */
+const HUB_FACTORY = window.HUB_FACTORY = window.HUB_FACTORY || {
+  readyWriting: true,        // 第一步（本提交）：出厂内容仍内联，随时就绪 → 页面行为零变化
+  loadWriting: null,         // 第二步：由 js/factory-writing.js 之外的使用方注入加载器
+  _wPromise: null,
+  _waiters: [],
+  /* 就绪后执行；已就绪则立刻执行（异常不吞掉来源，只记录） */
+  onWritingReady: function(fn){
+    if(this.readyWriting){ try{ fn(); }catch(e){ console.error('[factory] 就绪回调失败：', e); } return; }
+    this._waiters.push(fn);
+  },
+  markWritingReady: function(){
+    if(this.readyWriting) return;
+    this.readyWriting = true;
+    const q = this._waiters; this._waiters = [];
+    for(const fn of q){ try{ fn(); }catch(e){ console.error('[factory] 就绪回调失败：', e); } }
+  },
+  /* 需要出厂内容的功能在渲染/保存前 await 它；已就绪或没有加载器时立刻返回 */
+  ensureWriting: function(){
+    if(this.readyWriting) return Promise.resolve(true);
+    if(typeof this.loadWriting !== 'function') return Promise.resolve(false);
+    if(!this._wPromise){
+      const self = this;
+      this._wPromise = new Promise(function(resolve){
+        try{
+          self.loadWriting(function(ok){
+            if(ok === false){ self._wPromise = null; console.error('[factory] 写作出厂内容加载失败（稍后可重试）'); resolve(false); }
+            else resolve(true);
+          });
+        }catch(e){ self._wPromise = null; console.error('[factory] 写作出厂内容加载异常：', e); resolve(false); }
+      });
+    }
+    return this._wPromise;
+  },
+  /* 同步字段是否可用（未就绪的字段不参与上传/合并） */
+  fieldReady: function(f){ return f === 'writingPhrases' ? !!this.readyWriting : true; }
+};
+if(window.__HUB_FACTORY_FORCE_PENDING){ HUB_FACTORY.readyWriting = false; }
+
 const MED_DURATION_MS = 12 * 3600 * 1000;
 
 let DATA = {
@@ -1767,7 +1820,7 @@ let DATA = {
 };
 
 // 写作模板默认值快照，用于迁移时补齐新增模板/回写标题（用户手动删过的不再恢复，由 deletedIds 控制）
-const DEFAULT_WRITING_TEMPLATES = JSON.parse(JSON.stringify(DATA.writing));
+let DEFAULT_WRITING_TEMPLATES = JSON.parse(JSON.stringify(DATA.writing));   // 出厂内容未就绪时为空数组，由 js/factory-writing.js 就绪后填充（见 HUB_FACTORY）
 
 let _hubLoaded = false;
 /* 深合并：默认值基准，用户数据覆盖。
@@ -1873,7 +1926,13 @@ function hubLoad(){
       hubSave();
     }
     // 写作模板迁移（2026-08-22）：补齐新增 5.0 万能版，并同步旧模板标题；手动删过的 id 记入 deletedIds，不再恢复。
+    // 2026-10-17：出厂内容（模板母本）未就绪时挂起，等就绪后再跑 —— 否则 DEFAULT_WRITING_TEMPLATES 是空的，
+    // 迁移会把「全部缺失」算错；挂起不影响本机已存模板（hubLoad 已用本机内容覆盖默认值）。
     (function migrateWritingTemplates(){
+      if(!HUB_FACTORY.readyWriting){
+        HUB_FACTORY.onWritingReady(function(){ if(typeof migrateWritingTemplates === 'function') migrateWritingTemplates(); });
+        return;
+      }
       const titleUpdates = {
         wt_a: '动态图（线/柱带年份）',
         wt_b: '静态图（饼/表/静态柱）',

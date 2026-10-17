@@ -1804,6 +1804,9 @@ const SYNC_ARRAY_FIELDS = ['sessions','notes','meds','corpus','scores','errorboo
 function stripCloudFields(d){
   const c = Object.assign({}, d);
   delete c.writing;    // 写作模板：所有用户一致，永远用本机默认模板
+  /* 2026-10-17 首屏减重第二步：出厂内容（起步语料）未到位时，本机该字段是空的 ——
+     绝不能把空数组传上云，否则会造成「云端起步语料被清空」。就绪后自然恢复上传。 */
+  if(typeof HUB_FACTORY !== 'undefined' && !HUB_FACTORY.fieldReady('writingPhrases')) delete c.writingPhrases;
   /* design/62：AI Key 严禁落云端。
      ⚠️ 必须先浅拷贝 settings 再删——c.settings 与 DATA.settings 是同一引用，
      直接 delete c.settings.relayToken 会把本机 Key 一起删掉，全站 AI 功能当场失效。 */
@@ -2178,6 +2181,9 @@ function mergeData(local, cloud){
   out.checkins = ci;
   // 其余对象数组按原逻辑，合并后按墓碑过滤
   for(const f of SYNC_ARRAY_FIELDS){
+    /* 2026-10-17：出厂内容未就绪（如本机起步语料还没加载）时跳过该字段的合并，
+       避免把「本机空数组」当成用户真实状态参与合并；下次就绪后的合并会自然补齐。 */
+    if(typeof HUB_FACTORY !== 'undefined' && !HUB_FACTORY.fieldReady(f)) continue;
     if(Array.isArray(cloud[f])){ const r = _mergeArray(local[f], cloud[f]); out[f] = r.arr.filter(x => !deleted.has(delKey(x))); changes += r.changes; }
   }
   // 错句级墓碑落地：合并 dictationLogs 后，真正移除属于墓碑的 mistake 子项（含云端带回的旧 mistake），并丢弃变空的 log，使数据自洽
@@ -3053,7 +3059,9 @@ async function syncForcePull(){
     if(!data.data.settings || !Array.isArray(data.data.words)) throw new Error('云端数据不完整（缺 settings/words），已取消覆盖以保护本机数据');
     const _keepWriting = DATA.writing;
     DATA = data.data;
-    if(!DATA.writing && _keepWriting) DATA.writing = _keepWriting;   // writing 永远用本机官方模板
+    // 2026-10-17：判空要看长度 —— 出厂内容未就绪时本机 writing 是 []（真值），旧写法 ![] 为 false 会把它留下、
+    // 反而丢掉本机官方模板。就绪后再由模板迁移补齐缺失条目。
+    if((!DATA.writing || !DATA.writing.length) && _keepWriting && _keepWriting.length) DATA.writing = _keepWriting;   // writing 永远用本机官方模板
     DATA.settings.lastSyncTs = Date.now();
     hubSave();
     toast('已用云端数据覆盖本机');
