@@ -20,7 +20,6 @@
 <title>模考 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261017a" />
 <link rel="stylesheet" href="css/p/bank.css?v=20261017a" />
-<link rel="stylesheet" href="css/p/bank.css?v=20261017a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -1139,6 +1138,36 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 .full-card .fc-pill{background:rgba(255,255,255,.18);border:1px solid transparent;color:#fff}
 .full-card .btn-primary{background:#fff;color:#1c5f5a;box-shadow:0 4px 14px rgba(0,0,0,.18)}
 .full-card .btn-primary:hover{background:#f0faf9}
+
+/* 10/17 B：没有答案的篇目 —— 未判分横幅 + 进场提示条
+   文案全英文（考试页零中文铁律）。三档配色：默认浅薄荷底、深色档墨绿底、黄底档黄底黑字，
+   与 .fx-score 的反色完全同套（.fx-score 的深色/黄底规则在 L161-164，特异性同为 1-1-1，
+   文档序在通用规则之前，靠的也是「显式给色」而不是顺序 —— 这里照抄同一套写法）。 */
+.fx-noscore{flex:none;background:var(--primary-50);border-bottom:1px solid var(--primary-100);padding:14px 18px}
+.fx-noscore .fx-top{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.fx-noscore .fx-top b{font-size:24px;font-weight:800;line-height:1;color:#111;font-variant-numeric:tabular-nums}
+.fx-noscore .fx-top span{color:var(--muted);font-size:12.5px}
+.fx-noscore .fx-meta{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin-top:7px;font-size:12.5px;color:var(--muted)}
+.fx-noscore .fx-meta b{color:#111;font-weight:800;font-variant-numeric:tabular-nums;margin-right:2px}
+/* 深色档：换成暗一档的墨绿，否则浅薄荷底会被整屏 #161616 吃掉 */
+#examRoot.ct-dark .fx-noscore{background:#22312f;border-bottom-color:#3a4a48}
+#examRoot.ct-dark .fx-noscore .fx-top b,#examRoot.ct-dark .fx-noscore .fx-meta b{color:#f2f2f2}
+#examRoot.ct-dark .fx-noscore .fx-top span,#examRoot.ct-dark .fx-noscore .fx-meta{color:#c8cbd0}
+/* 黄底档：黄底黑字（与 .fx-score 的 ct-yellow 反色完全一致） */
+#examRoot.ct-yellow .fx-noscore{background:#ffd400;border-bottom-color:#e6bc00}
+#examRoot.ct-yellow .fx-noscore .fx-top b,#examRoot.ct-yellow .fx-noscore .fx-meta b{color:#000}
+#examRoot.ct-yellow .fx-noscore .fx-top span,#examRoot.ct-yellow .fx-noscore .fx-meta{color:#161616}
+.ex-noans{flex:none;display:flex;gap:9px;align-items:flex-start;background:var(--warn-soft);
+  border-bottom:1px solid rgba(255,149,0,.35);padding:11px 15px;font-size:13px;line-height:1.65;color:var(--ink)}
+.ex-noans-ic{flex:none;width:17px;height:17px;border-radius:50%;background:var(--warn);color:#fff;
+  font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:2px}
+.ex-noans-t{flex:1;min-width:0;overflow-wrap:anywhere}
+.ex-noans-x{flex:none;appearance:none;border:0;background:none;color:var(--warn-ink);font-size:17px;
+  line-height:1;padding:2px 4px;cursor:pointer;font-family:inherit}
+#examRoot.ct-dark .ex-noans{color:#f2f2f2}
+#examRoot.ct-dark .ex-noans-x{color:#f0e3a8}
+#examRoot.ct-yellow .ex-noans{color:#f0e3a8}
+#examRoot.ct-yellow .ex-noans-x{color:#ffd400}
 </style>
 </head>
 <body>
@@ -1294,6 +1323,6 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
      首次 load 之后空闲再预热一次。承接代码在 js/bank.js 的 loadWritingScripts()。 -->
 <script defer src="js/data.js?v=20261017a"></script>
 <script defer src="js/common.js?v=20261013ae"></script>
-<script defer src="js/bank.js?v=20261012ag"></script>
+<script defer src="js/bank.js?v=20261012ah"></script>
 </body>
 </html>

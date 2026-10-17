@@ -421,9 +421,13 @@
     Promise.all([p1, p2]).then(function(res){
       var unit = res[0], ansFile = res[1] || {};
       annotateGroups(unit, ansFile.answers || {});   /* 10/16：组级答案标注（共享组判分/限数用） */
+      var _hasAns = !!(ansFile.answers && Object.keys(ansFile.answers).length);
       EX = {
         unit: unit, channel: channel,
         answers: ansFile.answers || {}, alts: ansFile.alts || {},
+        /* 10/17 B：答案文件缺失/解析失败 → 本篇不判分（不产假成绩、不写记录）。
+           交卷后照常练习（题目/高亮/笔记全可用），只是没有对错与总分。 */
+        scored: _hasAns,
         user: {}, submitted: false, groups: [], total: 0, correct: 0,
         /* 听力专用：开始一律练习模式 + 音频未播过；倍速复位 */
         listenMode: 'practice', audioStarted: false
@@ -1107,6 +1111,7 @@ function barHtml(){
     Object.keys(EX.user || {}).forEach(function(qn){ applyAnswer(qn, EX.user[qn]); });
     syncExamStates();
     paintSheet();
+    if(EX.scored === false) showNoAnsBanner();
     if(isListen) wireAudio();
     else { renderNotes(); replayMarks(); }
     wireOptionPanel();   /* 10/14 Option 面板交互（Colour/Size/Audio 分组点击） */
@@ -1143,6 +1148,9 @@ function barHtml(){
     Promise.all(picks.map(function(u){ return loadPack('reading', u.id); })).then(function(packs){
       EX = {
         full: true, channel: 'reading', packs: packs, ids: picks.map(function(u){ return u.id; }),
+        /* 10/17 B：随机抽到的篇子可能有没有答案的 → 混合卷按「全有答案才判分」，
+           缺一篇就整场不判分（不做「部分判分」：那会给出一个偏低的假分数）。 */
+        scored: packs.every(function(pk){ return pk.answers && Object.keys(pk.answers).length; }),
         user: {}, submitted: false, flagged: {}, curP: 1, cur: 1, qs: [], byKey: {}, byG: {}
       };
       packs.forEach(function(pk, pi){
@@ -1179,6 +1187,7 @@ function barHtml(){
       renderNotes();
       wireOptionPanel();   /* 10/14 Option 面板交互 —— 完整模考不走 renderExam，必须在这里也调一次 */
       reportExamState(true);
+      if(EX.scored === false) showNoAnsBanner();
       startTimer(60 * 60);
       startFtMini();                                     /* 10/13：顶栏计时小徽章 */
       bankStartTimer();                               /* C-3：完整模考（阅读）开专注计时 */
@@ -1208,6 +1217,7 @@ function barHtml(){
     Promise.all(picks.map(function(u){ return loadPack('listening', u.id); })).then(function(packs){
       EX = {
         full: true, channel: 'listening', packs: packs, ids: picks.map(function(u){ return u.id; }),
+        scored: packs.every(function(pk){ return pk.answers && Object.keys(pk.answers).length; }),
         user: {}, submitted: false, flagged: {}, seen: {}, curP: 1, cur: 1, qs: [], byKey: {}, byG: {},
         /* 听力完整模考全程考试模式（不给练习模式 —— 真机考没有这一说） */
         listenMode: 'exam', audioStarted: false, audioStartedBy: {}
@@ -1241,6 +1251,7 @@ function barHtml(){
           + barHtml();
       }
       renderListenPart(1);
+      if(EX.scored === false) showNoAnsBanner();
       startTimer(30 * 60);
       startFtMini();                                     /* 10/13：顶栏计时小徽章 */
       bankStartTimer();                               /* C-3：完整模考（听力）开专注计时 */
@@ -1492,6 +1503,46 @@ function barHtml(){
       + '</div>'
       + (cards ? '<div class="fx-pgrid">' + cards + '</div>' : '');
     root.insertBefore(el, root.firstChild);   // 10/12 批A：ptabs 已删，直接插最前
+  }
+
+  /* 10/17 B：「本次未判分」横幅 —— 没有对错、没有总分、不进记录。
+     位置与 addScoreCard 相同（插到 examRoot 最前），版面语言沿用成绩卡的同一套。 */
+  function addNoScoreCard(){
+    var root = document.getElementById('examRoot'); if(!root) return;
+    var old = root.querySelector('.fx-score, .fx-noscore');
+    if(old && old.parentNode) old.parentNode.removeChild(old);
+    var used = Math.max(0, Math.round(EX._usedSec || 0));
+    var mm = Math.floor(used / 60), ss = used % 60;
+    var usedTxt = mm + ':' + (ss < 10 ? '0' : '') + ss;
+    var el = document.createElement('div');
+    el.className = 'fx-noscore';
+    el.innerHTML = '<div class="fx-top"><b>Not scored</b>'
+      + '<span>' + (isListen() ? 'Listening' : 'Academic Reading') + ' &middot; no answer key for this test</span></div>'
+      + '<div class="fx-meta">'
+      +   '<span><b>' + (EX.total || 0) + '</b> questions answered as practice</span>'
+      +   '<span>Time <b>' + usedTxt + '</b></span>'
+      + '</div>';
+    root.insertBefore(el, root.firstChild);
+  }
+  /* 10/17 B：进场提示条（可关闭）—— 交卷前就告诉用户这篇不计分，
+     别等交卷后才知道。sessionStorage 记「已关闭」：同一次会话内不再弹。 */
+  function showNoAnsBanner(){
+    var root = document.getElementById('examRoot'); if(!root) return;
+    var key = 'hub_noans_banner_' + (EX.unit ? EX.unit.id : '');
+    try{ if(sessionStorage.getItem(key)) return; }catch(e){}
+    if(root.querySelector('.ex-noans')) return;
+    var el = document.createElement('div');
+    el.className = 'ex-noans';
+    el.innerHTML = '<span class="ex-noans-ic">!</span>'
+      + '<span class="ex-noans-t">This test has no answer key yet. Practice freely &mdash; '
+      + 'it will not be scored and will not appear in your records.</span>'
+      + '<button type="button" class="ex-noans-x" title="Dismiss">&times;</button>';
+    root.insertBefore(el, root.firstChild);
+    var x = el.querySelector('.ex-noans-x');
+    if(x) x.addEventListener('click', function(){
+      if(el.parentNode) el.parentNode.removeChild(el);
+      try{ sessionStorage.setItem(key, '1'); }catch(e){}
+    });
   }
 
   /* ===== 配对题拖拽（Pointer Events：鼠标 + 触屏通用；不用 HTML5 DnD —— 它在触屏完全不工作）===== */
@@ -2397,6 +2448,9 @@ function barHtml(){
     return t ? String(t) : 'other';
   }
   function score(){
+    /* 10/17 B：本篇没有答案 → 不判分。空 detail + right 0 / total 0，
+       调用方（doSubmit）按 EX.scored===false 走「未判分」分支，不会拿这组数当成绩。 */
+    if(EX && EX.scored === false) return { right: 0, total: 0, detail: [], scored: false };
     var user = collect(), right = 0, total = 0, detail = [];
     if(EX.full){
       EX.qs.forEach(function(e){
@@ -2472,23 +2526,32 @@ function barHtml(){
     if(!EX || EX.submitted) return;
     EX.submitted = true; stopTimer(); stopFtMini();      /* 10/13：小徽章随交卷停 */
     var res = score(); EX.correct = res.right; EX.result = res;
-
+    /* 10/17 B：本篇无答案 → 「本次未判分」。
+       跳过逐题结论条（decoratePassage）、成绩卡（addScoreCard）、答题卡对错底色
+       （paintSheet 的 mark 段靠 EX.result.detail，空 detail 自然不会涂色）与全部落库
+       （DATA.mockRecords / hub_bank_last_*）—— 不产假分数、不写假记录。 */
+    var _noAns = !!(EX && EX.scored === false);
     EX.marks = {};
     res.detail.forEach(function(d){ EX.marks[d.qn] = d.ok ? 'hit' : 'miss'; });
+    if(_noAns) addNoScoreCard();
 
     /* 10/17：复盘状态初始化（结论条展开表）。必须在 decoratePassage 之前 —— 它要读 EX._rview。 */
     EX._rview = { open: {}, expanded: false };
     /* 用时 = 开局秒 − 剩余秒（startTimer 已记 _totalSec；EX._leftSec 每 tick 更新） */
     EX._usedSec = (EX._totalSec && EX._leftSec != null) ? (EX._totalSec - EX._leftSec) : 0;
 
-    decoratePassage(EX.curP);
-    addScoreCard(res);
+    if(!_noAns){
+      decoratePassage(EX.curP);
+      addScoreCard(res);
+    }
     if(isListen()) showScript();                       /* 交卷后才给听力原文 + 解锁音频复听 */
 
     /* C-1 回顾自动记录：阅读/听力模考成绩落库 DATA.mockRecords（回顾页直接消费，已登记云同步）
        口径：完整模考=whole 每次追加（随机组卷）；单篇=part 同日同篇覆盖（仿 writeSyncMock）。
        band 用全站统一 estimateBand（内部折算 40 题，<4 题不估分），不用本文件 bandOfXxx（口径未对齐）。 */
-    try {
+    /* 10/17 B：未判分不进任何统计（DATA.mockRecords） */
+    if(_noAns) hubSave();
+    if(!_noAns) try {
       var _ch = EX.channel === 'listening' ? 'listening' : 'reading';
       var _parts = [], _unitId = '';
       if (EX.full) {
@@ -2562,22 +2625,27 @@ function barHtml(){
     } catch (e) { console.warn('[bank] mockRecords 落库失败', e); }
 
     try{
-      if(EX.full){
-        /* 三篇各自写各自的成绩 → 列表页每篇还能显示「上次成绩」 */
-        EX.packs.forEach(function(pk, i){
-          var tot = 0, ok = 0;
-          res.detail.forEach(function(d){
-            var e = EX.byG[d.qn]; if(!e || e.p !== (i + 1)) return;
-            tot++; if(d.ok) ok++;
+      /* 10/17 B：未判分不写「上次成绩」—— 否则列表页会显示 0/0 的假成绩 */
+      if(!_noAns){
+        if(EX.full){
+          /* 三篇各自写各自的成绩 → 列表页每篇还能显示「上次成绩」 */
+          EX.packs.forEach(function(pk, i){
+            var tot = 0, ok = 0;
+            res.detail.forEach(function(d){
+              var e = EX.byG[d.qn]; if(!e || e.p !== (i + 1)) return;
+              tot++; if(d.ok) ok++;
+            });
+            if(tot) localStorage.setItem('hub_bank_last_' + pk.id, JSON.stringify({ correct: ok, total: tot, ts: Date.now() }));
           });
-          if(tot) localStorage.setItem('hub_bank_last_' + pk.id, JSON.stringify({ correct: ok, total: tot, ts: Date.now() }));
-        });
-        localStorage.removeItem(EX.channel === 'listening' ? 'hub_bank_full_l_draft' : 'hub_bank_full_draft');
-      } else {
-        localStorage.setItem('hub_bank_last_' + EX.unit.id, JSON.stringify({ correct: res.right, total: res.total, ts: Date.now() }));
+        } else {
+          localStorage.setItem('hub_bank_last_' + EX.unit.id, JSON.stringify({ correct: res.right, total: res.total, ts: Date.now() }));
+        }
       }
+      /* 草稿清理与判分无关：交卷即本次作答结束，照常清 */
+      if(EX.full) localStorage.removeItem(EX.channel === 'listening' ? 'hub_bank_full_l_draft' : 'hub_bank_full_draft');
     }catch(e){}
 
+    /* 10/17 B：未判分也照常走 paintSheet —— 空 detail → mark 全空 → 只显示「已答」态，不涂红 */
     paintSheet();
     /* 10/17：交卷后 Finish 按钮必须「明确已交卷」——此前只 disabled + opacity .5，
        按钮仍是实心 teal、文案还是 "Finish section"，用户（她 18:3x 原话）会以为没交上。
