@@ -228,6 +228,63 @@ var SP_ICONS = {
   chart: '<path d="M4 20V10M10 20V4M16 20v-7M22 20h-20"/>',
   arrow: '<path d="M5 12h14M12 5l7 7-7 7"/>',
 };
+
+/* ===== 10/17 性能批（第二批 · 传输层）：视图脚本按需加载 =====
+   背景：materials.js(47KB) + mock-report.js(4KB) + mock-history.js(4KB) + mock.js(23KB)
+   合计 78KB（压缩体）过去跟着首屏一起下载，但它们服务的「素材」不是默认 tab（默认 = 题库）、
+   「模考」tab 目前还是 hidden（功能未开）。依据 = tests/_probe_ablate_1017.cjs 线上实测：
+   单独拦掉它们，首屏照常渲染、零 pageerror。版本串在各自视图容器的 data-late-src 属性上。
+   ⚠️ 属性放在 <main> 内、不放 body 末尾 —— 软导航只换 <main>，写在末尾的配置在软导航进来时会丢。
+   ⚠️ 顺序契约：data-late-src 里的顺序就是原 <script> 声明顺序（mock-report → mock-history → mock）。 */
+var _spkLate = {};
+/* 脚本「已在」的判据 = 它暴露的全局产物（不能用 _spkLate 自己，理由见 lateLoad 注释） */
+function lateReady(hostId){
+  if(hostId === 'matView') return typeof window.matGen !== 'undefined';
+  if(hostId === 'mockView') return typeof window.__mockEnter === 'function';
+  return false;
+}
+function lateLoad(hostId){
+  /* ⚠️ 10/17 回归修复：软导航会重新 eval 本文件，模块级 _spkLate 归零 —— 若只看它，软导航绕回
+     本页后再点一次「素材/模考」会把已加载过的脚本**再 append 一次**，而 materials.js / mock.js
+     顶层有 const，重复执行会抛 "Identifier '...' has already been declared"（实测：bank 软导航
+     进本页 → 回题库 → 再回头，页面报错 —— 由 _probe_spkmock_1011 的 S6b 抓到）。
+     所以：① 先看全局产物在不在；② promise 缓存同时挂 window，跨 eval 复用同一份加载过程。 */
+  if(lateReady(hostId)) return Promise.resolve();
+  window.__spkLate = window.__spkLate || {};
+  if(window.__spkLate[hostId]) return window.__spkLate[hostId];
+  var host = document.getElementById(hostId);
+  var raw = host && host.getAttribute('data-late-src');
+  if(!raw) return Promise.resolve();
+  _spkLate[hostId] = raw.split(',').map(function(s){ return s.trim(); }).filter(Boolean).reduce(function(chain, u){
+    return chain.then(function(){
+      return new Promise(function(res, rej){
+        var s = document.createElement('script');
+        s.setAttribute('data-late', '1');   /* 标记：运行时按需追加（探针用它区分「首屏声明」与「延后加载」） */
+        s.src = u;
+        s.onload = res;
+        s.onerror = function(){ rej(new Error('load failed ' + u)); };
+        document.head.appendChild(s);
+      });
+    });
+  }, Promise.resolve()).catch(function(e){
+    delete _spkLate[hostId];                 // 失败不缓存：下次切回来还能重试
+    if(window.__spkLate) delete window.__spkLate[hostId];
+    if(window.console && console.error) console.error('[speaking] 视图脚本加载失败：', e);
+  });
+  window.__spkLate[hostId] = _spkLate[hostId];
+  return _spkLate[hostId];
+}
+/* load 之后空闲预热：用户真去点「素材」时通常已经就位。
+   放在 load 之后（而不是 ready 时）是为了绝不和首屏的 CSS / data.js / common.js / speaking.js 抢带宽。 */
+ready(function(){
+  var go = function(){
+    var idle = window.requestIdleCallback || function(f){ setTimeout(f, 1200); };
+    idle(function(){ lateLoad('matView'); lateLoad('mockView'); });
+  };
+  if(document.readyState === 'complete') go();
+  else window.addEventListener('load', go, { once: true });
+});
+
 ready(() => {
   $('#tabs').querySelectorAll('[data-type]').forEach(b => {
     b.addEventListener('click', () => {
@@ -273,11 +330,25 @@ ready(() => {
       } else if(t === 'MOCK'){
         // 10/2（她拍板）：开始卡/最近记录已删——点「模考」直接进全屏考试
         //（window.__mockEnter 由 mock.js ready 暴露：有未完成快照=自动续考，否则全新开考）
+        // 10/17 性能批：mock.js / mock-report.js / mock-history.js 改按需加载（模考 tab 目前 hidden、功能未开）。
         $('#mockView').hidden = false;
-        if(typeof window.__mockEnter === 'function') window.__mockEnter();
+        lateLoad('mockView').then(function(){
+          try{ if(typeof window.__mockEnter === 'function') window.__mockEnter(); }
+          catch(err){ console.error('[speaking] 模考进入失败', err); }
+        });
       } else if(t === 'MAT'){
-        $('#matView').hidden = false;
-        if(typeof matGen !== 'undefined' && matGen.init) matGen.init();
+        /* 10/17 性能批：materials.js(47KB) 改按需加载 —— 先给一个「加载中」占位，
+           脚本到位后再由 matGen.init() 接管（与本项目 .bank-loading 同口径：
+           加载中就说加载中，绝不拿空态顶替）。 */
+        const mv = $('#matView');
+        mv.hidden = false;
+        if(typeof matGen === 'undefined' || !matGen.init){
+          mv.innerHTML = '<div class="card"><p class="muted" style="margin:0">素材加载中…</p></div>';
+        }
+        lateLoad('matView').then(function(){
+          try{ if(typeof matGen !== 'undefined' && matGen.init) matGen.init(); }
+          catch(err){ console.error('[speaking] 素材初始化失败', err); }
+        });
       } else {
         curType = t;
         populateFreqOptions();

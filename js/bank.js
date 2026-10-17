@@ -287,7 +287,13 @@
        软导航只换 <main>，写在末尾的配置在软导航进来时就丢了。 */
   var _wrtLate = null;
   function loadWritingScripts(){
-    if(_wrtLate) return _wrtLate;
+    /* ⚠️ 10/17 回归修复：软导航会重新 eval 本文件，模块级 _wrtLate 归零 —— 若只看它，软导航绕回
+       题库后再点「写作」（或预热再跑一次）会把 writing.js **再 append 一次**，而 writing.js 顶层有
+       `const ANCHOR_TABLE_EN`，重复执行会抛 "Identifier 'ANCHOR_TABLE_EN' has already been declared"
+       （实测：_probe_spkmock_1011 的 S6b 抓到，软导航往返 bank↔speaking 后报错）。
+       所以：① 先看 writing.js 的产物在不在；② promise 缓存同时挂 window，跨 eval 复用同一份加载过程。 */
+    if(typeof window.renderExamList === 'function') return Promise.resolve();
+    if(window.__wrtLateP) return window.__wrtLateP;
     var host = document.getElementById('pane-writing');
     var raw = host && host.getAttribute('data-late-src');
     if(!raw) return Promise.resolve();
@@ -295,6 +301,7 @@
       return chain.then(function(){
         return new Promise(function(res, rej){
           var s = document.createElement('script');
+          s.setAttribute('data-late', '1');   /* 标记：运行时按需追加 */
           s.src = u;
           s.onload = res;
           s.onerror = function(){ rej(new Error('load failed ' + u)); };
@@ -303,8 +310,10 @@
       });
     }, Promise.resolve()).catch(function(e){
       _wrtLate = null;                                  // 失败不缓存，下次切回来还能重试
+      window.__wrtLateP = null;
       if(window.console && console.error) console.error('[bank] 写作脚本加载失败：', e);
     });
+    window.__wrtLateP = _wrtLate;
     return _wrtLate;
   }
   /* 首屏画完之后空闲预热一次：用户真去点「写作」时通常已经就位；

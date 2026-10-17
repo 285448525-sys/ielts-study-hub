@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="UTF-8" />
@@ -52,13 +52,16 @@
        10/3 22:55 扩展：同一份也供顶栏考官头像选择器用（avOpen/avExamSrc） -->
   <script defer src="js/av-picker.js?v=20261004d"></script>
   <script defer src="js/coach.js?v=20261013"></script>
-  <script defer src="js/speaking.js?v=20261012c"></script>
-  <script defer src="js/materials.js?v=20261006a"></script>
-  <script defer src="js/mock-report.js?v=20261004a"></script>
-  <script defer src="js/mock-history.js?v=20261006b"></script>
-  <script defer src="js/mock.js?v=20261008c"></script>
+  <script defer src="js/speaking.js?v=20261017a"></script>
   <script defer src="js/pattern-drill.js?v=20261002a"></script>
   <script defer src="js/scene-drill.js?v=20260922a"></script>
+  <!-- 🔴 10/17 性能批（第二批 · 传输层）：下面四个脚本改按需加载 —— 实测（tests/_probe_ablate_1017.cjs）
+       单独拦掉它们，首屏照常渲染、零报错，合计 78KB（压缩体）；而它们服务的「素材」不是默认 tab
+       （默认 = 题库）、「模考」tab 目前还是 hidden（功能未开）→ 纯粹在首屏抢带宽。
+       版本串随之搬到各自视图容器的 data-late-src 属性（仍只此一处，勿在别处再写）：
+         #matView  = js/materials.js
+         #mockView = js/mock-report.js → js/mock-history.js → js/mock.js（保持原声明顺序）
+       speaking.js 的 lateLoad() 在切到该 tab 时加载，并在 load 之后空闲预热。 -->
 <style>
   /* === 极简口语模块 · 优化版（沿用全站 Teal Token） === */
 
@@ -1941,7 +1944,7 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
        10/2（她拍板）：「开始一次口语模考」介绍卡 + 「最近一次模考」记录卡整删——
        点题库页「模考」按钮直接进全屏考试（speaking.js MOCK 分支调 window.__mockEnter，
        有未完成快照则自动续考）。报告仍在考完/回顾页展示。 -->
-  <div id="mockView" hidden>
+  <div id="mockView" hidden data-late-src="js/mock-report.js?v=20261004a,js/mock-history.js?v=20261006b,js/mock.js?v=20261008c">
     <!-- ② 考试舞台 -->
     <section class="card" id="mockStage" hidden>
       <div class="mock-total-timer" id="mockTotalTimerWrap" hidden>
@@ -2054,7 +2057,7 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
   </div>
 
   <!-- 万能素材生成器（整合为口语页第 5 个 tab，复用 materials 生成逻辑） -->
-  <div id="matView" hidden></div>
+  <div id="matView" hidden data-late-src="js/materials.js?v=20261006a"></div>
 
 
   <!-- 练习 tab（口语页第 1 个 tab · 默认）：句型闯关引擎（pattern-drill.js），UI 与 pattern-drill.html 同构 -->
