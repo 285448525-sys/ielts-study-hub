@@ -1151,7 +1151,7 @@ function barHtml(){
             var gset = isSharedGroup(g) ? (g._ansSet || '') : '';   /* 10/16：共享组判分集合 */
             (g.questions || []).forEach(function(q){
               if(q.qNumber == null) return;
-              var ent = { g: EX.qs.length + 1, p: pi + 1, loc: String(q.qNumber), q: q, pack: pk, gset: gset };
+              var ent = { g: EX.qs.length + 1, p: pi + 1, loc: String(q.qNumber), q: q, pack: pk, gset: gset, grp: g };
               EX.qs.push(ent); EX.byKey[(pi + 1) + '|' + ent.loc] = ent; EX.byG[ent.g] = ent;
             });
           });
@@ -1218,7 +1218,7 @@ function barHtml(){
             var gset = isSharedGroup(g) ? (g._ansSet || '') : '';   /* 10/16：共享组判分集合 */
             (g.questions || []).forEach(function(q){
               if(q.qNumber == null) return;
-              var ent = { g: EX.qs.length + 1, p: pi + 1, loc: String(q.qNumber), q: q, pack: pk, gset: gset };
+              var ent = { g: EX.qs.length + 1, p: pi + 1, loc: String(q.qNumber), q: q, pack: pk, gset: gset, grp: g };
               EX.qs.push(ent); EX.byKey[(pi + 1) + '|' + ent.loc] = ent; EX.byG[ent.g] = ent;
             });
           });
@@ -2372,6 +2372,30 @@ function barHtml(){
     }
     return { ok: eqAns(ua, key, alts), shown: ua };
   }
+  /* 10/17 #9 层次 3：逐题明细的题型口径。
+     必须与 groupHtml 的渲染分支一致（她 10/15 纠正：「段落匹配题和 heading 题是两种题型，不能混为一谈」）：
+       · fill-in-the-blank        → 填空题
+       · matching + 选项是罗马数字 → Heading 题（List of Headings）
+       · matching                 → 匹配题
+       · map + 阅读                → 段落匹配题（Matching Information，答案=段落字母 A–I）
+       · map + 听力                → 地图题（靠配图作答）
+       · multiple-choice / single-choice → 多选题 / 单选题
+     只落一个短代码进 detail（约 6B/题）；标签文案在回顾页（js/scores.js 的 QTYPE_LABELS），
+     这里不写中文 —— 考试页全英文，且代码短、跨版本稳定。 */
+  function qtypeCode(g, channel){
+    if(!g) return 'other';
+    var t = g.type, qs = g.questions || [];
+    if(t === 'fill-in-the-blank') return 'fill';
+    if(t === 'matching'){
+      var opts = (g.options && g.options.length) ? g.options : ((qs[0] && qs[0].options) || []);
+      var isHead = opts.length && /^[ivx]+$/i.test(String(opts[0].optionNum || ''));
+      return isHead ? 'head' : 'match';
+    }
+    if(t === 'map') return channel === 'reading' ? 'para' : 'map';
+    if(t === 'multiple-choice') return 'multi';
+    if(t === 'single-choice') return 'single';
+    return t ? String(t) : 'other';
+  }
   function score(){
     var user = collect(), right = 0, total = 0, detail = [];
     if(EX.full){
@@ -2384,7 +2408,7 @@ function barHtml(){
           : judgeOne(key, alts, ua);
         if(j.ok) right++;
         detail.push({ qn: String(e.g), user: j.shown == null ? '' : j.shown,
-                      right: e.gset ? e.gset.toUpperCase() : (key == null ? '' : key), ok: !!j.ok, q: e.q });
+                      right: e.gset ? e.gset.toUpperCase() : (key == null ? '' : key), ok: !!j.ok, t: qtypeCode(e.grp, EX.channel), q: e.q });
       });
       return { right: right, total: total, detail: detail };
     }
@@ -2399,7 +2423,7 @@ function barHtml(){
           : judgeOne(key, alts, ua);
         if(j.ok) right++;
         detail.push({ qn: qn, user: j.shown == null ? '' : j.shown,
-                      right: gset ? gset.toUpperCase() : (key == null ? '' : key), ok: !!j.ok, q: q });
+                      right: gset ? gset.toUpperCase() : (key == null ? '' : key), ok: !!j.ok, t: qtypeCode(g, EX.channel), q: q });
       });
     });
     return { right: right, total: total, detail: detail };
@@ -2503,7 +2527,7 @@ function barHtml(){
            ⚠️ 只存标量，不存 d.q（整个 question 对象含题干/解析，体积大且没必要）。 */
         _rec.detail = res.detail.map(function(d){
           return { qn: String(d.qn), user: d.user == null ? '' : String(d.user),
-                   right: d.right == null ? '' : String(d.right), ok: !!d.ok };
+                   right: d.right == null ? '' : String(d.right), ok: !!d.ok, t: d.t ? String(d.t) : '' };
         });
         /* 用时总是写（哪怕 0）：记录页要显示「用时」，字段时有时无会让上层到处判空 */
         _rec.usedSec = Math.max(0, Math.round(EX._usedSec || 0));

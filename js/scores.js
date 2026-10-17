@@ -2,6 +2,19 @@
    已挪至 common.js（10/1：首页冲刺卡也要用这套估分，而 home.html 不加载 scores.js）。
    本文件只保留回顾页的录入与渲染逻辑。 */
 
+/* 10/17 #9 层次 3：题型短代码 → 中文标签 + 进度条配色。
+   🔴 必须声明在 ready() 之前：ready() 里会同步调 renderMock()，而 renderQtypeStats() 是函数声明（会提升）
+   —— 本变量若不提前初始化，就会出现「函数存在但标签表还是 undefined」的怪异报错（10/17 实测踩到）。 */
+var QTYPE_LABELS = {
+  fill:   { name: '填空题',     color: 'var(--vocab)' },
+  single: { name: '单选题',     color: 'var(--mock)' },
+  multi:  { name: '多选题',     color: 'var(--med)' },
+  match:  { name: '匹配题',     color: 'var(--warn)' },
+  head:   { name: 'Heading 题', color: 'var(--primary)' },
+  para:   { name: '段落匹配题', color: 'var(--vocab)' },
+  map:    { name: '地图题',     color: 'var(--mock)' },
+  other:  { name: '其他题型',   color: 'var(--muted)' },
+};
 ready(() => {
   $('#scoreDate').value = todayKey();
   $('#addScore').addEventListener('click', addScore);
@@ -545,6 +558,54 @@ function mkRecentCutoffTs(){
   return d.getTime() - 9 * 86400000;
 }
 
+/* 10/17 #9 层次 3：按题型看正确率。
+   数据来源 = 做题页（js/bank.js）交卷时落盘的 mockRecords[].detail[].t（题型短代码）。
+   🔴 三条口径必须记住：
+   ① 只统计「做题页真实作答」的逐题明细 —— 回顾页手动录入的记录没有 detail，天然不进这块；
+   ② 题型代码来自 bank.js 的 qtypeCode()，与做题页渲染分支同源
+      （她 10/15 纠正过「段落匹配 ≠ Heading 题」，两边口径必须一致，否则统计与卷面自相矛盾）；
+   ③ detail 是 10/16 才开始存的、题型字段是 10/17 才开始存的 →
+      历史记录没有它，这里必须**跳过而不是显示 0%**（0% 会被读成「全错」= 错误陈述）。 */
+
+/* 按题型汇总（与 mockAggregate 同用「全部 / 近十天」口径） */
+function qtypeAggregate(range){
+  const agg = {};
+  const cutoff = range === 'recent' ? mkRecentCutoff() : '';
+  DATA.mockRecords.forEach(r => {
+    if(cutoff && String(r.date || '') < cutoff) return;
+    const det = Array.isArray(r.detail) ? r.detail : null;
+    if(!det) return;
+    det.forEach(d => {
+      const code = (d && d.t) ? String(d.t) : '';
+      if(!code) return;                       /* 老记录没有题型字段 → 跳过，不报错也不计 0 */
+      const a = agg[code] || (agg[code] = { c: 0, t: 0 });
+      a.t++; if(d.ok) a.c++;
+    });
+  });
+  return agg;
+}
+
+function renderQtypeStats(){
+  const box = $('#mkQtStats'); if(!box) return;
+  const range = $('#mkFilter') ? $('#mkFilter').value : 'all';
+  const agg = qtypeAggregate(range);
+  const codes = Object.keys(agg).filter(c => agg[c].t > 0);
+  if(!codes.length){
+    box.innerHTML = renderEmpty('还没有可统计的做题明细。在做题页交卷后，这里会按题型算正确率（手动录入的记录没有逐题信息，不计入）。');
+    return;
+  }
+  codes.sort((a, b) => (agg[a].c / agg[a].t) - (agg[b].c / agg[b].t));   /* 正确率低 → 高，最弱排最上 */
+  const total = codes.reduce((s, c) => s + agg[c].t, 0);
+  const worst = codes[0], wcfg = QTYPE_LABELS[worst] || { name: worst };
+  box.innerHTML = codes.map(c => {
+    const a = agg[c], cfg = QTYPE_LABELS[c] || { name: c, color: 'var(--primary)' };
+    return progressBar(cfg.name + '　' + a.c + '/' + a.t, a.c / a.t * 100, cfg.color);
+  }).join('')
+    + '<p class="mk-qt-note">共 ' + total + ' 道题（只算做题页真实作答；手动录入的记录没有逐题信息）。'
+    + '正确率最低的是 <b>' + escapeHtml(wcfg.name) + '</b>（' + agg[worst].c + '/' + agg[worst].t
+    + '，' + Math.round(agg[worst].c / agg[worst].t * 100) + '%），建议优先练它。</p>';
+}
+
 function mockAggregate(range){
   const byType = {}, byPart = {};
   const recent = range === 'recent';
@@ -655,6 +716,7 @@ function renderMockStats(){
       return rows ? '<div class="mk-grp"><div class="mk-grp-title">' + cfg.icon + ' ' + cfg.name + ' ' + modeTag + '</div>' + rows + '</div>' : '';
     }).filter(Boolean).join('') || renderEmpty('已录科目之外的 Part 还没有数据。');
   }
+  renderQtypeStats();   /* 10/17 #9 层次 3：题型的正确率统计（跟随同一个范围筛选） */
 }
 
 /* 10/17 #9 层次 2：把秒格式化成 M:SS（用时展示）。只在本页用，不占全局命名。 */
