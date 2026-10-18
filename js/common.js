@@ -3844,7 +3844,7 @@ async function softNavigate(t, isPop){
     const newMain = doc.querySelector('main');
     const main = document.querySelector('main');
     if(!newMain || !main) throw new Error('目标页缺少 <main>');
-    swapPageStyles(doc, t.id);                          // 同步页面专属 <style>，避免样式丢失
+    await swapPageStyles(doc, t.id);                    // 同步页面专属样式（内联 <style> + css/p/*.css），避免样式丢失/串页
     main.innerHTML = newMain.innerHTML;                 // 只换内容区，侧边栏/全局状态保留
     if(doc.title) document.title = doc.title;
     /* 🔴 10/6 01:12 「当前页身份」在这里一次性对齐 —— 覆盖**全部入口**（点击 / 后退 / 直接调用 softNavigate）。
@@ -3884,14 +3884,38 @@ async function softNavigate(t, isPop){
   }
 }
 
-/* 软导航时同步目标页的 <head> 内联 <style>（页面专属样式），避免切页后样式丢失 */
-function swapPageStyles(doc, pageId){
+/* 软导航时同步目标页的「页面专属样式」：内联 <style> + 外链样式表（css/p/*.css）。
+   🔴 10/18 修（她 9 张手机截图报「这些页面 UI 都有问题」的根因）：
+   原实现只克隆 <head> 里的 <style>，对 <link rel="stylesheet" href="css/p/xxx.css"> 完全不管。
+   于是从底栏/侧栏点进去的页面一直挂着**上一页**的专属样式表，本页的从未加载 ——
+   设置页主题开关涨成 225×230 的一团、口语模考计时圆弧占半屏、学习热力图每格撑满整行、
+   模考记录日期竖着排……全是「缺本页样式」的同一个病。
+   修法：切页时把旧页的 css/p/*.css 摘掉、换成目标页的；新表 onload 之后才摘旧的 → 不闪、不丢样式。 */
+async function swapPageStyles(doc, pageId){
   document.querySelectorAll('style[data-hub-style]').forEach(el => el.remove());
   doc.querySelectorAll('head style').forEach((style, idx) => {
     const clone = style.cloneNode(true);
     clone.setAttribute('data-hub-style', pageId + '-' + idx);
     document.head.appendChild(clone);
   });
+  const isPageCss = el => (el.getAttribute('href') || '').indexOf('css/p/') >= 0;
+  const nextHrefs = [...doc.querySelectorAll('link[rel="stylesheet"]')]
+    .map(l => l.getAttribute('href') || '').filter(h => h.indexOf('css/p/') >= 0);
+  const oldLinks = [...document.querySelectorAll('link[rel="stylesheet"]')].filter(isPageCss);
+  if(nextHrefs.join('|') === oldLinks.map(l => l.getAttribute('href')).join('|')) return;
+  await Promise.all(nextHrefs.map(href => new Promise(res => {
+    const l = document.createElement('link');
+    l.rel = 'stylesheet';
+    l.href = href;
+    l.setAttribute('data-hub-css', pageId);
+    let done = false;
+    const fin = () => { if(!done){ done = true; res(); } };
+    l.onload = fin;
+    l.onerror = fin;
+    document.head.appendChild(l);
+    setTimeout(fin, 4000);   // 兜底：慢网/加载失败也不让软导航卡住
+  })));
+  oldLinks.forEach(el => el.remove());
 }
 
 /* 更新侧边栏高亮（不重建侧边栏，避免丢失滚动位置/搜索态） */
