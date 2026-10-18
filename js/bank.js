@@ -452,7 +452,78 @@
     return 'Choose the correct letter, <b>A</b>, <b>B</b>, <b>C</b> or <b>D</b>.';
   }
 
+  /* ===== 10/18 P1-2 考前操作指南（一次性 · 可跳过）=====
+     竞品口径：雅思哥每科配一段 2 分钟「怎么操作」视频。我们不做视频（贵且没必要），
+     用一张静态卡替代：4 条图标 + 一句话，只讲「点了会怎样」。
+     出现时机 = **点进模考之后、答题页渲染之前** —— 倒计时还没开始，不会白扣她时间。
+     按科目各记一次（阅读 / 听力分开；写作与口语不走这条入口）。
+     ⚠️ 语言：这张卡挂在列表页 body 上、不在考场内，所以用中文。
+        （「考试页零中文」管的是答题界面本身；这里若写英文，普通考生反而看不懂。）
+     ⚠️ 她讨厌冗余浮层 → 只 4 条、一辈子只出现一次、一个按钮，右上 ✕ 与 Esc 都等于看过。 */
+  var GUIDE_KEY = 'hub_exam_guide_v2_';
+  function guidePassed(ch){ try{ return localStorage.getItem(GUIDE_KEY + ch) === '1'; }catch(e){ return true; } }
+  function markGuidePassed(ch){ try{ localStorage.setItem(GUIDE_KEY + ch, '1'); }catch(e){} }
+  function showExamGuide(ch, cb){
+    var old = document.getElementById('exGuide'); if(old && old.parentNode) old.parentNode.removeChild(old);
+    var wrap = document.createElement('div');
+    wrap.className = 'exg'; wrap.id = 'exGuide';
+    wrap.innerHTML = '<div class="exg-c" role="dialog" aria-modal="true" aria-label="模考操作速览">'
+      + '<button type="button" class="exg-x" data-exgclose aria-label="Close">\u2715</button>'
+      + '<h4>开始前 30 秒：这 4 个地方点一下就够</h4>'
+      + '<div class="exg-g">'
+      /* 图标直接复用顶栏那两个 SVG —— 卡上长什么样，考场上就长什么样 */
+      +   '<div class="exg-i"><span class="exg-ic">' + ICO_FS + '</span><b>全屏</b>'
+      +     '<span>右上角第一个图标。点了地址栏会藏起来，卷面更大。</span></div>'
+      +   '<div class="exg-i"><span class="exg-ic">' + ICO_HIDE + '</span><b>隐藏计时</b>'
+      +     '<span>右上角眼睛图标。只藏数字，倒计时照走，到点照样自动交卷。</span></div>'
+      +   '<div class="exg-i"><span class="exg-ic exg-flag">\u2691</span><b>标记本题</b>'
+      +     '<span>题目右上角的小旗子。拿不准先标上，交卷前会把这些题号列出来。</span></div>'
+      +   '<div class="exg-i"><span class="exg-ic exg-part">Part</span><b>底栏切篇</b>'
+      +     '<span>底栏 Part 1｜2｜3 直接点就跳过去，不用滚回去找。</span></div>'
+      + '</div>'
+      + '<div class="exg-b"><button type="button" class="exg-go" data-exgclose>知道了，开始</button></div>'
+      + '</div>';
+    document.body.appendChild(wrap);
+    var fired = false, mo = null;
+    function teardown(){
+      var el = document.getElementById('exGuide');
+      if(el && el.parentNode) el.parentNode.removeChild(el);
+      document.removeEventListener('keydown', onKey, true);
+      if(mo){ mo.disconnect(); mo = null; }
+    }
+    function done(){
+      if(fired) return; fired = true;
+      teardown();
+      cb();
+    }
+    function onKey(ev){ if(ev.key === 'Escape' || ev.keyCode === 27){ ev.preventDefault(); done(); } }
+    document.addEventListener('keydown', onKey, true);
+    wrap.addEventListener('click', function(ev){
+      var t = ev.target;
+      if(t === wrap || (t.closest && t.closest('[data-exgclose]'))){ ev.preventDefault(); done(); }
+    });
+    /* 🔴 卡片挂在 body 上（不在 <main> 里），而站内跳转是「只换 <main> 内容」的软导航 ——
+       不盯着的话，用户点侧栏去别的页面时这张卡会**留在屏幕上挡住全站**（10/18 mock-immerse
+       残留就是同一类事故）。所以观察 <main>：题库容器 #bankRoot 一旦不在文档里，直接收卡、
+       且**不触发 cb**（人已经不在题库页了，不该再跳进考场）。 */
+    var mainEl = document.querySelector('main');
+    if(mainEl && typeof MutationObserver !== 'undefined'){
+      mo = new MutationObserver(function(){
+        if(document.getElementById('bankRoot')) return;
+        fired = true;                 /* 标记为已完成，避免任何后续回调 */
+        teardown();
+      });
+      mo.observe(mainEl, { childList: true });
+    }
+  }
+  /* 入口闸：没看过就先给卡，看完（或关掉）才真的进考场 */
+  function examGuideGate(ch, next){
+    if(guidePassed(ch)){ next(); return; }
+    showExamGuide(ch, function(){ markGuidePassed(ch); next(); });
+  }
+
   function openExam(unitId, channel){
+    if(!guidePassed(channel)){ examGuideGate(channel, function(){ openExam(unitId, channel); }); return; }
     var root = document.getElementById('bankRoot');
     if(root) root.style.display = 'none';
     var host = document.getElementById('examRoot');
@@ -1268,6 +1339,7 @@ function barHtml(){
   }
 
   function openFullTest(){
+    if(!guidePassed('reading')){ examGuideGate('reading', function(){ openFullTest(); }); return; }
     /* 纯随机组卷（她 10/12「不用提前写好题目在那」）：点 Start 这一刻才抽篇，每次都不一样 */
     var picks = composeFullTest();
     if(!picks) return;
@@ -1338,6 +1410,7 @@ function barHtml(){
      （真机考口径：官方录音只播一遍、不可暂停/拖动；切走再切回来也不能重播 —— 真机考各 Part
      录音只在「到这一部分」时播一次）③ 30 分钟总倒计时。 */
   function openFullListenTest(){
+    if(!guidePassed('listening')){ examGuideGate('listening', function(){ openFullListenTest(); }); return; }
     /* 同阅读：点 Start 这一刻才随机抽 Part 1–4 各一篇 */
     var picks = composeFullListenTest();
     if(!picks) return;

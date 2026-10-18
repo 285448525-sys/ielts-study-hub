@@ -66,7 +66,14 @@
 // 未改任何加载策略/脚本顺序（HANDOFF 铁律：defer 顺序是契约，动它会连带出事）。
 // common.js → 20261013ad（25 页）、index.js → 20261017a（仅 home.html）、
 // bank.js → 20261012ac（仅 bank.html）。上一版 v409。
-const CACHE = 'ielts-hub-v417';  // 10/18 模考三批（按竞品调研优先级实施 · 首批）：
+const CACHE = 'ielts-hub-v418';  // 10/18 模考第二批（P1-2 考前操作指南卡）：
+//   点进模考后、答题页渲染**之前**弹一张一次性卡片（4 条：全屏 / 隐藏计时 / 标记本题 / 底栏切篇），
+//   点「知道了，开始」才真进考场 —— **倒计时尚未开始，不会白扣时间**。
+//   按科目各记一次（hub_exam_guide_v2_reading / _listening），✕ 与 Esc 都算看过，之后永不再弹。
+//   图标复用顶栏那两个真实 SVG（卡上长什么样，考场上就长什么样）；挂 body 上（列表页、不在考场内），
+//   所以文案用中文 —— 普通考生看得懂比全英文更重要（「考试页零中文」管的是答题界面本身）。
+//   覆盖三个入口：openExam（单篇阅读/听力）· openFullTest · openFullListenTest。
+//   bank.js → 20261012aj（仅 bank.html）、bank.html 内联加 .exg 一组样式。上一版 v417。  // 10/18 模考三批（按竞品调研优先级实施 · 首批）：
 //   ① P0-1 答题页工具栏：顶栏 ☰ 左侧新增 Full screen（requestFullscreen，Safari 走 webkit 前缀，失败静默）与 Hide time（计时显示 --:-- 并去掉 10/5 分钟警示色；**只隐藏显示，倒计时与到点强制交卷逻辑一字不动**，本地记忆 hub_exam_hide_timer_v1 跨卷保持）。
 //   ② 🔴 顺带修掉一个既有 P0 级 bug：10/14「两行并一行」把听力答题页的 .ex-top 整行 display:none，
 //      住在里面的整场倒计时与 ☰ Option 一起消失；10/16 音频条瘦身又撤掉 #eaFullTimer ——

@@ -1171,10 +1171,11 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 
 /* ===== 10/18 顶栏工具栏：全屏 / 隐藏计时（对齐真机考与 IELTS Mocks 顶栏 Full Screen / Hide）=====
    ⚠️ 必须放在本文件最后一个 style 结束标签之前 —— 同文件后写的规则会覆盖前面的（10/15 踩过两次）。
-   🔴 10/18 血案（本批亲踩）：这段注释最初写的是「放在本文件最后一个 <斜杠>style 之前」的字面标签，
-     而 HTML 解析器**不看 CSS 注释**，遇到 style 结束标签就当场闭合 <style> 元素 ——
+   🔴 10/18 血案（本批亲踩）：这段注释最初手打进了**真的 style 结束标签**（带尖括号的那种），
+     而 HTML 解析器**不看 CSS 注释**，遇到它就当场闭合 style 元素 ——
      它后面所有 CSS（正是下面这几十条规则）全部掉出样式表、静默失效，却没有任何报错。
-     探针查法：styleEl.sheet.cssRules 里找不到你以为写过的选择器 → 先怀疑注释里有结束标签字面量。
+     探针查法：styleEl.sheet.cssRules 里找不到你以为写过的选择器 → 先怀疑注释里有标签字面量
+     （顺带：注释里连开标签也别写，虽然无害，但会让「数标签」这种自查变吵）。
    设计口径：常态半透明（不抢 .ex-name 的注意力），hover 才给浅底；
    .on = 隐藏计时已开，用警示红+浅红底明确「现在是隐藏状态」，避免用户以为计时坏了。 */
 #examRoot .ex-toolbtn{display:inline-flex;align-items:center;justify-content:center;padding:4px 7px;opacity:.72;color:inherit}
@@ -1249,6 +1250,36 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
   border:1px solid var(--line);background:#fff;color:#111}
 .ex-modal-c .ex-modal-chip:hover{border-color:var(--primary);color:var(--primary-900)}
 .ex-modal-c .ex-modal-more{font-size:12px;color:var(--muted)}
+
+/* ===== 10/18 考前操作指南卡（P1-2 · 一次性）=====
+   对标雅思哥「每科 2 分钟操作视频」，我们换成一张静态卡（不做视频）。
+   只 4 条、只出现一次、右上 ✕ 与 Esc 都等于看过；图标复用顶栏真实 SVG，卡上长什么样考场上就长什么样。
+   挂在 body 上（列表页，不在考场内），所以文案用中文 —— 普通考生看得懂比全英文更重要。 */
+.exg{position:fixed;inset:0;z-index:9600;background:rgba(17,24,39,.45);display:flex;
+  align-items:center;justify-content:center;padding:20px;animation:exgFade .16s ease}
+@keyframes exgFade{from{opacity:0}to{opacity:1}}
+.exg-c{position:relative;background:#fff;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.28);
+  max-width:560px;width:100%;padding:22px 24px 18px}
+.exg-x{position:absolute;top:9px;right:9px;width:34px;height:34px;border:none;background:none;
+  font:inherit;font-size:15px;line-height:1;color:#6b7280;cursor:pointer;border-radius:8px}
+.exg-x:hover{background:#f3f4f6;color:#111}
+.exg-c h4{margin:0 14px 14px 0;font-size:16px;font-weight:800;color:#111;line-height:1.45}
+.exg-g{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.exg-i{display:grid;grid-template-columns:30px 1fr;gap:1px 9px;align-items:start;
+  border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px}
+.exg-ic{grid-row:span 2;display:flex;align-items:center;justify-content:center;width:30px;height:26px;color:#237a74}
+.exg-ic svg{width:17px;height:17px}
+.exg-flag{font-size:16px;line-height:1;color:#b3261e}
+.exg-part{font-size:10px;font-weight:800;border:1px solid #bfe0dc;border-radius:5px;
+  width:auto;height:auto;padding:1px 5px;letter-spacing:.02em}
+.exg-i b{font-size:13px;font-weight:800;color:#111;line-height:1.4}
+.exg-i span:last-child{font-size:12px;color:#6b7280;line-height:1.55}
+.exg-b{display:flex;justify-content:flex-end;margin-top:15px}
+.exg-go{appearance:none;font:inherit;font-size:14px;font-weight:800;color:#fff;cursor:pointer;
+  background:var(--primary);border:none;border-radius:9px;padding:10px 18px;min-height:40px}
+.exg-go:hover{filter:brightness(.94)}
+.exg-go:focus-visible{outline:2px solid var(--primary-900);outline-offset:2px}
+@media(max-width:640px){.exg-g{grid-template-columns:1fr}.exg-c{padding:20px 18px 16px}}
 
 </style>
 </head>
@@ -1408,6 +1439,6 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
      首次 load 之后空闲再预热一次。承接代码在 js/bank.js 的 loadWritingScripts()。 -->
 <script defer src="js/data.js?v=20261017a"></script>
 <script defer src="js/common.js?v=20261013ae"></script>
-<script defer src="js/bank.js?v=20261012ai"></script>
+<script defer src="js/bank.js?v=20261012aj"></script>
 </body>
 </html>
