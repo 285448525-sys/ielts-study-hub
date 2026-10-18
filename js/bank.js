@@ -765,6 +765,30 @@
       hb.addEventListener('click', function(ev){ ev.preventDefault(); setHideTimer(!_hideT); });
     }
   }
+  /* ===== 听力答题页的工具区（10/18 补 10/14 漏洞）=====
+     10/14「两行并一行」把 .ex-top 整行 display:none，顶栏里的整场倒计时 / ☰ Option / Saved
+     就一起没了；10/16 音频条瘦身又把 #eaFullTimer 撤掉 → 听力考场既看不到剩余时间，也打不开
+     字号与配色面板。这里把它们搬进音频条那一行：视觉上仍是一行，功能全部恢复。
+     ⚠️ 只在「单篇听力」调用。完整听力模考的音频条会随换 Part 重建（renderListenPart 重写
+     #exAudioHost.innerHTML），搬进去的节点会被一起冲掉 —— 那条路径保持顶栏可见即可。 */
+  function mountListenTools(host){
+    host = host || document.getElementById('examRoot');
+    if(!host) return;
+    var bar = host.querySelector('#exAudioBar');
+    var top = host.querySelector('.ex-top');
+    if(bar){
+      /* 顺序即视觉顺序：[▶][Part 胶囊][进度][音频时间][🔊] …… [整场倒计时][Saved][工具] */
+      var clock = document.createElement('span');
+      clock.className = 'ea-full';
+      clock.id = 'eaFullTimer';
+      clock.textContent = (EX && EX._leftSec != null) ? fmtHMS(EX._leftSec) : '00:30:00';
+      bar.appendChild(clock);
+      var icons = host.querySelector('.ex-icons');
+      if(icons) bar.appendChild(icons);      /* Saved + Full screen + Hide time + ☰ */
+      bar.classList.add('has-tools');
+    }
+    if(top) top.style.display = 'none';      /* .ex-option 面板是 .ex-top 的兄弟，藏它不影响面板 */
+  }
   function shellHtml(nameText, subText, timerText){
     return '<div class="ex-top">'
       +    '<div class="ex-name">' + esc(nameText)
@@ -1150,10 +1174,14 @@ function barHtml(){
         + groups.map(function(g, i){ return groupHtml(g, i, null, 'listening'); }).join('')
         + '</div></div>'
         + barHtml();
-      /* 10/14 她拍板：两行并一行省空间。shellHtml 仍渲染（保住 Option 面板与 ☰ 的现成逻辑），
-         但标题行藏掉；标题/整场计时已在 audioBarHtml 里并入那一行。
+      /* 10/14 她拍板：两行并一行省空间 → 标题行藏掉。
+         🔴 10/18 修这里留下的漏洞：顶栏整行 display:none 之后，**住在顶栏里的东西一起消失**——
+            整场倒计时（#exTimer）、☰ Option（字号/配色从这里进）、以及本批新加的全屏/隐藏计时，
+            在听力答题页全部不可达；10/16 又把 #eaFullTimer 从音频条撤走，
+            结果是听力考场连倒计时都看不见（探针实测：页面上没有任何可见的 mm:ss）。
+         修法 = 仍是「一行」，但把「倒计时 + 工具组」搬进音频条那一行（见 mountListenTools）。
          ⚠️ 用 style.display 而非 class：examRoot 的 class 会被后续 render 重建清掉（实测踩过）。 */
-      var _tp = host.querySelector('.ex-top'); if(_tp) _tp.style.display = 'none';
+      mountListenTools(host);
     } else {
       var artHtml = '';
       parts.forEach(function(p){ artHtml += clean(p.article || ''); });

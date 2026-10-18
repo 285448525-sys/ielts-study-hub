@@ -1185,6 +1185,25 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 /* 隐藏计时后 --:-- 用等宽数字，避免宽度抖动（与 .ex-timer 同口径） */
 #examRoot .ex-timer{font-variant-numeric:tabular-nums}
 
+
+/* ===== 10/18 听力答题页：整场倒计时 + 工具组搬进音频条那一行 =====
+   起因（真 bug，非新增）：10/14「两行并一行」把 .ex-top 整行 display:none，住在那行里的
+   倒计时与 ☰ Option 一起消失；10/16 音频条又瘦身撤掉 #eaFullTimer → 听力考场既看不到剩余
+   时间，也打不开字号/配色面板。现在把两者挂到 #exAudioBar 末尾（JS: mountListenTools）。
+   口径：只剩一行（守住她 10/14 的决定），但倒计时看得见、Option 打得开。
+   颜色跟随三主题；10/5 分钟双档警示色与阅读顶栏同语义。 */
+#examRoot .ex-audio .ea-full{flex:none;font-size:13px;font-weight:700;color:#111;
+  font-variant-numeric:tabular-nums;letter-spacing:.02em;padding-left:12px;margin-left:14px;
+  border-left:1px solid rgba(0,0,0,.14)}
+#examRoot.ct-dark .ex-audio .ea-full,#examRoot.ct-yellow .ex-audio .ea-full{border-left-color:rgba(255,255,255,.22)}
+#examRoot .ex-audio .ea-full.warn{color:#a56400}
+#examRoot .ex-audio .ea-full.soon{color:#b3261e}
+#examRoot .ex-audio .ex-icons{margin-left:2px}
+#examRoot.ct-dark .ex-audio .ea-full,#examRoot.ct-yellow .ex-audio .ea-full{color:#f2f2f2}
+#examRoot.ct-dark .ex-audio .ea-full.warn,#examRoot.ct-yellow .ex-audio .ea-full.warn{color:#e8b25a}
+#examRoot.ct-dark .ex-audio .ea-full.soon,#examRoot.ct-yellow .ex-audio .ea-full.soon{color:#ff8a80}
+#examRoot .ex-audio.has-tools{padding-right:8px}
+
 </style>
 </head>
 <body>
