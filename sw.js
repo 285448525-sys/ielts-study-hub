@@ -66,7 +66,7 @@
 // 未改任何加载策略/脚本顺序（HANDOFF 铁律：defer 顺序是契约，动它会连带出事）。
 // common.js → 20261013ad（25 页）、index.js → 20261017a（仅 home.html）、
 // bank.js → 20261012ac（仅 bank.html）。上一版 v409。
-const CACHE = 'ielts-hub-v418';  // 10/18 模考第二批（P1-2 考前操作指南卡）：
+const CACHE = 'ielts-hub-v419';  // 10/18 16:5x 设置页指示条修复（她截图报「意见反馈像被选中」）：#setNavHit 是窄屏横向标签的滑动指示条，桌面竖排目录下 bottom:0 永远钉在最后一项「意见反馈」下 → @media(min-width:861px) 隐藏，桌面靠 .on 底色标记。settings.html 在 PRECORE 里 → 必须 bump 让缓存壳更新。上一版 v418。  // 10/18 模考第二批（P1-2 考前操作指南卡）：
 //   点进模考后、答题页渲染**之前**弹一张一次性卡片（4 条：全屏 / 隐藏计时 / 标记本题 / 底栏切篇），
 //   点「知道了，开始」才真进考场 —— **倒计时尚未开始，不会白扣时间**。
 //   按科目各记一次（hub_exam_guide_v2_reading / _listening），✕ 与 Esc 都算看过，之后永不再弹。

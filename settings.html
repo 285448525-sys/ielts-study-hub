@@ -238,6 +238,11 @@ setTimeout(__rvRescue,2500);
 #setNavHit{position:absolute;left:0;bottom:0;height:3px;background:var(--primary-500);border-radius:0 0 3px 3px;
   transition:transform .24s cubic-bezier(.32,.72,.35,1),width .24s cubic-bezier(.32,.72,.35,1);
   transform-origin:left center;pointer-events:none;z-index:1}
+/* 🔴 10/18 修（她截图报「意见反馈被选中了？」）：#setNavHit 是给**窄屏横向标签**设计的
+   （bottom:0 + translateX 沿 X 轴滑），桌面竖排目录下 bottom:0 = 永远钉在导航最底部、
+   正好落在最后一项「意见反馈」下面，与被选中的项无关 → 看起来像「意见反馈被选中」。
+   桌面已有 .on 的浅底+描边标记，指示条纯属误导 → 桌面直接不渲染。 */
+@media(min-width:861px){#setNavHit{display:none}}
 /* ⚠️ 不要在这里写 `.set-nav{position:relative}` —— 窄屏规则用 `position:sticky`（滑动时
    始终知道自己在哪一组，16:45 那批加的），改回 relative 会把它降级掉（探针 _verify_mobile4
    实锤抓到「sticky → relative」回归）。**sticky 本身就是 relative 的超集**，
