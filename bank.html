@@ -1204,6 +1204,18 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 #examRoot.ct-dark .ex-audio .ea-full.soon,#examRoot.ct-yellow .ex-audio .ea-full.soon{color:#ff8a80}
 #examRoot .ex-audio.has-tools{padding-right:8px}
 
+
+/* ===== 10/18 完整模考入口卡「上次成绩」行（P0-2）=====
+   对标雅思哥「per-Test 已完成」与 IELTS Mocks 的成绩回看：进列表先知道
+   「我上次考了多少、什么时候考的」，不再是一张永远空白的 Start 卡。
+   数据源 = DATA.mockRecords 里 granularity:'whole' 的最近一条（交卷时已落库，10/17 #9）。
+   没做过时给一句灰字（不给假数字）。整行由 JS 填，HTML 里的空 div 只用来保住首帧高度。 */
+.full-card .fc-last{margin-top:9px;display:flex;align-items:center;gap:8px;font-size:12.5px;line-height:18px;height:18px;color:rgba(255,255,255,.9)}
+.full-card .fc-last b{display:inline;font-size:12.5px;font-weight:800;font-variant-numeric:tabular-nums}
+.full-card .fc-last .fl-bar{flex:none;width:76px;height:4px;border-radius:999px;background:rgba(255,255,255,.28);overflow:hidden}
+.full-card .fc-last .fl-bar i{display:block;height:100%;background:#fff;border-radius:999px}
+.full-card .fc-last.is-none{color:rgba(255,255,255,.62);font-size:12px}
+
 </style>
 </head>
 <body>
@@ -1236,6 +1248,8 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
             <span>3 passages · 40 questions · 60 minutes</span>
             <div class="fc-pills"><span class="fc-pill">随机组卷 · Part 1/2/3 各抽 1 篇</span>
             <span class="fc-pill">每次 Start 重新抽</span></div>
+            <!-- 10/18 列表页留痕：上次完整模考成绩（JS 填 paintFullLast）。静态占位 = 首帧即有高度，不抖 -->
+            <div class="fc-last" data-full-last="reading"></div>
           </div>
           <button class="btn-primary" type="button" data-fullstart disabled>Start Test</button>
         </div>
@@ -1268,6 +1282,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
             <span>4 parts · 40 questions · 30 minutes · audio plays once</span>
             <div class="fc-pills"><span class="fc-pill">随机组卷 · Part 1–4 各抽 1 篇</span>
             <span class="fc-pill">每次 Start 重新抽</span></div>
+            <div class="fc-last" data-full-last="listening"></div>
           </div>
           <button class="btn-primary" type="button" data-lfullstart disabled>Start Test</button>
         </div>

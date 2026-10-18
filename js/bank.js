@@ -197,6 +197,49 @@
     renderListenFullEntry();
   }
 
+  /* ===== 完整模考卡「上次成绩」（10/18 · P0-2）=====
+     竞品观察：雅思哥列表页每套卷直接给「已完成」状态，IELTS Mocks 的成绩页给上次总分——
+     共同点是**进列表第一眼就知道自己做到哪了**。本站此前整张卡只有 Start，看不出做没做过。
+     数据源 = DATA.mockRecords 里 src:'bank' + granularity:'whole' 的最近一条
+     （交卷时已落库，10/17 #9 落的；unshift 入队 → [0] 即最新）。
+     ⚠️ 不写假数字：没有记录就只给一句灰字；未判分的场次本来就不落库（10/17 B 口径），不会漏进来。 */
+  function relDay(ds){
+    if(!ds) return '';
+    var d = new Date(ds + 'T00:00:00');
+    if(isNaN(d.getTime())) return String(ds);
+    var t = new Date(); t.setHours(0, 0, 0, 0);
+    var dd = Math.round((t.getTime() - d.getTime()) / 86400000);
+    if(dd <= 0) return '今天';
+    if(dd === 1) return '昨天';
+    if(dd <= 30) return dd + ' 天前';
+    return (d.getMonth() + 1) + '/' + d.getDate();
+  }
+  function paintFullLast(channel){
+    var box = document.querySelector('[data-full-last="' + channel + '"]');
+    if(!box) return;
+    var rec = null;
+    try{
+      if(!Array.isArray(DATA.mockRecords)) DATA.mockRecords = [];
+      var list = DATA.mockRecords.filter(function(r){
+        return r && r.src === 'bank' && r.granularity === 'whole' && r.type === channel;
+      });
+      rec = list.length ? list[0] : null;
+    }catch(e){}
+    if(!rec){
+      box.className = 'fc-last is-none';
+      box.innerHTML = channel === 'listening' ? '还没做过完整听力模考' : '还没做过完整阅读模考';
+      return;
+    }
+    var ok = 0, tot = 0;
+    (rec.parts || []).forEach(function(p){ ok += (+p.correct || 0); tot += (+p.total || 0); });
+    if(!tot){ box.className = 'fc-last is-none'; box.innerHTML = '上次未判分'; return; }
+    var pct = Math.max(0, Math.min(100, Math.round(ok / tot * 100)));
+    box.className = 'fc-last';
+    box.innerHTML = '上次 <b>' + ok + '/' + tot + '</b>'
+      + '<span class="fl-bar"><i style="width:' + pct + '%"></i></span>'
+      + '<span>' + esc(relDay(rec.date)) + '</span>';
+  }
+
   /* ===== 列表页「完整模考」入口卡（纯随机组卷，她 10/12 23:2x「不用提前写好题目在那」）=====
      口径：卡上**不再预组卷、不列具体篇目**；点 Start 的那一刻才从 Part 1/2/3 各随机抽 1 篇
      （openFullTest 内做，每次都不一样；退出回列表再进 = 再抽，与真机考「每套卷子都不同」体验一致）。
@@ -220,6 +263,7 @@
        ③ 数据不足（某个 Part 没有篇目）→ 整块移除（此时移除发生在遮罩期/很早期，且是必须的行为） */
   function renderFullEntry(){
     var host = document.getElementById('fullEntry'); if(!host) return;
+    paintFullLast('reading');   /* 10/18：上次成绩不依赖目录，先画（目录没到也能看） */
     var btn = host.querySelector('[data-fullstart]');
     if(!_manifest){ if(btn) btn.disabled = true; return; }
     /* 数据可用性检查：三个 Part 各至少 1 篇才出卡（Start 时 composeFullTest 还有兜底） */
@@ -246,6 +290,7 @@
   }
   function renderListenFullEntry(){
     var host = document.getElementById('listenFullEntry'); if(!host) return;
+    paintFullLast('listening');   /* 10/18：同上，先画上次成绩 */
     var btn = host.querySelector('[data-lfullstart]');
     if(!_manifest){ if(btn) btn.disabled = true; return; }
     var all = unitsOf('listening');
