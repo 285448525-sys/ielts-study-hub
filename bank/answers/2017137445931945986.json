@@ -1,0 +1,38 @@
+{
+  "unitId": "2017137445931945986",
+  "title": "Urban Regeneration",
+  "channel": "reading",
+  "qCount": 13,
+  "got": 13,
+  "dropped": [],
+  "answers": {
+    "14": "iv",
+    "15": "viii",
+    "16": "i",
+    "17": "vii",
+    "18": "iii",
+    "19": "v",
+    "20": "B,C",
+    "21": "B,C",
+    "22": "A,D",
+    "23": "A,D",
+    "24": "meadow",
+    "25": "museum",
+    "26": "edges"
+  },
+  "raw": {
+    "14": "iv",
+    "15": "viii",
+    "16": "i",
+    "17": "vii",
+    "18": "iii",
+    "19": "v",
+    "20": "B,C",
+    "21": "B,C",
+    "22": "A,D",
+    "23": "A,D",
+    "24": "meadow",
+    "25": "museum",
+    "26": "edges"
+  }
+}
