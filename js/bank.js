@@ -2713,6 +2713,15 @@ function barHtml(){
   function showSubmitConfirm(unanswered){
     var host = document.getElementById('examRoot'); if(!host) return;
     closeSubmitConfirm();
+    /* 10/18 P2-2：把本场「标记」的题号也列进交卷确认里。
+       此前 flag 只影响颜色，标完没有任何后续动作（用户标了「回头再看」却没地方集中看）。
+       这里做成可点题号 —— 点一个就直接跳回那道题，弹窗顺手关掉。 */
+    var flags = [];
+    if(EX && EX.flagged){
+      Object.keys(EX.flagged).forEach(function(k){ if(EX.flagged[k]) flags.push(Number(k)); });
+      flags.sort(function(a, b){ return a - b; });
+    }
+    var MARK_MAX = 12;
     var ov = document.createElement('div');
     ov.className = 'ex-modal'; ov.id = 'exSubmitModal';
     ov.innerHTML = '<div class="ex-modal-c" role="dialog" aria-modal="true" aria-label="Finish section">'
@@ -2720,7 +2729,18 @@ function barHtml(){
       + (unanswered
           ? '<p>You still have <b>' + unanswered + '</b> unanswered question' + (unanswered > 1 ? 's' : '') + '. '
             + 'You can go back and check them, or finish now.</p>'
+            /* 10/18 P1-4：未答数从「只能看的文字」变成本按钮 —— 点了回第一道没答的题。
+               未答在机考里是纯丢分，把「糊里糊涂交卷」变成「补完再交」。 */
+            + '<button type="button" class="ex-modal-jump" data-sjump="first">Go to the first unanswered \u203A</button>'
           : '<p>You have answered all questions. Finish now?</p>')
+      + (flags.length
+          ? '<div class="ex-modal-marks"><span class="ex-modal-mk-h">Marked for review</span>'
+            + flags.slice(0, MARK_MAX).map(function(n){
+                return '<button type="button" class="ex-modal-chip" data-sjumpmark="' + n + '">' + n + '</button>';
+              }).join('')
+            + (flags.length > MARK_MAX ? '<span class="ex-modal-more">+' + (flags.length - MARK_MAX) + ' more</span>' : '')
+            + '</div>'
+          : '')
       + '<div class="ex-modal-b">'
       + '<button class="btn-ghost" type="button" data-scancel>Keep working</button>'
       + '<button class="btn-primary" type="button" data-sok>Finish</button>'
@@ -2983,6 +3003,24 @@ function barHtml(){
       if(t.closest && t.closest('[data-submit]')){ submit(); return; }
       if(t.closest && t.closest('[data-sok]')){ closeSubmitConfirm(); doSubmit(); return; }
       if(t.closest && t.closest('[data-scancel]')){ closeSubmitConfirm(); return; }
+      /* 10/18 P1-4 / P2-2：交卷确认里的两个跳转 —— 「去看第一道未答」与点题号回看标记题。
+         都复用 goTo（Part 栏跳题同一套），关弹窗后直接定位到那道题。 */
+      if((el = t.closest && t.closest('[data-sjump="first"]'))){
+        var user0 = collect(), firstUn = 0;
+        var order = allNums();
+        for(var ui = 0; ui < order.length; ui++){
+          if(user0[order[ui]] == null || !String(user0[order[ui]]).length){ firstUn = order[ui]; break; }
+        }
+        closeSubmitConfirm();
+        if(firstUn) goTo(firstUn);
+        return;
+      }
+      if((el = t.closest && t.closest('[data-sjumpmark]'))){
+        var mk = Number(el.getAttribute('data-sjumpmark'));
+        closeSubmitConfirm();
+        if(mk) goTo(mk);
+        return;
+      }
       /* 听力音频条（10/11 第 9 项）：播放/暂停、倍速、练习⇄考试模式、点进度条跳转 */
       if(t.closest && t.closest('#exAudioBar [data-aplay]')){ audioToggle(); return; }
       /* Pause / Resume（10/13 她报「Pause 是个摆设」→ 实现：暂停音频+倒计时，按钮互文切换） */
