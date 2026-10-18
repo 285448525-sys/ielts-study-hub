@@ -1168,6 +1168,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 #examRoot.ct-dark .ex-noans-x{color:#f0e3a8}
 #examRoot.ct-yellow .ex-noans{color:#f0e3a8}
 #examRoot.ct-yellow .ex-noans-x{color:#ffd400}
+
 /* ===== 10/18 顶栏工具栏：全屏 / 隐藏计时（对齐真机考与 IELTS Mocks 顶栏 Full Screen / Hide）=====
    ⚠️ 必须放在本文件最后一个 style 结束标签之前 —— 同文件后写的规则会覆盖前面的（10/15 踩过两次）。
    🔴 10/18 血案（本批亲踩）：这段注释最初写的是「放在本文件最后一个 <斜杠>style 之前」的字面标签，
@@ -1184,7 +1185,6 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 #examRoot.ct-dark .ex-toolbtn.on,#examRoot.ct-yellow .ex-toolbtn.on{color:#ff8a80;background:rgba(255,138,128,.12)}
 /* 隐藏计时后 --:-- 用等宽数字，避免宽度抖动（与 .ex-timer 同口径） */
 #examRoot .ex-timer{font-variant-numeric:tabular-nums}
-
 
 /* ===== 10/18 听力答题页：整场倒计时 + 工具组搬进音频条那一行 =====
    起因（真 bug，非新增）：10/14「两行并一行」把 .ex-top 整行 display:none，住在那行里的
@@ -1204,7 +1204,6 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 #examRoot.ct-dark .ex-audio .ea-full.soon,#examRoot.ct-yellow .ex-audio .ea-full.soon{color:#ff8a80}
 #examRoot .ex-audio.has-tools{padding-right:8px}
 
-
 /* ===== 10/18 完整模考入口卡「上次成绩」行（P0-2）=====
    对标雅思哥「per-Test 已完成」与 IELTS Mocks 的成绩回看：进列表先知道
    「我上次考了多少、什么时候考的」，不再是一张永远空白的 Start 卡。
@@ -1215,7 +1214,6 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 .full-card .fc-last .fl-bar{flex:none;width:76px;height:4px;border-radius:999px;background:rgba(255,255,255,.28);overflow:hidden}
 .full-card .fc-last .fl-bar i{display:block;height:100%;background:#fff;border-radius:999px}
 .full-card .fc-last.is-none{color:rgba(255,255,255,.62);font-size:12px}
-
 
 /* ===== 10/18 成绩卡「下一步」三卡（P0-3）=====
    对标 IELTS Mocks 成绩页的 WHAT TO DO NEXT：交卷后把人直接送到下一步，
@@ -1234,7 +1232,6 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 .fx-score .fx-ncard.is-done{cursor:default;background:var(--primary-50);border-style:dashed}
 .fx-score .fx-ncard.is-done:hover{border-color:var(--primary-100);box-shadow:none}
 @media(max-width:860px){.fx-score .fx-next-g{grid-template-columns:1fr}}
-
 
 /* ===== 10/18 交卷确认弹窗：未答跳转（P1-4）+ 标记题号清单（P2-2）=====
    两件事都在同一个弹窗里做，因为它们是同一个决策点的两个盲区：
@@ -1411,6 +1408,6 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
      首次 load 之后空闲再预热一次。承接代码在 js/bank.js 的 loadWritingScripts()。 -->
 <script defer src="js/data.js?v=20261017a"></script>
 <script defer src="js/common.js?v=20261013ae"></script>
-<script defer src="js/bank.js?v=20261012ah"></script>
+<script defer src="js/bank.js?v=20261012ai"></script>
 </body>
 </html>
