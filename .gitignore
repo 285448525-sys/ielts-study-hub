@@ -6,6 +6,13 @@ node_modules
 
 /tests/
 
+# 测试临时产物（10/18 起）：
+# `/tests/` 已经把整个目录排除，下面三条是**语义声明 + 兜底** —— 万一将来 tests/ 要入库，
+# 这些文件仍然必须在外。纪律正文见 AGENTS.md §5.1。
+/tests/*.log
+/tests/_shot_*
+/tests/_tmp_*
+
 # 本机工作件（不入库）：
 # _diag_*.js = 交付给站长本人的确诊脚本（她浏览器里 F12 粘贴跑，仓库不需要）
 # _preview_*.html = UI 改版预览件（design/ 的可视化草稿）
