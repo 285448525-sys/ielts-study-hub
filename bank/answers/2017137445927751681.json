@@ -1,0 +1,38 @@
+{
+  "unitId": "2017137445927751681",
+  "title": "Insect Decision-Making",
+  "channel": "reading",
+  "qCount": 13,
+  "got": 13,
+  "dropped": [],
+  "answers": {
+    "14": "vii",
+    "15": "iii",
+    "16": "vi",
+    "17": "i",
+    "18": "iv",
+    "19": "ii",
+    "20": "C",
+    "21": "B",
+    "22": "A",
+    "23": "B",
+    "24": "threatened",
+    "25": "scouts",
+    "26": "leaders"
+  },
+  "raw": {
+    "14": "vii",
+    "15": "iii",
+    "16": "vi",
+    "17": "i",
+    "18": "iv",
+    "19": "ii",
+    "20": "C",
+    "21": "B",
+    "22": "A",
+    "23": "B",
+    "24": "threatened",
+    "25": "scouts",
+    "26": "leaders"
+  }
+}
