@@ -1633,8 +1633,57 @@ function barHtml(){
       +     '<button type="button" class="fx-chip" data-fxfilter="wrong">Incorrect only</button>'
       +   '</span>'
       + '</div>'
-      + (cards ? '<div class="fx-pgrid">' + cards + '</div>' : '');
+      + (cards ? '<div class="fx-pgrid">' + cards + '</div>' : '')
+      /* 10/18 P0-3「下一步」三卡（对标 IELTS Mocks 成绩页的 WHAT TO DO NEXT）：
+         交卷后最常做的三件事一次给全，不用自己在页面里找入口。
+         ⚠️ 只给站内**真实存在**的能力（她 10/6 铁律：没有的能力不许出现在入口文案里）：
+            ① 看错题 = 复用 10/17 的 Incorrect only 筛选 + 跳到第一道错题（不是新功能）
+            ② 再做一次 = 复用 openExam / openFullTest（换一套随机卷）
+            ③ 回列表 = 复用既有 Exit */
+      + '<div class="fx-next">'
+      +   '<div class="fx-next-h">WHAT TO DO NEXT</div>'
+      +   '<div class="fx-next-g">'
+      +   (wrong
+            ? '<button type="button" class="fx-ncard" data-fxnext="wrong"><b>Review the ' + wrong + ' incorrect</b>'
+              + '<span>Jump to the first one, and show only wrong numbers in the answer sheet</span></button>'
+            : '<div class="fx-ncard is-done"><b>No incorrect answers</b><span>Nothing to review in this test</span></div>')
+      +     '<button type="button" class="fx-ncard" data-fxnext="retake"><b>'
+      +       (EX.full ? 'Start another full test' : ('Retake this ' + (lsn ? 'part' : 'passage')))
+      +     '</b><span>' + (EX.full ? 'A new random set, with a fresh timer' : 'Same passage, answers cleared') + '</span></button>'
+      +     '<button type="button" class="fx-ncard" data-fxnext="exit"><b>Back to the test list</b>'
+      +     '<span>Pick a different test</span></button>'
+      +   '</div>'
+      + '</div>';
+    /* 「看错题」要跳到第一道错题 —— 题号此刻算好存进 EX，点击时直接取（点击时 res 已不在作用域） */
+    EX._firstWrong = 0;
+    for(var wi = 0; wi < res.detail.length; wi++){
+      if(!res.detail[wi].ok){ EX._firstWrong = Number(res.detail[wi].qn) || 0; break; }
+    }
     root.insertBefore(el, root.firstChild);   // 10/12 批A：ptabs 已删，直接插最前
+  }
+
+  /* 成绩卡「下一步」三卡的行为（10/18 P0-3）。全部复用既有能力，不新增状态。 */
+  function fxNext(act){
+    if(!EX) return;
+    if(act === 'wrong'){
+      EX._filt = 'wrong';
+      var chips = document.querySelectorAll('#examRoot .fx-chip');
+      for(var i = 0; i < chips.length; i++) chips[i].classList.toggle('on', chips[i].getAttribute('data-fxfilter') === 'wrong');
+      paintSheet();
+      if(EX._firstWrong) goTo(EX._firstWrong);
+      return;
+    }
+    if(act === 'retake'){
+      var id = (EX.unit && EX.unit.id) || '', ch = EX.channel, full = !!EX.full;
+      exitExam();
+      /* exitExam 里 boot() 会重画列表；等它落一拍再进考场（避免两条渲染互相覆盖） */
+      setTimeout(function(){
+        if(full){ if(ch === 'listening') openFullListenTest(); else openFullTest(); }
+        else openExam(id, ch);
+      }, 60);
+      return;
+    }
+    exitExam();
   }
 
   /* 10/17 B：「本次未判分」横幅 —— 没有对错、没有总分、不进记录。
@@ -2918,6 +2967,11 @@ function barHtml(){
           }
           paintSheet();
         }
+        return;
+      }
+      /* 10/18 P0-3：成绩卡「下一步」三卡 */
+      if((el = t.closest && t.closest('[data-fxnext]'))){
+        fxNext(el.getAttribute('data-fxnext'));
         return;
       }
       if(t.closest && t.closest('[data-rvtoggle]')){

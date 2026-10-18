@@ -1216,6 +1216,25 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 .full-card .fc-last .fl-bar i{display:block;height:100%;background:#fff;border-radius:999px}
 .full-card .fc-last.is-none{color:rgba(255,255,255,.62);font-size:12px}
 
+
+/* ===== 10/18 成绩卡「下一步」三卡（P0-3）=====
+   对标 IELTS Mocks 成绩页的 WHAT TO DO NEXT：交卷后把人直接送到下一步，
+   而不是留在一个只能往回滚的长页里。文案全英文（考试页零中文铁律）。
+   三卡 = 看错题 / 再做一次 / 回列表，全部复用站内已有能力，不承诺任何没有的功能。
+   与 .fx-score 同一视觉语言（白卡 + primary-100 细边），不加阴影不加图标，避免抢分数。 */
+.fx-score .fx-next{margin-top:12px}
+.fx-score .fx-next-h{font-size:11.5px;font-weight:800;letter-spacing:.06em;color:var(--muted);margin-bottom:7px}
+.fx-score .fx-next-g{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.fx-score .fx-ncard{appearance:none;text-align:left;font-family:inherit;border:1px solid var(--primary-100);
+  background:#fff;border-radius:8px;padding:9px 12px;cursor:pointer;transition:border-color .14s,box-shadow .14s}
+.fx-score .fx-ncard b{display:block;font-size:13px;font-weight:800;color:#111;margin-bottom:2px;line-height:1.35}
+.fx-score .fx-ncard span{display:block;font-size:12px;color:var(--muted);line-height:1.45}
+.fx-score .fx-ncard:hover{border-color:var(--primary-300);box-shadow:0 2px 10px rgba(35,122,116,.12)}
+.fx-score .fx-ncard:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.fx-score .fx-ncard.is-done{cursor:default;background:var(--primary-50);border-style:dashed}
+.fx-score .fx-ncard.is-done:hover{border-color:var(--primary-100);box-shadow:none}
+@media(max-width:860px){.fx-score .fx-next-g{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
