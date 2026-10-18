@@ -1,0 +1,26 @@
+{
+  "name": "ielts-study-hub",
+  "version": "2026.10.16",
+  "private": true,
+  "description": "雅思学习站（Cloudflare Pages 静态站 + Pages Functions/KV）。tests/ 下行 Playwright 探针做体检与回归。",
+  "scripts": {
+    "serve": "node tests/_serve.cjs",
+    "probe": "node tests/_with_server.cjs",
+    "probe:one": "node tests/_with_server.cjs",
+    "probe:all": "node tests/_run_all.cjs",
+    "smoke": "node tests/_with_server.cjs tests/_probe_pagesmoke_1008.cjs 8801",
+    "audit": "node tests/_run_all.cjs --filter audit",
+    "test": "node tests/_run_all.cjs"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.63.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "_notes": [
+    "playwright-core 不随包下载浏览器二进制；探针复用系统 Edge/Chrome。",
+    "浏览器路径由 tests/_harness.cjs 自动探测，可用 PW_EXECUTABLE 覆盖。",
+    "探针默认打本地（_with_server.cjs 注入 BASE），防止误打线上。"
+  ]
+}

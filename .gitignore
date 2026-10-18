@@ -45,3 +45,12 @@ _orig_backup/
 
 # 10/17 CSS 分片：预览用聚合样式表（只被 _preview_*.html 引用，本机件，不入库）
 css/_preview_all.css
+
+# 10/18 收口：仓库根 design/ 是探针截图与方案稿目录（禁通配符 add，整目录不入库）
+/design/
+
+# 10/18 收口：data.js 的手改备份（*.bak 匹配不到 .bak_日期 这种后缀，单独写一条）
+js/data.js.bak_*
+
+# 10/18 收口：施工方案 md 误拷进仓库根（真身在 Desktop/雅思/ 下的方案目录）
+/口语陪练coach_施工方案_*.md
