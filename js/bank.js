@@ -2162,6 +2162,24 @@ function barHtml(){
     parts.innerHTML = h;
   }
 
+  /* 🔴 10/18 修既有 bug（本批搭车）：跳题锚点选择器长期是错的。
+     原来写的 `.ex-qn[data-qn]` 与 `input.ex-blank[data-q]` 在真实 DOM 里都**不存在**
+     （题号宽框只有 data-qns；填空 input 没有 ex-blank 类），所以除「多选合并组」外，
+     点题号行/答题卡基本不会滚动 —— 属于「点了没反应、也不报错」那类最难自查的失灵。
+     改按真实 DOM 找锚点，并滚到整行（只有小旗子会被滚到屏幕中间、看着像没动）。 */
+  function qAnchor(n){
+    var root = document.getElementById('examRoot'); if(!root) return null;
+    return root.querySelector('.ex-qn[data-qns~="' + n + '"]')
+        || root.querySelector('.ex-flagq[data-qn="' + n + '"]')
+        || root.querySelector('.ex-blankw[data-q="' + n + '"]')
+        || root.querySelector('input[data-q="' + n + '"]');
+  }
+  function scrollToQ(n){
+    var el = qAnchor(n);
+    if(!el) return;
+    var row = (el.closest && el.closest('.ex-q')) || el;
+    row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
   function goTo(n, edit){
     if(!EX) return;
     n = Number(n);
@@ -2173,19 +2191,13 @@ function barHtml(){
       }
       EX.cur = n;
       paintSheet();
-      var el2 = document.querySelector('#examRoot .ex-qn[data-qn="' + n + '"]')
-             || document.querySelector('#examRoot .ex-qn[data-qns~="' + n + '"]')
-             || document.querySelector('#examRoot input.ex-blank[data-q="' + n + '"]');
-      if(el2) el2.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      scrollToQ(n);
       if(edit && !EX.submitted) focusBlank(n);
       return;
     }
     EX.cur = n;
     paintSheet();
-    var el = document.querySelector('#examRoot .ex-qn[data-qn="' + n + '"]')
-          || document.querySelector('#examRoot .ex-qn[data-qns~="' + n + '"]')
-          || document.querySelector('#examRoot input.ex-blank[data-q="' + n + '"]');
-    if(el) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    scrollToQ(n);
     if(edit && !EX.submitted) focusBlank(n);
   }
   /* 双击 Tab 跳到下一题：若该题是填空，直接进输入态 */
