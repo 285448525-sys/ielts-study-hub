@@ -710,6 +710,61 @@
      （Colour = 原 Contrast 三档 exCt / Size = 原 Text size 三档 exTs，控件与委托不变只换皮）。
      10/13：顶栏计时器旁加 #exFtMini 小徽章（她 10/13 报「左下绿胶囊太明显」→
      考场内隐藏全站 floatTimer，改在顶栏时间旁边显示小号计时；数据源与 floatTimer 同口径）。 */
+  /* ===== 10/18 真机考工具栏：全屏 / 隐藏计时 =====
+     依据：IELTS Mocks 听力答题页实测顶栏 = `Full Screen · Settings · Help · Hide`
+     （截图见 design/竞品调研_2026-10-18/mocks-test-doing.png），真机考同款。
+     我方原本只有 ☰(Option) 一个按钮 → 缺真机考最显眼的两个控件。
+     · 全屏：走浏览器 Fullscreen API，不落库（会话级，退出即恢复常规）
+     · 隐藏计时：只把显示文本换成 --:--，**倒计时照跑**（EX._leftSec 仍在更新、到点照收卷）；
+       选择记 localStorage，下次沿用（她不用每次开考都点一次） */
+  var ICO_FS = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H3v5M21 3h-5v5M8 21H3v-5M21 21h-5v-5"/></svg>';
+  var ICO_HIDE = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"/><path d="M9.9 5.2A9.5 9.5 0 0 1 12 5c5 0 9 7 9 7a16 16 0 0 1-2.3 3M6.3 6.4A16 16 0 0 0 3 12s4 7 9 7c1.6 0 3-.5 4.2-1.2"/></svg>';
+  var HIDE_T_KEY = 'hub_exam_hide_timer_v1';
+  var _hideT = false;
+  try{ _hideT = localStorage.getItem(HIDE_T_KEY) === '1'; }catch(e){}
+  function fmtHMS(sec){
+    var s = Math.max(0, sec | 0);
+    return pad2(Math.floor(s / 3600)) + ':' + pad2(Math.floor((s % 3600) / 60)) + ':' + pad2(s % 60);
+  }
+  function setHideTimer(on){
+    _hideT = !!on;
+    try{ localStorage.setItem(HIDE_T_KEY, _hideT ? '1' : '0'); }catch(e){}
+    /* 立刻重画一次（tick 每秒也会画，这里只是让点击有即时反馈） */
+    var shown = _hideT ? '--:--' : (EX && EX._leftSec != null ? fmtHMS(EX._leftSec) : null);
+    var el = document.getElementById('exTimer');
+    if(el){
+      el.textContent = _hideT ? '--:--' : (shown || el.textContent);
+      if(_hideT){ el.classList.remove('warn'); el.classList.remove('soon'); }
+    }
+    var ft = document.getElementById('eaFullTimer');
+    if(ft) ft.textContent = _hideT ? '--:--' : (shown || ft.textContent);
+    var b = document.getElementById('exHideBtn');
+    if(b){ b.classList.toggle('on', _hideT); b.title = _hideT ? 'Show time' : 'Hide time'; }
+  }
+  function toggleFullscreen(){
+    try{
+      var d = document.documentElement;
+      if(!document.fullscreenElement && !document.webkitFullscreenElement){
+        var req = d.requestFullscreen || d.webkitRequestFullscreen;
+        if(req){ var r = req.call(d); if(r && r.catch) r.catch(function(){}); }
+      } else {
+        var ex = document.exitFullscreen || document.webkitExitFullscreen;
+        if(ex){ var r2 = ex.call(document); if(r2 && r2.catch) r2.catch(function(){}); }
+      }
+    }catch(e){}
+  }
+  function wireExamTools(){
+    /* 与 wireOptionPanel 同款：元素级绑定、每次渲染重绑（DOM 会重建，__bound 打在元素上防重复） */
+    var fs = document.getElementById('exFsBtn');
+    if(fs && !fs.__toolBound){ fs.__toolBound = true; fs.addEventListener('click', function(ev){ ev.preventDefault(); toggleFullscreen(); }); }
+    var hb = document.getElementById('exHideBtn');
+    if(hb && !hb.__toolBound){
+      hb.__toolBound = true;
+      hb.classList.toggle('on', _hideT);
+      hb.title = _hideT ? 'Show time' : 'Hide time';
+      hb.addEventListener('click', function(ev){ ev.preventDefault(); setHideTimer(!_hideT); });
+    }
+  }
   function shellHtml(nameText, subText, timerText){
     return '<div class="ex-top">'
       +    '<div class="ex-name">' + esc(nameText)
@@ -718,6 +773,8 @@
       + ''   /* 10/14 她拍板：顶栏计时徽章关掉（音频长短不一，与整场计时并存重复） */
       +    '<div class="ex-icons">'
       +      '<span class="ex-saved" id="exSaved" hidden>Saved</span>'
+      +      '<button class="ex-ico ex-toolbtn" id="exFsBtn" type="button" title="Full screen" aria-label="Full screen">' + ICO_FS + '</button>'
+      +      '<button class="ex-ico ex-toolbtn" id="exHideBtn" type="button" title="Hide time" aria-label="Hide time">' + ICO_HIDE + '</button>'
       +      '<button class="ex-ico ex-menubtn" type="button" title="Option">\u2630</button>'
       +    '</div></div>'
       + '<div class="ex-option" id="exOptionPanel">'
@@ -1115,6 +1172,7 @@ function barHtml(){
     if(isListen) wireAudio();
     else { renderNotes(); replayMarks(); }
     wireOptionPanel();   /* 10/14 Option 面板交互（Colour/Size/Audio 分组点击） */
+    wireExamTools();     /* 10/18 顶栏工具栏：全屏 / 隐藏计时 */
     reportExamState(true);   /* 10/15 告诉 SW：我在考试中，别刷我 */
     if(EX.submitted){ if(isListen) showScript(); decoratePassage(EX.curP); }
     startTimer(isListen ? 30 * 60 : 60 * 60);
@@ -1186,6 +1244,7 @@ function barHtml(){
       renderPassage(1);
       renderNotes();
       wireOptionPanel();   /* 10/14 Option 面板交互 —— 完整模考不走 renderExam，必须在这里也调一次 */
+      wireExamTools();     /* 10/18 同上（完整模考路径也要绑一次） */
       reportExamState(true);
       if(EX.scored === false) showNoAnsBanner();
       startTimer(60 * 60);
@@ -2222,16 +2281,30 @@ function barHtml(){
     var left = sec, el = document.getElementById('exTimer');
     function tick(){
       if(el){
-        var hh = Math.floor(left / 3600), mm = Math.floor((left % 3600) / 60), ss = left % 60;
-        el.textContent = pad2(hh) + ':' + pad2(mm) + ':' + pad2(ss);
-        el.classList.toggle('warn', left <= 300 && left > 0);
-        el.classList.toggle('soon', left <= 600 && left > 300);
+        if(_hideT){                       /* 10/18：隐藏计时 —— 只换显示，倒计时与收卷逻辑不变 */
+          el.textContent = '--:--';
+          el.classList.remove('warn'); el.classList.remove('soon');
+        } else {
+          var hh = Math.floor(left / 3600), mm = Math.floor((left % 3600) / 60), ss = left % 60;
+          el.textContent = pad2(hh) + ':' + pad2(mm) + ':' + pad2(ss);
+          el.classList.toggle('warn', left <= 300 && left > 0);
+          el.classList.toggle('soon', left <= 600 && left > 300);
+        }
       }
-      /* 10/14 听力顶栏一行化：音频条里的整场计时同步刷新（标题行 CSS 隐藏但 JS 仍跑，双写保平安） */
+      /* 10/14 听力顶栏一行化：音频条里的整场计时同步刷新（标题行 CSS 隐藏但 JS 仍跑，双写保平安）
+         10/18：听力单篇的计时已搬进音频条（#eaFullTimer），这里同步给 10/5 分钟双档警示色。 */
       var ft = document.getElementById('eaFullTimer');
       if(ft){
-        var fh = Math.floor(left / 3600), fm = Math.floor((left % 3600) / 60), fs2 = left % 60;
-        ft.textContent = pad2(fh) + ':' + pad2(fm) + ':' + pad2(fs2);
+        if(_hideT){
+          ft.textContent = '--:--';
+          ft.classList.remove('warn'); ft.classList.remove('soon');
+        }
+        else {
+          var fh = Math.floor(left / 3600), fm = Math.floor((left % 3600) / 60), fs2 = left % 60;
+          ft.textContent = pad2(fh) + ':' + pad2(fm) + ':' + pad2(fs2);
+          ft.classList.toggle('warn', left <= 300 && left > 0);
+          ft.classList.toggle('soon', left <= 600 && left > 300);
+        }
       }
       if(EX) EX._leftSec = left;
       if(left <= 0){ stopTimer(); doSubmit(); return; }

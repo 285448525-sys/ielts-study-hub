@@ -1168,6 +1168,23 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 #examRoot.ct-dark .ex-noans-x{color:#f0e3a8}
 #examRoot.ct-yellow .ex-noans{color:#f0e3a8}
 #examRoot.ct-yellow .ex-noans-x{color:#ffd400}
+/* ===== 10/18 顶栏工具栏：全屏 / 隐藏计时（对齐真机考与 IELTS Mocks 顶栏 Full Screen / Hide）=====
+   ⚠️ 必须放在本文件最后一个 style 结束标签之前 —— 同文件后写的规则会覆盖前面的（10/15 踩过两次）。
+   🔴 10/18 血案（本批亲踩）：这段注释最初写的是「放在本文件最后一个 <斜杠>style 之前」的字面标签，
+     而 HTML 解析器**不看 CSS 注释**，遇到 style 结束标签就当场闭合 <style> 元素 ——
+     它后面所有 CSS（正是下面这几十条规则）全部掉出样式表、静默失效，却没有任何报错。
+     探针查法：styleEl.sheet.cssRules 里找不到你以为写过的选择器 → 先怀疑注释里有结束标签字面量。
+   设计口径：常态半透明（不抢 .ex-name 的注意力），hover 才给浅底；
+   .on = 隐藏计时已开，用警示红+浅红底明确「现在是隐藏状态」，避免用户以为计时坏了。 */
+#examRoot .ex-toolbtn{display:inline-flex;align-items:center;justify-content:center;padding:4px 7px;opacity:.72;color:inherit}
+#examRoot .ex-toolbtn:hover{opacity:1;background:#f2f4f6}
+#examRoot .ex-toolbtn svg{width:16px;height:16px;display:block}
+#examRoot .ex-toolbtn.on{opacity:1;color:#b3261e;background:rgba(179,38,30,.09)}
+#examRoot.ct-dark .ex-toolbtn:hover,#examRoot.ct-yellow .ex-toolbtn:hover{background:#2a2a2a}
+#examRoot.ct-dark .ex-toolbtn.on,#examRoot.ct-yellow .ex-toolbtn.on{color:#ff8a80;background:rgba(255,138,128,.12)}
+/* 隐藏计时后 --:-- 用等宽数字，避免宽度抖动（与 .ex-timer 同口径） */
+#examRoot .ex-timer{font-variant-numeric:tabular-nums}
+
 </style>
 </head>
 <body>
