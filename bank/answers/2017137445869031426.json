@@ -1,0 +1,38 @@
+{
+  "unitId": "2017137445869031426",
+  "title": "The life of Beatrix Potter",
+  "channel": "reading",
+  "qCount": 13,
+  "got": 13,
+  "dropped": [],
+  "answers": {
+    "1": "governess",
+    "2": "diary",
+    "3": "artists",
+    "4": "museums",
+    "5": "ambition",
+    "6": "mycology",
+    "7": "B",
+    "8": "C",
+    "9": "A",
+    "10": "B",
+    "11": "A",
+    "12": "B",
+    "13": "C"
+  },
+  "raw": {
+    "1": "governess",
+    "2": "diary",
+    "3": "artists",
+    "4": "museums",
+    "5": "ambition",
+    "6": "mycology",
+    "7": "B",
+    "8": "C",
+    "9": "A",
+    "10": "B",
+    "11": "A",
+    "12": "B",
+    "13": "C"
+  }
+}

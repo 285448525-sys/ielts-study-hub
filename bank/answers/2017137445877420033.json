@@ -1,0 +1,38 @@
+{
+  "unitId": "2017137445877420033",
+  "title": "The Slow Food Organization",
+  "channel": "reading",
+  "qCount": 13,
+  "got": 13,
+  "dropped": [],
+  "answers": {
+    "1": "A",
+    "2": "B",
+    "3": "A",
+    "4": "C",
+    "5": "B",
+    "6": "C",
+    "7": "unique",
+    "8": "limited",
+    "9": "unchanging",
+    "10": "eggs",
+    "11": "four",
+    "12": "chefs",
+    "13": "consumers"
+  },
+  "raw": {
+    "1": "A",
+    "2": "B",
+    "3": "A",
+    "4": "C",
+    "5": "B",
+    "6": "C",
+    "7": "unique",
+    "8": "limited",
+    "9": "unchanging",
+    "10": "eggs",
+    "11": "four",
+    "12": "chefs",
+    "13": "consumers"
+  }
+}

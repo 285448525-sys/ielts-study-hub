@@ -1,0 +1,38 @@
+{
+  "unitId": "2017137445869031425",
+  "title": "The Clipper Races",
+  "channel": "reading",
+  "qCount": 13,
+  "got": 13,
+  "dropped": [],
+  "answers": {
+    "1": "B",
+    "2": "A",
+    "3": "A",
+    "4": "C",
+    "5": "B",
+    "6": "B",
+    "7": "sails",
+    "8": "storms",
+    "9": "Challenger",
+    "10": "ports",
+    "11": "paperwork",
+    "12": "tugs",
+    "13": "money"
+  },
+  "raw": {
+    "1": "B",
+    "2": "A",
+    "3": "A",
+    "4": "C",
+    "5": "B",
+    "6": "B",
+    "7": "sails",
+    "8": "storms",
+    "9": "Challenger",
+    "10": "ports",
+    "11": "paperwork",
+    "12": "tugs",
+    "13": "money"
+  }
+}
