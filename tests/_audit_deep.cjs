@@ -1239,6 +1239,12 @@ const NOISE = /cloudflareinsights|ERR_FAILED|ERR_ABORTED|Failed to load resource
   report.结论 = { 问题: problems.length, 分母: denom, 完整口径: OK_DENOM, 深态通过: deep, 深态预期: deepExpected,
     没测成: NOT_TESTED, 视觉判据: Object.keys(vis).reduce((o, k) => (o[k] = vis[k].length, o), {}),
     每页测量值: Object.keys(report.页面).reduce((o, k) => { const r = report.页面[k]; o[k] = r && r.测量 ? r.测量 : null; return o; }, {}) };
+  /* 10/19 补：problems / hints 一直被收集、也被用来算退出码，却**从不落盘** ——
+     于是 _deep_audit.json 只有「问题：20」这个数字，没有那 20 条是什么。
+     （逐页原因在 报告.页面[<key>].问题 里有，但键没带上页面名的条目——如页面报错、
+       深态项——只在这个总表里。）读明细定位问题时会因此白找一圈。 */
+  report.问题 = problems;
+  report.提示 = hints;
   fs.writeFileSync(MANIFEST, JSON.stringify(report, null, 1), 'utf8');
   console.log('  【明细】' + path.relative(ROOT, MANIFEST).replace(/\\/g, '/'));
 
