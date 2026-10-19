@@ -181,6 +181,26 @@ const visualChecks = async () => {
   const res = { occluded: [], overlays: [], main: null, scroller: null };
   const raf = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
+  /* ⚠️ 10/19 第七修（errorbook@手机390「底部死区 107px」误报根因）：
+     **收起的 `<details>` 正文在 Chrome 里是「有盒子但不渲染」** —— 实测卡片里默认收起的
+     「展开看：题干/翻译/逐词对照/原文」里的那条 `<p>`：
+       · getComputedStyle().display === 'block'（不是 none）
+       · offsetParent !== null、getClientRects().length === 1（照样有盒子）
+       · innerText === ''（这才是它没渲染的痕迹）
+       · **el.checkVisibility() === false**（唯一如实反映「不可见」的判据）
+     旧筛选只查 display/visibility/opacity → 放行它 → 它的 bottom(893) 比真正可见的
+     卡片(762) 低 131px，被当成「正文末端压在底栏下 107px」。
+     实证：把这两处 details 展开后死区立刻归零（-24px），截图也确认卡片与按钮全在底栏之上。
+     → 候选一律先过 checkVisibility；老引擎没有该 API 时退化成「收起 details 的正文不算」。 */
+  const rendered = el => {
+    if (typeof el.checkVisibility === 'function') {
+      try { return el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true }); } catch (e) {}
+    }
+    const cd = el.closest('details:not([open])');
+    if (cd && !el.closest('summary')) return false;   /* summary 本身仍然可见 */
+    return true;
+  };
+
   /* ⚠️ 10/19 关键修正（第一版误报）：底部固定条**永远**会和某个元素在某个滚动位置重叠 ——
      那就不是 bug，用户滚一下就能点到。真 bug 的定义是「**滚到位了还点不到**」。
      所以判据改成：先 scrollIntoView 把元素滚到视口中央，再命中测试；
@@ -209,6 +229,7 @@ const visualChecks = async () => {
   const cands = [...main.querySelectorAll(sel)].filter(el => {
     let cs; try { cs = getComputedStyle(el); } catch (e) { return false; }
     if (cs.display === 'none' || cs.visibility === 'hidden' || Number(cs.opacity) < 0.05) return false;
+    if (!rendered(el)) return false;          /* 收起 details 里的控件不算候选（10/19 第七修） */
     const r = el.getBoundingClientRect();
     return r.width >= 8 && r.height >= 8;
   });
@@ -342,6 +363,9 @@ const visualChecks = async () => {
     box.querySelectorAll('section, article, form, table, ul, ol, .card, .hubg-grid, #mkList, p, .hubg-note, .note, .muted').forEach(el => {
       let cs; try { cs = getComputedStyle(el); } catch (e) { return; }
       if (cs.display === 'none' || cs.visibility === 'hidden' || Number(cs.opacity) < 0.05) return;
+      /* 10/19 第七修：只认「真的渲染出来」的块 —— 收起 details 的正文有盒子但不可见，
+         bottom 会远超真正可见的末端（errorbook 107px 误报就出在这）。 */
+      if (!rendered(el)) return;
       const r = el.getBoundingClientRect();
       if (r.height < 4 || r.width < 8) return;
       /* 只认「此刻真的在视口里」的块 —— 滚到底后，内容末端一定贴视口底部；
