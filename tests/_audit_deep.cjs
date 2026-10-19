@@ -238,16 +238,18 @@ const visualChecks = async () => {
     };
     setMax();
     await raf();
-    /* 稳定判定：连续两次 scrollTop 不变，或 already at max */
-    let last = -1, stable = 0;
-    for (let i = 0; i < 12; i++) {
-      const cur = Math.round(sc.scrollTop);
-      const atMax = sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 2;
-      if (cur === last && atMax) break;
-      last = cur; stable++;
+    /* 10/19：等 scrollHeight 稳定再滚 —— 动态内容（details 展开、懒渲染）会让高度继续变，
+       早滚会停在旧的底部，之后读到的是滚动中途的坐标（writing 页误报根因）。 */
+    let lastH = -1, stable = 0;
+    for (let i = 0; i < 20; i++) {
+      const h = sc.scrollHeight;
+      if (h === lastH) { stable++; if (stable >= 3) break; } else { stable = 0; }
+      lastH = h;
       setMax();
       await raf();
     }
+    /* 再补几轮，确保真的贴底 */
+    for (let i = 0; i < 6; i++) { setMax(); await raf(); }
     try { de.style.scrollBehavior = prev; } catch (e) {}
     const atMax = sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 2;
     return atMax;
@@ -257,10 +259,16 @@ const visualChecks = async () => {
   const inter = (r, o) => !(r.right <= o.left || r.left >= o.right || r.bottom <= o.top || r.top >= o.bottom);
   let checked = 0;
   const hitAt = (el, ov) => {
+    /* 10/19：排除「浮层自己的子元素」—— dock 里的「首页/计划/学习/我的」按钮
+       本来就该在 dock 上面，把它算成"被遮"是误报（errorbook 页实测）。 */
+    if (ov.el.contains(el)) return false;
     const r = el.getBoundingClientRect();
     if (!inter(r, ov.rect)) return false;
+    /* 10/19：排除「已经滚过视口」的元素 —— 它的中心点在视口上方，
+       说明用户早已滑过去，不是「停在底部被压住」（writing 页 wbSourceFilter 实测误报）。 */
     const cx = Math.round(r.left + r.width / 2), cy = Math.round(r.top + r.height / 2);
-    if (!(cx >= 0 && cy >= 0 && cx < vw && cy < vh)) return false;
+    if (cy < 0) return false;
+    if (!(cx >= 0 && cx < vw && cy < vh)) return false;
     let top = null;
     try { top = document.elementFromPoint(cx, cy); } catch (e) { return false; }
     if (!top || top === el || el.contains(top)) return false;
@@ -554,6 +562,43 @@ const NOISE = /cloudflareinsights|ERR_FAILED|ERR_ABORTED|Failed to load resource
       addHint(key + ' 手机档偏慢 ' + (pageMs / 1000).toFixed(1) + 's');
     }
 
+    /* ★★★ 10/19 她要求：每页存原始测量值，不许只存一个「✅」。
+       「0 问题」时她得能翻出数字来核。所以无论有没有问题，把这页量到的
+       原始数据全部落到 rec.测量 里：浮层是谁/在哪、主区多少字、单页多少秒、
+       滚到顶和滚到底各测到什么、底部死区深度、页面结构信息。 */
+    rec.测量 = {
+      单页耗时ms: pageMs,
+      视口: vpLabel,
+      浮层: visBottom ? visBottom.overlays : (visTop ? visTop.overlays : []),
+      底部浮层: (visBottom && visBottom.overlays) ? visBottom.overlays.filter(o => o.rect && o.rect[1] > (visBottom.vh || 0) * 0.5) : [],
+      底部死区px: visBottom ? (visBottom.deadDepth || 0) : null,
+      底部死区元素: visBottom ? (visBottom.deadEl || null) : null,
+      滚到底: visBottom ? {
+        内容末端bottom: visBottom.lastBottom != null ? visBottom.lastBottom : null,
+        底部浮层top: visBottom.overlayTop != null ? visBottom.overlayTop : null,
+        已到最底: visBottom.atBottom != null ? visBottom.atBottom : null,
+        滚动状态: visBottom.scrollerInfo || null,
+      } : null,
+      滚到顶: visTop ? {
+        遮挡数: (visTop.occluded || []).length,
+        被遮: (visTop.occluded || []).map(o => o.by + ':' + o.what).slice(0, 6),
+      } : null,
+      主区: visBottom ? visBottom.main : (visTop ? visTop.main : null),
+      主区高px: m.mainH,
+      正文总字数: m.bodyLen,
+      主区HTML长度: m.mainLen,
+      页面宽度sw: m.sw,
+      视口宽iw: m.iw,
+      横向溢出px: m.sw - m.iw,
+      公共样式规则数: m.common ? m.common.rules : null,
+      专属样式规则数: rec.专属样式 != null ? rec.专属样式 : null,
+      小按钮数: m.small,
+      小字号元素数: m.smallFonts,
+      隐形文字数: (m.invisible || []).length,
+      手机底栏在: m.dock,
+      判定: rec.问题.length ? '有问题' : '通过',
+    };
+
     /* 按页样式：common.css 必须在且能读到规则；该页专属 css 也必须在 */
     if (!m.common.found || m.common.rules <= 0) { rec.问题.push('公共样式没生效（found=' + m.common.found + ' rules=' + m.common.rules + '）'); addProblem(key + ' 公共样式没生效'); }
     const ck = CSS_KEY(file);
@@ -579,7 +624,9 @@ const NOISE = /cloudflareinsights|ERR_FAILED|ERR_ABORTED|Failed to load resource
       await pageNow.screenshot({ path: shot, fullPage: true });
       rec.截图 = path.basename(shot);
     } catch (e) { addProblem(key + ' 截图失败：' + String(e.message).slice(0, 60)); }
-    report.页面[key] = rec.问题.length || rec.提示.length ? rec : '✅';
+    /* 10/19：每页都存完整记录（含原始测量值），不再用 '✅' 字符串占位。
+       她要的是「报 0 问题时我也能翻出数字来核」。 */
+    report.页面[key] = rec;
     return rec;
   };
 
@@ -1126,10 +1173,27 @@ const NOISE = /cloudflareinsights|ERR_FAILED|ERR_ABORTED|Failed to load resource
   }
   for (const p of problems.slice(0, 40)) console.log('  ⚠️ ' + p);
   console.log('  【提示】（不算问题，但值得看）' + (hints.length ? '\n' + hints.slice(0, 25).map(h => '    · ' + h).join('\n') : ' 无'));
+
+  /* ★ 10/19 她要求：打印「每页原始测量值」摘要 —— 报 0 问题时也能核对。
+     每页一行：页@档 | 单页秒 | 浮层 | 底部死区 | 主区字数 | 溢出 | 判定 */
+  console.log('  【每页测量值】共 ' + Object.keys(report.页面).length + ' 页（含通过页，便于核对）：');
+  Object.keys(report.页面).sort().forEach(k => {
+    const r = report.页面[k];
+    if (!r || !r.测量) { console.log('    ' + k + ' | 无测量值' + (r && r.问题 && r.问题.length ? ' | ' + r.问题[0] : '')); return; }
+    const m = r.测量;
+    const fl = (m.浮层 || []).map(o => o.what).join('+') || '无';
+    console.log('    ' + k + ' | ' + (m.单页耗时ms / 1000).toFixed(1) + 's | 浮层:' + fl +
+      ' | 死区:' + (m.底部死区px != null ? m.底部死区px + 'px' : '?') +
+      ' | 主区:' + (m.主区 ? m.主区.textLen + '字' : '?') +
+      ' | 溢出:' + (m.横向溢出px > 0 ? m.横向溢出px + 'px' : '0') +
+      ' | ' + m.判定);
+  });
+
   let shotN = 0; try { shotN = fs.readdirSync(SHOTS).filter(f => /\.(png|jpe?g)$/i.test(f)).length; } catch (e) {}
   console.log('  【截图】' + shotN + ' 张 → design/深度体检截图/');
   report.结论 = { 问题: problems.length, 分母: denom, 完整口径: OK_DENOM, 深态通过: deep, 深态预期: deepExpected,
-    没测成: NOT_TESTED, 视觉判据: Object.keys(vis).reduce((o, k) => (o[k] = vis[k].length, o), {}) };
+    没测成: NOT_TESTED, 视觉判据: Object.keys(vis).reduce((o, k) => (o[k] = vis[k].length, o), {}),
+    每页测量值: Object.keys(report.页面).reduce((o, k) => { const r = report.页面[k]; o[k] = r && r.测量 ? r.测量 : null; return o; }, {}) };
   fs.writeFileSync(MANIFEST, JSON.stringify(report, null, 1), 'utf8');
   console.log('  【明细】' + path.relative(ROOT, MANIFEST).replace(/\\/g, '/'));
 
