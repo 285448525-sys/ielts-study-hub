@@ -1632,7 +1632,13 @@ function barHtml(){
       var bl = root.querySelector('input.ex-blank[data-q="' + d.qn + '"]'); if(bl) bl.disabled = true;
       if(bl && !d.ok){ bl.style.borderBottomColor = '#e6b3ae'; bl.style.color = '#b3261e'; }
 
-      var anchor = qnEl || (bl ? bl.closest('.ex-group') : null);
+      /* 🔴 10/19 修（HANDOFF §二 挂了两天的「map 组交卷后没有逐题结论条」）：
+         段落信息匹配（`type:"map"` + reading）走的是**矩阵表格**，题号在 `<b class="mx-no">` 里，
+         不是 `.ex-qn[data-qn]`；也没有 `.ex-blank`。于是 anchor 恒 null → groupEl 恒 null →
+         这一组一题都不挂结论条（实测 Muscle Loss 13 题只出 7 条 = 单选 2 + 填空 5）。
+         补一条矩阵行的兜底锚点：找到该题号所在 <tr>，再拿它所属的 .ex-group。 */
+      var mxEl = root.querySelector('#examRoot .ex-lomatrix input[type=radio][data-q="' + d.qn + '"]');
+      var anchor = qnEl || (bl ? bl.closest('.ex-group') : null) || (mxEl ? mxEl.closest('tr') : null);
       var groupEl = anchor ? anchor.closest('.ex-group') : null;
       if(groupEl){
         /* 10/17：改挂「可折叠的结论条」（原 .ex-expl 平铺会把题目顶下去）。
