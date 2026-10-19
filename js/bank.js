@@ -1477,10 +1477,24 @@ function barHtml(){
     var pk = EX.packs[pi - 1];
     EX.unit = pk.unit;                                  /* 音频条 / 原文按篇取 → 复用同一套取数路径 */
     var barHost = document.getElementById('exAudioHost');
-    if(barHost) /* 10/14：计时文本从现有 DOM 读（tick 里会双向同步，见 startTimer），不新建函数 */
-    var _t = (document.getElementById('exTimer') || {}).textContent || '00:30:00';
-    barHost.innerHTML = audioBarHtml(partChipText(), (EX.unit && EX.unit.title) || '', _t);   /* 换篇 = 旧 <audio> 随 innerHTML 销毁（播放自动停）；Part 胶囊随篇更新 */
-    wireAudio();                                        /* ⚠️ 新 <audio> 元素必须重绑事件（play 监听 = 「只播一遍」的记号来源） */
+    /* 🔴 10/19 修：原来这里是 `if(barHost)` **不带花括号** —— 只护住了紧随的一行
+       （`var _t = ...` 因为 var 提升本来也无所谓），而下一行 `barHost.innerHTML = ...`
+       完全裸奔。一旦 #exAudioHost 不存在（DOM 结构变动 / 软导航换了壳 / 渲染顺序变化），
+       这里抛 TypeError，**并直接中断本函数后续的题目渲染**（下面 inner.innerHTML = qh
+       整段不执行）→ 表现就是「考场打开了但没有题目、音频条也没有」，静默无提示。
+       改成显式花括号护住两行，且失败时给可见兜底提示（不静默中断）。 */
+    if(barHost){
+      /* 10/14：计时文本从现有 DOM 读（tick 里会双向同步，见 startTimer），不新建函数 */
+      var _t = (document.getElementById('exTimer') || {}).textContent || '00:30:00';
+      barHost.innerHTML = audioBarHtml(partChipText(), (EX.unit && EX.unit.title) || '', _t);   /* 换篇 = 旧 <audio> 随 innerHTML 销毁（播放自动停）；Part 胶囊随篇更新 */
+      wireAudio();                                      /* ⚠️ 新 <audio> 元素必须重绑事件（play 监听 = 「只播一遍」的记号来源） */
+    } else {
+      /* 容器丢了也要让用户看见「哪里不对」，而不是一个没有音频、没有题目的空考场 */
+      try{
+        if(typeof toast === 'function') toast('音频条容器缺失（#exAudioHost），已跳过音频');
+        console.warn('[bank] renderListenPart: #exAudioHost 不存在，音频条未渲染');
+      }catch(e){}
+    }
     var inner = document.getElementById('exListenIn');
     var list = qsOfPassage(pi);
     if(inner){
