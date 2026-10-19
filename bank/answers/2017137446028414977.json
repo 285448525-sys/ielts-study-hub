@@ -1,0 +1,40 @@
+{
+  "unitId": "2017137446028414977",
+  "title": "Mercator—The Map Maker",
+  "channel": "reading",
+  "qCount": 14,
+  "got": 14,
+  "dropped": [],
+  "answers": {
+    "27": "TRUE",
+    "28": "NOT GIVEN",
+    "29": "TRUE",
+    "30": "NOT GIVEN",
+    "31": "FALSE",
+    "32": "FALSE",
+    "33": "FALSE",
+    "34": "TRUE",
+    "35": "straight line",
+    "36": "progressively",
+    "37": "areal distortion",
+    "38": "polar regions",
+    "39": "navigation",
+    "40": "North America"
+  },
+  "raw": {
+    "27": "TRUE",
+    "28": "NOT GIVEN",
+    "29": "TRUE",
+    "30": "NOT GIVEN",
+    "31": "FALSE",
+    "32": "FALSE",
+    "33": "FALSE",
+    "34": "TRUE",
+    "35": "straight line",
+    "36": "progressively",
+    "37": "areal distortion",
+    "38": "polar regions",
+    "39": "navigation",
+    "40": "North America"
+  }
+}

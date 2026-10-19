@@ -1,0 +1,38 @@
+{
+  "unitId": "2102627642185388033",
+  "title": "The Brassica Family",
+  "channel": "reading",
+  "qCount": 13,
+  "got": 13,
+  "dropped": [],
+  "answers": {
+    "1": "FALSE",
+    "2": "FALSE",
+    "3": "TRUE",
+    "4": "FALSE",
+    "5": "TRUE",
+    "6": "TRUE",
+    "7": "FALSE",
+    "8": "characteristics",
+    "9": "stem",
+    "10": "fibre",
+    "11": "glucosinolates",
+    "12": "rotating",
+    "13": "diversity"
+  },
+  "raw": {
+    "1": "FALSE",
+    "2": "FALSE",
+    "3": "TRUE",
+    "4": "FALSE",
+    "5": "TRUE",
+    "6": "TRUE",
+    "7": "FALSE",
+    "8": "characteristics",
+    "9": "stem",
+    "10": "fibre",
+    "11": "glucosinolates",
+    "12": "rotating",
+    "13": "diversity"
+  }
+}

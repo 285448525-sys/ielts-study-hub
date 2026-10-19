@@ -1,0 +1,38 @@
+{
+  "unitId": "2067134329310515202",
+  "title": "Library",
+  "channel": "reading",
+  "qCount": 13,
+  "got": 13,
+  "dropped": [],
+  "answers": {
+    "14": "FALSE",
+    "15": "TRUE",
+    "16": "TRUE",
+    "17": "FALSE",
+    "18": "FALSE",
+    "19": "mass media",
+    "20": "manuscripts",
+    "21": "community hubs",
+    "22": "equitable",
+    "23": "B",
+    "24": "B",
+    "25": "C",
+    "26": "C"
+  },
+  "raw": {
+    "14": "FALSE",
+    "15": "TRUE",
+    "16": "TRUE",
+    "17": "FALSE",
+    "18": "FALSE",
+    "19": "mass media",
+    "20": "manuscripts",
+    "21": "community hubs",
+    "22": "equitable",
+    "23": "B",
+    "24": "B",
+    "25": "C",
+    "26": "C"
+  }
+}

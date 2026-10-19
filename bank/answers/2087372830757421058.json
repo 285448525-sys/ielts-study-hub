@@ -1,0 +1,40 @@
+{
+  "unitId": "2087372830757421058",
+  "title": "Understanding Symbols",
+  "channel": "reading",
+  "qCount": 14,
+  "got": 14,
+  "dropped": [],
+  "answers": {
+    "27": "A",
+    "28": "F",
+    "29": "G",
+    "30": "B",
+    "31": "D",
+    "32": "TRUE",
+    "33": "FALSE",
+    "34": "FALSE",
+    "35": "FALSE",
+    "36": "TRUE",
+    "37": "model",
+    "38": "two-and-a-half",
+    "39": "relation",
+    "40": "symbolic"
+  },
+  "raw": {
+    "27": "A",
+    "28": "F",
+    "29": "G",
+    "30": "B",
+    "31": "D",
+    "32": "TRUE",
+    "33": "FALSE",
+    "34": "FALSE",
+    "35": "FALSE",
+    "36": "TRUE",
+    "37": "model",
+    "38": "two-and-a-half",
+    "39": "relation",
+    "40": "symbolic"
+  }
+}

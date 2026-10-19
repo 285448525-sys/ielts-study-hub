@@ -1,0 +1,38 @@
+{
+  "unitId": "2094727566155395074",
+  "title": "Understanding Climate Change",
+  "channel": "reading",
+  "qCount": 13,
+  "got": 13,
+  "dropped": [],
+  "answers": {
+    "14": "human activity",
+    "15": "tree rings",
+    "16": "oceans",
+    "17": "Industrial Revolution",
+    "18": "1731",
+    "19": "1752",
+    "20": "1805",
+    "21": "1838",
+    "22": "C,E",
+    "23": "C,E",
+    "24": "TRUE",
+    "25": "TRUE",
+    "26": "TRUE"
+  },
+  "raw": {
+    "14": "human activity",
+    "15": "tree rings",
+    "16": "oceans",
+    "17": "Industrial Revolution",
+    "18": "1731",
+    "19": "1752",
+    "20": "1805",
+    "21": "1838",
+    "22": "C,E",
+    "23": "C,E",
+    "24": "TRUE",
+    "25": "TRUE",
+    "26": "TRUE"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "unitId": "2093249119968100353",
+  "title": "Bovids",
+  "channel": "reading",
+  "qCount": 13,
+  "got": 13,
+  "dropped": [],
+  "answers": {
+    "1": "D",
+    "2": "D",
+    "3": "C",
+    "4": "C",
+    "5": "B",
+    "6": "D",
+    "7": "A",
+    "8": "B",
+    "9": "royal antelope",
+    "10": "auroch",
+    "11": "splayed hooves",
+    "12": "deserts",
+    "13": "pronghorn"
+  },
+  "raw": {
+    "1": "D",
+    "2": "D",
+    "3": "C",
+    "4": "C",
+    "5": "B",
+    "6": "D",
+    "7": "A",
+    "8": "B",
+    "9": "royal antelope",
+    "10": "auroch",
+    "11": "splayed hooves",
+    "12": "deserts",
+    "13": "pronghorn"
+  }
+}

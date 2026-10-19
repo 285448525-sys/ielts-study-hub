@@ -1,0 +1,38 @@
+{
+  "unitId": "2094705592150601729",
+  "title": "Socotra Island",
+  "channel": "reading",
+  "qCount": 13,
+  "got": 13,
+  "dropped": [],
+  "answers": {
+    "1": "TRUE",
+    "2": "FALSE",
+    "3": "NOT GIVEN",
+    "4": "NOT GIVEN",
+    "5": "FALSE",
+    "6": "boat",
+    "7": "1999",
+    "8": "terminal",
+    "9": "timber",
+    "10": "donkey",
+    "11": "traditions",
+    "12": "plants",
+    "13": "report"
+  },
+  "raw": {
+    "1": "TRUE",
+    "2": "FALSE",
+    "3": "NOT GIVEN",
+    "4": "NOT GIVEN",
+    "5": "FALSE",
+    "6": "boat",
+    "7": "1999",
+    "8": "terminal",
+    "9": "timber",
+    "10": "donkey",
+    "11": "traditions",
+    "12": "plants",
+    "13": "report"
+  }
+}

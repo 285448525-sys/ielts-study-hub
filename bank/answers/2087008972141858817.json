@@ -1,0 +1,38 @@
+{
+  "unitId": "2087008972141858817",
+  "title": "The Origins Of Cinema V1",
+  "channel": "reading",
+  "qCount": 13,
+  "got": 13,
+  "dropped": [],
+  "answers": {
+    "1": "A,D,F",
+    "2": "A,D,F",
+    "3": "A,D,F",
+    "4": "cartoons",
+    "5": "slapstick",
+    "6": "avant-garde",
+    "7": "A",
+    "8": "C",
+    "9": "H",
+    "10": "C",
+    "11": "A",
+    "12": "F",
+    "13": "D"
+  },
+  "raw": {
+    "1": "A,D,F",
+    "2": "A,D,F",
+    "3": "A,D,F",
+    "4": "cartoons",
+    "5": "slapstick",
+    "6": "avant-garde",
+    "7": "A",
+    "8": "C",
+    "9": "H",
+    "10": "C",
+    "11": "A",
+    "12": "F",
+    "13": "D"
+  }
+}

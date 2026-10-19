@@ -1,0 +1,38 @@
+{
+  "unitId": "2083798697532522498",
+  "title": "The History Of The Chicken",
+  "channel": "reading",
+  "qCount": 13,
+  "got": 13,
+  "dropped": [],
+  "answers": {
+    "1": "TRUE",
+    "2": "FALSE",
+    "3": "TRUE",
+    "4": "NOT GIVEN",
+    "5": "TRUE",
+    "6": "NOT GIVEN",
+    "7": "FALSE",
+    "8": "zoos",
+    "9": "tombs",
+    "10": "incubation",
+    "11": "humidity",
+    "12": "ovens",
+    "13": "predators"
+  },
+  "raw": {
+    "1": "TRUE",
+    "2": "FALSE",
+    "3": "TRUE",
+    "4": "NOT GIVEN",
+    "5": "TRUE",
+    "6": "NOT GIVEN",
+    "7": "FALSE",
+    "8": "zoos",
+    "9": "tombs",
+    "10": "incubation",
+    "11": "humidity",
+    "12": "ovens",
+    "13": "predators"
+  }
+}

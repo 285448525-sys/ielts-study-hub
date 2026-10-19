@@ -1,0 +1,40 @@
+{
+  "unitId": "2031684890984546305",
+  "title": "The Robbers Cave Study",
+  "channel": "reading",
+  "qCount": 14,
+  "got": 14,
+  "dropped": [],
+  "answers": {
+    "27": "D,E",
+    "28": "D,E",
+    "29": "sporting events",
+    "30": "scoreboards",
+    "31": "equal",
+    "32": "Rattlers",
+    "33": "cheating",
+    "34": "less tough",
+    "35": "films",
+    "36": "common goals",
+    "37": "problems",
+    "38": "successful",
+    "39": "C,E",
+    "40": "C,E"
+  },
+  "raw": {
+    "27": "D,E",
+    "28": "D,E",
+    "29": "sporting events",
+    "30": "scoreboards",
+    "31": "equal",
+    "32": "Rattlers",
+    "33": "cheating",
+    "34": "less tough",
+    "35": "films",
+    "36": "common goals",
+    "37": "problems",
+    "38": "successful",
+    "39": "C,E",
+    "40": "C,E"
+  }
+}

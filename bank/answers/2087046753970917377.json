@@ -1,0 +1,38 @@
+{
+  "unitId": "2087046753970917377",
+  "title": "Conquering The South Pole",
+  "channel": "reading",
+  "qCount": 13,
+  "got": 13,
+  "dropped": [],
+  "answers": {
+    "1": "TRUE",
+    "2": "FALSE",
+    "3": "FALSE",
+    "4": "TRUE",
+    "5": "TRUE",
+    "6": "planning",
+    "7": "dog sleds",
+    "8": "supply depots",
+    "9": "man-hauled",
+    "10": "C",
+    "11": "C",
+    "12": "A",
+    "13": "C"
+  },
+  "raw": {
+    "1": "TRUE",
+    "2": "FALSE",
+    "3": "FALSE",
+    "4": "TRUE",
+    "5": "TRUE",
+    "6": "planning",
+    "7": "dog sleds",
+    "8": "supply depots",
+    "9": "man-hauled",
+    "10": "C",
+    "11": "C",
+    "12": "A",
+    "13": "C"
+  }
+}

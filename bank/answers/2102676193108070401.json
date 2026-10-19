@@ -1,0 +1,40 @@
+{
+  "unitId": "2102676193108070401",
+  "title": "How To Clean A Beach",
+  "channel": "reading",
+  "qCount": 14,
+  "got": 14,
+  "dropped": [],
+  "answers": {
+    "27": "YES",
+    "28": "YES",
+    "29": "NOT GIVEN",
+    "30": "NO",
+    "31": "NOT GIVEN",
+    "32": "local knowledge",
+    "33": "socio-economic",
+    "34": "cost",
+    "35": "hot water",
+    "36": "chemical sprays",
+    "37": "B",
+    "38": "A",
+    "39": "B",
+    "40": "B"
+  },
+  "raw": {
+    "27": "YES",
+    "28": "YES",
+    "29": "NOT GIVEN",
+    "30": "NO",
+    "31": "NOT GIVEN",
+    "32": "local knowledge",
+    "33": "socio-economic",
+    "34": "cost",
+    "35": "hot water",
+    "36": "chemical sprays",
+    "37": "B",
+    "38": "A",
+    "39": "B",
+    "40": "B"
+  }
+}

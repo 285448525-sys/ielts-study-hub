@@ -1,0 +1,38 @@
+{
+  "unitId": "2098344769064357889",
+  "title": "Desertification",
+  "channel": "reading",
+  "qCount": 13,
+  "got": 13,
+  "dropped": [],
+  "answers": {
+    "14": "E",
+    "15": "D",
+    "16": "C",
+    "17": "F",
+    "18": "D",
+    "19": "G",
+    "20": "NO",
+    "21": "NOT GIVEN",
+    "22": "NO",
+    "23": "YES",
+    "24": "stabilize",
+    "25": "salinization",
+    "26": "proper crop rotation"
+  },
+  "raw": {
+    "14": "E",
+    "15": "D",
+    "16": "C",
+    "17": "F",
+    "18": "D",
+    "19": "G",
+    "20": "NO",
+    "21": "NOT GIVEN",
+    "22": "NO",
+    "23": "YES",
+    "24": "stabilize",
+    "25": "salinization",
+    "26": "proper crop rotation"
+  }
+}

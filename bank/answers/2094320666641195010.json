@@ -1,0 +1,40 @@
+{
+  "unitId": "2094320666641195010",
+  "title": "Science And The Stradivarius",
+  "channel": "reading",
+  "qCount": 14,
+  "got": 14,
+  "dropped": [],
+  "answers": {
+    "27": "iv",
+    "28": "xii",
+    "29": "ix",
+    "30": "ii",
+    "31": "viii",
+    "32": "vi",
+    "33": "i",
+    "34": "xi",
+    "35": "x",
+    "36": "TRUE",
+    "37": "FALSE",
+    "38": "NOT GIVEN",
+    "39": "TRUE",
+    "40": "NOT GIVEN"
+  },
+  "raw": {
+    "27": "iv",
+    "28": "xii",
+    "29": "ix",
+    "30": "ii",
+    "31": "viii",
+    "32": "vi",
+    "33": "i",
+    "34": "xi",
+    "35": "x",
+    "36": "TRUE",
+    "37": "FALSE",
+    "38": "NOT GIVEN",
+    "39": "TRUE",
+    "40": "NOT GIVEN"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "unitId": "2098339869517500417",
+  "title": "Animal Minds: Parrot Alex",
+  "channel": "reading",
+  "qCount": 13,
+  "got": 13,
+  "dropped": [],
+  "answers": {
+    "14": "TRUE",
+    "15": "NOT GIVEN",
+    "16": "FALSE",
+    "17": "TRUE",
+    "18": "TRUE",
+    "19": "FALSE",
+    "20": "one hundred",
+    "21": "chimpanzees",
+    "22": "avian cognition",
+    "23": "especially smart",
+    "24": "Color",
+    "25": "wrong pronunciation",
+    "26": "teenager"
+  },
+  "raw": {
+    "14": "TRUE",
+    "15": "NOT GIVEN",
+    "16": "FALSE",
+    "17": "TRUE",
+    "18": "TRUE",
+    "19": "FALSE",
+    "20": "one hundred",
+    "21": "chimpanzees",
+    "22": "avian cognition",
+    "23": "especially smart",
+    "24": "Color",
+    "25": "wrong pronunciation",
+    "26": "teenager"
+  }
+}

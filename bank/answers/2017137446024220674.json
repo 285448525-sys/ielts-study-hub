@@ -1,0 +1,40 @@
+{
+  "unitId": "2017137446024220674",
+  "title": "Conformity",
+  "channel": "reading",
+  "qCount": 14,
+  "got": 14,
+  "dropped": [],
+  "answers": {
+    "27": "YES",
+    "28": "NOT GIVEN",
+    "29": "NOT GIVEN",
+    "30": "NO",
+    "31": "group",
+    "32": "compare",
+    "33": "false",
+    "34": "anxious",
+    "35": "Asch",
+    "36": "internalization",
+    "37": "valid",
+    "38": "identification",
+    "39": "teenagers",
+    "40": "Asch"
+  },
+  "raw": {
+    "27": "YES",
+    "28": "NOT GIVEN",
+    "29": "NOT GIVEN",
+    "30": "NO",
+    "31": "group",
+    "32": "compare",
+    "33": "false",
+    "34": "anxious",
+    "35": "Asch",
+    "36": "internalization",
+    "37": "valid",
+    "38": "identification",
+    "39": "teenagers",
+    "40": "Asch"
+  }
+}

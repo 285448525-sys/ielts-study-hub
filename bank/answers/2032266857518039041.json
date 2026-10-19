@@ -1,0 +1,38 @@
+{
+  "unitId": "2032266857518039041",
+  "title": "The Innovation of Grocery Stores",
+  "channel": "reading",
+  "qCount": 13,
+  "got": 13,
+  "dropped": [],
+  "answers": {
+    "1": "C",
+    "2": "B",
+    "3": "F",
+    "4": "C",
+    "5": "E",
+    "6": "clerk",
+    "7": "customers",
+    "8": "lobby",
+    "9": "stockroom",
+    "10": "galleries",
+    "11": "C",
+    "12": "B",
+    "13": "C"
+  },
+  "raw": {
+    "1": "C",
+    "2": "B",
+    "3": "F",
+    "4": "C",
+    "5": "E",
+    "6": "clerk",
+    "7": "customers",
+    "8": "lobby",
+    "9": "stockroom",
+    "10": "galleries",
+    "11": "C",
+    "12": "B",
+    "13": "C"
+  }
+}

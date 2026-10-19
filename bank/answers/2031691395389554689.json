@@ -1,0 +1,38 @@
+{
+  "unitId": "2031691395389554689",
+  "title": "Biophilic Design",
+  "channel": "reading",
+  "qCount": 13,
+  "got": 13,
+  "dropped": [],
+  "answers": {
+    "14": "C",
+    "15": "B",
+    "16": "A",
+    "17": "H",
+    "18": "B",
+    "19": "F",
+    "20": "progress",
+    "21": "stress",
+    "22": "sunlight",
+    "23": "tree",
+    "24": "air",
+    "25": "B,D",
+    "26": "B,D"
+  },
+  "raw": {
+    "14": "C",
+    "15": "B",
+    "16": "A",
+    "17": "H",
+    "18": "B",
+    "19": "F",
+    "20": "progress",
+    "21": "stress",
+    "22": "sunlight",
+    "23": "tree",
+    "24": "air",
+    "25": "B,D",
+    "26": "B,D"
+  }
+}

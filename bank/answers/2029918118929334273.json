@@ -1,0 +1,40 @@
+{
+  "unitId": "2029918118929334273",
+  "title": "Book review on Musicophilia",
+  "channel": "reading",
+  "qCount": 14,
+  "got": 14,
+  "dropped": [],
+  "answers": {
+    "27": "B",
+    "28": "C",
+    "29": "A",
+    "30": "A",
+    "31": "NOT GIVEN",
+    "32": "NOT GIVEN",
+    "33": "TRUE",
+    "34": "NOT GIVEN",
+    "35": "TRUE",
+    "36": "FALSE",
+    "37": "F",
+    "38": "B",
+    "39": "A",
+    "40": "D"
+  },
+  "raw": {
+    "27": "B",
+    "28": "C",
+    "29": "A",
+    "30": "A",
+    "31": "NOT GIVEN",
+    "32": "NOT GIVEN",
+    "33": "TRUE",
+    "34": "NOT GIVEN",
+    "35": "TRUE",
+    "36": "FALSE",
+    "37": "F",
+    "38": "B",
+    "39": "A",
+    "40": "D"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "unitId": "2087437080242749442",
+  "title": "Dirty River But Clean Water",
+  "channel": "reading",
+  "qCount": 13,
+  "got": 13,
+  "dropped": [],
+  "answers": {
+    "1": "NOT GIVEN",
+    "2": "TRUE",
+    "3": "TRUE",
+    "4": "FALSE",
+    "5": "TRUE",
+    "6": "TRUE",
+    "7": "FALSE",
+    "8": "spring",
+    "9": "sediment",
+    "10": "razorback sucker",
+    "11": "common carp",
+    "12": "visibility",
+    "13": "sand"
+  },
+  "raw": {
+    "1": "NOT GIVEN",
+    "2": "TRUE",
+    "3": "TRUE",
+    "4": "FALSE",
+    "5": "TRUE",
+    "6": "TRUE",
+    "7": "FALSE",
+    "8": "spring",
+    "9": "sediment",
+    "10": "razorback sucker",
+    "11": "common carp",
+    "12": "visibility",
+    "13": "sand"
+  }
+}

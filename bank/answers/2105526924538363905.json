@@ -1,0 +1,38 @@
+{
+  "unitId": "2105526924538363905",
+  "title": "Mystery Drawing",
+  "channel": "reading",
+  "qCount": 13,
+  "got": 13,
+  "dropped": [],
+  "answers": {
+    "1": "75",
+    "2": "copies",
+    "3": "strokes",
+    "4": "expression",
+    "5": "calfskin",
+    "6": "hair",
+    "7": "book",
+    "8": "TRUE",
+    "9": "FALSE",
+    "10": "NOT GIVEN",
+    "11": "FALSE",
+    "12": "TRUE",
+    "13": "FALSE"
+  },
+  "raw": {
+    "1": "75",
+    "2": "copies",
+    "3": "strokes",
+    "4": "expression",
+    "5": "calfskin",
+    "6": "hair",
+    "7": "book",
+    "8": "TRUE",
+    "9": "FALSE",
+    "10": "NOT GIVEN",
+    "11": "FALSE",
+    "12": "TRUE",
+    "13": "FALSE"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "unitId": "2094709849499185154",
+  "title": "The Rise And Fall Of Detective Stories",
+  "channel": "reading",
+  "qCount": 13,
+  "got": 13,
+  "dropped": [],
+  "answers": {
+    "1": "FALSE",
+    "2": "TRUE",
+    "3": "NOT GIVEN",
+    "4": "NOT GIVEN",
+    "5": "FALSE",
+    "6": "TRUE",
+    "7": "FALSE",
+    "8": "FALSE",
+    "9": "imitations",
+    "10": "violence",
+    "11": "twists",
+    "12": "beneficial",
+    "13": "rationality"
+  },
+  "raw": {
+    "1": "FALSE",
+    "2": "TRUE",
+    "3": "NOT GIVEN",
+    "4": "NOT GIVEN",
+    "5": "FALSE",
+    "6": "TRUE",
+    "7": "FALSE",
+    "8": "FALSE",
+    "9": "imitations",
+    "10": "violence",
+    "11": "twists",
+    "12": "beneficial",
+    "13": "rationality"
+  }
+}
