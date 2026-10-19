@@ -1,0 +1,40 @@
+{
+  "unitId": "2017137446020026370",
+  "title": "Whale Culture",
+  "channel": "reading",
+  "qCount": 14,
+  "got": 14,
+  "dropped": [],
+  "answers": {
+    "27": "YES",
+    "28": "NO",
+    "29": "YES",
+    "30": "NO",
+    "31": "NO",
+    "32": "family groups",
+    "33": "geographical separation",
+    "34": "mother",
+    "35": "B,E,F",
+    "36": "B,E,F",
+    "37": "B,E,F",
+    "38": "G",
+    "39": "A",
+    "40": "H"
+  },
+  "raw": {
+    "27": "YES",
+    "28": "NO",
+    "29": "YES",
+    "30": "NO",
+    "31": "NO",
+    "32": "family groups",
+    "33": "geographical separation",
+    "34": "mother",
+    "35": "B,E,F",
+    "36": "B,E,F",
+    "37": "B,E,F",
+    "38": "G",
+    "39": "A",
+    "40": "H"
+  }
+}
