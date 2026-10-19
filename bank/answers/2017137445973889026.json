@@ -1,0 +1,40 @@
+{
+  "unitId": "2017137445973889026",
+  "title": "The Analysis of Fear",
+  "channel": "reading",
+  "qCount": 14,
+  "got": 14,
+  "dropped": [],
+  "answers": {
+    "27": "B",
+    "28": "C",
+    "29": "D",
+    "30": "A",
+    "31": "C",
+    "32": "B",
+    "33": "C",
+    "34": "A",
+    "35": "A",
+    "36": "age",
+    "37": "two weeks",
+    "38": "human beings",
+    "39": "good motor control",
+    "40": "mature monkeys"
+  },
+  "raw": {
+    "27": "B",
+    "28": "C",
+    "29": "D",
+    "30": "A",
+    "31": "C",
+    "32": "B",
+    "33": "C",
+    "34": "A",
+    "35": "A",
+    "36": "age",
+    "37": "two weeks",
+    "38": "human beings",
+    "39": "good motor control",
+    "40": "mature monkeys"
+  }
+}

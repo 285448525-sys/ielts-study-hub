@@ -1,0 +1,38 @@
+{
+  "unitId": "2018938080192991234",
+  "title": "The history of the bar code V1",
+  "channel": "reading",
+  "qCount": 13,
+  "got": 13,
+  "dropped": [],
+  "answers": {
+    "1": "ink",
+    "2": "soundtracks",
+    "3": "unreliable",
+    "4": "lasers",
+    "5": "standardization",
+    "6": "speed",
+    "7": "marathons",
+    "8": "bees",
+    "9": "B",
+    "10": "A",
+    "11": "C",
+    "12": "C",
+    "13": "A"
+  },
+  "raw": {
+    "1": "ink",
+    "2": "soundtracks",
+    "3": "unreliable",
+    "4": "lasers",
+    "5": "standardization",
+    "6": "speed",
+    "7": "marathons",
+    "8": "bees",
+    "9": "B",
+    "10": "A",
+    "11": "C",
+    "12": "C",
+    "13": "A"
+  }
+}

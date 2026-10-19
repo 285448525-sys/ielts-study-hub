@@ -1,0 +1,38 @@
+{
+  "unitId": "2026909542610731010",
+  "title": "Report on a university drama project",
+  "channel": "reading",
+  "qCount": 13,
+  "got": 13,
+  "dropped": [],
+  "answers": {
+    "1": "process",
+    "2": "discussion",
+    "3": "freewriting",
+    "4": "script",
+    "5": "vote",
+    "6": "interpretations",
+    "7": "B",
+    "8": "B",
+    "9": "C",
+    "10": "A",
+    "11": "C",
+    "12": "B",
+    "13": "A"
+  },
+  "raw": {
+    "1": "process",
+    "2": "discussion",
+    "3": "freewriting",
+    "4": "script",
+    "5": "vote",
+    "6": "interpretations",
+    "7": "B",
+    "8": "B",
+    "9": "C",
+    "10": "A",
+    "11": "C",
+    "12": "B",
+    "13": "A"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "unitId": "2083898551881498625",
+  "title": "Who Looks After The Children In Today's Britain?",
+  "channel": "reading",
+  "qCount": 14,
+  "got": 14,
+  "dropped": [],
+  "answers": {
+    "27": "D",
+    "28": "F",
+    "29": "D",
+    "30": "A",
+    "31": "G",
+    "32": "B",
+    "33": "F",
+    "34": "C",
+    "35": "A",
+    "36": "B",
+    "37": "status",
+    "38": "empathetic",
+    "39": "paternity leave",
+    "40": "government"
+  },
+  "raw": {
+    "27": "D",
+    "28": "F",
+    "29": "D",
+    "30": "A",
+    "31": "G",
+    "32": "B",
+    "33": "F",
+    "34": "C",
+    "35": "A",
+    "36": "B",
+    "37": "status",
+    "38": "empathetic",
+    "39": "paternity leave",
+    "40": "government"
+  }
+}

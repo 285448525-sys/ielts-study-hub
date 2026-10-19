@@ -1,0 +1,38 @@
+{
+  "unitId": "2071422589235937282",
+  "title": "Building A Castle",
+  "channel": "reading",
+  "qCount": 13,
+  "got": 13,
+  "dropped": [],
+  "answers": {
+    "1": "A",
+    "2": "C",
+    "3": "B",
+    "4": "A",
+    "5": "C,E,F",
+    "6": "C,E,F",
+    "7": "C,E,F",
+    "8": "masons",
+    "9": "holes",
+    "10": "metal wedges",
+    "11": "splits",
+    "12": "bricks",
+    "13": "heating"
+  },
+  "raw": {
+    "1": "A",
+    "2": "C",
+    "3": "B",
+    "4": "A",
+    "5": "C,E,F",
+    "6": "C,E,F",
+    "7": "C,E,F",
+    "8": "masons",
+    "9": "holes",
+    "10": "metal wedges",
+    "11": "splits",
+    "12": "bricks",
+    "13": "heating"
+  }
+}
