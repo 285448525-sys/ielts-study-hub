@@ -1,0 +1,38 @@
+{
+  "unitId": "2029492625222500353",
+  "title": "The Tuatara of New Zealand",
+  "channel": "reading",
+  "qCount": 13,
+  "got": 13,
+  "dropped": [],
+  "answers": {
+    "1": "TRUE",
+    "2": "FALSE",
+    "3": "NOT GIVEN",
+    "4": "FALSE",
+    "5": "NOT GIVEN",
+    "6": "TRUE",
+    "7": "80",
+    "8": "teeth",
+    "9": "seabirds",
+    "10": "Polynesian",
+    "11": "mainland",
+    "12": "common",
+    "13": "2,500"
+  },
+  "raw": {
+    "1": "TRUE",
+    "2": "FALSE",
+    "3": "NOT GIVEN",
+    "4": "FALSE",
+    "5": "NOT GIVEN",
+    "6": "TRUE",
+    "7": "80",
+    "8": "teeth",
+    "9": "seabirds",
+    "10": "Polynesian",
+    "11": "mainland",
+    "12": "common",
+    "13": "2,500"
+  }
+}
