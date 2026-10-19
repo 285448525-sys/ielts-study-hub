@@ -74,3 +74,7 @@ js/data.js.bak_*
 /tests/_audit_deep.cjs
 /tests/_selftest_occlusion.cjs
 /docs/
+
+# 10/19 追加：维护脚本目录（站点运行不需要，10/19 已除名；防将来误 add）
+/scripts/
+/ui-mockup.html
