@@ -269,6 +269,9 @@ const visualChecks = async () => {
     const cx = Math.round(r.left + r.width / 2), cy = Math.round(r.top + r.height / 2);
     if (cy < 0) return false;
     if (!(cx >= 0 && cx < vw && cy < vh)) return false;
+    /* 10/19：排除「只压到边框」的元素 —— 元素底边和浮层顶边重叠 <8px
+       是视觉上的正常贴合（浮层描边/圆角），不是「压住内容」（speaking 页 2px 误报）。 */
+    if (r.bottom - ov.rect.top < 8) return false;
     let top = null;
     try { top = document.elementFromPoint(cx, cy); } catch (e) { return false; }
     if (!top || top === el || el.contains(top)) return false;
@@ -311,6 +314,24 @@ const visualChecks = async () => {
         是否越过底部浮层的 top（超过 40px 才算，避免浮层描边/圆角的正常重叠）。 */
   const atBottomNow = await scrollToMax();
   res.atBottom = atBottomNow;
+  /* ⚠️ 10/19 第六修（误报根因）：overlays 的 rect 是在函数开头（页面顶部状态）捕获的，
+     但检测结果是在 scrollToMax 之后（底部状态）读的。fixed 元素的位置虽然不随滚动变，
+     但**候选元素的 rect 会变**——一个元素在顶部时和 dock 重叠，滚到底后可能完全分离。
+     修法：在底部状态重新读一遍浮层 rect（虽然 fixed 不变，但保持一致性更安全），
+     更关键的是：hitAt 里的 el.getBoundingClientRect() **已经在底部状态**（因为代码在
+     scrollToMax 之后执行），所以 hitAt 本身没问题；真正的误报来源是 errorbook 页的
+     「deadDepth > 40」判断——lastBottom 是底部状态读的，但 ov.rect.top 是顶部状态
+     读的。fixed 元素 rect 不随滚动变，所以这不是问题…… 那误报到底哪来的？
+     → 答案：hitAt 里的 cands 是在函数开头收集的，但 elementFromPoint 在底部执行。
+     对于「不在视口内」的元素（滚到顶时在视口外、滚到底后在视口内），
+     cx/cy 检查会在底部正确判定。但 errorbook 的误报是：dock 自己的 a 标签
+     （首页/计划/学习/我的）在 cands 里，它们**始终在视口内**且**始终被 dock 覆盖**
+     —— 这不是滚动问题，是「浮层自身子元素」问题，已通过 ov.el.contains(el) 修掉。
+     speaking 的误报：button 在 [29,784]，dock 顶部 786 → 只压 2px，在 >40px 阈值
+     以下，但 hitAt 里没有 >40px 的阈值（那个只在 deadDepth 有）→ 加上。
+     writing 的误报：select#wbSourceFilter 滚到底后在 [14,-38]（负坐标）→
+     hitAt 里已有 cy<0 排除。所以剩下的误报只有 speaking 的 2px —— 把 hitAt 也加上
+     阈值即可。 */
   const bottomOv = overlays.filter(o => o.rect.top > vh * 0.5);
   let deadDepth = 0, deadBy = '';
   if (bottomOv.length) {
