@@ -54,3 +54,23 @@ js/data.js.bak_*
 
 # 10/18 收口：施工方案 md 误拷进仓库根（真身在 Desktop/雅思/ 下的方案目录）
 /口语陪练coach_施工方案_*.md
+
+# ========================================================================
+# 10/19 内部件收口（防呆）：这些文件不是网站功能，但历史上被 add 进过仓库 →
+#   随 CF Pages 部署上线，外部可直接下载（实测 MODULES.md / _audit_deep.cjs /
+#   _diag_home.png 曾经可取到）。10/19 已 git rm --cached 除名（本机原件保留），
+#   此处再钉死以防将来误 add；网站端另有 _redirects 兜底。
+#   ⚠️ 同 §5.1⑧ 的教训：ignore 只对**未跟踪**文件生效，已跟踪的必须先 rm --cached。
+# ========================================================================
+/AGENTS.md
+/CLAUDE.md
+/MODULES.md
+/APIKEY-FIX-OVERVIEW.md
+/overview.md
+/cross-platform-timer-design.md
+/_diag_*.png
+/_diag_*.js
+/tests/__*.js
+/tests/_audit_deep.cjs
+/tests/_selftest_occlusion.cjs
+/docs/

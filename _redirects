@@ -1,0 +1,31 @@
+# 10/19 内部件封口（Cloudflare Pages 会先解析本文件，再返回静态资源）
+#
+# 为什么需要它：本站由 CF Pages 直接拿仓库内容发布 —— 被仓库跟踪的内部文档与探针脚本
+#   会随部署上线。10/19 已把 MODULES.md / APIKEY-FIX-OVERVIEW.md / overview.md /
+#   cross-platform-timer-design.md / _diag_home.png / tests 下 5 个已跟踪脚本
+#   从仓库除名（本机原件保留），但**线上已有的旧副本不会自动消失**，故在此从网站端兜底。
+#
+# 规则口径：
+#   · 只封「确定的内部件」：仓库根的 .md 文档、tests/ 整个目录、诊断脚本与截图。
+#   · 一律 302 → 首页，并带 noindex（防止被搜索引擎收录成可用页面）。
+#   · **不碰** .html / .js / .css / .json / 图片等站点真正要用的资产。
+#   · 302 优先于静态资源命中（CF 文档：重定向总是被跟随，无论是否有资源匹配）。
+#     ⚠️ 顺序：静态规则在前、通配在后。
+#
+# 若将来这些文件确实要对外公开（例如商业化后开放文档），删掉对应几行即可。
+
+/AGENTS.md            /  302
+/CLAUDE.md            /  302
+/MODULES.md           /  302
+/APIKEY-FIX-OVERVIEW.md   /  302
+/overview.md          /  302
+/cross-platform-timer-design.md   /  302
+/_diag_home.png       /  302
+
+# 探针与回归脚本目录（永不对外）
+/tests/*              /  302
+
+# 本机件目录（design/ plan/ outputs/ docs/ 已不在仓库，此处防将来误入库）
+/design/*             /  302
+/plan/*               /  302
+/outputs/*            /  302
