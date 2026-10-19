@@ -1,0 +1,38 @@
+{
+  "unitId": "2063871798731182081",
+  "title": "Facial Expression",
+  "channel": "reading",
+  "qCount": 13,
+  "got": 13,
+  "dropped": [],
+  "answers": {
+    "14": "misidentified",
+    "15": "emotions",
+    "16": "cultural background",
+    "17": "isolated",
+    "18": "exposed",
+    "19": "C",
+    "20": "A",
+    "21": "D",
+    "22": "H",
+    "23": "D",
+    "24": "B",
+    "25": "B,D",
+    "26": "B,D"
+  },
+  "raw": {
+    "14": "misidentified",
+    "15": "emotions",
+    "16": "cultural background",
+    "17": "isolated",
+    "18": "exposed",
+    "19": "C",
+    "20": "A",
+    "21": "D",
+    "22": "H",
+    "23": "D",
+    "24": "B",
+    "25": "B,D",
+    "26": "B,D"
+  }
+}
