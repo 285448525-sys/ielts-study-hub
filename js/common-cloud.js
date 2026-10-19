@@ -503,4 +503,16 @@ function initCloudSync(){
   });
   window.addEventListener('beforeunload', function(){ try{ if(_syncBC) _syncBC.postMessage({ t:'bye', id:_tabId }); }catch(e){} });
 }
-ready(initCloudSync);
+/* ⚠️ 10/19 回归修复（外壳拆分引入）：这里**不能**写 `ready(initCloudSync)`。
+   拆成 7 块之前，`ready` 与这一行同在一个 common.js —— 函数声明会提升，
+   所以 3209 行调用时 `ready` 已经存在，谁来读都看不出问题。
+   拆成 7 块后提升不再跨文件，而本块（common-cloud.js = 第 5 块）**先于**
+   声明它的 common-shell.js（第 6 块）加载 → 19 个页面全部抛
+   「ready is not defined」，initCloudSync 从未执行（云同步自动启动失效）。
+   实证：拆分前 function ready 在 3214 行、本行 3209 行（靠提升才成立）；
+   线上 bank/home/settings 三页均已复现该报错。
+   修法（她 10/19 拍板的最小改动）：不用 ready，直接内联等价的就绪判断 ——
+   行为与 ready 完全一致（文档已就绪则同步跑，否则等 DOMContentLoaded），
+   但不再依赖任何跨文件加载顺序。 */
+if (document.readyState !== 'loading') initCloudSync();
+else document.addEventListener('DOMContentLoaded', initCloudSync);
