@@ -36,8 +36,9 @@
 //   aiqmo:<acct>:<YYYY-MM>        口语模考月额度（TTL 40 天）
 //   aiqt:<acct>:writing           写作批改终身额度（无 TTL）
 //   aiqm:<acct>:<day>:<HHMM>      分钟风控（TTL 2 分钟自愈）
-//   aiqwv:<acct>:<YYYY-Www>       面板「本周 AI 次数」（TTL 400 天，只增不判）
-//   aiqmv:<acct>:<YYYY-MM>        面板「本月 AI 次数」（TTL 400 天，自然月 UTC）
+//   aiqwv:<acct>:<YYYY-Www>       ⛔ 10/20 深夜起**不再写入**（面板已改用 aistat: 累加近 7 天，
+//                                 全仓无读方）；存量旧键 TTL 到期自然消失，别再加回来。
+//   aiqmv:<acct>:<YYYY-MM>        面板「本月 AI 次数」（TTL 400 天，自然月 UTC，只写一次）
 
 /* 10/10 CORS 收紧（保密性加固 P0）：
    优先用显式配置 AI_ALLOW_ORIGIN；否则用 onRequest 里算好的同源判定：
@@ -435,27 +436,18 @@ export async function onRequest(context) {
       } catch (e) {}
     })());
 
-    /* ④ 面板长周期聚合（10/5 P1 她要「本月/本周」维度）：aiqa: 的 TTL 只有 48 小时，
-       存不下月维度 → 这里另写两份长 TTL 键，只增不改，不影响任何闸门：
-         aiqwv:<acct>:<YYYY-Www>  TTL 400 天 → 面板「本周 AI 次数」
-         aiqmv:<acct>:<YYYY-MM>   TTL 400 天 → 面板「本月 AI 次数」
-       月口径 = **自然月 UTC**，与额度闸的 aiqmo / auth.js ai_usage 严格同源（她 10/5 拍板）。
-       ⚠️ 周键算法必须与 aiqw（额度闸）、auth.js ai_usage 三处逐位一致，改一处必须同步三处。
-       ⚠️ 会员也计数（面板要看得到会员用量）；写失败被 try/catch 吞掉，不影响主流程。 */
-    jobs.push((async () => {
-      try {
-        const wk2 = 'aiqwv:' + acct + ':' + week;
-        const curW2 = parseInt((await env.SYNC_KV.get(wk2)) || '0', 10) || 0;
-        await env.SYNC_KV.put(wk2, String(curW2 + 1), { expirationTtl: 34560000 });
-      } catch (e) {}
-    })());
-    jobs.push((async () => {
-      try {
-        const mk2 = 'aiqmv:' + acct + ':' + month;
-        const curM2 = parseInt((await env.SYNC_KV.get(mk2)) || '0', 10) || 0;
-        await env.SYNC_KV.put(mk2, String(curM2 + 1), { expirationTtl: 34560000 });
-      } catch (e) {}
-    })());
+    /* ④ 🔴 10/20 深夜删掉「面板长周期聚合」这两个写（P0 零成本省写量）——
+       原来是 10/5 加的两个长 TTL 键，如今两个都不该再写：
+         · aiqwv:<acct>:<YYYY-Www> —— **全仓没有任何读方**。admin.js:333-446 已明文改成
+           「本周调用 = 最近 7 个自然日的 aistat: 日数据累加」，并且注释写着「替代从不写入
+           的 aiqwv:，零新增写量」。这里还在写 = 纯浪费 1 次写。
+         · aiqmv:<acct>:<YYYY-MM> —— **上面 ②b 已经写过一次**（同一个键、同一个 cur+1、
+           同一个 TTL 34560000），这一段是同一次调用里的第二次写，值完全一样。
+           删掉不改变任何读方的结果（admin.js:338 / :664 读到的仍是 ②b 写的那份）。
+       ⚠️ 只删统计键，**一个闸门键都没动**：aiqw（周兜底）/ aiqmo（模考月）/ aiqm（分钟风控）
+          / aiqip（IP）/ aiq / aiqa 全部原样，所以免费额度与风控行为零变化。
+       ⚠️ 单次调用写量 8~11 → 6~9（免费用户含 aiqw/aiqmo/aiqt 的 3 个条件写）。
+       ⚠️ 存量 aiqwv: 旧键不清理，TTL 400 天自然过期，无人读不影响任何东西。 */
     /* ⑤ 面板统计合并写（10/5 14:42 P0 修 KV 配额事故）——
        🔴 事故原委：Cloudflare 免费版 **KV 每天只有 1000 次写**（不是 1000MB，与单键体积无关）。
           我今天为 P3 面板加了 5 个统计键（aiday/aidayu/aitok/aitoku/aitoks），
