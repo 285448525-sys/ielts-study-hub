@@ -125,11 +125,7 @@
   font-size:12.5px;font-weight:700;
 }
 
-/* 底部轻量条（10/1 UI v2：PWA 安装小字链接；fs-vip 升级会员入口已整体下线——她拍板会员/非会员都不显示 10/1 晚） */
-.foot-strip{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px 22px;padding:14px 0 2px;font-size:12.5px;color:var(--n-500)}
-.foot-strip a{color:var(--n-600);text-decoration:none;border-bottom:1px dotted var(--n-400);padding-bottom:1px;cursor:pointer;transition:color .16s,border-color .16s}
-.foot-strip a:hover{color:var(--primary-600);border-bottom-color:var(--primary-500)}
-[data-theme="dark"] .foot-strip a{color:var(--muted);border-bottom-color:var(--line)}
+/* 10/21 删：.foot-strip 死样式（全站无任何元素引用，vip 入口已随会员不显示策略下线） */
 .qc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 6px 12px;text-align:center;text-decoration:none;color:var(--ink);transition:transform .18s,box-shadow .18s,border-color .18s;display:flex;flex-direction:column;align-items:center;box-shadow:var(--shadow)}
 .qc:hover{transform:translateY(-3px);box-shadow:var(--shadow-md);border-color:var(--primary)}
 /* 48px 极低饱和浅底圆角方 + 单色图标（去厚重、去刺眼） */

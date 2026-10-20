@@ -201,14 +201,6 @@ function isSpeakingMockRec(r){
   return r && (r.kind === 'speaking' || (!Array.isArray(r.parts) && r.p1));
 }
 
-/* 账号 = 手机号或自定义用户名（6-20 位数字/字母/下划线，不区分大小写）。
-   只含数字且 6-15 位的老手机号账号，登录后键名不变，云端老数据无缝接上。 */
-function normalizeAcct(s){
-  return (typeof s === 'string') ? s.trim().toLowerCase().replace(/\s+/g, '') : '';
-}
-const ACCT_RE = /^[a-z0-9_]{6,20}$/;
-function acctBad(s){ return !ACCT_RE.test(s); }
-
 /* ===== 登录/注册/改密码/找回（服务端 /api/auth 真鉴权） ===== */
 
 /* 登录成功共用动作：存 token、记账号、启动同步、拉云端合并（404 时开机发布上传本机） */
@@ -228,9 +220,7 @@ function applyAuthSuccess(acct, token){
 
 /* 登录（手机号/用户名 + 密码） */
 async function authLogin(acct, password){
-  acct = normalizeAcct(acct);
-  if(acctBad(acct)){ syncSetStatus('账号格式：6-20 位数字或字母', 'error'); return { ok:false, msg:'账号格式不正确' }; }
-  if(!password){ syncSetStatus('请输入密码', 'error'); return { ok:false, msg:'请输入密码' }; }
+  acct = String(acct || '').trim().toLowerCase();
   syncSetStatus('正在登录…', '');
   let j;
   try{ j = await authApiPost({ action:'login', acct: acct, password: password }); }
@@ -252,8 +242,7 @@ async function authLogin(acct, password){
    inviteCode：站长邀请码（10/1 商业化拍板，注册必填；服务端校验 inv:<CODE> 键，注册成功才消耗）。
    成功返回 { ok, acct, password }（恢复码已按她 10/1 拍板整套下线，注册成功由 UI 层直接走 authFinishRegister 自动登录）。 */
 async function authRegister(acct, password, inviteCode){
-  acct = normalizeAcct(acct);
-  if(acctBad(acct)){ syncSetStatus('账号格式：6-20 位数字或字母', 'error'); return { ok:false }; }
+  acct = String(acct || '').trim().toLowerCase();
   if(typeof password !== 'string' || password.length < 6 || password.length > 64){
     syncSetStatus('密码至少 6 位（最长 64 位）', 'error'); return { ok:false };
   }
