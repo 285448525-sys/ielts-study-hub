@@ -44,9 +44,15 @@
      陪练 = 白天被删的 2 个 avataaars Q 版卡通（已从 git b76cc35^ 恢复），只给口语陪练页用。
      ⚠️ 与 EXAM_AVATARS 字段/目录/扩展名全不同；老用户 localStorage 没有 coachAvatar
      → valid() 失配自动回落 FALLBACK_COACH，不会白图。 */
+  /* 🔴 10/20 深夜 加 `?v=20261020` 缓存破坏串（不是审美，是修 bug）：
+     这两张图在 b76cc35 被删过、c1b848d 又恢复回来，中间那段时间这个 URL 是被
+     「Pages 找不到文件 → 返回 200 + 落地页 HTML」应答的，而那个响应带着
+     `Cache-Control: public, max-age=86400` → 边缘缓存里躺着一条**内容是 HTML 的 .svg**，
+     浏览器按图片解码失败 → 陪练头像空白圆圈（实测 naturalWidth=0）。
+     换一个带查询串的 URL 就等于换一个干净的缓存键，秒好；文件本身没改过。 */
   var COACH_AVATARS = [
-    { f: 'exam-f', label: '陪练 1', src: 'img/avatars/exam-f.svg' },
-    { f: 'exam-m', label: '陪练 2', src: 'img/avatars/exam-m.svg' }
+    { f: 'exam-f', label: '陪练 1', src: 'img/avatars/exam-f.svg?v=20261020' },
+    { f: 'exam-m', label: '陪练 2', src: 'img/avatars/exam-m.svg?v=20261020' }
   ];
   var DIR = 'img/avatars/';
   var FALLBACK_USER = 'user-f1';
@@ -89,7 +95,7 @@
     for(var i = 0; i < COACH_AVATARS.length; i++){
       if(COACH_AVATARS[i].f === f) return COACH_AVATARS[i].src;
     }
-    return DIR + f + '.svg';
+    return DIR + f + '.svg?v=20261020';
   }
 
   function save(field, f){
