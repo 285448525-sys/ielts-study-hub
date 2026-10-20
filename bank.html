@@ -256,18 +256,35 @@
 .ex-q:last-child{margin-bottom:0}
 .ex-qn{flex:none;display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;border:1.5px solid #111;border-radius:3px;font-weight:700;font-size:13px;background:#fff;padding:0 4px;margin-top:1px}   /* 10/14 14→13px、方框 27→24px */
 /* 🔴 10/20 她 ⑦「题目放左、选项放右竖排」（真题口径，省空间）：
-   组级容器 = .ex-q--lside（左列题目 + 右列竖排选项池），只对阅读的词条匹配生效
+   组级容器 = .ex-q--lside（左列题目 + 右列竖排选项池），只对**配对题**生效
    （matching 且非 heading —— heading 她 10/15 拍板必须拖放原样，不并）。
    · 左列 .ex-q-lcol：每题仍是 .ex-q（题号 + 题干 + .ex-drop），交互与单列完全一致
      （拖放/点击/_dg 状态机/判分全复用，只是位置变了）；
-   · 右列 .ex-q-side：宽 252px，.ex-pool--side 竖排 chip，桌面 sticky 一直可见；
-   · ≤900 塌回单列（手机上真题也是一题一列，别硬塞）。 */
-.ex-q--lside{display:grid;grid-template-columns:minmax(0,1fr) 252px;gap:0 20px;align-items:start}
+   · 右列 .ex-q-side：比例式 1.25fr / 1fr（她 16:3x 选 **C 布局**「右栏更宽」），
+     .ex-pool--side 竖排白卡片，桌面 sticky 一直可见；
+   · ≤900 塌回单列（手机上真题也是一题一列，别硬塞）。
+   ⚠️ 10/20 16:4x 她报「这里原本没问题，你改坏了」→ **多选题共享组已回滚**（见 js/bank.js），
+     本容器只服务配对题，两者互不影响。 */
+.ex-q--lside{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(300px,1fr);gap:0 22px;align-items:start}
 .ex-q-lcol{display:block;min-width:0}
 .ex-q-side{position:sticky;top:8px}
 .ex-pool--side{margin:0}
-.ex-pool--side .ex-pool-c{display:flex;flex-direction:column;flex-wrap:nowrap;gap:6px;padding:10px 11px;min-height:0}
-.ex-pool--side .ex-chip{width:100%;justify-content:flex-start;border-radius:6px;padding:6px 12px;font-size:.82em}
+.ex-pool--side .ex-pool-c{display:flex;flex-direction:column;flex-wrap:nowrap;gap:8px;padding:0;min-height:0}
+/* 10/20 16:3x 她选 **C 布局**（"右栏更宽、选项做成白卡片 —— 更贴官方纸笔质感"）：
+   选项 = 浮起的白卡片：白底 + 轻投影 + 无硬边框，圆角 8px，字母加粗、正文常规字重。
+   依据：官方纸笔卷的备选项就是这种浮起小方块（她图2）；
+   成熟站点同款做法（Spotify 轨道条 hover 显手柄 + 白底填充，见 design/109 §④）。
+   hover：阴影加深 + 微微上浮（不要位移动效 —— 她的判据是「绝不切内容、绝不错位」）。 */
+.ex-pool--side .ex-chip{width:100%;justify-content:flex-start;align-items:flex-start;gap:10px;
+  border:none;border-radius:8px;padding:10px 14px;font-size:.86em;line-height:1.55;
+  background:#fff;box-shadow:0 1px 2px rgba(16,24,40,.10),0 2px 8px rgba(16,24,40,.06);
+  transition:box-shadow .15s}
+.ex-pool--side .ex-chip:hover{box-shadow:0 2px 4px rgba(16,24,40,.12),0 6px 16px rgba(16,24,40,.10)}
+.ex-pool--side .ex-chip b{font-weight:700;flex:none;min-width:1.2em}
+.ex-pool--side .ex-chip.used{background:#f4f6f8;border-style:solid;border-color:transparent;box-shadow:none}
+.ex-pool--side .ex-chip.sel{border-color:var(--primary);box-shadow:0 0 0 3px rgba(92,179,171,.22)}
+.ex-pool--side .ex-chip.right{background:var(--primary-50);box-shadow:0 1px 2px rgba(16,24,40,.08)}
+.ex-pool--side .ex-chip.wrong{background:#fdf3f2;box-shadow:0 1px 2px rgba(16,24,40,.08)}
 @media (max-width:900px){
   .ex-q--lside{grid-template-columns:minmax(0,1fr);gap:0}
   .ex-q-side{position:static;margin-top:4px}
@@ -357,14 +374,23 @@
 /* 🔴 10/16 她 18:16：「heading 题是把右边的选项拖到原文里的，每一段的上面会有一个虚像框让你拖的」
    → 原文段落上方的虚线槽（.ex-hslot 同时带 .ex-drop 类，拖放/点选/清除/复盘上色全部复用既有手势层）。
    槽里只显示罗马数字（heading 全文走 title 提示），避免长标题把文章排版撑乱。 */
-.ex-hslot{display:flex;align-items:center;min-width:calc(var(--exfs) * 5.5);max-width:min(340px,100%);
+/* 🔴 10/20 16:3x 她 2B 补充：「heading题是拖到原文里而且拖进去之后得全部显示不能只留一个数字标题」
+   → 槽里原来只显示罗马数字（`.ex-hslot .ex-chip b{display:none}` 把标题正文藏了，只走 title 提示），
+     现在**全部显示**：罗马数字 + 完整标题正文。代价 = 标题长 → 槽变宽/换行，
+     故 max-width 放宽到 560px、允许换行、字号降到 .72em 避免把文章排版撑乱。
+   ⚠️🔴 10/20 17:1x 修：上面那条 `.ex-hslot .ex-chip b` 选择器**从来没生效过** ——
+     槽里的 HTML 是 dgPlace 写的 `src.innerHTML` = "i <b>标题</b>"，
+     **没有 .ex-chip 包裹层**（.ex-chip 只存在于选项池里）→ 选择器匹配不到 → 标题一直是被 .ex-drop 的
+     默认样式显示着的。真 bug 是另一处：headSlotsInto() 去 #exArt 里找题目区槽抄 data-g
+     （题目区在 #exQCol）→ 槽没有 data-g → dgPlace 找不到源 chip → 只写罗马数字。
+     下面两条按**实际 DOM 结构**写：直接命中槽内的裸 <b>。 */
+.ex-hslot{display:flex;align-items:baseline;flex-wrap:wrap;min-width:calc(var(--exfs) * 5.5);max-width:min(560px,100%);
   min-height:calc(var(--exfs) * 1.6);margin:0 0 6px;padding:4px 12px;border:1.5px dashed #9aa0a8;border-radius:6px;
-  background:var(--n-50,#fafbfc);font-size:.8em;font-weight:700;color:#111;cursor:pointer}
+  background:var(--n-50,#fafbfc);font-size:.72em;font-weight:700;color:#111;cursor:pointer;line-height:1.5}
 .ex-hslot::before{content:"\2192";font-size:.95em;color:#9aa0a8;font-weight:400;margin-right:8px}
 .ex-hslot.filled{border-style:solid;border-color:#6a6f77;background:#fff}
 .ex-hslot.filled::before{content:none}
-.ex-hslot .ex-chip{border:none;background:none;padding:0;border-radius:0;font-size:1em;font-weight:700;gap:0}
-.ex-hslot .ex-chip b{display:none}
+.ex-hslot b{display:inline;font-weight:400;color:#333}   /* 标题正文全部显示（她要求） */
 .ex-hslot .ex-x{font-size:.85em;color:var(--muted);cursor:pointer;padding:0 2px;margin-left:auto}
 .ex-hslot.over{border-color:var(--primary);background:var(--primary-50)}
 .ex-hslot.right{border-color:var(--primary);background:var(--primary-50)}
@@ -1062,23 +1088,39 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
    三要素（篇名 | 计时 | ☰ Option，字体主题能调），音频条瘦身为纯播放条（标题/整场计时已在
    顶栏，不重复），移到顶栏下方单独一条。音频条里调节音量倍速的界面晚点再说（她原话）。 */
 .ex-audio{flex:none;display:flex;align-items:center;gap:12px;padding:9px 16px;border-bottom:1px solid var(--line);background:var(--surface)}
-  .ex-audio .ea-play{flex:none;width:34px;height:34px;border-radius:50%;border:none;background:var(--primary);color:#fff;font-size:13px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .ex-audio .ea-play{flex:none;width:34px;height:34px;border-radius:50%;border:none;background:var(--primary);color:#fff;font-size:13px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:box-shadow .2s}
   .ex-audio .ea-play[disabled]{opacity:.45;cursor:default}
+  /* 10/20 16:3x 她选 4B「音频条整体重排」：加「正在播放」脉冲态。
+     成熟站点同款（Spotify 轨道条 hover 显手柄、播放时轨道有活动指示；
+     设计稿 design/109 §④ 引用竞品实测条）—— 播放键外圈一圈呼吸光环，
+     不改结构、不改尺寸（不产生布局位移，符合「绝不切内容、绝不错位」）。 */
+  .ex-audio .ea-play.playing{box-shadow:0 0 0 0 rgba(92,179,171,.55);animation:eapulse 1.8s ease-out infinite}
+  @keyframes eapulse{0%{box-shadow:0 0 0 0 rgba(92,179,171,.5)}70%{box-shadow:0 0 0 9px rgba(92,179,171,0)}100%{box-shadow:0 0 0 0 rgba(92,179,171,0)}}
   .ex-audio .ea-label{flex:none;font-size:12.5px;font-weight:700;color:var(--primary-text);letter-spacing:.02em}
-  .ex-audio .ea-bar{flex:1;height:6px;border-radius:999px;background:var(--n-100);position:relative;cursor:pointer;min-width:80px}
+  /* 进度条：flex:1 吃满中间剩余宽度（10/20 实测被倍速框挤成 80px 一小截）。
+     hover 放大点：轨道加高 + 手柄放大（成熟站点通行做法：默认细轨道，hover 显手柄）。 */
+  .ex-audio .ea-bar{flex:1;height:6px;border-radius:999px;background:var(--n-100);position:relative;cursor:pointer;min-width:120px;transition:height .15s}
+  .ex-audio .ea-bar:hover{height:9px}
   .ex-audio .ea-bar .ea-fill{position:absolute;top:0;left:0;bottom:0;width:0;background:var(--primary);border-radius:999px}
-  .ex-audio .ea-bar .ea-knob{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;background:#fff;border:2px solid var(--primary);transform:translate(-50%,-50%);left:0;pointer-events:none}
-  .ex-audio .ea-time{flex:none;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:92px;text-align:right}
+  .ex-audio .ea-bar .ea-knob{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;background:#fff;border:2px solid var(--primary);transform:translate(-50%,-50%);left:0;pointer-events:none;opacity:0;transition:opacity .15s,transform .15s}
+  .ex-audio .ea-bar:hover .ea-knob{opacity:1;transform:translate(-50%,-50%) scale(1.25)}
+  .ex-audio .ea-bar:hover .ea-knob{opacity:1}
+  /* 时间数字：等宽 + 固定列宽对齐（10/20 她 4B「时间数字对齐」） */
+  .ex-audio .ea-time{flex:none;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:96px;text-align:right;letter-spacing:.2px}
   /* 10/16：音频加载失败的自解释提示（她报「播放不了」时全站只有静默的 00:00/00:00） */
   .ex-audio .ea-err{flex:none;border:1px solid #d93025;background:#fdf3f2;color:#b3261e;border-radius:7px;padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
   .ex-audio .ea-err:hover{background:#fbe6e4}
-  .ex-audio .ea-rate{flex:none;border:1px solid var(--line);background:transparent;color:#111;border-radius:7px;padding:3px 8px;font-size:12px;cursor:pointer;font-family:inherit;font-variant-numeric:tabular-nums}
+  /* 🔴 10/20 她 ③：倍速 <select>。**必须给固定宽度** ——
+     appearance:none 之后没给显式宽度，在 flex 容器里 content-based 宽度计算炸成 1401px
+     （实测视口才 1425px），把右侧工具组顶到 x=1885（屏幕外，她根本点不到全屏/Option）。
+     固定 74px 装得下「1.0×」四个字符 + 自绘 chevron。 */
+  .ex-audio .ea-rate{flex:none;width:74px;border:1px solid var(--line);background:transparent;color:#111;border-radius:7px;padding:3px 8px;font-size:12px;cursor:pointer;font-family:inherit;font-variant-numeric:tabular-nums;text-align:left}
   /* 10/20 她 ④：倍速从「按钮循环 4 档」改成 <select> 9 档（0.8–1.5 / 0.1）。
      原生 select 自带箭头，但默认箭头太小且颜色跟着系统走 → 用 appearance:none + 内联 SVG
      chevron 自己画一个（data-URI，CSP img-src 已放行 data:），并留 padding-right 给箭头。 */
-  .ex-audio .ea-rate{appearance:none;-webkit-appearance:none;padding-right:24px;
+  .ex-audio .ea-rate{appearance:none;-webkit-appearance:none;padding-right:22px;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6.5L8 10.5l4-4' fill='none' stroke='%236b7280' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-    background-repeat:no-repeat;background-position:right 7px center;background-size:11px 11px;font-weight:700}
+    background-repeat:no-repeat;background-position:right 5px center;background-size:11px 11px;font-weight:700}
   .ex-audio .ea-rate:hover{border-color:#111}
   /* 音量（10/12 加）：真机考只有音量可控 → 练习/考试两种模式都保留。
      10/20 她 ③：音量标去 emoji（🔇/🔊 全站禁）→ 按钮里装 SVG（JS 侧 ICO_VOL/ICO_MUTE）。 */
@@ -1086,8 +1128,9 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
   .ex-audio .ea-vol:hover{border-color:#111}
   .ex-audio .ea-vol svg{display:block}
   .ex-audio .ea-vsl{flex:none;width:64px;accent-color:var(--primary);cursor:pointer;margin:0}
-/* 10/13 Part 横幅并入音频条行首（她报「上面三行缩两行」）：胶囊 = Part N · Questions X–Y */
-.ex-audio .ea-part{flex:none;font-size:12px;font-weight:700;color:var(--primary-text);background:var(--primary-50);border:1px solid var(--primary-100);border-radius:6px;padding:2px 9px;white-space:nowrap}
+/* 10/13 Part 横幅并入音频条行首（她报「上面三行缩两行」）：胶囊 = Part N · Questions X–Y
+   10/20 她 4B「Part 胶囊瘦身」：字号 12→11.5、内边距收窄、去掉边框（轻底色即可）。 */
+.ex-audio .ea-part{flex:none;font-size:11px;font-weight:700;color:var(--primary-text);background:var(--primary-50);border:1px solid transparent;border-radius:6px;padding:1px 7px;white-space:nowrap;letter-spacing:0}
   .ex-audio .ea-mode{flex:none;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:3px 11px;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap}
   .ex-audio .ea-mode.exam{border-color:var(--warn-ink);color:var(--warn-ink);background:var(--warn-soft);font-weight:600}
   .ex-audio .ea-mode[disabled]{opacity:.5;cursor:default}
@@ -1482,6 +1525,6 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common-cloud.js?v=20261020a"></script>
 <script defer src="js/common-shell.js?v=20261020a"></script>
 <script defer src="js/common-pwa.js?v=20261020a"></script>
-<script defer src="js/bank.js?v=20261020a"></script>
+<script defer src="js/bank.js?v=20261020b"></script>
 </body>
 </html>

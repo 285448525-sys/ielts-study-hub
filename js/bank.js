@@ -727,11 +727,16 @@
       var gid = 'mg' + idx;
       var isHead = opts.length && /^[ivx]+$/i.test(String(opts[0].optionNum || ''));
       /* 10/20 她 ⑦「题目放左、选项放右竖排」（真题口径，省空间）：
-         **只对词条匹配生效**（选项是词/短语，A–H 一列竖排，左边每题一个拖放槽）。
-         Heading 题（isHead，选项是罗马数字 i–x）她 10/15 拍板必须拖放原样 → 不动。
+         **配对题（matching）且非 heading**，听力和阅读统一走左右布局。
+         10/20 16:3x 她选 2B「A + 阅读词条匹配一起统一」：
+           · A = 共用选项池的 matching（就是她图1 那种：选项池 + 每题一个槽）——**听力那批**
+             （Climate Allergies 等 89 组）；原先被 `channel === 'reading'` 挡住，
+             所以「两种 matching 形态不一致」（设计稿 §①「现在」那张实测截图就是听力的）。
+           · 阅读词条匹配（131 组）本就是左右布局，栏宽参数与新形态调齐即可。
+         Heading 题（isHead，选项是罗马数字 i–x）她 10/15 拍板必须拖放原样 → 不并。
          交互完全不变（还是 chip 拖进 .ex-drop，_dg 状态机/判分/清理全复用），
          变的只是**位置**：选项池从题干上方整块搬到右侧竖排一列。 */
-      var lside = !!(opts.length && !isHead && qs.length >= 3 && channel === 'reading');
+      var lside = !!(opts.length && !isHead && qs.length >= 3);
       if(lside){
         /* 结构 = .ex-q--lside 容器 > 左列每题（题号 + 题干 + .ex-drop）+ 右列 .ex-q-side（竖排选项池）
            ⚠️ 池子仍是全组唯一一份（dgPool/dgPoolChip 按 data-g 找，复制会双双失效）。 */
@@ -822,15 +827,14 @@
           var label = nums.length > 1 ? (nums[0] + '–' + nums[nums.length - 1]) : nums[0];
           var others = nums.filter(function(x){ return x !== numOf(carrier.qNumber); }).join(' ');
           var cst = numOf(carrier.qNumber);
-          /* 🔴 10/16 修（她实测 Q9-10：题干被压成 40px 窄条 + 词中断 + Choose TWO 能勾 3 个 + Q10 无法作答）
-             原方案把 cbox 嵌进题干 <span class="ex-qt">（题干下竖排整行）→ 题干列确实不再被压，
-             但选项仍占满整行、下面每题都要重复一遍选项（她 10/20 ⑦「题目左、选项右竖排」）。
-             现在改成组级左右布局：题干列 + 右侧唯一一份 cbox。
+          /* 🔴🔴 10/20 16:4x 她复报：「这里原本是没问题的我也没叫你改这里，现在被你改坏掉了」（截图 = Choose TWO 组）。
+             根因 = **我超出了她拍板的范围**：她 10/20 拍板的是「配对题（matching）」改左题右选项，
+             我在同一批里顺手把**多选题共享组**也改成了左右布局（.ex-q--lside + .ex-q-side）。
+             → **多选题回滚到 10/16 二修形态**：合并题号一行（9–10）+ 题干与选项同在 .ex-qt 内竖排。
+             配对题的左右布局保留（那是她拍板的），只共用 .ex-q--lside 这个容器类，互不影响。
              判分链路零改动：input 仍带 data-v + data-share（collect 同步写全组 / 判分按集合）。 */
-          h += '<div class="ex-q--lside" data-shared-opts="1"><div class="ex-q-lcol">'
-            + '<div class="ex-q"><span class="ex-qn ex-qn--wide" data-qns="' + esc(nums.join(' ')) + '">' + esc(label) + '</span>'
-            + flagHtml(cst) + '<span class="ex-qt">' + clean(carrier.question) + '</span></div>'
-            + '</div><div class="ex-q-side">' + cboxHtml(carrier, numOf, need, others) + '</div></div>';
+          h += '<div class="ex-q ex-q--mgroup"><span class="ex-qn ex-qn--wide" data-qns="' + esc(nums.join(' ')) + '">' + esc(label) + '</span>'
+            + flagHtml(cst) + '<span class="ex-qt">' + clean(carrier.question) + cboxHtml(carrier, numOf, need, others) + '</span></div>';
         }
       } else {
         qs.forEach(function(q){
@@ -866,9 +870,13 @@
        选择记 localStorage，下次沿用（她不用每次开考都点一次） */
   var ICO_FS = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H3v5M21 3h-5v5M8 21H3v-5M21 21h-5v-5"/></svg>';
   var ICO_HIDE = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"/><path d="M9.9 5.2A9.5 9.5 0 0 1 12 5c5 0 9 7 9 7a16 16 0 0 1-2.3 3M6.3 6.4A16 16 0 0 0 3 12s4 7 9 7c1.6 0 3-.5 4.2-1.2"/></svg>';
-  /* 10/20 她 ①：全屏按钮「太丑，改好看的」。原 ICO_FS 是 4 段短线折角（M8 3H3v5 那种），
-     16px 下糊成一团。改成 ICO_FULL / ICO_FULL_X（进/出两态），并按 fullscreenchange
-     实时切图标 —— 用户看得出「再点一次是退出」。 */
+  /* 10/20 她 ①：全屏按钮「太丑，改好看的」→ 16:4x 复报「那个全屏按钮有问题重新改一下，好看一些」。
+     前一版是 ICO_FULL（四角直角折线，17px 下糊成一团，看不出是全屏）。
+     改成**对角箭头**式（成熟站点通用：Material Icons fullscreen / IELTS Mocks 顶栏同款）：
+       · 进入全屏 = 四个角各一支朝外箭头
+       · 退出全屏 = 四个角各一支朝内箭头（用户看得出「再点一次是退出」）
+     依据：design/109 §④ 引用竞品实测条（design/竞品调研_2026-10-18/p03-listen-bar.png，
+     IELTS Mocks 音频条右端工具组 = 全屏 + 静音 + ☰），其全屏键即为四向箭头形态。 */
   var _fsIconBound = null;
   function paintFsIcon(){
     var b = document.getElementById('exFsBtn');
@@ -884,8 +892,10 @@
       document.addEventListener(ev, paintFsIcon);
     });
   }
-  var ICO_FULL = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5V4h5.5M20 9.5V4h-5.5M4 14.5V20h5.5M20 14.5V20h-5.5"/></svg>';
-  var ICO_FULL_X = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>';
+  /* 进入全屏：四角朝外箭头（↖↗↙↘ 四个 L 形箭头） */
+  var ICO_FULL = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V5.5A1.5 1.5 0 0 1 5.5 4H9"/><path d="M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9"/><path d="M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15"/><path d="M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15"/><path d="M4 4l6 6"/><path d="M20 4l-6 6"/><path d="M20 20l-6-6"/><path d="M4 20l6-6"/></svg>';
+  /* 退出全屏：四角朝内箭头（↘↙↗↖，箭头指向中心） */
+  var ICO_FULL_X = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4v3.5A1.5 1.5 0 0 1 7.5 9H4"/><path d="M15 4v3.5A1.5 1.5 0 0 0 16.5 9H20"/><path d="M15 20v-3.5a1.5 1.5 0 0 1 1.5-1.5H20"/><path d="M9 20v-3.5A1.5 1.5 0 0 0 7.5 15H4"/><path d="M10 10h4v4h-4z"/></svg>';
   /* 10/20：音频条音量 / 静音图标（去 emoji，SVG 线性图标与全屏/隐藏计时同款） */
   var ICO_VOL  = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h3.5L13 19V5L7.5 9H4z"/><path d="M16.5 9.5a4 4 0 0 1 0 5M19 7a7.5 7.5 0 0 1 0 10"/></svg>';
   var ICO_MUTE = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h3.5L13 19V5L7.5 9H4z"/><path d="M16.5 9.5l5 5M21.5 9.5l-5 5"/></svg>';
@@ -1208,7 +1218,12 @@ function barHtml(){
     if(fill) fill.style.width = pct + '%';
     if(knob) knob.style.left = pct + '%';
     if(tm) tm.textContent = fmtClock(c) + ' / ' + fmtClock(d);
-    if(btn) btn.textContent = a.paused ? '▶' : '❙❙';
+    if(btn){
+      btn.textContent = a.paused ? '▶' : '❙❙';
+      /* 10/20 她 4B：加「正在播放」脉冲态 —— 播放键外圈呼吸光环（CSS .ea-play.playing）。
+         只加 class，不改 DOM 结构/尺寸 → 零布局位移（她的判据：绝不切内容、绝不错位）。 */
+      btn.classList.toggle('playing', !a.paused && !a.ended);
+    }
   }
   /* 🔴 10/16 她报「听力音频播放不了」→ 本地/线上都复现不出（音频 200、duration 正常、无报错），
      她那边是 00:00 / 00:00 + 进度条塌成小点 = 元数据没加载（旧缓存版布局也印证）。
@@ -1641,7 +1656,6 @@ function barHtml(){
       var ah = '';
       (pk.unit.parts || []).forEach(function(p){ ah += clean(p.article || ''); });
       art.innerHTML = ah; art.scrollTop = 0;
-      headSlotsInto();                                    /* 10/16：heading 题段前虚线槽（她 18:16 口径） */
     }
     if(qcol){
       var numOf = numOfPassage(pi), qi = 0, qh = '';
@@ -1650,6 +1664,10 @@ function barHtml(){
       });
       qcol.innerHTML = qh; qcol.scrollTop = 0;
     }
+    /* 10/16：heading 题段前虚线槽（她 18:16 口径）
+       ⚠️ 10/20 17:1x 移位：headSlotsInto() 现在**从题目区 DOM 读 data-q / data-g**（原来是从 #exArt 里
+       找题目区槽，永远找不到）→ 必须等 qcol.innerHTML 渲染完再跑，否则读到的是上一篇的题目区。 */
+    if(art) headSlotsInto();
     var list = qsOfPassage(pi);
     if(list.length) EX.cur = list[0].g;
     list.forEach(function(e){ if(EX.user[e.g] != null) applyAnswer(e.g, EX.user[e.g]); });
@@ -2031,24 +2049,40 @@ function barHtml(){
      两处槽（原文 + 题目区）同 data-q → dgSyncQ 保持显示一致；答案口径仍 EX.user[题号]=罗马数字。 */
   function headSlotsInto(){
     var art = document.getElementById('exArt');
+    var qcol = document.getElementById('exQCol');
     if(!art || !EX) return;
     art.querySelectorAll('.ex-hslot').forEach(function(s){ s.remove(); });     /* 幂等：重渲染先清 */
-    /* heading 组 = matching 且选项首项是罗马数字（与 groupHtml 的 isHead 同判据）。
-       ⚠️ 题库实测两种形态：① 题干带字母（"Paragraph A"，Termite Mounds 那种）；
-       ② **题干只有 "Paragraph"（字母缺失，如 Bird Migration）** → 退化按顺序对应（题号升序 ↔ 段落字母升序）。 */
-    var qns = [], hasLetter = false, letterMap = {};
-    (EX.groups || []).forEach(function(g){
-      var q0 = (g.questions || [])[0] || {};
-      var opts = q0.options || [];
-      if(!opts.length || !/^[ivx]+$/i.test(String(opts[0].optionNum || ''))) return;
-      (g.questions || []).forEach(function(q){
-        if(q.qNumber == null) return;
-        qns.push(String(q.qNumber));
-        var m = /(?:paragraph|section)\s+([A-Z])\b/i.exec(plain(q.question || ''));
-        if(m){ hasLetter = true; letterMap[m[1].toUpperCase()] = String(q.qNumber); }
+    if(!qcol) return;
+    /* 🔴🔴 10/20 17:0x 修 bug（她 2B 补充：「heading题是拖到原文里而且拖进去之后得全部显示不能只留一个数字标题」）：
+       旧实现两处错，叠一起 → 原文段落槽里只剩罗马数字：
+       ① 用 `art.querySelector('.ex-drop[data-q=...]')` 去题目区抄 data-g ——
+          **题目区在 #exQCol，不在 #exArt 里**（splitHtml：文章 | 题目 两栏）→ 永远查不到
+          → 原文槽没有 data-g → 拖放时 dgPoolChip(v, '') 找不到源 chip
+          → dgPlace 退化成 `esc(v)` = 只写罗马数字（= 她说的「只留一个数字标题」）。
+       ② 用题库内局部题号 q.qNumber 当 data-q —— 完整模考里显示题号是全局号（numOfPassage 映射），
+          两者对不上 → 槽与题目区槽的 data-q 不同步。
+       **改法：全部以 DOM 为准** —— 从题目区读出 heading 组的 (显示题号, 池 gid, 段落字母)，
+       再把文章里的段落块按字母/顺序对上，槽带正确的 data-q + data-g。
+       这样原文槽与题目区槽 data-q 相同 → dgSyncQ 双向同步，答案口径也一致。 */
+    var rows = [];
+    qcol.querySelectorAll('.ex-group').forEach(function(grp){
+      var pool = grp.querySelector('.ex-pool');
+      if(!pool) return;
+      var c0 = pool.querySelector('.ex-chip');
+      /* heading 组判据 = 选项池首个 chip 是罗马数字（与 groupHtml 的 isHead 同判据） */
+      if(!c0 || !/^[ivx]+$/i.test(String(c0.getAttribute('data-v') || ''))) return;
+      var gid = pool.getAttribute('data-g');
+      grp.querySelectorAll('.ex-q').forEach(function(q){
+        var d = q.querySelector('.ex-drop');
+        if(!d) return;
+        var qt = q.querySelector('.ex-qt');
+        var m = /(?:paragraph|section)\s+([A-Z])\b/i.exec(qt ? (qt.textContent || '') : '');
+        rows.push({ q: d.getAttribute('data-q'), g: gid, L: m ? m[1].toUpperCase() : '' });
       });
     });
-    if(!qns.length) return;
+    if(!rows.length) return;
+    var byL = {};
+    rows.forEach(function(r){ if(r.L) byL[r.L] = r; });
     /* 扫文章块级元素找段落起始标记（题库形态 = 块首「A 正文…」或「(A) 正文…」），
        用**字母增量序列**校验（A→B→C…）排除正文里偶然以大写字母开头的句子。 */
     var seq = [], expected = 65;
@@ -2062,18 +2096,18 @@ function barHtml(){
       seq.push({ L: m[1], el: b });
     });
     if(!seq.length) return;
-    var n = Math.min(seq.length, qns.length);
+    var n = Math.min(seq.length, rows.length);
     for(var i = 0; i < n; i++){
       var L = seq[i].L;
-      var qn = hasLetter ? letterMap[L] : qns[i];
-      if(!qn) continue;
+      /* 题干带字母（"Paragraph A"）按字母对；题干只有 "Paragraph"（字母缺失）按顺序对 */
+      var row = byL[L] || rows[i];
+      if(!row || !row.q) continue;
+      var qn = row.q;
       if(art.querySelector('.ex-hslot[data-q="' + qn + '"]')) continue;       /* 同题号只插一个 */
-      var host = art.querySelector('.ex-drop[data-q="' + qn + '"]');          /* 从题目区槽取同一个 gid */
-      var gid = host ? host.getAttribute('data-g') : '';
       var slot = document.createElement('div');
       slot.className = 'ex-drop ex-hslot';
       slot.setAttribute('data-q', qn);
-      if(gid) slot.setAttribute('data-g', gid);
+      if(row.g) slot.setAttribute('data-g', row.g);
       slot.setAttribute('title', 'Drag a heading here');
       /* ⚠️ 10/16 踩坑：题库文章是**嵌套 div**，命中的段落块往往不是 #exArt 的直接子节点 →
          `art.insertBefore(slot, block)` 会抛 NotFoundError（整个考场加载被 catch 吞掉、白屏）。
