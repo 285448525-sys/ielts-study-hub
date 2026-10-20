@@ -77,6 +77,20 @@ async function callRelay(service, messages, temperature, opts){
   return withTimeout(callRelayInner(service, messages, temperature, opts), AI_TIMEOUT_MS);
 }
 
+/* 🔴 10/20 深夜：AI「能不能用」的统一判据（**别再各页自己写 relayToken 判断**）。
+   背景：`DATA.settings.relayToken` 是「用户自备 DeepSeek Key」时代的字段，10/1 商业化改造
+   已把自备 Key 入口下线、站内中继（/api/ai + 登录 session）成为唯一主路径，服务端还会把这
+   个字段剥离。但有三处功能仍拿它当开关 —— 单词「AI 导入」（words.js）、默写批改（corpus.js）、
+   计划 AI 排期（plans.js）→ 对「已登录、没自备 Key」的人（= 绝大多数，含她本人）**永远走降级分支**，
+   表现就是「AI 翻译补全没了 / 计划只会按任务量平铺」。
+   正确口径 = 有自备 Key（遗留兼容）或 已登录（站内中继可用）。
+   ⚠️ 未登录时仍返回 false：让降级分支先跑，比让用户点一次再吃 401 更好。 */
+function aiAvailable(){
+  const s = (typeof DATA !== 'undefined' && DATA && DATA.settings) ? DATA.settings : {};
+  if(s.relayToken) return true;
+  try{ return !!(typeof authToken === 'function' && authToken()); }catch(e){ return false; }
+}
+
 async function callRelayInner(service, messages, temperature, opts){
   const s = DATA.settings || {};
   const key = s.relayToken || '';

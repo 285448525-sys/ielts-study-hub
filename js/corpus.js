@@ -548,7 +548,9 @@ async function gradeWrite(q, cfg){
   });
 
   let aiNotes = {};
-  if(DATA.settings.relayToken){
+  /* 🔴 10/20 深夜：原来判 relayToken（自备 Key 时代字段，10/1 已下线）→ 已登录用户也拿不到
+     AI 逐句批改，只能看本地单词比对。改判 aiAvailable()（common-ai.js 统一口径）。 */
+  if(aiAvailable()){
     try{
       let lines = '';
       items.forEach((it,i) => { lines += (i+1) + '. 标准：' + it.en + '\n学生：' + (it.user || '（空）') + '\n\n'; });

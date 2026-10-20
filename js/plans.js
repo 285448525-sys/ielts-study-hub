@@ -900,7 +900,9 @@ async function aiWeekPlan(){
   const targetStr = '听' + (t.listening||'?') + '/读' + (t.reading||'?') + '/写' + (t.writing||'?') + '/口' + (t.speaking||'?');
 
   // 无 AI：按弱项 + 任务量自动铺开
-  if(!DATA.settings.relayToken){
+  /* 🔴 10/20 深夜：原来判 relayToken（自备 Key 时代字段，10/1 已下线）→ 已登录用户也只会走
+     「平铺」这条，AI 排期永远不触发。改判 aiAvailable()（common-ai.js 统一口径）。 */
+  if(!aiAvailable()){
     const tasks = raw.split('\n').map(s => s.trim()).filter(Boolean);
     buildAndRender(tasks.length ? tasks : getCustomTasks());
     return;

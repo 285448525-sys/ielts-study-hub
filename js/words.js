@@ -515,8 +515,10 @@ async function importSmart(){
   const btn = $('#smartImport');
   if(!raw){ toast('先粘贴点内容（单词 / 句子 / 段落都行）'); return; }
 
-  // ── 降级：无 Key → 正则抽取，不翻译 ──
-  if(!DATA.settings.relayToken){
+  // ── 降级：AI 不可用（未登录且没自备 Key）→ 正则抽取，不翻译 ──
+  // 🔴 10/20 深夜修：原来判 `!DATA.settings.relayToken`（自备 Key 时代的字段，10/1 已下线）
+  //    → 已登录用户也永远走这条降级路，表现为「AI 翻译补全没了」。改用 aiAvailable()（common-ai.js）。
+  if(!aiAvailable()){
     const rows = extractWords(raw);
     if(!rows.length){ toast('没有识别到有效英文单词'); return; }
     const byKey = new Map();
