@@ -178,11 +178,15 @@
   /* 10/3 头像选择：新增 2 个 DiceBear avataaars（CC0 免署名），可在设置页「考官的样子」里选。
      选定的那位（window.avExamSrc()）排前面 → 优先被随机到；没选时随机池不变（仍是 4 位）。 */
   const _pickedExam = (typeof window !== 'undefined' && typeof window.avExamSrc === 'function') ? window.avExamSrc() : '';
+  /* 10/20 她：「口语模考用的图不是考官的头像…要真实生动」
+     原来 4 位里 2 位是 avataaars Q 版卡通（exam-f/exam-m）、2 位是 SVG 插画（examiner-a/b），
+     全都不像真人考官 → 换成 img/examiner/ 下 4 张 AI 实拍级照片（4:3 裁切，800px 宽，JPEG ~45KB）。
+     名字沿用，方便她在「设置 → 换考官的样子」里认出是哪位。 */
   const EXAMINERS = [
-    { id: 'af', name: 'Sophia Turner', img: 'img/avatars/exam-f.svg' },
-    { id: 'am', name: 'Daniel Hughes', img: 'img/avatars/exam-m.svg' },
-    { id: 'a', name: 'Emily Carter', img: 'img/examiner-a.svg' },
-    { id: 'b', name: 'James Wilson', img: 'img/examiner-b.svg' }
+    { id: 'af', name: 'Sophia Turner', img: 'img/examiner/ex-sophia.jpg' },
+    { id: 'am', name: 'Daniel Hughes', img: 'img/examiner/ex-daniel.jpg' },
+    { id: 'a', name: 'Emily Carter', img: 'img/examiner/ex-emily.jpg' },
+    { id: 'b', name: 'James Wilson', img: 'img/examiner/ex-james.jpg' }
   ];
   /* 选中的考官权重更高：50% 概率优先用ta。没选时退化为纯随机 4 位。 */
   function pickExaminer(){

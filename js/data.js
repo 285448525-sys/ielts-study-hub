@@ -1637,9 +1637,9 @@ let DATA = {
     diagnosis: null,   // 10/2 备考诊断（第三十三批）：诊断问卷+评定结果+时段容量，整体子对象；合并走 SYNC_SETTINGS_FIELDS 字段级较新者胜
     planLastOpen: '',  // 10/2 commit4：最近一次打开「今日计划」的日期（YYYY-MM-DD），3 天未回来提示重排；字段级同步
     // 10/3 头像选择：只存 img/avatars/ 下的文件名（不是图片本身），云同步只带几十字节。
-    // 用户头像 8 个（open-peeps 女 4 / 男 4，DiceBear CC0 免署名）；考官头像 2 个（avataaars，更精细）。
+    // 用户头像 8 个（open-peeps 女 4 / 男 4，DiceBear CC0 免署名）；考官 4 位（10/20 换成 img/examiner/*.jpg 实拍级照片）。
     avatar: 'user-f1',
-    examAvatar: 'exam-f',
+    examAvatar: 'ex-sophia',
     _fieldTs: {}
   },
   errorbook: [],

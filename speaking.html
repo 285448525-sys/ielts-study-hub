@@ -57,9 +57,9 @@
   <!-- coach 同例：必须在 speaking.js 之前，顶层 window.__COACH_ON 先立，tab 分支才接管得到 -->
   <!-- 10/3 头像选择：必须在 coach.js 之前（陪练气泡头像渲染时就要读 window.avUserSrc）。
        10/3 22:55 扩展：同一份也供顶栏考官头像选择器用（avOpen/avExamSrc） -->
-  <script defer src="js/av-picker.js?v=20261004d"></script>
+  <script defer src="js/av-picker.js?v=20261020a"></script>
   <script defer src="js/coach.js?v=20261013"></script>
-  <script defer src="js/speaking.js?v=20261017b"></script>
+  <script defer src="js/speaking.js?v=20261020a"></script>
   <script defer src="js/pattern-drill.js?v=20261002a"></script>
   <script defer src="js/scene-drill.js?v=20260922a"></script>
   <!-- 🔴 10/17 性能批（第二批 · 传输层）：下面四个脚本改按需加载 —— 实测（tests/_probe_ablate_1017.cjs）
@@ -1856,6 +1856,17 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
    再叠上外层 padding，视觉上明显偏上。修：flex 居中 + padding 归零（见上 B）。 */
 #coachView #coachInput::placeholder{color:var(--muted);opacity:1;line-height:1.5}
 
+/* 🔴 10/20 她报「点口语模考会跳到加载画面卡住一会再跳」：
+   模考加载态 —— 不切视图（内容一个像素都不动），只在她点的那个按钮后面转个小圈。
+   ⚠️ 选 #spMockJumpBtn 而不是 pill-tab：模考入口是题库筛选行那个按钮，
+      顶部 data-type="MOCK" 的 pill-tab 是 hidden 承载节点。 */
+#tabs .pill-tab.is-loading, #spMockJumpBtn.is-loading{pointer-events:none}
+#tabs .pill-tab.is-loading::after, #spMockJumpBtn.is-loading::after{content:"";display:inline-block;width:11px;height:11px;margin-left:7px;
+  border:2px solid currentColor;border-top-color:transparent;border-radius:50%;vertical-align:-2px;
+  animation:spTabSpin .7s linear infinite}
+@keyframes spTabSpin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){#tabs .pill-tab.is-loading::after, #spMockJumpBtn.is-loading::after{animation:none;opacity:.6}}
+
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -1951,7 +1962,7 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
        10/2（她拍板）：「开始一次口语模考」介绍卡 + 「最近一次模考」记录卡整删——
        点题库页「模考」按钮直接进全屏考试（speaking.js MOCK 分支调 window.__mockEnter，
        有未完成快照则自动续考）。报告仍在考完/回顾页展示。 -->
-  <div id="mockView" hidden data-late-src="js/mock-report.js?v=20261004a,js/mock-history.js?v=20261006b,js/mock.js?v=20261020a">
+  <div id="mockView" hidden data-late-src="js/mock-report.js?v=20261004a,js/mock-history.js?v=20261006b,js/mock.js?v=20261020b">
     <!-- ② 考试舞台 -->
     <section class="card" id="mockStage" hidden>
       <div class="mock-total-timer" id="mockTotalTimerWrap" hidden>
@@ -2035,7 +2046,7 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
         </div>
         <aside class="mock-examiner" id="mockExaminer" aria-label="考官视频窗">
           <div class="me-video">
-            <img id="mockExaminerImg" src="img/examiner-a.svg" alt="IELTS Examiner" draggable="false" />
+            <img id="mockExaminerImg" src="img/examiner/ex-sophia.jpg" alt="IELTS Examiner" draggable="false" />
             <div class="me-live"><span class="me-live-dot"></span>LIVE</div>
             <div class="me-state" id="mockExaminerState"></div>
           </div>

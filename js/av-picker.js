@@ -22,14 +22,20 @@
     { f: 'user-m3', label: '男生 3' },
     { f: 'user-m4', label: '男生 4' }
   ];
-  /* 考官 2 个（avataaars，更精细的 Q 版） */
+  /* 🔴 10/20 她报：「口语模考用的图不是考官的头像…考官的图片精度高一些要真实生动」
+     → 考官从 2 个 avataaars（Q 版卡通）+ 2 个 SVG 插画，全部换成 **4 张 AI 实拍级照片**。
+     目录 img/examiner/、扩展名 .jpg（用户头像仍是 img/avatars/*.svg，两者路径不同，
+     所以这里用 src 字段显式给全路径，不再靠 DIR 拼接）。
+     ⚠️ 老用户 localStorage 里存的 exam-f / exam-m 会走 valid() 失配 → 自动回落 FALLBACK_EXAM，不会白图。 */
   var EXAM_AVATARS = [
-    { f: 'exam-f', label: '考官 1' },
-    { f: 'exam-m', label: '考官 2' }
+    { f: 'ex-sophia', label: 'Sophia', src: 'img/examiner/ex-sophia.jpg' },
+    { f: 'ex-daniel', label: 'Daniel', src: 'img/examiner/ex-daniel.jpg' },
+    { f: 'ex-emily',  label: 'Emily',  src: 'img/examiner/ex-emily.jpg' },
+    { f: 'ex-james',  label: 'James',  src: 'img/examiner/ex-james.jpg' }
   ];
   var DIR = 'img/avatars/';
   var FALLBACK_USER = 'user-f1';
-  var FALLBACK_EXAM = 'exam-f';
+  var FALLBACK_EXAM = 'ex-sophia';
 
   function valid(list, f){
     if(!f) return false;
@@ -48,7 +54,14 @@
     return valid(EXAM_AVATARS, f) ? f : FALLBACK_EXAM;
   }
   function userSrc(){ return DIR + avUser() + '.svg'; }
-  function examSrc(){ return DIR + avExam() + '.svg'; }
+  /* 考官 = 照片，路径与扩展名都跟用户头像不同 → 按 src 字段取，取不到才退回老规则 */
+  function examSrc(){
+    var f = avExam();
+    for(var i = 0; i < EXAM_AVATARS.length; i++){
+      if(EXAM_AVATARS[i].f === f) return EXAM_AVATARS[i].src;
+    }
+    return DIR + f + '.svg';
+  }
 
   function save(field, f){
     if(!DATA.settings) return;
@@ -65,9 +78,11 @@
        .av-lb 文字标签整块删；title/alt 改中性文案（alt 不能空——读屏需要）。 */
     box.innerHTML = list.map(function(a){
       var on = (curFn() === a.f) ? ' on' : '';
+      /* 10/20：考官是照片（a.src 给全路径），用户头像是 SVG（走 DIR 拼接） */
+      var src = a.src || (DIR + a.f + '.svg');
       return '<button type="button" class="av-opt' + on + '" data-av="' + a.f + '" role="radio"'
         + ' aria-checked="' + (curFn() === a.f ? 'true' : 'false') + '" title="选择这个头像">'
-        + '<span class="av-box"><img src="' + DIR + a.f + '.svg" alt="头像" loading="lazy"'
+        + '<span class="av-box"><img src="' + src + '" alt="头像" loading="lazy"'
         + ' onerror="this.style.visibility=\'hidden\'"></span></button>';
     }).join('');
     box.onclick = function(e){

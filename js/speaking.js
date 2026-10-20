@@ -292,15 +292,49 @@ function spMockTip(html){
 }
 function spMockTipClear(){ const t = document.getElementById('mockLoadTip'); if(t) t.remove(); }
 
+/* 10/20：模考加载态（只有冷路径才出现）。
+   为什么不在视图里放「加载中」：她报「点了会跳到加载画面卡住一会再跳」——那是**跳两次**。
+   这里改成按钮上转圈、内容不动，下好了一次性切进考场，只跳一次。
+   ⚠️ 必须挂在 #spMockJumpBtn 上：模考真正的入口是题库筛选行那个按钮，
+      顶部 data-type="MOCK" 的 pill-tab 是 hidden 的承载节点（10/15 把入口移出去了）——
+      加在那个隐藏节点上等于没加，用户一个像素都看不到。 */
+function spMockTabBusy(on){
+  const targets = [document.getElementById('spMockJumpBtn'), document.querySelector('#tabs [data-type="MOCK"]')];
+  targets.forEach(function(el){
+    if(!el) return;
+    el.classList.toggle('is-loading', !!on);
+    if(on) el.setAttribute('aria-busy', 'true');
+    else el.removeAttribute('aria-busy');
+  });
+}
+
 /* load 之后空闲预热：用户真去点「素材」时通常已经就位。
    放在 load 之后（而不是 ready 时）是为了绝不和首屏的 CSS / data.js / common.js / speaking.js 抢带宽。 */
 ready(function(){
   var go = function(){
-    var idle = window.requestIdleCallback || function(f){ setTimeout(f, 1200); };
-    idle(function(){ lateLoad('matView'); lateLoad('mockView'); });
+    /* 🔴 10/20 她报「点口语模考会跳到加载画面卡住一会再跳到模考页面」。
+       根因链 = 10/17 把 mock.js(62KB)+mock-report(9.5KB)+mock-history(7.5KB) 改成按需加载
+       （#mockView 的 data-late-src，三个**串行**）→ 用户点「模考」才开始下 →
+       先看到 #mockView 空壳 + 「模考加载中…」→ 下完才进考场 = **视觉上跳了两次**。
+       修法两条：
+         ① 预取提前 + 一定时限内必触发（原来 idle(fn) 没传 timeout，
+            requestIdleCallback 在主线程忙时可能拖好几秒才回调 → 她点的瞬间必然撞上加载中）
+         ② 冷路径不切视图（见 spActivateTab 的 MOCK 分支）：脚本没就绪就保持题库列表 + MOCK tab 转圈，
+            下好了一次性切进考场，只跳一次。
+       注：mock.js 里 ensureMockLib() 自己会注入/等待 mock-report，所以这里不必保证顺序，
+       只管在用户动手之前把三个脚本塞进 HTTP 缓存。 */
+    var idle = window.requestIdleCallback
+      ? function(f){ return window.requestIdleCallback(f, { timeout: 1500 }); }
+      : function(f){ return setTimeout(f, 600); };
+    idle(function(){
+      /* 模考优先（三个串行 79KB，最可能被马上点），素材排它后面 —— 原来两个 lateLoad 同时发会互相抢带宽 */
+      lateLoad('mockView').then(function(){ lateLoad('matView'); });
+    });
   };
-  if(document.readyState === 'complete') go();
-  else window.addEventListener('load', go, { once: true });
+  /* 原来只在 window load 之后才 go()。软导航进本页时 load 早就过了（走 readyState==='complete' 分支没问题），
+     但硬刷进入时要等全部图片/字体下完才 load → 预取被推得很晚。改成 DOM ready 后 300ms 就开工：
+     requestIdleCallback 本身就会让路给首屏渲染，不需要再用 load 事件当闸。 */
+  setTimeout(go, 300);
 });
 
 ready(() => {
@@ -349,21 +383,46 @@ ready(() => {
         // 10/2（她拍板）：开始卡/最近记录已删——点「模考」直接进全屏考试
         //（window.__mockEnter 由 mock.js ready 暴露：有未完成快照=自动续考，否则全新开考）
         // 10/17 性能批：mock.js / mock-report.js / mock-history.js 改按需加载（模考 tab 目前 hidden、功能未开）。
-        // 10/17 修：按需加载必须有 loading / 错误态 —— 之前脚本没到位时 #mockView 已被显示、
-        //   而 #mockStage 还是 hidden，用户看到的是**一整屏空白**，且失败只有一句 console.error（静默失败）。
-        $('#mockView').hidden = false;
-        if(typeof window.__mockEnter !== 'function') spMockTip('<p class="muted" style="margin:0">模考加载中…</p>');
+        // 🔴 10/20 她报：「点了口语模考会跳到这个画面卡住一会再跳到模考页面」。
+        //   根因 = 这里**先把 #mockView 显示出来**（露出空壳 + 「模考加载中…」卡片），
+        //          然后等 79KB 三个脚本串行下完，才由 __mockEnter 把考场渲染出来 = **跳了两次**。
+        //   改：① 脚本已就绪 → 直接进（预取见上面 ready 里那段，正常情况早就下完了）
+        //       ② 没就绪 → **不切视图**，保持题库列表原样，只在 MOCK tab 上加转圈；
+        //          下好了一次性切进考场 = 只跳一次
+        //       ③ 真失败（网络/被拦）才切视图给错误态 + 重试
+        //   判据沿用她的「绝不切内容、绝不错位」：加载过程中她眼前的东西一个像素都不变。
+        if(typeof window.__mockEnter === 'function'){
+          $('#mockView').hidden = false;
+          spMockTipClear();
+          try{ window.__mockEnter(); }
+          catch(err){
+            console.error('[speaking] 模考进入失败', err);
+            spMockTip('<p class="muted" style="margin:0">模考启动失败，请刷新页面重试。</p>');
+          }
+          return;
+        }
+        /* 冷路径：刚进页面就立刻点模考，预取还没完成 */
+        $('#listView').hidden = false;        // tab 高亮已经变了，但内容留在题库，不闪空白
+        spMockTabBusy(true);
         lateLoad('mockView').then(function(){
+          spMockTabBusy(false);
           if(typeof window.__mockEnter === 'function'){
+            $('#mockView').hidden = false;
+            $('#listView').hidden = true;     // 这时才真正离开题库
             spMockTipClear();
             try{ window.__mockEnter(); }
-            catch(err){ console.error('[speaking] 模考进入失败', err); spMockTip('<p class="muted" style="margin:0">模考启动失败，请刷新页面重试。</p>'); }
+            catch(err){
+              console.error('[speaking] 模考进入失败', err);
+              spMockTip('<p class="muted" style="margin:0">模考启动失败，请刷新页面重试。</p>');
+            }
             return;
           }
           /* 脚本没到位（网络失败 / 被拦）→ 给可见的错误态 + 重试按钮。
              lateLoad 失败时不缓存 promise（见其 catch），点重试会重新加载；
              重试 = 再点一次隐藏的 MOCK tab，复用本分支的全部逻辑，不另写一份。 */
           console.error('[speaking] 模考脚本未就绪：__mockEnter 不存在');
+          $('#listView').hidden = true;
+          $('#mockView').hidden = false;
           const tip = spMockTip('<p class="muted" style="margin:0">模考加载失败（网络问题），请重试。</p>'
             + '<button type="button" class="btn" id="mockLoadRetry" style="margin-top:10px">重试</button>');
           const rb = tip && document.getElementById('mockLoadRetry');
