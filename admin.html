@@ -8,128 +8,194 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 <style>
 :root{
-  --p-50:#eef7f6; --p-100:#d3ebe8; --p-200:#a8d7d2; --p-500:#3a9a93; --p-600:#2f867f; --p-700:#2c7873; --p-900:#1a4542;
-  --n-0:#fff; --n-300:#e6e8eb; --n-500:#a8adb5; --n-600:#71767e; --n-700:#4a4f57; --n-900:#14161a;
-  --line:#e6e8eb; --danger:#c0392b; --ok:#2e8b57;
+  /* 颜色：只有 teal 一个强调色（按钮/链接/图表线），其余全是中性灰 + 三个状态色 */
+  --teal:#5cb3ab; --teal-d:#2f867f; --teal-50:#eef7f6; --teal-bd:#cfe8e5;
+  --ink:#141a1c; --ink2:#5b6570; --ink3:#8b949e;
+  --line:#e6eaec; --line2:#dfe4e6; --bg:#f5f7f8; --surface:#fbfcfc;
+  --warn:#8a6318; --warn-bg:#fdf6e7; --warn-bd:#f0e0bd;
+  --bad:#b3352a; --bad-bg:#fdf0ee; --ok:#2e8b57; --ok-bg:#f3faf5;
+  --r:10px;
 }
 *{box-sizing:border-box}
 body{
-  margin:0;min-height:100vh;color:var(--n-700);
-  font-family:system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
-  background:linear-gradient(160deg,var(--p-50) 0%,#f6fbfa 45%,#eef4f9 100%);
+  margin:0;min-height:100vh;color:var(--ink);background:var(--bg);
+  font:14.5px/1.65 system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-variant-numeric:tabular-nums;   /* 后台里的数字一律等宽，扫列才不会跳 */
 }
-.top{max-width:1080px;margin:0 auto;padding:18px 24px;display:flex;justify-content:space-between;align-items:center}
-.top b{color:var(--p-900);font-size:16px}
-.top .sub{font-size:12.5px;color:var(--n-500)}
-.wrap{max-width:1080px;margin:0 auto;padding:0 24px 60px}
-.card{background:var(--n-0);border-radius:14px;box-shadow:0 8px 28px rgba(26,69,66,.08);padding:22px 24px;margin-bottom:18px}
-.card h2{margin:0 0 4px;font-size:16.5px;color:var(--n-900)}
-.card .desc{margin:0 0 14px;font-size:13px;color:var(--n-600)}
-/* 密钥门 */
-#gate{max-width:420px;margin:12vh auto 0;text-align:center}
-#gate input{width:100%;height:46px;border:1.5px solid var(--line);border-radius:10px;padding:0 14px;font-size:15px;outline:none}
-#gate input:focus{border-color:var(--p-500)}
-#gate .btn{margin-top:14px}
-#gate .tip{font-size:12.5px;color:var(--n-500);margin-top:14px;line-height:1.7}
-.err{color:var(--danger);font-size:13px;margin-top:10px;min-height:16px}
-/* 通用 */
-.btn{height:38px;padding:0 16px;border:0;border-radius:9px;background:var(--p-500);color:#fff;font-size:14px;font-weight:600;cursor:pointer}
-.btn:hover{background:var(--p-600)}
-.btn.ghost{background:#fff;color:var(--p-700);border:1.5px solid var(--p-500)}
-.btn.ghost:hover{background:var(--p-50)}
-.btn.small{height:30px;padding:0 10px;font-size:12.5px;border-radius:7px}
-.btn.danger{background:#fff;color:var(--danger);border:1.5px solid var(--danger)}
+/* ---- 顶栏 ---- */
+.top{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--line);
+  padding:11px 24px;display:flex;justify-content:space-between;align-items:center;gap:16px}
+.top b{color:var(--ink);font-size:15.5px;letter-spacing:-.2px}
+.top .sub{display:block;font-size:12px;color:var(--ink3);margin-top:1px;letter-spacing:0;font-variant-numeric:tabular-nums}
+.wrap{max-width:1200px;margin:0 auto;padding:18px 24px 64px}
+/* ---- 卡片：1px 描边，不用投影（浅色界面里投影只会让页面显脏） ---- */
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:18px 20px;margin-bottom:14px}
+.card h2{margin:0;font-size:15.5px;color:var(--ink);letter-spacing:-.2px}
+.card .desc{margin:4px 0 12px;font-size:12.5px;color:var(--ink3);line-height:1.65}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.card-head .r{display:flex;gap:8px;align-items:center;flex:none}
+/* ---- 密钥门 ---- */
+#gate{max-width:400px;margin:14vh auto 0;text-align:center;padding:26px 26px 22px}
+#gate h2{font-size:17px;margin:0 0 4px}
+#gate input{width:100%;height:44px;border:1px solid var(--line2);border-radius:9px;padding:0 13px;font-size:15px;outline:none;margin-top:14px}
+#gate input:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-50)}
+#gate .btn{margin-top:12px;width:100%;height:42px}
+#gate .tip{font-size:12px;color:var(--ink3);margin-top:14px;line-height:1.7}
+.err{color:var(--bad);font-size:12.5px;margin-top:8px;min-height:16px}
+/* ---- 控件 ---- */
+.btn{height:34px;padding:0 14px;border:1px solid var(--teal);border-radius:8px;background:var(--teal);
+  color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .12s,border-color .12s}
+.btn:hover{background:var(--teal-d);border-color:var(--teal-d)}
+.btn.ghost{background:#fff;color:var(--ink2);border-color:var(--line2)}
+.btn.ghost:hover{background:#f6f8f9;border-color:#cfd8dc;color:var(--ink)}
+.btn.small{height:28px;padding:0 10px;font-size:12.5px;border-radius:7px}
+.btn.danger{background:#fff;color:var(--bad);border-color:#e8c4bf}
+.btn.danger:hover{background:var(--bad-bg)}
 .btn:disabled{opacity:.55;cursor:default}
-input.small{height:36px;border:1.5px solid var(--line);border-radius:8px;padding:0 10px;font-size:14px;outline:none}
-input.small:focus{border-color:var(--p-500)}
-/* 总览 —— 10/5 P1 由 5 格扩到 7 格。改用 auto-fit 自适应栅格：
-   5 格写死 repeat(5,1fr) 时每格最窄仅 ~180px，7 格在 1280px 下会挤到数字换行。
-   auto-fit + minmax 让格数随宽度自然换行，**不必再手写断点**，375px 手机上自动降到单列/双列。 */
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:12px}
-.stats div{background:#f6f8f9;border-radius:10px;padding:14px}
-.stats b{display:block;font-size:24px;color:var(--n-900);font-variant-numeric:tabular-nums}
-.stats span{font-size:12.5px;color:var(--n-600)}
-/* 表格 */
-table{width:100%;border-collapse:collapse;font-size:13.5px}
-th{ text-align:left;color:var(--n-600);font-weight:500;font-size:12.5px;padding:6px 8px;border-bottom:1.5px solid var(--line)}
-td{padding:8px;border-bottom:1px solid #f0f2f4;color:var(--n-700)}
-code.inv{font-family:ui-monospace,Consolas,monospace;font-size:15px;font-weight:700;letter-spacing:1.5px;color:var(--p-900)}
-.tag{display:inline-block;padding:1px 8px;border-radius:99px;font-size:12px;font-weight:600}
-.tag.ok{background:#e6f4ec;color:var(--ok)}
-.tag.full{background:#fdecea;color:var(--danger)}
-/* 10/5 P3 真人/探针判定标签：真人=绿、探针=灰（弱化，不抢眼）、待观察=淡黄 */
-.tag.v-real{background:#e6f4ec;color:var(--ok)}
-.tag.v-probe{background:#eef0f2;color:#8b949e}
-.tag.v-idle{background:#fdf6e3;color:#9a7b1f}
-.tag.v-sig{background:#f1f5f9;color:#64748b;font-weight:500;margin-left:4px}
-button.mini{font-size:11.5px;padding:1px 7px;border-radius:6px;border:1px solid var(--line);background:#fff;color:var(--n-700);cursor:pointer}
-button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
-.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
-.muted{color:var(--n-500);font-size:12.5px}
+input.small,select.small{height:34px;border:1px solid var(--line2);border-radius:8px;padding:0 10px;
+  font-size:13px;outline:none;font-family:inherit;background:#fff;color:var(--ink)}
+input.small:focus,select.small:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-50)}
+.muted{color:var(--ink3);font-size:12.5px}
 .hidden{display:none!important}
-/* 页签（10/2 反馈批：总览/邀请码/用户/会员原本纵向平铺，加页签把反馈独立成页，不挤在一起） */
-.tabs{display:flex;gap:6px;margin:0 0 16px;background:#f1f5f4;padding:4px;border-radius:11px;width:fit-content}
-.tab{height:32px;padding:0 16px;border:0;border-radius:8px;background:transparent;color:var(--n-600);
-  font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit}
-.tab:hover{color:var(--p-700)}
-.tab.on{background:#fff;color:var(--p-700);box-shadow:0 1px 4px rgba(26,69,66,.12)}
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+/* ---- 页签：轻量下划线式，不当主角 ---- */
+.tabs{display:flex;gap:2px;margin:0 0 16px;border-bottom:1px solid var(--line)}
+.tab{height:38px;padding:0 14px;border:0;border-bottom:2px solid transparent;background:none;color:var(--ink3);
+  font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:-1px}
+.tab:hover{color:var(--ink)}
+.tab.on{color:var(--ink);border-bottom-color:var(--teal)}
 .tab .dot{display:inline-block;min-width:17px;height:17px;line-height:17px;padding:0 4px;margin-left:5px;
-  border-radius:99px;background:var(--p-500);color:#fff;font-size:11px;font-weight:700;vertical-align:1px}
-.tab .dot.zero{background:var(--n-500);opacity:.45}
-/* 反馈列表 */
-.price-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px;padding:9px 13px;
-  border:1px solid #fed7aa;background:#fff7ed;border-radius:10px;font-size:13px;color:#9a3412;line-height:1.6}
+  border-radius:99px;background:var(--teal);color:#fff;font-size:11px;font-weight:700;vertical-align:1px}
+.tab .dot.zero{background:#dfe3e6;color:#8b949e}
+/* ---- 提示条：只留一条（多条就折叠进「要你处理」） ---- */
+.alert{display:flex;align-items:center;gap:9px;padding:9px 13px;border-radius:8px;font-size:13px;
+  background:var(--warn-bg);border:1px solid var(--warn-bd);color:var(--warn);margin-bottom:14px}
+.alert:empty{display:none}
+.alert .dot{width:7px;height:7px;border-radius:99px;background:var(--warn);flex:none}
+.alert b{font-weight:700}
+.alert .more{margin-left:auto;color:var(--warn);font-size:12.5px;text-decoration:none;border-bottom:1px solid rgba(138,99,24,.35)}
+.price-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:8px 12px;
+  border:1px solid var(--warn-bd);background:var(--warn-bg);border-radius:8px;font-size:12.5px;color:var(--warn);line-height:1.6}
 .price-bar[hidden]{display:none}
-.price-bar.ok{border-color:#99f6e4;background:#f0fdfa;color:#115e59}
+.price-bar.ok{border-color:var(--teal-bd);background:var(--teal-50);color:#2e6f69}
 .price-bar b{font-weight:700}
 .price-bar .btn{margin-left:auto}
-.stale-bar{display:flex;align-items:center;gap:9px;margin:0 0 14px;padding:9px 14px;
-  border:1px solid #99f6e4;background:#f0fdfa;border-radius:10px;font-size:13px;color:#115e59;line-height:1.5}
+.stale-bar{display:flex;align-items:center;gap:9px;margin:0 0 12px;padding:8px 13px;
+  border:1px solid var(--teal-bd);background:var(--teal-50);border-radius:8px;font-size:12.5px;color:#2e6f69}
 .stale-bar[hidden]{display:none}
-.stale-bar.fail{border-color:#fed7aa;background:#fff7ed;color:#9a3412}
-.stale-spin{width:13px;height:13px;flex:none;border:2px solid rgba(17,94,89,.25);border-top-color:#0d9488;
+.stale-bar.fail{border-color:var(--warn-bd);background:var(--warn-bg);color:var(--warn)}
+.stale-spin{width:12px;height:12px;flex:none;border:2px solid rgba(46,111,105,.22);border-top-color:var(--teal-d);
   border-radius:50%;animation:staleRot .8s linear infinite}
 .stale-bar.fail .stale-spin{display:none}
-.stale-bar .stale-at{margin-left:auto;opacity:.75;font-size:12px;white-space:nowrap}
+.stale-bar .stale-at{margin-left:auto;opacity:.8;font-size:11.5px;white-space:nowrap}
 @keyframes staleRot{to{transform:rotate(360deg)}}
-.flags{display:flex;flex-direction:column;gap:8px;margin:0 0 16px}
-.flags:empty{display:none}
-.flag{display:flex;align-items:flex-start;gap:10px;padding:10px 13px;border-radius:10px;font-size:13.5px;line-height:1.6}
-.flag.warn{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412}
-.flag.info{background:#f0fdfa;border:1px solid #99f6e4;color:#115e59}
-.flag b{font-weight:700}
-.flag .flag-act{margin-left:auto;flex:none}
-.st-tile .mini{margin-left:6px}
-/* 10/6 反馈改卡片式：原来是一行流水（时间/文本/账号挤在一行），卡片能放下截图与展开详情 */
-.fb-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 12px;padding:13px 15px;margin-bottom:10px;
-  border:1px solid var(--line);border-radius:12px;background:#fff;cursor:pointer}
-.fb-row .fb-dot{flex:none;width:8px;height:8px;border-radius:99px;background:var(--p-500);align-self:center}
-.fb-row .fb-when{flex:none;width:118px;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
-.fb-row .fb-txt{flex:1 1 320px;min-width:0;font-size:14px;line-height:1.6;color:var(--ink)}
-.fb-row .fb-who{flex:none;display:flex;flex-direction:column;gap:1px;font-size:12px;color:var(--muted)}
-.fb-row .fb-num{flex:none;font-size:12px;color:var(--muted)}
-.fb-row.unread{border-color:var(--p-200);background:#f0fdfa}
-.fb-row:hover{background:#f8fbfb}
+/* ---- 六个主指标 ---- */
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.kpi{border:1px solid var(--line);border-radius:9px;padding:11px 12px 10px;background:var(--surface);position:relative}
+.kpi .lb{font-size:11.5px;color:var(--ink3);white-space:nowrap;letter-spacing:.01em}
+.kpi .v{font-size:22px;font-weight:700;letter-spacing:-.6px;margin:2px 0 1px;color:var(--ink);line-height:1.15}
+.kpi .v em{font-style:normal;font-size:11.5px;font-weight:600;color:var(--ink3);margin-left:2px;letter-spacing:0}
+.kpi .d{font-size:11.5px;color:var(--ink3)}
+.kpi .d.up{color:var(--ok)} .kpi .d.down{color:var(--bad)}
+/* ---- 降级指标：一行小字，一个数都不少 ---- */
+.morebar{display:flex;flex-wrap:wrap;gap:6px 20px;align-items:center;margin-top:10px;padding:8px 12px;
+  border:1px dashed var(--line2);border-radius:8px;font-size:12.5px;color:var(--ink3)}
+.morebar .it b{color:var(--ink);font-weight:600;margin-left:4px}
+.morebar .sep{flex:1}
+/* ---- 趋势 + 待办 两栏 ---- */
+.ovgrid{display:grid;grid-template-columns:1.6fr 1fr;gap:12px;margin-top:14px}
+.panel{border:1px solid var(--line);border-radius:9px;padding:13px 14px;background:#fff;min-width:0}
+.panel .ph{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.panel .ph h3{margin:0;font-size:13px;font-weight:650;color:var(--ink)}
+.panel .ph .m{font-size:11.5px;color:var(--ink3)}
+.radio-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--ink3);margin-bottom:8px}
+.radio-row label{display:flex;align-items:center;gap:4px;cursor:pointer}
+.radio-row input{accent-color:var(--teal-d)}
+/* 待办列表 */
+.todo{list-style:none;margin:0;padding:0}
+.todo li{display:flex;gap:9px;align-items:flex-start;padding:9px 0;border-bottom:1px solid #f2f5f6;font-size:13px;line-height:1.55}
+.todo li:last-of-type{border-bottom:0}
+.todo .cnt{flex:none;min-width:24px;height:22px;padding:0 5px;border-radius:6px;background:var(--warn-bg);
+  color:var(--warn);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.todo .cnt.gray{background:#f1f4f5;color:var(--ink2)}
+.todo b{font-weight:650;color:var(--ink)}
+.todo span{display:block;color:var(--ink3);font-size:11.5px;margin-top:1px}
+.todo .go{margin-left:auto;flex:none;color:var(--teal-d);font-size:12px;text-decoration:none;font-weight:600;white-space:nowrap}
+.todo-foot{display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid #f2f5f6;
+  font-size:12px;color:var(--ink3)}
+.todo-foot b{color:var(--ink)}
+.todo-foot .mini{margin-left:auto}
+/* ---- 表格：数字右对齐 + 等宽 ---- */
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;color:var(--ink3);font-weight:600;font-size:11.5px;padding:7px 9px;
+  border-bottom:1px solid var(--line);white-space:nowrap;background:#fafbfb}
+td{padding:8px 9px;border-bottom:1px solid #f2f5f6;color:var(--ink);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+th.num,td.num{text-align:right}
+table td:last-child,table th:last-child{text-align:right}
+code.inv{font-family:ui-monospace,Consolas,monospace;font-size:14px;font-weight:700;letter-spacing:1.2px;color:var(--ink)}
+/* ---- 标签 ---- */
+.tag{display:inline-block;padding:1px 7px;border-radius:20px;font-size:11.5px;font-weight:600;line-height:1.6;white-space:nowrap}
+.tag.ok{background:var(--ok-bg);color:var(--ok)}
+.tag.full{background:var(--bad-bg);color:var(--bad)}
+.tag.v-real{background:var(--ok-bg);color:var(--ok)}
+.tag.v-probe{background:#f1f4f5;color:var(--ink3);font-weight:500}
+.tag.v-idle{background:var(--warn-bg);color:var(--warn);font-weight:500}
+.tag.v-sig{background:#f1f5f9;color:#64748b;font-weight:500;margin-left:4px}
+button.mini{font-size:11.5px;padding:2px 8px;border-radius:6px;border:1px solid var(--line2);background:#fff;
+  color:var(--ink2);cursor:pointer;font-family:inherit}
+button.mini:hover{border-color:var(--teal);color:var(--teal-d)}
+button.mini.danger{color:var(--bad);border-color:#e8c4bf}
+button.mini.danger:hover{background:var(--bad-bg);border-color:var(--bad)}
+/* ---- 表单：标签在上，一行一个字段组 ---- */
+.form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;gap:10px 14px;align-items:end;margin-bottom:14px}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field label{font-size:11.5px;color:var(--ink3)}
+.field input,.field select{width:100%}
+.form .submit{display:flex;align-items:center;gap:8px}
+/* ---- 空状态 ---- */
+.empty{text-align:center;padding:26px 16px;color:var(--ink3);font-size:13px}
+.empty b{display:block;color:var(--ink2);font-size:13.5px;margin-bottom:4px;font-weight:600}
+/* ---- 反馈列表 ---- */
+.fb-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 12px;padding:12px 14px;margin-bottom:9px;
+  border:1px solid var(--line);border-radius:9px;background:#fff;cursor:pointer}
+.fb-row:hover{background:#f8fbfb;border-color:#cfd8dc}
+.fb-row.unread{border-color:var(--teal-bd);background:var(--teal-50)}
 .fb-row.read{opacity:.72}
+.fb-row .fb-dot{flex:none;width:7px;height:7px;border-radius:99px;background:var(--teal);align-self:center}
 .fb-row.read .fb-dot{background:#dfe3e6}
-.fb-when{color:var(--n-500);font-size:12.5px}
-.fb-who b{color:var(--n-900)}
-.fb-who span{display:block;color:var(--n-500);font-size:12px;word-break:break-all}
-.fb-txt{color:var(--n-700);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.fb-num{text-align:right;color:var(--n-500);font-size:12.5px}
-.fb-detail{background:#f8fbfb;border-radius:10px;padding:14px 16px;margin:4px 0 10px}
-.fb-detail .fb-full{white-space:pre-wrap;word-break:break-word;line-height:1.65;color:var(--n-900);font-size:14px}
-.fb-env{margin:10px 0 0;font-size:12px;color:var(--n-500);line-height:1.7}
-.fb-shots{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
-.fb-shots img{max-width:min(46vw,320px);max-height:260px;border-radius:9px;border:1px solid var(--line);
+.fb-when{flex:none;width:118px;font-size:12px;color:var(--ink3)}
+.fb-txt{flex:1 1 300px;min-width:0;font-size:13.5px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fb-who{flex:none;display:flex;flex-direction:column;gap:1px;font-size:11.5px;color:var(--ink3)}
+.fb-who b{color:var(--ink2)}
+.fb-who span{display:block;color:var(--ink3);word-break:break-all}
+.fb-num{flex:none;font-size:11.5px;color:var(--ink3);text-align:right}
+.fb-detail{background:#f8fbfb;border-radius:9px;padding:13px 15px;margin:4px 0 10px}
+.fb-detail .fb-full{white-space:pre-wrap;word-break:break-word;line-height:1.65;color:var(--ink);font-size:13.5px}
+.fb-env{margin:9px 0 0;font-size:11.5px;color:var(--ink3);line-height:1.7}
+.fb-shots{display:flex;gap:9px;flex-wrap:wrap;margin-top:11px}
+.fb-shots img{max-width:min(46vw,320px);max-height:260px;border-radius:8px;border:1px solid var(--line);
   cursor:zoom-in;background:#fff}
 .fb-shots img.big{position:fixed;inset:0;max-width:none;max-height:none;width:100%;height:100%;
   object-fit:contain;z-index:99;cursor:zoom-out;border-radius:0;background:rgba(15,20,22,.9)}
-.fb-acts{display:flex;gap:8px;margin-top:12px;align-items:center}
+.fb-acts{display:flex;gap:8px;margin-top:11px;align-items:center}
+/* ---- 移动端：重排而不是缩小 ---- */
+@media (max-width:1000px){
+  .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .ovgrid{grid-template-columns:1fr}
+  .form{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
 @media (max-width:720px){
-  .fb-row{grid-template-columns:12px 1fr;grid-template-areas:'d t' 'w w';gap:4px 8px}
-  .fb-dot{grid-area:d}.fb-when{grid-area:t;text-align:right}
-  .fb-who{grid-area:w}.fb-txt{grid-area:w;display:none}
+  .top{padding:10px 14px}
+  .wrap{padding:12px 14px 48px}
+  .card{padding:14px 14px;border-radius:9px}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .kpi .v{font-size:19px}
+  .form{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .form .submit{grid-column:1 / -1}
+  .fb-row{flex-wrap:wrap}
+  .fb-txt{display:none}
   .fb-shots img{max-width:100%}
 }
 </style>
@@ -148,9 +214,9 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
 
 <!-- 面板主体 -->
 <div id="panel" class="wrap hidden">
-  <div class="top" style="padding:18px 0">
-    <div><b>站长面板</b> <span class="sub" id="dayTag"></span></div>
-    <div style="display:flex;gap:8px">
+  <div class="top">
+    <div><b>站长面板</b><span class="sub" id="dayTag"></span></div>
+    <div style="display:flex;gap:8px;flex:none">
       <button class="btn ghost small" id="refreshBtn" type="button">刷新数据</button>
       <button class="btn ghost small" id="lockBtn" type="button">锁定退出</button>
     </div>
@@ -172,23 +238,84 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
   </div>
 
   <div id="pgData">
-  <!-- 总览 -->
+  <!-- 总览：三段式 —— 状态（6 个主指标）→ 趋势（主图）→ 待办（要你处理） -->
+  <!-- 10/20 深夜改版依据：一屏最多 4~6 个主指标（AdminLTE/WolfPixel/UXMagic 三源一致）；
+       其余指标降级成一行小字，一个数不删；提示条只留一条（zachswebdesigns「永不叠 >1 条」）。 -->
   <div class="card">
-    <h2>总览</h2>
-    <!-- 10/6 11:35 她要的「第一档」：需要她处理的事放最上面，别让 10 个同大小的数字卡把信号淹掉 -->
-    <div id="stFlags" class="flags"></div>
-    <p class="desc">实时从云端 KV 聚合（UTC 日为 AI 计量口径）</p>
-    <div class="stats">
-      <div><b id="stUsers">-</b><span>注册用户</span></div>
-      <div><b id="stReal">-</b><span>真人（判定）</span></div>
-      <div><b id="stProbe">-</b><span>探针账号</span><button class="mini danger" id="probeCleanBtn" type="button" title="删除所有判定为探针的账号（不可恢复）">清理</button></div>
-      <div><b id="stSess">-</b><span>活跃登录（30 天内）</span></div>
-      <div><b id="stAi">-</b><span>今日 AI 调用（全站）</span></div>
-      <div><b id="stAiWeek">-</b><span>本周 AI 调用（全站）</span></div>
-      <div><b id="stAiMonth">-</b><span>本月 AI 调用（全站）</span></div>
-      <div><b id="stCostMonth">-</b><span>本月 AI 成本</span></div>
-      <div><b id="stInv">-</b><span>邀请码剩余可用</span></div>
-      <div><b id="stVip">-</b><span>会员（有效期内）</span></div>
+    <div class="card-head">
+      <h2>总览</h2>
+      <span class="muted">实时聚合自云端 KV（UTC 日为 AI 计量口径）</span>
+    </div>
+    <!-- 一条提示条；所有细节都进右边「要你处理」 -->
+    <div id="stFlags" class="alert"></div>
+    <div class="kpis">
+      <div class="kpi">
+        <div class="lb">真人用户</div>
+        <div class="v" id="stReal">-</div>
+        <div class="d" id="stRealSub">—</div>
+      </div>
+      <div class="kpi">
+        <div class="lb">本月 AI 成本</div>
+        <div class="v" id="stCostMonth">-</div>
+        <div class="d" id="stCostSub">—</div>
+      </div>
+      <div class="kpi">
+        <div class="lb">真人本月调用</div>
+        <div class="v" id="stAiReal">-</div>
+        <div class="d" id="stAiRealSub">—</div>
+      </div>
+      <div class="kpi">
+        <div class="lb">今日调用（全站）</div>
+        <div class="v" id="stAi">-</div>
+        <div class="d" id="stAiSub">—</div>
+      </div>
+      <div class="kpi">
+        <div class="lb">有效会员</div>
+        <div class="v" id="stVip">-</div>
+        <div class="d" id="stVipSub">—</div>
+      </div>
+      <div class="kpi">
+        <div class="lb">邀请码可用</div>
+        <div class="v" id="stInv">-</div>
+        <div class="d" id="stInvSub">—</div>
+      </div>
+    </div>
+    <!-- 降级指标：一行小字，需要核对时看这里 -->
+    <div class="morebar">
+      <span class="it">注册用户<b id="stUsers">-</b></span>
+      <span class="it">活跃登录（30 天）<b id="stSess">-</b></span>
+      <span class="it">本周 AI（全站）<b id="stAiWeek">-</b></span>
+      <span class="it">本月 AI（全站）<b id="stAiMonth">-</b></span>
+    </div>
+    <div class="ovgrid">
+      <section class="panel">
+        <div class="ph"><h3>用量趋势</h3><span class="m" id="trendSum"></span></div>
+        <div class="radio-row">
+          <label><input type="radio" name="trendMetric" value="calls" checked />调用次数</label>
+          <label><input type="radio" name="trendMetric" value="cost" />成本（元）</label>
+          <label><input type="radio" name="trendMetric" value="tok" />Token</label>
+          <span style="flex:1"></span>
+          <button class="btn ghost small" id="priceSetBtn" type="button">设置单价</button>
+        </div>
+        <div class="price-bar" id="priceBar"></div>
+        <div id="trendChart"></div>
+        <p class="muted" id="trendEmpty" style="margin:6px 0 0">还没有用量数据 —— 10/5 之前调用未被计数，历史无数据。</p>
+        <!-- 低频操作收在图下面，不占首屏注意力 -->
+        <div class="toolbar" style="margin:10px 0 0">
+          <button class="btn ghost small" id="usageBtn" type="button">显示今日用量</button>
+          <button class="btn ghost small" id="csvBtn" type="button">导出用户 CSV</button>
+          <button class="btn ghost small" id="csvTrendBtn" type="button">导出趋势 CSV</button>
+          <button class="btn ghost small" id="csvSvcBtn" type="button">导出分功能 CSV</button>
+        </div>
+      </section>
+      <aside class="panel">
+        <div class="ph"><h3>要你处理</h3><span class="m">按紧急度</span></div>
+        <ul class="todo" id="todoList"></ul>
+        <div class="todo-foot">
+          <span>探针账号 <b id="stProbe">-</b> 个（我自己的测试号）</span>
+          <button class="mini danger" id="probeCleanBtn" type="button" title="删除所有判定为探针的账号（不可恢复）">清理</button>
+        </div>
+      </aside>
     </div>
   </div>
 
@@ -196,46 +323,31 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
   <div class="card">
     <h2>邀请码</h2>
     <p class="desc">注册已自由开放（不填码也能注册，吃免费额度）；邀请码 = <b>内测会员码</b>——用它注册的账号自动开会员（天数下面自定，0 = 只当普通码不送会员）</p>
-    <div class="toolbar">
-      <label class="muted">可用次数</label>
-      <input class="small" id="invMax" type="number" min="1" max="1000" value="5" style="width:76px" />
-      <label class="muted">送会员天数</label>
-      <input class="small" id="invVipDays" type="number" min="0" max="3650" value="30" style="width:76px" />
-      <label class="muted">自定义码（留空=随机）</label>
-      <input class="small" id="invCode" placeholder="如 ZHIZI2026" style="width:150px" maxlength="16" />
-      <button class="btn small" id="mintBtn" type="button">生成邀请码</button>
-      <span class="err" id="invErr" style="margin:0"></span>
+    <div class="form">
+      <div class="field">
+        <label for="invMax">可用次数</label>
+        <input class="small" id="invMax" type="number" min="1" max="1000" value="5" />
+      </div>
+      <div class="field">
+        <label for="invVipDays">送会员天数（0 = 只当普通码）</label>
+        <input class="small" id="invVipDays" type="number" min="0" max="3650" value="30" />
+      </div>
+      <div class="field">
+        <label for="invCode">自定义码（留空 = 随机）</label>
+        <input class="small" id="invCode" placeholder="如 ZHIZI2026" maxlength="16" />
+      </div>
+      <div class="submit">
+        <button class="btn" id="mintBtn" type="button">生成邀请码</button>
+      </div>
     </div>
+    <span class="err" id="invErr" style="display:block;margin:0 0 10px"></span>
+    <div class="tw">
     <table>
       <thead><tr><th>邀请码</th><th>已用 / 限次</th><th>送会员</th><th>创建时间</th><th>操作</th></tr></thead>
       <tbody id="invBody"></tbody>
     </table>
     <p class="muted" id="invEmpty" style="margin-top:8px">还没有邀请码——生成一个发给朋友，TA 在登录页注册时填入即送会员。</p>
-  </div>
-
-  <!-- 用量趋势（10/5 P3） -->
-  <div class="card">
-    <h2>用量趋势</h2>
-    <p class="desc">近 30 天每天的 AI 调用次数 / Token / 成本。<b>没有数据的日子不画</b>（不补零，免得图上出现假的 0）。统计自 10/5 修复计数丢失后开始累计。</p>
-    <!-- 10/6 11:35 她报「成本显示不出来」→ 根因是 env 没配单价。加一个面板内可配入口，
-         不用去 Cloudflare 后台；不写死官方价（公开价互相矛盾，写死等于骗人）。 -->
-    <div class="price-bar" id="priceBar"></div>
-    <div class="toolbar">
-      <label class="muted"><input type="radio" name="trendMetric" value="calls" checked style="vertical-align:-2px;margin-right:3px" />调用次数</label>
-      <label class="muted"><input type="radio" name="trendMetric" value="cost" style="vertical-align:-2px;margin-right:3px" />成本（元）</label>
-      <label class="muted"><input type="radio" name="trendMetric" value="tok" style="vertical-align:-2px;margin-right:3px" />Token</label>
-      <span class="muted" id="trendSum"></span>
-      <span style="flex:1"></span>
-      <button class="btn ghost small" id="priceSetBtn" type="button">设置单价</button>
-      <!-- 10/6 12:20：「今日每人用多少」要读 900 多个键，是面板最重的开销 → 改按需加载。
-           默认不读（打开面板只花约 210 次读，2-5 秒），点这个才单独拉一次。 -->
-      <button class="btn ghost small" id="usageBtn" type="button">显示今日用量</button>
-      <button class="btn ghost small" id="csvBtn" type="button">导出用户 CSV</button>
-      <button class="btn ghost small" id="csvTrendBtn" type="button">导出趋势 CSV</button>
-      <button class="btn ghost small" id="csvSvcBtn" type="button">导出分功能 CSV</button>
     </div>
-    <div id="trendChart"></div>
-    <p class="muted" id="trendEmpty" style="margin-top:8px">还没有用量数据 —— 10/5 之前调用未被计数，历史无数据。</p>
   </div>
 
   <!-- 用户 -->
@@ -257,10 +369,12 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
       <label class="muted"><input type="checkbox" id="onlyReal" style="vertical-align:-2px;margin-right:4px" />只看真人（统计口径）</label>
       <span class="muted" id="userCount"></span><span class="muted" id="judgeSummary">—</span>
     </div>
-    <table>
+    <div class="tw">
+<table>
       <thead id="userTableHead"><tr><th>#</th><th data-usk="acct">账号</th><th data-usk="created">注册时间</th><th>判定</th><th data-usk="aiToday">今日 AI</th><th>本周 AI</th><th data-usk="aiMonth">本月 AI</th><th data-usk="cost">本月成本</th><th>会员</th><th>操作</th></tr></thead>
       <tbody id="userBody"></tbody>
     </table>
+    </div>
     <p class="muted" id="userEmpty" style="margin-top:8px">还没有注册用户。</p>
   </div>
 
@@ -282,10 +396,12 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
       <button class="btn small" id="grantBtn" type="button">开通 / 续费</button>
       <span class="err" id="vipErr" style="margin:0"></span>
     </div>
-    <table>
+    <div class="tw">
+<table>
       <thead><tr><th>账号</th><th>类型</th><th>到期时间</th><th>剩余</th><th>备注</th><th>操作</th></tr></thead>
       <tbody id="vipBody"></tbody>
     </table>
+    </div>
     <p class="muted" id="vipEmpty" style="margin-top:8px">还没有会员。开通过程全自动，无需到 CF 后台。</p>
   </div>
 
@@ -302,10 +418,12 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
         <button class="btn ghost small" id="auditExport" type="button">导出 Markdown</button>
         <span class="muted" id="auditCount"></span>
       </div>
-      <table>
+      <div class="tw">
+<table>
         <thead><tr><th>时间</th><th>动作</th><th>对象</th><th>详情</th></tr></thead>
         <tbody id="auditBody"></tbody>
       </table>
+    </div>
       <p class="muted" id="auditEmpty" style="margin-top:8px">还没有操作记录。</p>
     </div>
   </div>
@@ -503,43 +621,59 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
     // 「本月成本」用全站口径（含探针）比用 costMonthReal 更贴近她「我花了多少钱」的问题
     if (DATA.priceOk && DATA.costMonth != null) costM = '¥' + Number(DATA.costMonth).toFixed(2);
     $('stCostMonth').textContent = costM;
-    /* ── 10/6 11:35「需要注意」区：需要她处理的事放最上面 ──
-       原来 10 个数字卡一样大，扫一眼看不出该看哪个；现在把信号抽出来单列在最上方。 */
+    /* 10/20 深夜：主指标第二行小字（副标题）——让数字带上「所以呢」 */
+    $('stRealSub').textContent = '待观察 ' + (DATA.nIdle || 0) + ' 个';
+    var perReal = (DATA.nReal || 0) > 0 ? (Number(DATA.costMonthReal || 0) / DATA.nReal).toFixed(2) : null;
+    $('stCostSub').textContent = perReal ? ('真人 ¥' + perReal + '/人') : '还没有真人';
+    $('stAiReal').textContent = DATA.aiMonthReal != null ? DATA.aiMonthReal : '-';
+    $('stAiRealSub').textContent = '全站 ' + (DATA.aiMonth || 0);
+    $('stAiSub').textContent = '本周 ' + (DATA.aiWeek || 0) + ' 次';
+    /* ── 10/20 深夜改版：一条提示条 + 「要你处理」列表（原来三条色块竖着叠） ──
+       规则依据：zachswebdesigns「永不叠超过一条 alert strip；有多条就折叠进专门区域」。
+       所有条目内容不变，只是从「三条横幅」搬到右边列表，顶部只留一行汇总。 */
     (function(){
-      var box = $('stFlags'); if(!box) return;
+      var strip = $('stFlags'), todo = $('todoList');
+      if(!todo) return;
       var nReal = DATA.nReal || 0, nProbe = DATA.nProbe || 0, nIdle = DATA.nIdle || 0;
       var total = nReal + nProbe + nIdle;
-      var out = [];
+      var items = [];
+      if (DATA.fbUnread > 0){
+        items.push({ n: DATA.fbUnread, gray: false, t: '未读反馈', s: '用户在设置页提交的意见，点这条直接跳过去',
+          act: '<a class="go" href="#" id="flagGoFb">去处理 →</a>' });
+      }
       if (nProbe > 0 && total > 0 && (nProbe / total) >= 0.5){
         var ratio = Math.round(nProbe / total * 100);
-        out.push('<div class="flag warn"><span>探针账号 <b>' + nProbe + ' / ' + total + '</b>（' + ratio
-          + '%）已经盖过真人（' + nReal + ' 个）—— 总览里的「注册用户」大半是我自己测试留下的。</span></div>');
-      }
-      if (DATA.fbUnread > 0){
-        out.push('<div class="flag warn"><span>有 <b>' + DATA.fbUnread + '</b> 条未读反馈等你处理。</span>'
-          + '<button class="btn small flag-act" id="flagGoFb" type="button">去处理 →</button></div>');
+        items.push({ n: nProbe, gray: true, t: '探针账号占 ' + ratio + '%', s: '「注册用户」的大头是我自己的测试号，统计要按真人看',
+          act: '' });
       }
       if (nReal > 0 && (DATA.aiMonthReal || 0) === 0){
-        /* 12:45 她看到这条以为「统计坏了，识别不到」。加一句对照让她自己一眼判断：
-           「全站今天调用 N 次」作参照 —— 全站有、真人 0 = 确实没人用；全站也是 0 = 真的没人调。 */
         var todayAll = Number(DATA.aiToday || 0);
         var cmp = todayAll > 0
-          ? ('全站今天调用了 <b>' + todayAll + '</b> 次，但都不在真人账号上。')
+          ? ('全站今天调用了 ' + todayAll + ' 次，但都不在真人账号上。')
           : '全站今天也确实是 0 次。';
-        out.push('<div class="flag warn"><span><b>真人本月一次 AI 都没用过</b> —— 要么还没推给他们，要么接了没上手。'
-          + cmp + '</span></div>');
+        items.push({ n: 0, gray: true, t: '真人本月一次 AI 都没用过', s: '要么还没推给他们，要么接了没上手。' + cmp, act: '' });
       }
       var left = 0; (DATA.invites || []).forEach(function(v){ left += Math.max(0, (v.max||0) - (v.used||0)); });
       if (left === 0 && (DATA.invites || []).length){
-        out.push('<div class="flag info"><span>邀请码<b>已全部用完</b>，要加量得重新生成。</span></div>');
+        items.push({ n: 0, gray: true, t: '邀请码已全部用完', s: '要加量得在下面「邀请码」里重新生成。', act: '' });
       }
       if (nReal > 0 && DATA.priceOk){
-        out.push('<div class="flag info"><span>本月 AI 成本 <b>¥' + Number(DATA.costMonthReal || 0).toFixed(2)
-          + '</b> ÷ 真人 ' + nReal + ' 人 = 单人 <b>¥' + (Number(DATA.costMonthReal || 0) / nReal).toFixed(2) + '</b></span></div>');
+        var per = Number(DATA.costMonthReal || 0) / nReal;
+        items.push({ n: '¥' + Number(DATA.costMonthReal || 0).toFixed(2), gray: true, t: '本月 AI 成本（真人口径）',
+          s: '÷ 真人 ' + nReal + ' 人 = 单人 ¥' + per.toFixed(2) + '；单价没配好前这个数按已配价算。', act: '' });
       }
-      box.innerHTML = out.join('');
+      todo.innerHTML = items.map(function(it){
+        return '<li>' + (it.n !== '' ? ('<span class="cnt' + (it.gray ? ' gray' : '') + '">' + it.n + '</span>') : '')
+          + '<div><b>' + it.t + '</b><span>' + it.s + '</span></div>' + (it.act || '') + '</li>';
+      }).join('') || '<li><div><b>没有待处理的事</b><span>数据看起来正常。</span></div></li>';
+      if(strip){
+        if(items.length){
+          strip.innerHTML = '<span class="dot"></span><span>有 <b>' + items.length + '</b> 件事等你处理'
+            + '，最急的是：' + items[0].t + '</span><a class="more" href="#todoList">查看 →</a>';
+        } else strip.innerHTML = '';
+      }
       var go = $('flagGoFb');
-      if(go) go.addEventListener('click', function(){ switchTab('fb'); });
+      if(go) go.addEventListener('click', function(e){ e.preventDefault(); switchTab('fb'); });
     })();
     $('judgeSummary').textContent = '真人 ' + (DATA.nReal || 0) + ' · 探针 ' + (DATA.nProbe || 0) + ' · 待观察 ' + (DATA.nIdle || 0)
       + '（真人本月 AI ' + (DATA.aiMonthReal || 0) + ' 次 / 成本 ' + (DATA.priceOk ? ('¥' + Number(DATA.costMonthReal || 0).toFixed(2)) : '未配单价') + '）';
@@ -548,10 +682,14 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
     var invLeft = 0;
     (DATA.invites || []).forEach(function(v){ invLeft += Math.max(0, (v.max||0) - (v.used||0)); });
     $('stInv').textContent = invLeft;
+    var invCodes = (DATA.invites || []).filter(function(v){ return Math.max(0, (v.max||0) - (v.used||0)) > 0; }).length;
+    $('stInvSub').textContent = '剩 ' + invCodes + ' 个码';
 
     var vips = DATA.vips || [];
     var vipAlive = vips.filter(function(v){ return (v.daysLeft||0) > 0; });
     $('stVip').textContent = vipAlive.length;
+    var soonVip = vipAlive.filter(function(v){ return (v.daysLeft||0) <= 7; }).length;
+    $('stVipSub').textContent = soonVip ? (soonVip + ' 人 7 天内到期') : '最近无人到期';
     var vipMap = {};
     vips.forEach(function(v){ if((v.daysLeft||0) > 0) vipMap[v.acct] = v; });
 
@@ -762,7 +900,7 @@ button.mini:hover{border-color:var(--p-500);color:var(--p-700)}
       hitTxt = '　·　今日输入里 <b>' + (DATA.todayPch / 1000).toFixed(0) + 'K</b> 走了缓存（单价 ¥' + Number(DATA.priceHit).toFixed(4) + '）';
     }
     bar.className = 'price-bar ok';
-    bar.innerHTML = '成本按 <b>输入 ¥' + Number(DATA.priceIn).toFixed(3) + ' / 输出 ¥' + Number(DATA.priceOut).toFixed(2)
+    bar.innerHTML = '成本按 <b>输入 ¥' + Number(DATA.priceIn || 0).toFixed(3) + ' / 输出 ¥' + Number(DATA.priceOut || 0).toFixed(2)
       + '</b> 每百万 tokens 估算' + hitTxt
       + '<br><span style="opacity:.85">依据：' + (DATA.priceLabel || '官方价') + (DATA.priceSource === 'official' ? '（可在后台用 AI_BASE_URL 旁的设置覆盖）' : '') + '</span>'
       + mdlTxt
