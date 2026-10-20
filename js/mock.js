@@ -99,10 +99,12 @@
     const cancel = $('#mockExitCancel'); if(cancel) cancel.onclick = () => closeExitModal();
   }
   function closeExitModal(){ const m = $('#mockExitModal'); if(m) m.remove(); }
-  /* 10/2（她拍板）：开始卡已删——退出/中断后直接回「题库」tab（点隐藏 BANK tab 复用全部切换逻辑，
-     含解除沉浸/显隐视图；保存的快照下次点「模考」自动续考）。 */
+  /* 10/2（她拍板）：开始卡已删——退出/中断后回到「模考」tab（点隐藏 MOCK tab 复用全部切换逻辑，
+     含解除沉浸/显隐视图；保存的快照下次点「模考」自动续考）。
+     🔴 10/20 她 ⑨：退出后回的是「口语」tab，而她预期回「口语模考」tab。改成点隐藏的 MOCK tab
+     —— 退出 = 回到模考这一层，立刻能看到「开始/继续模考」，不用再点两次。 */
   function exitToBank(){
-    try{ const bt = document.querySelector('#tabs [data-type="BANK"]'); if(bt) bt.click(); }catch(e){}
+    try{ const bt = document.querySelector('#tabs [data-type="MOCK"]'); if(bt) bt.click(); }catch(e){}
   }
   function exitToStart(save){
     if(window.__mockTick){ clearInterval(window.__mockTick); window.__mockTick = null; }

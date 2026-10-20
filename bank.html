@@ -255,6 +255,25 @@
 .ex-qt > .ex-drop,.ex-qt > .ex-pills,.ex-qt > .ex-opts,.ex-qt > .ex-pool{margin-top:8px}
 .ex-q:last-child{margin-bottom:0}
 .ex-qn{flex:none;display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;border:1.5px solid #111;border-radius:3px;font-weight:700;font-size:13px;background:#fff;padding:0 4px;margin-top:1px}   /* 10/14 14→13px、方框 27→24px */
+/* 🔴 10/20 她 ⑦「题目放左、选项放右竖排」（真题口径，省空间）：
+   组级容器 = .ex-q--lside（左列题目 + 右列竖排选项池），只对阅读的词条匹配生效
+   （matching 且非 heading —— heading 她 10/15 拍板必须拖放原样，不并）。
+   · 左列 .ex-q-lcol：每题仍是 .ex-q（题号 + 题干 + .ex-drop），交互与单列完全一致
+     （拖放/点击/_dg 状态机/判分全复用，只是位置变了）；
+   · 右列 .ex-q-side：宽 252px，.ex-pool--side 竖排 chip，桌面 sticky 一直可见；
+   · ≤900 塌回单列（手机上真题也是一题一列，别硬塞）。 */
+.ex-q--lside{display:grid;grid-template-columns:minmax(0,1fr) 252px;gap:0 20px;align-items:start}
+.ex-q-lcol{display:block;min-width:0}
+.ex-q-side{position:sticky;top:8px}
+.ex-pool--side{margin:0}
+.ex-pool--side .ex-pool-c{display:flex;flex-direction:column;flex-wrap:nowrap;gap:6px;padding:10px 11px;min-height:0}
+.ex-pool--side .ex-chip{width:100%;justify-content:flex-start;border-radius:6px;padding:6px 12px;font-size:.82em}
+@media (max-width:900px){
+  .ex-q--lside{grid-template-columns:minmax(0,1fr);gap:0}
+  .ex-q-side{position:static;margin-top:4px}
+  .ex-pool--side .ex-pool-c{flex-direction:row;flex-wrap:wrap}
+  .ex-pool--side .ex-chip{width:auto}
+}
 .ex-qn.miss{color:#b3261e;border-color:#b3261e}
 .ex-qn.hit{color:var(--primary-900);border-color:var(--primary)}
 /* 10/16 二修：共享选项组（Questions X–Y Choose N）合并题号框（如「9–10」）——真机考/104 样子稿同形 */
@@ -283,7 +302,9 @@
 /* 10/16 二修：选项形态对齐**真机考**（爱听写真题站逆向实证：多选 = `input type=checkbox` 方框，
    单选 = `type=radio` 圆环；104 样子稿同样是「多选 .cb 方框 + ✓ / 单选 .rd 圆环」）。
    ⚠️ 推翻 10/15 10:28「多选与单选同 UI（圆环）」——她 10/16 复报「这个题型 ui 交互跟考试不一样」，
-   圆环会被误读成单选；多选必须用方框 + 勾，才能一眼看出可以勾多个。 */
+   圆环会被误读成单选；多选必须用方框 + 勾，才能一眼看出可以勾多个。
+   10/20 她 ⑦：左右布局时右侧选项列要能显示自己的选中/对错底色 → .ex-q-side 只占位，
+   选中态仍由 .ex-opt:has(input:checked) 自己渲染（不依赖父级背景）。 */
 .ex-cbox .ex-opt::before{content:"";flex:none;width:15px;height:15px;border:1.5px solid #8f959e;border-radius:3px;background:#fff}
 /* 选中 = 方框填 teal + 白色勾（内联 SVG data-URI：CSP img-src 已允许 data:，比 ::after 定位准，且不挑字体） */
 .ex-cbox .ex-opt:has(input:checked)::before{border-color:var(--primary);background-color:var(--primary);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.4 8.5l3 3L12.7 5.3' fill='none' stroke='%23fff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-size:11px 11px;background-position:center;background-repeat:no-repeat}
@@ -646,8 +667,15 @@
    结构 = .ex-bar > .ex-nav（切换器 + 题号行）+ .ex-actions（Pause/Exit/Finish）
    高度 ≤64px（题号行 24 + 按钮行 36）；1440 放不下时按钮行与切换器各占一行（≤72px）
    10/13 她报「题号和 Pause/Exit/Finish 分成两行不好，并成一行、少占空间」→
-   桌面改单行 row（题号行 flex:1 占满 + 按钮行 flex:none 靠右）；≤860 移动端保持两行。 */
-.ex-bar{flex:none;background:#f7f8f9;border-top:1px solid var(--line);padding:4px 12px 5px;display:flex;flex-direction:row;align-items:center;gap:10px}
+   桌面改单行 row（题号行 flex:1 占满 + 按钮行 flex:none 靠右）；≤860 移动端保持两行。
+   🔴 10/20 她 ⑥「模考页面底栏改窄」= 整条更窄更矮（不是只缩左右留白）：
+     ① 桌面按钮 44 → 38px（触控下限 38 仍够，比 44 薄一截）；
+     ② 左右 padding 12px → 10px，gap 10 → 8；
+     ③ 题号格 26×20 → 22×18、字号 12.5 → 12、已答线从 2.5px 收到 2px；
+     ④ Part 块高 30 → 26px；
+     ⑤ 整条上限 56px（原来 64/72）。
+     手机（≤860）保持 34px 不动 —— 390 宽本来就挤，再缩就点不准了。 */
+.ex-bar{flex:none;background:#f7f8f9;border-top:1px solid var(--line);padding:3px 10px 4px;display:flex;flex-direction:row;align-items:center;gap:8px;max-height:56px}
 .ex-nav{flex:1;min-width:0;display:flex;align-items:center;gap:8px;min-height:22px}
 .ex-pg{flex:none;border:1px solid var(--n-400);background:#fff;border-radius:5px;padding:3px 9px;font:inherit;
   font-size:12px;font-weight:600;color:#111;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;line-height:1.35}
@@ -658,7 +686,7 @@
    形态 = Part 1 7/13 | Part 2 0/13 | Part 3 0/14 全部并排；当前篇白底高亮，其余半透明。
    桌面写「Part N」，≤860 手机写「P N」（省宽度，390 要放 4 个 + Finish/Exit）。 */
 .ex-parts{flex:none;display:flex;align-items:center;gap:6px}
-.ex-pt{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 11px;border:none;border-radius:7px;
+.ex-pt{display:inline-flex;align-items:center;gap:7px;height:26px;padding:0 10px;border:none;border-radius:7px;
   background:rgba(17,24,28,.07);color:rgba(17,24,28,.55);font:inherit;font-size:12.5px;font-weight:700;
   cursor:pointer;white-space:nowrap;transition:background .14s,color .14s}
 .ex-pt .ex-pt-t{letter-spacing:-.01em}
@@ -687,12 +715,12 @@
    · 线 = 2px；未答 = 浅灰 #c9ced6（爱听写 bg-gray-300 口径），已答 = 2.5px 黑
    · 旗标 = 红色小旗标 ⚑ 挂在题号上方（爱听写 icon-biaoji text-red-600 口径），
      不再是套在数字外的黑圈（那个是自研形态） */
-.ex-nums{flex:1;min-width:0;display:flex;gap:2px;justify-content:center;overflow-x:auto;scrollbar-width:thin;padding:11px 0 1px}
+.ex-nums{flex:1;min-width:0;display:flex;gap:2px;justify-content:center;overflow-x:auto;scrollbar-width:thin;padding:8px 0 0}
 .ex-nav--plain .ex-nums{justify-content:center}
-.ex-num{position:relative;flex:none;width:26px;height:20px;border:none;background:none;padding:0;margin:0;
-  font:inherit;font-size:12.5px;font-weight:600;color:#111;cursor:pointer;font-variant-numeric:tabular-nums}
-.ex-num::before{content:"";position:absolute;left:4px;right:4px;top:0;height:2px;background:#c9ced6;border-radius:1px}
-.ex-num--done::before{height:2.5px;background:#111}
+.ex-num{position:relative;flex:none;width:22px;height:18px;border:none;background:none;padding:0;margin:0;
+  font:inherit;font-size:12px;font-weight:600;color:#111;cursor:pointer;font-variant-numeric:tabular-nums}
+.ex-num::before{content:"";position:absolute;left:3px;right:3px;top:0;height:2px;background:#c9ced6;border-radius:1px}
+.ex-num--done::before{background:#111}
 .ex-num--cur{box-shadow:inset 0 0 0 1.5px #111;border-radius:3px}
 /* 10/17 复盘：交卷后题号行变答题卡 —— 绿=对 / 红=错（爱听写 bg-green-100 / bg-red-100 口径）。
    此前交卷后只有「已答」态（一道黑线），用户看不出哪题错，只能一路滚页面逐条找。 */
@@ -711,8 +739,8 @@
    指令要求底栏 ≤64px（放不下 ≤72px）；高度靠 line-height + padding 双压缩，不缩字号（可读性优先）。 */
 /* 🔴 必须 !important：本页 L43/L47 的 .btn-primary/.btn-ghost 写死 min-height:40px，
    而 min-height 优先于 height —— 不带 !important 时按钮恒 40px，底栏压不到 ≤72px。 */
-#examRoot .ex-actions button{min-height:44px;height:44px;padding:0 16px;font-size:14px;line-height:1;display:inline-flex;align-items:center}   /* 10/14 触控 34→44（方案 L190） */
-#examRoot .ex-actions .btn-primary{min-height:44px;height:44px;padding:0 18px}   /* 10/14 34→44 触控达标（方案 L190） */
+#examRoot .ex-actions button{min-height:38px;height:38px;padding:0 14px;font-size:13.5px;line-height:1;display:inline-flex;align-items:center}   /* 10/14 触控 34→44（方案 L190）→ 10/20 ⑥ 她「底栏改窄」：44→38 */
+#examRoot .ex-actions .btn-primary{min-height:38px;height:38px;padding:0 16px}   /* 10/14 34→44 触控达标（方案 L190）→ 10/20 ⑥ 44→38 */
 #examRoot #exPauseBtn{min-width:64px}
 /* 移动端（≤860）：底部条压紧凑、题号行横向滚（爱听写同款）、切换器文案缩短防溢出 */
 @media(max-width:860px){
@@ -1044,10 +1072,19 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
   /* 10/16：音频加载失败的自解释提示（她报「播放不了」时全站只有静默的 00:00/00:00） */
   .ex-audio .ea-err{flex:none;border:1px solid #d93025;background:#fdf3f2;color:#b3261e;border-radius:7px;padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
   .ex-audio .ea-err:hover{background:#fbe6e4}
-  .ex-audio .ea-rate{flex:none;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:7px;padding:3px 8px;font-size:12px;cursor:pointer;font-family:inherit;font-variant-numeric:tabular-nums}
-  /* 音量（10/12 加）：真机考只有音量可控 → 练习/考试两种模式都保留 */
-  .ex-audio .ea-vol{flex:none;border:1px solid var(--line);background:transparent;border-radius:7px;padding:2px 7px;font-size:12px;line-height:1.5;cursor:pointer;font-family:inherit}
+  .ex-audio .ea-rate{flex:none;border:1px solid var(--line);background:transparent;color:#111;border-radius:7px;padding:3px 8px;font-size:12px;cursor:pointer;font-family:inherit;font-variant-numeric:tabular-nums}
+  /* 10/20 她 ④：倍速从「按钮循环 4 档」改成 <select> 9 档（0.8–1.5 / 0.1）。
+     原生 select 自带箭头，但默认箭头太小且颜色跟着系统走 → 用 appearance:none + 内联 SVG
+     chevron 自己画一个（data-URI，CSP img-src 已放行 data:），并留 padding-right 给箭头。 */
+  .ex-audio .ea-rate{appearance:none;-webkit-appearance:none;padding-right:24px;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6.5L8 10.5l4-4' fill='none' stroke='%236b7280' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 7px center;background-size:11px 11px;font-weight:700}
+  .ex-audio .ea-rate:hover{border-color:#111}
+  /* 音量（10/12 加）：真机考只有音量可控 → 练习/考试两种模式都保留。
+     10/20 她 ③：音量标去 emoji（🔇/🔊 全站禁）→ 按钮里装 SVG（JS 侧 ICO_VOL/ICO_MUTE）。 */
+  .ex-audio .ea-vol{flex:none;border:1px solid var(--line);background:transparent;border-radius:7px;padding:3px 7px;font-size:12px;line-height:1.5;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;min-width:32px;min-height:28px}
   .ex-audio .ea-vol:hover{border-color:#111}
+  .ex-audio .ea-vol svg{display:block}
   .ex-audio .ea-vsl{flex:none;width:64px;accent-color:var(--primary);cursor:pointer;margin:0}
 /* 10/13 Part 横幅并入音频条行首（她报「上面三行缩两行」）：胶囊 = Part N · Questions X–Y */
 .ex-audio .ea-part{flex:none;font-size:12px;font-weight:700;color:var(--primary-text);background:var(--primary-50);border:1px solid var(--primary-100);border-radius:6px;padding:2px 9px;white-space:nowrap}
@@ -1445,6 +1482,6 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common-cloud.js?v=20261019d"></script>
 <script defer src="js/common-shell.js?v=20261019d"></script>
 <script defer src="js/common-pwa.js?v=20261019d"></script>
-<script defer src="js/bank.js?v=20261019b"></script>
+<script defer src="js/bank.js?v=20261019c"></script>
 </body>
 </html>

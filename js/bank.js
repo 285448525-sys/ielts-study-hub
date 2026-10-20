@@ -471,12 +471,14 @@
       + '<button type="button" class="exg-x" data-exgclose aria-label="Close">\u2715</button>'
       + '<h4>开始前 30 秒：这 4 个地方点一下就够</h4>'
       + '<div class="exg-g">'
-      /* 图标直接复用顶栏那两个 SVG —— 卡上长什么样，考场上就长什么样 */
-      +   '<div class="exg-i"><span class="exg-ic">' + ICO_FS + '</span><b>全屏</b>'
+      /* 图标直接复用顶栏那两个 SVG —— 卡上长什么样，考场上就长什么样。
+         10/20 她 ②：眼睛标（隐藏计时）删了 → 卡上这一项换成「音量 / 倍速」，
+         因为音频条里现在多了倍速 select，考前顺手告诉她更省事。 */
+      +   '<div class="exg-i"><span class="exg-ic">' + ICO_FULL + '</span><b>全屏</b>'
       +     '<span>右上角第一个图标。点了地址栏会藏起来，卷面更大。</span></div>'
-      +   '<div class="exg-i"><span class="exg-ic">' + ICO_HIDE + '</span><b>隐藏计时</b>'
-      +     '<span>右上角眼睛图标。只藏数字，倒计时照走，到点照样自动交卷。</span></div>'
-      +   '<div class="exg-i"><span class="exg-ic exg-flag">\u2691</span><b>标记本题</b>'
+      +   '<div class="exg-i"><span class="exg-ic exg-rate">1.0×</span><b>倍速 / 音量</b>'
+      +     '<span>音频条右侧。倍速 0.8–1.5 直接选，音量滑杆随手拖。</span></div>'
+      +   '<div class="exg-i"><span class="exg-ic exg-flag">' + ICO_FLAG + '</span><b>标记本题</b>'
       +     '<span>题目右上角的小旗子。拿不准先标上，交卷前会把这些题号列出来。</span></div>'
       +   '<div class="exg-i"><span class="exg-ic exg-part">Part</span><b>底栏切篇</b>'
       +     '<span>底栏 Part 1｜2｜3 直接点就跳过去，不用滚回去找。</span></div>'
@@ -548,7 +550,7 @@
         /* 听力专用：开始一律练习模式 + 音频未播过；倍速复位 */
         listenMode: 'practice', audioStarted: false
       };
-      _rateIx = 0; _audioBound = null;
+      _rateIx = 0; _audioBound = null; _audioRate = RATE_DEFAULT;
       try{ EX.user = JSON.parse(localStorage.getItem('hub_bank_draft_' + unitId) || '{}') || {}; }catch(e){ EX.user = {}; }
       renderExam();
       bankStartTimer();                               /* C-3：进考试即开专注计时（幂等，不会双开） */
@@ -724,6 +726,28 @@
       var opts = (g.options && g.options.length) ? g.options : ((qs[0] && qs[0].options) || []);
       var gid = 'mg' + idx;
       var isHead = opts.length && /^[ivx]+$/i.test(String(opts[0].optionNum || ''));
+      /* 10/20 她 ⑦「题目放左、选项放右竖排」（真题口径，省空间）：
+         **只对词条匹配生效**（选项是词/短语，A–H 一列竖排，左边每题一个拖放槽）。
+         Heading 题（isHead，选项是罗马数字 i–x）她 10/15 拍板必须拖放原样 → 不动。
+         交互完全不变（还是 chip 拖进 .ex-drop，_dg 状态机/判分/清理全复用），
+         变的只是**位置**：选项池从题干上方整块搬到右侧竖排一列。 */
+      var lside = !!(opts.length && !isHead && qs.length >= 3 && channel === 'reading');
+      if(lside){
+        /* 结构 = .ex-q--lside 容器 > 左列每题（题号 + 题干 + .ex-drop）+ 右列 .ex-q-side（竖排选项池）
+           ⚠️ 池子仍是全组唯一一份（dgPool/dgPoolChip 按 data-g 找，复制会双双失效）。 */
+        var poolHtml = '<div class="ex-pool ex-pool--side" data-g="' + gid + '">'
+          + '<div class="ex-pool-t">Options</div>'
+          + '<div class="ex-pool-c">' + opts.map(chipHtml).join('') + '</div></div>';
+        h += '<div class="ex-q--lside" data-shared-opts="1"><div class="ex-q-lcol">';
+        qs.forEach(function(q){
+          var n = numOf(q.qNumber);
+          h += '<div class="ex-q"><span class="ex-qn" data-qn="' + esc(n) + '">' + esc(n) + '</span>'
+            + flagHtml(n) + '<span class="ex-qt">' + esc(plain(q.question)) + '</span>'
+            + '<div class="ex-drop" data-q="' + esc(n) + '" data-g="' + gid + '"></div></div>';
+        });
+        h += '</div><div class="ex-q-side">' + poolHtml + '</div></div>';
+        return h + '</div>';
+      }
       h += '<div class="ex-pool" data-g="' + gid + '">'
         + (isHead ? '<div class="ex-pool-t">List of Headings</div>' : '')
         + '<div class="ex-pool-c">' + opts.map(chipHtml).join('') + '</div></div>';
@@ -798,8 +822,15 @@
           var label = nums.length > 1 ? (nums[0] + '–' + nums[nums.length - 1]) : nums[0];
           var others = nums.filter(function(x){ return x !== numOf(carrier.qNumber); }).join(' ');
           var cst = numOf(carrier.qNumber);
-          h += '<div class="ex-q ex-q--mgroup"><span class="ex-qn ex-qn--wide" data-qns="' + esc(nums.join(' ')) + '">' + esc(label) + '</span>'
-            + flagHtml(cst) + '<span class="ex-qt">' + clean(carrier.question) + cboxHtml(carrier, numOf, need, others) + '</span></div>';
+          /* 🔴 10/16 修（她实测 Q9-10：题干被压成 40px 窄条 + 词中断 + Choose TWO 能勾 3 个 + Q10 无法作答）
+             原方案把 cbox 嵌进题干 <span class="ex-qt">（题干下竖排整行）→ 题干列确实不再被压，
+             但选项仍占满整行、下面每题都要重复一遍选项（她 10/20 ⑦「题目左、选项右竖排」）。
+             现在改成组级左右布局：题干列 + 右侧唯一一份 cbox。
+             判分链路零改动：input 仍带 data-v + data-share（collect 同步写全组 / 判分按集合）。 */
+          h += '<div class="ex-q--lside" data-shared-opts="1"><div class="ex-q-lcol">'
+            + '<div class="ex-q"><span class="ex-qn ex-qn--wide" data-qns="' + esc(nums.join(' ')) + '">' + esc(label) + '</span>'
+            + flagHtml(cst) + '<span class="ex-qt">' + clean(carrier.question) + '</span></div>'
+            + '</div><div class="ex-q-side">' + cboxHtml(carrier, numOf, need, others) + '</div></div>';
         }
       } else {
         qs.forEach(function(q){
@@ -835,27 +866,64 @@
        选择记 localStorage，下次沿用（她不用每次开考都点一次） */
   var ICO_FS = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H3v5M21 3h-5v5M8 21H3v-5M21 21h-5v-5"/></svg>';
   var ICO_HIDE = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"/><path d="M9.9 5.2A9.5 9.5 0 0 1 12 5c5 0 9 7 9 7a16 16 0 0 1-2.3 3M6.3 6.4A16 16 0 0 0 3 12s4 7 9 7c1.6 0 3-.5 4.2-1.2"/></svg>';
+  /* 10/20 她 ①：全屏按钮「太丑，改好看的」。原 ICO_FS 是 4 段短线折角（M8 3H3v5 那种），
+     16px 下糊成一团。改成 ICO_FULL / ICO_FULL_X（进/出两态），并按 fullscreenchange
+     实时切图标 —— 用户看得出「再点一次是退出」。 */
+  var _fsIconBound = null;
+  function paintFsIcon(){
+    var b = document.getElementById('exFsBtn');
+    if(!b) return;
+    var on = !!(document.fullscreenElement || document.webkitFullscreenElement);
+    b.innerHTML = on ? ICO_FULL_X : ICO_FULL;
+    b.title = on ? 'Exit full screen' : 'Full screen';
+    b.setAttribute('aria-label', b.title);
+  }
+  if(!window.__BANK_FS_ICON){
+    window.__BANK_FS_ICON = true;
+    ['fullscreenchange','webkitfullscreenchange'].forEach(function(ev){
+      document.addEventListener(ev, paintFsIcon);
+    });
+  }
+  var ICO_FULL = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5V4h5.5M20 9.5V4h-5.5M4 14.5V20h5.5M20 14.5V20h-5.5"/></svg>';
+  var ICO_FULL_X = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>';
+  /* 10/20：音频条音量 / 静音图标（去 emoji，SVG 线性图标与全屏/隐藏计时同款） */
+  var ICO_VOL  = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h3.5L13 19V5L7.5 9H4z"/><path d="M16.5 9.5a4 4 0 0 1 0 5M19 7a7.5 7.5 0 0 1 0 10"/></svg>';
+  var ICO_MUTE = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h3.5L13 19V5L7.5 9H4z"/><path d="M16.5 9.5l5 5M21.5 9.5l-5 5"/></svg>';
+  /* 10/20：小旗子（标记本题）。考前指南卡与答题页旗标同款，卡上长什么样考场上就长什么样。
+     原来用 ⚑ 字符，全站禁 emoji → 换 SVG。 */
+  var ICO_FLAG = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V4"/><path d="M6 4.5h11l-2.2 4.2L17 12.8H6"/></svg>';
+  /* 10/20：倍速档位 0.8–1.5、0.1 一档（她原话「0.8 到 1.5，0.1 一档」）= 8 档。
+     默认 1.0（原 _rateIx=0 = 1.0，口径不变）。AUDIO_RATES 旧数组改名保留索引兼容，
+     新路径一律走 rateValue()/setRate()。 */
+  var RATE_MIN = 0.8, RATE_MAX = 1.5, RATE_STEP = 0.1, RATE_DEFAULT = 1.0;
+  function rateOptions(){
+    var s = '', i;
+    for(i = 0; i <= 7; i++){
+      var v = +(RATE_MIN + i * RATE_STEP).toFixed(1);
+      s += '<option value="' + v + '"' + (Math.abs(v - RATE_DEFAULT) < 1e-9 ? ' selected' : '') + '>' + v.toFixed(1) + '×</option>';
+    }
+    return s;
+  }
+  function setRate(v){
+    var n = parseFloat(v);
+    if(!(n >= RATE_MIN - 1e-9 && n <= RATE_MAX + 1e-9)) return;
+    n = Math.min(RATE_MAX, Math.max(RATE_MIN, +n.toFixed(2)));
+    _audioRate = n;                     /* 10/20：记住选择，换 Part / 重进考场沿用 */
+    try{ localStorage.setItem('hub_bank_rate', String(n)); }catch(e){}
+    var a = document.getElementById('exAudio');
+    if(a) a.playbackRate = n;
+    var sel = document.getElementById('eaRate');
+    if(sel && sel.value !== String(n)) sel.value = String(n);
+    return n;
+  }
   var HIDE_T_KEY = 'hub_exam_hide_timer_v1';
   var _hideT = false;
   try{ _hideT = localStorage.getItem(HIDE_T_KEY) === '1'; }catch(e){}
+  /* 10/20 她 ②：眼睛标（隐藏计时）整块删除。setHideTimer 一并删除，
+     但 HIDE_T_KEY 留在库里兼容旧 localStorage（有人存过 '1' 也不报错）。 */
   function fmtHMS(sec){
     var s = Math.max(0, sec | 0);
     return pad2(Math.floor(s / 3600)) + ':' + pad2(Math.floor((s % 3600) / 60)) + ':' + pad2(s % 60);
-  }
-  function setHideTimer(on){
-    _hideT = !!on;
-    try{ localStorage.setItem(HIDE_T_KEY, _hideT ? '1' : '0'); }catch(e){}
-    /* 立刻重画一次（tick 每秒也会画，这里只是让点击有即时反馈） */
-    var shown = _hideT ? '--:--' : (EX && EX._leftSec != null ? fmtHMS(EX._leftSec) : null);
-    var el = document.getElementById('exTimer');
-    if(el){
-      el.textContent = _hideT ? '--:--' : (shown || el.textContent);
-      if(_hideT){ el.classList.remove('warn'); el.classList.remove('soon'); }
-    }
-    var ft = document.getElementById('eaFullTimer');
-    if(ft) ft.textContent = _hideT ? '--:--' : (shown || ft.textContent);
-    var b = document.getElementById('exHideBtn');
-    if(b){ b.classList.toggle('on', _hideT); b.title = _hideT ? 'Show time' : 'Hide time'; }
   }
   function toggleFullscreen(){
     try{
@@ -873,13 +941,8 @@
     /* 与 wireOptionPanel 同款：元素级绑定、每次渲染重绑（DOM 会重建，__bound 打在元素上防重复） */
     var fs = document.getElementById('exFsBtn');
     if(fs && !fs.__toolBound){ fs.__toolBound = true; fs.addEventListener('click', function(ev){ ev.preventDefault(); toggleFullscreen(); }); }
-    var hb = document.getElementById('exHideBtn');
-    if(hb && !hb.__toolBound){
-      hb.__toolBound = true;
-      hb.classList.toggle('on', _hideT);
-      hb.title = _hideT ? 'Show time' : 'Hide time';
-      hb.addEventListener('click', function(ev){ ev.preventDefault(); setHideTimer(!_hideT); });
-    }
+    paintFsIcon();                     /* 10/20 ①：每次渲染把全屏图标刷成当前态 */
+    /* 10/20 她 ②：眼睛标删了 → 没有 #exHideBtn，这里什么都不用绑 */
   }
   /* ===== 听力答题页的工具区（10/18 补 10/14 漏洞）=====
      10/14「两行并一行」把 .ex-top 整行 display:none，顶栏里的整场倒计时 / ☰ Option / Saved
@@ -893,14 +956,10 @@
     var bar = host.querySelector('#exAudioBar');
     var top = host.querySelector('.ex-top');
     if(bar){
-      /* 顺序即视觉顺序：[▶][Part 胶囊][进度][音频时间][🔊] …… [整场倒计时][Saved][工具] */
-      var clock = document.createElement('span');
-      clock.className = 'ea-full';
-      clock.id = 'eaFullTimer';
-      clock.textContent = (EX && EX._leftSec != null) ? fmtHMS(EX._leftSec) : '00:30:00';
-      bar.appendChild(clock);
+      /* 10/20 她 ⑤：听力单篇不显示整场计时 → 不再创建 #eaFullTimer。
+         旧 DOM 若残留（软导航壳没重建）会由上一处 bar.innerHTML = ... 冲掉。 */
       var icons = host.querySelector('.ex-icons');
-      if(icons) bar.appendChild(icons);      /* Saved + Full screen + Hide time + ☰ */
+      if(icons) bar.appendChild(icons);
       bar.classList.add('has-tools');
     }
     if(top) top.style.display = 'none';      /* .ex-option 面板是 .ex-top 的兄弟，藏它不影响面板 */
@@ -911,10 +970,11 @@
       +      (subText ? '<small>' + esc(subText) + '</small>' : '') + '</div>'
       +    '<span class="ex-timer" id="exTimer">' + timerText + '</span>'
       + ''   /* 10/14 她拍板：顶栏计时徽章关掉（音频长短不一，与整场计时并存重复） */
+      /* 10/20 她：眼睛标删掉（顶栏不再提供「隐藏计时」；听力单篇本来就不显示计时，
+         模考的计时是核心信息不该藏）。同时把整栏只留 Saved + Fullscreen + ☰。 */
       +    '<div class="ex-icons">'
       +      '<span class="ex-saved" id="exSaved" hidden>Saved</span>'
-      +      '<button class="ex-ico ex-toolbtn" id="exFsBtn" type="button" title="Full screen" aria-label="Full screen">' + ICO_FS + '</button>'
-      +      '<button class="ex-ico ex-toolbtn" id="exHideBtn" type="button" title="Hide time" aria-label="Hide time">' + ICO_HIDE + '</button>'
+      +      '<button class="ex-ico ex-toolbtn" id="exFsBtn" type="button" title="Full screen" aria-label="Full screen">' + ICO_FULL + '</button>'
       +      '<button class="ex-ico ex-menubtn" type="button" title="Option">\u2630</button>'
       +    '</div></div>'
       + '<div class="ex-option" id="exOptionPanel">'
@@ -1067,6 +1127,9 @@ function barHtml(){
        考试模式 = 直通：不给暂停、不给拖动、不给倍速，还原「录音只播一遍」
      首次播放后模式锁死（防考到一半切回练习模式）；交卷后解锁，可自由复听。 */
   var AUDIO_RATES = [1, 1.25, 1.5, 0.75], _rateIx = 0, _audioBound = null;
+  /* 10/20：倍速改 0.8–1.5 / 0.1 一档（8 档，默认 1.0），用 <select> 直接选。
+     AUDIO_RATES/_rateIx 保留只为兼容旧调用点，新逻辑一律走 _audioRate + setRate()。 */
+  var _audioRate = 1.0;
   /* 音量：真机考界面**只有音量控制，没有暂停/回退/重播**（IDP 官方问答等四处口径一致）
      → 两种模式下都必须可用，且音量要跨页记住（练习场景比考场更需要）。
      模块加载时就读回 —— audioBarHtml() 早于 wireAudio() 渲染，这里不读的话首屏滑杆会显示 100%。 */
@@ -1077,6 +1140,12 @@ function barHtml(){
   }catch(e){}
   /* 1 → "1.0×"，1.25 → "1.25×"（别用 toFixed(1)：1.25 会显示成 1.3，看着像另一个倍速） */
   function rateLabel(r){ return (r % 1 === 0 ? r.toFixed(1) : String(r)) + '×'; }
+  /* 10/20：倍速跨页记忆（音量已有 hub_bank_vol，倍速同款）。模块加载时就读回，
+     audioBarHtml() 早于 wireAudio() 渲染，这里不读首屏 select 会显示默认 1.0。 */
+  try{
+    var _r0 = parseFloat(localStorage.getItem('hub_bank_rate'));
+    if(isFinite(_r0) && _r0 >= RATE_MIN - 1e-9 && _r0 <= RATE_MAX + 1e-9) _audioRate = _r0;
+  }catch(e){}
   function fmtClock(s){ if(!isFinite(s) || s < 0) s = 0; var m = Math.floor(s / 60), x = Math.floor(s % 60); return (m < 10 ? '0' : '') + m + ':' + (x < 10 ? '0' : '') + x; }
   function listenPart(){
     var parts = (EX && EX.unit && EX.unit.parts) || [];
@@ -1104,7 +1173,12 @@ function barHtml(){
       + '<span class="ea-time" id="eaTime">00:00 / 00:00</span>'
       /* 10/14 她拍板：音量滑杆与倍速按钮移入 Option 面板（进度条折叠，三科顶栏一致）。
          静音按钮保留（一键静音是常用操作，只占一个图标位）。 */
-      + '<button class="ea-vol" type="button" data-avol aria-label="Mute">' + (_audioMuted || _audioVol === 0 ? '🔇' : '🔊') + '</button>'
+      /* 🔴 10/20：图标全部去 emoji（她定过「全站禁 emoji」）→ 音量改用 SVG（静音态是喇叭+斜杠） */
+      + '<button class="ea-vol" type="button" data-avol aria-label="Mute" title="Mute">' + (_audioMuted || _audioVol === 0 ? ICO_MUTE : ICO_VOL) + '</button>'
+      /* 10/20 她：音量旁加倍速（0.8–1.5，0.1 一档，9 档；原来是 [1,1.25,1.5,0.75] 四档且藏在
+         点按循环里）→ 用 <select> 一次选到位，9 个值铺开不叠。data-arate 仍由 #examRoot 委托
+         接住（bank.js:3124），改的是「按钮变 select」而非事件链路。 */
+      + '<select class="ea-rate" id="eaRate" aria-label="Playback speed" data-arate>' + rateOptions() + '</select>'
       + modeBtn
       + '</div>'
       + '<audio id="exAudio" preload="metadata" src="' + esc(p.audioUrl) + '"></audio>';
@@ -1130,16 +1204,38 @@ function barHtml(){
   /* 🔴 10/16 她报「听力音频播放不了」→ 本地/线上都复现不出（音频 200、duration 正常、无报错），
      她那边是 00:00 / 00:00 + 进度条塌成小点 = 元数据没加载（旧缓存版布局也印证）。
      不管根因是缓存还是网络/插件拦截，**失败必须是可见且可自救的**：在音频条上给提示 + 一键重试。 */
+  /* 音频失败原因文案（10/20 升级：她那边所有听力都没声音，但 CDN 实测 200/8.5MB/CORS 全通
+     → 根因只可能在她本机浏览器（插件拦截 / 网络 / 旧缓存）。既然远程复现不了，就把
+     「到底哪种失败」直接显示在音频条上，她不用开 F12 也能回贴给我。 */
+  var AUDIO_ERR_WHY = {
+    1: 'Loading aborted',
+    2: 'Network error (request never reached the server — usually an ad blocker, VPN or firewall)',
+    3: 'Decode error (file reached the browser but could not be decoded)',
+    4: 'Source not supported (the URL is empty or not an audio file)'
+  };
+  function audioErrText(a){
+    var code = a && a.error ? a.error.code : 0;
+    var why = AUDIO_ERR_WHY[code] || 'Unknown error';
+    var src = '';
+    try{ src = (a && a.currentSrc || (a && a.src)) || ''; }catch(e){}
+    if(src) src = src.length > 60 ? src.slice(0, 30) + '…' + src.slice(-24) : src;
+    return 'Audio failed to load (' + why + ')' + (src ? ' · ' + src : '') + ' — tap to retry';
+  }
   function showAudioErr(a){
     var bar = document.getElementById('exAudioBar'); if(!bar) return;
     if(bar.querySelector('.ea-err')) return;
     var e = document.createElement('button');
     e.type = 'button'; e.className = 'ea-err';
-    e.textContent = 'Audio failed to load — tap to retry';
+    e.textContent = audioErrText(a);
     e.addEventListener('click', function(){
       e.remove();
       try{ a.load(); }catch(err){}
       if(EX && EX.listenMode !== 'exam'){ try{ a.play(); }catch(err){} }
+      /* 重试后再给一次兜底提示（6 秒还没起来就再报一次） */
+      setTimeout(function(){
+        var cur = document.getElementById('exAudio');
+        if(cur && cur === a && !(cur.duration > 0) && !cur.error) showAudioErr(a);
+      }, 6000);
     });
     bar.appendChild(e);
   }
@@ -1149,7 +1245,9 @@ function barHtml(){
     _audioBound = a;
     /* 音量：套用上次的值（模块加载时已回读） */
     a.volume = _audioVol;
-    a.playbackRate = AUDIO_RATES[_rateIx];
+    a.playbackRate = _audioRate;   /* 10/20：倍速改成 _audioRate（0.8–1.5），旧 _rateIx 路径退役 */
+    var sel = document.getElementById('eaRate');
+    if(sel) sel.value = String(_audioRate);
     a.addEventListener('loadedmetadata', paintAudio);
     a.addEventListener('timeupdate', paintAudio);
     /* 🔴 10/16 她报「听力音频播放不了」：先在本地/线上复现——都正常（duration 正常、无报错），
@@ -1313,14 +1411,17 @@ function barHtml(){
     syncExamStates();
     paintSheet();
     if(EX.scored === false) showNoAnsBanner();
-    if(isListen) wireAudio();
+    if(isListen){ wireAudio(); mountListenTools(); }
     else { renderNotes(); replayMarks(); }
     wireOptionPanel();   /* 10/14 Option 面板交互（Colour/Size/Audio 分组点击） */
-    wireExamTools();     /* 10/18 顶栏工具栏：全屏 / 隐藏计时 */
+    wireExamTools();     /* 10/18 顶栏工具栏：全屏（眼睛标 10/20 删除） */
     reportExamState(true);   /* 10/15 告诉 SW：我在考试中，别刷我 */
     if(EX.submitted){ if(isListen) showScript(); decoratePassage(EX.curP); }
-    startTimer(isListen ? 30 * 60 : 60 * 60);
-    startFtMini();                                       /* 10/13：顶栏计时小徽章（考场内替代全站 floatTimer） */
+    /* 🔴 10/20 她 ⑤：听力单篇不显示计时（音频长短不一，30 分钟倒计时对单篇没意义），
+       只有「完整模考」才开倒计时（line 1500 / line 1435 那两处）。这里不再起表，
+       顺带顶栏计时小徽章也不显示 —— 单篇页面整个不出现时间数字。 */
+    if(!isListen) startTimer(60 * 60);
+    if(!isListen) startFtMini();                     /* 10/13：顶栏计时小徽章（考场内替代全站 floatTimer） */
   }
 
   /* ===== 完整模考（3 篇一套 · 40 题 / 60 分钟 · 随机组卷）=====
@@ -2496,30 +2597,19 @@ function barHtml(){
     var left = sec, el = document.getElementById('exTimer');
     function tick(){
       if(el){
-        if(_hideT){                       /* 10/18：隐藏计时 —— 只换显示，倒计时与收卷逻辑不变 */
-          el.textContent = '--:--';
-          el.classList.remove('warn'); el.classList.remove('soon');
-        } else {
-          var hh = Math.floor(left / 3600), mm = Math.floor((left % 3600) / 60), ss = left % 60;
-          el.textContent = pad2(hh) + ':' + pad2(mm) + ':' + pad2(ss);
-          el.classList.toggle('warn', left <= 300 && left > 0);
-          el.classList.toggle('soon', left <= 600 && left > 300);
-        }
+        var hh = Math.floor(left / 3600), mm = Math.floor((left % 3600) / 60), ss = left % 60;
+        el.textContent = pad2(hh) + ':' + pad2(mm) + ':' + pad2(ss);
+        el.classList.toggle('warn', left <= 300 && left > 0);
+        el.classList.toggle('soon', left <= 600 && left > 300);
       }
       /* 10/14 听力顶栏一行化：音频条里的整场计时同步刷新（标题行 CSS 隐藏但 JS 仍跑，双写保平安）
          10/18：听力单篇的计时已搬进音频条（#eaFullTimer），这里同步给 10/5 分钟双档警示色。 */
       var ft = document.getElementById('eaFullTimer');
       if(ft){
-        if(_hideT){
-          ft.textContent = '--:--';
-          ft.classList.remove('warn'); ft.classList.remove('soon');
-        }
-        else {
-          var fh = Math.floor(left / 3600), fm = Math.floor((left % 3600) / 60), fs2 = left % 60;
-          ft.textContent = pad2(fh) + ':' + pad2(fm) + ':' + pad2(fs2);
-          ft.classList.toggle('warn', left <= 300 && left > 0);
-          ft.classList.toggle('soon', left <= 600 && left > 300);
-        }
+        var fh = Math.floor(left / 3600), fm = Math.floor((left % 3600) / 60), fs2 = left % 60;
+        ft.textContent = pad2(fh) + ':' + pad2(fm) + ':' + pad2(fs2);
+        ft.classList.toggle('warn', left <= 300 && left > 0);
+        ft.classList.toggle('soon', left <= 600 && left > 300);
       }
       if(EX) EX._leftSec = left;
       if(left <= 0){ stopTimer(); doSubmit(); return; }
@@ -2997,7 +3087,10 @@ function barHtml(){
      点「开始模考」= 软导航到 speaking.html，导航 await 完成后替它点一下隐藏的「MOCK」tab。
      为什么能这么接：speaking.js 的 tab 点击是 ready() 里 addEventListener 绑的，而 softNavigate
      await 了 runPageScript → ready() 已同步跑完、处理器就位，外部 .click() 才生效。
-     好处 = **口语页一行都不用改**（它的模考逻辑/题库全部原样复用）。 */
+     好处 = **口语页一行都不用改**（它的模考逻辑/题库全部原样复用）。
+     🔴 10/20 她 ⑨：口语模考退出后回的是「口语」tab（bank 里 BANK），而她预期回「口语模考」tab。
+     真正的出口在 js/mock.js 的 exitToBank()（退出/中断都走它）—— 已改成点隐藏的 MOCK tab。
+     这里只负责「进去」，hash 不写死（speaking.js 不读 hash 还原 tab），所以入口侧无需改。 */
   function spkStartMock(){
     var go = { id: 'speaking', file: 'speaking.html', href: 'speaking.html' };
     if(typeof softNavigate !== 'function'){ location.href = 'speaking.html'; return; }
@@ -3121,11 +3214,12 @@ function barHtml(){
         if(EX && EX.paused) resumeExam(); else pauseExam();
         return;
       }
+      /* 10/20：旧「点一下循环切倍速」按钮（data-arate）退役 —— 换成 #eaRate <select>，
+         事件走 input 委托（见 input 监听开头）。这里保留 closest 判据只为接住历史 DOM，
+         命中时把 select 弹出来，逻辑仍走 setRate。 */
       if((el = t.closest && t.closest('#examRoot [data-arate]'))){
-        var a1 = document.getElementById('exAudio'); if(!a1) return;
-        _rateIx = (_rateIx + 1) % AUDIO_RATES.length;
-        a1.playbackRate = AUDIO_RATES[_rateIx];
-        el.textContent = rateLabel(AUDIO_RATES[_rateIx]);
+        var selR = document.getElementById('eaRate');
+        if(selR){ selR.focus(); }
         return;
       }
       if(t.closest && t.closest('#exAudioBar [data-amode]')){ audioToggleMode(); return; }
@@ -3133,7 +3227,7 @@ function barHtml(){
         _audioMuted = !_audioMuted;
         var au = document.getElementById('exAudio');
         if(au) au.volume = _audioMuted ? 0 : _audioVol;
-        el.textContent = _audioMuted ? '🔇' : '🔊';
+        el.innerHTML = _audioMuted ? ICO_MUTE : ICO_VOL;
         var sl0 = document.querySelector('#examRoot [data-avsl]');
         if(sl0) sl0.value = _audioMuted ? 0 : _audioVol;
         return;
@@ -3200,6 +3294,11 @@ function barHtml(){
     });
     document.addEventListener('input', function(e){
       var t = e.target;
+      /* 10/20：倍速 <select>（id=eaRate）—— 选了立刻生效，不必点别处 */
+      if(t.id === 'eaRate'){
+        setRate(t.value);
+        return;
+      }
       /* 听力音量：滑杆拖动实时生效 + 记住（两模式都可用 —— 真机考只有音量可控） */
       if(t.matches && t.matches('#examRoot [data-avsl]')){
         _audioVol = Math.max(0, Math.min(1, parseFloat(t.value) || 0));
@@ -3207,7 +3306,7 @@ function barHtml(){
         var au = document.getElementById('exAudio');
         if(au) au.volume = _audioVol;
         var vb = document.querySelector('#examRoot [data-avol]');
-        if(vb) vb.textContent = _audioMuted ? '🔇' : '🔊';
+        if(vb) vb.innerHTML = _audioMuted ? ICO_MUTE : ICO_VOL;
         try{ localStorage.setItem('hub_bank_vol', String(_audioVol)); }catch(e2){}
         return;
       }
