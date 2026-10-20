@@ -729,15 +729,10 @@ function userHtml(text){
     var col = !!DATA.settings.coachCtxCollapsed;
     var aside = $('coachCtx'); if(!aside) return;
     aside.classList.toggle('coach-ctx-mini', col);
-    // 抽屉开：加 coach-ctx-open 让它滑进来；遮罩同步
+    // 抽屉开：加 coach-ctx-open 让它滑进来（10/20 深夜起没有遮罩了，见构建处的说明）
     aside.classList.toggle('coach-ctx-open', !col);
     var card = $('coachCard');
     if(card) card.classList.toggle('ctx-open', !col);
-    var shade = $('coachCtxShade');
-    if(shade){
-      shade.hidden = col;
-      shade.classList.toggle('on', !col);
-    }
     var btn = $('coachCtxToggle');
     if(btn){
       btn.setAttribute('aria-expanded', col ? 'false' : 'true');
@@ -775,12 +770,9 @@ function userHtml(text){
     if(top) top.addEventListener('click', topBtnOn);
     var more = $('coachCtxMore');
     if(more) more.addEventListener('click', openMem);
-    /* 10/4 16:10 抽屉化：点遮罩 / 按 Esc 都能收起教练台（浮层必须有这两条常规关闭路径，
-       否则点外面没反应、页面看起来卡住 —— onbOverlay 10/3 那次同类事故的教训）。 */
-    var shade = $('coachCtxShade');
-    if(shade) shade.addEventListener('click', function(){
-      if(!DATA.settings.coachCtxCollapsed){ DATA.settings.coachCtxCollapsed = true; hubSave(); ctxApplyState(); }
-    });
+    /* 10/4 16:10 抽屉化：按 Esc 收起教练台（浮层必须有键盘关闭路径）。
+       🔴 10/20 深夜：点遮罩收起那条删了 —— 遮罩本身已删除（她报「整个卡变暗」）。
+          现在关闭 = 面板里的「收起」按钮 或 Esc；打开面板时聊天区**照常可用**。 */
     document.addEventListener('keydown', function(e){
       if(e.key !== 'Escape') return;
       if(DATA.settings.coachCtxCollapsed) return;
@@ -902,7 +894,12 @@ function userHtml(text){
        id 一个没改，只有结构包了一层 —— coach.js 全部动态绑定不受影响。 */
     view.innerHTML =
       '<div id="coachCard">'
-      + '<div class="coach-ctx-shade" id="coachCtxShade" hidden></div>'
+      /* 🔴 10/20 深夜删掉抽屉遮罩（她报「点了控制台之后整个卡会变暗」）：
+         原设计是「抽屉 + 半透明遮罩」的模态玩法 —— 遮罩铺在整张卡上（rgba .28 + 拦截点击），
+         打开教练台后聊天区整块发暗、连打字和点气泡都点不动。
+         但真实的边栏（微信 PC「会话详情」、Notion side peek）是**推挤式**不是模态：
+         内容让位、不变暗、不挡交互。本页正文本来就靠 ctx-open 的 padding 让位，
+         遮罩纯属多余 → 整块删除。关闭路径保留两条：面板里的「收起」、Esc。 */
       + '<div id="coachWrap">'
       + '<div id="coachCol">'
       +   '<div id="coachTop">'
