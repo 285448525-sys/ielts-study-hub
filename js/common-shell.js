@@ -796,6 +796,12 @@ async function softNavigate(t, isPop){
   if(_softNavBusy){ if(typeof toast === 'function') toast('页面切换中，请稍候…'); return; }
   _softNavBusy = true;
   _lastNavAt = Date.now();   // 10/8 导航优先：同步三路流量让路（见 navBusyGrace 注释）
+  /* 🔴 10/20 模考锁的「残留保险」：软导航能走到这里，说明**没被模考锁拦住**（正常路径）。
+     那就把锁显式清掉 —— 万一之前有别的路径（比如某页直接改 DOM、某处 history.pushState）
+     把锁留在开着的状态，换页后新页面会被「门锁死」（导航全被拦、她哪都去不了）。
+     ⚠️ 顺序很重要：解锁放在 hubExamGuardNav() 之后 —— 模考中点链接仍必须被拦住。
+     副作用检查：解锁时 flushHeal 不传 → 不会触发待刷新（那由模考页自己的 exit 路径处理）。 */
+  try{ hubExamLock(false, '', false); }catch(e){}
   try{
     if(window.matchMedia && window.matchMedia('(max-width:860px)').matches){ document.body.classList.remove('nav-open'); syncNavToggle(); }
     hubClearOrphanPageTimers();   // P0-A：离开旧页前清掉残留的计时/服药轮询心跳，避免软导航重进页面叠加“多个计时器同时跑 / 数字乱跳”
