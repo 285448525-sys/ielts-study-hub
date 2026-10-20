@@ -982,7 +982,17 @@
       + ''   /* 10/14 她拍板：顶栏计时徽章关掉（音频长短不一，与整场计时并存重复） */
       /* 10/20 她：眼睛标删掉（顶栏不再提供「隐藏计时」；听力单篇本来就不显示计时，
          模考的计时是核心信息不该藏）。同时把整栏只留 Saved + Fullscreen + ☰。 */
+      /* 10/20 她给的爱听写（idictation）真实机考实证截图：‹ › 前后箭头在**题目区右上角**、
+         深色方块，底栏里没有箭头。放在顶栏右侧而不是绝对定位浮层 —— 浮层会压住右上角的
+         题目文字（她「绝不切内容、绝不错位」的红线），顶栏位置视觉等价且永不错位。
+         🔴 必须放在 .ex-icons **里面**：单篇听力会把整个 .ex-icons 搬进音频条、并藏掉
+         .ex-top（mountListenTools）—— 箭头做成 .ex-top 的直接子节点会被一起藏掉，
+         在听力单篇里直接消失。手机（≤860）由 CSS 隐藏：窄屏点 Part/题号就够。 */
       +    '<div class="ex-icons">'
+      +      '<div class="ex-step">'
+      +        '<button class="ex-arrow" type="button" data-step="-1" title="Previous question" aria-label="Previous question">' + icoArrow(-1) + '</button>'
+      +        '<button class="ex-arrow" type="button" data-step="1" title="Next question" aria-label="Next question">' + icoArrow(1) + '</button>'
+      +      '</div>'
       +      '<span class="ex-saved" id="exSaved" hidden>Saved</span>'
       +      '<button class="ex-ico ex-toolbtn" id="exFsBtn" type="button" title="Full screen" aria-label="Full screen">' + ICO_FULL + '</button>'
       +      '<button class="ex-ico ex-menubtn" type="button" title="Option">\u2630</button>'
@@ -1092,38 +1102,52 @@ function reportExamState(inExam, flushHeal){
 }
 window.__reportExamState = reportExamState;
 
-function barHtml(){
-    /* 10/12 批A：底栏重构为爱听写/真机考形态（她 22:03「切换考题不该放上面，要放下面」）。
-       结构 = .ex-nav（左：篇切换器 ‹ 当前篇·已答/总数 | 中：当前篇题号行 | 右：下一篇 ›）
-              + .ex-actions（左：Pause | 中：Exit | 右：Finish section）
-       · 题号行只列【当前篇】（根治「40 个题堆下面挤两行」）；全卷格子 .ex-sheet 退役
-       · 篇切换器 full 模式才有；单篇只有题号行；写作是 Task 1/2 切换（见 paintPgSwitch）
+  function barHtml(){
+    /* 10/12 批A：底栏重构为真机考形态（她 22:03「切换考题不该放上面，要放下面」）。
        10/13 她报两件：①「题号和 Pause/Exit/Finish 分成两行不好，并成一行」→ 桌面 .ex-bar 改
          row（题号行 flex:1 占满，按钮行 flex:none 靠右）；≤860 移动端保持两行（390 宽放不下）。
        ②「Pause 是个摆设」→ 本批实现 pauseExam/resumeExam（见下）。
-       ⚠️ Pause 只属于练习模式：真机考录音不可暂停（BC 官方 Progress Check FAQ「The Listening
-         and Speaking tests are a recording and cannot be paused」；Zoju Strict/Breath 双模式、
-         ieltsfreepractice Practice/Exam 双模式同口径）→ 考试模式与听力完整模考不渲染该按钮。 */
-    /* 10/20 对齐 IDP 官方底栏（依据见 bank.html 里这段 CSS 的注释头）：
-       · 整卷模考**不再给 Pause** —— 官方口径是计时段不能暂停（听力录音不可暂停 + 阅读计时段），
-         原来阅读整卷也渲染 Pause，与真机考不符，且 40 个题号要占宽度。单篇练习保留 Pause。 */
-    var showPause = !!(EX && !EX.submitted && !EX.full && EX.listenMode !== 'exam');
+       🔴🔴🔴 10/20 22:3x 她发来爱听写（idictation）里**真实机考的截图**（剑雅21 Test 4 听力），
+       原话「底栏听力阅读模考的做成这个样子，你改错了」—— 我 10/20 上一批照 IDP 英文文档做的
+       「全卷 40 题 + 底栏前后箭头 + 左下角 Review」与真实软件不符，本批逐条纠回截图口径：
+         · Part 行（左）：当前 Part 加粗 + 紧跟**本 Part 全部题号**（截图：Part 3 → 21…30）；
+           其他 Part 只有「Part N」+ 灰色「x of y」已答数；做完的 Part = 绿勾 + 篇名
+           （截图：☑ Part 2），不显示数字。
+         · 底栏**没有**前后箭头（挪到题目区右上角深色方块，见 shellHtml 的 .ex-step）、
+           **没有** Review 按钮（flag 保留题干右上角小旗子，与题号圆圈同步）。
+         · Pause 恢复渲染（截图里 Finish section / Pause / Exit 三个按钮同在底栏）。
+           ⚠️ 听力完整模考（listenMode==='exam'）仍不渲染：她 10/20 定的「考试模式锁定播放」
+           是行为铁律（录音不可暂停/不可拖动），渲染了也是摆设。
+         · 视觉：44px / #eef0f2 不变（与写作页 .wt-bar 同一套）；Part 不再是白胶囊，改纯文字；
+           三个动作按钮同款浅灰（截图里三者同色，Finish section 不再是主色蓝）。 */
+    var full = !!(EX && EX.full);
+    var showPause = !!(EX && !EX.submitted && EX.listenMode !== 'exam');
+    /* 第二行品牌条（她 22:5x：「跟他们一样在左下角弄一个自己网站的名字……弄成两行」）。
+       爱听写那条 = 左「爱听写 剑雅21 Test 4」+ 右系统时钟；我们右侧不放东西（整场计时在顶栏，
+       10/14 她拍板的位置，不重复），左边 = 站点名 + 当前科目。手机（≤860）由 CSS 整条隐藏。
+       牌子取 yasihub.com（她 22:5x 给的两个候选里选带域名的 —— 光写 yasihub 像内部代号，
+       带上 .com 顺便提醒用户这是哪）。 */
+    var chLabel = (EX && EX.channel === 'listening') ? '听力' : '阅读';
     return '<div class="ex-bar">'
-      /* Part 并排切换器（她 10/15 拍板的功能：整卷的各个 Part 可以这样切换）——full 才有。 */
-      +    '<div class="ex-parts" id="exParts"></div>'
-      +    '<div class="ex-nav" id="exNav">'
-      +      '<button type="button" class="ex-arrow" data-step="-1" title="上一题" aria-label="上一题">' + icoArrow(-1) + '</button>'
-      +      '<div class="ex-nums" id="exNums"></div>'
-      +      '<button type="button" class="ex-arrow" data-step="1" title="下一题" aria-label="下一题">' + icoArrow(1) + '</button>'
+      +    '<div class="ex-bar-main">'
+      +      '<div class="ex-nav' + (full ? '' : ' ex-nav--plain') + '" id="exNav">'
+      /* full = Part 行（当前 Part 内嵌题号容器 #exNums，由 paintPgSwitch 建、paintSheet 填）；
+         单篇 = 只有题号行（#exNums 直接由 barHtml 建）。 */
+      +        (full ? '<div class="ex-parts" id="exParts"></div>'
+      :               '<div class="ex-nums" id="exNums"></div>')
+      +      '</div>'
+      +      '<div class="ex-actions">'
+      +        (showPause ? '<button type="button" class="btn-ghost ex-pause" id="exPauseBtn">Pause</button>' : '')
+      +        '<button class="btn-ghost" type="button" data-exit>Exit</button>'
+      +        '<button class="btn-primary" type="button" data-submit>Finish section</button>'
+      +      '</div>'
       +    '</div>'
-      +    '<div class="ex-actions">'
-      /* IDP 官方：「when you click the 'Review' button in the lower-left corner, the question
-         number changes from a square to a circle」→ 复刻同一个按钮、同一个状态变化。 */
-      +      '<button type="button" class="ex-review" id="exReviewBtn" title="标记本题待回看（Review）" aria-pressed="false">Review</button>'
-      +      (showPause ? '<button type="button" class="btn-ghost ex-pause" id="exPauseBtn">Pause</button>' : '')
-      +      '<button class="btn-ghost" type="button" data-exit>Exit</button>'
-      +      '<button class="btn-primary" type="button" data-submit>Finish section</button>'
-      +    '</div></div>';
+      +    '<div class="ex-strip">'
+      +      '<span class="ex-strip-b">yasihub.com</span>'
+      +      '<span class="ex-strip-d" aria-hidden="true">·</span>'
+      +      '<span class="ex-strip-t">' + chLabel + '</span>'
+      +    '</div>'
+      +    '</div>';
   }
   /* 底栏箭头图标（与全屏键同款 stroke 风格，1.9 粗、圆头） */
   /* 底栏箭头图标（与全屏键同款 stroke 风格）。⚠️ 用 function 声明而不是 var ——
@@ -2519,31 +2543,19 @@ function barHtml(){
 
   function paintSheet(){
     var root = document.getElementById('examRoot'); if(!root || !EX) return;
-    var box = document.getElementById('exNums'); if(!box) return;
-    /* 10/12 批A：题号行只列【当前篇】（她 22:03「所有题堆在下面」的根治点）。
-       三态（爱听写 + 新西兰官方 Quick Guide「答过的题上方出现线 / flag 由方变圆」）：
-       cur  = 当前题，黑框包裹数字；done = 已答，数字上方一条黑色粗线；flag = 圆圈套住数字。
-       原四态（Not seen/No response/Completed/Marked）是 Review 总览口径，本产品无 Review 屏 → 退役。
-       🔴 10/20 改回**全卷**（她「你也看看官方怎么设计」）——IDP 官方原话是
-       「With the navigation button at the bottom of the screen, you can see and check **all 40
-       questions**」；原来只列当前篇，做整卷模考时别的 Part 答没答完全看不见。为了不重演
-       10/12「40 个题堆下面挤」的老问题，同一 Part 内 gap=1、Part 之间插 .ex-num-gap 竖分隔。 */
+    /* 🔴🔴🔴 10/20 22:3x 照她发来的爱听写真实机考截图重做（她原话「做成这个样子，你改错了」）：
+       底栏只展开【当前 Part】的题号（截图：Part 3 → 21 22 … 30），其他 Part 在 Part 行里
+       只显示「x of y」已答数 / 绿勾。上一批照 IDP 英文文档改成「全卷 40 题全列」被她当场判错。
+       三态照旧（爱听写 + 新西兰官方 Quick Guide「答过的题上方出现线 / flag 由方变圆」）：
+       cur = 当前题黑框 / done = 数字上方黑线 / flag = 圆圈。
+       单篇练习（非 full）仍旧列本篇全部题号。 */
     EX.seen = EX.seen || {};
     EX.seen[String(EX.cur)] = 1;
     var user = collect();
-    /* full = 全卷 40 题（EX.byG 的键按升序）；单篇 = 本篇全部（allNums 本来就是单篇口径） */
-    var nums;
-    if(EX.full && EX.byG){
-      nums = Object.keys(EX.byG).map(Number).filter(function(n){ return !isNaN(n); })
-        .sort(function(a, b){ return a - b; });
-      if(!nums.length) nums = qsOfPassage(EX.curP).map(function(e){ return e.g; });
-    } else {
-      nums = allNums();
-    }
-    var order = nums.slice();   /* 箭头「到头没」按未过滤的顺序算，不能被"只看错题"影响 */
+    /* full = 当前 Part 的题号；单篇 = 本篇全部（allNums 本来就是单篇口径） */
+    var nums = (EX.full && EX.qs) ? qsOfPassage(EX.curP).map(function(e){ return e.g; }) : allNums();
     /* 10/17 复盘：交卷后题号行变「答题卡」—— 绿=对 / 红=错（爱听写 bg-green-100 / bg-red-100 口径）。
-       此前交卷后只有「已答」态（一道黑线），用户看不出哪题错，只能一路滚页面逐条找。
-       full 模式 EX.byG 才有连续题号键；单篇的 detail[].qn 是 String(qNumber)，两者都能命中 mark。 */
+       此前交卷后只有「已答」态（一道黑线），用户看不出哪题错，只能一路滚页面逐条找。 */
     var mark = null;
     if(EX.submitted && EX.result){
       mark = {};
@@ -2554,8 +2566,7 @@ function barHtml(){
     if(EX.submitted && EX._filt === 'wrong' && mark){
       nums = nums.filter(function(n){ return mark[String(n)] === false; });
     }
-    var prevP = 0;
-    box.innerHTML = nums.map(function(n){
+    var numsHtml = nums.map(function(n){
       var k = String(n);
       var answered = user[k] != null && String(user[k]).length;
       var cls = 'ex-num';
@@ -2563,80 +2574,89 @@ function barHtml(){
       if(EX.flagged[k]) cls += ' ex-num--flag';
       if(String(EX.cur) === k) cls += ' ex-num--cur';
       if(mark && Object.prototype.hasOwnProperty.call(mark, k)) cls += mark[k] ? ' ex-num--hit' : ' ex-num--miss';
-      /* Part 之间插一条竖分隔（只在全卷模式下有意义） */
-      var gap = '';
-      var ent = (EX.full && EX.byG) ? EX.byG[n] : null;
-      if(ent && prevP && ent.p !== prevP) gap = '<span class="ex-num-gap" aria-hidden="true"></span>';
-      if(ent) prevP = ent.p;
-      return gap + '<button type="button" class="' + cls + '" data-jump="' + esc(k) + '" title="Q' + esc(k) + '">' + esc(k) + '</button>';
+      return '<button type="button" class="' + cls + '" data-jump="' + esc(k) + '" title="Q' + esc(k) + '">' + esc(k) + '</button>';
     }).join('');
-    /* 10/20 前后箭头（IDP 官方 forward/backward arrows）到头置灰 */
+    /* Part 行先重建（当前 Part 里才有 #exNums 容器），再把题号填进去。
+       ⚠️ 顺序不能反：paintPgSwitch 会整块替换 #exParts 的 innerHTML。 */
+    paintPgSwitch();
+    var box = document.getElementById('exNums');
+    if(box) box.innerHTML = numsHtml;
+    /* 顶栏 ‹ ›（10/20 移到题目区右上角）到头置灰 —— 按**整卷题序**算，不能按当前 Part
+       渲染出的题号算，否则 Part 1 最后一题就置灰、跨不到 Part 2（截图里箭头是全程连续的）。 */
     var pv = document.querySelector('#examRoot .ex-arrow[data-step="-1"]');
     var nx = document.querySelector('#examRoot .ex-arrow[data-step="1"]');
+    var order = allOrder();
     if(pv && nx && order.length){
       pv.disabled = !(Number(EX.cur) > Number(order[0]));
       nx.disabled = !(Number(EX.cur) < Number(order[order.length - 1]));
     }
-    /* 10/20 左下角 Review：当前题被标记时按钮反白+红字（与题号圆圈同步） */
-    var rv = document.getElementById('exReviewBtn');
-    if(rv){
-      var on = !!(EX.flagged && EX.flagged[String(EX.cur)]);
-      rv.classList.toggle('on', on);
-      rv.setAttribute('aria-pressed', on ? 'true' : 'false');
-      rv.disabled = !!EX.submitted;
-    }
-    /* 🔴 10/20 溢出兜底（1080 窄桌面实测踩到）：40 个题号 + Part 切换器 + 三个按钮放不下时，
-       `justify-content:center` 会把**两端一起裁掉**（实测 1080 窗口只看到 8–33，第 1 题和
-       第 40 题都在可视区外，而且居中溢出后左端滚不过去 = 那几题永远点不到）。
-       改成：放得下才居中，放不下就左对齐 + 横向滚；同时把当前题滚进可视区（点 ‹ › 跨到 30+
-       时题号行要跟着走，否则用户看不到自己在哪）。 */
-    var curBtn = box.querySelector('.ex-num--cur');
+    /* 溢出兜底：题号行横向滚时把当前题滚进可视区（点 ‹ › 跨 Part 后用户要看得见自己在哪）。 */
+    var curBtn = box && box.querySelector('.ex-num--cur');
     if(curBtn && box.scrollWidth > box.clientWidth + 2){
       var bx = curBtn.offsetLeft, bw = curBtn.offsetWidth;
       if(bx < box.scrollLeft || bx + bw > box.scrollLeft + box.clientWidth){
         box.scrollLeft = Math.max(0, bx - box.clientWidth / 2 + bw / 2);
       }
     }
-    paintPgSwitch();
   }
 
-  /* A4. 篇切换器（full 模式）：左「‹ 当前篇 · 已答/总数」右「下一篇 · 0/总数 ›」，到头 disabled。
-     听力文案 = Part N；阅读 = Passage N；写作 = Task N（无篇概念时不渲染，由 channel 分支处理）。 */
+  /* 整卷题序（顶栏箭头「到头没」/ 前后步进用）：full = EX.byG 全部键升序；单篇 = 本篇全部。
+     🔴 不能改用 `#exNums .ex-num` 的 DOM 顺序 —— 10/20 起题号行只渲染当前 Part，
+     按 DOM 顺序算的话，Part 1 最后一题就会被当成「最后一题」把 › 置灰。 */
+  function allOrder(){
+    if(!EX) return [];
+    if(EX.full && EX.byG){
+      var ks = Object.keys(EX.byG).map(Number).filter(function(n){ return !isNaN(n); });
+      ks.sort(function(a, b){ return a - b; });
+      if(ks.length) return ks;
+    }
+    return allNums().map(Number);
+  }
+  /* 做完的 Part 的绿勾（爱听写实证：☑ Part 2，绿底白勾小方块） */
+  function icoCheck(){
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>';
+  }
+
+  /* Part 行（full 模式才有）—— 🔴 10/20 22:3x 照她发来的爱听写真实机考截图重画
+     （她原话「底栏听力阅读模考的做成这个样子，你改错了」）：
+       · 当前 Part：加粗篇名 + 紧跟本 Part 全部题号（题号容器就是 #exNums，paintSheet 填）
+       · 其他 Part：篇名 + 灰色「x of y」已答数
+       · 已做完的 Part：绿色小勾 + 篇名（截图：☑ Part 2），不显示数字
+       · 点击切换 Part 的功能不变（10/15 她拍板「各个 Part 是可以这样切换的」）
+       · ⚠️ .ex-pt 从 <button> 改成 <div role="button" tabindex="0">：当前 Part 里要嵌题号
+         <button>，而 <button> 不能嵌套 <button>（HTML 解析器会强行截断外层，DOM 直接烂掉）。
+         键盘 Enter/Space 激活在 keydown 监听里补（见文件末尾）。
+     阅读文案 = Passage N（官方卷面用词，10/15 与爱听写核对过）；听力 = Part N；写作 = Task N。 */
   function paintPgSwitch(){
-    /* 10/15 她拍板：Part 并排切换器（对标爱听写/IDP 真机考 Question Navigator）。
-       原「‹ Passage 1 · 0/13 ›」左右箭头一次只能看相邻两篇 →
-       改成 Part 1 | Part 2 | Part 3(4) 全部并排，每个带 已答/总数，当前篇白底高亮。
-       单篇练习（非 full）不渲染，只留题号行。 */
     var parts = document.getElementById('exParts');
-    var nav = document.getElementById('exNav');
-    if(!parts) return;
-    if(!EX || !EX.full){ if(parts) parts.innerHTML = ''; if(nav) nav.classList.add('ex-nav--plain'); return; }
-    nav.classList.remove('ex-nav--plain');
+    if(!parts) return;                      /* 单篇模式没有 Part 行，只有题号行 */
+    if(!EX || !EX.full){ parts.innerHTML = ''; return; }
     var isL = EX.channel === 'listening', isW = EX.channel === 'writing';
     /* 10/15 口径对齐官方/爱听写：阅读是 Passage 1/2/3（官方卷面用词），听力才是 Part 1–4，
        写作两篇是 Task 1/2。此前阅读也写 Part（10/15 并排切换器那批的副作用），本次纠回。 */
     var lbl = isL ? 'Part' : (isW ? 'Task' : 'Passage');
     var n = isL ? 4 : (isW ? 2 : 3);
     var user = collect();
-    /* 手机缩写：P1/P2…（省宽度，390px 放 4 个 + Finish/Exit）
-       🔴 10/20 阈值 860 → 1180：底栏改成全卷 40 题后，窄桌面（1080/1280 窗口）里
-       「Passage 1 0/13」四个全称会把题号行挤到只剩二十几个、还得横向滑。
-       题号导航是官方底栏的核心信息，优先级高于 Part 全称 —— 所以窄屏一律缩写。 */
+    /* 手机/窄桌面缩写：P1/P2…（省宽度）。
+       🔴 10/20 阈值 860 → 1180：1080/1280 窄桌面里「Passage 1 0 of 13」四个全称会把
+       题号行挤到剩二十几个、还得横向滑。题号导航是官方底栏的核心信息，优先级高于全称。 */
     var narrow = window.matchMedia && window.matchMedia('(max-width:1180px)').matches;
     var h = '';
     for(var pi = 1; pi <= n; pi++){
-      var tot = 0, done = 0;
-      if(!isW){
-        var list = qsOfPassage(pi) || [];
-        tot = list.length;
-        list.forEach(function(e){ if(user[e.g] != null && String(user[e.g]).length) done++; });
-      }
       var on = (pi === EX.curP);
       var txt = narrow ? ('P' + pi) : (lbl + ' ' + pi);
-      var prog = isW ? '' : ('<span class="ex-pt-n">' + done + '/' + tot + '</span>');
-      h += '<button type="button" class="ex-pt' + (on ? ' on' : '') + '" data-pg="' + pi + '"'
-        + (on ? ' aria-current="true"' : '') + '>'
-        + '<span class="ex-pt-t">' + txt + '</span>' + prog + '</button>';
+      h += '<div class="ex-pt' + (on ? ' on' : '') + '" data-pg="' + pi + '" role="button" tabindex="0"'
+        + (on ? ' aria-current="true"' : '') + '>';
+      if(isW){ h += '<span class="ex-pt-t">' + txt + '</span></div>'; continue; }
+      var list = qsOfPassage(pi) || [];
+      var tot = list.length, done = 0;
+      list.forEach(function(e){ if(user[e.g] != null && String(user[e.g]).length) done++; });
+      var alldone = tot > 0 && done === tot;
+      if(alldone) h += '<span class="ex-pt-ck" aria-hidden="true">' + icoCheck() + '</span>';
+      h += '<span class="ex-pt-t">' + txt + '</span>';
+      if(on) h += '<span class="ex-nums" id="exNums"></span>';           /* 当前 Part 展开题号 */
+      else if(!alldone) h += '<span class="ex-pt-n">' + done + ' of ' + tot + '</span>';
+      h += '</div>';
     }
     parts.innerHTML = h;
   }
@@ -3367,26 +3387,14 @@ function barHtml(){
         if(inp) inp.focus();
         return;
       }
-      /* 10/20 底栏 ‹ › 前后箭头（IDP 官方「switch between questions with the forward/backward
-         arrows」）：按题号行里实际渲染的顺序走，跨 Part 时 goTo 自己会切篇。 */
+      /* 顶栏 ‹ › 前后箭头（10/20 她给的爱听写实证截图：真实机考的箭头在题目区右上角、
+         且是**全程连续**的 —— Part 1 最后一题按 › 会直接进 Part 2 第一题）。
+         按整卷题序走，跨 Part 时 goTo 自己会切篇（renderListenPart / renderPassage）。 */
       if((el = t.closest && t.closest('.ex-arrow[data-step]')) && EX && !el.disabled){
-        var ord = Array.prototype.map.call(
-          document.querySelectorAll('#exNums .ex-num[data-jump]'),
-          function(b){ return Number(b.getAttribute('data-jump')); }
-        );
+        var ord = allOrder();
         var at = ord.indexOf(Number(EX.cur));
         var tgt = (at < 0) ? ord[0] : ord[at + Number(el.getAttribute('data-step'))];
         if(tgt != null && !isNaN(tgt)) goTo(tgt, true);
-        return;
-      }
-      /* 10/20 左下角 Review（IDP 官方：点了题号由方块变圆圈）—— 与题干右上角小旗子共用
-         同一个 EX.flagged 状态，两边同步，不新增数据字段。 */
-      if((el = t.closest && t.closest('#exReviewBtn')) && EX && !EX.submitted){
-        var rk = String(EX.cur);
-        EX.flagged[rk] = !EX.flagged[rk];
-        var rf = document.querySelector('#examRoot .ex-flagq[data-qn="' + rk + '"]');
-        if(rf) rf.classList.toggle('on', !!EX.flagged[rk]);
-        paintSheet();
         return;
       }
       /* 题号行跳题（10/12 批A：.ex-sq 答题卡退役 → .ex-num 题号行） */
@@ -3521,6 +3529,18 @@ function barHtml(){
        10/13：双击窗口 600→800ms（她报「双击 Tab 没反应」——人类双击间隔常见 300-700ms，
        600ms 对慢双击太紧；本地探针两条焦点路径均验过再放款）。 */
     document.addEventListener('keydown', function(e){
+      /* 10/20：Part 行从 <button> 改成 <div role="button">（当前 Part 里要嵌题号 <button>，
+         <button> 不能嵌套 <button>，HTML 解析器会强行截断外层）→ 这里补 Enter/Space 激活，
+         把原生按钮自带的键盘能力还回来。嵌套里的题号按钮是 BUTTON，走原生激活，不重复处理。 */
+      if(e.key === 'Enter' || e.key === ' '){
+        var zone0 = document.getElementById('examRoot');
+        var pt = e.target && e.target.closest && e.target.closest('.ex-pt[data-pg]');
+        if(zone0 && pt && zone0.contains(pt) && e.target.tagName !== 'BUTTON' && !(EX && EX.submitted)){
+          e.preventDefault();
+          pt.click();
+        }
+        return;
+      }
       if(e.key !== 'Tab') return;
       var zone = document.getElementById('examRoot');
       if(!zone || zone.hidden) return;

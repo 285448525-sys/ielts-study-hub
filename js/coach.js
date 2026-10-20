@@ -305,15 +305,19 @@ window.__COACH_ON = true;
   /* 10/4（她 13:20 拍板）：头像从顶栏搬到气泡左边 —— 顶栏只留「AI 口语陪练 / 自由对话」两行字。
      气泡头像即考官形象入口：点它开同一个选考官弹层。未选形象时由 .coach-av-fb（学士帽）兜底，不破图。
      ⚠️ 副作用（正向）：此前气泡恒为学士帽、顶栏才是考官形象，换考官后气泡不跟着变；
-        现在两者合一，换完考官所有气泡一起刷新（sync 见 initExamAv）。 */
+        现在两者合一，换完形象所有气泡一起刷新（sync 见 initCoachAv）。 */
   /* 🔴 10/4 17:20 她报「只有第一个对话框头像是头像，第二个就不对了」。
-     根因：AV_AI 曾是**字符串常量**，里面 img 的 src 写死空串；initExamAv 的 sync() 只在
+     根因：AV_AI 曾是**字符串常量**，里面 img 的 src 写死空串；initCoachAv 的 sync() 只在
      build() 后跑一次，之后 assistantHtml() 每次新建的气泡都带一个**空 src** 的 img
      → 露后面的学士帽兜底，于是同一条会话里头像一会对、下一对又不对。
-     修：改成**函数**，每次生成气泡时**当场读** window.avExamSrc() 写进 src，
-     与 avMeHtml()（用户头像）的做法完全一致。sync() 仍保留，用于换考官后刷新存量气泡。 */
+     修：改成**函数**，每次生成气泡时**当场读** window.avCoachSrc() 写进 src，
+     与 avMeHtml()（用户头像）的做法完全一致。sync() 仍保留，用于换陪练后刷新存量气泡。
+     🔴🔴 10/20 晚她暴怒修（「考官用真人陪练用卡通头像啊我真服了你给我改了干嘛」）：
+     根因 = 10/20 白天把考官换成 4 张真人照后，本函数仍读 avExamSrc() → 陪练也变真人。
+     现在陪练读 **avCoachSrc()**（2 个 avataaars 卡通，字段 settings.coachAvatar），
+     与口语模考的真人考官（avExamSrc / examAvatar）彻底分开。 */
   function avAiHtml(){
-    var src = (typeof window !== 'undefined' && typeof window.avExamSrc === 'function') ? (window.avExamSrc() || '') : '';
+    var src = (typeof window !== 'undefined' && typeof window.avCoachSrc === 'function') ? (window.avCoachSrc() || '') : '';
     return '<button type="button" class="coach-av" data-exam-av aria-haspopup="dialog"'
       + ' aria-controls="avatarPop" aria-expanded="false" title="点击更换考官的样子">'
       + '<span class="coach-av-fb" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3 2 8l10 5 10-5-10-5Z"/><path d="M6 10.5V16c0 1.5 3 3 6 3s6-1.5 6-3v-5.5"/></svg></span>'
@@ -333,6 +337,12 @@ window.__COACH_ON = true;
 /* 10/3 头像：把 userHtml 挂到 window 供探针/调试驱动（生产无副作用，外部不调就是 undefined）。
    真实用户路径是 sendText() 调它 —— 那条要联网等 AI 回来，探针不方便等。 */
 window.__COACH_USER_HTML = function(t){ return userHtml(t); };
+/* 10/20 晚：思考文案池 + showThinking 挂 window 供探针验收（同上报不到真实交互：
+   showThinking 只在 setBusy(true) 里被调，而那条要等 AI 回来）。生产无副作用。
+   ⚠️ 文案池必须用**函数**惰性读（不能直接赋值）—— 本行在 THINKING_TEXTS 定义之前执行，
+   直接赋值会拿到 undefined（探针实测踩过）。 */
+window.__COACH_THINKING_TEXTS = function(){ return THINKING_TEXTS.slice(); };
+window.__COACH_SHOW_THINKING = function(){ showThinking(); };
 function userHtml(text){
     return '<div class="cu-row">' + avMeHtml() + '<div class="cu-bubble">'
       + escapeHtml(text).replace(/\n/g, '<br>') + '</div></div>';
@@ -435,10 +445,14 @@ function userHtml(text){
      原来只有右下角按钮文字变「思考中…」，聊天区**完全没动静** —— 用户发完就盯着空白。
      现在：发出后**立刻**在聊天流里插一个「思考中」气泡（三个跳动点 + 随机文案）。
      ⚠️ 文案**刻意多个备选随机**：她原话「用同一个文案我觉得太无聊了」。
+     🔴 10/20 晚她再报（截图：思考文案是「正在回想你刚说的…」）：「这个思考文案换一个，
+     比如让我想想，或者等我想一会之类的，然后每次思考的文案最后都不太一样那种，
+     反正就多预设点这种思考文案」→ 文案池整体换成「让我想想 / 等我想一会」家族并扩充到 10 条。
      ⚠️ 失败时必须移除（走 failed 分支），不能让「思考中」留在屏幕上冒充答案。 */
   var THINKING_TEXTS = [
-    '正在想…', '让我想想…', '组织一下语言…', '稍等一下…',
-    '正在回想你刚说的…', '在挑合适的说法…', '写完就发你…', '认真答你…'
+    '让我想想…', '等我想一会…', '嗯…让我组织一下语言…', '稍等一下，我想一想…',
+    '这个问题我想一下…', '等我捋一捋…', '让我琢磨琢磨…', '我想想怎么说…',
+    '稍微等我一下…', '组织一下思路…'
   ];
   var _thinkEl = null;
   function showThinking(){
@@ -775,11 +789,13 @@ function userHtml(text){
     window.addEventListener('resize', layoutCoach);
   }
 
-  /* 考官头像选择器（10/3 22:55 从设置页挪来）：顶栏点头像 → av-picker 弹层换考官。
+  /* 陪练头像选择器（10/3 22:55 从设置页挪来）：点气泡头像 → av-picker 弹层换陪练（卡通）。
+     🔴 10/20 晚她暴怒修：原为「考官选择器」（initExamAv，真人/卡通混用一个字段），
+     现在陪练与考官分开 → 更名 initCoachAv，走 avOpen('coach') + avCoachSrc()。
      ⚠️ speaking.html 已新引 av-picker.js（必须在 coach.js 之前），否则 avOpen 不存在、
      点头像没反应。src 同步用「短轮询 + 结束即清」：av-picker 选完只改自己的 img
      （syncAccountCard 只管设置页），本页要等它把新图刷过来。 */
-  function initExamAv(){
+  function initCoachAv(){
     /* 10/4（她 13:20 拍板）：入口从顶栏搬到气泡头像（#coachExamAvBtn / #coachExamAvImg 已退役）。
        气泡是动态渲染、且可能同时存在多条 —— 所以：
        · 形象同步用选择器刷【全部】气泡头像，不再抓一个固定 id；
@@ -788,8 +804,8 @@ function userHtml(text){
       return document.querySelectorAll('#coachView [data-exam-av] img');
     }
     function sync(){
-      if(typeof window.avExamSrc !== 'function') return;
-      var want = window.avExamSrc();
+      if(typeof window.avCoachSrc !== 'function') return;
+      var want = window.avCoachSrc();
       examImgs().forEach(function(im){
         if(im.getAttribute('src') !== want) im.setAttribute('src', want);
       });
@@ -803,7 +819,7 @@ function userHtml(text){
         var t = e.target;
         if(!t || !t.closest) return;
         if(t.closest('[data-exam-av]')){
-          if(typeof window.avOpen === 'function'){ window.avOpen('exam'); }
+          if(typeof window.avOpen === 'function'){ window.avOpen('coach'); }
           else { toast('头像选择器还在加载，稍等一下'); }
         }
       }, true);
@@ -994,7 +1010,7 @@ function userHtml(text){
       try{ hubSave(); }catch(_){}
     }
     initCtx();           // 10/3 A版：初始化上下文栏（折叠状态 + 首渲染 + 事件）
-    initExamAv();        // 10/3 22:55：顶栏考官头像选择器（她拍板从设置页挪来）
+    initCoachAv();       // 10/3 22:55：陪练头像选择器（她拍板从设置页挪来；10/20 晚起与考官分开）
     var ta = $('coachInput');
     /* 10/4 09:45：记住用户主动碰过输入框 —— 之后 build()/setBusy 才允许自动聚焦回输入框 */
     ta.addEventListener('focus', function(){ st.userTouched = true; });

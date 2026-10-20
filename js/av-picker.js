@@ -1,12 +1,19 @@
 /* ============================================================
-   10/3 头像选择（A窗口实现，她拍板：open-peeps 男4女4 = 用户可选，avataaars F/M = 考官可选）
+   10/3 头像选择（A窗口实现，她拍板：open-peeps 男4女4 = 用户 8 个可选）
    —— 素材来源：DiceBear（https://www.dicebear.com/styles/）
-      · open-peeps（Pablo Stanley, CC0 1.0）= 用户 8 个
-      · avataaars（Pablo Stanley, CC0 1.0）= 考官 2 个
+      · open-peeps（Pablo Stanley, CC0 1.0）= 用户 8 个（img/avatars/user-*.svg）
+      · avataaars（Pablo Stanley, CC0 1.0）= 陪练 2 个卡通（img/avatars/exam-*.svg）
       两者均免署名可商用，SVG 已剥掉 <metadata> RDF 块，落在 img/avatars/。
-   —— **只存文件名**（DATA.settings.avatar / examAvatar），云同步只带几十字节，不存图片本身
-   —— 字段已登记 SYNC_SETTINGS_FIELDS（common.js），保存自打 _fieldTs
-   —— 暴露 window.avUser() / window.avExam() 供其他页（陪练气泡、模考考官）取 src
+   🔴🔴 10/20 晚她暴怒修（原话「考官用真人陪练用卡通头像啊我真服了你给我改了干嘛」）：
+      根因 = 白天把「考官」从卡通换成 4 张真人照时，**陪练气泡头像一直复用 avExamSrc()**
+      → 陪练也跟着变成真人。**现在三套彻底分开，字段互不影响**：
+      · 我（用户）= USER_AVATARS 8 个 → 字段 settings.avatar（陪练聊天 / 侧栏 / 账户卡）
+      · 陪练 = COACH_AVATARS 2 个卡通 → 字段 settings.coachAvatar（只给口语陪练页气泡用）
+      · 考官 = EXAM_AVATARS 4 张真人照（img/examiner/*.jpg）→ 字段 settings.examAvatar
+        （只给口语模考 mock.js 的考官视频窗用）
+   —— **只存文件名**（avatar / coachAvatar / examAvatar），云同步只带几十字节，不存图片本身
+   —— 三个字段都已登记 SYNC_SETTINGS_FIELDS（common-sync.js），保存自打 _fieldTs
+   —— 暴露 window.avUser()/avUserSrc()、window.avCoach()/avCoachSrc()、window.avExam()/avExamSrc()
    ============================================================ */
 (function(){
   'use strict';
@@ -33,9 +40,18 @@
     { f: 'ex-emily',  label: 'Emily',  src: 'img/examiner/ex-emily.jpg' },
     { f: 'ex-james',  label: 'James',  src: 'img/examiner/ex-james.jpg' }
   ];
+  /* 🔴 10/20 晚她暴怒修：「考官用真人陪练用卡通头像」—— 陪练与考官从此分开。
+     陪练 = 白天被删的 2 个 avataaars Q 版卡通（已从 git b76cc35^ 恢复），只给口语陪练页用。
+     ⚠️ 与 EXAM_AVATARS 字段/目录/扩展名全不同；老用户 localStorage 没有 coachAvatar
+     → valid() 失配自动回落 FALLBACK_COACH，不会白图。 */
+  var COACH_AVATARS = [
+    { f: 'exam-f', label: '陪练 1', src: 'img/avatars/exam-f.svg' },
+    { f: 'exam-m', label: '陪练 2', src: 'img/avatars/exam-m.svg' }
+  ];
   var DIR = 'img/avatars/';
   var FALLBACK_USER = 'user-f1';
   var FALLBACK_EXAM = 'ex-sophia';
+  var FALLBACK_COACH = 'exam-f';
 
   function valid(list, f){
     if(!f) return false;
@@ -59,6 +75,19 @@
     var f = avExam();
     for(var i = 0; i < EXAM_AVATARS.length; i++){
       if(EXAM_AVATARS[i].f === f) return EXAM_AVATARS[i].src;
+    }
+    return DIR + f + '.svg';
+  }
+  /** 当前陪练头像文件名（卡通，与考官真人照分开） */
+  function avCoach(){
+    var f = cur().coachAvatar;
+    return valid(COACH_AVATARS, f) ? f : FALLBACK_COACH;
+  }
+  /* 陪练 = 卡通 SVG，按 src 字段取全路径，取不到退回 DIR 拼接 */
+  function coachSrc(){
+    var f = avCoach();
+    for(var i = 0; i < COACH_AVATARS.length; i++){
+      if(COACH_AVATARS[i].f === f) return COACH_AVATARS[i].src;
     }
     return DIR + f + '.svg';
   }
@@ -100,23 +129,28 @@
 
   function renderAll(){
     renderGrid('avUserGrid', USER_AVATARS, avUser, 'avatar');
+    renderGrid('avCoachGrid', COACH_AVATARS, avCoach, 'coachAvatar');
     renderGrid('avExamGrid', EXAM_AVATARS, avExam, 'examAvatar');
-    /* 10/3 22:55：设置页把「头像」整卡缩成弹层后，两个网格改为按页签互斥显示 */
-    avSwitchTab(document.body.getAttribute('data-avtab') === 'exam' ? 'exam' : 'user');
+    /* 10/3 22:55：设置页把「头像」整卡缩成弹层后，三个网格改为按页签互斥显示 */
+    var _tab0 = document.body.getAttribute('data-avtab');
+    avSwitchTab((_tab0 === 'exam' || _tab0 === 'coach') ? _tab0 : 'user');
   }
 
   /* ==== 10/3 22:55：头像从「一整卡网格」改成「点头像弹层」 ====
      她拍板：「不要摊开在下面，希望点头像才弹出来」。设置页点头像弹（kind='user'）；
-     口语陪练页顶栏点考官头像也走同一个（kind='exam'，从 coach.js 调 window.avOpen）。 */
+     口语陪练页点气泡头像走同一个（kind='coach'，从 coach.js 调 window.avOpen）。 */
   function avSwitchTab(tab){
-    var u = document.getElementById('avUserGrid'), e = document.getElementById('avExamGrid');
-    var isExam = (tab === 'exam');
-    if(u) u.hidden = isExam;
+    var u = document.getElementById('avUserGrid'), e = document.getElementById('avExamGrid'), k = document.getElementById('avCoachGrid');
+    var isExam = (tab === 'exam'), isCoach = (tab === 'coach');
+    if(u) u.hidden = isExam || isCoach;
     if(e) e.hidden = !isExam;
+    if(k) k.hidden = !isCoach;
     var t = document.getElementById('avPopTitle'), h = document.getElementById('avPopHint'), c = document.getElementById('avPopCount');
-    if(t) t.textContent = isExam ? '换考官的样子' : '换我的头像';
-    if(h) h.textContent = isExam ? '口语模考和陪练里会出现，选定的那位优先被抽到' : '用在陪练聊天、侧边栏这些地方，换设备自动同步';
-    if(c) c.textContent = isExam ? ('共 ' + EXAM_AVATARS.length + ' 个形象') : ('共 ' + USER_AVATARS.length + ' 个形象');
+    if(t) t.textContent = isCoach ? '换陪练的样子' : (isExam ? '换考官的样子' : '换我的头像');
+    if(h) h.textContent = isCoach ? '只用在口语陪练里，和模考考官分开；换设备自动同步'
+      : (isExam ? '口语模考里会出现，选定的那位优先被抽到' : '用在陪练聊天、侧边栏这些地方，换设备自动同步');
+    if(c) c.textContent = isCoach ? ('共 ' + COACH_AVATARS.length + ' 个形象')
+      : (isExam ? ('共 ' + EXAM_AVATARS.length + ' 个形象') : ('共 ' + USER_AVATARS.length + ' 个形象'));
     var tabs = document.querySelectorAll('.av-tab');
     for(var i = 0; i < tabs.length; i++){
       var on = tabs[i].getAttribute('data-avtab') === tab;
@@ -135,7 +169,7 @@
     avSwitchTab(kind || 'user');
     var btn = document.getElementById('acctAvatarBtn');
     if(btn) btn.setAttribute('aria-expanded', 'true');
-    /* 陪练页顶栏那个也要置上——coach.js initExamAv 的轮询靠它判断弹层是否开着 */
+    /* 陪练页顶栏那个也要置上——coach.js initCoachAv 的轮询靠它判断弹层是否开着 */
     var cb = document.getElementById('coachExamAvBtn');
     if(cb) cb.setAttribute('aria-expanded', 'true');
   }
@@ -144,7 +178,7 @@
     if(card) card.hidden = true;
     var btn = document.getElementById('acctAvatarBtn');
     if(btn) btn.setAttribute('aria-expanded', 'false');
-    /* 陪练页顶栏那个也要同步（initExamAv 的轮询靠它判断弹层是否还开着） */
+    /* 陪练页顶栏那个也要同步（initCoachAv 的轮询靠它判断弹层是否还开着） */
     var cb = document.getElementById('coachExamAvBtn');
     if(cb) cb.setAttribute('aria-expanded', 'false');
   }
@@ -187,8 +221,10 @@
   /* 挂到 window：陪练气泡（coach.js）、模考考官（mock.js）都从这里取 */
   window.avUser = avUser;
   window.avExam = avExam;
+  window.avCoach = avCoach;
   window.avUserSrc = userSrc;
   window.avExamSrc = examSrc;
+  window.avCoachSrc = coachSrc;
   window.avSyncAccountCard = syncAccountCard;
   window.avSyncSide = syncSide;
   window.avOpen = avOpen;      // 10/3 22:55：陪练页顶栏点考官头像走这个开弹层
@@ -205,9 +241,11 @@
     +   '</div>'
     +   '<div class="av-pop-tabs" role="tablist">'
     +     '<button class="av-tab on" type="button" role="tab" aria-selected="true" data-avtab="user">我</button>'
+    +     '<button class="av-tab" type="button" role="tab" aria-selected="false" data-avtab="coach">陪练</button>'
     +     '<button class="av-tab" type="button" role="tab" aria-selected="false" data-avtab="exam">考官</button>'
     +   '</div>'
     +   '<div class="av-grid" id="avUserGrid" role="radiogroup" aria-label="我的头像"></div>'
+    +   '<div class="av-grid av-grid-coach" id="avCoachGrid" role="radiogroup" aria-label="陪练头像" hidden></div>'
     +   '<div class="av-grid av-grid-exam" id="avExamGrid" role="radiogroup" aria-label="考官头像" hidden></div>'
     +   '<div class="av-pop-foot"><span id="avPopCount"></span>'
     +     '<button class="av-pop-done" id="avPopDone" type="button">完成</button></div>'
