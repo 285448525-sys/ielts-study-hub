@@ -308,14 +308,15 @@ ready(() => {
     });
   }
   $('#searchWord').addEventListener('input', renderWords);
-  $('#backfillBtn').addEventListener('click', backfillCn);
-  /* 10/20 深夜：合并重复词（云同步按 id 合并，两台设备各导一次同义词会留下两条副本） */
-  const mergeBtn = $('#mergeDupBtn');
-  if(mergeBtn) mergeBtn.addEventListener('click', function(){
-    mergeBtn.disabled = true;
-    const n = mergeDuplicateWords();
-    mergeBtn.disabled = false;
-    toast(n ? ('已合并 ' + n + ' 个重复词，保留练得最久的那条') : '没有发现重复词，词库是干净的');
+  /* 🔴 10/20 深夜（她拍板）：词库自己整理，不给按钮。
+     原「AI 补全」按钮删除；我上一批加的「合并重复词」按钮也一并删除 —— 她的原话：
+     「我其实想把 AI 补全这个按钮去掉，你还给我又加一个按钮，我希望这个功能导入的时候就是完全体」。
+     两者的作用全部下沉到这里：**进页面自动静默跑一遍**（重复词合并 + 释义清洗 + 词组词性归一）。 */
+  try{ if(typeof autoTidyWords === 'function') autoTidyWords(); }catch(e){ console.warn('[ready:autoTidyWords]', e); }
+  /* 云端合并完成后再跑一次：跨设备重复词恰恰是合并那一刻并进来的（两端各一个 id）。
+     autoTidyWords 幂等，第二次若已无重复则零改动、不落盘、不重渲染。 */
+  document.addEventListener('hub:data-merged', function(){
+    try{ if(typeof autoTidyWords === 'function') autoTidyWords(); }catch(e){ console.warn('[merged:autoTidyWords]', e); }
   });
   document.querySelectorAll('#filterType .chip').forEach(btn => {
     btn.addEventListener('click', () => { setWordFilterType(btn.dataset.type); renderWords(); });
@@ -490,8 +491,9 @@ function newWordV12(en, cn){
   return resetWordProgress(w);
 }
 
-/* 把单词进度归零到第一阶段（level 0 / 今天到期）。design/08：已有词重新导入时
-   =「更新释义 + 重置进度」，与新建共用同一口径，保证两处字段永不漂移。
+/* 把单词进度归零到第一阶段（level 0 / 今天到期）。
+   🔴 10/20 深夜起**只给「新建词」用**：已有词重新导入改走 demoteWordProgress（降一级，见下方）。
+   两处共用同一口径写字段，保证永不漂移。
    只动客观进度字段：cn/pos/ipa 属内容、由调用方处理；hardWord / keyWord 是她的主观
    标注（词还是难的、还是重点），重置进度时保留；ts / id / en 一律不动。
    ⚠️ resetEpoch（9/17）：每次重置 +1。云合并 _mergeWords 对 level/errTotal/nextReview 等
@@ -512,6 +514,28 @@ function resetWordProgress(w){
   w.lastShortTouch = null;
   w.cleanRounds = 0;
   w.hist = [];   // design/59：重置进度=从零开始，作答历史随 resetEpoch 组语义一并清空
+  return w;
+}
+
+/* 🔴 10/20 深夜（她拍板）：已有词「重新导入」= 降一级，不是归零。
+   旧口径是 resetWordProgress（level 0 + 今天重背）——她记着的规矩是「合并的话原来的单词会降一个等级」，
+   归零太狠：一个已经 Lv 6（60 天档）的词，只是列表里又出现一次，就被打回今天重背。
+   新口径：等级 -1，最早降到 0；下次复习按降后那档的标准间隔排（Lv 0 = 1 天）。
+   ⚠️ 必须同时动 dh：design/77 起 level 只是 dh 的显示代理（displayLevelFromH 由 dh 反推），
+      只改 level 不动 dh → 下次答对时 `w.level = displayLevelFromH(w.dh)` 会把它又算回原等级，降级等于没发生。
+   ⚠️ resetEpoch 照旧 +1：让「降级」这个意图能跨设备传播（epoch 大者整组进度字段胜出，见上方注释）。
+   只动记忆强度这一条轴：errTotal / hist / lastReview / dd / hardWord / keyWord 是「历史与主观标注」，一律保留。 */
+function demoteWordProgress(w){
+  w.resetEpoch = (Number(w.resetEpoch) || 0) + 1;
+  const lv = Math.max(0, (Number(w.level) || 0) - 1);
+  const gap = (typeof LEVEL_INTERVAL !== 'undefined' && Number(LEVEL_INTERVAL[lv]) > 0)
+    ? Number(LEVEL_INTERVAL[lv]) : 1;
+  w.level = lv;
+  w.dh = gap;
+  w.nextReview = (typeof addDays === 'function') ? addDays(todayKey(), gap) : todayKey();
+  w.cleared = false;      // 降过级的词一律回复习队列（否则 Lv 5/6/7 仍标「已掌握」不会再来）
+  w.okStreak = 0;         // 连击属短期状态，退一档即断开；累计错次 errTotal 不抹
+  w.errStreak = 0;
   return w;
 }
 
@@ -539,8 +563,8 @@ async function importSmart(){
       const exist = byKey.get(key);
       if(exist){
         /* 本路径不产出 cn（extractWords 只抽词、丢掉中文），释义无从更新；
-           这里只重置进度，提示语也不宣称「释义已更新」。 */
-        resetWordProgress(exist);
+           这里只降一级，提示语也不宣称「释义已更新」。 */
+        demoteWordProgress(exist);
         updated++;
       } else {
         const w = newWordV12(r.en, '');
@@ -551,9 +575,13 @@ async function importSmart(){
     });
     hubSave(); $('#smartInput').value = '';  renderWords();
     let msg = '成功导入 ' + added + ' 个（AI 暂不可用，未翻译）';
-    if(updated) msg += '，重置 ' + updated + ' 个已有词（进度回到第一阶段）';
+    if(updated) msg += '，降级 ' + updated + ' 个已有词（各降一级，最早到 Lv 0）';
     if(skippedDeleted) msg += '，跳过已掌握 ' + skippedDeleted + ' 个';
-    toast(msg); if(hint) hint.textContent = msg + '。稍后 AI 可用时可用「AI 补全」自动翻译。';
+    /* 🔴 10/20 深夜：「AI 补全」按钮已删除，这里不再指引她去点按钮。
+       未登录 = 站内 AI 中继不可用，只能抽词不能翻译；登录后再导一次同一个词就能补全
+       （且按新口径只是降一级，不会归零），所以提示语直接指登录。 */
+    const guestTip = '。当前未登录，只抽出了单词、没翻译；登录后重新导入一次，释义/词性/音标会自动补全。';
+    toast(msg); if(hint) hint.textContent = msg + guestTip;
     return;
   }
 
@@ -585,7 +613,7 @@ async function importSmart(){
       const exist = byKey.get(key);
       if(exist){
         exist.cn = clean;          // 已有词：覆盖释义（同口径清洗）
-        resetWordProgress(exist);  // + 进度回到第一阶段（hardWord/keyWord 保留）
+        demoteWordProgress(exist); // + 进度降一级（最早到 Lv 0；hardWord/keyWord 保留）
         touched.push(exist);
         updated++;
       } else {
@@ -596,12 +624,12 @@ async function importSmart(){
         added++;
       }
     }
-    // 词组词性本地即统一 phrase.（与 backfillCn 同口径）：列表渲染本就自动显示 phrase.，
+    // 词组词性本地即统一 phrase.（与 autoTidyWords 同口径）：列表渲染本就自动显示 phrase.，
     // 这里补齐字段让背词/练习页同源，且词组不进阶段②（cn 已有即完全体，音标可选不阻塞）
     touched.forEach(w => { if(/\s/.test(w.en) && w.pos !== 'phrase.') w.pos = 'phrase.'; });
     hubSave(); $('#smartInput').value = '';  renderWords();
     let msg = '成功导入 ' + added + ' 个';
-    if(updated) msg += '，重置 ' + updated + ' 个已有词（释义已更新，进度回到第一阶段）';
+    if(updated) msg += '，降级 ' + updated + ' 个已有词（释义已更新，各降一级）';
     if(skippedDeleted) msg += '，跳过已掌握 ' + skippedDeleted + ' 个';
     toast(msg); if(hint) hint.textContent = msg;
     // ── 阶段②：自动补全词性/音标（只对本次导入的词；失败不影响已导入的释义） ──
@@ -611,7 +639,7 @@ async function importSmart(){
         if(hint) hint.textContent = '导入完成，AI 正在补全词性与音标…（0/' + miss2.length + '）';
         const r2 = await aiFillWords(miss2, hint);
         if(r2 === 'format'){
-          const fMsg = msg + '；词性/音标补全格式异常，点「AI 补全」重试';
+          const fMsg = msg + '；词性/音标补全格式异常，重新导入一次即可重试';
           toast(fMsg); if(hint) hint.textContent = fMsg;
         } else {
           const left = DATA.words.filter(wordNeedsFill).length;
@@ -619,7 +647,7 @@ async function importSmart(){
           toast(okMsg); if(hint) hint.textContent = okMsg;
         }
       }catch(e2){
-        const fMsg = msg + '；词性/音标补全失败：' + e2.message + '（点「AI 补全」重试）';
+        const fMsg = msg + '；词性/音标补全失败：' + e2.message + '（重新导入一次即可重试）';
         toast(fMsg); if(hint) hint.textContent = fMsg;
       }
     }
@@ -685,7 +713,8 @@ function wordNeedsFill(w){
 /* AI 完全体填充一批词（cn/pos/ipa），每批 20 个防超 token。
    只补缺失字段、绝不覆盖已有数据；词组（含空格）词性统一为 phrase.，音标可选
    （模型对词组常查不到，不作为「已补全」的阻塞条件）。
-   「AI 补全」与「AI 导入」共用（9/17 之之：导入时就该是完全体，不要二次点补全）。
+   「AI 导入」的阶段②用它（9/17 之之：导入时就该是完全体，不要二次点补全）；
+   🔴 10/20 深夜起它是**唯一的调用方** —— 原「AI 补全」按钮连同 backfillCn() 已按她要求删除。
    返回 'ok' | 'format'（AI 返回无法解析为 JSON 数组，已打印控制台并中断）；
    网络/接口异常直接 throw，由调用方定提示语。 */
 async function aiFillWords(words, hint){
@@ -725,51 +754,11 @@ async function aiFillWords(words, hint){
   return 'ok';
 }
 
-/* 一键补全：给词库里「缺失中文释义 / 词性 / 音标」的词批量补 AI。
-   只补缺失字段，不破坏已有数据；词组（含空格）补中文释义 + 音标（可选），且词性统一为 phrase.。
-   已填的 cn / pos / ipa 不会被覆盖。
-   修复：词组只需释义即可判定"已补全"（旧逻辑要求音标，而模型对词组基本不返回音标，
-   导致缺音标的词组永远卡在"还剩 N 个"）。 */
-async function backfillCn(){
-  const isPhrase = en => /\s/.test(String(en || ''));
-  // ── 一键格式化（之之 9/7 要求「弄到 AI 补全按钮上，一劳永逸」）：全库释义过 salvageWordCn 重洗——
-  // 例句残片/词频/屈折说明/未闭合语法标注/尾部裸英文等老垃圾，点一次按钮即全库清洗，不依赖迁移门控。
-  let cleanN = 0;
-  if(Array.isArray(DATA.words)){
-    for(const w of DATA.words){
-      if(!w) continue;
-      const cn0 = typeof w.cn === 'string' ? w.cn : '';
-      if(!cn0) continue;
-      try{
-        const r = salvageWordCn(cn0, w.ipa, isPhrase(w.en));
-        if(r.cn !== cn0){ w.cn = r.cn; cleanN++; }
-        if(r.ipa && r.ipa !== String(w.ipa || '').trim()){ w.ipa = r.ipa; cleanN++; }
-      }catch(_){}
-    }
-  }
-  if(cleanN){ hubSave(); renderWords(); }
-  // 先把所有词组词性统一为 phrase.（用户要求"统一成phrase"），与是否需补释义无关
-  let posN = 0;
-  DATA.words.forEach(w => { if(isPhrase(w.en) && w.pos !== 'phrase.'){ w.pos = 'phrase.'; posN++; } });
-  if(posN){ hubSave(); renderWords(); }
-  const miss = DATA.words.filter(wordNeedsFill);
-  if(!miss.length){ toast(posN ? ('已统一 '+posN+' 个词组词性为 phrase. ✅') : (cleanN ? ('格式化完成：清洗 '+cleanN+' 处 ✅') : '没有需要补全的词')); return; }
-  const btn = $('#backfillBtn');
-  btn.disabled = true; btn.textContent = '补全中…';
-  try{
-    const r = await aiFillWords(miss);
-    if(r === 'format'){
-      toast('AI 返回格式异常，已打印到控制台（F12 → Console）');
-    } else {
-      const left = DATA.words.filter(wordNeedsFill).length;
-      toast(left ? ('已补全一批，还剩 '+left+' 个（多为 AI 查不到释义的专名/片段），可手动补或忽略') : '全部已补全 ✅');
-    }
-  }catch(e){
-    toast('补全失败：' + e.message);
-  }finally{
-    btn.disabled = false; btn.textContent = '🔄 AI 补全';
-  }
-}
+/* 🔴 10/20 深夜：原 `backfillCn()`（「AI 补全」按钮的处理器）已整体删除。
+   她的原话：「我其实想把 AI 补全这个按钮去掉……我希望这个功能导入的时候就是完全体」。
+   它里面唯一有长期价值的东西 = **全库释义过 salvageWordCn 重洗**（她 9/7 要的「一劳永逸」格式化），
+   已搬进 autoTidyWords 的 ②③ 步，由进页面自动执行接管 —— 功能不丢，只是不用她点。
+   ⚠️ aiFillWords() 保留：AI 导入的「阶段②」还要用它把词性/音标一次补齐（导入即完全体的关键）。 */
 
 /* 拖文件进框：读取纯文本文件内容并填入输入框，随后走原「导入」流程（importSmart）。
    .txt/.md/.csv/.json 走文本；.xlsx/.xls/.xlsm 由 SheetJS 解析（按需懒加载 js/vendor/xlsx.full.min.js）。 */
@@ -834,7 +823,7 @@ async function handleExcelFile(f){
           exist.cn = r.cn;                                       // 已有词：覆盖释义
           if(e.pos) exist.pos = normPos(e.pos);                  // 顺带补词性/音标
           if(e.ipa) exist.ipa = e.ipa; else if(r.ipa) exist.ipa = r.ipa;
-          resetWordProgress(exist);
+          demoteWordProgress(exist);   // 进度降一级（最早到 Lv 0）
           updated++;
         } else {
           const w = newWordV12(e.en, r.cn);
@@ -847,7 +836,7 @@ async function handleExcelFile(f){
       });
       hubSave(); $('#smartInput').value = '';  renderWords();
       let msg = 'Excel 直读导入 ' + added + ' 个（释义原样保留，未走 AI）';
-      if(updated) msg += '，重置 ' + updated + ' 个已有词（释义已更新，进度回到第一阶段）';
+      if(updated) msg += '，降级 ' + updated + ' 个已有词（释义已更新，各降一级）';
       if(skippedDeleted) msg += '，跳过已掌握 ' + skippedDeleted + ' 个';
       toast(msg); if(hint) hint.textContent = msg;
       return;
@@ -901,13 +890,15 @@ function excelRowsToEntries(rows){
   return out;
 }
 
-/* 合并重复词（10/20 深夜她报「词库越导越多，按理大部分该被合并掉」后加）。
+/* 合并重复词（10/20 深夜她报「词库越导越多，按理大部分该被合并掉」后加；同夜改为**自动执行**）。
    重复是怎么来的：导入路径本身按「英文小写」去重（实测连导 3 次同一份表，词数不变），
    但**云同步是按 id 合并**的 —— 在两台设备上各导一次同一个词，两端会各生成一个 id，
-   合并时两条都留下 → 词库里出现同一个词的多个副本。这个工具就是清这种账的。
+   合并时两条都留下 → 词库里出现同一个词的多个副本。这个函数就是清这种账的。
    口径：每组保留「练得最久的那条」（level 高 → 最近练习 → 最早创建），
-   把其余条目的主观标注（难词/重点）和缺失字段并进来再删；答案/进度存在词自己身上，不涉及外部引用。 */
-function mergeDuplicateWords(){
+   把其余条目的主观标注（难词/重点）和缺失字段并进来再删；答案/进度存在词自己身上，不涉及外部引用。
+   ⚠️ **不写墓碑**：墓碑按 en 过滤（'en:'+小写），合并时写墓碑会把保留下来的那条一起抹掉 —— 这是「合并」不是「删除」。
+   opts.silent=true → 只返回条数，不落盘不重渲染（给 autoTidyWords 凑一次批量写用）。 */
+function mergeDuplicateWords(opts){
   const ws = DATA.words || [];
   const groups = new Map();
   ws.forEach(w => {
@@ -933,8 +924,36 @@ function mergeDuplicateWords(){
       removed++;
     });
   });
-  hubSave(); renderWords();
+  if(!(opts && opts.silent)){ hubSave(); renderWords(); }
   return removed;
+}
+
+/* 🔴 10/20 深夜（她拍板）：进词库页**自动静默整理一遍**，取代原来的「AI 补全」按钮
+   （我上一批加的「合并重复词」按钮也一并撤销 —— 她要的是「导入的时候就是完全体」，不是更多按钮）。
+   三步合一，只在真的有改动时才落盘 + 重渲染（幂等，第二次进来必定零改动）：
+     ① 合并重复词（同一英文小写只留练得最久的一条，难词/重点/缺失字段并入保留项）
+     ② 全库释义过 salvageWordCn 重洗（例句残片 / 词频 / 屈折说明 / 未闭合语法标注等老垃圾；幂等）
+     ③ 词组（含空格）词性统一为 phrase.
+   ⚠️ 全程只写本机 localStorage（hubSave）；云同步有 2.5s 节流 + 自适应间隔，不会因此多打 KV。 */
+function autoTidyWords(){
+  let dirty = false;
+  try{
+    const isPhrase = en => /\s/.test(String(en || ''));
+    if(mergeDuplicateWords({ silent:true }) > 0) dirty = true;
+    (DATA.words || []).forEach(w => {
+      if(!w) return;
+      if(typeof w.cn === 'string' && w.cn){
+        try{
+          const r = salvageWordCn(w.cn, w.ipa, isPhrase(w.en));
+          if(r.cn !== w.cn){ w.cn = r.cn; dirty = true; }
+          if(r.ipa && r.ipa !== String(w.ipa || '').trim()){ w.ipa = r.ipa; dirty = true; }
+        }catch(_){}
+      }
+      if(isPhrase(w.en) && w.pos !== 'phrase.'){ w.pos = 'phrase.'; dirty = true; }
+    });
+    if(dirty){ hubSave(); renderWords(); }
+  }catch(e){ console.warn('[autoTidyWords]', e); }
+  return dirty;
 }
 
 function deleteWord(id){
@@ -1193,7 +1212,7 @@ function renderWords(){
 
 /* design/78：词库卡头部按词库切换。custom 视图 DOM 与改造前逐字节等价（标题/按钮组还原）；
    official：标题=meta.name、副标题=meta.desc（title 收 meta.source）、右侧「开始学习/重置进度」、
-   隐藏导入区/类型筛选/批量条/复习计划/AI 补全。 */
+   隐藏导入区/类型筛选/批量条/复习计划。（「AI 补全」按钮已于 10/20 深夜按她要求删除，故此表不再列它） */
 function renderBankHead(official){
   const title = document.getElementById('bankTitle');
   const sub = document.getElementById('bankSub');

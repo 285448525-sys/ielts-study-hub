@@ -56,7 +56,7 @@
   <!-- design/77 DHP+SSP-MMC 策略表：必须在 practice.js 之前（defer 按文档序执行，表未加载时 practice.js 有回退兜底） -->
   <script defer src="js/dhp_policy.js?v=20260921a"></script>
   <script src="js/practice.js?v=20261012a" defer></script>
-  <script src="js/words.js?v=20261020b" defer></script>
+  <script src="js/words.js?v=20261020c" defer></script>
 <style>
 /* ============================================================
    10/3 A 版「今日复习卡 + 学习状态分组」（她选的 A 版）
@@ -283,12 +283,11 @@
           <textarea id="smartInput" class="wl-import-hint" placeholder="粘贴内容或拖入文件… 支持单词/列表/整段英文/.txt .md .csv .xlsx"></textarea>
           <button class="btn btn-primary" id="smartImport">AI 导入</button>
         </div>
-        <!-- 10/20 深夜加：导入路径本身按词去重，但云同步按 id 合并 → 多设备各导一次会留下同一个词的副本 -->
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <p class="muted" id="importHint" style="margin:8px 0 0;flex:1 1 240px"></p>
-          <button class="btn ghost small" id="mergeDupBtn" type="button"
-            title="把同一个词的重复条目合并成一条：保留练得最久的那条，难词/重点标记一并并入">合并重复词</button>
-        </div>
+        <!-- 🔴 10/20 深夜（她拍板）：这里原本有「AI 补全」按钮，已删除。
+             她的原话：「我其实想把 AI 补全这个按钮去掉，你还给我又加一个按钮，我希望这个功能导入的时候就是完全体」。
+             ⇒ 词库整理（重复词合并 / 释义清洗 / 词组词性归一）全部改为**进页面自动静默跑一遍**
+             （见 js/words.js 的 autoTidyWords），不再提供任何手动按钮；导入走 AI 两阶段，落库即完全体。 -->
+        <p class="muted" id="importHint" style="margin:8px 0 0"></p>
       </div>
     </section>
 
@@ -303,7 +302,8 @@
         </div>
         <div class="wl-head-btns" id="bankCustomBtns">
           <button class="btn btn-sm" id="bankPlanBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 2.8v3.4M16 2.8v3.4"/></svg>复习计划</button>
-          <button class="btn btn-sm" id="backfillBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>AI 补全</button>
+          <!-- 🔴 10/20 深夜：原「AI 补全」按钮已按她要求删除（理由见上方 #bankImportCard 注释）。
+               补全能力没有丢——它下沉进了「导入时自动执行」和「进页面自动整理」两条自动路径。 -->
         </div>
         <!-- design/78：官方词库视图按钮组（custom 视图隐藏） -->
         <div class="wl-head-btns" id="bankOfficialBtns" hidden>
