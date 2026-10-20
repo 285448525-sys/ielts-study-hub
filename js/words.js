@@ -309,6 +309,14 @@ ready(() => {
   }
   $('#searchWord').addEventListener('input', renderWords);
   $('#backfillBtn').addEventListener('click', backfillCn);
+  /* 10/20 深夜：合并重复词（云同步按 id 合并，两台设备各导一次同义词会留下两条副本） */
+  const mergeBtn = $('#mergeDupBtn');
+  if(mergeBtn) mergeBtn.addEventListener('click', function(){
+    mergeBtn.disabled = true;
+    const n = mergeDuplicateWords();
+    mergeBtn.disabled = false;
+    toast(n ? ('已合并 ' + n + ' 个重复词，保留练得最久的那条') : '没有发现重复词，词库是干净的');
+  });
   document.querySelectorAll('#filterType .chip').forEach(btn => {
     btn.addEventListener('click', () => { setWordFilterType(btn.dataset.type); renderWords(); });
   });
@@ -891,6 +899,42 @@ function excelRowsToEntries(rows){
     out.push({ en, cn: cnParts.join('；'), pos: posParts.join(';'), ipa });
   });
   return out;
+}
+
+/* 合并重复词（10/20 深夜她报「词库越导越多，按理大部分该被合并掉」后加）。
+   重复是怎么来的：导入路径本身按「英文小写」去重（实测连导 3 次同一份表，词数不变），
+   但**云同步是按 id 合并**的 —— 在两台设备上各导一次同一个词，两端会各生成一个 id，
+   合并时两条都留下 → 词库里出现同一个词的多个副本。这个工具就是清这种账的。
+   口径：每组保留「练得最久的那条」（level 高 → 最近练习 → 最早创建），
+   把其余条目的主观标注（难词/重点）和缺失字段并进来再删；答案/进度存在词自己身上，不涉及外部引用。 */
+function mergeDuplicateWords(){
+  const ws = DATA.words || [];
+  const groups = new Map();
+  ws.forEach(w => {
+    const k = String(w.en || '').trim().toLowerCase();
+    if(!k) return;
+    if(!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(w);
+  });
+  let removed = 0;
+  groups.forEach(list => {
+    if(list.length < 2) return;
+    list.sort((a, b) => (Number(b.level) || 0) - (Number(a.level) || 0)
+      || (Number(b.lastPracticeAt) || 0) - (Number(a.lastPracticeAt) || 0)
+      || (Number(a.ts) || 0) - (Number(b.ts) || 0));
+    const keep = list[0];
+    list.slice(1).forEach(w => {
+      if(w.hardWord) keep.hardWord = true;      // 她的主观标注不能因为合并弄丢
+      if(w.keyWord) keep.keyWord = true;
+      if(w.pos && !keep.pos) keep.pos = w.pos;
+      if(w.ipa && !keep.ipa) keep.ipa = w.ipa;
+      if(w.cn && !keep.cn) keep.cn = w.cn;
+      DATA.words = DATA.words.filter(x => x.id !== w.id);
+      removed++;
+    });
+  });
+  hubSave(); renderWords();
+  return removed;
 }
 
 function deleteWord(id){

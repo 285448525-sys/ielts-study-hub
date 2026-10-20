@@ -56,7 +56,7 @@
   <!-- design/77 DHP+SSP-MMC 策略表：必须在 practice.js 之前（defer 按文档序执行，表未加载时 practice.js 有回退兜底） -->
   <script defer src="js/dhp_policy.js?v=20260921a"></script>
   <script src="js/practice.js?v=20261012a" defer></script>
-  <script src="js/words.js?v=20261020a" defer></script>
+  <script src="js/words.js?v=20261020b" defer></script>
 <style>
 /* ============================================================
    10/3 A 版「今日复习卡 + 学习状态分组」（她选的 A 版）
@@ -283,7 +283,12 @@
           <textarea id="smartInput" class="wl-import-hint" placeholder="粘贴内容或拖入文件… 支持单词/列表/整段英文/.txt .md .csv .xlsx"></textarea>
           <button class="btn btn-primary" id="smartImport">AI 导入</button>
         </div>
-        <p class="muted" id="importHint" style="margin:8px 0 0"></p>
+        <!-- 10/20 深夜加：导入路径本身按词去重，但云同步按 id 合并 → 多设备各导一次会留下同一个词的副本 -->
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <p class="muted" id="importHint" style="margin:8px 0 0;flex:1 1 240px"></p>
+          <button class="btn ghost small" id="mergeDupBtn" type="button"
+            title="把同一个词的重复条目合并成一条：保留练得最久的那条，难词/重点标记一并并入">合并重复词</button>
+        </div>
       </div>
     </section>
 
