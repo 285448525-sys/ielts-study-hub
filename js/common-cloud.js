@@ -433,6 +433,12 @@ function syncTipEnsure(){
 function syncTipShow(text, holdMs){
   if(!text) return;
   try{
+    /* 🔴 10/20 模考锁：模考中不弹「正在与云端同步…」提示。
+       它是 fixed 底部条（bottom:26px，正好压在模考底栏题号行上），
+       而且云同步是定时触发的 → 她正答着题，底下突然冒一条又消失 =「页面乱动」。
+       同步照跑（不阻断），只是不打扰。 */
+    if(typeof hubExamLocked === 'function' && hubExamLocked()) return;
+    if(document.body && document.body.classList.contains('hub-exam-locked')) return;
     const el = syncTipEnsure();
     if(text) el.textContent = text;
     el.classList.add('on');

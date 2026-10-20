@@ -894,6 +894,12 @@ function toast(msg){
    msg 用服务端返回的文案（单点维护在 ai.js）；同一时刻只保留一条。 */
 function limitStrip(msg){
   try{
+    /* 🔴 10/20 模考锁：模考中不弹额度条。
+       它是 fixed 底栏（bottom:26px），会盖住模考底部的题号行/操作条，
+       8 秒后自己消失 → 她感知到的「页面乱动 + 莫名弹出一条」。
+       额度用完在模考里由 AI 失败提示承接，不该在这里打断。 */
+    if(typeof hubExamLocked === 'function' && hubExamLocked()) return;
+    if(document.body && document.body.classList.contains('hub-exam-locked')) return;
     const old = document.getElementById('hubLimitStrip');
     if(old) old.remove();
     const strip = document.createElement('div');

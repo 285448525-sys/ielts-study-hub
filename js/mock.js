@@ -63,6 +63,17 @@
      出报告 / 中途退出 / 中断 / 切 tab 一律恢复常规布局——否则页面只剩模考且没有 tab 可点会卡死。 */
   function setMockImmerse(on){
     try{ document.body.classList.toggle('mock-immerse', !!on); }catch(e){}
+    /* 🔴 10/20 模考锁（口语模考）：两件事一起做 ——
+       ① 上报「正在考试中」给 SW → SW 更新时不再 c.navigate() 强制刷新把她刷出模考
+          （10/15 只给 bank.js 加了，writing/speaking 一直是漏的 → 实测缺口）。
+       ② 开全局模考锁 → 模考中点侧栏/后退不会把整个 <main> 换掉（草稿与作答不会凭空消失）。
+       ⚠️ 口语模考是「答题中」而非「考试计时中」，但同样不能被刷新/导航打断。 */
+    try{
+      if(typeof hubExamLock === 'function') hubExamLock(!!on, '模考进行中，先交卷或退出模考再切换页面', !on);
+      if(navigator.serviceWorker && navigator.serviceWorker.controller){
+        navigator.serviceWorker.controller.postMessage({ type: 'EXAM_STATE', inExam: !!on });
+      }
+    }catch(e){}
   }
   function injectExitButton(){
     if($('#mockExitBtn')) return;

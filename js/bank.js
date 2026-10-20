@@ -1063,8 +1063,17 @@ function wireOptionPanel(){
 
 /* 10/15 修「模考突然刷新跳出」：把「我正在考试中」告诉 SW。
    SW 更新时原本会 c.navigate() 强制刷新所有页面 —— 正在答题的人会被刷出去、考试中断。
-   上报后，SW 遇到 inExam:true 的客户端只发提示、不导航，等考完再刷。 */
-function reportExamState(inExam){
+   上报后，SW 遇到 inExam:true 的客户端只发提示、不导航，等考完再刷。
+   🔴 10/20：同时开/关全局「模考锁」（common-shell.js）。
+   锁解决的是另一条路径 —— 软导航换 <main> 会直接销毁 #examRoot（它就在 <main> 里），
+   模考中点侧栏 = 考场连同已答内容瞬间消失（实测 examRoot 从 6 个子节点变「不存在」）。
+   两条路径互补：EXAM_STATE 挡 SW 强刷，模考锁挡页面内跳转。 */
+function reportExamState(inExam, flushHeal){
+  try{
+    if(typeof hubExamLock === 'function'){
+      hubExamLock(!!inExam, '模考进行中，先交卷或退出模考再切换页面', flushHeal);
+    }
+  }catch(e){}
   try{
     if(navigator.serviceWorker && navigator.serviceWorker.controller){
       navigator.serviceWorker.controller.postMessage({ type: 'EXAM_STATE', inExam: !!inExam });
@@ -2935,6 +2944,10 @@ function barHtml(){
   function doSubmit(){
     if(!EX || EX.submitted) return;
     EX.submitted = true; stopTimer(); stopFtMini();      /* 10/13：小徽章随交卷停 */
+    /* 🔴 10/20：交卷 = 解锁导航（成绩与作答已落库，可以离开了），
+       但**不执行**待刷新（flushHeal 不传）—— 她刚交卷要在这看成绩解析，
+       此刻刷掉等于「页面乱动」。等她点 Exit 真正离开时再刷。 */
+    reportExamState(false, false);
     var res = score(); EX.correct = res.right; EX.result = res;
     /* 10/17 B：本篇无答案 → 「本次未判分」。
        跳过逐题结论条（decoratePassage）、成绩卡（addScoreCard）、答题卡对错底色
@@ -3080,7 +3093,7 @@ function barHtml(){
     var root = document.getElementById('bankRoot'); if(root) root.style.display = '';
     /* 组卷缓存 _fullSet/_listenFullSet 已随「纯随机」口径删除（10/12）：每次 Start 现抽，无需重置 */
     boot();
-    reportExamState(false);   /* 10/15 考试结束，可以刷新了 */
+    reportExamState(false, true);   /* 10/15 考试结束，可以刷新了 · 10/20 真正离开考场 → 执行待刷新 */
   }
 
   /* ===== 口语模考入口（10/11 第 8 项）=====

@@ -2428,3 +2428,46 @@ button.side-item, button.sheet-item{
    红色只留给真正危险的操作，退出考试不算。此前是红描边（10/14 底栏浅色那批的配色）。 */
 #examPractice .exam-bar .btn-exam-exit{background:transparent;color:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.5);font-weight:600}
 #examPractice .exam-bar .btn-exam-exit:hover{background:rgba(255,255,255,.12);color:#fff}
+/* =========================================================================
+   模考锁的视觉闸（10/20 她报「模考时经常会莫名其妙弹出去 + 页面乱动」）
+   -------------------------------------------------------------------------
+   body.hub-exam-locked 由 common-shell.js 的 hubExamLock(true) 挂上。
+   作用 = 模考期间把「会离开考场的出口」全部收掉：
+     · .top-nav（桌面侧栏）→ 隐藏。没有它 = 12 个站内链接可点，
+       点一下软导航换掉 <main> → 整个模考界面连同已答内容被销毁（实测复现）。
+     · #hubDock（移动端底栏）→ 隐藏。同理，且它正好压在答题区。
+   ⚠️ 只隐藏「导航」，不隐藏任何答题内容 —— 她 10/12 的判据「绝不切内容、绝不错位」不破。
+   ⚠️ 隐藏侧栏会让 main 变宽 → 一次性重排（进入模考时发生一次，不是持续抖动）。
+      为避免「隐藏瞬间」看起来像页面乱动，这里给 .top-nav 保留原宽度占位：
+      用 margin-left 负值抵消 + main 的 padding-left 不变 → 布局零位移。
+   ========================================================================= */
+body.hub-exam-locked .top-nav{
+  transform:translateX(-100%) !important;
+  pointer-events:none;
+}
+/* 侧栏原本占的 256px 让出来（main 的 padding-left 同步收掉 → 内容区不位移） */
+body.hub-exam-locked main.container{
+  padding-left:0 !important;
+}
+body.hub-exam-locked #hubDock{
+  display:none !important;
+}
+/* 模考中不留任何会突然出现的浮层：额度条 / 同步提示条 / SW 更新条
+   （common.js limitStrip、common-cloud.js syncTipShow、common-pwa.js swUpdateBusy
+   都已加 JS 侧判断，这里是 CSS 兜底 —— 万一有漏网的路径，也不会顶到答题区） */
+body.hub-exam-locked #hubLimitStrip,
+body.hub-exam-locked #hubSyncTip,
+body.hub-exam-locked #swUpdateBar,
+body.hub-exam-locked .sw-update-bar{
+  display:none !important;
+}
+/* 模考中计时数字必须等宽 —— 否则 00:09:59 → 00:10:00 每秒变一次宽度 → 整行跟着抖。
+   （她 10/20 报的「页面乱动」在听力考场最明显：倒计时就在音频条上，宽度一变
+     后面几个按钮全被推着走。） */
+body.hub-exam-locked #eaFullTimer,
+body.hub-exam-locked #exFtTime,
+body.hub-exam-locked .ex-time,
+body.hub-exam-locked #eaTime,
+body.hub-exam-locked #exTimer{
+  font-variant-numeric:tabular-nums;
+}

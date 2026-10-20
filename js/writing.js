@@ -2220,6 +2220,29 @@ function examFontCycle(){
   toast('Text size: ' + ['Regular (20px)','Large (23px)','Extra large (27px)'][next]);
 }
 
+/* 🔴 10/20 模考锁（写作机考）：三处进入点（openRecordExamView / openExam / 评分面板直通）
+   都会加 body.exam-fullscreen，退出统一走 exitExam()。这里封两个函数，
+   避免「加了 class 但忘了加锁」——10/15 的教训就是 bank.js 加了 EXAM_STATE 上报，
+   writing/speaking 全漏，SW 一更新就把人刷出去。
+   ① examEnterLock：开锁 + 上报 SW「正在考试中」
+   ② examExitLock：解锁 + 取消 SW 保护（flushHeal=true = 真正离开考场才执行待刷新） */
+function examEnterLock(){
+  try{
+    if(typeof hubExamLock === 'function') hubExamLock(true, '写作进行中，先交卷或退出再切换页面');
+    if(navigator.serviceWorker && navigator.serviceWorker.controller){
+      navigator.serviceWorker.controller.postMessage({ type: 'EXAM_STATE', inExam: true });
+    }
+  }catch(e){}
+}
+function examExitLock(flushHeal){
+  try{
+    if(typeof hubExamLock === 'function') hubExamLock(false, '', !!flushHeal);
+    if(navigator.serviceWorker && navigator.serviceWorker.controller){
+      navigator.serviceWorker.controller.postMessage({ type: 'EXAM_STATE', inExam: false });
+    }
+  }catch(e){}
+}
+
 /* 10/8 晚 她要求：点评分记录 → 直接进「左题目 + 我的作文 / 右评分结果」全屏视图
    （替代旧的展开折叠）。复用 #examPractice 布局；不启动计时、隐藏 Finish；退出回评分面板。 */
 function openRecordExamView(rec){
@@ -2231,6 +2254,7 @@ function openRecordExamView(rec){
   $('#examHome').hidden = true;
   $('#examPractice').hidden = false;
   document.body.classList.add('exam-fullscreen');
+  examEnterLock();
   const partNo = isBig ? 2 : 1;
   $('#examPartLabel').textContent = 'Part ' + partNo;
   $('#examStepBadge').textContent = String(partNo);
@@ -2289,6 +2313,7 @@ function openExam(item, kind){
   $('#examHome').hidden = true;
   $('#examPractice').hidden = false;
   document.body.classList.add('exam-fullscreen');   // 进入全屏沉浸式
+  examEnterLock();
   const isBig = kind === 'big';
   const partNo = isBig ? 2 : 1;
   const typeLabel = isBig ? '大作文 Task 2' : '小作文 Task 1';
@@ -2368,6 +2393,7 @@ function openExamCustom(){
   $('#examHome').hidden = true;
   $('#examPractice').hidden = false;
   document.body.classList.add('exam-fullscreen');
+  examEnterLock();
   const partNo = isBig ? 2 : 1;
   $('#examPartLabel').textContent = 'Part ' + partNo;
   $('#examStepBadge').textContent = String(partNo);
@@ -2648,6 +2674,7 @@ function bindExam(){
     examResetLock();
     examStopTimer();
     document.body.classList.remove('exam-fullscreen');
+    examExitLock(true);   /* 🔴 10/20：真正离开写作考场 → 解锁导航 + 取消 SW 保护 + 执行待刷新 */
     $('#examPractice').hidden = true;
     /* 10/8：自练题退回评分面板（题目框还留着）；真题流程照旧回列表。
        10/8 她要求：退出全屏后作文同步回评分面板的输入框——

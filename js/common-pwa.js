@@ -113,6 +113,13 @@ function swMarkSwHandled(version){
    （方案里写的 window.pq 恒为 undefined，守卫会永远失效）。 */
 function swUpdateBusy(){
   try{
+    /* 🔴 10/20 模考锁：模考中不弹「发现新版本」条。
+       原因 = 它会往 body 尾部插一条 fixed 浮层（common.css .sw-update-bar），
+       视觉上突然在屏幕顶部冒出一条 → 她感知到的「页面乱动」；
+       而且点「刷新」就 location.reload() → 直接把模考刷掉。
+       判据用全局模考锁（common-shell.js），四个模考页共用。 */
+    if(typeof hubExamLocked === 'function' && hubExamLocked()) return true;
+    if(document.body && document.body.classList.contains('hub-exam-locked')) return true;
     if(document.body && document.body.classList.contains('word-fullscreen')) return true;
     if(document.querySelector('#onbOverlay:not([hidden])')) return true;
     if(typeof pq !== 'undefined' && pq && pq.revealed === false && pq.queue && pq.queue.length) return true;

@@ -33,8 +33,104 @@ function declaredSrc(name){
    - 每个页面脚本在切换后“重新执行一次”，天然复用其既有的 ready() 与事件绑定，
      不需要改 17 个页面 JS；DATA 与全部全局函数始终保留在内存里。
    ========================================================================= */
+/* =========================================================================
+   全站「模考锁」（10/20 她报「模考时经常会莫名其妙弹出去 + 页面乱动」）
+   -------------------------------------------------------------------------
+   实测根因（tests/_stab_navkill_1020.cjs 复现，非推测）：
+     bank.html 的 #examRoot 在 <main> 之内（bank.html:1464），
+     而软导航只换 <main> 的 innerHTML（下方 softNavigate）。
+     → 模考中点侧栏任一链接（12 个，全部在 .top-nav 里、模考态一个都没藏），
+       软导航直接 main.innerHTML = 新页内容 → **整个模考界面连同已答内容被销毁**，
+       浏览器实测 examRoot 从 6 个子节点变成「不存在」，URL 跳到 /login.html。
+     这就是「莫名其妙弹出去」的机制，与她点没点错、点的是哪个链接无关。
+   修法（两道闸，不改任何答题/判分/草稿/云同步逻辑）：
+     ① 导航闸：模考中拦截站内链接点击 + 浏览器后退 + location.href → 弹提示、不换页。
+     ② 视觉闸：模考中隐藏 .top-nav（侧栏）与 #hubDock（底栏）→ 没有可点的出口。
+   ⭐ 为什么放全局外壳而不是各页自己判：
+     模考页有 4 个（bank 读/听、writing、speaking），共用一套外壳 common-shell.js，
+     闸门放这里 = 一次改动全覆盖，新增模考页默认也被保护（不用记得补）。
+   ========================================================================= */
+const _hubExamLock = { on: false, msg: '' };
+/* 开锁：各模考页在「进入考试」时调用。on=true = 正在考试，锁住导航。
+   flushHeal=true = 「彻底离开考场」时才把模考期间攒下的待刷新执行掉。
+   ⭐ 交卷（还停在成绩页看解析）传 false：解锁导航但先不刷 —— 否则她刚交卷想看成绩，
+   页面就被刷没了（那还是「页面乱动」）。等她真正退出模考再刷。 */
+function hubExamLock(on, msg, flushHeal){
+  _hubExamLock.on = !!on;
+  if(msg) _hubExamLock.msg = msg;
+  try{
+    if(document.body){
+      document.body.classList.toggle('hub-exam-locked', _hubExamLock.on);
+      document.body.classList.remove('nav-open');   // 顺带收起移动端侧栏，避免半开状态
+    }else if(_hubExamLock.on){
+      /* body 还没就绪（脚本 defer 在 body 解析前执行）→ 等 DOMContentLoaded 再挂 class，
+         否则视觉闸（隐藏侧栏/底栏）会漏挂，导航闸还在但界面看着能点。 */
+      document.addEventListener('DOMContentLoaded', function(){
+        try{
+          document.body.classList.add('hub-exam-locked');
+          document.body.classList.remove('nav-open');
+        }catch(e){}
+      }, { once: true });
+    }
+  }catch(e){}
+  /* 🔴 10/20：解锁时若模考期间攒下了「待刷新」（线上出了新版）→ 现在刷。
+     用户已交卷/已退出，成绩与作答都已落库，此刻刷新是安全的。 */
+  if(!_hubExamLock.on && _hubPendingHeal && flushHeal){
+    _hubPendingHeal = false;
+    setTimeout(function(){
+      try{
+        var last = Number(sessionStorage.getItem('hub_nav_v_rl') || 0);
+        if(Date.now() - last < 5000) return;      // 刚自愈过就不再刷
+        sessionStorage.setItem('hub_nav_v_rl', String(Date.now()));
+      }catch(e){}
+      try{ location.reload(); }catch(e){}
+    }, 800);
+  }
+  return _hubExamLock.on;
+}
+function hubExamLocked(){ return _hubExamLock.on; }
+/* 锁住时的统一提示文案（不出现分数承诺、不用她禁用的术语） */
+function hubExamLockNotice(){
+  return _hubExamLock.msg || '模考进行中，先交卷或退出模考再切换页面';
+}
+/* 导航闸的唯一入口：任何「要离开考场」的站内导航都必须先过这里。
+   返回 true = 已拦截，调用方必须 return（不要继续导航）。 */
+function hubExamGuardNav(){
+  if(!_hubExamLock.on) return false;
+  try{ if(typeof toast === 'function') toast(hubExamLockNotice()); }catch(e){}
+  return true;
+}
+/* 整页跳转兜底：模考中任何 location.href / assign / replace 都得先问一句。
+   ⚠️ 拦截后浏览器地址栏不变、页面不离开 —— 用户不会被骗走。 */
+(function(){
+  try{
+    const _assign = Location.prototype.assign;
+    const _replace = Location.prototype.replace;
+    const _hrefDesc = Object.getOwnPropertyDescriptor(Location.prototype, 'href');
+    Location.prototype.assign = function(u){
+      if(hubExamLocked()){ hubExamGuardNav(); return; }
+      return _assign.call(this, u);
+    };
+    Location.prototype.replace = function(u){
+      if(hubExamLocked()){ hubExamGuardNav(); return; }
+      return _replace.call(this, u);
+    };
+    if(_hrefDesc && _hrefDesc.set){
+      Object.defineProperty(Location.prototype, 'href', {
+        configurable: true, enumerable: _hrefDesc.enumerable,
+        get: _hrefDesc.get,
+        set: function(v){
+          if(hubExamLocked()){ hubExamGuardNav(); return; }
+          _hrefDesc.set.call(this, v);
+        }
+      });
+    }
+  }catch(e){}
+})();
 let _softNavReady = false;
 let _softNavBusy = false;
+/* 模考中推迟的自愈刷新（navSelfHealReload 被模考锁挡下时置 true） */
+let _hubPendingHeal = false;
 /* 10/8 「导航优先」闸（她 10:53 报「点每个页面跳转要加载好久，之前很快」）：
    软导航进行中 + 结束后 2s 内，同步三路流量（3s meta 探测 / 全量下载 / 自动 PUT 上传）
    与后台预热全部让路 —— 手机端这些请求与页面 HTML/JS 抢同一条到 pages.dev 的慢链路，
@@ -325,8 +421,35 @@ function hubLinkTarget(a){
 function onHubLinkClick(e){
   if(e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
   const a = e.target.closest('a[href]');
+  /* 🔴 10/20 模考锁（第一道，位置最靠前）：**任何**站内链接都不能在模考中点走。
+     ⚠️ 必须放在 hubLinkTarget() 判定**之前** —— 因为 login.html / meds.html /
+     wrongbook.html 不在 PAGES 里，hubLinkTarget 对它们返回 null → 早前的代码直接
+     「放行：由浏览器原生处理」→ 整页跳转 → 模考连同已答内容全丢（实测复现：
+     examRoot 从 6 个子节点变「不存在」，URL 跳 /login.html）。
+     所以这里不能用「是否软导航目标」来判，只要 href 指向站内 .html 就拦。
+     放行的白名单：外链协议 / 跨域 / 新标签 / 下载 / 锚点 / mailto|tel|blob|data。 */
+  if(hubExamLocked()){
+    /* ⚠️ a 可能为 null（点到非链接元素时 closest 返回 null）——
+       `a && (...)` 的结果就是 null，后面再 .trim() 就炸（实测 pageerror:
+       Cannot read properties of null (reading 'trim')，由探针 _probe_nextstep_1018 抓到）。 */
+    const href = a ? (a.getAttribute('href') || '').trim() : '';
+    if(a && href && !a.hasAttribute('download')){
+      const tgt = a.getAttribute('target');
+      const isExternal = /^(https?:)?\/\//i.test(href) || /^(mailto:|tel:|blob:|data:)/i.test(href);
+      const isAnchor = href.startsWith('#') || href.startsWith('?');
+      const isNewTab = tgt && tgt !== '_self' && tgt !== '';
+      if(!isExternal && !isAnchor && !isNewTab){
+        e.preventDefault();
+        hubExamGuardNav();
+        return;
+      }
+    }
+  }
   const t = hubLinkTarget(a);
   if(!t) return;                 // 放行：由浏览器原生处理
+  /* 🔴 10/20 模考锁：模考中点站内链接 = 换掉整个 <main> → 模考界面连同已答内容被销毁
+     （实测 examRoot 直接消失，URL 跳走）。这里必须拦在软导航之前。 */
+  if(hubExamGuardNav()){ e.preventDefault(); return; }
   e.preventDefault();            // 拦下，走软切换
   closeMoreSheet();             // 移动端：点任意站内链接即收起「更多」弹层
   updateActiveNav(t.file);       // ⚠️ 关键修复（导航高亮闪烁）：点击瞬间同步高亮目标模块，
@@ -337,11 +460,31 @@ function onHubLinkClick(e){
 }
 
 function onHubPopState(){
+  /* 🔴 10/20 模考锁：浏览器后退键同样会离开考场 → 拦下并把状态条补回去。
+     注意：popstate 触发时 URL 已经变了，这里用 pushState 把当前 URL 写回去（不刷新页面）。 */
+  if(hubExamLocked()){
+    try{ history.pushState({ hub: _hubCurrentFile || '' }, '', location.href); }catch(e){}
+    hubExamGuardNav();
+    return;
+  }
   const file = normalizePageFile(location.pathname.split('/').pop() || 'home.html');
   const page = PAGES.find(p => p.file === file);
   if(page) softNavigate({ id: page.id, file: page.file, href: file }, true);
   else location.reload();
 }
+
+/* 🔴 10/20 模考锁：popstate 只覆盖「同文档内后退」。
+   若她的历史栈里 mod考前一页是**别的文档**（如从别的站外页进来、或刷新过），
+   后退会直接卸载本文档 → 考场连同已答内容一起没了，popstate 根本来不及跑。
+   beforeunload 是最后一道：模考中卸载 → 弹浏览器原生确认框（「离开后作答会丢失」）。
+   ⚠️ 必须用 e.preventDefault() + e.returnValue = ''（现代浏览器要求 returnValue 非空才显示框），
+   且这个框由浏览器原生渲染，不可定制文案 —— 这是唯一能拦住「跨文档离开」的机制。 */
+window.addEventListener('beforeunload', function(e){
+  if(!hubExamLocked()) return;
+  e.preventDefault();
+  e.returnValue = '';
+  return '';
+});
 
 /* ===== 软导航资源缓存（9/9 性能专项） =====
    旧实现：每次切 tab 都重新 fetch 目标页 HTML，再串行 fetch 该页每个脚本（cache:'no-cache' 强制重新下载）。
@@ -406,6 +549,17 @@ let _navSelfHealing = false;
 function navSelfHealReload(){
   if(_navOfflineHold) return;               // design/79 离线闸：离线期间不自愈（探针必失败，reload 只会连放）
   if(_navSelfHealing) return;
+  /* 🔴 10/20 模考锁：自愈 reload 会把正在模考的人整页刷出去（=「莫名其妙弹出去」）。
+     探针每 60s 跑一次（见下方 setInterval），她只要在模考里待够 45s~1min，
+     探针一探到线上有新版就 navSelfHealReload() → location.reload() → 考场连同已答内容全没。
+     修法：模考中**推迟**自愈（把「现在不能刷」记下来），交卷/退出模考后若仍需要再刷。
+     ⚠️ 用「延迟」而不是「跳过」：否则她退出模考后会一直卡在旧版本，
+     直到下次用户手动刷新（那正是 10/8「卡旧版整晚」事故的形态）。 */
+  if(typeof hubExamLocked === 'function' && hubExamLocked()){
+    _hubPendingHeal = true;
+    console.warn('[hub] 模考进行中 → 推迟自愈刷新（考完再刷）');
+    return;
+  }
   try{
     const last = Number(sessionStorage.getItem('hub_nav_v_rl') || 0);
     if(Date.now() - last < 60000) return;   // 60s 内已自愈过：不再 reload（病态环境下防循环）
@@ -635,6 +789,10 @@ function pageScriptSources(id, doc){
 }
 
 async function softNavigate(t, isPop){
+  /* 🔴 10/20 模考锁（最后一道兜底）：softNavigate 会被点击、popstate、以及各页的
+     程序化调用（bank.js spkStartMock / writing / speaking 入口）触发。
+     统一在最外层拦一次 —— 任何来源的「离开考场」都走同一条闸。 */
+  if(hubExamGuardNav()) return;
   if(_softNavBusy){ if(typeof toast === 'function') toast('页面切换中，请稍候…'); return; }
   _softNavBusy = true;
   _lastNavAt = Date.now();   // 10/8 导航优先：同步三路流量让路（见 navBusyGrace 注释）
