@@ -170,7 +170,24 @@
   function shuffle(a){ a = a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
   function sampleOne(a){ return a[Math.floor(Math.random()*a.length)]; }
   function fmtClock(sec){ const m=Math.floor(sec/60), s=sec%60; return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0'); }
-  function setPhase(t){ const el=$('#mockPhase'); if(el) el.textContent=t; }
+  /* 10/20 底栏进度（她：「其他模考页面的下栏你也看看官方或成熟网站怎么设计的」）：
+     与题目卡上的阶段胶囊共用同一份文案，不新增任何状态。
+     「Part 1（3 / 12）」→ 取括号里的 i/n 算进度条；P2 那种「Part 2 · 准备（1 min）」
+     括号里不是 i/n，就只显示阶段名（进度条清空，不假装有进度）。 */
+  function syncMockBar(t){
+    const ix = $('#mockBarIx'), fill = $('#mockBarFill');
+    if(!ix) return;
+    const m = /（\s*(\d+)\s*\/\s*(\d+)\s*）/.exec(t || '');
+    if(m){
+      const i = +m[1], n = +m[2];
+      ix.textContent = '第 ' + i + ' / ' + n + ' 题';
+      if(fill) fill.style.width = Math.max(5, Math.round(i / n * 100)) + '%';
+    } else {
+      ix.textContent = (t || '').replace(/（[^）]*）/g, '').trim();
+      if(fill) fill.style.width = '';
+    }
+  }
+  function setPhase(t){ const el=$('#mockPhase'); if(el) el.textContent=t; syncMockBar(t); }
 
   /* ---------- 考官视频窗（10/1 批3 · 她拍板「考官的脸出现在屏幕上」） ----------
      形象 = SVG 插画（img/examiner-*.svg，无肖像权/版权问题；未来可换 AI 实拍图）。

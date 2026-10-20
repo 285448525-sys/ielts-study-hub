@@ -689,101 +689,144 @@
 .ex-rv-b > div span{display:block;font-size:11px;color:var(--muted);letter-spacing:.03em}
 .ex-rv-b > div b{color:#111;font-weight:700;word-break:break-word}
 .ex-rv-b > div b.bad{color:#b3261e}
-/* ===== 10/12 批A：爱听写/真机考底部条（她 22:03「切换考题要放下面」）=====
-   结构 = .ex-bar > .ex-nav（切换器 + 题号行）+ .ex-actions（Pause/Exit/Finish）
-   高度 ≤64px（题号行 24 + 按钮行 36）；1440 放不下时按钮行与切换器各占一行（≤72px）
-   10/13 她报「题号和 Pause/Exit/Finish 分成两行不好，并成一行、少占空间」→
-   桌面改单行 row（题号行 flex:1 占满 + 按钮行 flex:none 靠右）；≤860 移动端保持两行。
-   🔴 10/20 她 ⑥「模考页面底栏改窄」= 整条更窄更矮（不是只缩左右留白）：
-     ① 桌面按钮 44 → 38px（触控下限 38 仍够，比 44 薄一截）；
-     ② 左右 padding 12px → 10px，gap 10 → 8；
-     ③ 题号格 26×20 → 22×18、字号 12.5 → 12、已答线从 2.5px 收到 2px；
-     ④ Part 块高 30 → 26px；
-     ⑤ 整条上限 56px（原来 64/72）。
-     手机（≤860）保持 34px 不动 —— 390 宽本来就挤，再缩就点不准了。 */
-.ex-bar{flex:none;background:#f7f8f9;border-top:1px solid var(--line);padding:3px 10px 4px;display:flex;flex-direction:row;align-items:center;gap:8px;max-height:56px}
-.ex-nav{flex:1;min-width:0;display:flex;align-items:center;gap:8px;min-height:22px}
-.ex-pg{flex:none;border:1px solid var(--n-400);background:#fff;border-radius:5px;padding:3px 9px;font:inherit;
-  font-size:12px;font-weight:600;color:#111;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;line-height:1.35}
+/* ===== 10/20 三科底栏统一：阅读/听力 对齐真实机考 + 与写作页 .wt-bar 同一套视觉 =====
+   依据（三个独立来源，均 2026-10 复核）：
+     ① IDP 官方《How IELTS on computer works》原文：「With the navigation button at the bottom of
+        the screen, you can see and check all 40 questions. You can also switch between questions
+        with the forward/backward arrows. If there is a question you want to return to … when you
+        click the 'Review' button in the lower-left corner, the question number changes from a
+        square to a circle.」
+     ② ieltsbiz.com《IELTS on Computer: What the Screen Looks Like》(2026) 界面逐项表 ——
+        Navigation bar「Bottom of the screen / Shows every question number / unanswered questions
+        are marked」；Review「Lower left / its number changes from a square to a circle」。
+     ③ 新西兰官方 Quick Guide（10/12 批A 已引）—— 答过的题上方出现线、flag 由方变圆。
+   → 本批补上官方有、我们缺的三样：**全卷 40 题导航**（原来只列当前篇，整卷模考里根本看不到
+     别的 Part 答没答）、**‹ › 前后箭头**、**左下角 Review**（点了题号由方块变圆圈）。
+     Part 并排切换器保留 —— 那是她 10/15 明确拍板的功能（「各个 Part 是可以这样切换的」），不动。
+   视觉：与写作页 10/20 定案的 .wt-bar 逐值对齐 —— 44px / #eef0f2 / 13px / 控件 32px /
+   选中白块 700 + 轻投影 / 圆角 7px。原来「46px + 三个凸起白胶囊 + 红描边 Exit」的形态退役。
+   ⚠️ 整卷模考**不再显示 Pause**：IDP 官方「The Listening and Speaking tests are a recording and
+     cannot be paused」，阅读同样是计时段不能暂停 → 整卷（EX.full）不渲染；单篇练习保留。 */
+.ex-bar{flex:none;height:44px;max-height:44px;background:#eef0f2;border-top:1px solid #dfe3e8;
+  padding:0 12px;display:flex;flex-direction:row;align-items:center;gap:10px}
+.ex-nav{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:2px;min-height:32px}
+/* ===== Part 并排切换器（整卷才有）=====
+   形状与写作页 Task 标签同款：透明底灰字 → 当前篇白底深字 700。去掉了原来的竖分隔线
+   （「Passage 1 | 0/13」中间那根），改用纯间距 —— 40 个题号占的宽度是硬预算。 */
+.ex-parts{flex:none;display:flex;align-items:center;gap:2px}
+.ex-pt{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 9px;border:none;border-radius:7px;
+  background:transparent;color:#5b6570;font:inherit;font-size:12px;font-weight:600;
+  cursor:pointer;white-space:nowrap;transition:background .14s,color .14s,box-shadow .14s}
+.ex-pt .ex-pt-t{letter-spacing:-.01em}
+.ex-pt .ex-pt-n{font-size:11px;font-weight:600;opacity:.72;font-variant-numeric:tabular-nums}
+.ex-pt:hover:not(.on){background:rgba(255,255,255,.68);color:#26343C}
+.ex-pt.on{background:#fff;color:#111;font-weight:700;
+  box-shadow:0 1px 2px rgba(16,24,40,.10),0 0 0 1px rgba(16,24,40,.05)}
+.ex-pt.on .ex-pt-n{color:#4a5560;opacity:1}
+.ex-pt:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+/* 旧「‹ Passage 1 · 0/13 ›」单篇切换器（paintPgSwitch 已不再渲染，保留样式兼容老快照） */
+.ex-pg{flex:none;border:1px solid var(--n-400);background:#fff;border-radius:7px;padding:0 9px;height:32px;
+  font:inherit;font-size:12px;font-weight:600;color:#111;cursor:pointer;white-space:nowrap;
+  display:inline-flex;align-items:center;gap:5px;line-height:1}
 .ex-pg:hover:not([disabled]){background:#f2f4f6}
 .ex-pg[disabled]{opacity:.4;cursor:default}
-.ex-pgar{color:var(--muted);font-size:13px;line-height:1}
-/* ===== 10/15 Part 并排切换器（她：「整卷考试的各个 Part 是可以这样切换的」，对标爱听写/IDP）=====
-   形态 = Part 1 7/13 | Part 2 0/13 | Part 3 0/14 全部并排；当前篇白底高亮，其余半透明。
-   桌面写「Part N」，≤860 手机写「P N」（省宽度，390 要放 4 个 + Finish/Exit）。 */
-.ex-parts{flex:none;display:flex;align-items:center;gap:6px}
-.ex-pt{display:inline-flex;align-items:center;gap:7px;height:26px;padding:0 10px;border:none;border-radius:7px;
-  background:rgba(17,24,28,.07);color:rgba(17,24,28,.55);font:inherit;font-size:12.5px;font-weight:700;
-  cursor:pointer;white-space:nowrap;transition:background .14s,color .14s}
-.ex-pt .ex-pt-t{letter-spacing:-.01em}
-.ex-pt .ex-pt-n{font-size:11px;font-weight:600;opacity:.72;font-variant-numeric:tabular-nums;
-  padding-left:7px;margin-left:1px;border-left:1px solid rgba(17,24,28,.14)}
-.ex-pt:hover{background:rgba(17,24,28,.12);color:rgba(17,24,28,.8)}
-.ex-pt.on{background:#fff;color:#14161a;box-shadow:0 1px 3px rgba(20,22,26,.16)}
-.ex-pt.on .ex-pt-n{color:var(--primary-900);opacity:1;border-left-color:rgba(20,22,26,.14)}
-.ex-pt.on .ex-pt-n{color:var(--primary-900);opacity:1}
-/* 三主题（Part 块在浅色底栏上，深色模式底栏变深 → 块色要跟着翻） */
-#examRoot.ct-dark .ex-pt{background:rgba(255,255,255,.10);color:rgba(255,255,255,.55)}
-#examRoot.ct-dark .ex-pt:hover{background:rgba(255,255,255,.18);color:rgba(255,255,255,.8)}
-#examRoot.ct-dark .ex-pt.on{background:#fff;color:#14161a}
-#examRoot.ct-yellow .ex-pt{background:rgba(255,212,0,.12);color:rgba(255,212,0,.7)}
-#examRoot.ct-yellow .ex-pt:hover{background:rgba(255,212,0,.2);color:#ffd400}
-#examRoot.ct-yellow .ex-pt.on{background:#ffd400;color:#161616}
-#examRoot.ct-yellow .ex-pt.on .ex-pt-n{color:#161616}
-/* 手机：Part 缩写 + 压缩（390 宽要放 4 个 + Finish/Exit） */
-@media (max-width:860px){
-  .ex-parts{gap:4px}
-  .ex-pt{height:32px;padding:0 8px;font-size:11.5px;gap:5px}
-  .ex-pt .ex-pt-n{font-size:10px}
-}
-/* 题号行（10/16 对齐爱听写实测 DOM + 官方 Quick Guide「答过的题上方出现线」）：
-   · 已答线移到题号【上方】（爱听写结构 = 线在数字上面；此前在下方，与其/官方都不一致）
-   · 线 = 2px；未答 = 浅灰 #c9ced6（爱听写 bg-gray-300 口径），已答 = 2.5px 黑
-   · 旗标 = 红色小旗标 ⚑ 挂在题号上方（爱听写 icon-biaoji text-red-600 口径），
-     不再是套在数字外的黑圈（那个是自研形态） */
-.ex-nums{flex:1;min-width:0;display:flex;gap:2px;justify-content:center;overflow-x:auto;scrollbar-width:thin;padding:8px 0 0}
-.ex-nav--plain .ex-nums{justify-content:center}
-.ex-num{position:relative;flex:none;width:22px;height:18px;border:none;background:none;padding:0;margin:0;
-  font:inherit;font-size:12px;font-weight:600;color:#111;cursor:pointer;font-variant-numeric:tabular-nums}
-.ex-num::before{content:"";position:absolute;left:3px;right:3px;top:0;height:2px;background:#c9ced6;border-radius:1px}
+.ex-pgar{color:var(--muted);font-size:12px;line-height:1}
+/* ===== 前后箭头（IDP 官方 forward/backward arrows）=====
+   只在题号行两端，透明底、hover 才浮白块 —— 它不该跟 Exit/Finish 抢视觉权重。 */
+.ex-arrow{flex:none;width:22px;height:32px;border:none;background:transparent;border-radius:6px;padding:0;
+  color:#5b6570;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
+  transition:background .14s,color .14s}
+.ex-arrow svg{width:15px;height:15px}
+.ex-arrow:hover:not([disabled]){background:#fff;color:#111}
+.ex-arrow[disabled]{opacity:.28;cursor:default}
+/* ===== 题号导航条 =====
+   10/20：由「只列当前篇」改为**全卷 40 题**（IDP 官方 navigation bar 口径），Part 之间插竖分隔。
+   三态照旧：cur = 当前题黑框 / done = 数字上方黑线 / flag = 圆圈（官方「由方块变圆圈」，
+   原来的红色小旗 \(\u2691\) 与官方不符，本批去掉）。 */
+.ex-nums{flex:0 1 auto;min-width:0;display:flex;align-items:center;justify-content:safe center;gap:1px;
+  overflow-x:auto;scrollbar-width:none;padding:0}
+.ex-nums::-webkit-scrollbar{display:none;height:0}
+.ex-num-gap{flex:none;width:1px;height:14px;background:#c9ced6;margin:0 6px}
+/* 溢出时靠 justify-content:safe center 自动退化为左对齐（居中溢出会把两端一起裁掉，1080 实测） */
+.ex-num{position:relative;flex:1 1 0;min-width:16px;max-width:20px;height:22px;border:none;background:none;padding:0;margin:0;
+  font:inherit;font-size:11.5px;font-weight:600;color:#111;cursor:pointer;font-variant-numeric:tabular-nums;
+  display:inline-flex;align-items:center;justify-content:center;border-radius:3px}
+.ex-num::before{content:"";position:absolute;left:3px;right:3px;top:-2px;height:2px;background:#c9ced6;border-radius:1px}
 .ex-num--done::before{background:#111}
-.ex-num--cur{box-shadow:inset 0 0 0 1.5px #111;border-radius:3px}
-/* 10/17 复盘：交卷后题号行变答题卡 —— 绿=对 / 红=错（爱听写 bg-green-100 / bg-red-100 口径）。
-   此前交卷后只有「已答」态（一道黑线），用户看不出哪题错，只能一路滚页面逐条找。 */
+.ex-num--cur{box-shadow:inset 0 0 0 1.5px #111}
+/* 官方：标记后题号由方块变圆圈 → 圆环 + border-radius 50% */
+.ex-num--flag{border-radius:50%;box-shadow:inset 0 0 0 1.5px #b3261e}
+.ex-num--flag.ex-num--cur{border-radius:50%;box-shadow:inset 0 0 0 2px #b3261e}
+/* 10/17 复盘：交卷后题号行变答题卡 —— 绿=对 / 红=错（爱听写 bg-green-100 / bg-red-100 口径）。 */
 .ex-num--hit{background:#e7f6ef;border-radius:3px}
 .ex-num--hit::before{background:#2f7d61}
 .ex-num--miss{background:#fdeceb;border-radius:3px}
 .ex-num--miss::before{background:#b3261e}
 .ex-num--hit,.ex-num--miss{font-weight:700}
-.ex-num--flag::after{content:"\u2691";position:absolute;left:50%;top:-10px;transform:translateX(-50%);
-  font-size:10px;line-height:1;color:#b3261e;font-weight:400}
 /* hover 排在 hit/miss 之后且同特异性 → 会把对错的底色盖掉（10/17 自查发现），
    所以 hover 只对「未判对错」的题号生效。 */
-.ex-num:not(.ex-num--hit):not(.ex-num--miss):hover{background:#eef0f2;border-radius:3px}
-.ex-actions{display:flex;gap:8px;flex:none;justify-content:flex-end;align-items:center}
-/* 10/12 批A：按钮行压到 34px（原 .btn min-height:32 + padding 撑到 40 → 底栏 78px 超标）。
-   指令要求底栏 ≤64px（放不下 ≤72px）；高度靠 line-height + padding 双压缩，不缩字号（可读性优先）。 */
-/* 🔴 必须 !important：本页 L43/L47 的 .btn-primary/.btn-ghost 写死 min-height:40px，
-   而 min-height 优先于 height —— 不带 !important 时按钮恒 40px，底栏压不到 ≤72px。 */
-#examRoot .ex-actions button{min-height:38px;height:38px;padding:0 14px;font-size:13.5px;line-height:1;display:inline-flex;align-items:center}   /* 10/14 触控 34→44（方案 L190）→ 10/20 ⑥ 她「底栏改窄」：44→38 */
-#examRoot .ex-actions .btn-primary{min-height:38px;height:38px;padding:0 16px}   /* 10/14 34→44 触控达标（方案 L190）→ 10/20 ⑥ 44→38 */
-#examRoot #exPauseBtn{min-width:64px}
-/* 移动端（≤860）：底部条压紧凑、题号行横向滚（爱听写同款）、切换器文案缩短防溢出 */
+.ex-num:not(.ex-num--hit):not(.ex-num--miss):hover{background:#e3e7eb}
+/* ===== 右侧动作区 ===== */
+.ex-actions{display:flex;gap:6px;flex:none;justify-content:flex-end;align-items:center}
+/* 🔴 必须 !important 口径保留：本页 L43/L47 的 .btn-primary/.btn-ghost 写死 min-height:40px，
+   min-height 优先于 height → 不带 !important 时按钮恒 40px，底栏压不下来。
+   10/20：38 → 32px（与写作页 .wt-bar 的按钮同高）。 */
+#examRoot .ex-actions button{min-height:32px;height:32px;padding:0 13px;font-size:12.5px;font-weight:600;
+  line-height:1;display:inline-flex;align-items:center;border-radius:7px}
+#examRoot .ex-actions .btn-primary{min-height:32px;height:32px;padding:0 15px}
+#examRoot #exPauseBtn{min-width:56px}
+/* 左下角 Review（IDP 官方位置 + 官方命名）：默认描边灰字；当前题已被标记时反白 + 红字。 */
+#examRoot .ex-review{min-height:32px;height:32px;padding:0 11px;font-size:12.5px;font-weight:600;
+  border:1px solid #cfd5dc;background:transparent;color:#3b444d;border-radius:7px;cursor:pointer;
+  display:inline-flex;align-items:center;line-height:1}
+#examRoot .ex-review:hover{background:#fff;color:#111;border-color:#b9c0c9}
+#examRoot .ex-review.on{background:#fff;border-color:#e0b4b0;color:#b3261e;font-weight:700}
+/* 三主题（底栏在深色/黄底主题下会变深 → 控件色要跟着翻） */
+#examRoot.ct-dark .ex-pt{color:rgba(255,255,255,.6)}
+#examRoot.ct-dark .ex-pt:hover:not(.on){background:rgba(255,255,255,.12);color:#e8eaed}
+#examRoot.ct-dark .ex-pt.on{background:#fff;color:#14161a}
+#examRoot.ct-dark .ex-arrow{color:rgba(255,255,255,.65)}
+#examRoot.ct-dark .ex-arrow:hover:not([disabled]){background:rgba(255,255,255,.14);color:#fff}
+#examRoot.ct-dark .ex-num{color:#e8eaed}
+#examRoot.ct-dark .ex-num::before{background:#5a5f66}
+#examRoot.ct-dark .ex-num--done::before{background:#e8eaed}
+#examRoot.ct-dark .ex-num--cur{box-shadow:inset 0 0 0 1.5px #e8eaed}
+#examRoot.ct-dark .ex-num-gap{background:#4a4f57}
+#examRoot.ct-dark .ex-review{border-color:#5a5f66;color:#c9ced6}
+#examRoot.ct-dark .ex-review:hover{background:rgba(255,255,255,.14);color:#fff}
+#examRoot.ct-yellow .ex-pt{color:rgba(255,212,0,.72)}
+#examRoot.ct-yellow .ex-pt:hover:not(.on){background:rgba(255,212,0,.16);color:#ffd400}
+#examRoot.ct-yellow .ex-pt.on{background:#ffd400;color:#161616}
+#examRoot.ct-yellow .ex-pt.on .ex-pt-n{color:#3a3226}
+#examRoot.ct-yellow .ex-arrow{color:rgba(255,212,0,.8)}
+#examRoot.ct-yellow .ex-num{color:#f0e3a8}
+#examRoot.ct-yellow .ex-num::before{background:#5a5f66}
+#examRoot.ct-yellow .ex-num--done::before{background:#ffd400}
+#examRoot.ct-yellow .ex-num--cur{box-shadow:inset 0 0 0 1.5px #ffd400}
+#examRoot.ct-yellow .ex-num-gap{background:#5a5f66}
+#examRoot.ct-yellow .ex-review{border-color:#5a5f66;color:#f0e3a8}
+/* 手机（≤860）：保持两行 —— 第一行 Part 切换器 + 箭头 + 横向滚的题号，第二行动作按钮。
+   390 宽放不下 4 个 Part + 40 个题号 + 4 个按钮，所以这一档不复刻桌面的单行形态。 */
 @media(max-width:860px){
-  .ex-bar{padding:5px 8px 7px;gap:5px;flex-direction:column}   /* 10/13：移动端 390 宽放不下 → 保持两行 */
-  .ex-nav{gap:6px;min-height:22px;width:100%}
-  .ex-pg{padding:4px 8px;font-size:11.5px;gap:4px}
-  .ex-pg .ex-pgar{font-size:12px}
-  .ex-nums{gap:1px}
-  .ex-num{width:24px;font-size:12px}
+  .ex-bar{height:auto;max-height:none;padding:5px 8px;gap:5px;flex-direction:column;align-items:stretch}
+  .ex-parts{flex:none;overflow-x:auto;scrollbar-width:none}
+  .ex-parts::-webkit-scrollbar{display:none;height:0}
+  .ex-nav{flex:none;width:100%;gap:0}
+  .ex-pt{height:30px;padding:0 8px;font-size:11.5px;gap:5px}
+  .ex-pt .ex-pt-n{font-size:10px}
+  .ex-nums{justify-content:flex-start}   /* 手机：40 个放不下 → 左对齐 + 横向滑，别居中把两端都裁掉 */
+  .ex-num{flex:0 0 21px;width:21px;font-size:11.5px}
+  .ex-num-gap{margin:0 5px;height:12px}
+  .ex-arrow{width:26px;height:30px}
+  .ex-actions{flex:none;width:100%;justify-content:flex-end;gap:6px}
   #examRoot .ex-actions button{min-height:34px;height:34px;padding:0 11px;font-size:12.5px}
   #examRoot .ex-actions .btn-primary{min-height:34px;height:34px;padding:0 13px}
-  #examRoot #exPauseBtn{min-width:56px}
+  #examRoot #exPauseBtn{min-width:52px}
 }
 @media(max-width:420px){
-  .ex-pg{padding:4px 7px;font-size:11px}
-  .ex-nums{justify-content:flex-start}
+  .ex-pg{padding:0 7px;font-size:11px}
 }
+
 /* 10/16 补 #examExit：写作壳的 Exit 是 <button class="btn-ghost" id="examExit">（无 data-exit，
    点击由 writing.js 直接绑定），原选择器只认 [data-exit] → 它一直退化成灰边深字的普通 btn-ghost，
    与 2893f31「三科上下栏统一、Exit 红描边」的口径不符。补 id 选择器，不动点击契约。 */
@@ -1548,6 +1591,6 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common-cloud.js?v=20261020a"></script>
 <script defer src="js/common-shell.js?v=20261020a"></script>
 <script defer src="js/common-pwa.js?v=20261020a"></script>
-<script defer src="js/bank.js?v=20261020b"></script>
+<script defer src="js/bank.js?v=20261020e"></script>
 </body>
 </html>

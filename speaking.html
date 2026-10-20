@@ -1962,7 +1962,7 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
        10/2（她拍板）：「开始一次口语模考」介绍卡 + 「最近一次模考」记录卡整删——
        点题库页「模考」按钮直接进全屏考试（speaking.js MOCK 分支调 window.__mockEnter，
        有未完成快照则自动续考）。报告仍在考完/回顾页展示。 -->
-  <div id="mockView" hidden data-late-src="js/mock-report.js?v=20261004a,js/mock-history.js?v=20261006b,js/mock.js?v=20261020b">
+  <div id="mockView" hidden data-late-src="js/mock-report.js?v=20261004a,js/mock-history.js?v=20261006b,js/mock.js?v=20261020c">
     <!-- ② 考试舞台 -->
     <section class="card" id="mockStage" hidden>
       <div class="mock-total-timer" id="mockTotalTimerWrap" hidden>
@@ -2037,10 +2037,34 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
             #mockView .msc-sub{margin:0;font-size:13px;line-height:1.7;color:var(--muted)}
             [data-theme="dark"] #mockView .mock-note{background:var(--n-100);border-color:var(--n-500)}
             [data-theme="dark"] #mockView .mock-note-b{color:var(--n-800)}
+            /* ===== 10/20 口语模考底栏（她：「其他模考页面的下栏你也看看官方或成熟网站怎么设计的」）=====
+               与机考三科底栏 .ex-bar / 写作 .wt-bar 同一套：#eef0f2 底 + 1px 上边框 + 左侧进度 + 右侧主按钮。
+               fixed 贴视口底部（真实机考底栏就是这个位置）；#mockStage 留出 80px 内边距防遮挡。 */
+            #mockView .mock-bar{
+              margin:0;height:56px;padding:0 22px;
+              display:flex;align-items:center;gap:14px;
+              background:#eef0f2;border-top:1px solid #dfe3e8;
+            }
+            /* 只在沉浸模式（真正在考场里）才 fixed 贴视口底；非沉浸态退回普通块，不浮在页面上 */
+            body.mock-immerse #mockView .mock-bar{position:fixed;left:0;right:0;bottom:0;z-index:60}
+            body.mock-immerse #mockStage{padding-bottom:84px}
+            /* mockStage 藏起来时（列表页 / 报告页 / 评分中）底栏不出现。
+               ⚠️ 选择器**不能带 body.mock-immerse 前缀** —— 退出沉浸后 mock-immerse 类会被摘掉，
+               带前缀的话这条就失效，空底栏会一直钉在报告页底部。 */
+            #mockView #mockStage[hidden] ~ .mock-bar{display:none}
+            #mockView #mockStage:has(#mockScoring:not([hidden])) ~ .mock-bar{display:none}
+            #mockView .mock-bar-l{flex:1;min-width:0;display:flex;align-items:center;gap:10px}
+            #mockView .mock-bar-ix{font-size:12.5px;font-weight:600;color:#5b6570;white-space:nowrap;
+              font-variant-numeric:tabular-nums;letter-spacing:.01em}
+            #mockView .mock-bar-track{flex:1;max-width:320px;height:4px;border-radius:2px;background:#d7dce2;overflow:hidden}
+            #mockView .mock-bar-track > i{display:block;height:100%;width:0;border-radius:2px;
+              background:var(--primary);transition:width .3s ease}
+            #mockView .mock-bar .btn{height:36px;min-height:36px;padding:0 20px;font-size:13.5px;font-weight:600;
+              border-radius:8px;display:inline-flex;align-items:center;justify-content:center;flex:none}
+            [data-theme="dark"] #mockView .mock-bar{background:#1d2124;border-top-color:#343a40}
+            [data-theme="dark"] #mockView .mock-bar-ix{color:#aab2bb}
+            [data-theme="dark"] #mockView .mock-bar-track{background:#333a40}
             </style>
-            <div class="mock-controls">
-              <button class="btn btn-primary" id="mockSubmit">提交 / 下一题</button>
-            </div>
             <p class="mock-hint" id="mockHint"></p>
           </div>
         </div>
@@ -2061,6 +2085,23 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
         <p class="msc-sub">老师正在逐部分批改（P1 / P2 / P3），大概要十几秒。<br>这期间不用做任何操作，也别退出。</p>
       </div>
     </section>
+
+    <!-- ===== 10/20 底栏（她：「其他模考页面的下栏你也看看官方或成熟网站怎么设计的，你也改一下」）=====
+         口径：纸笔三科（阅读/听力/写作）的机考底栏 = 屏幕最底一条，左侧导航/进度、右侧动作。
+         口语是**问答形态**（真实口语是真人对话，没有屏幕界面），所以不复刻题号导航条，
+         只把原来嵌在题目卡里的单个按钮提出来做成固定底栏：
+           左 = 当前进度（第 3 / 12 题 + 细进度条），右 = 主按钮。
+         视觉与 .ex-bar / .wt-bar 同一套（#eef0f2 / 1px #dfe3e8 上边框 / 按钮 36px）。
+         ⚠️ 必须放在 #mockStage **外面**：mockStage 自己是 overflow:auto 的滚动容器，
+            fixed 元素放进滚动容器会被裁/被卷走；放成兄弟节点才稳定贴住视口底部。
+         #mockStage[hidden] 时整条自动消失（列表页、报告页都不会露出这条空栏）。 -->
+    <div class="mock-bar" id="mockBar">
+      <div class="mock-bar-l">
+        <span class="mock-bar-ix" id="mockBarIx"></span>
+        <span class="mock-bar-track" aria-hidden="true"><i id="mockBarFill"></i></span>
+      </div>
+      <button class="btn btn-primary" type="button" id="mockSubmit">提交 / 下一题</button>
+    </div>
 
     <!-- ③ 报告 -->
     <section class="card" id="mockReport" hidden>
