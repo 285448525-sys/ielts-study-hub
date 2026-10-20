@@ -898,11 +898,44 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 #examPractice #examResult{flex:1 1 auto;min-height:0;overflow-y:auto;margin:0 0 12px}
 .exam-q-body-wrap .exam-part{margin:0 0 6px;font-size:20px;font-weight:800;color:var(--ink)}
 .exam-q-body-wrap .exam-instr{margin:0 0 18px;font-size:13.5px;color:var(--muted);line-height:1.5}
-.exam-bar{background:#3D4A54;border-top:none}
-.exam-bar .exam-step{background:#fff;color:#26343C}
-.exam-bar .exam-step-label{color:#fff}
-.exam-bar .btn-exam-ghost{border-color:rgba(255,255,255,.5);background:transparent;color:#fff}
-.exam-bar .btn-exam-ghost:hover{background:rgba(255,255,255,.12)}
+/* 🔴 10/20 18:2x 她拍板 Q1「都不用（A 分段控件 / B 下划线 Tab / C 步骤条），
+   你去看看真实考试是怎么设计的就怎么做，我记得真实考试应该是接近 2 但也不一样」
+   → 按**真实机考**重做写作底栏。真实机考依据（三个独立来源，2026-10 核实）：
+     · englishups.com/?p=5145（复刻官方 familiarisation test）：
+       "Use the tabs at the bottom of the screen to switch between tasks."
+     · 新航道实地体验帖：「只需要点击屏幕下方的 task1 或 task2 按钮进行转换即可」
+     · 小站名师亲测：「左下角任务栏显示 task 1 和 task 2 的标签，学生可以任意选择其中一个 task 先做」
+   → 形态 = 底栏**左下角两个相邻的任务标签**：选中的是白色底块 + 深色字，未选中是透明底 + 灰字；
+     没有外壳包裹（不是 A 的分段控件）、不是文字下划线（不是 B）、不是步骤条（不是 C）、
+     也没有 ‹ › 箭头（两个 Task 已并排可见，箭头纯冗余）。
+   ⚠️ 本批同时修掉一个真 bug：下面这一整段原来限定在 `.exam-bar`，
+      而写作壳的 footer 只写了 class="ex-bar" —— **`.exam-bar` 从来没出现在 DOM 上**，
+      于是这批规则全是死代码。实测证据：.ex-pg 高 24px（样式写 30px）、.ex-pginfo 15px（写 12px）、
+      两个 Task 都是白底带边框 → 选中态几乎看不出（她截图里「看着不对劲」的根因之一）。
+      现在 footer 补上 exam-bar 类，规则全部生效；同时把深色底栏改成浅灰（与阅读/听力底栏同一系统）。 */
+.wt-bar{background:#eef0f2;border-top:1px solid #dfe3e8;padding:0 22px;height:44px;max-height:44px;
+  gap:12px;flex-direction:row;display:flex;align-items:center}
+.wt-bar .ex-nav.wrt-nav{display:flex;align-items:center;gap:0;min-width:0;flex:1}
+.wt-bar .ex-pgs{display:flex;align-items:center;gap:0}
+.wt-bar .ex-pg{display:inline-flex;align-items:center;justify-content:center;height:32px;padding:0 18px;
+  border:none;border-radius:0;background:transparent;color:#5b6570;font-family:inherit;
+  font-size:13px;font-weight:600;line-height:1;cursor:pointer;white-space:nowrap;
+  transition:background .14s,color .14s,box-shadow .14s}
+.wt-bar .ex-pg:first-child{border-radius:7px 0 0 7px}
+.wt-bar .ex-pg:last-child{border-radius:0 7px 7px 0}
+.wt-bar .ex-pg:first-child:last-child{border-radius:7px}
+.wt-bar .ex-pg:hover:not(.on){background:rgba(255,255,255,.68);color:#26343C}
+.wt-bar .ex-pg.on{background:#fff;color:#111;font-weight:700;
+  box-shadow:0 1px 2px rgba(16,24,40,.10),0 0 0 1px rgba(16,24,40,.05)}
+.wt-bar .ex-pg:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+.wt-bar .ex-pg--static{cursor:default}
+.wt-bar .ex-pg--static:hover{background:#fff;color:#111}
+.wt-bar .exam-step,.wt-bar .exam-step-label{display:none}   /* 10/20 Q3：不再显示「1 Part 1」，官方就叫 Task */
+.wt-bar .ex-actions{display:flex;align-items:center;gap:8px;flex:none}
+.wt-bar .ex-actions .btn-ghost,.wt-bar .ex-actions .btn-primary{
+  height:32px;min-height:0;padding:0 16px;font-size:13px;font-weight:600;border-radius:7px;
+  display:inline-flex;align-items:center;justify-content:center;line-height:1}
+.wt-bar .ex-actions .btn-primary{padding:0 18px}
 .exam-a{padding:16px 20px 0}
 .exam-q .exam-q-body-wrap{padding:20px 22px 26px}
 .exam-textarea{padding:14px 16px}
@@ -1159,22 +1192,12 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 
   /* ===== 10/15 写作模考：底栏 Task 1/2 切换器 + 写作壳配色三档 =====
      注意作用域：bank 页的写作机考壳是 #examPractice（不是阅读的 #examRoot），
-     且本页 .ex-pg 是阅读底栏（浅色 .ex-bar）在用的类 → 切换器样式必须限定 .exam-bar 内，否则会污染阅读底栏。 */
-  .exam-bar .ex-nav.wrt-nav{display:flex;align-items:center;gap:8px;min-width:0}
-  .exam-bar .ex-pgs{display:flex;align-items:center;gap:6px}
-  .exam-bar .ex-pg{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 12px;
-    border:1px solid rgba(255,255,255,.32);border-radius:7px;background:transparent;color:rgba(255,255,255,.86);
-    font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;
-    transition:background .15s,color .15s,border-color .15s}
-  .exam-bar .ex-pg:hover:not([disabled]):not(.on){background:rgba(255,255,255,.14);color:#fff}
-  .exam-bar .ex-pg.on{background:#fff;border-color:#fff;color:#26343C}
-  .exam-bar .ex-pg[disabled]{opacity:.42;cursor:default}
-  .exam-bar .ex-pgbtn{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;
-    border:1px solid rgba(255,255,255,.28);background:transparent;color:#fff;font-size:14px;line-height:1;cursor:pointer}
-  .exam-bar .ex-pgbtn:hover:not([disabled]){background:rgba(255,255,255,.14)}
-  .exam-bar .ex-pgbtn[disabled]{opacity:.35;cursor:default}
-  .exam-bar .ex-pginfo{font-size:12px;color:rgba(255,255,255,.6);margin-left:2px}
-  @media(max-width:860px){.exam-bar .ex-pginfo{display:none}.exam-bar .ex-pg{padding:0 9px;font-size:12px}}
+     且本页 .ex-pg 是阅读底栏（浅色 .ex-bar）在用的类 → 切换器样式必须限定 .exam-bar 内，否则会污染阅读底栏。
+     🔴 10/20：切换器的**全部样式已上移到 `.exam-bar` 主段（901 行附近）**，
+     这里原本那套「深色底栏 + 白字 + 半透明白边框 + ‹ › 箭头 + Task x / 2」已整段删除 ——
+     它对应的 DOM 早就不存在（她 10/20 拍板按真实机考做，箭头和重复文字都不要）。
+     只留移动端收窄，防止手机上两个 tab 挤爆。 */
+  @media(max-width:860px){.exam-bar{padding:0 12px;gap:8px}.exam-bar .ex-pg{padding:0 12px;font-size:12px}}
 
   /* 写作壳配色（Option → Colour）：与写作页同口径，作用域 #examPractice */
   #examPractice.ct-dark,#examPractice.ct-dark .exam-split,#examPractice.ct-dark .exam-a{background:#1b1b1b}
@@ -1445,7 +1468,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
     </section>
 
     <section class="mock-pane" id="pane-writing" hidden
-             data-late-src="js/writing_prompts.js?v=20260903ab,js/writing.js?v=20261020a">
+             data-late-src="js/writing_prompts.js?v=20260903ab,js/writing.js?v=20261020b">
       <!-- 10/11 第 7 项（她拍板「整块删掉」写作页真题 tab）：写作真题整体搬到这里。
            题目数据 = js/writing_prompts.js（大作文 70 + 小作文 25），渲染/机考/评分逻辑在 js/writing.js
            （writeExam 那一段，同一份代码两页共用；本页无 #writeTabs → writing.js 只跑真题初始化）。

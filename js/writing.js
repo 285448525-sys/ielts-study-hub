@@ -1973,21 +1973,24 @@ function wrtBindSwitch(){
 function wrtSwitchHtml(){
   if(!(WRT_FULL.active)) return "";
   var cur = WRT_FULL.idx;
-  /* 10/15 修：必须把 #examStepBadge / #examStepLabel 一起输出。
-     原写法只输出切换器 → innerHTML 覆盖掉这两个节点 → 下次 openExam 里
-     $('#examStepLabel').textContent 直接 TypeError（无守卫）→ 切篇整个中断。
-     现在把 Part 标注放回切换器左侧，节点恒在，openExam 的赋值照旧生效。 */
-  return '<span class="exam-step" id="examStepBadge">' + (cur + 1) + '</span>'
-    + '<span class="exam-step-label" id="examStepLabel">Part ' + (cur + 1) + '</span>'
-    + '<div class="ex-nav wrt-nav">'
-    + '<button class="ex-pgbtn" type="button" data-wrt-switch="0"' + (cur === 0 ? ' disabled' : '') + '>&#8249;</button>'
-    + '<div class="ex-pgs">'
-    +   '<button class="ex-pg' + (cur === 0 ? ' on' : '') + '" type="button" data-wrt-switch="0">Task 1</button>'
-    +   '<button class="ex-pg' + (cur === 1 ? ' on' : '') + '" type="button" data-wrt-switch="1">Task 2</button>'
-    + '</div>'
-    + '<button class="ex-pgbtn" type="button" data-wrt-switch="1"' + (cur === 1 ? ' disabled' : '') + '>&#8250;</button>'
-    + '<span class="ex-pginfo">Task ' + (cur + 1) + ' / 2</span>'
-    + '</div>';
+  /* 🔴 10/20 18:2x 她拍板 Q1「都不用（A 分段控件 / B 下划线 Tab / C 步骤条），
+     你去看看真实考试是怎么设计的就怎么做，我记得真实考试应该是接近 2 但也不一样」
+     → 按**真实机考**做（三个独立来源核实，2026-10 现行口径）：
+       · englishups.com/?p=5145（复刻官方 familiarisation test）：
+         "Use the tabs at the bottom of the screen to switch between tasks"
+       · 新航道实地体验帖：「只需要点击屏幕下方的 task1 或 task2 按钮进行转换即可」
+       · 小站名师亲测：「左下角任务栏显示 task 1 和 task 2 的标签，学生可以任意选择」
+     真实形态 = **底栏左侧两个相邻的任务标签**（选中的是白底深字块、未选中透明灰字），
+     不是分段控件的「胶囊外壳 + 内嵌滑块」（A）、不是「文字 + 下划线」（B）、
+     完全没有 ‹ › 箭头（两个 Task 已并排可见，箭头纯冗余）和「Task 1 / 2」重复文字。
+     样式在 bank.html 的 `.exam-bar` 段（这一批把原来挂错选择器的死代码全部重写）。
+     ⚠️ #examStepBadge / #examStepLabel 已移到 footer 静态 HTML 里（#examBarLeft 之外）——
+        因为本函数返回值直接 innerHTML 覆盖 #examBarLeft，节点留在这里会被删掉，
+        而 openExam() 里对它们的赋值是**无守卫**的（$('#examStepLabel').textContent）→ TypeError。 */
+  return '<button class="ex-pg' + (cur === 0 ? ' on' : '') + '" type="button" data-wrt-switch="0"'
+      + (cur === 0 ? ' aria-current="true"' : '') + '>Task 1</button>'
+    + '<button class="ex-pg' + (cur === 1 ? ' on' : '') + '" type="button" data-wrt-switch="1"'
+      + (cur === 1 ? ' aria-current="true"' : '') + '>Task 2</button>';
 }
 
 function renderWritingFullEntry(){
@@ -2070,9 +2073,9 @@ function openFullTask(){
   const left = Math.max(1, Math.round((WRT_FULL.deadline - Date.now()) / 1000));
   examStartTimer('down', left * 1000);
   /* 顶栏标注进的是完整模考第几篇 */
-  const pl = $('#examPartLabel'); if(pl) pl.textContent = 'Part ' + (WRT_FULL.idx + 1);
+  const pl = $('#examPartLabel'); if(pl) pl.textContent = 'Task ' + (WRT_FULL.idx + 1);
   const sb = $('#examStepBadge'); if(sb) sb.textContent = String(WRT_FULL.idx + 1);
-  const sl = $('#examStepLabel'); if(sl) sl.textContent = 'Part ' + (WRT_FULL.idx + 1);
+  const sl = $('#examStepLabel'); if(sl) sl.textContent = 'Task ' + (WRT_FULL.idx + 1);
     const fin = $('#examFinish'); if(fin) fin.textContent = WRT_FULL.idx === 0 ? 'Finish section → Task 2' : 'Finish section';
   wrtRestoreDraft();
   const bar = document.getElementById('examBarLeft'); if(bar) bar.innerHTML = wrtSwitchHtml();
@@ -2256,9 +2259,10 @@ function openRecordExamView(rec){
   document.body.classList.add('exam-fullscreen');
   examEnterLock();
   const partNo = isBig ? 2 : 1;
-  $('#examPartLabel').textContent = 'Part ' + partNo;
+  $('#examPartLabel').textContent = 'Task ' + partNo;
   $('#examStepBadge').textContent = String(partNo);
-  $('#examStepLabel').textContent = 'Part ' + partNo;
+  $('#examStepLabel').textContent = 'Task ' + partNo;
+  wrtSyncStaticTask(partNo);
   $('#examInstr').textContent = isBig ? 'You should spend about 40 minutes on this task. Write at least 250 words.'
                                       : 'You should spend about 20 minutes on this task. Write at least 150 words.';
   /* 题目来源三级回退：自练记录存了题干 → 真题按编号从题库取（含图表）→ 模板记录用模板名 */
@@ -2318,9 +2322,9 @@ function openExam(item, kind){
   const partNo = isBig ? 2 : 1;
   const typeLabel = isBig ? '大作文 Task 2' : '小作文 Task 1';
   /* 10/15 加空守卫：这三个节点在组卷模考里由切换器一并输出，任何一处缺失都不该让整段中断 */
-  const pl = $('#examPartLabel'); if(pl) pl.textContent = 'Part ' + partNo;
+  const pl = $('#examPartLabel'); if(pl) pl.textContent = 'Task ' + partNo;
   const sb = $('#examStepBadge'); if(sb) sb.textContent = String(partNo);
-  const sl = $('#examStepLabel'); if(sl) sl.textContent = 'Part ' + partNo;
+  const sl = $('#examStepLabel'); if(sl) sl.textContent = 'Task ' + partNo;
   $('#examInstr').textContent = isBig
     ? 'You should spend about 40 minutes on this task. Write at least 250 words.'
     : 'You should spend about 20 minutes on this task. Write at least 150 words.';
@@ -2395,9 +2399,10 @@ function openExamCustom(){
   document.body.classList.add('exam-fullscreen');
   examEnterLock();
   const partNo = isBig ? 2 : 1;
-  $('#examPartLabel').textContent = 'Part ' + partNo;
+  $('#examPartLabel').textContent = 'Task ' + partNo;
   $('#examStepBadge').textContent = String(partNo);
-  $('#examStepLabel').textContent = 'Part ' + partNo;
+  $('#examStepLabel').textContent = 'Task ' + partNo;
+  wrtSyncStaticTask(partNo);
   $('#examInstr').textContent = isBig
     ? 'You should spend about 40 minutes on this task. Write at least 250 words.'
     : 'You should spend about 20 minutes on this task. Write at least 150 words.';
@@ -2567,6 +2572,54 @@ function wrtShellStyle(){
   document.head.appendChild(st);
 }
 
+/* ===== 10/20 写作壳全屏按钮（她拍板 Q2：放顶栏 ☰ 左边）=====
+   为什么写作要单独一份：阅读/听力的全屏实现在 js/bank.js（#exFsBtn + paintFsIcon），
+   写作走 js/writing.js 的 examShellHtml() 那一套壳，两套壳互不引用 —— 10/20 实测
+   写作顶栏 hasFs:false（根本没有全屏入口）。图标与 bank.js 的 ICO_FULL/ICO_FULL_X
+   **逐字节相同**（四角朝外 / 四角朝内），保证三个 channel 点下去长得一样。 */
+/* ⚠️ 必须写成**函数**而不是 var 常量：ensureExamShell() 会在 ready() 里同步触发
+   （document.readyState 已是 complete 时 ready 是同步回调），那时本文件顶层的 var 赋值还没执行到
+   → var 提升成 undefined → 顶栏按钮 innerHTML 变成字符串 "undefined"（实测踩过）。
+   函数声明整体提升，函数体内是字面量，任何时候调用都有值。 */
+function wrtIcoFull(){ return '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V5.5A1.5 1.5 0 0 1 5.5 4H9"/><path d="M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9"/><path d="M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15"/><path d="M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15"/><path d="M4 4l6 6"/><path d="M20 4l-6 6"/><path d="M20 20l-6-6"/><path d="M4 20l6-6"/></svg>'; }
+function wrtIcoFullX(){ return '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4v3.5A1.5 1.5 0 0 1 7.5 9H4"/><path d="M15 4v3.5A1.5 1.5 0 0 0 16.5 9H20"/><path d="M15 20v-3.5a1.5 1.5 0 0 1 1.5-1.5H20"/><path d="M9 20v-3.5A1.5 1.5 0 0 0 7.5 15H4"/><path d="M10 10h4v4h-4z"/></svg>'; }
+function wrtFsOn(){ return !!(document.fullscreenElement || document.webkitFullscreenElement); }
+function paintWrtFsIcon(){
+  var b = document.getElementById('wrtFsBtn'); if(!b) return;
+  var on = wrtFsOn();
+  b.innerHTML = on ? wrtIcoFullX() : wrtIcoFull();
+  b.title = on ? 'Exit full screen' : 'Full screen';
+  b.setAttribute('aria-label', b.title);
+}
+function wrtToggleFullscreen(){
+  try{
+    if(!wrtFsOn()){
+      var d = document.documentElement;
+      var req = d.requestFullscreen || d.webkitRequestFullscreen;
+      if(req){ var r = req.call(d); if(r && r.catch) r.catch(function(){}); }
+    } else {
+      var ex = document.exitFullscreen || document.webkitExitFullscreen;
+      if(ex){ var r2 = ex.call(document); if(r2 && r2.catch) r2.catch(function(){}); }
+    }
+  }catch(e){}
+}
+function wireWrtFs(){
+  var fs = document.getElementById('wrtFsBtn');
+  if(fs && !fs.__fsBound){ fs.__fsBound = true; fs.addEventListener('click', function(ev){ ev.preventDefault(); wrtToggleFullscreen(); }); }
+  paintWrtFsIcon();
+  if(!window.__WRT_FS_ICON){
+    window.__WRT_FS_ICON = true;
+    ['fullscreenchange','webkitfullscreenchange'].forEach(function(ev){ document.addEventListener(ev, paintWrtFsIcon); });
+  }
+}
+/* 10/20：单篇练习（非连考）底栏左侧放一个**不可点**的当前任务标签 ——
+   与连考的 tab 同款外观，否则底栏只剩右边三个按钮、左边全空、视觉失衡。 */
+function wrtSyncStaticTask(partNo){
+  if(WRT_FULL && WRT_FULL.active) return;
+  var el = document.getElementById('examBarLeft');
+  if(el) el.innerHTML = '<span class="ex-pg on ex-pg--static">Task ' + partNo + '</span>';
+}
+
 function examShellHtml(){
   /* 🔴 10/16 她：「上下栏全部同步成阅读这个界面一样，右上角一个键可以调节字体和主题，第三个调节音频的删掉」
      → 顶栏/底栏改成与阅读壳（bank.js shellHtml/barHtml）**同构**：.ex-top（左篇名|中计时|右 ☰）
@@ -2580,6 +2633,7 @@ function examShellHtml(){
       <span class="ex-timer" id="examTimerWrap"><span id="examTimerText">00:00:00</span></span>
       <div class="ex-icons">
         <span class="ex-saved" id="wtSaved" hidden>Saved</span>
+        <button class="ex-ico ex-toolbtn" id="wrtFsBtn" type="button" title="Full screen" aria-label="Full screen">${wrtIcoFull()}</button>
         <button class="ex-ico ex-menubtn" type="button" title="Option">☰</button>
       </div>
     </header>
@@ -2587,7 +2641,7 @@ function examShellHtml(){
     <div class="exam-split">
       <article class="exam-q">
         <div class="exam-q-body-wrap" id="examQBodyWrap">
-          <h1 class="exam-part" id="examPartLabel">Part 2</h1>
+          <h1 class="exam-part" id="examPartLabel">Task 2</h1>
           <p class="exam-instr" id="examInstr">You should spend about 40 minutes on this task. Write at least 250 words.</p>
           <p class="exam-q-lead">Write about the following topic:</p>
           <div class="exam-q-body" id="examQuestion"></div>
@@ -2608,12 +2662,11 @@ function examShellHtml(){
       </div>
     </div>
 
-    <footer class="ex-bar">
-      <div class="ex-nav" id="exNavW">
-        <div class="ex-nums" id="examBarLeft">
-          <span class="exam-step" id="examStepBadge">2</span>
-          <span class="exam-step-label" id="examStepLabel">Part 2</span>
-        </div>
+    <footer class="ex-bar wt-bar">
+      <div class="ex-nav wrt-nav" id="exNavW">
+        <span class="exam-step" id="examStepBadge" hidden>2</span>
+        <span class="exam-step-label" id="examStepLabel" hidden>Task 2</span>
+        <div class="ex-pgs" id="examBarLeft"><span class="ex-pg on ex-pg--static">Task 2</span></div>
       </div>
       <div class="ex-actions">
         <button type="button" class="btn-ghost ex-pause" id="examTimerBtn">Pause</button>
@@ -2636,9 +2689,14 @@ function examShellHtml(){
 }
 function ensureExamShell(){
   const host = document.getElementById('examPractice');
-  if(!host || host.getAttribute('data-shell') === '1') return;
+  if(!host || host.getAttribute('data-shell') === '1'){
+    /* 10/20：壳已存在时也要刷新全屏图标（进/出全屏后回到考场，图标要反映当前态） */
+    if(host) wireWrtFs();
+    return;
+  }
   host.innerHTML = examShellHtml();
   host.setAttribute('data-shell', '1');
+  wireWrtFs();          /* 10/20 她 Q2：顶栏 ☰ 左边的全屏键（绑点击 + 刷当前图标态） */
 }
 
 function bindExam(){
