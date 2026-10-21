@@ -384,7 +384,7 @@ button.mini.danger:hover{background:var(--bad-bg);border-color:var(--bad)}
     <p class="desc">收到转账后在这里手动开通；会员状态只存服务端（用户改本地数据无效）；续费自动从现到期日顺延</p>
     <div class="toolbar">
       <label class="muted">账号</label>
-      <input class="small" id="vipAcct" placeholder="注册邮箱（存量老账号也可填手机号/用户名）" style="width:240px" maxlength="60" />   <!-- 10/16：原 maxlength=20 邮箱根本输不完 + placeholder 没提邮箱；10/21：登录只认邮箱，管理面仍兼容存量老账号 -->
+      <input class="small" id="vipAcct" placeholder="注册邮箱" style="width:240px" maxlength="60" />   <!-- 10/16：原 maxlength=20 邮箱根本输不完 + placeholder 没提邮箱；10/21 她拍板「面板也改了吧」→ 只认邮箱，存量手机号/用户名老账号不再支持在这里发会员 -->
       <label class="muted">天数</label>
       <input class="small" id="vipDays" type="number" min="1" max="3650" value="30" style="width:76px" />
       <button class="btn ghost small" data-vdays="30" type="button">月(30)</button>
@@ -1340,9 +1340,10 @@ button.mini.danger:hover{background:var(--bad-bg);border-color:var(--bad)}
     var note = ($('vipNote').value || '').trim();
     $('vipErr').textContent = '';
     /* 10/16 与 /api/admin 的 isAcct 口径对齐：邮箱账号（邮箱注册体系）同样可发会员
-       10/21 登录收窄为邮箱-only 后本行**故意不收窄**：管理面要能继续处理存量老账号（手机号/用户名），
-       否则那批号在面板里成了「看得见、改不了」的僵尸记录。 */
-    if(!/^(?:[a-z0-9_]{6,20}|[^\s@]+@[^\s@]+\.[^\s@]{2,})$/.test(acct)){ $('vipErr').textContent = '账号格式：邮箱 或 6-20 位数字/字母/下划线'; return; }
+       10/21 她拍板「面板也改了吧」→ 本行收窄成纯邮箱，与后端 isAcct 完全同口径。
+       代价（已知）：手机号/用户名存量老账号仍显示在概览列表里，但对它们发会员会报「账号格式：邮箱」；
+       清理存量探针号走「清理探针」，那条按账号名匹配、不经过这里。 */
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(acct)){ $('vipErr').textContent = '账号格式：邮箱'; return; }
     if(!permanent && !(days >= 1 && days <= 3650)){ $('vipErr').textContent = '天数请填 1-3650'; return; }
     $('grantBtn').disabled = true;
     api('vip_grant', { acct: acct, days: days, permanent: permanent, note: note }, function(r){

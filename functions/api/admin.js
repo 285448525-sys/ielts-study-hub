@@ -1,4 +1,4 @@
-// Cloudflare Pages Function: /api/admin —— 站长管理面板后端（她 10/1 要求：不进 CF 后台也能管站）
+﻿// Cloudflare Pages Function: /api/admin —— 站长管理面板后端（她 10/1 要求：不进 CF 后台也能管站）
 // 页面入口 = admin.html（noindex，不进站内导航，不进 SW 预缓存）。
 //
 // 安全模型：全部 action 要求请求头 X-Admin-Key === 环境变量 ADMIN_KEY（密钥只在她的浏览器
@@ -107,13 +107,14 @@ async function listAll(kv, prefix) {
    此前面板只认 6-20 位用户名/手机号 → 邮箱账号在列表里显示成 e:xxx@yy.com、发会员写错键
    （vip:e:... ≠ vip:xxx@yy.com → 登录读到的是 null，会员等于没开）。
 
-   ⭐ 10/21 账号收窄为邮箱-only 后的口径说明（**不是漏改**）：
-   本站**登录/注册**只认邮箱（/api/auth 与 /api/sync 的正则已收窄成纯邮箱）。
-   但本文件的 isAcct 是**站长管理入参**校验，不是登录通道——它必须继续接受
-   「6-20 位用户名/手机号」，因为 10/21 之前注册的存量账号（含我留下的探针号）
-   键名就是 user:<acct>，收窄后这些号会变成「面板里看得见、却改不了判、发不了会员、
-   清理不掉」的僵尸记录。她的原话是删「登录前后端」，管理面保留存量兼容才不留坑。 */
-function isAcct(a) { return /^(?:[a-z0-9_]{6,20}|[^\s@]+@[^\s@]+\.[^\s@]{2,})$/.test(String(a || '')); }
+   ⭐ 10/21 账号收窄为邮箱-only，本文件的 isAcct 也一并收窄（她原话「面板也改了吧」）：
+   管理面的 vip_grant / judge_set 入参校验现在只认邮箱，与 /api/auth、/api/sync、
+   admin.html 前端四处完全同口径。
+   ⚠️ 代价（已知，不是 bug）：10/21 之前注册的手机号/用户名存量账号（含我留下的探针号）
+   键名是 user:<acct>，它们仍会出现在概览列表里（overview 是只读统计，不受影响），
+   但「发会员 / 人工改判真人探针」这两项操作对它们会返 bad_acct。
+   清理存量探针号走 probe_clean，它按账号名匹配、不经过 isAcct，不受本次收窄影响。 */
+function isAcct(a) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(a || '')); }
 function bareAcct(keyName, prefixLen) { return String(keyName).slice(prefixLen).replace(/^e:/, ''); }
 function userKeyOf(acct) {
   const a = String(acct || '').trim().toLowerCase();
@@ -597,7 +598,7 @@ export async function onRequest(context) {
   /* ---------- 开通/续费会员（她收到转账后在这里手动开；档位价格是她的商业决策，面板只管时长） ---------- */
   if (action === 'vip_grant') {
     const acct = String(body.acct || '').trim().toLowerCase();
-    if (!isAcct(acct)) return json({ ok: false, error: 'bad_acct', msg: '账号格式：邮箱 / 6-20 位数字字母下划线' }, 400);
+    if (!isAcct(acct)) return json({ ok: false, error: 'bad_acct', msg: '账号格式：邮箱' }, 400);
     const permanent = !!body.permanent;   // 她 10/1 拍板：站长本人要永久会员——expire 用超大值（2286 年），所有判定（expire > now）零改动
     const days = permanent ? 1 : parseInt(body.days, 10);
     if (!Number.isFinite(days) || days < 1 || days > 3650) return json({ ok: false, error: 'bad_days', msg: '会员天数限 1-3650' }, 400);
@@ -711,7 +712,7 @@ export async function onRequest(context) {
 
   if (action === 'judge_set') {
     const acct = String(body.acct || '').trim().toLowerCase();
-    if (!isAcct(acct)) return json({ ok: false, error: 'bad_acct', msg: '账号格式：邮箱 / 6-20 位数字字母下划线' }, 400);
+    if (!isAcct(acct)) return json({ ok: false, error: 'bad_acct', msg: '账号格式：邮箱' }, 400);
     if (body.clear) {
       await kv.delete('manual:' + acct);
       await audit(kv, 'judge_clear', { acct: acct });
