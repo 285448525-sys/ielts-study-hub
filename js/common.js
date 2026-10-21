@@ -57,8 +57,9 @@ const PAGES = [
 ];
 
 /* 收藏页面（⭐）——侧边栏「常用」与首页「快捷入口」共用同一份，永远同步。
-   从未收藏过时给 3 个新手默认项，避免入口空着。 */
-const DEFAULT_FAV = ['timer','practice','speaking'];
+   从未收藏过时给新手默认项，避免入口空着。
+   10-21 22:4x：她拍板「直接不要计时了」→ 默认收藏里摘掉 timer（只影响 prefetch 预取，不影响任何可见入口）。 */
+const DEFAULT_FAV = ['practice','speaking'];
 /* 服药模块开关（9/15 之之：设置页「启用『服药』模块」→ 选是才启用服药模块）。
    默认开启 = 历史用户已有入口，不因新增开关而凭空消失；关闭后入口从侧栏/更多/搜索/收藏全部隐藏，
    已记录的服药数据一律保留，随时可再开启。判定只认显式 false，undefined/true 都算开。 */
@@ -74,8 +75,12 @@ function favPageIds(){
 /* v5：简化后全部平铺，不再分折叠组（首页→回顾 一级；设置/服药 在分隔线下方）
    10/12 22:16 她拍板「模考优先」重排（原：计时/计划两个工具排在内容模块前面 = 工具压过正餐）：
    模考（站内最大资产 415 篇真题 + 「30 秒练上第一题」落点）→ 口语/写作（AI 核心卖点）→
-   单词（每日习惯）→ 句子 → 计划/计时（工具归位）→ 回顾。分隔线下方不变。 */
-const PRIMARY_NAV = ['index','bank','speaking','writing','practice','corpus','plans','timer'];
+   单词（每日习惯）→ 句子 → 计划/计时（工具归位）→ 回顾。分隔线下方不变。
+   🔴 10-21 22:4x 她拍板「直接不要计时了」：站内每个学习模块**打开就自动计时**，
+      手动「选模块开表」这个入口没有存在必要 → 从 PRIMARY_NAV 摘掉 'timer'。
+      ⚠️ **只摘入口、不删功能**：`timer.html` 文件、`DATA.activeTimer`、侧栏计时徽标、
+         浮条「结束并保存」、各模块的自动计时引擎全部保留（撤掉页面会让进行中的会话无法结算）。 */
+const PRIMARY_NAV = ['index','bank','speaking','writing','practice','corpus','plans'];
 /* ⭐ 10-22 她拍板（design/116 决策②）：组页不在顶栏 8 个胶囊里，直接换过去会「全都不亮」，
    看起来像没有当前位置 → 按归属高亮：学习组→单词、计划组→计划、我的组→设置。
    学生数据页故意不映射（它是独立身份，不属于任何学习模块）。
@@ -85,7 +90,7 @@ const CAP_ACTIVE = { 'plans-hub.html':'plans.html', 'study.html':'practice.html'
 function capActiveFile(file){ return CAP_ACTIVE[file] || file; }
 /* 10/1 付费方案：vip 放分隔线下方首位（销售入口显眼但不挤占学习导航；她看过效果可再调位置） */
 const MORE_NAV    = ['vip','review','meds','settings'];
-const TAB_NAV     = ['index','timer','practice','speaking'];   // 旧 tabbar 主项（组件已删，仅用于计算「更多」弹层要收纳哪些页面）
+const TAB_NAV     = ['index','practice','speaking'];   // 旧 tabbar 主项（组件已删，仅用于计算「更多」弹层要收纳哪些页面）
 // 底部 Tab 标签覆盖：practice 在站内含「单词」，但原型/验收确认为「背词」，单独对齐（不改 PAGES 以免影响桌面侧栏）
 const TAB_LABEL   = { practice:'背词' };
 
@@ -106,16 +111,16 @@ function topBarHtml(current){
     ? '<a class="tb-me" href="settings.html" title="换头像" aria-label="换头像"><img src="' + _avMe2 + '" alt=""></a>'
     : '<a class="tb-me tb-me--guest" href="login.html" title="去登录" aria-label="去登录">'
       + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c1.2-3.6 4.1-5.4 7.5-5.4s6.3 1.8 7.5 5.4"/></svg></a>';
-  // 胶囊 8 项 = design/113A3 原样：首页/模考/口语/写作/单词/句子/计划/更多（计时进「更多」）
+  // 胶囊 = design/113A3 原样：首页/模考/口语/写作/单词/句子/计划 + 「更多」
+  // 10-21 22:4x：PRIMARY_NAV 已摘掉 'timer'，原来那句 `if(pid==='timer') continue;` 随之失效删除。
   let caps = '';
   for(const pid of PRIMARY_NAV){
-    if(pid === 'timer') continue;
     const p = pageById(pid); if(!p) continue;
     caps += '<a class="tb-item' + (p.file === activeFile ? ' on' : '') + '" href="' + p.file + '" data-id="' + p.id + '">' + escapeHtml(p.name) + '</a>';
   }
-  // 「更多」面板 = 侧栏 MORE_NAV + 计时 + 错句本（服药模块未开不出现）
+  // 「更多」面板 = 侧栏 MORE_NAV + 错句本（计时已撤；服药模块未开不出现）
   let moreItems = '';
-  for(const pid of ['timer','wrongbook','review','vip','settings','meds']){
+  for(const pid of ['wrongbook','review','vip','settings','meds']){
     if(pid === 'meds' && !medsModuleOn()) continue;
     const p = pageById(pid); if(!p) continue;
     moreItems += '<a class="tb-more-item' + (p.file === activeFile ? ' on' : '') + '" href="' + p.file + '" data-id="' + p.id + '">'
@@ -342,7 +347,7 @@ function injectNav(){
 /* ===== 侧边栏 AI 智能搜索：中文搜功能跳转 + 英文 AI 查词自动入词库 ===== */
 const SIDE_SEARCH_PAGES = [
   { id:'index',     kw:'首页 主页 概览 今日 overview' },
-  { id:'timer',     kw:'计时 计时器 番茄钟 专注 时钟 timer' },
+  /* 10-21 22:4x：'timer' 搜索条目已随入口一起撤掉（搜「计时」不再给出「去计时」结果）。 */
   { id:'plans',     kw:'计划 任务 清单 待办 每日 周计划 排程 plan' },
   { id:'practice',  kw:'单词 背单词 背词 词库 词汇 练习 学习 word' },
   { id:'corpus',    kw:'句子 长难句 错题 听写 语料 翻译 解码 sentence' },
@@ -738,8 +743,11 @@ document.addEventListener('change', (e) => {
 /* 分组定义：唯一的结构来源。g.page 存在 = 直达；无 page = 弹组面板。 */
 const GROUPED_DOCK = [
   { id:'index',  label:'首页', icon:'<path d="M3 11l9-8 9 8M5 10v10h14V10"/>', page:'index' },
+  /* 🔴 10-21 22:4x 计时撤掉后，计划组只剩「计划」一项 → 中间层 plans-hub 失去意义（她 22:1x 原话
+     「计划这个模块点进去不应该就是纯是计划吗」）。这里改成**直达 plans.html**，
+     少一次点击；plans-hub.html 变成孤儿页（文件先留着，随时可回滚）。 */
   { id:'plans',  label:'计划', icon:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4"/>',
-    page:'plans-hub', members:['plans','timer'] },
+    page:'plans', members:['plans'] },
   { id:'study',  label:'学习', icon:'<path d="M4 19.5V6a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-1.5z"/><path d="M4 19.5A2 2 0 0 1 6 18h13"/>',
     page:'study',     members:['practice','speaking','writing','bank','corpus'] },
   { id:'me',     label:'我的', icon:'<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/>',

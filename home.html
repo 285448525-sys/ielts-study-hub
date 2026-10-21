@@ -40,17 +40,17 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20261021e"></script>
-<script defer src="js/common.js?v=20261022b"></script>
-<script defer src="js/common-ai.js?v=20261022b"></script>
-<script defer src="js/common-sync.js?v=20261022b"></script>
-<script defer src="js/common-merge.js?v=20261022b"></script>
-<script defer src="js/common-cloud.js?v=20261022b"></script>
-<script defer src="js/common-shell.js?v=20261022b"></script>
-<script defer src="js/common-pwa.js?v=20261022b"></script>
+<script defer src="js/common.js?v=20261022c"></script>
+<script defer src="js/common-ai.js?v=20261022c"></script>
+<script defer src="js/common-sync.js?v=20261022c"></script>
+<script defer src="js/common-merge.js?v=20261022c"></script>
+<script defer src="js/common-cloud.js?v=20261022c"></script>
+<script defer src="js/common-shell.js?v=20261022c"></script>
+<script defer src="js/common-pwa.js?v=20261022c"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
 <!-- design/78 双词库适配层：index.js 的 wbActive/wbDueCount 依赖它（defer 按文档序执行） -->
 <script defer src="js/wordbank.js?v=20261012g"></script>
-<script defer src="js/index.js?v=20261021d"></script>
+<script defer src="js/index.js?v=20261022c"></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(0,0,0,.02),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -75,7 +75,7 @@
   <!-- v6→A3a 首页（design/113A3a 零滚动驾驶舱）：一行化倒计时 + 四数字卡 + 三件事/今日任务 + 常用模块 + 右侧 232px 侧轨；
        今日学习记录与昨日聚合在设计首屏预算之外，保留在下方（可滚到） -->
 
-  <!-- L1 · 倒计时一行化（72px 横条：问候 · 连续天数 · 距考天数 · 开始专注） -->
+  <!-- L1 · 倒计时一行化（72px 横条：问候 · 连续天数 · 距考天数 · 开始学习） -->
   <div class="hlayout">
     <div class="hmain">
       <section class="hline">
@@ -86,15 +86,15 @@
           <a class="vip-chip" id="heroVipChip" href="vip.html" hidden></a>
         </div>
         <div class="hl-mid" id="dashHeroNum"></div>
-        <a class="hl-cta" href="timer.html">
+        <a class="hl-cta" href="practice.html">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6,4 20,12 6,20"/></svg>
-          开始专注
+          开始学习
         </a>
       </section>
 
       <!-- L2 · 四数字卡（今日专注 / 今日单词 / 口语已练 / 本周模考） -->
       <section class="hstats">
-        <a class="hstat" href="timer.html">
+        <a class="hstat" href="review.html">
           <div class="lb">今日专注</div>
           <div class="vl" id="statFocusVal"></div>
           <div class="track"><i id="statFocusTrack" style="width:0%"></i></div>
@@ -130,7 +130,7 @@
         <a class="hmod" href="bank.html"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l5 5v13H7V3z"/><path d="M14 3v5h5"/><path d="M10 12h6M10 16h6"/></svg></span><span class="tx"><b>模考</b><span>阅读 · 听力 · 写作 · 口语</span></span></a>
         <a class="hmod" href="practice.html"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg></span><span class="tx"><b>单词</b><span>学习与管理你的单词</span></span></a>
         <a class="hmod" href="corpus.html"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5h16M4 11.5h16M4 16.5h9"/></svg></span><span class="tx"><b>句子</b><span>长难句 · 错题 · 听写</span></span></a>
-        <a class="hmod" href="timer.html"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg></span><span class="tx"><b>计时</b><span>选模块开计时</span></span></a>
+        <a class="hmod" href="speaking.html"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg></span><span class="tx"><b>口语</b><span>题库 + AI 串题 + 陪练</span></span></a>
       </section>
     </div>
 
@@ -159,7 +159,7 @@
         </div>
         <div class="rail-quick">
           <div class="rc-cap">快速入口</div>
-          <a class="qk" href="timer.html"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.5"/><path d="M9.5 2.5h5"/></svg></span><span class="tx"><b>计时</b><span>选模块开计时</span></span><svg class="ar" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></a>
+          <a class="qk" href="plans.html"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg></span><span class="tx"><b>计划</b><span>今日清单 · AI 排周</span></span><svg class="ar" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></a>
           <a class="qk" href="corpus.html"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 13a7.5 7.5 0 0 1 15 0v4a2.5 2.5 0 0 1-2.5 2.5h-1.5a2 2 0 0 1-2-2v-2.5a2 2 0 0 1 2-2h4.9"/><path d="M4.5 13v4a2.5 2.5 0 0 0 2.5 2.5h1.5a2 2 0 0 0 2-2v-2.5a2 2 0 0 0-2-2H5.6"/></svg></span><span class="tx"><b>听写</b><span>长难句 · 错题 · 听写</span></span><svg class="ar" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></a>
           <a class="qk" href="review.html"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 1 2.2 5.3"/><path d="M4.5 12V7"/><path d="M4.5 12H9.5"/></svg></span><span class="tx"><b>回顾</b><span>成绩与学习轨迹</span></span><svg class="ar" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></a>
         </div>

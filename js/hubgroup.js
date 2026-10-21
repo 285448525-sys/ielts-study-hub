@@ -18,8 +18,9 @@
     plans: {
       key:'plans', title:'计划', tagline:'今天要做什么、这周怎么排，都在计划里',
       items:[
-        { id:'plans',    name:'计划', desc:'每日清单 + AI 智能排周',   accent:true },
-        { id:'timer',    name:'计时', desc:'选模块开计时 · 番茄钟' }
+        /* 10-21 22:4x：她拍板「直接不要计时了」→ 计时卡撤掉。
+           组里只剩「计划」一项，等于没有「组」的意义 → 手机底栏「计划」格已改成直达 plans.html。 */
+        { id:'plans',    name:'计划', desc:'每日清单 + AI 智能排周',   accent:true }
       ]
     },
     study: {

@@ -208,7 +208,9 @@ function renderDashV6(){
     } else if(totalSec > 0){
       focusSub.textContent = '今天已学 ' + (_hm.h ? _hm.h+' 小时 ' : '') + _hm.m + ' 分钟';
     } else {
-      focusSub.textContent = '去「计时」开第一段专注';
+      /* 10-21 22:4x：原先是「去『计时』开第一段专注」—— 计时入口已撤（她说不需要手动开）。
+         改成说清机制：学任何模块都会自动计时。 */
+      focusSub.textContent = '开始学就自动计时，不用手动开';
     }
   }
 
@@ -263,10 +265,12 @@ function renderDashV6(){
   const maxDur = Math.max(...Object.values(byModule), 1);
 
   if(modNames.length === 0){
+    /* 10-21 22:4x：原来这里写「去『计时学习』开始打卡 → timer.html」。计时入口撤掉后，
+       改成直说事实（站内学任何模块都会自动计时）并把链接指向最常用的起点「背单词」。 */
     bodyEl.innerHTML = '<div class="empty-state">'
       +'<p style="text-align:center;padding:22px 0;color:var(--muted);font-size:14px;line-height:1.7">'
       +'今天还没有学习记录<br>'
-      +'<a href="timer.html" style="color:var(--primary);font-weight:700;text-decoration:none">去「计时学习」开始打卡 →</a>'
+      +'<a href="practice.html" style="color:var(--primary);font-weight:700;text-decoration:none">去背今天的单词，会自动开始计时 →</a>'
       +'</p></div>';
   } else {
     let html = '';
@@ -365,7 +369,7 @@ function renderHomeRail(tkey){
     }
     const ssEl = document.getElementById('railStreakSub');
     if(ssEl){
-      if(streak <= 0) ssEl.textContent = '今天还没有学习记录，开一段专注就开始算';
+      if(streak <= 0) ssEl.textContent = '今天还没有学习记录，学一会儿就开始算';
       else if(best > streak) ssEl.textContent = '再坚持 ' + (best - streak) + ' 天，就追平最佳纪录 ' + best + ' 天';
       else if(best === 1) ssEl.textContent = '好的开始，明天接着来';
       else ssEl.textContent = '已追平自己的最佳纪录 ' + best + ' 天';
@@ -442,7 +446,7 @@ function hmParts(sec){
    候选怎么选（全部按**她本机真实数据**算，给不存在的入口 = 骗人）：
      ① 今天到期的单词（>0）→ 去背词  ⭐ 最高优先，间隔重复到期就该马上做
      ② 今天有口语练习记录吗？有 → 提示去模考；没有 → 「练口语」（陪练抽 P1）
-     ③ 今天还没计时 → 「开一段专注」
+     ③ 今天还没开始学 → 推一件 5 分钟的小事（10-21 撤计时前是「开一段专注 → timer.html」）
    ⚠️ 与「继续上次」卡**分工不重叠**：那张给「回到上次那件事」，这张给「今天还没做的第一件事」。
    ⚠️ 已完成的候选直接剔除；一条都不剩 → **整卡不渲染**（不硬凑三条凑数）。
    折叠态存 localStorage，不进 DATA。 */
@@ -477,20 +481,17 @@ function threeThingsList(){
     });
   }
 
-  // ③ 今天还没计时 → 给一段专注（站外真题网站练的计时入口也在这）
+  /* ③ 今天还没开始学 → 推一件 5 分钟就能做完的小事（长难句）。
+     🔴 10-21 22:4x：这条原来是「开一段专注 → timer.html」。她拍板撤掉手动计时
+        （原话：「我网站学任何东西都自动开启计时，所以手动开不开没必要」）→ 原落点没了，
+        换成同样零门槛、但技能与②口语不重叠的「长难句」。
+        ⚠️ 判据（今天有没有学过）原样不动，只是换了推荐内容。
+        ⚠️ 不写 query（corpus 页默认 tab 不确定，写了参数反而落错 tab —— 10/5 同款教训）。 */
   const studiedToday = (DATA.sessions || []).some(x => x && x.date === tkey && (x.durationSec || 0) > 0);
   if(!studiedToday){
-    /* 路线图2 · 2c-C3（10/12）：文案吃上引导 step2 写的 dailyGoalHours —— 原泛泛的「开一段专注」
-       没利用刚收集的信息。阈值 15 分钟：低于 15 显示「专注 10 分钟」显得敷衍，回退原文案
-       （阈值为 A 窗口默认值，她若有意见再调）。 */
-    const _mins = Math.round((DATA.settings.dailyGoalHours || 0) * 60);
     out.push({
-      key:'timer', ic:'timer',
-      title: _mins >= 15 ? '专注 ' + _mins + ' 分钟' : '开一段专注',
-      sub:'先学 25 分钟，边听边记',
-      /* 10/12 C-3 顺带修：去掉 ?autostart=1 —— timer.html 没有消费该参数的代码（死参数，
-         点了不自动开表，反而不如直接进页让她自己选模块开；speaking/practice 才有 autostart 链路）。 */
-      file:'timer.html', cta:'开始'
+      key:'corpus', ic:'corpus', title:'过一遍长难句', sub:'拆解 + 听写，5 分钟就够',
+      file:'corpus.html', cta:'开始'
     });
   }
   return out;
