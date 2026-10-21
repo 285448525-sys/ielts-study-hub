@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
+<meta charset="utf-8" />
 <!--
   ================================================================
   雅思备考 Hub · 原创作品（Original Work）
@@ -9,252 +10,18 @@
   创作过程的原始证据。本站不使用第三方模板或建站工具生成。
   ================================================================
 -->
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>雅思备考 Hub · 记忆曲线背单词 · 一个故事串半本口语题库</title>
-<meta name="description" content="雅思机考备考系统：口语一个故事串起全题库、写作几套打磨很久的模板背下来就能用、AI 口语模考与写作批改不限次，学习功能全部免费，跨设备自动同步。" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="manifest" href="/manifest.json" />
-<meta name="theme-color" content="#3a9a93" />
-<style>
-:root{
-  --n-0:#ffffff; --n-50:#fafbfc; --n-100:#f5f6f8; --n-200:#f2f3f5; --n-300:#e6e8eb;
-  --n-400:#d4d7dc; --n-500:#a8adb5; --n-600:#71767e; --n-700:#4a4f57; --n-800:#24272c; --n-900:#14161a;
-  --primary-50:#eef7f6; --primary-100:#d3ebe8; --primary-200:#a8d7d2; --primary-300:#7ccac2;
-  --primary-500:#3a9a93; --primary-600:#2f867f; --primary-700:#2c7873; --primary-900:#1a4542;
-  --line:var(--n-300); --ink:var(--n-800); --muted:var(--n-600);
-  --shadow:0 1px 2px rgba(16,24,40,.04),0 8px 24px -4px rgba(16,24,40,.06);
-  --shadow-md:0 10px 30px rgba(0,0,0,.07); --shadow-lg:0 24px 60px rgba(16,24,40,.10);
-  --r:16px;
-  --vocab:#007aff; --speak:#ff2d55; --corpus:#5856d6; --med:#46a883; --amber:#c89b6a;
-}
-*{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{margin:0;background:var(--n-200);color:var(--ink);overflow-x:hidden;
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
-  font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
-.wrap{max-width:1160px;margin:0 auto;padding:0 28px}
-a{color:inherit;text-decoration:none}
-#prog{position:fixed;top:0;left:0;height:2px;width:0;background:var(--primary-500);z-index:60;transition:width .1s linear}
-
-header{position:sticky;top:0;z-index:20;background:rgba(242,243,245,.82);backdrop-filter:blur(12px);border-bottom:1px solid transparent;transition:.3s}
-header.solid{border-color:var(--line);background:rgba(242,243,245,.94)}
-.nav{display:flex;align-items:center;gap:24px;height:64px}
-.logo{display:flex;align-items:center;gap:10px;font-weight:600;color:var(--n-900)}
-.logo .mark{width:30px;height:30px;flex:none;border-radius:9px;background:linear-gradient(135deg,#56b3ab 0%,#2c7873 100%);display:grid;place-items:center;overflow:hidden}
-.logo .mark svg{display:block;width:100%;height:100%}
-.navlinks{display:flex;gap:22px;margin-left:14px;font-size:14px;color:var(--muted)}
-.navlinks a:hover{color:var(--primary-700)}
-.nav .spacer{flex:1}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:44px;padding:0 20px;border-radius:12px;
-  font-size:14.5px;font-weight:600;border:1px solid transparent;cursor:pointer;text-decoration:none;transition:.16s;white-space:nowrap}
-.btn-primary{background:var(--primary-500);color:#fff}
-.btn-primary:hover{background:var(--primary-600);transform:translateY(-1px)}
-.btn-ghost{background:var(--n-0);border-color:var(--n-400);color:var(--ink)}
-.btn-ghost:hover{border-color:var(--primary-500);color:var(--primary-700)}
-.btn-lg{height:52px;padding:0 28px;font-size:16px;border-radius:14px;gap:8px}
-/* 10/10：新手入门页入口（「怎么开始」段）——显眼但不抢主 CTA */
-.start-newbie{margin:14px 0 0}
-.start-newbie a{display:inline-flex;align-items:center;gap:6px;font-size:14.5px;font-weight:700;
-  color:var(--primary-700);text-decoration:none;background:var(--primary-50);border:1px solid var(--primary-200);
-  border-radius:999px;padding:8px 16px;transition:.16s}
-.start-newbie a:hover{border-color:var(--primary-500);color:var(--primary-500)}
-
-[data-in]{opacity:0;transform:translateY(16px);transition:opacity .7s ease,transform .8s cubic-bezier(.16,.84,.44,1)}
-body.ready [data-in]{opacity:1;transform:none}
-[data-rev]{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .8s cubic-bezier(.16,.84,.44,1);transition-delay:var(--d,0s)}
-[data-rev].in{opacity:1;transform:none}
-[data-rev].fromL{transform:translateX(-26px)}
-[data-rev].fromR{transform:translateX(26px)}
-[data-rev].fromL.in,[data-rev].fromR.in{transform:none}
-
-/* ---------- Hero ---------- */
-.hero{padding:78px 0 58px;position:relative;overflow:hidden}
-.hero::before{content:"";position:absolute;inset:0;pointer-events:none;
-  background-image:linear-gradient(var(--n-300) 1px,transparent 1px),linear-gradient(90deg,var(--n-300) 1px,transparent 1px);
-  background-size:64px 64px;opacity:.4;
-  -webkit-mask-image:radial-gradient(760px 460px at 76% 32%,#000,transparent 72%);
-  mask-image:radial-gradient(760px 460px at 76% 32%,#000,transparent 72%)}
-.hero .wrap{position:relative}
-.hero-grid{display:grid;grid-template-columns:1.02fr .98fr;gap:52px;align-items:center}
-.kicker{font-size:13px;letter-spacing:2.4px;text-transform:uppercase;color:var(--primary-700);font-weight:500}
-h1{font-size:52px;line-height:1.14;margin:18px 0 18px;color:var(--n-900);font-weight:600;letter-spacing:-1px}
-h1 em{font-style:normal;color:var(--primary-700);position:relative;white-space:nowrap}
-h1 em::after{content:"";position:absolute;left:-2px;right:-2px;bottom:4px;height:10px;background:var(--primary-100);z-index:-1;border-radius:2px}
-.lead{font-size:18px;color:var(--n-700);max-width:560px;margin:0 0 30px}
-.cta{display:flex;gap:12px;margin-bottom:32px;flex-wrap:wrap}
-.promises{display:flex;gap:26px;flex-wrap:wrap;padding-top:22px;border-top:1px solid var(--line)}
-.promises div{font-size:13.5px;color:var(--muted);max-width:190px}
-.promises b{display:block;font-size:15px;color:var(--n-900);font-weight:600;margin-bottom:2px}
-
-.appcard{background:var(--n-0);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow-lg);overflow:hidden;will-change:transform}
-.appcard .bar{display:flex;align-items:center;gap:7px;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--n-50)}
-.appcard .bar span{width:9px;height:9px;border-radius:50%;background:var(--n-300)}
-.appcard .bar span:first-child{background:var(--primary-200)}
-.appcard .bar p{margin:0;font-size:12px;color:var(--muted);margin-left:6px}
-.appcard .body{padding:18px}
-.day{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px}
-.day b{font-size:16px;color:var(--n-900);font-weight:600}
-.day span{font-size:12px;color:var(--muted)}
-.task{display:flex;align-items:center;gap:12px;padding:11px 12px;border:1px solid var(--line);border-radius:12px;margin-bottom:9px}
-.task .dot{width:22px;height:22px;border-radius:7px;flex:none;display:grid;place-items:center;font-size:12px;color:#fff}
-.task .t1{flex:1;min-width:0}
-.task .t1 b{display:block;font-size:14px;font-weight:500;color:var(--n-900)}
-.task .t1 small{font-size:12px;color:var(--muted)}
-.task .tick{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--n-400);flex:none}
-body.ready .task.done .tick{border-color:var(--primary-500);background:var(--primary-500);position:relative;animation:pop .4s cubic-bezier(.3,1.4,.5,1) both}
-body.ready .task:nth-child(2) .tick{animation-delay:.55s}
-body.ready .task:nth-child(3) .tick{animation-delay:.78s}
-.task.done .tick::after{content:"";position:absolute;left:6px;top:4px;width:6px;height:10px;border-right:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(40deg)}
-@keyframes pop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
-.pbar{margin-top:14px}
-.pbar .lb{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:6px}
-.pbar .tr{height:8px;border-radius:999px;background:var(--n-100);overflow:hidden}
-.pbar .tr i{display:block;height:100%;width:0;background:var(--primary-500);border-radius:999px;transition:width 1.4s cubic-bezier(.16,.84,.44,1) .5s}
-body.ready .pbar .tr i{width:62%}
-
-/* ---------- 对比 ---------- */
-.compare{background:var(--n-0);border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:66px 0}
-.cmp{display:grid;grid-template-columns:1fr 74px 1fr;align-items:stretch}
-.cmp .col h4{margin:0 0 18px;font-size:13px;letter-spacing:1.6px;text-transform:uppercase;color:var(--n-500);font-weight:500}
-.cmp .col.r h4{color:var(--primary-700)}
-.cmp .col ul{list-style:none;margin:0;padding:0}
-.cmp .col li{padding:14px 0;border-top:1px dashed var(--line);font-size:15px;color:var(--muted)}
-.cmp .col.r li{color:var(--n-800)}
-.cmp .col.r li b{color:var(--primary-700);font-weight:600}
-.cmp .mid{display:flex;flex-direction:column;align-items:center;gap:16px;padding-top:46px}
-.cmp .mid i{display:block;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--n-0);position:relative}
-.cmp .mid i::after{content:"";position:absolute;left:12px;top:11px;width:6px;height:9px;border-right:1.6px solid var(--primary-500);border-bottom:1.6px solid var(--primary-500);transform:rotate(40deg)}
-
-/* ---------- 深度区 ---------- */
-section{padding:76px 0}
-.spot{display:grid;grid-template-columns:1fr 1fr;gap:44px;align-items:center}
-.s-side{display:flex;flex-direction:column;gap:16px;min-width:0}
-.s-side .claim{margin-top:0}
-.s-side .fig{margin:0}
-.fig-note{display:flex;align-items:center;gap:9px;margin-top:12px;padding:11px 14px;background:var(--primary-50);border:1px solid var(--primary-100);border-radius:10px;font-size:13px;color:var(--primary-900);font-weight:500}
-.fig-note i{flex:none;width:7px;height:7px;border-radius:2px;background:var(--primary-500)}
-.gain{margin-left:auto;background:var(--primary-50);border:1px solid var(--primary-100);color:var(--primary-700);font-size:12.5px;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap}
-.algo .src .dis{display:block}
-.spot.rev .s-txt{order:2}
-.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:var(--primary-700);margin-bottom:12px}
-.eyebrow s{width:22px;height:1px;background:var(--primary-500);text-decoration:none;display:block}
-.spot h2{font-size:36px;line-height:1.22;margin:0 0 14px;font-weight:600;color:var(--n-900);letter-spacing:-.5px}
-.spot .sub{font-size:16.5px;color:var(--n-700);margin:0 0 22px}
-.blist{list-style:none;padding:0;margin:0 0 22px}
-.blist li{display:flex;gap:12px;padding:12px 0;border-top:1px dashed var(--line)}
-.blist li:first-child{border-top:0}
-.blist li .k{flex:none;width:26px;height:26px;border-radius:8px;background:var(--primary-50);color:var(--primary-700);display:grid;place-items:center;font-size:13px;font-weight:600}
-.blist li b{display:block;font-size:15px;font-weight:500;color:var(--n-900)}
-.blist li span{font-size:13.5px;color:var(--muted)}
-.pillrow{display:flex;gap:8px;flex-wrap:wrap}
-.pill{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--n-700);background:var(--n-0);border:1px solid var(--line);border-radius:999px;padding:4px 11px;white-space:nowrap}
-.claim{margin-top:18px;padding:14px 16px;border-left:3px solid var(--primary-500);background:var(--primary-50);border-radius:0 10px 10px 0;font-size:15px;color:var(--primary-900);font-weight:500}
-
-/* 算法徽章 */
-.algo{margin:0 0 22px;background:var(--n-0);border:1px solid var(--primary-200);border-radius:var(--r);padding:16px 18px;box-shadow:var(--shadow)}
-.algo .t{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600;color:var(--n-900)}
-.algo .t s{width:8px;height:8px;border-radius:2px;background:var(--primary-500);text-decoration:none;flex:none}
-.algo .d{font-size:14.5px;color:var(--n-700);margin:8px 0 10px}
-.algo .d b{color:var(--primary-700)}
-.algo .src{font-size:12.5px;color:var(--muted)}
-.algo .src a{color:var(--primary-700);border-bottom:1px solid var(--primary-200)}
-.algo .src a:hover{border-color:var(--primary-500)}
-.algo .dis{font-size:11.5px;color:var(--n-500);margin-top:6px}
-
-.fig{background:var(--n-0);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:20px}
-.fig .cap{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
-.fig .cap b{font-size:14px;font-weight:600;color:var(--n-900)}
-.fig .cap span{font-size:12px;color:var(--n-500)}
-.fig svg{display:block;width:100%;height:auto}
-.draw{stroke-dasharray:var(--len);stroke-dashoffset:var(--len);transition:stroke-dashoffset 1.5s cubic-bezier(.3,.7,.3,1)}
-.in .draw{stroke-dashoffset:0}
-.dotp{opacity:0;transition:opacity .5s ease}
-.in .dotp{opacity:1;animation:pulse 2.6s ease-in-out infinite}
-@keyframes pulse{0%,100%{r:4.5;opacity:1}50%{r:6.5;opacity:.72}}
-.fadee{opacity:0;transform:translateY(8px);transition:opacity .5s ease,transform .5s ease}
-.in .fadee{opacity:1;transform:none}
-.hint{font-size:12px;color:var(--n-500);margin:14px 0 0}
-
-/* ---------- 三步 ---------- */
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
-.step{background:var(--n-0);border:1px solid var(--line);border-radius:var(--r);padding:24px;box-shadow:var(--shadow)}
-.step .no{width:30px;height:30px;border-radius:50%;background:var(--primary-500);color:#fff;display:grid;place-items:center;font-size:14px;font-weight:600;margin-bottom:14px}
-.step h3{margin:0 0 8px;font-size:16px;font-weight:600;color:var(--n-900)}
-.step p{margin:0;font-size:14px;color:var(--muted)}
-.sec-head{max-width:640px;margin-bottom:34px}
-.sec-head h2{font-size:30px;margin:0 0 10px;font-weight:600;color:var(--n-900);letter-spacing:-.3px}
-.sec-head p{margin:0;color:var(--muted)}
-
-.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
-.card{background:var(--n-0);border:1px solid var(--line);border-radius:var(--r);padding:24px;box-shadow:var(--shadow);transition:.2s}
-.card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md);border-color:var(--primary-300)}
-.card .ico{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-size:16px;font-weight:600;color:#fff;margin-bottom:14px}
-.card h3{margin:0 0 8px;font-size:16px;font-weight:600;color:var(--n-900)}
-.card p{margin:0;font-size:14px;color:var(--muted)}
-
-/* 10/12 精简：#data 区块已删，其专属 .panel/.pulse/.stat/.chart/.bars 样式一并清（死代码也是杂） */
-
-/* ---------- 结尾 ---------- */
-.closing{background:linear-gradient(165deg,var(--primary-900) 0%,#12332f 100%);color:#fff;padding:72px 0 0}
-.closing-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center;padding-bottom:64px}
-.closing h2{font-size:36px;line-height:1.25;margin:0 0 14px;font-weight:600;letter-spacing:-.5px;color:#fff}
-.closing .c-txt p{margin:0;color:rgba(255,255,255,.78);font-size:16px;max-width:440px}
-.closing .c-small{margin-top:18px !important;font-size:12.5px !important;color:rgba(255,255,255,.5) !important}
-.c-card{background:var(--n-0);border-radius:18px;padding:26px 28px;display:flex;flex-direction:column;gap:12px;box-shadow:0 28px 56px -28px rgba(0,0,0,.5)}
-.c-card>b{font-size:17px;color:var(--n-900)}
-.c-card>p{margin:0;font-size:13.5px;color:var(--muted)}
-.c-card .cbtn{width:100%;box-sizing:border-box;justify-content:center}
-.c-card .alt{font-size:12px;color:var(--n-500);text-align:center;margin-top:2px}
-.closing .footbar{border-top:1px solid rgba(255,255,255,.14);color:rgba(255,255,255,.55)}
-
-/* ---------- 底部 ---------- */
-.foot{background:var(--n-0);border-top:1px solid var(--line);padding:60px 0 0}
-.signup{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
-.signup h2{font-size:26px;margin:0 0 12px;font-weight:600;color:var(--n-900)}
-.signup p{margin:0 0 18px;color:var(--muted)}
-.form{background:var(--n-50);border:1px solid var(--line);border-radius:var(--r);padding:22px}
-.form .act{display:flex;gap:10px;flex-wrap:wrap}
-.form .btn{height:44px}
-.form .note{font-size:12.5px;color:var(--n-500);margin:12px 0 0}
-.form .alt{font-size:13px;color:var(--muted);margin:14px 0 0}
-.footbar{margin-top:48px;border-top:1px solid var(--line);padding:20px 0;font-size:13px;color:var(--n-500);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
-
-@media (max-width:980px){
-  .hero-grid,.spot,.panel,.signup,.closing-grid{grid-template-columns:1fr;gap:34px}
-  .spot.rev .s-txt{order:0}
-  .cmp{grid-template-columns:1fr;gap:22px}
-  .cmp .mid{flex-direction:row;padding:0;justify-content:center;gap:10px}
-  .steps,.grid3{grid-template-columns:1fr 1fr}
-  h1{font-size:34px}
-  .spot h2{font-size:28px}
-  .closing h2{font-size:30px}
-  .navlinks{display:none}
-}
-@media (max-width:600px){
-  .steps,.grid3{grid-template-columns:1fr}
-  .promises{gap:18px}
-  /* 10/10：窄屏导航右侧两个按钮原来没有任何适配——被挤到「登录」竖排、「进站开工」断成两行。
-     收窄 gap/padding/字号并让品牌名小一档，保证首屏顶部干净。 */
-  .nav{gap:10px}
-  .nav .btn{padding:0 13px;font-size:13px;height:38px;border-radius:10px}
-  .logo{font-size:15px;gap:8px}
-  .logo .mark{width:26px;height:26px;border-radius:8px}
-  /* design/94：对比圆点 5→7 后横排会撑破 360 视口（7×34+gap=334>304），小屏缩点距/尺寸（320 也容得下） */
-  .cmp .mid{gap:8px}
-  .cmp .mid i{width:28px;height:28px}
-  .cmp .mid i::after{left:10px;top:8px}
-}
-@media (prefers-reduced-motion:reduce){
-  *{animation:none!important;transition:none!important}
-  [data-in],[data-rev]{opacity:1!important;transform:none!important}
-  .draw{stroke-dashoffset:0!important}
-  .pbar .tr i{width:62%}
-  .fadee,.dotp{opacity:1!important}
-}
-/* 10/10 版权声明（保密性加固 ①）—— 页脚区是深色底，用半透明白保证可读 */
-.copyright{margin:14px 0 0;text-align:center;font-size:11.5px;line-height:1.7;color:rgba(255,255,255,.6)}
-</style>
+<meta name="theme-color" content="#0b1117" />
+<title>雅思备考 Hub · 从今天的清单开始</title>
+<meta name="description" content="雅思机考备考系统：627 篇真题按机考界面做、89 条当季口语题卡、42 套写作模板带结构提示，AI 陪练与批改即时反馈，多设备云同步。" />
+<link rel="canonical" href="https://yasihub.com" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="雅思备考 Hub · 从今天的清单开始" />
+<meta property="og:description" content="627 篇真题按机考界面做、89 条当季口语题卡、42 套写作模板，AI 陪练与批改即时反馈，多设备云同步。" />
+<meta property="og:url" content="https://yasihub.com" />
+<meta name="twitter:card" content="summary" />
 <script>
 /* 老用户自动跳过：本机已有学习数据 → 直接进学习主页。
    ⚠️ ?landing=1 强制看落地页（作者自己要看成果时用），否则永远看不到本页面。 */
@@ -266,274 +33,471 @@ section{padding:76px 0}
   }catch(e){}
 })();
 </script>
-<link rel="canonical" href="https://yasihub.com" />
-<meta property="og:type" content="website" />
-<meta property="og:title" content="雅思备考 Hub · 记忆曲线背单词 · 一个故事串半本口语题库" />
-<meta property="og:description" content="雅思机考备考系统：口语一个故事串起全题库、写作几套打磨很久的模板背下来就能用、AI 口语模考与写作批改不限次，学习功能全部免费，跨设备自动同步。" />
-<meta property="og:url" content="https://yasihub.com" />
-<meta name="twitter:card" content="summary" />
+<style>
+  :root{
+    --primary:#3a9a93;--primary-600:#2f867f;--primary-400:#56b3ab;
+    --teal-12:rgba(58,154,147,.12);--teal-08:rgba(58,154,147,.08);--teal-45:rgba(58,154,147,.45);
+    --gold:#c79a4b;
+    --ink:#f2f6f9;--body:#c3cedb;--muted:#8fa0b3;--faint:#63748a;
+    --line:#233043;--line-soft:#1c2836;--bg:#0b1117;--card:#121b25;--card2:#0e1620;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.7;-webkit-font-smoothing:antialiased}
+  ::selection{background:rgba(58,154,147,.32)}
+  a{text-decoration:none;color:inherit}
+  svg{display:inline-block;vertical-align:middle}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 28px}
+  .kicker{display:flex;align-items:center;gap:9px;font-size:12px;font-weight:800;letter-spacing:.16em;color:var(--primary)}
+  .kicker::before{content:"";width:22px;height:1px;background:var(--primary)}
+
+  /* 按钮三级：实底 / 描边 / 幽灵 */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:13.5px;
+    border-radius:11px;padding:9px 17px;border:1px solid transparent;cursor:pointer;white-space:nowrap;
+    transition:transform .16s ease,box-shadow .16s ease,background .16s ease,border-color .16s ease,color .16s ease}
+  .btn svg{width:15px;height:15px}
+  .btn-solid{background:var(--primary);color:#06231f;box-shadow:0 10px 24px -14px rgba(58,154,147,.55)}
+  .btn-solid:hover{background:var(--primary-400);transform:translateY(-1px);box-shadow:0 16px 32px -16px rgba(58,154,147,.6)}
+  .btn-line{border-color:var(--teal-45);color:var(--primary-400);background:var(--teal-08)}
+  .btn-line:hover{border-color:rgba(58,154,147,.75);background:rgba(58,154,147,.14);transform:translateY(-1px)}
+  .btn-ghost{color:var(--muted)}
+  .btn-ghost:hover{color:var(--ink);border-color:var(--line)}
+  .btn-lg{padding:14px 26px;font-size:15px;border-radius:13px}
+  .btn-lg svg{width:16px;height:16px}
+
+  /* 顶栏 */
+  header{position:sticky;top:0;z-index:20;background:rgba(11,17,23,.82);backdrop-filter:blur(12px);border-bottom:1px solid var(--line-soft)}
+  .nav{display:flex;align-items:center;gap:24px;height:62px}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:15px}
+  .logo i{width:27px;height:27px;border-radius:8px;background:linear-gradient(135deg,var(--primary),var(--primary-600));display:grid;place-items:center;color:#06231f;font-style:normal;font-size:13px;font-weight:800}
+  .nav nav{display:flex;gap:22px;font-size:13.5px;color:var(--muted)}
+  .nav nav a{transition:color .15s}
+  .nav nav a:hover{color:var(--ink)}
+  .nav .sp{margin-left:auto}
+
+  /* Hero */
+  .hero{padding:96px 0 88px;background:
+    radial-gradient(940px 440px at 78% -12%,rgba(58,154,147,.2),transparent 62%),
+    radial-gradient(620px 320px at 6% 12%,rgba(62,158,149,.12),transparent 60%)}
+  .hero-grid{display:grid;grid-template-columns:1.04fr .96fr;gap:52px;align-items:center}
+  h1{font-size:46px;line-height:1.16;letter-spacing:-.022em;margin:16px 0 18px;font-weight:800}
+  h1 em{font-style:normal;color:var(--primary)}
+  .lead{font-size:16px;color:var(--body);margin:0 0 30px;max-width:540px}
+  .lead b{color:var(--ink)}
+  .cta{display:flex;gap:12px;flex-wrap:wrap}
+  .promises{display:flex;flex-direction:column;gap:12px;margin-top:32px;font-size:13px;color:var(--muted)}
+  .promises div{display:flex;align-items:center;gap:10px}
+  .promises svg{width:17px;height:17px;color:var(--primary);flex:none}
+  .promises b{color:var(--ink);font-weight:700}
+
+  /* Hero 右侧界面示意（克制版：今天的清单 + 完成勾） */
+  .shot{border:1px solid #2a3a4e;border-radius:18px;overflow:hidden;background:var(--card);
+    box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 60px 110px -52px rgba(0,0,0,.85)}
+  .shot-bar{display:flex;align-items:center;gap:8px;padding:11px 14px;background:var(--card2);border-bottom:1px solid var(--line-soft)}
+  .dots{display:inline-flex;gap:6px;flex:none}
+  .dots i{width:10px;height:10px;border-radius:50%;background:#2e4055}
+  .dots i:first-child{background:#3a5470}
+  .shot-bar .t{margin-left:4px;font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .shot-bar .chip{margin-left:auto;flex:none;font-size:11px;font-weight:700;color:var(--primary-400);border:1px solid var(--teal-45);padding:3px 9px;border-radius:999px;background:var(--teal-08)}
+  .shot-body{padding:16px}
+  .task{display:flex;align-items:center;gap:12px;padding:12px 13px;border:1px solid var(--line-soft);border-radius:13px;margin-bottom:9px;background:var(--card2)}
+  .task .ti{width:32px;height:32px;border-radius:10px;background:var(--teal-12);color:var(--primary);display:grid;place-items:center;flex:none}
+  .task .ti svg{width:16px;height:16px}
+  .task .tm{flex:1;min-width:0}
+  .task .tt{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+  .task .tt b{font-size:13px;font-weight:700;letter-spacing:-.01em}
+  .task .tt .cnt{flex:none;font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}
+  .task .ts{display:block;font-size:11.5px;color:var(--muted);margin-top:1px}
+  .task .mini{display:block;height:4px;border-radius:99px;background:#20303f;margin-top:8px;overflow:hidden}
+  .task .mini i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--primary-600),var(--primary))}
+  .task .go{flex:none;font-size:11.5px;font-weight:800;color:var(--primary-400);border:1px solid var(--teal-45);background:var(--teal-08);border-radius:9px;padding:5px 11px;transition:background .15s,border-color .15s}
+  .task .go:hover{background:rgba(58,154,147,.16);border-color:rgba(58,154,147,.7)}
+  .task .st-done{flex:none;color:var(--primary)}
+  .task .st-done svg{width:20px;height:20px}
+  .task.done .tt b{color:var(--muted);text-decoration:line-through;text-decoration-color:rgba(58,154,147,.6);text-decoration-thickness:1.5px}
+  .shot-foot{margin-top:12px;border:1px solid var(--line-soft);border-radius:13px;background:var(--card2);padding:13px 14px}
+  .shot-foot .fl{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-bottom:9px}
+  .shot-foot .fl b{color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums}
+  .trk{position:relative;height:6px;border-radius:99px;background:#20303f}
+  .trk .fill{position:absolute;left:0;top:0;bottom:0;border-radius:99px;background:linear-gradient(90deg,var(--primary-600),var(--primary))}
+  .trk .tick{position:absolute;top:-2px;bottom:-2px;width:1px;background:#2c3d52}
+
+  /* 通用区块 */
+  section{padding:96px 0;border-top:1px solid var(--line-soft);scroll-margin-top:72px}
+  .sec-head{max-width:780px;margin-bottom:44px}
+  .sec-head h2{font-size:32px;line-height:1.28;margin:12px 0 10px;letter-spacing:-.015em}
+  .sec-head p{color:var(--muted);font-size:15px;margin:0}
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+
+  .card{border:1px solid var(--line);border-radius:18px;padding:24px;background:var(--card);
+    box-shadow:0 1px 0 rgba(255,255,255,.03) inset;transition:border-color .18s,transform .18s,box-shadow .18s}
+  .card:hover{border-color:#31445a;transform:translateY(-2px);box-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 20px 40px -30px rgba(0,0,0,.7)}
+  .card .ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;margin-bottom:15px;background:var(--teal-12);color:var(--primary)}
+  .card .ic svg{width:20px;height:20px}
+  .card h3{margin:0 0 8px;font-size:16.5px;letter-spacing:-.01em}
+  .card p{margin:0;font-size:13.5px;color:var(--muted);line-height:1.75}
+  .card .meta{margin-top:15px;padding-top:13px;border-top:1px solid var(--line-soft);font-size:12px;color:var(--muted);letter-spacing:.02em}
+
+  /* 数据带：整块面板 + 54px 等宽数字 */
+  .bandsec{padding:8px 0 96px;border-top:0}
+  .band{border:1px solid var(--line);border-radius:20px;display:grid;grid-template-columns:repeat(4,1fr);
+    background:linear-gradient(180deg,rgba(58,154,147,.08),rgba(58,154,147,0) 45%),var(--card);
+    box-shadow:0 1px 0 rgba(255,255,255,.03) inset}
+  .band .cell{padding:28px 28px 24px;min-width:0}
+  .band .cell+.cell{border-left:1px solid var(--line-soft)}
+  .band .gi{height:20px;color:var(--primary-600);margin-bottom:12px}
+  .band .gi svg{width:20px;height:20px}
+  .band .num{font-size:54px;font-weight:800;letter-spacing:-.03em;color:var(--primary);line-height:1.02;font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+  .band .lbl{font-size:13px;color:var(--muted);margin-top:9px;line-height:1.6}
+
+  /* 对比 */
+  .cmp{display:grid;grid-template-columns:1fr 56px 1fr;gap:18px;align-items:stretch}
+  .cmp .col{border:1px solid var(--line);border-radius:18px;padding:26px;background:var(--card)}
+  .cmp .col.r{border-color:var(--teal-45);background:linear-gradient(180deg,rgba(58,154,147,.09),rgba(58,154,147,.02))}
+  .cmp h4{margin:0 0 15px;font-size:13px;color:var(--muted);font-weight:800;letter-spacing:.06em}
+  .cmp .col.r h4{color:var(--primary-400)}
+  .cmp ul{margin:0;padding:0;list-style:none;font-size:14px;color:var(--muted);display:flex;flex-direction:column;gap:14px}
+  .cmp li{display:flex;gap:10px;align-items:flex-start;line-height:1.65}
+  .cmp li svg{width:16px;height:16px;flex:none;margin-top:4px;color:var(--faint)}
+  .cmp .col.r li{color:var(--body)}
+  .cmp .col.r li svg{color:var(--primary)}
+  .mid{display:grid;place-items:center}
+  .mid span{width:44px;height:44px;border-radius:999px;border:1px solid var(--line);display:grid;place-items:center;color:var(--primary);background:var(--card)}
+  .mid svg{width:18px;height:18px}
+
+  /* 三步 */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .step{border:1px solid var(--line);border-radius:18px;padding:26px 24px;background:var(--card);box-shadow:0 1px 0 rgba(255,255,255,.03) inset}
+  .step .no{width:34px;height:34px;border-radius:11px;background:var(--primary);color:#06231f;display:grid;place-items:center;font-weight:800;font-size:15px;margin-bottom:16px;font-variant-numeric:tabular-nums}
+  .step h3{margin:0 0 8px;font-size:16.5px;letter-spacing:-.01em}
+  .step p{margin:0;font-size:13.5px;color:var(--muted);line-height:1.75}
+
+  /* 结尾 CTA */
+  .final{text-align:center;padding:104px 0;border-top:1px solid var(--line-soft);
+    background:radial-gradient(760px 320px at 50% 114%,rgba(58,154,147,.16),transparent 65%)}
+  .final h2{font-size:34px;margin:12px 0 14px;letter-spacing:-.015em}
+  .final p{color:var(--muted);margin:0 0 30px;font-size:15px}
+  .final .cta{justify-content:center}
+  .final-note{margin-top:24px;font-size:12.5px;color:var(--muted)}
+  .final-note a{color:var(--muted);text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px;transition:color .15s}
+  .final-note a:hover{color:var(--ink)}
+
+  /* 方案说明段不进线上页面（CSS 一并删净，不留死样式） */
+
+  footer{border-top:1px solid var(--line-soft);padding:26px 0 40px;color:var(--faint);font-size:12.5px}
+  .foot{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center}
+  .foot .sp{margin-left:auto;display:flex;gap:18px}
+  .foot a:hover{color:var(--muted)}
+  /* 10/10 版权声明（保密性加固 ①）—— 深色底用半透明白保证可读 */
+  .copyright{margin:14px 0 0;text-align:center;font-size:11.5px;line-height:1.7;color:rgba(255,255,255,.55)}
+
+  @media(max-width:920px){
+    .logo{white-space:nowrap}
+    .hero{padding:64px 0 56px}
+    .hero-grid{grid-template-columns:1fr;gap:44px}
+    h1{font-size:34px}
+    .grid4{grid-template-columns:1fr 1fr}
+    .steps{grid-template-columns:1fr}
+    .band{grid-template-columns:1fr 1fr}
+    .band .cell{padding:22px 20px}
+    .band .cell:nth-child(odd){border-left:0}
+    .band .cell:nth-child(n+3){border-top:1px solid var(--line-soft)}
+    .band .num{font-size:42px}
+    .cmp{grid-template-columns:1fr}
+    .mid{height:44px}
+    .mid svg{transform:rotate(90deg)}
+    .nav nav{display:none}
+    section{padding:64px 0}
+    .bandsec{padding:8px 0 64px}
+    .final{padding:72px 0}
+  }
+  /* 10/21 窄屏（≤480）：logo + 两个按钮在 390 档把「进站用用看」顶出右边界 9px
+     （探针 _probe_landing114_1021 实锤）→ 收间距/内边距、页面左右留白 28→16 */
+  @media(max-width:480px){
+    .wrap{padding:0 16px}
+    .nav{gap:8px}
+    .nav .btn{height:36px;padding:0 10px;font-size:12.5px;border-radius:9px}
+    .logo{font-size:13.5px;min-width:0;overflow:hidden}
+  }
+</style>
 </head>
 <body>
 
-<div id="prog"></div>
-
-<header id="hd">
+<header>
   <div class="wrap nav">
-    <div class="logo"><span class="mark" aria-hidden="true"><svg viewBox="0 0 512 512" fill="none" aria-hidden="true"><g fill="#ffffff" stroke="#ffffff" stroke-width="38" stroke-linejoin="round" stroke-linecap="round"><path d="M256 136 L344 194 L256 252 L168 194 Z"/><path d="M160 304 L212 304 L256 362 L300 304 L352 304 L352 354 Q352 394 256 394 Q160 394 160 354 Z"/></g></svg></span>雅思备考 Hub</div>
-    <nav class="navlinks">
-      <a href="#speak">口语串题</a>
-      <a href="#writing">写作模板</a>
-      <a href="#ai">AI 能力</a>
-      <a href="#vs">和别人有什么不同</a>
-      <a href="#start">怎么开始</a>
-    </nav>
-    <div class="spacer"></div>
+    <div class="logo"><i>雅</i>雅思备考 Hub</div>
+    <nav><a href="#feat">它能干什么</a><a href="#ai">AI 能力</a><a href="#vs">两种做法</a><a href="#start">怎么开始</a></nav>
+    <div class="sp"></div>
     <a class="btn btn-ghost" href="login.html">登录</a>
-    <a class="btn btn-primary" href="home.html">进站开工</a>
+    <a class="btn btn-solid" href="home.html">进站用用看</a>
   </div>
 </header>
 
-<!-- ============ Hero ============ -->
+<!-- Hero：视觉沿用 114A1，文案换成克制版 -->
 <div class="hero">
   <div class="wrap hero-grid">
     <div>
-      <div class="kicker" data-in>IELTS · 机考备考系统</div>
-      <h1 data-in style="transition-delay:.08s">口语不用<em>背稿</em>，<br>写作不用<em>练</em></h1>
-      <!-- 10/13 补定位句（豆包评审：「5.5 保底」才是用户买单的理由，H1 和副标题全程没出现） -->
-      <p class="lead" data-in style="transition-delay:.16s"><b style="color:var(--primary-900)">基础差、只要 5.5 就够、背不进去书的人，照着做就能过线。</b><br>口语，几个你自己的故事覆盖几乎全题库——考场上不是在背，是在聊自己的人生。写作，几套打磨到最不易失分的模板，背下来、填几个词就行。</p>
-      <div class="cta" data-in style="transition-delay:.24s">
-        <a class="btn btn-primary btn-lg" href="home.html">进站开工</a>
-        <a class="btn btn-ghost btn-lg" href="#vs">它凭什么管用</a>
+      <div class="kicker">IELTS · 备考工具站</div>
+      <h1>雅思备考，<br>从<em>今天的清单</em>开始</h1>
+      <p class="lead">这是作者自己备考时做出来的工具站：<b>627 篇真题、89 条口语题卡、42 套写作模板</b>，加上 AI 批改和陪练。每天照着清单做，做完打勾。</p>
+      <div class="cta">
+        <a class="btn btn-solid btn-lg" href="home.html">进站用用看 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16"/><path d="M14 6l6 6-6 6"/></svg></a>
+        <a class="btn btn-line btn-lg" href="#feat">看它能干什么 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9.5l7 7 7-7"/></svg></a>
       </div>
-      <div class="promises" data-in style="transition-delay:.32s">
-        <div><b>AI 口语模考不限次</b>市面上不少按次收费；这里出题、评分、四维报告随便练</div>
-        <div><b>学习功能全免费</b>词库、题库、计划、同步、计时，一分钱不收</div>
-        <div><b>作者本人每天在用</b>为了自己备考做的系统，不是 PPT 产品</div>
+      <div class="promises">
+        <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5h8l4.5 4.5v14.5H6z"/><path d="M14 2.5V7h4.5"/><path d="M9.5 12.5h6"/><path d="M9.5 16.5h6"/></svg><span><b>627 篇真题全配答案</b> · 按机考界面做，交卷即出分</span></div>
+        <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 10a8 8 0 0 1 14-3.5"/><path d="M19 3.5V7h-3.5"/><path d="M19.5 14a8 8 0 0 1-14 3.5"/><path d="M5 20.5V17h3.5"/></svg><span><b>多设备云同步</b> · 数据可导出，电脑背的手机接着复习</span></div>
+        <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:#c79a4b"><circle cx="9" cy="8" r="3.5"/><path d="M3.5 20c.6-3.4 2.8-5.3 5.5-5.3s4.9 1.9 5.5 5.3"/><path d="M14.8 9.3l2.2 2.2 4-4.2"/></svg><span><b>作者本人每天在用</b> · 自己备考时做的，功能都是自己用出来的</span></div>
       </div>
     </div>
 
-    <div class="appcard" id="heroCard" data-in style="transition-delay:.2s">
-      <div class="bar"><span></span><span></span><span></span><p>今天 · 考试日期你填，系统按剩余天数排量</p></div>
-      <div class="body">
-        <div class="day"><b>今天的任务</b><span>已完成 2 / 4</span></div>
-        <div class="task done"><span class="dot" style="background:var(--vocab)">词</span><div class="t1"><b>背单词 60 个</b><small>算法排的今日新词 + 复习</small></div><span class="tick"></span></div>
-        <div class="task done"><span class="dot" style="background:var(--speak)">说</span><div class="t1"><b>口语 P2 串题练 1 组</b><small>一个故事套多个话题</small></div><span class="tick"></span></div>
-        <div class="task"><span class="dot" style="background:var(--corpus)">写</span><div class="t1"><b>写作 Task 2 一篇</b><small>模板 + 自检清单</small></div><span class="tick"></span></div>
-        <div class="task"><span class="dot" style="background:var(--med)">句</span><div class="t1"><b>长难句拆解 3 句</b><small>拆主干、修饰和逻辑信号</small></div><span class="tick"></span></div>
-        <div class="pbar">
-          <div class="lb"><span>今日投入</span><span>1h 20m / 2h</span></div>
-          <div class="tr"><i></i></div>
+    <div class="shot">
+      <div class="shot-bar">
+        <span class="dots"><i></i><i></i><i></i></span>
+        <span class="t">今天的清单</span>
+        <span class="chip">已完成 2 / 4</span>
+      </div>
+      <div class="shot-body">
+        <div class="task done">
+          <span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V5.5A2.5 2.5 0 0 1 6.5 3H20v14H6.5A2.5 2.5 0 0 0 4 19.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg></span>
+          <span class="tm">
+            <span class="tt"><b>单词复习 24 个</b><span class="cnt">24/24</span></span>
+            <span class="ts">间隔重复排的，反复错的排在前面</span>
+            <span class="mini"><i style="width:100%"></i></span>
+          </span>
+          <span class="st-done"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#5cb3ab"/><path d="M7.5 12.6l3 3 6-6.6" fill="none" stroke="#07251f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+        <div class="task done">
+          <span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.5" width="6" height="11.5" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0"/><path d="M12 18v3.5"/></svg></span>
+          <span class="tm">
+            <span class="tt"><b>口语 P2 · 1 张题卡</b><span class="cnt">1/1</span></span>
+            <span class="ts">AI 陪练，说完给反馈</span>
+            <span class="mini"><i style="width:100%"></i></span>
+          </span>
+          <span class="st-done"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#5cb3ab"/><path d="M7.5 12.6l3 3 6-6.6" fill="none" stroke="#07251f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+        <div class="task">
+          <span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7.5 18.5 3 20l1.5-4.5L16.5 3.5z"/></svg></span>
+          <span class="tm">
+            <span class="tt"><b>写作 Task 2 一篇</b><span class="cnt">0/1</span></span>
+            <span class="ts">套模板写，写完 AI 逐句点评</span>
+            <span class="mini"><i style="width:0"></i></span>
+          </span>
+          <a class="go" href="home.html">去写</a>
+        </div>
+        <div class="task">
+          <span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 3.5c-2.2 0-3.5 1.3-3.5 3.5v2c0 1.7-1.1 2.6-2.5 3 1.4.4 2.5 1.3 2.5 3v2c0 2.2 1.3 3.5 3.5 3.5"/><path d="M15.5 3.5c2.2 0 3.5 1.3 3.5 3.5v2c0 1.7 1.1 2.6 2.5 3-1.4.4-2.5 1.3-2.5 3v2c0 2.2-1.3 3.5-3.5 3.5"/></svg></span>
+          <span class="tm">
+            <span class="tt"><b>长难句拆解 3 句</b><span class="cnt">1/3</span></span>
+            <span class="ts">拆主干、修饰和逻辑信号</span>
+            <span class="mini"><i style="width:33%"></i></span>
+          </span>
+          <a class="go" href="home.html">去拆</a>
+        </div>
+        <div class="shot-foot">
+          <div class="fl"><span>今日投入</span><b>1h 20m / 2h</b></div>
+          <div class="trk"><span class="fill" style="width:66%"></span><em class="tick" style="left:25%"></em><em class="tick" style="left:50%"></em><em class="tick" style="left:75%"></em></div>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ============ 对比（10/12 精简：14 条压 3 条；第③条=她拍板新增「一站式/数据互通」宣传点）============ -->
-<div class="compare" id="vs">
+<!-- 数据带：真实口径 -->
+<section class="bandsec">
   <div class="wrap">
-    <div class="sec-head" data-rev>
-      <h2>同样是在备考，差别在谁替你做决定</h2>
-      <p>左边是大多数人正在做的事，右边是这套系统替你做的事。</p>
+    <div class="band">
+      <div class="cell">
+        <div class="gi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5h8l4.5 4.5v14.5H6z"/><path d="M14 2.5V7h4.5"/><path d="M9.5 12.5h6"/><path d="M9.5 16.5h6"/></svg></div>
+        <div class="num">627</div>
+        <div class="lbl">篇真题（阅读 280 · 听力 347），全部配答案可判分</div>
+      </div>
+      <div class="cell">
+        <div class="gi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M3.5 9.5h17"/><path d="M10 9.5V20"/></svg></div>
+        <div class="num">89</div>
+        <div class="lbl">条口语题卡 · P1 197 小题 / P2 56 张卡，当季大陆考区，按考频分档</div>
+      </div>
+      <div class="cell">
+        <div class="gi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7.5 18.5 3 20l1.5-4.5L16.5 3.5z"/></svg></div>
+        <div class="num">42</div>
+        <div class="lbl">套写作模板，带结构提示和骨架首句</div>
+      </div>
+      <div class="cell">
+        <div class="gi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 4h13A2.5 2.5 0 0 1 21 6.5v9a2.5 2.5 0 0 1-2.5 2.5H12l-4.5 4v-4h-2A2.5 2.5 0 0 1 3 15.5v-9A2.5 2.5 0 0 1 5.5 4z"/></svg></div>
+        <div class="num">4</div>
+        <div class="lbl">科 AI 反馈：口语陪练 · 写作批改 · 串题思路 · 长难句解析</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 它能干什么：八个真实模块 -->
+<section id="feat">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker">它能干什么</div>
+      <h2>八个模块，各管一件事</h2>
+      <p>模块之间数据互通——练了多少、错在哪，回顾页一处看得清。</p>
+    </div>
+    <div class="grid4">
+      <div class="card">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V5.5A2.5 2.5 0 0 1 6.5 3H20v14H6.5A2.5 2.5 0 0 0 4 19.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg></div>
+        <h3>单词</h3>
+        <p>按间隔重复排每天的复习量；反复错的词，会再排进来。</p>
+        <div class="meta">间隔重复 · 可导入自己的词表</div>
+      </div>
+      <div class="card">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16"/><path d="M4 11.5h11"/><path d="M4 16.5h7"/></svg></div>
+        <h3>句子</h3>
+        <p>长难句逐句拆主干和修饰，配听写练习；出错的句子收进错句本。</p>
+        <div class="meta">长难句 · 听写 · 错句本</div>
+      </div>
+      <div class="card">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.5" width="6" height="11.5" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0"/><path d="M12 18v3.5"/></svg></div>
+        <h3>口语</h3>
+        <p>当季题卡按考频分档，P1 逐小题过，P2 按考试节奏计时练。</p>
+        <div class="meta">89 条当季题卡 · 按考频分档</div>
+      </div>
+      <div class="card">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7.5 18.5 3 20l1.5-4.5L16.5 3.5z"/></svg></div>
+        <h3>写作</h3>
+        <p>每套模板带结构提示和骨架首句；可以先填空练，再整篇默写。</p>
+        <div class="meta">可填空练习 · 可整篇默写</div>
+      </div>
+      <div class="card">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg></div>
+        <h3>模考</h3>
+        <p>627 篇真题按机考界面做，交卷即出分。</p>
+        <div class="meta">阅读 280 · 听力 347 · 成绩进回顾</div>
+      </div>
+      <div class="card">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5.5" width="16" height="15" rx="2"/><path d="M8 3.5v4"/><path d="M16 3.5v4"/><path d="M4 10.5h16"/></svg></div>
+        <h3>计划</h3>
+        <p>每天一份清单，AI 按考试日期排；没做完的顺延到明天。</p>
+        <div class="meta">每项带时长和完成标准</div>
+      </div>
+      <div class="card">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2.5"/></svg></div>
+        <h3>计时</h3>
+        <p>练的时候开着番茄钟；练了多久、练的什么，自动归到对应模块。</p>
+        <div class="meta">番茄钟 · 记录进回顾</div>
+      </div>
+      <div class="card">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M7 20v-5"/><path d="M12 20V9.5"/><path d="M17 20v-9"/></svg></div>
+        <h3>回顾</h3>
+        <p>模考成绩和练习轨迹收在一处；多设备云同步，数据可导出。</p>
+        <div class="meta">成绩轨迹 · 云同步 · 可导出</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- AI 能力：四项反馈 -->
+<section id="ai">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker">AI 能力</div>
+      <h2>AI 在这里做四件事</h2>
+      <p>给反馈、指出问题、提供思路——练完马上有，不用等谁有空。</p>
+    </div>
+    <div class="grid4">
+      <div class="card">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.5" width="6" height="11.5" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0"/><path d="M12 18v3.5"/></svg></div>
+        <h3>口语陪练</h3>
+        <p>陪你练当季题卡，说完给出模考报告——流利、词汇、语法、发音四个维度。</p>
+        <div class="meta">练完即出报告</div>
+      </div>
+      <div class="card">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7.5 18.5 3 20l1.5-4.5L16.5 3.5z"/></svg></div>
+        <h3>写作批改</h3>
+        <p>逐句点评，指出哪句有什么问题；四项评分各附理由。</p>
+        <div class="meta">逐句点评 · 四项评分</div>
+      </div>
+      <div class="card">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l8.5 4.5L12 12.5 3.5 8 12 3.5z"/><path d="M3.5 12.5L12 17l8.5-4.5"/></svg></div>
+        <h3>串题思路</h3>
+        <p>遇到新题，给出「你的素材怎么嵌进去」的几行思路；套不上就直说。</p>
+        <div class="meta">一段经历 · 一组话题</div>
+      </div>
+      <div class="card">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M4 12h9"/><circle cx="15.5" cy="15.5" r="3.5"/><path d="M18 18l3 3"/></svg></div>
+        <h3>长难句解析</h3>
+        <p>把长句拆成主干、修饰和逻辑信号，看清这句在讲什么。</p>
+        <div class="meta">拆主干 · 看结构</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 对比：常见做法 vs 在这里 -->
+<section id="vs">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker">两种做法</div>
+      <h2>同样在备考，做法可以不一样</h2>
+      <p>左边是常见做法，右边是在这里的事实。</p>
     </div>
     <div class="cmp">
-      <div class="col l" data-rev>
+      <div class="col l">
         <h4>常见做法</h4>
         <ul>
-          <li>P2 一题写一篇稿，50 题背 50 篇</li>
-          <li>作文写了不少，却不知道自己几分、问题在哪</li>
-          <li>刷题一个 App、写作一个网站、口语又一个地方，想看自己练了多少还得东拼西凑</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 12h12"/></svg><span>刷题一个 App、写作一个网站、口语又一个地方</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 12h12"/></svg><span>作文写了不少，不知道自己问题在哪</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 12h12"/></svg><span>今天该练什么，靠临时起意</span></li>
         </ul>
       </div>
-      <div class="mid" data-rev><i></i><i></i><i></i></div>
-      <div class="col r" data-rev>
-        <h4>这套系统</h4>
+      <div class="mid"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16"/><path d="M14 6l6 6-6 6"/></svg></span></div>
+      <div class="col r">
+        <h4>在这里</h4>
         <ul>
-          <li>准备<b>一个故事</b>，剩下的交给映射</li>
-          <li>批改 prompt 打磨过很多轮，四项评分 + 逐句点评，精确到句</li>
-          <li>一个站全练完，成绩、时长、错句<b>自动归一块</b>，换设备也不丢</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l5 5 10-11"/></svg><span>单词、口语、写作、模考在一个站里，数据互通</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l5 5 10-11"/></svg><span>写作逐句点评，口语练完就有报告</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l5 5 10-11"/></svg><span>每天一份清单——该练什么、练了多少，一处看得清</span></li>
         </ul>
       </div>
     </div>
   </div>
-</div>
-
-<!-- ============ 口语 ============ -->
-<section id="speak" data-rev style="background:var(--n-0);border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
-  <div class="wrap spot rev">
-    <div class="s-txt">
-      <span class="eyebrow" data-rev><s></s>核心功能 01 · 口语</span>
-      <h2 data-rev style="--d:.05s">考场上，你不是在背稿，<br>是在聊自己的人生</h2>
-      <p class="sub" data-rev style="--d:.1s">别人串题，是三个题挤一个故事；这里几个故事，覆盖几乎全题库。素材大部分取自你自己的真实经历——背的其实是自己的事，考官听不出背的痕迹。</p>
-      <ul class="blist">
-        <li data-rev style="--d:.15s"><span class="k">1</span><div><b>要点驱动，不整篇背诵</b><span>素材拆成要点，换题只换切入方式，不用重背一篇新稿。</span></div></li>
-        <li data-rev style="--d:.2s"><span class="k">2</span><div><b>AI 会判断这题能不能套</b><span>遇到新题，它写出「怎么把你的素材嵌进去」的几行思路；套不上就直说，不硬凑。</span></div></li>
-        <li data-rev style="--d:.25s"><span class="k">3</span><div><b>本季题库，P1 / P2 / P3 全覆盖</b><span>题库随换季更新；P1 逐小题推进，P2 按考试节奏计时，P3 追问也练得到。</span></div></li>
-      </ul>
-      <div class="claim" data-rev style="--d:.3s">考场上一道题，练的时候就见过——这是串题法唯一的目的。</div>
-      <div class="pillrow" data-rev style="--d:.34s">
-        <span class="pill">串题素材（逻辑 + 原文）</span>
-        <span class="pill">AI 串题思路</span>
-        <span class="pill">本季题库</span>
-        <span class="pill">P3 追问</span>
-        <span class="pill">考试节奏计时</span>
-      </div>
-    </div>
-    <div class="fig" data-rev style="--d:.12s" id="figSpeak">
-      <div class="cap"><b>一个故事 · 多个话题</b><span>示意图</span></div>
-      <svg viewBox="0 0 460 260" role="img" aria-label="一个核心故事辐射到多个口语话题的示意图">
-        <g id="speakLines"></g>
-        <g id="speakNodes"></g>
-      </svg>
-      <p class="hint">示意图：话题名为常见 P2 类型举例。</p>
-    </div>
-  </div>
 </section>
 
-<!-- ============ 写作模板 ============ -->
-<section id="writing" data-rev style="background:var(--n-0);border-top:1px solid var(--line)">
-  <div class="wrap spot">
-    <div class="s-txt">
-      <span class="eyebrow" data-rev><s></s>核心功能 02 · 写作</span>
-      <h2 data-rev style="--d:.05s">不用练，<br>背下来就行</h2>
-      <p class="sub" data-rev style="--d:.1s">不用到处搜模板、也不用自己试错——这里就几套，每一套都按『最不易失分』打磨过。哪种题型套哪套，背下来考场直接组装。</p>
-      <ul class="blist">
-        <li data-rev style="--d:.15s"><span class="k">1</span><div><b>几套模板，覆盖主要题型</b><span>大作文小作文各一套就够用，不用贪多。</span></div></li>
-        <li data-rev style="--d:.2s"><span class="k">2</span><div><b>模板是好模板，不是模板堆</b><span>每一套都打磨了很久，句式稳、不绕、考官看得懂——你只管背熟。</span></div></li>
-        <li data-rev style="--d:.25s"><span class="k">3</span><div><b>题型判断 + 万能词填空</b><span>考场上认出题型、套对模板、填上几个万能词，就到位了。</span></div></li>
-      </ul>
-      <div class="claim" data-rev style="--d:.3s">这套功能是为背东西特别痛苦的人设计的——所以它对每个背东西痛苦的人都好使。</div>
-      <p class="muted" data-rev style="--d:.34s;font-size:13.5px;margin:14px 0 0">要冲 6.5+？AI 写作批改逐句给你改，见下方 AI 能力区。</p>
-    </div>
-    <div class="fig" data-rev style="--d:.12s">
-      <div class="cap"><b>你背的 → 考场写的</b><span>示意图</span></div>
-      <!-- 10/12 精简：示意卡改为「背→考→写」动线（原三步示意已撤下，站内功能不作宣传点） -->
-      <div style="padding:18px 6px;text-align:center">
-        <div style="display:flex;flex-direction:column;gap:10px;max-width:340px;margin:0 auto;text-align:left">
-          <div style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--n-50)"><b style="font-size:14px">背的时候</b><span class="muted" style="font-size:12.5px;display:block">整套模板一次背熟</span></div>
-          <div style="border:1px solid var(--primary-200);border-radius:10px;padding:12px 14px;background:var(--primary-50)"><b style="font-size:14px;color:var(--primary-700)">考场上</b><span class="muted" style="font-size:12.5px;display:block">认出题型，套对应的那套</span></div>
-          <div style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--n-50)"><b style="font-size:14px">写的时候</b><span class="muted" style="font-size:12.5px;display:block">只填题目里的具体内容</span></div>
-        </div>
-      </div>
-    </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============ AI 能力 ============ -->
-<section id="ai" data-rev>
+<!-- 怎么开始：三步 -->
+<section id="start">
   <div class="wrap">
-    <div class="sec-head" data-rev>
-      <h2>别处按次收费的 AI，这里随便用</h2>
-      <p>写作口语的反馈是备考最贵的一环——这也是会员的全部意义。</p>
-    </div>
-    <div class="grid3">
-      <div class="card" data-rev><div class="ico" style="background:var(--speak)">说</div><h3>AI 口语模考</h3><p>AI 出题 + 评分 + 四维报告，不限次练到考前。免费版每月 1 次体验。</p></div>
-      <div class="card" data-rev style="--d:.06s"><div class="ico" style="background:var(--corpus)">改</div><h3>AI 写作批改</h3><p>批改规则打磨过很多轮，四项评分 + 逐句点评，精确到句。（会员专属）</p></div>
-      <div class="card" data-rev style="--d:.12s"><div class="ico" style="background:var(--primary-500)">串</div><h3>AI 串题思路</h3><p>遇到新题，写出你的素材怎么嵌进去；套不上就直说，不硬凑。（会员专属）</p></div>
-    </div>
-    <div style="margin-top:22px;padding:16px 20px;border:1px solid var(--primary-200);background:var(--primary-50);border-radius:var(--r);display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap" data-rev>
-      <div style="font-size:14.5px;color:var(--primary-900)"><b>学习功能永久免费</b> · 会员首购 <b>¥19</b> 起（原价 ¥39，仅限一次）</div>
-      <a class="btn btn-primary" href="vip.html" style="text-decoration:none">看会员方案 →</a>
-    </div>
-  </div>
-</section>
-
-<!-- ============ 三步 ============ -->
-<section id="start" data-rev>
-  <div class="wrap">
-    <div class="sec-head" data-rev>
-      <h2>3 分钟，看清你的水平和每一天</h2>
-      <p>填几项资料，AI 给你一份诚实的诊断：你现在大概几分、缺口在哪、考前每一天该做什么。</p>
-      <p class="start-newbie"><a href="beginner.html">第一次考雅思？先花 3 分钟看这个 →</a></p>
+    <div class="sec-head">
+      <div class="kicker">怎么开始</div>
+      <h2>开始只要三步</h2>
+      <p>不用先研究「怎么备考」——打开清单，照着做就行。</p>
     </div>
     <div class="steps">
-      <div class="step" data-rev><div class="no">1</div><h3>免费诊断，直说不哄人</h3><p>站内成绩自动读取，没有分就填高考 / 四六级，AI 换算成四科估计分。听力阅读提分快但空间小，写作口语无法速成——这种真话它也会说。</p></div>
-      <div class="step" data-rev style="--d:.08s"><div class="no">2</div><h3>考前每一天，替你排好</h3><p>每条任务都带时长和完成标准，点进去就是对应的练习页——不存在「多练听力」这种看了不知道去哪点的话。</p></div>
-      <div class="step" data-rev style="--d:.16s"><div class="no">3</div><h3>今天只有 30 分钟也能练</h3><p>任务自动压缩重排；昨天没做完的顺延到今天，绝不悄悄丢掉。</p></div>
+      <div class="step"><div class="no">1</div><h3>进站，看一眼今天的清单</h3><p>每天一份清单，每项带时长和完成标准，点进去就是对应的练习页。</p></div>
+      <div class="step"><div class="no">2</div><h3>照着清单练，AI 给反馈</h3><p>口语写作练完马上有点评，阅读听力交卷即出分。</p></div>
+      <div class="step"><div class="no">3</div><h3>做完打勾，明天接着来</h3><p>没做完的顺延到明天，不会悄悄丢掉。</p></div>
     </div>
-    <p class="muted" style="text-align:center;margin:18px 0 0">诊断与每日重排免费 · 生成完整考前计划为会员功能</p>
+  </div>
+</section>
+
+<!-- 结尾 CTA -->
+<section class="final">
+  <div class="wrap">
+    <h2>先进站用用看</h2>
+    <p>今天的清单已经排好。合不合适，练一天就知道。</p>
+    <div class="cta">
+      <a class="btn btn-solid btn-lg" href="home.html">进站用用看 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16"/><path d="M14 6l6 6-6 6"/></svg></a>
+    </div>
+    <p class="final-note">数据默认存在本机，多设备同步需登录 · <a href="legal.html">用户协议与隐私</a></p>
   </div>
 </section>
 
 
 
-
-
-<!-- ============ 结尾 · 登录 ============ -->
-<div class="closing" id="login">
-  <div class="wrap closing-grid">
-    <div class="c-txt" data-rev>
-      <h2>今天该背的那批词，<br>已经排好了</h2>
-      <p>填一次考试日期，之后每天点开就练。剩下的判断，交给系统。</p>
-      <p>这套系统，是我为了自己备考做的——今天该背的词、该练的题，我自己每天在里面过。它不是面向市场设计出来的产品，是一个考生不肯多受苦的结果。</p>
-    </div>
-    <div class="c-card" data-rev style="--d:.08s">
-      <b>登录 / 注册</b>
-      <p>手机号或用户名 + 密码登录，多设备进度互通。数据默认存在本机，绑不绑号都能用，绑了才跨设备。</p>
-      <a class="btn btn-primary btn-lg cbtn" href="login.html">登录 / 注册，同步我的进度 →</a>
-      <a class="btn btn-ghost cbtn" href="home.html">先不绑，直接开工</a>
-      <span class="alt">登录后电脑背完，手机接着复习；换设备登录同一账号即可恢复全部数据。</span>
-    </div>
+<footer>
+  <div class="wrap foot">
+    <span>雅思备考 Hub · yasihub.com</span>
+    <div class="sp"><a href="legal.html">用户协议与隐私</a></div>
   </div>
-  <div class="wrap">
-    <div class="footbar">
-      <span>雅思备考 Hub · 一个人做给自己用的备考系统</span>
-      <span><a href="legal.html" style="color:inherit;text-decoration:none">隐私政策 · 用户协议</a> · 本页为产品介绍 · 学习入口在「进站开工」</span>
-    </div>
-    <p class="copyright">© 2026 雅思备考 Hub · 保留所有权利。本站的作文模板、语料与代码均为原创，未经许可请勿转载或用于商业用途。</p>
-    <!-- 10/13：写了「5.5 过线」这类结果描述，就必须同时如实说明（她铁律：不承诺没验证的结果；
-         豆包也点名「AI 准确性无真人背书」）。这句话是方法与期望，不是成绩保证。 -->
-    <p class="copyright" style="margin-top:6px;opacity:.8">「照着做就能过线」是这套方法的设计目标和练习路径，不是对考试分数的承诺——成绩以官方考试结果为准。AI 给出的评分与建议仅供参考。</p>
-  </div>
-</div>
+  <div class="wrap"><p class="copyright">© 2026 雅思备考 Hub · 本页及其关联的代码、模板与语料均为作者独立开发与撰写，保留所有权利。</p></div>
+</footer>
 
-<script>
-(function(){
-  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  requestAnimationFrame(function(){ setTimeout(function(){ document.body.classList.add('ready'); }, 60); });
-
-  var io = new IntersectionObserver(function(es){
-    es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
-  }, { threshold:.16, rootMargin:'0px 0px -8% 0px' });
-  document.querySelectorAll('[data-rev],.fig').forEach(function(el){ io.observe(el); });
-
-  var prog = document.getElementById('prog'), hd = document.getElementById('hd'), card = document.getElementById('heroCard');
-  function onScroll(){
-    var h = document.documentElement, max = h.scrollHeight - h.clientHeight;
-    prog.style.width = (max>0 ? (h.scrollTop/max*100) : 0) + '%';
-    hd.classList.toggle('solid', h.scrollTop > 12);
-    if(card && !reduce && window.scrollY < 900) card.style.transform = 'translateY(' + (window.scrollY*-0.03) + 'px)';
-  }
-  addEventListener('scroll', onScroll, { passive:true }); onScroll();
-
-  var NS = 'http://www.w3.org/2000/svg';
-  function mk(tag, attrs){ var e = document.createElementNS(NS, tag); for(var k in attrs) e.setAttribute(k, attrs[k]); return e; }
-
-  var cx = 230, cy = 132, R = 96;
-  var topics = [['想去的地方',-160],['一次旅行',-108],['一件礼物',-56],['童年记忆',-12],['敬佩的人',36],['一次改变',92]];
-  var gl = document.getElementById('speakLines'), gn = document.getElementById('speakNodes');
-  topics.forEach(function(tp, i){
-    var ang = tp[1]*Math.PI/180;
-    var x = cx + Math.cos(ang)*R*1.5, y = cy + Math.sin(ang)*R*0.92;
-    var d = 'M'+cx+','+cy+' Q'+((cx+x)/2)+','+((cy+y)/2 - 18)+' '+x+','+y;
-    var p = mk('path',{ d:d, fill:'none', stroke:'var(--primary-300)','stroke-width':1.6, class:'draw' });
-    gl.appendChild(p); p.style.setProperty('--len', p.getTotalLength()); p.style.transitionDelay = (0.1 + i*0.12)+'s';
-    var g2 = mk('g',{ class:'fadee' }); g2.style.transitionDelay = (0.3 + i*0.12)+'s';
-    var rw = tp[0].length*13 + 20;
-    g2.appendChild(mk('rect',{ x:x-rw/2, y:y-14, width:rw, height:28, rx:8, fill:'#fff', stroke:'var(--n-300)','stroke-width':1 }));
-    var tx = mk('text',{ x:x, y:y+4, 'font-size':12, fill:'var(--n-800)', 'text-anchor':'middle' });
-    tx.textContent = tp[0]; g2.appendChild(tx); gn.appendChild(g2);
-  });
-  var gc = mk('g',{ class:'fadee' }); gc.style.transitionDelay = '.05s';
-  gc.appendChild(mk('circle',{ cx:cx, cy:cy, r:40, fill:'var(--primary-50)', stroke:'var(--primary-500)','stroke-width':1.5 }));
-  var t1 = mk('text',{ x:cx, y:cy-2, 'font-size':12.5, fill:'var(--primary-900)', 'text-anchor':'middle','font-weight':'600' });
-  t1.textContent = '1 个核心故事'; gc.appendChild(t1);
-  var t2 = mk('text',{ x:cx, y:cy+15, 'font-size':11, fill:'var(--primary-700)', 'text-anchor':'middle' });
-  t2.textContent = '你的真实经历'; gc.appendChild(t2);
-  gn.appendChild(gc);
-})();
-</script>
 </body>
 </html>
