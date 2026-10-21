@@ -54,7 +54,9 @@ const MAX_FAILS = 10;
 const REG_PER_IP_PER_DAY = 10;
 // ⭐ 10/21 她拍板：账号只能是邮箱。手机号/用户名注册登录前后端全删，正则收窄成纯邮箱。
 //   格式口径与前端 login.html / functions/api/sync.js / admin.js 完全一致，改一处必须同步另三处。
-const ACCT_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+/* ⚠️ 10/21 三级权限：本常量与 acctKey() 已 export —— functions/api/roles.js 直接 import 复用，
+   不许在别的接口里再写一份正则（历史上三处拷贝不同步 → 401 → token 被清）。 */
+export const ACCT_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 /* ===== 邀请裂变常量与工具（10/13 她拍板）=====
 const INVITE_REWARD_DAYS = 7;    /* 双方各得 7 天 */
@@ -106,7 +108,7 @@ async function addVipDays(kv, acct, days) {
 /* 🔴 10/21：账号 → KV 键名统一入口。邮箱-only 后只剩 user:e:<email> 一种形态。
    老手机号/用户名账号的 user:<acct> 键仍在云端（数据一条没删），但已无登录入口；
    这里保留 else 分支，是为了 admin 面板清理存量探针账号时键名能对上，不是给新账号用的。 */
-function acctKey(acct) {
+export function acctKey(acct) {
   const a = String(acct || '').trim().toLowerCase();
   return a.indexOf('@') >= 0 ? 'user:e:' + a : 'user:' + a;
 }

@@ -19,6 +19,11 @@
 //   fb_get         单条详情（含图片 base64，admin.html 前端拼 data URL 显示大图）
 //   fb_read        标记已读/未读 { id, read }
 //   fb_del         删除一条（连同图片体，不可恢复 → 前端必须 confirm）
+//   ⭐ 10/21 三级权限（导师要求普通用户 / 管理员 / 系统管理员三层，上级能指定与取消下级）：
+//   role_set       按邮箱设为/取消「管理员（机构教师）」或「系统管理员」：KV role:<email> = 'teacher' | 'root'，
+//                  传空角色 = 删除该键（取消）。**角色只存服务端，绝不进 DATA**（DATA 整份上云可被用户改）。
+//   bind_set       维护某个管理员绑定的学生名单：KV bind:<email> = ["a@x.com", ...]（整份覆盖，空数组=清空）。
+//                  ⚠️ KV 写量：这两条只在站长点按钮那一刻各写 1 次（+1 条审计），不轮询、不缓存刷新写。
 // 不做（风险控制，等真需要再说）：改/删用户数据、踢 session。
 //
 // ⚠️ 会员状态安全口径：vip:<acct> 只存 KV 服务端（站长面板发放），**绝不进 DATA 云同步 blob**
@@ -511,6 +516,23 @@ export async function onRequest(context) {
     }
     vips.sort((a, b) => a.expire - b.expire);   // 快到期的排前面
 
+    /* ⭐ 10/21 三级权限：角色清单（只读聚合，量很小 —— role: 键一般就几个）
+       ⚠️ 这里只读不写，不增加 KV 写量；授权动作全在 role_set / bind_set 里发生。 */
+    const roleKeys = await listAll(kv, 'role:');
+    const roleVals = await kvGetMany(kv, roleKeys);
+    const roles = [];
+    for (let ri = 0; ri < roleKeys.length; ri++) {
+      const rAcct = roleKeys[ri].slice(5);                 // 'role:' = 5 字符
+      const rVal = String(roleVals[ri] || '');
+      if (rVal !== 'teacher' && rVal !== 'root') continue;  // 非法值当没有（fail closed）
+      let rStudents = [];
+      try {
+        const a = JSON.parse((await kv.get('bind:' + rAcct)) || '[]');
+        if (Array.isArray(a)) rStudents = a.map(s => String(s || '').trim().toLowerCase()).filter(s => isAcct(s));
+      } catch (e) {}
+      roles.push({ acct: rAcct, role: rVal, students: rStudents });
+    }
+
     /* 意见反馈（10/2）：只拉元数据，图片体在 fbimg:<id> 另行按需取。
        her 反馈量级很小（几十~几百条），一次性聚合进 overview 省一个往返。 */
     const fbKeys = await listAll(kv, 'fb:');
@@ -542,6 +564,7 @@ export async function onRequest(context) {
       /* 10/5 P3：操作审计 */
       audits: audits.slice(0, 100),
       sessCount: sessCount, vips: vips, feedbacks: feedbacks, fbUnread: fbUnread,
+      roles: roles,
       tookMs: Date.now() - _t0, kvReads: _kvReads, usageLoaded: wantUsage,
       priceLabel: priceLabel, priceHit: priceHit, todayModel: todayModel, todayPch: tokTodayPch });
   }
@@ -722,6 +745,66 @@ export async function onRequest(context) {
     await kv.put('manual:' + acct, String(isReal));
     await audit(kv, isReal ? 'judge_mark_real' : 'judge_mark_probe', { acct: acct });
     return json({ ok: true, acct: acct, manual: isReal });
+  }
+
+  /* ⭐ 10/21 三级权限 · 指定/取消管理员（role_set）───────────────────────────
+     角色口径（锁死，不得自行改定义）：
+       · 普通用户   = 现有注册考生，role 无键即此层
+       · teacher    = 管理员（机构教师），由系统管理员指定；只读看绑定学生的学习数据与提交
+       · root       = 系统管理员（站长台本人）
+     写入口只有这里；/api/roles 只读不写。
+     KV 写量：正常 1 次（role:<acct>，取消时是 delete）+ 1 条审计 = 每次点击 2 次写，不轮询。 */
+  if (action === 'role_set') {
+    const acct = String(body.acct || '').trim().toLowerCase();
+    const role = String(body.role || '').trim().toLowerCase();
+    if (!isAcct(acct)) return json({ ok: false, error: 'bad_acct', msg: '账号格式：邮箱' }, 400);
+    if (role && role !== 'teacher' && role !== 'root') {
+      return json({ ok: false, error: 'bad_role', msg: '角色只能是 teacher（管理员）或 root（系统管理员）' }, 400);
+    }
+    /* 只给已注册账号授权：防手滑把邮箱打错 → 造出一个永远没人能登录的「管理员」 */
+    if (!(await kv.get(userKeyOf(acct)))) {
+      return json({ ok: false, error: 'no_user', msg: '该邮箱还没注册（角色只能给已注册账号）' }, 404);
+    }
+    let prev = '';
+    try { prev = String((await kv.get('role:' + acct)) || ''); } catch (e) {}
+    if (!role) {
+      /* 取消：删角色键。绑定名单保留 —— 以后重新授权时名单还在，不用重录；
+         但在没有 role 的情况下名单没有任何效力（/api/roles 先判角色再判名单）。 */
+      await kv.delete('role:' + acct);
+      await audit(kv, 'role_revoke', { acct: acct, prev: prev || '', keptBind: true });
+      return json({ ok: true, acct: acct, role: '' });
+    }
+    await kv.put('role:' + acct, role);
+    await audit(kv, 'role_set', { acct: acct, role: role, prev: prev || '' });
+    return json({ ok: true, acct: acct, role: role });
+  }
+
+  /* ⭐ 10/21 三级权限 · 维护管理员绑定的学生名单（bind_set）────────────────────
+     整份覆盖语义（前端传完整数组）：传 [] = 清空。去重 + 最多 50 个 + 必须是合法邮箱。
+     只允许给**当前确实是管理员**的账号建名单，避免「先建名单后授权」留下无主数据。
+     KV 写量：1 次（bind:<acct>，空数组时 delete）+ 1 条审计。 */
+  if (action === 'bind_set') {
+    const acct = String(body.acct || '').trim().toLowerCase();
+    if (!isAcct(acct)) return json({ ok: false, error: 'bad_acct', msg: '账号格式：邮箱' }, 400);
+    let cur = '';
+    try { cur = String((await kv.get('role:' + acct)) || ''); } catch (e) {}
+    if (cur !== 'teacher' && cur !== 'root') {
+      return json({ ok: false, error: 'bad_role', msg: '这个账号还不是管理员，先设角色再绑学生' }, 400);
+    }
+    const raw = Array.isArray(body.students) ? body.students : [];
+    const list = [];
+    for (const s of raw) {
+      const e = String(s || '').trim().toLowerCase();
+      if (!e) continue;
+      if (!isAcct(e)) return json({ ok: false, error: 'bad_student', msg: '学生账号格式：邮箱（' + e.slice(0, 40) + '）' }, 400);
+      if (e === acct) return json({ ok: false, error: 'bad_student', msg: '不能把自己绑成自己的学生' }, 400);
+      if (list.indexOf(e) < 0) list.push(e);
+    }
+    if (list.length > 50) return json({ ok: false, error: 'too_many', msg: '一个管理员最多绑 50 个学生' }, 400);
+    if (!list.length) await kv.delete('bind:' + acct);
+    else await kv.put('bind:' + acct, JSON.stringify(list));
+    await audit(kv, 'bind_set', { acct: acct, count: list.length, students: list.slice(0, 50).join(',') });
+    return json({ ok: true, acct: acct, students: list });
   }
 
   /* ---------- 操作审计列表（10/5 P3）---------- */

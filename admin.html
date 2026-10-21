@@ -55,6 +55,10 @@ body{
 input.small,select.small{height:34px;border:1px solid var(--line2);border-radius:8px;padding:0 10px;
   font-size:13px;outline:none;font-family:inherit;background:#fff;color:var(--ink)}
 input.small:focus,select.small:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-50)}
+/* 10/21 角色管理：学生名单要能一行一个，加一个同款小号多行输入框 */
+textarea.small{border:1px solid var(--line2);border-radius:8px;padding:7px 10px;font-size:13px;
+  outline:none;font-family:inherit;background:#fff;color:var(--ink);resize:vertical;line-height:1.55}
+textarea.small:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-50)}
 .muted{color:var(--ink3);font-size:12.5px}
 .hidden{display:none!important}
 .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
@@ -403,6 +407,41 @@ button.mini.danger:hover{background:var(--bad-bg);border-color:var(--bad)}
     </table>
     </div>
     <p class="muted" id="vipEmpty" style="margin-top:8px">还没有会员。开通过程全自动，无需到 CF 后台。</p>
+  </div>
+
+  <!-- 角色管理（10/21 三级权限：普通用户 / 管理员（机构教师）/ 系统管理员） -->
+  <div class="card" id="roleCard">
+    <h2>角色管理</h2>
+    <p class="desc">三层身份：<b>普通用户</b>（注册考生，默认）· <b>管理员（机构教师）</b>（由这里指定，可绑学生、只读查看成绩与练习提交，不参与系统配置、不能改任何账号权限）· <b>系统管理员</b>（本面板）。
+      取消角色后立刻生效，对方刷新页面入口即消失。</p>
+    <div class="toolbar">
+      <label class="muted">邮箱</label>
+      <input class="small" id="roleAcct" placeholder="注册邮箱" style="width:230px" maxlength="60" />
+      <label class="muted">角色</label>
+      <select class="small" id="roleKind">
+        <option value="teacher">管理员（机构教师）</option>
+        <option value="root">系统管理员</option>
+      </select>
+      <button class="btn small" id="roleSetBtn" type="button">设为该角色</button>
+      <button class="btn ghost small" id="roleClearBtn" type="button">取消角色</button>
+      <span class="err" id="roleErr" style="margin:0"></span>
+    </div>
+    <div class="tw">
+    <table>
+      <thead><tr><th>账号</th><th>角色</th><th>已绑学生</th><th>操作</th></tr></thead>
+      <tbody id="roleBody"></tbody>
+    </table>
+    </div>
+    <p class="muted" id="roleEmpty" style="margin-top:8px">还没有其它管理员 —— 除站长本人外，所有人都是普通用户。</p>
+
+    <div class="toolbar" style="margin:14px 0 8px;border-top:1px solid var(--line);padding-top:14px">
+      <label class="muted">给管理员绑学生</label>
+      <input class="small" id="bindAcct" placeholder="管理员邮箱" style="width:230px" maxlength="60" />
+      <textarea class="small" id="bindList" rows="3" placeholder="一行一个学生邮箱，如&#10;student1@x.com&#10;student2@x.com" style="width:260px"></textarea>
+      <button class="btn small" id="bindSaveBtn" type="button">保存名单</button>
+      <span class="err" id="bindErr" style="margin:0"></span>
+    </div>
+    <p class="muted">名单是整份覆盖：留空保存 = 清空。一个管理员最多绑 50 个学生；取消角色后名单保留，重新授权即恢复。</p>
   </div>
 
   <p class="muted" style="text-align:center">会员状态以服务端 vip:&lt;账号&gt; 键为准 · 已接入 AI 额度闸（会员不受免费额度限制）· AI 用量统计自 10/5 修复计数丢失后开始累计（此前未计费，历史无数据）</p>
@@ -810,8 +849,84 @@ button.mini.danger:hover{background:var(--bad-bg);border-color:var(--bad)}
       vb.appendChild(tr);
     });
 
+    renderRoles();
     renderFb();
   }
+
+  /* ---------- 角色管理（10/21 三级权限：普通用户 / 管理员 / 系统管理员）---------- */
+  var ROLE_LABEL = { teacher: '管理员（机构教师）', root: '系统管理员' };
+  function renderRoles(){
+    var body = $('roleBody');
+    if(!body) return;
+    var list = (DATA && DATA.roles) || [];
+    body.innerHTML = '';
+    $('roleEmpty').style.display = list.length ? 'none' : '';
+    list.forEach(function(r){
+      var roleTag = r.role === 'root'
+        ? '<span class="tag ok">系统管理员</span>'
+        : '<span class="tag ok">管理员（教师）</span>';
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td><b>' + esc(r.acct) + '</b></td>'
+        + '<td>' + roleTag + '</td>'
+        + '<td>' + (r.students && r.students.length ? (r.students.length + ' 人') : '<span class="muted">未绑定</span>') + '</td>'
+        + '<td style="white-space:nowrap">'
+          + '<button class="mini" data-bind="' + esc(r.acct) + '" type="button">编辑学生</button> '
+          + '<button class="mini" data-roleclear="' + esc(r.acct) + '" type="button">取消角色</button>'
+        + '</td>';
+      body.appendChild(tr);
+    });
+  }
+  function roleAcctOf(){
+    var a = ($('roleAcct').value || '').trim().toLowerCase();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(a)){ $('roleErr').textContent = '账号格式：邮箱'; return ''; }
+    return a;
+  }
+  function roleDone(msg){
+    $('roleErr').style.color = 'var(--ok)';
+    $('roleErr').textContent = msg;
+    setTimeout(function(){ $('roleErr').textContent = ''; $('roleErr').style.color = ''; }, 5000);
+  }
+  if($('roleSetBtn')) $('roleSetBtn').addEventListener('click', function(){
+    $('roleErr').textContent = '';
+    var acct = roleAcctOf(); if(!acct) return;
+    var role = $('roleKind').value;
+    $('roleSetBtn').disabled = true;
+    api('role_set', { acct: acct, role: role }, function(r){
+      $('roleSetBtn').disabled = false;
+      if(r.ok){ load(); roleDone('已设为' + (ROLE_LABEL[r.j.role] || r.j.role) + '：' + acct); }
+      else { $('roleErr').style.color = ''; $('roleErr').textContent = (r.j && r.j.msg) || ('设置失败（HTTP ' + r.status + '）'); }
+    });
+  });
+  if($('roleClearBtn')) $('roleClearBtn').addEventListener('click', function(){
+    $('roleErr').textContent = '';
+    var acct = roleAcctOf(); if(!acct) return;
+    if(!confirm('取消 ' + acct + ' 的管理员角色？\n（取消后立刻生效，对方刷新页面入口即消失；学生名单保留）')) return;
+    $('roleClearBtn').disabled = true;
+    api('role_set', { acct: acct, role: '' }, function(r){
+      $('roleClearBtn').disabled = false;
+      if(r.ok){ load(); roleDone('已取消角色：' + acct); }
+      else { $('roleErr').style.color = ''; $('roleErr').textContent = (r.j && r.j.msg) || ('取消失败（HTTP ' + r.status + '）'); }
+    });
+  });
+  if($('bindSaveBtn')) $('bindSaveBtn').addEventListener('click', function(){
+    $('bindErr').textContent = '';
+    var acct = ($('bindAcct').value || '').trim().toLowerCase();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(acct)){ $('bindErr').textContent = '管理员账号格式：邮箱'; return; }
+    var raw = ($('bindList').value || '').split(/[\s,，;；]+/).map(function(s){ return s.trim(); }).filter(function(s){ return !!s; });
+    $('bindSaveBtn').disabled = true;
+    api('bind_set', { acct: acct, students: raw }, function(r){
+      $('bindSaveBtn').disabled = false;
+      if(r.ok){
+        load();
+        $('bindErr').style.color = 'var(--ok)';
+        $('bindErr').textContent = '已保存：' + acct + ' 绑 ' + (r.j.students || []).length + ' 个学生';
+        setTimeout(function(){ $('bindErr').textContent = ''; $('bindErr').style.color = ''; }, 5000);
+      } else {
+        $('bindErr').style.color = '';
+        $('bindErr').textContent = (r.j && r.j.msg) || ('保存失败（HTTP ' + r.status + '）');
+      }
+    });
+  });
 
   /* ---------- 页签（10/2；10/5 P3 加审计页）---------- */
   function switchTab(name){
@@ -830,9 +945,18 @@ button.mini.danger:hover{background:var(--bad-bg);border-color:var(--bad)}
     vip_grant: '开通会员', vip_renew: '续费会员', vip_set_permanent: '设为永久会员',
     vip_revoke: '撤销会员', invite_mint: '生成邀请码', invite_revoke: '作废邀请码',
     judge_mark_real: '标记为真人', judge_mark_probe: '标记为探针', judge_clear: '清除标记',
+    role_set: '设置角色', role_revoke: '取消角色', bind_set: '设置学生名单',
   };
   function auditDetailText(d) {
     d = d || {};
+    /* 角色类动作：说清「给了什么角色 / 原来是什么 / 绑了几个人」 */
+    if (d.role !== undefined) {
+      return d.acct + ' · ' + (ROLE_LABEL[d.role] || '普通用户')
+        + (d.prev ? ('（原 ' + (ROLE_LABEL[d.prev] || d.prev) + '）') : '');
+    }
+    if (d.count !== undefined && d.students !== undefined) {
+      return d.acct + ' · 绑 ' + d.count + ' 个学生' + (d.count ? ('：' + String(d.students).split(',').slice(0, 3).join('、') + (d.count > 3 ? ' 等' : '')) : '');
+    }
     if ('acct' in d) {
       var t = [d.acct];
       if (d.days) t.push(d.days + ' 天');
@@ -1329,6 +1453,24 @@ button.mini.danger:hover{background:var(--bad-bg);border-color:var(--bad)}
       api('vip_revoke', { acct: vr }, function(r){
         if(r.ok) load();
         else alert('撤销失败：' + ((r.j && r.j.msg) || ('HTTP ' + r.status)));
+      });
+      return;
+    }
+    /* 角色管理：把某管理员的学生名单载入下面的输入框，方便编辑 */
+    var bd = t.getAttribute && t.getAttribute('data-bind');
+    if(bd){
+      var rg = ((DATA && DATA.roles) || []).filter(function(x){ return x.acct === bd; })[0];
+      $('bindAcct').value = bd;
+      $('bindList').value = rg && rg.students ? rg.students.join('\n') : '';
+      $('bindList').focus();
+      return;
+    }
+    var rc = t.getAttribute && t.getAttribute('data-roleclear');
+    if(rc){
+      if(!confirm('取消 ' + rc + ' 的管理员角色？\n（取消后立刻生效，对方刷新页面入口即消失；学生名单保留）')) return;
+      api('role_set', { acct: rc, role: '' }, function(r){
+        if(r.ok) load();
+        else alert('取消失败：' + ((r.j && r.j.msg) || ('HTTP ' + r.status)));
       });
     }
   });
