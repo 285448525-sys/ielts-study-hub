@@ -1,0 +1,253 @@
+/* =========================================================================
+   老师端「学生数据」页（三级权限第二批 · 2026-10-22）
+   设计依据：design/115-老师端学生数据_方案_2026-10-21.html（她 10-22 回「按推荐做」）
+   只属于本页 —— common.css 一行未动。所有类名统一 tch- 前缀：
+   稿子里的 .chip / .stat / .panel 在 common.css 里已有同名规则（.chip 就是），不前缀会被串味。
+   颜色全部走站点变量（--surface / --line / --ink / --muted / --primary-*），浅深色自动跟随。
+   ========================================================================= */
+
+/* 本页比常规页宽一档：232 名单 + 详情，1160 会挤 */
+main.tch-wrap{max-width:1280px}
+
+/* ---------- 页头 ---------- */
+.tch-head{display:flex;align-items:flex-start;gap:14px;margin:0 0 14px;flex-wrap:wrap}
+.tch-head>div{min-width:0}   /* ⚠️ 不加会撑破：h1+说明是 flex 子项，默认 min-width:auto → 窄屏文字不换行、直接被裁掉 */
+.tch-head h1{font-size:20px;margin:0;letter-spacing:-.3px;font-weight:800}
+.tch-head .tch-desc{font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.55}
+.tch-pill{margin-left:auto;display:inline-flex;align-items:center;gap:6px;flex:none;
+  font-size:11.5px;font-weight:800;color:var(--primary-text);background:var(--primary-50);
+  border:1px solid var(--primary-100);border-radius:20px;padding:5px 11px;white-space:nowrap}
+.tch-pill svg{width:12px;height:12px;flex:none}
+
+/* ---------- 两栏 ---------- */
+.tch-body{display:flex;gap:12px;align-items:flex-start}
+
+/* ---------- 学生名单 ---------- */
+.tch-roster{width:232px;flex:none;position:sticky;top:14px;max-height:calc(100vh - 28px);
+  display:flex;flex-direction:column;min-height:0;
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.tch-roster-top{padding:12px 12px 10px;border-bottom:1px solid var(--line);flex:none}
+.tch-roster-top .lab{display:flex;align-items:center;font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.04em}
+.tch-roster-top .lab b{margin-left:auto;font-weight:800;color:var(--primary-600)}
+.tch-rsearch{display:flex;align-items:center;gap:6px;height:30px;padding:0 9px;margin-top:9px;
+  border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--muted)}
+.tch-rsearch svg{width:12px;height:12px;flex:none}
+.tch-rsearch input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:12px;
+  color:var(--ink);padding:0;font-family:inherit}
+.tch-rsearch input::placeholder{color:var(--n-500)}
+.tch-rlist{overflow-y:auto;padding:6px;display:flex;flex-direction:column;gap:2px;flex:1;min-height:0;
+  scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.tch-ritem{display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:9px;font:inherit;
+  text-align:left;width:100%;background:transparent;border:0;cursor:pointer;color:inherit}
+.tch-ritem:hover{background:var(--surface-2)}
+.tch-ritem.on{background:var(--primary-50);box-shadow:inset 0 0 0 1px var(--primary-100)}
+.tch-rav{width:28px;height:28px;border-radius:50%;flex:none;display:grid;place-items:center;
+  font-size:12.5px;font-weight:800;color:#fff;background:linear-gradient(135deg,#7ccac2,#3a9a93)}
+.tch-rav.b{background:linear-gradient(135deg,#9fb7e8,#5a7fd0)}
+.tch-rav.c{background:linear-gradient(135deg,#e8b6a0,#cc7f5f)}
+.tch-rav.d{background:var(--n-400);color:var(--muted)}
+.tch-rav.e{background:var(--surface);color:var(--n-500);box-shadow:inset 0 0 0 1.5px var(--line)}
+.tch-rmeta{flex:1;min-width:0}
+.tch-rmeta b{display:block;font-size:12.5px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700}
+.tch-rmeta span{display:block;font-size:10.5px;color:var(--muted);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tch-rdot{width:6px;height:6px;border-radius:50%;flex:none;background:#34c759;box-shadow:0 0 0 3px rgba(52,199,89,.14)}
+.tch-rdot.w{background:#ff9500;box-shadow:0 0 0 3px rgba(255,149,0,.14)}
+.tch-rdot.g{background:var(--n-400);box-shadow:none}
+.tch-rdot.n{background:var(--surface);box-shadow:none;border:1.5px solid var(--n-400)}
+.tch-roster-foot{padding:9px 12px;border-top:1px solid var(--line);font-size:10.5px;color:var(--muted);line-height:1.5;flex:none}
+
+/* ---------- 详情区 ---------- */
+.tch-detail{flex:1;min-width:0}
+
+.tch-idband{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--line);
+  border-radius:14px;padding:15px 18px;box-shadow:var(--shadow)}
+.tch-idband .av{width:46px;height:46px;border-radius:14px;flex:none;display:grid;place-items:center;
+  font-size:19px;font-weight:800;color:#fff;background:linear-gradient(135deg,#7ccac2,#2f867f)}
+.tch-idband .who{min-width:0}
+.tch-idband .who b{display:block;font-size:16.5px;letter-spacing:-.2px;line-height:1.3;font-weight:800;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tch-idband .who span{display:block;font-size:12px;color:var(--muted);margin-top:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tch-chips{margin-left:auto;display:flex;gap:7px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.tch-chip{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;
+  border:1px solid var(--line);color:var(--ink-2);background:var(--surface-2);white-space:nowrap}
+.tch-chip.live{color:#1d7a3a;background:#f3faf5;border-color:#bfe0cc}
+.tch-chip.live::before{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;
+  background:#34c759;margin-right:5px;vertical-align:1px}
+[data-theme="dark"] .tch-chip.live{background:rgba(52,199,89,.14);border-color:rgba(52,199,89,.3);color:#6ee08a}
+
+/* 四个数字卡 */
+.tch-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+.tch-stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;
+  box-shadow:0 1px 2px rgba(16,24,40,.03)}
+.tch-stat .lb{font-size:11.5px;color:var(--muted);font-weight:600}
+.tch-stat .vl{font-size:23px;font-weight:800;letter-spacing:-.6px;margin-top:2px;line-height:1.2;
+  font-variant-numeric:tabular-nums;color:var(--ink)}
+.tch-stat .vl u{font-size:11.5px;font-weight:700;color:var(--muted);text-decoration:none;margin-left:3px;letter-spacing:0}
+.tch-stat .s2{font-size:10.5px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tch-stat .s2 em{font-style:normal;color:var(--primary-600);font-weight:700}
+
+/* 两栏面板 */
+.tch-cols{display:grid;grid-template-columns:1.55fr 1fr;gap:12px;margin-top:12px;align-items:start}
+.tch-panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:15px 16px;
+  box-shadow:0 1px 2px rgba(16,24,40,.03);margin-top:12px}
+.tch-cols .tch-panel{margin-top:0}
+.tch-ph{display:flex;align-items:center;gap:8px;margin-bottom:2px;flex-wrap:wrap}
+.tch-ph b{font-size:13px;letter-spacing:-.1px;font-weight:800}
+.tch-ph .r2{margin-left:auto;font-size:10.5px;color:var(--muted)}
+.tch-ph .segs{margin-left:auto;display:flex;gap:0;background:var(--surface-2);border-radius:7px;padding:2px}
+.tch-ph .segs button{font:inherit;font-size:10.5px;font-weight:700;color:var(--muted);padding:3px 9px;
+  border-radius:5px;border:0;background:transparent;cursor:pointer}
+.tch-ph .segs button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.07)}
+.tch-note{font-size:10.5px;color:var(--muted);margin:6px 0 0;line-height:1.6}
+
+/* 折线图 */
+.tch-chart{margin-top:6px}
+.tch-chart svg{display:block;width:100%;height:auto}
+.tch-chart .axis{font-size:9px;fill:var(--n-500)}
+.tch-chart .axis-l{font-size:9.5px;fill:var(--n-500)}
+.tch-chart .grid{stroke:var(--line);stroke-width:1}
+.tch-chart .grid.base{stroke:var(--n-400)}
+.tch-chart .ln{fill:none;stroke:var(--primary-500);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.tch-chart .pt{fill:var(--surface);stroke:var(--primary-500);stroke-width:2}
+.tch-chart .pt.last{fill:var(--primary-500)}
+
+/* 模块条 */
+.tch-bars{margin-top:10px;display:flex;flex-direction:column;gap:9px}
+.tch-brow{display:flex;align-items:center;gap:9px}
+.tch-brow .nm{width:54px;flex:none;font-size:11.5px;color:var(--ink-2);font-weight:600;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tch-brow .track{flex:1;height:8px;border-radius:5px;background:var(--surface-2);overflow:hidden}
+.tch-brow .track i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,#7ccac2,#3a9a93)}
+.tch-brow .v{width:78px;flex:none;text-align:right;font-size:11px;font-weight:700;color:var(--ink-2);
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* 词汇掌握度 */
+.tch-vsum{display:flex;gap:14px;margin-top:10px}
+.tch-vsum>div{flex:1}
+.tch-vsum .k{font-size:10.5px;color:var(--muted)}
+.tch-vsum .v{font-size:17px;font-weight:800;letter-spacing:-.3px;font-variant-numeric:tabular-nums}
+.tch-vsum .v u{font-size:10px;color:var(--muted);text-decoration:none;font-weight:700;margin-left:2px}
+.tch-vbar{display:flex;height:11px;border-radius:6px;overflow:hidden;margin-top:12px;gap:1.5px;background:var(--surface-2)}
+.tch-vbar i{display:block;height:100%;min-width:0}
+.tch-vleg{display:flex;flex-wrap:wrap;gap:4px 9px;margin-top:9px}
+.tch-vleg span{font-size:9.5px;color:var(--muted);display:flex;align-items:center;gap:4px}
+.tch-vleg span i{width:7px;height:7px;border-radius:2px;display:block}
+.tch-vdue{margin-top:11px;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-2);
+  background:#fffaf0;border:1px solid #f6e2bd;border-radius:8px;padding:6px 9px}
+.tch-vdue svg{width:12px;height:12px;flex:none}
+.tch-vdue b{color:#a35c00}
+[data-theme="dark"] .tch-vdue{background:rgba(255,149,0,.10);border-color:rgba(255,149,0,.28)}
+[data-theme="dark"] .tch-vdue b{color:#f0b45a}
+
+/* 提交列表 */
+.tch-sublist{margin-top:8px;display:flex;flex-direction:column}
+.tch-srow{border-top:1px solid var(--line);padding:0}
+.tch-srow:first-child{border-top:0}
+.tch-sbtn{display:flex;align-items:center;gap:10px;width:100%;padding:10px 2px;font:inherit;color:inherit;
+  background:transparent;border:0;cursor:pointer;text-align:left}
+.tch-sbtn:hover{background:var(--surface-2)}
+.tch-kind{font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:5px;flex:none;letter-spacing:.02em;white-space:nowrap}
+.tch-kind.sp{color:#c2003b;background:rgba(255,45,85,.10)}
+.tch-kind.wr{color:#2e2c8f;background:rgba(88,86,214,.10)}
+[data-theme="dark"] .tch-kind.sp{color:#ff7a9a;background:rgba(255,45,85,.18)}
+[data-theme="dark"] .tch-kind.wr{color:#a9a7ff;background:rgba(88,86,214,.24)}
+.tch-sbtn .t{flex:1;min-width:0}
+.tch-sbtn .t b{display:block;font-size:12px;line-height:1.4;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;font-weight:700}
+.tch-sbtn .t span{display:block;font-size:10.5px;color:var(--muted)}
+.tch-sbtn .ar{color:var(--n-500);font-size:11px;flex:none;transition:transform .15s}
+.tch-srow.open .tch-sbtn .ar{transform:rotate(90deg)}
+.tch-essay{margin:0 2px 10px;border-left:2px solid var(--primary-200);padding:2px 0 2px 12px;
+  font-size:12.5px;line-height:1.78;color:var(--ink-2);max-height:320px;overflow:auto;white-space:pre-wrap;
+  word-break:break-word}
+.tch-essay-bar{display:flex;align-items:center;gap:8px;margin:0 2px 10px;font-size:10.5px;color:var(--muted)}
+.tch-essay-bar .sp{margin-left:auto}
+.tch-submore{margin-top:10px;text-align:center}
+.tch-submore button{font:inherit;font-size:12px;font-weight:700;color:var(--primary-text);
+  background:var(--primary-50);border:1px solid var(--primary-100);border-radius:9px;padding:7px 16px;cursor:pointer}
+
+/* ---------- 状态稿（无权限 / 名单空 / 学生无数据 / 出错 / 骨架） ---------- */
+.tch-state{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:44px 24px;
+  text-align:center;display:flex;flex-direction:column;align-items:center;gap:9px;box-shadow:var(--shadow);margin-top:8px}
+.tch-state .ic{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;
+  background:var(--primary-50);color:var(--primary-600);flex:none}
+.tch-state .ic.warn{background:#fffaf0;color:#b7791f}
+[data-theme="dark"] .tch-state .ic.warn{background:rgba(255,149,0,.12);color:#f0b45a}
+.tch-state .ic.gray{background:var(--surface-2);color:var(--muted)}
+.tch-state .ic.err{background:#fdf0ee;color:#a31f18}
+[data-theme="dark"] .tch-state .ic.err{background:rgba(224,52,44,.16);color:#ff8a80}
+.tch-state b{font-size:14.5px;font-weight:800}
+.tch-state p{margin:0;font-size:12.5px;color:var(--muted);line-height:1.7;max-width:420px}
+.tch-state .acts{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;justify-content:center}
+.tch-btn{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:800;color:#fff;
+  background:var(--primary);border:1px solid var(--primary);border-radius:9px;padding:8px 16px;
+  text-decoration:none;cursor:pointer;font-family:inherit}
+.tch-btn:hover{background:var(--primary-600);border-color:var(--primary-600)}
+.tch-btn.ghost{background:var(--surface);color:var(--ink-2);border-color:var(--line)}
+.tch-btn.ghost:hover{background:var(--surface-2);color:var(--ink)}
+
+/* 顶部行内错误条（换人/刷新失败，不整页替换） */
+.tch-errbar{display:flex;align-items:flex-start;gap:8px;background:#fdf0ee;border:1px solid #f3cdc9;
+  border-radius:10px;padding:10px 12px;font-size:12px;color:#a31f18;margin-bottom:12px;line-height:1.6}
+[data-theme="dark"] .tch-errbar{background:rgba(224,52,44,.14);border-color:rgba(224,52,44,.34);color:#ff9d94}
+.tch-errbar b{display:block}
+.tch-errbar .acts{margin-left:auto;display:flex;gap:6px;flex:none}
+.tch-errbar .acts button{font:inherit;font-size:11.5px;font-weight:800;color:inherit;background:transparent;
+  border:1px solid currentColor;border-radius:7px;padding:3px 9px;cursor:pointer}
+
+/* 骨架屏 */
+.tch-skel{display:flex;flex-direction:column;gap:10px;background:var(--surface);border:1px solid var(--line);
+  border-radius:14px;padding:20px}
+.tch-skel .skel-row{display:flex;align-items:center;gap:10px}
+.tch-skel .skel-av{width:40px;height:40px;border-radius:12px;background:var(--surface-2);flex:none}
+.tch-skel .skel-bar{display:block;height:10px;border-radius:5px;
+  background:linear-gradient(90deg,var(--surface-2),var(--line),var(--surface-2))}
+.tch-skel .skel-bar.w42{width:42%}
+.tch-skel .skel-bar.w66{width:66%}
+.tch-skel .skel-bar.h72{height:72px}
+.tch-skel .skel-bar.h96{height:96px}
+
+/* ---------- 手机端：名单收成「当前学生卡 + 切换弹层」 ---------- */
+.tch-pick{display:none;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);
+  border-radius:12px;padding:10px 12px;margin-bottom:10px}
+.tch-pick .av{width:32px;height:32px;border-radius:10px;flex:none;display:grid;place-items:center;
+  font-size:14px;font-weight:800;color:#fff;background:linear-gradient(135deg,#7ccac2,#2f867f)}
+.tch-pick .m{flex:1;min-width:0}
+.tch-pick .m b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tch-pick .m span{display:block;font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tch-pick button{font:inherit;font-size:11.5px;font-weight:800;color:var(--primary-text);
+  background:var(--primary-50);border:1px solid var(--primary-100);border-radius:20px;padding:5px 12px;cursor:pointer;flex:none}
+
+.tch-sheet-ov{position:fixed;inset:0;background:rgba(16,24,40,.42);z-index:90;display:flex;align-items:flex-end}
+.tch-sheet{width:100%;max-height:78vh;background:var(--surface);border-radius:18px 18px 0 0;
+  display:flex;flex-direction:column;min-height:0;box-shadow:0 -10px 40px rgba(16,24,40,.22)}
+.tch-sheet .sh{display:flex;align-items:center;padding:14px 16px 8px;flex:none}
+.tch-sheet .sh b{font-size:15px}
+.tch-sheet .sh button{margin-left:auto;font:inherit;font-size:13px;font-weight:700;color:var(--muted);
+  background:transparent;border:0;cursor:pointer;padding:4px 6px}
+.tch-sheet .tch-roster{display:flex;flex-direction:column;width:auto;position:static;max-height:none;border:0;border-radius:0;flex:none;
+  min-height:0;background:transparent;border-top:1px solid var(--line);overflow:visible}
+/* 🔴 必须显式 display:flex：窄屏那条 `@media(max-width:900px){.tch-roster{display:none}}`
+   specificity 只有 (0,1,0)，但它是**唯一**声明 display 的规则 —— 不在这里重新声明，
+   弹层里的名单会跟着主体名单一起被隐藏（实测弹层只剩标题栏）。 */
+/* ⚠️ 列表必须给**确定高度**：弹层本身是 auto 高度的 flex 列，里面再写 flex:1 + min-height:0
+   会塌成 0（实测「切换学生」弹层只剩一条标题栏、名单一个都看不见）。 */
+.tch-sheet .tch-rlist{flex:0 0 auto;max-height:calc(70vh - 96px);padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+
+@media(max-width:900px){
+  .tch-body{display:block}
+  .tch-roster{display:none}
+  .tch-pick{display:flex}
+  .tch-cols{grid-template-columns:1fr}
+  .tch-stats{grid-template-columns:1fr 1fr}
+  .tch-idband{flex-wrap:wrap}
+  .tch-chips{margin-left:0;width:100%;justify-content:flex-start}
+}
+@media(max-width:560px){
+  .tch-head h1{font-size:18px}
+  .tch-pill{display:none}
+  .tch-stat .vl{font-size:20px}
+  .tch-state{padding:34px 18px}
+  .tch-essay{max-height:240px}
+}

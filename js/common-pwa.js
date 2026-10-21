@@ -25,6 +25,9 @@ ready(() => { hubLoad();
   initBootLoader();                                    // 收起首屏内联遮罩（覆盖 Ctrl+F5 / 整页跳转的卡顿）
   initFloatTimer();                                   // 注入全站计时悬浮标签（跨页常驻，运行中显示）
   injectNav(); applyTheme(); restoreSideScroll(); initSoftNav();
+  /* 三级权限（10-22）：先用缓存画入口，再异步核对一次自己的角色；角色变了 injectNav 会自己重建。
+     无 token 时直接返回（未登录不请求）。失败静默、绝不影响首屏。 */
+  if(typeof hubRefreshRole === 'function') hubRefreshRole();
   initOnboarding();                          // 首次进入引导（全新浏览器才弹，老用户静默回填零打扰）
   injectGlobalDock();                        // 全站玻璃底栏 dock（9/16 之之：+ FAB 砍掉——全站只有计划页有 data-fab-add 接杆，软导航残留后其他页全是死按钮）
   initListSearch();                          // 列表页 .ui-search 即时过滤（data-search-input + data-search-target）

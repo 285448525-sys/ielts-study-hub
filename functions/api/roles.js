@@ -16,7 +16,9 @@
 //
 // 接口（鉴权口径与 /api/sync 完全一致：X-Session 头 → sess:<token> → email）：
 //   GET  /api/roles?action=me        → { ok, acct, role }
-//   GET  /api/roles?action=students  → { ok, students:[{email,nickname,lastActive}] }（只回邮箱+昵称，不回任何数据）
+//   GET  /api/roles?action=students  → { ok, students:[{email,nickname,lastActive}] }
+//        只回邮箱 + 最近活跃时间（nickname 恒为空串，10-22 起列表不再读学生 blob）；
+//        **绝不回任何学习数据**。
 //   GET  /api/roles?view=<email>     → 老师看学生（只读；必须在自己 bind 列表内）
 //       回包只搬白名单字段：成绩记录（分数与时间）/ 学习时长（按模块）/ 词汇掌握度（各级词量统计）/
 //       口语与写作提交原文（教学批改必要）。**绝不整包透传 DATA**，绝不回 token / settings（含服药）/ relayToken。
@@ -90,21 +92,6 @@ async function bindOf(kv, email) {
 /* 邮箱账号 → 云端数据键（与 /api/auth 的 acctKey() 同族；数据键由 /api/sync 写） */
 function syncKeyOf(email) { return 'sync:e:' + String(email || '').trim().toLowerCase(); }
 function metaKeyOf(email) { return 'meta:e:' + String(email || '').trim().toLowerCase(); }
-
-/* 从云端 blob 里取昵称，但**不做整份 JSON.parse**（blob 已进 MB 时代，解析会吃掉 Workers 的 CPU 预算）。
-   settings.name 是 settings 的第一个键（data.js 默认值顺序），取 settings 起 4000 字符内找一次即可；
-   找不到就回空串，由前端回落成邮箱前缀 —— 不允许为了一个昵称把整份数据 parse 一遍。 */
-function nicknameOfRaw(raw) {
-  if (!raw) return '';
-  try {
-    const i = raw.indexOf('"settings"');
-    if (i < 0) return '';
-    const seg = raw.slice(i, i + 4000);
-    const m = /"name"\s*:\s*"((?:[^"\\]|\\.){1,40})"/.exec(seg);
-    if (!m) return '';
-    return JSON.parse('"' + m[1] + '"');
-  } catch (e) { return ''; }
-}
 
 /* ── 白名单视图构建（老师看学生）──────────────────────────────────────────
    只搬这四类，字段全部显式点出来 —— 不 Object.assign(data)、不透传任何整包。 */
@@ -253,12 +240,17 @@ export async function onRequest(context) {
     /* 以下全部要求 teacher / root —— 普通用户 403（fail closed，绝不因为读不到角色就放行） */
     if (!role) return json({ ok: false, error: 'forbidden', msg: '没有查看权限' }, 403);
 
-    /* ── 绑定学生列表：只回邮箱 + 昵称 + 最近活跃，不回任何学习数据 ── */
+    /* ── 绑定学生列表：只回邮箱 + 最近活跃，不回任何学习数据 ──
+       🔴 10-22 第二批（她批的「推荐 ④」）：**列表不读学生云端 blob**。
+       初版为了拿昵称会对每个学生 get 一次 sync blob（已 MB 级）→ 50 人 = 50 次大 IO，必然超时。
+       现在列表只给「邮箱 + 最近活跃时间」，昵称由前端显示邮箱前缀；
+       真实昵称在 view=<email> 里回（那时本来就要读整份数据，顺便就有）。
+       meta / user 两个键都是几十字节的小键，读它们不心疼。 */
     if (action === 'students') {
       const list = await bindOf(kv, acct);
       const out = [];
       for (const e of list) {
-        let lastActive = 0, nickname = '';
+        let lastActive = 0;
         try {
           const mRaw = await kv.get(metaKeyOf(e));
           if (mRaw) { const m = JSON.parse(mRaw); lastActive = Number(m && m.ts) || 0; }
@@ -270,8 +262,7 @@ export async function onRequest(context) {
             lastActive = Number(u && u.created) || 0;
           }
         } catch (err) {}
-        try { nickname = nicknameOfRaw(await kv.get(syncKeyOf(e))); } catch (err) { nickname = ''; }
-        out.push({ email: e, nickname: nickname, lastActive: lastActive });
+        out.push({ email: e, nickname: '', lastActive: lastActive });
       }
       return json({ ok: true, acct: acct, role: role, students: out });
     }

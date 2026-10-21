@@ -97,6 +97,12 @@
 
     const items = G.items.slice();
     if(G.key === 'me' && medsOn()) items.push({ id:'meds', name:'服药', desc:'专注达药效窗口' });
+    /* 三级权限（10-22 第二批）：管理员在「我的」组里也能进「学生数据」。
+       手机端底部 dock 只有四个组、侧栏是抽屉 —— 这里是最容易被找到的位置。
+       角色读本地缓存（普通用户 / 未登录 → 看不到）；真正的门在 /api/roles。 */
+    if(G.key === 'me' && typeof hubIsAdmin === 'function' && hubIsAdmin()){
+      items.unshift({ id:'teacher', name:'学生数据', desc:'绑定学生的学情（只读）' });
+    }
 
     let h = '';
     h += '<div class="hubg-head">'

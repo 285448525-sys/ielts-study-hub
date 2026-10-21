@@ -15,6 +15,8 @@ const ICON = {
   review:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4v16h15"/><path d="M9 14v4M13 10v8M17 6v12"/></svg>',
   settings:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>',
   wrongbook:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"/><path d="M9 7l1.5 3 3 .5-2 2 .5 3-3-1.5-3 1.5.5-3-2-2 3-.5z"/></svg>',
+  /* teacher（10-22 三级权限第二批）：人 + 加号 —— 「管理名单里的人」，只对管理员显示 */
+  teacher:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 20v-1.6c0-2-1.7-3.6-3.8-3.6H6.8C4.7 14.8 3 16.4 3 18.4V20"/><circle cx="9.5" cy="8" r="3.4"/><path d="M17 11.5h4M19 9.5v4"/></svg>',
   /* vip：钻石图标 stroke 写死金色（转化入口要跟学习模块区分开；不动 CSS 免全站 bump） */
   vip:'<svg viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20M9.5 9L12 3l2.5 6M12 21L9.5 9M12 21l2.5-12"/></svg>'
 };
@@ -46,7 +48,12 @@ const PAGES = [
      所以在 PAGES 里显式声明 hubScript:'hubgroup'，由软导航那段特殊处理。 */
   { id:'plans-hub', file:'plans-hub.html', icon:ICON.plans,     name:'计划组', desc:'计划 + 计时' },
   { id:'study',     file:'study.html',     icon:ICON.practice,  name:'学习组', desc:'单词 · 口语 · 写作 · 句子' },
-  { id:'me',        file:'me.html',        icon:ICON.settings,  name:'我的组', desc:'回顾 · 会员 · 设置' }
+  { id:'me',        file:'me.html',        icon:ICON.settings,  name:'我的组', desc:'回顾 · 会员 · 设置' },
+  /* 2026-10-22 三级权限第二批：老师端「学生数据」（只读看绑定学生）。
+     ⚠️ 这里登记 = 软导航按 id 找 js/teacher.js + 搜索/组页卡能查到它；
+        但它**不在 PRIMARY_NAV / MORE_NAV 里** → 侧栏是否出现由角色决定（见 injectNav 末尾）。
+     铁律：不在任何入口文案里承诺「老师能改学生数据」—— 整页只读。 */
+  { id:'teacher',   file:'teacher.html',   icon:ICON.teacher,  name:'学生数据', desc:'绑定学生的学情（只读）' }
 ];
 
 /* 收藏页面（⭐）——侧边栏「常用」与首页「快捷入口」共用同一份，永远同步。
@@ -106,6 +113,12 @@ function topBarHtml(current){
     moreItems += '<a class="tb-more-item' + (p.file === current ? ' on' : '') + '" href="' + p.file + '" data-id="' + p.id + '">'
       + '<span class="tm-ic">' + p.icon + '</span><span>' + escapeHtml(p.name) + '</span></a>';
   }
+  /* 三级权限（10-22）：管理员在首页顶栏「更多」里也要能进「学生数据」 */
+  if(hubIsAdmin()){
+    const tp = pageById('teacher');
+    if(tp) moreItems += '<a class="tb-more-item' + (tp.file === current ? ' on' : '') + '" href="' + tp.file + '" data-id="' + tp.id + '">'
+      + '<span class="tm-ic">' + tp.icon + '</span><span>' + escapeHtml(tp.name) + '</span></a>';
+  }
   return '<a class="tb-logo" href="home.html"><i aria-hidden="true">雅</i><span>IELTS</span></a>'
     + '<nav class="tb-caps" aria-label="主导航">' + caps
     + '<div class="tb-more">'
@@ -157,6 +170,70 @@ function bindTopBar(){
       if(e.key === 'Escape' && !panel.hidden){ setOpen(false); btn.focus(); }
     });
   }
+}
+
+/* ===== 三级权限（10-22 第二批）：入口显隐 =====
+   🔴 角色**绝不进 DATA**（DATA 整份上云、本机可改）；这里缓存的只是**服务端回的结论**，
+      用途仅限「要不要显示入口」，**不承担鉴权** —— 真正的门在 functions/api/roles.js（fail closed）。
+   缓存键独立（hub_role_v1），服务端回包 no-store；取消管理员后下一次进页面缓存就会被改回 user。
+   为什么要有缓存：injectNav() 是同步渲染，而 /api/roles 是异步的 —— 没有同步值就永远画不出入口。 */
+const ROLE_CACHE_KEY = 'hub_role_v1';
+let _roleFetching = null, _roleFetchedAt = 0;
+
+function hubRoleCached(){
+  try{
+    if(typeof authToken === 'function' && !authToken()) return '';
+    const r = String(localStorage.getItem(ROLE_CACHE_KEY) || '');
+    return (r === 'teacher' || r === 'root') ? r : '';
+  }catch(e){ return ''; }
+}
+function hubIsAdmin(){ return !!hubRoleCached(); }
+
+/* 侧栏「学生数据」右上角那枚「只读」小标签的样式：
+   只为一条导航项动全站 common.css 不值得（要 20 页一起 bump），
+   这里自注入 —— 与 feedback.js 的 #fbStyle 同一套做法。 */
+function injectRoleNavStyle(){
+  if(document.getElementById('hubRoleNavStyle')) return;
+  try{
+    const st = document.createElement('style');
+    st.id = 'hubRoleNavStyle';
+    st.textContent =
+      '.side-item .side-ro{margin-left:auto;flex:none;font-size:9.5px;font-weight:800;'
+      + 'color:var(--primary-text);background:var(--surface);border:1px solid var(--primary-100);'
+      + 'border-radius:20px;padding:0 5px;letter-spacing:.02em;line-height:15px}'
+      + '.side-collapsed .side-item .side-ro{display:none}'
+      + '@media(max-width:860px){.side-item .side-ro{display:none}}';
+    document.head.appendChild(st);
+  }catch(e){}
+}
+
+/* 拉一次自己的角色；变了才重建外壳（避免无谓的侧栏重绘 + 高亮闪烁） */
+function hubRefreshRole(){
+  try{
+    if(typeof authToken !== 'function' || !authToken()) return Promise.resolve('');
+    if(_roleFetching) return _roleFetching;
+    if(_roleFetchedAt && Date.now() - _roleFetchedAt < 30000) return Promise.resolve(hubRoleCached());
+    const before = hubRoleCached();
+    _roleFetching = fetch('/api/roles?action=me', {
+      headers: { 'X-Session': authToken() },
+      cache: 'no-store'
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(j => {
+        const raw = (j && typeof j.role === 'string') ? j.role : '';
+        const now = (raw === 'teacher' || raw === 'root') ? raw : '';
+        try{ localStorage.setItem(ROLE_CACHE_KEY, raw || 'user'); }catch(e){}
+        _roleFetchedAt = Date.now();
+        if(now !== before){
+          try{ injectNav(); }catch(e){}
+          try{ window.dispatchEvent(new CustomEvent('hub:role', { detail: { role: now } })); }catch(e){}
+        }
+        return now;
+      })
+      .catch(() => hubRoleCached());
+    _roleFetching.then(() => { _roleFetching = null; });
+    return _roleFetching;
+  }catch(e){ return Promise.resolve(hubRoleCached()); }
 }
 
 function injectNav(){
@@ -224,6 +301,19 @@ function injectNav(){
     if(pid === 'meds' && !medsModuleOn()) continue;    // 服药模块未开启 → 侧栏不出现
     const p = pageById(pid); if(p) html += sideItem(p, current);
   }
+  /* 三级权限（10-22）：管理员（机构教师 / 系统管理员）才多一格「学生数据」。
+     普通用户 / 未登录 → 一个字都不出现（页面本身另有 fail-closed 门，这里只是别给假入口）。 */
+  if(hubIsAdmin()){
+    const tp = pageById('teacher');
+    if(tp){
+      injectRoleNavStyle();
+      html += '<div class="side-sep" role="separator"></div>'
+        + '<a class="side-item' + (tp.file === current ? ' active' : '') + '" href="' + tp.file + '"'
+        + ' data-name="' + escapeHtml(tp.name) + '" data-id="' + tp.id + '">'
+        + '<span class="nav-icon">' + tp.icon + '</span><span class="side-label">' + escapeHtml(tp.name) + '</span>'
+        + '<span class="side-ro">只读</span></a>';
+    }
+  }
   /* 10/5 她 14:36 要求：侧栏/抽屉不再单独挂「意见反馈」入口，**收进设置页最后一个分组**。
      理由 = 设置页本来就是「个人配置 + 账号 + 反馈」的地方，侧栏条目越加越长反而不是核心功能。
      ⚠️ 移动端「更多」抽屉（MORE_NAV 那条）**保留** —— 抽屉在窄屏是主导航，
@@ -248,7 +338,9 @@ const SIDE_SEARCH_PAGES = [
   { id:'wrongbook', kw:'错句本 错句 默写 wrong' },
   { id:'review',    kw:'回顾 复习 成绩 模考 记录 轨迹 历史 看板 review' },
   { id:'settings',  kw:'设置 配置 同步 api key 账号 数据 导出 导入 settings' },
-  { id:'meds',      kw:'服药 用药 药 专注达 健康 药效 meds' }
+  { id:'meds',      kw:'服药 用药 药 专注达 健康 药效 meds' },
+  /* 三级权限（10-22）：只对管理员可见，ssMatchPages 里按角色过滤 */
+  { id:'teacher',   kw:'学生 数据 学情 老师 教师 机构 管理员 学员 students teacher' }
 ];
 let _ssAiToken = 0;   // 查词请求序号：过期响应直接丢弃
 let _ssAiBusy = false;
@@ -262,6 +354,7 @@ function ssMatchPages(q){
   const hits = [];
   for(const p of SIDE_SEARCH_PAGES){
     if(p.id === 'meds' && !medsModuleOn()) continue;    // 服药模块未开启 → 搜索不命中
+    if(p.id === 'teacher' && !hubIsAdmin()) continue;   // 老师端只对管理员可搜（10-22）
     const page = PAGES.find(x => x.id === p.id);
     if(!page) continue;
     const hay = (page.name + ' ' + p.kw + ' ' + (page.desc || '')).toLowerCase();

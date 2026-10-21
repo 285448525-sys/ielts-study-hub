@@ -1099,6 +1099,13 @@ function prefetchAll(curId){
   }
   try{ (typeof favPageIds === 'function' ? favPageIds() : []).forEach(push); }catch(e){}
   PAGES.forEach(p => push(p.id));
+  /* 10-22：老师端页面只对管理员开放 —— 普通用户不必为它多下一次 HTML+JS（约 40KB）。
+     判定用同步缓存（hubIsAdmin），角色还没拉回来时不预取；真管理员首次进页面照常加载，
+     之后 prefetchAll 的下一轮会补上。 */
+  if(typeof hubIsAdmin === 'function' && !hubIsAdmin()){
+    const iT = order.indexOf('teacher');
+    if(iT >= 0) order.splice(iT, 1);
+  }
   let i = 0;
   const step = () => {
     if(_softNavBusy){ idle(step); return; }   // 10/8 导航优先：预热链在切页期间挂起（不丢进度，i 不前进）

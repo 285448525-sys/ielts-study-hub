@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://api.deepseek.com; object-src 'none'; base-uri 'none'" />
+<!-- frame-ancestors 只由 HTTP 响应头下发（CF Pages 根目录 _headers）：按 CSP 规范它写在 meta 里会被浏览器忽略 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<title>学生数据 · 雅思备考 Hub</title>
+<link rel="stylesheet" href="css/common.css?v=20261020a" />
+<link rel="stylesheet" href="css/p/teacher.css?v=20261022a" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
+<link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
+<link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png?v=7">
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#3a9a93" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="description" content="管理员（机构教师）查看自己绑定学生的学习记录：成绩、学习时长、词汇掌握度与练习提交原文，只读。" />
+<meta name="robots" content="noindex" />
+</head>
+<body>
+<div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div></div>
+<nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
+
+<!-- 三级权限第二批（2026-10-22）：老师端「学生数据」页。
+     🔴 整页只读：除了名单搜索框，没有任何可编辑控件；提交原文一律转义后渲染。
+     数据全部来自 /api/roles（白名单四块），**不读本地 DATA** —— 老师看的是学生云端的真数据，
+     不是自己浏览器里那份。 -->
+<main class="container tch-wrap">
+  <div id="tchRoot">
+    <!-- 骨架屏：形状 = 真实布局形状（左名单 + 右详情），内容到了不跳位 -->
+    <div class="tch-skel" aria-hidden="true">
+      <div class="skel-row"><span class="skel-av"></span><span class="skel-bar w42"></span></div>
+      <div class="skel-bar w66"></div>
+      <div class="skel-bar h72"></div>
+      <div class="skel-bar h72"></div>
+      <div class="skel-bar h96"></div>
+    </div>
+  </div>
+</main>
+
+<script defer src="js/data.js?v=20261021e"></script>
+<script defer src="js/common.js?v=20261022a"></script>
+<script defer src="js/common-ai.js?v=20261022a"></script>
+<script defer src="js/common-sync.js?v=20261022a"></script>
+<script defer src="js/common-merge.js?v=20261022a"></script>
+<script defer src="js/common-cloud.js?v=20261022a"></script>
+<script defer src="js/common-shell.js?v=20261022a"></script>
+<script defer src="js/common-pwa.js?v=20261022a"></script>
+<script defer src="js/teacher.js?v=20261022a"></script>
+</body>
+</html>
