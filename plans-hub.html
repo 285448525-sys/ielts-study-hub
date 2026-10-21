@@ -19,7 +19,11 @@
 </script>
 </head>
 <!-- data-hub-group：js/hubgroup.js 靠它决定渲染哪个组（G 的唯一依据） -->
-<body data-shell="top" data-hub-group="plans">
+<body data-shell="top" data-hub-group="plans" data-hub-desk-redirect="plans.html">
+<!-- 10-22 第 1 小步：这三张是**手机的中间层目录页**（手机底栏 4 格指到这里），PC 端没有存在意义 ——
+     电脑宽度下直接送到真实页面，避免「点两次才到目的地」「目录页把导航又抄一遍」。手机/窄屏一律不动。 -->
+<script>/* 必须在首屏渲染前跑（放在所有脚本之前）；判据只认宽度，与底栏注入口径一致（≤860 才算手机） */
+(function(){try{if(!window.matchMedia('(min-width:861px)').matches)return;location.replace('plans.html');}catch(e){}})();</script>
 <div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div></div>
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 
