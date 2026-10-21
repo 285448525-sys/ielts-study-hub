@@ -203,10 +203,20 @@
 .rec-yday-due{margin-top:0;background:transparent;padding:8px 2px 2px}
 .rec-yday-due a{font-size:13px}
 
-/* ===== 桌面：主列撑满视口（弹性行高吃满剩余空间 = 驾驶舱观感） ===== */
+/* ===== 桌面：主列撑满视口（弹性行高吃满剩余空间 = 驾驶舱观感） =====
+   🔴 10-21 23:0x 她要求「100% 缩放下首页一屏占满、不需要滑动」。
+   实测根因：.container 通用内边距是 28/14/**48**，首页只覆盖了顶部 12px，
+   而这里的 calc 一直按「44 + 36」算 —— 底部实际是 48，于是文档恒定比视口高 **24px**
+   （1920×950 / 1600×860 / 1440×800 / 1366×660 四档溢出一模一样的 24px，最容易误判成内容太多）。
+   修法：首页把底部内边距也压到 12，calc 改成「顶栏 44 + 上 12 + 下 12」→ 两端对齐，
+   溢出一律为 0；内容本身一格没动。 */
 @media (min-width:861px){
-  .hmain{min-height:calc(100vh - 44px - 36px - env(safe-area-inset-top))}
-  .hrail{min-height:calc(100vh - 44px - 36px - env(safe-area-inset-top))}
+  body.hub-home .container{padding-bottom:12px}
+  .hmain{min-height:calc(100vh - 44px - 12px - 12px - env(safe-area-inset-top))}
+  .hrail{min-height:calc(100vh - 44px - 12px - 12px - env(safe-area-inset-top))}
+  /* ⚠️ 试过让 2×2 模块卡 flex:1 吃掉剩余高度来「填满」—— 1080p 下四张卡会变成 226px 高的大空框，
+     非常难看（截图在 design/_shots_notimer_1022/desk_home_stretch_bad.png）。所以**不做**这种硬撑。
+     剩余高度留给「今天先做…/今日任务」那一段自然呼吸（她的真实账号有今日任务，会比我这里空 profile 满）。 */
 }
 
 /* ===== 窄屏（≤860px）：顶栏只留 logo + 头像；侧轨折成顶部折叠块 ===== */

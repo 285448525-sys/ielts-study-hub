@@ -30,7 +30,7 @@
 </script>
 <title>首页 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261021a" />
-<link rel="stylesheet" href="css/p/home.css?v=20261021e" />
+<link rel="stylesheet" href="css/p/home.css?v=20261022a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png?v=7">
@@ -167,14 +167,12 @@
     </aside>
   </div>
 
-  <!-- 今日学习记录（首屏预算之外，保留可滚看） -->
-  <section class="rec">
-    <div class="rec-h">
-      <h3>今日学习记录</h3>
-      <span class="rec-total">总计 <b id="dashRecTotal">0h0m</b></span>
-    </div>
-    <div class="rec-body" id="dashRecBody"></div>
-  </section>
+  <!-- 🔴 10-21 23:0x 她拍板删除：「下面多了一块那个计时的东西（今日学习记录条形图），
+       感觉有点多余，我平常也不会看那个东西」。
+       顺带达成她的另一个要求：首页在 100% 缩放下**一屏占满、不需要滚动** ——
+       这块正是把首屏顶出视口、逼出纵向滚动的那一段。
+       数据没删：每模块时长仍在 DATA.sessions 里，回顾页（review.html）照常看。
+       ⚠️ index.js 的 renderRec 已有 `if(!bodyEl) return;` 守卫，删掉节点不会报错。-->
 
   <!-- 10/5 23:50 她拍板删除：底部「📦 安装到桌面，离线也能用」入口整块下线（原因与铁律见 git 历史）；
        manifest/SW 离线能力保留不动。-->

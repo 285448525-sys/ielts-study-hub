@@ -66,7 +66,7 @@
 // 未改任何加载策略/脚本顺序（HANDOFF 铁律：defer 顺序是契约，动它会连带出事）。
 // common.js → 20261013ad（25 页）、index.js → 20261017a（仅 home.html）、
 // bank.js → 20261012ac（仅 bank.html）。上一版 v409。
-const CACHE = 'ielts-hub-v450';;;;;  // 10-21 22:4x 她拍板「直接不要计时了」：撤掉「计时」这个手动入口（导航/搜索/收藏/底栏/首页 4 处全换），timer.html 文件与自动计时引擎保留
+const CACHE = 'ielts-hub-v451';;;;;  // 10-21 23:0x 首页删「今日学习记录」块 + 修 24px 纵向溢出（一屏不滚）
    // 里命中已有词的分支原调 resetWordProgress（level=0 + nextReview=今天 = 归零重背），太狠——一个已 Lv 6（60 天档）的
    // 词只是词表里又出现一次就被打回今天。新增 demoteWordProgress(w)：level-1（Math.max(0,…) 兜底，最早到 Lv 0）
    // 🔑 **必须同步降 dh**：design/77 起 level 只是 dh 的显示代理（displayLevelFromH 由 dh 反推、答对时
