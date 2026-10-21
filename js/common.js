@@ -76,6 +76,13 @@ function favPageIds(){
    模考（站内最大资产 415 篇真题 + 「30 秒练上第一题」落点）→ 口语/写作（AI 核心卖点）→
    单词（每日习惯）→ 句子 → 计划/计时（工具归位）→ 回顾。分隔线下方不变。 */
 const PRIMARY_NAV = ['index','bank','speaking','writing','practice','corpus','plans','timer'];
+/* ⭐ 10-22 她拍板（design/116 决策②）：组页不在顶栏 8 个胶囊里，直接换过去会「全都不亮」，
+   看起来像没有当前位置 → 按归属高亮：学习组→单词、计划组→计划、我的组→设置。
+   学生数据页故意不映射（它是独立身份，不属于任何学习模块）。
+   ⚠️ 顶栏渲染（topBarHtml）与软导航高亮（updateActiveNav）必须共用这一份映射，
+      否则「点进去亮的是 A、后退回来亮的是别的」这类不一致一定复发。 */
+const CAP_ACTIVE = { 'plans-hub.html':'plans.html', 'study.html':'practice.html', 'me.html':'settings.html' };
+function capActiveFile(file){ return CAP_ACTIVE[file] || file; }
 /* 10/1 付费方案：vip 放分隔线下方首位（销售入口显眼但不挤占学习导航；她看过效果可再调位置） */
 const MORE_NAV    = ['vip','review','meds','settings'];
 const TAB_NAV     = ['index','timer','practice','speaking'];   // 旧 tabbar 主项（组件已删，仅用于计算「更多」弹层要收纳哪些页面）
@@ -91,6 +98,7 @@ const TAB_LABEL   = { practice:'背词' };
    行为零分叉；A3b 的形态差异只在 CSS（186px 紧凑框 + Ctrl K 角标）。 */
 function topBarHtml(current){
   const pageById = id => PAGES.find(p => p.id === id);
+  const activeFile = capActiveFile(current);
   const _AV_SET = new Set(['user-f1','user-f2','user-f3','user-f4','user-m1','user-m2','user-m3','user-m4']);
   const _avRaw = (typeof DATA !== 'undefined' && DATA.settings) ? DATA.settings.avatar : '';
   const _avMe2 = 'img/avatars/' + (_AV_SET.has(_avRaw) ? _avRaw : 'user-f1') + '.svg';
@@ -103,14 +111,14 @@ function topBarHtml(current){
   for(const pid of PRIMARY_NAV){
     if(pid === 'timer') continue;
     const p = pageById(pid); if(!p) continue;
-    caps += '<a class="tb-item' + (p.file === current ? ' on' : '') + '" href="' + p.file + '" data-id="' + p.id + '">' + escapeHtml(p.name) + '</a>';
+    caps += '<a class="tb-item' + (p.file === activeFile ? ' on' : '') + '" href="' + p.file + '" data-id="' + p.id + '">' + escapeHtml(p.name) + '</a>';
   }
   // 「更多」面板 = 侧栏 MORE_NAV + 计时 + 错句本（服药模块未开不出现）
   let moreItems = '';
   for(const pid of ['timer','wrongbook','review','vip','settings','meds']){
     if(pid === 'meds' && !medsModuleOn()) continue;
     const p = pageById(pid); if(!p) continue;
-    moreItems += '<a class="tb-more-item' + (p.file === current ? ' on' : '') + '" href="' + p.file + '" data-id="' + p.id + '">'
+    moreItems += '<a class="tb-more-item' + (p.file === activeFile ? ' on' : '') + '" href="' + p.file + '" data-id="' + p.id + '">'
       + '<span class="tm-ic">' + p.icon + '</span><span>' + escapeHtml(p.name) + '</span></a>';
   }
   /* 三级权限（10-22）：管理员在首页顶栏「更多」里也要能进「学生数据」 */
@@ -239,14 +247,20 @@ function hubRefreshRole(){
 function injectNav(){
   const nav = document.getElementById('mainNav');
   if(!nav) return;
-  if(DATA.settings && DATA.settings.collapsed && !document.body.classList.contains('hub-home')) document.body.classList.add('side-collapsed');
   const current = _hubCurrentFile || normalizePageFile(location.pathname.split('/').pop() || 'home.html');
   _hubCurrentFile = current;   // 记住真实当前页，供软导航期间被 injectNav 复用（pathname 此时滞后）
   const pageById = id => PAGES.find(p => p.id === id);
 
-  /* design/113A3a：home 走顶栏分支（body.hub-home 让 common.css 的 288px 左侧留白退掉） */
-  if(current === 'home.html'){
-    document.body.classList.add('hub-home');
+  /* ⭐ 10-22 全站换顶栏（design/116 第 0 批）：壳改成**页面自己声明** ——
+     `<body data-shell="top">` 就是顶栏，没有这个属性就是原 288px 侧栏。
+     旧写法是写死 `current === 'home.html'`，导致每换一页都要改本文件（等于每批都得全站 bump）；
+     现在以后每换一页只改那一页 HTML，本文件不再动。
+     两个概念分开：data-shell = 「用哪种壳」；body.hub-home = 「这是首页驾驶舱」（home.css 的布局靠它）。 */
+  const wantsTop = document.body.getAttribute('data-shell') === 'top';
+  if(DATA.settings && DATA.settings.collapsed && !wantsTop) document.body.classList.add('side-collapsed');
+
+  if(wantsTop){
+    document.body.classList.toggle('hub-home', current === 'home.html');
     nav.className = 'hub-topbar';
     nav.setAttribute('aria-label', '顶部导航');
     nav.innerHTML = topBarHtml(current);

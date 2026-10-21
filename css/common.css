@@ -2471,3 +2471,87 @@ body.hub-exam-locked #eaTime,
 body.hub-exam-locked #exTimer{
   font-variant-numeric:tabular-nums;
 }
+
+/* ==================== 顶栏外壳（10-22 第一批地基：从 css/p/home.css 上搬，全站共用） ====================
+   谁用顶栏 = **页面自己声明** `<body data-shell="top">`：
+     · common.js injectNav 读这个属性 → 渲染 .hub-topbar 或原 288px 侧栏
+     · common-shell.js softNavigate 跨页时比对目标页的同一属性 → 需要换壳才重建导航
+   这样以后每换一页只改那一页的 HTML，不碰全站文件（旧写法是 injectNav 里写死 current==='home.html'）。
+   ⚠️ 这里**只管壳**：首页驾驶舱自己的布局（主列 + 232px 侧轨、弹性行高）仍留在 css/p/home.css。 */
+body[data-shell="top"]{padding-left:0;padding-right:0}
+body[data-shell="top"] .container{padding-top:14px}
+
+.hub-topbar{position:fixed;top:0;left:0;right:0;height:calc(44px + env(safe-area-inset-top));
+  padding:env(safe-area-inset-top) 16px 0;display:flex;align-items:center;gap:14px;z-index:50;
+  background:rgba(255,255,255,.86);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);
+  border-bottom:1px solid var(--line);box-shadow:0 1px 2px rgba(16,24,40,.04)}
+[data-theme="dark"] .hub-topbar{background:rgba(26,26,28,.82)}
+
+.tb-logo{display:flex;align-items:center;gap:7px;font-weight:800;font-size:12.5px;letter-spacing:.02em;
+  color:var(--ink);text-decoration:none;flex:none}
+.tb-logo i{width:24px;height:24px;border-radius:7px;background:linear-gradient(135deg,var(--primary-400),var(--primary-600));
+  display:grid;place-items:center;color:#fff;font-style:normal;font-size:12px;font-weight:800}
+
+/* 胶囊导航：8 项（首页 模考 口语 写作 单词 句子 计划 更多） */
+.tb-caps{display:flex;align-items:center;gap:2px;background:var(--n-50);border:1px solid var(--line);
+  border-radius:999px;padding:2px;flex:none;margin:0 auto}
+.tb-item{font-size:12.5px;font-weight:700;color:var(--muted);text-decoration:none;padding:5px 12px;
+  border-radius:999px;white-space:nowrap;transition:background .16s,color .16s;border:0;background:transparent;
+  font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:4px;line-height:1.4}
+.tb-item:hover{color:var(--ink);background:var(--surface)}
+.tb-item.on{background:var(--primary-500);color:#fff}
+.tb-item:focus-visible{outline:2px solid var(--primary-600);outline-offset:1px}
+
+/* 「更多」下拉 */
+.tb-more{position:relative}
+.tb-more-btn svg{transition:transform .18s}
+.tb-more-btn[aria-expanded="true"] svg{transform:rotate(180deg)}
+.tb-more-panel{position:absolute;top:calc(100% + 8px);right:0;min-width:178px;z-index:70;
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow-md,0 12px 28px -14px rgba(16,24,40,.25));
+  padding:6px;display:flex;flex-direction:column;gap:1px}
+.tb-more-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;text-decoration:none;
+  color:var(--ink);font-size:13px;font-weight:600;white-space:nowrap}
+.tb-more-item:hover{background:var(--primary-50);color:var(--primary-700)}
+.tb-more-item.on{background:var(--primary-50);color:var(--primary-700)}
+.tb-more-item .tm-ic{width:16px;height:16px;flex:none;display:inline-flex;color:var(--muted)}
+.tb-more-item .tm-ic svg{width:16px;height:16px}
+
+/* 右侧：搜索框（186px 紧凑框 + Ctrl K）· 计时徽标 · 头像 */
+.tb-right{display:flex;align-items:center;gap:10px;flex:none}
+.tb-search{position:relative;width:186px}
+.tb-search .ui-search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;
+  color:var(--muted);pointer-events:none}
+.hub-topbar .ui-search-input{width:100%;height:28px;border:1px solid var(--line);border-radius:999px;
+  background:var(--n-50);padding:0 46px 0 30px;font-size:12.5px;font-family:inherit;color:var(--ink)}
+.hub-topbar .ui-search-input::placeholder{color:var(--n-500)}
+.hub-topbar .ui-search-input:focus{outline:none;border-color:var(--primary-300);box-shadow:0 0 0 3px var(--primary-soft);background:var(--surface)}
+.tb-search kbd{position:absolute;right:7px;top:50%;transform:translateY(-50%);font-size:10px;font-weight:700;
+  color:var(--n-500);border:1px solid var(--line);border-radius:5px;padding:1px 4px;background:var(--surface);
+  pointer-events:none;font-family:inherit;letter-spacing:.02em}
+.tb-search .ss-panel{left:auto;right:0;min-width:296px}
+
+.hub-topbar .side-timer-wrap{margin:0}
+.tb-me{flex:none;width:28px;height:28px;border-radius:50%;overflow:hidden;border:1.5px solid var(--line);
+  background:var(--primary-50);display:block;transition:border-color .15s,transform .12s}
+.tb-me:hover{border-color:var(--primary);transform:translateY(-1px)}
+.tb-me img{width:100%;height:100%;object-fit:cover;display:block}
+.tb-me--guest svg{width:16px;height:16px;display:block;color:var(--muted);margin:auto}
+.tb-me--guest{display:grid;place-items:center}
+
+/* 离线条 / 新版本条：原来贴顶 10px，换顶栏后会被压住 → 让一条顶栏高度 */
+body[data-shell="top"] .offline-bar,
+body[data-shell="top"] .sw-update-bar{top:calc(44px + env(safe-area-inset-top) + 10px)}
+
+@media (min-width:861px){
+  body[data-shell="top"]{padding-top:calc(44px + env(safe-area-inset-top))}
+}
+@media (max-width:860px){
+  body[data-shell="top"]{padding-top:calc(44px + env(safe-area-inset-top))}
+  .hub-topbar{padding-left:12px;padding-right:12px}
+  /* 手机上顶栏不是导航（导航走底部 dock），只留身份：logo + 计时 + 头像 */
+  .tb-caps,.tb-search{display:none}
+  .tb-right{margin-left:auto}
+}
+@media (max-width:560px){
+  body[data-shell="top"] .container{padding-top:10px}
+}

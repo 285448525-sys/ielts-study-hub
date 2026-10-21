@@ -822,9 +822,24 @@ async function softNavigate(t, isPop){
        放在 _hubCurrentFile 已写之后：injectNav 重读它 → 渲染正确外壳 + 正确高亮。
        重建只发生在跨边界那一次（顶栏 44px / 侧栏一次性重建，观感等价整页跳转但无刷新）。
        点击路径有 showHubLoader 遮住；popstate 路径在内容交换后同帧完成，无可感闪烁。 */
+    /* 🔴 10-22 全站换顶栏（design/116 第 0 批）：壳现在由**目标页自己**的 <body data-shell="top"> 决定，
+       不再写死 home。软导航只换 <main>，body 属性不会跟着变 → 跨壳边界时必须先把属性同步过来再重建导航，
+       否则就是「内容是新页、壳还是上一页的」（这个坑 homea3a 那批已经实锤过一次）。
+       hub-home 仍只表示「首页驾驶舱」：从首页进组页时壳没变、但布局类必须摘掉，所以也进同一个判断。 */
     try{
+      const _wantTop  = !!(doc.body && doc.body.getAttribute('data-shell') === 'top');
+      const _hasTop   = document.body.getAttribute('data-shell') === 'top';
       const _wantHome = (t.file === 'home.html');
-      if(_wantHome !== document.body.classList.contains('hub-home') && typeof injectNav === 'function') injectNav();
+      const _hasHome  = document.body.classList.contains('hub-home');
+      if(_wantTop !== _hasTop || _wantHome !== _hasHome){
+        if(_wantTop) document.body.setAttribute('data-shell', 'top');
+        else document.body.removeAttribute('data-shell');
+        if(typeof injectNav === 'function') injectNav();
+      }else if(typeof updateActiveNav === 'function'){
+        /* 壳没变（例如「首页 → 我的组」都是顶栏）→ 不重建导航（重建会重复绑监听），
+           但高亮必须跟着走，否则顶栏一直亮着上一页。 */
+        updateActiveNav(t.file);
+      }
     }catch(e){ console.error('[soft-nav] 导航换壳失败', e); }
     syncBodyPageAttrs(doc);
     /* 🔴 10/6 01:55 换页必须回到顶部 —— 修「每次点进单词页都默认滑在底部，学习和词库被遮住」。
@@ -902,12 +917,14 @@ function updateActiveNav(file){
     nav.querySelectorAll('.side-item').forEach(a => {
       a.classList.toggle('active', a.getAttribute('href') === file);
     });
-    /* design/113A3a：home 顶栏胶囊 + 「更多」面板条目高亮（与 .side-item 同一写入点） */
+    /* design/113A3a：home 顶栏胶囊 + 「更多」面板条目高亮（与 .side-item 同一写入点）
+       10-22：文件→胶囊的归属映射走 capActiveFile（学习组亮「单词」等），保证与顶栏渲染同口径 */
+    const _capFile = (typeof capActiveFile === 'function') ? capActiveFile(file) : file;
     nav.querySelectorAll('.tb-item').forEach(a => {
-      a.classList.toggle('on', a.getAttribute('href') === file);
+      a.classList.toggle('on', a.getAttribute('href') === _capFile);
     });
     nav.querySelectorAll('.tb-more-item').forEach(a => {
-      a.classList.toggle('on', a.getAttribute('href') === file);
+      a.classList.toggle('on', a.getAttribute('href') === _capFile);
     });
   }
   // 同步「更多」弹层高亮（design/56；旧 tabbar 高亮已随组件删除）
