@@ -384,7 +384,7 @@ button.mini.danger:hover{background:var(--bad-bg);border-color:var(--bad)}
     <p class="desc">收到转账后在这里手动开通；会员状态只存服务端（用户改本地数据无效）；续费自动从现到期日顺延</p>
     <div class="toolbar">
       <label class="muted">账号</label>
-      <input class="small" id="vipAcct" placeholder="注册邮箱 / 手机号 / 用户名" style="width:240px" maxlength="60" />   <!-- 10/16：原 maxlength=20 邮箱根本输不完 + placeholder 没提邮箱 -->
+      <input class="small" id="vipAcct" placeholder="注册邮箱（存量老账号也可填手机号/用户名）" style="width:240px" maxlength="60" />   <!-- 10/16：原 maxlength=20 邮箱根本输不完 + placeholder 没提邮箱；10/21：登录只认邮箱，管理面仍兼容存量老账号 -->
       <label class="muted">天数</label>
       <input class="small" id="vipDays" type="number" min="1" max="3650" value="30" style="width:76px" />
       <button class="btn ghost small" data-vdays="30" type="button">月(30)</button>
@@ -884,7 +884,7 @@ button.mini.danger:hover{background:var(--bad-bg);border-color:var(--bad)}
 
   /* ---------- 用量趋势图（10/5 P3）----------
      用内联 SVG 画，不用 canvas：① 缩放不糊 ② 可直接 hover <title> 看数值 ③ 零依赖。
-     ⚠️ 用 JS innerHTML 拼 <svg> 在部分浏览器不渲染 —— 本项目已踩过（记忆铁律），
+     ⚠️ 用 JS innerHTML 拼图标节点在部分浏览器不渲染 —— 本项目已踩过（记忆铁律），
         故这里用 document.createElementNS 逐节点建，不用字符串拼。 */
   var trendMetric = 'calls';
   /* 单价状态：说清「成本为什么是 0」+ 一个就地设置入口（省得她去 Cloudflare 后台） */
@@ -1339,7 +1339,9 @@ button.mini.danger:hover{background:var(--bad-bg);border-color:var(--bad)}
     var permanent = $('vipPermanent') && $('vipPermanent').checked;   // 她 10/1：站长本人永久会员
     var note = ($('vipNote').value || '').trim();
     $('vipErr').textContent = '';
-    /* 10/16 与 /api/admin 的 isAcct 口径对齐：邮箱账号（邮箱注册体系）同样可发会员 */
+    /* 10/16 与 /api/admin 的 isAcct 口径对齐：邮箱账号（邮箱注册体系）同样可发会员
+       10/21 登录收窄为邮箱-only 后本行**故意不收窄**：管理面要能继续处理存量老账号（手机号/用户名），
+       否则那批号在面板里成了「看得见、改不了」的僵尸记录。 */
     if(!/^(?:[a-z0-9_]{6,20}|[^\s@]+@[^\s@]+\.[^\s@]{2,})$/.test(acct)){ $('vipErr').textContent = '账号格式：邮箱 或 6-20 位数字/字母/下划线'; return; }
     if(!permanent && !(days >= 1 && days <= 3650)){ $('vipErr').textContent = '天数请填 1-3650'; return; }
     $('grantBtn').disabled = true;

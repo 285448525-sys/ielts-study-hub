@@ -41,7 +41,8 @@ function json(obj, status) {
 }
 
 /* 从 KV 解出「当前请求是否具备付费权限」。
-   口径与 /api/sync 完全一致：sess:<token> → { acct | phone }。
+   口径与 /api/sync 完全一致：sess:<token> → { acct }（10/21 账号收窄为邮箱-only，
+   老记录里可能还有 phone 字段，这里不再认——手机号通道前后端已整体删除）。
    任何异常一律当作「无付费权限」（fail closed），绝不因为报错而放行。 */
 async function paidAllowed(env, sid) {
   if (!sid || !/^[0-9a-f]{32,128}$/.test(sid)) return false;
@@ -49,7 +50,7 @@ async function paidAllowed(env, sid) {
     const raw = await env.SYNC_KV.get('sess:' + sid);
     if (!raw) return false;
     const s = JSON.parse(raw);
-    const acct = String((s && (s.acct || s.phone)) || '').trim();
+    const acct = String((s && s.acct) || '').trim();
     if (!acct) return false;
     /* 过期判断：sess 记录若有 exp 字段且已过期 → 拒绝。
        老记录没有 exp（/api/auth 早期写入）时不判过期，与 sync 的口径保持一致。 */

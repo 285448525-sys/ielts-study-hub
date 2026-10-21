@@ -3,7 +3,7 @@
 /* ==SPLIT-BANNER== ⚠️ 改动任一 common-*.js 后，20 个页面里这一组 <script> 的 ?v= 必须整组一起换；工具 scripts/bump-assets.cjs */
 
 /* ===== 云端同步（Cloudflare Pages Function + KV） =====
-   10/1 起账号 = 手机号/用户名 + 密码（/api/auth），/api/sync 凭 session token（X-Session 头）读写。
+   10/21 起账号 = 邮箱 + 密码（/api/auth），/api/sync 凭 session token（X-Session 头）读写。
    旧「X-Sync-Key 手机号直连」通道已下线（无鉴权的安全账）。
    非 Cloudflare 部署时 /api/sync 会 404，所有调用都会优雅降级（不报错、不弹窗刷屏）。 */
 let _cloudTimer = null;
@@ -122,12 +122,13 @@ function getDeviceId(){
   return id;
 }
 
-/* ===== 10/1 账号认证（手机号 + 密码）=====
+/* ===== 10/21 账号认证（邮箱 + 密码）=====
    老体系「手机号即凭证、X-Sync-Key 直连」已彻底下线（那正是本次要还的安全账）。
-   现在：/api/auth register/login/change/reset/logout，/api/sync 只认 session token。
+   现在：/api/auth email_code/email_register/login/change/email_reset/logout，/api/sync 只认 session token。
+   10/21 她拍板「只能邮箱登录」→ 手机号/用户名注册登录前后端全删，账号只有邮箱一种形态。
    token 存 localStorage['hub_auth_token']（绝不进 DATA——DATA 会整份上云）；
-   DATA.settings.syncCode 继续当「账号标识」用（大量旧逻辑读它），由登录流程写入。
-   忘记密码走「恢复码找回」（注册时生成、明文只显示一次，服务端只存哈希）——她拍板的方案。 */
+   DATA.settings.syncCode 继续当「账号标识」用（大量旧逻辑读它），由登录流程写入（现在是邮箱）。
+   忘记密码走「邮箱验证码重置」（email_reset）。 */
 const AUTH_TOKEN_KEY = 'hub_auth_token';
 function authToken(){ try{ return localStorage.getItem(AUTH_TOKEN_KEY) || ''; }catch(e){ return ''; } }
 
@@ -408,7 +409,7 @@ function stripCloudFields(d){
 /* 设置里允许跨设备同步的字段。
    说明：pronunciationScore（发音分）/ fluencyScore（流利度自填分）/ theme（主题）/ chimeOnDone（完成提示音）纳入同步。
    ⚠️ relayToken（AI Key）自 design/62 起**不再同步**：上传出口 stripCloudFields 已剥离、服务端二次剥离；
-   换设备 / 清缓存后需在本机重填一次 Key。理由：手机号即全部凭证，Key 落云端等于额度可被凭手机号取走。
+   换设备 / 清缓存后需在本机重填一次 Key。理由：账号是全部凭证，Key 落云端等于额度可被凭账号取走。
    syncCode 是账号标识本身不重复同步；autoSync 是本地开关、不跨设备同步（设计：绑了账号就自动同步）。
    合并规则见 mergeData：空值（未填/被清空）永不覆盖另一侧已填值，杜绝「空值带新时间戳把本机 Key 冲掉」。 */
 /* 9/26：补 practiceCfg —— 背词设置整体（每日学习上限 dailyCap / 题型 / 选项数 / 自动发音 …）

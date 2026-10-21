@@ -30,14 +30,14 @@ setTimeout(__rvRescue,2500);
 
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
-<script defer src="js/data.js?v=20261020g"></script>
-  <script defer src="js/common.js?v=20261021b"></script>
-  <script defer src="js/common-ai.js?v=20261021b"></script>
-  <script defer src="js/common-sync.js?v=20261021b"></script>
-  <script defer src="js/common-merge.js?v=20261021b"></script>
-  <script defer src="js/common-cloud.js?v=20261021b"></script>
-  <script defer src="js/common-shell.js?v=20261021b"></script>
-  <script defer src="js/common-pwa.js?v=20261021b"></script>
+<script defer src="js/data.js?v=20261021e"></script>
+  <script defer src="js/common.js?v=20261021e"></script>
+  <script defer src="js/common-ai.js?v=20261021e"></script>
+  <script defer src="js/common-sync.js?v=20261021e"></script>
+  <script defer src="js/common-merge.js?v=20261021e"></script>
+  <script defer src="js/common-cloud.js?v=20261021e"></script>
+  <script defer src="js/common-shell.js?v=20261021e"></script>
+  <script defer src="js/common-pwa.js?v=20261021e"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
   <script src="js/pricing.js?v=20261012a" defer></script>
   <script src="js/vip.js?v=20261012a" defer></script>
@@ -61,10 +61,15 @@ setTimeout(__rvRescue,2500);
 
 <!-- 🔴 10/13 修渲染 bug：pricing.js 的对比表用 <use href="#i-check"/> 引用 sprite，
      但全站从未定义过这两个 symbol（10/12 批1 把静态表搬进 pricing.js 时丢了 sprite）——
-     勾/锁图标全部空白，且 <svg> 无尺寸时默认 300×150px，空 SVG 把列直接撑爆
+     勾/锁图标全部空白，且无尺寸的图标容器默认 300×150px，空 SVG 把列直接撑爆
      （她 23:52 报的「渲染还有 bug」= 表格列宽失衡、表头漂移的元凶）。
      用 currentColor 继承单元格文字色：✓ 跟 .yes（teal 深）、🔒 跟 .no（muted）。 -->
-<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+<!-- ⚠️ aria-hidden 是 TODO 里「纯图标按钮的 svg 是唯一可访问名」的例外情形：
+     本 sprite 只是给 pricing.js 的 <use href="#i-check"/> 提供 symbol 定义，
+     真正被朗读的图标是 <use> 生成的副本（pricing.js 自己管 aria-label），
+     这个容器本身不进可访问树，加 role="presentation" 双保险。
+     （注意：本注释与上一条注释里出现的 svg 字样都是说明文字，不是真标签。） -->
+<svg width="0" height="0" style="position:absolute" role="presentation" aria-hidden="true" focusable="false">
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
 </svg>

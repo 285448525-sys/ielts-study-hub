@@ -218,54 +218,12 @@ function applyAuthSuccess(acct, token){
   renderSyncState();
 }
 
-/* 登录（手机号/用户名 + 密码） */
-async function authLogin(acct, password){
-  acct = String(acct || '').trim().toLowerCase();
-  syncSetStatus('正在登录…', '');
-  let j;
-  try{ j = await authApiPost({ action:'login', acct: acct, password: password }); }
-  catch(e){
-    if(e.code === 'no_user'){
-      syncSetStatus('该账号还没设置过密码：点「设置密码」完成首次绑定，本机/云端数据会自动接上', 'error');
-      return { ok:false, needRegister:true, msg:e.message };
-    }
-    syncSetStatus('❌ ' + e.message, 'error');
-    return { ok:false, msg:e.message };
-  }
-  applyAuthSuccess(acct, j.token);
-  syncSetStatus('✅ 登录成功，云端数据已合并', 'ok');
-  toast('登录成功');
-  return { ok:true, msg:'登录成功' };
-}
-
-/* 首次设置密码（= 注册）。老用户（只绑过手机号）同样走这里，云端老数据自动接上。
-   inviteCode：站长邀请码（10/1 商业化拍板，注册必填；服务端校验 inv:<CODE> 键，注册成功才消耗）。
-   成功返回 { ok, acct, password }（恢复码已按她 10/1 拍板整套下线，注册成功由 UI 层直接走 authFinishRegister 自动登录）。 */
-async function authRegister(acct, password, inviteCode){
-  acct = String(acct || '').trim().toLowerCase();
-  if(typeof password !== 'string' || password.length < 6 || password.length > 64){
-    syncSetStatus('密码至少 6 位（最长 64 位）', 'error'); return { ok:false };
-  }
-  syncSetStatus('正在设置密码…', '');
-  const payload = { action:'register', acct: acct, password: password };
-  const ic = String(inviteCode || '').trim();
-  if(ic) payload.inviteCode = ic;
-  let j;
-  try{ j = await authApiPost(payload); }
-  catch(e){
-    if(e.code === 'already_registered'){
-      syncSetStatus('该账号已设置过密码，直接登录即可', 'error');
-      return { ok:false, needLogin:true, msg:e.message };
-    }
-    syncSetStatus('❌ ' + e.message, 'error');
-    return { ok:false, msg:e.message };
-  }
-  return { ok:true, acct: acct, password: password, vipGranted: (j && j.vipGranted) || 0 };   // vipGranted>0 = 内测码注册送了会员 N 天（她 10/1 二次拍板）
-}
-/* 注册成功后：自动登录进同步状态 */
-async function authFinishRegister(acct, password){
-  return authLogin(acct, password);
-}
+/* 🔴 10/21 删除（她拍板「只能邮箱登录，所有跟手机号还是用户名登录的前后端全删掉」）：
+   这里原有 authLogin(acct,password) / authRegister(acct,password,inviteCode) / authFinishRegister 三个函数，
+   走的是老「手机号/用户名 + 密码」通道（服务端 action:'register' 已同步删除）。
+   删前全仓核对过调用方：设置页 10/3 就不调了（见 js/settings.js 注释），登录页 10/15 起自己 post
+   （login.html 里直接 authApiPost），**产品代码零调用**——所以是纯删死代码，不影响任何页面。
+   邮箱登录/注册全在 login.html 内完成；改密码 authChangePassword、登出 authLogout 仍保留在下方。 */
 
 /* 修改密码（登录态）。session 保留，其他设备不受影响 */
 async function authChangePassword(oldPassword, newPassword){
@@ -297,8 +255,8 @@ async function authLogout(){
 /* 诊断：明确告诉用户后端到底卡在哪一步（不静默） */
 async function syncDiagnose(){
   const phone = DATA.settings.syncCode;
-  if(!phone){ syncSetStatus('请先登录（手机号/用户名 + 密码）', 'error'); return; }
-  if(!authToken()){ syncSetStatus('账号 ' + phone + ' 还没设置密码或登录已过期：请重新登录', 'error'); return; }
+  if(!phone){ syncSetStatus('请先登录（邮箱 + 密码）', 'error'); return; }
+  if(!authToken()){ syncSetStatus('账号 ' + phone + ' 的登录已过期：请重新登录', 'error'); return; }
   syncSetStatus('正在探测云端…', '');
   try{
     const [res, data] = await syncApi('GET');
@@ -332,7 +290,7 @@ function renderSyncState(){
   if(!el) return;
   const phone = DATA.settings.syncCode || '';
   if(!phone){ el.textContent = '尚未绑定账号'; renderLastSync(); return; }
-  if(!authToken()){ el.textContent = '账号 ' + phone + '：还没设置密码（或登录已过期），登录后才能同步'; renderLastSync(); return; }
+  if(!authToken()){ el.textContent = '账号 ' + phone + '：登录已过期，重新登录后才能同步'; renderLastSync(); return; }
   /* 10/5 她 14:29：「已登录已登录，它旁边这个自动同步开，这句话不用显示，反正都是默认开着的」
      → 删掉「（自动同步：开/关）」。**但「关」的情况不能静默消失** —— 那是有用信息，
      只在真的关掉时才提示（否则用户以为同步开着其实没开）。 */

@@ -1,8 +1,8 @@
 /* 数据层：localStorage 读写与默认数据 */
 const HUB_KEY = 'ielts_study_hub_v1';
 
-/* ⚠️ 登录凭证隔离存储（根治「登录状态/Key/手机号频繁丢失」）：
-   账号凭证（手机号 syncCode / AI Key relayToken / 发音分 pronunciationScore / 自动同步 autoSync）
+/* ⚠️ 登录凭证隔离存储（根治「登录状态/Key/账号频繁丢失」）：
+   账号凭证（邮箱 syncCode / AI Key relayToken / 发音分 pronunciationScore / 自动同步 autoSync）
    与 _fieldTs 单独镜像到独立的 localStorage 键，与 HUB_KEY 主数据 blob 完全解耦。
    - 绝不参与 cloud 合并（mergeData 只动 DATA，不碰本键）；
    - 绝不参与 autoCleanOldBank（该函数只处理 HUB_KEY，不引用本键）；
@@ -2438,7 +2438,7 @@ function hubLoad(){
       }
     }
     // 账号凭证自愈：若主 blob 被清空/丢失 syncCode/relayToken（历史 autoClean removeItem 等 bug），
-    // 从隔离凭证键回填，保证「登录状态/Key/手机号」跨会话可靠保留、不被意外清除。
+    // 从隔离凭证键回填，保证「登录状态/Key/账号」跨会话可靠保留、不被意外清除。
     // ⚠️ 必须在 if(raw) 之外调用：当 HUB_KEY 整体被 removeItem 时 raw 为 null，
     //    若放在 if(raw) 内则永远跳过、凭证丢失（正是用户「退出重进东西又不见了」的真因）。
     restoreCredsIfMissing();
@@ -2843,7 +2843,7 @@ function hubSave(){
   try{
     DATA._lastSaved = Date.now();   // 记录本机保存时间，供云端下载比对新旧（Bug17）
     localStorage.setItem(HUB_KEY, JSON.stringify(DATA));
-    saveCredsMirror();              // 同步镜像账号凭证到隔离键，确保 Key/手机号永不因主 blob 被清而丢失
+    saveCredsMirror();              // 同步镜像账号凭证到隔离键，确保 Key/账号永不因主 blob 被清而丢失
   }
   catch(e){
     // 9/23：区分「配额满」与「存储被禁」。iPhone Safari 配额按 UTF-16 算只有 ~5MB（桌面 Chrome/Edge 10MB），

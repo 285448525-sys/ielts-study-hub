@@ -160,10 +160,11 @@ function saveSettings(){
 /* 讯飞语音配置已移除（录音 / 转写功能已下线，发音分改由设置里的固定分提供） */
 
 
-/* ===== 10/1 手机号/用户名 + 密码 认证UI =====
-   服务端 /api/auth（register/login/change/logout），session token 由 common.js 管理。
+/* ===== 10/1 账号 + 密码 认证UI（10/21 起账号只认邮箱） =====
+   服务端 /api/auth（email_register/login/change/email_reset/logout），session token 由 common.js 管理。
    10/3 22:55：未登录态不再裸填表单 —— 改成「未登录 + 说明 + 一个去 login.html 的引导键」
    （DOM #syncLoginForm 整块删除，换成 #syncGuestBox；改密/退出仍留本页）。
+   10/21：手机号/用户名通道前后端全删，登录注册只在 login.html 完成，本页只管改密与退出。
    恢复码机制已整套下线（她 10/1 拍板）。*/
 function renderAuthUI(){
   const loggedIn = !!(DATA.settings.syncCode && typeof authToken === 'function' && authToken());

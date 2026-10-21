@@ -100,12 +100,19 @@ async function listAll(kv, prefix) {
 
 /* ===== 10/16 邮箱账号支持（她报「换邮箱登录后一直未登录」时一并修的联动面）=====
    口径与 /api/auth 完全一致（见其 acctKey()）：
-     · 账号本体（acct）= 裸邮箱 或 手机号/用户名；面板上显示、以及 vip:/manual:/aiq* 等
+     · 账号本体（acct）= 裸邮箱；面板上显示、以及 vip:/manual:/aiq* 等
        按账号存的键，**一律用裸 acct**（auth.js 就是这么写的）；
      · 只有「用户记录」带命名空间前缀：邮箱 → user:e:<email>，其余 → user:<账号>。
    所以：从 KV 键反推账号名时要**剥掉 e: 前缀**，读写用户记录时要**用 userKeyOf() 补前缀**。
    此前面板只认 6-20 位用户名/手机号 → 邮箱账号在列表里显示成 e:xxx@yy.com、发会员写错键
-   （vip:e:... ≠ vip:xxx@yy.com → 登录读到的是 null，会员等于没开）。 */
+   （vip:e:... ≠ vip:xxx@yy.com → 登录读到的是 null，会员等于没开）。
+
+   ⭐ 10/21 账号收窄为邮箱-only 后的口径说明（**不是漏改**）：
+   本站**登录/注册**只认邮箱（/api/auth 与 /api/sync 的正则已收窄成纯邮箱）。
+   但本文件的 isAcct 是**站长管理入参**校验，不是登录通道——它必须继续接受
+   「6-20 位用户名/手机号」，因为 10/21 之前注册的存量账号（含我留下的探针号）
+   键名就是 user:<acct>，收窄后这些号会变成「面板里看得见、却改不了判、发不了会员、
+   清理不掉」的僵尸记录。她的原话是删「登录前后端」，管理面保留存量兼容才不留坑。 */
 function isAcct(a) { return /^(?:[a-z0-9_]{6,20}|[^\s@]+@[^\s@]+\.[^\s@]{2,})$/.test(String(a || '')); }
 function bareAcct(keyName, prefixLen) { return String(keyName).slice(prefixLen).replace(/^e:/, ''); }
 function userKeyOf(acct) {

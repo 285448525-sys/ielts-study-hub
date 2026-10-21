@@ -20,7 +20,7 @@ const ONB_USER_FIELDS = ['words','sessions','plans','speakingStories','errorbook
 let _onbShownThisLoad = false;
 
 ready(() => { hubLoad();
-  if(typeof restoreCredsIfMissing === 'function') restoreCredsIfMissing();  // 早恢复：确保登录状态/Key/手机号在云端同步启动前已就位
+  if(typeof restoreCredsIfMissing === 'function') restoreCredsIfMissing();  // 早恢复：确保登录状态/Key/账号在云端同步启动前已就位
   injectLoadingOverlay();                              // 注入全站跳转加载遮罩（默认隐藏，点击站内链接时显示）
   initBootLoader();                                    // 收起首屏内联遮罩（覆盖 Ctrl+F5 / 整页跳转的卡顿）
   initFloatTimer();                                   // 注入全站计时悬浮标签（跨页常驻，运行中显示）
@@ -231,7 +231,7 @@ function deleteWrongItem(key){
    首次进入引导（9/30 重写 · 五步）
    1 欢迎 → 2 考试日期 + 目标总分 → 3 每日投入 → 4 词库 → 5 完成
    与旧版 v1 的差异（她 9/30 拍板）：
-   - 去掉「手机号登录 / 游客」步（不再是进站门槛），改在完成页给一条轻提醒 + 「去设置」按钮；
+   - 去掉「账号登录 / 游客」步（不再是进站门槛），改在完成页给一条轻提醒 + 「去设置」按钮；
    - 去掉「AI Key」步（之后 Key 走 CF 中转内置，用户不再自己填）；
    - 骨架借 SaaS 引导：顶部细进度条 + 居中卡 + 左右横滑 + 完成页打勾；皮肤是本站 teal + 白卡。
    设计要点：

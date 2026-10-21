@@ -599,7 +599,7 @@ function mergeData(local, cloud){
     };
     if(JSON.stringify(_outMs) !== JSON.stringify(_lm)){ out.materialSets = _outMs; changes++; }
   }
-  // 合并后同步镜像账号凭证到隔离键（云端可能带来/更新 Key/手机号/发音分，务必落盘镜像）
+  // 合并后同步镜像账号凭证到隔离键（云端可能带来/更新 Key/账号/发音分，务必落盘镜像）
   if(typeof saveCredsMirror === 'function') saveCredsMirror();
   return { data: out, changes };
 }

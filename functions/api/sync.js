@@ -1,6 +1,6 @@
 // Cloudflare Pages Function: /api/sync
 // 按「登录账号」读写 KV（SYNC_KV）。
-//   ⭐ 10/1 起账号 = 手机号 + 密码（/api/auth：register/login/change/reset/logout），
+//   ⭐ 10/21 起账号 = 邮箱 + 密码（/api/auth：email_register/login/change/email_reset/logout），
 //   本接口凭 session token（X-Session 头，sendBeacon 兜底走 ?session= 参数）读写数据——
 //   「手机号即凭证」的旧通道（X-Sync-Key / ?code=）已彻底下线，那正是本次改造要还的账。
 //   相同账号 = 同一份云端数据（多设备共享）。
@@ -18,7 +18,7 @@
 //      根因回顾：此前 PUT 完全无版本校验，任何一端都能无条件整份覆盖云端，
 //      两台设备各自 push 自己的快照 = 互相抹掉对方进度（她实测到的数据回滚/丢，不是配额问题）。
 //   2) meta 影子键 meta:<ns>，只存 { ts, bytes, hash }（约 200B）。
-//      （ns = 账号命名空间：邮箱是 e:<email>，手机号/用户名是账号本身；见下方 acctKey 口径）
+//      （ns = 账号命名空间：10/21 起只有邮箱 e:<email> 一种；老手机号/用户名键名只读保留）
 //      GET ?meta=1 时先读它做「云端有没有变」的轻量探测 —— 没变就完全不下载 1.7MB 全量，
 //      流量与 CPU 降两个数量级（轮询因此可以加密到 12s 而不增加负担）。
 //      meta 缺失（本次部署前写入的老数据）时按需从主键算出来并懒写回，自愈。
@@ -117,17 +117,15 @@ async function handleRequest(context) {
      旧口径只认 /^[a-z0-9_]{6,20}$/（用户名/手机号）→ **邮箱账号的 session 在这里被判非法**
      → 本接口一律 401「登录已过期」→ 前端 401 处理会 setAuthToken('') 把 token 清掉
      → 侧栏立刻变回「未登录」。表现就是「怎么登录都显示没登录」，登录本身其实是成功的。
-     成因：10/13 加邮箱注册时只改了 /api/auth（ACCT_RE + acctKey 命名空间），本文件漏改
-     （它最后一次改动是 10/5，早于邮箱体系）。
-     现与 /api/auth 的 ACCT_RE 口径一致；数据键命名空间也与 acctKey() 对齐：
-     邮箱 → sync:e:<email> / meta:e:<email>，其余（手机号/用户名）键名原样不变。 */
-  const ACCT_RE = /^(?:[a-z0-9_]{6,20}|[^\s@]+@[^\s@]+\.[^\s@]{2,})$/;
+     ⭐ 10/21：账号收窄为邮箱-only，正则随之收窄成纯邮箱（与 /api/auth、admin.js 三处同步）。
+     数据键命名空间：邮箱 → sync:e:<email> / meta:e:<email>；老手机号/用户名键名只读保留。 */
+  const ACCT_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   let acct = '';
   try {
     const sRaw = await env.SYNC_KV.get('sess:' + sid);
     if (sRaw) {
       const s = JSON.parse(sRaw);
-      const a = String((s && (s.acct || s.phone)) || '').trim().toLowerCase();
+      const a = String((s && s.acct) || '').trim().toLowerCase();
       if (ACCT_RE.test(a)) acct = a;
     }
   } catch (e) {}

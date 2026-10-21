@@ -125,13 +125,13 @@ input::placeholder{color:var(--n-500)}
     <div class="card form">
       <!-- 顶部小品牌条 -->
       <div class="mini-brand">
-        <i aria-hidden="true"><svg viewBox="0 0 512 512" fill="none"><g fill="#ffffff" stroke="#ffffff" stroke-width="38" stroke-linejoin="round" stroke-linecap="round"><path d="M256 136 L344 194 L256 252 L168 194 Z"/><path d="M160 304 L212 304 L256 362 L300 304 L352 304 L352 354 Q352 394 256 394 Q160 394 160 354 Z"/></g></svg></i>
+        <i aria-hidden="true"><svg viewBox="0 0 512 512" fill="none" aria-hidden="true" focusable="false"><g fill="#ffffff" stroke="#ffffff" stroke-width="38" stroke-linejoin="round" stroke-linecap="round"><path d="M256 136 L344 194 L256 252 L168 194 Z"/><path d="M160 304 L212 304 L256 362 L300 304 L352 304 L352 354 Q352 394 256 394 Q160 394 160 354 Z"/></g></svg></i>
         <div class="mb-txt"><b>雅思备考站</b><span>机考备考系统</span></div>
       </div>
       <!-- 10/13 她拍板：主流程改「邮箱 + 验证码」——原「手机号/用户名 + 密码」的 ACCT_RE
            只校验格式不校验真实，123456 都能注册，一个真人可无限换号薅邀请会员。
            邮箱验证码把注册成本抬到「一个真实邮箱」，挡住批量薅羊毛。
-           下方保留「账号密码登录」入口给老账号（10/13 前注册的），数据不丢、照常登录。 -->
+           ⭐ 10/21 收尾：手机号/用户名通道前后端全删，账号只剩邮箱一种形态。 -->
       <div id="modeLogin">
         <h2>登录学习台</h2>
         <p class="desc">进入你的备考空间，继续背词、串题和刷题。</p>
@@ -182,7 +182,7 @@ input::placeholder{color:var(--n-500)}
           <div class="em-modal-mask"></div>
           <div class="em-modal-card">
             <h3>重置密码</h3>
-            <p class="em-modal-desc">邮箱账号可以自助重置：填邮箱收验证码，再设新密码。老手机号 / 用户名账号没绑邮箱，重置不了——去「意见反馈」找站长。</p>
+            <p class="em-modal-desc">填注册邮箱收验证码，再设新密码。账号就是邮箱，没有别的找回方式。</p>
             <input id="rsEmail" type="email" placeholder="你的注册邮箱" autocomplete="email" />
             <div class="em-modal-btns" style="margin-top:8px"><button class="btn btn-ghost" id="rsSend" type="button">获取验证码</button></div>
             <input id="rsCode" placeholder="6 位验证码" autocomplete="one-time-code" maxlength="6" />
@@ -203,7 +203,8 @@ input::placeholder{color:var(--n-500)}
       </div>
 
       <!-- 10/15 她拍板：删掉「账号密码登录（老用户）」通道，只留邮箱登录。
-           老账号（手机号/用户名）的数据仍在云端，后续如需迁移再单独处理。 -->
+           10/21 她再次拍板「只能邮箱登录」→ 老手机号/用户名账号的**登录入口已从前端和后端一并删除**
+           （auth.js 的 register 分支也删了），云端数据仍在 user:<acct> / sync:<acct> 键下没动。 -->
 
       <!-- 注册模式（10/15 她拍板：邮箱 + 密码 + 验证码 + 邀请码(选填) 四个框，同一页切换不开新页） -->
       <div id="modeRegister" class="hidden">
@@ -244,8 +245,11 @@ input::placeholder{color:var(--n-500)}
       back.href = 'settings.html';
     }
   })();
-  /* 10/13：放开邮箱（注册改邮箱+验证码后，登录 acct 就是邮箱）。与服务端 auth.js 同口径。 */
-var ACCT_RE = /^(?:[a-z0-9_]{6,20}|[^\s@]+@[^\s@]+\.[^\s@]{2,})$/;
+  /* ⭐ 10/21 她拍板：只能邮箱登录。手机号/用户名通道前后端全删，正则收窄成纯邮箱。
+     本文件此前这行 ACCT_RE 声明了却一次都没被引用（登录按钮自己内联写正则）——
+     现在改成唯一口径，登录按钮直接用它，避免「改了正则没生效」的老坑。
+     与服务端 functions/api/auth.js、sync.js 完全一致，改一处必须同步另两处。 */
+var ACCT_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
   /* 已登录（token + 本机账号）直接进站，不再看登录页 */
   try{
@@ -346,7 +350,7 @@ var ACCT_RE = /^(?:[a-z0-9_]{6,20}|[^\s@]+@[^\s@]+\.[^\s@]{2,})$/;
   if (ge) ge.addEventListener('click', function(){
     var email = ($('emEmail').value || '').trim().toLowerCase();
     var pass  = $('emPass').value || '';
-    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){ note('noteEmail','先填一个正确的邮箱', true); return; }
+    if(!ACCT_RE.test(email)){ note('noteEmail','先填一个正确的邮箱', true); return; }
     if(pass.length < 6){ note('noteEmail','密码至少 6 位', true); return; }
     note('noteEmail','正在登录…', false);
     busy(ge, true, '请稍候');

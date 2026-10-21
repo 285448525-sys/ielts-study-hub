@@ -1,13 +1,16 @@
-// Cloudflare Pages Function: /api/auth —— 账号（手机号/用户名）+ 密码登录（注册 / 登录 / 改密码 / 登出）
+// Cloudflare Pages Function: /api/auth —— 邮箱 + 密码登录（注册 / 登录 / 改密码 / 找回 / 登出）
 //
-// 背景（10/1 她拍板）：邮箱验证码登录要买域名 + Resend（MAIL_API_KEY / MAIL_FROM），先不搞。
-// 改成「手机号 + 密码」，同时补上以前最大的安全洞——「手机号即凭证，任何知道号码的人都能读写云数据」：
-//   · register  手机号/用户名 + 密码 + 邀请码 → PBKDF2 存哈希（绝不存明文）
-//   · login     验密码 → 发 30 天 session token，此后 /api/sync 凭 X-Session token 读写
-//   · change    登录态下验旧密码 → 换新密码（session 保留，其他设备不受影响）
-//   · logout    删 session
-//   找回密码：暂未提供——恢复码机制已按她 10/1 拍板整套下线（太长记不住，比密码还难记）；
-//   手机验证码找回后续版本再做。在此之前忘记密码只能换新号重开（云端老数据归旧键名，不会丢）。
+// ⭐ 10/21 她拍板：**只能邮箱登录**——手机号 / 用户名的注册与登录通道前后端全部删除。
+//   现在账号只有一个形态：一个真实邮箱（必须收得到验证码）。
+//   · email_code      给邮箱发 6 位验证码（Resend；60s 冷却 / 每天 5 封）
+//   · email_register  邮箱 + 验证码 + 密码 + 邀请码(选填) → PBKDF2 存哈希（绝不存明文）
+//   · login           邮箱 + 密码 → 验密码，发 30 天 session token（/api/sync 凭 X-Session 读写）
+//   · change          登录态下验旧密码 → 换新密码（session 保留，其他设备不受影响）
+//   · email_reset     邮箱 + 验证码 → 重设密码（忘了密码的唯一自救路）
+//   · logout          删 session
+//   已删除：老的 `action:'register'`（手机号/用户名 + 密码）与 body.phone 兼容入参。
+//   老的手机号/用户名账号在 KV 里仍是 user:<acct> / sync:<acct> 键，数据一条没删，
+//   只是再也登不进来（她 10/21 明确要的取舍）；需要找回请找站长手工处理。
 //
 // 邀请码（她 10/1 二次拍板=内测会员码）：KV 键 inv:<CODE> = { max, used, created, vipDays? }；注册选填，
 // 用码注册成功自动开会员 vipDays 天（缺省 30）；不填码注册走免费额度。注册成功才消耗。
@@ -15,17 +18,19 @@
 // （她 10/1 要求：不进 CF 后台也能管用户/发码/看数据）。
 //
 // KV 键（SYNC_KV）：
-//   user:<acct>    { salt, hash, rechash?, created }  —— PBKDF2-SHA256 10 万次迭代 + 随机盐
+//   user:e:<email> { salt, hash, created, via:'email' }  —— PBKDF2-SHA256 10 万次迭代 + 随机盐
 //                  （rechash 是恢复码时代的遗留字段：存量账号还带着，新注册/改密不再写入，留着无害）
+//   user:<acct>    —— 10/21 前手机号/用户名账号的老记录，只读保留、不再写入（见下方兼容口径）
 //   sess:<token>   { acct }                           —— TTL 30 天（30 天后需重新登录）
 //   fail:<acct>    登录失败计数（10 次锁 15 分钟，防在线爆破；TTL 自愈）
 //   inv:<CODE>     { max, used, created, vipDays? }      —— 邀请码（注册选填；vipDays=送会员天数；无 TTL）
-//   数据键 sync:<acct> / meta:<acct> 仍归 /api/sync 管，老手机号账号键名不变，老数据原样保留。
+//   数据键 sync:e:<email> / meta:e:<email> 归 /api/sync 管。
 //
-// 兼容口径（老用户迁移）：
-//   · 老用户只有手机号、没设过密码：register 允许「云端已有数据但无密码」的号直接设密码
-//     ——第一个设密码的人接管该号，与旧「手机号即凭证」同级；设完即安全（此后 register → 409）。
-//   · 邮箱账号体系（sync:e: 命名空间）随本次退役：从未真正上线（MAIL_API_KEY 一直没配），零影响。
+// 兼容口径（老账号）：
+//   · 10/21 前用手机号/用户名注册的账号：云端记录与学习数据**一条都没删**（user:<acct> / sync:<acct>），
+//     但登录入口已随本次改造下线——她明确要「只留邮箱登录」。需要恢复请找站长手工迁移。
+//   · 老的「register 允许无密码号直接设密码」通道一并删除：它正是「第一个知道号码的人接管该号」
+//     的漏洞面，留着等于给已下线的手机号通道开一扇后门。
 
 const CORS = {
   'access-control-allow-origin': '*',
@@ -47,12 +52,9 @@ const LOCK_TTL = 15 * 60;                 // 失败锁定 15 分钟
 const MAX_FAILS = 10;
 /* 10/13 注册限流：邮箱验证码挡假邮箱；一人拿一批真邮箱仍可批量注册薅邀请 → 同 IP 每日上限 */
 const REG_PER_IP_PER_DAY = 10;
-// ⭐ 10/1 她拍板：账号 = 手机号 或 自定义用户名（6-20 位数字/字母/下划线，统一小写存储）。
-// 老手机号账号（6-15 位纯数字）天然满足该规则，登录键名不变，云端老数据无缝接上。
-// 🔴 10/13 放开邮箱：注册改「邮箱 + 验证码 + 密码」后，登录时 acct 传的就是邮箱
-//    （如 camille@example.com）——原 ACCT_RE 不含 @/. 会把所有邮箱账号挡在登录外。
-//    规则改为「6-20 位用户名/手机号」或「合法邮箱」，两者取或，老账号零影响。
-const ACCT_RE = /^(?:[a-z0-9_]{6,20}|[^\s@]+@[^\s@]+\.[^\s@]{2,})$/;
+// ⭐ 10/21 她拍板：账号只能是邮箱。手机号/用户名注册登录前后端全删，正则收窄成纯邮箱。
+//   格式口径与前端 login.html / functions/api/sync.js / admin.js 完全一致，改一处必须同步另三处。
+const ACCT_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 /* ===== 邀请裂变常量与工具（10/13 她拍板）=====
 const INVITE_REWARD_DAYS = 7;    /* 双方各得 7 天 */
@@ -101,9 +103,9 @@ async function addVipDays(kv, acct, days) {
   const expire = base + days * 86400000;
   await kv.put('vip:' + acct, JSON.stringify({ type: (cur && cur.type) || 'invite', expire }));
 }
-/* 🔴 10/13：账号 → KV 键名统一入口。邮箱账号存 user:e:<email>（与老手机号/用户名账号隔离），
-   其余（6-20 位用户名/手机号）仍用 user:<acct>，老数据键名不变、无缝登录。
-   login/sessionOf/change 全部改走它，否则邮箱登录会拿裸邮箱当键名去查库 → 永远 no_user。 */
+/* 🔴 10/21：账号 → KV 键名统一入口。邮箱-only 后只剩 user:e:<email> 一种形态。
+   老手机号/用户名账号的 user:<acct> 键仍在云端（数据一条没删），但已无登录入口；
+   这里保留 else 分支，是为了 admin 面板清理存量探针账号时键名能对上，不是给新账号用的。 */
 function acctKey(acct) {
   const a = String(acct || '').trim().toLowerCase();
   return a.indexOf('@') >= 0 ? 'user:e:' + a : 'user:' + a;
@@ -119,7 +121,7 @@ function json(obj, status) {
   });
 }
 
-function badPhone(p) { return !ACCT_RE.test(String(p || '')); }
+function badEmail(p) { return !ACCT_RE.test(String(p || '')); }
 function badPass(p) { return typeof p !== 'string' || p.length < 6 || p.length > 64; }
 
 function bufToHex(buf) {
@@ -157,8 +159,8 @@ async function pbkdf2(password, saltHex) {
 }
 
 /* 失败计数：达到上限返回 true（已锁）。锁定期内直接拒绝，不给验证机会 */
-async function failLock(kv, kind, phone, fails) {
-  const key = 'fail' + kind + ':' + phone;
+async function failLock(kv, kind, acct, fails) {
+  const key = 'fail' + kind + ':' + acct;
   if (fails) {
     const n = parseInt((await kv.get(key)) || '0', 10) + 1;
     await kv.put(key, String(n), { expirationTtl: LOCK_TTL });
@@ -166,7 +168,7 @@ async function failLock(kv, kind, phone, fails) {
   }
   return parseInt((await kv.get(key)) || '0', 10) >= MAX_FAILS;
 }
-const failClear = (kv, kind, phone) => kv.delete('fail' + kind + ':' + phone).catch(() => {});
+const failClear = (kv, kind, acct) => kv.delete('fail' + kind + ':' + acct).catch(() => {});
 
 /* 从 body 或 X-Session 头取 token；返回 sess 记录或 null */
 async function sessionOf(kv, request, body) {
@@ -176,7 +178,7 @@ async function sessionOf(kv, request, body) {
     const raw = await kv.get('sess:' + tok);
     if (!raw) return null;
     const s = JSON.parse(raw);
-    const acct = (s && (s.acct || s.phone)) || '';
+    const acct = String((s && s.acct) || '').trim().toLowerCase();
     return (acct && ACCT_RE.test(acct)) ? { acct, tok } : null;
   } catch (e) { return null; }
 }
@@ -218,50 +220,11 @@ async function handleRequest(context) {
   const kv = env.SYNC_KV;
   const action = body && body.action;
 
-  /* ---------- 注册：账号（手机号/用户名）+ 密码 + 邀请码（选填） ---------- */
-  if (action === 'register') {
-    const acct = String(body.acct || body.phone || '').trim().toLowerCase();
-    const password = String(body.password || '');
-    const invCode = String(body.inviteCode || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-    /* 10/5 P1 · 注册来源标记（修 admin 面板「真人/探针」判定失灵）
-       🔴 事故原委：面板判「真人」的三条硬信号之一是「有 AI 用量」，而**我写测试的探针号每个都真调了 AI**
-          → 满屏 pqb* 全被判成「真人 · 有AI用量」，把判定彻底打败（她 14:26 截图质问）。
-       ✅ 正解 = **让探针自报家门**：注册时带 src:'probe'，面板直接按标记判，不再靠推断。
-       - src 白名单化后才落库（只认 'probe'，其余一律记 'real'）—— 防任意字符串进 user: 键
-       - **判定优先级：src 标记 > 信号推断**（她手动改判的 manual: 仍最高，见 admin.js）
-       - ⚠️ 老账号（本次之前注册）没有 src 字段 → 按信号推断，行为与现在完全一致，零迁移。 */
-    const srcRaw = String(body.src || '').trim();
-    const src = srcRaw === 'probe' ? 'probe' : 'real';
-    if (badPhone(acct)) return json({ ok: false, error: 'bad_phone', msg: '账号格式：6-20 位数字/字母/下划线' }, 400);
-    if (badPass(password)) return json({ ok: false, error: 'bad_password', msg: '密码至少 6 位（最长 64 位）' }, 400);
-    /* 邀请码（她 10/1 二次拍板）：注册自由开放（不填码也能注册，吃免费额度）；
-       填了有效码 = 内测码，注册成功自动开会员 inv.vipDays 天（站长发码时定天数，缺省 30）。
-       填了无效码照样报错（绝不静默降级成普通注册——否则朋友以为有会员结果没有）。 */
-    let inv = null;
-    if (invCode) {
-      try { inv = JSON.parse((await kv.get('inv:' + invCode)) || 'null'); } catch (e) {}
-      if (!inv || !inv.max || (inv.used || 0) >= inv.max) {
-        return json({ ok: false, error: 'bad_invite', msg: '邀请码无效或已用完' }, 403);
-      }
-    }
-    if (await kv.get(acctKey(acct))) {
-      return json({ ok: false, error: 'already_registered', msg: '该账号已设置过密码，直接登录即可' }, 409);
-    }
-    const salt = randHex(16);
-    const hash = await pbkdf2(password, salt);
-    await kv.put(acctKey(acct), JSON.stringify({ salt, hash, created: Date.now(), src: src }));
-    /* 注册成功才消耗邀请码（前面任何一步失败都不吃码）；内测码同时送会员 */
-    let vipGranted = 0;
-    if (inv) {
-      inv.used = (inv.used || 0) + 1;
-      await kv.put('inv:' + invCode, JSON.stringify(inv));
-      const days = Math.max(1, parseInt(inv.vipDays, 10) || 30);   // 发码时定的天数；老码无此字段按 30 兜底
-      const expire = Date.now() + days * 86400000;
-      await kv.put('vip:' + acct, JSON.stringify({ type: 'base', expire, grantedAt: Date.now(), note: 'invite:' + invCode }));
-      vipGranted = days;
-    }
-    return json({ ok: true, vipGranted });
-  }
+  /* ---------- 🔴 10/21 已下线：老「register」（手机号/用户名 + 密码）----------
+     她拍板「只能邮箱登录」，该分支连同 body.phone 兼容入参整体删除。
+     老的调用方（旧版页面缓存里可能还有）会落到文件末尾的 bad_action 兜底，
+     前端拿到的是通用错误——不保留任何能创建非邮箱账号的入口。
+     注册唯一入口 = 下面 email_register（邮箱 + 验证码 + 密码）。 */
 
   /* ---------- 邮箱验证码：发送（10/13 她拍板：注册改邮箱+验证码，堵邀请码被薅）----------
      为什么做：原「手机号/用户名 + 密码」的 ACCT_RE 只校验格式不校验真实性 → 123456/aaaaaa
@@ -412,15 +375,15 @@ async function handleRequest(context) {
     return json({ ok: true, token, acct: email, isNew: true, msg: '注册成功，已自动登录' });
   }
 
-  /* ---------- 登录 ---------- */
+  /* ---------- 登录：邮箱 + 密码 ---------- */
   if (action === 'login') {
-    const acct = String(body.acct || body.phone || '').trim().toLowerCase();
+    const acct = String(body.acct || body.email || '').trim().toLowerCase();
     const password = String(body.password || '');
-    if (badPhone(acct) || badPass(password)) return json({ ok: false, error: 'bad_credentials', msg: '账号或密码不正确' }, 400);
+    if (badEmail(acct) || badPass(password)) return json({ ok: false, error: 'bad_credentials', msg: '账号或密码不正确' }, 400);
     if (await failLock(kv, '', acct, false)) return json({ ok: false, error: 'locked', msg: '尝试次数过多，请 15 分钟后再试' }, 429);
     let rec = null;
     try { rec = JSON.parse((await kv.get(acctKey(acct))) || 'null'); } catch (e) {}
-    if (!rec) return json({ ok: false, error: 'no_user', msg: '该账号还没设置过密码，先「设置密码」（老用户数据会自动接上）' }, 404);
+    if (!rec) return json({ ok: false, error: 'no_user', msg: '这个邮箱还没注册过，先注册（收一次验证码）再登录' }, 404);
     const h = await pbkdf2(password, rec.salt);
     if (h !== rec.hash) {
       await failLock(kv, '', acct, true);
@@ -460,8 +423,7 @@ async function handleRequest(context) {
 
   /* ---------- 找回密码：邮箱验证码重置（10/13 豆包评审点名补齐）----------
      流程：输邮箱 → 收验证码（复用 email_code）→ 填验证码 + 新密码 → 这里重置。
-     ⚠️ 只服务邮箱账号（user:e:<email>）。老手机号/用户名账号没有绑定邮箱，
-        重置不了 —— 前端要如实说明，别给人「填了没反应」的错觉。 */
+     10/21 后账号只有邮箱一种形态，这条就是全站唯一的自救路，没有「另一种账号」要提示。 */
   if (action === 'email_reset') {
     const email = String(body.email || '').trim().toLowerCase();
     const code = String(body.code || '').trim();
@@ -480,7 +442,7 @@ async function handleRequest(context) {
     let rec = null;
     try { rec = JSON.parse((await kv.get(key)) || 'null'); } catch (e) {}
     if (!rec || !rec.hash) {
-      return json({ ok: false, error: 'no_user', msg: '这个邮箱还没注册过（老手机号账号请用「用账号密码登录」）' }, 404);
+      return json({ ok: false, error: 'no_user', msg: '这个邮箱还没注册过，先去注册' }, 404);
     }
     const salt = randHex(16);
     rec.salt = salt;
