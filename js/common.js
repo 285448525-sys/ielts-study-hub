@@ -75,13 +75,114 @@ const TAB_NAV     = ['index','timer','practice','speaking'];   // 旧 tabbar 主
 // 底部 Tab 标签覆盖：practice 在站内含「单词」，但原型/验收确认为「背词」，单独对齐（不改 PAGES 以免影响桌面侧栏）
 const TAB_LABEL   = { practice:'背词' };
 
+/* ===== design/113A3a 落地批：home.html 专属顶栏（胶囊导航 + A3b 搜索框）=====
+   落地顺序（她 10-21 拍板「先做这个」）：先首页+顶栏胶囊，再分页逐个换壳 →
+   本分支只在 current==='home.html' 时走，其他页仍渲染原侧栏（一行未动）。
+   软导航跨边界（home↔其他页）由 common-shell.js softNavigate 触发 injectNav 重建换壳。
+   顶栏样式只在 css/p/home.css（本批仅 home 用；其他页换壳时再上搬 common.css）。
+   搜索框复用侧栏那套 AI 智能搜索（同 id：#sideSearch/#ssPanel/#ssList + bindSideSearch），
+   行为零分叉；A3b 的形态差异只在 CSS（186px 紧凑框 + Ctrl K 角标）。 */
+function topBarHtml(current){
+  const pageById = id => PAGES.find(p => p.id === id);
+  const _AV_SET = new Set(['user-f1','user-f2','user-f3','user-f4','user-m1','user-m2','user-m3','user-m4']);
+  const _avRaw = (typeof DATA !== 'undefined' && DATA.settings) ? DATA.settings.avatar : '';
+  const _avMe2 = 'img/avatars/' + (_AV_SET.has(_avRaw) ? _avRaw : 'user-f1') + '.svg';
+  const _meEl = authToken()
+    ? '<a class="tb-me" href="settings.html" title="换头像" aria-label="换头像"><img src="' + _avMe2 + '" alt=""></a>'
+    : '<a class="tb-me tb-me--guest" href="login.html" title="去登录" aria-label="去登录">'
+      + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c1.2-3.6 4.1-5.4 7.5-5.4s6.3 1.8 7.5 5.4"/></svg></a>';
+  // 胶囊 8 项 = design/113A3 原样：首页/模考/口语/写作/单词/句子/计划/更多（计时进「更多」）
+  let caps = '';
+  for(const pid of PRIMARY_NAV){
+    if(pid === 'timer') continue;
+    const p = pageById(pid); if(!p) continue;
+    caps += '<a class="tb-item' + (p.file === current ? ' on' : '') + '" href="' + p.file + '" data-id="' + p.id + '">' + escapeHtml(p.name) + '</a>';
+  }
+  // 「更多」面板 = 侧栏 MORE_NAV + 计时 + 错句本（服药模块未开不出现）
+  let moreItems = '';
+  for(const pid of ['timer','wrongbook','review','vip','settings','meds']){
+    if(pid === 'meds' && !medsModuleOn()) continue;
+    const p = pageById(pid); if(!p) continue;
+    moreItems += '<a class="tb-more-item' + (p.file === current ? ' on' : '') + '" href="' + p.file + '" data-id="' + p.id + '">'
+      + '<span class="tm-ic">' + p.icon + '</span><span>' + escapeHtml(p.name) + '</span></a>';
+  }
+  return '<a class="tb-logo" href="home.html"><i aria-hidden="true">雅</i><span>IELTS</span></a>'
+    + '<nav class="tb-caps" aria-label="主导航">' + caps
+    + '<div class="tb-more">'
+    + '<button class="tb-item tb-more-btn" id="tbMoreBtn" type="button" aria-expanded="false" aria-haspopup="true" aria-controls="tbMorePanel">更多'
+    + '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg></button>'
+    + '<div class="tb-more-panel" id="tbMorePanel" hidden>' + moreItems + '</div>'
+    + '</div></nav>'
+    + '<div class="tb-right">'
+    + '<div class="tb-search">'
+    + '<svg class="ui-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>'
+    + '<input class="ui-search-input" type="text" id="sideSearch" placeholder="搜索功能、单词、句子" aria-label="搜索" autocomplete="off" title="输入中文搜功能；输入英文单词 AI 查词" />'
+    + '<kbd aria-hidden="true">Ctrl K</kbd>'
+    + '<div class="ss-panel" id="ssPanel" hidden><div id="ssList"></div></div>'
+    + '</div>'
+    + '<div class="side-timer-wrap" id="sideTimer"></div>'
+    + _meEl
+    + '</div>';
+}
+
+function bindTopBar(){
+  // Ctrl/Cmd+K 聚焦顶栏搜索（A3b）：全文档只绑一次，导航重建不叠监听
+  if(!window.__hubCmdKBound){
+    window.__hubCmdKBound = true;
+    document.addEventListener('keydown', (e) => {
+      if((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')){
+        const inp = document.getElementById('sideSearch');
+        if(inp){ e.preventDefault(); try{ inp.focus(); inp.select(); }catch(_){} }
+      }
+    });
+  }
+  const btn = document.getElementById('tbMoreBtn');
+  const panel = document.getElementById('tbMorePanel');
+  if(btn && panel){
+    const setOpen = open => {
+      panel.hidden = !open;
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      btn.classList.toggle('on', open);
+    };
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      setOpen(panel.hidden);
+    });
+    // 点面板外 / Escape 收起；点面板内条目后由软导航换页（导航重建自然收起）
+    document.addEventListener('click', (e) => {
+      if(panel.hidden) return;
+      if(!e.target.closest('.tb-more')) setOpen(false);
+    });
+    document.addEventListener('keydown', (e) => {
+      if(e.key === 'Escape' && !panel.hidden){ setOpen(false); btn.focus(); }
+    });
+  }
+}
+
 function injectNav(){
   const nav = document.getElementById('mainNav');
   if(!nav) return;
-  if(DATA.settings && DATA.settings.collapsed) document.body.classList.add('side-collapsed');
+  if(DATA.settings && DATA.settings.collapsed && !document.body.classList.contains('hub-home')) document.body.classList.add('side-collapsed');
   const current = _hubCurrentFile || normalizePageFile(location.pathname.split('/').pop() || 'home.html');
   _hubCurrentFile = current;   // 记住真实当前页，供软导航期间被 injectNav 复用（pathname 此时滞后）
   const pageById = id => PAGES.find(p => p.id === id);
+
+  /* design/113A3a：home 走顶栏分支（body.hub-home 让 common.css 的 288px 左侧留白退掉） */
+  if(current === 'home.html'){
+    document.body.classList.add('hub-home');
+    nav.className = 'hub-topbar';
+    nav.setAttribute('aria-label', '顶部导航');
+    nav.innerHTML = topBarHtml(current);
+    bindTopBar();
+    bindSideSearch();     // 顶栏搜索 = 侧栏那套 AI 智能搜索（同 id，逻辑零分叉）
+    renderSideTimer();    // 全局计时徽标（顶栏右侧常驻）
+    return;
+  }
+  document.body.classList.remove('hub-home');
+  /* ⚠️ 必须显式复位外壳 class：软导航从 home 过来时 nav.className 还是 'hub-topbar'，
+     只换 innerHTML 不换 class → 侧栏内容被塞进 44px 固定顶栏（探针 homea3a 首轮实锤）。 */
+  nav.className = 'top-nav';
+  nav.removeAttribute('aria-label');
 
   let html = '';
   /* 10/3 头像选择：侧栏品牌位右侧加一枚用户头像（点它跳设置页选头像）。

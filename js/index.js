@@ -1,5 +1,3 @@
-// hint 行最多列 2 个模块名，再多会撑爆卡片（视觉契约，勿改数值）
-const MAX_HINT_MODS = 2;
 // 倒计时日期的「周 X」后缀用
 const WEEKDAY_CN = ['日','一','二','三','四','五','六'];
 // 10/5 路线图②-2a「今天先做这三件事」的折叠态键（纯本机 UI 偏好，**不进 DATA** ——
@@ -95,11 +93,24 @@ ready(async () => {
   /* 🔴 10/5 23:42 两个都要重渲染，且**顺序固定：先三件事、后任务卡** ——
      云合并可能把「今天有任务」带进来/带走，两卡互斥，必须按同一顺序重算，
      否则 renderDashTasks 又会读到上一轮的 #threeThings 状态。*/
-  window.__hubDashTasksMerged = () => { safe(renderThreeThings); safe(renderDashTasks); safe(renderOnboardingBar); };
+  window.__hubDashTasksMerged = () => { safe(renderThreeThings); safe(renderDashTasks); safe(() => renderHomeRail(todayKey())); safe(renderOnboardingBar); };
   document.addEventListener('hub:data-merged', window.__hubDashTasksMerged);
   if(typeof window.__hubDashTasksTimer === 'function') document.removeEventListener('hub:timer-state', window.__hubDashTasksTimer);
   window.__hubDashTasksTimer = () => { safe(renderThreeThings); safe(renderDashTasks); };
   document.addEventListener('hub:timer-state', window.__hubDashTasksTimer);
+
+  /* A3a 窄屏：侧轨折成顶部折叠块（默认收起，点开见环/连续天数/快速入口）。
+     软导航会重跑本文件 → 先摘旧监听再挂，防重复绑定（同上面几处口径）。 */
+  const railBtn = document.getElementById('railToggle');
+  const railBox = document.getElementById('homeRail');
+  if(railBtn && railBox){
+    if(window.__hubRailToggle) railBtn.removeEventListener('click', window.__hubRailToggle);
+    window.__hubRailToggle = () => {
+      const open = railBox.classList.toggle('open');
+      railBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    };
+    railBtn.addEventListener('click', window.__hubRailToggle);
+  }
 
   /* 10/5 23:50 她拍板删除底部「安装到桌面」入口（此处原有一行 safe(安装初始化函数)）。
      删因：manifest/图标/SW 全正常，但 beforeinstallprompt 要求「用户与站点足够交互」才触发，
@@ -140,18 +151,22 @@ async function initVipChip(){
   }catch(e){}
 }
 
-/** v6 首页渲染：hero 倒计时 + 双卡 + 快速入口 + 今日记录（design/31 A 版） */
+/** v6→A3a 首页渲染：倒计时一行化 + 四数字卡 + 三件事/任务卡 + 右侧侧轨 + 今日记录
+ *  design/113A3a（10-21 她拍板「先做这个」）：信息一块不删，全部变化在排版预算。 */
 function renderDashV6(){
   const now = new Date();
+  const tkey = todayKey();
   const dateEl = $('#dashDate');
   if(dateEl) dateEl.textContent =
     (now.getMonth()+1).toString().padStart(2,'0')+'-'+now.getDate().toString().padStart(2,'0')
     +' · 周'+WEEKDAY_CN[now.getDay()];
+  const hiEl = $('#dashHello');
+  if(hiEl) hiEl.textContent = homeGreeting();
 
-  // ---- 连续学习天数 chip ----
+  // ---- 连续学习天数 chip（倒计时横条内）----
+  const streak = calcStreak();   // 统一实现见 common.js（首页/计时页共用）
   const chipEl = $('#dashStreakChip');
   if(chipEl){
-    const streak = calcStreak();   // 统一实现见 common.js（首页/计时页共用）
     if(streak > 0){
       chipEl.hidden = false;
       chipEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 2c1 3-3 5 0 8 1 1 4-1 4 3 0 3-2 5-4 5s-4-2-4-5c0-3 2-4 4-4"/></svg>连续 '+streak+' 天';
@@ -160,63 +175,75 @@ function renderDashV6(){
     }
   }
 
-  // ---- hero：考试倒计时 ----
-  // daysLeft === null 表示考试日期字符串非法（daysUntil 兜底返回），必须回退 "--"，不能掉进 <0 分支误显「已过」
+  // ---- 倒计时（一行化：距机考还有 N 天）----
+  // daysLeft === null 表示考试日期字符串非法（daysUntil 兜底返回），必须回退入口，不能掉进 <0 分支误显「已过」
   const cd = examCountdown();
   const numEl = $('#dashHeroNum');
   if(numEl){
     if(!cd.hasExam || cd.daysLeft === null){
-      // 10/10：原来渲染「--」（64px/900 字重下是两个粗黑块，看着像乱码）→ 换成有指向的入口
+      // 10/10：原来渲染「--」（大字号下两个粗黑块像乱码）→ 换成有指向的入口
       numEl.innerHTML = '<a class="hero-setdate" href="settings.html"><span class="hs-t">还没设考试日期</span><span class="hs-a">去设置 →</span></a>';
     } else if(cd.daysLeft >= 0){
-      numEl.innerHTML = '<span class="big">'+cd.daysLeft+'</span><span class="unit">天</span>';
+      numEl.innerHTML = '距机考还有<b>'+cd.daysLeft+'</b>天';
     } else {
-      numEl.innerHTML = '<span class="big">已过</span>';
+      numEl.innerHTML = '<span class="hs-t">机考已结束</span>';
     }
   }
 
-  // ---- 双卡：今日学习时长 / 待复习 ----
-  const tkey = todayKey();
+  // ---- 四数字卡 ----
   const todays = (DATA.sessions||[]).filter(x => x.date === tkey);
   const totalSec = todays.reduce((a,x)=>a+(x.durationSec||0),0);
-  const mods = new Set(todays.map(x => x.moduleName || '未知'));
 
-  const timeEl = $('#dashTodayTime');
-  const modsEl = $('#dashTodayMods');
-  /* 10/13 新用户实测优化：零状态不干显示「0h0m + 今天还没开始学习」——
-     全新用户对 0 无感，需要一句「下一步做什么」的推动语（观感批，她 10/13 点头）。 */
-  if(timeEl){
-    const hm = hmParts(totalSec);
-    timeEl.innerHTML = hm.h+'<span class="u">h</span>'+hm.m+'<span class="u">m</span>';
+  // ① 今日专注（目标 = 设置里的每日投入）
+  const goalH = Number((DATA.settings||{}).dailyGoalHours) || 0;
+  const goalSec = goalH * 3600;
+  const _hm = hmParts(totalSec);
+  const focusVal = $('#statFocusVal'), focusTrack = $('#statFocusTrack'), focusSub = $('#statFocusSub');
+  if(focusVal) focusVal.innerHTML = _hm.h+'<span class="u"> 小时 </span>'+_hm.m+'<span class="u"> 分</span>';
+  if(focusTrack) focusTrack.style.width = (goalSec > 0 ? Math.min(100, Math.round(totalSec/goalSec*100)) : (totalSec>0?100:0)) + '%';
+  if(focusSub){
+    if(goalSec > 0){
+      const left = Math.max(0, Math.round((goalSec-totalSec)/60));
+      focusSub.textContent = left > 0 ? ('目标 '+goalH+' 小时 · 还差 '+left+' 分钟') : ('目标 '+goalH+' 小时 · 已达标');
+    } else if(totalSec > 0){
+      focusSub.textContent = '今天已学 ' + (_hm.h ? _hm.h+' 小时 ' : '') + _hm.m + ' 分钟';
+    } else {
+      focusSub.textContent = '去「计时」开第一段专注';
+    }
   }
-  if(modsEl) modsEl.textContent = mods.size > 0
-    ? [...mods].slice(0, MAX_HINT_MODS).join(' · ')
-    : (totalSec > 0 ? '今天还没开始学习' : '去「计时」开第一段专注，学了多久一清二楚');
 
-  // 首页「待学习」= 未掌握总词数口径（cleared!==true 即计入，不管排到哪天）。
-  // ⚠️ 与背单词页的「出题口径」不同：buildQueue(practice.js) 只取 nextReview≤今天的词，
-  //    所以首页这个数会明显大于今天真正能背到的量（2026-09-08 修复「再来一轮显示没词」时确认）。
-  //    两处口径是刻意保留的：首页看总进度，出题按记忆曲线；不要随手改成一致。
-  // design/78：词源走 wbWords()（custom=DATA.words 原样；official=官方词包），口径注释不变
+  // ② 今日单词（口径与背词页一致：due=今日待学、done=今日已背、cap=每日上限；
+  //    上限 0 = 不限 → 退回「待学 N」口径。⚠️ 首页「待学」= 未掌握总词数，与出题口径刻意不同，别改成一致）
   const due = (wbWords()||[]).filter(w => w.cleared !== true || (w.nextReview || '') <= tkey).length;
-  // 9/24（她拍板）：首页显示改成「今日待学」= 今日配额剩余量，不再直接甩未掌握总数（1000+ 看着劝退）。
-  // 口径 = max(0, min(剩余待学习, 每日学习上限 − 今日已背))；上限取设置「每日学习上限」（0=不限 → 退回原口径）。
-  // 三个例子都对得上：待学习 2000 / 上限 400 → 400；已背 220 → 180；待学习 340 / 上限 400 → 340。
-  // ⚠️ 9/24 晚她追加：上限同时也是真配额——背满就停（practice 页不再开新一轮，见 renderQuotaDone）。
-  //    「每日新词上限」是另一个设置（管每天引入多少生词），两者别混。
   const _cap = (DATA && DATA.settings && DATA.settings.practiceCfg) ? Number(DATA.settings.practiceCfg.dailyCap) : 0;
-  // 9/25：已背改读「今日已练习」practiced（背一个记一个，背词页节流落盘）——
-  // 旧口径 wbDayStats().totalWords 只在背完整轮时回写，中途改上限/刷新会显示成 0（她 9/25 实测的 bug）
   const _done = (typeof wbPracticed === 'function') ? ((wbPracticed().words || []).length) : 0;
   const shown = (_cap > 0) ? Math.max(0, Math.min(due, _cap - _done)) : due;
-  const dueEl = $('#dashDueWords');
-  const hintEl = $('#dashDueHint');
-  // 10/13 新用户实测优化：0 词时不写「暂无待学习单词」（全新用户看了不知道下一步），
-  // 改成带动作指引的引导语（观感批，她 10/13 点头）。
-  if(dueEl) dueEl.innerHTML = shown+'<span class="u">词</span>';
-  if(hintEl) hintEl.textContent = (_cap > 0)
-    ? ('每日计划 ' + _cap + ' 个 · 今日已背 ' + _done)
-    : (shown > 0 ? '建议先背待学习的词' : '去「单词」页挑第一批准词，或先背官方 AWL 570');
+  const hardN = (wbWords()||[]).filter(w => w && w.hardWord).length;
+  const wordsVal = $('#statWordsVal'), wordsTrack = $('#statWordsTrack'), wordsTrackHard = $('#statWordsTrackHard'), wordsSub = $('#statWordsSub');
+  if(wordsVal) wordsVal.innerHTML = (_cap > 0)
+    ? (_done+'<span class="u"> / '+_cap+' 个</span>')
+    : (shown+'<span class="u"> 词待学</span>');
+  if(wordsTrack) wordsTrack.style.width = (_cap > 0 ? Math.min(100, Math.round(_done/_cap*100)) : (shown>0?0:100)) + '%';
+  if(wordsTrackHard) wordsTrackHard.style.width = (_cap > 0 ? Math.max(0, Math.min(100-Math.min(100,Math.round(_done/_cap*100)), Math.round(hardN/_cap*100))) : 0) + '%';
+  if(wordsSub) wordsSub.textContent = (_cap > 0)
+    ? ('待学 '+shown+' · 常错 '+hardN+' 个')
+    : (shown > 0 ? ('待学 '+shown+' 个 · 常错 '+hardN+' 个') : '去「单词」页挑第一批词');
+
+  // ③ 口语已练（今日口语类会话数：陪练 / 模考都算，按 moduleName 含「口语」判定）
+  const spkN = todays.filter(x => /口语/.test(String(x.moduleName || ''))).length;
+  const spkVal = $('#statSpkVal'), spkSub = $('#statSpkSub');
+  if(spkVal) spkVal.innerHTML = spkN+'<span class="u"> 次</span>';
+  if(spkSub) spkSub.textContent = spkN > 0 ? '今天练了 '+spkN+' 次 · 保持' : '还没练 · 陪练抽一题';
+
+  // ④ 本周模考（mockRecords 按本周一为起点）
+  const wkStart = weekStartKey();
+  const mockN = (DATA.mockRecords || []).filter(r => r && String(r.date||'') >= wkStart).length;
+  const mockVal = $('#statMockVal'), mockSub = $('#statMockSub');
+  if(mockVal) mockVal.innerHTML = mockN+'<span class="u"> 套</span>';
+  if(mockSub) mockSub.textContent = mockN > 0 ? '本周已录 '+mockN+' 套' : '本周还没录 · 来一套';
+
+  // ---- 右侧侧轨 ----
+  renderHomeRail(tkey);
 
   // ---- 今日任务卡（9/20：到期词建议 + 今日计划清单，详见 renderDashTasks）----
   // 注意：safe 是 ready() 闭包内常量，本函数在闭包外够不着 → renderDashTasks 自带 try/catch 兜底
@@ -267,6 +294,85 @@ function renderDashV6(){
   try{ renderDashYesterday(); }catch(e){}
 }
 
+/* ===== A3a 侧轨 / 问候 / 周起点（design/113A3a 落地批 10-21） ===== */
+function homeGreeting(){
+  const h = new Date().getHours();
+  if(h < 11) return '早上好';
+  if(h < 13) return '中午好';
+  if(h < 18) return '下午好';
+  return '晚上好';
+}
+/* 本周一（本地时间）的 'YYYY-MM-DD'：周起点用周一，和「本周模考」口径一致。
+   ⚠️ 必须拆成三个数字走本地构造器；'YYYY-MM-DD' 喂 new Date() 是按 UTC 解析的（凌晨会差一天）。 */
+function weekStartKey(){
+  const d = new Date();
+  const back = (d.getDay() + 6) % 7;   // 周一=0
+  const s = new Date(d.getFullYear(), d.getMonth(), d.getDate() - back);
+  const p = x => String(x).padStart(2,'0');
+  return s.getFullYear() + '-' + p(s.getMonth()+1) + '-' + p(s.getDate());
+}
+/* 历史最长连续天数（从 sessions 的日期组算；best 仅展示用，不进 DATA）。 */
+function longestStreak(){
+  const dates = [...new Set((DATA.sessions||[]).map(s => s && s.date).filter(Boolean))].sort();
+  let best = 0, cur = 0, prev = '';
+  for(const d of dates){
+    cur = (prev && d === addDays(prev, 1)) ? cur + 1 : 1;
+    if(cur > best) best = cur;
+    prev = d;
+  }
+  return best;
+}
+/* 右侧侧轨：今日完成度环 / 连续天数（近 7 天点阵）/ 完成度在手机折叠块上的摘要。
+   口径：完成度 = 今日计划 items 的 done/total；没有今日计划 → 0% 并给「去计划」指向，
+   不编一个「三件事完成度」（站内没有该数据，编了就是假指标）。 */
+function renderHomeRail(tkey){
+  try{
+    const plan = (DATA.plans || []).find(p => p && p.date === tkey);
+    const items = (plan && Array.isArray(plan.items)) ? plan.items : [];
+    const doneN = items.filter(i => i && i.done).length;
+    const total = items.length;
+    const pct = total ? Math.round(doneN/total*100) : 0;
+
+    const setTxt = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = v; };
+    setTxt('railPct', pct + '%');
+    setTxt('railPctSub', total ? (total + ' 项完成 ' + doneN) : '今天还没安排');
+    setTxt('railTogglePct', pct + '%');
+    const subEl = document.getElementById('railSub');
+    if(subEl){
+      if(!total) subEl.innerHTML = '<a href="plans.html" style="color:inherit;text-decoration:underline">去计划页排一下今天 →</a>';
+      else if(doneN >= total) subEl.textContent = '今天的任务都完成了';
+      else subEl.textContent = '还剩 ' + (total - doneN) + ' 项';
+    }
+    const ring = document.getElementById('railRingFg');
+    if(ring) ring.style.strokeDashoffset = String(238.8 * (1 - pct/100));
+    const mring = document.getElementById('railToggleRing');
+    if(mring) mring.style.strokeDashoffset = String(62.8 * (1 - pct/100));
+
+    // 连续天数：当前 + 近 7 天点阵（有 session 的那天点亮）
+    const streak = calcStreak();
+    const best = longestStreak();
+    setTxt('railStreakN', String(streak));
+    setTxt('railToggleStreak', String(streak));
+    const dots = document.getElementById('railDots');
+    if(dots){
+      const has = new Set((DATA.sessions||[]).map(s => s && s.date).filter(Boolean));
+      let html = '';
+      for(let i = 6; i >= 0; i--){
+        const d = addDays(tkey, -i);
+        html += '<i class="' + (i === 0 ? 't' : (has.has(d) ? 'f' : '')) + '"></i>';
+      }
+      dots.innerHTML = html;
+    }
+    const ssEl = document.getElementById('railStreakSub');
+    if(ssEl){
+      if(streak <= 0) ssEl.textContent = '今天还没有学习记录，开一段专注就开始算';
+      else if(best > streak) ssEl.textContent = '再坚持 ' + (best - streak) + ' 天，就追平最佳纪录 ' + best + ' 天';
+      else if(best === 1) ssEl.textContent = '好的开始，明天接着来';
+      else ssEl.textContent = '已追平自己的最佳纪录 ' + best + ' 天';
+    }
+  }catch(e){ console.error('[index] 侧轨渲染失败', e); }
+}
+
 /** 路线图3 · 3a：昨日学习聚合 + 今日复习提示（纯读 DATA，零风险、零新字段）。
  *  口径与今日记录卡完全同源：按 moduleName 归并 durationSec；topOf() 把子 id 归到顶层科目
  *  （如「听力词汇·听义选义」→「背单词」），与 sprint.js 冲刺卡同一套归并，防两处口径打架。
@@ -306,7 +412,7 @@ function renderDashYesterday(){
     + '<div class="rec-yday-t">' + (hm.h > 0 ? hm.h + ' 小时 ' : '') + hm.m + ' 分钟 · ' + parts.join(' · ') + '</div>'
     + '</div>';
 
-  // 今日复习行：N = wbDueCount(todayKey())，与首页「待复习」双卡 #dashDueWords 同一口径
+  // 今日复习行：N = wbDueCount(todayKey())，与首页单词卡 #statWordsVal 同一口径
   // （index.js:418 dueWords 同款）—— 不算第二套；N=0 整行隐藏
   try{
     const due = (typeof wbDueCount === 'function') ? (wbDueCount(todayKey()) || 0) : 0;
@@ -348,7 +454,7 @@ function threeThingsList(){
   const due = (typeof wbDueCount === 'function') ? (wbDueCount(tkey) || 0) : 0;
   if(due > 0){
     out.push({
-      key:'words', title:'背 ' + due + ' 个到期单词',
+      key:'words', ic:'practice', title:'背 ' + due + ' 个到期单词',
       sub:'间隔重复到期了，现在背最省力', file:'practice.html', cta:'开始'
     });
   }
@@ -361,12 +467,12 @@ function threeThingsList(){
        写一个站内不认的 query（我第一版写的是 ?tab=mock）＝ 点过去落在错的 tab，
        看起来像「点了没反应」。同 10/5「继续上次」跳错模块是同一类错。 */
     out.push({
-      key:'mock', title:'来一次口语模考', sub:'今天练过了，用模考检验一下',
+      key:'mock', ic:'mock', title:'来一次口语模考', sub:'今天练过了，用模考检验一下',
       file:'speaking.html', cta:'去模考'
     });
   }else{
     out.push({
-      key:'speak', title:'练一题口语', sub:'陪练会抽一道 P1 真题，直接开口说',
+      key:'speak', ic:'speaking', title:'练一题口语', sub:'陪练会抽一道 P1 真题，直接开口说',
       file:'speaking.html?drill=p1', cta:'开始'
     });
   }
@@ -379,7 +485,7 @@ function threeThingsList(){
        （阈值为 A 窗口默认值，她若有意见再调）。 */
     const _mins = Math.round((DATA.settings.dailyGoalHours || 0) * 60);
     out.push({
-      key:'timer',
+      key:'timer', ic:'timer',
       title: _mins >= 15 ? '专注 ' + _mins + ' 分钟' : '开一段专注',
       sub:'先学 25 分钟，边听边记',
       /* 10/12 C-3 顺带修：去掉 ?autostart=1 —— timer.html 没有消费该参数的代码（死参数，
@@ -448,6 +554,7 @@ function renderThreeThings(){
       + '<button type="button" class="three-foldbtn" data-three-fold aria-label="收起" title="收起">收起</button>'
     + '</div>'
     + list.map(t => '<div class="three-row">'
+        + '<span class="three-ic">' + ((typeof ICON !== 'undefined' && ICON[t.ic]) || '') + '</span>'
         + '<div class="three-l"><div class="three-t">' + escapeHtml(t.title) + '</div>'
         + '<div class="three-s">' + escapeHtml(t.sub) + '</div></div>'
         + '<a class="three-go" href="' + escapeHtml(t.file) + '" data-three-key="' + t.key + '">' + escapeHtml(t.cta) + '</a>'

@@ -816,6 +816,16 @@ async function softNavigate(t, isPop){
     /* 🔴 10/6 01:12 「当前页身份」在这里一次性对齐 —— 覆盖**全部入口**（点击 / 后退 / 直接调用 softNavigate）。
        原来只有 onHubLinkClick 会写 _hubCurrentFile，popstate（浏览器后退）那条路根本不写 → 身份滞后。 */
     _hubCurrentFile = t.file;
+    /* 🔴 design/113A3a 落地批：home 用顶栏、其他页用侧栏，而软导航只换 <main> 不重建导航。
+       跨边界（home↔其他页）必须补一次 injectNav 换壳，否则从 home 进 bank 会顶着
+       首页的顶栏（侧栏永不渲染）、从 bank 回 home 会留着侧栏（顶栏永不出现）。
+       放在 _hubCurrentFile 已写之后：injectNav 重读它 → 渲染正确外壳 + 正确高亮。
+       重建只发生在跨边界那一次（顶栏 44px / 侧栏一次性重建，观感等价整页跳转但无刷新）。
+       点击路径有 showHubLoader 遮住；popstate 路径在内容交换后同帧完成，无可感闪烁。 */
+    try{
+      const _wantHome = (t.file === 'home.html');
+      if(_wantHome !== document.body.classList.contains('hub-home') && typeof injectNav === 'function') injectNav();
+    }catch(e){ console.error('[soft-nav] 导航换壳失败', e); }
     syncBodyPageAttrs(doc);
     /* 🔴 10/6 01:55 换页必须回到顶部 —— 修「每次点进单词页都默认滑在底部，学习和词库被遮住」。
        移动端真正的滚动容器是 `main.container`（css/common.css ≤860px 段给它 overflow-y:auto），
@@ -891,6 +901,13 @@ function updateActiveNav(file){
   if(nav){
     nav.querySelectorAll('.side-item').forEach(a => {
       a.classList.toggle('active', a.getAttribute('href') === file);
+    });
+    /* design/113A3a：home 顶栏胶囊 + 「更多」面板条目高亮（与 .side-item 同一写入点） */
+    nav.querySelectorAll('.tb-item').forEach(a => {
+      a.classList.toggle('on', a.getAttribute('href') === file);
+    });
+    nav.querySelectorAll('.tb-more-item').forEach(a => {
+      a.classList.toggle('on', a.getAttribute('href') === file);
     });
   }
   // 同步「更多」弹层高亮（design/56；旧 tabbar 高亮已随组件删除）
