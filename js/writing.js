@@ -6,6 +6,9 @@ var bankSearch = '';
 /* 10/10：模板分档筛选（'all' 或 '5.5' / '6.0' / '6.5' / '7.0'）。
    一档 = 0.5 分；只在**该档有模板时**才渲染按钮（没有的档不显示 0，避免看起来站内是空的）。 */
 var curLevel = 'all';
+/* 10/21（她拍板 design/112）：模板列表两种视图 —— 'grid' 卡片（默认）/ 'list' 列表；她选过哪个记 localStorage。 */
+var tplView = 'grid';
+try{ if(localStorage.getItem('wrtTplView') === 'list') tplView = 'list'; }catch(e){}
 
 /* 9/16 修：全文「词」的统计口径统一到这一个函数。改之前四处各算一套口水不平：
    - AI 评分 tab 的实时词数用 /\S+/g
@@ -229,6 +232,17 @@ ready(() => {
   $('#bankFilter').addEventListener('change', renderBank);
   const tplSearchEl = document.getElementById('tplSearch');
   if(tplSearchEl) tplSearchEl.addEventListener('input', () => { tplSearch = tplSearchEl.value.trim().toLowerCase(); renderList(); });
+  /* 10/21（她拍板 design/112）：网格 / 列表 切换。切换只重渲染列表，不动筛选状态；她选过的存 localStorage。 */
+  const tplViewEl = document.getElementById('tplView');
+  if(tplViewEl){
+    tplViewEl.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => {
+      tplView = (b.dataset.view === 'list') ? 'list' : 'grid';
+      try{ localStorage.setItem('wrtTplView', tplView); }catch(e){}
+      markTplViewBtns();
+      renderList();
+    }));
+    markTplViewBtns();
+  }
   const bankSearchEl = document.getElementById('bankSearch');
   if(bankSearchEl) bankSearchEl.addEventListener('input', () => { bankSearch = bankSearchEl.value.trim().toLowerCase(); renderBank(); });
   $('#bankAddBtn').addEventListener('click', () => { $('#bankAddCard').hidden = false; });
@@ -303,27 +317,82 @@ function renderCats(){
   renderList();
 }
 
+/* 10/21（她拍板 design/112 两条）：① 卡片露出「结构提示 + 骨架首句」，不点开也能判断这套要不要用；
+   ② 加列表视图，一屏能扫更多套。两条都只读展示，不碰模板数据；截断（各 2 行）交给 writing.html 的 CSS。 */
+function skeletonFirstLine(sk){
+  const para = String(sk || '').split('\n').map(s => s.trim()).filter(Boolean)[0] || '';
+  const m = para.match(/^[\s\S]*?[.!?](?=\s|$)/);
+  return (m ? m[0] : para).trim();
+}
+function skeletonParaCount(sk){
+  return String(sk || '').split(/\n\s*\n/).filter(s => s.trim()).length;
+}
+function tplCardHtml(t, lockTag){
+  const tt = cleanCatName(t.title);
+  const cat = t.category || '';
+  const lv = t.level || '5.5';
+  const meta = '<div class="tpl-meta"><span class="tpl-lv">目标 ' + escapeHtml(lv) + ' 分</span>'
+    + ((cat && cat !== tt) ? '<span class="tpl-cat">' + escapeHtml(cat) + '</span>' : '') + '</div>';
+  const tips = String(t.tips || '').trim();
+  const sk = skeletonFirstLine(t.skeleton);
+  const pa = skeletonParaCount(t.skeleton);
+  return '<div class="card tpl-card" data-id="' + t.id + '" style="position:relative">'
+    + lockTag + '<b>' + escapeHtml(tt) + '</b>' + meta
+    + (tips ? '<div class="tpl-tip">' + escapeHtml(tips) + '</div>' : '')
+    + (sk ? '<div class="tpl-sk">' + escapeHtml(sk) + '</div>' : '')
+    + '<div class="tpl-foot"><span>' + (pa ? pa + ' 段' : '') + '</span><span class="tpl-go">打开模板 →</span></div>'
+    + '</div>';
+}
+function tplRowHtml(t, locked){
+  const tt = cleanCatName(t.title);
+  const cat = t.category || '';
+  const lv = t.level || '5.5';
+  const tips = String(t.tips || '').trim();
+  const pa = skeletonParaCount(t.skeleton);
+  return '<div class="tl-row" data-id="' + t.id + '">'
+    + '<span class="tpl-lv">' + escapeHtml(lv) + '</span>'
+    + '<span style="min-width:0">'
+    +   '<span class="tl-t">' + (locked ? '<span class="tl-lock" title="会员专属">🔒</span>' : '') + escapeHtml(tt) + '</span>'
+    +   (tips ? '<span class="tl-sub">' + escapeHtml(tips) + '</span>' : '')
+    + '</span>'
+    + '<span class="tl-dim tl-cat">' + escapeHtml(cat) + '</span>'
+    + '<span class="tl-dim tl-pa">' + (pa ? pa + ' 段' : '') + '</span>'
+    + '<span class="tl-go">打开 →</span></div>';
+}
+function markTplViewBtns(){
+  const el = document.getElementById('tplView');
+  if(!el) return;
+  el.querySelectorAll('[data-view]').forEach(b => {
+    const on = (b.dataset.view === tplView);
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+
 function renderList(){
   let list = DATA.writing.filter(t => t.category === curCat);
   // 10/10：目标分档筛选（老数据无 level → 视作 5.5，与 renderCats 同口径）
   if(curLevel !== 'all') list = list.filter(t => (t.level || '5.5') === curLevel);
   if(tplSearch){ list = list.filter(t => (cleanCatName(t.title)+' '+t.category).toLowerCase().indexOf(tplSearch) !== -1); }
-  const lockTag = (tplVip === true) ? '' : '<span class="badge" style="position:absolute;top:10px;right:10px" title="会员专属">🔒</span>';
+  const locked = (tplVip !== true);
+  const lockTag = locked ? '<span class="badge" style="position:absolute;top:10px;right:10px" title="会员专属">🔒</span>' : '';
   /* 10/4（她 12:57 反馈「模板列表里套了一层空壳卡片」）：
      模板标题常与分类名相同（都叫「观点型」），原实现无条件渲染两行 → 同一句话显示两遍，
      看起来像一张空壳卡。标题与分类一致时不再重复渲染分类行。
-     10/10：该行改成「目标分徽章 +（可选的）分类」，让每张卡一眼能看出是哪个分数档的。 */
-  $('#tplList').innerHTML = list.map(t => {
-    const tt = cleanCatName(t.title);
-    const cat = t.category || '';
-    const lv = t.level || '5.5';
-    const meta = '<div class="tpl-meta"><span class="tpl-lv">目标 ' + escapeHtml(lv) + ' 分</span>'
-      + ((cat && cat !== tt) ? '<span class="tpl-cat">' + escapeHtml(cat) + '</span>' : '') + '</div>';
-    return '<div class="card tpl-card" data-id="' + t.id + '" style="position:relative">'
-      + lockTag + '<b>' + escapeHtml(tt) + '</b>' + meta + '</div>';
-  }).join('');
+     10/10：该行改成「目标分徽章 +（可选的）分类」，让每张卡一眼能看出是哪个分数档的。
+     10/21：卡内容与列表行拆成上面两个渲染函数，两种视图共用同一套筛选结果。 */
+  const box = $('#tplList');
+  if(tplView === 'list'){
+    box.className = 'tpl-list';
+    box.innerHTML = '<div class="tl-row th" aria-hidden="true"><span>目标分</span><span>模板 / 结构提示</span>'
+      + '<span>题型</span><span>段数</span><span class="tl-go">打开</span></div>'
+      + list.map(t => tplRowHtml(t, locked)).join('');
+  } else {
+    box.className = 'grid';
+    box.innerHTML = list.map(t => tplCardHtml(t, lockTag)).join('');
+  }
   $('#empty').hidden = list.length > 0;
-  $('#tplList').querySelectorAll('[data-id]').forEach(c => c.addEventListener('click', () => openTpl(c.dataset.id)));
+  box.querySelectorAll('[data-id]').forEach(c => c.addEventListener('click', () => openTpl(c.dataset.id)));
 }
 
 /* 10/2（她拍板）：作文模板 = 会员专属。展示层锁：
