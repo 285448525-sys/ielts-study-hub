@@ -228,7 +228,7 @@ setTimeout(__rvRescue,2500);
   <script defer src="js/common-pwa.js?v=20261022e"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
   <!-- 10/3 头像选择（DiceBear CC0 素材；必须在 data.js/common.js 之后 —— 它读 DATA.settings.avatar） -->
-  <script defer src="js/av-picker.js?v=20261020c"></script>
+  <script defer src="js/av-picker.js?v=20261022a"></script>
   <script src="js/settings.js?v=20261021e" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -311,11 +311,9 @@ setTimeout(__rvRescue,2500);
         <div class="av-pop-tabs" role="tablist">
           <button class="av-tab on" type="button" role="tab" aria-selected="true" data-avtab="user">我</button>
           <button class="av-tab" type="button" role="tab" aria-selected="false" data-avtab="coach">陪练</button>
-          <button class="av-tab" type="button" role="tab" aria-selected="false" data-avtab="exam">考官</button>
         </div>
         <div class="av-grid" id="avUserGrid" role="radiogroup" aria-label="我的头像"></div>
         <div class="av-grid av-grid-coach" id="avCoachGrid" role="radiogroup" aria-label="陪练头像" hidden></div>
-        <div class="av-grid av-grid-exam" id="avExamGrid" role="radiogroup" aria-label="考官头像" hidden></div>
         <div class="av-pop-foot">
           <span id="avPopCount"></span>
           <button class="av-pop-done" id="avPopDone" type="button">完成</button>

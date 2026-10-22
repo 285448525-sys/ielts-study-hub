@@ -190,27 +190,25 @@
   function setPhase(t){ const el=$('#mockPhase'); if(el) el.textContent=t; syncMockBar(t); }
 
   /* ---------- 考官视频窗（10/1 批3 · 她拍板「考官的脸出现在屏幕上」） ----------
-     形象 = SVG 插画（img/examiner-*.svg，无肖像权/版权问题；未来可换 AI 实拍图）。
+     形象 = 真人照片（img/examiner/*.jpg，AI 生成的实拍级画面，无真实肖像权问题）。
      每场随机一位 + 英文名牌；P1/P3 大窗居中，P2 时 #mockStage 加 p2-mode 切两栏（左题目 + 右小窗）。 */
-  /* 10/3 头像选择：新增 2 个 DiceBear avataaars（CC0 免署名），可在设置页「考官的样子」里选。
-     选定的那位（window.avExamSrc()）排前面 → 优先被随机到；没选时随机池不变（仍是 4 位）。 */
-  const _pickedExam = (typeof window !== 'undefined' && typeof window.avExamSrc === 'function') ? window.avExamSrc() : '';
-  /* 10/20 她：「口语模考用的图不是考官的头像…要真实生动」
-     原来 4 位里 2 位是 avataaars Q 版卡通（exam-f/exam-m）、2 位是 SVG 插画（examiner-a/b），
-     全都不像真人考官 → 换成 img/examiner/ 下 4 张 AI 实拍级照片（4:3 裁切，800px 宽，JPEG ~45KB）。
-     名字沿用，方便她在「设置 → 换考官的样子」里认出是哪位。 */
+  /* 🔴 10/22 她拍板（T-006）：「这个考官不让选择，模考的时候随机哪个考官就是哪个考官」。
+     · 「换考官的样子」弹层 tab 已删（av-picker.js），settings.examAvatar 字段不再被任何界面读取；
+     · 原来「选定的那位有 50% 概率优先」的逻辑整段删除 —— 每场都是 8 位里纯随机，抽到谁是谁；
+     · 老用户 localStorage 里的 exam-f / exam-m / ex-sophia 等旧值已无读取方，不影响任何行为。
+     · 考官池 4 → 8 位（10/22 新增 4 张：Vivian / Arjun / Carmen / Eric，规格与原 4 张一致）。 */
   const EXAMINERS = [
     { id: 'af', name: 'Sophia Turner', img: 'img/examiner/ex-sophia.jpg' },
     { id: 'am', name: 'Daniel Hughes', img: 'img/examiner/ex-daniel.jpg' },
     { id: 'a', name: 'Emily Carter', img: 'img/examiner/ex-emily.jpg' },
-    { id: 'b', name: 'James Wilson', img: 'img/examiner/ex-james.jpg' }
+    { id: 'b', name: 'James Wilson', img: 'img/examiner/ex-james.jpg' },
+    { id: 'c', name: 'Vivian Chen', img: 'img/examiner/ex-vivian.jpg' },
+    { id: 'd', name: 'Arjun Mehta', img: 'img/examiner/ex-arjun.jpg' },
+    { id: 'e', name: 'Carmen Ruiz', img: 'img/examiner/ex-carmen.jpg' },
+    { id: 'f', name: 'Eric Lam', img: 'img/examiner/ex-eric.jpg' }
   ];
-  /* 选中的考官权重更高：50% 概率优先用ta。没选时退化为纯随机 4 位。 */
+  /* 纯随机：8 位里抽一位，没有优先、没有权重、没有「她选的那位」。 */
   function pickExaminer(){
-    if(_pickedExam && Math.random() < 0.5){
-      const p = EXAMINERS.find(x => x.img === _pickedExam);
-      if(p) return p;
-    }
     return sampleOne(EXAMINERS);
   }
   function renderExaminer(ex){

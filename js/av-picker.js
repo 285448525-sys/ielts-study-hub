@@ -8,12 +8,13 @@
       根因 = 白天把「考官」从卡通换成 4 张真人照时，**陪练气泡头像一直复用 avExamSrc()**
       → 陪练也跟着变成真人。**现在三套彻底分开，字段互不影响**：
       · 我（用户）= USER_AVATARS 8 个 → 字段 settings.avatar（陪练聊天 / 侧栏 / 账户卡）
-      · 陪练 = COACH_AVATARS 2 个卡通 → 字段 settings.coachAvatar（只给口语陪练页气泡用）
-      · 考官 = EXAM_AVATARS 4 张真人照（img/examiner/*.jpg）→ 字段 settings.examAvatar
-        （只给口语模考 mock.js 的考官视频窗用）
-   —— **只存文件名**（avatar / coachAvatar / examAvatar），云同步只带几十字节，不存图片本身
-   —— 三个字段都已登记 SYNC_SETTINGS_FIELDS（common-sync.js），保存自打 _fieldTs
-   —— 暴露 window.avUser()/avUserSrc()、window.avCoach()/avCoachSrc()、window.avExam()/avExamSrc()
+      · 陪练 = COACH_AVATARS 8 个卡通 → 字段 settings.coachAvatar（只给口语陪练页气泡用）
+      · 考官 = mock.js 自己的 EXAMINERS 8 张真人照（img/examiner/*.jpg）—— **纯随机、不可选**
+        （10/22 T-006 起：弹层「考官」页签已删，settings.examAvatar 已无任何界面读取）
+   —— **只存文件名**（avatar / coachAvatar），云同步只带几十字节，不存图片本身
+   —— 两个字段都已登记 SYNC_SETTINGS_FIELDS（common-sync.js），保存自打 _fieldTs
+   —— 暴露 window.avUser()/avUserSrc()、window.avCoach()/avCoachSrc()
+       （window.avExam()/avExamSrc() 仍导出但已无产品调用方，随 EXAM_AVATARS 一并下批清理）
    ============================================================ */
 (function(){
   'use strict';
@@ -34,6 +35,9 @@
      目录 img/examiner/、扩展名 .jpg（用户头像仍是 img/avatars/*.svg，两者路径不同，
      所以这里用 src 字段显式给全路径，不再靠 DIR 拼接）。
      ⚠️ 老用户 localStorage 里存的 exam-f / exam-m 会走 valid() 失配 → 自动回落 FALLBACK_EXAM，不会白图。 */
+  /* 🔴 10/22 T-006：考官**不再供选择** —— 弹层里的「考官」页签已删（见 TABS）。
+     这个池子暂时保留（avOpen('exam') 的旧调用若漏改不至于抛错），但没有任何 UI 能触达。
+     若后续确认无引用，可在下一批清理时删。 */
   var EXAM_AVATARS = [
     { f: 'ex-sophia', label: 'Sophia', src: 'img/examiner/ex-sophia.jpg' },
     { f: 'ex-daniel', label: 'Daniel', src: 'img/examiner/ex-daniel.jpg' },
@@ -50,9 +54,19 @@
      `Cache-Control: public, max-age=86400` → 边缘缓存里躺着一条**内容是 HTML 的 .svg**，
      浏览器按图片解码失败 → 陪练头像空白圆圈（实测 naturalWidth=0）。
      换一个带查询串的 URL 就等于换一个干净的缓存键，秒好；文件本身没改过。 */
+  /* 🔴 10/22 T-006（她：「多加一些陪练的图」）：池子 2 → 8。
+     原 2 项 exam-f / exam-m **原样留在最前**（老用户 localStorage 存的就是这两个文件名，
+     顺序一动 fallback 语义虽不变，但保持稳定更省心）；新增 6 个 coach-f2/f3/f4/f5/m2/m3。
+     新增文件同样带 `?v=20261020` 缓存串，与原有两项保持一致。 */
   var COACH_AVATARS = [
     { f: 'exam-f', label: '陪练 1', src: 'img/avatars/exam-f.svg?v=20261020' },
-    { f: 'exam-m', label: '陪练 2', src: 'img/avatars/exam-m.svg?v=20261020' }
+    { f: 'exam-m', label: '陪练 2', src: 'img/avatars/exam-m.svg?v=20261020' },
+    { f: 'coach-f2', label: '陪练 3', src: 'img/avatars/coach-f2.svg?v=20261020' },
+    { f: 'coach-f3', label: '陪练 4', src: 'img/avatars/coach-f3.svg?v=20261020' },
+    { f: 'coach-m2', label: '陪练 5', src: 'img/avatars/coach-m2.svg?v=20261020' },
+    { f: 'coach-m3', label: '陪练 6', src: 'img/avatars/coach-m3.svg?v=20261020' },
+    { f: 'coach-f4', label: '陪练 7', src: 'img/avatars/coach-f4.svg?v=20261020' },
+    { f: 'coach-f5', label: '陪练 8', src: 'img/avatars/coach-f5.svg?v=20261020' }
   ];
   var DIR = 'img/avatars/';
   var FALLBACK_USER = 'user-f1';
@@ -136,27 +150,27 @@
   function renderAll(){
     renderGrid('avUserGrid', USER_AVATARS, avUser, 'avatar');
     renderGrid('avCoachGrid', COACH_AVATARS, avCoach, 'coachAvatar');
-    renderGrid('avExamGrid', EXAM_AVATARS, avExam, 'examAvatar');
-    /* 10/3 22:55：设置页把「头像」整卡缩成弹层后，三个网格改为按页签互斥显示 */
+    /* 10/3 22:55：设置页把「头像」整卡缩成弹层后，网格按页签互斥显示 */
     var _tab0 = document.body.getAttribute('data-avtab');
-    avSwitchTab((_tab0 === 'exam' || _tab0 === 'coach') ? _tab0 : 'user');
+    avSwitchTab((_tab0 === 'coach') ? _tab0 : 'user');
   }
 
   /* ==== 10/3 22:55：头像从「一整卡网格」改成「点头像弹层」 ====
      她拍板：「不要摊开在下面，希望点头像才弹出来」。设置页点头像弹（kind='user'）；
      口语陪练页点气泡头像走同一个（kind='coach'，从 coach.js 调 window.avOpen）。 */
+  /* 🔴 10/22 T-006：只剩「我 / 陪练」两个页签（考官页签删 —— 模考考官不再供选择）。
+     tab 传入 'exam' 或任何未知值时按 'user' 处理（老调用方不会炸）。 */
   function avSwitchTab(tab){
-    var u = document.getElementById('avUserGrid'), e = document.getElementById('avExamGrid'), k = document.getElementById('avCoachGrid');
-    var isExam = (tab === 'exam'), isCoach = (tab === 'coach');
-    if(u) u.hidden = isExam || isCoach;
-    if(e) e.hidden = !isExam;
+    var u = document.getElementById('avUserGrid'), k = document.getElementById('avCoachGrid');
+    var isCoach = (tab === 'coach');
+    if(u) u.hidden = isCoach;
     if(k) k.hidden = !isCoach;
     var t = document.getElementById('avPopTitle'), h = document.getElementById('avPopHint'), c = document.getElementById('avPopCount');
-    if(t) t.textContent = isCoach ? '换陪练的样子' : (isExam ? '换考官的样子' : '换我的头像');
+    if(t) t.textContent = isCoach ? '换陪练的样子' : '换我的头像';
     if(h) h.textContent = isCoach ? '只用在口语陪练里，和模考考官分开；换设备自动同步'
-      : (isExam ? '口语模考里会出现，选定的那位优先被抽到' : '用在陪练聊天、侧边栏这些地方，换设备自动同步');
+      : '用在陪练聊天、侧边栏这些地方，换设备自动同步';
     if(c) c.textContent = isCoach ? ('共 ' + COACH_AVATARS.length + ' 个形象')
-      : (isExam ? ('共 ' + EXAM_AVATARS.length + ' 个形象') : ('共 ' + USER_AVATARS.length + ' 个形象'));
+      : ('共 ' + USER_AVATARS.length + ' 个形象');
     var tabs = document.querySelectorAll('.av-tab');
     for(var i = 0; i < tabs.length; i++){
       var on = tabs[i].getAttribute('data-avtab') === tab;
@@ -248,11 +262,9 @@
     +   '<div class="av-pop-tabs" role="tablist">'
     +     '<button class="av-tab on" type="button" role="tab" aria-selected="true" data-avtab="user">我</button>'
     +     '<button class="av-tab" type="button" role="tab" aria-selected="false" data-avtab="coach">陪练</button>'
-    +     '<button class="av-tab" type="button" role="tab" aria-selected="false" data-avtab="exam">考官</button>'
     +   '</div>'
     +   '<div class="av-grid" id="avUserGrid" role="radiogroup" aria-label="我的头像"></div>'
     +   '<div class="av-grid av-grid-coach" id="avCoachGrid" role="radiogroup" aria-label="陪练头像" hidden></div>'
-    +   '<div class="av-grid av-grid-exam" id="avExamGrid" role="radiogroup" aria-label="考官头像" hidden></div>'
     +   '<div class="av-pop-foot"><span id="avPopCount"></span>'
     +     '<button class="av-pop-done" id="avPopDone" type="button">完成</button></div>'
     + '</div>';
@@ -301,7 +313,7 @@
       var t = e.target;
       if(!t || !t.closest) return;
       if(t.closest('#acctAvatarBtn')){ avOpen('user'); return; }
-      if(t.closest('#coachExamAvBtn')){ avOpen('exam'); return; }
+      if(t.closest('#coachExamAvBtn')){ avOpen('coach'); return; }
       if(t.closest('#avPopClose') || t.closest('#avPopDone')){ avClose(); return; }
       var tab = t.closest('.av-tab');
       if(tab){ avSwitchTab(tab.getAttribute('data-avtab')); }
