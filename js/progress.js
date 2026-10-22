@@ -61,10 +61,13 @@
 
       + '<section class="card"><h2>Part 分块</h2><div class="prog-part"><span>P1 已练 <b>' + p1Done + '</b>/' + p1Total + '</span><span>P2 已练 <b>' + p2Done + '</b>/' + p2Total + '</span><span>P1 练习 <b>' + list.filter(s => s.type !== 'P2').reduce((a, s) => a + countOf(s), 0) + '</b> 遍</span><span>P2 练习 <b>' + list.filter(s => s.type === 'P2').reduce((a, s) => a + countOf(s), 0) + '</b> 遍</span></div></section>'
 
-      // design/17 3.5：句型闯关进度（x/y 读 patternDrill.sentences.status；总数从句型库取，取不到只显示 x）
-      // ⭐ 错题数带 id：bank 异步到位后随已掌握一起回填（fresh 加载时 status 里可能有已删句型的孤儿 id，
-      //    兜底按全量计数会多算；bank 到位后两数都必须按 bank 重算，与句型页「错题库（N 题）」口径一致）
-      + '<section class="card"><h2>句型闯关</h2><div class="prog-part"><span>已掌握 <b id="sentProgMastered">' + sentProgMasteredText() + '</b></span><span>错题 <b id="sentProgWrong">' + sentProgWrong() + '</b></span><a class="prog-sent-go" href="speaking.html?senttab=1" style="color:var(--primary,#3a9a93);text-decoration:none;font-weight:600">去练 →</a></div></section>';
+      /* 10-22 更名：「句型闯关」老引擎已按她要求整体删除，但**这张卡的数据不是老引擎的** ——
+         它读 DATA.patternDrill.sentences.status，那是「句型练习」（sentence-drill.js，她仍在用）
+         写进去的进度（两者历史上共用同一字段）。所以卡保留、只把标题从过时的「句型闯关」
+         改成「句型练习」，避免删掉她正在用的进度展示。
+         ⚠️ 遗留（不改，不在本次范围）：下面「去练 →」指向 speaking.html?senttab=1，
+         该 tab 现由 AI 陪练（coach.js）优先接管 → 点进去是陪练页而不是句型练习。 */
+      + '<section class="card"><h2>句型练习</h2><div class="prog-part"><span>已掌握 <b id="sentProgMastered">' + sentProgMasteredText() + '</b></span><span>错题 <b id="sentProgWrong">' + sentProgWrong() + '</b></span><a class="prog-sent-go" href="speaking.html?senttab=1" style="color:var(--primary,#3a9a93);text-decoration:none;font-weight:600">去练 →</a></div></section>';
     // 总数异步补齐（bank 未缓存时 fetch 一次，回填 x/35 + 错题数——两个数都按 bank 重算，孤儿 id 不计数）
     if(!(window.__sentBankCache && window.__sentBankCache.cats)){
       fetch('data/sentences.json?v=20260912b').then(r => r.json()).then(b => {

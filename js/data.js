@@ -75,7 +75,7 @@ const MODULES = [
     { id:'speaking_gpt', name:'AI 口语对话 15min（P1）', icon:'💬' },
     { id:'speaking_p2',  name:'串题素材复述 1 个 P2 说满 2min', icon:'🎤' },
     { id:'speaking_rec', name:'录音自查流利度', icon:'🎙️' },
-    { id:'speaking_drill', name:'句型闯关', icon:'🔨' },
+    /* 10-22：原 { id:'speaking_drill', name:'句型闯关' } 已删 —— 她要求把句型闯关整个功能下线。 */
   ]},
 ];
 

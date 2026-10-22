@@ -31,10 +31,10 @@ const PAGES = [
   // 三合一入口：长难句 + 错题 + 听写（原听力 corpus + 词句 errorbook 合并）
   { id:'corpus',    file:'corpus.html',    icon:ICON.corpus,    name:'句子', desc:'长难句 · 错题 · 听写' },
   { id:'speaking',  file:'speaking.html',  icon:ICON.speaking,  name:'口语', desc:'题库 + AI 串题' },
-  // Repair Drill：中文+错句 → 自己 repair 正确版，AI 只当裁判（design/06）
-  // ⚠️ id 必须与文件名一致（软导航按 js/{id}.js 找主脚本），不能用缩写 pdrill
-  /* 句型闯关已并入口语页「练习」tab（2026-09-09 之之拍板），主导航不再单列入口；
-     pattern-drill.html 保留为独立直达页 */
+  /* 10-22 她要求：「句型闯关」老引擎（含 pattern-drill.html 独立页、js/pattern-drill.js、
+     data/patterns.json、口语页 #pdView）整体删除 —— 该功能从未与她的句子网站联动。
+     口语页「陪练」tab 现由 AI 陪练（coach.js）接管；句型练习（sentence-drill.js）与场景闯关
+     （scene-drill.js）都是另外的东西，不受影响。此处原注释（独立直达页保留）随之作废。 */
   { id:'writing',   file:'writing.html',   icon:ICON.writing,   name:'写作',       desc:'模板 + AI 评分' },
   // 10/11：题库 → 「模考」大 tab（她拍板：四科模考统一在这里完成）
   { id:'bank',      file:'bank.html',      icon:ICON.mock,      name:'模考',       desc:'阅读 · 听力 · 写作 · 口语' },

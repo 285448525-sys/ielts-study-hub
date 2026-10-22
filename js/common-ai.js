@@ -42,7 +42,7 @@ async function callSiteRelay(service, messages, temperature, opts){
    且 callSiteRelay 内的 fetch 本身也无自带超时，等多久全看浏览器。
 
    修法：**在最上游的 callRelay 加超时**，一处覆盖全部 AI 调用点
-   （corpus / pattern-drill / scene-drill / sentence-drill / speaking /
+   （corpus / scene-drill / sentence-drill / speaking /
      materials / mock-summary / feedback / plans / coach 等），以后新增 AI 功能自动免疫——
    **不需要逐个改按钮，也不新增任何交互**。
    超时后抛 code='AI_TIMEOUT' 的错，各调用点原有的 catch/finally 就能正常解锁按钮并提示。 */

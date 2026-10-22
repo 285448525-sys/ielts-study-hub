@@ -42,14 +42,14 @@
 
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
-  <script defer src="js/data.js?v=20261021e"></script>
-  <script defer src="js/common.js?v=20261022c"></script>
-  <script defer src="js/common-ai.js?v=20261022c"></script>
-  <script defer src="js/common-sync.js?v=20261022c"></script>
-  <script defer src="js/common-merge.js?v=20261022c"></script>
-  <script defer src="js/common-cloud.js?v=20261022c"></script>
-  <script defer src="js/common-shell.js?v=20261022c"></script>
-  <script defer src="js/common-pwa.js?v=20261022c"></script>
+  <script defer src="js/data.js?v=20261022d"></script>
+  <script defer src="js/common.js?v=20261022d"></script>
+  <script defer src="js/common-ai.js?v=20261022d"></script>
+  <script defer src="js/common-sync.js?v=20261022d"></script>
+  <script defer src="js/common-merge.js?v=20261022d"></script>
+  <script defer src="js/common-cloud.js?v=20261022d"></script>
+  <script defer src="js/common-shell.js?v=20261022d"></script>
+  <script defer src="js/common-pwa.js?v=20261022d"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
@@ -59,9 +59,11 @@
        10/3 22:55 扩展：同一份也供顶栏考官头像选择器用（avOpen/avExamSrc） -->
   <script defer src="js/av-picker.js?v=20261020c"></script>
   <script defer src="js/coach.js?v=20261020a"></script>
-  <script defer src="js/speaking.js?v=20261020a"></script>
-  <script defer src="js/pattern-drill.js?v=20261002a"></script>
-  <script defer src="js/scene-drill.js?v=20260922a"></script>
+  <script defer src="js/speaking.js?v=20261022d"></script>
+  <!-- 10-22 她要求：「句型闯关」这个老引擎整个删掉（页面 / 引擎 / 数据全部下线）。
+       已同步删掉 js/pattern-drill.js、pattern-drill.html、data/patterns.json 与 #pdView 界面；
+       口语「陪练」tab 仍由 AI 陪练（coach.js）接管，句型练习（sentence-drill.js）不受影响。 -->
+  <script defer src="js/scene-drill.js?v=20261022d"></script>
   <!-- 🔴 10/17 性能批（第二批 · 传输层）：下面四个脚本改按需加载 —— 实测（tests/_probe_ablate_1017.cjs）
        单独拦掉它们，首屏照常渲染、零报错，合计 78KB（压缩体）；而它们服务的「素材」不是默认 tab
        （默认 = 题库）、「模考」tab 目前还是 hidden（功能未开）→ 纯粹在首屏抢带宽。
@@ -988,11 +990,8 @@ body.mock-immerse .container{height:100dvh;display:flex;flex-direction:column;ov
 body.mock-immerse #mockView:not([hidden]){flex:1;min-height:0;display:flex;flex-direction:column}
 body.mock-immerse #mockStage{flex:1;min-height:0;overflow:auto}
 body.mock-immerse #mockStage{border:0;box-shadow:none;background:transparent}
-/* 10/1 晚（她拍板）：句型闯关全屏同样整页锁定 */
-body.pd-fullscreen{overflow:hidden;height:100dvh}
-body.pd-fullscreen #hubDock{display:none!important}
-body.pd-fullscreen .container{height:100dvh;display:flex;flex-direction:column;overflow:hidden;padding-bottom:10px}
-body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
+/* 10-22 句型闯关老引擎整体下线（她要求）→ 原「句型闯关全屏整页锁定」的 4 条 body.pd-fullscreen
+   规则一并删除（已无任何调用方：#pdView 界面与 pattern-drill.js 引擎都不在了）。 */
 
 /* === 10/1 批3 · 考官视频窗（她拍板「考官的脸出现在屏幕上」） ===
    P1/P3：大窗居中在上（像视频通话）；P2：#mockStage.p2-mode 两栏——左题目 + 右小窗。
@@ -2116,7 +2115,8 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
   <div id="matView" hidden data-late-src="js/materials.js?v=20261006a"></div>
 
 
-  <!-- 练习 tab（口语页第 1 个 tab · 默认）：句型闯关引擎（pattern-drill.js），UI 与 pattern-drill.html 同构 -->
+  <!-- 陪练 tab 用的共用样式（pd-* = 句型练习 sentence-drill.js 与场景闯关 scene-drill.js 共用）
+     10-22 句型闯关老引擎（pattern-drill.js）已整体删除，其专属样式一并清掉，这里只留仍在用的。 -->
   <style>
     .pd-meta{font-size:13px;color:var(--muted);margin-left:auto;align-self:center}
     .pd-progress{height:6px;background:var(--bg);border-radius:20px;overflow:hidden;margin:0 0 14px}
@@ -2148,93 +2148,22 @@ body.pd-fullscreen #pdView{flex:1;min-height:0;overflow:auto}
     .pd-dot.done{background:var(--ok,#22c55e)}
     .pd-actions{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
     .pd-note{font-size:12.5px;color:var(--muted);line-height:1.7;margin-top:12px}
+    /* 🔴 10-22 句型闯关老引擎下线：上面 .pd-* 里凡是**句型练习（sentence-drill.js）与场景闯关
+       仍在用**的都要留 —— 在用清单 = pd-input / pd-bar / pd-status / pd-feedback(+ok/bad/info)
+       / pd-note / pd-cn / pd-progress / pd-progress-fill / pd-tag。
+       已随老引擎失去调用方的（pd-pending / pd-ov-* / pd-dot / pd-actions / pd-meta / pd-wrong /
+       pd-fullscreen 全屏那批）已一并清掉。 */
     /* 场景闯关 v2（design/07）——只加最小样式，全部复用既有 token */
     .sd-hint{margin:4px 0 0;font-size:13px;color:var(--muted);line-height:1.7}
     .sd-hint b{color:var(--primary);font-weight:600}
     #trainCard,#sceneCard,#finishCard{ margin-bottom:150px }   /* 底部给悬浮计时器+dock 让位：否则滚动到底时提交按钮被固定层盖住（9/9 实测） */
-    /* design/09 改动 2.4：⛶ 全屏练习（复用背词页 body 级 class 机制，只作用于 trainCard；完成/空态可滚） */
-    body.pd-fullscreen{padding-left:0 !important;padding-right:0 !important}
-    body.pd-fullscreen .top-nav{display:none !important}
-    body.pd-fullscreen .side-collapse{display:none !important}
-    body.pd-fullscreen .page-title{display:none}
-    body.pd-fullscreen .page-head-row{display:none}   /* 元素 hide 后空壳仍占 margin → 全屏态整行摘掉 */
-    body.pd-fullscreen main.container{padding:0 !important;max-width:none !important;height:100vh;overflow:hidden !important;display:flex;flex-direction:column;justify-content:flex-start;background:var(--bg)}
-    body.pd-fullscreen #pdPendingTop{display:none !important}
-    body.pd-fullscreen #pdEmpty{display:none !important}
-    body.pd-fullscreen #trainCard{min-height:100vh;max-width:none;border-radius:0;margin:0;padding:24px 40px;background:var(--bg)}
-    body.pd-fullscreen .pd-cn{font-size:clamp(22px,4.5vh,30px)}
-    body.pd-fullscreen #pdAnswer{min-height:30vh}
-    body.pd-fullscreen #pdImportPanel{display:none !important}
+    /* 10-22 句型闯关老引擎下线：原 design/09 的 ⛶ 全屏练习那 12 条 body.pd-fullscreen 规则
+       已整批删除（全屏按钮 #pdFullscreen、#pdView、#pdAnswer、#pdImportPanel 全随老引擎消失）。 */
     /* 10/1 UI polish：模考说明 inline 图标 chips */
     .mock-intro-row{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 4px}
     .mock-intro-chip{display:inline-flex;align-items:center;font-size:12.5px;padding:4px 12px;border-radius:999px;background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
     .mock-intro-chip svg{opacity:.8}
   </style>
-  <div id="pdView" hidden>
-    <div class="pd-pending" id="pdPendingTop" hidden></div>
-
-    <section class="card" id="trainCard" style="display:none">
-      <div class="word-stats" id="pdStats">
-        <span class="stat-progress" id="pdMasteredStat">已掌握 0 / 0</span>
-      </div>
-      <div class="prog-bar-wrap" id="pdProgWrap">
-        <div class="prog-bar-track"><div class="prog-bar-fill" id="pdProgressFill" style="width:0%"></div></div>
-      </div>
-      <div class="word-tools-row" id="pdToolsRow">
-        <button class="btn btn-sm icon-square-btn" id="pdGear" title="导入句型 / 模考同步"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></button>
-        <button class="btn btn-sm icon-square-btn" id="pdFullscreen" title="全屏练习"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg></button>
-      </div>
-      <span class="pd-tag" id="pdTag"></span>
-      <div class="pd-cn" id="pdCn"></div>
-      <div class="pd-wrong" id="pdWrong"></div>
-      <textarea id="pdAnswer" class="pd-input" placeholder="输入你的英文（也可以用输入法语音转文字后粘贴）" autocomplete="off"></textarea>
-      <div class="pd-bar">
-        <button class="btn btn-primary" id="pdSubmit">提交</button>
-        <button class="btn btn-ghost" id="pdHint">提示</button>
-        <button class="btn btn-ghost" id="pdSkip">跳过</button>
-        <button class="btn btn-ghost" id="pdReveal" style="display:none">看正确句</button>
-        <span class="pd-status" id="pdStatus" aria-live="polite"></span>
-      </div>
-      <div class="pd-feedback" id="pdFeedback"></div>
-      <div id="pdImportPanel" hidden style="margin-top:10px">
-        <textarea id="pdImportText" class="pd-input" style="min-height:70px" placeholder="粘贴你想练的内容：中文句 / 英文句 / 错句+改正 / 笔记，AI 自动识别并入库"></textarea>
-        <div class="pd-bar">
-          <button class="btn btn-primary" id="pdImportParse">AI 解析</button>
-          <button class="btn btn-ghost" id="pdImportCancel">收起</button>
-        </div>
-        <div id="pdImportResult"></div>
-      </div>
-      <span class="pd-note" id="pdSyncNote" style="margin:0"></span>
-    </section>
-
-    <div id="pdEmpty" class="pd-note" hidden></div>
-
-    <!-- 场景闯关 v2（design/07）：与 trainCard 同级保留；__SCENE_V2_ON=true 时由 scene-drill.js 接管 -->
-    <section class="card" id="sceneCard" style="display:none">
-      <div class="pd-progress"><div class="pd-progress-fill" id="sdProgressFill"></div></div>
-      <div class="pd-bar" style="justify-content:space-between;margin-top:0">
-        <span class="pd-tag" id="sdSceneTag"></span>
-        <span class="pd-note" id="sdSceneStep" style="margin:0"></span>
-      </div>
-      <div id="sdFlow"></div>
-      <div class="pd-cn" id="sdCn"></div>
-      <div id="sdHints"></div>
-      <textarea id="sdAnswer" class="pd-input" placeholder="看着中文，说出这句英文（可直接打字，或语音输入转文字后粘贴）" autocomplete="off"></textarea>
-      <div class="pd-bar">
-        <button class="btn btn-primary" id="sdSubmit">提交</button>
-        <button class="btn btn-ghost" id="sdHintBtn">提示</button>
-        <button class="btn btn-ghost" id="sdSpeakBtn" title="听一遍标准发音">听一遍</button>
-        <button class="btn btn-ghost" id="sdNext" style="display:none">下一句 ▸</button>
-        <span class="pd-status" id="sdStatus" aria-live="polite"></span>
-      </div>
-      <div class="pd-feedback" id="sdFeedback"></div>
-    </section>
-
-    <section class="card" id="finishCard" style="display:none">
-      <h2 id="finishTitle"></h2>
-      <div id="finishBody"></div>
-    </section>
-  </div>
 
   <!-- 句型页 v2（design/16 P0）：__SENT_V2_ON=true 时由 sentence-drill.js 接管「练习」tab，
        内容全部渲染进 #sentBody（薄弱条占位 + 5 类折叠 + 错题库入口 / 单句练习视图） -->

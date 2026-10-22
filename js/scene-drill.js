@@ -161,7 +161,13 @@ function sdStepsOf(scene){
   return steps;
 }
 function sdToday(){
-  return (typeof pdIsoDate === 'function') ? pdIsoDate() : new Date().toISOString().slice(0, 10);
+  /* 🔴 10-22 句型闯关老引擎（pattern-drill.js）已整体删除 → pdIsoDate 不再存在。
+     这里的内联兜底必须自己按**本地日期**拼，绝不能用 toISOString()（UTC）：
+     北京时间 0~8 点两者差一整天，会让 W 窗口漏掉 today 自己的 daily（见下方 sdDateOffset 注释）。
+     保留 pdIsoDate 判断只为「老引擎回滚回来」这种场景，正常情况下走内联分支。 */
+  if(typeof pdIsoDate === 'function') return pdIsoDate();
+  var d = new Date(), p = function(n){ return (n < 10 ? '0' : '') + n; };
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
 }
 /* 日期偏移（design/11 阶段 5 周对比）：iso 'YYYY-MM-DD' 减 delta 天。
    必须与 pdIsoDate() 同帧（本地日期），故用本地 getFullYear/Month/Date 拼回，
@@ -618,7 +624,7 @@ function sdRenderTrend(){
 function sdRecordWrong(o){
   var focus = (o.focus || '').trim();
   if(!focus) return;                                  // lead / 空 focus 不计
-  var today = (typeof pdIsoDate === 'function') ? pdIsoDate() : new Date().toISOString().slice(0,10);
+  var today = sdToday();   // 10-22：老引擎删掉后统一走 sdToday()（内联分支已按本地日期拼，不再用 UTC）
   var w = (typeof DATA !== 'undefined' && DATA.patternDrill) ? DATA.patternDrill : null;
   if(!w) return;
   w.custom = w.custom || [];

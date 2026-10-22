@@ -470,70 +470,21 @@ function mergeData(local, cloud){
       if(JSON.stringify(_obOut) !== JSON.stringify(lob)){ out.obank = _obOut; changes += _obCh; }
     }
   }
-  /* 句型闯关（patternDrill）跨设备合并（2026-09-09 修复：云端拉取时整份丢弃 +
-     手机端任意操作全量上传会把云端进度/我的句型库冲掉——移动端「练习页进度没了」根因）。
-     规则：items 按条目 id 取「更进步」一侧（mastered > 未掌握；level 大者胜；同级 updated 新者胜；
-     pending 标记做 OR 保留，下次判对自动清除）；custom[] 按 id 并集（同 id 留本机）；
-     mockSynced[] 签名并集（同步去重，永不重复导入）；weakness 按 focus 合并
-     （wrongCount 取 max 幂等防重复同步累加、lastWrongAt 取较新，design/07 §5.4）。 */
+  /* patternDrill 跨设备合并（2026-09-09 立；10-22 老引擎下线后收窄）。
+     ⚠️ 字段归属务必分清（10-22 她要求删「句型闯关」老引擎时逐个核过）：
+       · 仍在用 → 本块只保留这两样：
+         - sentences.status / sentences.replay → 「句型练习」sentence-drill.js 写（她日常在用）
+         - weakness → 场景闯关 scene-drill.js 写（错题薄弱条）
+       · 老引擎专用、已随 js/pattern-drill.js 一起下线 → items（自动导入句型）、
+         custom（我的句型库；10/1 起 sentences.custom 已强制清空）、mockSynced（模考同步去重）。
+         这三样的合并分支连同老引擎一起删掉了；**存量数据不主动清**（不写任何删除逻辑，
+         留在用户 DATA 里不读不写，随云同步原样带着，避免动到不该动的数据）。 */
   if(cloud.patternDrill && typeof cloud.patternDrill === 'object'){
-    const _pdRank = s => (s && s.status === 'mastered') ? 1 : 0;
-    const _pdItems = Object.assign({}, (local.patternDrill && local.patternDrill.items) || {});
     let _pdCh = 0;
-    const _cItems = cloud.patternDrill.items || {};
-    for(const id in _cItems){
-      const a = _pdItems[id], b = _cItems[id];
-      if(!b || typeof b !== 'object') continue;
-      if(!a){ _pdItems[id] = b; _pdCh++; continue; }
-      let win;
-      const ra = _pdRank(a), rb = _pdRank(b);
-      if(ra !== rb) win = (ra > rb) ? a : b;
-      else {
-        const la = a.level || 0, lb = b.level || 0;
-        if(la !== lb) win = (la > lb) ? a : b;
-        else win = (String(a.updated || '') >= String(b.updated || '')) ? a : b;
-      }
-      if(win !== a){
-        _pdItems[id] = win; _pdCh++;
-      }
-      if((a.pending || b.pending) && !_pdItems[id].pending){ _pdItems[id] = Object.assign({}, _pdItems[id], { pending: true }); _pdCh++; }
-    }
-    const _pdOut = Object.assign({}, local.patternDrill || {}, { items: _pdItems });
-    // custom：按 id 并集（同 id 留本机）；mockSynced：签名并集
-    const _lc = Array.isArray(local.patternDrill && local.patternDrill.custom) ? local.patternDrill.custom.slice() : [];
-    const _cc = Array.isArray(cloud.patternDrill.custom) ? cloud.patternDrill.custom : [];
-    const _ids = new Set(_lc.map(x => x && x.id));
-    _cc.forEach(x => { if(x && x.id != null && !_ids.has(x.id)){ _lc.push(x); _pdCh++; } });
-    _pdOut.custom = _lc;
-    const _ms = Array.from(new Set([
-      ...((Array.isArray(local.patternDrill && local.patternDrill.mockSynced)) ? local.patternDrill.mockSynced : []),
-      ...((Array.isArray(cloud.patternDrill.mockSynced)) ? cloud.patternDrill.mockSynced : [])
-    ]));
-    if(_ms.length !== ((local.patternDrill && local.patternDrill.mockSynced) || []).length) _pdCh++;
-    _pdOut.mockSynced = _ms;
-    // weakness（design/07 §5.4）：按 focus 合并；wrongCount 取 max 不取 sum（幂等——云端已含本机
-    // 上次上传的贡献，sum 在重复同步时反复累加虚高），lastWrongAt 取较新。
-    // 不显式处理会被上方 Object.assign({}, local.patternDrill) 起步的 _pdOut 整份丢弃云端那份。
-    const _lw = (local.patternDrill && local.patternDrill.weakness) || {};
-    const _cw = (cloud.patternDrill && cloud.patternDrill.weakness) || {};
-    const _mw = {};
-    let _wCh = 0;
-    Array.from(new Set([...Object.keys(_lw), ...Object.keys(_cw)])).forEach(k => {
-      const a = _lw[k] || {}, b = _cw[k] || {};
-      const wc = Math.max(Number(a.wrongCount) || 0, Number(b.wrongCount) || 0);
-      const lwa = String(a.lastWrongAt || '') >= String(b.lastWrongAt || '') ? (a.lastWrongAt || '') : (b.lastWrongAt || '');
-      const md = _sdMergeDaily(a.daily, b.daily);
-      _mw[k] = { wrongCount: wc, lastWrongAt: lwa, daily: md };
-      if((Number(a.wrongCount) || 0) !== wc || String(a.lastWrongAt || '') !== lwa) _wCh++;
-      // daily 跨设备收敛：合并结果任一侧不等 → 计变化并上传，否则下次同步仍不一致
-      if(JSON.stringify(md) !== JSON.stringify(a.daily || {}) || JSON.stringify(md) !== JSON.stringify(b.daily || {})) _wCh++;
-    });
-    if(Object.keys(_lw).length !== Object.keys(_mw).length) _wCh++;
-    _pdOut.weakness = _mw;
-    _pdCh += _wCh;
-    // design/16：句型页进度 patternDrill.sentences = { status: { [句型id]: {st, ts} } }——
-    // 按 ts 新者胜（两端同 id 各有状态时取 ts 大的一侧；单侧有则取有的一侧），幂等不累加。
-    // design/17：sentences.replay = { [catId]: ts }（拼接验证已做标记）同款按 ts 新者胜。
+    const _pdOut = Object.assign({}, local.patternDrill || {});
+    /* design/16：句型页进度 patternDrill.sentences = { status: { [句型id]: {st, ts} } }——
+       按 ts 新者胜（两端同 id 各有状态时取 ts 大的一侧；单侧有则取有的一侧），幂等不累加。
+       design/17：sentences.replay = { [catId]: ts }（拼接验证已做标记）同款按 ts 新者胜。 */
     const _lss = (local.patternDrill && local.patternDrill.sentences && local.patternDrill.sentences.status) || {};
     const _css = (cloud.patternDrill && cloud.patternDrill.sentences && cloud.patternDrill.sentences.status) || {};
     const _mss = {};
@@ -551,7 +502,7 @@ function mergeData(local, cloud){
     });
     /* 10/1 她拍板：「我的语法错题」整模块下线（诊断收录按钮 + 练习分组 + 数据读写全删）。
        sentences.custom 不再参与合并，且合并时强制清空——本地与云端的存量错题随下一次同步整体洗掉。
-       （原 design/77 的按 id 并集 + 墓碑 + key 去重逻辑随之退役。） */
+       （10-22 老引擎进一步整体删除，这条清理规则保留：它清的是 sentences.custom） */
     const _hadCustom = ((local.patternDrill && local.patternDrill.sentences && local.patternDrill.sentences.custom) || []).length;
     if(JSON.stringify(_mss) !== JSON.stringify(_lss) || JSON.stringify(_msr) !== JSON.stringify(_lsr)
        || _hadCustom){
@@ -559,6 +510,24 @@ function mergeData(local, cloud){
         { status: _mss, replay: _msr, custom: [] });
       _pdCh++;
     }
+    /* weakness（design/07 §5.4）：按 focus 合并；wrongCount 取 max 不取 sum（幂等——云端已含本机
+       上次上传的贡献，sum 在重复同步时反复累加虚高），lastWrongAt 取较新。 */
+    const _lw = (local.patternDrill && local.patternDrill.weakness) || {};
+    const _cw = (cloud.patternDrill && cloud.patternDrill.weakness) || {};
+    const _mw = {};
+    let _wCh = 0;
+    Array.from(new Set([...Object.keys(_lw), ...Object.keys(_cw)])).forEach(k => {
+      const a = _lw[k] || {}, b = _cw[k] || {};
+      const wc = Math.max(Number(a.wrongCount) || 0, Number(b.wrongCount) || 0);
+      const lwa = String(a.lastWrongAt || '') >= String(b.lastWrongAt || '') ? (a.lastWrongAt || '') : (b.lastWrongAt || '');
+      const md = _sdMergeDaily(a.daily, b.daily);
+      _mw[k] = { wrongCount: wc, lastWrongAt: lwa, daily: md };
+      if((Number(a.wrongCount) || 0) !== wc || String(a.lastWrongAt || '') !== lwa) _wCh++;
+      // daily 跨设备收敛：合并结果任一侧不等 → 计变化并上传，否则下次同步仍不一致
+      if(JSON.stringify(md) !== JSON.stringify(a.daily || {}) || JSON.stringify(md) !== JSON.stringify(b.daily || {})) _wCh++;
+    });
+    if(Object.keys(_lw).length !== Object.keys(_mw).length) _wCh++;
+    if(_wCh){ _pdOut.weakness = _mw; _pdCh += _wCh; }
     if(_pdCh){ out.patternDrill = _pdOut; changes += _pdCh; }
   }
   /* design/19：素材集配置 materialSets = { active, topic, enabled, sets:{ [setId]:{topics:[...]} }, updatedAt }

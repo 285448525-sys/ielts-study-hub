@@ -1,4 +1,4 @@
-﻿/* === 口语题库（极简版） · v20260923g（design/87：P2 串题要点驱动重构） === */
+/* === 口语题库（极简版） · v20260923g（design/87：P2 串题要点驱动重构） === */
 var curType = 'ALL';   // 题库 tab 合并 P1+P2（'ALL'）；P1/P2 仅保留为数据类型
 var curFreq = 'all';
 var curCat = 'all';
@@ -346,20 +346,17 @@ ready(() => {
       if(typeof sentReplayClose === 'function') sentReplayClose();
       // 9/26：切 tab 一律解除模考沉浸（否则侧栏/tab 被藏、页面只剩模考内容）
       try{ document.body.classList.remove('mock-immerse'); }catch(e){}
-      $('#listView').hidden = true; $('#detailView').hidden = true; $('#mockView').hidden = true; $('#matView').hidden = true; $('#pdView').hidden = true; $('#sentView').hidden = true; $('#coachView').hidden = true;
+      /* 10-22 句型闯关老引擎（pattern-drill.js / #pdView）整体下线（她要求）→ 这里的 pdView
+         显隐全部去掉：#pdView 已不在页面里，再写 $('#pdView').hidden 会抛错把切换流程打断。 */
+      $('#listView').hidden = true; $('#detailView').hidden = true; $('#mockView').hidden = true; $('#matView').hidden = true; $('#sentView').hidden = true; $('#coachView').hidden = true;
       if(t === 'PRACTICE'){
-        // 10/2：AI 陪练 coach 最优先接管「陪练」tab（旗子在 coach.js 顶层，去 script 引用即回滚）；
-        // 其次 design/16 P0 句型页（sentence-drill.js）；都关时落老 pdView
+        // 10/2：AI 陪练 coach 最优先接管「陪练」tab；其次 design/16 P0 句型页（sentence-drill.js）
         if(window.__COACH_ON){
-          $('#pdView').hidden = true; $('#sentView').hidden = true;
+          $('#sentView').hidden = true;
           $('#coachView').hidden = false;
           try{ window.__coachShow && window.__coachShow(); }catch(_){}
-        } else if(window.__SENT_V2_ON){
-          $('#pdView').hidden = true;
-          $('#sentView').hidden = false;
         } else {
-          // 句型闯关引擎（pattern-drill.js）已在 ready 时启动；切回只显隐，不重建队列
-          $('#pdView').hidden = false;
+          $('#sentView').hidden = false;
         }
       } else if(t === 'BANK'){
         curType = 'ALL';
@@ -511,11 +508,10 @@ ready(() => {
   if(mockJump) mockJump.addEventListener('click', () => { const mb = document.querySelector('#tabs [data-type="MOCK"]'); if(mb) mb.click(); });
   renderFreqBanner();   // design/81：季度 banner 数据化（此时题库合并已完成，题数现算）
   syncFselLabels();    // 10/3 B 版：初始三个筛选都是「全部」→ 浮层标签不显形
-  $('#backBtn').addEventListener('click', () => { $('#detailView').hidden = true; $('#listView').hidden = false; $('#sentView').hidden = true; $('#pdView').hidden = true; curDetailId = null; spActivateTab('BANK'); });
+  $('#backBtn').addEventListener('click', () => { $('#detailView').hidden = true; $('#listView').hidden = false; $('#sentView').hidden = true; curDetailId = null; spActivateTab('BANK'); });
   // 默认 tab = 题库（她 10/1 晚拍板：题库放练习前面 + 打开口语优先展示题库）。
   // 程序化点 BANK tab：复用切换分支的全部重置/渲染逻辑，不另写一份。
   $('#listView').hidden = true;
-  $('#pdView').hidden = true;
   $('#sentView').hidden = true;
   const bankTabBtn = document.querySelector('#tabs [data-type="BANK"]');
   if(bankTabBtn) bankTabBtn.click();
@@ -524,7 +520,6 @@ ready(() => {
     const openId = new URLSearchParams(location.search).get('open');
     if(openId && (DATA.speaking || []).some(x => x && x.id === openId)){
       spActivateTab('BANK');
-      $('#pdView').hidden = true;
       $('#sentView').hidden = true;
       $('#listView').hidden = true;
       openDetail(openId);
@@ -557,9 +552,9 @@ ready(() => {
     if(new URLSearchParams(location.search).get('senttab')){
       spActivateTab('PRACTICE');
       if(window.__COACH_ON){
-        $('#coachView').hidden = false; $('#sentView').hidden = true; $('#pdView').hidden = true;
+        $('#coachView').hidden = false; $('#sentView').hidden = true;
         try{ window.__coachShow && window.__coachShow(); }catch(_){}
-      } else if(window.__SENT_V2_ON){ $('#sentView').hidden = false; $('#pdView').hidden = true; }
+      } else { $('#sentView').hidden = false; }
     }
   }catch(_){}
 });
@@ -1427,7 +1422,7 @@ function openDetail(id){
 function spGoPracticeCat(catId){
   // 显隐对齐 PRACTICE tab 逻辑（speaking.js ready 里同款），并展开该类重渲染
   spActivateTab('PRACTICE');
-  $('#listView').hidden = true; $('#detailView').hidden = true; $('#mockView').hidden = true; $('#matView').hidden = true; $('#pdView').hidden = true;
+  $('#listView').hidden = true; $('#detailView').hidden = true; $('#mockView').hidden = true; $('#matView').hidden = true;
   // 10/2：coach 接管后，题库详情「去练该类」统一进 AI 陪练（catId 是句型类别，coach 用不上忽略）
   if(window.__COACH_ON){
     $('#sentView').hidden = true; $('#coachView').hidden = false;
@@ -1435,7 +1430,6 @@ function spGoPracticeCat(catId){
     window.scrollTo({ top: 0, behavior: 'smooth' });
     return;
   }
-  if(!window.__SENT_V2_ON){ $('#pdView').hidden = false; return; }   // 开关回滚时落老 pdView
   $('#sentView').hidden = false;
   window.__SENT_OPEN = window.__SENT_OPEN || {};
   window.__SENT_OPEN[catId] = true;
