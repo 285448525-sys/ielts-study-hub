@@ -66,7 +66,7 @@
 // 未改任何加载策略/脚本顺序（HANDOFF 铁律：defer 顺序是契约，动它会连带出事）。
 // common.js → 20261013ad（25 页）、index.js → 20261017a（仅 home.html）、
 // bank.js → 20261012ac（仅 bank.html）。上一版 v409。
-const CACHE = 'ielts-hub-v458';;;;;  // 10-22 换顶栏第 4 批：单词 / 口语 / 写作 三页接入共享外壳（<body data-shell="top">）+ 三处沉浸态（全屏背词 / 口语模考 / 写作机考）收掉顶栏并撤掉 44px 让位。只动 HTML 的 body 属性与页内 inline style、无 css/js 文件改动 → 只换 SW 缓存版本。上一版 v457 = 第 3 批(2/2) 计时/句子/错句本/回顾；v456 = 第 3 批(1/2) 计划页；v455 = 首页今日任务超过 5 条只显示前 5 条 + 一行「还有 N 条去计划页」
+const CACHE = 'ielts-hub-v459';;;;;  // 10-22 换顶栏第 5 批（全站最后一批）：模考 bank.html 接入共享外壳（<body data-shell="top">）。至此 11 个功能页全部换成顶栏壳，288px 侧栏只剩未登录的落地页/登录页在用。bank.html 三处沉浸态（#examRoot 阅读听力 / body.exam-fullscreen 写作机考）本就是 position:fixed;inset:0 + z-index:900 的整屏覆盖层，天然盖住顶栏（z-index 50），本页零附加规则、零 css/js 改动 → 只换 SW 缓存版本。上一版 v458 = 第 4 批 单词/口语/写作；v457 = 第 3 批(2/2) 计时/句子/错句本/回顾；v456 = 第 3 批(1/2) 计划页；v455 = 首页今日任务超过 5 条只显示前 5 条 + 一行「还有 N 条去计划页」
    // 里命中已有词的分支原调 resetWordProgress（level=0 + nextReview=今天 = 归零重背），太狠——一个已 Lv 6（60 天档）的
    // 词只是词表里又出现一次就被打回今天。新增 demoteWordProgress(w)：level-1（Math.max(0,…) 兜底，最早到 Lv 0）
    // 🔑 **必须同步降 dh**：design/77 起 level 只是 dh 的显示代理（displayLevelFromH 由 dh 反推、答对时

@@ -31,6 +31,10 @@
 <meta name="description" content="四科机考模考：阅读、听力、写作、口语，按真实考试的形式练。" />
 <style>
 /* ===== 模考页样式（页面内联，不动 common.css → 免全站 bump）===== */
+/* 10-22 换顶栏第 5 批：本页接入共享顶栏壳（body data-shell="top"）。
+   ⚠️ 沉浸态（#examRoot 阅读听力 / body.exam-fullscreen 写作机考）都是 position:fixed;inset:0
+   的整屏覆盖层，z-index 900 > 顶栏 50 → 覆盖时天然盖住顶栏，本页**不需要**任何额外 hide 规则。
+   唯一要处理的是 body 自身的 44px 吸顶 padding：覆盖层铺满视口、内容自己管高度，互不影响。 */
 .mock-wrap{max-width:1080px;margin:0 auto}
 /* 小 tab 直接用全站 .pill-tabs / .pill-tab（css/common.css），此处不另造样式 */
 .mock-tabs{margin:0 0 12px}
@@ -1454,7 +1458,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 
 </style>
 </head>
-<body>
+<body data-shell="top">
 <div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div></div>
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 
