@@ -246,7 +246,12 @@ async function handleRequest(context) {
     /* 频率护栏（防刷信 + 防烧 KV）：
        ① 同一邮箱 60 秒内只能发一次（ec_cd:<email>）
        ② 同一邮箱每天最多 5 封（ec_d:<email>:<UTC day>）
-       ③ 验证码本身 TTL 10 分钟（ec:<email>） */
+       ③ 验证码本身 TTL 10 分钟（ec:<email>）
+       ④ 5 秒「发送中」锁（ec_lock:<email>）：连点时只放行一封，其余提示「上一封还在发」
+       🔴 10/22 她朋友实测故障：KV 曾写在发信**之前** → 发信失败（403 域名未验证）冷却照样生效，
+          用户连试三次每次白等一分钟还被「60 秒后再试」挡住。现在**三个计数键一律挪到发信成功之后**，
+          失败时只删发送锁、不写冷却与计数 —— 失败可以立刻重试（60 秒与每日 5 封的护栏只在
+          「真的发出去了」时才生效，防刷能力不降）。 */
     const _p = n => String(n).padStart(2, '0');
     const _d = new Date();
     const day = _d.getUTCFullYear() + _p(_d.getUTCMonth() + 1) + _p(_d.getUTCDate());
@@ -258,26 +263,44 @@ async function handleRequest(context) {
     if (dayCnt > 5) {
       return json({ ok: false, error: 'too_many', msg: '今天验证码发得够多了，明天再试（或先用账号密码登录）' }, 429);
     }
-    const code = String(Math.floor(Math.random() * 900000) + 100000);
-    try {
-      await kv.put('ec:' + email, code, { expirationTtl: 600 });
-      await kv.put(cdKey, '1', { expirationTtl: 60 });
-      await kv.put('ec_d:' + email + ':' + day, String(dayCnt), { expirationTtl: 86400 });
-    } catch (e) {
+    /* 5 秒发送锁：写入失败按 kv_busy 处理；已存在 → 上一封还在发，直接挡回（不发第二封） */
+    const lockKey = 'ec_lock:' + email;
+    if (await kv.get(lockKey)) {
+      return json({ ok: false, error: 'sending', msg: '上一封还在发，等几秒再点' }, 429);
+    }
+    try { await kv.put(lockKey, '1', { expirationTtl: 5 }); } catch (e) {
       if (/limit/i.test(String(e && e.message))) {
         return json({ ok: false, error: 'kv_busy', msg: '云端存储今日写入配额已用完，明早再试' }, 503);
       }
       throw e;
     }
-    /* 发信（Resend REST）。失败不回滚 KV（码还在，让她重试「重新发送」即可），
-       但要把真实原因回给人话 —— 以前裸 500 她根本不知道发生了什么。
+    const code = String(Math.floor(Math.random() * 900000) + 100000);
+    /* 发信（Resend REST）。🔴 10/22 改顺序：**先发信、成功后才写 KV**（码/冷却/当日计数）。
+       失败只删发送锁，用户可立刻重试；不再出现「没发出去却锁 60 秒」。
+       真因也带回人话 + code —— 以前只给「稍后再试」，她朋友连试三次白等，还被误导去等冷却。
        🔴 10/16 修（线上 email_code 实测：合法邮箱稳定 502，20 秒无响应被 CF 掐断）：
        原实现 fetch **没有超时**，上游一旦不响应（额度/密钥/DNS 任一异常），Worker 会一直挂到
        被 CF 强制断开 → 返回的是 CF 自己的 502 纯文本页（不是我们的 JSON）→ 前端连错误码都拿不到，
        邮箱注册整条路走不通，且无从定位。现在 10s 超时 + 把上游状态码与响应片段带回 detail
        （前端只显示 msg；detail 只用于后台/探针定位真因）。 */
+    const clearLock = async () => { try { await kv.delete(lockKey); } catch (e) {} };
     const ctrl = new AbortController();
     const _to = setTimeout(function(){ try{ ctrl.abort(); }catch(e){} }, 10000);
+    /* 上游 403 + 「只能发给站长本人」= 发件域名未验证（10/22 实测确认）。
+       这不是稍后能好的问题（不发到任何人），必须讲清楚，别让人反复干等。 */
+    const mailFail = (status, text) => {
+      const t = String(text || '');
+      const detail = ('HTTP ' + status + ' ' + t).slice(0, 240);
+      if (status === 403 && /can only send testing emails/i.test(t)) {
+        return { error: 'mail_domain_unverified', code: 'mail_domain_unverified',
+          detail,
+          msg: '发件域名还没验证，现在只能发到站长本人邮箱。站长需去 resend.com/domains 验证域名后，把 MAIL_FROM 换成该域名的地址' };
+      }
+      const m = /HTTP (\d{3})/.exec(detail);
+      return { error: 'mail_failed', code: 'resend_' + (m ? m[1] : (status || 'unknown')),
+        detail,
+        msg: '验证码没发出去（邮件服务返回 ' + status + '），稍后再试' };
+    };
     try {
       const r = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -297,17 +320,36 @@ async function handleRequest(context) {
       clearTimeout(_to);
       if (!r.ok) {
         const t = await r.text().catch(function(){ return ''; });
-        return json({ ok: false, error: 'mail_failed',
-          detail: ('HTTP ' + r.status + ' ' + String(t || '')).slice(0, 240),
-          msg: '验证码没发出去（邮件服务返回 ' + r.status + '），稍后再试' }, 502);
+        await clearLock();
+        const f = mailFail(r.status, t);
+        return json({ ok: false, error: f.error, code: f.code, detail: f.detail, msg: f.msg }, 502);
       }
+      /* 走到这里 = 邮件服务已接收（真正发没发到由 Resend 负责，这里以 2xx 为准）。
+         下面的 KV 写入才是「这封真的算发过」的记账。 */
     } catch (e) {
       clearTimeout(_to);
+      await clearLock();
       const abort = e && e.name === 'AbortError';
-      return json({ ok: false, error: 'mail_failed',
+      const f = { error: 'mail_failed', code: abort ? 'resend_timeout' : 'resend_network',
         detail: String((e && (e.name || e.message)) || e).slice(0, 160),
         msg: abort ? '验证码没发出去（邮件服务 10 秒没响应），稍后再试'
-                   : '验证码没发出去（网络问题），稍后再试' }, 502);
+                  : '验证码没发出去（网络问题），稍后再试' };
+      return json({ ok: false, error: f.error, code: f.code, detail: f.detail, msg: f.msg }, 502);
+    }
+    /* 发信成功：现在才写三个键（顺序 = 码 → 冷却 → 当日计数）。
+       ⚠️ 这里不能失败：码已进用户邮箱，写不进去就验不了。写入抛异常（配额满）时
+       返回明确错误，让她直接用收到的码 / 明早再试，**不能返回 ok 假装成功**。 */
+    try {
+      await kv.put('ec:' + email, code, { expirationTtl: 600 });
+      await kv.put(cdKey, '1', { expirationTtl: 60 });
+      await kv.put('ec_d:' + email + ':' + day, String(dayCnt), { expirationTtl: 86400 });
+    } catch (e) {
+      if (/limit/i.test(String(e && e.message))) {
+        return json({ ok: false, error: 'kv_busy', code: 'kv_busy_after_send',
+          msg: '验证码已经发到你的邮箱，但服务端记录失败（今日写入配额用完）。请直接使用收到的验证码；不行就明早再试' }, 503);
+      }
+      return json({ ok: false, error: 'kv_busy', code: 'kv_write_failed',
+        msg: '验证码已经发到你的邮箱，但服务端记录失败。请直接使用收到的验证码，或稍后重试' }, 503);
     }
     return json({ ok: true, msg: '验证码已发送，10 分钟内有效' });
   }

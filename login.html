@@ -86,6 +86,8 @@ input::placeholder{color:var(--n-500)}
 .links .dim{color:var(--n-600)}
 .note{font-size:13.5px;margin:12px 0 0;color:var(--n-600);min-height:18px}
 .note.bad{color:var(--danger)}
+/* 10/22 T-007：后端错误码小字（截图报错用） */
+.note-code{font-size:11.5px;margin-top:2px;opacity:.72;font-variant-numeric:tabular-nums}
 /* 10/15 注册区：验证码框 + 获取按钮同一行 */
 .code-row{display:flex;gap:10px;align-items:center}
 .code-row input{flex:1;min-width:0}
@@ -265,6 +267,19 @@ var ACCT_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
     el.textContent = t || '';
     el.className = 'note' + (bad ? ' bad' : '');
   }
+  /* 10/22 她朋友注册报错看不到原因：后端给了 code（如 mail_domain_unverified）但页面只显示 msg。
+     在提示后面追加一行小字，方便她截图报错。 */
+  function noteCode(id, code){
+    var el = $(id); if(!el) return;
+    var old = el.querySelector('.note-code');
+    if(old) old.remove();
+    if(code){
+      var s = document.createElement('div');
+      s.className = 'note-code';
+      s.textContent = '错误码：' + code;
+      el.appendChild(s);
+    }
+  }
   function busy(btn, b, txt){
     btn.disabled = b;
     if(txt) btn.textContent = txt;
@@ -397,7 +412,7 @@ var ACCT_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
     note('noteRegister','正在发送…', false);
     post({ action:'email_code', email:email }).then(function(r){
       if(r.j.ok){ note('noteRegister','验证码已发送，去邮箱看', false); regCd = 60; regTick(); }
-      else note('noteRegister', r.j.msg || '没发出去', true);
+      else { note('noteRegister', r.j.msg || '没发出去', true); noteCode('noteRegister', r.j.code); }
     }).catch(function(){ note('noteRegister','网络异常，稍后再试', true); });
   });
 
@@ -440,7 +455,7 @@ var ACCT_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
     note('noteRs','正在发送…', false);
     post({ action:'email_code', email:email }).then(function(r){
       if(r.j.ok){ note('noteRs','验证码已发送，去邮箱看', false); rsCd = 60; rsTick(); }
-      else note('noteRs', r.j.msg || '没发出去', true);
+      else { note('noteRs', r.j.msg || '没发出去', true); noteCode('noteRs', r.j.code); }
     }).catch(function(){ note('noteRs','网络异常，稍后再试', true); });
   });
   var rsOk = $('rsOk');
