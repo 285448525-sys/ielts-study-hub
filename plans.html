@@ -374,7 +374,10 @@
   #ptabToday > .card > .card-head{grid-column:1 / -1;margin-bottom:18px}
   #ptabToday .pt-add{
     display:block;grid-column:1;grid-row:2;
-    position:sticky;top:72px;   /* 桌面：滚动任务清单时输入区始终可见（手机上无此效果） */
+    position:sticky;top:72px;   /* 桌面：滚动任务清单时输入区始终可见（手机上无此效果）
+                                   🔴 10/22 换顶栏壳（body data-shell="top"）后**实测过**，不是算的：
+                                   吸顶时这块卡的上沿停在 y=76px，顶栏底边 44px → 下面仍留 32px 空档，
+                                   没被压住、也没穿过去，所以 72px 不动。窗口高度变化不影响（吸顶值是固定量）。 */
   }
   #ptabToday .pt-list{
     grid-column:2;grid-row:2;
@@ -488,7 +491,7 @@
 }
 </style>
 </head>
-<body>
+<body data-shell="top">
 <div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div></div>
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 
