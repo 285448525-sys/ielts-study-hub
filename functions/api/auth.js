@@ -263,16 +263,24 @@ async function handleRequest(context) {
     if (dayCnt > 5) {
       return json({ ok: false, error: 'too_many', msg: '今天验证码发得够多了，明天再试（或先用账号密码登录）' }, 429);
     }
-    /* 5 秒发送锁：写入失败按 kv_busy 处理；已存在 → 上一封还在发，直接挡回（不发第二封） */
+    /* 5 秒发送锁：已存在 → 上一封还在发，直接挡回（不发第二封）。
+       ⚠️ 锁写失败**不挡路**：10/22 线上实测，配额相关的 put 异常文案不止一种
+       （"KV put() limit exceeded for the day." 之外还有别的），早先版本把非 limit 的
+       异常原样 rethrow → 用户看到「服务出错了」而其实只是这把锁没写上。
+       现在：写锁失败只降级（不加锁继续走），真正要命的三个键写在发信成功之后、那边才拦。 */
     const lockKey = 'ec_lock:' + email;
-    if (await kv.get(lockKey)) {
-      return json({ ok: false, error: 'sending', msg: '上一封还在发，等几秒再点' }, 429);
-    }
-    try { await kv.put(lockKey, '1', { expirationTtl: 5 }); } catch (e) {
+    let locked = false;
+    try {
+      if (await kv.get(lockKey)) {
+        return json({ ok: false, error: 'sending', msg: '上一封还在发，等几秒再点' }, 429);
+      }
+      await kv.put(lockKey, '1', { expirationTtl: 5 });
+      locked = true;
+    } catch (e) {
       if (/limit/i.test(String(e && e.message))) {
         return json({ ok: false, error: 'kv_busy', msg: '云端存储今日写入配额已用完，明早再试' }, 503);
       }
-      throw e;
+      /* 其他异常：放弃这把锁（TTL 只有 5 秒，损失极小），不让用户卡在 500 */
     }
     const code = String(Math.floor(Math.random() * 900000) + 100000);
     /* 发信（Resend REST）。🔴 10/22 改顺序：**先发信、成功后才写 KV**（码/冷却/当日计数）。
@@ -283,7 +291,7 @@ async function handleRequest(context) {
        被 CF 强制断开 → 返回的是 CF 自己的 502 纯文本页（不是我们的 JSON）→ 前端连错误码都拿不到，
        邮箱注册整条路走不通，且无从定位。现在 10s 超时 + 把上游状态码与响应片段带回 detail
        （前端只显示 msg；detail 只用于后台/探针定位真因）。 */
-    const clearLock = async () => { try { await kv.delete(lockKey); } catch (e) {} };
+    const clearLock = async () => { if (!locked) return; try { await kv.delete(lockKey); } catch (e) {} };
     const ctrl = new AbortController();
     const _to = setTimeout(function(){ try{ ctrl.abort(); }catch(e){} }, 10000);
     /* 上游 403 + 「只能发给站长本人」= 发件域名未验证（10/22 实测确认）。
