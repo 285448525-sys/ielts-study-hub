@@ -125,6 +125,217 @@
         #mkQtStats .mk-qt-note{margin:10px 2px 0;font-size:11.5px;color:var(--muted);line-height:1.75;overflow-wrap:anywhere}
         #mkQtStats .mk-qt-note b{color:var(--ink)}
 </style>
+<style id="t010ReviewRestyle">
+/* =========================================================================
+   T-010 · 回顾页 UI 整改（2026-10-22）
+   视觉基准 = 口语页 T-004 成品（speaking.html）：
+     · 顶部 tab 下划线式   → 靠 .page-head-row .sp-tabs.pill-tabs（T-004 已有块）
+     · 驾驶舱统计条        → .rv-cockpit / .rv-stat-*（对齐 .sp-cockpit / .sp-stat-*）
+     · 通栏行列表          → .rv-row（对齐 .sp-card-row：一行一条 / hover 左 2px）
+     · 分组标题            → .rv-block-h（对齐 .sp-block-h）
+   ⚠️ 三条硬约束（照 T-004 抄来的教训）：
+     1. 颜色只引用 token，不新造色值 —— 深色下 --n-* 是反向阶，token 会自动适配。
+     2. 不用 --primary-900 当正文色（T-004 踩过：深色无覆盖 = 黑底黑字），
+        正文一律 --n-800 / 强调 --primary-700（深/浅都有覆盖值）。
+     3. 只改渲染层：DOM 结构与数据字段一个没动（scores.js / mock-history.js 未改）。
+   ========================================================================= */
+
+/* ---- 1. 页面主体限宽 ----
+   container 已是 max-width:1160（common.css:361）。T-010 只把内容再收一档到 1040，
+   与口语页驾驶舱那段的观感一致；窄屏不设限宽（让内容占满）。 */
+@media (min-width:1100px){
+  .review-wrap{max-width:1040px;margin:0 auto}
+}
+
+/* ---- 1b. 顶部 tab 下划线式（T-004 同款；speaking.html 里那段是页内样式，
+   本页拿不到 → 原样抄一份。选中态 2.5px teal 下划线。）---- */
+.page-head-row .review-pill-tabs.pill-tabs{
+  background:none;border:0;border-radius:0;padding:0;box-shadow:none;
+  display:flex;align-items:stretch;gap:22px;
+}
+.page-head-row .review-pill-tabs.pill-tabs .pill-tab{
+  background:none;border:0;border-radius:0;box-shadow:none;
+  padding:10px 1px 9px;font-size:14.5px;font-weight:600;color:var(--n-600);
+  position:relative;transition:color .15s;line-height:1;
+}
+.page-head-row .review-pill-tabs.pill-tabs .pill-tab:hover:not(.active){color:var(--n-900);background:none}
+.page-head-row .review-pill-tabs.pill-tabs .pill-tab.active{color:var(--primary-700);background:none;box-shadow:none}
+.page-head-row .review-pill-tabs.pill-tabs .pill-tab.active::after{
+  content:'';position:absolute;left:0;right:0;bottom:-1px;height:2.5px;border-radius:2px 2px 0 0;background:var(--primary-600);
+}
+.page-head-row .review-pill-tabs.pill-tabs .pill-tab:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(58,154,147,.25)}
+@media(max-width:560px){
+  .page-head-row .review-pill-tabs.pill-tabs{gap:0;width:100%}
+  .page-head-row .review-pill-tabs.pill-tabs .pill-tab{flex:1;justify-content:center;padding:9px 4px;font-size:14px}
+}
+
+/* ---- 2. 分组标题（对齐 .sp-block-h）---- */
+.rv-block-h{display:flex;align-items:baseline;gap:10px;margin:0 0 12px 1px;flex-wrap:wrap}
+.rv-block-h h2,.rv-block-h h3{margin:0;font-size:15px;font-weight:600;color:var(--n-800);letter-spacing:-.01em}
+.rv-block-h .desc{font-size:12.5px;color:var(--n-500);font-weight:400}
+.rv-block-h .spacer{flex:1}
+/* 卡片内原有的裸 <h2>/<h3>（scores.js / review.html 静态）统一降级为分组标题观感，
+   但保留其作为 h 标签的语义层级 —— 只改字号/字重/间距，不换标签。 */
+.review-pane .card > h2,.review-pane .card > h3{
+  font-size:15px;font-weight:600;color:var(--n-800);letter-spacing:-.01em;margin:0 0 12px;
+}
+.review-pane .card > h2 + h3,.review-pane .card > h3{margin-top:18px;color:var(--n-700);font-size:13.5px}
+.review-pane .card > h2 svg{width:15px;height:15px;vertical-align:-2px;margin-right:5px;color:var(--n-500)}
+
+/* ---- 3. 驾驶舱式统计条（对齐 .sp-cockpit / .sp-cockpit-stats 三格）----
+   用途：实战 tab 的「总览」、模考 tab 的「表现统计」头部。
+   ⚠️ 三格用 grid，格间竖线用 border-left（T-004 同款口径），不是卡片铺开。 */
+.rv-cockpit{
+  background:var(--n-0);border:1px solid var(--n-300);border-radius:16px;
+  box-shadow:var(--sh-2);padding:20px 22px;margin:0 0 18px;
+}
+.rv-cockpit-label{font-size:12.5px;font-weight:500;color:var(--n-500);letter-spacing:.02em}
+.rv-cockpit-num{font-size:28px;font-weight:700;color:var(--primary-700);letter-spacing:-.03em;line-height:1.1;
+  font-variant-numeric:tabular-nums}
+.rv-cockpit-unit{font-size:13.5px;font-weight:600;color:var(--primary-700)}
+.rv-cockpit-stats{display:grid;grid-template-columns:repeat(3,1fr);margin-top:18px;padding-top:16px;border-top:1px solid var(--n-300)}
+.rv-stat-cell{padding-right:18px;min-width:0}
+.rv-stat-cell + .rv-stat-cell{padding-left:20px;border-left:1px solid var(--n-300)}
+.rv-stat-k{font-size:12px;color:var(--n-500)}
+.rv-stat-v{display:flex;align-items:baseline;gap:5px;margin-top:3px;font-size:17px;font-weight:600;color:var(--n-800);
+  font-variant-numeric:tabular-nums}
+.rv-stat-v i{font-style:normal;font-size:12.5px;font-weight:500;color:var(--n-500)}
+
+/* 总览卡片：stat-grid 的卡片通行化（原来是带顶边框的小方卡，铺满一行显得散） */
+#scoreStats.stat-grid{grid-template-columns:repeat(3,1fr);gap:0;margin-bottom:0}
+#scoreStats .stat-card{
+  background:none;border:0;border-top:0;border-radius:0;box-shadow:none;padding:0;text-align:left;
+}
+#scoreStats .stat-card:hover{transform:none;box-shadow:none}
+#scoreStats .stat-value{font-size:24px;font-variant-numeric:tabular-nums}
+/* 保留 accent 配色：statCard 传的 warn/med/danger/vocab/primary/muted 在深色主题下**全都有覆盖值**
+   （common.css 的 [data-theme=dark] 块已逐条重定义），不会出现 T-004 那种黑底黑字。 */
+#scoreStats .stat-label{font-size:12px;color:var(--n-500);margin-top:5px}
+@media (max-width:720px){
+  .rv-cockpit{padding:16px 14px;border-radius:14px}
+  .rv-cockpit-num{font-size:24px}
+  .rv-cockpit-stats,#scoreStats.stat-grid{grid-template-columns:1fr;gap:14px}
+  .rv-stat-cell + .rv-stat-cell{padding-left:0;padding-top:14px;border-left:0;border-top:1px solid var(--n-300)}
+}
+
+
+/* 表现统计里的题型格（#mkTypeStats 内部 .stat-grid）：同样去卡化、格间竖线。
+   ⚠️ 只动 #mkTypeStats 内的 .stat-card —— 别的页面/别的模块的 stat-card 一律不受影响。 */
+#mkTypeStats .stat-grid{
+  grid-template-columns:repeat(4,1fr);gap:0;margin:0;
+  border-top:1px solid var(--n-300);padding-top:14px;
+}
+#mkTypeStats .stat-card{
+  background:none;border:0;border-radius:0;box-shadow:none;padding:0 16px;text-align:left;
+}
+#mkTypeStats .stat-card:first-child{padding-left:0}
+#mkTypeStats .stat-card + .stat-card{border-left:1px solid var(--n-300)}
+#mkTypeStats .stat-card:hover{transform:none;box-shadow:none}
+#mkTypeStats .stat-value{font-size:22px;font-variant-numeric:tabular-nums}
+#mkTypeStats .stat-label{font-size:11.5px;color:var(--n-500);margin-top:4px}
+@media (max-width:720px){
+  #mkTypeStats .stat-grid{grid-template-columns:repeat(2,1fr);gap:14px 0}
+  #mkTypeStats .stat-card:nth-child(odd){padding-left:0;border-left:0}
+  #mkTypeStats .stat-card{padding:0 12px}
+}
+
+
+/* ---- 7. 口语练习数据（#progressView，progress.js 渲染）四格：同驾驶舱观感 ---- */
+#progressView .prog-grid{grid-template-columns:repeat(4,1fr);gap:0;margin:0 0 18px;
+  background:var(--n-0);border:1px solid var(--n-300);border-radius:14px;box-shadow:var(--sh-2);padding:16px 18px}
+#progressView .prog-card{background:none;border:0;border-radius:0;box-shadow:none;padding:0 16px;text-align:left}
+#progressView .prog-card:first-child{padding-left:0}
+#progressView .prog-card + .prog-card{border-left:1px solid var(--n-300)}
+#progressView .prog-card .n{font-size:22px;font-weight:700;color:var(--primary-700);font-variant-numeric:tabular-nums;line-height:1.1}
+#progressView .prog-card .l{font-size:11.5px;color:var(--n-500);margin-top:4px}
+@media (max-width:720px){
+  #progressView .prog-grid{grid-template-columns:repeat(2,1fr);gap:14px 0;padding:14px}
+  #progressView .prog-card:nth-child(odd){padding-left:0;border-left:0}
+  #progressView .prog-card{padding:0 12px}
+}
+
+
+/* ---- 8. 口语整卷记录 · 移动端不换行崩字（T-010 375 实测：日期被折成「2026-10-」+「21」，
+       总分徽章被挤成两行）。修法：日期 nowrap + 徽章 flex:none，让「展开/删除」自己换行。 ---- */
+@media (max-width:640px){
+  #mockHistoryList .mock-hist-head{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  #mockHistoryList .mock-hist-meta{flex:1 1 100%;flex-wrap:wrap;gap:6px;min-width:0}
+  #mockHistoryList .mock-hist-meta b{white-space:nowrap;flex:none}
+  #mockHistoryList .mock-hist-meta .badge{white-space:nowrap;flex:none}
+  #mockHistoryList .mock-hist-dim{white-space:nowrap;flex:none;font-size:11.5px;padding:2px 7px}
+  #mockHistoryList .mock-hist-ops{flex:none;gap:6px;margin-left:0}
+  /* 表格化表头在 <1024 本就 display:none，这里只确保 375 下不出现 */
+  .mock-hist-thead{display:none}
+}
+
+/* ---- 4. 通栏行列表（对齐 .sp-card-row：一行一条、hover 左侧 2px 标记）----
+   覆盖对象：整卷记录 .score-row / 分项记录 #mkList .mk-row / 口语整卷 .mock-hist-card。
+   ⚠️ 只改外观，不动 flex 子项顺序与 data-*（删除按钮靠 data-del / data-id 绑定，零影响）。 */
+#scoreList .score-row,
+#mkList .mk-row,
+#mockHistoryList .mock-hist-card{
+  position:relative;display:flex;align-items:center;flex-wrap:wrap;gap:8px;
+  padding:12px 14px 12px 0;margin:0 0 6px;
+  background:none;border:0;border-bottom:1px solid var(--n-100);border-radius:0;box-shadow:none;
+  transition:background .15s;
+}
+#scoreList .score-row:last-child,
+#mkList .mk-row:last-child,
+#mockHistoryList .mock-hist-card:last-child{border-bottom:0}
+#scoreList .score-row:hover,
+#mkList .mk-row:hover,
+#mockHistoryList .mock-hist-card:hover{background:var(--primary-50)}
+#scoreList .score-row::before,
+#mkList .mk-row::before,
+#mockHistoryList .mock-hist-card::before{
+  content:'';position:absolute;left:-14px;top:0;bottom:0;width:2px;background:transparent;border-radius:0 2px 2px 0;
+}
+#scoreList .score-row:hover::before,
+#mkList .mk-row:hover::before,
+#mockHistoryList .mock-hist-card:hover::before{background:var(--primary-500)}
+
+/* 行内信息层级：主信息（日期 + 总分）突出，次要信息灰字小号 */
+#scoreList .score-row strong,
+#mkList .mk-row .mk-date{
+  flex:none;font-size:14px;font-weight:600;color:var(--n-800);font-variant-numeric:tabular-nums}
+#scoreList .score-row .badge.overall,
+#mkList .mk-row .badge.overall{
+  background:var(--primary-soft);color:var(--primary-text);font-weight:700}
+/* 次要：四项小分 / 用时 / 备注 */
+#scoreList .score-row .muted,
+#mkList .mk-row .mk-note{font-size:12px;color:var(--n-500);font-weight:400}
+#mkList .mk-parts-inline .badge{font-size:11.5px;font-weight:400;color:var(--n-600);opacity:1}
+/* 删除操作：常驻低对比，hover 变实（她「删除要能一眼找到」→ 不用 hover 才显形） */
+#scoreList .score-row .plan-del,
+#mkList .mk-row .mk-del{margin-left:auto;flex:none;opacity:.5;color:var(--n-500);transition:opacity .15s,color .15s}
+#scoreList .score-row:hover .plan-del,
+#mkList .mk-row:hover .mk-del{opacity:1;color:var(--danger)}
+@media (max-width:640px){
+  #scoreList .score-row,
+  #mkList .mk-row{padding:10px 0 10px 0}
+  #scoreList .score-row::before,
+  #mkList .mk-row::before{left:-10px}
+  #scoreList .score-row strong,
+  #mkList .mk-row .mk-date{font-size:13.5px}
+}
+
+/* ---- 5. 口语整卷记录：桌面表格化保留（10/6 已做，这里只统一行观感）---- */
+@media (min-width:1024px){
+  #tab-speaking .mock-hist-card{
+    padding:12px 14px;margin-bottom:6px;border:0;border-bottom:1px solid var(--n-100);background:none;box-shadow:none}
+  #tab-speaking .mock-hist-card:hover{background:var(--primary-50);border-color:transparent}
+  #tab-speaking .mock-hist-card::before{
+    content:'';position:absolute;left:-14px;top:0;bottom:0;width:2px;background:transparent}
+  #tab-speaking .mock-hist-card:hover::before{background:var(--primary-500)}
+  #tab-speaking .mock-hist-thead{padding:0 14px 8px;color:var(--n-500)}
+  #tab-speaking .mock-hist-meta b{font-size:14px;font-weight:600;color:var(--n-800)}
+}
+
+/* ---- 6. 空态（renderEmpty 的 .empty）在整页里也要跟新观感一致 ---- */
+.review-pane .empty{padding:16px 14px;text-align:left;color:var(--n-500);font-size:13.5px;
+  background:var(--n-50);border:1px dashed var(--n-300);border-radius:10px}
+[data-theme="dark"] .review-pane .empty{background:var(--n-50)}
+</style>
 <script defer src="js/data.js?v=20261022d"></script>
 <script defer src="js/common.js?v=20261022e"></script>
 <script defer src="js/common-ai.js?v=20261022e"></script>
@@ -200,7 +411,7 @@
 <main class="container">
   <div class="review-wrap">
     <div class="page-head-row">
-      <div class="tabs pill-tabs review-pill-tabs">
+      <div class="tabs pill-tabs sp-tabs review-pill-tabs">
         <button class="tab-btn pill-tab active" data-tab="breakdown">模考</button>
         <button class="tab-btn pill-tab" data-tab="overall">实战</button>
         <button class="tab-btn pill-tab" data-tab="speaking">口语</button>
@@ -243,7 +454,8 @@
           </div>
         </section>
 
-        <section class="card">
+        <!-- T-010：表现统计同套驾驶舱观感（标题行 + 三块统计） -->
+        <section class="card rv-cockpit">
           <div class="form-row" style="align-items:center">
             <h2 class="inline-h2">表现统计</h2>
             <div class="mk-filter-wrap"><label>范围</label>
@@ -291,7 +503,8 @@
       <!-- 实战 Tab -->
       <div id="tab-overall" class="tab-panel">
         <div class="grid">
-          <section class="card">
+          <!-- T-010：总览改驾驶舱式（.rv-cockpit 对齐口语页 .sp-cockpit；h2 即 label，stat-grid 三格铺开） -->
+          <section class="card rv-cockpit">
             <h2>总览</h2>
             <div class="stat-grid" id="scoreStats"></div>
           </section>
@@ -303,7 +516,7 @@
         </div>
 
         <section class="card">
-          <h2>整卷记录列表</h2>
+          <h2 class="rv-block-h-t">整卷记录列表</h2>
           <div id="scoreList"></div>
         </section>
 
