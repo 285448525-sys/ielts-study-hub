@@ -1051,6 +1051,8 @@ body.mock-immerse #mockStage{border:0;box-shadow:none;background:transparent}
 
 /* === AI 口语陪练 coach（10/2：接管「陪练」tab；全 id/#coachView 作用域，压 common.css 表单重置 0,2,1；色走全站 token） === */
 #coachWrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column}
+/* 10-22 换顶栏：陪练 tab 的顶段 10/4 改版后已不是吸顶（第 1633 行的 #coachView #coachTop 把它定成
+   position:relative），这条 top 只作历史留档 —— 换顶栏不影响它，改回原值免得留下误导的死值 */
 #coachTop{position:sticky;top:0;z-index:5;background:var(--bg);padding:4px 0 8px}
 .coach-seg{display:flex;gap:6px;background:var(--n-100);border-radius:12px;padding:4px}
 .coach-seg-btn{flex:1;min-height:44px;border:0;background:transparent;border-radius:9px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;transition:background .15s,color .15s}
@@ -1180,6 +1182,8 @@ body.mock-immerse #mockStage{border:0;box-shadow:none;background:transparent}
      与 #coachWrap 错位。按 body 的侧栏内边距（288/32）定位底栏，侧栏收起时回 0。 */
   #coachBar{left:288px;right:32px}
   body.side-collapsed #coachBar{left:0;right:0}
+  /* 10-22 换顶栏：实测陪练 tab 的 #coachBar 是文档流里的静态块（宽度跟着 #coachWrap 走，左 184 / 右 1242
+     与内容列完全对齐），left/right 对静态元素不生效 —— 上面这两条本来就动不到它，所以换顶栏后无需补偿。 */
 }
 
 /* ==========================================================================
@@ -1571,6 +1575,11 @@ body.mock-immerse #mockStage{border:0;box-shadow:none;background:transparent}
   @media (max-width:860px){
     #coachView #coachBarInner{gap:8px}   /* 10/4 重建窄屏块时保留（原在 ≤860 块内） */
   }
+
+/* 10-22 第 4 批换顶栏：口语模考沉浸态（body.mock-immerse）原本就藏掉整条导航 + 撤 288 留白，
+   顶栏壳同样要收掉，否则顶栏浮在考场上方、44px 让位把考场往下挤出视口 */
+body.mock-immerse[data-shell="top"]{padding-top:0 !important}
+body.mock-immerse .hub-topbar{display:none !important}
 </style>
 <!-- 10/4 16:10 陪练页整体改版（她 16:00 拍板：微信聊天布局 + 卡片化 + 标题左对齐 + 教练台别占右边）
      放在旧 coach 样式【之后】靠覆盖生效 —— 旧块里有大量 10/2~10/3 的实测约束（flex 撑高链、
@@ -1878,7 +1887,7 @@ body.mock-immerse #mockStage{border:0;box-shadow:none;background:transparent}
 <meta property="og:url" content="https://yasihub.com/speaking" />
 <meta name="twitter:card" content="summary" />
 </head>
-<body>
+<body data-shell="top">
 <div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div></div>
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 

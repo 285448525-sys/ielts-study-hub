@@ -109,6 +109,9 @@
     align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);cursor:pointer;transition:background .15s}
   #tplList.tpl-list .tl-row:last-child{border-bottom:0}
   #tplList.tpl-list .tl-row:hover{background:var(--bg)}
+  /* 10-22 换顶栏·实测更正：#tplList.tpl-list 自己有 overflow:hidden —— 它是表头的粘附容器（不是页面），
+     top 值量的是「距列表上沿多远」。改成 44px 会把表头压到列表内部 44px 处、盖住第一行数据（实测偏移 45px）。
+     表头本来就不会被顶栏压住（列表整块在顶栏下面），所以这里保持 0。 */
   #tplList.tpl-list .tl-row.th{position:sticky;top:0;z-index:1;background:var(--bg);cursor:default;
     font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.04em;padding:8px 14px}
   #tplList.tpl-list .tl-row.th:hover{background:var(--bg)}
@@ -511,6 +514,11 @@
   #examPractice.ct-yellow .ex-oprow{background:#1b1b1b;border-bottom-color:#4a4526}
   #examPractice.ct-yellow .ex-oprow:hover{background:#252317}
   #examPractice.ct-yellow .ex-opback button{background:#1b1b1b;border-color:#6a6132;color:#f0e3a8}
+
+/* 10-22 第 4 批换顶栏：写作机考全屏（body.exam-fullscreen）是把整屏钉死的 flex 链，
+   顶栏壳留着会盖住考试头，body 的 44px 让位还会把机考底栏挤出视口 → 全屏态一并收掉 */
+body.exam-fullscreen[data-shell="top"]{padding-top:0 !important}
+body.exam-fullscreen .hub-topbar{display:none !important}
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -526,7 +534,7 @@
 <meta property="og:url" content="https://yasihub.com/writing" />
 <meta name="twitter:card" content="summary" />
 </head>
-<body>
+<body data-shell="top">
 <div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div></div>
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 
