@@ -18,7 +18,14 @@ const ICON = {
   /* teacher（10-22 三级权限第二批）：人 + 加号 —— 「管理名单里的人」，只对管理员显示 */
   teacher:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 20v-1.6c0-2-1.7-3.6-3.8-3.6H6.8C4.7 14.8 3 16.4 3 18.4V20"/><circle cx="9.5" cy="8" r="3.4"/><path d="M17 11.5h4M19 9.5v4"/></svg>',
   /* vip：钻石图标 stroke 写死金色（转化入口要跟学习模块区分开；不动 CSS 免全站 bump） */
-  vip:'<svg viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20M9.5 9L12 3l2.5 6M12 21L9.5 9M12 21l2.5-12"/></svg>'
+  vip:'<svg viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20M9.5 9L12 3l2.5 6M12 21L9.5 9M12 21l2.5-12"/></svg>',
+  /* 10-22 她指出「落地页和首页的图标都不对」：站点唯一品牌标记 = 学士帽
+     （favicon.svg / icons/ 全套 PNG / 侧栏品牌位 / 登录页品牌位都是它）。
+     顶栏与落地页原先用的是「雅」字方框 → 已统一到本图形。
+     ⚠️ 改这里等于改品牌图形：favicon.svg 与 icons/ 下的 PNG 是**另一份副本**，换图形时两边都要动。
+     ⚠️ 尺寸不写死：width/height=100% 让三处容器各自决定（侧栏 40px / 顶栏 24px / 落地页 27px），
+        与 favicon 里「图形占外框约四成」的比例天然一致。 */
+  brand:'<svg viewBox="0 0 512 512" width="100%" height="100%" fill="none" style="display:block" aria-hidden="true" focusable="false"><g fill="#ffffff" stroke="#ffffff" stroke-width="38" stroke-linejoin="round" stroke-linecap="round"><path d="M256 136 L344 194 L256 252 L168 194 Z"/><path d="M160 304 L212 304 L256 362 L300 304 L352 304 L352 354 Q352 394 256 394 Q160 394 160 354 Z"/></g></svg>'
 };
 
 /* ⭐ 9/30：学习主页从 index.html 改名为 home.html（根 / 交给落地页 landing）。
@@ -132,7 +139,7 @@ function topBarHtml(current){
     if(tp) moreItems += '<a class="tb-more-item' + (tp.file === current ? ' on' : '') + '" href="' + tp.file + '" data-id="' + tp.id + '">'
       + '<span class="tm-ic">' + tp.icon + '</span><span>' + escapeHtml(tp.name) + '</span></a>';
   }
-  return '<a class="tb-logo" href="home.html"><i aria-hidden="true">雅</i><span>IELTS</span></a>'
+  return '<a class="tb-logo" href="home.html"><i aria-hidden="true">' + ICON.brand + '</i><span>IELTS</span></a>'
     + '<nav class="tb-caps" aria-label="主导航">' + caps
     + '<div class="tb-more">'
     + '<button class="tb-item tb-more-btn" id="tbMoreBtn" type="button" aria-expanded="false" aria-haspopup="true" aria-controls="tbMorePanel">更多'
@@ -297,7 +304,7 @@ function injectNav(){
     : '<a class="side-me side-me--guest" href="login.html" title="去登录" aria-label="去登录">'
       + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c1.2-3.6 4.1-5.4 7.5-5.4s6.3 1.8 7.5 5.4"/></svg></a>';
   html += '<div class="side-head">'
-    + '<span class="side-brand-mark" aria-hidden="true"><svg viewBox="0 0 512 512" width="40" height="40" fill="none" style="display:block" aria-hidden="true"><g fill="#ffffff" stroke="#ffffff" stroke-width="38" stroke-linejoin="round" stroke-linecap="round"><path d="M256 136 L344 194 L256 252 L168 194 Z"/><path d="M160 304 L212 304 L256 362 L300 304 L352 304 L352 354 Q352 394 256 394 Q160 394 160 354 Z"/></g></svg></span>'
+    + '<span class="side-brand-mark" aria-hidden="true">' + ICON.brand + '</span>'
     + '<div class="side-brand"><span class="bn">IELTS</span><span class="bs">雅思备考站</span></div>'
     + _meEl
     + '<button id="sideCollapseIn" class="side-collapse-in" type="button" aria-label="收起侧边栏" title="收起侧边栏">⟨</button>'
