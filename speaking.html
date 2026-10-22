@@ -31,7 +31,7 @@
 })();
 </script>
 <title>口语 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261021a" />
+<link rel="stylesheet" href="css/common.css?v=20261022f" />
 <link rel="stylesheet" href="css/p/speaking.css?v=20261017a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
@@ -56,10 +56,11 @@
   <script defer src="js/sentence-drill.js?v=20261001i"></script>
   <!-- coach 同例：必须在 speaking.js 之前，顶层 window.__COACH_ON 先立，tab 分支才接管得到 -->
   <!-- 10/3 头像选择：必须在 coach.js 之前（陪练气泡头像渲染时就要读 window.avUserSrc）。
-       10/3 22:55 扩展：同一份也供顶栏考官头像选择器用（avOpen/avExamSrc） -->
-  <script defer src="js/av-picker.js?v=20261020c"></script>
+       10/3 22:55 扩展：陪练页弹层（avOpen('coach') / avCoachSrc）。
+       10/22 T-006：考官页签已删（模考纯随机、不许选），此处不再涉及考官选择器。 -->
+  <script defer src="js/av-picker.js?v=20261022a"></script>
   <script defer src="js/coach.js?v=20261020a"></script>
-  <script defer src="js/speaking.js?v=20261022d"></script>
+  <script defer src="js/speaking.js?v=20261022e"></script>
   <!-- 10-22 她要求：「句型闯关」这个老引擎整个删掉（页面 / 引擎 / 数据全部下线）。
        已同步删掉 js/pattern-drill.js、pattern-drill.html、data/patterns.json 与 #pdView 界面；
        口语「陪练」tab 仍由 AI 陪练（coach.js）接管，句型练习（sentence-drill.js）不受影响。 -->
@@ -278,7 +279,11 @@
      此时它们仍是旧版纵向卡，要给回原样（面板内的才用横向行布局） */
   #spList > .sp-card{padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--surface);box-shadow:var(--shadow)}
   #spList > .sp-card:hover{background:var(--surface-2)}
-  /* ===== 题卡横向布局：左频次色条 + 中间英文/中文（占满）+ 右标签 + 右箭头 ===== */
+  /* ===== 题卡横向布局：左频次色条 + 中间英文/中文（占满）+ 右标签 + 右箭头 =====
+     ⚠️ T-004（2026-10-22）：本节的 .sp-card-row / .sp-card-rail / .sp-card-go / .sp-card-drill /
+        .sp-card-title / .sp-card-zh / .sp-card-tags 旧定义**保留**（含四档色条 + 防截断换行两条硬约束），
+        但外观已被下方 T-004 样式块（约 2311 行起）覆盖成「列表卡内通栏行」。
+        T-004 块故意放在本节之后 —— 同权重选择器后来者胜，不需要加 !important。 */
   .sp-card-row{display:flex;align-items:flex-start;gap:12px;padding:10px 15px 10px 0;cursor:pointer;
     border-bottom:1px solid var(--n-50);border-radius:0;box-shadow:none;transition:background .15s}
   .sp-panel-body > .sp-card-row:last-child{border-bottom:0}
@@ -345,6 +350,8 @@
   .sp-card-drill:active{background:var(--primary-200)}
   [data-theme="dark"] .sp-card-drill{color:var(--primary-200)}
   .sp-tag-p{background:var(--primary-50);color:var(--primary-800)}
+  /* ⚠️ T-004：上面这条（0,1,0）被下方 T-004 块的 .sp-tag.sp-tag-p（0,2,0）覆盖，
+     保留它只为深色/其他上下文不出现回归。 */
   #p3GenBtn.confirming{border-color:var(--warn);color:var(--warn)}
   .sp-confirm-cancel{border:0;background:none;color:var(--muted);cursor:pointer;font:inherit;font-size:12.5px;padding:4px 8px}
 
@@ -363,6 +370,8 @@
   .sp-story-kw{display:flex;flex-wrap:wrap;gap:8px;padding:12px;background:var(--bg);border:1px dashed var(--line);border-radius:8px}
   .sp-kw-chip{font-size:13.5px;font-weight:600;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:5px 12px}
 
+  /* ⚠️ T-004：本节 .sp-score-badge / .sp-last-practice 的旧定义被下方 T-004 块同名同权重覆盖
+     （同样只改外观：pill → 方角、颜色换中性阶）。徽章的 .good/.ok/.low/.practice 语义色也重新定义过。 */
   .sp-score-badge{font-size:11.5px;padding:2.5px 8px;border-radius:999px;margin-left:10px;vertical-align:middle;white-space:nowrap;font-weight:600;border:1px solid transparent}
   .sp-score-badge.good{background:var(--primary-soft);color:var(--med);border-color:rgba(20,184,166,.25)}
   .sp-score-badge.ok{background:rgba(245,158,11,.14);color:var(--warn);border-color:rgba(245,158,11,.28)}
@@ -1905,13 +1914,14 @@ body.mock-immerse .hub-topbar{display:none !important}
 
   <!-- 列表视图 -->
   <div id="listView">
-    <!-- design/81：季度 banner 数据化——内容由 speaking.js 从 SPEAKING_BANK_META + 题库现算渲染，此处仅留容器 -->
-    <div class="sp-banner" id="freqBanner"></div>
-    <!-- 10/3 B 版「双栏工作台」：倒计时提示条（她拍板保留）+ 工具卡（原来 5 条独立横条 → 收成一张卡两行）
-         ⚠️ 结构变了但**所有 id 与选项一律保留**（freqSelect/catSelect/stateSelect/spPartSeg/spMockJumpBtn/spSearch），
-            speaking.js 的筛选与事件绑定零改动。 -->
-    <div class="sp-countdown" id="spCountdown" hidden></div>
+    <!-- T-004（2026-10-22）：.sp-banner 与 .sp-countdown 两条提示合并为「驾驶舱」。
+         内容由 speaking.js 的 renderCockpit() 现算渲染（考试日/主按钮/三项统计），此处仅留容器。
+         ⚠️ 倒计时数据源仍是 examCountdown()（common.js）——口径不变，只是换了承载。 -->
+    <div class="sp-cockpit" id="spCockpit"></div>
 
+    <!-- 工具行：P1/P2 分段 + 模考入口 + 搜索 + 三个筛选。
+         ⚠️ 所有 id 与选项一律保留（freqSelect/catSelect/stateSelect/spPartSeg/spMockJumpBtn/spSearch），
+            speaking.js 的筛选与事件绑定零改动。 -->
     <div class="sp-toolbar">
       <div class="sp-tb-row1">
         <div class="sp-part-seg" id="spPartSeg">
@@ -1952,7 +1962,8 @@ body.mock-immerse .hub-topbar{display:none !important}
       </div>
     </div>
 
-
+    <!-- T-004：题库分组标题。分组卡片仍由 renderGrouped() 渲染（<details class="sp-panel">），
+         这里只放「未分组（单组筛选）」时的兜底标题，避免题卡直接裸在页面上没有上下文。 -->
     <div class="sp-list" id="spList"></div>
     <div class="sp-empty" id="spEmpty" hidden>没有匹配的题目</div>
   </div>
@@ -1967,7 +1978,7 @@ body.mock-immerse .hub-topbar{display:none !important}
        10/2（她拍板）：「开始一次口语模考」介绍卡 + 「最近一次模考」记录卡整删——
        点题库页「模考」按钮直接进全屏考试（speaking.js MOCK 分支调 window.__mockEnter，
        有未完成快照则自动续考）。报告仍在考完/回顾页展示。 -->
-  <div id="mockView" hidden data-late-src="js/mock-report.js?v=20261004a,js/mock-history.js?v=20261006b,js/mock.js?v=20261020c">
+  <div id="mockView" hidden data-late-src="js/mock-report.js?v=20261004a,js/mock-history.js?v=20261006b,js/mock.js?v=20261022a">
     <!-- ② 考试舞台 -->
     <section class="card" id="mockStage" hidden>
       <div class="mock-total-timer" id="mockTotalTimerWrap" hidden>
@@ -2172,6 +2183,224 @@ body.mock-immerse .hub-topbar{display:none !important}
     .mock-intro-row{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 4px}
     .mock-intro-chip{display:inline-flex;align-items:center;font-size:12.5px;padding:4px 12px;border-radius:999px;background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
     .mock-intro-chip svg{opacity:.8}
+  /* 10/1 UI polish：模考说明 inline 图标 chips */
+  .mock-intro-row{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 4px}
+  .mock-intro-chip{display:inline-flex;align-items:center;font-size:12.5px;padding:4px 12px;border-radius:999px;background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+  .mock-intro-chip svg{opacity:.8}
+
+  /* ============================================================
+     === T-004 口语页视觉改版（2026-10-22）===
+     样张：design/口语页改版样张-v2-20261022.html（CSS 即规格书，数值原样搬）
+     细则：C:\Users\Camille\Desktop\交接\T-004-口语页视觉改版.md
+     ⚠️ 本块刻意放在本页样式表末尾：要压住上方 100~360 行的旧定义
+        （.sp-card / .sp-card-row / .sp-toolbar / .sp-tag / .sp-score-badge 等）。
+        以后要改这里的样式，请直接改本块，不要回头改上面的旧规则。
+     ⚠️ 不改 css/common.css 的共享 .pill-tabs/.pill-tab（其他页仍是药丸式）：
+        本页用 .page-head-row 前缀提高权重，只改本页。
+     ============================================================ */
+  /* ---- 改动点 2：顶部 tab 由药丸式改下划线式（选中态加 2.5px teal 下划线）---- */
+  .page-head-row .sp-tabs.pill-tabs{
+    background:none;border:0;border-radius:0;padding:0;box-shadow:none;
+    display:flex;align-items:stretch;gap:22px;
+  }
+  .page-head-row .sp-tabs.pill-tabs .pill-tab{
+    background:none;border:0;border-radius:0;box-shadow:none;
+    padding:10px 1px 9px;font-size:14.5px;font-weight:600;color:var(--n-600);
+    position:relative;transition:color .15s;line-height:1;
+  }
+  .page-head-row .sp-tabs.pill-tabs .pill-tab:hover:not(.active){color:var(--n-900);background:none}
+  .page-head-row .sp-tabs.pill-tabs .pill-tab.active{color:var(--primary-700);background:none;box-shadow:none}
+  .page-head-row .sp-tabs.pill-tabs .pill-tab.active::after{
+    content:'';position:absolute;left:0;right:0;bottom:-1px;height:2.5px;border-radius:2px 2px 0 0;background:var(--primary-600);
+  }
+  .page-head-row .sp-tabs.pill-tabs .pill-tab:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(58,154,147,.25)}
+  @media(max-width:560px){
+    .page-head-row .sp-tabs.pill-tabs{gap:0;width:100%}
+    .page-head-row .sp-tabs.pill-tabs .pill-tab{flex:1;justify-content:center;padding:9px 4px;font-size:14px}
+  }
+
+  /* ---- 改动点 1：驾驶舱（考试日 / 主按钮 / 三项统计）----
+     位置：题库 tab 顶部，替代原 .sp-banner + .sp-countdown 两条提示。 */
+  .sp-cockpit{
+    background:var(--n-0);border:1px solid var(--n-300);border-radius:16px;
+    box-shadow:var(--sh-2);padding:22px 24px;margin:0 0 22px;
+  }
+  .sp-cockpit-top{display:flex;align-items:flex-start;justify-content:space-between;gap:24px}
+  .sp-cockpit-left{min-width:0}
+  .sp-cockpit-label{font-size:12.5px;font-weight:500;color:var(--n-500);letter-spacing:.02em}
+  .sp-cockpit-main{display:flex;align-items:baseline;gap:9px;margin-top:5px;flex-wrap:wrap}
+  .sp-cockpit-num{font-size:30px;font-weight:700;color:var(--primary-700);letter-spacing:-.03em;line-height:1.1}
+  .sp-cockpit-unit{font-size:14px;font-weight:600;color:var(--primary-700)}
+  .sp-cockpit-sub{font-size:13px;color:var(--n-600);margin-left:3px}
+  .sp-cockpit .btn-main{
+    height:38px;padding:0 17px;border-radius:10px;background:var(--primary-600);color:#fff;
+    font-size:13.5px;font-weight:600;display:inline-flex;align-items:center;gap:7px;
+    border:none;cursor:pointer;box-shadow:0 1px 2px rgba(47,134,127,.25);
+    transition:background .15s,transform .12s;white-space:nowrap;flex:none;
+  }
+  .sp-cockpit .btn-main:hover{background:var(--primary-700)}
+  .sp-cockpit .btn-main:active{transform:scale(.98)}
+  .sp-cockpit .btn-main svg{width:16px;height:16px}
+  .sp-cockpit-stats{display:grid;grid-template-columns:repeat(3,1fr);margin-top:20px;padding-top:18px;border-top:1px solid var(--n-300)}
+  .sp-stat-cell{padding-right:20px;min-width:0}
+  .sp-stat-cell + .sp-stat-cell{padding-left:22px;border-left:1px solid var(--n-300)}
+  .sp-stat-k{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--n-500)}
+  .sp-stat-v{display:flex;align-items:baseline;gap:5px;margin-top:3px;font-size:17px;font-weight:600;color:var(--n-900)}
+  .sp-stat-v i{font-style:normal;font-size:12.5px;font-weight:500;color:var(--n-500)}
+  .sp-bar{height:3px;border-radius:2px;background:var(--n-200);margin-top:8px;overflow:hidden}
+  .sp-bar span{display:block;height:100%;border-radius:2px;background:var(--primary-500)}
+  @media(max-width:720px){
+    .sp-cockpit{padding:18px 16px;border-radius:14px}
+    .sp-cockpit-top{flex-direction:column;gap:14px}
+    .sp-cockpit-num{font-size:26px}
+    .sp-cockpit-stats{grid-template-columns:1fr;gap:14px}
+    .sp-stat-cell + .sp-stat-cell{padding-left:0;padding-top:14px;border-left:0;border-top:1px solid var(--n-300)}
+  }
+
+  /* ---- 改动点 3：工具行（P1/P2 分段 + 模考 + 搜索 + 三个下拉）----
+     口径同工具行：整条不再是「一张卡」，而是平铺在浅底页面上的细边框控件。 */
+  .sp-toolbar{
+    display:flex;align-items:center;gap:9px;margin:0 0 26px;
+    background:none;border:0;border-radius:0;padding:0;box-shadow:none;
+  }
+  .sp-toolbar .sp-tb-row1{display:flex;align-items:center;gap:9px;margin:0;flex:none}
+  .sp-toolbar .sp-tb-row2{display:flex;align-items:center;gap:9px;flex:1 1 auto;min-width:0;margin:0}
+  .sp-toolbar .sp-search-wrap{
+    flex:1 1 auto;min-width:0;background:var(--n-0);border:1px solid var(--n-300);border-radius:10px;
+    height:40px;display:flex;align-items:center;padding:0 13px;box-shadow:var(--sh-1);transition:border-color .15s,box-shadow .15s;
+  }
+  .sp-toolbar .sp-search-wrap:focus-within{border-color:var(--primary-200);box-shadow:0 0 0 3px rgba(168,215,210,.28)}
+  .sp-toolbar .sp-search-wrap .sp-search-ic{position:static;transform:none;width:16px;height:16px;color:var(--n-500);flex:none;margin-right:9px}
+  .sp-toolbar .sp-search-wrap input.sp-search{
+    width:100%;padding:0;border:0;background:none;font-size:13.5px;color:var(--n-800);height:100%;box-shadow:none;
+  }
+  .sp-toolbar .sp-search-wrap input.sp-search::placeholder{color:var(--n-500)}
+  .sp-toolbar .sp-search-wrap input.sp-search:focus{border:0;background:none;box-shadow:none;outline:none}
+  .sp-toolbar .sp-fsel{position:relative;flex:0 1 auto;min-width:0}
+  .sp-toolbar .sp-fsel .sp-select{
+    appearance:none;width:100%;height:40px;padding:0 30px 0 13px;border:1px solid var(--n-300);border-radius:10px;
+    font-size:13px;color:var(--n-700);background:var(--n-0);min-width:0;cursor:pointer;
+    box-shadow:var(--sh-1);transition:border-color .15s,box-shadow .15s;white-space:nowrap;
+  }
+  .sp-toolbar .sp-fsel .sp-select:hover{border-color:var(--n-400)}
+  .sp-toolbar .sp-fsel::after{
+    content:'';position:absolute;right:11px;top:50%;width:7px;height:7px;pointer-events:none;
+    border-right:1.6px solid #a8adb5;border-bottom:1.6px solid #a8adb5;transform:translateY(-70%) rotate(45deg);
+  }
+  .sp-toolbar .sp-fsel.has-val .sp-select{padding-left:60px}
+  .sp-toolbar .sp-fsel-lb{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:600;color:var(--n-500);pointer-events:none;opacity:0;transition:opacity .15s;white-space:nowrap}
+  .sp-toolbar .sp-fsel.has-val .sp-fsel-lb{opacity:1;color:var(--primary-700)}
+  .sp-toolbar .sp-fsel:focus-within .sp-select{border-color:var(--primary-200);box-shadow:0 0 0 3px rgba(168,215,210,.28)}
+  /* P1/P2 分段：与工具行同高的细边框分段控件 */
+  .sp-toolbar .sp-part-seg{display:inline-flex;gap:0;background:var(--n-0);border:1px solid var(--n-300);border-radius:10px;height:40px;box-shadow:var(--sh-1);flex:none;overflow:hidden;padding:0}
+  .sp-toolbar .sp-part-seg button{font:inherit;font-size:13px;font-weight:600;padding:0 15px;border:none;background:transparent;color:var(--n-600);cursor:pointer;transition:background .15s,color .15s}
+  .sp-toolbar .sp-part-seg button + button{border-left:1px solid var(--n-300)}
+  .sp-toolbar .sp-part-seg button:hover{color:var(--n-900)}
+  .sp-toolbar .sp-part-seg button.active{background:var(--primary-50);color:var(--primary-700);box-shadow:none}
+  /* 模考入口：行尾细边框按钮（不再用实底渐变胶囊） */
+  .sp-toolbar .sp-mock-jump{
+    margin-left:auto;display:inline-flex;align-items:center;gap:7px;height:40px;padding:0 15px;
+    background:var(--n-0);border:1px solid var(--n-300);border-radius:10px;color:var(--n-700);
+    font-size:13px;font-weight:600;white-space:nowrap;flex:none;cursor:pointer;box-shadow:var(--sh-1);
+    transition:border-color .15s,color .15s,box-shadow .15s;
+  }
+  .sp-toolbar .sp-mock-jump:hover{border-color:var(--primary-300);color:var(--primary-700)}
+  .sp-toolbar .sp-mock-jump svg{width:15px;height:15px;margin:0;vertical-align:0}
+  @media(max-width:720px){
+    .sp-toolbar{flex-wrap:wrap;gap:9px}
+    .sp-toolbar .sp-tb-row1{order:1;flex:1 1 100%;margin:0}
+    .sp-toolbar .sp-tb-row2{order:2;flex-wrap:wrap;gap:9px}
+    .sp-toolbar .sp-search-wrap{flex:1 1 100%}
+    .sp-toolbar .sp-fsel{flex:1 1 0;min-width:0}
+    .sp-toolbar .sp-fsel .sp-select{padding:0 26px 0 10px;font-size:12.5px}
+    .sp-toolbar .sp-fsel.has-val .sp-select{padding-left:12px}
+    .sp-toolbar .sp-fsel.has-val .sp-fsel-lb{display:none}
+    .sp-toolbar .sp-mock-jump{margin-left:0}
+  }
+
+  /* ---- 改动点 4：分组标题（block-h：标题 + 说明 + 右侧更多）---- */
+  .sp-block-h{display:flex;align-items:baseline;gap:10px;margin:0 0 11px 1px}
+  .sp-block-h h3{font-size:15px;font-weight:600;color:var(--n-900);letter-spacing:-.01em}
+  .sp-block-h .desc{font-size:12.5px;color:var(--n-500)}
+  .sp-block-h .spacer{flex:1}
+  .sp-block-h .more{display:inline-flex;align-items:center;gap:3px;padding:2px 0;font-size:12.5px;font-weight:500;color:var(--n-500);background:none;border:0;cursor:pointer;transition:color .15s,gap .15s;font-family:inherit}
+  .sp-block-h .more:hover{color:var(--primary-700);gap:5px}
+  /* 面板头部 = 分组标题 + 折叠 caret（caret 在标题左侧） */
+  /* 375px 下标题/说明/按钮要能各自换行、不再把标题挤成两行（细则：小屏也要还原） */
+  @media(max-width:560px){
+    .sp-panel-head{flex-wrap:wrap;gap:6px 8px}
+    .sp-panel-head .sp-panel-n{flex:1 1 100%;white-space:normal}
+    .sp-panel-head .spacer{display:none}
+    .sp-panel-head .more{order:3;margin-left:auto}
+    .sp-block-h{flex-wrap:wrap;gap:6px 8px;margin-bottom:10px}
+    .sp-block-h .desc{flex:1 1 100%}
+    .sp-block-h .spacer{display:none}
+    .sp-block-h .more{order:3;margin-left:auto}
+    .sp-card-row{padding:14px 16px}
+    .sp-card-row .sp-card-meta{flex-wrap:wrap}
+  }
+  .sp-panel{background:var(--n-0);border:1px solid var(--n-300);border-radius:16px;box-shadow:var(--sh-1);margin:0 0 26px;overflow:hidden}
+  .sp-panel-head{display:flex;align-items:center;gap:10px;padding:16px 22px;background:none;border-bottom:1px solid var(--n-300);cursor:pointer;user-select:none;list-style:none;transition:background .14s}
+  .sp-panel-head::-webkit-details-marker{display:none}
+  .sp-panel-head:hover{background:var(--n-50)}
+  .sp-panel-caret{color:var(--n-400);font-size:9px;transition:transform .15s;flex:none}
+  .sp-panel[open] > .sp-panel-head .sp-panel-caret{transform:rotate(90deg)}
+  .sp-panel-ic{width:16px;height:16px;flex:none;color:var(--n-500)}
+  .sp-panel-head h3{font-size:15px;font-weight:600;color:var(--n-900);letter-spacing:-.01em}
+  .sp-panel-n{font-size:12.5px;color:var(--n-500);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sp-panel-body{padding:0;display:flex;flex-direction:column;gap:0}
+
+  /* ---- 改动点 5：题卡合并进列表卡（row：通栏行 + hover 左标记 + 右箭头）---- */
+  .sp-list{gap:0;background:var(--n-0);border:1px solid var(--n-300);border-radius:16px;box-shadow:var(--sh-1);overflow:hidden;margin:0 0 26px}
+  .sp-list > .sp-card{padding:0;border:0;border-radius:0;background:none;box-shadow:none}
+  .sp-list > .sp-card:hover{background:var(--n-50)}
+  .sp-card-row{
+    display:flex;align-items:center;gap:18px;padding:16px 22px;cursor:pointer;position:relative;
+    border-bottom:1px solid var(--n-300);border-radius:0;box-shadow:none;transition:background .14s;
+  }
+  .sp-card-row:last-child{border-bottom:0}
+  .sp-card-row:hover{background:var(--n-50);box-shadow:none}
+  .sp-card-row::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--primary-500);opacity:0;transition:opacity .14s}
+  .sp-card-row:hover::before{opacity:1}
+  .sp-card-row .sp-card-rail{width:3px;align-self:stretch;flex:none;background:var(--n-200);border-radius:0 3px 3px 0;margin-left:-3px}
+  .sp-card-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  .sp-card-row .sp-card-title{font-size:16px;font-weight:600;color:var(--n-900);line-height:1.45;letter-spacing:-.01em}
+  .sp-card-row .sp-card-zh{font-size:12.5px;color:var(--n-600);margin-top:2px}
+  .sp-card-row .sp-card-tags{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:8px;max-width:none;overflow:visible}
+  /* ---- 改动点 6：标签/按钮分级（chip：11px 灰底；P1/P2 标签 teal 底）---- */
+  .sp-tag{font-size:11px;font-weight:600;letter-spacing:.03em;padding:2px 7px;border-radius:5px;background:var(--n-100);color:var(--n-700);border:0}
+  .sp-tag.sp-tag-p{background:var(--primary-50);color:var(--primary-900)}
+  .sp-tag.freq-ultra{background:var(--primary-600);color:#fff;border-color:transparent}
+  .sp-tag.freq-high{background:var(--primary-100);color:var(--primary-900);border-color:transparent}
+  .sp-tag.freq-medium{background:var(--n-100);color:var(--n-700);border-color:transparent}
+  .sp-tag.freq-low{background:transparent;color:var(--n-500);border-color:transparent}
+  .sp-score-badge{font-size:11px;padding:2px 8px;border-radius:5px;margin-left:9px;vertical-align:middle;white-space:nowrap;font-weight:600;border:1px solid var(--n-200);background:var(--n-100);color:var(--n-700)}
+  .sp-score-badge.good{background:var(--primary-50);color:var(--primary-900);border-color:var(--primary-100)}
+  .sp-score-badge.ok{background:var(--n-100);color:var(--n-700);border-color:var(--n-200)}
+  .sp-score-badge.low{background:var(--n-100);color:var(--n-500);border-color:var(--n-200)}
+  .sp-score-badge.practice{background:var(--n-100);color:var(--n-700);border-color:var(--n-200)}
+  .sp-last-practice{font-size:11.5px;color:var(--n-500);margin-left:8px;white-space:nowrap;font-weight:500}
+  .sp-card-go{width:24px;height:24px;border-radius:0;background:none;color:var(--n-400);flex:none;display:flex;align-items:center;justify-content:center;transition:color .15s;margin-top:0}
+  .sp-card-go svg{width:16px;height:16px}
+  .sp-card-row:hover .sp-card-go{color:var(--n-600)}
+  .sp-card-drill{
+    align-self:flex-start;margin:2px 0 0 auto;flex:none;white-space:nowrap;
+    display:inline-flex;align-items:center;gap:5px;
+    font:inherit;font-size:13.5px;font-weight:600;line-height:1;
+    color:var(--primary-700);background:none;border:0;border-radius:0;
+    padding:7px 2px;cursor:pointer;transition:color .15s,gap .15s;
+  }
+  .sp-card-drill svg{width:13px;height:13px;flex:none}
+  .sp-card-drill:hover{color:var(--primary-900);gap:9px}
+  .sp-card-drill:active{color:var(--primary-900)}
+  [data-theme="dark"] .sp-card-drill{color:var(--primary-300)}
+  [data-theme="dark"] .sp-card-drill:hover{color:var(--primary-200)}
+  /* T-004 深色修正（2026-10-22）：--primary-900 在深色主题下没有覆盖值（仍是最深的墨绿 #1a4542），
+     P1/P2 标签、高频标签、成绩徽标用它当文字色 → 深色卡片上变成深底暗字看不见。
+     深色下改用浅一档的 --primary-200，浅色主题一个字不动。 */
+  [data-theme="dark"] .sp-tag.sp-tag-p{color:var(--primary-200)}
+  [data-theme="dark"] .sp-tag.freq-high{color:var(--primary-200)}
+  [data-theme="dark"] .sp-score-badge.good{color:var(--primary-200)}
   </style>
 
   <!-- 句型页 v2（design/16 P0）：__SENT_V2_ON=true 时由 sentence-drill.js 接管「练习」tab，

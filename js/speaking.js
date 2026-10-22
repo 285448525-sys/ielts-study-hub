@@ -182,24 +182,13 @@ function spActivateTab(type){
   $('#tabs').querySelectorAll('[data-type]').forEach(x => x.classList.toggle('active', x.dataset.type === type));
 }
 
-/* 季度 banner 数据化渲染（design/81）：season/region/updated/note 取自 SPEAKING_BANK_META，
-   P1/P2 题数从 DATA.speaking 现算（与列表同口径：剔 framework/旧母本）。
-   在 ready() 里调用——此时 hubLoad 的 mergeSpeakingKeepAnswers 已跑完，题数准确。 */
+/* T-004（2026-10-22）：原 renderFreqBanner（design/81 的深绿 banner）已由 renderCockpit() 取代 ——
+   banner 的 season/region/题数信息搬进了驾驶舱主行（无考试日时）与「题库总量」统计格。
+   函数保留为空壳并继续被 ready() 调用（#freqBanner 容器已从 speaking.html 删除，
+   getElementById 返回 null 直接 return，零成本；保留调用点是为最小化 diff）。 */
 function renderFreqBanner(){
   const el = document.getElementById('freqBanner');
-  if(!el) return;
-  const M = (typeof SPEAKING_BANK_META !== 'undefined') ? SPEAKING_BANK_META : {};
-  const bank = (DATA.speaking || []).filter(s => s && !s.framework && !/^sp_p[12]_\d+$/.test(s.id || ''));
-  const c1 = bank.filter(s => s.type === 'P1').length;
-  const c2 = bank.filter(s => s.type === 'P2').length;
-  const season = escapeHtml(M.season || '') + (M.region ? ' · ' + escapeHtml(M.region) : '');
-  /* 10/1 晚（她拍板）：压成两行、不折叠——第一行=题库范围+题数，第二行=更新时间。
-     旧版长注释（频次口径/优先级策略/联系微信）整段退役；SPEAKING_BANK_META.note 字段保留但不再展示。 */
-  /* 10/1 晚四改（她拍板）：单行——P1/P2 题数已在下方 P1·33/P2·55 切换钮上，不再重复 */
-  /* 10/2（她反馈 banner 太厚）：去掉内层 .sp-banner 包装（#freqBanner 本身就有该 class，
-     双层 = 双份 padding，视觉上厚一圈）；b/span 是后代选择器不受影响 */
-  const upd = escapeHtml(M.updated || '').slice(5);
-  el.innerHTML = '<b>📚 ' + season + '题库 · ' + (c1 + c2) + ' 题</b><span> · 更新 ' + (upd || '—') + '</span>';
+  if(!el) return;   // T-004：容器已删 → 直接返回（什么都不做）
 }
 
 /* 10/2（她拍板）：「最近一次模考」卡已删——renderMockRecent 整函数退役；
@@ -506,7 +495,7 @@ ready(() => {
   // 10/1 晚（她拍板）：模考不再是 tab——题库筛选行「模考」按钮 = 点隐藏的 MOCK tab（复用全部切换逻辑）
   const mockJump = document.getElementById('spMockJumpBtn');
   if(mockJump) mockJump.addEventListener('click', () => { const mb = document.querySelector('#tabs [data-type="MOCK"]'); if(mb) mb.click(); });
-  renderFreqBanner();   // design/81：季度 banner 数据化（此时题库合并已完成，题数现算）
+  renderFreqBanner();   // T-004：已空壳（#freqBanner 容器删除）；驾驶舱由 renderList→renderCockpit 渲染
   syncFselLabels();    // 10/3 B 版：初始三个筛选都是「全部」→ 浮层标签不显形
   $('#backBtn').addEventListener('click', () => { $('#detailView').hidden = true; $('#listView').hidden = false; $('#sentView').hidden = true; curDetailId = null; spActivateTab('BANK'); });
   // 默认 tab = 题库（她 10/1 晚拍板：题库放练习前面 + 打开口语优先展示题库）。
@@ -815,31 +804,111 @@ function scoreHeaderHtml(score, title){
 }
 
 /* ============================================================
-   10/3 B 版：倒计时提示条（她拍板保留）
-   读examCountdown()（common.js，跟诊断页同一数据源），距考试越近提示越强。
-   已过考期/ 未设日期 → 整条隐藏，不占位。
+   T-004（2026-10-22）：原 renderCountdownBar（10/3 B 版的倒计时提示条）已由 renderCockpit() 取代。
+   函数保留为空壳（#spCountdown 容器已从 speaking.html 删除，getElementById 返回 null 直接 return）。
+   ⚠️ 若日后要恢复「距考试 N 天」的强提示文案，直接改 renderCockpit() 的主行，不要复活这个函数。
    ============================================================ */
 function renderCountdownBar(){
   const el = document.getElementById('spCountdown');
+  if(!el) return;   // T-004：容器已删 → 直接返回（什么都不做）
+}
+
+/* ============================================================
+   T-004（2026-10-22）：驾驶舱 = 原 .sp-banner（题库范围）+ .sp-countdown（考试日倒计时）合并
+   —— 上半：考试日倒计时 + 主按钮（随机来一道）；下半：三项统计（题库量 / 已练 / 必考题进度）
+   —— 数据源全部沿用：examCountdown()（common.js）/ SPEAKING_BANK_META / DATA.speaking 现算
+   —— ⚠️ 没有考试日时不整块隐藏：退化成「题库概览」（label 改成题库范围），驾驶舱始终有内容
+   ============================================================ */
+function renderCockpit(){
+  const el = document.getElementById('spCockpit');
   if(!el) return;
+  const M = (typeof SPEAKING_BANK_META !== 'undefined') ? SPEAKING_BANK_META : {};
+  const bank = (DATA.speaking || []).filter(s => s && !s.framework && !/^sp_p[12]_\d+$/.test(s.id || ''));
+  const c1 = bank.filter(s => s.type === 'P1').length;
+  const c2 = bank.filter(s => s.type === 'P2').length;
+  const total = c1 + c2;
+  const ultra = bank.filter(s => s.frequency === 'ultra').length;
+  const doneN = bank.filter(s => getPracticeCount(s) > 0).length;
+
   let cd = null;
   try{ cd = (typeof examCountdown === 'function') ? examCountdown() : null; }catch(e){ cd = null; }
-  if(!cd || !cd.hasExam || cd.daysLeft == null || cd.daysLeft < 0){ el.hidden = true; return; }
-  const d = cd.daysLeft;
-  const ultra = (typeof DATA !== 'undefined' && Array.isArray(DATA.speaking))
-    ? DATA.speaking.filter(s => s.frequency === 'ultra' && !s.framework && !/^sp_p[12]_\d+$/.test(s.id || '')).length
-    : 0;
-  let tx;
-  if(d === 0) tx = '<b>今天就是考试日</b>，别再背新词了，把错词过一遍就行。';
-  else if(d <= 3) tx = '距考试 <b>' + d + ' 天</b>，只扫「必考题」' + (ultra ? ' ' + ultra + ' 题' : '') + ' 和错词，其余先放放。';
-  else if(d <= 7) tx = '距考试 <b>' + d + ' 天</b>，建议只练「必考题」' + (ultra ? ' ' + ultra + ' 题' : '') + ' —— 一天 ' + Math.max(1, Math.round(ultra / d)) + ' 题正好过一遍。';
-  else tx = '距考试 <b>' + d + ' 天</b>，高频题打牢，必考题 ' + (ultra ? ultra + ' 题' : '') + '优先。';
-  el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.5"/></svg>' + tx;
-  el.hidden = false;
+  const hasExam = !!(cd && cd.hasExam && cd.daysLeft != null && cd.daysLeft >= 0);
+
+  /* 主行：有考试日 → 「下次考试 · 2026 年 10 月 9 日」+ 距考天数 + 还剩 N 道 P1 没练
+     （T-004 口径修正 2026-10-22：原实现显示的是题库总量/已练过/必考题进度，与细则不符）*/
+  const done1 = bank.filter(s => s.type === 'P1' && getPracticeCount(s) > 0).length;
+  const done2 = bank.filter(s => s.type === 'P2' && getPracticeCount(s) > 0).length;
+  const left1 = Math.max(0, c1 - done1);
+  const cnDate = raw => {
+    const m = String(raw || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return m ? (+m[1]) + ' 年 ' + (+m[2]) + ' 月 ' + (+m[3]) + ' 日' : '';
+  };
+  let label, num, unit, sub;
+  if(hasExam){
+    const ds = cnDate(cd.raw);
+    label = '下次考试' + (ds ? ' · ' + ds : '');
+    num = String(cd.daysLeft);
+    unit = '天';
+    sub = left1 > 0 ? ('还剩 ' + left1 + ' 道 P1 没练') : 'P1 已全部练过';
+  }else{
+    label = '当前题库';
+    num = String(total);
+    unit = '题';
+    sub = (M.season ? escapeHtml(M.season) + (M.region ? ' · ' + escapeHtml(M.region) : '') + ' · ' : '')
+        + 'P1 ' + c1 + ' / P2 ' + c2;
+  }
+
+  /* 口语平均分：沿用本页现成分数口径（getAggScore = 每题历史最高分，只认 9/20 新口径），
+     再对有分的题取平均。一条分都没有时该格隐藏，不显示 0。 */
+  let band = null;
+  try{
+    const vals = bank.map(s => getAggScore(s)).filter(v => v != null);
+    if(vals.length) band = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 2) / 2;
+  }catch(e){ band = null; }
+  const tgtSp = (DATA.settings && DATA.settings.targets && +DATA.settings.targets.speaking) || 0;
+
+  const cell = (k, v, bar, tail) =>
+      '<div class="sp-stat-cell">'
+    +   '<div class="sp-stat-k">' + k + '</div>'
+    +   '<div class="sp-stat-v">' + v + (tail || '') + '</div>'
+    +   '<div class="sp-bar"><span style="width:' + bar + '%"></span></div>'
+    + '</div>';
+  let stats = '';
+  stats += cell('P1 题库进度', done1 + '<i>/ ' + c1 + ' 题</i>', c1 ? Math.round(done1 / c1 * 100) : 0);
+  stats += cell('P2 题库进度', done2 + '<i>/ ' + c2 + ' 题</i>', c2 ? Math.round(done2 / c2 * 100) : 0);
+  if(band != null){
+    stats += cell('口语平均分', band.toFixed(1), Math.min(100, Math.round(band / 9 * 100)),
+                  tgtSp ? '<i>目标 ' + tgtSp.toFixed(1) + '</i>' : '');
+  }
+
+  el.innerHTML =
+      '<div class="sp-cockpit-top">'
+    +   '<div class="sp-cockpit-left">'
+    +     '<div class="sp-cockpit-label">' + label + '</div>'
+    +     '<div class="sp-cockpit-main">'
+    +       '<span class="sp-cockpit-num">' + num + '</span>'
+    +       '<span class="sp-cockpit-unit">' + unit + '</span>'
+    +       '<span class="sp-cockpit-sub">' + sub + '</span>'
+    +     '</div>'
+    +   '</div>'
+    +   '<button type="button" class="btn-main" id="spCockpitRandom">'
+    +     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg>'
+    +     '开始模考'
+    +   '</button>'
+    + '</div>'
+    + '<div class="sp-cockpit-stats">' + stats + '</div>';
+  /* T-004 改动点 1 主按钮口径调整：细则要求驾驶舱主按钮 = 「原来那个模考入口」，
+     而模考真正的入口是题库筛选行那个 #spMockJumpBtn（点它 = 点隐藏的 MOCK tab）。
+     这里直接转发到 #spMockJumpBtn 的 click，复用它的全部切换/加载逻辑，不另写一份。 */
+  const rnd = document.getElementById('spCockpitRandom');
+  if(rnd) rnd.addEventListener('click', () => {
+    const jump = document.getElementById('spMockJumpBtn');
+    if(jump) jump.click();
+  });
 }
 
 function renderList(){
-  renderCountdownBar();
+  renderCockpit();   // T-004：驾驶舱跟着筛选一起刷新（已练/进度会变）
   // design/88：状态下拉选项带题数（跟随其他筛选刷新，题数按当前其他筛选已生效后的剩余池统计）
   refreshStateOptions();
   const list = getFiltered();
@@ -882,6 +951,32 @@ function renderList(){
       if(b) b.open = !b.open;
     });
   });
+  /* T-004：分组标题右侧的「全部开始」→ 打开该组第一题（走陪练一键开练，同题卡按钮口径）。
+     ⚠️ 必须在 summary 的 click 之前拦掉（stopPropagation + preventDefault），
+     否则会同时触发 <details> 折叠，出现「刚展开又收起」的闪跳。 */
+  container.querySelectorAll('[data-gstart]').forEach(b => {
+    b.addEventListener('click', ev => {
+      ev.stopPropagation();
+      ev.preventDefault();
+      const key = b.dataset.gstart;
+      const g = SP_FREQ_GROUPS.find(x => x.key === key);
+      if(!g) return;
+      const items = getFiltered().filter(s => g.freqs.indexOf(s.frequency) >= 0);
+      if(!items.length){ toast('这一组暂时没有题'); return; }
+      const btn = document.createElement('button');
+      btn.dataset.drill = items[0].id;
+      /* 复用题卡按钮的同一条路径：切到陪练 tab + 调 __coachDrill */
+      const tab = document.querySelector('#tabs [data-type="PRACTICE"]');
+      if(!tab){ toast('陪练入口没找到'); return; }
+      tab.click();
+      if(typeof window.__coachDrill !== 'function'){ toast('陪练没加载好，稍后再试'); return; }
+      if(!window.__coachDrill(items[0].id)) toast('这道题暂时打不开，换一道试试');
+    });
+  });
+  /* T-004：单组兜底标题的「全部展开」→ 单组时列表本来就是全展开，按钮只做视觉反馈（刷新） */
+  container.querySelectorAll('[data-more]').forEach(b => {
+    b.addEventListener('click', ev => { ev.stopPropagation(); ev.preventDefault(); renderList(); });
+  });
 }
 
 /* ============================================================
@@ -895,17 +990,35 @@ function renderGrouped(list){
   const used = SP_FREQ_GROUPS.filter(g => list.some(s => g.freqs.indexOf(s.frequency) >= 0));
   if(used.length <= 1){
     // 只有一组（或零组）时不做分组壳，省一层无意义的折叠
+    /* T-004：单组时也要有分组标题（block-h），否则题卡直接裸在页面上缺上下文。
+       标题 = 该组的 label + desc；「更多」= 展开该组全部（单组时本来就是全展开，按钮退化为刷新列表）。 */
+    if(used.length === 1){
+      const g = used[0];
+      return '<div class="sp-block-h">'
+        + '<span class="sp-panel-caret" aria-hidden="true" style="visibility:hidden">▶</span>'
+        + '<svg class="sp-panel-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + SP_ICONS[g.icon] + '</svg>'
+        + '<h3>' + g.label + '</h3>'
+        + '<span class="desc">' + list.length + ' 题 · ' + g.desc + '</span>'
+        + '<span class="spacer"></span>'
+        + '<button type="button" class="more" data-more="' + escapeHtml(g.key) + '">全部展开<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>'
+        + '</div>'
+        + list.map(s => spCardHtml(s)).join('');
+    }
     return list.map(s => spCardHtml(s)).join('');
   }
   return used.map(g => {
     const items = list.filter(s => g.freqs.indexOf(s.frequency) >= 0);
     if(!items.length) return '';
+    /* T-004：面板头改成 block-h 口径（h3 标题 + desc 说明 + 右侧「全部开始」）。
+       ⚠️ <summary> 仍是折叠触发器（原生展开收起），caret 放最左。 */
     return '<details class="sp-panel" data-gkey="' + g.key + '"' + (g.open ? ' open' : '') + '>'
       + '<summary class="sp-panel-head">'
         + '<span class="sp-panel-caret" aria-hidden="true">▶</span>'
         + '<svg class="sp-panel-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + SP_ICONS[g.icon] + '</svg>'
-        + '<b>' + g.label + '</b>'
+        + '<h3>' + g.label + '</h3>'
         + '<span class="sp-panel-n">' + items.length + ' 题 · ' + g.desc + '</span>'
+        + '<span class="spacer"></span>'
+        + '<button type="button" class="more" data-gstart="' + escapeHtml(g.key) + '">全部开始<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>'
       + '</summary>'
       + '<div class="sp-panel-body">' + items.map(s => spCardHtml(s)).join('') + '</div>'
       + '</details>';
@@ -928,19 +1041,24 @@ function spCardHtml(s){
        · .sp-card-tags 的 max-width:46% + overflow:hidden 在硬切标签
      修：**改成两栏** —— 左栏（rail + 标题/中文/标签**竖排**）+ 右栏（箭头）。
         标题改为**允许换行**（不再 nowrap+ellipsis），标签移到左栏底部跟着标题走。
-        这样无论标题多长，卡片只会变高，不会切内容、不会错位。 */
+        这样无论标题多长，卡片只会变高，不会切内容、不会错位。
+     T-004（2026-10-22）结构契约不变（仍是 rail | main | go 两栏），
+     只把「练这道题」按钮改成**文字链**样式（CSS .sp-card-drill 已去底去边框），
+     DOM 里 class/data-drill 全保留 → 事件绑定与 10/4 的防截断修法都不受影响。 */
   return '<div class="sp-card sp-card-row" data-id="' + s.id + '" data-freq="' + escapeHtml(s.frequency || '') + '">'
     + '<span class="sp-card-rail" aria-hidden="true"></span>'
     + '<div class="sp-card-main">'
       + '<div class="sp-card-title">' + escapeHtml(title) + scoreBadgeHtml(best, count, s) + '</div>'
       + (zh ? '<div class="sp-card-zh">' + escapeHtml(zh) + '</div>' : '')
       + '<div class="sp-card-tags">' + tagsHtml(s) + '</div>'
-      /* 10/5 路线图①「一键开练」：题卡上直接开练，不必先进详情再找陪练。
-         ⚠️ 放在 .sp-card-main 竖排末尾（不是右栏）—— 右栏只有箭头是 10/4 定死的结构契约，
-         往那儿加元素会把箭头挤走。且必须 stopPropagation，否则会同时触发整行的 openDetail。 */
-      + '<button type="button" class="sp-card-drill" data-drill="' + escapeHtml(s.id) + '">练这道题</button>'
     + '</div>'
-    + '<span class="sp-card-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>'
+    /* T-004 口径修正（2026-10-22 18:2x）：样张把「练这道题」放在**右侧**（与标题同一水平线，
+       右对齐、绿字+箭头），原来放在左栏竖排末尾 → 每行下面空一大块、右半边全空，
+       与样张「一眼看出是同一版」对不上。右栏本来就只放一个元素（10/4 防截断契约），
+       现在这个元素从「圆箭头」换成「练这道题 ›」，栏宽仍由它撑住，标题照样换行不截断。 */
+    + '<button type="button" class="sp-card-drill" data-drill="' + escapeHtml(s.id) + '">练这道题'
+      + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>'
+    + '</button>'
     + '</div>';
 }
 
