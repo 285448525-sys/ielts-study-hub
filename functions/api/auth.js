@@ -330,7 +330,12 @@ async function handleRequest(context) {
         const t = await r.text().catch(function(){ return ''; });
         await clearLock();
         const f = mailFail(r.status, t);
-        return json({ ok: false, error: f.error, code: f.code, detail: f.detail, msg: f.msg }, 502);
+        /* 🔴 10/22 线上实测：yasihub.com（CF 主域名代理）会把函数返回的 502 响应体
+           替换成 CF 自己的「error code: 502」纯文本 → 前端 post() 走 catch，
+           只看到「网络异常」，mail_domain_unverified 这些人话一条都显示不出来。
+           发信失败是**业务错误**不是网关错误 → 统一用 200 + ok:false，
+           让主域名也原样透传我们的 JSON（cf-cache-status: DYNAMIC 不影响 200）。 */
+        return json({ ok: false, error: f.error, code: f.code, detail: f.detail, msg: f.msg });
       }
       /* 走到这里 = 邮件服务已接收（真正发没发到由 Resend 负责，这里以 2xx 为准）。
          下面的 KV 写入才是「这封真的算发过」的记账。 */
@@ -342,7 +347,7 @@ async function handleRequest(context) {
         detail: String((e && (e.name || e.message)) || e).slice(0, 160),
         msg: abort ? '验证码没发出去（邮件服务 10 秒没响应），稍后再试'
                   : '验证码没发出去（网络问题），稍后再试' };
-      return json({ ok: false, error: f.error, code: f.code, detail: f.detail, msg: f.msg }, 502);
+      return json({ ok: false, error: f.error, code: f.code, detail: f.detail, msg: f.msg });
     }
     /* 发信成功：现在才写三个键（顺序 = 码 → 冷却 → 当日计数）。
        ⚠️ 这里不能失败：码已进用户邮箱，写不进去就验不了。写入抛异常（配额满）时
