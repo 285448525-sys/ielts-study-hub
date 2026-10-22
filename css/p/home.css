@@ -122,6 +122,12 @@
 .dash-tasks .plan-item.jumpable{cursor:pointer;border-radius:8px}
 .dash-tasks .plan-item.jumpable:hover{background:var(--primary-50)}
 .dash-tasks-done{padding:6px 0 2px;font-size:12.5px;font-weight:700;color:var(--primary)}
+/* 10-22：任务超过 5 条时首页只显示前 5 条，其余收进这一行（点了去计划页看全部）。
+   —— 首页「一屏不滚」是 10-21 定的口径，所以这里不展开、只给去向。 */
+.dash-tasks-more{display:block;margin:4px 0 2px;padding:5px 0 1px;border-top:1px solid var(--line);
+  font-size:11.5px;color:var(--primary);font-weight:700;text-decoration:none}
+.dash-tasks-more b{font-weight:800}
+.dash-tasks-more:hover{text-decoration:underline}
 .dash-tasks-empty .tip{font-size:12.5px;color:var(--muted);padding:6px 0 8px}
 .dash-tasks-empty .btn-row{display:flex;gap:8px;flex-wrap:wrap;padding-bottom:4px}
 .dash-tasks-empty .btn{display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:0 13px;

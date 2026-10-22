@@ -692,7 +692,15 @@ function renderDashTasks(){
   // 9/24：跳转能力从计划页迁来——能识别目标的任务整行可点，点击直达 + autostart=1 落地即开计时；
   // 识别不出（如听力第N篇）不可点。题号任务（口语 P1 第N题）hover 提示显示解析出的真实题名。
   const sorted = items.slice().sort((a, b) => (a && a.done) === !!(b && b.done) ? 0 : (a && a.done ? 1 : -1));
-  html += sorted.map(i => {
+  /* 🔴 10-22 她拍板「任务超过 5~6 条时小屏溢出 → 只显示前 N 条 + 去计划页」。
+     为什么是 5 条：实测 6 条任务在 1366×768 下溢出 62px（design 记录见 _measure_homefit），
+     5 条在四档常用视口都放得下。排序已经把「未完成的排在前面」，所以砍掉的是末尾那几条
+     —— 不会出现「今天的活被藏起来」的错觉：底下那行明确写了还剩几条、点了直接去计划页。
+     ⚠️ 只影响首页这一块；计划页照旧全量显示，DATA 一个字没动。 */
+  const TASK_CAP = 5;
+  const shown = sorted.slice(0, TASK_CAP);
+  const moreN = sorted.length - shown.length;
+  html += shown.map(i => {
     // commit4：AI 生成项（module/action）优先走结构化跳转；识别不出再退回文本猜测
     const jmp = ((typeof planGenJump === 'function') && planGenJump(i))
       || ((typeof planJumpInfo === 'function') ? planJumpInfo(i && i.text) : null);
@@ -705,6 +713,10 @@ function renderDashTasks(){
       + '<span class="plan-text">' + escapeHtml(i && i.text) + '</span>'
       + '</div>';
   }).join('');
+  /* 折起来的那些：一行可点的「还有 N 条」，点了去计划页（不在这里展开 —— 首页一屏不滚是 10-21 定的口径） */
+  if(moreN > 0){
+    html += '<a class="dash-tasks-more" href="plans.html">还有 <b>' + moreN + '</b> 条，去计划页看全部 →</a>';
+  }
   // 全部任务完成（items 非空且 done=100%）→ 一行正向反馈，不引入 XP/积分字段
   if(doneN === items.length) html += '<div class="dash-tasks-done">今天的任务完成了</div>';
   host.innerHTML = html;
