@@ -893,6 +893,11 @@
     });
   }
   /* 进入全屏：四角朝外箭头（↖↗↙↘ 四个 L 形箭头） */
+  /* 10-22 顶栏品牌图标：与本站顶栏壳 .tb-logo 同源（ICON.brand 的那枚白标），
+     这里内联一份避免 bank.js 依赖 common.js 的加载顺序（bank.html 不引 common.js 的 ICON）。 */
+  var ICO_BRAND = '<svg viewBox="0 0 512 512" width="16" height="16" fill="none" aria-hidden="true">'
+  + '<g fill="#fff" stroke="#fff" stroke-width="38" stroke-linejoin="round" stroke-linecap="round">'
+  + '<path d="M256 136 L344 194 L256 252 L168 194 Z"/><path d="M160 304 L212 304 L256 362 L300 304 L352 304 L352 354 Q352 394 256 394 Q160 394 160 354 Z"/></g></svg>';
   var ICO_FULL = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V5.5A1.5 1.5 0 0 1 5.5 4H9"/><path d="M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9"/><path d="M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15"/><path d="M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15"/><path d="M4 4l6 6"/><path d="M20 4l-6 6"/><path d="M20 20l-6-6"/><path d="M4 20l6-6"/></svg>';
   /* 退出全屏：四角朝内箭头（↘↙↗↖，箭头指向中心） */
   var ICO_FULL_X = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4v3.5A1.5 1.5 0 0 1 7.5 9H4"/><path d="M15 4v3.5A1.5 1.5 0 0 0 16.5 9H20"/><path d="M15 20v-3.5a1.5 1.5 0 0 1 1.5-1.5H20"/><path d="M9 20v-3.5A1.5 1.5 0 0 0 7.5 15H4"/><path d="M10 10h4v4h-4z"/></svg>';
@@ -975,7 +980,14 @@
     if(top) top.style.display = 'none';      /* .ex-option 面板是 .ex-top 的兄弟，藏它不影响面板 */
   }
   function shellHtml(nameText, subText, timerText){
+    /* 🔴 10-22 她拍板照 IDP 官方 demo 复刻：「把左上角那个 iELTS 改成我们网站的那个网址
+       yasihub.com 其他完全照抄」。官方顶栏 = 左「IELTS 红标 + Test taker ID」+ 右四个图标；
+       我们 = 左「本站图标 + yasihub.com」+ 中篇名/计时 + 右工具组（Saved/全屏/Option）。
+       ⚠️ 篇名/计时仍在原位不动（官方那条是考号，我们没有也不该编）；图标组沿用本站既有的
+        Saved / 全屏 / ☰ Option（官方是 wifi/消息/菜单/笔记四个，功能不对等，不硬搬）。 */
     return '<div class="ex-top">'
+      +    '<a class="ex-brand" href="home.html" title="yasihub.com">'
+      +      '<i aria-hidden="true">' + ICO_BRAND + '</i><span>yasihub.com</span></a>'
       +    '<div class="ex-name">' + esc(nameText)
       +      (subText ? '<small>' + esc(subText) + '</small>' : '') + '</div>'
       +    '<span class="ex-timer" id="exTimer">' + timerText + '</span>'
@@ -999,7 +1011,7 @@
       +    '</div></div>'
       + '<div class="ex-option" id="exOptionPanel">'
       +    '<button type="button" class="ex-opx" data-opclose>\u2715</button>'
-      +    '<h3>Option</h3>'
+      +    '<h3>Options</h3>'   /* 10/22 官方对照：标题是复数 Options（我们原来写成 Option 单数） */
       +    '<div class="ex-oplist" id="exOptMain">'
       +      '<div class="ex-oprow" data-sub="colour">Colour<span class="ar">\u203A</span></div>'
       +      '<div class="ex-oprow" data-sub="size">Size<span class="ar">\u203A</span></div>'
@@ -1212,32 +1224,49 @@ window.__reportExamState = reportExamState;
   function audioBarHtml(partLabel, nameText, timerText, showModes){   /* 10/16：nameText/timerText 参数保留签名兼容（顶栏已承载，不再渲染） */
     var p = listenPart();
     if(!p || !p.audioUrl) return '<div class="ex-audio" id="exAudioBar"><span class="ea-label">No audio for this part</span></div>';   /* 🔴 10/16：原「本部分没有音频」= 考场内中文，违反零中文铁律 */
+    /* 🔴 10-22 她拍板照 IDP 官方 demo 复刻（截图 01/02/13/19 存档在 _mock-ref-20261022/）：
+       官方听力 = 进 Part 时**整页深色遮罩**（白耳机图标 + 「You will be listening to an audio clip
+       during this test. You will not be permitted to pause or rewind the audio while answering the
+       questions.」+「To continue, click Play.」+ 黑底 Play 键），点 Play 后遮罩消失，
+       顶栏只多一行小字「Audio is Playing」—— 进度条 / 时间 / 倍速**统统没有**（真机考不给拖）。
+       ⚠️ 本站保留的：音量键（真机考有音量控制，官方 FAQ 口径一致）+ 音频元素本身（JS 全靠它）。
+       ⚠️ 遮罩里那句「不许暂停/回退」对**练习模式**是假话（练习模式就是给暂停回拖的）——
+          文案按 listenMode 分流：考试模式用官方原句，练习模式换成「practice 可暂停可回拖」，
+          不骗用户（她「真诚不要套路」的规矩）。 */
     var exam = EX.listenMode === 'exam';
-    /* 听力完整模考：全程考试模式，模式切换按钮整个不渲染（真机考没有「练习/考试」这一说） */
-    var fullL = !!(EX.full && EX.channel === 'listening');
-    /* 10/14 她拍板：去掉练习/考试切换，默认练习模式（可暂停/可拖/可倍速） */
-    var modeBtn = '';
+    var gateTx = exam
+      ? 'You will be listening to an audio clip during this test. You will not be permitted to pause or rewind the audio while answering the questions.'
+      : 'You will be listening to an audio clip. In practice mode you can pause and rewind freely.';
     var partChip = partLabel ? '<span class="ea-part">' + esc(partLabel) + '</span>' : '';
-    /* 10/14 她拍板：两行并一行 —— 标题 + 整场倒计时并入音频条行首（原独立标题行撤销） */
-    /* 10/16 三科上下栏统一：篇名与整场计时已在顶栏（阅读同款）→ 音频条瘦身为纯播放条
-       （播放 | Part 胶囊 | 进度 | 时间 | 静音），不再重复渲染标题/计时。 */
     return '<div class="ex-audio' + (exam ? ' locked' : '') + '" id="exAudioBar">'
-
-      + '<button class="ea-play" type="button" data-aplay aria-label="Play">▶</button>'
+      + '<span class="ea-label" id="eaLabel" hidden>Audio is Playing</span>'
       + partChip
-      + '<div class="ea-bar" id="eaBar"><div class="ea-fill" id="eaFill"></div><span class="ea-knob" id="eaKnob"></span></div>'
-      + '<span class="ea-time" id="eaTime">00:00 / 00:00</span>'
-      /* 10/14 她拍板：音量滑杆与倍速按钮移入 Option 面板（进度条折叠，三科顶栏一致）。
-         静音按钮保留（一键静音是常用操作，只占一个图标位）。 */
-      /* 🔴 10/20：图标全部去 emoji（她定过「全站禁 emoji」）→ 音量改用 SVG（静音态是喇叭+斜杠） */
+      /* 播放中官方没有任何进度/时间/倍速 —— 节点全部不渲染（JS 侧 paintAudio 等判空，天然兼容）。
+         音量键保留（官方实锤有音量控制）。 */
       + '<button class="ea-vol" type="button" data-avol aria-label="Mute" title="Mute">' + (_audioMuted || _audioVol === 0 ? ICO_MUTE : ICO_VOL) + '</button>'
-      /* 10/20 她：音量旁加倍速（0.8–1.5，0.1 一档，9 档；原来是 [1,1.25,1.5,0.75] 四档且藏在
-         点按循环里）→ 用 <select> 一次选到位，9 个值铺开不叠。data-arate 仍由 #examRoot 委托
-         接住（bank.js:3124），改的是「按钮变 select」而非事件链路。 */
-      + '<select class="ea-rate" id="eaRate" aria-label="Playback speed" data-arate>' + rateOptions() + '</select>'
-      + modeBtn
+      + '</div>'
+      + '<div class="ex-gate" id="exAudioGate">'
+      +   '<svg class="ex-gate-ic" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><path d="M4 14h2.5a1.5 1.5 0 0 1 1.5 1.5v3A1.5 1.5 0 0 1 6.5 20H5a1 1 0 0 1-1-1z"/><path d="M20 14h-2.5a1.5 1.5 0 0 0-1.5 1.5v3A1.5 1.5 0 0 0 17.5 20H19a1 1 0 0 0 1-1z"/></svg>'
+      +   '<div class="ex-gate-tx">' + gateTx + '</div>'
+      +   '<div class="ex-gate-go">To continue, click Play.</div>'
+      +   '<button class="ex-gate-btn" type="button" data-aplay aria-label="Play">'
+      +     '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Play</button>'
       + '</div>'
       + '<audio id="exAudio" preload="metadata" src="' + esc(p.audioUrl) + '"></audio>';
+  }
+  /* 10-22 官方口径：点 Play → 遮罩消失、开始播。遮罩只在「本篇没播过」时出现，
+     状态记在 EX.audioGateDone[part] 上 —— 切 Part 再切回来不重出（官方同行为）。 */
+  function hideAudioGate(){
+    var g = document.getElementById('exAudioGate');
+    if(g) g.hidden = true;
+    var l = document.getElementById('eaLabel');
+    if(l) l.hidden = false;
+  }
+  function showAudioGate(){
+    var g = document.getElementById('exAudioGate');
+    if(g) g.hidden = false;
+    var l = document.getElementById('eaLabel');
+    if(l) l.hidden = true;
   }
   /* Part 行内标签文案（音频条行首胶囊）：听力口径「Part N · Questions X–Y」（她 10/13 截图 1 口径） */
   function partChipText(){
@@ -1249,18 +1278,13 @@ window.__reportExamState = reportExamState;
   }
   function paintAudio(){
     var a = document.getElementById('exAudio'); if(!a) return;
-    var d = a.duration || 0, c = a.currentTime || 0, pct = d ? (c / d * 100) : 0;
-    var fill = document.getElementById('eaFill'), knob = document.getElementById('eaKnob'),
-        tm = document.getElementById('eaTime'), btn = document.querySelector('#exAudioBar [data-aplay]');
-    if(fill) fill.style.width = pct + '%';
-    if(knob) knob.style.left = pct + '%';
-    if(tm) tm.textContent = fmtClock(c) + ' / ' + fmtClock(d);
-    if(btn){
-      btn.textContent = a.paused ? '▶' : '❙❙';
-      /* 10/20 她 4B：加「正在播放」脉冲态 —— 播放键外圈呼吸光环（CSS .ea-play.playing）。
-         只加 class，不改 DOM 结构/尺寸 → 零布局位移（她的判据：绝不切内容、绝不错位）。 */
-      btn.classList.toggle('playing', !a.paused && !a.ended);
-    }
+    /* 🔴 10-22 官方口径：播放中只显示「Audio is Playing」小字（截图 02/19），
+       进度/时间/倍速节点已不在 DOM 里（audioBarHtml 不再渲染）—— 判空天然兼容。 */
+    var lbl = document.getElementById('eaLabel');
+    if(lbl) lbl.hidden = a.paused;
+    var playing = !a.paused && !a.ended;
+    var bar = document.getElementById('exAudioBar');
+    if(bar) bar.classList.toggle('playing', playing);
   }
   /* 🔴 10/16 她报「听力音频播放不了」→ 本地/线上都复现不出（音频 200、duration 正常、无报错），
      她那边是 00:00 / 00:00 + 进度条塌成小点 = 元数据没加载（旧缓存版布局也印证）。
@@ -1341,7 +1365,13 @@ window.__reportExamState = reportExamState;
   }
   function audioToggle(){
     var a = document.getElementById('exAudio'); if(!a || !EX) return;
-    if(a.paused) a.play();
+    if(a.paused){
+      /* 🔴 10-22 官方口径：第一次点 Play 就收掉整页遮罩（官方遮罩出现一次即不再来）。
+         记在 EX.audioGateDone[curP] 上：完整模考切 Part 回来不重出。 */
+      if(EX.audioGateDone) EX.audioGateDone[EX.curP] = true;
+      hideAudioGate();
+      a.play();
+    }
     else if(EX.listenMode !== 'exam') a.pause();          /* 考试模式：不给暂停 */
   }
   function audioSeek(e){
@@ -1427,6 +1457,7 @@ window.__reportExamState = reportExamState;
     parts.forEach(function(p){ (p.groups || []).forEach(function(g){ groups.push(g); }); });
     EX.groups = groups;
     EX.flagged = EX.flagged || {};
+    EX.audioGateDone = EX.audioGateDone || {};   /* 🔴 10-22 官方口径：听力遮罩「只出一次」记忆表 */
     if(EX.listenMode !== 'exam') EX.listenMode = 'practice';
     if(!EX.cur) EX.cur = 1;
 
@@ -1477,7 +1508,7 @@ window.__reportExamState = reportExamState;
     wireOptionPanel();   /* 10/14 Option 面板交互（Colour/Size/Audio 分组点击） */
     wireExamTools();     /* 10/18 顶栏工具栏：全屏（眼睛标 10/20 删除） */
     reportExamState(true);   /* 10/15 告诉 SW：我在考试中，别刷我 */
-    if(EX.submitted){ if(isListen) showScript(); decoratePassage(EX.curP); }
+    if(EX.submitted){ if(isListen){ showScript(); decoratePassage(EX.curP); hideAudioGate(); } }
     /* 🔴 10/20 她 ⑤：听力单篇不显示计时（音频长短不一，30 分钟倒计时对单篇没意义），
        只有「完整模考」才开倒计时（line 1500 / line 1435 那两处）。这里不再起表，
        顺带顶栏计时小徽章也不显示 —— 单篇页面整个不出现时间数字。 */
@@ -1636,6 +1667,8 @@ window.__reportExamState = reportExamState;
   function renderListenPart(pi){
     if(!EX || !EX.full) return;
     EX.curP = pi;
+    /* 🔴 10-22 官方口径：遮罩「只出一次」的记忆表（切 Part 回来不重出） */
+    EX.audioGateDone = EX.audioGateDone || {};
     var pk = EX.packs[pi - 1];
     EX.unit = pk.unit;                                  /* 音频条 / 原文按篇取 → 复用同一套取数路径 */
     var barHost = document.getElementById('exAudioHost');
@@ -1669,11 +1702,15 @@ window.__reportExamState = reportExamState;
     if(list.length) EX.cur = list[0].g;
     list.forEach(function(e){ if(EX.user[e.g] != null) applyAnswer(e.g, EX.user[e.g]); });
     syncExamStates();
-    if(EX.submitted){ showScript(); decoratePassage(pi); }
+    if(EX.submitted){ showScript(); decoratePassage(pi); hideAudioGate(); }
     else if(EX.audioStartedBy && EX.audioStartedBy[pi]){
-      /* 这个 Part 的音频已经播过 → 不可重播（整场只播一遍）。交卷后不在此列（解锁复听口径不变）。 */
-      var pb = document.querySelector('#exAudioBar [data-aplay]');
-      if(pb){ pb.disabled = true; pb.title = 'This audio has already been played.'; }
+      /* 这个 Part 的音频已经播过 → 不可重播（整场只播一遍）。交卷后不在此列（解锁复听口径不变）。
+         🔴 10-22 官方口径：播过的 Part 直接进题，不再出遮罩（官方同行为）。 */
+      hideAudioGate();
+    }
+    else {
+      /* 没播过的 Part → 官方那一屏整页遮罩（点 Play 才进） */
+      showAudioGate();
     }
     /* 10/13：Part 横幅已并入音频条行首胶囊（#exPartBanner 不存在了）→ 切篇只刷题号行 */
     paintSheet();

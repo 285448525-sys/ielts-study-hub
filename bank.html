@@ -1298,6 +1298,214 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
   #examPractice.ct-yellow .ex-oprow{background:#1b1b1b;border-bottom-color:#4a4526}
   #examPractice.ct-yellow .ex-oprow:hover{background:#252317}
   #examPractice.ct-yellow .ex-opback button{background:#1b1b1b;border-color:#6a6132;color:#f0e3a8}
+
+/* ============================================================
+   === IDP 官方机考一比一复刻（2026-10-22 她拍板）===
+   参照物：IDP IELTS 官方 familiarisation test（demo-ielts.inspera.com，Inspera Assessment 引擎）
+   截图存档：C:\\Users\\Camille\\Desktop\\雅思\\_mock-ref-20261022\\（23 张，覆盖听力/阅读/写作三科
+   进场、播放中、Options、Contrast、Text size、Notes、Review your answers 全状态）
+   她原话：「我感觉可以完全就是照着它这个改，然后把左上角那个 iELTS 改成我们网站的那个网址
+   yasihub.com 其他完全照抄，然后上下栏适当比真卷子窄一些」+「颜色之类的也不要弄本站的，
+   直接颜色也跟那个弄一样的就行」。
+   本块刻意放在样式表末尾：同权重选择器后来者胜，压住上方旧规则，不需要 !important。
+   颜色一律用官方实测量（从参照页 getComputedStyle 抓的，不是本站 token）：
+     页面底 #fff / 正文 #000（黑字白纸，她「颜色跟官方一样」）
+     Part 横幅 #f1f2ec + 1px #d5d5d5（官方那格米灰）
+     分栏分隔线 2px rgba(0,0,0,.5)（官方 divider，比 1px 灰线重得多）
+     顶栏 #fff 无阴影无边框（高 44px；本站壳是 44px 固定顶栏，天然对齐）
+     题号方格 21x27、当前题 2px #418ec6（官方蓝框）
+     填空框 133x22、1px #535353（官方深灰方框）
+     Previous 键 #ddd / Next 键 #000（官方那两个方块，截图 19/22 实锤）
+     底栏 Part 行：透明底、当前 Part 600 字重、其余 400 + 灰「x of y」
+     右下 Review 勾 #efefef（截图 15/17）
+   三处「比她说的适当收窄」（她原话「上下栏适当比真卷子窄一些」）：
+     ① 官方顶栏 56px → 本站 44px（本站壳已是 44px，既定事实不是新决定）
+     ② 官方 Previous/Next 方块 56x55 → 40x40（真卷子在 808px 视口占一大块，收窄不挡题）
+     ③ 官方底栏 53px → 44px（与本站 .ex-bar 第一行同高，视觉不跳）
+   本站已有的「沉浸态盖住顶栏」机制不动（z-index 900 > 50，天然成立）。
+   ============================================================ */
+
+/* ---- ① 顶栏：官方纯白无阴影（本站壳 44px 已比官方 56px 窄，见块头说明）---- */
+#examRoot .ex-top{background:#fff;border-bottom:0;box-shadow:none;min-height:44px;padding:0 16px}
+/* 顶栏品牌位（10-22 她拍板：官方那个 IELTs 红标换成我们的 yasihub.com）。
+   图标 = 本站顶栏壳同款（.tb-logo i 的渐变方块 + 白标），文字用域名（她原话「我们网站的那个网址」）。 */
+#examRoot .ex-brand{display:flex;align-items:center;gap:7px;text-decoration:none;flex:none;
+  font-size:12.5px;font-weight:800;letter-spacing:.02em;color:#000}
+#examRoot .ex-brand i{width:24px;height:24px;border-radius:7px;flex:none;
+  background:linear-gradient(135deg,var(--primary-400),var(--primary-600));display:grid;place-items:center}
+#examRoot .ex-brand i svg{display:block}
+#examRoot.ct-dark .ex-brand{color:#f2f2f2}
+#examRoot.ct-yellow .ex-brand{color:#f0e3a8}
+#examRoot .ex-name{font-size:13px;font-weight:700;color:#000}
+#examRoot .ex-name small{font-weight:400;color:#333;font-size:12px}
+#examRoot .ex-timer{font-size:13px;font-weight:700;color:#000}
+#examRoot .ex-top .ex-ico{color:#000;font-size:14px;padding:6px 10px}
+#examRoot .ex-top .ex-ico:hover{background:#f2f2f2}
+#examRoot .ex-saved{font-size:12px;color:#666}
+
+/* ---- ② Part 横幅：官方米灰底 + 细边框（不是本站的淡绿）---- */
+#examRoot .ex-part{background:#f1f2ec;border-bottom:1px solid #d5d5d5;border-top:0;color:#000;
+  font-size:14px;padding:10px 16px;line-height:1.5}
+#examRoot .ex-part b{font-weight:700;font-size:14px;color:#000}
+#examRoot .ex-part span{color:#333;font-weight:400}
+
+/* ---- ③ 阅读左右分栏：官方口径（白底黑字 + 2px 重分隔线 + 各滚各的）---- */
+#examRoot .ex-split{grid-template-columns:minmax(0,1fr) minmax(0,1fr);background:#fff}
+/* ⚠️ 这里**不写 font-size**：文章字号必须继续走 .ex-article{font-size:calc(var(--exfs) * .75)} 的缩放链
+   （10/16 她报「Option>Size 只能调题目的字体大小，其他调不了」，那条修法就是靠 --exfs 系数）。
+   默认档 --exfs:20px → 15px，与官方实测的 16px 只差 1px，且落在她「上下栏适当窄一些」的口径里。
+   🔴 谁要是往这行加 font-size，Size 三档对文章立刻失效 —— 那是已经修过一次的真 bug。 */
+#examRoot .ex-article{background:#fff;border-right:0;color:#000;padding:20px 28px 60px;line-height:1.6}
+#examRoot .ex-qcol{background:#fff;color:#000;padding:20px 28px 60px}
+/* 官方 divider = 2px 半透明黑（截图 3 实测 width:2px / rgba(0,0,0,.5)）。
+   做法：题目列左缘画 2px，比 grid gap 更稳（gap 会被 padding 吃掉，且拖动分隔不可复刻）。 */
+#examRoot .ex-qcol{border-left:2px solid rgba(0,0,0,.5)}
+#examRoot.ct-dark .ex-qcol{border-left-color:rgba(255,255,255,.5)}
+#examRoot.ct-yellow .ex-qcol{border-left-color:rgba(240,227,168,.5)}
+/* 官方文章区字号 16px（getComputedStyle 实测），行高 normal → 本站 1.95 太散，压到 1.7 */
+/* 题干/选项颜色：官方纯黑（本站 #111 也接近，统一到 #000 免疑） */
+#examRoot .ex-grp-h,#examRoot .ex-grp-i,#examRoot .ex-q{color:#000}
+#examRoot.ct-dark .ex-grp-h,#examRoot.ct-dark .ex-grp-i,#examRoot.ct-dark .ex-q{color:#f2f2f2}
+#examRoot.ct-yellow .ex-grp-h,#examRoot.ct-yellow .ex-grp-i,#examRoot.ct-yellow .ex-q{color:#f0e3a8}
+
+/* ---- ④ 题号方格：官方 21x27 + 当前题 2px 蓝框（截图 19/22 实测）---- */
+#examRoot .ex-num{min-width:21px;max-width:21px;height:27px;border:2px solid transparent;border-radius:3px;
+  font-size:13px;font-weight:400;color:#333;background:transparent}
+/* 官方没有「已答线」—— 答过的题就是普通黑字。本站原有的 ::before 横线是 10/14 的自家设计，
+   照官方口径抹平（保留类名不断 JS，只把视觉收掉）。 */
+#examRoot .ex-num::before{display:none}
+#examRoot .ex-num--done{color:#000;font-weight:400}
+#examRoot .ex-num--cur{border-color:#418ec6;color:#000;box-shadow:none}
+#examRoot.ct-dark .ex-num{color:#c8cbd0}
+#examRoot.ct-dark .ex-num--cur{border-color:#418ec6;color:#fff}
+#examRoot.ct-yellow .ex-num{color:#c9bd85}
+#examRoot.ct-yellow .ex-num--cur{border-color:#ffd400;color:#ffd400}
+
+/* ---- ⑤ 填空框：官方 133x22 深灰细框（截图 19 实测 border 1px #535353）---- */
+/* ---- ⑤b 选项圈/框：官方实测 = 原生控件（13x13，accent auto，系统配色）----
+   ⚠️ 打真实载体：我方真实的 <input> 是 opacity:0 的隐藏控件（.ex-opt input{position:absolute;opacity:0}），
+      视觉全靠伪元素画，而**载体有两套**（随机组卷时按题型走不同容器）：
+        · 判断/单选 + 多选 = .ex-pill::before（真机考口径，随机组卷里绝大多数题走这条）
+        · 多选题组的 .ex-cbox .ex-opt::before / 单选 .ex-radio-box .ex-opt::before（老容器，少数题型）
+      → 三套都要改，只改 input 等于改空气（我第一次就打偏了）。
+   🔴 但**不能换成原生**：① 原生 checkbox/radio 在深色/黄底主题下是系统配色，读不清（她 10/16 复报过）；
+      ② 交卷后的对错底色（10/17 口径 .ex-opt.right/.wrong）依赖我方能上色。
+   → 折中：保留自绘，但尺寸/配色按官方口径重调：15px → 13px（官方实测量）、
+     边框 1.5px #8f959e → 1px #535353（与填空框同款官方深灰）、选中填充用官方的黑而不是 teal。 */
+#examRoot .ex-pill::before{width:13px;height:13px;border:1px solid #535353;background:#fff}
+#examRoot .ex-pill.on::before{border-color:#000;background:radial-gradient(circle,#000 0 3.5px,transparent 4px)}
+#examRoot.ct-dark .ex-pill::before{background:#1b1b1b;border-color:#8a8a8a}
+#examRoot.ct-dark .ex-pill.on::before{border-color:#f2f2f2;background:radial-gradient(circle,#f2f2f2 0 3.5px,transparent 4px)}
+#examRoot.ct-yellow .ex-pill::before{background:#141414;border-color:#8a8a8a}
+#examRoot.ct-yellow .ex-pill.on::before{border-color:#ffd400;background:radial-gradient(circle,#ffd400 0 3.5px,transparent 4px)}
+#examRoot .ex-cbox .ex-opt::before{width:13px;height:13px;border:1px solid #535353;border-radius:2px;background:#fff}
+#examRoot .ex-cbox .ex-opt:has(input:checked)::before{border-color:#000;background-color:#000;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.4 8.5l3 3L12.7 5.3' fill='none' stroke='%23fff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-size:10px 10px;background-position:center;background-repeat:no-repeat}
+#examRoot .ex-radio-box .ex-opt::before{width:13px;height:13px;border:1px solid #535353;background:#fff}
+#examRoot .ex-radio-box .ex-opt:has(input:checked)::before{border-color:#000;background:radial-gradient(circle,#000 0 3.5px,transparent 4px)}
+#examRoot.ct-dark .ex-cbox .ex-opt::before,#examRoot.ct-dark .ex-radio-box .ex-opt::before{background:#1b1b1b;border-color:#8a8a8a}
+#examRoot.ct-dark .ex-cbox .ex-opt:has(input:checked)::before{border-color:#f2f2f2;background-color:#f2f2f2}
+#examRoot.ct-dark .ex-radio-box .ex-opt:has(input:checked)::before{border-color:#f2f2f2;background:radial-gradient(circle,#f2f2f2 0 3.5px,transparent 4px)}
+#examRoot.ct-yellow .ex-cbox .ex-opt::before,#examRoot.ct-yellow .ex-radio-box .ex-opt::before{background:#141414;border-color:#8a8a8a}
+#examRoot.ct-yellow .ex-cbox .ex-opt:has(input:checked)::before{border-color:#ffd400;background-color:#ffd400}
+#examRoot.ct-yellow .ex-radio-box .ex-opt:has(input:checked)::before{border-color:#ffd400;background:radial-gradient(circle,#ffd400 0 3.5px,transparent 4px)}
+#examRoot .ex-blankw{border:1px solid #535353;border-radius:0;background:#fff;height:22px}
+#examRoot .ex-blankw input{font-size:13px;color:#000;padding:0 6px}
+#examRoot.ct-dark .ex-blankw{background:#1b1b1b;border-color:#8a8a8a}
+#examRoot.ct-dark .ex-blankw input{color:#f2f2f2}
+#examRoot.ct-yellow .ex-blankw{background:#1b1b1b;border-color:#8a8a8a}
+#examRoot.ct-yellow .ex-blankw input{color:#f0e3a8}
+
+/* ---- ⑥ 右下 Previous/Next 方块：官方黑/浅灰（截图 22 实测 next=#000 prev=#ddd）---- */
+/* 位置沿用 10/20 她按爱听写截图定的「题目区右上角」（官方同位置），
+   尺寸 56x55 → 40x40（她「上下栏适当比真卷子窄一些」）。 */
+#examRoot .ex-arrow{width:40px;height:40px;border-radius:0;display:inline-flex;align-items:center;justify-content:center}
+#examRoot .ex-arrow[data-step="-1"]{background:#ddd;color:#000}
+#examRoot .ex-arrow[data-step="1"]{background:#000;color:#fff}
+#examRoot .ex-arrow[disabled]{opacity:.5;cursor:default}
+#examRoot.ct-dark .ex-arrow[data-step="-1"]{background:#3a3f45;color:#f2f2f2}
+#examRoot.ct-dark .ex-arrow[data-step="1"]{background:#f2f2f2;color:#111}
+#examRoot.ct-yellow .ex-arrow[data-step="-1"]{background:#3a3524;color:#f0e3a8}
+#examRoot.ct-yellow .ex-arrow[data-step="1"]{background:#ffd400;color:#161616}
+
+/* ---- ⑦ 底栏 Part 行：官方口径（透明底 + 当前 Part 600 + 灰「x of y」）---- */
+#examRoot .ex-bar{background:#fff;border-top:1px solid #d5d5d5}
+#examRoot .ex-bar-main{height:44px;max-height:44px}
+#examRoot .ex-pt{color:#333;font-size:14px;font-weight:400}
+#examRoot .ex-pt.on{color:#000}
+#examRoot .ex-pt.on .ex-pt-t{font-weight:600}
+#examRoot .ex-pt .ex-pt-n{color:#999;font-weight:400}
+#examRoot.ct-dark .ex-pt{color:#c8cbd0}
+#examRoot.ct-dark .ex-pt.on{color:#fff}
+#examRoot.ct-yellow .ex-pt{color:#c9bd85}
+#examRoot.ct-yellow .ex-pt.on{color:#ffd400}
+/* 底栏三个动作键：官方截图（爱听写）是同款浅灰 → 本站已是浅灰，只把圆角压成官方方角 */
+#examRoot .ex-actions .btn{border-radius:0}
+/* 第二行品牌条：官方没有 → 抹平（她 22:5x 要过「弄成两行」，现按官方口径收掉）。
+   类名与 DOM 保留（JS 与探针都引用），只收视觉不删结构。 */
+#examRoot .ex-strip{display:none}
+
+/* ---- ⑧ 右下 Review 勾：官方 #efefef 方块（截图 15/17 实测）---- */
+#examRoot .ex-review{background:#efefef;color:#000;border:0;border-radius:0;
+  width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+#examRoot .ex-review:hover{background:#e2e2e2}
+#examRoot.ct-dark .ex-review{background:#3a3f45;color:#f2f2f2}
+#examRoot.ct-yellow .ex-review{background:#3a3524;color:#f0e3a8}
+
+/* ---- ⑨ 听力：官方无音频条（播放前整页遮罩 + 一个大 Play 键）---- */
+/* 截图 01/13：进 Part 1 时整页盖一层深色半透明遮罩，中间白耳机图标 +
+   「You will be listening to an audio clip during this test. You will not be permitted to
+    pause or rewind the audio while answering the questions.」+「To continue, click Play.」+ 黑底 Play 键。 */
+#examRoot .ex-gate{position:absolute;inset:0;z-index:30;background:rgba(0,0,0,.55);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;padding:24px}
+#examRoot .ex-gate[hidden]{display:none}
+#examRoot .ex-gate-ic{width:64px;height:64px;margin-bottom:22px}
+#examRoot .ex-gate-tx{font-size:15px;line-height:1.6;max-width:520px;color:#fff}
+#examRoot .ex-gate-go{margin-top:26px;font-size:14px;color:#fff}
+#examRoot .ex-gate-btn{margin-top:12px;background:#000;color:#fff;border:0;border-radius:0;
+  min-height:44px;padding:0 26px;font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:9px}
+#examRoot .ex-gate-btn:hover{background:#1f1f1f}
+#examRoot.ct-dark .ex-gate-btn{background:#fff;color:#111}
+#examRoot.ct-yellow .ex-gate-btn{background:#ffd400;color:#161616}
+/* 播放中官方顶栏只多一行小字「Audio is Playing」（截图 02/19 实测） */
+#examRoot .ex-audio{background:#fff;border-bottom:1px solid #d5d5d5;padding:0 16px;min-height:44px;gap:14px}
+#examRoot .ex-audio .ea-label{font-size:13px;font-weight:400;color:#333}
+#examRoot.ct-dark .ex-audio{background:#161616;border-bottom-color:#3a3f45}
+#examRoot.ct-dark .ex-audio .ea-label{color:#c8cbd0}
+#examRoot.ct-yellow .ex-audio{background:#161616;border-bottom-color:#3a3524}
+#examRoot.ct-yellow .ex-audio .ea-label{color:#c9bd85}
+
+/* ---- ⑩ Option 面板：官方口径（截图 06/07/10：白底大字行 + 选中打勾）---- */
+#examRoot .ex-option{background:#fff;border:0;box-shadow:none;padding:0;min-width:0}
+#examRoot .ex-option h3{font-size:20px;font-weight:400;color:#000;text-align:center;margin:18px 0 22px}
+#examRoot .ex-oplist{border:0}
+#examRoot .ex-oprow{border-bottom:1px solid #e5e5e5;font-size:15px;color:#000;padding:0 18px;min-height:56px}
+#examRoot .ex-oprow:hover{background:#f7f7f7}
+#examRoot .ex-opback button{background:#fff;border:0;color:#000;font-size:14px;padding:14px 18px}
+#examRoot.ct-dark .ex-option{background:#161616}
+#examRoot.ct-dark .ex-option h3,#examRoot.ct-dark .ex-oprow{color:#f2f2f2}
+#examRoot.ct-dark .ex-oprow{border-bottom-color:#3a3f45}
+#examRoot.ct-dark .ex-opback button{background:#161616;color:#f2f2f2}
+#examRoot.ct-yellow .ex-option{background:#161616}
+#examRoot.ct-yellow .ex-option h3,#examRoot.ct-yellow .ex-oprow{color:#f0e3a8}
+#examRoot.ct-yellow .ex-oprow{border-bottom-color:#3a3524}
+#examRoot.ct-yellow .ex-opback button{background:#161616;color:#f0e3a8}
+
+/* ---- ⑪ 交卷确认弹窗：官方方角白底（交互仍是本站二次确认，10/12 她拍板保留的）---- */
+#examRoot .ex-modal-c{background:#fff;border:1px solid #d5d5d5;border-radius:0}
+#examRoot .ex-modal-c h4{color:#000;font-size:16px;font-weight:700}
+#examRoot.ct-dark .ex-modal-c{background:#161616;border-color:#3a3f45}
+#examRoot.ct-dark .ex-modal-c h4{color:#f2f2f2}
+#examRoot.ct-yellow .ex-modal-c{background:#161616;border-color:#3a3524}
+#examRoot.ct-yellow .ex-modal-c h4{color:#f0e3a8}
+/* ---- ⑫ 死规则台账（10-22 官方口径后节点已不渲染，规则留着不删）----
+   理由：删 CSS 要连带核对我方探针（_probe_examtools_1018 等断言过 .ea-bar 的存在），
+   而规则留着零成本（没有匹配元素 = 不参与渲染）。下次大扫除一起清。
+   · .ea-play / .ea-bar / .ea-fill / .ea-knob / .ea-time / .ea-rate / .ea-err —— 官方播放中没有进度条，
+     audioBarHtml 不再渲染这些节点（paintAudio / audioSeek 侧全部判空，天然兼容）。
+   · .ex-strip —— 官方底栏没有第二行品牌条（她 10-22 按官方口径收掉），只留 display:none。
+   · .ex-num::before —— 官方题号没有「已答线」，只抹视觉。 */
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -1620,6 +1828,6 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common-cloud.js?v=20261022e"></script>
 <script defer src="js/common-shell.js?v=20261022e"></script>
 <script defer src="js/common-pwa.js?v=20261022e"></script>
-<script defer src="js/bank.js?v=20261020f"></script>
+<script defer src="js/bank.js?v=20261022c"></script>
 </body>
 </html>

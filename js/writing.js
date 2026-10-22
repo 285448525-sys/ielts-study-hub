@@ -2861,7 +2861,7 @@ function wrtInjectOption(){
   panel.id = 'exOptionPanel';
   panel.innerHTML =
       '<button type="button" class="ex-opx" data-opclose>\u2715</button>'
-    + '<h3>Option</h3>'
+    + '<h3>Options</h3>'   /* 10/22 官方对照：标题是复数 Options */
     + '<div class="ex-oplist" id="exOptMain">'
     +   '<div class="ex-oprow" data-sub="colour">Colour<span class="ar">\u203A</span></div>'
     +   '<div class="ex-oprow" data-sub="size">Size<span class="ar">\u203A</span></div>'
