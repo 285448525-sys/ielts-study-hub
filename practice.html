@@ -32,7 +32,7 @@
 </script>
 <title>单词 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261023k" />
-<link rel="stylesheet" href="css/p/practice.css?v=20261023c" />
+<link rel="stylesheet" href="css/p/practice.css?v=20261023d" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -56,7 +56,7 @@
   <!-- design/77 DHP+SSP-MMC 策略表：必须在 practice.js 之前（defer 按文档序执行，表未加载时 practice.js 有回退兜底） -->
   <script defer src="js/dhp_policy.js?v=20260921a"></script>
   <script src="js/practice.js?v=20261012a" defer></script>
-  <script src="js/words.js?v=20261023b" defer></script>
+  <script src="js/words.js?v=20261023d" defer></script>
 <style>
 /* ============================================================
    10/3 A 版「今日复习卡 + 学习状态分组」（她选的 A 版）
@@ -319,6 +319,13 @@ body.word-fullscreen .hub-topbar{display:none !important}
     </section>
 
     <section class="card">
+      <!-- 10-23 4-4 进书视图：面包屑「词书库 › 书名」，点「词书库」回上面的卡片网格。
+           原来这是个整页列表，现在它是「某一本书的里面」，所以必须先告诉人自己在哪、怎么退出去。 -->
+      <nav class="wb-crumb" id="wbCrumb" aria-label="位置">
+        <button type="button" class="wb-crumb-a" id="wbCrumbBack">词书库</button>
+        <span class="wb-crumb-sep" aria-hidden="true">›</span>
+        <span class="wb-crumb-cur" id="wbCrumbCur">我的词库</span>
+      </nav>
       <div class="wl-head">
         <div class="wl-head-main">
           <h2 style="margin:0" id="bankTitle">我的词库</h2>
@@ -342,8 +349,11 @@ body.word-fullscreen .hub-topbar{display:none !important}
       <div class="wl-search-wrap">
         <input aria-label="搜索单词" id="searchWord" class="wl-search" placeholder="搜索单词…" />
       </div>
-      <!-- 两个大分类按钮（默认全收起），点哪个展开哪个的小分类行。9/24：等级筛选已下线 -->
-      <div class="wl-cats-row" id="wordCats">
+      <!-- 10-23 4-4：原来这里是「类型 / 错误」两个大分类按钮，点开再展小分类（两层）。
+           现在压成一行状态胶囊，点哪个筛哪批。原来那套（#wordCats / #catPanel-* / #filterType / #filterErr）
+           **一个 id 都没删，只是不再显示** —— words.js 里仍会往它们写值，全站导入/批量操作也照旧。 -->
+      <div class="wb-chips" id="wbStatusChips"></div>
+      <div class="wl-cats-row" id="wordCats" hidden>
         <button class="wl-cat-btn" data-cat="type" type="button">类型<svg class="wl-cat-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
         <button class="wl-cat-btn" data-cat="err" type="button">错误<svg class="wl-cat-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
       </div>

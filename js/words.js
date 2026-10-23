@@ -1241,6 +1241,7 @@ if(!window.__wbDeckBound){
       let name = '我的词库';
       try{ const m = wbBankMeta(id); name = (id === 'custom') ? '我的词库' : ((m && m.name) ? m.name : id); }catch(e2){}
       try{ wbSetActive(id); }catch(err){}
+      wbSetStatusMode('all');   // 10-23 4-4：换书时筛子回「全部」——不然带着上一本的「已过期」进新书，可能一片空白
       // 官方词包是异步 fetch 的：切过去时词还没到，直接重渲会得到空列表。
       // 先等词包 ready 再渲（加载期间列表给一行中文占位，不是空白）。
       const needFetch = (id !== 'custom') && !(typeof wbLoaded === 'function' && wbLoaded(id));
@@ -1262,8 +1263,15 @@ if(!window.__wbDeckBound){
   });
 }
 
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', wbBindCrumbBack);
+} else {
+  wbBindCrumbBack();
+}
+
 function renderWords(){
   wbRenderDeckGrid();   // 10-23 4-3：词书网格每次重渲都跟着刷新（切库/导入/删词后数字要跟上）
+  wbRenderCrumb();      // 10-23 4-4：面包屑（空库不出，进书后显示这本书名）
   const official = wbActive() !== 'custom';   // design/78：词库 tab 双视图
   _bankReadonly = official;
   initErrFilter();   // 错误档 chips 随词库变化重建（带各档词数）
@@ -1290,6 +1298,10 @@ function renderWords(){
     list = list.filter(w => bankErrTier(w) === err);
   }
   if(kw) list = list.filter(w => (w.en+' '+w.cn).toLowerCase().includes(kw));
+  // 10-23 4-4：状态胶囊筛选（全部/待复习/已过期/答错/已掌握）。
+  // 放在最后，且**统计胶囊时用未筛前的 src**——否则点「已过期」后「全部」的数字会跟着掉，看着像词变少了。
+  wbRenderStatusChips(wbStatusCounts(src));
+  list = wbApplyStatusFilter(list);
   // 旧 mc* → v1.2 迁移（幂等），迁移后落盘——官方词包运行时只读，迁移仅 custom
   if(!official){
     let migrated = false;
@@ -1306,7 +1318,7 @@ function renderWords(){
     /* 10/10 批④ 空态修正：原来一律显示「没有匹配的单词。」——那是**搜索无结果**的文案，
        出现在「整个词库为空」（用户根本没搜）时，会让人以为是自己搜错了、找不到入口。
        现在分三种：官方词包未加载 / 词库为空（给导入指路）/ 有词但筛选无结果。 */
-    const _hasFilter = !!kw || WORD_FILTERS.err !== 'all' || WORD_FILTERS.type !== 'all';
+    const _hasFilter = !!kw || WORD_FILTERS.err !== 'all' || WORD_FILTERS.type !== 'all' || wbStatusMode() !== 'all';
     if(official && src.length === 0){
       // 官方词包固定 570 词不应为空；src 为空 = 词包尚未加载成功（走加载失败重试流程中）
       box.innerHTML = renderEmpty('词包加载中…');
@@ -1341,8 +1353,8 @@ function renderWords(){
     return;
   }
 
-  if(kw){
-    // 搜索：平铺分页（无组头），快速定位（官方视图同样跨组平铺）
+  if(kw || wbStatusMode() !== 'all'){
+    // 搜索 / 状态胶囊筛选：平铺一页（不再套分组头，否则「只看已过期」里面还挂一个「已过期」组头，纯属废话）
     _bankGroups = { flat: list };
     box.innerHTML = '<div class="wl-group open" data-group="flat"><div class="wl-group-body" data-body="flat"><ul class="wl-group-list"></ul></div></div>';
     renderGroupSlice('flat', list, box.querySelector('.wl-group-body'));
@@ -1350,7 +1362,7 @@ function renderWords(){
     /* 10/3 A 版：custom 视图 + 三个筛选都在「全部」时，按**学习状态**分五组
        （今天要复习 / 答错过 / 学习中 / 已掌握 / 词组），默认展开前两组。
        ⚠️ 任何筛选或搜索激活时一律走原分组（类型/错误/sl）—— 不改既有筛选行为。 */
-    const useStatus = !official && err === 'all' && (!WORD_FILTERS || WORD_FILTERS.type === 'all');
+    const useStatus = !official && err === 'all' && wbStatusMode() === 'all' && (!WORD_FILTERS || WORD_FILTERS.type === 'all');
     if(useStatus){
       const groups = groupByStatus(list);
       _bankGroups = {};
@@ -1424,3 +1436,123 @@ function renderBankHead(official){
   if(actionBar && isOff) actionBar.hidden = true;   // 官方只读：批量条不出现
 }
 
+/* ===== 10-23 4-4 进书视图：面包屑 + 状态胶囊 + 按状态筛 =====
+   把原来「类型 / 错误」两级展开（点大类→展小类→再筛）压成一行胶囊：
+   全部 / 待复习 / 已过期 / 答错 / 已掌握，点哪个筛哪批。
+   胶囊上的数字跟书卡上的数字同源同口径（都走 wbDeckStats 那套判定），不会互相对不上。 */
+/* ⚠️ 这里的「当前筛」和「清单」必须用函数/挂 window，不能写 const ——
+   本段在文件末尾，而 renderWords() 在页面初始化时就跑，那时 const 还在 TDZ 里会直接报错
+   （4-3 的 WB_DECK_ICON_* 已经踩过一次同样的坑）。函数声明会提升，安全。 */
+function wbStatusMode(){ return window.__wbStatusMode || 'all'; }
+function wbSetStatusMode(m){ window.__wbStatusMode = m || 'all'; }
+function wbStatusDefs(){
+  return [
+    { mode: 'all',      label: '全部' },
+    { mode: 'due',      label: '待复习' },
+    { mode: 'overdue',  label: '已过期' },
+    { mode: 'err',      label: '答错' },
+    { mode: 'mastered', label: '已掌握' }
+  ];
+}
+
+/* 一个词的四个状态判定。custom 的词带完整调度字段（nextReview/level/cleared/errTotal），
+   官方词包是只读的，调度状态在 prog（键=小写 en）里，两边分别取，别混着用。 */
+function wbWordState(w){
+  const t = todayKey();
+  const official = (typeof wbActive === 'function') && wbActive() !== 'custom';
+  if(!official){
+    const nr = w && w.nextReview;
+    const lv = Number(w && w.level) || 0;
+    const errN = Number((w && w.errTotal != null) ? w.errTotal : (w && w.mcLapses || 0)) || 0;
+    return {
+      due: !nr || nr <= t,
+      overdue: !!(nr && nr < t),
+      err: errN > 0,
+      mastered: (w && w.cleared === true) && lv >= 5
+    };
+  }
+  let p = null;
+  try{
+    const bankId = (typeof wbActive === 'function') ? wbActive() : 'custom';
+    const prog = (window.__OB && window.__OB.banks && window.__OB.banks[bankId] && window.__OB.banks[bankId].prog) || {};
+    p = prog[String((w && w.en) || '').toLowerCase()] || null;
+  }catch(e){ p = null; }
+  const lv = Number(p && p.level) || 0;
+  const nr = p && p.nextReview;
+  return {
+    due: !nr || nr <= t,
+    overdue: !!(nr && nr < t),
+    err: (Number(p && p.mcLapses) || 0) > 0,
+    mastered: (p && p.cleared === true) && lv >= 5
+  };
+}
+
+/* 当前这本书（当前词库）按状态各有多少词 —— 胶囊后面那个数字。 */
+function wbStatusCounts(list){
+  const c = { all: 0, due: 0, overdue: 0, err: 0, mastered: 0 };
+  (list || []).forEach(w => {
+    const s = wbWordState(w);
+    c.all++;
+    if(s.due) c.due++;
+    if(s.overdue) c.overdue++;
+    if(s.err) c.err++;
+    if(s.mastered) c.mastered++;
+  });
+  return c;
+}
+
+function wbApplyStatusFilter(list){
+  const mode = wbStatusMode();
+  if(mode === 'all' || !mode) return list;
+  return (list || []).filter(w => wbWordState(w)[mode] === true);
+}
+
+/* 面包屑：词书库里显示「我的词书」，进了某一本显示「词书库 › 书名」。
+   空库时面包屑整条不显示（顶上就是网格，不需要告诉人自己在哪一层）。 */
+function wbRenderCrumb(){
+  const nav = document.getElementById('wbCrumb');
+  const cur = document.getElementById('wbCrumbCur');
+  if(!nav) return;
+  const hasWords = (typeof wbWords === 'function' && (wbWords() || []).length > 0)
+                || (typeof DATA !== 'undefined' && Array.isArray(DATA.words) && DATA.words.length > 0);
+  nav.hidden = !hasWords;
+  if(!hasWords) return;
+  const bankId = (typeof wbActive === 'function') ? wbActive() : 'custom';
+  let name = '我的词库';
+  try{
+    if(bankId !== 'custom'){ const m = wbBankMeta(bankId); name = (m && m.name) || bankId; }
+  }catch(e){}
+  if(cur) cur.textContent = name;
+}
+
+/* 状态胶囊。点一下就地换筛选并重渲列表，不整页跳。 */
+function wbRenderStatusChips(counts){
+  const box = document.getElementById('wbStatusChips');
+  if(!box) return;
+  const c = counts || { all: 0, due: 0, overdue: 0, err: 0, mastered: 0 };
+  box.innerHTML = wbStatusDefs().map(d => {
+    const on = (wbStatusMode() === d.mode) ? ' active' : '';
+    return '<button type="button" class="wb-chip' + on + '" data-st="' + d.mode + '">' +
+             d.label + '<span class="wb-chip-n">' + (c[d.mode] || 0) + '</span>' +
+           '</button>';
+  }).join('');
+  box.querySelectorAll('.wb-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if(wbStatusMode() === btn.dataset.st) return;
+      wbSetStatusMode(btn.dataset.st);
+      renderWords();
+    });
+  });
+}
+
+/* 页面初始化：面包屑「词书库」点一下 = 回到卡片网格（清筛选、视线带回顶部网格） */
+function wbBindCrumbBack(){
+  const back = document.getElementById('wbCrumbBack');
+  if(!back) return;
+  back.addEventListener('click', () => {
+    wbSetStatusMode('all');
+    renderWords();
+    const grid = document.getElementById('wbDeckGrid');
+    if(grid && grid.scrollIntoView) grid.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  });
+}

@@ -239,3 +239,28 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
 .wl-stats-seg.s-new{background:var(--line)}
 /* design/78：官方词库「重置进度」两步确认武装态（3 秒未复点由 words.js 还原） */
 .wb-danger-armed{background:var(--danger)!important;border-color:var(--danger)!important;color:var(--on-primary)!important}
+/* ===== 10-23 4-4 进书视图 =====
+   面包屑 + 书名/统计 + 一行状态胶囊（全部/待复习/已过期/答错/已掌握）+ 搜索 + 列表。
+   替代原来「类型 / 错误」两级展开（层级从两层压成一层）。 */
+.wb-crumb{display:flex;align-items:center;gap:6px;margin:0 0 10px;padding:0 2px;font-size:12.5px;color:var(--muted)}
+.wb-crumb-a{color:var(--primary-700);font-weight:600;cursor:pointer;background:none;border:0;padding:2px 4px;margin:-2px -4px;border-radius:6px;font:inherit;min-height:32px;display:inline-flex;align-items:center}
+.wb-crumb-a:hover{background:var(--primary-50)}
+.wb-crumb-a:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
+.wb-crumb-sep{opacity:.5}
+.wb-crumb-cur{color:var(--ink);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:min(45vw,320px)}
+@media (max-width:560px){ .wb-crumb-cur{max-width:180px} }
+
+.wb-chips{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 10px}
+.wb-chip{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--muted);
+  font:inherit;font-size:12px;font-weight:600;line-height:1;padding:0 12px;min-height:32px;
+  border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;
+  transition:background .15s,border-color .15s,color .15s}
+.wb-chip:hover{border-color:var(--primary-300);color:var(--primary-700)}
+.wb-chip:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
+.wb-chip.active{background:var(--primary-soft);border-color:var(--primary-300);color:var(--primary-800);font-weight:700}
+.wb-chip-n{font-variant-numeric:tabular-nums;opacity:.75;font-weight:600}
+.wb-chip.active .wb-chip-n{opacity:1}
+@media (max-width:560px){ .wb-chip{min-height:36px;padding:0 11px} }
+
+/* 窄屏：书卡进书后，标题区把「复习计划 / 开始学习」压成一行满宽（沿用 .wl-head 已有的 560 断点） */
+@media (max-width:560px){ .wb-crumb{margin-bottom:8px} }
