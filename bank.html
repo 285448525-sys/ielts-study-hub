@@ -18,7 +18,7 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>模考 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261023p" />
+<link rel="stylesheet" href="css/common.css?v=20261023u" />
 <link rel="stylesheet" href="css/p/bank.css?v=20261017a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
@@ -1672,6 +1672,11 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
   #examRoot .ex-audio .ea-part{display:none}
   #examRoot .ex-audio .ea-time{min-width:74px;font-size:11px}
 }
+
+/* ===== 10-23 2-1d 批 B：撤页内小 tab（桌面 ≥861）。手机 ≤860 保留（顶栏隐藏时的唯一入口）。
+   依据：交接\方案\T-001c-下拉重做与撤小tab-2026-10-23.md §三。不删 DOM：JS 靠 data-* 认分栏，
+   sub= 交接（tbSubPending）照常工作；页内二级筛选控件不受影响。 ===== */
+@media (min-width:861px){ #mockTabs{display:none} }
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -1987,13 +1992,13 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
      （手机慢网 ~50KB/s → 约 1.5 秒）。加载时机：点开「写作」tab 时按序插入；
      首次 load 之后空闲再预热一次。承接代码在 js/bank.js 的 loadWritingScripts()。 -->
 <script defer src="js/data.js?v=20261023b"></script>
-<script defer src="js/common.js?v=20261023p"></script>
-<script defer src="js/common-ai.js?v=20261023n"></script>
-<script defer src="js/common-sync.js?v=20261023p"></script>
-<script defer src="js/common-merge.js?v=20261023n"></script>
-<script defer src="js/common-cloud.js?v=20261023n"></script>
-<script defer src="js/common-shell.js?v=20261023p"></script>
-<script defer src="js/common-pwa.js?v=20261023p"></script>
+<script defer src="js/common.js?v=20261023u"></script>
+<script defer src="js/common-ai.js?v=20261023u"></script>
+<script defer src="js/common-sync.js?v=20261023u"></script>
+<script defer src="js/common-merge.js?v=20261023u"></script>
+<script defer src="js/common-cloud.js?v=20261023u"></script>
+<script defer src="js/common-shell.js?v=20261023u"></script>
+<script defer src="js/common-pwa.js?v=20261023u"></script>
 <script defer src="js/bank.js?v=20261023g"></script>
 </body>
 </html>

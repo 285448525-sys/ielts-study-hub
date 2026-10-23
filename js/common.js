@@ -146,7 +146,13 @@ const TB_SUB = {
   speaking: [['题库','BANK'], ['陪练','PRACTICE'], ['素材','MAT']],
   writing:  [['模板','tpl'], ['语料','bank'], ['评分','score']],
   corpus:   [['长难句','ls'], ['错题','eb'], ['听写','dict']],
-  plans:    [['今日','today'], ['规划','plan'], ['历史','history']]
+  plans:    [['今日','today'], ['规划','plan'], ['历史','history']],
+  /* 10-23 她「所有药丸的 tab 按钮给删掉，还有回顾页面没有弄下拉栏你一会记得补一下」：
+     这两个页面原来没有二级（方案 §四 里写的「单词/回顾没有分栏」当时是对的 ——
+     它们的分栏控件不叫 pill-tabs 那套 id），但她要的是**所有页面的药丸 tab 都撤**，
+     撤了就得有顶栏二级顶上，否则桌面端没有分栏入口。sub 值就是各页自己的切换键。 */
+  practice: [['学习','study'], ['词库','bank']],
+  review:   [['模考','breakdown'], ['实战','overall'], ['口语','speaking'], ['轨迹','record']]
 };
 /* sub 的跨页交接：软导航时 location.search 要等 pushState 之后才是新值（见 speaking.js 里
    senttab 那段注释），而 pushState 在 runPageScript **之后** → 目标页读不到 query。

@@ -204,6 +204,17 @@ function onDailyCapChanged(){
 }
 
 // ======= 单词/词库 标签切换（保留各自独立状态）=======
+/* 🔴 10-23 2-1d 批 B 补：顶栏「单词」二级落地（?sub=study|bank）。
+   桌面已撤掉页内 .word-tabs，分栏入口改由顶栏二级接管；手机端顶栏隐藏、药丸 tab 保留。
+   只读参数 → 调已有的 switchWordTab，不另造切换逻辑。必须延到 ready 同步体跑完之后
+   （后面 autoStartSeeWord 等初始化会把分栏覆盖回「学习」）。 */
+setTimeout(function(){
+  try{
+    var _st = (typeof tbSubPending === 'function') ? tbSubPending('practice') : '';
+    if(_st === 'study' || _st === 'bank') switchWordTab(_st);
+  }catch(e){}
+}, 300);
+
 function switchWordTab(tab){
   const study = document.getElementById('studyView');
   const bank  = document.getElementById('bankView');

@@ -31,7 +31,7 @@
 })();
 </script>
 <title>单词 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261023p" />
+<link rel="stylesheet" href="css/common.css?v=20261023u" />
 <link rel="stylesheet" href="css/p/practice.css?v=20261023s" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
@@ -43,13 +43,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
   <script defer src="js/data.js?v=20261023b"></script>
-  <script defer src="js/common.js?v=20261023p"></script>
-  <script defer src="js/common-ai.js?v=20261023n"></script>
-  <script defer src="js/common-sync.js?v=20261023p"></script>
-  <script defer src="js/common-merge.js?v=20261023n"></script>
-  <script defer src="js/common-cloud.js?v=20261023n"></script>
-  <script defer src="js/common-shell.js?v=20261023p"></script>
-  <script defer src="js/common-pwa.js?v=20261023p"></script>
+  <script defer src="js/common.js?v=20261023u"></script>
+  <script defer src="js/common-ai.js?v=20261023u"></script>
+  <script defer src="js/common-sync.js?v=20261023u"></script>
+  <script defer src="js/common-merge.js?v=20261023u"></script>
+  <script defer src="js/common-cloud.js?v=20261023u"></script>
+  <script defer src="js/common-shell.js?v=20261023u"></script>
+  <script defer src="js/common-pwa.js?v=20261023u"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
   <!-- design/78 双词库适配层：必须在 dhp_policy.js / practice.js / words.js 之前（defer 按文档序执行） -->
   <script defer src="js/wordbank.js?v=20261023s"></script>
@@ -219,6 +219,10 @@ html[data-theme="dark"] .wb-today{background:linear-gradient(135deg,var(--primar
    顶栏壳要跟着收掉；否则 44px 顶栏压在背词区上方，body 的 44px 让位还白留一条空带 */
 body.word-fullscreen[data-shell="top"]{padding-top:0 !important}
 body.word-fullscreen .hub-topbar{display:none !important}
+
+/* ===== 10-23 2-1d 批 B 补：单词页也撤药丸 tab（桌面 ≥861）。手机 ≤860 保留（顶栏隐藏时的唯一入口）。
+   分栏改由顶栏「单词」二级菜单接管（js/common.js 的 TB_SUB.practice）。不删 DOM。 ===== */
+@media (min-width:861px){ .word-tabs{display:none} }
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}

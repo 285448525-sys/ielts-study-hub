@@ -4,6 +4,27 @@ var curCat = null;
 var curId = null;
 var curTab = 'tpl';
 var tplSearch = '';
+/* ===== 10-23 W-3：筛选记忆（方案 §四.2）=====
+   只记界面偏好（档位 / 分类 / 视图 / 关键词）→ localStorage，不进 DATA.settings、不参与云同步。
+   理由与 TPL_GUIDE_KEY 同款：这是轻量 UI 偏好，别动 SYNC_SETTINGS_FIELDS 那份跨端契约。
+   存的值进页面时回填；填了非法值（比如历史分类被删）一律回落默认，不让页面卡在空列表上。 */
+const WRT_FILTER_KEY = 'w_filter';
+function readFilter(){
+  try{
+    const j = JSON.parse(localStorage.getItem(WRT_FILTER_KEY) || '{}') || {};
+    return {
+      lv: typeof j.lv === 'string' ? j.lv : 'all',
+      cat: typeof j.cat === 'string' ? j.cat : null,
+      view: (j.view === 'list' || j.view === 'grid') ? j.view : null,
+      q: typeof j.q === 'string' ? j.q : ''
+    };
+  }catch(e){ return { lv:'all', cat:null, view:null, q:'' }; }
+}
+function writeFilter(){
+  try{
+    localStorage.setItem(WRT_FILTER_KEY, JSON.stringify({ lv: curLevel, cat: curCat, view: tplView, q: tplSearch }));
+  }catch(e){}
+}
 var bankSearch = '';
 /* 10/10：模板分档筛选（'all' 或 '5.5' / '6.0' / '6.5' / '7.0'）。
    一档 = 0.5 分；只在**该档有模板时**才渲染按钮（没有的档不显示 0，避免看起来站内是空的）。 */
@@ -203,6 +224,19 @@ ready(() => {
     if(_tbSub === 'tpl' || _tbSub === 'bank' || _tbSub === 'score') switchWriteTab(_tbSub);
   }catch(e){}
 
+  /* ===== 10-23 W-3：先回填筛选记忆，再首次渲染 =====
+     ⚠️ 顺序硬要求：原来我把回填补丁写在 ready 后半段，而 renderCats() 在这行就已经跑过一遍，
+     于是「记忆里的分类/档位」被首次渲染覆盖成默认值（浏览器刷新后记忆失效，探针抓出来的）。
+     分类/档位的合法性仍由 renderCats 里的校验兜底（历史分类被删 → 回落不限分类）。 */
+  try{
+    const _f = readFilter();
+    if(_f.view) tplView = _f.view;
+    tplSearch = (_f.q || '').toLowerCase();
+    if(_f.lv && _f.lv !== 'all') curLevel = _f.lv;
+    if(_f.cat) curCat = _f.cat;
+    const _si = document.getElementById('tplSearch');
+    if(_si && _f.q) _si.value = _f.q;
+  }catch(e){}
   // 模板库
   renderCats();
   // 会员闸：查完刷新列表（🔓/🔒 角标）与当前详情（若停在锁定视图则解锁重渲染）
@@ -313,14 +347,27 @@ ready(() => {
 
   // 语料库
   $('#bankFilter').addEventListener('change', renderBank);
+  /* W-3：搜索框输入绑定（回填已在 ready 最前面、首次 renderCats 之前做完） */
   const tplSearchEl = document.getElementById('tplSearch');
-  if(tplSearchEl) tplSearchEl.addEventListener('input', () => { tplSearch = tplSearchEl.value.trim().toLowerCase(); renderList(); });
+  if(tplSearchEl){
+    /* 方案 §四.1：输入即时过滤（300ms 防抖）—— 原来每个按键都重渲染整个列表，42 张卡会明显卡顿 */
+    let _tq = null;
+    tplSearchEl.addEventListener('input', () => {
+      clearTimeout(_tq);
+      _tq = setTimeout(() => {
+        tplSearch = tplSearchEl.value.trim().toLowerCase();
+        writeFilter();
+        renderList();
+      }, 300);
+    });
+  }
   /* 10/21（她拍板 design/112）：网格 / 列表 切换。切换只重渲染列表，不动筛选状态；她选过的存 localStorage。 */
   const tplViewEl = document.getElementById('tplView');
   if(tplViewEl){
     tplViewEl.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => {
       tplView = (b.dataset.view === 'list') ? 'list' : 'grid';
       try{ localStorage.setItem('wrtTplView', tplView); }catch(e){}
+      writeFilter();
       markTplViewBtns();
       renderList();
     }));
@@ -376,6 +423,8 @@ function renderCats(){
   DATA.writing.forEach(t => { const lv = lvOf(t); if(LV_ORDER.indexOf(lv) < 0 && lvExtra.indexOf(lv) < 0) lvExtra.push(lv); });
   const lvChips = LV_ORDER.concat(lvExtra).filter(lv => lvCount(lv) > 0);
   if(curLevel !== 'all' && !lvChips.includes(curLevel)) curLevel = 'all';
+  /* W-3：记忆里的分类可能已被删/改名 → 回落「不限分类」，不让页面卡在空列表 */
+  if(curCat && !all.includes(curCat)) curCat = null;
   /* 「全部」= 当前 Task 分组下全选（不跨大小作文）；分类 chip 点一下切 curCat */
   const task2All = CAT_TASK2.filter(c => cntOf(c) > 0);
   const task1All = CAT_TASK1.filter(c => cntOf(c) > 0);
@@ -397,8 +446,14 @@ function renderCats(){
   html += '<span class="flb">Task 1</span>' + task1All.map(chipCat).join('');
   host.innerHTML = html;
 
-  host.querySelectorAll('[data-cat]').forEach(b => b.addEventListener('click', () => { curCat = b.dataset.cat; renderCats(); }));
-  host.querySelectorAll('[data-lv]').forEach(b => b.addEventListener('click', () => { curLevel = b.dataset.lv; renderCats(); }));
+  host.querySelectorAll('[data-cat]').forEach(b => b.addEventListener('click', () => {
+    /* 再点一次同一个分类 = 取消（回到不限分类）—— 撤左栏后没有「回全部」按钮，这是唯一出口 */
+    curCat = (curCat === b.dataset.cat) ? null : b.dataset.cat;
+    writeFilter(); renderCats();
+  }));
+  host.querySelectorAll('[data-lv]').forEach(b => b.addEventListener('click', () => {
+    curLevel = b.dataset.lv; writeFilter(); renderCats();
+  }));
   renderList();
 }
 
@@ -461,7 +516,13 @@ function renderList(){
   let list = curCat ? DATA.writing.filter(t => cleanCatName(t.category) === curCat) : DATA.writing.slice();
   // 10/10：目标分档筛选（老数据无 level → 视作 5.5，与 renderCats 同口径）
   if(curLevel !== 'all') list = list.filter(t => (t.level || '5.5') === curLevel);
-  if(tplSearch){ list = list.filter(t => (cleanCatName(t.title)+' '+t.category).toLowerCase().indexOf(tplSearch) !== -1); }
+  /* W-3：搜索口径 = 模板名 + 分类 + 骨架首句（方案 §四.1），原来是「模板名 + 分类」 */
+  if(tplSearch){
+    list = list.filter(t => {
+      const hay = (cleanCatName(t.title) + ' ' + (t.category || '') + ' ' + skeletonFirstLine(t.skeleton) + ' ' + String(t.skeleton || '')).toLowerCase();
+      return hay.indexOf(tplSearch) !== -1;
+    });
+  }
   const locked = (tplVip !== true);
   const lockTag = locked ? '<span class="badge" style="position:absolute;top:10px;right:10px" title="会员专属">🔒</span>' : '';
   /* 10/4（她 12:57 反馈「模板列表里套了一层空壳卡片」）：

@@ -31,7 +31,7 @@
 })();
 </script>
 <title>句子 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261023p" />
+<link rel="stylesheet" href="css/common.css?v=20261023u" />
 <link rel="stylesheet" href="css/p/corpus.css?v=20261017a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
@@ -43,13 +43,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20261023b"></script>
-  <script defer src="js/common.js?v=20261023p"></script>
-  <script defer src="js/common-ai.js?v=20261023n"></script>
-  <script defer src="js/common-sync.js?v=20261023p"></script>
-  <script defer src="js/common-merge.js?v=20261023n"></script>
-  <script defer src="js/common-cloud.js?v=20261023n"></script>
-  <script defer src="js/common-shell.js?v=20261023p"></script>
-  <script defer src="js/common-pwa.js?v=20261023p"></script>
+  <script defer src="js/common.js?v=20261023u"></script>
+  <script defer src="js/common-ai.js?v=20261023u"></script>
+  <script defer src="js/common-sync.js?v=20261023u"></script>
+  <script defer src="js/common-merge.js?v=20261023u"></script>
+  <script defer src="js/common-cloud.js?v=20261023u"></script>
+  <script defer src="js/common-shell.js?v=20261023u"></script>
+  <script defer src="js/common-pwa.js?v=20261023u"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
   <script src="js/corpus.js?v=20261023g" defer></script>
 <style>
@@ -165,6 +165,11 @@
   .cor-empty .ce-ico svg{width:26px;height:26px}
   .cor-empty b{display:block;font-size:15px;font-weight:700;color:var(--ink);margin-bottom:5px}
   .cor-empty p{margin:0 0 14px;font-size:13px;color:var(--muted);line-height:1.7}
+
+/* ===== 10-23 2-1d 批 B：撤页内小 tab（桌面 ≥861）。手机 ≤860 保留（顶栏隐藏时的唯一入口）。
+   依据：交接\方案\T-001c-下拉重做与撤小tab-2026-10-23.md §三。不删 DOM：JS 靠 data-* 认分栏，
+   sub= 交接（tbSubPending）照常工作；页内二级筛选控件不受影响。 ===== */
+@media (min-width:861px){ #wordTabs{display:none} }
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
