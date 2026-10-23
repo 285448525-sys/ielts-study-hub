@@ -381,14 +381,23 @@ function renderHomeRail(tkey){
 
     const setTxt = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = v; };
     setTxt('railPct', pct + '%');
-    setTxt('railPctSub', total ? ('计划 ' + total + ' 项完成 ' + doneN + (st.dueWords > 0 ? ' · 还有 ' + st.dueWords + ' 词' : '')) : '今天还没安排');
     setTxt('railTogglePct', pct + '%');
+    /* 🔴 10-23 她报「主页这里中间的字太多了，这样不好看」：
+       原来同一件事说了两遍、两遍都挤 —— 环里一行「计划 5 项完成 5 · 还有 1639 词」（96px 圆里断成 2~3 行），
+       环下又来一行「计划还剩 0 项 · 1639 个词要过」。
+       现在环里只留百分比，环下只留**一行**「计划 5/5 项 · 1639 词待过」，一句话把 12% 是怎么算的说清。
+       口径一个字没改：pct 仍是 dashStatusOf 的综合完成度（见上面 P-1 注释）。 */
     const subEl = document.getElementById('railSub');
     if(subEl){
-      if(!total) subEl.innerHTML = '<a href="plans.html" style="color:inherit;text-decoration:underline">去计划页排一下今天 →</a>';
-      else if(st.dueWords > 0) subEl.textContent = '计划还剩 ' + (total - doneN) + ' 项 · ' + st.dueWords + ' 个词要过';
-      else if(doneN >= total) subEl.textContent = '今天的任务都完成了';
-      else subEl.textContent = '还剩 ' + (total - doneN) + ' 项';
+      const planTxt = total ? ('计划 ' + doneN + '/' + total + ' 项') : '';
+      const wordTxt = st.dueWords > 0 ? (st.dueWords + ' 词待过') : '';
+      if(!total && !st.dueWords){
+        subEl.innerHTML = '<a href="plans.html" style="color:inherit;text-decoration:underline">去计划页排一下今天 →</a>';
+      }else if(total && doneN >= total && !st.dueWords){
+        subEl.textContent = '今天的任务都完成了';
+      }else{
+        subEl.textContent = planTxt && wordTxt ? (planTxt + ' · ' + wordTxt) : (planTxt || wordTxt);
+      }
     }
     const ring = document.getElementById('railRingFg');
     if(ring) ring.style.strokeDashoffset = String(238.8 * (1 - pct/100));
