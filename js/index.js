@@ -242,7 +242,18 @@ function renderDashV6(){
   const mockN = (DATA.mockRecords || []).filter(r => r && String(r.date||'') >= wkStart).length;
   const mockVal = $('#statMockVal'), mockSub = $('#statMockSub');
   if(mockVal) mockVal.innerHTML = mockN+'<span class="u"> 套</span>';
-  if(mockSub) mockSub.textContent = mockN > 0 ? '本周已录 '+mockN+' 套' : '本周还没录 · 来一套';
+  /* 10-23 P-1：本周 0 套但可能 15 天没模考了 —— 那才是她更该知道的事，
+     不能被「本周 0 套」盖掉。天数 = 今天 - 最近一条 mockRecords[].date。 */
+  if(mockSub){
+    if(mockN > 0){
+      mockSub.textContent = '本周已录 '+mockN+' 套';
+    } else {
+      let _last = '';
+      (DATA.mockRecords || []).forEach(r => { if(r && String(r.date||'') > _last) _last = String(r.date||''); });
+      const _days = _last ? Math.floor((Date.now() - new Date(_last.replace(/-/g,'/')).getTime()) / 864e5) : -1;
+      mockSub.textContent = (_days >= 1) ? ('上次模考 ' + _days + ' 天前 · 该来一套了') : '本周还没录 · 来一套';
+    }
+  }
 
   // ---- 右侧侧轨 ----
   renderHomeRail(tkey);
@@ -306,6 +317,29 @@ function homeGreeting(){
   if(h < 18) return '下午好';
   return '晚上好';
 }
+/* ===== 10-23 P-1：首页数字口径统一（她 14:4x 截图：三处数字互相打架）=====
+   同一屏原来有三个互不相干的数：今日任务卡头「已完成 5/5」（只算计划清单）、
+   卡内「今天有 1587 个单词到期复习」（全词库到期数）、右侧环「100% · 今天的任务都完成了」。
+   读者看到「100% 都完成了」会以为今天能收工，紧挨着又说 1587 词要过 —— 自相矛盾。
+   做法：**一处口径，三处引用**。本函数是那唯一一处，纯读 DATA、零副作用、可单测。
+   ⚠️ dueWords 仍走 wbDueCount（design/78 按词库路由取数，别处还在用，原样不动）。 */
+function dashStatusOf(tkey){
+  const t = tkey || todayKey();
+  const plan = (DATA.plans || []).find(p => p && p.date === t);
+  const items = (plan && Array.isArray(plan.items)) ? plan.items : [];
+  const itemsTotal = items.length;
+  const itemsDone = items.filter(i => i && i.done).length;
+  const dueWords = (typeof wbDueCount === 'function') ? (wbDueCount(t) || 0) : 0;
+  const _done = (typeof wbPracticed === 'function') ? ((wbPracticed().words || []).length) : 0;
+  const _cap = (DATA && DATA.settings && DATA.settings.practiceCfg) ? Number(DATA.settings.practiceCfg.dailyCap) : 0;
+  return {
+    itemsTotal, itemsDone,
+    dueWords,
+    wordsDone: _done,
+    wordsGoal: _cap
+  };
+}
+
 /* 本周一（本地时间）的 'YYYY-MM-DD'：周起点用周一，和「本周模考」口径一致。
    ⚠️ 必须拆成三个数字走本地构造器；'YYYY-MM-DD' 喂 new Date() 是按 UTC 解析的（凌晨会差一天）。 */
 function weekStartKey(){
@@ -331,19 +365,28 @@ function longestStreak(){
    不编一个「三件事完成度」（站内没有该数据，编了就是假指标）。 */
 function renderHomeRail(tkey){
   try{
-    const plan = (DATA.plans || []).find(p => p && p.date === tkey);
+    /* 10-23 P-1：环改成**综合完成度**，与 dashStatusOf 同一处口径。
+       原来环只算计划清单（5/5 = 100%），紧挨着的卡里却说「1587 个单词要过」
+       → 「100% · 今天的任务都完成了」是**错的承诺**。
+       新口径：(计划已完成 + 今日已背词) / (计划总数 + 今日到期词)；
+       到期词为 0 时保持原来的计划完成度。 */
+    const st = dashStatusOf(tkey);
+    const plan = (DATA.plans || []).find(p => p && p.date === (tkey || todayKey()));
     const items = (plan && Array.isArray(plan.items)) ? plan.items : [];
-    const doneN = items.filter(i => i && i.done).length;
-    const total = items.length;
-    const pct = total ? Math.round(doneN/total*100) : 0;
+    const total = st.itemsTotal;
+    const doneN = st.itemsDone;
+    const _den = total + st.dueWords;
+    const _num = doneN + st.wordsDone;
+    const pct = _den ? Math.min(100, Math.round(_num / _den * 100)) : (total ? Math.round(doneN/total*100) : 0);
 
     const setTxt = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = v; };
     setTxt('railPct', pct + '%');
-    setTxt('railPctSub', total ? (total + ' 项完成 ' + doneN) : '今天还没安排');
+    setTxt('railPctSub', total ? ('计划 ' + total + ' 项完成 ' + doneN + (st.dueWords > 0 ? ' · 还有 ' + st.dueWords + ' 词' : '')) : '今天还没安排');
     setTxt('railTogglePct', pct + '%');
     const subEl = document.getElementById('railSub');
     if(subEl){
       if(!total) subEl.innerHTML = '<a href="plans.html" style="color:inherit;text-decoration:underline">去计划页排一下今天 →</a>';
+      else if(st.dueWords > 0) subEl.textContent = '计划还剩 ' + (total - doneN) + ' 项 · ' + st.dueWords + ' 个词要过';
       else if(doneN >= total) subEl.textContent = '今天的任务都完成了';
       else subEl.textContent = '还剩 ' + (total - doneN) + ' 项';
     }
@@ -638,8 +681,10 @@ function renderDashTasks(){
   };
 
   // 卡头：标题 + 进度（有任务才显示）+ 细进度条
+  /* 10-23 P-1：卡头加「计划清单」四个字 —— 原来只写「已完成 5/5」，
+     读者会以为那是全站完成度（旁边就写着 1587 词要过，自相矛盾）。 */
   let html = '<div class="dash-tasks-h"><h3>今日任务</h3>'
-    + (items.length ? '<span class="dash-tasks-count">已完成 <b>' + doneN + '/' + items.length + '</b></span>' : '')
+    + (items.length ? '<span class="dash-tasks-count">计划清单 · 已完成 <b>' + doneN + '/' + items.length + '</b></span>' : '')
     + '</div>';
   if(items.length) html += '<div class="dash-tasks-bar"><i style="width:' + pct + '%"></i></div>';
 
@@ -653,7 +698,7 @@ function renderDashTasks(){
       + '</div>';
   } else {
     html += '<div class="dash-tasks-tip"><span class="txt">'
-      + (dueWords > 0 ? '今天有 ' + dueWords + ' 个单词到期复习' : '今天没有到期单词')
+      + (dueWords > 0 ? '今天还有 <b>' + dueWords + '</b> 个单词要过' : '今天没有到期单词')
       + '</span>'
       + (dueWords > 0 ? '<a href="practice.html" id="dashGoPractice">去背词 →</a>' : '')
       + '</div>';
