@@ -231,7 +231,26 @@ function switchWordTab(tab){
       autoStartSeeWord();
     }
   }
-  /* 🔴 10/6 01:55 切 tab 同样要回到顶部：这两个 view 共用同一个滚动容器（main.container），
+  /* 10-23 P-3 v2（方案 §二.1）：顶部状态带里的 ← 返回词库。
+   改前答题中想回词库，得自己发现上面那个「词库」tab —— 页面上没有任何出口提示。
+   实现：直接复用已有的 switchWordTab('bank')，不另造切换逻辑。 */
+function bindWBackBank(){
+  const b = document.getElementById('wBackBank');
+  if(!b || b._bound) return;
+  b._bound = true;
+  b.addEventListener('click', () => {
+    try{
+      if(typeof switchWordTab === 'function' && document.getElementById('wBackBank') &&
+         !document.getElementById('wBackBank').disabled){
+        switchWordTab('bank');
+      }
+    }catch(e){ console.warn('[practice] 返回词库失败', e); }
+  });
+}
+bindWBackBank();
+document.addEventListener('DOMContentLoaded', bindWBackBank);
+
+/* 🔴 10/6 01:55 切 tab 同样要回到顶部：这两个 view 共用同一个滚动容器（main.container），
      在词库滚到底再切回「学习」，scrollTop 会原样保留 → 顶部两个 tab 被推出视口。
      切完再按新内容高度决定要不要允许滑动。 */
   hubResetPageScroll();
@@ -729,6 +748,7 @@ function renderQuotaDone(){
     : '';
   const area = $('#practiceArea'); if(area) area.hidden = false;
   const prog = $('#progBarWrap'); if(prog) prog.hidden = true;
+  const _sb0 = document.getElementById('wStateBar'); if(_sb0) _sb0.hidden = true;
   const nb = $('#nextBtn'); if(nb) nb.hidden = true;
   // 9/26：已背数 > 当前上限（先不限背了很多、之后把上限调小）→ 别显示「60 / 20」这种荒谬数字
   $('#practiceBody').innerHTML =
@@ -1181,6 +1201,44 @@ function practiceSense(w){
   return { tag, cn: parts.filter(Boolean).join('；') };
 }
 
+/* 10-23 P-3 v2（方案 §二.4）：「这个词的底细」侧栏。
+   🔴 数据全部来自现有字段，一个都不新造：
+      Lv       = w.level（0-5）      —— 已有
+      错过次数 = w.errTotal，老词回落 mcLapses —— 与 js/words.js:86 同一取法
+      上次复习 = w.lastReview        —— null（9/21 前 promote 的老词）就显示「没背过」，
+                                       绝不显示 0 装成真数据（方案 §三 最后一条）
+   同根词：方案明写「这次不做自动推导，先留空位」→ 没有数据源就不渲染这张卡。 */
+function wordSideHtml(w){
+  const lv = Number(w && w.level) || 0;
+  const errN = Number(w && w.errTotal != null ? w.errTotal : (w && w.mcLapses || 0)) || 0;
+  let lastTxt = '没背过';
+  if(w && w.lastReview){
+    try{
+      const d = daysBetween(String(w.lastReview).slice(0, 10), todayKey());
+      lastTxt = d <= 0 ? '今天' : (d === 1 ? '昨天' : d + ' 天前');
+    }catch(e){ lastTxt = '没背过'; }
+  }
+  const stat =
+    '<div class="w-side-card">' +
+      '<div class="w-side-h"><span class="d"></span>这个词的底细</div>' +
+      '<div class="w-side-row"><span>当前等级</span><span>Lv.' + lv + ' / 5</span></div>' +
+      '<div class="w-side-row"><span>错过</span><span>' + errN + ' 次</span></div>' +
+      '<div class="w-side-row"><span>上次复习</span><span>' + escapeHtml(lastTxt) + '</span></div>' +
+    '</div>';
+  const soft =
+    '<div class="w-side-card soft">' +
+      '<div class="w-side-h">背错了会怎样</div>' +
+      '答错 → 这词今天再出现一次；连错 2 次 → 降到 Lv.' + Math.max(0, lv - 1) + '，改天再来。' +
+    '</div>';
+  const inner = stat + soft;
+  return {
+    wide: '<aside class="w-side" aria-label="这个词的底细">' + inner + '</aside>',
+    mini: '<details class="w-side-mini">' +
+      '<summary>错过 ' + errN + ' 次 · ' + escapeHtml(lastTxt) + '</summary>' +
+      '<div class="w-side">' + inner + '</div></details>'
+  };
+}
+
 function renderQuestion(cur, isRehold){
   if(!pq) return;
   pq.answer = cur;
@@ -1222,18 +1280,31 @@ function renderQuestion(cur, isRehold){
   // 听音选义：DOM 原样保留（pw-en/pw-ipa 内容照旧渲染），由 .pw-audio class + CSS 控制隐藏；
   // 提示文案原位插入；judge() 揭示时加 .pw-reveal 恢复显示。
   html += '<div class="practice-word-area' + (audioMode ? ' pw-audio' : '') + '">' +
-    '<div class="pw-en">' + escapeHtml(cur.en) + '</div>' +
+    '<div class="pw-en"><span class="pw-en-tx">' + escapeHtml(cur.en) + '</span>' +
+      '<button class="pw-spk" id="qSpeakerInline" type="button" title="点读发音" aria-label="听发音">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.4 5.6a9 9 0 0 1 0 12.8"/></svg>' +
+      '</button></div>' +
     '<div class="pw-ipa">' + (cur.ipa ? '/ ' + escapeHtml(cur.ipa) + ' /' : '&nbsp;') + '</div>' +
     (audioMode ? '<div class="pw-audio-hint">听发音，选释义 · 点喇叭重播</div>' : '') +
     '<div class="pw-cn" id="pwCn"></div>' +   /* 9/17：不再放 &nbsp;——全屏 evenly 态 pw-cn min-height:0 需要真空才生效；普通态题干区 min-height:120px 兜底，视觉无变化 */
   '</div>';
 
-  // ── 选项网格（2×2） ──
+  // ── 选项网格（2×2，v2 起每项带 A/B/C/D 键位方块） ──
   html += '<div class="opts-grid" id="opts"></div>';
-  html += '<div class="answer-btns"><button class="abtn abtn-unknown" id="unknownBtn" title="不知道（按空格）">不知道</button></div>';
+  // ── 「不知道」从 1100px 通栏降级成白底小按钮 + 右侧键位提示（方案 §二.3） ──
+  // 它是「放弃」的动作，不该是页面上最大的按钮。
+  html += '<div class="dunno-row">' +
+    '<button class="abtn abtn-unknown" id="unknownBtn" title="不知道（按空格）">不知道</button>' +
+    '<span class="hint">按 1-4 选，空格 = 不知道</span></div>';
 
-  // ── 底部喇叭大圆按钮（严格还原 v5 原型：居中 48px 圆） ──
-  html += '<div class="pw-speaker-wrap"><button class="btn tool-btn" id="qSpeaker" title="再读一遍"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.4 5.6a9 9 0 0 1 0 12.8"/></svg></button></div>';
+  // ── 底部居中喇叭已退役（方案 §二.2）——发音改到单词右侧，见 .pw-spk；
+  //    旧 DOM 不再输出，practice-tools-row 的 #toolSpeaker 另说。 ──
+
+  // ── 右侧 250px「这个词的底细」（方案 §二.4）──
+  // 数据全用现成字段：Lv = w.level · 错过 = w.errTotal / mcLapses · 上次复习 = w.lastReview。
+  // 同根词那一格**这次不做**（要新接口，方案明写先留空位）→ 取不到数据就整张卡不渲染。
+  const _side = wordSideHtml(cur);
+  html = '<div class="w-detail-layout"><div class="w-detail-main">' + html + '</div>' + _side.wide + '</div>' + _side.mini;
 
   const body = $('#practiceBody');
   body.innerHTML = html;
@@ -1241,6 +1312,7 @@ function renderQuestion(cur, isRehold){
     const ps = practiceSense(o);
     const tag = singlePos(o.pos) || ps.tag || inferPos(o.en) || '';
     return '<button class="opt-big" data-en="' + escapeHtml(o.en) + '" data-idx="' + i + '" title="选项 ' + (i + 1) + '（按 ' + (i + 1) + '）">' +
+      '<span class="opt-k" aria-hidden="true">' + 'ABCD'.charAt(i) + '</span>' +
       '<span class="opt-big-tag">' + escapeHtml(tag) + '</span>' +
       '<span class="opt-big-cn">' + escapeHtml(ps.cn) + '</span>' +
       '<span class="opt-big-en"></span>' +
@@ -1252,8 +1324,12 @@ function renderQuestion(cur, isRehold){
   const left0 = document.getElementById('unknownBtn');
   if(left0) left0.onclick = () => judge(cur, null, false, true);
   ensureMasteredBtn(cur);
-  const qsp = document.getElementById('qSpeaker');
+  const qsp = document.getElementById('qSpeaker') || document.getElementById('qSpeakerInline');
   if(qsp) qsp.onclick = () => speakN(cur.en);
+  /* 10-23 P-3：底部那枚喇叭（#toolSpeaker 在 practice-tools-row）跟单词右侧的重复，
+     而且隔着一整屏 —— 答题态收掉。DOM 与绑定原样保留，其它态（完整页等）行为不变。 */
+  const _ts = document.getElementById('practiceTools');
+  if(_ts) _ts.style.display = 'none';
   if(c.autoPlay) setTimeout(() => speakN(cur.en), 300);   // autoPlay=false 时不自动朗读，仅手动点喇叭
   if(audioMode && !c.autoPlay) setTimeout(() => speakN(cur.en), 300);   // 听音题必须先发音：即便关了自动播报，本题也强制读一次（喇叭可手动重播）
   if(!audioMode) fitWordOneLine();   // 9/9：渲染完立即按单词长度自适应字号（听音题题干隐藏，揭示后再补算）
@@ -1571,6 +1647,7 @@ function finishPractice(){
     '<button class="btn btn-primary" id="restartBtn">再来一轮</button></div>';
   $('#practiceBody').innerHTML = bodyHtml;
   $('#progBarWrap').hidden = true;
+  const _sb1 = document.getElementById('wStateBar'); if(_sb1) _sb1.hidden = true;
   removeMasteredBtn();   // 完成页没有当前词：移除「已掌握」按钮，防误点删除
   updateWordStats();
   if(!pq.isWrongReview){
@@ -1806,6 +1883,15 @@ function updateWordStats(){
     progress = answered + ' / ' + total;
   }
   const el = $('#statProgress'); if(el) el.textContent = progress;
+  /* 10-23 P-3 v2（方案 §二.1）：原来这个裸数字「186 / 200」直接摆页面上，看不出是
+     「第几个」还是「已学几个」。现在同一份口径多包一层「第 … 个」放进顶部状态带，
+     数字来源与 statProgress 完全一致（同一个 progress 变量），不另算一套。 */
+  const _pt = document.getElementById('wProgTxt');
+  if(_pt){
+    const _m = String(progress).split('/').map(x => x.trim());
+    _pt.textContent = (_m.length === 2 && _m[0] !== '' && _m[1] !== '')
+      ? ('第 ' + _m[0] + ' / ' + _m[1] + ' 个') : '';
+  }
 
   // ETA 剩余时间预估（9/21，纯内存）：完全过关 ≥3 题且队列仍有未过词时，按滚动平均每题耗时 × 剩余词数估算。
   // 样本不足/无剩余/完成页/空态一律隐藏；续背刷新后随答题自然收敛，不要求跨刷新精确。
@@ -1833,6 +1919,7 @@ function updateWordStats(){
   }
   const bar = $('#wordStats'); if(bar) bar.hidden = false;
   const tools = document.getElementById('wordToolsRow'); if(tools) tools.hidden = false;   // 进度条下按钮行随练习态显示
+  const _sb = document.getElementById('wStateBar'); if(_sb) _sb.hidden = false;   // 10-23 P-3：顶部状态带随答题态显示
 
   // design/54：连击 chip（streak ≥1 才显示；满 STREAK_BOOST 的整数倍触发 ×2 高光；开关关闭则永不显示）
   const chip = document.getElementById('streakChip');
@@ -1852,6 +1939,13 @@ function updateProgBar(){
   if(!pq || !pq.initLen) return;
   const pct = Math.min(100, ((pq.correct || 0) / pq.initLen) * 100);
   $('#progBarFill').style.width = pct + '%';
+  /* 10-23 P-3：新状态带里的进度条与旧条同源同步（旧条 DOM 留着，JS 写入点不改） */
+  const _nf = document.getElementById('wProgFill');
+  if(_nf){
+    _nf.style.width = pct + '%';
+    const _wrap = document.getElementById('wProg');
+    if(_wrap) _wrap.setAttribute('aria-valuenow', String(Math.round(pct)));
+  }
 }
 
 // ======= 设置模态弹窗（齿轮触发，仅学习模块使用）=======

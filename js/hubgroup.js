@@ -100,6 +100,50 @@ const HUBG_CSS = `
 .hg-ar svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .hg-card:hover .hg-ar{color:var(--primary-600)}
 .hg-note{margin:18px 2px 0;font-size:12.5px;line-height:1.75;color:var(--n-500)}
+/* ===== 10-23 第一批 1-1：手机组页首屏补两处入口（她 17:0x「要我点头的都默认可以」）=====
+   背景：手机端 ≤860 整条顶栏不渲染（B-1d），原来顶栏里的搜索框与头像登录入口在手机没有了。
+   实测口径（1-1 示意图已给她看过）：手机端从来没搜过（.tb-search 自 T-011 起就 display:none），
+   登录改走「我的→设置→引导键」两步。这两处就是补回来的唯一合理位置。 */
+.hg-loginbar{
+  display:flex;align-items:center;gap:12px;margin:0 0 14px;padding:13px 16px;
+  background:var(--primary-50);border:1px solid var(--primary-100);border-radius:14px;
+}
+.hg-loginbar .lb-tx{min-width:0;flex:1}
+.hg-loginbar b{display:block;font-size:13.5px;font-weight:600;color:var(--n-800);line-height:1.35}
+.hg-loginbar span{display:block;font-size:12px;color:var(--n-500);margin-top:2px;line-height:1.5}
+.hg-loginbar a.lb-a{
+  flex:none;display:inline-flex;align-items:center;gap:5px;height:32px;padding:0 14px;
+  background:var(--primary-500);color:var(--on-primary);border-radius:999px;
+  font-size:13px;font-weight:600;text-decoration:none;transition:background .16s;
+}
+.hg-loginbar a.lb-a:hover{background:var(--primary-600)}
+/* 搜索卡：与 hg-card 同构，只多一个「新」角标与按下去的浮层 */
+.hg-search-card{cursor:pointer}
+.hg-newbadge{
+  flex:none;margin-left:2px;padding:1px 6px;border-radius:6px;background:var(--primary-100);
+  /* 🔴 深色主题只重定义 --primary-50/100/500/700 四档 —— --primary-800 不翻，深底上深青字
+     （实测 rgba(92,179,171,.22) 底 + #235e5a 字 = 几乎看不见）。改 --primary-700：深色下是亮青。 */
+  color:var(--primary-700);font-size:10.5px;font-weight:700;letter-spacing:.02em;line-height:1.5;
+}
+/* 组页搜索浮层（复用全站 .ss-item/.ss-empty 样式，这里只管外框/位置） */
+.hg-search{margin:0 0 14px}
+.hg-search .hs-box{
+  display:flex;align-items:center;gap:9px;padding:0 14px;height:44px;
+  background:var(--n-0);border:1px solid var(--n-300);border-radius:12px;box-shadow:var(--sh-1);
+}
+.hg-search .hs-box:focus-within{border-color:var(--primary-400);box-shadow:0 0 0 3px rgba(58,154,147,.16)}
+.hg-search .hs-box svg{width:17px;height:17px;flex:none;color:var(--n-400)}
+.hg-search input{
+  flex:1;min-width:0;border:0;background:none;outline:none;font:inherit;font-size:14px;color:var(--ink);
+}
+.hg-search input::placeholder{color:var(--n-400)}
+.hg-search .hs-close{
+  flex:none;width:28px;height:28px;border:0;background:none;border-radius:8px;cursor:pointer;
+  color:var(--n-500);font-size:17px;line-height:1;
+}
+.hg-search .hs-close:hover{background:var(--n-100);color:var(--n-800)}
+.hg-search .hs-list{margin-top:8px}
+.hg-search .hs-list .ss-item{border-radius:10px}
 /* 空态：引导文案 + 按钮，不许白板一块 */
 .hg-empty{background:var(--n-0);border:1px solid var(--n-300);border-radius:14px;padding:22px 20px;text-align:center}
 .hg-empty p{margin:0 0 12px;font-size:13.5px;line-height:1.7;color:var(--n-600)}
@@ -198,6 +242,16 @@ function renderStats(){
     return byFile || byBody;
   }
 
+  /* 登录判定：与 common.js 顶栏头像/状态行同一口径（DATA.settings.syncCode + authToken()）。
+     只用在「未登录引导条」这一处；判错的最坏后果是引导条多显示或少显示一次。 */
+  function isSignedIn(){
+    try{
+      var tok = (typeof authToken === 'function') ? authToken() : '';
+      var code = (DATA && DATA.settings) ? DATA.settings.syncCode : '';
+      return !!(tok && code);
+    }catch(e){ return false; }
+  }
+
   function render(){
     const root = document.getElementById('hubGroupRoot');
     const G = GROUPS[hostGroup()];
@@ -227,6 +281,13 @@ function renderStats(){
       + '</div>';
     /* T-011：状态摘要条（驾驶舱式三格）。数据拿不到就不渲染（禁忌：不许假数据）。 */
     h += renderStats();
+    /* 10-23 1-1：未登录引导条（手机端顶栏摘掉后，头像登录入口没了；设置页里那条要两步才到）。 */
+    if(!isSignedIn()){
+      h += '<div class="hg-loginbar" id="hgLoginBar">'
+        +   '<span class="lb-tx"><b>未登录</b><span>登录后进度、错句、成绩都能跨设备同步</span></span>'
+        +   '<a class="lb-a" href="login.html">去登录</a>'
+        + '</div>';
+    }
     h += '<div class="hg-grid">';
     for(const it of items){
       const p = pageById ? pageById(it.id) : null;
@@ -244,6 +305,23 @@ function renderStats(){
         +   '</span>'
         + '</a>';
     }
+    /* 10-23 1-1：搜索卡 —— 手机端史上第一次能搜（顶栏搜索框自 T-011 起在手机就是 display:none）。
+       默认折叠成一张卡，点开就地展开输入框；输入走全站同一套 ssMatchPages（中文跳功能、英文 AI 查词）。
+       不做新搜索：只用 common.js 里已有的匹配函数与 ssNewWord。 */
+    h += '<div class="hg-search" id="hgSearch" hidden>'
+      +   '<div class="hs-box">'
+      +     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>'
+      +     '<input type="text" id="hgSearchInput" placeholder="搜功能、查单词、搜句子" aria-label="搜索" autocomplete="off">'
+      +     '<button type="button" class="hs-close" id="hgSearchClose" aria-label="收起搜索">&times;</button>'
+      +   '</div>'
+      +   '<div class="hs-list" id="hgSearchList"></div>'
+      + '</div>'
+      + '<a class="hg-card hg-search-card" id="hgSearchCard" href="javascript:void 0" role="button">'
+      +   '<span class="hg-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span>'
+      +   '<span class="hg-tx"><b>搜索</b><span>找功能、查单词、搜句子</span></span>'
+      +   '<span class="hg-newbadge">新</span>'
+      +   '<span class="hg-ar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>'
+      + '</a>';
     h += '</div>';
     /* T-011：没有可展示的入口时给引导（不许白板一块）。plans 组现在只剩「计划」一项，
        真变空时这里就是唯一出口 —— 文案指向顶栏导航，不编造不存在的功能。 */
@@ -256,6 +334,74 @@ function renderStats(){
     h += '<p class="hg-note">导航里都能进这些页面；这里只是把常用的挑出来放一屏。</p>';
     root.innerHTML = h;
     root.setAttribute('data-shown-group', G.key);   // 供跨组软导航的 repaint 比对
+    wireSearchCard();
+  }
+
+  /* 10-23 1-1：组页搜索卡 —— 点开就地展开，不跳页、不新建页。
+     输入走 common.js 已有的 ssMatchPages（中文匹配功能页），英文词靠 ssNewWord + AI 查词
+     太重，这里只做「跳功能页」这一件——点结果软导航过去。 */
+  function wireSearchCard(){
+    const card = document.getElementById('hgSearchCard');
+    const box = document.getElementById('hgSearch');
+    const input = document.getElementById('hgSearchInput');
+    const list = document.getElementById('hgSearchList');
+    const closeBtn = document.getElementById('hgSearchClose');
+    if(!card || !box || !input || !list) return;
+    if(card.__wired) return;
+    card.__wired = true;
+
+    const open = () => {
+      box.hidden = false;
+      card.hidden = true;
+      try{ input.focus(); }catch(e){}
+    };
+    const close = () => {
+      box.hidden = true;
+      card.hidden = false;
+      input.value = '';
+      list.innerHTML = '';
+    };
+    card.addEventListener('click', e => { e.preventDefault(); open(); });
+    if(closeBtn) closeBtn.addEventListener('click', close);
+
+    let timer = null;
+    input.addEventListener('input', () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        const q = (typeof ssNormQuery === 'function') ? ssNormQuery(input.value) : String(input.value || '').trim().toLowerCase();
+        if(!q){ list.innerHTML = ''; return; }
+        let hits = [];
+        try{ hits = (typeof ssMatchPages === 'function') ? ssMatchPages(q) : []; }catch(e){ hits = []; }
+        if(!hits.length){
+          list.innerHTML = '<div class="ss-empty">没有匹配的功能</div>';
+          return;
+        }
+        let html = '';
+        for(const p of hits){
+          html += '<button class="ss-item" type="button" data-file="' + p.file + '">'
+            +   '<span class="ss-ico">' + p.icon + '</span>'
+            +   '<span class="ss-name">' + escapeHtml(p.name) + '</span>'
+            +   '<span class="ss-desc">' + escapeHtml(p.desc || '') + '</span>'
+            + '</button>';
+        }
+        list.innerHTML = html;
+        list.querySelectorAll('.ss-item[data-file]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const f = btn.getAttribute('data-file');
+            if(!f) return;
+            try{ if(typeof softNavigate === 'function'){ softNavigate({ href: f, file: f, id: f.replace(/\.html$/, '') }); return; } }catch(e){}
+            location.href = f;
+          });
+        });
+      }, 120);
+    });
+    input.addEventListener('keydown', e => {
+      if(e.key === 'Escape') close();
+      if(e.key === 'Enter'){
+        const first = list.querySelector('.ss-item[data-file]');
+        if(first) first.click();
+      }
+    });
   }
 
   /* ⚠️ 门控：等 **两个** 条件都满足才渲染（10/4 18:45 软导航实测踩出来的）。
