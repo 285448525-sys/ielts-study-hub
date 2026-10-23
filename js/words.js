@@ -1101,7 +1101,169 @@ function todayCardGo(){
   if(typeof switchWordTab === 'function') switchWordTab('study');
 }
 
+/* ===== 10-23 4-3 词书库（版一：词书卡片网格）=====
+   她 10-5x 拍板：「我是想着后续要多加很多词书进去，所以现在这样两个栏切换完全不行」。
+   ⇒ 词库 tab 顶部不再是「二选一切换条」，而是「所有词书一张卡」的网格 + 末尾「+ 添加词书」。
+   🔴 加新词书 = 网格里多一张卡，结构永远不变 —— 这是本方案的命门，别为了某本书改布局。
+   数据全部来自现有字段（每本书的 words / 进度 / 待复习数本来就在算），零新增存储：
+     count   ← 书内词数
+     due     ← 同 wbDueCount 口径（en 非空 且 无排程或已到期）
+     overdue ← 同 renderTodayCard 口径（wordIntervalDesc 的 overdue）
+     mastered← 同 wbMasteredCount 口径（cleared===true 且 level>=5）
+     wrong   ← 该书今日错词数（wbRecordWrong 落的账）
+   ⚠️ 官方词包（awl）只读、不记到期 → 它的卡显示「已学 N%」而不是「待复习 N」，也不出过期小签。 */
+
+// 一本书的统计（纯读，不写库）
+function wbDeckStats(key){
+  const t = todayKey();
+  const isCustom = key === 'custom';
+  if(isCustom){
+    const ws = (typeof DATA !== 'undefined' && Array.isArray(DATA.words)) ? DATA.words : [];
+    let due = 0, overdue = 0, mastered = 0;
+    const hasInfo = (typeof wordIntervalDesc === 'function');
+    ws.forEach(w => {
+      if(!w || typeof w.en !== 'string' || w.en.trim() === '') return;
+      if(!w.nextReview || w.nextReview <= t) due++;
+      if(w.cleared === true && (Number(w.level) || 0) >= 5) mastered++;
+      if(hasInfo){ try{ const info = wordIntervalDesc(w); if(info && info.overdue) overdue++; }catch(e){} }
+    });
+    const n = ws.length;
+    return { count: n, total: n, due, overdue, mastered, pct: n ? Math.round(mastered * 100 / n) : 0, loaded: true };
+  }
+  // 官方词包：**不依赖词包是否已加载** —— 进度本来就落在 localStorage 的 prog（键 = 小写 en），
+  // 用它反推「已学 / 待复习 / 已掌握」。全部词都没练过时 prog 为空 → 整本都算待复习，与学习页口径一致。
+  const ent = (typeof OB_BANKS !== 'undefined' ? OB_BANKS : []).find(x => x.id === key);
+  const total = (ent && ent.total) || 0;
+  let prog = {};
+  try{ prog = (window.__OB && window.__OB.banks && window.__OB.banks[key] && window.__OB.banks[key].prog) || {}; }catch(e){ prog = {}; }
+  let mastered = 0, learned = 0, notDue = 0, overdue = 0;
+  Object.keys(prog).forEach(k => {
+    const p = prog[k] || {};
+    if(p.cleared === true && (Number(p.level) || 0) >= 5) mastered++;
+    if((Number(p.level) || 0) > 0 || p.lastReview || p.lastPracticeAt) learned++;
+    if(p.nextReview && p.nextReview > t) notDue++;
+    if(p.nextReview && p.nextReview < t) overdue++;
+  });
+  const due = Math.max(0, total - notDue);
+  return { count: total, total, due, overdue, mastered, learned, pct: total ? Math.round(learned * 100 / total) : 0, loaded: true };
+}
+
+
+// 全部词书（custom 恒第一本，其后按官方词包注册表顺序 —— 以后加包只加一行注册表，这边自动多一张卡）
+function wbDecks(){
+  const out = [];
+  const cs = wbDeckStats('custom');
+  out.push({
+    key: 'custom', title: '我的词库', official: false,
+    meta: cs.count ? ('我导入的词 · ' + cs.count + ' 词') : '还没有单词',
+    count: cs.count, due: cs.due, overdue: cs.overdue, mastered: cs.mastered, pct: cs.pct
+  });
+  const banks = (typeof OB_BANKS !== 'undefined' && Array.isArray(OB_BANKS)) ? OB_BANKS : [];
+  banks.forEach(ent => {
+    let meta = null;
+    try{ meta = (typeof wbBankMeta === 'function') ? wbBankMeta(ent.id) : null; }catch(e){ meta = null; }
+    const st = wbDeckStats(ent.id);
+    out.push({
+      key: ent.id, title: (meta && meta.name) ? meta.name : (ent.tag || ent.id),
+      official: true, meta: (meta && meta.desc) ? meta.desc : ('官方词包 · ' + (st.total || ent.total || 0) + ' 词'),
+      count: st.count, due: st.due, overdue: st.overdue, mastered: st.mastered, pct: st.pct    });
+  });
+  return out;
+}
+
+/* 图标用函数而不是 const：这两个变量若写成 const，页面初始化时（renderWords 早于本段执行）
+   会撞上 TDZ 报「Cannot access before initialization」。函数声明会提升，安全。 */
+function wbDeckIcon(kind){
+  return kind === 'official'
+    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1.5 3 3 6 3s6-1.5 6-3v-5"/></svg>'
+    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>';
+}
+
+function wbDeckCardHtml(d){
+  const cur = (typeof wbActive === 'function' && wbActive() === d.key);
+  const pctW = Math.max(0, Math.min(100, d.pct || 0));
+  const numBlock = d.official
+    ? '<div class="wb-deck-num"><b>' + pctW + '</b><span>% 已学</span></div>'
+    : '<div class="wb-deck-num"><b>' + (d.due || 0) + '</b><span>待复习</span>' +
+      (d.overdue ? '<span class="wb-deck-od">' + d.overdue + ' 已过期</span>' : '') + '</div>';
+  const foot = d.official
+    ? '<div class="wb-deck-foot">共 ' + (d.count || 0) + ' 词 · 已学 ' + pctW + '%<span class="wb-deck-go">背这本 →</span></div>'
+    : '<div class="wb-deck-foot">共 ' + (d.count || 0) + ' 词 · 已掌握 ' + pctW + '%<span class="wb-deck-go">进这本 →</span></div>';
+  return '<button type="button" class="wb-deck' + (d.official ? ' off' : '') + (cur ? ' cur' : '') + '" data-deck="' + d.key + '"' +
+    ' aria-label="' + (d.title || '').replace(/"/g, '') + '">' +
+    '<div class="wb-deck-top">' +
+      '<span class="wb-deck-ic">' + (wbDeckIcon(d.official ? "official" : "custom")) + '</span>' +
+      '<span class="wb-deck-tx"><span class="wb-deck-name">' + escapeHtml(d.title || '') + '</span>' +
+      '<span class="wb-deck-meta">' + escapeHtml(d.meta || '') + '</span></span>' +
+    '</div>' + numBlock +
+    '<div class="wb-deck-bar"><i' + (d.official ? ' class="off"' : '') + ' style="width:' + pctW + '%"></i></div>' +
+    foot + '</button>';
+}
+
+function wbRenderDeckGrid(){
+  const box = document.getElementById('wbDecks');
+  const head = document.getElementById('wbLibSub');
+  const titleEl = document.getElementById('wbLibTitle');
+  if(!box) return;
+  const decks = wbDecks();
+  const books = decks.length;
+  const words = decks.reduce((n, d) => n + (d.count || 0), 0);
+  if(head) head.textContent = '共 ' + books + ' 本 · 合计 ' + words + ' 词';
+  if(titleEl) titleEl.textContent = '我的词书';
+  box.innerHTML = decks.map(wbDeckCardHtml).join('') +
+    '<button type="button" class="wb-deck--add" id="wbDeckAdd" aria-label="添加词书">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>添加词书</button>';
+}
+
+/* 点书卡：切到那本书 → 展开它的词列表（软切，不换页）。
+   点「+ 添加词书」：展开上面的导入折叠条并聚焦输入框（与空态那个按钮同一条路）。 */
+if(!window.__wbDeckBound){
+  window.__wbDeckBound = true;
+  document.addEventListener('click', function(e){
+    const add = e.target.closest ? e.target.closest('#wbDeckAdd') : null;
+    if(add){
+      const impBody = document.getElementById('wlImpBody'), impBar = document.getElementById('wlImpBar'), impCard = document.getElementById('bankImportCard');
+      if(impBody && impBar && impCard){
+        impBody.hidden = false;
+        impCard.classList.add('open');
+        impBar.setAttribute('aria-expanded', 'true');
+        impCard.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        const ta = document.getElementById('smartInput');
+        if(ta) setTimeout(() => ta.focus({ preventScroll: true }), 260);
+      }
+      return;
+    }
+    const card = e.target.closest ? e.target.closest('.wb-deck') : null;
+    if(!card || !card.dataset.deck) return;
+    const id = card.dataset.deck;
+    const cur = (typeof wbActive === 'function') ? wbActive() : 'custom';
+    if(id !== cur){
+      let name = '我的词库';
+      try{ const m = wbBankMeta(id); name = (id === 'custom') ? '我的词库' : ((m && m.name) ? m.name : id); }catch(e2){}
+      try{ wbSetActive(id); }catch(err){}
+      // 官方词包是异步 fetch 的：切过去时词还没到，直接重渲会得到空列表。
+      // 先等词包 ready 再渲（加载期间列表给一行中文占位，不是空白）。
+      const needFetch = (id !== 'custom') && !(typeof wbLoaded === 'function' && wbLoaded(id));
+      if(needFetch){
+        const box = document.getElementById('wordList');
+        if(box && typeof renderEmpty === 'function') box.innerHTML = renderEmpty('词包加载中…');
+        renderWords();
+        Promise.resolve((typeof obBankReady === 'function') ? obBankReady(id) : null)
+          .then(() => { renderWords(); })
+          .catch(() => { if(box && typeof renderEmpty === 'function') box.innerHTML = renderEmpty('词包没加载出来，切回「我的词库」再试一次。'); });
+      } else {
+        renderWords();
+      }
+      try{ toast('已切换到「' + name + '」'); }catch(e3){}
+    }
+    // 把视线带到这本的词列表
+    const listSec = document.getElementById('wordList');
+    if(listSec && listSec.scrollIntoView) listSec.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  });
+}
+
 function renderWords(){
+  wbRenderDeckGrid();   // 10-23 4-3：词书网格每次重渲都跟着刷新（切库/导入/删词后数字要跟上）
   const official = wbActive() !== 'custom';   // design/78：词库 tab 双视图
   _bankReadonly = official;
   initErrFilter();   // 错误档 chips 随词库变化重建（带各档词数）

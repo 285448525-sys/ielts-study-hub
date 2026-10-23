@@ -86,7 +86,54 @@ html[data-theme="dark"] .finish-zero-card{background:rgba(70,168,131,.16)}
 
 
 
-/* ====== 练习设置模态弹窗（参考爱听写）====== */
+/* ====== 10-23 4-3 词书库（版一：词书卡片网格）======
+   她 10-5x 拍板选版一，核心理由 =「后续要多加很多词书」→ 加书只加卡、结构不变。
+   全部走现有 token：渐变只用 500/700 两档（800/900 深色块没定义，踩过坑）。 */
+.wb-lib{margin:0 0 12px}
+.wb-lib-head{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin:2px 0 10px;padding:0 2px}
+.wb-lib-head b{font-size:14.5px;font-weight:800;color:var(--ink)}
+.wb-lib-head span{font-size:12px;color:var(--muted)}
+.wb-decks{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+@media (max-width:860px){ .wb-decks{grid-template-columns:repeat(2,1fr)} }
+@media (max-width:560px){ .wb-decks{grid-template-columns:1fr} }
+
+.wb-deck{position:relative;display:flex;flex-direction:column;gap:9px;padding:13px 14px;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);
+  cursor:pointer;transition:border-color .15s,box-shadow .15s,transform .12s;text-align:left;font-family:inherit}
+.wb-deck:hover{border-color:var(--primary-300);box-shadow:var(--shadow)}
+.wb-deck:active{transform:scale(.995)}
+.wb-deck.cur{border-color:var(--primary)}
+.wb-deck-top{display:flex;align-items:center;gap:9px;min-width:0}
+.wb-deck-ic{width:30px;height:30px;border-radius:9px;background:var(--primary-50);color:var(--primary-700);
+  display:flex;align-items:center;justify-content:center;flex:none}
+.wb-deck-ic svg{width:16px;height:16px}
+.wb-deck.off .wb-deck-ic{background:var(--corpus-soft);color:var(--corpus-text)}
+.wb-deck-tx{flex:1;min-width:0}
+.wb-deck-name{display:block;font-size:13.5px;font-weight:700;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wb-deck-meta{display:block;font-size:11px;color:var(--muted);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wb-deck-num{display:flex;align-items:baseline;gap:5px;margin-top:1px}
+.wb-deck-num b{font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1.05;color:var(--ink);font-variant-numeric:tabular-nums}
+.wb-deck-num span{font-size:11.5px;color:var(--muted)}
+.wb-deck-od{margin-left:auto;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:999px;
+  background:var(--warn-soft);color:var(--warn-ink);white-space:nowrap;flex:none}
+.wb-deck-bar{height:5px;border-radius:3px;background:var(--line);overflow:hidden;display:flex}
+.wb-deck-bar i{display:block;height:100%;background:var(--primary-500)}
+.wb-deck-bar i.off{background:var(--corpus)}
+.wb-deck-foot{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted)}
+.wb-deck-go{margin-left:auto;font-size:11.5px;font-weight:700;color:var(--primary-text);
+  display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
+.wb-deck--add{display:flex;align-items:center;justify-content:center;gap:6px;min-height:96px;
+  border:1px dashed var(--n-400);background:var(--n-50);border-radius:var(--radius-sm);
+  color:var(--muted);font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer;transition:border-color .15s,color .15s}
+.wb-deck--add:hover{border-color:var(--primary);color:var(--primary)}
+.wb-deck--add svg{width:14px;height:14px}
+@media (max-width:560px){
+  .wb-deck{padding:12px}
+  .wb-deck-num b{font-size:20px}
+  .wb-deck--add{min-height:56px}
+}
+
+
 .cfg-modal-overlay{
   position:fixed;inset:0;background:rgba(0,0,0,.35);
   display:flex;align-items:center;justify-content:center;z-index:9999;

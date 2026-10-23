@@ -32,7 +32,7 @@
 </script>
 <title>单词 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261023k" />
-<link rel="stylesheet" href="css/p/practice.css?v=20261023b" />
+<link rel="stylesheet" href="css/p/practice.css?v=20261023c" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -56,7 +56,7 @@
   <!-- design/77 DHP+SSP-MMC 策略表：必须在 practice.js 之前（defer 按文档序执行，表未加载时 practice.js 有回退兜底） -->
   <script defer src="js/dhp_policy.js?v=20260921a"></script>
   <script src="js/practice.js?v=20261012a" defer></script>
-  <script src="js/words.js?v=20261023a" defer></script>
+  <script src="js/words.js?v=20261023b" defer></script>
 <style>
 /* ============================================================
    10/3 A 版「今日复习卡 + 学习状态分组」（她选的 A 版）
@@ -258,8 +258,10 @@ body.word-fullscreen .hub-topbar{display:none !important}
   </div>
 
   <div id="bankView" hidden>
-    <!-- design/78：词库切换分段条（我的词库 / 学术阅读 AWL），wbRenderSwitchers 渲染 -->
-    <div id="wbSwitcher"></div>
+    <!-- design/78：词库切换分段条（我的词库 / 学术阅读 AWL），wbRenderSwitchers 渲染。
+         10-23 4-3：词书网格（#wbDeckGrid）取代了它的展示职责 —— 这个容器与 id 保留不动
+         （js/wordbank.js 的 wbSetActive 内部会调 wbRenderSwitchers 往这里写），只是不再显示。 -->
+    <div id="wbSwitcher" hidden></div>
     <!-- 10/3 A 版「今日复习卡」：借鉴墨墨「当日记忆曲线，优先复习哪一段」+ 扇贝「每日任务量」。
          **数据全部来自现有字段**（wordIntervalDesc 的 next/overdue + errTotal + level + wbTodayWrongEns），
          **零新增存储**。官方词包（只读、无学习进度）不渲染这张卡。 -->
@@ -280,6 +282,19 @@ body.word-fullscreen .hub-topbar{display:none !important}
         <div class="wb-tcell wb-tcell-warn"><span>答错待巩固</span><b id="wbNWrong">0</b></div>
         <div class="wb-tcell"><span>今日已学</span><b id="wbNLearned">0</b></div>
       </div>
+    </section>
+
+    <!-- ===== 10-23 4-3 词书库（版一：词书卡片网格）=====
+         她 10-5x 拍板：「我是想着后续要多加很多词书进去，所以现在这样两个栏切换完全不行」。
+         结构 = 一行标题（N 本 · 共 M 词）+ 卡片网格，末尾一张「+ 添加词书」虚线卡。
+         🔴 加新词书 = 网格里多一张卡，结构永远不变（这是本方案唯一命门）。
+         数据全部来自现有字段（每本书的 words / 进度 / 待复习数本来就在算），零新增存储。 -->
+    <section class="wb-lib" id="wbDeckGrid">
+      <div class="wb-lib-head">
+        <b id="wbLibTitle">我的词书</b>
+        <span id="wbLibSub"></span>
+      </div>
+      <div class="wb-decks" id="wbDecks"></div>
     </section>
 
     <!-- 10/3 A 版：AI 导入从常驻 132px 卡收成 44px 折叠条（偶尔用的功能不该占首屏 C 位）。
