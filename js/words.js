@@ -86,9 +86,12 @@ function groupByStatus(list){
     const errN = Number(w.errTotal != null ? w.errTotal : (w.mcLapses || 0)) || 0;
     const info = wbWordDue(w);
     if(errN > 0) wrong.push(w);
-    /* 「今天要复习」= 已到期/过期 且尚未掌握（cleared=true 的已进「已掌握」，不重复计入）。
-       词可以同时出现在「答错过」和「今天要复习」里—— 两个视角不是互斥的，符合她「先刷错词」的习惯。 */
-    if(w.cleared !== true && info && (info.overdue || info.next)) due.push(w);
+    /* 「今天要复习」= 真的到期（含逾期）且尚未掌握。
+       ⚠️ 10-23 修：原来判的是 `info.overdue || info.next`，而 info.next 是**文案**——
+       只要排期没空着它就有值（连「70 天后」也算），于是「今天要复习」把所有未掌握词
+       全装了进来（实测 24 词：今日卡说 19、书卡说 14、列表组里也 19，三个数三个样）。
+       现在统一用与书卡/胶囊同一个判定 wbWordState().due，三处口径一致。 */
+    if(w.cleared !== true && wbWordState(w).due) due.push(w);
     if(w.cleared === true){ (lv >= 5) ? mastered.push(w) : learning.push(w); }
     else learning.push(w);
   });
@@ -1042,7 +1045,7 @@ function renderTodayCard(){
   const ws = wbWords() || [];
   if(official || !ws.length){ card.hidden = true; return; }
 
-  let overdue = 0, fresh = 0, learnedToday = 0;
+  let overdue = 0, fresh = 0, maybe = 0, learnedToday = 0;
   const hasInfo = (typeof wordIntervalDesc === 'function');
   ws.forEach(w => {
     if(!w) return;
@@ -1055,12 +1058,14 @@ function renderTodayCard(){
       }
     }
     if(!hasInfo) return;
-    let info = null;
-    try{ info = wordIntervalDesc(w); }catch(e){ info = null; }
-    if(!info) return;
-    const lv = Number(w.level) || 0;
-    if(info.overdue) overdue++;
-    else if(info.next && lv < 5) fresh++;   // 「新高频」= 已到期但掌握度还低
+    /* ⚠️ 10-23 修：原来这里用 wordIntervalDesc().overdue 数「已过期」，再拿「有 next 文案」当「新高频」，
+       两样都不是「今天到不到期」——后者连「70 天后」也算，导致今日卡标题比书卡多出一截（19 vs 14）。
+       现在与书卡/胶囊/列表组完全同源：到期 = wbWordState().due，其中逾期单列、其余算新到期。 */
+    const st = wbWordState(w);
+    if(!st.due) return;
+    if(st.overdue) overdue++;
+    else if((Number(w.level) || 0) < 5) fresh++;
+    else maybe++;   // 已到期但 Lv≥5 且未掌握：既不逾期也算不上「新」，单独记着，别从总数里漏掉
   });
   let wrong = 0;
   try{ wrong = (wbTodayWrongEns() || []).length; }catch(e){ wrong = 0; }
@@ -1069,7 +1074,7 @@ function renderTodayCard(){
   set('wbNOverdue', overdue); set('wbNNew', fresh);
   set('wbNWrong', wrong);   set('wbNLearned', learnedToday);
 
-  const total = overdue + fresh;
+  const total = overdue + fresh + maybe;
   const title = document.getElementById('wbTodayTitle');
   const sub = document.getElementById('wbTodaySub');
   const go = document.getElementById('wbTodayGo');
@@ -1081,7 +1086,14 @@ function renderTodayCard(){
     return;
   }
   if(title) title.textContent = '今天要复习 ' + total + ' 个词';
-  if(sub) sub.textContent = (overdue ? (overdue + ' 个已过期 · ') : '') + fresh + ' 个新高频' + (wrong ? (' · ' + wrong + ' 个答错待巩固') : '');
+  if(sub){
+    const bits = [];
+    if(overdue) bits.push(overdue + ' 个已过期');
+    if(fresh)   bits.push(fresh + ' 个新到期');
+    if(maybe)   bits.push(maybe + ' 个到期待巩固');
+    if(wrong)   bits.push(wrong + ' 个答错待巩固');
+    sub.textContent = bits.join(' · ');
+  }
   if(go) go.textContent = '开始复习';
   card.hidden = false;
 }
