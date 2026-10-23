@@ -192,6 +192,14 @@ ready(() => {
   $('#writeTabs').querySelectorAll('[data-tab]').forEach(b => {
     b.addEventListener('click', () => switchWriteTab(b.dataset.tab));
   });
+  /* 🔴 10-23 T-001：顶栏二级菜单「写作」落地分栏（?sub=tpl|bank|score）。
+     🔺 必须写在这里、不能放到 ready 末尾 —— 下面的 renderList/renderScoreHist 会重画列表，
+     切太晚观感是「先闪一下默认分栏再跳」。这里只读参数 → 调已有 switchWriteTab。
+     优先读 sessionStorage 暗号（软导航时 location.search 还没更新，见 common.js tbSubPending）。 */
+  try{
+    const _tbSub = (typeof tbSubPending === 'function') ? tbSubPending('writing') : '';
+    if(_tbSub === 'tpl' || _tbSub === 'bank' || _tbSub === 'score') switchWriteTab(_tbSub);
+  }catch(e){}
 
   // 模板库
   renderCats();

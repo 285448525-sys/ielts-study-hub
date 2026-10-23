@@ -4026,4 +4026,32 @@ window.__reportExamState = reportExamState;
   if(document.readyState !== 'loading') boot();
   else document.addEventListener('DOMContentLoaded', boot);
   window.addEventListener('hub:page-shown', function(){ setTimeout(boot, 0); });
+
+  /* 🔴 10-23 T-001：顶栏二级菜单「模考」落地分栏（?sub=reading|listening|writing|speaking）。
+     ⚠️ 必须在 boot() **之后**、且判 manifest 是否已就绪才行：
+        boot() 拿到 manifest 会调 paintTab() 重画，它会把 tab 打回页面属性上的值。
+        所以这里包一层：先按请求写 data-mock-tab，再在 manifest 就绪后再 paintTab 一次。
+     只读参数 → 调已有 paintTab，不重写任何切换逻辑。 */
+  function tbApplySub(){
+    var want = '';
+    try{ want = (typeof tbSubPending === 'function') ? tbSubPending('bank') : ''; }catch(e){}
+    if(!want) return;
+    if(['reading','listening','writing','speaking'].indexOf(want) < 0) return;
+    var root = document.getElementById('bankRoot'); if(!root) return;
+    root.setAttribute('data-mock-tab', want);
+    /* 等 manifest：boot 是异步的，_manifest 到位后再画一次。最多等 8 秒（慢网），
+       超时就按当前请求先画（列表可能还是骨架，但 tab 位置是对的，不会卡死）。 */
+    var t0 = Date.now();
+    (function wait(){
+      var r2 = document.getElementById('bankRoot'); if(!r2) return;
+      if(_manifest){ paintTab(want); return; }
+      if(Date.now() - t0 > 8000){ paintTab(want); return; }
+      setTimeout(wait, 120);
+    })();
+  }
+  /* hub:page-shown 是软导航每次进页都会发的（见 common-shell.js），冷启动时 boot 自己跑。
+     两个入口都接上；tbApplySub 内部对「没有 sub」是空操作，重复调用安全。 */
+  if(document.readyState !== 'loading') setTimeout(tbApplySub, 0);
+  else document.addEventListener('DOMContentLoaded', function(){ setTimeout(tbApplySub, 0); });
+  window.addEventListener('hub:page-shown', function(){ setTimeout(tbApplySub, 0); });
 })();

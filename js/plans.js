@@ -404,6 +404,17 @@ ready(() => {
     const lastTab = sessionStorage.getItem('hub_plan_ptab');
     if(lastTab === 'plan' || lastTab === 'history') setPlanTab(lastTab);
   }catch(e){}
+  /* 🔴 10-23 T-001：顶栏二级菜单「计划」落地分栏（?sub=today|plan|history）。
+     放在「恢复上次 Tab」之后 —— 显式带参数来的请求优先于记忆（她是点了某个二级项才来的）。
+     只读参数 → 调已有 setPlanTab，不碰任何切换逻辑。
+     ⚠️ 必须 setTimeout(0) 延到 ready 同步体末尾：后面还有多处初始化会调 setPlanTab('today')，
+        就地切会被覆盖（实测 ?sub=history 落地仍停在「今日」）。 */
+  setTimeout(function(){
+    try{
+      const _tbSub = (typeof tbSubPending === 'function') ? tbSubPending('plans') : '';
+      if(_tbSub === 'today' || _tbSub === 'plan' || _tbSub === 'history') setPlanTab(_tbSub);
+    }catch(e){}
+  }, 0);
 
   // 每周 AI 排程（第三十三批：规划 Tab 改造为「备考诊断」后旧 DOM 已移除；
   // aiWeekPlan/buildAndRender 函数一字未动地保留，仅在旧元素仍存在时绑定——软导航缓存页/旧预览不崩）

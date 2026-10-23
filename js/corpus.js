@@ -1,4 +1,4 @@
-﻿var dict = null; // {queue, idx, cfg, wrongList, total, correct, revealed}
+var dict = null; // {queue, idx, cfg, wrongList, total, correct, revealed}
 
 // ---- 语料库表格默写草稿（瞬态 localStorage，切走/刷新可续；不进云同步）----
 var corDraftTimer = null;
@@ -746,6 +746,17 @@ ready(() => {
   window.__switchCorpusSub = switchCorpusSub;
   document.querySelectorAll('#wordTabs [data-sub]').forEach(b => b.addEventListener('click', () => switchCorpusSub(b.dataset.sub)));
   if(location.hash === '#eb') switchCorpusSub('eb');
+  /* 🔴 10-23 T-001：顶栏二级菜单「句子」落地分栏（?sub=ls|eb|dict）。
+     只读参数 → 调上面这个已有切换函数，不重写任何切换逻辑。
+     优先读 sessionStorage 暗号（软导航时 location.search 还没更新，见 common.js tbSubPending）。
+     ⚠️ 必须 setTimeout(0) 延到 ready 同步体跑完之后：后面还有 render() 等初始化，
+        就地切会被它们覆盖（实测 ?sub=dict 落地仍停在「长难句」）。 */
+  setTimeout(function(){
+    try{
+      const _tbSub = (typeof tbSubPending === 'function') ? tbSubPending('corpus') : '';
+      if(_tbSub === 'ls' || _tbSub === 'eb' || _tbSub === 'dict') switchCorpusSub(_tbSub);
+    }catch(e){}
+  }, 0);
 
   /* 错题本 */
   $('#ebAnalyze').addEventListener('click', analyzeEntry);

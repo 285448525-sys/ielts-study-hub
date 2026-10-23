@@ -129,6 +129,41 @@ function isNavHidden(p){ return !!(p && p.hidden); }
    顶栏样式只在 css/p/home.css（本批仅 home 用；其他页换壳时再上搬 common.css）。
    搜索框复用侧栏那套 AI 智能搜索（同 id：#sideSearch/#ssPanel/#ssList + bindSideSearch），
    行为零分叉；A3b 的形态差异只在 CSS（186px 紧凑框 + Ctrl K 角标）。 */
+/* ===== T-001 顶栏二级菜单（10-23 · 依据 `方案\T-001-顶栏二级菜单-v2`）=====
+   只做「下拉」，一级页签视觉本批不动（改下划线式 = 派活清单第二批 2-3）。
+   首页 / 单词 / 回顾 三项没有二级（方案 §四：单词页没有现成分栏，第二批再说）。
+   sub 值 = 目标页里已有的分栏键，与各页自己的 data-* 一一对应，**不另造新分栏**：
+     bank    → #mockTabs 的 data-mtab：reading / listening / writing / speaking
+     speaking→ #tabs 的 data-type：BANK / PRACTICE / MAT
+     writing → #writeTabs 的 data-tab：tpl / bank / score
+     corpus  → #wordTabs 的 data-sub：ls / eb / dict
+     plans   → #planTabs 的 data-ptab：today / plan / history
+   ⚠️ 方案写「句子只剩长难句/听写（错句本删了）」——实测证据以代码为准：
+      corpus.html 的 #wordTabs 仍是三项（长难句 ls / 错题 eb / 听写 dict），
+      错句本删的是 writing 页底部那个 wbArea，不是 corpus 这个「错题」tab。故保留三项。 */
+const TB_SUB = {
+  bank:     [['阅读','reading'], ['听力','listening'], ['写作','writing'], ['口语','speaking']],
+  speaking: [['题库','BANK'], ['陪练','PRACTICE'], ['素材','MAT']],
+  writing:  [['模板','tpl'], ['语料','bank'], ['评分','score']],
+  corpus:   [['长难句','ls'], ['错题','eb'], ['听写','dict']],
+  plans:    [['今日','today'], ['规划','plan'], ['历史','history']]
+};
+/* sub 的跨页交接：软导航时 location.search 要等 pushState 之后才是新值（见 speaking.js 里
+   senttab 那段注释），而 pushState 在 runPageScript **之后** → 目标页读不到 query。
+   所以点击时先写 sessionStorage，落地页优先读它、读不到再读 URL 参数（整页直达/收藏/刷新走这条）。
+   取用即删，避免下次普通进入该页时被上一次的 sub 劫持。 */
+const TB_SUB_KEY = 'hub_sub_';
+function tbSubHandoff(pageId, sub){
+  try{ sessionStorage.setItem(TB_SUB_KEY + pageId, sub); }catch(e){}
+}
+function tbSubPending(pageId){
+  try{
+    const v = sessionStorage.getItem(TB_SUB_KEY + pageId);
+    if(v){ sessionStorage.removeItem(TB_SUB_KEY + pageId); return v; }
+  }catch(e){}
+  try{ return new URLSearchParams(location.search).get('sub') || ''; }catch(e){ return ''; }
+}
+
 function topBarHtml(current){
   const pageById = id => PAGES.find(p => p.id === id);
   const activeFile = capActiveFile(current);
@@ -144,7 +179,28 @@ function topBarHtml(current){
   let caps = '';
   for(const pid of PRIMARY_NAV){
     const p = pageById(pid); if(!p || isNavHidden(p)) continue;
-    caps += '<a class="tb-item' + (p.file === activeFile ? ' on' : '') + '" href="' + p.file + '" data-id="' + p.id + '">' + escapeHtml(p.name) + '</a>';
+    const on = (p.file === activeFile) ? ' on' : '';
+    const sub = TB_SUB[p.id];
+    if(!sub || !sub.length){
+      caps += '<a class="tb-item' + on + '" href="' + p.file + '" data-id="' + p.id + '">' + escapeHtml(p.name) + '</a>';
+      continue;
+    }
+    /* 大 tab 本身**仍是真链接**（方案硬要求：加了面板不许让点击失效/变成只展开），
+       面板是它的兄弟节点，用 aria-controls 关联；二级项直接写 HTML，不进 JS 注入。 */
+    const pid2 = 'tbsub-' + p.id;
+    let items = '';
+    for(const kv of sub){
+      /* atSub=1 只做「让落地页知道该切到哪个分栏」，不参与高亮 ——
+         分栏高亮由各页自己的切换函数负责（方案：不许重写各页切换逻辑）。 */
+      items += '<a class="tb-sub-item" href="' + p.file + '?sub=' + encodeURIComponent(kv[1])
+        + '" data-hub-sub="' + escapeHtml(kv[1]) + '" data-sub-page="' + p.file + '">' + escapeHtml(kv[0]) + '</a>';
+    }
+    caps += '<span class="tb-cap-wrap" data-cap="' + p.id + '">'
+      + '<a class="tb-item' + on + '" href="' + p.file + '" data-id="' + p.id
+      + '" data-sub-for="' + p.id + '" aria-haspopup="true" aria-expanded="false" aria-controls="' + pid2 + '">'
+      + escapeHtml(p.name) + '</a>'
+      + '<div class="tb-sub" id="' + pid2 + '" data-sub-owner="' + p.id + '">' + items + '</div>'
+      + '</span>';
   }
   /* 「更多」面板（10-23 T-014 她拍板瘦身）：回顾已提一级 → 这里只剩 会员/设置；
      错句本 T-015 整页删，先从这里摘掉；学生数据由下方权限块追加。 */
@@ -192,6 +248,7 @@ function bindTopBar(){
       }
     });
   }
+  bindTopBarSub();
   const btn = document.getElementById('tbMoreBtn');
   const panel = document.getElementById('tbMorePanel');
   if(btn && panel){
@@ -199,9 +256,11 @@ function bindTopBar(){
       panel.hidden = !open;
       btn.setAttribute('aria-expanded', open ? 'true' : 'false');
       btn.classList.toggle('on', open);
+      if(open) tbPlacePanel(panel, btn, 'right');
     };
     btn.addEventListener('click', (e) => {
       e.preventDefault();
+      if(panel.hidden) tbCloseSub();      // 开「更多」= 关掉任何二级面板（同时只开一个）
       setOpen(panel.hidden);
     });
     // 点面板外 / Escape 收起；点面板内条目后由软导航换页（导航重建自然收起）
@@ -211,6 +270,152 @@ function bindTopBar(){
     });
     document.addEventListener('keydown', (e) => {
       if(e.key === 'Escape' && !panel.hidden){ setOpen(false); btn.focus(); }
+    });
+    // 视口变化：fixed 定位的面板必须重算，否则窗口缩放后面板会飘在错位处
+    if(!window.__tbPlaceBound){
+      window.__tbPlaceBound = true;
+      window.addEventListener('resize', () => {
+        tbCloseSub();
+        const p2 = document.getElementById('tbMorePanel'), b2 = document.getElementById('tbMoreBtn');
+        if(p2 && b2 && !p2.hidden) tbPlacePanel(p2, b2, 'right');
+      });
+      window.addEventListener('scroll', () => { tbCloseSub(); }, true);
+    }
+  }
+}
+
+/* 🔴 10-23 T-001：`.tb-caps` 有 overflow-x:auto（T-014 为 9 项窄屏横滚加的），
+   它会把**绝对定位的子面板整块裁掉**（实测「更多」里的会员/设置 elementFromPoint 命不中）。
+   顶栏本身是 position:fixed → 面板改 fixed + 由这里按触发器矩形算位置，绕开祖先裁剪。 */
+function tbPlacePanel(panel, trigger, align){
+  if(!panel || !trigger) return;
+  const r = trigger.getBoundingClientRect();
+  panel.style.top = Math.round(r.bottom + 8) + 'px';
+  // 先放到目标行，量宽度，再做右对齐 / 视口内收（第一次调用时宽度才有值）
+  panel.style.left = Math.round(r.left) + 'px';
+  const w = panel.offsetWidth || 0;
+  const vw = document.documentElement.clientWidth || window.innerWidth;
+  let left = (align === 'right') ? (r.right - w) : r.left;
+  if(left + w > vw - 8) left = vw - 8 - w;
+  if(left < 8) left = 8;
+  panel.style.left = Math.round(left) + 'px';
+}
+
+/* ===== T-001 二级面板的悬停逻辑 =====
+   时序照方案 §三（数值是成熟站点实测区间，别自己改）：
+     进入大 tab 150ms 后才展开（防误触）· 离开「tab + 面板」整体 250ms 后收起 ·
+     同一时刻只有一个面板 · Esc 关 · 面板内点击立刻收起再导航 ·
+     移动端/无悬停设备完全不启用（顶栏在 ≤860 本来就不渲染，这里是双保险）·
+     「更多」的点击展开行为一个字不改（切到大 tab 时才关它）。 */
+let _tbSubTimer = null;
+let _tbSubOpenId = null;
+function tbCanHover(){
+  try{ return !!(window.matchMedia && window.matchMedia('(hover:hover) and (pointer:fine)').matches); }catch(e){ return false; }
+}
+function tbSubEl(id){ return document.getElementById('tbsub-' + id); }
+function tbCloseSub(){
+  if(_tbSubTimer){ clearTimeout(_tbSubTimer); _tbSubTimer = null; }
+  if(_tbSubOpenId){
+    const el = tbSubEl(_tbSubOpenId);
+    const a = document.querySelector('.tb-caps .tb-item[data-sub-for="' + _tbSubOpenId + '"]');
+    if(el) el.classList.remove('show');
+    if(a){ a.classList.remove('tb-open'); a.setAttribute('aria-expanded', 'false'); }
+    _tbSubOpenId = null;
+  }
+}
+function tbOpenSub(id){
+  if(_tbSubTimer){ clearTimeout(_tbSubTimer); _tbSubTimer = null; }
+  if(_tbSubOpenId === id) return;
+  tbCloseSub();
+  const el = tbSubEl(id);
+  const a = document.querySelector('.tb-caps .tb-item[data-sub-for="' + id + '"]');
+  if(!el || !a) return;
+  // 同时只开一个：开二级就把「更多」面板关掉
+  const mp = document.getElementById('tbMorePanel'), mb = document.getElementById('tbMoreBtn');
+  if(mp && !mp.hidden){
+    mp.hidden = true;
+    if(mb){ mb.setAttribute('aria-expanded', 'false'); mb.classList.remove('on'); }
+  }
+  el.classList.add('show');
+  a.classList.add('tb-open');
+  a.setAttribute('aria-expanded', 'true');
+  _tbSubOpenId = id;
+  tbPlacePanel(el, a, 'left');
+}
+function bindTopBarSub(){
+  const caps = document.querySelector('.tb-caps');
+  if(!caps) return;
+  /* ⚠️ 不能拿 .tb-caps 上的标记做「只绑一次」闸门：软导航会重渲染 nav.innerHTML
+     （wrap / 面板全是新节点），但 .tb-caps 这个元素本身是同一个 → 标记还在，
+     新节点就永远绑不上（实测：从首页点进 bank 后二级项点了没反应、也没报错）。
+     所以改成**逐 wrap 标记**：静态属性不会随 innerHTML 重建而残留。 */
+  const wraps = caps.querySelectorAll('.tb-cap-wrap');
+  if(!wraps.length) return;
+  wraps.forEach(wrap => {
+    const id = wrap.getAttribute('data-cap');
+    const a = wrap.querySelector('.tb-item[data-sub-for]');
+    const panel = wrap.querySelector('.tb-sub');
+    if(!id || !a || !panel) return;
+    wrap.addEventListener('mouseenter', () => {
+      if(!tbCanHover()) return;
+      if(_tbSubTimer){ clearTimeout(_tbSubTimer); _tbSubTimer = null; }
+      _tbSubTimer = setTimeout(() => { _tbSubTimer = null; tbOpenSub(id); }, 150);
+    });
+    wrap.addEventListener('mouseleave', () => {
+      if(!tbCanHover()) return;
+      if(_tbSubTimer){ clearTimeout(_tbSubTimer); _tbSubTimer = null; }
+      const p = tbSubEl(id);
+      // 面板是 fixed 的，鼠标从 tab 移到面板会先触发 wrap 的 leave 再触发面板 enter，
+      // 250ms 的窗口就是给这段「跨到面板上」的时间（方案 §三：给她移动鼠标的时间）。
+      const openNow = (p && p.classList.contains('show'));
+      if(!openNow) return;
+      _tbSubTimer = setTimeout(() => { _tbSubTimer = null; tbCloseSub(); }, 250);
+    });
+    /* 面板自己的 hover 也要能取消「离开」计时（fixed 面板在 DOM 上还是 wrap 的后代，
+       但几何上已经和 wrap 不相交，mouseleave 一定会先发生 → 这里的 enter 必须把计时清掉）。 */
+    panel.addEventListener('mouseenter', () => {
+      if(_tbSubTimer){ clearTimeout(_tbSubTimer); _tbSubTimer = null; }
+    });
+    panel.addEventListener('mouseleave', () => {
+      if(!tbCanHover()) return;
+      if(_tbSubTimer){ clearTimeout(_tbSubTimer); _tbSubTimer = null; }
+      _tbSubTimer = setTimeout(() => { _tbSubTimer = null; tbCloseSub(); }, 250);
+    });
+    /* 键盘：焦点进入大 tab 后按 ↓ 也能展开（不展开就没法 Tab 进二级）。
+       Esc 在 document 层统一关（见下）。 */
+    a.addEventListener('focus', () => {
+      if(!tbCanHover()) return;
+      if(_tbSubTimer){ clearTimeout(_tbSubTimer); _tbSubTimer = null; }
+      _tbSubTimer = setTimeout(() => { _tbSubTimer = null; tbOpenSub(id); }, 150);
+    });
+    a.addEventListener('keydown', (e) => {
+      if(e.key === 'ArrowDown'){
+        e.preventDefault();
+        tbOpenSub(id);
+        const first = panel.querySelector('.tb-sub-item');
+        if(first) first.focus();
+      }
+    });
+    /* 二级项点击 → 立刻收起 + 写跨页交接暗号（软导航时 query 读不到，见 tbSubPending 注释）。
+       不 preventDefault：让它走站内软导航那条路（模考锁/自愈刷新都在那套里）。 */
+    panel.querySelectorAll('.tb-sub-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const page = item.getAttribute('data-sub-page') || '';
+        const sub = item.getAttribute('data-hub-sub') || '';
+        const pageId = (PAGES.find(p => p.file === page) || {}).id;
+        if(pageId && sub) tbSubHandoff(pageId, sub);
+        tbCloseSub();
+      });
+    });
+  });
+  if(!window.__tbSubEscBound){
+    window.__tbSubEscBound = true;
+    document.addEventListener('keydown', (e) => {
+      if(e.key === 'Escape' && _tbSubOpenId){
+        const a = document.querySelector('.tb-caps .tb-item[data-sub-for="' + _tbSubOpenId + '"]');
+        tbCloseSub();
+        if(a) a.focus();
+      }
     });
   }
 }

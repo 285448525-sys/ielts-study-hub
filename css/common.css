@@ -2517,7 +2517,12 @@ body[data-shell="top"] .container{padding-top:14px}
 .tb-more{position:relative}
 .tb-more-btn svg{transition:transform .18s}
 .tb-more-btn[aria-expanded="true"] svg{transform:rotate(180deg)}
-.tb-more-panel{position:absolute;top:calc(100% + 8px);right:0;min-width:178px;z-index:70;
+/* 🔴 10-23 T-001：`.tb-caps` 上那对 `overflow-x:auto`（T-014 为 9 项窄屏自带横滚加的）
+   会把**所有**绝对定位的子面板裁掉 —— 因为 CSS 规范里 overflow-x 非 visible 时
+   overflow-y 的计算值也会变成 auto（实测 clientHeight 裁剪，elementFromPoint 命不中
+   「会员/设置」）。所以「更多」面板与二级面板一律改 **position:fixed**，由 JS
+   （common.js 的 tbPlacePanel）按触发器矩形定位。别再改回 absolute。 */
+.tb-more-panel{position:fixed;top:0;left:0;min-width:178px;z-index:70;
   background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow-md,0 12px 28px -14px rgba(16,24,40,.25));
   padding:6px;display:flex;flex-direction:column;gap:1px}
 .tb-more-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;text-decoration:none;
@@ -2526,6 +2531,35 @@ body[data-shell="top"] .container{padding-top:14px}
 .tb-more-item.on{background:var(--primary-50);color:var(--primary-700)}
 .tb-more-item .tm-ic{width:16px;height:16px;flex:none;display:inline-flex;color:var(--muted)}
 .tb-more-item .tm-ic svg{width:16px;height:16px}
+
+/* ===== T-001 顶栏二级菜单（10-23 · 视觉对齐口语页下划线式）=====
+   依据 `交接\方案\T-001-顶栏二级菜单-v2（对齐口语页视觉）.md` §2.2，两处按实测改：
+   ① position 从 absolute 改 **fixed**（原因见上方 .tb-more-panel 注释：父级 overflow 会裁掉面板）；
+   ② 不加 border-top —— 面板贴在顶栏底边线下方，顶栏自己已有 1px border-bottom，
+      再加一条会变成 2px 双线（她「只一道顶边线」的口径由顶栏那条承担）。
+   🔴 一级 tab 样式本批不动（方案 §2.1 的「整体改下划线式」= 派活清单第二批 2-3，本批只做下拉）。 */
+.tb-sub{position:fixed;top:0;left:0;z-index:69;
+  background:var(--surface);
+  box-shadow:0 8px 24px -12px rgba(16,24,40,.18);
+  padding:10px 0 9px;display:none;white-space:nowrap}
+.tb-sub.show{display:block}
+/* 安全三角：面板与 tab 之间 8px 命中带，斜向移动不误关 */
+.tb-sub::after{content:'';position:absolute;left:0;right:0;top:-10px;height:10px}
+.tb-sub .tb-sub-item{display:inline-flex;align-items:center;
+  padding:10px 1px 9px;margin:0 10px;
+  font-size:14px;font-weight:600;color:var(--muted);text-decoration:none;
+  position:relative;transition:color .15s;line-height:1}
+.tb-sub .tb-sub-item:first-child{margin-left:0}
+.tb-sub .tb-sub-item:hover{color:var(--n-900)}
+.tb-sub .tb-sub-item.on{color:var(--primary-700)}
+.tb-sub .tb-sub-item.on::after{content:'';position:absolute;left:0;right:0;bottom:-1px;
+  height:2.5px;border-radius:2px 2px 0 0;background:var(--primary-600)}
+.tb-sub .tb-sub-item:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(58,154,147,.25)}
+/* 一级 tab 悬停/展开态：只变字色，不加底色不加线（口语页 .pill-tab:hover 同款） */
+.tb-caps .tb-item.tb-open{color:var(--ink);background:var(--surface)}
+[data-theme="dark"] .tb-sub{box-shadow:0 8px 24px -12px rgba(0,0,0,.5)}
+/* 手机端（≤860 顶栏整条不渲染）：二级面板一律不出，防别的媒体查询把顶栏放回来时漏降级 */
+@media (max-width:860px){ .tb-sub{display:none !important} }
 
 /* 右侧：搜索框（186px 紧凑框 + Ctrl K）· 计时徽标 · 头像 */
 .tb-right{display:flex;align-items:center;gap:10px;flex:none}

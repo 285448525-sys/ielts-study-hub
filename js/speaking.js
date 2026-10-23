@@ -504,6 +504,21 @@ ready(() => {
   $('#sentView').hidden = true;
   const bankTabBtn = document.querySelector('#tabs [data-type="BANK"]');
   if(bankTabBtn) bankTabBtn.click();
+  /* 🔴 10-23 T-001：顶栏二级菜单「口语」落地分栏（?sub=BANK|PRACTICE|MAT）。
+     放在上面「程序化点 BANK」之后 —— 显式带参数来的请求优先于默认 tab。
+     只读参数 → 点本页自己的 tab 按钮（复用切换分支的全部重置/渲染，不另写一份）。
+     值为空/不识别时什么都不做（保持默认题库 tab）。
+     ⚠️ setTimeout(0)：ready 同步体后面还有 open/senttab/drill 等分支也会改 tab，
+        就地切会被覆盖（实测 ?sub=MAT 落地仍停在「题库」）。 */
+  setTimeout(function(){
+    try{
+      const _tbSub = (typeof tbSubPending === 'function') ? tbSubPending('speaking') : '';
+      if(_tbSub === 'BANK' || _tbSub === 'PRACTICE' || _tbSub === 'MAT'){
+        const _sb = document.querySelector('#tabs [data-type="' + _tbSub + '"]');
+        if(_sb) _sb.click();
+      }
+    }catch(e){}
+  }, 0);
   // P1：?open=<题id> 直达详情（素材页覆盖矩阵点题跳转用）——跳详情时落到题库 tab
   try{
     const openId = new URLSearchParams(location.search).get('open');
