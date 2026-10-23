@@ -200,10 +200,45 @@
     });
   }
 
-  var LOADING_HTML = '<div class="bank-loading">目录加载中…</div>';
+  var LOADING_HTML = '<div class="bank-loading">目录加载中…</div>';   // 旧文案，作兼容兜底保留
+  /* B-1a 补（她 10-23 10:1x「阅读/听力 tab 的目录列表也要骨架屏，不用问我」）：
+     目录加载态从「目录加载中…」一行字升级为骨架屏 + 中文标题 + 取消。
+     objName 按 tab 给（复用 BK_OBJ），meta 那行同步说清在载什么。 */
   function paintLoading(host, meta){
-    if(host) host.innerHTML = LOADING_HTML;
-    if(meta) meta.textContent = '目录加载中…';
+    var obj = (typeof BK_OBJ !== 'undefined' && BK_OBJ[dirChannel()]) || '题库';
+    if(host){
+      host.innerHTML = bkSkeleton(6) + bkStateBox('loading', '正在载入' + obj + '…', '大文件第一次加载要几秒', '取消');
+      /* ⚠️ 每次重画都要**重新绑一次取消** —— 切换 tab 会走到这里，innerHTML 一换，
+         上一个按钮的监听器就没了（B-1a 补：不重绑的话 tab 切一次「取消」就点不动）。 */
+      var c = host.querySelector('[data-bk-act=loading]');
+      if(c) c.addEventListener('click', function(){ dirCancelLoading(); });
+    }
+    if(meta) meta.textContent = '正在载入' + obj + '…';
+  }
+  /* 目录加载的「取消」：中断 manifest 请求 → 两个列表一起进已取消态 */
+  function dirCancelLoading(){
+    if(typeof _bootAC !== 'undefined' && _bootAC){ try{ _bootAC.abort(); }catch(e){} }
+    if(typeof _loading !== 'undefined') _loading = false;
+    paintBothLists('cancelled', '已取消加载', '', '重新加载');
+    ['bankList', 'listenList'].forEach(function(id){
+      var h = document.getElementById(id);
+      if(!h) return;
+      var a = h.querySelector('[data-bk-act=cancelled]');
+      if(a) a.addEventListener('click', function(){ boot(); });
+    });
+  }
+  /* 当前 tab 对应的内容类型（目录骨架的文案与取消都要按它变） */
+  function dirChannel(){
+    var root = document.getElementById('bankRoot');
+    var t = root ? (root.getAttribute('data-mock-tab') || 'reading') : 'reading';
+    return t === 'listening' ? 'listening' : (t === 'writing' ? 'writing' : (t === 'speaking' ? 'speaking' : 'reading'));
+  }
+  /* 目录四态的统一出口：给两个列表同时写同一种态（boot 只跑一次，两个 pane 都可能被看到） */
+  function paintBothLists(kind, title, sub, actText){
+    ['bankList', 'listenList'].forEach(function(id){
+      var h = document.getElementById(id);
+      if(h) h.innerHTML = bkStateBox(kind, title, sub, actText);
+    });
   }
   function renderList(channel, part){
     var host = document.getElementById('bankList');
@@ -441,14 +476,39 @@
     else window.addEventListener('load', go, { once: true });
   })();
 
-  /* ===== 载入 manifest ===== */
-  function boot(){
+  /* ===== 载入 manifest =====
+     B-1a 补（她 10-23 10:1x）：目录走四态 —— 骨架 → 内容 / 失败+重试 / 取消 / 空。
+     ⚠️ manifest 是**一份数据喂两个 pane**（阅读/听力），所以不能用通用 fetchWithStates
+        （它只认一个容器）→ 这里保留自己的 fetch，但四个态的渲染统一走 bkSkeleton /
+        bkStateBox / paintBothLists，样式与正文那三路完全一致。 */
+  var _bootAC = null;                                  // 目录加载的 AbortController（取消用）
+  function boot(skipSkeleton){
     var root = document.getElementById('bankRoot');
     if(!root) return;                                  // 不在本页
     if(_manifest){ paintTab(root.getAttribute('data-mock-tab') || 'reading'); return; }
     if(_loading) return;
     _loading = true;
-    fetch(MANIFEST, { cache: 'no-cache' })
+    var obj = (typeof BK_OBJ !== 'undefined' && BK_OBJ[dirChannel()]) || '题库';
+    /* ① 骨架态：两个列表都先出骨架（哪个 pane 被看到都不会是空白/一行英文） */
+    if(!skipSkeleton){
+      /* 两个 pane 各写各的物体名（隐藏着的那个也要写对 —— tab 切过去前它一直挂着） */
+      [['bankList', '阅读题库'], ['listenList', '听力题库']].forEach(function(pair){
+        var h = document.getElementById(pair[0]);
+        if(h) h.innerHTML = bkSkeleton(6) + bkStateBox('loading', '正在载入' + pair[1] + '…', '大文件第一次加载要几秒', '取消');
+      });
+      /* 取消：走统一出口（中断 manifest 请求 → 已取消态 + 重新加载） */
+      ['bankList', 'listenList'].forEach(function(id){
+        var h = document.getElementById(id);
+        if(!h) return;
+        var c = h.querySelector('[data-bk-act=loading]');
+        if(c) c.addEventListener('click', function(){ dirCancelLoading(); });
+      });
+    }
+    var hasAC = (typeof AbortController === 'function');
+    _bootAC = hasAC ? new AbortController() : null;
+    var fo = { cache: 'no-cache' };
+    if(_bootAC) fo.signal = _bootAC.signal;
+    fetch(MANIFEST, fo)
       .then(function(r){ if(!r.ok) throw new Error('manifest ' + r.status); return r.json(); })
       .then(function(m){
         _manifest = m; _loading = false;
@@ -457,11 +517,16 @@
       })
       .catch(function(err){
         _loading = false;
+        if(err && err.name === 'AbortError') return;     // 取消是自己的事，不当失败报
         if(window.console && console.error) console.error('[bank] manifest 加载失败：', err);
-        /* 🔴 10/11 顺带修：失败提示原先只写 #bankList，听力 tab 会一直停在「目录加载中…」 */
+        /* 🔴 10/11 顺带修：失败提示原先只写 #bankList，听力 tab 会一直停在「目录加载中…」
+           B-1a：升级为四态的错误态（中文 + 重试按钮），两个列表都写。 */
+        paintBothLists('error', '目录没加载出来', '可能是网络问题，重试一下', '重试');
         ['bankList', 'listenList'].forEach(function(id){
           var h = document.getElementById(id);
-          if(h) h.innerHTML = '<div class="bank-empty"><p>目录加载失败，请刷新重试。</p></div>';
+          if(!h) return;
+          var b = h.querySelector('[data-bk-act=error]');
+          if(b) b.addEventListener('click', function(){ boot(); });
         });
         /* 10/17 性能批：入口卡已改为静态写在 HTML 里，目录失败时它不该再挂在那儿
            （按钮虽 disabled 点不动，但「完整阅读模考」配一条失败提示会让人以为能用）。 */
