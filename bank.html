@@ -18,7 +18,7 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>模考 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261023p" />
+<link rel="stylesheet" href="css/common.css?v=20261023r" />
 <link rel="stylesheet" href="css/p/bank.css?v=20261017a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
@@ -1311,6 +1311,23 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
   #examRoot.ct-dark .ex-script .sc-line.on .sc-tx,
   #examRoot.ct-yellow .ex-script .sc-line.on .sc-tx{color:#fff}
   #examRoot.ct-yellow .ex-script .sc-line.on .sc-tx{color:#ffe98a}
+  /* 时间戳在深色下也翻亮（.sc-t 走的是 --primary-text，深色里会压成近墨绿，看不清） */
+  #examRoot.ct-dark .ex-script .sc-line .sc-t{color:#9fb3b1}
+  #examRoot.ct-yellow .ex-script .sc-line .sc-t{color:#c8b98a}
+  #examRoot.ct-dark .ex-script .sc-line.on .sc-t{color:#8fe0d6}
+  #examRoot.ct-yellow .ex-script .sc-line.on .sc-t{color:#ffe98a}
+  #examRoot.ct-dark .ex-script .sc-line .sc-tx{color:#d8dde2}
+  #examRoot.ct-yellow .ex-script .sc-line .sc-tx{color:#f0e3a8}
+  /* 🔴 实测抓到：`.ex-script` 用 var(--surface)，而 --surface 定义在 :root 上、
+     #examRoot.ct-dark 不会把它翻掉 → 深色/黄色考场里这块原文卡**还是白底**。
+     上面又把文字改浅了 → 白底浅字，几乎看不见（截图确认过）。
+     修法 = 整块跟着翻深（这才是深色考场该有的样子，没时间轴的旧形态同样受益）。 */
+  #examRoot.ct-dark .ex-script,
+  #examRoot.ct-yellow .ex-script{background:#1b1b1b;border-color:#3a3f45}
+  #examRoot.ct-dark .ex-script>summary{color:#8fe0d6}
+  #examRoot.ct-yellow .ex-script>summary{color:#ffe98a}
+  #examRoot.ct-dark .ex-script .sc-body{color:#d8dde2}
+  #examRoot.ct-yellow .ex-script .sc-body{color:#f0e3a8}
   @media (max-width:560px){
     .ex-script .sc-line{padding:6px 8px;gap:8px}
     .ex-script .sc-line .sc-t{width:38px;font-size:11px}
@@ -1970,13 +1987,13 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
      （手机慢网 ~50KB/s → 约 1.5 秒）。加载时机：点开「写作」tab 时按序插入；
      首次 load 之后空闲再预热一次。承接代码在 js/bank.js 的 loadWritingScripts()。 -->
 <script defer src="js/data.js?v=20261022d"></script>
-<script defer src="js/common.js?v=20261023p"></script>
-<script defer src="js/common-ai.js?v=20261023p"></script>
-<script defer src="js/common-sync.js?v=20261023p"></script>
-<script defer src="js/common-merge.js?v=20261023p"></script>
-<script defer src="js/common-cloud.js?v=20261023p"></script>
-<script defer src="js/common-shell.js?v=20261023p"></script>
-<script defer src="js/common-pwa.js?v=20261023p"></script>
+<script defer src="js/common.js?v=20261023r"></script>
+<script defer src="js/common-ai.js?v=20261023r"></script>
+<script defer src="js/common-sync.js?v=20261023r"></script>
+<script defer src="js/common-merge.js?v=20261023r"></script>
+<script defer src="js/common-cloud.js?v=20261023r"></script>
+<script defer src="js/common-shell.js?v=20261023r"></script>
+<script defer src="js/common-pwa.js?v=20261023r"></script>
 <script defer src="js/bank.js?v=20261023g"></script>
 </body>
 </html>
