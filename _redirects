@@ -40,3 +40,11 @@
 /ui-mockup.html       /  302
 /ui-mockup            /  302
 
+# 10-23 T-015：错句本独立页已删（她拍板「整个板块前后端删干净」）。
+#   老链接 / 书签 / 已分享出去的 wrongbook 地址不能白屏 404，也不能落到落地页
+#   （那会让人以为「错句本还在，只是换了入口」）→ 302 去写作页，
+#   她明说保留的「我的错句」折叠区就在写作页底部（#wbArea）。
+#   sw.js 的 handleNavigate 里也有同款兜底（离线/弱网时生效），两边口径一致。
+/wrongbook.html       /writing.html  302
+/wrongbook            /writing.html  302
+
