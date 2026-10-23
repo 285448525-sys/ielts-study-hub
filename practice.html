@@ -252,15 +252,9 @@ body.word-fullscreen .hub-topbar{display:none !important}
 
   <div id="studyView" class="study-view-fit">
     <section class="card practice-card practice-card-fit" id="practiceArea">
-      <!-- 10-23 P-3 v2：顶部一条状态带（方案 §二.1）—— ← 返回词库 · 进度条 · 「第 N / M 个」 · 已掌握 · 今日 · 沉浸 -->
-      <div class="w-statebar" id="wStateBar" hidden>
-        <button class="w-back" id="wBackBank" type="button" title="返回词库" aria-label="返回词库">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
-        </button>
-        <div class="w-prog" id="wProg" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="wProgFill" style="width:0%"></i></div>
-        <span class="w-prog-txt" id="wProgTxt"></span>
-        <span class="w-statebar-sp"></span>
-      </div>
+      <!-- 10-24 RV-1：P-3 v2 的顶部状态带已撤（她 01:1x「回退到原来的样子」）——
+           外科式摘除，不是整笔 revert（同提交的 1-1 搜索卡与登录引导条必须留着）。
+           判题与 SRS 一行未动，本页只撤视觉：状态带 / 右侧底细侧栏 / A-D 键位方块。 -->
       <div class="word-stats" id="wordStats" hidden>
         <span class="streak-chip" id="streakChip" hidden>
           <svg class="streak-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2c0 4-3 5-3 9a3 3 0 0 0 6 0c0-1-.5-2-1-2.5 2 0 3 1.5 3 3.5a6 6 0 0 1-12 0c0-4 4-6 7-10z"/></svg>
@@ -271,8 +265,9 @@ body.word-fullscreen .hub-topbar{display:none !important}
         <span class="stat-eta" id="statEta" hidden></span>
         <span class="stat-due-split" id="statDueSplit" hidden></span>
       </div>
-      <!-- 10-23 P-3：旧进度条保留 DOM（JS updateProgBar 仍写 progBarFill），视觉上收进状态带 → 本块隐藏 -->
-      <div class="prog-bar-wrap" id="progBarWrap" hidden style="display:none">
+      <!-- 10-24 RV-1：撤掉 P-3 v2 加的 style="display:none" 覆盖，恢复由 JS 的 hidden 属性控制显隐。
+           ⚠️ DOM 与 progBarFill 这个 id 必须留着 —— updateProgBar() 还在写它。 -->
+      <div class="prog-bar-wrap" id="progBarWrap" hidden>
         <div class="prog-bar-track"><div class="prog-bar-fill" id="progBarFill" style="width:0%"></div></div>
       </div>
       <div class="word-tools-row" id="wordToolsRow" hidden>
