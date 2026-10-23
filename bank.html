@@ -1459,13 +1459,13 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
      ① `vertical-align:baseline` —— 框的基线与正文基线对齐（middle 是按框的几何中心对文字中心，
         框高一旦跟字身不等就必然错位）；实测 delta 从 2.5px → **0**（三档字号都 0）；
      ② `font-size:1em` —— input 跟父级字号走（默认档 18px、大档 23 / 27），不再恒 13px。
-   高度用 `1.32em`（默认档 23.8px，落在验收要求的 20~24 区间；放大档自动跟着变），
+   高度用 `1.15em`（默认档 23px，落在验收要求的 20~24 区间；放大档 26 / 31px 自动跟着变），
    不做 20~24 的硬编码，否则 Size 三档又会像 10/16 那次一样「只有题目字号能动」。
    圆角 5px：她对标的那个站是圆角，直角太生硬。
    ⚠️ 只作用于 `.ex-html` 里的 inline 填空（summary/completion 题型）；
       右栏其它留白和表格单元格里的框仍走上面 ①⑦ 的原有规则，这次不动它们。 */
-#examRoot .ex-html .ex-blankw{height:1.32em;vertical-align:baseline;border-radius:5px}
-#examRoot .ex-html .ex-blankw input{font-size:1em;line-height:1.2;padding:0 7px}
+#examRoot .ex-html .ex-blankw{height:1.15em;vertical-align:baseline;border-radius:5px}
+#examRoot .ex-html .ex-blankw input{font-size:1em;line-height:1;padding:0 7px}
 
 /* ---- ⑥ 右下 Previous/Next 方块：官方黑/浅灰（截图 22 实测 next=#000 prev=#ddd）---- */
 /* 位置沿用 10/20 她按爱听写截图定的「题目区右上角」（官方同位置），
