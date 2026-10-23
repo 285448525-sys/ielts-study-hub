@@ -66,11 +66,14 @@
   <script defer src="js/sp-core.js?v=20261023a"></script>
   <script defer src="js/sp-stats.js?v=20261023a"></script>
   <script defer src="js/sp-list.js?v=20261023a"></script>
+  <!-- 10-23 T-009 S-4：G 区（P2 串题，design/87）拆出 js/sp-story.js（685 行）。
+       排在 sp-diag.js 之前 —— J 区（诊断）要用它的 spPersonaLine / spDiagTierHead。 -->
+  <script defer src="js/sp-story.js?v=20261023a"></script>
   <!-- 10-23 T-009 S-3：J 区（AI 诊断 / 纠错 / 评分净化，design/76）拆出 js/sp-diag.js。
        它用 sp-story 的 spPersonaLine / spDiagTierHead、sp-list 的 refreshScoreAfterDiag，
-       故排在它们之后；后续 sp-story / sp-q 拆出时依次插在它前面。 -->
+       故排在它们之后。 -->
   <script defer src="js/sp-diag.js?v=20261023a"></script>
-  <script defer src="js/speaking.js?v=20261023j"></script>
+  <script defer src="js/speaking.js?v=20261023k"></script>
   <!-- 10-22 她要求：「句型闯关」这个老引擎整个删掉（页面 / 引擎 / 数据全部下线）。
        已同步删掉 js/pattern-drill.js、pattern-drill.html、data/patterns.json 与 #pdView 界面；
        口语「陪练」tab 仍由 AI 陪练（coach.js）接管，句型练习（sentence-drill.js）不受影响。 -->
