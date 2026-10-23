@@ -1877,6 +1877,26 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 .exg-go:focus-visible{outline:2px solid var(--primary-900);outline-offset:2px}
 @media(max-width:640px){.exg-g{grid-template-columns:1fr}.exg-c{padding:20px 18px 16px}}
 
+/* ===== 10-23 B-1c 洞②：考前指南 .exg 整卡写死浅色 =====
+   .exg 挂在 body 层、受站点主题影响，但全卡 #fff/#111/#6b7280/#237a74 全写死、没有任何 dark 覆盖 →
+   站点深色主题下它就是一块突兀白板。下面按站点主题（[data-theme="dark"]）补一套，
+   与考试档（#examRoot.ct-*）无关 —— 它是考场外的弹层，不受 Colour 设置影响。 */
+[data-theme="dark"] .exg-c{background:#1b1b1b;box-shadow:0 20px 60px rgba(0,0,0,.55)}
+[data-theme="dark"] .exg-x{color:#9aa0a6}
+[data-theme="dark"] .exg-x:hover{background:#2a2a2c;color:#f2f2f2}
+[data-theme="dark"] .exg-c h4{color:#f2f2f2}
+[data-theme="dark"] .exg-i{border-color:#3a3f45;background:#232323}
+[data-theme="dark"] .exg-ic{color:#8fe0d6}
+[data-theme="dark"] .exg-flag{color:#ff8a80}
+[data-theme="dark"] .exg-part{border-color:#3a3f45;color:#8fe0d6}
+[data-theme="dark"] .exg-i b{color:#f2f2f2}
+[data-theme="dark"] .exg-i span:last-child{color:#c8cbd0}
+/* 开始键 14px/800，不算大字号 → 需 4.5:1；「主色底白字」实测只有 3.37:1
+   → 与全站其它小字按钮同一口径：亮青底 + 深字（实测 8.98:1）。 */
+[data-theme="dark"] .exg-go{background:#8fe0d6;color:#0f3330}
+[data-theme="dark"] .exg-go:hover{filter:brightness(1.1)}
+[data-theme="dark"] .exg-go:focus-visible{outline-color:#8fe0d6}
+
 </style>
 </head>
 <body data-shell="top">
