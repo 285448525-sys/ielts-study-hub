@@ -1,3 +1,6 @@
+// 10-23 T-002 步5：applyFontScale / applyReduceMotion 定义在 js/common.js（每页都要能用），
+// 这里只负责表单回填与落库后的即时应用。
+
 // 把当前 DATA.settings 回填到设置页表单（登录合并云端数据后调用，确保「目标分数/每日目标」等可见恢复）
 function populateSettingsForm(){
   const s = DATA.settings || {};
@@ -17,6 +20,10 @@ function populateSettingsForm(){
   if($('#sPron')) $('#sPron').value = (s.pronunciationScore != null ? s.pronunciationScore : '');
   if($('#sFlu')) $('#sFlu').value = (s.fluencyScore != null ? s.fluencyScore : '');
   if($('#sChime')) $('#sChime').checked = s.chimeOnDone !== false;
+  // 10-23 T-002 步5：正文字号（缺省 md=标准）与减少动效（缺省关）回填
+  const _font = (s.fontScale === 'sm' || s.fontScale === 'lg') ? s.fontScale : 'md';
+  if(typeof applyFontScale === 'function') applyFontScale(_font);
+  if($('#sReduceMotion')) $('#sReduceMotion').checked = s.reduceMotion === true;
   // 9/21 翻转：服药模块默认关闭 → 无该函数时兜底 false（与 common.js 口径一致）
   if($('#sAdhd')) $('#sAdhd').checked = (typeof medsModuleOn === 'function') ? medsModuleOn() : false;
   /* 10/3 22:55：#sAcct 登录表单已删（她拍板「未登录不裸填账号密码，改成引导去 login.html」），
@@ -144,6 +151,8 @@ function saveSettings(){
   const _flu = _band('#sFlu');   if(_flu  !== undefined) _set('fluencyScore', _flu);
   _set('chimeOnDone', $('#sChime').checked);
   if($('#sAdhd')) _set('adhd', $('#sAdhd').checked);   // 服药模块开关（未开启则入口全隐藏，数据保留）
+  // 10-23 T-002 步5：两项落库（_fieldTs 模式与上面一致；都登记了 SYNC_SETTINGS_FIELDS 跨设备带回）
+  if($('#sReduceMotion')) _set('reduceMotion', $('#sReduceMotion').checked === true);
   hubSave(); applyTheme();
   if(DATA.settings.syncCode) scheduleCloudUpload();   // 已登录则立即同步（含发音分等）到云端
   toast(DATA.settings.syncCode ? '设置已保存（已同步云端）' : '设置已保存');   // 未登录不谎报「已同步」

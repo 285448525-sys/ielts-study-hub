@@ -215,6 +215,15 @@
 /* 滚动条槽常驻：切换 tab / 跳页面时内容高度变化不再触发垂直滚动条出现↔消失，避免整页宽度抖动（听写 tab 切换时页面变宽、右上角标签位移） */
 html{scrollbar-gutter:stable;}
 @supports not (scrollbar-gutter:stable){ html{overflow-y:scroll;} }
+/* ===== 10-23 T-002 步5①：正文字号三档（方案 §七）=====
+   html[data-font] 由 js/settings.js 切换/启动时挂（缺省 = 无属性 = 标准 15px）。
+   🔴 只影响「相对单位/继承链」的文字：body 字号变，用 em/rem/继承的跟随；
+      写死 px 的旧样式不随它变（全站 px 收编属 B-6 扫尾，不在本批）。
+   🔴 数值与方案差一档：方案写「小15/标准16/大18」，但本站 body 基准是 **15px** 不是 16
+      （common.css:222），照搬会把「标准」变成放大 —— 以实际基准为准：14 / 15 / 17。 */
+html[data-font="sm"] body{font-size:14px}
+html[data-font="lg"] body{font-size:17px}
+
 body{
   margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
   background:var(--bg);
@@ -1470,6 +1479,17 @@ body.exam-fullscreen{overflow:hidden !important}
   /* design/53 动效铁律：开启减弱动效后关闭一切位移与过渡 */
   .card:hover,.meta-card:hover,.qc:hover,.side-timer:hover,.btn:hover,.hero-cta:hover{ transform:none !important; transition:none !important; }
 }
+/* 10-23 T-002 步5②：减少动效开关（data-reduce-motion）—— 与系统偏好并列同一套规则。
+   🔴 她的眼睛累时手动开；选择器并列不加权，:hover 位移照旧被 !important 压住。 */
+html[data-reduce-motion="1"] .hub-loader .ui-loader-dot,
+html[data-reduce-motion="1"] .hub-loader .ui-loader-shadow{ animation:none; }
+html[data-reduce-motion="1"] .hub-loader .ui-loader-dot{ top:20px; height:20px; border-radius:50%; transform:none; }
+html[data-reduce-motion="1"] .hub-loader .ui-loader-shadow{ opacity:.5; transform:scaleX(1); }
+html[data-reduce-motion="1"] .card:hover,html[data-reduce-motion="1"] .meta-card:hover,html[data-reduce-motion="1"] .qc:hover,html[data-reduce-motion="1"] .side-timer:hover,html[data-reduce-motion="1"] .btn:hover,html[data-reduce-motion="1"] .hero-cta:hover{ transform:none !important; transition:none !important; }
+html[data-reduce-motion="1"] .ft-dot{ animation:none; }
+html[data-reduce-motion="1"] .float-timer{ animation:none; }
+/* 开关一开，全站过渡/动画时长归零（覆盖最广的一条；transition-property 保留免布局跳变） */
+html[data-reduce-motion="1"] *{ animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; scroll-behavior:auto !important; }
 
 /* ===== 全站计时悬浮标签（底部居中 · 跨页常驻）——design/55 紧凑化（2026-09-07） ===== */
 .float-timer{

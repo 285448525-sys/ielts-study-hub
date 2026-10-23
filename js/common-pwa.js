@@ -24,7 +24,7 @@ ready(() => { hubLoad();
   injectLoadingOverlay();                              // 注入全站跳转加载遮罩（默认隐藏，点击站内链接时显示）
   initBootLoader();                                    // 收起首屏内联遮罩（覆盖 Ctrl+F5 / 整页跳转的卡顿）
   initFloatTimer();                                   // 注入全站计时悬浮标签（跨页常驻，运行中显示）
-  injectNav(); applyTheme(); restoreSideScroll(); initSoftNav();
+  injectNav(); applyTheme(); if(typeof applyStep5Prefs === 'function') applyStep5Prefs(); restoreSideScroll(); initSoftNav();   // 10-23 T-002 步5：字号三档 + 减少动效，每页启动即挂
   /* 三级权限（10-22）：先用缓存画入口，再异步核对一次自己的角色；角色变了 injectNav 会自己重建。
      无 token 时直接返回（未登录不请求）。失败静默、绝不影响首屏。 */
   if(typeof hubRefreshRole === 'function') hubRefreshRole();

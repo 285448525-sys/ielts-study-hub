@@ -1543,6 +1543,30 @@ function applyTheme(theme){
   if(tc) tc.setAttribute('content', theme === 'dark' ? '#0e1c1b' : '#3a9a93');
 }
 
+/* ===== 10-23 T-002 步5：正文字号三档 + 减少动效（全站级，每页生效）=====
+   之所以放 common.js 而不是 settings.js：settings.js 只有设置页引用，
+   「跨页生效」必须挂在每页都加载的公共链上（与 applyTheme 同一个道理、同一个入口）。
+   启动时由 common-pwa.js 的 boot 链调用（applyTheme() 旁边）；
+   设置页切换时由 js/settings.js 调用并落库。 */
+function applyFontScale(mode){
+  try{
+    if(mode === 'sm' || mode === 'lg'){ document.documentElement.setAttribute('data-font', mode); }
+    else { document.documentElement.removeAttribute('data-font'); }   // md = 标准 = 无属性
+  }catch(e){}
+}
+function applyReduceMotion(on){
+  try{
+    if(on === true){ document.documentElement.setAttribute('data-reduce-motion', '1'); }
+    else { document.documentElement.removeAttribute('data-reduce-motion'); }
+  }catch(e){}
+}
+function applyStep5Prefs(){
+  const s = (typeof DATA !== 'undefined' && DATA.settings) || {};
+  const f = s.fontScale;
+  applyFontScale((f === 'sm' || f === 'lg') ? f : 'md');
+  applyReduceMotion(s.reduceMotion === true);
+}
+
 function toast(msg){
   let t = document.getElementById('toast');
   if(!t){ t = document.createElement('div'); t.id='toast'; t.className='toast'; document.body.appendChild(t); }
