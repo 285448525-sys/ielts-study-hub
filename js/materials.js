@@ -255,10 +255,14 @@
        ① 顶部「mat-intro 绿条」+「mat-why 浅绿块」上下贴着像重复说话 → 合并成一段：
           intro 一行说明 + 「为什么要先填人设？」折叠（点开才展开那 8 行）
        ② 已有素材入口（原 matBackToResult 在下面）提到最顶（她拍板「顶部常驻」） */
-    let h = '<div class="mat-intro">先填一次<b>人设</b>，点下面的按钮，AI 会读一遍<b>当季最新题库</b>，'
-      + '自动出<b>十几道最能概括题库的问题</b>；你每题用中文口语把那段经历讲一遍就行，'
-      + '最后 AI 会把答案合成<b>几个能串住整份题库的故事</b>。'
-      + '<button type="button" class="mat-why-link" id="matWhyToggle" aria-expanded="false" aria-controls="matWhyBody">为什么要先填人设？</button></div>';
+    /* 10-23 T-017a：说明条降级成一条薄带（设计稿口径 ≤52px），所以文案压到一行说得完；
+       完整版解释在左栏「为什么要先填人设」卡里，这里只留一句「这是什么流程」。 */
+    let h = '<div class="mat-intro">先填<b>人设</b>，AI 读<b>当季题库</b>出题，你中文讲一遍，'
+      + '再合成长久可复用的<b>串题故事</b>。</div>';
+    /* 10-23 T-017a：「为什么要先填人设？」原本挂在这条说明条末尾，折叠体紧贴在下面 ——
+       设计稿把整段搬到左栏说明卡里，这里就不留按钮了（同一段话不出现两遍）。
+       ⚠️ 下面那个 id="matWhyBody" 的折叠体与它的绑定**原样保留**，
+          它们是给老链接/深链接兜底的，删了会让 JS 里的 null 判断多一条。 */
     // ② 已有素材卡入口：提到页面最顶（她 00:57 拍板「顶部常驻」）
     if(store.materials && store.materials.length){
       h += '<div style="margin:-2px 0 10px"><a href="javascript:void(0)" id="matBackToResult" style="color:var(--primary);font-weight:600;font-size:13px">← 查看已有素材卡（' + store.materials.length + ' 张）</a></div>';
@@ -363,7 +367,28 @@
         + '<div class="mat-actions"><button class="btn btn-primary" id="matImportGo" disabled>AI 整理成万能素材</button></div>'
         + '<div class="mat-import-tip">AI 只会重新组织、合并、补过渡，<b>不会编造你没写过的经历</b>。纯英文段落按原样保留、一字不改。</div>'
       + '</div></div>';
-    root.innerHTML = h;
+
+    /* ===== 10-23 T-017a 两栏骨架（她拍板照设计稿做）=====
+       左栏 268px：三步进度条 + 「为什么要先填人设」说明卡；
+       右栏主区：人设卡 / 复用英文素材 / 已有素材导入 / 生成。
+       ⚠️ 只加包裹层：所有 id / data-* / 事件绑定原样 —— 包在哪一层都不影响下面的 querySelector。 */
+    root.innerHTML = '<div class="mat-flow">'
+      + '<aside class="mat-side">'
+        + '<div class="mat-steps" id="matSteps">'
+          + '<div class="mat-step on"><span class="mat-step-n2">1</span><div><b>人设卡</b><i>城市·身份·爱好</i></div></div>'
+          + '<div class="mat-step"><span class="mat-step-n2">2</span><div><b>回答经历</b><i>用中文讲一遍</i></div></div>'
+          + '<div class="mat-step"><span class="mat-step-n2">3</span><div><b>合成素材</b><i>串住整份题库</i></div></div>'
+        + '</div>'
+        + '<div class="mat-why-side"><b>为什么要先填人设</b>'
+          + '<p>人设卡是<b>专门用来串题的</b>——它决定后面出的问题贴不贴你、生成的素材像不像你自己。'
+          + '填的时候尽量写一份<b>万用人设</b>：城市 + 身份 + 性格 + 一个爱好，P1 / P2 / P3 都能往上套的那种。</p>'
+          + '<p>接下来你只要<b>按顺序把十几张卡逐个讲一遍</b>，AI 会把答案合成几个故事——'
+          + '这些故事考场上加一两句过渡就能接到很多道真题上，<b>不用准备十篇范文</b>。</p>'
+        + '</div>'
+      + '</aside>'
+      + '<div class="mat-main">' + h + '</div>'
+      + '</div>';
+    // （原来的 root.innerHTML = h 已被上面这层两栏骨架取代，不要改回来）
 
     /* ---- 绑定 ---- */
     // 人设 A / 自由经历 extraMore（沿用原 textarea 链路）

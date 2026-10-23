@@ -1585,6 +1585,330 @@ body.mock-immerse #mockStage{border:0;box-shadow:none;background:transparent}
     #coachView #coachBarInner{gap:8px}   /* 10/4 重建窄屏块时保留（原在 ≤860 块内） */
   }
 
+
+/* ===== T-017 精确还原用 CSS（来自 交接\_T-017-精确CSS-2026-10-23.css，原样粘入）=====
+   三块：a 填人设 / b 出题卡 / c 素材卡结果。数值照设计稿抄，类名一个没改。
+   深色兜底、960/560 断点、.mat-spine-n 隐藏都在下面这份里。 */
+/* ===== T-017 · 口语页三块 UI 打磨 · 精确还原用 CSS（A2 直接粘进 speaking.html 页内 <style>） =====
+   口径：设计稿 design\_mock-串题页-打磨方案-2026-10-23.html
+         design\_mock-素材库与出题页-打磨方案-2026-10-23.html
+   ⚠️ 这段只改「长什么样」，类名一个不改（下面全是现有类名），JS 结构只加包裹层。
+   ⚠️ 数值全部照设计稿抄，不要自己调。 */
+
+/* ============ T-017a · 素材库「填人设」页 ============ */
+
+/* 顶部绿条降级：实心绿 → 薄说明条（设计稿 .mat-intro 对照） */
+.mat-intro{
+  padding:14px 18px 14px 21px;
+  background:var(--primary-50);
+  border:1px solid var(--primary-100);
+  border-left:3px solid var(--primary-500);
+  border-radius:0 var(--radius-sm) var(--radius-sm) 0;
+  color:var(--ink-2);
+  font-size:13px;line-height:1.7;
+  margin:0 0 16px;
+  box-shadow:none;
+}
+.mat-intro b{color:var(--primary-800);font-weight:700}
+.mat-why-link{
+  display:inline-block;margin-left:8px;padding:0;
+  background:none;border:0;
+  color:var(--primary-d);font-size:12.5px;font-weight:700;
+  cursor:pointer;text-decoration:underline;text-underline-offset:3px;
+}
+
+/* 段标题 → 面板标题（设计稿 .panel-h h3 对照） */
+.mat-sec-title{
+  margin:22px 0 10px;
+  font-size:15.5px;font-weight:800;letter-spacing:-.005em;
+  color:var(--ink);
+}
+.mat-sec-title .mat-step-n{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:20px;height:20px;margin-right:6px;
+  border-radius:50%;
+  background:var(--primary-500);color:#fff;
+  font-size:11px;font-weight:800;
+  vertical-align:-3px;
+}
+.mat-sec-title .tag{
+  font-size:11.5px;font-weight:700;
+  padding:2px 8px;margin-left:6px;border-radius:6px;
+  background:var(--surface-2);border:1px solid var(--line);color:var(--muted);
+  vertical-align:1px;
+}
+
+/* 问题卡 / 表单卡（设计稿 .panel 对照） */
+.mat-q{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:18px 20px;
+  margin-bottom:12px;
+  box-shadow:var(--shadow);
+}
+.mat-q-head{align-items:flex-start;gap:10px;margin-bottom:6px}
+.mat-q-title{font-size:15px;font-weight:800;letter-spacing:-.005em;line-height:1.45}
+.mat-q-hint{font-size:12.8px;color:var(--muted);line-height:1.6;margin:0 0 12px}
+
+/* 表单控件：统一到设计稿的 .ta 口径 */
+.mat-q textarea,
+.mat-q .mat-edit-area{
+  padding:13px 15px;
+  border:1px solid var(--line);
+  border-radius:var(--radius-sm);
+  font-size:14.5px;line-height:1.75;
+  background:var(--surface);
+  transition:border-color .15s,box-shadow .15s,background .15s;
+}
+.mat-q textarea:hover{border-color:var(--n-400)}
+.mat-q textarea:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-50);background:var(--surface)}
+.mat-char{font-size:12px;margin-top:7px;text-align:right;font-variant-numeric:tabular-nums}
+
+/* 预设 chip：小方块 → 药丸（设计稿 .pchip 对照） */
+.mat-presets{
+  margin:0 0 12px;padding:16px 0 0;
+  border-top:1px dashed var(--line);
+}
+.mat-presets-t{font-size:12.5px;color:var(--muted);line-height:1.6;margin-bottom:9px}
+.mat-presets-row{display:flex;gap:7px;flex-wrap:wrap}
+.mat-mini{
+  font-size:12.5px;font-weight:600;
+  padding:6px 13px;
+  border-radius:999px;
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  color:var(--ink-2);
+  transition:.15s;
+}
+.mat-mini:hover{background:var(--primary-50);border-color:var(--primary-200);color:var(--primary-d)}
+.mat-mini.danger{color:var(--muted)}
+.mat-mini.danger:hover{background:#fdf3f2;border-color:#f0c8c4;color:var(--danger)}
+.mat-mini.mat-pin-on{background:var(--primary-500);border-color:var(--primary-500);color:#fff}
+
+/* 操作条（设计稿 .actbar 对照） */
+.mat-actions{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  margin:0 0 6px;padding:14px 0 0;
+  border-top:1px solid var(--line);
+}
+.mat-add{
+  font-size:12.5px;font-weight:600;
+  padding:7px 15px;
+  border:1px dashed var(--primary-300);
+  border-radius:999px;
+  color:var(--primary-d);
+  transition:.15s;
+}
+.mat-add:hover{background:var(--primary-50);border-style:solid;border-color:var(--primary-200)}
+
+/* ============ T-017a 两栏骨架（精确 CSS 里没有，按任务书 §一 尺寸补） ============ */
+.mat-flow{display:grid;grid-template-columns:268px minmax(0,1fr);gap:20px;align-items:start;max-width:1160px}
+.mat-side{position:sticky;top:16px}
+.mat-steps{display:flex;flex-direction:column;gap:2px;margin:0 0 18px}
+.mat-step{display:flex;align-items:flex-start;gap:10px;padding:10px 12px 10px 14px;border-radius:var(--radius-sm);position:relative}
+.mat-step.on{background:var(--primary-50)}
+.mat-step.on::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:2px;background:var(--primary-500)}
+.mat-step-n2{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;flex:none;border-radius:50%;
+  background:var(--surface-2);border:1px solid var(--line);color:var(--muted);font-size:11px;font-weight:800}
+.mat-step.on .mat-step-n2{background:var(--primary-500);border-color:var(--primary-500);color:#fff}
+.mat-step b{display:block;font-size:13.5px;font-weight:800;color:var(--ink);line-height:1.5}
+.mat-step i{display:block;font-size:11.5px;font-style:normal;color:var(--muted);line-height:1.5;margin-top:1px}
+.mat-why-side{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px}
+.mat-why-side>b{display:block;font-size:12.5px;font-weight:800;color:var(--primary-800);margin-bottom:8px}
+.mat-why-side p{font-size:12.8px;line-height:1.75;color:var(--ink-2);margin:0 0 8px}
+.mat-why-side p:last-child{margin-bottom:0}
+.mat-why-side b{color:var(--primary-800)}
+.mat-main{min-width:0}
+@media (max-width:960px){
+  .mat-flow{grid-template-columns:1fr}
+  .mat-side{position:static}
+  .mat-steps{flex-direction:row;overflow-x:auto;gap:8px;padding-bottom:4px;margin-bottom:12px}
+  .mat-step{flex:none;padding:8px 12px}
+  .mat-step i{display:none}
+  .mat-why-side{display:none}
+}
+@media (max-width:560px){
+  .mat-flow{gap:14px}
+  .mat-step{padding:7px 10px}
+  .mat-step b{font-size:12.5px}
+}
+html[data-theme="dark"] .mat-why-side{background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.10)}
+html[data-theme="dark"] .mat-step.on{background:rgba(58,154,147,.14)}
+html[data-theme="dark"] .mat-why-side>b,
+html[data-theme="dark"] .mat-why-side b{color:var(--primary-300)}
+html[data-theme="dark"] .mat-why-side p{color:var(--ink)}
+
+/* ============ T-017c · 素材卡结果页 ============ */
+
+/* 人设卡：大块渐变 → 一条横向人物条（设计稿 .persona-bar 对照） */
+.mat-persona{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 20px;
+  margin:0 0 16px;
+  background:linear-gradient(135deg,var(--primary-600),var(--primary-800));
+  border-radius:var(--radius);
+  color:#fff;
+  box-shadow:var(--shadow);
+}
+.mat-persona h3{
+  margin:0;font-size:11px;font-weight:800;
+  letter-spacing:.06em;text-transform:uppercase;opacity:.75;
+  flex:none;
+}
+.mat-persona .pp-line{font-size:14px;font-weight:800;line-height:1.4;flex:none}
+.mat-persona .pp-tags{gap:6px;margin:0}
+.mat-persona .pp-tag{
+  font-size:11.5px;padding:2px 9px;
+  background:rgba(255,255,255,.2);border-radius:999px;
+}
+
+/* 故事卡：折叠条 → 两列卡片（设计稿 .mcard 对照） */
+.mat-mat{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  margin-bottom:0;
+  box-shadow:var(--shadow);
+  overflow:hidden;
+  transition:.16s;
+}
+.mat-mat:hover{border-color:var(--primary-200);box-shadow:var(--shadow-card-hover)}
+.mat-mat-head{
+  position:relative;
+  padding:15px 18px 14px;
+  border-bottom:1px solid var(--line);
+  background:none;
+}
+.mat-mat-head::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:linear-gradient(180deg,var(--primary-300),var(--primary-600));
+}
+.mat-mat-head:hover{background:var(--surface-2)}
+.mat-mat-title{font-size:15.5px;font-weight:800;line-height:1.4;letter-spacing:-.005em}
+
+/* 段内小标题（设计稿 .msec-t 对照） */
+.mat-sub{
+  display:flex;align-items:center;gap:8px;
+  font-size:11.5px;font-weight:800;
+  letter-spacing:.07em;text-transform:uppercase;
+  color:var(--muted);
+  margin:16px 0 9px;
+}
+.mat-sub::after{content:"";flex:1;height:1px;background:var(--line)}
+.mat-sub:first-child{margin-top:0}
+
+/* 最小骨架：紧排 → 编号块（设计稿 .spine 对照） */
+.mat-spine{counter-reset:sp86;margin:0;padding:0}
+.mat-spine-line{
+  counter-increment:sp86;
+  position:relative;
+  padding:7px 10px 7px 30px;
+  font-size:13.5px;line-height:1.65;
+  color:var(--ink-2);
+  border-radius:var(--radius-xs,8px);
+  margin-bottom:4px;
+  transition:.15s;
+}
+.mat-spine-line:hover{background:var(--primary-50)}
+.mat-spine-line::before{
+  content:counter(sp86);
+  position:absolute;left:6px;top:8px;
+  width:17px;height:17px;
+  border-radius:5px;
+  background:var(--primary-100);color:var(--primary-800);
+  font-size:10px;font-weight:800;
+  line-height:17px;text-align:center;
+}
+.mat-spine-n{display:none}
+
+/* 完整故事：普通段落 → 左侧品牌边引用块（设计稿 .story2 对照） */
+.mat-story-en{
+  background:var(--surface-2);
+  border-left:3px solid var(--primary-300);
+  border-radius:0 var(--radius-xs,8px) var(--radius-xs,8px) 0;
+  padding:13px 15px;
+  font-size:14px;line-height:1.85;
+  color:var(--ink);
+}
+.mat-story-en b{
+  color:var(--primary-800);font-weight:800;
+  background:linear-gradient(transparent 62%,var(--primary-100) 62%);
+}
+
+/* 中文逻辑链：大段文字 → 编号列表（设计稿 .logic2 对照） */
+.mat-logic{
+  counter-reset:lg86;
+  margin:0;padding:0;
+  background:none;border:0;
+}
+.mat-logic li{
+  counter-increment:lg86;
+  position:relative;
+  padding-left:24px;
+  font-size:13px;line-height:1.7;
+  color:var(--ink-2);
+  margin:4px 0;
+  list-style:none;
+}
+.mat-logic li::before{
+  content:counter(lg86);
+  position:absolute;left:0;top:1px;
+  width:16px;height:16px;
+  border-radius:50%;
+  background:var(--n-100);color:var(--n-600);
+  font-size:9.5px;font-weight:800;
+  line-height:16px;text-align:center;
+}
+
+/* 卡片底部操作条（设计稿 .mc-foot 对照） */
+.mat-mat-actions{
+  display:flex;gap:6px;flex-wrap:wrap;
+  margin:16px -18px -17px;
+  padding:12px 18px;
+  border-top:1px solid var(--line);
+  background:var(--surface-2);
+}
+.mat-mat-actions .mat-mini{background:var(--surface)}
+
+/* ============ 两列网格（需要 JS 加包裹层，见任务书 §一） ============ */
+.mat-qgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:18px 0 0}
+.mat-mgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:16px}
+
+/* ============ 响应式（设计稿 @media 对照） ============ */
+@media (max-width:960px){
+  .mat-qgrid,.mat-mgrid{grid-template-columns:1fr}
+  .mat-persona{flex-wrap:wrap;gap:8px}
+  .mat-persona .pp-line{flex:1 1 100%}
+}
+@media (max-width:560px){
+  .mat-q{padding:15px}
+  .mat-qgrid{padding:14px 0 0;gap:10px}
+  .mat-mat-actions{margin:16px -15px -15px;padding:12px 15px}
+}
+
+/* ============ 深色主题兜底（设计稿只画了浅色，深色必须单独补） ============ */
+html[data-theme="dark"] .mat-intro{
+  background:rgba(58,154,147,.12);
+  border-color:rgba(58,154,147,.28);
+  border-left-color:var(--primary-400);
+  color:var(--n-800);
+}
+html[data-theme="dark"] .mat-story-en{
+  background:rgba(255,255,255,.045);
+  border-left-color:var(--primary-500);
+  color:var(--ink);
+}
+html[data-theme="dark"] .mat-story-en b{color:var(--primary-300);background:none}
+html[data-theme="dark"] .mat-spine-line:hover{background:rgba(58,154,147,.14)}
+html[data-theme="dark"] .mat-spine-line::before{background:rgba(58,154,147,.28);color:var(--primary-200)}
+html[data-theme="dark"] .mat-logic li::before{background:rgba(255,255,255,.09);color:var(--n-500)}
+html[data-theme="dark"] .mat-mat-actions{background:rgba(255,255,255,.03)}
+html[data-theme="dark"] .mat-mat-actions .mat-mini{background:transparent}
+html[data-theme="dark"] .mat-mini:hover{background:rgba(58,154,147,.14);color:var(--primary-300)}
+html[data-theme="dark"] .mat-q{background:var(--surface);border-color:rgba(255,255,255,.10)}
+
+
 /* 10-22 第 4 批换顶栏：口语模考沉浸态（body.mock-immerse）原本就藏掉整条导航 + 撤 288 留白，
    顶栏壳同样要收掉，否则顶栏浮在考场上方、44px 让位把考场往下挤出视口 */
 body.mock-immerse[data-shell="top"]{padding-top:0 !important}
@@ -2132,7 +2456,7 @@ body.mock-immerse .hub-topbar{display:none !important}
   </div>
 
   <!-- 万能素材生成器（整合为口语页第 5 个 tab，复用 materials 生成逻辑） -->
-  <div id="matView" hidden data-late-src="js/materials.js?v=20261006a"></div>
+  <div id="matView" hidden data-late-src="js/materials.js?v=20261023a"></div>
 
 
   <!-- 陪练 tab 用的共用样式（pd-* = 句型练习 sentence-drill.js 与场景闯关 scene-drill.js 共用）
