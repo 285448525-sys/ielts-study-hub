@@ -234,6 +234,8 @@
     border:1px solid var(--line);border-radius:12px;font:inherit;font-size:12px;font-weight:700;color:var(--ink);
     cursor:pointer;text-align:left;box-shadow:0 1px 2px rgba(16,24,40,.05)}
   .hrail-toggle .ht-ring{display:inline-flex;flex:none}
+  /* 10-23：手机折叠块上的小环也要跟桌面环一样平滑转动（勾选任务时同步） */
+  .hrail-toggle .ht-ring circle{transition:stroke-dashoffset .6s ease}
   .hrail-toggle .ht-tx{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .hrail-toggle .ht-tx b{font-weight:800;color:var(--primary-700)}
   .hrail-toggle .ht-cv{color:var(--muted);flex:none;transition:transform .2s}

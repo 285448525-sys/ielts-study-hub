@@ -351,6 +351,8 @@ function renderHomeRail(tkey){
     if(ring) ring.style.strokeDashoffset = String(238.8 * (1 - pct/100));
     const mring = document.getElementById('railToggleRing');
     if(mring) mring.style.strokeDashoffset = String(62.8 * (1 - pct/100));
+    /* 10-23：手机折叠块上的小环与桌面环共用同一 pct；动画只走一次 transition（见 home.css），
+       勾选后重算 → 圆环平滑转动而非跳变。 */
 
     // 连续天数：当前 + 近 7 天点阵（有 session 的那天点亮）
     const streak = calcStreak();
@@ -732,6 +734,10 @@ function renderDashTasks(){
       it.updatedAt = Date.now();   // 9/25 修：首页勾选也必须戳时间戳——不戳则云端合并视为「旧数据」，
       hubSave();                   // 另一端同条目带更新 ts 时会把勾选冲掉（她实测：勾了好多刷新就没了）
       renderDashTasks();
+      /* 10-23 她报（截图里右上角圆环钉在 100%）：勾选后只重画了任务卡，
+         右侧「今日完成度」圆环还是上一轮的值 → 必须同帧重算。
+         口径与 renderHomeRail 完全一致（同一份 plan 的 done/total），不另立算法。 */
+      try{ renderHomeRail(todayKey()); }catch(e){ console.error('[index] 勾选后刷新侧轨失败', e); }
     });
   });
   // 9/24：整行点击 → 跳转（planJumpUrl 带 autostart=1，落地页直接开计时）。
