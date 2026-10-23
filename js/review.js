@@ -76,13 +76,21 @@
   /* 🔴 10-23 2-1d 批 B 补：顶栏「回顾」二级落地（?sub=breakdown|overall|speaking|record）。
      桌面已撤掉 .review-pill-tabs，分栏入口改由顶栏二级接管。用**现成的全局 tab 处理器**
      （common-pwa.js 的 .tab-btn 委托）——直接 .click() 药丸按钮，不重写切换逻辑。
-     ⚠️ 必须延后：scores/history 的 ready 会自己渲染并复位 active，就地切会被覆盖。 */
+     🔴 10-23 23:2x 她：「可以点进去了，但是会闪一下模考再进入正确的页面」。
+     原因：原来只在 +300ms 切一次，首帧必然先画默认的「模考」。改成**切两次**：
+       ① ready() 里立刻切（软导航内容刚注入、首帧之前就切好 → 一帧不闪）
+       ② +300ms 再切一次（scores/history 的 ready 可能把 active 复位，这条兜底必须留）
+     ⚠️ sub 只能取一次：tbSubPending 是「取用即删」的暗号，第二次调已经空了 → 先存进闭包再应用两次。 */
   function applySubTab(){
     try{
       const sub = (typeof tbSubPending === 'function') ? tbSubPending('review') : '';
       if(!sub) return;
-      const btn = document.querySelector('.review-pill-tabs .tab-btn[data-tab="' + sub + '"]');
-      if(btn) btn.click();
+      const apply = function(){
+        const btn = document.querySelector('.review-pill-tabs .tab-btn[data-tab="' + sub + '"]');
+        if(btn) btn.click();
+      };
+      apply();
+      setTimeout(apply, 300);
     }catch(e){}
   }
 
@@ -90,6 +98,6 @@
     ensureMockHistory();
     ensureSpeakingPractice();
     initRvFold();
-    setTimeout(applySubTab, 300);
+    applySubTab();
   });
 })();

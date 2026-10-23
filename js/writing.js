@@ -242,10 +242,15 @@ ready(() => {
   // 会员闸：查完刷新列表（🔓/🔒 角标）与当前详情（若停在锁定视图则解锁重渲染）
   queryVipGate().then(v => { renderList(); if(curId && !$('#detailCard').hidden) openTpl(curId); scheduleVipRecheck(); });
   $('#backBtn').addEventListener('click', () => { $('#detailCard').hidden = true; $('#listCard').hidden = false; document.querySelector('.write-layout')?.classList.remove('detail-open'); });
-  $('#addBtn').addEventListener('click', () => { $('#addCard').hidden = false; $('#listCard').hidden = true; $('#detailCard').hidden = true; });
+  /* 10-23 她要求删掉「+ 新增模板」通栏按钮与「删除模板」按钮 →
+     这两行绑定改成「元素在才绑」。#addCard 表单与 addTpl()/delTpl() 函数都保留
+     （她要的新增入口之后做在别的地方，直接复用这套；delTpl 的墓碑机制也留着兼容老数据）。 */
+  const __addBtn = $('#addBtn');
+  if(__addBtn) __addBtn.addEventListener('click', () => { $('#addCard').hidden = false; $('#listCard').hidden = true; $('#detailCard').hidden = true; });
   $('#a_cancel').addEventListener('click', () => { $('#addCard').hidden = true; $('#listCard').hidden = false; });
   $('#a_save').addEventListener('click', addTpl);
-  $('#delBtn').addEventListener('click', delTpl);
+  const __delBtn = $('#delBtn');
+  if(__delBtn) __delBtn.addEventListener('click', delTpl);
   $('#tplRecheckBtn').addEventListener('click', async (e) => {
     const btn = e.currentTarget; btn.disabled = true; btn.textContent = '检测中…';
     queryVipGate._tries = 0;

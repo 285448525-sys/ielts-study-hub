@@ -523,6 +523,25 @@ function tbCloseSub(){
     if(a){ a.classList.remove('tb-open'); a.setAttribute('aria-expanded', 'false'); }
     _tbSubOpenId = null;
   }
+  /* 🔴 10-23 HOTFIX-2（她报「点模考出现的是计划的页面」的根因）：
+     原实现只关 _tbSubOpenId 记着的**那一个**面板。但状态变量与 DOM 会脱钩：
+       · 悬停某个胶囊 150ms 后 tbOpenSub 把它标 .show
+       · 紧接着点链接走软导航 —— 同壳换页**不重建导航**（common-shell.js 的跨壳判断只在
+         home↔其他页时才 injectNav），于是面板 DOM 原封不动留在屏幕上
+       · 面板是 position:fixed 的浮层（top≈50、约 96×144），正好压在内容区顶部：
+         她往下一划要点的第一个东西，其实就是上一页菜单里的某个子项
+         → 实测 elementFromPoint 命中 bank.html?sub=writing / plans.html?sub=today
+         → 表现就是「点 A 出现 B 的页面」，且完全无声
+     修法：这里改成**清掉全部 .tb-sub 的 .show**（不信状态变量，直接对 DOM 收口），
+     并在换页的两处显式调用（onHubLinkClick 导航前 + softNavigate 换完 main 后）。 */
+  try{
+    document.querySelectorAll('.tb-sub.show').forEach(el => el.classList.remove('show'));
+    document.querySelectorAll('.tb-caps .tb-item.tb-open').forEach(a => {
+      a.classList.remove('tb-open');
+      a.setAttribute('aria-expanded', 'false');
+    });
+    _tbSubOpenId = null;
+  }catch(e){}
 }
 function tbOpenSub(id){
   if(_tbSubTimer){ clearTimeout(_tbSubTimer); _tbSubTimer = null; }
@@ -568,10 +587,14 @@ function bindTopBarSub(){
       if(_tbSubTimer){ clearTimeout(_tbSubTimer); _tbSubTimer = null; }
       const p = tbSubEl(id);
       // 面板是 fixed 的，鼠标从 tab 移到面板会先触发 wrap 的 leave 再触发面板 enter，
-      // 250ms 的窗口就是给这段「跨到面板上」的时间（方案 §三：给她移动鼠标的时间）。
+      // 这段窗口就是给「跨到面板上」的时间（方案 §三：给她移动鼠标的时间）。
+      // 🔴 10-23 23:1x：250 → 500ms。她报「回顾的实战/口语/轨迹点不进去」，实测点不进去不是
+      //    切换逻辑坏，是这段窗口太短：胶囊 tab 底边 35.25、面板顶 50（顶栏 44 + 6），中间 15px
+      //    空隙里鼠标一离开 tab 就开始倒计时，手一慢面板先收，点下去落在后面的卡片上 = 毫无反应。
+      //    只动这个数字，面板位置/大小/外观/150ms 展开时长一个都没变。
       const openNow = (p && p.classList.contains('show'));
       if(!openNow) return;
-      _tbSubTimer = setTimeout(() => { _tbSubTimer = null; tbCloseSub(); }, 250);
+      _tbSubTimer = setTimeout(() => { _tbSubTimer = null; tbCloseSub(); }, 500);
     });
     /* 面板自己的 hover 也要能取消「离开」计时（fixed 面板在 DOM 上还是 wrap 的后代，
        但几何上已经和 wrap 不相交，mouseleave 一定会先发生 → 这里的 enter 必须把计时清掉）。 */
@@ -581,7 +604,7 @@ function bindTopBarSub(){
     panel.addEventListener('mouseleave', () => {
       if(!tbCanHover()) return;
       if(_tbSubTimer){ clearTimeout(_tbSubTimer); _tbSubTimer = null; }
-      _tbSubTimer = setTimeout(() => { _tbSubTimer = null; tbCloseSub(); }, 250);
+      _tbSubTimer = setTimeout(() => { _tbSubTimer = null; tbCloseSub(); }, 500);
     });
     /* 键盘：焦点进入大 tab 后按 ↓ 也能展开（不展开就没法 Tab 进二级）。
        Esc 在 document 层统一关（见下）。 */

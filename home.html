@@ -29,8 +29,8 @@
 })();
 </script>
 <title>首页 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261023w" />
-<link rel="stylesheet" href="css/p/home.css?v=20261023c" />
+<link rel="stylesheet" href="css/common.css?v=20261023z2" />
+<link rel="stylesheet" href="css/p/home.css?v=20261023e" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png?v=7">
@@ -40,18 +40,18 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20261023b"></script>
-<script defer src="js/common.js?v=20261023w"></script>
-<script defer src="js/common-ai.js?v=20261023w"></script>
-<script defer src="js/common-sync.js?v=20261023w"></script>
-<script defer src="js/common-merge.js?v=20261023w"></script>
-<script defer src="js/common-cloud.js?v=20261023w"></script>
-<script defer src="js/common-shell.js?v=20261023w"></script>
-<script defer src="js/common-pwa.js?v=20261023w"></script>
+<script defer src="js/common.js?v=20261023z3"></script>
+<script defer src="js/common-ai.js?v=20261023z2"></script>
+<script defer src="js/common-sync.js?v=20261023z2"></script>
+<script defer src="js/common-merge.js?v=20261023z2"></script>
+<script defer src="js/common-cloud.js?v=20261023z2"></script>
+<script defer src="js/common-shell.js?v=20261023z2"></script>
+<script defer src="js/common-pwa.js?v=20261023z2"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
 <!-- design/78 双词库适配层：index.js 的 wbActive/wbDueCount 依赖它（defer 按文档序执行） -->
 <script defer src="js/wordbank.js?v=20261023s"></script>
 <script defer src="js/home-quick.js?v=20261023c"></script>
-<script defer src="js/index.js?v=20261023o"></script>
+<script defer src="js/index.js?v=20261023p"></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(0,0,0,.02),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -87,20 +87,20 @@
           <a class="vip-chip" id="heroVipChip" href="vip.html" hidden></a>
         </div>
         <div class="hl-mid" id="dashHeroNum"></div>
-        <a class="hl-cta" href="practice.html">
-          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6,4 20,12 6,20"/></svg>
-          开始学习
-        </a>
+        <!-- 10-23 她：「把首页的开始学习按钮去掉，本来是跳转计时页面的但是我把计时页面删掉了」
+             → 撤掉 .hl-cta。横条改回两段（左问候 / 右倒数），hline 的 space-between 正好把两头顶开。 -->
       </section>
 
-      <!-- L2 · 四数字卡（今日专注 / 今日单词 / 口语已练 / 本周模考） -->
+      <!-- L2 · 四数字卡（今日专注 / 今日单词 / 口语已练 / 本周模考）
+           ⚠️ 10-23 她：「今日专注这个板块应该是点击不了的，它不应该设置跳转」
+           → 今日专注卡降级成 div（不再可点、不再有 hover 位移），其余三张仍是指向真实页面的 a。 -->
       <section class="hstats">
-        <a class="hstat" href="review.html">
+        <div class="hstat hstat-static">
           <div class="lb">今日专注</div>
           <div class="vl" id="statFocusVal"></div>
           <div class="track"><i id="statFocusTrack" style="width:0%"></i></div>
           <div class="sub" id="statFocusSub"></div>
-        </a>
+        </div>
         <a class="hstat" href="practice.html">
           <div class="lb">今日单词</div>
           <div class="vl" id="statWordsVal"></div>
@@ -112,11 +112,13 @@
           <div class="vl" id="statSpkVal"></div>
           <div class="sub" id="statSpkSub"></div>
         </a>
-        <a class="hstat" href="review.html">
+        <!-- 10-23 她：「点击模考，进的是回顾页面，而不是模考页面」→ 原本 href=review.html（去记录），
+             改成 bank.html（模考页），右侧小字同步从「去记录」改「去模考」，避免指路文案和落点打架。 -->
+        <a class="hstat" href="bank.html">
           <div class="lb">本周模考</div>
           <div class="vl" id="statMockVal"></div>
           <div class="sub" id="statMockSub"></div>
-          <span class="lk">去记录<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></span>
+          <span class="lk">去模考<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></span>
         </a>
       </section>
 
@@ -147,7 +149,12 @@
           <div class="rc-cap">今日完成度</div>
           <div class="ringwrap">
             <svg viewBox="0 0 96 96" width="96" height="96" aria-hidden="true"><circle class="rbg2" cx="48" cy="48" r="38"/><circle class="rfg2" id="railRingFg" cx="48" cy="48" r="38"/></svg>
-            <div class="ringtxt"><b id="railPct">0%</b><span id="railPctSub">8 项完成 0</span></div>
+            <!-- 🔴 10-23 她报「主页这里中间的字太多了，这样不好看」：环内只留百分比。
+                 原来环里还有一行 `<span id="railPctSub">计划 5 项完成 5 · 还有 1639 词</span>`，
+                 96px 的圆里塞 15 个字要断成 2~3 行，环还被压小；而且环下 `.rc-sub` 又说了一遍
+                 「计划还剩 0 项 · 1639 个词要过」→ 同一件事说两遍、两遍都不好看。
+                 现在：环内 = 只显示百分比；环下 = 一行说清「计划 5/5 项 · 1639 词待过」。 -->
+            <div class="ringtxt"><b id="railPct">0%</b></div>
           </div>
           <div class="rc-sub" id="railSub"></div>
         </div>
