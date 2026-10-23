@@ -1156,9 +1156,16 @@ main.container{padding-top:40px}
 .hero::after{display:none}
 /* 问候行：替代原来的独立 .hello 横条 */
 .hero-greet{display:grid;grid-template-columns:auto 1fr auto;align-items:center;column-gap:16px;margin-bottom:14px;position:relative;z-index:1}
-.streak-chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;background:var(--primary-50);color:var(--primary-700);border-radius:999px;padding:4px 10px;white-space:nowrap}
+/* 🔴 10-23 B-6 小步1：.streak-chip 原来有三段互覆盖的定义（这里 + 下面背词段 + css/p/home.css 的 .hline 段）。
+   这一段是 10/1 首页 hero 版留下的，而首页 hero 容器早已换成 .hline → 规则空转，但它排在背词段之前，
+   把背词连击 chip 的配色（--ok-bg/--ok-text）静默覆盖成浅青底深青字；三段谁生效只取决于书写顺序。
+   处理：只保留首页真正在用的部分并**限定到 .hero 作用域**（.hline 那份在 home.css，两条永不同时命中），
+   其余注释留档，不静默删。 */
+.hero .streak-chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;background:var(--primary-50);color:var(--primary-700);border-radius:999px;padding:4px 10px;white-space:nowrap}
 [data-theme="dark"] .hero .streak-chip{background:rgba(255,255,255,.14);color:#fde68a;border:1px solid rgba(255,255,255,.20)}
-.streak-chip svg{width:13px;height:13px}
+.hero .streak-chip svg{width:13px;height:13px}
+/* 停用留档（原三段里唯一被收窄的是第一行的裸选择器，原文贴在这里便于回溯）：
+   .streak-chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;background:var(--primary-50);color:var(--primary-700);border-radius:999px;padding:4px 10px;white-space:nowrap} */
 .hero-main{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;position:relative;z-index:1;flex-wrap:wrap}
 .hero-right{display:flex;flex-direction:column;align-items:flex-end;gap:10px;flex:none}
 .hero-num{display:flex;align-items:baseline;gap:8px;position:relative;z-index:1;margin-bottom:6px}
