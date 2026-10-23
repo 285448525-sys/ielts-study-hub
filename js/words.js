@@ -1149,7 +1149,27 @@ function renderWords(){
       // 官方词包固定 570 词不应为空；src 为空 = 词包尚未加载成功（走加载失败重试流程中）
       box.innerHTML = renderEmpty('词包加载中…');
     } else if(src.length === 0){
-      box.innerHTML = renderEmpty('还没有单词。点上面的「+ 批量导入单词」把词粘进来（一行一个，中文意思跟在后面），也可以切到上面的「AWL」直接用官方 570 个学术高频词。');
+      // 10-23 4-2：空词库给一条能直接动手的出口（原来只有一句指路文案，新用户还得自己找按钮）。
+      // 结构 = 全站 .empty + 一句主文案 + 一个「去导入」按钮（点了就地展开上面那条导入条，不换页）。
+      box.innerHTML = renderEmpty(
+        '<div class="empty-t">还没有单词</div>' +
+        '<div class="empty-s">把词粘进来（一行一个，中文意思跟在后面）就能开始背，也可以先背官方 570 个学术高频词。</div>' +
+        '<div class="empty-acts">' +
+          '<button class="btn btn-primary btn-sm" type="button" id="emptyOpenImport">去导入单词</button>' +
+        '</div>'
+      ) + '';
+      const _eoi = document.getElementById('emptyOpenImport');
+      if(_eoi) _eoi.addEventListener('click', () => {
+        const impBody = document.getElementById('wlImpBody'), impBar = document.getElementById('wlImpBar'), impCard = document.getElementById('bankImportCard');
+        if(impBody && impBar && impCard){
+          impBody.hidden = false;
+          impCard.classList.add('open');
+          impBar.setAttribute('aria-expanded', 'true');
+          impCard.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          const ta = document.getElementById('smartInput');
+          if(ta) setTimeout(() => ta.focus({ preventScroll: true }), 260);
+        }
+      });
     } else if(_hasFilter){
       box.innerHTML = renderEmpty('没有匹配的单词。换个关键词，或把下面的筛选调回「全部」。');
     } else {

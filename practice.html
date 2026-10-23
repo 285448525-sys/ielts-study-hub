@@ -32,7 +32,7 @@
 </script>
 <title>单词 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261023k" />
-<link rel="stylesheet" href="css/p/practice.css?v=20261023a" />
+<link rel="stylesheet" href="css/p/practice.css?v=20261023b" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -56,7 +56,7 @@
   <!-- design/77 DHP+SSP-MMC 策略表：必须在 practice.js 之前（defer 按文档序执行，表未加载时 practice.js 有回退兜底） -->
   <script defer src="js/dhp_policy.js?v=20260921a"></script>
   <script src="js/practice.js?v=20261012a" defer></script>
-  <script src="js/words.js?v=20261020c" defer></script>
+  <script src="js/words.js?v=20261023a" defer></script>
 <style>
 /* ============================================================
    10/3 A 版「今日复习卡 + 学习状态分组」（她选的 A 版）
@@ -268,7 +268,9 @@ body.word-fullscreen .hub-topbar{display:none !important}
         <span class="wb-today-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 2.8v3.4M16 2.8v3.4"/></svg></span>
         <span class="wb-today-tx">
           <b id="wbTodayTitle">今天要复习 0 个词</b>
-          <span id="wbTodaySub">正在算…</span>
+          <!-- 10-23 4-2：默认空着（「正在算」只在真算的时候由 scripts 写进来），
+               避免没有词库时这张卡一闪而过「正在算…」这种假加载。 -->
+          <span id="wbTodaySub"></span>
         </span>
         <button class="wb-today-go" id="wbTodayGo" type="button">开始复习</button>
       </div>
