@@ -241,8 +241,8 @@ var PLAN_WL = {
   materials: { file:'materials.html', label:'口语素材', actions:{ persona:[], story:[] } },
   writing:   { file:'writing.html',   label:'写作',     actions:{ template:[], fill:[], essay:[] } },
   words:     { file:'practice.html',  label:'背单词',   actions:{ review:[] } },
-  corpus:    { file:'corpus.html',    label:'长难句',   actions:{ parse:['count'] } },
-  wrongbook: { file:'wrongbook.html', label:'错题本',   actions:{ review:['count'] } }
+  corpus:    { file:'corpus.html',    label:'长难句',   actions:{ parse:['count'] } }
+  /* 10-23 T-015：错句本整页删 → 白名单去掉 wrongbook（AI 不再生成「错题本复习」任务） */
 };
 /* ≤2 天保底三件套（本地硬护栏：AI 排别的也一律丢弃） */
 var PLAN_SAFE = { words:['review'], speaking:['practice'], writing:['template'] };
@@ -258,7 +258,6 @@ var PLAN_AI_SYSTEM =
   + '6. {"module":"writing","action":"template"} 写作模板背诵默写；action 为 fill 是模板套填；action 为 essay 是完整成篇；均无 params\n'
   + '7. {"module":"words","action":"review"} 背单词，无 params，固定 30 分钟\n'
   + '8. {"module":"corpus","action":"parse"} 长难句拆解：params.count 填句数\n'
-  + '9. {"module":"wrongbook","action":"review"} 错题本复习：params.count 填题数\n'
   + '\n'
   + '【每条任务必须自带时长和完成标准】\n'
   + 'text 格式：模块加具体内容与数量，括号内写阿拉伯数字加「分钟」，必须包含「分钟」二字。\n'
@@ -297,7 +296,6 @@ var REBALANCE_AI_SYSTEM =
   + '{"module":"writing","action":"template"} 模板默写；"fill" 模板套填；"essay" 完整成篇；无 params\n'
   + '{"module":"words","action":"review"} 背单词，固定 30 分钟，无 params\n'
   + '{"module":"corpus","action":"parse"} 长难句拆解（params.count 句数）\n'
-  + '{"module":"wrongbook","action":"review"} 错题本复习（params.count 题数）\n'
   + '\n'
   + '【铁律：未完成的任务严禁静默丢弃】\n'
   + 'pending 里是今天还没做的任务，carried=true 的是「昨天未完成、已顺延到今天」的，必须优先安排，\n'
@@ -307,7 +305,7 @@ var REBALANCE_AI_SYSTEM =
   + '【容量是硬约束】capMin 是今天实际可用的分钟数，所有任务分钟数之和严禁超过 capMin，宁可少排。\n'
   + '当 onlyMin 有值（考生说今天只能学这么多分钟）时，capMin 已经等于它，按下面顺序砍任务：\n'
   + '① 先砍了解性/新知识类：materials.persona、materials.story、corpus.parse\n'
-  + '② 再砍重复练习类：practice.listen/read/mock、speaking.practice 的 Part 2、writing.fill、writing.essay、wrongbook.review\n'
+  + '② 再砍重复练习类：practice.listen/read/mock、speaking.practice 的 Part 2、writing.fill、writing.essay\n'
   + '③ 最后才动保底类：words.review 背单词、speaking.practice 的 Part 1 快答、writing.template 模板默写\n'
   + '绝不允许简单按比例砍。时间再少也要尽量保住一件保底类。\n'
   + '\n'

@@ -842,8 +842,9 @@ const PLAN_GEN_PAGES = {
   materials: { file:'materials.html', label:'口语素材' },
   writing:   { file:'writing.html',   label:'写作' },
   words:     { file:'practice.html',  label:'背单词' },
-  corpus:    { file:'corpus.html',    label:'长难句' },
-  wrongbook: { file:'wrongbook.html', label:'错题本' }
+  corpus:    { file:'corpus.html',    label:'长难句' }
+  /* 10-23 T-015：错句本整页删 → 去掉 wrongbook 项。AI 若仍生成 module:'wrongbook' 的任务，
+     planGenJump 返回 null → 首页任务行纯文本不可点（不跳死链）。 */
 };
 function planGenJump(item){
   if(!item || !item.module) return null;
@@ -919,7 +920,9 @@ function planJumpInfo(text){
   if(/阅读/.test(t)) return { file: 'bank.html', open: '', label: '去模考·阅读' };
   if(/听力/.test(t)) return { file: 'bank.html', open: '', label: '去模考·听力' };
   if(/写作|作文/.test(t)) return { file: 'writing.html', open: '', label: '去写作' };
-  if(/错题|错句本/.test(t)) return { file: 'wrongbook.html', open: '', label: '去错题本' };
+  /* 10-23 T-015：错句本独立页删了，附属模块留在 writing.html 底部折叠区 →
+     「错句」类任务改跳写作页（不是死链，也不是不跳）。 */
+  if(/错题|错句本/.test(t)) return { file: 'writing.html', open: '', label: '去写作·我的错句' };
   if(/素材|串题/.test(t)) return { file: 'materials.html', open: '', label: '去素材库' };
   if(/长难句|句子/.test(t)) return { file: 'corpus.html', open: '', label: '去长难句' };
   if(/回顾|轨迹|复盘/.test(t)) return { file: 'review.html', open: '', label: '去回顾' };

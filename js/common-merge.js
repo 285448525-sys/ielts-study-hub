@@ -707,7 +707,8 @@ function _mergeDetailBitsInto(local, cloud, out){
   out.detailBits = Array.from(map.values());
 }
 /* 分类名防御性清洗：去掉「（xxx）」「(xxx)」等括号及括号内后缀（如「观点型（第一优先级）」→「观点型」）。
-   上移到 common.js：错句本等不引入 writing.js 的页面也需要用到，避免 ReferenceError 导致整页渲染中断。 */
+   上移到 common.js：错句本（T-015 后只剩写作页附属模块）等不引入 writing.js 的页面
+   也需要用到，避免 ReferenceError 导致整页渲染中断。 */
 function cleanCatName(c){
   if(!c) return c;
   return c.replace(/[（(][^）)]*[）)]/g, '').trim();

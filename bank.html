@@ -18,7 +18,7 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>模考 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261023b" />
+<link rel="stylesheet" href="css/common.css?v=20261023c" />
 <link rel="stylesheet" href="css/p/bank.css?v=20261017a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
@@ -1468,6 +1468,14 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 #examRoot .ex-gate-btn:hover{background:#1f1f1f}
 #examRoot.ct-dark .ex-gate-btn{background:#fff;color:#111}
 #examRoot.ct-yellow .ex-gate-btn{background:#ffd400;color:#161616}
+/* 10-23 音频就绪进度区（遮罩内，未就绪时替代官方那句 + Play） */
+#examRoot .ex-gate-load{margin-top:22px;width:min(420px,86vw)}
+#examRoot .ex-gate-bar{height:6px;border-radius:999px;background:rgba(255,255,255,.22);overflow:hidden}
+#examRoot .ex-gate-bar i{display:block;height:100%;width:0;background:#fff;border-radius:999px;transition:width .3s ease}
+#examRoot .ex-gate-loadtx{display:flex;justify-content:space-between;gap:12px;margin-top:9px;font-size:13px;color:#fff}
+#examRoot .ex-gate-skip{margin-top:14px;background:none;border:0;color:#fff;text-decoration:underline;font:inherit;font-size:13px;font-weight:600;cursor:pointer;padding:6px 4px;min-height:32px}
+#examRoot .ex-gate-skip:hover{color:#d7fffa}
+@media (prefers-reduced-motion:reduce){#examRoot .ex-gate-bar i{transition:none}}
 /* 播放中官方顶栏只多一行小字「Audio is Playing」（截图 02/19 实测） */
 #examRoot .ex-audio{background:#fff;border-bottom:1px solid #d5d5d5;padding:0 16px;min-height:44px;gap:14px}
 #examRoot .ex-audio .ea-label{font-size:13px;font-weight:400;color:#333}
@@ -1748,7 +1756,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
     </section>
 
     <section class="mock-pane" id="pane-writing" hidden
-             data-late-src="js/writing_prompts.js?v=20260903ab,js/writing.js?v=20261021c">
+             data-late-src="js/writing_prompts.js?v=20260903ab,js/writing.js?v=20261023c">
       <!-- 10/11 第 7 项（她拍板「整块删掉」写作页真题 tab）：写作真题整体搬到这里。
            题目数据 = js/writing_prompts.js（大作文 70 + 小作文 25），渲染/机考/评分逻辑在 js/writing.js
            （writeExam 那一段，同一份代码两页共用；本页无 #writeTabs → writing.js 只跑真题初始化）。
@@ -1821,13 +1829,13 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
      （手机慢网 ~50KB/s → 约 1.5 秒）。加载时机：点开「写作」tab 时按序插入；
      首次 load 之后空闲再预热一次。承接代码在 js/bank.js 的 loadWritingScripts()。 -->
 <script defer src="js/data.js?v=20261022d"></script>
-<script defer src="js/common.js?v=20261023b"></script>
-<script defer src="js/common-ai.js?v=20261023b"></script>
-<script defer src="js/common-sync.js?v=20261023b"></script>
-<script defer src="js/common-merge.js?v=20261023b"></script>
-<script defer src="js/common-cloud.js?v=20261023b"></script>
-<script defer src="js/common-shell.js?v=20261023b"></script>
-<script defer src="js/common-pwa.js?v=20261023b"></script>
-<script defer src="js/bank.js?v=20261022c"></script>
+<script defer src="js/common.js?v=20261023c"></script>
+<script defer src="js/common-ai.js?v=20261023c"></script>
+<script defer src="js/common-sync.js?v=20261023c"></script>
+<script defer src="js/common-merge.js?v=20261023c"></script>
+<script defer src="js/common-cloud.js?v=20261023c"></script>
+<script defer src="js/common-shell.js?v=20261023c"></script>
+<script defer src="js/common-pwa.js?v=20261023c"></script>
+<script defer src="js/bank.js?v=20261023a"></script>
 </body>
 </html>

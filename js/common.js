@@ -51,7 +51,12 @@ const PAGES = [
   { id:'writing',   file:'writing.html',   icon:ICON.writing,   name:'写作',       desc:'模板 + AI 评分' },
   // 10/11：题库 → 「模考」大 tab（她拍板：四科模考统一在这里完成）
   { id:'bank',      file:'bank.html',      icon:ICON.mock,      name:'模考',       desc:'阅读 · 听力 · 写作 · 口语' },
-  { id:'wrongbook', file:'wrongbook.html', icon:ICON.wrongbook, name:'错句本',     desc:'写作/语料默写错句汇总' },
+  /* 🔴 10-23 T-015 她拍板「错句本不配单独一个 Tab，整个板块前后端删干净」→
+     wrongbook.html 文件已从仓库删除；这里保留条目并标 hidden:true，只为两件事：
+     ① 老链接 / 书签直访 wrongbook.html 时软导航白名单仍认得它（真删条目会 404 白屏）；
+     ② 数据侧 collectWrongSentences / deleteWrongItem / DATA.deletedWrongKeys 仍在
+        （写作页附属模块 + 云同步墓碑要用），一个字段都没动。 */
+  { id:'wrongbook', file:'wrongbook.html', icon:ICON.wrongbook, name:'错句本',     desc:'写作/语料默写错句汇总', hidden:true },
   { id:'review',    file:'review.html',    icon:ICON.review,    name:'回顾',       desc:'模考成绩 + 学习轨迹' },
   { id:'vip',       file:'vip.html',       icon:ICON.vip,       name:'会员',       desc:'AI 无限用 + 专属权益' },  // 10/1 付费方案：非学习功能，不进 PRIMARY_NAV
   { id:'settings',  file:'settings.html',  icon:ICON.settings,  name:'设置',       desc:'同步 / AI / 数据' },
@@ -761,6 +766,10 @@ document.addEventListener('change', (e) => {
    sidebar 也有）。**本轮按她说的从「我的」组移除**，但**不删页面、不删侧栏入口**
    （她自己以后想用还能从侧栏/写作页进）。⚠️ 若她之后发现还需要，加回「我的」组即可。
    ========================================================================== */
+
+/* 🔴 10-23 T-015 后记：错句本独立页按她拍板删除（她原话「错句本它只是附属在作文模板界面的
+   一个小模块，它没必要单独做一个 Tab」）。写作页底部折叠区「我的错句」（#wbArea）**保留** ——
+   那是她明说保留的附属模块。PAGES 里 wrongbook 条目标 hidden 只为兼容老链接，不进任何清单。 */
 
 /* 分组定义：唯一的结构来源。g.page 存在 = 直达；无 page = 弹组面板。 */
 const GROUPED_DOCK = [

@@ -3,7 +3,8 @@
    为什么单独一个文件：这两块是「所有用户一致的出厂内容」（约 20KB brotli），
    但 20 个页面每页都要下 js/data.js。搬出来之后只有真正用到它的地方才下载：
      · 写作壳（js/bank.js 的 loadWritingScripts 会先 HUB_FACTORY.ensureWriting()）
-     · writing.html / wrongbook.html（直接 <script defer> 引本文件）
+     · writing.html（直接 <script defer> 引本文件；bank.html 经 late-src 引）
+     · 10-23 T-015：wrongbook.html 已删，本文件不再被它引
      · 「用云端数据覆盖本机」之后需要按官方母本补齐模板时
    安全前提（已在 js/data.js 的 HUB_FACTORY 里实现，本文件只负责「应用 + 报就绪」）：
      readyWriting 为 false 期间 —— 起步语料不上传、不参与云合并、写作模板迁移挂起；

@@ -1247,12 +1247,20 @@ window.__reportExamState = reportExamState;
       + '</div>'
       + '<div class="ex-gate" id="exAudioGate">'
       +   '<svg class="ex-gate-ic" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><path d="M4 14h2.5a1.5 1.5 0 0 1 1.5 1.5v3A1.5 1.5 0 0 1 6.5 20H5a1 1 0 0 1-1-1z"/><path d="M20 14h-2.5a1.5 1.5 0 0 0-1.5 1.5v3A1.5 1.5 0 0 0 17.5 20H19a1 1 0 0 0 1-1z"/></svg>'
+      /* 10-23 她报（音频加载静默、点 Play 没声音）：遮罩改成「音频就绪状态机」——
+         未就绪时显示真实进度 + 可跳过（先看题、音频后台下）；就绪后才显示官方那句 + Play。
+         进度用 <audio> 的 progress 事件算（buffered/duration），不轮询。 */
       +   '<div class="ex-gate-tx">' + gateTx + '</div>'
-      +   '<div class="ex-gate-go">To continue, click Play.</div>'
+      +   '<div class="ex-gate-load" id="exAudioLoad" hidden>'
+      +     '<div class="ex-gate-bar"><i id="exAudioLoadBar" style="width:0%"></i></div>'
+      +     '<div class="ex-gate-loadtx"><span id="exAudioLoadTx">正在载入音频…</span><span id="exAudioLoadPct">0%</span></div>'
+      +     '<button class="ex-gate-skip" type="button" data-askip>先看题，音频后台下</button>'
+      +   '</div>'
+      +   '<div class="ex-gate-go" id="exAudioGateGo">To continue, click Play.</div>'
       +   '<button class="ex-gate-btn" type="button" data-aplay aria-label="Play">'
       +     '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Play</button>'
       + '</div>'
-      + '<audio id="exAudio" preload="metadata" src="' + esc(p.audioUrl) + '"></audio>';
+      + '<audio id="exAudio" preload="auto" src="' + esc(p.audioUrl) + '"></audio>';
   }
   /* 10-22 官方口径：点 Play → 遮罩消失、开始播。遮罩只在「本篇没播过」时出现，
      状态记在 EX.audioGateDone[part] 上 —— 切 Part 再切回来不重出（官方同行为）。 */
@@ -1267,6 +1275,93 @@ window.__reportExamState = reportExamState;
     if(g) g.hidden = false;
     var l = document.getElementById('eaLabel');
     if(l) l.hidden = true;
+  }
+  /* ===== 10-23 音频就绪状态机（她报「点 Play 没声音」）=====
+     题库与音频是两次独立请求：题库先到、音频还在下 → 旧形态直接放人进考场，
+     点 Play 时音频可能没就绪（静默卡住）。现在进听力先把音频 preload=auto 拉起来，
+     遮罩里显示真实进度（buffered/duration），并给「先看题，音频后台下」的跳过链。 */
+  var _audioReadyWatch = null;
+  function audioPct(){
+    var a = document.getElementById('exAudio'); if(!a) return 0;
+    try{
+      if(a.buffered && a.buffered.length && a.duration > 0){
+        return Math.max(0, Math.min(100, Math.round(a.buffered.end(0) / a.duration * 100)));
+      }
+    }catch(e){}
+    return 0;
+  }
+  function paintAudioGate(){
+    var a = document.getElementById('exAudio');
+    var box = document.getElementById('exAudioLoad');
+    var go  = document.getElementById('exAudioGateGo');
+    var btn = document.querySelector('#exAudioGate [data-aplay]');
+    if(!a || !box) return;
+    /* 已就绪（有元数据且能播）→ 收进度区、显示官方那句 + Play。
+       ⚠️ 失败（a.error）不算就绪 —— 走失败分支：显示错误原因 + 重试（既有 showAudioErr 兜底），
+       但不把 Play 藏死（练习模式下她可能想再点一次触发重载）。 */
+    if(a.readyState >= 1){
+      box.hidden = true;
+      if(go) go.hidden = false;
+      if(btn) btn.hidden = false;
+      if(_audioReadyWatch){ clearInterval(_audioReadyWatch); _audioReadyWatch = null; }
+      return;
+    }
+    if(a.error){
+      /* 音频失败：进度区改成一句失败说明 + 重试按钮；Play 仍可点（audioToggle 内部会 reload） */
+      box.hidden = false;
+      if(go) go.hidden = true;
+      if(btn) btn.hidden = false;
+      var why = (AUDIO_ERR_WHY[a.error.code] || 'Unknown error');
+      var t2 = document.getElementById('exAudioLoadTx');
+      if(t2) t2.textContent = '音频没加载出来：' + why;
+      var p2 = document.getElementById('exAudioLoadPct');
+      if(p2) p2.textContent = '重试';
+      var sk2 = document.querySelector('#exAudioGate [data-askip]');
+      if(sk2) sk2.textContent = '先看题，音频后台重试';
+      if(_audioReadyWatch){ clearInterval(_audioReadyWatch); _audioReadyWatch = null; }
+      return;
+    }
+    box.hidden = false;
+    if(go) go.hidden = true;
+    if(btn) btn.hidden = true;                 /* 没就绪不给点 Play（点了也是静默卡住） */
+    var pct = audioPct();
+    var bar = document.getElementById('exAudioLoadBar');
+    if(bar) bar.style.width = pct + '%';
+    var pEl = document.getElementById('exAudioLoadPct');
+    if(pEl) pEl.textContent = pct + '%';
+    var tx = document.getElementById('exAudioLoadTx');
+    if(tx) tx.textContent = pct > 0 ? ('正在载入音频… ' + pct + '%') : '正在获取音频信息…';
+  }
+  function watchAudioReady(){
+    if(_audioReadyWatch) clearInterval(_audioReadyWatch);
+    paintAudioGate();
+    /* 轮询只为刷新遮罩里的进度（浏览器 progress 事件对大文件不总是细粒度），
+       就绪即停；30 秒还没动静 → 保留跳过链 + 让 Play 可点（点了由既有 error 兜底提示）。 */
+    var n = 0;
+    _audioReadyWatch = setInterval(function(){
+      n++;
+      paintAudioGate();
+      if(n > 60){
+        var a = document.getElementById('exAudio');
+        if(a && a.readyState < 1 && !a.error){
+          var box = document.getElementById('exAudioLoad');
+          var go = document.getElementById('exAudioGateGo');
+          var btn = document.querySelector('#exAudioGate [data-aplay]');
+          if(box) box.hidden = true;
+          if(go){ go.hidden = false; go.textContent = '音频加载较慢，可先看题，稍后点播放。'; }
+          if(btn) btn.hidden = false;
+        }
+        clearInterval(_audioReadyWatch); _audioReadyWatch = null;
+      }
+    }, 500);
+  }
+  /* 跳过：收遮罩、开始看题；音频继续在后台下（preload=auto 已挂着），
+     就绪后顶栏音频条照常可点播放（audioToggle 首播会补收遮罩）。 */
+  function skipAudioGate(){
+    var a = document.getElementById('exAudio');
+    if(a){ try{ a.preload = 'auto'; a.load(); }catch(e){} }
+    hideAudioGate();
+    if(EX && EX.audioGateDone) EX.audioGateDone[EX.curP] = true;
   }
   /* Part 行内标签文案（音频条行首胶囊）：听力口径「Part N · Questions X–Y」（她 10/13 截图 1 口径） */
   function partChipText(){
@@ -1333,8 +1428,10 @@ window.__reportExamState = reportExamState;
     a.playbackRate = _audioRate;   /* 10/20：倍速改成 _audioRate（0.8–1.5），旧 _rateIx 路径退役 */
     var sel = document.getElementById('eaRate');
     if(sel) sel.value = String(_audioRate);
-    a.addEventListener('loadedmetadata', paintAudio);
+    a.addEventListener('loadedmetadata', function(){ paintAudio(); paintAudioGate(); });
     a.addEventListener('timeupdate', paintAudio);
+    a.addEventListener('progress', function(){ paintAudioGate(); });
+    a.addEventListener('canplay', function(){ paintAudioGate(); });
     /* 🔴 10/16 她报「听力音频播放不了」：先在本地/线上复现——都正常（duration 正常、无报错），
        她那边时间停在 00:00 / 00:00 + 进度条塌成一个小圆点 = **元数据没加载**（旧缓存版本）。
        不管她那边是缓存还是网络/插件拦截，现在的失败形态是**完全静默**的（只有 00:00/00:00，
@@ -1503,7 +1600,7 @@ window.__reportExamState = reportExamState;
     syncExamStates();
     paintSheet();
     if(EX.scored === false) showNoAnsBanner();
-    if(isListen){ wireAudio(); mountListenTools(); }
+    if(isListen){ wireAudio(); mountListenTools(); watchAudioReady(); }
     else { renderNotes(); replayMarks(); }
     wireOptionPanel();   /* 10/14 Option 面板交互（Colour/Size/Audio 分组点击） */
     wireExamTools();     /* 10/18 顶栏工具栏：全屏（眼睛标 10/20 删除） */
@@ -3373,7 +3470,9 @@ window.__reportExamState = reportExamState;
         return;
       }
       /* 听力音频条（10/11 第 9 项）：播放/暂停、倍速、练习⇄考试模式、点进度条跳转 */
-      if(t.closest && t.closest('#exAudioBar [data-aplay]')){ audioToggle(); return; }
+      if(t.closest && (t.closest('#exAudioBar [data-aplay]') || t.closest('#exAudioGate [data-aplay]'))){ audioToggle(); return; }
+      /* 10-23：遮罩里「先看题，音频后台下」跳过链 */
+      if(t.closest && t.closest('#exAudioGate [data-askip]')){ skipAudioGate(); return; }
       /* Pause / Resume（10/13 她报「Pause 是个摆设」→ 实现：暂停音频+倒计时，按钮互文切换） */
       if(t.closest && t.closest('#exPauseBtn')){
         if(EX && EX.paused) resumeExam(); else pauseExam();

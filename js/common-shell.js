@@ -423,7 +423,8 @@ function onHubLinkClick(e){
   const a = e.target.closest('a[href]');
   /* 🔴 10/20 模考锁（第一道，位置最靠前）：**任何**站内链接都不能在模考中点走。
      ⚠️ 必须放在 hubLinkTarget() 判定**之前** —— 因为 login.html / meds.html /
-     wrongbook.html 不在 PAGES 里，hubLinkTarget 对它们返回 null → 早前的代码直接
+     wrongbook.html（10-23 T-015 删页后）不在可用 PAGES 里（条目 hidden），
+     hubLinkTarget 对它们返回 null → 早前的代码直接
      「放行：由浏览器原生处理」→ 整页跳转 → 模考连同已答内容全丢（实测复现：
      examRoot 从 6 个子节点变「不存在」，URL 跳 /login.html）。
      所以这里不能用「是否软导航目标」来判，只要 href 指向站内 .html 就拦。

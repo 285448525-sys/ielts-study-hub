@@ -26,10 +26,10 @@ const FREE_AI_DESC = '口语模考每月 1 次 · 其他 AI 每周 5 次（写�
    🔴 口径红线（违反=返工）：不得出现「Band」「雅思官方保证」；价格数字一律来自 VIP_PLANS 字段。 */
 const VIP_MATRIX = [
   { cat:'学习功能（会员不独占）', rows:[
-    { label:'全部学习功能', sub:'单词 · 句子 · 口语题库 · 写作 · 错句本 · 回顾 · 计时', free:'yes', vip:'yes' },
+    { label:'全部学习功能', sub:'单词 · 句子 · 口语题库 · 写作 · 回顾', free:'yes', vip:'yes' },
     { label:'每日清单与备考计划', sub:'手动排 + 手动打勾', free:'yes', vip:'yes' },
     { label:'计时与学习时长统计', sub:'番茄钟、暂停续记、模块归属', free:'yes', vip:'yes' },
-    { label:'错句本 / 语料听写 / 长难句', free:'yes', vip:'yes' },
+    { label:'语料听写 / 长难句', free:'yes', vip:'yes' },
   ]},
   { cat:'AI 能力（这里才是会员的核心）', rows:[
     { label:'口语模考', sub:'AI 出题 + 评分 + 四维报告', free:'text:每月 <b>1</b> 次', vip:'text:<b>无限次</b>' },
@@ -90,7 +90,7 @@ function renderPlanCards(box, opts){
       + '<div class="plan-price"><span class="plan-price-num">¥0</span><span class="plan-price-unit">/ 永久</span></div>'
       + '<div class="plan-perday muted">不设试用期 · 不绑卡</div>'
       + '<ul class="plan-list muted">'
-      + '<li>全部学习功能（单词/句子/口语/写作/错句本/回顾/计时）</li>'
+      + '<li>全部学习功能（单词/句子/口语/写作/回顾）</li>'
       + '<li>每日清单 + 手动打勾</li>'
       + '<li>多设备云同步与导出，永久免费</li>'
       + '<li>AI 免费体验：' + escapeHtml(FREE_AI_DESC) + '</li>'
