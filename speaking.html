@@ -60,7 +60,12 @@
        10/22 T-006：考官页签已删（模考纯随机、不许选），此处不再涉及考官选择器。 -->
   <script defer src="js/av-picker.js?v=20261022a"></script>
   <script defer src="js/coach.js?v=20261020a"></script>
-  <script defer src="js/speaking.js?v=20261023g"></script>
+  <!-- 10-23 T-009 S-1：口语页脚本按功能域拆分（方案 §二）。顺序 = 底层 → 顶层，
+       全部 defer，**不能改相对顺序**（sentence-drill/coach 的顶层旗仍必须更早立，见上）。
+       拆文件后 const 跨文件不可见 → 新文件一律 var/function 声明。 -->
+  <script defer src="js/sp-core.js?v=20261023a"></script>
+  <script defer src="js/sp-stats.js?v=20261023a"></script>
+  <script defer src="js/speaking.js?v=20261023h"></script>
   <!-- 10-22 她要求：「句型闯关」这个老引擎整个删掉（页面 / 引擎 / 数据全部下线）。
        已同步删掉 js/pattern-drill.js、pattern-drill.html、data/patterns.json 与 #pdView 界面；
        口语「陪练」tab 仍由 AI 陪练（coach.js）接管，句型练习（sentence-drill.js）不受影响。 -->
