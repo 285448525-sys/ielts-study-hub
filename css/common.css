@@ -2557,9 +2557,18 @@ body[data-shell="top"] .sw-update-bar{top:calc(44px + env(safe-area-inset-top) +
   body[data-shell="top"]{padding-top:calc(44px + env(safe-area-inset-top))}
 }
 @media (max-width:860px){
-  body[data-shell="top"]{padding-top:calc(44px + env(safe-area-inset-top))}
-  .hub-topbar{padding-left:12px;padding-right:12px}
-  /* 手机上顶栏不是导航（导航走底部 dock），只留身份：logo + 计时 + 头像 */
+  /* 🔴 10-23（她 08:1x 口径「手机上栏全部摘掉」· **全站**）：手机端整条顶栏不渲染。
+     原来这里只做「只留身份：logo + 计时 + 头像」（导航走底部 dock），现在连身份条也不要。
+     该口径原本只在 T-011 里就地执行到三个组页（js/hubgroup.js 的 body[data-hub-group] 作用域），
+     其余十二页顶栏一直在 —— 2026-10-23 这批由共享壳统一，组页那份重复规则已删。
+     ⚠️ 顶栏是 position:fixed，body 上那 44px 是它自己的占位（见上方 861px 那条），
+     不归零就会在页面顶部留一条空白。 */
+  .hub-topbar{display:none}
+  body[data-shell="top"]{padding-top:0}
+  /* 离线条 / 新版本条原来让的是顶栏那 44px，顶栏没了 → 回到贴 safe-area */
+  body[data-shell="top"] .offline-bar,
+  body[data-shell="top"] .sw-update-bar{top:calc(env(safe-area-inset-top) + 10px)}
+  /* 兜底：万一别的媒体查询把顶栏放出来，胶囊/搜索也不该回到手机端 */
   .tb-caps,.tb-search{display:none}
   .tb-right{margin-left:auto}
 }

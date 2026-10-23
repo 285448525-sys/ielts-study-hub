@@ -174,7 +174,9 @@ function topBarHtml(current){
     + '<kbd aria-hidden="true">Ctrl K</kbd>'
     + '<div class="ss-panel" id="ssPanel" hidden><div id="ssList"></div></div>'
     + '</div>'
-    + '<div class="side-timer-wrap" id="sideTimer"></div>'
+    /* 🔴 10-23 她「把所有页面计时条去掉」→ 顶栏里的计时徽标容器已撤（原来这里是
+       + '<div class="side-timer-wrap" id="sideTimer"></div>'）。renderSideTimer/updateSideTimerBadge 保留
+       （timer.html 的结算走同一份 DATA.activeTimer），但没有容器时两者都是空转。 */
     + _meEl
     + '</div>';
 }
@@ -330,8 +332,9 @@ function injectNav(){
     + _meEl
     + '<button id="sideCollapseIn" class="side-collapse-in" type="button" aria-label="收起侧边栏" title="收起侧边栏">⟨</button>'
     + '</div>';
-  // 方案1：全局计时徽标容器（任何页面常驻；计时进行中显示呼吸徽标 + 一键结束，解决 P1/P3）
-  html += '<div class="side-timer-wrap" id="sideTimer"></div>';
+  /* 🔴 10-23 她「把所有页面计时条去掉」：侧边栏那份计时徽标容器也撤（顶栏那份同批撤）。
+     两个容器都没了 → renderSideTimer()/updateSideTimerBadge() 拿不到 #sideTimer 直接返回，
+     全站不再出现任何计时条/徽标。函数本体保留。 */
   // AI 智能搜索：输入中文搜站内功能跳转；输入英文单词/词组 AI 查词并自动入词库
   html += '<div class="side-search-wrap">'
     + '<div class="ui-search">'

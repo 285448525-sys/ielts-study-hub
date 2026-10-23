@@ -34,11 +34,16 @@
         { id:'corpus',   name:'句子', desc:'长难句 · 错题 · 听写' }
       ]
     },
-    /* 10-23 T-014：「回顾」已提为顶栏一级入口（跟单词/句子/计划平级）→ 从「我的」组摘掉，
-       避免同一个页在两处出现、高亮口径也会分叉（组页按归属映射到一级）。 */
+    /* 10-23 T-014：「回顾」提为顶栏一级入口（跟单词/句子/计划平级），当时从本组摘掉。
+       🔴 10-23 同批修回来：那个“已提一级”的前提在**手机端不成立** ——
+       手机端顶栏整条不渲染，而级别胶囊 .tb-caps 本来就是 display:none，
+       “更多”面板又在 T-014 里被收到会员/设置 → 手机端「回顾」曾经零入口（实测）。
+       现在放回「我的」组页，作为手机端（dock「我的」格）的入口；桌面端顶栏胶囊一级入口照旧不变。
+       同一页两处出现的高亮分叉问题：组页高亮走 dockGroupOfPage 的归属映射，不看 items里有没有它。 */
     me: {
-      key:'me', title:'我的', tagline:'会员权益、设置与数据',
+      key:'me', title:'我的', tagline:'回顾、会员与设置',
       items:[
+        { id:'review',   name:'回顾', desc:'模考成绩 + 学习轨迹' },
         { id:'vip',      name:'会员', desc:'AI 无限用 + 专属权益' },
         { id:'settings', name:'设置', desc:'同步 / AI / 数据 / 账号' }
       ]
@@ -99,22 +104,12 @@ const HUBG_CSS = `
 .hg-empty{background:var(--n-0);border:1px solid var(--n-300);border-radius:14px;padding:22px 20px;text-align:center}
 .hg-empty p{margin:0 0 12px;font-size:13.5px;line-height:1.7;color:var(--n-600)}
 .hg-empty .btn{display:inline-flex;align-items:center;gap:6px}
-/* T-011 追加（她 10-23「把手机端的上栏全部摘掉」）：手机窄屏（≤860，与底栏/桌面重定向同口径）
-   组页**隐藏全站顶栏**（44px 那条），只留底部 dock 4 格导航 —— 组页本身就是入口聚合页，
-   顶栏里的导航跟卡片是重复信息，留着只是白占一屏高度。
-   ⚠️ 只对组页生效（body[data-hub-group]），别的页面顶栏照旧；桌面 >860 不隐藏。 */
-@media(max-width:860px){
-  /* 🔴 真实类名是 .hub-topbar（不是 .top-nav）：common.js:276 injectNav 会**覆盖** nav.className，
-     把 HTML 里的 .top-nav 换成 .hub-topbar —— 只写 .top-nav 等于打空气（我第一次就打偏了）。
-     两个都写：class 换之前/之后都能命中。 */
-  body[data-hub-group] .top-nav,
-  body[data-hub-group] .hub-topbar{display:none !important}
-  /* 🔴 第二个坑：body 上还有 padding-top:44px（顶栏占位，common.css 的 .hub-topbar 规则）
-     —— 顶栏 display:none 之后这 44px 依然占着，页面顶部会空一条。
-     实测：只隐藏顶栏后 main 的 top 仍是 44px（= 一条空白），body padding 归零才回到 14px。 */
-  body[data-hub-group]{padding-top:0 !important}
-  body[data-hub-group] main.container{padding-top:14px !important}
-}
+/* 🔴 10-23：这里原本有一段 @media(max-width:860px){ body[data-hub-group] 隐藏顶栏 }，
+   现已删 —— “手机端整条顶栏不渲染”已提到全站共享壳 css/common.css 的 ≤860 段
+   （她 08:1x 原话「手机上栏全部摘掉」的**全站**范围）。
+   三个组页也有 body[data-shell="top"]（实测），所以全站规则已经覆盖它们，留着只会两处 !important 打架；
+   而且原来那句 body[data-hub-group] main.container{padding-top:14px !important} 还会把
+   「≤560px 时 container padding-top:10px」的全站口径顶掉 → 组页与其他页在手机上反而不一致。 */
 @media(max-width:720px){
   .hg-stats{grid-template-columns:1fr;gap:14px;padding:16px}
   .hg-stat-cell + .hg-stat-cell{padding-left:0;padding-top:14px;border-left:0;border-top:1px solid var(--n-300)}
