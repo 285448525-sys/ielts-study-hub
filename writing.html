@@ -51,7 +51,7 @@
   <script defer src="js/feedback.js?v=20261013b"></script>
   <script defer src="js/factory-writing.js?v=20261023b"></script>
 <script defer src="js/writing_prompts.js?v=20260903ab"></script>
-  <script defer src="js/writing.js?v=20261023y"></script>
+  <script defer src="js/writing.js?v=20261023z"></script>
 <style>
 
   /* ===== 10-23 W-1：撤左栏 → 单列 + 横向筛选带（方案 §二）
@@ -703,9 +703,8 @@ body.exam-fullscreen .hub-topbar{display:none !important}
           </div>
 
           <div id="tplWrongBox" hidden style="margin-top:12px"></div>
-          <div class="form-row" style="margin-top:12px">
-            <button class="btn btn-danger" id="delBtn">删除模板</button>
-          </div>
+          <!-- 10-23 她要求删掉：「我内置进去的模板全部都是系统自带的，不能删」→ 模板详情页不再给删除入口。
+               delTpl() 函数与墓碑机制保留在 js/writing.js 里（数据兼容，不删代码），只是这里没有按钮可点。 -->
         </section>
 
         <section class="card" id="addCard" hidden>
@@ -726,9 +725,9 @@ body.exam-fullscreen .hub-topbar{display:none !important}
         </section>
       </div>
     </div>
-    <div class="form-row" style="margin-top:14px">
-      <button class="btn btn-primary" id="addBtn">+ 新增模板</button>
-    </div>
+    <!-- 10-23 她要求删掉底部这个「+ 新增模板」通栏按钮（她说新增模板另有地方，不在这页）。
+         #addCard 表单与 addTpl() 一起留着：现在没有入口能打开它（点开它的是那个已删的按钮），
+         后续她要在别处做新增入口时直接复用，不用重写。 -->
 
     <!-- 10/2（她拍板）：错句本从独立 Tab 并入模板区底部（默认收起）
          🔴 10-23 T-015：独立页 wrongbook.html 已删（她拍板「不配单独一个 Tab」），
