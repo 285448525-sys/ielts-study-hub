@@ -1706,8 +1706,20 @@ window.__reportExamState = reportExamState;
     var root = document.getElementById('bankRoot');
     if(root) root.style.display = 'none';
     var host = document.getElementById('examRoot');
-    if(host){ host.hidden = false; host.innerHTML = '<div class="bank-loading" style="padding:60px">Loading…</div>'; }
+    /* B-1a：完整模考也走四态（noCancel：已点 Start；失败可重试 = 重新抽篇组卷） */
+    if(host){
+      host.hidden = false;
+      fetchWithStates(host, 'Test', 'bank/reading/' + picks[0].id + '.json', function(box){
+        startFullTest(picks);
+      }, { noCancel: true });
+      return;
+    }
+    startFullTest(picks);
+  }
 
+  /* B-1a：完整阅读模考「拿到加载信号后」的原有逻辑（原样搬入，一行没改） */
+  function startFullTest(picks){
+    var root = document.getElementById('bankRoot');
     Promise.all(picks.map(function(u){ return loadPack('reading', u.id); })).then(function(packs){
       EX = {
         full: true, channel: 'reading', packs: packs, ids: picks.map(function(u){ return u.id; }),
@@ -1777,8 +1789,20 @@ window.__reportExamState = reportExamState;
     var root = document.getElementById('bankRoot');
     if(root) root.style.display = 'none';
     var host = document.getElementById('examRoot');
-    if(host){ host.hidden = false; host.innerHTML = '<div class="bank-loading" style="padding:60px">Loading…</div>'; }
+    /* B-1a：同阅读完整模考，走四态（noCancel；失败可重试） */
+    if(host){
+      host.hidden = false;
+      fetchWithStates(host, 'Test', 'bank/listening/' + picks[0].id + '.json', function(box){
+        startFullListenTest(picks);
+      }, { noCancel: true });
+      return;
+    }
+    startFullListenTest(picks);
+  }
 
+  /* B-1a：听力完整模考「拿到加载信号后」的原有逻辑（原样搬入，一行没改） */
+  function startFullListenTest(picks){
+    var root = document.getElementById('bankRoot');
     Promise.all(picks.map(function(u){ return loadPack('listening', u.id); })).then(function(packs){
       EX = {
         full: true, channel: 'listening', packs: packs, ids: picks.map(function(u){ return u.id; }),
