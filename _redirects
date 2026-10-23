@@ -45,6 +45,11 @@
 #   （那会让人以为「错句本还在，只是换了入口」）→ 302 去写作页，
 #   她明说保留的「我的错句」折叠区就在写作页底部（#wbArea）。
 #   sw.js 的 handleNavigate 里也有同款兜底（离线/弱网时生效），两边口径一致。
+#   ⚠️ js 也一并封：CF Pages 删了仓库里的 js/wrongbook.js，但**旧部署的资产副本仍在
+#      边缘节点**（实测直取 /js/wrongbook.js 还是 200 + 旧源码 3275 字节，带 ?v= 反而被
+#      SPA 回退成落地页）。脚本本身已无任何页面引用（19 页全部 bump 过串号），
+#      这条规则只为「老缓存/旧 SW 仍来抓它」的情况兜底，不会影响正常加载。
+/js/wrongbook.js      /writing.html  302
 /wrongbook.html       /writing.html  302
 /wrongbook            /writing.html  302
 
