@@ -297,11 +297,19 @@ function bindTopBar(){
   const btn = document.getElementById('tbMoreBtn');
   const panel = document.getElementById('tbMorePanel');
   if(btn && panel){
+    /* 10-23 T-001c：display:none ↔ block 无法过渡。改成「hidden 只控制是否存在，
+       动效全交给 .show 类（opacity + translateY）」—— 与二级面板同一套。 */
     const setOpen = open => {
       panel.hidden = !open;
       btn.setAttribute('aria-expanded', open ? 'true' : 'false');
       btn.classList.toggle('on', open);
-      if(open) tbPlacePanel(panel, btn, 'right');
+      if(open){
+        tbPlacePanel(panel, btn, 'right');
+        /* 先让浏览器拿到一帧「未 show」的状态，再加 show，否则 transition 不跑 */
+        requestAnimationFrame(() => panel.classList.add('show'));
+      }else{
+        panel.classList.remove('show');
+      }
     };
     btn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -338,7 +346,13 @@ function bindTopBar(){
 function tbPlacePanel(panel, trigger, align){
   if(!panel || !trigger) return;
   const r = trigger.getBoundingClientRect();
-  panel.style.top = Math.round(r.bottom + 8) + 'px';
+  /* 🔴 10-23 T-001c：原来按**触发器矩形**的 bottom + 6 定位。但胶囊 tab 只有 27.5px 高、
+     在 44px 顶栏里垂直居中 → bottom = 35.25，加 6 得 41.25 → 面板**插进顶栏里面 3px**
+     （探针实测 inlineTop 41 vs 顶栏底边 44）。她要的是「贴着顶栏底边往下长」，
+     所以改成按**顶栏底边**算：顶栏 bottom + 6px。 */
+  const bar = document.querySelector('.hub-topbar');
+  const base = bar ? bar.getBoundingClientRect().bottom : r.bottom;
+  panel.style.top = Math.round(base + 6) + 'px';
   // 先放到目标行，量宽度，再做右对齐 / 视口内收（第一次调用时宽度才有值）
   panel.style.left = Math.round(r.left) + 'px';
   const w = panel.offsetWidth || 0;
@@ -565,8 +579,14 @@ function bindTopBarSub(){
     });
     /* 键盘：焦点进入大 tab 后按 ↓ 也能展开（不展开就没法 Tab 进二级）。
        Esc 在 document 层统一关（见下）。 */
+    /* 键盘：焦点进入大 tab 后按 ↓ 也能展开（不展开就没法 Tab 进二级）。
+       Esc 在 document 层统一关（见下）。
+       🔴 10-23 T-001c：Esc 处理里有一句 `if(a) a.focus()`（关掉后把焦点还给 tab）。
+       那个 focus 会再触发本监听 → 150ms 后面板又打开了（探针实测 Esc 后 60ms 关、
+       400ms 又开）。加 `__tbEscJustClosed` 闸：Esc 关掉后 300ms 内忽略 focus 展开。 */
     a.addEventListener('focus', () => {
       if(!tbCanHover()) return;
+      if(a.__tbEscJustClosed && Date.now() - a.__tbEscJustClosed < 300) return;
       if(_tbSubTimer){ clearTimeout(_tbSubTimer); _tbSubTimer = null; }
       _tbSubTimer = setTimeout(() => { _tbSubTimer = null; tbOpenSub(id); }, 150);
     });
@@ -596,7 +616,9 @@ function bindTopBarSub(){
       if(e.key === 'Escape' && _tbSubOpenId){
         const a = document.querySelector('.tb-caps .tb-item[data-sub-for="' + _tbSubOpenId + '"]');
         tbCloseSub();
-        if(a) a.focus();
+        /* 🔴 10-23 T-001c：打「刚被 Esc 关掉」的标，让上面的 focus 监听别又把面板展开
+           （ Esc → focus 回 tab → 150ms 后又开 = Esc 按了没关，实测复现过）。 */
+        if(a){ a.__tbEscJustClosed = Date.now(); a.focus(); }
       }
     });
   }
