@@ -31,8 +31,8 @@
 })();
 </script>
 <title>单词 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261023n" />
-<link rel="stylesheet" href="css/p/practice.css?v=20261023r" />
+<link rel="stylesheet" href="css/common.css?v=20261023w" />
+<link rel="stylesheet" href="css/p/practice.css?v=20261023t" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -43,19 +43,19 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
   <script defer src="js/data.js?v=20261023b"></script>
-  <script defer src="js/common.js?v=20261023n"></script>
-  <script defer src="js/common-ai.js?v=20261023n"></script>
-  <script defer src="js/common-sync.js?v=20261023n"></script>
-  <script defer src="js/common-merge.js?v=20261023n"></script>
-  <script defer src="js/common-cloud.js?v=20261023n"></script>
-  <script defer src="js/common-shell.js?v=20261023n"></script>
-  <script defer src="js/common-pwa.js?v=20261023n"></script>
+  <script defer src="js/common.js?v=20261023w"></script>
+  <script defer src="js/common-ai.js?v=20261023w"></script>
+  <script defer src="js/common-sync.js?v=20261023w"></script>
+  <script defer src="js/common-merge.js?v=20261023w"></script>
+  <script defer src="js/common-cloud.js?v=20261023w"></script>
+  <script defer src="js/common-shell.js?v=20261023w"></script>
+  <script defer src="js/common-pwa.js?v=20261023w"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
   <!-- design/78 双词库适配层：必须在 dhp_policy.js / practice.js / words.js 之前（defer 按文档序执行） -->
-  <script defer src="js/wordbank.js?v=20261012g"></script>
+  <script defer src="js/wordbank.js?v=20261023s"></script>
   <!-- design/77 DHP+SSP-MMC 策略表：必须在 practice.js 之前（defer 按文档序执行，表未加载时 practice.js 有回退兜底） -->
   <script defer src="js/dhp_policy.js?v=20260921a"></script>
-  <script src="js/practice.js?v=20261012a" defer></script>
+  <script src="js/practice.js?v=20261023s" defer></script>
   <script src="js/words.js?v=20261023r" defer></script>
 <style>
 /* ============================================================
@@ -219,6 +219,10 @@ html[data-theme="dark"] .wb-today{background:linear-gradient(135deg,var(--primar
    顶栏壳要跟着收掉；否则 44px 顶栏压在背词区上方，body 的 44px 让位还白留一条空带 */
 body.word-fullscreen[data-shell="top"]{padding-top:0 !important}
 body.word-fullscreen .hub-topbar{display:none !important}
+
+/* ===== 10-23 2-1d 批 B 补：单词页也撤药丸 tab（桌面 ≥861）。手机 ≤860 保留（顶栏隐藏时的唯一入口）。
+   分栏改由顶栏「单词」二级菜单接管（js/common.js 的 TB_SUB.practice）。不删 DOM。 ===== */
+@media (min-width:861px){ .word-tabs{display:none} }
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -248,6 +252,15 @@ body.word-fullscreen .hub-topbar{display:none !important}
 
   <div id="studyView" class="study-view-fit">
     <section class="card practice-card practice-card-fit" id="practiceArea">
+      <!-- 10-23 P-3 v2：顶部一条状态带（方案 §二.1）—— ← 返回词库 · 进度条 · 「第 N / M 个」 · 已掌握 · 今日 · 沉浸 -->
+      <div class="w-statebar" id="wStateBar" hidden>
+        <button class="w-back" id="wBackBank" type="button" title="返回词库" aria-label="返回词库">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <div class="w-prog" id="wProg" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="wProgFill" style="width:0%"></i></div>
+        <span class="w-prog-txt" id="wProgTxt"></span>
+        <span class="w-statebar-sp"></span>
+      </div>
       <div class="word-stats" id="wordStats" hidden>
         <span class="streak-chip" id="streakChip" hidden>
           <svg class="streak-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2c0 4-3 5-3 9a3 3 0 0 0 6 0c0-1-.5-2-1-2.5 2 0 3 1.5 3 3.5a6 6 0 0 1-12 0c0-4 4-6 7-10z"/></svg>
@@ -256,8 +269,10 @@ body.word-fullscreen .hub-topbar{display:none !important}
         </span>
         <span class="stat-progress" id="statProgress">0/0</span>
         <span class="stat-eta" id="statEta" hidden></span>
+        <span class="stat-due-split" id="statDueSplit" hidden></span>
       </div>
-      <div class="prog-bar-wrap" id="progBarWrap" hidden>
+      <!-- 10-23 P-3：旧进度条保留 DOM（JS updateProgBar 仍写 progBarFill），视觉上收进状态带 → 本块隐藏 -->
+      <div class="prog-bar-wrap" id="progBarWrap" hidden style="display:none">
         <div class="prog-bar-track"><div class="prog-bar-fill" id="progBarFill" style="width:0%"></div></div>
       </div>
       <div class="word-tools-row" id="wordToolsRow" hidden>

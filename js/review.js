@@ -73,9 +73,23 @@
   }
 
 
+  /* 🔴 10-23 2-1d 批 B 补：顶栏「回顾」二级落地（?sub=breakdown|overall|speaking|record）。
+     桌面已撤掉 .review-pill-tabs，分栏入口改由顶栏二级接管。用**现成的全局 tab 处理器**
+     （common-pwa.js 的 .tab-btn 委托）——直接 .click() 药丸按钮，不重写切换逻辑。
+     ⚠️ 必须延后：scores/history 的 ready 会自己渲染并复位 active，就地切会被覆盖。 */
+  function applySubTab(){
+    try{
+      const sub = (typeof tbSubPending === 'function') ? tbSubPending('review') : '';
+      if(!sub) return;
+      const btn = document.querySelector('.review-pill-tabs .tab-btn[data-tab="' + sub + '"]');
+      if(btn) btn.click();
+    }catch(e){}
+  }
+
   ready(() => {
     ensureMockHistory();
     ensureSpeakingPractice();
     initRvFold();
+    setTimeout(applySubTab, 300);
   });
 })();

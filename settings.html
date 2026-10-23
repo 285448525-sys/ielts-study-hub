@@ -19,7 +19,7 @@ setTimeout(__rvRescue,2500);
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>设置 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261023n" />
+<link rel="stylesheet" href="css/common.css?v=20261023w" />
 <link rel="stylesheet" href="css/p/settings.css?v=20261017a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
@@ -125,8 +125,32 @@ setTimeout(__rvRescue,2500);
   .set-row{flex-wrap:wrap;gap:4px 10px}
   .set-row-c{margin-left:0;flex:1 1 100%;justify-content:flex-start}
   .set-row-c input:not([type=checkbox]):not([type=radio]):not([type=file]){width:100%}
+  .set-row-c--band input:not([type=checkbox]):not([type=radio]):not([type=file]){width:100%}
+  .set-row-c--band{flex-wrap:wrap}
+  .set-ro{text-align:left}
   .set-row-d{margin-bottom:2px}
 }
+/* 🔴 10-23 T-002 步4：危险区独立卡片（方案 §六：1px 红边 + 红浅底 + 圆角 12）。
+   与上面正常区至少 18px 间距（.set-pane .set-card+.set-card 已有 18px）。
+   颜色全部走现有 --danger* token，不造新色。 */
+.set-danger{border:1px solid var(--danger);background:var(--danger-soft)}
+.set-danger h2{color:var(--danger-text)}
+.set-danger .set-sub{color:var(--danger-text);opacity:.85}
+/* 未输入「清空」二字时按钮置灰（不是隐藏）—— 让她知道「差一步」 */
+.set-danger .btn:disabled{background:var(--neutral);border-color:transparent;color:var(--muted);cursor:not-allowed}
+.set-danger .kicker{color:var(--danger-text);opacity:.7}
+/* 确认输入框：宽 110，与「确认清空」按钮同行 */
+.set-confirm{height:36px;border:1px solid var(--danger);border-radius:10px;background:var(--surface);
+  color:var(--ink);padding:0 11px;font:inherit;font-size:13.5px;width:110px;max-width:100%}
+.set-confirm:focus{outline:2px solid var(--danger);outline-offset:1px}
+/* 四科/口语自评：一行排开的小输入框组（不是四行）—— 同为「按科拆」的一组数，
+   拆四行反而难横向比较。每个框宽 66px，placeholder 当标签（听/阅/写/口、流利度/发音）。 */
+.set-row-c--band{gap:6px}
+.set-row-c--band input:not([type=checkbox]):not([type=radio]):not([type=file]){width:66px;text-align:center;padding:0 4px}
+.set-row-c--band input::placeholder{color:var(--muted);font-size:12px}
+/* 只读值（同步状态 / 版本号）：不是输入框，就是一段文字 */
+.set-ro{font-size:13px;color:var(--ink-2);text-align:right;line-height:1.5}
+.set-ro:empty::after{content:'—';color:var(--muted)}
 /* 头像行右侧小缩略图（方案 §0.1：28-32px，大头像只在顶部深绿身份条） */
 .set-row-c .set-av-mini{width:30px;height:30px;border-radius:9px;overflow:hidden;
   border:1px solid var(--line);background:var(--surface-2);flex:none}
@@ -246,6 +270,33 @@ setTimeout(__rvRescue,2500);
   /* 数据管理三个按钮手机端各自整行占满：文字不被折行、也不溢出，顺带减少误触「清空」 */
   .set-btns .btn-sm{flex:1 1 100%}
 }
+/* ===== 10-23 T-002 步5：字号三档分段控件 =====
+   复用 settings.html:140 的 .av-pop-tabs/.av-tab 视觉（方案 §四：分段控件复用它，不新造），
+   但这里是行内三段，不弹层 → 覆盖宽度与圆角。 */
+.set-font-tabs{display:inline-flex;width:190px;padding:3px;margin:0}
+.set-font-tabs .av-tab{height:30px}
+/* ===== 10-23 T-002 步3：保存反馈浮条（方案 §五）=====
+   右上角 fixed top:64px right:24px；白底 + 1px 边 + 圆角 10 + 中阴影；左侧 8px 绿点。 */
+.set-save-strip{position:fixed;top:calc(44px + env(safe-area-inset-top) + 20px);right:24px;z-index:120;
+  display:flex;align-items:center;gap:8px;padding:9px 14px;border-radius:10px;
+  background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-md);
+  font-size:13px;font-weight:600;color:var(--ink);
+  opacity:0;transform:translateY(-6px);pointer-events:none;transition:opacity .18s,transform .18s}
+.set-save-strip.on{opacity:1;transform:none;pointer-events:auto}
+.set-save-dot{width:8px;height:8px;border-radius:50%;background:var(--primary-500);flex:none}
+.set-save-strip.err{border-color:var(--danger);color:var(--danger-text)}
+.set-save-strip.err .set-save-dot{background:var(--danger)}
+@media(max-width:640px){
+  .set-save-strip{right:14px;left:14px;justify-content:center}
+}
+/* ===== 10-23 T-002 步4：危险区确认弹层（复用 .av-pop 视觉，不引新组件）===== */
+.set-pop-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:90}
+.set-pop-backdrop[hidden]{display:none}
+.set-reset-pop{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:95;
+  width:min(360px,calc(100vw - 32px));max-height:84vh;overflow-y:auto}
+.set-reset-pop[hidden]{display:none}
+.set-reset-pop-f{display:flex;gap:8px;margin-top:14px}
+.set-reset-pop-f .btn{flex:1}
 /* 极窄屏（≤360，老机型）：再收一档字号与内边距，保证 4 个标签始终铺得下、不用滑动 */
 @media(max-width:360px){
   .set-nav{gap:4px}
@@ -253,17 +304,17 @@ setTimeout(__rvRescue,2500);
 }
 </style>
 <script defer src="js/data.js?v=20261023b"></script>
-  <script defer src="js/common.js?v=20261023n"></script>
-  <script defer src="js/common-ai.js?v=20261023n"></script>
-  <script defer src="js/common-sync.js?v=20261023n"></script>
-  <script defer src="js/common-merge.js?v=20261023n"></script>
-  <script defer src="js/common-cloud.js?v=20261023n"></script>
-  <script defer src="js/common-shell.js?v=20261023n"></script>
-  <script defer src="js/common-pwa.js?v=20261023n"></script>
+  <script defer src="js/common.js?v=20261023w"></script>
+  <script defer src="js/common-ai.js?v=20261023w"></script>
+  <script defer src="js/common-sync.js?v=20261023w"></script>
+  <script defer src="js/common-merge.js?v=20261023w"></script>
+  <script defer src="js/common-cloud.js?v=20261023w"></script>
+  <script defer src="js/common-shell.js?v=20261023w"></script>
+  <script defer src="js/common-pwa.js?v=20261023w"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
   <!-- 10/3 头像选择（DiceBear CC0 素材；必须在 data.js/common.js 之后 —— 它读 DATA.settings.avatar） -->
   <script defer src="js/av-picker.js?v=20261022a"></script>
-  <script src="js/settings.js?v=20261021e" defer></script>
+  <script src="js/settings.js?v=20261023p" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -384,8 +435,9 @@ setTimeout(__rvRescue,2500);
       <span class="kicker">Account</span>
       <h2>我的账号</h2>
       <p class="set-sub">头像、昵称和登录状态</p>
-      <div class="set-fields">
-        <div><label for="sName">昵称</label><input id="sName" /></div>
+      <div class="set-row">
+        <div class="set-row-t"><b>昵称</b><p class="set-row-d">显示在首页和陪练对话里</p></div>
+        <div class="set-row-c"><input id="sName" aria-label="昵称" maxlength="24" /></div>
       </div>
     </section>
 
@@ -428,17 +480,25 @@ setTimeout(__rvRescue,2500);
       <span class="kicker">Targets</span>
       <h2>分数目标与自评</h2>
       <p class="set-sub">AI 按这个口径给你建议 · 模考计分也用这里的自评</p>
-      <div class="set-fields">
-        <div><label for="sExam">下次考试日期</label><input id="sExam" type="date" /></div>
+      <div class="set-row">
+        <div class="set-row-t"><b>下次考试日期</b><p class="set-row-d">决定首页倒计时和 AI 排周口径</p></div>
+        <div class="set-row-c"><input id="sExam" type="date" aria-label="下次考试日期" /></div>
       </div>
-      <div class="form-row set-bands">
-        <div><label for="tOverall">总分</label><input id="tOverall" type="number" step="0.5" min="0" max="9" /></div>
-        <div><label for="tListening">听力</label><input id="tListening" type="number" step="0.5" min="0" max="9" /></div>
-        <div><label for="tReading">阅读</label><input id="tReading" type="number" step="0.5" min="0" max="9" /></div>
-        <div><label for="tWriting">写作</label><input id="tWriting" type="number" step="0.5" min="0" max="9" /></div>
-        <div><label for="tSpeaking">口语</label><input id="tSpeaking" type="number" step="0.5" min="0" max="9" /></div>
+      <div class="set-row">
+        <div class="set-row-t"><b>目标总分</b><p class="set-row-d">AI 建议和模考计分用这个口径</p></div>
+        <div class="set-row-c"><input id="tOverall" type="number" step="0.5" min="0" max="9" aria-label="目标总分" /></div>
       </div>
-      <p class="set-note">口语按官方 band 评「语法」和「词汇」；<b>流利度与发音 AI 评不了</b>，在下面自己填。</p>
+      <!-- 四科目标一行排开（不是四行）：同为「按科拆」的一组数，拆四行反而难横向比较。
+           375 下 .set-row-c 掉第二行占满，五个框仍可读（方案 §四 图 4 口径）。 -->
+      <div class="set-row">
+        <div class="set-row-t"><b>四科目标</b><p class="set-row-d">按科拆，哪科弱一眼看得出</p></div>
+        <div class="set-row-c set-row-c--band">
+          <input id="tListening" type="number" step="0.5" min="0" max="9" aria-label="听力目标" placeholder="听" />
+          <input id="tReading" type="number" step="0.5" min="0" max="9" aria-label="阅读目标" placeholder="阅" />
+          <input id="tWriting" type="number" step="0.5" min="0" max="9" aria-label="写作目标" placeholder="写" />
+          <input id="tSpeaking" type="number" step="0.5" min="0" max="9" aria-label="口语目标" placeholder="口" />
+        </div>
+      </div>
     </section>
 
     <!-- 原「口语自评」卡（data-d 从 2 起顺延避免动画错位） -->
@@ -446,9 +506,12 @@ setTimeout(__rvRescue,2500);
       <span class="kicker">Speaking</span>
       <h2>口语自评</h2>
       <p class="set-sub">模考计分用 · 只有这两项 AI 评不了</p>
-      <div class="set-fields">
-        <div><label for="sFlu">固定流利度分（可选，0–9）</label><input id="sFlu" type="number" min="0" max="9" step="0.5" placeholder="如 6（不填则不计入总分）" /></div>
-        <div><label for="sPron">固定发音分（可选，0–9）</label><input id="sPron" type="number" min="0" max="9" step="0.5" placeholder="如 6（不填则不计入总分）" /></div>
+      <div class="set-row">
+        <div class="set-row-t"><b>口语自评</b><p class="set-row-d">流利度和发音 AI 评不了，只能自己填</p></div>
+        <div class="set-row-c set-row-c--band">
+          <input id="sFlu" type="number" min="0" max="9" step="0.5" aria-label="固定流利度分" placeholder="流利度" />
+          <input id="sPron" type="number" min="0" max="9" step="0.5" aria-label="固定发音分" placeholder="发音" />
+        </div>
       </div>
     </section>
       </section>
@@ -460,12 +523,14 @@ setTimeout(__rvRescue,2500);
       <span class="kicker">Prefs</span>
       <h2>学习偏好</h2>
       <p class="set-sub">怎么学、站内界面长什么样</p>
-      <div class="set-fields">
-        <div><label for="sGoal">每日目标（小时）</label><input id="sGoal" type="number" min="1" max="16" /></div>
+      <div class="set-row">
+        <div class="set-row-t"><b>每日目标小时</b><p class="set-row-d">首页进度环按这个算完成度</p></div>
+        <div class="set-row-c"><input id="sGoal" type="number" min="1" max="16" aria-label="每日目标小时" /></div>
       </div>
-      <div class="set-switches">
-        <div class="set-sw-row">
-          <span class="settings-option-label">主题（日 / 夜）</span>
+      <div class="set-row">
+        <div class="set-row-t"><b>主题</b><p class="set-row-d">太阳月亮那个动画开关就是它</p></div>
+        <div class="set-row-c">
+          <span class="settings-option-label" hidden>主题（日 / 夜）</span>
           <div class="theme-switch theme-switch--sm">
             <input type="checkbox" id="sThemeToggle" class="theme-switch__checkbox" />
             <label class="theme-switch__container" for="sThemeToggle">
@@ -485,29 +550,35 @@ setTimeout(__rvRescue,2500);
             </label>
           </div>
         </div>
-        <label class="set-sw-row set-sw-check">
-          <input type="checkbox" id="sChime" checked />
-          <span>专注结束播放轻柔提示音</span>
-        </label>
-        <label class="set-sw-row set-sw-check">
-          <input type="checkbox" id="sAdhd" />
-          <span>启用「服药」模块（记录用药后的药效窗口）</span>
-        </label>
+      </div>
+      <div class="set-row">
+        <div class="set-row-t"><b>提示音</b><p class="set-row-d">专注结束时轻轻响一声</p></div>
+        <div class="set-row-c"><label class="set-sw-row set-sw-check"><input type="checkbox" id="sChime" checked /></label></div>
+      </div>
+      <div class="set-row">
+        <div class="set-row-t"><b>服药模块</b><p class="set-row-d">记录用药后的药效窗口</p></div>
+        <div class="set-row-c"><label class="set-sw-row set-sw-check"><input type="checkbox" id="sAdhd" /></label></div>
+      </div>
+      <!-- 10-23 T-002 步5：新增两项（方案 §七；她 10-22 23:5x「全部默认按推荐来」→ 标准字号 + 关） -->
+      <div class="set-row">
+        <div class="set-row-t"><b>正文字号</b><p class="set-row-d">全站文字大小，看不清就调大</p></div>
+        <div class="set-row-c">
+          <div class="av-pop-tabs set-font-tabs" role="radiogroup" aria-label="正文字号">
+            <button type="button" class="av-tab" role="radio" aria-checked="false" data-font="sm">小</button>
+            <button type="button" class="av-tab on" role="radio" aria-checked="true" data-font="md">标准</button>
+            <button type="button" class="av-tab" role="radio" aria-checked="false" data-font="lg">大</button>
+          </div>
+        </div>
+      </div>
+      <div class="set-row">
+        <div class="set-row-t"><b>减少动效</b><p class="set-row-d">关掉切换动画，眼睛累时开</p></div>
+        <div class="set-row-c"><label class="set-sw-row set-sw-check"><input type="checkbox" id="sReduceMotion" /></label></div>
       </div>
     </section>
       </section>
 
 
-    <!-- 原「口语自评」卡（10/5 合并进来，data-d 从 2 起顺延避免动画错位） -->
-    <section class="card set-card rv" data-d="2">
-      <span class="kicker">Speaking</span>
-      <h2>口语自评</h2>
-      <p class="set-sub">模考计分用 · 只有这两项 AI 评不了</p>
-      <div class="set-fields">
-        <div><label for="sFlu">固定流利度分（可选，0–9）</label><input id="sFlu" type="number" min="0" max="9" step="0.5" placeholder="如 6（不填则不计入总分）" /></div>
-        <div><label for="sPron">固定发音分（可选，0–9）</label><input id="sPron" type="number" min="0" max="9" step="0.5" placeholder="如 6（不填则不计入总分）" /></div>
-      </div>
-    </section>
+    
       </section>
 
       <!-- 数据管理 -->
@@ -516,16 +587,46 @@ setTimeout(__rvRescue,2500);
       <span class="kicker">Data</span>
       <h2>数据管理</h2>
       <p class="set-sub">所有数据存在本机浏览器。危险操作前先导出备份。</p>
-      <div class="set-btns">
-        <button class="btn btn-sm" id="exportBtn">导出 JSON</button>
-        <button class="btn btn-sm" id="importBtn">导入 JSON</button>
-        <input aria-label="导入词库 JSON 文件" type="file" id="importFile" accept="application/json" hidden />
-        <button class="btn btn-sm set-dgr" id="resetBtn">清空所有数据</button>
+      <div class="set-row">
+        <div class="set-row-t"><b>同步状态</b><p class="set-row-d">只读，显示上次同步时间</p></div>
+        <div class="set-row-c"><span id="syncStatusText" class="set-ro"></span></div>
+      </div>
+      <!-- 同步日志一行（方案 §三「数据与同步」行序） -->
+      <div class="set-row">
+        <div class="set-row-t"><b>同步日志</b><p class="set-row-d">最近几次同步的时间与结果</p></div>
+        <div class="set-row-c"><span id="syncLogText" class="set-ro"></span></div>
+      </div>
+      <div class="set-row">
+        <div class="set-row-t"><b>导出 JSON</b><p class="set-row-d">下载一份完整备份</p></div>
+        <div class="set-row-c"><button class="btn btn-sm" id="exportBtn" type="button">导出</button></div>
+      </div>
+      <div class="set-row">
+        <div class="set-row-t"><b>导入 JSON</b><p class="set-row-d">合并式导入，不会先清空</p></div>
+        <div class="set-row-c">
+          <button class="btn btn-sm" id="importBtn" type="button">选择文件</button>
+          <input aria-label="导入词库 JSON 文件" type="file" id="importFile" accept="application/json" hidden />
+        </div>
       </div>
       <div id="importErr" class="ui-err-box" style="margin-top:10px"></div>
     </section>
 
-        </section>
+    <!-- 🔴 10-23 T-002 步4（提前到步2 一起做）：危险区独立卡片沉底。
+         #resetBtn 是 js/settings.js:72 的硬依赖（$('#resetBtn').addEventListener）——
+         步2 把它从 .set-btns 里挪走后如果不立刻补回来，页面直接抛
+         TypeError: Cannot read properties of null → 全页后续绑定全断。 -->
+    <section class="card set-card set-danger rv" data-d="4">
+      <span class="kicker">Danger</span>
+      <h2>危险区</h2>
+      <p class="set-sub">不可恢复，导出备份后再点</p>
+      <div class="set-row">
+        <div class="set-row-t"><b>清空所有数据</b><p class="set-row-d">清空后本机与云端都回不来</p></div>
+        <div class="set-row-c">
+          <input id="resetConfirm" class="set-confirm" placeholder="输入「清空」" aria-label="输入清空以启用确认按钮" maxlength="4" />
+          <button class="btn btn-sm set-dgr" id="resetBtn" type="button" disabled>确认清空</button>
+        </div>
+      </div>
+      <div id="resetErr" class="ui-err-box" style="margin-top:10px"></div>
+    </section>
       </section>
 
       <!-- ===== 反馈关于（T-002 步1：原「意见反馈」更名；步 7 在这里加「版本号」一行）=====
@@ -534,14 +635,15 @@ setTimeout(__rvRescue,2500);
       <section class="set-pane" data-pane="about" hidden>
         <section class="card set-card rv" data-d="1">
           <span class="kicker">Feedback</span>
-          <h2>意见反馈</h2>
-          <p class="set-sub">哪个页面、点了哪里、什么现象 —— 描述越具体我改得越准</p>
-          <div class="set-fields">
-            <div>
-              <button class="btn" data-fb-open type="button">写反馈 →</button>
-              <!-- 10/6 11:40 她要求删掉这行黄底说明（「这个黄色的提醒，我觉得可以不用写」）：
-                   截图张数与「可以分多次反馈」挪进弹层里轻轻标一行即可（见 js/feedback.js 的 fb-lbl / fb-hint）。 -->
-            </div>
+          <h2>反馈与关于</h2>
+          <p class="set-sub">说清页面和现象，我改得越准</p>
+          <div class="set-row">
+            <div class="set-row-t"><b>写反馈</b><p class="set-row-d">说清页面和现象，我改得准</p></div>
+            <div class="set-row-c"><button class="btn btn-sm" data-fb-open type="button">写反馈</button></div>
+          </div>
+          <div class="set-row">
+            <div class="set-row-t"><b>版本号</b><p class="set-row-d">当前站点版本（排查缓存用）</p></div>
+            <div class="set-row-c"><span id="setVerText" class="set-ro"></span></div>
           </div>
         </section>
       </section>
@@ -574,6 +676,281 @@ setTimeout(__rvRescue,2500);
     }
   }, 1200);
 })();
+</script>
+<script>
+/* 6-x 步3+4+6：设置页保存反馈 / 危险区确认 / ?pane= 直达 + replaceState
+   方案 §五（保存反馈三层）、§六（危险区）、§八（?pane=）
+   全部挂在 settings.html 页内（页内件，不引全站组件）。 */
+(function(){
+  'use strict';
+  var $ = function(s){ return document.querySelector(s); };
+
+  /* ============ 步3 ①：保存成功 = 右上角浮条（不是全局 toast 一闪而过）============
+     方案 §五：position:fixed; top:64px; right:24px；白底 + 1px 边 + 圆角 10 + 中阴影；
+     左侧 8px 绿点；1.5s 自动消失；1s 内多次保存只弹一次（合并窗口）。 */
+  var _saveEl = null, _saveAt = 0, _saveHideT = 0;
+  function saveStrip(msg, kind){
+    if(!_saveEl){
+      _saveEl = document.createElement('div');
+      _saveEl.id = 'setSaveStrip';
+      _saveEl.className = 'set-save-strip';
+      _saveEl.setAttribute('role', 'status');
+      _saveEl.setAttribute('aria-live', 'polite');
+      document.body.appendChild(_saveEl);
+    }
+    var now = Date.now();
+    if(now - _saveAt < 1000 && kind !== 'err') return;   // 1s 合并窗口：不刷屏
+    _saveAt = now;
+    _saveEl.innerHTML = '<i class="set-save-dot"></i><span>' + String(msg || '已保存').replace(/[<>&]/g, function(c){
+      return { '<':'&lt;', '>':'&gt;', '&':'&amp;' }[c];
+    }) + '</span>';
+    _saveEl.className = 'set-save-strip on' + (kind === 'err' ? ' err' : '');
+    clearTimeout(_saveHideT);
+    if(kind !== 'err'){
+      _saveHideT = setTimeout(function(){ _saveEl.classList.remove('on'); }, 1500);
+    }
+    /* 失败不自动消失（方案 §五）：下次成功覆盖或她手动点一下消掉 */
+    if(kind === 'err'){
+      _saveEl.onclick = function(){ _saveEl.classList.remove('on'); };
+    } else {
+      _saveEl.onclick = null;
+    }
+  }
+
+  /* ============ 步3 ②：保存失败 = 红条不消失 ============
+     saveSettings() 在 js/settings.js 里，hubSave() 内部已 try/catch 且自身 alert 配额满。
+     这里补的是「云端上传失败」这一类：包一层 scheduleCloudUpload 前后的可见反馈。 */
+  function wrapSaveFeedback(){
+    if(typeof window.saveSettings !== 'function') return false;
+    if(window.saveSettings.__t002Wrapped) return true;
+    var orig = window.saveSettings;
+    window.saveSettings = function(){
+      try{
+        var r = orig.apply(this, arguments);
+        saveStrip(window.__lastSaveErr ? '没保存成功，请再试一次' : '已保存', window.__lastSaveErr ? 'err' : 'ok');
+        return r;
+      }catch(e){
+        console.error('[t002] saveSettings 抛错', e);
+        saveStrip('没保存成功，请再试一次', 'err');
+        throw e;
+      }
+    };
+    window.saveSettings.__t002Wrapped = true;
+    return true;
+  }
+  /* ⚠️ js/settings.js 是 defer，本段是**内联非 defer**（比 defer 先跑）——
+     第一次进来时 window.saveSettings 还是 undefined，包不上。
+     改到 DOMContentLoaded（defer 全部执行完）再包；软导航会重跑本段，用 __t002Wrapped 幂等。 */
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', function(){
+      if(!wrapSaveFeedback()){
+        setTimeout(wrapSaveFeedback, 300);
+        setTimeout(wrapSaveFeedback, 1200);
+      }
+    });
+  } else {
+    wrapSaveFeedback();
+  }
+
+  /* 全局保存错误钩子：hubSave 的 alert 路径（配额满等）也走红条 */
+  window.addEventListener('error', function(e){
+    if(/保存失败|QuotaExceeded/i.test(String(e.message || ''))) saveStrip('没保存成功：存储空间或权限有问题', 'err');
+  });
+
+  /* ============ 步3 ③：未保存改动离开 = 防抖立刻落地 ============
+     600ms 防抖窗口内切组 / 切页 → 先把防抖立刻落地再放行。
+     实现：在切组按钮的 pointerdown 上抢先 flush（比 click 更早，切组前一定跑到）。 */
+  function flushPendingSave(){
+    try{
+      if(window.__setSaveTimer){ clearTimeout(window.__setSaveTimer); window.__setSaveTimer = null; }
+      if(typeof window.saveSettings === 'function' && document.getElementById('sName')) window.saveSettings();
+    }catch(e){}
+  }
+  document.addEventListener('pointerdown', function(e){
+    var b = e.target && e.target.closest ? e.target.closest('.set-nav-item') : null;
+    if(b) flushPendingSave();
+  }, true);
+  /* 切页（软导航/整页离开）前也落地一次。不弹原生框（自动保存设计下弹框是倒退） */
+  window.addEventListener('pagehide', flushPendingSave);
+
+  /* ============ 步4：危险区 = 输入「清空」才启用确认按钮 ============
+     方案 §六：不弹系统 confirm；输入正确前 disabled（视觉置灰而非隐藏）；
+     弹层默认聚焦「取消」。resetData() 本身（js/settings.js:251）一行不动。 */
+  function bindDanger(){
+    var inp = $('#resetConfirm'), btn = $('#resetBtn');
+    if(!inp || !btn) return;
+    var sync = function(){
+      var v = String(inp.value || '').trim();
+      btn.disabled = v !== '清空';
+    };
+    inp.addEventListener('input', sync);
+    inp.addEventListener('change', sync);
+    sync();
+    /* 确认弹层：复用 .av-pop 视觉语言（方案 §六），不引新组件。
+       ⚠️ 默认聚焦「取消」—— 误触时按 Enter 不会直接炸数据。 */
+    btn.addEventListener('click', function(){
+      if(btn.disabled) return;
+      var back = $('#resetBackdrop'), pop = $('#resetPop');
+      if(!pop){
+        back = document.createElement('div');
+        back.id = 'resetBackdrop';
+        back.className = 'set-pop-backdrop';
+        pop = document.createElement('div');
+        pop.id = 'resetPop';
+        pop.className = 'av-pop set-reset-pop';
+        pop.setAttribute('role', 'dialog');
+        pop.setAttribute('aria-modal', 'true');
+        pop.setAttribute('aria-label', '确认清空所有数据');
+        pop.innerHTML =
+            '<div class="av-pop-head"><div><b>确认清空所有数据？</b>'
+          +   '<span>此操作不可恢复。建议先「导出 JSON」备份。</span></div></div>'
+          + '<div class="set-reset-pop-f">'
+          +   '<button type="button" class="btn btn-sm" id="resetCancel">取消</button>'
+          +   '<button type="button" class="btn btn-sm set-dgr" id="resetGo">确认清空</button>'
+          + '</div>';
+        document.body.appendChild(back);
+        document.body.appendChild(pop);
+        back.addEventListener('click', closeReset);
+        pop.querySelector('#resetCancel').addEventListener('click', closeReset);
+        pop.querySelector('#resetGo').addEventListener('click', function(){
+          closeReset();
+          if(typeof window.resetData === 'function') window.resetData();
+        });
+      }
+      back.hidden = false; pop.hidden = false;
+      var c = pop.querySelector('#resetCancel');
+      if(c && c.focus) c.focus();               // 默认聚焦取消（防误触）
+    });
+    function closeReset(){
+      var b = $('#resetBackdrop'), p = $('#resetPop');
+      if(b) b.hidden = true;
+      if(p) p.hidden = true;
+      if(inp) inp.value = '';
+      sync();
+    }
+    /* Esc = 取消 */
+    document.addEventListener('keydown', function(e){
+      if(e.key === 'Escape' && $('#resetPop') && !$('#resetPop').hidden) closeReset();
+    });
+  }
+  bindDanger();
+
+  /* ============ 步6：?pane= 直达 + replaceState 同步 ============
+     方案 §八：五个值固定 profile/targets/prefs/data/about（T-003 头像菜单按这个写）。
+     replaceState 只动 search 不动 path → 软导航的 _hubCurrentFile 与部署探针靠 URL 判版本，安全。
+     🔴 不用 pushState（污染后退栈，她一按后退以为在跳页）。 */
+  var PANES = ['profile', 'targets', 'prefs', 'data', 'about'];
+  function paneFromUrl(){
+    try{ return new URLSearchParams(location.search).get('pane') || ''; }catch(e){ return ''; }
+  }
+  function syncPaneUrl(name){
+    if(PANES.indexOf(name) < 0) return;
+    try{
+      var u = new URL(location.href);
+      u.searchParams.set('pane', name);
+      history.replaceState(null, '', u.pathname + '?' + u.searchParams.toString() + u.hash);
+    }catch(e){}
+  }
+  /* 目录按钮点击后同步 URL（pointerdown 已 flush 保存，这里只记状态） */
+  document.addEventListener('click', function(e){
+    var b = e.target && e.target.closest ? e.target.closest('.set-nav-item') : null;
+    if(b) syncPaneUrl(b.getAttribute('data-goto'));
+  });
+  /* 顶栏头像菜单 / Ctrl+, 的 sessionStorage 交接（T-003 已写） */
+  function applyPendingPane(){
+    var want = paneFromUrl();
+    if(PANES.indexOf(want) < 0){
+      try{ want = sessionStorage.getItem('hub_set_pane') || ''; }catch(e){}
+      if(PANES.indexOf(want) >= 0){
+        try{ sessionStorage.removeItem('hub_set_pane'); }catch(e){}
+      }
+    }
+    if(PANES.indexOf(want) >= 0){
+      var btn = document.querySelector('.set-nav-item[data-goto="' + want + '"]');
+      if(btn && !btn.classList.contains('on')) btn.click();
+    }
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', applyPendingPane);
+  } else {
+    applyPendingPane();
+  }
+  /* ============ 步5：正文字号三档 + 减少动效 ============
+     字号：点分段即存即生效（applyFontScale 挂 html[data-font]，common.css 接手）；
+     减少：开关即存即生效（applyReduceMotion）。两项都走 saveSettings 的 _fieldTs 通道落库。 */
+  function bindStep5(){
+    var tabs = document.querySelector('.set-font-tabs');
+    if(tabs && !tabs.__t002Bound){
+      tabs.__t002Bound = 1;
+      tabs.addEventListener('click', function(e){
+        var b = e.target.closest ? e.target.closest('.av-tab[data-font]') : null;
+        if(!b) return;
+        var mode = b.getAttribute('data-font');
+        tabs.querySelectorAll('.av-tab').forEach(function(x){
+          var on = x === b;
+          x.classList.toggle('on', on);
+          x.setAttribute('aria-checked', on ? 'true' : 'false');
+        });
+        if(typeof applyFontScale === 'function') applyFontScale(mode);
+        DATA.settings = DATA.settings || {};
+        DATA.settings.fontScale = mode;
+        DATA.settings._fieldTs = DATA.settings._fieldTs || {};
+        DATA.settings._fieldTs.fontScale = Date.now();
+        if(typeof hubSave === 'function') hubSave();
+        if(DATA.settings.syncCode && typeof scheduleCloudUpload === 'function') scheduleCloudUpload();
+      });
+    }
+    var rm = document.getElementById('sReduceMotion');
+    if(rm && !rm.__t002Bound){
+      rm.__t002Bound = 1;
+      rm.addEventListener('change', function(){
+        var on = rm.checked === true;
+        if(typeof applyReduceMotion === 'function') applyReduceMotion(on);
+        DATA.settings = DATA.settings || {};
+        DATA.settings.reduceMotion = on;
+        DATA.settings._fieldTs = DATA.settings._fieldTs || {};
+        DATA.settings._fieldTs.reduceMotion = Date.now();
+        if(typeof hubSave === 'function') hubSave();
+        if(DATA.settings.syncCode && typeof scheduleCloudUpload === 'function') scheduleCloudUpload();
+      });
+    }
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', bindStep5);
+  } else {
+    bindStep5();
+  }
+  /* ===== 步8：关于组版本号行（#setVerText）=====
+     显示当前文档的资产指纹（common.js / common-*系列 / data.js / common.css 的 ?v= 串拼接），
+     与 js/common-shell.js 的 navDeployProbe 同口径 —— 她报问题时这行就是「你跑到哪个版本」的凭据。 */
+  function fillVerText(){
+    var el = document.getElementById('setVerText');
+    if(!el || el.textContent) return;
+    var parts = [];
+    document.querySelectorAll('script[src^="js/"]').forEach(function(el2){
+      var base = (el2.getAttribute('src') || '').split('?')[0];
+      var m = (el2.getAttribute('src') || '').match(/v=([0-9a-z]+)/);
+      if(base === 'js/data.js' || base === 'js/common.js' || base.indexOf('js/common-') === 0){
+        parts.push(base.replace(/^js\//, '') + ':' + (m ? m[1] : ''));
+      }
+    });
+    var css = document.querySelector('link[href*="common.css"]');
+    var cm = css ? (css.getAttribute('href') || '').match(/v=([0-9a-z]+)/) : null;
+    parts.push('common.css:' + (cm ? cm[1] : ''));
+    el.textContent = parts.join(' · ');
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', fillVerText);
+  } else {
+    fillVerText();
+  }
+  /* 首次进入若 URL 无 pane，补一个（刷新后停在同一组） */
+  setTimeout(function(){
+    var on = document.querySelector('.set-nav-item.on');
+    if(on && !paneFromUrl()) syncPaneUrl(on.getAttribute('data-goto'));
+  }, 400);
+})();
+
 </script>
 <script>
 /* 10/4 改版方向二：设置页分组切换（左目录 / 窄屏顶部标签，默认「个人设置」）
@@ -687,10 +1064,16 @@ setTimeout(__rvRescue,2500);
   function _applyPane(){
     var want = '';
     try{ want = new URLSearchParams(location.search).get('pane') || ''; }catch(_){}
-    if(['profile','targets','data','fb'].indexOf(want) < 0 && typeof tbPanePending === 'function'){
+    /* 10-23 6-x2：名单补成五组（原来还是 4 组时代的 ['profile','targets','data','fb']，
+       prefs/about 从地址栏进来时这段直接不动，靠步 6 的 applyPendingPane 兜底 ——
+       现在两段幂等共存，这段不再「漏接」）。
+       兼容：老书签/老交接的 ?pane=fb（反馈组旧名）映射到 about。 */
+    if(want === 'fb') want = 'about';
+    if(['profile','targets','prefs','data','about'].indexOf(want) < 0 && typeof tbPanePending === 'function'){
       try{ want = tbPanePending() || ''; }catch(_){}
+      if(want === 'fb') want = 'about';
     }
-    if(['profile','targets','data','fb'].indexOf(want) >= 0 && want !== 'profile'){
+    if(['profile','targets','prefs','data','about'].indexOf(want) >= 0 && want !== 'profile'){
       try{ go(want); moveHit(want); }catch(_){}
     }
   }

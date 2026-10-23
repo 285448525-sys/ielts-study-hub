@@ -61,7 +61,13 @@ if(typeof window.hubClearOrphanPageTimers === 'function' && !window.__spHookLeav
 var FREQ_ORDER = { P1:{ultra:0, high:1, medium:2, low:3}, P2:{ultra:0, high:1, medium:2, low:3} };
 function freqRank(f){ const t = FREQ_ORDER[curType] || FREQ_ORDER.P1; return (t[f] != null) ? t[f] : 9; }
 
-/* 顶部常量用 var（speaking.js 会被软导航 window.eval 重跑，const 会抛「已声明」） */
+/* 顶部常量一律用 var —— 两条实测约束（10-23 T-009 取证）：
+   ① speaking.js 会被软导航 window.eval 重跑，顶层 const 在重跑时是 SyntaxError「已声明」；
+   ② window.eval 里声明的 const **只存在于那一次 eval 的词法作用域**（实测：
+      eval('const CC=1') 之后另一段 eval('typeof CC') === 'undefined'，而 var/function 都是全局可见）
+      → 一旦把 speaking.js 拆成多个文件，任何 const 常量都会在隔壁文件里变成 undefined。
+   所以 T-009 把原先 5 个 const（SYS_CHUAN_PLAN / SYS_CHUAN_FINAL / CHUAN_AIFILL_SUFFIX /
+   SPK_TIMER_MODULE / SPK_TIMER_NAME）全部降级为 var，值一个字没改。 */
 var SYS_DIAG = `你是一位雅思口语考官助手。你的任务有两件：
 1）找出回答里真正的「语法错误」和「用词错误」，并给出正确写法；
 2）按 IELTS 官方口语评分标准，给「语法范围与准确性」和「词汇资源」两个维度打分。
@@ -563,260 +569,9 @@ ready(() => {
   }catch(_){}
 });
 
-// 优先级下拉选项（P1/P2 共用）：超高频>高频>中频>低频
-function populateFreqOptions(){
-  const sel = $('#freqSelect');
-  if(!sel) return;
-  const opts = [['all','全部'],['ultra','必考题'],['high','高频'],['medium','中频'],['low','低频']];
-  sel.innerHTML = opts.map(o => '<option value="' + o[0] + '">' + o[1] + '</option>').join('');
-  curFreq = 'all';
-}
+/* 10-23 T-009 S-1：C 区（优先级下拉/filter/频次标签/状态下拉）已搬到 js/sp-core.js；
+   D 区（分数解析与统计）已搬到 js/sp-stats.js。都是原样搬家，函数体未改。 */
 
-function getFiltered(){
-  // 仅展示纯题目：剔除框架母本（带 framework 字段 / id 形如 sp_p[12]_*）；curType='ALL' 为题库 tab（P1+P2 合并）
-  let list = DATA.speaking.filter(s => (curType === 'ALL' || s.type === curType) && !s.framework && !/^sp_p[12]_\d+$/.test(s.id || ''));
-  if(curFreq !== 'all') list = list.filter(s => s.frequency === curFreq);
-  if(curCat !== 'all') list = list.filter(s => s.category === curCat);
-  if(curPart !== 'all') list = list.filter(s => s.type === curPart);
-  // design/88：练习状态筛选（getPracticeCount 是函数声明有提升）
-  if(curState !== 'all') list = list.filter(s => (getPracticeCount(s) > 0) === (curState === 'done'));
-  if(curSearch){
-    list = list.filter(s => {
-      const t = ((s.titleEn || '') + ' ' + (s.titleZh || '') + ' ' + (s.title || '') + ' ' + (s.promptEn || '') + ' ' + (s.promptZh || '') + ' ' + (s.questions || []).join(' ')).toLowerCase();
-      return t.includes(curSearch);
-    });
-  }
-  // 按档位排序（P1/P2 档位顺序不同）
-  list.sort((a, b) => freqRank(a.frequency) - freqRank(b.frequency));
-  return list;
-}
-
-function freqTag(freq){
-  const label = (typeof FREQ_LABEL !== 'undefined' && FREQ_LABEL[freq]) || freq;
-  return '<span class="sp-tag freq-' + freq + '">' + label + '</span>';
-}
-
-/* design/88：状态下拉选项带题数。
-   题数口径：按「当前其他筛选（类型/优先级/分类/Part）已生效后」的剩余池统计，
-   不含 curState 自身（否则选了「未练过」后列表只剩 new，done 永远显示 0 就没意义了）。
-   跟随 renderList 调用，Part/优先级/分类切换时自动刷新。 */
-function refreshStateOptions(){
-  const sel = $('#stateSelect');
-  if(!sel) return;
-  // 复刻 getFiltered 但跳过 curState 过滤
-  let pool = DATA.speaking.filter(s => (curType === 'ALL' || s.type === curType) && !s.framework && !/^sp_p[12]_\d+$/.test(s.id || ''));
-  if(curFreq !== 'all') pool = pool.filter(s => s.frequency === curFreq);
-  if(curCat !== 'all') pool = pool.filter(s => s.category === curCat);
-  if(curPart !== 'all') pool = pool.filter(s => s.type === curPart);
-  let nDone = 0, nNew = 0;
-  pool.forEach(s => { if(getPracticeCount(s) > 0) nDone++; else nNew++; });
-  const oNew = sel.querySelector('option[value="new"]'), oDone = sel.querySelector('option[value="done"]');
-  if(oNew) oNew.textContent = '未练过（' + nNew + ' 题）';
-  if(oDone) oDone.textContent = '已练过（' + nDone + ' 题）';
-}
-
-function tagsHtml(s){
-  let html = '';
-  if(curType === 'ALL' && s.type) html += '<span class="sp-tag sp-tag-p">' + (s.type === 'P1' ? 'P1' : 'P2') + '</span>';
-  /* 10/3 B 版：超高频/high 标签不再逐行显示 —— 分组面板的组标题已经说了「超高频 / 高频」，
-     行内重复是视觉噪音。频次改由左侧色条 + 分组归属表达。medium/low 组内仍标（区分中频/低频）。 */
-  if(s.frequency && s.frequency !== 'ultra' && s.frequency !== 'high') html += freqTag(s.frequency);
-  if(s.category) html += '<span class="sp-tag">' + escapeHtml(s.category) + '</span>';
-  if(s.framework) html += '<span class="sp-tag">' + escapeHtml(s.framework) + '</span>';
-  return html;
-}
-
-// === 口语分数解析与展示 ===
-/* 分数解析（9/20 design/76 重写 + 之之 9/20 拍板恢复发音/流利度自填固定分）：
-   · grammar / vocabulary 由 AI 按 IELTS 官方 band descriptor 正向锚定评出（文本唯一能评准的两维）
-   · 流利度、发音需音频，AI 一律不评不猜；取设置里用户自填的固定分（0–9），没填/非法值 → null（不计入）
-   · overall = 已评维度的均分，四舍五入到 0.5；四项全填时最接近雅思四项口径 */
-function parseScore(score){
-  if(!score) return null;
-  const n = v => { const x = parseFloat(v); return isNaN(x) ? null : x; };
-  const grammar = n(score.grammar);
-  const vocabulary = n(score.vocabulary);
-  // 自填固定分：用户在「设置 / 口语模考」里填；没填就不参与，绝不猜（0 是合法值，禁用 ||null 吞 0）
-  const sset = DATA.settings || {};
-  const pronunciation = (sset.pronunciationScore != null) ? n(sset.pronunciationScore) : null;
-  const fluency = (sset.fluencyScore != null) ? n(sset.fluencyScore) : null;
-  const dims = [grammar, vocabulary].filter(v => v != null);
-  if(fluency != null) dims.push(fluency);
-  if(pronunciation != null) dims.push(pronunciation);
-  // 9/20 拍板：至少两个维度才有 overall（单维度均分没有意义，不给总分）
-  const overall = (dims.length >= 2) ? Math.round(dims.reduce((a, b) => a + b, 0) / dims.length * 2) / 2 : null;
-  // 评分依据随分数一起落库：分数必须能自证，否则又变成"莫名其妙的低分"
-  const basis = {
-    grammar: (score.grammar_basis != null) ? String(score.grammar_basis) : '',
-    vocabulary: (score.vocabulary_basis != null) ? String(score.vocabulary_basis) : ''
-  };
-  return { overall, fluency, pronunciation, vocabulary, grammar, basis };
-}
-/* 总分口径文案（UI 必须显示，绝不能被当成雅思总分）：按实际参与计算的维度动态生成 */
-function scoreScopeTip(){
-  const sset = (DATA && DATA.settings) || {};
-  const parts = ['语法', '词汇'];
-  if(sset.fluencyScore != null) parts.push('流利度(自填)');
-  if(sset.pronunciationScore != null) parts.push('发音(自填)');
-  return parts.join(' + ') + ' 的均分；未填的自填项不计入（可在设置里补）';
-}
-// 某小题的历史最高分：遍历每次诊断/提交记录取最高（用户规则：同一题反复刷分取最高值）；
-// 老数据没有 records 时回退到当前 score 字段
-/* 只认 9/20 新口径的分数：新分数一定带 basis（评分依据）。
-   旧口径分数是「扣分制 + 拍脑袋兜底」打出来的，偏低且口径不同，一律不参与聚合，
-   避免历史低分重新冒出来打击信心。 */
-function isNewScore(sc){
-  return !!(sc && sc.overall != null && sc.basis);
-}
-function bestOfQuestion(a){
-  if(!a) return null;
-  let best = null;
-  (a.records || []).forEach(r => {
-    if(r && isNewScore(r.score)){
-      const v = parseFloat(r.score.overall);
-      if(!isNaN(v) && (best === null || v > best)) best = v;
-    }
-  });
-  if(best === null && isNewScore(a.score)){
-    const v = parseFloat(a.score.overall);
-    if(!isNaN(v)) best = v;
-  }
-  return best;
-}
-function getBestScore(s){
-  if(!s || !s.answers) return null;
-  let best = null;
-  Object.values(s.answers).forEach(a => {
-    const v = bestOfQuestion(a);
-    if(v != null && (best === null || v > best)) best = v;
-  });
-  return best;
-}
-/* === 练习次数统计 ===
-   没有新口径分数时（旧数据 / 从未评分），列表显示「练过几次」而不是空白。
-   P1 的各小题只要有任一题有 records，就算「练过 1 次」，并显示已完成小题数。
-   P2 直接按该题的 records 数量显示练过次数。 */
-function countOfQuestion(a){
-  if(!a) return 0;
-  if(Array.isArray(a.records) && a.records.length) return a.records.length;
-  // 老数据：有 score 没 records 的，算练过 1 次
-  if(a.score && a.score.overall != null) return 1;
-  return 0;
-}
-function getP1Done(s){
-  if(!s || !s.answers) return 0;
-  return Object.keys(s.answers).filter(k => k !== 'p2' && countOfQuestion(s.answers[k]) > 0).length;
-}
-function getScoreCount(s){
-  if(!s || !s.answers) return 0;
-  return Object.values(s.answers).filter(a => countOfQuestion(a) > 0).length;
-}
-function getPracticeCount(s){
-  if(!s || !s.answers) return 0;
-  if(s.type === 'P1') return getP1Done(s) > 0 ? 1 : 0;
-  return countOfQuestion(s.answers.p2);
-}
-/* 聚合分（9/20 评分恢复）：
-   P1 = 各已练小题「历史最高分」的平均；P2 = 该题历史最高分。
-   只统计新口径分数（isNewScore），旧口径一律不计 —— 无新分数时返回 null，
-   列表继续显示「练过N次」。 */
-function getAggScore(s){
-  if(!s || !s.answers) return null;
-  if(s.type === 'P1'){
-    const vals = Object.keys(s.answers)
-      .filter(k => k !== 'p2')
-      .map(k => bestOfQuestion(s.answers[k]))
-      .filter(v => v != null);
-    if(!vals.length) return null;
-    return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 2) / 2;
-  }
-  return bestOfQuestion(s.answers.p2);
-}
-function scoreLabel(v){ return v == null ? '-' : (Math.round(v * 10) / 10).toFixed(v % 1 === 0 ? 0 : 1); }
-/* 路线图3 · 3b（10/12）：题卡加「最近练习时间」小字。
-   数据 = max(answers[*].records[].ts) 现算（P1 数字键 + p2 各一份），无 records 不显示。
-   文案口径（她定案）：今天 / 昨天 / N 天前（N≤30）/ 超 1 个月。
-   ⚠️ 不用 data.js 的静态 proficiency 字段（那是死值，运行时从不维护，见指令调研）。 */
-function lastPracticeTs(s){
-  if(!s || !s.answers) return 0;
-  let mx = 0;
-  try{
-    Object.keys(s.answers).forEach(k => {
-      const a = s.answers[k];
-      if(a && Array.isArray(a.records)) a.records.forEach(r => { if(r && r.ts > mx) mx = r.ts; });
-    });
-  }catch(e){}
-  return mx;
-}
-function lastPracticeLabel(ts){
-  if(!ts) return '';
-  const now = new Date();
-  const dayMs = 864e5;
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  if(ts >= startOfToday) return '今天练过';
-  if(ts >= startOfToday - dayMs) return '昨天练过';
-  const days = Math.floor((startOfToday - ts) / dayMs) + 1;
-  if(days <= 30) return days + ' 天前练过';
-  return '超 1 个月没练';
-}
-function scoreBadgeHtml(score, count, s){
-  return _scoreBadgeInner(score, count, s) + _lastPracticeTail(s);
-}
-/* 3b：时间小字拼在徽章后面（独立 span，不碰上面四个 return 的任何字符串 ——
-   动 return 就得改四处、还容易漏；包一层只为「追加」，语义零风险）。 */
-function _lastPracticeTail(s){
-  const lb = lastPracticeLabel(lastPracticeTs(s));
-  return lb ? '<span class="sp-last-practice">' + escapeHtml(lb) + '</span>' : '';
-}
-function _scoreBadgeInner(score, count, s){
-  // 没有新口径分数（旧数据 / 从未评分 / AI 未返回分数）→ 显示练过次数，不显示分数
-  if(score == null){
-    if(!count) return '';
-    if(s && s.type === 'P1'){
-      // 9/16：小题总数按该题 questions 实际长度算（题库里 P1 小问 4~10 个不等，
-      // 原来硬写 4，work/hometown/area 这类 10 小题的话题会显示成「7/4 小题」）
-      const total = (s.questions || []).length || 4;
-      const done = getP1Done(s);
-      const label = done >= total ? '练过1次' : '练过1次（' + done + '/' + total + ' 小题）';
-      return '<span class="sp-score-badge practice">' + label + '</span>';
-    }
-    const label = count > 1 ? '练过' + count + '次' : '练过1次';
-    return '<span class="sp-score-badge practice">' + label + '</span>';
-  }
-  const cls = score >= 5.5 ? 'sp-score-badge good' : (score >= 5 ? 'sp-score-badge ok' : 'sp-score-badge low');
-  // 分数不是雅思总分（流利度始终需录音）—— tooltip 里说清当前口径，避免误读
-  const tip = scoreScopeTip();
-  let label;
-  if(s && s.type === 'P1'){
-    const done = getP1Done(s);
-    // 9/18：小题总数按 questions 实际长度算（硬写 4 会让 10 小题的 work/hometown 显示成「7/4 小题」）
-    const total = (s.questions || []).length || 4;
-    label = '平均 ' + scoreLabel(score) + '分 · 练过1次' + (done < total ? '（' + done + '/' + total + ' 小题）' : '');
-  } else {
-    const times = count > 1 ? ' · 练过' + count + '次' : '';
-    label = '最高 ' + scoreLabel(score) + '分' + times;
-  }
-  return '<span class="' + cls + '" title="' + tip + '">' + label + '</span>';
-}
-function scoreHeaderHtml(score, title){
-  if(!score || score.overall == null) return '';
-  // 维度按雅思官方顺序：流利度与连贯 → 词汇 → 语法 → 发音；自填项没填就不显示（不再摆一个「-」）
-  const dims = [
-    {k:'vocabulary',l:'词汇'},
-    {k:'grammar',l:'语法'}
-  ];
-  if(score.fluency != null) dims.unshift({k:'fluency',l:'流利度(自填)'});
-  if(score.pronunciation != null) dims.push({k:'pronunciation',l:'发音(自填)'});
-  let h = '<div class="sp-score-header">';
-  h += '<div class="sp-score-total"><span class="sp-score-num">' + scoreLabel(score.overall) + '</span><span class="sp-score-label">' + (title || '总分') + '</span></div>';
-  h += '<div class="sp-score-dims">';
-  dims.forEach(d => {
-    const v = score[d.k];
-    h += '<div class="sp-score-dim"><span class="sp-score-dim-val">' + scoreLabel(v) + '</span><span class="sp-score-dim-lab">' + d.l + '</span></div>';
-  });
-  h += '</div></div>';
-  return h;
-}
 
 /* ============================================================
    T-004（2026-10-22）：原 renderCountdownBar（10/3 B 版的倒计时提示条）已由 renderCockpit() 取代。
@@ -1935,7 +1690,7 @@ function spBindMatGuideBtn(el){
 /* === design/87：P2 串题要点驱动（bullet-driven）=== */
 /* 阶段一规划 prompt：{FORBIDDEN} 为禁词表占位，调用时替换，严禁硬编码。
    她拍板（9/23）：只出一段整段稿、字数够用——不出「标准版/加时版」两版，词数固定 180~200（约 100wpm 念满 2 分钟）。 */
-const SYS_CHUAN_PLAN = `你是雅思口语 P2 串题规划师。{SP_TARGET} 语速平稳。你拿到一道 P2 真题（含 You should say 四个 bullet）和考生的真实素材库。
+var SYS_CHUAN_PLAN = `你是雅思口语 P2 串题规划师。{SP_TARGET} 语速平稳。你拿到一道 P2 真题（含 You should say 四个 bullet）和考生的真实素材库。
 
 ⚠️⚠️ 本题最重要的前提，先读懂它⚠️⚠️
 官方 P2 的 bullet 全部是**问句标签**（形如 "What difficult thing this person did"、"Why this person was successful"），
@@ -2018,7 +1773,7 @@ H. keywords：从 fullEn 提取 8~14 个按叙事顺序排列的英文关键词�
  "unfitReason":"","suggestCard":""}`;
 
 /* 阶段二成稿 prompt：素材事实 + 考生补槽答案 → 一段完整独白 */
-const SYS_CHUAN_FINAL = `你是雅思口语 P2 串题成稿助手。考生对一道 P2 题已完成素材核对，并通过几个小问题补充了真实细节（见下）。请把【素材事实 + 考生补充答案】按题目 bullet 的顺序写成一段可直接朗读的完整独白。
+var SYS_CHUAN_FINAL = `你是雅思口语 P2 串题成稿助手。考生对一道 P2 题已完成素材核对，并通过几个小问题补充了真实细节（见下）。请把【素材事实 + 考生补充答案】按题目 bullet 的顺序写成一段可直接朗读的完整独白。
 
 铁律：
 1. 考生补充的每条答案都是真实事实，必须自然写进对应 bullet 的段落，不得遗漏；补充答案与素材事实冲突时以补充答案为准。
@@ -2134,7 +1889,7 @@ async function planChuan(s){
 
 /* v7.2 AI 代补模式附加指令：她不想自己补 → AI 按铁律 A 亲自为 missing/weak 槽位设计可信细节，
    织进讲稿并逐条输出 inventedDetails（en=织进稿子的英文句，zh=中文对照），供存入细节碎片库 */
-const CHUAN_AIFILL_SUFFIX = `\n\n【AI 代补模式】考生明确不想自己补充细节。请你按写作铁律 A 的血肉细节规则，亲自为上面 slotCheck 中 missing/weak 的槽位设计可信细节（与故事骨架一致、不离谱、只用初高中常见词），把它们自然织进 fullEn；并额外输出 "inventedDetails" 数组：每项 {"slot":"槽位短句","en":"织进讲稿的英文细节句","zh":"中文对照"}。inventedDetails 里的英文句必须原样出现在 fullEn 中。`;
+var CHUAN_AIFILL_SUFFIX = `\n\n【AI 代补模式】考生明确不想自己补充细节。请你按写作铁律 A 的血肉细节规则，亲自为上面 slotCheck 中 missing/weak 的槽位设计可信细节（与故事骨架一致、不离谱、只用初高中常见词），把它们自然织进 fullEn；并额外输出 "inventedDetails" 数组：每项 {"slot":"槽位短句","en":"织进讲稿的英文细节句","zh":"中文对照"}。inventedDetails 里的英文句必须原样出现在 fullEn 中。`;
 
 /* design/87 阶段二：补槽答案 + 素材 → 一段完整讲稿。失败不落库、不盖旧结果（AI 红线）
    v7.2 aiFill=true = AI 代补模式（她不想自己补细节，让 AI 编可信细节并沉淀进碎片库） */
@@ -3545,22 +3300,8 @@ function hasObviousGrammarIssues(text){
    · 分数必须是 1~9 之间、0.5 步长的数字；非数字或越界一律丢弃（不猜、不兜底、不擅自拉高）
    · 流利度与发音需要音频才能评，文本评不了 —— 一律置空，绝不让 AI 偷跑一个出来
    · overall 由 parseScore 统一算，AI 给的一律删掉，避免口径不一致 */
-function clampBand(v){
-  if(v == null || v === '') return null;
-  const n = parseFloat(v);
-  if(!isFinite(n) || n < 1 || n > 9) return null;
-  return Math.round(n * 2) / 2;
-}
-function normalizeScore(j){
-  if(!j || typeof j !== 'object') return j;
-  if(!j.score || typeof j.score !== 'object') j.score = {};
-  j.score.grammar = clampBand(j.score.grammar);
-  j.score.vocabulary = clampBand(j.score.vocabulary);
-  j.score.fluency = null;         // 需音频，文本不评
-  j.score.pronunciation = null;   // 需音频，文本不评
-  delete j.score.overall;
-  return j;
-}
+/* 10-23 T-009 S-1：clampBand / normalizeScore 已搬到 js/sp-stats.js（方案 §三 语义归 D 区） */
+
 
 // 渲染 inline 笔记式纠错（fallback：无法定位原句时使用；9/15 去箭头，划线+绿色替换并排）
 function inlineErrorsHtml(errs){
@@ -3914,8 +3655,8 @@ function p1FlowInit(s){
    用户常忘记开计时：开口语页即自动开一个「口语」计时（moduleId 与 data.js MODULES 的 speaking 一致），
    离页/切后台/关标签时结算进 DATA.sessions（首页「今日学习时长」与计时页都读它）。
    规则与 9/16 之之定版一致：已有别的模块在计 → 先正规结算前一个再开新表，绝不丢表、绝不双开。 */
-const SPK_TIMER_MODULE = 'speaking';
-const SPK_TIMER_NAME = '口语';
+var SPK_TIMER_MODULE = 'speaking';
+var SPK_TIMER_NAME = '口语';
 function spkTimerDeviceId(){
   try{
     let id = localStorage.getItem('hub_device_id');

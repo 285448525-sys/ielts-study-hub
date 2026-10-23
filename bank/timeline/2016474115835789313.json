@@ -53,7 +53,13 @@
    "i": 7,
    "start": 72.01,
    "end": 78.91,
-   "text": "Well, we're staying with friends at present, so the address is 354 Forest Road."
+   "text": "Well, we're staying with friends at present, so the address is 354 Forest Road.",
+   "answerQ": [
+    "1"
+   ],
+   "answerText": [
+    "354 Forest"
+   ]
   },
   {
    "i": 8,
@@ -89,7 +95,13 @@
    "i": 13,
    "start": 94.51,
    "end": 94.53,
-   "text": "07817983602."
+   "text": "07817983602.",
+   "answerQ": [
+    "2"
+   ],
+   "answerText": [
+    "07817983602"
+   ]
   },
   {
    "i": 14,
@@ -101,7 +113,13 @@
    "i": 15,
    "start": 102.65,
    "end": 109.35,
-   "text": "Certainly. I'm a dentist and my wife's a teacher, but she's at home with the children looking after them."
+   "text": "Certainly. I'm a dentist and my wife's a teacher, but she's at home with the children looking after them.",
+   "answerQ": [
+    "3"
+   ],
+   "answerText": [
+    "dentist"
+   ]
   },
   {
    "i": 16,
@@ -137,7 +155,13 @@
    "i": 21,
    "start": 128.47,
    "end": 129.69,
-   "text": "No, unfurnished."
+   "text": "No, unfurnished.",
+   "answerQ": [
+    "4"
+   ],
+   "answerText": [
+    "unfurnished"
+   ]
   },
   {
    "i": 22,
@@ -161,7 +185,13 @@
    "i": 25,
    "start": 152.23,
    "end": 156.01,
-   "text": "Well, coming back to the bedrooms, they have to be doubles, both of them."
+   "text": "Well, coming back to the bedrooms, they have to be doubles, both of them.",
+   "answerQ": [
+    "5"
+   ],
+   "answerText": [
+    "doubles"
+   ]
   },
   {
    "i": 26,
@@ -185,7 +215,13 @@
    "i": 29,
    "start": 210.9,
    "end": 218.16,
-   "text": "Well, it's October 17th today, so we're probably looking at November 1st at the earliest. Would that be OK?"
+   "text": "Well, it's October 17th today, so we're probably looking at November 1st at the earliest. Would that be OK?",
+   "answerQ": [
+    "6"
+   ],
+   "answerText": [
+    "November 1st"
+   ]
   },
   {
    "i": 30,
@@ -209,13 +245,25 @@
    "i": 33,
    "start": 235.4,
    "end": 239.46,
-   "text": "But we'd like a balcony if possible. It's nice not to be too shut in."
+   "text": "But we'd like a balcony if possible. It's nice not to be too shut in.",
+   "answerQ": [
+    "7"
+   ],
+   "answerText": [
+    "balcony"
+   ]
   },
   {
    "i": 34,
    "start": 239.92,
    "end": 251.58,
-   "text": "Yes. You'll find most modern apartments do have one. It's only the converted properties that don't. But of course, if you're in an older property, you might have use of a garden. Would that be a possible alternative?"
+   "text": "Yes. You'll find most modern apartments do have one. It's only the converted properties that don't. But of course, if you're in an older property, you might have use of a garden. Would that be a possible alternative?",
+   "answerQ": [
+    "8"
+   ],
+   "answerText": [
+    "garden"
+   ]
   },
   {
    "i": 35,
@@ -233,7 +281,13 @@
    "i": 37,
    "start": 259.1,
    "end": 267.04,
-   "text": "No, parking doesn't matter, but it'd be good to have somewhere not too far from a station if possible. But it's not essential. I've got a bike."
+   "text": "No, parking doesn't matter, but it'd be good to have somewhere not too far from a station if possible. But it's not essential. I've got a bike.",
+   "answerQ": [
+    "9"
+   ],
+   "answerText": [
+    "station"
+   ]
   },
   {
    "i": 38,
@@ -245,7 +299,13 @@
    "i": 39,
    "start": 274.2,
    "end": 280.86,
-   "text": "Well, not really. We tend to eat in the kitchen, so it'd be good if that was large enough for us to do that."
+   "text": "Well, not really. We tend to eat in the kitchen, so it'd be good if that was large enough for us to do that.",
+   "answerQ": [
+    "10"
+   ],
+   "answerText": [
+    "kitchen"
+   ]
   },
   {
    "i": 40,

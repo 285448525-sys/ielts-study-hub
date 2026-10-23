@@ -29,7 +29,7 @@
 })();
 </script>
 <title>写作 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261023n" />
+<link rel="stylesheet" href="css/common.css?v=20261023w" />
 <link rel="stylesheet" href="css/p/writing.css?v=20261017a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
@@ -41,47 +41,104 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20261023b"></script>
-  <script defer src="js/common.js?v=20261023n"></script>
-  <script defer src="js/common-ai.js?v=20261023n"></script>
-  <script defer src="js/common-sync.js?v=20261023n"></script>
-  <script defer src="js/common-merge.js?v=20261023n"></script>
-  <script defer src="js/common-cloud.js?v=20261023n"></script>
-  <script defer src="js/common-shell.js?v=20261023n"></script>
-  <script defer src="js/common-pwa.js?v=20261023n"></script>
+  <script defer src="js/common.js?v=20261023w"></script>
+  <script defer src="js/common-ai.js?v=20261023w"></script>
+  <script defer src="js/common-sync.js?v=20261023w"></script>
+  <script defer src="js/common-merge.js?v=20261023w"></script>
+  <script defer src="js/common-cloud.js?v=20261023w"></script>
+  <script defer src="js/common-shell.js?v=20261023w"></script>
+  <script defer src="js/common-pwa.js?v=20261023w"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
   <script defer src="js/factory-writing.js?v=20261023b"></script>
 <script defer src="js/writing_prompts.js?v=20260903ab"></script>
-  <script defer src="js/writing.js?v=20261023g"></script>
+  <script defer src="js/writing.js?v=20261023y"></script>
 <style>
 
-  .write-layout{display:flex;gap:16px;align-items:flex-start}
-  .cat-nav{width:160px;flex:none;display:flex;flex-direction:column;gap:6px}
-  .cat-nav button{text-align:left}
-  .cat-nav button.active{background:var(--primary);color:#fff;border-color:var(--primary)}
-  /* 10/2：大/小作文分组标签 + 分类模板计数（全类型常驻显示） */
-  .cat-group-label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.05em;margin:8px 2px 0}
-  .cat-nav .cat-group-label:first-child{margin-top:0}
-  .cat-nav button{display:flex;align-items:center;justify-content:space-between;gap:6px}
-  .cat-nav button .cat-cnt{font-size:11px;color:var(--muted);font-weight:600}
-  .cat-nav button.active .cat-cnt{color:rgba(255,255,255,.85)}
+  /* ===== 10-23 W-1：撤左栏 → 单列 + 横向筛选带（方案 §二）
+     改前：.write-layout 是 flex（左 160px 分类栏 + 右主区），1440 首屏只露 5 张卡，
+     手机上左栏整块堆在顶部，滑 1.5 屏才见第一张卡。
+     改后：单列块，15 项筛选搬进标题下一条带（不换行、横向可滚、两端渐隐）。
+     🔴 42 套模板数据一个字没动；两个视图（网格/列表）都保留。 */
+  .write-layout{display:block}
+  .write-main{min-width:0}
 
-  /* 10/10 模板分档：目标分筛选（左栏顶部）+ 模板卡上的档位徽章 */
-  .cat-nav .lv-bar{display:flex;flex-direction:column;gap:4px;padding-bottom:9px;border-bottom:1px solid var(--line);margin-bottom:5px}
-  .cat-nav .lv-bar-lb{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.05em;margin:0 2px 1px}
-  /* 🔴 B-1c 小步2：这组「目标分」chip 与下方的分类按钮**同处一个 160px 列**，
-     原来两套选中态并排（这里 = primary-50 淡底，下面 = 实心主色），看过去就是不一致。
-     现在统一到该列已有语言：圆角对齐 --radius-sm（12，与 .cat-nav button 的 .btn 基座一致）、
-     选中 = 实心主色 + 白字。
-     ⚠️ **不改成 .pill-tab**（方案原话「全部收敛到 pill」这条在此不成立）：pill-tab 是
-     横向药丸（padding 10px 22px、font 14px），而这里是**竖直堆叠 + 右侧计数徽章**的次级筛选，
-     套上会直接破版。紧凑尺寸（6px 10px / 12.5px）保留，因为它是次级控件、不是主导航。 */
-  .cat-nav .lv-chip{display:flex;align-items:center;justify-content:space-between;gap:6px;text-align:left;
-    font-size:12.5px;font-weight:600;padding:6px 10px;min-height:0;border:1px solid var(--line);
-    border-radius:var(--radius-sm);background:var(--surface);color:var(--ink);cursor:pointer;transition:.15s}
-  .cat-nav .lv-chip:hover{border-color:var(--primary-300);color:var(--primary-700)}
-  .cat-nav .lv-chip.active{background:var(--primary);border-color:var(--primary);color:var(--on-primary);font-weight:700}
-  .cat-nav .lv-chip .lv-cnt{font-size:11px;color:var(--muted);font-weight:600}
-  .cat-nav .lv-chip.active .lv-cnt{color:rgba(255,255,255,.85)}
+  /* 列表标题行：标题 + 套数 + 视图切换（搜索框属 W-3，本批不做） */
+  .lst-hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .lst-hd h3{margin:0;font-size:17px;font-weight:800;letter-spacing:-.01em}
+  .lst-cnt{font-size:12px;color:var(--muted)}
+
+  /* 10-23 W-3：搜索框（标题行右侧，210px 圆角 999） */
+  .tpl-find{margin-left:auto;display:flex;align-items:center;gap:6px;width:210px;height:30px;
+    border:1px solid var(--line);border-radius:999px;padding:0 11px;background:var(--surface);
+    color:var(--n-400);transition:border-color .15s}
+  .tpl-find:focus-within{border-color:var(--primary-200)}
+  .tpl-find input{flex:1;min-width:0;border:0;background:transparent;outline:none;font:inherit;
+    font-size:11.5px;color:var(--ink);padding:0}
+  .tpl-find input::-webkit-search-cancel-button{cursor:pointer}
+
+  /* 横向筛选带：三段（目标分 | Task 2 | Task 1），段间 1px 竖线，不换行、可横滚 */
+  .wb-filters{display:flex;align-items:center;gap:7px;margin:11px 0 0;padding:0 0 11px;
+    border-bottom:1px solid var(--line);flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .wb-filters::-webkit-scrollbar{display:none}
+  .wb-filters .flb{font-size:10.5px;font-weight:700;color:var(--n-400);letter-spacing:.04em;white-space:nowrap;flex:none}
+  .wb-filters .fsep{width:1px;height:16px;background:var(--line);flex:none;margin:0 2px}
+  .fchip{font-size:11.5px;font-weight:600;padding:5px 11px;border-radius:999px;
+    border:1px solid var(--line);color:var(--ink-2);white-space:nowrap;background:var(--surface);
+    cursor:pointer;flex:none;transition:background .15s,border-color .15s,color .15s}
+  .fchip:hover{border-color:var(--primary-300);color:var(--primary-700)}
+  .fchip.on{background:var(--primary);border-color:var(--primary);color:var(--on-primary);font-weight:700}
+  .fchip .lv-cnt{font-size:10.5px;font-weight:600;margin-left:4px;opacity:.75}
+
+  /* ===== 10-23 W-2：详情页头部一行（方案 §三.1）===== */
+  .dtl-hd{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--line)}
+  .dtl-back{width:26px;height:26px;flex:none;display:grid;place-items:center;padding:0;
+    border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink-2);
+    cursor:pointer;transition:border-color .15s,color .15s,background .15s}
+  .dtl-back:hover{border-color:var(--primary-200);color:var(--primary-700);background:var(--primary-50)}
+  .dtl-nm{margin:0;font-size:15px;font-weight:800;letter-spacing:-.01em;min-width:0}
+  .dtl-lv{font-size:9.5px;font-weight:800;color:var(--primary-700);background:var(--primary-50);
+    border:1px solid var(--primary-200);border-radius:999px;padding:2px 8px;white-space:nowrap;flex:none}
+  .dtl-meta{font-size:11.5px;color:var(--muted);white-space:nowrap}
+  .dtl-dict{margin-left:auto;flex:none;padding:6px 14px;min-height:32px;font-size:12.5px;font-weight:700}
+
+  /* ===== 10-23 W-2：填空练习按段切卡（方案 §三.3-4） =====
+     一段一张 .psec 卡（不是一句一张 —— 她 15:0x「不能单句单句分开，但可以单段单段分开」）。
+     段内正文仍是一整段连续英文，跟原模板读起来一样。 */
+  #practice .psec{border:1px solid var(--line);border-radius:11px;margin-bottom:9px;
+    overflow:hidden;background:var(--surface);transition:border-color .15s,box-shadow .15s}
+  #practice .psec:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-50)}
+  #practice .psec-h{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--n-50);
+    border-bottom:1px solid var(--n-100);font-size:12px;font-weight:800;color:var(--ink-2)}
+  #practice .pnum{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:5px;
+    background:var(--primary);color:var(--on-primary);font-size:10.5px;font-weight:800;flex:none}
+  #practice .psec-nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #practice .psec-meta{margin-left:auto;font-size:10.5px;font-weight:600;color:var(--n-400);white-space:nowrap;flex:none}
+  #practice .psec-b{padding:11px 13px;font-size:13.5px;line-height:2.05;color:var(--ink)}
+  /* 填空位两态（方案 §三.4）：未填 = 虚线底边 + 主色文字；已填 = 实线 + 浅绿底 + 深绿字 */
+  #practice .ph-input{transition:background .15s,border-color .15s,color .15s}
+  #practice .ph-input.filled{border-bottom:2px solid var(--primary);
+    background:var(--primary-50);color:var(--primary-900);border-radius:4px 4px 0 0}
+  /* 顶部总进度（#tplProgress 由 HTML 提供，写入在 updatePreview） */
+  .fill-prog{font-size:12px;font-weight:700;color:var(--primary-700);margin-left:auto;white-space:nowrap}
+
+  /* 卡片网格：≥1200 三列 / 1024–1199 两列 / <768 一列（方案 §二.3） */
+  #tplList.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px}
+  @media(max-width:1199px){ #tplList.grid{grid-template-columns:repeat(2,minmax(0,1fr))} }
+  @media(max-width:767px){ #tplList.grid{grid-template-columns:minmax(0,1fr)} }
+
+  /* 卡内四段固定高度（方案 §二.4-5）：提示区 38px、骨架区 52px，卡片高度齐平 */
+  .tpl-card{cursor:pointer}
+  .tpl-tip{font-size:11.5px;color:var(--ink-2);line-height:1.68;margin-top:8px;height:38px;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .tpl-sk{margin-top:0;padding:9px 13px;background:var(--n-50);border-radius:8px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:10.5px;line-height:1.7;color:var(--ink-2);height:52px;position:relative;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .tpl-sk::after{content:"";position:absolute;left:0;right:0;bottom:0;height:16px;
+    background:linear-gradient(transparent,var(--n-50));pointer-events:none}
+
+  /* 10/10 模板分档：目标分档位徽章（左栏那套 .lv-bar/.lv-chip 已随 W-1 撤栏退役，
+     筛选改由上面的 .wb-filters/.fchip 承担） */
   .tpl-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:5px}
   .tpl-lv{font-size:11px;font-weight:700;color:var(--primary-text);background:var(--primary-50);
     border:1px solid var(--primary-200);border-radius:999px;padding:1px 8px;white-space:nowrap}
@@ -90,15 +147,9 @@
   .write-layout.detail-open{display:block}
   .write-layout.detail-open .cat-nav{display:none}
   .tpl-card{cursor:pointer}
-  /* 10/21（她拍板 design/112 两条）：① 模板卡直接露「结构提示 + 骨架首句」——不点开也能判断这套要不要用；
-     ② 新增列表视图（一屏能扫更多套）。两条都只读展示，不动任何模板数据。
-     骨架首句的「取第一句」在 js/writing.js 的 skeletonFirstLine()，这里只管截 2 行（line-clamp）。 */
-  .tpl-tip{font-size:12.5px;color:var(--muted);line-height:1.65;margin-top:8px;
-    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-  .tpl-sk{margin-top:9px;padding-top:9px;border-top:1px dashed var(--line);
-    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-    font-size:11.5px;line-height:1.7;color:var(--ink);opacity:.85;
-    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  /* 10/21（她拍板 design/112 两条）：① 模板卡直接露「结构提示 + 骨架首句」；② 列表视图。
+     10-23 W-1：这两条的尺寸改到上面的新块（38px / 52px 固定高 + 骨架底部渐隐），此处不再重复定义。
+     骨架首句的「取第一句」在 js/writing.js 的 skeletonFirstLine()。 */
   .tpl-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;
     margin-top:10px;font-size:11.5px;color:var(--muted)}
   .tpl-go{font-size:12px;font-weight:700;color:var(--primary-text);white-space:nowrap}
@@ -130,7 +181,8 @@
   .tl-go{font-size:12px;font-weight:700;color:var(--primary-text);text-align:right;white-space:nowrap}
   .tl-lock{margin-right:3px}
   .ph{background:var(--warn);color:#fff;padding:0 4px;border-radius:4px;font-weight:600}
-  #practice .ph-input{border:none;border-bottom:1px solid var(--muted);background:transparent;padding:2px 4px;font:inherit;font-size:15px;line-height:1.2;color:var(--ink);margin:0 2px;min-width:2ch;max-width:none;height:30px;box-sizing:border-box;vertical-align:middle}
+  /* 10-23 W-2：填空位未填态 = 虚线底边 2px + 主色文字（方案 §三.4）；已填态见上方 .filled */
+  #practice .ph-input{border:none;border-bottom:2px dashed var(--primary);background:transparent;padding:2px 4px;font:inherit;font-size:15px;line-height:1.2;color:var(--primary-700);margin:0 2px;min-width:2ch;max-width:none;height:30px;box-sizing:border-box;vertical-align:middle}
   /* 10/8 晚她反馈四修（模板 tab）：
      ① 填空框长度跟灰色提示差不多、随输入增长（fitInput 里 min 60→34、上限 240、按可见占位符量宽）；
      ② 超长提示（含例句的）改成框上方小字 caption，不再把输入框撑到 500px 宽；
@@ -536,6 +588,11 @@
    顶栏壳留着会盖住考试头，body 的 44px 让位还会把机考底栏挤出视口 → 全屏态一并收掉 */
 body.exam-fullscreen[data-shell="top"]{padding-top:0 !important}
 body.exam-fullscreen .hub-topbar{display:none !important}
+
+/* ===== 10-23 2-1d 批 B：撤页内小 tab（桌面 ≥861）。手机 ≤860 保留（顶栏隐藏时的唯一入口）。
+   依据：交接\方案\T-001c-下拉重做与撤小tab-2026-10-23.md §三。不删 DOM：JS 靠 data-* 认分栏，
+   sub= 交接（tbSubPending）照常工作；页内二级筛选控件不受影响。 ===== */
+@media (min-width:861px){ #writeTabs{display:none} }
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -570,27 +627,40 @@ body.exam-fullscreen .hub-topbar{display:none !important}
   <!-- 模板库面板 -->
   <div id="tplPanel">
     <div class="write-layout">
-      <div class="cat-nav card" id="catNav" style="padding:10px"></div>
       <div class="write-main">
         <section class="card" id="listCard">
-          <div class="form-row" style="align-items:center">
-            <h2 style="margin:0">模板列表</h2>
+          <!-- 10-23 W-1：标题行 = 标题 + 套数 + 视图切换（左栏已撤，分类/分档筛选搬到下面一条带） -->
+          <div class="lst-hd">
+            <h3>模板</h3>
+            <span class="lst-cnt" id="tplCountText"></span>
+            <!-- 10-23 W-3：搜索框（方案 §四.1）—— 按模板名 / 分类 / 骨架首句关键词过滤，300ms 防抖 -->
+            <label class="tpl-find" for="tplSearch">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:13px;height:13px;flex:none" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+              <input id="tplSearch" type="search" placeholder="搜模板名、分类或骨架关键词" autocomplete="off" />
+            </label>
             <!-- B-1c 小步2：收敛到全站 pill 家族（与顶部 tab 同组件，只覆盖尺寸） -->
-            <div class="tpl-view pill-tabs" id="tplView">
+            <div class="tpl-view pill-tabs" id="tplView" style="margin-left:auto">
               <button type="button" data-view="grid" class="pill-tab active" aria-pressed="true">网格</button>
               <button type="button" data-view="list" class="pill-tab" aria-pressed="false">列表</button>
             </div>
           </div>
-          <p style="font-size:12px;color:var(--muted);margin:7px 0 0">卡片直接露「结构提示 + 骨架首句」，不点开也能判断这套要不要用；列表视图一屏能扫更多套。</p>
-          <div id="tplList" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr));margin-top:12px"></div>
+          <!-- 10-23 W-1：横向筛选带（15 项，三段分组）。内容由 js/writing.js 的 renderFilters() 渲染 -->
+          <div class="wb-filters" id="wbFilters" role="group" aria-label="模板筛选"></div>
+          <div id="tplList" class="grid"></div>
           <div id="empty" class="empty" hidden>还没有模板。点「+ 新增模板」添加。</div>
         </section>
 
         <section class="card" id="detailCard" hidden>
-          <div class="form-row" style="align-items:center">
-            <h2 id="dTitle" style="margin:0"></h2>
-            <button class="btn btn-primary" id="tplDictBtn" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4a3 3 0 0 1 6 0M9 10h6M9 14h6"/></svg>默写</button>
-            <button class="btn" id="backBtn">返回</button>
+          <!-- 10-23 W-2：头部一行收齐（方案 §三.1）—— 返回小方框 · 标题 · 目标分徽章 · 大作文/段数/词数 ·
+               右侧「开始默写」（不再通栏；原来两个按钮各占一整行，首屏吃掉约 110px） -->
+          <div class="dtl-hd">
+            <button class="dtl-back" id="backBtn" type="button" title="返回列表" aria-label="返回列表">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <h2 id="dTitle" class="dtl-nm"></h2>
+            <span id="dLv" class="dtl-lv" hidden></span>
+            <span id="dMeta" class="dtl-meta"></span>
+            <button class="btn btn-primary dtl-dict" id="tplDictBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4a3 3 0 0 1 6 0M9 10h6M9 14h6"/></svg>开始默写</button>
           </div>
 
           <!-- 10/2 她拍板：模板=会员专属。免费用户点开只显示此锁卡，内容区块由 writing.js 隐藏 -->
@@ -616,7 +686,7 @@ body.exam-fullscreen .hub-topbar{display:none !important}
             </div>
             <!-- 「作文骨架」原文块已删（她 10/1：和填空练习/完整句内容重复，三块连排像同一内容）。
                  填空练习直接从骨架数据构建，不依赖原文展示。 -->
-            <h3>填空练习</h3>
+            <div class="fill-hd"><h3 style="margin:0">填空练习</h3><span class="fill-prog" id="tplProgress"></span></div>
             <div id="practice" style="margin-top:8px"></div>
           </div>
 

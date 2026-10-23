@@ -18,7 +18,7 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>模考 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261023n" />
+<link rel="stylesheet" href="css/common.css?v=20261023w" />
 <link rel="stylesheet" href="css/p/bank.css?v=20261017a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
@@ -197,6 +197,24 @@
 .fx-score .fx-pcard b{display:block;font-size:11.5px;color:var(--muted);letter-spacing:.04em;margin-bottom:3px}
 .fx-score .fx-pcard div{font-size:17px;font-weight:800;color:#111;font-variant-numeric:tabular-nums}
 @media(max-width:860px){.fx-score .fx-pgrid{grid-template-columns:1fr}}
+
+/* ===== 10-23 B-1c 洞①：成绩横幅深色档缺失（她 10-23 报）=====
+   .fx-score 族写死 #fff/#111，.ct-yellow 有一套反色，但**全文件没有 ct-dark 版本** →
+   深色考试档下成绩区还是浅底白卡亮条。下面按同一套反色口径补 ct-dark（与 ct-yellow 对称）。 */
+#examRoot.ct-dark .fx-score{background:#1c1f22;border-bottom-color:#3a3f45}
+#examRoot.ct-dark .fx-score .fx-top b{color:#f2f2f2}
+#examRoot.ct-dark .fx-score .fx-band{background:#262a24;color:#8fe0d6;border-color:#3a3f45}
+#examRoot.ct-dark .fx-score .fx-top span{color:#c8cbd0}
+#examRoot.ct-dark .fx-score .fx-meta{color:#c8cbd0}
+#examRoot.ct-dark .fx-score .fx-meta b{color:#f2f2f2}
+#examRoot.ct-dark .fx-score .fx-chip{background:#262a24;color:#c8cbd0;border-color:#5a5f66}
+#examRoot.ct-dark .fx-score .fx-chip:hover{border-color:#8fe0d6;color:#8fe0d6}
+/* 选中态原本想用「主色底 + 白字」，实测 11.5px 小字下只有 3.37:1 不达标（大字号才允许 3:1）
+   → 深色档改成「亮青底 + 深字」，与句子条 Q 徽章同一套口径（实测 8.98:1）。 */
+#examRoot.ct-dark .fx-score .fx-chip.on{background:#8fe0d6;border-color:#8fe0d6;color:#0f3330}
+#examRoot.ct-dark .fx-score .fx-pcard{background:#262a24;border-color:#3a3f45}
+#examRoot.ct-dark .fx-score .fx-pcard b{color:#9aa0a6}
+#examRoot.ct-dark .fx-score .fx-pcard div{color:#f2f2f2}
 
 /* ===== 做题页（全屏 · 全英文 · 仿真机考 · 10/12 对齐样子稿 104 v4，她拍板统一）===== */
 /* ===== 10/14 模考 UI 统一变量（按 design/模考UI统一_设计方案_2026-10-11.md 批1 落地）=====
@@ -907,16 +925,26 @@
 .ex-split.ct-dark .ex-drop.filled{background:#1b1b1b;border-color:#c9ced6;color:#fff}
 .ex-split.ct-dark .ex-ctx{background:#232323;border-color:#4a4f57}
 .ex-split.ct-dark .ex-ctx button{color:#fff}
-.ex-split.ct-dark .ex-notes{background:#1b1b1b;border-color:#3a3f45}
-.ex-split.ct-dark .ex-notes-h b{color:#8fc4e8}
-.ex-split.ct-dark .ex-notes-empty{color:#8fc4e8}
-.ex-split.ct-dark .ex-ncard{background:#232323;border-color:#3a3f45}
-.ex-split.ct-dark .ex-ncard q{color:#8fc4e8}
-.ex-split.ct-dark .ex-ncard textarea{background:#16202a;color:#e8f2fa;border-color:#3a3f45}
-.ex-split.ct-yellow .ex-notes{background:#141414;border-color:#3a3f45}
-.ex-split.ct-yellow .ex-notes-h b{color:#ffd400}
-.ex-split.ct-yellow .ex-ncard{background:#1e1e1e;border-color:#3a3f45}
-.ex-split.ct-yellow .ex-ncard q{color:#ffd400}
+/* 🔴 10-23 B-1c 洞③：这组便签栏覆盖原来全挂在 `.ex-split.ct-dark` / `.ex-split.ct-yellow` 上，
+   而 ct-dark / ct-yellow 这两个类 **只挂 #examRoot**（js/bank.js 的 exCt 处理器：`root.classList.toggle('ct-dark')`），
+   .ex-split 上永远不会出现它们 → 便签栏在生效路径上**一条深色样式都没有**，深色档下一直是蓝底。
+   改挂 #examRoot.ct-dark / #examRoot.ct-yellow（特异性 0,2,1 更高，且真正会命中）。
+   ⚠️ 原来的 `.ex-split.ct-*` 死选择器暂留（B-1b 死代码清零时一起删），这里只是补齐生效路径。 */
+#examRoot.ct-dark .ex-notes{background:#1b1b1b;border-color:#3a3f45}
+#examRoot.ct-dark .ex-notes-h b{color:#8fc4e8}
+#examRoot.ct-dark .ex-notes-h button{color:#c8cbd0}
+#examRoot.ct-dark .ex-notes-empty{color:#c8cbd0}
+#examRoot.ct-dark .ex-ncard{background:#232323;border-color:#3a3f45}
+#examRoot.ct-dark .ex-ncard q{color:#8fc4e8}
+#examRoot.ct-dark .ex-ncard textarea{background:#16202a;color:#e8f2fa;border-color:#3a3f45}
+#examRoot.ct-dark .ex-ncard .ex-ndel{color:#9aa0a6}
+#examRoot.ct-yellow .ex-notes{background:#141414;border-color:#3a3f45}
+#examRoot.ct-yellow .ex-notes-h b{color:#ffd400}
+#examRoot.ct-yellow .ex-notes-h button{color:#c8cbd0}
+#examRoot.ct-yellow .ex-notes-empty{color:#c8cbd0}
+#examRoot.ct-yellow .ex-ncard{background:#1e1e1e;border-color:#3a3f45}
+#examRoot.ct-yellow .ex-ncard q{color:#ffd400}
+#examRoot.ct-yellow .ex-ncard textarea{background:#141414;color:#ffd400;border-color:#3a3f45}
 .ex-split.ct-yellow .ex-opt{color:#ffd400}
 .ex-split.ct-yellow .ex-opt input{border-color:#ffd400;background:#141414}
 .ex-split.ct-yellow .ex-pool{background:#141414;border-color:#ffd400}
@@ -1306,6 +1334,30 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
   /* 深色主题：浅底高亮在深底上会很刺眼，换成半透明主色 */
   #examRoot.ct-dark .ex-script .sc-line:hover,
   #examRoot.ct-yellow .ex-script .sc-line:hover{background:rgba(255,255,255,.06)}
+  /* 3-2（7-2 核心三条之三）：答案句 —— 行首 Q 徽章 + 播到该句时整行 .hit */
+  /* 3-2：复盘态音频条 —— 交卷后音频要留在原文区上方、一直可见（精听就是反复回听）。
+     sticky 让它随原文滚动时贴在滚动区顶部；.review 只在 showScript 之后才加。 */
+  #examRoot .ex-audio.review{position:sticky;top:0;z-index:6;
+    box-shadow:0 6px 16px -12px rgba(16,24,40,.5);border-bottom:1px solid var(--line)}
+  /* 3-2：答案句 —— 行首 Q 徽章 + 播到该句时整行 .hit */
+  .ex-script .sc-line .sc-q{
+    flex:none;width:34px;font-style:normal;font-size:10.5px;font-weight:700;letter-spacing:.02em;
+    line-height:1.5;text-align:center;border-radius:5px;
+    color:var(--primary-800);background:var(--primary-100);
+  }
+  .ex-script .sc-line .sc-q--none{background:none}
+  .ex-script .sc-line.sc-ans .sc-tx{color:var(--n-900)}
+  .ex-script .sc-line.sc-ans .sc-t{color:var(--primary-text);font-weight:700}
+  .ex-script .sc-line.hit{background:var(--primary-100);border-left-color:var(--primary-700)}
+  .ex-script .sc-line.hit .sc-q{color:var(--on-primary);background:var(--primary-600)}
+  #examRoot.ct-dark .ex-script .sc-line.hit,
+  #examRoot.ct-yellow .ex-script .sc-line.hit{background:rgba(92,179,171,.30);border-left-color:#8fe0d6}
+  #examRoot.ct-dark .ex-script .sc-line .sc-q,
+  #examRoot.ct-yellow .ex-script .sc-line .sc-q{color:#8fe0d6;background:rgba(92,179,171,.22)}
+  #examRoot.ct-dark .ex-script .sc-line.sc-ans .sc-tx,
+  #examRoot.ct-yellow .ex-script .sc-line.sc-ans .sc-tx{color:#eef3f2}
+  #examRoot.ct-dark .ex-script .sc-line.hit .sc-q,
+  #examRoot.ct-yellow .ex-script .sc-line.hit .sc-q{color:#0f3330;background:#8fe0d6}
   #examRoot.ct-dark .ex-script .sc-line.on,
   #examRoot.ct-yellow .ex-script .sc-line.on{background:rgba(92,179,171,.22)}
   #examRoot.ct-dark .ex-script .sc-line.on .sc-tx,
@@ -1672,6 +1724,11 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
   #examRoot .ex-audio .ea-part{display:none}
   #examRoot .ex-audio .ea-time{min-width:74px;font-size:11px}
 }
+
+/* ===== 10-23 2-1d 批 B：撤页内小 tab（桌面 ≥861）。手机 ≤860 保留（顶栏隐藏时的唯一入口）。
+   依据：交接\方案\T-001c-下拉重做与撤小tab-2026-10-23.md §三。不删 DOM：JS 靠 data-* 认分栏，
+   sub= 交接（tbSubPending）照常工作；页内二级筛选控件不受影响。 ===== */
+@media (min-width:861px){ #mockTabs{display:none} }
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -1830,6 +1887,26 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 .exg-go:focus-visible{outline:2px solid var(--primary-900);outline-offset:2px}
 @media(max-width:640px){.exg-g{grid-template-columns:1fr}.exg-c{padding:20px 18px 16px}}
 
+/* ===== 10-23 B-1c 洞②：考前指南 .exg 整卡写死浅色 =====
+   .exg 挂在 body 层、受站点主题影响，但全卡 #fff/#111/#6b7280/#237a74 全写死、没有任何 dark 覆盖 →
+   站点深色主题下它就是一块突兀白板。下面按站点主题（[data-theme="dark"]）补一套，
+   与考试档（#examRoot.ct-*）无关 —— 它是考场外的弹层，不受 Colour 设置影响。 */
+[data-theme="dark"] .exg-c{background:#1b1b1b;box-shadow:0 20px 60px rgba(0,0,0,.55)}
+[data-theme="dark"] .exg-x{color:#9aa0a6}
+[data-theme="dark"] .exg-x:hover{background:#2a2a2c;color:#f2f2f2}
+[data-theme="dark"] .exg-c h4{color:#f2f2f2}
+[data-theme="dark"] .exg-i{border-color:#3a3f45;background:#232323}
+[data-theme="dark"] .exg-ic{color:#8fe0d6}
+[data-theme="dark"] .exg-flag{color:#ff8a80}
+[data-theme="dark"] .exg-part{border-color:#3a3f45;color:#8fe0d6}
+[data-theme="dark"] .exg-i b{color:#f2f2f2}
+[data-theme="dark"] .exg-i span:last-child{color:#c8cbd0}
+/* 开始键 14px/800，不算大字号 → 需 4.5:1；「主色底白字」实测只有 3.37:1
+   → 与全站其它小字按钮同一口径：亮青底 + 深字（实测 8.98:1）。 */
+[data-theme="dark"] .exg-go{background:#8fe0d6;color:#0f3330}
+[data-theme="dark"] .exg-go:hover{filter:brightness(1.1)}
+[data-theme="dark"] .exg-go:focus-visible{outline-color:#8fe0d6}
+
 </style>
 </head>
 <body data-shell="top">
@@ -1987,13 +2064,13 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
      （手机慢网 ~50KB/s → 约 1.5 秒）。加载时机：点开「写作」tab 时按序插入；
      首次 load 之后空闲再预热一次。承接代码在 js/bank.js 的 loadWritingScripts()。 -->
 <script defer src="js/data.js?v=20261023b"></script>
-<script defer src="js/common.js?v=20261023n"></script>
-<script defer src="js/common-ai.js?v=20261023n"></script>
-<script defer src="js/common-sync.js?v=20261023n"></script>
-<script defer src="js/common-merge.js?v=20261023n"></script>
-<script defer src="js/common-cloud.js?v=20261023n"></script>
-<script defer src="js/common-shell.js?v=20261023n"></script>
-<script defer src="js/common-pwa.js?v=20261023n"></script>
-<script defer src="js/bank.js?v=20261023g"></script>
+<script defer src="js/common.js?v=20261023w"></script>
+<script defer src="js/common-ai.js?v=20261023w"></script>
+<script defer src="js/common-sync.js?v=20261023w"></script>
+<script defer src="js/common-merge.js?v=20261023w"></script>
+<script defer src="js/common-cloud.js?v=20261023w"></script>
+<script defer src="js/common-shell.js?v=20261023w"></script>
+<script defer src="js/common-pwa.js?v=20261023w"></script>
+<script defer src="js/bank.js?v=20261023w"></script>
 </body>
 </html>

@@ -371,6 +371,30 @@
     return n;
   }
 
+  /* ===== 10-23 P-2：到期词拆「新词 / 复习」两段（她 15:2x 拍板选 A）=====
+     旧 wbDueCount 把「从没背过的生词」（无 nextReview）也算进「到期复习」——
+     她真实词库 1587 个「到期」里 636 个是 level 0 的生词，「复习」名不副实。
+     本函数只拆口径、不动任何词数据；wbDueCount 保持原样（别处还在用）。
+     不变式：newCount + reviewCount === wbDueCount(today)（同一条 en 非空过滤）。 */
+  function wbDueSplit(today){
+    var t = today || todayKey();
+    var ws = wbWords();
+    var nNew = 0, nRev = 0;
+    for(var i = 0; i < ws.length; i++){
+      var w = ws[i];
+      if(!(w && typeof w.en === 'string' && w.en.trim() !== '')) continue;
+      /* 「新词」= 从没真正进过复习队列的：
+         ① 无 nextReview（方案口径原文）；
+         ② 有 nextReview 但毫无复习证据（无 hist、无 lastReview、level 0）——
+            practice 的 ensureWordV12 会给老结构词就地补 nextReview=今天，只认①会把这批误判成复习。 */
+      var _noHist = !Array.isArray(w.hist) || w.hist.length === 0;
+      if(!w.nextReview || (_noHist && !w.lastReview && (Number(w.level) || 0) === 0 && w.nextReview <= t)){ nNew++; }
+      else if(w.nextReview <= t && (Number(w.level) || 0) >= 1){ nRev++; }
+      else if(w.nextReview <= t && _noHist && !w.lastReview){ nNew++; }   // level 缺失但同样从没背过
+    }
+    return { newCount: nNew, reviewCount: nRev, total: nNew + nRev };
+  }
+
   // ---------- 元信息 / 掌握数 ----------
   function wbBankMeta(bankId){
     var id = bankId || wbActive();
@@ -533,6 +557,7 @@
   window.wbDayStats = wbDayStats;
   window.wbAddDayStats = wbAddDayStats;
   window.wbDueCount = wbDueCount;
+  window.wbDueSplit = wbDueSplit;
   window.wbBankMeta = wbBankMeta;
   window.wbMasteredCount = wbMasteredCount;
   window.wbResetBank = wbResetBank;

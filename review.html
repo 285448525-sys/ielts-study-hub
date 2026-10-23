@@ -29,7 +29,7 @@
 })();
 </script>
 <title>回顾 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261023n" />
+<link rel="stylesheet" href="css/common.css?v=20261023w" />
 <link rel="stylesheet" href="css/p/review.css?v=20261017a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
@@ -124,6 +124,17 @@
         /* 10/17 #9 层次 3：按题型看正确率的说明行（只在本页用 → 写本页内联样式，不动 common.css，省一次全站 bump） */
         #mkQtStats .mk-qt-note{margin:10px 2px 0;font-size:11.5px;color:var(--muted);line-height:1.75;overflow-wrap:anywhere}
         #mkQtStats .mk-qt-note b{color:var(--ink)}
+
+/* ===== 10-23 2-1d 批 B 补：回顾页撤药丸 tab（桌面 ≥861）。手机 ≤860 保留。
+   分栏改由顶栏「回顾」二级菜单接管（js/common.js 的 TB_SUB.review）。不删 DOM。 ===== */
+/* ⚠️ 必须用与后面 .page-head-row .review-pill-tabs.pill-tabs{display:flex} 同级的选择器：
+   光写 .review-pill-tabs（0,1,0）特异性输给 0,3,0，display:none 会被 display:flex 顶掉（实测 1280 仍 flex）。 */
+@media (min-width:861px){
+  /* ⚠️ 特异性要压过两处：页内 .page-head-row .review-pill-tabs.pill-tabs（0,3,0）与
+     css/common.css:1567 的 @media .tabs.pill-tabs.review-pill-tabs{flex-wrap:nowrap}（0,3,0）。
+     加上 .page-head-row 前缀 + !important 才稳（实测只写类名会被 display:flex 顶掉）。 */
+  .page-head-row .tabs.pill-tabs.review-pill-tabs{display:none !important}
+}
 </style>
 <style id="t010ReviewRestyle">
 /* =========================================================================
@@ -337,13 +348,13 @@
 [data-theme="dark"] .review-pane .empty{background:var(--n-50)}
 </style>
 <script defer src="js/data.js?v=20261023b"></script>
-<script defer src="js/common.js?v=20261023n"></script>
-<script defer src="js/common-ai.js?v=20261023n"></script>
-<script defer src="js/common-sync.js?v=20261023n"></script>
-<script defer src="js/common-merge.js?v=20261023n"></script>
-<script defer src="js/common-cloud.js?v=20261023n"></script>
-<script defer src="js/common-shell.js?v=20261023n"></script>
-<script defer src="js/common-pwa.js?v=20261023n"></script>
+<script defer src="js/common.js?v=20261023w"></script>
+<script defer src="js/common-ai.js?v=20261023w"></script>
+<script defer src="js/common-sync.js?v=20261023w"></script>
+<script defer src="js/common-merge.js?v=20261023w"></script>
+<script defer src="js/common-cloud.js?v=20261023w"></script>
+<script defer src="js/common-shell.js?v=20261023w"></script>
+<script defer src="js/common-pwa.js?v=20261023w"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
 <script defer src="js/scores.js?v=20261017b"></script>
 <script defer src="js/history.js?v=20260904d"></script>

@@ -12,6 +12,9 @@
 
 /* ── 背词 ETA 剩余时间预估（9/21）：#wordStats 行内，仅答题态且样本足够时显示 ── */
 .stat-eta{font-size:12px;color:var(--muted);margin-left:10px;white-space:nowrap}
+/* 10-23 P-2：到期构成 chip「新词 N · 复习 M」（进度条右侧，wbDueSplit 口径） */
+.stat-due-split{font-size:12px;color:var(--muted);margin-left:10px;white-space:nowrap}
+.stat-due-split b{color:var(--primary);font-weight:700}
 
 /* ── 今日清零终结卡（9/21）：完成页统计区上方，todayDue=0 时显示；完成态配色复用 teal 变量 ── */
 .finish-zero-card{
@@ -264,3 +267,105 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
 
 /* 窄屏：书卡进书后，标题区把「复习计划 / 开始学习」压成一行满宽（沿用 .wl-head 已有的 560 断点） */
 @media (max-width:560px){ .wb-crumb{margin-bottom:8px} }
+
+
+/* ===================================================================
+   10-23 P-3 · 背词答题页 v2 学习态版（方案 T-P3-背词答题页v2-2026-10-23.md）
+   设计稿唯一标准：交接/方案/_示意图-练习页答题界面三版.html 第 3 节「v2 · 学习态版」
+   🔴 只改「长什么样」+ 多显示一行信息；判题逻辑 / SRS 算法 / 单词数据一个字没动。
+   =================================================================== */
+
+/* 顶部状态带已经有了「第 N / M 个」这个口径明确的数字 → 统计行里那个裸数字「1 / 4」隐掉，
+   同一屏不再出现两份同源数字（statProgress DOM 保留，JS 写入点不动）。 */
+.word-stats .stat-progress{display:none}
+
+/* ===== 1. 顶部状态带（方案 §二.1）=====
+   改前：一根光秃秃进度条 + 右侧裸数字「186 / 200」，页面上没任何解释这是「第几个」还是「已学几个」。
+   改后：同一行 返回 · 进度条 · 「第 N / M 个」 —— 数字有了口径，返回有了明确出口。 */
+.w-statebar{display:flex;align-items:center;gap:10px;padding:2px 0 6px;flex:none}
+.w-back{width:26px;height:26px;flex:none;display:grid;place-items:center;padding:0;
+  border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink-2);
+  cursor:pointer;transition:border-color .15s,color .15s,background .15s}
+.w-back:hover{border-color:var(--primary-200);color:var(--primary-700);background:var(--primary-50)}
+.w-prog{flex:1;min-width:60px;height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.w-prog i{display:block;height:100%;width:0;background:var(--primary);border-radius:3px;transition:width .25s}
+.w-prog-txt{font-size:12.5px;font-weight:700;color:var(--primary);white-space:nowrap;
+  font-variant-numeric:tabular-nums;flex:none}
+.w-statebar-sp{display:none}
+
+/* ===== 2. 右侧 250px「这个词的底细」（方案 §二.4）=====
+   ≥1100 显示固定侧栏；<1100 收成单词下方一条小签，点开才展开三张卡。 */
+/* 与 #practiceBody 里其他块同一口径（css/common.css:616 那条白名单的 max-width:960px），
+   否则这一层不受宽、选项被挤成 390px。 */
+/* 960 是「改了侧栏之后」的**主区+侧栏**总宽：主区 ≈ 710、侧栏 250，
+   跟方案 §三「桌面 1440 侧栏宽度 250px」一致；不再把两者各套一层 960。 */
+#practiceBody.practice-body-fit .w-detail-layout{width:100%;max-width:960px;
+  display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:0;
+  border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface)}
+.w-detail-main{min-width:0}
+.w-detail-layout .practice-word-area,
+.w-detail-layout .opts-grid,
+.w-detail-layout .dunno-row{max-width:none!important}
+.w-side{border-left:1px solid var(--line);background:var(--n-50);padding:14px;
+  display:flex;flex-direction:column;gap:9px}
+.w-side-card{background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:10px 11px;font-size:11px;line-height:1.75;color:var(--ink-2)}
+.w-side-card.soft{background:var(--primary-50);border-color:var(--primary-200)}
+.w-side-h{font-size:10.5px;font-weight:800;color:var(--ink-2);margin-bottom:5px;
+  display:flex;align-items:center;gap:5px}
+.w-side-card.soft .w-side-h{color:var(--primary-900)}
+.w-side-h .d{width:5px;height:5px;border-radius:50%;background:var(--ok-text);box-shadow:0 0 0 3px var(--ok-soft)}
+.w-side-row{display:flex;justify-content:space-between;padding:2px 0;gap:10px}
+.w-side-row span:last-child{font-weight:700;color:var(--ink);white-space:nowrap}
+.w-side-card b{color:var(--primary-900)}
+.w-side-mini{display:none;margin:8px 0 0}
+.w-side-mini summary{list-style:none;cursor:pointer;font-size:11.5px;font-weight:700;
+  color:var(--ink-2);background:var(--n-50);border:1px solid var(--line);border-radius:8px;
+  padding:6px 11px;display:flex;align-items:center;gap:7px}
+.w-side-mini summary::-webkit-details-marker{display:none}
+.w-side-mini summary::after{content:"›";margin-left:auto;color:var(--muted);transform:rotate(90deg);transition:transform .15s}
+.w-side-mini[open] summary::after{transform:rotate(-90deg)}
+.w-side-mini .w-side{padding:9px 0 0;border-left:none;background:transparent}
+@media(max-width:1099px){
+  .w-detail-layout{display:block}
+  .w-side{display:none}
+  .w-side-mini{display:block}
+  /* ⚠️ 展开的小签里那张卡本身也是 .w-side，必须重新显示，否则点开是空的 */
+  .w-side-mini[open] .w-side{display:flex}
+}
+
+/* ===== 3. 单词行内发音按钮（方案 §二.2：喇叭紧贴单词，底部居中的删掉）===== */
+/* ⚠️ 必须保持 display:flex（块级、填满父宽）—— fitWordOneLine() 用 clientWidth 当可用宽度算收缩，
+   改成 inline-flex 会让 clientWidth 变成 shrink-to-fit，长词就永远不缩字号了。这里只补 gap。 */
+#practiceBody.practice-body-fit .pw-en{gap:9px}
+.pw-spk{flex:none;width:26px;height:26px;padding:0;display:inline-grid;place-items:center;
+  border:1px solid var(--line);border-radius:50%;background:var(--surface);color:var(--muted);
+  cursor:pointer;transition:border-color .15s,color .15s,background .15s}
+.pw-spk:hover{border-color:var(--primary);color:var(--primary-700);background:var(--primary-50)}
+
+/* ===== 4. A/B/C/D 键位方块（方案 §二.5）===== */
+.opt-k{font-size:10.5px;font-weight:800;color:var(--ink-2);background:var(--n-100);
+  border-radius:5px;min-width:17px;height:17px;display:inline-grid;place-items:center;
+  line-height:1;flex:none;padding:0 4px;margin-bottom:2px}
+.opt-big.correct .opt-k{background:var(--ok-bg);color:var(--ok-text)}
+.opt-big.wrong .opt-k{background:var(--err-bg);color:var(--err-text)}
+
+/* ===== 5. 「不知道」降级成白底小按钮 + 右侧键位提示（方案 §二.3）===== */
+.dunno-row{display:flex;align-items:center;gap:10px;margin-top:12px}
+.dunno-row .hint{margin-left:auto;font-size:11px;color:var(--muted);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+#practiceBody.practice-body-fit .dunno-row .abtn-unknown{
+  flex:none;width:auto;height:36px;padding:0 16px;border:1px solid var(--line);border-radius:8px;
+  background:var(--surface);color:var(--ink-2);font-size:13px;font-weight:600;
+}
+#practiceBody.practice-body-fit .dunno-row .abtn-unknown:hover{
+  border-color:var(--primary-200);color:var(--primary-700);background:var(--primary-50);
+}
+
+/* ===== 6. 底部居中喇叭退役（方案 §二.2 明写「底部那个居中的喇叭删掉」）===== */
+#practiceBody.practice-body-fit .pw-speaker-wrap{display:none}
+
+/* ===== 7. 390：选项单列 + 侧栏小签（方案 §三）===== */
+@media(max-width:560px){
+  #practiceBody.practice-body-fit .opts-grid{grid-template-columns:1fr}
+}

@@ -1,7 +1,30 @@
+/* 10-23 W-1：curCat = null 表示「不限分类」（改后筛选带默认全部）。
+   旧逻辑里「没选就回落到第一个分类」已经撤掉 —— 现在首屏要能一次看到 42 套里的前 8+ 张。 */
 var curCat = null;
 var curId = null;
 var curTab = 'tpl';
 var tplSearch = '';
+/* ===== 10-23 W-3：筛选记忆（方案 §四.2）=====
+   只记界面偏好（档位 / 分类 / 视图 / 关键词）→ localStorage，不进 DATA.settings、不参与云同步。
+   理由与 TPL_GUIDE_KEY 同款：这是轻量 UI 偏好，别动 SYNC_SETTINGS_FIELDS 那份跨端契约。
+   存的值进页面时回填；填了非法值（比如历史分类被删）一律回落默认，不让页面卡在空列表上。 */
+const WRT_FILTER_KEY = 'w_filter';
+function readFilter(){
+  try{
+    const j = JSON.parse(localStorage.getItem(WRT_FILTER_KEY) || '{}') || {};
+    return {
+      lv: typeof j.lv === 'string' ? j.lv : 'all',
+      cat: typeof j.cat === 'string' ? j.cat : null,
+      view: (j.view === 'list' || j.view === 'grid') ? j.view : null,
+      q: typeof j.q === 'string' ? j.q : ''
+    };
+  }catch(e){ return { lv:'all', cat:null, view:null, q:'' }; }
+}
+function writeFilter(){
+  try{
+    localStorage.setItem(WRT_FILTER_KEY, JSON.stringify({ lv: curLevel, cat: curCat, view: tplView, q: tplSearch }));
+  }catch(e){}
+}
 var bankSearch = '';
 /* 10/10：模板分档筛选（'all' 或 '5.5' / '6.0' / '6.5' / '7.0'）。
    一档 = 0.5 分；只在**该档有模板时**才渲染按钮（没有的档不显示 0，避免看起来站内是空的）。 */
@@ -201,6 +224,19 @@ ready(() => {
     if(_tbSub === 'tpl' || _tbSub === 'bank' || _tbSub === 'score') switchWriteTab(_tbSub);
   }catch(e){}
 
+  /* ===== 10-23 W-3：先回填筛选记忆，再首次渲染 =====
+     ⚠️ 顺序硬要求：原来我把回填补丁写在 ready 后半段，而 renderCats() 在这行就已经跑过一遍，
+     于是「记忆里的分类/档位」被首次渲染覆盖成默认值（浏览器刷新后记忆失效，探针抓出来的）。
+     分类/档位的合法性仍由 renderCats 里的校验兜底（历史分类被删 → 回落不限分类）。 */
+  try{
+    const _f = readFilter();
+    if(_f.view) tplView = _f.view;
+    tplSearch = (_f.q || '').toLowerCase();
+    if(_f.lv && _f.lv !== 'all') curLevel = _f.lv;
+    if(_f.cat) curCat = _f.cat;
+    const _si = document.getElementById('tplSearch');
+    if(_si && _f.q) _si.value = _f.q;
+  }catch(e){}
   // 模板库
   renderCats();
   // 会员闸：查完刷新列表（🔓/🔒 角标）与当前详情（若停在锁定视图则解锁重渲染）
@@ -311,14 +347,27 @@ ready(() => {
 
   // 语料库
   $('#bankFilter').addEventListener('change', renderBank);
+  /* W-3：搜索框输入绑定（回填已在 ready 最前面、首次 renderCats 之前做完） */
   const tplSearchEl = document.getElementById('tplSearch');
-  if(tplSearchEl) tplSearchEl.addEventListener('input', () => { tplSearch = tplSearchEl.value.trim().toLowerCase(); renderList(); });
+  if(tplSearchEl){
+    /* 方案 §四.1：输入即时过滤（300ms 防抖）—— 原来每个按键都重渲染整个列表，42 张卡会明显卡顿 */
+    let _tq = null;
+    tplSearchEl.addEventListener('input', () => {
+      clearTimeout(_tq);
+      _tq = setTimeout(() => {
+        tplSearch = tplSearchEl.value.trim().toLowerCase();
+        writeFilter();
+        renderList();
+      }, 300);
+    });
+  }
   /* 10/21（她拍板 design/112）：网格 / 列表 切换。切换只重渲染列表，不动筛选状态；她选过的存 localStorage。 */
   const tplViewEl = document.getElementById('tplView');
   if(tplViewEl){
     tplViewEl.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => {
       tplView = (b.dataset.view === 'list') ? 'list' : 'grid';
       try{ localStorage.setItem('wrtTplView', tplView); }catch(e){}
+      writeFilter();
       markTplViewBtns();
       renderList();
     }));
@@ -353,9 +402,12 @@ function migrateWritingCategoryNames(){
   });
   if(changed) hubSave();
 }
+/* ===== 10-23 W-1：横向筛选带（撤左栏后接手 15 项筛选）=====
+   方案 §二.2：三段分组 —— 目标分（全部 + 有模板的档位）/ Task 2 五类 / Task 1 四类；
+   段与段之间 1px 竖线；不换行、横向可滚（CSS 的 .wb-filters overflow-x:auto）。
+   🔴 数据只读：分类顺序、计数、档位集合全部照旧从 DATA.writing 推，42 套模板一个字没动。
+   🔴 保留旧函数名 renderCats（外部调用点不动），内部改成渲染筛选带 + 列表。 */
 function renderCats(){
-  /* 10/2（她拍板）：分类栏固定显示雅思作文全类型——大作文补齐 5 类（新增「优缺点型」「双问题型」，
-     暂无模板的先空着显示 ·0），小作文 4 类不动；数据里的自定义分类追加在「自定义」组。 */
   const CAT_TASK2 = ['观点型','讨论型','优缺点型','Report','双问题型'];
   const CAT_TASK1 = ['动态图','静态图','地图题','流程图'];
   const order = CAT_TASK2.concat(CAT_TASK1);
@@ -363,38 +415,45 @@ function renderCats(){
   DATA.writing.forEach(t => { const c = cleanCatName(t.category); if(!order.includes(c) && !extra.includes(c)) extra.push(c); });
   const all = order.concat(extra);
   const cntOf = c => DATA.writing.filter(t => cleanCatName(t.category) === c).length;
-  const nav = $('#catNav');
-  // 不存在就回落到一个还存在的分类（9/16 修的口径，保留）
-  if(!curCat || !all.includes(curCat)) curCat = all[0];
-  const btn = c => '<button class="btn' + (c===curCat?' active':'') + '" data-cat="' + escapeHtml(c) + '"><span class="cat-name">' + escapeHtml(c) + '</span><span class="cat-cnt">' + cntOf(c) + '</span></button>';
-  /* 10/10 模板分档：目标分筛选（一档 0.5 分）。两条设计约束——
-     ① **只在有模板的档位渲染按钮**：没有的档不显示「6.5 · 0」，否则看起来站内是空的；
-     ② 档位尽量自动：LV_ORDER 只用来**保证顺序**（5.5→7.0），数据里若出现了表外档位，
-        按首次出现顺序排在表内档位之后 —— 加新档位不用改这里的代码。
-        ⚠️ 10/11 修正：原注释写「档位从数据动态收集」**说大了** —— 实际只是固定表 LV_ORDER
-        按「有没有模板」过滤。7.0 能自动出现，是因为 7.0 本来就写在表里，不是因为动态收集。
-        探针用 8.0 验证时才暴露：表外档位根本不会出现按钮。现改为「固定表 ∪ 数据实际档位」。
-     老数据没有 level 字段时按 5.5 处理（与 data.js 的补字段迁移同口径）。 */
+  /* 目标分档位：固定表 ∪ 数据实际档位，只保留有模板的（与改前同口径，见 10/11 修正注释） */
   const LV_ORDER = ['5.5', '6.0', '6.5', '7.0'];
   const lvOf = t => t.level || '5.5';
   const lvCount = lv => DATA.writing.filter(t => lvOf(t) === lv).length;
-  // 数据里出现、但不在 LV_ORDER 里的档位（按首次出现顺序排在其后）
   const lvExtra = [];
   DATA.writing.forEach(t => { const lv = lvOf(t); if(LV_ORDER.indexOf(lv) < 0 && lvExtra.indexOf(lv) < 0) lvExtra.push(lv); });
   const lvChips = LV_ORDER.concat(lvExtra).filter(lv => lvCount(lv) > 0);
   if(curLevel !== 'all' && !lvChips.includes(curLevel)) curLevel = 'all';
-  const lvBar = lvChips.length
-    ? '<div class="lv-bar"><span class="lv-bar-lb">目标分</span>'
-      + '<button type="button" class="lv-chip' + (curLevel === 'all' ? ' active' : '') + '" data-lv="all">全部<span class="lv-cnt">' + DATA.writing.length + '</span></button>'
-      + lvChips.map(lv => '<button type="button" class="lv-chip' + (curLevel === lv ? ' active' : '') + '" data-lv="' + lv + '">' + lv + ' 分<span class="lv-cnt">' + lvCount(lv) + '</span></button>').join('')
-      + '</div>'
-    : '';
-  nav.innerHTML = lvBar
-    + '<div class="cat-group-label">大作文 · Task 2</div>' + CAT_TASK2.map(btn).join('')
-    + '<div class="cat-group-label">小作文 · Task 1</div>' + CAT_TASK1.map(btn).join('')
-    + (extra.length ? '<div class="cat-group-label">自定义</div>' + extra.map(btn).join('') : '');
-  nav.querySelectorAll('[data-cat]').forEach(b => b.addEventListener('click', () => { curCat = b.dataset.cat; renderCats(); renderList(); }));
-  nav.querySelectorAll('[data-lv]').forEach(b => b.addEventListener('click', () => { curLevel = b.dataset.lv; renderCats(); renderList(); }));
+  /* W-3：记忆里的分类可能已被删/改名 → 回落「不限分类」，不让页面卡在空列表 */
+  if(curCat && !all.includes(curCat)) curCat = null;
+  /* 「全部」= 当前 Task 分组下全选（不跨大小作文）；分类 chip 点一下切 curCat */
+  const task2All = CAT_TASK2.filter(c => cntOf(c) > 0);
+  const task1All = CAT_TASK1.filter(c => cntOf(c) > 0);
+
+  const chipLv = lv => '<button type="button" class="fchip' + (curLevel === lv ? ' on' : '')
+    + '" data-lv="' + lv + '">' + (lv === 'all' ? '全部' : lv)
+    + '<span class="lv-cnt">' + (lv === 'all' ? DATA.writing.length : lvCount(lv)) + '</span></button>';
+  const chipCat = c => '<button type="button" class="fchip' + (curCat === c ? ' on' : '')
+    + '" data-cat="' + escapeHtml(c) + '">' + escapeHtml(c)
+    + '<span class="lv-cnt">' + cntOf(c) + '</span></button>';
+
+  const host = $('#wbFilters');
+  if(!host){ renderList(); return; }
+  let html = '<span class="flb">目标分</span>' + chipLv('all') + lvChips.map(chipLv).join('');
+  html += '<span class="fsep" role="separator"></span>';
+  html += '<span class="flb">Task 2</span>' + task2All.map(chipCat).join('');
+  if(extra.length) html += extra.map(chipCat).join('');   /* 自定义分类归到 Task 2 段尾 */
+  html += '<span class="fsep" role="separator"></span>';
+  html += '<span class="flb">Task 1</span>' + task1All.map(chipCat).join('');
+  host.innerHTML = html;
+
+  host.querySelectorAll('[data-cat]').forEach(b => b.addEventListener('click', () => {
+    /* 再点一次同一个分类 = 取消（回到不限分类）—— 撤左栏后没有「回全部」按钮，这是唯一出口 */
+    curCat = (curCat === b.dataset.cat) ? null : b.dataset.cat;
+    writeFilter(); renderCats();
+  }));
+  host.querySelectorAll('[data-lv]').forEach(b => b.addEventListener('click', () => {
+    curLevel = b.dataset.lv; writeFilter(); renderCats();
+  }));
   renderList();
 }
 
@@ -451,10 +510,19 @@ function markTplViewBtns(){
 }
 
 function renderList(){
-  let list = DATA.writing.filter(t => t.category === curCat);
+  /* 10-23 W-1：撤左栏后不再「一次只看一个分类」——筛选带按段分组，
+     分类选中 = 过滤该分类；不选（curCat 为空）= 该 Task 下全部。
+     兼容旧行为：curCat 命中具体分类时仍只看那一个分类（点击 chip 时写入）。 */
+  let list = curCat ? DATA.writing.filter(t => cleanCatName(t.category) === curCat) : DATA.writing.slice();
   // 10/10：目标分档筛选（老数据无 level → 视作 5.5，与 renderCats 同口径）
   if(curLevel !== 'all') list = list.filter(t => (t.level || '5.5') === curLevel);
-  if(tplSearch){ list = list.filter(t => (cleanCatName(t.title)+' '+t.category).toLowerCase().indexOf(tplSearch) !== -1); }
+  /* W-3：搜索口径 = 模板名 + 分类 + 骨架首句（方案 §四.1），原来是「模板名 + 分类」 */
+  if(tplSearch){
+    list = list.filter(t => {
+      const hay = (cleanCatName(t.title) + ' ' + (t.category || '') + ' ' + skeletonFirstLine(t.skeleton) + ' ' + String(t.skeleton || '')).toLowerCase();
+      return hay.indexOf(tplSearch) !== -1;
+    });
+  }
   const locked = (tplVip !== true);
   const lockTag = locked ? '<span class="badge" style="position:absolute;top:10px;right:10px" title="会员专属">🔒</span>' : '';
   /* 10/4（她 12:57 反馈「模板列表里套了一层空壳卡片」）：
@@ -473,6 +541,13 @@ function renderList(){
     box.innerHTML = list.map(t => tplCardHtml(t, lockTag)).join('');
   }
   $('#empty').hidden = list.length > 0;
+  /* W-1：标题行套数（全库 42 套 · 大作文 N / 小作文 M）—— 只读统计，不参与筛选 */
+  const cntEl = document.getElementById('tplCountText');
+  if(cntEl){
+    const T2 = ['观点型','讨论型','优缺点型','Report','双问题型'];
+    const big = DATA.writing.filter(t => T2.includes(cleanCatName(t.category))).length;
+    cntEl.textContent = DATA.writing.length + ' 套 · 大作文 ' + big + ' / 小作文 ' + (DATA.writing.length - big);
+  }
   box.querySelectorAll('[data-id]').forEach(c => c.addEventListener('click', () => openTpl(c.dataset.id)));
 }
 
@@ -582,6 +657,19 @@ function openTpl(id){
   $('#listCard').hidden = true; $('#detailCard').hidden = false;
   document.querySelector('.write-layout')?.classList.add('detail-open');
   $('#dTitle').textContent = cleanCatName(t.title);
+  /* W-2：头部一行补齐 —— 目标分徽章 + 「大作文 · 4 段 · 约 N 词」 */
+  const lvEl = document.getElementById('dLv');
+  if(lvEl){ const lv = t.level || '5.5'; lvEl.textContent = lv + ' 分'; lvEl.hidden = false; }
+  const metaEl = document.getElementById('dMeta');
+  if(metaEl){
+    const T2 = ['观点型','讨论型','优缺点型','Report','双问题型'];
+    const kind = T2.includes(cleanCatName(t.category)) ? '大作文' : '小作文';
+    const paras = String(t.skeleton || '').split(/\n\s*\n/).filter(x => x.trim()).length;
+    /* 词数：骨架里的英文单词数（去掉【】占位后数）—— 只是「约」量级，不用精确 */
+    const plain = String(t.skeleton || '').replace(/【[^】]*】/g, 'x');
+    const words = (plain.match(/[A-Za-z][A-Za-z'-]*/g) || []).length;
+    metaEl.textContent = [kind, paras ? paras + ' 段' : '', words ? '约 ' + Math.round(words / 10) * 10 + ' 词' : ''].filter(Boolean).join(' · ');
+  }
   if(tplVip !== true){ renderTplLocked(); return; }   // 会员闸：非会员只给锁卡（10/2 她拍板）
   restoreTplBlocks();
   /* 「作文骨架」原文块已删（她 10/1：与填空练习/完整句重复）；骨架数据仍是填空/默写/评分的源，只删展示 */
@@ -639,30 +727,55 @@ function fitInput(inp){
   inp.style.width = w + 'px';
 }
 
+/* ===== 10-23 W-2：填空练习按「段」切卡（方案 §三.3）=====
+   她 15:0x 原话：「我感觉不能单句单句分开，但是可以单段单段分开」。
+   切分依据 = 骨架里本来就有的空行（每套 4 段 = 3 个空行）→ 每段一张 .psec 卡。
+   段内正文仍是一整段连续英文（不按句号再拆），跟原模板读起来一样。
+   不许改 skeleton 数据本身；phIdx 仍按全文顺序递增 —— filledState()/updatePreview()
+   都靠 DOM 里 .ph-input 的顺序，按段拼进 DOM 时顺序不变，所以下标口径零变化。 */
+const P_SEC_NAMES = ['开头 · 表态', '主体一 · 第一个理由', '主体二 · 让步与反驳', '结尾 · 收口'];
 function buildPractice(skeleton){
-  const parts = skeleton.split(/(【[^】]*】)/g);
+  const paras = String(skeleton || '').split(/\n\s*\n/).filter(x => x.trim());
   let html = '';
   let phIdx = 0;
-  parts.forEach(p => {
-    const m = p.match(/^【(.+?)】$/);
-    if(m){
-      const esc = escapeHtml(m[1]);
-      /* 10/8 晚她反馈：占位提示里塞了整句例句 → 输入框被撑到 525px。长提示（>10 字）改成框上方小字，
-         输入框本身不带长占位符（宽度只跟输入内容走），完整提示仍存 title + data-ph（拼 prompt 用）。 */
-      const longPh = String(m[1] || '').length > 10;
-      const phShown = longPh ? '' : esc;
-      html += '<span class="ph-wrap' + (longPh ? ' ph-wrap-long' : '') + '" data-idx="' + phIdx + '">'
-            +   (longPh ? '<span class="ph-label">' + esc + '</span>' : '')
-            +   '<input class="ph-input" data-ph="' + esc + '" placeholder="' + phShown + '" title="' + esc + '">'
-            +   '<button class="ph-hint" type="button" data-ph="' + esc + '" title="AI 给这个空的建议"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;vertical-align:-2px" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 1 4 10.5c-.8.7-1 1.5-1 2.5h-6c0-1-.2-1.8-1-2.5A6 6 0 0 1 12 3z"/></svg></button>'
-            +   '<span class="ph-hint-box" data-for="' + esc + '" hidden></span>'
-            + '</span>';
-      phIdx++;
-    } else { html += escapeHtml(p); }
+  paras.forEach((para, pi) => {
+    let inner = '';
+    const parts = para.split(/(【[^】]*】)/g);
+    parts.forEach(p => {
+      const m = p.match(/^【(.+?)】$/);
+      if(m){
+        const esc = escapeHtml(m[1]);
+        /* 10/8 晚她反馈：占位提示里塞了整句例句 → 输入框被撑到 525px。长提示（>10 字）改成框上方小字，
+           输入框本身不带长占位符（宽度只跟输入内容走），完整提示仍存 title + data-ph（拼 prompt 用）。 */
+        const longPh = String(m[1] || '').length > 10;
+        const phShown = longPh ? '' : esc;
+        inner += '<span class="ph-wrap' + (longPh ? ' ph-wrap-long' : '') + '" data-idx="' + phIdx + '">'
+              +   (longPh ? '<span class="ph-label">' + esc + '</span>' : '')
+              +   '<input class="ph-input" data-ph="' + esc + '" placeholder="' + phShown + '" title="' + esc + '">'
+              +   '<button class="ph-hint" type="button" data-ph="' + esc + '" title="AI 给这个空的建议"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;vertical-align:-2px" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 1 4 10.5c-.8.7-1 1.5-1 2.5h-6c0-1-.2-1.8-1-2.5A6 6 0 0 1 12 3z"/></svg></button>'
+              +   '<span class="ph-hint-box" data-for="' + esc + '" hidden></span>'
+              + '</span>';
+        phIdx++;
+      } else { inner += escapeHtml(p); }
+    });
+    /* 段名：前 4 段用固定名（大作文正文就是这四步），超过 4 段给通用名 —— 不改数据 */
+    const nm = P_SEC_NAMES[pi] || ('第 ' + (pi + 1) + ' 段');
+    html += '<section class="psec" data-p="' + pi + '">'
+      +   '<div class="psec-h"><span class="pnum">' + (pi + 1) + '</span>'
+      +     '<span class="psec-nm">' + escapeHtml(nm) + '</span>'
+      +     '<span class="psec-meta" data-p="' + pi + '"></span></div>'
+      +   '<div class="psec-b">' + inner + '</div>'
+      + '</section>';
   });
   const box = $('#practice');
   box.innerHTML = html;
-  box.querySelectorAll('.ph-input').forEach(inp => { fitInput(inp); inp.addEventListener('input', () => { fitInput(inp); updatePreview(); }); });
+  box.querySelectorAll('.ph-input').forEach(inp => {
+    fitInput(inp);
+    /* W-2：填过就加 .filled（虚线→实线 + 浅绿底），空回来就摘掉 */
+    const syncFilled = () => inp.classList.toggle('filled', !!inp.value.trim());
+    syncFilled();
+    inp.addEventListener('input', () => { fitInput(inp); syncFilled(); updatePreview(); });
+  });
   box.querySelectorAll('.ph-hint').forEach(btn => btn.addEventListener('click', () => hintBlank(btn)));
   updatePreview();
 }
@@ -742,11 +855,23 @@ function updatePreview(){
     out = out.split('【' + ph + '】').join(val ? escapeHtml(val) : '【' + ph + '】');
   });
   $('#preview').innerHTML = out.replace(/\n/g, '<br>');
+  const st = filledState();
   const hint = $('#tplFillHint');
   if(hint){
-    const s = filledState();
-    hint.textContent = s.blank > 0 ? ('还有 ' + s.blank + ' 个空没填') : (s.total ? '空都填好了，可以评分' : '');
+    hint.textContent = st.blank > 0 ? ('还有 ' + st.blank + ' 个空没填') : (st.total ? '空都填好了，可以评分' : '');
   }
+  /* W-2：顶部总进度「已填 N/M」+ 每段「N 空 · 已填 M」 */
+  const prog = $('#tplProgress');
+  if(prog){
+    prog.textContent = st.total ? ('已填 ' + (st.total - st.blank) + '/' + st.total) : '';
+  }
+  document.querySelectorAll('#practice .psec').forEach(sec => {
+    const meta = sec.querySelector('.psec-meta');
+    if(!meta) return;
+    const ins = sec.querySelectorAll('.ph-input');
+    const done = [...ins].filter(i => i.value.trim()).length;
+    meta.textContent = ins.length + ' 空 · 已填 ' + done;
+  });
 }
 
 /* ===== 模板填空 → AI 按官方 4 维度评分 ===== */
