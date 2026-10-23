@@ -1,0 +1,257 @@
+{
+ "_说明": "句子时间轴：每行对应 bank/listening/2016474115835789313.json 的 article <p> 段（同序同数）。start/end = 该句在音频里的真实起止秒。",
+ "unitId": "2016474115835789313",
+ "title": "Renting an Apartment",
+ "partNum": "Part 1",
+ "audioDuration": 355.84,
+ "source": "asr:faster-whisper small.en 词级时间戳 + difflib 全局对齐（命中 482/491 词 = 98.2%）",
+ "note": "音频里有两段官方报幕：开头 0-45s（Part 1 指引 + 看题时间）与 170-195s（Before you hear the rest... 看题时间）。这两段静音不属于任何文章句子，所以段间会看到空档 —— 那是真实的，不是错位。",
+ "lines": [
+  {
+   "i": 0,
+   "start": 45.07,
+   "end": 51.01,
+   "text": "Good morning, AA Property. Can I help you?"
+  },
+  {
+   "i": 1,
+   "start": 51.37,
+   "end": 54.77,
+   "text": "Yes, good morning. I'm looking for an apartment to rent."
+  },
+  {
+   "i": 2,
+   "start": 55.35,
+   "end": 57.57,
+   "text": "OK. Is that here in Birmingham?"
+  },
+  {
+   "i": 3,
+   "start": 58.13,
+   "end": 58.51,
+   "text": "That's right."
+  },
+  {
+   "i": 4,
+   "start": 58.51,
+   "end": 65.43,
+   "text": "Right. I'll just take some personal details if I may. So, if I can just take your name?"
+  },
+  {
+   "i": 5,
+   "start": 66.13,
+   "end": 66.55,
+   "text": "Kevin Walker."
+  },
+  {
+   "i": 6,
+   "start": 67.69,
+   "end": 71.27,
+   "text": "Right. And can I have your present address, please?"
+  },
+  {
+   "i": 7,
+   "start": 72.01,
+   "end": 78.91,
+   "text": "Well, we're staying with friends at present, so the address is 354 Forest Road."
+  },
+  {
+   "i": 8,
+   "start": 79.61,
+   "end": 81.68,
+   "text": "Is that Forest with one R?"
+  },
+  {
+   "i": 9,
+   "start": 82.05,
+   "end": 82.55,
+   "text": "That's right."
+  },
+  {
+   "i": 10,
+   "start": 83.49,
+   "end": 87.29,
+   "text": "And that's in West Bromwich. I'm afraid I don't know the postcode."
+  },
+  {
+   "i": 11,
+   "start": 87.29,
+   "end": 88.79,
+   "text": "That's OK."
+  },
+  {
+   "i": 12,
+   "start": 89.25,
+   "end": 90.85,
+   "text": "And a contact phone number?"
+  },
+  {
+   "i": 13,
+   "start": 94.51,
+   "end": 94.53,
+   "text": "07817983602."
+  },
+  {
+   "i": 14,
+   "start": 98.17,
+   "end": 101.83,
+   "text": "Lovely. And if I could just ask your occupation?"
+  },
+  {
+   "i": 15,
+   "start": 102.65,
+   "end": 109.35,
+   "text": "Certainly. I'm a dentist and my wife's a teacher, but she's at home with the children looking after them."
+  },
+  {
+   "i": 16,
+   "start": 109.62,
+   "end": 121.23,
+   "text": "OK. So, I'll just put your occupation. Right. Well, now I'll take some details about the kind of property you're looking for. You said you're looking for an apartment, is that right?"
+  },
+  {
+   "i": 17,
+   "start": 121.63,
+   "end": 121.87,
+   "text": "Yeah."
+  },
+  {
+   "i": 18,
+   "start": 122.67,
+   "end": 125.33,
+   "text": "OK. So, how many bedrooms do you want?"
+  },
+  {
+   "i": 19,
+   "start": 126.09,
+   "end": 126.15,
+   "text": "Two."
+  },
+  {
+   "i": 20,
+   "start": 126.69,
+   "end": 128.03,
+   "text": "And did you want it furnished?"
+  },
+  {
+   "i": 21,
+   "start": 128.47,
+   "end": 129.69,
+   "text": "No, unfurnished."
+  },
+  {
+   "i": 22,
+   "start": 130.21,
+   "end": 137.87,
+   "text": "Right. Well, that gives you quite a bit more choice, so that's good. And what's the maximum rent you'd be prepared to pay?"
+  },
+  {
+   "i": 23,
+   "start": 138.45,
+   "end": 147.51,
+   "text": "Well, we'd like to stay under £600 if possible, but we could go up to £650 for the right place."
+  },
+  {
+   "i": 24,
+   "start": 148.51,
+   "end": 151.29,
+   "text": "Right. So, do you have any other definite requirements?"
+  },
+  {
+   "i": 25,
+   "start": 152.23,
+   "end": 156.01,
+   "text": "Well, coming back to the bedrooms, they have to be doubles, both of them."
+  },
+  {
+   "i": 26,
+   "start": 156.87,
+   "end": 159.05,
+   "text": "OK. I'll make a note of that."
+  },
+  {
+   "i": 27,
+   "start": 202.8,
+   "end": 207.86,
+   "text": "So, are you looking for something straight away? I assume you are if you're staying with friends."
+  },
+  {
+   "i": 28,
+   "start": 208.6,
+   "end": 210.02,
+   "text": "Well, as soon as possible, yes."
+  },
+  {
+   "i": 29,
+   "start": 210.9,
+   "end": 218.16,
+   "text": "Well, it's October 17th today, so we're probably looking at November 1st at the earliest. Would that be OK?"
+  },
+  {
+   "i": 30,
+   "start": 218.84,
+   "end": 225.34,
+   "text": "Well, I'd have preferred something in October, but OK, let's put that date down for now. Fine."
+  },
+  {
+   "i": 31,
+   "start": 225.94,
+   "end": 227.96,
+   "text": "Now, is there anything else you'd like?"
+  },
+  {
+   "i": 32,
+   "start": 228.72,
+   "end": 234.94,
+   "text": "Well, our last flat had a garage, but actually, we never used it, so I'm not really worried about that."
+  },
+  {
+   "i": 33,
+   "start": 235.4,
+   "end": 239.46,
+   "text": "But we'd like a balcony if possible. It's nice not to be too shut in."
+  },
+  {
+   "i": 34,
+   "start": 239.92,
+   "end": 251.58,
+   "text": "Yes. You'll find most modern apartments do have one. It's only the converted properties that don't. But of course, if you're in an older property, you might have use of a garden. Would that be a possible alternative?"
+  },
+  {
+   "i": 35,
+   "start": 251.58,
+   "end": 254.38,
+   "text": "Oh yes, either of those would be good."
+  },
+  {
+   "i": 36,
+   "start": 255.06,
+   "end": 258.48,
+   "text": "What about transport? Would you want off-street parking?"
+  },
+  {
+   "i": 37,
+   "start": 259.1,
+   "end": 267.04,
+   "text": "No, parking doesn't matter, but it'd be good to have somewhere not too far from a station if possible. But it's not essential. I've got a bike."
+  },
+  {
+   "i": 38,
+   "start": 267.84,
+   "end": 273.6,
+   "text": "Right. And what else? You'll want a lounge, and will you want a separate dining room?"
+  },
+  {
+   "i": 39,
+   "start": 274.2,
+   "end": 280.86,
+   "text": "Well, not really. We tend to eat in the kitchen, so it'd be good if that was large enough for us to do that."
+  },
+  {
+   "i": 40,
+   "start": 281.42,
+   "end": 288.16,
+   "text": "That might be difficult, but I'll make a note of it anyway. Right, well, let's have a look at what..."
+  }
+ ]
+}
