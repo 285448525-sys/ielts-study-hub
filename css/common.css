@@ -2500,9 +2500,12 @@ body[data-shell="top"] .container{padding-top:14px}
 .tb-logo i{width:24px;height:24px;border-radius:7px;background:linear-gradient(135deg,var(--primary-400),var(--primary-600));
   display:grid;place-items:center;color:#fff;font-style:normal;font-size:12px;font-weight:800}
 
-/* 胶囊导航：8 项（首页 模考 口语 写作 单词 句子 计划 更多） */
+/* 胶囊导航：10-23 T-014「回顾」提级后 = 9 项（首页 模考 口语 写作 单词 句子 计划 回顾 更多）。
+   ⚠️ 9 项 + logo + 搜索框在 1280 会顶满 → 加 min-width:0 + overflow-x:auto，
+   窄屏时胶囊自身横向滚动而不是把 logo/搜索框挤出视口（她 375 口径：一屏不滚）。 */
 .tb-caps{display:flex;align-items:center;gap:2px;background:var(--n-50);border:1px solid var(--line);
-  border-radius:999px;padding:2px;flex:none;margin:0 auto}
+  border-radius:999px;padding:2px;flex:none;margin:0 auto;min-width:0;overflow-x:auto;scrollbar-width:none}
+.tb-caps::-webkit-scrollbar{display:none}
 .tb-item{font-size:12.5px;font-weight:700;color:var(--muted);text-decoration:none;padding:5px 12px;
   border-radius:999px;white-space:nowrap;transition:background .16s,color .16s;border:0;background:transparent;
   font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:4px;line-height:1.4}

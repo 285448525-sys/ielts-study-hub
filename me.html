@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>我的 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261022f" />
+<link rel="stylesheet" href="css/common.css?v=20261023b" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -60,7 +60,7 @@
     setTimeout(fin, 8000);        // 兜底：绝不卡死在遮罩上
   })();
 </script>
-<script defer src="js/hubgroup.js?v=20261023a"></script>
+<script defer src="js/hubgroup.js?v=20261023b"></script>
 <!-- 🔴 10/5 15:40 加载顺序契约 —— ⚠️ 三个 defer 的顺序**不可改、不可改成动态加载**！
      hubgroup.js 的渲染门控（boot()）等两个条件：
        A. common.js 已就绪（PAGES 这个顶层 const 可用）
@@ -71,12 +71,12 @@
      🔑 defer 顺序不只是性能参数，它是**契约**：后一个脚本可以假定前一个已定义全局。
         要优化组页性能，先跑 tests/_probe_softnav_groups_1005.cjs（它会测软导航序列）。 -->
 <script defer src="js/data.js?v=20261022d"></script>
-<script defer src="js/common.js?v=20261023a"></script>
-<script defer src="js/common-ai.js?v=20261023a"></script>
-<script defer src="js/common-sync.js?v=20261023a"></script>
-<script defer src="js/common-merge.js?v=20261023a"></script>
-<script defer src="js/common-cloud.js?v=20261023a"></script>
-<script defer src="js/common-shell.js?v=20261023a"></script>
-<script defer src="js/common-pwa.js?v=20261023a"></script>
+<script defer src="js/common.js?v=20261023b"></script>
+<script defer src="js/common-ai.js?v=20261023b"></script>
+<script defer src="js/common-sync.js?v=20261023b"></script>
+<script defer src="js/common-merge.js?v=20261023b"></script>
+<script defer src="js/common-cloud.js?v=20261023b"></script>
+<script defer src="js/common-shell.js?v=20261023b"></script>
+<script defer src="js/common-pwa.js?v=20261023b"></script>
 </body>
 </html>

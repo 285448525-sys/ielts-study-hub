@@ -94,7 +94,8 @@ function favPageIds(){
       手动「选模块开表」这个入口没有存在必要 → 从 PRIMARY_NAV 摘掉 'timer'。
       ⚠️ **只摘入口、不删功能**：`timer.html` 文件、`DATA.activeTimer`、侧栏计时徽标、
          浮条「结束并保存」、各模块的自动计时引擎全部保留（撤掉页面会让进行中的会话无法结算）。 */
-const PRIMARY_NAV = ['index','bank','speaking','writing','practice','corpus','plans'];
+/* 🔴 10-23 T-014 她拍板：「回顾」从「更多」提为一级入口（跟单词/句子/计划平级），放「计划」后面。 */
+const PRIMARY_NAV = ['index','bank','speaking','writing','practice','corpus','plans','review'];
 /* ⭐ 10-22 她拍板（design/116 决策②）：组页不在顶栏 8 个胶囊里，直接换过去会「全都不亮」，
    看起来像没有当前位置 → 按归属高亮：学习组→单词、计划组→计划、我的组→设置。
    学生数据页故意不映射（它是独立身份，不属于任何学习模块）。
@@ -105,7 +106,9 @@ function capActiveFile(file){ return CAP_ACTIVE[file] || file; }
 /* 10/1 付费方案：vip 放分隔线下方首位（销售入口显眼但不挤占学习导航；她看过效果可再调位置） */
 /* 10-23 她拍板删服药页入口 → MORE_NAV 去掉 'meds'。
    ⚠️ medsModuleOn() 保留（plans.js:545 的 AI prompt 仍读它拼服药上下文）。 */
-const MORE_NAV    = ['vip','review','settings'];
+/* 10-23 T-014：回顾提级后侧栏也不列（一级入口已覆盖）；错句本 T-015 删页先摘。
+   ⚠️ MORE_NAV 现在是「顶栏更多面板的数据源」，两边必须一致。 */
+const MORE_NAV    = ['vip','settings'];
 const TAB_NAV     = ['index','practice','speaking'];   // 旧 tabbar 主项（组件已删，仅用于计算「更多」弹层要收纳哪些页面）
 // 底部 Tab 标签覆盖：practice 在站内含「单词」，但原型/验收确认为「背词」，单独对齐（不改 PAGES 以免影响桌面侧栏）
 const TAB_LABEL   = { practice:'背词' };
@@ -138,9 +141,10 @@ function topBarHtml(current){
     const p = pageById(pid); if(!p || isNavHidden(p)) continue;
     caps += '<a class="tb-item' + (p.file === activeFile ? ' on' : '') + '" href="' + p.file + '" data-id="' + p.id + '">' + escapeHtml(p.name) + '</a>';
   }
-  // 「更多」面板 = 侧栏 MORE_NAV + 错句本（计时已撤；服药模块未开不出现）
+  /* 「更多」面板（10-23 T-014 她拍板瘦身）：回顾已提一级 → 这里只剩 会员/设置；
+     错句本 T-015 整页删，先从这里摘掉；学生数据由下方权限块追加。 */
   let moreItems = '';
-  for(const pid of ['wrongbook','review','vip','settings']){
+  for(const pid of ['vip','settings']){
     const p = pageById(pid); if(!p || isNavHidden(p)) continue;
     moreItems += '<a class="tb-more-item' + (p.file === activeFile ? ' on' : '') + '" href="' + p.file + '" data-id="' + p.id + '">'
       + '<span class="tm-ic">' + p.icon + '</span><span>' + escapeHtml(p.name) + '</span></a>';
@@ -373,7 +377,6 @@ const SIDE_SEARCH_PAGES = [
   { id:'speaking',  kw:'口语 题库 串题 跟读 影子 part1 part2 part3 speaking' },
   { id:'writing',   kw:'写作 作文 模板 真题 评分 大作文 小作文 task1 task2 writing' },
   { id:'bank',      kw:'模考 题库 机考 刷题 真题 阅读 听力 写作 口语 练习 mock bank' },
-  { id:'wrongbook', kw:'错句本 错句 默写 wrong' },
   { id:'review',    kw:'回顾 复习 成绩 模考 记录 轨迹 历史 看板 review' },
   { id:'settings',  kw:'设置 配置 同步 api key 账号 数据 导出 导入 settings' },
   { id:'meds',      kw:'服药 用药 药 专注达 健康 药效 meds' },
