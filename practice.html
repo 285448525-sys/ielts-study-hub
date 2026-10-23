@@ -32,7 +32,7 @@
 </script>
 <title>单词 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261023l" />
-<link rel="stylesheet" href="css/p/practice.css?v=20261023d" />
+<link rel="stylesheet" href="css/p/practice.css?v=20261023r" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -56,7 +56,7 @@
   <!-- design/77 DHP+SSP-MMC 策略表：必须在 practice.js 之前（defer 按文档序执行，表未加载时 practice.js 有回退兜底） -->
   <script defer src="js/dhp_policy.js?v=20260921a"></script>
   <script src="js/practice.js?v=20261012a" defer></script>
-  <script src="js/words.js?v=20261023e" defer></script>
+  <script src="js/words.js?v=20261023r" defer></script>
 <style>
 /* ============================================================
    10/3 A 版「今日复习卡 + 学习状态分组」（她选的 A 版）
@@ -83,14 +83,28 @@ html[data-theme="dark"] .wb-today{background:linear-gradient(135deg,var(--primar
 .wb-today-go{flex:none;height:38px;padding:0 20px;border:none;border-radius:999px;background:#fff;
   color:var(--primary-800);font-family:inherit;font-size:13.5px;font-weight:700;cursor:pointer;white-space:nowrap}
 .wb-today-go:hover{background:var(--primary-50)}
-.wb-today-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
-.wb-tcell{background:rgba(255,255,255,.13);border-radius:10px;padding:9px 11px}
-.wb-tcell span{display:block;font-size:10.5px;opacity:.76;margin-bottom:1px}
-.wb-tcell b{font-size:19px;font-weight:800;letter-spacing:-.02em;line-height:1.2}
-.wb-tcell-warn{background:rgba(255,180,90,.22)}
-.wb-tcell-err{background:rgba(255,120,110,.24)}
+/* 10-23 T-018 她：「好几个绿色的框不好看」→ 四块各自染底 → 一条分隔线分四栏。
+   依据 design\_mock-背词页统计条-2026-10-23.html「方案 A」。
+   为什么采 A 不采 B：B 把「答错待巩固」压成右侧小行，而那是她每天最该看的数（决定要不要重刷）。 */
+.wb-today-grid{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid rgba(255,255,255,.14);padding-top:14px;gap:0}
+.wb-tcell{position:relative;padding:0 16px;background:none;border-radius:0}
+.wb-tcell:first-child{padding-left:0}
+.wb-tcell + .wb-tcell{border-left:1px solid rgba(255,255,255,.14)}
+.wb-tcell em.wb-tdot{display:inline-block;width:5px;height:5px;border-radius:50%;margin-right:5px;vertical-align:1px}
+.wb-tdot-grey{background:rgba(255,255,255,.4)}
+.wb-tdot-mint{background:#8fe3d8}
+.wb-tdot-amber{background:#ffc978}
+.wb-tdot-plain{background:rgba(255,255,255,.7)}
+.wb-tcell span{display:inline;font-size:11.5px;font-weight:600;color:rgba(255,255,255,.68);letter-spacing:.01em}
+.wb-tcell b{display:block;margin-top:4px;font-size:26px;font-weight:800;letter-spacing:-.03em;line-height:1.05;font-variant-numeric:tabular-nums;color:#fff}
+/* 计数为 0 时压暗，一眼看出「今天还没开始」 */
+.wb-tcell b.is-zero{opacity:.55}
 @media (max-width:560px){
-  .wb-today-grid{grid-template-columns:repeat(2,1fr)}
+  /* 2×2 时竖线要跟着重排，否则第三条会顶到第二行开头 */
+  .wb-today-grid{grid-template-columns:repeat(2,1fr);row-gap:14px}
+  .wb-tcell{padding:0 12px}
+  .wb-tcell:nth-child(odd){padding-left:0;border-left:0}
+  .wb-tcell:nth-child(3),.wb-tcell:nth-child(4){border-top:1px solid rgba(255,255,255,.14);padding-top:12px}
   .wb-today-top{flex-wrap:wrap}
   .wb-today-go{width:100%;height:44px}
 }
@@ -277,10 +291,10 @@ body.word-fullscreen .hub-topbar{display:none !important}
         <button class="wb-today-go" id="wbTodayGo" type="button">开始复习</button>
       </div>
       <div class="wb-today-grid">
-        <div class="wb-tcell wb-tcell-err"><span>已过期</span><b id="wbNOverdue">0</b></div>
-        <div class="wb-tcell"><span>新高频</span><b id="wbNNew">0</b></div>
-        <div class="wb-tcell wb-tcell-warn"><span>答错待巩固</span><b id="wbNWrong">0</b></div>
-        <div class="wb-tcell"><span>今日已学</span><b id="wbNLearned">0</b></div>
+        <div class="wb-tcell"><em class="wb-tdot wb-tdot-grey"></em><span>已过期</span><b id="wbNOverdue">0</b></div>
+        <div class="wb-tcell"><em class="wb-tdot wb-tdot-mint"></em><span>新高频</span><b id="wbNNew">0</b></div>
+        <div class="wb-tcell"><em class="wb-tdot wb-tdot-amber"></em><span>答错待巩固</span><b id="wbNWrong">0</b></div>
+        <div class="wb-tcell"><em class="wb-tdot wb-tdot-plain"></em><span>今日已学</span><b id="wbNLearned">0</b></div>
       </div>
     </section>
 

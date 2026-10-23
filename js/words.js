@@ -1070,7 +1070,13 @@ function renderTodayCard(){
   let wrong = 0;
   try{ wrong = (wbTodayWrongEns() || []).length; }catch(e){ wrong = 0; }
 
-  const set = (id, n) => { const el = document.getElementById(id); if(el) el.textContent = String(n); };
+  /* 10-23 T-018：计数为 0 时压暗一行（0 = 今天没东西要处理，压暗才传达对）；四个格子统一适用。 */
+  const set = (id, n) => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.textContent = String(n);
+    el.classList.toggle('is-zero', !(n > 0));
+  };
   set('wbNOverdue', overdue); set('wbNNew', fresh);
   set('wbNWrong', wrong);   set('wbNLearned', learnedToday);
 
