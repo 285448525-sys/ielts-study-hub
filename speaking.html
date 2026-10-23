@@ -31,7 +31,7 @@
 })();
 </script>
 <title>口语 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261023l" />
+<link rel="stylesheet" href="css/common.css?v=20261023q" />
 <link rel="stylesheet" href="css/p/speaking.css?v=20261017a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
@@ -43,13 +43,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
   <script defer src="js/data.js?v=20261022d"></script>
-  <script defer src="js/common.js?v=20261023l"></script>
-  <script defer src="js/common-ai.js?v=20261023l"></script>
-  <script defer src="js/common-sync.js?v=20261023l"></script>
-  <script defer src="js/common-merge.js?v=20261023l"></script>
-  <script defer src="js/common-cloud.js?v=20261023l"></script>
-  <script defer src="js/common-shell.js?v=20261023l"></script>
-  <script defer src="js/common-pwa.js?v=20261023l"></script>
+  <script defer src="js/common.js?v=20261023q"></script>
+  <script defer src="js/common-ai.js?v=20261023q"></script>
+  <script defer src="js/common-sync.js?v=20261023q"></script>
+  <script defer src="js/common-merge.js?v=20261023q"></script>
+  <script defer src="js/common-cloud.js?v=20261023q"></script>
+  <script defer src="js/common-shell.js?v=20261023q"></script>
+  <script defer src="js/common-pwa.js?v=20261023q"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
@@ -703,14 +703,7 @@
   @keyframes matspin{ to{ transform:rotate(360deg); } }
 
   /* 结果页 */
-  .mat-persona{ background:linear-gradient(135deg,var(--primary),var(--primary-600)); color:#fff; border-radius:var(--radius); padding:16px 18px; margin-bottom:16px; box-shadow:var(--shadow); }
-  .mat-persona h3{ margin:0 0 8px; font-size:14px; opacity:.85; font-weight:600; }
-  .mat-persona .pp-line{ font-size:15px; line-height:1.7; }
-  .mat-persona .pp-tags{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
-  .mat-persona .pp-tag{ font-size:12px; padding:2px 10px; border-radius:10px; background:rgba(255,255,255,.18); }
 
-  .mat-mat{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); margin-bottom:12px; box-shadow:var(--shadow); overflow:hidden; }
-  .mat-mat-head{ display:flex; align-items:center; gap:10px; padding:14px 16px; cursor:pointer; }
   .mat-mat-head:hover{ background:var(--surface-2); }
   .mat-mat-title{ font-size:16px; font-weight:700; color:var(--ink); flex:1; min-width:0; }
   .mat-mat-cov{ font-size:12px; color:var(--primary); font-weight:600; white-space:nowrap; }
@@ -721,7 +714,6 @@
   .mat-facet.f{ background:var(--primary-soft); color:var(--med); border-color:transparent; }
   .mat-body{ padding:0 16px 14px; display:none; }
   .mat-mat.open .mat-body{ display:block; }
-  .mat-sub{ font-size:12px; font-weight:700; color:var(--muted); margin:12px 0 6px; }
   .mat-skel{ list-style:none; margin:0; padding:0; }
   .mat-skel li{ font-size:14px; line-height:1.7; padding:4px 0; border-bottom:1px dashed var(--line); display:flex; gap:8px; }
   .mat-skel li .en{ flex:1; color:var(--ink); }
@@ -731,7 +723,6 @@
   .mat-p3{ font-size:13px; color:var(--ink); line-height:1.7; }
   .mat-p3 div{ padding:2px 0; }
   .mat-raw-edit{ width:100%; min-height:70px; padding:8px 10px; border:1px solid var(--line); border-radius:var(--radius-sm); font:inherit; background:var(--surface); color:var(--ink); resize:vertical; box-sizing:border-box; margin-top:6px; }
-  .mat-mat-actions{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
   .mat-mini{ font-size:12px; padding:6px 12px; border-radius:var(--radius-sm); border:1px solid var(--line); background:var(--surface); color:var(--ink); cursor:pointer; }
   .mat-mini:hover{ border-color:var(--primary); color:var(--primary); }
   .mat-mini.danger{ color:var(--danger); border-color:var(--line); }
@@ -753,8 +744,6 @@
   .mat-empty{ text-align:center; padding:40px 20px; color:var(--muted); font-size:14px; }
 
   /* === 万能素材生成器重构：可背小故事 + 中文逻辑链 + AI 追问区（沿用 teal token，不引新变量） === */
-  .mat-story-en{ white-space:pre-wrap; line-height:1.7; background:var(--surface); color:var(--ink); border:1px solid var(--line); border-left:3px solid var(--primary); border-radius:10px; padding:10px 12px; font-size:14px; }
-  .mat-logic{ white-space:pre-wrap; line-height:1.8; background:var(--primary-soft); border-radius:10px; padding:10px 12px; font-size:14px; }
   .sp-padding{ margin:6px 0 0; padding-left:20px; }
   .sp-padding li{ font-size:13.5px; line-height:1.7; margin-bottom:4px; color:var(--ink); }
   /* === 素材生成器统一版新增样式（与 materials.html 同步：置顶/矩阵/点题句/重映射/质检） === */
@@ -840,9 +829,6 @@
   .mat-topics{ margin:8px 0 2px; font-size:12.5px; color:var(--muted); }
   .mat-topics summary{ cursor:pointer; user-select:none; }
   .mat-topics .mat-chips{ margin-top:8px; }
-  .mat-spine{ display:flex; flex-direction:column; gap:6px; margin:4px 0 8px; }
-  .mat-spine-line{ display:flex; align-items:flex-start; gap:8px; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:8px 11px; font-size:13.5px; line-height:1.6; color:var(--ink); }
-  .mat-spine-n{ flex:none; width:20px; height:20px; border-radius:50%; background:var(--primary-soft); color:var(--med); font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; margin-top:2px; }
   .mat-mini.armed-danger{ background:var(--danger); border-color:var(--danger); color:#fff; }
   .mat-plan-skipped{ border-style:dashed; color:var(--muted); font-size:13.5px; cursor:pointer; }
   /* 10/4 13:46 她拍板「旧卡不能删、要有个入口能翻出来看」→ 原 <details> 改成常驻按钮 + 显隐面板。 */
@@ -1841,6 +1827,7 @@ html[data-theme="dark"] .mat-qnum{background:rgba(255,255,255,.07);border-color:
 }
 .mat-mat:hover{border-color:var(--primary-200);box-shadow:var(--shadow-card-hover)}
 .mat-mat-head{
+  display:block;   /* 口语页旧规则是 flex；不压掉的话标题和标签行会横向挤在一起 */
   position:relative;
   padding:15px 18px 14px;
   border-bottom:1px solid var(--line);
@@ -1852,6 +1839,21 @@ html[data-theme="dark"] .mat-qnum{background:rgba(255,255,255,.07);border-color:
 }
 .mat-mat-head:hover{background:var(--surface-2)}
 .mat-mat-title{font-size:15.5px;font-weight:800;line-height:1.4;letter-spacing:-.005em}
+.mat-mat-title{display:block;padding-right:22px;color:var(--ink)}
+.mat-mat-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:5px}
+.mat-mat-meta .mm{font-size:11.5px;font-weight:700;padding:1px 8px;border-radius:999px;background:var(--bg);color:var(--muted);border:1px solid var(--line)}
+.mat-mat-meta .mm.star{background:var(--primary-50);color:var(--primary-800);border-color:transparent}
+.mat-mat .mat-caret{position:absolute;right:16px;top:16px}
+/* 人设条右侧「改人设」（T-017c） */
+.mat-persona .pp-edit{margin-left:auto;flex:none;font-size:12px;padding:5px 12px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.34);color:#fff;cursor:pointer}
+.mat-persona .pp-edit:hover{background:rgba(255,255,255,.28)}
+.mat-mgrid .mat-mat{margin-bottom:0}
+.mat-mat-actions .spacer{flex:1}
+/* T-017c：操作条统一白底会盖掉置顶态的 primary 底 → 白底白字。这里把它救回来。 */
+.mat-mat-actions .mat-mini.mat-pin-on{background:var(--primary-500);border-color:var(--primary-500);color:#fff}
+html[data-theme="dark"] .mat-mat-actions .mat-mini.mat-pin-on{background:var(--primary-600);border-color:var(--primary-600);color:#fff}
+html[data-theme="dark"] .mat-mat-meta .mm{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.10)}
+html[data-theme="dark"] .mat-mat-meta .mm.star{background:rgba(58,154,147,.18);color:var(--primary-200);border-color:transparent}
 
 /* 段内小标题（设计稿 .msec-t 对照） */
 .mat-sub{
@@ -1939,7 +1941,7 @@ html[data-theme="dark"] .mat-qnum{background:rgba(255,255,255,.07);border-color:
 
 /* ============ 两列网格（需要 JS 加包裹层，见任务书 §一） ============ */
 .mat-qgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:18px 0 0}
-.mat-mgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:16px}
+.mat-mgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:16px;align-items:start}
 
 /* ============ 响应式（设计稿 @media 对照） ============ */
 @media (max-width:960px){
@@ -2522,7 +2524,7 @@ body.mock-immerse .hub-topbar{display:none !important}
   </div>
 
   <!-- 万能素材生成器（整合为口语页第 5 个 tab，复用 materials 生成逻辑） -->
-  <div id="matView" hidden data-late-src="js/materials.js?v=20261023b"></div>
+  <div id="matView" hidden data-late-src="js/materials.js?v=20261023c"></div>
 
 
   <!-- 陪练 tab 用的共用样式（pd-* = 句型练习 sentence-drill.js 与场景闯关 scene-drill.js 共用）

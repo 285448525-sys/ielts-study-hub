@@ -29,7 +29,7 @@
 })();
 </script>
 <title>万能素材生成器 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261023l" />
+<link rel="stylesheet" href="css/common.css?v=20261023q" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -40,15 +40,15 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20261022d"></script>
-<script defer src="js/common.js?v=20261023l"></script>
-<script defer src="js/common-ai.js?v=20261023l"></script>
-<script defer src="js/common-sync.js?v=20261023l"></script>
-<script defer src="js/common-merge.js?v=20261023l"></script>
-<script defer src="js/common-cloud.js?v=20261023l"></script>
-<script defer src="js/common-shell.js?v=20261023l"></script>
-<script defer src="js/common-pwa.js?v=20261023l"></script>
+<script defer src="js/common.js?v=20261023q"></script>
+<script defer src="js/common-ai.js?v=20261023q"></script>
+<script defer src="js/common-sync.js?v=20261023q"></script>
+<script defer src="js/common-merge.js?v=20261023q"></script>
+<script defer src="js/common-cloud.js?v=20261023q"></script>
+<script defer src="js/common-shell.js?v=20261023q"></script>
+<script defer src="js/common-pwa.js?v=20261023q"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
-<script defer src="js/materials.js?v=20261006a"></script>
+<script defer src="js/materials.js?v=20261023c"></script>
 <style>
   /* === 万能素材生成器（沿用全站 Teal Token） === */
   .mat-intro{ padding:14px 16px; background:var(--primary); color:#fff; border-radius:var(--radius); font-size:13.5px; line-height:1.7; margin:12px 0; box-shadow:var(--shadow); }
@@ -74,16 +74,28 @@
   @keyframes matspin{ to{ transform:rotate(360deg); } }
 
   /* 结果页 */
-  .mat-persona{ background:linear-gradient(135deg,var(--primary),#2f7d77); color:#fff; border-radius:var(--radius); padding:16px 18px; margin-bottom:16px; box-shadow:var(--shadow); }
-  .mat-persona h3{ margin:0 0 8px; font-size:14px; opacity:.85; font-weight:600; }
-  .mat-persona .pp-line{ font-size:15px; line-height:1.7; }
-  .mat-persona .pp-tags{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
-  .mat-persona .pp-tag{ font-size:12px; padding:2px 10px; border-radius:10px; background:rgba(255,255,255,.18); }
+  /* 10-23 T-017c：人设从大块渐变降成一条横向人物条（设计稿 ≤72px）。
+     h3 变成左侧小标、pp-line 主行、标签紧跟、右侧「改人设」小按钮；
+     960 以下折行（见文件末 @media）。 */
+  .mat-persona{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:14px 20px; margin:0 0 16px; background:linear-gradient(135deg,var(--primary-600),var(--primary-800)); border-radius:var(--radius); color:#fff; box-shadow:var(--shadow); }
+  .mat-persona h3{ margin:0; font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; opacity:.75; flex:none; }
+  .mat-persona .pp-line{ font-size:14px; font-weight:800; line-height:1.4; flex:none; }
+  .mat-persona .pp-tags{ display:flex; gap:6px; flex-wrap:wrap; margin:0; flex:1; min-width:0; }
+  .mat-persona .pp-tag{ font-size:11.5px; padding:2px 9px; border-radius:999px; background:rgba(255,255,255,.2); }
+  .mat-persona .pp-edit{ margin-left:auto; flex:none; font-size:12px; padding:5px 12px; border-radius:999px; background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.34); color:#fff; cursor:pointer; }
+  .mat-persona .pp-edit:hover{ background:rgba(255,255,255,.28); }
 
-  .mat-mat{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); margin-bottom:12px; box-shadow:var(--shadow); overflow:hidden; }
-  .mat-mat-head{ display:flex; align-items:center; gap:10px; padding:14px 16px; cursor:pointer; }
+  .mat-mat{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); margin-bottom:0; box-shadow:var(--shadow); overflow:hidden; transition:border-color .16s; }
+  .mat-mat:hover{ border-color:var(--primary-200); }
+  /* 卡头：3px 品牌色左竖条 + 标签行 + 15.5 加粗标题（设计稿 .mcard-h） */
+  .mat-mat-head{ position:relative; display:block; padding:15px 18px 14px; cursor:pointer; border-bottom:1px solid var(--line); }
+  .mat-mat-head::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:linear-gradient(180deg,var(--primary-300),var(--primary-600)); }
   .mat-mat-head:hover{ background:var(--surface-2); }
-  .mat-mat-title{ font-size:16px; font-weight:700; color:var(--ink); flex:1; min-width:0; }
+  .mat-mat-title{ display:block; font-size:15.5px; font-weight:800; line-height:1.4; letter-spacing:-.005em; color:var(--ink); padding-right:22px; }
+  .mat-mat-meta{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:5px; }
+  .mat-mat-meta .mm{ font-size:11.5px; font-weight:700; padding:1px 8px; border-radius:999px; background:var(--bg); color:var(--muted); border:1px solid var(--line); }
+  .mat-mat-meta .mm.star{ background:var(--primary-50); color:var(--primary-800); border-color:transparent; }
+  .mat-mat .mat-caret{ position:absolute; right:16px; top:16px; }
   .mat-mat-cov{ font-size:12px; color:var(--primary); font-weight:600; white-space:nowrap; }
   .mat-caret{ color:var(--muted); transition:transform .2s; flex:none; }
   .mat-mat.open .mat-caret{ transform:rotate(90deg); }
@@ -92,7 +104,9 @@
   .mat-facet.f{ background:var(--primary-soft); color:var(--med); border-color:transparent; }
   .mat-body{ padding:0 16px 14px; display:none; }
   .mat-mat.open .mat-body{ display:block; }
-  .mat-sub{ font-size:12px; font-weight:700; color:var(--muted); margin:12px 0 6px; }
+  .mat-sub{ display:flex; align-items:center; gap:8px; font-size:11.5px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); margin:16px 0 9px; }
+  .mat-sub::after{ content:""; flex:1; height:1px; background:var(--line); }
+  .mat-sub:first-child{ margin-top:0; }
   .mat-skel{ list-style:none; margin:0; padding:0; }
   .mat-skel li{ font-size:14px; line-height:1.7; padding:4px 0; border-bottom:1px dashed var(--line); display:flex; gap:8px; }
   .mat-skel li .en{ flex:1; color:var(--ink); }
@@ -102,7 +116,16 @@
   .mat-p3{ font-size:13px; color:var(--ink); line-height:1.7; }
   .mat-p3 div{ padding:2px 0; }
   .mat-raw-edit{ width:100%; min-height:70px; padding:8px 10px; border:1px solid var(--line); border-radius:var(--radius-sm); font:inherit; background:var(--surface); color:var(--ink); resize:vertical; box-sizing:border-box; margin-top:6px; }
-  .mat-mat-actions{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  .mat-mat-actions{ display:flex; gap:6px; flex-wrap:wrap; margin:16px -18px -14px; padding:12px 18px; border-top:1px solid var(--line); background:var(--surface-2); }
+  .mat-mat-actions .mat-mini{ background:var(--surface); }
+  .mat-mat-actions .spacer{ flex:1; }
+  /* T-017c：操作条统一白底会盖掉置顶态的 primary 底 → 白底白字，这里救回来 */
+  .mat-mat-actions .mat-mini.mat-pin-on{ background:var(--primary-500); border-color:var(--primary-500); color:#fff; }
+  html[data-theme="dark"] .mat-mat-actions .mat-mini.mat-pin-on{ background:var(--primary-600); border-color:var(--primary-600); color:#fff; }
+
+  /* 两列网格（T-017c）：1280 两列、≤960 单列 */
+  .mat-mgrid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin-top:16px; align-items:start; }
+  .mat-mgrid .mat-mat{ margin-bottom:0; }
   .mat-mini{ font-size:12px; padding:6px 12px; border-radius:var(--radius-sm); border:1px solid var(--line); background:var(--surface); color:var(--ink); cursor:pointer; }
   .mat-mini:hover{ border-color:var(--primary); color:var(--primary); }
   .mat-mini.danger{ color:var(--danger); border-color:var(--line); }
@@ -222,9 +245,21 @@
   .mat-topics{ margin:8px 0 2px; font-size:12.5px; color:var(--muted); }
   .mat-topics summary{ cursor:pointer; user-select:none; }
   .mat-topics .mat-chips{ margin-top:8px; }
-  .mat-spine{ display:flex; flex-direction:column; gap:6px; margin:4px 0 8px; }
-  .mat-spine-line{ display:flex; align-items:flex-start; gap:8px; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:8px 11px; font-size:13.5px; line-height:1.6; color:var(--ink); }
-  .mat-spine-n{ flex:none; width:20px; height:20px; border-radius:50%; background:var(--primary-soft); color:var(--med); font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; margin-top:2px; }
+  /* 最小骨架：一行一句紧排 → 编号圆角块（hover 变浅品牌色） */
+  .mat-spine{ display:block; counter-reset:sp86; margin:0; padding:0; }
+  .mat-spine-line{ counter-increment:sp86; position:relative; padding:7px 10px 7px 30px; font-size:13.5px; line-height:1.65; color:var(--ink-2); border-radius:8px; margin-bottom:4px; transition:background .15s; }
+  .mat-spine-line:hover{ background:var(--primary-50); }
+  .mat-spine-line::before{ content:counter(sp86); position:absolute; left:6px; top:8px; width:17px; height:17px; border-radius:5px; background:var(--primary-100); color:var(--primary-800); font-size:10px; font-weight:800; line-height:17px; text-align:center; }
+  .mat-spine-n{ display:none; }
+
+  /* 完整故事：左侧 3px 品牌边引用块，行高 1.85 */
+  .mat-story-en{ background:var(--surface-2); border-left:3px solid var(--primary-300); border-radius:0 8px 8px 0; padding:13px 15px; font-size:14px; line-height:1.85; color:var(--ink); }
+  .mat-story-en b{ color:var(--primary-800); font-weight:800; background:linear-gradient(transparent 62%,var(--primary-100) 62%); }
+
+  /* 中文逻辑链：大段文字 → 编号列表（JS 端把 ·/换行切成 <li>） */
+  .mat-logic{ counter-reset:lg86; margin:0; padding:0; background:none; border:0; }
+  .mat-logic li{ counter-increment:lg86; position:relative; padding-left:24px; font-size:13px; line-height:1.7; color:var(--ink-2); margin:4px 0; list-style:none; }
+  .mat-logic li::before{ content:counter(lg86); position:absolute; left:0; top:1px; width:16px; height:16px; border-radius:50%; background:var(--n-100); color:var(--n-600); font-size:9.5px; font-weight:800; line-height:16px; text-align:center; }
   .mat-mini.armed-danger{ background:var(--danger); border-color:var(--danger); color:#fff; }
   .mat-plan-skipped{ border-style:dashed; color:var(--muted); font-size:13.5px; cursor:pointer; }
   .mat-legacy{ margin:16px 0; }
@@ -247,6 +282,28 @@
   .mat-fu summary{ cursor:pointer; user-select:none; font-size:12.5px; font-weight:600; color:var(--muted); }
   .mat-fu[open] summary{ color:var(--med); }
   .mat-fu .mat-step{ margin:10px 0 2px; }
+  /* ===== T-017c 响应式 ===== */
+  @media (max-width:960px){
+    .mat-mgrid{ grid-template-columns:1fr; gap:12px; }
+    .mat-persona{ flex-wrap:wrap; gap:8px; }
+    .mat-persona .pp-line{ flex:1 1 100%; }
+    .mat-persona .pp-edit{ margin-left:0; }
+  }
+  @media (max-width:560px){
+    .mat-mat-actions{ margin:16px -15px -15px; padding:12px 15px; }
+    .mat-mat-head{ padding:14px 15px 13px; }
+  }
+  /* ===== T-017c 深色兜底（设计稿只画浅色，深色必须单独补） ===== */
+  html[data-theme="dark"] .mat-story-en{ background:rgba(255,255,255,.045); border-left-color:var(--primary-500); color:var(--ink); }
+  html[data-theme="dark"] .mat-story-en b{ color:var(--primary-300); background:none; }
+  html[data-theme="dark"] .mat-spine-line:hover{ background:rgba(58,154,147,.14); }
+  html[data-theme="dark"] .mat-spine-line::before{ background:rgba(58,154,147,.28); color:var(--primary-200); }
+  html[data-theme="dark"] .mat-logic li::before{ background:rgba(255,255,255,.09); color:var(--n-500); }
+  html[data-theme="dark"] .mat-mat-actions{ background:rgba(255,255,255,.03); }
+  html[data-theme="dark"] .mat-mat-actions .mat-mini{ background:transparent; }
+  html[data-theme="dark"] .mat-mat-meta .mm{ background:rgba(255,255,255,.05); border-color:rgba(255,255,255,.10); }
+  html[data-theme="dark"] .mat-mat-meta .mm.star{ background:rgba(58,154,147,.18); color:var(--primary-200); border-color:transparent; }
+
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}

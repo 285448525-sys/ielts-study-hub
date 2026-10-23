@@ -1546,6 +1546,19 @@
     saveStore();
   }
 
+  /* 中文逻辑链切行：AI 给的是一条长串（· / ；/ 换行分隔），切成编号列表。
+     切不出 2 行以上就原样返回一整条 —— 不硬切，免得把一句话拆断。 */
+  function logicList68(txt){
+    const raw = String(txt || '').trim();
+    if(!raw) return '';
+    let parts = raw.split(/\n+/).map(x => x.trim()).filter(Boolean);
+    if(parts.length < 2){
+      parts = raw.split(/\s*[·•]\s*|\s*；\s*|\s*;\s*/).map(x => x.trim()).filter(Boolean);
+    }
+    if(parts.length < 2) parts = [raw];
+    return parts.map(x => '<li>' + escapeHtml(x) + '</li>').join('');
+  }
+
   /* ---------- 结果页 ---------- */
   /* 换季重映射运行态（模块级）：映射期间整页可能因软导航/切 tab 重渲，
      把进度挂变量而不是按钮文字上，render 时按变量还原「⏳ 重新映射中…」。 */
@@ -1569,20 +1582,30 @@
     // 覆盖率矩阵 / 深挖 / 缺题追问整套已移除（用户定案：素材出来直接去口语页练，
     // 串题在练题时按需进行）。coverage 数据仍在生成时随卡产出，供口语页串题提示使用。
     // 人设卡
+    /* 10-23 T-017c：人设大块渐变 → 一条横向人物条（≤72px）。
+       右侧「改人设」只做一件事：切回问卷态 —— 人设输入框就在第 1 步，答案全在
+       store.persona / answers 里，回去就能改，不需要另开一套编辑框。 */
     if(store.persona){
       const p = store.persona;
       const tags = [].concat((p.values || []).map(v => '<span class="pp-tag">' + escapeHtml(v) + '</span>'), (p.traits || []).map(t => '<span class="pp-tag">' + escapeHtml(t) + '</span>'));
-      h += '<div class="mat-persona"><h3>人设锚点</h3>'
+      h += '<div class="mat-persona"><h3>人设</h3>'
         + '<div class="pp-line">' + (p.city ? escapeHtml(p.city) + ' · ' : '') + escapeHtml(p.identity || '（未提取）') + '</div>'
-        + (tags.length ? '<div class="pp-tags">' + tags.join('') + '</div>' : '')
+        + (tags.length ? '<div class="pp-tags">' + tags.join('') + '</div>' : '<div class="pp-tags"></div>')
+        + '<button class="pp-edit" id="matEditPersona">改人设</button>'
         + '</div>';
     }
-    // 故事卡
+    // 故事卡（T-017c：两列网格；卡头 = 3px 品牌竖条 + 标签行 + 标题）
+    h += '<div class="mat-mgrid" id="matMGrid">';
     (Array.isArray(store.materials) ? store.materials : []).forEach((m, i) => {
       if(!m) return;
       const isEditing = (editing === i);
+      // 卡头标签行：★ 最熟（pinned）+ 能串 N 道当季题（coverage 是现成数据，不新算）
+      const covN = Array.isArray(m.coverage) ? m.coverage.length : 0;
+      const meta = (m.pinned ? '<span class="mm star">★ 最熟 · 已置顶</span>' : '')
+        + (covN ? '<span class="mm">能串 ' + covN + ' 道当季题</span>' : '');
       h += '<div class="mat-mat' + (isEditing ? ' open' : '') + '" data-i="' + i + '">'
         + '<div class="mat-mat-head" data-toggle="' + i + '"><span class="mat-mat-title">' + escapeHtml(m.title || '未命名') + '</span>'
+        + (meta ? '<span class="mat-mat-meta">' + meta + '</span>' : '')
         + '<span class="mat-caret">▶</span></div>'
         + '<div class="mat-body">';
       if(isEditing){
@@ -1621,11 +1644,20 @@
         }
         h += (story68 ? '<div class="mat-sub">完整故事 · 展开润色</div><div class="mat-story-en">' + storyHtml68 + '</div>' : '')
           + (!inline68 && golden68.length ? '<div class="mat-sub">万能句（任何题都能套，优先背）</div><div class="mat-story-en">' + golden68.map(g => '<b>' + escapeHtml(String(g)) + '</b>').join('<br>') + '</div>' : '')
-          + (m.logicZh ? '<div class="mat-sub">中文逻辑链</div><div class="mat-logic">' + escapeHtml(m.logicZh) + '</div>' : '')
-          + '<div class="mat-mat-actions"><button class="mat-mini' + (m.pinned ? ' mat-pin-on' : '') + '" data-pin="' + i + '">' + (m.pinned ? '已置顶最熟 · 取消' : '置顶为最熟') + '</button><button class="mat-mini" data-regen-all="1" title="重新生成：全部素材整库替换为最新生成的版本">重新生成</button><button class="mat-mini danger" data-del="' + i + '">删除</button><button class="mat-mini" data-edit="' + i + '">更改</button></div>';
+          + (m.logicZh ? '<div class="mat-sub">中文逻辑链</div><div class="mat-logic">' + logicList68(m.logicZh) + '</div>' : '')
+          // T-017c 布局：左「展开完整故事 · 删除」，右「更改」。
+          // ⚠️ data-pin / data-regen-all / data-del / data-edit 全部原位保留 —— 只是换了排列位置。
+          + '<div class="mat-mat-actions">'
+            + '<button class="mat-mini" data-expand="' + i + '">展开完整故事</button>'
+            + '<button class="mat-mini' + (m.pinned ? ' mat-pin-on' : '') + '" data-pin="' + i + '">' + (m.pinned ? '已置顶最熟 · 取消' : '置顶为最熟') + '</button>'
+            + '<button class="mat-mini danger" data-del="' + i + '">删除</button>'
+            + '<span class="spacer"></span>'
+            + '<button class="mat-mini" data-edit="' + i + '">更改</button>'
+          + '</div>';
       }
       h += '</div></div>';
     });
+    h += '</div>';   // /#matMGrid
     // v7.2 细节碎片库：串题时她补的 / AI 代补的细节自动沉淀在这里，之后任何题串题都自动复用
     const bits86 = Array.isArray(store.detailBits) ? store.detailBits.filter(b => b && (b.en || b.zh)) : [];
     if(bits86.length){
@@ -1687,6 +1719,13 @@
     root.querySelectorAll('[data-toggle]').forEach(el => {
       el.onclick = () => { const card = el.closest('.mat-mat'); card.classList.toggle('open'); };
     });
+    // T-017c：「展开完整故事」= 卡头点击同效（只切 class，不重渲，编辑中的内容不会闪）
+    root.querySelectorAll('[data-expand]').forEach(b => {
+      b.onclick = () => { const card = b.closest('.mat-mat'); if(card) card.classList.toggle('open'); };
+    });
+    // T-017c：「改人设」= 回问卷态（人设输入框在第 1 步，答案都在 store 里，回去直接改）
+    const ppEdit = $('#matEditPersona');
+    if(ppEdit) ppEdit.onclick = () => { mode = 'q'; shortWarned = false; render(); };
     root.querySelectorAll('[data-regen-all]').forEach(b => {
       b.onclick = () => { generate(); };
     });
