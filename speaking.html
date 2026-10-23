@@ -1739,6 +1739,72 @@ html[data-theme="dark"] .mat-why-side>b,
 html[data-theme="dark"] .mat-why-side b{color:var(--primary-300)}
 html[data-theme="dark"] .mat-why-side p{color:var(--ink)}
 
+/* ============ T-017b 出题卡：网格 + 折叠卡头 + 进度条 ============ */
+.mat-prog{margin:0 0 14px}
+.mat-prog-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:7px}
+.mat-prog-h b{font-size:15px;font-weight:800;color:var(--primary-800);font-variant-numeric:tabular-nums}
+.mat-prog-t{font-size:12px;color:var(--muted);flex:1;min-width:0}
+.mat-prog-bar{height:6px;border-radius:999px;background:var(--line);overflow:hidden}
+.mat-prog-bar i{display:block;height:100%;border-radius:999px;
+  background:linear-gradient(90deg,var(--primary-300),var(--primary-600));transition:width .3s}
+
+/* 卡头：序号方块 + 标题 + 覆盖小字 + 箭头 */
+.mat-plan-card{padding:0;overflow:hidden}
+.mat-plan-card .mat-q-head{cursor:pointer;padding:14px 16px;margin:0;display:flex;align-items:flex-start;gap:10px;
+  transition:background .15s}
+.mat-plan-card .mat-q-head:hover{background:var(--surface-2)}
+.mat-plan-card .mat-q-head:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+.mat-qnum{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;flex:none;
+  border-radius:7px;background:var(--surface-2);border:1px solid var(--line);
+  color:var(--muted);font-size:11px;font-weight:800;font-variant-numeric:tabular-nums}
+.mat-plan-card.filled .mat-qnum{background:var(--primary-500);border-color:var(--primary-500);color:#fff}
+.mat-plan-card.filled{background:linear-gradient(180deg,var(--primary-50),var(--surface) 56px)}
+.mat-qt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.mat-qcov{font-size:11.5px;color:var(--muted);line-height:1.4}
+.mat-qarrow{flex:none;color:var(--muted);font-size:13px;line-height:22px;transition:transform .18s}
+.mat-plan-card.open .mat-qarrow{transform:rotate(90deg)}
+
+/* 卡身：展开后才出现 */
+.mat-qbody{padding:0 16px 14px;border-top:1px solid var(--line);padding-top:12px}
+.mat-qbody[hidden]{display:none}
+.mat-qfoot{display:flex;justify-content:flex-end;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+
+/* 跳过卡：整张可点 */
+.mat-plan-skipped{display:flex;align-items:center;gap:9px;padding:13px 16px;margin-bottom:0;
+  border-style:dashed;background:none;opacity:.72;cursor:pointer;transition:.15s}
+.mat-plan-skipped:hover{opacity:1;border-color:var(--primary-300);background:var(--primary-50)}
+.mat-skip-t{font-size:11.5px;font-weight:800;color:var(--muted);background:var(--surface-2);
+  border-radius:6px;padding:2px 8px;flex:none}
+.mat-skip-n{flex:1;min-width:0;font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mat-skip-a{font-size:12px;font-weight:700;color:var(--primary-d);flex:none}
+
+/* 步骤问题：标签加粗、yesno 药丸、输入框浅底 */
+.mat-step-label{font-size:13px;font-weight:800;color:var(--ink);line-height:1.6;margin-bottom:6px}
+.mat-yn{display:flex;gap:7px}
+.mat-yn button{font:inherit;font-size:12.5px;font-weight:600;padding:6px 16px;border-radius:999px;
+  border:1px solid var(--line);background:var(--surface-2);color:var(--ink-2);cursor:pointer;transition:.15s}
+.mat-yn button:hover{border-color:var(--primary-300);color:var(--primary-d)}
+.mat-yn button.on{background:var(--primary-500);border-color:var(--primary-500);color:#fff}
+.mat-qbody input[type="text"]{width:100%;padding:10px 13px;border:1px solid var(--line);
+  border-radius:var(--radius-sm);background:var(--surface-2);font:inherit;font-size:13.5px;color:var(--ink);
+  transition:.15s;box-sizing:border-box}
+.mat-qbody input[type="text"]:focus{background:var(--surface);border-color:var(--primary);
+  box-shadow:0 0 0 4px var(--primary-50);outline:none}
+
+/* 底部操作条 */
+.mat-actbar-t{font-size:12.5px;color:var(--muted)}
+
+@media (max-width:560px){
+  .mat-plan-card .mat-q-head{padding:12px 13px}
+  .mat-qbody{padding:0 13px 12px;padding-top:11px}
+}
+html[data-theme="dark"] .mat-plan-card.filled{background:linear-gradient(180deg,rgba(58,154,147,.14),var(--surface) 56px)}
+html[data-theme="dark"] .mat-qbody input[type="text"]{background:rgba(255,255,255,.05);color:var(--ink)}
+html[data-theme="dark"] .mat-qbody input[type="text"]:focus{background:var(--surface)}
+html[data-theme="dark"] .mat-yn button{background:rgba(255,255,255,.05);color:var(--ink)}
+html[data-theme="dark"] .mat-plan-skipped:hover{background:rgba(58,154,147,.12)}
+html[data-theme="dark"] .mat-qnum{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.12)}
+
 /* ============ T-017c · 素材卡结果页 ============ */
 
 /* 人设卡：大块渐变 → 一条横向人物条（设计稿 .persona-bar 对照） */
@@ -2456,7 +2522,7 @@ body.mock-immerse .hub-topbar{display:none !important}
   </div>
 
   <!-- 万能素材生成器（整合为口语页第 5 个 tab，复用 materials 生成逻辑） -->
-  <div id="matView" hidden data-late-src="js/materials.js?v=20261023a"></div>
+  <div id="matView" hidden data-late-src="js/materials.js?v=20261023b"></div>
 
 
   <!-- 陪练 tab 用的共用样式（pd-* = 句型练习 sentence-drill.js 与场景闯关 scene-drill.js 共用）

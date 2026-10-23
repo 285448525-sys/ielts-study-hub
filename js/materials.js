@@ -150,14 +150,19 @@
         materials.html 的首屏渲染走的是文件末尾那个 `ready(() => { store = loadStore(); … })` 块，
         **它根本不调 init()**（init() 只有云同步合并后的 mergeRender 才会调）。
         我第一版只加在 init()，探针实测 bankSeason 永远补不上（老数据 A 场景假 FAIL）。 */
-  let _seasonBackfilled = false;
+  /* ⚠️ 别写成 let —— 本文件是 IIFE，函数声明会提升但 let 不会；
+     init() 由口语页懒加载随时调起，早于这行的初始化就会报
+     「Cannot access '_seasonBackfilled' before initialization」（4-3/4-4 踩过同一个坑）。
+     改成挂在 window 上的小读写函数，函数提升，随便什么顺序都安全。 */
+  function _seasonBackfilledGet(){ return !!window.__matSeasonBackfilled; }
+  function _seasonBackfilledSet(v){ window.__matSeasonBackfilled = !!v; }
   function backfillSeason(s){
     const now = bankSeasonNow();
     if(!now || !s) return false;
     let changed = false;
     if(!s.bankSeason){ s.bankSeason = now; changed = true; }
     if(s.plan && !s.plan.bankSeason){ s.plan.bankSeason = now; changed = true; }
-    if(changed) _seasonBackfilled = true;
+    if(changed) _seasonBackfilledSet(true);
     return changed;
   }
 
@@ -205,7 +210,7 @@
   function init(){
     store = loadStore();
     // 10/6：老素材没有 bankSeason → 静默补成当前季节（**不弹框**），补完存一次盘
-    if(_seasonBackfilled) saveStore();
+    if(_seasonBackfilledGet()) saveStore();
     // 9/19 事故自愈：旧版曾把 AI 失败的占位卡（storyEn 空、logicZh=问卷原话、_fallback:true）当素材保存。
     // 若素材集 100% 为占位卡 → 清空回问卷态（内容全由问卷答案可再生，零损失）；
     // saveStore 会打新 materialsEpoch，云端旧垃圾批次按「较新端整体替换」被覆盖，不会并回。
@@ -301,8 +306,23 @@
     h += '<div class="mat-actions"><button class="btn ' + (hasPlan ? 'btn-ghost' : 'btn-primary btn-lg') + '" id="matPlanGen">' + (hasPlan ? '↻ 重新分析题库出题' : '生成我的专属问题') + '</button></div>';
 
     if(hasPlan){
-      h += '<div class="mat-sec-title">你的专属经历问题 <span class="tag">' + plan.cards.length + ' 卡 · 按当季题库定制</span></div>';
-      plan.cards.forEach(c => { h += planCard(c); });
+      const cards = plan.cards;
+      const doneN = cards.filter(c => {
+        const stc = cardState(c.id);
+        return !stc.skipped && hasCardAnswer(c, stc);
+      }).length;
+      const pct = cards.length ? Math.round(doneN * 100 / cards.length) : 0;
+      h += '<div class="mat-sec-title">你的专属经历问题 <span class="tag">' + cards.length + ' 卡 · 按当季题库定制</span></div>'
+        + '<div class="mat-prog" id="matQProg">'
+          + '<div class="mat-prog-h"><b id="matQProgN">' + doneN + ' / ' + cards.length + '</b>'
+          + '<span class="mat-prog-t">已填 · 填完的卡会变绿</span>'
+          + '<button type="button" class="mat-mini" id="matQExpand">' + (_matAllOpen ? '全部收起' : '全部展开') + '</button></div>'
+          + '<div class="mat-prog-bar"><i id="matQProgBar" style="width:' + pct + '%"></i></div>'
+        + '</div>'
+        + '<div class="mat-qgrid" id="matQGrid">';
+      cards.forEach((c, i) => { h += planCard(c, i + 1); });
+      h += '</div>'
+        + '<div class="mat-actions"><span class="mat-actbar-t" id="matQLeft">还差 ' + (cards.length - doneN) + ' 张 · 可以只填你最想讲的几张</span></div>';
     } else if(freeMode){
       /* 4.7.1 兜底：规划失败/无 Key 时的自由填写模式（不依赖 plan 也能生成）。
          ⚠️ 14/45：**必须排在 algoStale 前面** —— 出题失败后 plan 仍是 stale 的，
@@ -449,6 +469,43 @@
     root.querySelectorAll('[data-unskip-card]').forEach(b => {
       b.onclick = () => { setSkipped(b.dataset.unskipCard, false); render(); };
     });
+    /* 10-23 T-017b：卡头点一下展开/收起。只切 DOM class 与 hidden，不重渲 ——
+       重渲会把已经打进去但还没失焦的输入框内容闪没了。 */
+    root.querySelectorAll('[data-cardopen]').forEach(head => {
+      const toggle = () => {
+        const cid = head.dataset.cardopen;
+        const card = head.closest('.mat-plan-card');
+        const body = card && card.querySelector('.mat-qbody');
+        if (!body) return;
+        const willOpen = body.hidden;
+        body.hidden = !willOpen;
+        card.classList.toggle('open', willOpen);
+        head.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+        _matOpen[cid] = willOpen;
+      };
+      head.addEventListener('click', toggle);
+      head.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+      });
+    });
+    /* 「全部展开 / 全部收起」—— 一次性切全部，再按当前状态改按钮文案 */
+    const _expBtn = $('#matQExpand');
+    if (_expBtn) {
+      _expBtn.onclick = () => {
+        _matAllOpen = !_matAllOpen;
+        root.querySelectorAll('.mat-plan-card').forEach(card => {
+          const cid = card.dataset.cardid;
+          const body = card.querySelector('.mat-qbody');
+          const head = card.querySelector('[data-cardopen]');
+          if (!body) return;
+          body.hidden = !_matAllOpen;
+          card.classList.toggle('open', _matAllOpen);
+          if (head) head.setAttribute('aria-expanded', _matAllOpen ? 'true' : 'false');
+          if (cid) _matOpen[cid] = _matAllOpen;
+        });
+        _expBtn.textContent = _matAllOpen ? '全部收起' : '全部展开';
+      };
+    }
     // 10/2 平台自带万用人设：点一下把该 preset 填进人设卡输入框（不自动 submit，让她看清再改）
     root.querySelectorAll('[data-preset]').forEach(b => {
       b.onclick = () => {
@@ -682,16 +739,40 @@
     saveStore();
   }
 
-  /* 动态卡渲染（4.4.4；design/89：mono 独白卡与旧 steps 卡双型分发，存量旧卡一行不动） */
-  function planCard(card){
-    if(card && card.type === 'mono') return planMonoCard(card);
+  /* 动态卡渲染（4.4.4；design/89：mono 独白卡与旧 steps 卡双型分发，存量旧卡一行不动）
+     10-23 T-017b：整卡改成「卡头常显 + 正文收起」，多张卡排两列网格（任务书 §T-017b）。
+     ⚠️ 折叠状态只存内存（_matOpen），刷新后一律收起 —— 不写进 store，不动任何数据字段。 */
+  let _matOpen = {};        // {cardId: true} 展开的卡
+  let _matAllOpen = false;  // 「全部展开」按钮的全局态
+
+  /* 一张卡的编号方块 + 标题行（两种卡型共用，避免两份卡头各写一遍） */
+  function planCardHead(card, n, filled){
+    const title = escapeHtml(ensureQuestionTitle(card.title || ''));
+    const cov = Array.isArray(card.topics) ? card.topics.length : 0;
+    const open = !!_matOpen[card.id];
+    return '<div class="mat-q-head" data-cardopen="' + escapeHtml(card.id) + '" role="button" tabindex="0" aria-expanded="' + (open ? 'true' : 'false') + '">'
+      + '<span class="mat-qnum">' + n + '</span>'
+      + '<span class="mat-qt">'
+        + '<span class="mat-q-title">' + title + '</span>'
+        + (cov ? '<span class="mat-qcov">覆盖：' + cov + ' 类</span>' : '')
+      + '</span>'
+      + '<span class="mat-qarrow" aria-hidden="true">▸</span>'
+      + '</div>';
+  }
+  function planCard(card, n){
+    if(card && card.type === 'mono') return planMonoCard(card, n);
     const st = cardState(card.id);
     if(st.skipped){
-      return '<div class="mat-q mat-plan-skipped" data-unskip-card="' + escapeHtml(card.id) + '" title="点此恢复">已跳过：' + escapeHtml(ensureQuestionTitle(card.title || '')) + ' · 点此恢复</div>';
+      return '<div class="mat-q mat-plan-skipped" data-unskip-card="' + escapeHtml(card.id) + '" title="点此恢复">'
+        + '<span class="mat-skip-t">已跳过</span>'
+        + '<span class="mat-skip-n">' + escapeHtml(ensureQuestionTitle(card.title || '')) + '</span>'
+        + '<span class="mat-skip-a">点此恢复</span></div>';
     }
-    let h = '<div class="mat-q mat-plan-card">'
-      + '<div class="mat-q-head"><span class="mat-q-title">' + escapeHtml(ensureQuestionTitle(card.title || '')) + '</span>'
-      + '<button class="mat-mini" data-skip-card="' + escapeHtml(card.id) + '">跳过此卡</button></div>';
+    const filled = hasCardAnswer(card, st);
+    const open = !!_matOpen[card.id];
+    let h = '<div class="mat-q mat-plan-card' + (open ? ' open' : '') + (filled ? ' filled' : '') + '" data-cardid="' + escapeHtml(card.id) + '">'
+      + planCardHead(card, n || 0, filled);
+    h += '<div class="mat-qbody"' + (open ? '' : ' hidden') + '>';
     if(card.reason) h += '<div class="mat-q-hint">' + escapeHtml(card.reason) + '</div>';
     // 10/2 她拍板删掉「这张卡覆盖 N 道当季题」折叠区：填卡阶段只管讲经历，覆盖题数是出素材后
     // 在口语页才用得上的信息，在这里show 出来只让人分心。card.topics 数据仍保留（formatCard
@@ -708,19 +789,25 @@
     if(gateClosed){
       h += '<div class="mat-nohint">上一步选了「没有」，这张卡后面的问题先收起了——没有这段经历就不用编；点回「有」会恢复。</div>';
     }
-    h += '</div>';
+    h += '<div class="mat-qfoot"><button class="mat-mini" data-skip-card="' + escapeHtml(card.id) + '">跳过此卡</button></div>';
+    h += '</div></div>';
     return h;
   }
   /* design/89：mono 独白卡渲染——锚定真题展示 + 大独白框 + 折叠追问（followups 全选填）。
      独白走 data-step-card/data-step-k="mono" 复用既有存储链路（s.mono）；跳过/恢复逻辑照旧。 */
-  function planMonoCard(card){
+  function planMonoCard(card, n){
     const st = cardState(card.id);
     if(st.skipped){
-      return '<div class="mat-q mat-plan-skipped" data-unskip-card="' + escapeHtml(card.id) + '" title="点此恢复">已跳过：' + escapeHtml(ensureQuestionTitle(card.title || '')) + ' · 点此恢复</div>';
+      return '<div class="mat-q mat-plan-skipped" data-unskip-card="' + escapeHtml(card.id) + '" title="点此恢复">'
+        + '<span class="mat-skip-t">已跳过</span>'
+        + '<span class="mat-skip-n">' + escapeHtml(ensureQuestionTitle(card.title || '')) + '</span>'
+        + '<span class="mat-skip-a">点此恢复</span></div>';
     }
-    let h = '<div class="mat-q mat-plan-card mat-mono-card">'
-      + '<div class="mat-q-head"><span class="mat-q-title">' + escapeHtml(ensureQuestionTitle(card.title || '')) + '</span>'
-      + '<button class="mat-mini" data-skip-card="' + escapeHtml(card.id) + '">跳过此卡</button></div>';
+    const filled = hasCardAnswer(card, st);
+    const open = !!_matOpen[card.id];
+    let h = '<div class="mat-q mat-plan-card mat-mono-card' + (open ? ' open' : '') + (filled ? ' filled' : '') + '" data-cardid="' + escapeHtml(card.id) + '">'
+      + planCardHead(card, n || 0, filled);
+    h += '<div class="mat-qbody"' + (open ? '' : ' hidden') + '>';
     if(card.reason) h += '<div class="mat-q-hint">' + escapeHtml(card.reason) + '</div>';
     // 10/2 她拍板删掉两处 UI：① 锚定真题块（把当季题目原文 + youShouldSay 要点整块写出来）
     // ② 「这张卡覆盖 N 道当季题」折叠区。她说「只要提出一个简单的问题，然后给一个对话框就行」。
@@ -738,8 +825,21 @@
       fus.forEach(step => { h += planStep(card.id, step, st.s[step.k]); });
       h += '</details>';
     }
-    h += '</div>';
+    h += '<div class="mat-qfoot"><button class="mat-mini" data-skip-card="' + escapeHtml(card.id) + '">跳过此卡</button></div>';
+    h += '</div></div>';
     return h;
+  }
+
+  /* 这张卡填过没有（有任意一道题的答案 / 独白 / 追问非空即算填过）——
+     只用来看卡头的视觉状态，不进任何数据。 */
+  function hasCardAnswer(card, st){
+    const s2 = (st && st.s) || {};
+    return Object.keys(s2).some(k => {
+      const v = s2[k];
+      if(v == null) return false;
+      if(Array.isArray(v)) return v.length > 0;
+      return String(v).trim() !== '';
+    });
   }
   function monoCounterTip(v){
     const n = String(v || '').trim().length;
@@ -1762,7 +1862,7 @@
   // materials.html：页面加载即渲染（问卷态从 sessionStorage 恢复，填一半刷新不丢视图）
   ready(() => {
     store = loadStore();
-    if(_seasonBackfilled) saveStore();   // 10/6：loadStore 里补的季节要落一次盘（云同步/换设备才看得到）
+    if(_seasonBackfilledGet()) saveStore();   // 10/6：loadStore 里补的季节要落一次盘（云同步/换设备才看得到）
     mode = restoreMode();
     render();
   });
