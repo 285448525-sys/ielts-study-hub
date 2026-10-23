@@ -144,7 +144,10 @@ html[data-theme="dark"] .finish-zero-card{background:rgba(70,168,131,.16)}
 .rw-n{ font-size:12.5px; font-weight:700; color:var(--danger); opacity:.85; }
 .rw-s{ font-size:11.5px; color:var(--muted); margin-left:auto; }
 .rw-row{ display:flex; align-items:baseline; gap:10px; padding:6px 0; }
-.rw-row + .rw-row{ border-top:1px dashed rgba(0,0,0,.07); }
+/* 10-23 修深色：原来写死 rgba(0,0,0,.07)，深色底上纯黑细线等于看不见 → 复习列表糊成一片。
+   改走 --line（深浅两套都有定义），并给深色补一档更明显的分隔。 */
+.rw-row + .rw-row{ border-top:1px dashed var(--line); }
+html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14); }
 .rw-row b{ font-size:14px; color:var(--ink); flex:none; }
 .rw-row .rw-cn{ font-size:12.5px; color:var(--ink-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
 

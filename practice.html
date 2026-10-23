@@ -32,7 +32,7 @@
 </script>
 <title>单词 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261023k" />
-<link rel="stylesheet" href="css/p/practice.css?v=20261017a" />
+<link rel="stylesheet" href="css/p/practice.css?v=20261023a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -66,8 +66,13 @@
    ============================================================ */
 
 /* ---------- 今日复习卡 ---------- */
+/* 10-23 修深色：--primary-700 在深色主题下被提亮成 #7ccac2 → 渐变左端几乎变成浅薄荷绿，
+   压在上面的白字对比只剩约 2:1，卡顶部糊成一片。
+   深色下改用 800→900（两档深色主题块没有重定义，继承浅色深值，是真正的深绿底 + 白字，
+   与深色版 .hero 的写法一致）。浅色主题完全不变。 */
 .wb-today{background:linear-gradient(135deg,var(--primary-700),var(--primary-900));border-radius:var(--radius);
   padding:15px 17px;margin:0 0 12px;box-shadow:0 4px 16px rgba(44,120,115,.26);color:#fff}
+html[data-theme="dark"] .wb-today{background:linear-gradient(135deg,var(--primary-800),var(--primary-900))}
 .wb-today-top{display:flex;align-items:center;gap:11px;margin-bottom:12px}
 .wb-today-ic{width:38px;height:38px;border-radius:11px;background:rgba(255,255,255,.16);
   display:flex;align-items:center;justify-content:center;flex:none}
