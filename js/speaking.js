@@ -61,7 +61,13 @@ if(typeof window.hubClearOrphanPageTimers === 'function' && !window.__spHookLeav
 var FREQ_ORDER = { P1:{ultra:0, high:1, medium:2, low:3}, P2:{ultra:0, high:1, medium:2, low:3} };
 function freqRank(f){ const t = FREQ_ORDER[curType] || FREQ_ORDER.P1; return (t[f] != null) ? t[f] : 9; }
 
-/* 顶部常量用 var（speaking.js 会被软导航 window.eval 重跑，const 会抛「已声明」） */
+/* 顶部常量一律用 var —— 两条实测约束（10-23 T-009 取证）：
+   ① speaking.js 会被软导航 window.eval 重跑，顶层 const 在重跑时是 SyntaxError「已声明」；
+   ② window.eval 里声明的 const **只存在于那一次 eval 的词法作用域**（实测：
+      eval('const CC=1') 之后另一段 eval('typeof CC') === 'undefined'，而 var/function 都是全局可见）
+      → 一旦把 speaking.js 拆成多个文件，任何 const 常量都会在隔壁文件里变成 undefined。
+   所以 T-009 把原先 5 个 const（SYS_CHUAN_PLAN / SYS_CHUAN_FINAL / CHUAN_AIFILL_SUFFIX /
+   SPK_TIMER_MODULE / SPK_TIMER_NAME）全部降级为 var，值一个字没改。 */
 var SYS_DIAG = `你是一位雅思口语考官助手。你的任务有两件：
 1）找出回答里真正的「语法错误」和「用词错误」，并给出正确写法；
 2）按 IELTS 官方口语评分标准，给「语法范围与准确性」和「词汇资源」两个维度打分。
@@ -1935,7 +1941,7 @@ function spBindMatGuideBtn(el){
 /* === design/87：P2 串题要点驱动（bullet-driven）=== */
 /* 阶段一规划 prompt：{FORBIDDEN} 为禁词表占位，调用时替换，严禁硬编码。
    她拍板（9/23）：只出一段整段稿、字数够用——不出「标准版/加时版」两版，词数固定 180~200（约 100wpm 念满 2 分钟）。 */
-const SYS_CHUAN_PLAN = `你是雅思口语 P2 串题规划师。{SP_TARGET} 语速平稳。你拿到一道 P2 真题（含 You should say 四个 bullet）和考生的真实素材库。
+var SYS_CHUAN_PLAN = `你是雅思口语 P2 串题规划师。{SP_TARGET} 语速平稳。你拿到一道 P2 真题（含 You should say 四个 bullet）和考生的真实素材库。
 
 ⚠️⚠️ 本题最重要的前提，先读懂它⚠️⚠️
 官方 P2 的 bullet 全部是**问句标签**（形如 "What difficult thing this person did"、"Why this person was successful"），
@@ -2018,7 +2024,7 @@ H. keywords：从 fullEn 提取 8~14 个按叙事顺序排列的英文关键词�
  "unfitReason":"","suggestCard":""}`;
 
 /* 阶段二成稿 prompt：素材事实 + 考生补槽答案 → 一段完整独白 */
-const SYS_CHUAN_FINAL = `你是雅思口语 P2 串题成稿助手。考生对一道 P2 题已完成素材核对，并通过几个小问题补充了真实细节（见下）。请把【素材事实 + 考生补充答案】按题目 bullet 的顺序写成一段可直接朗读的完整独白。
+var SYS_CHUAN_FINAL = `你是雅思口语 P2 串题成稿助手。考生对一道 P2 题已完成素材核对，并通过几个小问题补充了真实细节（见下）。请把【素材事实 + 考生补充答案】按题目 bullet 的顺序写成一段可直接朗读的完整独白。
 
 铁律：
 1. 考生补充的每条答案都是真实事实，必须自然写进对应 bullet 的段落，不得遗漏；补充答案与素材事实冲突时以补充答案为准。
@@ -2134,7 +2140,7 @@ async function planChuan(s){
 
 /* v7.2 AI 代补模式附加指令：她不想自己补 → AI 按铁律 A 亲自为 missing/weak 槽位设计可信细节，
    织进讲稿并逐条输出 inventedDetails（en=织进稿子的英文句，zh=中文对照），供存入细节碎片库 */
-const CHUAN_AIFILL_SUFFIX = `\n\n【AI 代补模式】考生明确不想自己补充细节。请你按写作铁律 A 的血肉细节规则，亲自为上面 slotCheck 中 missing/weak 的槽位设计可信细节（与故事骨架一致、不离谱、只用初高中常见词），把它们自然织进 fullEn；并额外输出 "inventedDetails" 数组：每项 {"slot":"槽位短句","en":"织进讲稿的英文细节句","zh":"中文对照"}。inventedDetails 里的英文句必须原样出现在 fullEn 中。`;
+var CHUAN_AIFILL_SUFFIX = `\n\n【AI 代补模式】考生明确不想自己补充细节。请你按写作铁律 A 的血肉细节规则，亲自为上面 slotCheck 中 missing/weak 的槽位设计可信细节（与故事骨架一致、不离谱、只用初高中常见词），把它们自然织进 fullEn；并额外输出 "inventedDetails" 数组：每项 {"slot":"槽位短句","en":"织进讲稿的英文细节句","zh":"中文对照"}。inventedDetails 里的英文句必须原样出现在 fullEn 中。`;
 
 /* design/87 阶段二：补槽答案 + 素材 → 一段完整讲稿。失败不落库、不盖旧结果（AI 红线）
    v7.2 aiFill=true = AI 代补模式（她不想自己补细节，让 AI 编可信细节并沉淀进碎片库） */
@@ -3914,8 +3920,8 @@ function p1FlowInit(s){
    用户常忘记开计时：开口语页即自动开一个「口语」计时（moduleId 与 data.js MODULES 的 speaking 一致），
    离页/切后台/关标签时结算进 DATA.sessions（首页「今日学习时长」与计时页都读它）。
    规则与 9/16 之之定版一致：已有别的模块在计 → 先正规结算前一个再开新表，绝不丢表、绝不双开。 */
-const SPK_TIMER_MODULE = 'speaking';
-const SPK_TIMER_NAME = '口语';
+var SPK_TIMER_MODULE = 'speaking';
+var SPK_TIMER_NAME = '口语';
 function spkTimerDeviceId(){
   try{
     let id = localStorage.getItem('hub_device_id');
