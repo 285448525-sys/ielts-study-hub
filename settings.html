@@ -167,10 +167,6 @@ setTimeout(__rvRescue,2500);
 .set-topbar::before{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;
   background:radial-gradient(420px 120px at 88% -60px,rgba(122,220,210,.16),transparent 70%)}
 .set-topbar .acct-main>b{font-size:16px}
-.set-topmore{margin-left:auto;flex:none;height:44px;padding:0 12px;border-radius:9px;cursor:pointer;
-  border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.10);color:#fff;
-  font:inherit;font-size:12.5px;font-weight:600}
-.set-topmore:hover{background:rgba(255,255,255,.18)}
 
 .set-layout{display:grid;grid-template-columns:200px minmax(0,1fr);gap:22px;align-items:start}
 /* 10-22 换顶栏：吸顶位置要让过 44px 顶栏（原 top:14px 是侧栏时代写的，直接留会被顶栏压住一截） */
@@ -220,12 +216,12 @@ setTimeout(__rvRescue,2500);
 </style>
 <script defer src="js/data.js?v=20261023b"></script>
   <script defer src="js/common.js?v=20261023n"></script>
-  <script defer src="js/common-ai.js?v=20261023m"></script>
-  <script defer src="js/common-sync.js?v=20261023m"></script>
-  <script defer src="js/common-merge.js?v=20261023m"></script>
-  <script defer src="js/common-cloud.js?v=20261023m"></script>
-  <script defer src="js/common-shell.js?v=20261023m"></script>
-  <script defer src="js/common-pwa.js?v=20261023m"></script>
+  <script defer src="js/common-ai.js?v=20261023n"></script>
+  <script defer src="js/common-sync.js?v=20261023n"></script>
+  <script defer src="js/common-merge.js?v=20261023n"></script>
+  <script defer src="js/common-cloud.js?v=20261023n"></script>
+  <script defer src="js/common-shell.js?v=20261023n"></script>
+  <script defer src="js/common-pwa.js?v=20261023n"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
   <!-- 10/3 头像选择（DiceBear CC0 素材；必须在 data.js/common.js 之后 —— 它读 DATA.settings.avatar） -->
   <script defer src="js/av-picker.js?v=20261022a"></script>
@@ -290,7 +286,10 @@ setTimeout(__rvRescue,2500);
       <span id="syncState" class="acct-sub"></span>
       <span id="lastSyncTs" class="acct-sub2"></span>
     </div>
-    <button class="set-topmore" type="button" data-goto="data">账号与同步 →</button>
+    <!-- 🔴 10-23 T-002 步1：删掉「账号与同步 →」按钮（原 .set-topmore）。
+         它存在的原因就是「顶部与账号组内容重复」的补丁 —— 现在改密/退出整块搬进
+         「我的账号」组（下面 profile pane 里），顶部只留身份三件，按钮自然多余。
+         顶部瘦身 = 任务书验收第 10 条「顶部条无改密/退出」。 -->
     <!-- 10/5 她 14:29 删：「账号与同步」右边那条竖排英文 = #setVer 版本标记（v1004a）。
          它是 10/4 她报「改了个寂寞、依旧点不动」时我加的自证工具（#setVer 常驻版本号），
          当时确实有用（5a084c8 靠它定位到真 bug 是自动保存只绑 change），
@@ -328,25 +327,102 @@ setTimeout(__rvRescue,2500);
     <nav class="set-nav" aria-label="设置分组">
       <span id="setNavHit" aria-hidden="true"></span>
       <!-- 10/5 14:36 她要求：① 意见反馈收进设置页做最后一个分组；② 标题字数尽量统一，别 4 字 5 字混着。
-           字数方案：个人设置(4) / 分数自评(4) / 账号数据(4) / 意见反馈(4) —— **四个全是四字**。
+           10-23 T-002：五组全四字 = 我的账号 / 备考目标 / 学习偏好 / 数据同步 / 反馈关于。
+           ⚠️ data-goto 值 = 方案 §八 五个固定值 profile/targets/prefs/data/about，
+             与 js/common.js 顶栏头像菜单 + Ctrl+, 的 ?pane= 是跨任务契约（T-003 按这个写）。
            （原「分数与自评」4 字、「数据与账号」5 字混排，她看着不协调。）
            ⚠️ data-goto 只这四项，go() 与 moveHit() 按值匹配不写死数量，零 JS 改动。 -->
-      <button class="set-nav-item on" type="button" data-goto="profile">个人设置</button>
-      <button class="set-nav-item" type="button" data-goto="targets">分数自评</button>
-      <button class="set-nav-item" type="button" data-goto="data">账号数据</button>
-      <button class="set-nav-item" type="button" data-goto="fb">意见反馈</button>
+      <button class="set-nav-item on" type="button" data-goto="profile">我的账号</button>
+      <button class="set-nav-item" type="button" data-goto="targets">备考目标</button>
+      <button class="set-nav-item" type="button" data-goto="prefs">学习偏好</button>
+      <button class="set-nav-item" type="button" data-goto="data">数据同步</button>
+      <button class="set-nav-item" type="button" data-goto="about">反馈关于</button>
     </nav>
 
     <div class="set-panes">
-      <!-- 个人设置 -->
+      <!-- ===== 我的账号（T-002 步1：原「个人设置」拆开，昵称留下；深绿卡整块搬入）===== -->
       <section class="set-pane on" data-pane="profile">
     <section class="card set-card rv">
-      <span class="kicker">Profile</span>
-      <h2>个人设置</h2>
-      <p class="set-sub">昵称、考期和每天想学多久</p>
+      <span class="kicker">Account</span>
+      <h2>我的账号</h2>
+      <p class="set-sub">头像、昵称和登录状态</p>
       <div class="set-fields">
         <div><label for="sName">昵称</label><input id="sName" /></div>
+      </div>
+    </section>
+
+    <!-- 🔴 原「账号数据」里的深绿 .acct-card **整块搬来**（方案 §三：改密/退出/未登录引导进「我的账号」）。
+         DOM 钩子一个没改：syncStatus / syncUserBox / syncChangeBtn / syncLogoutBtn /
+         syncChangeForm / sOldPass / sNewPass / syncChangeSave / syncGuestBox / syncGoLogin
+         → js/settings.js 的 renderAuthUI() 与 authLogout() 零改动
+         （方案红线：把退出登录搬进本组时**不许改写它的绑定方式**，只搬 DOM）。 -->
+    <section class="card acct-card" style="margin-top:18px">
+        <p id="syncStatus"></p>
+
+        <!-- 已登录：改密码 + 退出 -->
+        <div id="syncUserBox" style="display:none">
+          <div class="acct-actions">
+            <button class="acct-btn" id="syncChangeBtn" type="button">修改密码</button>
+            <button class="acct-btn acct-btn--ghost" id="syncLogoutBtn" type="button">退出登录</button>
+          </div>
+          <div id="syncChangeForm" style="display:none">
+            <div class="acct-form-row">
+              <input aria-label="当前密码" class="acct-input" id="sOldPass" type="password" placeholder="当前密码" autocomplete="current-password" />
+              <input aria-label="新密码" class="acct-input" id="sNewPass" type="password" placeholder="新密码（至少 6 位）" autocomplete="new-password" />
+              <button class="acct-btn acct-btn--light" id="syncChangeSave" type="button">保存新密码</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 未登录：只给状态 + 一个引导键（10/3 22:55 她拍板：不要裸填账号密码） -->
+        <div id="syncGuestBox" hidden>
+          <p class="acct-guest-tip">数据只存在这台设备。登录后自动同步到云端。</p>
+          <div class="acct-actions">
+            <a class="acct-btn acct-btn--light" id="syncGoLogin" href="login.html?from=settings">去登录 →</a>
+          </div>
+        </div>
+      </section>
+      </section>
+
+      <!-- ===== 备考目标（T-002 步1：原「分数自评」整体搬来 + 原「个人设置」的考期）===== -->
+      <section class="set-pane" data-pane="targets" hidden>
+    <section class="card set-card rv" data-d="1">
+      <span class="kicker">Targets</span>
+      <h2>分数目标与自评</h2>
+      <p class="set-sub">AI 按这个口径给你建议 · 模考计分也用这里的自评</p>
+      <div class="set-fields">
         <div><label for="sExam">下次考试日期</label><input id="sExam" type="date" /></div>
+      </div>
+      <div class="form-row set-bands">
+        <div><label for="tOverall">总分</label><input id="tOverall" type="number" step="0.5" min="0" max="9" /></div>
+        <div><label for="tListening">听力</label><input id="tListening" type="number" step="0.5" min="0" max="9" /></div>
+        <div><label for="tReading">阅读</label><input id="tReading" type="number" step="0.5" min="0" max="9" /></div>
+        <div><label for="tWriting">写作</label><input id="tWriting" type="number" step="0.5" min="0" max="9" /></div>
+        <div><label for="tSpeaking">口语</label><input id="tSpeaking" type="number" step="0.5" min="0" max="9" /></div>
+      </div>
+      <p class="set-note">口语按官方 band 评「语法」和「词汇」；<b>流利度与发音 AI 评不了</b>，在下面自己填。</p>
+    </section>
+
+    <!-- 原「口语自评」卡（data-d 从 2 起顺延避免动画错位） -->
+    <section class="card set-card rv" data-d="2">
+      <span class="kicker">Speaking</span>
+      <h2>口语自评</h2>
+      <p class="set-sub">模考计分用 · 只有这两项 AI 评不了</p>
+      <div class="set-fields">
+        <div><label for="sFlu">固定流利度分（可选，0–9）</label><input id="sFlu" type="number" min="0" max="9" step="0.5" placeholder="如 6（不填则不计入总分）" /></div>
+        <div><label for="sPron">固定发音分（可选，0–9）</label><input id="sPron" type="number" min="0" max="9" step="0.5" placeholder="如 6（不填则不计入总分）" /></div>
+      </div>
+    </section>
+      </section>
+
+      <!-- ===== 学习偏好（T-002 步1 新增组：每日目标 + 原「个人设置」的三个开关原样搬来）=====
+           月亮云朵动画那段 #sThemeToggle 的 HTML/CSS **一行没动**（验收第 7 条） -->
+      <section class="set-pane" data-pane="prefs" hidden>
+    <section class="card set-card rv">
+      <span class="kicker">Prefs</span>
+      <h2>学习偏好</h2>
+      <p class="set-sub">怎么学、站内界面长什么样</p>
+      <div class="set-fields">
         <div><label for="sGoal">每日目标（小时）</label><input id="sGoal" type="number" min="1" max="16" /></div>
       </div>
       <div class="set-switches">
@@ -383,23 +459,6 @@ setTimeout(__rvRescue,2500);
     </section>
       </section>
 
-      <!-- 目标分数 + 口语自评（10/5 14:30 她要求合并：两块都是「分数设置」，
-           目标分数卡里原本还写着「流利度与发音在左边那张卡自己填」指向另一块，合并后这句自动作废）
-           ⚠️ 只合并容器，所有 DOM id（tOverall/tListening/…/sFlu/sPron）原样保留 → settings.js 零改动 -->
-      <section class="set-pane" data-pane="targets" hidden>
-    <section class="card set-card rv" data-d="1">
-      <span class="kicker">Targets</span>
-      <h2>分数目标与自评</h2>
-      <p class="set-sub">AI 按这个口径给你建议 · 模考计分也用这里的自评</p>
-      <div class="form-row set-bands">
-        <div><label for="tOverall">总分</label><input id="tOverall" type="number" step="0.5" min="0" max="9" /></div>
-        <div><label for="tListening">听力</label><input id="tListening" type="number" step="0.5" min="0" max="9" /></div>
-        <div><label for="tReading">阅读</label><input id="tReading" type="number" step="0.5" min="0" max="9" /></div>
-        <div><label for="tWriting">写作</label><input id="tWriting" type="number" step="0.5" min="0" max="9" /></div>
-        <div><label for="tSpeaking">口语</label><input id="tSpeaking" type="number" step="0.5" min="0" max="9" /></div>
-      </div>
-      <p class="set-note">口语按官方 band 评「语法」和「词汇」；<b>流利度与发音 AI 评不了</b>，在下面自己填。</p>
-    </section>
 
     <!-- 原「口语自评」卡（10/5 合并进来，data-d 从 2 起顺延避免动画错位） -->
     <section class="card set-card rv" data-d="2">
@@ -428,42 +487,13 @@ setTimeout(__rvRescue,2500);
       <div id="importErr" class="ui-err-box" style="margin-top:10px"></div>
     </section>
 
-      <!-- 账号与同步（原账户横条的明细部分；保留深色卡片以沿用既有白字配色）
-           10/4 她反馈手机端 5 个标签要滑动 → 与上面的「数据管理」合并为同一组「数据与账号」 -->
-      <section class="card acct-card" style="margin-top:18px">
-          <p id="syncStatus"></p>
-
-          <!-- 已登录：改密码 + 退出 -->
-          <div id="syncUserBox" style="display:none">
-            <div class="acct-actions">
-              <button class="acct-btn" id="syncChangeBtn" type="button">修改密码</button>
-              <button class="acct-btn acct-btn--ghost" id="syncLogoutBtn" type="button">退出登录</button>
-            </div>
-            <div id="syncChangeForm" style="display:none">
-              <div class="acct-form-row">
-                <input aria-label="当前密码" class="acct-input" id="sOldPass" type="password" placeholder="当前密码" autocomplete="current-password" />
-                <input aria-label="新密码" class="acct-input" id="sNewPass" type="password" placeholder="新密码（至少 6 位）" autocomplete="new-password" />
-                <button class="acct-btn acct-btn--light" id="syncChangeSave" type="button">保存新密码</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- 未登录：只给状态 + 一个引导键（10/3 22:55 她拍板：不要裸填账号密码）
-               14:15：顶部那句「数据只存在本机，登录后自动同步到云端」已删，这里是全站唯一说明，
-               文案相应收短，避免同一句话说两遍。 -->
-          <div id="syncGuestBox" hidden>
-            <p class="acct-guest-tip">数据只存在这台设备。登录后自动同步到云端。</p>
-            <div class="acct-actions">
-              <a class="acct-btn acct-btn--light" id="syncGoLogin" href="login.html?from=settings">去登录 →</a>
-            </div>
-          </div>
         </section>
       </section>
 
-      <!-- 意见反馈（10/5 14:36 她要求：从侧栏收进设置页做最后一个分组，不再单挂侧栏条目）
+      <!-- ===== 反馈关于（T-002 步1：原「意见反馈」更名；步 7 在这里加「版本号」一行）=====
            ⭐ 按钮直接带 data-fb-open → js/feedback.js 的 document 级委托（closest('[data-fb-open]')）接管，
               **零 JS 改动**，弹层/截图/联系方式/加微信那条全都原样保留。 -->
-      <section class="set-pane" data-pane="fb" hidden>
+      <section class="set-pane" data-pane="about" hidden>
         <section class="card set-card rv" data-d="1">
           <span class="kicker">Feedback</span>
           <h2>意见反馈</h2>
@@ -564,7 +594,7 @@ setTimeout(__rvRescue,2500);
   var _hitAt = {};                       // 按钮 → 上次处理时间戳（去重）
   function handleNavActivate(e){
     if(!e.target || !e.target.closest) return;
-    var b = e.target.closest('.set-nav-item, .set-topmore');
+    var b = e.target.closest('.set-nav-item');
     if(!b) return;
     if(e.type === 'click'){
       // pointerdown 已处理过的，这次 click 直接忽略（否则会连切两次）
