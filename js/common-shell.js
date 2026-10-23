@@ -453,6 +453,12 @@ function onHubLinkClick(e){
   if(hubExamGuardNav()){ e.preventDefault(); return; }
   e.preventDefault();            // 拦下，走软切换
   closeMoreSheet();             // 移动端：点任意站内链接即收起「更多」弹层
+  /* 🔴 10-23 HOTFIX-2：点站内链接必关顶栏二级面板。
+     不关的后果（实测复现「点模考出现计划的页面」）：面板是 position:fixed 浮层，
+     软导航换 <main> 时不会重建导航（同壳换页不调 injectNav）→ 旧面板留在原位继续盖着内容区，
+     她下一次点击落在面板里的子项上（plans.html?sub=today 等），于是去错页且毫无提示。 */
+  try{ if(typeof tbCloseSub === 'function') tbCloseSub(); }catch(_){}
+  try{ if(typeof tbCloseMe === 'function') tbCloseMe(); }catch(_){}
   updateActiveNav(t.file);       // ⚠️ 关键修复（导航高亮闪烁）：点击瞬间同步高亮目标模块，
                                   //    不等 fetch/脚本执行。否则在「点击→fetch→runPageScript(重脚本 eval)」
                                   //    这段异步窗口里，旧模块高亮仍挂着，表现为「先闪其他模块、再跳回」。
@@ -861,6 +867,12 @@ async function softNavigate(t, isPop){
       }
     }catch(e){ console.error('[soft-nav] 导航换壳失败', e); }
     syncBodyPageAttrs(doc);
+    /* 🔴 10-23 HOTFIX-2：软导航换完内容后，把顶栏浮层统一收口。
+       这条是**兜底**：点击路径已在 onHubLinkClick 关过，但 popstate（浏览器后退）与
+       各页程序化调用 softNavigate 的路径不经过那里 —— 旧面板会继续浮在新页面上（幽灵热区）。 */
+    try{ if(typeof tbCloseSub === 'function') tbCloseSub(); }catch(_){}
+    try{ if(typeof tbCloseMe === 'function') tbCloseMe(); }catch(_){}
+    try{ closeMoreSheet(); }catch(_){}
     /* 🔴 10/6 01:55 换页必须回到顶部 —— 修「每次点进单词页都默认滑在底部，学习和词库被遮住」。
        移动端真正的滚动容器是 `main.container`（css/common.css ≤860px 段给它 overflow-y:auto），
        软导航只换 `main.innerHTML`、**容器本身没被替换**，于是上一页的 scrollTop 原样带过来。
