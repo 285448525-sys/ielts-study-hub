@@ -76,7 +76,10 @@
        它用 sp-story 的 spPersonaLine / spDiagTierHead、sp-list 的 refreshScoreAfterDiag，
        故排在它们之后。 -->
   <script defer src="js/sp-diag.js?v=20261023a"></script>
-  <script defer src="js/speaking.js?v=20261023m"></script>
+  <!-- 10-24 T-009 S-5：F 区（详情页与保存，含 515 行 openDetail）拆出 js/sp-detail.js（761 行）。
+       F 是最顶层的域（调用 A/I/G/J/H/E/K 七个域）→ 排在最后、紧邻 speaking.js 之前。 -->
+  <script defer src="js/sp-detail.js?v=20261023a"></script>
+  <script defer src="js/speaking.js?v=20261023n"></script>
   <!-- 10-22 她要求：「句型闯关」这个老引擎整个删掉（页面 / 引擎 / 数据全部下线）。
        已同步删掉 js/pattern-drill.js、pattern-drill.html、data/patterns.json 与 #pdView 界面；
        口语「陪练」tab 仍由 AI 陪练（coach.js）接管，句型练习（sentence-drill.js）不受影响。 -->
