@@ -596,6 +596,19 @@ function openTpl(id){
   $('#listCard').hidden = true; $('#detailCard').hidden = false;
   document.querySelector('.write-layout')?.classList.add('detail-open');
   $('#dTitle').textContent = cleanCatName(t.title);
+  /* W-2：头部一行补齐 —— 目标分徽章 + 「大作文 · 4 段 · 约 N 词」 */
+  const lvEl = document.getElementById('dLv');
+  if(lvEl){ const lv = t.level || '5.5'; lvEl.textContent = lv + ' 分'; lvEl.hidden = false; }
+  const metaEl = document.getElementById('dMeta');
+  if(metaEl){
+    const T2 = ['观点型','讨论型','优缺点型','Report','双问题型'];
+    const kind = T2.includes(cleanCatName(t.category)) ? '大作文' : '小作文';
+    const paras = String(t.skeleton || '').split(/\n\s*\n/).filter(x => x.trim()).length;
+    /* 词数：骨架里的英文单词数（去掉【】占位后数）—— 只是「约」量级，不用精确 */
+    const plain = String(t.skeleton || '').replace(/【[^】]*】/g, 'x');
+    const words = (plain.match(/[A-Za-z][A-Za-z'-]*/g) || []).length;
+    metaEl.textContent = [kind, paras ? paras + ' 段' : '', words ? '约 ' + Math.round(words / 10) * 10 + ' 词' : ''].filter(Boolean).join(' · ');
+  }
   if(tplVip !== true){ renderTplLocked(); return; }   // 会员闸：非会员只给锁卡（10/2 她拍板）
   restoreTplBlocks();
   /* 「作文骨架」原文块已删（她 10/1：与填空练习/完整句重复）；骨架数据仍是填空/默写/评分的源，只删展示 */
@@ -653,30 +666,55 @@ function fitInput(inp){
   inp.style.width = w + 'px';
 }
 
+/* ===== 10-23 W-2：填空练习按「段」切卡（方案 §三.3）=====
+   她 15:0x 原话：「我感觉不能单句单句分开，但是可以单段单段分开」。
+   切分依据 = 骨架里本来就有的空行（每套 4 段 = 3 个空行）→ 每段一张 .psec 卡。
+   段内正文仍是一整段连续英文（不按句号再拆），跟原模板读起来一样。
+   不许改 skeleton 数据本身；phIdx 仍按全文顺序递增 —— filledState()/updatePreview()
+   都靠 DOM 里 .ph-input 的顺序，按段拼进 DOM 时顺序不变，所以下标口径零变化。 */
+const P_SEC_NAMES = ['开头 · 表态', '主体一 · 第一个理由', '主体二 · 让步与反驳', '结尾 · 收口'];
 function buildPractice(skeleton){
-  const parts = skeleton.split(/(【[^】]*】)/g);
+  const paras = String(skeleton || '').split(/\n\s*\n/).filter(x => x.trim());
   let html = '';
   let phIdx = 0;
-  parts.forEach(p => {
-    const m = p.match(/^【(.+?)】$/);
-    if(m){
-      const esc = escapeHtml(m[1]);
-      /* 10/8 晚她反馈：占位提示里塞了整句例句 → 输入框被撑到 525px。长提示（>10 字）改成框上方小字，
-         输入框本身不带长占位符（宽度只跟输入内容走），完整提示仍存 title + data-ph（拼 prompt 用）。 */
-      const longPh = String(m[1] || '').length > 10;
-      const phShown = longPh ? '' : esc;
-      html += '<span class="ph-wrap' + (longPh ? ' ph-wrap-long' : '') + '" data-idx="' + phIdx + '">'
-            +   (longPh ? '<span class="ph-label">' + esc + '</span>' : '')
-            +   '<input class="ph-input" data-ph="' + esc + '" placeholder="' + phShown + '" title="' + esc + '">'
-            +   '<button class="ph-hint" type="button" data-ph="' + esc + '" title="AI 给这个空的建议"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;vertical-align:-2px" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 1 4 10.5c-.8.7-1 1.5-1 2.5h-6c0-1-.2-1.8-1-2.5A6 6 0 0 1 12 3z"/></svg></button>'
-            +   '<span class="ph-hint-box" data-for="' + esc + '" hidden></span>'
-            + '</span>';
-      phIdx++;
-    } else { html += escapeHtml(p); }
+  paras.forEach((para, pi) => {
+    let inner = '';
+    const parts = para.split(/(【[^】]*】)/g);
+    parts.forEach(p => {
+      const m = p.match(/^【(.+?)】$/);
+      if(m){
+        const esc = escapeHtml(m[1]);
+        /* 10/8 晚她反馈：占位提示里塞了整句例句 → 输入框被撑到 525px。长提示（>10 字）改成框上方小字，
+           输入框本身不带长占位符（宽度只跟输入内容走），完整提示仍存 title + data-ph（拼 prompt 用）。 */
+        const longPh = String(m[1] || '').length > 10;
+        const phShown = longPh ? '' : esc;
+        inner += '<span class="ph-wrap' + (longPh ? ' ph-wrap-long' : '') + '" data-idx="' + phIdx + '">'
+              +   (longPh ? '<span class="ph-label">' + esc + '</span>' : '')
+              +   '<input class="ph-input" data-ph="' + esc + '" placeholder="' + phShown + '" title="' + esc + '">'
+              +   '<button class="ph-hint" type="button" data-ph="' + esc + '" title="AI 给这个空的建议"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;vertical-align:-2px" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 1 4 10.5c-.8.7-1 1.5-1 2.5h-6c0-1-.2-1.8-1-2.5A6 6 0 0 1 12 3z"/></svg></button>'
+              +   '<span class="ph-hint-box" data-for="' + esc + '" hidden></span>'
+              + '</span>';
+        phIdx++;
+      } else { inner += escapeHtml(p); }
+    });
+    /* 段名：前 4 段用固定名（大作文正文就是这四步），超过 4 段给通用名 —— 不改数据 */
+    const nm = P_SEC_NAMES[pi] || ('第 ' + (pi + 1) + ' 段');
+    html += '<section class="psec" data-p="' + pi + '">'
+      +   '<div class="psec-h"><span class="pnum">' + (pi + 1) + '</span>'
+      +     '<span class="psec-nm">' + escapeHtml(nm) + '</span>'
+      +     '<span class="psec-meta" data-p="' + pi + '"></span></div>'
+      +   '<div class="psec-b">' + inner + '</div>'
+      + '</section>';
   });
   const box = $('#practice');
   box.innerHTML = html;
-  box.querySelectorAll('.ph-input').forEach(inp => { fitInput(inp); inp.addEventListener('input', () => { fitInput(inp); updatePreview(); }); });
+  box.querySelectorAll('.ph-input').forEach(inp => {
+    fitInput(inp);
+    /* W-2：填过就加 .filled（虚线→实线 + 浅绿底），空回来就摘掉 */
+    const syncFilled = () => inp.classList.toggle('filled', !!inp.value.trim());
+    syncFilled();
+    inp.addEventListener('input', () => { fitInput(inp); syncFilled(); updatePreview(); });
+  });
   box.querySelectorAll('.ph-hint').forEach(btn => btn.addEventListener('click', () => hintBlank(btn)));
   updatePreview();
 }
@@ -756,11 +794,23 @@ function updatePreview(){
     out = out.split('【' + ph + '】').join(val ? escapeHtml(val) : '【' + ph + '】');
   });
   $('#preview').innerHTML = out.replace(/\n/g, '<br>');
+  const st = filledState();
   const hint = $('#tplFillHint');
   if(hint){
-    const s = filledState();
-    hint.textContent = s.blank > 0 ? ('还有 ' + s.blank + ' 个空没填') : (s.total ? '空都填好了，可以评分' : '');
+    hint.textContent = st.blank > 0 ? ('还有 ' + st.blank + ' 个空没填') : (st.total ? '空都填好了，可以评分' : '');
   }
+  /* W-2：顶部总进度「已填 N/M」+ 每段「N 空 · 已填 M」 */
+  const prog = $('#tplProgress');
+  if(prog){
+    prog.textContent = st.total ? ('已填 ' + (st.total - st.blank) + '/' + st.total) : '';
+  }
+  document.querySelectorAll('#practice .psec').forEach(sec => {
+    const meta = sec.querySelector('.psec-meta');
+    if(!meta) return;
+    const ins = sec.querySelectorAll('.ph-input');
+    const done = [...ins].filter(i => i.value.trim()).length;
+    meta.textContent = ins.length + ' 空 · 已填 ' + done;
+  });
 }
 
 /* ===== 模板填空 → AI 按官方 4 维度评分 ===== */
