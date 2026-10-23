@@ -46,6 +46,10 @@
   transition:border-color .16s,box-shadow .16s,transform .16s}
 .hstat:hover{border-color:var(--primary-300);box-shadow:0 8px 20px -14px rgba(16,24,40,.22);transform:translateY(-1px)}
 .hstat:focus-visible{outline:2px solid var(--primary-600);outline-offset:2px}
+/* 10-23 她：「今日专注这个板块应该是点击不了的」→ 只读卡：光标还原、hover 不再起浮/描边。
+   保持和可点卡完全一样的高/宽/间距，只是没有交互反馈 —— 四张卡仍然一条基线。 */
+.hstat-static{cursor:default}
+.hstat-static:hover{border-color:var(--line);box-shadow:none;transform:none}
 .hstat .lb{font-size:11px;color:var(--muted);font-weight:700}
 .hstat .vl{font-size:19px;font-weight:800;letter-spacing:-.02em;line-height:1.2;font-variant-numeric:tabular-nums;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
