@@ -51,7 +51,7 @@
   <script defer src="js/feedback.js?v=20261013b"></script>
   <script defer src="js/factory-writing.js?v=20261017a"></script>
 <script defer src="js/writing_prompts.js?v=20260903ab"></script>
-  <script defer src="js/writing.js?v=20261023c"></script>
+  <script defer src="js/writing.js?v=20261023d"></script>
 <style>
 
   .write-layout{display:flex;gap:16px;align-items:flex-start}
@@ -262,7 +262,12 @@
   mark.mk{background:none;padding:0 .5px;border-radius:0;cursor:help;position:relative}
   mark.mk-bad{text-decoration:underline wavy var(--danger);text-underline-offset:4px;text-decoration-thickness:1.5px}
   mark.mk-good{text-decoration:underline solid var(--ok);text-underline-offset:4px;text-decoration-thickness:1.5px}
-  mark.mk::after{content:attr(data-tip);position:absolute;left:0;bottom:calc(100% + 8px);z-index:30;width:max-content;max-width:280px;background:var(--n-900);color:#fff;font-size:12.5px;line-height:1.6;padding:8px 10px;border-radius:8px;opacity:0;pointer-events:none;transform:translateY(4px);transition:.14s;box-shadow:0 8px 24px rgba(0,0,0,.18);font-weight:400;text-align:left;white-space:normal}
+  /* B-1c 小步1（P0 bug①）：原 background:var(--n-900) —— --n-900 在深色主题下**翻成近白**
+     （#f7f7f9），而这里 color 写死 #fff → 亮底白字，提示完全看不见。
+     ⚠️ 方案原建议改 --primary-700 同样会翻（深色下是 #7ccac2 亮青）+ 白字 → 一样白底白字，
+     实测复现后改用 --primary-800：深浅两套主题**都没有重定义这一档**（深色只重定义
+     50/100/500/700），永远是不透明深青 #235e5a，配白字 7.4:1，两套主题都成立。 */
+  mark.mk::after{content:attr(data-tip);position:absolute;left:0;bottom:calc(100% + 8px);z-index:30;width:max-content;max-width:280px;background:var(--primary-800);color:#fff;font-size:12.5px;line-height:1.6;padding:8px 10px;border-radius:8px;opacity:0;pointer-events:none;transform:translateY(4px);transition:.14s;box-shadow:0 8px 24px rgba(0,0,0,.18);font-weight:400;text-align:left;white-space:normal}
   mark.mk:hover::after{opacity:1;transform:none}
   /* 总分 + 四项方阵 */
   .sr-scorehead{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:10px}
@@ -300,6 +305,12 @@
   @media (max-width:1000px){
     .sr-wrap{grid-template-columns:1fr}
     .sr-grid{grid-template-columns:repeat(2,1fr)}
+  }
+  /* B-1c 小步1（P0 bug③）：原断点 1000px 太宽 —— 平板也看不到标记含义。
+     收到 640px（真手机才隐藏）；640-1000 区间恢复显示。
+     ⚠️ 不恢复 ::after 显示的手机兜底另有其法：JS 生成 mark 时已带 data-tip，
+     小步1 同时给它补 title/aria-label（见 js/writing.js:1062 一带）。 */
+  @media (max-width:640px){
     mark.mk::after{display:none}
   }
 
@@ -564,7 +575,7 @@ body.exam-fullscreen .hub-topbar{display:none !important}
           </div>
           <p style="font-size:12px;color:var(--muted);margin:7px 0 0">卡片直接露「结构提示 + 骨架首句」，不点开也能判断这套要不要用；列表视图一屏能扫更多套。</p>
           <div id="tplList" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr));margin-top:12px"></div>
-          <div id="empty" class="empty-state" hidden>还没有模板。点「+ 新增模板」添加。</div>
+          <div id="empty" class="empty" hidden>还没有模板。点「+ 新增模板」添加。</div>
         </section>
 
         <section class="card" id="detailCard" hidden>

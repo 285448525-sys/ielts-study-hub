@@ -1158,7 +1158,10 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
   mark.mk{background:none;padding:0 .5px;border-radius:0;cursor:help;position:relative}
   mark.mk-bad{text-decoration:underline wavy var(--danger);text-underline-offset:4px;text-decoration-thickness:1.5px}
   mark.mk-good{text-decoration:underline solid var(--ok);text-underline-offset:4px;text-decoration-thickness:1.5px}
-  mark.mk::after{content:attr(data-tip);position:absolute;left:0;bottom:calc(100% + 8px);z-index:30;width:max-content;max-width:280px;background:var(--n-900);color:#fff;font-size:12.5px;line-height:1.6;padding:8px 10px;border-radius:8px;opacity:0;pointer-events:none;transform:translateY(4px);transition:.14s;box-shadow:0 8px 24px rgba(0,0,0,.18);font-weight:400;text-align:left;white-space:normal}
+  /* 🔴 与 writing.html 的 mark.mk 段逐行同源（B-1c 小步1 同步改）。改一处必须同步另一处。
+     B-1c 小步1（P0 bug①）：原 background:var(--n-900) 深色下仍是深值 → 深底叠深底、白字发飘。
+     改用 --primary-700（深浅两档都有定义），深色下翻成 primary-100 底 + primary-900 字。 */
+  mark.mk::after{content:attr(data-tip);position:absolute;left:0;bottom:calc(100% + 8px);z-index:30;width:max-content;max-width:280px;background:var(--primary-800);color:#fff;font-size:12.5px;line-height:1.6;padding:8px 10px;border-radius:8px;opacity:0;pointer-events:none;transform:translateY(4px);transition:.14s;box-shadow:0 8px 24px rgba(0,0,0,.18);font-weight:400;text-align:left;white-space:normal}
   mark.mk:hover::after{opacity:1;transform:none}
   /* 总分 + 四项方阵 */
   .sr-scorehead{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:10px}
@@ -1196,6 +1199,10 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
   @media (max-width:1000px){
     .sr-wrap{grid-template-columns:1fr}
     .sr-grid{grid-template-columns:repeat(2,1fr)}
+  }
+  /* B-1c 小步1（P0 bug③，与 writing.html 同步）：标记提示断点 1000 → 640。
+     手机兜底 = js/writing.js 生成 mark 时带 title/aria-label（长按/朗读可知含义）。 */
+  @media (max-width:640px){
     mark.mk::after{display:none}
   }
   /* ===== 听力做题页（10/11 第 9 项）=====
@@ -1782,7 +1789,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
     </section>
 
     <section class="mock-pane" id="pane-writing" hidden
-             data-late-src="js/writing_prompts.js?v=20260903ab,js/writing.js?v=20261023c">
+             data-late-src="js/writing_prompts.js?v=20260903ab,js/writing.js?v=20261023d">
       <!-- 10/11 第 7 项（她拍板「整块删掉」写作页真题 tab）：写作真题整体搬到这里。
            题目数据 = js/writing_prompts.js（大作文 70 + 小作文 25），渲染/机考/评分逻辑在 js/writing.js
            （writeExam 那一段，同一份代码两页共用；本页无 #writeTabs → writing.js 只跑真题初始化）。

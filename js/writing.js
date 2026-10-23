@@ -1058,8 +1058,13 @@ function srAnnotate(essay, r){
   hits.sort((a, b) => a.from - b.from);
   let out = '', pos = 0;
   hits.forEach(h => {
+    /* B-1c 小步1（P0 bug③ 兜底）：手机上 ::after 提示被隐藏（≤640px），
+       补 title + aria-label —— 长按/朗读仍知道这条标记的含义。
+       （桌面 hover 仍走 ::after，两条并存不冲突。） */
     out += escapeHtml(src.slice(pos, h.from))
-         + '<mark class="mk ' + h.cls + '" data-tip="' + escapeHtml(h.tip) + '">' + escapeHtml(src.slice(h.from, h.to)) + '</mark>';
+         + '<mark class="mk ' + h.cls + '" data-tip="' + escapeHtml(h.tip) + '"'
+         + ' title="' + escapeHtml(h.tip) + '" aria-label="' + escapeHtml(h.tip) + '">'
+         + escapeHtml(src.slice(h.from, h.to)) + '</mark>';
     pos = h.to;
   });
   return out + escapeHtml(src.slice(pos));
