@@ -170,10 +170,42 @@ function topBarHtml(current){
   const _AV_SET = new Set(['user-f1','user-f2','user-f3','user-f4','user-m1','user-m2','user-m3','user-m4']);
   const _avRaw = (typeof DATA !== 'undefined' && DATA.settings) ? DATA.settings.avatar : '';
   const _avMe2 = 'img/avatars/' + (_AV_SET.has(_avRaw) ? _avRaw : 'user-f1') + '.svg';
-  const _meEl = authToken()
-    ? '<a class="tb-me" href="settings.html" title="换头像" aria-label="换头像"><img src="' + _avMe2 + '" alt=""></a>'
-    : '<a class="tb-me tb-me--guest" href="login.html" title="去登录" aria-label="去登录">'
-      + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c1.2-3.6 4.1-5.4 7.5-5.4s6.3 1.8 7.5 5.4"/></svg></a>';
+  /* ===== T-003 头像菜单（10-23）=====
+     结构：头像 + 兄弟面板（与 T-001 二级面板同一套 fixed 定位 / 同一套时序常量）。
+     ⚠️ 头像本身**仍是真链接**（点击照常进设置页，任务书硬要求），面板只是悬停附加物。
+     状态行数据源复用现有那套，不另造：登录判定 = DATA.settings.syncCode + authToken()（与
+     js/settings.js:170 renderAuthUI 同口径），昵称 = DATA.settings.name（settings.js:178 的取法）。 */
+  const _meLogged = !!(DATA.settings && DATA.settings.syncCode && typeof authToken === 'function' && authToken());
+  const _meName = ((DATA.settings && DATA.settings.name) || '').trim()
+    || (DATA.settings && DATA.settings.syncCode) || '';
+  let _meMenu;
+  if(_meLogged){
+    const _auto = (DATA.settings && DATA.settings.autoSync) ? '' : ' · 自动同步已关闭';
+    _meMenu = '<div class="tb-me-menu" id="tbMeMenu">'
+      + '<div class="tb-me-head"><b>' + escapeHtml(_meName || '已登录') + '</b>'
+      + '<span>已登录' + _auto + '</span></div>'
+      + '<a class="tb-me-item" href="settings.html?pane=profile" data-hub-pane="profile">个人设置</a>'
+      + '<a class="tb-me-item" href="settings.html?pane=targets" data-hub-pane="targets">分数自评</a>'
+      + '<a class="tb-me-item" href="settings.html?pane=data" data-hub-pane="data">账号数据</a>'
+      + '<div class="tb-me-sep"></div>'
+      + '<button class="tb-me-item tb-me-item--danger" type="button" id="tbMeLogout">退出登录</button>'
+      + '</div>';
+  }else{
+    /* 未登录：状态行就是去登录的入口；三个菜单项保留（进去自然看到登录引导）；不出现「退出登录」。 */
+    _meMenu = '<div class="tb-me-menu" id="tbMeMenu">'
+      + '<a class="tb-me-head tb-me-head--guest" href="login.html"><b>未登录</b><span>去登录 ›</span></a>'
+      + '<a class="tb-me-item" href="settings.html?pane=profile" data-hub-pane="profile">个人设置</a>'
+      + '<a class="tb-me-item" href="settings.html?pane=targets" data-hub-pane="targets">分数自评</a>'
+      + '<a class="tb-me-item" href="settings.html?pane=data" data-hub-pane="data">账号数据</a>'
+      + '</div>';
+  }
+  const _meEl = '<span class="tb-me-wrap" id="tbMeWrap">'
+    + (authToken()
+      ? '<a class="tb-me" href="settings.html" id="tbMeBtn" title="账号" aria-label="账号菜单" aria-haspopup="true" aria-expanded="false" aria-controls="tbMeMenu"><img src="' + _avMe2 + '" alt=""></a>'
+      : '<a class="tb-me tb-me--guest" href="login.html" id="tbMeBtn" title="去登录" aria-label="账号菜单" aria-haspopup="true" aria-expanded="false" aria-controls="tbMeMenu">'
+        + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c1.2-3.6 4.1-5.4 7.5-5.4s6.3 1.8 7.5 5.4"/></svg></a>')
+    + _meMenu
+    + '</span>';
   // 胶囊 = design/113A3 原样：首页/模考/口语/写作/单词/句子/计划 + 「更多」
   // 10-21 22:4x：PRIMARY_NAV 已摘掉 'timer'，原来那句 `if(pid==='timer') continue;` 随之失效删除。
   let caps = '';
@@ -248,7 +280,20 @@ function bindTopBar(){
       }
     });
   }
+  /* T-003：Ctrl + , 打开设置页（照 __hubCmdKBound 同款幂等标记，各起各的名字，互不影响）。
+     ⚠️ 要拦一下「焦点在输入框里」：Ctrl+, 不是输入冲突键，任务书说保持全局生效 —— 但浏览器
+        在部分键盘布局下会把它当系统快捷键（打开偏好设置），e.preventDefault() 必须调。 */
+  if(!window.__hubCmdCommaBound){
+    window.__hubCmdCommaBound = true;
+    document.addEventListener('keydown', (e) => {
+      if((e.ctrlKey || e.metaKey) && e.key === ','){
+        e.preventDefault();
+        hubSoftGoToSettings();
+      }
+    });
+  }
   bindTopBarSub();
+  bindTopBarMe();
   const btn = document.getElementById('tbMoreBtn');
   const panel = document.getElementById('tbMorePanel');
   if(btn && panel){
@@ -260,7 +305,10 @@ function bindTopBar(){
     };
     btn.addEventListener('click', (e) => {
       e.preventDefault();
-      if(panel.hidden) tbCloseSub();      // 开「更多」= 关掉任何二级面板（同时只开一个）
+      if(panel.hidden){
+        tbCloseSub();                    // 开「更多」= 关掉任何二级面板（同时只开一个）
+        try{ if(typeof tbCloseMe === 'function') tbCloseMe(); }catch(_){}
+      }
       setOpen(panel.hidden);
     });
     // 点面板外 / Escape 收起；点面板内条目后由软导航换页（导航重建自然收起）
@@ -301,6 +349,139 @@ function tbPlacePanel(panel, trigger, align){
   panel.style.left = Math.round(left) + 'px';
 }
 
+/* ===== T-003 头像菜单的开合逻辑 =====
+   与 T-001 二级面板同一套时序（150ms 出 / 250ms 收）——任务书写 200ms，但方案 §三 定的
+   统一口径是 250ms，且「更多」/头部两个面板行为不一致她一定看得出来，故取 250。
+   移动端不启用（顶栏在 ≤860 本来就不渲染，这里是双保险）；点「更多」必须关掉本面板，反之亦然。 */
+let _tbMeTimer = null;
+let _tbMeOpen = false;
+function tbMeEl(){ return document.getElementById('tbMeMenu'); }
+function tbCloseMe(){
+  if(_tbMeTimer){ clearTimeout(_tbMeTimer); _tbMeTimer = null; }
+  if(!_tbMeOpen) return;
+  const p = tbMeEl(), b = document.getElementById('tbMeBtn');
+  if(p) p.classList.remove('show');
+  if(b){ b.classList.remove('tb-open'); b.setAttribute('aria-expanded', 'false'); }
+  _tbMeOpen = false;
+}
+function tbOpenMe(){
+  if(_tbMeTimer){ clearTimeout(_tbMeTimer); _tbMeTimer = null; }
+  if(_tbMeOpen) return;
+  tbCloseSub();                       // 与二级面板互斥
+  const mp = document.getElementById('tbMorePanel'), mb = document.getElementById('tbMoreBtn');
+  if(mp && !mp.hidden){              // 与「更多」互斥
+    mp.hidden = true;
+    if(mb){ mb.setAttribute('aria-expanded', 'false'); mb.classList.remove('on'); }
+  }
+  const p = tbMeEl(), b = document.getElementById('tbMeBtn');
+  if(!p || !b) return;
+  p.classList.add('show');
+  b.classList.add('tb-open');
+  b.setAttribute('aria-expanded', 'true');
+  _tbMeOpen = true;
+  tbPlacePanel(p, b, 'right');
+}
+/* 退出登录：**只调用设置页那套现成逻辑**（authLogout 是 js/settings.js #syncLogoutBtn 背后同一个函数），
+   不新写清 token 的代码 —— 任务书硬要求，否则两处行为会分叉。
+   二次确认文案照抄设置页（'退出登录后停止云同步（本机数据保留）。确定退出？'）。 */
+async function tbMeLogout(){
+  if(!confirm('退出登录后停止云同步（本机数据保留）。确定退出？')) return;
+  try{
+    await authLogout();               // ← 与 #syncLogoutBtn 同一个函数（js/common-cloud.js:246）
+  }catch(e){ console.warn('[tb-me] 退出失败', e); }
+  tbCloseMe();
+  if(typeof authToken === 'function' && !authToken() && typeof injectNav === 'function') injectNav();
+}
+/* Ctrl+, / 菜单项 → 设置页对应分组。
+   settings.html 的四个分组由页内内联脚本的 go(name) 管（data-goto），没有 URL 入口 →
+   这里用和 T-001 同款跨页交接：sessionStorage 放一份，落地页读出来调 go()。
+   ⚠️ 任务书说「?pane= 由 T-002 提供」，但 T-002 还没做；所以参数照写（URL 可读可分享），
+      同时补 sessionStorage —— 软导航时 query 读不到（见 tbSubPending 的注释）。 */
+const TB_PANE_KEY = 'hub_set_pane';
+function tbPaneHandoff(pane){
+  try{ sessionStorage.setItem(TB_PANE_KEY, pane); }catch(e){}
+}
+function tbPanePending(){
+  try{
+    const v = sessionStorage.getItem(TB_PANE_KEY);
+    if(v){ sessionStorage.removeItem(TB_PANE_KEY); return v; }
+  }catch(e){}
+  try{ return new URLSearchParams(location.search).get('pane') || ''; }catch(e){ return ''; }
+}
+function hubSoftGoToSettings(pane){
+  const href = 'settings.html' + (pane ? ('?pane=' + encodeURIComponent(pane)) : '');
+  const a = document.createElement('a');
+  a.href = href;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();                        // 交给全局 onHubLinkClick → softNavigate（模考锁/自愈都在这条路上）
+  setTimeout(() => a.remove(), 0);
+}
+function bindTopBarMe(){
+  const wrap = document.getElementById('tbMeWrap');
+  if(!wrap) return;
+  const btn = document.getElementById('tbMeBtn');
+  const panel = tbMeEl();
+  if(!btn || !panel) return;
+  /* ⚠️ 逐元素标记而不是「窗口级只绑一次」：软导航会重渲染 nav.innerHTML，
+     wrap/面板都是新节点、但 window 标记还在 → 新节点永远绑不上（T-001 踩过的坑）。 */
+  if(wrap.getAttribute('data-me-bound') === '1') return;
+  wrap.setAttribute('data-me-bound', '1');
+
+  wrap.addEventListener('mouseenter', () => {
+    if(!tbCanHover()) return;
+    if(_tbMeTimer){ clearTimeout(_tbMeTimer); _tbMeTimer = null; }
+    _tbMeTimer = setTimeout(() => { _tbMeTimer = null; tbOpenMe(); }, 150);
+  });
+  wrap.addEventListener('mouseleave', () => {
+    if(!tbCanHover()) return;
+    if(_tbMeTimer){ clearTimeout(_tbMeTimer); _tbMeTimer = null; }
+    if(!_tbMeOpen) return;
+    _tbMeTimer = setTimeout(() => { _tbMeTimer = null; tbCloseMe(); }, 250);
+  });
+  panel.addEventListener('mouseenter', () => {
+    if(_tbMeTimer){ clearTimeout(_tbMeTimer); _tbMeTimer = null; }
+  });
+  panel.addEventListener('mouseleave', () => {
+    if(!tbCanHover()) return;
+    if(_tbMeTimer){ clearTimeout(_tbMeTimer); _tbMeTimer = null; }
+    _tbMeTimer = setTimeout(() => { _tbMeTimer = null; tbCloseMe(); }, 250);
+  });
+  btn.addEventListener('focus', () => {
+    if(!tbCanHover()) return;
+    if(_tbMeTimer){ clearTimeout(_tbMeTimer); _tbMeTimer = null; }
+    _tbMeTimer = setTimeout(() => { _tbMeTimer = null; tbOpenMe(); }, 150);
+  });
+  btn.addEventListener('keydown', (e) => {
+    if(e.key === 'ArrowDown'){
+      e.preventDefault();
+      tbOpenMe();
+      const first = panel.querySelector('.tb-me-item');
+      if(first) first.focus();
+    }
+  });
+  /* 三个分组项：写跨页暗号 + 收起（不 preventDefault，走站内软导航那条路） */
+  panel.querySelectorAll('[data-hub-pane]').forEach(item => {
+    item.addEventListener('click', () => {
+      tbPaneHandoff(item.getAttribute('data-hub-pane'));
+      tbCloseMe();
+    });
+  });
+  const lo = document.getElementById('tbMeLogout');
+  if(lo) lo.addEventListener('click', (e) => { e.preventDefault(); tbMeLogout(); });
+
+  if(!window.__tbMeEscBound){
+    window.__tbMeEscBound = true;
+    document.addEventListener('keydown', (e) => {
+      if(e.key === 'Escape' && _tbMeOpen){
+        const b = document.getElementById('tbMeBtn');
+        tbCloseMe();
+        if(b) b.focus();
+      }
+    });
+  }
+}
+
 /* ===== T-001 二级面板的悬停逻辑 =====
    时序照方案 §三（数值是成熟站点实测区间，别自己改）：
      进入大 tab 150ms 后才展开（防误触）· 离开「tab + 面板」整体 250ms 后收起 ·
@@ -330,12 +511,13 @@ function tbOpenSub(id){
   const el = tbSubEl(id);
   const a = document.querySelector('.tb-caps .tb-item[data-sub-for="' + id + '"]');
   if(!el || !a) return;
-  // 同时只开一个：开二级就把「更多」面板关掉
+  // 同时只开一个：开二级就把「更多」面板和头像菜单都关掉
   const mp = document.getElementById('tbMorePanel'), mb = document.getElementById('tbMoreBtn');
   if(mp && !mp.hidden){
     mp.hidden = true;
     if(mb){ mb.setAttribute('aria-expanded', 'false'); mb.classList.remove('on'); }
   }
+  try{ if(typeof tbCloseMe === 'function') tbCloseMe(); }catch(e){}
   el.classList.add('show');
   a.classList.add('tb-open');
   a.setAttribute('aria-expanded', 'true');

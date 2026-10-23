@@ -19,7 +19,7 @@ setTimeout(__rvRescue,2500);
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>设置 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261023i" />
+<link rel="stylesheet" href="css/common.css?v=20261023k" />
 <link rel="stylesheet" href="css/p/settings.css?v=20261017a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
@@ -219,13 +219,13 @@ setTimeout(__rvRescue,2500);
 }
 </style>
 <script defer src="js/data.js?v=20261022d"></script>
-  <script defer src="js/common.js?v=20261023i"></script>
-  <script defer src="js/common-ai.js?v=20261023i"></script>
-  <script defer src="js/common-sync.js?v=20261023i"></script>
-  <script defer src="js/common-merge.js?v=20261023i"></script>
-  <script defer src="js/common-cloud.js?v=20261023i"></script>
-  <script defer src="js/common-shell.js?v=20261023i"></script>
-  <script defer src="js/common-pwa.js?v=20261023i"></script>
+  <script defer src="js/common.js?v=20261023k"></script>
+  <script defer src="js/common-ai.js?v=20261023k"></script>
+  <script defer src="js/common-sync.js?v=20261023k"></script>
+  <script defer src="js/common-merge.js?v=20261023k"></script>
+  <script defer src="js/common-cloud.js?v=20261023k"></script>
+  <script defer src="js/common-shell.js?v=20261023k"></script>
+  <script defer src="js/common-pwa.js?v=20261023k"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
   <!-- 10/3 头像选择（DiceBear CC0 素材；必须在 data.js/common.js 之后 —— 它读 DATA.settings.avatar） -->
   <script defer src="js/av-picker.js?v=20261022a"></script>
@@ -610,6 +610,24 @@ setTimeout(__rvRescue,2500);
   document.addEventListener('click', handleNavActivate);
   go('profile');   /* 她拍板：默认停在「个人设置」，不记忆上次 */
   moveHit('profile');
+  /* 🔴 10-23 T-003：顶栏头像菜单 / Ctrl+, 带 ?pane=profile|targets|data|fb 来的时候
+     要直接落在那一组（任务书验收第 2 条：「不是停在默认第一组」）。
+     ⚠️ **本段是内联非 defer 脚本，比 common.js（defer）先跑** —— 不能在这里直接调
+     tbPanePending()（那时还没定义，typeof 判不出来 → 静默落回 profile，硬加载实测栽过一次）。
+     做法：URL 参数立刻读（不依赖外部函数），sessionStorage 那份等 DOMContentLoaded
+     （defer 脚本全部执行完之后）再读一次。两次都走 go() + moveHit()，幂等。 */
+  function _applyPane(){
+    var want = '';
+    try{ want = new URLSearchParams(location.search).get('pane') || ''; }catch(_){}
+    if(['profile','targets','data','fb'].indexOf(want) < 0 && typeof tbPanePending === 'function'){
+      try{ want = tbPanePending() || ''; }catch(_){}
+    }
+    if(['profile','targets','data','fb'].indexOf(want) >= 0 && want !== 'profile'){
+      try{ go(want); moveHit(want); }catch(_){}
+    }
+  }
+  _applyPane();
+  document.addEventListener('DOMContentLoaded', _applyPane);
   /* 窄屏横向滚动时指示条跟随（标签等分铺满，正常不触发；大字号/极窄屏会触发） */
   nav.addEventListener('scroll', function(){
     var on = nav.querySelector('.set-nav-item.on');

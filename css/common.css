@@ -2532,6 +2532,36 @@ body[data-shell="top"] .container{padding-top:14px}
 .tb-more-item .tm-ic{width:16px;height:16px;flex:none;display:inline-flex;color:var(--muted)}
 .tb-more-item .tm-ic svg{width:16px;height:16px}
 
+/* ===== T-003 头像菜单（10-23）=====
+   视觉完全沿用站内面板语言（无圆角大卡 + 一道顶边线 + 浅影），与 T-001 二级面板同族；
+   只比它们窄一些、右对齐贴在头像下方。不引入新颜色。
+   ⚠️ 同样必须 position:fixed —— `.tb-right` 在窄桌面会被压缩，absolute 面板会跟着被裁。 */
+.tb-me-wrap{position:relative;display:inline-flex;flex:none}
+.tb-me-menu{position:fixed;top:0;left:0;z-index:69;
+  background:var(--surface);
+  box-shadow:0 8px 24px -12px rgba(16,24,40,.18);
+  padding:8px 0;min-width:190px;display:none}
+.tb-me-menu.show{display:block}
+/* 安全三角：头像与面板之间的 10px 命中带（斜向移动不误关） */
+.tb-me-menu::after{content:'';position:absolute;left:0;right:0;top:-10px;height:10px}
+.tb-me-menu .tb-me-head{display:block;padding:6px 16px 10px;margin-bottom:4px;
+  border-bottom:1px solid var(--line);text-decoration:none}
+.tb-me-menu .tb-me-head b{display:block;font-size:13.5px;font-weight:700;color:var(--ink);
+  line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px}
+.tb-me-menu .tb-me-head span{display:block;margin-top:2px;font-size:11.5px;color:var(--muted)}
+.tb-me-menu .tb-me-head--guest:hover b{color:var(--primary-700)}
+.tb-me-menu .tb-me-item{display:block;padding:8px 16px;font-size:13px;font-weight:600;color:var(--ink);
+  text-decoration:none;position:relative;background:none;border:0;width:100%;text-align:left;
+  font-family:inherit;cursor:pointer;white-space:nowrap}
+.tb-me-menu .tb-me-item:hover{background:var(--primary-50);color:var(--primary-700)}
+.tb-me-menu .tb-me-item--danger{color:var(--danger)}
+.tb-me-menu .tb-me-item--danger:hover{background:var(--danger-soft,#fde6e4);color:var(--danger-text,#a14542)}
+.tb-me-menu .tb-me-sep{height:1px;background:var(--line);margin:6px 0}
+.tb-me[aria-expanded="true"]{border-color:var(--primary)}
+[data-theme="dark"] .tb-me-menu{box-shadow:0 8px 24px -12px rgba(0,0,0,.5)}
+/* 手机端（≤860 顶栏整条不渲染）：头像菜单一律不出，点头像照旧整页进 settings/login */
+@media (max-width:860px){ .tb-me-menu{display:none !important} }
+
 /* ===== T-001 顶栏二级菜单（10-23 · 视觉对齐口语页下划线式）=====
    依据 `交接\方案\T-001-顶栏二级菜单-v2（对齐口语页视觉）.md` §2.2，两处按实测改：
    ① position 从 absolute 改 **fixed**（原因见上方 .tb-more-panel 注释：父级 overflow 会裁掉面板）；
