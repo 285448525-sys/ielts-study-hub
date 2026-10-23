@@ -110,12 +110,23 @@
     const cancel = $('#mockExitCancel'); if(cancel) cancel.onclick = () => closeExitModal();
   }
   function closeExitModal(){ const m = $('#mockExitModal'); if(m) m.remove(); }
-  /* 10/2（她拍板）：开始卡已删——退出/中断后回到「模考」tab（点隐藏 MOCK tab 复用全部切换逻辑，
-     含解除沉浸/显隐视图；保存的快照下次点「模考」自动续考）。
-     🔴 10/20 她 ⑨：退出后回的是「口语」tab，而她预期回「口语模考」tab。改成点隐藏的 MOCK tab
-     —— 退出 = 回到模考这一层，立刻能看到「开始/继续模考」，不用再点两次。 */
+  /* 🔴 10-23 修「点了退出却出不去」（她报：退出弹窗三个选项都能点，但点完还在考场里）。
+     根因：10/2 这里点的是**隐藏的 MOCK tab**；而 10/15 起「模考」入口已从 tab 条搬到题库筛选行的
+     #spMockJumpBtn，MOCK tab 只剩下「承载切换逻辑」的壳 —— 它的点击处理器（speaking.js:374）一进去
+     就调 window.__mockEnter()。于是「退出模考」执行到 exitToBank() → 点 MOCK tab → 立刻又开一场
+     （有快照就续考、没快照就新开）→ 她看到的正是「弹窗关了、页面还是考场」，像按钮没反应。
+     实测复现：点「保存进度并退出」后 stage 仍可见、mock-immerse 仍挂着、退出按钮还在，且调用栈为
+     `exitToBank → speaking.js MOCK 分支 → __mockEnter`。
+     修法：退出/中断一律回**题库**（BANK）—— 那里正好摆着「模考」按钮，语义 = 「回到能重新开始的地方」，
+     与 10/20 她 ⑨ 的诉求（不要退到无关的页）不冲突：不是离开口语页，而是回到题库这一层。
+     兜底：BANK tab 取不到时直接藏掉 #mockView，绝不再拿 MOCK tab 当出口。 */
   function exitToBank(){
-    try{ const bt = document.querySelector('#tabs [data-type="MOCK"]'); if(bt) bt.click(); }catch(e){}
+    try{
+      const bt = document.querySelector('#tabs [data-type="BANK"]');
+      if(bt){ bt.click(); return; }
+      const mv = $('#mockView'); if(mv) mv.hidden = true;
+      const lv = $('#listView'); if(lv) lv.hidden = false;
+    }catch(e){}
   }
   function exitToStart(save){
     if(window.__mockTick){ clearInterval(window.__mockTick); window.__mockTick = null; }
