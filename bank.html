@@ -198,6 +198,24 @@
 .fx-score .fx-pcard div{font-size:17px;font-weight:800;color:#111;font-variant-numeric:tabular-nums}
 @media(max-width:860px){.fx-score .fx-pgrid{grid-template-columns:1fr}}
 
+/* ===== 10-23 B-1c 洞①：成绩横幅深色档缺失（她 10-23 报）=====
+   .fx-score 族写死 #fff/#111，.ct-yellow 有一套反色，但**全文件没有 ct-dark 版本** →
+   深色考试档下成绩区还是浅底白卡亮条。下面按同一套反色口径补 ct-dark（与 ct-yellow 对称）。 */
+#examRoot.ct-dark .fx-score{background:#1c1f22;border-bottom-color:#3a3f45}
+#examRoot.ct-dark .fx-score .fx-top b{color:#f2f2f2}
+#examRoot.ct-dark .fx-score .fx-band{background:#262a24;color:#8fe0d6;border-color:#3a3f45}
+#examRoot.ct-dark .fx-score .fx-top span{color:#c8cbd0}
+#examRoot.ct-dark .fx-score .fx-meta{color:#c8cbd0}
+#examRoot.ct-dark .fx-score .fx-meta b{color:#f2f2f2}
+#examRoot.ct-dark .fx-score .fx-chip{background:#262a24;color:#c8cbd0;border-color:#5a5f66}
+#examRoot.ct-dark .fx-score .fx-chip:hover{border-color:#8fe0d6;color:#8fe0d6}
+/* 选中态原本想用「主色底 + 白字」，实测 11.5px 小字下只有 3.37:1 不达标（大字号才允许 3:1）
+   → 深色档改成「亮青底 + 深字」，与句子条 Q 徽章同一套口径（实测 8.98:1）。 */
+#examRoot.ct-dark .fx-score .fx-chip.on{background:#8fe0d6;border-color:#8fe0d6;color:#0f3330}
+#examRoot.ct-dark .fx-score .fx-pcard{background:#262a24;border-color:#3a3f45}
+#examRoot.ct-dark .fx-score .fx-pcard b{color:#9aa0a6}
+#examRoot.ct-dark .fx-score .fx-pcard div{color:#f2f2f2}
+
 /* ===== 做题页（全屏 · 全英文 · 仿真机考 · 10/12 对齐样子稿 104 v4，她拍板统一）===== */
 /* ===== 10/14 模考 UI 统一变量（按 design/模考UI统一_设计方案_2026-10-11.md 批1 落地）=====
    ⚠️ 考试内容区字号（文章/题干）由 --exfs 控制、用户可调 20/23/27px（对齐真机考）——那部分不动；
