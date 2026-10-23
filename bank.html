@@ -18,7 +18,7 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>模考 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261023l" />
+<link rel="stylesheet" href="css/common.css?v=20261023n" />
 <link rel="stylesheet" href="css/p/bank.css?v=20261017a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
@@ -1564,6 +1564,70 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
      audioBarHtml 不再渲染这些节点（paintAudio / audioSeek 侧全部判空，天然兼容）。
    · .ex-strip —— 官方底栏没有第二行品牌条（她 10-22 按官方口径收掉），只留 display:none。
    · .ex-num::before —— 官方题号没有「已答线」，只抹视觉。 */
+
+/* ---- ⑬ 10-23 3-1：练习模式的播放控制组（倍速 / 进度条 / 时间 / 播放键）----
+   🔵 口径：**节点恒渲染**，考试模式（`.ex-audio.locked`）用 CSS 整组藏起来。
+   为什么不按 exam 分支不渲染：练习⇄考试能来回切，按分支渲染切回来就永远没节点了。
+   上文 ⑫ 段把 .ea-* 判成死规则，本批让它们重新接管渲染（不是捡死代码，是重新生效）。
+   考试模式被这里藏掉 → 真机考「不给暂停/回退/倍速」的官方口径一点没破。 */
+#examRoot .ex-audio{display:flex;align-items:center;gap:12px;flex-wrap:nowrap}
+#examRoot .ex-audio.locked .ea-play,
+#examRoot .ex-audio.locked .ea-bar,
+#examRoot .ex-audio.locked .ea-time,
+#examRoot .ex-audio.locked .ea-rate{display:none}
+#examRoot .ex-audio .ea-play{flex:none;width:34px;height:34px;border-radius:50%;border:0;
+  background:var(--primary);color:var(--on-primary);cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;padding:0;
+  transition:box-shadow .2s,background .15s}
+#examRoot .ex-audio .ea-play:hover{background:var(--primary-700)}
+#examRoot .ex-audio .ea-play:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+#examRoot .ex-audio .ea-bar{flex:1 1 auto;min-width:120px;height:6px;border-radius:999px;
+  background:var(--n-100);position:relative;cursor:pointer;transition:height .15s;
+  touch-action:none}   /* 关键：触屏拖进度条不要触发页面滚动 */
+#examRoot .ex-audio .ea-bar:hover,
+#examRoot .ex-audio .ea-bar:focus-visible{height:9px}
+#examRoot .ex-audio .ea-bar:focus-visible{outline:2px solid var(--primary);outline-offset:4px}
+#examRoot .ex-audio .ea-fill{position:absolute;top:0;left:0;bottom:0;width:0;
+  background:var(--primary);border-radius:999px;pointer-events:none}
+#examRoot .ex-audio .ea-knob{position:absolute;top:50%;left:0;width:12px;height:12px;border-radius:50%;
+  background:var(--surface);border:2px solid var(--primary);transform:translate(-50%,-50%);
+  pointer-events:none;opacity:0;transition:opacity .15s}
+#examRoot .ex-audio .ea-bar:hover .ea-knob,
+#examRoot .ex-audio .ea-bar:focus-visible .ea-knob{opacity:1}
+#examRoot .ex-audio .ea-time{flex:none;font-size:12px;color:var(--muted);
+  font-variant-numeric:tabular-nums;min-width:92px;text-align:right;letter-spacing:.2px}
+#examRoot .ex-audio .ea-rate{flex:none;width:74px;border:1px solid var(--line);background:transparent;
+  color:var(--ink);border-radius:7px;padding:3px 22px 3px 8px;font-size:12px;cursor:pointer;
+  font-family:inherit;font-variant-numeric:tabular-nums;font-weight:700;
+  appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6.5L8 10.5l4-4' fill='none' stroke='%236b7280' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 5px center;background-size:11px 11px}
+#examRoot .ex-audio .ea-rate:hover{border-color:var(--ink)}
+#examRoot.ct-dark .ex-audio .ea-bar,
+#examRoot.ct-yellow .ex-audio .ea-bar{background:#3a3f45}
+#examRoot.ct-dark .ex-audio .ea-time,
+#examRoot.ct-yellow .ex-audio .ea-time{color:#aab2bb}
+#examRoot.ct-dark .ex-audio .ea-knob,
+#examRoot.ct-yellow .ex-audio .ea-knob{background:#161616}
+#examRoot.ct-dark .ex-audio .ea-rate,
+#examRoot.ct-yellow .ex-audio .ea-rate{color:#f2f2f2;border-color:#5a5f66}
+/* 音频失败提示挤压播放控制（实测：`.ea-err` 是 flex:none + 长文案 → 能占 675px，
+   把新加的进度条/倍速全挤成一小截）→ 让它可收缩 + 省略号，播放控制优先保位。 */
+#examRoot .ex-audio .ea-err{flex:0 1 auto;min-width:0;max-width:38%;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:860px){
+  #examRoot .ex-audio{gap:8px;padding:8px 12px}
+  #examRoot .ex-audio .ea-time{min-width:auto;font-size:11px}
+  #examRoot .ex-audio .ea-bar{min-width:60px}
+  #examRoot .ex-audio .ea-rate{width:64px;font-size:11.5px}
+}
+/* ≤560 手机：一行塞不下 7 个元素（390 实测倍速右边缘 402 > 390）→
+   Part 胶囊让位（顶栏已经有「Part 1 · Questions 1–13」，音频条里不重复），
+   腾出的 135px 全给进度条。这是唯一能「一行不换行又不溢出」的取舍。 */
+@media (max-width:560px){
+  #examRoot .ex-audio .ea-part{display:none}
+  #examRoot .ex-audio .ea-time{min-width:74px;font-size:11px}
+}
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -1879,13 +1943,13 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
      （手机慢网 ~50KB/s → 约 1.5 秒）。加载时机：点开「写作」tab 时按序插入；
      首次 load 之后空闲再预热一次。承接代码在 js/bank.js 的 loadWritingScripts()。 -->
 <script defer src="js/data.js?v=20261022d"></script>
-<script defer src="js/common.js?v=20261023l"></script>
-<script defer src="js/common-ai.js?v=20261023l"></script>
-<script defer src="js/common-sync.js?v=20261023l"></script>
-<script defer src="js/common-merge.js?v=20261023l"></script>
-<script defer src="js/common-cloud.js?v=20261023l"></script>
-<script defer src="js/common-shell.js?v=20261023l"></script>
-<script defer src="js/common-pwa.js?v=20261023l"></script>
+<script defer src="js/common.js?v=20261023n"></script>
+<script defer src="js/common-ai.js?v=20261023n"></script>
+<script defer src="js/common-sync.js?v=20261023n"></script>
+<script defer src="js/common-merge.js?v=20261023n"></script>
+<script defer src="js/common-cloud.js?v=20261023n"></script>
+<script defer src="js/common-shell.js?v=20261023n"></script>
+<script defer src="js/common-pwa.js?v=20261023n"></script>
 <script defer src="js/bank.js?v=20261023g"></script>
 </body>
 </html>

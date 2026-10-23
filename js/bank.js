@@ -1373,11 +1373,24 @@ window.__reportExamState = reportExamState;
       ? 'You will be listening to an audio clip during this test. You will not be permitted to pause or rewind the audio while answering the questions.'
       : 'You will be listening to an audio clip. In practice mode you can pause and rewind freely.';
     var partChip = partLabel ? '<span class="ea-part">' + esc(partLabel) + '</span>' : '';
+    /* 🔵 10-23 3-1：**恒渲染**播放控制组，靠 `.locked`（考试模式）用 CSS 隐藏 ——
+       而不是按 exam 分支不渲染。理由：练习⇄考试可以来回切，按分支渲染的话切回来
+       就没有节点了（也没人重渲染音频条）。现在切模式只换一个类，节点与监听都不动。
+       考试模式下被 CSS 藏起来 → 真机考「不给暂停/回退/倍速」的口径一点没破。 */
+    var ctrl = '<button class="ea-play" type="button" data-aplay aria-label="Play">'
+      +   '<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>'
+      + '</button>'
+      + '<div class="ea-bar" id="eaBar" role="slider" tabindex="0" aria-label="Seek" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">'
+      +   '<i class="ea-fill" id="eaFill" style="width:0%"></i>'
+      +   '<i class="ea-knob" id="eaKnob" style="left:0%"></i>'
+      + '</div>'
+      + '<span class="ea-time" id="eaTime">00:00 / 00:00</span>'
+      + '<select class="ea-rate" id="eaRate" aria-label="Speed" title="Speed">' + rateOptions() + '</select>';
     return '<div class="ex-audio' + (exam ? ' locked' : '') + '" id="exAudioBar">'
       + '<span class="ea-label" id="eaLabel" hidden>Audio is Playing</span>'
       + partChip
-      /* 播放中官方没有任何进度/时间/倍速 —— 节点全部不渲染（JS 侧 paintAudio 等判空，天然兼容）。
-         音量键保留（官方实锤有音量控制）。 */
+      + ctrl
+      /* 音量键两种模式都保留（官方实锤有音量控制）。 */
       + '<button class="ea-vol" type="button" data-avol aria-label="Mute" title="Mute">' + (_audioMuted || _audioVol === 0 ? ICO_MUTE : ICO_VOL) + '</button>'
       + '</div>'
       + '<div class="ex-gate" id="exAudioGate">'
@@ -1508,14 +1521,41 @@ window.__reportExamState = reportExamState;
   }
   function paintAudio(){
     var a = document.getElementById('exAudio'); if(!a) return;
-    /* 🔴 10-22 官方口径：播放中只显示「Audio is Playing」小字（截图 02/19），
-       进度/时间/倍速节点已不在 DOM 里（audioBarHtml 不再渲染）—— 判空天然兼容。 */
     var lbl = document.getElementById('eaLabel');
     if(lbl) lbl.hidden = a.paused;
     var playing = !a.paused && !a.ended;
     var bar = document.getElementById('exAudioBar');
     if(bar) bar.classList.toggle('playing', playing);
+    /* 🔵 10-23 3-1：练习模式的进度条 / 时间 / 播放键三态（考试模式这些节点根本不存在，判空跳过）。
+       进度用 <audio> 自己的 currentTime/duration，不另存状态；拖动时临时用 _seekDrag 冻住，
+       否则 timeupdate 会把手指正拖的位置抢回去。 */
+    var play = bar && bar.querySelector('.ea-play');
+    if(play){
+      play.classList.toggle('playing', playing);
+      play.setAttribute('aria-label', playing ? 'Pause' : 'Play');
+      play.innerHTML = playing
+        ? '<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg>'
+        : '<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
+    }
+    var fill = document.getElementById('eaFill');
+    var knob = document.getElementById('eaKnob');
+    var tm = document.getElementById('eaTime');
+    var seekBar = document.getElementById('eaBar');
+    var dur = isFinite(a.duration) ? a.duration : 0;
+    var cur = isFinite(a.currentTime) ? a.currentTime : 0;
+    var pct = dur > 0 ? Math.max(0, Math.min(100, cur / dur * 100)) : 0;
+    if(!_seekDrag){
+      if(fill) fill.style.width = pct + '%';
+      if(knob) knob.style.left = pct + '%';
+    }
+    if(tm) tm.textContent = fmtClock(cur) + ' / ' + fmtClock(dur);
+    if(seekBar){
+      seekBar.setAttribute('aria-valuenow', String(Math.round(pct)));
+      seekBar.setAttribute('aria-valuetext', fmtClock(cur) + ' / ' + fmtClock(dur));
+    }
   }
+  /* 拖动中标记（paintAudio 读它决定要不要覆盖进度） */
+  var _seekDrag = false;
   /* 🔴 10/16 她报「听力音频播放不了」→ 本地/线上都复现不出（音频 200、duration 正常、无报错），
      她那边是 00:00 / 00:00 + 进度条塌成小点 = 元数据没加载（旧缓存版布局也印证）。
      不管根因是缓存还是网络/插件拦截，**失败必须是可见且可自救的**：在音频条上给提示 + 一键重试。 */
@@ -1589,6 +1629,55 @@ window.__reportExamState = reportExamState;
     });
     a.addEventListener('pause', paintAudio);
     a.addEventListener('ended', paintAudio);
+    /* 🔵 10-23 3-1：进度条拖动（练习模式）
+       点击已经在事件委托里走 audioSeek；这里补「按住拖动」——
+       pointerdown 起拖 → pointermove 实时改 currentTime → pointerup 结束。
+       ⚠️ 用 pointer 事件而不是 mouse：触屏 / 手写笔一起覆盖，一套代码。
+       ⚠️ setPointerCapture：手指拖出条外也要继续跟手，否则一动出条就断。 */
+    var seekBar = document.getElementById('eaBar');
+    if(seekBar && seekBar !== seekBar.__seekBound){
+      seekBar.__seekBound = seekBar;
+      var _seekTo = function(ev){
+        var a2 = document.getElementById('exAudio');
+        if(!a2 || !EX || !a2.duration) return;
+        if(EX.listenMode === 'exam' && !EX.submitted) return;
+        var r = seekBar.getBoundingClientRect();
+        var pct = Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width));
+        a2.currentTime = pct * a2.duration;
+        var f = document.getElementById('eaFill'), k = document.getElementById('eaKnob');
+        if(f) f.style.width = (pct * 100) + '%';
+        if(k) k.style.left = (pct * 100) + '%';
+      };
+      seekBar.addEventListener('pointerdown', function(ev){
+        if(EX && EX.listenMode === 'exam' && !EX.submitted) return;
+        _seekDrag = true;
+        try{ seekBar.setPointerCapture(ev.pointerId); }catch(e){}
+        _seekTo(ev);
+        ev.preventDefault();
+      });
+      seekBar.addEventListener('pointermove', function(ev){
+        if(!_seekDrag) return;
+        _seekTo(ev);
+      });
+      var _endDrag = function(ev){
+        if(!_seekDrag) return;
+        _seekDrag = false;
+        try{ seekBar.releasePointerCapture(ev.pointerId); }catch(e){}
+        paintAudio();
+      };
+      seekBar.addEventListener('pointerup', _endDrag);
+      seekBar.addEventListener('pointercancel', _endDrag);
+      /* 键盘：左右箭头 ±5 秒（进度条 tabindex=0，能 Tab 到才谈得上可访问） */
+      seekBar.addEventListener('keydown', function(ev){
+        if(ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') return;
+        var a3 = document.getElementById('exAudio');
+        if(!a3 || !a3.duration) return;
+        if(EX && EX.listenMode === 'exam' && !EX.submitted) return;
+        ev.preventDefault();
+        a3.currentTime = Math.max(0, Math.min(a3.duration, a3.currentTime + (ev.key === 'ArrowLeft' ? -5 : 5)));
+        paintAudio();
+      });
+    }
     paintAudio();
   }
   function lockAudioMode(){
@@ -1611,7 +1700,12 @@ window.__reportExamState = reportExamState;
     if(EX.listenMode === 'exam' && !EX.submitted) return;/* 考试模式：不给拖动（交卷后解锁） */
     var bar = document.getElementById('eaBar'); if(!bar || !a.duration) return;
     var r = bar.getBoundingClientRect();
-    a.currentTime = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * a.duration;
+    var pct = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+    a.currentTime = pct * a.duration;
+    /* 拖动即时反馈（不等 timeupdate，手感才跟得上） */
+    var fill = document.getElementById('eaFill'), knob = document.getElementById('eaKnob');
+    if(fill) fill.style.width = (pct * 100) + '%';
+    if(knob) knob.style.left = (pct * 100) + '%';
   }
   function audioSetMode(exam){
     EX.listenMode = exam ? 'exam' : 'practice';
@@ -1621,6 +1715,11 @@ window.__reportExamState = reportExamState;
     if(b){ b.classList.toggle('exam', !!exam); b.textContent = exam ? 'Exam mode' : 'Practice mode'; }
     var rt = bar.querySelector('[data-arate]');
     if(rt) rt.style.display = exam ? 'none' : '';
+    /* 🔵 10-23 3-1：练习/考试切换后播放控制组的显隐完全由 `.locked` 这个类决定
+       （CSS：`.ex-audio.locked .ea-play/.ea-bar/.ea-time/.ea-rate{display:none}`）——
+       所以这里不用重建 DOM、不用重绑监听，切回练习模式倍速和进度条就自己回来。
+       ⚠️ 早先写成「exam 分支干脆不渲染这些节点」，那样切模式就回不来了（本次已改成恒渲染 + 按类隐藏）。 */
+    try{ localStorage.setItem('hub_bank_lmode', exam ? 'exam' : 'practice'); }catch(e){}
   }
   function audioToggleMode(){
     if(!EX || EX.audioStarted) return;                   /* 已经开始播 → 锁死 */
@@ -3655,8 +3754,7 @@ window.__reportExamState = reportExamState;
         if(sl0) sl0.value = _audioMuted ? 0 : _audioVol;
         return;
       }
-      if(t.closest && t.closest('#eaBar')){ audioSeek(e); return; }
-      if((el = t.closest && t.closest('.ex-pill')) && !(EX && EX.submitted)){
+      if(t.closest && t.closest('#eaBar')){ audioSeek(e); return; }      if((el = t.closest && t.closest('.ex-pill')) && !(EX && EX.submitted)){
         var box = el.closest('.ex-pills');
         box.querySelectorAll('.ex-pill').forEach(function(p){ p.classList.remove('on'); });
         el.classList.add('on');
