@@ -309,9 +309,10 @@ var ACCT_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   function nextAfterLogin(){
     var f = '';
     try{ f = new URLSearchParams(location.search).get('from') || ''; }catch(_){ f = ''; }
+    /* 10-23：timer 入口撤掉（她拍板删服药/计时页），登录后回跳不再认它 */
     var ALLOW = { settings:'settings.html', plans:'plans.html', speaking:'speaking.html',
                   practice:'practice.html', writing:'writing.html', review:'review.html',
-                  timer:'timer.html', corpus:'corpus.html', vip:'vip.html' };
+                  corpus:'corpus.html', vip:'vip.html' };
     return ALLOW[f] || 'home.html';
   }
   window.nextAfterLogin = nextAfterLogin;   // 供验收探针读（生产无副作用）

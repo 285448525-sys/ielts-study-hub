@@ -32,7 +32,13 @@ const ICON = {
    软导航 / 侧栏高亮 / 部署探针 / 兜底跳转全部以这里为准，改文件名必须先改本表。 */
 const PAGES = [
   { id:'index',     file:'home.html',       icon:ICON.home,      name:'首页',       desc:'今日概览' },
-  { id:'timer',     file:'timer.html',     icon:ICON.timer,     name:'计时',   desc:'选模块开计时' },
+  /* 🔴 10-23 她拍板「把服药页计时页删掉不用做」→ 入口全摘，但**文件保留**：
+     · timer.html 还有进行中计时会话的结算/暂停恢复要跳它（common-shell.js:336 浮条停止）
+     · tests/_probe_notimer_1022.cjs [E] 段断言 timer.html 仍返回 200（故意不删）
+     · DATA.activeTimer / DATA.meds 的存储、同步字段一律不动（动就是改数据逻辑）
+     故这里加 hidden:true —— PAGES 保留（软导航/直达/探针都还能用），
+     但所有导航清单（PRIMARY_NAV / MORE_NAV / 更多面板 / 搜索 / 组页 / dock 成员）都不含它。 */
+  { id:'timer',     file:'timer.html',     icon:ICON.timer,     name:'计时',   desc:'选模块开计时', hidden:true },
   { id:'plans',     file:'plans.html',     icon:ICON.plans,     name:'计划',   desc:'每日清单 + AI 排周' },
   { id:'practice',  file:'practice.html',  icon:ICON.practice,  name:'单词',       desc:'学习与管理你的单词' },
   // 三合一入口：长难句 + 错题 + 听写（原听力 corpus + 词句 errorbook 合并）
@@ -49,7 +55,8 @@ const PAGES = [
   { id:'review',    file:'review.html',    icon:ICON.review,    name:'回顾',       desc:'模考成绩 + 学习轨迹' },
   { id:'vip',       file:'vip.html',       icon:ICON.vip,       name:'会员',       desc:'AI 无限用 + 专属权益' },  // 10/1 付费方案：非学习功能，不进 PRIMARY_NAV
   { id:'settings',  file:'settings.html',  icon:ICON.settings,  name:'设置',       desc:'同步 / AI / 数据' },
-  { id:'meds',      file:'meds.html',      icon:ICON.meds,      name:'服药',   desc:'专注达药效窗口' },  // ← 移到最后
+  /* 同上：10-23 她拍板删掉服药页入口 → hidden:true，文件与 DATA.meds 数据保留 */
+  { id:'meds',      file:'meds.html',      icon:ICON.meds,      name:'服药',   desc:'专注达药效窗口', hidden:true },  // ← 移到最后
   /* 10/4 18:42 她拍板「我就要一整个界面就行了」：三个组页（真实页面，不是弹出的浮层）。
      id 必须与文件名一致（软导航按 js/{id}.js 找主脚本）→ 组页共用 js/hubgroup.js，
      所以在 PAGES 里显式声明 hubScript:'hubgroup'，由软导航那段特殊处理。 */
@@ -96,10 +103,16 @@ const PRIMARY_NAV = ['index','bank','speaking','writing','practice','corpus','pl
 const CAP_ACTIVE = { 'plans-hub.html':'plans.html', 'study.html':'practice.html', 'me.html':'settings.html' };
 function capActiveFile(file){ return CAP_ACTIVE[file] || file; }
 /* 10/1 付费方案：vip 放分隔线下方首位（销售入口显眼但不挤占学习导航；她看过效果可再调位置） */
-const MORE_NAV    = ['vip','review','meds','settings'];
+/* 10-23 她拍板删服药页入口 → MORE_NAV 去掉 'meds'。
+   ⚠️ medsModuleOn() 保留（plans.js:545 的 AI prompt 仍读它拼服药上下文）。 */
+const MORE_NAV    = ['vip','review','settings'];
 const TAB_NAV     = ['index','practice','speaking'];   // 旧 tabbar 主项（组件已删，仅用于计算「更多」弹层要收纳哪些页面）
 // 底部 Tab 标签覆盖：practice 在站内含「单词」，但原型/验收确认为「背词」，单独对齐（不改 PAGES 以免影响桌面侧栏）
 const TAB_LABEL   = { practice:'背词' };
+
+/* 🔴 10-23「计时页/服药页删掉」的统一闸门：hidden:true 的页不进任何导航清单。
+   只过滤渲染层，PAGES 本身保留（软导航跳 hidden 页仍有效 —— 进行中的计时会话要跳 timer.html 结算）。 */
+function isNavHidden(p){ return !!(p && p.hidden); }
 
 /* ===== design/113A3a 落地批：home.html 专属顶栏（胶囊导航 + A3b 搜索框）=====
    落地顺序（她 10-21 拍板「先做这个」）：先首页+顶栏胶囊，再分页逐个换壳 →
@@ -122,14 +135,13 @@ function topBarHtml(current){
   // 10-21 22:4x：PRIMARY_NAV 已摘掉 'timer'，原来那句 `if(pid==='timer') continue;` 随之失效删除。
   let caps = '';
   for(const pid of PRIMARY_NAV){
-    const p = pageById(pid); if(!p) continue;
+    const p = pageById(pid); if(!p || isNavHidden(p)) continue;
     caps += '<a class="tb-item' + (p.file === activeFile ? ' on' : '') + '" href="' + p.file + '" data-id="' + p.id + '">' + escapeHtml(p.name) + '</a>';
   }
   // 「更多」面板 = 侧栏 MORE_NAV + 错句本（计时已撤；服药模块未开不出现）
   let moreItems = '';
-  for(const pid of ['wrongbook','review','vip','settings','meds']){
-    if(pid === 'meds' && !medsModuleOn()) continue;
-    const p = pageById(pid); if(!p) continue;
+  for(const pid of ['wrongbook','review','vip','settings']){
+    const p = pageById(pid); if(!p || isNavHidden(p)) continue;
     moreItems += '<a class="tb-more-item' + (p.file === activeFile ? ' on' : '') + '" href="' + p.file + '" data-id="' + p.id + '">'
       + '<span class="tm-ic">' + p.icon + '</span><span>' + escapeHtml(p.name) + '</span></a>';
   }
@@ -324,8 +336,8 @@ function injectNav(){
   for(const pid of PRIMARY_NAV){ const p = pageById(pid); if(p) html += sideItem(p, current); }
   html += '<div class="side-sep" role="separator"></div>';
   for(const pid of MORE_NAV){
-    if(pid === 'meds' && !medsModuleOn()) continue;    // 服药模块未开启 → 侧栏不出现
-    const p = pageById(pid); if(p) html += sideItem(p, current);
+    const p = pageById(pid); if(!p || isNavHidden(p)) continue;   // 10-23 hidden 页（计时/服药）不进侧栏
+    html += sideItem(p, current);
   }
   /* 三级权限（10-22）：管理员（机构教师 / 系统管理员）才多一格「学生数据」。
      普通用户 / 未登录 → 一个字都不出现（页面本身另有 fail-closed 门，这里只是别给假入口）。 */
@@ -382,7 +394,7 @@ function ssMatchPages(q){
     if(p.id === 'meds' && !medsModuleOn()) continue;    // 服药模块未开启 → 搜索不命中
     if(p.id === 'teacher' && !hubIsAdmin()) continue;   // 老师端只对管理员可搜（10-22）
     const page = PAGES.find(x => x.id === p.id);
-    if(!page) continue;
+    if(!page || isNavHidden(page)) continue;            // 10-23 hidden 页（计时/服药）搜不到
     const hay = (page.name + ' ' + p.kw + ' ' + (page.desc || '')).toLowerCase();
     if(hay.indexOf(q) !== -1) hits.push(page);
     if(hits.length >= 6) break;
@@ -757,8 +769,10 @@ const GROUPED_DOCK = [
     page:'plans', members:['plans'] },
   { id:'study',  label:'学习', icon:'<path d="M4 19.5V6a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-1.5z"/><path d="M4 19.5A2 2 0 0 1 6 18h13"/>',
     page:'study',     members:['practice','speaking','writing','bank','corpus'] },
+  /* 10-23 她拍板删服药页入口 → members 去掉 'meds'（文件与 DATA.meds 保留）。
+     timer 早在 10-21 就已从 members 撤掉（commit 47d39f9），这里不动。 */
   { id:'me',     label:'我的', icon:'<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/>',
-    page:'me',        members:['review','vip','settings','meds'] }
+    page:'me',        members:['review','vip','settings'] }
 ];
 
 /* 当前页属于哪个 dock 组 —— injectGlobalDock（首屏高亮）与 updateActiveNav（软导航高亮）

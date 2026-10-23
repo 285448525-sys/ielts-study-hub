@@ -895,9 +895,12 @@ function planJumpInfo(text){
        · 「计时」「番茄」直接认（无歧义）；
        · 「专注」必须搭配学习语义（一段/次/分钟/学习），排除「服专注达」。
      ⚠️ 服药模块任务（meds）本来就没有跳转目标，保持不可点是对的。 */
-  if(/计时|番茄/.test(t)) return { file: 'timer.html', open: '', label: '去计时' };
-  if(/专注/.test(t) && /一段|一次|分钟|学习|小时/.test(t) && !/服|药/.test(t))
-    return { file: 'timer.html', open: '', label: '去计时' };
+  /* 🔴 10-23 她拍板「把服药页计时页删掉不用做」→ 计时/专注类任务不再跳 timer.html
+     （入口已撤，跳过去是死路）。落到「不可点」分支（首页任务行显示为纯文本）。
+     ⚠️ 这里必须**继续**排除「服专注达」—— plans.js 的 DAILY 模板里那条是服药提醒，
+     与计时无关，本来就不可点；两条合并后行为不变。 */
+  if(/计时|番茄/.test(t)) return null;
+  if(/专注/.test(t) && /一段|一次|分钟|学习|小时/.test(t) && !/服|药/.test(t)) return null;
   if(/口语/.test(t)){
     let m = t.match(/题库(\d+)/);
     if(m){

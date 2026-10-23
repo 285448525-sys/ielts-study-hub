@@ -213,7 +213,9 @@ function renderStats(){
       || (typeof normalizePageFile === 'function' ? normalizePageFile(location.pathname.split('/').pop() || '') : '');
 
     const items = G.items.slice();
-    if(G.key === 'me' && medsOn()) items.push({ id:'meds', name:'服药', desc:'专注达药效窗口' });
+    /* 🔴 10-23 她拍板「把服药页计时页删掉不用做」→ 服药入口从「我的」组撤掉。
+       medsOn()/medsModuleOn() 保留（plans.js 的 AI prompt 仍读它拼服药上下文，别动）。 */
+    // if(G.key === 'me' && medsOn()) items.push({ id:'meds', name:'服药', desc:'专注达药效窗口' });
     /* 三级权限（10-22 第二批）：管理员在「我的」组里也能进「学生数据」。
        手机端底部 dock 只有四个组、侧栏是抽屉 —— 这里是最容易被找到的位置。
        角色读本地缓存（普通用户 / 未登录 → 看不到）；真正的门在 /api/roles。 */
