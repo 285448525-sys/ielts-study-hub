@@ -920,6 +920,30 @@ setTimeout(__rvRescue,2500);
   } else {
     bindStep5();
   }
+  /* ===== 步8：关于组版本号行（#setVerText）=====
+     显示当前文档的资产指纹（common.js / common-*系列 / data.js / common.css 的 ?v= 串拼接），
+     与 js/common-shell.js 的 navDeployProbe 同口径 —— 她报问题时这行就是「你跑到哪个版本」的凭据。 */
+  function fillVerText(){
+    var el = document.getElementById('setVerText');
+    if(!el || el.textContent) return;
+    var parts = [];
+    document.querySelectorAll('script[src^="js/"]').forEach(function(el2){
+      var base = (el2.getAttribute('src') || '').split('?')[0];
+      var m = (el2.getAttribute('src') || '').match(/v=([0-9a-z]+)/);
+      if(base === 'js/data.js' || base === 'js/common.js' || base.indexOf('js/common-') === 0){
+        parts.push(base.replace(/^js\//, '') + ':' + (m ? m[1] : ''));
+      }
+    });
+    var css = document.querySelector('link[href*="common.css"]');
+    var cm = css ? (css.getAttribute('href') || '').match(/v=([0-9a-z]+)/) : null;
+    parts.push('common.css:' + (cm ? cm[1] : ''));
+    el.textContent = parts.join(' · ');
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', fillVerText);
+  } else {
+    fillVerText();
+  }
   /* 首次进入若 URL 无 pane，补一个（刷新后停在同一组） */
   setTimeout(function(){
     var on = document.querySelector('.set-nav-item.on');
