@@ -2570,11 +2570,13 @@ function hubLoad(){
              · 用户自建模板（id 不在母本里）一律跳过，绝不覆盖；
              · 用户填过的内容不在 skeleton 里（存在 writingFills），所以刷新不丢她的填空；
              · title / level / category 一并同步，避免「内容升级了标题还写 5 分档」。
-           ⚠️ 墓碑（deletedIds）里的 id 仍跳过，删过的不会被复活。 */
+           ⚠️ 墓碑（deletedIds）只管「不复活已经不存在的」，不管「本机还在的」——
+              实测她的 wt_c / wt_d 两条既在墓碑里又还在本地（历史删除后又回来过），
+              若也按墓碑跳过，这两套会永远停在 79 词的旧骨架。所以这里只按「本机存在」判断。 */
         if(Array.isArray(DATA.writing) && DEFAULT_WRITING_TEMPLATES.length){
           const seedById = new Map(DEFAULT_WRITING_TEMPLATES.map(t => [t.id, t]));
           DATA.writing.forEach(t => {
-            if(!t || !t.id || deletedIds.has(t.id)) return;
+            if(!t || !t.id) return;
             const seed = seedById.get(t.id);
             if(!seed || !seed.skeleton) return;
             if(t.skeleton !== seed.skeleton){ t.skeleton = seed.skeleton; wdirty = true; }
