@@ -18,7 +18,7 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>模考 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261023v" />
+<link rel="stylesheet" href="css/common.css?v=20261023w" />
 <link rel="stylesheet" href="css/p/bank.css?v=20261017a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
@@ -1306,6 +1306,30 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
   /* 深色主题：浅底高亮在深底上会很刺眼，换成半透明主色 */
   #examRoot.ct-dark .ex-script .sc-line:hover,
   #examRoot.ct-yellow .ex-script .sc-line:hover{background:rgba(255,255,255,.06)}
+  /* 3-2（7-2 核心三条之三）：答案句 —— 行首 Q 徽章 + 播到该句时整行 .hit */
+  /* 3-2：复盘态音频条 —— 交卷后音频要留在原文区上方、一直可见（精听就是反复回听）。
+     sticky 让它随原文滚动时贴在滚动区顶部；.review 只在 showScript 之后才加。 */
+  #examRoot .ex-audio.review{position:sticky;top:0;z-index:6;
+    box-shadow:0 6px 16px -12px rgba(16,24,40,.5);border-bottom:1px solid var(--line)}
+  /* 3-2：答案句 —— 行首 Q 徽章 + 播到该句时整行 .hit */
+  .ex-script .sc-line .sc-q{
+    flex:none;width:34px;font-style:normal;font-size:10.5px;font-weight:700;letter-spacing:.02em;
+    line-height:1.5;text-align:center;border-radius:5px;
+    color:var(--primary-800);background:var(--primary-100);
+  }
+  .ex-script .sc-line .sc-q--none{background:none}
+  .ex-script .sc-line.sc-ans .sc-tx{color:var(--n-900)}
+  .ex-script .sc-line.sc-ans .sc-t{color:var(--primary-text);font-weight:700}
+  .ex-script .sc-line.hit{background:var(--primary-100);border-left-color:var(--primary-700)}
+  .ex-script .sc-line.hit .sc-q{color:var(--on-primary);background:var(--primary-600)}
+  #examRoot.ct-dark .ex-script .sc-line.hit,
+  #examRoot.ct-yellow .ex-script .sc-line.hit{background:rgba(92,179,171,.30);border-left-color:#8fe0d6}
+  #examRoot.ct-dark .ex-script .sc-line .sc-q,
+  #examRoot.ct-yellow .ex-script .sc-line .sc-q{color:#8fe0d6;background:rgba(92,179,171,.22)}
+  #examRoot.ct-dark .ex-script .sc-line.sc-ans .sc-tx,
+  #examRoot.ct-yellow .ex-script .sc-line.sc-ans .sc-tx{color:#eef3f2}
+  #examRoot.ct-dark .ex-script .sc-line.hit .sc-q,
+  #examRoot.ct-yellow .ex-script .sc-line.hit .sc-q{color:#0f3330;background:#8fe0d6}
   #examRoot.ct-dark .ex-script .sc-line.on,
   #examRoot.ct-yellow .ex-script .sc-line.on{background:rgba(92,179,171,.22)}
   #examRoot.ct-dark .ex-script .sc-line.on .sc-tx,
@@ -1992,13 +2016,13 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
      （手机慢网 ~50KB/s → 约 1.5 秒）。加载时机：点开「写作」tab 时按序插入；
      首次 load 之后空闲再预热一次。承接代码在 js/bank.js 的 loadWritingScripts()。 -->
 <script defer src="js/data.js?v=20261023b"></script>
-<script defer src="js/common.js?v=20261023v"></script>
-<script defer src="js/common-ai.js?v=20261023v"></script>
-<script defer src="js/common-sync.js?v=20261023v"></script>
-<script defer src="js/common-merge.js?v=20261023v"></script>
-<script defer src="js/common-cloud.js?v=20261023v"></script>
-<script defer src="js/common-shell.js?v=20261023v"></script>
-<script defer src="js/common-pwa.js?v=20261023v"></script>
-<script defer src="js/bank.js?v=20261023g"></script>
+<script defer src="js/common.js?v=20261023w"></script>
+<script defer src="js/common-ai.js?v=20261023w"></script>
+<script defer src="js/common-sync.js?v=20261023w"></script>
+<script defer src="js/common-merge.js?v=20261023w"></script>
+<script defer src="js/common-cloud.js?v=20261023w"></script>
+<script defer src="js/common-shell.js?v=20261023w"></script>
+<script defer src="js/common-pwa.js?v=20261023w"></script>
+<script defer src="js/bank.js?v=20261023w"></script>
 </body>
 </html>

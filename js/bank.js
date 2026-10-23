@@ -1749,6 +1749,13 @@ window.__reportExamState = reportExamState;
     if(bar){
       var b = bar.querySelector('[data-amode]');
       if(b){ b.disabled = true; b.classList.remove('exam'); b.textContent = 'Submitted'; }
+      /* 3-2（7-2 核心三条之一、二）：交卷后仍然可播、可拖、可调倍速 —— 精听就是在复盘页发生的。
+         原来 audioSetMode(false) 已经把 .locked 摘掉（播放控制组回来），这里只补两件事：
+         ① 音频条加 .review 标记（CSS 让它在复盘区固定显眼）
+         ② 确保倍速 select 不被禁用（曾经 exam 模式把它 display:none，切回练习后要显式复原） */
+      bar.classList.add('review');
+      var rt2 = bar.querySelector('.ea-rate');
+      if(rt2){ rt2.style.display = ''; rt2.disabled = false; }
     }
     /* 3-4：时间轴到了就把原文换成可点句子条 */
     mountScriptTimeline();
@@ -1787,6 +1794,8 @@ window.__reportExamState = reportExamState;
       rows.forEach(function(el, i){
         var on = (i === idx);
         if(el.classList.contains('on') !== on){ el.classList.toggle('on', on); changed = true; }
+        /* 3-2：播到答案句时额外加 .hit（更醒目的底 + 徽章点亮）；只在这一句时成立 */
+        el.classList.toggle('hit', on && el.classList.contains('sc-ans'));
         if(on) el.setAttribute('aria-current', 'true'); else el.removeAttribute('aria-current');
       });
       if(changed && EX._stFollow !== false){
@@ -1803,9 +1812,17 @@ window.__reportExamState = reportExamState;
     var render = function(lines){
       _stLines = lines;
       box.classList.add('sc-tl');
+      /* 3-2（7-2 核心三条之三）：答案句高亮。
+         answerQ / answerText 由 bank/timeline/*.json 预先标注（答案取自 bank/answers/*.json，
+         按「答案串出现在该句里」反查，只加字段、没改任何时间与原文）。
+         行首挂 Q 徽章；音频播到该句时整行加 .hit。 */
       box.innerHTML = lines.map(function(l, i){
-        return '<p class="sc-line" data-i="' + i + '" data-t="' + l.start + '">'
+        var qs = (l.answerQ && l.answerQ.length) ? l.answerQ : null;
+        var badge = qs ? '<i class="sc-q" title="第 ' + qs.join(' / ') + ' 题答案句">Q' + qs.join('·Q') + '</i>' : '<i class="sc-q sc-q--none" aria-hidden="true"></i>';
+        return '<p class="sc-line' + (qs ? ' sc-ans' : '') + '" data-i="' + i + '" data-t="' + l.start + '"'
+             + (qs ? ' data-q="' + qs.join(',') + '"' : '') + '>'
              + '<i class="sc-t">' + fmtClock(l.start) + '</i>'
+             + badge
              + '<span class="sc-tx">' + esc(l.text || '') + '</span></p>';
       }).join('');
       /* 事件：点句子 → 跳到这句开头并播（复听场景，点就是想听这句） */
