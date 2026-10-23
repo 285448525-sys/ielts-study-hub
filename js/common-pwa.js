@@ -148,6 +148,15 @@ function maybeShowSwUpdatePrompt(version){
     if(_isOffline || navigator.onLine === false) return;                    // design/79 离线闸：离线不弹
     if(swUpdateBusy()) return;                                              // 答题中/引导中不弹（且不计入已弹）
     if(document.getElementById(SWU_BAR_ID)) return;                         // 单例
+    /* 🔴 10-23 HOTFIX 部署风暴：每会话最多弹 1 次「发现新版本」条。
+       背景 = 施工流水线一天 bump 31 次 SW：每次 activate 都 postMessage 一次 SW_UPDATED，
+       虽有 SWU_SEEN_KEY 守卫，但「她点了稍后 / 换了页面」后下个版本又弹 → 顶部反复冒条
+       = 她报的「UI 闪来闪去」之一。现在一个会话只打扰一次；真更新由 10 分钟一轮的
+       部署探针在页面稳定时统一收口（common-shell.js navDeployProbe）。 */
+    let shown = 0;
+    try{ shown = Number(sessionStorage.getItem('hub_sw_prompt_count') || 0); }catch(e){}
+    if(shown >= 1) return;
+    try{ sessionStorage.setItem('hub_sw_prompt_count', String(shown + 1)); }catch(e){}
     const bar = document.createElement('div');
     bar.id = SWU_BAR_ID;
     bar.className = 'sw-update-bar';

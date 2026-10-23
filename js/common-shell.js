@@ -550,8 +550,13 @@ let _navSelfHealing = false;
 function navSelfHealReload(){
   if(_navOfflineHold) return;               // design/79 离线闸：离线期间不自愈（探针必失败，reload 只会连放）
   if(_navSelfHealing) return;
+  /* 🔴 10-23 HOTFIX 部署风暴：软导航进行中绝不自愈 reload。
+     pushState 在 runPageScript 之后才执行 —— 导航中途 reload 会落在**旧页 URL** 上，
+     她感知到的就是「点进一个子页面又突然弹回别的页面」。改为：导航中的漂移只记录，
+     由周期探针（现 10 分钟一探）在页面稳定后收口。 */
+  if(_softNavBusy){ console.warn('[hub] 软导航进行中 → 本次自愈推迟（不打断切换）'); return; }
   /* 🔴 10/20 模考锁：自愈 reload 会把正在模考的人整页刷出去（=「莫名其妙弹出去」）。
-     探针每 60s 跑一次（见下方 setInterval），她只要在模考里待够 45s~1min，
+     探针周期 10-23 起从 60s 放宽到 10min（见 navDeployProbe），她只要在模考里待够几分钟，
      探针一探到线上有新版就 navSelfHealReload() → location.reload() → 考场连同已答内容全没。
      修法：模考中**推迟**自愈（把「现在不能刷」记下来），交卷/退出模考后若仍需要再刷。
      ⚠️ 用「延迟」而不是「跳过」：否则她退出模考后会一直卡在旧版本，
@@ -563,7 +568,7 @@ function navSelfHealReload(){
   }
   try{
     const last = Number(sessionStorage.getItem('hub_nav_v_rl') || 0);
-    if(Date.now() - last < 60000) return;   // 60s 内已自愈过：不再 reload（病态环境下防循环）
+    if(Date.now() - last < 300000) return;   // 10-23 HOTFIX：5 分钟内已自愈过不再 reload（原 60s，部署密集日会连环刷）
     sessionStorage.setItem('hub_nav_v_rl', String(Date.now()));
   }catch(e){ return; }                       // sessionStorage 不可用（隐私模式等）→ 放弃自愈，绝不敢乱 reload
   _navSelfHealing = true;
@@ -575,7 +580,7 @@ function navHardHeal(){
   if(_navOfflineHold) return;               // design/79 离线闸：离线期间绝不注销 SW / 清缓存
   try{
     const lastHard = Number(sessionStorage.getItem('hub_nav_hard_rl') || 0);
-    if(Date.now() - lastHard < 60000) return;   // 60s 内已放过一次核武：绝不连放（防 unregister/reload 风暴）
+    if(Date.now() - lastHard < 1800000) return;   // 10-23 HOTFIX：30 分钟内只允许一次核武（原 60s；每次核武=整站缓存清空重下，慢网下就是数分钟卡顿）
     sessionStorage.setItem('hub_nav_hard_rl', String(Date.now()));
     sessionStorage.setItem('hub_nav_v_rl', String(Date.now()));   // 记入节流：hard heal 后 60s 内不再软自愈
     sessionStorage.setItem('hub_nav_heal_n', '0');                // 清零漂移计数
@@ -604,8 +609,13 @@ function navVersionCheck(file, doc){
   if(!prev || !prev.v) return;               // 首次获取该页：没有同页基线，绝不比对
   const v = docScriptVersion(doc);
   if(!v || v === prev.v) return;
-  console.warn('[hub] 检测到本页部署更新（基线 ' + prev.v + ' / 最新 ' + v + '），自动刷新以加载新版');
-  navSelfHealReload();
+  /* 🔴 10-23 HOTFIX 部署风暴：软导航途中的「同页基线漂移」只记录不打断。
+     原实现这里直接 navSelfHealReload() → 正在切换的路上整页 reload →
+     URL 还停在旧页（pushState 未执行）→ 她看到「点进 A 页又弹回 B 页」。
+     现在：软导航中只更新基线（下次该页走内存缓存，不会再误判），
+     版本收口交给 navDeployProbe 在页面稳定后的下一轮探测。 */
+  console.warn('[hub] 检测到本页部署更新（基线 ' + prev.v + ' / 最新 ' + v + '）' + (_softNavBusy ? ' · 软导航中，不打断切换，等周期探针收口' : '，自动刷新以加载新版'));
+  if(!_softNavBusy) navSelfHealReload();
 }
 /* 9/15 二修补充——内存命中路径的残余漏洞：缓存命中时校验的是「缓存文档 vs 启动指纹」，
    部署“之前”就已缓存的页面二者相同，永远检不出漂移（之之实锤：回顾页跨部署二次进入仍是旧渲染）。
@@ -679,19 +689,24 @@ function initOfflineBar(){
   /* ⭐ 10/8 晚：部署探针补第四触发源——定时器。
      此前 navDeployProbe 只在软导航时触发（navGetDoc），她今晚整晚停在写作页里点 tab/考试，
      没有任何软导航 → 自愈永远不跑 → 卡旧版整晚（10/8 第五次事故的直接放大器）。
-     每 60s 主动探一次（函数自带 60s 节流 + 每 boot 一次升级闸 + 离线闸，防风暴闸门全部沿用）。 */
+     🔴 10-23 HOTFIX 部署风暴：周期从 60s 放宽到 10min。
+     背景 = 施工进入多窗口流水线（当日 08:20~20:26 共 31 次 SW bump，平均 23 分钟一次），
+     60s 一探意味着「每次部署后的 1 分钟内她必被自动刷新一次」，再叠上 SW activate 的
+     c.navigate 强刷与 hard-heal 清缓存，就是她报的「闪来闪去 / UI 时好时坏 / 特别卡」。
+     10min 探测下更新最多延迟 10 分钟生效——远优于每小时被打断数次。
+     （函数自带节流 + 每 boot 一次升级闸 + 离线闸 + 5min 自愈冷却，防风暴闸门全部沿用。） */
   setInterval(() => {
     try{ if(typeof navDeployProbe === 'function' && !_navOfflineHold) navDeployProbe(); }catch(e){}
-  }, 60000);
-  // 首探延后 45s：给 boot 自身的 PRECORE/同步让路（她的慢网络），避免开机就抢带宽
-  setTimeout(() => { try{ if(!_navOfflineHold) navDeployProbe(); }catch(e){} }, 45000);
+  }, 600000);
+  // 首探延后 2min：给 boot 自身的 PRECORE/同步让路（她的慢网络），避免开机就抢带宽
+  setTimeout(() => { try{ if(!_navOfflineHold) navDeployProbe(); }catch(e){} }, 120000);
 }
 
 function navDeployProbe(){
   if(_navOfflineHold) return;   // design/79 离线闸：离线期间不探测（不判定、不计数、不 reload）
-  // 节流间隔可由 localStorage hub_probe_interval 覆盖（回归测试注入短间隔用；普通用户无此 key = 60s）
-  let iv = 60000;
-  try{ iv = Number(localStorage.getItem('hub_probe_interval')) || 60000; }catch(e){}
+  // 节流间隔可由 localStorage hub_probe_interval 覆盖（回归测试注入短间隔用；普通用户无此 key = 10min）
+  let iv = 600000;
+  try{ iv = Number(localStorage.getItem('hub_probe_interval')) || 600000; }catch(e){}
   if(_probeBusy || Date.now() - _probeAt < iv) return;
   _probeAt = Date.now(); _probeBusy = true;
   fetch('home.html?_probe=' + Date.now(), { cache: 'no-store' })
@@ -712,6 +727,9 @@ function navDeployProbe(){
         try{ n = Number(sessionStorage.getItem('hub_nav_heal_n') || 0); }catch(e){}
         n += 1;
         try{ sessionStorage.setItem('hub_nav_heal_n', String(n)); }catch(e){}
+        // 🔴 10-23 HOTFIX 部署风暴：软导航进行中不打断（pushState 未落 → reload 会弹回旧页）。
+        //    导航中的漂移本 boot 已被 _probeHandledThisBoot 记录，页面稳定后的下一轮探测会再收口。
+        if(_softNavBusy){ console.warn('[hub] 探针检测到站点已更新（运行 ' + BOOT_SCRIPT_V + ' / 线上 ' + v + '）· 软导航中，本轮不打断，等页面稳定后收口'); return; }
         console.warn('[hub] 探针检测到站点已更新（运行 ' + BOOT_SCRIPT_V + ' / 线上 ' + v + '）' +
           (n >= 2 ? '，连续 ' + n + ' 轮未恢复 → 硬自愈' : '，自动刷新'));
         if(n >= 2){ navHardHeal(); return; }
