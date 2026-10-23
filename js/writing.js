@@ -1,3 +1,5 @@
+/* 10-23 W-1：curCat = null 表示「不限分类」（改后筛选带默认全部）。
+   旧逻辑里「没选就回落到第一个分类」已经撤掉 —— 现在首屏要能一次看到 42 套里的前 8+ 张。 */
 var curCat = null;
 var curId = null;
 var curTab = 'tpl';
@@ -353,9 +355,12 @@ function migrateWritingCategoryNames(){
   });
   if(changed) hubSave();
 }
+/* ===== 10-23 W-1：横向筛选带（撤左栏后接手 15 项筛选）=====
+   方案 §二.2：三段分组 —— 目标分（全部 + 有模板的档位）/ Task 2 五类 / Task 1 四类；
+   段与段之间 1px 竖线；不换行、横向可滚（CSS 的 .wb-filters overflow-x:auto）。
+   🔴 数据只读：分类顺序、计数、档位集合全部照旧从 DATA.writing 推，42 套模板一个字没动。
+   🔴 保留旧函数名 renderCats（外部调用点不动），内部改成渲染筛选带 + 列表。 */
 function renderCats(){
-  /* 10/2（她拍板）：分类栏固定显示雅思作文全类型——大作文补齐 5 类（新增「优缺点型」「双问题型」，
-     暂无模板的先空着显示 ·0），小作文 4 类不动；数据里的自定义分类追加在「自定义」组。 */
   const CAT_TASK2 = ['观点型','讨论型','优缺点型','Report','双问题型'];
   const CAT_TASK1 = ['动态图','静态图','地图题','流程图'];
   const order = CAT_TASK2.concat(CAT_TASK1);
@@ -363,38 +368,37 @@ function renderCats(){
   DATA.writing.forEach(t => { const c = cleanCatName(t.category); if(!order.includes(c) && !extra.includes(c)) extra.push(c); });
   const all = order.concat(extra);
   const cntOf = c => DATA.writing.filter(t => cleanCatName(t.category) === c).length;
-  const nav = $('#catNav');
-  // 不存在就回落到一个还存在的分类（9/16 修的口径，保留）
-  if(!curCat || !all.includes(curCat)) curCat = all[0];
-  const btn = c => '<button class="btn' + (c===curCat?' active':'') + '" data-cat="' + escapeHtml(c) + '"><span class="cat-name">' + escapeHtml(c) + '</span><span class="cat-cnt">' + cntOf(c) + '</span></button>';
-  /* 10/10 模板分档：目标分筛选（一档 0.5 分）。两条设计约束——
-     ① **只在有模板的档位渲染按钮**：没有的档不显示「6.5 · 0」，否则看起来站内是空的；
-     ② 档位尽量自动：LV_ORDER 只用来**保证顺序**（5.5→7.0），数据里若出现了表外档位，
-        按首次出现顺序排在表内档位之后 —— 加新档位不用改这里的代码。
-        ⚠️ 10/11 修正：原注释写「档位从数据动态收集」**说大了** —— 实际只是固定表 LV_ORDER
-        按「有没有模板」过滤。7.0 能自动出现，是因为 7.0 本来就写在表里，不是因为动态收集。
-        探针用 8.0 验证时才暴露：表外档位根本不会出现按钮。现改为「固定表 ∪ 数据实际档位」。
-     老数据没有 level 字段时按 5.5 处理（与 data.js 的补字段迁移同口径）。 */
+  /* 目标分档位：固定表 ∪ 数据实际档位，只保留有模板的（与改前同口径，见 10/11 修正注释） */
   const LV_ORDER = ['5.5', '6.0', '6.5', '7.0'];
   const lvOf = t => t.level || '5.5';
   const lvCount = lv => DATA.writing.filter(t => lvOf(t) === lv).length;
-  // 数据里出现、但不在 LV_ORDER 里的档位（按首次出现顺序排在其后）
   const lvExtra = [];
   DATA.writing.forEach(t => { const lv = lvOf(t); if(LV_ORDER.indexOf(lv) < 0 && lvExtra.indexOf(lv) < 0) lvExtra.push(lv); });
   const lvChips = LV_ORDER.concat(lvExtra).filter(lv => lvCount(lv) > 0);
   if(curLevel !== 'all' && !lvChips.includes(curLevel)) curLevel = 'all';
-  const lvBar = lvChips.length
-    ? '<div class="lv-bar"><span class="lv-bar-lb">目标分</span>'
-      + '<button type="button" class="lv-chip' + (curLevel === 'all' ? ' active' : '') + '" data-lv="all">全部<span class="lv-cnt">' + DATA.writing.length + '</span></button>'
-      + lvChips.map(lv => '<button type="button" class="lv-chip' + (curLevel === lv ? ' active' : '') + '" data-lv="' + lv + '">' + lv + ' 分<span class="lv-cnt">' + lvCount(lv) + '</span></button>').join('')
-      + '</div>'
-    : '';
-  nav.innerHTML = lvBar
-    + '<div class="cat-group-label">大作文 · Task 2</div>' + CAT_TASK2.map(btn).join('')
-    + '<div class="cat-group-label">小作文 · Task 1</div>' + CAT_TASK1.map(btn).join('')
-    + (extra.length ? '<div class="cat-group-label">自定义</div>' + extra.map(btn).join('') : '');
-  nav.querySelectorAll('[data-cat]').forEach(b => b.addEventListener('click', () => { curCat = b.dataset.cat; renderCats(); renderList(); }));
-  nav.querySelectorAll('[data-lv]').forEach(b => b.addEventListener('click', () => { curLevel = b.dataset.lv; renderCats(); renderList(); }));
+  /* 「全部」= 当前 Task 分组下全选（不跨大小作文）；分类 chip 点一下切 curCat */
+  const task2All = CAT_TASK2.filter(c => cntOf(c) > 0);
+  const task1All = CAT_TASK1.filter(c => cntOf(c) > 0);
+
+  const chipLv = lv => '<button type="button" class="fchip' + (curLevel === lv ? ' on' : '')
+    + '" data-lv="' + lv + '">' + (lv === 'all' ? '全部' : lv)
+    + '<span class="lv-cnt">' + (lv === 'all' ? DATA.writing.length : lvCount(lv)) + '</span></button>';
+  const chipCat = c => '<button type="button" class="fchip' + (curCat === c ? ' on' : '')
+    + '" data-cat="' + escapeHtml(c) + '">' + escapeHtml(c)
+    + '<span class="lv-cnt">' + cntOf(c) + '</span></button>';
+
+  const host = $('#wbFilters');
+  if(!host){ renderList(); return; }
+  let html = '<span class="flb">目标分</span>' + chipLv('all') + lvChips.map(chipLv).join('');
+  html += '<span class="fsep" role="separator"></span>';
+  html += '<span class="flb">Task 2</span>' + task2All.map(chipCat).join('');
+  if(extra.length) html += extra.map(chipCat).join('');   /* 自定义分类归到 Task 2 段尾 */
+  html += '<span class="fsep" role="separator"></span>';
+  html += '<span class="flb">Task 1</span>' + task1All.map(chipCat).join('');
+  host.innerHTML = html;
+
+  host.querySelectorAll('[data-cat]').forEach(b => b.addEventListener('click', () => { curCat = b.dataset.cat; renderCats(); }));
+  host.querySelectorAll('[data-lv]').forEach(b => b.addEventListener('click', () => { curLevel = b.dataset.lv; renderCats(); }));
   renderList();
 }
 
@@ -451,7 +455,10 @@ function markTplViewBtns(){
 }
 
 function renderList(){
-  let list = DATA.writing.filter(t => t.category === curCat);
+  /* 10-23 W-1：撤左栏后不再「一次只看一个分类」——筛选带按段分组，
+     分类选中 = 过滤该分类；不选（curCat 为空）= 该 Task 下全部。
+     兼容旧行为：curCat 命中具体分类时仍只看那一个分类（点击 chip 时写入）。 */
+  let list = curCat ? DATA.writing.filter(t => cleanCatName(t.category) === curCat) : DATA.writing.slice();
   // 10/10：目标分档筛选（老数据无 level → 视作 5.5，与 renderCats 同口径）
   if(curLevel !== 'all') list = list.filter(t => (t.level || '5.5') === curLevel);
   if(tplSearch){ list = list.filter(t => (cleanCatName(t.title)+' '+t.category).toLowerCase().indexOf(tplSearch) !== -1); }
@@ -473,6 +480,13 @@ function renderList(){
     box.innerHTML = list.map(t => tplCardHtml(t, lockTag)).join('');
   }
   $('#empty').hidden = list.length > 0;
+  /* W-1：标题行套数（全库 42 套 · 大作文 N / 小作文 M）—— 只读统计，不参与筛选 */
+  const cntEl = document.getElementById('tplCountText');
+  if(cntEl){
+    const T2 = ['观点型','讨论型','优缺点型','Report','双问题型'];
+    const big = DATA.writing.filter(t => T2.includes(cleanCatName(t.category))).length;
+    cntEl.textContent = DATA.writing.length + ' 套 · 大作文 ' + big + ' / 小作文 ' + (DATA.writing.length - big);
+  }
   box.querySelectorAll('[data-id]').forEach(c => c.addEventListener('click', () => openTpl(c.dataset.id)));
 }
 
