@@ -68,13 +68,20 @@
   /* 10/10 模板分档：目标分筛选（左栏顶部）+ 模板卡上的档位徽章 */
   .cat-nav .lv-bar{display:flex;flex-direction:column;gap:4px;padding-bottom:9px;border-bottom:1px solid var(--line);margin-bottom:5px}
   .cat-nav .lv-bar-lb{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.05em;margin:0 2px 1px}
+  /* 🔴 B-1c 小步2：这组「目标分」chip 与下方的分类按钮**同处一个 160px 列**，
+     原来两套选中态并排（这里 = primary-50 淡底，下面 = 实心主色），看过去就是不一致。
+     现在统一到该列已有语言：圆角对齐 --radius-sm（12，与 .cat-nav button 的 .btn 基座一致）、
+     选中 = 实心主色 + 白字。
+     ⚠️ **不改成 .pill-tab**（方案原话「全部收敛到 pill」这条在此不成立）：pill-tab 是
+     横向药丸（padding 10px 22px、font 14px），而这里是**竖直堆叠 + 右侧计数徽章**的次级筛选，
+     套上会直接破版。紧凑尺寸（6px 10px / 12.5px）保留，因为它是次级控件、不是主导航。 */
   .cat-nav .lv-chip{display:flex;align-items:center;justify-content:space-between;gap:6px;text-align:left;
     font-size:12.5px;font-weight:600;padding:6px 10px;min-height:0;border:1px solid var(--line);
-    border-radius:8px;background:var(--surface);color:var(--ink);cursor:pointer;transition:.15s}
+    border-radius:var(--radius-sm);background:var(--surface);color:var(--ink);cursor:pointer;transition:.15s}
   .cat-nav .lv-chip:hover{border-color:var(--primary-300);color:var(--primary-700)}
-  .cat-nav .lv-chip.active{background:var(--primary-50);border-color:var(--primary-400);color:var(--primary-text);font-weight:700}
+  .cat-nav .lv-chip.active{background:var(--primary);border-color:var(--primary);color:var(--on-primary);font-weight:700}
   .cat-nav .lv-chip .lv-cnt{font-size:11px;color:var(--muted);font-weight:600}
-  .cat-nav .lv-chip.active .lv-cnt{color:var(--primary-text)}
+  .cat-nav .lv-chip.active .lv-cnt{color:rgba(255,255,255,.85)}
   .tpl-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:5px}
   .tpl-lv{font-size:11px;font-weight:700;color:var(--primary-text);background:var(--primary-50);
     border:1px solid var(--primary-200);border-radius:999px;padding:1px 8px;white-space:nowrap}
@@ -95,12 +102,12 @@
   .tpl-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;
     margin-top:10px;font-size:11.5px;color:var(--muted)}
   .tpl-go{font-size:12px;font-weight:700;color:var(--primary-text);white-space:nowrap}
-  /* 视图切换（网格 / 列表） */
-  .tpl-view{display:flex;gap:6px;margin-left:auto}
-  .tpl-view button{font-size:12px;font-weight:600;padding:5px 11px;min-height:0;border:1px solid var(--line);
-    border-radius:8px;background:var(--surface);color:var(--muted);cursor:pointer;transition:.15s}
-  .tpl-view button:hover{border-color:var(--primary-300);color:var(--primary-700)}
-  .tpl-view button.active{background:var(--primary-50);border-color:var(--primary-400);color:var(--primary-text);font-weight:700}
+  /* 视图切换（网格 / 列表）—— B-1c 小步2：自建按钮收敛到全站 pill 家族
+     （容器 = .pill-tabs，按钮 = .pill-tab，与顶部「模板/语料/评分」同一套组件）。
+     与 .write-tabs .pill-tab 同款做法：只覆盖尺寸，视觉语言（选中=实心主色+白字）一律沿用全局定义，
+     不再各写一套底色/边框。⚠️ JS 只读 data-view + 切 .active 类，换类名对它是透明的。 */
+  .tpl-view{margin-left:auto;padding:2px}
+  .tpl-view .pill-tab{padding:5px 11px;font-size:12px;font-weight:600;gap:0;border-radius:999px}
   /* 列表视图：目标分 / 模板+结构提示 / 题型 / 段数 / 打开 */
   #tplList.tpl-list{display:block;background:var(--surface);border:1px solid var(--line);
     border-radius:var(--radius);overflow:hidden}
@@ -568,9 +575,10 @@ body.exam-fullscreen .hub-topbar{display:none !important}
         <section class="card" id="listCard">
           <div class="form-row" style="align-items:center">
             <h2 style="margin:0">模板列表</h2>
-            <div class="tpl-view" id="tplView">
-              <button type="button" data-view="grid" class="active" aria-pressed="true">网格</button>
-              <button type="button" data-view="list" aria-pressed="false">列表</button>
+            <!-- B-1c 小步2：收敛到全站 pill 家族（与顶部 tab 同组件，只覆盖尺寸） -->
+            <div class="tpl-view pill-tabs" id="tplView">
+              <button type="button" data-view="grid" class="pill-tab active" aria-pressed="true">网格</button>
+              <button type="button" data-view="list" class="pill-tab" aria-pressed="false">列表</button>
             </div>
           </div>
           <p style="font-size:12px;color:var(--muted);margin:7px 0 0">卡片直接露「结构提示 + 骨架首句」，不点开也能判断这套要不要用；列表视图一屏能扫更多套。</p>
