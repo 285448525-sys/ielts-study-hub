@@ -91,6 +91,7 @@
   /* === 阴影三档：纯黑低透明，比原 teal 阴影更轻 === */
   /* 两段式轻投影：1px 贴边 + 8px 扩散 → 卡片自然"浮"起又不厚重 */
   --shadow:0 1px 2px rgba(16,24,40,.04),0 8px 24px -4px rgba(16,24,40,.06);
+  --shadow-lift:0 2px 4px rgba(16,24,40,.05),0 12px 28px -4px rgba(16,24,40,.10);
   --shadow-md:0 10px 30px rgba(0,0,0,.07);
   --shadow-lg:0 20px 52px rgba(0,0,0,.10);
   --shadow-card-hover:0 2px 4px rgba(16,24,40,.05),0 12px 28px -4px rgba(16,24,40,.10);
@@ -184,6 +185,7 @@
   --danger-soft:#3a2626;
   --danger-text:#e7a3a2;
   --shadow:0 1px 2px rgba(0,0,0,.30),0 8px 24px rgba(0,0,0,.24);
+  --shadow-lift:0 2px 6px rgba(0,0,0,.34),0 14px 32px rgba(0,0,0,.30);
   --shadow-md:0 8px 24px rgba(0,0,0,.35);
   --shadow-lg:0 18px 48px rgba(0,0,0,.45);
   --shadow-card-hover:0 2px 4px rgba(0,0,0,.34),0 12px 28px -4px rgba(0,0,0,.30);

@@ -31,7 +31,7 @@
 })();
 </script>
 <title>口语 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261023q" />
+<link rel="stylesheet" href="css/common.css?v=20261023r" />
 <link rel="stylesheet" href="css/p/speaking.css?v=20261017a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
@@ -43,13 +43,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
   <script defer src="js/data.js?v=20261022d"></script>
-  <script defer src="js/common.js?v=20261023q"></script>
-  <script defer src="js/common-ai.js?v=20261023q"></script>
-  <script defer src="js/common-sync.js?v=20261023q"></script>
-  <script defer src="js/common-merge.js?v=20261023q"></script>
-  <script defer src="js/common-cloud.js?v=20261023q"></script>
-  <script defer src="js/common-shell.js?v=20261023q"></script>
-  <script defer src="js/common-pwa.js?v=20261023q"></script>
+  <script defer src="js/common.js?v=20261023r"></script>
+  <script defer src="js/common-ai.js?v=20261023r"></script>
+  <script defer src="js/common-sync.js?v=20261023r"></script>
+  <script defer src="js/common-merge.js?v=20261023r"></script>
+  <script defer src="js/common-cloud.js?v=20261023r"></script>
+  <script defer src="js/common-shell.js?v=20261023r"></script>
+  <script defer src="js/common-pwa.js?v=20261023r"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
@@ -1981,6 +1981,305 @@ html[data-theme="dark"] .mat-q{background:var(--surface);border-color:rgba(255,2
    顶栏壳同样要收掉，否则顶栏浮在考场上方、44px 让位把考场往下挤出视口 */
 body.mock-immerse[data-shell="top"]{padding-top:0 !important}
 body.mock-immerse .hub-topbar{display:none !important}
+</style>
+<!-- T-017d（2026-10-23）：串题页（详情页）打磨。
+     设计稿 design/_mock-串题页-打磨方案-2026-10-23.html，她点头过的那版，1:1 落地。
+     ⚠️ 只加视觉层：所有业务 id（aiStoryLinkBtn / aiResult / p3* / p2Ans / p2Note / p2Diag /
+        p2Clear / p2TimerBtn / p2FinishBtn / p2NextBtn）一个不动，点击逻辑一行没改。 -->
+<style id="t017dDetailRestyle">
+/* ============ ① 题头卡 ============ */
+#detailBody .sp-topic-block{
+  position:relative;overflow:hidden;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:22px 26px 20px;margin-bottom:16px;box-shadow:var(--shadow);
+}
+#detailBody .sp-topic-block::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:linear-gradient(180deg,var(--primary-300),var(--primary-600));
+}
+/* 标题 30px → 23px（设计稿口径） */
+#detailBody .sp-detail-title{
+  font-size:23px;line-height:1.35;letter-spacing:-.01em;font-weight:800;
+  margin:0 0 6px;color:var(--ink);
+}
+/* 题头小标签行 */
+#detailBody .td-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+#detailBody .td-chip{font-size:11.5px;font-weight:700;letter-spacing:.02em;padding:3px 9px;border-radius:6px;line-height:1.5}
+#detailBody .td-chip.part{background:var(--primary-500);color:#fff}
+#detailBody .td-chip.cat{background:var(--primary-50);color:var(--primary-800);border:1px solid var(--primary-100)}
+#detailBody .td-chip.freq{background:#fdf6e3;color:#8a6a12;border:1px solid #f2e4bf}
+#detailBody .td-chip.plain{background:var(--surface-2);color:var(--muted);border:1px solid var(--line);font-weight:600}
+
+/* 中文副标 */
+#detailBody .sp-detail-zh{font-size:13.5px;color:var(--muted);margin:0 0 16px;line-height:1.6}
+
+/* You should say：四条 → 编号圆圈列表 */
+#detailBody .sp-prompt{
+  background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius-sm);
+  padding:13px 16px 14px;font-size:14px;line-height:1.65;color:var(--ink-2);margin:0 0 16px;
+}
+#detailBody .sp-prompt .td-ysay-t{
+  font-size:11.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:9px;
+}
+#detailBody .sp-ysay-list{counter-reset:tdb;margin:0;padding:0}
+#detailBody .sp-ysay-list > div{
+  counter-increment:tdb;position:relative;padding-left:26px;
+  font-size:14px;line-height:1.65;color:var(--ink-2);margin:5px 0;
+}
+#detailBody .sp-ysay-list > div::before{
+  content:counter(tdb);position:absolute;left:0;top:2px;
+  width:18px;height:18px;border-radius:50%;
+  background:var(--primary-100);color:var(--primary-800);
+  font-size:10.5px;font-weight:800;line-height:18px;text-align:center;
+}
+#detailBody .sp-ysay-list b{display:block;font-size:11.5px;font-weight:800;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:9px}
+
+/* ============ ② 串题素材卡（主角） ============ */
+#detailBody .sp-tool-card{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:0;margin-bottom:16px;overflow:hidden;box-shadow:var(--shadow);
+}
+#detailBody .sp-tc-head{
+  display:flex;align-items:center;gap:10px;padding:16px 22px;
+  border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,var(--surface),var(--surface-2));margin-bottom:0;
+}
+#detailBody .sp-tc-ic{
+  width:30px;height:30px;border-radius:9px;flex:none;
+  background:var(--primary-soft);color:var(--primary-800);
+  display:flex;align-items:center;justify-content:center;font-size:15px;
+}
+#detailBody .sp-tc-head b{font-size:15.5px;font-weight:800;margin:0;letter-spacing:-.005em;color:var(--ink)}
+#detailBody .sp-tc-sub{font-size:12.5px;color:var(--muted);margin-left:2px}
+#detailBody .sp-tc-hint{
+  font-size:12.5px;color:var(--muted);line-height:1.6;
+  padding:14px 22px 0;
+}
+#detailBody .sp-tc-head .btn{margin-left:auto}
+#detailBody .sp-story-head{padding:14px 22px 0}
+#detailBody .sp-story-title{
+  display:flex;align-items:center;gap:8px;
+  font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
+}
+#detailBody .sp-story-title::after{content:"";flex:1;height:1px;background:var(--line)}
+#detailBody .sp-ai-result{padding:12px 22px 22px}
+
+/* 串题逻辑：虚线段落 → 编号步骤块。
+   ⚠️ 串题结果由 renderChuanFinal / renderStoryLink 等函数输出，类名是 .mat-logic（一整段文本），
+   **不新建一套 .td-logic** —— 那几个函数一个都不会吐新类。改法：作用域卡在 #detailBody .sp-ai-result
+   里，用 ::before 的计数块把它切成行（见 addLogicSteps 的改造说明）。 */
+#detailBody .sp-ai-result .mat-plan{padding:0;background:none;border:0;margin-top:0;font-size:14px;line-height:1.8}
+#detailBody .sp-ai-result .mat-plan-head{
+  font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
+  margin:0 0 10px;padding-bottom:10px;border-bottom:1px solid var(--line);
+}
+#detailBody .sp-ai-result .mat-plan-sec > b{
+  display:flex;align-items:center;gap:8px;
+  font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
+  margin:16px 0 9px;
+}
+#detailBody .sp-ai-result .mat-plan-sec > b::after{content:"";flex:1;height:1px;background:var(--line)}
+#detailBody .sp-ai-result .mat-logic li{
+  position:relative;padding:10px 12px 10px 40px;
+  border-radius:var(--radius-sm);font-size:14px;line-height:1.7;color:var(--ink-2);
+  background:var(--surface-2);border:1px solid transparent;margin-bottom:6px;transition:.15s;
+  list-style:none;
+}
+#detailBody .sp-ai-result .mat-logic li:hover{background:var(--primary-50);border-color:var(--primary-100)}
+#detailBody .sp-ai-result .mat-logic li b{color:var(--primary-800);font-weight:700}
+/* 没有 li 的老格式（一整段文字）：用 ::before 挂个数字，靠 addLogicSteps 切行才真正成块 */
+#detailBody .sp-ai-result .mat-logic.td-plain{
+  counter-reset:tds;background:none;border:0;padding:0;
+}
+#detailBody .sp-ai-result .mat-logic.td-plain > .td-step{
+  counter-increment:tds;position:relative;padding:10px 12px 10px 40px;
+  border-radius:var(--radius-sm);font-size:14px;line-height:1.7;color:var(--ink-2);
+  background:var(--surface-2);border:1px solid transparent;margin-bottom:6px;transition:.15s;
+}
+#detailBody .sp-ai-result .mat-logic.td-plain > .td-step:hover{background:var(--primary-50);border-color:var(--primary-100)}
+#detailBody .sp-ai-result .mat-logic.td-plain > .td-step::before{
+  content:counter(tds);position:absolute;left:12px;top:10px;
+  width:20px;height:20px;border-radius:6px;
+  background:var(--primary-500);color:#fff;
+  font-size:11px;font-weight:800;line-height:20px;text-align:center;
+}
+
+/* 串题原文：左侧 3px 品牌边 + 浅渐变底 + 15px/1.85
+   ⚠️ 同一套作用域思路：.mat-story-en 在素材库/出题页也用，只认 #detailBody .sp-ai-result 里的这一份。 */
+#detailBody .sp-ai-result .mat-story-en{
+  position:relative;border:1px solid var(--primary-100);border-left:3px solid var(--primary-500);
+  background:linear-gradient(180deg,var(--primary-50),var(--surface));
+  border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:16px 18px;
+  white-space:normal;
+}
+#detailBody .sp-ai-result .mat-story-en p{margin:0 0 10px;font-size:15px;line-height:1.85;color:var(--ink)}
+#detailBody .sp-ai-result .mat-story-en p:last-of-type{margin-bottom:0}
+/* 底部虚线工具条：复用已在页面上的「复制 / 朗读 / 关键词」按钮（mp-btn），只换皮不新建 */
+#detailBody .sp-ai-result .mp-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:999px;
+  border:1px solid var(--primary-200);background:var(--surface);color:var(--primary-800);
+  cursor:pointer;transition:.15s;font-family:inherit;
+}
+#detailBody .sp-ai-result .mp-btn:hover{background:var(--primary-soft);border-color:var(--primary-300)}
+#detailBody .sp-ai-result .mp-actions{
+  display:flex;gap:8px;flex-wrap:wrap;margin-top:0;padding-top:0;
+}
+/* 把工具条压到原文块下方、用虚线隔开（视觉上与设计稿的工具条一致） */
+#detailBody .sp-ai-result .mat-plan-head .mp-actions{margin-left:auto}
+
+/* 提示/补充块：设计稿叫「加时必背句」，但数据里**没有这个字段**（AI 不产出它），
+   凭空造就是造假数据。这里把现存的 .sp-weak-note（P3 风险提示 / AI 补细节提示）换成同款浅黄底小块 ——
+   位置、位置感一样，内容是真的。 */
+#detailBody .sp-ai-result .sp-weak-note{
+  border:1px solid #f2e4bf;background:#fffdf5;border-radius:var(--radius-sm);
+  padding:13px 16px;margin-top:16px;font-size:14px;line-height:1.7;color:var(--ink-2);
+}
+#detailBody .sp-ai-result .sp-weak-note a{color:#8a6a12;font-weight:700}
+
+/* ============ ③ 作答卡：视觉抬起来 ============ */
+#detailBody .sp-p2-answer{
+  background:var(--surface);border:1px solid var(--primary-200);
+  border-radius:var(--radius);padding:0;margin-bottom:16px;box-shadow:var(--shadow-lift);
+  overflow:hidden;
+}
+#detailBody .sp-p2-answer .td-anshead{
+  display:flex;align-items:center;gap:10px;padding:16px 22px;
+  background:var(--primary-50);border-bottom:1px solid var(--primary-100);
+}
+#detailBody .sp-p2-answer .td-anshead .ic{
+  width:30px;height:30px;border-radius:9px;flex:none;
+  background:var(--surface);color:var(--primary-800);
+  display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:var(--shadow);
+}
+#detailBody .sp-p2-answer .td-anshead h2{font-size:15.5px;font-weight:800;margin:0;color:var(--primary-900);letter-spacing:-.005em}
+#detailBody .sp-p2-answer .td-anshead .sub{font-size:12.5px;color:var(--primary-800);opacity:.8;margin-left:2px}
+#detailBody .sp-p2-answer .td-ansbody{padding:20px 22px 22px}
+/* 备注输入 */
+#detailBody .sp-p2-answer .sp-note-input{
+  width:100%;height:42px;padding:0 14px;margin-bottom:12px;
+  border:1px dashed var(--line);border-radius:var(--radius-sm);
+  background:transparent;color:var(--ink);font:inherit;font-size:13.5px;
+  box-sizing:border-box;transition:.15s;
+}
+#detailBody .sp-p2-answer .sp-note-input::placeholder{color:var(--muted);opacity:.8}
+#detailBody .sp-p2-answer .sp-note-input:hover{border-color:var(--primary-300);background:var(--primary-50)}
+#detailBody .sp-p2-answer .sp-note-input:focus{outline:none;border-style:solid;border-color:var(--primary);background:var(--surface);box-shadow:0 0 0 4px var(--primary-50)}
+/* 作答框 */
+#detailBody .sp-p2-answer .sp-ans{
+  width:100%;min-height:150px;padding:14px 16px;
+  border:1px solid var(--line);border-radius:var(--radius-sm);
+  background:var(--surface);color:var(--ink);font:inherit;font-size:15px;line-height:1.8;
+  resize:vertical;transition:.15s;box-sizing:border-box;margin-bottom:0;
+}
+#detailBody .sp-p2-answer .sp-ans:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-50)}
+/* 底部操作条：按钮左、词数右 */
+#detailBody .sp-p2-answer .sp-q-btns{
+  display:flex;align-items:center;gap:8px;margin-top:14px;flex-wrap:wrap;
+}
+#detailBody .td-wordcount{
+  margin-left:auto;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;
+}
+#detailBody .td-wordcount b{color:var(--primary-800)}
+
+/* ============ ④ P3 追问：浅紫小卡 → 整条通栏 ============ */
+#detailBody .sp-tool-card-p3{
+  display:flex;align-items:center;gap:14px;
+  background:linear-gradient(135deg,#f5f2ff,#fbfaff);
+  border:1px solid #e3dcff;border-radius:var(--radius);
+  padding:16px 20px;margin-bottom:16px;box-shadow:none;
+}
+#detailBody .sp-tool-card-p3 .sp-tc-head{
+  display:flex;align-items:center;gap:14px;flex:1;min-width:0;
+  padding:0;border:0;background:none;margin:0;
+}
+#detailBody .sp-tool-card-p3 .sp-tc-badge{
+  width:32px;height:32px;border-radius:10px;flex:none;
+  background:#7c5cd6;color:#fff;display:flex;align-items:center;justify-content:center;
+  font-size:0;position:relative;
+}
+#detailBody .sp-tool-card-p3 .sp-tc-badge::before{
+  content:"💬";font-size:15px;line-height:1;
+}
+#detailBody .sp-tool-card-p3 .sp-tc-sub{
+  font-size:13px;color:#6b5fa0;line-height:1.55;margin:0;flex:1;min-width:0;
+}
+#detailBody .sp-tool-card-p3 .sp-tc-head .btn{
+  background:#7c5cd6;color:#fff;border-color:transparent;flex:none;margin-left:auto;
+}
+#detailBody .sp-tool-card-p3 .sp-tc-head .btn:hover{background:#6b4cc4}
+#detailBody .sp-tool-card-p3 .sp-p3-area{width:100%}
+#detailBody .sp-tool-card-p3[data-has-p3="1"],
+#detailBody .sp-tool-card-p3:has(.sp-p3-area:not([hidden])){display:block}
+
+/* ============ ⑤ 底部粘条 ============ */
+#detailBody .td-dock{
+  position:fixed;left:0;right:0;bottom:0;z-index:20;
+  background:rgba(255,255,255,.92);backdrop-filter:blur(10px);
+  border-top:1px solid var(--line);
+}
+#detailBody .td-dock-in{
+  max-width:1120px;margin:0 auto;padding:12px 24px;
+  display:flex;align-items:center;gap:10px;
+}
+#detailBody .td-dock .hint{font-size:12.5px;color:var(--muted)}
+#detailBody .td-dock .sp{margin-left:auto}
+/* 粘条占位：给 body 底部留出空间，免得最后一行被盖住 */
+body.td-dock-on{padding-bottom:72px}
+
+/* ============ 响应式 ============ */
+@media (max-width:820px){
+  #detailBody .sp-topic-block{padding:18px 18px 16px}
+  #detailBody .sp-detail-title{font-size:19px}
+  #detailBody .sp-tc-head{padding:14px 16px}
+  #detailBody .sp-tc-hint,#detailBody .sp-story-head,#detailBody .sp-ai-result{padding-left:16px;padding-right:16px}
+  #detailBody .sp-p2-answer .td-anshead{padding:14px 16px}
+  #detailBody .sp-p2-answer .td-ansbody{padding:16px}
+  #detailBody .td-dock-in{padding:10px 14px}
+  #detailBody .sp-tool-card-p3{flex-wrap:wrap}
+  #detailBody .sp-tool-card-p3 .sp-tc-head .btn{width:100%;justify-content:center;margin-left:0}
+  #detailBody .td-dock .hint{display:none}
+}
+
+/* ============ 深色兜底（每批必验项） ============ */
+html[data-theme="dark"] #detailBody .sp-topic-block{background:var(--surface);border-color:rgba(255,255,255,.10)}
+html[data-theme="dark"] #detailBody .sp-prompt{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.10)}
+html[data-theme="dark"] #detailBody .sp-ysay-list > div::before{background:rgba(58,154,147,.28);color:var(--primary-200)}
+html[data-theme="dark"] #detailBody .td-chip.freq{background:rgba(253,246,227,.12);color:#e5c87a;border-color:rgba(242,228,191,.24)}
+html[data-theme="dark"] #detailBody .td-chip.plain{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.10)}
+html[data-theme="dark"] #detailBody .sp-tc-head{background:linear-gradient(180deg,var(--surface),rgba(255,255,255,.03));border-bottom-color:rgba(255,255,255,.10)}
+html[data-theme="dark"] #detailBody .sp-tc-ic{background:rgba(58,154,147,.20);color:var(--primary-200)}
+html[data-theme="dark"] #detailBody .sp-ai-result .mat-logic.td-plain > .td-step{background:rgba(255,255,255,.045)}
+html[data-theme="dark"] #detailBody .sp-ai-result .mat-logic.td-plain > .td-step:hover{background:rgba(58,154,147,.14);border-color:rgba(58,154,147,.24)}
+html[data-theme="dark"] #detailBody .sp-ai-result .mat-logic.td-plain > .td-step b{color:var(--primary-200)}
+html[data-theme="dark"] #detailBody .sp-ai-result .mat-story-en{background:rgba(255,255,255,.045);border-color:rgba(58,154,147,.24);border-left-color:var(--primary-500)}
+html[data-theme="dark"] #detailBody .sp-ai-result .mat-story-en p{color:var(--ink)}
+html[data-theme="dark"] #detailBody .sp-ai-result .mat-plan-head{border-bottom-color:rgba(255,255,255,.10)}
+html[data-theme="dark"] #detailBody .sp-ai-result .mp-btn{background:transparent;border-color:rgba(58,154,147,.30);color:var(--primary-200)}
+html[data-theme="dark"] #detailBody .sp-ai-result .mp-btn:hover{background:rgba(58,154,147,.16)}
+html[data-theme="dark"] #detailBody .sp-ai-result .mat-logic.td-plain > .td-step{color:var(--ink-2)}
+html[data-theme="dark"] #detailBody .sp-ai-result .sp-weak-note{background:rgba(253,246,227,.08);border-color:rgba(242,228,191,.22);color:var(--ink-2)}
+html[data-theme="dark"] #detailBody .sp-ai-result .sp-weak-note a{color:#e5c87a}
+html[data-theme="dark"] #detailBody .sp-p2-answer{background:var(--surface);border-color:rgba(58,154,147,.30)}
+html[data-theme="dark"] #detailBody .sp-p2-answer .td-anshead{background:rgba(58,154,147,.16);border-bottom-color:rgba(58,154,147,.26)}
+html[data-theme="dark"] #detailBody .sp-p2-answer .td-anshead h2{color:var(--primary-200)}
+html[data-theme="dark"] #detailBody .sp-p2-answer .td-anshead .sub{color:var(--primary-200);opacity:.75}
+html[data-theme="dark"] #detailBody .sp-p2-answer .td-anshead .ic{background:rgba(255,255,255,.08);color:var(--primary-200)}
+html[data-theme="dark"] #detailBody .sp-p2-answer .sp-note-input{background:rgba(255,255,255,.05);color:var(--ink);border-color:rgba(255,255,255,.12)}
+html[data-theme="dark"] #detailBody .sp-p2-answer .sp-note-input:focus{background:var(--surface)}
+html[data-theme="dark"] #detailBody .sp-p2-answer .sp-ans{background:rgba(255,255,255,.05);color:var(--ink);border-color:rgba(255,255,255,.12)}
+html[data-theme="dark"] #detailBody .sp-tool-card-p3{background:linear-gradient(135deg,rgba(124,92,214,.16),rgba(255,255,255,.03));border-color:rgba(124,92,214,.34)}
+html[data-theme="dark"] #detailBody .sp-tool-card-p3 .sp-tc-sub{color:#b9aef0}
+html[data-theme="dark"] #detailBody .td-dock{background:rgba(20,26,25,.92);border-top-color:rgba(255,255,255,.10)}
+html[data-theme="dark"] #detailBody .td-wordcount{color:var(--muted)}
+html[data-theme="dark"] #detailBody .td-wordcount b{color:var(--primary-200)}
+/* ===== T-017d：工具区从「两列并排」改回单列竖排 =====
+   设计稿里串题素材是整页主角、P3 是它下面一条通栏，两列并排会让 P3 被拉伸成一大块空白。
+   只在本页（#detailBody）覆盖，别处 .sp-tools-wrap 不受影响。 */
+#detailBody .sp-tools-wrap{display:block;grid-template-columns:none;gap:0;margin:0}
+
 </style>
 <!-- 10/4 16:10 陪练页整体改版（她 16:00 拍板：微信聊天布局 + 卡片化 + 标题左对齐 + 教练台别占右边）
      放在旧 coach 样式【之后】靠覆盖生效 —— 旧块里有大量 10/2~10/3 的实测约束（flex 撑高链、

@@ -1080,6 +1080,40 @@ function spCardHtml(s){
 /* design/12 一期骨架卡已于 design/16 P0 退场（按钮/面板/链常量删除）；
    s.answers.p2.skeleton 数据字段与云同步保留不删，已填数据他机仍可见。 */
 
+
+/* T-017d：串题逻辑在数据里是一整段文本（j.logicChain / j.mappingZh），不是数组。
+   设计稿要求编号步骤块 → 这里按句末标点/换行/分号切成若干行，包成 .td-step，
+   外层加 .td-plain 让 CSS 走「逐行编号」那条分支。
+   切不出 2 行就原样保留一整块 —— 绝不硬拆，免得把一句话拆断。
+   纯展示层：只读 DOM 文本再重建，不动任何数据字段。 */
+function addLogicSteps(root){
+  if(!root) return;
+  root.querySelectorAll('.mat-logic').forEach(box => {
+    if(box.dataset.tdSteps === '1') return;
+    if(box.querySelector('li, .td-step')) { box.dataset.tdSteps = '1'; return; }
+    const raw = (box.textContent || '').trim();
+    if(!raw) return;
+    let parts = raw.split(/\n+/).map(x => x.trim()).filter(Boolean);
+    if(parts.length < 2){
+      parts = raw.split(/(?<=[。；;！!？?])\s*/).map(x => x.trim()).filter(Boolean);
+    }
+    if(parts.length < 2) return;   // 一句话就够，不硬拆
+    box.classList.add('td-plain');
+    box.innerHTML = parts.map(x => '<div class="td-step">' + escapeHtml(x) + '</div>').join('');
+    box.dataset.tdSteps = '1';
+  });
+}
+
+/* T-017d：作答词数。现算，不引依赖。 */
+function updateWordCount(){
+  const ta = document.getElementById('p2Ans');
+  const out = document.getElementById('p2WordCount');
+  if(!out) return;
+  const t = ta ? String(ta.value || '').trim() : '';
+  const n = t ? t.split(/\s+/).filter(Boolean).length : 0;
+  out.innerHTML = '已写 <b>' + n + '</b> 词 · 目标 220';
+}
+
 // 诊断/评分保存后，同步更新列表 badge 与详情页头部分数
 function refreshScoreAfterDiag(s){
   if(!s) return;
@@ -1104,9 +1138,17 @@ function openDetail(id){
   $('#detailView').hidden = false;
 
   const title = s.titleEn || s.title || '';
-  // 10/2（她拍板）：详情头部只留总标题——kicker（SPEAKING·PART x）/ 中文副标 / 标签行 / 平均分行全部删掉
+  /* 10/2（她拍板）：详情头部只留总标题——kicker（SPEAKING·PART x）/ 中文副标 / 标签行 / 平均分行全部删掉
+     10-23 T-017d：设计稿把它请回来了一部分 —— 三枚小标签（P2 / 人物 / 高频）+ 23px 标题，
+     中文副标留在题头里。标签只渲染**数据里真有的**，没有就不渲染，绝不编。 */
+  const __chips = [];
+  if(s.type) __chips.push('<span class="td-chip part">' + escapeHtml(s.type) + '</span>');
+  if(s.category) __chips.push('<span class="td-chip cat">' + escapeHtml(s.category) + '</span>');
+  if(s.frequency) __chips.push('<span class="td-chip freq">' + escapeHtml(s.frequency) + '</span>');
   let html = '<div class="sp-topic-block">'
+    + (__chips.length ? '<div class="td-chips">' + __chips.join('') + '</div>' : '')
     + '<div class="sp-detail-title">' + escapeHtml(title) + '</div>'
+    + (s.promptZh ? '<div class="sp-detail-zh">' + escapeHtml(s.promptZh) + '</div>' : '')
     + '</div>';
 
   // P1 问题列表（逐题可点开 + 录 + 诊断）；9/15 之之：删「Part 1 小问题…」说明行
@@ -1119,27 +1161,43 @@ function openDetail(id){
   // P2 单窗口答题（不分小问题，一次性作答 2 分钟）
   if(s.type === 'P2'){
     // P2 提示卡：题目 + You should say: 子提示统一合并到同一个 sp-prompt 白底黑字块（与官方题卡一致）
-    if(s.promptEn) html += '<div class="sp-prompt">题目：' + escapeHtml(s.promptEn);
-    if(s.youShouldSay && s.youShouldSay.length){
-      html += '<div class="sp-ysay-list"><b>You should say:</b>'
-        + s.youShouldSay.map(b => '<div>· ' + escapeHtml(b) + '</div>').join('')
-        + '</div>';
+    /* T-017d：题目 + You should say 合并成一张卡；四条子提示改编号圆圈列表。
+       中文副标已经提到题头卡里了，这里不再重复一遍。 */
+    if(s.promptEn || (s.youShouldSay && s.youShouldSay.length)){
+      html += '<div class="sp-prompt">';
+      if(s.promptEn) html += '<div class="td-ysay-t">题目</div><div style="margin-bottom:12px">' + escapeHtml(s.promptEn) + '</div>';
+      if(s.youShouldSay && s.youShouldSay.length){
+        html += '<div class="td-ysay-t">You should say</div>'
+          + '<div class="sp-ysay-list">'
+          + s.youShouldSay.map(b => '<div>' + escapeHtml(b) + '</div>').join('')
+          + '</div>';
+      }
+      html += '</div>';
     }
-    if(s.promptEn) html += '</div>';
-    if(s.promptZh) html += '<div class="sp-detail-zh" style="margin-bottom:12px">' + escapeHtml(s.promptZh) + '</div>';
 
+    /* T-017d：作答卡视觉抬起来（浅品牌底卡头 + 更重阴影），与上面"参考用的"串题卡一眼分开。
+       🔴 卡头是新加的装饰层，不承担任何逻辑；下面所有业务 id 原样保留、顺序不变。 */
     html += '<div class="sp-p2-answer">';
+    html += '<div class="td-anshead">'
+      +   '<span class="ic">✍️</span>'
+      +   '<h2>你的作答</h2>'
+      +   '<span class="sub">照着上面串题原文讲一遍，或者用自己的话</span>'
+      + '</div>';
+    html += '<div class="td-ansbody">';
     // design/17 3.3：一句话备注（存 answers.p2.note，防抖 600ms 云同步）
-    html += '<input class="pd-input sp-note-input" id="p2Note" placeholder="一句话备注（提醒自己怎么答）" autocomplete="off">';
-    html += '<textarea class="sp-ans" id="p2Ans" placeholder="在这里写下你的 Part 2 回答（目标写满 2 分钟的内容）…"></textarea>';
+    html += '<input class="pd-input sp-note-input" id="p2Note" placeholder="一句话备注（提醒自己怎么答、用什么例子）" autocomplete="off">';
+    html += '<textarea class="sp-ans" id="p2Ans" placeholder="在这里写下你的 Part 2 回答，目标讲满 2 分钟（约 220–260 词）…"></textarea>';
     html += '<div class="sp-q-btns">';
     html += '<button class="sp-diag" id="p2Diag" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;flex:none"><path d="M12 2l2.4 5.1 5.6.8-4 4.1 1 5.6-5-2.7-5 2.7 1-5.6-4-4.1 5.6-.8z"/></svg>AI 纠错</button>';
     html += '<button class="sp-ans-clear" id="p2Clear" type="button">清空</button>';
     html += '<button class="sp-timer-btn" id="p2TimerBtn" type="button" title="开始 2 分钟倒计时，逼自己讲满 2 分钟">⏱ 2分钟</button>';
     html += '<span class="sp-timer-display" id="p2TimerDisplay" hidden>02:00</span>';
+    // T-017d：词数（现算，不引新依赖；textarea.value.trim().split(/\s+/).length）
+    html += '<span class="td-wordcount" id="p2WordCount">已写 <b>0</b> 词 · 目标 220</span>';
     html += '</div>';
     html += '<div class="sp-q-result" id="p2Result"></div>';
     html += '<div class="sp-rec-list" id="p2Records"></div>';
+    html += '</div>';
     html += '</div>';
   }
 
@@ -1195,11 +1253,29 @@ function openDetail(id){
     html += '</div>';
     html += '</div>';
 
+    /* T-017d：底部粘条的两个按钮 —— 只转发点击，不复制逻辑（老按钮与其 handler 原样在下面绑） */
+    const tdDone = document.getElementById('tdDockDone');
+    if(tdDone) tdDone.addEventListener('click', () => { const b = document.getElementById('p2FinishBtn'); if(b) b.click(); });
+    const tdNext = document.getElementById('tdDockNext');
+    if(tdNext) tdNext.addEventListener('click', () => { const b = document.getElementById('p2NextBtn'); if(b) b.click(); });
+
     // 底部动作栏：下一大题/完成（P3 展示完后出现在最底）
     html += '<div class="sp-bottom-bar" id="p2BottomBar" hidden>';
     html += '<button class="btn btn-med" id="p2FinishBtn2" type="button">完成</button>';
     html += '<button class="btn btn-primary" id="p2NextBtn2" type="button">下一大题 →</button>';
     html += '</div>';
+
+    /* T-017d：底部粘条 —— 滚到哪都够得着「标为已练 / 下一大题」。
+       按钮是**新建的兄弟节点**（tdDockDone / tdDockNext），点击时转发给原来的
+       p2FinishBtn / p2NextBtn，老按钮与其点击逻辑一行没改。 */
+    html += '<div class="td-dock" id="detailDock">'
+      +   '<div class="td-dock-in">'
+      +     '<span class="hint">这道题还没标熟练度</span>'
+      +     '<span class="sp"></span>'
+      +     '<button class="btn btn-med" id="tdDockDone" type="button">标为已练</button>'
+      +     '<button class="btn btn-primary" id="tdDockNext" type="button">下一大题 →</button>'
+      +   '</div>'
+      + '</div>';
   }
 
   // 底部动作区：9/15 之之 — P1 删除「保存/删除此题/下一个话题」三按钮（草稿自动落库，无需保存）；
@@ -1208,6 +1284,18 @@ function openDetail(id){
   html += '</div>';
 
   $('#detailBody').innerHTML = html;
+  /* T-017d：设计稿的区块顺序是「题头 → 串题素材（主角）→ 你的作答 → P3 追问」，
+     而原代码是「作答 → 串题 → P3」。这里只调 DOM 顺序，不重排任何生成逻辑、不动任何 id：
+     把作答卡挪到串题卡后面，再把 P3 条挪到作答卡后面。 */
+  if(s.type === 'P2'){
+    const __wrap = $('#p2ToolsWrap'), __ans = document.querySelector('#detailBody .sp-p2-answer'), __p3 = $('#p2ToolB');
+    if(__wrap && __ans && __p3 && __wrap.parentNode){
+      __wrap.insertAdjacentElement('afterend', __ans);
+      __ans.insertAdjacentElement('afterend', __p3);
+    }
+  }
+  addLogicSteps($('#aiResult'));   // T-017d：串题逻辑整段 → 编号步骤块（纯展示层）
+  updateWordCount();               // T-017d：词数初值
   spAutoGrowAll();   // 9/15：已存草稿的输入框初始渲染即按内容增高
 
   // 绑定事件（9/15 之之：P1 保存/删除/下一话题三按钮已删，草稿输入即自动落库）
@@ -1283,7 +1371,10 @@ function openDetail(id){
     if(p2Diag) p2Diag.addEventListener('click', e => { e.stopPropagation(); diagnoseP2(id); });
     // 9/13 修：P2 大答案框同样输入即存草稿（原只能靠点「保存」或 AI 诊断）
     const p2AnsEl = document.getElementById('p2Ans');
-    if(p2AnsEl) p2AnsEl.addEventListener('input', () => spDraftSave(id, 'p2', p2AnsEl.value));
+    if(p2AnsEl) p2AnsEl.addEventListener('input', () => {
+      spDraftSave(id, 'p2', p2AnsEl.value);
+      updateWordCount();   // T-017d：词数随输入实时变
+    });
     // 9/22 之之：回车即 AI 纠错（Shift+Enter 换行；纠错中按钮 disabled 天然防连击）
     bindEnterSubmit(p2AnsEl, p2Diag);
     const p2Clear = document.getElementById('p2Clear');
@@ -1521,6 +1612,7 @@ function openDetail(id){
       // 回填 AI 串题方案（design/87：新结构走 V2 渲染，旧结构在 V2 内部兜底走旧渲染原样保留）
       if(s.answers.p2.aiStoryLink){
         renderStoryLinkV2($('#aiResult'), s.answers.p2.aiStoryLink, s);
+        addLogicSteps($('#aiResult'));   // T-017d：回填的稿子同样要切编号块
       }
       /* 回填已生成的 P3 追问列表 + 答案。
          10/3 B 版：统一走 showP3Area()（原先这里手抄了一份显示逻辑，漏掉了「已答 N 题」提示
