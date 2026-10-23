@@ -18,7 +18,7 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>模考 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261023k" />
+<link rel="stylesheet" href="css/common.css?v=20261023l" />
 <link rel="stylesheet" href="css/p/bank.css?v=20261017a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
@@ -1450,6 +1450,23 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 #examRoot.ct-yellow .ex-blankw{background:#1b1b1b;border-color:#8a8a8a}
 #examRoot.ct-yellow .ex-blankw input{color:#f0e3a8}
 
+/* ---- ⑩ T-016（她 10-23 12:5x 截图报障：「填词的那个空太靠下，填进去的单词跟其他字对不齐」）----
+   病灶（实测数字，不是推的）：
+     · 框高 22px、`vertical-align:middle` → 框中心比同行正文文字中心**低 2.5px**；
+     · 框内字号被压到 **13px**，而题干正文 18px（`.ex-html td` 的 .9em）→ 填进去的字明显小一号；
+     · 于是无论怎么调对齐，框里的字都不可能跟正文同基线。
+   修法两条，缺一不可：
+     ① `vertical-align:baseline` —— 框的基线与正文基线对齐（middle 是按框的几何中心对文字中心，
+        框高一旦跟字身不等就必然错位）；实测 delta 从 2.5px → **0**（三档字号都 0）；
+     ② `font-size:1em` —— input 跟父级字号走（默认档 18px、大档 23 / 27），不再恒 13px。
+   高度用 `1.32em`（默认档 23.8px，落在验收要求的 20~24 区间；放大档自动跟着变），
+   不做 20~24 的硬编码，否则 Size 三档又会像 10/16 那次一样「只有题目字号能动」。
+   圆角 5px：她对标的那个站是圆角，直角太生硬。
+   ⚠️ 只作用于 `.ex-html` 里的 inline 填空（summary/completion 题型）；
+      右栏其它留白和表格单元格里的框仍走上面 ①⑦ 的原有规则，这次不动它们。 */
+#examRoot .ex-html .ex-blankw{height:1.32em;vertical-align:baseline;border-radius:5px}
+#examRoot .ex-html .ex-blankw input{font-size:1em;line-height:1.2;padding:0 7px}
+
 /* ---- ⑥ 右下 Previous/Next 方块：官方黑/浅灰（截图 22 实测 next=#000 prev=#ddd）---- */
 /* 位置沿用 10/20 她按爱听写截图定的「题目区右上角」（官方同位置），
    尺寸 56x55 → 40x40（她「上下栏适当比真卷子窄一些」）。 */
@@ -1862,13 +1879,13 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
      （手机慢网 ~50KB/s → 约 1.5 秒）。加载时机：点开「写作」tab 时按序插入；
      首次 load 之后空闲再预热一次。承接代码在 js/bank.js 的 loadWritingScripts()。 -->
 <script defer src="js/data.js?v=20261022d"></script>
-<script defer src="js/common.js?v=20261023k"></script>
-<script defer src="js/common-ai.js?v=20261023k"></script>
-<script defer src="js/common-sync.js?v=20261023k"></script>
-<script defer src="js/common-merge.js?v=20261023k"></script>
-<script defer src="js/common-cloud.js?v=20261023k"></script>
-<script defer src="js/common-shell.js?v=20261023k"></script>
-<script defer src="js/common-pwa.js?v=20261023k"></script>
+<script defer src="js/common.js?v=20261023l"></script>
+<script defer src="js/common-ai.js?v=20261023l"></script>
+<script defer src="js/common-sync.js?v=20261023l"></script>
+<script defer src="js/common-merge.js?v=20261023l"></script>
+<script defer src="js/common-cloud.js?v=20261023l"></script>
+<script defer src="js/common-shell.js?v=20261023l"></script>
+<script defer src="js/common-pwa.js?v=20261023l"></script>
 <script defer src="js/bank.js?v=20261023g"></script>
 </body>
 </html>
