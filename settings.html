@@ -1064,10 +1064,16 @@ setTimeout(__rvRescue,2500);
   function _applyPane(){
     var want = '';
     try{ want = new URLSearchParams(location.search).get('pane') || ''; }catch(_){}
-    if(['profile','targets','data','fb'].indexOf(want) < 0 && typeof tbPanePending === 'function'){
+    /* 10-23 6-x2：名单补成五组（原来还是 4 组时代的 ['profile','targets','data','fb']，
+       prefs/about 从地址栏进来时这段直接不动，靠步 6 的 applyPendingPane 兜底 ——
+       现在两段幂等共存，这段不再「漏接」）。
+       兼容：老书签/老交接的 ?pane=fb（反馈组旧名）映射到 about。 */
+    if(want === 'fb') want = 'about';
+    if(['profile','targets','prefs','data','about'].indexOf(want) < 0 && typeof tbPanePending === 'function'){
       try{ want = tbPanePending() || ''; }catch(_){}
+      if(want === 'fb') want = 'about';
     }
-    if(['profile','targets','data','fb'].indexOf(want) >= 0 && want !== 'profile'){
+    if(['profile','targets','prefs','data','about'].indexOf(want) >= 0 && want !== 'profile'){
       try{ go(want); moveHit(want); }catch(_){}
     }
   }
