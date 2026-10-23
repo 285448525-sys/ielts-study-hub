@@ -684,8 +684,14 @@ function buildQueue(today, nowISO, _sliceCap){
   // design/77：每日到期上限（含新词）。被截掉的词不动 nextReview，明天自然排在最前；
   // 9/24：原来「每轮题量」在这里之后再截一次，现已下线——一轮背多少由 autoStartSeeWord 按每日配额截断
   // 9/25：「每日新词上限」（newPerDay）也下线（她拍板：总量只按每日学习上限为准）——复习词与新词都不再单独立限
-  const _reviews = due.filter(w => w.cleared === true);
-  const _news = due.filter(w => w.cleared !== true);
+  /* 10-23 P-2：队列拆两段，**复习在前、新词在后**（她原话「复习时会被当成复习推给你，实际是生词」）。
+     分段口径 = wbDueSplit：review = nextReview<=今天 且 level>=1（学过的回来复习）；
+     new = 无 nextReview（从没进过队列的生词）。旧口径用 cleared 拆 —— cleared=true 是「掌握」标记，
+     生词答对一轮也会带 cleared，会把生词错分进复习段；level 才是「背没背过」的真标记。
+     段内仍按 dhpRecallP 优先级排序（上面 due.sort 已排好），跨段不重排。
+     新词背完自然写上 nextReview，从此自动进复习段 —— 不改任何词的 level / nextReview。 */
+  const _reviews = due.filter(w => (Number(w.level) || 0) >= 1);
+  const _news = due.filter(w => !(Number(w.level) || 0) >= 1);
   return _reviews.concat(_news).slice(0, (_sliceCap != null && _sliceCap > 0) ? _sliceCap : DAILY_DUE_CAP);
 }
 
@@ -1804,6 +1810,16 @@ function updateWordStats(){
     etaEl.textContent = etaTxt;
   }
 
+  // 10-23 P-2：到期构成 chip「新词 N · 复习 M」——顶部进度条右侧，口径 = wbDueSplit。
+  // 只在「有到期词且不在完成页」显示；N=0 时只显示复习段。
+  const dueChip = document.getElementById('statDueSplit');
+  if(dueChip){
+    let _sp = { newCount:0, reviewCount:0, total:0 };
+    try{ _sp = (typeof wbDueSplit === 'function') ? wbDueSplit(todayKey()) : _sp; }catch(e){}
+    const _show = _sp.total > 0 && !window.__quotaDoneShown;
+    dueChip.hidden = !_show;
+    if(_show) dueChip.innerHTML = (_sp.newCount > 0 ? '<b>新词 ' + _sp.newCount + '</b> · ' : '') + '复习 ' + _sp.reviewCount;
+  }
   const bar = $('#wordStats'); if(bar) bar.hidden = false;
   const tools = document.getElementById('wordToolsRow'); if(tools) tools.hidden = false;   // 进度条下按钮行随练习态显示
 
