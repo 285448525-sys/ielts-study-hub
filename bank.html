@@ -925,16 +925,26 @@
 .ex-split.ct-dark .ex-drop.filled{background:#1b1b1b;border-color:#c9ced6;color:#fff}
 .ex-split.ct-dark .ex-ctx{background:#232323;border-color:#4a4f57}
 .ex-split.ct-dark .ex-ctx button{color:#fff}
-.ex-split.ct-dark .ex-notes{background:#1b1b1b;border-color:#3a3f45}
-.ex-split.ct-dark .ex-notes-h b{color:#8fc4e8}
-.ex-split.ct-dark .ex-notes-empty{color:#8fc4e8}
-.ex-split.ct-dark .ex-ncard{background:#232323;border-color:#3a3f45}
-.ex-split.ct-dark .ex-ncard q{color:#8fc4e8}
-.ex-split.ct-dark .ex-ncard textarea{background:#16202a;color:#e8f2fa;border-color:#3a3f45}
-.ex-split.ct-yellow .ex-notes{background:#141414;border-color:#3a3f45}
-.ex-split.ct-yellow .ex-notes-h b{color:#ffd400}
-.ex-split.ct-yellow .ex-ncard{background:#1e1e1e;border-color:#3a3f45}
-.ex-split.ct-yellow .ex-ncard q{color:#ffd400}
+/* 🔴 10-23 B-1c 洞③：这组便签栏覆盖原来全挂在 `.ex-split.ct-dark` / `.ex-split.ct-yellow` 上，
+   而 ct-dark / ct-yellow 这两个类 **只挂 #examRoot**（js/bank.js 的 exCt 处理器：`root.classList.toggle('ct-dark')`），
+   .ex-split 上永远不会出现它们 → 便签栏在生效路径上**一条深色样式都没有**，深色档下一直是蓝底。
+   改挂 #examRoot.ct-dark / #examRoot.ct-yellow（特异性 0,2,1 更高，且真正会命中）。
+   ⚠️ 原来的 `.ex-split.ct-*` 死选择器暂留（B-1b 死代码清零时一起删），这里只是补齐生效路径。 */
+#examRoot.ct-dark .ex-notes{background:#1b1b1b;border-color:#3a3f45}
+#examRoot.ct-dark .ex-notes-h b{color:#8fc4e8}
+#examRoot.ct-dark .ex-notes-h button{color:#c8cbd0}
+#examRoot.ct-dark .ex-notes-empty{color:#c8cbd0}
+#examRoot.ct-dark .ex-ncard{background:#232323;border-color:#3a3f45}
+#examRoot.ct-dark .ex-ncard q{color:#8fc4e8}
+#examRoot.ct-dark .ex-ncard textarea{background:#16202a;color:#e8f2fa;border-color:#3a3f45}
+#examRoot.ct-dark .ex-ncard .ex-ndel{color:#9aa0a6}
+#examRoot.ct-yellow .ex-notes{background:#141414;border-color:#3a3f45}
+#examRoot.ct-yellow .ex-notes-h b{color:#ffd400}
+#examRoot.ct-yellow .ex-notes-h button{color:#c8cbd0}
+#examRoot.ct-yellow .ex-notes-empty{color:#c8cbd0}
+#examRoot.ct-yellow .ex-ncard{background:#1e1e1e;border-color:#3a3f45}
+#examRoot.ct-yellow .ex-ncard q{color:#ffd400}
+#examRoot.ct-yellow .ex-ncard textarea{background:#141414;color:#ffd400;border-color:#3a3f45}
 .ex-split.ct-yellow .ex-opt{color:#ffd400}
 .ex-split.ct-yellow .ex-opt input{border-color:#ffd400;background:#141414}
 .ex-split.ct-yellow .ex-pool{background:#141414;border-color:#ffd400}
