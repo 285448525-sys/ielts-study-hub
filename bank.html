@@ -88,6 +88,32 @@
 .bi-bar > i{display:block;height:100%;background:var(--primary);border-radius:2px}
 .bi-chev{width:14px;flex:none;text-align:right;color:var(--n-400);font-size:15px;transition:color .12s}
 .bank-loading,.bank-empty{padding:40px 16px;text-align:center;color:var(--muted);font-size:14px;line-height:1.8}
+/* ===== B-1a 加载四态 + 骨架屏（2026-10-23 新增，勿与上面 .bank-loading 旧规则混用）=====
+   方案：交接/方案/B-1a-bank加载试卷重做-方案.md §3.1（她拍板选版一：骨架屏） */
+.bk-state{padding:40px 16px;text-align:center}
+.bk-state .bk-st-title{font-size:14px;font-weight:600;color:var(--ink);margin:0 0 6px}
+.bk-state .bk-st-sub{font-size:12.5px;color:var(--muted);margin:0 0 14px;line-height:1.7}
+.bk-state .bk-st-act{margin-top:12px}
+.bk-skel{padding:16px;display:flex;flex-direction:column;gap:10px;overflow:hidden}
+.bk-skel .sk-row{display:flex;align-items:center;gap:10px;min-width:0}
+.bk-skel .sk-no{width:24px;height:24px;border-radius:var(--radius);flex:0 0 24px}
+.bk-skel .sk-lines{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.bk-skel .sk-ln{height:10px;border-radius:5px}
+.bk-skel .sk-ln.a{width:72%}
+.bk-skel .sk-ln.b{width:44%}
+.bk-skel .sk-no,.bk-skel .sk-ln{background:var(--line);animation:bkSkelPulse 1.4s ease-in-out infinite}
+.bk-skel .sk-row:nth-child(even) .sk-ln.a{width:60%}
+.bk-skel .sk-row:nth-child(even) .sk-ln.b{width:52%}
+@keyframes bkSkelPulse{0%,100%{opacity:1}50%{opacity:.55}}
+@media (prefers-reduced-motion:reduce){
+  .bk-skel .sk-no,.bk-skel .sk-ln{animation:none;opacity:.7}
+}
+/* 考试档（类只挂 #examRoot；.ex-split.ct-* 是死选择器，别写） */
+#examRoot.ct-dark .bk-skel .sk-no,
+#examRoot.ct-dark .bk-skel .sk-ln{background:rgba(255,255,255,.16)}
+#examRoot.ct-yellow .bk-skel .sk-no,
+#examRoot.ct-yellow .bk-skel .sk-ln{background:rgba(0,0,0,.12)}
+@media (max-width:420px){.bk-state{padding:28px 12px}}
 .bank-note{margin:18px 0 0;font-size:13px;color:var(--muted);line-height:1.7}
 .soon-box{background:var(--surface);border:1px dashed var(--line);border-radius:12px;padding:26px 20px;text-align:center;color:var(--muted);font-size:14px;line-height:1.9}
 

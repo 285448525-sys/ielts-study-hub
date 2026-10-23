@@ -140,6 +140,66 @@
      那是**错误的陈述**（明明有 68 篇阅读 / 347 篇听力），用户第一眼会以为站是空的/坏了。
      成熟做法：**加载中就明确说「加载中」，绝不用空态文案顶替**（空态只用于「确实没有」）。
      修法 = 数据未到时统一走 .bank-loading，等 boot() 拿到 manifest 后 paintTab 会重画。 */
+  /* ===== B-1a 加载四态：骨架 → 内容 / 错误+重试 / 取消 / 空 =====
+     方案 §3.2（她拍板选版一骨架屏；四态文案全中文，复用 .btn 族）
+     ⚠️ 本段纯新增，第 2 步先不接线 —— 接线在第 3-5 小步，每步一验。 */
+  var BK_OBJ = { reading:'阅读题库', listening:'听力题库', writing:'写作题', speaking:'口语题' };
+  function bkStateBox(kind, title, sub, actText){
+    return '<div class="bk-state" data-bk-state="' + kind + '">'
+      + '<p class="bk-st-title">' + title + '</p>'
+      + (sub ? '<p class="bk-st-sub">' + sub + '</p>' : '')
+      + (actText ? '<button type="button" class="btn btn-ghost btn-sm bk-st-act" data-bk-act="' + kind + '">' + actText + '</button>' : '')
+      + '</div>';
+  }
+  function bkSkeleton(rows){
+    var n = (window.matchMedia && window.matchMedia('(max-width:420px)').matches) ? 4 : (rows || 6);
+    var h = '<div class="bk-skel" data-bk-state="skeleton" aria-hidden="true">';
+    for(var i = 0; i < n; i++){
+      h += '<div class="sk-row"><span class="sk-no"></span><span class="sk-lines"><span class="sk-ln a"></span><span class="sk-ln b"></span></span></div>';
+    }
+    return h + '</div>';
+  }
+  /* fetchWithStates(container, objName, url, renderFn, opts)
+     opts.noCancel = true 时不显示「取消」（用于「已点了开始」的正文加载，避免误取消丢上下文） */
+  function fetchWithStates(container, objName, url, renderFn, opts){
+    if(!container) return;
+    opts = opts || {};
+    if(container._bkAbort) { try{ container._bkAbort.abort(); }catch(e){} }   // 连续切换只保留最后一次
+    var hasAC = (typeof AbortController === 'function');
+    var ac = hasAC ? new AbortController() : null;
+    container._bkAbort = ac;
+    container.innerHTML = bkSkeleton(6)
+      + bkStateBox('loading', '正在载入' + objName + '…', '大文件第一次加载要几秒', opts.noCancel ? '' : '取消');
+    var cancelBtn = container.querySelector('[data-bk-act=loading]');
+    if(cancelBtn){
+      cancelBtn.addEventListener('click', function(){
+        if(ac){ try{ ac.abort(); }catch(e){} }
+        container.innerHTML = bkStateBox('cancelled', '已取消加载', '', '重新加载');
+        var again = container.querySelector('[data-bk-act=cancelled]');
+        if(again) again.addEventListener('click', function(){ fetchWithStates(container, objName, url, renderFn, opts); });
+      });
+    }
+    var fo = { cache: 'no-cache' };
+    if(ac) fo.signal = ac.signal;
+    fetch(url, fo).then(function(r){
+      if(!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(function(data){
+      if(ac && container._bkAbort !== ac) return;              // 已被更新的请求取代
+      if(!data || (Array.isArray(data.tests) && !data.tests.length)){
+        container.innerHTML = bkStateBox('empty', '这一部分暂时没有篇目。', '', '');
+        return;
+      }
+      renderFn(container, data);
+    }).catch(function(e){
+      if(e && e.name === 'AbortError') return;                 // 取消是自己的事，不当错误报
+      if(window.console && console.error) console.error('[bank] 加载失败：', url, e);
+      container.innerHTML = bkStateBox('error', objName + '没加载出来', '可能是网络问题，重试一下', '重试');
+      var retry = container.querySelector('[data-bk-act=error]');
+      if(retry) retry.addEventListener('click', function(){ fetchWithStates(container, objName, url, renderFn, opts); });
+    });
+  }
+
   var LOADING_HTML = '<div class="bank-loading">目录加载中…</div>';
   function paintLoading(host, meta){
     if(host) host.innerHTML = LOADING_HTML;
@@ -529,15 +589,25 @@
     var root = document.getElementById('bankRoot');
     if(root) root.style.display = 'none';
     var host = document.getElementById('examRoot');
-    if(host){ host.hidden = false; host.innerHTML = '<div class="bank-loading" style="padding:60px">Loading…</div>'; }
+    if(host){
+      host.hidden = false;
+      /* B-1a：正文也走四态。noCancel = 已点了开始，不给「取消」（避免误取消丢上下文），
+         但失败态仍可「重试」，取消态不会出现。 */
+      fetchWithStates(host, 'Test ' + String(unitId).replace(/^.*\//, ''), 'bank/' + channel + '/' + unitId + '.json', function(box, unit){
+        startUnitExam(unit, unitId, channel);
+      }, { noCancel: true });
+    }
+  }
 
-    var p1 = fetch('bank/' + channel + '/' + unitId + '.json', { cache: 'no-cache' })
-              .then(function(r){ if(!r.ok) throw new Error('unit ' + r.status); return r.json(); });
+  /* B-1a：openExam 拆出「拿到 unit 之后」的原有逻辑（原样搬进来，一行没改）。
+     answers 文件仍在里面并行拉 —— 它失败不影响题目可用（10/17 B 口径不变）。 */
+  function startUnitExam(unit, unitId, channel){
+    var root = document.getElementById('bankRoot');
     var p2 = fetch('bank/answers/' + unitId + '.json', { cache: 'no-cache' })
-              .then(function(r){ return r.ok ? r.json() : {}; }).catch(function(){ return {}; });
+                .then(function(r){ return r.ok ? r.json() : {}; }).catch(function(){ return {}; });
 
-    Promise.all([p1, p2]).then(function(res){
-      var unit = res[0], ansFile = res[1] || {};
+      Promise.all([Promise.resolve(unit), p2]).then(function(res){
+      var ansFile = res[1] || {};
       annotateGroups(unit, ansFile.answers || {});   /* 10/16：组级答案标注（共享组判分/限数用） */
       var _hasAns = !!(ansFile.answers && Object.keys(ansFile.answers).length);
       EX = {
