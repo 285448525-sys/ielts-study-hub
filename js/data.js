@@ -2563,6 +2563,26 @@ function hubLoad(){
           const seed = DEFAULT_WRITING_TEMPLATES.find(t => t.id === id);
           if(local && seed){ local.skeleton = seed.skeleton; local.title = seed.title; local.tips = seed.tips; wdirty = true; }
         });
+        /* 10-23 W-4：官方母本的骨架内容整体刷新（36 套四档升级阶梯 + 6 套背诵版重写）。
+           为什么不再逐个 id 白名单：上一版只刷 8 个 id，其余 28 套老用户永远停在旧内容上，
+           工厂文件改了也看不到（实测：本地 42 套里 29 套仍是旧骨架）。
+           口径 = **只刷官方母本、且只在母本 skeleton 与本地不同时才动**：
+             · 用户自建模板（id 不在母本里）一律跳过，绝不覆盖；
+             · 用户填过的内容不在 skeleton 里（存在 writingFills），所以刷新不丢她的填空；
+             · title / level / category 一并同步，避免「内容升级了标题还写 5 分档」。
+           ⚠️ 墓碑（deletedIds）里的 id 仍跳过，删过的不会被复活。 */
+        if(Array.isArray(DATA.writing) && DEFAULT_WRITING_TEMPLATES.length){
+          const seedById = new Map(DEFAULT_WRITING_TEMPLATES.map(t => [t.id, t]));
+          DATA.writing.forEach(t => {
+            if(!t || !t.id || deletedIds.has(t.id)) return;
+            const seed = seedById.get(t.id);
+            if(!seed || !seed.skeleton) return;
+            if(t.skeleton !== seed.skeleton){ t.skeleton = seed.skeleton; wdirty = true; }
+            if(seed.tips && t.tips !== seed.tips){ t.tips = seed.tips; wdirty = true; }
+            if(seed.level && t.level !== seed.level){ t.level = seed.level; wdirty = true; }
+            if(seed.category && t.category !== seed.category){ t.category = seed.category; wdirty = true; }
+          });
+        }
         /* 10/10：写作模板分档——老用户 localStorage 里已存的模板补 level 字段（**缺才补**，
            不覆盖用户自建的；与上面 skeleton/title/tips 的刷新同一次落盘）。 */
         DATA.writing.forEach(t => {

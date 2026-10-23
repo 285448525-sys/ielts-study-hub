@@ -370,7 +370,7 @@ const SYNC_ARRAY_FIELDS = ['sessions','notes','meds','corpus','scores','errorboo
    写作模板 + 起步语料已从每页必下的 js/data.js 搬到 js/factory-writing.js（约 20KB brotli）。
    ⚠️ 幂等：软导航来回切页会重复调用（10/17 口语按需加载踩过「脚本二次 append → 顶层 const
    重复声明 → 整片空白」的真回归），故用固定 id + window 上的锚点去重。 */
-const FACTORY_WRITING_SRC = 'js/factory-writing.js?v=20261017a';
+const FACTORY_WRITING_SRC = 'js/factory-writing.js?v=20261023b';
 if(typeof HUB_FACTORY !== 'undefined' && !HUB_FACTORY.loadWriting){
   HUB_FACTORY.loadWriting = function(cb){
     const done = ok => { try{ cb(ok); }catch(e){ console.error('[factory] 回调异常：', e); } };
