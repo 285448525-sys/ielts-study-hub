@@ -415,7 +415,16 @@ function hubLinkTarget(a){
   const file = normalizePageFile(href.split('#')[0].split('?')[0].split('/').pop());
   const page = PAGES.find(p => p.file === file);
   if(!page) return null;
-  return { id: page.id, file: page.file, href: page.file };
+  /* 🔴 10-24 G4：把查询串一起带回去。
+     原来只回 page.file（裸文件名），于是 softNavigate 末尾那句 pushState 写的是裸文件名，
+     把链接上原有的 ?pane= / ?sub= / ?drill= 一律抹掉：地址栏停在**上一个**分栏的参数，
+     刷新回旧分栏、收藏与分享出去的网址也是错的（实测：点头像菜单「账号数据」，
+     地址栏仍写着 pane=targets）。
+     ⚠️ 但**取文档的那条路必须继续用裸文件名**：prefetchPage 按 p.file 预热、
+     _navDocCache 以该串为键；拿带参数的串去 fetch，每个不同参数都要重新下一遍整页文档，
+     预热永远命中不了（口语/写作页会被打成首屏变慢）。
+     ⇒ 分家：href = 裸文件名（取文档 / 兜底整页跳转用），url = 原始完整串（只给 pushState 用）。 */
+  return { id: page.id, file: page.file, href: page.file, url: href.split('#')[0] };
 }
 
 function onHubLinkClick(e){
@@ -893,7 +902,7 @@ async function softNavigate(t, isPop){
     // ⚠️ 不再在这里二次 updateActiveNav：点击瞬间(onHubLinkClick)已写好正确高亮，
     //    page 脚本经代码审计确认不触碰侧栏 .active，二次写只会增加一次无效重绘、
     //    在重脚本 eval 阻塞主线程后触发“高亮闪一下”的观感。单一写入点 = 零闪烁。
-    if(!isPop) history.pushState({ hub: t.id }, '', t.href);
+    if(!isPop) history.pushState({ hub: t.id }, '', t.url || t.href);
     prefetchAll(t.id);
     hideHubLoader();                                   // 内容切换 + 脚本执行完毕（DOM 就绪）→ 淡出遮罩
   }catch(err){

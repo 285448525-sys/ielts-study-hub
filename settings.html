@@ -19,7 +19,7 @@ setTimeout(__rvRescue,2500);
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>设置 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261023z2" />
+<link rel="stylesheet" href="css/common.css?v=20261023z4" />
 <link rel="stylesheet" href="css/p/settings.css?v=20261017a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
@@ -304,13 +304,13 @@ setTimeout(__rvRescue,2500);
 }
 </style>
 <script defer src="js/data.js?v=20261023b"></script>
-  <script defer src="js/common.js?v=20261023z3"></script>
-  <script defer src="js/common-ai.js?v=20261023z2"></script>
-  <script defer src="js/common-sync.js?v=20261023z2"></script>
-  <script defer src="js/common-merge.js?v=20261023z2"></script>
-  <script defer src="js/common-cloud.js?v=20261023z2"></script>
-  <script defer src="js/common-shell.js?v=20261023z2"></script>
-  <script defer src="js/common-pwa.js?v=20261023z2"></script>
+  <script defer src="js/common.js?v=20261023z4"></script>
+  <script defer src="js/common-ai.js?v=20261023z4"></script>
+  <script defer src="js/common-sync.js?v=20261023z4"></script>
+  <script defer src="js/common-merge.js?v=20261023z4"></script>
+  <script defer src="js/common-cloud.js?v=20261023z4"></script>
+  <script defer src="js/common-shell.js?v=20261023z4"></script>
+  <script defer src="js/common-pwa.js?v=20261023z4"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
   <!-- 10/3 头像选择（DiceBear CC0 素材；必须在 data.js/common.js 之后 —— 它读 DATA.settings.avatar） -->
   <script defer src="js/av-picker.js?v=20261022a"></script>
@@ -856,14 +856,25 @@ setTimeout(__rvRescue,2500);
     var b = e.target && e.target.closest ? e.target.closest('.set-nav-item') : null;
     if(b) syncPaneUrl(b.getAttribute('data-goto'));
   });
-  /* 顶栏头像菜单 / Ctrl+, 的 sessionStorage 交接（T-003 已写） */
+  /* 顶栏头像菜单 / Ctrl+, 的 sessionStorage 交接（T-003 已写）
+     🔴 10-24 G4：**暗号必须比 URL 优先读**。
+     软导航换 <main> 时，pushState 排在 runPageScript **之后**（common-shell.js 那句），
+     所以页面脚本跑起来的那一刻，location.search 里还是**上一个**分栏的参数。
+     原来的顺序是「先读 URL，读到了就不看暗号」→ 已在设置页里再点头像菜单时，
+     URL 里躺着旧的 pane=targets（合法值），于是新意图 data 永远读不到 → 点了停在原处。
+     ⇒ 顺序反过来：暗号是「本次点击的真实意图」，URL 只是「整页直达/收藏/刷新」的兜底。 */
   function applyPendingPane(){
-    var want = paneFromUrl();
-    if(PANES.indexOf(want) < 0){
-      try{ want = sessionStorage.getItem('hub_set_pane') || ''; }catch(e){}
-      if(PANES.indexOf(want) >= 0){
-        try{ sessionStorage.removeItem('hub_set_pane'); }catch(e){}
-      }
+    /* 🔴 10-24 G4：本段跑在 defer 之后、pushState 之前 —— 此刻 location.search 还是
+       **上一个**分栏的旧参数。若拿它当依据，会把分组切换脚本刚切好的结果拉回去。
+       ⇒ 本段已经是「兜底位」，先认切换脚本落下的标记：本次已经有结论了就别再动。
+       其余不变：暗号（本次点击意图）优先，URL 只用于整页直达/刷新。 */
+    if(window.__hubPaneApplied && PANES.indexOf(window.__hubPaneApplied) >= 0) return;
+    var want = '';
+    try{ want = sessionStorage.getItem('hub_set_pane') || ''; }catch(e){}
+    if(PANES.indexOf(want) >= 0){
+      try{ sessionStorage.removeItem('hub_set_pane'); }catch(e){}
+    }else{
+      want = paneFromUrl();
     }
     if(PANES.indexOf(want) >= 0){
       var btn = document.querySelector('.set-nav-item[data-goto="' + want + '"]');
@@ -1063,7 +1074,12 @@ setTimeout(__rvRescue,2500);
      （defer 脚本全部执行完之后）再读一次。两次都走 go() + moveHit()，幂等。 */
   function _applyPane(){
     var want = '';
-    try{ want = new URLSearchParams(location.search).get('pane') || ''; }catch(_){}
+    /* 🔴 10-24 G4：顺序改成「暗号优先、URL 兜底」（理由见步 6 的 applyPendingPane）。
+       同页软导航时 pushState 还没落，location.search 里是上一个分栏的旧参数 ——
+       先读它会把本次点击的意图整个盖掉（实测：点头像菜单「账号数据」，仍停在 targets）。 */
+    try{ want = sessionStorage.getItem('hub_set_pane') || ''; }catch(_){}
+    if(['profile','targets','prefs','data','about'].indexOf(want) >= 0){ try{ sessionStorage.removeItem('hub_set_pane'); }catch(_){} }
+    else{ try{ want = new URLSearchParams(location.search).get('pane') || ''; }catch(_){} }
     /* 10-23 6-x2：名单补成五组（原来还是 4 组时代的 ['profile','targets','data','fb']，
        prefs/about 从地址栏进来时这段直接不动，靠步 6 的 applyPendingPane 兜底 ——
        现在两段幂等共存，这段不再「漏接」）。
@@ -1076,6 +1092,11 @@ setTimeout(__rvRescue,2500);
     if(['profile','targets','prefs','data','about'].indexOf(want) >= 0 && want !== 'profile'){
       try{ go(want); moveHit(want); }catch(_){}
     }
+    /* 🔴 10-24 G4：落个标记给下面步 6 的 applyPendingPane 用。
+       软导航时 pushState 排在页面脚本之后 → 那段若去读 location.search，读到的是
+       **上一个**分栏的旧参数，会把这里刚切好的分组又拉回去（实测：切到 profile，
+       地址栏写对了、内容还停在 data）。标记只在本文档内有效，整页刷新自然消失。 */
+    window.__hubPaneApplied = (['profile','targets','prefs','data','about'].indexOf(want) >= 0) ? want : 'profile';
   }
   _applyPane();
   document.addEventListener('DOMContentLoaded', _applyPane);
