@@ -178,6 +178,11 @@
 .streak .sub{font-size:10.5px;color:var(--muted);margin-top:8px;line-height:1.5}
 .rail-quick{flex:1;display:flex;flex-direction:column;min-height:0;background:var(--surface);border:1px solid var(--line);
   border-radius:12px;padding:12px;box-shadow:0 1px 2px rgba(16,24,40,.05)}
+/* 10-23 5-1：快速入口改由 js/home-quick.js 渲染，外面多包了一层 .rq-list。
+   原来 .qk 是 .rail-quick 的直接 flex 子元素（吃 flex:1 平分高度），现在中间多一层，
+   必须让 .rq-list 继承同样的弹性上下文，否则 .qk 的 flex:1 失效 → 侧轨变高时三条会顶在上边。
+   这样写 = 改前逐像素等价（1280/390 实测差异 0 像素）。 */
+.rq-list{flex:1;min-height:0;display:flex;flex-direction:column}
 .qk{flex:1;min-height:40px;display:flex;align-items:center;gap:10px;border-radius:8px;text-decoration:none;color:inherit;
   padding:0 8px;transition:background .16s}
 .qk:hover{background:var(--primary-50)}
