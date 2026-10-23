@@ -1586,7 +1586,7 @@ var speakQuestion = (function(){
     }catch(_){ return null; }
   }
   function stop(){ if(typeof speechSynthesis !== 'undefined'){ try{ speechSynthesis.cancel(); }catch(_){} } }
-  function speak(text, btn){
+  function speak(text, btn, rate){
     if(typeof speechSynthesis === 'undefined'){ if(typeof toast === 'function') toast('当前浏览器不支持语音播放'); return; }
     text = (text || '').trim();
     if(!text) return;
@@ -1594,7 +1594,7 @@ var speakQuestion = (function(){
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'en-GB';
     const v = pickVoice(); if(v) u.voice = v;
-    u.rate = 0.95;
+    u.rate = (typeof rate === 'number' && rate > 0.3 && rate < 2) ? rate : 0.95;
     u.pitch = 1;
     if(btn) btn.classList.add('playing');
     u.onstart = () => { if(btn) btn.classList.add('playing'); };

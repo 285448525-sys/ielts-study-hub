@@ -1114,6 +1114,92 @@ function updateWordCount(){
   out.innerHTML = '已写 <b>' + n + '</b> 词 · 目标 220';
 }
 
+
+/* T-017d：串题原文底部的四枚工具条（设计稿 ⑤）。
+   现有渲染已经给了「复制 / 朗读 / 关键词」，这里**只补缺的两枚**：
+     · 调整语速 —— 0.7 → 1.0 三档循环，状态挂 el.dataset.tdRate（只影响朗读，不改数据）
+     · 看中文对照 —— 折叠显示 mappingZh（串题思路，本来就是给中文看的）；没有就整枚不渲染
+   不动任何已有按钮与 id。 */
+function appendStoryTools(root, s, j){
+  if(!root) return;
+  const story = root.querySelector('.mat-story-en');
+  if(!story) return;
+  if(root.querySelector('.td-story-tools')) return;   // 已经加过
+  const bar = document.createElement('div');
+  bar.className = 'td-story-tools';
+
+  /* 设计稿 ⑤ 的四枚：朗读全文 / 复制英文 / 调整语速 / 看中文对照。
+     前两枚在现有渲染里已经有了（在卡头的 mp-actions 里，id 是 storySpeakBtn / storyCopyBtn），
+     但设计稿要求它们落在**原文下方**那条工具条里 → 这里做两枚**转发按钮**，
+     点了去点原按钮，朗读/复制的逻辑一行没改、原 id 一个没动。 */
+  const mkForward = (id, label) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'td-tbtn';
+    b.id = id;
+    b.textContent = label;
+    b.addEventListener('click', () => {
+      const src = document.getElementById(id === 'tdCopyBtn' ? 'storyCopyBtn' : 'storySpeakBtn');
+      if (src) src.click();
+      else toast('这版稿子没有可朗读/复制的英文');
+    });
+    return b;
+  };
+  bar.appendChild(mkForward('tdSpeakBtn', '▶ 朗读全文'));
+  bar.appendChild(mkForward('tdCopyBtn', '📋 复制英文'));
+
+  // 语速：三档循环
+  const rates = [0.7, 0.85, 1];
+  const rateBtn = document.createElement('button');
+  rateBtn.type = 'button';
+  rateBtn.className = 'td-tbtn ghost';
+  rateBtn.id = 'tdRateBtn';
+  const paint = () => {
+    const r = Number(root.dataset.tdRate || 0.85);
+    rateBtn.textContent = '语速 ' + r.toFixed(2) + '×';
+  };
+  paint();
+  rateBtn.addEventListener('click', () => {
+    const cur = Number(root.dataset.tdRate || 0.85);
+    const i = rates.indexOf(cur);
+    const next = rates[(i + 1 + rates.length) % rates.length];
+    root.dataset.tdRate = String(next);
+    paint();
+    toast('朗读语速 ' + next.toFixed(2) + '×');
+  });
+  bar.appendChild(rateBtn);
+
+  // 中文对照：有 mappingZh 才出现
+  const zh = j && (j.mappingZh || (j.logicChain ? j.logicChain : ''));
+  if(zh){
+    const zhBtn = document.createElement('button');
+    zhBtn.type = 'button';
+    zhBtn.className = 'td-tbtn ghost';
+    zhBtn.id = 'tdZhBtn';
+    zhBtn.textContent = '看中文对照';
+    const box = document.createElement('div');
+    box.className = 'td-zhbox';
+    box.hidden = true;
+    box.innerHTML = String(zh).split(/\n+/).filter(Boolean).map(x => '<p>' + escapeHtml(x) + '</p>').join('');
+    zhBtn.addEventListener('click', () => {
+      box.hidden = !box.hidden;
+      zhBtn.textContent = box.hidden ? '看中文对照' : '收起中文';
+    });
+    bar.appendChild(zhBtn);
+    story.insertAdjacentElement('afterend', bar);
+    bar.insertAdjacentElement('afterend', box);
+    return;
+  }
+  story.insertAdjacentElement('afterend', bar);
+}
+
+/* 朗读时把语速传给 TTS（默认 0.95，与全站一致；用户改过才用他的） */
+function tdSpeakRate(){
+  const root = document.getElementById('aiResult');
+  const v = root ? Number(root.dataset.tdRate || 0) : 0;
+  return (v >= 0.5 && v <= 1.5) ? v : 0.95;
+}
+
 // 诊断/评分保存后，同步更新列表 badge 与详情页头部分数
 function refreshScoreAfterDiag(s){
   if(!s) return;
@@ -1295,6 +1381,7 @@ function openDetail(id){
     }
   }
   addLogicSteps($('#aiResult'));   // T-017d：串题逻辑整段 → 编号步骤块（纯展示层）
+  appendStoryTools($('#aiResult'), s, null);   // T-017d：工具条补「语速 / 中文对照」
   updateWordCount();               // T-017d：词数初值
   spAutoGrowAll();   // 9/15：已存草稿的输入框初始渲染即按内容增高
 
@@ -1613,6 +1700,7 @@ function openDetail(id){
       if(s.answers.p2.aiStoryLink){
         renderStoryLinkV2($('#aiResult'), s.answers.p2.aiStoryLink, s);
         addLogicSteps($('#aiResult'));   // T-017d：回填的稿子同样要切编号块
+        appendStoryTools($('#aiResult'), s, s.answers.p2.aiStoryLink);
       }
       /* 回填已生成的 P3 追问列表 + 答案。
          10/3 B 版：统一走 showP3Area()（原先这里手抄了一份显示逻辑，漏掉了「已答 N 题」提示
@@ -2478,7 +2566,7 @@ function bindStoryTools(el, j){
     try{
       // speakQuestion.speak 内部先 cancel，重复点击不会叠加朗读；但它不返回 utterance，
       // 用「轮询 speechSynthesis 状态」感知结束（含点停止的 cancel），结束后还原文案。
-      speakQuestion.speak(t, speakBtn);
+      speakQuestion.speak(t, speakBtn, tdSpeakRate());   // T-017d：接上限速选项，默认 0.95 与改前一致
       watchSpeakEnd(speakBtn);
     }catch(e){ resetSpeakBtn(speakBtn); toast('朗读失败：' + e.message); }
   });

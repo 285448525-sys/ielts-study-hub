@@ -2183,6 +2183,26 @@ body.mock-immerse .hub-topbar{display:none !important}
   margin-left:auto;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;
 }
 #detailBody .td-wordcount b{color:var(--primary-800)}
+/* ===== T-017d 工具条：语速 / 中文对照（设计稿 ⑤ 的四枚） ===== */
+#detailBody .sp-ai-result .td-story-tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)}
+#detailBody .sp-ai-result .td-tbtn{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:999px;
+  border:1px solid var(--line);background:var(--surface-2);color:var(--ink-2);
+  cursor:pointer;transition:.15s;font-family:inherit;
+}
+#detailBody .sp-ai-result .td-tbtn:hover{background:var(--primary-50);border-color:var(--primary-200);color:var(--primary-800)}
+#detailBody .sp-ai-result .td-zhbox{
+  margin-top:10px;padding:12px 14px;border-radius:var(--radius-sm);
+  background:var(--surface-2);border:1px solid var(--line);
+  font-size:13.5px;line-height:1.7;color:var(--ink-2);
+}
+#detailBody .sp-ai-result .td-zhbox p{margin:0 0 6px}
+#detailBody .sp-ai-result .td-zhbox p:last-child{margin-bottom:0}
+html[data-theme="dark"] #detailBody .sp-ai-result .td-tbtn{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12);color:var(--ink-2)}
+html[data-theme="dark"] #detailBody .sp-ai-result .td-tbtn:hover{background:rgba(58,154,147,.16);border-color:rgba(58,154,147,.30);color:var(--primary-200)}
+html[data-theme="dark"] #detailBody .sp-ai-result .td-zhbox{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.10);color:var(--ink-2)}
+
 
 /* ============ ④ P3 追问：浅紫小卡 → 整条通栏 ============ */
 #detailBody .sp-tool-card-p3{
