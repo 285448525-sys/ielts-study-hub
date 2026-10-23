@@ -44,6 +44,122 @@
     }
   };
 
+
+/* ==========================================================================
+   T-011 · 三个组页版式统一（2026-10-23）—— 样式由 hubgroup.js 注入
+   为什么放这里而不是 css/p/*.css：三页（me/study/plans-hub）**都没引** css/p/*.css，
+   加一个文件要改三个 HTML 的 <head> + 进 SW 的 PRECORE；而 hubgroup.js 本来就是
+   三页共用 + 已在 PRECORE 里，注入零新增请求。
+   视觉基准 = 口语页 T-004：驾驶舱统计格（.hg-stats）+ 通栏行卡片（.hg-card）。
+   ⚠️ 只改渲染层：GROUPS 数据、链接逻辑、重定向全部不动。
+   ========================================================================== */
+const HUBG_CSS = `
+#hubGroupRoot{max-width:1040px;margin:0 auto}
+.hg-head{padding:4px 2px 16px;border-bottom:1px solid var(--n-300);margin-bottom:18px}
+.hg-head h1{margin:0 0 6px;font-size:24px;line-height:1.25;font-weight:700;letter-spacing:-.02em;color:var(--n-900)}
+.hg-head p{margin:0;font-size:13.5px;line-height:1.7;color:var(--n-500)}
+/* 状态摘要条（驾驶舱式三格；数据源必须真实存在，没有就整条不渲染 —— 见 renderStats） */
+.hg-stats{display:grid;grid-template-columns:repeat(3,1fr);margin:0 0 18px;
+  background:var(--n-0);border:1px solid var(--n-300);border-radius:16px;box-shadow:var(--sh-2);padding:18px 22px}
+.hg-stat-cell{padding-right:18px;min-width:0}
+.hg-stat-cell + .hg-stat-cell{padding-left:20px;border-left:1px solid var(--n-300)}
+.hg-stat-k{font-size:12px;color:var(--n-500)}
+.hg-stat-v{display:flex;align-items:baseline;gap:5px;margin-top:3px;font-size:20px;font-weight:700;
+  color:var(--primary-700);font-variant-numeric:tabular-nums;line-height:1.1}
+.hg-stat-v i{font-style:normal;font-size:12.5px;font-weight:500;color:var(--n-500)}
+/* 入口卡：宽屏 2-3 列、窄屏单列 */
+.hg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:860px){.hg-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){.hg-grid{grid-template-columns:1fr}}
+.hg-card{
+  display:flex;align-items:center;gap:13px;min-height:78px;padding:15px 16px;
+  background:var(--n-0);border:1px solid var(--n-300);border-radius:14px;
+  text-decoration:none;color:inherit;box-shadow:var(--sh-1);
+  transition:border-color .16s,box-shadow .16s,background .16s;
+}
+.hg-card:active{transform:scale(.985)}
+.hg-card:hover{border-color:var(--primary-200);background:var(--primary-50);box-shadow:var(--sh-2)}
+.hg-card:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(58,154,147,.25)}
+.hg-card.cur{background:var(--primary-50);border-color:var(--primary-200)}
+.hg-card.cur .hg-ic{background:var(--primary-200);color:var(--primary-800)}
+.hg-card.accent{border-color:var(--primary-200)}
+.hg-card.accent .hg-ic{background:var(--primary-200);color:var(--primary-800)}
+.hg-ic{width:44px;height:44px;flex:none;border-radius:13px;background:var(--n-100);color:var(--n-500);
+  display:flex;align-items:center;justify-content:center;transition:background .16s,color .16s}
+.hg-ic svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.hg-tx{min-width:0;flex:1}
+.hg-tx b{display:block;font-size:15.5px;font-weight:600;color:var(--n-800);line-height:1.3;letter-spacing:-.01em}
+.hg-tx span{display:block;font-size:12.5px;color:var(--n-500);margin-top:3px;line-height:1.5}
+.hg-ar{color:var(--n-400);flex:none}
+.hg-ar svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.hg-card:hover .hg-ar{color:var(--primary-600)}
+.hg-note{margin:18px 2px 0;font-size:12.5px;line-height:1.75;color:var(--n-500)}
+/* 空态：引导文案 + 按钮，不许白板一块 */
+.hg-empty{background:var(--n-0);border:1px solid var(--n-300);border-radius:14px;padding:22px 20px;text-align:center}
+.hg-empty p{margin:0 0 12px;font-size:13.5px;line-height:1.7;color:var(--n-600)}
+.hg-empty .btn{display:inline-flex;align-items:center;gap:6px}
+/* T-011 追加（她 10-23「把手机端的上栏全部摘掉」）：手机窄屏（≤860，与底栏/桌面重定向同口径）
+   组页**隐藏全站顶栏**（44px 那条），只留底部 dock 4 格导航 —— 组页本身就是入口聚合页，
+   顶栏里的导航跟卡片是重复信息，留着只是白占一屏高度。
+   ⚠️ 只对组页生效（body[data-hub-group]），别的页面顶栏照旧；桌面 >860 不隐藏。 */
+@media(max-width:860px){
+  /* 🔴 真实类名是 .hub-topbar（不是 .top-nav）：common.js:276 injectNav 会**覆盖** nav.className，
+     把 HTML 里的 .top-nav 换成 .hub-topbar —— 只写 .top-nav 等于打空气（我第一次就打偏了）。
+     两个都写：class 换之前/之后都能命中。 */
+  body[data-hub-group] .top-nav,
+  body[data-hub-group] .hub-topbar{display:none !important}
+  /* 🔴 第二个坑：body 上还有 padding-top:44px（顶栏占位，common.css 的 .hub-topbar 规则）
+     —— 顶栏 display:none 之后这 44px 依然占着，页面顶部会空一条。
+     实测：只隐藏顶栏后 main 的 top 仍是 44px（= 一条空白），body padding 归零才回到 14px。 */
+  body[data-hub-group]{padding-top:0 !important}
+  body[data-hub-group] main.container{padding-top:14px !important}
+}
+@media(max-width:720px){
+  .hg-stats{grid-template-columns:1fr;gap:14px;padding:16px}
+  .hg-stat-cell + .hg-stat-cell{padding-left:0;padding-top:14px;border-left:0;border-top:1px solid var(--n-300)}
+}
+`;
+function injectHubgCss(){
+  if(document.getElementById('hubgT011Css')) return;
+  const st = document.createElement('style');
+  st.id = 'hubgT011Css';
+  st.textContent = HUBG_CSS;
+  document.head.appendChild(st);
+}
+
+/* 状态摘要条 —— 只读真实数据，拿不到就整条不渲染（禁忌 3：不许假数据）。
+   数据源全部已存在：
+     · calcStreak()（common.js:1260，连续学习天数；首页/计时页同款口径）
+     · examCountdown()（common.js:1235，距考试天数）
+     · DATA.mockRecords / DATA.scores 的条数
+   ⚠️ 三页共用同一份摘要（她看的是「我学了多少」这件事，不分哪个组）；
+      任一项拿不到就只显示拿得到的，全拿不到 → 整条不渲染。 */
+function renderStats(){
+  try{
+    const cells = [];
+    if(typeof calcStreak === 'function'){
+      const n = calcStreak();
+      cells.push({ k:'连续学习', v:String(n), u:'天' });
+    }
+    if(typeof examCountdown === 'function'){
+      const cd = examCountdown();
+      if(cd && cd.hasExam && cd.daysLeft != null && cd.daysLeft >= 0){
+        cells.push({ k:'距考试', v:String(cd.daysLeft), u:'天' });
+      }
+    }
+    let recN = 0;
+    if(typeof DATA !== 'undefined'){
+      recN = (DATA.mockRecords ? DATA.mockRecords.length : 0) + (DATA.scores ? DATA.scores.length : 0);
+    }
+    if(recN > 0) cells.push({ k:'已记录模考', v:String(recN), u:'次' });
+    if(!cells.length) return '';
+    return '<div class="hg-stats">' + cells.map(c =>
+      '<div class="hg-stat-cell"><div class="hg-stat-k">' + esc(c.k) + '</div>'
+      + '<div class="hg-stat-v">' + esc(c.v) + '<i>' + esc(c.u) + '</i></div></div>'
+    ).join('') + '</div>';
+  }catch(e){ return ''; }   // 任何一项取不到 → 整条不渲染，绝不留半截
+}
+
   /* ============ 药丸模块「服药」：仅在开启时出现（她 10/2 拍板的原则）============
      复用 common.js 的 medsModuleOn()；这里再兜一层 —— 拿不到函数时**默认不显示**
      （宁缺勿滥：她 17:54 说「服药平常不开着」，不该看到一个点不动的入口）。 */
@@ -105,32 +221,41 @@
       items.unshift({ id:'teacher', name:'学生数据', desc:'绑定学生的学情（只读）' });
     }
 
+    injectHubgCss();
     let h = '';
-    h += '<div class="hubg-head">'
+    h += '<div class="hg-head">'
       +   '<h1>' + esc(G.title) + '</h1>'
       +   '<p>' + esc(G.tagline) + '</p>'
       + '</div>';
-    h += '<div class="hubg-grid">';
+    /* T-011：状态摘要条（驾驶舱式三格）。数据拿不到就不渲染（禁忌：不许假数据）。 */
+    h += renderStats();
+    h += '<div class="hg-grid">';
     for(const it of items){
       const p = pageById ? pageById(it.id) : null;
       const file = p ? p.file : (it.id + '.html');
       const icon = p ? p.icon : '';
       const on = (p && p.file === cur) ? ' cur' : '';
-      h += '<a class="hubg-card' + on + (it.accent ? ' accent' : '') + '" href="' + file + '" data-id="' + it.id + '">'
-        +   '<span class="hubg-ic">' + icon + '</span>'
-        +   '<span class="hubg-tx">'
+      h += '<a class="hg-card' + on + (it.accent ? ' accent' : '') + '" href="' + file + '" data-id="' + it.id + '">'
+        +   '<span class="hg-ic">' + icon + '</span>'
+        +   '<span class="hg-tx">'
         +     '<b>' + esc(it.name) + '</b>'
         +     '<span>' + esc(it.desc || '') + '</span>'
         +   '</span>'
-        +   '<span class="hubg-ar" aria-hidden="true">'
+        +   '<span class="hg-ar" aria-hidden="true">'
         +     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>'
         +   '</span>'
         + '</a>';
     }
     h += '</div>';
+    /* T-011：没有可展示的入口时给引导（不许白板一块）。plans 组现在只剩「计划」一项，
+       真变空时这里就是唯一出口 —— 文案指向顶栏导航，不编造不存在的功能。 */
+    if(!items.length){
+      h += '<div class="hg-empty"><p>这一组暂时没有可进的页面。</p>'
+        +  '<a class="btn btn-primary" href="home.html">回首页</a></div>';
+    }
     /* 底部提示条：她 12:10 报过「入口找不到」，这里明确告诉她「导航里也能进所有页面」
        10-22 换顶栏后原话「桌面端左侧栏仍列出全部页面」已不成立（这三个页面没有侧栏了）→ 改成导航口径。 */
-    h += '<p class="hubg-note">导航里都能进这些页面；这里只是把常用的挑出来放一屏。</p>';
+    h += '<p class="hg-note">导航里都能进这些页面；这里只是把常用的挑出来放一屏。</p>';
     root.innerHTML = h;
     root.setAttribute('data-shown-group', G.key);   // 供跨组软导航的 repaint 比对
   }
@@ -184,7 +309,7 @@
       const g = hostGroup();
       const shown = root.getAttribute('data-shown-group') || null;
       // 条件：组认出来了 且（组变了 或 还没画过卡）
-      if(g && (g !== lastGroup || g !== shown || !root.querySelector('.hubg-card'))){
+      if(g && (g !== lastGroup || g !== shown || !root.querySelector('.hg-card'))){
         lastGroup = g;
         render();
       }
