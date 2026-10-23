@@ -686,6 +686,8 @@
         listenMode: 'practice', audioStarted: false
       };
       _rateIx = 0; _audioBound = null; _audioRate = RATE_DEFAULT;
+      /* 3-4：换篇/重进考场要清掉上一篇的句子条缓存，否则新篇会先闪一下旧篇的句子 */
+      _stLines = null; _stBound = null;
       try{ EX.user = JSON.parse(localStorage.getItem('hub_bank_draft_' + unitId) || '{}') || {}; }catch(e){ EX.user = {}; }
       renderExam();
       bankStartTimer();                               /* C-3：进考试即开专注计时（幂等，不会双开） */
@@ -1726,7 +1728,10 @@ window.__reportExamState = reportExamState;
     if(EX.full) return;                                  /* 听力完整模考全程考试模式，不提供切换（按钮也不渲染） */
     audioSetMode(EX.listenMode !== 'exam');
   }
-  /* 交卷后：听力原文出来 + 音频解锁（可自由回放/拖动复听 —— Zoju / PrepAsk 都是交卷后解锁） */
+  /* 交卷后：听力原文出来 + 音频解锁（可自由回放/拖动复听 —— Zoju / PrepAsk 都是交卷后解锁）
+     🔵 10-23 3-4：原文按「句子时间轴」渲染成可点句子条 —— 点哪句跳哪句、播放时当前句高亮、
+     自动滚到可见区。没有时间轴的篇目（bank/timeline/<unitId>.json 不存在）就退回原来的
+     整段 HTML（一句一行、不可点），行为与这次改动之前一模一样。 */
   function showScript(){
     var inner = document.getElementById('exListenIn'); if(!inner) return;
     if(!inner.querySelector('.ex-script')){
@@ -1744,6 +1749,96 @@ window.__reportExamState = reportExamState;
     if(bar){
       var b = bar.querySelector('[data-amode]');
       if(b){ b.disabled = true; b.classList.remove('exam'); b.textContent = 'Submitted'; }
+    }
+    /* 3-4：时间轴到了就把原文换成可点句子条 */
+    mountScriptTimeline();
+  }
+
+  /* ===== 3-4 复盘句子条 =====
+     数据：bank/timeline/<unitId>.json（3-3 定的格式：{lines:[{i,start,end,text}]}）
+     口径：
+       ① 只在「听力 + 已交卷」时有；没时间轴就静默不接（不报错、不提示、不显示空壳）
+       ② 点一句 = 音频跳到这句开头并播放；播放中当前句高亮
+       ③ 高亮变化时若该句不在可视区，平滑滚进去（只在 .sc-body 里滚，不带动整页）
+       ④ 当前句判定：start <= t < 下一句 start。句间空档（官方报幕/看题时间）保留上一句高亮，
+          不清空 —— 否则播到报幕处句子条会闪一下没有当前句 */
+  var _stLines = null, _stBound = null;
+  function scriptTimelineUrl(unitId){
+    return 'bank/timeline/' + unitId + '.json';
+  }
+  function mountScriptTimeline(){
+    if(!EX || EX.channel !== 'listening' || !EX.submitted) return;
+    var box = document.querySelector('#examRoot .ex-script .sc-body'); if(!box) return;
+    var a = document.getElementById('exAudio'); if(!a) return;
+    var unitId = EX.ids ? EX.ids[EX.curP || 0] : (EX.unit && EX.unit.id);
+    if(!unitId) return;
+
+    var paint = function(){
+      if(!_stLines || !_stLines.length) return;
+      var t = a.currentTime || 0;
+      var idx = -1;
+      for(var i = 0; i < _stLines.length; i++){
+        if(t >= _stLines[i].start) idx = i; else break;
+      }
+      if(idx < 0) idx = 0;
+      var rows = box.querySelectorAll('.sc-line');
+      if(!rows.length) return;
+      var changed = false;
+      rows.forEach(function(el, i){
+        var on = (i === idx);
+        if(el.classList.contains('on') !== on){ el.classList.toggle('on', on); changed = true; }
+        if(on) el.setAttribute('aria-current', 'true'); else el.removeAttribute('aria-current');
+      });
+      if(changed && EX._stFollow !== false){
+        var cur = rows[idx];
+        /* 只在句子滚出可视区时才滚（否则每句都滚，正在看上面几句会被强行拖走） */
+        var bh = box.getBoundingClientRect(), rh = cur.getBoundingClientRect();
+        if(rh.top < bh.top + 6 || rh.bottom > bh.bottom - 6){
+          try{ cur.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+          catch(e){ cur.scrollIntoView(false); }
+        }
+      }
+    };
+
+    var render = function(lines){
+      _stLines = lines;
+      box.classList.add('sc-tl');
+      box.innerHTML = lines.map(function(l, i){
+        return '<p class="sc-line" data-i="' + i + '" data-t="' + l.start + '">'
+             + '<i class="sc-t">' + fmtClock(l.start) + '</i>'
+             + '<span class="sc-tx">' + esc(l.text || '') + '</span></p>';
+      }).join('');
+      /* 事件：点句子 → 跳到这句开头并播（复听场景，点就是想听这句） */
+      if(_stBound !== box){
+        _stBound = box;
+        box.addEventListener('click', function(ev){
+          var el = ev.target.closest && ev.target.closest('.sc-line'); if(!el) return;
+          var st = parseFloat(el.getAttribute('data-t'));
+          if(!isFinite(st)) return;
+          try{ a.currentTime = st; }catch(e){}
+          try{ a.play(); }catch(e){}
+          paint();
+        });
+      }
+      paint();
+    };
+
+    if(_stLines){ render(_stLines); return; }
+    fetch(scriptTimelineUrl(unitId), { cache: 'no-cache' })
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .catch(function(){ return null; })
+      .then(function(j){
+        var lines = j && j.lines;
+        if(!lines || !lines.length) return;      /* 没时间轴 → 什么都不做，保持原整段原文 */
+        render(lines);
+      });
+
+    /* 播放/跳转时刷高亮（每 250ms 一次：timeupdate 在 seek 后不一定立刻触发，且 250ms 对高亮足够细） */
+    if(!a.__stTick){
+      a.__stTick = setInterval(function(){
+        if(!document.getElementById('examRoot')) { clearInterval(a.__stTick); a.__stTick = null; return; }
+        if(_stLines) paint();
+      }, 250);
     }
   }
 
@@ -1975,6 +2070,7 @@ window.__reportExamState = reportExamState;
         /* 听力完整模考全程考试模式（不给练习模式 —— 真机考没有这一说） */
         listenMode: 'exam', audioStarted: false, audioStartedBy: {}
       };
+      _stLines = null; _stBound = null;   /* 3-4：换场清句子条缓存 */
       packs.forEach(function(pk, pi){
         (pk.unit.parts || []).forEach(function(part){
           (part.groups || []).forEach(function(g){
