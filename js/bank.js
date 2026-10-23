@@ -627,7 +627,7 @@
     }).catch(function(err){
       if(window.console && console.error) console.error('[bank] 题目加载失败：', err);
       var h = document.getElementById('examRoot');
-      if(h) h.innerHTML = '<div class="bank-empty" style="padding:60px"><p>Could not load this test. Please go back and try again.</p>'
+      if(h) h.innerHTML = '<div class="bank-empty"><p>Could not load this test. Please go back and try again.</p>'
         + '<p><button class="btn-ghost" type="button" data-exit>Back</button></p></div>';
       if(root) root.style.display = '';
     });
@@ -1770,7 +1770,7 @@ window.__reportExamState = reportExamState;
     }).catch(function(err){
       if(window.console && console.error) console.error('[bank] 完整模考加载失败：', err);
       var h = document.getElementById('examRoot');
-      if(h) h.innerHTML = '<div class="bank-empty" style="padding:60px"><p>Could not load this test. Please go back and try again.</p>'
+      if(h) h.innerHTML = '<div class="bank-empty"><p>Could not load this test. Please go back and try again.</p>'
         + '<p><button class="btn-ghost" type="button" data-exit>Back</button></p></div>';
       if(root) root.style.display = '';
     });
@@ -1847,7 +1847,7 @@ window.__reportExamState = reportExamState;
     }).catch(function(err){
       if(window.console && console.error) console.error('[bank] 听力完整模考加载失败：', err);
       var h = document.getElementById('examRoot');
-      if(h) h.innerHTML = '<div class="bank-empty" style="padding:60px"><p>Could not load this test. Please go back and try again.</p>'
+      if(h) h.innerHTML = '<div class="bank-empty"><p>Could not load this test. Please go back and try again.</p>'
         + '<p><button class="btn-ghost" type="button" data-exit>Back</button></p></div>';
       if(root) root.style.display = '';
     });
