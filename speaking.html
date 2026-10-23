@@ -65,6 +65,14 @@
        拆文件后 const 跨文件不可见 → 新文件一律 var/function 声明。 -->
   <script defer src="js/sp-core.js?v=20261023a"></script>
   <script defer src="js/sp-stats.js?v=20261023a"></script>
+  <!-- 10-24 T-009 S-6：B 区（按需加载框架 lateReady/lateLoad + 模考忙碌态）拆出 js/sp-late.js（77 行）。
+       🔴 文件名必须叫 sp-late 不叫 sp-mock —— 站点已有真正的模考脚本 js/mock.js（按需加载那四个之一），
+       叫 sp-mock 会被 tests/_probe_latespk_1017.cjs 的正則 /(materials|mock(-report|-history)?)\.js/ 误判。
+       入口 ready() 的空闲预热与模考跳转都要调 lateLoad → 排在 sp-stats 之后即可。 -->
+  <script defer src="js/sp-late.js?v=20261023a"></script>
+  <!-- 10-24 T-009 S-6：L/M 区（口语自动计时 + 回车跳题钩子）拆出 js/sp-timer.js（171 行）。
+       🔴 var SPK_AUTO_MIN_SEC 必须与 commitSpkTimer 同文件且更靠前 —— 搬家时两者一起走、先后不变。 -->
+  <script defer src="js/sp-timer.js?v=20261023a"></script>
   <script defer src="js/sp-list.js?v=20261023a"></script>
   <!-- 10-23 T-009 S-4：G 区（P2 串题，design/87）拆出 js/sp-story.js（685 行）。
        排在 sp-diag.js 之前 —— J 区（诊断）要用它的 spPersonaLine / spDiagTierHead。 -->
@@ -79,7 +87,7 @@
   <!-- 10-24 T-009 S-5：F 区（详情页与保存，含 515 行 openDetail）拆出 js/sp-detail.js（761 行）。
        F 是最顶层的域（调用 A/I/G/J/H/E/K 七个域）→ 排在最后、紧邻 speaking.js 之前。 -->
   <script defer src="js/sp-detail.js?v=20261023a"></script>
-  <script defer src="js/speaking.js?v=20261023n"></script>
+  <script defer src="js/speaking.js?v=20261023p"></script>
   <!-- 10-22 她要求：「句型闯关」这个老引擎整个删掉（页面 / 引擎 / 数据全部下线）。
        已同步删掉 js/pattern-drill.js、pattern-drill.html、data/patterns.json 与 #pdView 界面；
        口语「陪练」tab 仍由 AI 陪练（coach.js）接管，句型练习（sentence-drill.js）不受影响。 -->
