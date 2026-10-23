@@ -423,16 +423,19 @@
   <div class="review-wrap">
     <div class="page-head-row">
       <div class="tabs pill-tabs sp-tabs review-pill-tabs">
-        <button class="tab-btn pill-tab active" data-tab="breakdown">模考</button>
-        <button class="tab-btn pill-tab" data-tab="overall">实战</button>
-        <button class="tab-btn pill-tab" data-tab="speaking">口语</button>
+        <button class="tab-btn pill-tab active" data-tab="score">成绩</button>
         <button class="tab-btn pill-tab" data-tab="record">轨迹</button>
       </div>
     </div>
 
     <section class="review-pane">
-      <!-- 分项模考 Tab（默认） -->
-      <div id="tab-breakdown" class="tab-panel active">
+      <!-- R-2：四项 → 两项。原「模考 / 实战 / 口语」三个面板合进「成绩」栏，
+           容器与 id 原样保留（#tab-breakdown / #tab-overall / #tab-speaking），只改归属；
+           去掉各自的 tab-panel，改由外层 #tab-score 承担显隐 —— 否则嵌套的 .tab-panel
+           会被 common-pwa.js 的委托一起清掉。 -->
+      <div id="tab-score" class="tab-panel active">
+      <!-- 分项模考（原「模考」栏内容，原样保留） -->
+      <div id="tab-breakdown">
         <!-- 💡 弱项诊断卡已删（10/1 晚她拍板：与冲刺卡「离目标还差多少」用途重复，且 30 天/7 天两套口径数字互相矛盾） -->
         <!-- 考前冲刺卡（10/1 从首页迁入，她拍板首页放不下；id 保留 dashSprint 供 sprint.js/探针复用） -->
         <section class="sprint" id="dashSprint" hidden></section>
@@ -511,8 +514,8 @@
         </section>
       </div>
 
-      <!-- 实战 Tab -->
-      <div id="tab-overall" class="tab-panel">
+      <!-- 实战（原「实战」栏内容，原样保留） -->
+      <div id="tab-overall">
         <div class="grid">
           <!-- T-010：总览改驾驶舱式（.rv-cockpit 对齐口语页 .sp-cockpit；h2 即 label，stat-grid 三格铺开） -->
           <section class="card rv-cockpit">
@@ -549,8 +552,8 @@
         </details>
       </div>
 
-      <!-- 口语 Tab（整卷口语模考历史，由 mock-history.js 渲染） -->
-      <div id="tab-speaking" class="tab-panel">
+      <!-- 口语（原「口语」栏内容，原样保留） -->
+      <div id="tab-speaking">
         <section class="card" id="mockSummaryCard">
           <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>错误总结 <button class="btn sm btn-primary" id="mockSummaryBtn" style="margin-left:8px">生成总结</button></h2>
           <!-- 9/29 之之：功能说明小字删除（页面简洁）；功能本身零改动 -->
@@ -570,8 +573,9 @@
         <!-- 口语练习数据（原口语页「数据」tab，9/10 迁移到回顾·口语；由 progress.js 渲染） -->
         <div id="progressView"></div>
       </div>
+      </div><!-- /#tab-score -->
 
-      <!-- 学习轨迹 Tab -->
+      <!-- 学习轨迹（原「轨迹」栏，内容原样未动） -->
       <div id="tab-record" class="tab-panel">
         <section class="card">
           <h2>近 30 天学习热力</h2>
@@ -605,13 +609,17 @@
   try {
     var s = sessionStorage.getItem('hub_sub_review');
     if (!s) { try { s = new URLSearchParams(location.search).get('sub') || ''; } catch (e) {} }
-    if (s !== 'breakdown' && s !== 'overall' && s !== 'speaking' && s !== 'record') return;
+    /* R-2：4 个分栏 → 2 个。深链同时认新的 score / record 与三个老值，
+       三个老值全部落到「成绩」栏 —— 她存过的旧书签（?sub=breakdown|overall|speaking）
+       不能变成空页。 */
+    var MAP = { breakdown: 'score', overall: 'score', speaking: 'score', record: 'record', score: 'score' };
+    var want = MAP[s]; if (!want) return;
     var bar = document.querySelector('.review-pill-tabs');
     if (!bar) return;
     bar.querySelectorAll('.tab-btn').forEach(function (b) {
-      b.classList.toggle('active', b.dataset.tab === s);
+      b.classList.toggle('active', b.dataset.tab === want);
     });
-    var panel = document.getElementById('tab-' + s);
+    var panel = document.getElementById('tab-' + want);
     if (!panel) return;
     var scope = panel.parentElement;
     if (scope) scope.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });

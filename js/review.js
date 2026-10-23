@@ -73,7 +73,8 @@
   }
 
 
-  /* 🔴 10-23 2-1d 批 B 补：顶栏「回顾」二级落地（?sub=breakdown|overall|speaking|record）。
+  /* 🔴 10-23 2-1d 批 B 补：顶栏「回顾」二级落地（R-2 起：?sub=score|record，
+     三个老值 breakdown / overall / speaking 由 LOOKUP 映射到 score）。
      桌面已撤掉 .review-pill-tabs，分栏入口改由顶栏二级接管。用**现成的全局 tab 处理器**
      （common-pwa.js 的 .tab-btn 委托）——直接 .click() 药丸按钮，不重写切换逻辑。
      🔴 10-23 23:2x 她：「可以点进去了，但是会闪一下模考再进入正确的页面」。
@@ -83,8 +84,13 @@
      ⚠️ sub 只能取一次：tbSubPending 是「取用即删」的暗号，第二次调已经空了 → 先存进闭包再应用两次。 */
   function applySubTab(){
     try{
-      const sub = (typeof tbSubPending === 'function') ? tbSubPending('review') : '';
+      let sub = (typeof tbSubPending === 'function') ? tbSubPending('review') : '';
       if(!sub) return;
+      /* R-2：老深链值（breakdown / overall / speaking）都落到「成绩」栏，
+         与 review.html 内联脚本那张 MAP 表完全一致 —— 两处必须同源，
+         否则内联脚本先按老值切一次、本函数再切一次会互相打架。 */
+      const LOOKUP = { breakdown: 'score', overall: 'score', speaking: 'score' };
+      sub = LOOKUP[sub] || sub;
       const apply = function(){
         const btn = document.querySelector('.review-pill-tabs .tab-btn[data-tab="' + sub + '"]');
         if(btn) btn.click();

@@ -18,13 +18,21 @@ var QTYPE_LABELS = {
 ready(() => {
   $('#scoreDate').value = todayKey();
   $('#addScore').addEventListener('click', addScore);
-  // Tab 切换
+  /* Tab 切换
+     R-2：本页 tab 由 4 项变 2 项（成绩 / 轨迹）。原三个面板（#tab-breakdown /
+     #tab-overall / #tab-speaking）已挂进 #tab-score 且不再是 .tab-panel，
+     所以这里「清掉全部 .tab-panel」不会误伤它们 —— 它们跟着外层 #tab-score 一起显隐。
+     ⚠️ 别改成「按父容器清」：本页的 .tab-panel 现在只有 #tab-score 与 #tab-record 两个，
+        平铺在 .review-pane 下，清全部正是要的效果。
+     ⚠️ 加 t 判空：tab-btn 里除了本页这两个，还有页面别处的 .tab-btn，
+        点下去时 $('#tab-xxx') 可能不存在，原写法会抛 TypeError。 */
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
       btn.classList.add('active');
-      $('#tab-' + btn.dataset.tab).classList.add('active');
+      const t = $('#tab-' + btn.dataset.tab);
+      if(t) t.classList.add('active');
     });
   });
   // 分项模考（整卷 / 单篇单项）
