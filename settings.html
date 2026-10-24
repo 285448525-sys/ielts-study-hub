@@ -326,7 +326,7 @@ setTimeout(__rvRescue,2500);
   <script defer src="js/feedback.js?v=20261013b"></script>
   <!-- 10/3 头像选择（DiceBear CC0 素材；必须在 data.js/common.js 之后 —— 它读 DATA.settings.avatar） -->
   <script defer src="js/av-picker.js?v=20261022a"></script>
-  <script src="js/settings.js?v=20261023p" defer></script>
+  <script src="js/settings.js?v=20261025a" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -447,7 +447,6 @@ setTimeout(__rvRescue,2500);
       <!-- ===== 我的账号（T-002 步1：原「个人设置」拆开，昵称留下；深绿卡整块搬入）===== -->
       <section class="set-pane on" data-pane="profile">
     <section class="card set-card rv">
-      <span class="kicker">Account</span>
       <h2>我的账号</h2>
       <p class="set-sub">头像、昵称和登录状态</p>
       <div class="set-row">
@@ -492,7 +491,6 @@ setTimeout(__rvRescue,2500);
       <!-- ===== 备考目标（T-002 步1：原「分数自评」整体搬来 + 原「个人设置」的考期）===== -->
       <section class="set-pane" data-pane="targets" hidden>
     <section class="card set-card rv" data-d="1">
-      <span class="kicker">Targets</span>
       <h2>分数目标与自评</h2>
       <p class="set-sub">AI 按这个口径给你建议 · 模考计分也用这里的自评</p>
       <div class="set-row">
@@ -500,7 +498,7 @@ setTimeout(__rvRescue,2500);
         <div class="set-row-c"><input id="sExam" type="date" aria-label="下次考试日期" /></div>
       </div>
       <div class="set-row">
-        <div class="set-row-t"><b>目标总分</b><p class="set-row-d">AI 建议和模考计分用这个口径</p></div>
+        <div class="set-row-t"><b>目标总分</b></div>
         <div class="set-row-c"><input id="tOverall" type="number" step="0.5" min="0" max="9" aria-label="目标总分" /></div>
       </div>
       <!-- 四科目标一行排开（不是四行）：同为「按科拆」的一组数，拆四行反而难横向比较。
@@ -518,8 +516,8 @@ setTimeout(__rvRescue,2500);
 
     <!-- 原「口语自评」卡（data-d 从 2 起顺延避免动画错位） -->
     <section class="card set-card rv" data-d="2">
-      <span class="kicker">Speaking</span>
       <h2>口语自评</h2>
+      <span class="kicker">Speaking</span>
       <p class="set-sub">模考计分用 · 只有这两项 AI 评不了</p>
       <div class="set-row">
         <div class="set-row-t"><b>口语自评</b><p class="set-row-d">流利度和发音 AI 评不了，只能自己填</p></div>
@@ -535,7 +533,6 @@ setTimeout(__rvRescue,2500);
            月亮云朵动画那段 #sThemeToggle 的 HTML/CSS **一行没动**（验收第 7 条） -->
       <section class="set-pane" data-pane="prefs" hidden>
     <section class="card set-card rv">
-      <span class="kicker">Prefs</span>
       <h2>学习偏好</h2>
       <p class="set-sub">怎么学、站内界面长什么样</p>
       <div class="set-row">
@@ -566,14 +563,6 @@ setTimeout(__rvRescue,2500);
           </div>
         </div>
       </div>
-      <div class="set-row">
-        <div class="set-row-t"><b>提示音</b><p class="set-row-d">专注结束时轻轻响一声</p></div>
-        <div class="set-row-c"><label class="set-sw-row set-sw-check"><input type="checkbox" id="sChime" checked /></label></div>
-      </div>
-      <div class="set-row">
-        <div class="set-row-t"><b>服药模块</b><p class="set-row-d">记录用药后的药效窗口</p></div>
-        <div class="set-row-c"><label class="set-sw-row set-sw-check"><input type="checkbox" id="sAdhd" /></label></div>
-      </div>
       <!-- 10-23 T-002 步5：新增两项（方案 §七；她 10-22 23:5x「全部默认按推荐来」→ 标准字号 + 关） -->
       <div class="set-row">
         <div class="set-row-t"><b>正文字号</b><p class="set-row-d">全站文字大小，看不清就调大</p></div>
@@ -599,7 +588,6 @@ setTimeout(__rvRescue,2500);
       <!-- 数据管理 -->
       <section class="set-pane" data-pane="data" hidden>
     <section class="card set-card rv" data-d="3">
-      <span class="kicker">Data</span>
       <h2>数据管理</h2>
       <p class="set-sub">所有数据存在本机浏览器。危险操作前先导出备份。</p>
       <!-- 🔴 D-1（10-24 她：「把设置里的数据同步删掉，这个功能对于用户来说没什么用，主要同步功能是我们该做的」）
@@ -627,8 +615,8 @@ setTimeout(__rvRescue,2500);
          步2 把它从 .set-btns 里挪走后如果不立刻补回来，页面直接抛
          TypeError: Cannot read properties of null → 全页后续绑定全断。 -->
     <section class="card set-card set-danger rv" data-d="4">
-      <span class="kicker">Danger</span>
       <h2>危险区</h2>
+      <span class="kicker">Danger</span>
       <p class="set-sub">不可恢复，导出备份后再点</p>
       <div class="set-row">
         <div class="set-row-t"><b>清空所有数据</b><p class="set-row-d">清空后本机与云端都回不来</p></div>
@@ -646,7 +634,6 @@ setTimeout(__rvRescue,2500);
               **零 JS 改动**，弹层/截图/联系方式/加微信那条全都原样保留。 -->
       <section class="set-pane" data-pane="about" hidden>
         <section class="card set-card rv" data-d="1">
-          <span class="kicker">Feedback</span>
           <h2>反馈与关于</h2>
           <p class="set-sub">说清页面和现象，我改得越准</p>
           <div class="set-row">

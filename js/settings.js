@@ -149,8 +149,15 @@ function saveSettings(){
   };
   const _pron = _band('#sPron'); if(_pron !== undefined) _set('pronunciationScore', _pron);
   const _flu = _band('#sFlu');   if(_flu  !== undefined) _set('fluencyScore', _flu);
-  _set('chimeOnDone', $('#sChime').checked);
-  if($('#sAdhd')) _set('adhd', $('#sAdhd').checked);   // 服药模块开关（未开启则入口全隐藏，数据保留）
+  /* 🔴 S-1（10-25）：#sChime / #sAdhd 两个开关的 HTML 整行删掉了
+     （她 23:5x「两个都删说过了」—— 服药开关勾上界面无变化、提示音只剩 timer.js 一处读，
+     而计时页手动入口她 10-21 已撤）。
+     ⚠️ 原写法是**裸读** $('#sChime').checked —— 元素没了会抛 TypeError 中断整个 saveSettings，
+     导致「设置保存了但后面几项没落库」。改成元素在才读（与 #sAdhd 的口径一致）。
+     ⚠️ 字段 chimeOnDone / adhd **保留**在 common-sync.js 的 SYNC_SETTINGS_FIELDS 白名单里，
+     数据一条不丢（meds.html 与 DATA.meds 也保留）。 */
+  if($('#sChime')) _set('chimeOnDone', $('#sChime').checked);
+  if($('#sAdhd')) _set('adhd', $('#sAdhd').checked);
   // 10-23 T-002 步5：两项落库（_fieldTs 模式与上面一致；都登记了 SYNC_SETTINGS_FIELDS 跨设备带回）
   if($('#sReduceMotion')) _set('reduceMotion', $('#sReduceMotion').checked === true);
   hubSave(); applyTheme();
