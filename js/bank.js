@@ -60,6 +60,8 @@
 
   /* ===== 状态 ===== */
   var _manifest = null, _loading = false;
+  /* M-2：两个 pane 各记一份搜索词（切走再切回来，输入框内容与过滤结果都还在） */
+  var _searchQ = { 'pane-reading': '', 'pane-listening': '' };
   var EX = null;              // 当前做题会话
   var _timer = null;
   var _ftTimer = null;        // 顶栏计时小徽章刷新interval（10/13）
@@ -248,6 +250,8 @@
     if(!_manifest){ paintLoading(host, meta); return; }
     part = part || currentPart();
     var units = unitsOf(channel).filter(function(u){ return (u.partNum || 'Part 1') === part; });
+    /* M-2：搜索过滤（无搜索词时原样返回，零影响） */
+    units = filterUnits(units);
     if(meta){
       var perQ = units.length ? (units[0].qCount || 0) : 0;
       meta.textContent = part + ' · 共 ' + units.length + ' 篇' + (perQ ? (' · 每篇 ' + perQ + ' 题') : '');
@@ -265,7 +269,12 @@
       });
     }
     if(!units.length){ host.innerHTML = '<div class="bank-empty"><p>这一部分暂时没有篇目。</p></div>'; return; }
-    host.innerHTML = listHtml(units, channel);
+    /* M-2（10-24）：改成「没做过 / 做过」两组 + 每组首屏 20 条 + 展开更多。
+       ⚠️ 单条 DOM 仍是本文件的 listHtml() —— js/bank-groups.js 只负责分组与分页，
+          它把 listHtml 当参数收下再用，所以 .bank-item 的结构零改动。 */
+    host.innerHTML = (window.BankGroups && window.BankGroups.html)
+      ? window.BankGroups.html('bankList', units, channel, listHtml)
+      : listHtml(units, channel);
     renderFullEntry();
   }
 
@@ -323,6 +332,61 @@
     var spReal = sp.filter(function(s){ return s && !s.framework && !/^sp_p[12]_\d+$/.test(s.id || ''); });
     set('speaking', spReal.length);
   }
+  /* ===== M-2（10-24）：搜索过滤（分组版）=====
+     ⚠️ 不复用站内 initListSearch()：那个只做 `display:none` 显隐，和分组/分页会打架
+        （隐藏了 .bank-item，但组头计数不变，「展开更多」还会把隐藏的加回来）。
+     这里由自己过滤：**重新走一遍 renderList()**，让分组、计数、分页全部按新口径重画。
+     🔴 只在当前激活的 pane 上生效（阅读 / 听力各一个输入框，互不干扰）。 */
+  function searchBankList(){
+    var act = document.querySelector('.mock-pane:not([hidden])');
+    if(!act) return;
+    var q = '';
+    if(act.id === 'pane-reading'){
+      var i1 = document.getElementById('bankSearch');
+      q = i1 ? (i1.value || '').trim().toLowerCase() : '';
+    } else if(act.id === 'pane-listening'){
+      var i2 = document.getElementById('listenSearch');
+      q = i2 ? (i2.value || '').trim().toLowerCase() : '';
+    } else return;                                   /* 写作 / 口语 pane 不归本函数管 */
+    _searchQ[act.id] = q;
+    if(act.id === 'pane-reading') renderList('reading');
+    else renderListenList(currentListenPart());
+  }
+  function filterUnits(units){
+    var pane = document.querySelector('.mock-pane:not([hidden])');
+    var q = pane ? (_searchQ[pane.id] || '') : '';
+    if(!q) return units;
+    return units.filter(function(u){
+      var txt = ((u.title || '') + ' ' + (u.titleZh || '') + ' ' + ((u.types || []).join(' '))).toLowerCase();
+      return txt.indexOf(q) !== -1;
+    });
+  }
+
+  /* ===== M-2：搜索框绑定 + 清空按钮 =====
+     🔴 绑前先摘（软导航会重跑本文件，不摘就叠加监听器）。
+     🔴 清空按钮是 S-1 统一类的一部分（.ui-field-clear），这里只管它的显隐与点击。 */
+  function bindBankSearch(){
+    ['bankSearch', 'listenSearch'].forEach(function(id){
+      var inp = document.getElementById(id);
+      if(!inp || inp.__m2Bound) return;
+      inp.__m2Bound = true;
+      inp.addEventListener('input', searchBankList);
+      var clear = inp.parentNode.querySelector('.ui-field-clear');
+      if(clear && !clear.__m2Bound){
+        clear.__m2Bound = true;
+        var sync = function(){ clear.hidden = !(inp.value || '').trim(); };
+        inp.addEventListener('input', sync);
+        sync();
+        clear.addEventListener('click', function(){
+          inp.value = '';
+          clear.hidden = true;
+          searchBankList();
+          inp.focus();
+        });
+      }
+    });
+  }
+
   function renderListenList(part){
     var host = document.getElementById('listenList'); if(!host) return;
     var meta = document.getElementById('listenMeta');
@@ -330,12 +394,17 @@
     if(!_manifest){ paintLoading(host, meta); return; }
     part = part || currentListenPart();
     var units = unitsOf('listening').filter(function(u){ return (u.partNum || 'Part 1') === part; });
+    /* M-2：搜索过滤（与阅读侧同一条路径） */
+    units = filterUnits(units);
     if(meta){
       var perQ = units.length ? (units[0].qCount || 0) : 0;
       meta.textContent = part + ' · 共 ' + units.length + ' 篇' + (perQ ? (' · 每篇 ' + perQ + ' 题') : '');
     }
     if(!units.length){ host.innerHTML = '<div class="bank-empty"><p>这一部分暂时没有篇目。</p></div>'; return; }
-    host.innerHTML = listHtml(units, 'listening');
+    /* M-2：与阅读侧同一套分组 + 分页（bank-groups.js） */
+    host.innerHTML = (window.BankGroups && window.BankGroups.html)
+      ? window.BankGroups.html('listenList', units, 'listening', listHtml)
+      : listHtml(units, 'listening');
     renderListenFullEntry();
   }
 
@@ -533,6 +602,7 @@
   function boot(skipSkeleton){
     var root = document.getElementById('bankRoot');
     if(!root) return;                                  // 不在本页
+    bindBankSearch();                                  /* M-2：搜索框（幂等，重跑不叠加） */
     if(_manifest){ paintTab(root.getAttribute('data-mock-tab') || 'reading'); return; }
     if(_loading) return;
     _loading = true;
