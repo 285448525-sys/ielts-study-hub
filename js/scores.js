@@ -201,7 +201,13 @@ function render(){
 
   // list
   const box = $('#scoreList');
-  if(list.length === 0){ box.innerHTML = renderEmpty('还没有成绩记录。点下面「添加真题成绩」录一条，这里会按时间列出每次成绩。'); return; }
+  if(list.length === 0){
+    box.innerHTML = renderEmpty('还没有成绩记录。点下面「添加真题成绩」录一条，这里会按时间列出每次成绩。');
+    /* 🔴 R-4：趋势图必须**在空态也要画**（renderTrend 自己有「还没有模考成绩」的空态文案），
+       否则第一次填成绩之前那块永远是白板。原来这里直接 return 会跳过它。 */
+    renderTrend();
+    return;
+  }
   box.innerHTML = list.map(x => {
     const lo = overall(x.listening, x.reading, x.writing, x.speaking);
     const diff = Math.round((lo - targetOverall) * 2) / 2;
@@ -220,6 +226,11 @@ function render(){
   }).join('');
   box.querySelectorAll('button[data-del]').forEach(b =>
     b.addEventListener('click', () => deleteScore(b.dataset.del)));
+
+  /* 🔴 R-4（10-24）：把 renderTrend 接上 —— 这个函数从上线至今一次都没被调用过
+     （全站没有 #trendChart 容器，它第一行就 return 了）。本批补容器 + 在这里调用，
+     删除/新增成绩后也会跟着重画，不是只在首次渲染时画一次。 */
+  renderTrend();
 }
 
 /* ===== 成绩趋势折线图（SVG） ===== */
@@ -255,7 +266,7 @@ function renderTrend(){
       body += `<text x="${W-padR}" y="${ty-4}" text-anchor="end" font-size="10" style="fill:${se.color}">目标 ${se.target}</text>`;
     });
     box.innerHTML = `<div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" width="100%" style="min-width:520px">${grid}${body}</svg></div>`
-      + `<div style="margin-top:8px;font-size:13px;color:var(--muted)">📈 只有 1 次模考，已画出「当前 vs 目标」。再考 1 次就能看完整趋势～</div>`;
+      + `<div class="rv-trend-note">只有 1 次模考，先画出「当前 vs 目标」。再考 1 次就能看到完整趋势。</div>`;
     return;
   }
   // 2 次及以上：原有多点折线（保持不变）
