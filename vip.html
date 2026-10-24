@@ -47,6 +47,43 @@ setTimeout(__rvRescue,2500);
 #bootLoader .ui-loader{margin-bottom:8px}
 @media (prefers-reduced-motion: reduce){#bootLoader .ui-loader-dot,#bootLoader .ui-loader-shadow{animation:none}#bootLoader .ui-loader-dot{top:20px;height:20px;border-radius:50%;transform:none}#bootLoader .ui-loader-shadow{opacity:.5;transform:scaleX(1)}}
 </style>
+<style>
+/* ── V-1（10-24）：会员页「为什么收费」折叠块 ──
+   收起态一行（一句结论 + 「为什么收费 ▾」），展开才看解释。
+   ⚠️ 深色走 token —— 旧版那块说明写死 background:#f6f8f9，深色档下是白块。 */
+.why-fold{border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
+.why-fold > summary{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  padding:14px 18px;cursor:pointer;list-style:none;
+  font-size:14px;line-height:1.75;color:var(--ink);
+  transition:background .15s;
+}
+.why-fold > summary::-webkit-details-marker{display:none}
+.why-fold > summary:hover{background:var(--primary-soft)}
+.why-fold > summary:focus-visible{outline:none;box-shadow:0 0 0 3px var(--primary-soft);border-radius:12px}
+.why-lead{flex:1 1 320px;min-width:0}
+.why-lead b{color:var(--ink);font-weight:700}
+.why-more{
+  flex:none;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;
+  font-size:12.5px;font-weight:700;color:var(--primary-text);
+}
+.why-caret{
+  display:inline-block;flex:none;
+  width:6px;height:6px;margin-left:1px;margin-bottom:2px;
+  border-right:1.6px solid currentColor;border-bottom:1.6px solid currentColor;
+  transform:rotate(45deg);transition:transform .18s ease;
+}
+.why-fold[open] .why-caret{transform:rotate(-135deg);margin-bottom:-2px}
+@media(prefers-reduced-motion:reduce){.why-caret{transition:none}}
+.why-body{padding:2px 18px 18px;font-size:14px;line-height:1.85;color:var(--body,var(--ink));border-top:1px solid var(--line);margin-top:0}
+.why-body p{margin:14px 0 0}
+.why-body p:first-child{margin-top:14px}
+.why-body b{color:var(--ink);font-weight:700}
+@media(max-width:560px){
+  .why-fold > summary{padding:13px 15px;gap:8px;font-size:13.5px}
+  .why-body{padding:2px 15px 15px;font-size:13.5px;line-height:1.8}
+}
+</style>
 <meta name="description" content="会员中心：会员权益、价格与开通方式。" />
 <link rel="canonical" href="https://yasihub.com/vip" />
 <meta property="og:type" content="website" />
@@ -79,19 +116,40 @@ setTimeout(__rvRescue,2500);
   <!-- 当前状态卡（js/vip.js 实时查 /api/auth vip_status 渲染） -->
   <section class="card" id="vipHero"></section>
 
-  <!-- 为什么收费（10/13 她 13:44 要求：「学人家怎么劝开会员但别太过营销，真诚一点；
-       要表达会员功能基本都是为 AI 服务——内置站长本人的 API key，使用有成本才收费」）。
-       调研基线（≥2 独立来源，铁律）：whatled《AI SaaS 定价指南》「定价应与实际成本挂钩」+
-       vmobify《AI App Unit Economics》「可预期性本身就是产品价值」+ grizzlypeak
-       「Communicate Value, Not Features」——先讲为什么再谈价格，规则摊开不设隐藏成本。 -->
-  <section class="card rv">
+  <!-- 为什么收费 · V-1（10-24 重写 + 默认折叠）
+       她 13:2x 原话：「你代入真实用户，看到哪些会觉得这网站开不长久不敢充钱……这段话很重要，
+       也不要太长，要折叠起来，不然每次打开都这句话非常不美观」。
+
+       病根：旧版顺序反了 —— 把「成本焦虑 / 生存焦虑」摊在最前面，把最硬的保证
+       （7 天全额退、数据不删）藏在第三句末尾。用户读完的心理是「这站能撑多久」，
+       而不是「我得到什么」。重写按「先说我给你什么 → 再解释收的是什么钱 →
+       两条保证写在明面上 → 做不到的也说清楚」排。
+
+       🔴 默认必须收起（她就是嫌每次打开都看到）。用站内现成的 <details>（同页 FAQ 已在用），
+          不造新组件。展开态才解释「为什么收费」，收起态只留一句 + 「为什么收费 ▾」。
+       🔴 不碰价格数字 / 权益对比表 / 开通流程 / 退款条款本身 —— 7 天、AI 5 次这些既定口径原样保留。
+       🔴 深色走 token：旧版这里写死 background:#f6f8f9（浅灰），深色档下是一块白——
+          本批一并改成 var(--surface) / var(--line)，不再写死浅色。 -->
+  <section class="card rv" id="vipWhy">
     <span class="kicker">Why · 先说清楚</span>
-    <h2 style="margin:0 0 14px">这个站为什么收费</h2>
-    <div style="background:#f6f8f9;border-radius:12px;padding:18px 20px">
-      <p style="margin:0 0 10px;font-size:14.5px;line-height:1.85"><b>会员功能，基本都是在为 AI 买单。</b>站里的 AI 批改、口语陪练、模考评分，用的是站长本人购买的接口——你每提交一篇作文、每练一轮口语，都在产生真实的调用费用。会员收的钱，就是用来覆盖这部分成本的。</p>
-      <p style="margin:0 0 10px;font-size:14.5px;line-height:1.85"><b>不靠 AI 的功能，永久免费。</b>词库、口语题库、备考计划、回顾、计时、听写、长难句、云同步和数据导出——这些和会员没有任何区别，也不会变。</p>
-      <p style="margin:0;font-size:14.5px;line-height:1.85"><b>收费只为让站能一直开下去</b>，不玩套路：免费额度规则全部写在下面，7 天内不满意全额退，到期后学习数据一条不删。你付的每一分钱，都花在陪你练习的 AI 上。</p>
-    </div>
+    <details class="why-fold">
+      <summary>
+        <span class="why-lead"><b>学习功能全免费，会员只买 AI 额度</b> —— 因为每次批改 / 陪练都花真钱；7 天不满意全额退，数据随时导得走。</span>
+        <span class="why-more">为什么收费<span class="why-caret" aria-hidden="true"></span></span>
+      </summary>
+      <div class="why-body">
+        <p><b>你可能在想：这站能开多久？</b></p>
+        <p>说实在的：就我一个人在维护，没有公司，也没有融资。所以我把话说明白——</p>
+
+        <p><b>你付的钱花在哪。</b>会员只有一样东西：AI 额度。每篇作文批改、每轮口语陪练，调一次接口就是一次真实费用。你付的就是这个。</p>
+
+        <p><b>不碰 AI 的功能，永久免费，也不会变。</b>词库、口语题库、备考计划、回顾、计时、听写、长难句、云同步、数据导出——这些和会员版一模一样。</p>
+
+        <p><b>两条保证，写在明面上。</b>① 开通 7 天内，AI 用得少，一句话全额退，不用解释原因；② 会员到期后学习数据一条不删，随时能导出带走。</p>
+
+        <p style="margin-bottom:0"><b>做不到的也说清楚。</b>只有我一个人，所以没法承诺秒回、也没法承诺永不离线。能承诺的是：你反馈的问题我会改，数据永远导得走。</p>
+      </div>
+    </details>
   </section>
 
   <!-- 会员方案：价格卡由 js/vip.js 按 VIP_PLANS 常量渲染（改价只动那里一处） -->
