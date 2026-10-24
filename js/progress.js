@@ -38,6 +38,12 @@
     });
     const coverage = total ? Math.round(doneTopics / total * 100) : 0;
 
+    /* R-5：覆盖率写进轨迹栏那三个数旁边的 #rvStatCoverage。
+       没练过（doneTopics === 0）显示「--」而不是 0% —— 0% 会被误读成「练了但一个都没过」。
+       ⚠️ 取值口径与原来那张卡完全一致（Math.round(doneTopics / total * 100)），一个数没变。 */
+    const covEl = document.getElementById('rvStatCoverage');
+    if (covEl) covEl.textContent = doneTopics > 0 ? String(coverage) : '--';
+
     // 各档位进度条（只显示数据里实际出现的档位）
     const order = ['ultra', 'high', 'medium', 'low'];
     const present = order.filter(f => list.some(s => s.frequency === f));
@@ -50,14 +56,12 @@
     });
 
     el.innerHTML =
-      '<div class="prog-grid">'
-      + '<div class="prog-card"><div class="n">' + total + '</div><div class="l">话题总数</div></div>'
-      + '<div class="prog-card"><div class="n">' + doneTopics + '</div><div class="l">已练话题</div></div>'
-      + '<div class="prog-card"><div class="n">' + coverage + '%</div><div class="l">覆盖率</div></div>'
-      + '<div class="prog-card"><div class="n">' + totalPass + '</div><div class="l">总练习遍数</div></div>'
-      + '</div>'
-
-      + '<section class="card"><h2>各档位进度</h2>' + bars + '</section>'
+      /* 🔴 R-5（10-24）：口语练习原来四张计数卡（话题总数 / 已练话题 / 覆盖率 / 总练习遍数）
+         按方案 Q2 砍到**只留覆盖率**，并且挪到轨迹栏那三个数旁边（#rvStatCoverage）。
+         其余三个数不再渲染 —— 它们是「我有多大一堆东西」，不是「我练得怎么样」。
+         ⚠️ total / doneTopics / totalPass 三个变量保留：下面「Part 分块」「各档位进度」
+            仍要用 total 与逐题计数，删变量会连锁报错。 */
+      '<section class="card"><h2>各档位进度</h2>' + bars + '</section>'
 
       + '<section class="card"><h2>Part 分块</h2><div class="prog-part"><span>P1 已练 <b>' + p1Done + '</b>/' + p1Total + '</span><span>P2 已练 <b>' + p2Done + '</b>/' + p2Total + '</span><span>P1 练习 <b>' + list.filter(s => s.type !== 'P2').reduce((a, s) => a + countOf(s), 0) + '</b> 遍</span><span>P2 练习 <b>' + list.filter(s => s.type === 'P2').reduce((a, s) => a + countOf(s), 0) + '</b> 遍</span></div></section>'
 

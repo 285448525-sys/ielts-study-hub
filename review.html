@@ -377,19 +377,44 @@
 }
 
 
-/* ---- 7. 口语练习数据（#progressView，progress.js 渲染）四格：同驾驶舱观感 ---- */
-#progressView .prog-grid{grid-template-columns:repeat(4,1fr);gap:0;margin:0 0 18px;
-  background:var(--n-0);border:1px solid var(--n-300);border-radius:14px;box-shadow:var(--sh-2);padding:16px 18px}
-#progressView .prog-card{background:none;border:0;border-radius:0;box-shadow:none;padding:0 16px;text-align:left}
-#progressView .prog-card:first-child{padding-left:0}
-#progressView .prog-card + .prog-card{border-left:1px solid var(--n-300)}
-#progressView .prog-card .n{font-size:22px;font-weight:700;color:var(--primary-700);font-variant-numeric:tabular-nums;line-height:1.1}
-#progressView .prog-card .l{font-size:11.5px;color:var(--n-500);margin-top:4px}
-@media (max-width:720px){
-  #progressView .prog-grid{grid-template-columns:repeat(2,1fr);gap:14px 0;padding:14px}
-  #progressView .prog-card:nth-child(odd){padding-left:0;border-left:0}
-  #progressView .prog-card{padding:0 12px}
+/* ---- 7. 轨迹栏顶部三个数 + 口语覆盖率（R-5，10-24）----
+   原来这块是 #progressView 里「口语练习」的四格计数卡（话题总数/已练/覆盖率/遍数），
+   R-5 按她点头的方案 Q2 砍到只剩覆盖率，并挪到轨迹栏三个数旁边 → 这里改成统一的 .rv-stat。
+   配色只用两套主题都有覆盖值的 token（--n-50 / --n-300 / --primary-700 / --muted / --line），
+   ⚠️ 不用 --n-500（深色下压在 #1a1a1c 上只有 3.45:1，R-3 踩过）。 */
+.rv-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin:0 0 14px}
+.rv-stat{border:1px solid var(--line);border-radius:12px;background:var(--n-50);padding:13px 15px;min-width:0}
+.rv-stat-v{font-size:25px;font-weight:700;letter-spacing:-.02em;line-height:1.1;
+  color:var(--primary-700);font-variant-numeric:tabular-nums;white-space:nowrap}
+.rv-stat-v small{font-size:12.5px;font-weight:500;color:var(--muted);margin-left:3px;letter-spacing:0}
+.rv-stat-k{font-size:12px;color:var(--muted);margin-top:4px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+@media (max-width:900px){
+  .rv-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+@media (max-width:400px){
+  .rv-stat{padding:11px 12px}
+  .rv-stat-v{font-size:22px}
+}
+
+/* ---- 7b. 两张录入表单折叠成一行「+ 添加」（R-5）----
+   原来「添加分项记录」是摊开的 section，5 个控件铺满第一屏；
+   现在统一成虚线「+」行，点开才展开。summary 里的 + 号用 CSS 画成小方块。 */
+.rv-add{border:1px dashed var(--line);border-radius:12px;background:var(--n-50);
+  padding:0 15px;margin:0 0 18px}
+.rv-add > summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:9px;
+  padding:11px 0;font-size:14px;font-weight:600;color:var(--ink)}
+.rv-add > summary::-webkit-details-marker{display:none}
+.rv-add > summary::before{content:none}         /* 压掉 .detail-block 的 ▸，这个用「+」 */
+.rv-add-plus{width:19px;height:19px;border-radius:6px;flex:none;
+  background:rgba(58,154,147,.12);color:var(--primary-700);
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:15px;font-weight:700;line-height:1;transition:transform .18s}
+.rv-add[open] .rv-add-plus{transform:rotate(45deg)}   /* 展开后 + 变 ×，能看出来可以关 */
+.rv-add-x{margin-left:auto;font-size:12px;font-weight:400;color:var(--muted)}
+.rv-add-body,.rv-add > div{padding:2px 0 15px}
+/* 折叠行本身不再是 .detail-block 那种大卡（detail-block 的背景/边框会给它套一层） */
+.rv-add.detail-block{padding:0 15px;background:var(--n-50);border-style:dashed}
 
 
 /* ---- 8. 口语整卷记录 · 移动端不换行崩字（T-010 375 实测：日期被折成「2026-10-」+「21」，
@@ -483,7 +508,7 @@
 <script defer src="js/common-pwa.js?v=20261024k"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
 <script defer src="js/scores.js?v=20261024b"></script>
-<script defer src="js/history.js?v=20260904d"></script>
+<script defer src="js/history.js?v=20261024a"></script>
 <script defer src="js/mock-report.js?v=20261006a"></script>
 <script defer src="js/mock-history.js?v=20261006b"></script>
 <!-- R-4 后半：三类成绩合一列（只读渲染，删除/详情转发到上面三个脚本里的现成逻辑）。
@@ -492,7 +517,7 @@
 <script defer src="js/rec-all.js?v=20261024a"></script>
 <script defer src="js/mock-summary.js?v=20261001f"></script>
 <script defer src="js/speaking-practice.js?v=20261006a"></script>
-<script defer src="js/progress.js?v=20261022d"></script>
+<script defer src="js/progress.js?v=20261024a"></script>
 <!-- 回顾页的协调脚本：软导航下由 common.js 按其 pageScriptSources 收集执行。
      ⚠️ 必须带 ?v= 声明在这里 —— 否则 common.js 只能拿裸 URL 'js/review.js'，
      等于向浏览器 HTTP 缓存要「任意年代的旧副本」，改动永远推不上去（9/17 陈旧 UI 事故根因）。 -->
@@ -574,9 +599,16 @@
         <!-- 💡 弱项诊断卡已删（10/1 晚她拍板：与冲刺卡「离目标还差多少」用途重复，且 30 天/7 天两套口径数字互相矛盾） -->
         <!-- 考前冲刺卡（10/1 从首页迁入，她拍板首页放不下；id 保留 dashSprint 供 sprint.js/探针复用） -->
         <section class="sprint" id="dashSprint" hidden></section>
-        <section class="card">
-          <h2>添加分项记录</h2>
-          <div>
+        <!-- 🔴 R-5 后半（10-24）：两张录入表单默认折叠成一行「+ 添加」。
+             原来「添加分项记录」是摊开的 section，5 个控件铺满第一屏，
+             她打开「成绩」先看到一排输入框而不是自己的成绩。
+             做法 = 两张都改成 <details>（内容仍在 DOM 里，scores.js 的
+             $('#mkDate') / $('#scoreDate') / $('#mkAdd') / $('#addScore') 取元素一行没改），
+             只是默认不展开；summary 统一成虚线「+」行，和方案稿的 .add 一个样子。
+             ⚠️ 别删任何控件 —— 删了 scores.js:19-42 的取值直接抛错。 -->
+        <details class="detail-block rv-add" id="mkAddWrap">
+          <summary><span class="rv-add-plus">+</span><b>添加分项记录</b><span class="rv-add-x">点开才展开</span></summary>
+          <div class="rv-add-body">
             <div class="form-row mk-entry-row">
               <div><label>粒度</label>
                 <select id="mkGran">
@@ -601,7 +633,7 @@
 
             <button class="btn btn-primary" id="mkAdd">保存分项</button>
           </div>
-        </section>
+        </details>
 
         <!-- T-010：表现统计同套驾驶舱观感（标题行 + 三块统计） -->
         <section class="card rv-cockpit">
@@ -748,8 +780,8 @@
           </div>
         </details>
 
-        <details class="detail-block">
-          <summary>添加真题成绩</summary>
+        <details class="detail-block rv-add" id="scAddWrap">
+          <summary><span class="rv-add-plus">+</span><b>添加真题成绩</b><span class="rv-add-x">点开才展开</span></summary>
           <div>
             <div class="form-row">
               <div><label>模考日期</label><input type="date" id="scoreDate" /></div>
@@ -791,6 +823,34 @@
 
       <!-- 学习轨迹（原「轨迹」栏，内容原样未动） -->
       <div id="tab-record" class="tab-panel">
+        <!-- 🔴 R-5（10-24）前半：热力图之前先给结论 —— 三个数本来散在别处
+             （连续打卡在首页侧轨、活跃天数要自己数格子、累计时长得把每日明细加起来）。
+             三个数全部复用现成口径，一个新算法都没写：
+               · 连续打卡     → calcStreak()（common.js，首页 railStreakN 用的同一个）
+               · 近 30 天活跃 → 按 history.js 热力图同一套按天聚合，数 durationSec>0 的天数
+               · 累计专注     → DATA.sessions 的 durationSec 求和（同 renderDays 的算法）
+             第四个「口语话题覆盖率」是后半：口语练习原来四张计数卡只留这一个，
+             从 #progressView 挪到这三个数旁边（progress.js 往里写，容器在这儿）。
+             ⚠️ 没练过口语时覆盖率显示「--」而不是 0% —— 0% 会被当成「练了但一个都没过」。 -->
+        <div class="rv-stats" id="rvRecordStats">
+          <div class="rv-stat">
+            <div class="rv-stat-v"><b id="rvStatStreak">0</b><small>天</small></div>
+            <div class="rv-stat-k">连续打卡</div>
+          </div>
+          <div class="rv-stat">
+            <div class="rv-stat-v"><b id="rvStatActive">0</b><small>/ 30 天</small></div>
+            <div class="rv-stat-k">近 30 天活跃</div>
+          </div>
+          <div class="rv-stat">
+            <div class="rv-stat-v"><b id="rvStatFocus">0</b><small id="rvStatFocusUnit">小时</small></div>
+            <div class="rv-stat-k">累计专注</div>
+          </div>
+          <div class="rv-stat">
+            <div class="rv-stat-v"><b id="rvStatCoverage">--</b><small>%</small></div>
+            <div class="rv-stat-k">口语话题覆盖率</div>
+          </div>
+        </div>
+
         <section class="card">
           <h2>近 30 天学习热力</h2>
           <div id="heatmap"></div>
