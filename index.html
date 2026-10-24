@@ -36,6 +36,9 @@
 <style>
   :root{
     --primary:#3a9a93;--primary-600:#2f867f;--primary-400:#56b3ab;
+    /* L-1（10-24）：补上与站内同名同值的底色字色 token（css/common.css:106 --on-primary:#ffffff）。
+       原来这里没有它，按钮只好写死 #06231f 深墨绿，于是同一个 teal 底全站一个字色、落地页另一个。 */
+    --on-primary:#ffffff;
     --teal-12:rgba(58,154,147,.12);--teal-08:rgba(58,154,147,.08);--teal-45:rgba(58,154,147,.45);
     --gold:#c79a4b;
     --ink:#f2f6f9;--body:#c3cedb;--muted:#8fa0b3;--faint:#63748a;
@@ -58,8 +61,15 @@
     border-radius:11px;padding:9px 17px;border:1px solid transparent;cursor:pointer;white-space:nowrap;
     transition:transform .16s ease,box-shadow .16s ease,background .16s ease,border-color .16s ease,color .16s ease}
   .btn svg{width:15px;height:15px}
-  .btn-solid{background:var(--primary);color:#06231f;box-shadow:0 10px 24px -14px rgba(58,154,147,.55)}
-  .btn-solid:hover{background:var(--primary-400);transform:translateY(-1px);box-shadow:0 16px 32px -16px rgba(58,154,147,.6)}
+  /* ── L-1（10-24）：按钮三件套对齐站内 ──
+     改前三处两套语言（对照 css/common.css:423 `.btn` / `.btn-primary`）：
+       ① 字色 #06231f 深墨绿 —— 站内 teal 实底写白字（--on-primary:#ffffff）
+       ② 有投影 0 10px 24px -14px + hover 上移 1px —— 站内 10/20 统一 UI 时已收掉
+       ③ 同色不同字：logo 方块、步骤序号同样写死 #06231f
+     改后：统一 var(--on-primary) / 去投影 / 去位移。
+     🔴 只动字色与投影，不碰尺寸、布局、深色底、文案。 */
+  .btn-solid{background:var(--primary);color:var(--on-primary)}
+  .btn-solid:hover{background:var(--primary-400)}
   .btn-line{border-color:var(--teal-45);color:var(--primary-400);background:var(--teal-08)}
   .btn-line:hover{border-color:rgba(58,154,147,.75);background:rgba(58,154,147,.14);transform:translateY(-1px)}
   .btn-ghost{color:var(--muted)}
@@ -71,7 +81,7 @@
   header{position:sticky;top:0;z-index:20;background:rgba(11,17,23,.82);backdrop-filter:blur(12px);border-bottom:1px solid var(--line-soft)}
   .nav{display:flex;align-items:center;gap:24px;height:62px}
   .logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:15px}
-  .logo i{width:27px;height:27px;border-radius:8px;background:linear-gradient(135deg,var(--primary),var(--primary-600));display:grid;place-items:center;color:#06231f;font-style:normal;font-size:13px;font-weight:800}
+  .logo i{width:27px;height:27px;border-radius:8px;background:linear-gradient(135deg,var(--primary),var(--primary-600));display:grid;place-items:center;color:var(--on-primary);font-style:normal;font-size:13px;font-weight:800}
   .nav nav{display:flex;gap:22px;font-size:13.5px;color:var(--muted)}
   .nav nav a{transition:color .15s}
   .nav nav a:hover{color:var(--ink)}
@@ -170,7 +180,7 @@
   /* 三步 */
   .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
   .step{border:1px solid var(--line);border-radius:18px;padding:26px 24px;background:var(--card);box-shadow:0 1px 0 rgba(255,255,255,.03) inset}
-  .step .no{width:34px;height:34px;border-radius:11px;background:var(--primary);color:#06231f;display:grid;place-items:center;font-weight:800;font-size:15px;margin-bottom:16px;font-variant-numeric:tabular-nums}
+  .step .no{width:34px;height:34px;border-radius:11px;background:var(--primary);color:var(--on-primary);display:grid;place-items:center;font-weight:800;font-size:15px;margin-bottom:16px;font-variant-numeric:tabular-nums}
   .step h3{margin:0 0 8px;font-size:16.5px;letter-spacing:-.01em}
   .step p{margin:0;font-size:13.5px;color:var(--muted);line-height:1.75}
 
@@ -269,7 +279,7 @@
             <span class="ts">间隔重复排的，反复错的排在前面</span>
             <span class="mini"><i style="width:100%"></i></span>
           </span>
-          <span class="st-done"><svg viewBox="0 0 24 24" aria-hidden="true"> aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#5cb3ab"/><path d="M7.5 12.6l3 3 6-6.6" fill="none" stroke="#07251f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="st-done"><svg viewBox="0 0 24 24" aria-hidden="true"> aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#5cb3ab"/><path d="M7.5 12.6l3 3 6-6.6" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
         </div>
         <div class="task done">
           <span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2.5" width="6" height="11.5" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0"/><path d="M12 18v3.5"/></svg></span>
@@ -278,7 +288,7 @@
             <span class="ts">AI 陪练，说完给反馈</span>
             <span class="mini"><i style="width:100%"></i></span>
           </span>
-          <span class="st-done"><svg viewBox="0 0 24 24" aria-hidden="true"> aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#5cb3ab"/><path d="M7.5 12.6l3 3 6-6.6" fill="none" stroke="#07251f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="st-done"><svg viewBox="0 0 24 24" aria-hidden="true"> aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#5cb3ab"/><path d="M7.5 12.6l3 3 6-6.6" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
         </div>
         <div class="task">
           <span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.5h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7.5 18.5 3 20l1.5-4.5L16.5 3.5z"/></svg></span>
