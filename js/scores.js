@@ -105,33 +105,47 @@ function render(){
   const targetOverall = t.overall || 0;
   const hasTargets = targetOverall > 0;
 
-  // stats — 加考试倒计时 + 本场目标（0 次也显示倒计时/目标）
+  /* R-3（10-24）：总览五卡 + 四科对比条 + 行动建议 三块合成一个焦点块。
+     统计口径一个都没新写：总分 = overall()、目标 = DATA.settings.targets、
+     倒计时 = examCountdown()、已考场次 = list.length —— 全是渲染前就在算的老值，
+     只是把结果写到焦点块的大字 / 底部两格 / 结论句里。 */
   const cd = examCountdown();
   const examMd = cd.md || '考试';
   const dLabel = cd.label;
+  const latest = list.length ? list[0] : null;
+  const latestLo = latest ? overall(latest.listening, latest.reading, latest.writing, latest.speaking) : null;
+
+  /* ---- 焦点块头部 / 大总分 ---- */
+  const setTxt = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = v; };
+  setTxt('rvFocusLab', list.length ? '最近一次' : '还没有成绩记录');
+  setTxt('rvFocusDate', latest ? String(latest.date || '') : '');
+  setTxt('rvFocusNum', latestLo != null ? latestLo.toFixed(1) : '--');
+  setTxt('rvFocusUnit', '总分 · 目标 ' + (hasTargets ? targetOverall.toFixed(1) : '未设'));
+  /* 底部两格：倒计时与已考场次**必须常驻**（她每天最想看的两个数） */
+  setTxt('rvFocusCdLab', '距 ' + (examMd || '考试') + ' 还有');
+  setTxt('rvFocusCdVal', dLabel);
+  setTxt('rvFocusCount', String(list.length));
+
+  /* ---- 兼容容器 #scoreStats：只在空态时承载「还没有成绩」的指路文案 ----
+     R-3 之后焦点块自己已经显示总分/目标/倒计时/场次，那五张卡是同一件事第四遍 → 常态不写。
+     空态仍沿用原来的 statCard + renderEmpty 组合（CSS 用 :has(.empty) 决定显不显示）。 */
   const statBox = $('#scoreStats');
-  if(list.length === 0){
-    statBox.innerHTML =
-      statCard('距 ' + (examMd || '考试') + ' 还有', dLabel, 'var(--warn)') +
-      (hasTargets ? statCard('本场目标', targetOverall.toFixed(1), 'var(--med)') : statCard('本场目标', '未设', 'var(--muted)')) +
-      '<div style="grid-column:1/-1">' + renderEmpty('还没有成绩记录，考完第一场就来填吧。') + '</div>';
-  } else {
-    const latest = list[0];
-    const lo = overall(latest.listening, latest.reading, latest.writing, latest.speaking);
-    const diff = hasTargets ? Math.round((lo - targetOverall) * 2) / 2 : 0;
-    statBox.innerHTML =
-      statCard('最近总分', lo.toFixed(1), 'var(--primary)') +
-      (hasTargets ? statCard('本场目标', targetOverall.toFixed(1), 'var(--med)') : statCard('本场目标', '未设', 'var(--muted)')) +
-      (hasTargets ? statCard('距目标', diff >= 0 ? '已超 ' + diff.toFixed(1) + ' 分' : '还差 ' + Math.abs(diff).toFixed(1) + ' 分', diff >= 0 ? 'var(--med)' : 'var(--danger)') : '') +
-      statCard('距 ' + (examMd || '考试') + ' 还有', dLabel, 'var(--warn)') +
-      statCard('已记录模考', list.length, 'var(--vocab)');
+  if(statBox){
+    if(list.length === 0){
+      statBox.innerHTML =
+        statCard('距 ' + (examMd || '考试') + ' 还有', dLabel, 'var(--warn)') +
+        (hasTargets ? statCard('本场目标', targetOverall.toFixed(1), 'var(--med)') : statCard('本场目标', '未设', 'var(--muted)')) +
+        '<div style="grid-column:1/-1">' + renderEmpty('还没有成绩记录，考完第一场就来填吧。') + '</div>';
+    } else {
+      statBox.innerHTML = '';
+    }
   }
 
   // bars (latest vs target) — 改为「差 X 分」对比，差距最大项红色置顶
   const barBox = $('#scoreBars');
   if(list.length === 0){
     // 10/10 批④：空态给指路（原「暂无数据。」纯占位，新用户不知道这页要自己录）
-    barBox.innerHTML = renderEmpty('还没有成绩记录。点上面的「实战」把一次模考的四科分填进去，这里就会显示各科与目标的差距。');
+    barBox.innerHTML = renderEmpty('点下面的「添加真题成绩」把一次模考的四科分填进去，这里就会显示各科与目标的差距。');
   } else if(!hasTargets){
     barBox.innerHTML = renderEmpty('还没设目标分数，去「设置 / 目标分数」填一下再对比。');
   } else {
@@ -146,7 +160,7 @@ function render(){
     mods.sort((a, b) => a.gap - b.gap);              // gap 最小（最负=差距最大）置顶
     const worstGap = mods[0].gap;
     barBox.innerHTML = mods.map(m => {
-      const isWorst = m.gap === worstGap && m.gap < 0;   // 仅当确有短板(负 gap)才红
+      const isWorst = m.gap === worstGap && m.gap < 0;   // 仅当确有短板(负 gap)才标红
       const tag = m.gap < 0 ? '还差 ' + Math.abs(m.gap).toFixed(1) + ' 分'
                 : (m.gap > 0 ? '已超 ' + m.gap.toFixed(1) + ' 分' : '已达标');
       const cls = m.gap < 0 ? 'down' : 'up';
@@ -159,7 +173,7 @@ function render(){
     }).join('');
   }
 
-  // 行动建议（最弱项）—— 放在 scoreBars 之后、renderTrend() 之前
+  // 行动建议（最弱项）—— R-3 起是焦点块底部那一句结论
   const tipBox = $('#actionTip');
   if(tipBox){
     if(list.length === 0 || !hasTargets){
@@ -175,17 +189,19 @@ function render(){
       mods.forEach(m => { m.gap = Math.round((m.val - m.target) * 2) / 2; });
       mods.sort((a, b) => a.gap - b.gap);
       const w = mods[0];
+      /* 10-24 她禁 emoji：原来那两句带 💡 / 🎉 → 去掉，只留文字 */
       if(w.gap < 0){
-        tipBox.innerHTML = '💡 最弱项 <b>' + w.name + '</b>（差 ' + Math.abs(w.gap).toFixed(1) + ' 分），建议优先练 <a href="practice.html" class="tip-link">' + w.name + ' →</a>';
+        tipBox.innerHTML = '最弱项 <b>' + w.name + '</b>（差 ' + Math.abs(w.gap).toFixed(1) + ' 分），先补它：'
+          + '<a href="practice.html" class="tip-link">去练' + w.name + ' →</a>';
       } else {
-        tipBox.innerHTML = '🎉 四项均已达目标，保持节奏即可～';
+        tipBox.innerHTML = '四项均已达目标，保持节奏即可。';
       }
     }
   }
 
   // list
   const box = $('#scoreList');
-  if(list.length === 0){ box.innerHTML = renderEmpty('还没有成绩记录。去上面的「实战」录一条，这里会按时间列出每次成绩。'); return; }
+  if(list.length === 0){ box.innerHTML = renderEmpty('还没有成绩记录。点下面「添加真题成绩」录一条，这里会按时间列出每次成绩。'); return; }
   box.innerHTML = list.map(x => {
     const lo = overall(x.listening, x.reading, x.writing, x.speaking);
     const diff = Math.round((lo - targetOverall) * 2) / 2;
