@@ -19,7 +19,11 @@ const ONB_USER_FIELDS = ['words','sessions','plans','speakingStories','errorbook
   'mockRecords','writingScores','dictationSources','dictationLogs','checkins','longSent','energy'];
 let _onbShownThisLoad = false;
 
-ready(() => { hubLoad();
+ready(() => {
+  /* 🔴 W-6：错误兜底必须**最先挂** —— 它要能接住后面这一长串初始化里抛的错。
+     放最后挂的话，最前面的 injectNav / initSoftNav 出错就没人记录（正是「点了没反应」的现场）。 */
+  try{ initGlobalErrorGuard(); }catch(e){}
+  hubLoad();
   if(typeof restoreCredsIfMissing === 'function') restoreCredsIfMissing();  // 早恢复：确保登录状态/Key/账号在云端同步启动前已就位
   injectLoadingOverlay();                              // 注入全站跳转加载遮罩（默认隐藏，点击站内链接时显示）
   initBootLoader();                                    // 收起首屏内联遮罩（覆盖 Ctrl+F5 / 整页跳转的卡顿）
@@ -71,6 +75,116 @@ ready(() => { hubLoad();
     panel.classList.add('active');
   });
 });
+
+/* ===== W-6（10-24）全局错误兜底 =====
+   现状（实测确认）：全站 window.onerror / unhandledrejection **一个都没挂**。页面脚本炸了以后
+   她只看到白屏或按钮无反应，错误只进控制台 —— 这就是她报过好几次「点了没反应」的那一类。
+   本函数只做两件事：
+     ① **记录**：进 console（带 [hub-error] 前缀 + 页面 + 时间）+ 内存环形缓冲最近 20 条
+        （排障时 window.__hubErrors 现查；不上报、不联网）
+     ② **一条不打断操作的轻提示**：同一时刻最多一条、每会话最多 2 次、6 秒自动消失
+   🔴 三条硬红线（施工书 + HOTFIX-1023 的教训）：
+     · **绝不 alert**（打断操作、堵主线程）
+     · **绝不自动 reload / 不自愈**（10-23 刚把自动刷新降噪掉，加回去等于重踩）
+     · **不往服务端发任何东西**（不新增网络请求、不碰 KV 配额）
+   🔴 静默区（只记录、不弹提示）：
+     · 模考中 / 背词全屏 / 引导遮罩中（别打断心流）
+     · 已知噪音：浏览器扩展注入的报错、ResizeObserver loop、跨域脚本的「Script error.」、
+       主动取消/超时的请求（AbortError / isTimeout / AI_TIMEOUT / SYNC_TIMEOUT / AUTH_TIMEOUT）
+     · 资源加载失败（<img>/<audio>/<script> 的 error 事件里没有 error 对象，误报率高；她素材常换）
+   幂等：window.__hubErrBound 一次性守卫，软导航重复执行不叠加监听。 */
+const HUB_ERR_MAX_HINT = 2;        // 每会话最多提示 2 次（再多就是刷屏）
+const HUB_ERR_HINT_MS = 6000;      // 6 秒自动消失
+let _hubErrHints = 0;
+let _hubErrLastAt = 0;
+let _hubErrRing = [];
+
+function hubErrNoise(reason, filename){
+  try{
+    const f = String(filename || '');
+    if(/^(chrome|moz|safari-web)-extension:\/\//.test(f)) return 'extension';
+    if(f.indexOf('extension') > -1) return 'extension';
+    const msg = String((reason && reason.message) || reason || '');
+    if(/ResizeObserver loop/i.test(msg)) return 'resize-observer';
+    if(/Script error\.?$/i.test(msg)) return 'cross-origin-script';    // 跨域脚本无详情，无法定位
+    if(reason && (reason.isTimeout || reason.name === 'AbortError' || reason.code === 20 ||
+       reason.code === 'AI_TIMEOUT' || reason.code === 'SYNC_TIMEOUT' || reason.code === 'AUTH_TIMEOUT')) return 'aborted';
+    return '';
+  }catch(e){ return ''; }
+}
+function hubErrBusy(){
+  /* 与「发现新版本」条同一套安静口径：答题/模考/引导中不打扰 */
+  try{
+    if(typeof hubExamLocked === 'function' && hubExamLocked()) return true;
+    if(document.body && document.body.classList.contains('hub-exam-locked')) return true;
+    if(document.body && document.body.classList.contains('word-fullscreen')) return true;
+    if(document.querySelector('#onbOverlay:not([hidden])')) return true;
+  }catch(e){}
+  return false;
+}
+function hubErrRecord(kind, reason, extra){
+  const rec = {
+    t: Date.now(),
+    iso: new Date().toISOString(),
+    kind: kind,
+    page: (typeof _hubCurrentFile !== 'undefined' && _hubCurrentFile) ||
+          (function(){ try{ return location.pathname; }catch(e){ return ''; } })(),
+    msg: String((reason && reason.message) || reason || '').slice(0, 300),
+    stack: String((reason && reason.stack) || '').slice(0, 800),
+    extra: extra || '',
+  };
+  _hubErrRing.push(rec);
+  if(_hubErrRing.length > 20) _hubErrRing.shift();
+  try{ window.__hubErrors = _hubErrRing; }catch(e){}
+  try{ console.error('[hub-error] ' + kind + ' · page=' + rec.page + ' · ' + rec.msg); }catch(e){}
+  return rec;
+}
+function hubErrHint(){
+  /* 轻提示：复用全站既有 .toast（她认得的底部小条），不新造控件、不弹窗 */
+  try{
+    if(_hubErrHints >= HUB_ERR_MAX_HINT) return;
+    if(Date.now() - _hubErrLastAt < 1500) return;          // 连炸时不连弹
+    _hubErrHints++; _hubErrLastAt = Date.now();
+    if(typeof toast === 'function'){
+      toast('刚才有一步没走通，可以重试一下；重复出现的话告诉我');
+    }
+    setTimeout(function(){ try{ const t = document.getElementById('toast'); if(t) t.hidden = true; }catch(e){} }, HUB_ERR_HINT_MS);
+  }catch(e){}
+}
+function initGlobalErrorGuard(){
+  if(window.__hubErrBound) return;          // 一次性守卫：软导航/重复调用不叠加
+  window.__hubErrBound = true;
+
+  /* ① 同步错误：window error 事件（capture=true 才收得到资源加载失败）。
+     ⚠️ 资源失败时只有 target、没有 error —— 用这个区分，资源类只记录不提示。 */
+  window.addEventListener('error', function(ev){
+    try{
+      const isResErr = !ev.error && (ev.target && ev.target !== window && ev.target.tagName);
+      if(isResErr){
+        hubErrRecord('resource', '资源加载失败: ' + ((ev.target && (ev.target.src || ev.target.href)) || ''));
+        return;                                        // 不提示
+      }
+      const noise = hubErrNoise(ev.error, ev.filename);
+      const rec = hubErrRecord('error', ev.error || ev.message, 'file=' + (ev.filename || '') + ':' + (ev.lineno || ''));
+      if(noise){ rec.noise = noise; return; }          // 已知噪音：只记录不提示
+      if(hubErrBusy()) return;                          // 答题中不打扰
+      hubErrHint();
+    }catch(e){}
+  }, true);
+
+  /* ② 未处理的 Promise 拒绝。注意：withTimeout（AI 25s）/ fetchWithTimeout 那类超时
+     已被调用方 catch 掉，不会走到这里；走到这里的是「真没人 catch 的 async 抛错」。 */
+  window.addEventListener('unhandledrejection', function(ev){
+    try{
+      const reason = ev.reason;
+      const noise = hubErrNoise(reason, '');
+      const rec = hubErrRecord('unhandledrejection', reason);
+      if(noise){ rec.noise = noise; return; }
+      if(hubErrBusy()) return;
+      hubErrHint();
+    }catch(e){}
+  });
+}
 
 /* 2026-09-20 重新启用 Service Worker（sw.js 已重写：预缓存核心壳 + 分级缓存）。
    演进脉络：8/30「全网络直通」治农村弱网回退旧缓存；9/4 因纯线程开销停用并主动注销；
