@@ -67,14 +67,29 @@
   .lst-hd h3{margin:0;font-size:17px;font-weight:800;letter-spacing:-.01em}
   .lst-cnt{font-size:12px;color:var(--muted)}
 
-  /* 10-23 W-3：搜索框（标题行右侧，210px 圆角 999） */
-  .tpl-find{margin-left:auto;display:flex;align-items:center;gap:6px;width:210px;height:30px;
-    border:1px solid var(--line);border-radius:999px;padding:0 11px;background:var(--surface);
-    color:var(--n-400);transition:border-color .15s}
-  .tpl-find:focus-within{border-color:var(--primary-200)}
-  .tpl-find input{flex:1;min-width:0;border:0;background:transparent;outline:none;font:inherit;
-    font-size:11.5px;color:var(--ink);padding:0}
-  .tpl-find input::-webkit-search-cancel-button{cursor:pointer}
+  /* ===== S-2a（10-24）：搜索框从标题行拿出来，单独占一行 =====
+     病根（B 窗口真机实测）：原来塞在 .lst-hd 里，同行还有标题 + 套数 + 网格/列表切换，
+     四组东西抢一行 → 框被压到只剩 167px，placeholder 11 个字比框还宽，
+     一进去只看得见「搜模板名、」。改后：单独一行、宽度放开到 420、
+     placeholder 缩成「搜模板名…」，筛选范围的说明挪到框下一行小字。
+     样式一律走 S-1 统一类 .ui-field-search（高 36 / 圆角 10 / token 配色），本页不再自造。 */
+  .tpl-search-row{margin:12px 0 0}
+  .tpl-search-row .ui-field-search{max-width:420px}
+  /* 说明文字：告诉她在搜什么范围（替代原来挤在 placeholder 里的 11 个字） */
+  .tpl-search-tip{font-size:11.5px;color:var(--muted);margin:6px 0 0 2px}
+  @media (max-width:860px){
+    .tpl-search-row{margin-top:10px}
+    .tpl-search-row .ui-field-search{max-width:none}
+  }
+  /* S-2a 补丁：清空按钮的「初值同步」缺口（纯 CSS 兜底，不碰共享层、不写内联脚本）
+     时序：common-pwa.js:38 的 initSearchClear() 先跑（此刻框是空的 → ✕ 隐藏），
+          之后 js/writing.js 才把 localStorage 里记住的关键词回填进框 → ✕ 永远不出现。
+     改前那版用的是浏览器原生 ✕（跟随 value 自己变），换成统一类的自定义 ✕ 才暴露。
+     解法：placeholder 可见 ⇔ 框为空，用 :placeholder-shown 反推「有值」直接把按钮显出来。
+     点 ✕ 后 JS 会清空值 → placeholder 重新可见 → 本规则失效 → 回落到 [hidden]{display:none}，正确隐藏。
+     ⚠️ 必须带 !important：css/common.css:213 有一条全局 [hidden]{display:none !important}
+        （防 display:flex 的类压掉 UA 的 [hidden]），不带就压不过它 —— 实测第一次加了规则仍不显示就是这个原因。 */
+  .tpl-search-row .ui-field-search:has(.ui-field-search-in:not(:placeholder-shown)) .ui-field-clear{display:flex !important}
 
   /* 横向筛选带：三段（目标分 | Task 2 | Task 1），段间 1px 竖线，不换行、可横滚 */
   .wb-filters{display:flex;align-items:center;gap:7px;margin:11px 0 0;padding:0 0 11px;
@@ -633,16 +648,22 @@ body.exam-fullscreen .hub-topbar{display:none !important}
           <div class="lst-hd">
             <h3>模板</h3>
             <span class="lst-cnt" id="tplCountText"></span>
-            <!-- 10-23 W-3：搜索框（方案 §四.1）—— 按模板名 / 分类 / 骨架首句关键词过滤，300ms 防抖 -->
-            <label class="tpl-find" for="tplSearch">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:13px;height:13px;flex:none" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-              <input id="tplSearch" type="search" placeholder="搜模板名、分类或骨架关键词" autocomplete="off" />
-            </label>
             <!-- B-1c 小步2：收敛到全站 pill 家族（与顶部 tab 同组件，只覆盖尺寸） -->
             <div class="tpl-view pill-tabs" id="tplView" style="margin-left:auto">
               <button type="button" data-view="grid" class="pill-tab active" aria-pressed="true">网格</button>
               <button type="button" data-view="list" class="pill-tab" aria-pressed="false">列表</button>
             </div>
+          </div>
+          <!-- S-2a（10-24）：搜索框单独占一行（原来挤在标题行里被压到 167px，11 字 placeholder 只露出 6 个字）。
+               接入 S-1 统一类 .ui-field-search；筛选范围写进框下一行小字，不再塞进 placeholder。
+               10-23 W-3 语义不变：按模板名 / 分类 / 骨架首句关键词过滤，300ms 防抖。 -->
+          <div class="tpl-search-row">
+            <label class="ui-field-search" for="tplSearch">
+              <svg class="ui-field-search-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+              <input class="ui-field-search-in" id="tplSearch" type="search" placeholder="搜模板名…" aria-label="搜索模板" autocomplete="off" />
+              <button type="button" class="ui-field-clear" hidden aria-label="清空搜索">✕</button>
+            </label>
+            <p class="tpl-search-tip">按模板名、分类或骨架关键词筛选</p>
           </div>
           <!-- 10-23 W-1：横向筛选带（15 项，三段分组）。内容由 js/writing.js 的 renderFilters() 渲染 -->
           <div class="wb-filters" id="wbFilters" role="group" aria-label="模板筛选"></div>
