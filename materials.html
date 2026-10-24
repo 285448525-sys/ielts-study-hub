@@ -303,6 +303,19 @@
   html[data-theme="dark"] .mat-mat-actions .mat-mini{ background:transparent; }
   html[data-theme="dark"] .mat-mat-meta .mm{ background:rgba(255,255,255,.05); border-color:rgba(255,255,255,.10); }
   html[data-theme="dark"] .mat-mat-meta .mm.star{ background:rgba(58,154,147,.18); color:var(--primary-200); border-color:transparent; }
+  /* 🔴 B-6 小步3（10-24 18:1x）：`.mat-legacybar-btn` 只有 speaking.html:860 定义，
+     materials.html 里**一条都没有** —— 因为这句 JS 生成的 HTML 是两个页面共用的
+     （materials.html:51 与 speaking.html:2881 都加载 js/materials.js）。
+     后果：materials.html 上这个「我以前填过什么」按钮**完全没有样式**，退回 UA 默认
+     （背景 rgb(240,240,240) + 纯黑字 + 黑边框），深色页上就是一块刺眼的浅灰砖。
+     这里补回与 speaking.html:860 完全一致的规则 —— 走 token，两档都自动跟随。 */
+  .mat-legacybar{ margin:14px 0 0; }
+  .mat-legacybar-btn{ width:100%; min-height:44px; display:flex; align-items:center; justify-content:center; gap:6px;
+    background:var(--bg); border:1px solid var(--line); border-radius:var(--radius-sm);
+    font:inherit; font-size:13px; font-weight:600; color:var(--muted); cursor:pointer; }
+  .mat-legacybar-btn:hover{ border-color:var(--primary-200); color:var(--primary-700,var(--med)); }
+  .mat-legacybar-btn:focus-visible{ outline:3.5px solid var(--primary-200); outline-offset:2px; }
+  .mat-legacybar-caret{ font-size:11px; }
 
 </style>
 <style id="bootLoaderStyle">
