@@ -35,6 +35,7 @@ ready(() => {
   initOnboarding();                          // 首次进入引导（全新浏览器才弹，老用户静默回填零打扰）
   injectGlobalDock();                        // 全站玻璃底栏 dock（9/16 之之：+ FAB 砍掉——全站只有计划页有 data-fab-add 接杆，软导航残留后其他页全是死按钮）
   initListSearch();                          // 列表页 .ui-search 即时过滤（data-search-input + data-search-target）
+  initSearchClear();                         // S-1 统一搜索框清空按钮（一处绑定、全站生效）
   registerSW();
   initOfflineBar();                          // design/79 离线状态灯 + 自愈第三道闸（离线不判定、不计数、不自愈）
   // ⚡ 空闲时把其余页面的 HTML + 脚本预热进内存缓存，之后点任何 tab 都是零网络秒开

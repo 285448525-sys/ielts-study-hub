@@ -29,7 +29,7 @@
 })();
 </script>
 <title>回顾 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261024d" />
+<link rel="stylesheet" href="css/common.css?v=20261024e" />
 <link rel="stylesheet" href="css/p/review.css?v=20261017a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
@@ -301,6 +301,15 @@
   .rv-focus-mods .gap-val{white-space:normal;overflow:visible;text-overflow:clip}
 }
 
+/* ---- 3c. R-4 趋势图卡片 ----
+   画图逻辑全在 scores.js 的 renderTrend() 里（原有代码，本批只是第一次把它接上），
+   这里只补观感：卡片间距、图宽不撑破容器、单点分支那句说明的字号。 */
+.rv-trend-card{margin-bottom:18px}
+#trendChart svg{display:block;max-width:100%}
+/* 图里写死的 min-width:520px 在手机上会横向溢出 —— 给它的外层滚动条留好看点 */
+#trendChart > div{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.rv-trend-note{margin-top:8px;font-size:13px;color:var(--muted);line-height:1.6}
+
 
 /* 表现统计里的题型格（#mkTypeStats 内部 .stat-grid）：同样去卡化、格间竖线。
    ⚠️ 只动 #mkTypeStats 内的 .stat-card —— 别的页面/别的模块的 stat-card 一律不受影响。 */
@@ -420,15 +429,15 @@
 [data-theme="dark"] .review-pane .empty{background:var(--n-50)}
 </style>
 <script defer src="js/data.js?v=20261023b"></script>
-<script defer src="js/common.js?v=20261024d"></script>
-<script defer src="js/common-ai.js?v=20261024d"></script>
-<script defer src="js/common-sync.js?v=20261024d"></script>
-<script defer src="js/common-merge.js?v=20261024d"></script>
-<script defer src="js/common-cloud.js?v=20261024d"></script>
-<script defer src="js/common-shell.js?v=20261024d"></script>
-<script defer src="js/common-pwa.js?v=20261024d"></script>
+<script defer src="js/common.js?v=20261024e"></script>
+<script defer src="js/common-ai.js?v=20261024e"></script>
+<script defer src="js/common-sync.js?v=20261024e"></script>
+<script defer src="js/common-merge.js?v=20261024e"></script>
+<script defer src="js/common-cloud.js?v=20261024e"></script>
+<script defer src="js/common-shell.js?v=20261024e"></script>
+<script defer src="js/common-pwa.js?v=20261024e"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
-<script defer src="js/scores.js?v=20261024a"></script>
+<script defer src="js/scores.js?v=20261024b"></script>
 <script defer src="js/history.js?v=20260904d"></script>
 <script defer src="js/mock-report.js?v=20261006a"></script>
 <script defer src="js/mock-history.js?v=20261006b"></script>
@@ -629,6 +638,16 @@
                R-3 把它收进来但只保留「没设目标 / 空态提示」这类不被焦点块覆盖的信息 —— 
                正常情况下它是空的（样式里 display:none），仅在无数据空态时出现。 -->
           <div class="stat-grid" id="scoreStats" aria-hidden="true"></div>
+        </section>
+
+        <!-- 🔴 R-4（10-24）：这个容器就是那句「白写了的代码」缺的最后一块拼图。
+             scores.js 的 renderTrend() 从上线至今**一次都没显示过**，因为它第一行就是
+             `const box = $('#trendChart'); if(!box) return;` —— 全站找不到这个 id，取不到就直接返回。
+             函数本身是完整的（含「只有 1 次」和「多次」两套画法，含目标虚线、图例、X 轴日期），
+             这里补上容器它就立刻能用，**一行画图逻辑都没新写**。 -->
+        <section class="card rv-trend-card">
+          <h2 class="rv-block-h-t">总分与四科趋势</h2>
+          <div id="trendChart"></div>
         </section>
 
         <section class="card">

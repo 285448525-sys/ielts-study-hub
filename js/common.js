@@ -1296,6 +1296,48 @@ function injectGlobalDock(){
 /* ===== 全站 + 浮动按钮（已砍，9/16 之之反馈不知道它是干嘛的：全站仅计划页有 data-fab-add 接杆，
    且 fab 挂 body 上软导航残留，其他页面点了静默无效 = 死按钮。原 injectFab() 已删。）===== */
 
+/* ===== S-1（10-24）统一搜索框清空按钮 =====
+   一处绑定、全站生效：监听 `.ui-field-search-in` 的 input → 有值显示 ✕、无值隐藏；
+   点 ✕ → 清空 + **派发 input 事件**（必须派发，否则页面自己的过滤逻辑不知道值已经清了，
+   这是最容易漏的一步）+ 焦点回输入框。
+   ⚠️ 只服务新类 `.ui-field-search`，不碰 `.ui-search-input` 的任何行为（红线）。 */
+function initSearchClear(){
+  const bindOne = inp => {
+    if(inp.__fsBound) return;
+    inp.__fsBound = true;
+    const wrap = inp.closest('.ui-field-search');
+    if(!wrap) return;
+    const btn = wrap.querySelector('.ui-field-clear');
+    if(!btn) return;
+    const sync = () => { btn.hidden = !(inp.value || '').length; };
+    inp.addEventListener('input', sync);
+    btn.addEventListener('click', () => {
+      inp.value = '';
+      sync();
+      inp.focus();
+      /* 派发 input 让页面过滤逻辑收到「值已清」—— 不派发的话列表会停在筛选后的样子 */
+      try{ inp.dispatchEvent(new Event('input', { bubbles: true })); }catch(e){}
+    });
+    sync();
+  };
+  document.querySelectorAll('.ui-field-search-in').forEach(bindOne);
+  /* 幂等：软导航换 main 会插入新节点，用 MutationObserver 兜住后插入的输入框 */
+  if(!window.__fsObserver && window.MutationObserver){
+    window.__fsObserver = new MutationObserver(muts => {
+      for(const m of muts){
+        (m.addedNodes || []).forEach(n => {
+          if(n.nodeType !== 1) return;
+          if(n.matches && n.matches('.ui-field-search-in')) bindOne(n);
+          if(n.querySelectorAll) n.querySelectorAll('.ui-field-search-in').forEach(bindOne);
+        });
+      }
+    });
+    try{
+      window.__fsObserver.observe(document.body, { childList: true, subtree: true });
+    }catch(e){}
+  }
+}
+
 /* ===== 列表页即时搜索（.ui-search 组件配套） =====
    用法：<input class="ui-search-input" data-search-input data-search-target="#planList" />
    过滤目标容器内「直接子元素」的文本；空查询恢复全部显示。无匹配选择器时安全跳过。 */

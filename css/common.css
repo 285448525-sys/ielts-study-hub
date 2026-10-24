@@ -2689,3 +2689,101 @@ body[data-shell="top"] .sw-update-bar{top:calc(44px + env(safe-area-inset-top) +
 @media (max-width:560px){
   body[data-shell="top"] .container{padding-top:10px}
 }
+
+/* ===== S-1（10-24）统一搜索框 .ui-field-search =====
+   病根（B 窗口真机走查 8 个框）：同一个站 5 种圆角、4 种高度、3 种底色、3 种图标尺寸 ——
+   不是某个框丑，是**没有统一规格**，每个页面各写一套。外加技术债：上面 `.ui-search-input`
+   定义的是侧栏大框规格（height:45px + padding:0 5rem），顶栏靠反向覆盖压回 28px，一个组件两处打架。
+   本类是**新增**，不是替换 `.ui-search-input`（顶栏/侧栏/语料页在用，动了全站抖）。
+   规格全部用站内现有 token，不造新色：
+     高度 36px（桌面）/ 44px（手机触控）· 圆角 10px · 底色 var(--surface-2) ·
+     边框 1px var(--line) · 焦点 边框 var(--primary) + 外环 3px var(--primary-soft) ·
+     放大镜 16px 左侧 12px var(--muted) · 清空 ✕ 16px 右侧仅在有值时出现 ·
+     字号 14px · placeholder var(--n-500)
+   ⚠️ 顶栏那枚（全局 ⌘K 入口）保持 999px 胶囊 + 28px，是特殊物种，不用本类。
+   ⚠️ outline:none 必须配替代焦点态（a11y 红线），不许裸删。 */
+.ui-field-search{
+  display:flex;
+  align-items:center;
+  position:relative;
+  width:100%;
+  height:36px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:var(--surface-2);
+  transition:border-color .15s ease, box-shadow .15s ease;
+}
+.ui-field-search:focus-within,
+.ui-field-search:has(.ui-field-search-in:focus){
+  border-color:var(--primary);
+  box-shadow:0 0 0 3px var(--primary-soft);
+}
+/* input 自身也要挡掉 :471 的全局 focus 影（3.5px 更粗，且会把底色改成 --surface） */
+.ui-field-search-in:not([type=checkbox]):not([type=radio]):not([type=range]):focus{
+  outline:none;
+  border:none;
+  background:none;
+  box-shadow:none;
+}
+.ui-field-search-ic{
+  position:absolute;
+  left:12px;
+  width:16px;
+  height:16px;
+  color:var(--muted);
+  pointer-events:none;          /* 图标不抢点击，点图标等于点输入框 */
+  flex:none;
+}
+/* ⚠️ 特异性必须压过 css/common.css:470 的全局 input 规则（input:not([type=checkbox]):not([type=radio]):not([type=range])）
+   —— 那条把 padding 设成 0 14px、font-size 设成 14.5px，只写 .ui-field-search-in（0,2,0）会被它盖掉
+   （实测：右侧留位只剩 14px、字号变 14.5px，字会压到清空按钮上）。加一个 :not() 提到 0,3,0 才稳。 */
+.ui-field-search-in:not([type=checkbox]):not([type=radio]):not([type=range]){
+  flex:1;
+  min-width:0;
+  height:100%;
+  padding:0 36px 0 36px;        /* 右侧留清空按钮位，别让字压到 ✕ */
+  border:none;
+  background:none;
+  outline:none;
+  font-size:14px;
+  color:var(--ink);
+}
+.ui-field-search-in::placeholder{ color:var(--n-500) }
+.ui-field-search-in::-webkit-search-cancel-button{ display:none }   /* 原生 type=search 自带的 ✕ 会与本类的 ✕ 重复 */
+.ui-field-clear{
+  position:absolute;
+  right:6px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:26px;
+  height:26px;
+  padding:0;
+  border:none;
+  border-radius:50%;
+  background:none;
+  color:var(--muted);
+  font-size:16px;
+  line-height:1;
+  cursor:pointer;
+  transition:background .15s ease, color .15s ease;
+}
+.ui-field-clear:hover{ background:var(--primary-50); color:var(--primary-700) }
+.ui-field-clear:focus-visible{
+  outline:none;
+  box-shadow:0 0 0 3px var(--primary-soft);   /* a11y：focus 环，与容器同款 */
+}
+.ui-field-clear[hidden]{ display:none }
+
+/* 手机触控 ≥44px（Magic UI 规范） */
+@media (max-width:860px){
+  .ui-field-search{ height:44px }
+  .ui-field-clear{ width:32px; height:32px; right:4px }
+}
+/* 深色：只用现有深色 token，不新造色 */
+[data-theme="dark"] .ui-field-search{ background:var(--surface-2); border-color:var(--line) }
+[data-theme="dark"] .ui-field-search:focus-within{ border-color:var(--primary); box-shadow:0 0 0 3px var(--primary-soft) }
+[data-theme="dark"] .ui-field-clear:hover{ background:rgba(255,255,255,.08); color:var(--primary-500) }
+/* 减少动效：与全站 token 一致 */
+[data-reduce-motion="1"] .ui-field-search,
+[data-reduce-motion="1"] .ui-field-clear{ transition:none }
