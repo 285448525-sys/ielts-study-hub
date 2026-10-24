@@ -29,7 +29,7 @@
 })();
 </script>
 <title>回顾 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261023z4" />
+<link rel="stylesheet" href="css/common.css?v=20261024a" />
 <link rel="stylesheet" href="css/p/review.css?v=20261017a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
@@ -213,7 +213,14 @@
 .rv-stat-v i{font-style:normal;font-size:12.5px;font-weight:500;color:var(--n-500)}
 
 /* 总览卡片：stat-grid 的卡片通行化（原来是带顶边框的小方卡，铺满一行显得散） */
-#scoreStats.stat-grid{grid-template-columns:repeat(3,1fr);gap:0;margin-bottom:0}
+/* R-3（10-24）：#scoreStats 现在只是焦点块里的**兼容容器** —— scores.js 仍往里写三~五个统计卡，
+   但焦点块已经把「最近总分 / 目标 / 距目标 / 倒计时 / 已考场次」全部现算成自己的大字与底部两格，
+   再显示那五张小卡就是同一件事第四遍。→ 常态下整块不显示；**只在空态**（没成绩记录）时露出来，
+   那两行「距考试还有 / 本场目标 + 还没有成绩记录」是空态唯一的指路文案，不能一起藏掉。
+   ⚠️ 判据用 #scoreStats:not(:empty)：render() 空态会写入 stat-card 与 .empty，有数据时也写五卡 ——
+      所以真正区分空态的是「里面有没有 .empty」，见下面 :has() 那条。 */
+#scoreStats.stat-grid{grid-template-columns:repeat(3,1fr);gap:0;margin-bottom:0;display:none}
+#scoreStats:has(.empty){display:grid;margin:14px 0 0;padding-top:14px;border-top:1px solid var(--n-300)}
 #scoreStats .stat-card{
   background:none;border:0;border-top:0;border-radius:0;box-shadow:none;padding:0;text-align:left;
 }
@@ -227,6 +234,50 @@
   .rv-cockpit-num{font-size:24px}
   .rv-cockpit-stats,#scoreStats.stat-grid{grid-template-columns:1fr;gap:14px}
   .rv-stat-cell + .rv-stat-cell{padding-left:0;padding-top:14px;border-left:0;border-top:1px solid var(--n-300)}
+}
+
+/* ---- 3b. R-3 成绩栏焦点块（总览五卡 + 四科对比条 + 行动建议 三合一）----
+   配色与几何全部沿用本页既有 token（--n-* / --primary-* / --sh-*），不新增任何色值。
+   深色：只用 --primary-700 与 --n-800/--n-500（这几档深色块都有覆盖值），不用 200/300/900。 */
+.rv-focus{padding:20px 22px;border-radius:16px;box-shadow:var(--sh-2);margin:0 0 18px}
+.rv-focus-head{display:flex;align-items:baseline;gap:10px;margin-bottom:14px}
+.rv-focus-lab{font-size:12.5px;font-weight:500;color:var(--n-500);letter-spacing:.02em}
+.rv-focus-date{font-size:12.5px;color:var(--n-500);font-variant-numeric:tabular-nums}
+.rv-focus-body{display:flex;align-items:center;gap:26px}
+.rv-focus-main{flex:none;min-width:120px}
+.rv-focus-num{font-size:46px;font-weight:700;line-height:1;color:var(--primary-700);letter-spacing:-.04em;
+  font-variant-numeric:tabular-nums}
+.rv-focus-unit{margin-top:6px;font-size:12.5px;color:var(--n-500);font-weight:500}
+/* 四科小格：原 .gap-row 通栏条改成两列四格 */
+.rv-focus-mods{flex:1;min-width:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 22px}
+.rv-focus-mods .gap-row{
+  display:flex;align-items:baseline;gap:7px;padding:7px 10px;border-radius:9px;
+  background:var(--n-50);border:1px solid transparent;min-width:0;
+}
+/* 最短板：只加左侧 2px 标记 + 加重字色，不刷大红底（焦点块自己已经够重） */
+.rv-focus-mods .gap-row.gap-worst{background:rgba(217,120,119,.10);border-color:transparent;
+  box-shadow:inset 2px 0 0 var(--danger)}
+.rv-focus-mods .gap-ic{display:none}          /* 图标在焦点块里是噪音，信息靠文字 */
+.rv-focus-mods .gap-name{font-weight:600;font-size:13px;color:var(--n-800);min-width:0;flex:none}
+.rv-focus-mods .gap-val{font-size:12.5px;color:var(--n-600);flex:1;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rv-focus-mods .gap-tag{margin-left:auto;flex:none;font-size:11.5px}
+.rv-focus-foot{display:flex;align-items:center;gap:22px;margin-top:16px;padding-top:14px;
+  border-top:1px solid var(--n-300);flex-wrap:wrap}
+.rv-focus-fact{display:flex;align-items:baseline;gap:7px;flex:none}
+.rv-focus-k{font-size:12.5px;color:var(--n-500)}
+.rv-focus-v{font-size:17px;font-weight:600;color:var(--n-800);font-variant-numeric:tabular-nums}
+.rv-focus-u{font-size:12.5px;font-weight:500;color:var(--n-500);margin-left:2px}
+/* 结论句：占掉剩下的宽度，不能整块换行到下一行 */
+.rv-focus-tip{flex:1;min-width:240px;font-size:13px;line-height:1.65;color:var(--n-600)}
+.rv-focus-tip b{color:var(--n-800);font-weight:700}
+@media (max-width:720px){
+  .rv-focus{padding:16px 14px;border-radius:14px}
+  .rv-focus-body{flex-direction:column;align-items:stretch;gap:14px}
+  .rv-focus-num{font-size:40px}
+  .rv-focus-mods{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px}
+  .rv-focus-foot{gap:12px 18px}
+  .rv-focus-tip{min-width:0;flex:1 1 100%}
 }
 
 
@@ -348,15 +399,15 @@
 [data-theme="dark"] .review-pane .empty{background:var(--n-50)}
 </style>
 <script defer src="js/data.js?v=20261023b"></script>
-<script defer src="js/common.js?v=20261023z4"></script>
-<script defer src="js/common-ai.js?v=20261023z4"></script>
-<script defer src="js/common-sync.js?v=20261023z4"></script>
-<script defer src="js/common-merge.js?v=20261023z4"></script>
-<script defer src="js/common-cloud.js?v=20261023z4"></script>
-<script defer src="js/common-shell.js?v=20261023z4"></script>
-<script defer src="js/common-pwa.js?v=20261023z4"></script>
+<script defer src="js/common.js?v=20261024a"></script>
+<script defer src="js/common-ai.js?v=20261024a"></script>
+<script defer src="js/common-sync.js?v=20261024a"></script>
+<script defer src="js/common-merge.js?v=20261024a"></script>
+<script defer src="js/common-cloud.js?v=20261024a"></script>
+<script defer src="js/common-shell.js?v=20261024a"></script>
+<script defer src="js/common-pwa.js?v=20261024a"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
-<script defer src="js/scores.js?v=20261017b"></script>
+<script defer src="js/scores.js?v=20261024a"></script>
 <script defer src="js/history.js?v=20260904d"></script>
 <script defer src="js/mock-report.js?v=20261006a"></script>
 <script defer src="js/mock-history.js?v=20261006b"></script>
@@ -516,18 +567,43 @@
 
       <!-- 实战（原「实战」栏内容，原样保留） -->
       <div id="tab-overall">
-        <div class="grid">
-          <!-- T-010：总览改驾驶舱式（.rv-cockpit 对齐口语页 .sp-cockpit；h2 即 label，stat-grid 三格铺开） -->
-          <section class="card rv-cockpit">
-            <h2>总览</h2>
-            <div class="stat-grid" id="scoreStats"></div>
-          </section>
-          <section class="card">
-            <h2>最近一次 vs 目标</h2>
-            <div id="scoreBars"></div>
-            <div id="actionTip" class="action-tip"></div>
-          </section>
-        </div>
+        <!-- R-3（10-24）：总览五卡 + 四科对比条 + 行动建议 三块合成**一个焦点块**。
+             三块原来把同一件事说了三遍（总分/目标/差距在三个地方各出现一次）。
+             算法一个都没新写 —— 总分走 overall()、目标走 DATA.settings.targets、
+             倒计时走 examCountdown()、已考场次走 DATA.scores.length，全是现成的。
+             🔴 倒计时与已考场次必须留在焦点块里（她每天最想看的，不能随合并消失）。
+             🔴 三个老容器 id 全部保留（#scoreStats / #scoreBars / #actionTip），
+                scores.js 的 render() 原样往里写，一行 JS 逻辑都没动。 -->
+        <section class="card rv-focus" id="rvFocus">
+          <div class="rv-focus-head">
+            <span class="rv-focus-lab" id="rvFocusLab">最近一次</span>
+            <span class="rv-focus-date" id="rvFocusDate"></span>
+          </div>
+          <div class="rv-focus-body">
+            <div class="rv-focus-main">
+              <div class="rv-focus-num" id="rvFocusNum">--</div>
+              <div class="rv-focus-unit" id="rvFocusUnit">总分 · 目标未设</div>
+            </div>
+            <!-- 四科「当前 / 目标」：原来那条通栏对比条，改成右侧四小格 -->
+            <div class="rv-focus-mods" id="scoreBars"></div>
+          </div>
+          <!-- 底部：倒计时 + 已考场次 + 一行结论（原五卡里剩下两个数 + 原行动建议卡） -->
+          <div class="rv-focus-foot">
+            <div class="rv-focus-fact">
+              <span class="rv-focus-k" id="rvFocusCdLab">距考试还有</span>
+              <span class="rv-focus-v" id="rvFocusCdVal">--</span>
+            </div>
+            <div class="rv-focus-fact">
+              <span class="rv-focus-k">已记录模考</span>
+              <span class="rv-focus-v" id="rvFocusCount">0<span class="rv-focus-u">场</span></span>
+            </div>
+            <div id="actionTip" class="rv-focus-tip"></div>
+          </div>
+          <!-- 兼容容器：scores.js 的 render() 仍会往 #scoreStats 写统计卡。
+               R-3 把它收进来但只保留「没设目标 / 空态提示」这类不被焦点块覆盖的信息 —— 
+               正常情况下它是空的（样式里 display:none），仅在无数据空态时出现。 -->
+          <div class="stat-grid" id="scoreStats" aria-hidden="true"></div>
+        </section>
 
         <section class="card">
           <h2 class="rv-block-h-t">整卷记录列表</h2>

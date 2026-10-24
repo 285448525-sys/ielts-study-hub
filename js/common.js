@@ -152,7 +152,12 @@ const TB_SUB = {
      它们的分栏控件不叫 pill-tabs 那套 id），但她要的是**所有页面的药丸 tab 都撤**，
      撤了就得有顶栏二级顶上，否则桌面端没有分栏入口。sub 值就是各页自己的切换键。 */
   practice: [['学习','study'], ['词库','bank']],
-  review:   [['模考','breakdown'], ['实战','overall'], ['口语','speaking'], ['轨迹','record']]
+  /* R-1 第一批（10-24，她 00:3x 点头）：四项 → 两项，与回顾页重设计合流。
+     ⚠️ 老值 breakdown / overall / speaking 的落地兼容**归 A2 第二批**（页面内联脚本），
+        本批不碰 —— 一条一提交、别抢活，规矩见施工书 §三。
+        本批上线后桌面点「成绩」会先落到原「模考」栏（内容还在，只是没并），
+        A2 第二批做完才是最终形态。 */
+  review:   [['成绩','score'], ['轨迹','record']]
 };
 /* sub 的跨页交接：软导航时 location.search 要等 pushState 之后才是新值（见 speaking.js 里
    senttab 那段注释），而 pushState 在 runPageScript **之后** → 目标页读不到 query。
