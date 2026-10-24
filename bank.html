@@ -18,7 +18,7 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>模考 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261024j" />
+<link rel="stylesheet" href="css/common.css?v=20261024k" />
 <link rel="stylesheet" href="css/p/bank.css?v=20261017a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
@@ -40,6 +40,25 @@
 .mock-tabs{margin:0 0 12px}
 .partbar{display:flex;align-items:center;gap:16px;margin:0 0 10px;flex-wrap:wrap}
 .partmeta{font-size:12.5px;color:var(--muted);margin-left:auto;white-space:nowrap}
+/* M-2：搜索框在 partbar 里，宽度收到 240（不抢 Part 分栏的位置），手机端独占一行 */
+.bk-search{flex:0 1 240px;min-width:170px}
+@media (max-width:720px){ .bk-search{flex:1 1 100%;order:9} }
+
+/* ---- M-2：「没做过 / 做过」分组 ----
+   ⚠️ .bank-items 的行结构一行没改（js/bank.js 的 listHtml 照旧生成），
+      这里只加组头与组间距，视觉上仍是原来那张列表。 */
+.bk-groups{display:flex;flex-direction:column;gap:6px}
+.bk-grp-h{display:flex;align-items:baseline;gap:8px;padding:10px 2px 6px}
+.bk-grp-h b{font-size:13.5px;font-weight:700;color:var(--ink)}
+.bk-grp-n{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.bk-grp-empty{padding:14px 2px;font-size:13px;color:var(--muted)}
+/* 「展开更多」按钮：居中一条，弱化（不是主行动点） */
+.bk-grp-more{list-style:none;padding:10px 0 4px;text-align:center}
+.bk-more{font:inherit;font-size:12.5px;font-weight:600;color:var(--primary-700);
+  border:1px solid var(--primary-200);background:var(--primary-50);
+  padding:6px 16px;border-radius:999px;cursor:pointer;transition:background .15s}
+.bk-more:hover{background:var(--primary-100)}
+.bk-more:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(58,154,147,.25)}
 
 .full-row{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:15px 18px;
   display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px}
@@ -2015,6 +2034,17 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
           <button class="pill-tab" type="button" data-part="Part 3">Part 3<span class="pt-n" data-pn="Part 3"></span></button>
         </div>
         <span class="partmeta" id="partMeta"></span>
+        <!-- M-2（10-24）：搜索框。接站内 S-1 统一类（.ui-field-search），
+             **不接 initListSearch()** —— 那个只做显隐，与下面的分组/分页会打架
+             （隐藏了 .bank-item 但组头计数不变、展开更多还会把它加回来）。
+             这里由 js/bank.js 的 searchBankList() 自己过滤：组头计数实时跟着变。 -->
+        <div class="bk-search">
+          <label class="ui-field-search" for="bankSearch">
+            <svg class="ui-field-search-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input class="ui-field-search-in" type="search" id="bankSearch" placeholder="搜篇名或题型…" aria-label="搜索篇目" autocomplete="off" />
+            <button type="button" class="ui-field-clear" hidden aria-label="清空搜索">✕</button>
+          </label>
+        </div>
       </div>
       <div id="bankList"><div class="bank-loading">目录加载中…</div></div>
     </section>
@@ -2049,6 +2079,14 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
           <button class="pill-tab" type="button" data-lpart="Part 4">Part 4<span class="pt-n" data-pn="Part 4"></span></button>
         </div>
         <span class="partmeta" id="listenMeta"></span>
+        <!-- M-2：听力侧同一个搜索框（自己的 id，两个 pane 的输入互不干扰） -->
+        <div class="bk-search">
+          <label class="ui-field-search" for="listenSearch">
+            <svg class="ui-field-search-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input class="ui-field-search-in" type="search" id="listenSearch" placeholder="搜篇名或题型…" aria-label="搜索听力篇目" autocomplete="off" />
+            <button type="button" class="ui-field-clear" hidden aria-label="清空搜索">✕</button>
+          </label>
+        </div>
       </div>
       <div id="listenList"><div class="bank-loading">目录加载中…</div></div>
     </section>
@@ -2127,13 +2165,18 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
      （手机慢网 ~50KB/s → 约 1.5 秒）。加载时机：点开「写作」tab 时按序插入；
      首次 load 之后空闲再预热一次。承接代码在 js/bank.js 的 loadWritingScripts()。 -->
 <script defer src="js/data.js?v=20261023b"></script>
-<script defer src="js/common.js?v=20261024j"></script>
-<script defer src="js/common-ai.js?v=20261024j"></script>
-<script defer src="js/common-sync.js?v=20261024j"></script>
-<script defer src="js/common-merge.js?v=20261024j"></script>
-<script defer src="js/common-cloud.js?v=20261024j"></script>
-<script defer src="js/common-shell.js?v=20261024j"></script>
-<script defer src="js/common-pwa.js?v=20261024j"></script>
-<script defer src="js/bank.js?v=20261024a"></script>
+<script defer src="js/common.js?v=20261024k"></script>
+<script defer src="js/common-ai.js?v=20261024k"></script>
+<script defer src="js/common-sync.js?v=20261024k"></script>
+<script defer src="js/common-merge.js?v=20261024k"></script>
+<script defer src="js/common-cloud.js?v=20261024k"></script>
+<script defer src="js/common-shell.js?v=20261024k"></script>
+<script defer src="js/common-pwa.js?v=20261024k"></script>
+<script defer src="js/bank.js?v=20261024b"></script>
+<!-- M-2（10-24）：模考页「没做过/做过」分组 + 展开更多。
+     ⚠️ 本文件只做展示层（读 hub_bank_last_* 分组 + 首屏 20 条），判分/SRS/本地记录一律不碰；
+        单条 DOM 由 js/bank.js 的 listHtml() 生成（当参数传进来），结构零改动。
+     ⚠️ 必须带 ?v= 声明 —— 否则 common.js 只能拿裸 URL，等于向浏览器缓存要任意年代的旧副本。 -->
+<script defer src="js/bank-groups.js?v=20261024a"></script>
 </body>
 </html>

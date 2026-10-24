@@ -2532,15 +2532,29 @@ body[data-shell="top"] .container{padding-top:14px}
 /* 胶囊导航：10-23 T-014「回顾」提级后 = 9 项（首页 模考 口语 写作 单词 句子 计划 回顾 更多）。
    ⚠️ 9 项 + logo + 搜索框在 1280 会顶满 → 加 min-width:0 + overflow-x:auto，
    窄屏时胶囊自身横向滚动而不是把 logo/搜索框挤出视口（她 375 口径：一屏不滚）。 */
-.tb-caps{display:flex;align-items:center;gap:2px;background:var(--n-50);border:1px solid var(--line);
-  border-radius:999px;padding:2px;flex:none;margin:0 auto;min-width:0;overflow-x:auto;scrollbar-width:none}
+/* 🔴 10-24 2-3 一级页签改下划线式（依据 `交接\方案\T-001-顶栏二级菜单-v2（对齐口语页视觉）.md` §2.1 的 A1）：
+   顶栏一级页签原来是「浅灰底圆角条 + 当前页实心 teal 底白字」，与 10-23 已上线的二级下拉（下划线式）
+   是两种视觉语言 → 全顶栏统一成下划线式，与口语页 tab 同源。
+   ⚠️ 只改 .tb-caps / .tb-item / .tb-item.on 三处外观，类名一个不改（JS 的 topBarHtml / updateActiveNav /
+      tbPlacePanel 全部照旧）→ 零 JS 改动，回退就是回退这三处。
+   ⚠️ 顶栏高度不变（仍是 44px + safe-area）：下划线 bottom:-1px 落在顶栏自己的 border-bottom 上，
+      视觉上像「页签嵌在顶栏上」，不会把顶栏撑高。
+   ⚠️ 窄屏（9 项 + logo + 搜索在 1280 会顶满）保留 overflow-x:auto 横滚，仅把 gap 收紧 ——
+      原来 2px 是药丸间距，下划线式用口语页同款 22px，窄档降到 14px。 */
+.tb-caps{display:flex;align-items:stretch;gap:22px;background:none;border:0;
+  border-radius:0;padding:0;box-shadow:none;flex:none;margin:0 auto;min-width:0;overflow-x:auto;scrollbar-width:none}
 .tb-caps::-webkit-scrollbar{display:none}
-.tb-item{font-size:12.5px;font-weight:700;color:var(--muted);text-decoration:none;padding:5px 12px;
-  border-radius:999px;white-space:nowrap;transition:background .16s,color .16s;border:0;background:transparent;
-  font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:4px;line-height:1.4}
-.tb-item:hover{color:var(--ink);background:var(--surface)}
-.tb-item.on{background:var(--primary-500);color:#fff}
-.tb-item:focus-visible{outline:2px solid var(--primary-600);outline-offset:1px}
+.tb-item{font-size:14.5px;font-weight:600;color:var(--n-600);text-decoration:none;padding:10px 1px 9px;
+  border-radius:0;white-space:nowrap;transition:color .15s;border:0;background:transparent;
+  font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:4px;line-height:1;
+  position:relative}
+.tb-item:hover{color:var(--n-900);background:none}
+/* 当前页：teal 字 + 底边 2.5px 横线（口语页 tab 选中态同款） */
+.tb-item.on{background:none;color:var(--primary-700);box-shadow:none}
+.tb-item.on::after{content:'';position:absolute;left:0;right:0;bottom:-1px;
+  height:2.5px;border-radius:2px 2px 0 0;background:var(--primary-600)}
+.tb-item:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(58,154,147,.25)}
+@media(max-width:1100px){ .tb-caps{gap:14px} }   /* 顶栏 9 项 + 更多：窄桌面先收间距 */
 
 /* 「更多」下拉 */
 .tb-more{position:relative}

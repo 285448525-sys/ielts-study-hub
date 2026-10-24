@@ -19,7 +19,7 @@ setTimeout(__rvRescue,2500);
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>会员 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261024j" />
+<link rel="stylesheet" href="css/common.css?v=20261024k" />
 <link rel="stylesheet" href="css/p/vip.css?v=20261017a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
@@ -31,13 +31,13 @@ setTimeout(__rvRescue,2500);
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20261023b"></script>
-  <script defer src="js/common.js?v=20261024j"></script>
-  <script defer src="js/common-ai.js?v=20261024j"></script>
-  <script defer src="js/common-sync.js?v=20261024j"></script>
-  <script defer src="js/common-merge.js?v=20261024j"></script>
-  <script defer src="js/common-cloud.js?v=20261024j"></script>
-  <script defer src="js/common-shell.js?v=20261024j"></script>
-  <script defer src="js/common-pwa.js?v=20261024j"></script>
+  <script defer src="js/common.js?v=20261024k"></script>
+  <script defer src="js/common-ai.js?v=20261024k"></script>
+  <script defer src="js/common-sync.js?v=20261024k"></script>
+  <script defer src="js/common-merge.js?v=20261024k"></script>
+  <script defer src="js/common-cloud.js?v=20261024k"></script>
+  <script defer src="js/common-shell.js?v=20261024k"></script>
+  <script defer src="js/common-pwa.js?v=20261024k"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
   <script src="js/pricing.js?v=20261012a" defer></script>
   <script src="js/vip.js?v=20261012a" defer></script>
@@ -79,6 +79,13 @@ setTimeout(__rvRescue,2500);
 .why-body p{margin:14px 0 0}
 .why-body p:first-child{margin-top:14px}
 .why-body b{color:var(--ink);font-weight:700}
+/* V-2：开通方式那块原来是内联 background:#f6f8f9（深色档下白块），一并走 token。
+   与 V-1 的 .why-fold 同一口径。 */
+.vip-howto-box{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+.vip-howto-box b{color:var(--ink)}
+@media(max-width:560px){
+  .vip-howto-box{padding:15px 15px}
+}
 @media(max-width:560px){
   .why-fold > summary{padding:13px 15px;gap:8px;font-size:13.5px}
   .why-body{padding:2px 15px 15px;font-size:13.5px;line-height:1.8}
@@ -173,15 +180,18 @@ setTimeout(__rvRescue,2500);
     <p class="muted" style="font-size:12.5px;margin:12px 0 0">学习功能本身全部免费且无差别（为什么收费，见上面「先说清楚」）——会员提升的是 <b>AI 额度</b>（模考 / 批改 / 素材 / 辅助）和后续专属功能。</p>
   </section>
 
-  <!-- 开通方式（10/1 先手动收款，自动支付跑通后再接） -->
+  <!-- 开通方式（10/1 先手动收款，自动支付跑通后再接）
+       V-2（10-24）：原来这句说了两遍「10 分钟」——
+         ①「…说明要开通的档位和你的站内账号，约 10 分钟内开通」
+         ②「现在就能开，不用等：留言后我手动给你开通，通常 10 分钟内生效」
+       两句都在讲同一个信息，还互相打架；而「约 10 分钟内」这种精确承诺，
+       一个人维护的站做不到反而扣分。合成一句，承诺放宽到「一般当天」——说到做到比说得好听重要。
+       🔴 只改这两句的措辞：不改流程（仍是「去意见反馈留言 → 我手动开通」）、不改价格、不改权益。 -->
   <section class="card rv" data-d="2" id="vipHowto">
     <span class="kicker">How to · 开通</span>
     <h2 style="margin:0 0 14px">开通方式</h2>
-    <div style="background:#f6f8f9;border-radius:12px;padding:18px 20px">
-<p style="margin:0 0 8px;font-size:14.5px"><b>联系站长开通</b>：选好方案（<span id="vipHowPrice"></span>），去「意见反馈」里说明要开通的档位和你的站内账号，<b>约 10 分钟内</b>开通。</p>
-      <!-- 10/13 换掉「自动支付正在对接中」——豆包评审点名：这句把冲动付费的人劝退
-          （付费窗口就 30 秒）。改成正向表达：现在就能开、多久生效。 -->
-      <p class="muted" style="margin:0;font-size:13px">现在就能开，不用等：留言后我手动给你开通，通常 10 分钟内生效。</p>
+    <div class="vip-howto-box">
+      <p style="margin:0;font-size:14.5px;line-height:1.85">去侧栏「意见反馈」写一句要开的档位（<span id="vipHowPrice"></span>）和你的站内账号，我看到就开，一般当天。</p>
     </div>
   </section>
 
@@ -199,7 +209,11 @@ setTimeout(__rvRescue,2500);
     </details>
     <details style="padding:10px 0;border-bottom:1px solid var(--line)">
       <summary style="cursor:pointer;font-weight:600">为什么注册需要邀请码？</summary>
-<p class="muted" style="font-size:13px;margin:8px 0 0">为了防批量注册薅 AI 额度，保证已注册用户的体验。去「意见反馈」里说明来意即可获取。</p>
+      <!-- V-2（10-24）：原话「为了防批量注册薅 AI 额度，保证已注册用户的体验」
+           —— 同一个事实，但这句把「有人在占你便宜」告诉了潜在付费用户，加重不安全感。
+           改后是让用户理解站长的处境（一个人搭的、AI 每次调用花真钱），不是提醒她「这站被人盯上了」。
+           事实与规则一字未改：仍是邀请码挡机器注册、仍是从「意见反馈」获取。 -->
+      <p class="muted" style="font-size:13px;margin:8px 0 0">站是我一个人搭的，AI 每次调用都花真钱，所以用邀请码挡一下机器注册，保证每个真人都够用。去「意见反馈」里说明来意即可获取。</p>
     </details>
     <details style="padding:10px 0;border-bottom:1px solid var(--line)">
       <summary style="cursor:pointer;font-weight:600">可以退款吗？</summary>
