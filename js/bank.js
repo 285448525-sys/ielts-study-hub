@@ -1552,6 +1552,91 @@ window.__reportExamState = reportExamState;
   /* 盲听优先：一次决定跨刷新（她不会再被同一个遮罩烦第二次） */
   function blindRevealed(){ try{ return localStorage.getItem(BLIND_KEY) === '1'; }catch(e){ return false; } }
   function markBlindRevealed(){ try{ localStorage.setItem(BLIND_KEY, '1'); }catch(e){} }
+
+  /* ===== 10-25 7-4a · 标记式精听（理解度标记）=====
+     口径（她 10-25 拍板的默认）：
+       ① 两种模式并存，默认停在「连续播放」（7-3 那套），不打扰现有用法
+       ② 标记模式 = 一轮一句：听 → 选「听懂/模糊/茫然」→ 自动跳下一句
+       ③ 只标记、不自动排复习（爱听写同口径）；报告页留到 7-4b
+       ④ 存储走 localStorage，不碰 DATA → 不参与云端同步、不影响判分 */
+  var MARK_KEY    = 'hub_bank_marks';
+  var INTMODE_KEY = 'hub_bank_intmode';
+  var _intMode = 'cont';
+  try{ if(localStorage.getItem(INTMODE_KEY) === 'mark') _intMode = 'mark'; }catch(e){}
+  /* 当前精听走到第几句（模块级；换篇由 render 重建时重算） */
+  var _mkIdx = 0;
+  function setIntMode(m){
+    _intMode = (m === 'mark') ? 'mark' : 'cont';
+    try{ localStorage.setItem(INTMODE_KEY, _intMode); }catch(e){}
+    /* 标记模式本身就是「先听后看」，盲听遮罩在它没有意义（遮罩会让三卡失去作用对象）→ 撤掉。
+       ⚠️ 只撤当前这次的遮罩，不改 BLIND_KEY：切回连续播放仍按她原来的记忆走。 */
+    if(_intMode === 'mark'){
+      var host = document.getElementById('exListenIn');
+      if(host && host.hasAttribute('data-blind')){ host.removeAttribute('data-blind'); renderBlindCard(); setBlindBtns(false); }
+    }
+    mountIntensive();
+  }
+  /* 理解度：按 unitId + 句索引存，一篇一张图；结构 { "<unitId>": { "3":"mid", ... } } */
+  function markStore(){
+    try{ return JSON.parse(localStorage.getItem(MARK_KEY) || '{}') || {}; }catch(e){ return {}; }
+  }
+  function saveMarkStore(o){ try{ localStorage.setItem(MARK_KEY, JSON.stringify(o)); }catch(e){} }
+  function marksOf(){
+    var id = unitIdOf(); if(!id) return {};
+    var m = markStore()[id];
+    return (m && typeof m === 'object') ? m : {};
+  }
+  var MK_TX = { ok: '听懂', mid: '模糊', no: '茫然' };
+  function setMark(i, k){
+    if(k !== 'ok' && k !== 'mid' && k !== 'no') return;
+    var id = unitIdOf(); if(!id) return;
+    var o = markStore(), m = o[id] || {};
+    /* 再点同一档 = 取消（三档统一 —— 只有一档能取消会让人以为另两个按钮坏了）。
+       改档直接点别的档；取消留给「这句我不标」。 */
+    if(m[i] === k) delete m[i];
+    else m[i] = k;
+    var empty = true; for(var q in m){ if(m.hasOwnProperty(q)){ empty = false; break; } }
+    if(empty) delete o[id]; else o[id] = m;
+    saveMarkStore(o);
+    paintMarks();
+  }
+  /* 把理解度画到句子条上（行首小标签 + 左侧色条）；已渲染的行就地改类，不重建 innerHTML */
+  function paintMarks(){
+    var m = marksOf();
+    var rows = document.querySelectorAll('#examRoot .ex-script .sc-body.sc-tl .sc-line');
+    rows.forEach(function(el){
+      var i = el.getAttribute('data-i'), k = m[i] || '';
+      el.classList.remove('mk-ok', 'mk-mid', 'mk-no');
+      var tag = el.querySelector('.sc-mk');
+      if(k){
+        el.classList.add('mk-' + k);
+        if(!tag){ tag = document.createElement('i'); tag.className = 'sc-mk'; el.insertBefore(tag, el.querySelector('.sc-tx')); }
+        tag.className = 'sc-mk ' + k; tag.textContent = MK_TX[k];
+      } else if(tag){ tag.remove(); }
+    });
+    paintMarkCount();
+  }
+  function paintMarkCount(){
+    var el = document.getElementById('scMarkCount'); if(!el) return;
+    var m = marksOf(), n = { ok: 0, mid: 0, no: 0 }, tot = 0;
+    for(var k in m){ if(m.hasOwnProperty(k) && n[m[k]] !== undefined){ n[m[k]]++; tot++; } }
+    if(!tot){ el.hidden = true; return; }
+    el.hidden = false;
+    el.innerHTML = '已标记 ' + tot + ' 句：<b class="ok">' + n.ok + '</b> 听懂 · '
+      + '<b class="mid">' + n.mid + '</b> 模糊 · <b class="no">' + n.no + '</b> 茫然';
+  }
+  /* 跳到第 i 句并播（三卡选完自动递进 + 点句子条共用） */
+  function playLine(i){
+    var a = document.getElementById('exAudio'); if(!a) return;
+    var rows = document.querySelectorAll('#examRoot .ex-script .sc-body.sc-tl .sc-line');
+    var el = rows && rows.length > i ? rows[i] : null; if(!el) return;
+    var st = parseFloat(el.getAttribute('data-t')); if(!isFinite(st)) return;
+    _mkIdx = i;
+    try{ a.currentTime = st; }catch(e){}
+    /* 标记模式下「一轮一句」= 不套用单句遍数（那是连续精听的参数，两套玩法不混） */
+    _repeatLeft = 0; _repeatFrom = null;
+    try{ a.play(); }catch(e){}
+  }
   function fmtClock(s){ if(!isFinite(s) || s < 0) s = 0; var m = Math.floor(s / 60), x = Math.floor(s % 60); return (m < 10 ? '0' : '') + m + ':' + (x < 10 ? '0' : '') + x; }
   function listenPart(){
     var parts = (EX && EX.unit && EX.unit.parts) || [];
@@ -2008,6 +2093,8 @@ window.__reportExamState = reportExamState;
     /* 10-24 7-3：盲听优先遮罩 —— 只在「没揭开过」时挂，且只挂在有时间轴的篇
        （没时间轴仍是整段 <p>，遮罩没有意义：那里本来就没有逐句回听）。 */
     mountBlindCover();
+    /* 10-25 7-4a：模式切换先挂出来（句子条 fetch 回来后 render 会再算一次进度） */
+    mountIntensive();
     /* 3-4：时间轴到了就把原文换成可点句子条 */
     mountScriptTimeline();
   }
@@ -2042,6 +2129,51 @@ window.__reportExamState = reportExamState;
     inner.setAttribute('data-blind', '1');
     renderBlindCard();
     setBlindBtns(true);
+  }
+
+  /* ===== 10-25 7-4a · 精听面板（模式切换 + 三卡）=====
+     形态：原文区上方一条分段控件「连续播放 / 标记式精听」；切到标记式才展开三卡。
+     口径：
+       ① 只在「听力 + 已交卷 + 有句子条」时出现（没时间轴的篇没有逐句，不给空壳）
+       ② 默认连续播放（7-3 那套），切过一次记在本机
+       ③ 三卡 = 听懂 / 模糊 / 茫然；选完立刻记 + 自动跳下一句（一轮一句）
+       ④ 快捷键 1 / 2 / 3（见下方 keydown；输入框内不抢） */
+  function mountIntensive(){
+    var inner = document.getElementById('exListenIn'); if(!inner) return;
+    if(!EX || EX.channel !== 'listening' || !EX.submitted) return;
+    if(!inner.querySelector('.ex-script .sc-body.sc-tl')) return;
+    var sw = inner.querySelector(':scope > .sc-int');
+    if(!sw){
+      sw = document.createElement('div');
+      sw.className = 'sc-int';
+      inner.insertBefore(sw, inner.querySelector('.ex-script'));
+    }
+    var mark = (_intMode === 'mark');
+    var total = (document.querySelectorAll('#examRoot .ex-script .sc-body.sc-tl .sc-line') || []).length;
+    sw.innerHTML =
+        '<div class="sc-int-sw" role="group" aria-label="复盘模式">'
+      +   '<button type="button" class="sc-int-b' + (mark ? '' : ' on') + '" data-intmode="cont">连续播放</button>'
+      +   '<button type="button" class="sc-int-b' + (mark ? ' on' : '') + '" data-intmode="mark">标记式精听</button>'
+      + '</div>'
+      + (mark
+        ? '<div class="sc-markbar">'
+        +   '<div class="sc-mk-prog"><b id="scMkNow">' + Math.min(_mkIdx + 1, Math.max(total, 1)) + '</b> / ' + total + ' 句</div>'
+        +   '<div class="sc-mk-cards" role="group" aria-label="理解度">'
+        +     '<button type="button" class="sc-card ok" data-mark="ok"><span class="sc-card-lb">听懂</span><span class="sc-card-sub">快捷键 1</span></button>'
+        +     '<button type="button" class="sc-card mid" data-mark="mid"><span class="sc-card-lb">模糊</span><span class="sc-card-sub">快捷键 2</span></button>'
+        +     '<button type="button" class="sc-card no" data-mark="no"><span class="sc-card-lb">茫然</span><span class="sc-card-sub">快捷键 3</span></button>'
+        +   '</div>'
+        +   '<p class="sc-mk-tip">听一句 → 选一档 → 自动跳下一句。走完一遍再回头看标出来的句子。</p>'
+        + '</div>'
+        : '');
+    /* 「已标记 N 句」：与 7-3 的「已收藏 N 句」并排挂在原文区底部 */
+    var box = inner.querySelector('.ex-script .sc-body.sc-tl');
+    if(box && !box.querySelector('#scMarkCount')){
+      var c = document.createElement('p');
+      c.className = 'sc-mark-count'; c.id = 'scMarkCount'; c.hidden = true;
+      box.appendChild(c);
+    }
+    paintMarks();
   }
 
   /* ===== 3-4 复盘句子条 =====
@@ -2085,6 +2217,12 @@ window.__reportExamState = reportExamState;
         el.classList.toggle('hit', on && el.classList.contains('sc-ans'));
         if(on) el.setAttribute('aria-current', 'true'); else el.removeAttribute('aria-current');
       });
+      /* 10-25 7-4a：播放中的当前句 = 精听走到第几句（三卡是对「当前句」打分） */
+      if(_stLines && _stLines.length && idx >= 0){
+        _mkIdx = idx;
+        var now = document.getElementById('scMkNow');
+        if(now) now.textContent = String(idx + 1);
+      }
       if(changed && EX._stFollow !== false){
         var cur = rows[idx];
         /* 只在句子滚出可视区时才滚（否则每句都滚，正在看上面几句会被强行拖走） */
@@ -2106,9 +2244,11 @@ window.__reportExamState = reportExamState;
       box.innerHTML = lines.map(function(l, i){
         var qs = (l.answerQ && l.answerQ.length) ? l.answerQ : null;
         var badge = qs ? '<i class="sc-q" title="第 ' + qs.join(' / ') + ' 题答案句">Q' + qs.join('·Q') + '</i>' : '<i class="sc-q sc-q--none" aria-hidden="true"></i>';
-        return '<p class="sc-line' + (qs ? ' sc-ans' : '') + '" data-i="' + i + '" data-t="' + l.start + '"'
+        var mk = (marksOf()[i] && MK_TX[marksOf()[i]]) ? marksOf()[i] : '';
+        return '<p class="sc-line' + (qs ? ' sc-ans' : '') + (mk ? ' mk-' + mk : '') + '" data-i="' + i + '" data-t="' + l.start + '"'
              + (qs ? ' data-q="' + qs.join(',') + '"' : '') + '>'
              + '<i class="sc-t">' + fmtClock(l.start) + '</i>'
+             + (mk ? '<i class="sc-mk ' + mk + '">' + MK_TX[mk] + '</i>' : '')
              + badge
              + '<span class="sc-tx">' + esc(l.text || '') + '</span>'
              /* 10-24 7-3：每句收藏星 —— 只读态也能点（点星不触发跳播，见下面 stopPropagation） */
@@ -2160,6 +2300,8 @@ window.__reportExamState = reportExamState;
       /* 10-24 7-3：句子条是异步 fetch 回来才有的 —— 遮罩要等它就位再挂，
          否则 showScript 那次调用会因找不到 .sc-tl 而静默跳过（她就不会看到盲听层）。 */
       mountBlindCover();
+      /* 10-25 7-4a：同理，模式切换 + 三卡也要等句子条就位（没句子条就没有「逐句」可言） */
+      mountIntensive();
       paint();
     };
 
@@ -4185,6 +4327,21 @@ window.__reportExamState = reportExamState;
       /* 10-24 7-3：复盘态「收起原文，回到盲听」—— 只作用于当前这一篇的复盘区。
          ⚠️ 两个按钮必须成对切换：这一组是同一个开关的两面，
            只藏自己不亮对面 = 收起后按钮全没了，她想看回来就没路了。 */
+      /* 10-25 7-4a：模式切换 —— 两个按钮是同一枚硬币的两面，点了立刻重挂面板 */
+      if(t.closest && t.closest('[data-intmode]')){
+        var mb = t.closest('[data-intmode]');
+        setIntMode(mb.getAttribute('data-intmode'));
+        return;
+      }
+      /* 10-25 7-4a：三卡 —— 给当前句打档，然后自动跳下一句（一轮一句）。
+         走到最后一句就不再跳（停在末句，她可以自己回头点） */
+      if(t.closest && t.closest('[data-mark]')){
+        var mk = t.closest('[data-mark]');
+        setMark(_mkIdx, mk.getAttribute('data-mark'));
+        var nRows = document.querySelectorAll('#examRoot .ex-script .sc-body.sc-tl .sc-line').length;
+        if(_mkIdx + 1 < nRows) playLine(_mkIdx + 1);
+        return;
+      }
       if(t.closest && t.closest('[data-schide]')){
         var host = document.getElementById('exListenIn');
         if(host){
@@ -4397,6 +4554,21 @@ window.__reportExamState = reportExamState;
           e.preventDefault();
           pt.click();
         }
+        return;
+      }
+      /* 10-25 7-4a：标记模式的三档快捷键 1 / 2 / 3。
+         ⚠️ 只在「标记模式 + 焦点不在输入控件里」时抢键 —— 否则填空题里打数字全被吃掉。 */
+      if(e.key === '1' || e.key === '2' || e.key === '3'){
+        var tg = e.target, tn = tg && tg.tagName;
+        if(tn === 'INPUT' || tn === 'TEXTAREA' || tn === 'SELECT') return;
+        if(_intMode !== 'mark') return;
+        var z0 = document.getElementById('examRoot');
+        if(!z0 || z0.hidden || !EX || !EX.submitted) return;
+        e.preventDefault();
+        var kk = e.key === '1' ? 'ok' : (e.key === '2' ? 'mid' : 'no');
+        setMark(_mkIdx, kk);
+        var n2 = document.querySelectorAll('#examRoot .ex-script .sc-body.sc-tl .sc-line').length;
+        if(_mkIdx + 1 < n2) playLine(_mkIdx + 1);
         return;
       }
       if(e.key !== 'Tab') return;
