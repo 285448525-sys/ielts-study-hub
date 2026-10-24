@@ -109,4 +109,28 @@
 .sp-ck-item>b{display:block;color:var(--ink);margin-bottom:2px}
 .sp-ck-item>span{color:var(--muted)}
 .sp-ck-item span b{display:inline;color:var(--ink)}
-.sp-ck-note{font-size:11.5px;color:var(--muted);margin:8px 0 0}
+.sp-ck-note{font-size:11.5px;color:var(--muted);margin:8px 0 0}/* 10-24 B-6 小步3 第二批：深色下表单裸 input 补底色（她 10-24 16:1x 授权恢复深色整改）。
+   根因：这两个表单（#mkDate/#mkPartInput 与 #scoreDate/#scL/#scR/#scW/#scS/#scNote）是
+   **没有 class 的裸 input**，而 common.css 里没有裸 input{} 规则 → 用浏览器默认白底，
+   深色主题下变成一排刺眼的白框（深色体检报告里最扎眼的一处，见
+   交接/B-6-小步2-深色体检清单-2026-10-24.md §二 P1）。
+   ⚠️ 只补「底色/字色/边框」，不碰尺寸与间距 —— 表单原本的紧凑观感不能变。
+   ⚠️ 不写 [data-theme="dark"] input{} 这类全局兜底：那条特异性 (0,1,1) 会盖掉
+      bank/writing/corpus 等页自己写的 input 背景规则（它们特异性只有 (0,0,1)），
+      把好页也改坏 → 所以按页 scoped，谁有问题治谁。 */
+.detail-block .form-row input{
+  background:var(--surface);
+  color:var(--ink);
+  border:1.5px solid var(--line);
+  border-radius:10px;
+  padding:0 14px;   /* 高度不设 —— 沿用 common.css:470 全局 44px（我原来的 height:40px 特异性 (0,2,1) 赢不过那条 (0,3,1)，是死代码） */
+  font-family:inherit;
+  font-size:14px;
+  width:100%;
+  min-width:0;
+  box-sizing:border-box;
+}
+.detail-block .form-row input::placeholder{color:var(--muted)}
+.detail-block .form-row input:focus{border-color:var(--primary);outline:none}
+/* date 输入框右侧那个日历图标在深色下会是黑的 → 用滤镜翻成浅色（color-scheme 一声明，原生控件全跟着变） */
+[data-theme="dark"] .detail-block .form-row input{color-scheme:dark}
