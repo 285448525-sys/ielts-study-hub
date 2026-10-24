@@ -370,8 +370,15 @@ body.word-fullscreen .hub-topbar{display:none !important}
         </div>
       </div>
       <div class="plan-panel" id="planPanel" hidden></div>
+      <!-- S-2c（10-24）：原来是一个裸 input（.wl-search）—— 没图标、没容器，跟站里其他搜索框不是一个物种。
+           现在接入 S-1 统一类 .ui-field-search（36px / 圆角 10 / surface-2 / 放大镜 16px / 清空 ✕ 有值才出现）。
+           id 与 placeholder 原样保留，words.js 的 input 监听与过滤零改动。 -->
       <div class="wl-search-wrap">
-        <input aria-label="搜索单词" id="searchWord" class="wl-search" placeholder="搜索单词…" />
+        <label class="ui-field-search" for="searchWord">
+          <svg class="ui-field-search-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input aria-label="搜索单词" id="searchWord" class="ui-field-search-in" type="search" placeholder="搜索单词…" autocomplete="off" />
+          <button type="button" class="ui-field-clear" hidden aria-label="清空搜索">✕</button>
+        </label>
       </div>
       <!-- 10-23 4-4：原来这里是「类型 / 错误」两个大分类按钮，点开再展小分类（两层）。
            现在压成一行状态胶囊，点哪个筛哪批。原来那套（#wordCats / #catPanel-* / #filterType / #filterErr）
