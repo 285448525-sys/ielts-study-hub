@@ -18,7 +18,7 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>模考 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261024g" />
+<link rel="stylesheet" href="css/common.css?v=20261024i" />
 <link rel="stylesheet" href="css/p/bank.css?v=20261017a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
@@ -1302,7 +1302,8 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
   .ex-audio .ea-mode[disabled]{opacity:.5;cursor:default}
   .ex-audio.locked .ea-bar{cursor:default}
   .ex-audio.locked .ea-bar .ea-knob{display:none}
-  /* 听力 Part 分栏上的篇数（阅读的 Part 分栏没有计数，只有听力加） */
+  /* 听力 Part 分栏上的篇数。M-1（10-24）起阅读的 Part 分栏也加计数（同款 .pt-n），
+     所以这条从 #listenPartTabs 收窄到 .partbar 通用（见下方 M-1 样式段的定义）。 */
   #listenPartTabs .pt-n{font-weight:600;opacity:.6;font-variant-numeric:tabular-nums;margin-left:2px}
   /* 题目配图（地图题 / 带图填空题）—— 图在 static.9fnnn.com，公开直引，不下载 */
   .ex-gimg{margin:10px 0 4px;text-align:center}
@@ -1728,7 +1729,66 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 /* ===== 10-23 2-1d 批 B：撤页内小 tab（桌面 ≥861）。手机 ≤860 保留（顶栏隐藏时的唯一入口）。
    依据：交接\方案\T-001c-下拉重做与撤小tab-2026-10-23.md §三。不删 DOM：JS 靠 data-* 认分栏，
    sub= 交接（tbSubPending）照常工作；页内二级筛选控件不受影响。 ===== */
-@media (min-width:861px){ #mockTabs{display:none} }
+
+/* 🔴 M-1（10-24 她 13:3x 点头「模考方案我看了先这样做你派吧」）：上面那条 2-1d 结论
+   **在这里被她主动推翻** —— 新 tab 不是顶栏下拉的重复品，它带篇数计数，是页面标题的锚，
+   也是「哪栏厚哪栏薄」的唯一展示处。两码事，所以桌面 ≥861 改回可见。
+   实现方式 = 把上面那条 display:none 注释掉（保留原文备查），不删。 */
+/* @media (min-width:861px){ #mockTabs{display:none} } —— M-1 已废止，桌面恢复可见 */
+
+/* ===== M-1 · tab 改「文字 + 下划线 + 计数」（她截图嫌药丸丑）=====
+   原来：css/common.css:802 的 .pill-tabs = 浅青底 999px 圆角 + inset 阴影，
+         .pill-tab.active = 实心青 + 0 4px 12px 投影 —— **控件长相，抢戏**。
+   现在：只有文字粗细和一条线。不填色、不投影、不位移。
+   🔴 深色档走 --primary-700 token（浅 #2c7873 / 深 #7ccac2），**不写死色值**。
+   🔴 层级一眼分清：科目是 tab（上划线 2px），Part 是筛选项（下划线 1.5px）。 */
+#mockTabs{
+  background:none;border:0;border-radius:0;box-shadow:none;padding:0;
+  display:flex;align-items:stretch;gap:4px;width:100%;margin:0 0 14px;
+  border-bottom:1px solid var(--line);
+}
+#mockTabs .pill-tab{
+  flex:1;justify-content:center;gap:6px;
+  background:none;border:0;border-radius:0;box-shadow:none;
+  padding:10px 8px 9px;font-size:14px;font-weight:500;color:var(--muted);
+  position:relative;transition:color .15s;line-height:1;font-family:inherit;cursor:pointer;
+  white-space:nowrap;
+}
+#mockTabs .pill-tab:hover:not(.active){color:var(--ink);background:none}
+#mockTabs .pill-tab.active{
+  color:var(--primary-700);font-weight:700;background:none;box-shadow:none;
+}
+/* 上划线 2px：用 ::after 画在 tab 底边，盖住容器的 1px 分隔线 */
+#mockTabs .pill-tab.active::after{
+  content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;border-radius:2px 2px 0 0;
+  background:var(--primary);
+}
+#mockTabs .pill-tab:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(58,154,147,.25)}
+/* 篇数计数：小、次要色、等宽数字，不抢主标签 */
+#mockTabs .mt-n{font-size:11.5px;font-weight:500;color:var(--muted);font-variant-numeric:tabular-nums}
+#mockTabs .pill-tab.active .mt-n{color:var(--primary-700);opacity:.85}
+
+/* Part 筛选项（.partbar 内）：文字 + 篇数 + 当前项下划线 1.5px（比科目细一档） */
+.partbar .pill-tabs{
+  background:none;border:0;border-radius:0;box-shadow:none;padding:0;
+  display:flex;align-items:stretch;gap:14px;
+}
+.partbar .pill-tab{
+  background:none;border:0;border-radius:0;box-shadow:none;
+  padding:7px 1px 6px;font-size:13px;font-weight:500;color:var(--muted);
+  position:relative;transition:color .15s;line-height:1;font-family:inherit;cursor:pointer;
+  white-space:nowrap;
+}
+.partbar .pill-tab:hover:not(.active){color:var(--ink);background:none}
+.partbar .pill-tab.active{color:var(--primary-700);font-weight:700;background:none;box-shadow:none}
+.partbar .pill-tab.active::after{
+  content:'';position:absolute;left:0;right:0;bottom:-1px;height:1.5px;border-radius:1.5px 1.5px 0 0;
+  background:var(--primary);
+}
+.partbar .pill-tab:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(58,154,147,.25)}
+/* 篇数计数：与科目 tab 同款（复用 #listenPartTabs .pt-n 的既有定义，见下方 1306 行） */
+.partbar .pt-n{font-size:11px;font-weight:500;opacity:.7;font-variant-numeric:tabular-nums;margin-left:3px}
+
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -1916,11 +1976,14 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <main class="container">
   <!-- 🔴 软导航契约：功能容器必须在 <main> 之内 -->
   <div class="mock-wrap" id="bankRoot" data-mock-tab="reading" data-mock-part="Part 1">
+    <!-- M-1（10-24）：科目 tab 改「文字 + 篇数计数 + 上划线」。计数由 js/bank.js 的
+         renderMockTabCounts() 在 manifest 到达后填（写作/口语的数字在各自脚本就位后填）。
+         桌面 861+ 已改回可见（原先 display:none 是 10-23 2-1d 的旧结论，见下方样式段注释）。 -->
     <div class="mock-tabs pill-tabs" id="mockTabs" role="tablist">
-      <button class="pill-tab active" type="button" data-mtab="reading" role="tab">阅读</button>
-      <button class="pill-tab" type="button" data-mtab="listening" role="tab">听力</button>
-      <button class="pill-tab" type="button" data-mtab="writing" role="tab">写作</button>
-      <button class="pill-tab" type="button" data-mtab="speaking" role="tab">口语</button>
+      <button class="pill-tab active" type="button" data-mtab="reading" role="tab">阅读<span class="mt-n" data-mtn="reading"></span></button>
+      <button class="pill-tab" type="button" data-mtab="listening" role="tab">听力<span class="mt-n" data-mtn="listening"></span></button>
+      <button class="pill-tab" type="button" data-mtab="writing" role="tab">写作<span class="mt-n" data-mtn="writing"></span></button>
+      <button class="pill-tab" type="button" data-mtab="speaking" role="tab">口语<span class="mt-n" data-mtn="speaking"></span></button>
     </div>
 
     <section class="mock-pane" id="pane-reading">
@@ -1947,9 +2010,9 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
       </div>
       <div class="partbar">
         <div class="pill-tabs" id="partTabs">
-          <button class="pill-tab active" type="button" data-part="Part 1">Part 1</button>
-          <button class="pill-tab" type="button" data-part="Part 2">Part 2</button>
-          <button class="pill-tab" type="button" data-part="Part 3">Part 3</button>
+          <button class="pill-tab active" type="button" data-part="Part 1">Part 1<span class="pt-n" data-pn="Part 1"></span></button>
+          <button class="pill-tab" type="button" data-part="Part 2">Part 2<span class="pt-n" data-pn="Part 2"></span></button>
+          <button class="pill-tab" type="button" data-part="Part 3">Part 3<span class="pt-n" data-pn="Part 3"></span></button>
         </div>
         <span class="partmeta" id="partMeta"></span>
       </div>
@@ -1980,10 +2043,10 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
       </div>
       <div class="partbar">
         <div class="pill-tabs" id="listenPartTabs">
-          <button class="pill-tab active" type="button" data-lpart="Part 1">Part 1</button>
-          <button class="pill-tab" type="button" data-lpart="Part 2">Part 2</button>
-          <button class="pill-tab" type="button" data-lpart="Part 3">Part 3</button>
-          <button class="pill-tab" type="button" data-lpart="Part 4">Part 4</button>
+          <button class="pill-tab active" type="button" data-lpart="Part 1">Part 1<span class="pt-n" data-pn="Part 1"></span></button>
+          <button class="pill-tab" type="button" data-lpart="Part 2">Part 2<span class="pt-n" data-pn="Part 2"></span></button>
+          <button class="pill-tab" type="button" data-lpart="Part 3">Part 3<span class="pt-n" data-pn="Part 3"></span></button>
+          <button class="pill-tab" type="button" data-lpart="Part 4">Part 4<span class="pt-n" data-pn="Part 4"></span></button>
         </div>
         <span class="partmeta" id="listenMeta"></span>
       </div>
@@ -2064,13 +2127,13 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
      （手机慢网 ~50KB/s → 约 1.5 秒）。加载时机：点开「写作」tab 时按序插入；
      首次 load 之后空闲再预热一次。承接代码在 js/bank.js 的 loadWritingScripts()。 -->
 <script defer src="js/data.js?v=20261023b"></script>
-<script defer src="js/common.js?v=20261024g"></script>
-<script defer src="js/common-ai.js?v=20261024g"></script>
-<script defer src="js/common-sync.js?v=20261024g"></script>
-<script defer src="js/common-merge.js?v=20261024g"></script>
-<script defer src="js/common-cloud.js?v=20261024g"></script>
-<script defer src="js/common-shell.js?v=20261024g"></script>
-<script defer src="js/common-pwa.js?v=20261024g"></script>
-<script defer src="js/bank.js?v=20261023w"></script>
+<script defer src="js/common.js?v=20261024i"></script>
+<script defer src="js/common-ai.js?v=20261024i"></script>
+<script defer src="js/common-sync.js?v=20261024i"></script>
+<script defer src="js/common-merge.js?v=20261024i"></script>
+<script defer src="js/common-cloud.js?v=20261024i"></script>
+<script defer src="js/common-shell.js?v=20261024i"></script>
+<script defer src="js/common-pwa.js?v=20261024i"></script>
+<script defer src="js/bank.js?v=20261024a"></script>
 </body>
 </html>

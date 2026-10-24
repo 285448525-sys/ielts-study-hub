@@ -1109,18 +1109,22 @@ function hubResetPageScroll(){
      scrollIntoView() 都会把容器重新顶走（实例：coach 输入框 focus() 默认把元素滚进视野，
      从首页软导航进口语页时 scrollTop 被顶到 2942，用户看到页面中间、题卡被切一半）。 */
   _hubScrollLockUntil = Date.now() + 600;
-  if(!window.__hubScrollLock){
-    window.__hubScrollLock = setInterval(function(){
-      if(Date.now() > _hubScrollLockUntil){
-        clearInterval(window.__hubScrollLock); window.__hubScrollLock = null; return;
-      }
-      try{
-        const m = document.querySelector('main.container');
-        if(m && m.scrollTop) m.scrollTop = 0;
-        if(window.scrollY) window.scrollTo(0, 0);
-      }catch(_){}
-    }, 50);
-  }
+  /* 🔴 10-24 Q-4：原来是 `if(!window.__hubScrollLock)` 才建 —— 而这个句柄要等 600ms 到点才自清，
+     于是**每次软导航都新建一个 50ms 的 interval**，旧的还没到期、新的又叠上去
+     （实测 5 次软导航新增 5 个 50ms interval，同时最多并存十几个，全在抢主线程）。
+     改法：不管句柄在不在，先把**旧的清掉**再按新的截止时间建 —— 同一时刻只有一个在跑，
+     锁顶时长仍由 _hubScrollLockUntil 决定（600ms 语义不变）。 */
+  if(window.__hubScrollLock){ clearInterval(window.__hubScrollLock); window.__hubScrollLock = null; }
+  window.__hubScrollLock = setInterval(function(){
+    if(Date.now() > _hubScrollLockUntil){
+      clearInterval(window.__hubScrollLock); window.__hubScrollLock = null; return;
+    }
+    try{
+      const m = document.querySelector('main.container');
+      if(m && m.scrollTop) m.scrollTop = 0;
+      if(window.scrollY) window.scrollTo(0, 0);
+    }catch(_){}
+  }, 50);
 }
 
 /* 🔴 10/6 01:55 「内容装得下就不要能滑动」——修「明明整屏能显示完却还能滑一点」。
