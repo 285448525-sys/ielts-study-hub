@@ -434,8 +434,10 @@ function renderCats(){
   const task2All = CAT_TASK2.filter(c => cntOf(c) > 0);
   const task1All = CAT_TASK1.filter(c => cntOf(c) > 0);
 
+  /* Q-2（10-24）：lv 来自 t.level（模板数据，能随导入/云端同步进来），
+     属性位与文本位都过 escapeHtml —— 与紧挨着的 chipCat 同口径。 */
   const chipLv = lv => '<button type="button" class="fchip' + (curLevel === lv ? ' on' : '')
-    + '" data-lv="' + lv + '">' + (lv === 'all' ? '全部' : lv)
+    + '" data-lv="' + escapeHtml(lv) + '">' + (lv === 'all' ? '全部' : escapeHtml(lv))
     + '<span class="lv-cnt">' + (lv === 'all' ? DATA.writing.length : lvCount(lv)) + '</span></button>';
   const chipCat = c => '<button type="button" class="fchip' + (curCat === c ? ' on' : '')
     + '" data-cat="' + escapeHtml(c) + '">' + escapeHtml(c)
@@ -481,7 +483,9 @@ function tplCardHtml(t, lockTag){
   const tips = String(t.tips || '').trim();
   const sk = skeletonFirstLine(t.skeleton);
   const pa = skeletonParaCount(t.skeleton);
-  return '<div class="card tpl-card" data-id="' + t.id + '" style="position:relative">'
+  /* Q-2（10-24）：t.id 直插属性位 —— 云端同步/导入的历史数据里 id 不保证是 uid() 生成的，
+     含引号就能跳出属性边界挂事件。属性位一律过 escapeHtml（它同时转义 " 与 '，见 data.js:2990）。 */
+  return '<div class="card tpl-card" data-id="' + escapeHtml(t.id) + '" style="position:relative">'
     + lockTag + '<b>' + escapeHtml(tt) + '</b>' + meta
     + (tips ? '<div class="tpl-tip">' + escapeHtml(tips) + '</div>' : '')
     + (sk ? '<div class="tpl-sk">' + escapeHtml(sk) + '</div>' : '')
@@ -494,7 +498,7 @@ function tplRowHtml(t, locked){
   const lv = t.level || '5.5';
   const tips = String(t.tips || '').trim();
   const pa = skeletonParaCount(t.skeleton);
-  return '<div class="tl-row" data-id="' + t.id + '">'
+  return '<div class="tl-row" data-id="' + escapeHtml(t.id) + '">'
     + '<span class="tpl-lv">' + escapeHtml(lv) + '</span>'
     + '<span style="min-width:0">'
     +   '<span class="tl-t">' + (locked ? '<span class="tl-lock" title="会员专属">🔒</span>' : '') + escapeHtml(tt) + '</span>'
@@ -1818,7 +1822,7 @@ function renderBank(){
     const ex = p.example ? '<div class="bank-ex">例：' + escapeHtml(p.example) + '</div>' : '';
     const cn = p.cn ? '<div class="bank-detail">' + escapeHtml(p.cn) + '</div>' : '';
     const tag = p.tag ? '<span class="bank-tag">' + escapeHtml(p.tag) + '</span>' : '';
-    return '<tr data-id="' + p.id + '">'
+    return '<tr data-id="' + escapeHtml(p.id) + '">'
       + '<td class="bank-td-en">' + escapeHtml(p.en) + ' ' + tag + '</td>'
       + '<td class="bank-td-cn">' + (cn || '') + (ex || '') + '</td>'
       + '<td class="bank-td-actions"><button class="bank-del" type="button">删除</button></td>'
