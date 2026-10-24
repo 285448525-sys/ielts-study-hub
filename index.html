@@ -40,6 +40,20 @@
        原来这里没有它，按钮只好写死 #06231f 深墨绿，于是同一个 teal 底全站一个字色、落地页另一个。 */
     --on-primary:#ffffff;
     --teal-12:rgba(58,154,147,.12);--teal-08:rgba(58,154,147,.08);--teal-45:rgba(58,154,147,.45);
+    /* ── L-3（10-24）：teal 派生色收成 token，值为**原字面值**，改前改后逐像素一致 ──
+       原方案写「17 处写死」，实测 15 处：其中 .08/.12/.45 早已提成 token，
+       少掉的 2 处正是 L-1 删掉的 .btn-solid 投影（.55）与 hover 投影（.6）——所以不是漏改。
+       这里只给「被写过 2 次以上、或语义明确」的档位补 token，其余按方案要求原地保留 + 注明对应档。 */
+    --teal-0:rgba(58,154,147,0);     /* 渐变的下限（与 transparent 数值等价，但保持同色相） */
+    --teal-02:rgba(58,154,147,.02);  /* 对照站内 --primary-50 量级（淡底下限） */
+    --teal-09:rgba(58,154,147,.09);  /* 对照站内 --primary-soft 量级 */
+    --teal-14:rgba(58,154,147,.14);  /* 对照站内 --primary-100 量级（hover 淡底） */
+    --teal-16:rgba(58,154,147,.16);  /* 同上，再深一档 */
+    --teal-20:rgba(58,154,147,.20);  /* 对照站内 --primary-200 量级（hero 光晕） */
+    --teal-32:rgba(58,154,147,.32);  /* 文字选区底色 */
+    --teal-60:rgba(58,154,147,.60);  /* 完成态删除线 */
+    --teal-70:rgba(58,154,147,.70);  /* hover 描边（深一档） */
+    --teal-75:rgba(58,154,147,.75);  /* hover 描边（最深） */
     --gold:#c79a4b;
     --ink:#f2f6f9;--body:#c3cedb;--muted:#8fa0b3;--faint:#63748a;
     --line:#233043;--line-soft:#1c2836;--bg:#0b1117;--card:#121b25;--card2:#0e1620;
@@ -53,7 +67,7 @@
   html,body{margin:0;background:var(--bg);color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
     line-height:1.7;-webkit-font-smoothing:antialiased}
-  ::selection{background:rgba(58,154,147,.32)}
+  ::selection{background:var(--teal-32)}
   a{text-decoration:none;color:inherit}
   svg{display:inline-block;vertical-align:middle}
   .wrap{max-width:1120px;margin:0 auto;padding:0 28px}
@@ -75,7 +89,7 @@
   .btn-solid{background:var(--primary);color:var(--on-primary)}
   .btn-solid:hover{background:var(--primary-400)}
   .btn-line{border-color:var(--teal-45);color:var(--primary-400);background:var(--teal-08)}
-  .btn-line:hover{border-color:rgba(58,154,147,.75);background:rgba(58,154,147,.14);transform:translateY(-1px)}
+  .btn-line:hover{border-color:var(--teal-75);background:var(--teal-14);transform:translateY(-1px)}
   .btn-ghost{color:var(--muted)}
   .btn-ghost:hover{color:var(--ink);border-color:var(--line)}
   .btn-lg{padding:14px 26px;font-size:15px;border-radius:var(--radius-sm)}
@@ -93,7 +107,7 @@
 
   /* Hero */
   .hero{padding:96px 0 88px;background:
-    radial-gradient(940px 440px at 78% -12%,rgba(58,154,147,.2),transparent 62%),
+    radial-gradient(940px 440px at 78% -12%,var(--teal-20),transparent 62%),
     radial-gradient(620px 320px at 6% 12%,rgba(62,158,149,.12),transparent 60%)}
   .hero-grid{display:grid;grid-template-columns:1.04fr .96fr;gap:52px;align-items:center}
   h1{font-size:46px;line-height:1.16;letter-spacing:-.022em;margin:16px 0 18px;font-weight:800}
@@ -127,10 +141,10 @@
   .task .mini{display:block;height:4px;border-radius:99px;background:#20303f;margin-top:8px;overflow:hidden}
   .task .mini i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--primary-600),var(--primary))}
   .task .go{flex:none;font-size:11.5px;font-weight:800;color:var(--primary-400);border:1px solid var(--teal-45);background:var(--teal-08);border-radius:9px;padding:5px 11px;transition:background .15s,border-color .15s}
-  .task .go:hover{background:rgba(58,154,147,.16);border-color:rgba(58,154,147,.7)}
+  .task .go:hover{background:var(--teal-16);border-color:var(--teal-70)}
   .task .st-done{flex:none;color:var(--primary)}
   .task .st-done svg{width:20px;height:20px}
-  .task.done .tt b{color:var(--muted);text-decoration:line-through;text-decoration-color:rgba(58,154,147,.6);text-decoration-thickness:1.5px}
+  .task.done .tt b{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--teal-60);text-decoration-thickness:1.5px}
   .shot-foot{margin-top:12px;border:1px solid var(--line-soft);border-radius:var(--radius-sm);background:var(--card2);padding:13px 14px}
   .shot-foot .fl{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-bottom:9px}
   .shot-foot .fl b{color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums}
@@ -157,7 +171,7 @@
   /* 数据带：整块面板 + 54px 等宽数字 */
   .bandsec{padding:8px 0 96px;border-top:0}
   .band{border:1px solid var(--line);border-radius:20px;display:grid;grid-template-columns:repeat(4,1fr);
-    background:linear-gradient(180deg,rgba(58,154,147,.08),rgba(58,154,147,0) 45%),var(--card);
+    background:linear-gradient(180deg,var(--teal-08),var(--teal-0) 45%),var(--card);
     box-shadow:0 1px 0 rgba(255,255,255,.03) inset}
   .band .cell{padding:28px 28px 24px;min-width:0}
   .band .cell+.cell{border-left:1px solid var(--line-soft)}
@@ -169,7 +183,7 @@
   /* 对比 */
   .cmp{display:grid;grid-template-columns:1fr 56px 1fr;gap:18px;align-items:stretch}
   .cmp .col{border:1px solid var(--line);border-radius:var(--radius);padding:26px;background:var(--card)}
-  .cmp .col.r{border-color:var(--teal-45);background:linear-gradient(180deg,rgba(58,154,147,.09),rgba(58,154,147,.02))}
+  .cmp .col.r{border-color:var(--teal-45);background:linear-gradient(180deg,var(--teal-09),var(--teal-02))}
   .cmp h4{margin:0 0 15px;font-size:13px;color:var(--muted);font-weight:800;letter-spacing:.06em}
   .cmp .col.r h4{color:var(--primary-400)}
   .cmp ul{margin:0;padding:0;list-style:none;font-size:14px;color:var(--muted);display:flex;flex-direction:column;gap:14px}
@@ -190,7 +204,7 @@
 
   /* 结尾 CTA */
   .final{text-align:center;padding:104px 0;border-top:1px solid var(--line-soft);
-    background:radial-gradient(760px 320px at 50% 114%,rgba(58,154,147,.16),transparent 65%)}
+    background:radial-gradient(760px 320px at 50% 114%,var(--teal-16),transparent 65%)}
   .final h2{font-size:34px;margin:12px 0 14px;letter-spacing:-.015em}
   .final p{color:var(--muted);margin:0 0 30px;font-size:15px}
   .final .cta{justify-content:center}
