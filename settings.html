@@ -19,8 +19,8 @@ setTimeout(__rvRescue,2500);
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>设置 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261024m" />
-<link rel="stylesheet" href="css/p/settings.css?v=20261017a" />
+<link rel="stylesheet" href="css/common.css?v=20261024n" />
+<link rel="stylesheet" href="css/p/settings.css?v=20261024n" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -150,6 +150,12 @@ setTimeout(__rvRescue,2500);
 .set-row-c--band input::placeholder{color:var(--muted);font-size:12px}
 /* 只读值（同步状态 / 版本号）：不是输入框，就是一段文字 */
 .set-ro{font-size:13px;color:var(--ink-2);text-align:right;line-height:1.5}
+/* 🔴 10-24 17:5x 修「版本号整列中文竖排」（她截图报）：#setVerText 的内容是 20+ 个
+   ?v= 指纹拼成的一长串（data.js:… · common.js:… · …），而 .set-row-c 是 flex:none
+   → 长串把 .set-row-t 挤到 min-width:0 见底 → 「版本号」三个字逐字竖排成一条。
+   修法：只给这个只读值加宽度上限 + 允许断行，行结构（.set-row / .set-row-t / .set-row-c）
+   一律不动 —— 动结构会影响同卡片里其它 5 行。 */
+#setVerText{max-width:min(560px,52vw);text-align:left;white-space:normal;word-break:break-all;overflow-wrap:anywhere;line-height:1.7}
 .set-ro:empty::after{content:'—';color:var(--muted)}
 /* 头像行右侧小缩略图（方案 §0.1：28-32px，大头像只在顶部深绿身份条） */
 .set-row-c .set-av-mini{width:30px;height:30px;border-radius:9px;overflow:hidden;
@@ -304,13 +310,13 @@ setTimeout(__rvRescue,2500);
 }
 </style>
 <script defer src="js/data.js?v=20261023b"></script>
-  <script defer src="js/common.js?v=20261024m"></script>
-  <script defer src="js/common-ai.js?v=20261024m"></script>
-  <script defer src="js/common-sync.js?v=20261024m"></script>
-  <script defer src="js/common-merge.js?v=20261024m"></script>
-  <script defer src="js/common-cloud.js?v=20261024m"></script>
-  <script defer src="js/common-shell.js?v=20261024m"></script>
-  <script defer src="js/common-pwa.js?v=20261024m"></script>
+  <script defer src="js/common.js?v=20261024n"></script>
+  <script defer src="js/common-ai.js?v=20261024n"></script>
+  <script defer src="js/common-sync.js?v=20261024n"></script>
+  <script defer src="js/common-merge.js?v=20261024n"></script>
+  <script defer src="js/common-cloud.js?v=20261024n"></script>
+  <script defer src="js/common-shell.js?v=20261024n"></script>
+  <script defer src="js/common-pwa.js?v=20261024n"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
   <!-- 10/3 头像选择（DiceBear CC0 素材；必须在 data.js/common.js 之后 —— 它读 DATA.settings.avatar） -->
   <script defer src="js/av-picker.js?v=20261022a"></script>

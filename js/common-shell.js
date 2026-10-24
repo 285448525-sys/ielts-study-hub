@@ -5,7 +5,9 @@
 /* ===== 桌面通知（番茄钟阶段切换 / 智能提醒）已移除：不再申请浏览器通知权限 ===== */
 
 window.$ = s => document.querySelector(s);
-function ready(fn){ if(document.readyState !== 'loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
+/* 10-24 SW-3：ready() 已搬到 js/common.js（本文件是第 6 块、84KB，32 个页面脚本靠它 ——
+   定义放这里等于让全站页面脚本吊在最大的一块上；common.js 是每页第一个加载的共享块）。
+   内部所有 ready() 调用一律不动，函数本体见 common.js。 */
 
 /* 取某个 js 模块「页面实际声明的那份 URL」（含 ?v= 版本号），取不到再退回裸文件名。
    ⚠️ 9/17 回顾页陈旧 UI 事故的根因类问题：凡是手工拼 'js/xxx.js' 去 fetch / 注入的地方，

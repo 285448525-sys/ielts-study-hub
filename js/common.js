@@ -1,4 +1,10 @@
 /* 共享 UI：导航注入、主题、Toast、通用工具 */
+/* 10-24 SW-3：ready() 从 common-shell.js 搬迉迉（A3 报的真 bug「ready is not defined」根因三）。
+   原来定义在 84KB 的 common-shell.js，而 32 个页面脚本（bank/writing/speaking/plans/scores/vip/timer/index…）都在用它
+   → 那一块一挂，全站页面脚本集体罁绊。
+   common.js 是每个页面**第一个**加载的共享块（defer 严格按文档顺序，已实测 19/19 页都在 common-shell.js 之前）
+   → 搬迉迉 ready 一定先定义，且任何单块故障不再链锁全站。 */
+function ready(fn){ if(document.readyState !== 'loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
 /* 统一 teal 线性 SVG 图标（替换原 emoji），stroke=currentColor 跟随侧栏配色 */
 const ICON = {
   home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>',
