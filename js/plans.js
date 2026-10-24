@@ -338,21 +338,27 @@ function enrichSpeakingTasks(arr){
   });
 }
 
-/* ---------- 子 Tab（10/1 她拍板拆分：「今日」= 今天的任务，「规划」= 未来 N 天总体计划 + AI 分配；
-   10/1 下午她拍板历史计划收进第三个 Tab「历史」） ----------
-   三个 panel 始终在 DOM 只显隐，AI 回调里对 planText/weekBox 的判空逻辑不受影响。
+/* ---------- 子 Tab（P-1 · 10-24 重设计：三个分栏 → 两个） ----------
+   她 11:3x 点头「计划页和回顾页设计得还行先就这样改派下去吧」
+   （设计稿 design/计划页重设计-我的版本-2026-10-24.html）。
+   · today  = 原「今日」+ 原「历史」：历史就是同一份清单换个日期，拆两页纯属历史原因
+   · past   = 原「历史」日卡列表（一天一张卡，点开看明细）
+   · 原「规划」不再占分栏：备考诊断改成「今天」页下端的一张固定入口卡（#diagRoot 挪进 #ptabToday）
+   🔴 老值兼容：?sub=plan / ?sub=history / 旧的 sessionStorage 'plan' 一律映射到新值，
+      她存过的书签不能变成空页（与 R-2 回顾页同一套做法）。
+   三个 panel 始终在 DOM 只显隐，AI 回调里对 planText 的判空逻辑不受影响。
    视图态存 sessionStorage（全站惯例）；软导航重进本页 ready 重跑，恢复上次所在 Tab。 */
+const PLAN_TAB_ALIAS = { plan: 'today', history: 'past', score: 'today' };
 function setPlanTab(name){
   const tabs = document.querySelectorAll('#planTabs .pill-tab');
   if(!tabs.length) return;
-  tabs.forEach(b => b.classList.toggle('active', b.dataset.ptab === name));
+  const n = PLAN_TAB_ALIAS[name] || name;          /* 老值先归一 */
+  tabs.forEach(b => b.classList.toggle('active', b.dataset.ptab === n));
   const pt = document.getElementById('ptabToday');
-  const pp = document.getElementById('ptabPlan');
-  const ph = document.getElementById('ptabHistory');
-  if(pt) pt.classList.toggle('active', name === 'today');
-  if(pp) pp.classList.toggle('active', name === 'plan');
-  if(ph) ph.classList.toggle('active', name === 'history');
-  try{ sessionStorage.setItem('hub_plan_ptab', name); }catch(e){}
+  const ph = document.getElementById('ptabHistory');   /* 容器 id 沿用 history，不重命名（JS/探针都照它找） */
+  if(pt) pt.classList.toggle('active', n === 'today');
+  if(ph) ph.classList.toggle('active', n === 'past');
+  try{ sessionStorage.setItem('hub_plan_ptab', n); }catch(e){}
 }
 
 /* ---------- 每日计划 ---------- */
@@ -362,6 +368,22 @@ ready(() => {
   currentWeek = null;
   $('#planDate').value = todayKey();
   $('#planDate').addEventListener('change', render);
+  /* P-1：日期条左右翻天 + 「回到今天」。
+     🔴 只改 #planDate 的值再派 change —— 复用既有渲染路径，不另开一套。
+     ⚠️ 用 addDays()（common.js）做字符串日期算术，别用 new Date 直接加减（UTC 解析会错位）。 */
+  (function bindDayNav(){
+    const dEl = document.getElementById('planDate');
+    const step = function(n){
+      if(!dEl) return;
+      const base = dEl.value || todayKey();
+      dEl.value = addDays(base, n);
+      dEl.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+    const pv = document.getElementById('ptDayPrev'), nx = document.getElementById('ptDayNext'), td = document.getElementById('ptDayToday');
+    if(pv) pv.addEventListener('click', function(){ step(-1); });
+    if(nx) nx.addEventListener('click', function(){ step(1); });
+    if(td) td.addEventListener('click', function(){ if(dEl){ dEl.value = todayKey(); dEl.dispatchEvent(new Event('change', { bubbles: true })); } });
+  })();
   $('#addPlan').addEventListener('click', addItem);
   $('#aiPlan').addEventListener('click', aiPlanItem);
   bindEnterSubmit($('#planText'), $('#addPlan'));   // 9/22 之之：回车即添加（原 Ctrl+Enter；换行用 Shift+Enter）
@@ -397,12 +419,13 @@ ready(() => {
     });
   }
 
-  // 子 Tab 切换 + 恢复上次所在 Tab（默认「今日」；支持「规划」「历史」）
+  // 子 Tab 切换 + 恢复上次所在 Tab（默认「今天」；P-1 起只剩 today / past 两个）
   document.querySelectorAll('#planTabs .pill-tab').forEach(b =>
     b.addEventListener('click', () => setPlanTab(b.dataset.ptab)));
   try{
     const lastTab = sessionStorage.getItem('hub_plan_ptab');
-    if(lastTab === 'plan' || lastTab === 'history') setPlanTab(lastTab);
+    /* P-1：老值（plan / history）也能恢复 —— setPlanTab 里有别名映射，这里不做判断 */
+    if(lastTab && lastTab !== 'today') setPlanTab(lastTab);
   }catch(e){}
   /* 🔴 10-23 T-001：顶栏二级菜单「计划」落地分栏（?sub=today|plan|history）。
      放在「恢复上次 Tab」之后 —— 显式带参数来的请求优先于记忆（她是点了某个二级项才来的）。
@@ -412,7 +435,8 @@ ready(() => {
   setTimeout(function(){
     try{
       const _tbSub = (typeof tbSubPending === 'function') ? tbSubPending('plans') : '';
-      if(_tbSub === 'today' || _tbSub === 'plan' || _tbSub === 'history') setPlanTab(_tbSub);
+      /* P-1：老值 plan / history 由 setPlanTab 的别名表转过（plan→today、history→past） */
+      if(_tbSub === 'today' || _tbSub === 'past' || _tbSub === 'plan' || _tbSub === 'history') setPlanTab(_tbSub);
     }catch(e){}
   }, 0);
 
@@ -686,6 +710,18 @@ function render(){
 
   $('#dateLabel').textContent = (isToday ? '今天 · ' : '') + date;
   $('#planCount').textContent = done + ' / ' + total;
+
+  /* P-1：日期条 —— 说清「现在看的是哪一天」，左右按钮翻前后天。
+     🔴 一律走 #planDate 的既有流程（写值 + 派 change），不另开一套渲染路径。 */
+  const _dl = document.getElementById('ptDayLab'), _ds = document.getElementById('ptDaySub');
+  const _dToday = document.getElementById('ptDayToday');
+  if(_dl){
+    const _dt = new Date(date + 'T00:00:00');
+    const _wk = ['周日','周一','周二','周三','周四','周五','周六'][_dt.getDay()] || '';
+    _dl.textContent = isToday ? '今天' : ((_dt.getMonth()+1) + ' 月 ' + _dt.getDate() + ' 日');
+    if(_ds) _ds.textContent = date + ' · ' + _wk;
+    if(_dToday) _dToday.hidden = isToday;
+  }
 
   const pct = total ? done / total * 100 : 0;
   $('#planProgress').innerHTML = progressBar('完成进度', pct, 'var(--primary)');   // 10/12 美化批：--med 药用紫与页内语境不符 → teal 主色

@@ -49,7 +49,7 @@
   <script defer src="js/common-shell.js?v=20261024c"></script>
   <script defer src="js/common-pwa.js?v=20261024c"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
-  <script src="js/plans.js?v=20261023g" defer></script>
+  <script src="js/plans.js?v=20261024a" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -494,6 +494,45 @@
 @media (min-width:861px) and (max-width:1023px){
   #diagOverlay .dg-page{max-width:720px}
 }
+
+/* ===== P-1（10-24）计划页重设计：日期条 + 诊断入口卡的位置 =====
+   设计稿 design/计划页重设计-我的版本-2026-10-24.html。
+   色值全部取本站 token（--n-* / --primary-* / --sh-*），一个新色都不加。
+   深色只用「深色块有覆盖值」的档：--primary-700 / --n-800 / --muted（不用 200/300/900）。 */
+/* 日期条：说清"现在看的是哪一天"，左右翻 */
+.pt-daybar{display:flex;align-items:center;gap:12px;margin:0 0 18px;padding:12px 14px;
+  background:var(--n-50);border:1px solid var(--n-300);border-radius:12px}
+/* 🔴 桌面（≥1024px）这是两栏 grid：.pt-add 占第 1 列、.pt-list 占第 2 列（第 2 行）。
+   日期条不指定位置就会被塞进左栏、跑到输入框下面（实测 1280 就是这样）。
+   → 让它横跨两列，跟在 .card-head 后面独占一行。 */
+@media (min-width:1024px){
+  #ptabToday > .card > .pt-daybar{grid-column:1 / -1;grid-row:2;margin-bottom:20px}
+  #ptabToday > .card > .pt-add{grid-row:3}
+  #ptabToday > .card > .pt-list{grid-row:3}
+}
+.pt-daynav{flex:none;width:34px;height:34px;display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--n-300);border-radius:9px;background:var(--surface);color:var(--n-700);
+  font-size:17px;line-height:1;cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+.pt-daynav:hover{background:var(--primary-50);color:var(--primary-700);border-color:var(--primary-300)}
+.pt-daynav:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(58,154,147,.25)}
+.pt-daymain{flex:1;min-width:0}
+.pt-daylab{font-size:17px;font-weight:700;color:var(--ink);letter-spacing:-.01em;line-height:1.25}
+/* ⚠️ 副标用 --ink-2 不用 --muted：--muted 深色 = #9a9aa0，压在 --n-50(#262629) 上实测 4.41，
+   差 0.09 不达 AA 4.5。--ink-2 两套主题都更深/更亮（浅 #565b63 / 深 #aeaeb2），实测 6.2。 */
+.pt-daysub{font-size:12px;color:var(--ink-2);margin-top:2px;font-variant-numeric:tabular-nums}
+.pt-daytoday{flex:none;border:0;background:none;color:var(--primary-700);font-size:13px;font-weight:600;
+  cursor:pointer;padding:6px 8px;border-radius:8px}
+.pt-daytoday:hover{background:var(--primary-50)}
+/* 备考诊断入口卡：它现在是「今天」页的最后一张卡，不再是独立分栏 */
+#diagRoot{margin-top:18px}
+#diagRoot > .card{margin-bottom:0}
+/* 手机：日期条压紧一点，不占两行 */
+@media (max-width:560px){
+  .pt-daybar{gap:9px;padding:10px 11px;border-radius:10px}
+  .pt-daynav{width:32px;height:32px}
+  .pt-daylab{font-size:15.5px}
+  .pt-daytoday{padding:5px 6px;font-size:12.5px}
+}
 </style>
 </head>
 <body data-shell="top">
@@ -502,14 +541,17 @@
 
 <main class="container">
 
-  <!-- 10/1 她拍板拆三个子 Tab：「今日」= 今天的任务，「规划」= 未来 N 天总体计划 + AI 智能分配，
-       「历史」= 历史计划（她 10/1 下午拍板：从两 Tab 外共享位置收进独立 Tab）。
-       Tab 名按全站两字口径（练习/题库、学习/词库、拆解/总览），她不满意随时改。 -->
+  <!-- P-1（10-24）计划页重设计：三个分栏 → 两个。
+       她 11:3x 点头「计划页和回顾页设计得还行先就这样改派下去吧」，设计稿
+       design/计划页重设计-我的版本-2026-10-24.html。
+       ①「今日」→「今天」：吃原「今日」+ 原「历史」（历史就是同一份清单换个日期，拆两页纯属历史原因）
+       ②「规划」不再占分栏：备考诊断改成「今天」页下端的一张固定入口卡（内容与逻辑一个字没动）
+       ③ 🔴 桌面不许出现 tab 条（2-1d 批 B 她拍板 + 红线第 4 条）—— 桌面隐藏规则原样未动。
+       老地址 ?sub=plan / ?sub=history 由 setPlanTab 的 LOOKUP 映射过去，旧书签不变空页。 -->
   <div class="page-head-row">
     <div class="pill-tabs" id="planTabs">
-      <button data-ptab="today" class="pill-tab active">今日</button>
-      <button data-ptab="plan" class="pill-tab">规划</button>
-      <button data-ptab="history" class="pill-tab">历史</button>
+      <button data-ptab="today" class="pill-tab active">今天</button>
+      <button data-ptab="past" class="pill-tab">往日</button>
     </div>
   </div>
 
@@ -518,12 +560,25 @@
        形态照 #rbBar 先例（全宽浅底横条）。内容由 renderPhaseBar() 填充。 -->
   <div id="phaseBar" class="phase-bar" hidden></div>
 
-  <!-- Tab 1 今日：日期 + 添加 + 列表 合一 -->
+  <!-- Tab 1 今天（P-1：原「今日」+ 原「历史」合并；备考诊断改成本页下端固定入口卡） -->
   <div class="tab-panel active" id="ptabToday">
   <section class="card">
     <div class="card-head">
-      <h2>今日计划</h2>
+      <h2>今天的计划</h2>
       <span class="badge" id="planCount">0 / 0</span>
+    </div>
+    <!-- P-1 新增：日期条（设计稿 §3「今天 · 10-24 周五 ‹ 前后翻天 ›」）。
+         原来日期只是表单里一行小字「选择日期」，看不出「我看的是哪一天」。
+         这里把「今天 / 往某天」说清楚，左右按钮直接复用 #planDate 的 change 流程。
+         ⚠️ #planDate 本身仍留在下面表单里（JS 全靠它，一行没动）。 -->
+    <div class="pt-daybar">
+      <button type="button" class="pt-daynav" id="ptDayPrev" aria-label="前一天">‹</button>
+      <div class="pt-daymain">
+        <div class="pt-daylab" id="ptDayLab">今天</div>
+        <div class="pt-daysub" id="ptDaySub"></div>
+      </div>
+      <button type="button" class="pt-daynav" id="ptDayNext" aria-label="后一天">›</button>
+      <button type="button" class="pt-daytoday" id="ptDayToday" hidden>回到今天</button>
     </div>
     <!-- 10/6 桌面端适配：下面三块（日期 / 输入框 / 按钮）包进 .pt-add。
          手机端 .pt-add 是 display:contents —— 包装层不参与布局，与改版前逐像素一致；
@@ -564,17 +619,17 @@
       <div id="planList" style="margin-top:10px"></div>
     </div>
   </section>
+
+  <!-- P-1：备考诊断从「规划」分栏变成这里的一张固定入口卡（在「今天」卡片**外面、下面**）。
+       🔴 容器 id 仍是 #diagRoot，renderDiagEntry() 一行没改 —— 它照着这个 id 找。
+       🔴 内容与逻辑全保留（问卷 / 报告 / 跳转「去今日任务」都在）。
+       ⚠️ 必须放在 </section> 之后：放在 section 里会被桌面那条两栏网格（#ptabToday > .card
+          是 grid，.pt-list 占 grid-column:2）拽进右列，实测压扁成一半宽。
+       ⚠️ 不要给它加 dg-slot 类：`#diagOverlay .dg-slot` 是诊断问卷里的勾选格样式，同名易混。 -->
+  <div id="diagRoot"></div>
   </div>
 
-  <!-- Tab 2 规划（第三十三批 10/2 拍板改造）：整个 Tab 改为「备考诊断」——
-       入口卡/已诊断概览由 js/plans.js renderDiagEntry() 渲染；全屏问卷+报告走 #diagOverlay。
-       旧周计划 DOM（weekTasks/aiWeek/genWeek/weekBox）已移除，旧 AI 排程函数保留不删。 -->
-  <div class="tab-panel" id="ptabPlan">
-    <div id="diagRoot"></div>
-  </div>
-
-  <!-- Tab 3 历史：10/2 她拍板——「历史计划」标题与「共 N 天」meta 删掉（挤得丑），进来直接是日卡列表；
-       每天一张独立日卡（日期块+完成度进度条+徽章，点开看当天明细）。 -->
+  <!-- Tab 2 往日（P-1：原「历史」栏，内容原样未动，只换 tab 值与选中判定） -->
   <div class="tab-panel" id="ptabHistory">
   <section class="card">
     <div id="histPlans"></div>
