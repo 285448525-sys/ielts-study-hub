@@ -73,10 +73,15 @@ ready(() => {
     });
   }
 
-  $('#exportBtn').addEventListener('click', exportData);
-  $('#importBtn').addEventListener('click', () => $('#importFile').click());
-  $('#importFile').addEventListener('change', e => { if(e.target.files[0]) importData(e.target.files[0]); });
-  $('#resetBtn').addEventListener('click', resetData);
+  /* 🔴 S-2（10-25）：下面四行裸绑定**整块删除** —— 她 00:4x「叫你把数据备份页删掉啊」。
+     原写法是 $('#exportBtn').addEventListener(...) 等四行，**没有判空**：
+     $ = document.querySelector（js/common-shell.js:7），取不到就返回 null →
+     删了 HTML 后第 76 行立刻抛 TypeError: Cannot read properties of null，
+     **后面 27 处 $('#...') 绑定全部不执行**（保存/回填/字号/主题全废）。
+     这不是理论风险 = #resetBtn 那次事故的翻版（settings.html 原有注释记录）。
+     ⇒ 四个 id 全没了，绑了也没意义 → 直接删，不是加判空。
+     ⚠️ exportData / importData / resetData 三个**函数本体保留不删**（在下面），
+        将来想恢复只差补 HTML。 */
 
   /* 10/3 22:55：登录 / 设密码的表单与按钮已整块删除（她拍板「未登录就显示未登录 + 一个按钮
      引导去专门的登录页」）。authLogin / authRegister / authFinishRegister 函数本身在

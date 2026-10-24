@@ -326,7 +326,7 @@ setTimeout(__rvRescue,2500);
   <script defer src="js/feedback.js?v=20261013b"></script>
   <!-- 10/3 头像选择（DiceBear CC0 素材；必须在 data.js/common.js 之后 —— 它读 DATA.settings.avatar） -->
   <script defer src="js/av-picker.js?v=20261022a"></script>
-  <script src="js/settings.js?v=20261025a" defer></script>
+  <script src="js/settings.js?v=20261025b" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -431,15 +431,21 @@ setTimeout(__rvRescue,2500);
            10-23 T-002：五组全四字 = 我的账号 / 备考目标 / 学习偏好 / 数据备份 / 反馈关于。
            🔄 D-1（10-24）：第四组从「数据同步」改名「数据备份」—— 同步状态/同步日志两行删掉后，
               这组剩下的就是导出/导入/清空，名字得对得上。**仍然四字**，字数统一的要求没破。
-           ⚠️ data-goto 值 = 方案 §八 五个固定值 profile/targets/prefs/data/about，
-             与 js/common.js 顶栏头像菜单 + Ctrl+, 的 ?pane= 是跨任务契约（T-003 按这个写）。
-              🔴 **`data-goto="data"` 这个值一个字不许改** —— 改了 `?pane=data` 深链就破。
-           （原「分数与自评」4 字、「数据与账号」5 字混排，她看着不协调。）
-           ⚠️ data-goto 只这四项，go() 与 moveHit() 按值匹配不写死数量，零 JS 改动。 -->
+           🔴 S-2（10-25）：**第四组「数据备份」整组删掉**（她 00:4x「叫你把数据备份页删掉啊」）
+              → 现在只有四组：我的账号 / 备考目标 / 学习偏好 / 反馈关于（仍全四字）。
+              ⚠️ 连带三处一起改，漏一处就落空页：
+                ① 本导航按钮（已删）② `<section data-pane="data">` 整个面板（已删，含数据管理卡 + 危险区卡）
+                ③ `js/common.js` 顶栏头像菜单两条 `?pane=data`（已删）
+              ⚠️ **老书签 / 分享出去的 `?pane=data` 仍会进来** → 加了别名映射
+                `PANE_ALIAS = { data:'profile', fb:'about' }`（在步 6 那段），落 profile 而非空页。
+                与 10-23 的 ?pane=fb→about 是同一套兼容做法。
+              ⚠️ 旧注释「data-goto="data" 不许改」是 D-1 时代的规矩，**本批已作废**（她亲自要删）。
+           ⚠️ data-goto 现为四值 profile/targets/prefs/about，
+              与 js/common.js 顶栏头像菜单 + Ctrl+, 的 ?pane= 是跨任务契约（T-003 按这个写）。
+           ⚠️ go() 与 moveHit() 按值匹配不写死数量，零 JS 改动。 -->
       <button class="set-nav-item on" type="button" data-goto="profile">我的账号</button>
       <button class="set-nav-item" type="button" data-goto="targets">备考目标</button>
       <button class="set-nav-item" type="button" data-goto="prefs">学习偏好</button>
-      <button class="set-nav-item" type="button" data-goto="data">数据备份</button>
       <button class="set-nav-item" type="button" data-goto="about">反馈关于</button>
     </nav>
 
@@ -586,49 +592,7 @@ setTimeout(__rvRescue,2500);
       </section>
 
       <!-- 数据管理 -->
-      <section class="set-pane" data-pane="data" hidden>
-    <section class="card set-card rv" data-d="3">
-      <h2>数据管理</h2>
-      <p class="set-sub">所有数据存在本机浏览器。危险操作前先导出备份。</p>
-      <!-- 🔴 D-1（10-24 她：「把设置里的数据同步删掉，这个功能对于用户来说没什么用，主要同步功能是我们该做的」）
-           这里原本有「同步状态 / 同步日志」两行只读展示，已删。**同步功能本身一行没动**（自动同步照旧跑）。
-           ⚠️ 施工书担心「删后 JS 操作 null 导致全页后续绑定全断」（#resetBtn 那次事故）——
-              实测走查过：这两个 id 全仓**只有下面这两行 HTML**，`js/` 里没有任何一处引用，
-              它们本来渲染出来就是空值（页面上是两个空白行）。所以删掉不需要加空值保护。
-           ⚠️ 这一组在导航里的名字已由「数据同步」改成「数据备份」（见导航按钮那处的说明）。 -->
-      <div class="set-row">
-        <div class="set-row-t"><b>导出 JSON</b><p class="set-row-d">下载一份完整备份</p></div>
-        <div class="set-row-c"><button class="btn btn-sm" id="exportBtn" type="button">导出</button></div>
-      </div>
-      <div class="set-row">
-        <div class="set-row-t"><b>导入 JSON</b><p class="set-row-d">合并式导入，不会先清空</p></div>
-        <div class="set-row-c">
-          <button class="btn btn-sm" id="importBtn" type="button">选择文件</button>
-          <input aria-label="导入词库 JSON 文件" type="file" id="importFile" accept="application/json" hidden />
-        </div>
-      </div>
-      <div id="importErr" class="ui-err-box" style="margin-top:10px"></div>
-    </section>
-
-    <!-- 🔴 10-23 T-002 步4（提前到步2 一起做）：危险区独立卡片沉底。
-         #resetBtn 是 js/settings.js:72 的硬依赖（$('#resetBtn').addEventListener）——
-         步2 把它从 .set-btns 里挪走后如果不立刻补回来，页面直接抛
-         TypeError: Cannot read properties of null → 全页后续绑定全断。 -->
-    <section class="card set-card set-danger rv" data-d="4">
-      <h2>危险区</h2>
-      <span class="kicker">Danger</span>
-      <p class="set-sub">不可恢复，导出备份后再点</p>
-      <div class="set-row">
-        <div class="set-row-t"><b>清空所有数据</b><p class="set-row-d">清空后本机与云端都回不来</p></div>
-        <div class="set-row-c">
-          <input id="resetConfirm" class="set-confirm" placeholder="输入「清空」" aria-label="输入清空以启用确认按钮" maxlength="4" />
-          <button class="btn btn-sm set-dgr" id="resetBtn" type="button" disabled>确认清空</button>
-        </div>
-      </div>
-      <div id="resetErr" class="ui-err-box" style="margin-top:10px"></div>
-    </section>
-      </section>
-
+      
       <!-- ===== 反馈关于（T-002 步1：原「意见反馈」更名；步 7 在这里加「版本号」一行）=====
            ⭐ 按钮直接带 data-fb-open → js/feedback.js 的 document 级委托（closest('[data-fb-open]')）接管，
               **零 JS 改动**，弹层/截图/联系方式/加微信那条全都原样保留。 -->
@@ -838,9 +802,26 @@ setTimeout(__rvRescue,2500);
      方案 §八：五个值固定 profile/targets/prefs/data/about（T-003 头像菜单按这个写）。
      replaceState 只动 search 不动 path → 软导航的 _hubCurrentFile 与部署探针靠 URL 判版本，安全。
      🔴 不用 pushState（污染后退栈，她一按后退以为在跳页）。 */
-  var PANES = ['profile', 'targets', 'prefs', 'data', 'about'];
+  /* 🔴 S-2（10-25）：data 那组删掉了（她 00:4x「叫你把数据备份页删掉啊」），
+     PANES 名单跟着改成四组。
+     ⚠️ 但**老书签 / 别人分享出去的 ?pane=data 链接仍然会进来**，直接落空页很糟 →
+        加一层映射：pane=data → profile（账号本身就在 profile 里，语义最近）。
+        与 10-23 已有的 ?pane=fb → about 是同一套兼容做法。
+     🔴🔴 **作用域陷阱（踩到才改的）**：本文件里「分组切换」与「?pane= 直达」是
+        **两个各自独立的 IIFE**（见下方 1040 行那段），前一个 IIFE 里的 var 在后一个里
+        **拿不到** —— 我一开始只在这里定义 PANES，结果那边整段抛
+        `PANES is not defined`（实测 9 次 pageerror）。
+        ⇒ 正确做法：**两个 IIFE 各自定义一份**（值完全相同，改要一起改），
+          不挂 window（不污染全局，也避免和别的页撞名）。
+        这是 AGENTS.md §12.3 硬规则 2「禁止调用后面才声明的名字」的翻版：
+        跨 IIFE 等于跨作用域，var 提升只在自己的那个 IIFE 内生效。 */
+  var PANES = ['profile', 'targets', 'prefs', 'about'];
+  var PANE_ALIAS = { data: 'profile', fb: 'about' };
   function paneFromUrl(){
-    try{ return new URLSearchParams(location.search).get('pane') || ''; }catch(e){ return ''; }
+    try{
+      var v = new URLSearchParams(location.search).get('pane') || '';
+      return PANE_ALIAS[v] || v;
+    }catch(e){ return ''; }
   }
   function syncPaneUrl(name){
     if(PANES.indexOf(name) < 0) return;
@@ -1071,31 +1052,41 @@ setTimeout(__rvRescue,2500);
      tbPanePending()（那时还没定义，typeof 判不出来 → 静默落回 profile，硬加载实测栽过一次）。
      做法：URL 参数立刻读（不依赖外部函数），sessionStorage 那份等 DOMContentLoaded
      （defer 脚本全部执行完之后）再读一次。两次都走 go() + moveHit()，幂等。 */
-  function _applyPane(){
+   function _applyPane(){
     var want = '';
+    /* 🔴🔴 本 IIFE 与上面「步 6」那段**不是同一个作用域** —— PANES / PANE_ALIAS /
+       paneFromUrl 必须在这里**重新声明一份**（原因见步 6 那处的详细注释）。
+       值必须与那边完全一致，改要一起改。 */
+    var PANES = ['profile', 'targets', 'prefs', 'about'];
+    var PANE_ALIAS = { data: 'profile', fb: 'about' };
+    function paneFromUrl(){
+      try{
+        var v = new URLSearchParams(location.search).get('pane') || '';
+        return PANE_ALIAS[v] || v;
+      }catch(e){ return ''; }
+    }
     /* 🔴 10-24 G4：顺序改成「暗号优先、URL 兜底」（理由见步 6 的 applyPendingPane）。
        同页软导航时 pushState 还没落，location.search 里是上一个分栏的旧参数 ——
        先读它会把本次点击的意图整个盖掉（实测：点头像菜单「账号数据」，仍停在 targets）。 */
     try{ want = sessionStorage.getItem('hub_set_pane') || ''; }catch(_){}
-    if(['profile','targets','prefs','data','about'].indexOf(want) >= 0){ try{ sessionStorage.removeItem('hub_set_pane'); }catch(_){} }
-    else{ try{ want = new URLSearchParams(location.search).get('pane') || ''; }catch(_){} }
-    /* 10-23 6-x2：名单补成五组（原来还是 4 组时代的 ['profile','targets','data','fb']，
-       prefs/about 从地址栏进来时这段直接不动，靠步 6 的 applyPendingPane 兜底 ——
-       现在两段幂等共存，这段不再「漏接」）。
-       兼容：老书签/老交接的 ?pane=fb（反馈组旧名）映射到 about。 */
-    if(want === 'fb') want = 'about';
-    if(['profile','targets','prefs','data','about'].indexOf(want) < 0 && typeof tbPanePending === 'function'){
+    if(PANES.indexOf(want) >= 0){ try{ sessionStorage.removeItem('hub_set_pane'); }catch(_){} }
+    else{ want = paneFromUrl(); }
+    /* 10-23 6-x2 名单 + S-2（10-25）data 组删除：
+       兼容老书签 / 老交接 —— ?pane=fb（反馈组旧名）→ about；
+       ?pane=data（数据备份组，本批已删）→ profile（账号本身在 profile 里）。 */
+    if(PANE_ALIAS[want]) want = PANE_ALIAS[want];
+    if(PANES.indexOf(want) < 0 && typeof tbPanePending === 'function'){
       try{ want = tbPanePending() || ''; }catch(_){}
-      if(want === 'fb') want = 'about';
+      if(PANE_ALIAS[want]) want = PANE_ALIAS[want];
     }
-    if(['profile','targets','prefs','data','about'].indexOf(want) >= 0 && want !== 'profile'){
+    if(PANES.indexOf(want) >= 0 && want !== 'profile'){
       try{ go(want); moveHit(want); }catch(_){}
     }
     /* 🔴 10-24 G4：落个标记给下面步 6 的 applyPendingPane 用。
        软导航时 pushState 排在页面脚本之后 → 那段若去读 location.search，读到的是
        **上一个**分栏的旧参数，会把这里刚切好的分组又拉回去（实测：切到 profile，
        地址栏写对了、内容还停在 data）。标记只在本文档内有效，整页刷新自然消失。 */
-    window.__hubPaneApplied = (['profile','targets','prefs','data','about'].indexOf(want) >= 0) ? want : 'profile';
+    window.__hubPaneApplied = (PANES.indexOf(want) >= 0) ? want : 'profile';
   }
   _applyPane();
   document.addEventListener('DOMContentLoaded', _applyPane);

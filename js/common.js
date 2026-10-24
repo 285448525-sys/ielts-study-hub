@@ -203,7 +203,6 @@ function topBarHtml(current){
       + '<span>已登录' + _auto + '</span></div>'
       + '<a class="tb-me-item" href="settings.html?pane=profile" data-hub-pane="profile">个人设置</a>'
       + '<a class="tb-me-item" href="settings.html?pane=targets" data-hub-pane="targets">分数自评</a>'
-      + '<a class="tb-me-item" href="settings.html?pane=data" data-hub-pane="data">账号数据</a>'
       + '<div class="tb-me-sep"></div>'
       + '<button class="tb-me-item tb-me-item--danger" type="button" id="tbMeLogout">退出登录</button>'
       + '</div>';
@@ -213,7 +212,6 @@ function topBarHtml(current){
       + '<a class="tb-me-head tb-me-head--guest" href="login.html"><b>未登录</b><span>去登录 ›</span></a>'
       + '<a class="tb-me-item" href="settings.html?pane=profile" data-hub-pane="profile">个人设置</a>'
       + '<a class="tb-me-item" href="settings.html?pane=targets" data-hub-pane="targets">分数自评</a>'
-      + '<a class="tb-me-item" href="settings.html?pane=data" data-hub-pane="data">账号数据</a>'
       + '</div>';
   }
   const _meEl = '<span class="tb-me-wrap" id="tbMeWrap">'
