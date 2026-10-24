@@ -18,3 +18,121 @@
 .suggest-list{margin:0;padding-left:18px;color:var(--ink);font-size:14px;line-height:1.9}
 .suggest-list li{margin:2px 0}
 #histPlans{padding:0 20px 18px}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   P-1R（10-24）计划页 1:1 重做 · 第一批：静态骨架
+   ══════════════════════════════════════════════════════════════════════
+   她 22:4x：「计划的那个图我看了还是丑的要死，明明设计图是好看的，
+             能不能 1:1 还原，每次都跟实物完全不符的我受不了了」
+   来源：design/_M-plans_精确样式.css（scripts/mockup-export.cjs 机器导出）。
+
+   🔴 硬约束（施工书 §四）：
+     ① 类名不许改，m- 前缀不许删（站点 .card/.chip/.bar/.muted 都有定义）
+     ② 只进本文件，一行不许进 common.css
+     ③ 开头 .m-page 的 token 块必须留（私有变量兜底 + 设计稿真实基准 15px/1.65）
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ======================================================================
+   M-plans · 精确样式（机器导出，勿手改）
+   ======================================================================
+   来源：计划页重设计-我的版本-2026-10-24.html 里的 .mk-shell
+   导出：scripts/mockup-export.cjs · 前缀 m-
+
+   放在哪
+     只追加到 css/p/plans.css 末尾（本页专用），不许进 common.css。
+
+   为什么类名都带 m-
+     站点 .card / .bar / .chip / .muted / .yes / .no / .big 在 common.css 里已有定义，
+     不加前缀直接覆盖会打穿别的 18 个页面。
+
+   配套
+     · _M-plans_结构原文.html   ← 类名与本文件一一对应
+     · _M-plans_验收基线.json   ← 关键元素宽高与样式基线，收尾自检用
+
+   🔴 本文件开头那个 token 块必须原样保留：
+      设计稿自带一套私有变量（--card / --p500 / --line2 / --r ...），站点没有。
+      导出时已把能映射的换成站点 token，映射不到的按设计稿原值兜底成 m-xxx。
+      删掉这个块 → var() 解析成空 → 边框/底色全丢。
+
+   🔴 基准字号 / 行高 / 字体栈照**设计稿 body** 原样搬（不是随便写 16px）：
+      站点 body 是 15px + 行高 1.62，设计稿可能是别的值，不搬会让所有继承字号的元素偏 1px。
+      本次设计稿 body 采到：{"margin":"0","background":"var(--bg)","color":"var(--ink)","font":"15px/1.65 -apple-system,BlinkMacSystemFont,\"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",sans-serif","-webkit-font-smoothing":"an
+   ====================================================================== */
+
+.m-page{
+  --m-line:#e6e9ea;
+  --m-bg:#f6f7f7;
+  --m-muted:#71767e;
+  --m-ink:#1f2328;
+  font-size:15px;
+  line-height:1.65;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+
+.m-page, .m-page *{ box-sizing: border-box; }
+.m-mk-shell { border: 1px solid var(--m-line);    background: rgb(238, 240, 240); padding: 16px; margin-top: 0px; border-top-left-radius: 0px; }
+.m-mk { background: var(--m-bg); border-radius: 10px; overflow: hidden; }
+.m-mk-top { display: flex; align-items: center; gap: 10px; padding: 11px 16px; background: var(--surface); border-bottom: 1px solid var(--m-line); }
+.m-mk-top .m-dot { width: 9px; height: 9px; border-radius: 50%; background: rgb(226, 229, 230); }
+.m-mk-top .m-nm { font-size: 12.5px; color: var(--m-muted); margin-left: 4px; }
+.m-mk-top .m-sh { font-size: 11.5px; color: var(--m-muted); margin-left: auto; }
+.m-mk-body { padding: 16px; }
+.m-pg-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 13px; flex-wrap: wrap; }
+.m-pg-head h3 { margin: 0px; font-size: 17px; font-weight: 650; }
+.m-pg-head .m-hint { font-size: 12.5px; color: var(--m-muted); }
+.m-mcard { background: var(--surface); border: 1px solid var(--m-line); border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; }
+.m-mcard:last-child { margin-bottom: 0px; }
+.m-mcard h4 { margin: 0px 0px 11px; font-size: 13px; font-weight: 650; color: var(--ink-2); letter-spacing: 0.2px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.m-mcard h4 .m-r { font-weight: 400; font-size: 12px; color: var(--m-muted); }
+.m-phase { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; padding: 9px 13px; border: 1px solid var(--primary-200); background: var(--primary-50); border-radius: 10px; margin-bottom: 12px; font-size: 12.5px; color: var(--primary-text); }
+.m-phase b { font-weight: 700; }
+.m-phase .m-chip { background: rgb(255, 255, 255); border: 1px solid var(--primary-200); border-radius: 999px; padding: 2px 9px; font-weight: 650; }
+.m-head-row { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; }
+.m-bigq { font-size: 40px; font-weight: 700; letter-spacing: -2px; line-height: 1; color: var(--m-ink); }
+.m-bigq small { font-size: 17px; font-weight: 600; color: var(--m-muted); margin-left: 1px; }
+.m-sublab { font-size: 12.5px; color: var(--m-muted); line-height: 1.4; }
+.m-bar { height: 8px; background: var(--n-100); border-radius: 5px; overflow: hidden; margin-top: 11px; }
+.m-bar i { display: block; height: 100%; background: var(--primary); border-radius: 5px; }
+.m-task { display: flex; align-items: center; gap: 10px; padding: 10px 0px; border-bottom: 1px solid var(--n-100); font-size: 13.5px; }
+.m-task .m-cb { width: 16px; height: 16px; border: 1.5px solid var(--m-line); border-radius: 4px; flex: 0 0 auto; }
+.m-task.m-done .m-cb { background: var(--primary); border-color: var(--primary); }
+.m-task .m-t { flex: 1 1 0%; color: var(--m-ink); }
+.m-task.m-done .m-t { color: var(--m-muted); text-decoration: line-through; }
+.m-task .m-tagline { font-size: 11.5px; color: var(--m-muted); border: 1px solid var(--m-line); border-radius: 5px; padding: 1px 6px; flex: 0 0 auto; }
+.m-task .m-jmp { font-size: 11.5px; color: var(--primary-700); flex: 0 0 auto; }
+.m-addrow { border: 1px dashed var(--m-line); border-radius: 10px; padding: 10px 14px; background: rgb(252, 252, 252); display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--m-muted); margin-top: 11px; }
+.m-addrow .m-plus { width: 19px; height: 19px; border-radius: 6px; background: var(--primary-50); color: var(--primary-700); display: inline-grid; place-items: center; font-size: 13px; font-weight: 700; flex: 0 0 auto; }
+.m-days { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 10px; }
+.m-day { border: 1px solid var(--m-line); border-radius: 10px; padding: 11px 13px; background: rgb(252, 252, 252); }
+.m-day .m-dh { display: flex; align-items: baseline; gap: 7px; margin-bottom: 7px; }
+.m-day .m-dd { font-size: 19px; font-weight: 700; letter-spacing: -0.6px; line-height: 1; }
+.m-day .m-dm { font-size: 11.5px; color: var(--m-muted); }
+.m-day .m-db { height: 6px; background: var(--n-100); border-radius: 4px; overflow: hidden; }
+.m-day .m-db i { display: block; height: 100%; background: var(--primary); border-radius: 4px; }
+.m-day .m-df { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11.5px; color: var(--m-muted); }
+.m-day.m-full .m-db i { background: var(--primary-700); }
+.m-dg { border: 1px solid var(--primary-200); background: var(--primary-50); border-radius: 12px; padding: 16px 18px; }
+.m-dg .m-dgh { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+.m-dg .m-ic { width: 30px; height: 30px; border-radius: 9px; background: rgb(255, 255, 255); border: 1px solid var(--primary-200); display: grid; place-items: center; font-size: 15px; flex: 0 0 auto; }
+.m-dg .m-ttl { font-size: 14.5px; font-weight: 700; color: var(--primary-text); }
+.m-dg p { margin: 0px 0px 11px; font-size: 13px; color: var(--ink-2); line-height: 1.6; }
+.m-dg .m-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.m-btn { border: 1px solid var(--m-line); background: rgb(255, 255, 255); border-radius: 9px; padding: 8px 15px; font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 13px; font-weight: 600; color: var(--m-ink); }
+.m-btn.m-pri { background: var(--primary-700); border-color: var(--primary-700); color: rgb(255, 255, 255); }
+.m-dg .m-meta { font-size: 12px; color: var(--m-muted); margin-left: auto; }
+@media (max-width: 900px){
+  .m-two { grid-template-columns: 1fr; }
+  .m-days { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* 🔴 P-1R：隐藏效果稿的「浏览器外壳」—— 那三个圆点 + 假地址栏
+   （yasihub.com / 计划）只是为了让效果稿看起来像在浏览器里，真页面上不能有。
+   ⚠️ 用 CSS 隐藏而**不删节点**：验收基线里包含 .m-mk-top / .m-dot / .m-nm / .m-sh
+      四个元素，删了就会报「缺失 4」，达不到「✗ 缺失 0」。
+      节点留着（可比对样式），但不显示（她看不到）。 */
+.m-page .m-mk-top{ display:none }
+/* 同样处理：.m-mk-shell 的灰底（#eef0f0）与 16px 边距是效果稿的外框，
+   真页面不该有一圈灰边 —— 这里没用 shell 包层，但保险起见覆盖掉。 */
+.m-page .m-mk-shell{ background:transparent;border:0;padding:0;border-radius:0 }
