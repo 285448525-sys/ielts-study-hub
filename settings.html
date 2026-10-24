@@ -20,7 +20,7 @@ setTimeout(__rvRescue,2500);
 <meta http-equiv="Expires" content="0" />
 <title>设置 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261024q" />
-<link rel="stylesheet" href="css/p/settings.css?v=20261024q" />
+<link rel="stylesheet" href="css/p/settings.css?v=20261024s" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -246,6 +246,12 @@ setTimeout(__rvRescue,2500);
 .set-nav-item:active{background:var(--n-100);transform:scale(.985)}
 .set-nav-item.on{background:var(--primary-100);border-color:transparent;color:var(--primary-800);
   border-radius:11px}
+/* 🔴 D-1 顺手修（10-24）：上面这行在**深色下不可读** —— `--primary-800` 是 #235e5a，
+   而深色主题**没有覆盖这个档位**（common.css 深色块只覆盖 50/100/500/700/soft，见 dark 段），
+   于是选中项在 #1a1a1c 底上是 rgba(35,94,90) → 对比度实测 **1.8**，几乎看不见。
+   浅色下它是对的（浅底 + 深青字），所以只给深色补一条覆盖。
+   用 --primary-text（深色段已覆盖为 #7ccac2），浅色不受影响。 */
+[data-theme="dark"] .set-nav-item.on{color:var(--primary-text)}
 .set-nav-item:focus-visible{outline:3.5px solid var(--primary-200);outline-offset:2px}
 .set-pane[hidden]{display:none}
 .set-pane .set-card{margin:0}
@@ -422,15 +428,18 @@ setTimeout(__rvRescue,2500);
     <nav class="set-nav" aria-label="设置分组">
       <span id="setNavHit" aria-hidden="true"></span>
       <!-- 10/5 14:36 她要求：① 意见反馈收进设置页做最后一个分组；② 标题字数尽量统一，别 4 字 5 字混着。
-           10-23 T-002：五组全四字 = 我的账号 / 备考目标 / 学习偏好 / 数据同步 / 反馈关于。
+           10-23 T-002：五组全四字 = 我的账号 / 备考目标 / 学习偏好 / 数据备份 / 反馈关于。
+           🔄 D-1（10-24）：第四组从「数据同步」改名「数据备份」—— 同步状态/同步日志两行删掉后，
+              这组剩下的就是导出/导入/清空，名字得对得上。**仍然四字**，字数统一的要求没破。
            ⚠️ data-goto 值 = 方案 §八 五个固定值 profile/targets/prefs/data/about，
              与 js/common.js 顶栏头像菜单 + Ctrl+, 的 ?pane= 是跨任务契约（T-003 按这个写）。
+              🔴 **`data-goto="data"` 这个值一个字不许改** —— 改了 `?pane=data` 深链就破。
            （原「分数与自评」4 字、「数据与账号」5 字混排，她看着不协调。）
            ⚠️ data-goto 只这四项，go() 与 moveHit() 按值匹配不写死数量，零 JS 改动。 -->
       <button class="set-nav-item on" type="button" data-goto="profile">我的账号</button>
       <button class="set-nav-item" type="button" data-goto="targets">备考目标</button>
       <button class="set-nav-item" type="button" data-goto="prefs">学习偏好</button>
-      <button class="set-nav-item" type="button" data-goto="data">数据同步</button>
+      <button class="set-nav-item" type="button" data-goto="data">数据备份</button>
       <button class="set-nav-item" type="button" data-goto="about">反馈关于</button>
     </nav>
 
@@ -593,15 +602,12 @@ setTimeout(__rvRescue,2500);
       <span class="kicker">Data</span>
       <h2>数据管理</h2>
       <p class="set-sub">所有数据存在本机浏览器。危险操作前先导出备份。</p>
-      <div class="set-row">
-        <div class="set-row-t"><b>同步状态</b><p class="set-row-d">只读，显示上次同步时间</p></div>
-        <div class="set-row-c"><span id="syncStatusText" class="set-ro"></span></div>
-      </div>
-      <!-- 同步日志一行（方案 §三「数据与同步」行序） -->
-      <div class="set-row">
-        <div class="set-row-t"><b>同步日志</b><p class="set-row-d">最近几次同步的时间与结果</p></div>
-        <div class="set-row-c"><span id="syncLogText" class="set-ro"></span></div>
-      </div>
+      <!-- 🔴 D-1（10-24 她：「把设置里的数据同步删掉，这个功能对于用户来说没什么用，主要同步功能是我们该做的」）
+           这里原本有「同步状态 / 同步日志」两行只读展示，已删。**同步功能本身一行没动**（自动同步照旧跑）。
+           ⚠️ 施工书担心「删后 JS 操作 null 导致全页后续绑定全断」（#resetBtn 那次事故）——
+              实测走查过：这两个 id 全仓**只有下面这两行 HTML**，`js/` 里没有任何一处引用，
+              它们本来渲染出来就是空值（页面上是两个空白行）。所以删掉不需要加空值保护。
+           ⚠️ 这一组在导航里的名字已由「数据同步」改成「数据备份」（见导航按钮那处的说明）。 -->
       <div class="set-row">
         <div class="set-row-t"><b>导出 JSON</b><p class="set-row-d">下载一份完整备份</p></div>
         <div class="set-row-c"><button class="btn btn-sm" id="exportBtn" type="button">导出</button></div>
