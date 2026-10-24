@@ -326,7 +326,7 @@ setTimeout(__rvRescue,2500);
   <script defer src="js/feedback.js?v=20261013b"></script>
   <!-- 10/3 头像选择（DiceBear CC0 素材；必须在 data.js/common.js 之后 —— 它读 DATA.settings.avatar） -->
   <script defer src="js/av-picker.js?v=20261022a"></script>
-  <script src="js/settings.js?v=20261025b" defer></script>
+  <script src="js/settings.js?v=20261025c" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -580,10 +580,14 @@ setTimeout(__rvRescue,2500);
           </div>
         </div>
       </div>
-      <div class="set-row">
-        <div class="set-row-t"><b>减少动效</b><p class="set-row-d">关掉切换动画，眼睛累时开</p></div>
-        <div class="set-row-c"><label class="set-sw-row set-sw-check"><input type="checkbox" id="sReduceMotion" /></label></div>
-      </div>
+      <!-- 🔴 S-1b（10-25）：原「减少动效」开关整块删掉（她 S-1 时说要删，当时漏了）。
+           删的只是**设置页上这个开关**：
+             · DATA.settings.reduceMotion 字段保留（仍在 common-sync.js 同步白名单里）
+             · applyReduceMotion() 函数保留（js/common.js，每页都要能用；系统偏好也能触发）
+             · data-reduce-motion 的 CSS 保留
+           ⚠️ JS 不用改：settings.html 里是 `var rm = getElementById('sReduceMotion');
+              if(rm && !rm.__t002Bound)` —— 带判空，元素没了自动跳过，不抛错。
+              （与 S-2 那个裸绑定雷不同，那条必须同时改 JS。） -->
     </section>
       </section>
 
