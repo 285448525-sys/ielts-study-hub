@@ -985,6 +985,46 @@ function updateActiveNav(file){
   }
 }
 
+/* ===== Q-6（10-24）eval 输入面收紧 =====
+   🔴 前提：**不能删 eval、不能撤 unsafe-eval**。两处 eval 是软导航的承重墙 ——
+      · 下面 srcs 循环 = 换页时重跑目标页 script[src]（不跑的话口语/写作/设置页的 tab 全是死的）
+      · 下面 inlineCodes 循环 = 重跑 body 内联脚本（10/6「按钮点不了」的真根因）
+   所以改「只收紧输入面」：eval 之前先确认这段代码**确实来自本站 HTML 声明**，而不是任何
+   用户输入 / 远程可写内容（URL 参数、localStorage、剪贴板、API 回包等）。
+   三道校验，任一不过就拒绝并 warn，绝不 eval：
+     ① 脚本 URL 必须是本站相对路径 js/*.js，且不含协议/跨域/查询串之外的怪东西
+     ② 拿到的源码必须是「看起来真的是一段 JS」（非 HTML 文档 / 非空 / 不带 <script 包裹）
+     ③ 内联脚本只接受 body 里的（pageInlineScripts 已保证），且同样过 ② 的形态校验
+   ⚠️ 校验失败一律**跳过这一块**而不是让软导航整页跳转 —— 附加脚本失败原本就是 skip 语义；
+      只有主脚本失败才抛（保持原有兜底路径）。 */
+function hubEvalSourceOk(src){
+  try{
+    const s = String(src || '').trim();
+    if(!s) return false;
+    /* ① 相对路径 + js/ 前缀；禁协议相对、绝对 URL、跨域、data/blob（这些都不是页面声明的脚本） */
+    if(/^(https?:)?\/\//i.test(s)) return false;
+    if(/^(data:|blob:|javascript:)/i.test(s)) return false;
+    if(s.indexOf('../') >= 0) return false;          // 不许爬出站点根
+    if(s.charAt(0) === '/') { /* 允许 /js/xxx.js 形式 */ }
+    const pathOnly = s.split('?')[0].split('#')[0];
+    return /^\/?js\/[A-Za-z0-9._-]+\.js$/.test(pathOnly);
+  }catch(e){ return false; }
+}
+function hubCodeLooksLikeJs(code){
+  try{
+    const c = String(code || '');
+    if(c.trim().length < 8) return false;            // 空/几乎空 = 不是脚本
+    if(/^\s*<!DOCTYPE/i.test(c)) return false;       // 拿回来的是 HTML 文档（SW 兜底那类）
+    if(/^\s*<html[\s>]/i.test(c)) return false;
+    if(/^\s*\{[\s\S]*"error"/.test(c)) return false; // API 错误 JSON 被当脚本
+    return true;
+  }catch(e){ return false; }
+}
+/* 统一口径的失败日志（带页面 id + 脚本名，施工书要求） */
+function hubEvalReject(pageId, what, reason){
+  console.warn('[soft-nav] 已拒绝执行脚本（' + reason + '）：page=' + (pageId || '?') + ' · ' + what);
+}
+
 /* 重新执行目标页脚本：
    用间接 eval（window.eval）在全局作用域执行脚本源码。
    - function 声明挂到全局 → 跨页调用仍然可用；
@@ -1005,20 +1045,31 @@ async function runPageScript(id, doc){
   for(let i = 0; i < srcs.length; i++){
     if(got[i].err){
       if(i === MAIN){        // 主脚本失败：记日志后由 softNavigate 兜底走整页跳转，绝不卡死
-        console.error('[soft-nav] 页面脚本执行失败，将回退整页跳转：', id, got[i].err);
+        console.error('[soft-nav] 页面脚本加载失败，将回退整页跳转：page=' + id + ' · ' + srcs[i], got[i].err);
         throw got[i].err;
       }
-      console.warn('[soft-nav] 附加脚本加载失败，已跳过：', srcs[i], got[i].err);
+      console.warn('[soft-nav] 附加脚本加载失败，已跳过：page=' + id + ' · ' + srcs[i], got[i].err);
+      continue;
+    }
+    /* Q-6 ①：eval 前校验来源与形态（见 hubEvalSourceOk / hubCodeLooksLikeJs 注释） */
+    if(!hubEvalSourceOk(srcs[i])){
+      hubEvalReject(id, srcs[i], '来源不在本站 js/ 白名单');
+      if(i === MAIN) throw new Error('main script rejected: ' + srcs[i]);
+      continue;
+    }
+    if(!hubCodeLooksLikeJs(got[i].code)){
+      hubEvalReject(id, srcs[i], '拿到的内容不像 JS（可能是 HTML 兜底页或错误 JSON）');
+      if(i === MAIN) throw new Error('main script not js: ' + srcs[i]);
       continue;
     }
     try{
       window.eval(got[i].code);   // 幂等重跑：页面 ready 内部已各自清旧心跳 / 重绑事件，多次进入不叠加
     }catch(err){
       if(i === MAIN){
-        console.error('[soft-nav] 页面脚本执行失败，将回退整页跳转：', id, err);
+        console.error('[soft-nav] 页面脚本执行失败，将回退整页跳转：page=' + id + ' · ' + srcs[i], err);
         throw err;
       }
-      console.warn('[soft-nav] 附加脚本执行失败，已跳过：', srcs[i], err);
+      console.warn('[soft-nav] 附加脚本执行失败，已跳过：page=' + id + ' · ' + srcs[i], err);
     }
   }
 
@@ -1031,8 +1082,14 @@ async function runPageScript(id, doc){
      脚本必须自身幂等（重绑前先 removeEventListener，见 settings.html 的 __hubSetNavHandler）。 */
   const inlineCodes = pageInlineScripts(doc);
   for(const code of inlineCodes){
+    /* Q-6 ②：内联脚本同样先验形态 —— 软导航只从**目标页 body** 里取（pageInlineScripts 已保证），
+       这里再挡一次「内容其实是 HTML 文档/错误 JSON」这种被 SW 兜底串页的极端情况。 */
+    if(!hubCodeLooksLikeJs(code)){
+      hubEvalReject(id, 'body 内联脚本', '内容不像 JS');
+      continue;
+    }
     try{ window.eval(code); }
-    catch(err){ console.warn('[soft-nav] 页面内联脚本执行失败，已跳过：', err); }
+    catch(err){ console.warn('[soft-nav] 页面内联脚本执行失败，已跳过：page=' + id, err); }
   }
 }
 

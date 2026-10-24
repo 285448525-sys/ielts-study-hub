@@ -238,7 +238,17 @@
 
 /* ---- 3b. R-3 成绩栏焦点块（总览五卡 + 四科对比条 + 行动建议 三合一）----
    配色与几何全部沿用本页既有 token（--n-* / --primary-* / --sh-*），不新增任何色值。
-   深色：只用 --primary-700 与 --n-800/--n-500（这几档深色块都有覆盖值），不用 200/300/900。 */
+   深色：只用 --primary-700 与 --n-800/--n-500/--muted（这几档深色块都有覆盖值），不用 200/300/900。 */
+/* 🔴 顺序：成绩栏里焦点块排第一（她每天最想看的），录入表单与分项统计都在它下面。
+   DOM 一行没动，只用 order —— 软导航重跑、探针取容器、深链切换都不受影响。
+   ⚠️ 踩过的坑（R-3 实测）：这里一度写成 `#tab-score{display:flex}` ——
+      **ID 选择器（1,0,0）压过了 common.css 的 `.tab-panel{display:none}`（0,1,0）**，
+      结果点「轨迹」时 #tab-score 依然显示、两个栏叠在一起（g2review 两条 RED）。
+      → 只能在 .active 状态下加 flex，绝不能在裸的 #tab-score 上写 display。 */
+#tab-score.active{display:flex;flex-direction:column}
+#tab-score > #tab-overall{order:0}
+#tab-score > #tab-breakdown{order:1}
+#tab-score > #tab-speaking{order:2}
 .rv-focus{padding:20px 22px;border-radius:16px;box-shadow:var(--sh-2);margin:0 0 18px}
 .rv-focus-head{display:flex;align-items:baseline;gap:10px;margin-bottom:14px}
 .rv-focus-lab{font-size:12.5px;font-weight:500;color:var(--n-500);letter-spacing:.02em}
@@ -262,6 +272,11 @@
 .rv-focus-mods .gap-val{font-size:12.5px;color:var(--n-600);flex:1;min-width:0;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rv-focus-mods .gap-tag{margin-left:auto;flex:none;font-size:11.5px}
+/* 🔴 深色真坑（实测 3.45:1，小字不达 4.5）：.rv-focus-unit 原来用 --n-500，
+   而深色下 --n-500 = #6e6e73，压在 #1a1a1c 上只有 3.45:1。
+   → 改用 --muted（浅 #71767e / 深 #9a9aa0，两套主题都对底 4.5 以上）。
+   ⚠️ 别用 --n-800 之外的「深色没重定义」的档（--primary-200/300/900 在深色里不翻）。 */
+.rv-focus-unit{color:var(--muted)}
 .rv-focus-foot{display:flex;align-items:center;gap:22px;margin-top:16px;padding-top:14px;
   border-top:1px solid var(--n-300);flex-wrap:wrap}
 .rv-focus-fact{display:flex;align-items:baseline;gap:7px;flex:none}
@@ -278,6 +293,12 @@
   .rv-focus-mods{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px}
   .rv-focus-foot{gap:12px 18px}
   .rv-focus-tip{min-width:0;flex:1 1 100%}
+}
+/* 🔴 实测 390：两列时每格只剩 ~150px，科名+科值+净差全塞进去 → 科值被省略成「听力 5…」，
+   信息等于没了。560 以下每科独占一行（四行），科值不再省略。 */
+@media (max-width:560px){
+  .rv-focus-mods{grid-template-columns:1fr;gap:7px}
+  .rv-focus-mods .gap-val{white-space:normal;overflow:visible;text-overflow:clip}
 }
 
 
@@ -485,6 +506,11 @@
            去掉各自的 tab-panel，改由外层 #tab-score 承担显隐 —— 否则嵌套的 .tab-panel
            会被 common-pwa.js 的委托一起清掉。 -->
       <div id="tab-score" class="tab-panel active">
+      <!-- 🔴 R-3（10-24）顺序修正：焦点块必须在一屏第一个。
+           实测 390 上原来「添加分项记录」表单排在最前 → 焦点块被顶到一屏半以外，
+           她打开「成绩」看到的第一个东西是录入表单，而不是她每天最想看的总分。
+           做法 = 用 CSS order 把 #tab-overall 提到 #tab-breakdown 前面（DOM 一行没动，
+           软导航重跑顺序、探针取容器都不受影响）；见下方 `#tab-score{display:flex;flex-direction:column}` 段。 -->
       <!-- 分项模考（原「模考」栏内容，原样保留） -->
       <div id="tab-breakdown">
         <!-- 💡 弱项诊断卡已删（10/1 晚她拍板：与冲刺卡「离目标还差多少」用途重复，且 30 天/7 天两套口径数字互相矛盾） -->
