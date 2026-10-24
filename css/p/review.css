@@ -134,3 +134,211 @@
 .detail-block .form-row input:focus{border-color:var(--primary);outline:none}
 /* date 输入框右侧那个日历图标在深色下会是黑的 → 用滤镜翻成浅色（color-scheme 一声明，原生控件全跟着变） */
 [data-theme="dark"] .detail-block .form-row input{color-scheme:dark}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   R-E1（10-24）回顾页 E 版 1:1 还原 · 第一批：静态骨架
+   ══════════════════════════════════════════════════════════════════════
+   她 21:5x：「每次做出来都跟设计图两模两样，能不能按设计图 1:1 还原？」
+   来源：design/_E_review_精确样式.css（从效果稿机器导出，不是人写的描述）。
+
+   ⚠️ 两条硬约束（施工书 §二）：
+     ① 类名一个都不许改，rvx- 前缀不许删（防撞 common.css 的 .card/.chip/.muted 等）
+     ② 只进本文件（css/p/review.css），一行不许进 common.css
+
+   ⚠️ 本窗口做的一处改动（附件里没有，必须改否则会打穿别的元素）：
+     附件最后那条是**裸**的 `svg{display:block}` —— 站点所有图标都是 SVG，
+     裸规则会让整页 SVG 都变 block（顶栏/侧栏/按钮图标全受影响）。
+     已收进 `.rvx-page svg{display:block}`，只作用于 E 版骨架内部。
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ══════════════════════════════════════════════════════════════════════
+   回顾页 · E 版（推荐合并）精确样式 · 2026-10-24
+   ══════════════════════════════════════════════════════════════════════
+   她 21:5x：「每次他们做出来都跟我的设计图两模两样，能不能 1:1 还原？」
+
+   这份不是重画，是从效果稿 design/回顾页重设计-五版-2026-10-24.html
+   的 E 版**机器导出**，再逐条对齐站点 token。配套文件：
+     · _E_review_结构原文.html    ← E 版渲染完的真实 DOM（类名与本文件一致）
+     · _E_review_验收基线.json    ← 22 个元素的计算样式基线，收尾自检用
+
+   ── 放在哪 ──
+   只追加到 css/p/review.css 末尾（本页专用）。不许进 common.css。
+
+   ── 为什么类名都带 rvx- ──
+   站点 .card / .bar / .chip / .muted / .yes / .no / .big 在 common.css 里
+   已有定义，不加前缀直接覆盖会打穿别的 18 个页面。
+
+   ── 三个设计稿有、站点没有的值 ──
+   本文件用 --rvx-* 自己补，不动站点 token：
+     --rvx-r-sm  10px      站点 --radius-sm 是 12px，用它差 2px
+     --rvx-soft  #eef1f1   站点 --n-100 是 #f5f6f8，浅一档
+     基准字号    16px      站点 body 是 15px，不补所有继承字号小 1px
+   ══════════════════════════════════════════════════════════════════════ */
+
+.rvx-page{
+  --rvx-r-sm:10px;
+  --rvx-soft:#eef1f1;
+  /* 这三行必须留着：站点 body 是 15px / line-height 1.62 / 字体栈多了
+     Hiragino + text-rendering:optimizeLegibility，不显式覆写会让整块偏 1-2px。
+     效果稿的口径是 16px / 1.5。 */
+  font-size:16px;
+  line-height:1.5;
+  font-family:system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  text-rendering:auto;
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+html[data-theme="dark"] .rvx-page{
+  --rvx-soft:#26262a;
+}
+/* 🔴 R-E1 显隐联动（必须要有）：骨架放在 .review-wrap **外面**（施工书 §三.2 要求
+   骨架要在 container 内、review-wrap 外，才能拿到容器全宽 1132 而不是被 1040 限宽）。
+   代价是它不再是 .review-pane 的兄弟 → 点「轨迹」tab 时 common-pwa.js 只切换
+   .review-pane 内部的 .tab-panel，骨架不会跟着藏，两栏会同屏堆叠。
+   用 :has() 纯 CSS 联动，不碰 JS：成绩面板带 .active → 显示骨架；被切走 → 隐藏。
+   ⚠️ 判据必须是 .active，不能判 [hidden] —— 实测点「轨迹」后 #tab-score 的 hidden 属性没变。 */
+.review-wrap:has(#tab-score.active) ~ .rvx-page{ display:block }
+.review-wrap:has(#tab-score:not(.active)) ~ .rvx-page{ display:none }
+
+
+.rvx-mono{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+
+/* ===== 顶栏（说明 + 主题） ===== */
+
+/* ===== 版本切换 ===== */
+
+/* ===== 通用 ===== */
+.rvx-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow)}
+.rvx-card-p{padding:18px 20px}
+.rvx-h{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.04em;
+  text-transform:none;margin:0 0 12px}
+.rvx-big{font-size:52px;font-weight:800;letter-spacing:-.04em;line-height:1;font-variant-numeric:tabular-nums}
+.rvx-tag{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;
+  padding:2.5px 8px;border-radius:999px;background:var(--rvx-soft);color:var(--ink-2)}
+.rvx-tag.rvx-up{background:rgba(70,168,131,.12);color:var(--med)}
+.rvx-tag.rvx-down{background:rgba(229,83,61,.11);color:var(--danger)}
+.rvx-tag.rvx-flat{background:var(--rvx-soft);color:var(--muted)}
+.rvx-dot{width:9px;height:9px;border-radius:3px;display:inline-block;flex:none}
+.rvx-muted{color:var(--muted)}
+.rvx-row{display:flex;align-items:center;gap:10px}
+
+/* ===== 版 A 驾驶舱 ===== */
+.rvx-dash{display:grid;grid-template-columns:300px 1fr 300px;gap:16px;align-items:start}
+.rvx-sm{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rvx-mini{background:var(--surface-2);border-radius:var(--rvx-r-sm);padding:12px 13px}
+.rvx-mini b{display:block;font-size:19px;font-weight:800;letter-spacing:-.02em}
+.rvx-mini span{font-size:11.5px;color:var(--muted)}
+.rvx-gap-list{display:flex;flex-direction:column;gap:9px;margin-top:14px}
+.rvx-gap{display:grid;grid-template-columns:10px 1fr auto;gap:9px;align-items:center;font-size:13px}
+.rvx-gap .rvx-nm{font-weight:600}
+.rvx-gap .rvx-vv{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12.5px}
+.rvx-gap .rvx-tg{grid-column:2 / -1;margin-top:-2px}
+.rvx-bar{height:6px;border-radius:999px;background:var(--rvx-soft);overflow:hidden;grid-column:2/-1;margin-top:2px}
+.rvx-bar i{display:block;height:100%;border-radius:999px}
+
+/* ===== 版 B 成绩单 ===== */
+.rvx-trf{display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-radius:var(--radius);overflow:hidden;
+  border:1px solid var(--line);background:var(--surface)}
+.rvx-trf>div{padding:16px 18px;border-right:1px solid var(--line)}
+.rvx-trf>div:last-child{border-right:0;background:var(--primary-50)}
+.rvx-trf .rvx-lab{font-size:11.5px;color:var(--muted);font-weight:600;margin-bottom:4px}
+.rvx-trf .rvx-num{font-size:30px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1.1}
+.rvx-trf .rvx-sub{font-size:11.5px;color:var(--muted);margin-top:3px}
+.rvx-subj{border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);
+  margin-top:14px;overflow:hidden}
+.rvx-subj-h{display:grid;grid-template-columns:44px 1fr auto auto;gap:14px;align-items:center;
+  padding:16px 20px;border-bottom:1px solid var(--rvx-soft)}
+.rvx-subj-ic{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:20px}
+.rvx-subj-n{font-size:15px;font-weight:700}
+.rvx-subj-t{font-size:12px;color:var(--muted);margin-top:2px}
+.rvx-subj-sc{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.03em}
+.rvx-subj-b{padding:16px 20px;display:grid;grid-template-columns:1fr 260px;gap:22px}
+.rvx-ptab{display:flex;flex-direction:column;gap:8px}
+.rvx-prow{display:grid;grid-template-columns:38px 1fr 54px;gap:10px;align-items:center;font-size:12.5px}
+.rvx-prow .rvx-pb{height:7px;border-radius:999px;background:var(--rvx-soft);overflow:hidden}
+.rvx-prow .rvx-pb i{display:block;height:100%;border-radius:999px}
+.rvx-prow b{font-variant-numeric:tabular-nums;text-align:right;font-weight:600}
+.rvx-r3{display:flex;gap:8px;margin-top:10px}
+.rvx-r3 span{flex:1;text-align:center;background:var(--surface-2);border-radius:8px;
+  padding:7px 4px;font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums}
+
+/* ===== 版 C 时间轴 ===== */
+.rvx-tl{position:relative;padding-left:34px}
+.rvx-tl::before{content:'';position:absolute;left:11px;top:6px;bottom:6px;width:2px;background:var(--line)}
+.rvx-tl-item{position:relative;margin-bottom:12px}
+.rvx-tl-item::before{content:'';position:absolute;left:-27px;top:18px;width:10px;height:10px;
+  border-radius:50%;background:var(--surface);border:2.5px solid var(--line)}
+.rvx-tl-item.w::before{border-color:var(--mock)}
+.rvx-tl-item.p::before{border-color:var(--warn)}
+.rvx-tl-item.s::before{border-color:var(--med)}
+.rvx-tl-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.rvx-tl-h{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.rvx-tl-d{font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums}
+.rvx-tl-body{display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:13px}
+.rvx-kv{display:flex;align-items:baseline;gap:5px}
+.rvx-kv em{font-style:normal;font-size:11.5px;color:var(--muted)}
+.rvx-kv b{font-variant-numeric:tabular-nums;font-weight:700}
+.rvx-filters{display:flex;gap:6px;flex-wrap:wrap}
+.rvx-rec-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.rvx-chip{padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:var(--surface);
+  font-size:12.5px;color:var(--ink-2);cursor:pointer;font-family:inherit;font-weight:500}
+.rvx-chip.rvx-on{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600}
+
+/* ===== 版 D 双栏 ===== */
+.rvx-two{display:grid;grid-template-columns:1fr 336px;gap:16px;align-items:start}
+.rvx-hm{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin-top:10px}
+.rvx-hm i{aspect-ratio:1;border-radius:3px;background:var(--rvx-soft);display:block}
+.rvx-hm i.rvx-l1{background:rgba(58,154,147,.22)}
+.rvx-hm i.rvx-l2{background:rgba(58,154,147,.42)}
+.rvx-hm i.rvx-l3{background:rgba(58,154,147,.66)}
+.rvx-hm i.rvx-l4{background:var(--primary)}
+.rvx-hmk{display:flex;gap:10px;align-items:center;font-size:11px;color:var(--muted);margin-top:9px}
+.rvx-hmk span{display:inline-flex;align-items:center;gap:4px}
+.rvx-hmk i{width:9px;height:9px;border-radius:2px;display:block}
+
+/* ===== 元素核对表 ===== */
+.rvx-tabin{width:100%;border-collapse:collapse;font-size:13px;background:var(--surface);
+  border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.rvx-tabin th,.rvx-tabin td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--rvx-soft);vertical-align:top}
+.rvx-tabin th{font-size:11.5px;color:var(--muted);font-weight:700;background:var(--surface-2)}
+.rvx-tabin tr:last-child td{border-bottom:0}
+.rvx-tabin td.rvx-c{text-align:center;white-space:nowrap}
+.rvx-yes{color:var(--med);font-weight:700}
+.rvx-no{color:var(--danger);font-weight:700}
+.rvx-mid{color:var(--warn);font-weight:700}
+.rvx-note{background:var(--primary-50);border:1px solid var(--primary-200);border-radius:12px;
+  padding:14px 16px;font-size:13.5px;line-height:1.62}
+.rvx-note b{color:var(--primary-700)}
+.rvx-warnbox{background:rgba(255,149,0,.09);border:1px solid rgba(255,149,0,.3);border-radius:12px;
+  padding:14px 16px;font-size:13.5px;line-height:1.62}
+.rvx-lgd{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:8px}
+.rvx-lgd span{display:inline-flex;align-items:center;gap:6px}
+.rvx-page svg{display:block}
+.rvx-fn{font-size:12.5px;color:var(--muted);margin-top:10px;line-height:1.6}
+
+/* ===== 响应式：三栏/两栏在窄屏一律叠成一列，顺序不变 ===== */
+@media (max-width:1180px){
+  .rvx-dash{grid-template-columns:1fr 1fr}
+  .rvx-dash>div:first-child{grid-column:1 / -1}
+}
+@media (max-width:900px){
+  .rvx-dash,.rvx-two{grid-template-columns:1fr}
+  .rvx-dash>div:first-child{grid-column:auto}
+  .rvx-subj-b{grid-template-columns:1fr}
+  .rvx-trf{grid-template-columns:repeat(2,1fr)}
+  .rvx-trf>div{border-right:0;border-bottom:1px solid var(--line)}
+  .rvx-trf>div:nth-child(odd){border-right:1px solid var(--line)}
+  .rvx-trf>div:last-child{border-bottom:0}
+  .rvx-card-p{padding:16px}
+  .rvx-big{font-size:44px}
+}
+@media (max-width:520px){
+  .rvx-trf{grid-template-columns:1fr}
+  .rvx-trf>div{border-right:0 !important}
+  .rvx-subj-h{grid-template-columns:38px 1fr auto;gap:10px;padding:14px 16px}
+  .rvx-subj-h .rvx-tag{grid-column:2 / -1;justify-self:start;margin-top:4px}
+  .rvx-subj-b{padding:14px 16px;gap:16px}
+  .rvx-big{font-size:40px}
+}
