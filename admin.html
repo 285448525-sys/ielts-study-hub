@@ -62,6 +62,43 @@ textarea.small:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-50
 .muted{color:var(--ink3);font-size:12.5px}
 .hidden{display:none!important}
 .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+
+/* ===== S-2e（10-24）：搜索框统一规格（admin 版） =====
+   admin.html 是整页自带样式、**不加载全站 css/common.css**，所以拿不到 .ui-field-search。
+   这里按同一份规格就地定义一份，token 名与值对齐全站：36px 高 / 圆角 10 / 1px 边 /
+   --surface 底 / 放大镜 16px / 清空 ✕ 有值才出现 / 焦点 边框 teal + 3px teal-50 外环。
+   ⚠️ 改这里必须与 css/common.css:2705 起的 .ui-field-search 保持同一套数值，别各走一路。 */
+.adm-search{display:flex}
+.adm-search .ui-field-search{
+  position:relative;display:flex;align-items:center;width:240px;height:36px;
+  border:1px solid var(--line2);border-radius:10px;background:var(--surface);
+  transition:border-color .15s,box-shadow .15s;
+}
+.adm-search .ui-field-search:focus-within,
+.adm-search .ui-field-search:has(.ui-field-search-in:focus){
+  border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-50);
+}
+.adm-search .ui-field-search-ic{
+  position:absolute;left:12px;width:16px;height:16px;color:var(--ink3);pointer-events:none;flex:none;
+}
+.adm-search .ui-field-search-in{
+  flex:1;min-width:0;height:100%;padding:0 34px;border:0;background:none;outline:none;
+  font-size:13px;font-family:inherit;color:var(--ink);
+}
+.adm-search .ui-field-search-in::placeholder{color:var(--ink3)}
+.adm-search .ui-field-search-in::-webkit-search-cancel-button{display:none}
+.adm-search .ui-field-clear{
+  position:absolute;right:5px;display:flex;align-items:center;justify-content:center;
+  width:26px;height:26px;padding:0;border:0;border-radius:50%;background:none;
+  color:var(--ink3);font-size:15px;line-height:1;cursor:pointer;transition:background .15s,color .15s;
+}
+.adm-search .ui-field-clear:hover{background:var(--teal-50);color:var(--teal-d)}
+.adm-search .ui-field-clear:focus-visible{outline:none;box-shadow:0 0 0 3px var(--teal-50)}
+.adm-search .ui-field-clear[hidden]{display:none}
+@media (max-width:640px){
+  .adm-search .ui-field-search{width:100%;height:44px}
+  .adm-search{flex:1 1 100%}
+}
 /* ---- 页签：轻量下划线式，不当主角 ---- */
 .tabs{display:flex;gap:2px;margin:0 0 16px;border-bottom:1px solid var(--line)}
 .tab{height:38px;padding:0 14px;border:0;border-bottom:2px solid transparent;background:none;color:var(--ink3);
@@ -360,7 +397,19 @@ button.mini.danger:hover{background:var(--bad-bg);border-color:var(--bad)}
     <p class="desc">账号 + 注册时间 + AI 调用次数（今日 / 本周 / 本月）+ 会员状态（点击账号可复制）。
       <b>判定</b>列区分真人 / 探针：真人 = 有云端同步数据或 AI 用量；探针 = AI 写测试时注册的一次性账号（只登录、没碰业务）。可点「改」手动推翻。</p>
     <div class="toolbar">
-      <input class="small" id="userQ" placeholder="搜索账号" style="width:150px" />
+      <!-- S-2e（10-24）：这个搜索框原来带内联 style="width:150px" 的裸 input，既没图标也没容器。
+           现在接入统一规格（36px / 圆角 10 / 放大镜 / 清空 ✕），内联 width 已删掉，
+           宽度交给容器 .adm-search（240px，够显示账号又不占满工具栏）。
+           ⚠️ admin.html 是整页自带样式、不加载全站 common.css —— 所以 .ui-field-search* 这套
+           在 admin.html 的 <style> 里按同样的规格（同样的 token）就地定义了一份，值逐项对齐。
+           ⚠️ id 保留：773 行的取值、1192 行的 input 监听零改动。 -->
+      <div class="adm-search">
+        <label class="ui-field-search" for="userQ">
+          <svg class="ui-field-search-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input class="ui-field-search-in" id="userQ" type="search" placeholder="搜索账号" aria-label="搜索账号" autocomplete="off" />
+          <button type="button" class="ui-field-clear" hidden aria-label="清空搜索">✕</button>
+        </label>
+      </div>
       <select class="small" id="userFilter">
         <option value="all">全部</option>
         <option value="real">真人</option>
@@ -1190,6 +1239,25 @@ button.mini.danger:hover{background:var(--bad-bg);border-color:var(--bad)}
   });
   /* 10/6 11:35 新增交互：搜索 / 筛选 / 表头排序 / 行内开通 / 一键清探针 */
   $('userQ').addEventListener('input', render);
+  /* S-2e（10-24）：清空 ✕ 的绑定。
+     ⚠️ 这里必须自己绑一份 —— admin.html 是整页自带脚本、**不加载 common.js**，
+        拿不到全站那个 initSearchClear()（它挂在 common-pwa.js 的 ready 链里）。
+     行为与全站一致：有值显示 ✕、无值隐藏；点 ✕ → 清空 + **派发 input 事件**
+     （不派发的话 render() 收不到，表格会停在筛选后的样子）+ 焦点回输入框。 */
+  (function bindAdmSearchClear(){
+    var inp = $('userQ');
+    var btn = document.querySelector('.adm-search .ui-field-clear');
+    if(!inp || !btn) return;
+    var sync = function(){ btn.hidden = !(inp.value || '').length; };
+    inp.addEventListener('input', sync);
+    btn.addEventListener('click', function(){
+      inp.value = '';
+      sync();
+      inp.focus();
+      try{ inp.dispatchEvent(new Event('input', { bubbles: true })); }catch(e){}
+    });
+    sync();
+  })();
   $('userFilter').addEventListener('change', render);
   Array.prototype.forEach.call(document.querySelectorAll('#userTableHead [data-usk]'), function(th){
     th.style.cursor = 'pointer';

@@ -155,9 +155,14 @@
   function rosterHtml() {
     let h = '<div class="tch-roster-top">'
       + '<div class="lab">我的学生<b>' + S.students.length + ' 人</b></div>'
-      + '<label class="tch-rsearch">'
-      + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>'
-      + '<input type="search" id="tchSearch" placeholder="搜邮箱前缀" aria-label="搜索学生" autocomplete="off" />'
+      /* S-2e（10-24）：名单搜索框接入全站统一类 .ui-field-search。
+         改前是 .tch-rsearch 自写一套（30px 高 / 圆角 8 / 图标 12px），团队里最小最扁的那个，
+         与站内其它搜索框不是一套规格。改后交给统一类（36px / 圆角 10 / 图标 16px / 清空 ✕）。
+         ⚠️ id 与 placeholder 原样保留 —— 下面 466/480/493/620 行的取值与聚焦逻辑零改动。 */
+      + '<label class="ui-field-search tch-rsearch" for="tchSearch">'
+      + '<svg class="ui-field-search-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>'
+      + '<input class="ui-field-search-in" type="search" id="tchSearch" placeholder="搜邮箱前缀" aria-label="搜索学生" autocomplete="off" />'
+      + '<button type="button" class="ui-field-clear" hidden aria-label="清空搜索">✕</button>'
       + '</label></div>'
       + '<div class="tch-rlist" id="tchRList">';
     for (const st of S.students) {

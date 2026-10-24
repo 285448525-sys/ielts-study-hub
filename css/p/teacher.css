@@ -33,12 +33,11 @@ main.tch-wrap{max-width:1280px}
 .tch-roster-top{padding:12px 12px 10px;border-bottom:1px solid var(--line);flex:none}
 .tch-roster-top .lab{display:flex;align-items:center;font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.04em}
 .tch-roster-top .lab b{margin-left:auto;font-weight:800;color:var(--primary-600)}
-.tch-rsearch{display:flex;align-items:center;gap:6px;height:30px;padding:0 9px;margin-top:9px;
-  border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--muted)}
-.tch-rsearch svg{width:12px;height:12px;flex:none}
-.tch-rsearch input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:12px;
-  color:var(--ink);padding:0;font-family:inherit}
-.tch-rsearch input::placeholder{color:var(--n-500)}
+/* S-2e（10-24）：名单搜索框改走全站统一类 .ui-field-search（高 36 / 圆角 10 / 图标 16 / 清空 ✕）。
+   这里只保留「在名单头部怎么摆」，外观一律不再本页重写 —— 原来那套 30px 高 / 圆角 8 / 图标 12px
+   是全站最小的搜索框，与统一规格差得太远。 */
+.tch-rsearch{display:flex;margin-top:9px}
+.tch-rsearch input{font-size:12px}
 .tch-rlist{overflow-y:auto;padding:6px;display:flex;flex-direction:column;gap:2px;flex:1;min-height:0;
   scrollbar-width:thin;scrollbar-color:var(--line) transparent}
 .tch-ritem{display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:9px;font:inherit;
