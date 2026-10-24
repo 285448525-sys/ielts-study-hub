@@ -495,7 +495,7 @@ function stripCloudFields(d){
    以前不在白名单里，等于「背词设置完全不跨端」：电脑上把上限改成 200，手机仍是旧值。
    ⚠️ 必须配套：practice.js pcSave 要自己打 _fieldTs.practiceCfg，否则两端时间戳都是 0 →
    合并走「时间戳相同取云端」分支 → 本机刚改的上限会被云端旧值当场盖回去。 */
-const SYNC_SETTINGS_FIELDS = ['name','examDate','examDates','targets','dailyGoalHours','pronunciationScore','fluencyScore','theme','chimeOnDone','adhd','practiceCfg','diagnosis','planLastOpen','avatar','coachAvatar','examAvatar','homeQuick','fontScale','reduceMotion'];   // 10-23 T-002 步5：正文字号三档（sm/md/lg）+ 减少动效开关   // 10-23 5-2：首页快速入口自定义（数组；空数组=未设置，合并逻辑不会用空值覆盖另一端已配置的）
+const SYNC_SETTINGS_FIELDS = ['name','examDate','examDates','targets','dailyGoalHours','pronunciationScore','fluencyScore','theme','chimeOnDone','adhd','practiceCfg','diagnosis','planLastOpen','avatar','coachAvatar','examAvatar','homeQuick','fontScale','reduceMotion','writingRedoWrong'];   // 10-24 D-3：写作页「重默错句」开关状态（F-2 那批要写的字段）。⚠️ 此刻 F-2 本身还没施工（writing.js 的 redo.onchange 里没有落库代码），先把白名单补上 —— 这样 F-2 一落地就自动跨设备，不会又出现「本机记得、换设备丢」。字段是布尔、缺省 undefined = 不勾，与 HTML 里 #wtDictRedoWrong 无 checked 的默认态一致。   // 10-23 T-002 步5：正文字号三档（sm/md/lg）+ 减少动效开关   // 10-23 5-2：首页快速入口自定义（数组；空数组=未设置，合并逻辑不会用空值覆盖另一端已配置的）
 
 /* ===== 同步条目时间戳维护（9/17 修：_mergeArray 缺时间戳导致云端修改永不并入）=====
    根因：_mergeArray 以 ts/updatedAt 判「较新者胜」，但 11 个同步数组的条目大多只有 id、
