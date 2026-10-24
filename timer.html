@@ -115,6 +115,60 @@ input#goalMin:not([type=checkbox]):not([type=radio]):not([type=range])::placehol
 .timer-idle-hint::before{content:"👆 ";font-size:12px}
 body.timer-running .timer-idle-hint{display:none}
 
+/* ── T-1a（10-24）：计时栏置顶，五个科目卡下移 ──
+   改前：`本次目标` + 正/倒分段 + 两个按钮散在计时卡里各占一行，五个科目卡紧跟在下面 ——
+   眼睛要往下扫三屏才知道「开始」在哪。改后：把「目标 / 分段 / 开始」压成一条栏（.tm-bar），
+   按「先填在干什么 → 定多久 → 正还是倒 → 开始」的阅读顺序排一行；科目卡整块降到这条栏下面。
+   ⚠️ 只搬位置，不动任何 id：`#goalMin` / `#modeSeg` / `#stopBtn` / `#pauseBtn` 全部原样保留，
+      js/timer.js 里 startSession 读它们的选择器一个都没变。
+   ⚠️ 任务名输入框（.tm-task-in）：**这一批只画壳、不接线** ——
+      startSession(moduleId, subNameOpt) 的第二个参数才是「自定义任务名」的入口，
+      而 js/timer.js 归 A2（它要做 T-1e/T-1f），A3 不许碰。已写进回报请 A2 补一行取值。 */
+.tm-bar{
+  position:relative;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  justify-content:center;margin:0 0 12px;
+}
+.tm-bar .tm-task-in{
+  display:flex;align-items:center;gap:8px;flex:1 1 220px;min-width:0;max-width:320px;
+  height:34px;padding:0 12px;border:1px solid var(--line);border-radius:10px;
+  background:var(--surface);color:var(--muted);
+  transition:border-color .15s,box-shadow .15s;
+}
+.tm-bar .tm-task-in:focus-within{border-color:var(--primary);box-shadow:0 0 0 3.5px var(--primary-soft)}
+.tm-bar .tm-task-in svg{width:15px;height:15px;flex:none;color:var(--muted)}
+.tm-bar .tm-task-in input{
+  flex:1;min-width:0;height:100%;padding:0;border:0;background:none;outline:none;
+  font:inherit;font-size:13.5px;color:var(--ink);
+}
+.tm-bar .tm-task-in input::placeholder{color:var(--n-500)}
+/* ⚠️ 同本页 #goalMin 那个老坑：css/common.css 的裸 input 规则
+   `input:not([type=checkbox]):not([type=radio]):not([type=range])` 权重 (0,1,3)，
+   会把我这里 (0,2,1) 的零边框撑回 1px 边 + 44px 高 + 圆角 12 —— 实测就是一个框里套一个框。
+   补同权重的 :not() 链压回，只在本页生效，common.css 不动。 */
+.tm-bar .tm-task-in input:not([type=checkbox]):not([type=radio]):not([type=range]){
+  height:100%;padding:0;border:0;border-radius:0;background:none;box-shadow:none;
+}
+.tm-bar .tm-task-in input:not([type=checkbox]):not([type=radio]):not([type=range]):focus{
+  border:0;background:none;box-shadow:none;
+}
+/* 时长框 + 「分钟」缩进量与分段控件同高，保持一行齐平 */
+.tm-bar .timer-goal{margin:0;gap:8px;flex:none}
+.tm-bar .timer-goal label{margin-right:-2px}
+
+/* 科目卡整块下移后的提示行：明确「以上是自定义栏 / 以下是科目快捷」 */
+.tm-mods-title{display:flex;align-items:baseline;gap:10px;margin:20px 0 2px;flex-wrap:wrap}
+.tm-mods-title .section-title{margin:0;flex:none;white-space:nowrap}
+.tm-mods-title .hint{font-size:12.5px;color:var(--muted);flex:1 1 auto;min-width:0}
+@media(max-width:560px){
+  .tm-mods-title .hint{flex:1 1 100%;margin-top:2px}
+}
+
+@media(max-width:920px){
+  .tm-bar{justify-content:stretch}
+  .tm-bar .tm-task-in{flex:1 1 100%;max-width:none}
+  .tm-bar .timer-goal{flex:1 1 100%;justify-content:flex-start}
+}
+
 /* ── 右：任务列表（大卡 → 紧凑行）── */
 .tm-side .section-title{margin-top:2px}
 .timer-mods{display:flex;flex-direction:column;gap:9px;margin-top:10px}
@@ -169,12 +223,24 @@ body.timer-running .timer-idle-hint{display:none}
     <div class="live-timer" id="liveTimer">00:00:00</div>
     <div id="focusInfo" class="ts-focus"></div>
     <div id="timerProgress" class="timer-progress"></div>
-    <div id="timerGoal" class="timer-goal">
-      <label class="muted" for="goalMin">本次目标</label>
-      <input id="goalMin" type="number" min="1" inputmode="numeric" placeholder="分钟" class="goal-input">
-      <div class="seg" id="modeSeg">
-        <button type="button" class="seg-btn active" data-mode="up">正计时</button>
-        <button type="button" class="seg-btn" data-mode="down">倒计时</button>
+
+    <!-- T-1a（10-24）：计时栏置顶 —— 「在干什么 / 多久 / 正还是倒 / 开始」压成一条。
+         ⚠️ 下面这些 id 一个都没改：#goalMin（时长）、#modeSeg（正/倒）、#stopBtn、#pauseBtn，
+            js/timer.js 的 startSession 仍按原选择器取它们。
+         ⚠️ .tm-task-in 里的输入框这一批**只有壳**：自定义任务名要走 startSession(moduleId, subNameOpt)
+            的第二个参数，那在 js/timer.js（A2 领地），A3 不碰。等 A2 补取值后它就活了。 -->
+    <div class="tm-bar">
+      <label class="tm-task-in" for="tmTaskName">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+        <input id="tmTaskName" type="text" placeholder="在学什么？如：口语 Part2 跟读" aria-label="本次学习内容" autocomplete="off" />
+      </label>
+      <div id="timerGoal" class="timer-goal">
+        <label class="muted" for="goalMin">本次目标</label>
+        <input id="goalMin" type="number" min="1" inputmode="numeric" placeholder="分钟" class="goal-input">
+        <div class="seg" id="modeSeg">
+          <button type="button" class="seg-btn active" data-mode="up">正计时</button>
+          <button type="button" class="seg-btn" data-mode="down">倒计时</button>
+        </div>
       </div>
     </div>
     <div class="timer-btns">
@@ -182,11 +248,15 @@ body.timer-running .timer-idle-hint{display:none}
       <button class="ui-dark-btn ui-dark-btn--sm" id="pauseBtn" disabled>暂停</button>
     </div>
     <!-- 10/13 新用户走查：没开表时上面两个按钮是禁用的，新用户第一反应「这页坏了/我该点哪」。
-         加一句显式指引，把主流程说明白（观感批）。 -->
+         加一句显式指引，把主流程说明白（观感批）。
+         T-1a：文案跟着改了 —— 科目卡现在在下面，指引得说清「先从下面选任务」。 -->
     <p class="timer-idle-hint" id="timerIdleHint">先从下面选一个任务，点「开始」就会计时</p>
   </section>
 
-  <p class="section-title">选择本次任务</p>
+  <div class="tm-mods-title">
+    <p class="section-title">选择本次任务</p>
+    <span class="hint">每个科目点「开始」直接记时；想自己命名，用上面那条栏</span>
+  </div>
   <div class="timer-mods" id="timerMods"></div>
 
   <section class="card rec-mini">
