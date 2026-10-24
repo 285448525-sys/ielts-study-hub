@@ -200,6 +200,30 @@ html[data-theme="dark"] .rvx-page{
    ⚠️ 判据必须是 .active，不能判 [hidden] —— 实测点「轨迹」后 #tab-score 的 hidden 属性没变。 */
 .review-wrap:has(#tab-score.active) ~ .rvx-page{ display:block }
 .review-wrap:has(#tab-score:not(.active)) ~ .rvx-page{ display:none }
+/* 🔴 R-E2（10-25）修 R-E1 遗留的真 bug：骨架与旧面板**同屏堆叠**。
+   实测骨架高 2261、旧面板高 2397 —— 她打开「成绩」会看到两个总分、两张趋势图。
+   R-E1 的注释写「旧面板交还给既有 tab 机制」，但两者都挂在 #tab-score.active 下，
+   tab 机制只切 active 不切它们 → 必然同时显示。
+   做法 = 骨架显示时把 #tab-score 藏掉（**只藏不删**：scores.js 的 render() 仍往
+   #scoreStats / #scoreBars 写、#scoreList 仍被 rec-all.js 读，节点一个都不能少）。
+   ⚠️ 不能给 #tab-score 加 hidden 属性 —— R-E1 试过，三个老深链（?sub=breakdown/overall/speaking）
+      会一起废掉（_probe_r1review 实测变红）。纯 CSS 藏不影响 .active 判定，深链照旧落到成绩栏。 */
+/* ⚠️ 别藏 #tab-score 本身 —— 试过，后果是「她没法再录入成绩 / 删记录 / 看分项列表」
+   （那些功能 UI 全在旧面板里），而且 R-1 的四个老深链探针全红。
+   只藏骨架已经覆盖的那三块（焦点块 / 趋势卡 / 全部记录卡），其余一律保留：
+   #scAddWrap 录入表单、三个 rv-recall-only 折叠入口、#tab-breakdown 分项区、#tab-speaking 口语区。 */
+.review-wrap:has(#tab-score.active) #tab-overall .rv-focus,
+.review-wrap:has(#tab-score.active) #tab-overall .rv-trend-card,
+.review-wrap:has(#tab-score.active) #tab-overall .rv-recall{ display:none }
+/* 🔴 R-E2 顺序修正：骨架是这一页的**主视图**，必须排在最前；
+   旧面板剩下的功能块（折叠入口 / 两张录入表单 / 表现统计 / 记录列表 / 口语区）降到它后面做二级内容。
+   实测第一版没排序时，她打开「成绩」看到的第一屏是「只看整卷记录 / 添加真题成绩」这几行，
+   设计稿里的成绩条被顶到一屏以外 —— 与 R-3「焦点块必须一屏第一个」同一条教训。
+   做法 = 纯 CSS order（DOM 一行没动，软导航重跑与探针取容器都不受影响）。
+   ⚠️ 选择器必须限死在「同时有 .review-wrap 和 .rvx-page 的 main」上，不能直接改 .container —— 那是全站共用类。 */
+main.container:has(> .rvx-page){ display:flex; flex-direction:column }
+main.container:has(> .rvx-page) > .rvx-page{ order:0 }
+main.container:has(> .rvx-page) > .review-wrap{ order:1; margin-top:22px }
 
 
 .rvx-mono{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
