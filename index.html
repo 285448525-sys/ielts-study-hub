@@ -43,6 +43,10 @@
     --gold:#c79a4b;
     --ink:#f2f6f9;--body:#c3cedb;--muted:#8fa0b3;--faint:#63748a;
     --line:#233043;--line-soft:#1c2836;--bg:#0b1117;--card:#121b25;--card2:#0e1620;
+    /* L-2（10-24）：圆角语言对齐站内 —— 与 css/common.css:103/105 的 --radius:16px /
+       --radius-sm:12px 同名同值。落地页原来用 13/18 两个站内根本不存在的档位，
+       同一套产品两套圆角。这里补 token，把 13→12、18→16；999px 胶囊不动（站内也用 999）。 */
+    --radius:16px;--radius-sm:12px;
   }
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
@@ -74,7 +78,7 @@
   .btn-line:hover{border-color:rgba(58,154,147,.75);background:rgba(58,154,147,.14);transform:translateY(-1px)}
   .btn-ghost{color:var(--muted)}
   .btn-ghost:hover{color:var(--ink);border-color:var(--line)}
-  .btn-lg{padding:14px 26px;font-size:15px;border-radius:13px}
+  .btn-lg{padding:14px 26px;font-size:15px;border-radius:var(--radius-sm)}
   .btn-lg svg{width:16px;height:16px}
 
   /* 顶栏 */
@@ -103,7 +107,7 @@
   .promises b{color:var(--ink);font-weight:700}
 
   /* Hero 右侧界面示意（克制版：今天的清单 + 完成勾） */
-  .shot{border:1px solid #2a3a4e;border-radius:18px;overflow:hidden;background:var(--card);
+  .shot{border:1px solid #2a3a4e;border-radius:var(--radius);overflow:hidden;background:var(--card);
     box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 60px 110px -52px rgba(0,0,0,.85)}
   .shot-bar{display:flex;align-items:center;gap:8px;padding:11px 14px;background:var(--card2);border-bottom:1px solid var(--line-soft)}
   .dots{display:inline-flex;gap:6px;flex:none}
@@ -112,7 +116,7 @@
   .shot-bar .t{margin-left:4px;font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .shot-bar .chip{margin-left:auto;flex:none;font-size:11px;font-weight:700;color:var(--primary-400);border:1px solid var(--teal-45);padding:3px 9px;border-radius:999px;background:var(--teal-08)}
   .shot-body{padding:16px}
-  .task{display:flex;align-items:center;gap:12px;padding:12px 13px;border:1px solid var(--line-soft);border-radius:13px;margin-bottom:9px;background:var(--card2)}
+  .task{display:flex;align-items:center;gap:12px;padding:12px 13px;border:1px solid var(--line-soft);border-radius:var(--radius-sm);margin-bottom:9px;background:var(--card2)}
   .task .ti{width:32px;height:32px;border-radius:10px;background:var(--teal-12);color:var(--primary);display:grid;place-items:center;flex:none}
   .task .ti svg{width:16px;height:16px}
   .task .tm{flex:1;min-width:0}
@@ -127,7 +131,7 @@
   .task .st-done{flex:none;color:var(--primary)}
   .task .st-done svg{width:20px;height:20px}
   .task.done .tt b{color:var(--muted);text-decoration:line-through;text-decoration-color:rgba(58,154,147,.6);text-decoration-thickness:1.5px}
-  .shot-foot{margin-top:12px;border:1px solid var(--line-soft);border-radius:13px;background:var(--card2);padding:13px 14px}
+  .shot-foot{margin-top:12px;border:1px solid var(--line-soft);border-radius:var(--radius-sm);background:var(--card2);padding:13px 14px}
   .shot-foot .fl{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-bottom:9px}
   .shot-foot .fl b{color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums}
   .trk{position:relative;height:6px;border-radius:99px;background:#20303f}
@@ -141,7 +145,7 @@
   .sec-head p{color:var(--muted);font-size:15px;margin:0}
   .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
 
-  .card{border:1px solid var(--line);border-radius:18px;padding:24px;background:var(--card);
+  .card{border:1px solid var(--line);border-radius:var(--radius);padding:24px;background:var(--card);
     box-shadow:0 1px 0 rgba(255,255,255,.03) inset;transition:border-color .18s,transform .18s,box-shadow .18s}
   .card:hover{border-color:#31445a;transform:translateY(-2px);box-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 20px 40px -30px rgba(0,0,0,.7)}
   .card .ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;margin-bottom:15px;background:var(--teal-12);color:var(--primary)}
@@ -164,7 +168,7 @@
 
   /* 对比 */
   .cmp{display:grid;grid-template-columns:1fr 56px 1fr;gap:18px;align-items:stretch}
-  .cmp .col{border:1px solid var(--line);border-radius:18px;padding:26px;background:var(--card)}
+  .cmp .col{border:1px solid var(--line);border-radius:var(--radius);padding:26px;background:var(--card)}
   .cmp .col.r{border-color:var(--teal-45);background:linear-gradient(180deg,rgba(58,154,147,.09),rgba(58,154,147,.02))}
   .cmp h4{margin:0 0 15px;font-size:13px;color:var(--muted);font-weight:800;letter-spacing:.06em}
   .cmp .col.r h4{color:var(--primary-400)}
@@ -179,7 +183,7 @@
 
   /* 三步 */
   .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-  .step{border:1px solid var(--line);border-radius:18px;padding:26px 24px;background:var(--card);box-shadow:0 1px 0 rgba(255,255,255,.03) inset}
+  .step{border:1px solid var(--line);border-radius:var(--radius);padding:26px 24px;background:var(--card);box-shadow:0 1px 0 rgba(255,255,255,.03) inset}
   .step .no{width:34px;height:34px;border-radius:11px;background:var(--primary);color:var(--on-primary);display:grid;place-items:center;font-weight:800;font-size:15px;margin-bottom:16px;font-variant-numeric:tabular-nums}
   .step h3{margin:0 0 8px;font-size:16.5px;letter-spacing:-.01em}
   .step p{margin:0;font-size:13.5px;color:var(--muted);line-height:1.75}
