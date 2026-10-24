@@ -747,14 +747,21 @@ function render(){
       : '';
     box.innerHTML = carriedTip + items.map(i => {
       const jmp = planGenJump(i);   // commit4：AI 生成项整行可点直达学习页；手动项照旧只能编辑
+      /* 🔴 Q-3（10-24）：文本位本来就有 escapeHtml(i.text)，但**四处属性位直接插了 i.id**
+         （data-toggle / data-id / data-edit / data-del）—— 注入串不含双引号时测不出来，
+         含双引号就能跳出属性挂事件。id 虽是 uid() 生成，但云端同步 / 导入的历史数据不保证
+         （common-merge.js 走「最后练习者胜」合并，不校验格式）。
+         与属性位读回的 dataset 值仍是同一个字符串（escapeHtml 只转义 & < > " '）。
+         ⚠️ 下面的 dataset 读取一行都没改：浏览器会把 &quot; 还原成 "，值仍然对得上。 */
+      const _id = escapeHtml(i.id);
       return `
       <div class="plan-item ${i.done ? 'done' : ''} ${i.carried ? 'carried' : ''} ${jmp ? 'jumpable' : ''}"${
         jmp ? ` data-gfile="${escapeHtml(jmp.file)}"${jmp.open ? ` data-gopen="${escapeHtml(jmp.open)}"` : ''}`
             + ` title="去${escapeHtml(jmp.label)}，点击直达并自动计时"` : ''}>
-        <input type="checkbox" ${i.done ? 'checked' : ''} data-toggle="${i.id}" />
-        <span class="plan-text ${jmp ? 'js-jump-text' : ''}" data-id="${i.id}"${jmp ? '' : ' title="点击编辑"'}>${escapeHtml(i.text)}</span>
-        <button class="plan-edit" data-edit="${i.id}" title="编辑">✎</button>
-        <button class="plan-del" data-del="${i.id}" title="删除">✕</button>
+        <input type="checkbox" ${i.done ? 'checked' : ''} data-toggle="${_id}" />
+        <span class="plan-text ${jmp ? 'js-jump-text' : ''}" data-id="${_id}"${jmp ? '' : ' title="点击编辑"'}>${escapeHtml(i.text)}</span>
+        <button class="plan-edit" data-edit="${_id}" title="编辑">✎</button>
+        <button class="plan-del" data-del="${_id}" title="删除">✕</button>
       </div>
     `;
     }).join('');
@@ -806,19 +813,23 @@ function renderHistory(curDate){
     const pct = pItems.length ? Math.round(done / pItems.length * 100) : 0;
     const dt = new Date(p.date + 'T00:00:00');
     const wd = isNaN(dt) ? '' : ('周' + '日一二三四五六'.charAt(dt.getDay()));
+    /* 🔴 Q-3（10-24）：上面日期文本位早已 escapeHtml，但 data-open="${_pd}" 这处属性位裸插 ——
+       注入串不含引号时测不出来，含引号就跳出属性。与其它 date 消费点（$('#planDate').value = b.dataset.open）
+       仍取同一字符串，值不变。 */
+    const _pd = escapeHtml(p.date);
     const itemsHtml = pItems.map(i =>
       `<div class="hist-item ${i.done ? 'done' : ''}"><span class="hist-dot">${i.done ? '✓' : ''}</span><span class="hist-txt">${escapeHtml(i.text)}</span></div>`
     ).join('');
     return `<details class="hist-plan">
       <summary>
-        <span class="hist-date"><b>${escapeHtml(p.date.slice(8, 10))}</b><small>${escapeHtml(p.date.slice(5, 7))}月 ${wd}</small></span>
+        <span class="hist-date"><b>${_pd.slice(8, 10)}</b><small>${_pd.slice(5, 7)}月 ${wd}</small></span>
         <span class="hist-mid"><span class="hist-bar"><i class="${pct === 100 ? 'full' : ''}" style="width:${pct}%"></i></span><small class="hist-pct">${pct}%</small></span>
         <span class="badge">${done} / ${p.items.length} 完成</span>
         <span class="hist-chev">▸</span>
       </summary>
       <div class="hist-body">
         ${itemsHtml}
-        <div class="hist-foot"><button class="btn btn-sm btn-ghost" data-open="${p.date}">打开编辑这天 ↗</button></div>
+        <div class="hist-foot"><button class="btn btn-sm btn-ghost" data-open="${_pd}">打开编辑这天 ↗</button></div>
       </div>
     </details>`;
   }).join('');
