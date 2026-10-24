@@ -177,13 +177,27 @@ function bankItemHtml(w){
 }
 
 /* design/78：官方词包按 sl 子列表分组（awl.json sl 1–10，第 1 组=最高频 60 词，第 10 组=30 词）。
-   组名不带词数——wl-group-count 徽标已显示 items.length。 */
+   组名不带词数——wl-group-count 徽标已显示 items.length。
+   10-24：题干高频词（qstem）50 章，组名要显示「535次及以上」「47~70次」这类频次区间 ——
+   词包里带了 meta.chapters（idx→name），有就优先用它，没有就退回「第 N 组」。 */
 function groupBySl(list){
   const buckets = {};
   list.forEach(w => { const s = Number(w.sl) || 10; (buckets[s] || (buckets[s] = [])).push(w); });
+  /* 取当前活动词包的 chapters 映射（仅官方包有；custom 不走到这） */
+  let chName = null;
+  try{
+    const id = (typeof OB_BANKS !== 'undefined' && typeof wbActive === 'function') ? wbActive() : '';
+    if(id && id !== 'custom' && window.__OB && window.__OB.banks && window.__OB.banks[id]){
+      const meta = window.__OB.banks[id].meta;
+      if(meta && Array.isArray(meta.chapters)){
+        chName = {};
+        meta.chapters.forEach(c => { chName[c.idx] = c.name; });
+      }
+    }
+  }catch(e){ chName = null; }
   return Object.keys(buckets).map(Number).sort((a,b) => a-b).map(s => ({
     key: 's' + s,
-    name: '第 ' + s + ' 组' + (s === 1 ? '・最高频' : ''),
+    name: (chName && chName[s]) ? chName[s] : ('第 ' + s + ' 组' + (s === 1 ? '・最高频' : '')),
     items: buckets[s]
   }));
 }

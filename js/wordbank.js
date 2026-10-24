@@ -14,7 +14,11 @@
   // 官方词包注册表：以后加第二个官方包在这里追加一行即可（本任务只做 awl）。
   // v = 词包版本（与 json 内 meta.version 保持一致），进 fetch URL 做缓存击穿。
   var OB_BANKS = [
-    { id: 'awl', file: 'data/official-banks/awl.json', v: '20260921a', tag: 'AWL', total: 570 }
+    { id: 'awl', file: 'data/official-banks/awl.json', v: '20260921a', tag: 'AWL', total: 570 },
+    /* 10-24：题干高频词（她 18:0x 提供 outputs/雅思题干高频词_按频次分档.xlsx，2779 词）。
+       数据来源 = 本站 627 篇真题（听力 347 + 阅读 280 / 7202 题）的**题目文字**统计，
+       不是原文词表 —— 衡量「读懂题目要认得哪些词」。按出现次数从高到低切 50 章（每章 56 词）。 */
+    { id: 'qstem', file: 'data/official-banks/qstem.json', v: '20261024a', tag: '题干高频', total: 2779 }
   ];
 
   var OB_KEY = 'ielts_hub_obank_v1';
@@ -174,7 +178,15 @@
               cn: String(w.cn || ''),
               pos: String(w.pos || ''),
               ipa: String(w.ipa || ''),
-              sl: Math.min(10, Math.max(1, Number(w.sl) || 10))
+              /* 🔴 10-24 修：原来是 Math.min(10, ...) —— 把 sl 硬夹在 1~10。
+                 那是为 AWL 的 10 个 sublist 写死的；题干高频词有 50 章 →
+                 第 11 章之后的词全被折进第 10 组，50 章只剩 10 组。
+                 改成从 meta.chapters 取上限（没有 chapters 的词包仍按 10 兜底）。 */
+              sl: (function(){
+                var n = Number(w.sl) || 1;
+                var max = (meta && Array.isArray(meta.chapters) && meta.chapters.length) ? meta.chapters.length : 10;
+                return Math.min(max, Math.max(1, n));
+              })()
             };
             _applyProg(obj, id);
             return obj;
