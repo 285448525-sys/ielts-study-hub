@@ -29,8 +29,8 @@
 })();
 </script>
 <title>计划 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261024s" />
-<link rel="stylesheet" href="css/p/plans.css?v=20261024s" />
+<link rel="stylesheet" href="css/common.css?v=20261024u" />
+<link rel="stylesheet" href="css/p/plans.css?v=20261024u" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -41,13 +41,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20261023b"></script>
-  <script defer src="js/common.js?v=20261024s"></script>
-  <script defer src="js/common-ai.js?v=20261024s"></script>
-  <script defer src="js/common-sync.js?v=20261024s"></script>
-  <script defer src="js/common-merge.js?v=20261024s"></script>
-  <script defer src="js/common-cloud.js?v=20261024s"></script>
-  <script defer src="js/common-shell.js?v=20261024s"></script>
-  <script defer src="js/common-pwa.js?v=20261024s"></script>
+  <script defer src="js/common.js?v=20261024u"></script>
+  <script defer src="js/common-ai.js?v=20261024u"></script>
+  <script defer src="js/common-sync.js?v=20261024u"></script>
+  <script defer src="js/common-merge.js?v=20261024u"></script>
+  <script defer src="js/common-cloud.js?v=20261024u"></script>
+  <script defer src="js/common-shell.js?v=20261024u"></script>
+  <script defer src="js/common-pwa.js?v=20261024u"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
   <script src="js/plans.js?v=20261024b" defer></script>
 <style id="bootLoaderStyle">
@@ -562,7 +562,70 @@
 
   <!-- Tab 1 今天（P-1：原「今日」+ 原「历史」合并；备考诊断改成本页下端固定入口卡） -->
   <div class="tab-panel active" id="ptabToday">
-  <section class="card">
+  <div class="m-page">
+    <!-- ══════════════════════════════════════════════════════════
+         P-1R（10-24）计划页 1:1 重做 · 第一批：静态骨架
+         ══════════════════════════════════════════════════════════
+         数据全是写死的假值（3/7、9 天、那些任务名），下一批 P-1R2 才接真数据。
+         ⚠️ 已按施工书 §3.3 摘掉浏览器外壳：
+           · .m-mk-shell（灰底 #eef0f0 + 16px 边距）
+           · .m-mk-top（三个圆点 + 假地址栏「yasihub.com / 计划」）
+         这两个是效果稿的浏览器外框，真页面上不要。
+         ⚠️ 类名 m- 一个都不许改，样式全在 css/p/plans.css 末尾。 -->
+    <div class="m-mk" id="mkToday">
+
+      <div class="m-mk-top"><i class="m-dot"></i><i class="m-dot"></i><i class="m-dot"></i>
+        <span class="m-nm">yasihub.com / 计划</span><span class="m-sh">桌面：分栏走顶栏悬停</span></div>
+      <div class="m-mk-body">
+        <div class="m-pg-head"><h3>计划</h3><span class="m-hint">今天做什么，回头看练了多少</span></div>
+
+        <div class="m-phase">
+          <span class="m-chip">冲刺期</span>
+          <span>距考试 <b>9</b> 天 · 倒数第 2 周</span>
+          <span style="margin-left:auto">本周重点：<b>听力 · 口语</b></span>
+        </div>
+
+        <div class="m-mcard">
+          <h4>今天 <span class="m-r">10-24 · 周五 · <span style="color:var(--p600);font-weight:650">‹ 前后翻天 ›</span></span></h4>
+          <div class="m-head-row">
+            <div><div class="m-bigq">3<small>/7</small></div></div>
+            <div class="m-sublab">已完成<br>还剩 4 条</div>
+          </div>
+          <div class="m-bar"><i style="width:43%"></i></div>
+        </div>
+
+        <div class="m-mcard">
+          <h4>今天的任务 <span class="m-r">↻ 其中 2 条是昨天没做完自动挪过来的</span></h4>
+          <div class="m-task m-done"><span class="m-cb"></span><span class="m-t">背词：List 7 复习</span><span class="m-tagline">单词</span></div>
+          <div class="m-task m-done"><span class="m-cb"></span><span class="m-t">听力 P1 精听一篇</span><span class="m-tagline">听力</span><span class="m-jmp">去练 →</span></div>
+          <div class="m-task"><span class="m-cb"></span><span class="m-t">口语 P2 卡牌练 3 张</span><span class="m-tagline">口语</span><span class="m-jmp">去练 →</span></div>
+          <div class="m-task"><span class="m-cb"></span><span class="m-t">写作 Task 1 图表一篇</span><span class="m-tagline">写作</span><span class="m-jmp">去练 →</span></div>
+          <div class="m-addrow"><span class="m-plus">+</span>写一条，或让 AI 安排今天</div>
+        </div>
+
+        <div class="m-dg">
+          <div class="m-dgh">
+            <span class="m-ic">🎯</span>
+            <div>
+              <div class="m-ttl">备考诊断</div>
+              <div style="font-size:12px;color:var(--muted)">还没做过 · 3 分钟看清离目标多远</div>
+            </div>
+            <span class="m-meta">不掺进日期流里</span>
+          </div>
+          <p>这份只在你要重排计划时做一次，做完会马上向你过去几并显示这周还差多少。</p>
+          <div class="m-row">
+            <button class="m-btn m-pri">开始诊断</button>
+            <button class="m-btn">跳过，用默认值</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /.m-page (今天) -->
+
+  <!-- 🔴 P-1R：旧的「今天的计划」卡片整块隐藏（节点一个都没删）。
+       #planList / #planDate / #addPlan / #aiPlan / #planProgress / #rbBar / #rbStale
+       全都还被 js/plans.js 用着，删了 P-1R2 没法接数据。 -->
+  <section class="card" hidden>
     <div class="card-head">
       <h2>今天的计划</h2>
       <span class="badge" id="planCount">0 / 0</span>
@@ -631,7 +694,52 @@
 
   <!-- Tab 2 往日（P-1：原「历史」栏，内容原样未动，只换 tab 值与选中判定） -->
   <div class="tab-panel" id="ptabHistory">
-  <section class="card">
+  <div class="m-page">
+    <div class="m-mk" id="mkPast">
+
+      <div class="m-mk-top"><i class="m-dot"></i><i class="m-dot"></i><i class="m-dot"></i>
+        <span class="m-nm">yasihub.com / 计划</span><span class="m-sh">桌面：分栏走顶栏悬停</span></div>
+      <div class="m-mk-body">
+        <div class="m-pg-head"><h3>计划</h3><span class="m-hint">今天做什么，回头看练了多少</span></div>
+
+        <div class="m-mcard">
+          <h4>往日一览 <span class="m-r">共 12 天有记录 · 平均完成 68%</span></h4>
+          <div class="m-days">
+            <div class="m-day m-full">
+              <div class="m-dh"><span class="m-dd">23</span><span class="m-dm">10 月 · 周四</span></div>
+              <div class="m-db"><i style="width:100%"></i></div>
+              <div class="m-df"><span>全部完成</span><span>6/6</span></div>
+            </div>
+            <div class="m-day">
+              <div class="m-dh"><span class="m-dd">22</span><span class="m-dm">10 月 · 周三</span></div>
+              <div class="m-db"><i style="width:80%"></i></div>
+              <div class="m-df"><span>4/5</span><span>80%</span></div>
+            </div>
+            <div class="m-day">
+              <div class="m-dh"><span class="m-dd">21</span><span class="m-dm">10 月 · 周二</span></div>
+              <div class="m-db"><i style="width:57%"></i></div>
+              <div class="m-df"><span>4/7</span><span>57%</span></div>
+            </div>
+            <div class="m-day">
+              <div class="m-dh"><span class="m-dd">20</span><span class="m-dm">10 月 · 周一</span></div>
+              <div class="m-db"><i style="width:33%"></i></div>
+              <div class="m-df"><span>2/6</span><span>33%</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="m-mcard">
+          <h4>点开某天能做什么</h4>
+          <p style="margin:0;font-size:13px;color:var(--ink2);line-height:1.7">
+            卡片点开 → 当天明细一览；右上角「编辑这天」→<b>直接跳回「今天」页并把日期切到那天</b>，一条不多一条不少地沿用现在的做法。
+          </p>
+        </div>
+      </div>
+    </div>
+  </div><!-- /.m-page (往日) -->
+
+  <!-- 🔴 P-1R：旧的「往日」卡片整块隐藏（节点保留，#histPlans 还被 plans.js 用着）。 -->
+  <section class="card" hidden>
     <div id="histPlans"></div>
   </section>
   </div>
