@@ -18,7 +18,13 @@
     /* 10-24：题干高频词（她 18:0x 提供 outputs/雅思题干高频词_按频次分档.xlsx，2779 词）。
        数据来源 = 本站 627 篇真题（听力 347 + 阅读 280 / 7202 题）的**题目文字**统计，
        不是原文词表 —— 衡量「读懂题目要认得哪些词」。按出现次数从高到低切 50 章（每章 56 词）。 */
-    { id: 'qstem', file: 'data/official-banks/qstem.json', v: '20261024a', tag: '题干高频', total: 2779 }
+    { id: 'qstem', file: 'data/official-banks/qstem.json', v: '20261024a', tag: '题干高频', total: 2779 },
+    /* 10-24：另外四本（她 18:2x「把剩余几个表格全放到我的词书里面去，记住是自动自带我官方的词书」）。
+       全部来自 outputs/雅思词表汇总_五合一.xlsx 的 4 个页签，同一套「每章约 56 词、按出现次数从高到低」的切法。 */
+    { id: 'rdtext', file: 'data/official-banks/rdtext.json', v: '20261024b', tag: '阅读原文', total: 2651 },
+    { id: 'lstext', file: 'data/official-banks/lstext.json', v: '20261024b', tag: '听力原文', total: 1738 },
+    { id: 'lstans', file: 'data/official-banks/lstans.json', v: '20261024b', tag: '听力答案', total: 160 },
+    { id: 'phr',    file: 'data/official-banks/phr.json',    v: '20261024b', tag: '高频词组', total: 2256 }
   ];
 
   var OB_KEY = 'ielts_hub_obank_v1';
