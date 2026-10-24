@@ -1419,6 +1419,16 @@ window.__reportExamState = reportExamState;
   /* 底栏箭头图标（与全屏键同款 stroke 风格，1.9 粗、圆头） */
   /* 底栏箭头图标（与全屏键同款 stroke 风格）。⚠️ 用 function 声明而不是 var ——
      函数声明会提升，barHtml() 在任何位置调用都拿得到；上次写 var 渲染成 "undefined" 就是这么踩的。 */
+  /* 10-24 7-3：盲听遮罩用的眼睛图标（描边风格，与全屏/箭头一致） */
+  function icoEye(){
+    return '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.6"/></svg>';
+  }
+  function icoStar(){
+    return '<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M12 3.6l2.6 5.3 5.8.85-4.2 4.1 1 5.8-5.2-2.75L6.8 19.65l1-5.8-4.2-4.1 5.8-.85z"/></svg>';
+  }
+  function icoEyeOff(){
+    return '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4l16 16"/><path d="M9.6 6.3A9.7 9.7 0 0 1 12 6c6 0 9.5 6 9.5 6a17 17 0 0 1-3 3.7"/><path d="M6.2 8.2A16.6 16.6 0 0 0 2.5 12S6 18 12 18a9.4 9.4 0 0 0 3.4-.6"/></svg>';
+  }
   function icoArrow(dir){
     var d = dir < 0 ? 'M15 18l-6-6 6-6' : 'M9 18l6-6-6-6';
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + d + '"/></svg>';
@@ -1469,6 +1479,79 @@ window.__reportExamState = reportExamState;
     var _r0 = parseFloat(localStorage.getItem('hub_bank_rate'));
     if(isFinite(_r0) && _r0 >= RATE_MIN - 1e-9 && _r0 <= RATE_MAX + 1e-9) _audioRate = _r0;
   }catch(e){}
+
+  /* ===== 10-24 7-3 · 复盘态三件套（盲听优先 / 单句遍数 / 收藏星）=====
+     口径：全部只在「听力 + 已交卷」出现，考试态一律不给（考试态没有回退/重播这一说）。
+     存储全部走 localStorage（本机），不碰 DATA → 不参与云端同步，也不影响判分。 */
+  var REPEAT_KEY = 'hub_bank_repeat';
+  var STAR_KEY   = 'hub_bank_stars';
+  var BLIND_KEY  = 'hub_bank_blind';
+  var _audioRepeat = 1;
+  try{
+    var _p0 = parseInt(localStorage.getItem(REPEAT_KEY), 10);
+    if(_p0 === 1 || _p0 === 2 || _p0 === 3) _audioRepeat = _p0;
+  }catch(e){}
+  function repeatOptions(){
+    var s = '', i;
+    for(i = 1; i <= 3; i++){
+      s += '<option value="' + i + '"' + (i === _audioRepeat ? ' selected' : '') + '>' + i + ' 遍</option>';
+    }
+    return s;
+  }
+  function setRepeat(n){
+    if(n !== 1 && n !== 2 && n !== 3) return;
+    _audioRepeat = n;
+    try{ localStorage.setItem(REPEAT_KEY, String(n)); }catch(e){}
+    var sel = document.getElementById('eaRepeat');
+    if(sel && sel.value !== String(n)) sel.value = String(n);
+  }
+  /* 收藏：按 unitId + 句索引存，一篇一张星图；结构 { "<unitId>": [i0,i2,...] } */
+  function starStore(){
+    try{ return JSON.parse(localStorage.getItem(STAR_KEY) || '{}') || {}; }catch(e){ return {}; }
+  }
+  function saveStarStore(o){ try{ localStorage.setItem(STAR_KEY, JSON.stringify(o)); }catch(e){} }
+  function unitIdOf(){ return EX && EX.ids ? EX.ids[EX.curP || 0] : (EX && EX.unit && EX.unit.id); }
+  function starsOf(){
+    var id = unitIdOf(); if(!id) return {};
+    var o = starStore(), a = o[id];
+    if(!a || !a.length) return {};
+    var m = {}; a.forEach(function(i){ m[i] = 1; });
+    return m;
+  }
+  function isStarred(i){ return !!starsOf()[i]; }
+  function toggleStar(i){
+    var id = unitIdOf(); if(!id) return false;
+    var o = starStore(), a = o[id] || [], k = a.indexOf(i), now;
+    if(k >= 0){ a.splice(k, 1); now = false; }
+    else { a.push(i); now = true; }
+    a.sort(function(x, y){ return x - y; });
+    if(a.length) o[id] = a; else delete o[id];
+    saveStarStore(o);
+    paintStarCount();
+    return now;
+  }
+  /* 10-24 7-3：盲听开关的两个按钮是同一枚硬币的两面 —— 统一在这里切，
+     杜绝「只藏自己不亮对面」的半截状态（那样按钮会一起消失，她就回不来了）。
+     blind=true：原文藏起 → 亮「显示原文」；false：原文可见 → 亮「收起」。 */
+  function setBlindBtns(blind){
+    var bar = document.getElementById('exAudioBar');
+    if(!bar) return;
+    var bRev = bar.querySelector('[data-screveal]');
+    var bHid = bar.querySelector('[data-schide]');
+    if(bRev) bRev.hidden = !blind;
+    if(bHid) bHid.hidden = !!blind;
+  }
+  /* 「已收藏 N 句」：挂在原文区底部那一行，换篇/重进都实时重算 */
+  function paintStarCount(){
+    var el = document.getElementById('scStarCount');
+    if(!el) return;
+    var a = starStore()[unitIdOf()] || [];
+    el.textContent = '已收藏 ' + a.length + ' 句';
+    el.hidden = a.length === 0;
+  }
+  /* 盲听优先：一次决定跨刷新（她不会再被同一个遮罩烦第二次） */
+  function blindRevealed(){ try{ return localStorage.getItem(BLIND_KEY) === '1'; }catch(e){ return false; } }
+  function markBlindRevealed(){ try{ localStorage.setItem(BLIND_KEY, '1'); }catch(e){} }
   function fmtClock(s){ if(!isFinite(s) || s < 0) s = 0; var m = Math.floor(s / 60), x = Math.floor(s % 60); return (m < 10 ? '0' : '') + m + ':' + (x < 10 ? '0' : '') + x; }
   function listenPart(){
     var parts = (EX && EX.unit && EX.unit.parts) || [];
@@ -1505,7 +1588,19 @@ window.__reportExamState = reportExamState;
       +   '<i class="ea-knob" id="eaKnob" style="left:0%"></i>'
       + '</div>'
       + '<span class="ea-time" id="eaTime">00:00 / 00:00</span>'
-      + '<select class="ea-rate" id="eaRate" aria-label="Speed" title="Speed">' + rateOptions() + '</select>';
+      + '<select class="ea-rate" id="eaRate" aria-label="Speed" title="Speed">' + rateOptions() + '</select>'
+      /* 10-24 7-3：单句遍数（复盘态专属）。放在倍速右边 —— 二者是同一类「抠句子」参数，
+         挨着才看得出可叠加；CSS 在考试/未交卷时藏掉（见 bank.html 的 .ea-repeat 段）。 */
+      + '<span class="ea-repeat" id="eaRepeatWrap" title="点句子时这一句播几遍">'
+      +   '<span class="ea-repeat-lb">单句</span>'
+      +   '<select class="ea-rate ea-repeat-sel" id="eaRepeat" aria-label="单句播放遍数" title="单句播放遍数">' + repeatOptions() + '</select>'
+      + '</span>'
+      /* 10-24 7-3：复盘态「显示/收起原文」入口挂在音频条（sticky，永远够得着）。
+         盲听遮罩出现时「显示原文」亮起；揭开过一次就换成「收起」。 */
+      + '<button class="ea-ico ea-blind-btn" type="button" data-screveal hidden'
+      +   ' title="显示原文" aria-label="显示原文">' + icoEye() + '</button>'
+      + '<button class="ea-ico ea-blind-btn" type="button" data-schide hidden'
+      +   ' title="收起原文，回到盲听" aria-label="收起原文，回到盲听">' + icoEyeOff() + '</button>';
     return '<div class="ex-audio' + (exam ? ' locked' : '') + '" id="exAudioBar">'
       + '<span class="ea-label" id="eaLabel" hidden>Audio is Playing</span>'
       + partChip
@@ -1748,7 +1843,26 @@ window.__reportExamState = reportExamState;
       }
     });
     a.addEventListener('pause', paintAudio);
-    a.addEventListener('ended', paintAudio);
+    /* 10-24 7-3：单句遍数续播 —— 播放自然结束后补下一遍。
+       只在「复盘态 + 还有遍数 + 还是起点那一句」时续；任何一条不满足就清状态。
+       ⚠️ 不在这里判断是否交卷之外的场景：遍数只在复盘态选过一次才非 1。 */
+    a.addEventListener('ended', function(){
+      paintAudio();
+      if(_repeatLeft > 0 && _repeatFrom != null && EX && EX.submitted && EX.channel === 'listening'){
+        var rows = document.querySelectorAll('#examRoot .ex-script .sc-body.sc-tl .sc-line');
+        var el = rows && rows.length ? rows[parseInt(_repeatFrom, 10)] : null;
+        if(el){
+          var st = parseFloat(el.getAttribute('data-t'));
+          if(isFinite(st)){
+            try{ a.currentTime = st; }catch(e){}
+            _repeatLeft--;
+            try{ a.play(); }catch(e){}
+            return;
+          }
+        }
+      }
+      _repeatLeft = 0; _repeatFrom = null;
+    });
     /* 🔵 10-23 3-1：进度条拖动（练习模式）
        点击已经在事件委托里走 audioSeek；这里补「按住拖动」——
        pointerdown 起拖 → pointermove 实时改 currentTime → pointerup 结束。
@@ -1822,6 +1936,8 @@ window.__reportExamState = reportExamState;
     var r = bar.getBoundingClientRect();
     var pct = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
     a.currentTime = pct * a.duration;
+    /* 10-24 7-3：手动拖了进度条 = 明确不想被「连播 N 遍」纠缠 → 作废续播 */
+    _repeatLeft = 0; _repeatFrom = null;
     /* 拖动即时反馈（不等 timeupdate，手感才跟得上） */
     var fill = document.getElementById('eaFill'), knob = document.getElementById('eaKnob');
     if(fill) fill.style.width = (pct * 100) + '%';
@@ -1863,6 +1979,10 @@ window.__reportExamState = reportExamState;
       }
     }
     audioSetMode(false);
+    /* 10-24 7-3：复盘态必须能直接听 —— 交卷后「点 Play 才进」那层音频遮罩要撤掉。
+       此前只有切篇/换 Part 的两条路径（2251 / 2470）撤过它，**直接交卷这条路径从来没撤**
+       → 她交完卷看到的是一块黑底遮罩挡在最上面，「显示原文」按钮被它盖住点不到。 */
+    hideAudioGate();
     var bar = document.getElementById('exAudioBar');
     if(bar){
       var b = bar.querySelector('[data-amode]');
@@ -1874,9 +1994,54 @@ window.__reportExamState = reportExamState;
       bar.classList.add('review');
       var rt2 = bar.querySelector('.ea-rate');
       if(rt2){ rt2.style.display = ''; rt2.disabled = false; }
+      /* 10-24 7-3：复盘态才让「显示/收起原文」两个按钮现身。
+         未揭开过 → 显示「显示原文」（data-screveal）亮着；揭开过 → 亮「收起」。
+         audioBarHtml 里两个按钮都带 hidden，这里按状态显。 */
+      var bRev = bar.querySelector('[data-screveal]');
+      var bHid = bar.querySelector('[data-schide]');
+      if(bRev) bRev.hidden = blindRevealed();
+      if(bHid) bHid.hidden = !blindRevealed();
+      /* 若这次是「收起」状态（mountBlindCover 之前就挂了遮罩），两个按钮要跟着当前状态 */
+      var inner0 = document.getElementById('exListenIn');
+      if(inner0 && inner0.hasAttribute('data-blind')) setBlindBtns(true);
     }
+    /* 10-24 7-3：盲听优先遮罩 —— 只在「没揭开过」时挂，且只挂在有时间轴的篇
+       （没时间轴仍是整段 <p>，遮罩没有意义：那里本来就没有逐句回听）。 */
+    mountBlindCover();
     /* 3-4：时间轴到了就把原文换成可点句子条 */
     mountScriptTimeline();
+  }
+
+  /* ===== 10-24 7-3 · 盲听优先遮罩 =====
+     形态：原文区被一层卡片挡住，中间一个大按钮「点击显示原文」。
+     口径：① 只在复盘态第一次进这篇时挡（揭开过一次 → 记住，跨刷新不再挡）
+          ② 遮罩期间音频条照常可用（可以整段播 —— 遮的是字不是声）
+          ③ 揭开后可以随时「收起原文，回到盲听」再听一遍 */
+  /* 只管「按当前 data-blind 属性画卡片」—— 决策（要不要挡）不在这里，
+     这样「收起」走的是同一条渲染路径，不会出现「属性设了但卡片没画出来」的半截状态。 */
+  function renderBlindCard(){
+    var inner = document.getElementById('exListenIn'); if(!inner) return;
+    var old = inner.querySelector('.sc-blind');
+    if(old) old.remove();
+    if(!inner.hasAttribute('data-blind')) return;
+    var d = document.createElement('div');
+    d.className = 'sc-blind';
+    d.innerHTML = '<button class="sc-blind-btn" type="button" data-screveal>'
+      + icoEye() + '<span>点击显示原文</span></button>'
+      + '<p class="sc-blind-tip">先听一遍，不看字。听完再点开原文，对着刚没听清的地方逐句回听。</p>'
+      + '<p class="sc-blind-tip2" id="scBlindTip2"></p>';
+    inner.appendChild(d);
+  }
+  function mountBlindCover(){
+    var inner = document.getElementById('exListenIn'); if(!inner) return;
+    /* 已经手动收起过 → 尊重当前状态，不要再按「揭开过」把它翻回来 */
+    if(inner.hasAttribute('data-blind')){ renderBlindCard(); return; }
+    /* 揭开过 → 不挡；没有句子条 → 不挡（整段原文，遮了没意义） */
+    if(blindRevealed()){ inner.removeAttribute('data-blind'); renderBlindCard(); return; }
+    if(!inner.querySelector('.ex-script .sc-body.sc-tl')) return;
+    inner.setAttribute('data-blind', '1');
+    renderBlindCard();
+    setBlindBtns(true);
   }
 
   /* ===== 3-4 复盘句子条 =====
@@ -1888,6 +2053,10 @@ window.__reportExamState = reportExamState;
        ④ 当前句判定：start <= t < 下一句 start。句间空档（官方报幕/看题时间）保留上一句高亮，
           不清空 —— 否则播到报幕处句子条会闪一下没有当前句 */
   var _stLines = null, _stBound = null;
+  /* 10-24 7-3：单句遍数的续播状态。_repeatFrom = 从哪句开始（data-i），
+     _repeatLeft = 还要补播几遍；中途点了别的句子或拖了进度条就清掉。 */
+  var _repeatLeft = 0, _repeatFrom = null;
+  function starred(i){ return isStarred(i); }
   function scriptTimelineUrl(unitId){
     return 'bank/timeline/' + unitId + '.json';
   }
@@ -1941,20 +2110,56 @@ window.__reportExamState = reportExamState;
              + (qs ? ' data-q="' + qs.join(',') + '"' : '') + '>'
              + '<i class="sc-t">' + fmtClock(l.start) + '</i>'
              + badge
-             + '<span class="sc-tx">' + esc(l.text || '') + '</span></p>';
+             + '<span class="sc-tx">' + esc(l.text || '') + '</span>'
+             /* 10-24 7-3：每句收藏星 —— 只读态也能点（点星不触发跳播，见下面 stopPropagation） */
+             + '<button class="sc-star" type="button" data-star="' + i + '" aria-pressed="' + (starred(i) ? 'true' : 'false') + '"'
+             +   ' title="' + (starred(i) ? '取消收藏' : '收藏这句') + '" aria-label="' + (starred(i) ? '取消收藏' : '收藏这句') + '">' + icoStar() + '</button>'
+             + '</p>';
       }).join('');
       /* 事件：点句子 → 跳到这句开头并播（复听场景，点就是想听这句） */
       if(_stBound !== box){
         _stBound = box;
         box.addEventListener('click', function(ev){
+          /* 10-24 7-3：点星 = 只收藏，不跳播（点它是为了记住这句，不是想听这句） */
+          var starBtn = ev.target.closest && ev.target.closest('[data-star]');
+          if(starBtn){
+            ev.stopPropagation();
+            var si = parseInt(starBtn.getAttribute('data-star'), 10);
+            if(!isFinite(si)) return;
+            var now = toggleStar(si);
+            starBtn.setAttribute('aria-pressed', now ? 'true' : 'false');
+            starBtn.setAttribute('title', now ? '取消收藏' : '收藏这句');
+            starBtn.setAttribute('aria-label', now ? '取消收藏' : '收藏这句');
+            return;
+          }
           var el = ev.target.closest && ev.target.closest('.sc-line'); if(!el) return;
           var st = parseFloat(el.getAttribute('data-t'));
           if(!isFinite(st)) return;
           try{ a.currentTime = st; }catch(e){}
+          /* 10-24 7-3：单句遍数 > 1 时这句要连播 N 遍 —— 用 ended 事件续播，不轮询。
+             ⚠️ 只记「从哪句开始 + 还要播几遍」；中途手点别的句子/拖进度条就作废。 */
+          if(_audioRepeat > 1){
+            _repeatLeft = _audioRepeat - 1;
+            _repeatFrom = el.getAttribute('data-i');
+          } else {
+            _repeatLeft = 0; _repeatFrom = null;
+          }
           try{ a.play(); }catch(e){}
           paint();
         });
       }
+      /* 10-24 7-3：「已收藏 N 句」挂在句子条后面（换篇会跟着重算，因为 render 会重建 innerHTML） */
+      var cnt = document.getElementById('scStarCount');
+      if(!cnt){
+        cnt = document.createElement('p');
+        cnt.className = 'sc-star-count';
+        cnt.id = 'scStarCount';
+        box.appendChild(cnt);
+      }
+      paintStarCount();
+      /* 10-24 7-3：句子条是异步 fetch 回来才有的 —— 遮罩要等它就位再挂，
+         否则 showScript 那次调用会因找不到 .sc-tl 而静默跳过（她就不会看到盲听层）。 */
+      mountBlindCover();
       paint();
     };
 
@@ -3977,6 +4182,27 @@ window.__reportExamState = reportExamState;
         return;
       }
       if(t.closest && t.closest('#exAudioBar [data-amode]')){ audioToggleMode(); return; }
+      /* 10-24 7-3：复盘态「收起原文，回到盲听」—— 只作用于当前这一篇的复盘区。
+         ⚠️ 两个按钮必须成对切换：这一组是同一个开关的两面，
+           只藏自己不亮对面 = 收起后按钮全没了，她想看回来就没路了。 */
+      if(t.closest && t.closest('[data-schide]')){
+        var host = document.getElementById('exListenIn');
+        if(host){
+          host.setAttribute('data-blind', '1');
+          renderBlindCard();
+          setBlindBtns(true);
+        }
+        return;
+      }
+      /* 10-24 7-3：盲听遮罩里的「点击显示原文」—— 揭开即记住（这个决定跨刷新） */
+      if(t.closest && t.closest('[data-screveal]')){
+        var host2 = document.getElementById('exListenIn');
+        if(host2) host2.removeAttribute('data-blind');
+        renderBlindCard();
+        setBlindBtns(false);
+        markBlindRevealed();
+        return;
+      }
       if((el = t.closest && t.closest('#examRoot [data-avol]'))){
         _audioMuted = !_audioMuted;
         var au = document.getElementById('exAudio');
@@ -4060,6 +4286,13 @@ window.__reportExamState = reportExamState;
       /* 10/20：倍速 <select>（id=eaRate）—— 选了立刻生效，不必点别处 */
       if(t.id === 'eaRate'){
         setRate(t.value);
+        return;
+      }
+      /* 10-24 7-3：单句遍数 <select>（id=eaRepeat）—— 复盘态专属，跨篇/跨场记忆。
+         ⚠️ 只在复盘态存在（audioBarHtml 里恒渲染、CSS 在考试/未交卷时藏），
+         与倍速可叠加；选 1 遍 = 关掉（等于原来的行为）。 */
+      if(t.id === 'eaRepeat'){
+        setRepeat(parseInt(t.value, 10) || 1);
         return;
       }
       /* 听力音量：滑杆拖动实时生效 + 记住（两模式都可用 —— 真机考只有音量可控） */

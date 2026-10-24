@@ -18,8 +18,8 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>模考 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261024s" />
-<link rel="stylesheet" href="css/p/bank.css?v=20261024s" />
+<link rel="stylesheet" href="css/common.css?v=20261024u" />
+<link rel="stylesheet" href="css/p/bank.css?v=20261024u" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -1761,10 +1761,72 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 #examRoot.ct-yellow .ex-audio .ea-knob{background:#161616}
 #examRoot.ct-dark .ex-audio .ea-rate,
 #examRoot.ct-yellow .ex-audio .ea-rate{color:#f2f2f2;border-color:#5a5f66}
-/* 音频失败提示挤压播放控制（实测：`.ea-err` 是 flex:none + 长文案 → 能占 675px，
-   把新加的进度条/倍速全挤成一小截）→ 让它可收缩 + 省略号，播放控制优先保位。 */
+ /* 音频失败提示挤压播放控制（实测：`.ea-err` 是 flex:none + 长文案 → 能占 675px，
+    把新加的进度条/倍速全挤成一小截）→ 让它可收缩 + 省略号，播放控制优先保位。 */
 #examRoot .ex-audio .ea-err{flex:0 1 auto;min-width:0;max-width:38%;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ===== 10-24 7-3 · 复盘态三件套（盲听优先 / 单句遍数 / 收藏星）=====
+   铁律：**只在复盘态可见**。考试态（.locked）与未交卷一律 display:none ——
+   真机考没有「重复播放 / 收藏句子」这一说，多一个入口都是口径破裂。 */
+/* ② 单句遍数：文字标签 + 窄一档的 select（比倍速窄，视觉上从属于倍速） */
+#examRoot .ex-audio .ea-repeat{display:none;align-items:center;gap:5px;flex:none}
+#examRoot .ex-audio .ea-repeat-lb{font-size:11.5px;color:var(--muted);white-space:nowrap}
+#examRoot .ex-audio .ea-repeat-sel{width:58px;padding-left:6px;padding-right:18px;
+  background-size:10px 10px;background-position:right 4px center}
+/* 复盘态才亮（showScript 加 .review；考试态 .locked 已在上面整组藏掉） */
+#examRoot .ex-audio.review .ea-repeat{display:flex}
+/* 未交卷的练习态也不给（复盘三件套是「交卷后精听」专属，别提前泄露） */
+#examRoot .ex-audio:not(.review) .ea-repeat{display:none}
+/* ③ 显示/收起原文的两个眼睛按钮（同一族，复用 .ea-rate 的视觉规格） */
+#examRoot .ex-audio .ea-blind-btn{display:none;flex:none;width:30px;height:26px;border:1px solid var(--line);
+  background:transparent;color:var(--muted);border-radius:7px;cursor:pointer;padding:0;
+  align-items:center;justify-content:center}
+#examRoot .ex-audio .ea-blind-btn:hover{border-color:var(--primary);color:var(--primary-text)}
+#examRoot .ex-audio.review .ea-blind-btn{display:inline-flex}
+/* 未交卷的练习态不给（同上） */
+#examRoot .ex-audio:not(.review) .ea-blind-btn{display:none}
+/* ① 盲听遮罩：挡在原文区上，卡片式居中；遮的是字不是声（音频条照常可用） */
+.ex-listen-in[data-blind="1"] .ex-script{display:none}
+.ex-listen-in .sc-blind{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:14px;text-align:center;padding:52px 20px 46px;margin:14px 0 0;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg,14px)}
+.ex-listen-in[data-blind="1"] .sc-blind{display:flex}
+.ex-listen-in:not([data-blind="1"]) .sc-blind{display:none}
+.ex-listen-in .sc-blind-btn{display:inline-flex;align-items:center;gap:9px;
+  border:1px solid var(--primary-200);background:var(--primary-50);color:var(--primary-text);
+  font:inherit;font-size:15px;font-weight:700;padding:13px 24px;border-radius:12px;cursor:pointer}
+.ex-listen-in .sc-blind-btn:hover{background:var(--primary-100);border-color:var(--primary)}
+.ex-listen-in .sc-blind-btn:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.ex-listen-in .sc-blind-tip{margin:0;font-size:13.5px;line-height:1.8;color:var(--muted);max-width:430px}
+.ex-listen-in .sc-blind-tip2{margin:0;font-size:12.5px;color:var(--muted);opacity:.85}
+/* ③ 每句收藏星：默认低存在感（灰），收藏后填色；点它不跳播（JS 里 stopPropagation） */
+.ex-script .sc-line .sc-star{flex:none;width:24px;height:24px;border:0;background:transparent;
+  color:var(--line);cursor:pointer;padding:0;border-radius:6px;
+  display:inline-flex;align-items:center;justify-content:center;transition:color .12s}
+.ex-script .sc-line .sc-star:hover{color:var(--primary-200);background:var(--primary-50)}
+.ex-script .sc-line .sc-star:focus-visible{outline:2px solid var(--primary);outline-offset:-1px}
+.ex-script .sc-line .sc-star[aria-pressed="true"]{color:#e8a92b}
+#examRoot.ct-dark .ex-script .sc-line .sc-star[aria-pressed="true"],
+#examRoot.ct-yellow .ex-script .sc-line .sc-star[aria-pressed="true"]{color:#f0b840}
+/* 「已收藏 N 句」：原文区底部一行（JS 里挂 .sc-body 之后） */
+.ex-script .sc-star-count{margin:0;padding:8px 10px 2px;font-size:12px;color:var(--muted);text-align:right}
+/* 音频条多两个控件 → 860 以下先让遍数标签缩水，别挤掉进度条 */
+@media (max-width:860px){
+  #examRoot .ex-audio .ea-repeat-lb{display:none}
+  #examRoot .ex-audio .ea-repeat-sel{width:52px}
+}
+/* ≤560 手机：原本 7 个控件刚好一行（390 实测倍速右边缘 402 > 390 就在临界），
+   加了「单句遍数 + 两个眼睛键」后必然溢出（实测 scrollWidth 594 > 375）。
+   取舍：复盘态把「Audio is Playing」那行提示藏掉（它在音频条里只是个状态字，
+   手机上进度条+时间已经说明在播），腾出的 96px 正好装下新增的三个控件。
+   仍允许换行兜底：她若把系统字体放大，一行放不下时换行也不会横向溢出。 */
+@media (max-width:560px){
+  #examRoot .ex-audio.review .ea-label{display:none}
+  #examRoot .ex-audio.review{flex-wrap:wrap}
+  #examRoot .ex-audio.review .ea-bar{min-width:80px}
+  #examRoot .ex-audio .ea-blind-btn{width:28px;height:24px}
+}
 @media (max-width:860px){
   #examRoot .ex-audio{gap:8px;padding:8px 12px}
   #examRoot .ex-audio .ea-time{min-width:auto;font-size:11px}
@@ -2227,13 +2289,13 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
      （手机慢网 ~50KB/s → 约 1.5 秒）。加载时机：点开「写作」tab 时按序插入；
      首次 load 之后空闲再预热一次。承接代码在 js/bank.js 的 loadWritingScripts()。 -->
 <script defer src="js/data.js?v=20261023b"></script>
-<script defer src="js/common.js?v=20261024s"></script>
-<script defer src="js/common-ai.js?v=20261024s"></script>
-<script defer src="js/common-sync.js?v=20261024s"></script>
-<script defer src="js/common-merge.js?v=20261024s"></script>
-<script defer src="js/common-cloud.js?v=20261024s"></script>
-<script defer src="js/common-shell.js?v=20261024s"></script>
-<script defer src="js/common-pwa.js?v=20261024s"></script>
+<script defer src="js/common.js?v=20261024u"></script>
+<script defer src="js/common-ai.js?v=20261024u"></script>
+<script defer src="js/common-sync.js?v=20261024u"></script>
+<script defer src="js/common-merge.js?v=20261024u"></script>
+<script defer src="js/common-cloud.js?v=20261024u"></script>
+<script defer src="js/common-shell.js?v=20261024u"></script>
+<script defer src="js/common-pwa.js?v=20261024u"></script>
 <script defer src="js/bank.js?v=20261024b"></script>
 <!-- M-2（10-24）：模考页「没做过/做过」分组 + 展开更多。
      ⚠️ 本文件只做展示层（读 hub_bank_last_* 分组 + 首屏 20 条），判分/SRS/本地记录一律不碰；
