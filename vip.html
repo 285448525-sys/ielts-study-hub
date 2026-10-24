@@ -40,7 +40,7 @@ setTimeout(__rvRescue,2500);
   <script defer src="js/common-pwa.js?v=20261024u"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
   <script src="js/pricing.js?v=20261012a" defer></script>
-  <script src="js/vip.js?v=20261012a" defer></script>
+  <script src="js/vip.js?v=20261025e" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -141,20 +141,22 @@ setTimeout(__rvRescue,2500);
     <span class="kicker">Why · 先说清楚</span>
     <details class="why-fold">
       <summary>
-        <span class="why-lead"><b>学习功能全免费，会员只买 AI 额度</b> —— 因为每次批改 / 陪练都花真钱；7 天不满意全额退，数据随时导得走。</span>
+        <span class="why-lead"><b>学习功能全部免费，会员只买 AI 额度</b> —— 每次批改和陪练都要花钱调接口。7 天内不满意全额退。</span>
         <span class="why-more">为什么收费<span class="why-caret" aria-hidden="true"></span></span>
       </summary>
+      <!-- W-FREE-1（10-25）文案重写：她说「太拽了，写简单点」。
+           病根 = 把内心戏全写给用户看（「你可能在想」「说实在的就我一个人」「把话说明白」
+           「做不到的也说清楚」），还主动交代两句负资产（「能开多久」「没法承诺秒回」）。
+           改法 = 只留三件用户真想知道的事：免费的是什么 / 收费的是什么为什么收 / 不满意怎么办。
+           6 段 → 4 段，5 个加粗 → 3 个。7 天 / AI 额度这些既定口径一个没动。 -->
       <div class="why-body">
-        <p><b>你可能在想：这站能开多久？</b></p>
-        <p>说实在的：就我一个人在维护，没有公司，也没有融资。所以我把话说明白——</p>
+        <p><b>免费的</b>：词库、口语题库、作文、备考计划、回顾、计时、听写、长难句、云同步、数据导出。这些和会员完全一样，不会有变化。</p>
 
-        <p><b>你付的钱花在哪。</b>会员只有一样东西：AI 额度。每篇作文批改、每轮口语陪练，调一次接口就是一次真实费用。你付的就是这个。</p>
+        <p><b>收费的</b>：只有 AI 额度。作文批改、口语陪练、素材生成，每用一次都是真实的接口成本，所以这块按量收费。</p>
 
-        <p><b>不碰 AI 的功能，永久免费，也不会变。</b>词库、口语题库、备考计划、回顾、计时、听写、长难句、云同步、数据导出——这些和会员版一模一样。</p>
+        <p><b>两条保证</b>：① 开通 7 天内不满意，一句话全额退，不问原因；② 到期后数据一条不删，随时能导出带走。</p>
 
-        <p><b>两条保证，写在明面上。</b>① 开通 7 天内，AI 用得少，一句话全额退，不用解释原因；② 会员到期后学习数据一条不删，随时能导出带走。</p>
-
-        <p style="margin-bottom:0"><b>做不到的也说清楚。</b>只有我一个人，所以没法承诺秒回、也没法承诺永不离线。能承诺的是：你反馈的问题我会改，数据永远导得走。</p>
+        <p style="margin-bottom:0">有问题直接反馈，我会改。</p>
       </div>
     </details>
   </section>
