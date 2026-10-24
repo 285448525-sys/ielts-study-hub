@@ -3007,9 +3007,35 @@ function bindExam(){
     sf.innerHTML = opts;
     sf.value = 'all';
   };
-  if(f){ f.addEventListener('change', () => { updateSubOptions(); renderExamList(); }); }
+  /* M-3（10-24）：把两个 select 的选项同步成文字 chip。
+     🔴 筛选逻辑一行没动 —— select 还在 DOM 里（只是 hidden），chip 点击 = 写值 + 派 change，
+        下面那两行现有监听器原样跑（renderExamList / updateSubOptions 读的都是 select.value）。
+     每次 updateSubOptions 之后都要调一次（细分题型那排是动态的，大/小作文选项不同）。 */
+  const syncFilterChips = () => {
+    [['#examFilter', '#examFilterChips'], ['#examSubFilter', '#examSubFilterChips']].forEach(([selSel, chipSel]) => {
+      const sel = $(selSel), wrap = $(chipSel);
+      if(!sel || !wrap) return;
+      wrap.innerHTML = Array.from(sel.options).map(o =>
+        `<button type="button" class="wrt-chip${o.value === sel.value ? ' active' : ''}" data-v="${escapeHtml(o.value)}">${escapeHtml(o.textContent)}</button>`
+      ).join('');
+      /* 绑定：只绑一次（用 __m3Bound 标记，软导航重跑不叠加） */
+      if(!wrap.__m3Bound){
+        wrap.__m3Bound = true;
+        wrap.addEventListener('click', (e) => {
+          const b = e.target.closest('.wrt-chip');
+          if(!b) return;
+          e.preventDefault();
+          sel.value = b.dataset.v;
+          wrap.querySelectorAll('.wrt-chip').forEach(c => c.classList.toggle('active', c === b));
+          sel.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+      }
+    });
+  };
+  if(f){ f.addEventListener('change', () => { updateSubOptions(); syncFilterChips(); renderExamList(); }); }
   if(sf){ sf.addEventListener('change', renderExamList); }
   updateSubOptions();
+  syncFilterChips();
 
   const exitExam = () => {
     // 退出前自动保存草稿（仅当有内容）——9/30 抽成 examSaveDraft，停笔时也要存一份
