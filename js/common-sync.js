@@ -415,6 +415,25 @@ document.addEventListener('visibilitychange', () => {
   flushCloudUpload();
 });
 /* ===== 字段级合并（替代整份覆盖，避免双设备互相抹掉进度） ===== */
+/* ===== 🔴 D-2（10-24）同步字段「事实清单」分裂在两个文件里，各管一半 =====
+   本清单（SYNC_ARRAY_FIELDS）只覆盖走 `common-merge.js` 的 `_mergeArray()` **通用**逻辑的字段。
+   ⚠️ 另有 6 类在 `js/common-merge.js` 的 `mergeData()` 里**单独**合并 —— 它们不在这里，
+      但同样是跨设备同步的正式成员。只读本清单会误以为「单词不同步」（那可是全站最关键的同步数据）。
+
+   | 字段 | common-merge.js 里的合并函数 | 规则一句话 |
+   |---|---|---|
+   | `words`      | `_mergeWords()`      | 按 `en` 大小写不敏感，逐字段取「更掌握」的那份 |
+   | `plans`      | `_mergePlans()`      | 按 `date` + item `id` 取并集 |
+   | `checkins`   | （Set 去重）         | 日期字符串去重取并集 |
+   | `materials`  | `_mergeMaterials()`  | 素材卡按 `id` 取并集 |
+   | `coachMem`   | （上限 40）          | AI 陪练长期记忆按 `text` 取并集，最多 40 条 |
+   | `activeTimer`| `_mergeActiveTimer()`| 按 `timerId` + 心跳 `lastBeat` 取更新的那份 |
+
+   🔴 **加/改/删任何同步字段时，两个文件都要看**：在本清单加一项 ≠ 它就会被正确合并
+      （那 6 类各有专用规则，塞进 SYNC_ARRAY_FIELDS 走通用 `_mergeArray` 会破坏它们的规则、直接丢数据）；
+      反过来在 common-merge.js 新增专用合并，也要回来这里补一行注释，否则下一个人又会漏。
+   本段**只加注释**，一行逻辑都没动（那些专用合并逻辑是能跑的）。 */
+
 /* plans/checkins 已改为特判合并（_mergePlans / Set 去重），不在通用数组里 */
 /* 同步字段白名单（个人数据，跨设备合并）。
  * ⚠️ 写作模板(writing)仍是官方共享题集，不进同步（避免手动删模板被另一端覆盖）。

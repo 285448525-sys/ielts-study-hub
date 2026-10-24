@@ -29,7 +29,7 @@
 })();
 </script>
 <title>回顾 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261024e" />
+<link rel="stylesheet" href="css/common.css?v=20261024g" />
 <link rel="stylesheet" href="css/p/review.css?v=20261017a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
@@ -310,6 +310,51 @@
 #trendChart > div{overflow-x:auto;-webkit-overflow-scrolling:touch}
 .rv-trend-note{margin-top:8px;font-size:13px;color:var(--muted);line-height:1.6}
 
+/* ---- 3d. R-4 后半：三类成绩合一列 ----
+   设计稿：日期 · 小标签 · 摘要 · 分数 一行。色值全用本站 token，深色档挑有覆盖值的。
+   ⚠️ .rec-row 是**展示层**：删除/详情都转发到三个原列表里的现成按钮
+      （js/rec-all.js），本页没有第二套真相。 */
+.rv-recall-n{font-size:12px;font-weight:400}
+.rv-recall-chips{display:flex;gap:6px;flex-wrap:wrap}
+.rv-recall-chips .rvc{
+  border:1px solid var(--n-300);background:var(--surface);color:var(--muted);
+  font-size:12px;font-weight:600;padding:4px 11px;border-radius:999px;cursor:pointer;
+  transition:color .15s,border-color .15s,background .15s;
+}
+.rv-recall-chips .rvc:hover{border-color:var(--primary-300);color:var(--primary-700)}
+.rv-recall-chips .rvc.active{background:var(--primary-50);border-color:var(--primary-300);color:var(--primary-700)}
+.rv-recall-chips .rvc:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(58,154,147,.25)}
+#recAll{margin-top:4px}
+.rec-row{
+  display:flex;align-items:center;gap:12px;padding:10px 2px;
+  border-top:1px dashed var(--line);font-size:13.5px;
+}
+.rec-row:first-child{border-top:none}
+.rec-d{flex:none;min-width:88px;color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.rec-k{flex:none;font-size:11px;font-weight:600;padding:2px 7px;border-radius:5px;
+  border:1px solid var(--n-300);color:var(--muted);white-space:nowrap}
+.rec-k.rk-whole{color:var(--primary-700);border-color:var(--primary-300);background:var(--primary-50)}
+.rec-k.rk-speaking{color:var(--med);border-color:var(--med);background:rgba(70,168,131,.10)}
+.rec-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--n-700)}
+.rec-s{flex:none;display:flex;align-items:baseline;gap:4px;min-width:76px;justify-content:flex-end}
+.rec-s b{font-size:15px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+.rec-s i{font-style:normal;font-size:11px;color:var(--muted)}
+.rec-o{flex:none;display:flex;gap:6px;min-width:104px;justify-content:flex-end}
+/* 桌面：三个原列表折叠起来（合一列是主角，它们是备查） */
+@media (min-width:1024px){
+  .rv-recall-only > summary{font-size:13px;color:var(--muted)}
+}
+@media (max-width:560px){
+  .rec-row{gap:8px;padding:9px 0;font-size:13px}
+  .rec-d{min-width:74px}
+  .rec-s{min-width:64px}
+  .rec-o{min-width:0}
+  .rec-o .btn{padding:3px 8px;font-size:11.5px}
+  /* 手机上把摘要压成第二行（日期/标签/分数留在第一行） */
+  .rec-row{flex-wrap:wrap}
+  .rec-t{flex:1 1 100%;order:9;white-space:normal;font-size:12.5px;color:var(--muted)}
+}
+
 
 /* 表现统计里的题型格（#mkTypeStats 内部 .stat-grid）：同样去卡化、格间竖线。
    ⚠️ 只动 #mkTypeStats 内的 .stat-card —— 别的页面/别的模块的 stat-card 一律不受影响。 */
@@ -429,18 +474,22 @@
 [data-theme="dark"] .review-pane .empty{background:var(--n-50)}
 </style>
 <script defer src="js/data.js?v=20261023b"></script>
-<script defer src="js/common.js?v=20261024e"></script>
-<script defer src="js/common-ai.js?v=20261024e"></script>
-<script defer src="js/common-sync.js?v=20261024e"></script>
-<script defer src="js/common-merge.js?v=20261024e"></script>
-<script defer src="js/common-cloud.js?v=20261024e"></script>
-<script defer src="js/common-shell.js?v=20261024e"></script>
-<script defer src="js/common-pwa.js?v=20261024e"></script>
+<script defer src="js/common.js?v=20261024g"></script>
+<script defer src="js/common-ai.js?v=20261024g"></script>
+<script defer src="js/common-sync.js?v=20261024g"></script>
+<script defer src="js/common-merge.js?v=20261024g"></script>
+<script defer src="js/common-cloud.js?v=20261024g"></script>
+<script defer src="js/common-shell.js?v=20261024g"></script>
+<script defer src="js/common-pwa.js?v=20261024g"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
 <script defer src="js/scores.js?v=20261024b"></script>
 <script defer src="js/history.js?v=20260904d"></script>
 <script defer src="js/mock-report.js?v=20261006a"></script>
 <script defer src="js/mock-history.js?v=20261006b"></script>
+<!-- R-4 后半：三类成绩合一列（只读渲染，删除/详情转发到上面三个脚本里的现成逻辑）。
+     ⚠️ 必须带 ?v= 声明 —— 否则 common.js 只能拿裸 URL 'js/rec-all.js'，等于向浏览器
+        HTTP 缓存要「任意年代的旧副本」，改动永远推不上去（9/17 陈旧 UI 事故根因）。 -->
+<script defer src="js/rec-all.js?v=20261024a"></script>
 <script defer src="js/mock-summary.js?v=20261001f"></script>
 <script defer src="js/speaking-practice.js?v=20261006a"></script>
 <script defer src="js/progress.js?v=20261022d"></script>
@@ -650,10 +699,54 @@
           <div id="trendChart"></div>
         </section>
 
-        <section class="card">
-          <h2 class="rv-block-h-t">整卷记录列表</h2>
-          <div id="scoreList"></div>
+        <!-- 🔴 R-4 后半（10-24）：三类成绩合一列。
+             施工书 §三 第四批：整卷 / 分项 / 口语模考 原来分散在三处（#scoreList / #mkList /
+             #mockHistoryList），现在合成一列按日期排，每条前加小标签。
+
+             ⚠️ 三个原容器**一个都不删**，只是从这页退到「渲染数据源」：
+               · #mkList / #scoreList / #mockHistoryList 的 DOM 与渲染函数全部保留
+                 （删除/编辑逻辑、探针断言、软导航重跑都依赖它们）
+               · 新增一个「全部记录」容器 #recAll，由 js/rec-all.js 从三个源读数据统一渲染
+               · 三个原列表在桌面默认折叠成一行「只看某一类 ▾」（手机本来就一栏一屏，不动）
+             ⚠️ 排序只做「展示层」—— 数据层的删除逻辑一个都没碰（施工书红线）。 -->
+        <section class="card rv-recall">
+          <div class="form-row mk-list-head" style="align-items:center">
+            <h2 class="inline-h2">全部记录</h2>
+            <span class="muted rv-recall-n" id="recAllCount"></span>
+            <span class="spacer"></span>
+            <!-- 只想看某一类：三个 chip，点了筛掉其他两类（默认全开） -->
+            <div class="rv-recall-chips" id="recAllChips">
+              <button type="button" class="rvc active" data-k="whole">整卷</button>
+              <button type="button" class="rvc active" data-k="part">分项</button>
+              <button type="button" class="rvc active" data-k="speaking">口语模考</button>
+            </div>
+          </div>
+          <div id="recAll"></div>
         </section>
+
+        <!-- 三个原列表：内容与渲染逻辑原样保留，桌面默认收起（见下方 rv-recall-only 段）。
+             手机端仍是原来的样子，一栏一屏。 -->
+        <details class="detail-block rv-recall-only" id="recWholeWrap">
+          <summary>只看「整卷」记录</summary>
+          <div><div id="scoreList"></div></div>
+        </details>
+        <!-- 🔴 分项记录的**原容器是 #mkList**（在 #tab-breakdown 里，渲染函数 renderMockList 与
+             筛选器 mkListType/mkListGran 都指着它）—— 所以这里不再复制一份，只做折叠入口。
+             分项列表原地不动（连同筛选器），桌面默认收起。 -->
+        <details class="detail-block rv-recall-only" id="recPartWrap">
+          <summary>只看「分项」记录</summary>
+          <div>
+            <p class="muted" style="font-size:13px;margin:0 0 10px">分项记录在下面「分项模考」区，带科目 / 粒度筛选。</p>
+          </div>
+        </details>
+        <!-- 🔴 口语模考的**原容器也是 #mockHistoryList**（在 #tab-speaking 里，MockHistory.render
+             指着它）—— 同理只做折叠入口，不复制容器（复制会出现两个同 id 元素，第二个永远收不到渲染）。 -->
+        <details class="detail-block rv-recall-only" id="recSpkWrap">
+          <summary>只看「口语模考」记录</summary>
+          <div>
+            <p class="muted" style="font-size:13px;margin:0 0 10px">口语模考记录在下面「口语」区，可展开看完整报告。</p>
+          </div>
+        </details>
 
         <details class="detail-block">
           <summary>添加真题成绩</summary>

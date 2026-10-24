@@ -31,7 +31,7 @@
 })();
 </script>
 <title>口语 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261024e" />
+<link rel="stylesheet" href="css/common.css?v=20261024g" />
 <link rel="stylesheet" href="css/p/speaking.css?v=20261017a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
@@ -43,13 +43,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
   <script defer src="js/data.js?v=20261023b"></script>
-  <script defer src="js/common.js?v=20261024e"></script>
-  <script defer src="js/common-ai.js?v=20261024e"></script>
-  <script defer src="js/common-sync.js?v=20261024e"></script>
-  <script defer src="js/common-merge.js?v=20261024e"></script>
-  <script defer src="js/common-cloud.js?v=20261024e"></script>
-  <script defer src="js/common-shell.js?v=20261024e"></script>
-  <script defer src="js/common-pwa.js?v=20261024e"></script>
+  <script defer src="js/common.js?v=20261024g"></script>
+  <script defer src="js/common-ai.js?v=20261024g"></script>
+  <script defer src="js/common-sync.js?v=20261024g"></script>
+  <script defer src="js/common-merge.js?v=20261024g"></script>
+  <script defer src="js/common-cloud.js?v=20261024g"></script>
+  <script defer src="js/common-shell.js?v=20261024g"></script>
+  <script defer src="js/common-pwa.js?v=20261024g"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
@@ -249,13 +249,10 @@
   .sp-part-seg button:hover{color:var(--primary)}
   .sp-part-seg button.active{background:var(--surface);color:var(--primary-700);box-shadow:0 1px 3px rgba(0,0,0,.10)}
   /* 搜索：图标内嵌在框内（原来纯 input 没图标） */
-  .sp-search-wrap{position:relative;flex:1 1 auto;min-width:160px}
-  .sp-search-ic{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--muted);pointer-events:none}
-  /* ⚠️ 同 10/3 计时页那个坑：common.css:452 的裸 input 规则权重 (0,1,3) 压得住本页的 .sp-search (0,1,0)，
-     会把 padding-left 覆盖成 14px → 放大镜图标压在占位文字上。补同权重的 :not() 链压回。 */
-  input.sp-search:not([type=checkbox]):not([type=radio]):not([type=range]){width:100%;padding:10px 12px 10px 32px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:13.5px;background:var(--surface-2);color:var(--ink);box-sizing:border-box;transition:border-color .15s,box-shadow .15s}
-  input.sp-search:not([type=checkbox]):not([type=radio]):not([type=range]):focus{border-color:var(--primary);background:var(--surface);box-shadow:0 0 0 3.5px var(--primary-soft);outline:none}
-  .sp-search:focus{border-color:var(--primary);background:var(--surface);box-shadow:0 0 0 3.5px var(--primary-soft);outline:none}
+  /* 搜索（S-2b 10-24）：双层套框已拆成一层 —— 现在只有一个容器 = S-1 统一类 .ui-field-search，
+     这里只留「工具行里怎么摆」，外观全交给统一类，本页不再自写边框/底色/圆角。
+     下面两条只服务旧 DOM 的兜底选择器，均已随这版失效（保留是因为别再有人照抄）。 */
+  .sp-search-wrap{flex:1 1 auto;min-width:160px}
   /* 筛选：字段名做浮层小标签（值非「全部」时才显形，见 .sp-fsel.has-val，由 speaking.js 切换 class） */
   .sp-fsel{position:relative;flex:0 1 auto;min-width:0}
   .sp-fsel .sp-select{appearance:none;width:100%;padding:10px 30px 10px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:13px;background:var(--surface-2);color:var(--ink);min-width:0;cursor:pointer;transition:border-color .15s,box-shadow .15s;white-space:nowrap}
@@ -2674,10 +2671,16 @@ html[data-theme="dark"] #detailBody .td-wordcount b{color:var(--primary-200)}
         <button class="sp-mock-jump" id="spMockJumpBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg>模考</button>
       </div>
       <div class="sp-tb-row2">
-        <div class="sp-search-wrap">
-          <svg class="sp-search-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-          <input aria-label="搜索题目" class="sp-search" id="spSearch" placeholder="搜索题目…" />
-        </div>
+        <!-- S-2b（10-24）：双层套框拆成一层 —— 原来外层 .sp-search-wrap 40px 白底带 1px 边，
+             内层 input 38px 灰底又带 1px 边，两道边框叠着，框线视觉上粗一倍。
+             现在只留一层容器：外层就是 S-1 统一类 .ui-field-search（36px / 圆角 10 / token），
+             内层 input 无边框无底色，只负责打字。id 与 placeholder 全部原样保留（speaking.js 零改动）。
+             清空 ✕ 由共享层 initSearchClear() 绑定，点它会派发 input 事件 → 页面过滤照常收到。 -->
+        <label class="ui-field-search sp-search-wrap" for="spSearch">
+          <svg class="ui-field-search-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input aria-label="搜索题目" class="ui-field-search-in sp-search" id="spSearch" type="search" placeholder="搜索题目…" autocomplete="off" />
+          <button type="button" class="ui-field-clear" hidden aria-label="清空搜索">✕</button>
+        </label>
         <div class="sp-fsel">
           <label class="sp-fsel-lb" for="freqSelect">优先级</label>
           <select id="freqSelect" class="sp-select"></select>
@@ -3008,22 +3011,18 @@ html[data-theme="dark"] #detailBody .td-wordcount b{color:var(--primary-200)}
   }
   .sp-toolbar .sp-tb-row1{display:flex;align-items:center;gap:9px;margin:0;flex:none}
   .sp-toolbar .sp-tb-row2{display:flex;align-items:center;gap:9px;flex:1 1 auto;min-width:0;margin:0}
-  .sp-toolbar .sp-search-wrap{
-    flex:1 1 auto;min-width:0;background:var(--n-0);border:1px solid var(--n-300);border-radius:10px;
-    height:40px;display:flex;align-items:center;padding:0 13px;box-shadow:var(--sh-1);transition:border-color .15s,box-shadow .15s;
-  }
-  .sp-toolbar .sp-search-wrap:focus-within{border-color:var(--primary-200);box-shadow:0 0 0 3px rgba(168,215,210,.28)}
-  .sp-toolbar .sp-search-wrap .sp-search-ic{position:static;transform:none;width:16px;height:16px;color:var(--n-500);flex:none;margin-right:9px}
-  .sp-toolbar .sp-search-wrap input.sp-search{
-    width:100%;padding:0;border:0;background:none;font-size:13.5px;color:var(--n-800);height:100%;box-shadow:none;
-  }
-  .sp-toolbar .sp-search-wrap input.sp-search::placeholder{color:var(--n-500)}
-  .sp-toolbar .sp-search-wrap input.sp-search:focus{border:0;background:none;box-shadow:none;outline:none}
+  /* 搜索（S-2b 10-24）：这条原是本页自写的「外框」—— 40px + 白底 + 1px 边 + box-shadow，
+     内层 input 又带一层 1px 边，两道边框叠着才显得框线粗一倍。
+     现在容器就是 S-1 统一类 .ui-field-search，这里只留「在工具行里怎么占位」，
+     外观（高/圆角/底色/边框/焦点环/图标尺寸）全部交给统一类，不再本页重写一份。
+     ⚠️ 别再往这里加 border/background/height —— 加一条就会和统一类重新打架。 */
+  .sp-toolbar .sp-search-wrap{flex:1 1 auto;min-width:0;max-width:360px}
+  /* 工具行里的 select / 分段 / 模考按钮统一 36px，与搜索框同高（原 40px，统一类搜索框是 36px） */
   .sp-toolbar .sp-fsel{position:relative;flex:0 1 auto;min-width:0}
   .sp-toolbar .sp-fsel .sp-select{
-    appearance:none;width:100%;height:40px;padding:0 30px 0 13px;border:1px solid var(--n-300);border-radius:10px;
-    font-size:13px;color:var(--n-700);background:var(--n-0);min-width:0;cursor:pointer;
-    box-shadow:var(--sh-1);transition:border-color .15s,box-shadow .15s;white-space:nowrap;
+    appearance:none;width:100%;height:36px;padding:0 30px 0 13px;border:1px solid var(--line);border-radius:10px;
+    font-size:13px;color:var(--ink);background:var(--surface-2);min-width:0;cursor:pointer;
+    transition:border-color .15s,box-shadow .15s;white-space:nowrap;
   }
   .sp-toolbar .sp-fsel .sp-select:hover{border-color:var(--n-400)}
   .sp-toolbar .sp-fsel::after{
@@ -3034,17 +3033,17 @@ html[data-theme="dark"] #detailBody .td-wordcount b{color:var(--primary-200)}
   .sp-toolbar .sp-fsel-lb{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:600;color:var(--n-500);pointer-events:none;opacity:0;transition:opacity .15s;white-space:nowrap}
   .sp-toolbar .sp-fsel.has-val .sp-fsel-lb{opacity:1;color:var(--primary-700)}
   .sp-toolbar .sp-fsel:focus-within .sp-select{border-color:var(--primary-200);box-shadow:0 0 0 3px rgba(168,215,210,.28)}
-  /* P1/P2 分段：与工具行同高的细边框分段控件 */
-  .sp-toolbar .sp-part-seg{display:inline-flex;gap:0;background:var(--n-0);border:1px solid var(--n-300);border-radius:10px;height:40px;box-shadow:var(--sh-1);flex:none;overflow:hidden;padding:0}
-  .sp-toolbar .sp-part-seg button{font:inherit;font-size:13px;font-weight:600;padding:0 15px;border:none;background:transparent;color:var(--n-600);cursor:pointer;transition:background .15s,color .15s}
-  .sp-toolbar .sp-part-seg button + button{border-left:1px solid var(--n-300)}
-  .sp-toolbar .sp-part-seg button:hover{color:var(--n-900)}
+  /* P1/P2 分段：与工具行同高的细边框分段控件（S-2b：40 → 36，与统一类搜索框同高） */
+  .sp-toolbar .sp-part-seg{display:inline-flex;gap:0;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;height:36px;flex:none;overflow:hidden;padding:0}
+  .sp-toolbar .sp-part-seg button{font:inherit;font-size:13px;font-weight:600;padding:0 15px;border:none;background:transparent;color:var(--muted);cursor:pointer;transition:background .15s,color .15s}
+  .sp-toolbar .sp-part-seg button + button{border-left:1px solid var(--line)}
+  .sp-toolbar .sp-part-seg button:hover{color:var(--ink)}
   .sp-toolbar .sp-part-seg button.active{background:var(--primary-50);color:var(--primary-700);box-shadow:none}
-  /* 模考入口：行尾细边框按钮（不再用实底渐变胶囊） */
+  /* 模考入口：行尾细边框按钮（S-2b：40 → 36，同高） */
   .sp-toolbar .sp-mock-jump{
-    margin-left:auto;display:inline-flex;align-items:center;gap:7px;height:40px;padding:0 15px;
-    background:var(--n-0);border:1px solid var(--n-300);border-radius:10px;color:var(--n-700);
-    font-size:13px;font-weight:600;white-space:nowrap;flex:none;cursor:pointer;box-shadow:var(--sh-1);
+    margin-left:auto;display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 15px;
+    background:var(--surface-2);border:1px solid var(--line);border-radius:10px;color:var(--ink);
+    font-size:13px;font-weight:600;white-space:nowrap;flex:none;cursor:pointer;
     transition:border-color .15s,color .15s,box-shadow .15s;
   }
   .sp-toolbar .sp-mock-jump:hover{border-color:var(--primary-300);color:var(--primary-700)}
