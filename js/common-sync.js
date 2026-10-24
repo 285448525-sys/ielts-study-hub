@@ -6,6 +6,57 @@
    10/21 起账号 = 邮箱 + 密码（/api/auth），/api/sync 凭 session token（X-Session 头）读写。
    旧「X-Sync-Key 手机号直连」通道已下线（无鉴权的安全账）。
    非 Cloudflare 部署时 /api/sync 会 404，所有调用都会优雅降级（不报错、不弹窗刷屏）。 */
+/* ===== W-5（10-24）云端请求补超时 =====
+   为什么要补：`authApiPost` / `syncApi` 两个 fetch 原来**没有任何超时** —— 弱网或网络挂住时
+   `await` 永不返回，调用方的 finally 永不执行，按钮就永久卡在「安排中…」（她报过好几次
+   「点了没反应只能刷新」）。上游也没有兜底：`common-ai.js` 那边有 withTimeout，但同步侧没有。
+   做法：照抄 `js/bank.js:168` 的 AbortController 范式（本项目既有口径，不另造一套）：
+     · 有 AbortController 就真中断请求；没有（极老环境）就退化成「只抛超时、请求让它自己跑完」
+     · 超时错误带 code='SYNC_TIMEOUT'，让调用点原有的 catch/finally 正常解锁并提示
+     · 几种方法的默认预算分开：读（GET/探测）短、写（PUT 全量上传）长 —— 上传是 1.8MB 级别的体量，
+       和 GET meta 用同一个超时会误杀正常上传
+   🔴 只加超时，不改任何同步口径、不改节流窗口、不改重试策略。 */
+const NET_TIMEOUT_READ_MS = 15000;    // GET / meta 探测 / DELETE：读操作 15s 足够
+const NET_TIMEOUT_WRITE_MS = 45000;   // PUT 全量上传：她云端数据 1.8MB 级别，弱网下要给够
+const NET_TIMEOUT_AUTH_MS = 15000;    // 登录 / 改密 / vip_status：小请求，15s
+function fetchWithTimeout(url, opts, ms, code){
+  opts = opts || {};
+  const budget = (ms && ms > 0) ? ms : NET_TIMEOUT_READ_MS;
+  const tag = code || 'SYNC_TIMEOUT';
+  /* 文案里不要出现「0 秒」：预算不足 1 秒时 Math.round 会抛成 0，看着像 bug。
+     不足 1 秒就按「不到 1 秒」说，真实场景（15s/45s）不受影响。 */
+  const secText = budget < 1000 ? '不到 1 秒' : (Math.round(budget / 1000) + ' 秒');
+  if(typeof AbortController !== 'function'){
+    /* 极老环境退化成「只抛超时」：用一个计时器 reject，请求本身没有 signal 可中断 */
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        const e = new Error('网络响应超时（' + secText + '无响应），请重试');
+        e.code = tag; e.isTimeout = true;
+        reject(e);
+      }, budget);
+      Promise.resolve().then(() => fetch(url, opts)).then(
+        r => { clearTimeout(timer); resolve(r); },
+        err => { clearTimeout(timer); reject(err); }
+      );
+    });
+  }
+  const ac = new AbortController();
+  const timer = setTimeout(() => { try{ ac.abort(); }catch(_){} }, budget);
+  const opts2 = Object.assign({}, opts, { signal: ac.signal });
+  return fetch(url, opts2).then(
+    r => { clearTimeout(timer); return r; },
+    err => {
+      clearTimeout(timer);
+      if(err && (err.name === 'AbortError' || err.code === 20)){
+        const e = new Error('网络响应超时（' + secText + '无响应），请重试');
+        e.code = tag; e.isTimeout = true;
+        throw e;
+      }
+      throw err;
+    }
+  );
+}
+
 let _cloudTimer = null;
 let _lastUploadedHash = '';
 let _pendingUpload = false;
@@ -186,12 +237,17 @@ async function authVipCheck(force, ttlMs){
 async function authApiPost(payload){
   let res = null;
   try{
-    res = await fetch('api/auth', {
+    res = await fetchWithTimeout('api/auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
-    });
-  }catch(e){ throw new Error('网络异常，稍后再试'); }
+    }, NET_TIMEOUT_AUTH_MS, 'AUTH_TIMEOUT');
+  }catch(e){
+    /* 🔴 W-5：超时也要说人话。原来一律吞成「网络异常，稍后再试」，
+       超时和断网在她眼里是同一句，排障时没法区分。 */
+    if(e && e.isTimeout) throw e;
+    throw new Error('网络异常，稍后再试');
+  }
   let j = null;
   try{ j = await res.json(); }catch(_){}
   if(!res.ok || !j || !j.ok){
@@ -212,7 +268,11 @@ async function syncApi(method, body, path){
   if(tok) headers['X-Session'] = tok;
   const opts = { method, headers };
   if(body) opts.body = JSON.stringify(body);
-  const res = await fetch('/api/sync' + (path || ''), opts);
+  /* 🔴 W-5：写操作（PUT 全量上传）与读操作给不同预算 —— 她的云端 1.8MB 级别，
+     和 ?meta=1 探测共用 15s 会误杀正常上传（HOTFIX 时代踩过一次「上传到一半被判失败」）。 */
+  const isWrite = String(method || '').toUpperCase() === 'PUT' || String(method || '').toUpperCase() === 'POST';
+  const res = await fetchWithTimeout('/api/sync' + (path || ''), opts,
+    isWrite ? NET_TIMEOUT_WRITE_MS : NET_TIMEOUT_READ_MS, 'SYNC_TIMEOUT');
   let data = null;
   try { data = await res.json(); } catch(e){}
   return [res, data];

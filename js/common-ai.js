@@ -15,12 +15,41 @@ const AI_BASE = 'https://api.deepseek.com/v1';
 const AI_MODEL = 'deepseek-chat';
 const SITE_AI_URL = 'api/ai';
 
+/* ===== W-5（10-24）AI 请求补底层超时 =====
+   现状（读完代码确认）：上游 `callRelay` 已有 `withTimeout(…, 25000)`，所以**按钮不会永久卡死**。
+   但那个超时只是「不等了」，底层 fetch 仍挂在网络上一直跑 —— 弱网下多个 AI 请求叠着占连接，
+   会把后面的请求拖慢。这里给 fetch 本身也加 AbortController，让超时能真正中断。
+   预算取 28s：**必须比上游 25s 略长**，否则底层先掐断，上游拿到的就不是「AI 超时提示」
+   而是「网络错误」，她看到的文案会变。
+   🔴 只加中断能力，不动 25s 口径、不动任何降级分支。 */
+const AI_FETCH_ABORT_MS = 28000;
+function aiFetch(url, opts, ms){
+  const budget = (ms && ms > 0) ? ms : AI_FETCH_ABORT_MS;
+  opts = opts || {};
+  if(typeof AbortController !== 'function') return fetch(url, opts);   // 极老环境：退化成无中断
+  const secText = budget < 1000 ? '不到 1 秒' : (Math.round(budget / 1000) + ' 秒');
+  const ac = new AbortController();
+  const timer = setTimeout(function(){ try{ ac.abort(); }catch(_){} }, budget);
+  return fetch(url, Object.assign({}, opts, { signal: ac.signal })).then(
+    function(r){ clearTimeout(timer); return r; },
+    function(err){
+      clearTimeout(timer);
+      if(err && (err.name === 'AbortError' || err.code === 20)){
+        const e = new Error('AI 响应超时（' + secText + '无响应），请重试');
+        e.code = 'AI_TIMEOUT'; e.isTimeout = true;
+        throw e;
+      }
+      throw err;
+    }
+  );
+}
+
 async function callSiteRelay(service, messages, temperature, opts){
   const body = { service: service, messages: messages, temperature: temperature };
   if(opts && opts.max_tokens) body.max_tokens = opts.max_tokens;
   if(opts && opts.json_mode) body.json_mode = true;
   // ⭐ 10/1 收口登录：站内 AI 必须带 session token，服务端未登录直接 401 auth_required
-  const res = await fetch(SITE_AI_URL, { method:'POST', headers:{ 'Content-Type':'application/json', 'X-Session': (typeof authToken === 'function' ? (authToken() || '') : '') }, body: JSON.stringify(body) });
+  const res = await aiFetch(SITE_AI_URL, { method:'POST', headers:{ 'Content-Type':'application/json', 'X-Session': (typeof authToken === 'function' ? (authToken() || '') : '') }, body: JSON.stringify(body) });
   const txt = await res.text();
   let j = null; try{ j = JSON.parse(txt); }catch(_){}
   if(res.status === 501 || (j && j.error === 'relay_not_configured')){
@@ -139,7 +168,9 @@ async function callRelayInner(service, messages, temperature, opts){
   };
   // 可选覆盖（如素材深挖需要更大输出窗口：{ max_tokens: 8192 }，默认 4096 会被长 JSON 截断）
   if(opts && typeof opts === 'object') Object.assign(body, opts);
-  const res = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
+  /* W-5：这条是「用户自备 Key 直连 api.deepseek.com」的遗留路径（10/1 后已非主路径，
+     但仍保留兼容）—— 同样补上底层超时，口径与站内中继一致。 */
+  const res = await aiFetch(url, { method:'POST', headers, body: JSON.stringify(body) });
   if(!res.ok){
     let detail = '';
     try{
