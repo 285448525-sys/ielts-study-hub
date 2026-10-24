@@ -30,7 +30,7 @@
 </script>
 <title>首页 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261024n" />
-<link rel="stylesheet" href="css/p/home.css?v=20261024n" />
+<link rel="stylesheet" href="css/p/home.css?v=20261024o" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png?v=7">
@@ -92,15 +92,17 @@
       </section>
 
       <!-- L2 · 四数字卡（今日专注 / 今日单词 / 口语已练 / 本周模考）
-           ⚠️ 10-23 她：「今日专注这个板块应该是点击不了的，它不应该设置跳转」
-           → 今日专注卡降级成 div（不再可点、不再有 hover 位移），其余三张仍是指向真实页面的 a。 -->
+           ⚠️ 10-23 她：「今日专注这个板块应该是点击不了的，它不应该设置跳转」→ 当时降级成 div。
+           🔄 10-24 T-1e 她改主意：这张卡要能点，跳到 timer.html（计时页）。
+           → 改回 <a class="hstat" href="timer.html">，与其余三张同构、同 hover。
+           🔴 只动这张卡的标签与落点，js/index.js:195 的今日专注算法一行没碰。 -->
       <section class="hstats">
-        <div class="hstat hstat-static">
+        <a class="hstat" href="timer.html">
           <div class="lb">今日专注</div>
           <div class="vl" id="statFocusVal"></div>
           <div class="track"><i id="statFocusTrack" style="width:0%"></i></div>
           <div class="sub" id="statFocusSub"></div>
-        </div>
+        </a>
         <a class="hstat" href="practice.html">
           <div class="lb">今日单词</div>
           <div class="vl" id="statWordsVal"></div>
