@@ -21,7 +21,8 @@
 (function () {
   var PAGE = 20;                                    /* 每组首屏条数 / 展开步长 */
   var shown = {};                                   /* 每组已渲染条数 {listId|grp:n} */
-  var groups = {};                                  /* 当前快照 {listId:{todo:[],done:[]}} */
+  var _channel = '';
+var groups = {};                                  /* 当前快照 {listId:{todo:[],done:[]}} */
   var renderFns = {};                               /* bank.js 传进来的 listHtml {listId:fn} */
 
   function esc(s) {
@@ -70,7 +71,7 @@
       }
       /* 🔴 单条 DOM 完全交给 bank.js 的 listHtml —— 结构零偏差。
          它返回的是 `<ul class="bank-items">…</ul>`，这里只要里面的 li。 */
-      var inner = listHtml ? listHtml(items, key === 'done' ? '' : '') : '';
+      var inner = listHtml ? listHtml(items, _channel) : '';
       var m = /<ul[^>]*>([\s\S]*)<\/ul>/.exec(inner);
       h += m ? m[1] : '';
       if (rest_n > 0) {
@@ -98,6 +99,7 @@
      第四个参数是 bank.js 自己的 listHtml —— 单条 DOM 全用它生成，本文件一行都不重写
      （否则两处各写一份 .bank-item，改一处忘一处必然漂移）。 */
   function html(listId, units, channel, listHtml) {
+    _channel = channel;                 /* 10-24 B 验收修复：bodyHtml 要拿它传给 listHtml */
     var g = split(units);
     groups[listId] = g;
     shown[listId + '|todo'] = Math.min(PAGE, g.todo.length);
@@ -123,7 +125,7 @@
     var wrap = host.querySelector('.bk-grp[data-grp="' + grp + '"] .bank-items');
     if (!wrap) return;
     /* 🔴 追加的单条也走 bank.js 的 listHtml —— 与首屏完全同一套 DOM。 */
-    var inner = listHtml(next, '');
+    var inner = listHtml(next, _channel);   /* 10-24: same fix as bodyHtml */
     var m = /<ul[^>]*>([\s\S]*)<\/ul>/.exec(inner);
     var frag = m ? m[1] : '';
     var moreLi = wrap.querySelector('.bk-grp-more');
