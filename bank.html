@@ -177,6 +177,21 @@
 .spk-notes-h{display:flex;align-items:baseline;gap:8px;margin:0 0 10px}
 .spk-notes-h b{font-size:14px;font-weight:700;color:var(--ink)}
 .spk-notes-h span{font-size:12.5px;color:var(--muted)}
+/* ---- M-4（10-24）：两栏化 ----
+   原来「怎么考」三步卡 + 「考试说明」四张帖各横排占满 1080px，右边空白越往下越多、
+   整页被拉很高。现在左上「怎么考」、右上「考试说明」，**高度砍一半**。
+   🔴 只改布局，文案一字不动（10/11 她确认过的说明文字）。
+   🔴 窄屏（≤860）仍按原来的顺序上下叠，一栏一屏。 */
+.spk-cols{display:grid;grid-template-columns:minmax(0,.86fr) minmax(0,1fr);gap:22px;align-items:start}
+.spk-col{min-width:0}
+/* 栏内小卡改单列（两栏后每栏约 480px，三列会挤成一条细分段） */
+.spk-cols .spk-flow{grid-template-columns:1fr;gap:9px;margin:0}
+.spk-cols .spk-tips{grid-template-columns:1fr 1fr;gap:9px}
+@media(max-width:860px){
+  .spk-cols{grid-template-columns:1fr;gap:18px}
+  .spk-cols .spk-flow{grid-template-columns:1fr}
+  .spk-cols .spk-tips{grid-template-columns:1fr}
+}
 @media(max-width:860px){
   .spk-flow{grid-template-columns:1fr}
   .spk-tips{grid-template-columns:1fr}
@@ -2171,18 +2186,28 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
         </div>
         <button class="btn-primary" type="button" data-spkstart>Start Test</button>
       </div>
-      <div class="spk-notes-h"><b>怎么考</b><span>三个部分连着进行，和真机考同一顺序</span></div>
-      <div class="spk-flow">
-        <div class="spk-step"><span class="no">PART 1</span><b>开场自我介绍</b><span>12 小题 · 约 4–5 分钟，聊聊日常话题</span></div>
-        <div class="spk-step"><span class="no">PART 2</span><b>个人陈述</b><span>准备 1 分钟 + 陈述 2 分钟，话题卡全程留在屏幕上</span></div>
-        <div class="spk-step"><span class="no">PART 3</span><b>双向讨论</b><span>5 题追问 · 约 4–5 分钟，就 Part 2 话题往深里聊</span></div>
-      </div>
-      <div class="spk-notes-h"><b>考试说明</b><span>开始前看一眼</span></div>
-      <div class="spk-tips">
-        <div class="spk-tip"><b>作答方式是语音输入</b>用输入法的语音键把你想说的英文说出来，识别的文字直接进答题框——推荐用<strong>豆包输入法</strong>，识别得最准。考的是内容和表达，不是口音。</div>
-        <div class="spk-tip"><b>Part 2 有 1 分钟准备</b>可以先写几个关键词当笔记，陈述的时候别照着念，说人话就行。</div>
-        <div class="spk-tip"><b>中途退出或刷新不丢</b>这场的进度会存下来，下次进来自动接着考。</div>
-        <div class="spk-tip"><b>时间到不强制收卷</b>按自己的节奏答完，交卷后出评估报告（总分 + 各 Part 建议）。</div>
+      <!-- M-4（10-24）：两栏化 —— 原来「怎么考」三个步骤卡横排、下面「考试说明」四张说明卡
+           再横排，两段各占满 1080px，右边的空白越往下越多、整页被拉得很高。
+           现在左边一栏放「怎么考」，右边一栏放「考试说明」，**高度砍一半**。
+           🔴 只改布局：文案一字不动（那是 10/11 她确认过的说明文字）。 -->
+      <div class="spk-cols">
+        <div class="spk-col">
+          <div class="spk-notes-h"><b>怎么考</b><span>三个部分连着进行，和真机考同一顺序</span></div>
+          <div class="spk-flow">
+            <div class="spk-step"><span class="no">PART 1</span><b>开场自我介绍</b><span>12 小题 · 约 4–5 分钟，聊聊日常话题</span></div>
+            <div class="spk-step"><span class="no">PART 2</span><b>个人陈述</b><span>准备 1 分钟 + 陈述 2 分钟，话题卡全程留在屏幕上</span></div>
+            <div class="spk-step"><span class="no">PART 3</span><b>双向讨论</b><span>5 题追问 · 约 4–5 分钟，就 Part 2 话题往深里聊</span></div>
+          </div>
+        </div>
+        <div class="spk-col">
+          <div class="spk-notes-h"><b>考试说明</b><span>开始前看一眼</span></div>
+          <div class="spk-tips">
+            <div class="spk-tip"><b>作答方式是语音输入</b>用输入法的语音键把你想说的英文说出来，识别的文字直接进答题框——推荐用<strong>豆包输入法</strong>，识别得最准。考的是内容和表达，不是口音。</div>
+            <div class="spk-tip"><b>Part 2 有 1 分钟准备</b>可以先写几个关键词当笔记，陈述的时候别照着念，说人话就行。</div>
+            <div class="spk-tip"><b>中途退出或刷新不丢</b>这场的进度会存下来，下次进来自动接着考。</div>
+            <div class="spk-tip"><b>时间到不强制收卷</b>按自己的节奏答完，交卷后出评估报告（总分 + 各 Part 建议）。</div>
+          </div>
+        </div>
       </div>
     </section>
   </div>
