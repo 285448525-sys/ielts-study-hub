@@ -31,7 +31,7 @@
 })();
 </script>
 <title>计时 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261024i" />
+<link rel="stylesheet" href="css/common.css?v=20261024j" />
 <link rel="stylesheet" href="css/p/timer.css?v=20261017a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
@@ -43,13 +43,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20261023b"></script>
-  <script defer src="js/common.js?v=20261024i"></script>
-  <script defer src="js/common-ai.js?v=20261024i"></script>
-  <script defer src="js/common-sync.js?v=20261024i"></script>
-  <script defer src="js/common-merge.js?v=20261024i"></script>
-  <script defer src="js/common-cloud.js?v=20261024i"></script>
-  <script defer src="js/common-shell.js?v=20261024i"></script>
-  <script defer src="js/common-pwa.js?v=20261024i"></script>
+  <script defer src="js/common.js?v=20261024j"></script>
+  <script defer src="js/common-ai.js?v=20261024j"></script>
+  <script defer src="js/common-sync.js?v=20261024j"></script>
+  <script defer src="js/common-merge.js?v=20261024j"></script>
+  <script defer src="js/common-cloud.js?v=20261024j"></script>
+  <script defer src="js/common-shell.js?v=20261024j"></script>
+  <script defer src="js/common-pwa.js?v=20261024j"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
   <script defer src="js/timer.js?v=20261004"></script>
 <style id="bootLoaderStyle">
@@ -169,6 +169,95 @@ body.timer-running .timer-idle-hint{display:none}
   .tm-bar .timer-goal{flex:1 1 100%;justify-content:flex-start}
 }
 
+/* ── T-1d（10-24）：时长快选档位 ──
+   病根：想计时只能往「本次目标」那个小框里敲数字，手机上要弹键盘、还要数一下 40 还是 45。
+   改法：框下面摆 15 / 25 / 40 / 60 / 不限时 五枚，点一下就把数字填进 #goalMin
+   （「不限时」= 清空 → startSession 里 `parseInt('')` 得 NaN → targetSec=null → 正计时无终点）。
+   ⚠️ **手动输入框 #goalMin 原样保留、不降级**（她手机上要设 33 分钟这种数，派活单原话）。
+   ⚠️ 一枚 chip 都不含业务判断，纯把值写进已有输入框；谁读那个框仍是 js/timer.js 的事。 */
+.tm-quick{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;margin:0 0 12px}
+.tm-quick .lbl{font-size:12.5px;color:var(--muted);white-space:nowrap}
+.tm-quick .chip{
+  font:inherit;font-size:12.5px;font-weight:600;line-height:1;
+  padding:7px 13px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink);
+  transition:border-color .15s,background .15s,color .15s;
+}
+.tm-quick .chip:hover{border-color:var(--primary-200);background:var(--primary-soft);color:var(--primary-text)}
+.tm-quick .chip[aria-pressed="true"]{border-color:var(--primary);background:var(--primary);color:var(--on-primary)}
+.tm-quick .chip[aria-pressed="true"]:hover{background:var(--primary-600);border-color:var(--primary-600);color:var(--on-primary)}
+@media(max-width:560px){
+  .tm-quick{justify-content:flex-start;gap:7px}
+  .tm-quick .chip{padding:7px 11px;font-size:12px}
+}
+
+/* ── T-1b / T-1c（10-24）：「我的常用」+「最近用过」两块并排 ──
+   两块同一张卡的两个面板，桌面上左右并排（各占一半），手机上上下叠。
+   样式全走 token（--surface / --line / --primary* / --muted），深色自动跟着走。 */
+.tm-panels{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px;align-items:start}
+@media(max-width:860px){.tm-panels{grid-template-columns:1fr;gap:12px}}
+.tm-panels .panel{
+  background:var(--surface);border:1px solid var(--line);border-radius:16px;
+  padding:16px 18px;box-shadow:var(--shadow);
+}
+.tm-panels .pn-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:2px}
+.tm-panels .pn-h h4{font-size:14.5px;font-weight:800}
+.tm-panels .pn-h .act{
+  font:inherit;font-size:12px;color:var(--primary-text);font-weight:700;cursor:pointer;
+  background:none;border:0;padding:4px 8px;border-radius:8px;transition:background .15s;
+}
+.tm-panels .pn-h .act:hover{background:var(--primary-soft)}
+.tm-panels .pn-sub{font-size:12px;color:var(--muted);margin:0 0 12px;line-height:1.6}
+.tm-panels .pn-empty{
+  font-size:12.5px;color:var(--muted);text-align:center;padding:16px 10px;
+  border:1px dashed var(--line);border-radius:11px;line-height:1.7;
+}
+/* 预设行 */
+.tm-panels .pre{
+  display:flex;align-items:center;gap:11px;padding:10px 12px;
+  border:1px solid var(--line);border-radius:12px;margin-bottom:8px;background:var(--surface);
+  transition:border-color .15s,background .15s;
+}
+.tm-panels .pre:hover{border-color:var(--primary-200);background:var(--primary-soft)}
+.tm-panels .pre .ic{
+  width:32px;height:32px;border-radius:9px;flex:none;display:grid;place-items:center;
+  background:var(--primary-soft);color:var(--primary-text);font-size:14px;font-weight:800;
+}
+.tm-panels .pre .nm{flex:1;min-width:0}
+.tm-panels .pre .nm b{
+  display:block;font-size:13.5px;font-weight:700;color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.tm-panels .pre .nm i{font-style:normal;font-size:11.5px;color:var(--muted)}
+.tm-panels .pre .dur2{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tm-panels .pre .go,.tm-panels .recent .go{
+  font:inherit;font-size:12px;font-weight:700;border-radius:999px;cursor:pointer;white-space:nowrap;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:5px 14px;
+  transition:background .15s,color .15s,border-color .15s;
+}
+.tm-panels .pre .go:hover{border-color:var(--primary);background:var(--primary);color:var(--on-primary)}
+.tm-panels .pre .x{
+  flex:none;padding:2px 5px;border:0;background:none;cursor:pointer;
+  font:inherit;font-size:14px;line-height:1;color:var(--n-500);border-radius:6px;
+}
+.tm-panels .pre .x:hover{color:#b3261e;background:rgba(179,38,30,.08)}
+/* 最近用过行 */
+.tm-panels .recent{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:11px;transition:background .15s}
+.tm-panels .recent:hover{background:var(--primary-soft)}
+.tm-panels .recent .dot2{width:6px;height:6px;border-radius:50%;background:var(--primary);flex:none}
+.tm-panels .recent .nm{
+  flex:1;min-width:0;font-size:13px;color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.tm-panels .recent .when{font-size:11.5px;color:var(--muted);white-space:nowrap}
+.tm-panels .recent .go{border:0;background:none;color:var(--primary-text);padding:4px 10px}
+.tm-panels .recent .go:hover{background:var(--primary);color:var(--on-primary)}
+@media(max-width:560px){
+  .tm-panels .panel{padding:14px 15px}
+  .tm-panels .pre,.tm-panels .recent{gap:9px}
+  .tm-panels .pre .dur2{display:none}
+}
+
 /* ── 右：任务列表（大卡 → 紧凑行）── */
 .tm-side .section-title{margin-top:2px}
 .timer-mods{display:flex;flex-direction:column;gap:9px;margin-top:10px}
@@ -243,6 +332,16 @@ body.timer-running .timer-idle-hint{display:none}
         </div>
       </div>
     </div>
+    <!-- T-1d（10-24）：时长快选。点一下就写进上面的 #goalMin；「不限时」= 清空（正计时无终点）。
+         ⚠️ #goalMin 手动输入框照旧保留 —— 手机上要设 33 分钟这种数，档位只是省事、不是替代。 -->
+    <div class="tm-quick" id="tmQuick" role="group" aria-label="时长快选">
+      <span class="lbl">时长</span>
+      <button type="button" class="chip" data-min="15" aria-pressed="false">15 分</button>
+      <button type="button" class="chip" data-min="25" aria-pressed="false">25 分</button>
+      <button type="button" class="chip" data-min="40" aria-pressed="false">40 分</button>
+      <button type="button" class="chip" data-min="60" aria-pressed="false">60 分</button>
+      <button type="button" class="chip" data-min="" aria-pressed="true">不限时</button>
+    </div>
     <div class="timer-btns">
       <button class="ui-dark-btn ui-dark-btn--sm" id="stopBtn" disabled>结束并保存</button>
       <button class="ui-dark-btn ui-dark-btn--sm" id="pauseBtn" disabled>暂停</button>
@@ -259,6 +358,10 @@ body.timer-running .timer-idle-hint{display:none}
   </div>
   <div class="timer-mods" id="timerMods"></div>
 
+  <!-- T-1b / T-1c：我的常用（localStorage hub_timer_presets）+ 最近用过（只读 DATA.sessions）。
+       内容全部由页尾内联脚本渲染，这里只留空壳。 -->
+  <div class="tm-panels" id="tmPanels"></div>
+
   <section class="card rec-mini">
     <div class="rec-h">
       <h3>今日学习记录</h3>
@@ -268,6 +371,326 @@ body.timer-running .timer-idle-hint{display:none}
     <p class="rec-empty" id="recEmpty">还没有计时记录。开始一次专注学习吧。</p>
   </section>
 </main>
+
+<!-- ═══ A3 · 计时页页面层交互（T-1b / T-1c / T-1d）════════════════════════════════════
+     🔴 为什么这段写在 timer.html 里、而不是 js/timer.js：
+        启动口令「T-1a~T-1d 只许改 timer.html 的 DOM/CSS，不许碰 js/timer.js」（那归 A2）。
+        这里只做**页面层**的事：把点选结果写进已有输入框 / 渲染列表 / 存 localStorage。
+        开表仍调 js/timer.js 里现成的 startSession() —— 实测它在 window 上
+        （timer.js 是普通脚本，function 声明自动挂 window；DATA/MODULES 是词法绑定，
+        内联脚本裸写也能用），所以**没有复制任何计时逻辑**。
+     🔴 软导航（common-shell.js:825）只换 <main> 并 eval body 内联脚本 —— 本段会被重跑，
+        所以：① 事件一律委托到 document、绑前先摘同名 handler ② 每次进入都从存储重读、重渲染，
+        不依赖上一次的内存状态（幂等）。
+     ══════════════════════════════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+  'use strict';
+
+  /* ─────────── 通用小工具 ─────────── */
+  var $id = function(id){ return document.getElementById(id); };
+  var toast2 = function(msg){ try{ if(typeof toast === 'function') toast(msg); }catch(e){} };
+
+  /* T-1c 的存储 key。🔴 派活单原话：「只新增 key，不许塞进 DATA」—— 塞进 DATA 会被
+     common-sync.js 的合并逻辑卷到云端/其它端，预设是本机偏好，不该跟学习数据一起同步。 */
+  var PRESET_KEY = 'hub_timer_presets';
+  function loadPresets(){
+    try{
+      var raw = localStorage.getItem(PRESET_KEY);
+      var arr = raw ? JSON.parse(raw) : [];
+      if(!Array.isArray(arr)) return [];
+      // 容错：只留结构合法的（name 字符串 + min 数字或 null + mode 'up'|'down'）
+      return arr.filter(function(p){
+        return p && typeof p.name === 'string' && p.name.trim();
+      }).map(function(p){
+        return {
+          name: String(p.name).slice(0, 60),
+          min: (typeof p.min === 'number' && p.min > 0) ? Math.round(p.min) : null,
+          mode: (p.mode === 'down' ? 'down' : 'up')
+        };
+      }).slice(0, 20);
+    }catch(e){ return []; }
+  }
+  function savePresets(list){
+    try{ localStorage.setItem(PRESET_KEY, JSON.stringify(list.slice(0, 20))); }catch(e){}
+  }
+
+  /* ─────────── T-1d · 时长快选档位 ───────────
+     点 chip → 把数字写进 #goalMin（已有输入框，一行没改），并顺手把正/倒切到合理档：
+       · 选了具体分钟 → 倒计时（有终点才有意义）
+       · 「不限时」    → 正计时
+     切模式是**点已有的 .seg-btn**（timer.js 自己的监听接管），不是自己设状态。
+     反向同步：手动在 #goalMin 里敲数字 / 清空时，chip 的高亮跟着走。 */
+  function syncQuickChips(){
+    var box = $id('tmQuick'), goal = $id('goalMin');
+    if(!box || !goal) return;
+    var v = String(goal.value || '').trim();
+    var n = v === '' ? null : Number(v);
+    var chips = box.querySelectorAll('.chip');
+    var hit = false;
+    for(var i=0;i<chips.length;i++){
+      var c = chips[i];
+      var cm = c.getAttribute('data-min');
+      var on;
+      if(cm === ''){ on = (n === null || isNaN(n)); }
+      else { on = (n !== null && !isNaN(n) && Number(cm) === n); }
+      c.setAttribute('aria-pressed', on ? 'true' : 'false');
+      if(on) hit = true;
+    }
+    // 没有一枚命中（比如手动敲了 33）→ 全部不高亮，输入框自己说了算
+    return hit;
+  }
+  function pickChip(chip){
+    var goal = $id('goalMin');
+    if(!goal || !chip) return;
+    var cm = chip.getAttribute('data-min');
+    if(cm === ''){
+      goal.value = '';
+      var up = document.querySelector('#modeSeg .seg-btn[data-mode="up"]');
+      if(up && !up.classList.contains('active')) up.click();
+    }else{
+      goal.value = cm;
+      var down = document.querySelector('#modeSeg .seg-btn[data-mode="down"]');
+      if(down && !down.classList.contains('active')) down.click();
+    }
+    syncQuickChips();
+    // 敲完数字直接把焦点送回「开始」逻辑的入口附近：数量少，不抢焦，只给个轻提示
+    try{ goal.dispatchEvent(new Event('input', { bubbles: true })); }catch(e){}
+  }
+
+  /* ─────────── T-1b · 「最近用过」───────────
+     数据源 = 现成的 DATA.sessions（🔴 只读：一行都不写、不改结构）。
+     规则沿用 10/3 已拍板的去重口径（js/timer.js 的 sameRecProj）：**moduleId + subName 都相同算同一项**。
+     窗口 = 最近 7 天；最多 5 条；按最近一次排前面。
+     ⚠️ 时长**不从 session 反推**：`stopSession` 入库的字段只有 durationSec（真学了多久），
+        **没有 targetSec / mode**（那是 active 态才有的）。所以「再来一次」只能还原名字，
+        时长一律回到「不限时 · 正计时」—— 诚实地不给一个假数字。
+        界面上写的「学了 X 分」用的是 durationSec，即上次真实计时长度。 */
+  var RECENT_DAYS = 7, RECENT_MAX = 5;
+  function collectRecent(){
+    var list = [];
+    try{ list = (typeof DATA !== 'undefined' && Array.isArray(DATA.sessions)) ? DATA.sessions : []; }catch(e){ list = []; }
+    var cutoff = Date.now() - RECENT_DAYS * 86400e3;
+    var arr = list.filter(function(s){ return s && (Number(s.startTs) || 0) >= cutoff; })
+                  .sort(function(a,b){ return (Number(b.startTs)||0) - (Number(a.startTs)||0); });
+    var seen = {}, out = [];
+    for(var i=0;i<arr.length && out.length<RECENT_MAX;i++){
+      var s = arr[i];
+      var key = String(s.moduleId || '') + '\u0001' + String(s.subName || '');   // 与 sameRecProj 同口径
+      if(seen[key]) continue;
+      seen[key] = 1;
+      var nm = String(s.subName || '').trim() || String(s.moduleName || '').trim();
+      if(!nm) continue;
+      out.push({
+        name: nm,
+        moduleId: String(s.moduleId || ''),
+        durSec: Math.max(0, Math.round(Number(s.durationSec) || 0)),   // 上次真实学了多久
+        at: Number(s.startTs) || 0
+      });
+    }
+    return out;
+  }
+  function whenLabel(ts){
+    try{
+      var d = new Date(ts), now = new Date();
+      var sameDay = d.toDateString() === now.toDateString();
+      var hh = ('0'+d.getHours()).slice(-2), mm = ('0'+d.getMinutes()).slice(-2);
+      if(sameDay) return '今天 ' + hh + ':' + mm;
+      var y = new Date(now.getTime() - 86400e3);
+      if(d.toDateString() === y.toDateString()) return '昨天 ' + hh + ':' + mm;
+      return (d.getMonth()+1) + '/' + d.getDate() + ' ' + hh + ':' + mm;
+    }catch(e){ return ''; }
+  }
+  function esc(s){
+    return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  /* 「开始」的公共落点：把名字+时长+模式回填到计时栏，再叫 timer.js 的开表入口。
+     ⚠️ 若 A2 还没把 #tmTaskName 接进 startSession（见 交接\A3回B窗口-T1接线缺口-2026-10-24.md），
+        名字会安全地停在输入框里、不报错 —— 用户多点一次「开始」即可，页面不会坏。
+     ⚠️ startSession 需要合法 moduleId（它内部 `MODULES.find(x=>x.id===id)`，找不到就 return）。
+        自定义任务名不属于 MODULES 里任何一项 → 记账归属取**第一个科目**，名字走第二个参数
+        subNameOpt。「最近用过」回放时也带上原 moduleId，让归属尽量还原。 */
+  function beginWith(name, min, mode, moduleIdOpt){
+    var ti = $id('tmTaskName'), goal = $id('goalMin');
+    if(ti) ti.value = name || '';
+    if(goal) goal.value = (min ? String(min) : '');
+    var wantMode = (mode === 'down' && min) ? 'down' : 'up';
+    var btn = document.querySelector('#modeSeg .seg-btn[data-mode="' + wantMode + '"]');
+    if(btn && !btn.classList.contains('active')) btn.click();
+    syncQuickChips();
+
+    try{
+      var mid = null;
+      if(moduleIdOpt && typeof MODULES !== 'undefined'){
+        var hit = null;
+        for(var i=0;i<MODULES.length;i++){ if(MODULES[i].id === moduleIdOpt){ hit = MODULES[i]; break; } }
+        if(hit) mid = hit.id;
+      }
+      if(!mid && typeof MODULES !== 'undefined' && Array.isArray(MODULES) && MODULES.length) mid = MODULES[0].id;
+      if(mid && typeof window.startSession === 'function'){
+        window.startSession(mid, name);
+        return true;
+      }
+    }catch(e){}
+    toast2('已填入任务名与时长，点「开始」即可');
+    return false;
+  }
+
+  /* ─────────── 渲染：「我的常用」+「最近用过」───────────
+     两块合并进一张卡（左侧预设 / 右侧最近），手机上下叠。整块由本函数重建 —— 幂等。 */
+  function renderPanels(){
+    var box = $id('tmPanels');
+    if(!box) return;
+    var presets = loadPresets();
+    var recent = collectRecent();
+
+    var preHtml = '';
+    if(!presets.length){
+      preHtml = '<p class="pn-empty">还没有常用。填好上面那条栏，点「＋ 存当前的」。</p>';
+    }else{
+      preHtml = presets.map(function(p, i){
+        var dur = p.min ? (p.min + ' 分') : '不限时';
+        var sub = p.min ? ((p.mode === 'down' ? '倒计时 ' : '正计时 ') + p.min + ' 分钟') : '正计时 · 不设终点';
+        return '<div class="pre" data-i="' + i + '">' +
+          '<span class="ic">' + esc(p.name.trim().slice(0,1)) + '</span>' +
+          '<span class="nm"><b>' + esc(p.name) + '</b><i>' + esc(sub) + '</i></span>' +
+          '<span class="dur2">' + esc(dur) + '</span>' +
+          '<button type="button" class="go" data-act="pre-go" data-i="' + i + '">开始</button>' +
+          '<button type="button" class="x" data-act="pre-del" data-i="' + i + '" title="删除" aria-label="删除 ' + esc(p.name) + '">✕</button>' +
+        '</div>';
+      }).join('');
+    }
+
+    var recHtml = '';
+    if(!recent.length){
+      recHtml = '<p class="pn-empty">最近 7 天还没有计时记录。开一次计时，这里就会出现。</p>';
+    }else{
+      recHtml = recent.map(function(r, i){
+        var durTxt = r.durSec >= 60 ? (Math.round(r.durSec/60) + ' 分') : (r.durSec + ' 秒');
+        return '<div class="recent" data-i="' + i + '">' +
+          '<span class="dot2"></span>' +
+          '<span class="nm">' + esc(r.name) + '</span>' +
+          '<span class="when">' + esc(whenLabel(r.at)) + ' · 学了 ' + esc(durTxt) + '</span>' +
+          '<button type="button" class="go" data-act="rec-go" data-i="' + i + '">再来一次</button>' +
+        '</div>';
+      }).join('');
+    }
+
+    box.innerHTML =
+      '<div class="panel">' +
+        '<div class="pn-h"><h4>我的常用</h4>' +
+          '<button type="button" class="act" data-act="pre-save">＋ 存当前的</button>' +
+        '</div>' +
+        '<p class="pn-sub">常用的活存下来，以后点一下就开始，不用每次打字</p>' +
+        preHtml +
+      '</div>' +
+      '<div class="panel">' +
+        '<div class="pn-h"><h4>最近用过</h4></div>' +
+        '<p class="pn-sub">最近 7 天记过的，按「在学什么」去重</p>' +
+        recHtml +
+      '</div>';
+
+    // 把这一轮的数据挂到 DOM 上，供点击时取值（避免再读一次存储、也避免闭包跨次残留）
+    box.__presets = presets;
+    box.__recent = recent;
+  }
+
+  /* ─────────── 事件委托（绑前先摘，保证软导航重跑不叠加）─────────── */
+  if(window.__tmPageClick){ document.removeEventListener('click', window.__tmPageClick); window.__tmPageClick = null; }
+  if(window.__tmPageInput){ document.removeEventListener('input', window.__tmPageInput); window.__tmPageInput = null; }
+
+  window.__tmPageClick = function(ev){
+    var t = ev.target;
+    if(!t || !t.closest) return;
+
+    /* T-1d：时长 chip */
+    var chip = t.closest('#tmQuick .chip');
+    if(chip){ ev.preventDefault(); pickChip(chip); return; }
+
+    /* T-1c：「＋ 存当前的」 */
+    if(t.closest('[data-act="pre-save"]')){
+      ev.preventDefault();
+      var ti = $id('tmTaskName'), goal = $id('goalMin');
+      var name = ti ? String(ti.value || '').trim() : '';
+      if(!name){ toast2('先在上面填「在学什么」，再存'); if(ti) ti.focus(); return; }
+      var list = loadPresets();
+      if(list.some(function(p){ return p.name.trim() === name; })){ toast2('「' + name + '」已经在常用里了'); return; }
+      if(list.length >= 20){ toast2('常用最多存 20 条，先删一条'); return; }
+      var gv = goal ? String(goal.value || '').trim() : '';
+      var n = gv === '' ? null : (Number(gv) > 0 ? Math.round(Number(gv)) : null);
+      var modeEl = document.querySelector('#modeSeg .seg-btn.active');
+      list.push({ name: name, min: n, mode: (modeEl && modeEl.dataset.mode === 'down' && n) ? 'down' : 'up' });
+      savePresets(list);
+      renderPanels();
+      toast2('已存进「我的常用」');
+      return;
+    }
+
+    /* T-1c：单条删除 */
+    var del = t.closest('[data-act="pre-del"]');
+    if(del){
+      ev.preventDefault();
+      var box = $id('tmPanels');
+      var i = Number(del.getAttribute('data-i'));
+      var cur = (box && box.__presets) || loadPresets();
+      if(!isNaN(i) && cur[i]){
+        var nm = cur[i].name;
+        var next = cur.slice(); next.splice(i, 1);
+        savePresets(next); renderPanels();
+        toast2('已删除「' + nm + '」');
+      }
+      return;
+    }
+
+    /* T-1c：预设一键开始 */
+    var pgo = t.closest('[data-act="pre-go"]');
+    if(pgo){
+      ev.preventDefault();
+      var box2 = $id('tmPanels');
+      var j = Number(pgo.getAttribute('data-i'));
+      var p = ((box2 && box2.__presets) || [])[j];
+      if(p) beginWith(p.name, p.min, p.mode);
+      return;
+    }
+
+    /* T-1b：最近用过「再来一次」—— 只还原名字与归属科目，时长回「不限时 · 正计时」
+       （session 里没有 targetSec/mode，不给假数字，见 collectRecent 顶部注释）。 */
+    var rgo = t.closest('[data-act="rec-go"]');
+    if(rgo){
+      ev.preventDefault();
+      var box3 = $id('tmPanels');
+      var k = Number(rgo.getAttribute('data-i'));
+      var r = ((box3 && box3.__recent) || [])[k];
+      if(r) beginWith(r.name, null, 'up', r.moduleId);
+      return;
+    }
+  };
+  document.addEventListener('click', window.__tmPageClick, true);
+
+  /* 手动改时长框 / 清空时，chip 高亮跟着同步（捕获 phase：input 事件不冒泡到 document 的委托要靠 capture） */
+  window.__tmPageInput = function(ev){
+    var t = ev.target;
+    if(t && t.id === 'goalMin') syncQuickChips();
+  };
+  document.addEventListener('input', window.__tmPageInput, true);
+
+  /* ─────────── 首次渲染 + 暴露给探针 ─────────── */
+  function boot(){
+    syncQuickChips();
+    renderPanels();
+  }
+  boot();
+  window.__tmRenderPanels = renderPanels;   // 探针/调试用（DATA 变更后可手动重渲染）
+  window.__tmCollectRecent = collectRecent;
+  // 计时结束入库后 DATA.sessions 变了 → 让「最近用过」跟上（只在页面里监听，不改 timer.js）
+  if(!window.__tmDataMerged){
+    window.__tmDataMerged = function(){ try{ renderPanels(); }catch(e){} };
+    document.addEventListener('hub:data-merged', window.__tmDataMerged);
+  }
+})();
+</script>
 
 </body>
 </html>

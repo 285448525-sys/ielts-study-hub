@@ -252,6 +252,18 @@
       var perQ = units.length ? (units[0].qCount || 0) : 0;
       meta.textContent = part + ' · 共 ' + units.length + ' 篇' + (perQ ? (' · 每篇 ' + perQ + ' 题') : '');
     }
+    /* M-1：阅读的 Part 分栏也加篇数计数（原来只有听力有）。只填 .pt-n 文本，不重建 DOM。 */
+    var ptHost = document.getElementById('partTabs');
+    if(ptHost && _manifest){
+      var allR = unitsOf('reading');
+      ptHost.querySelectorAll('.pill-tab').forEach(function(b){
+        var p = b.getAttribute('data-part');
+        var n = allR.filter(function(u){ return (u.partNum || 'Part 1') === p; }).length;
+        var badge = b.querySelector('.pt-n');
+        if(badge) badge.textContent = n;
+        else b.innerHTML = esc(p) + '<span class="pt-n">' + n + '</span>';
+      });
+    }
     if(!units.length){ host.innerHTML = '<div class="bank-empty"><p>这一部分暂时没有篇目。</p></div>'; return; }
     host.innerHTML = listHtml(units, channel);
     renderFullEntry();
@@ -273,8 +285,43 @@
     host.querySelectorAll('.pill-tab').forEach(function(b){
       var p = b.getAttribute('data-lpart');
       var n = all.filter(function(u){ return (u.partNum || 'Part 1') === p; }).length;
-      b.innerHTML = esc(p) + ' <span class="pt-n">' + n + '</span>';
+      /* M-1：只填 .pt-n 里的数字，不再整块重写 innerHTML（否则会抹掉 HTML 里静态的
+         Part 标签结构；而且这里改的是文本，不需要重建 DOM）。 */
+      var badge = b.querySelector('.pt-n');
+      if(badge) badge.textContent = n;
+      else b.innerHTML = esc(p) + ' <span class="pt-n">' + n + '</span>';
     });
+  }
+
+  /* ===== M-1（10-24）：科目 tab 的篇数计数 =====
+     她截图嫌药丸 tab 丑 → 改成「文字 + 篇数 + 上划线」。计数在这里填：
+       · 阅读 / 听力：manifest 的 albums 数（unitsOf）
+       · 写作：WRITING_PROMPTS 的 big + small 两数组长度
+       · 口语：SPEAKING_TOPICS / 口语题库长度（按页面上实际数据源，取不到就留空）
+     ⚠️ 只在数据真的到位后填 —— 没到就留空（空 span 不占视觉），别显示 0
+         （10/11 体检教训：错误的「共 0 篇」比不显示更糟）。 */
+  function renderMockTabCounts(){
+    var wrap = document.getElementById('mockTabs'); if(!wrap) return;
+    function set(k, n){
+      var el = wrap.querySelector('.mt-n[data-mtn="' + k + '"]');
+      if(el) el.textContent = (n > 0) ? String(n) : '';
+    }
+    /* 阅读 / 听力：manifest 到位才算 */
+    if(_manifest){
+      set('reading', unitsOf('reading').length);
+      set('listening', unitsOf('listening').length);
+    }
+    /* 写作：WRITING_PROMPTS 到位才算（写作 pane 的脚本是按需加载的） */
+    if(window.WRITING_PROMPTS && (window.WRITING_PROMPTS.big || window.WRITING_PROMPTS.small)){
+      var big = window.WRITING_PROMPTS.big || [];
+      var small = window.WRITING_PROMPTS.small || [];
+      set('writing', big.length + small.length);
+    }
+    /* 口语：题库在 DATA.speaking 里（口径与 speaking.js:322 的 populate 一致：
+       排除 framework 与 sp_p1_/sp_p2_ 自动生成的题）。 */
+    var sp = (typeof DATA !== 'undefined' && Array.isArray(DATA.speaking)) ? DATA.speaking : [];
+    var spReal = sp.filter(function(s){ return s && !s.framework && !/^sp_p[12]_\d+$/.test(s.id || ''); });
+    set('speaking', spReal.length);
   }
   function renderListenList(part){
     var host = document.getElementById('listenList'); if(!host) return;
@@ -415,6 +462,7 @@
     showTab(tab);
     renderList('reading');
     if(tab === 'listening'){ renderListenParts(); renderListenList(); }
+    renderMockTabCounts();          /* M-1：每次切栏都刷一次计数（切到写作/口语时数据可能刚到） */
   }
 
   /* ===== 10/17 性能批（第二批 · 传输层）：写作 pane 的两个脚本按需加载 =====
@@ -3769,6 +3817,7 @@ window.__reportExamState = reportExamState;
         if(_mt === 'writing'){
           loadWritingScripts().then(function(){
             if(typeof window.renderExamList === 'function') window.renderExamList();
+            renderMockTabCounts();     /* M-1：写作脚本刚到，此时才有篇数可填 */
           });
         }
         return;
