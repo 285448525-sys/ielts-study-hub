@@ -270,3 +270,24 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
 
 /* 窄屏：书卡进书后，标题区把「复习计划 / 开始学习」压成一行满宽（沿用 .wl-head 已有的 560 断点） */
 @media (max-width:560px){ .wb-crumb{margin-bottom:8px} }
+
+/* ═══ W-3（10-24）答题即时反馈行 ═══
+   复用 judge() 早就在填的 #pwCn（原来只是 15px 灰字释义）。
+   升格成「结论前缀 + 释义」：✓ 绿 / ✗ 红，字号与字重提上来，一眼看得见。
+   ⚠️ 不加高度——#pwCn 在 .practice-body-fit 下已有 min-height:24px、overflow:hidden，
+      塞进这一行不撑高 → 布局零跳动（她最烦闪来闪去）。 */
+#practiceBody .pw-cn.fb-ok{
+  color:var(--med);
+  font-weight:600;
+}
+#practiceBody .pw-cn.fb-bad{
+  color:var(--danger);
+  font-weight:600;
+}
+/* 桌面 fit 态（.practice-body-fit）字号略提，普通态沿用 common.css 的 14px 不抢戏 */
+#practiceBody.practice-body-fit .pw-cn.fb-ok,
+#practiceBody.practice-body-fit .pw-cn.fb-bad{
+  font-size:16px;
+  letter-spacing:.01em;
+}
+/* 深色下 --med/--danger 已有深色覆盖值，无需额外规则 */

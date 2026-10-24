@@ -1379,9 +1379,21 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
     if(!isCorrect) x.style.pointerEvents = 'none';
   });
   // 揭示题干中文释义（背词场景只显示最常用的第一义项，词组全显——9/7 之之要求）
+  // ── W-3（10-24 她：「点完选项直接跳下一词，没有答对提示、也没显示这词的释义」）──
+  // 实测：反馈其实一直在（答对加 .correct 绿框 + 这行释义），但这行是 15px 灰字，
+  // 夹在一个 38px 大单词下面，和答案前的占位长得一样 → 视觉上等于没有。
+  // 改法：同一行升格成「结论前缀 + 释义」，✓ 绿 / ✗ 红。**不新增任何节点**
+  //        （#pwCn 本来就是固定 24px min-height 的空占位，塞字不撑高 → 布局零跳动）；
+  //        **不动 autoNextDelay / wrongHoldMs 任何一个时间常量**（她最烦长停顿）。
   const reveal = document.getElementById('pwCn');
-  if(reveal && cur.cn){
-    reveal.textContent = practiceSense(cur).cn;
+  if(reveal){
+    const cnTxt2 = cur.cn ? practiceSense(cur).cn : '';
+    if(cnTxt2){
+      reveal.textContent = (correct ? '✓ ' : '✗ 正确答案 · ') + cnTxt2;
+    }else{
+      reveal.textContent = correct ? '✓ 答对了' : '✗ 答错了';
+    }
+    reveal.classList.add(correct ? 'fb-ok' : 'fb-bad');
   }
   // 听音题揭示：.pw-reveal 让 CSS 恢复题干英文/音标显示（提示文案随之隐藏），再按词长补一次自适应字号
   const warea = document.querySelector('#practiceBody .practice-word-area');
