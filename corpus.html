@@ -170,6 +170,16 @@
    依据：交接\方案\T-001c-下拉重做与撤小tab-2026-10-23.md §三。不删 DOM：JS 靠 data-* 认分栏，
    sub= 交接（tbSubPending）照常工作；页内二级筛选控件不受影响。 ===== */
 @media (min-width:861px){ #wordTabs{display:none} }
+
+/* ===== S-2d（10-24）：句子库搜索框接入全站统一类 =====
+   原来用顶栏同款 .ui-search/.ui-search-input —— 那套是侧栏大框规格（45px + 2px 边 + hover 5px 外环），
+   宽度还跑满整个内容区。现在只留「在卡片里怎么占位」，外观全交给 .ui-field-search。
+   max-width 360：与写作页（420）、口语页（360）、单词页（360）同档，搜索框不再横跨整屏。 */
+.cp-search{margin:8px 0 4px}
+.cp-search .ui-field-search{max-width:360px}
+@media (max-width:860px){
+  .cp-search .ui-field-search{max-width:none}
+}
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -273,9 +283,17 @@
         <span class="muted" style="font-size:13px">共 <b id="corpusCount">0</b> 条</span>
         <button class="btn flex-none" id="addToggle">＋ 添加句子</button>
       </div>
-      <div class="ui-search" style="margin:8px 0 4px">
-        <svg class="ui-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        <input class="ui-search-input" type="search" id="corpusSearch" placeholder="搜英文或中文…" aria-label="搜索语料" />
+      <!-- S-2d（10-24）：原来用的是顶栏同款胶囊类 .ui-search/.ui-search-input ——
+           那套是「侧栏大框规格」的变体（45px 高 + 2px 边框 + hover 5px 外环），
+           而且宽度跑满整个内容区，一个搜索框横跨 900px 很浪费。
+           现在接入 S-1 统一类（36px / 圆角 10 / 1px 边 / 放大镜 16px / 清空 ✕），max-width 收到 360。
+           id 原样保留，js/corpus.js:57 的 input 监听与 194 行的过滤零改动。 -->
+      <div class="cp-search">
+        <label class="ui-field-search" for="corpusSearch">
+          <svg class="ui-field-search-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input class="ui-field-search-in" type="search" id="corpusSearch" placeholder="搜英文或中文…" aria-label="搜索语料" autocomplete="off" />
+          <button type="button" class="ui-field-clear" hidden aria-label="清空搜索">✕</button>
+        </label>
       </div>
       <div id="corpusList"></div>
       <!-- 添加面板：三种方式平铺，点「＋ 添加句子」展开 -->
