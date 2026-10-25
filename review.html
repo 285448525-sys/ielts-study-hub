@@ -30,7 +30,7 @@
 </script>
 <title>回顾 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261025g" />
-<link rel="stylesheet" href="css/p/review.css?v=20261025g" />
+<link rel="stylesheet" href="css/p/review.css?v=20261025h" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -834,50 +834,151 @@
 
 
       <!-- 学习轨迹（原「轨迹」栏，内容原样未动） -->
+      <!-- ═══ R-REC-1（10-25）第二页（记录）全部重设计 · 第 1 批：结构重排 ═══
+           她原话「上面新设计的那么好看下面那么丑，把下面的直接全部删掉，把那些内容弄到第二个
+           记录页面去……反正第二个页面要全部重新设计」。设计稿 design/回顾页-记录页重设计-2026-10-25.html，
+           1:1 三件套由 scripts/mockup-export.cjs 机器导出（_RREC1_*，43 元素基线）。
+           🔴 旧容器 id 一个都没删：rvRecordStats / heatmap / heatLegend / dayList / spPracticeList
+              —— history.js / review.js / progress.js / speaking-practice.js 都在往里写，只改排列不改写入方。
+           ⚠️ 本批只做结构；时间线/周历/全部记录/成就/我的数据这五块的数据接线留第 2 批。 -->
       <div id="tab-record" class="tab-panel">
-        <!-- 🔴 R-5（10-24）前半：热力图之前先给结论 —— 三个数本来散在别处
-             （连续打卡在首页侧轨、活跃天数要自己数格子、累计时长得把每日明细加起来）。
-             三个数全部复用现成口径，一个新算法都没写：
-               · 连续打卡     → calcStreak()（common.js，首页 railStreakN 用的同一个）
-               · 近 30 天活跃 → 按 history.js 热力图同一套按天聚合，数 durationSec>0 的天数
-               · 累计专注     → DATA.sessions 的 durationSec 求和（同 renderDays 的算法）
-             第四个「口语话题覆盖率」是后半：口语练习原来四张计数卡只留这一个，
-             从 #progressView 挪到这三个数旁边（progress.js 往里写，容器在这儿）。
-             ⚠️ 没练过口语时覆盖率显示「--」而不是 0% —— 0% 会被当成「练了但一个都没过」。 -->
-        <div class="rv-stats" id="rvRecordStats">
-          <div class="rv-stat">
-            <div class="rv-stat-v"><b id="rvStatStreak">0</b><small>天</small></div>
-            <div class="rv-stat-k">连续打卡</div>
-          </div>
-          <div class="rv-stat">
-            <div class="rv-stat-v"><b id="rvStatActive">0</b><small>/ 30 天</small></div>
-            <div class="rv-stat-k">近 30 天活跃</div>
-          </div>
-          <div class="rv-stat">
-            <div class="rv-stat-v"><b id="rvStatFocus">0</b><small id="rvStatFocusUnit">小时</small></div>
-            <div class="rv-stat-k">累计专注</div>
-          </div>
-          <div class="rv-stat">
-            <div class="rv-stat-v"><b id="rvStatCoverage">--</b><small>%</small></div>
-            <div class="rv-stat-k">口语话题覆盖率</div>
+  <div class="rp-page">
+  <div class="rp-pane" id="p-record">
+
+      <!-- ① 顶部四数：口径与第一页完全一致（同一函数），不新增算法 -->
+          <!-- ① 顶部四数：口径与第一页完全一致（同一函数），不新增算法。
+         🔴 R-REC-1：结构用设计稿的 .rp-rs/.rp-k/.rp-v（1:1 基线要它），
+            但 **id 沿用旧的**（rvStatStreak / rvStatActive / rvStatFocus / rvStatFocusUnit / rvStatCoverage）
+            —— history.js:20/40/41 与 progress.js:44 都按 id 写，改 id 会把数据链写断。 -->
+    <div class="rp-rec-stats" id="rvRecordStats">
+      <div class="rp-rs"><div class="rp-k">连续打卡</div><div class="rp-v"><b id="rvStatStreak">0</b><small>天</small></div><div class="rp-d">与第一页同一个数</div></div>
+      <div class="rp-rs"><div class="rp-k">近 30 天活跃</div><div class="rp-v"><b id="rvStatActive">0</b><small>/30</small></div><div class="rp-d">有学习记录的天数</div></div>
+      <div class="rp-rs"><div class="rp-k">累计专注</div><div class="rp-v"><b id="rvStatFocus">0</b><small id="rvStatFocusUnit">小时</small></div><div class="rp-d">全部计时会话求和</div></div>
+      <div class="rp-rs"><div class="rp-k">口语话题覆盖率</div><div class="rp-v"><b id="rvStatCoverage">--</b><small>%</small></div><div class="rp-d">练过的话题 ÷ 当季题库</div></div>
+    </div>
+
+      <div class="rp-grid2">
+        <!-- ② 今天学了什么（新功能：时间线） -->
+        <div class="rp-card">
+          <h2>今天学了什么</h2>
+          <p class="rp-cd">按时间倒序，从各模块的计时与练习记录自动汇总</p>
+          <div class="rp-tl">
+            <div class="rp-tl-i rp-today"><div class="rp-t">16:23</div><div class="rp-w">单词 · 背词 <span>42 分钟 · 答 118 词</span></div></div>
+            <div class="rp-tl-i"><div class="rp-t">15:40</div><div class="rp-w">口语 · 陪练 <span>25 分钟 · 6 轮</span></div></div>
+            <div class="rp-tl-i"><div class="rp-t">14:05</div><div class="rp-w">模考 · 听力 <span>38 分钟 · Part 1~2</span></div></div>
+            <div class="rp-tl-i"><div class="rp-t">10:32</div><div class="rp-w">句子 · 长难句 <span>15 分钟 · 8 句</span></div></div>
           </div>
         </div>
 
-        <section class="card">
-          <h2>近 30 天学习热力</h2>
-          <div id="heatmap"></div>
-          <div class="cal-legend" id="heatLegend"></div>
-        </section>
+        <!-- ③ 本周节奏（新功能：周历条） -->
+        <div class="rp-card">
+          <h2>本周节奏</h2>
+          <p class="rp-cd">颜色越深学得越久；点某一天看当天明细</p>
+          <div class="rp-week">
+            <div class="rp-wd"><div class="rp-d">周一</div><div class="rp-cell rp-l2">2.1</div></div>
+            <div class="rp-wd"><div class="rp-d">周二</div><div class="rp-cell rp-l3">3.4</div></div>
+            <div class="rp-wd"><div class="rp-d">周三</div><div class="rp-cell rp-l1">1.2</div></div>
+            <div class="rp-wd"><div class="rp-d">周四</div><div class="rp-cell rp-l4">5.6</div></div>
+            <div class="rp-wd"><div class="rp-d">周五</div><div class="rp-cell rp-l2">2.8</div></div>
+            <div class="rp-wd"><div class="rp-d">周六</div><div class="rp-cell">--</div></div>
+            <div class="rp-wd rp-today"><div class="rp-d">今天</div><div class="rp-cell rp-l2">2.0</div></div>
+          </div>
+          <p class="rp-muted" style="font-size:12px;margin:12px 0 0">格子里是当天学习小时数。没学的日子留空——空着不丢人，看得见才能补。</p>
+        </div>
+      </div>
 
-        <section class="card rv-fold" data-foldkey="day">
-          <h2 class="rv-fold-head">每日记录 <span class="muted" style="font-size:12px;font-weight:400">点击展开 / 收起</span><span class="rv-arrow">▸</span></h2>
-          <div class="rv-fold-body" hidden><div id="dayList"></div></div>
-        </section>
+      <!-- ④ 全部记录（新功能：三类合并 + 筛选） -->
+      <div class="rp-card">
+        <h2>全部记录</h2>
+        <p class="rp-cd">学习时长、口语练习、默写错题合到一列，按日期倒序</p>
+        <div class="rp-filters">
+          <button class="rp-f rp-on">全部</button><button class="rp-f">学习时长</button><button class="rp-f">口语练习</button><button class="rp-f">默写错题</button><button class="rp-f">模考记录</button>
+        </div>
+        <div class="rp-flist">
+          <div class="rp-frow-i">
+            <span class="rp-dt">10-25 周六</span>
+            <span class="rp-bd"><b>单词 · 背词</b><span class="rp-sub">答 118 词 · 连击 12 · 跳过 3 个已认识</span></span>
+            <span class="rp-rt"><span class="rp-tag rp-k-time">42 分钟</span></span>
+          </div>
+          <div class="rp-frow-i">
+            <span class="rp-dt">10-25 周六</span>
+            <span class="rp-bd"><b>口语 · 陪练</b><span class="rp-sub">6 轮 · 纠错 4 处 · 记住 2 条细节</span></span>
+            <span class="rp-rt"><span class="rp-tag rp-k-sp">25 分钟</span></span>
+          </div>
+          <div class="rp-frow-i">
+            <span class="rp-dt">10-25 周六</span>
+            <span class="rp-bd"><b>句子 · 默写</b><span class="rp-sub">1 句错 2 处 · 已加入错题</span></span>
+            <span class="rp-rt"><span class="rp-tag rp-k-dic">错题</span></span>
+          </div>
+          <div class="rp-frow-i">
+            <span class="rp-dt">10-24 周五</span>
+            <span class="rp-bd"><b>模考 · 听力</b><span class="rp-sub">Part 1~4 · 得分 5.5</span></span>
+            <span class="rp-rt"><span class="rp-tag rp-k-mock">38 分钟</span></span>
+          </div>
+          <div class="rp-frow-i">
+            <span class="rp-dt">10-24 周五</span>
+            <span class="rp-bd"><b>写作 · 批改</b><span class="rp-sub">Task 2 · AI 评 6.0</span></span>
+            <span class="rp-rt"><span class="rp-tag rp-k-mock">32 分钟</span></span>
+          </div>
+        </div>
+      </div>
 
-        <section class="card rv-fold" id="spPractice" data-foldkey="sp">
-          <h2 class="rv-fold-head">口语日常练习 <span class="muted" id="spPracticeCount"></span><span class="rv-arrow">▸</span></h2>
-          <div class="rv-fold-body" hidden><div id="spPracticeList"></div></div>
-        </section>
+      <div class="rp-grid2">
+        <!-- ⑤ 成就（新功能） -->
+        <div class="rp-card">
+          <h2>成就</h2>
+          <p class="rp-cd">按你已有的记录自动解锁，不手动领</p>
+          <div class="rp-ach">
+            <div class="rp-ac rp-on"><span class="rp-ic">◆</span><span class="rp-tx"><b>连续 7 天</b><span>已达成</span></span></div>
+            <div class="rp-ac rp-on"><span class="rp-ic">◆</span><span class="rp-tx"><b>背词 1000</b><span>已达成</span></span></div>
+            <div class="rp-ac rp-on"><span class="rp-ic">◆</span><span class="rp-tx"><b>首场模考</b><span>已达成</span></span></div>
+            <div class="rp-ac rp-lock"><span class="rp-ic">◇</span><span class="rp-tx"><b>连续 30 天</b><span>还差 19 天</span></span></div>
+            <div class="rp-ac rp-lock"><span class="rp-ic">◇</span><span class="rp-tx"><b>口语 50 轮</b><span>还差 22 轮</span></span></div>
+            <div class="rp-ac rp-lock"><span class="rp-ic">◇</span><span class="rp-tx"><b>错题清零</b><span>还剩 23 个</span></span></div>
+          </div>
+        </div>
+
+        <!-- ⑥ 数据（新功能：导出与体积） -->
+        <div class="rp-card">
+          <h2>我的数据</h2>
+          <p class="rp-cd">学习记录都存在你账号里，可随时导出</p>
+          <div class="rp-frow-i" style="border:0;padding:8px 0">
+            <span class="rp-bd"><b>学习记录</b><span class="rp-sub">940 条计时 · 12 场模考 · 2175 词</span></span>
+            <span class="rp-rt"><button class="rp-btn rp-btn-sm">导出</button></span>
+          </div>
+          <div class="rp-frow-i" style="border:0;padding:8px 0">
+            <span class="rp-bd"><b>错题本</b><span class="rp-sub">23 个词 · 4 条默写错句</span></span>
+            <span class="rp-rt"><button class="rp-btn rp-btn-sm">去看</button></span>
+          </div>
+          <div class="rp-frow-i" style="border:0;padding:8px 0">
+            <span class="rp-bd"><b>云同步</b><span class="rp-sub">上次同步 16:23 · 已同步云端</span></span>
+            <span class="rp-rt"><span class="rp-tag rp-k-time">正常</span></span>
+          </div>
+        </div>
+      </div>
+
+    
+      <section class="card">
+        <h2>近 30 天学习热力</h2>
+        <div id="heatmap"></div>
+        <div class="cal-legend" id="heatLegend"></div>
+      </section>
+
+      <section class="card rv-fold" data-foldkey="day">
+        <h2 class="rv-fold-head">每日记录 <span class="muted" style="font-size:12px;font-weight:400">点击展开 / 收起</span></h2>
+        <div class="rv-fold-body" hidden><div id="dayList"></div></div>
+      </section>
+
+      <section class="card rv-fold" id="spPractice" data-foldkey="sp">
+        <h2 class="rv-fold-head">口语日常练习 <span class="muted" id="spPracticeCount"></span></h2>
+        <div class="rv-fold-body" hidden><div id="spPracticeList"></div></div>
+      </section>
+
+  <div class="rp-note">
+        <b>这页的取舍</b>：第一页已有的东西（焦点块、趋势、四科卡、全部记录列表、冲刺卡）一概不搬过来；旧的「四数字 + 热力图 + 两个折叠」整体挪到这一页，并升级成「今天学了什么 / 本周节奏 / 全部记录 / 成就 / 我的数据」五块。<br>
+        <b>新增功能全部用现成数据</b>：时间线 = `DATA.sessions`（本来就有起止时间）；周历 = 热力图同一套按天聚合；成就 = 连续打卡/词数/轮次现成口径；导出 = 设置里已有的导出能力。<b>零新存储字段。</b>
+      </div>
+    </div>
       </div>
     </section>
   </div>
@@ -899,6 +1000,7 @@
         <div class="rvx-sub" id="rvxSubR">--</div></div><div><div class="rvx-lab">写作</div><div class="rvx-num" id="rvxNumW">--</div>
         <div class="rvx-sub" id="rvxSubW">--</div></div><div><div class="rvx-lab">口语</div><div class="rvx-num" id="rvxNumS">--</div>
         <div class="rvx-sub" id="rvxSubS">--</div></div>
+  </div>
   </div>
 
   <div class="rvx-card" style="margin-top:14px"><div class="rvx-card-p" style="padding:14px 18px">

@@ -374,3 +374,285 @@ main.container:has(> .rvx-page) > .review-wrap{ order:1; margin-top:22px }
   .rvx-subj-b{padding:14px 16px;gap:16px}
   .rvx-big{font-size:40px}
 }
+
+/* ═══ R-REC-1（10-25）第二页记录重设计 · 1:1 导出块（机器生成，勿手改）═══
+   来源 design/回顾页-记录页重设计-2026-10-25.html 的 #p-record，scripts/mockup-export.cjs 导出（43 元素基线）。
+   🔴 类名全带 rp- 前缀，只本页生效；要改请改设计稿后重新导出。 */
+/* ======================================================================
+   _RREC1 · 精确样式（机器导出，勿手改）
+   ======================================================================
+   来源：回顾页-记录页重设计-2026-10-25.html 里的 #p-record
+   导出：scripts/mockup-export.cjs · 前缀 rp-
+
+   放在哪
+     只追加到该页专属的 css/p/<页名>.css 末尾，不许进 common.css。
+
+   为什么类名都带 rp-
+     站点 .card / .bar / .chip / .muted / .yes / .no / .big 在 common.css 里已有定义，
+     不加前缀直接覆盖会打穿别的 18 个页面。
+
+   配套
+     · __RREC1_结构原文.html   ← 类名与本文件一一对应
+     · __RREC1_验收基线.json   ← 关键元素宽高与样式基线，收尾自检用
+
+   🔴 本文件开头那个 token 块必须原样保留：
+      设计稿自带一套私有变量（--card / --p500 / --line2 / --r ...），站点没有。
+      导出时已把能映射的换成站点 token，映射不到的按设计稿原值兜底成 rp-xxx。
+      删掉这个块 → var() 解析成空 → 边框/底色全丢。
+
+   🔴 基准字号 / 行高 / 字体栈照**设计稿 body** 原样搬（不是随便写 16px）：
+      站点 body 是 15px + 行高 1.62，设计稿可能是别的值，不搬会让所有继承字号的元素偏 1px。
+      本次设计稿 body 采到：{"margin":"0","padding":"0","background":"var(--bg)","color":"var(--ink)","font":"15px/1.7 -apple-system,BlinkMacSystemFont,\"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",sans-serif","-webkit-font-s
+   ====================================================================== */
+
+.rp-page{
+  --rp-line:#e6e9ea;
+  --rp-muted:#71767e;
+  --rp-ink:#1f2328;
+  --rp-med:#8b7bd8;
+  --rp-warn:#c2703a;
+  --rp-mock:#3b82c4;
+  font-size:15px;
+  line-height:1.7;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+
+.rp-page, .rp-page *{ box-sizing: border-box; }
+.rp-pane{ display: none; }
+.rp-card{ background: var(--surface); border: 1px solid var(--rp-line); border-radius: var(--radius); padding: 20px 22px; }
+.rp-card + .rp-card{ margin-top: 14px; }
+.rp-card h2{ margin: 0px; font-size: 16px; font-weight: 750; letter-spacing: -0.01em; }
+.rp-card .rp-cd{ font-size: 12.5px; color: var(--rp-muted); margin: 2px 0px 14px; }
+.rp-btn{ display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 36px; padding: 0px 16px; border-radius: 9px; border: 1px solid var(--rp-line); background: var(--surface); color: var(--rp-ink); font-size: 13.5px; font-weight: 650; cursor: pointer; font-family: inherit; }
+.rp-btn-sm{ height: 31px; padding: 0px 12px; font-size: 12.5px; border-radius: 8px; }
+.rp-muted{ color: var(--rp-muted); }
+@media (max-width: 760px){
+.rp-rvx-trf{ grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 760px){
+.rp-rvx-two{ grid-template-columns: 1fr; }
+}
+.rp-rec-stats{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+@media (max-width: 760px){
+.rp-rec-stats{ grid-template-columns: repeat(2, 1fr); }
+}
+.rp-rs{ background: var(--surface); border: 1px solid var(--rp-line); border-radius: var(--radius); padding: 15px 17px; }
+.rp-rs .rp-k{ font-size: 12px; color: var(--rp-muted); }
+.rp-rs .rp-v{ font-size: 26px; font-weight: 800; letter-spacing: -0.02em; margin-top: 4px; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.rp-rs .rp-v small{ font-size: 13px; font-weight: 600; color: var(--rp-muted); margin-left: 2px; }
+.rp-rs .rp-d{ font-size: 11.5px; color: var(--ink-2); margin-top: 5px; }
+.rp-tl{ position: relative; padding-left: 18px; }
+.rp-tl-i{ position: relative; padding: 7px 0px 7px 12px; }
+.rp-tl-i .rp-t{ font-size: 12px; color: var(--rp-muted); font-variant-numeric: tabular-nums; }
+.rp-tl-i .rp-w{ font-size: 13.5px; font-weight: 650; margin-top: 1px; }
+.rp-tl-i .rp-w span{ font-weight: 400; color: var(--ink-2); font-size: 12.5px; margin-left: 6px; }
+.rp-week{ display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.rp-wd{ text-align: center; }
+.rp-wd .rp-d{ font-size: 11px; color: var(--rp-muted); }
+.rp-wd .rp-cell{ margin-top: 5px; border-radius: 9px; padding: 9px 0px; background: var(--n-100); font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.rp-wd.rp-today .rp-cell{ outline: 2px solid var(--primary); outline-offset: 1px; }
+.rp-flist{ display: flex; flex-direction: column; gap: 8px; }
+.rp-frow-i{ display: flex; align-items: center; gap: 12px; border: 1px solid var(--rp-line); border-radius: var(--radius-sm); padding: 11px 14px; background: var(--surface); flex-wrap: wrap; }
+.rp-frow-i .rp-dt{ font-size: 12.5px; color: var(--rp-muted); font-variant-numeric: tabular-nums; width: 76px; flex: 0 0 auto; }
+.rp-frow-i .rp-bd{ flex: 1 1 0%; min-width: 180px; font-size: 13.5px; }
+.rp-frow-i .rp-bd b{ font-weight: 700; }
+.rp-frow-i .rp-bd .rp-sub{ font-size: 12px; color: var(--rp-muted); margin-top: 2px; }
+.rp-frow-i .rp-rt{ margin-left: auto; display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.rp-tag{ font-size: 11px; font-weight: 700; border-radius: 5px; padding: 1px 7px; background: var(--n-100); color: var(--ink-2); }
+.rp-tag.rp-k-time{ background: var(--primary-50); color: var(--primary-700); }
+.rp-tag.rp-k-sp{ background: rgba(139, 123, 216, 0.13); color: var(--rp-med); }
+.rp-tag.rp-k-dic{ background: rgba(192, 112, 58, 0.13); color: var(--rp-warn); }
+.rp-tag.rp-k-mock{ background: rgba(59, 130, 196, 0.13); color: var(--rp-mock); }
+.rp-filters{ display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 14px; }
+.rp-f{ border: 1px solid var(--rp-line); background: var(--surface); color: var(--ink-2); border-radius: 20px; padding: 4px 13px; font-size: 12.5px; cursor: pointer; font-family: inherit; }
+.rp-f.rp-on{ background: var(--rp-ink); border-color: var(--rp-ink); color: var(--surface); font-weight: 650; }
+.rp-ach{ display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+.rp-ac{ border: 1px solid var(--rp-line); border-radius: var(--radius-sm); padding: 14px 15px; background: var(--surface); display: flex; gap: 11px; align-items: center; }
+.rp-ac .rp-ic{ width: 34px; height: 34px; border-radius: 10px; background: var(--n-100); display: flex; align-items: center; justify-content: center; flex: 0 0 auto; font-size: 16px; }
+.rp-ac.rp-on .rp-ic{ background: var(--primary-50); color: var(--primary-700); }
+.rp-ac .rp-tx b{ display: block; font-size: 13px; font-weight: 700; }
+.rp-ac .rp-tx span{ display: block; font-size: 11.5px; color: var(--rp-muted); margin-top: 1px; }
+.rp-ac.rp-lock{ opacity: 0.55; }
+.rp-ac.rp-lock .rp-ic{ filter: grayscale(1); }
+.rp-note{ background: var(--n-100); border-radius: var(--radius-sm); padding: 12px 15px; font-size: 12.5px; color: var(--ink-2); line-height: 1.85; margin-top: 16px; }
+.rp-note b{ color: var(--rp-ink); }
+.rp-grid2{ display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 860px){
+.rp-grid2{ grid-template-columns: 1fr; }
+}
+
+/* ===== 站点全局标签规则（common.css:470 input / :490 label）的冲突钉死 =====
+   这两条标签选择器直接写在元素上，会盖掉未显式声明的 font-size / line-height。
+   下面按设计稿实测值钉一遍，本文件追加在 common.css 之后 → 同比分靠顺序赢。 */
+.rp-page .rp-f{font-size:12.5px}
+.rp-page .rp-f button, .rp-page .rp-f>button{font-size:12.5px}
+.rp-page .rp-on{font-size:12.5px}
+.rp-page .rp-on button, .rp-page .rp-on>button{font-size:12.5px}
+.rp-page .rp-btn{font-size:12.5px}
+.rp-page .rp-btn button, .rp-page .rp-btn>button{font-size:12.5px}
+.rp-page .rp-btn-sm{font-size:12.5px}
+.rp-page .rp-btn-sm button, .rp-page .rp-btn-sm>button{font-size:12.5px}
+
+
+/* ===== 加固副本：选择器统一加 .rp-page（具体度 +1 级） =====
+   为什么有这一段：common.css 有两条标签选择器直接写在元素上、优先于继承——
+     :470 input:not([type=checkbox]):not([type=radio]):not([type=range]) → 具体度 0,3,1
+     :490 label → 全局把 font-size 压成 13px、color 压成 muted、margin-bottom 4px
+   本文件里 (0,2,1) 的规则打不过它们 → 输入框出现「外框包一层、内层又多一个框」，
+   字号也会被压成 13px。这一段靠提高具体度 + 排在最后来压住。
+   🔴 别删：删了输入框立刻变双层框。 */
+.rp-page .rp-pane{ display: none; }
+.rp-page .rp-card{ background: var(--surface); border: 1px solid var(--rp-line); border-radius: var(--radius); padding: 20px 22px; }
+.rp-page .rp-card + .rp-card{ margin-top: 14px; }
+.rp-page .rp-card h2{ margin: 0px; font-size: 16px; font-weight: 750; letter-spacing: -0.01em; }
+.rp-page .rp-card .rp-cd{ font-size: 12.5px; color: var(--rp-muted); margin: 2px 0px 14px; }
+.rp-page .rp-btn{ display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 36px; padding: 0px 16px; border-radius: 9px; border: 1px solid var(--rp-line); background: var(--surface); color: var(--rp-ink); font-size: 13.5px; font-weight: 650; cursor: pointer; font-family: inherit; }
+.rp-page .rp-btn-sm{ height: 31px; padding: 0px 12px; font-size: 12.5px; border-radius: 8px; }
+.rp-page .rp-muted{ color: var(--rp-muted); }
+@media (max-width: 760px){
+.rp-page .rp-rvx-trf{ grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 760px){
+.rp-page .rp-rvx-two{ grid-template-columns: 1fr; }
+}
+.rp-page .rp-rec-stats{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+@media (max-width: 760px){
+.rp-page .rp-rec-stats{ grid-template-columns: repeat(2, 1fr); }
+}
+.rp-page .rp-rs{ background: var(--surface); border: 1px solid var(--rp-line); border-radius: var(--radius); padding: 15px 17px; }
+.rp-page .rp-rs .rp-k{ font-size: 12px; color: var(--rp-muted); }
+.rp-page .rp-rs .rp-v{ font-size: 26px; font-weight: 800; letter-spacing: -0.02em; margin-top: 4px; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.rp-page .rp-rs .rp-v small{ font-size: 13px; font-weight: 600; color: var(--rp-muted); margin-left: 2px; }
+.rp-page .rp-rs .rp-d{ font-size: 11.5px; color: var(--ink-2); margin-top: 5px; }
+.rp-page .rp-tl{ position: relative; padding-left: 18px; }
+.rp-page .rp-tl-i{ position: relative; padding: 7px 0px 7px 12px; }
+.rp-page .rp-tl-i .rp-t{ font-size: 12px; color: var(--rp-muted); font-variant-numeric: tabular-nums; }
+.rp-page .rp-tl-i .rp-w{ font-size: 13.5px; font-weight: 650; margin-top: 1px; }
+.rp-page .rp-tl-i .rp-w span{ font-weight: 400; color: var(--ink-2); font-size: 12.5px; margin-left: 6px; }
+.rp-page .rp-week{ display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.rp-page .rp-wd{ text-align: center; }
+.rp-page .rp-wd .rp-d{ font-size: 11px; color: var(--rp-muted); }
+.rp-page .rp-wd .rp-cell{ margin-top: 5px; border-radius: 9px; padding: 9px 0px; background: var(--n-100); font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.rp-page .rp-wd.rp-today .rp-cell{ outline: 2px solid var(--primary); outline-offset: 1px; }
+.rp-page .rp-flist{ display: flex; flex-direction: column; gap: 8px; }
+.rp-page .rp-frow-i{ display: flex; align-items: center; gap: 12px; border: 1px solid var(--rp-line); border-radius: var(--radius-sm); padding: 11px 14px; background: var(--surface); flex-wrap: wrap; }
+.rp-page .rp-frow-i .rp-dt{ font-size: 12.5px; color: var(--rp-muted); font-variant-numeric: tabular-nums; width: 76px; flex: 0 0 auto; }
+.rp-page .rp-frow-i .rp-bd{ flex: 1 1 0%; min-width: 180px; font-size: 13.5px; }
+.rp-page .rp-frow-i .rp-bd b{ font-weight: 700; }
+.rp-page .rp-frow-i .rp-bd .rp-sub{ font-size: 12px; color: var(--rp-muted); margin-top: 2px; }
+.rp-page .rp-frow-i .rp-rt{ margin-left: auto; display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.rp-page .rp-tag{ font-size: 11px; font-weight: 700; border-radius: 5px; padding: 1px 7px; background: var(--n-100); color: var(--ink-2); }
+.rp-page .rp-tag.rp-k-time{ background: var(--primary-50); color: var(--primary-700); }
+.rp-page .rp-tag.rp-k-sp{ background: rgba(139, 123, 216, 0.13); color: var(--rp-med); }
+.rp-page .rp-tag.rp-k-dic{ background: rgba(192, 112, 58, 0.13); color: var(--rp-warn); }
+.rp-page .rp-tag.rp-k-mock{ background: rgba(59, 130, 196, 0.13); color: var(--rp-mock); }
+.rp-page .rp-filters{ display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 14px; }
+.rp-page .rp-f{ border: 1px solid var(--rp-line); background: var(--surface); color: var(--ink-2); border-radius: 20px; padding: 4px 13px; font-size: 12.5px; cursor: pointer; font-family: inherit; }
+.rp-page .rp-f.rp-on{ background: var(--rp-ink); border-color: var(--rp-ink); color: var(--surface); font-weight: 650; }
+.rp-page .rp-ach{ display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+.rp-page .rp-ac{ border: 1px solid var(--rp-line); border-radius: var(--radius-sm); padding: 14px 15px; background: var(--surface); display: flex; gap: 11px; align-items: center; }
+.rp-page .rp-ac .rp-ic{ width: 34px; height: 34px; border-radius: 10px; background: var(--n-100); display: flex; align-items: center; justify-content: center; flex: 0 0 auto; font-size: 16px; }
+.rp-page .rp-ac.rp-on .rp-ic{ background: var(--primary-50); color: var(--primary-700); }
+.rp-page .rp-ac .rp-tx b{ display: block; font-size: 13px; font-weight: 700; }
+.rp-page .rp-ac .rp-tx span{ display: block; font-size: 11.5px; color: var(--rp-muted); margin-top: 1px; }
+.rp-page .rp-ac.rp-lock{ opacity: 0.55; }
+.rp-page .rp-ac.rp-lock .rp-ic{ filter: grayscale(1); }
+.rp-page .rp-note{ background: var(--n-100); border-radius: var(--radius-sm); padding: 12px 15px; font-size: 12.5px; color: var(--ink-2); line-height: 1.85; margin-top: 16px; }
+.rp-page .rp-note b{ color: var(--rp-ink); }
+.rp-page .rp-grid2{ display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 860px){
+.rp-page .rp-grid2{ grid-template-columns: 1fr; }
+}
+
+/* ===== 站点全局标签规则（common.css:470 input / :490 label）的冲突钉死 =====
+   这两条标签选择器直接写在元素上，会盖掉未显式声明的 font-size / line-height。
+   下面按设计稿实测值钉一遍，本文件追加在 common.css 之后 → 同比分靠顺序赢。 */
+
+
+
+/* ═══ R-REC-1（10-25）第 1 批：周历四档色阶兜底 ═══
+   导出工具提示 `rp-l1~rp-l4` 在 DOM 里用了但 CSS 没定义（会裸奔）。
+   施工书 §三.2 口径：四档（<1h / 1-2h / 2-4h / ≥4h），**不要五档**。 */
+.rp-page .rp-week .rp-cell.rp-l1{background:var(--primary-50);color:var(--primary-700)}
+.rp-page .rp-week .rp-cell.rp-l2{background:var(--primary-100);color:var(--primary-800)}
+.rp-page .rp-week .rp-cell.rp-l3{background:var(--primary-300);color:var(--primary-900)}
+.rp-page .rp-week .rp-cell.rp-l4{background:var(--primary-600);color:#fff}
+
+
+/* ═══ R-REC-1（10-25）第 1 批：.rp-pane 的 display 交还站点 tab 机制 ═══
+   🔴 导出件带 `.rp-pane{display:none}` —— 那是设计稿自己用来切「成绩 / 记录」两个 pane 的，
+      贴进 #tab-record 后会把整个第二页藏掉（实测 0×0）。
+      站点的显隐由 .tab-panel.active 控制（R-E1 同款教训：写死 hidden JS 救不回来），
+      所以这里让 .rp-pane 回归正常流，不再自己管显隐。 */
+.rp-page .rp-pane,
+.rp-pane{display:block}
+
+
+
+/* ═══ R-REC-1（10-25）第 1 批：1:1 精确钉死（**逐条按基线抄，不许归类猜**）═══
+   🔴 上一版我按「大块 14 / 小块 10」归类，把 .rp-cell 塞进 10px —— 基线要 9px，
+      结果不一致从 7 条涨到 16 条。本条规则由基线 JSON 机器生成，每条都是它自己的真值。 */
+.rp-page .rp-rec-stats{border-radius:0px !important;font-size:15px !important;line-height:25.5px !important}
+.rp-page .rp-rs{border-radius:14px !important;font-size:15px !important;line-height:25.5px !important}
+.rp-page .rp-k{border-radius:0px !important;font-size:12px !important;line-height:20.4px !important}
+.rp-page .rp-v{border-radius:0px !important;font-size:26px !important;line-height:28.6px !important}
+.rp-page .rp-d{border-radius:0px !important;font-size:11.5px !important;line-height:19.55px !important}
+.rp-page .rp-grid2{border-radius:0px !important;font-size:15px !important;line-height:25.5px !important}
+.rp-page .rp-card{border-radius:14px !important;font-size:15px !important;line-height:25.5px !important}
+.rp-page .rp-cd{border-radius:0px !important;font-size:12.5px !important;line-height:21.25px !important}
+.rp-page .rp-tl{border-radius:0px !important;font-size:15px !important;line-height:25.5px !important}
+.rp-page .rp-tl-i{border-radius:0px !important;font-size:15px !important;line-height:25.5px !important}
+.rp-page .rp-today{border-radius:0px !important;font-size:15px !important;line-height:25.5px !important}
+.rp-page .rp-t{border-radius:0px !important;font-size:12px !important;line-height:20.4px !important}
+.rp-page .rp-w{border-radius:0px !important;font-size:13.5px !important;line-height:22.95px !important}
+.rp-page .rp-week{border-radius:0px !important;font-size:15px !important;line-height:25.5px !important}
+.rp-page .rp-wd{border-radius:0px !important;font-size:15px !important;line-height:25.5px !important}
+.rp-page .rp-cell{border-radius:9px !important;font-size:13px !important;line-height:22.1px !important}
+.rp-page .rp-l2{border-radius:9px !important;font-size:13px !important;line-height:22.1px !important}
+.rp-page .rp-l3{border-radius:9px !important;font-size:13px !important;line-height:22.1px !important}
+.rp-page .rp-l1{border-radius:9px !important;font-size:13px !important;line-height:22.1px !important}
+.rp-page .rp-l4{border-radius:9px !important;font-size:13px !important;line-height:22.1px !important}
+.rp-page .rp-muted{border-radius:0px !important;font-size:12px !important;line-height:20.4px !important}
+.rp-page .rp-filters{border-radius:0px !important;font-size:15px !important;line-height:25.5px !important}
+.rp-page .rp-f{border-radius:20px !important;font-size:12.5px !important;line-height:normal !important}
+.rp-page .rp-on{border-radius:20px !important;font-size:12.5px !important;line-height:normal !important}
+.rp-page .rp-flist{border-radius:0px !important;font-size:15px !important;line-height:25.5px !important}
+.rp-page .rp-frow-i{border-radius:10px !important;font-size:15px !important;line-height:25.5px !important}
+.rp-page .rp-dt{border-radius:0px !important;font-size:12.5px !important;line-height:21.25px !important}
+.rp-page .rp-bd{border-radius:0px !important;font-size:13.5px !important;line-height:22.95px !important}
+.rp-page .rp-sub{border-radius:0px !important;font-size:12px !important;line-height:20.4px !important}
+.rp-page .rp-rt{border-radius:0px !important;font-size:15px !important;line-height:25.5px !important}
+.rp-page .rp-tag{border-radius:5px !important;font-size:11px !important;line-height:18.7px !important}
+.rp-page .rp-k-time{border-radius:5px !important;font-size:11px !important;line-height:18.7px !important}
+.rp-page .rp-k-sp{border-radius:5px !important;font-size:11px !important;line-height:18.7px !important}
+.rp-page .rp-k-dic{border-radius:5px !important;font-size:11px !important;line-height:18.7px !important}
+.rp-page .rp-k-mock{border-radius:5px !important;font-size:11px !important;line-height:18.7px !important}
+.rp-page .rp-ach{border-radius:0px !important;font-size:15px !important;line-height:25.5px !important}
+.rp-page .rp-ac{border-radius:10px !important;font-size:15px !important;line-height:25.5px !important}
+.rp-page .rp-ic{border-radius:10px !important;font-size:16px !important;line-height:27.2px !important}
+.rp-page .rp-tx{border-radius:0px !important;font-size:15px !important;line-height:25.5px !important}
+.rp-page .rp-lock{border-radius:10px !important;font-size:15px !important;line-height:25.5px !important}
+.rp-page .rp-btn{border-radius:8px !important;font-size:12.5px !important;line-height:normal !important}
+.rp-page .rp-btn-sm{border-radius:8px !important;font-size:12.5px !important;line-height:normal !important}
+.rp-page .rp-note{border-radius:10px !important;font-size:12.5px !important;line-height:23.125px !important}
+
+
+/* ═══ R-REC-1（10-25）第 1 批：深色档补私有变量 ═══
+   🔴 问题（实测）：导出件的 token 块把 --rp-muted / --rp-ink / --rp-line 兜底成了**浅色写死值**
+      （#71767e / #1f2328 / #e6e9ea），设计稿本身只在 html[data-theme="dark"] 里重定义它们，
+      而那段没跟着导出 → 深色下 .rp-k（标签）/ .rp-v 里的单位仍是浅色灰，
+      实测对比度只有 3.8（R-5 探针 prev 5.39 掉到 3.8，报红）。
+   修：在深色档把这三个私有变量重指回站点 token（与 R-E1 / .m-page 同一套做法）。 */
+html[data-theme="dark"] .rp-page{
+  --rp-line:var(--line);
+  --rp-muted:var(--muted);
+  --rp-ink:var(--ink);
+  --rp-med:var(--med);
+  --rp-warn:var(--warn);
+  --rp-mock:var(--mock);
+}
+/* 深色下这几个直接写死浅色值的也别漏（设计稿只给了浅色） */
+html[data-theme="dark"] .rp-page .rp-rs{background:var(--surface);border-color:var(--line)}
+html[data-theme="dark"] .rp-page .rp-card{background:var(--surface);border-color:var(--line)}
+html[data-theme="dark"] .rp-page .rp-cell{background:var(--primary-50);color:var(--primary-700)}
