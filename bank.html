@@ -18,8 +18,8 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>模考 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261025c" />
-<link rel="stylesheet" href="css/p/bank.css?v=20261025c" />
+<link rel="stylesheet" href="css/common.css?v=20261025h" />
+<link rel="stylesheet" href="css/p/bank.css?v=20261025h" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -1874,6 +1874,46 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 .ex-script .sc-mark-count b.ok{color:var(--med)}
 .ex-script .sc-mark-count b.mid{color:var(--vocab)}
 .ex-script .sc-mark-count b.no{color:var(--danger-text,#a14542)}
+
+/* ===== 10-25 7-4b · 标记式精听报告页 =====
+   设计稿：交接/_示意图-7-4-标记式精听.html 第三个屏。
+   ⚠️ 导出 PDF 按钮刻意不做（她 10-25 定：要引库，平时不导出）。
+   ⚠️ 「茫然」只展示、不排复习（爱听写同口径）。 */
+.ex-listen-in .sc-mk-rpt{margin-left:10px;border:1px solid var(--primary-200);background:var(--primary-50);color:var(--primary-text);border-radius:999px;padding:3px 12px;font:inherit;font-size:12.5px;font-weight:650;cursor:pointer;vertical-align:1px}
+.ex-listen-in .sc-mk-rpt:hover{background:var(--primary-100)}
+
+#exMarkReport{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:0 0 16px;box-shadow:0 6px 22px rgba(20,60,56,.06)}
+#exMarkReport .rpt-head{margin:0 0 14px;font-size:15px;font-weight:700;color:var(--ink);letter-spacing:-.01em}
+#exMarkReport .rpt-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0 0 12px}
+#exMarkReport .rpt-cell{border:1px solid var(--line);border-radius:11px;padding:11px 13px;background:var(--bg);text-align:center}
+#exMarkReport .rpt-cell .n{font-size:22px;font-weight:800;line-height:1.15;font-variant-numeric:tabular-nums;color:var(--ink)}
+#exMarkReport .rpt-cell .t{font-size:11.5px;color:var(--muted);margin-top:2px}
+#exMarkReport .rpt-cell.ok .n{color:var(--med)}
+#exMarkReport .rpt-cell.mid .n{color:var(--vocab)}
+#exMarkReport .rpt-cell.no .n{color:var(--danger-text,#a14542)}
+#exMarkReport .rpt-meta,#exMarkReport .rpt-empty{margin:0 0 12px;font-size:12.5px;line-height:1.7;color:var(--muted)}
+#exMarkReport .rpt-lines{max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:11px}
+#exMarkReport .rpt-line{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-bottom:1px solid var(--line);font-size:14px;line-height:1.6}
+#exMarkReport .rpt-line:last-child{border-bottom:none}
+#exMarkReport .rpt-tg{flex:none;width:38px;text-align:center;font-size:11px;font-weight:700;border-radius:6px;padding:2px 0;margin-top:2px}
+#exMarkReport .rpt-tg.ok{background:var(--med-soft,rgba(70,168,131,.14));color:var(--med)}
+#exMarkReport .rpt-tg.mid{background:var(--vocab-soft,rgba(10,132,255,.14));color:var(--vocab)}
+#exMarkReport .rpt-tg.no{background:var(--danger-soft,rgba(217,120,119,.14));color:var(--danger-text,#a14542)}
+#exMarkReport .rpt-tg.none{background:var(--bg);color:var(--muted);font-weight:500}
+#exMarkReport .rpt-tx{flex:1;min-width:0;color:var(--ink)}
+#exMarkReport .rpt-tx small{display:block;color:var(--muted);font-size:12px;margin-top:1px}
+#exMarkReport .rpt-st{flex:none;border:none;background:none;color:var(--n-400);cursor:pointer;padding:2px 4px;line-height:1;border-radius:5px}
+#exMarkReport .rpt-st:hover{color:var(--warn)}
+#exMarkReport .rpt-st[aria-pressed='true']{color:var(--warn)}
+#exMarkReport .rpt-acts{display:flex;gap:10px;justify-content:flex-end;margin-top:14px}
+[data-theme='dark'] #exMarkReport{background:var(--surface);border-color:var(--line);box-shadow:none}
+[data-theme='dark'] #exMarkReport .rpt-cell{background:var(--surface-2)}
+[data-theme='dark'] #exMarkReport .rpt-tg.none{background:var(--surface-2)}
+@media (max-width:720px){
+  #exMarkReport .rpt-grid{grid-template-columns:repeat(2,1fr)}
+  #exMarkReport .rpt-acts{flex-direction:column-reverse}
+  #exMarkReport .rpt-acts .btn{width:100%}
+}
 @media (max-width:560px){
   .ex-listen-in .sc-mk-cards{grid-template-columns:1fr;gap:6px}
   .ex-listen-in .sc-card{display:flex;align-items:center;gap:10px;text-align:left;padding:10px 14px}
@@ -2359,14 +2399,14 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
      （手机慢网 ~50KB/s → 约 1.5 秒）。加载时机：点开「写作」tab 时按序插入；
      首次 load 之后空闲再预热一次。承接代码在 js/bank.js 的 loadWritingScripts()。 -->
 <script defer src="js/data.js?v=20261023b"></script>
-<script defer src="js/common.js?v=20261025c"></script>
-<script defer src="js/common-ai.js?v=20261025c"></script>
-<script defer src="js/common-sync.js?v=20261025c"></script>
-<script defer src="js/common-merge.js?v=20261025c"></script>
-<script defer src="js/common-cloud.js?v=20261025c"></script>
-<script defer src="js/common-shell.js?v=20261025c"></script>
-<script defer src="js/common-pwa.js?v=20261025c"></script>
-<script defer src="js/bank.js?v=20261025c"></script>
+<script defer src="js/common.js?v=20261025h"></script>
+<script defer src="js/common-ai.js?v=20261025h"></script>
+<script defer src="js/common-sync.js?v=20261025h"></script>
+<script defer src="js/common-merge.js?v=20261025h"></script>
+<script defer src="js/common-cloud.js?v=20261025h"></script>
+<script defer src="js/common-shell.js?v=20261025h"></script>
+<script defer src="js/common-pwa.js?v=20261025h"></script>
+<script defer src="js/bank.js?v=20261025f"></script>
 <!-- M-2（10-24）：模考页「没做过/做过」分组 + 展开更多。
      ⚠️ 本文件只做展示层（读 hub_bank_last_* 分组 + 首屏 20 条），判分/SRS/本地记录一律不碰；
         单条 DOM 由 js/bank.js 的 listHtml() 生成（当参数传进来），结构零改动。

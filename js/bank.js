@@ -1573,6 +1573,9 @@ window.__reportExamState = reportExamState;
     if(_intMode === 'mark'){
       var host = document.getElementById('exListenIn');
       if(host && host.hasAttribute('data-blind')){ host.removeAttribute('data-blind'); renderBlindCard(); setBlindBtns(false); }
+      /* 7-4b: record when this marking pass started - the report page derives elapsed from it.
+         Not reset while re-entering the same item (she comes back via「返回继续练习」). */
+      if(!_mkStartTs) _mkStartTs = Date.now();
     }
     mountIntensive();
   }
@@ -1625,6 +1628,104 @@ window.__reportExamState = reportExamState;
     el.innerHTML = '已标记 ' + tot + ' 句：<b class="ok">' + n.ok + '</b> 听懂 · '
       + '<b class="mid">' + n.mid + '</b> 模糊 · <b class="no">' + n.no + '</b> 茫然';
   }
+  /* ===== 10-25 7-4b · 标记式精听报告页 =====
+     她 10-25 拍板的默认口径（照抄 7-4b 条目 note，别再问）：
+       ① 走完一遍出报告：四格（听懂% / 模糊% / 茫然% / 用时）
+       ② 每句一行：左边彩色标签复述当时的选择，右边复用 7-3 那颗收藏星
+       ③ 底部「返回继续练习 / 完成练习」两件；**导出 PDF 不做**（要引库，她平时不导出）
+       ④ 「茫然」只标、不排复习（爱听写同口径）—— 报告只展示，不写任何复习计划
+     数据来源全是现成的：marksOf()（理解度）+ 时间轴 lines（原文与中文）+ _mkStartTs（本场用时）
+     零新增存储、不碰 DATA、不参与云同步、不影响判分。 */
+  var _mkStartTs = 0;          /* 进标注模式那一刻（算「用时」的起点） */
+  function mkElapsed(){
+    if(!_mkStartTs) return 0;
+    return Math.max(0, Math.round((Date.now() - _mkStartTs) / 1000));
+  }
+  function mkPct(n, tot){ return tot > 0 ? Math.round(n / tot * 100) : 0; }
+  function openMarkReport(){
+    var host = document.getElementById('exListenIn') || document.getElementById('examRoot');
+    if(!host) return;
+    var box = document.querySelector('#examRoot .ex-script .sc-body.sc-tl');
+    var lines = _stLines || [];
+    if(!box || !lines.length) return;
+    var m = marksOf();
+    var n = { ok: 0, mid: 0, no: 0 }, marked = 0;
+    for(var k in m){ if(m.hasOwnProperty(k) && n[m[k]] !== undefined){ n[m[k]]++; marked++; } }
+    var tot = lines.length;
+    var secs = mkElapsed();
+    var unit = (EX && EX.unit && (EX.unit.title || EX.unit.name)) || '本场';
+    var sub = (EX && EX.subName) ? (' · ' + EX.subName) : '';
+
+    var rows = lines.map(function(l, i){
+      var mk = m[i] || '';
+      var tg = mk ? ('<span class="rpt-tg ' + mk + '">' + MK_TX[mk] + '</span>') : '<span class="rpt-tg none">未标</span>';
+      var cn = String(l.cn || '').trim();
+      return '<div class="rpt-line' + (mk ? ' ' + mk : '') + '">'
+        + tg
+        + '<span class="rpt-tx">' + esc(l.text || '') + (cn ? '<small>' + esc(cn) + '</small>' : '') + '</span>'
+        + '<button class="rpt-st" type="button" data-star="' + i + '" aria-pressed="' + (starred(i) ? 'true' : 'false') + '"'
+        + ' title="' + (starred(i) ? '取消收藏' : '收藏这句') + '" aria-label="' + (starred(i) ? '取消收藏' : '收藏这句') + '">'
+        + icoStar() + '</button></div>';
+    }).join('');
+
+    var wrap = document.createElement('div');
+    wrap.className = 'rpt';
+    wrap.id = 'exMarkReport';
+    wrap.innerHTML =
+        '<h3 class="rpt-head">' + esc(unit) + esc(sub) + ' · 精听报告</h3>'
+      + '<div class="rpt-grid">'
+      +   '<div class="rpt-cell ok"><div class="n">' + mkPct(n.ok, tot) + '%</div><div class="t">听懂</div></div>'
+      +   '<div class="rpt-cell mid"><div class="n">' + mkPct(n.mid, tot) + '%</div><div class="t">模糊</div></div>'
+      +   '<div class="rpt-cell no"><div class="n">' + mkPct(n.no, tot) + '%</div><div class="t">茫然</div></div>'
+      +   '<div class="rpt-cell tm"><div class="n">' + fmtClock(secs) + '</div><div class="t">用时</div></div>'
+      + '</div>'
+      + (marked === 0
+          ? '<p class="rpt-empty">这一遍还没有标过任何一句。回到「标记式精听」听一句点一档，走完再来看报告。</p>'
+          : '<p class="rpt-meta">共 ' + tot + ' 句 · 已标 ' + marked + ' 句（没标的保持「未标」）。'
+            + '听不懂的句子只做标记，不会自动排进复习。</p>')
+      + '<div class="rpt-lines">' + rows + '</div>'
+      + '<div class="rpt-acts">'
+      +   '<button class="btn btn-ghost" type="button" id="rptBack">返回继续练习</button>'
+      +   '<button class="btn btn-primary" type="button" id="rptDone">完成练习</button>'
+      + '</div>';
+
+    /* 插到原文区上方（不删原文：她可能想边看报告边对原文） */
+    var old = document.getElementById('exMarkReport');
+    if(old) old.remove();
+    var script = document.querySelector('#examRoot .ex-script');
+    if(script && script.parentNode) script.parentNode.insertBefore(wrap, script);
+    else host.appendChild(wrap);
+
+    /* 报告里的收藏星：复用 7-3 的 toggleStar，只改按钮自身状态，不重建列表 */
+    wrap.addEventListener('click', function(ev){
+      var st = ev.target.closest && ev.target.closest('[data-star]');
+      if(st){
+        ev.stopPropagation();
+        var i = parseInt(st.getAttribute('data-star'), 10);
+        if(!isFinite(i)) return;
+        var now = toggleStar(i);
+        st.setAttribute('aria-pressed', now ? 'true' : 'false');
+        st.setAttribute('title', now ? '取消收藏' : '收藏这句');
+        st.setAttribute('aria-label', now ? '取消收藏' : '收藏这句');
+        return;
+      }
+      var b = ev.target.closest && ev.target.closest('button, .btn');
+      if(!b) return;
+      if(b.id === 'rptBack'){
+        wrap.remove();
+        /* 回到刚才那句，方便接着听 */
+        try{ playLine(_mkIdx || 0); }catch(e){}
+      }else if(b.id === 'rptDone'){
+        wrap.remove();
+        /* 「完成练习」= 收起精听区回连续播放（不弹窗、不打断，她最烦弹窗） */
+        setIntMode('cont');
+        try{ toast('这一遍练完了。标记都留着，下次还能看。'); }catch(e){}
+      }
+    });
+
+    wrap.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
+
   /* 跳到第 i 句并播（三卡选完自动递进 + 点句子条共用） */
   function playLine(i){
     var a = document.getElementById('exAudio'); if(!a) return;
@@ -2163,7 +2264,8 @@ window.__reportExamState = reportExamState;
         +     '<button type="button" class="sc-card mid" data-mark="mid"><span class="sc-card-lb">模糊</span><span class="sc-card-sub">快捷键 2</span></button>'
         +     '<button type="button" class="sc-card no" data-mark="no"><span class="sc-card-lb">茫然</span><span class="sc-card-sub">快捷键 3</span></button>'
         +   '</div>'
-        +   '<p class="sc-mk-tip">听一句 → 选一档 → 自动跳下一句。走完一遍再回头看标出来的句子。</p>'
+        +   '<p class="sc-mk-tip">听一句 → 选一档 → 自动跳下一句。走完一遍再回头看标出来的句子。'
+        +     '<button type="button" class="sc-mk-rpt" data-mkreport="1">看报告 →</button></p>'
         + '</div>'
         : '');
     /* 「已标记 N 句」：与 7-3 的「已收藏 N 句」并排挂在原文区底部 */
@@ -4340,6 +4442,11 @@ window.__reportExamState = reportExamState;
         setMark(_mkIdx, mk.getAttribute('data-mark'));
         var nRows = document.querySelectorAll('#examRoot .ex-script .sc-body.sc-tl .sc-line').length;
         if(_mkIdx + 1 < nRows) playLine(_mkIdx + 1);
+        return;
+      }
+      /* 10-25 7-4b：打开精听报告（随时可看，不必等走完） */
+      if(t.closest && t.closest('[data-mkreport]')){
+        openMarkReport();
         return;
       }
       if(t.closest && t.closest('[data-schide]')){
