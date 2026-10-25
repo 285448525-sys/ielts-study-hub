@@ -31,8 +31,8 @@
 })();
 </script>
 <title>口语 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261025b" />
-<link rel="stylesheet" href="css/p/speaking.css?v=20261025b" />
+<link rel="stylesheet" href="css/common.css?v=20261025c" />
+<link rel="stylesheet" href="css/p/speaking.css?v=20261025c" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -43,13 +43,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
   <script defer src="js/data.js?v=20261023b"></script>
-  <script defer src="js/common.js?v=20261025b"></script>
-  <script defer src="js/common-ai.js?v=20261025b"></script>
-  <script defer src="js/common-sync.js?v=20261025b"></script>
-  <script defer src="js/common-merge.js?v=20261025b"></script>
-  <script defer src="js/common-cloud.js?v=20261025b"></script>
-  <script defer src="js/common-shell.js?v=20261025b"></script>
-  <script defer src="js/common-pwa.js?v=20261025b"></script>
+  <script defer src="js/common.js?v=20261025c"></script>
+  <script defer src="js/common-ai.js?v=20261025c"></script>
+  <script defer src="js/common-sync.js?v=20261025c"></script>
+  <script defer src="js/common-merge.js?v=20261025c"></script>
+  <script defer src="js/common-cloud.js?v=20261025c"></script>
+  <script defer src="js/common-shell.js?v=20261025c"></script>
+  <script defer src="js/common-pwa.js?v=20261025c"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
@@ -73,7 +73,7 @@
   <!-- 10-24 T-009 S-6：L/M 区（口语自动计时 + 回车跳题钩子）拆出 js/sp-timer.js（171 行）。
        🔴 var SPK_AUTO_MIN_SEC 必须与 commitSpkTimer 同文件且更靠前 —— 搬家时两者一起走、先后不变。 -->
   <script defer src="js/sp-timer.js?v=20261023a"></script>
-  <script defer src="js/sp-list.js?v=20261023a"></script>
+  <script defer src="js/sp-list.js?v=20261025d"></script>
   <!-- 10-23 T-009 S-4：G 区（P2 串题，design/87）拆出 js/sp-story.js（685 行）。
        排在 sp-diag.js 之前 —— J 区（诊断）要用它的 spPersonaLine / spDiagTierHead。 -->
   <script defer src="js/sp-story.js?v=20261023a"></script>
@@ -308,7 +308,7 @@
         .sp-card-title / .sp-card-zh / .sp-card-tags 旧定义**保留**（含四档色条 + 防截断换行两条硬约束），
         但外观已被下方 T-004 样式块（约 2311 行起）覆盖成「列表卡内通栏行」。
         T-004 块故意放在本节之后 —— 同权重选择器后来者胜，不需要加 !important。 */
-  .sp-card-row{display:flex;align-items:flex-start;gap:12px;padding:10px 15px 10px 0;cursor:pointer;
+  .sp-card-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;cursor:pointer;
     border-bottom:1px solid var(--n-50);border-radius:0;box-shadow:none;transition:background .15s}
   .sp-panel-body > .sp-card-row:last-child{border-bottom:0}
   .sp-card-row:hover{background:var(--primary-50);box-shadow:none}
@@ -354,25 +354,8 @@
     max-width:none;                /* 🔴 去掉 46% —— 那是在硬切标签 */
     overflow:visible;
   }
-  .sp-card-go{width:24px;height:24px;border-radius:50%;background:var(--n-100);color:var(--muted);flex:none;
-    display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s;
-    margin-top:1px}   /* 19:20：两栏布局下让箭头与标题第一行视觉齐平 */
-  .sp-card-go svg{width:12px;height:12px}
-  .sp-card-row:hover .sp-card-go{background:var(--primary-100);color:var(--primary-700)}
-  /* 10/5 路线图①「一键开练」按钮：题卡内左栏末尾。
-     视觉刻意低调（描边 + 13px），别抢标题/箭头；点击区 ≥32px 且卡内 44px 触控标准由 padding 补足。
-     ⚠️ 不动 .sp-card-row 的 flex 结构（两栏=10/4 定死契约），按钮只是 main 里的一个子行。 */
-  .sp-card-drill{
-    align-self:flex-start;margin-top:7px;
-    display:inline-flex;align-items:center;gap:4px;
-    font:inherit;font-size:13px;font-weight:600;line-height:1;
-    color:var(--primary-700);background:var(--primary-50);
-    border:1px solid var(--primary-200);border-radius:999px;
-    padding:7px 12px;cursor:pointer;transition:background .15s,border-color .15s;
-  }
-  .sp-card-drill:hover{background:var(--primary-100);border-color:var(--primary-400,var(--primary-300,var(--primary-200)))}
-  .sp-card-drill:active{background:var(--primary-200)}
-  [data-theme="dark"] .sp-card-drill{color:var(--primary-200)}
+  /* W-SPCRD-1（10-25）：.sp-card-drill 整套样式已删 —— 她「练这道题删掉」；
+     第二个按钮 .sp-card-go 也早无 DOM，两条一起清掉，别再留死 CSS。 */
   .sp-tag-p{background:var(--primary-50);color:var(--primary-800)}
   /* ⚠️ T-004：上面这条（0,1,0）被下方 T-004 块的 .sp-tag.sp-tag-p（0,2,0）覆盖，
      保留它只为深色/其他上下文不出现回归。 */
@@ -1059,7 +1042,7 @@ body.mock-immerse #mockStage{border:0;box-shadow:none;background:transparent}
       而 10/3 B 版已在卡内放了一个带圆形底的真箭头 `<span class="sp-card-go">`（.sp-card-go 有
       border-radius:50% + var(--n-100) 底）→ 每张卡右端两个箭头。
       **旧伪元素整条删除**，箭头唯一来源 = .sp-card-go。hover 位移效果由 .sp-card-go 承担。 */
-.sp-card:hover .sp-card-go{color:var(--primary);transform:translateX(3px)}
+  /* W-SPCRD-1（10-25）：.sp-card-go（右栏圆箭头）已无 DOM，配套 hover 位移一并删。 */
 /* 旧 `padding-right:26px` 是给已删除的 ::after 裸箭头留位的 —— 箭头唯一来源现在是卡内的
    .sp-card-go（flex 布局自带占位），留着会让标题右侧凭空多空 26px。同步撤掉。 */
 /* 2) 句型练习分类行：标题前 teal 圆点，列表节奏感 */
@@ -1563,9 +1546,9 @@ body.mock-immerse #mockStage{border:0;box-shadow:none;background:transparent}
        修：窄屏**不再需要任何换行/order** —— 两栏结构下标题自己会换行、标签自己会换行，
            箭头天生就在右栏顶部。只需微调内边距。
        ⚠️ 别改回去：卡片结构是「左栏竖排 + 右栏箭头」，任何 flex-wrap/order 都不要再加。 */
-    .sp-card-row{padding:11px 13px 11px 0;row-gap:0}
+    .sp-card-row{padding:11px 0;row-gap:0}
     .sp-card-row .sp-card-main{order:1;flex:1 1 auto;min-width:0}
-    .sp-card-row .sp-card-go{order:2;flex:none;align-self:flex-start}
+    /* W-SPCRD-1（10-25）：右栏箭头已删，order 排位不需要了。 */
     /* 分组面板标题行的数量不再被裁切 */
     .sp-panel-n{overflow:visible;text-overflow:clip}
   }
@@ -3073,7 +3056,6 @@ html[data-theme="dark"] #detailBody .td-wordcount b{color:var(--primary-200)}
     .sp-panel-head{flex-wrap:wrap;gap:6px 8px}
     .sp-panel-head .sp-panel-n{flex:1 1 100%;white-space:normal}
     .sp-panel-head .spacer{display:none}
-    .sp-panel-head .more{order:3;margin-left:auto}
     .sp-block-h{flex-wrap:wrap;gap:6px 8px;margin-bottom:10px}
     .sp-block-h .desc{flex:1 1 100%}
     .sp-block-h .spacer{display:none}
@@ -3097,7 +3079,7 @@ html[data-theme="dark"] #detailBody .td-wordcount b{color:var(--primary-200)}
   .sp-list > .sp-card{padding:0;border:0;border-radius:0;background:none;box-shadow:none}
   .sp-list > .sp-card:hover{background:var(--n-50)}
   .sp-card-row{
-    display:flex;align-items:center;gap:18px;padding:16px 22px;cursor:pointer;position:relative;
+    display:flex;align-items:center;gap:18px;padding:16px 0;cursor:pointer;position:relative;
     border-bottom:1px solid var(--n-300);border-radius:0;box-shadow:none;transition:background .14s;
   }
   .sp-card-row:last-child{border-bottom:0}
@@ -3122,21 +3104,7 @@ html[data-theme="dark"] #detailBody .td-wordcount b{color:var(--primary-200)}
   .sp-score-badge.low{background:var(--n-100);color:var(--n-500);border-color:var(--n-200)}
   .sp-score-badge.practice{background:var(--n-100);color:var(--n-700);border-color:var(--n-200)}
   .sp-last-practice{font-size:11.5px;color:var(--n-500);margin-left:8px;white-space:nowrap;font-weight:500}
-  .sp-card-go{width:24px;height:24px;border-radius:0;background:none;color:var(--n-400);flex:none;display:flex;align-items:center;justify-content:center;transition:color .15s;margin-top:0}
-  .sp-card-go svg{width:16px;height:16px}
-  .sp-card-row:hover .sp-card-go{color:var(--n-600)}
-  .sp-card-drill{
-    align-self:flex-start;margin:2px 0 0 auto;flex:none;white-space:nowrap;
-    display:inline-flex;align-items:center;gap:5px;
-    font:inherit;font-size:13.5px;font-weight:600;line-height:1;
-    color:var(--primary-700);background:none;border:0;border-radius:0;
-    padding:7px 2px;cursor:pointer;transition:color .15s,gap .15s;
-  }
-  .sp-card-drill svg{width:13px;height:13px;flex:none}
-  .sp-card-drill:hover{color:var(--primary-900);gap:9px}
-  .sp-card-drill:active{color:var(--primary-900)}
-  [data-theme="dark"] .sp-card-drill{color:var(--primary-300)}
-  [data-theme="dark"] .sp-card-drill:hover{color:var(--primary-200)}
+  /* W-SPCRD-1（10-25）：右栏箭头 hover 已无对象。 */
   /* T-004 深色修正（2026-10-22）：--primary-900 在深色主题下没有覆盖值（仍是最深的墨绿 #1a4542），
      P1/P2 标签、高频标签、成绩徽标用它当文字色 → 深色卡片上变成深底暗字看不见。
      深色下改用浅一档的 --primary-200，浅色主题一个字不动。 */

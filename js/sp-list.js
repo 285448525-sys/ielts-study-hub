@@ -133,24 +133,8 @@ function renderList(){
   container.querySelectorAll('[data-id]').forEach(c => {
     c.addEventListener('click', () => openDetail(c.dataset.id));
   });
-  /* 10/5 路线图①「一键开练」：题卡上的「练这道题」→ 切到陪练 tab 并出这道题。
-     ⚠️ 必须 stopPropagation —— 整行 click 绑的是 openDetail，不拦会同时进详情页。
-     走软导航不整页刷新（与站内链接同口径，hubSoftGo 内部对异常有兜底）。 */
-  container.querySelectorAll('[data-drill]').forEach(b => {
-    b.addEventListener('click', e => {
-      e.stopPropagation();
-      e.preventDefault();
-      const id = b.dataset.drill;
-      if(typeof window.__coachDrill !== 'function'){ toast('陪练没加载好，稍后再试'); return; }
-      /* 陪练在同页 tab 内（speaking.html 的 PRACTICE tab）→ 不需要软导航，
-         直接切 tab + 调 coach 入口。陪练不可用（未引 coach.js）时 toast，不静默失败。 */
-      const tab = document.querySelector('#tabs [data-type="PRACTICE"]');
-      if(!tab){ toast('陪练入口没找到'); return; }
-      tab.click();
-      const ok = window.__coachDrill(id);
-      if(!ok) toast('这道题暂时打不开，换一道试试');
-    });
-  });
+  /* W-SPCRD-1（10-25）：题卡上的「练这道题」已撤，这段 [data-drill] 绑定随之删除。
+     🔴 js/coach.js 的 __coachDrill / drillById 一行未动 —— 陪练页那条链路还在用。 */
   // 10/3 B 版分组面板：折叠头绑一下（面板用 <details>，原生展开收起不需 JS，这里只做「组内全选」入口透传）
   container.querySelectorAll('.sp-panel-head').forEach(h => {
     h.addEventListener('click', ev => {
@@ -161,28 +145,8 @@ function renderList(){
       if(b) b.open = !b.open;
     });
   });
-  /* T-004：分组标题右侧的「全部开始」→ 打开该组第一题（走陪练一键开练，同题卡按钮口径）。
-     ⚠️ 必须在 summary 的 click 之前拦掉（stopPropagation + preventDefault），
-     否则会同时触发 <details> 折叠，出现「刚展开又收起」的闪跳。 */
-  container.querySelectorAll('[data-gstart]').forEach(b => {
-    b.addEventListener('click', ev => {
-      ev.stopPropagation();
-      ev.preventDefault();
-      const key = b.dataset.gstart;
-      const g = SP_FREQ_GROUPS.find(x => x.key === key);
-      if(!g) return;
-      const items = getFiltered().filter(s => g.freqs.indexOf(s.frequency) >= 0);
-      if(!items.length){ toast('这一组暂时没有题'); return; }
-      const btn = document.createElement('button');
-      btn.dataset.drill = items[0].id;
-      /* 复用题卡按钮的同一条路径：切到陪练 tab + 调 __coachDrill */
-      const tab = document.querySelector('#tabs [data-type="PRACTICE"]');
-      if(!tab){ toast('陪练入口没找到'); return; }
-      tab.click();
-      if(typeof window.__coachDrill !== 'function'){ toast('陪练没加载好，稍后再试'); return; }
-      if(!window.__coachDrill(items[0].id)) toast('这道题暂时打不开，换一道试试');
-    });
-  });
+  /* W-SPCRD-1（10-25）：分组标题右侧的「全部开始」已撤，这段 [data-gstart] 绑定随之删除。
+     组标题仍可点开/收起（下面那段 .sp-panel-head 的折叠逻辑原样保留）。 */
   /* T-004：单组兜底标题的「全部展开」→ 单组时列表本来就是全展开，按钮只做视觉反馈（刷新） */
   container.querySelectorAll('[data-more]').forEach(b => {
     b.addEventListener('click', ev => { ev.stopPropagation(); ev.preventDefault(); renderList(); });
@@ -218,7 +182,7 @@ function renderGrouped(list){
   return used.map(g => {
     const items = list.filter(s => g.freqs.indexOf(s.frequency) >= 0);
     if(!items.length) return '';
-    /* T-004：面板头改成 block-h 口径（h3 标题 + desc 说明 + 右侧「全部开始」）。
+    /* T-004：面板头改成 block-h 口径（h3 标题 + desc 说明 + 右侧动作；W-SPCRD-1 起那颗已删）。
        ⚠️ <summary> 仍是折叠触发器（原生展开收起），caret 放最左。 */
     return '<details class="sp-panel" data-gkey="' + g.key + '"' + (g.open ? ' open' : '') + '>'
       + '<summary class="sp-panel-head">'
@@ -227,7 +191,6 @@ function renderGrouped(list){
         + '<h3>' + g.label + '</h3>'
         + '<span class="sp-panel-n">' + items.length + ' 题 · ' + g.desc + '</span>'
         + '<span class="spacer"></span>'
-        + '<button type="button" class="more" data-gstart="' + escapeHtml(g.key) + '">全部开始<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>'
       + '</summary>'
       + '<div class="sp-panel-body">' + items.map(s => spCardHtml(s)).join('') + '</div>'
       + '</details>';
@@ -260,13 +223,8 @@ function spCardHtml(s){
       + (zh ? '<div class="sp-card-zh">' + escapeHtml(zh) + '</div>' : '')
       + '<div class="sp-card-tags">' + tagsHtml(s) + '</div>'
     + '</div>'
-    /* T-004 口径修正（2026-10-22 18:2x）：样张把「练这道题」放在**右侧**（与标题同一水平线，
-       右对齐、绿字+箭头），原来放在左栏竖排末尾 → 每行下面空一大块、右半边全空，
-       与样张「一眼看出是同一版」对不上。右栏本来就只放一个元素（10/4 防截断契约），
-       现在这个元素从「圆箭头」换成「练这道题 ›」，栏宽仍由它撑住，标题照样换行不截断。 */
-    + '<button type="button" class="sp-card-drill" data-drill="' + escapeHtml(s.id) + '">练这道题'
-      + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>'
-    + '</button>'
+    /* W-SPCRD-1（10-25）：她 03:0x 原话「全部开始和练这道题删掉」→ 右栏那颗已删。
+       右栏空出来后 .sp-card-main 独占整行宽度（标题照样换行不截断，见 css 里 .sp-card-row 的改制）。 */
     + '</div>';
 }
 
