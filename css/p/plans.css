@@ -136,3 +136,46 @@
 /* 同样处理：.m-mk-shell 的灰底（#eef0f0）与 16px 边距是效果稿的外框，
    真页面不该有一圈灰边 —— 这里没用 shell 包层，但保险起见覆盖掉。 */
 .m-page .m-mk-shell{ background:transparent;border:0;padding:0;border-radius:0 }
+
+/* ==========================================================================
+   PL-1（10-25）：深色覆盖 —— 上面 .m-page 那组私有 token 全是写死浅色值，
+   深色下没有覆盖，后果是两块：
+     ① .m-mk 永远是 #f6f7f7 浅灰块，压在深色页面中间；
+     ② .m-task .m-t 是 #1a1a1c 底 + #1f2328 字 = 1.10:1，**整页任务行看不见**。
+   ⚠️ 只覆盖 token 值，不动任何类名 / DOM / 字号 / 间距 —— 那 7 项是 1:1 的判据。
+   ⚠️ 站点深色值：--surface:#1a1a1c · --bg:#0e0e10 · --ink:#f2f2f4 · --line:#2e2e32。
+      --m-bg 比 --surface 再暗一档（#141416）而不是照搬 --bg（#0e0e10）——
+      照搬会让块与卡片糊成一片，留一档差才有层次。
+   ⚠️ 末尾那条 `.m-page .m-mk-shell{background:transparent}` 是 P-1R 的 1:1 决定
+      （效果稿那圈灰边真页面不该有）。所以这里**不覆盖 .m-mk-shell 的底色**，
+      跟着那条透明走即可 —— 施工书 §一 的 `.m-mk-shell{background:#0b0b0d}` 是**照旧稿写的**，
+      照它填会把 P-1R 的透明壳又涂成深色，等于推翻她点头过的 1:1。
+   ========================================================================== */
+[data-theme="dark"] .m-page{
+  --m-line:#2e2e32;
+  --m-bg:#141416;
+  --m-muted:#8e939b;
+  --m-ink:#f2f2f4;
+}
+/* .m-mk 的浅底跟着 --m-bg 走，不用单独再写一条；这里只补「深色下要脱掉浅灰」的那层 */
+[data-theme="dark"] .m-page .m-mk{ background:var(--m-bg) }
+[data-theme="dark"] .m-page .m-mk-shell{ background:transparent }   /* 显式重申，防上面 §一 的写法被误加回来 */
+
+/* .m-phase / .m-dg 用的是站点 --primary-50 / --primary-200 / --primary-text，
+   深色档早已重定义（DK-4b 之后 200/300/400/600 也齐了），所以这两块自动跟着翻。
+   唯一写死的两处白底要单独提：
+     .m-phase .m-chip{background:#fff} 与 .m-dg .m-ic{background:#fff}
+   —— 深色下是「白方块压在浅青条上」，一眼跳出来。改用卡片底即可。 */
+[data-theme="dark"] .m-page .m-phase .m-chip{ background:var(--surface); border-color:var(--primary-200) }
+[data-theme="dark"] .m-page .m-dg .m-ic{ background:var(--surface) }
+/* .m-mk-top 里那颗圆点也是写死 rgb(226,229,230)，深色下是亮白点 */
+[data-theme="dark"] .m-page .m-mk-top .m-dot{ background:var(--line) }
+
+/* 补两处同样写死白底的地方（真机深色截图里跳出来的）：
+   `.m-addrow` 是「写一条，或让 AI 安排今天」那条虚线输入区（background:rgb(252,252,252)），
+   `.m-btn` 是普通按钮（background:rgb(255,255,255)）—— 深色下两块都是白砖。
+   改用站点的表面色，描边走 --m-line，字走 --m-ink/--m-muted，不改字号与内距。 */
+[data-theme="dark"] .m-page .m-addrow{ background:var(--surface) }
+[data-theme="dark"] .m-page .m-addrow .m-plus{ background:var(--primary-soft) }
+[data-theme="dark"] .m-page .m-btn{ background:var(--surface); color:var(--m-ink) }
+/* .m-pri 是主色实底 + 白字，深色下主色不变 → 白字仍然成立，不用动 */
