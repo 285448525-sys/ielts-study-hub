@@ -1626,6 +1626,34 @@ function applyTheme(theme){
   if(tc) tc.setAttribute('content', theme === 'dark' ? '#0e1c1b' : '#3a9a93');
 }
 
+/* ═══ TH-SYS（10-25）：主题「跟随系统」—— 监听系统偏好变化 ═══
+   背景：applyTheme 里 'auto' 这一档**早就支持**（上面 :1621-1622），但只在调用那一刻读一
+   次系统偏好。用户中途把系统切深色，页面纹丝不动，要刷新才生效 —— 她 01:4x 要的就是这个。
+
+   🔴 放这里（common.js，20 页共用）而不是 settings.js：跨页生效必须挂公共链。
+   🔴 只加监听，不动 applyTheme 原有分支（施工书 §四 边界）。
+   ⚠️ 只有 DATA.settings.theme === 'auto' 时才跟；手动 light/dark 时系统怎么切都不动。
+   ⚠️ 幂等：软导航只换 <main> 不重跑本文件，但万一重跑，用 window 标记挡住重复绑。 */
+(function initThemeAutoWatch(){
+  try{
+    if(window.__themeAutoWatchBound) return;
+    var mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+    if(!mq) return;
+    window.__themeAutoWatchBound = true;
+    var onChange = function(){
+      try{
+        if(!DATA || !DATA.settings || DATA.settings.theme !== 'auto') return;   // 只有 auto 档才跟
+        var t = mq.matches ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', t);
+        var tc2 = document.querySelector('meta[name="theme-color"]');
+        if(tc2) tc2.setAttribute('content', t === 'dark' ? '#0e1c1b' : '#3a9a93');
+      }catch(e){}
+    };
+    if(mq.addEventListener) mq.addEventListener('change', onChange);
+    else if(mq.addListener) mq.addListener(onChange);   // 老 Safari
+  }catch(e){}
+})();
+
 /* ===== 10-23 T-002 步5：正文字号三档 + 减少动效（全站级，每页生效）=====
    之所以放 common.js 而不是 settings.js：settings.js 只有设置页引用，
    「跨页生效」必须挂在每页都加载的公共链上（与 applyTheme 同一个道理、同一个入口）。

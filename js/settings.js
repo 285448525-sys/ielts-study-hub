@@ -8,7 +8,13 @@ function populateSettingsForm(){
   if($('#sExam')) $('#sExam').value = s.examDate || '';
   /* 10/2（她拍板）：「距考试 N 天」徽章整删（顶得布局很丑）——settingsCountdown 相关渲染退役；考试倒计时首页/冲刺卡仍有 */
   if($('#sGoal')) $('#sGoal').value = s.dailyGoalHours || '';
-  if($('#sThemeToggle')) $('#sThemeToggle').checked = (s.theme === 'dark');
+  /* TH-SYS（10-25）：主题三值 —— 'auto' 时动画开关按系统当前深浅摆位（视觉与页面一致），
+     真正的「跟随系统」状态由 #sThemeAuto 表达。脏值一律当 light（施工书 §2.2）。 */
+  var _th = (s.theme === 'dark' || s.theme === 'auto') ? s.theme : 'light';
+  var _sysDark = false;
+  try{ _sysDark = window.matchMedia('(prefers-color-scheme: dark)').matches; }catch(e){}
+  if($('#sThemeToggle')) $('#sThemeToggle').checked = (_th === 'dark') || (_th === 'auto' && _sysDark);
+  if($('#sThemeAuto')) $('#sThemeAuto').checked = (_th === 'auto');
 
   const t = s.targets || {};
   if($('#tOverall')) $('#tOverall').value = t.overall || '';
@@ -49,13 +55,39 @@ ready(() => {
     el.addEventListener('input', autoSave);
     el.addEventListener('change', autoSave);
   });
-  $('#sThemeToggle').addEventListener('change', () => {
-    const dark = $('#sThemeToggle').checked;
-    DATA.settings.theme = dark ? 'dark' : 'light';
-    applyTheme();
-    hubSave();
-    if(DATA.settings.syncCode) scheduleCloudUpload(); // 已登录则同步主题到云端（theme 在 SYNC_SETTINGS_FIELDS）
-  });
+  /* TH-SYS（10-25）：这一行原来是**裸绑定**（$('#sThemeToggle').addEventListener）。
+     保持元素 id 不变 + 就地判空 —— 以后谁再删这个 input 也不会把后面 27 处绑定全断掉。 */
+  var _themeEl = $('#sThemeToggle');
+  if(_themeEl){
+    _themeEl.addEventListener('change', () => {
+      const dark = _themeEl.checked;
+      /* 跟随系统开着时，动画开关只是「临时看一眼」，不落库成 light/dark（否则 auto 被覆盖） */
+      var _autoOn = $('#sThemeAuto') && $('#sThemeAuto').checked;
+      DATA.settings.theme = _autoOn ? 'auto' : (dark ? 'dark' : 'light');
+      applyTheme();
+      hubSave();
+      if(DATA.settings.syncCode) scheduleCloudUpload();
+    });
+  }
+  /* TH-SYS：「跟随系统」开关 —— 打开 = auto，关掉 = 按当前实际深浅落成 light/dark */
+  var _autoEl = $('#sThemeAuto');
+  if(_autoEl){
+    _autoEl.addEventListener('change', () => {
+      var on = _autoEl.checked === true;
+      if(on){
+        DATA.settings.theme = 'auto';
+      }else{
+        var nowDark = false;
+        try{ nowDark = document.documentElement.getAttribute('data-theme') === 'dark'; }catch(e){}
+        DATA.settings.theme = nowDark ? 'dark' : 'light';
+        if($('#sThemeToggle')) $('#sThemeToggle').checked = nowDark;
+      }
+      applyTheme();
+      hubSave();
+      if(DATA.settings.syncCode) scheduleCloudUpload();
+      try{ if(typeof toast === 'function') toast(on ? '主题已跟随系统' : '主题已改为手动'); }catch(e){}
+    });
+  }
   // 服药模块开关：即时生效（不必点「保存设置」），改完立刻重渲染侧栏与「更多」弹层
   if($('#sAdhd')){
     $('#sAdhd').addEventListener('change', () => {
@@ -134,7 +166,11 @@ function saveSettings(){
   // 会漏掉「用户清空日期」——残留的 examDates 会让 nextExamDate() 回退显示已废弃的旧档期（倒计时复活）
   _set('examDates', []);
   _set('dailyGoalHours', parseFloat($('#sGoal').value) || 0);
-  _set('theme', $('#sThemeToggle').checked ? 'dark' : 'light');
+  /* TH-SYS（10-25）：三值 + 判空（原来是裸读 .checked，元素一没就抛）。
+     'auto' 优先：「跟随系统」开着就以它为准，否则看动画开关。 */
+  var _saveAuto = $('#sThemeAuto');
+  var _saveToggle = $('#sThemeToggle');
+  _set('theme', (_saveAuto && _saveAuto.checked) ? 'auto' : ((_saveToggle && _saveToggle.checked) ? 'dark' : 'light'));
   _set('targets', {
     overall: parseFloat($('#tOverall').value) || 0,
     listening: parseFloat($('#tListening').value) || 0,

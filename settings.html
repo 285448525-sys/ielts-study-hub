@@ -19,8 +19,8 @@ setTimeout(__rvRescue,2500);
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>设置 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261025c" />
-<link rel="stylesheet" href="css/p/settings.css?v=20261025c" />
+<link rel="stylesheet" href="css/common.css?v=20261025h" />
+<link rel="stylesheet" href="css/p/settings.css?v=20261025h" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -316,13 +316,13 @@ setTimeout(__rvRescue,2500);
 }
 </style>
 <script defer src="js/data.js?v=20261023b"></script>
-  <script defer src="js/common.js?v=20261025c"></script>
-  <script defer src="js/common-ai.js?v=20261025c"></script>
-  <script defer src="js/common-sync.js?v=20261025c"></script>
-  <script defer src="js/common-merge.js?v=20261025c"></script>
-  <script defer src="js/common-cloud.js?v=20261025c"></script>
-  <script defer src="js/common-shell.js?v=20261025c"></script>
-  <script defer src="js/common-pwa.js?v=20261025c"></script>
+  <script defer src="js/common.js?v=20261025h"></script>
+  <script defer src="js/common-ai.js?v=20261025h"></script>
+  <script defer src="js/common-sync.js?v=20261025h"></script>
+  <script defer src="js/common-merge.js?v=20261025h"></script>
+  <script defer src="js/common-cloud.js?v=20261025h"></script>
+  <script defer src="js/common-shell.js?v=20261025h"></script>
+  <script defer src="js/common-pwa.js?v=20261025h"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
   <!-- 10/3 头像选择（DiceBear CC0 素材；必须在 data.js/common.js 之后 —— 它读 DATA.settings.avatar） -->
   <script defer src="js/av-picker.js?v=20261022a"></script>
@@ -567,6 +567,16 @@ setTimeout(__rvRescue,2500);
               </div>
             </label>
           </div>
+        </div>
+      </div>
+      <!-- TH-SYS（10-25）：她 01:4x「主题我要加一个跟随系统」。
+           方案 B（施工书 §四）：上面那个太阳月亮动画**原样保留**（她点名要过），
+           这里另加一个「跟随系统」开关 —— 打开它，主题就不再听上面那个开关，改为听系统的。
+           ⚠️ #sThemeToggle 一个字没动：js/settings.js 的 :11/:52/:137 三处都还认它。 -->
+      <div class="set-row">
+        <div class="set-row-t"><b>跟随系统</b><p class="set-row-d">打开后按你电脑/手机的深浅色自动切换（上面那个开关就不管用了）</p></div>
+        <div class="set-row-c">
+          <input id="sThemeAuto" type="checkbox" class="set-check" aria-label="主题跟随系统" />
         </div>
       </div>
       <!-- 10-23 T-002 步5：新增两项（方案 §七；她 10-22 23:5x「全部默认按推荐来」→ 标准字号 + 关） -->
