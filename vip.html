@@ -39,8 +39,8 @@ setTimeout(__rvRescue,2500);
   <script defer src="js/common-shell.js?v=20261025c"></script>
   <script defer src="js/common-pwa.js?v=20261025c"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
-  <script src="js/pricing.js?v=20261012a" defer></script>
-  <script src="js/vip.js?v=20261025e" defer></script>
+  <script src="js/pricing.js?v=20261025f" defer></script>
+  <script src="js/vip.js?v=20261025f" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -173,6 +173,8 @@ setTimeout(__rvRescue,2500);
   </section>
 
   <!-- 权益对比（10/1 下午她拍板新口径：模考每月 1 / 写作批改会员专属 / 辅助 AI 每周 5；云同步永久免费）。
+        ⚠️ W-FREE-4（10-25）：她拍板「作文页免费给所有人用」→ 写作批改已改「每月 3 次」、
+           作文模板库改全免费，本批只改 pricing.js 的口径与措辞，表结构与视觉一概不动。 -->
        视觉策略：会员列金色调高亮（她授权「给人感觉开会员好处多」）——样式在 common.css .vip-cmp td.c3
        （10/13 修复：原这里写的 .vip-col 选择器与 pricing.js 输出的 c3 不匹配，金色高亮从未生效，死代码已删）。 -->
   <section class="card rv" data-d="1">
@@ -203,7 +205,10 @@ setTimeout(__rvRescue,2500);
     <h2 style="margin:0 0 8px">常见问题</h2>
     <details style="padding:10px 0;border-bottom:1px solid var(--line)">
       <summary style="cursor:pointer;font-weight:600">免费版 AI 额度是怎么算的？</summary>
-      <p class="muted" style="font-size:13px;margin:8px 0 0">口语模考每月 1 次（自然月初重置）；其他 AI 辅助（翻译、长难句、AI 安排今天、口语诊断、听写检查等）每周合计 5 次（每周一重置）；写作批改和串题素材是会员专属。升级会员后全部不限次。</p>
+      <!-- W-FREE-4（10-25）：她拍板「作文页免费给所有人用」→ 这段 FAQ 答案里的写作批改
+           已从「会员专属」改成「每月 3 次」。🔴 这个 3 必须与 functions/api/ai.js 的
+           AI_FREE_WRITING_TOTAL 默认值一致（那里也是 3）。 -->
+      <p class="muted" style="font-size:13px;margin:8px 0 0">口语模考每月 1 次（自然月初重置）；写作批改每月 3 次（自然月初重置）；其他 AI 辅助（翻译、长难句、AI 安排今天、口语诊断、听写检查等）每周合计 5 次（每周一重置）；串题素材是会员专属。升级会员后全部不限次。</p>
     </details>
     <details style="padding:10px 0;border-bottom:1px solid var(--line)">
       <summary style="cursor:pointer;font-weight:600">会员和免费版在学习功能上有区别吗？</summary>

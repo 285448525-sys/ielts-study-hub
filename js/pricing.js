@@ -13,8 +13,8 @@ const VIP_PLANS = [
 ];
 
 /* 免费额度口径（与 js/vip.js 原 FREE_AI_DESC、functions/api/ai.js 三处同源）：
-   口语模考每月 1 次 · 写作批改/串题素材会员专属 · 其他 AI 每周 5 次 · 云同步与导出永久免费 */
-const FREE_AI_DESC = '口语模考每月 1 次 · 其他 AI 每周 5 次（写作批改/串题素材为会员专属）';
+   口语模考每月 1 次 · 写作批改每月 3 次 · 串题素材会员专属 · 其他 AI 每周 5 次 · 云同步与导出永久免费 */
+const FREE_AI_DESC = '口语模考每月 1 次 · 写作批改每月 3 次 · 其他 AI 每周 5 次（串题素材为会员专属）';
 
 /* 对比矩阵（17 条目 = 原型 会员定价页_ielts.html L446-549 全表逐条搬入）。
    结构：cat 分类 + rows[{label, sub?, free, vip}]。
@@ -33,8 +33,12 @@ const VIP_MATRIX = [
   ]},
   { cat:'AI 能力（这里才是会员的核心）', rows:[
     { label:'口语模考', sub:'AI 出题 + 评分 + 四维报告', free:'text:每月 <b>1</b> 次', vip:'text:<b>无限次</b>' },
-    { label:'写作批改', sub:'四项评分 + 逐句点评', free:'lock', vip:'text:<b>无限次</b>' },
-    { label:'作文模板库', sub:'已背模板照样能用，会员解锁全部', free:'lock', vip:'text:<b>全部解锁</b>' },
+    /* W-FREE-4（10-25）：她拍板「作文页免费给所有人用」—— 免费列从 🔒 改「每月 3 次」。
+       🔴 这个 3 必须与 functions/api/ai.js 的 AI_FREE_WRITING_TOTAL 默认值一致（那里也是 3）；
+          她以后改环境变量，这里要跟着改，否则页面说 3 次实际给别的数。 */
+    { label:'写作批改', sub:'四项评分 + 逐句点评', free:'text:每月 <b>3</b> 次', vip:'text:<b>无限次</b>' },
+    /* W-FREE-4：模板库已全免费（W-FREE-3 摘锁）→ 免费列与会员列都是绿对勾，不再写「解锁」。 */
+    { label:'作文模板库', sub:'全部模板', free:'yes', vip:'yes' },
     { label:'串题素材生成', sub:'P2 一稿串多题 · AI 定制', free:'lock', vip:'text:<b>无限生成</b>' },
     { label:'完整备考计划生成', sub:'AI 排周，落地到每日清单', free:'lock', vip:'yes' },
     { label:'其他 AI 辅助', sub:'翻译 · 长难句解析 · 智能分配 · 口语诊断 · 听写检查', free:'text:每周共享 <b>5</b> 次', vip:'text:<b>无限次</b>' },
@@ -133,7 +137,9 @@ function renderPlanCards(box, opts){
    体验与支持类不渲染）——老页面内容不凭空变多、也不凭空变少。
    默认全量 17 行（定价页用）。free/vip 语义见 VIP_MATRIX 注释。
    ⚠️ legacy 的 free/vip 值以原静态表为准，不等同于全量版同行（原表把「作文模板库」并进了 AI 5 行里，
-   故 legacy 模式 AI 类取前 5 条 = 口语模考/写作批改/串题素材/完整备考计划/其他辅助，与原表一致）。 */
+   故 legacy 模式 AI 类取前 5 条 = 口语模考/写作批改/串题素材/完整备考计划/其他辅助，与原表一致）。
+   ⚠️ W-FREE-4（10-25）：她拍板「作文页免费给所有人用」→ 写作批改 free 从 lock 改每月 3 次、
+      作文模板库 free 从 lock 改 yes。legacy 那五条**不动**（它是历史对照口径）。 */
 function _cellHtml(v, col){
   if(v === 'yes')  return '<td class="' + col + ' yes"><svg aria-label="支持"><use href="#i-check"/></svg></td>';
   if(v === 'lock') return '<td class="' + col + ' no"><svg aria-hidden="true"><use href="#i-lock"/></svg>会员专属</td>';

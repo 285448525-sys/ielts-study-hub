@@ -9,7 +9,8 @@
    让整个 vip.js 挂掉（10/12 实踩：卡片/矩阵/状态卡全不渲染，报 Identifier has already been declared）。
    要读就动态取：window.Pricing ? Pricing.FREE_AI_DESC : 回退字面量。 */
 function freeAiDesc(){
-  return (window.Pricing && window.Pricing.FREE_AI_DESC) || '口语模考每月 1 次 · 其他 AI 每周 5 次（写作批改/串题素材为会员专属）';
+  /* W-FREE-4（10-25）：回退字面量同步新口径 —— 写作批改已改「每月 3 次」，只剩串题素材是会员专属。 */
+  return (window.Pricing && window.Pricing.FREE_AI_DESC) || '口语模考每月 1 次 · 写作批改每月 3 次 · 其他 AI 每周 5 次（串题素材为会员专属）';
 }
 
 const VIP_ICON_GOLD = '<svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#eab308" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20M9.5 9L12 3l2.5 6M12 21L9.5 9M12 21l2.5-12"/></svg>';
