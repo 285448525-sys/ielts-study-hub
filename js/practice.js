@@ -1849,16 +1849,6 @@ function updateWordStats(){
     etaEl.textContent = etaTxt;
   }
 
-  // 10-23 P-2：到期构成 chip「新词 N · 复习 M」——顶部进度条右侧，口径 = wbDueSplit。
-  // 只在「有到期词且不在完成页」显示；N=0 时只显示复习段。
-  const dueChip = document.getElementById('statDueSplit');
-  if(dueChip){
-    let _sp = { newCount:0, reviewCount:0, total:0 };
-    try{ _sp = (typeof wbDueSplit === 'function') ? wbDueSplit(todayKey()) : _sp; }catch(e){}
-    const _show = _sp.total > 0 && !window.__quotaDoneShown;
-    dueChip.hidden = !_show;
-    if(_show) dueChip.innerHTML = (_sp.newCount > 0 ? '<b>新词 ' + _sp.newCount + '</b> · ' : '') + '复习 ' + _sp.reviewCount;
-  }
   const bar = $('#wordStats'); if(bar) bar.hidden = false;
   const tools = document.getElementById('wordToolsRow'); if(tools) tools.hidden = false;   // 进度条下按钮行随练习态显示
 
