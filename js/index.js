@@ -214,22 +214,22 @@ function renderDashV6(){
     }
   }
 
-  // ② 今日单词（口径与背词页一致：due=今日待学、done=今日已背、cap=每日上限；
-  //    上限 0 = 不限 → 退回「待学 N」口径。⚠️ 首页「待学」= 未掌握总词数，与出题口径刻意不同，别改成一致）
-  const due = (wbWords()||[]).filter(w => w.cleared !== true || (w.nextReview || '') <= tkey).length;
-  const _cap = (DATA && DATA.settings && DATA.settings.practiceCfg) ? Number(DATA.settings.practiceCfg.dailyCap) : 0;
-  const _done = (typeof wbPracticed === 'function') ? ((wbPracticed().words || []).length) : 0;
-  const shown = (_cap > 0) ? Math.max(0, Math.min(due, _cap - _done)) : due;
+  // ② 今日单词（W-DUE-2：口径统一走 wordPlan —— 她设的每日上限说了算，不限时退回算法口径。
+  //    ⚠️ 常错词数 hardN 仍按 w.hardWord 原始口径，那是另一件事，不跟着改）
+  const wp = wordPlan(tkey);
   const hardN = (wbWords()||[]).filter(w => w && w.hardWord).length;
   const wordsVal = $('#statWordsVal'), wordsTrack = $('#statWordsTrack'), wordsTrackHard = $('#statWordsTrackHard'), wordsSub = $('#statWordsSub');
-  if(wordsVal) wordsVal.innerHTML = (_cap > 0)
-    ? (_done+'<span class="u"> / '+_cap+' 个</span>')
-    : (shown+'<span class="u"> 词待学</span>');
-  if(wordsTrack) wordsTrack.style.width = (_cap > 0 ? Math.min(100, Math.round(_done/_cap*100)) : (shown>0?0:100)) + '%';
-  if(wordsTrackHard) wordsTrackHard.style.width = (_cap > 0 ? Math.max(0, Math.min(100-Math.min(100,Math.round(_done/_cap*100)), Math.round(hardN/_cap*100))) : 0) + '%';
-  if(wordsSub) wordsSub.textContent = (_cap > 0)
-    ? ('待学 '+shown+' · 常错 '+hardN+' 个')
-    : (shown > 0 ? ('待学 '+shown+' 个 · 常错 '+hardN+' 个') : '去「单词」页挑第一批词');
+  if(wordsVal) wordsVal.innerHTML = wp.limited
+    ? (wp.done+'<span class="u"> / '+wp.cap+' 个</span>')
+    : (wp.due+'<span class="u"> 词待学</span>');
+  if(wordsTrack) wordsTrack.style.width = (wp.limited ? Math.min(100, Math.round(wp.done/wp.cap*100)) : (wp.due>0?0:100)) + '%';
+  if(wordsTrackHard) wordsTrackHard.style.width = (wp.limited ? Math.max(0, Math.min(100-Math.min(100,Math.round(wp.done/wp.cap*100)), Math.round(hardN/wp.cap*100))) : 0) + '%';
+  /* W-DUE-2：副行改成「今日目标 N 词 · 已背 M · 常错 K 个」——
+     原来写「待学 min(due,cap-done)」，那个数在别处根本对不上（她的原话就是数字打架）。
+     上限 = 0（不限）时保持旧文案「待学 N 词」，**不印「目标 0 词」**。 */
+  if(wordsSub) wordsSub.textContent = wp.limited
+    ? ('今日目标 '+wp.cap+' 词 · 已背 '+wp.done+' · 常错 '+hardN+' 个')
+    : (wp.due > 0 ? ('待学 '+wp.due+' 个 · 常错 '+hardN+' 个') : '去「单词」页挑第一批词');
 
   // ③ 口语已练（今日口语类会话数：陪练 / 模考都算，按 moduleName 含「口语」判定）
   const spkN = todays.filter(x => /口语/.test(String(x.moduleName || ''))).length;
@@ -317,26 +317,49 @@ function homeGreeting(){
   if(h < 18) return '下午好';
   return '晚上好';
 }
+/* ===== W-DUE-2（10-25）：首页「单词数」唯一口径 = 她设的「每日学习上限」=====
+   她 02:4x 原话：「单词页面把新增复习删掉，所以待复习数据以设置里自己定义的数值为准，记得首页显示也要改一下」
+   → 首页出现的每一处「到期 / 待学 / 复习」数字，一律以 `DATA.settings.practiceCfg.dailyCap`
+     （背词页右上角齿轮里的「每日学习上限」，入口 js/practice.js:1903，不是设置页）为准；
+     `dailyCap = 0`（不限）时才退回旧的 `wbDueCount()` 算法口径 —— 这时候**不许印「目标 0 词」**。
+   为什么要一个函数：这批要改的是五处（单词卡副行 / 今日复习行 / 三件事 / 到期词计数 / 侧轨完成度），
+   各自算一遍必然又数字打架 —— 全部读这里，一处改口径五处一起变。
+   ⚠️ 纯读 DATA + 现成函数，零副作用、不写库，`practice.js` / `wordbank.js` 一行未动。 */
+function wordPlan(tkey){
+  const t = tkey || todayKey();
+  const p = (DATA && DATA.settings && DATA.settings.practiceCfg) || {};
+  const cap = Math.max(0, Number(p.dailyCap) || 0);
+  const done = (typeof wbPracticed === 'function') ? ((wbPracticed().words || []).length) : 0;
+  const due = (typeof wbDueCount === 'function') ? (wbDueCount(t) || 0) : 0;
+  const limited = cap > 0;
+  return {
+    cap, done, due, limited,
+    goal: limited ? cap : due,                    // 她设的数说了算；不限 → 退回算法口径
+    left: limited ? Math.max(0, cap - done) : due // 今天还差几个（「还有 N 个要过」用这个）
+  };
+}
+
 /* ===== 10-23 P-1：首页数字口径统一（她 14:4x 截图：三处数字互相打架）=====
    同一屏原来有三个互不相干的数：今日任务卡头「已完成 5/5」（只算计划清单）、
    卡内「今天有 1587 个单词到期复习」（全词库到期数）、右侧环「100% · 今天的任务都完成了」。
    读者看到「100% 都完成了」会以为今天能收工，紧挨着又说 1587 词要过 —— 自相矛盾。
    做法：**一处口径，三处引用**。本函数是那唯一一处，纯读 DATA、零副作用、可单测。
-   ⚠️ dueWords 仍走 wbDueCount（design/78 按词库路由取数，别处还在用，原样不动）。 */
+   🔴 W-DUE-2 推翻了这里原来的注释「dueWords 仍走 wbDueCount…原样不动」——
+      她这次明确要求以每日上限为准，`dueWords` 改走 wordPlan().left（今天还差几个）。
+      语义仍是「今天还欠多少词」，所以 ∀ 上限已背满 → left = 0 → 下面环与卡都能进「今天做完了」态。 */
 function dashStatusOf(tkey){
   const t = tkey || todayKey();
   const plan = (DATA.plans || []).find(p => p && p.date === t);
   const items = (plan && Array.isArray(plan.items)) ? plan.items : [];
   const itemsTotal = items.length;
   const itemsDone = items.filter(i => i && i.done).length;
-  const dueWords = (typeof wbDueCount === 'function') ? (wbDueCount(t) || 0) : 0;
-  const _done = (typeof wbPracticed === 'function') ? ((wbPracticed().words || []).length) : 0;
-  const _cap = (DATA && DATA.settings && DATA.settings.practiceCfg) ? Number(DATA.settings.practiceCfg.dailyCap) : 0;
+  const wp = wordPlan(t);
+  const dueWords = wp.left;
   return {
     itemsTotal, itemsDone,
     dueWords,
-    wordsDone: _done,
-    wordsGoal: _cap
+    wordsDone: wp.done,
+    wordsGoal: wp.goal
   };
 }
 
@@ -375,8 +398,12 @@ function renderHomeRail(tkey){
     const items = (plan && Array.isArray(plan.items)) ? plan.items : [];
     const total = st.itemsTotal;
     const doneN = st.itemsDone;
-    const _den = total + st.dueWords;
-    const _num = doneN + st.wordsDone;
+    /* W-DUE-2：分母改成「今天该做的单词量」= 她设的上限（不限时 = 算法到期数），
+       分子里的单词部分按上限封顶 —— 否则她背超了上限会把环顶成 100%，
+       而计划清单一项没勾，又变成「100% 却什么都没做」。 */
+    const _wGoal = st.wordsGoal > 0 ? st.wordsGoal : st.dueWords;
+    const _den = total + _wGoal;
+    const _num = doneN + Math.min(st.wordsDone, _wGoal);
     const pct = _den ? Math.min(100, Math.round(_num / _den * 100)) : (total ? Math.round(doneN/total*100) : 0);
 
     const setTxt = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = v; };
@@ -470,13 +497,16 @@ function renderDashYesterday(){
     + '<div class="rec-yday-t">' + (hm.h > 0 ? hm.h + ' 小时 ' : '') + hm.m + ' 分钟 · ' + parts.join(' · ') + '</div>'
     + '</div>';
 
-  // 今日复习行：N = wbDueCount(todayKey())，与首页单词卡 #statWordsVal 同一口径
-  // （index.js:418 dueWords 同款）—— 不算第二套；N=0 整行隐藏
+  // 今日复习行：W-DUE-2 起口径 = wordPlan（她设的每日上限；不限时退回 wbDueCount）
+  // 与单词卡 #statWordsSub / 任务卡同一处口径 —— 不算第二套；还差 0 个就整行隐藏
   try{
-    const due = (typeof wbDueCount === 'function') ? (wbDueCount(todayKey()) || 0) : 0;
+    const wpd = wordPlan(todayKey());
+    const due = wpd.left;
     if(due > 0){
       html += '<div class="rec-yday rec-yday-due">'
-        + '<a href="practice.html" style="color:var(--primary);font-weight:700;text-decoration:none">今天有 ' + due + ' 个单词到期复习 →</a>'
+        + '<a href="practice.html" style="color:var(--primary);font-weight:700;text-decoration:none">'
+        + (wpd.limited ? ('今天要背 ' + due + ' 个单词 →') : ('今天有 ' + due + ' 个单词到期复习 →'))
+        + '</a>'
         + '</div>';
     }
   }catch(e){}
@@ -508,12 +538,17 @@ function threeThingsList(){
   const tkey = todayKey();
   const out = [];
 
-  // ① 今日到期词（口径同 practice.js buildQueue / wbDueCount，不做字段修复）
-  const due = (typeof wbDueCount === 'function') ? (wbDueCount(tkey) || 0) : 0;
+  // ① 今日单词（W-DUE-2：口径走 wordPlan —— 她设的每日上限说了算，不限时退回 wbDueCount）
+  const wpw = wordPlan(tkey);
+  const due = wpw.left;
   if(due > 0){
     out.push({
-      key:'words', ic:'practice', title:'背 ' + due + ' 个到期单词',
-      sub:'间隔重复到期了，现在背最省力', file:'practice.html', cta:'开始'
+      key:'words', ic:'practice',
+      /* 这个数不再是「到期数」了，所以「到期」两个字必须拿掉，否则就是误导。
+         「背完就够」= 按她设的上限排的量，背到那个数今天就算完成。 */
+      title: wpw.limited ? ('背 ' + due + ' 个单词') : ('背 ' + due + ' 个到期单词'),
+      sub: wpw.limited ? '按你设的每日上限排的，背完今天就够' : '间隔重复到期了，现在背最省力',
+      file:'practice.html', cta:'开始'
     });
   }
 
@@ -669,8 +704,11 @@ function renderDashTasks(){
   const doneN = items.filter(i => i && i.done).length;
   const pct = items.length ? Math.round(doneN / items.length * 100) : 0;
 
-  // 到期词计数（buildQueue 同口径，不含任何副作用）；design/78：改走 wbDueCount（按词库路由取数）
-  const dueWords = wbDueCount(tkey) || 0;
+  /* 到期词计数：W-DUE-2 起走 wordPlan（她设的每日上限；不限时退回 wbDueCount）。
+     projectPlan.left = 「今天还差几个」—— 背满上限 → 0 → 系统建议行显示「今天没有到期单词」、
+     按钮隐藏，卡片能进「今天做完了」的完成态（不与 :396 那条完成态分支打架）。 */
+  const _wp = wordPlan(tkey);
+  const dueWords = _wp.left;
 
   // design/78：官方词库激活时「去背词」带暗号跳转（practice.html ready 读 hub_wb_goto 后切词源）；
   // 新人「背官方词库」按钮写死 awl 暗号。两个链接都存在时各自绑定。
