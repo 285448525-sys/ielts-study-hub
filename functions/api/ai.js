@@ -14,8 +14,10 @@
 //                        10/1 下午她拍板口径：口语模考免费每月 1 次 / 写作批改免费 0 次（会员专属）/
 //                        其余辅助 AI（含翻译·长难句）每周合计 5 次；会员跳过全部免费额度闸。
 //                        （原 AI_USER_DAILY_LIMIT=10 每日兜底口径同日退役。）
+//                        🔴 W-FREE-2（10-25 她拍板）：写作批改改「免费每人每月 3 篇」——
+//                        计量键同时由终身 aiqt:<acct>:writing 改为按月 aiqmo:<acct>:<YYYY-MM>:writing。
 //   AI_FREE_MOCK_MONTHLY 选填，口语模考免费次数/自然月，默认 1
-//   AI_FREE_WRITING_TOTAL 选填，写作批改免费次数，默认 0（=会员专属；配正数恢复终身体验额度）
+//   AI_FREE_WRITING_TOTAL 选填，写作批改免费次数/自然月，默认 3（配 0 回到会员专属）
 //   AI_RATE_PER_MIN      选填，单账号每分钟调用上限（防脚本刷量），默认 10；会员同样受限
 // 访问规则（她 10/1 拍板「必须登录才能用 AI」）：登录闸先于一切——未登录（无/无效 X-Session）
 // 一律 401 auth_required，即使 AI_API_KEY 未配也不给未登录用户探出任何信息。
@@ -34,7 +36,8 @@
 //   aiqa:<acct>:<day>:<bucket>    按账号今日（TTL 48h）—— 面板「今日 AI 次数」
 //   aiqw:<acct>:<YYYY-Www>        免费账号周兜底计数（TTL 10 天）
 //   aiqmo:<acct>:<YYYY-MM>        口语模考月额度（TTL 40 天）
-//   aiqt:<acct>:writing           写作批改终身额度（无 TTL）
+//   aiqmo:<acct>:<YYYY-MM>:writing 写作批改月额度（TTL 40 天）—— 10-25 W-FREE-2 起
+//   aiqt:<acct>:writing           ⛔ 10-25 W-FREE-2 起不再读写（旧的终身写作计数，已废，别再用）
 //   aiqm:<acct>:<day>:<HHMM>      分钟风控（TTL 2 分钟自愈）
 //   aiqwv:<acct>:<YYYY-Www>       ⛔ 10/20 深夜起**不再写入**（面板已改用 aistat: 累加近 7 天，
 //                                 全仓无读方）；存量旧键 TTL 到期自然消失，别再加回来。
@@ -246,11 +249,11 @@ export async function onRequest(context) {
 
   /* ---- 分功能差异化额度（10/1 下午她拍板新口径）----
      ① 口语模考 mock_q：免费每月 1 次（自然月 UTC 清零；开考出题时闸+计，评分/总结属同场不重复计）
-     ② 写作批改 writing_score：免费 0 次 = 会员专属（她拍板删掉原「终身 2 次」；
-        env AI_FREE_WRITING_TOTAL 配正数可恢复终身体验额度）
+     ② 写作批改 writing_score：免费每人每月 3 篇（10-25 W-FREE-2 她拍板；env AI_FREE_WRITING_TOTAL
+        配 0 则回到会员专属。老口径「免费 0 次 = 会员专属」已作废）
      ③ 串题素材 material_* / speaking_chuan_*：会员专属（免费 403 vip_required）
      ④ 翻译/长难句不再单独设组，并入上面每周 5 次兜底（原 aiqd 每日键口径退役）
-     计量键：aiqmo:<acct>:<YYYY-MM>（月）/ aiqt:<acct>:writing（终身，默认 0 不启用）。
+     计量键：aiqmo:<acct>:<YYYY-MM>（口语模考月）/ aiqmo:<acct>:<YYYY-MM>:writing（写作月，10-25 起）。
      默认阈值改这里要同步：auth.js ai_usage + vip.html 对比表（三处口径一致）。 */
   const month = monthKey(now);
   if (!isVip) {
@@ -267,16 +270,22 @@ export async function onRequest(context) {
     if (service === 'studyplan') {
       return json({ ok: false, error: 'vip_required', msg: '生成完整备考计划是会员专属功能，周卡首购 ¥19 起开通' }, 403, env);
     }
-    // ② 写作批改：免费默认 0（会员专属）
+    /* ② 写作批改：免费每月 3 篇（她 2026-10-25 03:0x 拍板「就按每月 3 篇」「作文页也得是免费给所有人用的」）
+       ⚠️ 计量键同时改成按月（aiqmo:<acct>:<YYYY-MM>:writing）—— 读侧这里与写侧 :400 一带**必须一起改**：
+          只改读侧 → 永远读到 0 等于无限；只改写侧 → 闸永远看旧值等于没改。
+       ⚠️ 键名带 :writing 后缀，**不复用** aiqmo:<acct>:<YYYY-MM>（那是口语模考的计数器，共用会互相吃额度）。
+       ⚠️ 老键 aiqt:<acct>:writing 不清理：wt<=0 时代没人能用，它已成孤儿键，不影响任何逻辑。 */
     if (service === 'writing_score') {
-      const wt = parseInt((env && env.AI_FREE_WRITING_TOTAL) != null ? env.AI_FREE_WRITING_TOTAL : '0', 10) || 0;
+      const wt = parseInt((env && env.AI_FREE_WRITING_TOTAL) != null ? env.AI_FREE_WRITING_TOTAL : '3', 10) || 0;
       if (wt <= 0) {
-        return json({ ok: false, error: 'vip_required', msg: '写作批改是会员专属功能，周卡首购 ¥19 起开通' }, 403, env);
+        /* 兜底仍在：环境变量若被配成 0，写作批改重新回到会员专属（错误码名不动，前端靠它匹配） */
+        return json({ ok: false, error: 'vip_required', msg: '写作批改是会员专属功能' }, 403, env);
       }
       let wUsed = 0;
-      try { wUsed = parseInt((await env.SYNC_KV.get('aiqt:' + acct + ':writing')) || '0', 10) || 0; } catch (e) {}
+      try { wUsed = parseInt((await env.SYNC_KV.get('aiqmo:' + acct + ':' + month + ':writing')) || '0', 10) || 0; } catch (e) {}
       if (wUsed >= wt) {
-        return json({ ok: false, error: 'writing_limit', msg: '写作批改免费体验已用完（共 ' + wt + ' 次），周卡首购 ¥19 立享无限批改' }, 429, env);
+        return json({ ok: false, error: 'writing_limit',
+          msg: '本月 ' + wt + ' 次免费用完了，下月 1 日重置；会员可以无限改' }, 429, env);
       }
     }
     // ① 口语模考：每月 1 次
@@ -378,7 +387,7 @@ export async function onRequest(context) {
     ];
 
     /* ② 10/1 下午新口径分功能计量（只对免费用户累计；会员无限用不必计）：
-       月度模考 aiqmo:<acct>:<YYYY-MM>（TTL 40 天防残留）/ 写作终身 aiqt:<acct>:writing（默认 0 不启用）
+       月度模考 aiqmo:<acct>:<YYYY-MM> / 写作月额度 aiqmo:<acct>:<YYYY-MM>:writing（都 TTL 40 天防残留）
        / 周兜底 aiqw:<acct>:<YYYY-Www>（TTL 10 天防残留）。 */
     if (!isVip) {
       if (service === 'mock_q') {
@@ -393,9 +402,11 @@ export async function onRequest(context) {
       if (service === 'writing_score') {
         jobs.push((async () => {
           try {
-            const lk = 'aiqt:' + acct + ':writing';
+            /* W-FREE-2：写作计数改按月（与上面闸门的读侧同一键名，缺一不可）。
+               TTL 40 天 = 与 aiqmo（口语模考月键）同一套「防残留」口径。 */
+            const lk = 'aiqmo:' + acct + ':' + month + ':writing';
             const cur = parseInt((await env.SYNC_KV.get(lk)) || '0', 10) || 0;
-            await env.SYNC_KV.put(lk, String(cur + 1));
+            await env.SYNC_KV.put(lk, String(cur + 1), { expirationTtl: 3456000 });
           } catch (e) {}
         })());
       }
