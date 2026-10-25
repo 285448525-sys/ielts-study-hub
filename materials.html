@@ -40,6 +40,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20261023b"></script>
+  <script defer src="js/pricing.js?v=20261025f"></script>
 <script defer src="js/common.js?v=20261025g"></script>
 <script defer src="js/common-ai.js?v=20261025g"></script>
 <script defer src="js/common-sync.js?v=20261025g"></script>
@@ -48,7 +49,7 @@
 <script defer src="js/common-shell.js?v=20261025g"></script>
 <script defer src="js/common-pwa.js?v=20261025g"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
-<script defer src="js/materials.js?v=20261023c"></script>
+<script defer src="js/materials.js?v=20261025j"></script>
 <style>
   /* === 万能素材生成器（沿用全站 Teal Token） === */
   .mat-intro{ padding:14px 16px; background:var(--primary); color:#fff; border-radius:var(--radius); font-size:13.5px; line-height:1.7; margin:12px 0; box-shadow:var(--shadow); }
@@ -317,12 +318,220 @@
   .mat-legacybar-btn:focus-visible{ outline:3.5px solid var(--primary-200); outline-offset:2px; }
   .mat-legacybar-caret{ font-size:11px; }
 
+
+/* ═══ MAT-INTRO-1（10-25）引导屏 · 1:1 导出块（机器生成，勿手改）═══
+   来源 design/口语素材串题引导-2026-10-25.html 的 #introView，由 scripts/mockup-export.cjs 导出（_MI_intro_*，27 元素基线）。
+   🔴 所有类名带 mi- 前缀，只在本页生效；改动请改设计稿后重新导出。 */
+/* ======================================================================
+   _MI_intro · 精确样式（机器导出，勿手改）
+   ======================================================================
+   来源：口语素材串题引导-2026-10-25.html 里的 #introView
+   导出：scripts/mockup-export.cjs · 前缀 mi-
+
+   放在哪
+     只追加到该页专属的 css/p/<页名>.css 末尾，不许进 common.css。
+
+   为什么类名都带 mi-
+     站点 .card / .bar / .chip / .muted / .yes / .no / .big 在 common.css 里已有定义，
+     不加前缀直接覆盖会打穿别的 18 个页面。
+
+   配套
+     · __MI_intro_结构原文.html   ← 类名与本文件一一对应
+     · __MI_intro_验收基线.json   ← 关键元素宽高与样式基线，收尾自检用
+
+   🔴 本文件开头那个 token 块必须原样保留：
+      设计稿自带一套私有变量（--card / --p500 / --line2 / --r ...），站点没有。
+      导出时已把能映射的换成站点 token，映射不到的按设计稿原值兜底成 mi-xxx。
+      删掉这个块 → var() 解析成空 → 边框/底色全丢。
+
+   🔴 基准字号 / 行高 / 字体栈照**设计稿 body** 原样搬（不是随便写 16px）：
+      站点 body 是 15px + 行高 1.62，设计稿可能是别的值，不搬会让所有继承字号的元素偏 1px。
+      本次设计稿 body 采到：{"margin":"0","padding":"0","background":"var(--bg)","color":"var(--ink)","font":"15px/1.7 -apple-system,BlinkMacSystemFont,\"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",sans-serif","-webkit-font-s
+   ====================================================================== */
+
+.mi-page{
+  --mi-muted:#71767e;
+  --mi-line:#e6e9ea;
+  --mi-ink:#1f2328;
+  font-size:15px;
+  line-height:1.7;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+
+.mi-page, .mi-page *{ box-sizing: border-box; }
+.mi-head{ display: flex; align-items: center; gap: 14px; margin: 0px 0px 18px; }
+.mi-head h1{ font-size: 21px; font-weight: 750; letter-spacing: -0.02em; margin: 0px; }
+.mi-head .mi-sub{ font-size: 12.5px; color: var(--mi-muted); margin-top: 2px; }
+.mi-head-act{ margin-left: auto; }
+.mi-theme-btn{ border: 1px solid var(--mi-line); background: var(--surface); color: var(--ink-2); border-radius: 8px; padding: 6px 12px; font-size: 12px; cursor: pointer; font-family: inherit; }
+.mi-card{ background: var(--surface); border: 1px solid var(--mi-line); border-radius: var(--radius); padding: 20px 22px; }
+.mi-btn{ display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 40px; padding: 0px 20px; border-radius: var(--radius-sm); border: 1px solid var(--mi-line); background: var(--surface); color: var(--mi-ink); font-size: 14px; font-weight: 650; cursor: pointer; font-family: inherit; }
+.mi-btn-p{ background: var(--primary); border-color: var(--primary); color: rgb(255, 255, 255); }
+.mi-btn-lg{ height: 52px; font-size: 16px; padding: 0px 32px; border-radius: 13px; font-weight: 750; }
+.mi-muted{ color: var(--mi-muted); }
+.mi-hero{ background: linear-gradient(135deg,var(--primary-700),var(--primary)); border-radius: var(--radius); padding: 26px 28px; color: rgb(255, 255, 255); margin-bottom: 14px; }
+.mi-hero .mi-k{ font-size: 12px; font-weight: 700; letter-spacing: 0.08em; opacity: 0.85; }
+.mi-hero h2{ margin: 8px 0px 6px; font-size: 23px; font-weight: 750; letter-spacing: -0.01em; line-height: 1.35; }
+.mi-hero p{ margin: 0px; font-size: 14px; line-height: 1.75; opacity: 0.94; }
+.mi-hero .mi-nums{ display: flex; gap: 26px; margin-top: 18px; flex-wrap: wrap; }
+.mi-hero .mi-nums .mi-it b{ display: block; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.mi-hero .mi-nums .mi-it span{ font-size: 12px; opacity: 0.85; }
+.mi-pain{ display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+@media (max-width: 760px){
+.mi-pain{ grid-template-columns: 1fr; }
+}
+.mi-pain .mi-col{ border-radius: var(--radius); padding: 18px 20px; border: 1px solid var(--mi-line); }
+.mi-pain .mi-old{ background: var(--n-100); }
+.mi-pain .mi-new{ background: var(--primary-50); border-color: var(--primary-200); }
+.mi-pain h3{ margin: 0px 0px 10px; font-size: 14px; font-weight: 750; display: flex; align-items: center; gap: 7px; }
+.mi-pain .mi-old h3{ color: var(--ink-2); }
+.mi-pain .mi-new h3{ color: var(--primary-700); }
+.mi-pain ul{ margin: 0px; padding-left: 18px; font-size: 13px; line-height: 1.85; color: var(--ink-2); }
+.mi-pain .mi-old ul{ color: var(--mi-muted); }
+.mi-pain .mi-new ul{ color: var(--ink-2); }
+.mi-pain .mi-tag{ font-size: 11px; font-weight: 700; border-radius: 5px; padding: 1px 6px; background: var(--surface); color: var(--mi-muted); }
+.mi-pain .mi-new .mi-tag{ background: rgb(255, 255, 255); color: var(--primary-700); }
+.mi-how{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+@media (max-width: 760px){
+.mi-how{ grid-template-columns: repeat(2, 1fr); }
+}
+.mi-step{ background: var(--surface); border: 1px solid var(--mi-line); border-radius: var(--radius-sm); padding: 15px 16px; }
+.mi-step .mi-n{ width: 24px; height: 24px; border-radius: 50%; background: var(--primary); color: rgb(255, 255, 255); font-size: 12.5px; font-weight: 800; display: flex; align-items: center; justify-content: center; margin-bottom: 9px; }
+.mi-step b{ display: block; font-size: 13.5px; font-weight: 750; margin-bottom: 4px; }
+.mi-step span{ font-size: 12px; color: var(--mi-muted); line-height: 1.7; }
+.mi-vip-bar{ display: flex; align-items: center; gap: 14px; background: var(--surface); border: 1px solid var(--primary-200); border-radius: var(--radius); padding: 15px 18px; margin-top: 14px; flex-wrap: wrap; }
+.mi-vip-bar .mi-ic{ width: 34px; height: 34px; border-radius: 10px; background: var(--primary-50); color: var(--primary-700); display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+.mi-vip-bar .mi-tx{ flex: 1 1 0%; min-width: 200px; font-size: 13px; line-height: 1.7; color: var(--ink-2); }
+.mi-vip-bar .mi-tx b{ color: var(--mi-ink); font-weight: 750; }
+.mi-vip-bar .mi-price{ font-size: 12.5px; color: var(--mi-muted); white-space: nowrap; }
+.mi-has{ margin-top: 14px; font-size: 13px; }
+.mi-has a{ color: var(--primary-700); font-weight: 650; }
+@media (max-width: 760px){
+.mi-mgrid{ grid-template-columns: 1fr; }
+}
+
+/* ===== 站点全局标签规则（common.css:470 input / :490 label）的冲突钉死 =====
+   这两条标签选择器直接写在元素上，会盖掉未显式声明的 font-size / line-height。
+   下面按设计稿实测值钉一遍，本文件追加在 common.css 之后 → 同比分靠顺序赢。 */
+.mi-page .mi-theme-btn{font-size:12px}
+.mi-page .mi-theme-btn button, .mi-page .mi-theme-btn>button{font-size:12px}
+.mi-page .mi-btn{font-size:14px}
+.mi-page .mi-btn button, .mi-page .mi-btn>button{font-size:14px}
+.mi-page .mi-btn-p{font-size:14px}
+.mi-page .mi-btn-p button, .mi-page .mi-btn-p>button{font-size:14px}
+.mi-page .mi-btn-lg{font-size:16px}
+.mi-page .mi-btn-lg button, .mi-page .mi-btn-lg>button{font-size:16px}
+
+
+/* ===== 加固副本：选择器统一加 .mi-page（具体度 +1 级） =====
+   为什么有这一段：common.css 有两条标签选择器直接写在元素上、优先于继承——
+     :470 input:not([type=checkbox]):not([type=radio]):not([type=range]) → 具体度 0,3,1
+     :490 label → 全局把 font-size 压成 13px、color 压成 muted、margin-bottom 4px
+   本文件里 (0,2,1) 的规则打不过它们 → 输入框出现「外框包一层、内层又多一个框」，
+   字号也会被压成 13px。这一段靠提高具体度 + 排在最后来压住。
+   🔴 别删：删了输入框立刻变双层框。 */
+.mi-page .mi-head{ display: flex; align-items: center; gap: 14px; margin: 0px 0px 18px; }
+.mi-page .mi-head h1{ font-size: 21px; font-weight: 750; letter-spacing: -0.02em; margin: 0px; }
+.mi-page .mi-head .mi-sub{ font-size: 12.5px; color: var(--mi-muted); margin-top: 2px; }
+.mi-page .mi-head-act{ margin-left: auto; }
+.mi-page .mi-theme-btn{ border: 1px solid var(--mi-line); background: var(--surface); color: var(--ink-2); border-radius: 8px; padding: 6px 12px; font-size: 12px; cursor: pointer; font-family: inherit; }
+.mi-page .mi-card{ background: var(--surface); border: 1px solid var(--mi-line); border-radius: var(--radius); padding: 20px 22px; }
+.mi-page .mi-btn{ display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 40px; padding: 0px 20px; border-radius: var(--radius-sm); border: 1px solid var(--mi-line); background: var(--surface); color: var(--mi-ink); font-size: 14px; font-weight: 650; cursor: pointer; font-family: inherit; }
+.mi-page .mi-btn-p{ background: var(--primary); border-color: var(--primary); color: rgb(255, 255, 255); }
+.mi-page .mi-btn-lg{ height: 52px; font-size: 16px; padding: 0px 32px; border-radius: 13px; font-weight: 750; }
+.mi-page .mi-muted{ color: var(--mi-muted); }
+.mi-page .mi-hero{ background: linear-gradient(135deg,var(--primary-700),var(--primary)); border-radius: var(--radius); padding: 26px 28px; color: rgb(255, 255, 255); margin-bottom: 14px; }
+.mi-page .mi-hero .mi-k{ font-size: 12px; font-weight: 700; letter-spacing: 0.08em; opacity: 0.85; }
+.mi-page .mi-hero h2{ margin: 8px 0px 6px; font-size: 23px; font-weight: 750; letter-spacing: -0.01em; line-height: 1.35; }
+.mi-page .mi-hero p{ margin: 0px; font-size: 14px; line-height: 1.75; opacity: 0.94; }
+.mi-page .mi-hero .mi-nums{ display: flex; gap: 26px; margin-top: 18px; flex-wrap: wrap; }
+.mi-page .mi-hero .mi-nums .mi-it b{ display: block; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.mi-page .mi-hero .mi-nums .mi-it span{ font-size: 12px; opacity: 0.85; }
+.mi-page .mi-pain{ display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+@media (max-width: 760px){
+.mi-page .mi-pain{ grid-template-columns: 1fr; }
+}
+.mi-page .mi-pain .mi-col{ border-radius: var(--radius); padding: 18px 20px; border: 1px solid var(--mi-line); }
+.mi-page .mi-pain .mi-old{ background: var(--n-100); }
+.mi-page .mi-pain .mi-new{ background: var(--primary-50); border-color: var(--primary-200); }
+.mi-page .mi-pain h3{ margin: 0px 0px 10px; font-size: 14px; font-weight: 750; display: flex; align-items: center; gap: 7px; }
+.mi-page .mi-pain .mi-old h3{ color: var(--ink-2); }
+.mi-page .mi-pain .mi-new h3{ color: var(--primary-700); }
+.mi-page .mi-pain ul{ margin: 0px; padding-left: 18px; font-size: 13px; line-height: 1.85; color: var(--ink-2); }
+.mi-page .mi-pain .mi-old ul{ color: var(--mi-muted); }
+.mi-page .mi-pain .mi-new ul{ color: var(--ink-2); }
+.mi-page .mi-pain .mi-tag{ font-size: 11px; font-weight: 700; border-radius: 5px; padding: 1px 6px; background: var(--surface); color: var(--mi-muted); }
+.mi-page .mi-pain .mi-new .mi-tag{ background: rgb(255, 255, 255); color: var(--primary-700); }
+.mi-page .mi-how{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+@media (max-width: 760px){
+.mi-page .mi-how{ grid-template-columns: repeat(2, 1fr); }
+}
+.mi-page .mi-step{ background: var(--surface); border: 1px solid var(--mi-line); border-radius: var(--radius-sm); padding: 15px 16px; }
+.mi-page .mi-step .mi-n{ width: 24px; height: 24px; border-radius: 50%; background: var(--primary); color: rgb(255, 255, 255); font-size: 12.5px; font-weight: 800; display: flex; align-items: center; justify-content: center; margin-bottom: 9px; }
+.mi-page .mi-step b{ display: block; font-size: 13.5px; font-weight: 750; margin-bottom: 4px; }
+.mi-page .mi-step span{ font-size: 12px; color: var(--mi-muted); line-height: 1.7; }
+.mi-page .mi-vip-bar{ display: flex; align-items: center; gap: 14px; background: var(--surface); border: 1px solid var(--primary-200); border-radius: var(--radius); padding: 15px 18px; margin-top: 14px; flex-wrap: wrap; }
+.mi-page .mi-vip-bar .mi-ic{ width: 34px; height: 34px; border-radius: 10px; background: var(--primary-50); color: var(--primary-700); display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+.mi-page .mi-vip-bar .mi-tx{ flex: 1 1 0%; min-width: 200px; font-size: 13px; line-height: 1.7; color: var(--ink-2); }
+.mi-page .mi-vip-bar .mi-tx b{ color: var(--mi-ink); font-weight: 750; }
+.mi-page .mi-vip-bar .mi-price{ font-size: 12.5px; color: var(--mi-muted); white-space: nowrap; }
+.mi-page .mi-has{ margin-top: 14px; font-size: 13px; }
+.mi-page .mi-has a{ color: var(--primary-700); font-weight: 650; }
+@media (max-width: 760px){
+.mi-page .mi-mgrid{ grid-template-columns: 1fr; }
+}
+
+/* ===== 站点全局标签规则（common.css:470 input / :490 label）的冲突钉死 =====
+   这两条标签选择器直接写在元素上，会盖掉未显式声明的 font-size / line-height。
+   下面按设计稿实测值钉一遍，本文件追加在 common.css 之后 → 同比分靠顺序赢。 */
+
+
+/* MAT-INTRO-1（10-25）：导出工具提示 `.mi-note` 在 DOM 里用了但 CSS 没定义（会裸奔）。
+   设计稿里它靠内联 style 撑（浅底 + 圆角 + 小字），这里补一条兜底，只在本页生效。 */
+.mi-page .mi-note{background:var(--line2);border-radius:10px;padding:11px 14px;
+  font-size:12.5px;color:var(--ink-2);line-height:1.75;margin-top:14px}
+.mi-page .mi-note b{color:var(--ink)}
+
+
+
+/* ═══ MAT-INTRO-1（10-25）圆角钉死 + mi-note 兜底 ═══
+   🔴 为什么需要这一段：导出工具把设计稿私有变量 --r(14px) / --r-sm(10px)
+      映射成了站点 --radius(16px) / --radius-sm(12px) —— 站点这几档比设计稿大 2px。
+      1:1 基线按设计稿算，所以实测每条都差 2px。按设计稿原值钉回。 */
+.mi-page .mi-hero,.mi-page .mi-col,.mi-page .mi-old,.mi-page .mi-new,
+.mi-page .mi-card,.mi-page .mi-vip-bar{border-radius:14px}
+.mi-page .mi-step,.mi-page .mi-btn,.mi-page .mi-btn-p{border-radius:10px}
+/* .mi-note：导出工具提示「DOM 用了但 CSS 没定义」，补一条兜底（期望圆角 10px） */
+.mi-page .mi-note{border-radius:10px;background:var(--line2);padding:11px 14px;
+  font-size:12.5px;color:var(--ink-2);line-height:1.75;margin-top:14px}
+.mi-page .mi-note b{color:var(--ink)}
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
 #bootLoader .ui-loader{margin-bottom:8px}
 @media (prefers-reduced-motion: reduce){#bootLoader .ui-loader-dot,#bootLoader .ui-loader-shadow{animation:none}#bootLoader .ui-loader-dot{top:20px;height:20px;border-radius:50%;transform:none}#bootLoader .ui-loader-shadow{opacity:.5;transform:scaleX(1)}}
+
+
+/* ═══ MAT-INTRO-1（10-25）圆角二次钉死（更高特异性 + 排在最后）═══
+   第一批只钉了 .mi-page .mi-hero 这类，仍打不过导出件里条件更细的规则
+   （.mi-pain .mi-col 之类是三层），且 .mi-note / .mi-btn-lg 漏在清单外。
+   这里用 .mi-page .mi-pain .mi-col 这种完整路径 + 兜底 !important（只在本页 mi- 作用域，
+   不会影响站点别处；设计稿原值是唯一正确值，用 !important 是合理的锁）。 */
+.mi-page .mi-hero,
+.mi-page .mi-pain .mi-col,
+.mi-page .mi-pain .mi-col.mi-old,
+.mi-page .mi-pain .mi-col.mi-new,
+.mi-page .mi-card,
+.mi-page .mi-vip-bar{border-radius:14px !important}
+.mi-page .mi-how .mi-step,
+.mi-page .mi-btn,
+.mi-page .mi-btn-p{border-radius:10px !important}
+.mi-page .mi-btn-lg{border-radius:13px !important}
+.mi-page .mi-note{border-radius:10px !important;background:var(--line2);padding:11px 14px;
+  font-size:12.5px;color:var(--ink-2);line-height:1.75;margin-top:14px}
+.mi-page .mi-note b{color:var(--ink)}
 </style>
 <meta name="description" content="万能素材生成器：把自己的经历沉淀成可复用的口语 P2 素材。" />
 <link rel="canonical" href="https://yasihub.com/materials" />
