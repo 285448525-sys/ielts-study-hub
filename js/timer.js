@@ -42,7 +42,7 @@ function stopTick(){
 }
 function startTick(){
   stopTick();
-  window.__timerTick = setInterval(() => { updateTimer(); updateRemoteTimer(); }, 1000);
+  window.__timerTick = setInterval(() => { updateTimer(); updateRemoteTimer(); renderTsToday(); }, 1000);
 }
 
 /* ── 单一可信源：云端镜像 DATA.activeTimer ───────────────────────────────
@@ -132,7 +132,14 @@ function shouldTakeover(m){
 function mirrorHeldByOther(m){ return remoteShowable(m); }
 
 function setModeUI(mode){
-  document.querySelectorAll('#modeSeg .seg-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  /* W-TIMER（10-25）：按设计稿重排后，分段按钮的「选中」视觉由 .tm-on 控制
+     （design/_T-timer_精确样式.css 里只有 .tm-on 这一条）。
+     .active 保留 —— 页面里旧代码仍按它取当前模式（:508、plans 页也一样）。 */
+  document.querySelectorAll('#modeSeg .seg-btn').forEach(b => {
+    const on = b.dataset.mode === mode;
+    b.classList.toggle('active', on);
+    b.classList.toggle('tm-on', on);
+  });
 }
 
 /* 本地合成轻柔提示音：Web Audio 振荡器，不引入音频文件（离线可用、无版权/加载问题） */
@@ -234,20 +241,92 @@ function moduleCard(m){
 }
 
 function renderTimer(){
-  const box = document.getElementById('timerMods');
-  if(!box) return;
-  box.innerHTML = '';
-  // 顺序：听力 / 阅读 / 写作 / 口语 / 背单词，桌面端呈现 3+2 居中布局
-  const order = ['listening','reading','writing','speaking','vocab'];
-  order.forEach(id => {
-    const m = MODULES.find(x => x.id === id);
-    if(m) box.appendChild(moduleCard(m));
-  });
-  bindStartButtons();
-  /* 10/13 新用户走查：没开表时「结束并保存/暂停」是禁用的，新用户不知道要点下面的「开始」。
-     这里按 stopBtn 的真实状态同步 body.timer-running，控制 #timerIdleHint 指引的显隐
-     ——放在每秒刷新的 renderTimer 里，一处覆盖全部启停路径（本地开表/结束/远端计时/刷新恢复）。 */
+  /* 🔴 W-TIMER（10-25）：五张科目卡已删 —— 她 02:0x 原话「我之前说了只留自定义功能，
+     不要加自带的几个计时」，设计稿的 bar 里本来也没有那排卡。
+     本函数原来负责渲染那五张卡，现在**退化成「同步一次页面状态」的空壳**。
+
+     ⚠️ 故意**不删这个函数、也不删那 12 个调用点**（:181/:434/:461/:540/:665/:708/:731/
+        :745/:793/:817/:825）：删掉会让每一处都 ReferenceError，整页计时逻辑当场崩。
+     ⚠️ moduleCard() / bindStartButtons() 随之成死代码，**本批保留函数体**（万一要回滚）。
+
+     现在这里实际做三件事（都幂等，随便调几次都安全）：
+       ① assertModuleCustom() —— 补 MODULES 的「自定义」那一类（「开始」按钮要用）
+       ② bindStartBtn()       —— bar 里那颗「开始」的绑定（元素上打标记，不重复绑）
+       ③ body.timer-running   —— 唯一还活着的原副作用：控制「空闲提示」显隐
+          （10/13 新用户走查那条；它原来就靠本函数每秒覆盖全部启停路径，别删） */
+  assertModuleCustom();
+  bindStartBtn();
+  renderTsToday();
   try{ document.body.classList.toggle('timer-running', !($('#stopBtn') || {}).disabled); }catch(_){}
+  /* 状态药丸的灰/亮两态：没开表是灰点灰字（.tm-idle），开表后是青点青字。
+     放在这里的原因与 timer-running 一样 —— 它每秒覆盖全部启停路径。 */
+  try{
+    var wrap = document.getElementById('activeInfoWrap');
+    if(wrap) wrap.classList.toggle('tm-idle', !!($('#stopBtn') || {}).disabled);
+  }catch(_){}
+}
+
+/* ─────────── W-TIMER（10-25）计时页重做：三块新逻辑 ───────────
+   背景：删掉五张科目卡 + 时长快选档，主卡按设计稿补「开始」按钮与今日专注行。 */
+
+/* ① 「自定义」这一类补进 MODULES。
+   🔴 为什么放这里 push 而不是改 js/data.js：**data.js 是共享层（归 A 窗口），
+      改它要全站 20 页 bump**，而只有计时页需要这一类。MODULES 是 const 数组，
+      push 合法且不动已有五项。
+   🔴 谁要它：startSession 第一行是 `const m = MODULES.find(x => x.id === moduleId);
+      if(!m) return;` —— 没有这一类，「开始」按钮点了会**静默什么都不发生**。
+   ⚠️ 软导航会重跑本脚本 → 用 some() 幂等，绝不重复 push。 */
+function assertModuleCustom(){
+  try{
+    if(typeof MODULES === 'undefined' || !Array.isArray(MODULES)) return;
+    if(MODULES.some(function(x){ return x && x.id === 'custom'; })) return;
+    MODULES.push({ id:'custom', name:'自定义', icon:'✏️', color:'#7a8b99', children:[] });
+  }catch(e){}
+}
+
+/* ② bar 里那颗「开始」：把 #tmTaskName 的名字当自定义任务名传给 startSession。
+   时长 / 正倒仍读现成的 #goalMin / #modeSeg（startSession 自己会取，一行没改）。
+   ⚠️ 幂等：标记打在元素上（软导航换掉 <main> 就是新元素、新标记），不重复绑。 */
+function bindStartBtn(){
+  var btn = document.getElementById('tmGo');
+  if(!btn || btn.__wtimerBound) return;
+  btn.__wtimerBound = true;
+  btn.addEventListener('click', function(){
+    if(typeof window.startSession !== 'function') return;
+    if(window.active){ toast('已经在计时了 —— 先「结束并保存」，再开始新的'); return; }
+    var ti = document.getElementById('tmTaskName');
+    var nm = ti ? String(ti.value || '').trim() : '';
+    window.startSession('custom', nm || '自定义任务');
+  });
+}
+
+/* ③ 状态行右侧「今日已专注 H 小时 M 分 · 目标 Z 小时 · 还差 N 分钟」。
+   🔴 口径与**首页进度环逐行同源**（js/index.js:194-207）—— 施工书 §4.2 硬要求，
+      别新写一套，否则又会出现「首页显示 3 小时、计时页显示 2 小时 40 分」那种自相矛盾：
+        · 今天哪些条 = DATA.sessions 里 date === todayKey()
+        · 已专注     = 那些条的 durationSec 求和（home 的 todays.reduce）
+        · 目标       = DATA.settings.dailyGoalHours（home 的 goalH）
+        · 还差       = Math.max(0, Math.round((goalSec - totalSec) / 60)) 分钟（home 同式）
+        · 取整       = 小时/分钟都**向下取整**（home 的 hmParts 就是 Math.floor）
+   ⚠️ 每次调用重算，不缓存 —— 计时结束入库 / 目标改了 / 云端合并都会立刻反映。 */
+function renderTsToday(){
+  var el = document.getElementById('tsToday');
+  if(!el) return;
+  try{
+    var tk = todayKey();
+    var totalSec = (DATA.sessions || []).filter(function(s){ return s && s.date === tk; })
+                     .reduce(function(a, s){ return a + (Number(s.durationSec) || 0); }, 0);
+    var goalH = Number((DATA.settings || {}).dailyGoalHours) || 0;
+    var h = Math.floor(totalSec / 3600), m = Math.floor((totalSec % 3600) / 60);
+    var done = '<b>' + h + ' 小时 ' + m + ' 分</b>';       // 与 home 完全同写法（h 为 0 也写出来）
+    if(goalH > 0){
+      var left = Math.max(0, Math.round((goalH * 3600 - totalSec) / 60));
+      el.innerHTML = '今日已专注 ' + done + ' · 目标 ' + goalH + ' 小时 · ' +
+        (left > 0 ? ('还差 ' + left + ' 分钟') : '已达标');
+    } else {
+      el.innerHTML = '今日已专注 ' + done + ' · 目标未设';
+    }
+  }catch(e){ el.textContent = ''; }
 }
 
 /* 今日学习记录：把 DATA.sessions 中「今日」的计时渲染进 #recMiniGrid，并刷新总计。
@@ -321,7 +400,7 @@ function renderMiniRecords(){
   const list = (DATA.sessions || []).filter(s => s && s.date === tk);
   let totalSec = 0;
   list.forEach(s => { totalSec += Number(s.durationSec || 0); });
-  if(totalEl) totalEl.textContent = fmtHM(totalSec);
+  if(totalEl) totalEl.textContent = fmtHM(totalSec);   /* 设计与站点同一套：XhXm */
   if(!list.length){
     grid.innerHTML = '';
     if(empty) empty.hidden = false;
@@ -345,11 +424,16 @@ function renderMiniRecords(){
       const mm2 = st ? String(t.getMinutes()).padStart(2,'0') : '--';
       return '第 ' + (i + 1) + ' 段 ' + hh2 + ':' + mm2 + ' ' + fmtHM(Number(s.durationSec || 0));
     }).join(' · ') + '"') : '';
-    return '<div class="rec-mini-item"' + tip + '>'
-      + '<span class="rec-mini-mod">' + escapeHtml(g.name || '')
-        + (multi ? '<span class="rec-mini-segs">' + g.segCount + ' 段</span>' : '') + '</span>'
-      + '<span class="rec-mini-dur">' + fmtHM(g.durationSec) + '</span>'
-      + '<span class="rec-mini-time">' + hh + ':' + mm + '</span>'
+    /* W-TIMER（10-25）：行结构按设计稿 .tm-rec-row 重排 —— 名字 / N 段 / 「时长 · 起止」，
+       删除按钮留在行尾（设计稿里这一件没有，但记录必须可删，10/3 她拍板过）。 */
+    const endT = g.endTs ? new Date(g.endTs) : null;
+    const ehh = endT ? String(endT.getHours()).padStart(2,'0') : '--';
+    const emm = endT ? String(endT.getMinutes()).padStart(2,'0') : '--';
+    const span = endT ? (hh + ':' + mm + '–' + ehh + ':' + emm) : (hh + ':' + mm);
+    return '<div class="tm-rec-row"' + tip + '>'
+      + '<span class="tm-nm">' + escapeHtml(g.name || '') + '</span>'
+      + (multi ? '<span class="tm-segs">' + g.segCount + ' 段</span>' : '')
+      + '<span class="tm-d">' + fmtHM(g.durationSec) + ' · ' + span + '</span>'
       + '<button class="rec-mini-del" data-ids="' + g.segs.map(x => x.id || '').join(',') + '" type="button" title="删除本条记录">×</button>'
       + '</div>';
   }).join('');
@@ -676,6 +760,12 @@ ready(() => {
   document.addEventListener('hub:data-merged', window.__timerMerged);
   $('#stopBtn').addEventListener('click', stopSession);
   $('#pauseBtn').addEventListener('click', togglePause);
+  /* W-TIMER（10-25）：bar 里那颗「开始」的绑定。这里再调一次是**保险**——
+     renderTimer() 里已经调过，但如果它某次跑在 DOM 就绪之前（元素还没在），
+     绑定就会落空；这里（ready 之后）补一次，靠元素标记幂等，不会重复绑。 */
+  assertModuleCustom();
+  bindStartBtn();
+  renderTsToday();
   document.querySelectorAll('#modeSeg .seg-btn').forEach(b => {
     b.addEventListener('click', () => {
       setModeUI(b.dataset.mode);

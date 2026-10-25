@@ -1,49 +1,222 @@
-/* 10/17 拆分：只属于 timer.html 的样式块（tests/_split_css_1017.cjs 生成，32 块）。
-   ⚠️ 这里的样式只在这一个页面生效；改这里不用管别的页面。 */
+/* 计时页专属样式（只有 timer.html 用）。
+   ==========================================================
+   三段结构，别打乱顺序：
+     ① 本页功能件（进度条 / 结束暂停两个按钮 / 空闲提示 / 今日记录空态）
+     ② 设计稿 1:1 导出块（scripts/mockup-export.cjs 机器生成 → design/_T-timer_精确样式.css 原文）
+     ③ 站点既有组件 + 深色 + 中和覆盖
+
+   🔴 ② 必须整段排在 ③ 之前，且不许手改：验收基线 design/_T-timer_验收基线.json
+      是拿它算出来的，改一个数字就是「1:1 不成立」。
+   🔴 ② 里有 .tm-page *{margin:0;padding:0} 的硬 reset —— 站点原有元素（两个按钮、
+      进度条、空闲提示、空态文案）的间距失效，所以 ① 里的间距会显得「白写」，
+      真正生效的是 ③ 段末尾那几条 re-assert（同一批值，排在 reset 之后）。
+*/
+
+/* ───── ① 本页功能件 ───── */
+.timer-progress{margin:0 0 14px;text-align:left}
+.timer-progress:empty{margin-bottom:0}
+.timer-btns{display:flex;gap:12px;justify-content:center;margin-top:14px}
+.timer-btns button{min-width:120px;min-height:42px;display:inline-flex;align-items:center;
+  justify-content:center;font-size:14px;font-weight:700;padding:0 18px;border-radius:11px;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;
+  transition:background .15s,color .15s,border-color .15s}
+.timer-btns button:hover:not(:disabled){background:var(--primary-soft);color:var(--primary-text);
+  border-color:var(--primary-200)}
+.timer-btns button:disabled{opacity:.35;cursor:not-allowed}
+.timer-idle-hint{margin:10px 0 0;text-align:center;font-size:13px;color:var(--muted);line-height:1.6}
+body.timer-running .timer-idle-hint{display:none}
+.rec-empty{font-size:12.5px;color:var(--muted);text-align:center;margin:10px 0 0}
+#recMiniGrid{display:flex;flex-direction:column;gap:7px}
+
+/* ───── ② 设计稿 1:1 导出块（机器生成，勿手改） ───── */
+/* ======================================================================
+   T-timer · 精确样式（机器导出，勿手改）
+   ======================================================================
+   来源：计时页重设计-桌面版-2026-10-24.html 里的 .pg
+   导出：scripts/mockup-export.cjs · 前缀 tm-
+
+   放在哪
+     只追加到 css/p/timer.css 末尾（本页专用），不许进 common.css。
+
+   为什么类名都带 tm-
+     站点 .card / .bar / .chip / .muted / .yes / .no / .big 在 common.css 里已有定义，
+     不加前缀直接覆盖会打穿别的 18 个页面。
+
+   配套
+     · _T-timer_结构原文.html   ← 类名与本文件一一对应
+     · _T-timer_验收基线.json   ← 关键元素宽高与样式基线，收尾自检用
+
+   🔴 本文件开头那个 token 块必须原样保留：
+      设计稿自带一套私有变量（--card / --p500 / --line2 / --r ...），站点没有。
+      导出时已把能映射的换成站点 token，映射不到的按设计稿原值兜底成 tm-xxx。
+      删掉这个块 → var() 解析成空 → 边框/底色全丢。
+
+   🔴 基准字号 / 行高 / 字体栈照**设计稿 body** 原样搬（不是随便写 16px）：
+      站点 body 是 15px + 行高 1.62，设计稿可能是别的值，不搬会让所有继承字号的元素偏 1px。
+      本次设计稿 body 采到：{"background":"var(--bg)","color":"var(--ink)","font-family":"\"PingFang SC\",\"Microsoft YaHei\",system-ui,sans-serif","line-height":"1.65","padding":"30px 18px 70px"}
+   ====================================================================== */
+
+.tm-page{
+  --tm-bg:#f4f7f8;
+  --tm-muted:#6c7b7a;
+  --tm-primary-soft:#e8f4f2;
+  --tm-surface:#fff;
+  --tm-primary-700:#2c7873;
+  --tm-primary:#3a9a93;
+  --tm-line:#e3e9ec;
+  --tm-n-500:#9aa8a6;
+  --tm-ink:#1d2b2a;
+  font-size:16px;
+  line-height:1.65;
+  font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+
+.tm-page, .tm-page *{ margin: 0px; padding: 0px; box-sizing: border-box; }
+.tm-pg{ padding: 22px 28px 32px; background: var(--tm-bg); }
+.tm-pg-h{ display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.tm-pg-h h3{ font-size: 21px; font-weight: 800; letter-spacing: -0.01em; }
+.tm-pg-h .tm-hint{ font-size: 12.5px; color: var(--tm-muted); }
+.tm-stage{ background: linear-gradient(168deg,var(--tm-primary-soft),var(--tm-surface) 72%); border: 1px solid rgb(207, 230, 227); border-radius: 18px; padding: 22px 24px 20px; margin-bottom: 18px; }
+.tm-st-top{ display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 12px; }
+.tm-st-state{ display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; color: var(--tm-primary-700); background: rgb(255, 255, 255); border: 1px solid rgb(207, 230, 227); border-radius: 999px; padding: 4px 13px; }
+.tm-st-state .tm-d{ width: 7px; height: 7px; border-radius: 50%; background: var(--tm-primary); }
+.tm-st-state.tm-idle{ color: var(--tm-muted); border-color: var(--tm-line); }
+.tm-st-state.tm-idle .tm-d{ background: var(--tm-n-500); }
+.tm-st-today{ margin-left: auto; font-size: 12.5px; color: var(--tm-muted); }
+.tm-st-today b{ color: var(--tm-ink); font-weight: 700; }
+.tm-big-time{ font-size: clamp(46px, 7vw, 62px); font-weight: 800; color: var(--tm-primary-700); line-height: 1.02; font-variant-numeric: tabular-nums; letter-spacing: 0.01em; text-align: center; margin: 2px 0px 4px; }
+.tm-st-focus{ text-align: center; font-size: 13px; color: var(--tm-muted); margin-bottom: 16px; min-height: 19px; }
+.tm-bar{ display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.tm-bar .tm-task-in{ flex: 1 1 0%; min-width: 180px; display: flex; align-items: center; gap: 9px; background: rgb(255, 255, 255); border: 1px solid var(--tm-line); border-radius: 11px; padding: 0px 12px; height: 42px; }
+.tm-bar .tm-task-in svg{ flex: 0 0 auto; color: var(--tm-n-500); }
+.tm-bar .tm-task-in input{ border-width: medium; border-style: none; border-color: currentcolor; border-image: none; outline: none; background: transparent; font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 14px; flex: 1 1 0%; color: var(--tm-ink); min-width: 0px; }
+.tm-bar .tm-dur{ display: flex; align-items: center; gap: 6px; height: 42px; background: rgb(255, 255, 255); border: 1px solid var(--tm-line); border-radius: 11px; padding: 0px 12px; font-size: 13.5px; color: var(--tm-muted); white-space: nowrap; }
+.tm-bar .tm-dur input{ width: 44px; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; outline: none; background: transparent; font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 14px; font-weight: 700; color: var(--tm-ink); text-align: center; }
+.tm-seg{ display: inline-flex; border: 1px solid var(--tm-line); border-radius: 11px; overflow: hidden; height: 42px; background: rgb(255, 255, 255); }
+.tm-seg-btn{ font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 13px; font-weight: 700; padding: 0px 15px; height: 42px; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; background: transparent; color: var(--tm-muted); cursor: pointer; }
+.tm-seg-btn + .tm-seg-btn{ border-left: 1px solid var(--tm-line); }
+.tm-seg-btn.tm-on{ background: var(--tm-primary); color: rgb(255, 255, 255); }
+.tm-btn-go{ border-width: medium; border-style: none; border-color: currentcolor; border-image: none; background: var(--tm-primary); color: rgb(255, 255, 255); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 14.5px; font-weight: 700; height: 42px; padding: 0px 26px; border-radius: 11px; cursor: pointer; white-space: nowrap; }
+.tm-two{ display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+@media (max-width: 900px){
+.tm-two{ grid-template-columns: 1fr; }
+}
+.tm-panel{ background: var(--tm-surface); border: 1px solid var(--tm-line); border-radius: 16px; padding: 16px 18px; }
+.tm-pn-h{ display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
+.tm-pn-h h4{ font-size: 14.5px; font-weight: 800; }
+.tm-pn-h .tm-act{ font-size: 12px; color: var(--tm-primary-700); font-weight: 600; cursor: pointer; }
+.tm-pn-sub{ font-size: 12px; color: var(--tm-muted); margin-bottom: 12px; }
+.tm-pre{ display: flex; align-items: center; gap: 11px; padding: 10px 12px; border: 1px solid var(--tm-line); border-radius: 12px; margin-bottom: 8px; background: var(--tm-surface); }
+.tm-pre .tm-ic{ width: 32px; height: 32px; border-radius: 9px; background: var(--tm-primary-soft); color: var(--tm-primary-700); display: grid; place-items: center; flex: 0 0 auto; font-size: 14px; font-weight: 800; }
+.tm-pre .tm-nm{ flex: 1 1 0%; min-width: 0px; }
+.tm-pre .tm-nm b{ display: block; font-size: 13.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tm-pre .tm-nm i{ font-style: normal; font-size: 11.5px; color: var(--tm-muted); }
+.tm-pre .tm-dur2{ font-size: 12px; color: var(--tm-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tm-pre .tm-go{ border: 1px solid var(--tm-line); background: rgb(255, 255, 255); color: var(--tm-ink); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 5px 14px; cursor: pointer; white-space: nowrap; }
+.tm-pre .tm-x{ color: rgb(196, 205, 208); font-size: 14px; cursor: pointer; flex: 0 0 auto; padding: 0px 2px; }
+.tm-recent{ display: flex; align-items: center; gap: 11px; padding: 9px 12px; border-radius: 11px; }
+.tm-recent .tm-dot2{ width: 6px; height: 6px; border-radius: 50%; background: var(--tm-primary); flex: 0 0 auto; }
+.tm-recent .tm-nm{ flex: 1 1 0%; min-width: 0px; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tm-recent .tm-when{ font-size: 11.5px; color: var(--tm-n-500); white-space: nowrap; }
+.tm-recent .tm-go{ border-width: medium; border-style: none; border-color: currentcolor; border-image: none; background: transparent; color: var(--tm-primary-700); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12px; font-weight: 700; cursor: pointer; padding: 4px 8px; }
+.tm-rec{ background: var(--tm-surface); border: 1px solid var(--tm-line); border-radius: 16px; padding: 16px 18px; margin-top: 16px; }
+.tm-rec-h{ display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
+.tm-rec-h h4{ font-size: 14.5px; font-weight: 800; }
+.tm-rec-h .tm-tot{ font-size: 12.5px; color: var(--tm-muted); }
+.tm-rec-h .tm-tot b{ color: var(--tm-ink); font-weight: 700; font-size: 14px; }
+.tm-rec-row{ display: flex; align-items: center; gap: 12px; padding: 9px 12px; border: 1px solid var(--n-100); border-radius: 11px; margin-bottom: 7px; font-size: 13px; }
+.tm-rec-row .tm-nm{ flex: 1 1 0%; min-width: 0px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tm-rec-row .tm-segs{ font-size: 10.5px; font-weight: 600; color: var(--tm-primary-700); background: rgb(240, 248, 247); border: 1px solid rgb(213, 234, 232); border-radius: 999px; padding: 1px 8px; }
+.tm-rec-row .tm-d{ font-variant-numeric: tabular-nums; color: var(--tm-muted); font-size: 12.5px; }
+
+/* ===== 站点全局标签规则（common.css:470 input / :490 label）的冲突钉死 =====
+   这两条标签选择器直接写在元素上，会盖掉未显式声明的 font-size / line-height。
+   下面按设计稿实测值钉一遍，本文件追加在 common.css 之后 → 同比分靠顺序赢。 */
+.tm-page .tm-task-in{font-size:16px;margin-bottom:0px}
+.tm-page .tm-task-in label, .tm-page .tm-task-in>label{font-size:16px;margin-bottom:0px}
+.tm-page .tm-seg-btn{font-size:13px}
+.tm-page .tm-seg-btn button, .tm-page .tm-seg-btn>button{font-size:13px}
+.tm-page .tm-on{font-size:13px}
+.tm-page .tm-on button, .tm-page .tm-on>button{font-size:13px}
+.tm-page .tm-btn-go{font-size:14.5px}
+.tm-page .tm-btn-go button, .tm-page .tm-btn-go>button{font-size:14.5px}
+.tm-page .tm-go{font-size:12px}
+.tm-page .tm-go button, .tm-page .tm-go>button{font-size:12px}
+.tm-page .tm-task-in input:not([hidden]){font-size:14px;padding:0px;height:23.0938px;border:0px none rgb(29, 43, 42);background:rgba(0, 0, 0, 0);border-radius:0px;box-shadow:none}
+.tm-page .tm-dur input:not([hidden]){font-size:14px;padding:0px;height:23.0938px;border:0px none rgb(29, 43, 42);background:rgba(0, 0, 0, 0);border-radius:0px;box-shadow:none}
 
 
-/* timer live */
-.live-timer{font-size:44px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.005em;line-height:1;color:var(--ink-2);margin:2px 0 18px;text-align:center}
-.mod-ic{width:42px;height:42px;border-radius:12px;background:var(--primary-soft);color:var(--primary);display:flex;align-items:center;justify-content:center;flex:none}
-.mod-ic svg{width:23px;height:23px;display:block}
-.mod-name{font-size:15px;font-weight:800;letter-spacing:-.01em}
-.timer-goal{display:flex;align-items:center;justify-content:center;gap:8px;margin:0 0 12px}
-.timer-goal label{font-size:13px;color:var(--muted);font-weight:600;white-space:nowrap}
-.timer-goal input.goal-input{width:56px;height:32px;padding:0 6px;border:none;border-radius:8px;background:var(--primary-soft);color:var(--ink);font:inherit;font-size:13px;text-align:center;outline:none}
-.timer-goal input.goal-input:focus{box-shadow:0 0 0 2px var(--primary)}
-.timer-progress{margin-top:12px;text-align:left}
-.timer-progress:empty{margin-top:0;min-height:0}
-.timer-mods .mod-ic{width:26px;height:26px;border-radius:8px;font-size:15px}
-.timer-mods .mod-ic svg{width:16px;height:16px}
-.timer-mods .mod-name{font-size:13.5px;font-weight:700}
-.timer-mods .timer-start{width:auto;margin:0;padding:4px 10px;font-size:12.5px;border-radius:14px}
-/* 正/倒计时切换（从 timer.html 内联迁来） */
-.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;height:32px}
-@media(max-width:560px){ .live-timer{font-size:36px} }
-/* 章节小标题（"选择本次任务"等） */
-.section-title{
-  font-size:13px;font-weight:700;color:var(--muted);
-  letter-spacing:.04em;margin:18px 0 8px;
-  display:flex;align-items:center;gap:8px;
+/* ===== 加固副本：选择器统一加 .tm-page（具体度 +1 级） =====
+   为什么有这一段：common.css 有两条标签选择器直接写在元素上、优先于继承——
+     :470 input:not([type=checkbox]):not([type=radio]):not([type=range]) → 具体度 0,3,1
+     :490 label → 全局把 font-size 压成 13px、color 压成 muted、margin-bottom 4px
+   本文件里 (0,2,1) 的规则打不过它们 → 输入框出现「外框包一层、内层又多一个框」，
+   字号也会被压成 13px。这一段靠提高具体度 + 排在最后来压住。
+   🔴 别删：删了输入框立刻变双层框。 */
+.tm-page .tm-pg{ padding: 22px 28px 32px; background: var(--tm-bg); }
+.tm-page .tm-pg-h{ display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.tm-page .tm-pg-h h3{ font-size: 21px; font-weight: 800; letter-spacing: -0.01em; }
+.tm-page .tm-pg-h .tm-hint{ font-size: 12.5px; color: var(--tm-muted); }
+.tm-page .tm-stage{ background: linear-gradient(168deg,var(--tm-primary-soft),var(--tm-surface) 72%); border: 1px solid rgb(207, 230, 227); border-radius: 18px; padding: 22px 24px 20px; margin-bottom: 18px; }
+.tm-page .tm-st-top{ display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 12px; }
+.tm-page .tm-st-state{ display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; color: var(--tm-primary-700); background: rgb(255, 255, 255); border: 1px solid rgb(207, 230, 227); border-radius: 999px; padding: 4px 13px; }
+.tm-page .tm-st-state .tm-d{ width: 7px; height: 7px; border-radius: 50%; background: var(--tm-primary); }
+.tm-page .tm-st-state.tm-idle{ color: var(--tm-muted); border-color: var(--tm-line); }
+.tm-page .tm-st-state.tm-idle .tm-d{ background: var(--tm-n-500); }
+.tm-page .tm-st-today{ margin-left: auto; font-size: 12.5px; color: var(--tm-muted); }
+.tm-page .tm-st-today b{ color: var(--tm-ink); font-weight: 700; }
+.tm-page .tm-big-time{ font-size: clamp(46px, 7vw, 62px); font-weight: 800; color: var(--tm-primary-700); line-height: 1.02; font-variant-numeric: tabular-nums; letter-spacing: 0.01em; text-align: center; margin: 2px 0px 4px; }
+.tm-page .tm-st-focus{ text-align: center; font-size: 13px; color: var(--tm-muted); margin-bottom: 16px; min-height: 19px; }
+.tm-page .tm-bar{ display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.tm-page .tm-bar .tm-task-in{ flex: 1 1 0%; min-width: 180px; display: flex; align-items: center; gap: 9px; background: rgb(255, 255, 255); border: 1px solid var(--tm-line); border-radius: 11px; padding: 0px 12px; height: 42px; }
+.tm-page .tm-bar .tm-task-in svg{ flex: 0 0 auto; color: var(--tm-n-500); }
+.tm-page .tm-bar .tm-task-in input{ border-width: medium; border-style: none; border-color: currentcolor; border-image: none; outline: none; background: transparent; font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 14px; flex: 1 1 0%; color: var(--tm-ink); min-width: 0px; }
+.tm-page .tm-bar .tm-dur{ display: flex; align-items: center; gap: 6px; height: 42px; background: rgb(255, 255, 255); border: 1px solid var(--tm-line); border-radius: 11px; padding: 0px 12px; font-size: 13.5px; color: var(--tm-muted); white-space: nowrap; }
+.tm-page .tm-bar .tm-dur input{ width: 44px; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; outline: none; background: transparent; font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 14px; font-weight: 700; color: var(--tm-ink); text-align: center; }
+.tm-page .tm-seg{ display: inline-flex; border: 1px solid var(--tm-line); border-radius: 11px; overflow: hidden; height: 42px; background: rgb(255, 255, 255); }
+.tm-page .tm-seg-btn{ font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 13px; font-weight: 700; padding: 0px 15px; height: 42px; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; background: transparent; color: var(--tm-muted); cursor: pointer; }
+.tm-page .tm-seg-btn + .tm-seg-btn{ border-left: 1px solid var(--tm-line); }
+.tm-page .tm-seg-btn.tm-on{ background: var(--tm-primary); color: rgb(255, 255, 255); }
+.tm-page .tm-btn-go{ border-width: medium; border-style: none; border-color: currentcolor; border-image: none; background: var(--tm-primary); color: rgb(255, 255, 255); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 14.5px; font-weight: 700; height: 42px; padding: 0px 26px; border-radius: 11px; cursor: pointer; white-space: nowrap; }
+.tm-page .tm-two{ display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+@media (max-width: 900px){
+.tm-page .tm-two{ grid-template-columns: 1fr; }
 }
-.section-title::before{content:'';width:3px;height:14px;border-radius:2px;background:var(--primary);display:inline-block}
-.rec-mini-grid{display:flex;flex-direction:column;gap:8px;margin-bottom:6px}
-.rec-mini-item{
-  display:grid;grid-template-columns:1fr auto auto auto;align-items:center;gap:10px;
-  background:var(--surface-2);border:1px solid var(--line);border-radius:10px;
-  padding:9px 12px 9px 14px;font-size:13px;
-}
-.rec-mini-item .rec-mini-mod{font-weight:700;color:var(--ink)}
-.rec-mini-item .rec-mini-dur{color:var(--primary);font-weight:700;font-variant-numeric:tabular-nums}
-.rec-mini-item .rec-mini-time{color:var(--muted);font-variant-numeric:tabular-nums;font-size:12px}
-.rec-mini-del{
-  width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;
-  border:1px solid var(--line);background:var(--bg);color:var(--muted);border-radius:50%;
-  font-size:15px;line-height:1;cursor:pointer;transition:.15s;padding:0;
-}
-.rec-mini-del:hover{border-color:var(--danger);color:var(--danger);background:var(--danger-soft)}
-.rec-empty{font-size:13px;color:var(--muted);margin:8px 0 0;text-align:center}
-@media(max-width:720px){ .rec-mini-grid{grid-template-columns:repeat(2,1fr)} }
+.tm-page .tm-panel{ background: var(--tm-surface); border: 1px solid var(--tm-line); border-radius: 16px; padding: 16px 18px; }
+.tm-page .tm-pn-h{ display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
+.tm-page .tm-pn-h h4{ font-size: 14.5px; font-weight: 800; }
+.tm-page .tm-pn-h .tm-act{ font-size: 12px; color: var(--tm-primary-700); font-weight: 600; cursor: pointer; }
+.tm-page .tm-pn-sub{ font-size: 12px; color: var(--tm-muted); margin-bottom: 12px; }
+.tm-page .tm-pre{ display: flex; align-items: center; gap: 11px; padding: 10px 12px; border: 1px solid var(--tm-line); border-radius: 12px; margin-bottom: 8px; background: var(--tm-surface); }
+.tm-page .tm-pre .tm-ic{ width: 32px; height: 32px; border-radius: 9px; background: var(--tm-primary-soft); color: var(--tm-primary-700); display: grid; place-items: center; flex: 0 0 auto; font-size: 14px; font-weight: 800; }
+.tm-page .tm-pre .tm-nm{ flex: 1 1 0%; min-width: 0px; }
+.tm-page .tm-pre .tm-nm b{ display: block; font-size: 13.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tm-page .tm-pre .tm-nm i{ font-style: normal; font-size: 11.5px; color: var(--tm-muted); }
+.tm-page .tm-pre .tm-dur2{ font-size: 12px; color: var(--tm-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tm-page .tm-pre .tm-go{ border: 1px solid var(--tm-line); background: rgb(255, 255, 255); color: var(--tm-ink); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 5px 14px; cursor: pointer; white-space: nowrap; }
+.tm-page .tm-pre .tm-x{ color: rgb(196, 205, 208); font-size: 14px; cursor: pointer; flex: 0 0 auto; padding: 0px 2px; }
+.tm-page .tm-recent{ display: flex; align-items: center; gap: 11px; padding: 9px 12px; border-radius: 11px; }
+.tm-page .tm-recent .tm-dot2{ width: 6px; height: 6px; border-radius: 50%; background: var(--tm-primary); flex: 0 0 auto; }
+.tm-page .tm-recent .tm-nm{ flex: 1 1 0%; min-width: 0px; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tm-page .tm-recent .tm-when{ font-size: 11.5px; color: var(--tm-n-500); white-space: nowrap; }
+.tm-page .tm-recent .tm-go{ border-width: medium; border-style: none; border-color: currentcolor; border-image: none; background: transparent; color: var(--tm-primary-700); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12px; font-weight: 700; cursor: pointer; padding: 4px 8px; }
+.tm-page .tm-rec{ background: var(--tm-surface); border: 1px solid var(--tm-line); border-radius: 16px; padding: 16px 18px; margin-top: 16px; }
+.tm-page .tm-rec-h{ display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
+.tm-page .tm-rec-h h4{ font-size: 14.5px; font-weight: 800; }
+.tm-page .tm-rec-h .tm-tot{ font-size: 12.5px; color: var(--tm-muted); }
+.tm-page .tm-rec-h .tm-tot b{ color: var(--tm-ink); font-weight: 700; font-size: 14px; }
+.tm-page .tm-rec-row{ display: flex; align-items: center; gap: 12px; padding: 9px 12px; border: 1px solid var(--n-100); border-radius: 11px; margin-bottom: 7px; font-size: 13px; }
+.tm-page .tm-rec-row .tm-nm{ flex: 1 1 0%; min-width: 0px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tm-page .tm-rec-row .tm-segs{ font-size: 10.5px; font-weight: 600; color: var(--tm-primary-700); background: rgb(240, 248, 247); border: 1px solid rgb(213, 234, 232); border-radius: 999px; padding: 1px 8px; }
+.tm-page .tm-rec-row .tm-d{ font-variant-numeric: tabular-nums; color: var(--tm-muted); font-size: 12.5px; }
+
+/* ===== 站点全局标签规则（common.css:470 input / :490 label）的冲突钉死 =====
+   这两条标签选择器直接写在元素上，会盖掉未显式声明的 font-size / line-height。
+   下面按设计稿实测值钉一遍，本文件追加在 common.css 之后 → 同比分靠顺序赢。 */
+
+
+/* ───── ③ 站点既有组件 / 深色 / 中和覆盖 ───── */
 
 /* ===== 通用深色描边药丸按钮 ui-dark-btn（Uiverse elijahgummer 改写：黑渐变 #171717/#242424/#292929/#000000/#252525 → teal 渐变 --primary-d/--primary；白字→--on-primary；原 .styled-button/.inner-button/.icon 改名 .ui-dark-btn*，drop-shadow 中性黑保留） ===== */
 .ui-dark-btn{
@@ -81,3 +254,87 @@
 .ui-dark-btn--sm{ padding:.5rem 1.25rem; font-size:.95rem;
   box-shadow:0 1px 2px rgba(0,0,0,.5), 0 6px 12px rgba(0,0,0,.25); }
 [data-mod] .section-title{border-left:3px solid var(--mod);padding-left:10px}
+
+/* 两个按钮（结束并保存 / 暂停）改成本页设计语言：白底描边药丸，不再用黑色渐变。
+   类名不动 —— timer.js 暂停时会把 className 改成 'btn btn-primary'，所以两条都盖。 */
+.tm-page .timer-btns .ui-dark-btn,
+.tm-page .timer-btns .btn{
+  position:static;min-width:120px;min-height:42px;padding:0 20px;border-radius:11px;
+  background:var(--tm-surface);color:var(--tm-ink);border:1px solid var(--tm-line);
+  box-shadow:none;font-size:14px;font-weight:700;transform:none;
+}
+.tm-page .timer-btns .btn-primary{
+  background:var(--tm-primary);color:#fff;border-color:var(--tm-primary);
+}
+.tm-page .timer-btns .ui-dark-btn::before{display:none}
+.tm-page .timer-btns .ui-dark-btn:hover:not(:disabled){
+  background:var(--tm-primary-soft);color:var(--tm-primary-700);border-color:var(--tm-primary);
+}
+
+/* 🔴 reset 之后把「非设计稿元素」的间距还回去（① 段给了值，这里才是真正生效的一遍） */
+.tm-page .timer-progress{margin:0 0 14px}
+.tm-page .timer-btns{margin-top:14px}
+.tm-page .timer-idle-hint{margin:10px 0 0;padding:0}
+.tm-page .rec-empty{margin:10px 0 0;padding:0}
+.tm-page #recMiniGrid{margin:0}
+.tm-page .tm-empty{
+  font-size:12.5px;color:var(--tm-muted);padding:9px 12px;line-height:1.7;text-align:center;
+  border:1px dashed var(--tm-line);border-radius:11px;
+}
+/* 今日记录行的删除按钮（设计稿没有这一件，保持小而不抢） */
+.tm-page .tm-rec-row .rec-mini-del{
+  width:22px;height:22px;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
+  border:1px solid var(--tm-line);background:var(--tm-surface);color:var(--tm-n-500);
+  border-radius:50%;font-size:14px;line-height:1;padding:0;cursor:pointer;
+}
+.tm-page .tm-rec-row .rec-mini-del:hover{border-color:var(--danger);color:var(--danger)}
+
+/* 🔴 删除按钮行高：基线要 23.1px（= 14px × 1.65 设计稿基准），但 button 不吃继承行高，
+   导出块里那条 .tm-page .tm-pre .tm-x 也只钉了字号没钉行高 → 实测回落成 normal。
+   钉死 23.1px，7 项版式才对得上（这一条是 1:1 最后一条红）。 */
+.tm-page .tm-pre .tm-x{line-height:23.1px}
+
+/* ── 手机：设计稿只出了桌面 1440。桌面的 bar 是四条平铺（任务名 / 时长 / 正倒 / 开始），
+   到 390px 宽会挤成三行、开始按钮只剩 81px，点起来难受。
+   这里只改排布，不改任何字号/内距/圆角 —— 1:1 判据是那 7 项，桌面 1440 不受这段影响
+   （@media 只在窄屏生效，验收工具跑的是 1440）。 */
+@media(max-width:720px){
+  .tm-page .tm-bar{gap:8px}
+  .tm-page .tm-bar .tm-task-in{flex:1 1 100%;min-width:0}
+  .tm-page .tm-bar .tm-dur{flex:0 0 auto}
+  .tm-page .tm-bar .tm-seg{flex:0 0 auto;margin-left:auto}
+  .tm-page .tm-btn-go{flex:1 1 100%;height:44px}
+  .tm-page .tm-pg{padding:16px 14px 28px}
+}
+/* 两栏在窄屏叠成一列（导出块在 900px 就叠了，这里只补面板内边距） */
+@media(max-width:900px){
+  .tm-page .tm-panel{padding:14px 15px}
+}
+
+/* 🔴 深色：设计稿只出了浅色。导出块里 .tm-page 的私有变量是写死的浅色值
+   （--tm-bg:#f4f7f8 / --tm-surface:#fff ...），深色下不换就是「白底白卡」。
+   这里把私有变量整体重指到站点深色 token，再把导出块里几个写死 rgb() 的白底改掉。
+   ⚠️ 只覆盖颜色，字号/内距/间距一个不动 —— 那 7 项是 1:1 的判据。 */
+[data-theme="dark"] .tm-page{
+  --tm-bg:var(--bg);
+  --tm-muted:var(--muted);
+  --tm-primary-soft:var(--primary-soft);
+  --tm-surface:var(--surface);
+  --tm-primary-700:var(--primary-text);
+  --tm-primary:var(--primary);
+  --tm-line:var(--line);
+  --tm-n-500:var(--n-500);
+  --tm-ink:var(--ink);
+}
+[data-theme="dark"] .tm-page .tm-stage{border-color:var(--line)}
+[data-theme="dark"] .tm-page .tm-st-state{background:var(--surface);border-color:var(--line)}
+[data-theme="dark"] .tm-page .tm-st-state.tm-idle{border-color:var(--line)}
+[data-theme="dark"] .tm-page .tm-task-in,
+[data-theme="dark"] .tm-page .tm-dur,
+[data-theme="dark"] .tm-page .tm-seg{background:var(--surface);border-color:var(--line)}
+[data-theme="dark"] .tm-page .tm-pre .tm-go{background:var(--surface);border-color:var(--line)}
+[data-theme="dark"] .tm-page .tm-rec-row{border-color:var(--line)}
+[data-theme="dark"] .tm-page .tm-rec-row .tm-segs{
+  background:var(--primary-50);border-color:var(--primary-200);color:var(--primary-text);
+}
+[data-theme="dark"] .tm-page .tm-pre .tm-x{color:var(--n-500)}
