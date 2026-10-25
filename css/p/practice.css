@@ -717,3 +717,153 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
   .wm-page .wm-mall-search{ margin-left:0; width:100%; }
   .wm-page .wm-fsep{ display:none; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   W-WORD-3（10-26）第 3 批 · 词书详情态（#vBook）
+   ① 设计稿 1:1 导出块（design/_W-word-book_精确样式.css 原文，前缀 wb2-）
+   ② 详情内容样式（稿子是 JS 动态生成，导出件只有 .wb2-back / .wb2-card 两条）+ 深色补差
+   ══════════════════════════════════════════════════════════════════════ */
+.wb2-page{
+  --wb2-line:#e6e9ea;
+  font-size:15px;
+  line-height:1.7;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+
+.wb2-page, .wb2-page *{ box-sizing: border-box; }
+.wb2-card{ background: var(--surface); border: 1px solid var(--wb2-line); border-radius: var(--radius); padding: 20px 22px; }
+@media (max-width: 560px){
+.wb2-opts{ grid-template-columns: 1fr; }
+}
+.wb2-back{ display: inline-flex; align-items: center; gap: 5px; border: 0px; background: none; font-family: inherit; font-size: 13px; color: var(--primary-700); font-weight: 650; cursor: pointer; padding: 6px 0px; margin-bottom: 10px; }
+.wb2-pane{ display: none; }
+
+/* ===== 站点全局标签规则（common.css:470 input / :490 label）的冲突钉死 =====
+   这两条标签选择器直接写在元素上，会盖掉未显式声明的 font-size / line-height。
+   下面按设计稿实测值钉一遍，本文件追加在 common.css 之后 → 同比分靠顺序赢。 */
+.wb2-page .wb2-back{font-size:13px}
+.wb2-page .wb2-back button, .wb2-page .wb2-back>button{font-size:13px}
+
+
+/* ===== 加固副本：选择器统一加 .wb2-page（具体度 +1 级） =====
+   为什么有这一段：common.css 有两条标签选择器直接写在元素上、优先于继承——
+     :470 input:not([type=checkbox]):not([type=radio]):not([type=range]) → 具体度 0,3,1
+     :490 label → 全局把 font-size 压成 13px、color 压成 muted、margin-bottom 4px
+   本文件里 (0,2,1) 的规则打不过它们 → 输入框出现「外框包一层、内层又多一个框」，
+   字号也会被压成 13px。这一段靠提高具体度 + 排在最后来压住。
+   🔴 别删：删了输入框立刻变双层框。 */
+.wb2-page .wb2-card{ background: var(--surface); border: 1px solid var(--wb2-line); border-radius: var(--radius); padding: 20px 22px; }
+@media (max-width: 560px){
+.wb2-page .wb2-opts{ grid-template-columns: 1fr; }
+}
+.wb2-page .wb2-back{ display: inline-flex; align-items: center; gap: 5px; border: 0px; background: none; font-family: inherit; font-size: 13px; color: var(--primary-700); font-weight: 650; cursor: pointer; padding: 6px 0px; margin-bottom: 10px; }
+.wb2-page .wb2-pane{ display: none; }
+
+/* ===== 站点全局标签规则（common.css:470 input / :490 label）的冲突钉死 =====
+   这两条标签选择器直接写在元素上，会盖掉未显式声明的 font-size / line-height。
+   下面按设计稿实测值钉一遍，本文件追加在 common.css 之后 → 同比分靠顺序赢。 */
+
+/* ═══ W-WORD-3（10-26）第 3 批 · 词书详情态（#vBook）═══
+   上面 ① 段 = design/_W-word-book_精确样式.css 原文（机器导出，前缀 wb2-），一个字没改。
+   导出件只有 .wb2-back 和 .wb2-card 两条 —— 稿子的详情是 JS 动态生成的（三件套只导出了空壳），
+   所以下面 ② 段是**按施工书 §四 补的全部内容样式**（head / 折叠钩子 / 章节网格）。
+
+   🔴 圆角同 W-WORD-2 那条：稿子 --radius 14 / --radius-sm 10，站点是 16 / 12 → 指回稿子值。 */
+
+/* ───── ② 详情内容（稿子动态生成，导出件里没有） ───── */
+.wb2-page{ --radius:14px; --radius-sm:10px; }
+
+/* 头部：书名 + meta + 两个大数（总词数 / 切章方式）+ 右侧两个按钮 */
+.wb2-head{ display:flex; align-items:flex-start; gap:16px; flex-wrap:wrap; }
+.wb2-info{ flex:1; min-width:230px; }
+.wb2-info h2{ margin:0 0 4px; font-size:20px; font-weight:750; letter-spacing:-.01em; color:var(--ink); }
+.wb2-meta{ font-size:12.5px; color:var(--muted); }
+.wb2-stats{ display:flex; gap:26px; margin:14px 0 2px; flex-wrap:wrap; }
+.wb2-it{ font-size:12px; color:var(--muted); }
+.wb2-it b{ display:block; font-size:20px; font-weight:800; color:var(--ink);
+  letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+.wb2-acts{ display:flex; flex-direction:column; gap:8px; align-items:flex-end; }
+
+/* 两个按钮（稿子 .btn / .btn-p / .btn-sm）→ 用 wb2- 前缀重写，不打穿全站 */
+.wb2-btn{ display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  min-height:36px; padding:0 16px; border-radius:var(--radius-sm); border:1px solid var(--wb2-line);
+  background:var(--surface); color:var(--ink-2); font:inherit; font-size:13px; font-weight:650; cursor:pointer; }
+.wb2-btn:hover{ border-color:var(--primary); }
+.wb2-btn-p{ background:var(--primary); border-color:var(--primary); color:var(--on-primary); }
+.wb2-btn-p:hover{ background:var(--primary-600); border-color:var(--primary-600); color:var(--on-primary); }
+.wb2-btn:disabled{ cursor:not-allowed; opacity:.55; }
+
+/* 折叠钩子（默认收起，点标题条展开） */
+.wb2-hook{ border:1px solid var(--primary-100); border-radius:var(--radius); overflow:hidden;
+  margin-top:14px; background:var(--primary-50); }
+.wb2-hook-h{ display:flex; align-items:center; gap:11px; width:100%; padding:14px 17px;
+  background:none; border:0; font:inherit; text-align:left; cursor:pointer; color:var(--ink); }
+.wb2-hook-ic{ width:30px; height:30px; border-radius:9px; background:var(--primary); color:#fff;
+  display:flex; align-items:center; justify-content:center; flex:none; }
+.wb2-hook-ic svg{ width:16px; height:16px; }
+.wb2-hook-tx{ flex:1; min-width:0; }
+.wb2-hook-tx b{ display:block; font-size:14px; font-weight:750; color:var(--primary-800); line-height:1.45; }
+.wb2-hook-tx span{ display:block; font-size:12px; color:var(--ink-2); margin-top:2px; }
+.wb2-hook-go{ font-size:12px; font-weight:700; color:var(--primary-700); white-space:nowrap; flex:none; }
+.wb2-hook-caret{ color:var(--primary-700); font-size:11px; transition:transform .2s; flex:none; }
+.wb2-hook.wb2-open .wb2-hook-caret{ transform:rotate(90deg); }
+.wb2-hook-b{ display:none; background:var(--surface); border-top:1px solid var(--primary-100); }
+.wb2-hook.wb2-open .wb2-hook-b{ display:block; padding:18px 20px; }
+.wb2-hook-b h4{ margin:0 0 8px; font-size:13.5px; font-weight:750; color:var(--ink); }
+.wb2-hook-b p{ margin:0 0 12px; font-size:13px; line-height:1.9; color:var(--ink-2); }
+.wb2-painbox{ background:var(--n-100); border-radius:var(--radius-sm); padding:13px 15px; margin:0 0 14px; }
+.wb2-pain-t{ font-size:12px; font-weight:750; color:var(--danger); margin-bottom:6px; }
+.wb2-painbox ul{ margin:0; padding-left:17px; font-size:12.5px; line-height:1.85; color:var(--ink-2); }
+.wb2-faq{ margin-top:6px; }
+.wb2-faq dt{ font-size:13px; font-weight:750; color:var(--ink); margin-top:10px; }
+.wb2-faq dd{ margin:4px 0 0; font-size:12.5px; line-height:1.85; color:var(--ink-2); }
+
+/* 章节网格（主角） */
+.wb2-chap-top{ margin-top:18px; margin-bottom:10px; }
+.wb2-chap-t{ font-size:12px; color:var(--muted); }
+.wb2-chap-t b{ color:var(--ink); font-weight:750; font-variant-numeric:tabular-nums; }
+.wb2-chaps{ display:grid; grid-template-columns:repeat(auto-fill,minmax(158px,1fr)); gap:9px; }
+.wb2-chap{ position:relative; border:1px solid var(--line); border-radius:var(--radius-sm);
+  padding:12px 14px; cursor:pointer; background:var(--surface); text-align:left; font:inherit;
+  color:var(--ink); display:flex; flex-direction:column; }
+.wb2-chap:hover{ border-color:var(--primary-300); }
+.wb2-chap.wb2-done{ border-color:var(--primary-300); background:var(--primary-50); }
+.wb2-chap-nm{ font-size:13px; font-weight:750; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.wb2-chap-n{ font-size:11.5px; color:var(--muted); margin-top:2px; }
+.wb2-chap-st{ font-size:11.5px; color:var(--primary-700); font-weight:700; margin-top:8px;
+  display:flex; align-items:center; justify-content:space-between; gap:6px; }
+.wb2-chap-st .wb2-ck{ color:var(--primary); font-weight:800; font-size:10.5px; }
+.wb2-chap-empty{ grid-column:1 / -1; margin:0; font-size:12.5px; color:var(--muted); }
+
+/* 🔴 深色：.wb2-hook / .wb2-chap.wb2-done 用的是 primary-50/100 浅底，
+      深色下不改就是「深灰底 + 深灰字」；这里是唯一需要重指的地方。 */
+[data-theme="dark"] .wb2-page{ --wb2-line:var(--line); }
+/* 🔴 深色下这两块的底**不能引用 --primary-* token**：
+      站点的 primary 色阶在深色档是**反转**的（实测 dark 下 --primary-900 = #c5e6e1 是**浅青**，
+      --primary-700 = #7ccac2 也是亮的）—— 拿它当底就是「浅底 + 亮字」，对比度 1.14:1。
+      深色档要的是「深底 + 亮字」→ 直接写死实色深青 #1a4542（浅色档的 primary-900 原值）。 */
+[data-theme="dark"] .wb2-page .wb2-hook{ background:#1a4542; border-color:#235e5a; }
+[data-theme="dark"] .wb2-page .wb2-hook-tx b{ color:#8fe0d6; }
+/* 副钩 / 章词数用 --muted（深色下 #9a9aa0）叠在实色深青 #1a4542 上只有 3.8:1 →
+   提亮到 #cfd8d6（11.5px 小字也要够 4.5）。 */
+[data-theme="dark"] .wb2-page .wb2-hook-tx span{ color:#cfd8d6; }
+[data-theme="dark"] .wb2-page .wb2-hook-go,
+[data-theme="dark"] .wb2-page .wb2-hook-caret{ color:#8fe0d6; }
+[data-theme="dark"] .wb2-page .wb2-hook-b h4{ color:var(--ink); }
+[data-theme="dark"] .wb2-page .wb2-chap.wb2-done{ background:#1a4542; border-color:#235e5a; }
+[data-theme="dark"] .wb2-page .wb2-chap:hover{ border-color:var(--primary-300); }
+[data-theme="dark"] .wb2-page .wb2-chap-n{ color:#cfd8d6; }
+[data-theme="dark"] .wb2-page .wb2-chap-st{ color:#8fe0d6; }
+[data-theme="dark"] .wb2-page .wb2-chap-st .wb2-ck{ color:#8fe0d6; }
+/* 痛点小标题在深色下 --danger（#d97877）叠在 painbox 的 --n-100（#2e2e32）上只有 4.45:1，
+   差一点点；换浅一档 #ff9d9c → 6.9:1。只改这一处，不动站点 --danger。 */
+[data-theme="dark"] .wb2-page .wb2-pain-t{ color:#ff9d9c; }
+[data-theme="dark"] .wb2-page .wb2-btn-p,
+[data-theme="dark"] .wb2-page .wb2-btn-p:hover{ background:#8fe0d6; border-color:#8fe0d6; color:#0f3330; }
+
+/* 手机 ≤560：右侧两个按钮改成横排占满（稿子是竖排靠右，窄屏会挤） */
+@media (max-width:560px){
+  .wb2-acts{ flex-direction:row; align-items:stretch; width:100%; }
+  .wb2-acts .wb2-btn{ flex:1; }
+}

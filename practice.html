@@ -351,6 +351,18 @@ body.word-fullscreen .hub-topbar{display:none !important}
       <div class="wm-deals" id="wmDeals"></div>
       <div class="wm-note"><b>词库商城怎么用</b>：这里放「可以选的词本」。看中哪本 → 点进去看它是怎么来的、有哪些章节 → 点「设为当前词书」就切过去，原词书的进度留在原地，随时切回。词书是工具不是任务，每本背到会用的程度就够。</div>
     </div>
+    <!-- ═══ W-WORD-3（10-26）· 词书详情态（#vBook）═══
+         施工书 §四：三件套只导出了空壳（design/_W-word-book_结构原文.html 只有
+         .wb2-back + .wb2-card 两个元素），内容由 JS 生成 → 按施工书 §四的结构与文案表搭。
+         章节列表是主角；顶部折叠钩子只讲「这些词从哪来」，不写覆盖率、不跟别家对比。
+         🔴 七本词书的钩子标题/副钩/「是什么」正文/痛点三条/两个 FAQ 全部照抄施工书 §4.1~§4.3，
+            一个字都不许改写（那是她看过并点头的文案）。
+         🔴 根类 .wb2-page（导出件 token 块挂在它上面）；不套稿子的 .wb2-pane
+            （.wb2-pane{display:none} 是稿子三态切换用的，本站三态由 switchWordTab 管 hidden）。 -->
+    <div class="wb2-page" id="vBook" hidden>
+      <button class="wb2-back" id="wb2BackMall" type="button">&lsaquo; 词库商城</button>
+      <div class="wb2-card" id="bkCard"></div>
+    </div>
 
     <!-- ═══ W-WORD-2：旧词库内容整块收进 #wmLegacy ═══
          商城是新的默认视图；下面这些 id（#wbDecks / #wordList / #searchWord / #bankTitle /
@@ -720,6 +732,240 @@ body.word-fullscreen .hub-topbar{display:none !important}
   }
 
   /* ══════════════════════════════════════════════════════════════
+     W-WORD-3（10-26）第 3 批：词书详情态（#vBook）
+     ══════════════════════════════════════════════════════════════
+     施工书 §四：三件套只导出了空壳，内容 JS 生成 → 按 §四 的结构与文案表搭。
+
+     🔴 文案铁律：七本词书的钩子标题 / 副钩 / 「这本词书是什么」正文 / 痛点三条 /
+        两个 FAQ，全部**逐字照抄**施工书 §4.1~§4.3（那是她看过并点头的文案），一个字不改。
+     🔴 不写覆盖率、不跟别家词书对比、不写「已学 %」（她 10-25 明确骂过）。
+     🔴 章节列表是主角：官方词书走 meta.chapters（idx/name/count），AWL 走 sl 分 10 组，
+        我的词库走真的状态计数（今天要复习 / 答错过的词 / 学习中 / 已掌握）—— 不写稿子里的假数字。
+     🔴 章级筛选（点某章只练这章）本批不做：施工书 §4.4 明写「只做切词书 + 全部词开始」，
+        点章节卡 = 切到这本 + 进背词态开练（回报里已写明）。
+  */
+
+  /* ── 七本词书的文案库（施工书 §4.1 钩子 / §4.2 是什么 / §4.3 痛点+FAQ，逐字照抄）── */
+  var WB2_SRC = {
+    rdtext: {
+      hook: '这些词，全部从 280 篇真题阅读的原文里一条条挑出来',
+      hookSub: '按在考场原文中出现的次数排，出现越多的越先背',
+      one: '从本站 280 篇真题阅读的正文里，把出现 5 次以上的词一条条挑出来，每词配一句真题原句。选词时已排除小学、初中词汇与专有名词——你要背的是考场文章里反复出现、但还不认识的那批。',
+      pain: ['阅读文章每个词都眼熟，连起来不知道讲什么', '背了好多「高级词」，真题里一次都没见过', '一篇阅读 20 分钟，光认词就花掉 10 分钟'],
+      who: '阅读原文读得慢、读完不知道讲什么的人。它不教你背单词表，教你认出真题里反复出现的词。',
+      mix: '和「题干高频词」互补：那本让你读懂题目，这本让你读懂文章。两本一起背，阅读词汇闭环。'
+    },
+    qstem: {
+      hook: '这些词，全部从 627 篇真题的题目文字里统计出来',
+      hookSub: '不含原文、不含选项，只留读懂题目必需的那些',
+      one: '从本站 627 篇真题（听力 347 + 阅读 280）的题目文字里统计出现次数，再排除初中词汇、专有名词和纯功能词。读懂题目是做题第一步，这些词你必须在读题时就认识。',
+      pain: ['题目里一个词不认识，整道题方向就错了', 'TRUE / FALSE / NOT GIVEN 分不清，其实是题干没读明白', '听力选择题四个选项有两个看不懂'],
+      who: '题目读得慢、题目里单词不认识导致看错题的人。',
+      mix: '和「阅读原文高频词」是一对：一个管题目，一个管正文。'
+    },
+    lstext: {
+      hook: '这些词，全部从 347 篇真题听力的原文里挑出来',
+      hookSub: '听力考的是听到就认出，这些是原文里最常出现的',
+      one: '从本站 347 篇真题听力的原文里，把出现 5 次以上的词挑出来，每词配一句真题原句。听力考的是听到就认出，这些是原文里最常出现、最值得先认脸的那批。',
+      pain: ['音频一放就走神，听完只记得几个词', '单词单看都认识，放进句子里听不出来', 'Section 3/4 一长就走神，后面全崩'],
+      who: '听力一放就走神、听到熟悉词反应不过来的人。',
+      mix: '和「听力填空答案词」是一对：那本要拼对，这本只要听出。'
+    },
+    phr: {
+      hook: '这些搭配，全部从真题阅读与听力的原文里捡出来',
+      hookSub: '两词以上的固定组合，已剔掉 is made 这类纯语法搭配',
+      one: '从真题阅读与听力的原文里，捡出两词以上的固定搭配，频率 2 次以上，已剔掉 is made / are likely 这类纯语法组合。每个词条配一句真题原句，中文给的是逐词义项。',
+      pain: ['每个词都认识，连成一片就翻译不出来', '口语想说「很大程度上」，憋不出 largely because', '写作翻来覆去就是 very / a lot of'],
+      who: '写作口语想说得更地道、阅读里总被词组卡住的人。',
+      mix: '它是搭配不是单词，和任何一本单词书都不冲突。'
+    },
+    awl: {
+      hook: '570 个学术词，来自国际通用的 Coxhead 学术词表',
+      hookSub: '雅思阅读以学术文体为主，这是学界公认的阅读核心词',
+      one: 'Coxhead 学术词汇表的 570 个高频词族，按学术语料词频分为 10 组。雅思阅读以学术文体为主，AWL 覆盖学术文章约 10% 的用词，是国际通用的雅思阅读核心词表。音标与释义经英式 IPA 规范化与人工校订。',
+      pain: ['长难句单词都查过，意思还是拼不起来', '学术文章读三行就累，句子结构看不懂'],
+      who: '阅读长难句看得懂单词、看不懂意思的人。',
+      mix: '它是通用学术词底子，和真题统计类词书不重复。'
+    },
+    lstans: {
+      hook: '这 160 个词，全部是真题听力填空的真正答案',
+      hookSub: '不是原文里所有的词，只收最后填进空里的那些',
+      one: '从本站 347 篇真题听力的填空题里，把真正填进空里的答案词收进来，共 160 个。不是原文里所有的词——只收最后写进答案的那批。这些词不只要认得，还要能拼对，拼错就是丢分。',
+      pain: ['答案明明听出来了，写出来就是错的', 'Section 1 数字、日期、地址老写串', '拼写错误一丢就是 0.5 分，一篇阅读才 13 题'],
+      who: '听力 Section 1/4 填空总拼错、漏词的人。',
+      mix: '它是听力里最小但最值钱的一本，半天能过完一轮。'
+    },
+    custom: {
+      hook: '这些词来自你历次导入的词表与网页生词',
+      hookSub: 'AI 已自动整理：重复词合并、释义清洗、词性归一',
+      one: '这些词来自你历次导入的词表与网页生词。导入后 AI 会自动整理一遍：重复词合并、释义重洗、词性归一——你不用手工清理，落库就是完全体。',
+      pain: ['导入的词堆成一团，不知道该先背哪个', '不知道哪些早就该复习了'],
+      who: '有自己词表要跟的人。',
+      mix: '官方词书和你自己的词库各存各的进度，互不影响。'
+    }
+  };
+
+  /* ── 章节数据：官方走 meta.chapters，AWL 走 sl 分组，我的词库走真状态计数 ── */
+  function wb2Chapters(id){
+    if (id === 'custom'){
+      /* 🔴 不写稿子里的假数字（19/23/1204/929）—— 用 wbStatusCounts 的真实口径 */
+      var ws = [];
+      try{ ws = (typeof DATA !== 'undefined' && Array.isArray(DATA.words)) ? DATA.words : []; }catch(e){}
+      var c = { due: 0, err: 0, mastered: 0 };
+      try{
+        if (typeof wbStatusCounts === 'function'){
+          var s = wbStatusCounts(ws) || {};
+          c.due = s.due || 0; c.err = s.err || 0; c.mastered = s.mastered || 0;
+        }
+      }catch(e){}
+      var learning = Math.max(0, ws.length - c.mastered - c.due);
+      return [{ name: '今天要复习', count: c.due }, { name: '答错过的词', count: c.err },
+              { name: '学习中', count: learning }, { name: '已掌握', count: c.mastered }];
+    }
+    var m = wmMeta(id);
+    if (m && Array.isArray(m.chapters) && m.chapters.length){
+      return m.chapters.map(function(c){ return { name: c.name, count: c.count }; });
+    }
+    /* AWL（以及任何没有 chapters 的包）：按 sl 分 10 组，组名「第 N 组」 */
+    var rec = null;
+    try{ rec = (window.__OB && window.__OB.banks) ? window.__OB.banks[id] : null; }catch(e){}
+    var ws2 = (rec && rec.words) ? rec.words : [];
+    if (!ws2.length) return [];
+    var buckets = {};
+    ws2.forEach(function(w){ var k = Number(w.sl) || 1; buckets[k] = (buckets[k] || 0) + 1; });
+    return Object.keys(buckets).map(Number).sort(function(a, b){ return a - b; })
+      .map(function(k){ return { name: '第 ' + k + ' 组', count: buckets[k] }; });
+  }
+
+  function wb2Total(id){
+    return wb2Chapters(id).reduce(function(n, c){ return n + (c.count || 0); }, 0);
+  }
+
+  /* ── 渲染详情 ── */
+  function wb2Render(id){
+    var card = $('bkCard');
+    if (!card) return;
+    window.__wb2Cur = id;
+    var b = null;
+    for (var i = 0; i < WM_BOOKS.length; i++) if (WM_BOOKS[i].id === id) { b = WM_BOOKS[i]; break; }
+    if (!b) return;
+    var src = WB2_SRC[id] || WB2_SRC.custom;
+    var cur = false;
+    try{ cur = (typeof wbActive === 'function') ? (wbActive() === id) : (id === 'custom'); }catch(e){ cur = (id === 'custom'); }
+    var n = wmCount(b);
+    var ch = wmChapters(b);
+    var chs = wb2Chapters(id);
+    var total = wb2Total(id) || n;
+    var dirTxt = (b.id === 'custom') ? '我的' : (WM_DIR_TXT[b.dir] || '');
+
+    var painHtml = (src.pain || []).map(function(x){ return '<li>' + wmEsc(x) + '</li>'; }).join('');
+    var chapHtml = chs.map(function(c, i){
+      var tag = (i === 0) ? '<span class="wb2-ck">从这里开始</span>' : (i < 3 ? '<span class="wb2-ck">高频</span>' : '');
+      return '<button type="button" class="wb2-chap' + (i < 3 ? ' wb2-done' : '') + '" data-k="' + wmEsc(id) + '">' +
+        '<span class="wb2-chap-nm">' + wmEsc(c.name) + '</span>' +
+        '<span class="wb2-chap-n">' + wmFmt(c.count) + ' 词</span>' +
+        '<span class="wb2-chap-st"><span>练这章 ›</span>' + tag + '</span>' +
+      '</button>';
+    }).join('');
+
+    card.innerHTML =
+      '<div class="wb2-head">' +
+        '<div class="wb2-info">' +
+          '<h2>' + wmEsc(b.nm) + '</h2>' +
+          '<div class="wb2-meta">' + wmEsc(b.mt) + '</div>' +
+          '<div class="wb2-stats">' +
+            '<div class="wb2-it"><b>' + wmFmt(n) + '</b>总词数</div>' +
+            '<div class="wb2-it"><b>' + (ch ? (ch + ' ' + wmUnit(b)) : '—') + '</b>切章方式</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="wb2-acts">' +
+          '<button type="button" class="wb2-btn wb2-btn-p" id="wb2SetCur"' + (cur ? ' disabled' : '') + '>' + (cur ? '已是当前词书' : '设为当前词书') + '</button>' +
+          '<button type="button" class="wb2-btn" id="wb2StartBook">开始学这本</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="wb2-hook" id="wb2Hook">' +
+        '<button type="button" class="wb2-hook-h" id="wb2HookBtn" aria-expanded="false">' +
+          '<span class="wb2-hook-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 8l10 5 10-5-10-5Z"/><path d="M6 12v5c0 1.5 3 3 6 3s6-1.5 6-3v-5"/></svg></span>' +
+          '<span class="wb2-hook-tx"><b>' + wmEsc(src.hook) + '</b><span>' + wmEsc(src.hookSub) + '</span></span>' +
+          '<span class="wb2-hook-go">展开看看</span><span class="wb2-hook-caret">▶</span>' +
+        '</button>' +
+        '<div class="wb2-hook-b">' +
+          '<div class="wb2-painbox"><div class="wb2-pain-t">你是不是也这样</div><ul>' + painHtml + '</ul></div>' +
+          '<h4>这本词书是什么</h4><p>' + wmEsc(src.one) + '</p>' +
+          '<div class="wb2-faq"><dt>Q：适合哪些人背？</dt><dd>' + wmEsc(src.who) + '</dd>' +
+          '<dt>Q：和别的词书冲突吗？</dt><dd>' + wmEsc(src.mix) + '</dd></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="wb2-chap-top"><span class="wb2-chap-t">按在真题里出现的次数从高到低排 · 共 <b>' + wmFmt(total) + '</b> 词</span></div>' +
+      '<div class="wb2-chaps">' + (chapHtml || '<p class="wb2-chap-empty">这本词书还没有章节数据。</p>') + '</div>';
+
+    /* 折叠钩子：默认收起（施工书 §四：默认收起） */
+    var hb = $('wb2HookBtn');
+    if (hb) hb.addEventListener('click', function(){
+      var hk = $('wb2Hook');
+      if (!hk) return;
+      var open = hk.classList.toggle('wb2-open');
+      hb.setAttribute('aria-expanded', open ? 'true' : 'false');
+      var go = hk.querySelector('.wb2-hook-go');
+      if (go) go.textContent = open ? '收起' : '展开看看';
+    });
+
+    /* 设为当前词书 */
+    var sc = $('wb2SetCur');
+    if (sc) sc.addEventListener('click', function(){
+      try{ if (typeof wbSetActive === 'function') wbSetActive(id); }catch(e){}
+      try{ if (typeof toast === 'function') toast('已设为当前词书：' + b.nm); }catch(e){}
+      wb2Render(id);
+      wmRender();
+    });
+
+    /* 开始学这本 / 点章节卡：切词书 + 进背词态开练 */
+    card.addEventListener('click', function(ev){
+      var t = ev.target;
+      if (!t || !t.closest) return;
+      var isStart = !!t.closest('#wb2StartBook');
+      var chap = t.closest('.wb2-chap');
+      if (!isStart && !chap) return;
+      ev.preventDefault();
+      var cur2 = 'custom';
+      try{ cur2 = (typeof wbActive === 'function') ? wbActive() : 'custom'; }catch(e){}
+      if (id !== cur2){
+        try{ if (typeof wbSetActive === 'function') wbSetActive(id); }catch(e){}
+      }
+      /* 官方词包异步：等 ready 再进背词态，不然进去是一片空 */
+      var needFetch = (id !== 'custom') && !(typeof wbLoaded === 'function' && wbLoaded(id));
+      var goStudy = function(){
+        try{ if (typeof switchWordTab === 'function') switchWordTab('study'); }catch(e){}
+        try{ if (typeof autoStartSeeWord === 'function') autoStartSeeWord(); }catch(e){}
+      };
+      if (needFetch && typeof obBankReady === 'function'){
+        Promise.resolve(obBankReady(id)).then(goStudy).catch(goStudy);
+      } else {
+        goStudy();
+      }
+    });
+  }
+
+  function wb2ShowBook(id){
+    var mall = $('vMall'), book = $('vBook'), leg = $('wmLegacy');
+    if (mall) mall.hidden = true;
+    if (leg)  leg.hidden  = true;
+    if (book) book.hidden = false;
+    wb2Render(id);
+    try{ if (typeof hubResetPageScroll === 'function') hubResetPageScroll(); }catch(e){}
+    /* 🔴 官方词包是异步 fetch 的：第一次进详情时 json 还没到 →
+       wmMeta() 拿不到 meta.total/chapters，会显示成「—」和 0 章。
+       必须等 obBankReady 再**重渲一次**（js/words.js 切书那段是同款处理）。 */
+    var needFetch = (id !== 'custom') && !(typeof wbLoaded === 'function' && wbLoaded(id));
+    if (needFetch && typeof obBankReady === 'function'){
+      Promise.resolve(obBankReady(id)).then(function(){
+        if ($('vBook') && !$('vBook').hidden && window.__wb2Cur === id) wb2Render(id);
+      }).catch(function(){});
+    }
+  }
+  window.__wb2ShowBook = wb2ShowBook;
+
+  /* ══════════════════════════════════════════════════════════════
      W-WORD-2（10-26）第 2 批：词库商城态（#vMall）
      ══════════════════════════════════════════════════════════════
      只做三件事：① 七张书卡按设计稿渲染 ② 筛选/搜索前端过滤 ③ 点卡切词书 + 进旧词库看这本
@@ -865,9 +1111,18 @@ body.word-fullscreen .hub-topbar{display:none !important}
 
   /* 切书 → 进旧词库内容（第 3 批换成真正的词书详情态） */
   function wmOpenBook(id){
+    /* W-WORD-3：商城点卡 → **只进词书详情，不切当前词书**。
+       🔴 为什么不再顺手 wbSetActive：施工书 §四 的详情里有「设为当前词书」这个按钮 ——
+          点卡就切的话，进详情时它恒为「已是当前词书」禁用态，那个按钮等于不存在。
+          施工书 §三的原话是「看中哪本 → 点进去看它是怎么来的、有哪些章节 → 点『设为当前词书』就切过去」，
+          顺序就是「先看后设」。切词书改由详情页的按钮 / 开始学这本 / 章节卡触发。
+       这里只做一件事：进详情，并把这本的异步词包先备好（否则详情里的词数/章数会空一拍）。 */
+    var needPre = (id !== 'custom') && !(typeof wbLoaded === 'function' && wbLoaded(id));
+    if (needPre && typeof obBankReady === 'function'){ Promise.resolve(obBankReady(id)).catch(function(){}); }
+    wb2ShowBook(id);
     var cur = 'custom';
     try{ cur = (typeof wbActive === 'function') ? wbActive() : 'custom'; }catch(e){}
-    if (id !== cur){
+    if (false){
       try{ if (typeof wbSetActive === 'function') wbSetActive(id); }catch(e){}
       /* 官方词包是异步 fetch 的：切过去时词还没到，等它 ready 再渲（js/words.js 同款处理） */
       var needFetch = (id !== 'custom') && !(typeof wbLoaded === 'function' && wbLoaded(id));
@@ -879,18 +1134,20 @@ body.word-fullscreen .hub-topbar{display:none !important}
       }
     }
     try{ if (typeof renderWords === 'function') renderWords(); }catch(e){}
-    wmShowLegacy();
+    /* 详情态里也会读 wbActive() 决定「已是当前词书」，这里同步刷一次商城角标 */
     wmRender();
   }
 
   function wmShowMall(){
-    var mall = $('vMall'), leg = $('wmLegacy');
+    var mall = $('vMall'), leg = $('wmLegacy'), book = $('vBook');
     if (mall) mall.hidden = false;
     if (leg)  leg.hidden  = true;
+    if (book) book.hidden = true;
   }
   function wmShowLegacy(){
-    var mall = $('vMall'), leg = $('wmLegacy');
+    var mall = $('vMall'), leg = $('wmLegacy'), book = $('vBook');
     if (mall) mall.hidden = true;
+    if (book) book.hidden = true;
     if (leg)  leg.hidden  = false;
     try{ if (typeof hubResetPageScroll === 'function') hubResetPageScroll(); }catch(e){}
   }
@@ -935,11 +1192,18 @@ body.word-fullscreen .hub-topbar{display:none !important}
         }
         return;
       }
-      /* 点书卡 → 切词书 + 看这本 */
+      /* 点书卡 → 进词书详情（W-WORD-3） */
       var card = t.closest('.wm-deal');
       if (card && card.getAttribute('data-k')){
         ev.preventDefault();
         wmOpenBook(card.getAttribute('data-k'));
+        return;
+      }
+      /* 详情态「‹ 词库商城」回商城 */
+      if (t.closest('#wb2BackMall')){
+        ev.preventDefault();
+        wmShowMall();
+        wmRender();
         return;
       }
       /* 从旧词库回商城 */
@@ -980,7 +1244,7 @@ body.word-fullscreen .hub-topbar{display:none !important}
   else boot();
 
   document.addEventListener('hub:data-merged', function(){ try{ syncToday(); }catch(e){} });
-  document.addEventListener('wb:switched', function(){ try{ syncToday(); }catch(e){} try{ wmRender(); }catch(e2){} });
+  document.addEventListener('wb:switched', function(){ try{ syncToday(); }catch(e){} try{ wmRender(); }catch(e2){} try{ var bk = $('vBook'); if (bk && !bk.hidden && window.__wb2Cur) wb2Render(window.__wb2Cur); }catch(e3){} });
   window.__wdRefreshToday = syncToday;
   /* ── ④ 谁该进答题态 ──
      落地态 = #preStart（今日卡 + 开始按钮），这是设计稿给的第一屏。
