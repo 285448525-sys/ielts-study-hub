@@ -240,13 +240,21 @@ main.container:has(> .rvx-page) > .review-wrap{ order:1; margin-top:22px }
   text-transform:none;margin:0 0 12px}
 .rvx-big{font-size:52px;font-weight:800;letter-spacing:-.04em;line-height:1;font-variant-numeric:tabular-nums}
 .rvx-tag{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;
-  padding:2.5px 8px;border-radius:999px;background:var(--rvx-soft);color:var(--ink-2)}
+  padding:2.5px 8px;border-radius:999px;background:var(--rvx-soft);color:var(--ink-2);
+  /* W-RVXTAG-1（10-25）：药丸小标签一律不换行 —— 手机 390 那行只剩 82px 给 tag，
+     white-space:normal 会把「今天还没开始」折成「今天还没开 / 始」，行高被撑到 40px。
+     ⚠️ 配套 .rvx-row > .rvx-muted（min-width:0）必须一起存在，只加 nowrap 会把整行撑破。 */
+  white-space:nowrap}
 .rvx-tag.rvx-up{background:rgba(70,168,131,.12);color:var(--med)}
 .rvx-tag.rvx-down{background:rgba(229,83,61,.11);color:var(--danger)}
 .rvx-tag.rvx-flat{background:var(--rvx-soft);color:var(--muted)}
 .rvx-dot{width:9px;height:9px;border-radius:3px;display:inline-block;flex:none}
 .rvx-muted{color:var(--muted)}
 .rvx-row{display:flex;align-items:center;gap:10px}
+/* W-RVXTAG-1（10-25）：与上面 nowrap 配套 —— 说明文案这一侧必须可压缩，
+   否则长文案（「连续 N 天 · 近 30 天 N/30 · 累计 N 小时」）会把整行撑破。
+   ⚠️ 两条必须成对存在，只加 nowrap 不改这里会溢出。 */
+.rvx-row > .rvx-muted{min-width:0;overflow:hidden;text-overflow:ellipsis}
 
 /* ===== 版 A 驾驶舱 ===== */
 .rvx-dash{display:grid;grid-template-columns:300px 1fr 300px;gap:16px;align-items:start}
