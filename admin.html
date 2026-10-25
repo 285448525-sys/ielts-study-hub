@@ -6,6 +6,25 @@
 <meta name="robots" content="noindex, nofollow" />
 <title>站长面板 · 雅思备考站</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<script>
+/* ===== B-NEW-DARK3b：尽早决定主题，防闪白 =====
+   必须放在 <style> 之前、head 里同步执行 —— 放 body 末尾会先白后黑闪一下。
+   取值口径与站点一致：读 DATA.settings.theme（在 localStorage 的 ielts_study_hub_v1 里），
+   'auto' 才读系统偏好。**不接 common.js**（会带进一堆依赖和副作用，后台自用不值得）。
+   ⚠️ 读不到 key 就按 light 走（后台不该因为前台还没初始化就变深）。 */
+(function(){
+  var t = 'light';
+  try{
+    var d = JSON.parse(localStorage.getItem('ielts_study_hub_v1') || '{}');
+    t = (d && d.settings && d.settings.theme) || 'light';
+  }catch(e){}
+  if(t === 'auto'){
+    try{ t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }catch(e){ t = 'light'; }
+  }
+  if(t !== 'dark') t = 'light';
+  document.documentElement.setAttribute('data-theme', t);
+})();
+</script>
 <style>
 :root{
   /* 颜色：只有 teal 一个强调色（按钮/链接/图表线），其余全是中性灰 + 三个状态色 */
@@ -14,7 +33,28 @@
   --line:#e6eaec; --line2:#dfe4e6; --bg:#f5f7f8; --surface:#fbfcfc;
   --warn:#8a6318; --warn-bg:#fdf6e7; --warn-bd:#f0e0bd;
   --bad:#b3352a; --bad-bg:#fdf0ee; --ok:#2e8b57; --ok-bg:#f3faf5;
+  /* B-NEW-DARK3b（10-25）：补「面板次级底 + 三个状态描边」两档。
+     这两个位置原来全是写死的 #fff / 浅灰 / #cfd8dc / #e8c4bf，深色下一个变量都翻不过来。 */
+  --surface-2:#f2f5f6;          /* 表头 / 斑马 / 内嵌面板的次级底 */
+  --panel:#fff;                 /* 原来写死 #fff 的那批（顶栏 / 卡片 / 输入框 / 按钮）——
+                                   浅色必须仍是纯白，不能拿 --surface 顶（那是 #fbfcfc，会整体变灰一档） */
+  --bad-bd:#e8c4bf; --ok-bd:#cfe8d6;
   --r:10px;
+}
+
+/* ===== B-NEW-DARK3b：深色档 =====
+   只重定义上面这些变量，页面其余 100+ 处 var(--xxx) 一处都不用改。
+   🔴 状态色（warn/bad/ok）在深色下**必须提亮**：照搬浅色的深黄/深红压深底 = 看不见，
+      这是深色改造最常翻车的地方，三档都换成了亮一版的同色相。 */
+[data-theme="dark"]{
+  --teal:#5cb3ab; --teal-d:#7ccac2; --teal-50:#12211f; --teal-bd:#1f3a37;
+  --ink:#e8eaec; --ink2:#a3aab2; --ink3:#7a828b;
+  --line:#2a2e33; --line2:#33383e; --bg:#0e1012; --surface:#181b1e;
+  --surface-2:#1f2327;
+  --panel:#181b1e;
+  --warn:#e0b45c; --warn-bg:#2a2214; --warn-bd:#4a3b1f;
+  --bad:#f08a7e; --bad-bg:#2a1614; --bad-bd:#4a2a26;
+  --ok:#6ec98f; --ok-bg:#122a1a; --ok-bd:#1f4a2e;
 }
 *{box-sizing:border-box}
 body{
@@ -23,13 +63,13 @@ body{
   font-variant-numeric:tabular-nums;   /* 后台里的数字一律等宽，扫列才不会跳 */
 }
 /* ---- 顶栏 ---- */
-.top{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--line);
+.top{position:sticky;top:0;z-index:20;background:var(--panel);border-bottom:1px solid var(--line);
   padding:11px 24px;display:flex;justify-content:space-between;align-items:center;gap:16px}
 .top b{color:var(--ink);font-size:15.5px;letter-spacing:-.2px}
 .top .sub{display:block;font-size:12px;color:var(--ink3);margin-top:1px;letter-spacing:0;font-variant-numeric:tabular-nums}
 .wrap{max-width:1200px;margin:0 auto;padding:18px 24px 64px}
 /* ---- 卡片：1px 描边，不用投影（浅色界面里投影只会让页面显脏） ---- */
-.card{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:18px 20px;margin-bottom:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px;margin-bottom:14px}
 .card h2{margin:0;font-size:15.5px;color:var(--ink);letter-spacing:-.2px}
 .card .desc{margin:4px 0 12px;font-size:12.5px;color:var(--ink3);line-height:1.65}
 .card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
@@ -37,7 +77,8 @@ body{
 /* ---- 密钥门 ---- */
 #gate{max-width:400px;margin:14vh auto 0;text-align:center;padding:26px 26px 22px}
 #gate h2{font-size:17px;margin:0 0 4px}
-#gate input{width:100%;height:44px;border:1px solid var(--line2);border-radius:9px;padding:0 13px;font-size:15px;outline:none;margin-top:14px}
+#gate input{width:100%;height:44px;border:1px solid var(--line2);border-radius:9px;padding:0 13px;font-size:15px;outline:none;margin-top:14px;
+  background:var(--surface);color:var(--ink)}   /* B-NEW-DARK3b：原来没设底色 → 深色下是浏览器默认白框 */
 #gate input:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-50)}
 #gate .btn{margin-top:12px;width:100%;height:42px}
 #gate .tip{font-size:12px;color:var(--ink3);margin-top:14px;line-height:1.7}
@@ -46,18 +87,18 @@ body{
 .btn{height:34px;padding:0 14px;border:1px solid var(--teal);border-radius:8px;background:var(--teal);
   color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .12s,border-color .12s}
 .btn:hover{background:var(--teal-d);border-color:var(--teal-d)}
-.btn.ghost{background:#fff;color:var(--ink2);border-color:var(--line2)}
-.btn.ghost:hover{background:#f6f8f9;border-color:#cfd8dc;color:var(--ink)}
+.btn.ghost{background:var(--panel);color:var(--ink2);border-color:var(--line2)}
+.btn.ghost:hover{background:var(--surface-2);border-color:var(--line2);color:var(--ink)}
 .btn.small{height:28px;padding:0 10px;font-size:12.5px;border-radius:7px}
-.btn.danger{background:#fff;color:var(--bad);border-color:#e8c4bf}
+.btn.danger{background:var(--panel);color:var(--bad);border-color:var(--bad-bd)}
 .btn.danger:hover{background:var(--bad-bg)}
 .btn:disabled{opacity:.55;cursor:default}
 input.small,select.small{height:34px;border:1px solid var(--line2);border-radius:8px;padding:0 10px;
-  font-size:13px;outline:none;font-family:inherit;background:#fff;color:var(--ink)}
+  font-size:13px;outline:none;font-family:inherit;background:var(--panel);color:var(--ink)}
 input.small:focus,select.small:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-50)}
 /* 10/21 角色管理：学生名单要能一行一个，加一个同款小号多行输入框 */
 textarea.small{border:1px solid var(--line2);border-radius:8px;padding:7px 10px;font-size:13px;
-  outline:none;font-family:inherit;background:#fff;color:var(--ink);resize:vertical;line-height:1.55}
+  outline:none;font-family:inherit;background:var(--panel);color:var(--ink);resize:vertical;line-height:1.55}
 textarea.small:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-50)}
 .muted{color:var(--ink3);font-size:12.5px}
 .hidden{display:none!important}
@@ -107,25 +148,25 @@ textarea.small:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-50
 .tab.on{color:var(--ink);border-bottom-color:var(--teal)}
 .tab .dot{display:inline-block;min-width:17px;height:17px;line-height:17px;padding:0 4px;margin-left:5px;
   border-radius:99px;background:var(--teal);color:#fff;font-size:11px;font-weight:700;vertical-align:1px}
-.tab .dot.zero{background:#dfe3e6;color:#8b949e}
+.tab .dot.zero{background:var(--line2);color:var(--ink3)}
 /* ---- 提示条：只留一条（多条就折叠进「要你处理」） ---- */
 .alert{display:flex;align-items:center;gap:9px;padding:9px 13px;border-radius:8px;font-size:13px;
   background:var(--warn-bg);border:1px solid var(--warn-bd);color:var(--warn);margin-bottom:14px}
 .alert:empty{display:none}
 .alert .dot{width:7px;height:7px;border-radius:99px;background:var(--warn);flex:none}
 .alert b{font-weight:700}
-.alert .more{margin-left:auto;color:var(--warn);font-size:12.5px;text-decoration:none;border-bottom:1px solid rgba(138,99,24,.35)}
+.alert .more{margin-left:auto;color:var(--warn);font-size:12.5px;text-decoration:none;border-bottom:1px solid var(--warn-bd)}
 .price-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:8px 12px;
   border:1px solid var(--warn-bd);background:var(--warn-bg);border-radius:8px;font-size:12.5px;color:var(--warn);line-height:1.6}
 .price-bar[hidden]{display:none}
-.price-bar.ok{border-color:var(--teal-bd);background:var(--teal-50);color:#2e6f69}
+.price-bar.ok{border-color:var(--teal-bd);background:var(--teal-50);color:var(--teal-d)}
 .price-bar b{font-weight:700}
 .price-bar .btn{margin-left:auto}
 .stale-bar{display:flex;align-items:center;gap:9px;margin:0 0 12px;padding:8px 13px;
-  border:1px solid var(--teal-bd);background:var(--teal-50);border-radius:8px;font-size:12.5px;color:#2e6f69}
+  border:1px solid var(--teal-bd);background:var(--teal-50);border-radius:8px;font-size:12.5px;color:var(--teal-d)}
 .stale-bar[hidden]{display:none}
 .stale-bar.fail{border-color:var(--warn-bd);background:var(--warn-bg);color:var(--warn)}
-.stale-spin{width:12px;height:12px;flex:none;border:2px solid rgba(46,111,105,.22);border-top-color:var(--teal-d);
+.stale-spin{width:12px;height:12px;flex:none;border:2px solid var(--teal-bd);border-top-color:var(--teal-d);
   border-radius:50%;animation:staleRot .8s linear infinite}
 .stale-bar.fail .stale-spin{display:none}
 .stale-bar .stale-at{margin-left:auto;opacity:.8;font-size:11.5px;white-space:nowrap}
@@ -145,7 +186,7 @@ textarea.small:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-50
 .morebar .sep{flex:1}
 /* ---- 趋势 + 待办 两栏 ---- */
 .ovgrid{display:grid;grid-template-columns:1.6fr 1fr;gap:12px;margin-top:14px}
-.panel{border:1px solid var(--line);border-radius:9px;padding:13px 14px;background:#fff;min-width:0}
+.panel{border:1px solid var(--line);border-radius:9px;padding:13px 14px;background:var(--panel);min-width:0}
 .panel .ph{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
 .panel .ph h3{margin:0;font-size:13px;font-weight:650;color:var(--ink)}
 .panel .ph .m{font-size:11.5px;color:var(--ink3)}
@@ -154,15 +195,15 @@ textarea.small:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-50
 .radio-row input{accent-color:var(--teal-d)}
 /* 待办列表 */
 .todo{list-style:none;margin:0;padding:0}
-.todo li{display:flex;gap:9px;align-items:flex-start;padding:9px 0;border-bottom:1px solid #f2f5f6;font-size:13px;line-height:1.55}
+.todo li{display:flex;gap:9px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px;line-height:1.55}
 .todo li:last-of-type{border-bottom:0}
 .todo .cnt{flex:none;min-width:24px;height:22px;padding:0 5px;border-radius:6px;background:var(--warn-bg);
   color:var(--warn);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center}
-.todo .cnt.gray{background:#f1f4f5;color:var(--ink2)}
+.todo .cnt.gray{background:var(--surface-2);color:var(--ink2)}
 .todo b{font-weight:650;color:var(--ink)}
 .todo span{display:block;color:var(--ink3);font-size:11.5px;margin-top:1px}
 .todo .go{margin-left:auto;flex:none;color:var(--teal-d);font-size:12px;text-decoration:none;font-weight:600;white-space:nowrap}
-.todo-foot{display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid #f2f5f6;
+.todo-foot{display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);
   font-size:12px;color:var(--ink3)}
 .todo-foot b{color:var(--ink)}
 .todo-foot .mini{margin-left:auto}
@@ -170,8 +211,8 @@ textarea.small:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-50
 .tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{text-align:left;color:var(--ink3);font-weight:600;font-size:11.5px;padding:7px 9px;
-  border-bottom:1px solid var(--line);white-space:nowrap;background:#fafbfb}
-td{padding:8px 9px;border-bottom:1px solid #f2f5f6;color:var(--ink);vertical-align:middle}
+  border-bottom:1px solid var(--line);white-space:nowrap;background:var(--surface-2)}
+td{padding:8px 9px;border-bottom:1px solid var(--line);color:var(--ink);vertical-align:middle}
 tr:last-child td{border-bottom:0}
 th.num,td.num{text-align:right}
 table td:last-child,table th:last-child{text-align:right}
@@ -181,13 +222,13 @@ code.inv{font-family:ui-monospace,Consolas,monospace;font-size:14px;font-weight:
 .tag.ok{background:var(--ok-bg);color:var(--ok)}
 .tag.full{background:var(--bad-bg);color:var(--bad)}
 .tag.v-real{background:var(--ok-bg);color:var(--ok)}
-.tag.v-probe{background:#f1f4f5;color:var(--ink3);font-weight:500}
+.tag.v-probe{background:var(--surface-2);color:var(--ink3);font-weight:500}
 .tag.v-idle{background:var(--warn-bg);color:var(--warn);font-weight:500}
-.tag.v-sig{background:#f1f5f9;color:#64748b;font-weight:500;margin-left:4px}
-button.mini{font-size:11.5px;padding:2px 8px;border-radius:6px;border:1px solid var(--line2);background:#fff;
+.tag.v-sig{background:var(--surface-2);color:var(--ink2);font-weight:500;margin-left:4px}
+button.mini{font-size:11.5px;padding:2px 8px;border-radius:6px;border:1px solid var(--line2);background:var(--panel);
   color:var(--ink2);cursor:pointer;font-family:inherit}
 button.mini:hover{border-color:var(--teal);color:var(--teal-d)}
-button.mini.danger{color:var(--bad);border-color:#e8c4bf}
+button.mini.danger{color:var(--bad);border-color:var(--bad-bd)}
 button.mini.danger:hover{background:var(--bad-bg);border-color:var(--bad)}
 /* ---- 表单：标签在上，一行一个字段组 ---- */
 .form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;gap:10px 14px;align-items:end;margin-bottom:14px}
@@ -200,24 +241,24 @@ button.mini.danger:hover{background:var(--bad-bg);border-color:var(--bad)}
 .empty b{display:block;color:var(--ink2);font-size:13.5px;margin-bottom:4px;font-weight:600}
 /* ---- 反馈列表 ---- */
 .fb-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 12px;padding:12px 14px;margin-bottom:9px;
-  border:1px solid var(--line);border-radius:9px;background:#fff;cursor:pointer}
-.fb-row:hover{background:#f8fbfb;border-color:#cfd8dc}
+  border:1px solid var(--line);border-radius:9px;background:var(--panel);cursor:pointer}
+.fb-row:hover{background:var(--surface-2);border-color:var(--line2)}
 .fb-row.unread{border-color:var(--teal-bd);background:var(--teal-50)}
 .fb-row.read{opacity:.72}
 .fb-row .fb-dot{flex:none;width:7px;height:7px;border-radius:99px;background:var(--teal);align-self:center}
-.fb-row.read .fb-dot{background:#dfe3e6}
+.fb-row.read .fb-dot{background:var(--line2)}
 .fb-when{flex:none;width:118px;font-size:12px;color:var(--ink3)}
 .fb-txt{flex:1 1 300px;min-width:0;font-size:13.5px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fb-who{flex:none;display:flex;flex-direction:column;gap:1px;font-size:11.5px;color:var(--ink3)}
 .fb-who b{color:var(--ink2)}
 .fb-who span{display:block;color:var(--ink3);word-break:break-all}
 .fb-num{flex:none;font-size:11.5px;color:var(--ink3);text-align:right}
-.fb-detail{background:#f8fbfb;border-radius:9px;padding:13px 15px;margin:4px 0 10px}
+.fb-detail{background:var(--surface-2);border-radius:9px;padding:13px 15px;margin:4px 0 10px}
 .fb-detail .fb-full{white-space:pre-wrap;word-break:break-word;line-height:1.65;color:var(--ink);font-size:13.5px}
 .fb-env{margin:9px 0 0;font-size:11.5px;color:var(--ink3);line-height:1.7}
 .fb-shots{display:flex;gap:9px;flex-wrap:wrap;margin-top:11px}
 .fb-shots img{max-width:min(46vw,320px);max-height:260px;border-radius:8px;border:1px solid var(--line);
-  cursor:zoom-in;background:#fff}
+  cursor:zoom-in;background:var(--panel)}
 .fb-shots img.big{position:fixed;inset:0;max-width:none;max-height:none;width:100%;height:100%;
   object-fit:contain;z-index:99;cursor:zoom-out;border-radius:0;background:rgba(15,20,22,.9)}
 .fb-acts{display:flex;gap:8px;margin-top:11px;align-items:center}
@@ -239,6 +280,23 @@ button.mini.danger:hover{background:var(--bad-bg);border-color:var(--bad)}
   .fb-txt{display:none}
   .fb-shots img{max-width:100%}
 }
+
+/* ===== B-NEW-DARK3b：趋势图的 6 个配色位改由 class 控制 =====
+   🔴 为什么必须改 class：这 6 处原来是 createElementNS 建 SVG 时把颜色**写死在 presentation
+      attribute** 里的，而 SVG 的 presentation attribute **不支持 var()** —— 直接写
+      stroke="var(--line)" 浏览器不认（属性值不解析 var，等于没设）。所以只能改 class + CSS。
+   浅色值 = 改动前逐字不变（零回归）；深色值 = 提亮一档，避免亮白网格线刺眼、深灰刻度看不清。 */
+.adm-grid{stroke:#e8ebed}
+.adm-axis-text{fill:#8b949e}
+.adm-area{fill:rgba(92,179,171,.14)}
+.adm-line{stroke:#5cb3ab}
+.adm-dot{fill:#5cb3ab}
+
+[data-theme="dark"] .adm-grid{stroke:#2a2e33}
+[data-theme="dark"] .adm-axis-text{fill:#a3aab2}
+[data-theme="dark"] .adm-area{fill:rgba(124,202,194,.18)}
+[data-theme="dark"] .adm-line{stroke:#7ccac2}
+[data-theme="dark"] .adm-dot{fill:#7ccac2}
 </style>
 </head>
 <body>
@@ -1125,9 +1183,9 @@ button.mini.danger:hover{background:var(--bad-bg);border-color:var(--bad)}
     /* y 轴网格 + 刻度（4 条） */
     for (var g = 0; g <= 4; g++) {
       var y = padT + ih - (ih * g / 4);
-      svg.appendChild(el('line', { x1: padL, y1: y, x2: W - padR, y2: y, stroke: '#e8ebed', 'stroke-width': 1 }));
+      svg.appendChild(el('line', { x1: padL, y1: y, x2: W - padR, y2: y, 'class': 'adm-grid', 'stroke-width': 1 }));
       var lv = maxV * g / 4;
-      svg.appendChild(el('text', { x: padL - 7, y: y + 3.5, 'text-anchor': 'end', 'font-size': 10, fill: '#8b949e' },
+      svg.appendChild(el('text', { x: padL - 7, y: y + 3.5, 'text-anchor': 'end', 'font-size': 10, 'class': 'adm-axis-text' },
         isCost ? ('¥' + lv.toFixed(3)) : (lv >= 1000 ? (Math.round(lv / 100) / 10) + 'k' : String(Math.round(lv * 10) / 10))));
     }
     /* 折线 + 面积（单点也能画：x 居中，不除以 0） */
@@ -1140,11 +1198,11 @@ button.mini.danger:hover{background:var(--bad-bg);border-color:var(--bad)}
     var line = pts.map(function(p, i){ return (i ? 'L' : 'M') + p.x.toFixed(1) + ' ' + p.y.toFixed(1); }).join(' ');
     if (pts.length === 1) line += ' L' + (pts[0].x + 1).toFixed(1) + ' ' + pts[0].y.toFixed(1);
     var area = line + ' L' + pts[pts.length - 1].x.toFixed(1) + ' ' + (padT + ih) + ' L' + pts[0].x.toFixed(1) + ' ' + (padT + ih) + ' Z';
-    svg.appendChild(el('path', { d: area, fill: 'rgba(92,179,171,.14)' }));
-    svg.appendChild(el('path', { d: line, fill: 'none', stroke: '#5cb3ab', 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+    svg.appendChild(el('path', { d: area, 'class': 'adm-area' }));
+    svg.appendChild(el('path', { d: line, fill: 'none', 'class': 'adm-line', 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
     /* 点 + hover 提示（<title> 浏览器原生 tooltip，不引第三方库） */
     pts.forEach(function(p){
-      var c = el('circle', { cx: p.x, cy: p.y, r: 3, fill: '#5cb3ab' });
+      var c = el('circle', { cx: p.x, cy: p.y, r: 3, 'class': 'adm-dot' });
       c.appendChild(el('title', {}, p.t.day.slice(4, 6) + '-' + p.t.day.slice(6, 8) + '　'
         + p.t.calls + ' 次 / ' + p.t.tok.toLocaleString() + ' tokens'
         + (isCost ? (' / ¥' + p.t.cost.toFixed(4)) : '')));
@@ -1154,7 +1212,7 @@ button.mini.danger:hover{background:var(--bad-bg);border-color:var(--bad)}
     var every = Math.max(1, Math.ceil(data.length / 6));
     pts.forEach(function(p, i){
       if (i % every !== 0 && i !== pts.length - 1) return;
-      svg.appendChild(el('text', { x: p.x, y: H - 8, 'text-anchor': 'middle', 'font-size': 10, fill: '#8b949e' },
+      svg.appendChild(el('text', { x: p.x, y: H - 8, 'text-anchor': 'middle', 'font-size': 10, 'class': 'adm-axis-text' },
         p.t.day.slice(4, 6) + '/' + p.t.day.slice(6, 8)));
     });
     host.appendChild(svg);
