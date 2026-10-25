@@ -1235,13 +1235,13 @@
     if(top) top.style.display = 'none';      /* .ex-option 面板是 .ex-top 的兄弟，藏它不影响面板 */
   }
   function shellHtml(nameText, subText, timerText){
-    /* 🔴 BUGFIX（10-25 停工期间只修 bug）：顶栏那颗「暂停」用的是 showPause，
-       但那个变量定义在**另一个函数 barHtml() 的局部作用域**里，这里根本取不到
-       → ReferenceError: showPause is not defined。而 shellHtml 是 renderExam 的必经之路，
+    /* 🔴 BUGFIX（10-25 停工期间只修 bug）：顶栏那颗「暂停」用的是 `showPause`，
+       但那个变量定义在**另一个函数 barHtml() 的局部作用域**里（:1392），这里根本取不到
+       → `ReferenceError: showPause is not defined`，而 shellHtml 是 renderExam 的必经之路，
        **整篇题目直接加载失败**（不是少个按钮，是打不开卷子）。
-       由 W-EXTOP-1（顶栏加暂停）引入；探针 _probe_guide_1018 的 F1 那条一直红着在报它。
+       由 W-EXTOP-1（顶栏加暂停）引入；探针 `_probe_guide_1018` 的 F1 那条一直红着在报它。
        修法：这里按**同一条表达式**自己算一次（= 与底栏完全同源，不另造判断）。
-       为什么不提取成共用函数：两者都是 IIFE 内的局部，提出来要动调用约定；
+       为什么不提取成共用函数：两人都是 IIFE 内的局部，提出来要动调用约定；
        而这条判断只有三个字段，重复一次比多一层间接更不容易再错。 */
     var showPause = !!(EX && !EX.submitted && EX.listenMode !== 'exam');
     /* 🔴 10-22 她拍板照 IDP 官方 demo 复刻：「把左上角那个 iELTS 改成我们网站的那个网址
@@ -1265,10 +1265,11 @@
          .ex-top（mountListenTools）—— 箭头做成 .ex-top 的直接子节点会被一起藏掉，
          在听力单篇里直接消失。手机（≤860）由 CSS 隐藏：窄屏点 Part/题号就够。 */
       +    '<div class="ex-icons">'
-      +      '<div class="ex-step">'
-      +        '<button class="ex-arrow" type="button" data-step="-1" title="Previous question" aria-label="Previous question">' + icoArrow(-1) + '</button>'
-      +        '<button class="ex-arrow" type="button" data-step="1" title="Next question" aria-label="Next question">' + icoArrow(1) + '</button>'
-      +      '</div>'
+      /* W-EXTOP-1（10-25）：她「头上那个黑的左右箭头也删了」→ .ex-step / .ex-arrow 整块下线。 翻题入口不受影响：底部 Part 题号行（.ex-nav 的题号按钮）一直都能点，是主入口。 */
+      /* W-EXTOP-1（10-25）：顶栏右侧加「暂停」，与底栏 #exPauseBtn 同一个开关、状态双向同步。
+         🔴 showPause 条件与底栏完全同源（同一变量）—— 听力考试模式本来就不渲染 Pause，此处不另造判断。
+         🔴 手机（≤860）由 CSS 隐藏，底栏 Pause 还在，功能不丢（见 bank.html 的 .ex-top-pause 规则）。 */
+      +      (showPause ? '<button class="ex-ico ex-top-pause" id="exTopPauseBtn" type="button" title="Pause">暂停</button>' : '')
       +      '<span class="ex-saved" id="exSaved" hidden>Saved</span>'
       +      '<button class="ex-ico ex-toolbtn" id="exFsBtn" type="button" title="Full screen" aria-label="Full screen">' + ICO_FULL + '</button>'
       +      '<button class="ex-ico ex-menubtn" type="button" title="Option">\u2630</button>'
@@ -1389,7 +1390,7 @@ window.__reportExamState = reportExamState;
          · Part 行（左）：当前 Part 加粗 + 紧跟**本 Part 全部题号**（截图：Part 3 → 21…30）；
            其他 Part 只有「Part N」+ 灰色「x of y」已答数；做完的 Part = 绿勾 + 篇名
            （截图：☑ Part 2），不显示数字。
-         · 底栏**没有**前后箭头（挪到题目区右上角深色方块，见 shellHtml 的 .ex-step）、
+         · 底栏**没有**前后箭头（10-25 W-EXTOP-1 之后**顶栏也没有箭头了**（她「黑的左右箭头删了」），翻题走底部题号行）、
            **没有** Review 按钮（flag 保留题干右上角小旗子，与题号圆圈同步）。
          · Pause 恢复渲染（截图里 Finish section / Pause / Exit 三个按钮同在底栏）。
            ⚠️ 听力完整模考（listenMode==='exam'）仍不渲染：她 10/20 定的「考试模式锁定播放」
@@ -3662,15 +3663,8 @@ window.__reportExamState = reportExamState;
     paintPgSwitch();
     var box = document.getElementById('exNums');
     if(box) box.innerHTML = numsHtml;
-    /* 顶栏 ‹ ›（10/20 移到题目区右上角）到头置灰 —— 按**整卷题序**算，不能按当前 Part
-       渲染出的题号算，否则 Part 1 最后一题就置灰、跨不到 Part 2（截图里箭头是全程连续的）。 */
-    var pv = document.querySelector('#examRoot .ex-arrow[data-step="-1"]');
-    var nx = document.querySelector('#examRoot .ex-arrow[data-step="1"]');
-    var order = allOrder();
-    if(pv && nx && order.length){
-      pv.disabled = !(Number(EX.cur) > Number(order[0]));
-      nx.disabled = !(Number(EX.cur) < Number(order[order.length - 1]));
-    }
+    /* W-EXTOP-1（10-25）：顶栏 ‹ › 已删 → 这段「到头置灰」随之退役（没有箭头可置灰了）。
+       翻题主入口是底部 Part 题号行（.ex-nav），不受影响。 */
     /* 溢出兜底：题号行横向滚时把当前题滚进可视区（点 ‹ › 跨 Part 后用户要看得见自己在哪）。 */
     var curBtn = box && box.querySelector('.ex-num--cur');
     if(curBtn && box.scrollWidth > box.clientWidth + 2){
@@ -3802,8 +3796,11 @@ window.__reportExamState = reportExamState;
     var left = sec, el = document.getElementById('exTimer');
     function tick(){
       if(el){
-        var hh = Math.floor(left / 3600), mm = Math.floor((left % 3600) / 60), ss = left % 60;
-        el.textContent = pad2(hh) + ':' + pad2(mm) + ':' + pad2(ss);
+        /* W-EXTOP-1（10-25）：她「模考页面我就叫你改一个计时的 UI」→ 顶栏计时改官方**分钟制**。
+           原来 HH:MM:SS，现在固定「N minutes remaining」（N = Math.floor(left/60)，不显示秒）。
+           ⚠️ 单数不特判：官方自己就写「1 minutes remaining」，照抄（施工书 §一 规则 2）。
+           ⚠️ 颜色分级一行不动：下面两条 classList.toggle 原样保留（warn ≤300s / soon ≤600s）。 */
+        el.textContent = Math.floor(left / 60) + ' minutes remaining';
         el.classList.toggle('warn', left <= 300 && left > 0);
         el.classList.toggle('soon', left <= 600 && left > 300);
       }
@@ -3829,6 +3826,19 @@ window.__reportExamState = reportExamState;
      are a recording and cannot be paused」；Zoju Strict/Breath、ieltsfreepractice Practice/Exam
      同款）→ 本站 Pause 只属于练习模式（考试模式/听力完整模考连按钮都不渲染，见 barHtml）。
      暂停 = 音频停 + 考试倒计时停（剩余秒数入 EX._leftSec）；按钮变 Resume，再点恢复。 */
+  /* W-EXTOP-1（10-25）：底栏 #exPauseBtn 与顶栏 #exTopPauseBtn 的状态**一处刷**，
+     避免「两处 if 各自漂移」（施工书 §二.2 明确要求抽函数）。
+     ⚠️ 底栏保持英文 Pause/Resume（与官方一致）；顶栏按设计稿用中文「暂停/继续」。 */
+  function paintPauseBtn(){
+    var on = !!(EX && EX.paused);
+    ['exPauseBtn', 'exTopPauseBtn'].forEach(function(id){
+      var b = document.getElementById(id);
+      if(!b) return;
+      if(id === 'exTopPauseBtn') b.textContent = on ? '继续' : '暂停';
+      else b.textContent = on ? 'Resume' : 'Pause';
+      b.classList.toggle('on', on);
+    });
+  }
   function pauseExam(){
     if(!EX || EX.submitted || EX.paused) return;
     if(EX.listenMode === 'exam') return;                   /* 考试模式没有暂停（按钮也不渲染，双保险） */
@@ -3838,8 +3848,7 @@ window.__reportExamState = reportExamState;
     var a = document.getElementById('exAudio');
     EX._wasPlaying = !!(a && !a.paused);
     if(a) a.pause();
-    var b = document.getElementById('exPauseBtn');
-    if(b){ b.textContent = 'Resume'; b.classList.add('on'); }
+    paintPauseBtn();
     paintFtMini();
   }
   function resumeExam(){
@@ -3848,8 +3857,7 @@ window.__reportExamState = reportExamState;
     startTimer(EX._leftSec == null ? 60 * 60 : EX._leftSec);
     var a = document.getElementById('exAudio');
     if(a && EX._wasPlaying) a.play();
-    var b = document.getElementById('exPauseBtn');
-    if(b){ b.textContent = 'Pause'; b.classList.remove('on'); }
+    paintPauseBtn();
     paintFtMini();
   }
 
@@ -4422,7 +4430,8 @@ window.__reportExamState = reportExamState;
       /* 10-23：遮罩里「先看题，音频后台下」跳过链 */
       if(t.closest && t.closest('#exAudioGate [data-askip]')){ skipAudioGate(); return; }
       /* Pause / Resume（10/13 她报「Pause 是个摆设」→ 实现：暂停音频+倒计时，按钮互文切换） */
-      if(t.closest && t.closest('#exPauseBtn')){
+      /* W-EXTOP-1（10-25）：顶栏那颗 #exTopPauseBtn 与底栏是同一个开关，接在同一分支。 */
+      if(t.closest && (t.closest('#exPauseBtn') || t.closest('#exTopPauseBtn'))){
         if(EX && EX.paused) resumeExam(); else pauseExam();
         return;
       }
@@ -4511,16 +4520,8 @@ window.__reportExamState = reportExamState;
         if(inp) inp.focus();
         return;
       }
-      /* 顶栏 ‹ › 前后箭头（10/20 她给的爱听写实证截图：真实机考的箭头在题目区右上角、
-         且是**全程连续**的 —— Part 1 最后一题按 › 会直接进 Part 2 第一题）。
-         按整卷题序走，跨 Part 时 goTo 自己会切篇（renderListenPart / renderPassage）。 */
-      if((el = t.closest && t.closest('.ex-arrow[data-step]')) && EX && !el.disabled){
-        var ord = allOrder();
-        var at = ord.indexOf(Number(EX.cur));
-        var tgt = (at < 0) ? ord[0] : ord[at + Number(el.getAttribute('data-step'))];
-        if(tgt != null && !isNaN(tgt)) goTo(tgt, true);
-        return;
-      }
+      /* W-EXTOP-1（10-25）：顶栏 ‹ › 已删（她「黑的左右箭头删了」）→ 这条点击分支整段退役。
+         跨 Part 翻题仍可走底部题号行（.ex-nav）与 Part 切换，不断路。 */
       /* 题号行跳题（10/12 批A：.ex-sq 答题卡退役 → .ex-num 题号行） */
       if((el = t.closest && t.closest('.ex-num[data-jump]')) && EX){
         goTo(el.getAttribute('data-jump'));

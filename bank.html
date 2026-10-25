@@ -825,18 +825,17 @@
 .ex-pg:hover:not([disabled]){background:#f2f4f6}
 .ex-pg[disabled]{opacity:.4;cursor:default}
 .ex-pgar{color:var(--muted);font-size:12px;line-height:1}
-/* ===== 前后箭头（10/20 她给的爱听写实证：真实机考的 ‹ › 在题目区右上角、深色方块）=====
-   放在顶栏右侧而不是绝对定位浮层 —— 浮层会压住右上角题目文字（她「绝不切内容、绝不错位」
-   的红线），顶栏位置视觉等价且永不错位。手机（≤860）隐藏：窄屏点 Part/题号就够，
-   顶栏也放不下。 */
-.ex-step{display:flex;gap:4px;flex:none}
-.ex-step .ex-arrow{width:28px;height:26px;border:1px solid #2f3947;background:#2f3947;color:#fff;
-  border-radius:6px;padding:0;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
-  transition:background .14s,border-color .14s}
-.ex-step .ex-arrow svg{width:14px;height:14px}
-.ex-step .ex-arrow:hover:not([disabled]){background:#1f2733;border-color:#1f2733}
-.ex-step .ex-arrow[disabled]{opacity:.34;cursor:default}
-@media(max-width:860px){.ex-step{display:none}}
+/* ===== W-EXTOP-1（10-25）：顶栏「暂停」按钮 =====
+   她「顶栏加一个暂停」；与底栏 #exPauseBtn 同一个开关、状态双向同步（js/bank.js paintPauseBtn）。
+   样式照设计稿 .pause：复用 .ex-ico 的字色与圆角，另加 1px 边框 + 略小字号区分于图标按钮。
+   手机（≤860）隐藏 —— 顶栏右侧图标多，加文字按钮会挤；底栏 Pause 仍在，功能不丢。 */
+.ex-ico.ex-top-pause{border:1px solid rgba(0,0,0,.18);border-radius:5px;padding:3px 9px;font-size:11.5px;line-height:1.3}
+.ex-ico.ex-top-pause:hover{background:rgba(0,0,0,.06)}
+.ex-ico.ex-top-pause.on{background:rgba(0,0,0,.08);border-color:rgba(0,0,0,.3)}
+#examRoot.ct-dark .ex-ico.ex-top-pause{border-color:rgba(255,255,255,.24);color:#e8eaed}
+#examRoot.ct-dark .ex-ico.ex-top-pause:hover{background:rgba(255,255,255,.1)}
+#examRoot.ct-yellow .ex-ico.ex-top-pause{border-color:#ffd400;color:#ffd400}
+@media(max-width:860px){.ex-ico.ex-top-pause{display:none}}
 /* ===== 题号导航条 =====
    10/20 照爱听写实证截图：只列【当前 Part】的题号（其他 Part 在 Part 行里只显示 x of y /
    绿勾，不展开数字）。三态照旧：cur = 当前题黑框 / done = 数字上方黑线 / flag = 圆圈。 */
@@ -893,8 +892,6 @@
 #examRoot.ct-dark .ex-actions .ex-pause{background:#242628;border-color:#3a3f45;color:#e8eaed}
 #examRoot.ct-dark .ex-actions .btn-primary:hover,#examRoot.ct-dark .ex-actions .btn-ghost:hover,
 #examRoot.ct-dark .ex-actions .ex-pause:hover{background:#2c2f33;border-color:#4a5058}
-#examRoot.ct-dark .ex-step .ex-arrow{background:#39414b;border-color:#39414b;color:#fff}
-#examRoot.ct-dark .ex-step .ex-arrow:hover:not([disabled]){background:#4a525d;border-color:#4a525d}
 #examRoot.ct-yellow .ex-pt{color:#c9bd85}
 #examRoot.ct-yellow .ex-pt:hover{background:rgba(255,212,0,.12)}
 #examRoot.ct-yellow .ex-pt.on{color:#ffd400}
@@ -910,8 +907,6 @@
 #examRoot.ct-yellow .ex-actions .ex-pause{background:#24241a;border-color:#4a4526;color:#f0e3a8}
 #examRoot.ct-yellow .ex-actions .btn-primary:hover,#examRoot.ct-yellow .ex-actions .btn-ghost:hover,
 #examRoot.ct-yellow .ex-actions .ex-pause:hover{background:#2e2e20;border-color:#5d5734}
-#examRoot.ct-yellow .ex-step .ex-arrow{background:#39414b;border-color:#39414b;color:#fff}
-#examRoot.ct-yellow .ex-step .ex-arrow:hover:not([disabled]){background:#4a525d;border-color:#4a525d}
 /* 手机（≤860）：两行 —— 第一行 Part 行（当前 Part 内含题号，整行横向滚），第二行动作按钮。
    390 宽放不下 4 个 Part + 题号 + 3 个按钮，所以这一档不复刻桌面的单行形态。
    品牌条 .ex-strip 在这一档隐藏：手机内容空间优先（底栏每高 1px 正文就少 1px）。 */
@@ -1532,6 +1527,11 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 #examRoot .ex-name small{font-weight:400;color:#333;font-size:12px}
 #examRoot .ex-timer{font-size:13px;font-weight:700;color:#000}
 #examRoot .ex-top .ex-ico{color:#000;font-size:14px;padding:6px 10px}
+/* W-EXTOP-1（10-25）：上面那条 `#examRoot .ex-top .ex-ico`（0,3,0）会把「暂停」字号压回 14px。
+   这里用同样前缀 + 类名（0,4,0）把它钉成设计稿的 11.5px / 小内距，位置也更靠后。 */
+#examRoot .ex-top .ex-ico.ex-top-pause{font-size:11.5px;padding:3px 9px;border:1px solid rgba(0,0,0,.18);border-radius:5px}
+#examRoot.ct-dark .ex-top .ex-ico.ex-top-pause{border-color:rgba(255,255,255,.24);color:#e8eaed}
+#examRoot.ct-yellow .ex-top .ex-ico.ex-top-pause{border-color:#ffd400;color:#ffd400}
 #examRoot .ex-top .ex-ico:hover{background:#f2f2f2}
 #examRoot .ex-saved{font-size:12px;color:#666}
 
@@ -1636,14 +1636,6 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 /* ---- ⑥ 右下 Previous/Next 方块：官方黑/浅灰（截图 22 实测 next=#000 prev=#ddd）---- */
 /* 位置沿用 10/20 她按爱听写截图定的「题目区右上角」（官方同位置），
    尺寸 56x55 → 40x40（她「上下栏适当比真卷子窄一些」）。 */
-#examRoot .ex-arrow{width:40px;height:40px;border-radius:0;display:inline-flex;align-items:center;justify-content:center}
-#examRoot .ex-arrow[data-step="-1"]{background:#ddd;color:#000}
-#examRoot .ex-arrow[data-step="1"]{background:#000;color:#fff}
-#examRoot .ex-arrow[disabled]{opacity:.5;cursor:default}
-#examRoot.ct-dark .ex-arrow[data-step="-1"]{background:#3a3f45;color:#f2f2f2}
-#examRoot.ct-dark .ex-arrow[data-step="1"]{background:#f2f2f2;color:#111}
-#examRoot.ct-yellow .ex-arrow[data-step="-1"]{background:#3a3524;color:#f0e3a8}
-#examRoot.ct-yellow .ex-arrow[data-step="1"]{background:#ffd400;color:#161616}
 
 /* ---- ⑦ 底栏 Part 行：官方口径（透明底 + 当前 Part 600 + 灰「x of y」）---- */
 #examRoot .ex-bar{background:#fff;border-top:1px solid #d5d5d5}
@@ -2406,7 +2398,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common-cloud.js?v=20261025g"></script>
 <script defer src="js/common-shell.js?v=20261025g"></script>
 <script defer src="js/common-pwa.js?v=20261025g"></script>
-<script defer src="js/bank.js?v=20261025h"></script>
+<script defer src="js/bank.js?v=20261025i"></script>
 <!-- M-2（10-24）：模考页「没做过/做过」分组 + 展开更多。
      ⚠️ 本文件只做展示层（读 hub_bank_last_* 分组 + 首屏 20 条），判分/SRS/本地记录一律不碰；
         单条 DOM 由 js/bank.js 的 listHtml() 生成（当参数传进来），结构零改动。
