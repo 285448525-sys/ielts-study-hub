@@ -250,6 +250,25 @@ html{scrollbar-gutter:stable;}
 html[data-font="sm"] body{font-size:14px}
 html[data-font="lg"] body{font-size:17px}
 
+/* ===== F-1a（10-24 派、10-25 补完）：字号三档兜底 =====
+   她 12:0x 原话「你有一些新加的功能点了没有用，就比如设置页的调整字体大小……
+   凡是点了没有用的都修复成有用的」。上面那两条只改了 body 字号，可全站有 560 处
+   `font-size:Npx` 写死的文字不跟随继承 → 点「大」时卡片说明、设置项正文纹丝不动，
+   看起来就是「开关没用」。这里把**最常用的一批**接到继承链上，让开关先看得见。
+   ⚠️ 三条红线（施工书 §三条）：
+      ① 只加新规则，**不许去改那 560 处**（那是 F-1b 的活，一页一批）；
+      ② 新规则必须以 `html[data-font]` 开头 —— 标准档（无该属性）时**一行都不生效**，
+         保证「标准档与改前逐像素一致」这条硬验收成立；
+      ③ 不动 body 的 15px 基准（三档数值 14/15/17 是她 10-22 拍板的）。
+   ⚠️ 1em = body 当前字号（sm 14 / 标准 15 / lg 17），所以跟随开关。 */
+html[data-font] .set-row-d,
+html[data-font] .set-row-t,
+html[data-font] .card p,
+html[data-font] .muted{ font-size:1em; }
+/* 顺手把设置页第三处说明文字也接上：`set-sub`（全仓实测确认的类名，
+   见 settings.html 的 class 清单），不接的话那页看着还是「只变了一半」。 */
+html[data-font] .set-sub{ font-size:1em; }
+
 body{
   margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
   background:var(--bg);
