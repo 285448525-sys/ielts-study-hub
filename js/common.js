@@ -78,7 +78,11 @@ const PAGES = [
      ⚠️ 这里登记 = 软导航按 id 找 js/teacher.js + 搜索/组页卡能查到它；
         但它**不在 PRIMARY_NAV / MORE_NAV 里** → 侧栏是否出现由角色决定（见 injectNav 末尾）。
      铁律：不在任何入口文案里承诺「老师能改学生数据」—— 整页只读。 */
-  { id:'teacher',   file:'teacher.html',   icon:ICON.teacher,  name:'学生数据', desc:'绑定学生的学情（只读）' }
+  { id:'teacher',   file:'teacher.html',   icon:ICON.teacher,  name:'学生数据', desc:'绑定学生的学情（只读）' },
+  /* W-UI-1（10-25）公告页：软导航按 id 找 js/announce.js + 公告条「去看看」的直达目标。
+     ⚠️ 不进 PRIMARY_NAV / MORE_NAV（成熟站都不把公告放一级导航，见下方公告段注释），
+        三条入口 = 公告条「去看看」· 消息中心「全部消息」· 设置页「更新日志」一行。 */
+  { id:'announce',  file:'announce.html',  icon:ICON.writing,  name:'公告',     desc:'站点更新日志' }
 ];
 
 /* 收藏页面（⭐）——侧边栏「常用」与首页「快捷入口」共用同一份，永远同步。
@@ -120,6 +124,123 @@ function capActiveFile(file){ return CAP_ACTIVE[file] || file; }
 /* 10-23 T-014：回顾提级后侧栏也不列（一级入口已覆盖）；错句本 T-015 删页先摘。
    ⚠️ MORE_NAV 现在是「顶栏更多面板的数据源」，两边必须一致。 */
 const MORE_NAV    = ['vip','settings'];
+
+/* ==================== W-UI-1（10-25）更新公告 ====================
+   形态：全站顶部 34px 细条（顶栏 44px 之下），用户侧零学习成本。
+   依据：多邻国 / 扇贝 / 爱听写 / 不背单词四家**都没有显眼的「更新公告」一级入口**，
+   成熟站的公告形态就是「顶部一条细 banner + 设置里一行」；考研帮那种公告栏是资讯站玩法，工具站不适用。
+   数据：data/announce.json（静态）—— 她以后加公告只改这个文件，不动代码。
+   已读：localStorage.hub_anc_read（公告条 / 消息中心 / 公告页三处共用同一份）。
+   ⚠️ 不进 PRIMARY_NAV / MORE_NAV（成熟站都不把它放一级导航）。 */
+/* ⚠️ 用 var 不用 const/let：软导航用 window.eval 逐文件重跑页面脚本，eval 里声明的
+   const/let 只活在那一次 eval 的词法作用域 → 隔壁文件看到的是 undefined（10-23 T-009 实证）。
+   共享外壳虽在「排除表」里不重跑，统一口径省得以后踩。 */
+var ANC_URL = 'data/announce.json';
+var ANC_READ_KEY = 'hub_anc_read';
+var _ancCache = null;              // 同一次会话只拉一次 json（软导航换页不重复请求）
+function ancReadSet(){
+  try{ return new Set(JSON.parse(localStorage.getItem(ANC_READ_KEY) || '[]')); }catch(e){ return new Set(); }
+}
+function ancMarkRead(ids){
+  try{
+    const s = ancReadSet();
+    (ids || []).forEach(id => s.add(id));
+    localStorage.setItem(ANC_READ_KEY, JSON.stringify(Array.from(s)));
+  }catch(e){}
+  if(typeof ancEnsure === 'function') ancEnsure();
+}
+/* 「新」的判定：7 天内发布的算新（列表页 NEW 角标用；已读过的一律不标） */
+function ancFresh(a){
+  try{
+    const d = new Date(String(a && a.date || '') + 'T00:00:00');
+    if(isNaN(d.getTime())) return false;
+    return (Date.now() - d.getTime()) < 7 * 864e5;
+  }catch(e){ return false; }
+}
+function ancLoad(){
+  if(_ancCache) return Promise.resolve(_ancCache);
+  /* 用**裸路径**不带 ?v=：这条路径已进 sw.js 的 PRECORE（首访第一帧就能从缓存拿到），
+     且走 stale-while-revalidate —— 她改了 json 后老用户第二次访问自动拿到新版，
+     不必每次改公告都去动 sw.js 的缓存号。带 query 反而会让预缓存永远命中不上。 */
+  return fetch(ANC_URL, { cache: 'no-cache' })
+    .then(r => r.ok ? r.json() : null)
+    .then(j => { _ancCache = (j && Array.isArray(j.items)) ? j : { items: [] }; return _ancCache; })
+    .catch(() => { _ancCache = { items: [] }; return _ancCache; });
+}
+/* 公告条只推「最新那一条」，且仅在它未读时显示。
+   🔴 为什么不是「最新一条未读」：那样点掉一条会立刻顶上下一条 —— 站上现在躺着 3 条历史公告，
+      她第一次进来要连点 3 次 ✕ 才清干净，等于连续打扰。banner 型元素的语义是「通知你一次」，
+      点掉 = 这件事我知道了；想逐条看的人去公告列表页（那里保留逐条 NEW 角标）。
+      她以后发新公告 → 新的一条成为 items[0] → 条自动再出现一次。
+      依据：设计稿「一个用户同时只显示一条」+ 多邻国/扇贝 banner 的一次性关闭语义。 */
+function ancPending(){
+  const s = ancReadSet();
+  const j = _ancCache;
+  if(!j || !j.items || !j.items.length) return null;
+  const top = j.items[0];
+  return (top && !s.has(top.id)) ? top : null;
+}
+function ancBarHtml(a){
+  const light = a.kind !== 'feature';
+  const tag = light ? '维护' : '新';
+  return '<div class="anc' + (light ? ' light' : '') + '" id="hubAncBar">'
+    + '<span class="tag">' + tag + '</span>'
+    + '<span class="tx"><b>' + escapeHtml(a.title || '') + '</b> · ' + escapeHtml(a.summary || '') + '</span>'
+    + '<a href="announce.html#' + encodeURIComponent(a.id) + '" id="hubAncGo">去看看 ›</a>'
+    + '<button class="x" type="button" id="hubAncX" title="关闭" aria-label="不再显示这条公告">✕</button>'
+    + '</div>';
+}
+/* 挂/摘公告条：挂点 = .hub-topbar 之后（body 直下，sticky 贴 44px 之下）。
+   🔴 无未读时整条不渲染（不占位）—— 这是设计稿第①条验收点。 */
+function ancEnsure(){
+  if(typeof ancLoad !== 'function') return;
+  const wantsTop = document.body.getAttribute('data-shell') === 'top';
+  const host = document.getElementById('ancBarHost');
+  const a = ancPending();
+  if(!wantsTop || !a){
+    if(host) host.innerHTML = '';
+    return;
+  }
+  const bar = document.getElementById('hubAncBar');
+  const want = ancBarHtml(a);
+  /* 幂等：内容一致就不重画（软导航每页都调 injectNav，重画会让「点 ✕ 后又被画回来」） */
+  if(bar && bar.parentNode){
+    if(bar.getAttribute('data-anc-id') !== a.id){
+      bar.outerHTML = want.replace('id="hubAncBar"', 'id="hubAncBar" data-anc-id="' + escapeHtml(a.id) + '"');
+      ancBindBar();
+    }
+    return;
+  }
+  let wrap = host;
+  if(!wrap){
+    wrap = document.createElement('div');
+    wrap.id = 'ancBarHost';
+    const nav = document.getElementById('mainNav');
+    if(nav && nav.parentNode) nav.parentNode.insertBefore(wrap, nav.nextSibling);
+    else document.body.insertBefore(wrap, document.body.firstChild);
+  }
+  wrap.innerHTML = want.replace('id="hubAncBar"', 'id="hubAncBar" data-anc-id="' + escapeHtml(a.id) + '"');
+  ancBindBar();
+}
+function ancBindBar(){
+  const bar = document.getElementById('hubAncBar');
+  if(!bar || bar.__bound) return;
+  bar.__bound = true;
+  const id = bar.getAttribute('data-anc-id') || '';
+  const x = document.getElementById('hubAncX');
+  if(x) x.addEventListener('click', function(){ ancMarkRead([id]); });
+  const go = document.getElementById('hubAncGo');
+  if(go) go.addEventListener('click', function(){
+    ancMarkRead([id]);
+    /* 已在公告页 → 不换页，直接让本页开详情（announce.js 的 ancOpen） */
+    if((location.pathname.split('/').pop() || '') === 'announce.html'
+       && typeof window.ancOpen === 'function'){
+      event.preventDefault();
+      window.ancOpen(id);
+    }
+  });
+}
+
 const TAB_NAV     = ['index','practice','speaking'];   // 旧 tabbar 主项（组件已删，仅用于计算「更多」弹层要收纳哪些页面）
 // 底部 Tab 标签覆盖：practice 在站内含「单词」，但原型/验收确认为「背词」，单独对齐（不改 PAGES 以免影响桌面侧栏）
 const TAB_LABEL   = { practice:'背词' };
@@ -752,9 +873,16 @@ function injectNav(){
     bindTopBar();
     bindSideSearch();     // 顶栏搜索 = 侧栏那套 AI 智能搜索（同 id，逻辑零分叉）
     renderSideTimer();    // 全局计时徽标（顶栏右侧常驻）
+    /* W-UI-1 公告条：先按已有缓存同步挂一次（软导航换页立刻就在位，不等网络），
+       再拉 json 决定「挂 / 摘」。json 只有 2KB，且同会话只拉一次。 */
+    ancEnsure();
+    ancLoad().then(ancEnsure).catch(function(){});
     return;
   }
   document.body.classList.remove('hub-home');
+  /* W-UI-1：换回侧栏壳的页面没有顶栏，公告条若从上一页残留要清掉（ancEnsure 内部按
+     data-shell 判定 → 非 top 壳一律摘条）。软导航跨壳时 injectNav 会走到这里。 */
+  if(typeof ancEnsure === 'function') ancEnsure();
   /* ⚠️ 必须显式复位外壳 class：软导航从 home 过来时 nav.className 还是 'hub-topbar'，
      只换 innerHTML 不换 class → 侧栏内容被塞进 44px 固定顶栏（探针 homea3a 首轮实锤）。 */
   nav.className = 'top-nav';
