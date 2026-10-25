@@ -478,6 +478,174 @@ function currentDate(){ return $('#planDate').value || todayKey(); }
    🔴 「本周重点」只聚合 **AI 生成项**（gen === PLAN_GEN_TAG，带 module）；
       手动项只有 text 没 module，靠正则猜 = 10/5「跳错模块」的老毛病，故明确不参与（她 10/12 认可）。
    三种边界：未设考试日期 → 引导去设置；已考完（daysLeft<0）→ 整条隐藏；本周无 AI 项 → 只隐重点段。 */
+/* ═══ P-1R2（10-25）骨架接真数据 ═══
+   只做三件事，全是对着已有节点「设 text / 设属性」：
+     ① 阶段条 .m-phase —— 与 renderPhaseBar() 同一套口径（examCountdown + diagPhaseOf + AI 项聚合）
+     ② 进度 3/7 + 进度条 —— 与 renderList 里的 done/total/pct 完全相同
+     ③ 任务行 .m-task —— 按 DATA.plans 今天那条的 items 重建（数量/文案/勾选态/模块标签/直达）
+   🔴 结构不动：.m-task 的类名组合（m-task / m-done / m-cb / m-t / m-tagline / m-jmp）与 1:1 基线一致。
+   🔴 诊断卡 .m-dg 不在这里接 —— 它由 renderDiagEntry() 管（#diagRoot 那一套），
+      本批只把它的「还没做过 / 已做过」文案与 DATA.settings.diagnosis 对齐。
+   ⚠️ 骨架是「静态 4 行占位」：真任务少于 4 行时不多画、多于 4 行时按真实条数追加
+      （append 同构节点，类名照抄，1:1 基线取的是第一行，不受影响）。 */
+function syncSkeleton(date, isToday, items, done, total, pct){
+  var mk = document.getElementById('mkToday');
+  if(!mk) return;
+
+  /* ── ① 阶段条 ── */
+  var phWrap = mk.querySelector('.m-phase');
+  if(phWrap){
+    var cd = (typeof examCountdown === 'function') ? examCountdown() : null;
+    var chip = phWrap.querySelector('.m-chip');
+    var timeEl = phWrap.querySelector('span:nth-child(2)');
+    var focusEl = phWrap.querySelector('span:nth-child(3)');
+    if(!cd || !cd.hasExam || cd.daysLeft == null){
+      if(chip) chip.textContent = '备考中';
+      if(timeEl) timeEl.innerHTML = '还没设考试日期 · <a href="settings.html" style="color:var(--p600);font-weight:650">去设置 →</a>';
+      if(focusEl) focusEl.textContent = '';
+      return;   /* 没有考试日期，后面进度/任务照常接 */
+    }
+    var days = cd.daysLeft;
+    var ph = (typeof diagPhaseOf === 'function') ? diagPhaseOf(days) : null;
+    var week = Math.max(1, Math.ceil(days / 7));
+    if(chip) chip.textContent = ph ? ph.label : '备考中';
+    if(timeEl) timeEl.innerHTML = '距考试 <b>' + days + '</b> 天 · 倒数第 ' + week + ' 周';
+    /* 本周重点：与 renderPhaseBar 完全同一套（只聚合 AI 生成项，手动项没 module 不参与） */
+    if(focusEl){
+      var focusTxt = '';
+      try{
+        var tk = todayKey(), keys = [];
+        for(var i = 0; i < 7; i++) keys.push(addDays(tk, i));
+        var cnt = {};
+        (DATA.plans || []).forEach(function(p2){
+          if(!p2 || keys.indexOf(p2.date) === -1) return;
+          (p2.items || []).forEach(function(it){
+            if(!it || it.gen !== PLAN_GEN_TAG || !it.module) return;
+            cnt[it.module] = (cnt[it.module] || 0) + 1;
+          });
+        });
+        var top = Object.keys(cnt).sort(function(a, b){ return cnt[b] - cnt[a]; }).slice(0, 2);
+        if(top.length) focusTxt = top.map(moduleLabelOf).join(' · ');
+      }catch(e){}
+      focusEl.innerHTML = focusTxt ? ('本周重点：<b>' + focusTxt + '</b>') : '';
+      focusEl.style.display = focusTxt ? '' : 'none';
+    }
+  }
+
+  /* ── ② 日期 + 进度 ── */
+  var cards = mk.querySelectorAll('.m-mcard');
+  var progCard = cards[0];
+  if(progCard){
+    var h4 = progCard.querySelector('h4');
+    if(h4){
+      var dt = new Date(date + 'T00:00:00');
+      var wk = ['周日','周一','周二','周三','周四','周五','周六'][dt.getDay()] || '';
+      var lab = (isToday ? '今天' : ((dt.getMonth()+1) + ' 月 ' + dt.getDate() + ' 日'))
+              + ' <span class="m-r">' + date + ' · ' + wk;
+      if(isToday) lab += ' · <span style="color:var(--p600);font-weight:650">‹ 前后翻天 ›</span>';
+      lab += '</span>';
+      h4.innerHTML = lab;
+    }
+    var bigq = progCard.querySelector('.m-bigq');
+    if(bigq) bigq.innerHTML = done + '<small>/' + total + '</small>';
+    var subl = progCard.querySelector('.m-sublab');
+    if(subl) subl.innerHTML = '已完成<br>还剩 ' + Math.max(0, total - done) + ' 条';
+    var bar = progCard.querySelector('.m-bar i');
+    if(bar) bar.style.width = Math.round(pct) + '%';
+  }
+
+  /* ── ③ 任务行 ── */
+  var taskCard = cards[1];
+  if(taskCard){
+    var carried = items.filter(function(i){ return i && i.carried; }).length;
+    var tr = taskCard.querySelector('h4 .m-r');
+    if(tr) tr.textContent = carried ? ('↻ 其中 ' + carried + ' 条是昨天没做完自动挪过来的') : '';
+    var rows = taskCard.querySelectorAll('.m-task');
+    /* 太长的任务文本在窄屏会顶掉右侧标签 —— 与 .m-t 的 ellipsis 配合即可，这里不改样式 */
+    items.forEach(function(it, idx){
+      var row = rows[idx];
+      if(!row){
+        /* 超过骨架占位数 → 追加同构节点（类名照抄） */
+        row = document.createElement('div');
+        row.className = 'm-task';
+        row.innerHTML = '<span class="m-cb"></span><span class="m-t"></span><span class="m-tagline"></span><span class="m-jmp">去练 →</span>';
+        taskCard.insertBefore(row, taskCard.querySelector('.m-addrow'));
+      }
+      row.classList.toggle('m-done', !!it.done);
+      var cb = row.querySelector('.m-cb');
+      if(cb) cb.setAttribute('aria-checked', it.done ? 'true' : 'false');
+      var t = row.querySelector('.m-t');
+      if(t) t.textContent = it.text || '';
+      var tag = row.querySelector('.m-tagline');
+      if(tag){
+        var lab2 = it.module && typeof moduleLabelOf === 'function' ? moduleLabelOf(it.module) : '';
+        tag.textContent = lab2;
+        tag.style.display = lab2 ? '' : 'none';
+      }
+      var jmp = row.querySelector('.m-jmp');
+      if(jmp){
+        var j = (typeof planGenJump === 'function') ? planGenJump(it) : null;
+        jmp.style.display = j ? '' : 'none';
+        if(j && !jmp.__p1r2Bound){
+          jmp.__p1r2Bound = true;
+          jmp.addEventListener('click', function(ev){
+            ev.stopPropagation();
+            var cur = (typeof planGenJump === 'function') ? planGenJump(it) : null;
+            if(!cur) return;
+            if(typeof window.hubSoftGo === 'function') window.hubSoftGo(cur.file, cur.open || null);
+            else location.href = cur.file + (cur.open ? ('?' + cur.open) : '');
+          });
+        }
+      }
+      /* 点整行 = 勾选/取消（与旧 .plan-item 的 checkbox 同语义） */
+      if(!row.__p1r2Toggle){
+        row.__p1r2Toggle = true;
+        row.addEventListener('click', function(ev){
+          if(ev.target && ev.target.closest && ev.target.closest('.m-jmp')) return;
+          var cur = (typeof getPlan === 'function') ? getPlan(date) : null;
+          var list = (cur && cur.items) || [];
+          var k = Array.prototype.indexOf.call(taskCard.querySelectorAll('.m-task'), row);
+          var target = list[k];
+          if(target && typeof toggleItem === 'function') toggleItem(target.id);
+        });
+      }
+    });
+    /* 多出来的占位行（真任务比骨架少）→ 隐藏，不留空行 */
+    for(var ri = items.length; ri < rows.length; ri++) rows[ri].style.display = 'none';
+  }
+
+  /* ── ④ 诊断卡文案（真做过就改口径；不动 #diagRoot 那一套） ── */
+  var dg = mk.querySelector('.m-dg');
+  if(dg){
+    var hasDiag = !!(DATA.settings && DATA.settings.diagnosis);
+    var sub = dg.querySelector('.m-dgh div div:last-child');
+    var pEl = dg.querySelector('p');
+    var btns = dg.querySelectorAll('.m-row .m-btn');
+    if(hasDiag){
+      if(sub) sub.textContent = '已做过 · 点开看报告';
+      if(pEl) pEl.textContent = '诊断报告已经有了，想重排计划时回来重新做一次。';
+      if(btns[0]) btns[0].textContent = '查看报告';
+      if(btns[1]) btns[1].style.display = 'none';
+    }else{
+      if(sub) sub.textContent = '还没做过 · 3 分钟看清离目标多远';
+      if(btns[1]) btns[1].style.display = '';
+    }
+    /* 按钮接到现成的 renderDiagEntry 那套入口（不重写问卷） */
+    if(!dg.__p1r2Bound){
+      dg.__p1r2Bound = true;
+      dg.addEventListener('click', function(ev){
+        var t2 = ev.target;
+        if(!t2 || !t2.closest) return;
+        if(!t2.closest('.m-btn')) return;
+        ev.preventDefault();
+        var isSkip = !!t2.closest('.m-btn:not(.m-pri)');
+        if(typeof isSkip !== 'undefined' && isSkip && typeof diagQuickDefault === 'function'){ diagQuickDefault(); return; }
+        if(typeof openDiagForm === 'function') openDiagForm();
+      });
+    }
+  }
+}
+
 function renderPhaseBar(){
   var host = document.getElementById('phaseBar');
   if(!host) return;
@@ -724,6 +892,10 @@ function render(){
   }
 
   const pct = total ? done / total * 100 : 0;
+  /* P-1R2（10-25）：把骨架里的假数据换成真数据（只填值，不动结构）。
+     ⚠️ 必须放在 total/done/p 都算完之后 —— 下面要用；也在 renderPhaseBar 之后之外，
+        所以这里自己算一遍 phase，不重复调 renderPhaseBar（它会写旧卡 #phaseBar）。 */
+  try{ syncSkeleton(date, isToday, items, done, total, pct); }catch(e){}
   $('#planProgress').innerHTML = progressBar('完成进度', pct, 'var(--primary)');   // 10/12 美化批：--med 药用紫与页内语境不符 → teal 主色
 
   /* commit4：重排工具条只在「今天且有未完成 AI 任务」时出现；3 天没回来给过期提示 */

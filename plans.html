@@ -49,7 +49,7 @@
   <script defer src="js/common-shell.js?v=20261025c"></script>
   <script defer src="js/common-pwa.js?v=20261025c"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
-  <script src="js/plans.js?v=20261024b" defer></script>
+  <script src="js/plans.js?v=20261025g" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -275,23 +275,7 @@
 /* ===== 路线图4 · 4a（10/12）：备考阶段条 —— 形态照 #rbBar（全宽浅底横条） =====
    四档身份色沿用站内既有 token（基础=句子青 / 弱项=背词蓝 / 冲刺=警示橙 / 保底=就医绿），
    不新造色板。徽章用浅底+深字，保持「沉静」审美（她讨厌花哨）。 */
-#phaseBar{margin-top:10px;border:1px solid var(--line);background:var(--surface);border-radius:var(--radius-sm);padding:10px 12px}
-#phaseBar .pb-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-#phaseBar .pb-badge{flex:none;font-size:12.5px;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap;border:1px solid transparent}
-#phaseBar .pb-badge.ph-foundation{background:rgba(70,168,131,.12);color:var(--med);border-color:rgba(70,168,131,.28)}
-#phaseBar .pb-badge.ph-weak{background:rgba(95,134,168,.14);color:var(--vocab);border-color:rgba(95,134,168,.3)}
-#phaseBar .pb-badge.ph-sprint{background:rgba(245,158,11,.14);color:var(--warn);border-color:rgba(245,158,11,.3)}
-#phaseBar .pb-badge.ph-safeguard{background:rgba(217,154,115,.14);color:var(--primary-900);border-color:rgba(217,154,115,.32)}
-#phaseBar .pb-time{flex:none;font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap}
-#phaseBar .pb-focus{flex:1 1 200px;min-width:0;font-size:13px;color:var(--muted);line-height:1.55}
-#phaseBar .pb-focus b{color:var(--ink);font-weight:700}
-#phaseBar .pb-empty{flex:1 1 auto;font-size:13px;color:var(--muted);line-height:1.6}
-#phaseBar .pb-empty a{color:var(--primary);font-weight:700;text-decoration:none;white-space:nowrap}
-#phaseBar .pb-empty a:hover{color:var(--primary-900)}
-@media(max-width:420px){
-  #phaseBar{padding:9px 11px}
-  #phaseBar .pb-line{gap:7px}
-  #phaseBar .pb-focus,#phaseBar .pb-empty{flex:1 1 100%}
+/* 🔴 P-1R2（10-25）：.phase-bar / .pb-* 一族样式随 #phaseBar 节点一起下线（别处无人使用）。 */
 }
 @media(max-width:380px){#diagRoot .dg-chips{grid-template-columns:1fr}#diagOverlay .dg-cards{grid-template-columns:1fr 1fr}#diagOverlay .dg-ai-bands{grid-template-columns:1fr}}
 </style>
@@ -555,10 +539,13 @@
     </div>
   </div>
 
-  <!-- 路线图4 · 4a（10/12）：备考阶段条 —— 常驻三个 Tab 之上（阶段是全局状态，不属任一 Tab）。
-       纯本地推导（DIAG_PHASES + examCountdown + DATA.plans 聚合），零 AI 调用、未登录可用。
-       形态照 #rbBar 先例（全宽浅底横条）。内容由 renderPhaseBar() 填充。 -->
-  <div id="phaseBar" class="phase-bar" hidden></div>
+  <!-- 🔴 P-1R2（10-25）：旧的 #phaseBar 已删（全站走查 BUG-4）。
+       原因：它（真数据：距考试 6 天 · 本周重点 写作）与骨架里的 .m-phase（假数据：9 天 · 听力·口语）
+       同屏并列，天数与重点互相打架，她一眼就能看出矛盾。
+       现在阶段条**只有** .m-phase 一处，数据由 syncSkeleton() 从同一套口径填（examCountdown +
+       diagPhaseOf + AI 项聚合），与已删卡片当年用的是同一批函数。
+       ⚠️ renderPhaseBar() 函数体保留、不删 —— 它开头就是 getElementById('phaseBar')，
+          拿不到元素直接 return，空转无害；万一要回滚只需把上面那个 div 加回来。 -->
 
   <!-- Tab 1 今天（P-1：原「今日」+ 原「历史」合并；备考诊断改成本页下端固定入口卡） -->
   <div class="tab-panel active" id="ptabToday">
