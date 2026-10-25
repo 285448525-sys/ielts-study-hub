@@ -25,13 +25,11 @@ function populateSettingsForm(){
 
   if($('#sPron')) $('#sPron').value = (s.pronunciationScore != null ? s.pronunciationScore : '');
   if($('#sFlu')) $('#sFlu').value = (s.fluencyScore != null ? s.fluencyScore : '');
-  if($('#sChime')) $('#sChime').checked = s.chimeOnDone !== false;
+  /* F-4（10-25）：#sChime / #sReduceMotion / #sAdhd 三个控件已分别被 S-1、S-1b 删掉（settings.html 里实测 0 处）→ 回填这三行是纯空转，清掉。字段 chimeOnDone / reduceMotion / adhd 一律保留（同步白名单里，数据不丢）。 */
   // 10-23 T-002 步5：正文字号（缺省 md=标准）与减少动效（缺省关）回填
   const _font = (s.fontScale === 'sm' || s.fontScale === 'lg') ? s.fontScale : 'md';
   if(typeof applyFontScale === 'function') applyFontScale(_font);
-  if($('#sReduceMotion')) $('#sReduceMotion').checked = s.reduceMotion === true;
   // 9/21 翻转：服药模块默认关闭 → 无该函数时兜底 false（与 common.js 口径一致）
-  if($('#sAdhd')) $('#sAdhd').checked = (typeof medsModuleOn === 'function') ? medsModuleOn() : false;
   /* 10/3 22:55：#sAcct 登录表单已删（她拍板「未登录不裸填账号密码，改成引导去 login.html」），
      预填逻辑一并移除。 */
 }
@@ -42,7 +40,7 @@ ready(() => {
 
   // 10/1 晚 · 自动保存（她拍板删「保存全部设置」条）：任一设置项 change → 600ms 防抖 → saveSettings
   // 主题开关/服药开关有自己的即时 handler，不走这条防抖通道
-  const AUTO_SAVE_IDS = ['sName','sExam','sGoal','tOverall','tListening','tReading','tWriting','tSpeaking','sPron','sFlu','sChime'];
+  const AUTO_SAVE_IDS = ['sName','sExam','sGoal','tOverall','tListening','tReading','tWriting','tSpeaking','sPron','sFlu'];   /* F-4：sChime 已删（S-1），留着它只是空转 */
   let _autoSaveTimer = null;
   const autoSave = () => { clearTimeout(_autoSaveTimer); _autoSaveTimer = setTimeout(saveSettings, 600); };
   /* 🔴 10/4 16:50：原来**只绑 change**。change 只在「值改变且失焦」时触发 ——
@@ -88,22 +86,7 @@ ready(() => {
       try{ if(typeof toast === 'function') toast(on ? '主题已跟随系统' : '主题已改为手动'); }catch(e){}
     });
   }
-  // 服药模块开关：即时生效（不必点「保存设置」），改完立刻重渲染侧栏与「更多」弹层
-  if($('#sAdhd')){
-    $('#sAdhd').addEventListener('change', () => {
-      const on = $('#sAdhd').checked;
-      DATA.settings = DATA.settings || {};
-      DATA.settings.adhd = on;
-      DATA.settings._fieldTs = DATA.settings._fieldTs || {};
-      DATA.settings._fieldTs.adhd = Date.now();
-      hubSave();
-      if(typeof injectNav === 'function') injectNav();
-      const sheet = document.getElementById('moreSheet'); if(sheet) sheet.remove();
-      const bd = document.getElementById('sheetBackdrop'); if(bd) bd.remove();   // 弹层内容下次打开时按新状态重建
-      if(DATA.settings.syncCode) scheduleCloudUpload();
-      toast(on ? '已开启服药模块' : '已关闭服药模块（数据保留）');
-    });
-  }
+  /* F-4（10-25）：整块删除「服药模块开关的即时绑定」—— #sAdhd 已由 S-1 整行删掉（她 23:5x「两个都删说过了」，settings.html 实测 0 处）。⚠️ medsModuleOn() / meds.html / DATA.meds 一个都没动，只是这个开关的回填与监听退役。 */
 
   /* 🔴 S-2（10-25）：下面四行裸绑定**整块删除** —— 她 00:4x「叫你把数据备份页删掉啊」。
      原写法是 $('#exportBtn').addEventListener(...) 等四行，**没有判空**：
@@ -190,17 +173,12 @@ function saveSettings(){
   };
   const _pron = _band('#sPron'); if(_pron !== undefined) _set('pronunciationScore', _pron);
   const _flu = _band('#sFlu');   if(_flu  !== undefined) _set('fluencyScore', _flu);
-  /* 🔴 S-1（10-25）：#sChime / #sAdhd 两个开关的 HTML 整行删掉了
-     （她 23:5x「两个都删说过了」—— 服药开关勾上界面无变化、提示音只剩 timer.js 一处读，
-     而计时页手动入口她 10-21 已撤）。
-     ⚠️ 原写法是**裸读** $('#sChime').checked —— 元素没了会抛 TypeError 中断整个 saveSettings，
-     导致「设置保存了但后面几项没落库」。改成元素在才读（与 #sAdhd 的口径一致）。
-     ⚠️ 字段 chimeOnDone / adhd **保留**在 common-sync.js 的 SYNC_SETTINGS_FIELDS 白名单里，
-     数据一条不丢（meds.html 与 DATA.meds 也保留）。 */
-  if($('#sChime')) _set('chimeOnDone', $('#sChime').checked);
-  if($('#sAdhd')) _set('adhd', $('#sAdhd').checked);
-  // 10-23 T-002 步5：两项落库（_fieldTs 模式与上面一致；都登记了 SYNC_SETTINGS_FIELDS 跨设备带回）
-  if($('#sReduceMotion')) _set('reduceMotion', $('#sReduceMotion').checked === true);
+  /* F-4（10-25）：这里原来还有 3 行 `if($('#sChime'/'#sAdhd'/'#sReduceMotion')) _set(...)`，
+     三个控件都已分别被 S-1 / S-1b 删掉（settings.html 实测 0 处）→ 纯空转，已清。
+     ⚠️ 字段 chimeOnDone / adhd / reduceMotion **一律保留**在 common-sync.js 的
+     SYNC_SETTINGS_FIELDS 白名单里，数据一条不丢（meds.html 与 DATA.meds 也保留）。
+     ⚠️ 历史教训留档：这几行原先是**裸读**（$('#sChime').checked），元素一没就抛 TypeError
+     中断整个 saveSettings →「设置保存了但后面几项没落库」；S-1 当时先改成判空，本批才彻底清。 */
   hubSave(); applyTheme();
   if(DATA.settings.syncCode) scheduleCloudUpload();   // 已登录则立即同步（含发音分等）到云端
   toast(DATA.settings.syncCode ? '设置已保存（已同步云端）' : '设置已保存');   // 未登录不谎报「已同步」
