@@ -532,7 +532,12 @@ function renderList(){
       return hay.indexOf(tplSearch) !== -1;
     });
   }
-  const locked = (tplVip !== true);
+  /* W-FREE-3（10-25）：她拍板「作文页也免费给所有人用」→ 模板库不再按会员锁。
+     原本是 (tplVip !== true)，改成恒 false 后 lockTag / tplRowHtml(t, locked) 的角标自动不出现，
+     下面那些调用点一个都不用动。
+     ⚠️ 死代码（renderTplLocked / restoreTplBlocks / queryVipGate / scheduleVipRecheck / tplVip /
+        #tplLockCard）本批**故意不删** —— 她可能改主意，只让行为放行，代码空转无害。 */
+  const locked = false;
   const lockTag = locked ? '<span class="badge" style="position:absolute;top:10px;right:10px" title="会员专属">🔒</span>' : '';
   /* 10/4（她 12:57 反馈「模板列表里套了一层空壳卡片」）：
      模板标题常与分类名相同（都叫「观点型」），原实现无条件渲染两行 → 同一句话显示两遍，
@@ -679,7 +684,9 @@ function openTpl(id){
     const words = (plain.match(/[A-Za-z][A-Za-z'-]*/g) || []).length;
     metaEl.textContent = [kind, paras ? paras + ' 段' : '', words ? '约 ' + Math.round(words / 10) * 10 + ' 词' : ''].filter(Boolean).join(' · ');
   }
-  if(tplVip !== true){ renderTplLocked(); return; }   // 会员闸：非会员只给锁卡（10/2 她拍板）
+  /* W-FREE-3（10-25）：会员闸摘掉 —— 作文全免费，直接走下面的 restoreTplBlocks()。
+     原来这行是 `if(tplVip !== true){ renderTplLocked(); return; }`（10/2 她拍板加的），
+     跟上面 :535 是两处独立的锁：只改列表角标不改这里，点进详情照样弹锁卡。 */
   restoreTplBlocks();
   /* 「作文骨架」原文块已删（她 10/1：与填空练习/完整句重复）；骨架数据仍是填空/默写/评分的源，只删展示 */
   renderTplGuide(t);   // 10/10：怎么用这个模板（含「我记住了，收起」）
