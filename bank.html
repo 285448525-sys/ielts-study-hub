@@ -991,6 +991,8 @@
 .ex-split.ct-yellow .ex-grp-h,.ex-split.ct-yellow .ex-grp-i,.ex-split.ct-yellow .ex-q{color:#ffd400}
 @media(max-width:860px){
   .ex-split{grid-template-columns:1fr;grid-template-rows:minmax(170px,36vh) 1fr}
+  /* W-EXSPLIT-1（10-25）：补底色 —— 原来 #fff 跟着桌面口径走了，手机浅色没人给背景。 */
+  .ex-split{background:#fff}
   .ex-split.hasnotes{grid-template-rows:minmax(140px,26vh) minmax(140px,26vh) 1fr}
   .ex-notes{border-left:none;border-top:1px solid var(--line)}
   .ex-article{border-right:none;border-bottom:1px solid var(--line);padding:16px 16px 40px}
@@ -1533,7 +1535,14 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 #examRoot .ex-part span{color:#333;font-weight:400}
 
 /* ---- ③ 阅读左右分栏：官方口径（白底黑字 + 2px 重分隔线 + 各滚各的）---- */
-#examRoot .ex-split{grid-template-columns:minmax(0,1fr) minmax(0,1fr);background:#fff}
+/* W-EXSPLIT-1（10-25）：这条是**桌面**口径（官方复刻是左右分栏），原来没写媒体查询外壳，
+   特异性 (1,1,0) 压过 @media(max-width:860px) 里那条 (0,1,0) 的列定义 → 手机上仍两列，
+   而手机那条的 rows（minmax(170px,36vh) 1fr）继续生效 → 2 列 × 2 行，
+   行 2 里只有隐藏的 #exNotes → 下半屏 370px 全空、两栏的 overflow:auto 永远出不来滚动条。
+   修法：把桌面口径装进 min-width:861px 外壳；手机端另有背景补丁（见 @media(max-width:860px) 块）。 */
+@media(min-width:861px){
+  #examRoot .ex-split{grid-template-columns:minmax(0,1fr) minmax(0,1fr);background:#fff}
+}
 /* ⚠️ 这里**不写 font-size**：文章字号必须继续走 .ex-article{font-size:calc(var(--exfs) * .75)} 的缩放链
    （10/16 她报「Option>Size 只能调题目的字体大小，其他调不了」，那条修法就是靠 --exfs 系数）。
    默认档 --exfs:20px → 15px，与官方实测的 16px 只差 1px，且落在她「上下栏适当窄一些」的口径里。
