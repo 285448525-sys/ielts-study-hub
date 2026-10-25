@@ -67,16 +67,17 @@ function renderVipSemi(){
       }));
   }
 
-  /* ---- 转账句：金额跟着档位走；未登录提示先登录（转账前必须知道给谁开）---- */
+  /* ---- 转账句：金额跟着档位走；未登录提示先登录（转账前必须知道给谁开）----
+     10-25 深夜：她给了微信+支付宝收款码（img/pay/），转账句保留兜底（有人 prefers 文字转账）。 ---- */
   function slipText(){
     const p = (window.Pricing && Pricing.VIP_PLANS.find(x => x.id === cur)) || null;
     const amount = p ? ('¥' + p.price) : '';
-    return '微信 / 支付宝转 ' + amount + ' 到 ' + VIP_PAY_TO + '，转完回来点下面「我已转账」。';
+    return '扫上方收款码转 ' + amount + '，转完回来点下面「我已转账」。（也可转账到 ' + VIP_PAY_TO + '）';
   }
   function renderSlip(){
     const el = document.getElementById('semiTxt');
     const p = (window.Pricing && Pricing.VIP_PLANS.find(x => x.id === cur)) || null;
-    if(el) el.innerHTML = '微信 / 支付宝转 <b>' + (p ? escapeHtml('¥' + p.price) : '') + '</b> 到 <b>' + escapeHtml(VIP_PAY_TO) + '</b>，转完回来点下面「我已转账」。';
+    if(el) el.innerHTML = '扫上方收款码转 <b>' + (p ? escapeHtml('¥' + p.price) : '') + '</b>，转完回来点下面「我已转账」。（也可转账到 <b>' + escapeHtml(VIP_PAY_TO) + '</b>）';
   }
   renderSlip();
 

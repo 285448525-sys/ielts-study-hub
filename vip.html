@@ -20,7 +20,7 @@ setTimeout(__rvRescue,2500);
 <meta http-equiv="Expires" content="0" />
 <title>会员 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261025g" />
-<link rel="stylesheet" href="css/p/vip.css?v=20261025h" />
+<link rel="stylesheet" href="css/p/vip.css?v=20261025i" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -40,7 +40,7 @@ setTimeout(__rvRescue,2500);
   <script defer src="js/common-pwa.js?v=20261025g"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
   <script src="js/pricing.js?v=20261025f" defer></script>
-  <script src="js/vip.js?v=20261025h" defer></script>
+  <script src="js/vip.js?v=20261025i" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -203,7 +203,17 @@ setTimeout(__rvRescue,2500);
     <div id="vipSemi">
       <div class="semi-plans" id="semiPlans"></div>
       <div class="semi-slip" id="semiSlip">
-        <div class="semi-lb" id="semiLb">抄这句去转账</div>
+        <div class="semi-lb" id="semiLb">扫这个码转账</div>
+        <div class="semi-qr" id="semiQr">
+          <figure class="qr-item">
+            <img src="img/pay/wechat-qr.jpg" alt="微信收款码" width="132" height="179" loading="lazy">
+            <figcaption>微信支付</figcaption>
+          </figure>
+          <figure class="qr-item">
+            <img src="img/pay/alipay-qr.jpg" alt="支付宝收款码" width="132" height="198" loading="lazy">
+            <figcaption>支付宝</figcaption>
+          </figure>
+        </div>
         <div class="semi-txt" id="semiTxt"></div>
         <button class="semi-copy" id="semiCopy" type="button">复制这句</button>
       </div>
@@ -215,7 +225,7 @@ setTimeout(__rvRescue,2500);
         <a class="btn btn-primary" href="login.html" style="text-decoration:none">去登录 / 注册</a>
         <button class="btn semi-ghost" id="semiHelp2" type="button">遇到问题</button>
       </div>
-      <p class="semi-note">不备注、不填单号——金额就是你的订单。开通前不产生任何费用。</p>
+      <p class="semi-note">扫码或转账均可——金额就是你的订单（¥19 / ¥69 / ¥129 三档天然分开），不用备注。开通前不产生任何费用。</p>
     </div>
     <div id="semiDoneCard" hidden>
       <div class="semi-done">
