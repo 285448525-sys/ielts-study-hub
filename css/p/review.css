@@ -656,3 +656,45 @@ html[data-theme="dark"] .rp-page{
 html[data-theme="dark"] .rp-page .rp-rs{background:var(--surface);border-color:var(--line)}
 html[data-theme="dark"] .rp-page .rp-card{background:var(--surface);border-color:var(--line)}
 html[data-theme="dark"] .rp-page .rp-cell{background:var(--primary-50);color:var(--primary-700)}
+
+/* ══════════════════════════════════════════════════════════════════════
+   R-REC-2（10-25）成绩趋势 · 按场次分档 —— 2~3 场用「场次横条 + 目标对比」
+   来源：design\成绩趋势重设计-按场次分档-2026-10-25.html 的 .streak / .tgt 两段。
+   类名全带 rt- 前缀（common.css 里没有同名，本页专用）。
+   颜色一律走站点 token（--mock 听力 / --vocab 阅读 / --warn 写作 / --med 口语），
+   不写死色值 —— 换主题 / 深色都能跟着走。
+   ══════════════════════════════════════════════════════════════════════ */
+.rt-streak{display:flex;gap:12px;align-items:stretch;flex-wrap:wrap}
+.rt-st{flex:1 1 150px;border:1px solid var(--line);border-radius:var(--radius-sm);padding:14px 16px;background:var(--surface)}
+.rt-st.rt-cur{border-color:var(--primary);background:var(--primary-50)}
+.rt-d{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.rt-lb{font-size:10.5px;font-weight:750;color:var(--primary-700);margin-top:1px}
+.rt-st.rt-cur .rt-lb{color:var(--primary-800)}
+.rt-rows{margin-top:10px;display:flex;flex-direction:column;gap:5px}
+.rt-r{display:flex;align-items:center;gap:7px;font-size:12px}
+.rt-r>i:first-child{width:7px;height:7px;border-radius:50%;flex:none}
+.rt-r .rt-nm{width:26px;color:var(--ink-2);flex:none}
+.rt-r .rt-bar{flex:1;height:5px;border-radius:20px;background:var(--n-100);overflow:hidden;min-width:52px}
+.rt-r .rt-bar>i{display:block;height:100%;border-radius:20px}
+.rt-r>b{width:24px;text-align:right;font-variant-numeric:tabular-nums;font-weight:750;flex:none}
+.rt-arrow{align-self:center;color:var(--muted);font-size:14px;flex:none}
+
+/* 目标对比：条 = 当前分，黑竖线 = 目标分位置 */
+.rt-tgt{display:flex;flex-direction:column;gap:9px;margin-top:14px}
+.rt-tg{display:flex;align-items:center;gap:11px;font-size:13px}
+.rt-tg .rt-nm{width:30px;font-weight:700;flex:none}
+.rt-tg .rt-bar{flex:1;height:9px;border-radius:20px;background:var(--n-100);position:relative;overflow:hidden;min-width:80px}
+.rt-tg .rt-bar .rt-fill{position:absolute;left:0;top:0;bottom:0;border-radius:20px}
+.rt-tg .rt-bar .rt-tick{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink);border-radius:2px}
+.rt-tg .rt-val{width:52px;text-align:right;font-variant-numeric:tabular-nums;font-weight:750;flex:none;font-size:12.5px}
+.rt-tg .rt-gap{width:64px;text-align:right;font-size:11.5px;flex:none;font-weight:700}
+@media (max-width:560px){
+  .rt-streak{gap:8px}
+  .rt-st{flex:1 1 100%}
+  .rt-arrow{display:none}
+  .rt-tg .rt-gap{width:56px}
+}
+/* 深色：条底与竖线换成深色档可见值（设计稿只给了浅色） */
+html[data-theme="dark"] .rt-r .rt-bar,
+html[data-theme="dark"] .rt-tg .rt-bar{background:var(--n-100)}
+html[data-theme="dark"] .rt-tg .rt-bar .rt-tick{background:var(--n-800)}

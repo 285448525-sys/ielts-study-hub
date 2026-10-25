@@ -269,8 +269,63 @@ function renderTrend(){
       + `<div class="rv-trend-note">只有 1 次模考，先画出「当前 vs 目标」。再考 1 次就能看到完整趋势。</div>`;
     return;
   }
-  // 2 次及以上：原有多点折线（保持不变）
-  const W = 660, H = 300, padL = 34, padR = 16, padT = 16, padB = 34;
+  /* 🔴 R-REC-2（10-25）：按场次分档。她原话「成绩趋势就三次考试要弄这么大一个折线
+     我感觉是不是没必要」—— 3 个点看不出趋势，只看得出大小，折线是噪音不是信息。
+       0 场 → 空态（上面已 return）   1 场 → 四行大字（上面已 return）
+       2~3 场 → 场次横条 + 目标对比   4~7 场 → 紧凑折线   8 场及以上 → 完整大折线
+     分档按 list.length 自动切，她不用手动选。数据结构 / #trendChart / DATA.scores 一行不动。 */
+  const SERIES = [
+    { key:'listening', name:'听力', short:'听', color:'var(--mock)',   target:5.5 },
+    { key:'reading',   name:'阅读', short:'读', color:'var(--vocab)',  target:6.5 },
+    { key:'writing',   name:'写作', short:'写', color:'var(--warn)',   target:5.5 },
+    { key:'speaking',  name:'口语', short:'口', color:'var(--med)',    target:5.5 },
+  ];
+  const tg = DATA.settings.targets || {};
+  const tgtOf = se => Number(tg[se.key] != null ? tg[se.key] : se.target) || se.target;
+  /* 分数 0~9 → 条长百分比（与折线的 Y 同一条映射，两处读出来的「高低」必须对得上） */
+  const pctOf = v => Math.max(0, Math.min(100, Math.max(0, Math.min(9, Number(v) || 0)) / 9 * 100));
+
+  /* ── 2~3 场：场次横条 + 目标对比（不画折线）── */
+  if(list.length <= 3){
+    const cards = list.map((s, i) => {
+      const isLast = (i === list.length - 1);
+      const rows = SERIES.map(se => {
+        const v = s[se.key];
+        return '<div class="rt-r"><i style="background:' + se.color + '"></i>'
+          + '<span class="rt-nm">' + se.short + '</span>'
+          + '<span class="rt-bar"><i style="width:' + pctOf(v) + '%;background:' + se.color + '"></i></span>'
+          + '<b>' + v + '</b></div>';
+      }).join('');
+      return '<div class="rt-st' + (isLast ? ' rt-cur' : '') + '">'
+        + '<div class="rt-d">' + String(s.date || '').slice(5) + '</div>'
+        + '<div class="rt-lb">第 ' + (i + 1) + ' 场' + (isLast ? ' · 最新' : '') + '</div>'
+        + '<div class="rt-rows">' + rows + '</div></div>';
+    }).join('<span class="rt-arrow">›</span>');
+
+    /* 目标对比：条 = 当前分，黑竖线 = 目标分位置，右侧写差多少 */
+    const latest = list[list.length - 1];
+    const trows = SERIES.map(se => {
+      const cur = Number(latest[se.key]) || 0, goal = tgtOf(se);
+      const ok = cur >= goal;
+      const gap = ok
+        ? (cur > goal ? '已超过' : '已达标')
+        : ('还差 ' + (Math.round((goal - cur) * 2) / 2).toFixed(1));
+      return '<div class="rt-tg"><span class="rt-nm">' + se.name + '</span>'
+        + '<span class="rt-bar"><i class="rt-fill" style="width:' + pctOf(cur) + '%;background:' + se.color + '"></i>'
+        + '<i class="rt-tick" style="left:' + pctOf(goal) + '%"></i></span>'
+        + '<span class="rt-val">' + latest[se.key] + '</span>'
+        + '<span class="rt-gap" style="color:' + (ok ? 'var(--ok)' : 'var(--warn)') + '">' + gap + '</span></div>';
+    }).join('');
+
+    box.innerHTML = '<div class="rt-streak">' + cards + '</div>'
+      + '<div class="rt-tgt">' + trows + '</div>'
+      + '<div class="rv-trend-note">黑竖线是目标分。条是当前分，线在条右边 = 还没到，线在条左边 = 已超过。</div>';
+    return;
+  }
+
+  /* ── 4 场及以上：折线。4~7 场用紧凑版（矮一半、网格只留 4/6/8 三条、去掉数字）── */
+  const compact = list.length <= 7;
+  const W = 660, H = compact ? 180 : 300, padL = 34, padR = 16, padT = 16, padB = 34;
   const plotW = W - padL - padR, plotH = H - padT - padB;
   const X = i => padL + (list.length === 1 ? plotW/2 : plotW * i / (list.length - 1));
   const Y = v => padT + plotH * (1 - Math.max(0, Math.min(9, v)) / 9);
@@ -281,10 +336,12 @@ function renderTrend(){
     { key:'speaking',  name:'口语', color:'var(--med)' },
   ];
   let grid = '';
-  for(let g = 0; g <= 9; g++){
+  /* 网格：紧凑版只画 4/6/8 三条且不带数字（矮图里 10 条线是纯噪音）；完整版维持 0~9 带数字 */
+  const gridVals = compact ? [4, 6, 8] : [0,1,2,3,4,5,6,7,8,9];
+  for(const g of gridVals){
     const gy = Y(g);
     grid += `<line x1="${padL}" y1="${gy}" x2="${W-padR}" y2="${gy}" style="stroke:var(--line)" stroke-width="1"/>`;
-    grid += `<text x="${padL-6}" y="${gy+4}" text-anchor="end" font-size="10" style="fill:var(--muted)">${g}</text>`;
+    if(!compact) grid += `<text x="${padL-6}" y="${gy+4}" text-anchor="end" font-size="10" style="fill:var(--muted)">${g}</text>`;
   }
   let xlabels = '';
   list.forEach((s, i) => { xlabels += `<text x="${X(i)}" y="${H-padB+16}" text-anchor="middle" font-size="10" style="fill:var(--muted)">${s.date.slice(5)}</text>`; });
@@ -296,6 +353,7 @@ function renderTrend(){
   });
   const legend = series.map(se => `<span style="display:inline-flex;align-items:center;gap:5px;margin-right:12px;font-size:12px"><span style="width:11px;height:11px;border-radius:3px;background:${se.color}"></span>${se.name}</span>`).join('');
   box.innerHTML = `<div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" width="100%" style="min-width:520px">${grid}${paths}${xlabels}</svg></div><div style="margin-top:8px">${legend}</div>`;
+  if(compact) box.innerHTML += `<div class="rv-trend-note">已经有 ${list.length} 场成绩，这里能看出走向了。</div>`;
 }
 
 /* ===== 综合掌握度雷达图（SVG，最新 vs 目标） ===== */
