@@ -179,3 +179,29 @@
 [data-theme="dark"] .m-page .m-addrow .m-plus{ background:var(--primary-soft) }
 [data-theme="dark"] .m-page .m-btn{ background:var(--surface); color:var(--m-ink) }
 /* .m-pri 是主色实底 + 白字，深色下主色不变 → 白字仍然成立，不用动 */
+
+
+/* ═══ P-HEAD-1（10-25）首屏对齐：tab 条并进阶段条右侧 ═══
+   她 17:0x 两条一起提：「计划这个页面第一尺寸跟其他页面不一样，不对」+
+   「所有页面上面不能有 tab 标题…记住这个规矩」。
+
+   做了什么：删掉 .m-pg-head（页内标题行）与 .m-mk-top（假浏览器框）两个节点，
+   把 #planTabs（今天/往日）搬进 .m-phase 同一行右侧。
+   .m-phase 本身是 flex + wrap，插进去天然同行；这里只补「靠右」和 tab 自身尺寸。 */
+.m-page .m-phase #planTabs{margin-left:auto;flex:none;display:inline-flex;gap:4px}
+.m-page .m-phase #planTabs .pill-tab{
+  padding:4px 11px;font-size:12.5px;border-radius:999px;
+  border:1px solid var(--primary-200);background:rgb(255,255,255);color:var(--primary-text)
+}
+.m-page .m-phase #planTabs .pill-tab.active{
+  background:var(--primary);border-color:var(--primary);color:var(--on-primary)
+}
+/* 手机：阶段条那一行放不下时 tab 换到下面一行，占满整行 */
+@media(max-width:860px){
+  .m-page .m-phase #planTabs{margin-left:0;flex:1 1 100%;justify-content:flex-start;margin-top:4px}
+}
+/* 🔴 首屏贴顶对齐：.m-mk 原来靠 .m-mk-top 的高度 + .m-pg-head 的内边距把内容顶到 76px。
+   两个节点删掉后，把 .m-mk / .m-mk-body 的上内距收成与其他页卡片一致（目标 ≤20px）。 */
+.m-page .m-mk{padding-top:0}
+.m-page .m-mk-body{padding-top:0}
+.m-page .m-phase{margin-top:0}
