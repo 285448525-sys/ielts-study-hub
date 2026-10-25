@@ -1001,6 +1001,13 @@
   .mock-tabs .pill-tab,.partbar .pill-tab{padding:9px 12px;font-size:13.5px}
   .mock-tabs{width:100%}.mock-tabs .pill-tab{flex:1;justify-content:center}
   .bi-chips{display:none}.bi-qn{width:44px}
+  /* W-BANKTT-1（10-25）：手机端文章标题只分到 118px，被截成「The Blockbuste…」。
+     逐元素实测（390）：li 内容区 332px，被 .bi-no(24)+.bi-qn(44)+.bi-st(76)+.bi-chev(14)+4×gap(56)
+     先拿走 214px（64%），标题只剩 118px，而标题要 204px → 全部吃省略号。
+     修：① 标题允许两行（只截在词边界，不再是半截词）② 序号不占位，还 24+14=38px 给标题。
+     ⚠️ 只加移动端覆盖：桌面的 .bank-item / .bi-* 数值一个字不动，gap:14px 也没改小（桌面同用）。 */
+  .bi-tt b{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+  .bi-no{display:none}
 }
 
 /* ===== 写作 pane（10/11 第 7 项：写作真题从 writing.html 搬来）=====
