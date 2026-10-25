@@ -1235,6 +1235,15 @@
     if(top) top.style.display = 'none';      /* .ex-option 面板是 .ex-top 的兄弟，藏它不影响面板 */
   }
   function shellHtml(nameText, subText, timerText){
+    /* 🔴 BUGFIX（10-25 停工期间只修 bug）：顶栏那颗「暂停」用的是 showPause，
+       但那个变量定义在**另一个函数 barHtml() 的局部作用域**里，这里根本取不到
+       → ReferenceError: showPause is not defined。而 shellHtml 是 renderExam 的必经之路，
+       **整篇题目直接加载失败**（不是少个按钮，是打不开卷子）。
+       由 W-EXTOP-1（顶栏加暂停）引入；探针 _probe_guide_1018 的 F1 那条一直红着在报它。
+       修法：这里按**同一条表达式**自己算一次（= 与底栏完全同源，不另造判断）。
+       为什么不提取成共用函数：两者都是 IIFE 内的局部，提出来要动调用约定；
+       而这条判断只有三个字段，重复一次比多一层间接更不容易再错。 */
+    var showPause = !!(EX && !EX.submitted && EX.listenMode !== 'exam');
     /* 🔴 10-22 她拍板照 IDP 官方 demo 复刻：「把左上角那个 iELTS 改成我们网站的那个网址
        yasihub.com 其他完全照抄」。官方顶栏 = 左「IELTS 红标 + Test taker ID」+ 右四个图标；
        我们 = 左「本站图标 + yasihub.com」+ 中篇名/计时 + 右工具组（Saved/全屏/Option）。
