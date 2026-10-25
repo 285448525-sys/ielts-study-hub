@@ -32,7 +32,7 @@
 </script>
 <title>单词 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261026b" />
-<link rel="stylesheet" href="css/p/practice.css?v=20261026b" />
+<link rel="stylesheet" href="css/p/practice.css?v=20261026c" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -324,6 +324,40 @@ body.word-fullscreen .hub-topbar{display:none !important}
   <div id="bankView" hidden>
     <!-- W-WORD-1：页面内不再有 tab 条（她 17:1x 通过的设计稿）。手机没有顶栏二级，         所以词库态顶部放一个「回学习」返回键；桌面 ≥861 隐藏，入口仍走顶栏「单词 → 学习」。 -->
     <button class="wd-back wd-back-m" id="wdBackStudy" type="button">&lsaquo; 回到今天要背的</button>
+    <!-- ═══ W-WORD-2（10-26）· 词库商城态 ═══
+         1:1 还原 design/单词功能重设计-2026-10-25.html 的 #v-mall：
+         结构原文 design/_W-word-mall_结构原文.html · 精确样式 _W-word-mall_精确样式.css
+         验收基线 _W-word-mall_验收基线.json（24 元素）。
+         🔴 根类用 .wm-page（导出件的 token 块挂在它上面），不再套稿子的 .wm-pane
+            （.wm-pane{display:none} 是稿子三态切换用的，本站三态由 switchWordTab 管 hidden）。
+         🔴 商城只是「选书的橱窗」：点卡片 = 切当前词书 + 进下面 #wmLegacy 看这本的词。
+            词书详情态（施工书 §四）是第 3 批 W-WORD-3，本批不做。 -->
+    <div class="wm-page" id="vMall">
+      <div class="wm-filters">
+        <div class="wm-frow" id="wmDirRow">
+          <button type="button" class="wm-f wm-on" data-dir="all">全部</button>
+          <button type="button" class="wm-f" data-dir="listening">听力</button>
+          <button type="button" class="wm-f" data-dir="reading">阅读</button>
+          <button type="button" class="wm-f" data-dir="writing">写作</button>
+          <button type="button" class="wm-f" data-dir="speaking">口语</button>
+        </div>
+        <span class="wm-fsep"></span>
+        <div class="wm-frow" id="wmOwnRow">
+          <button type="button" class="wm-f" data-own="official">官方</button>
+          <button type="button" class="wm-f" data-own="mine">我的</button>
+        </div>
+        <span class="wm-mall-search"><input id="wmSearch" type="search" placeholder="搜词书 / 来源 / 词数…" autocomplete="off" aria-label="搜索词书" /></span>
+      </div>
+      <div class="wm-deals" id="wmDeals"></div>
+      <div class="wm-note"><b>词库商城怎么用</b>：这里放「可以选的词本」。看中哪本 → 点进去看它是怎么来的、有哪些章节 → 点「设为当前词书」就切过去，原词书的进度留在原地，随时切回。词书是工具不是任务，每本背到会用的程度就够。</div>
+    </div>
+
+    <!-- ═══ W-WORD-2：旧词库内容整块收进 #wmLegacy ═══
+         商城是新的默认视图；下面这些 id（#wbDecks / #wordList / #searchWord / #bankTitle /
+         #bankImportCard …）js/words.js 全在用，**一个都不能删** —— 整块包起来默认 hidden，
+         点商城卡片（或「＋ 导入我的词书」）才展开。第 3 批把它换成真正的词书详情态。 -->
+    <div id="wmLegacy" hidden>
+      <button class="wd-back wd-back-m" id="wmBackMall" type="button">&lsaquo; 词库商城</button>
     <!-- design/78：词库切换分段条（我的词库 / 学术阅读 AWL），wbRenderSwitchers 渲染。
          10-23 4-3：词书网格（#wbDeckGrid）取代了它的展示职责 —— 这个容器与 id 保留不动
          （js/wordbank.js 的 wbSetActive 内部会调 wbRenderSwitchers 往这里写），只是不再显示。 -->
@@ -449,6 +483,7 @@ body.word-fullscreen .hub-topbar{display:none !important}
       <div id="wordList" class="wl-list"></div>
     </section>
   </div>
+    </div><!-- /#wmLegacy -->
 
   <!-- 设置弹窗（右上角齿轮触发） -->
   <div id="cfgModal" class="cfg-modal-overlay" hidden>
@@ -653,10 +688,13 @@ body.word-fullscreen .hub-topbar{display:none !important}
         window.__wdSetView('exam');
         return;
       }
-      /* 换词书 → 现有词库视图（第 2 批再按设计稿重排外观） */
+      /* 换词书 → 词库态默认落在**商城**（W-WORD-2 第 2 批）；旧词库内容收进 #wmLegacy，
+         点书卡或「＋ 导入我的词书」才展开。 */
       if (t.closest('#wdSwapBook')){
         ev.preventDefault();
         try{ if (typeof switchWordTab === 'function') switchWordTab('bank'); }catch(e){}
+        wmShowMall();
+        wmRender();
         return;
       }
       if (t.closest('#wdModeBtn')){ ev.preventDefault(); openModePop(); return; }
@@ -681,10 +719,254 @@ body.word-fullscreen .hub-topbar{display:none !important}
     });
   }
 
+  /* ══════════════════════════════════════════════════════════════
+     W-WORD-2（10-26）第 2 批：词库商城态（#vMall）
+     ══════════════════════════════════════════════════════════════
+     只做三件事：① 七张书卡按设计稿渲染 ② 筛选/搜索前端过滤 ③ 点卡切词书 + 进旧词库看这本
+
+     🔴 铁律（她 10-25 15:5x 骂过一次）：卡片上**不出现**已学百分比、覆盖率、效率比、
+        跟别家对比、各书进度墙、待复习数。只有：词数 / 章数 / 方向 / 来源。
+     🔴 不动 js/wordbank.js 的数据层，只用它的读接口：
+        wbActive() 当前词书 · wbBankMeta(id) 元信息 · obBankReady(id) 异步加载
+        OB 注册表里的 total 兜底词数（json 没加载时也有数，不会显示 0）。
+     🔴 词数口径：优先 meta.total（json 已加载）→ 否则注册表 ent.total（永不为空）。
+        章数：meta.chapters.length；AWL 没有 chapters → 按 groups 文案里的「10 组」写死 10。
+  */
+
+  /* 七本书的静态档案：只有 json 没加载时才靠它兜底；json 到了以 json 为准。
+     方向映射按施工书 §三：rdtext/qstem/awl → 阅读；lstext/lstans/phr → 听力。
+     （写作 / 口语这两颗筛选按钮目前没有任何书命中 —— 设计稿有，先留着，将来加书就直接生效） */
+  var WM_BOOKS = [
+    { id: 'custom',  nm: '我的词库',         dir: 'mine',  own: 'mine',     mt: '我导入',                 ic: 'book',   src: '自己导入' },
+    { id: 'rdtext',  nm: '阅读原文高频词',   dir: 'reading',    own: 'official', mt: '280 篇阅读正文统计',   ic: 'book',   src: '真题来源' },
+    { id: 'qstem',   nm: '题干高频词',       dir: 'reading',    own: 'official', mt: '627 篇真题题目统计',   ic: 'book',   src: '真题来源' },
+    { id: 'lstext',  nm: '听力原文高频词',   dir: 'listening',  own: 'official', mt: '347 篇听力原文统计',   ic: 'audio',  src: '真题来源' },
+    { id: 'phr',     nm: '高频词组',         dir: 'listening',  own: 'official', mt: '1314 组固定搭配',      ic: 'audio',  src: '真题来源' },
+    { id: 'awl',     nm: '学术阅读核心词 AWL', dir: 'reading',   own: 'official', mt: 'Coxhead 学术词表',     ic: 'book',   src: '真题来源' },
+    { id: 'lstans',  nm: '听力填空答案词',   dir: 'listening',  own: 'official', mt: '真题填空真答案',        ic: 'audio',  src: '真题来源' }
+  ];
+  var WM_DIR_TXT = { listening: '听力', reading: '阅读', writing: '写作', speaking: '口语', mine: '我的' };
+
+  var wmDir = 'all';
+  var wmOwn = null;
+  var wmKw  = '';
+
+  function wmMeta(id){
+    try{ if (id !== 'custom' && typeof wbBankMeta === 'function') return wbBankMeta(id); }catch(e){}
+    return null;
+  }
+
+  /* 词数：meta.total → 注册表 ent.total → DATA.words.length（custom） */
+  function wmCount(b){
+    if (b.id === 'custom'){
+      try{ return ((typeof DATA !== 'undefined' && Array.isArray(DATA.words)) ? DATA.words.length : 0); }catch(e){ return 0; }
+    }
+    var m = wmMeta(b.id);
+    if (m && m.total) return m.total;
+    try{
+      var reg = (typeof window.__OB !== 'undefined' && window.__OB && window.__OB.OB_BANKS) ? window.__OB.OB_BANKS : null;
+      if (reg) for (var i = 0; i < reg.length; i++) if (reg[i].id === b.id && reg[i].total) return reg[i].total;
+    }catch(e){}
+    return 0;
+  }
+
+  /* 章/组数：meta.chapters.length → AWL 特例 10 组 → 0（不显示） */
+  function wmChapters(b){
+    if (b.id === 'custom'){
+      /* 我的词库显示「分组数」：按 words.js metaText 同口径（group/cat/unit/chapter） */
+      var gs = {};
+      try{
+        var ws = (typeof DATA !== 'undefined' && Array.isArray(DATA.words)) ? DATA.words : [];
+        ws.forEach(function(w){ var g = (w && (w.group || w.cat || w.unit || w.chapter)); if (g != null && g !== '') gs[g] = 1; });
+      }catch(e){}
+      return Object.keys(gs).length;
+    }
+    var m = wmMeta(b.id);
+    if (m && Array.isArray(m.chapters) && m.chapters.length) return m.chapters.length;
+    if (b.id === 'awl') return 10;   /* AWL：sublist 1–10，json 没有 chapters 字段 */
+    return 0;
+  }
+
+  function wmUnit(b){
+    if (b.id === 'custom') return '个分组';
+    if (b.id === 'phr')    return '章';
+    if (b.id === 'awl')    return '组';
+    return '章';
+  }
+
+  function wmFmt(n){ return String(n == null ? 0 : n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+
+  function wmIcon(kind){
+    var p = kind === 'audio'
+      ? '<path d="M11 5 6 9H2v6h4l5 4V5z"></path><path d="M15.5 8.5a5 5 0 0 1 0 7"></path>'
+      : '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>';
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>';
+  }
+
+  function wmEsc(v){
+    return String(v == null ? '' : v).replace(/[&<>"']/g, function(c){
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+    });
+  }
+
+  /* 卡片：结构与 design/_W-word-mall_结构原文.html 逐元素对应（类名一个不改） */
+  function wmCardHtml(b){
+    var cur = false;
+    try{ cur = (typeof wbActive === 'function') ? (wbActive() === b.id) : (b.id === 'custom'); }catch(e){ cur = (b.id === 'custom'); }
+    var n = wmCount(b);
+    var ch = wmChapters(b);
+    var kind = (b.dir === 'listening') ? ' wm-k-l' : (b.dir === 'reading') ? ' wm-k-r' : '';
+    var dirTxt = (b.id === 'custom') ? '我的' : (WM_DIR_TXT[b.dir] || '');
+    var kindSpan = (b.id === 'custom') ? '' : '<span class="wm-kind' + kind + '">' + dirTxt + '</span> ';
+    return '<button type="button" class="wm-deal' + (cur ? ' wm-cur' : '') + '" data-k="' + b.id + '">' +
+      (cur ? '<span class="wm-now">当前</span>' : '') +
+      '<span class="wm-deal-h">' +
+        '<span class="wm-deal-ic">' + wmIcon(b.ic) + '</span>' +
+        '<span><span class="wm-deal-nm">' + wmEsc(b.nm) + '</span>' +
+        '<span class="wm-deal-mt">' + kindSpan + wmEsc(b.mt) + '</span></span>' +
+      '</span>' +
+      '<span class="wm-deal-row">' +
+        '<span class="wm-v"><b>' + wmFmt(n) + '</b><span>词</span></span>' +
+        (ch ? '<span class="wm-v" style="margin-left:auto">' + ch + ' ' + wmUnit(b) + '</span>' : '') +
+      '</span>' +
+      '<span class="wm-deal-cov"><span>' + wmEsc((b.id === 'custom') ? '我的词库' : (dirTxt + '方向')) + '</span><span>' + wmEsc(b.src) + '</span></span>' +
+      '<span class="wm-deal-ft"><span>' + wmEsc((b.id === 'custom') ? '我的' : (dirTxt + '方向')) + '</span><span class="wm-go">看这本 ›</span></span>' +
+    '</button>';
+  }
+
+  function wmMatch(b){
+    if (wmOwn && b.own !== wmOwn) return false;
+    if (wmDir !== 'all'){
+      /* 「我的」这颗是 own 维度的，不在方向里；方向筛选对 custom 一律不命中 */
+      if (b.id === 'custom') return false;
+      if (b.dir !== wmDir) return false;
+    }
+    if (wmKw){
+      /* 可搜：书名 + meta + 来源 + 方向（「听力」要能搜到三本听力书，
+         但 phr 的书名/meta 里没有「听力」二字 → 方向标签必须进检索串）+ 词数 */
+      var dirTxt = (b.id === 'custom') ? '我的' : (WM_DIR_TXT[b.dir] || '');
+      var hay = (b.nm + ' ' + b.mt + ' ' + b.src + ' ' + dirTxt + ' ' + wmFmt(wmCount(b)) + ' ' + String(wmCount(b))).toLowerCase();
+      if (hay.indexOf(wmKw) < 0) return false;
+    }
+    return true;
+  }
+
+  function wmRender(){
+    var box = $('wmDeals');
+    if (!box) return;
+    var hit = WM_BOOKS.filter(wmMatch);
+    box.innerHTML = hit.map(wmCardHtml).join('') +
+      '<button type="button" class="wm-deal-add" id="wmDealAdd">＋ 导入我的词书</button>';
+    if (!hit.length){
+      /* 零命中不能是一片空白（会让人以为坏了） */
+      box.innerHTML = '<p class="wm-none">没有匹配的词书。换个方向或清掉搜索词看看。</p>' + box.innerHTML;
+    }
+  }
+
+  /* 切书 → 进旧词库内容（第 3 批换成真正的词书详情态） */
+  function wmOpenBook(id){
+    var cur = 'custom';
+    try{ cur = (typeof wbActive === 'function') ? wbActive() : 'custom'; }catch(e){}
+    if (id !== cur){
+      try{ if (typeof wbSetActive === 'function') wbSetActive(id); }catch(e){}
+      /* 官方词包是异步 fetch 的：切过去时词还没到，等它 ready 再渲（js/words.js 同款处理） */
+      var needFetch = (id !== 'custom') && !(typeof wbLoaded === 'function' && wbLoaded(id));
+      if (needFetch && typeof obBankReady === 'function'){
+        Promise.resolve(obBankReady(id)).then(function(){
+          try{ if (typeof renderWords === 'function') renderWords(); }catch(e){}
+          wmRender();
+        }).catch(function(){ wmRender(); });
+      }
+    }
+    try{ if (typeof renderWords === 'function') renderWords(); }catch(e){}
+    wmShowLegacy();
+    wmRender();
+  }
+
+  function wmShowMall(){
+    var mall = $('vMall'), leg = $('wmLegacy');
+    if (mall) mall.hidden = false;
+    if (leg)  leg.hidden  = true;
+  }
+  function wmShowLegacy(){
+    var mall = $('vMall'), leg = $('wmLegacy');
+    if (mall) mall.hidden = true;
+    if (leg)  leg.hidden  = false;
+    try{ if (typeof hubResetPageScroll === 'function') hubResetPageScroll(); }catch(e){}
+  }
+
+  function wmBind(){
+    if (window.__wmBound) return;
+    window.__wmBound = true;
+    document.addEventListener('click', function(ev){
+      var t = ev.target;
+      if (!t || !t.closest) return;
+
+      /* 筛选：方向 */
+      var d = t.closest('#wmDirRow .wm-f');
+      if (d){
+        ev.preventDefault();
+        wmDir = d.getAttribute('data-dir') || 'all';
+        $('wmDirRow').querySelectorAll('.wm-f').forEach(function(x){ x.classList.toggle('wm-on', x === d); });
+        wmRender();
+        return;
+      }
+      /* 筛选：官方 / 我的（再点一次取消） */
+      var o = t.closest('#wmOwnRow .wm-f');
+      if (o){
+        ev.preventDefault();
+        var v = o.getAttribute('data-own');
+        wmOwn = (wmOwn === v) ? null : v;
+        $('wmOwnRow').querySelectorAll('.wm-f').forEach(function(x){ x.classList.toggle('wm-on', wmOwn !== null && x.getAttribute('data-own') === wmOwn); });
+        wmRender();
+        return;
+      }
+      /* ＋ 导入我的词书 → 展开导入折叠条（与旧网格那个 + 卡同一条路，零改动） */
+      if (t.closest('#wmDealAdd')){
+        ev.preventDefault();
+        var impBody = $('wlImpBody'), impBar = $('wlImpBar'), impCard = $('bankImportCard');
+        if (impBody && impBar && impCard){
+          wmShowLegacy();
+          impBody.hidden = false;
+          impCard.classList.add('open');
+          impBar.setAttribute('aria-expanded', 'true');
+          impCard.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          setTimeout(function(){ var ta = $('smartInput'); if (ta && ta.focus) ta.focus({ preventScroll: true }); }, 260);
+        }
+        return;
+      }
+      /* 点书卡 → 切词书 + 看这本 */
+      var card = t.closest('.wm-deal');
+      if (card && card.getAttribute('data-k')){
+        ev.preventDefault();
+        wmOpenBook(card.getAttribute('data-k'));
+        return;
+      }
+      /* 从旧词库回商城 */
+      if (t.closest('#wmBackMall')){
+        ev.preventDefault();
+        wmShowMall();
+        wmRender();
+        return;
+      }
+    });
+
+    var si = $('wmSearch');
+    if (si) si.addEventListener('input', function(){
+      wmKw = String(si.value || '').trim().toLowerCase();
+      wmRender();
+    });
+  }
+
+  window.__wmShowMall = wmShowMall;
+  window.__wmRender   = wmRender;
   /* 数据是异步到的 → 就绪后刷一次；合并后刷一次 */
   function boot(){
     bindOnce();
     wrapProg();
+    wmBind();
+    wmShowMall();
+    wmRender();
     var tries = 0;
     (function wait(){
       var ok = false;
@@ -698,7 +980,7 @@ body.word-fullscreen .hub-topbar{display:none !important}
   else boot();
 
   document.addEventListener('hub:data-merged', function(){ try{ syncToday(); }catch(e){} });
-  document.addEventListener('wb:switched', function(){ try{ syncToday(); }catch(e){} });
+  document.addEventListener('wb:switched', function(){ try{ syncToday(); }catch(e){} try{ wmRender(); }catch(e2){} });
   window.__wdRefreshToday = syncToday;
   /* ── ④ 谁该进答题态 ──
      落地态 = #preStart（今日卡 + 开始按钮），这是设计稿给的第一屏。

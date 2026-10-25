@@ -533,3 +533,187 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
   color:#8fe0d6;
 }
 /* 三格底与卡片同深时，靠 --n-100 抬一档层次（深色下已是 #2e2e32，无需改；留注释防误改） */
+
+/* ══════════════════════════════════════════════════════════════════════
+   W-WORD-2（10-26）第 2 批 · 词库商城态（#vMall）
+   ① 设计稿 1:1 导出块（design/_W-word-mall_精确样式.css 原文，前缀 wm-）
+   ② 稿子没有的功能件 + 深色补差 + 手机断点
+   🔴 ① 不许手改：验收基线 _W-word-mall_验收基线.json（24 元素）是拿它算出来的。
+   ══════════════════════════════════════════════════════════════════════ */
+.wm-page{
+  --wm-line:#e6e9ea;
+  --wm-ink:#1f2328;
+  --wm-muted:#71767e;
+  font-size:15px;
+  line-height:1.7;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+
+.wm-page, .wm-page *{ box-sizing: border-box; }
+.wm-note{ background: var(--n-100); border-radius: var(--radius-sm); padding: 11px 14px; font-size: 12px; color: var(--ink-2); line-height: 1.75; margin-top: 14px; }
+@media (max-width: 560px){
+.wm-opts{ grid-template-columns: 1fr; }
+}
+.wm-filters{ display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.wm-frow{ display: flex; gap: 5px; flex-wrap: wrap; }
+.wm-f{ border: 1px solid var(--wm-line); background: var(--surface); color: var(--ink-2); border-radius: 20px; padding: 5px 13px; font-size: 12.5px; cursor: pointer; font-family: inherit; }
+.wm-f.wm-on{ background: var(--wm-ink); border-color: var(--wm-ink); color: var(--surface); font-weight: 650; }
+.wm-fsep{ width: 1px; height: 20px; background: var(--wm-line); margin: 0px 4px; }
+.wm-mall-search{ margin-left: auto; display: flex; align-items: center; gap: 6px; height: 32px; padding: 0px 12px; border: 1px solid var(--wm-line); border-radius: 20px; background: var(--surface); color: var(--wm-muted); font-size: 12.5px; min-width: 180px; }
+.wm-deals{ display: grid; grid-template-columns: repeat(auto-fill, minmax(255px, 1fr)); gap: 12px; }
+.wm-deal{ position: relative; text-align: left; border: 1px solid var(--wm-line); background: var(--surface); border-radius: var(--radius); padding: 15px 16px; cursor: pointer; font-family: inherit; display: flex; flex-direction: column; gap: 10px; }
+.wm-deal.wm-cur{ border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+.wm-deal .wm-now{ position: absolute; top: 10px; right: 10px; font-size: 10.5px; font-weight: 700; color: rgb(255, 255, 255); background: var(--primary); border-radius: 20px; padding: 2px 8px; }
+.wm-deal-h{ display: flex; align-items: center; gap: 9px; }
+.wm-deal-ic{ width: 30px; height: 30px; border-radius: 9px; background: var(--primary-50); color: var(--primary-700); display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+.wm-deal-ic svg{ width: 16px; height: 16px; }
+.wm-deal-nm{ font-size: 13.5px; font-weight: 750; line-height: 1.3; display: block; }
+.wm-deal-mt{ font-size: 11.5px; color: var(--wm-muted); margin-top: 2px; display: block; }
+.wm-deal-row{ display: flex; align-items: baseline; gap: 16px; }
+.wm-deal-row .wm-v b{ font-size: 23px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.wm-deal-row .wm-v span{ font-size: 11.5px; color: var(--wm-muted); margin-left: 3px; }
+.wm-deal-cov{ display: flex; gap: 14px; font-size: 11.5px; color: var(--ink-2); }
+.wm-deal-ft{ display: flex; justify-content: space-between; font-size: 11.5px; color: var(--wm-muted); }
+.wm-deal-ft .wm-go{ color: var(--primary-700); font-weight: 700; }
+.wm-deal-add{ border: 1.5px dashed var(--wm-line); background: none; border-radius: var(--radius); color: var(--wm-muted); font-size: 13px; cursor: pointer; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 158px; }
+.wm-kind{ font-size: 10.5px; font-weight: 700; border-radius: 5px; padding: 1px 6px; background: var(--n-100); color: var(--ink-2); }
+.wm-kind.wm-k-l{ background: rgb(232, 243, 241); color: rgb(30, 107, 98); }
+.wm-kind.wm-k-r{ background: rgb(238, 240, 251); color: rgb(74, 84, 144); }
+.wm-pane{ display: none; }
+
+/* ===== 站点全局标签规则（common.css:470 input / :490 label）的冲突钉死 =====
+   这两条标签选择器直接写在元素上，会盖掉未显式声明的 font-size / line-height。
+   下面按设计稿实测值钉一遍，本文件追加在 common.css 之后 → 同比分靠顺序赢。 */
+.wm-page .wm-f{font-size:12.5px}
+.wm-page .wm-f button, .wm-page .wm-f>button{font-size:12.5px}
+.wm-page .wm-on{font-size:12.5px}
+.wm-page .wm-on button, .wm-page .wm-on>button{font-size:12.5px}
+.wm-page .wm-deal{font-size:13.3333px}
+.wm-page .wm-deal button, .wm-page .wm-deal>button{font-size:13.3333px}
+.wm-page .wm-cur{font-size:13.3333px}
+.wm-page .wm-cur button, .wm-page .wm-cur>button{font-size:13.3333px}
+.wm-page .wm-deal-add{font-size:13px}
+.wm-page .wm-deal-add button, .wm-page .wm-deal-add>button{font-size:13px}
+
+
+/* ===== 加固副本：选择器统一加 .wm-page（具体度 +1 级） =====
+   为什么有这一段：common.css 有两条标签选择器直接写在元素上、优先于继承——
+     :470 input:not([type=checkbox]):not([type=radio]):not([type=range]) → 具体度 0,3,1
+     :490 label → 全局把 font-size 压成 13px、color 压成 muted、margin-bottom 4px
+   本文件里 (0,2,1) 的规则打不过它们 → 输入框出现「外框包一层、内层又多一个框」，
+   字号也会被压成 13px。这一段靠提高具体度 + 排在最后来压住。
+   🔴 别删：删了输入框立刻变双层框。 */
+.wm-page .wm-note{ background: var(--n-100); border-radius: var(--radius-sm); padding: 11px 14px; font-size: 12px; color: var(--ink-2); line-height: 1.75; margin-top: 14px; }
+@media (max-width: 560px){
+.wm-page .wm-opts{ grid-template-columns: 1fr; }
+}
+.wm-page .wm-filters{ display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.wm-page .wm-frow{ display: flex; gap: 5px; flex-wrap: wrap; }
+.wm-page .wm-f{ border: 1px solid var(--wm-line); background: var(--surface); color: var(--ink-2); border-radius: 20px; padding: 5px 13px; font-size: 12.5px; cursor: pointer; font-family: inherit; }
+.wm-page .wm-f.wm-on{ background: var(--wm-ink); border-color: var(--wm-ink); color: var(--surface); font-weight: 650; }
+.wm-page .wm-fsep{ width: 1px; height: 20px; background: var(--wm-line); margin: 0px 4px; }
+.wm-page .wm-mall-search{ margin-left: auto; display: flex; align-items: center; gap: 6px; height: 32px; padding: 0px 12px; border: 1px solid var(--wm-line); border-radius: 20px; background: var(--surface); color: var(--wm-muted); font-size: 12.5px; min-width: 180px; }
+.wm-page .wm-deals{ display: grid; grid-template-columns: repeat(auto-fill, minmax(255px, 1fr)); gap: 12px; }
+.wm-page .wm-deal{ position: relative; text-align: left; border: 1px solid var(--wm-line); background: var(--surface); border-radius: var(--radius); padding: 15px 16px; cursor: pointer; font-family: inherit; display: flex; flex-direction: column; gap: 10px; }
+.wm-page .wm-deal.wm-cur{ border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+.wm-page .wm-deal .wm-now{ position: absolute; top: 10px; right: 10px; font-size: 10.5px; font-weight: 700; color: rgb(255, 255, 255); background: var(--primary); border-radius: 20px; padding: 2px 8px; }
+.wm-page .wm-deal-h{ display: flex; align-items: center; gap: 9px; }
+.wm-page .wm-deal-ic{ width: 30px; height: 30px; border-radius: 9px; background: var(--primary-50); color: var(--primary-700); display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+.wm-page .wm-deal-ic svg{ width: 16px; height: 16px; }
+.wm-page .wm-deal-nm{ font-size: 13.5px; font-weight: 750; line-height: 1.3; display: block; }
+.wm-page .wm-deal-mt{ font-size: 11.5px; color: var(--wm-muted); margin-top: 2px; display: block; }
+.wm-page .wm-deal-row{ display: flex; align-items: baseline; gap: 16px; }
+.wm-page .wm-deal-row .wm-v b{ font-size: 23px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.wm-page .wm-deal-row .wm-v span{ font-size: 11.5px; color: var(--wm-muted); margin-left: 3px; }
+.wm-page .wm-deal-cov{ display: flex; gap: 14px; font-size: 11.5px; color: var(--ink-2); }
+.wm-page .wm-deal-ft{ display: flex; justify-content: space-between; font-size: 11.5px; color: var(--wm-muted); }
+.wm-page .wm-deal-ft .wm-go{ color: var(--primary-700); font-weight: 700; }
+.wm-page .wm-deal-add{ border: 1.5px dashed var(--wm-line); background: none; border-radius: var(--radius); color: var(--wm-muted); font-size: 13px; cursor: pointer; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 158px; }
+.wm-page .wm-kind{ font-size: 10.5px; font-weight: 700; border-radius: 5px; padding: 1px 6px; background: var(--n-100); color: var(--ink-2); }
+.wm-page .wm-kind.wm-k-l{ background: rgb(232, 243, 241); color: rgb(30, 107, 98); }
+.wm-page .wm-kind.wm-k-r{ background: rgb(238, 240, 251); color: rgb(74, 84, 144); }
+.wm-page .wm-pane{ display: none; }
+
+/* ===== 站点全局标签规则（common.css:470 input / :490 label）的冲突钉死 =====
+   这两条标签选择器直接写在元素上，会盖掉未显式声明的 font-size / line-height。
+   下面按设计稿实测值钉一遍，本文件追加在 common.css 之后 → 同比分靠顺序赢。 */
+
+
+/* ═══ W-WORD-2（10-26）第 2 批 · 词库商城态 ═══
+   上面 ① 段 = design/_W-word-mall_精确样式.css 原文（机器导出，前缀 wm-），一个字没改：
+   验收基线 _W-word-mall_验收基线.json（24 元素）是拿它算出来的。
+   下面 ② 段是稿子没有、站点必须有的补差。
+
+   ① 段里两条要留意的：
+     · .wm-pane{display:none} —— 稿子三态切换用的。本站三态由 switchWordTab 管 hidden，
+       所以商城根上**只挂 .wm-page，不再挂 .wm-pane**（挂了就整块不显示）。
+     · .wm-mall-search 在稿子里是个**假的**（一个 span，里面没 input）；
+       本站要真能搜，里面放的是 <input id="wmSearch"> —— 所以下面补输入框的皮。
+*/
+
+/* ───── ② 补差（只往这里加，① 段不许动） ───── */
+
+/* 🔴 圆角对不齐（1:1 判据里唯一红的 4 条）：
+      稿子 --radius=14px / --radius-sm=10px，站点 common.css 是 16px / 12px（:103/:105）。
+      导出件用 var(--radius) 写，落到站点就被撑大 2px。
+      与 W-WORD-1（.wd-page）同一条解法：在 .wm-page 上把这两个变量**指回稿子的值**，
+      不改导出件一个字、不动站点 token、不影响别的 18 个页。 */
+.wm-page{ --radius:14px; --radius-sm:10px; }
+
+
+/* 搜索框里的真 input：稿子是个空 span，没有 input 的样式。
+   剥掉浏览器默认外观，让它只贡献文字；尺寸/圆角/底色全由外层 .wm-mall-search 出。 */
+.wm-page .wm-mall-search input{
+  border:0; outline:0; background:transparent; color:var(--ink);
+  font:inherit; font-size:12.5px; width:100%; min-width:0; padding:0; margin:0;
+}
+.wm-page .wm-mall-search input::placeholder{ color:var(--wm-muted); }
+/* 站点 common.css 有一条 input:not([type=checkbox])... 的标签选择器（:470），
+   会给输入框加边框/内距/字号 → 这里靠「.wm-page 前缀 + 排最后」压回去。 */
+.wm-page .wm-mall-search input:not([type=checkbox]):not([type=radio]):not([type=range]){
+  border:0; padding:0; font-size:12.5px; height:auto; min-height:0; background:transparent;
+}
+
+/* 🔴 筛选项也是 <button>（.wm-f.wm-on 在稿子里是「深底白字」）——
+      同上：按钮不吃继承，深色下选中态会变「深底黑字」。补上继承色。 */
+.wm-page .wm-f{ color:var(--ink-2); }
+.wm-page .wm-f.wm-on{ color:var(--surface); }
+
+/* 零命中时的一行说明（稿子没有这个状态） */
+.wm-page .wm-none{
+  grid-column:1 / -1; margin:0; padding:10px 2px; font-size:12.5px; color:var(--wm-muted);
+}
+
+/* 🔴 书卡 / 筛选是 <button>，稿子画的是 <div>：
+      按钮不继承父级 color（UA 默认 color:buttontext，深色下站点的 data-theme 不联动它）
+      → 实测深色下 .wm-deal-nm / 大词数是纯黑 rgb(0,0,0)，对比度 1.21:1（探针判红）。
+      导出件里没写 color（因为 div 会继承），所以补在 ② 段，① 段一个字不动。 */
+.wm-page .wm-deal{ color:var(--wm-ink); }
+
+/* 书卡是 <button>：稿子画的是 div，按钮会继承到站点 .btn 的外边距/行高 → 归零 */
+.wm-page .wm-deal{ margin:0; text-align:left; }
+.wm-page .wm-deal:hover{ border-color:var(--primary); }
+
+/* 深色：导出件的 --wm-line / --wm-ink / --wm-muted 是写死的浅色值，
+   深色下不换就是「深灰底 + 深灰字看不见」。只换颜色，版式一个不动（那 24 项是 1:1 判据）。 */
+[data-theme="dark"] .wm-page{
+  --wm-line:var(--line);
+  --wm-ink:var(--ink);
+  --wm-muted:var(--muted);
+}
+[data-theme="dark"] .wm-page .wm-deal-ic{ background:var(--primary-50); color:var(--primary-text); }
+[data-theme="dark"] .wm-page .wm-deal-ft .wm-go,
+[data-theme="dark"] .wm-page .wm-deal .wm-now{ color:var(--primary-text); }
+[data-theme="dark"] .wm-page .wm-deal .wm-now{ background:var(--primary); color:#0f3330; }
+[data-theme="dark"] .wm-page .wm-kind.wm-k-l{ background:rgba(124,202,194,.16); color:#8fe0d6; }
+[data-theme="dark"] .wm-page .wm-kind.wm-k-r{ background:rgba(150,170,255,.16); color:#b9c6ff; }
+[data-theme="dark"] .wm-page .wm-deal.wm-cur{ border-color:var(--primary); box-shadow:0 0 0 1px var(--primary); }
+[data-theme="dark"] .wm-page .wm-mall-search input{ color:var(--ink); }
+[data-theme="dark"] .wm-page .wm-mall-search input::placeholder{ color:var(--muted); }
+
+/* 手机 ≤560：搜索框独占一行（稿子的 .wm-filters 是 flex wrap，窄屏会挤成一团） */
+@media (max-width:560px){
+  .wm-page .wm-mall-search{ margin-left:0; width:100%; }
+  .wm-page .wm-fsep{ display:none; }
+}
