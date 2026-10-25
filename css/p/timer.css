@@ -1,340 +1,278 @@
 /* 计时页专属样式（只有 timer.html 用）。
    ==========================================================
-   三段结构，别打乱顺序：
-     ① 本页功能件（进度条 / 结束暂停两个按钮 / 空闲提示 / 今日记录空态）
-     ② 设计稿 1:1 导出块（scripts/mockup-export.cjs 机器生成 → design/_T-timer_精确样式.css 原文）
-     ③ 站点既有组件 + 深色 + 中和覆盖
+   KIMI-P1-1（10-25）：整页按 Kimi 样子稿重做，旧的 W-TIMER（tm-）导出块整段作废、已删。
+   现在两段结构，别打乱顺序：
+     ① 设计稿 1:1 导出块（机器生成 → design/kimi-visual-upgrade-2026-10-25/_KT-timer_精确样式.css 原文）
+     ② Kimi 稿没有的功能件 + 深色补差 + 手机断点补丁
 
-   🔴 ② 必须整段排在 ③ 之前，且不许手改：验收基线 design/_T-timer_验收基线.json
-      是拿它算出来的，改一个数字就是「1:1 不成立」。
-   🔴 ② 里有 .tm-page *{margin:0;padding:0} 的硬 reset —— 站点原有元素（两个按钮、
-      进度条、空闲提示、空态文案）的间距失效，所以 ① 里的间距会显得「白写」，
-      真正生效的是 ③ 段末尾那几条 re-assert（同一批值，排在 reset 之后）。
+   🔴 ① 不许手改：验收基线 _KT-timer_验收基线.json（29 元素）是拿它算出来的，
+       改一个数字就是「1:1 不成立」。要补只往 ② 追加。
+   🔴 为什么还有 ②：导出件来自独立样子稿，稿里没有进度条真内容 / 今日记录行 /
+       分段按钮的 .seg-btn 旧接线 —— 这些站点必须有，只能补。
+
+   导出件的 4 处已知修正（跑工具时它会报，照规矩改在文件内容里、不是改工具）：
+     ① 两条 button:disabled / button:active 裸标签选择器 → 补 .kt-page 前缀（否则打穿 18 个页）
+     ② 基准字号工具没采到（mockup 不是 body），按稿子实测填 15px / 1.65
+     ③ 删掉 demo-bar / container / theme-btn / page-head / review-note 五组死样式（稿子的外壳，站点没有）
+     ④ 工具偶发把 .kt-page 叠两遍（选择器永不命中），脱到一层
 */
 
-/* ───── ① 本页功能件 ───── */
-.timer-progress{margin:0 0 14px;text-align:left}
-.timer-progress:empty{margin-bottom:0}
-.timer-btns{display:flex;gap:12px;justify-content:center;margin-top:14px}
-.timer-btns button{min-width:120px;min-height:42px;display:inline-flex;align-items:center;
-  justify-content:center;font-size:14px;font-weight:700;padding:0 18px;border-radius:11px;
-  border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;
-  transition:background .15s,color .15s,border-color .15s}
-.timer-btns button:hover:not(:disabled){background:var(--primary-soft);color:var(--primary-text);
-  border-color:var(--primary-200)}
-.timer-btns button:disabled{opacity:.35;cursor:not-allowed}
-.timer-idle-hint{margin:10px 0 0;text-align:center;font-size:13px;color:var(--muted);line-height:1.6}
-body.timer-running .timer-idle-hint{display:none}
-.rec-empty{font-size:12.5px;color:var(--muted);text-align:center;margin:10px 0 0}
-#recMiniGrid{display:flex;flex-direction:column;gap:7px}
-
-/* ───── ② 设计稿 1:1 导出块（机器生成，勿手改） ───── */
-/* ======================================================================
-   T-timer · 精确样式（机器导出，勿手改）
-   ======================================================================
-   来源：计时页重设计-桌面版-2026-10-24.html 里的 .pg
-   导出：scripts/mockup-export.cjs · 前缀 tm-
-
-   放在哪
-     只追加到 css/p/timer.css 末尾（本页专用），不许进 common.css。
-
-   为什么类名都带 tm-
-     站点 .card / .bar / .chip / .muted / .yes / .no / .big 在 common.css 里已有定义，
-     不加前缀直接覆盖会打穿别的 18 个页面。
-
-   配套
-     · _T-timer_结构原文.html   ← 类名与本文件一一对应
-     · _T-timer_验收基线.json   ← 关键元素宽高与样式基线，收尾自检用
-
-   🔴 本文件开头那个 token 块必须原样保留：
-      设计稿自带一套私有变量（--card / --p500 / --line2 / --r ...），站点没有。
-      导出时已把能映射的换成站点 token，映射不到的按设计稿原值兜底成 tm-xxx。
-      删掉这个块 → var() 解析成空 → 边框/底色全丢。
-
-   🔴 基准字号 / 行高 / 字体栈照**设计稿 body** 原样搬（不是随便写 16px）：
-      站点 body 是 15px + 行高 1.62，设计稿可能是别的值，不搬会让所有继承字号的元素偏 1px。
-      本次设计稿 body 采到：{"background":"var(--bg)","color":"var(--ink)","font-family":"\"PingFang SC\",\"Microsoft YaHei\",system-ui,sans-serif","line-height":"1.65","padding":"30px 18px 70px"}
-   ====================================================================== */
-
-.tm-page{
-  --tm-bg:#f4f7f8;
-  --tm-muted:#6c7b7a;
-  --tm-primary-soft:#e8f4f2;
-  --tm-surface:#fff;
-  --tm-primary-700:#2c7873;
-  --tm-primary:#3a9a93;
-  --tm-line:#e3e9ec;
-  --tm-n-500:#9aa8a6;
-  --tm-ink:#1d2b2a;
-  font-size:16px;
+.kt-page{
+  --kt-line:#e2e6e4;
+  --kt-sh:0 2px 8px rgba(23,62,58,.035);
+  --kt-pd:#276f69;
+  --kt-p:#3a9a93;
+  --kt-muted:#626f6b;
+  --kt-ink:#173e3a;
+  --kt-soft:#f7f9f7;
+  --kt-text:#31423f;
+  font-size:15px;
   line-height:1.65;
-  font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  font-family:system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
   -webkit-font-smoothing:antialiased;
 }
 
-.tm-page, .tm-page *{ margin: 0px; padding: 0px; box-sizing: border-box; }
-.tm-pg{ padding: 22px 28px 32px; background: var(--tm-bg); }
-.tm-pg-h{ display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
-.tm-pg-h h3{ font-size: 21px; font-weight: 800; letter-spacing: -0.01em; }
-.tm-pg-h .tm-hint{ font-size: 12.5px; color: var(--tm-muted); }
-.tm-stage{ background: linear-gradient(168deg,var(--tm-primary-soft),var(--tm-surface) 72%); border: 1px solid rgb(207, 230, 227); border-radius: 18px; padding: 22px 24px 20px; margin-bottom: 18px; }
-.tm-st-top{ display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 12px; }
-.tm-st-state{ display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; color: var(--tm-primary-700); background: rgb(255, 255, 255); border: 1px solid rgb(207, 230, 227); border-radius: 999px; padding: 4px 13px; }
-.tm-st-state .tm-d{ width: 7px; height: 7px; border-radius: 50%; background: var(--tm-primary); }
-.tm-st-state.tm-idle{ color: var(--tm-muted); border-color: var(--tm-line); }
-.tm-st-state.tm-idle .tm-d{ background: var(--tm-n-500); }
-.tm-st-today{ margin-left: auto; font-size: 12.5px; color: var(--tm-muted); }
-.tm-st-today b{ color: var(--tm-ink); font-weight: 700; }
-.tm-big-time{ font-size: clamp(46px, 7vw, 62px); font-weight: 800; color: var(--tm-primary-700); line-height: 1.02; font-variant-numeric: tabular-nums; letter-spacing: 0.01em; text-align: center; margin: 2px 0px 4px; }
-.tm-st-focus{ text-align: center; font-size: 13px; color: var(--tm-muted); margin-bottom: 16px; min-height: 19px; }
-.tm-bar{ display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.tm-bar .tm-task-in{ flex: 1 1 0%; min-width: 180px; display: flex; align-items: center; gap: 9px; background: rgb(255, 255, 255); border: 1px solid var(--tm-line); border-radius: 11px; padding: 0px 12px; height: 42px; }
-.tm-bar .tm-task-in svg{ flex: 0 0 auto; color: var(--tm-n-500); }
-.tm-bar .tm-task-in input{ border-width: medium; border-style: none; border-color: currentcolor; border-image: none; outline: none; background: transparent; font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 14px; flex: 1 1 0%; color: var(--tm-ink); min-width: 0px; }
-.tm-bar .tm-dur{ display: flex; align-items: center; gap: 6px; height: 42px; background: rgb(255, 255, 255); border: 1px solid var(--tm-line); border-radius: 11px; padding: 0px 12px; font-size: 13.5px; color: var(--tm-muted); white-space: nowrap; }
-.tm-bar .tm-dur input{ width: 44px; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; outline: none; background: transparent; font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 14px; font-weight: 700; color: var(--tm-ink); text-align: center; }
-.tm-seg{ display: inline-flex; border: 1px solid var(--tm-line); border-radius: 11px; overflow: hidden; height: 42px; background: rgb(255, 255, 255); }
-.tm-seg-btn{ font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 13px; font-weight: 700; padding: 0px 15px; height: 42px; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; background: transparent; color: var(--tm-muted); cursor: pointer; }
-.tm-seg-btn + .tm-seg-btn{ border-left: 1px solid var(--tm-line); }
-.tm-seg-btn.tm-on{ background: var(--tm-primary); color: rgb(255, 255, 255); }
-.tm-btn-go{ border-width: medium; border-style: none; border-color: currentcolor; border-image: none; background: var(--tm-primary); color: rgb(255, 255, 255); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 14.5px; font-weight: 700; height: 42px; padding: 0px 26px; border-radius: 11px; cursor: pointer; white-space: nowrap; }
-.tm-two{ display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
-@media (max-width: 900px){
-.tm-two{ grid-template-columns: 1fr; }
+.kt-page, .kt-page *{ box-sizing: border-box; }
+.kt-page button, .kt-page input{ font: inherit; }
+.kt-page button{ cursor: pointer; }
+.kt-page button, .kt-page input, .kt-page textarea{ min-height: 44px; }
+.kt-page button{ border-radius: 9px; transition: background 0.15s, border-color 0.15s, color 0.15s; }
+.kt-page button:disabled{ cursor: not-allowed; opacity: 0.48; }
+.kt-page h1, .kt-page h2, .kt-page h3, .kt-page h4, .kt-page p{ margin: 0px; }
+.kt-card{ background: var(--surface); border: 1px solid var(--kt-line); border-radius: 14px; box-shadow: var(--kt-sh); }
+.kt-stage{ padding: 28px 32px 24px; }
+.kt-stage-top{ display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-right: 112px; font-size: 13px; }
+.kt-state{ display: inline-flex; align-items: center; gap: 8px; color: var(--kt-pd); font-weight: 650; }
+.kt-state i{ width: 7px; height: 7px; border: 1.5px solid var(--kt-p); border-radius: 50%; }
+.kt-today{ color: var(--kt-muted); font-variant-numeric: tabular-nums; }
+.kt-big-time{ margin: 18px 0px 14px; text-align: center; font-size: 76px; line-height: 1.2; font-weight: 700; letter-spacing: -0.055em; color: var(--kt-ink); font-variant-numeric: tabular-nums; }
+.kt-focus-info{ min-height: 22px; text-align: center; font-size: 13px; color: var(--kt-muted); }
+.kt-timer-bar{ display: grid; grid-template-columns: minmax(220px, 1fr) 116px auto 88px; gap: 10px; align-items: center; margin-top: 24px; }
+.kt-task-field{ display: flex; align-items: center; gap: 10px; height: 48px; padding: 0px 13px; border: 1px solid var(--kt-line); border-radius: 10px; background: var(--kt-soft); color: var(--kt-muted); }
+.kt-task-field input{ min-width: 0px; width: 100%; border: 0px; outline: 0px; background: transparent; color: var(--kt-text); font-size: 14px; }
+.kt-duration{ display: flex; align-items: center; gap: 6px; height: 48px; padding: 0px 11px; border: 1px solid var(--kt-line); border-radius: 10px; background: var(--kt-soft); font-size: 13px; white-space: nowrap; }
+.kt-duration input{ width: 46px; padding: 0px; border: 0px; outline: 0px; background: transparent; text-align: center; color: var(--kt-ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+.kt-seg{ display: flex; padding: 3px; background: var(--kt-soft); border: 1px solid var(--kt-line); border-radius: 10px; }
+.kt-seg button{ min-height: 44px; border: 0px; background: transparent; padding: 0px 13px; color: var(--kt-muted); font-size: 13px; white-space: nowrap; }
+.kt-seg button.kt-active{ background: var(--surface); color: var(--kt-pd); box-shadow: rgba(0, 0, 0, 0.07) 0px 1px 3px; font-weight: 700; }
+.kt-btn{ display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; padding: 0px 18px; border: 1px solid var(--kt-line); background: var(--surface); color: var(--kt-text); font-size: 13.5px; font-weight: 650; }
+.kt-btn-primary{ background: var(--kt-p); border-color: var(--kt-p); color: rgb(255, 255, 255); }
+.kt-timer-bar > .kt-btn{ height: 48px; }
+.kt-timer-actions{ display: flex; justify-content: center; gap: 10px; margin-top: 16px; }
+.kt-idle-hint{ text-align: center; margin-top: 12px; font-size: 12px; color: var(--kt-muted); }
+.kt-timer-progress{ height: 4px; background: var(--n-100); border-radius: 4px; margin-top: 20px; }
+.kt-two-col{ display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+.kt-panel{ padding: 22px; }
+.kt-panel-head, .kt-record-head{ display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.kt-panel h2, .kt-record h2{ font-size: 16px; color: var(--kt-ink); font-weight: 750; }
+.kt-text-btn{ border: 0px; background: none; color: var(--kt-pd); font-size: 12px; padding: 0px 6px; }
+.kt-panel-sub{ margin-top: 4px; font-size: 12px; line-height: 1.7; color: var(--kt-muted); }
+.kt-empty{ padding: 22px 14px; margin-top: 16px; border: 1px dashed var(--kt-line); border-radius: 10px; text-align: center; color: var(--kt-muted); font-size: 12.5px; line-height: 1.8; }
+.kt-record{ margin-top: 16px; padding: 22px; }
+.kt-total{ font-size: 12px; color: var(--kt-muted); }
+.kt-total b{ color: var(--kt-ink); font-size: 14px; margin-left: 4px; font-variant-numeric: tabular-nums; }
+.kt-rec-empty{ padding: 24px 0px 4px; text-align: center; color: var(--kt-muted); font-size: 13px; }
+.kt-page svg{ flex: 0 0 auto; }
+@media (max-width: 760px){
+.kt-stage{ padding: 24px 20px; }
+.kt-big-time{ font-size: 60px; margin: 22px 0px 14px; }
+.kt-timer-bar{ grid-template-columns: 1fr 116px; }
+.kt-task-field{ grid-column: 1 / -1; }
+.kt-timer-bar > .kt-btn{ grid-column: 1 / -1; }
+.kt-seg{ justify-content: stretch; }
+.kt-seg button{ flex: 1 1 0%; }
+.kt-two-col{ grid-template-columns: 1fr; }
+.kt-panel, .kt-record{ padding: 20px; }
 }
-.tm-panel{ background: var(--tm-surface); border: 1px solid var(--tm-line); border-radius: 16px; padding: 16px 18px; }
-.tm-pn-h{ display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
-.tm-pn-h h4{ font-size: 14.5px; font-weight: 800; }
-.tm-pn-h .tm-act{ font-size: 12px; color: var(--tm-primary-700); font-weight: 600; cursor: pointer; }
-.tm-pn-sub{ font-size: 12px; color: var(--tm-muted); margin-bottom: 12px; }
-.tm-pre{ display: flex; align-items: center; gap: 11px; padding: 10px 12px; border: 1px solid var(--tm-line); border-radius: 12px; margin-bottom: 8px; background: var(--tm-surface); }
-.tm-pre .tm-ic{ width: 32px; height: 32px; border-radius: 9px; background: var(--tm-primary-soft); color: var(--tm-primary-700); display: grid; place-items: center; flex: 0 0 auto; font-size: 14px; font-weight: 800; }
-.tm-pre .tm-nm{ flex: 1 1 0%; min-width: 0px; }
-.tm-pre .tm-nm b{ display: block; font-size: 13.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tm-pre .tm-nm i{ font-style: normal; font-size: 11.5px; color: var(--tm-muted); }
-.tm-pre .tm-dur2{ font-size: 12px; color: var(--tm-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.tm-pre .tm-go{ border: 1px solid var(--tm-line); background: rgb(255, 255, 255); color: var(--tm-ink); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 5px 14px; cursor: pointer; white-space: nowrap; }
-.tm-pre .tm-x{ color: rgb(196, 205, 208); font-size: 14px; cursor: pointer; flex: 0 0 auto; padding: 0px 2px; }
-.tm-recent{ display: flex; align-items: center; gap: 11px; padding: 9px 12px; border-radius: 11px; }
-.tm-recent .tm-dot2{ width: 6px; height: 6px; border-radius: 50%; background: var(--tm-primary); flex: 0 0 auto; }
-.tm-recent .tm-nm{ flex: 1 1 0%; min-width: 0px; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tm-recent .tm-when{ font-size: 11.5px; color: var(--tm-n-500); white-space: nowrap; }
-.tm-recent .tm-go{ border-width: medium; border-style: none; border-color: currentcolor; border-image: none; background: transparent; color: var(--tm-primary-700); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12px; font-weight: 700; cursor: pointer; padding: 4px 8px; }
-.tm-rec{ background: var(--tm-surface); border: 1px solid var(--tm-line); border-radius: 16px; padding: 16px 18px; margin-top: 16px; }
-.tm-rec-h{ display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
-.tm-rec-h h4{ font-size: 14.5px; font-weight: 800; }
-.tm-rec-h .tm-tot{ font-size: 12.5px; color: var(--tm-muted); }
-.tm-rec-h .tm-tot b{ color: var(--tm-ink); font-weight: 700; font-size: 14px; }
-.tm-rec-row{ display: flex; align-items: center; gap: 12px; padding: 9px 12px; border: 1px solid var(--n-100); border-radius: 11px; margin-bottom: 7px; font-size: 13px; }
-.tm-rec-row .tm-nm{ flex: 1 1 0%; min-width: 0px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tm-rec-row .tm-segs{ font-size: 10.5px; font-weight: 600; color: var(--tm-primary-700); background: rgb(240, 248, 247); border: 1px solid rgb(213, 234, 232); border-radius: 999px; padding: 1px 8px; }
-.tm-rec-row .tm-d{ font-variant-numeric: tabular-nums; color: var(--tm-muted); font-size: 12.5px; }
+@media (max-width: 420px){
+.kt-stage{ padding: 22px 16px; }
+.kt-big-time{ font-size: 54px; }
+.kt-stage-top{ font-size: 12px; padding-right: 0px; padding-top: 48px; position: relative; }
+.kt-stage-top .kt-today{ position: absolute; left: 0px; top: 0px; }
+.kt-timer-bar{ gap: 10px; }
+.kt-panel, .kt-record{ padding: 18px 16px; }
+.kt-timer-actions .kt-btn{ flex: 1 1 0%; padding: 0px 10px; }
+.kt-list-row{ gap: 8px; }
+}
+@media (prefers-reduced-motion: reduce){
+.kt-page button{ transition: none; }
+.kt-page button:active:not(:disabled){ transform: none; }
+}
 
 /* ===== 站点全局标签规则（common.css:470 input / :490 label）的冲突钉死 =====
    这两条标签选择器直接写在元素上，会盖掉未显式声明的 font-size / line-height。
    下面按设计稿实测值钉一遍，本文件追加在 common.css 之后 → 同比分靠顺序赢。 */
-.tm-page .tm-task-in{font-size:16px;margin-bottom:0px}
-.tm-page .tm-task-in label, .tm-page .tm-task-in>label{font-size:16px;margin-bottom:0px}
-.tm-page .tm-seg-btn{font-size:13px}
-.tm-page .tm-seg-btn button, .tm-page .tm-seg-btn>button{font-size:13px}
-.tm-page .tm-on{font-size:13px}
-.tm-page .tm-on button, .tm-page .tm-on>button{font-size:13px}
-.tm-page .tm-btn-go{font-size:14.5px}
-.tm-page .tm-btn-go button, .tm-page .tm-btn-go>button{font-size:14.5px}
-.tm-page .tm-go{font-size:12px}
-.tm-page .tm-go button, .tm-page .tm-go>button{font-size:12px}
-.tm-page .tm-task-in input:not([hidden]){font-size:14px;padding:0px;height:23.0938px;border:0px none rgb(29, 43, 42);background:rgba(0, 0, 0, 0);border-radius:0px;box-shadow:none}
-.tm-page .tm-dur input:not([hidden]){font-size:14px;padding:0px;height:23.0938px;border:0px none rgb(29, 43, 42);background:rgba(0, 0, 0, 0);border-radius:0px;box-shadow:none}
+.kt-page .kt-task-field{font-size:15px;margin-bottom:0px}
+.kt-page .kt-task-field label, .kt-page .kt-task-field>label{font-size:15px;margin-bottom:0px}
+.kt-page .kt-duration{font-size:13px;margin-bottom:0px}
+.kt-page .kt-duration label, .kt-page .kt-duration>label{font-size:13px;margin-bottom:0px}
+.kt-page .kt-active{font-size:13px}
+.kt-page .kt-active button, .kt-page .kt-active>button{font-size:13px}
+.kt-page .kt-btn{font-size:13.5px}
+.kt-page .kt-btn button, .kt-page .kt-btn>button{font-size:13.5px}
+.kt-page .kt-btn-primary{font-size:13.5px}
+.kt-page .kt-btn-primary button, .kt-page .kt-btn-primary>button{font-size:13.5px}
+.kt-page .kt-text-btn{font-size:12px}
+.kt-page .kt-text-btn button, .kt-page .kt-text-btn>button{font-size:12px}
+.kt-page .kt-task-field input:not([hidden]){font-size:14px;padding:1px 2px;height:44px;border:0px none rgb(49, 66, 63);background:rgba(0, 0, 0, 0);border-radius:0px;box-shadow:none}
+.kt-page .kt-duration input:not([hidden]){font-size:13px;padding:0px;height:44px;border:0px none rgb(23, 62, 58);background:rgba(0, 0, 0, 0);border-radius:0px;box-shadow:none}
 
 
-/* ===== 加固副本：选择器统一加 .tm-page（具体度 +1 级） =====
+/* ===== 加固副本：选择器统一加 .kt-page（具体度 +1 级） =====
    为什么有这一段：common.css 有两条标签选择器直接写在元素上、优先于继承——
      :470 input:not([type=checkbox]):not([type=radio]):not([type=range]) → 具体度 0,3,1
      :490 label → 全局把 font-size 压成 13px、color 压成 muted、margin-bottom 4px
    本文件里 (0,2,1) 的规则打不过它们 → 输入框出现「外框包一层、内层又多一个框」，
    字号也会被压成 13px。这一段靠提高具体度 + 排在最后来压住。
    🔴 别删：删了输入框立刻变双层框。 */
-.tm-page .tm-pg{ padding: 22px 28px 32px; background: var(--tm-bg); }
-.tm-page .tm-pg-h{ display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
-.tm-page .tm-pg-h h3{ font-size: 21px; font-weight: 800; letter-spacing: -0.01em; }
-.tm-page .tm-pg-h .tm-hint{ font-size: 12.5px; color: var(--tm-muted); }
-.tm-page .tm-stage{ background: linear-gradient(168deg,var(--tm-primary-soft),var(--tm-surface) 72%); border: 1px solid rgb(207, 230, 227); border-radius: 18px; padding: 22px 24px 20px; margin-bottom: 18px; }
-.tm-page .tm-st-top{ display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 12px; }
-.tm-page .tm-st-state{ display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; color: var(--tm-primary-700); background: rgb(255, 255, 255); border: 1px solid rgb(207, 230, 227); border-radius: 999px; padding: 4px 13px; }
-.tm-page .tm-st-state .tm-d{ width: 7px; height: 7px; border-radius: 50%; background: var(--tm-primary); }
-.tm-page .tm-st-state.tm-idle{ color: var(--tm-muted); border-color: var(--tm-line); }
-.tm-page .tm-st-state.tm-idle .tm-d{ background: var(--tm-n-500); }
-.tm-page .tm-st-today{ margin-left: auto; font-size: 12.5px; color: var(--tm-muted); }
-.tm-page .tm-st-today b{ color: var(--tm-ink); font-weight: 700; }
-.tm-page .tm-big-time{ font-size: clamp(46px, 7vw, 62px); font-weight: 800; color: var(--tm-primary-700); line-height: 1.02; font-variant-numeric: tabular-nums; letter-spacing: 0.01em; text-align: center; margin: 2px 0px 4px; }
-.tm-page .tm-st-focus{ text-align: center; font-size: 13px; color: var(--tm-muted); margin-bottom: 16px; min-height: 19px; }
-.tm-page .tm-bar{ display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.tm-page .tm-bar .tm-task-in{ flex: 1 1 0%; min-width: 180px; display: flex; align-items: center; gap: 9px; background: rgb(255, 255, 255); border: 1px solid var(--tm-line); border-radius: 11px; padding: 0px 12px; height: 42px; }
-.tm-page .tm-bar .tm-task-in svg{ flex: 0 0 auto; color: var(--tm-n-500); }
-.tm-page .tm-bar .tm-task-in input{ border-width: medium; border-style: none; border-color: currentcolor; border-image: none; outline: none; background: transparent; font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 14px; flex: 1 1 0%; color: var(--tm-ink); min-width: 0px; }
-.tm-page .tm-bar .tm-dur{ display: flex; align-items: center; gap: 6px; height: 42px; background: rgb(255, 255, 255); border: 1px solid var(--tm-line); border-radius: 11px; padding: 0px 12px; font-size: 13.5px; color: var(--tm-muted); white-space: nowrap; }
-.tm-page .tm-bar .tm-dur input{ width: 44px; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; outline: none; background: transparent; font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 14px; font-weight: 700; color: var(--tm-ink); text-align: center; }
-.tm-page .tm-seg{ display: inline-flex; border: 1px solid var(--tm-line); border-radius: 11px; overflow: hidden; height: 42px; background: rgb(255, 255, 255); }
-.tm-page .tm-seg-btn{ font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 13px; font-weight: 700; padding: 0px 15px; height: 42px; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; background: transparent; color: var(--tm-muted); cursor: pointer; }
-.tm-page .tm-seg-btn + .tm-seg-btn{ border-left: 1px solid var(--tm-line); }
-.tm-page .tm-seg-btn.tm-on{ background: var(--tm-primary); color: rgb(255, 255, 255); }
-.tm-page .tm-btn-go{ border-width: medium; border-style: none; border-color: currentcolor; border-image: none; background: var(--tm-primary); color: rgb(255, 255, 255); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 14.5px; font-weight: 700; height: 42px; padding: 0px 26px; border-radius: 11px; cursor: pointer; white-space: nowrap; }
-.tm-page .tm-two{ display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
-@media (max-width: 900px){
-.tm-page .tm-two{ grid-template-columns: 1fr; }
+.kt-page button:disabled{ cursor: not-allowed; opacity: 0.48; }
+.kt-page .kt-card{ background: var(--surface); border: 1px solid var(--kt-line); border-radius: 14px; box-shadow: var(--kt-sh); }
+.kt-page .kt-stage{ padding: 28px 32px 24px; }
+.kt-page .kt-stage-top{ display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-right: 112px; font-size: 13px; }
+.kt-page .kt-state{ display: inline-flex; align-items: center; gap: 8px; color: var(--kt-pd); font-weight: 650; }
+.kt-page .kt-state i{ width: 7px; height: 7px; border: 1.5px solid var(--kt-p); border-radius: 50%; }
+.kt-page .kt-today{ color: var(--kt-muted); font-variant-numeric: tabular-nums; }
+.kt-page .kt-big-time{ margin: 18px 0px 14px; text-align: center; font-size: 76px; line-height: 1.2; font-weight: 700; letter-spacing: -0.055em; color: var(--kt-ink); font-variant-numeric: tabular-nums; }
+.kt-page .kt-focus-info{ min-height: 22px; text-align: center; font-size: 13px; color: var(--kt-muted); }
+.kt-page .kt-timer-bar{ display: grid; grid-template-columns: minmax(220px, 1fr) 116px auto 88px; gap: 10px; align-items: center; margin-top: 24px; }
+.kt-page .kt-task-field{ display: flex; align-items: center; gap: 10px; height: 48px; padding: 0px 13px; border: 1px solid var(--kt-line); border-radius: 10px; background: var(--kt-soft); color: var(--kt-muted); }
+.kt-page .kt-task-field input{ min-width: 0px; width: 100%; border: 0px; outline: 0px; background: transparent; color: var(--kt-text); font-size: 14px; }
+.kt-page .kt-duration{ display: flex; align-items: center; gap: 6px; height: 48px; padding: 0px 11px; border: 1px solid var(--kt-line); border-radius: 10px; background: var(--kt-soft); font-size: 13px; white-space: nowrap; }
+.kt-page .kt-duration input{ width: 46px; padding: 0px; border: 0px; outline: 0px; background: transparent; text-align: center; color: var(--kt-ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+.kt-page .kt-seg{ display: flex; padding: 3px; background: var(--kt-soft); border: 1px solid var(--kt-line); border-radius: 10px; }
+.kt-page .kt-seg button{ min-height: 44px; border: 0px; background: transparent; padding: 0px 13px; color: var(--kt-muted); font-size: 13px; white-space: nowrap; }
+.kt-page .kt-seg button.kt-active{ background: var(--surface); color: var(--kt-pd); box-shadow: rgba(0, 0, 0, 0.07) 0px 1px 3px; font-weight: 700; }
+.kt-page .kt-btn{ display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; padding: 0px 18px; border: 1px solid var(--kt-line); background: var(--surface); color: var(--kt-text); font-size: 13.5px; font-weight: 650; }
+.kt-page .kt-btn-primary{ background: var(--kt-p); border-color: var(--kt-p); color: rgb(255, 255, 255); }
+.kt-page .kt-timer-bar > .kt-btn{ height: 48px; }
+.kt-page .kt-timer-actions{ display: flex; justify-content: center; gap: 10px; margin-top: 16px; }
+.kt-page .kt-idle-hint{ text-align: center; margin-top: 12px; font-size: 12px; color: var(--kt-muted); }
+.kt-page .kt-timer-progress{ height: 4px; background: var(--n-100); border-radius: 4px; margin-top: 20px; }
+.kt-page .kt-two-col{ display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+.kt-page .kt-panel{ padding: 22px; }
+.kt-page .kt-panel-head, .kt-page .kt-record-head{ display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.kt-page .kt-panel h2, .kt-page .kt-record h2{ font-size: 16px; color: var(--kt-ink); font-weight: 750; }
+.kt-page .kt-text-btn{ border: 0px; background: none; color: var(--kt-pd); font-size: 12px; padding: 0px 6px; }
+.kt-page .kt-panel-sub{ margin-top: 4px; font-size: 12px; line-height: 1.7; color: var(--kt-muted); }
+.kt-page .kt-empty{ padding: 22px 14px; margin-top: 16px; border: 1px dashed var(--kt-line); border-radius: 10px; text-align: center; color: var(--kt-muted); font-size: 12.5px; line-height: 1.8; }
+.kt-page .kt-record{ margin-top: 16px; padding: 22px; }
+.kt-page .kt-total{ font-size: 12px; color: var(--kt-muted); }
+.kt-page .kt-total b{ color: var(--kt-ink); font-size: 14px; margin-left: 4px; font-variant-numeric: tabular-nums; }
+.kt-page .kt-rec-empty{ padding: 24px 0px 4px; text-align: center; color: var(--kt-muted); font-size: 13px; }
+@media (max-width: 760px){
+.kt-page .kt-stage{ padding: 24px 20px; }
+.kt-page .kt-big-time{ font-size: 60px; margin: 22px 0px 14px; }
+.kt-page .kt-timer-bar{ grid-template-columns: 1fr 116px; }
+.kt-page .kt-task-field{ grid-column: 1 / -1; }
+.kt-page .kt-timer-bar > .kt-btn{ grid-column: 1 / -1; }
+.kt-page .kt-seg{ justify-content: stretch; }
+.kt-page .kt-seg button{ flex: 1 1 0%; }
+.kt-page .kt-two-col{ grid-template-columns: 1fr; }
+.kt-page .kt-panel, .kt-page .kt-record{ padding: 20px; }
 }
-.tm-page .tm-panel{ background: var(--tm-surface); border: 1px solid var(--tm-line); border-radius: 16px; padding: 16px 18px; }
-.tm-page .tm-pn-h{ display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
-.tm-page .tm-pn-h h4{ font-size: 14.5px; font-weight: 800; }
-.tm-page .tm-pn-h .tm-act{ font-size: 12px; color: var(--tm-primary-700); font-weight: 600; cursor: pointer; }
-.tm-page .tm-pn-sub{ font-size: 12px; color: var(--tm-muted); margin-bottom: 12px; }
-.tm-page .tm-pre{ display: flex; align-items: center; gap: 11px; padding: 10px 12px; border: 1px solid var(--tm-line); border-radius: 12px; margin-bottom: 8px; background: var(--tm-surface); }
-.tm-page .tm-pre .tm-ic{ width: 32px; height: 32px; border-radius: 9px; background: var(--tm-primary-soft); color: var(--tm-primary-700); display: grid; place-items: center; flex: 0 0 auto; font-size: 14px; font-weight: 800; }
-.tm-page .tm-pre .tm-nm{ flex: 1 1 0%; min-width: 0px; }
-.tm-page .tm-pre .tm-nm b{ display: block; font-size: 13.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tm-page .tm-pre .tm-nm i{ font-style: normal; font-size: 11.5px; color: var(--tm-muted); }
-.tm-page .tm-pre .tm-dur2{ font-size: 12px; color: var(--tm-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.tm-page .tm-pre .tm-go{ border: 1px solid var(--tm-line); background: rgb(255, 255, 255); color: var(--tm-ink); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 5px 14px; cursor: pointer; white-space: nowrap; }
-.tm-page .tm-pre .tm-x{ color: rgb(196, 205, 208); font-size: 14px; cursor: pointer; flex: 0 0 auto; padding: 0px 2px; }
-.tm-page .tm-recent{ display: flex; align-items: center; gap: 11px; padding: 9px 12px; border-radius: 11px; }
-.tm-page .tm-recent .tm-dot2{ width: 6px; height: 6px; border-radius: 50%; background: var(--tm-primary); flex: 0 0 auto; }
-.tm-page .tm-recent .tm-nm{ flex: 1 1 0%; min-width: 0px; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tm-page .tm-recent .tm-when{ font-size: 11.5px; color: var(--tm-n-500); white-space: nowrap; }
-.tm-page .tm-recent .tm-go{ border-width: medium; border-style: none; border-color: currentcolor; border-image: none; background: transparent; color: var(--tm-primary-700); font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 12px; font-weight: 700; cursor: pointer; padding: 4px 8px; }
-.tm-page .tm-rec{ background: var(--tm-surface); border: 1px solid var(--tm-line); border-radius: 16px; padding: 16px 18px; margin-top: 16px; }
-.tm-page .tm-rec-h{ display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
-.tm-page .tm-rec-h h4{ font-size: 14.5px; font-weight: 800; }
-.tm-page .tm-rec-h .tm-tot{ font-size: 12.5px; color: var(--tm-muted); }
-.tm-page .tm-rec-h .tm-tot b{ color: var(--tm-ink); font-weight: 700; font-size: 14px; }
-.tm-page .tm-rec-row{ display: flex; align-items: center; gap: 12px; padding: 9px 12px; border: 1px solid var(--n-100); border-radius: 11px; margin-bottom: 7px; font-size: 13px; }
-.tm-page .tm-rec-row .tm-nm{ flex: 1 1 0%; min-width: 0px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tm-page .tm-rec-row .tm-segs{ font-size: 10.5px; font-weight: 600; color: var(--tm-primary-700); background: rgb(240, 248, 247); border: 1px solid rgb(213, 234, 232); border-radius: 999px; padding: 1px 8px; }
-.tm-page .tm-rec-row .tm-d{ font-variant-numeric: tabular-nums; color: var(--tm-muted); font-size: 12.5px; }
+@media (max-width: 420px){
+.kt-page .kt-stage{ padding: 22px 16px; }
+.kt-page .kt-big-time{ font-size: 54px; }
+.kt-page .kt-stage-top{ font-size: 12px; padding-right: 0px; padding-top: 48px; position: relative; }
+.kt-page .kt-stage-top .kt-today{ position: absolute; left: 0px; top: 0px; }
+.kt-page .kt-timer-bar{ gap: 10px; }
+.kt-page .kt-panel, .kt-page .kt-record{ padding: 18px 16px; }
+.kt-page .kt-timer-actions .kt-btn{ flex: 1 1 0%; padding: 0px 10px; }
+.kt-page .kt-list-row{ gap: 8px; }
+}
+@media (prefers-reduced-motion: reduce){
+.kt-page button:active:not(:disabled){ transform: none; }
+}
 
 /* ===== 站点全局标签规则（common.css:470 input / :490 label）的冲突钉死 =====
    这两条标签选择器直接写在元素上，会盖掉未显式声明的 font-size / line-height。
    下面按设计稿实测值钉一遍，本文件追加在 common.css 之后 → 同比分靠顺序赢。 */
 
 
-/* ───── ③ 站点既有组件 / 深色 / 中和覆盖 ───── */
+/* ───── ② Kimi 稿没有的功能件 + 深色 + 接线补丁 ───── */
 
-/* ===== 通用深色描边药丸按钮 ui-dark-btn（Uiverse elijahgummer 改写：黑渐变 #171717/#242424/#292929/#000000/#252525 → teal 渐变 --primary-d/--primary；白字→--on-primary；原 .styled-button/.inner-button/.icon 改名 .ui-dark-btn*，drop-shadow 中性黑保留） ===== */
-.ui-dark-btn{
-  position:relative;
-  padding:1rem 2rem;
-  font-size:1.1rem;
-  font-weight:bold;
-  color:var(--on-primary);
-  background:linear-gradient(to bottom, var(--primary-d), var(--primary));
-  border-radius:9999px;
-  cursor:pointer;
-  box-shadow:0 2px 4px rgba(0,0,0,1), 0 10px 20px rgba(0,0,0,.4);
-  transition:all .2s ease;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  border:1px solid var(--primary-d);
-  font-family:inherit;
-}
-.ui-dark-btn::before{
-  content:"";
-  position:absolute;
-  top:-2px; right:-1px; bottom:-1px; left:-1px;
-  background:linear-gradient(to bottom, var(--primary), var(--primary-d));
-  z-index:-1;
-  border-radius:9999px;
-  transition:all .2s ease;
-  opacity:1;
-}
-.ui-dark-btn:active{
-  transform:translateY(2px);
-  box-shadow:0 1px 2px rgba(0,0,0,1), 0 5px 10px rgba(0,0,0,.4);
-}
-/* 小号变体：用于计时页等次要操作，避免原版 padding 过大撑满 */
-.ui-dark-btn--sm{ padding:.5rem 1.25rem; font-size:.95rem;
-  box-shadow:0 1px 2px rgba(0,0,0,.5), 0 6px 12px rgba(0,0,0,.25); }
-[data-mod] .section-title{border-left:3px solid var(--mod);padding-left:10px}
+/* 常用 / 最近两块的列表行：稿子只出了空态，有内容时的行没有一个原型。
+   这里按稿子的 .list-row / .list-text / .list-action 三个命名补齐
+   （app稿那段 CSS 没被导出来，因为 mockup 里没渲染这些元素）。 */
+.kt-page .kt-list-row{ display:flex; align-items:center; gap:10px; min-width:0;
+  padding:11px 0; border-top:1px solid var(--kt-line); }
+.kt-page .kt-list-row:first-of-type{ border-top:0; padding-top:0; }
+.kt-page .kt-list-row:last-of-type{ padding-bottom:0; }
+.kt-page .kt-list-text{ min-width:0; flex:1 1 0%; }
+.kt-page .kt-list-text b{ display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  font-size:13.5px; color:var(--kt-ink); font-weight:650; }
+.kt-page .kt-list-text small{ display:block; margin-top:2px; font-size:12px; color:var(--kt-muted);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.kt-page .kt-when{ flex:none; font-size:12px; color:var(--kt-muted); font-variant-numeric:tabular-nums; white-space:nowrap; }
+.kt-page .kt-list-action{ flex:none; min-height:44px; border:1px solid var(--kt-line); background:transparent;
+  color:var(--kt-pd); font-size:12px; font-weight:650; padding:0 11px; border-radius:9px; }
+.kt-page .kt-list-action:hover{ background:var(--primary-soft); border-color:var(--kt-p); }
+.kt-page .kt-empty{ margin-top:14px; }
 
-/* 两个按钮（结束并保存 / 暂停）改成本页设计语言：白底描边药丸，不再用黑色渐变。
-   类名不动 —— timer.js 暂停时会把 className 改成 'btn btn-primary'，所以两条都盖。 */
-.tm-page .timer-btns .ui-dark-btn,
-.tm-page .timer-btns .btn{
-  position:static;min-width:120px;min-height:42px;padding:0 20px;border-radius:11px;
-  background:var(--tm-surface);color:var(--tm-ink);border:1px solid var(--tm-line);
-  box-shadow:none;font-size:14px;font-weight:700;transform:none;
-}
-.tm-page .timer-btns .btn-primary{
-  background:var(--tm-primary);color:#fff;border-color:var(--tm-primary);
-}
-.tm-page .timer-btns .ui-dark-btn::before{display:none}
-.tm-page .timer-btns .ui-dark-btn:hover:not(:disabled){
-  background:var(--tm-primary-soft);color:var(--tm-primary-700);border-color:var(--tm-primary);
-}
+/* 今日学习记录的行（renderMiniRecords 用 .tm-rec-row 拼）。
+   🔴 类名保持 tm-rec-row：它在 js/timer.js:433 里拼出来，动它会连带 Plan 页；
+      这里只按 Kimi 视觉重画它的皮。 */
+.kt-page #recMiniGrid{ display:flex; flex-direction:column; }
+.kt-page .tm-rec-row{ display:flex; align-items:center; gap:12px; min-width:0;
+  padding:11px 0; border-bottom:1px solid var(--kt-line); font-size:13px; }
+.kt-page .tm-rec-row:last-child{ border-bottom:0; }
+.kt-page .tm-rec-row .tm-nm{ flex:1 1 0%; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  color:var(--kt-ink); font-weight:650; }
+.kt-page .tm-rec-row .tm-segs{ flex:none; font-size:10.5px; font-weight:700; color:var(--kt-pd);
+  background:var(--primary-soft); border:1px solid var(--primary-200); border-radius:999px; padding:1px 8px; }
+.kt-page .tm-rec-row .tm-d{ flex:none; font-variant-numeric:tabular-nums; color:var(--kt-muted); font-size:12.5px; }
+.kt-page .tm-rec-row .rec-mini-del{
+  flex:none; width:26px; height:26px; display:inline-flex; align-items:center; justify-content:center;
+  border:1px solid var(--kt-line); background:var(--surface); color:var(--kt-muted);
+  border-radius:50%; font-size:14px; line-height:1; padding:0; cursor:pointer; }
+.kt-page .tm-rec-row .rec-mini-del:hover{ border-color:var(--danger); color:var(--danger); }
 
-/* 🔴 reset 之后把「非设计稿元素」的间距还回去（① 段给了值，这里才是真正生效的一遍） */
-.tm-page .timer-progress{margin:0 0 14px}
-.tm-page .timer-btns{margin-top:14px}
-.tm-page .timer-idle-hint{margin:10px 0 0;padding:0}
-.tm-page .rec-empty{margin:10px 0 0;padding:0}
-.tm-page #recMiniGrid{margin:0}
-.tm-page .tm-empty{
-  font-size:12.5px;color:var(--tm-muted);padding:9px 12px;line-height:1.7;text-align:center;
-  border:1px dashed var(--tm-line);border-radius:11px;
-}
-/* 今日记录行的删除按钮（设计稿没有这一件，保持小而不抢） */
-.tm-page .tm-rec-row .rec-mini-del{
-  width:22px;height:22px;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
-  border:1px solid var(--tm-line);background:var(--tm-surface);color:var(--tm-n-500);
-  border-radius:50%;font-size:14px;line-height:1;padding:0;cursor:pointer;
-}
-.tm-page .tm-rec-row .rec-mini-del:hover{border-color:var(--danger);color:var(--danger)}
+/* 进度条（js/common.js 的 progressBar 拼出 .bar-row/.bar-info/.bar-track/.bar-fill）
+   —— 稿子里 #timerProgress 是一根 4px 空条，没排内部层级。 */
+.kt-page .kt-timer-progress:empty{ margin-top:20px; }
+.kt-page #timerProgress .bar-row{ margin:0; }
+.kt-page #timerProgress .bar-info{ display:flex; justify-content:space-between; font-size:11px;
+  color:var(--kt-muted); margin-bottom:4px; }
+.kt-page #timerProgress .bar-track{ height:4px; background:var(--n-100); border-radius:4px; overflow:hidden; }
+.kt-page #timerProgress .bar-fill{ height:100%; border-radius:4px; }
 
-/* 🔴 删除按钮行高：基线要 23.1px（= 14px × 1.65 设计稿基准），但 button 不吃继承行高，
-   导出块里那条 .tm-page .tm-pre .tm-x 也只钉了字号没钉行高 → 实测回落成 normal。
-   钉死 23.1px，7 项版式才对得上（这一条是 1:1 最后一条红）。 */
-.tm-page .tm-pre .tm-x{line-height:23.1px}
+/* 🔴 空闲提示：body.timer-running 时隐藏（js/timer.js:260 打这个类，10/13 她要的那条）。
+      稿子没有这个状态（它只画了空态），但这是已拍板行为 —— 保留。 */
+body.timer-running .kt-idle-hint{ display:none; }
 
-/* ── 手机：设计稿只出了桌面 1440。桌面的 bar 是四条平铺（任务名 / 时长 / 正倒 / 开始），
-   到 390px 宽会挤成三行、开始按钮只剩 81px，点起来难受。
-   这里只改排布，不改任何字号/内距/圆角 —— 1:1 判据是那 7 项，桌面 1440 不受这段影响
-   （@media 只在窄屏生效，验收工具跑的是 1440）。 */
-@media(max-width:720px){
-  .tm-page .tm-bar{gap:8px}
-  .tm-page .tm-bar .tm-task-in{flex:1 1 100%;min-width:0}
-  .tm-page .tm-bar .tm-dur{flex:0 0 auto}
-  .tm-page .tm-bar .tm-seg{flex:0 0 auto;margin-left:auto}
-  .tm-page .tm-btn-go{flex:1 1 100%;height:44px}
-  .tm-page .tm-pg{padding:16px 14px 28px}
+/* 🔴 深色：导出件里 .kt-page 的私有变量是写死的浅色值（--kt-ink:#173e3a / --kt-soft:#f7f9f7 ...），
+      深色下不换就是「黑底白字看不见 / 卡片还是白」。这里整体重指到站点深色 token。
+      ⚠️ 只换颜色，字号/内距/圆角一个不动 —— 那 29 项是 1:1 的判据。 */
+[data-theme="dark"] .kt-page{
+  --kt-line:var(--line);
+  --kt-sh:0 2px 8px rgba(0,0,0,.15);
+  --kt-pd:var(--primary-text);
+  --kt-p:var(--primary);
+  --kt-muted:var(--muted);
+  --kt-ink:var(--ink);
+  --kt-soft:var(--surface-2);
+  --kt-text:var(--ink);
 }
-/* 两栏在窄屏叠成一列（导出块在 900px 就叠了，这里只补面板内边距） */
-@media(max-width:900px){
-  .tm-page .tm-panel{padding:14px 15px}
+[data-theme="dark"] .kt-page .kt-seg button.kt-active{ background:var(--surface-2); }
+[data-theme="dark"] .kt-page .tm-rec-row .tm-segs{ background:var(--primary-50); border-color:var(--primary-200); }
+[data-theme="dark"] .kt-page .kt-list-action:hover{ background:var(--primary-soft); }
+
+/* 🔴 深色主按钮「开始」：--kt-p 重指到站点 --primary（深色下是 #5cb3ab），白字只有 2.47:1，
+      实测红（_diag_kt_dark_1025）。按 W-WORD-1（css/p/practice.css:522）同一条铁律：
+      深色小字/按钮统一「亮青底 #8fe0d6 + 深字 #0f3330」→ 8.98:1。
+      ⚠️ 只改深色这一档，浅色的 --kt-p #3a9a93 + 白字 3.37:1 也是红的 —— 但那是设计稿的
+      原配色（1:1 基线比对的就是它），改了就破了她点头的稿；浅色这档按红线 6「照稿 1:1」保留，
+      深色这档稿子根本没画（稿子只有浅色），所以按站点铁律补。 */
+[data-theme="dark"] .kt-page .kt-btn-primary,
+[data-theme="dark"] .kt-page .kt-btn-primary:hover{
+  background:#8fe0d6;
+  border-color:#8fe0d6;
+  color:#0f3330;
 }
 
-/* 🔴 深色：设计稿只出了浅色。导出块里 .tm-page 的私有变量是写死的浅色值
-   （--tm-bg:#f4f7f8 / --tm-surface:#fff ...），深色下不换就是「白底白卡」。
-   这里把私有变量整体重指到站点深色 token，再把导出块里几个写死 rgb() 的白底改掉。
-   ⚠️ 只覆盖颜色，字号/内距/间距一个不动 —— 那 7 项是 1:1 的判据。 */
-[data-theme="dark"] .tm-page{
-  --tm-bg:var(--bg);
-  --tm-muted:var(--muted);
-  --tm-primary-soft:var(--primary-soft);
-  --tm-surface:var(--surface);
-  --tm-primary-700:var(--primary-text);
-  --tm-primary:var(--primary);
-  --tm-line:var(--line);
-  --tm-n-500:var(--n-500);
-  --tm-ink:var(--ink);
+/* 手机 ≤420：稿子在 ≤420 里让「今日专注」绝对定位到卡顶 —— 那是给稿子自己的
+   .demo-bar 留的位置，站点页头是公共顶栏，不需要那 48px 留白，撤掉。 */
+@media (max-width:420px){
+  .kt-page .kt-stage-top{ padding-top:0; position:static; }
+  .kt-page .kt-stage-top .kt-today{ position:static; }
 }
-[data-theme="dark"] .tm-page .tm-stage{border-color:var(--line)}
-[data-theme="dark"] .tm-page .tm-st-state{background:var(--surface);border-color:var(--line)}
-[data-theme="dark"] .tm-page .tm-st-state.tm-idle{border-color:var(--line)}
-[data-theme="dark"] .tm-page .tm-task-in,
-[data-theme="dark"] .tm-page .tm-dur,
-[data-theme="dark"] .tm-page .tm-seg{background:var(--surface);border-color:var(--line)}
-[data-theme="dark"] .tm-page .tm-pre .tm-go{background:var(--surface);border-color:var(--line)}
-[data-theme="dark"] .tm-page .tm-rec-row{border-color:var(--line)}
-[data-theme="dark"] .tm-page .tm-rec-row .tm-segs{
-  background:var(--primary-50);border-color:var(--primary-200);color:var(--primary-text);
-}
-[data-theme="dark"] .tm-page .tm-pre .tm-x{color:var(--n-500)}

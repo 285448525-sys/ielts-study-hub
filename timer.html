@@ -32,7 +32,7 @@
 </script>
 <title>计时 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261026b" />
-<link rel="stylesheet" href="css/p/timer.css?v=20261026b" />
+<link rel="stylesheet" href="css/p/timer.css?v=20261026c" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -51,7 +51,7 @@
   <script defer src="js/common-shell.js?v=20261026b"></script>
   <script defer src="js/common-pwa.js?v=20261026b"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
-  <script defer src="js/timer.js?v=20261025a"></script>
+  <script defer src="js/timer.js?v=20261025b"></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -71,64 +71,52 @@
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 
 <main class="container">
-  <!-- W-TIMER（10-25）：整页按 design/_T-timer_结构原文.html 1:1 重排。
-       类名与 design/_T-timer_精确样式.css 一一对应，验收基线 design/_T-timer_验收基线.json（38 项）。
+  <!-- KIMI-P1-1（10-25）：整页按 design\kimi-visual-upgrade-2026-10-25\01-timer.html 1:1 重排。
+       结构原文 = design\kimi-visual-upgrade-2026-10-25\_KT-timer_结构原文.html（机器导出，前缀 kt-）
+       精确样式 = 同名 _KT-timer_精确样式.css（已整段追加到 css/p/timer.css）
+       验收基线 = 同名 _KT-timer_验收基线.json（29 元素；收尾跑 scripts/mockup-1to1-check.cjs）
        🔴 下面这些 id 一个都没改：#liveTimer #activeInfo #focusInfo #stopBtn #pauseBtn
-          #goalMin #modeSeg #timerProgress #tmTaskName #tmGo #tsToday #timerIdleHint
-          #recMiniGrid #recEmpty #recTotalMini —— js/timer.js 全按这些 id 取值。 -->
-  <div class="tm-page">
-    <div class="tm-pg">
+           #goalMin #modeSeg #timerProgress #tmTaskName #tmGo #tsToday #timerIdleHint
+           #recMiniGrid #recEmpty #recTotalMini #tmPanels #activeInfoWrap —— js/timer.js 全按这些 id 取值。
+       🔴 与上一版（W-TIMER 稿）的三处差别，都是 Kimi 稿要求的：
+          ① 页顶「计时」大标题与「填你在干什么…」那行删了 —— 稿子「页顶无页名标题，首卡贴顶」
+          ② 主卡 / 常用 / 最近 / 今日记录四块统一 .kt-card（14px 圆角 + 极淡投影），不再是渐变主卡
+          ③ 计时数字 76px 成主角；任务名 / 时长 / 正倒 / 开始 收进一条 grid 操作带 -->
+  <div class="kt-page">
+    <section class="kt-card kt-stage" aria-label="专注计时">
+      <div class="kt-stage-top"><span class="kt-state" id="activeInfoWrap"><i></i><span id="activeInfo">未开始</span></span><span class="kt-today" id="tsToday"></span></div>
+      <div class="kt-big-time" id="liveTimer">00:00:00</div>
+      <div class="kt-focus-info" id="focusInfo"></div>
 
-      <div class="tm-pg-h">
-        <h3>计时</h3>
-        <span class="tm-hint">填你在干什么，点开始就会记</span>
+      <div class="kt-timer-bar">
+        <label class="kt-task-field" for="tmTaskName">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+          <input id="tmTaskName" type="text" placeholder="在学什么？如：口语 Part2 跟读" aria-label="本次学习内容" autocomplete="off" />
+        </label>
+        <label class="kt-duration" for="goalMin"><input id="goalMin" type="number" min="1" inputmode="numeric" value="25" aria-label="时长分钟" />分钟</label>
+        <div class="kt-seg" id="modeSeg" role="group" aria-label="计时模式">
+          <button type="button" class="kt-seg-btn seg-btn kt-active active" data-mode="up" aria-pressed="true">正计时</button>
+          <button type="button" class="kt-seg-btn seg-btn" data-mode="down" aria-pressed="false">倒计时</button>
+        </div>
+        <button type="button" class="kt-btn kt-btn-primary" id="tmGo">开始</button>
       </div>
-
-      <!-- 计时主卡 -->
-      <div class="tm-stage">
-        <div class="tm-st-top">
-          <span class="tm-st-state tm-idle" id="activeInfoWrap"><i class="tm-d"></i><span id="activeInfo">未开始</span></span>
-          <span class="tm-st-today" id="tsToday"></span>
-        </div>
-        <div class="tm-big-time" id="liveTimer">00:00:00</div>
-        <div class="tm-st-focus" id="focusInfo"></div>
-
-        <div class="tm-bar">
-          <label class="tm-task-in" for="tmTaskName">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
-            <input id="tmTaskName" type="text" placeholder="在学什么？如：口语 Part2 跟读" aria-label="本次学习内容" autocomplete="off" />
-          </label>
-          <span class="tm-dur">
-            <input id="goalMin" type="number" min="1" inputmode="numeric" value="25" aria-label="时长分钟" />分钟
-          </span>
-          <span class="tm-seg" id="modeSeg">
-            <button type="button" class="tm-seg-btn seg-btn active tm-on" data-mode="up">正计时</button>
-            <button type="button" class="tm-seg-btn seg-btn" data-mode="down">倒计时</button>
-          </span>
-          <button type="button" class="tm-btn-go" id="tmGo">开始</button>
-        </div>
-        <div class="timer-btns">
-          <button class="ui-dark-btn ui-dark-btn--sm" id="stopBtn" disabled>结束并保存</button>
-          <button class="ui-dark-btn ui-dark-btn--sm" id="pauseBtn" disabled>暂停</button>
-        </div>
-        <p class="timer-idle-hint" id="timerIdleHint">填好上面的任务名，点「开始」就会计时</p>
-        <div id="timerProgress" class="timer-progress"></div>
+      <div class="kt-timer-actions">
+        <button class="kt-btn" id="stopBtn" disabled>结束并保存</button>
+        <button class="kt-btn" id="pauseBtn" disabled>暂停</button>
       </div>
+      <p class="kt-idle-hint" id="timerIdleHint">填好上面的任务名，点「开始」就会计时</p>
+      <div id="timerProgress" class="kt-timer-progress" aria-hidden="true"></div>
+    </section>
 
-      <!-- 我的常用 + 最近用过（内容由页尾内联脚本渲染进 #tmPanels） -->
-      <div class="tm-two" id="tmPanels"></div>
+    <!-- 我的常用 + 最近用过（内容由页尾内联脚本渲染进 #tmPanels） -->
+    <div class="kt-two-col" id="tmPanels"></div>
 
-      <!-- 今日学习记录 -->
-      <div class="tm-rec">
-        <div class="tm-rec-h">
-          <h4>今日学习记录</h4>
-          <span class="tm-tot">总计 <b id="recTotalMini">0h0m</b></span>
-        </div>
-        <div id="recMiniGrid"></div>
-        <p class="rec-empty" id="recEmpty" hidden>今天还没有计时记录。开一次专注学习吧。</p>
-      </div>
-
-    </div>
+    <!-- 今日学习记录 -->
+    <section class="kt-card kt-record">
+      <div class="kt-record-head"><h2>今日学习记录</h2><span class="kt-total">总计 <b id="recTotalMini">0h0m</b></span></div>
+      <div id="recMiniGrid"></div>
+      <p class="kt-rec-empty" id="recEmpty" hidden>今天还没有计时记录。开一次专注学习吧。</p>
+    </section>
   </div>
 </main>
 
@@ -234,8 +222,8 @@
     if(ti) ti.value = name || '';
     if(goal) goal.value = (min ? String(min) : '');
     var wantMode = (mode === 'down' && min) ? 'down' : 'up';
-    var btn = document.querySelector('#modeSeg .seg-btn[data-mode="' + wantMode + '"]');
-    if(btn && !btn.classList.contains('active')) btn.click();
+    var btn = document.querySelector('#modeSeg .kt-seg-btn[data-mode="' + wantMode + '"]');
+    if(btn && !btn.classList.contains('kt-active')) btn.click();
     try{
       var mid = null;
       if(moduleIdOpt && typeof MODULES !== 'undefined'){
@@ -261,54 +249,52 @@
     var presets = loadPresets();
     var recent = collectRecent();
 
-    /* 类名全部对应 design/_T-timer_结构原文.html：
-       面板 .tm-panel / 头 .tm-pn-h / 小标题 .tm-pn-sub / 常用行 .tm-pre / 最近行 .tm-recent。
-       空态没有设计稿原型 —— 用一行虚线灰框 .tm-empty，别让面板塌成空白。 */
+    /* 类名全部对应 design/kimi-visual-upgrade-2026-10-25/_KT-timer_结构原文.html：
+       面板 .kt-card.kt-panel / 头 .kt-panel-head / 小标题 .kt-panel-sub /
+       常用行 .kt-list-row / 最近行 .kt-list-row / 空态 .kt-empty。
+       🔴 data-act 一个没动 —— 事件委托下面全按这四组取值（pre-save / pre-del / pre-go / rec-go）。 */
     var preHtml = '';
     if(!presets.length){
-      preHtml = '<p class="tm-empty">还没有常用。填好上面那条栏，点「＋ 存当前的」。</p>';
+      preHtml = '<p class="kt-empty">还没有常用。填好上面那条栏，点「＋ 存当前的」。</p>';
     }else{
       preHtml = presets.map(function(p, i){
         var dur = p.min ? (p.min + ' 分') : '不限时';
         var sub = p.min ? ((p.mode === 'down' ? '倒计时 ' : '正计时 ') + p.min + ' 分钟') : '正计时 · 不设终点';
-        return '<div class="tm-pre" data-i="' + i + '">' +
-          '<span class="tm-ic">' + esc(p.name.trim().slice(0,1)) + '</span>' +
-          '<span class="tm-nm"><b>' + esc(p.name) + '</b><i>' + esc(sub) + '</i></span>' +
-          '<span class="tm-dur2">' + esc(dur) + '</span>' +
-          '<button type="button" class="tm-go" data-act="pre-go" data-i="' + i + '">开始</button>' +
-          '<button type="button" class="tm-x" data-act="pre-del" data-i="' + i + '" title="删除" aria-label="删除 ' + esc(p.name) + '">✕</button>' +
+        return '<div class="kt-list-row" data-i="' + i + '">' +
+          '<span class="kt-list-text"><b>' + esc(p.name) + '</b><small>' + esc(sub) + '</small></span>' +
+          '<span class="kt-when">' + esc(dur) + '</span>' +
+          '<button type="button" class="kt-list-action" data-act="pre-go" data-i="' + i + '">开始</button>' +
+          '<button type="button" class="kt-list-action" data-act="pre-del" data-i="' + i + '" title="删除" aria-label="删除 ' + esc(p.name) + '">✕</button>' +
         '</div>';
       }).join('');
     }
 
     var recHtml = '';
     if(!recent.length){
-      recHtml = '<p class="tm-empty">最近 7 天还没有计时记录。开一次计时，这里就会出现。</p>';
+      recHtml = '<p class="kt-empty">最近 7 天还没有计时记录。开一次计时，这里就会出现。</p>';
     }else{
       recHtml = recent.map(function(r, i){
         var durTxt = r.durSec >= 60 ? (Math.round(r.durSec/60) + ' 分') : (r.durSec + ' 秒');
-        return '<div class="tm-recent" data-i="' + i + '">' +
-          '<i class="tm-dot2"></i>' +
-          '<span class="tm-nm">' + esc(r.name) + '</span>' +
-          '<span class="tm-when">' + esc(whenLabel(r.at)) + ' · 学了 ' + esc(durTxt) + '</span>' +
-          '<button type="button" class="tm-go" data-act="rec-go" data-i="' + i + '">再来一次</button>' +
+        return '<div class="kt-list-row" data-i="' + i + '">' +
+          '<span class="kt-list-text"><b>' + esc(r.name) + '</b><small>' + esc(whenLabel(r.at)) + ' · 学了 ' + esc(durTxt) + '</small></span>' +
+          '<button type="button" class="kt-list-action" data-act="rec-go" data-i="' + i + '">再来一次</button>' +
         '</div>';
       }).join('');
     }
 
     box.innerHTML =
-      '<div class="tm-panel">' +
-        '<div class="tm-pn-h"><h4>我的常用</h4>' +
-          '<span class="tm-act" data-act="pre-save" role="button" tabindex="0">＋ 存当前的</span>' +
+      '<section class="kt-card kt-panel">' +
+        '<div class="kt-panel-head"><h2>我的常用</h2>' +
+          '<button class="kt-text-btn" type="button" data-act="pre-save">＋ 存当前的</button>' +
         '</div>' +
-        '<p class="tm-pn-sub">常用的活存下来，以后点一下就开始，不用每次打字</p>' +
+        '<p class="kt-panel-sub">常用的活存下来，以后点一下就开始，不用每次打字</p>' +
         preHtml +
-      '</div>' +
-      '<div class="tm-panel">' +
-        '<div class="tm-pn-h"><h4>最近用过</h4></div>' +
-        '<p class="tm-pn-sub">自动记的，不用你管 · 只留最近 7 天</p>' +
+      '</section>' +
+      '<section class="kt-card kt-panel">' +
+        '<div class="kt-panel-head"><h2>最近用过</h2></div>' +
+        '<p class="kt-panel-sub">自动记的，不用你管 · 只留最近 7 天</p>' +
         recHtml +
-      '</div>';
+      '</section>';
 
     box.__presets = presets;
     box.__recent = recent;
@@ -332,7 +318,9 @@
       if(list.length >= 20){ toast2('常用最多存 20 条，先删一条'); return; }
       var gv = goal ? String(goal.value || '').trim() : '';
       var n = gv === '' ? null : (Number(gv) > 0 ? Math.round(Number(gv)) : null);
-      var modeEl = document.querySelector('#modeSeg .seg-btn.active');
+      /* KIMI-P1-1（10-25）：分段按钮的类名随稿换成 .kt-seg-btn / .kt-active
+         （原来这里读的是旧稿的 .seg-btn，那颗类在 Kimi 结构里已经没了）。 */
+      var modeEl = document.querySelector('#modeSeg .kt-seg-btn.kt-active');
       list.push({ name: name, min: n, mode: (modeEl && modeEl.dataset.mode === 'down' && n) ? 'down' : 'up' });
       savePresets(list);
       renderPanels();
