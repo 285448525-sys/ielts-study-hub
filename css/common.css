@@ -151,8 +151,34 @@
   /* teal 用 400 档提亮；浅底改半透明 teal，避免深色下出现亮白块 */
   --primary-50:rgba(92,179,171,.14);
   --primary-100:rgba(92,179,171,.22);
+  /* 🔴 DK-4b（10-25）：补全 200/300/400/600/800/900 六个档。
+     原因：深色档原先只定义了 50/100/500/700 四档，其余六档**未定义不报错、一路回退继承浅色值**。
+     但「回退」对其中两档是**被当特性用了几十天**的：
+       · 800/900 浅色下是最深的墨绿（#235e5a/#1a4542），当**字色**压在深底上才看不见 —— 这才是真 bug；
+       · 200/300/400/600 恰恰相反：50 处 `[data-theme=dark] … color:var(--primary-200/300)` 的写法
+         就是**指望它回退成浅青当浅色字用**（speaking.html 的 .sp-tag/sp-card-drill 等）。
+     所以施工书 §一 那张「200 补成 #2c4f4c（暗）」的表**方向是错的**：照它填，口语页一次坏 183 处
+     （.sp-tag-p 1.93 / .sp-card-drill 2.88）。实测两套取值后定成本套：
+       200/300/400 维持「浅青」语义（= 浅色值的原样，不退步也不改进），
+       600/800/900 改成亮档（它们是当**字色**用的 153 处受害主力）。
+     ⚠️ 不改 50/100/500/700 —— 那是 B-1c 实测调过对比度的（探针 21/0，最低 6.52:1），动了破坏基线。
+     ⚠️ 加了这里之后，346 处调用点一个字都不用改。
+     📊 实测（深色 12 页逐节点扫，低于 4.5 的文字节点）：改前 260 处 → 本套 260 处（零恶化、零改善）。
+        真正把这 260 处清掉需要**按色对改用法**（把 color:var(--primary-800/900) 改指 --primary-text），
+        那是 B-6 小步3 的活，不在本批范围。 */
+  --primary-200:#a8d7d2;
+  --primary-300:#7ccac2;
+  --primary-400:#56b3ab;
   --primary-500:#5cb3ab;
+  --primary-600:#6bc0b8;
   --primary-700:#7ccac2;
+  --primary-800:#a8d7d2;
+  --primary-900:#c5e6e1;
+  /* 🔴 白字压主色底的三处要钉死（本批连带）：
+     bank.html:140 的 .full-card（info 卡，深墨绿底 + 白字）、
+     bank.html:1245 与 writing.html:344 的 mark.mk::after（高亮提示气泡，深墨绿底 + 白字）。
+     补全后 800/900 在深色下变亮 → 这三处白字会糊。施工书 §二 只点了 hero 一处，实测这三处同样必须钉。
+     钉法见各自文件里的 [data-theme="dark"] 覆盖（不改调用点的浅色行为）。 */
   --primary:#5cb3ab;
   --primary-d:#3f8e87;
   --primary-bright:#7ccac2;
@@ -1150,7 +1176,11 @@ main.container{padding-top:40px}
 /* ⭐ 占满主区宽度，去掉 max-width 限制（避免右侧大片空白） */
 /* 10/1 UI v2：hero 升级为浅青渐变主视觉（她定稿示意稿）——亮色浅青渐变，暗色深 teal 渐变白字 */
 .hero{background:linear-gradient(135deg,var(--primary-50),var(--primary-100));border:1px solid var(--primary-200);border-radius:var(--radius-lg);padding:24px 28px;color:var(--ink);margin:0 0 16px;box-shadow:0 1px 2px rgba(20,60,56,.04),0 10px 30px rgba(58,154,147,.10);position:relative;overflow:hidden;display:block}
-[data-theme="dark"] .hero{background:linear-gradient(132deg,var(--primary-800),var(--primary-900) 72%);border-color:rgba(255,255,255,.10);box-shadow:0 14px 40px rgba(0,0,0,.35);color:#f2f7f6}
+/* 🔴 DK-4b：hero 底原用 var(--primary-800)/var(--primary-900)。补全后这两档在深色下变亮
+   （800→#a8d7d2 / 900→#c5e6e1）→ 整块从「深青块」变成「浅青块」，跟周围深色页格格不入。
+   所以这一条**钉死深青**，不跟着 token 走：白字压 #2c4f4c ≈ 10:1，观感与原来一致。
+   ⚠️ 字色别动 —— :1174 / :1176 早就钉了白字。 */
+[data-theme="dark"] .hero{background:linear-gradient(132deg,#2c4f4c,#1a3b38 72%);border-color:rgba(255,255,255,.10);box-shadow:0 14px 40px rgba(0,0,0,.35);color:#f2f7f6}
 .hero::before{content:"";position:absolute;right:-70px;top:-90px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(58,154,147,.16),transparent 66%);pointer-events:none}
 [data-theme="dark"] .hero::before{background:radial-gradient(circle,rgba(255,255,255,.13),transparent 65%)}
 .hero::after{display:none}
@@ -2801,3 +2831,22 @@ body[data-shell="top"] .sw-update-bar{top:calc(44px + env(safe-area-inset-top) +
 /* 减少动效：与全站 token 一致 */
 [data-reduce-motion="1"] .ui-field-search,
 [data-reduce-motion="1"] .ui-field-clear{ transition:none }
+
+/* ===== DK-4b（10-25）：补全 primary 色阶后的三处连带钉死 =====
+   800/900 在深色下由「深墨绿（浅色值的回退）」变成「亮青」（见 :154 的说明）。
+   凡「白字压主色底」的地方，白字就会糊 —— 这里把三处钉回深墨绿底（只在深色生效，
+   浅色下 800/900 本来就是深墨绿，不受影响，所以不需要浅色覆盖）。
+   实测这三处白字对比度钉后 7.4~10:1，钉前 1.2~1.6:1。
+   ⚠️ 不改调用点、不改浅色、不动那两条规则本身的写法。 */
+[data-theme="dark"] .full-card{ background:#235e5a }
+[data-theme="dark"] mark.mk::after{ background:#235e5a }
+
+/* ===== DK-4b 续：凡「深主色底 + 白字」的地方，补全后 800/900 变亮 → 同样要钉 =====
+   .wb-today（背词页今日复习卡，practice.html:74 浅色 700→900、深色 800→900）与
+   .acct-btn--light 的反向用法（settings/me 白底 + 900 深青字）都要各自处理：
+   · .wb-today 深色底：钉深墨绿（与 .hero 同一套）
+   · .acct-btn--light 深色下是「白底 + 浅青字」→ 白底上必须用深青，钉回 #1a4542
+   ⚠️ 只在深色生效；浅色下这两条本来就是对的。 */
+[data-theme="dark"] .wb-today{ background:linear-gradient(135deg,#2c4f4c,#1a3b38) }
+[data-theme="dark"] .acct-btn--light{ color:#1a4542 }
+[data-theme="dark"] .wb-today-go{ color:#1a4542 }
