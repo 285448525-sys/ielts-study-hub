@@ -289,3 +289,247 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
   letter-spacing:.01em;
 }
 /* 深色下 --med/--danger 已有深色覆盖值，无需额外规则 */
+
+/* ═══ W-WORD-1（10-25）第 1 批：背词态 1:1 导出块（机器生成，勿手改）═══
+   来源 design/单词功能重设计-2026-10-25.html 的 #v-study，
+   scripts/mockup-export.cjs 导出（40 元素基线）。
+   🔴 类名全带 wd- 前缀，只本页生效；要改请改设计稿后重新导出。 */
+/* ======================================================================
+   W-word-study · 精确样式（机器导出，勿手改）
+   ======================================================================
+   来源：单词功能重设计-2026-10-25.html 里的 #v-study
+   导出：scripts/mockup-export.cjs · 前缀 wd-
+
+   放在哪
+     只追加到 css/p/practice.css 末尾（本页专用），不许进 common.css。
+
+   为什么类名都带 wd-
+     站点 .card / .bar / .chip / .muted / .yes / .no / .big 在 common.css 里已有定义，
+     不加前缀直接覆盖会打穿别的 18 个页面。
+
+   配套
+     · _W-word-study_结构原文.html   ← 类名与本文件一一对应
+     · _W-word-study_验收基线.json   ← 关键元素宽高与样式基线，收尾自检用
+
+   🔴 本文件开头那个 token 块必须原样保留：
+      设计稿自带一套私有变量（--card / --p500 / --line2 / --r ...），站点没有。
+      导出时已把能映射的换成站点 token，映射不到的按设计稿原值兜底成 wd-xxx。
+      删掉这个块 → var() 解析成空 → 边框/底色全丢。
+
+   🔴 基准字号 / 行高 / 字体栈照**设计稿 body** 原样搬（不是随便写 16px）：
+      站点 body 是 15px + 行高 1.62，设计稿可能是别的值，不搬会让所有继承字号的元素偏 1px。
+      本次设计稿 body 采到：{"margin":"0","padding":"0","background":"var(--bg)","color":"var(--ink)","font":"15px/1.7 -apple-system,BlinkMacSystemFont,\"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",sans-serif","-webkit-font-s
+   ====================================================================== */
+
+.wd-page{
+  --wd-line:#e6e9ea;
+  --wd-ink:#1f2328;
+  --wd-muted:#71767e;
+  --wd-p300:#8fc9c2;
+  --wd-warn:#c2703a;
+  --wd-bg:#f6f7f7;
+  font-size:15px;
+  line-height:1.7;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+
+.wd-page, .wd-page *{ box-sizing: border-box; }
+.wd-card{ background: var(--surface); border: 1px solid var(--wd-line); border-radius: var(--radius); padding: 20px 22px; }
+.wd-btn{ display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 38px; padding: 0px 18px; border-radius: var(--radius-sm); border: 1px solid var(--wd-line); background: var(--surface); color: var(--wd-ink); font-size: 14px; font-weight: 650; cursor: pointer; font-family: inherit; }
+.wd-btn-p{ background: var(--primary); border-color: var(--primary); color: rgb(255, 255, 255); }
+.wd-btn-lg{ height: 52px; font-size: 16px; padding: 0px 30px; border-radius: 13px; font-weight: 750; }
+.wd-btn-link{ border: 0px; background: none; color: var(--primary-700); font-weight: 650; font-size: 13.5px; cursor: pointer; font-family: inherit; padding: 6px 4px; }
+.wd-cur-row{ display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.wd-cur-row .wd-nm{ font-size: 16px; font-weight: 750; }
+.wd-cur-row .wd-meta{ font-size: 12.5px; color: var(--wd-muted); }
+.wd-swap{ margin-left: auto; border: 0px; background: none; font-family: inherit; font-size: 13px; color: var(--primary-700); font-weight: 650; cursor: pointer; padding: 6px 4px; }
+.wd-today-card .wd-top{ display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.wd-today-card .wd-top b{ font-size: 32px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; }
+.wd-today-card .wd-top .wd-u{ font-size: 13.5px; color: var(--ink-2); }
+.wd-today-card .wd-top .wd-right{ margin-left: auto; font-size: 12.5px; color: var(--wd-muted); }
+.wd-bar{ height: 8px; border-radius: 20px; background: var(--n-100); overflow: hidden; margin: 15px 0px 0px; }
+.wd-bar i{ display: block; height: 100%; border-radius: 20px; background: linear-gradient(90deg,var(--wd-p300),var(--primary)); }
+.wd-tri{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; }
+.wd-tri .wd-num{ background: var(--n-100); border-radius: var(--radius-sm); padding: 13px 14px; }
+.wd-tri .wd-num em{ display: flex; align-items: center; gap: 6px; font-style: normal; font-size: 12px; color: var(--ink-2); }
+.wd-tri .wd-num i{ width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.wd-tri .wd-num b{ display: block; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; margin-top: 5px; font-variant-numeric: tabular-nums; }
+.wd-i-grey{ background: rgb(182, 188, 194); }
+.wd-i-mint{ background: var(--primary); }
+.wd-i-amber{ background: var(--wd-warn); }
+.wd-go-row{ display: flex; align-items: center; gap: 16px; margin-top: 20px; flex-wrap: wrap; }
+.wd-go-row .wd-hint{ font-size: 13px; color: var(--wd-muted); }
+.wd-skip-hint{ font-size: 12px; color: var(--wd-muted); margin-top: 12px; }
+.wd-q-head{ display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.wd-q-head .wd-where{ font-size: 13px; color: var(--ink-2); }
+.wd-q-head .wd-where b{ color: var(--wd-ink); }
+.wd-modes{ margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.wd-modes .wd-cur{ font-size: 12.5px; color: var(--ink-2); background: var(--n-100); border-radius: 20px; padding: 5px 13px; cursor: pointer; }
+.wd-modes .wd-cur b{ color: var(--primary-700); }
+.wd-q-card{ background: var(--surface); border: 1px solid var(--wd-line); border-radius: var(--radius); padding: 32px 26px 24px; text-align: center; }
+.wd-q-top{ display: flex; justify-content: space-between; font-size: 12.5px; color: var(--wd-muted); margin-bottom: 18px; }
+.wd-q-prompt{ font-size: 20px; font-weight: 750; letter-spacing: -0.01em; }
+.wd-q-blank{ display: inline-block; min-width: 130px; border-bottom: 2px solid var(--wd-p300); margin: 0px 4px; height: 24px; vertical-align: -3px; }
+.wd-q-say{ font-size: 13px; color: var(--wd-muted); margin-top: 8px; }
+.wd-spk{ margin: 20px auto 4px; width: 60px; height: 60px; border-radius: 50%; background: var(--primary-50); color: var(--primary-700); display: flex; align-items: center; justify-content: center; cursor: pointer; border: 0px; }
+.wd-spk svg{ width: 25px; height: 25px; }
+.wd-ipa{ font-size: 13px; color: var(--ink-2); margin-top: 10px; }
+.wd-ipa b{ font-weight: 600; }
+.wd-write-in{ margin: 20px auto 0px; max-width: 340px; }
+.wd-write-in input{ width: 100%; height: 46px; border: 1.5px solid var(--wd-line); border-radius: var(--radius-sm); background: var(--wd-bg); color: var(--wd-ink); font-size: 16px; text-align: center; font-family: inherit; outline: none; }
+.wd-write-in .wd-ph{ font-size: 11.5px; color: var(--wd-muted); margin-top: 7px; }
+.wd-opts{ display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 560px; margin: 20px auto 0px; }
+@media (max-width: 560px){
+.wd-opts{ grid-template-columns: 1fr; }
+}
+.wd-opt{ border: 1.5px solid var(--wd-line); border-radius: var(--radius-sm); background: var(--surface); padding: 13px 14px; font-size: 14.5px; text-align: left; cursor: pointer; font-family: inherit; color: var(--wd-ink); display: flex; gap: 10px; align-items: center; }
+.wd-opt .wd-kb{ width: 20px; height: 20px; border-radius: 5px; background: var(--n-100); color: var(--wd-muted); font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+.wd-q-foot{ display: flex; align-items: center; gap: 14px; margin-top: 16px; font-size: 12.5px; color: var(--wd-muted); }
+.wd-q-foot .wd-bar{ flex: 1 1 0%; margin: 0px; }
+.wd-q-foot b{ color: var(--wd-ink); font-variant-numeric: tabular-nums; }
+.wd-skip-hint2{ font-size: 12px; color: var(--wd-muted); margin-top: 12px; }
+.wd-pane{ display: none; }
+.wd-pane.wd-on{ display: block; }
+
+/* ===== 站点全局标签规则（common.css:470 input / :490 label）的冲突钉死 =====
+   这两条标签选择器直接写在元素上，会盖掉未显式声明的 font-size / line-height。
+   下面按设计稿实测值钉一遍，本文件追加在 common.css 之后 → 同比分靠顺序赢。 */
+.wd-page .wd-swap{font-size:13px}
+.wd-page .wd-swap button, .wd-page .wd-swap>button{font-size:13px}
+.wd-page .wd-btn{font-size:16px}
+.wd-page .wd-btn button, .wd-page .wd-btn>button{font-size:16px}
+.wd-page .wd-btn-p{font-size:16px}
+.wd-page .wd-btn-p button, .wd-page .wd-btn-p>button{font-size:16px}
+.wd-page .wd-btn-lg{font-size:16px}
+.wd-page .wd-btn-lg button, .wd-page .wd-btn-lg>button{font-size:16px}
+.wd-page .wd-opt{font-size:14.5px}
+.wd-page .wd-opt button, .wd-page .wd-opt>button{font-size:14.5px}
+.wd-page .wd-spk{font-size:13.3333px}
+.wd-page .wd-spk button, .wd-page .wd-spk>button{font-size:13.3333px}
+.wd-page .wd-btn-link{font-size:13.5px}
+.wd-page .wd-btn-link button, .wd-page .wd-btn-link>button{font-size:13.5px}
+
+
+/* ===== 加固副本：选择器统一加 .wd-page（具体度 +1 级） =====
+   为什么有这一段：common.css 有两条标签选择器直接写在元素上、优先于继承——
+     :470 input:not([type=checkbox]):not([type=radio]):not([type=range]) → 具体度 0,3,1
+     :490 label → 全局把 font-size 压成 13px、color 压成 muted、margin-bottom 4px
+   本文件里 (0,2,1) 的规则打不过它们 → 输入框出现「外框包一层、内层又多一个框」，
+   字号也会被压成 13px。这一段靠提高具体度 + 排在最后来压住。
+   🔴 别删：删了输入框立刻变双层框。 */
+.wd-page .wd-card{ background: var(--surface); border: 1px solid var(--wd-line); border-radius: var(--radius); padding: 20px 22px; }
+.wd-page .wd-btn{ display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 38px; padding: 0px 18px; border-radius: var(--radius-sm); border: 1px solid var(--wd-line); background: var(--surface); color: var(--wd-ink); font-size: 14px; font-weight: 650; cursor: pointer; font-family: inherit; }
+.wd-page .wd-btn-p{ background: var(--primary); border-color: var(--primary); color: rgb(255, 255, 255); }
+.wd-page .wd-btn-lg{ height: 52px; font-size: 16px; padding: 0px 30px; border-radius: 13px; font-weight: 750; }
+.wd-page .wd-btn-link{ border: 0px; background: none; color: var(--primary-700); font-weight: 650; font-size: 13.5px; cursor: pointer; font-family: inherit; padding: 6px 4px; }
+.wd-page .wd-cur-row{ display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.wd-page .wd-cur-row .wd-nm{ font-size: 16px; font-weight: 750; }
+.wd-page .wd-cur-row .wd-meta{ font-size: 12.5px; color: var(--wd-muted); }
+.wd-page .wd-swap{ margin-left: auto; border: 0px; background: none; font-family: inherit; font-size: 13px; color: var(--primary-700); font-weight: 650; cursor: pointer; padding: 6px 4px; }
+.wd-page .wd-today-card .wd-top{ display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.wd-page .wd-today-card .wd-top b{ font-size: 32px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; }
+.wd-page .wd-today-card .wd-top .wd-u{ font-size: 13.5px; color: var(--ink-2); }
+.wd-page .wd-today-card .wd-top .wd-right{ margin-left: auto; font-size: 12.5px; color: var(--wd-muted); }
+.wd-page .wd-bar{ height: 8px; border-radius: 20px; background: var(--n-100); overflow: hidden; margin: 15px 0px 0px; }
+.wd-page .wd-bar i{ display: block; height: 100%; border-radius: 20px; background: linear-gradient(90deg,var(--wd-p300),var(--primary)); }
+.wd-page .wd-tri{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; }
+.wd-page .wd-tri .wd-num{ background: var(--n-100); border-radius: var(--radius-sm); padding: 13px 14px; }
+.wd-page .wd-tri .wd-num em{ display: flex; align-items: center; gap: 6px; font-style: normal; font-size: 12px; color: var(--ink-2); }
+.wd-page .wd-tri .wd-num i{ width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.wd-page .wd-tri .wd-num b{ display: block; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; margin-top: 5px; font-variant-numeric: tabular-nums; }
+.wd-page .wd-i-grey{ background: rgb(182, 188, 194); }
+.wd-page .wd-i-mint{ background: var(--primary); }
+.wd-page .wd-i-amber{ background: var(--wd-warn); }
+.wd-page .wd-go-row{ display: flex; align-items: center; gap: 16px; margin-top: 20px; flex-wrap: wrap; }
+.wd-page .wd-go-row .wd-hint{ font-size: 13px; color: var(--wd-muted); }
+.wd-page .wd-skip-hint{ font-size: 12px; color: var(--wd-muted); margin-top: 12px; }
+.wd-page .wd-q-head{ display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.wd-page .wd-q-head .wd-where{ font-size: 13px; color: var(--ink-2); }
+.wd-page .wd-q-head .wd-where b{ color: var(--wd-ink); }
+.wd-page .wd-modes{ margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.wd-page .wd-modes .wd-cur{ font-size: 12.5px; color: var(--ink-2); background: var(--n-100); border-radius: 20px; padding: 5px 13px; cursor: pointer; }
+.wd-page .wd-modes .wd-cur b{ color: var(--primary-700); }
+.wd-page .wd-q-card{ background: var(--surface); border: 1px solid var(--wd-line); border-radius: var(--radius); padding: 32px 26px 24px; text-align: center; }
+.wd-page .wd-q-top{ display: flex; justify-content: space-between; font-size: 12.5px; color: var(--wd-muted); margin-bottom: 18px; }
+.wd-page .wd-q-prompt{ font-size: 20px; font-weight: 750; letter-spacing: -0.01em; }
+.wd-page .wd-q-blank{ display: inline-block; min-width: 130px; border-bottom: 2px solid var(--wd-p300); margin: 0px 4px; height: 24px; vertical-align: -3px; }
+.wd-page .wd-q-say{ font-size: 13px; color: var(--wd-muted); margin-top: 8px; }
+.wd-page .wd-spk{ margin: 20px auto 4px; width: 60px; height: 60px; border-radius: 50%; background: var(--primary-50); color: var(--primary-700); display: flex; align-items: center; justify-content: center; cursor: pointer; border: 0px; }
+.wd-page .wd-spk svg{ width: 25px; height: 25px; }
+.wd-page .wd-ipa{ font-size: 13px; color: var(--ink-2); margin-top: 10px; }
+.wd-page .wd-ipa b{ font-weight: 600; }
+.wd-page .wd-write-in{ margin: 20px auto 0px; max-width: 340px; }
+.wd-page .wd-write-in input{ width: 100%; height: 46px; border: 1.5px solid var(--wd-line); border-radius: var(--radius-sm); background: var(--wd-bg); color: var(--wd-ink); font-size: 16px; text-align: center; font-family: inherit; outline: none; }
+.wd-page .wd-write-in .wd-ph{ font-size: 11.5px; color: var(--wd-muted); margin-top: 7px; }
+.wd-page .wd-opts{ display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 560px; margin: 20px auto 0px; }
+@media (max-width: 560px){
+.wd-page .wd-opts{ grid-template-columns: 1fr; }
+}
+.wd-page .wd-opt{ border: 1.5px solid var(--wd-line); border-radius: var(--radius-sm); background: var(--surface); padding: 13px 14px; font-size: 14.5px; text-align: left; cursor: pointer; font-family: inherit; color: var(--wd-ink); display: flex; gap: 10px; align-items: center; }
+.wd-page .wd-opt .wd-kb{ width: 20px; height: 20px; border-radius: 5px; background: var(--n-100); color: var(--wd-muted); font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+.wd-page .wd-q-foot{ display: flex; align-items: center; gap: 14px; margin-top: 16px; font-size: 12.5px; color: var(--wd-muted); }
+.wd-page .wd-q-foot .wd-bar{ flex: 1 1 0%; margin: 0px; }
+.wd-page .wd-q-foot b{ color: var(--wd-ink); font-variant-numeric: tabular-nums; }
+.wd-page .wd-skip-hint2{ font-size: 12px; color: var(--wd-muted); margin-top: 12px; }
+.wd-page .wd-pane{ display: none; }
+.wd-page .wd-pane.wd-on{ display: block; }
+
+/* ===== 站点全局标签规则（common.css:470 input / :490 label）的冲突钉死 =====
+   这两条标签选择器直接写在元素上，会盖掉未显式声明的 font-size / line-height。
+   下面按设计稿实测值钉一遍，本文件追加在 common.css 之后 → 同比分靠顺序赢。 */
+
+
+/* ═══ W-WORD-1 · 本站补丁（导出块之后，只补导出块没有的东西）═══
+   · 根容器：#studyView / #bankView 保留原 id（practice.js / wordbank.js / common-pwa.js 全靠它），
+     所以 .wd-page 是**追加类**，不是替换外壳。
+   · 导出块里的 .wd-pane 只管设计稿自己的三态，本站走 switchWordTab，不用它。 */
+#studyView.wd-page, #bankView.wd-page{ font-size:15px; line-height:1.7; }
+.wd-back{ display:inline-flex; align-items:center; height:34px; padding:0 10px; margin-bottom:12px;
+  border:1px solid var(--wd-line); border-radius:var(--radius-sm); background:var(--surface);
+  color:var(--primary-700); font-size:13px; font-weight:650; font-family:inherit; cursor:pointer; }
+.wd-back:hover{ background:var(--n-100); }
+/* 答题态新头部（设计稿 .wd-q-head）与答题卡之间的呼吸 */
+#practiceArea .wd-q-head{ margin:0 0 12px; }
+.wd-q-head[hidden]{ display:none !important; }
+.wd-modes .wd-cur{ border:0; font-family:inherit; }
+/* ═══ W-WORD-1 · 1:1 补差（验收基线跑出来的 5 条，只在本页 .wd-page 内生效）═══
+   ① 站点圆角 token 比设计稿大 2px（--radius 16 vs 14、--radius-sm 12 vs 10）
+      → 在 .wd-page 里重指这批私有变量，不碰共享层 token，别的 18 页零影响。
+   ② .wd-cur 是 <button>，不吃继承行高（实测回落 normal 21.25px→normal）
+      → 按设计稿实测值钉死。 */
+.wd-page{ --radius:14px; --radius-sm:10px; }
+.wd-page .wd-cur{ line-height:21.25px; }
+/* W-WORD-1：词库态的「回学习」返回键 —— 只在手机出现（桌面走顶栏「单词」二级）*/
+#wdBackStudy{ display:none; }
+@media (max-width:860px){ #wdBackStudy{ display:inline-flex; } }
+/* ═══ W-WORD-1 · 背词态两态显隐（声明式，不跟 JS 抢 inline style）═══
+   默认（没 .wd-exam）= 开始前：只显示 #preStart；
+   有 .wd-exam      = 答题态：#exArea / #practiceArea / #wdFoot 三块。
+   ⚠️ 用 #studyView 前缀提高具体度，压住 common.css 里 .practice-card-fit 的 display。 */
+#studyView #preStart{ display:block; }
+#studyView #exArea,
+#studyView #practiceArea,
+#studyView #wdFoot{ display:none; }
+#studyView.wd-exam #preStart{ display:none; }
+#studyView.wd-exam #exArea{ display:block; }
+#studyView.wd-exam #practiceArea{ display:flex; }
+#studyView.wd-exam #wdFoot{ display:flex; }
+/* 答题态才需要「开始前」那张卡的高度兜底；答题卡自带 min-height */
+#studyView.wd-exam{ min-height:0; }
+/* ═══ W-WORD-1 · 深色档：主按钮与返回键（只在本页 .wd-page 内）═══
+   实测问题：深色下 --primary 仍是 #5cb3ab，主按钮「开始今天的练习」用它当底 + 白字
+   → 对比度只有 2.47:1（大字号 750 也不够）。按铁律「深色小字/按钮统一亮青底 #8fe0d6 + 深字 #0f3330」
+   （8.98:1），这里只改这两处，不动浅色、不动共享 token。 */
+[data-theme="dark"] .wd-page .wd-btn-p,
+[data-theme="dark"] .wd-page .wd-btn-p:hover{
+  background:#8fe0d6;
+  border-color:#8fe0d6;
+  color:#0f3330;
+}
+[data-theme="dark"] .wd-page .wd-swap,
+[data-theme="dark"] .wd-page .wd-btn-link,
+[data-theme="dark"] .wd-back{
+  color:#8fe0d6;
+}
+/* 三格底与卡片同深时，靠 --n-100 抬一档层次（深色下已是 #2e2e32，无需改；留注释防误改） */
