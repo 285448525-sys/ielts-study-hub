@@ -13,12 +13,14 @@ function freeAiDesc(){
   return (window.Pricing && window.Pricing.FREE_AI_DESC) || '口语模考每月 1 次 · 写作批改每月 3 次 · 其他 AI 每周 5 次（串题素材为会员专属）';
 }
 
+const VIP_PAY_TO = '285448525@qq.com';   // VIP-SEMI-1：收款账号唯一常量（她换收款方式只改这行）
+
 const VIP_ICON_GOLD = '<svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#eab308" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20M9.5 9L12 3l2.5 6M12 21L9.5 9M12 21l2.5-12"/></svg>';
 
 ready(() => {
   renderVipPlans();
   renderVipMatrix();   // 10/12 批1：对比表由 pricing.js 渲染（原静态表搬入）
-  renderVipHowPrice(); // 10/12 批1：开通方式的价格句由 pricing.js 填充
+  renderVipSemi();     // VIP-SEMI-1（10-25）：开通区「一屏两步」半自助（原 renderVipHowPrice 退役）
   loadVipStatus();
 });
 
@@ -29,13 +31,148 @@ function renderVipMatrix(){
   Pricing.renderMatrix(box, { legacy:true });
 }
 
-/* ---------- 开通方式的价格句（原手写三档价格，改 JS 填充防改价漏改）---------- */
-function renderVipHowPrice(){
-  const el = document.getElementById('vipHowPrice');
-  if(!el || !window.Pricing) return;
-  el.innerHTML = Pricing.VIP_PLANS
-    .map(p => escapeHtml(Pricing.priceText(p.id === 'week' ? 'weekFirst' : p.id)))
-    .join(' / ');
+/* ---------- 开通方式：一屏两步半自助（VIP-SEMI-1 · 10-25）----------
+   她拍板形态：选档位 → 抄一句去转账 → 点「我已转账」。金额即订单（三档价格天然互斥），
+   不生成订单号。约束（施工书红线）：
+   🔴 价格一律取 Pricing.VIP_PLANS，本函数零价格字面量（_probe_price_ref 钉住的口径）；
+   🔴 提交复用 /api/feedback —— 与 feedback.js 弹层完全同一套请求体/限频/登录态语义，零新接口；
+   🔴 不写会员状态：开通仍由站长在站长台 vip_grant（反馈行有「去开会员」预填）。
+   收款账号是唯一一处常量；她换收款方式只改这一行。 */
+
+
+function renderVipSemi(){
+  const root = document.getElementById('vipSemi');
+  if(!root) return;                       // 页面结构没就绪（理论不发生，防御兜底）
+
+  let cur = 'month';                      // 默认 30 天卡（施工书 §二：主推档）
+  const loggedIn = !!(DATA.settings && DATA.settings.syncCode && typeof authToken === 'function' && authToken());
+  const acct = (DATA.settings && DATA.settings.syncCode) || '';
+
+  /* ---- 档位卡：HTML 只留骨架，价格/名称/日均价全部来自 VIP_PLANS ---- */
+  const plansBox = document.getElementById('semiPlans');
+  if(plansBox && window.Pricing){
+    plansBox.innerHTML = Pricing.VIP_PLANS.map(p =>
+      '<button class="semi-plan' + (p.id === cur ? ' on' : '') + '" data-semi="' + p.id + '" type="button">'
+      + '<span class="nm">' + escapeHtml(p.name) + (p.id === 'week' ? '<span class="tag">新人</span>' : '') + '</span>'
+      + '<span class="pr"><b>¥' + escapeHtml(p.price) + '</b>'
+      + (p.orig ? '<s>¥' + escapeHtml(p.orig) + '</s>' : '') + '</span>'
+      + '<span class="pd">' + escapeHtml(p.perDay) + '</span>'
+      + '</button>'
+    ).join('');
+    plansBox.querySelectorAll('button[data-semi]').forEach(b =>
+      b.addEventListener('click', () => {
+        cur = b.getAttribute('data-semi');
+        plansBox.querySelectorAll('button[data-semi]').forEach(x => x.classList.toggle('on', x === b));
+        renderSlip();
+      }));
+  }
+
+  /* ---- 转账句：金额跟着档位走；未登录提示先登录（转账前必须知道给谁开）---- */
+  function slipText(){
+    const p = (window.Pricing && Pricing.VIP_PLANS.find(x => x.id === cur)) || null;
+    const amount = p ? ('¥' + p.price) : '';
+    return '微信 / 支付宝转 ' + amount + ' 到 ' + VIP_PAY_TO + '，转完回来点下面「我已转账」。';
+  }
+  function renderSlip(){
+    const el = document.getElementById('semiTxt');
+    const p = (window.Pricing && Pricing.VIP_PLANS.find(x => x.id === cur)) || null;
+    if(el) el.innerHTML = '微信 / 支付宝转 <b>' + (p ? escapeHtml('¥' + p.price) : '') + '</b> 到 <b>' + escapeHtml(VIP_PAY_TO) + '</b>，转完回来点下面「我已转账」。';
+  }
+  renderSlip();
+
+  /* ---- 登录态分叉：按钮组与文案 ---- */
+  const actsLogged = document.getElementById('semiActsLogged');
+  const actsGuest  = document.getElementById('semiActsGuest');
+  const lb = document.getElementById('semiLb');
+  if(loggedIn){
+    if(actsLogged) actsLogged.hidden = false;
+    if(actsGuest)  actsGuest.hidden = true;
+    if(lb) lb.textContent = '抄这句去转账';
+  }else{
+    if(actsLogged) actsLogged.hidden = true;
+    if(actsGuest)  actsGuest.hidden = false;
+    if(lb) lb.textContent = '先登录，再转账';
+  }
+
+  /* ---- 复制这句：剪贴板 + 2 秒回显（拿不到剪贴板就退回手动选择）---- */
+  const copyBtn = document.getElementById('semiCopy');
+  if(copyBtn){
+    copyBtn.addEventListener('click', () => {
+      const txt = slipText();
+      const done = () => { copyBtn.textContent = '已复制'; setTimeout(() => { copyBtn.textContent = '复制这句'; }, 2000); };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(txt).then(done).catch(() => fallbackCopy(txt, done));
+      }else fallbackCopy(txt, done);
+    });
+  }
+  function fallbackCopy(txt, done){
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta); done();
+    }catch(e){ window.prompt('复制这句去转账：', txt); }
+  }
+
+  /* ---- 遇到问题：打开站内现成的意见反馈弹层（feedback.js 暴露 openFeedbackSheet）---- */
+  ['semiHelp', 'semiHelp2'].forEach(id => {
+    const b = document.getElementById(id);
+    if(b) b.addEventListener('click', () => {
+      if(typeof window.openFeedbackSheet === 'function') window.openFeedbackSheet();
+    });
+  });
+
+  /* ---- 我已转账：提交一条反馈（复用 /api/feedback），成功后整卡切完成态 ---- */
+  const doneBtn = document.getElementById('semiDone');
+  if(doneBtn){
+    doneBtn.addEventListener('click', async () => {
+      const plan = (window.Pricing && Pricing.VIP_PLANS.find(x => x.id === cur)) || null;
+      const amount = plan ? ('¥' + plan.price) : '';
+      const planName = plan ? plan.name : '';
+      const text = '会员订单 ' + amount + '（' + planName + '）\n账号：' + (acct || VIP_PAY_TO) + '\n来源：vip.html 半自助';
+      const headers = { 'Content-Type': 'application/json' };
+      const tok = (typeof authToken === 'function' && authToken()) || '';
+      if(tok) headers['X-Session'] = tok;   // 带上登录态 → 站长台反馈行直接显示 acct，不用用户再报账号
+      doneBtn.disabled = true; doneBtn.textContent = '提交中…';
+      try{
+        const res = await fetch('/api/feedback', {
+          method: 'POST', headers,
+          body: JSON.stringify({
+            text: text,
+            imgs: [],                                   // 不带图：1 次 KV 写，轻
+            contact: acct || '',
+            page: 'vip.html',
+            env: {
+              w: window.innerWidth, h: window.innerHeight, dpr: window.devicePixelRatio || 1,
+              ua: navigator.userAgent, dark: document.documentElement.getAttribute('data-theme') === 'dark',
+              tz: (Intl.DateTimeFormat().resolvedOptions().timeZone || ''),
+            },
+          }),
+        });
+        const j = await res.json().catch(() => null);
+        if(!res.ok || !j || !j.ok){
+          doneBtn.disabled = false; doneBtn.textContent = '我已转账';
+          alert((j && j.msg) || ('提交失败（HTTP ' + res.status + '），请稍后再试；急事可点「遇到问题」直接找我'));
+          return;
+        }
+        /* 完成态：订单摘要（金额 · 档位 · 账号）——金额/档位仍取自 VIP_PLANS，零字面量 */
+        const oid = document.getElementById('semiOid');
+        if(oid) oid.textContent = amount + ' · ' + planName + ' · 账号 ' + (acct || VIP_PAY_TO);
+        root.hidden = true;
+        const doneCard = document.getElementById('semiDoneCard');
+        if(doneCard) doneCard.hidden = false;
+        const back = document.getElementById('semiBack');
+        if(back) back.addEventListener('click', () => {
+          doneCard.hidden = true; root.hidden = false;
+          doneBtn.disabled = false; doneBtn.textContent = '我已转账';
+        });
+      }catch(e){
+        doneBtn.disabled = false; doneBtn.textContent = '我已转账';
+        alert('网络异常，提交没成功。稍后再试一次；急事可点「遇到问题」直接找我。');
+      }
+    });
+  }
 }
 
 /* ---------- 价格卡 ---------- */

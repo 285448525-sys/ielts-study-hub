@@ -1407,6 +1407,25 @@ button.mini.danger:hover{background:var(--bad-bg);border-color:var(--bad)}
     });
   }
 
+  /* VIP-SEMI-1（10-25）：识别 vip.html 半自助提交的会员订单反馈。
+     格式约定（js/vip.js 构造）：首行「会员订单 ¥69（30 天卡）」、次行「账号：xxx」。
+     金额→天数映射按档位（7/30/90），对不上任何档位就不给快捷键（保守兜底，仍可手填）。 */
+  function isVipOrder(v){ return !!(v && typeof v.text === 'string' && v.text.indexOf('会员订单') === 0); }
+  function vipOrderInfo(v){
+    var txt = (v && v.text) || '';
+    var m = txt.match(/^会员订单\s*¥(\d+)/);
+    var acct = (v && v.acct) || '';
+    if(!acct){
+      var a = txt.match(/账号：([^\s\n]+)/);
+      if(a) acct = a[1];
+    }
+    var price = m ? parseInt(m[1], 10) : 0;
+    /* 档位价对天数：与 js/pricing.js VIP_PLANS 同源的地方只有价格本身，
+       这里按金额映射天数（19→7 / 69→30 / 129→90）；改价时这里三个数字要跟着核。 */
+    var days = price === 19 ? 7 : (price === 69 ? 30 : (price === 129 ? 90 : 0));
+    return { acct: acct, days: days, price: price };
+  }
+
   function renderFb(){
     var list = (DATA && DATA.feedbacks) || [];
     var dot = $('fbDot');
@@ -1457,6 +1476,9 @@ button.mini.danger:hover{background:var(--bad-bg);border-color:var(--bad)}
       + '<div class="fb-env">' + esc(v.page || '（未记录页面）') + (envTxt ? (' · ' + esc(envTxt)) : '') + (env.ua ? (' · ' + esc(env.ua)) : '') + '</div>'
       + '<div class="fb-shots" id="fbShots_' + v.id + '">' + (_fbImgs[v.id] ? '' : '<span class="muted">' + (_fbLoading[v.id] ? '正在读图片…' : (v.imgs ? '点「重新读取」加载截图' : '')) + '</span>') + '</div>'
       + '<div class="fb-acts">'
+      /* VIP-SEMI-1（10-25）：标题含「会员订单」= vip.html 半自助提交的开通请求
+         → 行内加「去开会员」：解析账号与金额预填下面的发放表单（只预填不提交，她点最后一下） */
+      + (isVipOrder(v) ? ('<button class="btn small" data-fbgrant="' + v.id + '" type="button">去开会员</button>') : '')
       + '<button class="btn ghost small" data-fbreload="' + v.id + '" type="button">重新读取</button>'
       + '<button class="btn ghost small" data-fbread="' + v.id + '" type="button">' + (v.read ? '标为未读' : '标记已读') + '</button>'
       + '<button class="btn danger small" data-fbdel="' + v.id + '" type="button">删除</button>'
@@ -1506,6 +1528,20 @@ button.mini.danger:hover{background:var(--bad-bg);border-color:var(--bad)}
     }
     var reloadId = t.getAttribute('data-fbreload');
     if (reloadId){ _fbImgs[reloadId] = null; fbLoadImgs(reloadId); return; }
+    /* VIP-SEMI-1：去开会员——预填发放表单（账号+天数+备注），只填不提交 */
+    var gid = t.getAttribute('data-fbgrant');
+    if (gid){
+      var gv = ((DATA && DATA.feedbacks) || []).filter(function(x){ return x.id === gid; })[0];
+      if (!gv) return;
+      var info = vipOrderInfo(gv);
+      if (info.acct) $('vipAcct').value = info.acct;
+      if (info.days) $('vipDays').value = info.days;
+      if ($('vipNote')) $('vipNote').value = '反馈转账 ¥' + info.price;
+      var form = $('vipAcct');
+      if (form && form.scrollIntoView) form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(function(){ if (form) form.focus(); }, 400);
+      return;
+    }
     var closeId = t.getAttribute('data-fbclose');
     if (closeId){ delete _fbOpen[closeId]; renderFb(); return; }
     var readId = t.getAttribute('data-fbread');

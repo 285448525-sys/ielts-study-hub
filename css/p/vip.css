@@ -23,3 +23,52 @@
 .plan-card a.plan-buy{text-decoration:none;text-align:center}
 #vipPlans{display:flex;gap:14px;flex-wrap:wrap;align-items:stretch}
 @media (max-width:640px){ #vipPlans{flex-direction:column} .plan-card{min-width:0} }
+
+/* ===== VIP-SEMI-1（10-25）：开通区「一屏两步」半自助 =====
+   形态（设计稿 design/会员开通-一屏两步-2026-10-25.html）：三档卡 → 一句可抄的转账句 → 我已转账。
+   全部走全站 token（--primary/--surface/--line/--ink 系），深色自动跟随；44px 触控标准。 */
+.semi-plans{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media (max-width:560px){ .semi-plans{grid-template-columns:1fr} }
+.semi-plan{position:relative;text-align:left;border:1.5px solid var(--line);border-radius:var(--radius-sm);
+  padding:14px 16px 12px;background:var(--surface);cursor:pointer;font-family:inherit;
+  display:flex;flex-direction:column;gap:3px;transition:border-color .15s}
+.semi-plan:hover{border-color:var(--primary)}
+.semi-plan.on{border-color:var(--primary);background:var(--primary-soft)}
+.semi-plan .nm{font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:6px;color:var(--ink)}
+.semi-plan .nm .tag{font-size:10px;font-weight:700;color:var(--on-primary);background:var(--primary);
+  border-radius:4px;padding:1px 5px}
+.semi-plan .pr{display:flex;align-items:baseline;gap:5px}
+.semi-plan .pr b{font-size:26px;font-weight:800;letter-spacing:-.03em;line-height:1;
+  font-variant-numeric:tabular-nums;color:var(--ink)}
+.semi-plan .pr s{font-size:11.5px;color:var(--muted)}
+.semi-plan .pd{font-size:11px;color:var(--muted)}
+
+/* 一句可抄的转账说明（核心）：虚线描边把它从「表单」变成「便签」，暗示可以整句拿走 */
+.semi-slip{margin-top:16px;border:1.5px dashed var(--primary);border-radius:var(--radius-sm);
+  background:var(--primary-soft);padding:16px 18px}
+.semi-lb{font-size:11.5px;font-weight:700;color:var(--primary);letter-spacing:.02em;margin-bottom:7px}
+.semi-txt{font-size:15px;line-height:1.85;color:var(--ink);font-weight:600}
+.semi-txt b{font-weight:800}
+.semi-copy{display:inline-flex;align-items:center;gap:5px;margin-top:11px;border:1px solid var(--primary);
+  background:var(--surface);border-radius:7px;padding:5px 13px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:650}
+.semi-copy:hover{background:var(--surface-2)}
+
+/* 按钮排：主按钮走全站 .btn.btn-primary（复用，不重造），幽灵按钮只做弱化 */
+.semi-acts{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+.semi-ghost{background:none;border-color:transparent;color:var(--muted)}
+.semi-ghost:hover{color:var(--ink)}
+.semi-center{justify-content:center}
+.semi-note{font-size:11.5px;color:var(--muted);margin:12px 0 0}
+
+/* 完成态：勾 + 一句承诺 + 订单摘要（金额·档位·账号） */
+.semi-done{text-align:center;padding:28px 20px 24px}
+.semi-ic{width:52px;height:52px;border-radius:50%;background:var(--primary-soft);color:var(--primary);
+  display:inline-flex;align-items:center;justify-content:center;margin-bottom:13px}
+.semi-done h3{margin:0 0 6px;font-size:17px;font-weight:750;color:var(--ink)}
+.semi-done p{margin:0;font-size:13px;color:var(--ink-2);line-height:1.85}
+.semi-oid{display:inline-block;margin-top:12px;font-size:12px;background:var(--surface-2);border-radius:6px;
+  padding:4px 12px;color:var(--ink);font-variant-numeric:tabular-nums}
+@media (max-width:560px){
+  .semi-slip{padding:14px 15px}
+  .semi-done{padding:22px 14px 18px}
+}
