@@ -720,3 +720,17 @@ html[data-theme="dark"] .rp-page .rp-cell{background:var(--primary-50);color:var
 html[data-theme="dark"] .rt-r .rt-bar,
 html[data-theme="dark"] .rt-tg .rt-bar{background:var(--n-100)}
 html[data-theme="dark"] .rt-tg .rt-bar .rt-tick{background:var(--n-800)}
+
+/* ── EXAM-E2P（10-26）：?rec=<id> 定位到某一条记录时的临时高亮 ──
+   「看上次结果」跳过来时，让那一眼能看见是哪条；**2 秒后自己淡掉**（JS 移除 .rec-focus），
+   绝不永久改变这一行的样子 —— 列表本身的长相不许被这个动作污染。
+   轻底色 + 左 2px 主色条，与站内 .rec-row 既有节奏一致，不新造视觉语言。 */
+.rec-row.rec-focus{
+  background:var(--primary-50);
+  box-shadow:inset 2px 0 0 var(--primary);
+  transition:background .3s ease, box-shadow .3s ease;
+}
+html[data-theme="dark"] .rec-row.rec-focus{
+  background:var(--primary-100);
+  box-shadow:inset 2px 0 0 var(--primary-300);
+}
