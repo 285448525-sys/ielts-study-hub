@@ -438,7 +438,25 @@ function userHtml(text){
       + '<button type="button" data-chip="hi">今天只练高频题</button>'
       + '</div>';
   }
-  function hideChips(){ var el = $('coachChips'); if(el) el.remove(); }
+  /* CHIPS-1（10-26）：chips 从 #coachScroll（消息流里）挪到**陪练输入条上方**。
+     她 16:0x 把这条归进「不用我做、你分配」那批；旧位置一开口就被消息顶走，
+     而它的作用恰恰是「还没开口时给三个抓手」，贴着输入框才对。
+     🔴 挂点 = #coachBar 内、#coachBarInner 之前（不是 inner 里：inner 是 flex 横排，塞进去会跑到输入框左边）。 */
+  function mountChips(){
+    var bar = $('coachBar'); if(!bar) return;
+    var old = bar.querySelector('.cc-chipbar'); if(old) old.remove();
+    var wrap = document.createElement('div');
+    wrap.className = 'cc-chipbar';
+    wrap.innerHTML = chipsHtml();
+    var inner = $('coachBarInner');
+    bar.insertBefore(wrap, inner || null);
+    var v = $('coachView'); if(v) v.classList.add('cc-empty');
+  }
+  function hideChips(){
+    var el = $('coachChips'); if(el) el.remove();
+    var wrap = document.querySelector('.cc-chipbar'); if(wrap) wrap.remove();
+    var v = $('coachView'); if(v) v.classList.remove('cc-empty');
+  }
 
   /* ============ 交互 ============ */
   /* ===== 🔴 10/4 17:20 她报「他思考的时候不能没有任何反馈，得有个思考中的动画」=====
@@ -544,7 +562,7 @@ function userHtml(text){
     hideChips();
     if(k === 'hi'){ sendText('今天我们只练必考题/高频题，其他题先不练'); return; }
     var t = k === 'p2' ? drawP2() : drawP1();
-    if(!t){ toast('题库还没加载好，稍后再试'); appendHtml(chipsHtml()); return; }
+    if(!t){ toast('题库还没加载好，稍后再试'); mountChips(); return; }
     startTopic(t);
   }
 
@@ -1022,8 +1040,9 @@ function userHtml(text){
       ta.style.height = Math.min(ta.scrollHeight, 96) + 'px';
     });
 
-    /* chips 事件委托（chips 会随首条消息移除、重渲染无需重绑） */
-    $('coachScroll').addEventListener('click', function(e){
+    /* chips 事件委托（CHIPS-1：chips 已挪到输入条上方、不再在 #coachScroll 内 →
+       委托宿主跟着改到 #coachView，它是最外层容器，chips 在不在 scroll 里都收得到） */
+    $('coachView').addEventListener('click', function(e){
       var b = e.target.closest ? e.target.closest('#coachChips button[data-chip]') : null;
       if(b) onChip(b.getAttribute('data-chip'));
     });
@@ -1076,7 +1095,7 @@ function userHtml(text){
       st.greeted = true;
       appendHtml(assistantHtml(GREETING));
       st.thread.push({ role: 'assistant', text: GREETING });
-      appendHtml(chipsHtml());
+      mountChips();   /* CHIPS-1：挂在输入条上方，不进消息流 */
     }
     scrollBottom();
     /* 10/4 09:45 修「点进陪练手机端自动弹键盘」（她 01:44 报「每次点到陪练它会强制给我弄起来那个输入法」）

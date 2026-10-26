@@ -60,7 +60,7 @@
        10/3 22:55 扩展：陪练页弹层（avOpen('coach') / avCoachSrc）。
        10/22 T-006：考官页签已删（模考纯随机、不许选），此处不再涉及考官选择器。 -->
   <script defer src="js/av-picker.js?v=20261022a"></script>
-  <script defer src="js/coach.js?v=20261020a"></script>
+  <script defer src="js/coach.js?v=20261026a"></script>
   <!-- 10-23 T-009 S-1：口语页脚本按功能域拆分（方案 §二）。顺序 = 底层 → 顶层，
        全部 defer，**不能改相对顺序**（sentence-drill/coach 的顶层旗仍必须更早立，见上）。
        拆文件后 const 跨文件不可见 → 新文件一律 var/function 声明。 -->
@@ -1080,6 +1080,11 @@ body.mock-immerse #mockStage{border:0;box-shadow:none;background:transparent}
 .ca-nat{background:var(--primary-50);border-left:3px solid var(--primary);border-radius:0 10px 10px 0;padding:9px 12px;margin:8px 0;font-size:15px;line-height:1.65;color:var(--primary-900)}
 .ca-nat-t{display:block;font-size:12.5px;font-weight:700;margin-bottom:3px}
 .cc-row{display:flex;gap:8px;flex-wrap:wrap}
+/* CHIPS-1（10-26）：chips 搬到输入条上方的包层。
+   🔴 padding 只能给 0：下面 #coachInput 是 textarea，它在本来的 .coach-cbox（align-items:center，
+      padding 6px）里天生就比 cbox 顶低 11px；包层再多给就会超出施工书要求的 0~12px 区间
+      （实测给 8px → 19px 超限）。#coachChips 自己的 .cc-row 横排样式原样不动。 */
+.cc-chipbar{display:flex;gap:8px;flex-wrap:wrap;padding:0}
 .cc-row button{min-height:38px;padding:8px 15px;border:1px solid var(--primary-200);background:var(--primary-50);color:var(--primary-700);border-radius:999px;font-size:13.5px;font-weight:600;font-family:inherit;cursor:pointer;transition:background .15s}
 .cc-row button:active{background:var(--primary-soft)}
 #coachMemPop{position:fixed;inset:0;z-index:60}
@@ -1560,10 +1565,11 @@ body.mock-immerse #mockStage{border:0;box-shadow:none;background:transparent}
   }
 
   /* ===== 10/4 陪练页空态：竖向居中，别让下方空出一大片 =====
-     ⚠️ 纯 CSS 判定空态：#coachChips（三个快捷按钮）只在首屏出现，
-        用户一开口 coach.js 的 hideChips() 就把它移除 → 该选择器等价于「还没开始聊」。
-        选择器权重 (3,0,0) 高于基础规则 #coachView #coachScroll (2,0,0)，不受书写顺序影响。 */
-  #coachView #coachScroll:has(#coachChips){
+     CHIPS-1（10-26）：原来靠 scroll 容器上的 has-选择器（参数是 #coachChips）判空态 ——
+     chips 搬到输入条上方后那条永远不命中（chips 已不在 scroll 里）→ 改由 coach.js 的
+     mountChips / hideChips 给 #coachView 打 / 收 .cc-empty 类，纯类名判定，不再依赖 has()。
+     特异性 (2,1,0) 仍高于基础规则 (2,0,0)。 */
+  #coachView.cc-empty #coachScroll{
     display:flex;flex-direction:column;justify-content:center;gap:13px;
   }
 
