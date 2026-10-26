@@ -529,8 +529,19 @@ body.word-fullscreen .hub-topbar{display:none !important}
    ⚠️ 遗留（已在收工回报写明）：设计稿底部「跳过，不再出现」要写 SRS 等级才算「不再出现」，
       属于判题域，本批只做「本轮跳过」（与既有 skipBad 同一条路径），不碰等级。 */
 (function(){
-  /* 软导航用 window.eval 逐文件重跑本脚本 → 守卫只挡「重复绑定」，     状态恢复每次都要做，否则换页回来会停在错的那一态。 */
-  if (window.__wwordB1) { try { if (window.__wwordB1Restore) window.__wwordB1Restore(); } catch(e){} return; }
+  /* 软导航用 window.eval 逐文件重跑本脚本 → 守卫只挡「重复绑定」，
+     状态恢复每次都要做，否则换页回来会停在错的那一态。
+     🔴 WORD-1（10-26）修复「软导航进单词页 = 商城空白 / 点卡零反应」：
+        软导航换掉整个 <main>，重跑到这里时旧写法**直接 return**，但新 <main> 里的 DOM 是**全新的**
+        （#wmDeals 空、#vMall 回初始态）→ DOM 相关的初始化必须重跑。按两类分开处理：
+          · 挂 document / window 上的：bindOnce / wmBind 的点击委托 / wrapProg —— 天然幂等，不重跑
+          · 依赖 DOM 的：wmShowMall / wmRender（+ restore 里的 syncToday）—— 每次重跑都做
+        判题 / SRS / 每日上限口径一行不动。 */
+  if (window.__wwordB1) {
+    try { if (window.__wwordB1Restore) window.__wwordB1Restore(); } catch(e){}
+    try { if (window.__wwordB1Boot) window.__wwordB1Boot(); } catch(e){}
+    return;
+  }
   window.__wwordB1 = true;
 
   var MODE_TXT = { visual: '看词选义', audio: '听音选义', mixed: '混合' };
@@ -1215,22 +1226,31 @@ body.word-fullscreen .hub-topbar{display:none !important}
       }
     });
 
-    var si = $('wmSearch');
-    if (si) si.addEventListener('input', function(){
-      wmKw = String(si.value || '').trim().toLowerCase();
+    /* WORD-1：搜索框改 document 委托 —— 软导航换 <main> 后 #wmSearch 是新元素，
+       按元素绑的老监听跟着旧节点一起消失（重跑又被 __wmBound 挡住）→ 搜索框变成死的。
+       document 上的委托天然幂等（__wmBound 只挡重复绑定），换多少轮 DOM 都还在。 */
+    document.addEventListener('input', function(ev){
+      var t = ev.target;
+      if (!t || t.id !== 'wmSearch') return;
+      wmKw = String(t.value || '').trim().toLowerCase();
       wmRender();
     });
   }
 
   window.__wmShowMall = wmShowMall;
   window.__wmRender   = wmRender;
+  /* WORD-1：把「依赖 DOM 的初始化」收成一个口子 —— 首跑与软导航重跑都走它，
+     避免两处各写一份又走岔（这次的事故就是「首跑做了、重跑没做」）。 */
+  window.__wwordB1Boot = function(){
+    try{ wmShowMall(); }catch(e){}
+    try{ wmRender(); }catch(e){}
+  };
   /* 数据是异步到的 → 就绪后刷一次；合并后刷一次 */
   function boot(){
     bindOnce();
     wrapProg();
     wmBind();
-    wmShowMall();
-    wmRender();
+    if (window.__wwordB1Boot) window.__wwordB1Boot();   /* WORD-1：与软导航重跑同一个口子 */
     var tries = 0;
     (function wait(){
       var ok = false;
