@@ -95,6 +95,57 @@ ready(() => {
     }
   }
 
+  /* ═══ SET-1（10-26）· 身份卡「点用户名就地改名」 ═══
+     稿子 design/_样子稿-设置页合并账号-2026-10-26.html：点 .me-name → 变输入框 + 保存/取消；
+     Enter 保存、Esc 取消。**保存仍走原来那条路**（#sName 的 input/change → 600ms 防抖 → saveSettings），
+     所以这里不新造保存逻辑：切到输入态时把当前值灌进 #sName，改完派发 input，
+     再借 AUTO_SAVE_IDS 里已绑的通道落库（零新逻辑）。
+     🔴 幂等标记打元素上（软导航换 <main> 后元素是新的，window 级标记会挡住重绑）。 */
+  (function bindInlineRename(){
+    var row = $('#nameRow'), edit = $('#editRow'), txt = $('#nameTxt');
+    var inp = $('#sName'), saveBtn = $('#nameSave'), cancelBtn = $('#nameCancel');
+    if(!row || !edit || !txt || !inp) return;
+    if(txt.__set1Bound) return;
+    txt.__set1Bound = true;
+
+    function openEdit(){
+      edit.hidden = false;
+      row.hidden = true;
+      inp.value = (DATA.settings && DATA.settings.name) || '';
+      try{ inp.focus(); inp.select && inp.select(); }catch(e){}
+    }
+    function closeEdit(){
+      edit.hidden = true;
+      row.hidden = false;
+    }
+    function commit(){
+      var v = String(inp.value || '').trim();
+      if(v.length > 24) v = v.slice(0, 24);
+      inp.value = v;
+      /* 走既有保存路径：直接调 saveSettings()（与 AUTO_SAVE_IDS 那套防抖落到同一个函数），
+         然后把输入框失焦 —— 防抖那支只在 input/change 时才跑，这里显式调更稳，
+         也不会因为只派发事件而漏掉 _fieldTs 打戳（云端合并靠它判谁新）。 */
+      try{
+        if(typeof saveSettings === 'function') saveSettings();
+      }catch(e){}
+      inp.dispatchEvent(new Event('change', { bubbles: true }));
+      if(txt) txt.textContent = v || (DATA.settings && DATA.settings.syncCode) || '未登录';
+      closeEdit();
+      try{ if(typeof toast === 'function') toast('用户名已保存'); }catch(e){}
+    }
+
+    txt.addEventListener('click', openEdit);
+    txt.addEventListener('keydown', function(ev){
+      if(ev.key === 'Enter' || ev.key === ' '){ ev.preventDefault(); openEdit(); }
+    });
+    if(saveBtn) saveBtn.addEventListener('click', commit);
+    if(cancelBtn) cancelBtn.addEventListener('click', closeEdit);
+    inp.addEventListener('keydown', function(ev){
+      if(ev.key === 'Enter'){ ev.preventDefault(); commit(); }
+      else if(ev.key === 'Escape'){ ev.preventDefault(); closeEdit(); }
+    });
+  })();
+
   /* TH-SYS（10-25）：这一行原来是**裸绑定**（$('#sThemeToggle').addEventListener）。
      保持元素 id 不变 + 就地判空 —— 以后谁再删这个 input 也不会把后面 27 处绑定全断掉。 */
   var _themeEl = $('#sThemeToggle');
@@ -255,6 +306,10 @@ function renderAuthUI(){
   if(el) el.textContent = loggedIn ? ((DATA.settings.name || '').trim() || (DATA.settings.syncCode || '')) : '未登录';
   const st = $('#syncState');
   if(st && !loggedIn) st.textContent = '数据只存在这台设备';
+  /* SET-1（10-26）：身份卡上的用户名 span 也一起刷（就地改名那套的显示位）。
+     口径与上面 syncUserAcct 完全一致：有昵称显示昵称，否则退回账号，未登录显示「未登录」。 */
+  const nt = $('#nameTxt');
+  if(nt) nt.textContent = loggedIn ? ((DATA.settings.name || '').trim() || (DATA.settings.syncCode || '')) : '未登录';
 }
 
 function exportData(){
