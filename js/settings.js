@@ -8,13 +8,22 @@ function populateSettingsForm(){
   if($('#sExam')) $('#sExam').value = s.examDate || '';
   /* 10/2（她拍板）：「距考试 N 天」徽章整删（顶得布局很丑）——settingsCountdown 相关渲染退役；考试倒计时首页/冲刺卡仍有 */
   if($('#sGoal')) $('#sGoal').value = s.dailyGoalHours || '';
-  /* TH-SYS（10-25）：主题三值 —— 'auto' 时动画开关按系统当前深浅摆位（视觉与页面一致），
-     真正的「跟随系统」状态由 #sThemeAuto 表达。脏值一律当 light（施工书 §2.2）。 */
-  var _th = (s.theme === 'dark' || s.theme === 'auto') ? s.theme : 'light';
-  var _sysDark = false;
-  try{ _sysDark = window.matchMedia('(prefers-color-scheme: dark)').matches; }catch(e){}
-  if($('#sThemeToggle')) $('#sThemeToggle').checked = (_th === 'dark') || (_th === 'auto' && _sysDark);
-  if($('#sThemeAuto')) $('#sThemeAuto').checked = (_th === 'auto');
+  /* SET-2（10-26）：主题回填改成 **三档 seg**（月亮开关与「跟随系统」checkbox 已删）。
+     口径：直接按 DATA.settings.theme 点亮一档 —— auto 就高亮「跟随系统」，
+     **不再**按当前屏幕深浅去点亮月亮（那是旧语义，两套状态会打架）。
+     这里用 window.__set2PaintTheme（绑定段里注册），拿不到就退化成内联实现。 */
+  try{
+    var _themeVal = (s.theme === 'dark' || s.theme === 'auto') ? s.theme : 'light';
+    if(typeof window.__set2PaintTheme === 'function'){ window.__set2PaintTheme(); }
+    else{
+      var _tabs = document.querySelectorAll('.set-theme-tab[data-theme-val]');
+      Array.prototype.forEach.call(_tabs, function(b){
+        var on = b.getAttribute('data-theme-val') === _themeVal;
+        b.classList.toggle('on', on);
+        b.setAttribute('aria-checked', on ? 'true' : 'false');
+      });
+    }
+  }catch(e){}
 
   /* KIMI-THEME-1（10-26）：主题外观三选一回填（独立 localStorage 键，不进 DATA.settings ——
      同步白名单归 A 管，外观偏好本机优先，避免动共享层）。
@@ -146,39 +155,44 @@ ready(() => {
     });
   })();
 
-  /* TH-SYS（10-25）：这一行原来是**裸绑定**（$('#sThemeToggle').addEventListener）。
-     保持元素 id 不变 + 就地判空 —— 以后谁再删这个 input 也不会把后面 27 处绑定全断掉。 */
-  var _themeEl = $('#sThemeToggle');
-  if(_themeEl){
-    _themeEl.addEventListener('change', () => {
-      const dark = _themeEl.checked;
-      /* 跟随系统开着时，动画开关只是「临时看一眼」，不落库成 light/dark（否则 auto 被覆盖） */
-      var _autoOn = $('#sThemeAuto') && $('#sThemeAuto').checked;
-      DATA.settings.theme = _autoOn ? 'auto' : (dark ? 'dark' : 'light');
+  /* ═══ SET-2（10-26 · 她 18:2x）· 深色模式三档滑块 ═══
+     原「月亮开关（#sThemeToggle）+ 跟随系统（#sThemeAuto）」两处绑定**整块退役** —— 两个元素已在 HTML 里删掉。
+     现在一个三档 seg 表达同一件事：日间=light / 夜间=dark / 跟随系统=auto。
+     值仍写 DATA.settings.theme（applyTheme 的 auto 分支与 TH-SYS 监听一行没动）。
+     🔴 幂等标记打**元素上**（__set2Bound）——软导航换 <main> 后元素是新的，window 级标记会挡住重绑。 */
+  (function bindThemeSeg(){
+    var tabs = document.querySelectorAll(".set-theme-tab[data-theme-val]");
+    if(!tabs.length) return;
+    var box = tabs[0].parentElement;
+    if(!box || box.__set2Bound) return;
+    box.__set2Bound = true;
+    function paint(){
+      var v = (DATA.settings && DATA.settings.theme) || "light";
+      if(v !== "dark" && v !== "auto") v = "light";
+      tabs.forEach(function(b){
+        var on = b.getAttribute("data-theme-val") === v;
+        b.classList.toggle("on", on);
+        b.setAttribute("aria-checked", on ? "true" : "false");
+      });
+    }
+    box.addEventListener("click", function(ev){
+      var b = ev.target && ev.target.closest ? ev.target.closest(".set-theme-tab[data-theme-val]") : null;
+      if(!b) return;
+      ev.preventDefault();
+      var v = b.getAttribute("data-theme-val");
+      if(v !== "light" && v !== "dark" && v !== "auto") return;
+      DATA.settings.theme = v;
       applyTheme();
       hubSave();
       if(DATA.settings.syncCode) scheduleCloudUpload();
+      paint();
+      try{ if(typeof toast === "function"){
+        toast(v === "auto" ? "已改为跟随系统" : (v === "dark" ? "已切到夜间" : "已切到日间"));
+      } }catch(e){}
     });
-  }
-  /* TH-SYS：「跟随系统」开关 —— 打开 = auto，关掉 = 按当前实际深浅落成 light/dark */
-  var _autoEl = $('#sThemeAuto');
-  if(_autoEl){
-    _autoEl.addEventListener('change', () => {
-      var on = _autoEl.checked === true;
-      if(on){
-        DATA.settings.theme = 'auto';
-      }else{
-        var nowDark = false;
-        try{ nowDark = document.documentElement.getAttribute('data-theme') === 'dark'; }catch(e){}
-        DATA.settings.theme = nowDark ? 'dark' : 'light';
-        if($('#sThemeToggle')) $('#sThemeToggle').checked = nowDark;
-      }
-      applyTheme();
-      hubSave();
-      if(DATA.settings.syncCode) scheduleCloudUpload();
-      try{ if(typeof toast === 'function') toast(on ? '主题已跟随系统' : '主题已改为手动'); }catch(e){}
-    });
-  }
+    paint();                       /* 首屏按 DATA.settings.theme 点亮（auto 高亮「跟随系统」，不再看屏幕深浅） */
+    window.__set2PaintTheme = paint;  /* 云端合并/其它入口改了 theme 后可重刷 */
+  })();
   /* F-4（10-25）：整块删除「服药模块开关的即时绑定」—— #sAdhd 已由 S-1 整行删掉（她 23:5x「两个都删说过了」，settings.html 实测 0 处）。⚠️ medsModuleOn() / meds.html / DATA.meds 一个都没动，只是这个开关的回填与监听退役。 */
 
   /* 🔴 S-2（10-25）：下面四行裸绑定**整块删除** —— 她 00:4x「叫你把数据备份页删掉啊」。
@@ -242,11 +256,16 @@ function saveSettings(){
   // 会漏掉「用户清空日期」——残留的 examDates 会让 nextExamDate() 回退显示已废弃的旧档期（倒计时复活）
   _set('examDates', []);
   _set('dailyGoalHours', parseFloat($('#sGoal').value) || 0);
-  /* TH-SYS（10-25）：三值 + 判空（原来是裸读 .checked，元素一没就抛）。
-     'auto' 优先：「跟随系统」开着就以它为准，否则看动画开关。 */
-  var _saveAuto = $('#sThemeAuto');
-  var _saveToggle = $('#sThemeToggle');
-  _set('theme', (_saveAuto && _saveAuto.checked) ? 'auto' : ((_saveToggle && _saveToggle.checked) ? 'dark' : 'light'));
+  /* SET-2（10-26）：主题**不再从控件读**。
+     旧写法读 #sThemeAuto / #sThemeToggle 的 checked —— 两个元素已删，恒 null →
+     表达式恒走 'light' 分支，等于「随便动一下别的设置就把她的夜间/跟随系统打回日间」。
+     现在：theme 由三档 seg 的点击直接写进 DATA.settings.theme（bindThemeSeg），
+     这里只做「值合法化兜底」，不覆盖她的选择。 */
+  (function(){
+    var _t = DATA.settings.theme;
+    if(_t !== 'dark' && _t !== 'auto') _t = 'light';
+    _set('theme', _t);
+  })();
   _set('targets', {
     overall: parseFloat($('#tOverall').value) || 0,
     listening: parseFloat($('#tListening').value) || 0,
