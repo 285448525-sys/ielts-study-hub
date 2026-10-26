@@ -1,0 +1,127 @@
+/* KIMI-P6-6（10-26）：登录页专属样式（本页是独立工具页，不加载 common.css，token 自己定义）。
+   样子稿 design/kimi-visual-upgrade-2026-10-25/06-login.html
+   结构原文 _LG-login_结构原文.html（机器导出，前缀 lg-）
+   精确样式 _LG-login_精确样式.css（下面 lg- 块整段来自它，只把私有变量指回本页 token）
+   验收基线 _LG-login_验收基线.json（17 元素；收尾跑 scripts/mockup-1to1-check.cjs） */
+
+:root{
+  --bg:#f4f5f3; --card:#fff; --surface:#fff; --soft:#f7f9f8; --line:#e2e6e4;
+  --ink:#263c39; --muted:#62716e; --title:#173e3a;
+  --teal:#3a9a93; --teal-d:#2c7873; --teal-s:#eef7f6; --light:#5cb3ab;
+  --danger:#a31f18;
+  --shadow:0 1px 2px #173e3a04,0 8px 24px -12px #173e3a14;
+}
+/* 深色按设计稿 06-login.html 的 [data-theme=dark] 原值 */
+[data-theme="dark"]{
+  --bg:#101615; --card:#19201f; --surface:#19201f; --soft:#202a28; --line:#34413e;
+  --ink:#e6ecea; --muted:#a1b0ac; --title:#edf4f2;
+  --teal:#5cb3ab; --teal-d:#7ccac2; --teal-s:#223431; --light:#7ccac2;
+  --danger:#e8a19a;
+  --shadow:0 1px 2px #0003;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;min-height:100vh;background:var(--bg);color:var(--ink);
+  font:14px/1.6 system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  display:flex;flex-direction:column;
+}
+button,a,input{font:inherit;-webkit-tap-highlight-color:transparent}
+button{cursor:pointer}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(--light);outline-offset:2px}
+[hidden],.lg-hidden{display:none!important}
+.top{max-width:1040px;margin:auto;padding:16px 24px 0;display:flex;justify-content:space-between;align-items:center;gap:16px}
+.top a{color:var(--teal-d);text-decoration:none;font-weight:650;display:inline-flex;align-items:center;padding:0 3px;min-height:44px}
+.top a:hover{text-decoration:underline}
+.stage{max-width:1040px;width:100%;margin:auto;padding:24px 24px 20px;flex:1;display:flex;align-items:flex-start;justify-content:center}
+.duo{width:100%;max-width:460px}
+.foot-note{max-width:620px;margin:0 auto;padding:0 24px 22px;font-size:12px;color:var(--muted);text-align:center}
+@media(max-width:560px){
+  .top{padding:12px 16px 0}
+  .stage{padding:16px 16px 18px}
+  .foot-note{padding-left:20px;padding-right:20px}
+}
+@media(max-width:370px){ .top a{font-size:12px} }
+
+/* ===== 下面 lg- 块整段来自 _LG-login_精确样式.css（只把 .lg-page 私有变量指回本页 token、
+       基准字号按设计稿 body 14px/1.6 钉死；其余一字未改） ===== */
+.lg-page{
+  --lg-teal-d:var(--teal-d);
+  --lg-line:var(--line);
+  --lg-shadow:var(--shadow);
+  --lg-title:var(--title);
+  --lg-muted:var(--muted);
+  --lg-ink:var(--ink);
+  font-size:14px;
+  line-height:1.6;
+  font-family:system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.lg-page, .lg-page *{ box-sizing: border-box; }
+.lg-page button, .lg-page a, .lg-page input{ font: inherit; -webkit-tap-highlight-color: transparent; }
+.lg-page button, .lg-page a{ min-height: 44px; touch-action: manipulation; }
+.lg-page button{ cursor: pointer; }
+.lg-top a, .lg-text-link{ color: var(--lg-teal-d); text-decoration: none; font-weight: 650; display: inline-flex; align-items: center; padding: 0px 3px; }
+.lg-card{ background: var(--surface); border: 1px solid var(--lg-line); border-radius: 14px; box-shadow: var(--lg-shadow); padding: 30px; }
+.lg-mini-brand{ display: flex; align-items: center; gap: 11px; margin-bottom: 24px; }
+.lg-mini-brand i{ width: 38px; height: 38px; border-radius: 10px; background: var(--lg-teal-d); display: grid; place-items: center; font-style: normal; overflow: hidden; flex: 0 0 auto; }
+.lg-mini-brand svg{ width: 100%; height: 100%; }
+.lg-mb-txt b{ display: block; font-size: 15px; color: var(--lg-title); line-height: 1.4; }
+.lg-mb-txt span{ display: block; font-size: 12px; color: var(--lg-muted); }
+.lg-page h1, .lg-page h2, .lg-page h3, .lg-page p{ margin-top: 0px; }
+.lg-page h2{ font-size: 23px; line-height: 1.4; color: var(--lg-title); margin-bottom: 6px; }
+.lg-desc{ font-size: 13px; color: var(--lg-muted); margin-bottom: 20px; }
+.lg-page label{ display: block; font-size: 13px; color: var(--lg-ink); font-weight: 650; margin: 14px 0px 6px; }
+.lg-page input{ width: 100%; height: 46px; border: 1px solid var(--lg-line); border-radius: 10px; padding: 0px 13px; font-size: 15px; color: var(--lg-ink); background: var(--surface); outline: none; }
+.lg-btn{ min-height: 46px; border: 1px solid var(--lg-teal-d); border-radius: 10px; background: var(--lg-teal-d); color: rgb(255, 255, 255); padding: 10px 16px; font-weight: 650; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.lg-btn-ghost{ color: var(--lg-ink); background: var(--surface); border-color: var(--lg-line); }
+#goEmail, #goRegister{ width: 100%; margin-top: 20px; }
+.lg-links{ margin-top: 6px; text-align: right; font-size: 13px; }
+.lg-links a{ min-height: 44px; }
+.lg-switch{ margin-top: 18px; padding-top: 15px; border-top: 1px solid var(--lg-line); text-align: center; font-size: 13px; color: var(--lg-muted); }
+.lg-switch a{ margin-left: 4px; }
+.lg-note{ font-size: 12px; margin: 8px 0px 0px; color: var(--lg-muted); min-height: 18px; }
+.lg-why-log{ border-top: 1px solid var(--lg-line); margin-top: 22px; padding-top: 17px; }
+.lg-why-log b{ display: block; font-size: 13px; color: var(--lg-title); margin-bottom: 5px; }
+.lg-why-log span{ display: block; font-size: 12px; color: var(--lg-muted); line-height: 1.75; }
+.lg-code-row{ display: flex; gap: 9px; align-items: center; }
+.lg-code-row input{ flex: 1 1 0%; min-width: 0px; }
+.lg-code-row .lg-btn{ flex: 0 0 auto; width: auto; font-size: 13px; white-space: nowrap; }
+.lg-em-modal{ position: fixed; inset: 0px; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.lg-em-modal-mask{ position: absolute; inset: 0px; background: rgba(15, 23, 28, 0.5); }
+.lg-em-modal-card{ position: relative; background: var(--surface); border: 1px solid var(--lg-line); border-radius: 14px; padding: 24px; width: 100%; max-width: 380px; box-shadow: rgba(15, 23, 42, 0.2) 0px 20px 50px; }
+.lg-em-modal-card h3{ margin: 0px 0px 6px; font-size: 18px; color: var(--lg-title); }
+.lg-em-modal-desc{ margin: 0px 0px 14px; font-size: 13px; color: var(--lg-muted); line-height: 1.7; }
+.lg-em-modal-card input{ margin-bottom: 8px; }
+.lg-em-modal-btns{ display: flex; gap: 10px; margin-top: 12px; }
+.lg-em-modal-btns .lg-btn{ flex: 1 1 0%; }
+@media (max-width: 560px){
+  .lg-top{ padding: 12px 16px 0px; }
+  .lg-stage{ padding: 16px 16px 18px; }
+  .lg-card{ padding: 24px 20px; }
+  .lg-mini-brand{ margin-bottom: 20px; }
+  .lg-foot-note{ padding-left: 20px; padding-right: 20px; }
+  .lg-em-modal{ padding: 16px; }
+  .lg-em-modal-card{ padding: 22px 18px; }
+}
+@media (max-width: 370px){
+  .lg-code-row{ align-items: stretch; flex-direction: column; }
+  .lg-code-row .lg-btn{ width: 100%; }
+}
+/* ===== 稿子没导出的交互态（hover / focus / active）按稿子 .btn / input 的写法补齐 ===== */
+.lg-page .lg-btn:hover{ background: var(--teal); border-color: var(--teal); }
+.lg-page .lg-btn:active{ transform: translateY(1px); }
+.lg-page .lg-btn-ghost:hover{ background: var(--soft); border-color: var(--light); }
+.lg-page input:hover{ border-color: var(--light); }
+.lg-page input:focus{ border-color: var(--teal); box-shadow: 0 0 0 3px var(--teal-s); }
+.lg-page input::placeholder{ color: var(--muted); opacity: .8; }
+/* 🔴 深色主按钮：稿子写 color:#fff 配 --lg-teal-d（深色档 #7ccac2 亮青）看不太清，
+   设计稿自己补了 [data-theme=dark] .btn:not(.btn-ghost){color:#173e3a} —— 这里同款照搬。 */
+[data-theme="dark"] .lg-page .lg-btn:not(.lg-btn-ghost){ color: #173e3a; }
+/* 出错提示与错误码（T-007 的真页功能，稿子没画） */
+.lg-note.lg-bad{ color: var(--danger); }
+.lg-note-code{ font-size: 11px; margin-top: 2px; opacity: .72; font-variant-numeric: tabular-nums; }
+/* 加固：导出件把设计稿的 button/a/input{font:inherit}（0,0,1）提成了 .lg-page button（0,1,1），
+   会反过来压掉 .lg-btn / .lg-text-link 的 font-weight:650 → 按钮和链接字重变 400。
+   这里按导出件「加固副本」的思路补回来（提高一级具体度）。 */
+.lg-page .lg-btn{ font-weight: 650; }
+.lg-page .lg-text-link{ font-weight: 650; }

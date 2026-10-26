@@ -6,121 +6,7 @@
 <meta name="theme-color" content="#3a9a93" />
 <title>登录 · 雅思备考站</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-<style>
-:root{
-  --p-50:#eef7f6; --p-100:#d3ebe8; --p-200:#a8d7d2; --p-500:#3a9a93; --p-600:#2f867f; --p-700:#2c7873; --p-900:#1a4542;
-  --n-0:#fff; --n-300:#e6e8eb; --n-500:#a8adb5; --n-600:#71767e; --n-700:#4a4f57; --n-900:#14161a;
-  --line:#e6e8eb; --danger:#c0392b;
-  /* 10-24 B-6 小步3：补 .em-modal-card 一直引用的三个 token（原来整页没定义 → 解析为空，
-     弹层标题/描述文字颜色其实是浏览器默认黑；浅色下凑巧看不出来，深色下会全黑）。 */
-  --surface:#fff; --ink:#14161a; --muted:#71767e;
-}
-/* ===== 10-24 B-6 小步3：登录页补深色模式（她 10-24 16:1x 点头补）=====
-   站点主题开关（settings 页的深色开关）写的是 DATA.settings.theme，而本页不加载 data.js/common.js，
-   拿不到那份数据 → 这里自己从 localStorage 的 HUB_KEY 里读同一份 settings.theme
-   （与 common.js 的 applyTheme 同源同键），读不到再兜底 prefers-color-scheme，最后兜底浅色。
-   只覆盖会被看见的 token，品牌 teal 四档浅深同值不动（与站内 [data-theme=dark] 同口径）。
-   渐变底色用 token 拼（原来是三个写死 hex），深色下整页背景才跟着变。 */
-[data-theme="dark"]{
-  --p-50:#0f1a1e; --p-100:#16262a;
-  --n-0:#1b2126; --n-300:#2a3238; --n-500:#9aa3ab; --n-600:#8b949c; --n-700:#c3cbd2; --n-900:#eef2f5;
-  --line:#2c343b; --danger:#e07a6a;
-  --surface:#1b2126; --ink:#eef2f5; --muted:#8b949c;
-}
-*{box-sizing:border-box}
-body{
-  margin:0;min-height:100vh;color:var(--n-700);
-  font-family:system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
-  background:linear-gradient(160deg,var(--p-50) 0%,var(--p-50) 45%,var(--p-100) 100%);   /* 10-24 B-6 小步3：三个写死 hex 改 token 拼，深色下整页背景才跟着变 */
-  display:flex;flex-direction:column;
-}
-.top{max-width:1040px;width:100%;margin:0 auto;padding:20px 24px;display:flex;justify-content:space-between;align-items:center}
-.top a{color:var(--p-700);text-decoration:none;font-size:14px;font-weight:500}
-.top a:hover{color:var(--p-900)}
-.stage{flex:1;display:flex;align-items:center;justify-content:center;padding:12px 24px 48px}
-.duo{width:100%;max-width:460px;margin:0 auto}   /* 10/15 单列居中（方案批准）：登录是工具页，去掉左侧大品牌区 */
-/* 10/16 修 S6：删 .duo > .card.form{order:-1} —— .duo 已不是 flex/grid 容器，order 失效（S5 同步删注释） */
-.card{background:var(--n-0);border-radius:18px;box-shadow:0 18px 50px rgba(26,69,66,.10),0 2px 8px rgba(26,69,66,.05);padding:38px}
-/* ===== 10/15 登录页重做（方案批准：design/106-登录页与底部Part切换器_方案_2026-10-15.html）=====
-   单列居中 + 顶部小品牌条 + 输入框聚焦光圈 + 主按钮全宽 + 底部安抚文案。 */
-.mini-brand{display:flex;align-items:center;gap:10px;margin:0 0 22px}
-.mini-brand i{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#56b3ab 0%,#2c7873 100%);
-  display:grid;place-items:center;font-style:normal;overflow:hidden;flex:none}
-.mini-brand i svg{display:block;width:100%;height:100%}
-.mb-txt b{display:block;font-size:15px;font-weight:700;color:var(--n-900);line-height:1.3}
-.mb-txt span{display:block;font-size:11.5px;color:var(--n-500);line-height:1.3}
-/* 输入框：聚焦 teal 边框 + 柔光圈（与全站 focus 一致）
-   10/16 修 B1：--primary 站内不存在（站点约定 --p-*）→ 聚焦边框 var() 整条失效、
-   实测边框回退成近黑；同时光圈由 --p-50 加深到 --p-200（N2：键盘焦点可见度）。 */
-.card.form input:focus{outline:none;border-color:var(--p-500);box-shadow:0 0 0 3px var(--p-200)}
-/* 登录态与注册态之间的切换条（10/16 修 B1：--n-200 不存在 → 分隔线整条不渲染） */
-.card.form .switch{margin:20px 0 0;padding:16px 0 0;border-top:1px solid var(--n-300);
-  text-align:center;font-size:13.5px;color:var(--n-500)}
-/* 10/16 修 B1：--primary-900 不存在 → 链接回退浅灰、看着像禁用 → 改 --p-700 深 teal */
-.card.form .switch a{color:var(--p-700);font-weight:700;text-decoration:none;cursor:pointer;margin-left:4px}
-.card.form .switch a:hover{text-decoration:underline}
-/* 10/16 修 S4：页内 .reassure 与页脚 foot-note 文案重复（同一句出现两次）→ 删页内这条，
-   保留页脚那条（同时含「登录即表示数据同步到云端」的同意声明，且注册态也看得到）。
-   10/16 修 S5：删 10/4 双栏时代的过期注释（深色大字块/四条功能标注均已删）。
-   红线沿用：这页零价格、零套餐。 */
-/* ≤560 单列时卡片内边距收小（10/16 修 S6：原空媒体查询 {} 里没内容，已并入下方 880 断点） */
-/* 右：表单 */
-.form h2{font-size:24px;color:var(--n-900);margin:0 0 8px;font-weight:700}
-.form .desc{font-size:13.5px;color:var(--n-600);margin:0 0 24px}
-/* 10/16 修 S5：删 10/4 双栏时代的过期注释（左栏已删）。表单内容垂直居中保留（单列也好看）。 */
-.form{display:flex;flex-direction:column;justify-content:center}
-.form .why-log{border-top:1px solid var(--line);margin-top:22px;padding-top:16px}
-  /* 10/13 注册三步弹层（她拍板：邮箱+密码 → 验证码 → 邀请码） */
-  .em-modal{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:20px}
-  .em-modal[hidden]{display:none}
-  .em-modal-mask{position:absolute;inset:0;background:rgba(15,23,42,.45)}
-  .em-modal-card{position:relative;background:var(--surface);border-radius:16px;padding:22px 20px;width:100%;max-width:360px;box-shadow:0 20px 50px rgba(15,23,42,.25)}
-  .em-modal-card h3{margin:0 0 6px;font-size:17px;font-weight:800;color:var(--ink)}
-  .em-modal-desc{margin:0 0 14px;font-size:13px;color:var(--muted);line-height:1.7}
-  .em-modal-card input{width:100%;box-sizing:border-box;margin-bottom:4px}
-  .em-modal-btns{display:flex;gap:10px;margin-top:14px}
-  .em-modal-btns .btn{flex:1}
-.form .why-log b{display:block;font-size:12.5px;color:var(--n-700);font-weight:700;margin-bottom:6px}
-.form .why-log span{display:block;font-size:12.5px;color:var(--n-600);line-height:1.7}
-label{display:block;font-size:13px;color:var(--n-700);font-weight:500;margin:14px 0 6px}
-input{
-  width:100%;height:46px;border:1.5px solid var(--line);border-radius:11px;padding:0 14px;
-  font-size:15px;color:var(--n-900);background:var(--n-0);outline:none;transition:border-color .15s;   /* 10-24 B-6 小步3：#fff 改 var(--n-0)（深色下输入框不再白底刺眼） */
-}
-input:focus{border-color:var(--p-500)}
-input::placeholder{color:var(--n-500)}
-.btn{
-  width:100%;height:48px;border:0;border-radius:11px;background:var(--p-500);color:#fff;
-  font-size:16px;font-weight:600;cursor:pointer;margin-top:22px;transition:background .15s;
-}
-.btn:hover{background:var(--p-600)}
-.btn:disabled{opacity:.6;cursor:default}
-.links{margin-top:14px;text-align:center;font-size:13.5px}
-.links a{color:var(--p-700);text-decoration:none;font-weight:500;cursor:pointer}
-.links a:hover{color:var(--p-900)}
-.links .dim{color:var(--n-600)}
-.note{font-size:13.5px;margin:12px 0 0;color:var(--n-600);min-height:18px}
-.note.bad{color:var(--danger)}
-/* 10/22 T-007：后端错误码小字（截图报错用） */
-.note-code{font-size:11.5px;margin-top:2px;opacity:.72;font-variant-numeric:tabular-nums}
-/* 10/15 注册区：验证码框 + 获取按钮同一行 */
-.code-row{display:flex;gap:10px;align-items:center}
-.code-row input{flex:1;min-width:0}
-/* 10/16 修 B2 补漏：基础 .btn{width:100%} 也会把行内按钮撑成整行（特异性压不过），
-   这里显式 width:auto 让按钮缩到内容宽；flex:none 防被 input 的 flex:1 挤没。 */
-.code-row .btn{flex:none;width:auto;padding:0 14px;font-size:13px;min-height:44px;white-space:nowrap}
-.hidden{display:none!important}
-.foot-note{max-width:1000px;margin:0 auto;padding:0 24px 26px;font-size:12.5px;color:var(--n-500);text-align:center}
-@media (max-width:880px){
-  .card{padding:32px 26px}   /* 10/16 修 S6：删 .duo{grid-template-columns:1fr} —— .duo 已非 grid 容器 */
-}
-/* 10/16 修 B2：主按钮全宽的规则原先写 .card.form .btn（特异性 0,3,0），
-   把注册区 .code-row 里「获取验证码」按钮也压成 384px 整行、验证码输入框被挤成 30px。
-   改为只作用两个主按钮（#goEmail / #goRegister），行内按钮不受影响。
-   ⚠️ 不能整条删：.btn 本身虽已是 width:100%，但这条还带了 font-size 16→15.5
-   与 margin-top 22→8 两个设计调整。 */
-#goEmail, #goRegister{width:100%;height:48px;font-size:15.5px;margin-top:8px}
-</style>
+<link rel="stylesheet" href="css/p/login.css?v=20261026a" />
 <meta name="description" content="登录 / 注册：登录后可使用站内 AI 功能，并跨设备同步学习数据。" />
 <link rel="canonical" href="https://yasihub.com/login" />
 <meta property="og:type" content="website" />
@@ -149,115 +35,110 @@ input::placeholder{color:var(--n-500)}
 <div class="top"><a href="#" id="backLink">← 返回产品介绍</a></div>
 
 <div class="stage">
-  <div class="duo">
-    <!-- 10/15 她批准方案（design/106-登录页与底部Part切换器_方案_2026-10-15.html）：
-         登录是「工具页」不是 landing 页 → 去掉左侧大品牌区，改单列居中；
-         品牌感收敛成表单卡顶部一条（logo+站名+一句话），零价格零套餐（她的铁律）。 -->
-    <!-- 表单卡（单列居中） -->
-    <div class="card form">
+  <!-- KIMI-P6-6（10-26）：登录页按 design/kimi-visual-upgrade-2026-10-25/06-login.html 1:1 重排。
+       单列居中不变；卡片 / 输入框 / 按钮 / 弹层统一换稿子的皮（14px 圆角、10px 输入框、
+       深青主按钮、细线分隔）。零价格零套餐红线一字没破。
+       🔴 业务 id 一个没改；JS 只把 class 名跟着换成 lg- 前缀（hidden / note / bad / note-code）。 -->
+  <div class="lg-page duo">
+    <section class="lg-card lg-form" aria-label="登录与注册">
       <!-- 顶部小品牌条 -->
-      <div class="mini-brand">
+      <div class="lg-mini-brand">
         <i aria-hidden="true"><svg viewBox="0 0 512 512" fill="none" aria-hidden="true" focusable="false"><g fill="#ffffff" stroke="#ffffff" stroke-width="38" stroke-linejoin="round" stroke-linecap="round"><path d="M256 136 L344 194 L256 252 L168 194 Z"/><path d="M160 304 L212 304 L256 362 L300 304 L352 304 L352 354 Q352 394 256 394 Q160 394 160 354 Z"/></g></svg></i>
-        <div class="mb-txt"><b>雅思备考站</b><span>机考备考系统</span></div>
+        <div class="lg-mb-txt"><b>雅思备考站</b><span>机考备考系统</span></div>
       </div>
-      <!-- 10/13 她拍板：主流程改「邮箱 + 验证码」——原「手机号/用户名 + 密码」的 ACCT_RE
-           只校验格式不校验真实，123456 都能注册，一个真人可无限换号薅邀请会员。
-           邮箱验证码把注册成本抬到「一个真实邮箱」，挡住批量薅羊毛。
-           ⭐ 10/21 收尾：手机号/用户名通道前后端全删，账号只剩邮箱一种形态。 -->
+
       <div id="modeLogin">
         <h2>登录学习台</h2>
-        <p class="desc">进入你的备考空间，继续背词、串题和刷题。</p>
-        <label>邮箱</label>
+        <p class="lg-desc">进入你的备考空间，继续背词、串题和刷题。</p>
+        <label for="emEmail">邮箱</label>
         <input id="emEmail" type="email" placeholder="you@example.com" autocomplete="email" />
-        <label>密码</label>
+        <label for="emPass">密码</label>
         <input id="emPass" type="password" placeholder="至少 6 位" autocomplete="current-password" />
-        <button class="btn" id="goEmail" type="button">登 录</button>
-        <p class="note" id="noteEmail"></p>
-        <div class="links" style="margin-top:10px"><a id="forgotPass">忘记密码？</a></div>
-        <!-- 10/15 方案：登录态与注册态之间用顶部细线 + 弱链接分隔（不再与主按钮同重）-->
-        <div class="switch"><span class="dim">没有账号？</span><a id="toRegister">去注册</a></div>
-        <!-- 10/16 修 S4：删页内「不登录也能离线使用」—— 与页脚 foot-note 重复；
-             离线承诺保留在页脚（登录/注册两态都可见，且含数据同步同意声明）。 -->
+        <button class="lg-btn" id="goEmail" type="button">登 录</button>
+        <p class="lg-note" id="noteEmail" aria-live="polite"></p>
+        <div class="lg-links"><a class="lg-text-link" href="#" id="forgotPass">忘记密码？</a></div>
+        <div class="lg-switch"><span>没有账号？</span><a class="lg-text-link" href="#" id="toRegister">去注册</a></div>
 
         <!-- 验证码弹层（注册时用：给邮箱发 6 位数字） -->
-        <div id="emCodeModal" class="em-modal" hidden>
-          <div class="em-modal-mask"></div>
-          <div class="em-modal-card">
-            <h3>输入验证码</h3>
-            <p class="em-modal-desc">给 <b id="emCodeMail"></b> 发了一封 6 位数字的邮件，10 分钟内有效。</p>
-            <input id="emCode" placeholder="6 位数字" autocomplete="one-time-code" maxlength="6" />
-            <p class="note" id="noteCode"></p>
-            <div class="em-modal-btns">
-              <button class="btn btn-ghost" id="emCodeCancel" type="button">取消</button>
-              <button class="btn" id="emCodeOk" type="button">下一步</button>
+        <div id="emCodeModal" class="lg-em-modal" role="dialog" aria-modal="true" aria-labelledby="codeTitle" hidden>
+          <div class="lg-em-modal-mask"></div>
+          <div class="lg-em-modal-card">
+            <h3 id="codeTitle">输入验证码</h3>
+            <p class="lg-em-modal-desc">给 <b id="emCodeMail"></b> 发了一封 6 位数字的邮件，10 分钟内有效。</p>
+            <label for="emCode">验证码</label>
+            <input id="emCode" placeholder="6 位数字" autocomplete="one-time-code" maxlength="6" inputmode="numeric" />
+            <p class="lg-note" id="noteCode"></p>
+            <div class="lg-em-modal-btns">
+              <button class="lg-btn lg-btn-ghost" id="emCodeCancel" type="button">取消</button>
+              <button class="lg-btn" id="emCodeOk" type="button">下一步</button>
             </div>
           </div>
         </div>
 
         <!-- 邀请码弹层（注册最后一步，选填） -->
-        <div id="emInvModal" class="em-modal" hidden>
-          <div class="em-modal-mask"></div>
-          <div class="em-modal-card">
-            <h3>有邀请码？（选填）</h3>
-            <p class="em-modal-desc">填朋友的邀请码，<b>双方都得 7 天会员</b>。不填也能直接用。</p>
+        <div id="emInvModal" class="lg-em-modal" role="dialog" aria-modal="true" aria-labelledby="invTitle" hidden>
+          <div class="lg-em-modal-mask"></div>
+          <div class="lg-em-modal-card">
+            <h3 id="invTitle">有邀请码？（选填）</h3>
+            <p class="lg-em-modal-desc">填朋友的邀请码，<b>双方都得 7 天会员</b>。不填也能直接用。</p>
+            <label for="emInvite">邀请码</label>
             <input id="emInvite" placeholder="朋友的邀请码" autocomplete="off" style="text-transform:uppercase" />
-            <p class="note" id="noteInv"></p>
-            <div class="em-modal-btns">
-              <button class="btn btn-ghost" id="emInvSkip" type="button">跳过</button>
-              <button class="btn" id="emInvOk" type="button">完成注册</button>
+            <p class="lg-note" id="noteInv"></p>
+            <div class="lg-em-modal-btns">
+              <button class="lg-btn lg-btn-ghost" id="emInvSkip" type="button">跳过</button>
+              <button class="lg-btn" id="emInvOk" type="button">完成注册</button>
             </div>
           </div>
         </div>
 
         <!-- 找回密码弹层（10/13 补齐：邮箱账号可自助重置，不用再找站长手工重开） -->
-        <div id="emResetModal" class="em-modal" hidden>
-          <div class="em-modal-mask"></div>
-          <div class="em-modal-card">
-            <h3>重置密码</h3>
-            <p class="em-modal-desc">填注册邮箱收验证码，再设新密码。账号就是邮箱，没有别的找回方式。</p>
+        <div id="emResetModal" class="lg-em-modal" role="dialog" aria-modal="true" aria-labelledby="resetTitle" hidden>
+          <div class="lg-em-modal-mask"></div>
+          <div class="lg-em-modal-card">
+            <h3 id="resetTitle">重置密码</h3>
+            <p class="lg-em-modal-desc">填注册邮箱收验证码，再设新密码。账号就是邮箱，没有别的找回方式。</p>
+            <label for="rsEmail">邮箱</label>
             <input id="rsEmail" type="email" placeholder="你的注册邮箱" autocomplete="email" />
-            <div class="em-modal-btns" style="margin-top:8px"><button class="btn btn-ghost" id="rsSend" type="button">获取验证码</button></div>
-            <input id="rsCode" placeholder="6 位验证码" autocomplete="one-time-code" maxlength="6" />
+            <div class="lg-em-modal-btns" style="margin-top:8px"><button class="lg-btn lg-btn-ghost" id="rsSend" type="button">获取验证码</button></div>
+            <label for="rsCode">验证码</label>
+            <input id="rsCode" placeholder="6 位验证码" autocomplete="one-time-code" maxlength="6" inputmode="numeric" />
+            <label for="rsPass">新密码</label>
             <input id="rsPass" type="password" placeholder="新密码（至少 6 位）" autocomplete="new-password" />
-            <p class="note" id="noteRs"></p>
-            <div class="em-modal-btns">
-              <button class="btn btn-ghost" id="rsCancel" type="button">取消</button>
-              <button class="btn" id="rsOk" type="button">确认重置</button>
+            <p class="lg-note" id="noteRs"></p>
+            <div class="lg-em-modal-btns">
+              <button class="lg-btn lg-btn-ghost" id="rsCancel" type="button">取消</button>
+              <button class="lg-btn" id="rsOk" type="button">确认重置</button>
             </div>
           </div>
         </div>
-        <!-- 10/16 修 S5：删 10/4 双栏时代的过期注释（「左栏加内容后右边空一大块」已不存在）。
-             why-log 块保留：登录态下解释「为什么要登录」，对首次来访仍有价值。 -->
-        <div class="why-log">
+
+        <!-- why-log 保留：登录态下解释「为什么要登录」，对首次来访仍有价值 -->
+        <div class="lg-why-log">
           <b>为什么要登录</b>
           <span>不登录也能用，但数据只存在这台设备的浏览器里——换设备、清缓存就没了。<br />登录后自动同步到云端，换手机换电脑都接着用。</span>
         </div>
       </div>
 
-      <!-- 10/15 她拍板：删掉「账号密码登录（老用户）」通道，只留邮箱登录。
-           10/21 她再次拍板「只能邮箱登录」→ 老手机号/用户名账号的**登录入口已从前端和后端一并删除**
-           （auth.js 的 register 分支也删了），云端数据仍在 user:<acct> / sync:<acct> 键下没动。 -->
-
       <!-- 注册模式（10/15 她拍板：邮箱 + 密码 + 验证码 + 邀请码(选填) 四个框，同一页切换不开新页） -->
-      <div id="modeRegister" class="hidden">
+      <div id="modeRegister" class="lg-hidden">
         <h2>注册新账号</h2>
-        <p class="desc">用邮箱注册，验证码会发到你的邮箱。</p>
-        <label>邮箱</label>
+        <p class="lg-desc">用邮箱注册，验证码会发到你的邮箱。</p>
+        <label for="rEmail">邮箱</label>
         <input id="rEmail" type="email" placeholder="you@example.com" autocomplete="email" />
-        <label>密码</label>
+        <label for="rPass">密码</label>
         <input id="rPass" type="password" placeholder="至少 6 位" autocomplete="new-password" />
-        <label>验证码</label>
-        <div class="code-row">
-          <input id="rCode" placeholder="6 位数字" autocomplete="one-time-code" maxlength="6" />
-          <button class="btn btn-ghost" id="rSendCode" type="button">获取验证码</button>
+        <label for="rCode">验证码</label>
+        <div class="lg-code-row">
+          <input id="rCode" placeholder="6 位数字" autocomplete="one-time-code" maxlength="6" inputmode="numeric" />
+          <button class="lg-btn lg-btn-ghost" id="rSendCode" type="button">获取验证码</button>
         </div>
-        <label>邀请码（选填）</label>
+        <label for="rInvite">邀请码（选填）</label>
         <input id="rInvite" placeholder="朋友分享给你的邀请码" autocomplete="off" style="text-transform:uppercase" />
-        <button class="btn" id="goRegister" type="button">注册并进入</button>
-        <p class="note" id="noteRegister"></p>
-        <div class="switch"><span class="dim">已有账号？</span><a id="backLogin1">返回登录</a></div>
+        <button class="lg-btn" id="goRegister" type="button">注册并进入</button>
+        <p class="lg-note" id="noteRegister"></p>
+        <div class="lg-switch"><span>已有账号？</span><a class="lg-text-link" href="#" id="backLogin1">返回登录</a></div>
       </div>
-    </div>
+    </section>
   </div>
 </div>
 <p class="foot-note">登录即表示数据将同步到你的账号云端；不登录也能离线使用，数据只存本机。</p>
@@ -290,22 +171,22 @@ var ACCT_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
   var MODES = ['Login','Register'];   // 恢复码展示/找回密码两模式已随恢复码机制下线（她 10/1 拍板）
   function show(m){
-    MODES.forEach(function(x){ $('mode' + x).classList.toggle('hidden', x !== m); });
+    MODES.forEach(function(x){ $('mode' + x).classList.toggle('lg-hidden', x !== m); });
   }
   function note(id, t, bad){
     var el = $(id);
     el.textContent = t || '';
-    el.className = 'note' + (bad ? ' bad' : '');
+    el.className = 'lg-note' + (bad ? ' lg-bad' : '');
   }
   /* 10/22 她朋友注册报错看不到原因：后端给了 code（如 mail_domain_unverified）但页面只显示 msg。
      在提示后面追加一行小字，方便她截图报错。 */
   function noteCode(id, code){
     var el = $(id); if(!el) return;
-    var old = el.querySelector('.note-code');
+    var old = el.querySelector('.lg-note-code');
     if(old) old.remove();
     if(code){
       var s = document.createElement('div');
-      s.className = 'note-code';
+      s.className = 'lg-note-code';
       s.textContent = '错误码：' + code;
       el.appendChild(s);
     }
@@ -510,6 +391,19 @@ var ACCT_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   });
   var rsCancel = $('rsCancel');
   if (rsCancel) rsCancel.addEventListener('click', function(){ var rm=$('emResetModal'); if(rm) rm.hidden = true; });
+
+  /* KIMI-P6-6（10-26）：改密弹层补齐「Esc 关闭 + 点遮罩关闭 + 焦点返回」——
+     稿子（06-login.html）明确有这三条，原页只有「取消」一个出口。
+     a11y 口径：关掉以后焦点回到「忘记密码？」，键盘用户不会丢位置。 */
+  (function(){
+    var rm = $('emResetModal'); if(!rm) return;
+    function closeReset(){ rm.hidden = true; var fp = $('forgotPass'); if(fp) fp.focus(); }
+    var mask = rm.querySelector('.lg-em-modal-mask');
+    if(mask) mask.addEventListener('click', closeReset);
+    document.addEventListener('keydown', function(e){
+      if(e.key === 'Escape' && !rm.hidden) closeReset();
+    });
+  })();
 
   /* 10/16 修 S1/S2（审查报告 2026-10-15）：删除两段遗留脚本。
      ① showMode() 及 t1/t2 绑定：引用已删除的 modePassLogin，且与 305 行 toRegister
