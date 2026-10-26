@@ -338,9 +338,16 @@ function mergeData(local, cloud){
   // 本机与云端同 id 题的 answers/练习记录取「较新一侧」（按 _lastSaved 时间戳或内容非空判断），题干永远用官方。
   // 这样既跨设备恢复串题答案，又不会因早期脏题库复活成 100+ 题（mergeSpeakingKeepAnswers 已保证非官方题丢弃）。
   if(Array.isArray(cloud.speaking) || Array.isArray(local.speaking)){
-    const ms = _mergeSpeaking(local.speaking, cloud.speaking);
-    out.speaking = ms.arr;
-    changes += ms.changes;
+    /* 🔴 DATA-1（10-26）：口语题库未就位时**跳过 speaking 的合并**。
+       为什么必须跳：题库搬到 js/data-static.js 后，未就绪页面的本机 speaking 可能是空的，
+       拿它当「用户真实状态」参与合会算出空数组 → out.speaking=[] → 随后上传就把云端题库清空。
+       跳过 = 本轮 speaking 保持本机原样（本机那份本来就是完整的题库+答案），
+       等题库到位（speaking.html 直接引 / 其余页 loadStatic 拉）之后的下一次合并自然补齐。 */
+    if(typeof HUB_FACTORY === 'undefined' || HUB_FACTORY.fieldReady('speaking')){
+      const ms = _mergeSpeaking(local.speaking, cloud.speaking);
+      out.speaking = ms.arr;
+      changes += ms.changes;
+    }
   }
   out.deletedIds = Array.from(deleted);
   out.revivedIds = Array.from(revivedWords);   // 反向墓碑随合并传播（与 deletedIds 同口径 union）

@@ -350,6 +350,13 @@ async function cloudUpload(showToast, force, opts){
     return true;   // 内容与云端一致，视为成功
   }
   try{
+    /* DATA-1（10-26）：上传前先确保口语题库已到位 —— 未到位时 stripCloudFields 会把 speaking 摘掉，
+       而服务端 PUT 是**整份覆盖**，那一次上传就会把云端那份题库（含她的答案）抹掉。
+       题库通常在页面可用后 1~3s 内就拉到了，这里最多等一下（加载失败/离线时 ensureStatic 立刻返回 false，
+       继续走，闸① 继续兜底）。 */
+    if(typeof HUB_FACTORY !== 'undefined' && HUB_FACTORY && typeof HUB_FACTORY.ensureStatic === 'function' && !HUB_FACTORY.readyStatic){
+      try{ await HUB_FACTORY.ensureStatic(); }catch(e){}
+    }
     const _payload = stripCloudFields(DATA);   // v7.1：先落变量——成功后记它的哈希做「自回声」基线
     const putBody = { data: _payload, ts: Date.now(), deviceId: getDeviceId() };
     // ⭐ 乐观锁：已知云端版本才带 baseTs（0=还不知道 → 不带，维持老的无条件覆盖语义）
@@ -469,6 +476,33 @@ const SYNC_ARRAY_FIELDS = ['sessions','notes','meds','corpus','scores','errorboo
    ⚠️ 幂等：软导航来回切页会重复调用（10/17 口语按需加载踩过「脚本二次 append → 顶层 const
    重复声明 → 整片空白」的真回归），故用固定 id + window 上的锚点去重。 */
 const FACTORY_WRITING_SRC = 'js/factory-writing.js?v=20261023b';
+/* ── DATA-1（10-26）口语题库按需加载 ────────────────────────────────────────
+   89 条官方题（brotli ~21KB）已从每页必下的 js/data.js 搬到 js/data-static.js：
+   speaking.html 直接 <script defer> 引；其余页面由下面这个加载器在「页面可用之后」拉。
+   ⚠️ 幂等：同 factory-writing —— 固定 id + window 锚点，软导航来回切页不重复 append。 */
+const DATA_STATIC_SRC = 'js/data-static.js?v=20261026h';
+if(typeof HUB_FACTORY !== 'undefined' && !HUB_FACTORY.loadStatic){
+  HUB_FACTORY.loadStatic = function(cb){
+    const done = ok => { try{ cb(ok); }catch(e){ console.error('[static] 回调异常：', e); } };
+    const exist = document.getElementById('hubDataStatic');
+    if(exist){
+      if(HUB_FACTORY.readyStatic) return done(true);
+      exist.addEventListener('load', () => done(!!HUB_FACTORY.readyStatic));
+      exist.addEventListener('error', () => done(false));
+      return;
+    }
+    if(typeof SPEAKING_BANK !== 'undefined' && SPEAKING_BANK && SPEAKING_BANK.length){
+      return done(!!HUB_FACTORY.readyStatic);   // 以别的方式已在位
+    }
+    const s = document.createElement('script');
+    s.id = 'hubDataStatic';
+    s.src = DATA_STATIC_SRC;
+    s.async = true;
+    s.onload = () => done(!!HUB_FACTORY.readyStatic);
+    s.onerror = () => { console.error('[static] 口语题库加载失败（下次会重试）'); done(false); };
+    document.head.appendChild(s);
+  };
+}
 if(typeof HUB_FACTORY !== 'undefined' && !HUB_FACTORY.loadWriting){
   HUB_FACTORY.loadWriting = function(cb){
     const done = ok => { try{ cb(ok); }catch(e){ console.error('[factory] 回调异常：', e); } };
@@ -495,6 +529,9 @@ function stripCloudFields(d){
   /* 2026-10-17 首屏减重第二步：出厂内容（起步语料）未到位时，本机该字段是空的 ——
      绝不能把空数组传上云，否则会造成「云端起步语料被清空」。就绪后自然恢复上传。 */
   if(typeof HUB_FACTORY !== 'undefined' && !HUB_FACTORY.fieldReady('writingPhrases')) delete c.writingPhrases;
+  /* DATA-1（10-26）：口语题库（speaking）同理 —— 题库没就位时本机 speaking 是空的/旧的，
+     传上云 = 把云端那 89 条题和她的答案一起清掉。就绪后自然恢复上传。 */
+  if(typeof HUB_FACTORY !== 'undefined' && !HUB_FACTORY.fieldReady('speaking')) delete c.speaking;
   /* design/62：AI Key 严禁落云端。
      ⚠️ 必须先浅拷贝 settings 再删——c.settings 与 DATA.settings 是同一引用，
      直接 delete c.settings.relayToken 会把本机 Key 一起删掉，全站 AI 功能当场失效。 */
