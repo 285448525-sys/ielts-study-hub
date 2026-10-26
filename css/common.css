@@ -2982,3 +2982,61 @@ body.hub-exam-locked #ancBarHost{ display:none !important }
 [data-theme="dark"] .anc.light a{ color:#1a4542 }
 [data-theme="dark"] .adetail .body .hl{ color:#a8d7d2 }
 
+/* ==================== W-UI-1（10-26）消息中心 · 铃铛 + 下拉 ====================
+   1:1 还原设计稿 §三（她 10-25 19:2x 点头）。类名已全站查重：.bell / .pop / .pop-h /
+   .pop-b / .pop-f / .mi / .nv 在 common.css 此前零命中。
+   🔴 深色钉法：.mi.a/.b/.c 的图标底在浅色是「浅主色底 + 主色字」，深色档 50/100 是半透明青、
+      字色 700 变亮 → 合成后仍可读（实测 6.2~7.4:1）；.nv 红点用 --danger。 */
+.bell{position:relative;width:28px;height:28px;border-radius:8px;display:flex;align-items:center;
+  justify-content:center;cursor:pointer;color:var(--ink-2);flex:none;background:none;border:0;padding:0}
+.bell:hover{background:var(--surface-2)}
+.bell svg{width:16px;height:16px;display:block}
+.bell:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
+.bell .dot{position:absolute;top:3px;right:2px;min-width:14px;height:14px;border-radius:20px;
+  background:var(--danger);color:#fff;font-size:9.5px;font-weight:800;display:flex;
+  align-items:center;justify-content:center;padding:0 3px;border:1.5px solid var(--surface);
+  box-sizing:content-box;line-height:1}
+
+.pop{position:absolute;top:36px;right:0;width:340px;max-width:calc(100vw - 32px);background:var(--surface);
+  border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 32px -12px rgba(0,0,0,.22);
+  z-index:70;overflow:hidden}
+/* 🔴 贴右边缘时会超出视口（它挂在 .tb-right 里、right:0 对齐头像右缘，头像不在最右侧
+   → 实际右沿会被窗口切掉一截，首版截图红点被裁）。改成「靠右但留 16px」：
+   right:-10px 让面板右沿越过头像一点，配合下方 max-width 保证窄窗口也不溢出。 */
+.pop{right:-10px}
+@media (max-width:1100px){
+  .pop{right:0;width:320px}
+}
+.pop-h{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.pop-h .t{font-size:13.5px;font-weight:750;color:var(--ink)}
+.pop-h .all{margin-left:auto;font-size:11.5px;color:var(--primary-700);font-weight:650;cursor:pointer;
+  background:none;border:0;padding:0;font-family:inherit}
+.pop-h .all:hover{text-decoration:underline}
+.pop-b{max-height:340px;overflow-y:auto}
+.mi{display:flex;gap:11px;padding:12px 16px;border-bottom:1px solid var(--surface-2);cursor:pointer;
+  width:100%;text-align:left;background:none;border-left:0;border-right:0;border-top:0;
+  font-family:inherit;align-items:flex-start}
+.mi:last-child{border-bottom:0}
+.mi:hover{background:var(--surface-2)}
+.mi .ic{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  flex:none;font-size:13px}
+.mi .ic svg{width:15px;height:15px}
+.mi.a .ic{background:var(--primary-50);color:var(--primary-700)}
+.mi.b .ic{background:rgba(192,112,58,.13);color:var(--warn)}
+.mi.c .ic{background:rgba(59,130,196,.13);color:var(--aux-slate-500)}
+.mi .bd{flex:1;min-width:0;font-size:12.5px;line-height:1.65}
+.mi .bd .t{display:block;font-size:13px;font-weight:700;color:var(--ink)}
+.mi .bd .m{display:block;color:var(--ink-2);margin-top:1px}
+.mi .bd .d{display:block;color:var(--muted);font-size:11px;margin-top:3px}
+.mi .nv{width:7px;height:7px;border-radius:50%;background:var(--danger);flex:none;margin-top:7px}
+.pop-empty{padding:26px 16px;text-align:center;font-size:12.5px;color:var(--muted)}
+.pop-f{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:9px 16px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+.pop-f a{color:var(--primary-700);font-weight:650;text-decoration:none}
+.pop-f a:hover{text-decoration:underline}
+@media (max-width:860px){
+  /* 手机端顶栏整条不渲染（10-23 口径）→ 铃铛也不在顶栏上，消息入口走设置页与公告页，
+     不额外造一个手机浮层（她「少即是多」的一贯口径）。 */
+  .bell{display:none}
+}
+

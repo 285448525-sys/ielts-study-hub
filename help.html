@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>帮助 · 雅思备考 Hub</title>
+<link rel="stylesheet" href="css/common.css?v=20261026b" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
+<link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
+<link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png?v=7">
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#3a9a93" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="description" content="常见问题：账号与会员、学习功能、数据与同步。" />
+<style>
+/* help.html 专属样式（页面层，随页内联 —— 软导航会搬 head 内联 style，见 10-18 补齐机制） */
+.help-page{max-width:760px;margin:0 auto}
+.help-hero{margin:0 0 16px}
+.help-kicker{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.06em;
+  color:var(--primary-700);background:var(--primary-50);border-radius:5px;padding:2px 8px;margin-bottom:8px}
+.help-hero h1{margin:0;font-size:22px;font-weight:750;letter-spacing:-.02em}
+.help-hero p{margin:4px 0 0;font-size:12.5px;color:var(--muted)}
+.faq-g{margin-bottom:22px}
+.faq-g > .t{font-size:13px;font-weight:750;color:var(--primary-700);margin-bottom:8px}
+details{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:0;margin-bottom:7px}
+summary{cursor:pointer;padding:12px 16px;font-size:13.5px;font-weight:650;list-style:none;
+  display:flex;align-items:center;gap:9px;color:var(--ink)}
+summary::-webkit-details-marker{display:none}
+summary::after{content:'▾';margin-left:auto;color:var(--muted);font-size:11px}
+details[open] summary::after{transform:rotate(180deg)}
+details .a{padding:0 16px 13px;font-size:13px;line-height:1.85;color:var(--ink-2)}
+.help-acts{display:flex;gap:10px;margin-top:16px}
+</style>
+</head>
+<body data-shell="top">
+<!-- 顶壳由 common.js injectNav 渲染 -->
+<nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
+
+<main class="container">
+  <div class="help-page">
+    <div class="help-hero">
+      <span class="help-kicker">帮助</span>
+      <h1>常见问题</h1>
+      <p>找不到答案就用下面的「写反馈」，站长本人亲自看。</p>
+    </div>
+
+    <div class="faq-g">
+      <div class="t">账号与会员</div>
+      <details><summary>免费版和会员差在哪？</summary><div class="a">学习功能（单词 / 句子 / 口语题库 / 写作 / 回顾）全部免费；差别只在 AI 次数：免费版口语模考每月 1 次、写作批改每月 3 次、其他 AI 每周 5 次；串题素材是会员专属。云同步和导出永久免费。</div></details>
+      <details><summary>怎么开通会员？</summary><div class="a">会员页选档位 → 按说明转账 → 点「我已转账」。当天开通，开通后会员页自动变会员态。</div></details>
+      <details><summary>会员到期后数据会丢吗？</summary><div class="a">不会。学习记录、词库、成绩全部留在你账号里，到期只是 AI 次数回到免费额度。</div></details>
+    </div>
+
+    <div class="faq-g">
+      <div class="t">学习功能</div>
+      <details><summary>「每日学习上限」是什么？</summary><div class="a">单词页右上角齿轮里设的那个数。首页的「今天还有 N 个词要过」以它为准，不是全词库到期量。设 0 = 不限。</div></details>
+      <details><summary>错词本在哪？</summary><div class="a">单词页右上角。答错过的词按错误次数分档，重练不占今日配额。</div></details>
+      <details><summary>计时是自动开的吗？</summary><div class="a">是。在单词页答题、模考做题、口语练习都会自动开始计时，不用手动开。</div></details>
+    </div>
+
+    <div class="faq-g">
+      <div class="t">数据与同步</div>
+      <details><summary>换设备数据还在吗？</summary><div class="a">在。登录同一个账号，学习记录自动同步。也可以随时在设置里导出 JSON 备份。</div></details>
+      <details><summary>遇到问题怎么反馈？</summary><div class="a">设置页「写反馈」或本页底部的「写反馈」。带截图更容易定位。</div></details>
+    </div>
+
+    <div class="help-acts">
+      <!-- ⭐ data-fb-open = js/feedback.js 的 document 级委托（closest('[data-fb-open]')），零 JS 改动。
+           🔴 主按钮类用站内现成的 .btn-primary（设计稿写的 .btn-p 在本站不存在，别造第二份按钮样式） -->
+      <button class="btn btn-primary btn-sm" data-fb-open type="button">写反馈</button>
+      <a class="btn btn-sm" href="vip.html">联系站长</a>
+    </div>
+  </div>
+</main>
+
+<script defer src="js/data.js?v=20261023b"></script>
+<script defer src="js/common.js?v=20261026b"></script>
+<script defer src="js/common-ai.js?v=20261026b"></script>
+<script defer src="js/common-sync.js?v=20261026b"></script>
+<script defer src="js/common-merge.js?v=20261026b"></script>
+<script defer src="js/common-cloud.js?v=20261026b"></script>
+<script defer src="js/common-shell.js?v=20261026b"></script>
+<script defer src="js/common-pwa.js?v=20261026b"></script>
+<script defer src="js/feedback.js?v=20261013b"></script>
+</body>
+</html>

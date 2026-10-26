@@ -82,7 +82,10 @@ const PAGES = [
   /* W-UI-1（10-25）公告页：软导航按 id 找 js/announce.js + 公告条「去看看」的直达目标。
      ⚠️ 不进 PRIMARY_NAV / MORE_NAV（成熟站都不把公告放一级导航，见下方公告段注释），
         三条入口 = 公告条「去看看」· 消息中心「全部消息」· 设置页「更新日志」一行。 */
-  { id:'announce',  file:'announce.html',  icon:ICON.writing,  name:'公告',     desc:'站点更新日志' }
+  { id:'announce',  file:'announce.html',  icon:ICON.writing,  name:'公告',     desc:'站点更新日志' },
+  /* W-UI-1（10-26）帮助页：三组 FAQ（账号与会员 / 学习功能 / 数据与同步）。
+     不进一级导航，两条入口 = 设置页「帮助」一行 + 消息中心底部（施工书 §四）。 */
+  { id:'help',      file:'help.html',      icon:ICON.writing,  name:'帮助',     desc:'常见问题' }
 ];
 
 /* 收藏页面（⭐）——侧边栏「常用」与首页「快捷入口」共用同一份，永远同步。
@@ -148,6 +151,7 @@ function ancMarkRead(ids){
     localStorage.setItem(ANC_READ_KEY, JSON.stringify(Array.from(s)));
   }catch(e){}
   if(typeof ancEnsure === 'function') ancEnsure();
+  if(typeof hubRefreshBell === 'function') hubRefreshBell();   // 消息红点与公告已读同源
 }
 /* 「新」的判定：7 天内发布的算新（列表页 NEW 角标用；已读过的一律不标） */
 function ancFresh(a){
@@ -230,16 +234,207 @@ function ancBindBar(){
   const x = document.getElementById('hubAncX');
   if(x) x.addEventListener('click', function(){ ancMarkRead([id]); });
   const go = document.getElementById('hubAncGo');
-  if(go) go.addEventListener('click', function(){
+  if(go) go.addEventListener('click', function(ev){
+    ev.preventDefault();
     ancMarkRead([id]);
     /* 已在公告页 → 不换页，直接让本页开详情（announce.js 的 ancOpen） */
     if((location.pathname.split('/').pop() || '') === 'announce.html'
        && typeof window.ancOpen === 'function'){
-      event.preventDefault();
       window.ancOpen(id);
+      return;
     }
+    /* 🔴 不能直接靠 <a href="announce.html#id"> 走软导航：hubLinkTarget 返回的 url
+       会把 #hash 丢掉（common-shell.js:429），落地后 hash 没了 → 只到列表、不开详情
+       （第 1 批遗留，本批一起修）。hubMsgGo = 软导航落地后再补 hash。 */
+    hubMsgGo('announce.html#' + encodeURIComponent(id));
   });
 }
+
+/* 消息/公告的跳转：站内页走软导航（与顶栏其他入口一致），带 #hash 的落地后补 hash。 */
+function hubMsgGo(href){
+  const hashPart = href.split('#')[1] || '';
+  const url = href.split('#')[0];
+  const file = url.split('?')[0].split('/').pop();
+  const page = (typeof PAGES !== 'undefined') ? PAGES.find(p => p.file === file) : null;
+  if(page && typeof softNavigate === 'function'){
+    try{
+      const r = softNavigate({ id:page.id, file:page.file, href:page.file, url:url }, false);
+      Promise.resolve(r).then(function(){
+        if(hashPart){ try{ location.hash = hashPart; }catch(e){ location.href = href; } }
+      }).catch(function(){ location.href = href; });
+      return;
+    }catch(e){ /* 落到下面的整页跳 */ }
+  }
+  location.href = href;
+}
+
+/* ==================== W-UI-1（10-26）消息中心（铃铛 + 下拉） ====================
+   设计稿 §三。三类消息**全部本地算，零接口**：
+     · 公告     → data/announce.json 里未读的（已读键 hub_anc_read 与公告条共用）
+     · 会员到期 → 本地会员态剩余 ≤3 天（expire 来自既有会员检查的缓存，见 common-sync.js
+                  hubVipExpireCached —— 不发新请求，没缓存就不显示这条，下次检查完自然出现）
+     · 学习提醒 → 今日错词 > 0 或今天还没学习
+   已读态按类型分键：公告用 hub_anc_read；会员/学习提醒不存已读（每次进页面按当前状态
+   重算，过期自然消失 —— 施工书 §3.2 硬口径）。
+   挂点 = 顶栏头像左侧（施工书 §3.1），不进任何导航清单。 */
+var MSG_VIP_LEFT = 3;          // 会员剩余 ≤3 天才提醒
+function hubBellHtml(){
+  return '<span class="bell" id="tbBellBtn" title="消息" aria-label="消息" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false" aria-controls="tbBellPop">'
+    + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>'
+    + '<span class="dot" id="tbBellDot" hidden></span>'
+    + '</span>'
+    + '<div class="pop" id="tbBellPop" hidden></div>';
+}
+/* 错词数（本地两处）：① 自定义词库 = DATA.dailyWrong[今天]（DATA 顶层，全站可读）；
+   ② 官方词库 = 独立 localStorage ielts_hub_obank_v1（wordbank.js 的纯本地键，直读即可，
+   🔴 不能调 wbTodayWrongEns() —— 那是 practice 页专属脚本，顶栏在 19 页都在，调用必 undefined） */
+function hubWrongCount(){
+  const t = todayKey();
+  const ids = new Set();
+  try{
+    ((DATA.dailyWrong || {})[t] || []).forEach(k => { const s = String(k||'').trim().toLowerCase(); if(s) ids.add(s); });
+  }catch(e){}
+  try{
+    const ob = JSON.parse(localStorage.getItem('ielts_hub_obank_v1') || 'null');
+    if(ob && ob.banks){
+      Object.keys(ob.banks).forEach(id => {
+        const w = (ob.banks[id] && ob.banks[id].wrong && ob.banks[id].wrong[t]) || [];
+        w.forEach(k => { const s = String(k||'').trim().toLowerCase(); if(s) ids.add(s); });
+      });
+    }
+  }catch(e){}
+  return ids.size;
+}
+function hubStudiedToday(){
+  const t = todayKey();
+  return (DATA.sessions || []).some(x => x && x.date === t && (x.durationSec || 0) > 0);
+}
+/* 三类消息（每条 {kind, icon, title, sub, time, href, unread}） */
+function hubMsgs(){
+  const out = [];
+  const read = ancReadSet();
+  const j = _ancCache;
+  ((j && j.items) || []).forEach(a => {
+    if(!a || !a.id || read.has(a.id)) return;
+    out.push({ kind:'a', icon:'star', title:a.title || '', sub:a.summary || '',
+      time:String(a.date || ''), href:'announce.html#' + encodeURIComponent(a.id), ancId:a.id, unread:true });
+  });
+  const exp = (typeof hubVipExpireCached === 'function') ? hubVipExpireCached() : null;
+  if(exp){
+    const PERM = typeof exp === 'number' && exp >= 4102444800000;
+    if(!PERM){
+      const d = (typeof exp === 'number') ? new Date(exp) : new Date(String(exp) + 'T00:00:00');
+      const left = Math.ceil((d.getTime() - Date.now()) / 864e5);
+      if(left > 0 && left <= MSG_VIP_LEFT){
+        out.push({ kind:'b', icon:'clock', title:'会员还有 ' + left + ' 天到期',
+          sub:'续一档接着用，或让它自然过期', time:'', href:'vip.html', unread:true });
+      }
+    }
+  }
+  const wn = hubWrongCount();
+  if(wn > 0){
+    out.push({ kind:'c', icon:'book', title: wn + ' 个错词该复习了',
+      sub:'错词本里攒着，一键重练不占今日配额', time:'', href:'practice.html', unread:true });
+  } else if(!hubStudiedToday()){
+    out.push({ kind:'c', icon:'book', title:'今天还没学习', sub:'从首页挑一件事开始，学一会儿就算数', time:'', href:'home.html', unread:true });
+  }
+  return out;
+}
+function hubMsgIcon(name){
+  if(name === 'clock') return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+  if(name === 'book') return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>';
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 2 8l10 5 10-5-10-5Z"/><path d="M6 12v5c0 1.5 3 3 6 3s6-1.5 6-3v-5"/></svg>';
+}
+function hubUnreadCount(){
+  const read = ancReadSet();
+  let n = 0;
+  (( _ancCache && _ancCache.items) || []).forEach(a => { if(a && a.id && !read.has(a.id)) n++; });
+  return n + hubMsgs().filter(m => m.kind !== 'a').length;
+}
+/* 红点：未读 > 0 才显示，>99 显示 99+（施工书 §3.1）。
+   🔴 公告 json 是异步拉的 → 每次 ancLoad 到位后都要刷一次，否则首屏红点数少算公告。 */
+function hubRefreshBell(){
+  const dot = document.getElementById('tbBellDot');
+  if(!dot) return;
+  const n = hubUnreadCount();
+  if(n > 0){
+    dot.hidden = false;
+    dot.textContent = n > 99 ? '99+' : String(n);
+  } else {
+    dot.hidden = true;
+    dot.textContent = '';
+  }
+}
+function hubRenderPop(){
+  const pop = document.getElementById('tbBellPop');
+  if(!pop) return;
+  const msgs = hubMsgs();
+  pop.innerHTML =
+    '<div class="pop-h"><span class="t">消息</span><button class="all" type="button" id="tbBellAll">全部已读</button></div>'
+    + '<div class="pop-b">'
+    + (msgs.length ? msgs.map(function(m){
+        return '<button class="mi ' + m.kind + '" type="button" data-msg-href="' + escapeHtml(m.href) + '">'
+          + '<span class="ic">' + hubMsgIcon(m.icon) + '</span>'
+          + '<span class="bd"><span class="t">' + escapeHtml(m.title) + '</span>'
+          + '<span class="m">' + escapeHtml(m.sub) + '</span>'
+          + (m.time ? '<span class="d">' + escapeHtml(m.time) + '</span>' : '')
+          + '</span><span class="nv" aria-hidden="true"></span></button>';
+      }).join('') : '<div class="pop-empty">没有新消息。</div>')
+    + '</div>'
+    + '<div class="pop-f"><span>仅保留最近 30 天 · 已读不留红点</span><a href="announce.html?tab=msg">全部消息 ›</a></div>';
+}
+function hubBellClose(){
+  const pop = document.getElementById('tbBellPop');
+  const btn = document.getElementById('tbBellBtn');
+  if(pop && !pop.hidden){ pop.hidden = true; }
+  if(btn) btn.setAttribute('aria-expanded', 'false');
+}
+function hubBindBell(){
+  const btn = document.getElementById('tbBellBtn');
+  const pop = document.getElementById('tbBellPop');
+  if(!btn || !pop || btn.__bound) return;      // 幂等标记打元素上（软导航重建后是新节点）
+  btn.__bound = true;
+  btn.addEventListener('click', function(e){
+    e.stopPropagation();
+    const open = pop.hidden;
+    if(open){ hubRenderPop(); }
+    pop.hidden = !open;
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  btn.addEventListener('keydown', function(e){
+    if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); btn.click(); }
+  });
+  /* 点其他地方收起（document 级委托，与头像菜单同款；幂等靠 window 标记） */
+  if(!window.__hubBellDocBound){
+    window.__hubBellDocBound = true;
+    document.addEventListener('click', function(e){
+      const pop2 = document.getElementById('tbBellPop');
+      if(!pop2 || pop2.hidden) return;
+      if(e.target.closest && (e.target.closest('#tbBellPop') || e.target.closest('#tbBellBtn'))) return;
+      hubBellClose();
+    });
+  }
+  pop.addEventListener('click', function(e){
+    const all = e.target.closest && e.target.closest('#tbBellAll');
+    if(all){
+      /* 全部已读 = 公告清零（会员/学习提醒没有已读态，红点按当前状态重算，施工书 §3.2） */
+      ancMarkRead(((_ancCache && _ancCache.items) || []).map(a => a.id));
+      hubBellClose();
+      return;
+    }
+    const item = e.target.closest && e.target.closest('[data-msg-href]');
+    if(item){
+      const href = item.getAttribute('data-msg-href') || '';
+      const ancId = decodeURIComponent((href.split('#')[1] || ''));
+      if(ancId) ancMarkRead([ancId]);
+      hubBellClose();
+      /* 🔴 用 button + hubMsgGo，不用 <a>：软导航委托会把 #hash 丢掉（见 ancBindBar 注释） */
+      if(href) hubMsgGo(href);
+    }
+  });
+  hubRefreshBell();
+}
+
 
 const TAB_NAV     = ['index','practice','speaking'];   // 旧 tabbar 主项（组件已删，仅用于计算「更多」弹层要收纳哪些页面）
 // 底部 Tab 标签覆盖：practice 在站内含「单词」，但原型/验收确认为「背词」，单独对齐（不改 PAGES 以免影响桌面侧栏）
@@ -404,6 +599,7 @@ function topBarHtml(current){
     /* 🔴 10-23 她「把所有页面计时条去掉」→ 顶栏里的计时徽标容器已撤（原来这里是
        + '<div class="side-timer-wrap" id="sideTimer"></div>'）。renderSideTimer/updateSideTimerBadge 保留
        （timer.html 的结算走同一份 DATA.activeTimer），但没有容器时两者都是空转。 */
+    + hubBellHtml()
     + _meEl
     + '</div>';
 }
@@ -876,7 +1072,9 @@ function injectNav(){
     /* W-UI-1 公告条：先按已有缓存同步挂一次（软导航换页立刻就在位，不等网络），
        再拉 json 决定「挂 / 摘」。json 只有 2KB，且同会话只拉一次。 */
     ancEnsure();
-    ancLoad().then(ancEnsure).catch(function(){});
+    ancLoad().then(function(){ ancEnsure(); hubRefreshBell(); }).catch(function(){});
+    /* W-UI-1 消息中心：铃铛绑定 + 红点首刷（json 到位后 ancEnsure 的 then 里还会再刷） */
+    hubBindBell();
     return;
   }
   document.body.classList.remove('hub-home');

@@ -222,16 +222,35 @@ async function authVipCheck(force, ttlMs){
   }
   if(typeof authToken !== 'function' || !authToken()) return false;   // 确实没登录 = 确定非会员
   let isVip = null;
+  let vipExp = null;   // 🔴 W-UI-1（10-26）：顺手把 expire 一起缓存 —— 消息中心「会员还有 N 天到期」
+                       //    要天数，而这里原本只存布尔；不缓存就得为拿天数再发一次请求，
+                       //    违反消息中心「零接口」的口径。复用这一次响应，不新增任何请求。
   try{
     const j = await authApiPost({ action:'vip_status', token: authToken() });
-    if(j && j.ok !== false) isVip = !!(j.vip && j.vip.expire);
+    if(j && j.ok !== false){
+      isVip = !!(j.vip && j.vip.expire);
+      if(isVip) vipExp = j.vip.expire;
+    }
   }catch(e){ isVip = null; }   /* 🔴 查失败 = 未知，不写缓存、不当非会员 */
   if(isVip !== null){
-    try{ sessionStorage.setItem(VIP_FLAG_KEY, JSON.stringify({ v: isVip, t: Date.now() })); }catch(e){}
+    try{ sessionStorage.setItem(VIP_FLAG_KEY, JSON.stringify({ v: isVip, t: Date.now(), expire: vipExp })); }catch(e){}
   }else{
     vipFlagClear();   // 失败不留任何缓存，下次进页面重新查
   }
   return isVip;
+}
+/* W-UI-1（10-26）：读 authVipCheck 缓存里的 expire（毫秒或 YYYY-MM-DD），不缓存/非会员/已过期
+   缓存都返回 null。🔴 只读不请求 —— 没缓存就返回 null，调用方（消息中心）按「无这条提醒」处理，
+   等下一次正常的会员检查跑完自然就有了。返回值结构见 vip.js:236 的 expire 两形态兼容。 */
+function hubVipExpireCached(){
+  try{
+    const raw = sessionStorage.getItem(VIP_FLAG_KEY);
+    if(!raw) return null;
+    const o = JSON.parse(raw);
+    if(!o || o.v !== true || !o.expire) return null;
+    if(typeof o.t !== 'number' || (Date.now() - o.t) > VIP_FLAG_TTL) return null;
+    return o.expire;
+  }catch(e){ return null; }
 }
 
 async function authApiPost(payload){
