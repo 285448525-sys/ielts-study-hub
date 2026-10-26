@@ -148,14 +148,24 @@
   var HUB_KEY = 'ielts_study_hub_v1', TOKEN_KEY = 'hub_auth_token';
   var $ = function(id){ return document.getElementById(id); };
 
-  /* 10/4 00:20：顶部返回键按 ?from= 回来源页（白名单同 nextAfterLogin），无参数时回落地页 */
+  /* 10/4 00:20：顶部返回键按 ?from= 回来源页（白名单同 nextAfterLogin），无参数时回落地页
+     🔴 10-26 19:4x 修（她报「返回产品介绍按了没反应」）：原来**无 ?from= 时什么都不做**，
+        而链接默认 href 是 "#" → 点击只跳回页首 = 看起来没反应。
+        git 历史核对：从 21d 起每一版都是 href="#"，从来没有默认落点 —— 老 bug，不是改版改坏的。
+        修法：无 ?from= 时显式给 index.html（落地页 = 产品介绍）。 */
   (function(){
     var back = $('backLink'); if(!back) return;
     var f = '';
     try{ f = new URLSearchParams(location.search).get('from') || ''; }catch(_){}
-    if(f){
-      back.textContent = '← 返回设置页';
-      back.href = 'settings.html';
+    /* 与 nextAfterLogin 同一份白名单：带 ?from=<已知页> 就回那页，文案跟着变；否则回产品介绍 */
+    var BACK = { settings:'设置页', plans:'计划页', speaking:'口语页', practice:'单词页',
+                 writing:'写作页', review:'回顾页', corpus:'句子页', vip:'会员页' };
+    if(BACK[f]){
+      back.textContent = '← 返回' + BACK[f];
+      back.href = (f === 'settings' ? 'settings.html' : f + '.html');
+    } else {
+      back.textContent = '← 返回产品介绍';
+      back.href = 'index.html';        /* 默认落点 = 落地页（产品介绍） */
     }
   })();
   /* ⭐ 10/21 她拍板：只能邮箱登录。手机号/用户名通道前后端全删，正则收窄成纯邮箱。
