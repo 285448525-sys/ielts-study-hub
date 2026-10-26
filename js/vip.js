@@ -13,7 +13,6 @@ function freeAiDesc(){
   return (window.Pricing && window.Pricing.FREE_AI_DESC) || '口语模考每月 1 次 · 写作批改每月 3 次 · 其他 AI 每周 5 次（串题素材为会员专属）';
 }
 
-const VIP_PAY_TO = '285448525@qq.com';   // VIP-SEMI-1：收款账号唯一常量（她换收款方式只改这行）
 
 const VIP_ICON_GOLD = '<svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#eab308" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20M9.5 9L12 3l2.5 6M12 21L9.5 9M12 21l2.5-12"/></svg>';
 
@@ -76,12 +75,12 @@ function renderVipSemi(){
   function slipText(){
     const p = (window.Pricing && Pricing.VIP_PLANS.find(x => x.id === cur)) || null;
     const amount = p ? ('¥' + p.price) : '';
-    return '扫上方收款码转 ' + amount + '，转完回来点下面「我已转账」。（也可转账到 ' + VIP_PAY_TO + '）';
+    return '扫上方收款码转 ' + amount + '，转完回来点下面「我已转账」。';
   }
   function renderSlip(){
     const el = document.getElementById('semiTxt');
     const p = (window.Pricing && Pricing.VIP_PLANS.find(x => x.id === cur)) || null;
-    if(el) el.innerHTML = '扫上方收款码转 <b>' + (p ? escapeHtml('¥' + p.price) : '') + '</b>，转完回来点下面「我已转账」。（也可转账到 <b>' + escapeHtml(VIP_PAY_TO) + '</b>）';
+    if(el) el.innerHTML = '扫上方收款码转 <b>' + (p ? escapeHtml('¥' + p.price) : '') + '</b>，转完回来点下面「我已转账」。';
   }
   renderSlip();
 
@@ -135,7 +134,7 @@ function renderVipSemi(){
       const plan = (window.Pricing && Pricing.VIP_PLANS.find(x => x.id === cur)) || null;
       const amount = plan ? ('¥' + plan.price) : '';
       const planName = plan ? plan.name : '';
-      const text = '会员订单 ' + amount + '（' + planName + '）\n账号：' + (acct || VIP_PAY_TO) + '\n来源：vip.html 半自助';
+      const text = '会员订单 ' + amount + '（' + planName + '）\n账号：' + (acct || '未登录') + '\n来源：vip.html 半自助';
       const headers = { 'Content-Type': 'application/json' };
       const tok = (typeof authToken === 'function' && authToken()) || '';
       if(tok) headers['X-Session'] = tok;   // 带上登录态 → 站长台反馈行直接显示 acct，不用用户再报账号
@@ -163,7 +162,7 @@ function renderVipSemi(){
         }
         /* 完成态：订单摘要（金额 · 档位 · 账号）——金额/档位仍取自 VIP_PLANS，零字面量 */
         const oid = document.getElementById('semiOid');
-        if(oid) oid.textContent = amount + ' · ' + planName + ' · 账号 ' + (acct || VIP_PAY_TO);
+        if(oid) oid.textContent = amount + ' · ' + planName + ' · 账号 ' + (acct || '未登录');
         root.hidden = true;
         const doneCard = document.getElementById('semiDoneCard');
         if(doneCard) doneCard.hidden = false;
