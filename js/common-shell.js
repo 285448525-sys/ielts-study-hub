@@ -852,6 +852,10 @@ async function softNavigate(t, isPop){
     /* 🔴 10/6 01:12 「当前页身份」在这里一次性对齐 —— 覆盖**全部入口**（点击 / 后退 / 直接调用 softNavigate）。
        原来只有 onHubLinkClick 会写 _hubCurrentFile，popstate（浏览器后退）那条路根本不写 → 身份滞后。 */
     _hubCurrentFile = t.file;
+    /* 10-26 KIMI-THEME-1：三套外观跨页生效 —— 软导航只换 <main>，<html> 上的 data-scheme 不会自己跟着换。
+       放在 _hubCurrentFile 已写之后，并且把**目标页文件名**显式传进去（此刻 location 还没换，
+       与「runPageScript 先于 pushState」是同一个时序坑）。bank.html 由 applyScheme 自己删属性。 */
+    try{ if(typeof applyScheme === 'function') applyScheme(t.file); }catch(e){}
     /* 🔴 design/113A3a 落地批：home 用顶栏、其他页用侧栏，而软导航只换 <main> 不重建导航。
        跨边界（home↔其他页）必须补一次 injectNav 换壳，否则从 home 进 bank 会顶着
        首页的顶栏（侧栏永不渲染）、从 bank 回 home 会留着侧栏（顶栏永不出现）。

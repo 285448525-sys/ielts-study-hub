@@ -1952,6 +1952,34 @@ function applyTheme(theme){
   if(tc) tc.setAttribute('content', theme === 'dark' ? '#0e1c1b' : '#3a9a93');
 }
 
+/* ═══ KIMI-THEME-1（10-26）· 三套「外观主题」跨页生效 ═══
+   三套外观 = 青墨学术 ink（默认，= :root 原值）/ 学术冷色 cool / 纸感暖灰 warm，
+   CSS 变量组在 css/common.css 开头那两块 [data-scheme="cool"] / [data-scheme="warm"]。
+
+   🔴 为什么必须挂在这里：勾选控件住在 settings.html 的 js/settings.js，而那个文件**只有设置页引用**
+      → 只在设置页写 data-scheme，软导航（同一个 document）看着正常，硬刷或从别页进站就丢。
+      同款先例：上面 initThemeAutoWatch（TH-SYS）与 applyFontScale 的注释都写了「跨页生效必须挂公共链」。
+
+   口径：
+     · cool / warm → 写 data-scheme
+     · ink / 没存过 / 非法值 → **删掉属性**（回到 :root 青墨，老用户零感知）
+     · 🔴 bank.html 一律删属性、不写（她 10-25 定：考场不许跟外观主题联动）
+     · 整块 try/catch：localStorage 被禁用也不许把 boot 链打断
+
+   参数 file：软导航里 location 还没换（runPageScript 先于 pushState），
+   必须由调用方把目标文件名传进来；不传才回落到 location。 */
+function applyScheme(file){
+  try{
+    var f = String(file || '').trim();
+    if(!f){ try{ f = location.pathname.split('/').pop() || ''; }catch(e){ f = ''; } }
+    if(/^bank(\.html)?$/i.test(f)){ document.documentElement.removeAttribute('data-scheme'); return; }
+    var v = null;
+    try{ v = localStorage.getItem('hub_theme_scheme'); }catch(e){ v = null; }
+    if(v === 'cool' || v === 'warm') document.documentElement.setAttribute('data-scheme', v);
+    else document.documentElement.removeAttribute('data-scheme');
+  }catch(e){}
+}
+
 /* ═══ TH-SYS（10-25）：主题「跟随系统」—— 监听系统偏好变化 ═══
    背景：applyTheme 里 'auto' 这一档**早就支持**（上面 :1621-1622），但只在调用那一刻读一
    次系统偏好。用户中途把系统切深色，页面纹丝不动，要刷新才生效 —— 她 01:4x 要的就是这个。
