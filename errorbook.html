@@ -10,13 +10,75 @@
 <meta http-equiv="Expires" content="0" />
 <title>错题本已迁移 · 雅思备考 Hub</title>
 <meta name="robots" content="noindex, follow" />
-<style>body{font-family:system-ui,sans-serif;background:#f6f9fb;color:#1f2d3d;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0;padding:24px}.box{text-align:center;line-height:1.8}a{color:#3a9a93}</style>
+<style>
+  /* ── KIMI-P8-8（10-25）：迁移提示页按 Kimi 稿重做 ──
+     样子稿 design/kimi-visual-upgrade-2026-10-25/08-errorbook.html。
+     本页是**纯跳转页**：不引 common.css、不进 SW、无主题的共享脚本，所以无法靠站内的
+     data-theme 翻深色 → 深色档改用 prefers-color-scheme 跟随系统（不让已存在的 token 变死 CSS）。
+     红线：CSP meta / 三个 no-cache meta / noindex / 自动跳转脚本 / 目标地址 corpus.html#eb
+     五件事一个字没改；这里只改这一屏的长相。
+     稿子是设计稿，右下角有「切到深色」按钮 + 视觉说明脚注 + 顶部「样子稿」条 —— 那是给评审用的，
+     不进正式页（正式页没主题开关，也没地方放脚注）。 */
+  :root{
+    --bg:#f4f5f3;--card:#fff;--soft:#f7f9f8;--line:#e2e6e4;--ink:#263c39;--muted:#62716e;--title:#173e3a;
+    --teal:#3a9a93;--teal-d:#2c7873;--teal-s:#eef7f6;--light:#5cb3ab;
+    /* 按钮字色单独成变量：深色档底是亮青 #7ccac2，白字在上面只有 1.89:1（等于看不见）
+       → 按站内既定「亮青底配深字」口径换 #173e3a（7.22:1）。放在变量里，深浅两档同源同构。 */
+    --on-btn:#ffffff;
+    --shadow:0 1px 2px #173e3a04,0 8px 24px -12px #173e3a14;
+  }
+  @media(prefers-color-scheme:dark){
+    :root{
+      --bg:#101615;--card:#19201f;--soft:#202a28;--line:#34413e;--ink:#e6ecea;--muted:#a1b0ac;--title:#edf4f2;
+      --teal:#5cb3ab;--teal-d:#7ccac2;--teal-s:#223431;--light:#7ccac2;
+      --on-btn:#173e3a;
+      --shadow:0 1px 2px #0003;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);
+    font:14px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+  button,a{min-height:44px;font:inherit;touch-action:manipulation}
+  button{cursor:pointer}
+  button:focus-visible,a:focus-visible{outline:3px solid var(--light);outline-offset:3px}
+  .wrap{max-width:1040px;margin:auto;padding:0 24px}
+  .stage{min-height:calc(100vh - 120px);display:flex;align-items:flex-start;justify-content:center;padding:48px 0 36px}
+  .box{width:100%;max-width:620px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:36px;box-shadow:var(--shadow)}
+  .topline{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:30px}
+  .label{font-size:12px;color:var(--teal-d);font-weight:700;letter-spacing:.07em}
+  .icon{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:var(--teal-s);color:var(--teal-d);font-size:24px;margin-bottom:20px;line-height:1}
+  h1{font-size:26px;line-height:1.4;color:var(--title);margin:0 0 12px;letter-spacing:-.02em}
+  .lead{font-size:16px;line-height:1.75;color:var(--ink);margin:0 0 16px}
+  .explain{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:14px 16px;color:var(--muted);font-size:13px;margin:0 0 22px}
+  .explain b{color:var(--ink)}
+  .btn{border:1px solid var(--teal-d);border-radius:10px;padding:10px 20px;background:var(--teal-d);color:var(--on-btn);font-weight:650;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+  .btn:hover{background:var(--teal);border-color:var(--teal)}
+  .btn:active{transform:translateY(1px)}
+  .fine{font-size:12px;color:var(--muted);margin:18px 0 0}
+  @media(max-width:560px){
+    .wrap{padding:0 16px}
+    .stage{padding:24px 0;min-height:calc(100vh - 200px)}
+    .box{padding:24px 20px}
+    .topline{margin-bottom:24px}
+    h1{font-size:23px}
+    .lead{font-size:15px}
+    .btn{width:100%}
+  }
+  @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
 </head>
 <body>
-<div class="box">
-  <p>错题本已迁移到「句子 → 错题」标签页，正在跳转…</p>
-  <p><a href="corpus.html#eb">如果没有自动跳转，点这里</a></p>
-</div>
+<div class="wrap"><main class="stage">
+  <section class="box">
+    <div class="topline"><span class="label">PAGE MOVED</span></div>
+    <div class="icon" aria-hidden="true">→</div>
+    <h1>错题本已迁移</h1>
+    <p class="lead">错题本已迁移到「句子 → 错题」标签页，正在跳转…</p>
+    <p class="explain">这里只保留旧地址的迁移提示，不重复做一份错题功能。<br>真正的错题界面在 <b>句子 → 错题</b>，进去就能继续整理。</p>
+    <a class="btn" href="corpus.html#eb">如果没有自动跳转，点这里</a>
+    <p class="fine">新地址：corpus.html#eb</p>
+  </section>
+</main></div>
 <script>location.replace('corpus.html#eb');</script>
 </body>
 </html>
