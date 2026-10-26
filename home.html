@@ -30,7 +30,7 @@
 </script>
 <title>首页 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261026v" />
-<link rel="stylesheet" href="css/p/home.css?v=20261026v" />
+<link rel="stylesheet" href="css/p/home.css?v=20261026t" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png?v=7">
@@ -73,128 +73,100 @@
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 
 <main class="container home">
-  <!-- v6→A3a 首页（design/113A3a 零滚动驾驶舱）：一行化倒计时 + 四数字卡 + 三件事/今日任务 + 常用模块 + 右侧 232px 侧轨；
-       今日学习记录与昨日聚合在设计首屏预算之外，保留在下方（可滚到） -->
-
-  <!-- L1 · 倒计时一行化（72px 横条：问候 · 连续天数 · 距考天数 · 开始学习） -->
+  <!-- ═══ HOME-VISUAL-1（10-26 · 她 21:0x 点头「派下去」）═══
+       按 design/首页视觉重做-2026-10-26.html 重排：
+         hero 一行（eyebrow + 问候大字 + 副行含连续 chip / 右侧距考大数字）
+         → 设置补齐条 → 四数字一张横卡四格（格间 1px 竖线） → 今天先做这些
+         → 常用模块 2×2 → 右侧轨 260px（完成度环 + 7 格周历 + 快速入口）
+       🔴 27 个业务 id 一个没改名（js/index.js 与 home-quick.js 全按它们写）。
+       🔴 §四.1：稿子倒计时下面那行「10 月 31 日 · 还有时间，不急」是**装饰性编造文案**，已删；
+          #dashHeroNum 仍由 JS 渲染「距机考还有 N 天 / 还没设考试日期→去设置」两态，
+          大数字样式套到它的 <b> 上（见 css 的 #dashHeroNum b）。
+       🔴 §四.2/3：顶栏/搜索/铃铛是共享壳、外观预览条是稿内控件 —— 都不进本批。 -->
   <div class="hlayout">
-    <div class="hmain">
-      <section class="hline">
-        <div class="hl-l">
-          <span class="hl-hi"><span id="dashHello">你好</span>，<span id="userName">Camille</span></span>
-          <span class="hl-date" id="dashDate"></span>
-          <span class="streak-chip" id="dashStreakChip" hidden></span>
-          <a class="vip-chip" id="heroVipChip" href="vip.html" hidden></a>
-        </div>
-        <div class="hl-mid" id="dashHeroNum"></div>
-        <!-- 10-23 她：「把首页的开始学习按钮去掉，本来是跳转计时页面的但是我把计时页面删掉了」
-             → 撤掉 .hl-cta。横条改回两段（左问候 / 右倒数），hline 的 space-between 正好把两头顶开。 -->
-      </section>
+      <div class="hmain">
 
-      <!-- W-UI-1 第 2 批（10-26）：设置完成度条（设计稿 §二，她已点头）。
-           🔴 由 js/index.js renderHomeSetup() 按 settings 四项（考试日期/目标总分/四科目标/每日上限）算，
-              四项配齐 → 整条不渲染（不占位，首页高度回到改动前，不破她「一屏不滚动」的要求）。 -->
-      <div class="setup" id="homeSetup" hidden></div>
-
-      <!-- L2 · 四数字卡（今日专注 / 今日单词 / 口语已练 / 本周模考）
-           ⚠️ 10-23 她：「今日专注这个板块应该是点击不了的，它不应该设置跳转」→ 当时降级成 div。
-           🔄 10-24 T-1e 她改主意：这张卡要能点，跳到 timer.html（计时页）。
-           → 改回 <a class="hstat" href="timer.html">，与其余三张同构、同 hover。
-           🔴 只动这张卡的标签与落点，js/index.js:195 的今日专注算法一行没碰。 -->
-      <section class="hstats">
-        <a class="hstat" href="timer.html">
-          <div class="lb">今日专注</div>
-          <div class="vl" id="statFocusVal"></div>
-          <div class="track"><i id="statFocusTrack" style="width:0%"></i></div>
-          <div class="sub" id="statFocusSub"></div>
-        </a>
-        <a class="hstat" href="practice.html">
-          <div class="lb">今日单词</div>
-          <div class="vl" id="statWordsVal"></div>
-          <div class="track"><i id="statWordsTrack" style="width:0%"></i><i class="g" id="statWordsTrackHard" style="width:0%"></i></div>
-          <div class="sub" id="statWordsSub"></div>
-        </a>
-        <a class="hstat" href="speaking.html">
-          <div class="lb">口语已练</div>
-          <div class="vl" id="statSpkVal"></div>
-          <div class="sub" id="statSpkSub"></div>
-        </a>
-        <!-- 10-23 她：「点击模考，进的是回顾页面，而不是模考页面」→ 原本 href=review.html（去记录），
-             改成 bank.html（模考页），右侧小字同步从「去记录」改「去模考」，避免指路文案和落点打架。 -->
-        <a class="hstat" href="bank.html">
-          <div class="lb">本周模考</div>
-          <div class="vl" id="statMockVal"></div>
-          <div class="sub" id="statMockSub"></div>
-          <span class="lk">去模考<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></span>
-        </a>
-      </section>
-
-      <!-- L3 · 今天先做这三件事（有今日任务时整卡不渲染，让位给下方任务卡；内容由 index.js 写） -->
-      <section id="threeThings" hidden></section>
-
-      <!-- L3.5 · 今日任务卡（到期词建议 + 今日计划清单；与三件事互斥） -->
-      <section class="dash-tasks" id="dashTodayTasks"></section>
-
-      <!-- L4 · 常用模块 2×2（A3a：侧栏已不在首页，模块卡回归） -->
-      <section class="hmods">
-        <a class="hmod" href="bank.html"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l5 5v13H7V3z"/><path d="M14 3v5h5"/><path d="M10 12h6M10 16h6"/></svg></span><span class="tx"><b>模考</b><span>阅读 · 听力 · 写作 · 口语</span></span></a>
-        <a class="hmod" href="practice.html"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg></span><span class="tx"><b>单词</b><span>学习与管理你的单词</span></span></a>
-        <a class="hmod" href="corpus.html"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5h16M4 11.5h16M4 16.5h9"/></svg></span><span class="tx"><b>句子</b><span>长难句 · 错题 · 听写</span></span></a>
-        <a class="hmod" href="speaking.html"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg></span><span class="tx"><b>口语</b><span>题库 + AI 串题 + 陪练</span></span></a>
-      </section>
-    </div>
-
-    <!-- L5 · 右侧信息侧轨（232px：今日完成度 / 连续天数 / 快速入口；手机端折成顶部折叠块） -->
-    <aside class="hrail" id="homeRail">
-      <button class="hrail-toggle" id="railToggle" type="button" aria-expanded="false" aria-controls="railBody">
-        <span class="ht-ring" aria-hidden="true"><svg viewBox="0 0 26 26" width="26" height="26" aria-hidden="true"><circle cx="13" cy="13" r="10" fill="none" stroke="var(--primary-50)" stroke-width="3.5"/><circle id="railToggleRing" cx="13" cy="13" r="10" fill="none" stroke="var(--primary-500)" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="62.8" stroke-dashoffset="62.8" transform="rotate(-90 13 13)"/></svg></span>
-        <span class="ht-tx">今日完成 <b id="railTogglePct">0%</b> · 连续 <b id="railToggleStreak">0</b> 天</span>
-        <svg class="ht-cv" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg>
-      </button>
-      <div class="hrail-body" id="railBody">
-        <div class="rail-card">
-          <div class="rc-cap">今日完成度</div>
-          <div class="ringwrap">
-            <svg viewBox="0 0 96 96" width="96" height="96" aria-hidden="true"><circle class="rbg2" cx="48" cy="48" r="38"/><circle class="rfg2" id="railRingFg" cx="48" cy="48" r="38"/></svg>
-            <!-- 🔴 10-23 她报「主页这里中间的字太多了，这样不好看」：环内只留百分比。
-                 原来环里还有一行 `<span id="railPctSub">计划 5 项完成 5 · 还有 1639 词</span>`，
-                 96px 的圆里塞 15 个字要断成 2~3 行，环还被压小；而且环下 `.rc-sub` 又说了一遍
-                 「计划还剩 0 项 · 1639 个词要过」→ 同一件事说两遍、两遍都不好看。
-                 现在：环内 = 只显示百分比；环下 = 一行说清「计划 5/5 项 · 1639 词待过」。 -->
-            <div class="ringtxt"><b id="railPct">0%</b></div>
+        <!-- ① hero 一行：左 eyebrow + 问候 + 副行（连续 chip 挪到这里）；右 距考大数字 -->
+        <section class="hero">
+          <div>
+            <div class="eyebrow"><span id="dashDate"></span></div>
+            <h1><span id="dashHello">你好</span>，<span id="userName">Camille</span></h1>
+            <div class="hero-sub">
+              <span class="streak-chip" id="dashStreakChip" hidden></span>
+              <a class="vip-chip" id="heroVipChip" href="vip.html" hidden></a>
+            </div>
           </div>
-          <div class="rc-sub" id="railSub"></div>
-          <!-- W-UI-1 第 2 批：7 格小日历（本周，格内当天小时数；热力图精简版）。
-               设计稿原文放「首页侧轨（完成度环下方）」，不动主列高度。 -->
-          <div class="week7" id="homeWeek7"></div>
-        </div>
-        <!-- HOME-STREAK-DEL（10-26）：侧轨「连续天数」整块删掉 ——
-             她指截图拍板「这个连续天数模块可以删掉，没什么必要，没什么用」。
-             保留的 2 处同类信息（都是她拍过版的，别顺手删）：
-               · 顶部 72px 横条的连击 chip（#dashStreakChip，113A3a 版）
-               · 手机端折叠块那行「今日完成 X% · 连续 Y 天」
-             js/index.js:413 的 setTxt 带 if(el) 判空、railDots/railStreakSub 两段各有守卫
-             → 节点没了自动跳过、不抛错，JS 零改动。calcStreak 仍被上面两处与计时页使用。 -->
-        <div class="rail-quick">
-          <div class="rc-cap">快速入口<button class="rq-edit" id="rqEdit" type="button" aria-expanded="false" aria-haspopup="dialog">编辑</button></div>
-          <!-- 10-23 5-1：原来写死的三条 <a class="qk"> 改由 js/home-quick.js 渲染（视觉零变化）。
-               🔴 保留 .rail-quick / .rc-cap / .qk 三个类名不动，CSS 一行没改；
-               🔴 js/common.js 的 DEFAULT_FAV / DATA.settings.fav 一行没碰（侧栏「常用」与搜索在用）。 -->
-          <div class="rq-list" id="rqList"></div>
-        </div>
+          <!-- 距考大数字：#dashHeroNum 由 js/index.js 渲染两态；§四.1 不许出现稿上没有的承诺小字 -->
+          <div class="countdown" id="dashHeroNum"></div>
+        </section>
+
+        <!-- ② 设置补齐条（W-UI-1 第 2 批逻辑不动：四项配齐 → 整条不渲染） -->
+        <div class="setup" id="homeSetup" hidden></div>
+
+        <!-- ③ 四数字 = 一张横卡四格（格间 1px 竖线）；四格仍是 <a>，落点不变 -->
+        <section class="metrics">
+          <a class="metric" href="timer.html">
+            <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>今日专注</div>
+            <div class="value" id="statFocusVal"></div>
+            <div class="sub" id="statFocusSub"></div>
+            <div class="track"><i id="statFocusTrack" style="width:0%"></i></div>
+          </a>
+          <a class="metric" href="practice.html">
+            <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>今日单词</div>
+            <div class="value" id="statWordsVal"></div>
+            <div class="sub" id="statWordsSub"></div>
+            <div class="track"><i id="statWordsTrack" style="width:0%"></i><i class="g" id="statWordsTrackHard" style="width:0%"></i></div>
+          </a>
+          <a class="metric" href="speaking.html">
+            <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>口语已练</div>
+            <div class="value" id="statSpkVal"></div>
+            <div class="sub" id="statSpkSub"></div>
+          </a>
+          <!-- 10-23 她：「点击模考，进的是回顾页面，而不是模考页面」→ 落点 bank.html 不变 -->
+          <a class="metric" href="bank.html">
+            <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l5 5v13H7V3z"/><path d="M14 3v5h5"/><path d="M10 12h6M10 16h6"/></svg>本周模考</div>
+            <div class="value" id="statMockVal"></div>
+            <div class="sub" id="statMockSub"></div>
+          </a>
+        </section>
+
+        <!-- ④ 今天先做这些（有今日任务时三件事整卡不渲染，让位给任务卡；内容由 index.js 写） -->
+        <section id="threeThings" hidden></section>
+        <section class="dash-tasks" id="dashTodayTasks"></section>
+
+        <!-- ⑤ 常用模块 2×2（A3a：模块卡回归；图标 34px 浅青底圆角块） -->
+        <section class="hmods">
+          <a class="hmod" href="bank.html"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l5 5v13H7V3z"/><path d="M14 3v5h5"/><path d="M10 12h6M10 16h6"/></svg></span><span class="tx"><b>模考</b><span>阅读 · 听力 · 写作 · 口语</span></span><svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></a>
+          <a class="hmod" href="practice.html"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg></span><span class="tx"><b>单词</b><span>学习与管理你的单词</span></span><svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></a>
+          <a class="hmod" href="corpus.html"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5h16M4 11.5h16M4 16.5h9"/></svg></span><span class="tx"><b>句子</b><span>长难句 · 错题 · 听写</span></span><svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></a>
+          <a class="hmod" href="speaking.html"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg></span><span class="tx"><b>口语</b><span>题库 + AI 串题 + 陪练</span></span><svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></a>
+        </section>
       </div>
-    </aside>
+
+      <!-- ⑥ 右侧轨 260px：完成度卡（环 + 两行文案 + 7 格周历）+ 快速入口；手机端折叠条 -->
+      <aside class="hrail" id="homeRail">
+        <button class="hrail-toggle" id="railToggle" type="button" aria-expanded="false" aria-controls="railBody">
+          <span class="ht-ring" aria-hidden="true"><svg viewBox="0 0 26 26" width="26" height="26" aria-hidden="true"><circle cx="13" cy="13" r="10" fill="none" stroke="var(--primary-50)" stroke-width="3.5"/><circle id="railToggleRing" cx="13" cy="13" r="10" fill="none" stroke="var(--primary-500)" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="62.8" stroke-dashoffset="62.8" transform="rotate(-90 13 13)"/></svg></span>
+          <span class="ht-tx">今日完成 <b id="railTogglePct">0%</b> · 连续 <b id="railToggleStreak">0</b> 天</span>
+          <svg class="ht-cv" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg>
+        </button>
+        <div class="hrail-body" id="railBody">
+          <div class="rail-card">
+            <div class="rc-cap">今日完成度</div>
+            <div class="ringwrap">
+              <svg viewBox="0 0 96 96" width="96" height="96" aria-hidden="true"><circle class="rbg2" cx="48" cy="48" r="38"/><circle class="rfg2" id="railRingFg" cx="48" cy="48" r="38"/></svg>
+              <div class="ringtxt"><b id="railPct">0%</b></div>
+            </div>
+            <div class="rc-sub" id="railSub"></div>
+            <div class="week7" id="homeWeek7"></div>
+          </div>
+          <div class="rail-quick">
+            <div class="rc-cap">快速入口<button class="rq-edit" id="rqEdit" type="button" aria-expanded="false" aria-haspopup="dialog">编辑</button></div>
+            <div class="rq-list" id="rqList"></div>
+          </div>
+        </div>
+      </aside>
   </div>
-
-  <!-- 🔴 10-21 23:0x 她拍板删除：「下面多了一块那个计时的东西（今日学习记录条形图），
-       感觉有点多余，我平常也不会看那个东西」。
-       顺带达成她的另一个要求：首页在 100% 缩放下**一屏占满、不需要滚动** ——
-       这块正是把首屏顶出视口、逼出纵向滚动的那一段。
-       数据没删：每模块时长仍在 DATA.sessions 里，回顾页（review.html）照常看。
-       ⚠️ index.js 的 renderRec 已有 `if(!bodyEl) return;` 守卫，删掉节点不会报错。-->
-
-  <!-- 10/5 23:50 她拍板删除：底部「📦 安装到桌面，离线也能用」入口整块下线（原因与铁律见 git 历史）；
-       manifest/SW 离线能力保留不动。-->
 </main>
 
   <!-- 10-23 5-2：快速入口编辑面板。挂在 body 直下 + position:fixed，由 js/home-quick.js 定位
