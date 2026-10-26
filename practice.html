@@ -449,11 +449,12 @@ body.word-fullscreen .hub-topbar{display:none !important}
     </section>
 
     <!-- ===== 10-23 4-3 词书库（版一：词书卡片网格）=====
-         她 10-5x 拍板：「我是想着后续要多加很多词书进去，所以现在这样两个栏切换完全不行」。
-         结构 = 一行标题（N 本 · 共 M 词）+ 卡片网格，末尾一张「+ 添加词书」虚线卡。
-         🔴 加新词书 = 网格里多一张卡，结构永远不变（这是本方案唯一命门）。
-         数据全部来自现有字段（每本书的 words / 进度 / 待复习数本来就在算），零新增存储。 -->
-    <section class="wb-lib" id="wbDeckGrid">
+         🔴 WORD-4（10-26）**已下线**：它和商城的点卡是两套语义（旧网格点卡 = 切书开练，
+         商城点卡 = 先看后设），并存会让人迷。现在选书统一走商城（#vMall）+ 答题态头部的
+         词书名切换器（WORD-3B）。
+         ⚠️ **DOM 节点与 id 一个都没删**（wbDeckGrid / wbLibTitle / wbLibSub / wbDecks）——
+         js/words.js 的 wbRenderDeckGrid 仍在往里写，删了会抛错。这里只加 hidden，纯视觉下线。 -->
+    <section class="wb-lib" id="wbDeckGrid" hidden>
       <div class="wb-lib-head">
         <b id="wbLibTitle">我的词书</b>
         <span id="wbLibSub"></span>
@@ -1239,12 +1240,16 @@ body.word-fullscreen .hub-topbar{display:none !important}
         wmRender();
         return;
       }
-      /* ＋ 导入我的词书 → 展开导入折叠条（与旧网格那个 + 卡同一条路，零改动） */
+      /* ＋ 导入我的词书 → 展开导入折叠条。
+         🔴 WORD-4（10-26）：原来这里调 wmShowLegacy() 把整个旧容器（含旧书网格）翻出来，
+            而旧网格已下线 → 现在只**切到旧容器的壳**（导入卡住里面）并把导入卡展开，
+            旧书网格自己有 hidden、不会露出来。导入逻辑（id/取值）一行没动。 */
       if (t.closest('#wmDealAdd')){
         ev.preventDefault();
         var impBody = $('wlImpBody'), impBar = $('wlImpBar'), impCard = $('bankImportCard');
         if (impBody && impBar && impCard){
           wmShowLegacy();
+          var grid = $('wbDeckGrid'); if (grid) grid.hidden = true;   /* 旧网格下线后每次展开都确保它是收着的 */
           impBody.hidden = false;
           impCard.classList.add('open');
           impBar.setAttribute('aria-expanded', 'true');
