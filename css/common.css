@@ -3128,3 +3128,29 @@ body.hub-exam-locked #ancBarHost{ display:none !important }
   .bell{display:none}
 }
 
+
+/* ── PERF-NAV-2A（10-26）：软导航「点击即反馈」的顶部进度条 ──
+   她 22:1x：「每打开一个页面就要卡好久，而且还会跳回首页」。
+   B 线上实测：点击后 0~1500ms 页面完全没变化（URL/标题/内容都还是旧页），
+   → 这条 2px 不确定进度条 + 旧内容降透明度，就是给她一个「已经在动了」的即时信号。
+   ⚠️ 纯视觉、不占布局（fixed，且 z-index 压在顶栏之上、通知条之下），不引任何位移。
+   ⚠️ 只在软导航期间由 JS 加 .on；off 时立刻消失，绝不留残影。 */
+.nav-progress{
+  position:fixed;left:0;top:0;height:2px;width:100%;z-index:80;
+  pointer-events:none;opacity:0;transition:opacity .15s ease;
+}
+.nav-progress.on{opacity:1}
+.nav-progress::after{
+  content:'';display:block;height:100%;width:30%;border-radius:0 2px 2px 0;
+  background:var(--primary);
+  animation:navProgressSlide 1.05s ease-in-out infinite;
+}
+@keyframes navProgressSlide{
+  0%{transform:translateX(-40%)}
+  50%{transform:translateX(230%)}
+  100%{transform:translateX(-40%)}
+}
+/* 尊重「减少动态效果」：不做滑动，改成常亮一小段（仍然能看出「在等」） */
+@media (prefers-reduced-motion: reduce){
+  .nav-progress::after{animation:none;width:100%;opacity:.55}
+}

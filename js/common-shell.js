@@ -520,8 +520,54 @@ function onHubLinkClick(e){
   updateActiveNav(t.file);       // ⚠️ 关键修复（导航高亮闪烁）：点击瞬间同步高亮目标模块，
                                   //    不等 fetch/脚本执行。否则在「点击→fetch→runPageScript(重脚本 eval)」
                                   //    这段异步窗口里，旧模块高亮仍挂着，表现为「先闪其他模块、再跳回」。
+  /* 🔵 PERF-NAV-2A（10-26）：点击即反馈 —— 别让她「点了没反应」。
+     她 22:1x 原话「每打开一个页面就要卡好久，而且还会跳回首页」。
+     B 在线上实测：点顶栏后 0~1500ms 内 **URL 仍是 /home、标题仍是「首页」、内容还是首页**
+     → 她看到的「跳回首页」其实就是「压根没走」。
+     这里补三样**观感层**的即时反馈（都不改软导航契约）：
+       ① 标题立刻换成目标页名（原来要等 pushState 之后才变）
+       ② 顶部 2px 不确定进度条（已有高亮之外的第二重「正在动」信号）
+       ③ 旧内容降到 40% 不透明（原来 showHubLoader 的遮罩要 HUB_LOADER_DELAY 才出，
+          这中间是「完全没动静」；降透明度立刻给出变化，且不清空 main → 不白屏） */
+  try{ if(t && t.file){ const pg = PAGES.find(x => x.file === t.file); if(pg && pg.name) document.title = pg.name + ' · 雅思备考 Hub'; } }catch(_){}
+  try{ navPendingFeedback(true); }catch(_){}
   showHubLoader();                // 软导航异步窗口（fetch + 重脚本 eval）期间盖住，避免白屏闪烁
   softNavigate(t, false);
+}
+
+/* ===== PERF-NAV-2A（10-26）：软导航的「点击即反馈」三件 =====
+   ① navPendingFeedback(on)：顶部 2px 不确定进度条 + 旧 main 降透明度
+      · 进度条：body 直下的固定条，2px，纯 CSS 动画（不占布局、不引位移）
+      · 降透明度：只动 opacity，**不清空 main** —— 白屏比「旧内容淡一点」更吓人
+      · 幂等：重复调用只是重新计时；off 时必须清干净（含动画结束态）
+   ② 与模考锁互斥：模考中根本不走软导航（第一道闸就拦了），所以这里不用再判。 */
+let _navPendingTimer = null;
+function navPendingFeedback(on){
+  const bar = _ensureNavProgressBar();
+  const main = document.querySelector('main');
+  if(on){
+    if(bar) bar.classList.add('on');
+    if(main) main.style.opacity = '.4';
+    if(_navPendingTimer) clearTimeout(_navPendingTimer);
+    /* 兜底：万一某条路径忘了 off（异常/回退整页跳转前），6s 后自己收起，绝不能把页面留在半透明 */
+    _navPendingTimer = setTimeout(() => { try{ navPendingFeedback(false); }catch(e){} }, 6000);
+  }else{
+    if(_navPendingTimer){ clearTimeout(_navPendingTimer); _navPendingTimer = null; }
+    if(bar) bar.classList.remove('on');
+    if(main) main.style.opacity = '';
+  }
+}
+function _ensureNavProgressBar(){
+  let el = document.getElementById('navProgress');
+  if(el) return el;
+  try{
+    el = document.createElement('div');
+    el.id = 'navProgress';
+    el.setAttribute('aria-hidden', 'true');
+    el.className = 'nav-progress';
+    document.body.appendChild(el);
+    return el;
+  }catch(e){ return null; }
 }
 
 function onHubPopState(){
@@ -561,7 +607,11 @@ window.addEventListener('beforeunload', function(e){
    - 只活在当前会话（刷新即失效），部署新版（?v= 变化）不会被永久缓存住。 */
 const _navDocCache = new Map();     // file -> { doc, v }（v=该页 HTML 引用的脚本版本，用于部署漂移检测）
 const _navCodeCache = new Map();    // src  -> 源码文本
-const NAV_FETCH_TIMEOUT = 20000;    // 单请求 20s 超时：极端慢网下让 softNavigate 走「整页跳转」兜底，绝不无限占住 _softNavBusy
+/* 🔵 PERF-NAV-2A（10-26）：20s → 5s。
+   原来 20 秒才回退整页跳转 —— 慢网下等于「让她盯着旧页面最多 20 秒」，
+   正是她说的「点了半天不动」。5 秒拿不到就走整页跳转：整页跳转虽然要重新加载，
+   但**一定会到**，比无限等更符合预期。 */
+const NAV_FETCH_TIMEOUT = 5000;
 function navFetchOpts(){
   if(typeof AbortController === 'function'){
     const ac = new AbortController();
@@ -895,6 +945,10 @@ async function softNavigate(t, isPop){
     if(!newMain || !main) throw new Error('目标页缺少 <main>');
     await swapPageStyles(doc, t.id);                    // 同步页面专属样式（内联 <style> + css/p/*.css），避免样式丢失/串页
     main.innerHTML = newMain.innerHTML;                 // 只换内容区，侧边栏/全局状态保留
+    /* 🔵 PERF-NAV-2A（10-26）：内容已经换成目标页了 → 立刻把「半透明等待态」收掉。
+       不等脚本 eval 完（那还要一会儿），先把观感恢复成正常不透明；
+       进度条留到 runPageScript 结束再收（hideHubLoader 那一行会一起收）。 */
+    try{ if(main) main.style.opacity = ''; }catch(e){}
     if(doc.title) document.title = doc.title;
     /* 🔴 10/6 01:12 「当前页身份」在这里一次性对齐 —— 覆盖**全部入口**（点击 / 后退 / 直接调用 softNavigate）。
        原来只有 onHubLinkClick 会写 _hubCurrentFile，popstate（浏览器后退）那条路根本不写 → 身份滞后。 */
@@ -957,9 +1011,11 @@ async function softNavigate(t, isPop){
     //    在重脚本 eval 阻塞主线程后触发“高亮闪一下”的观感。单一写入点 = 零闪烁。
     if(!isPop) history.pushState({ hub: t.id }, '', t.url || t.href);
     prefetchAll(t.id);
+    try{ navPendingFeedback(false); }catch(e){}        // PERF-NAV-2A：进度条与半透明一起收
     hideHubLoader();                                   // 内容切换 + 脚本执行完毕（DOM 就绪）→ 淡出遮罩
   }catch(err){
     console.warn('[soft-nav] 软切换失败，回退整页跳转：', err);
+    try{ navPendingFeedback(false); }catch(e){}        // PERF-NAV-2A：回退前必须收掉等待态，否则整页跳走后也不该留残影
     location.href = t.href;                            // 兜底：绝不让导航“卡死”
   }finally{
     _softNavBusy = false;
