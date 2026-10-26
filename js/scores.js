@@ -111,15 +111,33 @@ function render(){
      只是把结果写到焦点块的大字 / 底部两格 / 结论句里。 */
   const cd = examCountdown();
   const examMd = cd.md || '考试';
-  const dLabel = cd.label;
+  /* EMP-1：examCountdown() 在共享层，未设考试日期时它给 '--'（像值没读出来）→ 本页显示成 '—' */
+  const dLabel = (cd.label === '--' || cd.label == null) ? '—' : cd.label;
   const latest = list.length ? list[0] : null;
   const latestLo = latest ? overall(latest.listening, latest.reading, latest.writing, latest.speaking) : null;
 
   /* ---- 焦点块头部 / 大总分 ---- */
+
+  /* EMP-1（10-26）：空态行动卡。稿 = design/_样子稿-全站空态系统-2026-10-26.html
+     三件套 = 图标（告诉人是什么场景）+ 标题（现状）+ 一句指引（下一步去哪）+ 主按钮。
+     比原来一行灰字多了「下一步」，也把「正常没数据」与「页面炸了」在视觉上分开。 */
+  function emptyStateHtml(o){
+    o = o || {};
+    var ico = o.ico || '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:26px;height:26px"><path d="M4 19.5V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v14"/><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H19"/><path d="M8 7h7M8 11h5"/></svg>';
+    var acts = '';
+    if(o.primary){ acts += '<button class="btn-primary" type="button" data-emp="' + o.primary.act + '">' + o.primary.label + '</button>'; }
+    if(o.ghost){ acts += '<button class="btn-ghost" type="button" data-emp="' + o.ghost.act + '">' + o.ghost.label + '</button>'; }
+    return '<div class="empty-state">'
+      + '<div class="es-ico" aria-hidden="true">' + ico + '</div>'
+      + '<div class="es-title">' + (o.title || '') + '</div>'
+      + (o.desc ? '<div class="es-desc">' + o.desc + '</div>' : '')
+      + (acts ? '<div class="es-actions">' + acts + '</div>' : '')
+      + '</div>';
+  }
   const setTxt = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = v; };
   setTxt('rvFocusLab', list.length ? '最近一次' : '还没有成绩记录');
   setTxt('rvFocusDate', latest ? String(latest.date || '') : '');
-  setTxt('rvFocusNum', latestLo != null ? latestLo.toFixed(1) : '--');
+  setTxt('rvFocusNum', latestLo != null ? latestLo.toFixed(1) : '—');   /* EMP-1：'--' 像值没读出来 → '—' */
   setTxt('rvFocusUnit', '总分 · 目标 ' + (hasTargets ? targetOverall.toFixed(1) : '未设'));
   /* 底部两格：倒计时与已考场次**必须常驻**（她每天最想看的两个数） */
   setTxt('rvFocusCdLab', '距 ' + (examMd || '考试') + ' 还有');
@@ -135,7 +153,12 @@ function render(){
       statBox.innerHTML =
         statCard('距 ' + (examMd || '考试') + ' 还有', dLabel, 'var(--warn)') +
         (hasTargets ? statCard('本场目标', targetOverall.toFixed(1), 'var(--med)') : statCard('本场目标', '未设', 'var(--muted)')) +
-        '<div style="grid-column:1/-1">' + renderEmpty('还没有成绩记录，考完第一场就来填吧。') + '</div>';
+        '<div style="grid-column:1/-1">' + emptyStateHtml({
+          title:'还没有做过模考',
+          desc:'先去模考页做一套真题，成绩和轨迹会自动累积到这里，一眼看清哪科最弱。',
+          primary:{ act:'goMock', label:'去做一套模考' },
+          ghost:{ act:'goAddScore', label:'手动录一次成绩' }
+        }) + '</div>';
     } else {
       statBox.innerHTML = '';
     }
@@ -145,9 +168,17 @@ function render(){
   const barBox = $('#scoreBars');
   if(list.length === 0){
     // 10/10 批④：空态给指路（原「暂无数据。」纯占位，新用户不知道这页要自己录）
-    barBox.innerHTML = renderEmpty('点下面的「添加真题成绩」把一次模考的四科分填进去，这里就会显示各科与目标的差距。');
+    barBox.innerHTML = emptyStateHtml({
+      title:'还没有四科成绩',
+      desc:'把一次模考的四科分填进去，这里就会显示各科与目标的差距。',
+      primary:{ act:'goAddScore', label:'添加真题成绩' }
+    });
   } else if(!hasTargets){
-    barBox.innerHTML = renderEmpty('还没设目标分数，去「设置 / 目标分数」填一下再对比。');
+    barBox.innerHTML = emptyStateHtml({
+      title:'还没设目标分数',
+      desc:'设一个目标总分与四科目标，这里才能算出「还差多少」。',
+      primary:{ act:'goSettings', label:'去设置目标' }
+    });
   } else {
     const x = list[0];
     const mods = [
@@ -458,6 +489,24 @@ function renderPartInputs(){
     </div>`;
   }).join('');
 }
+
+/* EMP-1（10-26）：空态卡上的行动按钮。
+   用 document 委托 + 元素级幂等标记：软导航换 <main> 后按钮是新的，window 级标记会挡住重绑。 */
+document.addEventListener('click', function(ev){
+  var b = ev.target && ev.target.closest ? ev.target.closest('[data-emp]') : null;
+  if(!b) return;
+  ev.preventDefault();
+  var act = b.getAttribute('data-emp');
+  try{
+    if(act === 'goMock'){ location.href = 'bank.html'; return; }
+    if(act === 'goSettings'){ location.href = 'settings.html?pane=targets'; return; }
+    if(act === 'goAddScore'){
+      var w = document.getElementById('mkAddWrap');
+      if(w){ w.open = true; w.scrollIntoView({ block:'center', behavior:'smooth' }); }
+      return;
+    }
+  }catch(e){}
+});
 
 function addMock(){
   const type = $('#mkType').value;

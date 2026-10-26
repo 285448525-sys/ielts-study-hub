@@ -16,6 +16,17 @@
   function one(v){ var n = Number(v); return isFinite(n) ? (Math.round(n * 2) / 2).toFixed(1) : null; }
   function raw(v){ var n = Number(v); return isFinite(n) ? n.toFixed(1) : null; }
 
+  /* EMP-1（10-26）：统计卡里的空占位统一走这里。
+     原写法是纯文本 "--" —— 视觉上像「值没读出来 / 页面炸了」；
+     改用 em dash「—」+ .stat-empty 淡色，一眼区分「正常还没有数据」与「出错了」。
+     只换呈现，不动任何取数口径。 */
+  function statEmptyHtml(){ return '<span class="stat-empty">—</span>'; }
+  function setStat(el, val, fmt){
+    if(!el) return;
+    if(val == null || (typeof val === "number" && !isFinite(val))){ el.innerHTML = statEmptyHtml(); return; }
+    el.textContent = fmt ? fmt(val) : one(val);
+  }
+
   /* 四科口径一次定义，下面全用它（颜色与骨架里图例的一致） */
   var SUBS = [
     { k: 'listening', name: '听力', color: 'var(--mock)',  nid: 'rvxNumL', sid: 'rvxSubL' },
@@ -41,7 +52,7 @@
     /* 总分 */
     var allEl = $('rvxNumAll'), allSub = $('rvxSubAll');
     var allVal = last ? overall(last.listening, last.reading, last.writing, last.speaking) : null;
-    if (allEl) allEl.textContent = allVal == null ? '--' : one(allVal);
+    if (allEl) setStat(allEl, allVal);
     if (allSub){
       if (allVal == null) allSub.textContent = list.length ? '还没有完整成绩' : '还没有成绩';
       else allSub.innerHTML = gapHtml(allVal, t.overall);
@@ -51,8 +62,8 @@
     SUBS.forEach(function(s){
       var el = $(s.nid), sub = $(s.sid);
       var v = last ? (last[s.k] == null ? null : Number(last[s.k])) : null;
-      if (el) el.textContent = v == null || !isFinite(v) ? '--' : one(v);
-      if (sub) sub.innerHTML = (v == null || !isFinite(v)) ? '--' : gapHtml(v, t[s.k]);
+      if (el) setStat(el, v);
+      if (sub) sub.innerHTML = (v == null || !isFinite(v)) ? '—' : gapHtml(v, t[s.k]);
     });
 
     /* 目标没设时 gapHtml 会返回「目标未设」，这里再兜一句总提示 */
@@ -74,11 +85,11 @@
     var lab = $('rvxCdLab'), val = $('rvxCdVal'), unit = $('rvxCdUnit');
     if (cd && cd.hasExam){
       if (lab) lab.textContent = '距 ' + cd.md;
-      if (val) val.textContent = cd.daysLeft == null ? '--' : String(Math.max(0, cd.daysLeft));
+      if (val) val.textContent = cd.daysLeft == null ? '—' : String(Math.max(0, cd.daysLeft));
       if (unit) unit.textContent = cd.daysLeft != null && cd.daysLeft <= 0 ? '' : '天';
     } else {
       if (lab) lab.textContent = '考试日期未设';
-      if (val) val.textContent = '--';
+      if (val) val.textContent = '—';
       if (unit) unit.textContent = '';
     }
 
@@ -203,7 +214,7 @@
       var scEl = card.querySelector('.rvx-subj-sc');
       var tEl  = card.querySelector('.rvx-subj-t');
       var tagEl = card.querySelector('.rvx-tag');
-      if (scEl) scEl.textContent = last ? one(last[se.k]) : '--';
+      if (scEl) scEl.textContent = last ? one(last[se.k]) : '—';
       if (tEl){
         var last3 = mine.slice(-3).map(function(r){ return one(r[se.k]); });
         tEl.textContent = last3.length ? ('最近 ' + last3.length + ' 次：' + last3.join(' · ')) : '还没有这一科的成绩';
@@ -362,7 +373,7 @@
       var v = r.overall != null ? Number(r.overall) : (r.score != null ? Number(r.score) : null);
       return '<div class="rvx-row" style="justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line-soft);font-size:13px">'
         + '<span class="rvx-mono rvx-muted">' + esc(String(r.date || '').slice(5)) + '</span>'
-        + '<b class="rvx-mono" style="font-size:15px">' + (v == null ? '--' : one(v)) + '</b></div>';
+        + '<b class="rvx-mono" style="font-size:15px">' + (v == null ? '—' : one(v)) + '</b></div>';
     }).join('');
     /* 重建「最近几场」整块。
        ⚠️ 别用 children[i] 编号插入 —— 自己插进去的节点会把后面的索引挤乱。
@@ -467,7 +478,7 @@
       var scoreHtml = r.isPct
         ? '<span class="rvx-bar" style="width:70px;display:block;flex:none"><i style="width:' + Math.min(100, r.score) + '%;background:' + (r.score >= 80 ? 'var(--med)' : r.score >= 60 ? 'var(--warn)' : 'var(--danger)') + '"></i></span>'
           + '<b class="rvx-mono" style="font-size:13px;width:38px;text-align:right">' + r.score + '%</b>'
-        : '<b class="rvx-mono" style="font-size:15px">' + (r.score == null ? '--' : one(r.score)) + '</b>';
+        : '<b class="rvx-mono" style="font-size:15px">' + (r.score == null ? '—' : one(r.score)) + '</b>';
       return '<div class="rvx-row" style="padding:11px 0;border-bottom:1px solid var(--line-soft);gap:12px">'
         + '<span class="rvx-mono" style="font-size:12.5px;color:var(--muted);width:46px;flex:none">' + esc(String(r.date || '').slice(5)) + '</span>'
         + '<span class="' + tagCls + '" style="flex:none">' + tagTx + '</span>'

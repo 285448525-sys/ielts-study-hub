@@ -220,7 +220,14 @@
    ⚠️ 判据用 #scoreStats:not(:empty)：render() 空态会写入 stat-card 与 .empty，有数据时也写五卡 ——
       所以真正区分空态的是「里面有没有 .empty」，见下面 :has() 那条。 */
 #scoreStats.stat-grid{grid-template-columns:repeat(3,1fr);gap:0;margin-bottom:0;display:none}
-#scoreStats:has(.empty){display:grid;margin:14px 0 0;padding-top:14px;border-top:1px solid var(--n-300)}
+/* 🔄 EMP-1（10-26）：空态文案从 renderEmpty(.empty) 换成 .empty-state 行动卡 →
+   这条 :has() 必须同时认 .empty-state，否则整块又变回 display:none（踩过一次）。 */
+/* 🔴 EMP-1：两个容器已从旧面板搬到 .rvx-page 末尾的 #empEmptyZone（原来被清场规则连坐藏掉），
+   所以显隐改由 #empEmptyZone 作用域控制，不再依赖 #tab-overall。 */
+#empEmptyZone{margin-top:14px}
+#empEmptyZone #scoreStats{display:none}
+#empEmptyZone #scoreStats:has(.empty),#empEmptyZone #scoreStats:has(.empty-state){display:grid;gap:0;margin:0 0 14px}
+#empEmptyZone #scoreBars:empty{display:none}
 #scoreStats .stat-card{
   background:none;border:0;border-top:0;border-radius:0;box-shadow:none;padding:0;text-align:left;
 }
@@ -507,7 +514,7 @@
 <script defer src="js/common-shell.js?v=20261026r"></script>
 <script defer src="js/common-pwa.js?v=20261026r"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
-<script defer src="js/scores.js?v=20261025c"></script>
+<script defer src="js/scores.js?v=20261026d"></script>
 <script defer src="js/history.js?v=20261024a"></script>
 <script defer src="js/rv-record.js?v=20261025b"></script>
 <script defer src="js/mock-report.js?v=20261006a"></script>
@@ -521,7 +528,7 @@
 <script defer src="js/progress.js?v=20261024a"></script>
 <!-- R-E2（10-25）：E 版骨架接真数据。只读 DATA，不写任何东西；
      渲染目标全是 R-E1 骨架里新加的 rvx* id，旧面板节点一个都没动。 -->
-<script defer src="js/rvx-data.js?v=20261025a"></script>
+<script defer src="js/rvx-data.js?v=20261026a"></script>
 <!-- 回顾页的协调脚本：软导航下由 common.js 按其 pageScriptSources 收集执行。
      ⚠️ 必须带 ?v= 声明在这里 —— 否则 common.js 只能拿裸 URL 'js/review.js'，
      等于向浏览器 HTTP 缓存要「任意年代的旧副本」，改动永远推不上去（9/17 陈旧 UI 事故根因）。 -->
@@ -572,6 +579,33 @@
   #tab-speaking .mock-hist-body{grid-column:1 / -1;margin-top:12px}
   #tab-speaking .mock-hist-card:hover{border-color:var(--primary-200);background:var(--primary-50)}
 }
+
+/* ═══ EMP-1（10-26）· 空态系统（稿 = design/_样子稿-全站空态系统-2026-10-26.html）═══
+   现状病根：空态只有一行灰字或一排 "--" —— 视觉上像「页面炸了/值没读出来」，而不是「正常还没有数据」，
+   且没有下一步指引，人卡住。成熟做法（Linear / Vercel / Supabase 同构）= 图标 + 标题 + 一句指引 + 主按钮。
+   🔴 只在本页作用域；不写进 common.css（那是共享层）。
+   🔴 只用站点既有 token（--primary / --primary-soft / --line / --ink / --muted / --surface），深色自动跟随。 */
+.empty-state{padding:48px 24px;text-align:center;background:var(--surface);
+  border:1px dashed var(--line);border-radius:14px}
+.empty-state .es-ico{width:56px;height:56px;border-radius:50%;margin:0 auto 14px;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--primary-soft);color:var(--primary);font-size:26px;line-height:1}
+.empty-state .es-title{font-size:15px;font-weight:650;color:var(--ink);margin:0 0 6px}
+.empty-state .es-desc{font-size:13px;color:var(--muted);margin:0 auto 20px;max-width:340px;line-height:1.6}
+.empty-state .es-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.empty-state .es-actions .btn-primary{appearance:none;border:none;background:var(--primary);color:var(--on-primary);
+  font-weight:650;font-size:13.5px;padding:10px 22px;border-radius:10px;cursor:pointer;min-height:40px;
+  line-height:1;font-family:inherit;transition:filter .15s}
+.empty-state .es-actions .btn-primary:hover{filter:brightness(1.08)}
+.empty-state .es-actions .btn-ghost{appearance:none;border:1px solid var(--line);background:var(--surface);
+  color:var(--ink);font-weight:600;font-size:13.5px;padding:9px 18px;border-radius:10px;cursor:pointer;
+  min-height:40px;line-height:1;font-family:inherit;transition:border-color .15s,color .15s}
+.empty-state .es-actions .btn-ghost:hover{border-color:var(--primary);color:var(--primary-text)}
+/* 统计卡里的空占位：替掉 "--"（"--" 像值没读出来，"—" 像本来就没有） */
+.stat-empty{font-size:22px;font-weight:700;color:var(--muted);opacity:.5;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums}
+@media (max-width:560px){ .empty-state{padding:32px 18px} }
+
 </style>
 </head>
 <body data-shell="top">
@@ -684,7 +718,8 @@
               <div class="rv-focus-unit" id="rvFocusUnit">总分 · 目标未设</div>
             </div>
             <!-- 四科「当前 / 目标」：原来那条通栏对比条，改成右侧四小格 -->
-            <div class="rv-focus-mods" id="scoreBars"></div>
+            <!-- EMP-1（10-26）：#scoreBars 已搬到 .rvx-page 末尾的空态区 —— 它原来在 .rv-focus 里，
+                 而 .rv-focus 被 RV-CLEAN-1 的清场规则整块藏掉 → 空态卡永远不可见。id 未变。 -->
           </div>
           <!-- 底部：倒计时 + 已考场次 + 一行结论（原五卡里剩下两个数 + 原行动建议卡） -->
           <div class="rv-focus-foot">
@@ -701,7 +736,7 @@
           <!-- 兼容容器：scores.js 的 render() 仍会往 #scoreStats 写统计卡。
                R-3 把它收进来但只保留「没设目标 / 空态提示」这类不被焦点块覆盖的信息 —— 
                正常情况下它是空的（样式里 display:none），仅在无数据空态时出现。 -->
-          <div class="stat-grid" id="scoreStats" aria-hidden="true"></div>
+          <!-- EMP-1（10-26）：#scoreStats 同样搬到 .rvx-page 末尾的空态区（原因同上）。id 未变。 -->
         </section>
 
         <!-- 🔴 R-4（10-24）：这个容器就是那句「白写了的代码」缺的最后一块拼图。
@@ -1202,7 +1237,7 @@
       <div class="rvx-mini"><b id="rvxSmStreak">0</b><span id="rvxSmStreakLab">连续打卡（今天还没学）</span></div>
       <div class="rvx-mini"><b id="rvxSmAct">0<span style="font-size:13px;font-weight:600">/30</span></b><span>近 30 天活跃</span></div>
       <div class="rvx-mini"><b id="rvxSmFocus">0<span style="font-size:13px;font-weight:600">h</span></b><span>累计专注</span></div>
-      <div class="rvx-mini"><b style="color:var(--muted)" id="rvxSmCov">--</b><span>口语覆盖率</span></div>
+      <div class="rvx-mini"><b style="color:var(--muted)" id="rvxSmCov">—</b><span>口语覆盖率</span></div>
     </div>
     <div class="rvx-hm" id="rvxHm"><i class="" title="0 分钟"></i><i class="rvx-l1" title="45 分钟"></i><i class="rvx-l3" title="120 分钟"></i><i class="rvx-l1" title="30 分钟"></i><i class="" title="0 分钟"></i><i class="rvx-l2" title="90 分钟"></i><i class="rvx-l2" title="60 分钟"></i><i class="rvx-l3" title="150 分钟"></i><i class="" title="0 分钟"></i><i class="rvx-l2" title="75 分钟"></i><i class="" title="0 分钟"></i><i class="rvx-l1" title="50 分钟"></i><i class="rvx-l2" title="110 分钟"></i><i class="" title="0 分钟"></i><i class="rvx-l2" title="85 分钟"></i><i class="rvx-l3" title="140 分钟"></i><i class="rvx-l2" title="60 分钟"></i><i class="" title="0 分钟"></i><i class="rvx-l2" title="95 分钟"></i><i class="rvx-l3" title="120 分钟"></i><i class="rvx-l1" title="30 分钟"></i><i class="" title="0 分钟"></i><i class="rvx-l2" title="75 分钟"></i><i class="rvx-l2" title="105 分钟"></i><i class="" title="0 分钟"></i><i class="rvx-l2" title="60 分钟"></i><i class="rvx-l3" title="130 分钟"></i><i class="rvx-l1" title="45 分钟"></i><i class="rvx-l2" title="90 分钟"></i><i class="" title="0 分钟"></i></div>
     <div class="rvx-hmk">
@@ -1297,6 +1332,16 @@
           <div id="recAll"></div>
         </section>
 
+  <!-- ═══ EMP-1（10-26）· 空态区 ═══
+       #scoreStats / #scoreBars 两个容器由 scores.js 的 render() 写入：
+       没有数据时它们装 .empty-state 行动卡（图标+标题+指引+主按钮），有数据时 #scoreStats 清空、#scoreBars 装四科对比条。
+       🔴 它们原来都在旧 #tab-overall 的 .rv-focus 里，被 RV-CLEAN-1 清场规则整块藏掉 → 空态卡永远看不见。
+          所以搬到这里（.rvx-page 末尾）；id 一个没改，scores.js 的取值链路零改动。
+       🔴 有数据时这一区不该占位：由下面 #scoreStats 的 display:none 与 #scoreBars 的 :has 规则自然收掉。 -->
+  <div class="emp-empty-zone" id="empEmptyZone">
+    <div class="stat-grid" id="scoreStats" aria-hidden="true"></div>
+    <div class="rv-focus-mods" id="scoreBars"></div>
+  </div>
       </div><!-- /.rvx-page -->
 </main>
 
