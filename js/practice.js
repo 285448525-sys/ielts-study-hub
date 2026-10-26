@@ -1041,6 +1041,12 @@ function setWordFullscreen(on){
   } else {
     document.body.classList.remove('word-fullscreen');
   }
+  /* WORD-2（10-26）：全屏态同步显示/隐藏「退出沉浸」条。
+     🔴 顶栏与页内 tab 在全屏态都被藏了，只剩 #fullscreenBtn 一枚无文字图标 ——
+        用户（尤其手机，没有 Esc）找不到出口。这条是唯一明确可读的退出路径。
+     用 hidden 属性而不是 CSS 类：软导航重跑/状态错乱时不会两处都藏或都露。 */
+  var exitBar = $('#wdFsExit');
+  if(exitBar) exitBar.hidden = !on;
   fitWordOneLine();   // 9/9：全屏字号基准不同（clamp 最大 52px），切换后要按新基准重算单行字号
   const btn = $('#fullscreenBtn');
   if(!btn) return;
@@ -2170,6 +2176,13 @@ ready(() => {
   });
   const fsBtn = $('#fullscreenBtn');
   if(fsBtn) fsBtn.addEventListener('click', () => toggleWordFullscreen());
+  /* WORD-2：全屏态常驻「退出沉浸」键。幂等守卫打在元素上（软导航换 <main> 后元素是新的、
+     不会误判成已绑；同一轮重复执行也不会双绑）。Esc 行为在下面原样保留。 */
+  const fsExitBtn = $('#wdFsExitBtn');
+  if(fsExitBtn && !fsExitBtn.__word2Bound){
+    fsExitBtn.__word2Bound = true;
+    fsExitBtn.addEventListener('click', () => setWordFullscreen(false));
+  }
   // design/58 块2：复习计划按钮（词库卡内）→ 记忆曲线排程面板（默认收起，点开即渲染最新数据，只读展示层）
   const bankPlanBtn = document.getElementById('bankPlanBtn');
   if(bankPlanBtn) bankPlanBtn.addEventListener('click', () => {

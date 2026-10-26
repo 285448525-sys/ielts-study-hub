@@ -55,7 +55,7 @@
   <script defer src="js/wordbank.js?v=20261023s"></script>
   <!-- design/77 DHP+SSP-MMC 策略表：必须在 practice.js 之前（defer 按文档序执行，表未加载时 practice.js 有回退兜底） -->
   <script defer src="js/dhp_policy.js?v=20260921a"></script>
-  <script src="js/practice.js?v=20261025c" defer></script>
+  <script src="js/practice.js?v=20261026a" defer></script>
   <script src="js/words.js?v=20261023r" defer></script>
 <style>
 /* ============================================================
@@ -219,6 +219,14 @@ html[data-theme="dark"] .wb-today{background:linear-gradient(135deg,var(--primar
    顶栏壳要跟着收掉；否则 44px 顶栏压在背词区上方，body 的 44px 让位还白留一条空带 */
 body.word-fullscreen[data-shell="top"]{padding-top:0 !important}
 body.word-fullscreen .hub-topbar{display:none !important}
+/* WORD-2（10-26）：全屏态常驻「退出沉浸」条 —— 顶栏藏掉之后唯一可读的出口。
+   不靠 body 类显隐（JS 用 hidden 属性控），这样软导航重跑/状态错乱时也不会两个都藏或都露。 */
+.wd-fs-exit{display:flex;justify-content:flex-end;margin:0 0 8px}
+.wd-fs-exit-btn{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;
+  border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink-2);
+  font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.wd-fs-exit-btn:hover{border-color:var(--primary);color:var(--primary-700)}
+.wd-fs-exit-btn:focus-visible{outline:none;box-shadow:0 0 0 3px var(--primary-soft)}
 
 /* ===== 10-23 2-1d 批 B 补：单词页也撤药丸 tab（桌面 ≥861）。手机 ≤860 保留（顶栏隐藏时的唯一入口）。
    分栏改由顶栏「单词」二级菜单接管（js/common.js 的 TB_SUB.practice）。不删 DOM。 ===== */
@@ -286,6 +294,19 @@ body.word-fullscreen .hub-topbar{display:none !important}
     </div>
 
     <section class="card practice-card practice-card-fit" id="practiceArea">
+      <!-- WORD-2（10-26）：全屏沉浸态**唯一明确可读的出口**。
+           病根：body.word-fullscreen 把顶栏与页内 tab 全藏了，只剩 #fullscreenBtn 一枚**无文字图标**
+           （还要靠 title 才知道是「退出全屏」），手机触控没有 Esc —— 她就被关在里面了
+           （原话「不让我跳转其他页面」）。成熟站（不背单词 / Quizlet）学习态顶部常驻「换词书 / 退出」，
+           没有谁把退出做成只有键盘键。
+           做法：这枚条只在全屏态出现（CSS 控），Esc 行为原样保留；点它 = setWordFullscreen(false)。
+           🔴 它必须在 #practiceArea 内、不依赖顶栏，否则又会跟着一起被藏。 -->
+      <div class="wd-fs-exit" id="wdFsExit" hidden>
+        <button class="wd-fs-exit-btn" id="wdFsExitBtn" type="button" title="退出沉浸背词（Esc）">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+          <span>退出沉浸</span>
+        </button>
+      </div>
       <!-- 10-24 RV-1：P-3 v2 的顶部状态带已撤（她 01:1x「回退到原来的样子」）——
            外科式摘除，不是整笔 revert（同提交的 1-1 搜索卡与登录引导条必须留着）。
            判题与 SRS 一行未动，本页只撤视觉：状态带 / 右侧底细侧栏 / A-D 键位方块。 -->
