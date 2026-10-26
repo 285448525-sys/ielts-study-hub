@@ -1,0 +1,254 @@
+/* 入门页专属样式（KIMI-P4-4 · 10-26）
+   ══════════════════════════════════════════════════════
+   ① 设计稿 1:1 导出块（design/kimi-visual-upgrade-2026-10-25/_KB-beginner_精确样式.css 原文，前缀 bn-）
+      验收基线 _KB-beginner_验收基线.json（20 元素）是拿它算出来的，① 段不许手改。
+   ② 稿子没有的功能件 + 深色补差
+   ══════════════════════════════════════════════════════ */
+/* ======================================================================
+   KB-beginner · 精确样式（机器导出，勿手改）
+   ======================================================================
+   来源：_src-04-beginner.html 里的 .mk-shell
+   导出：scripts/mockup-export.cjs · 前缀 bn-
+
+   放在哪
+     只追加到 css/p/beginner.css 末尾（本页专用），不许进 common.css。
+
+   为什么类名都带 bn-
+     站点 .card / .bar / .chip / .muted / .yes / .no / .big 在 common.css 里已有定义，
+     不加前缀直接覆盖会打穿别的 18 个页面。
+
+   配套
+     · _KB-beginner_结构原文.html   ← 类名与本文件一一对应
+     · _KB-beginner_验收基线.json   ← 关键元素宽高与样式基线，收尾自检用
+
+   🔴 本文件开头那个 token 块必须原样保留：
+      设计稿自带一套私有变量（--card / --p500 / --line2 / --r ...），站点没有。
+      导出时已把能映射的换成站点 token，映射不到的按设计稿原值兜底成 bn-xxx。
+      删掉这个块 → var() 解析成空 → 边框/底色全丢。
+
+   🔴 基准字号 / 行高 / 字体栈照**设计稿 body** 原样搬（不是随便写 16px）：
+      站点 body 是 15px + 行高 1.62，设计稿可能是别的值，不搬会让所有继承字号的元素偏 1px。
+      本次设计稿 body 采到：（没采到，用兜底值）
+   ====================================================================== */
+
+.bn-page{
+  --bn-line:#e2e6e4;
+  --bn-ink:#263c38;
+  --bn-p:#3a9a93;
+  --bn-shadow:0 1px 2px rgba(23,62,58,.025),0 6px 20px -12px rgba(23,62,58,.1);
+  --bn-muted:#687b76;
+  --bn-title:#173e3a;
+  --bn-soft:#fafbf9;
+  font-size:15px;
+  line-height:1.75;
+  font-family:system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+
+.bn-page, .bn-page *{ box-sizing: border-box; }
+.bn-page button, .bn-page a{ -webkit-tap-highlight-color: transparent; }
+.bn-page a, .bn-page button, .bn-page summary{ min-height: 44px; }
+.bn-btn{ display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; padding: 9px 17px; border: 1px solid var(--bn-line); border-radius: 10px; background: var(--surface); color: var(--bn-ink); font-size: 13px; font-weight: 650; text-decoration: none; transition: background 0.16s, border-color 0.16s, color 0.16s; }
+.bn-btn-p{ background: var(--bn-p); border-color: var(--bn-p); color: rgb(255, 255, 255); }
+.bn-page{ display: grid; grid-template-columns: 204px minmax(0px, 1fr); gap: 28px; align-items: start; }
+.bn-nav{ position: sticky; top: 20px; padding: 16px 12px; background: var(--surface); border: 1px solid var(--bn-line); border-radius: var(--radius); box-shadow: var(--bn-shadow); }
+.bn-nav-label{ font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--bn-muted); padding: 0px 10px 9px; }
+.bn-nav a{ display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 10px; border-radius: 8px; color: var(--ink-2); font-size: 12.5px; line-height: 1.5; text-decoration: none; }
+.bn-nav a span{ font-size: 10px; font-variant-numeric: tabular-nums; color: var(--bn-muted); }
+.bn-content{ min-width: 0px; }
+.bn-hero{ padding: 26px 28px; margin-bottom: 16px; background: var(--surface); border: 1px solid var(--bn-line); border-radius: var(--radius); box-shadow: var(--bn-shadow); }
+.bn-kicker{ display: inline-block; font-size: 11px; font-weight: 750; letter-spacing: 0.1em; color: var(--primary-700); background: var(--primary-50); border-radius: 6px; padding: 3px 9px; margin-bottom: 12px; }
+.bn-hero h2{ font-size: 27px; line-height: 1.4; margin: 0px 0px 10px; color: var(--bn-title); letter-spacing: -0.025em; }
+.bn-hero p{ margin: 0px; font-size: 14px; line-height: 1.9; color: var(--ink-2); }
+.bn-hero b{ color: var(--bn-title); }
+.bn-sec{ padding: 24px 26px; margin-bottom: 16px; background: var(--surface); border: 1px solid var(--bn-line); border-radius: var(--radius); box-shadow: var(--bn-shadow); }
+.bn-h{ display: flex; align-items: center; gap: 11px; margin: 0px 0px 17px; }
+.bn-no{ flex: 0 0 auto; width: 29px; height: 29px; border-radius: 9px; background: var(--primary-50); border: 1px solid var(--primary-200); color: var(--primary-700); font-size: 12px; font-weight: 800; display: grid; place-items: center; font-variant-numeric: tabular-nums; }
+.bn-h h2{ font-size: 18px; line-height: 1.5; margin: 0px; color: var(--bn-title); letter-spacing: -0.01em; }
+.bn-sec p{ font-size: 14px; line-height: 1.9; color: var(--ink-2); margin: 0px 0px 13px; }
+.bn-sec p:last-child{ margin-bottom: 0px; }
+.bn-sec b{ color: var(--bn-ink); font-weight: 700; }
+.bn-list{ margin: 0px 0px 15px; padding: 0px; list-style: none; }
+.bn-list li{ position: relative; padding-left: 17px; margin-bottom: 10px; font-size: 14px; line-height: 1.9; color: var(--ink-2); }
+.bn-list li:last-child{ margin-bottom: 0px; }
+.bn-card{ background: var(--bn-soft); border: 1px solid var(--bn-line); border-radius: 11px; padding: 6px 17px; margin: 0px 0px 15px; }
+.bn-row{ display: flex; align-items: baseline; gap: 16px; padding: 12px 0px; border-bottom: 1px solid var(--bn-line); font-size: 14px; line-height: 1.75; }
+.bn-row:last-child{ border-bottom-width: medium; border-bottom-style: none; border-bottom-color: currentcolor; }
+.bn-row .bn-k{ flex: 1 1 0%; min-width: 0px; color: var(--ink-2); }
+.bn-row .bn-v{ color: var(--bn-title); font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+.bn-note{ background: var(--primary-50); border-left: 3px solid var(--bn-p); border-radius: 0px 9px 9px 0px; padding: 12px 14px; font-size: 13px; line-height: 1.85; color: var(--ink-2); margin: 15px 0px 0px; }
+.bn-can, .bn-cannot{ font-size: 14px; line-height: 1.9; }
+.bn-can li{ padding: 12px 0px 12px 17px; border-bottom: 1px solid var(--n-100); margin: 0px; }
+.bn-can li:last-child{ border-bottom: 0px; }
+.bn-cannot{ background: var(--bn-soft); border: 1px solid var(--bn-line); border-radius: 11px; padding: 15px 17px; margin: 15px 0px; }
+.bn-cannot li{ padding: 0px 0px 10px; margin: 0px; }
+.bn-cannot li:last-child{ padding-bottom: 0px; }
+.bn-cannot li b{ color: var(--bn-muted); }
+.bn-cta{ text-align: center; padding: 26px; margin-bottom: 0px; }
+.bn-cta .bn-btn{ min-height: 48px; padding: 10px 25px; font-size: 14px; }
+.bn-cta p{ margin: 10px 0px 0px; font-size: 12px; color: var(--bn-muted); }
+@media (max-width: 860px){
+.bn-page{ grid-template-columns: 1fr; gap: 16px; }
+.bn-nav{ position: static; display: grid; grid-template-columns: repeat(2, minmax(0px, 1fr)); padding: 12px; gap: 2px; }
+.bn-nav-label{ grid-column: 1 / -1; }
+.bn-nav a{ font-size: 12px; }
+}
+@media (max-width: 640px){
+.bn-head h1{ font-size: 22px; }
+.bn-head p{ font-size: 12px; }
+.bn-head-act .bn-btn{ padding: 7px 10px; font-size: 12px; }
+.bn-nav{ grid-template-columns: minmax(0px, 1fr); padding: 10px; }
+.bn-nav-label{ padding: 3px 9px 6px; }
+.bn-nav a{ padding: 7px 9px; }
+.bn-hero{ padding: 22px 20px; }
+.bn-hero h2{ font-size: 23px; }
+.bn-hero p{ font-size: 14px; }
+.bn-sec{ padding: 21px 19px; }
+.bn-h{ align-items: flex-start; gap: 9px; }
+.bn-h h2{ font-size: 17px; }
+.bn-no{ margin-top: 1px; }
+.bn-row{ align-items: flex-start; flex-direction: column; gap: 2px; padding: 12px 0px; }
+.bn-row .bn-v{ text-align: left; }
+.bn-card{ padding: 5px 14px; }
+.bn-cannot{ padding: 14px; }
+.bn-cta{ padding: 23px 18px; }
+}
+@media (prefers-reduced-motion: reduce){
+.bn-page{ scroll-behavior: auto; }
+.bn-page, .bn-page *{ transition: none !important; }
+}
+
+/* ===== 站点全局标签规则（common.css:470 input / :490 label）的冲突钉死 =====
+   这两条标签选择器直接写在元素上，会盖掉未显式声明的 font-size / line-height。
+   下面按设计稿实测值钉一遍，本文件追加在 common.css 之后 → 同比分靠顺序赢。 */
+.bn-page .bn-btn{font-size:14px}
+.bn-page .bn-btn a, .bn-page .bn-btn>a{font-size:14px}
+.bn-page .bn-btn-p{font-size:14px}
+.bn-page .bn-btn-p a, .bn-page .bn-btn-p>a{font-size:14px}
+
+
+/* ===== 加固副本：选择器统一加 .bn-page（具体度 +1 级） =====
+   为什么有这一段：common.css 有两条标签选择器直接写在元素上、优先于继承——
+     :470 input:not([type=checkbox]):not([type=radio]):not([type=range]) → 具体度 0,3,1
+     :490 label → 全局把 font-size 压成 13px、color 压成 muted、margin-bottom 4px
+   本文件里 (0,2,1) 的规则打不过它们 → 输入框出现「外框包一层、内层又多一个框」，
+   字号也会被压成 13px。这一段靠提高具体度 + 排在最后来压住。
+   🔴 别删：删了输入框立刻变双层框。 */
+.bn-page .bn-btn{ display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; padding: 9px 17px; border: 1px solid var(--bn-line); border-radius: 10px; background: var(--surface); color: var(--bn-ink); font-size: 13px; font-weight: 650; text-decoration: none; transition: background 0.16s, border-color 0.16s, color 0.16s; }
+.bn-page .bn-btn-p{ background: var(--bn-p); border-color: var(--bn-p); color: rgb(255, 255, 255); }
+.bn-page .bn-page{ display: grid; grid-template-columns: 204px minmax(0px, 1fr); gap: 28px; align-items: start; }
+.bn-page .bn-nav{ position: sticky; top: 20px; padding: 16px 12px; background: var(--surface); border: 1px solid var(--bn-line); border-radius: var(--radius); box-shadow: var(--bn-shadow); }
+.bn-page .bn-nav-label{ font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--bn-muted); padding: 0px 10px 9px; }
+.bn-page .bn-nav a{ display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 10px; border-radius: 8px; color: var(--ink-2); font-size: 12.5px; line-height: 1.5; text-decoration: none; }
+.bn-page .bn-nav a span{ font-size: 10px; font-variant-numeric: tabular-nums; color: var(--bn-muted); }
+.bn-page .bn-content{ min-width: 0px; }
+.bn-page .bn-hero{ padding: 26px 28px; margin-bottom: 16px; background: var(--surface); border: 1px solid var(--bn-line); border-radius: var(--radius); box-shadow: var(--bn-shadow); }
+.bn-page .bn-kicker{ display: inline-block; font-size: 11px; font-weight: 750; letter-spacing: 0.1em; color: var(--primary-700); background: var(--primary-50); border-radius: 6px; padding: 3px 9px; margin-bottom: 12px; }
+.bn-page .bn-hero h2{ font-size: 27px; line-height: 1.4; margin: 0px 0px 10px; color: var(--bn-title); letter-spacing: -0.025em; }
+.bn-page .bn-hero p{ margin: 0px; font-size: 14px; line-height: 1.9; color: var(--ink-2); }
+.bn-page .bn-hero b{ color: var(--bn-title); }
+.bn-page .bn-sec{ padding: 24px 26px; margin-bottom: 16px; background: var(--surface); border: 1px solid var(--bn-line); border-radius: var(--radius); box-shadow: var(--bn-shadow); }
+.bn-page .bn-h{ display: flex; align-items: center; gap: 11px; margin: 0px 0px 17px; }
+.bn-page .bn-no{ flex: 0 0 auto; width: 29px; height: 29px; border-radius: 9px; background: var(--primary-50); border: 1px solid var(--primary-200); color: var(--primary-700); font-size: 12px; font-weight: 800; display: grid; place-items: center; font-variant-numeric: tabular-nums; }
+.bn-page .bn-h h2{ font-size: 18px; line-height: 1.5; margin: 0px; color: var(--bn-title); letter-spacing: -0.01em; }
+.bn-page .bn-sec p{ font-size: 14px; line-height: 1.9; color: var(--ink-2); margin: 0px 0px 13px; }
+.bn-page .bn-sec p:last-child{ margin-bottom: 0px; }
+.bn-page .bn-sec b{ color: var(--bn-ink); font-weight: 700; }
+.bn-page .bn-list{ margin: 0px 0px 15px; padding: 0px; list-style: none; }
+.bn-page .bn-list li{ position: relative; padding-left: 17px; margin-bottom: 10px; font-size: 14px; line-height: 1.9; color: var(--ink-2); }
+.bn-page .bn-list li:last-child{ margin-bottom: 0px; }
+.bn-page .bn-card{ background: var(--bn-soft); border: 1px solid var(--bn-line); border-radius: 11px; padding: 6px 17px; margin: 0px 0px 15px; }
+.bn-page .bn-row{ display: flex; align-items: baseline; gap: 16px; padding: 12px 0px; border-bottom: 1px solid var(--bn-line); font-size: 14px; line-height: 1.75; }
+.bn-page .bn-row:last-child{ border-bottom-width: medium; border-bottom-style: none; border-bottom-color: currentcolor; }
+.bn-page .bn-row .bn-k{ flex: 1 1 0%; min-width: 0px; color: var(--ink-2); }
+.bn-page .bn-row .bn-v{ color: var(--bn-title); font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+.bn-page .bn-note{ background: var(--primary-50); border-left: 3px solid var(--bn-p); border-radius: 0px 9px 9px 0px; padding: 12px 14px; font-size: 13px; line-height: 1.85; color: var(--ink-2); margin: 15px 0px 0px; }
+.bn-page .bn-can, .bn-page .bn-cannot{ font-size: 14px; line-height: 1.9; }
+.bn-page .bn-can li{ padding: 12px 0px 12px 17px; border-bottom: 1px solid var(--n-100); margin: 0px; }
+.bn-page .bn-can li:last-child{ border-bottom: 0px; }
+.bn-page .bn-cannot{ background: var(--bn-soft); border: 1px solid var(--bn-line); border-radius: 11px; padding: 15px 17px; margin: 15px 0px; }
+.bn-page .bn-cannot li{ padding: 0px 0px 10px; margin: 0px; }
+.bn-page .bn-cannot li:last-child{ padding-bottom: 0px; }
+.bn-page .bn-cannot li b{ color: var(--bn-muted); }
+.bn-page .bn-cta{ text-align: center; padding: 26px; margin-bottom: 0px; }
+.bn-page .bn-cta .bn-btn{ min-height: 48px; padding: 10px 25px; font-size: 14px; }
+.bn-page .bn-cta p{ margin: 10px 0px 0px; font-size: 12px; color: var(--bn-muted); }
+@media (max-width: 860px){
+.bn-page .bn-page{ grid-template-columns: 1fr; gap: 16px; }
+.bn-page .bn-nav{ position: static; display: grid; grid-template-columns: repeat(2, minmax(0px, 1fr)); padding: 12px; gap: 2px; }
+.bn-page .bn-nav-label{ grid-column: 1 / -1; }
+.bn-page .bn-nav a{ font-size: 12px; }
+}
+@media (max-width: 640px){
+.bn-page .bn-head h1{ font-size: 22px; }
+.bn-page .bn-head p{ font-size: 12px; }
+.bn-page .bn-head-act .bn-btn{ padding: 7px 10px; font-size: 12px; }
+.bn-page .bn-nav{ grid-template-columns: minmax(0px, 1fr); padding: 10px; }
+.bn-page .bn-nav-label{ padding: 3px 9px 6px; }
+.bn-page .bn-nav a{ padding: 7px 9px; }
+.bn-page .bn-hero{ padding: 22px 20px; }
+.bn-page .bn-hero h2{ font-size: 23px; }
+.bn-page .bn-hero p{ font-size: 14px; }
+.bn-page .bn-sec{ padding: 21px 19px; }
+.bn-page .bn-h{ align-items: flex-start; gap: 9px; }
+.bn-page .bn-h h2{ font-size: 17px; }
+.bn-page .bn-no{ margin-top: 1px; }
+.bn-page .bn-row{ align-items: flex-start; flex-direction: column; gap: 2px; padding: 12px 0px; }
+.bn-page .bn-row .bn-v{ text-align: left; }
+.bn-page .bn-card{ padding: 5px 14px; }
+.bn-page .bn-cannot{ padding: 14px; }
+.bn-page .bn-cta{ padding: 23px 18px; }
+}
+@media (prefers-reduced-motion: reduce){
+}
+
+/* ===== 站点全局标签规则（common.css:470 input / :490 label）的冲突钉死 =====
+   这两条标签选择器直接写在元素上，会盖掉未显式声明的 font-size / line-height。
+   下面按设计稿实测值钉一遍，本文件追加在 common.css 之后 → 同比分靠顺序赢。 */
+
+
+/* ───── ② 稿子没有的功能件 + 深色补差 ───── */
+
+/* 🔴 .bn-btn 行高：稿子实测 24.5px，但站点 common.css:468 的 .btn 写了 line-height:1
+   → 同元素上站点那条会生效，实测掉到 21px（1:1 基线判红）。显式钉回稿子值。
+   ⚠️ 只钉行高，不动字号/内距/圆角（那几项已经在导出件里对齐了）。 */
+.bn-page .bn-btn{ line-height:24.5px; }
+
+/* 🔴 圆角 / 栅格间距（1:1 基线最后 5 条红）：
+   ① 稿子 --r=14px，站点 --radius=16px → 在本页作用域指回稿子值（与 W-WORD-2/P3 同解法）
+   ② .bn-page 的 gap=28px（稿子 .bn 是 grid-template-columns:204px 1fr + gap:28px），
+      导出件把 margin/display 搬过来了但 gap 掉了 → 显式补 */
+.bn-page{ --radius:14px; --radius-sm:10px; gap:28px; }
+.bn-page .bn-nav,
+.bn-page .bn-hero,
+.bn-page .bn-sec,
+.bn-page .bn-cta{ border-radius:14px; }
+
+
+
+/* 呠子 --bn-* 私有变量是写死的浅色值 → 重指到站点深色 token。
+   只换颜色，字号/行高/间距/圆角一个不动 —— 那 20 项是 1:1 的判据。 */
+[data-theme="dark"] .bn-page{
+  --bn-line:var(--line);
+  --bn-ink:var(--ink);
+  --bn-p:var(--primary);
+  --bn-shadow:0 2px 8px rgba(0,0,0,.15);
+  --bn-muted:var(--muted);
+  --bn-title:var(--ink);
+  --bn-soft:var(--surface-2);
+}
+[data-theme="dark"] .bn-page .bn-note{ background:#1a4542; border-left-color:#8fe0d6; color:#cfd8d6; }
+[data-theme="dark"] .bn-page .bn-cannot{ background:var(--surface-2); border-color:var(--line); }
+[data-theme="dark"] .bn-page .bn-card{ background:var(--surface); border-color:var(--line); }
+[data-theme="dark"] .bn-page .bn-nav{ background:var(--surface); border-color:var(--line); }
+[data-theme="dark"] .bn-page .bn-nav a{ color:var(--ink-2); }
+[data-theme="dark"] .bn-page .bn-nav a:hover{ background:var(--primary-50); color:var(--primary-text); }
+[data-theme="dark"] .bn-page .bn-btn{ background:var(--surface); border-color:var(--line); color:var(--ink); }
+[data-theme="dark"] .bn-page .bn-btn-p,
+[data-theme="dark"] .bn-page .bn-btn-p:hover{ background:var(--primary); border-color:var(--primary); color:var(--on-primary); }
+[data-theme="dark"] .bn-page .bn-no{ background:var(--primary); color:var(--on-primary); }
+
+/* 手机 ≤859：章节导航从侧栏变成横向折叠（稿子 @media 860 已经写了，这里补站点容器下的处理） */
+@media (max-width:860px){
+  .bn-page .bn-nav{ position:static; }
+}
