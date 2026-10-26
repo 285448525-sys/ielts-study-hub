@@ -70,17 +70,32 @@ function renderVipSemi(){
       }));
   }
 
-  /* ---- 转账句：金额跟着档位走；未登录提示先登录（转账前必须知道给谁开）----
-     10-25 深夜：她给了微信+支付宝收款码（img/pay/），转账句保留兜底（有人 prefers 文字转账）。 ---- */
+  /* ---- 转账句：金额跟着档位走 ----
+     10-26 VIP-NOCOPY-1（她 22:3x）：「大部分人都是在电脑打开网页、然后手机支付。
+     手机支付的话就不方便复制订单，你就不要写这个文案了，也不要搞这个复制键。
+     你就在旁边标注一下，付款的时候备注一下自己本人的邮箱，24 小时之内肯定给你开，没开找站长。」
+     → 删掉复制按钮与全部复制逻辑（含浏览器原生弹框兜底 —— 留一段没人调的复制函数就是死代码），
+       文案改成「备注自己邮箱」口径：登录态把她的邮箱直接显示出来（她本来就知道自己账号）。 ---- */
   function slipText(){
     const p = (window.Pricing && Pricing.VIP_PLANS.find(x => x.id === cur)) || null;
     const amount = p ? ('¥' + p.price) : '';
-    return '扫上方收款码转 ' + amount + '，转完回来点下面「我已转账」。';
+    const acct = loggedIn ? ((DATA && DATA.settings && DATA.settings.syncCode) || '') : '';
+    return '扫上方收款码转 ' + amount + '，付款时在备注里填上'
+      + (acct ? '你的邮箱 ' + acct : '你自己的邮箱') + '。\n'
+      + '24 小时内开通；超过 24 小时没开，把转账截图发给站长。';
   }
   function renderSlip(){
     const el = document.getElementById('semiTxt');
     const p = (window.Pricing && Pricing.VIP_PLANS.find(x => x.id === cur)) || null;
-    if(el) el.innerHTML = '扫上方收款码转 <b>' + (p ? escapeHtml('¥' + p.price) : '') + '</b>，转完回来点下面「我已转账」。';
+    if(!el) return;
+    /* 登录态：把她自己的邮箱显示出来（DATA.settings.syncCode 就是她的登录账号）
+       未登录态：不显示任何邮箱（我们不知道她是谁） */
+    const acct = loggedIn ? ((DATA && DATA.settings && DATA.settings.syncCode) || '') : '';
+    const mail = acct ? '你的邮箱 <b>' + escapeHtml(acct) + '</b>' : '你自己的邮箱';
+    el.innerHTML = '扫上方收款码转 <b>' + (p ? escapeHtml('¥' + p.price) : '') + '</b>，付款时在备注里填上'
+      + mail + '。<br>'
+      + '24 小时内开通；超过 24 小时没开，把转账截图发给'
+      + '<a href="#" data-fb-open class="kv-link">站长</a>。';
   }
   renderSlip();
 
@@ -91,33 +106,18 @@ function renderVipSemi(){
   if(loggedIn){
     if(actsLogged) actsLogged.hidden = false;
     if(actsGuest)  actsGuest.hidden = true;
-    if(lb) lb.textContent = '抄这句去转账';
+    /* 10-26 VIP-NOCOPY-1：原来这里的小标是专门配合复制键的说法，
+       复制键已删（她：手机付款复制到电脑没用），改成「扫这个码转账」。 */
+    if(lb) lb.textContent = '扫这个码转账';
   }else{
     if(actsLogged) actsLogged.hidden = true;
     if(actsGuest)  actsGuest.hidden = false;
     if(lb) lb.textContent = '先登录，再转账';
   }
 
-  /* ---- 复制这句：剪贴板 + 2 秒回显（拿不到剪贴板就退回手动选择）---- */
-  const copyBtn = document.getElementById('semiCopy');
-  if(copyBtn){
-    copyBtn.addEventListener('click', () => {
-      const txt = slipText();
-      const done = () => { copyBtn.textContent = '已复制'; setTimeout(() => { copyBtn.textContent = '复制这句'; }, 2000); };
-      if(navigator.clipboard && navigator.clipboard.writeText){
-        navigator.clipboard.writeText(txt).then(done).catch(() => fallbackCopy(txt, done));
-      }else fallbackCopy(txt, done);
-    });
-  }
-  function fallbackCopy(txt, done){
-    try{
-      const ta = document.createElement('textarea');
-      ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
-      document.body.appendChild(ta); ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta); done();
-    }catch(e){ window.prompt('复制这句去转账：', txt); }
-  }
+  /* 10-26 VIP-NOCOPY-1：复制按钮与全部复制逻辑已删（她 22:3x：
+     「手机支付的话就不方便复制订单，你就不要写这个文案了，也不要搞这个复制键」）。
+     原来的复制按钮处理器 + 剪贴板降级函数 + 原生弹框兜底一并移除，不留死代码。 */
 
   /* ---- 遇到问题：打开站内现成的意见反馈弹层（feedback.js 暴露 openFeedbackSheet）---- */
   ['semiHelp', 'semiHelp2'].forEach(id => {
