@@ -1975,13 +1975,22 @@ function restoreSideScroll(){
 }
 window.addEventListener('pagehide', saveSideScroll);
 
+/* 图表/状态栏配色：深浅第一位、三套外观第二位（THEME-2，10-26）。
+   ink 就是品牌青墨（与 manifest.json 的 theme_color 一致，缺省态靠它兜底）。 */
+var SCHEME_TC = { ink: '#3a9a93', cool: '#54748d', warm: '#78836c' };
+function schemeNow(){
+  try{ return document.documentElement.getAttribute('data-scheme') || 'ink'; }catch(e){ return 'ink'; }
+}
 function applyTheme(theme){
   theme = theme || DATA.settings.theme || 'light';
   if(theme === 'auto') theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   document.documentElement.setAttribute('data-theme', theme);
-  // 状态栏配色随主题联动（iOS/Android 浏览器顶栏）
+  /* 状态栏/安装窗口标题栏配色随主题联动。
+     🔴 THEME-2（10-26）：浅色下**不再写死青墨** —— 读当前外观（data-scheme）。
+        她原话：「要么白色要么主题色，我现在改了主题它还是这个颜色」。
+        深色仍压倒外观（#0e1c1b 优先）：深浅是第一位，外观是第二位。 */
   var tc = document.querySelector('meta[name="theme-color"]');
-  if(tc) tc.setAttribute('content', theme === 'dark' ? '#0e1c1b' : '#3a9a93');
+  if(tc) tc.setAttribute('content', theme === 'dark' ? '#0e1c1b' : (SCHEME_TC[schemeNow()] || SCHEME_TC.ink));
 }
 
 /* ═══ KIMI-THEME-1（10-26）· 三套「外观主题」跨页生效 ═══
@@ -2004,13 +2013,44 @@ function applyScheme(file){
   try{
     var f = String(file || '').trim();
     if(!f){ try{ f = location.pathname.split('/').pop() || ''; }catch(e){ f = ''; } }
-    if(/^bank(\.html)?$/i.test(f)){ document.documentElement.removeAttribute('data-scheme'); return; }
+    if(/^bank(\.html)?$/i.test(f)){ document.documentElement.removeAttribute('data-scheme'); syncSchemeThemeColor(); return; }
     var v = null;
     try{ v = localStorage.getItem('hub_theme_scheme'); }catch(e){ v = null; }
     if(v === 'cool' || v === 'warm') document.documentElement.setAttribute('data-scheme', v);
     else document.documentElement.removeAttribute('data-scheme');
+    /* THEME-2（10-26）：切外观时同步状态栏/安装窗口标题栏色。
+       深浅仍压倒外观 —— 深色下保持 applyTheme 写好的 #0e1c1b。 */
+    syncSchemeThemeColor();
   }catch(e){}
 }
+/* 按「当前外观 + 当前深浅」写 meta theme-color。
+   调用点：applyScheme（切外观 / 每次进页面）与 applyTheme（深浅变了）。
+   依赖顺序：boot 链是 applyTheme() → applyScheme()，所以两者都写一遍，谁后跑都对。 */
+function syncSchemeThemeColor(){
+  try{
+    var tc = document.querySelector('meta[name="theme-color"]');
+    if(!tc) return;
+    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    tc.setAttribute('content', dark ? '#0e1c1b' : (SCHEME_TC[schemeNow()] || SCHEME_TC.ink));
+  }catch(e){}
+}
+/* 设置页点三选一时，data-scheme 是 js/settings.js（页面层）**直接写**的，不走 applyScheme →
+   状态栏色不会跟着变（她报的就是这个现场）。这里挂一个属性观察者兜住所有写入方，
+   共用层不用去改页面层文件。幂等：window 标记挡重复绑。 */
+(function initSchemeColorWatch(){
+  try{
+    if(window.__schemeColorWatchBound) return;
+    if(typeof MutationObserver !== 'function') return;
+    var el = document.documentElement;
+    if(!el) return;
+    window.__schemeColorWatchBound = true;
+    new MutationObserver(function(muts){
+      for(var i = 0; i < muts.length; i++){
+        if(muts[i].attributeName === 'data-scheme'){ syncSchemeThemeColor(); return; }
+      }
+    }).observe(el, { attributes: true, attributeFilter: ['data-scheme'] });
+  }catch(e){}
+})();
 
 /* ═══ TH-SYS（10-25）：主题「跟随系统」—— 监听系统偏好变化 ═══
    背景：applyTheme 里 'auto' 这一档**早就支持**（上面 :1621-1622），但只在调用那一刻读一
