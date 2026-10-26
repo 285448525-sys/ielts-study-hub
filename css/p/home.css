@@ -329,3 +329,61 @@
   .hstat .vl{font-size:17px}
   .rec-yday-t{font-size:12.5px}
 }
+
+/* ==================== W-UI-1 第 2 批（10-26）· 设置完成度条 + 7 格小日历 ====================
+   1:1 还原设计稿 §二（design/全站UI补强-公告-完成度-消息中心-2026-10-25.html，
+   她 10-25 19:2x 点头「大概没什么问题派吧」）。数值从样子稿逐条搬，颜色换成本站 token：
+   --p50→--primary-50 · --p100→--primary-100 · --p300→--primary-300 · --p500→--primary-500 ·
+   --p700→--primary-700 · --card→--surface · --line2→--surface-2 · --ink2→--ink-2。
+   🔴 类名已全站查重（.setup / .week7 / .w7 在 home.css 与 common.css 均 0 命中）。 */
+
+/* 完成度条：hero 下方一条，四项配齐整条不渲染（不占位） */
+.setup{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--line);
+  border-radius:14px;padding:14px 18px;margin-top:14px;flex-wrap:wrap}
+.setup .ic{width:32px;height:32px;border-radius:9px;background:var(--primary-50);color:var(--primary-700);
+  display:flex;align-items:center;justify-content:center;flex:none}
+.setup .ic svg{width:16px;height:16px}
+.setup .tx{flex:1;min-width:200px;font-size:13px;line-height:1.7;color:var(--ink-2)}
+.setup .tx b{font-weight:750;color:var(--ink)}
+.setup .tx a{color:var(--primary-700);font-weight:650;text-decoration:none}
+.setup .tx a:hover{text-decoration:underline}
+.setup .bar{width:120px;height:6px;border-radius:20px;background:var(--surface-2);overflow:hidden;flex:none}
+.setup .bar i{display:block;height:100%;background:var(--primary-500);border-radius:20px}
+
+/* 7 格小日历：本周（周一起），格内当天小时数，没学 = --，今天格外框 */
+.week7{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:12px}
+.w7{text-align:center}
+.w7 .d{font-size:11px;color:var(--muted)}
+.w7 .c{margin-top:4px;border-radius:8px;padding:7px 0;background:var(--surface-2);
+  font-size:12.5px;font-weight:700;color:var(--ink-2)}
+/* 🔴 档位类在 .c 上（设计稿 HTML 就是 <div class="c l2">），所以选择器必须写 .week7 .c.l1。
+   不能照抄设计稿 CSS 里的 .w7.l1 .c —— 那条要求档位挂在 .w7 上，与它自己的 HTML 矛盾，
+   照抄 = 四档永不命中、格子全是灰底（首跑探针实测：四档 computed 全是默认灰，
+   对比度"全过"是在量一个没生效的样式 = 假绿）。 */
+.w7 .c.l1{background:var(--primary-50);color:var(--primary-700)}
+/* l2 字色用 800：p100 底配 700 实测 4.16 不过 4.5（_chk_setup_1026 实锤），加深一档 5.96 */
+.w7 .c.l2{background:var(--primary-100);color:var(--primary-800)}
+/* 🔴 l3/l4 不能照样子稿抄「p300/p500 底 + 白字」——浅色下 #7ccac2/#3a9a93 配白字只有
+   1.9 / 3.37:1；更坑的是**深色档 p300 也是亮的**（DK-4b 把 200/300/400 维持了浅青语义），
+   配 p900 亮字 = 亮底亮字 1.42:1（_chk_setup_1026 实锤）。
+   钉法：l3 浅色 = p300 实底 + p900 深墨绿字（5.62）；l3 深色 = 半透明青底 + 亮青字
+   （与 l1/l2 的 .14/.22 组成透明度递增序列，实测 ≈5.5）；l4 = 深青底 + 白字
+   （浅色 700=5.2），深色档钉回深墨绿（与 NEW 角标同一组口径）。 */
+.w7 .c.l3{background:var(--primary-300);color:var(--primary-900)}
+.w7 .c.l4{background:var(--primary-700);color:#fff}
+.w7.today .c{outline:2px solid var(--primary-500);outline-offset:1px}
+[data-theme="dark"] .w7 .c.l3{ background:rgba(92,179,171,.30); color:#a8d7d2 }
+[data-theme="dark"] .w7 .c.l4{ background:#235e5a }
+/* 手机端：设计稿只给了桌面形态。照搬会把首屏撑长一大截（flex-wrap 后文字三行 + 进度条掉行），
+   而她手机端「少即是多」是一贯口径 → 收紧凑：进度条收掉（缺几项文字里已经说了，纯重复）。 */
+@media (max-width:860px){
+  .setup{padding:11px 14px;gap:10px;margin-top:10px;border-radius:12px}
+  .setup .ic{width:26px;height:26px}
+  .setup .ic svg{width:14px;height:14px}
+  .setup .tx{font-size:12.5px;min-width:0}
+  .setup .bar{display:none}
+}
+@media (max-width:860px){
+  .week7{gap:4px}
+  .w7 .c{padding:6px 0;font-size:11.5px}
+}

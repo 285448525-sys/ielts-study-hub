@@ -258,6 +258,10 @@ function renderDashV6(){
   // ---- 右侧侧轨 ----
   renderHomeRail(tkey);
 
+  // ---- W-UI-1 第 2 批（10-26）：设置完成度条 + 7 格小日历（设计稿 §二，1:1 还原）----
+  renderHomeSetup();
+  renderHomeWeek7(tkey);
+
   // ---- 今日任务卡（9/20：到期词建议 + 今日计划清单，详见 renderDashTasks）----
   // 注意：safe 是 ready() 闭包内常量，本函数在闭包外够不着 → renderDashTasks 自带 try/catch 兜底
   renderDashTasks();
@@ -456,6 +460,93 @@ function renderHomeRail(tkey){
       else ssEl.textContent = '已追平自己的最佳纪录 ' + best + ' 天';
     }
   }catch(e){ console.error('[index] 侧轨渲染失败', e); }
+}
+
+/* ==================== W-UI-1 第 2 批（10-26）· 首页设置完成度 ====================
+   设计稿 §二（C:\Users\Camille\Desktop\雅思\design\全站UI补强-公告-完成度-消息中心-2026-10-25.html），
+   她 10-25 19:2x 看完样子稿拍板「大概没什么问题派吧」。形态依据：多邻国 / 扇贝都把
+   「还差几步」常驻首页 —— 比一次性引导有效，配齐即消失、不长期占位。
+   四项判定（零新字段，全部读现有 DATA.settings）：
+     ① 考试日期   settings.examDate 非空
+     ② 目标总分   settings.targets.overall > 0
+     ③ 四科目标   targets 四科都 > 0
+     ④ 每日上限   settings.practiceCfg.dailyCap > 0
+   四项配齐 → 整条不渲染（不占位，首页回到改动前的高度，不破她「一屏不滚动」的要求）。 */
+function homeSetupItems(){
+  const s = DATA.settings || {};
+  const tg = s.targets || {};
+  const cap = Number((s.practiceCfg || {}).dailyCap) || 0;
+  const four = [tg.listening, tg.reading, tg.writing, tg.speaking];
+  return [
+    { name:'考试日期',   done: !!String(s.examDate || '').trim() },
+    { name:'目标总分',   done: Number(tg.overall) > 0 },
+    { name:'四科目标',   done: four.length === 4 && four.every(v => Number(v) > 0) },
+    { name:'每日学习上限', done: cap > 0 }
+  ];
+}
+function renderHomeSetup(){
+  try{
+    const box = document.getElementById('homeSetup');
+    if(!box) return;                      // 软导航换走了本页 DOM，防过期闭包误写
+    const items = homeSetupItems();
+    const missing = items.filter(x => !x.done);
+    if(!missing.length){ box.hidden = true; box.innerHTML = ''; return; }
+    const done = items.length - missing.length;
+    const pct = Math.round(done / items.length * 100);
+    const names = missing.map(x => x.name).join(' · ');
+    box.hidden = false;
+    box.innerHTML =
+      '<span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>'
+      + '<span class="tx"><b>还有 ' + missing.length + ' 项没设置</b>（' + escapeHtml(names) + '）　配齐后首页的倒计时、待复习、完成度才准。'
+      + '<a href="settings.html?pane=targets">30 秒搞定 →</a></span>'
+      + '<span class="bar" role="img" aria-label="已完成 ' + done + ' / ' + items.length + '"><i style="width:' + pct + '%"></i></span>';
+  }catch(e){ console.error('[index] 完成度条渲染失败', e); }
+}
+
+/* ==================== W-UI-1 第 2 批 · 7 格小日历 ====================
+   设计稿 §2.3：本周 7 格（周一起），格内 = 当天学习小时数（1 位小数），没学 = --；
+   颜色四档按施工书口径：<1h=l1 · 1~2h=l2 · 2~4h=l3 · ≥4h=l4；今天格外框。
+   聚合 = history.js renderDays 同一套（sessions 按 date 分组 → durationSec 求和），不新写算法。
+   ⚠️ 为什么只挂完成度卡下面：设计稿把 .week7 放在 hero 下方，但她首页「一屏不滚动」是
+      硬要求（10-21 拍板），主列再塞一格会把它顶出首屏 → 放侧轨（设计稿 §2.3 原文也写
+      「首页侧轨（完成度环下方）加 .week7」），主列高度零变化。 */
+function renderHomeWeek7(tkey){
+  try{
+    const box = document.getElementById('homeWeek7');
+    if(!box) return;
+    const t = tkey || todayKey();
+    /* renderDays 同套聚合：date → 当天 durationSec 总和（秒） */
+    const byDay = {};
+    (Array.isArray(DATA.sessions) ? DATA.sessions : []).forEach(s => {
+      if(!s || !s.date) return;
+      byDay[s.date] = (byDay[s.date] || 0) + (s.durationSec || 0);
+    });
+    /* 本周（周一起）7 天。今天那格标签写「今天」（设计稿口径），其余写周几。 */
+    const WD = ['周日','周一','周二','周三','周四','周五','周六'];
+    /* 🔴 斜杠日期（'2026/10/26'）是 Safari/Edge 都认的本地零点写法，但**不能**再拼 'T00:00:00'
+       —— '2026/10/26T00:00:00' 是非法日期串，new Date 直接 Invalid Date，
+       后面 getDate/getDay 全 NaN，7 格全变 undefined（首跑探针实锤）。 */
+    const now = new Date(t.replace(/-/g, '/'));
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));   // 回到本周周一
+    let html = '';
+    const p2 = x => String(x).padStart(2, '0');
+    for(let i = 0; i < 7; i++){
+      /* 基点每轮用 monday 自身取日期（monday 在循环末尾 +1 天），label 与 d 严格同源 ——
+         不另算 addDays(baseStr, i)：基点若被推进过，双重偏移会让整行日期漂移一格。 */
+      const d = monday.getFullYear() + '-' + p2(monday.getMonth()+1) + '-' + p2(monday.getDate());
+      const isToday = d === t;
+      const sec = byDay[d] || 0;
+      const h = sec / 3600;
+      const tier = sec <= 0 ? '' : (h < 1 ? 'l1' : h < 2 ? 'l2' : h < 4 ? 'l3' : 'l4');
+      const val = sec <= 0 ? '--' : (Math.round(h * 10) / 10).toFixed(1);
+      html += '<div class="w7' + (isToday ? ' today' : '') + '">'
+        + '<div class="d">' + (isToday ? '今天' : WD[monday.getDay()]) + '</div>'
+        + '<div class="c' + (tier ? ' ' + tier : '') + '">' + val + '</div></div>';
+      monday.setDate(monday.getDate() + 1);
+    }
+    box.innerHTML = html;
+  }catch(e){ console.error('[index] 小日历渲染失败', e); }
 }
 
 /** 路线图3 · 3a：昨日学习聚合 + 今日复习提示（纯读 DATA，零风险、零新字段）。

@@ -30,7 +30,7 @@
 </script>
 <title>首页 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261025k" />
-<link rel="stylesheet" href="css/p/home.css?v=20261025k" />
+<link rel="stylesheet" href="css/p/home.css?v=20261026d" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png?v=7">
@@ -51,7 +51,7 @@
 <!-- design/78 双词库适配层：index.js 的 wbActive/wbDueCount 依赖它（defer 按文档序执行） -->
 <script defer src="js/wordbank.js?v=20261023s"></script>
 <script defer src="js/home-quick.js?v=20261023c"></script>
-<script defer src="js/index.js?v=20261025a"></script>
+<script defer src="js/index.js?v=20261026b"></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(0,0,0,.02),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -90,6 +90,11 @@
         <!-- 10-23 她：「把首页的开始学习按钮去掉，本来是跳转计时页面的但是我把计时页面删掉了」
              → 撤掉 .hl-cta。横条改回两段（左问候 / 右倒数），hline 的 space-between 正好把两头顶开。 -->
       </section>
+
+      <!-- W-UI-1 第 2 批（10-26）：设置完成度条（设计稿 §二，她已点头）。
+           🔴 由 js/index.js renderHomeSetup() 按 settings 四项（考试日期/目标总分/四科目标/每日上限）算，
+              四项配齐 → 整条不渲染（不占位，首页高度回到改动前，不破她「一屏不滚动」的要求）。 -->
+      <div class="setup" id="homeSetup" hidden></div>
 
       <!-- L2 · 四数字卡（今日专注 / 今日单词 / 口语已练 / 本周模考）
            ⚠️ 10-23 她：「今日专注这个板块应该是点击不了的，它不应该设置跳转」→ 当时降级成 div。
@@ -159,6 +164,9 @@
             <div class="ringtxt"><b id="railPct">0%</b></div>
           </div>
           <div class="rc-sub" id="railSub"></div>
+          <!-- W-UI-1 第 2 批：7 格小日历（本周，格内当天小时数；热力图精简版）。
+               设计稿原文放「首页侧轨（完成度环下方）」，不动主列高度。 -->
+          <div class="week7" id="homeWeek7"></div>
         </div>
         <div class="rail-card streak">
           <div class="rc-cap">连续天数</div>
