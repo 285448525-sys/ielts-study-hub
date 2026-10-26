@@ -2960,24 +2960,38 @@ body[data-shell="top"] .sw-update-bar{top:calc(44px + env(safe-area-inset-top) +
    ⚠️ 公告条挂在 #mainNav **之后**（js/common.js ancEnsure），是 body 直下的兄弟节点，
       用 sticky 贴顶栏（44px）之下 —— 手机端顶栏整条 display:none，这里的 top 同步归零。 */
 
-/* 公告条：34px 细条，吸在顶栏底边之下，无未读时整条不渲染（不占位） */
+/* 公告条：28px 浅灰细条（ANN-1 轻量化，10-26），吸在顶栏底边之下，无未读时整条不渲染（不占位）。
+   🔵 她 19:4x 看了样子稿（design/_样子稿-公告条轻量化-2026-10-26.html）点头，1:1 还原：
+      34px 深青底 → **28px 浅灰底**（--surface-2）、标签胶囊 → **6px 小圆点**、
+      按钮胶囊 → **文字 link**。视觉层级顺序回到「顶栏 → 内容 → 公告条」。
+   📐 规格全部照抄样子稿的方案 B（颜色一律走 token，不写字面量）：
+      底 = var(--surface-2) / 字 = var(--muted) / 标题 b = var(--ink) /
+      圆点 = var(--primary) 6px + 3px 光晕 var(--primary-50) / link = var(--primary) */
 .anc{position:sticky;top:calc(44px + env(safe-area-inset-top));z-index:19;
-  display:flex;align-items:center;gap:10px;height:34px;padding:0 20px;
-  background:var(--primary-800);color:#fff;font-size:12.5px;line-height:1}
-.anc .tag{font-size:10px;font-weight:800;letter-spacing:.04em;
-  background:rgba(255,255,255,.2);border-radius:4px;padding:2px 6px;flex:none}
-.anc .tx{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.anc .tx b{font-weight:750}
-.anc a{color:#fff;font-weight:700;text-decoration:none;white-space:nowrap;flex:none}
-.anc a:hover{text-decoration:underline}
-.anc .x{flex:none;width:20px;height:20px;border:0;background:none;color:rgba(255,255,255,.75);
-  cursor:pointer;font-size:13px;line-height:1;border-radius:4px;padding:0;font-family:inherit}
-.anc .x:hover{background:rgba(255,255,255,.16);color:#fff}
-/* kind=notice（维护/通知）：浅底深字，比 feature 弱一档 */
-.anc.light{background:var(--primary-50);color:var(--primary-800);border-bottom:1px solid var(--primary-100)}
-.anc.light .tag{background:var(--primary-100);color:var(--primary-800)}
-.anc.light a{color:var(--primary-800)}
-.anc.light .x{color:var(--primary-700)}
+  display:flex;align-items:center;gap:10px;height:28px;padding:0 20px;
+  background:var(--surface-2);color:var(--ink-2);font-size:12px;line-height:1;
+  border-bottom:1px solid var(--line)}
+/* 🔴 为什么是 --ink-2 而不是设计稿写的 --muted：本站 --muted = #71767e，
+   压在 --surface-2 (#fafbfc) 上只有 **4.41:1**，而 12px 小字要求 AA 4.5 → 差一点点不过。
+   设计稿自己用的是 #68736e（4.62，刚好够）。→ 取本站里第一个达标的次级色 --ink-2 (#4a4f57)，
+   实测 **7.96:1**，与标题的 --ink (#24272c, 14.98:1) 仍保持明显层级。
+   （这属于「按色对改用法」，不是改设计 —— 深浅两态都过 AA。） */
+/* 小圆点：feature = 主色（青墨/冷色/暖灰跟着主题走），notice = 琥珀 */
+.anc .dot{width:6px;height:6px;border-radius:50%;background:var(--primary);flex:none;
+  box-shadow:0 0 0 3px var(--primary-50)}
+.anc .tx{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  color:var(--ink-2);font-weight:400}
+.anc .tx b{color:var(--ink);font-weight:550}
+/* 「去看看 ›」= 文字 link（原来是个胶囊按钮，比条本身还抢眼） */
+.anc a{color:var(--primary);font-weight:600;text-decoration:none;white-space:nowrap;flex:none;
+  font-size:12px;padding:2px 0}
+.anc a:hover{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--primary);padding-bottom:1px}
+.anc .x{flex:none;width:18px;height:18px;border:0;background:none;color:var(--ink-2);opacity:.7;
+  cursor:pointer;font-size:12px;line-height:1;border-radius:4px;padding:0;font-family:inherit}
+.anc .x:hover{opacity:1;color:var(--ink);background:none}
+/* kind=notice（维护/通知）：圆点换琥珀，底色仍是浅灰（不再整条换底色 —— 那样比 feature 还重） */
+.anc.notice .dot{background:#c27a3a;box-shadow:0 0 0 3px #f3e6d8}
+[data-theme="dark"] .anc.notice .dot{background:#d49560;box-shadow:0 0 0 3px #3a2a1c}
 /* 手机端顶栏整条不渲染（10-23 她定的口径）→ 公告条贴最顶，不留 44px 空档 */
 @media (max-width:860px){
   .anc{top:env(safe-area-inset-top)}
@@ -3050,14 +3064,10 @@ body.hub-exam-locked #ancBarHost{ display:none !important }
   .al .dt{width:52px}
 }
 
-/* 🔴 DK-4b 同款钉法（深色档 --primary-800 补全后变成亮青 #a8d7d2）：
-   公告条是「深主色底 + 白字」，深色下必须钉回深墨绿，否则白字糊在亮青上（实测 1.4:1）。
-   .anc.light 深色下是「半透明青底 + 亮青字」，同样要钉回深青字才看得见。
-   ⚠️ 只在深色生效，浅色下 --primary-800 = 深墨绿本来就是对的，一行不动。 */
-[data-theme="dark"] .anc{ background:#235e5a }
-[data-theme="dark"] .anc.light{ color:#1a4542 }
-[data-theme="dark"] .anc.light .tag{ color:#1a4542 }
-[data-theme="dark"] .anc.light a{ color:#1a4542 }
+/* 🔵 ANN-1（10-26 轻量化）之后这四条深色钉法**全部作废并删掉** ——
+   原来钉的是「深主色底 + 白字」，而现在公告条是**浅灰底 + 次级灰字 + 主色圆点**，
+   深浅两态都走 token（--surface-2 / --muted / --ink / --primary），深色下自动翻到深灰底 + 亮字，
+   不需要任何字面量钉死。删掉比留着更安全：留着反而会在深色下把字压成深墨绿（看不见）。 */
 [data-theme="dark"] .adetail .body .hl{ color:#a8d7d2 }
 
 /* ==================== W-UI-1（10-26）消息中心 · 铃铛 + 下拉 ====================

@@ -213,11 +213,17 @@ function ancPending(){
   const top = j.items[0];
   return (top && !s.has(top.id)) ? top : null;
 }
+/* ANN-1（10-26）：公告条轻量化 —— 标签胶囊换成 6px 小圆点，颜色/尺寸全部交给 CSS 的 .dot / .anc。
+   她 19:4x 看过样子稿（design/_样子稿-公告条轻量化-2026-10-26.html）点头，1:1 还原方案 B：
+     · 删掉 <span class="tag">新</span> / 「维护」胶囊（原来那个胶囊比正文还抢眼）
+     · 加 <span class="dot" aria-hidden="true">（纯装饰，读屏不读）
+     · 底色/字号/高度全在 css/common.css 的 .anc 里，这里不再写任何样式
+   ⚠️ 类名从 light 改成 notice：kind !== 'feature' 的都算 notice（维护/通知），
+      圆点换琥珀、底色仍是浅灰。旧数据里 kind 缺失也走 notice，行为不比以前更响。 */
 function ancBarHtml(a){
-  const light = a.kind !== 'feature';
-  const tag = light ? '维护' : '新';
-  return '<div class="anc' + (light ? ' light' : '') + '" id="hubAncBar">'
-    + '<span class="tag">' + tag + '</span>'
+  const notice = a.kind !== 'feature';
+  return '<div class="anc' + (notice ? ' notice' : '') + '" id="hubAncBar">'
+    + '<span class="dot" aria-hidden="true"></span>'
     + '<span class="tx"><b>' + escapeHtml(a.title || '') + '</b> · ' + escapeHtml(a.summary || '') + '</span>'
     + '<a href="announce.html#' + encodeURIComponent(a.id) + '" id="hubAncGo">去看看 ›</a>'
     + '<button class="x" type="button" id="hubAncX" title="关闭" aria-label="不再显示这条公告">✕</button>'
