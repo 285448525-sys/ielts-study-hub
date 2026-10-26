@@ -18,8 +18,8 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>模考 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261026i" />
-<link rel="stylesheet" href="css/p/bank.css?v=20261026i" />
+<link rel="stylesheet" href="css/common.css?v=20261026j" />
+<link rel="stylesheet" href="css/p/bank.css?v=20261026j" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -266,7 +266,14 @@
   /* 主题三档统一走这三个变量（批 5 把 33 条硬编码子规则换成变量覆盖） */
   --ex-bg:#fff; --ex-ink:#111; --ex-line:var(--line); --ex-ink-2:#222; --ex-ink-3:var(--muted);
 }
-#examRoot{position:fixed;inset:0;z-index:900;background:#fff;display:flex;flex-direction:column;--exfs:20px}
+/* 🔴 THEME-3（10-26）：考场文字色**钉死**。原来 #examRoot 自己没有 color，一路继承 body 的
+   var(--ink) → 三套外观一换，考场里没显式写色的元素（实测 .ex-top / .ex-bar）就跟着变。
+   这是 10-22 官方复刻批的版（她拍过，一行不许跟主题走）→ 钉成 ink 浅色的现值 #24272c，
+   与改前逐值一致、且不再受 data-scheme 影响。
+   ⚠️ 考场内以后新增样式请写死 hex，别用 var(--primary-x) / var(--n-x) 这类外观变量 —— 会被三套外观带偏。
+   🔴 写注释时别把通配斜杠和星号写在一起（`--primary` 紧跟一个斜杠一个星号会**提前闭合注释**，
+      把下一条规则整条吃掉）。本条注释当初就是这么踩的，实测三套外观仍在变才发现。 */
+#examRoot{position:fixed;inset:0;z-index:900;background:#fff;display:flex;flex-direction:column;--exfs:20px;color:#24272c}
 #examRoot[hidden]{display:none}
 /* 顶栏：窄单行（照样子稿 104：考号/篇名 + 剩余时间 + ☰ Option）*/
 .ex-top{display:flex;align-items:center;gap:12px;padding:4px 14px;background:#fff;border-bottom:1px solid var(--line);flex:none;min-height:36px}
@@ -2391,13 +2398,13 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
      （手机慢网 ~50KB/s → 约 1.5 秒）。加载时机：点开「写作」tab 时按序插入；
      首次 load 之后空闲再预热一次。承接代码在 js/bank.js 的 loadWritingScripts()。 -->
 <script defer src="js/data.js?v=20261026h"></script>
-<script defer src="js/common.js?v=20261026i"></script>
-<script defer src="js/common-ai.js?v=20261026i"></script>
-<script defer src="js/common-sync.js?v=20261026i"></script>
-<script defer src="js/common-merge.js?v=20261026i"></script>
-<script defer src="js/common-cloud.js?v=20261026i"></script>
-<script defer src="js/common-shell.js?v=20261026i"></script>
-<script defer src="js/common-pwa.js?v=20261026i"></script>
+<script defer src="js/common.js?v=20261026j"></script>
+<script defer src="js/common-ai.js?v=20261026j"></script>
+<script defer src="js/common-sync.js?v=20261026j"></script>
+<script defer src="js/common-merge.js?v=20261026j"></script>
+<script defer src="js/common-cloud.js?v=20261026j"></script>
+<script defer src="js/common-shell.js?v=20261026j"></script>
+<script defer src="js/common-pwa.js?v=20261026j"></script>
 <script defer src="js/bank.js?v=20261025i"></script>
 <!-- M-2（10-24）：模考页「没做过/做过」分组 + 展开更多。
      ⚠️ 本文件只做展示层（读 hub_bank_last_* 分组 + 首屏 20 条），判分/SRS/本地记录一律不碰；

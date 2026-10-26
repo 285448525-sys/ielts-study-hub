@@ -2011,13 +2011,18 @@ function applyTheme(theme){
    必须由调用方把目标文件名传进来；不传才回落到 location。 */
 function applyScheme(file){
   try{
-    var f = String(file || '').trim();
-    if(!f){ try{ f = location.pathname.split('/').pop() || ''; }catch(e){ f = ''; } }
-    if(/^bank(\.html)?$/i.test(f)){ document.documentElement.removeAttribute('data-scheme'); syncSchemeThemeColor(); return; }
     var v = null;
     try{ v = localStorage.getItem('hub_theme_scheme'); }catch(e){ v = null; }
     if(v === 'cool' || v === 'warm') document.documentElement.setAttribute('data-scheme', v);
     else document.documentElement.removeAttribute('data-scheme');
+    /* THEME-3（10-26）：原来这里对 bank.html **整页摘属性**（KIMI-THEME-1 那批的红线），
+       她今天报「模考页没有跟主题色适配」→ 那条边界收窄为「**列表态跟主题、考场态不跟**」：
+       整页摘除这一支删掉了。考场隔离不再靠属性、靠**元素层**保证 ——
+       考场（#examRoot / body.exam-fullscreen）里的颜色是 10-22 官方复刻批写死的 hex，
+       一个 var(--primary-*) 都没用（_probe_examroot_1026 实测逐值比对为证）。
+       ⚠️ 以后谁在考场里加 var(--primary-*) 都会被三套外观带偏 —— 那里请继续写死官方色。
+       参数 file 保留（调用方仍在传），暂时不参与判定。 */
+    void file;
     /* THEME-2（10-26）：切外观时同步状态栏/安装窗口标题栏色。
        深浅仍压倒外观 —— 深色下保持 applyTheme 写好的 #0e1c1b。 */
     syncSchemeThemeColor();
