@@ -398,3 +398,32 @@
   .week7{gap:4px}
   .w7 .c{padding:6px 0;font-size:11.5px}
 }
+
+/* ===================================================================
+   HOME-FIT-1（10-26）· 首页 1280×800 首屏含公告条时溢出 28px
+   -------------------------------------------------------------------
+   根因（B 已隔离到单一变量）：main 756 + 顶栏 44 + 公告条 28 = 828。
+   HOME-VISUAL-1 把旧布局余量用尽了，公告条一出现就把内容顶出视口。
+
+   修法：**只收上方留白**，全部挂在 :has(#hubAncBar) 下 ——
+   公告条一收起，间距自动回到 HOME-VISUAL-1 定稿值，不会「没公告时页面变松」。
+
+   🔴 不许动：字号 / 卡片 14px 圆角 / 卡片左右内距 / 阴影（HOME-VISUAL-1 定稿值）。
+      本条只压缩「块与块之间的空白」与容器上下 padding。
+   =================================================================== */
+body.hub-home:has(#hubAncBar) .container{padding-top:4px;padding-bottom:8px}
+body.hub-home:has(#hubAncBar) .hmain{gap:11px}
+body.hub-home:has(#hubAncBar) .hmods .hmod{padding-top:7px;padding-bottom:7px}
+
+/* 🔴 这条才是真正的病根：下面 @media(min-width:861px) 里 .hmain/.hrail 的 min-height
+   写的是 calc(100vh - 44px - 12px - 12px) = 732 —— 按「顶栏 44 + 上下各 12」算的，
+   **没有把公告条那 28px 算进去**。公告条一出现，可用高度只剩 800-44-28=728，
+   但 min-height 仍要求 732 → 必然溢出。
+   修法：有公告条时把 calc 里的常量换成收紧后的真实留白（上 4 + 下 8 + 公告 28 = 40）。 */
+@media (min-width:861px){
+  body.hub-home:has(#hubAncBar) .hmain,
+  body.hub-home:has(#hubAncBar) .hrail{
+    min-height:calc(100vh - 44px - 28px - 4px - 8px - env(safe-area-inset-top))
+  }
+  body.hub-home:has(#hubAncBar) .container{padding-bottom:8px}
+}
