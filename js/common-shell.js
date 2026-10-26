@@ -213,16 +213,63 @@ function _clearLoaderTimers(){
    - window.load：所有子资源（脚本/样式/字体/图片）就绪，覆盖整段硬刷新卡顿；
    - 8s 安全上限：极端情况 load 不触发也不残留；
    - 暴露 window.__hubBootDone：若某页要在自己的重脚本跑完后才收起，可主动调用。 */
+/* 🔴 CLS-1（2026-10-26）：启动绘制期让 <main> 在**渲染期不可见**，遮罩收起那一刻才放出来。
+   她 16:0x 报「首页启动主区被侧栏盖住（CLS）」，实测（线上 390/1280 + CPU 4x + Slow4G）：
+     · 桌面 0.084 位移源 = section.hmods / section.hstats / div.rail-quick（首页首屏渲染把兄弟块推下去）
+     · 手机+桌面 0.023 位移源 = main.container（公告条 34px 在后插入，把 main 推下去）
+   两条位移都发生在**遮罩还完全不透明的时候**，照样计分 —— 实测证明「挡在遮罩后面」没用
+   （见 _cls_diag6：位移发生时遮罩 op=1 hide=false，CLS 照记）。
+   正解 = 让被推的元素**在位移发生时不是「可见元素」**：位移不算、放出来只是一次「出现」。
+   代价 0：遮罩本来就把整屏盖住，用户看不到这期间的任何变化（放出来与遮罩淡出同一帧）。
+   ⚠️ 刻意写成 **JS 设置**而不是 CSS —— AGENTS §10「先藏后显不得把『藏』写死在 CSS」：
+      JS 挂了（或没有遮罩的页）内容默认就是可见的；本函数另有 8s 兜底必放行。
+   ⚠️ 幂等：_finishBootLoader 可能被页面、兜底定时器各调一次，放行必须每次都执行。 */
+function _bootMainVisible(on){
+  try{
+    var m = document.querySelector('main');
+    if(m) m.style.visibility = on ? '' : 'hidden';
+  }catch(e){}
+}
+/* CLS-1（10-26）：公告条的决定还没落地时，先别放行 main。
+   为什么：公告条是 body 直下的 34px 条，网络回来才插 → 把 main 推下 34px（实测 0.023/0.040）。
+   什么时候必须等：顶栏壳（会挂公告条）且**本机没有公告清单**（首次进站）。
+   什么时候不等：本机有清单（ancEnsure 已给出最终决定）/ 非顶栏壳 / 超过 900ms（绝不许把启动卡在网络上）。 */
+var _bootAncWaited = false;
+function _bootAncGateOk(){
+  try{
+    if(_bootAncWaited) return true;
+    if(document.body.getAttribute('data-shell') !== 'top') return true;
+    if(window.__hubAncDecided) return true;
+    if(typeof ancSettled !== 'function') return true;
+    return false;
+  }catch(e){ return true; }
+}
 function _finishBootLoader(){
   var el = document.getElementById('bootLoader');
-  if(!el || el.dataset.done) return;
-  el.dataset.done = '1';
-  el.classList.add('hide');
-  setTimeout(function(){ if(el && el.parentNode) el.parentNode.removeChild(el); }, 400);
+  if(el && !el.dataset.done){
+    if(!_bootAncGateOk()){
+      _bootAncWaited = true;    // 只等一次，等完这条路径不再拦
+      var t = setTimeout(function(){ _finishBootLoader(); }, 900);
+      try{
+        ancSettled().then(function(){
+          try{ if(typeof ancEnsure === 'function') ancEnsure(); }catch(e){}
+          clearTimeout(t);
+          _finishBootLoader();
+        });
+      }catch(e){ clearTimeout(t); _finishBootLoader(); }
+      return;
+    }
+    el.dataset.done = '1';
+    el.classList.add('hide');
+    setTimeout(function(){ if(el && el.parentNode) el.parentNode.removeChild(el); }, 400);
+  }
+  /* 放行 main 与遮罩淡出在同一帧：用户看到的是「遮罩淡掉、页面已经是最终样子」 */
+  _bootMainVisible(true);
 }
 function initBootLoader(){
   var el = document.getElementById('bootLoader');
-  if(!el) return;
+  if(!el) return;   // 没有遮罩的页（如全内联落地页/自带头样式页）不藏 main —— 藏了没人放
+  _bootMainVisible(false);
   window.__hubBootDone = _finishBootLoader;
   // 优化：遮罩在「DOM 解析完成 + 本批 defer 脚本渲染完」即收起，
   // 不再等 window.load（window.load 还会等图片/字体/慢网资源，农村代理网络下会卡很久）。
