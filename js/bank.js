@@ -465,6 +465,24 @@
     });
     return picked.indexOf(null) > -1 ? null : picked;
   }
+  /* EXAM-E2P（10-26）：无 UI 的验证入口。
+     openFullTest / picksFromIds 都在本 IIFE 内，探针与 E-2 的「重做」按钮都够不着 ——
+     暴露两个只读入口（不渲染、不绑事件、不改变任何默认行为）：
+       window.__hubOpenFullTestFromIds(ids)  → 按 id 还原并开考；还原失败返回 false（调用方降级）
+       window.__hubPicksFromIds(channel, ids) → 纯查询，给探针用
+     ⚠️ 必须等 manifest 到了才有篇目；没到就返回 false/null，不抛错。 */
+  window.__hubOpenFullTestFromIds = function(ids){
+    try{
+      var picks = picksFromIds('reading', ids);
+      if(!picks) return false;
+      openFullTest(picks);
+      return true;
+    }catch(e){ console.warn('[bank] __hubOpenFullTestFromIds 失败', e); return false; }
+  };
+  window.__hubPicksFromIds = function(channel, ids){
+    try{ var p = picksFromIds(channel || 'reading', ids); return p ? p.map(function(u){ return u.id; }) : null; }
+    catch(e){ return null; }
+  };
   /* 10/17 性能批 · 改为「静态卡 + 切状态」而不是 innerHTML 注入。
      why：原先 manifest 到达后才插入这张 242px 高的卡，把下面 .partbar/#bankList 顶下去，
      手机 Slow4G 实测 CLS 0.238（单次偏移占全部 99%，且发生在遮罩收起之后，用户看得见）。
@@ -2551,10 +2569,25 @@ window.__reportExamState = reportExamState;
     });
   }
 
-  function openFullTest(){
-    if(!guidePassed('reading')){ examGuideGate('reading', function(){ openFullTest(); }); return; }
+  /* EXAM-E2P（10-26）：ids → picks 还原（「重做一遍」要用）。
+     按 id 在 unitsOf(channel) 里找 unit；**任一篇找不到就整组返回 null**，
+     绝不「跳过继续」—— 三篇少一篇 = 卷子题数不是 40，判分分母就错，
+     会给出系统性偏低的假分数（HANDOFF §三 那条判分红线）。调用方拿到 null 自行降级。 */
+  function picksFromIds(channel, ids){
+    if(!Array.isArray(ids) || !ids.length) return null;
+    var all = unitsOf(channel) || [];
+    var map = {}; all.forEach(function(u){ if(u && u.id) map[u.id] = u; });
+    var out = ids.map(function(id){ return map[id]; });
+    if(out.some(function(x){ return !x; })) return null;
+    return out;
+  }
+  /* EXAM-E2P（10-26）：整卷入口加可选参数 —— 传了就按这三篇开，不传还是老行为（现抽）。
+     🔴 examGuideGate 的回调**必须把 fixedPicks 原样传下去**：她第一次点「重做」会先弹考前指南，
+        看完指南若把参数丢了，卷子就变成随机的新题 —— 她以为在重做原题，其实分数不可比（本质是骗人）。 */
+  function openFullTest(fixedPicks){
+    if(!guidePassed('reading')){ examGuideGate('reading', function(){ openFullTest(fixedPicks); }); return; }
     /* 纯随机组卷（她 10/12「不用提前写好题目在那」）：点 Start 这一刻才抽篇，每次都不一样 */
-    var picks = composeFullTest();
+    var picks = fixedPicks || composeFullTest();
     if(!picks) return;
     var root = document.getElementById('bankRoot');
     if(root) root.style.display = 'none';

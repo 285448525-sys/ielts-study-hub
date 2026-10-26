@@ -121,7 +121,10 @@
 
     box.innerHTML = list.map(x => {
       const k = KINDS[x.kind] || KINDS.whole;
-      return '<div class="rec-row rk-' + x.kind + '" data-id="' + esc(x.id) + '" data-kind="' + x.kind + '">'
+      /* EXAM-E2P（10-26）：补 data-rec-id —— 「看上次结果」要能按 id 定位到这一行。
+         data-id 原来就有（删除/详情转发用它），两者同一个值，但语义分开：
+         data-id 是"操作目标"，data-rec-id 是"定位锚点"（E-2 接 ?rec= 时只认它）。 */
+      return '<div class="rec-row rk-' + x.kind + '" data-id="' + esc(x.id) + '" data-rec-id="' + esc(x.id) + '" data-kind="' + x.kind + '">'
         + '<span class="rec-d">' + esc(x.date) + '</span>'
         + '<span class="rec-k ' + k.cls + '">' + k.label + '</span>'
         + '<span class="rec-t">' + esc(x.title) + '</span>'
@@ -130,6 +133,27 @@
         + '<button type="button" class="btn sm danger rec-del" data-id="' + esc(x.id) + '">删除</button></span>'
         + '</div>';
     }).join('');
+
+    /* EXAM-E2P（10-26）：?rec=<id> 定位 —— 渲染后按 data-rec-id 找到行、滚到中间、轻高亮 2 秒。
+       · 找不到（记录被删 / 老书签 / 参数乱写）→ **不报错、不滚动**，页面照常（这条是硬要求）
+       · 高亮是临时的，2 秒后自己淡掉，不许永久改变这条行的样子
+       · 只在一次页面生命里跑一次（window 标记），软导航重跑不会反复滚来滚去 */
+    try{
+      if(!window.__recFocusDone){
+        window.__recFocusDone = true;
+        var _rid = '';
+        try{ _rid = new URLSearchParams(location.search).get('rec') || ''; }catch(e){ _rid = ''; }
+        if(_rid){
+          var row = box.querySelector('.rec-row[data-rec-id="' + String(_rid).replace(/["\\\\]/g, '') + '"]');
+          if(row){
+            window.__lastScrollTarget = _rid;
+            try{ row.scrollIntoView({ block: 'center', behavior: 'smooth' }); }catch(e){ row.scrollIntoView(); }
+            row.classList.add('rec-focus');
+            setTimeout(function(){ try{ row.classList.remove('rec-focus'); }catch(e){} }, 2000);
+          }
+        }
+      }
+    }catch(e){}
 
     /* 🔴 删除转发：**触发原来那个按钮的点击**，让 scores.js / mock-history.js 里
        现成的删除逻辑原样跑（含 confirm、墓碑、hubSave、重渲染）。
