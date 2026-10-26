@@ -168,13 +168,13 @@
                设计稿原文放「首页侧轨（完成度环下方）」，不动主列高度。 -->
           <div class="week7" id="homeWeek7"></div>
         </div>
-        <div class="rail-card streak">
-          <div class="rc-cap">连续天数</div>
-          <div class="big"><b id="railStreakN">0</b><span>天连续学习</span></div>
-          <div class="dots" id="railDots"></div>
-          <div class="dots-l"><span>6 天前</span><span>今天</span></div>
-          <div class="sub" id="railStreakSub"></div>
-        </div>
+        <!-- HOME-STREAK-DEL（10-26）：侧轨「连续天数」整块删掉 ——
+             她指截图拍板「这个连续天数模块可以删掉，没什么必要，没什么用」。
+             保留的 2 处同类信息（都是她拍过版的，别顺手删）：
+               · 顶部 72px 横条的连击 chip（#dashStreakChip，113A3a 版）
+               · 手机端折叠块那行「今日完成 X% · 连续 Y 天」
+             js/index.js:413 的 setTxt 带 if(el) 判空、railDots/railStreakSub 两段各有守卫
+             → 节点没了自动跳过、不抛错，JS 零改动。calcStreak 仍被上面两处与计时页使用。 -->
         <div class="rail-quick">
           <div class="rc-cap">快速入口<button class="rq-edit" id="rqEdit" type="button" aria-expanded="false" aria-haspopup="dialog">编辑</button></div>
           <!-- 10-23 5-1：原来写死的三条 <a class="qk"> 改由 js/home-quick.js 渲染（视觉零变化）。

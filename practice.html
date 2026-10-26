@@ -55,7 +55,7 @@
   <script defer src="js/wordbank.js?v=20261023s"></script>
   <!-- design/77 DHP+SSP-MMC 策略表：必须在 practice.js 之前（defer 按文档序执行，表未加载时 practice.js 有回退兜底） -->
   <script defer src="js/dhp_policy.js?v=20260921a"></script>
-  <script src="js/practice.js?v=20261025c" defer></script>
+  <script src="js/practice.js?v=20261026a" defer></script>
   <script src="js/words.js?v=20261023r" defer></script>
 <style>
 /* ============================================================
@@ -219,6 +219,14 @@ html[data-theme="dark"] .wb-today{background:linear-gradient(135deg,var(--primar
    顶栏壳要跟着收掉；否则 44px 顶栏压在背词区上方，body 的 44px 让位还白留一条空带 */
 body.word-fullscreen[data-shell="top"]{padding-top:0 !important}
 body.word-fullscreen .hub-topbar{display:none !important}
+/* WORD-2（10-26）：全屏态常驻「退出沉浸」条 —— 顶栏藏掉之后唯一可读的出口。
+   不靠 body 类显隐（JS 用 hidden 属性控），这样软导航重跑/状态错乱时也不会两个都藏或都露。 */
+.wd-fs-exit{display:flex;justify-content:flex-end;margin:0 0 8px}
+.wd-fs-exit-btn{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;
+  border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink-2);
+  font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.wd-fs-exit-btn:hover{border-color:var(--primary);color:var(--primary-700)}
+.wd-fs-exit-btn:focus-visible{outline:none;box-shadow:0 0 0 3px var(--primary-soft)}
 
 /* ===== 10-23 2-1d 批 B 补：单词页也撤药丸 tab（桌面 ≥861）。手机 ≤860 保留（顶栏隐藏时的唯一入口）。
    分栏改由顶栏「单词」二级菜单接管（js/common.js 的 TB_SUB.practice）。不删 DOM。 ===== */
@@ -286,6 +294,19 @@ body.word-fullscreen .hub-topbar{display:none !important}
     </div>
 
     <section class="card practice-card practice-card-fit" id="practiceArea">
+      <!-- WORD-2（10-26）：全屏沉浸态**唯一明确可读的出口**。
+           病根：body.word-fullscreen 把顶栏与页内 tab 全藏了，只剩 #fullscreenBtn 一枚**无文字图标**
+           （还要靠 title 才知道是「退出全屏」），手机触控没有 Esc —— 她就被关在里面了
+           （原话「不让我跳转其他页面」）。成熟站（不背单词 / Quizlet）学习态顶部常驻「换词书 / 退出」，
+           没有谁把退出做成只有键盘键。
+           做法：这枚条只在全屏态出现（CSS 控），Esc 行为原样保留；点它 = setWordFullscreen(false)。
+           🔴 它必须在 #practiceArea 内、不依赖顶栏，否则又会跟着一起被藏。 -->
+      <div class="wd-fs-exit" id="wdFsExit" hidden>
+        <button class="wd-fs-exit-btn" id="wdFsExitBtn" type="button" title="退出沉浸背词（Esc）">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+          <span>退出沉浸</span>
+        </button>
+      </div>
       <!-- 10-24 RV-1：P-3 v2 的顶部状态带已撤（她 01:1x「回退到原来的样子」）——
            外科式摘除，不是整笔 revert（同提交的 1-1 搜索卡与登录引导条必须留着）。
            判题与 SRS 一行未动，本页只撤视觉：状态带 / 右侧底细侧栏 / A-D 键位方块。 -->
@@ -529,8 +550,19 @@ body.word-fullscreen .hub-topbar{display:none !important}
    ⚠️ 遗留（已在收工回报写明）：设计稿底部「跳过，不再出现」要写 SRS 等级才算「不再出现」，
       属于判题域，本批只做「本轮跳过」（与既有 skipBad 同一条路径），不碰等级。 */
 (function(){
-  /* 软导航用 window.eval 逐文件重跑本脚本 → 守卫只挡「重复绑定」，     状态恢复每次都要做，否则换页回来会停在错的那一态。 */
-  if (window.__wwordB1) { try { if (window.__wwordB1Restore) window.__wwordB1Restore(); } catch(e){} return; }
+  /* 软导航用 window.eval 逐文件重跑本脚本 → 守卫只挡「重复绑定」，
+     状态恢复每次都要做，否则换页回来会停在错的那一态。
+     🔴 WORD-1（10-26）修复「软导航进单词页 = 商城空白 / 点卡零反应」：
+        软导航换掉整个 <main>，重跑到这里时旧写法**直接 return**，但新 <main> 里的 DOM 是**全新的**
+        （#wmDeals 空、#vMall 回初始态）→ DOM 相关的初始化必须重跑。按两类分开处理：
+          · 挂 document / window 上的：bindOnce / wmBind 的点击委托 / wrapProg —— 天然幂等，不重跑
+          · 依赖 DOM 的：wmShowMall / wmRender（+ restore 里的 syncToday）—— 每次重跑都做
+        判题 / SRS / 每日上限口径一行不动。 */
+  if (window.__wwordB1) {
+    try { if (window.__wwordB1Restore) window.__wwordB1Restore(); } catch(e){}
+    try { if (window.__wwordB1Boot) window.__wwordB1Boot(); } catch(e){}
+    return;
+  }
   window.__wwordB1 = true;
 
   var MODE_TXT = { visual: '看词选义', audio: '听音选义', mixed: '混合' };
@@ -1215,22 +1247,31 @@ body.word-fullscreen .hub-topbar{display:none !important}
       }
     });
 
-    var si = $('wmSearch');
-    if (si) si.addEventListener('input', function(){
-      wmKw = String(si.value || '').trim().toLowerCase();
+    /* WORD-1：搜索框改 document 委托 —— 软导航换 <main> 后 #wmSearch 是新元素，
+       按元素绑的老监听跟着旧节点一起消失（重跑又被 __wmBound 挡住）→ 搜索框变成死的。
+       document 上的委托天然幂等（__wmBound 只挡重复绑定），换多少轮 DOM 都还在。 */
+    document.addEventListener('input', function(ev){
+      var t = ev.target;
+      if (!t || t.id !== 'wmSearch') return;
+      wmKw = String(t.value || '').trim().toLowerCase();
       wmRender();
     });
   }
 
   window.__wmShowMall = wmShowMall;
   window.__wmRender   = wmRender;
+  /* WORD-1：把「依赖 DOM 的初始化」收成一个口子 —— 首跑与软导航重跑都走它，
+     避免两处各写一份又走岔（这次的事故就是「首跑做了、重跑没做」）。 */
+  window.__wwordB1Boot = function(){
+    try{ wmShowMall(); }catch(e){}
+    try{ wmRender(); }catch(e){}
+  };
   /* 数据是异步到的 → 就绪后刷一次；合并后刷一次 */
   function boot(){
     bindOnce();
     wrapProg();
     wmBind();
-    wmShowMall();
-    wmRender();
+    if (window.__wwordB1Boot) window.__wwordB1Boot();   /* WORD-1：与软导航重跑同一个口子 */
     var tries = 0;
     (function wait(){
       var ok = false;

@@ -215,6 +215,28 @@ html[data-theme="dark"] .rvx-page{
 .review-wrap:has(#tab-score.active) #tab-overall .rv-focus,
 .review-wrap:has(#tab-score.active) #tab-overall .rv-trend-card,
 .review-wrap:has(#tab-score.active) #tab-overall .rv-recall{ display:none }
+/* ═══ RV-CLEAN-1（10-26 · 她 18:2x：「上面那段改得不错，下面老的东西全部删掉」）═══
+   成绩栏里所有旧面板整块藏掉 —— rvx 新版头已经覆盖了同样的信息，两版叠在一起就是「乱七八糟」。
+   🔴 DOM 一个节点都不删：scores.js:19-42 按 #mkDate / #mkAdd / #addScore 等 id 取值，删了直接抛错。
+   🔴 录入入口 #mkAddWrap 已从 #tab-breakdown 里提出来、搬到 .rvx-page 末尾，所以它不在这条藏的范围里。
+   🔴 三条雷（都是本页踩过的）：
+      ① 不许在裸 #tab-breakdown 上写 display —— 必须挂在 :has(#tab-score.active) 联动下，
+         否则「轨迹」栏会被点成两栏叠影（review.css:244 那条旧注释就是这个事故）。
+      ② 老深链 ?sub=breakdown|overall|speaking 仍落「成绩」栏（R-1 的 MAP），内容换成新版，书签不报错。
+      ③ history.js / progress.js 往隐藏节点里写数字不报错，只是写进不可见区域。 */
+.review-wrap:has(#tab-score.active) #tab-breakdown,
+.review-wrap:has(#tab-score.active) #tab-overall,
+.review-wrap:has(#tab-score.active) #tab-speaking{ display:none }
+/* 🔴 搬出来的录入入口要跟着调外距：它原来在 #tab-breakdown 里，靠父级间距收尾；
+   提到页面末尾后自带的 margin-bottom:18px 会直接撑页高（实测 2216 → 目标 ≤2200）。
+   收成 4px，与上面 .rvx-card 的 margin-top 同节奏。
+   ⚠️ 两个坑都踩过：
+   ① 不能写 `.review-wrap #mkAddWrap` —— 搬出来之后它的祖先是 `main.container`，**不在 .review-wrap 里**
+      （实测 closest('.review-wrap') = false，规则进了样式表却完全不命中）。
+   ② 必须带 `.rv-add` 提特异性 —— `.rv-add{margin:0 0 18px}` 是简写、且在 review.html 的内联
+      <style>（第 43 行）里，晚于本文件的 <link>（第 33 行），同分会被它盖掉。
+   ⚠️ 以后谁再搬这个节点，记得这条选择器要跟着改。 */
+main.container > #mkAddWrap.rv-add{ margin-bottom:2px }
 /* 🔴 R-E2 顺序修正：骨架是这一页的**主视图**，必须排在最前；
    旧面板剩下的功能块（折叠入口 / 两张录入表单 / 表现统计 / 记录列表 / 口语区）降到它后面做二级内容。
    实测第一版没排序时，她打开「成绩」看到的第一屏是「只看整卷记录 / 添加真题成绩」这几行，

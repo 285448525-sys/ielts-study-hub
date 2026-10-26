@@ -617,34 +617,6 @@
              $('#mkDate') / $('#scoreDate') / $('#mkAdd') / $('#addScore') 取元素一行没改），
              只是默认不展开；summary 统一成虚线「+」行，和方案稿的 .add 一个样子。
              ⚠️ 别删任何控件 —— 删了 scores.js:19-42 的取值直接抛错。 -->
-        <details class="detail-block rv-add" id="mkAddWrap">
-          <summary><span class="rv-add-plus">+</span><b>添加分项记录</b><span class="rv-add-x">点开才展开</span></summary>
-          <div class="rv-add-body">
-            <div class="form-row mk-entry-row">
-              <div><label>粒度</label>
-                <select id="mkGran">
-                  <option value="part">单项</option>
-                  <option value="whole">整卷</option>
-                </select>
-              </div>
-              <div><label>题型</label>
-                <select id="mkType">
-                  <option value="listening">听力</option>
-                  <option value="reading">阅读</option>
-                  <option value="speaking">口语</option>
-                  <option value="writing">写作</option>
-                </select>
-              </div>
-              <div><label>日期</label><input type="date" id="mkDate" /></div>
-              <div id="mkPartPick" style="flex:0 0 110px;min-width:90px"><label>选择 Part</label><select id="mkPart"></select></div>
-              <div id="mkPartInputWrap" style="flex:1;min-width:160px"><label id="mkPartInputLabel">答对题数</label><input type="number" id="mkPartInput" min="0" placeholder="0" /></div>
-            </div>
-
-            <div id="mkParts" class="mk-parts" hidden></div>
-
-            <button class="btn btn-primary" id="mkAdd">保存分项</button>
-          </div>
-        </details>
 
         <!-- T-010：表现统计同套驾驶舱观感（标题行 + 三块统计） -->
         <section class="card rv-cockpit">
@@ -1297,6 +1269,37 @@
     <div id="rvxSpPractice" style="font-size:13px;color:var(--muted);padding:6px 0 2px">还没有单题练习记录。</div>
   </div></div></div>
   </div>
+  <!-- RV-CLEAN-1（10-26）：录入入口从 #tab-breakdown 提出来放这里 ——
+       旧面板整块被 CSS 藏掉了，但「+ 添加分项记录」她以后还要用。
+       🔴 只搬节点、不改 id：scores.js:19-42 按 #mkDate/#mkAdd/#addScore 取值。 -->
+<details class="detail-block rv-add" id="mkAddWrap">
+          <summary><span class="rv-add-plus">+</span><b>添加分项记录</b><span class="rv-add-x">点开才展开</span></summary>
+          <div class="rv-add-body">
+            <div class="form-row mk-entry-row">
+              <div><label>粒度</label>
+                <select id="mkGran">
+                  <option value="part">单项</option>
+                  <option value="whole">整卷</option>
+                </select>
+              </div>
+              <div><label>题型</label>
+                <select id="mkType">
+                  <option value="listening">听力</option>
+                  <option value="reading">阅读</option>
+                  <option value="speaking">口语</option>
+                  <option value="writing">写作</option>
+                </select>
+              </div>
+              <div><label>日期</label><input type="date" id="mkDate" /></div>
+              <div id="mkPartPick" style="flex:0 0 110px;min-width:90px"><label>选择 Part</label><select id="mkPart"></select></div>
+              <div id="mkPartInputWrap" style="flex:1;min-width:160px"><label id="mkPartInputLabel">答对题数</label><input type="number" id="mkPartInput" min="0" placeholder="0" /></div>
+            </div>
+
+            <div id="mkParts" class="mk-parts" hidden></div>
+
+            <button class="btn btn-primary" id="mkAdd">保存分项</button>
+          </div>
+        </details>
       </div><!-- /.rvx-page -->
 </main>
 
