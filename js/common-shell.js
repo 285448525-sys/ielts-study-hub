@@ -441,13 +441,23 @@ function initSoftNav(){
   window.addEventListener('popstate', onHubPopState);
   // ⚡ 按下/悬停即预热（9/9 性能）：pointerdown 早于 click 触发，鼠标 hover 也提前几百 ms。
   //    只拉资源进内存缓存、不执行不渲染，与随后的软导航天然去重（navGetDoc 命中缓存直接返回）。
+  /* 🔵 PERF-NAV-2B（10-26）：把「悬停」这一路补全 —— 原来只有 mouseover（冒泡到 document）+
+     pointerdown，而**键盘 Tab 聚焦**和**触屏轻触**都拿不到预热。
+     她 22:1x「每打开一个页面就要卡好久」：桌面用户把鼠标移向顶栏时，这段时间本来是免费的
+     预热窗口；聚焦（Tab 键盘操作）同理，焦点落到链接上就说明大概率要按下去。
+     做法：mouseenter 不冒泡 → 用 capture 挂在 document 上同样能收到；
+     focusin（冒泡版 focus）覆盖键盘；click 前那几百毫秒足够把 HTML + 主脚本拉进内存。
+     ⚠️ 仍然只预取、不执行不渲染；重复调用由 prefetchPage 内部 `_navDocCache.has` 去重。 */
   const warm = (e) => {
     const a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+    if(!a) return;
     const t = hubLinkTarget(a);
     if(t) prefetchPage(t.id);
   };
   document.addEventListener('pointerdown', warm, { capture: true, passive: true });
   document.addEventListener('mouseover', warm, { capture: true, passive: true });
+  document.addEventListener('mouseenter', warm, { capture: true, passive: true });
+  document.addEventListener('focusin', warm, { capture: true, passive: true });
 }
 
 /* 判断一个 <a> 是否指向已知站内页面；不是则返回 null（交回原生处理） */
@@ -1179,6 +1189,19 @@ async function runPageScript(id, doc){
         throw err;
       }
       console.warn('[soft-nav] 附加脚本执行失败，已跳过：page=' + id + ' · ' + srcs[i], err);
+    }
+    /* 🔵 PERF-NAV-2B（10-26）：主脚本 eval 完先让出一帧，再 eval 附加脚本。
+       为什么：runPageScript 原来是**一个 for 循环同步 eval 全部脚本** ——
+       practice.html 要跑 practice.js(170KB) + words.js + wordbank.js，bank.html 要跑 bank.js(300KB)，
+       eval 大文件是同步阻塞，全程不给浏览器画一帧 → 她感受到的就是「点完卡住」。
+       让出一帧不减少总工作量，但把**一个长任务切成两段**：
+       画面能刷新（进度条继续动、半透明态正常），体感从「卡死」变成「在加载」。
+       ⚠️ 只在这一段插帧，脚本**执行顺序完全不变**（附加脚本仍按原顺序、仍在主脚本之后）。 */
+    if(i === MAIN && i < srcs.length - 1){
+      await new Promise(function(r){
+        if(typeof requestAnimationFrame === 'function') requestAnimationFrame(function(){ setTimeout(r, 0); });
+        else setTimeout(r, 16);
+      });
     }
   }
 
