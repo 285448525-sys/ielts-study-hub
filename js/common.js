@@ -140,7 +140,28 @@ const MORE_NAV    = ['vip','settings'];
    共享外壳虽在「排除表」里不重跑，统一口径省得以后踩。 */
 var ANC_URL = 'data/announce.json';
 var ANC_READ_KEY = 'hub_anc_read';
+/* 🔴 CLS-1（10-26）：本机再存一份「公告清单」，为的是**首帧之前就能决定要不要挂公告条**。
+   为什么必须本机留一份：公告条是 body 直下的 34px 条，网络回来才插 → 把 <main> 推下 34px
+   = 一次完全可见的位移（实测桌面 0.023 / 手机 0.040）。本机有清单 → 启动那一刻就能同步决定，
+   条的挂/摘落在「main 还不可见」的窗口里（见 common-shell.js 的 _bootMainVisible 与放行闸）。 */
+var ANC_STORE_KEY = 'hub_anc_items_v1';
 var _ancCache = null;              // 同一次会话只拉一次 json（软导航换页不重复请求）
+var _ancFetch = null;              // 本次页面生命周期的网络请求（校正用）
+function ancStore(j){
+  try{ localStorage.setItem(ANC_STORE_KEY, JSON.stringify(j)); }catch(e){}
+}
+/* 同步吃本机那份清单（没有就返回 null，走网络） */
+function ancHydrate(){
+  if(_ancCache) return _ancCache;
+  try{
+    const raw = localStorage.getItem(ANC_STORE_KEY);
+    if(raw){
+      const j = JSON.parse(raw);
+      if(j && Array.isArray(j.items)) _ancCache = j;
+    }
+  }catch(e){}
+  return _ancCache;
+}
 function ancReadSet(){
   try{ return new Set(JSON.parse(localStorage.getItem(ANC_READ_KEY) || '[]')); }catch(e){ return new Set(); }
 }
@@ -162,14 +183,22 @@ function ancFresh(a){
   }catch(e){ return false; }
 }
 function ancLoad(){
-  if(_ancCache) return Promise.resolve(_ancCache);
+  /* 语义与改前一致：本次页面只发一次网络请求（软导航换页不重复）；差别只有一个 ——
+     先同步把本机清单读进来，让**调用方在同一个 tick 里**就能决定挂不挂（不等网络）。 */
+  if(_ancFetch) return _ancFetch;
+  ancHydrate();
   /* 用**裸路径**不带 ?v=：这条路径已进 sw.js 的 PRECORE（首访第一帧就能从缓存拿到），
      且走 stale-while-revalidate —— 她改了 json 后老用户第二次访问自动拿到新版，
      不必每次改公告都去动 sw.js 的缓存号。带 query 反而会让预缓存永远命中不上。 */
-  return fetch(ANC_URL, { cache: 'no-cache' })
+  _ancFetch = fetch(ANC_URL, { cache: 'no-cache' })
     .then(r => r.ok ? r.json() : null)
-    .then(j => { _ancCache = (j && Array.isArray(j.items)) ? j : { items: [] }; return _ancCache; })
-    .catch(() => { _ancCache = { items: [] }; return _ancCache; });
+    .then(j => { _ancCache = (j && Array.isArray(j.items)) ? j : { items: [] }; ancStore(_ancCache); return _ancCache; })
+    .catch(() => { if(!_ancCache) _ancCache = { items: [] }; return _ancCache; });
+  return _ancFetch;
+}
+/* 启动放行闸用：网络那份到位了没有（失败也算到位 —— 绝不许把启动卡在网络上） */
+function ancSettled(){
+  return _ancFetch || Promise.resolve(_ancCache || { items: [] });
 }
 /* 公告条只推「最新那一条」，且仅在它未读时显示。
    🔴 为什么不是「最新一条未读」：那样点掉一条会立刻顶上下一条 —— 站上现在躺着 3 条历史公告，
@@ -201,6 +230,9 @@ function ancEnsure(){
   const wantsTop = document.body.getAttribute('data-shell') === 'top';
   const host = document.getElementById('ancBarHost');
   const a = ancPending();
+  /* CLS-1：有本机清单 → 这一刻的「挂 / 不挂」就是最终决定，启动遮罩不必再等网络；
+     没有 → 由 common-shell 的放行闸等 ancSettled（最多 900ms），把插入落进「main 不可见」窗口 */
+  try{ window.__hubAncDecided = !!_ancCache; }catch(e){}
   if(!wantsTop || !a){
     if(host) host.innerHTML = '';
     return;
