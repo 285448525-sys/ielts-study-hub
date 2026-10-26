@@ -16,6 +16,19 @@ function populateSettingsForm(){
   if($('#sThemeToggle')) $('#sThemeToggle').checked = (_th === 'dark') || (_th === 'auto' && _sysDark);
   if($('#sThemeAuto')) $('#sThemeAuto').checked = (_th === 'auto');
 
+  /* KIMI-THEME-1（10-26）：主题外观三选一回填（独立 localStorage 键，不进 DATA.settings ——
+     同步白名单归 A 管，外观偏好本机优先，避免动共享层）。
+     缺省 ink（青墨学术）＝她的默认；A 还没落地变量前，这一行点了不换颜色但也不报错。 */
+  try{
+    var _scheme = localStorage.getItem('hub_theme_scheme') || 'ink';
+    if (_scheme !== 'ink' && _scheme !== 'cool' && _scheme !== 'warm') _scheme = 'ink';
+    document.querySelectorAll('.set-scheme-tab[data-scheme]').forEach(function(b){
+      var on = b.getAttribute('data-scheme') === _scheme;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+  }catch(e){}
+
   const t = s.targets || {};
   if($('#tOverall')) $('#tOverall').value = t.overall || '';
   if($('#tListening')) $('#tListening').value = t.listening || '';
@@ -53,6 +66,35 @@ ready(() => {
     el.addEventListener('input', autoSave);
     el.addEventListener('change', autoSave);
   });
+  /* KIMI-THEME-1（10-26）：主题外观三选一。
+     🔴 写入三样：localStorage 键 hub_theme_scheme（本机外观偏好，不进 DATA.settings ——
+        同步白名单归 A 管，不动共享层）+ documentElement.dataset.scheme（A 的 CSS 按 [data-scheme] 写变量）。
+     ⚠️ 不动 #sThemeToggle / #sThemeAuto 一行 —— 深浅（light/dark/auto）与三套外观是两组正交的东西。 */
+  if(!window.__wmSchemeBound){
+    window.__wmSchemeBound = true;
+    var _schemeTabs = document.querySelectorAll('.set-scheme-tab[data-scheme]');
+    if(_schemeTabs.length){
+      _schemeTabs.forEach(function(b){
+        b.addEventListener('click', function(){
+          var v = b.getAttribute('data-scheme') || 'ink';
+          _schemeTabs.forEach(function(x){
+            var on = x === b;
+            x.classList.toggle('on', on);
+            x.setAttribute('aria-checked', on ? 'true' : 'false');
+          });
+          try{ localStorage.setItem('hub_theme_scheme', v); }catch(e){}
+          try{ document.documentElement.setAttribute('data-scheme', v); }catch(e){}
+          try{ if(typeof toast === 'function') toast('主题外观已切换'); }catch(e){}
+        });
+      });
+      /* 进页面就应用一次（本机存过才应用，缺省 ink 不写属性 —— 与「老用户零感知」一致） */
+      var _saved = localStorage.getItem('hub_theme_scheme');
+      if(_saved === 'cool' || _saved === 'warm'){
+        document.documentElement.setAttribute('data-scheme', _saved);
+      }
+    }
+  }
+
   /* TH-SYS（10-25）：这一行原来是**裸绑定**（$('#sThemeToggle').addEventListener）。
      保持元素 id 不变 + 就地判空 —— 以后谁再删这个 input 也不会把后面 27 处绑定全断掉。 */
   var _themeEl = $('#sThemeToggle');

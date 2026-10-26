@@ -59,3 +59,16 @@
   color:var(--err-text); font-size:18px; line-height:1; transition:background .15s;
 }
 .ui-err-close:hover{ background:color-mix(in srgb, var(--err) 16%, transparent); }
+
+
+/* ═══ KIMI-THEME-1（10-26）· 主题外观三选一 ═══
+   皮子复用「正文字号」那组的 .av-pop-tabs/.av-tab（settings.html:196-199），不新造组件。
+   🔴 这行只负责「选哪个」；三套色值本身由 A 在 css/common.css 里写成四块变量组 ——
+      变量没落地前这一行点了不会变颜色，但也不会报错（按领地拆分后的中间态，协商文件有记录）。 */
+.set-scheme-tabs{ display:inline-flex; width:auto; padding:3px; margin:0; }
+.set-scheme-tabs .av-tab{ height:30px; display:inline-flex; align-items:center; gap:6px; }
+/* 色块小方点（她 07:3x 看样子稿点头的那颗） */
+.set-sw{ width:10px; height:10px; border-radius:3px; display:inline-block; flex:none; }
+.set-sw[data-s="ink"]{ background:#3a9a93; }
+.set-sw[data-s="cool"]{ background:#54748d; }
+.set-sw[data-s="warm"]{ background:#78836c; }

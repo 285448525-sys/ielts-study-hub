@@ -20,7 +20,7 @@ setTimeout(__rvRescue,2500);
 <meta http-equiv="Expires" content="0" />
 <title>设置 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261026b" />
-<link rel="stylesheet" href="css/p/settings.css?v=20261026b" />
+<link rel="stylesheet" href="css/p/settings.css?v=20261026c" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -321,7 +321,7 @@ setTimeout(__rvRescue,2500);
   <script defer src="js/feedback.js?v=20261013b"></script>
   <!-- 10/3 头像选择（DiceBear CC0 素材；必须在 data.js/common.js 之后 —— 它读 DATA.settings.avatar） -->
   <script defer src="js/av-picker.js?v=20261022a"></script>
-  <script src="js/settings.js?v=20261025d" defer></script>
+  <script src="js/settings.js?v=20261026a" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -572,6 +572,21 @@ setTimeout(__rvRescue,2500);
         <div class="set-row-t"><b>跟随系统</b></div>
         <div class="set-row-c">
           <input id="sThemeAuto" type="checkbox" class="set-check" aria-label="主题跟随系统" />
+        </div>
+      </div>
+      <!-- KIMI-THEME-1（10-26）· 主题外观三选一。
+           她 07:3x 看过样子稿（design\_样子稿-设置页主题外观-2026-10-26.html）后点头「就按这个做」。
+           皮子完全复用下面的「正文字号」那组（.av-pop-tabs / .av-tab，settings.html:196-199），不新造组件。
+           ⚠️ 本行只负责**选哪个**；三套色值本身由 A 在 css/common.css 里写成四块变量组 ——
+              变量没落地前这一行点了不会变颜色，但也不会报错（这是按领地拆分后的中间态，已写进协商文件）。 -->
+      <div class="set-row">
+        <div class="set-row-t"><b>主题外观</b></div>
+        <div class="set-row-c">
+          <div class="av-pop-tabs set-scheme-tabs" role="radiogroup" aria-label="主题外观">
+            <button type="button" class="av-tab set-scheme-tab on" role="radio" aria-checked="true" data-scheme="ink"><i class="set-sw" data-s="ink"></i>青墨学术</button>
+            <button type="button" class="av-tab set-scheme-tab" role="radio" aria-checked="false" data-scheme="cool"><i class="set-sw" data-s="cool"></i>学术冷色</button>
+            <button type="button" class="av-tab set-scheme-tab" role="radio" aria-checked="false" data-scheme="warm"><i class="set-sw" data-s="warm"></i>纸感暖灰</button>
+          </div>
         </div>
       </div>
       <!-- 10-23 T-002 步5：新增两项（方案 §七；她 10-22 23:5x「全部默认按推荐来」→ 标准字号 + 关） -->
