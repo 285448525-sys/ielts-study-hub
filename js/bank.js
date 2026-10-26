@@ -4211,6 +4211,14 @@ window.__reportExamState = reportExamState;
         };
         if (_band != null) _rec.overall = _band;          /* estimateBand 可能返回 null（<4 题），此时不写 overall */
         if (_unitId) _rec.unitId = _unitId;              /* 单篇覆盖匹配用 */
+        /* EXAM-PLAN-1 · E-1（10-26）：整卷记录补「这一场用了哪三篇」——「重做一遍」的地基。
+           为什么必须现在补：EX.ids 一直只活在内存（见上面 startFullTest 里的 ids: picks.map…），
+           落库时没写 → 每场考完就再也还原不出当时那套卷，重做只能退化成随机（等于骗人）。
+           体积：3 个 id ≈ 60~80B/条，相对 detail（1~3KB）可忽略。
+           同步：mockRecords 早已在 SYNC_ARRAY_FIELDS，加字段天然随云同步走，不用改白名单。
+           🔴 只在 EX.full 写。单篇用 unitId —— 两者语义不同（unitId 是"覆盖匹配用的那一个篇"，
+              不是"这一场用了哪几篇"），**不许合并**。 */
+        if (EX.full && Array.isArray(EX.ids)) _rec.ids = EX.ids.slice();
         /* 10/17 #9 前提：逐题明细落盘。
            此前只存 parts（篇级汇总），res.detail[]（每题 qn/user/right/ok）只活在内存 → 刷新即丢，
            做「做题记录」必须先把它存住。体量：13~40 题 × 约 80B ≈ 1~3KB/次。
