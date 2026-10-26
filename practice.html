@@ -237,6 +237,33 @@ body.word-fullscreen .hub-topbar{display:none !important}
 #bootLoader.hide{opacity:0;pointer-events:none}
 #bootLoader .ui-loader{margin-bottom:8px}
 @media (prefers-reduced-motion: reduce){#bootLoader .ui-loader-dot,#bootLoader .ui-loader-shadow{animation:none}#bootLoader .ui-loader-dot{top:20px;height:20px;border-radius:50%;transform:none}#bootLoader .ui-loader-shadow{opacity:.5;transform:scaleX(1)}}
+
+/* ═══ EMP-1（10-26）· 空态系统（稿 = design/_样子稿-全站空态系统-2026-10-26.html）═══
+   现状病根：空态只有一行灰字或一排 "--" —— 视觉上像「页面炸了/值没读出来」，而不是「正常还没有数据」，
+   且没有下一步指引，人卡住。成熟做法（Linear / Vercel / Supabase 同构）= 图标 + 标题 + 一句指引 + 主按钮。
+   🔴 只在本页作用域；不写进 common.css（那是共享层）。
+   🔴 只用站点既有 token（--primary / --primary-soft / --line / --ink / --muted / --surface），深色自动跟随。 */
+.empty-state{padding:48px 24px;text-align:center;background:var(--surface);
+  border:1px dashed var(--line);border-radius:14px}
+.empty-state .es-ico{width:56px;height:56px;border-radius:50%;margin:0 auto 14px;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--primary-soft);color:var(--primary);font-size:26px;line-height:1}
+.empty-state .es-title{font-size:15px;font-weight:650;color:var(--ink);margin:0 0 6px}
+.empty-state .es-desc{font-size:13px;color:var(--muted);margin:0 auto 20px;max-width:340px;line-height:1.6}
+.empty-state .es-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.empty-state .es-actions .btn-primary{appearance:none;border:none;background:var(--primary);color:var(--on-primary);
+  font-weight:650;font-size:13.5px;padding:10px 22px;border-radius:10px;cursor:pointer;min-height:40px;
+  line-height:1;font-family:inherit;transition:filter .15s}
+.empty-state .es-actions .btn-primary:hover{filter:brightness(1.08)}
+.empty-state .es-actions .btn-ghost{appearance:none;border:1px solid var(--line);background:var(--surface);
+  color:var(--ink);font-weight:600;font-size:13.5px;padding:9px 18px;border-radius:10px;cursor:pointer;
+  min-height:40px;line-height:1;font-family:inherit;transition:border-color .15s,color .15s}
+.empty-state .es-actions .btn-ghost:hover{border-color:var(--primary);color:var(--primary-text)}
+/* 统计卡里的空占位：替掉 "--"（"--" 像值没读出来，"—" 像本来就没有） */
+.stat-empty{font-size:22px;font-weight:700;color:var(--muted);opacity:.5;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums}
+@media (max-width:560px){ .empty-state{padding:32px 18px} }
+
 </style>
 <meta name="description" content="背单词：间隔重复算法安排复习点，官方词库与自定义词库，支持听音选义、默写与错词复习。" />
 <link rel="canonical" href="https://yasihub.com/practice" />
@@ -268,6 +295,19 @@ body.word-fullscreen .hub-topbar{display:none !important}
         <!-- WORD-3B（10-26，施工书 §2.4）：旧的「换词书 ›」小字链已移除 ——
              它的作用是「回商城点卡切书」（五步），现由答题态头部的「词书名即切换器」取代（一步）。
              原来的点击逻辑（switchWordTab('bank') + 回商城）不再保留。 -->
+      </div>
+      <!-- EMP-1（10-26）：**没选过词书 / 词库空**时显示这张空态卡（稿子场景 2），
+           替掉原来「一排 0 + 灰色不可点按钮」。由 syncToday() 按词数 0 切显隐。
+           文案与按钮：主按钮去词库商城（#wdEmptyGo），次动作不设 —— 商城是唯一选书入口。 -->
+      <div class="empty-state" id="wdEmptyState" hidden>
+        <div class="es-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:26px;height:26px"><path d="M4 19.5V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v14"/><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H19"/><path d="M8 7h7M8 11h5"/></svg>
+        </div>
+        <div class="es-title">还没选过词书</div>
+        <div class="es-desc">先去词库商城挑一本，剑雅真题词汇、雅思高频、听力原文高频词都在那里。</div>
+        <div class="es-actions">
+          <button class="btn-primary" id="wdEmptyGo" type="button">去词库商城</button>
+        </div>
       </div>
       <div class="wd-card wd-today-card">
         <div class="wd-top">
@@ -660,6 +700,20 @@ body.word-fullscreen .hub-topbar{display:none !important}
 
   function syncToday(){
     var cap = capOf(), done = doneOf();
+    /* EMP-1（10-26）：**没选过词书 / 词库空**时不再显示一排 0 与灰按钮，换成空态卡（稿子场景 2）。
+       判据：当前词书的词数为 0（custom 看 DATA.words，官方包看 wmCount）。
+       🔴 只切显隐、不动任何计数口径；有词时一切照旧。 */
+    try{
+      var wordsN = 0;
+      var curId2 = (typeof wbActive === 'function') ? wbActive() : 'custom';
+      if (curId2 === 'custom') wordsN = (typeof DATA !== 'undefined' && Array.isArray(DATA.words)) ? DATA.words.length : 0;
+      else if (typeof wmCount === 'function') wordsN = wmCount({ id: curId2 }) || 0;
+      var empty = $('wdEmptyState'), card = document.querySelector('.wd-today-card');
+      if (empty && card){
+        if (wordsN === 0){ empty.hidden = false; card.hidden = true; }
+        else { empty.hidden = true; card.hidden = false; }
+      }
+    }catch(e){}
     /* 上限 0 = 不限 → 大数字退回「到期口径」，与首页 wordPlan 同一条规则 */
     var goal = cap > 0 ? cap : dueOf();
     setTxt('wdCurName', bookLabel());
@@ -762,6 +816,14 @@ body.word-fullscreen .hub-topbar{display:none !important}
           if (need && typeof autoStartSeeWord === 'function') autoStartSeeWord();
         }catch(e){}
         window.__wdSetView('exam');
+        return;
+      }
+      /* EMP-1（10-26）：空态卡「去词库商城」→ 切到词库态（默认落商城） */
+      if (t.closest('#wdEmptyGo')){
+        ev.preventDefault();
+        try{ if (typeof switchWordTab === 'function') switchWordTab('bank'); }catch(e){}
+        wmShowMall();
+        wmRender();
         return;
       }
       /* WORD-3B（10-26）：原「换词书 ›」小字链（#wdSwapBook）已移除，它的点击逻辑
