@@ -737,3 +737,17 @@ html[data-theme="dark"] .rec-row.rec-focus{
   background:var(--primary-100);
   box-shadow:inset 2px 0 0 var(--primary-300);
 }
+
+/* ── EXAM-E2（10-26）：整卷记录行的两个按钮 ──
+   看上次结果 / 重新做一遍，只出现在**整卷**记录上（单篇走原有「再做一次」）。
+   手机 44px 触控（站内标准）：btn sm 原本 30~32px，这里只在这两个按钮上抬到 40/44。
+   三套外观 × 深浅都走 token，不写字面量。 */
+.rec-redo{display:inline-flex;gap:6px;flex:none;margin-left:6px;align-items:center}
+.rec-redo .btn{height:32px;min-height:32px;padding:0 12px;font-size:12.5px;white-space:nowrap}
+/* 「重新做一遍」是主操作 -> 主色描边；「看上次结果」是次操作 -> 素色 */
+.rec-redo .rec-again{border-color:var(--primary);color:var(--primary-700)}
+.rec-redo .rec-again:hover{background:var(--primary-50)}
+@media (max-width:860px){
+  .rec-redo{width:100%;margin:8px 0 0;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .rec-redo .btn{height:44px;min-height:44px;font-size:13px;justify-content:center}
+}

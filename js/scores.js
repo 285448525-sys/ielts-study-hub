@@ -892,6 +892,9 @@ function renderMockList(){
         ? ` <span class="badge up">已达 ${n} 个 ✓</span>`
         : ` <span class="badge">差 ${n - tc} 到 ${n}</span>`;
     }
+    /* ⚠️ EXAM-E2 的两个按钮**不在这里**：RV-CLEAN-1 已把 #tab-breakdown（含本函数渲染的 #mkList）
+       整块隐藏，挂在这里渲染出来也看不见、点不到。它们挂在唯一可见的记录入口
+       `.rvx-page > #recAll`（js/rec-all.js 里 .rec-row[data-kind="whole"] 那段）。别搬回来。 */
     return `<div class="score-row mk-row">
       <strong class="mk-date">${r.date}</strong>
       <span class="badge ${r.type[0]}">${cfg.icon} ${cfg.name}</span>
@@ -916,6 +919,7 @@ function renderMockList(){
   box.querySelectorAll('button[data-del]').forEach(b => b.addEventListener('click', () => {
     if(confirm('删除这条分项模考？')){ DATA.mockRecords = DATA.mockRecords.filter(x => x.id !== b.dataset.del); DATA.deletedIds = DATA.deletedIds || []; if(b.dataset.del != null && !DATA.deletedIds.includes(b.dataset.del)) DATA.deletedIds.push(b.dataset.del); hubSave(); renderMock(); }
   }));
+
 }
 function renderMock(){ renderMockStats(); renderMockList(); }
 

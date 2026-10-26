@@ -473,6 +473,9 @@
      ⚠️ 必须等 manifest 到了才有篇目；没到就返回 false/null，不抛错。 */
   window.__hubOpenFullTestFromIds = function(ids){
     try{
+      /* 传 null/空 = 明确要「随机开一场」（E-2 老记录降级就是这条路）。
+         传了 ids 才去还原；还原失败返回 false，让调用方自己决定怎么提示。 */
+      if(!ids || !ids.length){ openFullTest(); return true; }
       var picks = picksFromIds('reading', ids);
       if(!picks) return false;
       openFullTest(picks);

@@ -71,6 +71,15 @@
         }
         out.push({
           kind: 'part',
+          /* 🔵 EXAM-E2（10-26）：这里原先只写 kind:'part' —— 于是 **整卷记录也被标成"分项"**，
+             `data-kind` 永远不是 whole，「看上次结果/重新做一遍」按整卷选行时一条都命中不到（首跑实锤）。
+             现在把原始粒度带出来（gran），渲染层据此决定要不要挂两个按钮；
+             kind 保持 'part' 不动 —— 它同时被筛选 chip 与删除转发复用（whole 走 #scoreList），
+             改它会连带影响删除路径，超出本批范围。 */
+          gran: r.granularity || 'part',
+          src: r.src || '',
+          type: r.type || '',
+          ids: Array.isArray(r.ids) ? r.ids.slice() : null,
           date: String(r.date || ''),
           title: (cfg ? cfg.name : (r.type || '')) + ' · ' + (r.granularity === 'whole' ? '整卷' : '单项')
             + (r.note ? ' · ' + r.note : ''),
@@ -124,7 +133,8 @@
       /* EXAM-E2P（10-26）：补 data-rec-id —— 「看上次结果」要能按 id 定位到这一行。
          data-id 原来就有（删除/详情转发用它），两者同一个值，但语义分开：
          data-id 是"操作目标"，data-rec-id 是"定位锚点"（E-2 接 ?rec= 时只认它）。 */
-      return '<div class="rec-row rk-' + x.kind + '" data-id="' + esc(x.id) + '" data-rec-id="' + esc(x.id) + '" data-kind="' + x.kind + '">'
+      return '<div class="rec-row rk-' + x.kind + '" data-id="' + esc(x.id) + '" data-rec-id="' + esc(x.id) + '" data-kind="' + x.kind + '"'
+        + (x.gran ? ' data-gran="' + esc(x.gran) + '"' : '') + '>'
         + '<span class="rec-d">' + esc(x.date) + '</span>'
         + '<span class="rec-k ' + k.cls + '">' + k.label + '</span>'
         + '<span class="rec-t">' + esc(x.title) + '</span>'
@@ -154,6 +164,55 @@
         }
       }
     }catch(e){}
+
+    /* ===== EXAM-E2（10-26）：整卷记录行上加两个按钮 =====
+       🔴 挂这里而不是挂 scores.js 的 #mkList：RV-CLEAN-1 把 #tab-breakdown 整块藏了，
+          整卷/分项记录列表（#scoreList / #mkList）现在**看不见也点不到** ——
+          「全部记录」#recAll 才是这一页唯一可见的记录入口（RV-CLEAN-1b 专门把它搬出来就是为这个）。
+       · 只给**整卷 + src:bank**（单篇走原有「再做一次」那条路，不重复给）
+       · 看上次结果 → review.html?rec=<id>（本页自己就是回顾页，用软导航同页重跑脚本读 ?rec=）
+       · 重新做一遍 → window.__hubOpenFullTestFromIds(ids)（E-2P 暴露的入口，与点 Start 同一条路径）
+       · 老记录没 ids → 按钮**照样显示**，点了先 confirm 说明降级；不藏按钮、不静默随机（B 明令）
+       幂等：每次 render 重建 DOM，绑定前用元素标记挡重复。 */
+    box.querySelectorAll('.rec-row[data-gran="whole"]').forEach(function(rowEl){
+      const rid = rowEl.dataset.recId || '';
+      if(rowEl.querySelector('.rec-redo')) return;
+      /* 直接用 collect 时带出来的字段，别去 DATA 里二次比对（同 id 可能被筛选/覆盖） */
+      const item = list.find(function(x){ return x && String(x.id) === rid; });
+      if(!item || item.src !== 'bank') return;
+      const hasIds = Array.isArray(item.ids) && item.ids.length === 3;
+      const recType = item.type || 'reading';
+      const span = document.createElement('span');
+      span.className = 'rec-redo';
+      span.innerHTML = '<button type="button" class="btn sm rec-last">看上次结果</button>'
+        + '<button type="button" class="btn sm rec-again">重新做一遍</button>';
+      const acts = rowEl.querySelector('.rec-o');
+      if(acts && acts.parentNode) acts.parentNode.insertBefore(span, acts); else rowEl.appendChild(span);
+      const lb = span.querySelector('.rec-last');
+      const ab = span.querySelector('.rec-again');
+      if(lb) lb.addEventListener('click', function(){
+        if(!rid) return;
+        location.href = 'review.html?rec=' + encodeURIComponent(rid);
+      });
+      if(ab) ab.addEventListener('click', function(){
+        const opener = window.__hubOpenFullTestFromIds;
+        if(typeof opener !== 'function'){ alert('重做入口还没就绪，请刷新页面后再试。'); return; }
+        if(recType === 'listening'){
+          alert('听力整卷重做会在下一批开放。现在可以点「看上次结果」看那场的成绩与错题。');
+          return;
+        }
+        if(!hasIds){
+          if(!confirm('这场是老记录，当时没存用的是哪几篇，将随机组一套新的。\n新卷和这场成绩不能直接比，继续？')) return;
+          opener(null);
+          return;
+        }
+        if(!opener(item.ids)){
+          if(confirm('这套卷里有篇目已经找不到了（题库更新过），重做只能随机组一套新的。继续？')){
+            opener(null);
+          }
+        }
+      });
+    });
 
     /* 🔴 删除转发：**触发原来那个按钮的点击**，让 scores.js / mock-history.js 里
        现成的删除逻辑原样跑（含 confirm、墓碑、hubSave、重渲染）。
