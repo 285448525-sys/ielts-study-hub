@@ -384,3 +384,22 @@
 [data-theme="dark"] .mat-page .pp-tag{ background:var(--primary-50); color:var(--primary-text); }
 [data-theme="dark"] .mat-page .mat-sub{ color:var(--muted); }
 [data-theme="dark"] .mat-page .mat-logic li{ color:var(--ink-2); }
+
+/* ═══ P3-3 补差（10-26）：人设条白卡化 ═══
+   背景：JS 渲染的人设条已挂 mat-card（导出件给白底），但 materials.html 里还留着
+   T-017c 时代的旧内联样式「深青渐变 + color:#fff + 半透明白标签/按钮」→ 白卡上白字看不见。
+   这里按稿子口径（白卡 + 深青标题 + 浅青标签 + 描边按钮）覆盖回去。
+   🔴 只在本页 .mat-page 作用域，不影响别的页面。 */
+.mat-page .mat-persona.mat-card{ background:var(--surface); border:1px solid var(--mat-line); border-radius:14px; color:var(--mat-ink); box-shadow:var(--mat-shadow) }
+.mat-page .mat-persona h3{ color:var(--mat-muted); opacity:1 }
+.mat-page .mat-persona .pp-line{ color:var(--mat-title) }
+.mat-page .mat-persona .pp-tag{ background:var(--primary-50); color:var(--primary-700); border-radius:6px; padding:1px 8px }
+.mat-page .mat-persona .pp-edit{ background:var(--surface); border:1px solid var(--mat-line); color:var(--mat-ink); border-radius:10px }
+.mat-page .mat-persona .pp-edit:hover{ background:var(--mat-soft); border-color:var(--mat-teal) }
+
+/* ═══ P3-3 补差 2（10-26）：圆角钉回稿子值 ═══
+   稿子 --radius = 14px，站点 --radius = 16px；导出件 .mat-card / 旧内联 .mat-mat
+   都写 var(--radius) → 实测 16px，与稿子差 2px（与 timer/vip/login 各页同一条成例）。
+   页内作用域钉回 14，不动站点 token。 */
+.mat-page .mat-card,.mat-page .mat-mat,.mat-page .mat-persona{border-radius:14px}
+.mat-page .mat-q{border-radius:11px}

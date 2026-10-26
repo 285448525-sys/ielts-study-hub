@@ -451,7 +451,7 @@
 
     h += '<div class="mat-sec-title"><span class="mat-step-n">3</span>生成</div>';
     h += '<div class="mat-actions"><button class="btn btn-primary btn-lg" id="matGen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M5 15c-1.5 1.5-2 5-2 5s3.5-.5 5-2c.8-.8.8-2 0-2.8s-2-.8-3 0z"/><path d="M9 11l4 4"/><path d="M13 7l4 4 3-3a2 2 0 0 0-3-3l-4 2z"/><path d="M14 4l6 6"/></svg>生成我的专属素材</button></div>';
-    root.innerHTML = h;
+    root.innerHTML = '<div class="mat-page">' + h + '</div>';
 
     /* ===== 10/4 15:30 她拍板新增：导入我已有的素材 → AI 整理成万能素材 =====
        场景（她原话）：「我自己可能也有一套已经准备好了的素材，就不需要这个平台给我生成素材了」。
@@ -476,7 +476,7 @@
        左栏 268px：三步进度条 + 「为什么要先填人设」说明卡；
        右栏主区：人设卡 / 复用英文素材 / 已有素材导入 / 生成。
        ⚠️ 只加包裹层：所有 id / data-* / 事件绑定原样 —— 包在哪一层都不影响下面的 querySelector。 */
-    root.innerHTML = '<div class="mat-flow">'
+    root.innerHTML = '<div class="mat-page"><div class="mat-flow">'
       + '<aside class="mat-side">'
         + '<div class="mat-steps" id="matSteps">'
           + '<div class="mat-step on"><span class="mat-step-n2">1</span><div><b>人设卡</b><i>城市·身份·爱好</i></div></div>'
@@ -491,7 +491,7 @@
         + '</div>'
       + '</aside>'
       + '<div class="mat-main">' + h + '</div>'
-      + '</div>';
+      + '</div></div>';
     // （原来的 root.innerHTML = h 已被上面这层两栏骨架取代，不要改回来）
 
     /* ---- 绑定 ---- */
@@ -1672,7 +1672,7 @@
     if(store.persona){
       const p = store.persona;
       const tags = [].concat((p.values || []).map(v => '<span class="pp-tag">' + escapeHtml(v) + '</span>'), (p.traits || []).map(t => '<span class="pp-tag">' + escapeHtml(t) + '</span>'));
-      h += '<div class="mat-persona"><h3>人设</h3>'
+      h += '<div class="mat-persona mat-card"><h3>人设</h3>'
         + '<div class="pp-line">' + (p.city ? escapeHtml(p.city) + ' · ' : '') + escapeHtml(p.identity || '（未提取）') + '</div>'
         + (tags.length ? '<div class="pp-tags">' + tags.join('') + '</div>' : '<div class="pp-tags"></div>')
         + '<button class="pp-edit" id="matEditPersona">改人设</button>'
@@ -1687,7 +1687,7 @@
       const covN = Array.isArray(m.coverage) ? m.coverage.length : 0;
       const meta = (m.pinned ? '<span class="mm star">★ 最熟 · 已置顶</span>' : '')
         + (covN ? '<span class="mm">能串 ' + covN + ' 道当季题</span>' : '');
-      h += '<div class="mat-mat' + (isEditing ? ' open' : '') + '" data-i="' + i + '">'
+      h += '<div class="mat-mat mat-card' + (isEditing ? ' open' : '') + '" data-i="' + i + '">'
         + '<div class="mat-mat-head" data-toggle="' + i + '"><span class="mat-mat-title">' + escapeHtml(m.title || '未命名') + '</span>'
         + (meta ? '<span class="mat-mat-meta">' + meta + '</span>' : '')
         + '<span class="mat-caret">▶</span></div>'
@@ -1759,7 +1759,7 @@
        ③「AI 智能生成素材」（把刚粘的文字整理成故事卡 + 算能串哪些题）。
        她原话：「自己写一些素材，然后点击AI可以自动帮我整理成几个万能素材，然后给我套」+
        「加一些我自己的文字素材，直接加上去或者AI智能生成素材，都行」。 */
-    h += '<div class="mat-actions mat-result-acts">'
+    h += '<div class="mat-actions mat-result-acts mat-card">'
       + '<a class="btn btn-primary" href="speaking.html">去练口语 →</a>'
       + '<button class="mat-add" id="matRegen">↻ 重新填写 / 生成</button>'
       + '<button class="mat-add" id="matAddMatToggle" aria-expanded="false" aria-controls="matAddMatBody">＋ 添加素材</button>'
@@ -1776,7 +1776,7 @@
           + '<b>AI 智能生成素材</b>：AI 把它整理成能背的英文故事，并算出能串当季题库的哪些题。'
           + '只会重新组织、合并、补过渡，<b>不会编造你没写过的经历</b>；纯英文段落按原样保留、一字不改。</div>'
       + '</div>';
-    root.innerHTML = h;
+    root.innerHTML = '<div class="mat-page">' + h + '</div>';
     // v7.2 删除单条细节碎片
     root.querySelectorAll('[data-delbit]').forEach(b => {
       b.onclick = () => {
