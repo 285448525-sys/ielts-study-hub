@@ -20,7 +20,7 @@ setTimeout(__rvRescue,2500);
 <meta http-equiv="Expires" content="0" />
 <title>会员 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261026b" />
-<link rel="stylesheet" href="css/p/vip.css?v=20261026b" />
+<link rel="stylesheet" href="css/p/vip.css?v=20261026c" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -40,57 +40,12 @@ setTimeout(__rvRescue,2500);
   <script defer src="js/common-pwa.js?v=20261026b"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
   <script src="js/pricing.js?v=20261025f" defer></script>
-  <script src="js/vip.js?v=20261025i" defer></script>
+  <script src="js/vip.js?v=20261026a" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
 #bootLoader .ui-loader{margin-bottom:8px}
 @media (prefers-reduced-motion: reduce){#bootLoader .ui-loader-dot,#bootLoader .ui-loader-shadow{animation:none}#bootLoader .ui-loader-dot{top:20px;height:20px;border-radius:50%;transform:none}#bootLoader .ui-loader-shadow{opacity:.5;transform:scaleX(1)}}
-</style>
-<style>
-/* ── V-1（10-24）：会员页「为什么收费」折叠块 ──
-   收起态一行（一句结论 + 「为什么收费 ▾」），展开才看解释。
-   ⚠️ 深色走 token —— 旧版那块说明写死 background:#f6f8f9，深色档下是白块。 */
-.why-fold{border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
-.why-fold > summary{
-  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
-  padding:14px 18px;cursor:pointer;list-style:none;
-  font-size:14px;line-height:1.75;color:var(--ink);
-  transition:background .15s;
-}
-.why-fold > summary::-webkit-details-marker{display:none}
-.why-fold > summary:hover{background:var(--primary-soft)}
-.why-fold > summary:focus-visible{outline:none;box-shadow:0 0 0 3px var(--primary-soft);border-radius:12px}
-.why-lead{flex:1 1 320px;min-width:0}
-.why-lead b{color:var(--ink);font-weight:700}
-.why-more{
-  flex:none;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;
-  font-size:12.5px;font-weight:700;color:var(--primary-text);
-}
-.why-caret{
-  display:inline-block;flex:none;
-  width:6px;height:6px;margin-left:1px;margin-bottom:2px;
-  border-right:1.6px solid currentColor;border-bottom:1.6px solid currentColor;
-  transform:rotate(45deg);transition:transform .18s ease;
-}
-.why-fold[open] .why-caret{transform:rotate(-135deg);margin-bottom:-2px}
-@media(prefers-reduced-motion:reduce){.why-caret{transition:none}}
-.why-body{padding:2px 18px 18px;font-size:14px;line-height:1.85;color:var(--body,var(--ink));border-top:1px solid var(--line);margin-top:0}
-.why-body p{margin:14px 0 0}
-.why-body p:first-child{margin-top:14px}
-.why-body b{color:var(--ink);font-weight:700}
-/* V-2：开通方式那块原来是内联 background:#f6f8f9（深色档下白块），一并走 token。
-   与 V-1 的 .why-fold 同一口径。
-   VIP-SEMI-1（10-25）：.vip-howto-box 退役，换「一屏两步」的 semi-* 样式（css/p/vip.css）。 */
-.vip-howto-box{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
-.vip-howto-box b{color:var(--ink)}
-@media(max-width:560px){
-  .vip-howto-box{padding:15px 15px}
-}
-@media(max-width:560px){
-  .why-fold > summary{padding:13px 15px;gap:8px;font-size:13.5px}
-  .why-body{padding:2px 15px 15px;font-size:13.5px;line-height:1.8}
-}
 </style>
 <meta name="description" content="会员中心：会员权益、价格与开通方式。" />
 <link rel="canonical" href="https://yasihub.com/vip" />
@@ -120,178 +75,157 @@ setTimeout(__rvRescue,2500);
 </svg>
 
 <main class="container">
+  <!-- KIMI-P5-5（10-26）：会员页按 design/kimi-visual-upgrade-2026-10-25/05-vip.html 1:1 重排。
+       结构原文 = 同目录 _KV-vip_结构原文.html（机器导出，前缀 kv-）
+       精确样式 = css/p/vip.css 里的 kv- 块（整段来自 _KV-vip_精确样式.css）
+       验收基线 = 同目录 _KV-vip_验收基线.json（36 元素；收尾跑 scripts/mockup-1to1-check.cjs）
+       🔴 业务 id 一个没改：#vipHero #vipWhy #vipPlans #vipMatrix #vipHowto #vipSemi
+          #semiPlans #semiSlip #semiLb #semiQr #semiTxt #semiCopy #semiActsLogged #semiDone
+          #semiHelp #semiActsGuest #semiHelp2 #semiDoneCard #semiOid #semiBack
+          —— js/vip.js 全按它们取值。
+       🔴 与上一版的四处差别，都是 Kimi 稿要求的：
+          ① 单列堆叠 → 两列扫读（开通方式跨两行在左，方案/对比在右），手机回单列
+          ② 卡片统一 .kv-card（14px 圆角 + 极淡投影），kicker → .kv-section-label
+          ③ 页顶不再有页名大标题；「为什么收费」的折叠钩子改稿子的竖排两行
+          ④ 对比表体由共享层 js/pricing.js 渲染（.mx-scroll > table），稿子类名 kv-compare
+             由 js/vip.js 挂上（见该文件 renderVipMatrix），样式走 .kv-compare 原样 -->
+  <div class="kv-page">
+    <div class="kv-layout">
 
-  <!-- 当前状态卡（js/vip.js 实时查 /api/auth vip_status 渲染） -->
-  <section class="card" id="vipHero"></section>
+      <!-- 当前状态卡（js/vip.js 实时查 /api/auth vip_status 渲染三态：未登录 / 会员生效中 / 免费版） -->
+      <section class="kv-card kv-top-card" id="vipHero"></section>
 
-  <!-- 为什么收费 · V-1（10-24 重写 + 默认折叠）
-       她 13:2x 原话：「你代入真实用户，看到哪些会觉得这网站开不长久不敢充钱……这段话很重要，
-       也不要太长，要折叠起来，不然每次打开都这句话非常不美观」。
+      <!-- 为什么收费 · 默认折叠（她 13:2x：每次打开都看到这段话非常不美观）
+           文案是 W-FREE-1（10-25）重写版，一个字没动；折叠钩子按稿子改成竖排两行。 -->
+      <section class="kv-card" id="vipWhy">
+        <details class="kv-why-fold">
+          <summary>
+            <span class="kv-why-lead"><b>学习功能全部免费，会员只买 AI 额度</b> —— 每次批改和陪练都要花钱调接口。7 天内不满意全额退。</span>
+            <span class="kv-why-more">为什么收费</span>
+          </summary>
+          <div class="kv-why-body">
+            <p><b>免费的</b>：词库、口语题库、作文、备考计划、回顾、计时、听写、长难句、云同步、数据导出。这些和会员完全一样，不会有变化。</p>
 
-       病根：旧版顺序反了 —— 把「成本焦虑 / 生存焦虑」摊在最前面，把最硬的保证
-       （7 天全额退、数据不删）藏在第三句末尾。用户读完的心理是「这站能撑多久」，
-       而不是「我得到什么」。重写按「先说我给你什么 → 再解释收的是什么钱 →
-       两条保证写在明面上 → 做不到的也说清楚」排。
+            <p><b>收费的</b>：只有 AI 额度。作文批改、口语陪练、素材生成，每用一次都是真实的接口成本，所以这块按量收费。</p>
 
-       🔴 默认必须收起（她就是嫌每次打开都看到）。用站内现成的 <details>（同页 FAQ 已在用），
-          不造新组件。展开态才解释「为什么收费」，收起态只留一句 + 「为什么收费 ▾」。
-       🔴 不碰价格数字 / 权益对比表 / 开通流程 / 退款条款本身 —— 7 天、AI 5 次这些既定口径原样保留。
-       🔴 深色走 token：旧版这里写死 background:#f6f8f9（浅灰），深色档下是一块白——
-          本批一并改成 var(--surface) / var(--line)，不再写死浅色。 -->
-  <section class="card rv" id="vipWhy">
-    <span class="kicker">Why · 先说清楚</span>
-    <details class="why-fold">
-      <summary>
-        <span class="why-lead"><b>学习功能全部免费，会员只买 AI 额度</b> —— 每次批改和陪练都要花钱调接口。7 天内不满意全额退。</span>
-        <span class="why-more">为什么收费<span class="why-caret" aria-hidden="true"></span></span>
-      </summary>
-      <!-- W-FREE-1（10-25）文案重写：她说「太拽了，写简单点」。
-           病根 = 把内心戏全写给用户看（「你可能在想」「说实在的就我一个人」「把话说明白」
-           「做不到的也说清楚」），还主动交代两句负资产（「能开多久」「没法承诺秒回」）。
-           改法 = 只留三件用户真想知道的事：免费的是什么 / 收费的是什么为什么收 / 不满意怎么办。
-           6 段 → 4 段，5 个加粗 → 3 个。7 天 / AI 额度这些既定口径一个没动。 -->
-      <div class="why-body">
-        <p><b>免费的</b>：词库、口语题库、作文、备考计划、回顾、计时、听写、长难句、云同步、数据导出。这些和会员完全一样，不会有变化。</p>
+            <p><b>两条保证</b>：① 开通 7 天内不满意，一句话全额退，不问原因；② 到期后数据一条不删，随时能导出带走。</p>
 
-        <p><b>收费的</b>：只有 AI 额度。作文批改、口语陪练、素材生成，每用一次都是真实的接口成本，所以这块按量收费。</p>
+            <p style="margin-bottom:0">有问题直接反馈，我会改。</p>
+          </div>
+        </details>
+      </section>
 
-        <p><b>两条保证</b>：① 开通 7 天内不满意，一句话全额退，不问原因；② 到期后数据一条不删，随时能导出带走。</p>
-
-        <p style="margin-bottom:0">有问题直接反馈，我会改。</p>
-      </div>
-    </details>
-  </section>
-
-  <!-- 会员方案：价格卡由 js/vip.js 按 VIP_PLANS 常量渲染（改价只动那里一处） -->
-  <section class="card rv">
-    <span class="kicker">Pricing · AI 无限用</span>
-    <div class="card-head">
-      <h2 style="margin:0">会员方案</h2>
-      <span class="badge">AI 无限用</span>
-    </div>
-    <div id="vipPlans" style="display:flex;flex-wrap:wrap;gap:14px;margin-top:14px"></div>
-    <p class="muted" style="font-size:12px;margin:12px 0 0">所有方案权益完全相同，只是时长与日均价不同；会员跟账号走，手机/电脑登录同一账号都生效。</p>
-  </section>
-
-  <!-- 权益对比（10/1 下午她拍板新口径：模考每月 1 / 写作批改会员专属 / 辅助 AI 每周 5；云同步永久免费）。
-        ⚠️ W-FREE-4（10-25）：她拍板「作文页免费给所有人用」→ 写作批改已改「每月 3 次」、
-           作文模板库改全免费，本批只改 pricing.js 的口径与措辞，表结构与视觉一概不动。 -->
-       视觉策略：会员列金色调高亮（她授权「给人感觉开会员好处多」）——样式在 common.css .vip-cmp td.c3
-       （10/13 修复：原这里写的 .vip-col 选择器与 pricing.js 输出的 c3 不匹配，金色高亮从未生效，死代码已删）。 -->
-  <section class="card rv" data-d="1">
-    <span class="kicker">Compare · 差在哪</span>
-    <h2 style="margin:0 0 14px">免费版 vs 会员</h2>
-    <div id="vipMatrix" class="vip-cmp"></div>
-    <p class="muted" style="font-size:12.5px;margin:12px 0 0">学习功能本身全部免费且无差别（为什么收费，见上面「先说清楚」）——会员提升的是 <b>AI 额度</b>（模考 / 批改 / 素材 / 辅助）和后续专属功能。</p>
-  </section>
-
-  <!-- 开通方式（10/1 先手动收款，自动支付跑通后再接）
-       V-2（10-24）：原来这句说了两遍「10 分钟」——
-         ①「…说明要开通的档位和你的站内账号，约 10 分钟内开通」
-         ②「现在就能开，不用等：留言后我手动给你开通，通常 10 分钟内生效」
-       两句都在讲同一个信息，还互相打架；而「约 10 分钟内」这种精确承诺，
-       一个人维护的站做不到反而扣分。合成一句，承诺放宽到「一般当天」——说到做到比说得好听重要。
-       🔴 只改这两句的措辞：不改流程（仍是「去意见反馈留言 → 我手动开通」）、不改价格、不改权益。 -->
-  <section class="card rv" data-d="2" id="vipHowto">
-    <span class="kicker">How to · 开通</span>
-    <h2 style="margin:0 0 14px">开通方式</h2>
-    <!-- VIP-SEMI-1（10-25）：她拍板半自助「一屏两步」——选档位 → 抄一句转账 → 点「我已转账」。
-         金额即订单（三档价格天然互斥），不生成订单号；提交走 /api/feedback（零新接口零新 KV 键），
-         开通仍由站长在站长台手动 vip_grant（反馈行有「去开会员」预填）。档位卡与转账句由 js/vip.js
-         从 Pricing.VIP_PLANS 渲染，本区块 HTML 零价格字面量（价格口径红线）。
-         未登录：文案变「先登录再转账」+ 登录按钮（会员跟账号走，转账前必须知道给谁开）。 -->
-    <div id="vipSemi">
-      <div class="semi-plans" id="semiPlans"></div>
-      <div class="semi-slip" id="semiSlip">
-        <div class="semi-lb" id="semiLb">扫这个码转账</div>
-        <div class="semi-qr" id="semiQr">
-          <figure class="qr-item">
-            <img src="img/pay/wechat-qr.jpg" alt="微信收款码" width="132" height="179" loading="lazy">
-            <figcaption>微信支付</figcaption>
-          </figure>
-          <figure class="qr-item">
-            <img src="img/pay/alipay-qr.jpg" alt="支付宝收款码" width="132" height="198" loading="lazy">
-            <figcaption>支付宝</figcaption>
-          </figure>
+      <!-- 开通方式（VIP-SEMI-1 一屏两步 + VIP-PAY-QR 双码，功能一行没动）
+           稿子这一格是「选档位 → 转账 → 我已转账」的静态示例；本站接真数据：
+           档位卡由 js/vip.js 从 Pricing.VIP_PLANS 渲染（本区块零价格字面量）。 -->
+      <section class="kv-card kv-purchase" id="vipHowto">
+        <div class="kv-card-head">
+          <div><div class="kv-section-label">How to · 开通</div><h2>开通方式</h2></div>
+          <span class="kv-badge">一屏两步</span>
         </div>
-        <div class="semi-txt" id="semiTxt"></div>
-        <button class="semi-copy" id="semiCopy" type="button">复制这句</button>
-      </div>
-      <div class="semi-acts" id="semiActsLogged">
-        <button class="btn btn-primary" id="semiDone" type="button">我已转账</button>
-        <button class="btn semi-ghost" id="semiHelp" type="button">遇到问题</button>
-      </div>
-      <div class="semi-acts" id="semiActsGuest" hidden>
-        <a class="btn btn-primary" href="login.html" style="text-decoration:none">去登录 / 注册</a>
-        <button class="btn semi-ghost" id="semiHelp2" type="button">遇到问题</button>
-      </div>
-      <p class="semi-note">扫码或转账均可——金额就是你的订单（¥19 / ¥69 / ¥129 三档天然分开），不用备注。开通前不产生任何费用。</p>
-    </div>
-    <div id="semiDoneCard" hidden>
-      <div class="semi-done">
-        <span class="semi-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
-        <h3>收到了，等我确认</h3>
-        <p>看到到账我就开会员，一般当天。<br>开通后这个页面会自动变成会员态，不用再做别的。</p>
-        <span class="semi-oid" id="semiOid"></span>
-        <div class="semi-acts semi-center" style="margin-top:18px">
-          <button class="btn semi-ghost" id="semiBack" type="button">返回</button>
+        <div id="vipSemi">
+          <div class="semi-plans kv-plans" id="semiPlans"></div>
+          <div class="semi-slip kv-slip" id="semiSlip">
+            <div class="semi-lb kv-lb" id="semiLb">扫这个码转账</div>
+            <div class="semi-qr" id="semiQr">
+              <figure class="qr-item">
+                <img src="img/pay/wechat-qr.jpg" alt="微信收款码" width="132" height="179" loading="lazy">
+                <figcaption>微信支付</figcaption>
+              </figure>
+              <figure class="qr-item">
+                <img src="img/pay/alipay-qr.jpg" alt="支付宝收款码" width="132" height="198" loading="lazy">
+                <figcaption>支付宝</figcaption>
+              </figure>
+            </div>
+            <div class="semi-txt kv-txt" id="semiTxt"></div>
+            <button class="semi-copy kv-btn kv-copy" id="semiCopy" type="button">复制这句</button>
+          </div>
+          <div class="semi-acts kv-acts" id="semiActsLogged">
+            <button class="btn btn-primary kv-btn kv-btn-primary" id="semiDone" type="button">我已转账</button>
+            <button class="btn semi-ghost kv-btn" id="semiHelp" type="button">遇到问题</button>
+          </div>
+          <div class="semi-acts kv-acts" id="semiActsGuest" hidden>
+            <a class="btn btn-primary kv-btn kv-btn-primary" href="login.html" style="text-decoration:none">去登录 / 注册</a>
+            <button class="btn semi-ghost kv-btn" id="semiHelp2" type="button">遇到问题</button>
+          </div>
+          <p class="semi-note kv-note">不备注、不填单号——金额就是你的订单（三档价格天然分开）。开通前不产生任何费用。</p>
         </div>
-      </div>
+        <div id="semiDoneCard" hidden>
+          <div class="semi-done kv-done">
+            <span class="semi-ic kv-done-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
+            <h3>收到了，等我确认</h3>
+            <p>看到到账我就开会员，一般当天。<br>开通后这个页面会自动变成会员态，不用再做别的。</p>
+            <span class="semi-oid kv-order" id="semiOid"></span>
+            <div class="semi-acts kv-acts semi-center">
+              <button class="btn semi-ghost kv-btn" id="semiBack" type="button">返回</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 会员方案：价格卡由 js/vip.js 按 VIP_PLANS 渲染（改价只动 js/pricing.js 一处）
+           稿子这格只放一行说明，本站保留真实价格卡（功能不回退，见 css/p/vip.css 的 ⑦ 兼容块）。 -->
+      <section class="kv-card">
+        <div class="kv-card-head">
+          <div><div class="kv-section-label">Pricing · AI 无限用</div><h2>会员方案</h2></div>
+          <span class="kv-badge">AI 无限用</span>
+        </div>
+        <div id="vipPlans"></div>
+        <p class="kv-fine">所有方案权益完全相同，只是时长与日均价不同；会员跟账号走，手机/电脑登录同一账号都生效。</p>
+      </section>
+
+      <!-- 权益对比：表体由共享层 js/pricing.js 渲染（legacy 口径 = 原静态表 9 行），
+           稿子类名 kv-compare 由 js/vip.js 挂上，图例按 .kv-fine 口径收成一行。 -->
+      <section class="kv-card">
+        <div class="kv-section-label">Compare · 差在哪</div>
+        <h2>免费版 vs 会员</h2>
+        <div id="vipMatrix" class="vip-cmp kv-table-scroll"></div>
+        <p class="kv-fine">学习功能本身全部免费且无差别（为什么收费，见上面「先说清楚」）——会员提升的是 <b>AI 额度</b>（模考 / 批改 / 素材 / 辅助）和后续专属功能。</p>
+      </section>
+
+      <!-- 常见问题（10/1 扩充到 7 条，她授权「加你觉得可以的」） -->
+      <section class="kv-card kv-full">
+        <div class="kv-section-label">FAQ</div>
+        <h2>常见问题</h2>
+        <details class="kv-faq">
+          <summary>免费版 AI 额度是怎么算的？</summary>
+          <p>口语模考每月 1 次（自然月初重置）；写作批改每月 3 次（自然月初重置）；其他 AI 辅助（翻译、长难句、AI 安排今天、口语诊断、听写检查等）每周合计 5 次（每周一重置）；串题素材是会员专属。升级会员后全部不限次。</p>
+        </details>
+        <details class="kv-faq">
+          <summary>会员和免费版在学习功能上有区别吗？</summary>
+          <p>没有。词库、口语题库、计划、回顾、计时、听写、云同步、数据导出这些学习功能完全一样、永久免费——会员提升的是 AI 额度和后续上线的专属功能（为什么这样分，见上面「先说清楚」）。</p>
+        </details>
+        <details class="kv-faq">
+          <summary>为什么注册需要邀请码？</summary>
+          <p>站是我一个人搭的，AI 每次调用都花真钱，所以用邀请码挡一下机器注册，保证每个真人都够用。去「意见反馈」里说明来意即可获取。</p>
+        </details>
+        <details class="kv-faq">
+          <summary>可以退款吗？</summary>
+          <p>开通 7 天内、AI 累计使用不到 5 次，联系站长可全额退款。</p>
+        </details>
+        <details class="kv-faq">
+          <summary>会员到期后会怎样？</summary>
+          <p>学习数据全部保留，AI 额度回到免费版口径（口语模考每月 1 次 / 其他 AI 每周 5 次，写作批改与串题素材回到会员专属）；随时可以续费，续费时长在原到期日基础上顺延。</p>
+        </details>
+        <details class="kv-faq">
+          <summary>换设备 / 重装后会员还在吗？</summary>
+          <p>在。会员跟账号走，任何设备登录你的账号都能看到会员状态。</p>
+        </details>
+        <details class="kv-faq">
+          <summary>我的学习数据安全吗？</summary>
+          <p>云同步的数据只存在你自己账号下面，仅用于跨设备同步，不做任何分析，也不会提供给任何第三方；导出 / 清空数据完全由你自己控制。</p>
+        </details>
+      </section>
+
+      <!-- 10/2 她拍板：站长微信不在站内平铺，唯一出口 = 意见反馈弹层底部那个超链接。
+           稿子里那枚「意见反馈」按钮是视觉演示件（不是业务 id），本站不照抄。 -->
+      <section class="kv-card kv-full kv-contact">
+        <div><h2>有问题？联系站长</h2><p>去侧栏「意见反馈」写一句就行（开通 / 支付 / 使用问题都找这儿）；急事可在弹层底部点「等不及回复？加站长微信」直接拿联系方式。</p></div>
+      </section>
+
+      <p class="kv-legal kv-full"><a href="legal.html">隐私政策 · 用户协议 · AI 免责</a></p>
     </div>
-  </section>
-
-  <!-- 常见问题（10/1 扩充到 7 条，她授权「加你觉得可以的」） -->
-  <section class="card rv" data-d="3">
-    <span class="kicker">FAQ</span>
-    <h2 style="margin:0 0 8px">常见问题</h2>
-    <details style="padding:10px 0;border-bottom:1px solid var(--line)">
-      <summary style="cursor:pointer;font-weight:600">免费版 AI 额度是怎么算的？</summary>
-      <!-- W-FREE-4（10-25）：她拍板「作文页免费给所有人用」→ 这段 FAQ 答案里的写作批改
-           已从「会员专属」改成「每月 3 次」。🔴 这个 3 必须与 functions/api/ai.js 的
-           AI_FREE_WRITING_TOTAL 默认值一致（那里也是 3）。 -->
-      <p class="muted" style="font-size:13px;margin:8px 0 0">口语模考每月 1 次（自然月初重置）；写作批改每月 3 次（自然月初重置）；其他 AI 辅助（翻译、长难句、AI 安排今天、口语诊断、听写检查等）每周合计 5 次（每周一重置）；串题素材是会员专属。升级会员后全部不限次。</p>
-    </details>
-    <details style="padding:10px 0;border-bottom:1px solid var(--line)">
-      <summary style="cursor:pointer;font-weight:600">会员和免费版在学习功能上有区别吗？</summary>
-      <p class="muted" style="font-size:13px;margin:8px 0 0">没有。词库、口语题库、计划、回顾、计时、听写、云同步、数据导出这些学习功能完全一样、永久免费——会员提升的是 AI 额度和后续上线的专属功能（为什么这样分，见上面「先说清楚」）。</p>
-    </details>
-    <details style="padding:10px 0;border-bottom:1px solid var(--line)">
-      <summary style="cursor:pointer;font-weight:600">为什么注册需要邀请码？</summary>
-      <!-- V-2（10-24）：原话「为了防批量注册薅 AI 额度，保证已注册用户的体验」
-           —— 同一个事实，但这句把「有人在占你便宜」告诉了潜在付费用户，加重不安全感。
-           改后是让用户理解站长的处境（一个人搭的、AI 每次调用花真钱），不是提醒她「这站被人盯上了」。
-           事实与规则一字未改：仍是邀请码挡机器注册、仍是从「意见反馈」获取。 -->
-      <p class="muted" style="font-size:13px;margin:8px 0 0">站是我一个人搭的，AI 每次调用都花真钱，所以用邀请码挡一下机器注册，保证每个真人都够用。去「意见反馈」里说明来意即可获取。</p>
-    </details>
-    <details style="padding:10px 0;border-bottom:1px solid var(--line)">
-      <summary style="cursor:pointer;font-weight:600">可以退款吗？</summary>
-      <p class="muted" style="font-size:13px;margin:8px 0 0">开通 7 天内、AI 累计使用不到 5 次，联系站长可全额退款。</p>
-    </details>
-    <details style="padding:10px 0;border-bottom:1px solid var(--line)">
-      <summary style="cursor:pointer;font-weight:600">会员到期后会怎样？</summary>
-      <p class="muted" style="font-size:13px;margin:8px 0 0">学习数据全部保留，AI 额度回到免费版口径（口语模考每月 1 次 / 其他 AI 每周 5 次，写作批改与串题素材回到会员专属）；随时可以续费，续费时长在原到期日基础上顺延。</p>
-    </details>
-    <details style="padding:10px 0;border-bottom:1px solid var(--line)">
-      <summary style="cursor:pointer;font-weight:600">换设备 / 重装后会员还在吗？</summary>
-      <p class="muted" style="font-size:13px;margin:8px 0 0">在。会员跟账号走，任何设备登录你的账号都能看到会员状态。</p>
-    </details>
-    <details style="padding:10px 0">
-      <summary style="cursor:pointer;font-weight:600">我的学习数据安全吗？</summary>
-      <p class="muted" style="font-size:13px;margin:8px 0 0">云同步的数据只存在你自己账号下面，仅用于跨设备同步，不做任何分析，也不会提供给任何第三方；导出 / 清空数据完全由你自己控制。</p>
-    </details>
-  </section>
-
-  <!-- 10/2 她拍板：站长微信不在站内平铺了，唯一出口 = 意见反馈弹层底部那个超链接。
-       这里只留一句引导（开通 / 支付 / 使用问题都走同一条路）。 -->
-  <section class="card">
-    <h2 style="margin:0 0 8px">有问题？联系站长</h2>
-    <p class="muted" style="margin:0;font-size:14px">去侧栏「意见反馈」写一句就行（开通 / 支付 / 使用问题都找这儿）；急事可在弹层底部点「等不及回复？加站长微信」直接拿联系方式。</p>
-  </section>
-
-  <!-- 10/13 合规：收费页必须能摸到隐私政策与用户协议（豆包评审「合规与信任 5 分」） -->
-  <p class="muted" style="text-align:center;font-size:12.5px;margin:18px 0 0">
-    <a href="legal.html" style="color:var(--primary);text-decoration:none">隐私政策 · 用户协议 · AI 免责</a>
-  </p>
+  </div>
 </main>
 
 <script>

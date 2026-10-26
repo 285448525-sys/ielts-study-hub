@@ -1,8 +1,8 @@
-/* 10/17 拆分：只属于 vip.html 的样式块（tests/_split_css_1017.cjs 生成，18 块）。
+/* 10/17 拆分：只属于 vip.html 的样式块。
    ⚠️ 这里的样式只在这一个页面生效；改这里不用管别的页面。 */
 
 
-/* ===== 定价卡与会员状态（10/12 全站设计改造批1：pricing.js / vip.js 共用，禁内联）=====
+/* ===== 定价卡（10/12 全站设计改造批1：pricing.js / vip.js 共用，禁内联）=====
    原 vip.js 内联样式 11+22 处全部搬到这里；DOM class 与原渲染结果等价（零视觉变化）。
    ⚠️ 10/11 嵌套注释事故：CSS 注释里绝不再写注释（外层被提前闭合会吞掉整个 :root）。 */
 .plan-card{flex:1;min-width:180px;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--radius);padding:18px 16px;position:relative;background:var(--surface)}
@@ -24,57 +24,354 @@
 #vipPlans{display:flex;gap:14px;flex-wrap:wrap;align-items:stretch}
 @media (max-width:640px){ #vipPlans{flex-direction:column} .plan-card{min-width:0} }
 
-/* ===== VIP-SEMI-1（10-25）：开通区「一屏两步」半自助 =====
-   形态（设计稿 design/会员开通-一屏两步-2026-10-25.html）：三档卡 → 一句可抄的转账句 → 我已转账。
-   全部走全站 token（--primary/--surface/--line/--ink 系），深色自动跟随；44px 触控标准。 */
-.semi-plans{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-@media (max-width:560px){ .semi-plans{grid-template-columns:1fr} }
-.semi-plan{position:relative;text-align:left;border:1.5px solid var(--line);border-radius:var(--radius-sm);
-  padding:14px 16px 12px;background:var(--surface);cursor:pointer;font-family:inherit;
-  display:flex;flex-direction:column;gap:3px;transition:border-color .15s}
-.semi-plan:hover{border-color:var(--primary)}
-.semi-plan.on{border-color:var(--primary);background:var(--primary-soft)}
-.semi-plan .nm{font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:6px;color:var(--ink)}
-.semi-plan .nm .tag{font-size:10px;font-weight:700;color:var(--on-primary);background:var(--primary);
-  border-radius:4px;padding:1px 5px}
-.semi-plan .pr{display:flex;align-items:baseline;gap:5px}
-.semi-plan .pr b{font-size:26px;font-weight:800;letter-spacing:-.03em;line-height:1;
-  font-variant-numeric:tabular-nums;color:var(--ink)}
-.semi-plan .pr s{font-size:11.5px;color:var(--muted)}
-.semi-plan .pd{font-size:11px;color:var(--muted)}
-
-/* 一句可抄的转账说明（核心）：虚线描边把它从「表单」变成「便签」，暗示可以整句拿走 */
-.semi-slip{margin-top:16px;border:1.5px dashed var(--primary);border-radius:var(--radius-sm);
-  background:var(--primary-soft);padding:16px 18px}
-.semi-lb{font-size:11.5px;font-weight:700;color:var(--primary);letter-spacing:.02em;margin-bottom:7px}
-/* 收款码（10-25 深夜她给了微信+支付宝两张码）：双码并排，手机上仍是两列（码不能太小） */
+/* ===== 收款码（10-25 深夜 VIP-PAY-QR）：微信 + 支付宝双码并排，手机上仍是两列（码不能太小） ===== */
 .semi-qr{display:flex;gap:18px;margin:4px 0 12px;flex-wrap:wrap}
-.qr-item{margin:0;background:var(--surface);border-radius:10px;padding:8px 8px 6px;text-align:center;
-  box-shadow:0 1px 6px rgba(0,0,0,.06)}
+.qr-item{margin:0;background:var(--surface);border-radius:10px;padding:8px 8px 6px;text-align:center;box-shadow:0 1px 6px rgba(0,0,0,.06)}
 .qr-item img{display:block;border-radius:6px;width:132px;height:auto}
 .qr-item figcaption{font-size:11px;font-weight:700;color:var(--ink-2);margin-top:5px}
-.semi-txt{font-size:15px;line-height:1.85;color:var(--ink);font-weight:600}
-.semi-txt b{font-weight:800}
-.semi-copy{display:inline-flex;align-items:center;gap:5px;margin-top:11px;border:1px solid var(--primary);
-  background:var(--surface);border-radius:7px;padding:5px 13px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:650}
-.semi-copy:hover{background:var(--surface-2)}
 
-/* 按钮排：主按钮走全站 .btn.btn-primary（复用，不重造），幽灵按钮只做弱化 */
-.semi-acts{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+/* ===== 幽灵按钮（弱化次操作） ===== */
 .semi-ghost{background:none;border-color:transparent;color:var(--muted)}
 .semi-ghost:hover{color:var(--ink)}
 .semi-center{justify-content:center}
-.semi-note{font-size:11.5px;color:var(--muted);margin:12px 0 0}
 
-/* 完成态：勾 + 一句承诺 + 订单摘要（金额·档位·账号） */
-.semi-done{text-align:center;padding:28px 20px 24px}
-.semi-ic{width:52px;height:52px;border-radius:50%;background:var(--primary-soft);color:var(--primary);
-  display:inline-flex;align-items:center;justify-content:center;margin-bottom:13px}
-.semi-done h3{margin:0 0 6px;font-size:17px;font-weight:750;color:var(--ink)}
-.semi-done p{margin:0;font-size:13px;color:var(--ink-2);line-height:1.85}
-.semi-oid{display:inline-block;margin-top:12px;font-size:12px;background:var(--surface-2);border-radius:6px;
-  padding:4px 12px;color:var(--ink);font-variant-numeric:tabular-nums}
-@media (max-width:560px){
-  .semi-slip{padding:14px 15px}
-  .semi-done{padding:22px 14px 18px}
+.kv-page{
+  --kv-teal-d:#2c7873;
+  --kv-title:#173e3a;
+  --kv-line:#e2e6e4;
+  --kv-shadow:0 1px 2px #173e3a04,0 8px 24px -12px #173e3a14;
+  --kv-teal-s:#eef7f6;
+  --kv-teal:#3a9a93;
+  --kv-muted:#62716e;
+  --kv-ink:#243d3a;
+  --kv-soft:#f7f9f8;
+  font-size:14px;
+  line-height:1.65;
+  font-family:system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;
 }
+
+.kv-page, .kv-page *{ box-sizing: border-box; }
+.kv-page button, .kv-page a, .kv-page input, .kv-page summary{ -webkit-tap-highlight-color: transparent; }
+.kv-page button, .kv-page a, .kv-page summary{ min-height: 44px; }
+.kv-page button, .kv-page input{ font: inherit; }
+.kv-page button, .kv-page a, .kv-page summary{ touch-action: manipulation; }
+.kv-page button{ cursor: pointer; }
+.kv-page a{ color: var(--kv-teal-d); }
+.kv-eyebrow, .kv-kicker{ font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: var(--kv-teal-d); }
+.kv-page h1, .kv-page h2, .kv-page h3, .kv-page p{ margin-top: 0px; }
+.kv-page h2{ font-size: 19px; line-height: 1.4; color: var(--kv-title); margin-bottom: 14px; }
+.kv-page h3{ color: var(--kv-title); font-size: 17px; }
+.kv-layout{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+.kv-card{ background: var(--surface); border: 1px solid var(--kv-line); border-radius: 14px; padding: 24px; box-shadow: var(--kv-shadow); margin-bottom: 20px; }
+.kv-full{ grid-column: 1 / -1; }
+.kv-top-card{ margin-top: 0px; }
+.kv-card-head{ display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
+.kv-card-head h2{ margin: 0px; }
+.kv-badge{ font-size: 12px; color: var(--kv-teal-d); background: var(--kv-teal-s); padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+.kv-status{ border-left: 3px solid var(--kv-teal); padding: 2px 0px 2px 14px; }
+.kv-status p{ margin: 5px 0px 0px; color: var(--kv-muted); }
+.kv-status strong{ display: block; color: var(--kv-title); font-size: 20px; }
+.kv-plans{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.kv-plan{ position: relative; text-align: left; padding: 15px 12px; border: 1px solid var(--kv-line); border-radius: 12px; background: var(--surface); color: var(--kv-ink); display: flex; flex-direction: column; gap: 5px; transition: border-color 0.15s, background 0.15s; }
+.kv-plan[aria-pressed="true"]{ border: 2px solid var(--kv-teal); padding: 14px 11px; background: var(--kv-teal-s); }
+.kv-plan .kv-nm{ font-weight: 650; color: var(--kv-title); }
+.kv-plan .kv-pr{ font-size: 24px; line-height: 1.3; color: var(--kv-title); font-weight: 750; font-variant-numeric: tabular-nums; }
+.kv-plan .kv-pd{ font-size: 12px; color: var(--kv-muted); }
+.kv-tag{ font-size: 10px; color: var(--kv-teal-d); border: 1px solid var(--kv-line); padding: 0px 4px; border-radius: 4px; font-weight: 500; margin-left: 3px; }
+.kv-plan s{ font-size: 12px; color: var(--kv-muted); font-weight: 400; margin-left: 5px; }
+.kv-fine{ font-size: 12px; color: var(--kv-muted); margin: 12px 0px 0px; }
+.kv-slip{ margin-top: 20px; padding: 16px; background: var(--kv-soft); border: 1px solid var(--kv-line); border-radius: 12px; display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; }
+.kv-slip .kv-lb{ grid-column: 1 / -1; font-weight: 700; font-size: 13px; color: var(--kv-teal-d); }
+.kv-slip .kv-txt{ font-size: 15px; line-height: 1.7; }
+.kv-slip .kv-txt b{ color: var(--kv-title); overflow-wrap: anywhere; }
+.kv-btn{ border-radius: 10px; border: 1px solid var(--kv-line); padding: 10px 18px; background: var(--surface); color: var(--kv-ink); font-weight: 650; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.kv-btn-primary{ background: var(--kv-teal-d); border-color: var(--kv-teal-d); color: rgb(255, 255, 255); }
+.kv-slip .kv-copy{ align-self: center; white-space: nowrap; }
+.kv-acts{ display: flex; gap: 10px; margin-top: 16px; }
+.kv-acts .kv-btn-primary{ flex: 1 1 0%; }
+.kv-note{ font-size: 12px; color: var(--kv-muted); margin: 12px 0px 0px; }
+.kv-section-label{ font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--kv-teal-d); margin-bottom: 5px; }
+.kv-why-fold summary{ cursor: pointer; display: flex; flex-direction: column; gap: 7px; list-style: none; }
+.kv-why-lead{ font-size: 13px; color: var(--kv-muted); }
+.kv-why-lead b{ color: var(--kv-ink); }
+.kv-why-more{ color: var(--kv-teal-d); font-weight: 650; display: inline-flex; align-items: center; min-height: 24px; }
+.kv-why-body{ padding-top: 15px; color: var(--kv-muted); font-size: 13px; }
+.kv-why-body p{ margin-bottom: 12px; }
+.kv-why-body b{ color: var(--kv-ink); }
+.kv-table-scroll{ overflow-x: auto; }
+.kv-compare{ border-collapse: collapse; width: 100%; font-size: 13px; }
+.kv-compare th, .kv-compare td{ padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--kv-line); }
+.kv-compare th{ background: var(--kv-soft); color: var(--kv-title); }
+.kv-compare th:first-child{ border-radius: 8px 0px 0px 8px; }
+.kv-compare th:last-child{ border-radius: 0px 8px 8px 0px; }
+.kv-compare td:last-child{ font-weight: 650; color: var(--kv-teal-d); background: var(--kv-teal-s); }
+.kv-compare tr:last-child td{ border-bottom: 0px; }
+.kv-done{ text-align: center; padding: 10px 0px; }
+.kv-done-ic{ display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--kv-teal-s); color: var(--kv-teal-d); font-size: 24px; margin: 0px auto 12px; }
+.kv-done p{ color: var(--kv-muted); }
+.kv-order{ display: inline-block; padding: 7px 12px; background: var(--kv-soft); border-radius: 8px; color: var(--kv-teal-d); font-size: 13px; overflow-wrap: anywhere; }
+.kv-done .kv-acts{ justify-content: center; }
+.kv-done .kv-acts .kv-btn{ min-width: 120px; }
+details.kv-faq{ border-bottom: 1px solid var(--kv-line); }
+details.kv-faq:last-of-type{ border-bottom: 0px; }
+details.kv-faq summary{ cursor: pointer; padding: 13px 0px; font-weight: 650; display: flex; justify-content: space-between; gap: 12px; list-style: none; }
+details.kv-faq p{ color: var(--kv-muted); font-size: 13px; margin: 0px 0px 16px; padding-right: 20px; }
+.kv-contact{ display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.kv-contact h2{ margin-bottom: 7px; }
+.kv-contact p{ margin: 0px; color: var(--kv-muted); }
+.kv-legal{ text-align: center; margin: 0px 0px 22px; font-size: 12px; }
+.kv-legal a{ display: inline-flex; align-items: center; padding: 0px 8px; }
+@media (min-width: 761px){
+.kv-purchase{ grid-row: span 2; }
+.kv-purchase .kv-plans{ grid-template-columns: 1fr; }
+.kv-purchase .kv-plan{ display: grid; grid-template-columns: 1fr auto; align-items: center; }
+.kv-purchase .kv-plan .kv-pd{ grid-column: 1 / -1; }
+.kv-purchase .kv-plan .kv-pr{ grid-area: 1 / 2; }
+.kv-purchase .kv-plan .kv-nm{ grid-area: 1 / 1; }
+.kv-purchase .kv-slip{ grid-template-columns: 1fr; }
+.kv-purchase .kv-slip .kv-copy{ justify-self: start; }
+.kv-purchase .kv-acts{ flex-direction: column; }
+.kv-purchase .kv-acts .kv-btn{ width: 100%; }
+}
+@media (max-width: 760px){
+.kv-wrap{ padding: 0px 16px; }
+.kv-bar{ padding-left: 16px; padding-right: 16px; font-size: 11px; }
+.kv-page-head{ padding: 8px 0px; align-items: center; }
+.kv-page h1{ font-size: 24px; }
+.kv-sub{ font-size: 13px; }
+.kv-layout{ grid-template-columns: minmax(0px, 1fr); gap: 0px; }
+.kv-card{ padding: 20px 16px; }
+.kv-theme{ font-size: 12px; padding: 0px 10px; }
+.kv-slip{ grid-template-columns: minmax(0px, 1fr); }
+.kv-slip .kv-copy{ justify-self: start; }
+.kv-compare thead{ display: none; }
+.kv-compare, .kv-compare tbody, .kv-compare tr, .kv-compare td{ display: block; width: 100%; }
+.kv-compare tr{ display: grid; grid-template-columns: 1fr 1fr; padding: 10px 0px; border-bottom: 1px solid var(--kv-line); }
+.kv-compare tr:last-child{ border-bottom: 0px; }
+.kv-compare td, .kv-compare td:last-child{ padding: 3px 6px; border: 0px; background: transparent; font-size: 12px; }
+.kv-compare td:first-child{ grid-column: 1 / -1; font-weight: 650; color: var(--kv-title); padding-bottom: 7px; }
+.kv-compare td:nth-child(2)::before{ content: "免费版："; color: var(--kv-muted); font-weight: 400; }
+.kv-compare td:nth-child(3)::before{ content: "会员："; color: var(--kv-muted); font-weight: 400; }
+.kv-contact{ display: block; }
+.kv-contact .kv-btn{ margin-top: 16px; }
+.kv-plans{ gap: 8px; }
+.kv-plan{ padding: 12px 9px; }
+.kv-plan[aria-pressed="true"]{ padding: 11px 8px; }
+.kv-plan .kv-pr{ font-size: 21px; }
+.kv-plan .kv-nm{ font-size: 13px; }
+.kv-plan .kv-tag{ display: block; width: max-content; margin: 3px 0px 0px; }
+.kv-plan s{ display: block; margin: 0px; }
+.kv-card-head{ align-items: flex-start; }
+.kv-design-note{ padding-bottom: 20px; }
+}
+@media (max-width: 370px){
+.kv-bar span:last-child{ display: none; }
+.kv-page-head{ gap: 10px; }
+.kv-theme{ padding: 0px 8px; }
+.kv-plans{ grid-template-columns: 1fr; }
+.kv-plan .kv-tag{ display: inline-block; margin: 0px 0px 0px 3px; }
+.kv-plan s{ display: inline; margin-left: 5px; }
+}
+@media (prefers-reduced-motion: reduce){
+.kv-page, .kv-page *{ transition: none !important; }
+}
+
+/* ===== 站点全局标签规则（common.css:470 input / :490 label）的冲突钉死 =====
+   这两条标签选择器直接写在元素上，会盖掉未显式声明的 font-size / line-height。
+   下面按设计稿实测值钉一遍，本文件追加在 common.css 之后 → 同比分靠顺序赢。 */
+.kv-page .kv-plan{font-size:14px}
+.kv-page .kv-plan button, .kv-page .kv-plan>button{font-size:14px}
+.kv-page .kv-btn{font-size:14px}
+.kv-page .kv-btn button, .kv-page .kv-btn>button{font-size:14px}
+.kv-page .kv-copy{font-size:14px}
+.kv-page .kv-copy button, .kv-page .kv-copy>button{font-size:14px}
+.kv-page .kv-btn-primary{font-size:14px}
+.kv-page .kv-btn-primary button, .kv-page .kv-btn-primary>button{font-size:14px}
+
+
+/* ===== 加固副本：选择器统一加 .kv-page（具体度 +1 级） =====
+   为什么有这一段：common.css 有两条标签选择器直接写在元素上、优先于继承——
+     :470 input:not([type=checkbox]):not([type=radio]):not([type=range]) → 具体度 0,3,1
+     :490 label → 全局把 font-size 压成 13px、color 压成 muted、margin-bottom 4px
+   本文件里 (0,2,1) 的规则打不过它们 → 输入框出现「外框包一层、内层又多一个框」，
+   字号也会被压成 13px。这一段靠提高具体度 + 排在最后来压住。
+   🔴 别删：删了输入框立刻变双层框。 */
+.kv-page [hidden]{ display: none !important; }
+.kv-page .kv-eyebrow, .kv-page .kv-kicker{ font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: var(--kv-teal-d); }
+.kv-page .kv-layout{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+.kv-page .kv-card{ background: var(--surface); border: 1px solid var(--kv-line); border-radius: 14px; padding: 24px; box-shadow: var(--kv-shadow); margin-bottom: 20px; }
+.kv-page .kv-full{ grid-column: 1 / -1; }
+.kv-page .kv-top-card{ margin-top: 0px; }
+.kv-page .kv-card-head{ display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
+.kv-page .kv-card-head h2{ margin: 0px; }
+.kv-page .kv-badge{ font-size: 12px; color: var(--kv-teal-d); background: var(--kv-teal-s); padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+.kv-page .kv-status{ border-left: 3px solid var(--kv-teal); padding: 2px 0px 2px 14px; }
+.kv-page .kv-status p{ margin: 5px 0px 0px; color: var(--kv-muted); }
+.kv-page .kv-status strong{ display: block; color: var(--kv-title); font-size: 20px; }
+.kv-page .kv-plans{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.kv-page .kv-plan{ position: relative; text-align: left; padding: 15px 12px; border: 1px solid var(--kv-line); border-radius: 12px; background: var(--surface); color: var(--kv-ink); display: flex; flex-direction: column; gap: 5px; transition: border-color 0.15s, background 0.15s; }
+.kv-page .kv-plan[aria-pressed="true"]{ border: 2px solid var(--kv-teal); padding: 14px 11px; background: var(--kv-teal-s); }
+.kv-page .kv-plan .kv-nm{ font-weight: 650; color: var(--kv-title); }
+.kv-page .kv-plan .kv-pr{ font-size: 24px; line-height: 1.3; color: var(--kv-title); font-weight: 750; font-variant-numeric: tabular-nums; }
+.kv-page .kv-plan .kv-pd{ font-size: 12px; color: var(--kv-muted); }
+.kv-page .kv-tag{ font-size: 10px; color: var(--kv-teal-d); border: 1px solid var(--kv-line); padding: 0px 4px; border-radius: 4px; font-weight: 500; margin-left: 3px; }
+.kv-page .kv-plan s{ font-size: 12px; color: var(--kv-muted); font-weight: 400; margin-left: 5px; }
+.kv-page .kv-fine{ font-size: 12px; color: var(--kv-muted); margin: 12px 0px 0px; }
+.kv-page .kv-slip{ margin-top: 20px; padding: 16px; background: var(--kv-soft); border: 1px solid var(--kv-line); border-radius: 12px; display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; }
+.kv-page .kv-slip .kv-lb{ grid-column: 1 / -1; font-weight: 700; font-size: 13px; color: var(--kv-teal-d); }
+.kv-page .kv-slip .kv-txt{ font-size: 15px; line-height: 1.7; }
+.kv-page .kv-slip .kv-txt b{ color: var(--kv-title); overflow-wrap: anywhere; }
+.kv-page .kv-btn{ border-radius: 10px; border: 1px solid var(--kv-line); padding: 10px 18px; background: var(--surface); color: var(--kv-ink); font-weight: 650; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.kv-page .kv-btn-primary{ background: var(--kv-teal-d); border-color: var(--kv-teal-d); color: rgb(255, 255, 255); }
+.kv-page .kv-slip .kv-copy{ align-self: center; white-space: nowrap; }
+.kv-page .kv-acts{ display: flex; gap: 10px; margin-top: 16px; }
+.kv-page .kv-acts .kv-btn-primary{ flex: 1 1 0%; }
+.kv-page .kv-note{ font-size: 12px; color: var(--kv-muted); margin: 12px 0px 0px; }
+.kv-page .kv-section-label{ font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--kv-teal-d); margin-bottom: 5px; }
+.kv-page .kv-why-fold summary{ cursor: pointer; display: flex; flex-direction: column; gap: 7px; list-style: none; }
+.kv-page .kv-why-lead{ font-size: 13px; color: var(--kv-muted); }
+.kv-page .kv-why-lead b{ color: var(--kv-ink); }
+.kv-page .kv-why-more{ color: var(--kv-teal-d); font-weight: 650; display: inline-flex; align-items: center; min-height: 24px; }
+.kv-page .kv-why-body{ padding-top: 15px; color: var(--kv-muted); font-size: 13px; }
+.kv-page .kv-why-body p{ margin-bottom: 12px; }
+.kv-page .kv-why-body b{ color: var(--kv-ink); }
+.kv-page .kv-table-scroll{ overflow-x: auto; }
+.kv-page .kv-compare{ border-collapse: collapse; width: 100%; font-size: 13px; }
+.kv-page .kv-compare th, .kv-page .kv-compare td{ padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--kv-line); }
+.kv-page .kv-compare th{ background: var(--kv-soft); color: var(--kv-title); }
+.kv-page .kv-compare th:first-child{ border-radius: 8px 0px 0px 8px; }
+.kv-page .kv-compare th:last-child{ border-radius: 0px 8px 8px 0px; }
+.kv-page .kv-compare td:last-child{ font-weight: 650; color: var(--kv-teal-d); background: var(--kv-teal-s); }
+.kv-page .kv-compare tr:last-child td{ border-bottom: 0px; }
+.kv-page .kv-done{ text-align: center; padding: 10px 0px; }
+.kv-page .kv-done-ic{ display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--kv-teal-s); color: var(--kv-teal-d); font-size: 24px; margin: 0px auto 12px; }
+.kv-page .kv-done p{ color: var(--kv-muted); }
+.kv-page .kv-order{ display: inline-block; padding: 7px 12px; background: var(--kv-soft); border-radius: 8px; color: var(--kv-teal-d); font-size: 13px; overflow-wrap: anywhere; }
+.kv-page .kv-done .kv-acts{ justify-content: center; }
+.kv-page .kv-done .kv-acts .kv-btn{ min-width: 120px; }
+.kv-page details.kv-faq{ border-bottom: 1px solid var(--kv-line); }
+.kv-page details.kv-faq:last-of-type{ border-bottom: 0px; }
+.kv-page details.kv-faq summary{ cursor: pointer; padding: 13px 0px; font-weight: 650; display: flex; justify-content: space-between; gap: 12px; list-style: none; }
+.kv-page details.kv-faq p{ color: var(--kv-muted); font-size: 13px; margin: 0px 0px 16px; padding-right: 20px; }
+.kv-page .kv-contact{ display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.kv-page .kv-contact h2{ margin-bottom: 7px; }
+.kv-page .kv-contact p{ margin: 0px; color: var(--kv-muted); }
+.kv-page .kv-legal{ text-align: center; margin: 0px 0px 22px; font-size: 12px; }
+.kv-page .kv-legal a{ display: inline-flex; align-items: center; padding: 0px 8px; }
+@media (min-width: 761px){
+.kv-page .kv-purchase{ grid-row: span 2; }
+.kv-page .kv-purchase .kv-plans{ grid-template-columns: 1fr; }
+.kv-page .kv-purchase .kv-plan{ display: grid; grid-template-columns: 1fr auto; align-items: center; }
+.kv-page .kv-purchase .kv-plan .kv-pd{ grid-column: 1 / -1; }
+.kv-page .kv-purchase .kv-plan .kv-pr{ grid-area: 1 / 2; }
+.kv-page .kv-purchase .kv-plan .kv-nm{ grid-area: 1 / 1; }
+.kv-page .kv-purchase .kv-slip{ grid-template-columns: 1fr; }
+.kv-page .kv-purchase .kv-slip .kv-copy{ justify-self: start; }
+.kv-page .kv-purchase .kv-acts{ flex-direction: column; }
+.kv-page .kv-purchase .kv-acts .kv-btn{ width: 100%; }
+}
+@media (max-width: 760px){
+.kv-page .kv-wrap{ padding: 0px 16px; }
+.kv-page .kv-bar{ padding-left: 16px; padding-right: 16px; font-size: 11px; }
+.kv-page .kv-sub{ font-size: 13px; }
+.kv-page .kv-layout{ grid-template-columns: minmax(0px, 1fr); gap: 0px; }
+.kv-page .kv-card{ padding: 20px 16px; }
+.kv-page .kv-theme{ font-size: 12px; padding: 0px 10px; }
+.kv-page .kv-slip{ grid-template-columns: minmax(0px, 1fr); }
+.kv-page .kv-slip .kv-copy{ justify-self: start; }
+.kv-page .kv-compare thead{ display: none; }
+.kv-page .kv-compare, .kv-page .kv-compare tbody, .kv-page .kv-compare tr, .kv-page .kv-compare td{ display: block; width: 100%; }
+.kv-page .kv-compare tr{ display: grid; grid-template-columns: 1fr 1fr; padding: 10px 0px; border-bottom: 1px solid var(--kv-line); }
+.kv-page .kv-compare tr:last-child{ border-bottom: 0px; }
+.kv-page .kv-compare td, .kv-page .kv-compare td:last-child{ padding: 3px 6px; border: 0px; background: transparent; font-size: 12px; }
+.kv-page .kv-compare td:first-child{ grid-column: 1 / -1; font-weight: 650; color: var(--kv-title); padding-bottom: 7px; }
+.kv-page .kv-compare td:nth-child(2)::before{ content: "免费版："; color: var(--kv-muted); font-weight: 400; }
+.kv-page .kv-compare td:nth-child(3)::before{ content: "会员："; color: var(--kv-muted); font-weight: 400; }
+.kv-page .kv-contact{ display: block; }
+.kv-page .kv-contact .kv-btn{ margin-top: 16px; }
+.kv-page .kv-plans{ gap: 8px; }
+.kv-page .kv-plan{ padding: 12px 9px; }
+.kv-page .kv-plan[aria-pressed="true"]{ padding: 11px 8px; }
+.kv-page .kv-plan .kv-pr{ font-size: 21px; }
+.kv-page .kv-plan .kv-nm{ font-size: 13px; }
+.kv-page .kv-plan .kv-tag{ display: block; width: max-content; margin: 3px 0px 0px; }
+.kv-page .kv-plan s{ display: block; margin: 0px; }
+.kv-page .kv-card-head{ align-items: flex-start; }
+.kv-page .kv-design-note{ padding-bottom: 20px; }
+}
+@media (max-width: 370px){
+.kv-page .kv-bar span:last-child{ display: none; }
+.kv-page .kv-theme{ padding: 0px 8px; }
+.kv-page .kv-plans{ grid-template-columns: 1fr; }
+.kv-page .kv-plan .kv-tag{ display: inline-block; margin: 0px 0px 0px 3px; }
+.kv-page .kv-plan s{ display: inline; margin-left: 5px; }
+}
+@media (prefers-reduced-motion: reduce){
+}
+
+/* ===== 站点全局标签规则（common.css:470 input / :490 label）的冲突钉死 =====
+   这两条标签选择器直接写在元素上，会盖掉未显式声明的 font-size / line-height。
+   下面按设计稿实测值钉一遍，本文件追加在 common.css 之后 → 同比分靠顺序赢。 */
+
+
+
+/* ════════════════════════════════════════════════════════════════════
+   KIMI-P5-5（10-26）· 会员页按 Kimi 样子稿 1:1 重排
+   样子稿 = design/kimi-visual-upgrade-2026-10-25/05-vip.html
+   结构原文 = 同目录 _KV-vip_结构原文.html（机器导出，前缀 kv-）
+   精确样式 = 同目录 _KV-vip_精确样式.css（上面整段，一字未改）
+   验收基线 = 同目录 _KV-vip_验收基线.json（36 元素；收尾跑 scripts/mockup-1to1-check.cjs）
+   🔴 上面 kv- 块全部来自导出件。我只在其后补三件事：深色档、本页既有组件的兼容、
+      以及 js/vip.js 用 .on 类（不是 aria-pressed）导致的选中态。
+   ════════════════════════════════════════════════════════════════════
+
+/* ---- 深色档：kv- 私有变量按设计稿 05-vip.html 的 [data-theme=dark] 原值重指 ----
+   设计稿深色「不是简单反色」：背景/卡片/边框/正文/次文分别设档。站点深色 token 与稿子
+   不是一套，所以这里直接钉稿子值，不引用站点 token（引用了就会偏色）。 */
+[data-theme="dark"] .kv-page{
+  --kv-teal-d:#7ccac2;
+  --kv-title:#edf4f2;
+  --kv-line:#34413e;
+  --kv-shadow:0 1px 2px #0003,0 8px 24px -12px #000a;
+  --kv-teal-s:#223431;
+  --kv-teal:#5cb3ab;
+  --kv-muted:#a1b0ac;
+  --kv-ink:#e6ecea;
+  --kv-soft:#202a28;
+}
+/* 🔴 深色主按钮：稿子写 color:#fff 配 --kv-teal-d（深色档是 #7ccac2 亮青）= 2.0:1 看不见。
+   按全站深色小字按钮口径（HANDOFF §三.2）改亮青底 #8fe0d6 + 深字 #0f3330 = 8.98:1。
+   浅色档保持稿子原配色不动（那是她点头的 1:1）。 */
+[data-theme="dark"] .kv-page .kv-btn-primary{background:#8fe0d6;border-color:#8fe0d6;color:#0f3330}
+
+/* ---- 本页既有组件兼容（追加在 kv- 块之后，靠顺序赢） ---- */
+/* ① 幽灵按钮：kv-btn 给了实底边框，这里把次操作按钮还原成无边框弱化态 */
+.kv-page .semi-ghost{background:none;border-color:transparent;color:var(--muted)}
+.kv-page .semi-ghost:hover{color:var(--ink)}
+/* ② 选中档：js/vip.js 用 .on 类（不是 aria-pressed），按稿子选中态补一条 */
+.kv-page .kv-plan.on{border:2px solid var(--kv-teal);padding:14px 11px;background:var(--kv-teal-s)}
+/* ③ 章标签：稿子是描边小标签，旧 .semi-plan .nm .tag 是实底青（具体度 0,3,0）——
+      提具体度改回描边，否则会「实底 + 描边」两副面孔 */
+.kv-page .kv-plan .kv-nm .kv-tag{background:transparent;color:var(--kv-teal-d);border:1px solid var(--kv-line);font-weight:500}
+/* ④ 名称行字号对齐稿子 14px（旧 .semi-plan .nm 是 13.5px） */
+.kv-page .kv-plan .kv-nm{font-size:14px}
+/* ⑤ 收款码：稿子没有码，本站有（VIP-PAY-QR 已上线，不能回退）→ 码单独占一行 */
+.kv-page .kv-slip .semi-qr{grid-column:1/-1;margin:2px 0 12px}
+/* ⑥ 对比矩阵：表格由 js/pricing.js 渲染（.mx-scroll > table），稿子类名 kv-compare
+      由 js/vip.js 挂上；图例 .mx-foot 按稿子 .kv-fine 的口径收成一行小字 */
+.kv-page .mx-foot{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--kv-muted)}
+.kv-page .mx-foot svg{width:13px;height:13px;vertical-align:-2px;margin-right:3px}
+/* ⑦ 价格卡（#vipPlans 由 js/pricing.js 渲染 .plan-card）：稿子那格只放一行说明，
+      本站保留真实价格卡（功能不回退）→ 只在卡片内收紧间距、字号跟随新卡皮 */
+.kv-page #vipPlans{gap:12px}
+.kv-page .plan-card{padding:16px 14px}
+.kv-page .plan-price-num{font-size:24px}
+
+/* ⑧ 按钮：稿子的 .kv-btn 不设 gap，而本站的 .btn 会带 gap:7px（主按钮同时挂了两套类）
+      → 把主按钮的 gap 钉回 normal（按钮里只有文字，gap 本来无视觉影响，纯为 1:1 基线）。
+      顺带补 hover/focus 态：稿子没导出 hover，按站点 .btn 的惯例补，颜色全走 kv token。 */
+.kv-page .kv-btn-primary{gap:normal}
+.kv-page .kv-btn:hover{border-color:var(--kv-teal);color:var(--kv-teal-d)}
+.kv-page .kv-btn-primary:hover{background:var(--kv-teal);border-color:var(--kv-teal);color:#fff}
+.kv-page .kv-btn:active:not(:disabled){transform:translateY(1px)}

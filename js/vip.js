@@ -29,6 +29,10 @@ function renderVipMatrix(){
   const box = document.getElementById('vipMatrix');
   if(!box || !window.Pricing) return;
   Pricing.renderMatrix(box, { legacy:true });
+  /* KIMI-P5-5（10-26）：稿子把对比表叫 .kv-compare，共享层 js/pricing.js 渲染的是裸 <table>。
+     这里只补一个类名让稿子的样式能挂上，不改任何样式/逻辑（表体仍由 pricing.js 渲染）。 */
+  const __kvT = box.querySelector('table');
+  if(__kvT && !__kvT.classList.contains('kv-compare')) __kvT.classList.add('kv-compare');
 }
 
 /* ---------- 开通方式：一屏两步半自助（VIP-SEMI-1 · 10-25）----------
@@ -52,11 +56,11 @@ function renderVipSemi(){
   const plansBox = document.getElementById('semiPlans');
   if(plansBox && window.Pricing){
     plansBox.innerHTML = Pricing.VIP_PLANS.map(p =>
-      '<button class="semi-plan' + (p.id === cur ? ' on' : '') + '" data-semi="' + p.id + '" type="button">'
-      + '<span class="nm">' + escapeHtml(p.name) + (p.id === 'week' ? '<span class="tag">新人</span>' : '') + '</span>'
-      + '<span class="pr"><b>¥' + escapeHtml(p.price) + '</b>'
+      '<button class="semi-plan kv-plan' + (p.id === cur ? ' on' : '') + '" data-semi="' + p.id + '" type="button">'
+      + '<span class="nm kv-nm">' + escapeHtml(p.name) + (p.id === 'week' ? '<span class="tag kv-tag">新人</span>' : '') + '</span>'
+      + '<span class="pr kv-pr"><b>¥' + escapeHtml(p.price) + '</b>'
       + (p.orig ? '<s>¥' + escapeHtml(p.orig) + '</s>' : '') + '</span>'
-      + '<span class="pd">' + escapeHtml(p.perDay) + '</span>'
+      + '<span class="pd kv-pd">' + escapeHtml(p.perDay) + '</span>'
       + '</button>'
     ).join('');
     plansBox.querySelectorAll('button[data-semi]').forEach(b =>
@@ -194,23 +198,31 @@ function renderVipPlans(){
   if(window.Pricing) Pricing.renderPlanCards(box, { featured:'month', recId:recId, recDays:daysLeft });
 }
 
-/* ---------- 状态卡：未登录 / 会员生效中 / 免费版 ---------- */
+/* KIMI-P5-5（10-26）· loadVipStatus 新版：只在外层按稿子包 .kv-kicker + .kv-status，
+   三态内容、口径、交互一行没改。写成本文件再拼装，避免脚本里嵌模板字符串的转义坑。 */
+
+/* ---------- 状态卡：未登录 / 会员生效中 / 免费版 ----------
+   KIMI-P5-5（10-26）：外层按稿子包 .kv-kicker + .kv-status（左侧 3px 品牌边 + 大标题位），
+   三态内容、口径、交互一行没改 —— 只多了一层包裹，让稿子那两条基线能匹配。 */
 async function loadVipStatus(){
   const box = document.getElementById('vipHero');
   if(!box) return;
+  const KICK = '<span class="kv-kicker">MEMBERSHIP · 当前状态</span>';
   if(!authToken()){
-    box.innerHTML = `
-      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-        ${VIP_ICON_GOLD}
-        <div style="flex:1;min-width:200px">
-          <div style="font-weight:700;font-size:16px">先登录，再开通会员</div>
-          <div class="muted" style="font-size:13px;margin-top:4px">会员跟账号走；没有账号的话，用邀请码注册即可。</div>
+    box.innerHTML = KICK + `
+      <div class="kv-status">
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+          ${VIP_ICON_GOLD}
+          <div style="flex:1;min-width:200px">
+            <div style="font-weight:700;font-size:16px">先登录，再开通会员</div>
+            <div class="muted" style="font-size:13px;margin-top:4px">会员跟账号走；没有账号的话，用邀请码注册即可。</div>
+          </div>
+          <a class="btn btn-primary" href="login.html" style="text-decoration:none">去登录 / 注册</a>
         </div>
-        <a class="btn btn-primary" href="login.html" style="text-decoration:none">去登录 / 注册</a>
       </div>`;
     return;
   }
-  box.innerHTML = '<div class="muted" style="font-size:13px">正在查询会员状态…</div>';
+  box.innerHTML = KICK + '<div class="kv-status"><div class="muted" style="font-size:13px">正在查询会员状态…</div></div>';
   let vip = null, acct = '';
   try{
     const j = await authApiPost({ action:'vip_status', token: authToken() });
@@ -218,18 +230,20 @@ async function loadVipStatus(){
     acct = j.acct || '';
   }catch(e){
     if(e && e.code === 'unauthorized'){
-      box.innerHTML = `
-        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-          ${VIP_ICON_GOLD}
-          <div style="flex:1;min-width:200px">
-            <div style="font-weight:700;font-size:16px">登录已过期</div>
-            <div class="muted" style="font-size:13px;margin-top:4px">请到「设置 → 云端同步」重新登录后查看会员状态。</div>
+      box.innerHTML = KICK + `
+        <div class="kv-status">
+          <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+            ${VIP_ICON_GOLD}
+            <div style="flex:1;min-width:200px">
+              <div style="font-weight:700;font-size:16px">登录已过期</div>
+              <div class="muted" style="font-size:13px;margin-top:4px">请到「设置 → 云端同步」重新登录后查看会员状态。</div>
+            </div>
+            <a class="btn" href="settings.html" style="text-decoration:none">去设置</a>
           </div>
-          <a class="btn" href="settings.html" style="text-decoration:none">去设置</a>
         </div>`;
       return;
     }
-    box.innerHTML = '<div class="muted" style="font-size:13px">会员状态查询失败，请稍后刷新重试。</div>';
+    box.innerHTML = KICK + '<div class="kv-status"><div class="muted" style="font-size:13px">会员状态查询失败，请稍后刷新重试。</div></div>';
     return;
   }
   if(vip && vip.expire){
@@ -245,24 +259,28 @@ async function loadVipStatus(){
       const left = Math.max(1, Math.ceil((d.getTime() - Date.now()) / 86400000));
       datePart = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + ' 到期（还剩 ' + left + ' 天）';
     }
-    box.innerHTML = `
-      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-        ${VIP_ICON_GOLD}
-        <div style="flex:1;min-width:200px">
-          <div style="font-weight:700;font-size:16px">会员生效中 · ${escapeHtml(acct)}</div>
-          <div class="muted" style="font-size:13px;margin-top:4px">${datePart} · AI 功能无限使用</div>
+    box.innerHTML = KICK + `
+      <div class="kv-status">
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+          ${VIP_ICON_GOLD}
+          <div style="flex:1;min-width:200px">
+            <div style="font-weight:700;font-size:16px">会员生效中 · ${escapeHtml(acct)}</div>
+            <div class="muted" style="font-size:13px;margin-top:4px">${datePart} · AI 功能无限使用</div>
+          </div>
+          <span class="badge" style="background:var(--primary);color:var(--on-primary)">VIP</span>
         </div>
-        <span class="badge" style="background:var(--primary);color:var(--on-primary)">VIP</span>
       </div>`;
   } else {
-    box.innerHTML = `
-      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-        ${VIP_ICON_GOLD}
-        <div style="flex:1;min-width:200px">
-          <div style="font-weight:700;font-size:16px">当前是免费版${acct ? ' · ' + escapeHtml(acct) : ''}</div>
-          <div class="muted" style="font-size:13px;margin-top:4px">全部学习功能可用；AI 免费体验：${escapeHtml(freeAiDesc())}；升级会员 AI 无限用。</div>
+    box.innerHTML = KICK + `
+      <div class="kv-status">
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+          ${VIP_ICON_GOLD}
+          <div style="flex:1;min-width:200px">
+            <div style="font-weight:700;font-size:16px">当前是免费版${acct ? ' · ' + escapeHtml(acct) : ''}</div>
+            <div class="muted" style="font-size:13px;margin-top:4px">全部学习功能可用；AI 免费体验：${escapeHtml(freeAiDesc())}；升级会员 AI 无限用。</div>
+          </div>
+          <button class="btn btn-primary" id="vipGoPlans">升级会员</button>
         </div>
-        <button class="btn btn-primary" id="vipGoPlans">升级会员</button>
       </div>`;
     const g = document.getElementById('vipGoPlans');
     if(g) g.addEventListener('click', () => {
