@@ -31,8 +31,8 @@
 })();
 </script>
 <title>句子 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261026h" />
-<link rel="stylesheet" href="css/p/corpus.css?v=20261026h" />
+<link rel="stylesheet" href="css/common.css?v=20261026i" />
+<link rel="stylesheet" href="css/p/corpus.css?v=20261026i" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -43,13 +43,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20261026h"></script>
-  <script defer src="js/common.js?v=20261026h"></script>
-  <script defer src="js/common-ai.js?v=20261026h"></script>
-  <script defer src="js/common-sync.js?v=20261026h"></script>
-  <script defer src="js/common-merge.js?v=20261026h"></script>
-  <script defer src="js/common-cloud.js?v=20261026h"></script>
-  <script defer src="js/common-shell.js?v=20261026h"></script>
-  <script defer src="js/common-pwa.js?v=20261026h"></script>
+  <script defer src="js/common.js?v=20261026i"></script>
+  <script defer src="js/common-ai.js?v=20261026i"></script>
+  <script defer src="js/common-sync.js?v=20261026i"></script>
+  <script defer src="js/common-merge.js?v=20261026i"></script>
+  <script defer src="js/common-cloud.js?v=20261026i"></script>
+  <script defer src="js/common-shell.js?v=20261026i"></script>
+  <script defer src="js/common-pwa.js?v=20261026i"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
   <script src="js/corpus.js?v=20261023g" defer></script>
 <style>
@@ -199,7 +199,56 @@
 <div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div></div>
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 
-<main class="container">,  <!-- ═══ KIMI-P2-2（10-26）· 句子页按 Kimi 样子稿 1:1 重排 ═══,       结构原文 design/kimi-visual-upgrade-2026-10-25/_KC-corpus_结构原文.html（前缀 kc-）,       精确样式 design/kimi-visual-upgrade-2026-10-25/_KC-corpus_精确样式.css（已追加到 css/p/corpus.css）,       验收基线 design/kimi-visual-upgrade-2026-10-25/_KC-corpus_验收基线.json（37 元素）,       🔴 下面这些 id 与 data-* 属性一个都没改 —— js/corpus.js 全按它们取值：,          wordTabs(ls/eb/dict) · lsModeSeg(struct/si) · sentInput · sentStatus · analyzeBtn ·,          resultCard · copyBtn · origSent · resultBody · histCard · histCount · histList ·,          ebView · ebInput · ebAnalyze · ebRaw · ebLoading · count · knownCount · knownList ·,          knownWrap · list · empty · dictView · startWrite · startDict · corpusCount ·,          corpusSearch · addToggle · addPanel · corEn · corCn · addCorpus · bulkCorpus ·,          importCorpus · importHint · aiImportBox · aiImportBtn · aiImportHint · dictArea -->,  <div class="kc-page">,    <nav class="kc-view-switch" id="wordTabs" aria-label="句子功能切换">,      <button type="button" data-sub="ls" class="kc-active active" aria-pressed="true">长难句</button>,      <button type="button" data-sub="eb" class="" aria-pressed="false">错题</button>,      <button type="button" data-sub="dict" class="" aria-pressed="false">听写</button>,    </nav>,    <div id="lsView" class="kc-view-section">,      <section class="kc-card">,        <h2>粘贴长难句</h2>,        <div class="kc-mode-seg" id="lsModeSeg" role="group" aria-label="拆解模式"><button type="button" data-lsmode="struct" class="kc-active active" aria-pressed="true">结构拆解</button><button type="button" data-lsmode="si" class="kc-active-false" aria-pressed="false">同传对照</button></div>,        <p class="kc-intro kc-muted">看不懂的长难句贴进来，AI 帮你拆开：<b>结构拆解</b>看主干、修饰成分、逻辑信号和考点词；<b>同传对照</b>给逐句顺译，练边读边懂。拆过的句子会存到下面，随时回看。</p>,        <label for="sentInput" class="kc-muted" style="display:block;font-size:12px;margin-bottom:6px">长难句原文</label>,        <textarea id="sentInput" placeholder="在此粘贴长难句，例如：The theory suggests the decline is a deeper imbalance."></textarea>,        <div class="kc-form-row"><span id="sentStatus" class="kc-word-status" aria-live="polite"></span><button class="kc-btn kc-btn-primary" id="analyzeBtn" type="button">拆解分析</button></div>,      </section>,      <section class="kc-card" id="resultCard" hidden>,        <div class="kc-card-head"><div><h2>拆解结果</h2></div><button class="kc-btn kc-btn-sm" id="copyBtn" type="button">复制全文</button></div>,        <blockquote id="origSent" class="kc-quote"></blockquote>,        <div id="resultBody" class="kc-result-grid"></div>,      </section>,      <section class="kc-card" id="histCard" hidden><h2>我的拆解记录 · <span id="histCount">0</span></h2><div id="histList"></div></section>,    </div>,    <div id="ebView" class="kc-view-section" hidden>,      <section class="kc-card"><h2 style="margin-bottom:14px">错题</h2><textarea class="kc-eb-input" id="ebInput" aria-label="错题原文" placeholder="把这道题相关的东西整段贴进来：题目、题干、你的答案、正确答案、解析…不用整理格式"></textarea><div class="kc-eb-bar"><button class="kc-btn kc-btn-primary" id="ebAnalyze" type="button">AI 收录错题</button><button class="kc-btn" id="ebRaw" type="button" title="不走 AI，先存原文，之后可补分析">只存原文</button></div><div id="ebLoading" class="kc-eb-loading" hidden></div></section>,      <section class="kc-card"><h2 class="kc-count-title">未掌握 <span id="count">0</span> 条 · 已掌握 <span id="knownCount">0</span> 条</h2><div id="list"></div><details id="knownWrap" hidden><summary>已掌握（0）</summary><div id="knownList"></div></details><div id="empty" class="kc-cc-empty">还没有记录。把错题整段贴到上面那个框，点「AI 收录错题」。</div></section>,    </div>,    <div id="dictView" class="kc-view-section" hidden>,      <div class="kc-dict-modes"><section class="kc-card kc-dm-card"><div class="kc-dm-body"><b>逐句默写</b><span>看中文提示，把英文默出来，AI 逐句判分挑错</span></div><button class="kc-btn kc-btn-primary" id="startWrite" type="button">开始默写</button></section><section class="kc-card kc-dm-card"><div class="kc-dm-body"><b>听写</b><span>播放英文整句，写下听到的，再逐词核对（语速可调）</span></div><button class="kc-btn" id="startDict" type="button">开始听写</button></section></div>,      <section class="kc-card"><div class="kc-card-head"><h2>我的句子库</h2><span class="kc-muted" style="font-size:13px">共 <b id="corpusCount">0</b> 条</span><button class="kc-btn" id="addToggle" type="button" aria-expanded="false">＋ 添加句子</button></div><div class="kc-cp-search"><label class="kc-search-field" for="corpusSearch"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input type="search" id="corpusSearch" placeholder="搜英文或中文…" aria-label="搜索语料" autocomplete="off"><button type="button" class="kc-ui-field-clear" hidden aria-label="清空搜索">✕</button></label></div><div id="corpusList"></div>,        <div id="addPanel" class="kc-add-panel" hidden><div class="kc-add-tabs"><button type="button" data-amt="single" class="kc-active">单条添加</button><button type="button" data-amt="bulk">批量粘贴</button><button type="button" data-amt="ai">AI 识别导入</button></div>,          <div id="amt-single"><div class="kc-cor-fields"><label>英文<input aria-label="英文句子或词组" id="corEn" placeholder="英文句子 / 词组…"></label><label>中文<input aria-label="对应中文" id="corCn" placeholder="对应中文…"></label><button class="kc-btn kc-btn-primary" id="addCorpus" type="button">添加</button></div></div>,          <div id="amt-bulk" hidden><textarea id="bulkCorpus" aria-label="批量粘贴句子" placeholder="每行一句：英文 | 中文，如 The government should invest in public transport. | 政府应投资公交"></textarea><div class="kc-form-row"><button class="kc-btn kc-btn-primary" id="importCorpus" type="button">导入</button><span id="importHint" class="kc-muted"></span></div></div>,          <div id="amt-ai" hidden><p class="kc-muted" style="font-size:13px;margin-bottom:8px">粘贴短语 / 词 / 句子（可纯英文），AI 自动切分并补中文释义</p><textarea id="aiImportBox" aria-label="AI 识别导入内容" placeholder="粘贴要记的内容，例如：The government should invest in public transport."></textarea><div class="kc-form-row"><button class="kc-btn kc-btn-primary" id="aiImportBtn" type="button">AI 识别并导入</button><span id="aiImportHint" class="kc-muted"></span></div></div>,        </div>,      </section><div id="dictArea"></div>,    </div>,  </div>,</main>
+<main class="container">
+<!-- ═══ KIMI-P2-2（10-26）· 句子页按 Kimi 样子稿 1:1 重排 ═══
+结构原文 design/kimi-visual-upgrade-2026-10-25/_KC-corpus_结构原文.html（前缀 kc-）
+精确样式 design/kimi-visual-upgrade-2026-10-25/_KC-corpus_精确样式.css（已追加到 css/p/corpus.css）
+验收基线 design/kimi-visual-upgrade-2026-10-25/_KC-corpus_验收基线.json（37 元素）
+🔴 下面这些 id 与 data-* 属性一个都没改 —— js/corpus.js 全按它们取值：
+wordTabs(ls/eb/dict) · lsModeSeg(struct/si) · sentInput · sentStatus · analyzeBtn ·
+resultCard · copyBtn · origSent · resultBody · histCard · histCount · histList ·
+ebView · ebInput · ebAnalyze · ebRaw · ebLoading · count · knownCount · knownList ·
+knownWrap · list · empty · dictView · startWrite · startDict · corpusCount ·
+corpusSearch · addToggle · addPanel · corEn · corCn · addCorpus · bulkCorpus ·
+importCorpus · importHint · aiImportBox · aiImportBtn · aiImportHint · dictArea -->
+<div class="kc-page">
+<nav class="kc-view-switch" id="wordTabs" aria-label="句子功能切换">
+<button type="button" data-sub="ls" class="kc-active active" aria-pressed="true">长难句</button>
+<button type="button" data-sub="eb" class="" aria-pressed="false">错题</button>
+<button type="button" data-sub="dict" class="" aria-pressed="false">听写</button>
+</nav>
+<div id="lsView" class="kc-view-section">
+<section class="kc-card">
+<h2>粘贴长难句</h2>
+<div class="kc-mode-seg" id="lsModeSeg" role="group" aria-label="拆解模式"><button type="button" data-lsmode="struct" class="kc-active active" aria-pressed="true">结构拆解</button><button type="button" data-lsmode="si" class="kc-active-false" aria-pressed="false">同传对照</button></div>
+<p class="kc-intro kc-muted">看不懂的长难句贴进来，AI 帮你拆开：<b>结构拆解</b>看主干、修饰成分、逻辑信号和考点词；<b>同传对照</b>给逐句顺译，练边读边懂。拆过的句子会存到下面，随时回看。</p>
+<label for="sentInput" class="kc-muted" style="display:block;font-size:12px;margin-bottom:6px">长难句原文</label>
+<textarea id="sentInput" placeholder="在此粘贴长难句，例如：The theory suggests the decline is a deeper imbalance."></textarea>
+<div class="kc-form-row"><span id="sentStatus" class="kc-word-status" aria-live="polite"></span><button class="kc-btn kc-btn-primary" id="analyzeBtn" type="button">拆解分析</button></div>
+</section>
+<section class="kc-card" id="resultCard" hidden>
+<div class="kc-card-head"><div><h2>拆解结果</h2></div><button class="kc-btn kc-btn-sm" id="copyBtn" type="button">复制全文</button></div>
+<blockquote id="origSent" class="kc-quote"></blockquote>
+<div id="resultBody" class="kc-result-grid"></div>
+</section>
+<section class="kc-card" id="histCard" hidden><h2>我的拆解记录 · <span id="histCount">0</span></h2><div id="histList"></div></section>
+</div>
+<div id="ebView" class="kc-view-section" hidden>
+<section class="kc-card"><h2 style="margin-bottom:14px">错题</h2><textarea class="kc-eb-input" id="ebInput" aria-label="错题原文" placeholder="把这道题相关的东西整段贴进来：题目、题干、你的答案、正确答案、解析…不用整理格式"></textarea><div class="kc-eb-bar"><button class="kc-btn kc-btn-primary" id="ebAnalyze" type="button">AI 收录错题</button><button class="kc-btn" id="ebRaw" type="button" title="不走 AI，先存原文，之后可补分析">只存原文</button></div><div id="ebLoading" class="kc-eb-loading" hidden></div></section>
+<section class="kc-card"><h2 class="kc-count-title">未掌握 <span id="count">0</span> 条 · 已掌握 <span id="knownCount">0</span> 条</h2><div id="list"></div><details id="knownWrap" hidden><summary>已掌握（0）</summary><div id="knownList"></div></details><div id="empty" class="kc-cc-empty">还没有记录。把错题整段贴到上面那个框，点「AI 收录错题」。</div></section>
+</div>
+<div id="dictView" class="kc-view-section" hidden>
+<div class="kc-dict-modes"><section class="kc-card kc-dm-card"><div class="kc-dm-body"><b>逐句默写</b><span>看中文提示，把英文默出来，AI 逐句判分挑错</span></div><button class="kc-btn kc-btn-primary" id="startWrite" type="button">开始默写</button></section><section class="kc-card kc-dm-card"><div class="kc-dm-body"><b>听写</b><span>播放英文整句，写下听到的，再逐词核对（语速可调）</span></div><button class="kc-btn" id="startDict" type="button">开始听写</button></section></div>
+<section class="kc-card"><div class="kc-card-head"><h2>我的句子库</h2><span class="kc-muted" style="font-size:13px">共 <b id="corpusCount">0</b> 条</span><button class="kc-btn" id="addToggle" type="button" aria-expanded="false">＋ 添加句子</button></div><div class="kc-cp-search"><label class="kc-search-field" for="corpusSearch"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input type="search" id="corpusSearch" placeholder="搜英文或中文…" aria-label="搜索语料" autocomplete="off"><button type="button" class="kc-ui-field-clear" hidden aria-label="清空搜索">✕</button></label></div><div id="corpusList"></div>
+<div id="addPanel" class="kc-add-panel" hidden><div class="kc-add-tabs"><button type="button" data-amt="single" class="kc-active">单条添加</button><button type="button" data-amt="bulk">批量粘贴</button><button type="button" data-amt="ai">AI 识别导入</button></div>
+<div id="amt-single"><div class="kc-cor-fields"><label>英文<input aria-label="英文句子或词组" id="corEn" placeholder="英文句子 / 词组…"></label><label>中文<input aria-label="对应中文" id="corCn" placeholder="对应中文…"></label><button class="kc-btn kc-btn-primary" id="addCorpus" type="button">添加</button></div></div>
+<div id="amt-bulk" hidden><textarea id="bulkCorpus" aria-label="批量粘贴句子" placeholder="每行一句：英文 | 中文，如 The government should invest in public transport. | 政府应投资公交"></textarea><div class="kc-form-row"><button class="kc-btn kc-btn-primary" id="importCorpus" type="button">导入</button><span id="importHint" class="kc-muted"></span></div></div>
+<div id="amt-ai" hidden><p class="kc-muted" style="font-size:13px;margin-bottom:8px">粘贴短语 / 词 / 句子（可纯英文），AI 自动切分并补中文释义</p><textarea id="aiImportBox" aria-label="AI 识别导入内容" placeholder="粘贴要记的内容，例如：The government should invest in public transport."></textarea><div class="kc-form-row"><button class="kc-btn kc-btn-primary" id="aiImportBtn" type="button">AI 识别并导入</button><span id="aiImportHint" class="kc-muted"></span></div></div>
+</div>
+</section><div id="dictArea"></div>
+</div>
+</div>
+</main>
 
 </body>
 </html>
