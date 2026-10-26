@@ -241,6 +241,16 @@ function _bootAncGateOk(){
     if(document.body.getAttribute('data-shell') !== 'top') return true;
     if(window.__hubAncDecided) return true;
     if(typeof ancSettled !== 'function') return true;
+    /* 🔵 PERF-NAV-2C（10-26）：**本机已经读过公告的人，一次都不用等**。
+       这道闸是 CLS-1 为「公告条插进来把 main 推下 34px」设的 ——
+       但公告一旦读过（hub_anc_read 有记录），ancPending() 就返回 null、
+       公告条**根本不会挂**，那 34px 位移压根不会发生 → 等它就是纯白等。
+       她每次硬进站都要吃这最多 900ms（Ctrl+F5 之后尤其明显）。
+       ⚠️ 判据是「读过任何一条公告」而不是「有没有本机清单」：
+          清单在但读过了 → 不挂条、不必等；清单在没读过 → 仍然要等它插入（保 CLS）。 */
+    try{
+      if(typeof ancReadSet === 'function' && ancReadSet().size > 0) return true;
+    }catch(e){}
     return false;
   }catch(e){ return true; }
 }
@@ -249,7 +259,12 @@ function _finishBootLoader(){
   if(el && !el.dataset.done){
     if(!_bootAncGateOk()){
       _bootAncWaited = true;    // 只等一次，等完这条路径不再拦
-      var t = setTimeout(function(){ _finishBootLoader(); }, 900);
+      /* 🔵 PERF-NAV-2C：上限 900 → 300ms。
+         900ms 是 CLS-1 当初的保守值；但现在这条路径只剩「从没读过公告的首次访问」，
+         且 ancLoad 走的是 PRECORE 裸路径（首帧就可能命中缓存）——300ms 足够覆盖常规情况，
+         真拿不到就按「不挂条」放行（下面 then 里 ancEnsure 仍会补挂，位移发生在遮罩淡出前）。
+         ⚠️ 8s 兜底与「main 最终必放行」两条一行不动。 */
+      var t = setTimeout(function(){ _finishBootLoader(); }, 300);
       try{
         ancSettled().then(function(){
           try{ if(typeof ancEnsure === 'function') ancEnsure(); }catch(e){}
