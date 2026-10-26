@@ -30,15 +30,22 @@
 .hero .vip-chip.free{color:var(--muted)}
 .hero .vip-chip.vip{color:var(--warn-ink)}
 /* 距考大数字：38px 等宽（§四.1 只有数字 + 「天后机考」，没有编造小字） */
-.countdown{text-align:right;white-space:nowrap;flex:none}
-.countdown b{display:block;font:800 38px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+/* HOME-CD-1：JS 输出的是**行内混排**「距机考还有<b>N</b>天」（js/index.js:190），
+   b 不许 display:block —— 旧版是竖排大字，HOME-VISUAL-1 把 hero 改成一行后这条就成了 bug
+   （实测 3 行 / 容器 75×87px，她 22:3x 截图报「那块有点怪怪的」）。
+   容器改 flex + baseline：三个片段沿基线对齐，大数字不会把行高压成怪比例。 */
+.countdown{display:flex;align-items:baseline;justify-content:flex-end;gap:2px;
+  text-align:right;white-space:nowrap;flex:none;font-size:12px;color:var(--muted)}
+.countdown b{display:inline;margin:0 2px;font:800 38px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
   letter-spacing:-.06em;color:var(--primary-800);font-variant-numeric:tabular-nums}
-.countdown span{font-size:11px;color:var(--muted)}
-/* 未设考试日期态：一行小 chip（§四.1 要求，不许出现稿上没有的承诺） */
+.countdown span{font-size:11px;color:var(--muted);white-space:nowrap}
+/* 未设考试日期态：一行小 chip（§四.1 要求，不许出现稿上没有的承诺）
+   🔴 chip 内部也必须是 inline 一行，不能被 .countdown 的 flex/gap 拆成两段。 */
 .countdown .hero-setdate{display:inline-flex;align-items:center;gap:6px;background:var(--primary-50);
   border:1px solid var(--primary-200);color:var(--primary-800);text-decoration:none;
-  font-size:12px;font-weight:700;padding:6px 12px;border-radius:10px}
+  font-size:12px;font-weight:700;padding:6px 12px;border-radius:10px;white-space:nowrap;width:auto}
 .countdown .hero-setdate:hover{background:var(--primary-100)}
+.countdown .hero-setdate .hs-t,.countdown .hero-setdate .hs-a{display:inline;white-space:nowrap}
 .countdown .hero-setdate .hs-a{font-size:11.5px;color:var(--primary-700)}
 
 /* ===== 设置补齐条（W-UI-1 原结构：.ic + .tx + .bar，见 js/index.js homeSetupItems） =====
