@@ -216,13 +216,54 @@ setTimeout(__rvRescue,2500);
 [data-theme="dark"] .av-pop{background:var(--n-50)}
 [data-theme="dark"] .av-pop-done{background:var(--primary-500)}
 
-/* ===== 10/4 改版（她拍板方向二）：顶部状态行 + 左目录 + 右内容 ===== */
-.set-topbar{position:relative;display:flex;align-items:center;gap:14px;padding:13px 16px;margin-bottom:18px;
-  background:linear-gradient(168deg,#1f5350,#12332f 72%);border-radius:var(--radius);color:#fff;
-  box-shadow:0 20px 40px -24px rgba(18,51,47,.55)}
-.set-topbar::before{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;
-  background:radial-gradient(420px 120px at 88% -60px,rgba(122,220,210,.16),transparent 70%)}
-.set-topbar .acct-main>b{font-size:16px}
+/* ===== 10/4 改版（她拍板方向二）：顶部状态行 + 左目录 + 右内容 =====
+   🔄 SET-1（10-26）：深绿渐变身份卡 → 稿子白卡形态。**数值逐项照抄 _S-SET2 基线**（红线 6 · 1:1 还原）：
+   身份卡 padding 22/24 · gap 16 · radius 16 · 正文字号 14 · 行高 21.7 · 头像 56 圆 · 用户名 17/700 · 
+   小按钮 12.5/600 · radius 9 · padding 0 12 · 幽灵键 13/600 · radius 12 · padding 0 14。 */
+.set-topbar{position:relative;display:flex;align-items:center;gap:16px;padding:22px 24px;margin-bottom:18px;
+  background:var(--surface);border:1px solid var(--line);border-radius:16px;
+  box-shadow:var(--shadow);color:var(--ink);font-size:14px;line-height:21.7px}
+.acct-main{flex:1 1 auto;min-width:0;font-size:14px;line-height:21.7px}
+/* 头像：稿子 56px 圆形（底色 --primary-200，字色 --primary-text） */
+#acctAvatarBtn{flex:0 0 auto;width:56px;height:56px;border-radius:50%;background:var(--primary-200);
+  border:0;padding:0;display:grid;place-items:center;color:var(--primary-text);font-weight:700;
+  font-size:20px;line-height:31px;cursor:pointer;overflow:hidden}
+#acctAvatarBtn .acct-avatar-in,#acctAvatarBtn img{width:100%;height:100%;object-fit:cover;display:block}
+/* 用户名 = 可点改名入口：17px/700 · padding 1px 4px · radius 6 */
+.me-name-row{display:flex;align-items:center;gap:8px;font-size:14px;line-height:21.7px}
+.me-name{font-size:17px;font-weight:700;line-height:26.35px;color:var(--ink);cursor:pointer;
+  border-radius:6px;padding:1px 4px;transition:background .15s}
+.me-name:hover{background:var(--surface-2)}
+.me-name:focus-visible{outline:none;box-shadow:0 0 0 3px var(--primary-soft)}
+.me-edit-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px;line-height:21.7px}
+.me-edit-row input{height:34px;padding:0 10px;border:1px solid var(--line);border-radius:9px;
+  background:var(--surface);color:var(--ink);font:inherit;font-size:14px;max-width:240px}
+.me-edit-row input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+/* 小按钮（保存/取消）：12.5/600 · padding 0 12 · radius 9 */
+.me-mini{height:34px;padding:0 12px;border-radius:9px;border:1px solid var(--primary);
+  background:var(--primary);color:#fff;font:inherit;font-size:12.5px;font-weight:600;line-height:19.375px;cursor:pointer}
+.me-mini--ghost{background:transparent;color:var(--muted);border:1px solid var(--line)}
+.me-mini--ghost:hover{color:var(--ink);border-color:var(--primary)}
+.acct-main .acct-sub{font-size:12.5px;color:var(--muted);line-height:1.5}
+.acct-main .acct-sub2{font-size:11.5px;color:var(--muted);opacity:.8;line-height:1.5}
+.acct-sync{font-size:12px;color:var(--muted);margin:6px 0 0;line-height:1.5}
+/* 右侧次操作（操作组）：gap 8 */
+.me-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center;font-size:14px;line-height:21.7px}
+/* 幽灵键（修改密码/退出登录）：13/600 · padding 0 14 · radius 12 */
+.set-topbar .acct-btn{height:34px;padding:0 14px;border-radius:12px;font-size:13px;font-weight:600;
+  line-height:20.15px;border:1px solid var(--line);background:transparent;color:var(--muted);
+  cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:normal;text-decoration:none}
+.set-topbar .acct-btn:hover{color:var(--ink);border-color:var(--primary)}
+.set-topbar .acct-btn--light{background:var(--primary);border-color:var(--primary);color:#fff}
+.set-topbar .acct-btn--light:hover{color:#fff;filter:brightness(1.05)}
+.set-topbar .acct-form-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.set-topbar .acct-input{height:34px;padding:0 10px;border:1px solid var(--line);border-radius:9px;
+  background:var(--surface);color:var(--ink);font:inherit;font-size:13px;min-width:150px}
+.set-topbar .acct-input:focus{outline:none;border-color:var(--primary)}
+@media (max-width:560px){
+  .set-topbar{padding:16px 15px;gap:12px;flex-wrap:wrap}
+  .me-edit-row input{max-width:none;flex:1 1 120px}
+}
 
 .set-layout{display:grid;grid-template-columns:200px minmax(0,1fr);gap:22px;align-items:start}
 /* 10-22 换顶栏：吸顶位置要让过 44px 顶栏（原 top:14px 是侧栏时代写的，直接留会被顶栏压住一截） */
@@ -321,7 +362,7 @@ setTimeout(__rvRescue,2500);
   <script defer src="js/feedback.js?v=20261013b"></script>
   <!-- 10/3 头像选择（DiceBear CC0 素材；必须在 data.js/common.js 之后 —— 它读 DATA.settings.avatar） -->
   <script defer src="js/av-picker.js?v=20261022a"></script>
-  <script src="js/settings.js?v=20261026a" defer></script>
+  <script src="js/settings.js?v=20261026b" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -371,29 +412,45 @@ setTimeout(__rvRescue,2500);
   <!-- ① 顶部极简状态行（10/4 改版方向二：原深绿账户横条压成一行，账号明细收进「账号与同步」分组）
        —— DOM 钩子全保留：syncUserAcct/syncState/lastSyncTs/syncStatus/syncUserBox/
           syncChangeBtn/syncLogoutBtn/syncChangeForm/sOldPass/sNewPass/syncChangeSave/acctAvatarImg -->
-  <div class="set-topbar">
-    <!-- 点头像 → 弹层换头像（原右下角小笔角标她 10/4 反馈丑，已移除） -->
+  <!-- ═══ SET-1（10-26 · 她 18:2x 拍板「差不多就这样」）═══
+       身份卡 = 头像 + **可点用户名**（点了就地变输入框，Enter 保存 / Esc 取消）+ 邮箱 + 同步状态，
+       右侧安静的次操作（修改密码 / 退出登录）。原「我的账号」整组并进这里。
+       🔴 DOM 钩子一个没少：#syncUserAcct / #syncStatus / #syncUserBox / #syncChangeBtn /
+          #syncLogoutBtn / #syncChangeForm / #sOldPass / #sNewPass / #syncChangeSave /
+          #syncGuestBox / #syncGoLogin / #sName —— renderAuthUI() 与 authLogout() 零改动。
+       🔴 稿子来源：design/_样子稿-设置页合并账号-2026-10-26.html（1:1） -->
+  <div class="set-topbar" id="setMe">
     <button class="acct-avatar" id="acctAvatarBtn" type="button" aria-haspopup="dialog"
             aria-controls="avatarPop" aria-expanded="false" title="点击更换头像">
       <span class="acct-avatar-in"><img id="acctAvatarImg" src="img/avatars/user-f1.svg" alt="" /></span>
     </button>
     <div class="acct-main">
-      <b id="syncUserAcct">未登录</b>
+      <!-- 就地改名：默认显示 span（点它 → 输入框）；#sName 仍是同一份取值入口 -->
+      <div class="me-name-row" id="nameRow">
+        <span class="me-name" id="nameTxt" title="点击改名" role="button" tabindex="0">未登录</span>
+      </div>
+      <div class="me-edit-row" id="editRow" hidden>
+        <input id="sName" aria-label="用户名" maxlength="24" />
+        <button class="me-mini" id="nameSave" type="button">保存</button>
+        <button class="me-mini me-mini--ghost" id="nameCancel" type="button">取消</button>
+      </div>
+      <span id="syncUserAcct" hidden></span>
       <span id="syncState" class="acct-sub"></span>
       <span id="lastSyncTs" class="acct-sub2"></span>
+      <p id="syncStatus" class="acct-sync"></p>
+      <div id="syncUserBox" style="display:none" class="me-acts">
+        <button class="acct-btn acct-btn--ghost" id="syncChangeBtn" type="button">修改密码</button>
+        <button class="acct-btn acct-btn--ghost" id="syncLogoutBtn" type="button">退出登录</button>
+      </div>
+      <div id="syncChangeForm" style="display:none" class="acct-form-row">
+        <input aria-label="当前密码" class="acct-input" id="sOldPass" type="password" placeholder="当前密码" autocomplete="current-password" />
+        <input aria-label="新密码" class="acct-input" id="sNewPass" type="password" placeholder="新密码（至少 6 位）" autocomplete="new-password" />
+        <button class="acct-btn acct-btn--light" id="syncChangeSave" type="button">保存新密码</button>
+      </div>
+      <div id="syncGuestBox" hidden class="me-acts">
+        <a class="acct-btn acct-btn--light" id="syncGoLogin" href="login.html?from=settings">去登录 →</a>
+      </div>
     </div>
-    <!-- 🔴 10-23 T-002 步1：删掉「账号与同步 →」按钮（原 .set-topmore）。
-         它存在的原因就是「顶部与账号组内容重复」的补丁 —— 现在改密/退出整块搬进
-         「我的账号」组（下面 profile pane 里），顶部只留身份三件，按钮自然多余。
-         顶部瘦身 = 任务书验收第 10 条「顶部条无改密/退出」。 -->
-    <!-- 10/5 她 14:29 删：「账号与同步」右边那条竖排英文 = #setVer 版本标记（v1004a）。
-         它是 10/4 她报「改了个寂寞、依旧点不动」时我加的自证工具（#setVer 常驻版本号），
-         当时确实有用（5a084c8 靠它定位到真 bug 是自动保存只绑 change），
-         **排查任务已完成，不该留在产品界面上占视觉。** 元素与 CSS 一并删除。
-         ⚠️ 以后再需要排查缓存，用 DevTools → Application → SW，不该往页面上贴标记。 -->
-
-    <!-- 头像弹层：挂在顶部状态行内（这里就是定位参照），切到任何一组都能弹出
-         （#avatarCard id 保留，av-picker.js 靠它判开关） -->
     <div id="avatarCard" hidden>
       <div class="av-pop" id="avatarPop" role="dialog" aria-modal="true" aria-label="更换头像">
         <div class="av-pop-head">
@@ -438,61 +495,18 @@ setTimeout(__rvRescue,2500);
            ⚠️ data-goto 现为四值 profile/targets/prefs/about，
               与 js/common.js 顶栏头像菜单 + Ctrl+, 的 ?pane= 是跨任务契约（T-003 按这个写）。
            ⚠️ go() 与 moveHit() 按值匹配不写死数量，零 JS 改动。 -->
-      <button class="set-nav-item on" type="button" data-goto="profile">我的账号</button>
-      <button class="set-nav-item" type="button" data-goto="targets">备考目标</button>
+      <button class="set-nav-item on" type="button" data-goto="targets">备考目标</button>
       <button class="set-nav-item" type="button" data-goto="prefs">学习偏好</button>
       <button class="set-nav-item" type="button" data-goto="about">反馈关于</button>
     </nav>
 
     <div class="set-panes">
       <!-- ===== 我的账号（T-002 步1：原「个人设置」拆开，昵称留下；深绿卡整块搬入）===== -->
-      <section class="set-pane on" data-pane="profile">
-    <section class="card set-card rv">
-      <h2>我的账号</h2>
-      
-      <div class="set-row">
-        <div class="set-row-t"><b>昵称</b></div>
-        <div class="set-row-c"><input id="sName" aria-label="昵称" maxlength="24" /></div>
-      </div>
-    </section>
-
-    <!-- 🔴 原「账号数据」里的深绿 .acct-card **整块搬来**（方案 §三：改密/退出/未登录引导进「我的账号」）。
-         DOM 钩子一个没改：syncStatus / syncUserBox / syncChangeBtn / syncLogoutBtn /
-         syncChangeForm / sOldPass / sNewPass / syncChangeSave / syncGuestBox / syncGoLogin
-         → js/settings.js 的 renderAuthUI() 与 authLogout() 零改动
-         （方案红线：把退出登录搬进本组时**不许改写它的绑定方式**，只搬 DOM）。 -->
-    <section class="card acct-card" style="margin-top:18px">
-        <p id="syncStatus"></p>
-
-        <!-- 已登录：改密码 + 退出 -->
-        <div id="syncUserBox" style="display:none">
-          <div class="acct-actions">
-            <button class="acct-btn" id="syncChangeBtn" type="button">修改密码</button>
-            <button class="acct-btn acct-btn--ghost" id="syncLogoutBtn" type="button">退出登录</button>
-          </div>
-          <div id="syncChangeForm" style="display:none">
-            <div class="acct-form-row">
-              <input aria-label="当前密码" class="acct-input" id="sOldPass" type="password" placeholder="当前密码" autocomplete="current-password" />
-              <input aria-label="新密码" class="acct-input" id="sNewPass" type="password" placeholder="新密码（至少 6 位）" autocomplete="new-password" />
-              <button class="acct-btn acct-btn--light" id="syncChangeSave" type="button">保存新密码</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 未登录：只给状态 + 一个引导键（10/3 22:55 她拍板：不要裸填账号密码） -->
-        <div id="syncGuestBox" hidden>
-          <p class="acct-guest-tip">数据只存在这台设备。登录后自动同步到云端。</p>
-          <div class="acct-actions">
-            <a class="acct-btn acct-btn--light" id="syncGoLogin" href="login.html?from=settings">去登录 →</a>
-          </div>
-        </div>
-      </section>
-      </section>
-
+      <!-- SET-1（10-26）：原「我的账号」组整组删掉 —— 昵称并进顶部身份卡（就地改名），
+           改密/退出/未登录引导也一并搬进身份卡右侧。四个 DOM 钩子全部保留、只换位置。 -->
       <!-- ===== 备考目标（T-002 步1：原「分数自评」整体搬来 + 原「个人设置」的考期）===== -->
-      <section class="set-pane" data-pane="targets" hidden>
+      <section class="set-pane on" data-pane="targets">
     <section class="card set-card rv" data-d="1">
-      <h2>分数目标与自评</h2>
       
       <div class="set-row">
         <div class="set-row-t"><b>下次考试日期</b></div>
@@ -517,7 +531,6 @@ setTimeout(__rvRescue,2500);
 
     <!-- 原「口语自评」卡（data-d 从 2 起顺延避免动画错位） -->
     <section class="card set-card rv" data-d="2">
-      <h2>口语自评</h2>
       
       
       <div class="set-row">
@@ -534,7 +547,6 @@ setTimeout(__rvRescue,2500);
            月亮云朵动画那段 #sThemeToggle 的 HTML/CSS **一行没动**（验收第 7 条） -->
       <section class="set-pane" data-pane="prefs" hidden>
     <section class="card set-card rv">
-      <h2>学习偏好</h2>
       
       <div class="set-row">
         <div class="set-row-t"><b>每日目标小时</b></div>
@@ -622,7 +634,6 @@ setTimeout(__rvRescue,2500);
               **零 JS 改动**，弹层/截图/联系方式/加微信那条全都原样保留。 -->
       <section class="set-pane" data-pane="about" hidden>
         <section class="card set-card rv" data-d="1">
-          <h2>反馈与关于</h2>
           
           <div class="set-row">
             <div class="set-row-t"><b>写反馈</b></div>
@@ -851,7 +862,7 @@ setTimeout(__rvRescue,2500);
         这是 AGENTS.md §12.3 硬规则 2「禁止调用后面才声明的名字」的翻版：
         跨 IIFE 等于跨作用域，var 提升只在自己的那个 IIFE 内生效。 */
   var PANES = ['profile', 'targets', 'prefs', 'about'];
-  var PANE_ALIAS = { data: 'profile', fb: 'about' };
+  var PANE_ALIAS = { data: 'profile', fb: 'about', profile: 'prefs' };   /* SET-1：账号组已并入顶部身份卡 → 老书签 ?pane=profile 落学习偏好不空页 */
   function paneFromUrl(){
     try{
       var v = new URLSearchParams(location.search).get('pane') || '';
@@ -1093,7 +1104,7 @@ setTimeout(__rvRescue,2500);
        paneFromUrl 必须在这里**重新声明一份**（原因见步 6 那处的详细注释）。
        值必须与那边完全一致，改要一起改。 */
     var PANES = ['profile', 'targets', 'prefs', 'about'];
-    var PANE_ALIAS = { data: 'profile', fb: 'about' };
+    var PANE_ALIAS = { data: 'profile', fb: 'about', profile: 'prefs' };   /* SET-1：账号组已并入顶部身份卡 → 老书签 ?pane=profile 落学习偏好不空页 */
     function paneFromUrl(){
       try{
         var v = new URLSearchParams(location.search).get('pane') || '';

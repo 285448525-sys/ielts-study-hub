@@ -265,7 +265,9 @@ body.word-fullscreen .hub-topbar{display:none !important}
           <div class="wd-nm" id="wdCurName">我的词库</div>
           <div class="wd-meta" id="wdCurMeta">—</div>
         </div>
-        <button class="wd-swap" id="wdSwapBook" type="button">换词书 ›</button>
+        <!-- WORD-3B（10-26，施工书 §2.4）：旧的「换词书 ›」小字链已移除 ——
+             它的作用是「回商城点卡切书」（五步），现由答题态头部的「词书名即切换器」取代（一步）。
+             原来的点击逻辑（switchWordTab('bank') + 回商城）不再保留。 -->
       </div>
       <div class="wd-card wd-today-card">
         <div class="wd-top">
@@ -324,9 +326,38 @@ body.word-fullscreen .hub-topbar{display:none !important}
       <div class="prog-bar-wrap" id="progBarWrap" hidden>
         <div class="prog-bar-track"><div class="prog-bar-fill" id="progBarFill" style="width:0%"></div></div>
       </div>
-      <div class="word-tools-row" id="wordToolsRow" hidden>
-        <button class="btn btn-sm icon-square-btn" id="cfgGear" title="练习设置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></button>
-        <button class="btn btn-sm icon-square-btn" id="fullscreenBtn" title="全屏沉浸式背单词"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg></button>
+      <!-- ═══ WORD-3B（10-26 · 稿=C 出、她已点头 · 1:1 还原）═══
+           把答题态头部换成稿子的「词书名即切换器」形态：
+             左 = 可点的词书名切换器（点了弹词书列表）· 中 = 今日已学进度 · 右 = 设置/全屏两枚工具
+           🔴 只换头部这一行，答题卡本体（#practiceBody 与判题/SRS 链）一行未动。
+           🔴 旧的「换词书 ›」小字链（#wdSwapBook，在 #preStart 里）已按施工书 §2.4 移除。
+           🔴 数据只用现成读接口：wbActive()/wbSetActive(id)/obBankReady(id)/wbLoaded(id)；
+              七本书的文案与词数口径复用商城那套（WM_BOOKS + wmCount/wmChapters），不造第二份。
+           结构/样式来源：design/_ws-word-switcher_结构原文.html + _ws-word-switcher_精确样式.css
+           验收基线 _ws-word-switcher_验收基线.json（28 元素） -->
+      <div class="ws-word-header ws-page" id="wdWordHeader" data-wordtools="1">
+        <!-- 🔴 这一行**必须继续挂 wordToolsRow 那个 id**：js/practice.js 的 ensureMasteredBtn()
+             往里塞「已掌握」按钮、另一处会把它的 hidden 置 false —— 删了 id 判题链会静默半死。
+             外观按稿子重做成「切换器 + 进度 + 工具」，DOM 契约不变。 -->
+        <div class="ws-book-pop-wrap" id="wordToolsRow">
+          <div class="ws-book-switcher" id="bsSwitcher" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false">
+            <span class="ws-bs-name" id="bsName">我的词库</span>
+            <span class="ws-bs-meta" id="bsMeta">—</span>
+            <span class="ws-bs-caret" aria-hidden="true">▾</span>
+          </div>
+          <div class="ws-book-pop" id="bsPop" role="listbox" hidden>
+            <div class="ws-bp-title">当前词书</div>
+            <div id="bsCurList"></div>
+            <div class="ws-bp-title" style="margin-top:4px">我的其他词书</div>
+            <div id="bsOtherList"></div>
+            <div class="ws-bp-add" role="button" id="bsAddMore">＋ 添加更多词书</div>
+          </div>
+        </div>
+        <div class="ws-wh-progress">今日已学 <b id="wsDoneN">0</b> / <b id="wsCapN">0</b></div>
+        <div class="ws-wh-tools">
+          <button class="ws-tool-btn" id="cfgGear" type="button" title="练习设置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></button>
+          <button class="ws-tool-btn ws-full" id="fullscreenBtn" type="button" title="全屏沉浸式背单词"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg></button>
+        </div>
       </div>
       <div id="practiceBody" class="practice-body-fit"></div>
       <div class="practice-tools-row" id="practiceTools">
@@ -418,11 +449,12 @@ body.word-fullscreen .hub-topbar{display:none !important}
     </section>
 
     <!-- ===== 10-23 4-3 词书库（版一：词书卡片网格）=====
-         她 10-5x 拍板：「我是想着后续要多加很多词书进去，所以现在这样两个栏切换完全不行」。
-         结构 = 一行标题（N 本 · 共 M 词）+ 卡片网格，末尾一张「+ 添加词书」虚线卡。
-         🔴 加新词书 = 网格里多一张卡，结构永远不变（这是本方案唯一命门）。
-         数据全部来自现有字段（每本书的 words / 进度 / 待复习数本来就在算），零新增存储。 -->
-    <section class="wb-lib" id="wbDeckGrid">
+         🔴 WORD-4（10-26）**已下线**：它和商城的点卡是两套语义（旧网格点卡 = 切书开练，
+         商城点卡 = 先看后设），并存会让人迷。现在选书统一走商城（#vMall）+ 答题态头部的
+         词书名切换器（WORD-3B）。
+         ⚠️ **DOM 节点与 id 一个都没删**（wbDeckGrid / wbLibTitle / wbLibSub / wbDecks）——
+         js/words.js 的 wbRenderDeckGrid 仍在往里写，删了会抛错。这里只加 hidden，纯视觉下线。 -->
+    <section class="wb-lib" id="wbDeckGrid" hidden>
       <div class="wb-lib-head">
         <b id="wbLibTitle">我的词书</b>
         <span id="wbLibSub"></span>
@@ -732,15 +764,9 @@ body.word-fullscreen .hub-topbar{display:none !important}
         window.__wdSetView('exam');
         return;
       }
-      /* 换词书 → 词库态默认落在**商城**（W-WORD-2 第 2 批）；旧词库内容收进 #wmLegacy，
-         点书卡或「＋ 导入我的词书」才展开。 */
-      if (t.closest('#wdSwapBook')){
-        ev.preventDefault();
-        try{ if (typeof switchWordTab === 'function') switchWordTab('bank'); }catch(e){}
-        wmShowMall();
-        wmRender();
-        return;
-      }
+      /* WORD-3B（10-26）：原「换词书 ›」小字链（#wdSwapBook）已移除，它的点击逻辑
+         （切到词库态 + 回商城）按施工书 §2.4「不保留」一并删除 ——
+         切书现在由答题态头部的「词书名即切换器」（#bsSwitcher）一步完成。 */
       if (t.closest('#wdModeBtn')){ ev.preventDefault(); openModePop(); return; }
       /* 手机端词库态「回到今天要背的」——桌面这个按钮 CSS 隐藏，走顶栏二级 */
       if (t.closest('#wdBackStudy')){
@@ -1024,6 +1050,10 @@ body.word-fullscreen .hub-topbar{display:none !important}
     { id: 'lstans',  nm: '听力填空答案词',   dir: 'listening',  own: 'official', mt: '真题填空真答案',        ic: 'audio',  src: '真题来源' }
   ];
   var WM_DIR_TXT = { listening: '听力', reading: '阅读', writing: '写作', speaking: '口语', mine: '我的' };
+  /* WORD-3B：答题态头部的「词书名即切换器」要用同一份词书档案（不造第二份）。
+     本文件是 IIFE，WM_BOOKS 不外露 → 显式挂到 window 给 HEAD 里那段脚本读。 */
+  window.__WM_BOOKS = WM_BOOKS;
+  try{ window.wmCount = wmCount; window.wmChapters = wmChapters; }catch(e){}
 
   var wmDir = 'all';
   var wmOwn = null;
@@ -1210,12 +1240,16 @@ body.word-fullscreen .hub-topbar{display:none !important}
         wmRender();
         return;
       }
-      /* ＋ 导入我的词书 → 展开导入折叠条（与旧网格那个 + 卡同一条路，零改动） */
+      /* ＋ 导入我的词书 → 展开导入折叠条。
+         🔴 WORD-4（10-26）：原来这里调 wmShowLegacy() 把整个旧容器（含旧书网格）翻出来，
+            而旧网格已下线 → 现在只**切到旧容器的壳**（导入卡住里面）并把导入卡展开，
+            旧书网格自己有 hidden、不会露出来。导入逻辑（id/取值）一行没动。 */
       if (t.closest('#wmDealAdd')){
         ev.preventDefault();
         var impBody = $('wlImpBody'), impBar = $('wlImpBar'), impCard = $('bankImportCard');
         if (impBody && impBar && impCard){
           wmShowLegacy();
+          var grid = $('wbDeckGrid'); if (grid) grid.hidden = true;   /* 旧网格下线后每次展开都确保它是收着的 */
           impBody.hidden = false;
           impCard.classList.add('open');
           impBar.setAttribute('aria-expanded', 'true');
@@ -1305,7 +1339,8 @@ body.word-fullscreen .hub-topbar{display:none !important}
     if (t.closest('#wdBackStudy')) return false;      // 手机：从词库回学习，就是要看今日卡
     if (t.closest('.top-nav')) return false;           // 顶栏导航（含「单词 → 学习」二级）
     if (t.closest('#hubDock')) return false;           // 手机底栏
-    if (t.closest('#wdSwapBook')) return false;        // 去词库
+    /* WORD-3B：原 #wdSwapBook 已移除 → 换成新的词书切换器（点它只是切书，不算「开始背词」） */
+    if (t.closest('#bsSwitcher') || t.closest('#bsPop')) return false;
     if (t.closest('#cfgModal')) return false;          // 设置弹窗
     return true;
   }
@@ -1351,7 +1386,171 @@ body.word-fullscreen .hub-topbar{display:none !important}
       window.__wdSetView(exam ? 'exam' : 'start');
       syncToday();
     }catch(e){}
+    /* WORD-3B：软导航重跑时也要把切换器名字/面板恢复对（DOM 是全新的，状态不会自己回来） */
+    try{ if (window.__bsBoot) window.__bsBoot(); }catch(e){}
   };
+})();
+
+/* ══════════════════════════════════════════════════════════════════════
+   WORD-3B（10-26）· 背词态头部「词书名即切换器」
+   ──────────────────────────────────────────────────────────────────────
+   稿 = design/_样子稿-单词页背词态切换器-2026-10-26.html（C 出、她已点头，1:1 还原）
+   🔴 只做「显示 + 切书」两件事：判题 / SRS / 队列 / 每日上限口径一律没碰。
+   🔴 数据全部走现成读接口，不造第二份：
+        wbActive() 当前书 · wbSetActive(id) 切书 · obBankReady(id) 等官方词包异步到
+        WM_BOOKS（商城的七本档案）+ wmCount/wmChapters（同一份词数口径）
+   🔴 幂等标记打**元素上**，不用 window 级（WORD-1 刚踩过：软导航换 <main> 后元素是新的、
+      window 标记是旧的 → 直接早退，面板永远打不开）。
+   ══════════════════════════════════════════════════════════════════════ */
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  /* 官方包的短图标（与商城卡片同一套口径：取书名首字） */
+  function icoOf(name){ return String(name || '词').trim().charAt(0) || '词'; }
+
+  /* 七本档案：用商城的 WM_BOOKS（同一份数据，经 window.__WM_BOOKS 暴露；
+     字段是 id / nm，不是 k / name —— 两边不统一过一次就会一本都列不出来） */
+  function books(){
+    try{
+      var wb = window.__WM_BOOKS;
+      if (Array.isArray(wb) && wb.length){
+        return wb.map(function(b){ return { k: b.id, name: b.nm, raw: b }; });
+      }
+    }catch(e){}
+    return [{ k:'custom', name:'我的词库' }];
+  }
+  function curId(){
+    try{ return (typeof wbActive === 'function') ? wbActive() : 'custom'; }catch(e){ return 'custom'; }
+  }
+  function countOf(b){
+    try{
+      if (b.k === 'custom') return (typeof DATA !== 'undefined' && Array.isArray(DATA.words)) ? DATA.words.length : 0;
+      if (typeof window.wmCount === 'function') return window.wmCount(b.raw || b);
+    }catch(e){}
+    return 0;
+  }
+  /* 「今日已学 / 上限」：与答题态底部 #wdQAll/#wdQLeft 同源，用现成的字段，不新算 */
+  function todayNumbers(){
+    var done = 0, cap = 0;
+    try{
+      var d = $('wdDone'), c = $('wdCap');
+      done = d ? (parseInt(String(d.textContent).replace(/\D/g,''), 10) || 0) : 0;
+      cap  = c ? (parseInt(String(c.textContent).replace(/\D/g,''), 10) || 0) : 0;
+    }catch(e){}
+    return { done: done, cap: cap };
+  }
+
+  function paintSwitcher(){
+    var nameEl = $('bsName'), metaEl = $('bsMeta');
+    if (!nameEl || !metaEl) return;
+    var id = curId();
+    var b = books().filter(function(x){ return x.k === id; })[0] || books()[0] || { k:'custom', name:'我的词库' };
+    var n = todayNumbers();
+    nameEl.textContent = b.name || '我的词库';
+    metaEl.textContent = countOf(b) + ' 词' + (n.cap ? (' · 今日 ' + n.done + '/' + n.cap) : '');
+  }
+
+  function itemHtml(b, cur){
+    var on = (b.k === cur);
+    return '<div class="ws-bp-item' + (on ? ' ws-active' : '') + '" role="option" aria-selected="' + (on ? 'true' : 'false') + '" data-book="' + b.k + '">'
+      + '<div class="ws-bp-ico">' + icoOf(b.name) + '</div>'
+      + '<div class="ws-bp-info"><div class="ws-bp-n">' + b.name + '</div>'
+      + '<div class="ws-bp-d">' + countOf(b) + ' 词</div></div>'
+      + '<div class="ws-bp-tick">✓</div></div>';
+  }
+  function paintPop(){
+    var cur = curId(), all = books();
+    var curList = $('bsCurList'), othList = $('bsOtherList');
+    if (!curList || !othList) return;
+    var curB = all.filter(function(x){ return x.k === cur; });
+    var others = all.filter(function(x){ return x.k !== cur; });
+    curList.innerHTML = (curB.length ? curB : all.slice(0,1)).map(function(b){ return itemHtml(b, cur); }).join('');
+    othList.innerHTML = others.map(function(b){ return itemHtml(b, cur); }).join('');
+  }
+
+  function isOpen(){ var p = $('bsPop'); return !!(p && !p.hidden); }
+  function openPop(){
+    var p = $('bsPop'), sw = $('bsSwitcher');
+    if (!p) return;
+    paintPop();
+    p.hidden = false;
+    if (sw) sw.setAttribute('aria-expanded', 'true');
+  }
+  function closePop(){
+    var p = $('bsPop'), sw = $('bsSwitcher');
+    if (!p) return;
+    p.hidden = true;
+    if (sw) sw.setAttribute('aria-expanded', 'false');
+  }
+  function togglePop(){ if (isOpen()) closePop(); else openPop(); }
+
+  /* 切书：官方词包没 loaded 先等它到再刷（与商城 wmOpenBook 同款异步一拍处理） */
+  function switchTo(id){
+    if (!id) return;
+    closePop();
+    try{
+      if (typeof wbSetActive === 'function') wbSetActive(id);
+    }catch(e){}
+    var needFetch = (id !== 'custom') && !(typeof wbLoaded === 'function' && wbLoaded(id));
+    function after(){
+      paintSwitcher();
+      try{ if (typeof autoStartSeeWord === 'function') autoStartSeeWord(); }catch(e){}   /* 队列按新书重开 */
+      try{ if (typeof renderWords === 'function') renderWords(); }catch(e){}
+    }
+    if (needFetch && typeof obBankReady === 'function'){
+      /* 异步期间给个轻提示，避免「点了没反应」 */
+      var meta = $('bsMeta'); if (meta) meta.textContent = '加载中…';
+      Promise.resolve(obBankReady(id)).then(after).catch(after);
+    } else {
+      after();
+    }
+  }
+
+  /* 绑定（幂等标记打元素上） */
+  function bind(){
+    var sw = $('bsSwitcher'), pop = $('bsPop');
+    if (!sw || !pop) return;
+    if (sw.__bsBound) return;
+    sw.__bsBound = true;
+
+    sw.addEventListener('click', function(ev){ ev.stopPropagation(); togglePop(); });
+    sw.addEventListener('keydown', function(ev){
+      if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); togglePop(); }
+      else if (ev.key === 'Escape') { closePop(); }
+    });
+    /* 面板内点书 / 添加更多 */
+    pop.addEventListener('click', function(ev){
+      ev.stopPropagation();
+      var it = ev.target.closest ? ev.target.closest('.ws-bp-item') : null;
+      if (it && it.getAttribute('data-book')) { switchTo(it.getAttribute('data-book')); return; }
+      if (ev.target.closest && ev.target.closest('#bsAddMore')) {
+        closePop();
+        try{ if (typeof switchWordTab === 'function') switchWordTab('bank'); }catch(e){}
+        return;
+      }
+    });
+    /* 点外面 / Esc 关 */
+    document.addEventListener('click', function(ev){
+      if (!isOpen()) return;
+      if (ev.target.closest && ev.target.closest('.ws-book-pop-wrap')) return;
+      closePop();
+    });
+    document.addEventListener('keydown', function(ev){
+      if (ev.key === 'Escape' && isOpen()) closePop();
+    });
+  }
+
+  window.__bsBoot = function(){
+    try{ bind(); paintSwitcher(); closePop(); }catch(e){}
+  };
+  /* 数据/词包变化时刷新名字与面板 */
+  document.addEventListener('wb:switched', function(){ try{ paintSwitcher(); }catch(e){} });
+  document.addEventListener('hub:data-merged', function(){ try{ paintSwitcher(); }catch(e){} });
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', window.__bsBoot);
+  else window.__bsBoot();
+  /* DATA 是 defer 加载的：稍后再刷一次（首帧那会儿 DATA 可能还没就绪） */
+  setTimeout(function(){ try{ paintSwitcher(); }catch(e){} }, 600);
+  setTimeout(function(){ try{ paintSwitcher(); }catch(e){} }, 1800);
 })();
 </script>
 
