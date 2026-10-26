@@ -44,6 +44,16 @@ ready(() => {
     const cur = (PAGES.find(p => p.file === f) || { id:null }).id;
     setTimeout(() => prefetchAll(cur), 1200);
   })();
+  /* ── DATA-1（10-26）：口语题库 89 条（brotli ~21KB）不占首屏关键路径 ──────────
+     它已搬到 js/data-static.js：speaking.html 用 <script defer> 直接引（那时已就绪），
+     其余页面到这里才拉 —— 页面已经可用，不拖首屏；拉到了才放行口语版本迁移 / 云合并 / 上传
+     （未就绪期间 speaking 不上传不合并，见 HUB_FACTORY.fieldReady）。
+     ⚠️ 只在空闲时拉，且和 prefetchAll 错开（预热链在忙时会让路，别互相抢带宽）。 */
+  (function loadStaticLater(){
+    const go = () => { try{ if(typeof HUB_FACTORY !== 'undefined' && HUB_FACTORY.ensureStatic) HUB_FACTORY.ensureStatic(); }catch(e){} };
+    if(window.requestIdleCallback) requestIdleCallback(go, { timeout: 3000 });
+    else setTimeout(go, 1500);
+  })();
   // 计时保存后刷新侧边栏「今日已学」（侧边栏在所有页面可见，需即时更新）。
   // ⚠️ 关键修复（导航高亮闪烁 bug）：原来这里调 injectNav() 会「整条重建侧边栏 nav.innerHTML」，
   //    而页面 ready→hubSave→hub:session-saved 在软导航收尾后触发该重建，重建瞬间高亮被按「滞后/旧的
