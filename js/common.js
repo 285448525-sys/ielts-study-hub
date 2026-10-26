@@ -337,9 +337,72 @@ function hubWrongCount(){
   }catch(e){}
   return ids.size;
 }
+/* ── MSG-DISMISS-1（10-26）：「今天还没学习」误报 ────────────────────────────────
+   她截图里「计划 5/5 项」和「今天还没学习」同屏自相矛盾。根因：本函数只认
+   DATA.sessions 里今天 durationSec>0 的会话，而**勾计划任务、背单词都不写这种 session**
+   （session 靠计时器/交卷写）→ 计划全做完照样判「没学习」。
+   修法：扩成三源任一即算学过（成熟站口径：当天有任何学习痕迹就不催）。
+   🔴 只放宽**判定**，不动任何写入侧 —— sessions 的写法、计时器、交卷逻辑一律不碰。 */
+var HUB_MSG_DISMISS_KEY = 'hub_msg_dismiss';
+function hubDismissMap(){
+  try{
+    var v = JSON.parse(localStorage.getItem(HUB_MSG_DISMISS_KEY) || '{}');
+    return (v && typeof v === 'object' && !Array.isArray(v)) ? v : {};
+  }catch(e){ return {}; }     // 键坏了当空对象 —— 不许抛错把消息中心带崩
+}
+function hubDismissed(kind){
+  var m = hubDismissMap();
+  return m[kind] === todayKey();     // 只挡「今天」，明天自动恢复（催学习本来就该按天）
+}
+function hubMsgDismiss(kinds){
+  try{
+    var m = hubDismissMap();
+    var t = todayKey();
+    (kinds || []).forEach(function(k){ m[k] = t; });
+    localStorage.setItem(HUB_MSG_DISMISS_KEY, JSON.stringify(m));
+  }catch(e){}
+  if(typeof hubRefreshBell === 'function') hubRefreshBell();
+  if(typeof hubRenderPop === 'function'){
+    try{ hubRenderPop(); }catch(e){}
+  }
+}
+/* 今日计划里有没有「已完成」的项（第 2 源）。
+   updatedAt 是毫秒时间戳，转日期时按**本地时区**拼（不能用 toISOString，那是 UTC，
+   北京时间 0~8 点会差一整天 —— HANDOFF 记过的老坑）。 */
+function hubPlanDoneToday(){
+  try{
+    var t = todayKey();
+    var pad = function(n){ return String(n).padStart(2, '0'); };
+    var plans = (DATA && DATA.plans) || [];
+    for(var i = 0; i < plans.length; i++){
+      var p = plans[i];
+      if(!p || !Array.isArray(p.items) || !p.items.length) continue;
+      var dateStr = p.date || '';
+      if(!dateStr && p.updatedAt){
+        var d = new Date(p.updatedAt);
+        if(!isNaN(d.getTime())) dateStr = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+      }
+      if(dateStr !== t) continue;
+      if(p.items.some(function(it){ return it && it.done; })) return true;
+    }
+  }catch(e){}
+  return false;
+}
+/* 今日有没有背过词（第 3 源）：沿用 sessions 里同日 type==='word' 的条目，不新造数据源。 */
+function hubWordTouchedToday(){
+  try{
+    var t = todayKey();
+    return (DATA.sessions || []).some(function(x){ return x && x.date === t && x.type === 'word'; });
+  }catch(e){ return false; }
+}
 function hubStudiedToday(){
   const t = todayKey();
-  return (DATA.sessions || []).some(x => x && x.date === t && (x.durationSec || 0) > 0);
+  /* 源①：带时长的会话（原判定，一行未改） */
+  if((DATA.sessions || []).some(x => x && x.date === t && (x.durationSec || 0) > 0)) return true;
+  /* 源②：今日计划有已完成项  ·  源③：今日背过词 */
+  if(hubPlanDoneToday()) return true;
+  if(hubWordTouchedToday()) return true;
+  return false;
 }
 /* 三类消息（每条 {kind, icon, title, sub, time, href, unread}） */
 function hubMsgs(){
@@ -365,10 +428,15 @@ function hubMsgs(){
   }
   const wn = hubWrongCount();
   if(wn > 0){
-    out.push({ kind:'c', icon:'book', title: wn + ' 个错词该复习了',
-      sub:'错词本里攒着，一键重练不占今日配额', time:'', href:'practice.html', unread:true });
+    /* MSG-DISMISS-1：错词提醒支持「今天别再提」 */
+    if(!hubDismissed('wrong')){
+      out.push({ kind:'c', icon:'book', title: wn + ' 个错词该复习了',
+        sub:'错词本里攒着，一键重练不占今日配额', time:'', href:'practice.html', unread:true });
+    }
   } else if(!hubStudiedToday()){
-    out.push({ kind:'c', icon:'book', title:'今天还没学习', sub:'从首页挑一件事开始，学一会儿就算数', time:'', href:'home.html', unread:true });
+    if(!hubDismissed('study')){
+      out.push({ kind:'c', icon:'book', title:'今天还没学习', sub:'从首页挑一件事开始，学一会儿就算数', time:'', href:'home.html', unread:true });
+    }
   }
   return out;
 }
@@ -449,8 +517,13 @@ function hubBindBell(){
   pop.addEventListener('click', function(e){
     const all = e.target.closest && e.target.closest('#tbBellAll');
     if(all){
-      /* 全部已读 = 公告清零（会员/学习提醒没有已读态，红点按当前状态重算，施工书 §3.2） */
+      /* 全部已读 = 公告清零 + 学习/错词两类**按今天 snooze**（MSG-DISMISS-1，10-26）。
+         为什么改：原来只清公告，而「今天还没学习」「N 个错词该复习了」是按当前状态现算的，
+         点完「全部已读」红点立刻原地复活 → 她的感受就是「清也清不掉」（她 18:4x 指截图报的）。
+         口径 = 成熟站的提醒 snooze 到明天（Notion/多邻国同款）：今天不再提，明天自动恢复。
+         会员到期提醒**不进 snooze** —— 它本身就是按状态算的、不该被「已读」抹掉。 */
       ancMarkRead(((_ancCache && _ancCache.items) || []).map(a => a.id));
+      hubMsgDismiss(['study', 'wrong']);
       hubBellClose();
       return;
     }
