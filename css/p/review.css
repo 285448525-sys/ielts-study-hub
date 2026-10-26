@@ -212,9 +212,12 @@ html[data-theme="dark"] .rvx-page{
    （那些功能 UI 全在旧面板里），而且 R-1 的四个老深链探针全红。
    只藏骨架已经覆盖的那三块（焦点块 / 趋势卡 / 全部记录卡），其余一律保留：
    #scAddWrap 录入表单、三个 rv-recall-only 折叠入口、#tab-breakdown 分项区、#tab-speaking 口语区。 */
+/* 🔄 RV-CLEAN-1b（10-26）：原来这第三条把 `.rv-recall`（「全部记录」#recAll）也藏了 ——
+   那块已整块搬出 #tab-overall 到 .rvx-page 末尾（它是「看上次结果」的唯一数据入口），
+   所以这里只留前两条（焦点块 / 趋势卡）；`.rv-recall` 那条选择器即使留着也已经不命中，
+   直接删掉免得以后有人以为它还在起作用。 */
 .review-wrap:has(#tab-score.active) #tab-overall .rv-focus,
-.review-wrap:has(#tab-score.active) #tab-overall .rv-trend-card,
-.review-wrap:has(#tab-score.active) #tab-overall .rv-recall{ display:none }
+.review-wrap:has(#tab-score.active) #tab-overall .rv-trend-card{ display:none }
 /* ═══ RV-CLEAN-1（10-26 · 她 18:2x：「上面那段改得不错，下面老的东西全部删掉」）═══
    成绩栏里所有旧面板整块藏掉 —— rvx 新版头已经覆盖了同样的信息，两版叠在一起就是「乱七八糟」。
    🔴 DOM 一个节点都不删：scores.js:19-42 按 #mkDate / #mkAdd / #addScore 等 id 取值，删了直接抛错。

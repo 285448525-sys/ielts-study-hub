@@ -30,7 +30,7 @@
 </script>
 <title>回顾 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261026n" />
-<link rel="stylesheet" href="css/p/review.css?v=20261026n" />
+<link rel="stylesheet" href="css/p/review.css?v=20261026p" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -724,20 +724,6 @@
                · 新增一个「全部记录」容器 #recAll，由 js/rec-all.js 从三个源读数据统一渲染
                · 三个原列表在桌面默认折叠成一行「只看某一类 ▾」（手机本来就一栏一屏，不动）
              ⚠️ 排序只做「展示层」—— 数据层的删除逻辑一个都没碰（施工书红线）。 -->
-        <section class="card rv-recall">
-          <div class="form-row mk-list-head" style="align-items:center">
-            <h2 class="inline-h2">全部记录</h2>
-            <span class="muted rv-recall-n" id="recAllCount"></span>
-            <span class="spacer"></span>
-            <!-- 只想看某一类：三个 chip，点了筛掉其他两类（默认全开） -->
-            <div class="rv-recall-chips" id="recAllChips">
-              <button type="button" class="rvc active" data-k="whole">整卷</button>
-              <button type="button" class="rvc active" data-k="part">分项</button>
-              <button type="button" class="rvc active" data-k="speaking">口语模考</button>
-            </div>
-          </div>
-          <div id="recAll"></div>
-        </section>
 
         <!-- 三个原列表：内容与渲染逻辑原样保留，桌面默认收起（见下方 rv-recall-only 段）。
              手机端仍是原来的样子，一栏一屏。 -->
@@ -1291,6 +1277,26 @@
             <button class="btn btn-primary" id="mkAdd">保存分项</button>
           </div>
         </details>
+  <!-- RV-CLEAN-1b（10-26）：`.card rv-recall`（「全部记录」#recAll + 三个筛选 chip）从 #tab-overall 里**整块搬出**。
+       根因：它原来在 #tab-overall 内部，被清场规则 `.review-wrap:has(#tab-score.active) #tab-overall{display:none}` 连坐藏掉 ——
+       而它是「看上次结果」的唯一数据入口（A 的 EXAM-PLAN-1 落点），藏了等于那条功能没有落点。
+       🔴 只搬位置、不删节点：js/rec-all.js 的 render() 靠 getElementById('recAll') 找容器，id 一个没动。
+       与 #mkAddWrap 同一个位置策略（上一批已这么搬过录入表单）。 -->
+        <section class="card rv-recall">
+          <div class="form-row mk-list-head" style="align-items:center">
+            <h2 class="inline-h2">全部记录</h2>
+            <span class="muted rv-recall-n" id="recAllCount"></span>
+            <span class="spacer"></span>
+            <!-- 只想看某一类：三个 chip，点了筛掉其他两类（默认全开） -->
+            <div class="rv-recall-chips" id="recAllChips">
+              <button type="button" class="rvc active" data-k="whole">整卷</button>
+              <button type="button" class="rvc active" data-k="part">分项</button>
+              <button type="button" class="rvc active" data-k="speaking">口语模考</button>
+            </div>
+          </div>
+          <div id="recAll"></div>
+        </section>
+
       </div><!-- /.rvx-page -->
 </main>
 
