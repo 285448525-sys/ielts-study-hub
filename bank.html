@@ -18,8 +18,8 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>模考 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261027e" />
-<link rel="stylesheet" href="css/p/bank.css?v=20261027e" />
+<link rel="stylesheet" href="css/common.css?v=20261027f" />
+<link rel="stylesheet" href="css/p/bank.css?v=20261027f" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -1637,7 +1637,17 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
    圆角 5px：她对标的那个站是圆角，直角太生硬。
    ⚠️ 只作用于 `.ex-html` 里的 inline 填空（summary/completion 题型）；
       右栏其它留白和表格单元格里的框仍走上面 ①⑦ 的原有规则，这次不动它们。 */
-#examRoot .ex-html .ex-blankw{height:1.15em;vertical-align:baseline;border-radius:5px}
+  /* 🔴 10-27 EXAM-FONT-DESC（她 10:5x 截图：「字母往下长的比如 q p 这种，下面那个脚被遮住了」）：
+  **上面那个 1.15em 太矮，下伸部被下边框切掉 3.7~4.3px**（20/23/27 三档实测）。
+  真凶不是行高继承 —— 是这个字体在 20px 下的「字身盒」要 27px（ascent+descent，参考 span 实测 27px），
+  而 1.15em 的框只给了 21px 可视区，多出来的 6px 上下各溢出 3.5px，下面那截正好落在边框外。
+  ⚠️ 施工书给的方案① `input{line-height:normal}` **实测无效**：27px 行盒塞进 21px 可视区，
+  Chrome 照样居中溢出，裁切读数与改前一字不差 —— 真正的约束是**框高**，不是行高。
+  → 高度 1.15em → **1.5em**（默认档 30px，可视区 28px > 字身盒 27px）：三档补齐度
+  98% / 100% / 100%（图见 交接/EXAM-FONT-DESC-*回报*.md）；题干行距**一行没动** ——
+  1.5em 仍小于题干 line-height 1.62em（三档段落高实测与改前相同；1.6em 就会顶开行距：
+  默认档 32.4 → 32.9，故停在 1.5em）。20~24px 那条旧验收区间随本条一并作废。 */
+#examRoot .ex-html .ex-blankw{height:1.5em;vertical-align:baseline;border-radius:5px}
 #examRoot .ex-html .ex-blankw input{font-size:1em;line-height:1;padding:0 7px}
 
 /* ---- ⑥ 右下 Previous/Next 方块：官方黑/浅灰（截图 22 实测 next=#000 prev=#ddd）---- */
@@ -2398,13 +2408,13 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
      （手机慢网 ~50KB/s → 约 1.5 秒）。加载时机：点开「写作」tab 时按序插入；
      首次 load 之后空闲再预热一次。承接代码在 js/bank.js 的 loadWritingScripts()。 -->
 <script defer src="js/data.js?v=20261027c"></script>
-<script defer src="js/common.js?v=20261027e"></script>
-<script defer src="js/common-ai.js?v=20261027e"></script>
-<script defer src="js/common-sync.js?v=20261027e"></script>
-<script defer src="js/common-merge.js?v=20261027e"></script>
-<script defer src="js/common-cloud.js?v=20261027e"></script>
-<script defer src="js/common-shell.js?v=20261027e"></script>
-<script defer src="js/common-pwa.js?v=20261027e"></script>
+<script defer src="js/common.js?v=20261027f"></script>
+<script defer src="js/common-ai.js?v=20261027f"></script>
+<script defer src="js/common-sync.js?v=20261027f"></script>
+<script defer src="js/common-merge.js?v=20261027f"></script>
+<script defer src="js/common-cloud.js?v=20261027f"></script>
+<script defer src="js/common-shell.js?v=20261027f"></script>
+<script defer src="js/common-pwa.js?v=20261027f"></script>
 <script defer src="js/bank.js?v=20261026r"></script>
 <!-- M-2（10-24）：模考页「没做过/做过」分组 + 展开更多。
      ⚠️ 本文件只做展示层（读 hub_bank_last_* 分组 + 首屏 20 条），判分/SRS/本地记录一律不碰；
