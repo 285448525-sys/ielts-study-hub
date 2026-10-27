@@ -20,7 +20,7 @@ setTimeout(__rvRescue,2500);
 <meta http-equiv="Expires" content="0" />
 <title>设置 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261026v" />
-<link rel="stylesheet" href="css/p/settings.css?v=20261026v" />
+<link rel="stylesheet" href="css/p/settings.css?v=20261026x" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -362,7 +362,7 @@ setTimeout(__rvRescue,2500);
   <script defer src="js/feedback.js?v=20261013b"></script>
   <!-- 10/3 头像选择（DiceBear CC0 素材；必须在 data.js/common.js 之后 —— 它读 DATA.settings.avatar） -->
   <script defer src="js/av-picker.js?v=20261022a"></script>
-  <script src="js/settings.js?v=20261026s" defer></script>
+  <script src="js/settings.js?v=20261026t" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -914,7 +914,10 @@ setTimeout(__rvRescue,2500);
         DATA.settings.fontScale = mode;
         DATA.settings._fieldTs = DATA.settings._fieldTs || {};
         DATA.settings._fieldTs.fontScale = Date.now();
-        if(typeof hubSave === 'function') hubSave();
+        /* SET-2b：全量落盘走 500ms 防抖（setSaveSoon 在 js/settings.js，defer 先于本内联执行），
+           字号本身已即时应用（applyFontScale 挂 html[data-font]） */
+        if(typeof setSaveSoon === 'function') setSaveSoon();
+        else if(typeof hubSave === 'function') hubSave();
         if(DATA.settings.syncCode && typeof scheduleCloudUpload === 'function') scheduleCloudUpload();
       });
     }
