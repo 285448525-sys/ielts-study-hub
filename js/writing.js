@@ -1108,7 +1108,7 @@ ${s.text}` }
        +good+gap+dims 四维子项），默认 4096 输出窗口在长作文上会被截断 → 解析失败 → 页面退回「显示原文」。
        先例 = common-ai.js:169 素材深挖同参 8192。三处 writing_score 调用一起给，口径统一。 */
     const content = await callRelay('writing_score', messages, 0.35, { max_tokens: 8192 });
-    const r = aiJson(content);
+    const r = wtBandUp(aiJson(content));   /* WRT-BAND-UP-1：代码侧确定性 +0.5（她两次报偏低） */
     if(!r){
       box.innerHTML = '<div class="ts-sec"><h4>AI 原文（没按格式回）</h4><div style="white-space:pre-wrap;font-size:13.5px;line-height:1.8">' + escapeHtml(content) + '</div></div>';
       DATA.writingScores.push({ id: uid(), date: todayKey(), mode:'template', tplId: s.tpl.id, tplTitle: s.tpl.title, tplCat: s.tpl.category, essay: s.text, result: content, parsed:false });
@@ -2071,7 +2071,7 @@ ${ANCHOR_TABLE_EN}
   try{
     const content = await callRelay('writing_score', messages, 0.4, { max_tokens: 8192 });   /* WRT-JSONTRUNC-1：防长 JSON 截断 */
     // Bug18：复用 aiJson 解析（已处理 ```json 围栏与前后废话），避免重复解析逻辑
-    const result = aiJson(content);
+    const result = wtBandUp(aiJson(content));   /* WRT-BAND-UP-1：代码侧确定性 +0.5 */
     if(!result){
       // JSON 解析失败，降级显示原始文本
       bodyEl.innerHTML = '<div class="score-section"><h4>AI 原文（没按格式回）</h4><div style="white-space:pre-wrap;font-size:14px;line-height:1.8">' + escapeHtml(content) + '</div></div>';
@@ -2095,6 +2095,47 @@ ${ANCHOR_TABLE_EN}
     btn.disabled = false; btn.innerHTML = btnHtml;
     renderScoreHist();
   }
+}
+
+/* ===== WRT-BAND-UP-1（10-27 她两次报：「这个打分的Prompt你们改了吗，跟你们说了总体偏低太多了，
+   整体上调0.5分」）=====
+   上一次 WRT-SCORE-SOFT-1 的处理方式是**在提示词里请模型自己上调半档**，实际不管用：
+   模型两次给同类型作文分别打了 5.5 和 5.0（她的两张截图），说明它并没有稳定执行这句话。
+   口径改成 **代码侧确定性上调**，不再依赖模型配合：
+   解析结果到手后，把 overall 与四项 breakdown 一起 +0.5，封顶 9.0。
+   为什么这么做：
+   ① 她连着报两次，说明「靠 prompt 软调」这条路在真机上没兑现；
+   ② 代码加是**恒定、可验证**的——同一份 AI 输出永远得到同一个调整后分数，不会这次调下次不调；
+   ③ 只动分数，不动判错（语法错误照列、复杂句照指），note 与 anchors 原样保留。
+   ⚠️ 只在「正向加点」的材料上做，不做四舍五入到不存在的档；AI 给的 4.5 加上去是 5.0（合法档位）。
+   ⚠️ 幂等：加了 `_bandup` 标记，同一结果对象不会被重复加（防重渲染/重存时叠两次）。 */
+function wtBandUp(result){
+  if(!result || typeof result !== 'object') return result;
+  if(result._bandup) return result;                       /* 幂等：已调过就不再动 */
+  const UP = 0.5, CAP = 9.0;
+  const bump = v => {
+    const n = Number(v);
+    if(!isFinite(n)) return v;
+    return Math.min(CAP, Math.round((n + UP) * 2) / 2);   /* 保持 0.5 档位，封顶 9.0 */
+  };
+  if(result.overall != null) result.overall = bump(result.overall);
+  if(result.breakdown && typeof result.breakdown === 'object'){
+    Object.keys(result.breakdown).forEach(k => {
+      if(result.breakdown[k] != null) result.breakdown[k] = bump(result.breakdown[k]);
+    });
+  }
+  /* dims 里的分项 band 只做展示用，跟着一起抬，避免「总分 5.5 但四项全是 5」的对不上 */
+  if(result.dims && typeof result.dims === 'object'){
+    Object.keys(result.dims).forEach(d => {
+      const items = result.dims[d] && result.dims[d].items;
+      if(Array.isArray(items)){
+        items.forEach(it => { if(it && it.band != null) it.band = bump(it.band); });
+      }
+    });
+  }
+  try { Object.defineProperty(result, '_bandup', { value: 1, enumerable: false }); }
+  catch(e){ result._bandup = 1; }
+  return result;
 }
 
 /* 方案 23：写作 AI 评分结果回流到回顾页「分项模考」看板（DATA.mockRecords, type:'writing'）。
@@ -2802,7 +2843,7 @@ ${ANCHOR_TABLE_EN}
   (async () => {
     try{
       const content = await callRelay('writing_score', messages, 0.4, { max_tokens: 8192 });   /* WRT-JSONTRUNC-1：防长 JSON 截断 */
-      const result = aiJson(content);
+      const result = wtBandUp(aiJson(content));   /* WRT-BAND-UP-1：代码侧确定性 +0.5 */
       if(!result){
         box.innerHTML = '<div class="ts-sec"><h4>AI 原文（没按格式回）</h4><div style="white-space:pre-wrap;font-size:14px;line-height:1.8">'+escapeHtml(content)+'</div></div>';
         toast('AI 返回格式异常，已显示原文');
