@@ -331,6 +331,18 @@
 .rv-recall-chips .rvc:hover{border-color:var(--primary-300);color:var(--primary-700)}
 .rv-recall-chips .rvc.active{background:var(--primary-50);border-color:var(--primary-300);color:var(--primary-700)}
 .rv-recall-chips .rvc:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(58,154,147,.25)}
+/* RV-RECALL-COL-1（10-27）：details 默认收起样式 */
+.rv-recall-det{border:none;background:transparent;padding:0}
+.rv-recall-det > summary.rv-recall-sum{
+  cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;
+  padding:0 0 8px;font-size:14px;font-weight:600;color:var(--ink);
+}
+.rv-recall-det > summary.rv-recall-sum::-webkit-details-marker{display:none}
+.rv-recall-det > summary.rv-recall-sum::before{
+  content:'▸';color:var(--muted);margin-right:6px;display:inline-block;transition:transform .2s;flex:none;
+}
+.rv-recall-det[open] > summary.rv-recall-sum::before{transform:rotate(90deg)}
+.rv-recall-det > .rv-recall-body{padding-top:4px}
 #recAll{margin-top:4px}
 .rec-row{
   display:flex;align-items:center;gap:12px;padding:10px 2px;
@@ -1324,18 +1336,28 @@
        🔴 只搬位置、不删节点：js/rec-all.js 的 render() 靠 getElementById('recAll') 找容器，id 一个没动。
        与 #mkAddWrap 同一个位置策略（上一批已这么搬过录入表单）。 -->
         <section class="card rv-recall">
-          <div class="form-row mk-list-head" style="align-items:center">
-            <h2 class="inline-h2">全部记录</h2>
-            <span class="muted rv-recall-n" id="recAllCount"></span>
-            <span class="spacer"></span>
-            <!-- 只想看某一类：三个 chip，点了筛掉其他两类（默认全开） -->
-            <div class="rv-recall-chips" id="recAllChips">
-              <button type="button" class="rvc active" data-k="whole">整卷</button>
-              <button type="button" class="rvc active" data-k="part">分项</button>
-              <button type="button" class="rvc active" data-k="speaking">口语模考</button>
+          <!-- RV-RECALL-COL-1（10-27）：「全部记录」卡默认收起。
+               用户原话：「全部记录我想默认收起最底下这个东西」。
+               做法 = 套 <details> 默认不 open，summary 露标题+计数+三个筛选 chip
+               （chip 点了筛掉内部列表，收起时也能一眼看到当前筛了哪些类型）。
+               🔴 内部节点一个没删 —— #recAll / #recAllCount / #recAllChips id 不变，
+               js/rec-all.js 的 getElementById 链路零改动。details 内部节点在 DOM 里，
+               只是 display:none → 事件委托照常绑。 -->
+          <details class="rv-recall-det">
+            <summary class="rv-recall-sum">
+              <span class="inline-h2">全部记录</span>
+              <span class="muted rv-recall-n" id="recAllCount"></span>
+              <span class="spacer"></span>
+              <div class="rv-recall-chips" id="recAllChips">
+                <button type="button" class="rvc active" data-k="whole">整卷</button>
+                <button type="button" class="rvc active" data-k="part">分项</button>
+                <button type="button" class="rvc active" data-k="speaking">口语模考</button>
+              </div>
+            </summary>
+            <div class="rv-recall-body">
+              <div id="recAll"></div>
             </div>
-          </div>
-          <div id="recAll"></div>
+          </details>
         </section>
 
   <!-- ═══ EMP-1（10-26）· 空态区 ═══
