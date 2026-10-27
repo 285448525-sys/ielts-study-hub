@@ -51,7 +51,7 @@
   <script defer src="js/feedback.js?v=20261027a"></script>
   <script defer src="js/factory-writing.js?v=20261023b"></script>
 <script defer src="js/writing_prompts.js?v=20260903ab"></script>
-  <script defer src="js/writing.js?v=20261027h"></script>
+  <script defer src="js/writing.js?v=20261027i"></script>
 <style>
 
   /* ===== 10-23 W-1：撤左栏 → 单列 + 横向筛选带（方案 §二）
@@ -276,6 +276,20 @@
   /* 模板填空 → AI 评分（紧凑版） */
   .tpl-score{margin-top:12px;border:1px solid var(--line);border-radius:var(--radius);padding:14px;background:var(--surface)}
   .tpl-score .ts-load{color:var(--muted);font-size:14px}
+  /* WRT-PENDANT-1（10-27 她：「点击提交之后最好有一个 AI 正在批改中的交互动画」）：
+     三处提交点共用的占位态 —— 一行「AI 正在批改中」+ 三点依次跳动。
+     只做微动效，不承诺秒数、不放进度条（进度条会变成假承诺）。
+     全部走站内 token，深浅/三套外观自动跟随。 */
+  .wt-scoring{display:flex;align-items:center;gap:10px;padding:14px 4px;color:var(--muted);font-size:14px}
+  .wt-scoring-dots{display:inline-flex;gap:5px;align-items:center;flex:0 0 auto}
+  .wt-scoring-dots i{width:6px;height:6px;border-radius:50%;background:var(--primary,#3a9a93);opacity:.35;animation:wtDot 1.2s ease-in-out infinite}
+  .wt-scoring-dots i:nth-child(2){animation-delay:.15s}
+  .wt-scoring-dots i:nth-child(3){animation-delay:.3s}
+  @keyframes wtDot{0%,80%,100%{opacity:.35;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
+  /* 尊重系统「减少动态效果」：关掉跳动，只保留文字（无障碍底线） */
+  @media (prefers-reduced-motion: reduce){
+    .wt-scoring-dots i{animation:none;opacity:.6}
+  }
   .ts-top{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px}
   .ts-overall{font-size:26px;font-weight:800;color:var(--primary);line-height:1}
   .ts-dims{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-bottom:12px}

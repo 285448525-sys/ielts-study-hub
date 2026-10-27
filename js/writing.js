@@ -39,6 +39,24 @@ try{ if(localStorage.getItem('wrtTplView') === 'list') tplView = 'list'; }catch(
    - scoreEssay / examStopAndScore 的门槛用 essay.length（那是**字符数**，30 词≈390 字符，直接放行）
    雅思官方算法按「非空白字符段」计词，这里用 /\S+/g 对齐同站 AI 评分 tab 既有口径。 */
 function wtCountWords(text){ return (String(text || '').trim().match(/\S+/g) || []).length; }
+/* ===== WRT-PENDANT-1（10-27 她：「点击提交之后最好有一个 AI 正在批改中的交互动画」）=====
+   三处提交点（模板评分 / 评分 tab 整篇 / 机考交卷）原来只有一句静态灰字，
+   文案还不统一（两处中文、一处英文），提交完十几秒里页面看着像卡死了。
+   这里做成一个共用占位：一行「正在批改」+ 三点跳动，出口统一。
+   ⚠️ 文案按事实写：只说「正在批改」不承诺秒数（10-27 规矩：不写没兑现的承诺）。
+   ⚠️ 三个入口进、三个入口出：正常出分、AI 报错、用户中途退出，都必须把它收掉，
+      否则下次进来还挂着上一次的「正在批改」。paint 前后的清理见各入口的 finally。 */
+function wtScoringHtml(label){
+  return '<div class="wt-scoring" role="status" aria-live="polite">'
+    + '<span class="wt-scoring-dots" aria-hidden="true"><i></i><i></i><i></i></span>'
+    + '<span class="wt-scoring-t">' + escapeHtml(label || 'AI 正在批改中') + '</span>'
+    + '</div>';
+}
+/* 收尾：把占位换成正常内容（content 为空时清空），保证任何路径都不会残留 */
+function wtScoringDone(host, html){
+  if(!host) return;
+  host.innerHTML = html || '';
+}
 /* 9/17 之之拍板：评分门槛按官方要求分题型 —— Task 1 ≥150 词、Task 2 ≥250 词。
    真题页给考生的指令一直印着 "Write at least 250/150 words"，门槛必须跟它一致。 */
 function wtMinWords(type){ return type === '大作文' ? 250 : 150; }
@@ -1061,7 +1079,7 @@ async function scoreTemplate(){
   const box = $('#tplScoreBox');
   btn.disabled = true; btn.textContent = '评分中…';
   box.hidden = false;
-  box.innerHTML = '<div class="ts-load">AI 正在按官方 4 维度看你填的内容，十几秒…</div>';
+  box.innerHTML = wtScoringHtml('AI 正在批改中');   /* WRT-PENDANT-1 */
 
   const messages = [
     { role:'system', content:
@@ -2026,7 +2044,7 @@ async function scoreEssay(){
   const resultEl = $('#scoreResult');
   const bodyEl = $('#scoreResultBody');
   resultEl.style.display = 'block';
-  bodyEl.innerHTML = '<p class="muted">正在分析你的作文，请稍候…</p>';
+  bodyEl.innerHTML = wtScoringHtml('AI 正在批改中');   /* WRT-PENDANT-1 */
 
   /* 10/8 有题目时追加切题度判定要求（无题目 = 与旧版 prompt 完全一致） */
   const topicBlock = topic ? `
@@ -2967,7 +2985,7 @@ function examStopAndScore(){
   if(btn){ btn.disabled = true; btn.textContent = '评分中…'; }
   const box = $('#examResult');
   box.hidden = false;
-  box.innerHTML = '<div class="ts-load">Scoring your response…</div>';
+  box.innerHTML = wtScoringHtml('AI 正在批改中');   /* WRT-PENDANT-1 */
   /* 10/8 有题目（自练题）时追加切题度判定要求 */
   const topicBlock = customTopic ? `
 8. 用户消息里提供了「题目」。额外输出 topicJudge：
@@ -3314,6 +3332,9 @@ function bindExam(){
     document.body.classList.remove('exam-fullscreen');
     examExitLock(true);   /* 🔴 10/20：真正离开写作考场 → 解锁导航 + 取消 SW 保护 + 执行待刷新 */
     $('#examPractice').hidden = true;
+    /* WRT-PENDANT-1：退出时把结果区收掉。否则「正在批改」的占位会留在这里，
+       下次进考场先看到上一次还在跳的三点，像卡住了。 */
+    const _er = $('#examResult'); if(_er){ _er.innerHTML = ''; _er.hidden = true; }
     /* 10/8：自练题退回评分面板（题目框还留着）；真题流程照旧回列表。
        10/8 她要求：退出全屏后作文同步回评分面板的输入框——
        只在有内容且内容确实不同才覆盖（避免把她已粘的外层内容清掉），派发 input 让词数徽标一起刷新。 */
