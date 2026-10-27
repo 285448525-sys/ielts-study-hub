@@ -30,20 +30,25 @@
 .hero .vip-chip.free{color:var(--muted)}
 .hero .vip-chip.vip{color:var(--warn-ink)}
 /* 距考大数字：38px 等宽（§四.1 只有数字 + 「天后机考」，没有编造小字） */
-/* HOME-CD-1：JS 输出的是**行内混排**「距机考还有<b>N</b>天」（js/index.js:190），
-   b 不许 display:block —— 旧版是竖排大字，HOME-VISUAL-1 把 hero 改成一行后这条就成了 bug
-   （实测 3 行 / 容器 75×87px，她 22:3x 截图报「那块有点怪怪的」）。
-   容器改 flex + baseline：三个片段沿基线对齐，大数字不会把行高压成怪比例。 */
-.countdown{display:flex;align-items:baseline;justify-content:flex-end;gap:2px;
-  text-align:right;white-space:nowrap;flex:none;font-size:12px;color:var(--muted)}
+/* HOME-CD-1 / CD-1b：JS 输出的是**行内混排**「距机考还有<b>N</b>天」（js/index.js:190），
+   旧版 CSS 让 b 独占一行（竖排大字残留）→ 三行 / 容器 75×87px（她 22:3x 截图报「有点怪怪的」）。
+
+   🔴 CD-1 第一版把父容器改成了 flex —— **反而把修法作废**：
+      CSS Flexbox 规范规定 flex/grid 的**直接子元素会被强制块级化（blockification）**，
+      `display:inline` / `inline-block` 一律按 `block` 计算，这是规范行为、不报错。
+      实测：规则匹配到了、`el.style.display='inline'` 强改、甚至塞一个裸 <b> 进去，计算值全是 block。
+   → CD-1b 按方案 A 返工：**父容器回到普通行内流（不是 flex）**，b 的 inline 才生效。
+      大数字 38px 与 12px 文字混排，用 vertical-align 微调视觉重心；line-height:1 防撑高。 */
+.countdown{text-align:right;white-space:nowrap;flex:none;font-size:12px;color:var(--muted);line-height:1}
 .countdown b{display:inline;margin:0 2px;font:800 38px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
-  letter-spacing:-.06em;color:var(--primary-800);font-variant-numeric:tabular-nums}
+  letter-spacing:-.06em;color:var(--primary-800);font-variant-numeric:tabular-nums;vertical-align:-2px}
 .countdown span{font-size:11px;color:var(--muted);white-space:nowrap}
 /* 未设考试日期态：一行小 chip（§四.1 要求，不许出现稿上没有的承诺）
-   🔴 chip 内部也必须是 inline 一行，不能被 .countdown 的 flex/gap 拆成两段。 */
+   🔴 chip 内部两个 span 也必须是 inline —— 一行显示，不能拆成两段。 */
 .countdown .hero-setdate{display:inline-flex;align-items:center;gap:6px;background:var(--primary-50);
   border:1px solid var(--primary-200);color:var(--primary-800);text-decoration:none;
-  font-size:12px;font-weight:700;padding:6px 12px;border-radius:10px;white-space:nowrap;width:auto}
+  font-size:12px;font-weight:700;padding:6px 12px;border-radius:10px;white-space:nowrap;width:auto;
+  vertical-align:middle}
 .countdown .hero-setdate:hover{background:var(--primary-100)}
 .countdown .hero-setdate .hs-t,.countdown .hero-setdate .hs-a{display:inline;white-space:nowrap}
 .countdown .hero-setdate .hs-a{font-size:11.5px;color:var(--primary-700)}
