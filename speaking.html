@@ -32,7 +32,7 @@
 </script>
 <title>口语 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261027m" />
-<link rel="stylesheet" href="css/p/speaking.css?v=20261027m" />
+<link rel="stylesheet" href="css/p/speaking.css?v=20261027n" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -77,7 +77,7 @@
   <!-- 10-24 T-009 S-6：L/M 区（口语自动计时 + 回车跳题钩子）拆出 js/sp-timer.js（171 行）。
        🔴 var SPK_AUTO_MIN_SEC 必须与 commitSpkTimer 同文件且更靠前 —— 搬家时两者一起走、先后不变。 -->
   <script defer src="js/sp-timer.js?v=20261023a"></script>
-  <script defer src="js/sp-list.js?v=20261025d"></script>
+  <script defer src="js/sp-list.js?v=20261027n"></script>
   <!-- 10-23 T-009 S-4：G 区（P2 串题，design/87）拆出 js/sp-story.js（685 行）。
        排在 sp-diag.js 之前 —— J 区（诊断）要用它的 spPersonaLine / spDiagTierHead。 -->
   <script defer src="js/sp-story.js?v=20261023a"></script>
@@ -2840,6 +2840,22 @@ html[data-theme="dark"] #detailBody .td-wordcount b{color:var(--primary-200)}
          内容由 speaking.js 的 renderCockpit() 现算渲染（考试日/主按钮/三项统计），此处仅留容器。
          ⚠️ 倒计时数据源仍是 examCountdown()（common.js）——口径不变，只是换了承载。 -->
     <div class="sp-cockpit" id="spCockpit"></div>
+
+    <!-- SPK-INFO-1（10-27 她：「题库说明弄一个在口语题库练习页面，说明上次啥时候更新、
+         收集的是近一周的考试频率数据、大概多久更新一次」）：题库说明折叠标。
+         形态照 BANK-INFO-1 同款（bank.html 那个 details），类名一律 spk- 前缀防撞。
+         🔴 上次更新日期由 js/sp-list.js 的 renderSpkinfo() 从 SPEAKING_BANK_META.updated 现读，
+            这里只留空占位 —— **不写死日期**，以后改题库只动 data.js 的 META 一处，这里自动跟上。
+         🔴 更新频率按事实写：档位不定期重算、题库随换题季整库更换；不写「每周更新」这类站内没兑现的承诺。
+         ⚠️ 纯静态 HTML + 一处日期回填；不碰 js/bank.js（判分域）。 -->
+    <details class="spk-info">
+      <summary>题库说明</summary>
+      <div class="spk-info-body">
+        <div><span class="spk-info-k">上次更新</span><b class="spk-upd-date" id="spkUpdDate"></b></div>
+        <div><span class="spk-info-k">数据来源</span>考频档位按近一周大陆考区考试频率统计（考频清单口径）</div>
+        <div><span class="spk-info-k">更新频率</span>档位不定期重算；题库随换题季整库更换（每年 1 月 / 5 月 / 9 月初）</div>
+      </div>
+    </details>
 
     <!-- 工具行：P1/P2 分段 + 模考入口 + 搜索 + 三个筛选。
          ⚠️ 所有 id 与选项一律保留（freqSelect/catSelect/stateSelect/spPartSeg/spMockJumpBtn/spSearch），

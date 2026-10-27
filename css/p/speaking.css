@@ -130,3 +130,17 @@
   .mock-total-timer b{font-size:16px}
   .mock-total-timer-note{font-size:11px}
 }
+/* ===== SPK-INFO-1（10-27）：语音页「题库说明」折叠标 =====
+   形态与 bank.html 的 .bank-info 同款（墨线细框 + ▸/▾ 三角 + 12.5px 小字），
+   只换 spk- 前缀以免与题库页/共享层撞类。收起态一行 ≤40px，不撑首屏。
+   ⚠️ 颜色全部走站内 token，不写死值 —— 深/浅两档自动跟随。 */
+.spk-info{margin:0 0 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.spk-info summary{cursor:pointer;padding:8px 12px;font-size:12.5px;font-weight:650;color:var(--muted);list-style:none}
+.spk-info summary::-webkit-details-marker{display:none}
+.spk-info summary::before{content:'▸ ';color:var(--primary-600)}
+.spk-info[open] summary::before{content:'▾ '}
+.spk-info summary:focus-visible{outline:2px solid var(--primary-600);outline-offset:2px;border-radius:8px}
+.spk-info-body{padding:0 12px 10px;font-size:12.5px;color:var(--muted);line-height:1.7}
+.spk-info-body > div{margin-top:2px}
+.spk-info-k{display:inline-block;min-width:62px;color:var(--muted);opacity:.85}
+.spk-info-body b{color:var(--ink);font-weight:650}
