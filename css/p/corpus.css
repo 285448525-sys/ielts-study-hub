@@ -275,7 +275,20 @@
 .kc-page .kc-dm-card .kc-btn{ flex: 0 0 auto; }
 .kc-page .kc-cp-search{ margin: 14px 0px; }
 .kc-page .kc-search-field{ display: flex; align-items: center; max-width: 360px; height: 44px; padding: 0px 12px; border: 1px solid var(--kc-line); border-radius: 10px; background: var(--kc-soft); }
-.kc-page .kc-search-field input{ width: 100%; min-width: 0px; border: 0px; outline: 0px; background: transparent; color: var(--kc-text); }
+/* 🔴 SRCH-BOX-1（10-27 她：「搜索输入框很多都是一个大框包着一个小框，我要的效果是只有一个大框」）：
+   这行是 `.kc-search-field input`（特异性 0,1,1），**压不过** css/common.css:593 那条全局规则
+   `input:not([type=checkbox]):not([type=radio]):not([type=range])`（0,3,1）——
+   于是内层 input 又吃到了 1px 边框 + 44px 高 + 白底，套在外层框里就是「大框包小框」。
+   修法 = 把选择器提到与全局同档（加 :not() 三连，0,3,1 同档后再靠「后面写」取胜）。
+   只改搜索框，不动其它输入框。 */
+.kc-page .kc-search-field input:not([type=checkbox]):not([type=radio]):not([type=range]){
+  width: 100%; min-width: 0px; border: 0px; outline: 0px; box-shadow: none;
+  background: transparent; color: var(--kc-text); height: 100%; padding: 0;
+}
+/* 聚焦时也不许长边框/阴影 —— 焦点反馈交给外层 .kc-search-field:focus-within */
+.kc-page .kc-search-field input:not([type=checkbox]):not([type=radio]):not([type=range]):focus{
+  border: 0px; box-shadow: none; background: transparent;
+}
 .kc-page .kc-ui-field-clear{ border: 0px; background: none; color: var(--kc-muted); padding: 0px 4px; }
 .kc-page .kc-cc-empty{ padding: 26px 12px; text-align: center; border: 1px dashed var(--kc-line); border-radius: 10px; color: var(--kc-muted); font-size: 13px; }
 .kc-page .kc-add-tabs{ display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0px; }
