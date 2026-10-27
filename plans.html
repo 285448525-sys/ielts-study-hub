@@ -65,6 +65,10 @@
      铁律：common.css:438 全站表单重置权重 (0,2,1)，故本页新 input/select 的可样式化属性
      一律挂在 #diagOverlay / #diagRoot 的 id 作用域下（权重 1,1,0+），不用裸 class。 -->
 <style id="diagStyle">
+/* PLAN-W-1（她 10:4x「上下板块宽度不一样」）：#diagRoot 与上方 .m-mk-shell 对齐 ——
+   m-mk-shell 有 padding:16px（卡片区 1100），diagRoot 满宽 1132，左右各差 16px。
+   诊断问卷/结果页同 id 作用域会一起内缩（方向正确，与上方卡片对齐）。 */
+#diagRoot{ padding:0 16px; box-sizing:border-box; }
 #diagRoot .dg-hero{text-align:center;padding:28px 20px}
 #diagRoot .dg-hero-ic{font-size:40px;line-height:1;margin-bottom:10px}
 #diagRoot .dg-hero h2{margin:0 0 8px;font-size:20px}
