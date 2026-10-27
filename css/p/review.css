@@ -263,7 +263,6 @@ main.container:has(> .rvx-page) > .review-wrap{ order:1; margin-top:22px }
 .rvx-card-p{padding:18px 20px}
 .rvx-h{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.04em;
   text-transform:none;margin:0 0 12px}
-.rvx-big{font-size:52px;font-weight:800;letter-spacing:-.04em;line-height:1;font-variant-numeric:tabular-nums}
 .rvx-tag{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;
   padding:2.5px 8px;border-radius:999px;background:var(--rvx-soft);color:var(--ink-2);
   /* W-RVXTAG-1（10-25）：药丸小标签一律不换行 —— 手机 390 那行只剩 82px 给 tag，
@@ -282,16 +281,10 @@ main.container:has(> .rvx-page) > .review-wrap{ order:1; margin-top:22px }
 .rvx-row > .rvx-muted{min-width:0;overflow:hidden;text-overflow:ellipsis}
 
 /* ===== 版 A 驾驶舱 ===== */
-.rvx-dash{display:grid;grid-template-columns:300px 1fr 300px;gap:16px;align-items:start}
 .rvx-sm{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .rvx-mini{background:var(--surface-2);border-radius:var(--rvx-r-sm);padding:12px 13px}
 .rvx-mini b{display:block;font-size:19px;font-weight:800;letter-spacing:-.02em}
 .rvx-mini span{font-size:11.5px;color:var(--muted)}
-.rvx-gap-list{display:flex;flex-direction:column;gap:9px;margin-top:14px}
-.rvx-gap{display:grid;grid-template-columns:10px 1fr auto;gap:9px;align-items:center;font-size:13px}
-.rvx-gap .rvx-nm{font-weight:600}
-.rvx-gap .rvx-vv{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12.5px}
-.rvx-gap .rvx-tg{grid-column:2 / -1;margin-top:-2px}
 .rvx-bar{height:6px;border-radius:999px;background:var(--rvx-soft);overflow:hidden;grid-column:2/-1;margin-top:2px}
 .rvx-bar i{display:block;height:100%;border-radius:999px}
 
@@ -317,26 +310,12 @@ main.container:has(> .rvx-page) > .review-wrap{ order:1; margin-top:22px }
 .rvx-prow .rvx-pb{height:7px;border-radius:999px;background:var(--rvx-soft);overflow:hidden}
 .rvx-prow .rvx-pb i{display:block;height:100%;border-radius:999px}
 .rvx-prow b{font-variant-numeric:tabular-nums;text-align:right;font-weight:600}
-.rvx-r3{display:flex;gap:8px;margin-top:10px}
 .rvx-r3 span{flex:1;text-align:center;background:var(--surface-2);border-radius:8px;
   padding:7px 4px;font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums}
 
 /* ===== 版 C 时间轴 ===== */
-.rvx-tl{position:relative;padding-left:34px}
-.rvx-tl::before{content:'';position:absolute;left:11px;top:6px;bottom:6px;width:2px;background:var(--line)}
-.rvx-tl-item{position:relative;margin-bottom:12px}
 .rvx-tl-item::before{content:'';position:absolute;left:-27px;top:18px;width:10px;height:10px;
   border-radius:50%;background:var(--surface);border:2.5px solid var(--line)}
-.rvx-tl-item.w::before{border-color:var(--mock)}
-.rvx-tl-item.p::before{border-color:var(--warn)}
-.rvx-tl-item.s::before{border-color:var(--med)}
-.rvx-tl-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
-.rvx-tl-h{display:flex;align-items:center;gap:9px;margin-bottom:9px}
-.rvx-tl-d{font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums}
-.rvx-tl-body{display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:13px}
-.rvx-kv{display:flex;align-items:baseline;gap:5px}
-.rvx-kv em{font-style:normal;font-size:11.5px;color:var(--muted)}
-.rvx-kv b{font-variant-numeric:tabular-nums;font-weight:700}
 .rvx-filters{display:flex;gap:6px;flex-wrap:wrap}
 .rvx-rec-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
 .rvx-chip{padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:var(--surface);
@@ -350,7 +329,6 @@ main.container:has(> .rvx-page) > .review-wrap{ order:1; margin-top:22px }
 .rvx-hm i.rvx-l1{background:rgba(58,154,147,.22)}
 .rvx-hm i.rvx-l2{background:rgba(58,154,147,.42)}
 .rvx-hm i.rvx-l3{background:rgba(58,154,147,.66)}
-.rvx-hm i.rvx-l4{background:var(--primary)}
 .rvx-hmk{display:flex;gap:10px;align-items:center;font-size:11px;color:var(--muted);margin-top:9px}
 .rvx-hmk span{display:inline-flex;align-items:center;gap:4px}
 .rvx-hmk i{width:9px;height:9px;border-radius:2px;display:block}
@@ -358,16 +336,10 @@ main.container:has(> .rvx-page) > .review-wrap{ order:1; margin-top:22px }
 /* ===== 元素核对表 ===== */
 .rvx-tabin{width:100%;border-collapse:collapse;font-size:13px;background:var(--surface);
   border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
-.rvx-tabin th,.rvx-tabin td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--rvx-soft);vertical-align:top}
-.rvx-tabin th{font-size:11.5px;color:var(--muted);font-weight:700;background:var(--surface-2)}
-.rvx-tabin tr:last-child td{border-bottom:0}
-.rvx-tabin td.rvx-c{text-align:center;white-space:nowrap}
 .rvx-yes{color:var(--med);font-weight:700}
 .rvx-no{color:var(--danger);font-weight:700}
-.rvx-mid{color:var(--warn);font-weight:700}
 .rvx-note{background:var(--primary-50);border:1px solid var(--primary-200);border-radius:12px;
   padding:14px 16px;font-size:13.5px;line-height:1.62}
-.rvx-note b{color:var(--primary-700)}
 .rvx-warnbox{background:rgba(255,149,0,.09);border:1px solid rgba(255,149,0,.3);border-radius:12px;
   padding:14px 16px;font-size:13.5px;line-height:1.62}
 .rvx-lgd{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:8px}
