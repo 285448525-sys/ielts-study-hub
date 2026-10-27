@@ -1111,7 +1111,9 @@ ${s.text}` }
        json_mode 让服务端要 response_format:{type:'json_object'}（functions/api/ai.js:332 支持，plans.js 三处早已在用），
        从源头压住「首个字符是 ( 」「JSON 前后夹说明文字」这类畸形。 */
     const content = await callRelay('writing_score', messages, 0.35, { max_tokens: 8192, json_mode: true });
-    const r = wtValid(aiJson(content));   /* WRT-BAND-UP-1 + WRT-JSONLOOSE-1：先结构校验再 +0.5 */
+    /* 🔴 88659bd3 的回归修复：那笔误把 wtBandUp 换成 wtValid，+0.5 上浮整个失效（她 16:0x 复报 5/5/5/4.5 的白板分）。
+       正确链路 = 先结构校验（残缺对象不进渲染）→ 再确定性 +0.5（不靠提示词）。 */
+    const r = wtBandUp(wtValid(aiJson(content)));
     if(!r){
       box.innerHTML = '<div class="ts-sec"><h4>AI 原文（没按格式回）</h4><div style="white-space:pre-wrap;font-size:13.5px;line-height:1.8">' + escapeHtml(content) + '</div></div>';
       DATA.writingScores.push({ id: uid(), date: todayKey(), mode:'template', tplId: s.tpl.id, tplTitle: s.tpl.title, tplCat: s.tpl.category, essay: s.text, result: content, parsed:false });
@@ -2074,7 +2076,8 @@ ${ANCHOR_TABLE_EN}
   try{
     const content = await callRelay('writing_score', messages, 0.4, { max_tokens: 8192, json_mode: true });   /* WRT-JSONTRUNC-1 + WRT-JSONLOOSE-1 */
     // Bug18：复用 aiJson 解析（已处理 ```json 围栏与前后废话），避免重复解析逻辑
-    const result = wtValid(aiJson(content));   /* WRT-BAND-UP-1 + WRT-JSONLOOSE-1：先结构校验再 +0.5 */
+    /* 同 1114：先 wtValid 拦残缺，再 wtBandUp 做 +0.5（88659bd3 曾把上浮弄丢） */
+    const result = wtBandUp(wtValid(aiJson(content)));
     if(!result){
       // JSON 解析失败，降级显示原始文本
       bodyEl.innerHTML = '<div class="score-section"><h4>AI 原文（没按格式回）</h4><div style="white-space:pre-wrap;font-size:14px;line-height:1.8">' + escapeHtml(content) + '</div></div>';
@@ -2864,7 +2867,8 @@ ${ANCHOR_TABLE_EN}
   (async () => {
     try{
       const content = await callRelay('writing_score', messages, 0.4, { max_tokens: 8192, json_mode: true });   /* WRT-JSONTRUNC-1 + WRT-JSONLOOSE-1 */
-      const result = wtValid(aiJson(content));   /* WRT-BAND-UP-1 + WRT-JSONLOOSE-1：先结构校验再 +0.5 */
+      /* 同 1114：先 wtValid 拦残缺，再 wtBandUp 做 +0.5（88659bd3 曾把上浮弄丢） */
+      const result = wtBandUp(wtValid(aiJson(content)));
       if(!result){
         box.innerHTML = '<div class="ts-sec"><h4>AI 原文（没按格式回）</h4><div style="white-space:pre-wrap;font-size:14px;line-height:1.8">'+escapeHtml(content)+'</div></div>';
         toast('AI 返回格式异常，已显示原文');
