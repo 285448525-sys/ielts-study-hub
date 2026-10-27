@@ -480,7 +480,7 @@ const FACTORY_WRITING_SRC = 'js/factory-writing.js?v=20261023b';
    89 条官方题（brotli ~21KB）已从每页必下的 js/data.js 搬到 js/data-static.js：
    speaking.html 直接 <script defer> 引；其余页面由下面这个加载器在「页面可用之后」拉。
    ⚠️ 幂等：同 factory-writing —— 固定 id + window 锚点，软导航来回切页不重复 append。 */
-const DATA_STATIC_SRC = 'js/data-static.js?v=20261026h';
+const DATA_STATIC_SRC = 'js/data-static.js?v=20261027a';
 if(typeof HUB_FACTORY !== 'undefined' && !HUB_FACTORY.loadStatic){
   HUB_FACTORY.loadStatic = function(cb){
     const done = ok => { try{ cb(ok); }catch(e){ console.error('[static] 回调异常：', e); } };
