@@ -343,7 +343,6 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
 .wd-cur-row{ display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
 .wd-cur-row .wd-nm{ font-size: 16px; font-weight: 750; }
 .wd-cur-row .wd-meta{ font-size: 12.5px; color: var(--wd-muted); }
-.wd-swap{ margin-left: auto; border: 0px; background: none; font-family: inherit; font-size: 13px; color: var(--primary-700); font-weight: 650; cursor: pointer; padding: 6px 4px; }
 .wd-today-card .wd-top{ display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .wd-today-card .wd-top b{ font-size: 32px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; }
 .wd-today-card .wd-top .wd-u{ font-size: 13.5px; color: var(--ink-2); }
@@ -367,36 +366,21 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
 .wd-modes{ margin-left: auto; display: flex; align-items: center; gap: 8px; }
 .wd-modes .wd-cur{ font-size: 12.5px; color: var(--ink-2); background: var(--n-100); border-radius: 20px; padding: 5px 13px; cursor: pointer; }
 .wd-modes .wd-cur b{ color: var(--primary-700); }
-.wd-q-card{ background: var(--surface); border: 1px solid var(--wd-line); border-radius: var(--radius); padding: 32px 26px 24px; text-align: center; }
-.wd-q-top{ display: flex; justify-content: space-between; font-size: 12.5px; color: var(--wd-muted); margin-bottom: 18px; }
-.wd-q-prompt{ font-size: 20px; font-weight: 750; letter-spacing: -0.01em; }
-.wd-q-blank{ display: inline-block; min-width: 130px; border-bottom: 2px solid var(--wd-p300); margin: 0px 4px; height: 24px; vertical-align: -3px; }
-.wd-q-say{ font-size: 13px; color: var(--wd-muted); margin-top: 8px; }
-.wd-spk{ margin: 20px auto 4px; width: 60px; height: 60px; border-radius: 50%; background: var(--primary-50); color: var(--primary-700); display: flex; align-items: center; justify-content: center; cursor: pointer; border: 0px; }
-.wd-spk svg{ width: 25px; height: 25px; }
-.wd-ipa{ font-size: 13px; color: var(--ink-2); margin-top: 10px; }
-.wd-ipa b{ font-weight: 600; }
-.wd-write-in{ margin: 20px auto 0px; max-width: 340px; }
-.wd-write-in input{ width: 100%; height: 46px; border: 1.5px solid var(--wd-line); border-radius: var(--radius-sm); background: var(--wd-bg); color: var(--wd-ink); font-size: 16px; text-align: center; font-family: inherit; outline: none; }
-.wd-write-in .wd-ph{ font-size: 11.5px; color: var(--wd-muted); margin-top: 7px; }
-.wd-opts{ display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 560px; margin: 20px auto 0px; }
-@media (max-width: 560px){
-.wd-opts{ grid-template-columns: 1fr; }
-}
-.wd-opt{ border: 1.5px solid var(--wd-line); border-radius: var(--radius-sm); background: var(--surface); padding: 13px 14px; font-size: 14.5px; text-align: left; cursor: pointer; font-family: inherit; color: var(--wd-ink); display: flex; gap: 10px; align-items: center; }
-.wd-opt .wd-kb{ width: 20px; height: 20px; border-radius: 5px; background: var(--n-100); color: var(--wd-muted); font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+/* 🔴 FE-DEAD-CSS-1（10-27）：原此处 14 个类 `.wd-q-card / .wd-q-top / .wd-q-prompt / .wd-q-blank /
+   .wd-q-say / .wd-spk / .wd-ipa / .wd-write-in / .wd-ph / .wd-opts / .wd-opt / .wd-kb / .wd-pane / .wd-on`
+   是**旧版答题态**样式；实际答题态已改用 common.css 的 `.opts-grid / .opt-big`（词卡还有 .pw-en/.pw-ipa），
+   这 14 个类在全站 HTML 与 JS 里引用次数**均为 0**（双向 grep 验证），故整段删除。
+   ⚠️ 防误删说明：**`wd-page / wd-card / wd-btn* / wd-top / wd-tri / wd-bar / wd-cur-row / wd-nm / wd-meta`
+      等 30 个类仍在 practice.html 真实使用**，只有"旧答题态"这一块是死的。删除范围仅限本段。 */
 .wd-q-foot{ display: flex; align-items: center; gap: 14px; margin-top: 16px; font-size: 12.5px; color: var(--wd-muted); }
 .wd-q-foot .wd-bar{ flex: 1 1 0%; margin: 0px; }
 .wd-q-foot b{ color: var(--wd-ink); font-variant-numeric: tabular-nums; }
 .wd-skip-hint2{ font-size: 12px; color: var(--wd-muted); margin-top: 12px; }
-.wd-pane{ display: none; }
-.wd-pane.wd-on{ display: block; }
 
 /* ===== 站点全局标签规则（common.css:470 input / :490 label）的冲突钉死 =====
    这两条标签选择器直接写在元素上，会盖掉未显式声明的 font-size / line-height。
    下面按设计稿实测值钉一遍，本文件追加在 common.css 之后 → 同比分靠顺序赢。 */
-.wd-page .wd-swap{font-size:13px}
-.wd-page .wd-swap button, .wd-page .wd-swap>button{font-size:13px}
+/* FE-DEAD-CSS-1：.wd-swap 两条（零引用）已删，保留 .wd-btn 组 */
 .wd-page .wd-btn{font-size:16px}
 .wd-page .wd-btn button, .wd-page .wd-btn>button{font-size:16px}
 .wd-page .wd-btn-p{font-size:16px}
@@ -426,7 +410,6 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
 .wd-page .wd-cur-row{ display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
 .wd-page .wd-cur-row .wd-nm{ font-size: 16px; font-weight: 750; }
 .wd-page .wd-cur-row .wd-meta{ font-size: 12.5px; color: var(--wd-muted); }
-.wd-page .wd-swap{ margin-left: auto; border: 0px; background: none; font-family: inherit; font-size: 13px; color: var(--primary-700); font-weight: 650; cursor: pointer; padding: 6px 4px; }
 .wd-page .wd-today-card .wd-top{ display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .wd-page .wd-today-card .wd-top b{ font-size: 32px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; }
 .wd-page .wd-today-card .wd-top .wd-u{ font-size: 13.5px; color: var(--ink-2); }
@@ -527,7 +510,8 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
   border-color:#8fe0d6;
   color:#0f3330;
 }
-[data-theme="dark"] .wd-page .wd-swap,
+/* FE-DEAD-CSS-1：这里原来还有一条 `[data-theme="dark"] .wd-page .wd-swap`，
+   wd-swap 全站零引用，一并删除（同组另两条仍在用，保留） */
 [data-theme="dark"] .wd-page .wd-btn-link,
 [data-theme="dark"] .wd-back{
   color:#8fe0d6;
