@@ -20,7 +20,7 @@ setTimeout(__rvRescue,2500);
 <meta http-equiv="Expires" content="0" />
 <title>设置 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261026v" />
-<link rel="stylesheet" href="css/p/settings.css?v=20261026x" />
+<link rel="stylesheet" href="css/p/settings.css?v=20261026z" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -536,8 +536,16 @@ setTimeout(__rvRescue,2500);
       <div class="set-row">
         <div class="set-row-t"><b>口语自评</b></div>
         <div class="set-row-c set-row-c--band">
-          <input id="sFlu" type="number" min="0" max="9" step="0.5" aria-label="固定流利度分" placeholder="流利度" />
-          <input id="sPron" type="number" min="0" max="9" step="0.5" aria-label="固定发音分" placeholder="发音" />
+          <!-- SET-LAB-1（10-27）：标签只挂 placeholder，框一填值就消失（她截图填 5.5/6 时看不出哪边是哪边）
+               → 每框包 .set-band-item，框下挂常驻小字。id/读写路径/aria 一个没动。 -->
+          <div class="set-band-item">
+            <input id="sFlu" type="number" min="0" max="9" step="0.5" aria-label="固定流利度分" placeholder="流利度" />
+            <span class="set-band-lab">流利度</span>
+          </div>
+          <div class="set-band-item">
+            <input id="sPron" type="number" min="0" max="9" step="0.5" aria-label="固定发音分" placeholder="发音" />
+            <span class="set-band-lab">发音</span>
+          </div>
         </div>
       </div>
     </section>
