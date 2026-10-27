@@ -30,7 +30,7 @@
 </script>
 <title>计划 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261027w" />
-<link rel="stylesheet" href="css/p/plans.css?v=20261027x" />
+<link rel="stylesheet" href="css/p/plans.css?v=20261027y" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -68,7 +68,10 @@
 /* PLAN-W-1（她 10:4x「上下板块宽度不一样」）：#diagRoot 与上方 .m-mk-shell 对齐 ——
    m-mk-shell 有 padding:16px（卡片区 1100），diagRoot 满宽 1132，左右各差 16px。
    诊断问卷/结果页同 id 作用域会一起内缩（方向正确，与上方卡片对齐）。 */
-#diagRoot{ padding:0 16px; box-sizing:border-box; }
+/* 🔴 FE-FIX-1（10-27）：这条 16px 内缩是 PLAN-W-1 当时为了让诊断卡追上「卡片区 1100」而加的。
+   本轮把 .m-mk-body 的 16px 外壳内距收掉、卡片已恢复通栏 1132，这条内缩就成了新的不对齐，
+   一并归零 —— 诊断卡继续与上方卡片同宽。 */
+#diagRoot{ padding:0; box-sizing:border-box; }
 #diagRoot .dg-hero{text-align:center;padding:28px 20px}
 #diagRoot .dg-hero-ic{font-size:40px;line-height:1;margin-bottom:10px}
 #diagRoot .dg-hero h2{margin:0 0 8px;font-size:20px}

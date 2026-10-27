@@ -85,7 +85,10 @@
 .m-mk-top .m-dot { width: 9px; height: 9px; border-radius: 50%; background: rgb(226, 229, 230); }
 .m-mk-top .m-nm { font-size: 12.5px; color: var(--m-muted); margin-left: 4px; }
 .m-mk-top .m-sh { font-size: 11.5px; color: var(--m-muted); margin-left: auto; }
-.m-mk-body { padding: 16px; }
+/* 🔴 FE-FIX-1（10-27 她：「计划页宽度对齐全站」）：这行 padding:16px 是设计稿「浏览器窗口」
+   那层外壳的内边距，外壳拆掉之后它还在，结果里面每张卡左右各缩进 16px（1132 → 1100），
+   跟 review/home 那种通栏卡片对不上。改成 0，卡片与容器同宽。 */
+.m-mk-body { padding: 0; }
 .m-pg-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 13px; flex-wrap: wrap; }
 .m-pg-head h3 { margin: 0px; font-size: 17px; font-weight: 650; }
 .m-pg-head .m-hint { font-size: 12.5px; color: var(--m-muted); }
