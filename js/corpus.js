@@ -64,7 +64,14 @@ ready(() => {
   on('startWrite', 'click', startWrite);
   /* 10/12 晚改版：添加面板开合 + 三方式 tab 切换（id 契约见 corpus.html dictView 注释） */
   on('addToggle', 'click', openAddPanel);
-  document.querySelectorAll('#addPanel .add-tabs button').forEach(b =>
+  /* 🔴 CORPUS-UI-1（10-27 修）：这里原来写的是 `.add-tabs`，而 10/25 Kimi 视觉提档把容器类
+     改成了 `.kc-add-tabs`（corpus.html:243）→ 选择器一条都没匹配上，导致：
+     ① 三个子 tab 点了没有任何反应（切不到「批量粘贴」「AI 识别导入」）；
+     ② switchAddMode() 里的 `.add-tabs button` 同样空转，`hidden` 从来没被翻过，
+        两个面板永远 hidden ⇒ 用户看到的就是两片空白。
+     两个类名都容错：`.kc-add-tabs` 是现役类名，`.add-tabs` 兜旧结构（防以后再改类名又静默死）。 */
+  const ADD_TABS_SEL = '#addPanel .kc-add-tabs button, #addPanel .add-tabs button';
+  document.querySelectorAll(ADD_TABS_SEL).forEach(b =>
     b.addEventListener('click', () => switchAddMode(b.getAttribute('data-amt'))));
   // 设置联动：设置实时保存到 localStorage（对应滑块缺失则跳过，用默认配置，避免整段脚本崩溃）
   const sRate = document.getElementById('sRate');
@@ -248,7 +255,8 @@ function closeAddPanel(){
   const t = document.getElementById('addToggle'); if(t) t.hidden = false;
 }
 function switchAddMode(mode){
-  document.querySelectorAll('#addPanel .add-tabs button').forEach(b =>
+  /* CORPUS-UI-1：选择器与绑定处同源（原来写死的 `.add-tabs` 已不存在于 DOM，见上方注释） */
+  document.querySelectorAll('#addPanel .kc-add-tabs button, #addPanel .add-tabs button').forEach(b =>
     b.classList.toggle('active', b.getAttribute('data-amt') === mode));
   ['single','bulk','ai'].forEach(m => {
     const el = document.getElementById('amt-' + m); if(el) el.hidden = (m !== mode);
