@@ -39,7 +39,7 @@ setTimeout(__rvRescue,2500);
   <script defer src="js/common-shell.js?v=20261027m"></script>
   <script defer src="js/common-pwa.js?v=20261027m"></script>
   <script defer src="js/feedback.js?v=20261027a"></script>
-  <script src="js/pricing.js?v=20261025f" defer></script>
+  <script src="js/pricing.js?v=20261027o" defer></script>
   <script src="js/vip.js?v=20261026t" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -79,10 +79,11 @@ setTimeout(__rvRescue,2500);
        结构原文 = 同目录 _KV-vip_结构原文.html（机器导出，前缀 kv-）
        精确样式 = css/p/vip.css 里的 kv- 块（整段来自 _KV-vip_精确样式.css）
        验收基线 = 同目录 _KV-vip_验收基线.json（36 元素；收尾跑 scripts/mockup-1to1-check.cjs）
-       🔴 业务 id 一个没改：#vipHero #vipWhy #vipPlans #vipMatrix #vipHowto #vipSemi
-          #semiPlans #semiSlip #semiLb #semiQr #semiTxt #semiActsLogged #semiDone
-          #semiHelp #semiActsGuest #semiHelp2 #semiDoneCard #semiOid #semiBack
-          —— js/vip.js 全按它们取值。
+       🔴 业务 id（10-27 P2-VIP-DEL 后更新）：#vipHowto 整段已删、收款码与转账说明挪去 pay.html，
+          连带 semi 系列 id（#vipSemi #semiPlans #semiSlip #semiLb #semiQr #semiTxt
+          #semiActsLogged #semiDone #semiHelp #semiActsGuest #semiHelp2 #semiDoneCard
+          #semiOid #semiBack）全部随之消失 —— js/vip.js 的 renderSemi() 缺节点即 return（既有写法）。
+          本页现存业务 id：#vipHero #vipWhy #vipPlans #vipMatrix #vipContact
        🔴 与上一版的四处差别，都是 Kimi 稿要求的：
           ① 单列堆叠 → 两列扫读（开通方式跨两行在左，方案/对比在右），手机回单列
           ② 卡片统一 .kv-card（14px 圆角 + 极淡投影），kicker → .kv-section-label
@@ -118,51 +119,14 @@ setTimeout(__rvRescue,2500);
       <!-- 开通方式（VIP-SEMI-1 一屏两步 + VIP-PAY-QR 双码，功能一行没动）
            稿子这一格是「选档位 → 转账 → 我已转账」的静态示例；本站接真数据：
            档位卡由 js/vip.js 从 Pricing.VIP_PLANS 渲染（本区块零价格字面量）。 -->
-      <section class="kv-card kv-purchase" id="vipHowto">
-        <div class="kv-card-head">
-          <div><div class="kv-section-label">How to · 开通</div><h2>开通方式</h2></div>
-          <span class="kv-badge">一屏两步</span>
-        </div>
-        <div id="vipSemi">
-          <div class="semi-plans kv-plans" id="semiPlans"></div>
-          <div class="semi-slip kv-slip" id="semiSlip">
-            <div class="semi-lb kv-lb" id="semiLb">扫这个码转账</div>
-            <div class="semi-qr" id="semiQr">
-              <figure class="qr-item">
-                <img src="img/pay/wechat-qr.jpg?v=20261026b" alt="微信收款码" width="132" height="132" loading="lazy">
-                <figcaption>微信</figcaption>
-              </figure>
-              <figure class="qr-item">
-                <img src="img/pay/alipay-qr.jpg?v=20261026b" alt="支付宝收款码" width="132" height="132" loading="lazy">
-                <figcaption>支付宝</figcaption>
-              </figure>
-            </div>
-            <div class="semi-txt kv-txt" id="semiTxt"></div>
-            <!-- 10-26 VIP-NOCOPY-1：复制按钮已删（她 22:3x「手机支付不方便复制订单，
-                 不要这个文案也不要这个复制键，改成备注自己的邮箱」） -->
-          </div>
-          <div class="semi-acts kv-acts" id="semiActsLogged">
-            <button class="btn btn-primary kv-btn kv-btn-primary" id="semiDone" type="button">我已转账</button>
-            <button class="btn semi-ghost kv-btn" id="semiHelp" type="button">遇到问题</button>
-          </div>
-          <div class="semi-acts kv-acts" id="semiActsGuest" hidden>
-            <a class="btn btn-primary kv-btn kv-btn-primary" href="login.html" style="text-decoration:none">去登录 / 注册</a>
-            <button class="btn semi-ghost kv-btn" id="semiHelp2" type="button">遇到问题</button>
-          </div>
-          <p class="semi-note kv-note">不备注、不填单号——金额就是你的订单（三档价格天然分开）。开通前不产生任何费用。</p>
-        </div>
-        <div id="semiDoneCard" hidden>
-          <div class="semi-done kv-done">
-            <span class="semi-ic kv-done-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
-            <h3>收到了，等我确认</h3>
-            <p>看到到账我就开会员，一般当天。<br>开通后这个页面会自动变成会员态，不用再做别的。</p>
-            <span class="semi-oid kv-order" id="semiOid"></span>
-            <div class="semi-acts kv-acts semi-center">
-              <button class="btn semi-ghost kv-btn" id="semiBack" type="button">返回</button>
-            </div>
-          </div>
-        </div>
-      </section>
+      <!-- P2-VIP-DEL（10-27）：原 #vipHowto「开通方式」卡（档位选择 + 双码 + 我已转账 +
+           已转账完成态）整段删除，收款码与转账说明整体挪到新页 pay.html。
+           删除后的连锁处理（同一笔内，缺一条就是半成品）：
+             ① js/pricing.js 的 .plan-buy 按钮从「滚到 #vipHowto」改成 <a href="pay.html?plan=<id>">；
+                「点按钮滚过去」那段监听已无落点 → 一并撤掉；
+             ② js/vip.js 的 renderSemi() 依赖 #vipSemi → 缺节点时 return（既有写法就是 if(!root) return）。
+           留档：整块原文见本文件 git 上一版；CSS 的 .kv-purchase/.semi-* 按施工书要求**不主动删**。 -->
+
 
       <!-- 会员方案：价格卡由 js/vip.js 按 VIP_PLANS 渲染（改价只动 js/pricing.js 一处）
            稿子这格只放一行说明，本站保留真实价格卡（功能不回退，见 css/p/vip.css 的 ⑦ 兼容块）。 -->

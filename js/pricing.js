@@ -121,15 +121,15 @@ function renderPlanCards(box, opts){
       + '<li>跟账号走，多设备通用</li>'
       + '</ul>'
       + (recTxt ? '<div class="plan-rec">' + escapeHtml(recTxt) + '</div>' : '')
-      + '<button class="btn' + (featured ? ' btn-primary' : '') + ' plan-buy" data-vbuy="' + p.id + '">立即开通</button>'
+      /* P2-VIP-DEL（10-27）：原 <button data-vbuy>「立即开通」→ 点它滚到 #vipHowto 那张开通方式卡。
+         开通方式卡（档位 + 双码 + 我已转账）整段挪去新页 pay.html 之后，「滚过去」就没有落点了，
+         所以这里改成直接跳转的链接。<a> 而不是 <button>：a href 天然可右键/新标签/键盘可达。
+         🔴 参数值取 p.id（week / month / quarter，来自上面的 VIP_PLANS），不用稿子的 7d/30d/90d。
+         ⚠️ 本文件被 vip / materials / speaking / admin 四页共用 → 改完四页都要过一遍。 */
+      + '<a class="btn' + (featured ? ' btn-primary' : '') + ' plan-buy" href="pay.html?plan=' + encodeURIComponent(p.id) + '">立即开通</a>'
       + '</div>');
   });
   box.innerHTML = cards.join('');
-  box.querySelectorAll('button[data-vbuy]').forEach(b =>
-    b.addEventListener('click', () => {
-      const how = document.getElementById('vipHowto');
-      if(how) how.scrollIntoView({ behavior:'smooth', block:'start' });
-    }));
 }
 
 /* ---------- 对比矩阵（vip.html 口径 vs pricing.html 口径）----------
