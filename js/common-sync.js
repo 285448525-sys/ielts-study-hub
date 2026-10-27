@@ -373,7 +373,10 @@ async function cloudUpload(showToast, force, opts){
       //    绝不硬覆盖——先把它拉下来合并，再基于新版本重试。最多 2 次，防死循环。
       const tries = (opts.retry || 0) + 1;
       if(tries <= 2){
-        syncSetStatus('云端有新版本，先合并再上传…', '');
+        /* SET-GROW-1（10-27 她二次报障）：这句瞬时进度**不许写进 #syncStatus** ——
+           文本一出现身份卡就长高、消失又缩回，她每次开设置页都看到「突然变长一下」。
+           进度类一律走 toast（全站现成件），状态行只留 error 与真正的结果。 */
+        if(window.toast) window.toast('云端有新版本，先合并再上传…');
         const dl = await cloudDownload(true);
         // cloudDownload 已把 _cloudBaseTs 更新到服务端最新 ts
         if(dl) return await cloudUpload(showToast, true, { retry: tries, noLock: opts.noLock });

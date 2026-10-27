@@ -233,10 +233,13 @@ async function authChangePassword(oldPassword, newPassword){
   if(typeof newPassword !== 'string' || newPassword.length < 6 || newPassword.length > 64){
     syncSetStatus('新密码至少 6 位（最长 64 位）', 'error'); return { ok:false };
   }
-  syncSetStatus('正在修改密码…', '');
+  /* SET-GROW-1：进度类走 toast，不占 #syncStatus（否则身份卡瞬时变长） */
+  if(window.toast) window.toast('正在修改密码…');
   try{
     const j = await authApiPost({ action:'change', token: authToken(), oldPassword: oldPassword, newPassword: newPassword });
-    syncSetStatus('✅ 密码已修改', 'ok');
+    /* SET-GROW-1：成功=瞬时反馈，交给 toast；状态行保持空，不撑高身份卡 */
+    syncSetStatus('', 'ok');
+    if(window.toast) window.toast('密码已修改');
     return { ok:true };
   }catch(e){
     syncSetStatus('❌ ' + e.message, 'error');
@@ -259,7 +262,8 @@ async function syncDiagnose(){
   const phone = DATA.settings.syncCode;
   if(!phone){ syncSetStatus('请先登录（邮箱 + 密码）', 'error'); return; }
   if(!authToken()){ syncSetStatus('账号 ' + phone + ' 的登录已过期：请重新登录', 'error'); return; }
-  syncSetStatus('正在探测云端…', '');
+  /* SET-GROW-1：进度类走 toast；探测结果仍落 #syncStatus（那是她要读的结论，不是进度） */
+  toast('正在探测云端…');
   try{
     const [res, data] = await syncApi('GET');
     if(res.status === 404){
