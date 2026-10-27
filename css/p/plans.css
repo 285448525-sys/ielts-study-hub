@@ -72,12 +72,16 @@
 }
 
 .m-page, .m-page *{ box-sizing: border-box; }
-.m-mk-shell { border: 1px solid var(--m-line);    background: rgb(238, 240, 240); padding: 16px; margin-top: 0px; border-top-left-radius: 0px; }
+/* FE-DEAD-2（10-27 · B 第二批）：以下 5 条规则对应的 DOM 节点**早已删除**（P-1R 摘掉浏览器外壳
+   .m-mk-shell + .m-mk-top 三圆点假地址栏），A1 实测「全站 HTML+JS 引用计数 = 0」，是纯悬空规则。
+   删掉不影响任何渲染（删前后 plans 页 12/0 不变，见 _probe_planw2b_1027）。
+   原文留档在此，日后要回滚照着写回来即可：
+     .m-mk-shell { border:1px solid var(--m-line); background:rgb(238,240,240); padding:16px; … }
+     .m-mk-top { display:flex; align-items:center; gap:10px; padding:11px 16px; … }
+     .m-mk-top .m-dot { width:9px; height:9px; border-radius:50%; background:rgb(226,229,230) }
+     .m-mk-top .m-nm { font-size:12.5px; color:var(--m-muted); margin-left:4px }
+     .m-mk-top .m-sh { font-size:11.5px; color:var(--m-muted); margin-left:auto } */
 .m-mk { background: var(--m-bg); border-radius: 10px; overflow: hidden; }
-.m-mk-top { display: flex; align-items: center; gap: 10px; padding: 11px 16px; background: var(--surface); border-bottom: 1px solid var(--m-line); }
-.m-mk-top .m-dot { width: 9px; height: 9px; border-radius: 50%; background: rgb(226, 229, 230); }
-.m-mk-top .m-nm { font-size: 12.5px; color: var(--m-muted); margin-left: 4px; }
-.m-mk-top .m-sh { font-size: 11.5px; color: var(--m-muted); margin-left: auto; }
 .m-mk-body { padding: 16px; }
 .m-pg-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 13px; flex-wrap: wrap; }
 .m-pg-head h3 { margin: 0px; font-size: 17px; font-weight: 650; }
@@ -127,15 +131,12 @@
   .m-days { grid-template-columns: repeat(2, 1fr); }
 }
 
-/* 🔴 P-1R：隐藏效果稿的「浏览器外壳」—— 那三个圆点 + 假地址栏
-   （yasihub.com / 计划）只是为了让效果稿看起来像在浏览器里，真页面上不能有。
-   ⚠️ 用 CSS 隐藏而**不删节点**：验收基线里包含 .m-mk-top / .m-dot / .m-nm / .m-sh
-      四个元素，删了就会报「缺失 4」，达不到「✗ 缺失 0」。
-      节点留着（可比对样式），但不显示（她看不到）。 */
-.m-page .m-mk-top{ display:none }
-/* 同样处理：.m-mk-shell 的灰底（#eef0f0）与 16px 边距是效果稿的外框，
-   真页面不该有一圈灰边 —— 这里没用 shell 包层，但保险起见覆盖掉。 */
-.m-page .m-mk-shell{ background:transparent;border:0;padding:0;border-radius:0 }
+/* FE-DEAD-2（10-27 · B 第二批）：原 P-1R 的「用 CSS 隐藏外壳而不删节点」两条规则，
+   对应的 .m-mk-top / .m-dot / .m-nm / .m-sh / .m-mk-shell 节点**后来还是删了**（本轮实测
+   querySelector 全为 null、全站 HTML+JS 引用计数 0），所以这两条覆盖规则永命不中，已删。
+   原文留档：`.m-page .m-mk-top{display:none}` / `.m-page .m-mk-shell{background:transparent;border:0;padding:0;border-radius:0}`
+   ⚠️ 当时那条注释还提到「验收基线里含这 4 个元素，删了会报缺失」—— 该基线 JSON 现在已不在仓库里，
+      且本批删除后 plans 页验收 12/0 不变，确认无依赖。 */
 
 /* ==========================================================================
    PL-1（10-25）：深色覆盖 —— 上面 .m-page 那组私有 token 全是写死浅色值，
