@@ -218,6 +218,39 @@ ready(() => {
     paint();                       /* 首屏按 DATA.settings.theme 点亮（auto 高亮「跟随系统」，不再看屏幕深浅） */
     window.__set2PaintTheme = paint;  /* 云端合并/其它入口改了 theme 后可重刷 */
   })();
+  /* SET-FONT-1（10-27）：正文字号三档没有绑定——HTML 里三个 .av-tab[data-font] 按钮点了没反应。
+     跟上面 bindThemeSeg 同口径：点击 → 即时 applyFontScale → 500ms 防抖落盘。
+     幂等标记打元素上（软导航换壳后重绑不撞车）。 */
+  (function bindFontSizeSeg(){
+    var tabs = document.querySelectorAll('.set-font-tabs [data-font]');
+    if(!tabs.length) return;
+    var box = tabs[0].parentElement;
+    if(!box || box.__setFontSegBound) return;
+    box.__setFontSegBound = true;
+    function paint(){
+      var v = DATA.settings.fontScale;
+      if(v !== 'sm' && v !== 'lg') v = 'md';
+      tabs.forEach(function(b){
+        var on = b.getAttribute('data-font') === v;
+        b.classList.toggle('on', on);
+        b.setAttribute('aria-checked', on ? 'true' : 'false');
+      });
+    }
+    box.addEventListener('click', function(ev){
+      var b = ev.target && ev.target.closest ? ev.target.closest('[data-font]') : null;
+      if(!b) return;
+      ev.preventDefault();
+      var v = b.getAttribute('data-font');
+      if(v !== 'sm' && v !== 'md' && v !== 'lg') return;
+      DATA.settings.fontScale = v;
+      if(typeof applyFontScale === 'function') applyFontScale(v);
+      setSaveSoon();   /* 防抖落盘，字号本身已即时应用 */
+      paint();
+      try{ if(typeof toast === 'function') toast(v === 'lg' ? '字号已调大' : (v === 'sm' ? '字号已调小' : '字号已恢复标准')); }catch(e){}
+    });
+    paint();
+  })();
+
   /* F-4（10-25）：整块删除「服药模块开关的即时绑定」—— #sAdhd 已由 S-1 整行删掉（她 23:5x「两个都删说过了」，settings.html 实测 0 处）。⚠️ medsModuleOn() / meds.html / DATA.meds 一个都没动，只是这个开关的回填与监听退役。 */
 
   /* 🔴 S-2（10-25）：下面四行裸绑定**整块删除** —— 她 00:4x「叫你把数据备份页删掉啊」。

@@ -248,6 +248,9 @@ setTimeout(__rvRescue,2500);
     es.forEach(function(en){ if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
   }, { threshold:.12 });
   els.forEach(function(e){ io.observe(e); });
+  /* 🚨 SET-BLANK-1（10-27）硬兜底：软导航场景下 observer 对新注入的 .rv 可能不触发
+     —— 同步强制显示，任何情况下内容立即可见。observer 仍保留给整页首次加载的渐入动画。 */
+  showAll();
   /* 🚨 兜底：无论 observer 触发与否，1.2s 后全部显示 —— 动画只是锦上添花，
      绝不能因为它把内容永久藏起来（这正是 10:4 01:45 那版的严重失误）。 */
   setTimeout(function(){
