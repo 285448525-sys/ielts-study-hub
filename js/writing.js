@@ -1072,6 +1072,7 @@ ${wtTargetText()}。本产品的备考方法是"模板骨架 + 现场填空"，�
 1. 这是"模板骨架 + 她填的内容"的产物，可能只有一句或一小段。不许因为篇幅短、字数不足、不是完整作文而扣分或提这件事。
 2. 只评价她填进去的内容（是否贴题、搭配是否地道、语法是否接得上、逻辑有没有断层），模板框架本身一个字都不许评价，更不许建议她换模板/换句式。
 3. 分数按"如果整篇都是这个水平，大概是几分"来给，0-9，可用 0.5。
+3b. 评分心态校准（WRT-SCORE-SOFT-1）：真实考场上考官按考生实际表现给分，不会反复挑刺；本站预估分普遍比真实考试低约 0.5，**统一上调半档校准**（四项 breakdown 与 overall 一致上浮 0.5，封顶 9.0）；上浮后如某项证据不足，宁可按低半档写该子项 note，不得把整体再压回去。铁律 1、2 优先于本校准——篇幅短、只填了一小段照样不扣分。
 4. 理由必须短、具体、能改：每维度一句话（不超过 40 字），直接说问题在哪或哪里做得对，不要"建议丰富词汇"这种空话。
 5. 语法错误逐条列，含原错处、改法、一句话错因；同类错误合并成一条。没有明显错误就给空数组。
 6. 全部用简体中文（错句和改法里的英文原文保留英文）。
@@ -2027,7 +2028,7 @@ async function scoreEssay(){
 
   const messages = [
     { role:'system', content:
-`你是雅思写作${isTask1 ? ' Task 1 小作文（学术类图表/数据题）' : ' Task 2 大作文（议论文）'}考官，严格按官方评分细则给分。
+`你是雅思写作${isTask1 ? ' Task 1 小作文（学术类图表/数据题）' : ' Task 2 大作文（议论文）'}考官，按官方评分细则给分，以真实考官对普通考生的宽严尺度评（WRT-SCORE-SOFT-1）。
 评分标准：${dim}、CC（Coherence & Cohesion 连贯与衔接）、LR（Lexical Resource 词汇）、GRA（Grammatical Range & Accuracy 语法）。
 
 【${isTask1 ? 'Task 1 小作文' : 'Task 2 大作文'}官方评分细则（逐档对照评分）】
@@ -2035,6 +2036,7 @@ ${isTask1 ? RULES_TASK1 : RULES_TASK2}
 
 输出要求：
 1. 对照细则逐档比对，给出 0-9 的预估分（可用 0.5）。
+1b. 评分心态校准：真实考场上考官按考生实际表现给分，不会反复挑刺；本站预估分普遍比真实考试低约 0.5，**统一上调半档校准**（四项 breakdown 与 overall 一致上浮 0.5，封顶 9.0）；上浮后如某项证据不足，宁可按低半档写该子项 note，不得把整体再压回去。上浮只调分数，不放松判错——语法错误照列、复杂句照指。
 2. breakdown 第一项 key 统一用 "TR" 输出（${isTask1 ? '小作文时我知道它代表 TA' : '即 TR'}）。
 3. 指出文中超过 35 词或含多层从句的复杂句，给出简化建议。
 4. 全部用简体中文。
@@ -2762,11 +2764,12 @@ function examStopAndScore(){
    顶层 JSON 加 "topicJudge":{"verdict":"","reason":"","approach":["",""]}；没有题目就绝不输出该字段。` : '';
   const messages = [
     { role:'system', content:
-`你是雅思写作${isTask1 ? ' Task 1 小作文（学术类图表/数据题）' : ' Task 2 大作文（议论文）'}考官，严格按官方评分细则给分。
+`你是雅思写作${isTask1 ? ' Task 1 小作文（学术类图表/数据题）' : ' Task 2 大作文（议论文）'}考官，按官方评分细则给分，以真实考官对普通考生的宽严尺度评（WRT-SCORE-SOFT-1）。
 评分标准：${dim}、CC（Coherence & Cohesion 连贯与衔接）、LR（Lexical Resource 词汇）、GRA（Grammatical Range & Accuracy 语法）。
 ${isTask1 ? RULES_TASK1 : RULES_TASK2}
 输出要求：
 1. 对照细则逐档比对，给出 0-9 的预估分（可用 0.5）。
+1b. 评分心态校准：真实考场上考官按考生实际表现给分，不会反复挑刺；本站预估分普遍比真实考试低约 0.5，**统一上调半档校准**（四项 breakdown 与 overall 一致上浮 0.5，封顶 9.0）；上浮后如某项证据不足，宁可按低半档写该子项 note，不得把整体再压回去。上浮只调分数，不放松判错——语法错误照列、复杂句照指。
 2. breakdown 第一项 key 统一用 "TR" 输出（${isTask1 ? '小作文时我知道它代表 TA' : '即 TR'}）。
 3. 指出文中超过 35 词或含多层从句的复杂句，给出简化建议。
 4. 全部用简体中文。
@@ -3232,20 +3235,48 @@ function wrtBindOption(){
   });
 }
 
-/* WRT-TIP-1（10-27）：.mk 绿块 hover 气泡翻转防裁切
-   默认 ::after 在 mark 上方（bottom: calc(100% + 8px)）。当 mark 靠近视口顶部
-   （剩余空间 < 气泡估算高 ~60px + 8px gap + 安全垫 12px = 80px）→ 翻到下方。
-   委托绑 document，两页（writing.html + bank.html 里的写作弹窗）全吃到。 */
+/* WRT-TIP-1b（10-27 返工）：.mk 绿块 hover 气泡翻转防裁切
+   默认 ::after 左上锚（left:0 / bottom: calc(100% + 8px)）。
+   两个判定叠加：
+   ① 垂直（保留）：mark 顶距视口 < 80px → data-flip=1（翻下方）
+   ② 横向（新增）：mark 右缘 + 气泡宽 280 + padding 8 > 最近容器右缘
+     → data-flipx=1（锚右，不向左铺进右栏）
+   最近容器判定 = 从 mark 向上找第一个「有 position:relative/absolute/fixed
+   或 overflow 非 visible」的祖先——复盘视图 .sr-left / 模考视图 .exam-q
+   都是独立面板，右栏在旁边，不能拿 viewport 宽。
+   委托绑 document，两页（writing.html + bank.html 写作弹窗）全吃到。 */
+function _findTipContainer(el){
+  var cur = el;
+  while(cur && cur !== document.body && cur !== document.documentElement){
+    var cs = null;
+    try{ cs = getComputedStyle(cur); }catch(_){}
+    if(cs){
+      var pos = cs.getPropertyValue('position');
+      var ox = cs.getPropertyValue('overflow-x');
+      if(pos === 'relative' || pos === 'absolute' || pos === 'fixed' || pos === 'sticky') return cur;
+      if(ox && ox !== 'visible') return cur;
+    }
+    cur = cur.parentElement;
+  }
+  return document.documentElement;
+}
 document.addEventListener('mouseover', function(ev){
   var m = ev.target.closest && ev.target.closest('mark.mk[data-tip]');
   if(!m) return;
   var rect = m.getBoundingClientRect();
   var spaceAbove = rect.top;
   m.setAttribute('data-flip', spaceAbove < 80 ? '1' : '0');
+  // 横向：找最近容器，算右缘
+  var container = _findTipContainer(m);
+  var cRect = container.getBoundingClientRect();
+  var rightEdge = rect.right + 288;   // 气泡宽 280 + padding 8
+  var cRight = cRect.right;
+  if(rightEdge > cRight){ m.setAttribute('data-flipx', '1'); }
+  else{ m.removeAttribute('data-flipx'); }
 });
 document.addEventListener('mouseout', function(ev){
   var m = ev.target.closest && ev.target.closest('mark.mk[data-tip]');
-  if(m) m.removeAttribute('data-flip');
+  if(m){ m.removeAttribute('data-flip'); m.removeAttribute('data-flipx'); }
 });
 
 
