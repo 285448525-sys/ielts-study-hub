@@ -4105,18 +4105,29 @@ window.__reportExamState = reportExamState;
     /* 10/17 B：本篇没有答案 → 不判分。空 detail + right 0 / total 0，
        调用方（doSubmit）按 EX.scored===false 走「未判分」分支，不会拿这组数当成绩。 */
     if(EX && EX.scored === false) return { right: 0, total: 0, detail: [], scored: false };
+    /* 🔴 BANK-SCORED-1（10-27）：**没有答案键的题不参与计分** —— 既不计正确，也不进分母。
+       病根：8 篇答案不全（7 听力 + 1 阅读），答案文件里缺那几题。原来无条件 total++，
+       于是「她答不对」和「题库没给答案」被算成同一件事：分母虚高、正确率被系统性压低、还照常落库。
+       实测基准：Hollies Supermarket（10 题只有 11-14 有答案）填对 11-14 交卷 → 原来 4/10，
+       本笔起应为 **4/4**（Overall 按 4 题算、落库 total=4）。
+       ⚠️ 边界：这里只处理「题目缺答案键」；答案文件整体为空仍由上面 :4107 那道闸判「不判分」，
+          两者不要混。混合卷「全有答案才判分」是她 10-17 拍板设计（见 :2613 注释），本笔不动它。
+       ⚠️ 无答案题仍然进 detail（用来显示「这题没答案可对」），只是不计入分母。 */
+    var _hasKey = function(key, gset){ return gset ? !!gset : (key != null && String(key).length > 0); };
     var user = collect(), right = 0, total = 0, detail = [];
     if(EX.full){
       EX.qs.forEach(function(e){
         var key = e.pack.answers[e.loc], ua = user[e.g];
         var alts = (e.pack.alts && e.pack.alts[e.loc]) ? [].concat(e.pack.alts[e.loc]) : [];
-        total++;
+        /* 本卷这一题有没有答案键（共享组用 gset）；没有就只进明细、不进分母 */
+        var keyed = _hasKey(key, e.gset);
+        if(keyed) total++;
         var j = (e.gset && Array.isArray(ua))
           ? { ok: setEq(ua, e.gset), shown: ua.join(',') }
           : judgeOne(key, alts, ua);
-        if(j.ok) right++;
+        if(keyed && j.ok) right++;
         detail.push({ qn: String(e.g), user: j.shown == null ? '' : j.shown,
-                      right: e.gset ? e.gset.toUpperCase() : (key == null ? '' : key), ok: !!j.ok, t: qtypeCode(e.grp, EX.channel), q: e.q });
+                      right: e.gset ? e.gset.toUpperCase() : (key == null ? '' : key), ok: keyed ? !!j.ok : false, noKey: !keyed, t: qtypeCode(e.grp, EX.channel), q: e.q });
       });
       return { right: right, total: total, detail: detail };
     }
@@ -4125,13 +4136,15 @@ window.__reportExamState = reportExamState;
       (g.questions || []).forEach(function(q){
         var qn = String(q.qNumber), key = EX.answers[qn], ua = user[qn];
         var alts = (EX.alts && EX.alts[qn]) ? [].concat(EX.alts[qn]) : [];
-        total++;
+        /* BANK-SCORED-1：缺答案键的题只进明细、不进分母（见函数开头说明） */
+        var keyed = _hasKey(key, gset);
+        if(keyed) total++;
         var j = (gset && Array.isArray(ua))
           ? { ok: setEq(ua, gset), shown: ua.join(',') }
           : judgeOne(key, alts, ua);
-        if(j.ok) right++;
+        if(keyed && j.ok) right++;
         detail.push({ qn: qn, user: j.shown == null ? '' : j.shown,
-                      right: gset ? gset.toUpperCase() : (key == null ? '' : key), ok: !!j.ok, t: qtypeCode(g, EX.channel), q: q });
+                      right: gset ? gset.toUpperCase() : (key == null ? '' : key), ok: keyed ? !!j.ok : false, noKey: !keyed, t: qtypeCode(g, EX.channel), q: q });
       });
     });
     return { right: right, total: total, detail: detail };
