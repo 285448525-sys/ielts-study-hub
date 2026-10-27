@@ -935,13 +935,19 @@ function onbDaysLeft(){
     return Math.ceil((t.getTime() - Date.now()) / 86400000);
   }catch(e){ return null; }
 }
-/* 结束引导：关遮罩 + 首页提示条按状态重渲染 */
+/* 结束引导：关遮罩 + 首页提示条按状态重渲染
+   🔴 ONB-SNOOZE-1（10-27）：`allDone=false` 的三种情形（点遮罩空白 / 按 Esc / 30s 超时）**只是暂停，不是完成**。
+   原来一律写 finished:true，等于「用户逃了一次 = 配额用完」——她下次再来永远不再弹，引导等于只有一次机会。
+   现在改成：没答完三步 → finished:false + snoozed:true（记「这次先不看」，下次进首页还弹）；
+   答完三步（allDone && 三步齐）→ 才写 finished:true 真收口。
+   ⚠️ 只改状态落法，不动引导本体渲染、不动 blur、不动 30s 计时器本身。 */
 function onbFinish(allDone){
   const st = getOnboarding() || onbDefaults();
   const s = st.setup || {};
   const done = (s.exam ? 1 : 0) + (s.effort ? 1 : 0) + (s.words ? 1 : 0);
   if(allDone && done >= 3) setOnboarding({ finished:true, entered:true, snoozed:true });
-  else setOnboarding({ finished:true, entered:true });
+  else if(allDone) setOnboarding({ finished:true, entered:true });   /* 走完了但三步没齐：真结束，不记暂停 */
+  else setOnboarding({ finished:false, entered:false, snoozed:true }); /* 逃逸/超时：只记暂停，下次还弹 */
   onbClose();
   if(typeof renderOnboardingBar === 'function'){ try{ renderOnboardingBar(); }catch(e){} }
   if(typeof renderDashV6 === 'function'){ try{ renderDashV6(); }catch(e){} }
