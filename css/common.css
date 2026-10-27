@@ -779,13 +779,22 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 
 /* ═══ 选项网格（照抄 v5：第一行=词性，第二行=中文） ═══ */
 #practiceBody.practice-body-fit .opts-grid{
-  display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%;
+  /* WD-UI-1：`grid-auto-rows:1fr` 让同一行的两张卡**等高**（高度取该行最高者），
+     配合下面 .opt-big 的 min-height —— 长释义既不被切、四卡又保持整齐。
+     不加这条的话 min-height 会让长释义那两张长高、另两张还是 88（实测手机档 117 vs 88，反而更乱）。 */
+  display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;gap:14px;width:100%;
 }
 #practiceBody.practice-body-fit .opt-big{
-  position:relative;height:88px;padding:14px 12px;   /* 9/15 收紧：左右 18→12 */
+  /* 🔴 WD-UI-1（10-27 她「这个页面 ui 尺寸特别有问题」）：原来 `height:88px` 是**固定高**，
+     配合 `overflow:hidden` —— 长释义在手机档（≤430）要占 3 行，超出 88px 的部分被直接切掉。
+     实测：1280/1440 全正常（1 行，底部余 22px）；600 起 2 行；**430/390 有 1 个选项被切**。
+     改法 = 固定高改 min-height（88px 保底，内容多就自己长高），四张卡等高靠 grid 自动对齐；
+     `overflow` 从 hidden 改 visible，宁可盒子长高也不切字。
+     ⚠️ 只改这三处尺寸属性；两列网格、圆角、配色、hover、词性/释义两行结构一概不动（红线 5）。 */
+  position:relative;min-height:88px;padding:14px 12px;
   display:flex;flex-direction:column;align-items:flex-start;justify-content:center;
-  gap:6px;border:1.5px solid var(--neutral);border-radius:10px;background:var(--surface);cursor:pointer;   /* 9/18 夜间适配：原硬编码 #fff 压过暗色 token → 选项卡白底+浅字洗白；浅色 --surface=#fff 零变化 */
-  transition:all .15s ease;overflow:hidden;box-sizing:border-box;
+  gap:6px;border:1.5px solid var(--neutral);border-radius:10px;background:var(--surface);cursor:pointer;
+  transition:all .15s ease;overflow:visible;box-sizing:border-box;
 }
 #practiceBody.practice-body-fit .opt-big:hover{ border-color:var(--muted); }
 
@@ -857,7 +866,8 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
   #practiceBody.practice-body-fit .practice-word-area{ padding:2px 4px 8px;min-height:120px; }
   #practiceBody.practice-body-fit .pw-en{ font-size:32px; }
   #practiceBody.practice-body-fit .opts-grid{ gap:12px; }
-  #practiceBody.practice-body-fit .opt-big{ height:82px;padding:12px 12px; }
+  /* WD-UI-1：矮窗口同样把固定高改成保底高（否则这一档仍是切字的老问题） */
+  #practiceBody.practice-body-fit .opt-big{ min-height:82px;padding:12px 12px; }
   #practiceBody.practice-body-fit .opt-big-cn{ font-size:15px; }
 }
 
