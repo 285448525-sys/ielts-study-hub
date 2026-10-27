@@ -3232,4 +3232,20 @@ function wrtBindOption(){
   });
 }
 
+/* WRT-TIP-1（10-27）：.mk 绿块 hover 气泡翻转防裁切
+   默认 ::after 在 mark 上方（bottom: calc(100% + 8px)）。当 mark 靠近视口顶部
+   （剩余空间 < 气泡估算高 ~60px + 8px gap + 安全垫 12px = 80px）→ 翻到下方。
+   委托绑 document，两页（writing.html + bank.html 里的写作弹窗）全吃到。 */
+document.addEventListener('mouseover', function(ev){
+  var m = ev.target.closest && ev.target.closest('mark.mk[data-tip]');
+  if(!m) return;
+  var rect = m.getBoundingClientRect();
+  var spaceAbove = rect.top;
+  m.setAttribute('data-flip', spaceAbove < 80 ? '1' : '0');
+});
+document.addEventListener('mouseout', function(ev){
+  var m = ev.target.closest && ev.target.closest('mark.mk[data-tip]');
+  if(m) m.removeAttribute('data-flip');
+});
+
 

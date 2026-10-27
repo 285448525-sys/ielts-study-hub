@@ -1274,6 +1274,8 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
      改用 --primary-700（深浅两档都有定义），深色下翻成 primary-100 底 + primary-900 字。 */
   mark.mk::after{content:attr(data-tip);position:absolute;left:0;bottom:calc(100% + 8px);z-index:30;width:max-content;max-width:280px;background:var(--primary-800);color:#fff;font-size:12.5px;line-height:1.6;padding:8px 10px;border-radius:8px;opacity:0;pointer-events:none;transform:translateY(4px);transition:.14s;box-shadow:0 8px 24px rgba(0,0,0,.18);font-weight:400;text-align:left;white-space:normal}
   mark.mk:hover::after{opacity:1;transform:none}
+  /* WRT-TIP-1（10-27）：与 writing.html 同步，空间不够翻到下方 */
+  mark.mk[data-flip="1"]::after{bottom:auto;top:calc(100% + 8px);transform:translateY(-4px)}
   /* 总分 + 四项方阵 */
   .sr-scorehead{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:10px}
   .sr-overall{font-size:26px;font-weight:800;color:var(--primary-d);line-height:1;font-variant-numeric:tabular-nums}
@@ -2330,7 +2332,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
     </section>
 
     <section class="mock-pane" id="pane-writing" hidden
-             data-late-src="js/writing_prompts.js?v=20260903ab,js/writing.js?v=20261025e">
+             data-late-src="js/writing_prompts.js?v=20260903ab,js/writing.js?v=20261027a">
       <!-- 10/11 第 7 项（她拍板「整块删掉」写作页真题 tab）：写作真题整体搬到这里。
            题目数据 = js/writing_prompts.js（大作文 70 + 小作文 25），渲染/机考/评分逻辑在 js/writing.js
            （writeExam 那一段，同一份代码两页共用；本页无 #writeTabs → writing.js 只跑真题初始化）。
