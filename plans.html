@@ -30,7 +30,7 @@
 </script>
 <title>计划 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261027m" />
-<link rel="stylesheet" href="css/p/plans.css?v=20261027m" />
+<link rel="stylesheet" href="css/p/plans.css?v=20261027n" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -65,10 +65,12 @@
      铁律：common.css:438 全站表单重置权重 (0,2,1)，故本页新 input/select 的可样式化属性
      一律挂在 #diagOverlay / #diagRoot 的 id 作用域下（权重 1,1,0+），不用裸 class。 -->
 <style id="diagStyle">
-/* PLAN-W-1（她 10:4x「上下板块宽度不一样」）：#diagRoot 与上方 .m-mk-shell 对齐 ——
-   m-mk-shell 有 padding:16px（卡片区 1100），diagRoot 满宽 1132，左右各差 16px。
-   诊断问卷/结果页同 id 作用域会一起内缩（方向正确，与上方卡片对齐）。 */
-#diagRoot{ padding:0 16px; box-sizing:border-box; }
+/* PLAN-W-1（她 10:4x「上下板块宽度不一样」）当时给 #diagRoot 补了 16px 内缩，
+   是为了追平「上半段卡片被 .m-mk-body 挤窄后是 1100」——那是**追着错的目标对齐**。
+   PLAN-W-2（10-27）把灰壳与 .m-mk-body 内缩拆掉后，上半段卡片已回到全站口径 1132/left 67，
+   所以这 16px 内缩必须去掉，否则诊断卡反而比上面窄 16px（左右各差回来）。
+   保留 box-sizing 无害，padding 归零。 */
+#diagRoot{ padding:0; box-sizing:border-box; }
 #diagRoot .dg-hero{text-align:center;padding:28px 20px}
 #diagRoot .dg-hero-ic{font-size:40px;line-height:1;margin-bottom:10px}
 #diagRoot .dg-hero h2{margin:0 0 8px;font-size:20px}

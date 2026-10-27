@@ -210,3 +210,21 @@
    不占满会被挤成 168px 一格的小方框，看着像坏了。空态本体仍走 common.js 的 renderEmpty(.empty)。 */
 #mDays .empty{ grid-column: 1 / -1; }
 
+/* ═══ PLAN-W-2（10-27 她：「计划页面的尺寸跟其他页面也不一致……我看好像是因为有一个边框色块」）═══
+   实测（1280 宽，探针 _probe_planw2_1027 读数）：
+     计划页卡片 .m-mcard  left=83 / w=1100
+     单词 · 回顾 · 设置三页卡  left=67 / w=1132   ← 全站口径
+   左右各差 16px，来源是这两层：
+     ① `.m-mk{background:var(--m-bg)}` —— 一圈浅灰底（rgb(246,247,247)）包住整个内容区，
+        她说的「边框色块」就是它（看着像卡片外套了个灰框，实际没有 border）；
+     ② `.m-mk-body{padding:16px}` —— 这 16px 又把里面所有卡片往里挤了一圈。
+   修法：灰壳去掉 + 左右内缩归零 → 卡片直接落在 1132 / left 67，与全站对齐。
+   ⚠️ 只动「外壳的底色与内缩」，不动 .m-mcard / .m-phase 等卡片自身的 padding/border/radius
+      （那是她定过的版），也不动 days 网格。
+   ⚠️ 深色档必须一起覆盖：原 161 行 `[data-theme="dark"] .m-page .m-mk{background:var(--m-bg)}`
+      特异性 (0,3,0) 高于下面那条 (0,2,0)，不写就只在深色下把灰壳放回来。 */
+.m-page .m-mk{ background: transparent; }
+.m-page .m-mk-body{ padding-left: 0; padding-right: 0; padding-bottom: 0; }
+[data-theme="dark"] .m-page .m-mk{ background: transparent; }
+
+
