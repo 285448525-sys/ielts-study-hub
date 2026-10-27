@@ -749,3 +749,69 @@ html[data-theme="dark"] .rec-row.rec-focus{
   .rec-redo{width:100%;margin:8px 0 0;display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .rec-redo .btn{height:44px;min-height:44px;font-size:13px;justify-content:center}
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   RV-TRAK-SIZE-1（10-27 她 17:1x：「回顾的轨迹页面各板块的尺寸不对，不整齐，
+   跟其他页面的尺寸也不一致」）
+   ---------------------------------------------------------------------------
+   实测（探针 _probe_rvtrak_1027，1280 宽）：
+     · 轨迹页所有卡 left=172 —— 而全站卡片 left=67（container 1160 / 内容 1132）。
+       根因是 review.html:157 那条 T-010 的 `.review-wrap{max-width:1040px}` 把整页收窄，
+       轨迹页也被一起收窄了 92px。
+     · 轨迹页内部还有**两套卡片体系并存**：
+         A. .rp-card   —— 左右两列各 454，padding 20/22，radius 14，卡间用 margin-top:14
+         B. .card      —— 满宽 922，padding 24，radius 16，卡间 margin-bottom:24，标题 15px/600
+       → 同一页两套 padding（20/22 vs 24）、两套 gap（14 vs 24）、两套标题档（16/750 vs 15/600），
+         视觉上当然「不整齐」。
+   ---------------------------------------------------------------------------
+   本段只治尺寸/间距（她点名「尺寸/间距统一 = 微调整类，直接做」）：
+   ① 轨迹页容器放开到全站口径（只在 #tab-record 作用域内生效 —— 成绩栏那个 1040
+      是她 T-010 定的版，**不动**，红线 5）；
+   ② 两套卡片统一到全站标准卡：padding 14~18 档（取 16px 20px）、radius 14、
+      卡间 gap 统一 14px（8px 栅格不整除时取既有 14px 这一档，与 rp-card 现值一致）；
+   ③ 两类标题字号统一（16px / 700），只改数值不改结构。
+   ⛔ 不动：板块有无、顺序、内容、数据逻辑一行未碰（红线 5）。
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ① 只在「轨迹」分栏激活时放开宽度（:has 让成绩栏原样保留 T-010 的 1040）
+   🔴 只清 max-width 不够（实测踩坑）：main.container 是 flex 容器，`.review-wrap` 默认
+      `flex:0 1 auto` + `margin:0 auto` 时宽度是**收缩到内容宽度**而非占满父级 ——
+      实测 wrap 只有 914（左右 margin 各 109），清掉 max-width 后仍不变。
+      必须同时给 `flex:1 1 auto; width:100%` 才撑满到全站口径 1132。 */
+@media (min-width:1100px){
+  .review-wrap:has(#tab-record.active){ max-width:none; flex:1 1 auto; width:100%; margin-left:0; margin-right:0; }
+}
+
+/* ② 卡片尺寸统一（只作用在 #tab-record 里，绝不外溢到成绩栏） */
+#tab-record .rp-card,
+#tab-record .card{
+  padding:16px 20px;
+  border-radius:14px;
+}
+/* 卡间间距统一 14px：rp-card 原本靠相邻 margin-top，.card 原本靠 margin-bottom，
+   统一成「相邻即 14」——两种写法都覆盖掉，避免一边 14 一边 24 交替出现。 */
+#tab-record .rp-card + .rp-card{ margin-top:14px; }
+#tab-record .rp-card,
+#tab-record .card{ margin-bottom:0; }
+#tab-record .rp-card,
+#tab-record .card{ margin-top:14px; }
+#tab-record > .rp-page > .rp-pane > :first-child,
+#tab-record .rp-pane > :first-child{ margin-top:0; }
+
+/* ③ 标题档位统一：rp-card h2 是 16/750、.card 里 h2 是 15/600 → 统一 16/700 */
+#tab-record .rp-card h2,
+#tab-record .card h2,
+#tab-record .card h3{
+  font-size:16px;
+  font-weight:700;
+  letter-spacing:-0.01em;
+  margin:0;
+}
+/* 折叠卡标题行（.rv-fold-head）与上面同档，但保留它自己的点击态语义 */
+#tab-record .rv-fold-head{ font-size:16px; font-weight:700; }
+
+/* ④ 手机档：padding 收到全站手机口径，别比别的页更宽 */
+@media (max-width:560px){
+  #tab-record .rp-card,
+  #tab-record .card{ padding:14px 13px; border-radius:14px; }
+}
