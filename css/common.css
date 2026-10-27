@@ -3154,3 +3154,43 @@ body.hub-exam-locked #ancBarHost{ display:none !important }
 @media (prefers-reduced-motion: reduce){
   .nav-progress::after{animation:none;width:100%;opacity:.55}
 }
+
+/* ===== 联系站长弹卡（P1-WX-EXPORT · 10-27） =====
+   🔴 起因：P1-WX-CARD 先把 help.html / vip.html 的入口按钮改成 data-wx-open 并上线了，
+   但消费它的弹卡模块还没写 → 线上这两个「联系站长」点了没反应。本块把模块补齐。
+   ⚠️ 类名全部避开现有的 .fb-wxbox* / .fb-wxlink / .fb-wxcopy（那是意见反馈弹层内「展开联系方式」那套），
+      两套互不覆盖、可以同时存在。
+   ⚠️ 颜色一律走 token，深浅模式与三套外观自动跟随，不硬钉色值。 */
+.fb-wx-overlay{position:fixed;inset:0;z-index:900;display:none;
+  align-items:flex-start;justify-content:center;padding:22vh 20px 20px;
+  background:rgba(16,20,24,.42);backdrop-filter:blur(2px)}
+.fb-wx-overlay.open{display:flex}
+.fb-wx-pop{position:relative;width:340px;max-width:100%;
+  background:var(--surface);color:var(--ink);border:1px solid var(--line);
+  border-radius:14px;box-shadow:0 18px 48px rgba(0,0,0,.22);padding:20px 20px 16px}
+.fb-wx-close{position:absolute;top:10px;right:12px;width:30px;height:30px;
+  display:flex;align-items:center;justify-content:center;border:none;border-radius:50%;
+  background:transparent;color:var(--muted);font-size:17px;line-height:1;cursor:pointer}
+.fb-wx-close:hover{background:var(--n-100);color:var(--ink)}
+.fb-wx-close:focus-visible{outline:2px solid var(--primary-600);outline-offset:2px}
+.fb-wx-pop h3{margin:0 0 4px;font-size:15px;font-weight:650;color:var(--ink)}
+.fb-wx-sub{margin:0 0 16px;font-size:12px;line-height:1.6;color:var(--muted)}
+.fb-wx-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;
+  padding:12px 14px;background:var(--n-50);border:1px solid var(--line);border-radius:10px}
+.fb-wx-id{flex:1;font-family:var(--mono);font-size:16px;font-weight:500;
+  letter-spacing:.5px;color:var(--ink);word-break:break-all}
+.fb-wx-btn{display:flex;align-items:center;justify-content:center;width:100%;height:44px;
+  margin-bottom:8px;border:1px solid transparent;border-radius:10px;
+  font-size:14px;font-weight:500;cursor:pointer;transition:background .15s,border-color .15s}
+.fb-wx-btn:focus-visible{outline:2px solid var(--primary-600);outline-offset:2px}
+.fb-wx-btn-primary{background:var(--primary);color:var(--on-primary)}
+.fb-wx-btn-primary:hover{background:var(--primary-600)}
+.fb-wx-btn-ghost{background:var(--n-50);color:var(--ink-2);border-color:var(--line)}
+.fb-wx-btn-ghost:hover{background:var(--n-100)}
+.fb-wx-foot{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);
+  font-size:11px;line-height:1.6;color:var(--muted);text-align:center}
+@media (max-width:480px){
+  .fb-wx-overlay{padding-top:14vh}
+  .fb-wx-pop{padding:18px 16px 14px}
+}
+/* 深色档 .fb-wx-row 的 --n-50 反成 #262629、文字靠 --ink 提亮，已够对比，无需再钉值 */

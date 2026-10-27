@@ -356,4 +356,68 @@
     /* 直接改地址栏带 ?fb=1 也能打开（万一是她自己拼的链接 / 以后做「联系客服」深链） */
     if (/(?:^|[?&])fb=1(?:&|$)/.test(location.search || '')) setTimeout(open, 400);
   });
+
+  /* ====== 联系站长弹卡（P1-WX-EXPORT · 10-27 新增） ======
+     入口约定：页面上任何元素加 data-wx-open，点一下就弹这张卡 —— 走 document 级委托（无条件绑），
+     以后要加新入口只改 HTML，不用再动 JS。
+     🔴 微信号只认上面那一个 FB_WX，不在这里写真值（全站唯一出口，10/2 她拍板）。 */
+  let wxCard = null, wxCardBuilt = false;
+
+  function ensureWxCard(){
+    if (wxCardBuilt) return;
+    wxCardBuilt = true;
+    wxCard = document.createElement('div');
+    wxCard.className = 'fb-wx-overlay';
+    wxCard.setAttribute('aria-hidden', 'true');
+    wxCard.innerHTML = '<div class="fb-wx-pop" role="dialog" aria-modal="true" aria-label="联系站长">'
+      + '<button class="fb-wx-close" type="button" aria-label="关闭">\u00d7</button>'
+      + '<h3>联系站长</h3>'
+      + '<p class="fb-wx-sub">微信直接聊，急事优先处理；也可以继续写正式反馈</p>'
+      + '<div class="fb-wx-row"><span class="fb-wx-id"></span></div>'
+      + '<button class="fb-wx-btn fb-wx-btn-primary" type="button">一键复制微信号</button>'
+      + '<button class="fb-wx-btn fb-wx-btn-ghost" type="button">写正式反馈</button>'
+      + '<div class="fb-wx-foot">加微信时说一下来意，比如「会员支付问题」</div>'
+      + '</div>';
+    document.body.appendChild(wxCard);
+    wxCard.querySelector('.fb-wx-id').textContent = FB_WX;
+
+    wxCard.addEventListener('click', function(ev){ if (ev.target === wxCard) closeWxCard(); });
+    wxCard.querySelector('.fb-wx-close').addEventListener('click', closeWxCard);
+    wxCard.querySelector('.fb-wx-btn-primary').addEventListener('click', copyWxCard);
+    wxCard.querySelector('.fb-wx-btn-ghost').addEventListener('click', function(){
+      closeWxCard();
+      if (typeof window.openFeedbackSheet === 'function') window.openFeedbackSheet();
+    });
+  }
+
+  function openWxCard(){
+    ensureWxCard();
+    wxCard.classList.add('open');
+    wxCard.setAttribute('aria-hidden', 'false');
+    const btn = wxCard.querySelector('.fb-wx-btn-primary');
+    if (btn) setTimeout(function(){ try { btn.focus(); } catch(_){} }, 20);
+  }
+  function closeWxCard(){
+    if (!wxCard) return;
+    wxCard.classList.remove('open');
+    wxCard.setAttribute('aria-hidden', 'true');
+  }
+  function copyWxCard(){
+    /* toast 文案沿用站里现成口径；window.toast 由 common.js 提供，缺失时静默降级（复制本身照做） */
+    const done = function(){ if (window.toast) window.toast('微信号已复制：' + FB_WX); };
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(FB_WX).then(done).catch(function(){ fallbackCopy(done); });
+    } else fallbackCopy(done);
+  }
+
+  /* 入口委托：无条件绑在 document 上 */
+  document.addEventListener('click', function(e){
+    const t = e.target && e.target.closest ? e.target.closest('[data-wx-open]') : null;
+    if (!t) return;
+    e.preventDefault();
+    openWxCard();
+  });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' || e.keyCode === 27) closeWxCard();
+  });
 })();
