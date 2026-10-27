@@ -18,8 +18,8 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>模考 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261027f" />
-<link rel="stylesheet" href="css/p/bank.css?v=20261027f" />
+<link rel="stylesheet" href="css/common.css?v=20261027h" />
+<link rel="stylesheet" href="css/p/bank.css?v=20261027h" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -854,7 +854,10 @@
   font:inherit;font-size:11.5px;font-weight:600;color:#111;cursor:pointer;font-variant-numeric:tabular-nums;
   display:inline-flex;align-items:center;justify-content:center;border-radius:3px}
 .ex-num::before{content:"";position:absolute;left:3px;right:3px;top:-2px;height:2px;background:#c9ced6;border-radius:1px}
-.ex-num--done::before{background:#111}
+/* EXAM-NUM-DONE：已答杠 #111 → 绿（灰=未答 → 绿=已答）。
+   ⚠️ `:not(.ex-num--hit):not(.ex-num--miss)` 是必须的，不是保险：交卷后题号**同时带 done 类**，
+   不排除的话 done 的绿会把「答错」的红杠一起染绿 → 答错显示成对的颜色。 */
+.ex-num--done:not(.ex-num--hit):not(.ex-num--miss)::before{background:#2f7d61}
 .ex-num--cur{box-shadow:inset 0 0 0 1.5px #111}
 /* 官方：标记后题号由方块变圆圈 → 圆环 + border-radius 50% */
 .ex-num--flag{border-radius:50%;box-shadow:inset 0 0 0 1.5px #b3261e}
@@ -888,7 +891,16 @@
 #examRoot.ct-dark .ex-pt.on .ex-pt-n{color:#aab2bb}
 #examRoot.ct-dark .ex-num{color:#e8eaed}
 #examRoot.ct-dark .ex-num::before{background:#5a5f66}
-#examRoot.ct-dark .ex-num--done::before{background:#e8eaed}
+/* EXAM-NUM-DONE：已答杠统一绿（原 #e8eaed 近白，与「未答 #5a5f66」区分不开）。用亮绿与黄档 hit 同源。 */
+#examRoot.ct-dark .ex-num--done:not(.ex-num--hit):not(.ex-num--miss)::before{background:#3ddb9a}
+/* 顺带补存量缺口（10-27 取证发现）：深色档从来没写过交卷后 hit/miss 的配色。
+   白档那套是无前缀的浅色方案（background:#e7f6ef 浅绿底），在深底上会发白刺眼；
+   而深色档原 done 杠是近白 #e8eaed、又写在后面，把 hit/miss 的杠一起压成同色
+   → 深色下交卷后答对和答错看起来一模一样。按黄档已验证过的深底配色补齐。 */
+#examRoot.ct-dark .ex-num--hit{background:#123b2c;color:#7ee0b3}
+#examRoot.ct-dark .ex-num--hit::before{background:#3ddb9a}
+#examRoot.ct-dark .ex-num--miss{background:#3d1512;color:#ff9d95}
+#examRoot.ct-dark .ex-num--miss::before{background:#ff6b60}
 #examRoot.ct-dark .ex-num--cur{box-shadow:inset 0 0 0 1.5px #e8eaed}
 #examRoot.ct-dark .ex-strip{color:#8a9199}
 #examRoot.ct-dark .ex-strip-b{color:#aab2bb}
@@ -906,7 +918,14 @@
 #examRoot.ct-yellow .ex-pt.on .ex-pt-n{color:#c9bd85}
 #examRoot.ct-yellow .ex-num{color:#f0e3a8}
 #examRoot.ct-yellow .ex-num::before{background:#5a5f66}
-#examRoot.ct-yellow .ex-num--done::before{background:#ffd400}
+/* EXAM-NUM-DONE：已答杠改深一档绿（原 #ffd400 亮黄，与「当前题」黄框撞色，且不像「答过」）。 */
+#examRoot.ct-yellow .ex-num--done:not(.ex-num--hit):not(.ex-num--miss)::before{background:#2f7d61}
+/* 顺带补存量缺口（10-27 取证发现）：黄档 hit/miss 杠色是 (1,2,0)，
+   而后面「#examRoot.ct-yellow .ex-num::before{background:#5a5f66}」也是 (1,2,0) 且写在后面
+   → 一直把对错杠压成灰。改前看不出来，是因为原 done 的亮黄 (#ffd400) 写得更晚、把两者一起盖成黄，
+   等于黄档交卷后「对」和「错」也是同色。本单把 done 收窄成 :not 之后就露出来了，一并补在灰杠之后。 */
+#examRoot.ct-yellow .ex-num--hit::before{background:#3ddb9a}
+#examRoot.ct-yellow .ex-num--miss::before{background:#ff6b60}
 #examRoot.ct-yellow .ex-num--cur{box-shadow:inset 0 0 0 1.5px #ffd400}
 #examRoot.ct-yellow .ex-strip{color:#8a7f56}
 #examRoot.ct-yellow .ex-strip-b{color:#c9bd85}
@@ -1577,9 +1596,13 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 /* ---- ④ 题号方格：官方 21x27 + 当前题 2px 蓝框（截图 19/22 实测）---- */
 #examRoot .ex-num{min-width:21px;max-width:21px;height:27px;border:2px solid transparent;border-radius:3px;
   font-size:13px;font-weight:400;color:#333;background:transparent}
-/* 官方没有「已答线」—— 答过的题就是普通黑字。本站原有的 ::before 横线是 10/14 的自家设计，
-   照官方口径抹平（保留类名不断 JS，只把视觉收掉）。 */
-#examRoot .ex-num::before{display:none}
+/* 10-27 EXAM-NUM-DONE（她 10:5x：练习里的题下面的数字标，如果答题过了会有一个绿色的横杠）：
+   10/14 那版按官方口径把已答线整条抹平了（display:none）→ 结果答过和没答看起来完全一样，
+   她在阅读里当然找不到反馈，于是以为阅读坏了、听力才有（听力那个绿其实是整个 Part 做完的绿勾）。
+   官方确实没有已答线，但她明确要这个反馈——这是她的站，不是官方复刻。本单恢复横杠并改绿：
+   灰杠 = 未答 → 绿杠 = 已答 → 交卷后 绿底=对 / 红底=错（语义自然延续）。
+   ⚠️ 只恢复视觉，类名与 JS 一行未动（.ex-num--done 一直由 bank.js 在答过时打上）。 */
+#examRoot .ex-num::before{display:block}
 #examRoot .ex-num--done{color:#000;font-weight:400}
 #examRoot .ex-num--cur{border-color:#418ec6;color:#000;box-shadow:none}
 #examRoot.ct-dark .ex-num{color:#c8cbd0}
@@ -2408,13 +2431,13 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
      （手机慢网 ~50KB/s → 约 1.5 秒）。加载时机：点开「写作」tab 时按序插入；
      首次 load 之后空闲再预热一次。承接代码在 js/bank.js 的 loadWritingScripts()。 -->
 <script defer src="js/data.js?v=20261027c"></script>
-<script defer src="js/common.js?v=20261027f"></script>
-<script defer src="js/common-ai.js?v=20261027f"></script>
-<script defer src="js/common-sync.js?v=20261027f"></script>
-<script defer src="js/common-merge.js?v=20261027f"></script>
-<script defer src="js/common-cloud.js?v=20261027f"></script>
-<script defer src="js/common-shell.js?v=20261027f"></script>
-<script defer src="js/common-pwa.js?v=20261027f"></script>
+<script defer src="js/common.js?v=20261027h"></script>
+<script defer src="js/common-ai.js?v=20261027h"></script>
+<script defer src="js/common-sync.js?v=20261027h"></script>
+<script defer src="js/common-merge.js?v=20261027h"></script>
+<script defer src="js/common-cloud.js?v=20261027h"></script>
+<script defer src="js/common-shell.js?v=20261027h"></script>
+<script defer src="js/common-pwa.js?v=20261027h"></script>
 <script defer src="js/bank.js?v=20261026r"></script>
 <!-- M-2（10-24）：模考页「没做过/做过」分组 + 展开更多。
      ⚠️ 本文件只做展示层（读 hub_bank_last_* 分组 + 首屏 20 条），判分/SRS/本地记录一律不碰；
