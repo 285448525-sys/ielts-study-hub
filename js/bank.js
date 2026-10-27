@@ -859,10 +859,25 @@
   /* numOf：把「篇内题号」映射成「卷面题号」。单篇练习 = 原样；完整模考 = 1–40 连续编号。 */
   function idNum(){ return function(n){ return n; }; }
 
-  function pillsHtml(q, numOf){
+  /* 🔴 BANK-MAP-OPT-1（10-27）：组内选项回退。
+     病根：听力 map 组是「一份字母池 A–J，全组共用」（真机考同形），但题库里这份池子
+     **只错落在组内前几题的 q.options 上**（实地统计：listening 37 个 map 组，组级 options 全空 37/37，
+     而组内至少有一题带池子的 37/37）→ 原来按「每题自己的 options」渲染，
+     没带池子的那几题就成了只有题干、没有任何可点控件的空行（她考到就答不了，判分还恒算错）。
+     修法：本题没 options 时，在**同一组**里找第一份非空选项池借过来（与 :4084 判型同源的取法）。
+     ⚠️ 只补渲染来源，不动 collect / 判分（值仍以 data-v 为准，链路零变化）。 */
+  function groupOptPool(q, group){
+    if((q.options || []).length) return q.options;
+    var qs = (group && group.questions) || [];
+    for(var i = 0; i < qs.length; i++){
+      if((qs[i].options || []).length) return qs[i].options;
+    }
+    return [];
+  }
+  function pillsHtml(q, numOf, group){
     var n = numOf(q.qNumber);
     var h = '<div class="ex-pills" data-q="' + esc(n) + '">';
-    (q.options || []).forEach(function(o){
+    groupOptPool(q, group).forEach(function(o){
       var v = o.optionNum || o.optionContent || '';
       h += '<span class="ex-pill" data-v="' + esc(v) + '">' + esc(o.optionContent || v) + '</span>';
     });
@@ -1078,7 +1093,7 @@
       qs.forEach(function(q){
         var n = numOf(q.qNumber);
         h += '<div class="ex-q"><span class="ex-qn" data-qn="' + esc(n) + '">' + esc(n) + '</span>'
-          + flagHtml(n) + '<span class="ex-qt">' + esc(plain(q.question)) + pillsHtml(q, numOf) + '</span></div>';
+          + flagHtml(n) + '<span class="ex-qt">' + esc(plain(q.question)) + pillsHtml(q, numOf, g) + '</span></div>';
       });
     } else if(g.type === 'multiple-choice'){
       var need = groupNeed(g);
@@ -1126,7 +1141,7 @@
       qs.forEach(function(q){
         var n = numOf(q.qNumber);
         h += '<div class="ex-q"><span class="ex-qn" data-qn="' + esc(n) + '">' + esc(n) + '</span>'
-          + flagHtml(n) + '<span class="ex-qt">' + clean(q.question) + (tf ? pillsHtml(q, numOf) : radioHtml(q, numOf)) + '</span></div>';
+          + flagHtml(n) + '<span class="ex-qt">' + clean(q.question) + (tf ? pillsHtml(q, numOf, g) : radioHtml(q, numOf)) + '</span></div>';
       });
     }
     return h + '</div>';
