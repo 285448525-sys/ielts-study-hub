@@ -395,7 +395,12 @@ async function cloudUpload(showToast, force, opts){
     if(body && body.hash) _lastCloudHash = String(body.hash);
     if(_syncBC){ try{ _syncBC.postMessage({ t:'uploaded', id:_tabId }); }catch(e){} }
     if(showToast) toast('已上传到云端');
-    syncSetStatus('✅ 已同步到云端', 'ok');
+    /* SYNC-NOOK-1（10-27）：上传成功**不再往身份卡写常驻绿勾**。
+       她 10:1x 指截图：「把设置页这个绿色的打钩去掉，不用显示这个东西。」
+       依据同她 10/5 的同类口径——「已登录旁边自动同步开，这句话不用显示，反正都是默认开着的」：
+       **成功是默认预期，不必常驻告诉她**；瞬时反馈已由上面那句 toast 承担。
+       注意：syncSetStatus 本体与错误通道一律不动（别的调用点还要用）。 */
+    syncSetStatus('', 'ok');
     renderLastSync();
     return true;
   }catch(e){

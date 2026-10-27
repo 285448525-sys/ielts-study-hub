@@ -114,7 +114,9 @@ async function cloudDownload(silent){
       if(_syncBC){ try{ _syncBC.postMessage({ t:'poll', id:_tabId }); }catch(e){} }
       // 无缝刷新：合并成功后主动重渲染当前页面，无需用户手动刷新即可看到另一端的变化。
       renderAllOnMerge();
-      syncSetStatus('✅ 已同步（已合并云端更新）', 'ok');
+      /* SYNC-NOOK-1（10-27）：合并成功同样**不写常驻绿勾**（同 common-sync.js 那处）。
+         灭掉身份卡那条「✅ 已同步（已合并云端更新）」；「已合并 N 处」的瞬时提示照旧走下面那个 show/hide 逻辑。 */
+      syncSetStatus('', 'ok');
       renderLastSync();
       /* 10/5：合并完闪一句「已更新 N 处」再消失（她要"更新完立刻覆盖"的明确反馈）。
          ⚠️ 有变化走 show+定时隐藏；**无变化/异常走 hide** —— 不能先 show 再无条件 hide，
