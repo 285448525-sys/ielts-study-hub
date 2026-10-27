@@ -110,6 +110,13 @@
     return out;
   }
 
+  /* ---- 收起态（RV-RECALL-COL-1，10-27）----
+     默认只渲染前 5 条 + 「展开全部 N 条」按钮；展开态渲染全量。
+     · 筛选 chip 变化 → 强制回收起态（在 chip 回调里设 _recOpen=false 再 render）
+     · ?rec= 命中收起态被藏的行 → 自动进入展开态（render 里检查）
+     · 零持久化（刷新回收起 = 她要的「默认收起」） */
+  let _recOpen = false;
+
   /* ---- 渲染 ---- */
   function render() {
     const box = document.getElementById('recAll');
@@ -128,7 +135,21 @@
       return;
     }
 
-    box.innerHTML = list.map(x => {
+    /* ?rec= 命中收起态被藏的行 → 自动展开 */
+    try {
+      var _rid = '';
+      try{ _rid = new URLSearchParams(location.search).get('rec') || ''; }catch(e){}
+      if (_rid) {
+        var _idx = list.findIndex(function(x){ return String(x.id) === String(_rid); });
+        if (_idx >= 0 && _idx > 4) _recOpen = true;  // 命中行在前 5 里也不用展开
+      }
+    } catch(e) {}
+
+    /* 少于 5 条时不用按钮（全渲染） */
+    var truncated = list.length > 5 && !_recOpen;
+    var showList = truncated ? list.slice(0, 5) : list;
+
+    box.innerHTML = showList.map(x => {
       const k = KINDS[x.kind] || KINDS.whole;
       /* EXAM-E2P（10-26）：补 data-rec-id —— 「看上次结果」要能按 id 定位到这一行。
          data-id 原来就有（删除/详情转发用它），两者同一个值，但语义分开：
@@ -143,6 +164,21 @@
         + '<button type="button" class="btn sm danger rec-del" data-id="' + esc(x.id) + '">删除</button></span>'
         + '</div>';
     }).join('');
+
+    /* RV-RECALL-COL-1：展开/收起按钮 */
+    if (truncated || (_recOpen && list.length > 5)) {
+      var btnLabel = _recOpen ? '收起' : ('展开全部 ' + list.length + ' 条');
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn sm btn-primary rec-toggle';
+      btn.style.cssText = 'display:block;margin:12px auto 0;min-height:36px';
+      btn.textContent = btnLabel;
+      btn.addEventListener('click', function(){
+        _recOpen = !_recOpen;
+        render();
+      });
+      box.appendChild(btn);
+    }
 
     /* EXAM-E2P（10-26）：?rec=<id> 定位 —— 渲染后按 data-rec-id 找到行、滚到中间、轻高亮 2 秒。
        · 找不到（记录被删 / 老书签 / 参数乱写）→ **不报错、不滚动**，页面照常（这条是硬要求）
@@ -260,6 +296,7 @@
       const k = b.dataset.k;
       ACTIVE[k] = !ACTIVE[k];
       b.classList.toggle('active', ACTIVE[k]);
+      _recOpen = false;  // RV-RECALL-COL-1：筛选变化回到收起态
       render();
     }));
   }
