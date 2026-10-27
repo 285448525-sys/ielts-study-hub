@@ -717,6 +717,19 @@ function navSelfHealReload(){
    注销 SW + 清空 CacheStorage + reload。SW v14 的 SWR / network-first / SW_UPDATED 机制本身不动。 */
 function navHardHeal(){
   if(_navOfflineHold) return;               // design/79 离线闸：离线期间绝不注销 SW / 清缓存
+  /* 🔴 NAV-HEAL-GUARD-1（10-27）：软自愈 navSelfHealReload 早就有这两道守卫，**硬自愈一条都没有** ——
+     而 hard heal 比软 reload 更狠（注销 SW + 清空 CacheStorage），一旦在软导航中途或模考里放出去，
+     后果是一模一样的「点进去又弹回来」/「考场连同已答内容全没」，只是恢复代价更高。
+     所以这里补齐同样两道，**只加守卫、不改现有行为**：
+       ① 软导航进行中 → 本次推迟（pushState 还没落，现在刷会回落到旧页 URL，她感知就是「弹回首页」）；
+       ② 模考进行中 → 推迟并记 pending（考完再刷，与软自愈同口径，避免「卡旧版整晚」）。
+     ⚠️ 用「推迟」不用「跳过」：跳过会让她停在旧版本直到手动刷新。 */
+  if(_softNavBusy){ console.warn('[hub] 软导航进行中 → 本次硬自愈推迟（不打断切换）'); return; }
+  if(typeof hubExamLocked === 'function' && hubExamLocked()){
+    _hubPendingHeal = true;
+    console.warn('[hub] 模考进行中 → 推迟硬自愈（考完再刷）');
+    return;
+  }
   try{
     const lastHard = Number(sessionStorage.getItem('hub_nav_hard_rl') || 0);
     if(Date.now() - lastHard < 1800000) return;   // 10-23 HOTFIX：30 分钟内只允许一次核武（原 60s；每次核武=整站缓存清空重下，慢网下就是数分钟卡顿）
