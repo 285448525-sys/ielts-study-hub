@@ -19,8 +19,8 @@ setTimeout(__rvRescue,2500);
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>设置 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261027f" />
-<link rel="stylesheet" href="css/p/settings.css?v=20261027f" />
+<link rel="stylesheet" href="css/common.css?v=20261027g" />
+<link rel="stylesheet" href="css/p/settings.css?v=20261027g" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -352,13 +352,13 @@ setTimeout(__rvRescue,2500);
 }
 </style>
 <script defer src="js/data.js?v=20261027c"></script>
-  <script defer src="js/common.js?v=20261027f"></script>
-  <script defer src="js/common-ai.js?v=20261027f"></script>
-  <script defer src="js/common-sync.js?v=20261027f"></script>
-  <script defer src="js/common-merge.js?v=20261027f"></script>
-  <script defer src="js/common-cloud.js?v=20261027f"></script>
-  <script defer src="js/common-shell.js?v=20261027f"></script>
-  <script defer src="js/common-pwa.js?v=20261027f"></script>
+  <script defer src="js/common.js?v=20261027g"></script>
+  <script defer src="js/common-ai.js?v=20261027g"></script>
+  <script defer src="js/common-sync.js?v=20261027g"></script>
+  <script defer src="js/common-merge.js?v=20261027g"></script>
+  <script defer src="js/common-cloud.js?v=20261027g"></script>
+  <script defer src="js/common-shell.js?v=20261027g"></script>
+  <script defer src="js/common-pwa.js?v=20261027g"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
   <!-- 10/3 头像选择（DiceBear CC0 素材；必须在 data.js/common.js 之后 —— 它读 DATA.settings.avatar） -->
   <script defer src="js/av-picker.js?v=20261022a"></script>
@@ -536,8 +536,16 @@ setTimeout(__rvRescue,2500);
       <div class="set-row">
         <div class="set-row-t"><b>口语自评</b></div>
         <div class="set-row-c set-row-c--band">
-          <input id="sFlu" type="number" min="0" max="9" step="0.5" aria-label="固定流利度分" placeholder="流利度" />
-          <input id="sPron" type="number" min="0" max="9" step="0.5" aria-label="固定发音分" placeholder="发音" />
+          <!-- SET-LAB-1（10-27）：标签只挂 placeholder，框一填值就消失（她截图填 5.5/6 时看不出哪边是哪边）
+               → 每框包 .set-band-item，框下挂常驻小字。id/读写路径/aria 一个没动。 -->
+          <div class="set-band-item">
+            <input id="sFlu" type="number" min="0" max="9" step="0.5" aria-label="固定流利度分" placeholder="流利度" />
+            <span class="set-band-lab">流利度</span>
+          </div>
+          <div class="set-band-item">
+            <input id="sPron" type="number" min="0" max="9" step="0.5" aria-label="固定发音分" placeholder="发音" />
+            <span class="set-band-lab">发音</span>
+          </div>
         </div>
       </div>
     </section>

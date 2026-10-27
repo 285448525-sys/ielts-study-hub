@@ -29,8 +29,8 @@
 })();
 </script>
 <title>计划 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261027f" />
-<link rel="stylesheet" href="css/p/plans.css?v=20261027f" />
+<link rel="stylesheet" href="css/common.css?v=20261027g" />
+<link rel="stylesheet" href="css/p/plans.css?v=20261027g" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -41,15 +41,15 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <script defer src="js/data.js?v=20261027c"></script>
-  <script defer src="js/common.js?v=20261027f"></script>
-  <script defer src="js/common-ai.js?v=20261027f"></script>
-  <script defer src="js/common-sync.js?v=20261027f"></script>
-  <script defer src="js/common-merge.js?v=20261027f"></script>
-  <script defer src="js/common-cloud.js?v=20261027f"></script>
-  <script defer src="js/common-shell.js?v=20261027f"></script>
-  <script defer src="js/common-pwa.js?v=20261027f"></script>
+  <script defer src="js/common.js?v=20261027g"></script>
+  <script defer src="js/common-ai.js?v=20261027g"></script>
+  <script defer src="js/common-sync.js?v=20261027g"></script>
+  <script defer src="js/common-merge.js?v=20261027g"></script>
+  <script defer src="js/common-cloud.js?v=20261027g"></script>
+  <script defer src="js/common-shell.js?v=20261027g"></script>
+  <script defer src="js/common-pwa.js?v=20261027g"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
-  <script src="js/plans.js?v=20261025g" defer></script>
+  <script src="js/plans.js?v=20261027f" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -65,6 +65,10 @@
      铁律：common.css:438 全站表单重置权重 (0,2,1)，故本页新 input/select 的可样式化属性
      一律挂在 #diagOverlay / #diagRoot 的 id 作用域下（权重 1,1,0+），不用裸 class。 -->
 <style id="diagStyle">
+/* PLAN-W-1（她 10:4x「上下板块宽度不一样」）：#diagRoot 与上方 .m-mk-shell 对齐 ——
+   m-mk-shell 有 padding:16px（卡片区 1100），diagRoot 满宽 1132，左右各差 16px。
+   诊断问卷/结果页同 id 作用域会一起内缩（方向正确，与上方卡片对齐）。 */
+#diagRoot{ padding:0 16px; box-sizing:border-box; }
 #diagRoot .dg-hero{text-align:center;padding:28px 20px}
 #diagRoot .dg-hero-ic{font-size:40px;line-height:1;margin-bottom:10px}
 #diagRoot .dg-hero h2{margin:0 0 8px;font-size:20px}
@@ -681,37 +685,24 @@
 
       <div class="m-mk-body">
         <div class="m-mcard">
-          <h4>往日一览 <span class="m-r">共 12 天有记录 · 平均完成 68%</span></h4>
-          <div class="m-days">
-            <div class="m-day m-full">
-              <div class="m-dh"><span class="m-dd">23</span><span class="m-dm">10 月 · 周四</span></div>
-              <div class="m-db"><i style="width:100%"></i></div>
-              <div class="m-df"><span>全部完成</span><span>6/6</span></div>
-            </div>
-            <div class="m-day">
-              <div class="m-dh"><span class="m-dd">22</span><span class="m-dm">10 月 · 周三</span></div>
-              <div class="m-db"><i style="width:80%"></i></div>
-              <div class="m-df"><span>4/5</span><span>80%</span></div>
-            </div>
-            <div class="m-day">
-              <div class="m-dh"><span class="m-dd">21</span><span class="m-dm">10 月 · 周二</span></div>
-              <div class="m-db"><i style="width:57%"></i></div>
-              <div class="m-df"><span>4/7</span><span>57%</span></div>
-            </div>
-            <div class="m-day">
-              <div class="m-dh"><span class="m-dd">20</span><span class="m-dm">10 月 · 周一</span></div>
-              <div class="m-db"><i style="width:33%"></i></div>
-              <div class="m-df"><span>2/6</span><span>33%</span></div>
-            </div>
-          </div>
+          <!-- PLAN-DAYS-1（10-27）：头部统计改成真算 —— id 挂这里，由 renderDays() 填；
+               0 天有记录时留空（不印「共 0 天 · 平均完成 0%」这种假统计）。 -->
+          <h4>往日一览 <span class="m-r" id="mDaysHead"></span></h4>
+          <!-- PLAN-DAYS-1（10-27 她：「这个页面也有毛病」）：往日页签原来是静态演示壳 ——
+               头部统计与 4 张日期卡（日期 / 进度条 / 百分比）全是写死的假值，站上不许有
+               写死的演示数据冒充真实状态 → 整块换成空容器，由 js/plans.js 的 renderDays()
+               按 DATA.plans 真算填充（只统计有任务的天 · 日期倒序 · 进度条 = done/total ·
+               全部完成加 m-full · 0 天给诚实空态）。原假值要留档看 git 上一版。 -->
+          <div class="m-days" id="mDays"></div>
         </div>
 
-        <div class="m-mcard">
-          <h4>点开某天能做什么</h4>
-          <p style="margin:0;font-size:13px;color:var(--ink2);line-height:1.7">
-            卡片点开 → 当天明细一览；右上角「编辑这天」→<b>直接跳回「今天」页并把日期切到那天</b>，一条不多一条不少地沿用现在的做法。
-          </p>
-        </div>
+        <!-- PLAN-NOTE-1（10-27 她：「这个页面也有毛病」）：原「点开某天能做什么」说明卡整卡删除 ——
+             那是给开发看的实现口径，不该印在页面上。原文一字不丢留在这里：
+             「卡片点开 → 当天明细一览；右上角「编辑这天」→ 直接跳回「今天」页并把日期切到那天，
+              一条不多一条不少地沿用现在的做法。」
+             ⚠️ 实测：现有代码里**没有**这层交互 —— js/plans.js 里 m-day 渲染/点击零命中（grep），
+             那 4 张日期卡是静态壳。本单只删说明、不造交互；真要造「点开某天 → 明细 / 编辑这天」
+             另立项（要动跳转逻辑）。 -->
       </div>
     </div>
   </div><!-- /.m-page (往日) -->

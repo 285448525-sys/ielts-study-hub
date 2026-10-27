@@ -80,3 +80,9 @@
 .set-sw[data-s="ink"]{ background:#3a9a93; }
 .set-sw[data-s="cool"]{ background:#54748d; }
 .set-sw[data-s="warm"]{ background:#78836c; }
+
+/* ═══ SET-LAB-1（10-27）· 口语自评 band 组框下常驻小标签 ═══
+   标签原来只挂 placeholder —— 框一填值 placeholder 消失，就看不出哪边是哪边（她 10:2x 报）。
+   每框包 .set-band-item 竖排，框下挂常驻小字；placeholder 保留（空框时两处提示不冲突）。 */
+.set-band-item{ display:flex; flex-direction:column; align-items:center; gap:3px; }
+.set-band-lab{ font-size:10.5px; color:var(--muted); line-height:1; }

@@ -205,3 +205,8 @@
 .m-page .m-mk{padding-top:0}
 .m-page .m-mk-body{padding-top:0}
 .m-page .m-phase{margin-top:0}
+
+/* PLAN-DAYS-1（10-27）：往日网格里的空态占满整行 —— .m-days 是 auto-fill 网格，
+   不占满会被挤成 168px 一格的小方框，看着像坏了。空态本体仍走 common.js 的 renderEmpty(.empty)。 */
+#mDays .empty{ grid-column: 1 / -1; }
+

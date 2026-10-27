@@ -15,6 +15,23 @@
 .hlayout{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:24px;align-items:start}
 .hmain{display:flex;flex-direction:column;gap:14px;min-width:0}
 
+/* HOME-GLOW-1（10-27 她：「首页右上角还是怪怪的，还有绿色的残留」）：
+   全站装饰光晕在 css/common.css:353（body 的 radial-gradient，颜色 = 主色 teal）。
+   别的页顶部被白卡盖住看不出来；**首页的 hero 被本文件 19 行摘成全透明 + 无边框**
+   （`.hero{background:none !important;border:0 !important}`）→ 倒计时大数字直接裸在 body 底色上，
+   那层 teal 光晕就垫在数字后面 = 她看到的「绿色残留」。
+   首页平底：只在本页去掉这层光晕（body.hub-home 是首页专属类，不碰 common.css，别的页光晕保留）。 */
+body.hub-home{ background-image:none; }
+
+/* HOME-GLOW-1 之二（10-27，A/B 像素实证补刀）：上面这条只关掉 body 那层光晕，但**倒计时后面那块绿**
+   另有来源 —— common.css:1281 的 `.hero::before`（280×280 圆形 teal 光斑，right:-70/top:-90，
+   本来是贴在「卡片版 hero」右上角做装饰的）。首页 hero 已被本文件 19 行摘成透明、无边框、无阴影
+   （`.hero{background:none !important;border:0 !important}`），这枚光斑于是漂在页面底色上、正好压在
+   倒计时大数字右上方 = 她截图的「绿色残留」。
+   实证：只把 .hero::before 关掉、body 光晕保持原样 → 绿块消失；只关 body 光晕、留 .hero::before → 绿块还在。
+   🔴 首页不需要这层装饰（它服务的卡片形态在本页已不存在）→ 只在首页关掉，别的页/别的组件一行不碰。 */
+body.hub-home .hero::before{ display:none; }
+
 /* ===== hero 一行（稿 §二.1）：左 eyebrow + 问候大字 + 副行；右 距考大数字 ===== */
 .hero{display:flex;border-radius:0 !important;background:none !important;border:0 !important;box-shadow:none !important;
   padding:0 !important;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:0}

@@ -359,6 +359,8 @@ function setPlanTab(name){
   if(pt) pt.classList.toggle('active', n === 'today');
   if(ph) ph.classList.toggle('active', n === 'past');
   try{ sessionStorage.setItem('hub_plan_ptab', n); }catch(e){}
+  /* PLAN-DAYS-1：切到「往日」时用 DATA.plans 现算一遍（进 tab 才渲染，别在「今天」页白算） */
+  if(n === 'past') renderDays();
 }
 
 /* ---------- 每日计划 ---------- */
@@ -956,6 +958,8 @@ function render(){
   }
 
   renderHistory(date);
+  /* PLAN-DAYS-1：勾选/新增/删除/换日期后，往日汇总跟着刷新（同一个 render 钩子，不自起定时器） */
+  renderDays();
 }
 
 /* commit4：「3 天没回来」过期提示（#rbStale 在重排工具条上方） */
@@ -1016,6 +1020,47 @@ function renderHistory(curDate){
     }));
 }
 
+
+/* ═══ PLAN-DAYS-1（10-27 她：「这个页面也有毛病」）：往日页签接真数据 ═══
+   原来整个往日页签是静态演示壳（写死「共 12 天有记录 · 平均完成 68%」+ 4 张假日期卡），
+   站上不许有写死的演示数据冒充真实状态。
+   · 数据源 = DATA.plans（既有结构 [{date, items:[{text,done,carried}]}]）→ 🔴 只读，零新存储字段；
+   · 口径：只统计有 items 的天 · 日期倒序 · 进度条 width = done/total · 全部完成同款加 m-full ·
+     头部统计真算（各天完成率的平均，四舍五入）· 0 天给诚实空态；
+   · 渲染时机：① 切到「往日」tab（setPlanTab）② 每次 render()（勾选/新增/删除/换日期都走它），
+     不自起定时器、不新开数据通道。
+   ⚠️ 「点开某天 → 当天明细 / 编辑这天」这层交互本来就不存在（原说明卡已删），本单不造。 */
+function renderDays(){
+  const box = document.getElementById('mDays'); if(!box) return;
+  const head = document.getElementById('mDaysHead');
+  const days = (DATA.plans || [])
+    .filter(p => p && p.date && Array.isArray(p.items) && p.items.length)
+    .slice().sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  if(!days.length){
+    box.innerHTML = renderEmpty('还没有计划记录。在「今天」页添加任务，完成后这里按天汇总。');
+    if(head) head.textContent = '';
+    return;
+  }
+  let sum = 0;
+  box.innerHTML = days.map(p => {
+    const total = p.items.length;
+    const done = p.items.filter(i => i.done).length;
+    const pct = total ? Math.round(done / total * 100) : 0;
+    sum += total ? done / total : 0;
+    const dstr = String(p.date);
+    /* 日期解析：不能用 new Date('YYYY-MM-DD')（按 UTC 解析，北京 0~8 点会差一天）→ 补 T00:00:00 走本地 */
+    const dt = new Date(dstr + 'T00:00:00');
+    const wd = isNaN(dt) ? '' : (WEEK[dt.getDay()] || '');
+    return '<div class="m-day' + (pct === 100 ? ' m-full' : '') + '">'
+      + '<div class="m-dh"><span class="m-dd">' + escapeHtml(dstr.slice(8, 10)) + '</span>'
+      + '<span class="m-dm">' + escapeHtml(dstr.slice(5, 7)) + ' 月 · ' + escapeHtml(wd) + '</span></div>'
+      + '<div class="m-db"><i style="width:' + pct + '%"></i></div>'
+      + '<div class="m-df">' + (pct === 100 ? '<span>全部完成</span><span>' + done + '/' + total + '</span>'
+                                            : '<span>' + done + '/' + total + '</span><span>' + pct + '%</span>')
+      + '</div></div>';
+  }).join('');
+  if(head) head.textContent = '共 ' + days.length + ' 天有记录 · 平均完成 ' + Math.round(sum / days.length * 100) + '%';
+}
 
 function upcomingDates(n){
   const arr = [];
