@@ -1107,8 +1107,11 @@ ${s.text}` }
     /* WRT-JSONTRUNC-1（10-27）：写作批改的 JSON 比别处长得多（overall+breakdown+reasons+grammar 逐条
        +good+gap+dims 四维子项），默认 4096 输出窗口在长作文上会被截断 → 解析失败 → 页面退回「显示原文」。
        先例 = common-ai.js:169 素材深挖同参 8192。三处 writing_score 调用一起给，口径统一。 */
-    const content = await callRelay('writing_score', messages, 0.35, { max_tokens: 8192 });
-    const r = wtBandUp(aiJson(content));   /* WRT-BAND-UP-1：代码侧确定性 +0.5（她两次报偏低） */
+    /* 🔴 WRT-JSONLOOSE-1（10-27 她报「被你们修出 bug 来了」的深层补强）：
+       json_mode 让服务端要 response_format:{type:'json_object'}（functions/api/ai.js:332 支持，plans.js 三处早已在用），
+       从源头压住「首个字符是 ( 」「JSON 前后夹说明文字」这类畸形。 */
+    const content = await callRelay('writing_score', messages, 0.35, { max_tokens: 8192, json_mode: true });
+    const r = wtValid(aiJson(content));   /* WRT-BAND-UP-1 + WRT-JSONLOOSE-1：先结构校验再 +0.5 */
     if(!r){
       box.innerHTML = '<div class="ts-sec"><h4>AI 原文（没按格式回）</h4><div style="white-space:pre-wrap;font-size:13.5px;line-height:1.8">' + escapeHtml(content) + '</div></div>';
       DATA.writingScores.push({ id: uid(), date: todayKey(), mode:'template', tplId: s.tpl.id, tplTitle: s.tpl.title, tplCat: s.tpl.category, essay: s.text, result: content, parsed:false });
@@ -2069,9 +2072,9 @@ ${ANCHOR_TABLE_EN}
   ];
 
   try{
-    const content = await callRelay('writing_score', messages, 0.4, { max_tokens: 8192 });   /* WRT-JSONTRUNC-1：防长 JSON 截断 */
+    const content = await callRelay('writing_score', messages, 0.4, { max_tokens: 8192, json_mode: true });   /* WRT-JSONTRUNC-1 + WRT-JSONLOOSE-1 */
     // Bug18：复用 aiJson 解析（已处理 ```json 围栏与前后废话），避免重复解析逻辑
-    const result = wtBandUp(aiJson(content));   /* WRT-BAND-UP-1：代码侧确定性 +0.5 */
+    const result = wtValid(aiJson(content));   /* WRT-BAND-UP-1 + WRT-JSONLOOSE-1：先结构校验再 +0.5 */
     if(!result){
       // JSON 解析失败，降级显示原始文本
       bodyEl.innerHTML = '<div class="score-section"><h4>AI 原文（没按格式回）</h4><div style="white-space:pre-wrap;font-size:14px;line-height:1.8">' + escapeHtml(content) + '</div></div>';
@@ -2109,6 +2112,24 @@ ${ANCHOR_TABLE_EN}
    ③ 只动分数，不动判错（语法错误照列、复杂句照指），note 与 anchors 原样保留。
    ⚠️ 只在「正向加点」的材料上做，不做四舍五入到不存在的档；AI 给的 4.5 加上去是 5.0（合法档位）。
    ⚠️ 幂等：加了 `_bandup` 标记，同一结果对象不会被重复加（防重渲染/重存时叠两次）。 */
+/* 🔴 WRT-JSONLOOSE-1（10-27 她 16:0x 截图「AI 原文（没按格式回）」的深层根因补强）：
+   三处批改原来只判 `if(!result)` —— aiJson 对**被截断/畸形**的输出会从里面剥出一个残缺对象返回
+   （实测：截图那段被切断的 JSON，aiJson 返回 {"TR":5.5,"CC":5.5,"LR":5.5,"GRA":5}，非 null），
+   于是 !result 判为「成功」，残缺对象直接进 srPanelHtml 渲染 → 页面上就是一堆格式全乱的原始 JSON。
+   修法：判分结果必须**结构齐全**才算成功，缺一个关键键就当解析失败 → 走「显示原文 + 请重试」降级，
+   绝不让半截对象进渲染。要求：overall 有数、breakdown 四项齐全、grammar 是数组、good 是数组。
+   ⚠️ 只做校验、不改任何字段与渲染形态；校验不过时页面上显示的是原始回复（她现在看到的那种），
+      但会带上「请重试」的 toast，语义明确。 */
+function wtValid(r){
+  if(!r || typeof r !== 'object' || Array.isArray(r)) return null;
+  if(r.overall == null || !isFinite(Number(r.overall))) return null;
+  const bd = r.breakdown;
+  if(!bd || typeof bd !== 'object') return null;
+  if(['TR', 'CC', 'LR', 'GRA'].some(k => bd[k] == null || !isFinite(Number(bd[k])))) return null;
+  if(!Array.isArray(r.grammar)) return null;
+  if(r.good != null && !Array.isArray(r.good)) return null;
+  return r;
+}
 function wtBandUp(result){
   if(!result || typeof result !== 'object') return result;
   if(result._bandup) return result;                       /* 幂等：已调过就不再动 */
@@ -2842,8 +2863,8 @@ ${ANCHOR_TABLE_EN}
   ];
   (async () => {
     try{
-      const content = await callRelay('writing_score', messages, 0.4, { max_tokens: 8192 });   /* WRT-JSONTRUNC-1：防长 JSON 截断 */
-      const result = wtBandUp(aiJson(content));   /* WRT-BAND-UP-1：代码侧确定性 +0.5 */
+      const content = await callRelay('writing_score', messages, 0.4, { max_tokens: 8192, json_mode: true });   /* WRT-JSONTRUNC-1 + WRT-JSONLOOSE-1 */
+      const result = wtValid(aiJson(content));   /* WRT-BAND-UP-1 + WRT-JSONLOOSE-1：先结构校验再 +0.5 */
       if(!result){
         box.innerHTML = '<div class="ts-sec"><h4>AI 原文（没按格式回）</h4><div style="white-space:pre-wrap;font-size:14px;line-height:1.8">'+escapeHtml(content)+'</div></div>';
         toast('AI 返回格式异常，已显示原文');
