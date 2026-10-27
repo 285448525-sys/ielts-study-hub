@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<script>/* 10/4 10:20 加 js 类：只有 JS 可用时 .rv 才隐藏（无 JS / 脚本失败 → 内容默认可见） */
+(function(){try{document.documentElement.className+=' js';}catch(e){}})();
+</script>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'" />
+<!-- frame-ancestors 只由 HTTP 响应头下发（CF Pages 根目录 _headers）：按 CSP 规范它写在 meta 里会被浏览器忽略 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<title>开通会员 · 雅思备考 Hub</title>
+<link rel="stylesheet" href="css/common.css?v=20261027m" />
+<link rel="stylesheet" href="css/p/pay.css?v=20261027p2" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
+<link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
+<link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png?v=7">
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#3a9a93" />
+<!-- 10-24 B-6 小步3：主题必须最先跑（放在渲染前，否则深色用户会先看到一帧浅色再跳深）。
+     键与取值口径同 js/common.js 的 applyTheme（localStorage.theme）。 -->
+<script>
+(function(){
+  try{
+    var K='ielts_study_hub_v1';
+    var raw=localStorage.getItem(K);
+    var t='light';
+    if(raw){ try{ var d=JSON.parse(raw); t=(d&&d.settings&&d.settings.theme)||'light'; }catch(e){} }
+    if(t==='auto'){
+      t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+    }
+    if(t!=='dark') t='light';
+    document.documentElement.setAttribute('data-theme',t);
+  }catch(e){}
+})();
+</script>
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<script defer src="js/data.js?v=20261027c"></script>
+  <script defer src="js/common.js?v=20261027m"></script>
+  <script defer src="js/common-ai.js?v=20261027m"></script>
+  <script defer src="js/common-sync.js?v=20261027m"></script>
+  <script defer src="js/common-merge.js?v=20261027m"></script>
+  <script defer src="js/common-cloud.js?v=20261027m"></script>
+  <script defer src="js/common-shell.js?v=20261027m"></script>
+  <script defer src="js/common-pwa.js?v=20261027m"></script>
+  <!-- 🔴 P2-PAY-NEW：本页两处 data-wx-open（次按钮 + 页脚联系站长）依赖 P-1 弹卡委托，
+       漏了 feedback.js → 点了不弹卡、而且**不报错**（静默失效）。 -->
+  <script defer src="js/feedback.js?v=20261027a"></script>
+  <script src="js/pricing.js?v=20261027o" defer></script>
+  <script src="js/pay.js?v=20261027p2" defer></script>
+<script>setTimeout(function(){var b=document.getElementById('bootLoader');if(b){b.classList.remove('show');b.classList.add('hide');}},4000);</script>
+<meta name="description" content="会员开通：档位确认、扫码转账与开通说明。" />
+<link rel="canonical" href="https://yasihub.com/pay" />
+<meta name="robots" content="noindex" />
+</head>
+<body data-shell="top">
+<div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div></div>
+<nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
+
+<main class="container">
+  <!-- P2-PAY-NEW（10-27）：独立开通页。结构 1:1 照 design/_样子稿-pay独立支付页-2026-10-26.html。
+       🔴 三件事一行没做：不新建后端 claim 接口（撞冻结线，她拍板）· 「我已转账」仅本地 UI 切换 ·
+          价格数字全部读 js/pricing.js 的 VIP_PLANS（本页零价格字面量）。
+       🔴 页面分工：vip.html 是介绍页（不放支付元素），本页是功能执行页 —— 所以支付词只出现在这里。 -->
+  <div class="pay-wrap">
+    <div class="pay-top">
+      <a class="pay-back" href="vip.html">← 返回会员页重选档位</a>
+      <div></div>
+    </div>
+
+    <!-- ① 档摘要：档名与价格由 js/pay.js 从 VIP_PLANS + URL ?plan= 渲染 -->
+    <section class="pay-card">
+      <div class="pay-label">开通确认</div>
+      <div class="pay-summary" id="planSummary">
+        <div class="pay-name" id="pName">30 天</div>
+        <div class="pay-price" id="pPrice">—</div>
+        <div class="pay-note">选好直接扫码转账，转完回来点下方按钮，当天开通。<b>点完「我已转账」仅本地切换为已收到态，站长以实际到账为准开通</b>。</div>
+      </div>
+    </section>
+
+    <!-- ② 三步指引 -->
+    <section class="pay-card">
+      <div class="pay-label">操作步骤</div>
+      <div class="pay-steps">
+        <div class="pay-step"><div class="pay-step-num">1</div><div class="pay-step-txt">扫下方任意一个收款码</div></div>
+        <div class="pay-step"><div class="pay-step-num">2</div><div class="pay-step-txt">按上方金额转账（微信或支付宝都行）</div></div>
+        <div class="pay-step"><div class="pay-step-num">3</div><div class="pay-step-txt">转完点「我已转账」，我当天确认</div></div>
+      </div>
+
+      <!-- ③ 未登录分叉（B0 产品方案 §1.3）：未登录能看档摘要，但主按钮置灰 + 引导登录 -->
+      <div class="pay-loginhint" id="loginHint" hidden>
+        <b>先登录再付款</b><span>会员跟账号走，匿名订单站长对不上号。</span>
+        <div class="pay-lh-acts"><a class="pay-lh-btn" id="loginGo" href="login.html">去登录 / 注册</a></div>
+      </div>
+      <div class="pay-loggednote" id="loggedNote" hidden>付款备注填你的邮箱：<b id="userEmail">（读取中…）</b></div>
+
+      <!-- ④ 双码并排（图片路径照现站 vip.html 写法，?v= 时间戳原样不动） -->
+      <div class="pay-qrrow">
+        <figure class="pay-qritem">
+          <div class="pay-qr"><img src="img/pay/wechat-qr.jpg?v=20261026b" alt="微信收款码"></div>
+          <figcaption>微信</figcaption>
+        </figure>
+        <figure class="pay-qritem">
+          <div class="pay-qr"><img src="img/pay/alipay-qr.jpg?v=20261026b" alt="支付宝收款码"></div>
+          <figcaption>支付宝</figcaption>
+        </figure>
+      </div>
+
+      <!-- ⑤ 主操作 -->
+      <div class="pay-acts" id="actsBlock">
+        <button class="pay-primary" type="button" id="doneBtn">我已转账</button>
+        <button class="pay-ghost" type="button" data-wx-open>遇到问题？加站长微信</button>
+      </div>
+
+      <!-- ⑥ 完成态（点完主按钮显示；文案明示「到账前会员页状态不变」防反复转账） -->
+      <div class="pay-received" id="receivedBlock">
+        <div class="pay-tick"></div>
+        <h3>收到了，等我确认</h3>
+        <p>站长以实际到账为准开通，一般当天。<b>到账前会员页状态不变</b>（仍是免费版/到期会员）——这是预期行为，不是没生效。</p>
+        <div class="pay-received-acts">
+          <a class="pay-backs" href="vip.html" id="backToVip">返回会员页</a>
+          <button class="pay-backs" type="button" id="notYetBtn">还没转，继续留在这</button>
+        </div>
+      </div>
+
+      <p class="pay-hint"><b>备注自己注册的邮箱</b>——转账时在金额下方的留言栏填你的邮箱（不是金额备注），我拿到就知道是哪笔，当天开通。</p>
+    </section>
+
+    <!-- ⑦ 缩版 FAQ（从 vip 页挪来的支付相关三条） -->
+    <section class="pay-card pay-faq">
+      <h3>常见问题</h3>
+      <details><summary>可以取消并返还剩余费用吗？</summary><p>开通 7 天内、AI 累计使用不到 5 次，联系站长可取消并返还剩余费用。</p></details>
+      <details><summary>会员到期续费怎么算？</summary><p>续费时选任意档位都可以，时长在你当前到期日基础上顺延，不会清零或重置。</p></details>
+      <details><summary>转完多久能开通？</summary><p>一般当天。站长手动查账开通，看到会员页状态变成「会员生效中」就是开好了，不用再做别的。</p></details>
+    </section>
+
+    <div class="pay-foot">还没决定？<button type="button" data-wx-open>加站长微信直接聊</button></div>
+  </div>
+</main>
+
+</body>
+</html>
