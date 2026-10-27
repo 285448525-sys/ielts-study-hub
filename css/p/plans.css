@@ -72,7 +72,17 @@
 }
 
 .m-page, .m-page *{ box-sizing: border-box; }
-.m-mk-shell { border: 1px solid var(--m-line);    background: rgb(238, 240, 240); padding: 16px; margin-top: 0px; border-top-left-radius: 0px; }
+/* 🔴 FE-DEAD-2（10-27，B 第二批）：这里原本有一条
+   `.m-mk-shell { border:1px solid var(--m-line); background:rgb(238,240,240); padding:16px; ... }`
+   和一条 `.m-page .m-mk-shell{ background:transparent;border:0;padding:0;border-radius:0 }`
+   —— 都已删除。理由：设计稿「浏览器窗口」外壳，**页面上根本没有这个节点**
+   （全站 HTML/JS 里 m-mk-shell 出现 3 次，全在注释里，0 个真实 element），
+   两条规则都是永命不中的死代码。
+   今晚连着三次「跟别的页不齐」的排查里，它把人带去错误方向（连 A1 都判定
+   「灰框来自 .m-mk-shell」——实际灰底来自 .m-mk 自己，已在 PLAN-W-2 修）。
+   ⚠️ 留这段说明而不是删干净：`tests/_probe_pl1_1025.cjs` 有一行
+      `if (r.mkShell) ok(...)` 会查它，没有节点时自动跳过（已有 if 守卫）；
+      更主要是免得下一个人又从设计稿把这块壳加回来。 */
 /* 🔴 PLAN-W-2（10-27 她：「计划页尺寸跟其他页面也不一致……我看好像是因为有一个边框色块」）：
    病根就在这两行。`.m-mk` 原本是设计稿里「浏览器窗口」那层外壳的底色 #f6f7f7，
    真页面上它直接把整块内容包住 → 页面上就出现「一圈灰底（圆角 10px）套着里面的白卡（圆角 16px）」，
@@ -143,9 +153,8 @@
       四个元素，删了就会报「缺失 4」，达不到「✗ 缺失 0」。
       节点留着（可比对样式），但不显示（她看不到）。 */
 .m-page .m-mk-top{ display:none }
-/* 同样处理：.m-mk-shell 的灰底（#eef0f0）与 16px 边距是效果稿的外框，
-   真页面不该有一圈灰边 —— 这里没用 shell 包层，但保险起见覆盖掉。 */
-.m-page .m-mk-shell{ background:transparent;border:0;padding:0;border-radius:0 }
+/* FE-DEAD-2：原 `.m-page .m-mk-shell{ background:transparent;... }` 已删（同样是永不命中的死代码，
+   说明见文件上方 .m-mk-shell 原位置）。 */
 
 /* ==========================================================================
    PL-1（10-25）：深色覆盖 —— 上面 .m-page 那组私有 token 全是写死浅色值，
@@ -169,7 +178,7 @@
 }
 /* .m-mk 的浅底跟着 --m-bg 走，不用单独再写一条；这里只补「深色下要脱掉浅灰」的那层 */
 [data-theme="dark"] .m-page .m-mk{ background:var(--m-bg) }
-[data-theme="dark"] .m-page .m-mk-shell{ background:transparent }   /* 显式重申，防上面 §一 的写法被误加回来 */
+/* FE-DEAD-2：原 `[data-theme="dark"] .m-page .m-mk-shell{...}` 已删（死代码，无节点）。 */
 
 /* .m-phase / .m-dg 用的是站点 --primary-50 / --primary-200 / --primary-text，
    深色档早已重定义（DK-4b 之后 200/300/400/600 也齐了），所以这两块自动跟着翻。
