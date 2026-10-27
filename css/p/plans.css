@@ -73,7 +73,14 @@
 
 .m-page, .m-page *{ box-sizing: border-box; }
 .m-mk-shell { border: 1px solid var(--m-line);    background: rgb(238, 240, 240); padding: 16px; margin-top: 0px; border-top-left-radius: 0px; }
-.m-mk { background: var(--m-bg); border-radius: 10px; overflow: hidden; }
+/* 🔴 PLAN-W-2（10-27 她：「计划页尺寸跟其他页面也不一致……我看好像是因为有一个边框色块」）：
+   病根就在这两行。`.m-mk` 原本是设计稿里「浏览器窗口」那层外壳的底色 #f6f7f7，
+   真页面上它直接把整块内容包住 → 页面上就出现「一圈灰底（圆角 10px）套着里面的白卡（圆角 16px）」，
+   跟全站 .card（白底 + 1px 边 + 16px 圆角）完全不是一个视觉口径，所以她看着「本站对齐了、
+   但跟整体没对齐」。.m-mk-shell 那层真页面根本没有节点（骨架里已摘掉），那条覆盖规则是死代码。
+   改法：把 .m-mk 还原成「透明容器」——不画底色、圆角与全站一致，让里面那张白卡自己承担卡片外观。
+   零结构改动、零类名改动，纯尺寸/颜色。 */
+.m-mk { background: transparent; border-radius: var(--radius); overflow: hidden; }
 .m-mk-top { display: flex; align-items: center; gap: 10px; padding: 11px 16px; background: var(--surface); border-bottom: 1px solid var(--m-line); }
 .m-mk-top .m-dot { width: 9px; height: 9px; border-radius: 50%; background: rgb(226, 229, 230); }
 .m-mk-top .m-nm { font-size: 12.5px; color: var(--m-muted); margin-left: 4px; }
