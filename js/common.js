@@ -56,7 +56,7 @@ const PAGES = [
      （scene-drill.js）都是另外的东西，不受影响。此处原注释（独立直达页保留）随之作废。 */
   { id:'writing',   file:'writing.html',   icon:ICON.writing,   name:'写作',       desc:'模板 + AI 评分' },
   // 10/11：题库 → 「模考」大 tab（她拍板：四科模考统一在这里完成）
-  { id:'bank',      file:'bank.html',      icon:ICON.mock,      name:'模考',       desc:'阅读 · 听力 · 写作 · 口语' },
+  { id:'bank',      file:'bank.html',      icon:ICON.mock,      name:'练习',       desc:'阅读 · 听力 · 写作 · 口语' },
   /* 🔴 10-23 T-015 她拍板「错句本不配单独一个 Tab，整个板块前后端删干净」→
      wrongbook.html 文件已从仓库删除；这里保留条目并标 hidden:true，只为两件事：
      ① 老链接 / 书签直访 wrongbook.html 时软导航白名单仍认得它（真删条目会 404 白屏）；
