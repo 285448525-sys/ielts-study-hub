@@ -20,7 +20,7 @@ setTimeout(__rvRescue,2500);
 <meta http-equiv="Expires" content="0" />
 <title>会员 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261026y" />
-<link rel="stylesheet" href="css/p/vip.css?v=20261026y" />
+<link rel="stylesheet" href="css/p/vip.css?v=20261026w" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -40,7 +40,7 @@ setTimeout(__rvRescue,2500);
   <script defer src="js/common-pwa.js?v=20261026y"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
   <script src="js/pricing.js?v=20261025f" defer></script>
-  <script src="js/vip.js?v=20261026s" defer></script>
+  <script src="js/vip.js?v=20261026t" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -80,7 +80,7 @@ setTimeout(__rvRescue,2500);
        精确样式 = css/p/vip.css 里的 kv- 块（整段来自 _KV-vip_精确样式.css）
        验收基线 = 同目录 _KV-vip_验收基线.json（36 元素；收尾跑 scripts/mockup-1to1-check.cjs）
        🔴 业务 id 一个没改：#vipHero #vipWhy #vipPlans #vipMatrix #vipHowto #vipSemi
-          #semiPlans #semiSlip #semiLb #semiQr #semiTxt #semiCopy #semiActsLogged #semiDone
+          #semiPlans #semiSlip #semiLb #semiQr #semiTxt #semiActsLogged #semiDone
           #semiHelp #semiActsGuest #semiHelp2 #semiDoneCard #semiOid #semiBack
           —— js/vip.js 全按它们取值。
        🔴 与上一版的四处差别，都是 Kimi 稿要求的：
@@ -138,7 +138,8 @@ setTimeout(__rvRescue,2500);
               </figure>
             </div>
             <div class="semi-txt kv-txt" id="semiTxt"></div>
-            <button class="semi-copy kv-btn kv-copy" id="semiCopy" type="button">复制这句</button>
+            <!-- 10-26 VIP-NOCOPY-1：复制按钮已删（她 22:3x「手机支付不方便复制订单，
+                 不要这个文案也不要这个复制键，改成备注自己的邮箱」） -->
           </div>
           <div class="semi-acts kv-acts" id="semiActsLogged">
             <button class="btn btn-primary kv-btn kv-btn-primary" id="semiDone" type="button">我已转账</button>
