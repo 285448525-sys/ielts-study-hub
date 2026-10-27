@@ -30,7 +30,7 @@
 </script>
 <title>计划 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261026v" />
-<link rel="stylesheet" href="css/p/plans.css?v=20261026v" />
+<link rel="stylesheet" href="css/p/plans.css?v=20261027f" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -49,7 +49,7 @@
   <script defer src="js/common-shell.js?v=20261026v"></script>
   <script defer src="js/common-pwa.js?v=20261026v"></script>
   <script defer src="js/feedback.js?v=20261013b"></script>
-  <script src="js/plans.js?v=20261025g" defer></script>
+  <script src="js/plans.js?v=20261027f" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -685,29 +685,15 @@
 
       <div class="m-mk-body">
         <div class="m-mcard">
-          <h4>往日一览 <span class="m-r">共 12 天有记录 · 平均完成 68%</span></h4>
-          <div class="m-days">
-            <div class="m-day m-full">
-              <div class="m-dh"><span class="m-dd">23</span><span class="m-dm">10 月 · 周四</span></div>
-              <div class="m-db"><i style="width:100%"></i></div>
-              <div class="m-df"><span>全部完成</span><span>6/6</span></div>
-            </div>
-            <div class="m-day">
-              <div class="m-dh"><span class="m-dd">22</span><span class="m-dm">10 月 · 周三</span></div>
-              <div class="m-db"><i style="width:80%"></i></div>
-              <div class="m-df"><span>4/5</span><span>80%</span></div>
-            </div>
-            <div class="m-day">
-              <div class="m-dh"><span class="m-dd">21</span><span class="m-dm">10 月 · 周二</span></div>
-              <div class="m-db"><i style="width:57%"></i></div>
-              <div class="m-df"><span>4/7</span><span>57%</span></div>
-            </div>
-            <div class="m-day">
-              <div class="m-dh"><span class="m-dd">20</span><span class="m-dm">10 月 · 周一</span></div>
-              <div class="m-db"><i style="width:33%"></i></div>
-              <div class="m-df"><span>2/6</span><span>33%</span></div>
-            </div>
-          </div>
+          <!-- PLAN-DAYS-1（10-27）：头部统计改成真算 —— id 挂这里，由 renderDays() 填；
+               0 天有记录时留空（不印「共 0 天 · 平均完成 0%」这种假统计）。 -->
+          <h4>往日一览 <span class="m-r" id="mDaysHead"></span></h4>
+          <!-- PLAN-DAYS-1（10-27 她：「这个页面也有毛病」）：往日页签原来是静态演示壳 ——
+               头部统计与 4 张日期卡（日期 / 进度条 / 百分比）全是写死的假值，站上不许有
+               写死的演示数据冒充真实状态 → 整块换成空容器，由 js/plans.js 的 renderDays()
+               按 DATA.plans 真算填充（只统计有任务的天 · 日期倒序 · 进度条 = done/total ·
+               全部完成加 m-full · 0 天给诚实空态）。原假值要留档看 git 上一版。 -->
+          <div class="m-days" id="mDays"></div>
         </div>
 
         <!-- PLAN-NOTE-1（10-27 她：「这个页面也有毛病」）：原「点开某天能做什么」说明卡整卡删除 ——
