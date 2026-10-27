@@ -51,7 +51,7 @@
   <script defer src="js/feedback.js?v=20261027a"></script>
   <script defer src="js/factory-writing.js?v=20261023b"></script>
 <script defer src="js/writing_prompts.js?v=20260903ab"></script>
-  <script defer src="js/writing.js?v=20261027i"></script>
+  <script defer src="js/writing.js?v=20261027j"></script>
 <style>
 
   /* ===== 10-23 W-1：撤左栏 → 单列 + 横向筛选带（方案 §二）
@@ -208,6 +208,12 @@
   #practice .ph-wrap-long .ph-input{min-width:120px}   /* 必须带 #practice 前缀：基础规则用 ID 选择器压住了纯类名 */
   .preview-box{max-width:640px;max-height:280px;overflow:auto}
   .tpl-text .form-row > .ai-btn{flex:0 0 auto;min-width:0}
+  /* 🔴 WRT-AIBTN-1（10-27 她：「你们干了什么我写作整个功能用不了了」）：
+     上面那条只挡了 .tpl-text 里的 AI 钮，**评分页那个没挡** ——
+     它落在普通 .form-row 里，被 flex:1 拉成 1082×48 的一整条横杠，
+     图标和「AI」字样全被撑变形、颜色也看不清，看着就像功能坏了。
+     这里统一兜住所有 .form-row 里的 AI 钮：不拉伸、保持 48×48 方形。 */
+  .form-row > .ai-btn{flex:0 0 auto;min-width:0;width:48px}
   #tplCopyBtn{flex:0 0 auto;min-width:0}
   #practice .ph-input:focus{outline:none;border-bottom-color:var(--primary)}
   .skeleton-box{white-space:pre-wrap;line-height:1.9;font-size:15px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px}

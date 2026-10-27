@@ -3332,6 +3332,13 @@ function bindExam(){
     document.body.classList.remove('exam-fullscreen');
     examExitLock(true);   /* 🔴 10/20：真正离开写作考场 → 解锁导航 + 取消 SW 保护 + 执行待刷新 */
     $('#examPractice').hidden = true;
+    /* 🔴 WRT-PANEL-FIX（10-27 她：「你们干了什么我写作整个功能用不了了，不要乱修啊」）：
+       这条是给 WRT-SPACE-1 收尾的 —— 那笔让 openExam 打开了外层 #examPanel（原来漏了），
+       但**没有对应地在退出时关回去**。于是退出考场后 #examPanel 还是「展开」状态躺在
+       模板页上面，用户再点「评分」tab 时，评分面板被它盖住 → 页面看着一片空白，
+       她的感受就是「写作整个功能用不了」。
+       这里补上关回去，与 openExam 的打开严格成对。 */
+    const _panel = $('#examPanel'); if(_panel) _panel.hidden = true;
     /* WRT-PENDANT-1：退出时把结果区收掉。否则「正在批改」的占位会留在这里，
        下次进考场先看到上一次还在跳的三点，像卡住了。 */
     const _er = $('#examResult'); if(_er){ _er.innerHTML = ''; _er.hidden = true; }
