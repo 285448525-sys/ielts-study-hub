@@ -862,12 +862,25 @@
 /* 官方：标记后题号由方块变圆圈 → 圆环 + border-radius 50% */
 .ex-num--flag{border-radius:50%;box-shadow:inset 0 0 0 1.5px #b3261e}
 .ex-num--flag.ex-num--cur{border-radius:50%;box-shadow:inset 0 0 0 2px #b3261e}
-/* 10/17 复盘：交卷后题号行变答题卡 —— 绿=对 / 红=错（爱听写 bg-green-100 / bg-red-100 口径）。 */
-.ex-num--hit{background:#e7f6ef;border-radius:3px}
-.ex-num--hit::before{background:#2f7d61}
-.ex-num--miss{background:#fdeceb;border-radius:3px}
-.ex-num--miss::before{background:#b3261e}
-.ex-num--hit,.ex-num--miss{font-weight:700}
+/* 10/17 复盘：交卷后题号行变答题卡 —— 绿=对 / 红=错（爱听写 bg-green-100 / bg-red-100 口径）。
+   🔴 VIS-1-HITBG-1（10-27 取证修复）：原来写的是裸 `.ex-num--hit/.ex-num--miss`（特异性 0,1,0 = 100），
+      而题号基础规则 `#examRoot .ex-num{…background:transparent}`（1602 行，1,1,0 = 10100）比它高
+      → **白档交卷后的绿底/红底从来没有生效过**，只剩上方杠色区分对错（像素实证 design/_scratch/examnum_light.png：
+      四个题号并排，底色全是白的）。
+      深档/黄档没中招，是因为它们写的是 `#examRoot.ct-dark/ct-yellow .ex-num--hit`（1,3,0），压得过基础规则。
+      ⚠️ **踩过两次返工，两点都写清楚**：
+      ① 只加 `#examRoot ` 前缀 → (1,1,0) 与基础规则**同特异性**，而基础规则在 1602 行写在后面
+         → 后写胜出，底色**还是透明**（实测照旧 rgba(0,0,0,0)）。
+      ② 抬到 `#examRoot .ex-num.ex-num--hit`(1,2,0) 确实压过了基础规则，但它是**不带主题判断的全局规则**，
+         一样压过 ct-yellow 的 (1,3,0)？——不会（1,3,0 > 1,2,0），可是它压过了 ct-yellow 里
+         **只设 ::before 不设底色**的那半边，导致黄档底色从深绿 #123b2c 变成白档浅绿（实测假绿）。
+      正解 = **用 :not() 把两个主题档排除掉**：白档（默认）才吃这两条，深/黄档继续走各自的专色。
+      ⚠️ 不要动 ::before 那两条（杠色本来就正常，且 EXAM-NUM-DONE 正拿 :not() 收窄 done，别撞）。 */
+#examRoot:not(.ct-dark):not(.ct-yellow) .ex-num.ex-num--hit{background:#e7f6ef;border-radius:3px}
+#examRoot .ex-num--hit::before{background:#2f7d61}
+#examRoot:not(.ct-dark):not(.ct-yellow) .ex-num.ex-num--miss{background:#fdeceb;border-radius:3px}
+#examRoot .ex-num--miss::before{background:#b3261e}
+#examRoot .ex-num--hit,#examRoot .ex-num--miss{font-weight:700}
 /* hover 排在 hit/miss 之后且同特异性 → 会把对错的底色盖掉（10/17 自查发现），
    所以 hover 只对「未判对错」的题号生效。 */
 .ex-num:not(.ex-num--hit):not(.ex-num--miss):hover{background:#e3e7eb}
