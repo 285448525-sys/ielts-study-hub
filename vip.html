@@ -220,8 +220,12 @@ setTimeout(__rvRescue,2500);
 
       <!-- 10/2 她拍板：站长微信不在站内平铺，唯一出口 = 意见反馈弹层底部那个超链接。
            稿子里那枚「意见反馈」按钮是视觉演示件（不是业务 id），本站不照抄。 -->
-      <section class="kv-card kv-full kv-contact">
-        <div><h2>有问题？联系站长</h2><p>去侧栏「意见反馈」写一句就行（开通 / 支付 / 使用问题都找这儿）；急事可在弹层底部点「等不及回复？加站长微信」直接拿联系方式。</p></div>
+      <section class="kv-card kv-full kv-contact" data-wx-open>
+        <div>
+          <h2>有问题？联系站长</h2>
+          <p>支付 / 开通 / 使用问题直接聊，站长微信在下面。</p>
+        </div>
+        <span style="display:inline-block;margin-top:12px;padding:6px 14px;background:var(--kv-teal-s,#eef7f6);color:var(--kv-teal-d,#2c7873);border-radius:999px;font-size:12px;font-weight:500">点我拿微信</span>
       </section>
 
       <p class="kv-legal kv-full"><a href="legal.html">隐私政策 · 用户协议 · AI 免责</a></p>
