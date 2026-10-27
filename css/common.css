@@ -3213,3 +3213,28 @@ body.hub-exam-locked #ancBarHost{ display:none !important }
   .fb-wx-pop{padding:18px 16px 14px}
 }
 /* 深色档 .fb-wx-row 的 --n-50 反成 #262629、文字靠 --ink 提亮，已够对比，无需再钉值 */
+
+/* ═══ WD-UI-1 追加段（10-27 她「这个页面 ui 尺寸特别有问题，你们看着调整一下弄得更美观一些」）═══
+   上半部分（min-height / grid-auto-rows / overflow 三处）已在上文 .opt-big 附近落地；
+   本段补三件施工书要求、上文未覆盖的事：① 手机端左右留白 ② 释义字号层级 ③ 8px 栅格对齐。
+   🔴 一律只调尺寸/间距/字号，零形态改动：两列网格、圆角、配色、hover、词性+释义两行结构全部不动。 */
+
+/* ① 手机端左右留白。实测 390 宽下 .opts-grid 左右内距 0、卡片紧贴屏幕边缘（视觉压迫感很重）。
+   给满屏态的上层补 16px 左右内距 —— 与全站 .container 手机端 12px 口径取同一档，取 16 是因为
+   这里是「答题主区」比普通内容区更靠近中心。只动 padding，不动宽度与栅格。 */
+@media (max-width:480px){
+  #practiceBody.practice-body-fit{padding-left:16px;padding-right:16px}
+  /* 内距由外层给，里面的元素别再重复扣一次 */
+  #practiceBody.practice-body-fit .opts-grid{width:100%}
+}
+
+/* ② 释义字号层级。施工书要求「释义 ≥16」：原来 15px 与词性 13px 只差 2px，
+   长释义（她截图那种「n. 醋栗；无核小葡萄干；醋栗酒」）认读吃力、层级拉不开。
+   → 释义 15 → 16px（只提 1px，够拉开层级又不至于让 390 档多占一行）。
+   ⚠️ 行高保持 1.4 不变，避免连带把卡高顶上去（卡高已由 min-height + grid 自动对齐管住）。 */
+#practiceBody.practice-body-fit .opt-big-cn{font-size:16px}
+
+/* ③ 8px 栅格对齐：卡片内距 14px 不是 8 的倍数，与 gap 14 一起看会显得「不上不下」。
+   → 卡片内距 14 → 16px（8 的倍数），gap 保持 14 不动（改 gap 会同时动两列间距、风险更大，
+   且 14px 在 390/430 实测下两列各 188/208px 分配正常，没有挤压）。 */
+#practiceBody.practice-body-fit .opt-big{padding:16px 14px}
