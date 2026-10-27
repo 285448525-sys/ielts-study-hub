@@ -1104,7 +1104,10 @@ ${s.text}` }
   ];
 
   try{
-    const content = await callRelay('writing_score', messages, 0.35);
+    /* WRT-JSONTRUNC-1（10-27）：写作批改的 JSON 比别处长得多（overall+breakdown+reasons+grammar 逐条
+       +good+gap+dims 四维子项），默认 4096 输出窗口在长作文上会被截断 → 解析失败 → 页面退回「显示原文」。
+       先例 = common-ai.js:169 素材深挖同参 8192。三处 writing_score 调用一起给，口径统一。 */
+    const content = await callRelay('writing_score', messages, 0.35, { max_tokens: 8192 });
     const r = aiJson(content);
     if(!r){
       box.innerHTML = '<div class="ts-sec"><h4>AI 原文（没按格式回）</h4><div style="white-space:pre-wrap;font-size:13.5px;line-height:1.8">' + escapeHtml(content) + '</div></div>';
@@ -2066,7 +2069,7 @@ ${ANCHOR_TABLE_EN}
   ];
 
   try{
-    const content = await callRelay('writing_score', messages, 0.4);
+    const content = await callRelay('writing_score', messages, 0.4, { max_tokens: 8192 });   /* WRT-JSONTRUNC-1：防长 JSON 截断 */
     // Bug18：复用 aiJson 解析（已处理 ```json 围栏与前后废话），避免重复解析逻辑
     const result = aiJson(content);
     if(!result){
@@ -2798,7 +2801,7 @@ ${ANCHOR_TABLE_EN}
   ];
   (async () => {
     try{
-      const content = await callRelay('writing_score', messages, 0.4);
+      const content = await callRelay('writing_score', messages, 0.4, { max_tokens: 8192 });   /* WRT-JSONTRUNC-1：防长 JSON 截断 */
       const result = aiJson(content);
       if(!result){
         box.innerHTML = '<div class="ts-sec"><h4>AI 原文（没按格式回）</h4><div style="white-space:pre-wrap;font-size:14px;line-height:1.8">'+escapeHtml(content)+'</div></div>';
