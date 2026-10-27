@@ -1113,7 +1113,9 @@ ${s.text}` }
     const content = await callRelay('writing_score', messages, 0.35, { max_tokens: 8192, json_mode: true });
     /* 🔴 88659bd3 的回归修复：那笔误把 wtBandUp 换成 wtValid，+0.5 上浮整个失效（她 16:0x 复报 5/5/5/4.5 的白板分）。
        正确链路 = 先结构校验（残缺对象不进渲染）→ 再确定性 +0.5（不靠提示词）。 */
-    const r = wtBandUp(wtValid(aiJson(content)));
+    /* WRT-TRUNC-1：wtValid 拦下残缺对象后先试截断兜底 —— 她那次 AI 已给出 5.5 与多数语法，
+       整份显示原文等式逼她重交，不是她要的结果。救得回就渲染，救不回才降级。 */
+    let r = wtSalvageScore(aiJson(content), content);
     if(!r){
       box.innerHTML = '<div class="ts-sec"><h4>AI 原文（没按格式回）</h4><div style="white-space:pre-wrap;font-size:13.5px;line-height:1.8">' + escapeHtml(content) + '</div></div>';
       DATA.writingScores.push({ id: uid(), date: todayKey(), mode:'template', tplId: s.tpl.id, tplTitle: s.tpl.title, tplCat: s.tpl.category, essay: s.text, result: content, parsed:false });
@@ -2077,7 +2079,9 @@ ${ANCHOR_TABLE_EN}
     const content = await callRelay('writing_score', messages, 0.4, { max_tokens: 8192, json_mode: true });   /* WRT-JSONTRUNC-1 + WRT-JSONLOOSE-1 */
     // Bug18：复用 aiJson 解析（已处理 ```json 围栏与前后废话），避免重复解析逻辑
     /* 同 1114：先 wtValid 拦残缺，再 wtBandUp 做 +0.5（88659bd3 曾把上浮弄丢） */
-    const result = wtBandUp(wtValid(aiJson(content)));
+    /* WRT-TRUNC-1：wtValid 拦下残缺对象后先试截断兜底 —— 她那次 AI 已给出 5.5 与多数语法，
+       整份显示原文等式逼她重交，不是她要的结果。救得回就渲染，救不回才降级。 */
+    let result = wtSalvageScore(aiJson(content), content);
     if(!result){
       // JSON 解析失败，降级显示原始文本
       bodyEl.innerHTML = '<div class="score-section"><h4>AI 原文（没按格式回）</h4><div style="white-space:pre-wrap;font-size:14px;line-height:1.8">' + escapeHtml(content) + '</div></div>';
@@ -2123,6 +2127,118 @@ ${ANCHOR_TABLE_EN}
    绝不让半截对象进渲染。要求：overall 有数、breakdown 四项齐全、grammar 是数组、good 是数组。
    ⚠️ 只做校验、不改任何字段与渲染形态；校验不过时页面上显示的是原始回复（她现在看到的那种），
       但会带上「请重试」的 toast，语义明确。 */
+/* ===== WRT-TRUNC-1（10-27 她报：「这被你们修出bug来了」） =====
+   现象：写作评分结果显示的是「AI 原文（没按格式回）」加一大段原始 JSON。
+   病根不是 AI 没按格式回，是**输出被 max_tokens 截断** —— 她的截图里 JSON 停在
+   `gap.grammar` 第 5 条的 `"why":"means 后误接动词原形，old 不能作名`，后面的
+   longSentences / suggestions / brief / dims 全没了。截断串经 aiJson() 必然返回 null，
+   于是走降级分支把原文贴出来。
+   直接原因：10-27 的 WRT-SCORE-SOFT-1 给 prompt 加了一整段「评分心态校准」，
+   输出也一并变长（dims 要求四维各 ≥2 项），把 4096 的默认上限撑破了。
+   本笔做两件事：① 三处 writing_score 调用显式要 8192（服务端上限 MAX_MAX_TOKENS=8192）；
+                ② 万一还是截断，尽量把已生成的部分捞回来（只补到此为止的完整字段），
+                   而不是整份扔掉显示原文 —— 有分数总比一堆 JSON 强。
+   ⚠️ aiJson 本体在 js/common-ai.js（共享层，A1 领地），这里只做页面层兜底，不动它。 */
+function wtSalvageScoreJson(content){
+  if(!content) return null;
+  let s = String(content).trim();
+  s = s.replace(/^```(?:json)?\s*/i, '');
+  const i0 = s.indexOf('{');
+  if(i0 === -1) return null;
+  /* 算法：**扫描式截断修复**。截断点通常落在字符串字面量中间（如 `"why":"means 后误接...`），
+     任何「从尾巴砍一刀再补括号」的取巧都不可靠 —— 因为尾巴本身可能就在一个还没闭合的引号里，
+     砍到哪个逗号都可能把 key 砍掉。正解 = 走一遍字符流，记下**每一层容器最后一个「安全的逗号」**
+     （即该逗号之后紧跟的是一个完整值，而不是半截字符串），然后从最内层开始，
+     把「未闭合的字符串先闭合、再按栈补齐右括号」逐个候选试解析，取第一个能用的。
+     这样救回来的对象是**语义完整的前缀**，不会掺进半截句子。 */
+  const cut = s.slice(i0);
+  /* 一遍扫描：栈 + 每层最后一个「已验证完整」的逗号位置
+     🔴 返工修正（探针揪出来的）：原版把「见过的最后一个逗号」直接当安全逗号，但**逗号本身
+     不代表它后面那个值已经完整** —— 她那串 `…,{"score":5,"why":"means 后误接动词原形，old 不能作名`
+     的最后一个逗号就在半截字符串之前，退到那里照样半句。
+     正解 = **延迟确认**：逗号先只记「候选位置 pending」，等扫描到下一个**值真正结束**的证据
+     （下一个逗号 / 收尾的 } ]）时，才把上一处 pending 提拔成 safe。这样 safe 位置上
+     「逗号前一定是一个完整字段」。 */
+  const stack = [];           /* 元素 = { ch: '{'|'[' , safe: -1 } */
+  let inStr = false, esc = false, pending = -1;
+  const promote = () => {
+    if(pending >= 0 && stack.length) stack[stack.length - 1].safe = pending;
+    pending = -1;
+  };
+  for(let i = 0; i < cut.length; i++){
+    const ch = cut[i];
+    if(inStr){
+      if(esc){ esc = false; continue; }
+      if(ch === '\\'){ esc = true; continue; }
+      if(ch === '"') inStr = false;
+      continue;
+    }
+    if(ch === '"'){ inStr = true; continue; }
+    if(ch === '{' || ch === '['){ stack.push({ ch, safe: -1 }); pending = -1; continue; }
+    if(ch === ','){
+      /* 遇到新逗号 = 上一个值已经结束 → 上一处 pending 才能提拔为 safe */
+      promote();
+      pending = i;
+      continue;
+    }
+    if(ch === '}' || ch === ']'){
+      /* 容器收尾 = 里面最后一个值也结束了 */
+      promote();
+      if(stack.length) stack.pop();
+      continue;
+    }
+  }
+  /* 候选 1：退到「最后一个完整值」再补齐（推荐路径）
+     ⚠️ 这一版是返工后的修正。原来把「把未闭合字符串直接补个引号」排在第一位，
+     结果她那种截断（`"why":"means 后误接动词原形，old 不能作名`）会**原样保留半句话**当成
+     一条完整诊断 → 用户看到被砍断的中文。验收探针把这条揪了出来。
+     正确顺序：**先退到最后一个安全逗号之前**（那里一定是「上一个完整字段结束」的位置），
+     实在退不出可用结果时，才退而求其次接受「补引号」的版本。 */
+  const closers = () => stack.map(o => (o.ch === '{' ? '}' : ']')).reverse().join('');
+  const cands = [];
+  /* ① 逐层退到最后一个**已验证完整**的逗号（最内层优先，能保住最多已生成内容）
+     ⚠️ 二次返工（探针第二次揪出来的）：只取 `safe` 不够。截断落在字符串中间时，
+     最后一次 pending 永远等不到「下一个逗号/收尾」来提拔 —— 于是 safe 停在更早的位置，
+     退出来会把「刚好那一项（含半句 why）」整套保留。
+     所以**同时也要试 pending**：退到 pending（那个逗号的**前一位**、即逗号之前）就等于
+     「把正在写的那一项整个砍掉」，比留着半句更诚实（用户宁可少一条建议，不要看到砍断的中文）。
+     两层候选都进列表，交给 JSON.parse 逐个试：能解析且字段完整的先命中。 */
+  const trail = stack.slice();
+  for(let k = trail.length - 1; k >= 0; k--){
+    const cutAt = (i) => {
+      if(!(i > 0)) return;
+      const head = cut.slice(0, i);
+      const cl = trail.slice(0, k).map(o => (o.ch === '{' ? '}' : ']')).reverse().join('');
+      cands.push(head + cl);
+    };
+    /* pending 版本优先（砍掉正在写的半截项）——它才是「不含半句」的那个候选 */
+    if(k === trail.length - 1 && typeof pending === 'number' && pending > 0) cutAt(pending);
+    cutAt(trail[k].safe);
+  }
+  /* ② 兜底：字符串没闭合时补引号 + 补齐（可能带半句，但聊胜于无，排在最后）
+        字符串已闭合时，直接补右括号等价于「值完整、只是容器没收尾」。 */
+  if(inStr) cands.push(cut + '"' + closers());
+  cands.push(cut + closers());
+  for(const patched of cands){
+    try {
+      const obj = JSON.parse(patched);
+      /* 只认带了评分的对象 —— 免得捞回一个只有 {"overall":5.5} 的空壳当结果 */
+      if(obj && obj.overall != null && obj.breakdown) return { obj, truncated: true };
+    } catch(e){}
+  }
+  return null;
+}
+
+/* WRT-TRUNC-1：统一评分入口 —— 先按结构校验，不通过再试截断兜底，最后确定性 +0.5。
+   顺序不可颠倒：wtValid 先拦畸形对象（残缺的不进渲染），salvage 再把「截断但可救」的接住，
+   wtBandUp 只做上浮（幂等）。任何一步拿不到合格结果就返回 null → 上层走降级显示原文。 */
+function wtSalvageScore(parsed, rawContent){
+  const v = wtValid(parsed);
+  if(v) return wtBandUp(v);
+  const sv = wtSalvageScoreJson(rawContent);
+  if(sv) return wtBandUp(sv.obj);
+  return null;
+}
 function wtValid(r){
   if(!r || typeof r !== 'object' || Array.isArray(r)) return null;
   if(r.overall == null || !isFinite(Number(r.overall))) return null;
@@ -2868,7 +2984,9 @@ ${ANCHOR_TABLE_EN}
     try{
       const content = await callRelay('writing_score', messages, 0.4, { max_tokens: 8192, json_mode: true });   /* WRT-JSONTRUNC-1 + WRT-JSONLOOSE-1 */
       /* 同 1114：先 wtValid 拦残缺，再 wtBandUp 做 +0.5（88659bd3 曾把上浮弄丢） */
-      const result = wtBandUp(wtValid(aiJson(content)));
+      /* WRT-TRUNC-1：wtValid 拦下残缺对象后先试截断兜底 —— 她那次 AI 已给出 5.5 与多数语法，
+         整份显示原文等式逼她重交，不是她要的结果。救得回就渲染，救不回才降级。 */
+      let result = wtSalvageScore(aiJson(content), content);
       if(!result){
         box.innerHTML = '<div class="ts-sec"><h4>AI 原文（没按格式回）</h4><div style="white-space:pre-wrap;font-size:14px;line-height:1.8">'+escapeHtml(content)+'</div></div>';
         toast('AI 返回格式异常，已显示原文');
