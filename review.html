@@ -30,7 +30,7 @@
 </script>
 <title>回顾 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261026v" />
-<link rel="stylesheet" href="css/p/review.css?v=20261026v" />
+<link rel="stylesheet" href="css/p/review.css?v=20261027f" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -970,10 +970,16 @@
         <div class="rv-fold-body" hidden><div id="spPracticeList"></div></div>
       </section>
 
-  <div class="rp-note">
-        <b>这页的取舍</b>：第一页已有的东西（焦点块、趋势、四科卡、全部记录列表、冲刺卡）一概不搬过来；旧的「四数字 + 热力图 + 两个折叠」整体挪到这一页，并升级成「今天学了什么 / 本周节奏 / 全部记录 / 成就 / 我的数据」五块。<br>
-        <b>新增功能全部用现成数据</b>：时间线 = `DATA.sessions`（本来就有起止时间）；周历 = 热力图同一套按天聚合；成就 = 连续打卡/词数/轮次现成口径；导出 = 设置里已有的导出能力。<b>零新存储字段。</b>
-      </div>
+  <!-- RV-NOTE-1（10-27 她报「回顾页面还是非常有问题」）：R-4/R-5 轨迹页改造的施工说明
+       被直接渲染在页面上（她截图原文「这页的取舍…零新存储字段」）。整块移入本注释，
+       信息一字不丢、用户不可见；原 .rp-note 块（review.css / .rp-page .rp-note 共 5 条规则）
+       同批删干净。
+       —— 原文如下 ——
+       这页的取舍：第一页已有的东西（焦点块、趋势、四科卡、全部记录列表、冲刺卡）一概不搬过来；
+       旧的「四数字 + 热力图 + 两个折叠」整体挪到这一页，并升级成「今天学了什么 / 本周节奏 /
+       全部记录 / 成就 / 我的数据」五块。
+       新增功能全部用现成数据：时间线 = DATA.sessions（本来就有起止时间）；周历 = 热力图同一套
+       按天聚合；成就 = 连续打卡/词数/轮次现成口径；导出 = 设置里已有的导出能力。零新存储字段。 -->
     </div>
       </div>
     </section>
