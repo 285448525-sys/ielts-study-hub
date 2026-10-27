@@ -3238,3 +3238,52 @@ body.hub-exam-locked #ancBarHost{ display:none !important }
    → 卡片内距 14 → 16px（8 的倍数），gap 保持 14 不动（改 gap 会同时动两列间距、风险更大，
    且 14px 在 390/430 实测下两列各 188/208px 分配正常，没有挤压）。 */
 #practiceBody.practice-body-fit .opt-big{padding:16px 14px}
+
+/* ═══ SRCH-BOX-1（10-27 20:0x 她「很多页面都有问题，有些页面是耳朵形状的搜索图标加另外的框子」）═══
+   症状 = 「一大框包一小框」。实测（1280，speaking/bank/writing/practice 四页同款）三处规格打架：
+
+   ① **顶栏 #sideSearch**：`.ui-search-input` 自带 `border:2px solid transparent`（聚焦变实色），
+      而 `.top-nav .ui-search-input:focus` 又叠 `box-shadow 0 0 0 4px`；底下 `:hover` 走的是
+      `.ui-search-input:hover` 那条 5px 外环 —— 顶栏只覆盖了 `:focus` 的 4px、**漏掉 `:hover` 的 5px**
+      → 悬停/聚焦两态外环粗细来回变，视觉上就是「外面又套了一圈」。
+      实测聚焦：border 1px 主色 + shadow 3.5px（全局 focus 那条赢过顶栏 4px）；悬停：shadow 5px。
+   ② **页内 .ui-field-search**：容器 1px/10px 正确，但**内层 input 残留 `outline:3px`**（未 focus 时也在）、
+      且 input 圆角 **12px ≠ 容器 10px** → 内层那圈线稍微凸出容器圆角，正是「一小框」的来源。
+   ③ 两套规格（顶栏胶囊 12px 圆角 vs 页内 10px）本来就不同物种，本批**不强行统一它们**（顶栏是全局 ⌘K 入口），
+      只把各自**内部**的自洽修好：外层出边框与外环，内层零边框零 outline、同心圆角。
+
+   🔴 只动视觉规格，不动任何布局/尺寸/结构；`.ui-search` 与 `.ui-field-search` 两套类各自独立。 */
+
+/* ① 顶栏搜索：`.hub-topbar` 自己那条已经写了 3px 外环（2812 行，是对的）；
+   但 `.ui-search-input:hover`（1820 行）那条 **5px** 外环仍会命中顶栏这个框 ——
+   顶栏只覆盖了 `:focus`、**没覆盖 `:hover`** → 悬停 5px / 聚焦 3px 来回跳，这就是「又套了一圈」。
+   本段把顶栏 hover 也压到 3px，两态同档。
+   ⚠️ 选择器必须是 `.hub-topbar`：实测顶栏搜索的真实祖先类名是它，
+      写 `#mainNav` / `.top-nav` 都匹配不到这个框（我第一版就写错、验证时才发现）。 */
+.hub-topbar .ui-search-input:hover{
+  box-shadow:0 0 0 3px var(--primary-soft);
+  background:var(--surface);
+}
+/* 聚焦态：全局 `input:not():not():not():focus` 是 (0,3,1)，压过 `.hub-topbar .ui-search-input:focus` (0,2,1)
+   → 实测聚焦仍是 3.5px（与悬停的 3px 不同档）。加两个 :not() 提到 (0,4,1) 才稳，
+   外环与悬停同档 3px。 */
+.hub-topbar .ui-search-input:not([type=checkbox]):not([type=radio]):focus{
+  box-shadow:0 0 0 3px var(--primary-soft);
+}
+
+/* ② 页内统一类：内层 input 彻底剥掉自带那圈（outline 是未聚焦时也在画的第三条线），
+   圆角与容器同心（10px）—— 内层不再凸出容器圆角。 */
+.ui-field-search-in:not([type=checkbox]):not([type=radio]):not([type=range]){
+  border:none;
+  outline:none;
+  border-radius:10px;   /* 与容器 10px 同心；原 12px 会在容器圆角内多出一圈弧 */
+}
+/* 聚焦时把全局 focus 影与顶栏那套都挡掉，外环只由容器 :focus-within 出（单圈） */
+.ui-field-search-in:not([type=checkbox]):not([type=radio]):not([type=range]):focus{
+  outline:none;
+  border:none;
+  box-shadow:none;
+  background:none;
+}
+/* 兜底：任何走 .ui-field-search 的输入框都不该再有 outline（含未聚焦态） */
+.ui-field-search input:not([type=checkbox]):not([type=radio]):not([type=range]){outline:none}
