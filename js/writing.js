@@ -2807,6 +2807,13 @@ function examShowCount(n, kind){
 function openExam(item, kind){
   if(!examTimer) return;   // 10/8 兜底：初始化异常时不许抛 TypeError 打断（她侧实抓过）
   examTimer.cur = { kind, no: item.no };
+  /* 🔴 WRT-SPACE-1（10-27 她：「这个写作的练习页面不够精致，尺寸方面有问题，间距之类的都很奇怪」）：
+     根因之一在这里 —— #examPractice 住在 #examPanel 里，但这个入口只打开了 #examPractice，
+     **忘了打开父级 #examPanel**，于是整条考试视图的 display 是 none、所有元素 0x0。
+     另外两个入口（openRecordExamView / 评分 tab 自练）都写了 `$('#examPanel').hidden = false`，
+     只有真题列表这个入口漏了 —— 三种进考试的方式里，偏偏最常用的那条是坏的。
+     （她截图里那种「挤在一起、间距很奇怪」就是父级 none 下布局算不准造成的。） */
+  const _panel = $('#examPanel'); if(_panel) _panel.hidden = false;
   $('#examHome').hidden = true;
   $('#examPractice').hidden = false;
   document.body.classList.add('exam-fullscreen');   // 进入全屏沉浸式

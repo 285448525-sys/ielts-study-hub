@@ -51,7 +51,7 @@
   <script defer src="js/feedback.js?v=20261027a"></script>
   <script defer src="js/factory-writing.js?v=20261023b"></script>
 <script defer src="js/writing_prompts.js?v=20260903ab"></script>
-  <script defer src="js/writing.js?v=20261027g"></script>
+  <script defer src="js/writing.js?v=20261027h"></script>
 <style>
 
   /* ===== 10-23 W-1：撤左栏 → 单列 + 横向筛选带（方案 §二）
@@ -520,7 +520,13 @@
      修法 = 全屏钉成「顶栏 / 内容 / 底栏」三段（flex 列 + overflow hidden），左右栏各自内部滚；
      #examResult flex:1 占满右栏且内部滚（考官对照等长内容不再把整页撑破）；
      写作/题目两栏 padding 收小让正文多用空间。 */
-  body.exam-fullscreen #examPanel{display:flex;flex-direction:column;overflow:hidden}
+  /* 🔴 WRT-SPACE-1（10-27 她：「这个写作的练习页面不够精致，尺寸方面有问题，间距之类的都很奇怪」）：
+     上面这条只给了 flex，**没把它钉成覆盖层** —— #examPanel 仍留在普通文档流里，
+     于是进考试后模板列表还露在上面、考试内容被挤在下面只剩一截、底栏跑到中间，
+     她看到的就是「尺寸乱、间距怪」。补 position:fixed + inset:0 + z-index，
+     跟 bank.html 的 #examRoot 同一套做法（那里本来就是 fixed 覆盖层）。 */
+  body.exam-fullscreen #examPanel{display:flex;flex-direction:column;overflow:hidden;
+    position:fixed;inset:0;z-index:900;background:var(--bg,#fff)}
   body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden}
   #examPractice #examResult{flex:1 1 auto;min-height:0;overflow-y:auto;margin:0 0 12px}
   .exam-a{padding:16px 20px 0}
