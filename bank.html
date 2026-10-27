@@ -1276,6 +1276,9 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
   mark.mk:hover::after{opacity:1;transform:none}
   /* WRT-TIP-1（10-27）：与 writing.html 同步，空间不够翻到下方 */
   mark.mk[data-flip="1"]::after{bottom:auto;top:calc(100% + 8px);transform:translateY(-4px)}
+  /* WRT-TIP-1b（10-27 返工）：横向锚右——与 writing.html 同步 */
+  mark.mk[data-flipx="1"]::after{left:auto;right:0}
+  mark.mk[data-flip="1"][data-flipx="1"]::after{bottom:auto;top:calc(100% + 8px);left:auto;right:0;transform:translateY(-4px)}
   /* 总分 + 四项方阵 */
   .sr-scorehead{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:10px}
   .sr-overall{font-size:26px;font-weight:800;color:var(--primary-d);line-height:1;font-variant-numeric:tabular-nums}
@@ -2332,7 +2335,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
     </section>
 
     <section class="mock-pane" id="pane-writing" hidden
-             data-late-src="js/writing_prompts.js?v=20260903ab,js/writing.js?v=20261027b">
+             data-late-src="js/writing_prompts.js?v=20260903ab,js/writing.js?v=20261027c">
       <!-- 10/11 第 7 项（她拍板「整块删掉」写作页真题 tab）：写作真题整体搬到这里。
            题目数据 = js/writing_prompts.js（大作文 70 + 小作文 25），渲染/机考/评分逻辑在 js/writing.js
            （writeExam 那一段，同一份代码两页共用；本页无 #writeTabs → writing.js 只跑真题初始化）。

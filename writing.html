@@ -51,7 +51,7 @@
   <script defer src="js/feedback.js?v=20261027a"></script>
   <script defer src="js/factory-writing.js?v=20261023b"></script>
 <script defer src="js/writing_prompts.js?v=20260903ab"></script>
-  <script defer src="js/writing.js?v=20261027b"></script>
+  <script defer src="js/writing.js?v=20261027c"></script>
 <style>
 
   /* ===== 10-23 W-1：撤左栏 → 单列 + 横向筛选带（方案 §二）
@@ -345,6 +345,9 @@
   mark.mk:hover::after{opacity:1;transform:none}
   /* WRT-TIP-1（10-27）：绿块 hover 气泡被右栏裁切 → 空间不够时翻到下方 */
   mark.mk[data-flip="1"]::after{bottom:auto;top:calc(100% + 8px);transform:translateY(-4px)}
+  /* WRT-TIP-1b（10-27 返工）：横向锚右——气泡向右铺 280px 探进右栏时锚到 mark 右缘 */
+  mark.mk[data-flipx="1"]::after{left:auto;right:0}
+  mark.mk[data-flip="1"][data-flipx="1"]::after{bottom:auto;top:calc(100% + 8px);left:auto;right:0;transform:translateY(-4px)}
   /* 总分 + 四项方阵 */
   .sr-scorehead{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:10px}
   .sr-overall{font-size:26px;font-weight:800;color:var(--primary-d);line-height:1;font-variant-numeric:tabular-nums}
