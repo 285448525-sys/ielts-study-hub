@@ -2928,6 +2928,17 @@ function openExamCustom(){
 }
 
 function examStopAndScore(){
+  /* 🔴 WRT-TIMER-2（10-27 她：「这个页面提交了之后还会继续计时这个也有问题，逻辑不对」）：
+     病根 = 这个函数从头到尾**没有停过表**。它只是把卷子送去 AI 评分，
+     examTimer.tick 那个 setInterval 一直在跑，所以点了提交、右栏已经在出分了，
+     左上角计时还在往上走 —— 逻辑上提交=交卷，计时必须当场停。
+     放在最前面（早于任何早退分支）：空白卷提示、异常弹回都不该让表继续走。
+     ⚠️ 只停表，不动已有分数/记录/界面。 */
+  examStopTimer();
+  /* WRT-TIMER-2 配套：按钮也得一起收起来。否则「Pause/Resume」还挂着，
+     用户点一下 examResumeTimer() 就又把表跑起来了 —— 停表停了个寂寞。 */
+  const _tb0 = $('#examTimerBtn');
+  if(_tb0){ _tb0.textContent = 'Submitted'; _tb0.disabled = true; }
   // 自动评分（复用官方 4 维度 prompt）。此处独立实现，避免依赖 scoreEssay 的 DOM。
   const essay = $('#examEssay').value.trim();
   const cur = examTimer.cur || {};
