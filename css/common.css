@@ -1551,10 +1551,13 @@ body.exam-fullscreen{overflow:hidden !important}
 
 .exam-split{flex:1;display:flex;min-height:0}
 /* 10/14 UI 优化：栏宽 50/50 → 42/58 —— 写作以作答为主体，题面是参考（真实机考同取向） */
-.exam-q{width:42%;overflow-y:auto;padding:0;background:var(--surface);border-right:1px solid var(--line);box-sizing:border-box}
+.exam-q{width:42%;overflow-y:auto;overflow-x:hidden;padding:0;background:var(--surface);border-right:1px solid var(--line);box-sizing:border-box}   /* WRT-SCROLLX-1：42% 定宽栏只该纵向滚；只写 overflow-y 时 x 会算成 auto，长串一撑就出横条 */
 .exam-q-body-wrap{padding:18px 24px 24px}   /* 10/14 题面内边距收紧 */
 .exam-q-lead{font-size:14px;color:var(--ink);margin:0 0 14px;font-weight:600}
-.exam-q-body{font-size:15px;line-height:1.65;color:var(--ink)}   /* 写作题面基准；实际字号由 #examPractice.exam-fs-* 三档决定（官方 20/23/27） */
+/* 🔴 10-27 WRT-SCROLLX-1 补第二条（实测：只加 overflow-x:hidden 不够）：
+   `scrollWidth` 仍是 622 > clientWidth 530 —— 长无空格串没断行，只是被 hidden 裁掉看不见，
+   内容照旧被撑宽。给题面正文补 word-break，与 .exam-essay-orig / .sr-essay 同口径，让长串真换行。 */
+.exam-q-body{font-size:15px;line-height:1.65;color:var(--ink);word-break:break-word;overflow-wrap:break-word}   /* 写作题面基准；实际字号由 #examPractice.exam-fs-* 三档决定（官方 20/23/27） */
 .exam-q-body .ei-zh{font-size:16px;font-weight:700;line-height:1.7;margin-bottom:10px}
 .exam-q-body .ei-en{font-size:14.5px;color:var(--ink);line-height:1.7}
 .exam-q-note{margin:12px 0 0;font-size:12.5px;color:var(--muted);line-height:1.6}   /* 10/14 说明文字弱化 */
@@ -1582,7 +1585,7 @@ body.exam-fullscreen{overflow:hidden !important}
   /* 10/14 UI 优化：移动端作答区优先 —— 题面限高可滚（不再占满首屏），作答区至少 55vh */
   .exam-split{flex-direction:column;overflow-y:auto}
   .exam-q,.exam-a{width:100%;border-right:none}
-  .exam-q{border-bottom:1px solid var(--line);max-height:42vh;overflow-y:auto;flex:none}
+  .exam-q{border-bottom:1px solid var(--line);max-height:42vh;overflow-y:auto;overflow-x:hidden;flex:none}   /* WRT-SCROLLX-1：窄屏同样只纵滚 */
   .exam-a{min-height:55vh;flex:1 1 auto}
   .exam-head,.exam-bar{padding-left:16px;padding-right:16px}
   .exam-q,.exam-a{padding-left:16px;padding-right:16px}
@@ -1948,7 +1951,7 @@ body.has-dock main.container{ padding-bottom:0; }
 .exam-essay-fold-sum::before{content:'▸ ';color:var(--muted)}
 .exam-essay-fold[open] .exam-essay-fold-sum::before{content:'▾ '}
 .exam-essay-fold-sum:hover{background:var(--primary-soft)}
-.exam-essay-orig{padding:4px 28px 24px;white-space:pre-wrap;line-height:1.9;font-size:15px;color:var(--ink)}
+.exam-essay-orig{padding:4px 28px 24px;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word;line-height:1.9;font-size:15px;color:var(--ink)}
 
 /* ── 侧边栏 AI 智能搜索下拉 ── */
 .side-search-wrap{position:relative;margin:0 0 2px}   /* 9/15 收紧：4/6 → 0/2（之之：搜索栏上下空隙多） */
