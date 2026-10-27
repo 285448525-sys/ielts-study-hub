@@ -2191,6 +2191,19 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 [data-theme="dark"] .exg-go:hover{filter:brightness(1.1)}
 [data-theme="dark"] .exg-go:focus-visible{outline-color:#8fe0d6}
 
+/* ═══ BANK-INFO-1（10-27）· 题库说明折叠小标 ═══
+   她 10:4x：「题库我希望有一个地方可以显示一个小标，折叠起来的」。
+   收起态只占一行（summary 8px 上下内距 ≈ 33px），不撑高首屏；展开才显示明细。
+   颜色一律走 token（--line / --surface / --muted / --primary-600），深浅与三套外观自动跟随。 */
+.bank-info{margin:0 0 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.bank-info summary{cursor:pointer;padding:8px 12px;font-size:12.5px;font-weight:650;color:var(--muted);list-style:none}
+.bank-info summary::-webkit-details-marker{display:none}
+.bank-info summary::before{content:'▸ ';color:var(--primary-600)}
+.bank-info[open] summary::before{content:'▾ '}
+.bank-info summary:focus-visible{outline:2px solid var(--primary-600);outline-offset:2px;border-radius:8px}
+.bank-info-body{padding:0 12px 10px;font-size:12.5px;color:var(--muted);line-height:1.7}
+.bank-info-body b{color:var(--ink)}
+
 </style>
 </head>
 <body data-shell="top">
@@ -2209,6 +2222,22 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
       <button class="pill-tab" type="button" data-mtab="writing" role="tab">写作<span class="mt-n" data-mtn="writing"></span></button>
       <button class="pill-tab" type="button" data-mtab="speaking" role="tab">口语<span class="mt-n" data-mtn="speaking"></span></button>
     </div>
+
+    <!-- BANK-INFO-1（10-27 她：「题库我希望有一个地方可以显示一个小标，折叠起来的，展开里面写
+         这个题库大概什么频率更新一次、上一次更新是什么时候」）：题库说明折叠小标。
+         🔴 数据是真的、不写承诺：题库总量取 bank/manifest.json 实测（627 篇 · 7202 题）；
+         上次更新时间取 git 实质内容更新（10-23 听力精听模式上线；此前 10-19 补完全部答案）；
+         频率按她真实节奏写「有新题就补充，不定期更新」——不写「每月更新」这种没依据的承诺。
+         🔴 以后真更新题库：只需改下面 .bank-upd-date 那一行 + 括号里一句，别的都不用动。
+         🔴 放在这里 = 阅读/听力两个列表页签共用一处（切换科目不掉）；收起态只占一行，不撑高首屏。
+         ⚠️ 纯静态 HTML，不进 js/bank.js（判分域红线）。 -->
+    <details class="bank-info">
+      <summary>题库说明</summary>
+      <div class="bank-info-body">
+        题库共 <b>627</b> 篇 · <b>7202</b> 题；有新题就补充，不定期更新。<br>
+        上次更新：<b class="bank-upd-date">2026-10-23</b>（听力精听模式上线；此前 10-19 补全部答案）。
+      </div>
+    </details>
 
     <section class="mock-pane" id="pane-reading">
       <!-- 10/17 性能批 · CLS 修复：完整模考入口卡改为**静态渲染**。
