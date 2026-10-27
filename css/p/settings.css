@@ -67,6 +67,14 @@
       变量没落地前这一行点了不会变颜色，但也不会报错（按领地拆分后的中间态，协商文件有记录）。 */
 .set-scheme-tabs{ display:inline-flex; width:auto; padding:3px; margin:0; }
 .set-scheme-tabs .av-tab{ height:30px; display:inline-flex; align-items:center; gap:6px; }
+/* ═══ SET-2b（10-27）· 深色模式三选一 ═══
+   病根：皮子 .av-pop-tabs{display:flex}（settings.html:196 **内联 <style>，后于本 link 出现**）
+   + .av-tab{flex:1} 把三个按钮强制平分容器宽，「跟随系统」四字 12.5px 需 ~52px > 45px → 折两行。
+   🔴 覆盖必须**比内联 .av-pop-tabs 特异性高**（同 0,1,0 会被内联后出现者压掉，CD 之前 .set-scheme-tabs
+      的同款覆盖其实也没生效，只是那组字短没露馅）→ 用 .av-pop-tabs.set-theme-tabs（0,2,0）稳赢；
+      子按钮补 flex:none 掐掉 flex:1 平分。padding:3px 与 .av-pop-tabs 原值一致。 */
+.av-pop-tabs.set-theme-tabs{ display:inline-flex; width:auto; padding:3px; margin:0; }
+.av-pop-tabs.set-theme-tabs .av-tab{ height:30px; flex:none; }
 /* 色块小方点（她 07:3x 看样子稿点头的那颗） */
 .set-sw{ width:10px; height:10px; border-radius:3px; display:inline-block; flex:none; }
 .set-sw[data-s="ink"]{ background:#3a9a93; }

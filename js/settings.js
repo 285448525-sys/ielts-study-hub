@@ -1,6 +1,31 @@
 // 10-23 T-002 步5：applyFontScale / applyReduceMotion 定义在 js/common.js（每页都要能用），
 // 这里只负责表单回填与落库后的即时应用。
 
+/* ═══ SET-2b（10-27）· 偏好类开关的防抖保存 ═══
+   她 10:0x 报「三档切换会卡住」：每次点击同步 hubSave() = 全量 JSON.stringify(DATA) +
+   localStorage.setItem，她真实 DATA 几千条单词/记录（1~3MB）序列化 50~150ms，主线程上就是一顿。
+   → 深色三档 / 正文字号三档这几个**纯偏好开关**改走 500ms 防抖；主题立即应用（不等落盘）。
+   🔴 只换偏好类开关的保存调用。**表单保存路径（saveSettings / 改密 / 目标等）的 hubSave()
+      一个都不许动** —— 那些是显式保存动作，必须即时落盘。
+   🔴 js/data.js 是 A 的领地，hubSave 本体一行不动。 */
+var _setSaveTimer = null;
+function setSaveSoon(){
+  clearTimeout(_setSaveTimer);
+  _setSaveTimer = setTimeout(function(){
+    _setSaveTimer = null;
+    if(typeof hubSave === 'function') hubSave();
+  }, 500);
+}
+/* 兜底：500ms 防抖窗口内关页，冲刷一次落盘，不丢偏好。
+   🔴 页内已有 beforeunload 监听就复用（先查），别绑两份。 */
+(function bindSetSaveFlush(){
+  if(window.__setSaveFlushBound) return;
+  window.__setSaveFlushBound = true;
+  window.addEventListener('beforeunload', function(){
+    if(_setSaveTimer){ clearTimeout(_setSaveTimer); _setSaveTimer = null; if(typeof hubSave === 'function') hubSave(); }
+  });
+})();
+
 // 把当前 DATA.settings 回填到设置页表单（登录合并云端数据后调用，确保「目标分数/每日目标」等可见恢复）
 function populateSettingsForm(){
   const s = DATA.settings || {};
@@ -183,7 +208,7 @@ ready(() => {
       if(v !== "light" && v !== "dark" && v !== "auto") return;
       DATA.settings.theme = v;
       applyTheme();
-      hubSave();
+      setSaveSoon();   /* SET-2b：全量落盘走 500ms 防抖，主题本身已即时应用 */
       if(DATA.settings.syncCode) scheduleCloudUpload();
       paint();
       try{ if(typeof toast === "function"){
