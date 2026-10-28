@@ -20,7 +20,7 @@ setTimeout(__rvRescue,2500);
 <meta http-equiv="Expires" content="0" />
 <title>设置 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261027m" />
-<link rel="stylesheet" href="css/p/settings.css?v=20261027m" />
+<link rel="stylesheet" href="css/p/settings.css?v=20261028a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -197,6 +197,24 @@ setTimeout(__rvRescue,2500);
 .av-tab{flex:1;height:32px;border:0;border-radius:8px;background:transparent;color:var(--muted);
   font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
 .av-tab.on{background:var(--surface);color:var(--primary-800);box-shadow:var(--shadow)}
+/* ===== SET-RE-BRK-1（10/28）：设置页三组分段控件改用专属类 =====
+   🔴 为什么不能复用 .av-tab：js/av-picker.js:318 有一条**全局 document 点击委托**
+   （`var tab = t.closest('.av-tab'); if(tab){ avSwitchTab(tab.getAttribute('data-avtab')); }`），
+   而设置页这三组也挂了 .av-tab、却没有 data-avtab → 每点一下就跑 avSwitchTab(null)，
+   把所有 .av-tab 里 data-avtab 为 null 的那些全部 toggle 成 on（实测三档全亮），
+   同时 aria-selected 全被写成 false。这是她「主题外观换不了 / 三个全坏」的真根因之一。
+   ⇒ 三组控件换成 .set-seg / .set-seg-btn，彻底脱离 av-picker 的委托命中面；
+     视觉照抄原 .av-pop-tabs/.av-tab 的每个值，肉眼零变化。 */
+.set-seg{display:flex;gap:6px;margin-bottom:11px;padding:3px;background:var(--n-100);border-radius:10px}
+.set-seg-btn{flex:1;height:32px;border:0;border-radius:8px;background:transparent;color:var(--muted);
+  font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
+.set-seg-btn.on{background:var(--surface);color:var(--primary-800);box-shadow:var(--shadow)}
+/* 行内三段：不弹层 → inline-flex 定宽（沿用原 .set-font-tabs / .set-theme-tabs 的既有口径） */
+.set-seg.set-font-tabs{display:inline-flex;width:190px;padding:3px;margin:0}
+.set-seg.set-font-tabs .set-seg-btn{height:30px}
+.set-seg.set-theme-tabs{display:inline-flex;width:auto;padding:3px;margin:0}
+.set-seg.set-theme-tabs .set-seg-btn{height:30px;flex:none}
+.set-seg.set-scheme-tabs .set-seg-btn{height:30px;display:inline-flex;align-items:center;gap:6px}
 .av-pop .av-grid{grid-template-columns:repeat(8,1fr);gap:9px}
 @media(max-width:640px){
   .av-pop .av-grid{grid-template-columns:repeat(4,1fr)}
@@ -319,10 +337,9 @@ setTimeout(__rvRescue,2500);
   .set-btns .btn-sm{flex:1 1 100%}
 }
 /* ===== 10-23 T-002 步5：字号三档分段控件 =====
-   复用 settings.html:140 的 .av-pop-tabs/.av-tab 视觉（方案 §四：分段控件复用它，不新造），
-   但这里是行内三段，不弹层 → 覆盖宽度与圆角。 */
+   SET-RE-BRK-1（10/28）：这组已改用 .set-seg/.set-seg-btn（见 :196 一带），
+   下面两行原 .av-tab 覆盖保留无害（选择器不再命中），但宽度口径已挪进 .set-seg 那组。 */
 .set-font-tabs{display:inline-flex;width:190px;padding:3px;margin:0}
-.set-font-tabs .av-tab{height:30px}
 /* ===== 10-23 T-002 步3：保存反馈浮条（方案 §五）=====
    右上角 fixed top:64px right:24px；白底 + 1px 边 + 圆角 10 + 中阴影；左侧 8px 绿点。 */
 .set-save-strip{position:fixed;top:calc(44px + env(safe-area-inset-top) + 20px);right:24px;z-index:120;
@@ -362,7 +379,7 @@ setTimeout(__rvRescue,2500);
   <script defer src="js/feedback.js?v=20261027a"></script>
   <!-- 10/3 头像选择（DiceBear CC0 素材；必须在 data.js/common.js 之后 —— 它读 DATA.settings.avatar） -->
   <script defer src="js/av-picker.js?v=20261022a"></script>
-  <script src="js/settings.js?v=20261027e" defer></script>
+  <script src="js/settings.js?v=20261028a" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -568,10 +585,10 @@ setTimeout(__rvRescue,2500);
       <div class="set-row">
         <div class="set-row-t"><b>深色模式</b></div>
         <div class="set-row-c">
-          <div class="av-pop-tabs set-theme-tabs" role="radiogroup" aria-label="深色模式">
-            <button type="button" class="av-tab set-theme-tab" role="radio" aria-checked="false" data-theme-val="light">日间</button>
-            <button type="button" class="av-tab set-theme-tab" role="radio" aria-checked="false" data-theme-val="dark">夜间</button>
-            <button type="button" class="av-tab set-theme-tab" role="radio" aria-checked="false" data-theme-val="auto">跟随系统</button>
+          <div class="set-seg set-theme-tabs" role="radiogroup" aria-label="深色模式">
+            <button type="button" class="set-seg-btn set-theme-tab" role="radio" aria-checked="false" data-theme-val="light">日间</button>
+            <button type="button" class="set-seg-btn set-theme-tab" role="radio" aria-checked="false" data-theme-val="dark">夜间</button>
+            <button type="button" class="set-seg-btn set-theme-tab" role="radio" aria-checked="false" data-theme-val="auto">跟随系统</button>
           </div>
         </div>
       </div>
@@ -583,10 +600,10 @@ setTimeout(__rvRescue,2500);
       <div class="set-row">
         <div class="set-row-t"><b>主题外观</b></div>
         <div class="set-row-c">
-          <div class="av-pop-tabs set-scheme-tabs" role="radiogroup" aria-label="主题外观">
-            <button type="button" class="av-tab set-scheme-tab on" role="radio" aria-checked="true" data-scheme="ink"><i class="set-sw" data-s="ink"></i>青墨学术</button>
-            <button type="button" class="av-tab set-scheme-tab" role="radio" aria-checked="false" data-scheme="cool"><i class="set-sw" data-s="cool"></i>学术冷色</button>
-            <button type="button" class="av-tab set-scheme-tab" role="radio" aria-checked="false" data-scheme="warm"><i class="set-sw" data-s="warm"></i>纸感暖灰</button>
+          <div class="set-seg set-scheme-tabs" role="radiogroup" aria-label="主题外观">
+            <button type="button" class="set-seg-btn set-scheme-tab on" role="radio" aria-checked="true" data-scheme="ink"><i class="set-sw" data-s="ink"></i>青墨学术</button>
+            <button type="button" class="set-seg-btn set-scheme-tab" role="radio" aria-checked="false" data-scheme="cool"><i class="set-sw" data-s="cool"></i>学术冷色</button>
+            <button type="button" class="set-seg-btn set-scheme-tab" role="radio" aria-checked="false" data-scheme="warm"><i class="set-sw" data-s="warm"></i>纸感暖灰</button>
           </div>
         </div>
       </div>
@@ -594,10 +611,10 @@ setTimeout(__rvRescue,2500);
       <div class="set-row">
         <div class="set-row-t"><b>正文字号</b></div>
         <div class="set-row-c">
-          <div class="av-pop-tabs set-font-tabs" role="radiogroup" aria-label="正文字号">
-            <button type="button" class="av-tab" role="radio" aria-checked="false" data-font="sm">小</button>
-            <button type="button" class="av-tab on" role="radio" aria-checked="true" data-font="md">标准</button>
-            <button type="button" class="av-tab" role="radio" aria-checked="false" data-font="lg">大</button>
+          <div class="set-seg set-font-tabs" role="radiogroup" aria-label="正文字号">
+            <button type="button" class="set-seg-btn" role="radio" aria-checked="false" data-font="sm">小</button>
+            <button type="button" class="set-seg-btn on" role="radio" aria-checked="true" data-font="md">标准</button>
+            <button type="button" class="set-seg-btn" role="radio" aria-checked="false" data-font="lg">大</button>
           </div>
         </div>
       </div>
@@ -910,30 +927,13 @@ setTimeout(__rvRescue,2500);
      字号：点分段即存即生效（applyFontScale 挂 html[data-font]，common.css 接手）；
      减少：开关即存即生效（applyReduceMotion）。两项都走 saveSettings 的 _fieldTs 通道落库。 */
   function bindStep5(){
-    var tabs = document.querySelector('.set-font-tabs');
-    if(tabs && !tabs.__t002Bound){
-      tabs.__t002Bound = 1;
-      tabs.addEventListener('click', function(e){
-        var b = e.target.closest ? e.target.closest('.av-tab[data-font]') : null;
-        if(!b) return;
-        var mode = b.getAttribute('data-font');
-        tabs.querySelectorAll('.av-tab').forEach(function(x){
-          var on = x === b;
-          x.classList.toggle('on', on);
-          x.setAttribute('aria-checked', on ? 'true' : 'false');
-        });
-        if(typeof applyFontScale === 'function') applyFontScale(mode);
-        DATA.settings = DATA.settings || {};
-        DATA.settings.fontScale = mode;
-        DATA.settings._fieldTs = DATA.settings._fieldTs || {};
-        DATA.settings._fieldTs.fontScale = Date.now();
-        /* SET-2b：全量落盘走 500ms 防抖（setSaveSoon 在 js/settings.js，defer 先于本内联执行），
-           字号本身已即时应用（applyFontScale 挂 html[data-font]） */
-        if(typeof setSaveSoon === 'function') setSaveSoon();
-        else if(typeof hubSave === 'function') hubSave();
-        if(DATA.settings.syncCode && typeof scheduleCloudUpload === 'function') scheduleCloudUpload();
-      });
-    }
+    /* 🔴 SET-RE-BRK-1（10/28）：「正文字号」这里原来还绑了一份点击处理，和 js/settings.js
+       的 bindFontSizeSeg 是**两份重复绑定**（同一组按钮、两套 paint 逻辑、两次落盘）。
+       实测：点一下两个 handler 都跑 → 两份 setSaveSoon、两次 applyFontScale，
+       且两份选择器不同（这里的 .av-tab / 那边的 [data-font]），互相覆盖高亮态。
+       ⇒ 内联这份整段退役，字号只由 js/settings.js 的 bindFontSizeSeg 一处负责
+         （它同时写 DATA.settings.fontScale + _fieldTs + setSaveSoon，路径更完整）。
+       ⚠️ 只删字号那半段；下面的「减少动效」#sReduceMotion 开关保持原样绑定。 */
     var rm = document.getElementById('sReduceMotion');
     if(rm && !rm.__t002Bound){
       rm.__t002Bound = 1;
