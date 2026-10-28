@@ -344,6 +344,16 @@ main.container:has(> .rvx-page) > .review-wrap{ order:1; margin-top:22px }
   padding:14px 16px;font-size:13.5px;line-height:1.62}
 .rvx-lgd{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:8px}
 .rvx-lgd span{display:inline-flex;align-items:center;gap:6px}
+/* SCORE-TREND-1（10-28）：趋势图来源图例 —— 实心 = 实考/整卷，空心 = 模考/平时添加/AI 评分。
+   与原有科目色例同一行排；空心点用 surface 底 + 2px 环，浅深两档都看得清。 */
+.rvx-lgd .rvx-lgd-src{padding-left:12px;border-left:1px solid var(--line)}
+.rvx-lgd .rvx-dot-fill{background:var(--ink)}
+.rvx-lgd .rvx-dot-hollow{background:var(--surface);border:2px solid var(--ink);border-radius:50%}
+html[data-theme="dark"] .rvx-lgd .rvx-dot-fill{background:var(--n-800)}
+html[data-theme="dark"] .rvx-lgd .rvx-dot-hollow{background:var(--surface);border-color:var(--n-800)}
+@media (max-width:560px){
+  .rvx-lgd .rvx-lgd-src{padding-left:0;border-left:0}
+}
 .rvx-page svg{display:block}
 .rvx-fn{font-size:12.5px;color:var(--muted);margin-top:10px;line-height:1.6}
 

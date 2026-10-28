@@ -150,29 +150,108 @@
   }
 
   /* ===== ③ 总分+四科趋势图（骨架里是写死的 SVG，这里整块重画） =====
-     复用 scores.js 的 renderTrend 口径不可行（它写 #trendChart，那是旧面板的容器，现已被藏）。
-     但算法照抄它：0–9 轴、每条一个 polyline + 圆点、X 轴 MM-DD。 */
+     🔴 10-28 SCORE-TREND-1（她 13:1x：「回顾成绩这里不能只记录实战的成绩，把平常模考啊、
+        我自己输入进去的记录都要弄进去。我记得你们之前也出过方案，为什么没有做进去啊？」）
+     这一步是全站**唯一真正显示**的成绩趋势图（旧面板 #trendChart 那一套已被 .review-wrap 的
+     清场规则藏掉，写在那里等于白写 —— 这一轮我先写错在那里，实测 0×0 才发现）。
+     数据源从「仅 DATA.scores 整卷」扩为双源：
+       · DATA.scores       = 整卷 / 实考（她手动录入）→ 点画实心
+       · DATA.mockRecords  = 模考自动记录（阅读/听力整卷或单篇、写作 AI 评分、口语整卷模考）→ 点画空心
+     口径按样子稿 design/_预览-成绩趋势含模考-2026-10-27.html：
+       1. 每科各画各的线，该科有几分进几分；某科某天没记录就断开，不拿假点连
+       2. 来源只用点的样式区分（实心/空心），不加筛选器、不加第二套控件
+       3. 同日同科多条只取当天最后一条（各天历史全保留）—— 趋势看的是每天最终水平
+       4. 目标虚线常驻（她本机 targets 四项都是 0 = 还没设，此时不画线、不印「目标 0」） */
+  function pairPoints(){
+    /* 返回 { dates:[...], per:{科:[{date,v,real}]}, labels }
+       同日同科多条 → 后写覆盖前写（mockRecords 在 scores 之后遍历，同一天以模考记录为最新），
+       但「real」标记一旦有过实考就保留为实心（实考那天不该被一条模考漂成空心）。 */
+    var per = {}, seen = {};
+    SUBS.forEach(function(se){ per[se.k] = {}; });
+    function put(k, date, v, real){
+      if (!per[k]) return;
+      var n = Number(v);
+      if (!isFinite(n) || n <= 0 || n > 9) return;
+      var d = String(date || '').slice(0, 10);
+      if (!d) return;
+      var cell = per[k][d];
+      if (cell){ cell.v = n; cell.real = cell.real || !!real; }
+      else per[k][d] = { date: d, v: n, real: !!real };
+      seen[d] = true;
+    }
+
+    /* 源 1：整卷 / 实考 */
+    scores().forEach(function(s){
+      if (!s) return;
+      SUBS.forEach(function(se){ put(se.k, s.date, s[se.k], true); });
+    });
+
+    /* 源 2：DATA.mockRecords（模考自动记录 + 写作 AI 评分 + 口语整卷模考） */
+    mockAll().forEach(function(r){
+      if (!r) return;
+      /* 口语整卷模考：与 isSpeakingMockRec 同口径（新版 kind，旧版无 parts 但有 p1） */
+      if (r.kind === 'speaking' || (!Array.isArray(r.parts) && r.p1)){
+        put('speaking', r.date, r.overall, false);
+        return;
+      }
+      if (!Array.isArray(r.parts) || !r.type || !per[r.type]) return;
+      var cfg = (typeof MOCK_TYPES !== 'undefined' && MOCK_TYPES[r.type]) || null;
+      if (!cfg) return;
+      var v = null;
+      if (cfg.mode === 'score'){
+        /* 口语/写作：parts[].score 加权平均（写作 Task 2 权重 2，与 MOCK_TYPES 一致） */
+        var wsum = 0, acc = 0;
+        r.parts.forEach(function(p){
+          if (typeof p.score !== 'number') return;
+          var w = (typeof p.weight === 'number' && p.weight > 0) ? p.weight : 1;
+          wsum += w; acc += p.score * w;
+        });
+        if (wsum > 0) v = acc / wsum;
+        if (v == null && typeof r.overall === 'number') v = r.overall;
+      } else {
+        /* 阅读/听力：优先用落库时算好的 overall（estimateBand），没有就按对题数现场折算 */
+        if (typeof r.overall === 'number') v = r.overall;
+        else {
+          var tc = 0, tt = 0;
+          r.parts.forEach(function(p){ tc += Number(p.correct) || 0; tt += Number(p.total) || 0; });
+          if (tt && typeof estimateBand === 'function') v = estimateBand(r.type, tc, tt);
+        }
+      }
+      if (v != null) put(r.type, r.date, v, false);
+    });
+
+    var dates = Object.keys(seen).sort();
+    return { dates: dates, per: per };
+  }
+
   function paintTrend(){
     var host = document.querySelector('#rvxE1 .rvx-two > div:first-child .rvx-card .rvx-card-p');
     if (!host) return;
     /* 找到骨架里那张 SVG 的父容器（overflow-x:auto 的 div），整块换掉 */
     var wrap = host.querySelector('div[style*="overflow-x"]');
     var legend = host.querySelector('.rvx-lgd');
-    if (legend) legend.innerHTML = SUBS.map(function(s){
-      return '<span><i class="rvx-dot" style="background:' + s.color + '"></i>' + s.name + '</span>';
-    }).join('');
+    if (legend){
+      /* 图例两行：第一行科目色，第二行「实心=实考 / 空心=模考·平时添加·AI 评分」 */
+      legend.innerHTML = SUBS.map(function(s){
+        return '<span><i class="rvx-dot" style="background:' + s.color + '"></i>' + s.name + '</span>';
+      }).join('')
+      + '<span class="rvx-lgd-src"><i class="rvx-dot rvx-dot-fill"></i>实考 / 整卷</span>'
+      + '<span class="rvx-lgd-src"><i class="rvx-dot rvx-dot-hollow"></i>模考 · 平时添加 · AI 评分</span>';
+    }
     if (!wrap) return;
 
-    var list = sortedScores();
-    if (!list.length){
-      wrap.innerHTML = '<div class="rvx-fn" style="padding:26px 4px;text-align:center">还没有模考成绩。<br>考完第一场在下面「添加真题成绩」里填一次，这里就会画出趋势。</div>';
+    var got = pairPoints();
+    var dates = got.dates, per = got.per;
+    if (!dates.length){
+      wrap.innerHTML = '<div class="rvx-fn" style="padding:26px 4px;text-align:center">还没有成绩记录。<br>模考、AI 评分、你自己录入的成绩都会进这张图。</div>';
       return;
     }
     var W = 720, H = 250, padL = 26, padR = 10, padT = 14, padB = 26;
     var plotW = W - padL - padR, plotH = H - padT - padB;
-    var n = list.length;
+    var n = dates.length;
     var X = function(i){ return n === 1 ? padL + plotW / 2 : padL + plotW * i / (n - 1); };
     var Y = function(v){ return padT + plotH * (1 - Math.max(0, Math.min(9, Number(v))) / 9); };
+    var t = targets();
 
     var s = '';
     for (var g = 0; g <= 9; g++){
@@ -180,20 +259,38 @@
       s += '<line x1="' + padL + '" y1="' + gy + '" x2="' + (W - padR) + '" y2="' + gy + '" style="stroke:var(--line)" stroke-width="1" opacity="' + (g % 2 ? '.4' : '.9') + '"></line>';
       if (g >= 4 && g <= 9) s += '<text x="' + (padL - 6) + '" y="' + (gy + 3.5) + '" text-anchor="end" font-size="10" style="fill:var(--muted)" font-variant-numeric="tabular-nums">' + g + '</text>';
     }
+    /* 目标虚线常驻（只对有设目标的科目画；她四项都是 0 → 一条都不画，不印「目标 0」） */
     SUBS.forEach(function(se){
-      var pts = list.map(function(r, i){ return X(i) + ',' + Y(r[se.k]); });
-      s += '<polyline points="' + pts.join(' ') + '" fill="none" style="stroke:' + se.color + '" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" opacity=".92"></polyline>';
-      list.forEach(function(r, i){
-        s += '<circle cx="' + X(i) + '" cy="' + Y(r[se.k]) + '" r="' + (i === n - 1 ? 4 : 2.6) + '" style="fill:' + se.color + '"></circle>';
+      var tgt = Number(t[se.k]);
+      if (!tgt || tgt <= 0) return;
+      var ty = Y(tgt);
+      s += '<line x1="' + padL + '" y1="' + ty + '" x2="' + (W - padR) + '" y2="' + ty + '" style="stroke:' + se.color + '" stroke-width="1" stroke-dasharray="5 4" opacity=".45"></line>';
+    });
+    /* 每科只连自己有点的位置：中间缺记录就断开，不拿假点把断档连成「趋势」 */
+    SUBS.forEach(function(se){
+      var cells = per[se.k];
+      var idx = [];
+      dates.forEach(function(d, i){ if (cells[d]) idx.push(i); });
+      if (!idx.length) return;
+      if (idx.length > 1){
+        var pts = idx.map(function(i){ return X(i) + ',' + Y(cells[dates[i]].v); });
+        s += '<polyline points="' + pts.join(' ') + '" fill="none" style="stroke:' + se.color + '" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" opacity=".92"></polyline>';
+      }
+      idx.forEach(function(i){
+        var c = cells[dates[i]];
+        var isLast = (i === idx[idx.length - 1]);
+        s += c.real
+          ? '<circle cx="' + X(i) + '" cy="' + Y(c.v) + '" r="' + (isLast ? 4 : 2.8) + '" style="fill:' + se.color + '"></circle>'
+          : '<circle cx="' + X(i) + '" cy="' + Y(c.v) + '" r="' + (isLast ? 3.4 : 2.6) + '" style="fill:var(--surface);stroke:' + se.color + '" stroke-width="2"></circle>';
       });
     });
     /* X 轴日期：点多时只标首/中/尾，避免糊成一团 */
     var step = n <= 6 ? 1 : Math.ceil(n / 6);
-    list.forEach(function(r, i){
+    dates.forEach(function(d, i){
       if (i % step && i !== n - 1) return;
       /* 首尾两个标签靠边锚（middle 锚会被画布裁掉半个字，实测最右那个变成「10-2」） */
       var anc = (i === 0 && n > 1) ? 'start' : ((i === n - 1 && n > 1) ? 'end' : 'middle');
-      s += '<text x="' + X(i) + '" y="' + (H - padB + 15) + '" text-anchor="' + anc + '" font-size="9.5" style="fill:var(--muted)" font-variant-numeric="tabular-nums">' + esc(String(r.date || '').slice(5)) + '</text>';
+      s += '<text x="' + X(i) + '" y="' + (H - padB + 15) + '" text-anchor="' + anc + '" font-size="9.5" style="fill:var(--muted)" font-variant-numeric="tabular-nums">' + esc(String(d).slice(5)) + '</text>';
     });
     wrap.innerHTML = '<svg aria-hidden="true" viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block;width:100%;height:auto;min-width:300px">' + s + '</svg>';
   }
