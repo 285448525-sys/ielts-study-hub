@@ -56,7 +56,12 @@ const PAGES = [
      （scene-drill.js）都是另外的东西，不受影响。此处原注释（独立直达页保留）随之作废。 */
   { id:'writing',   file:'writing.html',   icon:ICON.writing,   name:'写作',       desc:'模板 + AI 评分' },
   // 10/11：题库 → 「模考」大 tab（她拍板：四科模考统一在这里完成）
-  { id:'bank',      file:'bank.html',      icon:ICON.mock,      name:'练习',       desc:'阅读 · 听力 · 写作 · 口语' },
+  /* 🔴 NAV-RENAME-2（10-28 她 13:0x）：「练习」两个字改成「机经」。
+     沿革：这一格 10/27 由 NAV-RENAME-1 从「模考」改成「练习」，她看了仍不满意 → 现改「机经」。
+     ⚠️ 只改 `name`（顶栏 tab / 侧栏 / 二级菜单 / 搜索结果的显示名）：
+        `id:'bank'`、`file:'bank.html'`、PRIMARY_NAV 里那个 'bank' 一律不动 —— 路由与高亮全靠它们。
+        改 id 或 file 会让 bank.html 变成孤儿页（软导航找不到对应条目）。 */
+  { id:'bank',      file:'bank.html',      icon:ICON.mock,      name:'机经',       desc:'阅读 · 听力 · 写作 · 口语' },
   /* 🔴 10-23 T-015 她拍板「错句本不配单独一个 Tab，整个板块前后端删干净」→
      wrongbook.html 文件已从仓库删除；这里保留条目并标 hidden:true，只为两件事：
      ① 老链接 / 书签直访 wrongbook.html 时软导航白名单仍认得它（真删条目会 404 白屏）；
@@ -1288,7 +1293,9 @@ const SIDE_SEARCH_PAGES = [
   { id:'corpus',    kw:'句子 长难句 错题 听写 语料 翻译 解码 sentence' },
   { id:'speaking',  kw:'口语 题库 串题 跟读 影子 part1 part2 part3 speaking' },
   { id:'writing',   kw:'写作 作文 模板 真题 评分 大作文 小作文 task1 task2 writing' },
-  { id:'bank',      kw:'模考 题库 机考 刷题 真题 阅读 听力 写作 口语 练习 mock bank' },
+  /* NAV-RENAME-2：搜索关键词同时收「机经」与「练习」——她改完显示名，老用户还会照旧习惯搜「练习」，
+     两个词都必须能搜到这一页（搜索结果文案跟随 PAGES.name 显示为「机经」）。 */
+  { id:'bank',      kw:'机经 模考 题库 机考 刷题 真题 阅读 听力 写作 口语 练习 mock bank' },
   { id:'review',    kw:'回顾 复习 成绩 模考 记录 轨迹 历史 看板 review' },
   { id:'settings',  kw:'设置 配置 同步 api key 账号 数据 导出 导入 settings' },
   { id:'meds',      kw:'服药 用药 药 专注达 健康 药效 meds' },
