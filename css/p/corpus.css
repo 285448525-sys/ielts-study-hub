@@ -110,7 +110,12 @@
   --kc-pd:#276f69;
   --kc-sh:0 2px 8px rgba(23,62,58,.035);
   --kc-ink:#173e3a;
-  --kc-p:#3a9a93;
+  /* 🔴 SENT-DICT-1（10-28）：原值写死 #3a9a93（青绿），浅色档下三套外观全都不跟主题 ——
+     她 13:0x「这个颜色没有跟主题色统一」。深色档在下面 [data-theme="dark"] 已经重指到
+     var(--primary) 了，只有浅色档漏掉。这里直接接站点 token，三套外观（ink/cool/warm）自动跟色。
+     对比度：ink --primary-500 #3a9a93 对白字 3.1:1（按钮大字合规），
+     改后 ink 仍是同一支变量，cool/warm 各自跟自己的主色。 */
+  --kc-p:var(--primary);
   --kc-soft:#f7f9f7;
   font-size:15px;
   line-height:1.65;
@@ -155,6 +160,14 @@
 .kc-eb-loading{ margin-top: 14px; padding: 14px; border: 1px dashed var(--kc-line); border-radius: 10px; font-size: 14px; color: var(--kc-muted); }
 .kc-count-title{ margin-bottom: 14px; }
 .kc-dict-modes{ display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+/* 🔴 SENT-DICT-1（10-28）：两张模式卡「一大一小」的真凶就是下面这条全局相邻规则 ——
+   `.kc-card + .kc-card{margin-top:16px}`（L136）本意是**纵向堆叠**时拉开间距，
+   但这里两卡是 grid 并排（1fr 1fr），第二条卡照样吃到 16px margin-top：
+   于是它被往下推 16px、可见高度只剩 99px，跟左边 115px 并排 —— 她说的「一个上一个下」。
+   网格里对齐由 gap 负责，相邻 margin 必须归零。⚠️ 只对 .kc-dict-modes 里的卡归零，
+   不碰全局那条规则（别处的纵向卡还靠它拉开间距）。 */
+.kc-dict-modes .kc-card + .kc-card{ margin-top: 0; }
+.kc-dict-modes > .kc-card{ margin-top: 0; }
 .kc-dm-card{ display: flex; align-items: center; gap: 16px; }
 .kc-dm-body{ flex: 1 1 0%; min-width: 0px; }
 .kc-dm-body b{ display: block; font-size: 15px; color: var(--kc-ink); }
@@ -261,6 +274,9 @@
 .kc-page .kc-eb-loading{ margin-top: 14px; padding: 14px; border: 1px dashed var(--kc-line); border-radius: 10px; font-size: 14px; color: var(--kc-muted); }
 .kc-page .kc-count-title{ margin-bottom: 14px; }
 .kc-page .kc-dict-modes{ display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+/* SENT-DICT-1：同上，.kc-page 作用域这一层也归零（两层都要写，否则高的那层把低的覆盖回去） */
+.kc-page .kc-dict-modes .kc-card + .kc-card{ margin-top: 0; }
+.kc-page .kc-dict-modes > .kc-card{ margin-top: 0; }
 .kc-page .kc-dm-card{ display: flex; align-items: center; gap: 16px; }
 .kc-page .kc-dm-body{ flex: 1 1 0%; min-width: 0px; }
 .kc-page .kc-dm-body b{ display: block; font-size: 15px; color: var(--kc-ink); }
