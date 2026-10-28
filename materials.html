@@ -381,7 +381,7 @@
 @media (max-width: 760px){
 .mi-pain{ grid-template-columns: 1fr; }
 }
-.mi-pain .mi-col{ border-radius: var(--radius); padding: 18px 20px; border: 1px solid var(--mi-line); }
+.mi-pain .mi-col{ border-radius: var(--radius); padding: 20px 22px; border: 1px solid var(--mi-line); }
 .mi-pain .mi-old{ background: var(--n-100); }
 .mi-pain .mi-new{ background: var(--primary-50); border-color: var(--primary-200); }
 .mi-pain h3{ margin: 0px 0px 10px; font-size: 14px; font-weight: 750; display: flex; align-items: center; gap: 7px; }
@@ -400,7 +400,7 @@
 .mi-step .mi-n{ width: 24px; height: 24px; border-radius: 50%; background: var(--primary); color: rgb(255, 255, 255); font-size: 12.5px; font-weight: 800; display: flex; align-items: center; justify-content: center; margin-bottom: 9px; }
 .mi-step b{ display: block; font-size: 13.5px; font-weight: 750; margin-bottom: 4px; }
 .mi-step span{ font-size: 12px; color: var(--mi-muted); line-height: 1.7; }
-.mi-vip-bar{ display: flex; align-items: center; gap: 14px; background: var(--surface); border: 1px solid var(--primary-200); border-radius: var(--radius); padding: 15px 18px; margin-top: 14px; flex-wrap: wrap; }
+.mi-vip-bar{ display: flex; align-items: center; gap: 14px; background: var(--surface); border: 1px solid var(--primary-200); border-radius: var(--radius); padding: 20px 22px; margin-top: 14px; flex-wrap: wrap; }
 .mi-vip-bar .mi-ic{ width: 34px; height: 34px; border-radius: 10px; background: var(--primary-50); color: var(--primary-700); display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
 .mi-vip-bar .mi-tx{ flex: 1 1 0%; min-width: 200px; font-size: 13px; line-height: 1.7; color: var(--ink-2); }
 .mi-vip-bar .mi-tx b{ color: var(--mi-ink); font-weight: 750; }
@@ -452,7 +452,17 @@
 @media (max-width: 760px){
 .mi-page .mi-pain{ grid-template-columns: 1fr; }
 }
-.mi-page .mi-pain .mi-col{ border-radius: var(--radius); padding: 18px 20px; border: 1px solid var(--mi-line); }
+/* ═══ CARD-PAD-FIX-1（10-28）：素材页「一页三种留白」收口 ═══
+   她 21:1x「我发现很多页面都这样就是一个卡片大一个小」→ 拍板 A：先修同一页内部混用。
+   实测（1440/1280/390 三档，_audit2_1028/_pad_materials_before.json）：本页 5 张顶层卡只有 3 种留白——
+     · .mi-pain .mi-col（老办法/串题 两张并排对比卡）18px 20px  ✗
+     · .mi-card（这套流程为什么高效 / 生成我的串题卡）  20px 22px ✔ 本页主值
+     · .mi-vip-bar（生成串题卡是会员功能 的窄条）        15px 18px  ✗
+   两个 ✗ 挨着 ✔ 上下排在同一屏，眼睛立刻觉得歪，正是她说的「一大一小」。
+   归并到本页主值 20px 22px（对比卡与主卡同档，会员条也同档）。
+   🔴 只动 padding：不碰 grid 列数、gap、margin、圆角（圆角已由 MAT-INTRO-1 钉在 14px）、DOM。
+   会员窄条从 15px 18px 抬到 20px 22px 只是变宽松，不改变它的形态与位置。 */
+.mi-page .mi-pain .mi-col{ border-radius: var(--radius); padding: 20px 22px; border: 1px solid var(--mi-line); }
 .mi-page .mi-pain .mi-old{ background: var(--n-100); }
 .mi-page .mi-pain .mi-new{ background: var(--primary-50); border-color: var(--primary-200); }
 .mi-page .mi-pain h3{ margin: 0px 0px 10px; font-size: 14px; font-weight: 750; display: flex; align-items: center; gap: 7px; }
@@ -471,7 +481,8 @@
 .mi-page .mi-step .mi-n{ width: 24px; height: 24px; border-radius: 50%; background: var(--primary); color: rgb(255, 255, 255); font-size: 12.5px; font-weight: 800; display: flex; align-items: center; justify-content: center; margin-bottom: 9px; }
 .mi-page .mi-step b{ display: block; font-size: 13.5px; font-weight: 750; margin-bottom: 4px; }
 .mi-page .mi-step span{ font-size: 12px; color: var(--mi-muted); line-height: 1.7; }
-.mi-page .mi-vip-bar{ display: flex; align-items: center; gap: 14px; background: var(--surface); border: 1px solid var(--primary-200); border-radius: var(--radius); padding: 15px 18px; margin-top: 14px; flex-wrap: wrap; }
+/* CARD-PAD-FIX-1（10-28）：15px 18px → 20px 22px，与同页 .mi-card / .mi-col 统一（理由见上一条） */
+.mi-page .mi-vip-bar{ display: flex; align-items: center; gap: 14px; background: var(--surface); border: 1px solid var(--primary-200); border-radius: var(--radius); padding: 20px 22px; margin-top: 14px; flex-wrap: wrap; }
 .mi-page .mi-vip-bar .mi-ic{ width: 34px; height: 34px; border-radius: 10px; background: var(--primary-50); color: var(--primary-700); display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
 .mi-page .mi-vip-bar .mi-tx{ flex: 1 1 0%; min-width: 200px; font-size: 13px; line-height: 1.7; color: var(--ink-2); }
 .mi-page .mi-vip-bar .mi-tx b{ color: var(--mi-ink); font-weight: 750; }
@@ -540,7 +551,7 @@
 <meta property="og:description" content="万能素材生成器：把自己的经历沉淀成可复用的口语 P2 素材。" />
 <meta property="og:url" content="https://yasihub.com/materials" />
 <meta name="twitter:card" content="summary" />
-<link rel="stylesheet" href="css/p/materials.css?v=20261028f" />
+<link rel="stylesheet" href="css/p/materials.css?v=20261028g" />
 </head>
 <body data-shell="top">
 <div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div></div>
