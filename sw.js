@@ -590,7 +590,13 @@ const PRECORE = [
   '/icons/favicon-32x32.png',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
-  '/icons/maskable-512.png'
+  '/icons/maskable-512.png',
+  /* 10-28 合流放行批：P2-PAY-NEW 新建的独立开通页三件（pay.html / js/pay.js / css/p/pay.css）。
+     会员页「立即开通」已改为跳 pay.html（P2-VIP-DEL），弱网/离线时这一跳若不进缓存 = 白屏。
+     与 bank.html/speaking.html 同口径：页面 + 它独有的脚本与样式一并预缓存。 */
+  '/pay.html',
+  '/js/pay.js',
+  '/css/p/pay.css'
 ];
 
 /* HTML 导航 network-first 的网络超时（弱网 4s 拿不到就回退缓存，绝不让用户干等白屏） */
