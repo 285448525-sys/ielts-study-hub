@@ -882,8 +882,21 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
 .ws-book-pop .ws-bp-item:hover{ background: var(--ws-sub); }
 .ws-book-pop .ws-bp-add:hover{ background: var(--ws-sub); }
 /* 🔴 #wordToolsRow 原来是个 flex 横排工具行，现在它是「切换器」的定位容器（.ws-book-pop-wrap）：
-   必须让它不吃 flex 宽度、保持 relative，否则面板会跑出可视区。 */
-#studyView #wordToolsRow{ display: block; position: relative; }
+   必须让它不吃 flex 宽度、保持 relative，否则面板会跑出可视区。
+   🔴 WD-PAGE-REDESIGN-4（10-28 她「返回按钮不应该弄在头顶吧，不应该弄在左上角吗」）：
+     实测返回键 x=528（**屏幕正中**）而左组起点 x=173 —— 差 355px，肉眼就是「挂在头顶中间」。
+     根因就在这一条：`display:block` 把 .ws-wh-left 的 flex 布局废掉了，里面的
+     `.ws-wh-home`（inline-flex）退化成**行内元素**，于是被祖先的 text-align:center 居中。
+     而 #wordToolsRow 本身现在只装「返回键 + 回看上一个词」，词书弹层早已挂在
+     .ws-wh-tools > .ws-book-pop-wrap 下 —— 定位容器这个职责已经不归它了。
+     → 恢复 flex + 强制左对齐，返回键才会真的贴在左上角。 */
+#studyView #wordToolsRow{
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+  position: relative;
+}
 @media (max-width: 720px){
   .ws-wh-progress{ display: none; }
   .ws-book-pop{ width: min(320px, calc(100vw - 40px)); }
@@ -922,6 +935,59 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
   flex-direction: column;
   justify-content: center;
 }
+/* 🔴 WD-PAGE-REDESIGN-4 第①条（她 21:2x「整体还是偏上了一点点，我们可以稍微居中一点」）：
+   **居中这件事必须抬到 #studyView 这一层做，不能只写在 practiceBody 上。**
+   实测（1440×900，答题态）：卡片高 601、正文高 467，卡片顶在 y=86、底在 687 ——
+   屏幕下方空 213px、上方只空 86px，整块明显偏上。原因在下面第 484 行那条
+   `#studyView.wd-exam{ min-height:0 }`：它把答题态的撑高取消了，卡片就贴着顶走，
+   practiceBody 再 justify-content:center 也没有可分配的余量。
+   修法：答题态恢复撑高 + 让 studyView 自己居中，并用**底部多留一点**让它居中略偏上。
+   ⚠️ 只改答题态（.wd-exam），开始前那张卡（#preStart）的布局一点不动。 */
+#studyView.study-view-fit.wd-exam{
+  /* 撑回一屏高：`.wd-exam{min-height:0}` 在 484 行把撑高取消了，那是为了「答题卡自带 min-height」，
+     但也让整块贴顶。要居中就得先有余量可分配。
+     ⚠️ 用 min-height 而不是 height：内容超出一屏时仍然照常滚动，不会被裁掉。 */
+  min-height: calc(100vh - 158px);
+  justify-content: center;
+  padding-bottom: 28px;      /* 底部多留一截 → 视觉上比正中略高，正是她要的「稍微居中」 */
+}
+/* 上面的数字（题干/音标）与选项之间也松一档 */
+#practiceBody.practice-body-fit .practice-word-area{ margin-bottom: 6px; }
+
+/* 🔴 WD-PAGE-REDESIGN-4 第③条：底部那颗带文字的喇叭（爱听写单词区上下各有音量钮的形态）。
+   居中小按钮，不与「不知道」通栏抢视觉；只在答题态出现（DOM 由 practice.js 渲染）。 */
+#practiceBody.practice-body-fit .wd-bottom-audio{
+  display: flex;
+  justify-content: center;
+  margin-top: 14px;
+}
+#practiceBody.practice-body-fit .wd-audio-btn{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 18px;
+  border: 1.5px solid var(--ws-line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--primary);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s, transform .12s;
+}
+#practiceBody.practice-body-fit .wd-audio-btn svg{ width: 17px; height: 17px; }
+#practiceBody.practice-body-fit .wd-audio-btn:hover{
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+#practiceBody.practice-body-fit .wd-audio-btn:active{ transform: scale(.97); }
+#practiceBody.practice-body-fit .wd-audio-btn.playing{
+  background: var(--primary-soft);
+  border-color: var(--primary);
+}
 
 /* 单词 48px / 手机 40px（终稿 .word） */
 #practiceBody.practice-body-fit .pw-en .pw-en-tx{
@@ -944,19 +1010,24 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
 #practiceBody.practice-body-fit .wd-sound{
   display: inline-grid;
   place-items: center;
-  width: 32px;
-  min-height: 32px;
+  /* 🔴 WD-PAGE-REDESIGN-4 第③条（她 21:2x）：「我们下面也要弄一个就是播放音量的喇叭按钮」。
+     原来这枚按钮是 32px 的**透明**圆钮、颜色跟音标一样灰 —— 她根本没看出来它是个按钮
+     （对比爱听写：喇叭是明确的实心圆）。这轮改成 40px 实底圆钮 + 主色描边，
+     一眼能认出「这里能点、能出声」；位置仍在音标右侧（终稿形态不动）。 */
+  width: 40px;
+  min-height: 40px;
   padding: 0;
-  border: 0;
+  border: 1.5px solid var(--ws-line);
   border-radius: 50%;
-  background: transparent;
-  color: var(--muted);
+  background: var(--surface);
+  color: var(--primary);
   cursor: pointer;
-  transition: background .15s, color .15s;
+  transition: background .15s, color .15s, border-color .15s, transform .12s;
 }
-#practiceBody.practice-body-fit .wd-sound svg{ width: 18px; height: 18px; }
+#practiceBody.practice-body-fit .wd-sound svg{ width: 20px; height: 20px; }
 #practiceBody.practice-body-fit .wd-sound:hover,
-#practiceBody.practice-body-fit .wd-sound.playing{ background: var(--primary-soft); color: var(--primary); }
+#practiceBody.practice-body-fit .wd-sound.playing{ background: var(--primary-soft); color: var(--primary); border-color: var(--primary); }
+#practiceBody.practice-body-fit .wd-sound:active{ transform: scale(.94); }
 
 /* 中文释义（答后揭示；不再带 ✓ / ✗ 前缀 —— 她口述第⑤条把结论行去掉） */
 #practiceBody.practice-body-fit .pw-cn{ font-size: 16px; color: var(--ink-2); }
@@ -984,7 +1055,8 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  margin-top: 26px;
+  /* WD-PAGE-REDESIGN-4 第④条「中间这块布局太紧凑」：26 → 32，题干与选项之间多一档呼吸 */
+  margin-top: 32px;
 }
 #practiceBody.practice-body-fit .opt-big{
   height: auto;               /* 压掉 common.css:786 的 height:88px 固定高 —— 终稿是内容撑高 + min-height 70 */
@@ -1011,7 +1083,8 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
   display: flex;
   gap: 12px;
   align-items: stretch;
-  margin-top: 16px;
+  /* WD-PAGE-REDESIGN-4 第④条：16 → 24，选项与底部按钮之间松一档（原来几乎贴在一起） */
+  margin-top: 24px;
 }
 #practiceBody.practice-body-fit .answer-btns .abtn-unknown{
   flex: 1;
@@ -1082,14 +1155,26 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
   align-items: center;
   gap: 6px;
   min-height: 34px;
-  padding: 0 2px;
-  color: var(--ws-muted);
+  /* 🔴 WD-PAGE-REDESIGN-4（10-28 她 21:2x）：「那个返回…也可以设成一个按钮啊，
+     然后为什么要弄在头顶呢？不应该弄在左上角吗」——原来只是个灰字 + 箭头，
+     没有任何按钮感。→ 做成**实体按钮**（底色 + 边框 + 圆角），位置保持左上角不动。 */
+  padding: 0 12px 0 10px;
+  border: 1px solid var(--ws-line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink-2);
   font-size: 13px;
+  font-weight: 600;
   text-decoration: none;
   white-space: nowrap;
+  transition: border-color .15s, color .15s, background .15s;
 }
+.ws-wh-home:hover{ border-color: var(--ws-p); color: var(--ws-p); background: var(--ws-pl); }
+.ws-wh-home:focus-visible{ outline: none; box-shadow: 0 0 0 3px var(--primary-soft); }
+/* 与右上词书小钮/工具钮同高（36），视觉上一排对齐 */
+.ws-wh-home{ min-height: 36px; }
 .ws-wh-home svg{ width: 16px; height: 16px; color: var(--primary); }
-.ws-wh-home:hover{ color: var(--ws-title); }
+/* ⚠️ 原来的 `.ws-wh-home:hover{ color: var(--ws-title) }` 已并入上面的组合规则（本行不再重复定义） */
 .ws-prev{
   display: inline-flex;
   align-items: center;

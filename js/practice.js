@@ -1305,6 +1305,15 @@ function renderQuestion(cur, isRehold){
   /* ⑥ 「不知道」不学爱听写：保持原来那条长条、与上面选项同宽（终稿 .bottom-actions = flex:1 通栏）。
      旧 #qSpeaker 通栏喇叭已撤（播放键并入音标行，见上）。 */
   html += '<div class="answer-btns"><button class="abtn abtn-unknown" id="unknownBtn" title="不知道">不知道</button></div>';
+  /* 🔴 WD-PAGE-REDESIGN-4 第③条（她 21:2x「我们下面也要弄一个就是播放音量的喇叭按钮」）：
+     对照爱听写 —— 单词区上方有一颗喇叭，页面下部也有一颗。我们原来只有音标右侧那一颗（32px 透明，
+     她根本没看见），所以这轮：①音标那颗改成 40px 实底圆钮（CSS 里改）；②在底部按钮行下面
+     再补一颗**带文字的**喇叭，明确写着「再读一遍」，跟爱听写一样分上下两处都能点。
+     🔴 只新增按钮 + 绑新事件，判题/SRS/选项逻辑一行不动；两处都调同一个 speakN，不复制发音逻辑。 */
+  html += '<div class="wd-bottom-audio"><button class="wd-audio-btn" id="wdBottomSpeaker" type="button" title="再读一遍" aria-label="播放发音">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></svg>' +
+      '<span>再读一遍</span>' +
+    '</button></div>';
   /* WD-PAGE-REDESIGN-2：只保留头部 #progBarWrap 一条当天配额进度；
      题目块内不再生成第二条进度条。 */
 
@@ -1337,6 +1346,9 @@ function renderQuestion(cur, isRehold){
      qSpeakerInline（单词右侧那枚）已随 DOM 一并撤掉，这里只认回 #qSpeaker。 */
   const qsp = document.getElementById('qSpeaker');
   if(qsp) qsp.onclick = () => speakN(cur.en);
+  /* WD-PAGE-REDESIGN-4：底部那颗带文字的喇叭（她第③条）—— 与音标那颗同一套 speakN，不复制发音逻辑 */
+  const bsp = document.getElementById('wdBottomSpeaker');
+  if(bsp) bsp.onclick = () => speakN(cur.en);
   if(c.autoPlay) setTimeout(() => speakN(cur.en), 300);   // autoPlay=false 时不自动朗读，仅手动点喇叭
   if(audioMode && !c.autoPlay) setTimeout(() => speakN(cur.en), 300);   // 听音题必须先发音：即便关了自动播报，本题也强制读一次（喇叭可手动重播）
   if(!audioMode) fitWordOneLine();   // 9/9：渲染完立即按单词长度自适应字号（听音题题干隐藏，揭示后再补算）
