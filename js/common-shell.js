@@ -1042,6 +1042,21 @@ async function softNavigate(t, isPop){
        软导航只换 `main.innerHTML`、**容器本身没被替换**，于是上一页的 scrollTop 原样带过来。
        浏览器原生的「新文档从顶部开始」在这里不成立，得自己归零。 */
     hubResetPageScroll();
+    /* 🔴 AUDIT-D3-1（10-28）：URL 必须在**页面脚本执行之前**就已经换成目标页的。
+       原来的顺序是 runPageScript → pushState，于是目标页脚本里任何 `location.search` /
+       `location.pathname` 读到的都是**上一页**的值 —— 全站 10 处以上在读（announce.js 的
+       tab=msg、common.js 的 getSubParam、speaking.js 的 open/autostart/drill/senttab、
+       practice.js 的 autostart、rec-all.js 的 rec、teacher.js 的 email、feedback.js 的 fb=1、
+       common-pwa.js 的 onb=1）。各页因此各自打了「延迟复查」或「sessionStorage 暗号」的补丁，
+       属于同一个根因下的一堆症状。
+       现在把 pushState 提到 runPageScript 之前：此刻内容已经换完（main.innerHTML 已写）、
+       _hubCurrentFile 已对齐、applyScheme 已按 t.file 显式传入、壳与高亮也已更新 ——
+       该做的状态同步一件都不欠，只把 URL 这一项提前。
+       ⚠️ isPop（浏览器后退/前进）仍然不 push：popstate 时 URL 已经是目标页，再 push 会污染历史栈。
+       ⚠️ 上面 navSelfHealReload / navHardHeal / navVersionCheck 里那三处「软导航中 pushState
+          还没落、reload 会回落旧页 URL」的守卫依然成立且更稳 —— 它们防的是**中途刷新**，
+          现在 URL 更早落位，那些守卫只是少了一段危险窗口，逻辑不需要改。 */
+    if(!isPop) history.pushState({ hub: t.id }, '', t.url || t.href);
     // ⚠️ 性能修复（口语/写作打开卡顿）：runPageScript 会 eval 2140 行的 speaking.js + 4 个附加脚本并同步渲染
     //    官方题库/P2/P3 诊断树，若直接 await 会阻塞主线程、画面“冻住”。先让本次内容交换 + 高亮先 paint，
     //    再用 requestAnimationFrame 把重脚本执行推到下一帧，打开即流畅。
@@ -1057,7 +1072,8 @@ async function softNavigate(t, isPop){
     // ⚠️ 不再在这里二次 updateActiveNav：点击瞬间(onHubLinkClick)已写好正确高亮，
     //    page 脚本经代码审计确认不触碰侧栏 .active，二次写只会增加一次无效重绘、
     //    在重脚本 eval 阻塞主线程后触发“高亮闪一下”的观感。单一写入点 = 零闪烁。
-    if(!isPop) history.pushState({ hub: t.id }, '', t.url || t.href);
+    /* 原位置（runPageScript 之后）的 pushState 已按 AUDIT-D3-1 提前到上面 —— 见那里的说明。
+       这里不能再留一份，否则同一页会 push 两次（历史栈多一格、后退要按两次才回上一页）。 */
     prefetchAll(t.id);
     /* 🔴 AUDIT-D1-2（10-28）：`hub_reset_pending` 的**第二消费点**。
        她清空数据 → 上传失败 → 标记写入 → 只要一直在页内软导航不重启，
