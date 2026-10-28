@@ -2948,6 +2948,43 @@ body[data-shell="top"] .sw-update-bar{top:calc(44px + env(safe-area-inset-top) +
 [data-reduce-motion="1"] .ui-field-search,
 [data-reduce-motion="1"] .ui-field-clear{ transition:none }
 
+/* ===== SRCH-UNIFY-1（10-28）：搜索框合一 · 导航变体与侧栏变体 =====
+   基础类 .ui-field-search 是页内方框规格（36px / 10px 圆角）。
+   导航变体 --nav = 顶栏胶囊（28px / 999px），侧栏变体 --side = 侧栏大框（45px / 10px）。
+   两者继承基础类的 border/background/focus 行为，只改高度/圆角/内边距/字号。 */
+
+/* 导航变体：顶栏胶囊 */
+.ui-field-search--nav{
+  height:28px;
+  border-radius:999px;
+}
+.ui-field-search--nav .ui-field-search-in:not([type=checkbox]):not([type=radio]):not([type=range]){
+  font-size:12.5px;
+  padding:0 46px 0 30px;   /* 右侧给 Ctrl K kbd 留位 */
+  border-radius:999px;     /* 与容器同心 */
+}
+.ui-field-search--nav .ui-field-search-ic{
+  left:10px;
+  width:14px;
+  height:14px;
+}
+
+/* 侧栏变体：大框 */
+.ui-field-search--side{
+  height:45px;
+  border-radius:10px;
+}
+.ui-field-search--side .ui-field-search-in:not([type=checkbox]):not([type=radio]):not([type=range]){
+  font-size:14px;
+  padding:0 36px 0 36px;
+  border-radius:10px;
+}
+.ui-field-search--side .ui-field-search-ic{
+  left:1rem;
+  width:1rem;
+  height:1rem;
+}
+
 /* ===== DK-4b（10-25）：补全 primary 色阶后的三处连带钉死 =====
    800/900 在深色下由「深墨绿（浅色值的回退）」变成「亮青」（见 :154 的说明）。
    凡「白字压主色底」的地方，白字就会糊 —— 这里把三处钉回深墨绿底（只在深色生效，
