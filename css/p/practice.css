@@ -1174,3 +1174,60 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
   .ws-prev{ max-width: 110px; }
   #practiceBody.practice-body-fit .answer-btns{ font-size: 13px; }
 }
+
+/* WD-PAGE-REDESIGN-2（她 10-28 17:5x 逐条点名）：
+   1. 所有功能键都在右上：词库 / 模式 / 设置 / 全屏。
+   2. 只留右上工具组下方的顶部进度条；页底重复条与「跳过」行不再出现。
+   3. 单词、例句、选项和答题按钮作为一整块在可用区域水平、垂直居中。
+   普通态与沉浸态共用同一构图，不再两套位置。 */
+#studyView #practiceArea #wdSkipRow{display:none !important}
+#practiceArea #progBarWrap{
+  order:0;flex:0 0 auto;width:100%;max-width:800px;margin:0 auto 6px;
+}
+#practiceArea #wdWordHeader{order:1;width:100%;max-width:1080px;margin:0 auto 10px}
+#practiceArea #practiceBody{order:2}
+#practiceArea .ws-wh-left{flex:1 1 auto}
+#practiceArea .ws-wh-tools{flex:0 0 auto;margin-left:auto;gap:8px}
+#practiceArea .ws-book-switcher{min-width:0;max-width:260px;padding:6px 12px}
+#practiceArea .ws-book-switcher .ws-bs-name{font-size:13px;font-weight:600}
+#practiceArea .ws-book-switcher .ws-bs-meta{font-size:11px}
+#practiceArea .ws-book-pop{left:auto;right:0}
+#practiceArea .wd-modes #wdModeBtn{white-space:nowrap}
+#practiceBody.practice-body-fit:has(.opts-grid){
+  flex:1 1 auto;min-height:420px;justify-content:center;
+  padding-top:10px;padding-bottom:10px;
+}
+#practiceBody.practice-body-fit .practice-topzone{display:none}
+#practiceBody.practice-body-fit .practice-word-area{flex:0 0 auto}
+body.word-fullscreen #practiceArea #progBarWrap{max-width:800px}
+body.word-fullscreen #practiceBody.practice-body-fit:has(.opts-grid){
+  justify-content:center;min-height:0;padding-top:0;padding-bottom:0;
+}
+body.word-fullscreen #practiceBody.practice-body-fit .practice-word-area{
+  margin-top:0;min-height:0;justify-content:flex-start;
+}
+body.word-fullscreen #practiceBody.practice-body-fit .opts-grid,
+body.word-fullscreen #practiceBody.practice-body-fit .practice-word-area,
+body.word-fullscreen #practiceBody.practice-body-fit .answer-btns{max-width:800px}
+body.word-fullscreen #practiceBody.practice-body-fit .opt-big{height:auto;min-height:70px}
+
+@media(max-width:700px){
+  #practiceArea #wdWordHeader{position:relative;align-items:flex-start;flex-wrap:nowrap;gap:8px}
+  #practiceArea .ws-wh-left{flex:1 1 auto;flex-wrap:wrap;gap:6px;order:0;align-items:flex-start}
+  #practiceArea .ws-wh-home{flex:0 0 100%;order:0}
+  #practiceArea .ws-prev{order:1;flex:0 1 auto;max-width:145px}
+  #practiceArea .ws-wh-tools{position:absolute;right:0;top:0;order:0;gap:5px;max-width:calc(100% - 110px);justify-content:flex-end}
+  #practiceArea .ws-book-switcher{max-width:120px;padding:6px 8px;gap:4px}
+  #practiceArea .ws-book-switcher .ws-bs-meta{display:none}
+  #practiceArea .ws-book-switcher .ws-bs-name{font-size:12px}
+  #practiceArea .wd-modes #wdModeBtn{font-size:12px;padding:6px 3px}
+  #practiceArea .ws-tool-btn{width:34px;height:34px}
+  #practiceBody.practice-body-fit:has(.opts-grid){min-height:480px;justify-content:center}
+  body.word-fullscreen #practiceBody.practice-body-fit:has(.opts-grid){min-height:0}
+}
+@media(max-width:380px){
+  #practiceArea .ws-wh-tools{max-width:calc(100% - 100px);gap:3px}
+  #practiceArea .ws-book-switcher{max-width:106px}
+  #practiceArea .wd-modes #wdModeBtn{font-size:11px}
+  #practiceArea .ws-tool-btn{width:32px;height:32px}
+}

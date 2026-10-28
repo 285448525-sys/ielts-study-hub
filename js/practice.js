@@ -925,6 +925,7 @@ async function autoStartSeeWord(){
     for(const w of pq.queue){ if((w.shortCount || 0) > 0) pq.shortMode.add(String(w.en).trim().toLowerCase()); }
     $('#progBarWrap').hidden = false;
     updateWordStats();
+    updateDailyProgress();
 
     if(pq.queue.length === 0){
       s.finished = true; s.currentEn = null; wbSave();
@@ -1046,7 +1047,7 @@ function setWordFullscreen(on){
         用户（尤其手机，没有 Esc）找不到出口。这条是唯一明确可读的退出路径。
      用 hidden 属性而不是 CSS 类：软导航重跑/状态错乱时不会两处都藏或都露。 */
   var exitBar = $('#wdFsExit');
-  if(exitBar) exitBar.hidden = !on;
+  if(exitBar) exitBar.hidden = true;
   fitWordOneLine();   // 9/9：全屏字号基准不同（clamp 最大 52px），切换后要按新基准重算单行字号
   const btn = $('#fullscreenBtn');
   if(!btn) return;
@@ -1304,11 +1305,8 @@ function renderQuestion(cur, isRehold){
   /* ⑥ 「不知道」不学爱听写：保持原来那条长条、与上面选项同宽（终稿 .bottom-actions = flex:1 通栏）。
      旧 #qSpeaker 通栏喇叭已撤（播放键并入音标行，见上）。 */
   html += '<div class="answer-btns"><button class="abtn abtn-unknown" id="unknownBtn" title="不知道">不知道</button></div>';
-  /* ③ 页底进度条：无文字、跟选项区同宽、按当天配额走（终稿 .progress-track 5px）。
-     与原来的 #progBarWrap 并存 —— 那条是「本轮队列进度」（0/60），这条是「今天配额进度」（25/50），
-     两个口径不同，她要的是后者，旧的留着给别处逻辑用，但不再显示（见下面的 hidden）。 */
-  html += '<div class="wd-progress" id="wdProgress" role="progressbar" aria-label="今日背词进度">' +
-    '<i id="wdProgressFill" style="width:0%"></i></div>';
+  /* WD-PAGE-REDESIGN-2：只保留头部 #progBarWrap 一条当天配额进度；
+     题目块内不再生成第二条进度条。 */
 
   const body = $('#practiceBody');
   body.innerHTML = html;
@@ -1944,6 +1942,9 @@ function updateProgBar(){
   const pct = Math.min(100, ((pq.correct || 0) / pq.initLen) * 100);
   const _old = $('#progBarFill');
   if(_old) _old.style.width = pct + '%';
+  /* WD-PAGE-REDESIGN-2：头部唯一进度条固定采用「今日已练 / 每日上限」，
+     不再混用本轮队列口径。 */
+  updateDailyProgress();
   /* 10-23 P-3：新状态带里的进度条与旧条同源同步（旧条 DOM 留着，JS 写入点不改） */
   const _nf = document.getElementById('wProgFill');
   if(_nf){
@@ -1962,8 +1963,8 @@ function updateProgBar(){
 
 /* 今日配额进度条（终稿 .progress-track 形态）：只画条，不写字。 */
 function updateDailyProgress(){
-  const wrap = document.getElementById('wdProgress');
-  const fill = document.getElementById('wdProgressFill');
+  const wrap = document.getElementById('progBarWrap');
+  const fill = document.getElementById('progBarFill');
   if(!wrap || !fill) return;
   let done = 0;
   /* 口径就用 practicedCount()：按日期存的「今天练过的词数」，跨会话/关掉再打开都还在，
