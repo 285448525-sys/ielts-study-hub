@@ -4340,8 +4340,12 @@ window.__reportExamState = reportExamState;
           localStorage.setItem('hub_bank_last_' + EX.unit.id, JSON.stringify({ correct: res.right, total: res.total, ts: Date.now() }));
         }
       }
-      /* 草稿清理与判分无关：交卷即本次作答结束，照常清 */
+      /* 草稿清理与判分无关：交卷即本次作答结束，照常清。
+         AUDIT-D2-2（10/28）：原先只清完整模考草稿，单篇 hub_bank_draft_<id> 从没清过
+         → 交卷后重开同篇，startUnitExam 里那句静默 JSON.parse 会把已交卷的答案复活，
+         她看到的是「上次交过的答案又填回来了」。单篇也一并清（含无答案文件那档，交卷即结束）。 */
       if(EX.full) localStorage.removeItem(EX.channel === 'listening' ? 'hub_bank_full_l_draft' : 'hub_bank_full_draft');
+      else if(EX.unit) localStorage.removeItem('hub_bank_draft_' + EX.unit.id);
     }catch(e){}
 
     /* 10/17 B：未判分也照常走 paintSheet —— 空 detail → mark 全空 → 只显示「已答」态，不涂红 */

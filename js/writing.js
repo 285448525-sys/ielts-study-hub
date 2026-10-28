@@ -2408,8 +2408,43 @@ function examSaveDraft(){
     /* 10/8 自练题已交卷 → 草稿必须清掉并不再回存（否则 Exit 再存一份已交卷的作文，
        下一场弹「发现草稿」让她恢复一篇交过的——探针实抓的流程 bug） */
     if(cur.custom && cur.submitted){ localStorage.removeItem(key); return; }
-    if(txt.trim()) localStorage.setItem(key, JSON.stringify({ essay: txt, date: Date.now() }));
-    else localStorage.removeItem(key);
+    /* ═══ AUDIT-D2-1-PROTECT（10/28）· 旧盖新防护 ═══
+       实测复现的丢数据场景（探针真跑过）：标签A 写 102 字 → 标签B 打开同题选「继续写」、
+       改写成 132 字 → 回标签A 点退出 → A 触发本函数，**无条件**把 B 的 132 字覆盖成 A 的旧内容。
+       全程零报错零提示，B 的作文凭空消失。
+       🔴 判据（三条同时成立才跳过写入，防误伤她正在写的内容）：
+         ① 存储里那份的 date **比我这次写入的旧**（说明是别人后来写的）；
+         ② 存储里的正文 **与我进场时读到的不一样**（说明不是我自己的稿，是别人改的）；
+         ③ 存储里的正文 **与我此刻要写的不一样**（不是同一份，跳过才有意义）。
+       反过来说：只要我此刻的内容变了（她还在打字的场景），或者存储的还是我进场读到的那份，
+       就照旧覆盖 —— **单个标签页的正常保存行为一个字没变**，「后写赢」规则也没变。
+       ⚠️ 不弹询问框（她讨厌被问）：只 toast 轻提示一句，并让出去的那份仍然留在存储里不丢。 */
+    try{
+      const _raw = localStorage.getItem(key);
+      if(_raw && txt.trim()){
+        const _old = JSON.parse(_raw);
+        if(_old && typeof _old.essay === 'string' && _old.essay !== txt){
+          const _oldDate = Number(_old.date) || 0;
+          const _mineDate = Number(cur._draftDate) || 0;      /* 我进场/上次写入时那份的 date */
+          const _baseTxt = (typeof cur._draftBase === 'string') ? cur._draftBase : null;
+          const _otherNewer = _oldDate > _mineDate;
+          const _notMyBase = (_baseTxt === null) ? false : (_old.essay !== _baseTxt);
+          if(_otherNewer && _notMyBase){
+            /* 别人后来写过、且不是我手里这份 → 让出去，别覆盖 */
+            console.warn('[writing] 草稿已被另一处更新，本次不覆盖（AUDIT-D2-1-PROTECT）',
+              { key: key, mine: _mineDate, theirs: _oldDate });
+            try{ if(typeof toast === 'function') toast('这份草稿已在别处更新，本次保留较新的那份'); }catch(e){}
+            return;
+          }
+        }
+      }
+    }catch(e){ /* 防护本身不许打断正常保存 */ }
+    if(txt.trim()){
+      const _d = Date.now();
+      localStorage.setItem(key, JSON.stringify({ essay: txt, date: _d }));
+      cur._draftDate = _d;        /* 记下「我最后写入的那份的 date」 */
+      cur._draftBase = txt;       /* 记下「我最后写入的正文」，供下次比对 */
+    } else localStorage.removeItem(key);
     wtSavedFlash();   /* 10/15 对标爱听写：顶栏右侧亮一下「Saved」（只在真的写成功时亮） */
   }catch(e){ console.warn('draft save failed', e); }
 }
@@ -2861,14 +2896,27 @@ function openExam(item, kind){
 
   // 草稿恢复：若该题已有未提交草稿，弹框询问「重新写 / 继续写」
   let draftEssay = '';
+  /* AUDIT-D2-1-PROTECT：记下「我进场时读到的这份」的 date 与正文。
+     examSaveDraft() 靠这两个值判断「存储里的是不是我手里这份」，不是就说明别人后来改过。 */
+  let draftDate0 = 0, draftBase0 = null;
   try{
     const dk = 'ielts_wt_draft_' + kind + '_' + item.no;
     const raw = localStorage.getItem(dk);
     if(raw){
       const d = JSON.parse(raw);
-      if(d && d.essay && d.essay.trim()) draftEssay = d.essay;
+      if(d && d.essay && d.essay.trim()){
+        draftEssay = d.essay;
+        draftDate0 = Number(d.date) || 0;
+        draftBase0 = d.essay;
+      }
     }
   }catch(e){ console.warn('draft read failed', e); }
+  /* AUDIT-D2-1-PROTECT（10/28）：把「我进场时读到的那份」的 date 与正文挂到 cur 上，
+     examSaveDraft() 写前用它判断存储里的是不是我手里这份（不是 = 别人后来改过，不覆盖）。 */
+  if(examTimer.cur){
+    examTimer.cur._draftDate = draftDate0;
+    examTimer.cur._draftBase = draftBase0;
+  }
   if(draftEssay){
     const ok = window.confirm('A draft was found for this task.\n\nOK = continue (restore draft)\nCancel = start over (clear draft)');
     if(ok){
@@ -2876,6 +2924,9 @@ function openExam(item, kind){
     } else {
       try{ localStorage.removeItem('ielts_wt_draft_' + kind + '_' + item.no); }catch(e){}
       $('#examEssay').value = '';
+      /* AUDIT-D2-1-PROTECT：「重新写」= 她主动丢弃旧稿，基线一并归零，
+         否则之后正常保存会被误判成「别人更新过」而跳过。 */
+      if(examTimer.cur){ examTimer.cur._draftDate = 0; examTimer.cur._draftBase = null; }
     }
     // 9/16 修：同样改走 wtCountWords（原 /\b[\w'-]+\b/g 遇到中文算 0 词，与 AI 评分 tab 口径不一致）
     const n = wtCountWords($('#examEssay').value);
@@ -2930,14 +2981,31 @@ function openExamCustom(){
     : 'Summarise the information by selecting and reporting the main features, and make comparisons where relevant.';
   // 草稿恢复（同 openExam 的英文弹框口径）
   let draftEssay = '';
+  let draftDate0 = 0, draftBase0 = null;
   try{
     const raw = localStorage.getItem('ielts_wt_draft_' + examTimer.cur.kind + '_custom');
-    if(raw){ const d = JSON.parse(raw); if(d && d.essay && d.essay.trim()) draftEssay = d.essay; }
+    if(raw){
+      const d = JSON.parse(raw);
+      if(d && d.essay && d.essay.trim()){
+        draftEssay = d.essay;
+        draftDate0 = Number(d.date) || 0;
+        draftBase0 = d.essay;
+      }
+    }
   }catch(e){ console.warn('draft read failed', e); }
+  /* AUDIT-D2-1-PROTECT：自练题同口径挂基线 */
+  if(examTimer.cur){
+    examTimer.cur._draftDate = draftDate0;
+    examTimer.cur._draftBase = draftBase0;
+  }
   if(draftEssay){
     const ok = window.confirm('A draft was found for this task.\n\nOK = continue (restore draft)\nCancel = start over (clear draft)');
     $('#examEssay').value = ok ? draftEssay : '';
-    if(!ok){ try{ localStorage.removeItem('ielts_wt_draft_' + examTimer.cur.kind + '_custom'); }catch(e){} }
+    if(!ok){
+      try{ localStorage.removeItem('ielts_wt_draft_' + examTimer.cur.kind + '_custom'); }catch(e){}
+      /* AUDIT-D2-1-PROTECT：同上，主动丢弃后基线归零 */
+      if(examTimer.cur){ examTimer.cur._draftDate = 0; examTimer.cur._draftBase = null; }
+    }
   } else $('#examEssay').value = '';
   const n = wtCountWords($('#examEssay').value);
   examShowCount(n, examTimer.cur ? examTimer.cur.kind : 'big');
