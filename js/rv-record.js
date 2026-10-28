@@ -294,9 +294,17 @@
     var wordN = (DATA.words || []).length;
     var wrongN = (DATA.words || []).filter(function(w){ return w && w.hardWord; }).length;
     var dicN = (DATA.dictationLogs || []).length;
+    /* AUDIT-D1-1（10-28 SSR 审计 D1-1 节）：原来只查 syncCode、不查 token，
+       token 过期后这里仍显示「已绑定账号」，而顶栏/设置/会员三处都显示「未登录」→ 她点了无效。
+       口径统一到全站唯一标准（与 common.js:625 头像菜单、settings.js:170 renderAuthUI 完全一致）：
+         **syncCode && authToken()** 两个都成立才算已绑定。
+       authToken() 自带 try/catch（common-sync.js:184），所以外面这层 try 只需兜住 DATA 为空。
+       ⚠️ 反向断言：正常登录时 syncCode 与 token 同时存在 → 仍显示「已绑定账号」，不会误降级；
+         正常登出 authLogout() 会同时清掉两者，也不会出现半截状态。 */
     var syncTxt = '未登录';
     try{
-      if(DATA.settings && DATA.settings.syncCode) syncTxt = '已绑定账号';
+      if(DATA.settings && DATA.settings.syncCode
+         && typeof authToken === 'function' && authToken()) syncTxt = '已绑定账号';
     }catch(e){}
     host.innerHTML =
       '<div class="rp-frow-i" style="border:0;padding:8px 0">'
