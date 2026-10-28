@@ -179,7 +179,12 @@
   --m-ink:#f2f2f4;
 }
 /* .m-mk 的浅底跟着 --m-bg 走，不用单独再写一条；这里只补「深色下要脱掉浅灰」的那层 */
-[data-theme="dark"] .m-page .m-mk{ background:var(--m-bg) }
+/* 🔴 10-28 恢复 b41d050f 深色透明覆盖（本行原值 `var(--m-bg)` 是灰壳，与她拍板的 PLAN-W-2 相反）。
+   丢失实证：深色下 .m-mk 实测 rgb(20,20,22) = #141416 灰壳复发（B2 探针 11/1；本仓同样复现），
+   浅色侧 .m-mk{transparent} 正常。改回 transparent 后深色也是 rgba(0,0,0,0)。
+   ⚠️ 上面 L93 附近那条同名覆盖已于本笔撤掉 —— 两条同特异性 (0,3,0) 时**后写的赢**，
+      写在 L99 会被本行压住，等于没改。只保留这一条，位置在原值所在处，最小改动。 */
+[data-theme="dark"] .m-page .m-mk{ background: transparent; }
 /* FE-DEAD-2：原 `[data-theme="dark"] .m-page .m-mk-shell{...}` 已删（死代码，无节点）。 */
 
 /* .m-phase / .m-dg 用的是站点 --primary-50 / --primary-200 / --primary-text，
