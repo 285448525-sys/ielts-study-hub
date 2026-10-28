@@ -713,6 +713,13 @@ function topBarHtml(current){
     + '<kbd aria-hidden="true">Ctrl K</kbd>'
     + '<div class="ss-panel" id="ssPanel" hidden><div id="ssList"></div></div>'
     + '</label>'
+    /* 🔴 TB-SEARCH-CLOSE-1（10-28 急修，她 12:4x 报障「头像、铃铛位置都乱套了」）：
+       5e8a7ae6（SRCH-UNIFY-1 笔 2a）把这里从 `<div class="tb-search">…</div>` 改成
+       `<label class="ui-field-search …">…</label>` 时，只换了开闭标签、**丢了外层 `.tb-search` 的 `</div>`**
+       → 这个 div 一直未闭合，浏览器把后面的铃铛 `hubBellHtml()` 与头像 `_meEl` 一路吞进 `.tb-search`，
+       三个元素叠在同一坐标（1063）。宽度 186px 一直是对的，塌的是结构。
+       下面这一行与上面第 704 行的 `<div class="tb-search">` 严格成对，别删。 */
+    + '</div>'
     /* 🔴 10-23 她「把所有页面计时条去掉」→ 顶栏里的计时徽标容器已撤（原来这里是
        + '<div class="side-timer-wrap" id="sideTimer"></div>'）。renderSideTimer/updateSideTimerBadge 保留
        （timer.html 的结算走同一份 DATA.activeTimer），但没有容器时两者都是空转。 */
