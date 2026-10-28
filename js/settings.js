@@ -103,31 +103,35 @@ ready(() => {
   /* KIMI-THEME-1（10-26）：主题外观三选一。
      🔴 写入三样：localStorage 键 hub_theme_scheme（本机外观偏好，不进 DATA.settings ——
         同步白名单归 A 管，不动共享层）+ documentElement.dataset.scheme（A 的 CSS 按 [data-scheme] 写变量）。
-     ⚠️ 不动 #sThemeToggle / #sThemeAuto 一行 —— 深浅（light/dark/auto）与三套外观是两组正交的东西。 */
-  if(!window.__wmSchemeBound){
-    window.__wmSchemeBound = true;
+     ⚠️ 不动 #sThemeToggle / #sThemeAuto 一行 —— 深浅（light/dark/auto）与三套外观是两组正交的东西。
+     🔴 SET-RE-BRK-1（10/28）：幂等标记必须打**元素上**，原来是 window.__wmSchemeBound ——
+        软导航换 <main> 后按钮是全新节点、但 window 上的标记还在 → 永不重绑 →
+        她点「主题外观」只有 av-picker 那条全局劫持在跑（下面 bindThemeSeg 同口径修过，这里漏了）。 */
+  (function bindSchemeSeg(){
     var _schemeTabs = document.querySelectorAll('.set-scheme-tab[data-scheme]');
-    if(_schemeTabs.length){
-      _schemeTabs.forEach(function(b){
-        b.addEventListener('click', function(){
-          var v = b.getAttribute('data-scheme') || 'ink';
-          _schemeTabs.forEach(function(x){
-            var on = x === b;
-            x.classList.toggle('on', on);
-            x.setAttribute('aria-checked', on ? 'true' : 'false');
-          });
-          try{ localStorage.setItem('hub_theme_scheme', v); }catch(e){}
-          try{ document.documentElement.setAttribute('data-scheme', v); }catch(e){}
-          try{ if(typeof toast === 'function') toast('主题外观已切换'); }catch(e){}
+    if(!_schemeTabs.length) return;
+    var _box = _schemeTabs[0].parentElement;
+    if(!_box || _box.__setSchemeBound) return;
+    _box.__setSchemeBound = true;
+    _schemeTabs.forEach(function(b){
+      b.addEventListener('click', function(){
+        var v = b.getAttribute('data-scheme') || 'ink';
+        _schemeTabs.forEach(function(x){
+          var on = x === b;
+          x.classList.toggle('on', on);
+          x.setAttribute('aria-checked', on ? 'true' : 'false');
         });
+        try{ localStorage.setItem('hub_theme_scheme', v); }catch(e){}
+        try{ document.documentElement.setAttribute('data-scheme', v); }catch(e){}
+        try{ if(typeof toast === 'function') toast('主题外观已切换'); }catch(e){}
       });
-      /* 进页面就应用一次（本机存过才应用，缺省 ink 不写属性 —— 与「老用户零感知」一致） */
-      var _saved = localStorage.getItem('hub_theme_scheme');
-      if(_saved === 'cool' || _saved === 'warm'){
-        document.documentElement.setAttribute('data-scheme', _saved);
-      }
+    });
+    /* 进页面就应用一次（本机存过才应用，缺省 ink 不写属性 —— 与「老用户零感知」一致） */
+    var _saved = localStorage.getItem('hub_theme_scheme');
+    if(_saved === 'cool' || _saved === 'warm'){
+      document.documentElement.setAttribute('data-scheme', _saved);
     }
-  }
+  })();
 
   /* ═══ SET-1（10-26）· 身份卡「点用户名就地改名」 ═══
      稿子 design/_样子稿-设置页合并账号-2026-10-26.html：点 .me-name → 变输入框 + 保存/取消；
@@ -243,8 +247,13 @@ ready(() => {
       var v = b.getAttribute('data-font');
       if(v !== 'sm' && v !== 'md' && v !== 'lg') return;
       DATA.settings.fontScale = v;
+      /* SET-RE-BRK-1（10/28）：settings.html 内联那份额外绑定已退役，它原先负责写的
+         _fieldTs.fontScale（云端合并的「哪个字段更新」依据）挪到这里，语义一字不动。 */
+      DATA.settings._fieldTs = DATA.settings._fieldTs || {};
+      DATA.settings._fieldTs.fontScale = Date.now();
       if(typeof applyFontScale === 'function') applyFontScale(v);
       setSaveSoon();   /* 防抖落盘，字号本身已即时应用 */
+      if(DATA.settings.syncCode && typeof scheduleCloudUpload === 'function') scheduleCloudUpload();
       paint();
       try{ if(typeof toast === 'function') toast(v === 'lg' ? '字号已调大' : (v === 'sm' ? '字号已调小' : '字号已恢复标准')); }catch(e){}
     });

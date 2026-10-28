@@ -62,19 +62,19 @@
 
 
 /* ═══ KIMI-THEME-1（10-26）· 主题外观三选一 ═══
-   皮子复用「正文字号」那组的 .av-pop-tabs/.av-tab（settings.html:196-199），不新造组件。
+   皮子复用「正文字号」那组的视觉，不新造组件。
    🔴 这行只负责「选哪个」；三套色值本身由 A 在 css/common.css 里写成四块变量组 ——
-      变量没落地前这一行点了不会变颜色，但也不会报错（按领地拆分后的中间态，协商文件有记录）。 */
+      变量没落地前这一行点了不会变颜色，但也不会报错（按领地拆分后的中间态，协商文件有记录）。
+   🔴 SET-RE-BRK-1（10/28）：类名 .av-tab → .set-seg-btn。.av-tab 会被 js/av-picker.js:318
+      的全局点击委托命中（它以为在切头像页签 → avSwitchTab(null) → 三档全点亮 + 不落盘）。 */
 .set-scheme-tabs{ display:inline-flex; width:auto; padding:3px; margin:0; }
-.set-scheme-tabs .av-tab{ height:30px; display:inline-flex; align-items:center; gap:6px; }
+.set-scheme-tabs .set-seg-btn{ height:30px; display:inline-flex; align-items:center; gap:6px; }
 /* ═══ SET-2b（10-27）· 深色模式三选一 ═══
-   病根：皮子 .av-pop-tabs{display:flex}（settings.html:196 **内联 <style>，后于本 link 出现**）
-   + .av-tab{flex:1} 把三个按钮强制平分容器宽，「跟随系统」四字 12.5px 需 ~52px > 45px → 折两行。
-   🔴 覆盖必须**比内联 .av-pop-tabs 特异性高**（同 0,1,0 会被内联后出现者压掉，CD 之前 .set-scheme-tabs
-      的同款覆盖其实也没生效，只是那组字短没露馅）→ 用 .av-pop-tabs.set-theme-tabs（0,2,0）稳赢；
-      子按钮补 flex:none 掐掉 flex:1 平分。padding:3px 与 .av-pop-tabs 原值一致。 */
-.av-pop-tabs.set-theme-tabs{ display:inline-flex; width:auto; padding:3px; margin:0; }
-.av-pop-tabs.set-theme-tabs .av-tab{ height:30px; flex:none; }
+   病根：三个按钮被 flex:1 强制平分容器宽，「跟随系统」四字 12.5px 需 ~52px > 45px → 折两行。
+   SET-RE-BRK-1（10/28）：类名换成 .set-seg/.set-seg-btn 后，内联 .set-seg 基础规则已是
+   inline-flex + flex:none，这组覆盖保留（特异性 0,2,0 稳赢），语义不变。 */
+.set-seg.set-theme-tabs{ display:inline-flex; width:auto; padding:3px; margin:0; }
+.set-seg.set-theme-tabs .set-seg-btn{ height:30px; flex:none; }
 /* 色块小方点（她 07:3x 看样子稿点头的那颗） */
 .set-sw{ width:10px; height:10px; border-radius:3px; display:inline-block; flex:none; }
 .set-sw[data-s="ink"]{ background:#3a9a93; }
