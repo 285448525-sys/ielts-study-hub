@@ -902,3 +902,275 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
 /* WORD-3B 补差：工具按钮的行高按稿子钉死（导出件只钉了字号，button 不吃继承行高 → 回落 normal，
    1:1 基线差 23.8px）。只在本页头部作用域。 */
 .ws-word-header .ws-tool-btn{ line-height:23.8px; }
+
+/* ════════════════════════════════════════════════════════════════
+   WD-PAGE-REDESIGN-1（10-28 · 她点头终稿 design/ssr-practice-final-2026-10-28.html 1:1 还原）
+   她 15:0x 口述 11 条里落在样式上的：
+     ③ 页底进度条：无文字、跟选项区同宽、按当天配额走（5px 细条，终稿 .progress-track）
+     ④ 电脑四宫格选项 / 手机四条横排（终稿 @media(max-width:700px) 切 1fr）
+     ⑩ 播放按钮重做成圆钮，贴在音标右边（终稿 .sound 32px 圆形）
+     ⑦⑧ 头部：左上回站链接 + 上一个单词；右上模式/设置/全屏
+   🔴 一律用站点 token（--primary / --line / --muted），不写死色值 —— 这是她反复报的
+      「颜色没跟主题色统一」的老病根，本次不再犯。
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── 主区域排版：终稿 .study 是 max-width:800px 居中、垂直居中 ── */
+#practiceBody.practice-body-fit{
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* 单词 48px / 手机 40px（终稿 .word） */
+#practiceBody.practice-body-fit .pw-en .pw-en-tx{
+  font-size: 48px;
+  line-height: 1.15;
+  letter-spacing: -.035em;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+/* 音标行 + 右侧播放圆钮（终稿 .phonetic / .sound 32px 圆） */
+#practiceBody.practice-body-fit .pw-ipa{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 15px;
+  margin: 13px 0 5px;
+}
+#practiceBody.practice-body-fit .wd-sound{
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+#practiceBody.practice-body-fit .wd-sound svg{ width: 18px; height: 18px; }
+#practiceBody.practice-body-fit .wd-sound:hover,
+#practiceBody.practice-body-fit .wd-sound.playing{ background: var(--primary-soft); color: var(--primary); }
+
+/* 中文释义（答后揭示；不再带 ✓ / ✗ 前缀 —— 她口述第⑤条把结论行去掉） */
+#practiceBody.practice-body-fit .pw-cn{ font-size: 16px; color: var(--ink-2); }
+
+/* 真题原句（终稿 .example）—— 她口述第①条：顶部要真题原句 */
+#practiceBody.practice-body-fit .wd-example{
+  font-size: 16px;
+  line-height: 1.75;
+  color: var(--ink-2);
+  text-align: center;
+  margin: 22px auto 0;
+  max-width: 660px;
+}
+#practiceBody.practice-body-fit .wd-example mark{
+  background: var(--primary-soft);
+  color: var(--primary-700);
+  font-weight: 650;
+  padding: 0 2px;
+  border-radius: 3px;
+}
+
+/* 选项：电脑 2×2 四宫格（终稿 .options grid 1fr 1fr + gap 12px）。
+   ⚠️ 与 common.css 的 .opts-grid 同规格，这里只补本页作用域，不改共享类。 */
+#practiceBody.practice-body-fit .opts-grid{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 26px;
+}
+#practiceBody.practice-body-fit .opt-big{
+  height: auto;               /* 压掉 common.css:786 的 height:88px 固定高 —— 终稿是内容撑高 + min-height 70 */
+  min-height: 70px;
+  padding: 13px 17px;
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 3px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+#practiceBody.practice-body-fit .opt-big:hover{ border-color: var(--primary); background: var(--primary-soft); }
+#practiceBody.practice-body-fit .opt-big.correct{ border-color: var(--primary); background: var(--primary-soft); }
+#practiceBody.practice-body-fit .opt-big.wrong{ border-color: var(--danger); background: var(--err-bg); }
+
+/* ⑥「不知道」：通栏长条、与上面选项同宽（不学爱听写做成小按钮） */
+#practiceBody.practice-body-fit .answer-btns{
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+  margin-top: 16px;
+}
+#practiceBody.practice-body-fit .answer-btns .abtn-unknown{
+  flex: 1;
+  min-height: 48px;
+  padding: 12px 18px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 15px;
+}
+#practiceBody.practice-body-fit .answer-btns .abtn-unknown:hover{ color: var(--ink); background: var(--surface-2); }
+
+/* 「已掌握」与「不知道」并排（终稿 .bottom-actions：不知道 flex:1、已掌握固定宽） */
+#practiceBody.practice-body-fit .answer-btns .mastered-btn{
+  flex: 0 0 auto;
+  min-height: 48px;
+  padding: 12px 20px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+#practiceBody.practice-body-fit .answer-btns .mastered-btn:hover,
+#practiceBody.practice-body-fit .answer-btns .mastered-btn.on{
+  color: var(--primary-700);
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+/* ③ 页底进度条：无文字、与选项区同宽、5px 细条（终稿 .progress-track） */
+#practiceBody.practice-body-fit .wd-progress{
+  width: 100%;
+  flex: 0 0 auto;
+  height: 5px;
+  background: var(--line);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 22px;
+}
+#practiceBody.practice-body-fit .wd-progress i{
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--primary);
+  border-radius: 4px;
+  transition: width .3s;
+}
+
+/* ⑪ 极简：终稿页底只有一条进度条，没有「0 / 60」「今日上限还剩 不限」这行字 ——
+   她口述第③条原话「就不要加任何的文字，直接下面一个进度条显示就行了」。
+   JS 仍在写 #wdFoot 里的节点（syncFoot 每轮都刷），所以用 CSS 压住、节点与 id 全保留。 */
+#studyView .wd-q-foot{ display: none !important; }
+
+/* ⑪ 极简：终稿没有顶部「0 / 60」这行状态数字（连击/进度/ETA 那一带）。
+   JS 仍在写 #wordStats（updateWordStats 会把它 hidden=false），所以用 CSS 压住，
+   节点与 id 全保留 —— 删节点会让 updateWordStats 静默半死。 */
+#practiceArea .word-stats{ display: none !important; }
+
+/* ⑦⑧ 头部：左上（回站链接 + 上一个单词 + 词书切换器）/ 右上（模式 + 设置 + 全屏） */
+.ws-word-header{ flex-wrap: wrap; row-gap: 8px; }
+.ws-wh-left{ display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1 1 auto; }
+.ws-wh-home{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 2px;
+  color: var(--ws-muted);
+  font-size: 13px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.ws-wh-home svg{ width: 16px; height: 16px; color: var(--primary); }
+.ws-wh-home:hover{ color: var(--ws-title); }
+.ws-prev{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 5px 11px;
+  border: 1px solid var(--ws-line);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ws-muted);
+  font-size: 12px;
+  cursor: pointer;
+  max-width: 240px;
+}
+.ws-prev:hover{ border-color: var(--primary); background: var(--primary-soft); }
+.ws-prev .ws-prev-lb{ color: var(--ws-muted); flex: 0 0 auto; }
+.ws-prev b{ color: var(--ws-title); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ws-prev small{ display: none; }
+.ws-wh-tools{ display: flex; align-items: center; gap: 6px; margin-left: auto; }
+
+/* 旧词卡覆盖层（点「上一个」展开） */
+.ws-prev-card{
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(440px, calc(100vw - 40px));
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 26px 24px 22px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.18);
+  z-index: 900;
+  text-align: center;
+}
+.ws-pc-lb{ font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+.ws-pc-en{ font-size: 34px; font-weight: 650; letter-spacing: -.03em; color: var(--ink); overflow-wrap: anywhere; }
+.ws-pc-ipa{ font-size: 14px; color: var(--muted); margin-top: 8px; }
+.ws-pc-cn{ font-size: 15px; color: var(--ink-2); margin-top: 10px; }
+.ws-pc-eg{ font-size: 14px; line-height: 1.7; color: var(--muted); margin: 14px 0 0; }
+.ws-pc-eg mark{ background: var(--primary-soft); color: var(--primary-700); font-weight: 650; border-radius: 3px; padding: 0 2px; }
+.ws-pc-back{
+  margin-top: 20px;
+  padding: 9px 20px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 14px;
+  cursor: pointer;
+}
+.ws-pc-back:hover{ border-color: var(--primary); color: var(--primary-700); }
+
+/* 被顶部「今日已学」占位：原先 JS 从没写过，现在写真实值 */
+.ws-wh-progress{ font-size: 12.5px; color: var(--ws-muted); white-space: nowrap; }
+.ws-wh-progress b{ color: var(--ws-title); font-weight: 700; }
+
+/* ── 手机档（终稿 @media(max-width:700px)：四宫格 → 四条横排） ── */
+@media (max-width: 700px){
+  #practiceBody.practice-body-fit{ justify-content: flex-start; }
+  #practiceBody.practice-body-fit .pw-en .pw-en-tx{ font-size: 40px; }
+  #practiceBody.practice-body-fit .wd-example{ font-size: 15px; line-height: 1.8; margin-top: 20px; }
+  #practiceBody.practice-body-fit .opts-grid{ grid-template-columns: 1fr; gap: 10px; margin-top: 5px; }
+  #practiceBody.practice-body-fit .opt-big{ height: auto; min-height: 70px; padding: 13px 17px; }
+  #practiceBody.practice-body-fit .answer-btns{ margin-top: 12px; }
+  #practiceBody.practice-body-fit .answer-btns .abtn-unknown{ padding: 10px 14px; }
+  #practiceBody.practice-body-fit .wd-progress{ margin-top: 18px; }
+  /* 手机档：左上「回站链接 + 上一个单词」占第一行，词书切换器独占第二行全宽；
+     右上工具组单独一行右对齐。她第⑧条要求左上角写站名 —— 手机也别把文字藏掉。 */
+  .ws-word-header{ gap: 8px; row-gap: 8px; }
+  .ws-wh-left{ flex: 1 1 100%; flex-wrap: wrap; gap: 8px; order: 1; }
+  .ws-wh-home{ flex: 0 0 auto; }
+  .ws-wh-home span{ display: inline; }
+  .ws-prev{ max-width: none; flex: 1 1 auto; }
+  .ws-book-pop-wrap{ flex: 1 1 100%; }
+  .ws-book-switcher{ width: 100%; }
+  .ws-wh-progress{ order: 2; margin-left: 0; }
+  .ws-wh-tools{ order: 3; flex: 1 1 auto; justify-content: flex-end; }
+}
+@media (max-width: 380px){
+  #practiceBody.practice-body-fit .pw-en .pw-en-tx{ font-size: 35px; }
+  .ws-prev{ max-width: 110px; }
+  #practiceBody.practice-body-fit .answer-btns{ font-size: 13px; }
+}

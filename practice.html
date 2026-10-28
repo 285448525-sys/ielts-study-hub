@@ -55,7 +55,7 @@
   <script defer src="js/wordbank.js?v=20261023s"></script>
   <!-- design/77 DHP+SSP-MMC 策略表：必须在 practice.js 之前（defer 按文档序执行，表未加载时 practice.js 有回退兜底） -->
   <script defer src="js/dhp_policy.js?v=20260921a"></script>
-  <script src="js/practice.js?v=20261026q" defer></script>
+  <script src="js/practice.js?v=20261028a" defer></script>
   <script src="js/words.js?v=20261023r" defer></script>
 <style>
 /* ============================================================
@@ -329,10 +329,14 @@ body.word-fullscreen .hub-topbar{display:none !important}
     </div>
 
     <div id="exArea">
-      <div class="wd-q-head">
-        <span class="wd-where">当前 <b id="wdExBook">我的词库</b> · <b>今天要复习</b></span>
-        <div class="wd-modes" id="wdModePop"><button class="wd-cur" id="wdModeBtn" type="button">模式：<b id="wdModeTxt">看词选义</b> ▾</button></div>
-      </div>
+      <!-- 🔴 WD-PAGE-REDESIGN-1（10-28，她口述第⑦⑧条）：
+           「左上角也要有它这个就是上一个单词的」+「右上角呢，就是一些什么设置键啊，可以切换模式啊，
+            然后可以切换词数啊等等，就是这些功能全都放在右上角。然后左上角可以写我们这个网页的链接」
+           → 原来这行「当前 我的词库 · 今天要复习 + 模式：看词选义」拆掉，内容并进下面 #practiceArea 的头部：
+             左上 = 回站链接 + 上一个单词回看；右上 = 模式/设置/全屏。
+             ⚠️ #wdExBook 与 #wdModeBtn 两个 id 必须继续存在 —— setTxt('wdExBook', …) 与
+                点击委托（t.closest('#wdModeBtn')）都按 id 找，删了模式弹层会静默失效。 -->
+      <span class="wd-exbook-src" id="wdExBook" hidden>我的词库</span>
     </div>
 
     <section class="card practice-card practice-card-fit" id="practiceArea">
@@ -378,23 +382,44 @@ body.word-fullscreen .hub-topbar{display:none !important}
       <div class="ws-word-header ws-page" id="wdWordHeader" data-wordtools="1">
         <!-- 🔴 这一行**必须继续挂 wordToolsRow 那个 id**：js/practice.js 的 ensureMasteredBtn()
              往里塞「已掌握」按钮、另一处会把它的 hidden 置 false —— 删了 id 判题链会静默半死。
-             外观按稿子重做成「切换器 + 进度 + 工具」，DOM 契约不变。 -->
-        <div class="ws-book-pop-wrap" id="wordToolsRow">
-          <div class="ws-book-switcher" id="bsSwitcher" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false">
-            <span class="ws-bs-name" id="bsName">我的词库</span>
-            <span class="ws-bs-meta" id="bsMeta">—</span>
-            <span class="ws-bs-caret" aria-hidden="true">▾</span>
-          </div>
-          <div class="ws-book-pop" id="bsPop" role="listbox" hidden>
-            <div class="ws-bp-title">当前词书</div>
-            <div id="bsCurList"></div>
-            <div class="ws-bp-title" style="margin-top:4px">我的其他词书</div>
-            <div id="bsOtherList"></div>
-            <div class="ws-bp-add" role="button" id="bsAddMore">＋ 添加更多词书</div>
+             外观按终稿 design/ssr-practice-final-2026-10-28.html 重做成「左上回看上一词 + 右上工具组」。
+           🔴 WD-PAGE-REDESIGN-1（10-28）改动说明：
+              · 左：回站链接（她第⑧条「左上角可以写我们这个网页的链接」）+ 上一个单词回看（第⑦条）。
+                回看数据由 js/practice.js 的 syncPrevWord() 写 #lastEn / #lastCn，点它展开旧词卡。
+              · 中：词书名切换器（原功能，id 全不动）+ 今日进度数字。
+              · 右：模式（#wdModeBtn，原 id 原事件）、设置齿轮（#cfgGear）、全屏（#fullscreenBtn）。
+              · 她第⑨条「快捷键这几个字不用写上」——本来就没有键位提示，保持不写。 -->
+        <div class="ws-wh-left" id="wordToolsRow">
+          <a class="ws-wh-home" href="./index.html" title="回雅思备考站首页">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 17-5-5 5-5"/><path d="M5 12h14"/></svg>
+            <span>雅思学习</span>
+          </a>
+          <button class="ws-prev" id="wsPrevBtn" type="button" title="回看上一个单词" hidden>
+            <span class="ws-prev-lb">上一个</span>
+            <b id="lastEn">—</b>
+            <small id="lastCn"></small>
+          </button>
+          <div class="ws-book-pop-wrap">
+            <div class="ws-book-switcher" id="bsSwitcher" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false">
+              <span class="ws-bs-name" id="bsName">我的词库</span>
+              <span class="ws-bs-meta" id="bsMeta">—</span>
+              <span class="ws-bs-caret" aria-hidden="true">▾</span>
+            </div>
+            <div class="ws-book-pop" id="bsPop" role="listbox" hidden>
+              <div class="ws-bp-title">当前词书</div>
+              <div id="bsCurList"></div>
+              <div class="ws-bp-title" style="margin-top:4px">我的其他词书</div>
+              <div id="bsOtherList"></div>
+              <div class="ws-bp-add" role="button" id="bsAddMore">＋ 添加更多词书</div>
+            </div>
           </div>
         </div>
-        <div class="ws-wh-progress">今日已学 <b id="wsDoneN">0</b> / <b id="wsCapN">0</b></div>
+        <!-- 🔴 WD-PAGE-REDESIGN-1（10-28）：终稿头部只有「回看 / 站名 / 词书切换器 / 工具」，
+             没有「今日已学 N / M」这行字 —— 那个数字就是页底那条进度条本身，不重复写。
+             节点保留（hidden），因为 syncFoot() 仍在写 wsDoneN/wsCapN，删 id 会静默失败。 -->
+        <div class="ws-wh-progress" hidden>今日已学 <b id="wsDoneN">0</b> / <b id="wsCapN">0</b></div>
         <div class="ws-wh-tools">
+          <div class="wd-modes" id="wdModePop"><button class="wd-cur" id="wdModeBtn" type="button">模式：<b id="wdModeTxt">看词选义</b> ▾</button></div>
           <button class="ws-tool-btn" id="cfgGear" type="button" title="练习设置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></button>
           <button class="ws-tool-btn ws-full" id="fullscreenBtn" type="button" title="全屏沉浸式背单词"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg></button>
         </div>
@@ -743,7 +768,58 @@ body.word-fullscreen .hub-topbar{display:none !important}
     if (bar) bar.style.width = (all > 0 ? Math.round(now / all * 100) : 0) + '%';
     var cap = capOf(), done = doneOf();
     setTxt('wdQLeft', cap > 0 ? Math.max(0, cap - done) : '不限');
+    /* 🔴 WD-PAGE-REDESIGN-1（10-28）：右上角「今日已学 N / M」两个数字与这里同源 ——
+       原来 #wsDoneN / #wsCapN 从没被任何 JS 写过（一直是 0 / 0），现在接上真实值。 */
+    setTxt('wsDoneN', done);
+    setTxt('wsCapN', cap > 0 ? cap : '不限');
   }
+
+  /* 左上「回看上一个单词」（她口述第⑦条）：pq._prevEn 由 practice.js 每出一题记录，
+     这里只负责把它显示到头部并把「上一个」按钮显出来；点了展开旧词卡。 */
+  function syncPrevWord(){
+    var btn = $('wsPrevBtn'), en = $('lastEn'), cn = $('lastCn');
+    if (!btn) return;
+    var lastEn = '';
+    try { if (typeof pq !== 'undefined' && pq && pq._prevEn) lastEn = String(pq._prevEn).trim(); } catch(e){}
+    if (!lastEn){ btn.hidden = true; return; }
+    var w = null;
+    try { w = (typeof findWordByEn === 'function') ? findWordByEn(lastEn) : null; } catch(e){}
+    if (en) en.textContent = lastEn;
+    if (cn) cn.textContent = w ? ((typeof practiceSense === 'function' ? practiceSense(w).cn : w.cn) || '') : '';
+    btn.hidden = false;
+  }
+  window.syncPrevWord = syncPrevWord;
+
+  /* 点「上一个」= 把这张卡摊开，再点回当前词。用一份独立覆盖层而非替换 #practiceBody，
+     这样判题、计时、队列一律不受影响（她只要求「能看上一个词背的是什么」）。 */
+  function showPrevWordCard(){
+    var lastEn = '';
+    try { if (typeof pq !== 'undefined' && pq && pq._prevEn) lastEn = String(pq._prevEn).trim(); } catch(e){}
+    if (!lastEn) return;
+    var w = null;
+    try { w = (typeof findWordByEn === 'function') ? findWordByEn(lastEn) : null; } catch(e){}
+    var old = document.getElementById('wsPrevCard');
+    if (old) old.remove();
+    var box = document.createElement('div');
+    box.id = 'wsPrevCard';
+    box.className = 'ws-prev-card';
+    var cn = w ? (typeof practiceSense === 'function' ? practiceSense(w).cn : (w.cn || '')) : '';
+    var ipa = w && w.ipa ? '<div class="ws-pc-ipa">/ ' + ipa_escape(w.ipa) + ' /</div>' : '';
+    var eg = w && w.eg ? '<p class="ws-pc-eg">' + (typeof highlightWord === 'function' ? highlightWord(w.eg, w.en) : eg_escape(w.eg)) + '</p>' : '';
+    box.innerHTML = '<div class="ws-pc-lb">上一个单词</div>' +
+      '<div class="ws-pc-en">' + (w ? eg_escape(w.en) : eg_escape(lastEn)) + '</div>' + ipa +
+      (cn ? '<div class="ws-pc-cn">' + eg_escape(cn) + '</div>' : '') + eg +
+      '<button class="ws-pc-back" id="wsPcBack" type="button">返回当前单词</button>';
+    document.body.appendChild(box);
+    var back = document.getElementById('wsPcBack');
+    if (back) back.onclick = function(){ box.remove(); };
+  }
+  function eg_escape(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+    });
+  }
+  function ipa_escape(s){ return eg_escape(s); }
 
   /* 进度更新跟着现有 updateProgBar 走（不新增轮询，软导航重跑也不会叠加） */
   function wrapProg(){
@@ -753,6 +829,7 @@ body.word-fullscreen .hub-topbar{display:none !important}
     window.updateProgBar = function(){
       var r = orig.apply(this, arguments);
       try { syncFoot(); } catch(e){}
+      try { syncPrevWord(); } catch(e){}
       return r;
     };
     window.__wdProgWrapped = true;
@@ -829,6 +906,12 @@ body.word-fullscreen .hub-topbar{display:none !important}
       /* WORD-3B（10-26）：原「换词书 ›」小字链（#wdSwapBook）已移除，它的点击逻辑
          （切到词库态 + 回商城）按施工书 §2.4「不保留」一并删除 ——
          切书现在由答题态头部的「词书名即切换器」（#bsSwitcher）一步完成。 */
+      /* WD-PAGE-REDESIGN-1（10-28，她口述第⑦条）：左上「上一个单词」→ 摊开旧词卡 */
+      if (t.closest('#wsPrevBtn')){
+        ev.preventDefault();
+        showPrevWordCard();
+        return;
+      }
       if (t.closest('#wdModeBtn')){ ev.preventDefault(); openModePop(); return; }
       /* 手机端词库态「回到今天要背的」——桌面这个按钮 CSS 隐藏，走顶栏二级 */
       if (t.closest('#wdBackStudy')){
@@ -1356,6 +1439,71 @@ body.word-fullscreen .hub-topbar{display:none !important}
 
   window.__wmShowMall = wmShowMall;
   window.__wmRender   = wmRender;
+
+  /* ═══ WD-PAGE-REDESIGN-1（10-28）· 真题原句只读映射 ═══
+     她口述第①条要「顶部真题原句」。数据本来就在词库 json（rdtext/lstext/lstans/phr 四本
+     每词都有 eg 字段 = 原文原句），但 js/wordbank.js 的 obBankReady() 建词表时只搬
+     en/cn/pos/ipa/sl，没搬 eg；那个文件是共用层（practice.html + home.html），不归本窗口改。
+     这里在页面层自建一份 en → eg 映射：按当前词库 id 懒拉同一个 json、只留 en/eg 两列，
+     缓存 per-bank，切词库自动换。
+     🔴 只读、不写回词表、不动判题与 SRS；拿不到就是空串（不造数据）。 */
+  var _egCache = {};     // { bankId: { en_lower: eg } }
+  var _egPending = {};   // { bankId: Promise }
+  function wdEgLoad(bankId){
+    if (!bankId || bankId === 'custom') return Promise.resolve(null);
+    if (_egCache[bankId]) return Promise.resolve(_egCache[bankId]);
+    if (_egPending[bankId]) return _egPending[bankId];
+    var banks = (typeof window.OB_BANKS !== 'undefined' && window.OB_BANKS) ? window.OB_BANKS : [];
+    var ent = null;
+    for (var i = 0; i < banks.length; i++){ if (banks[i] && banks[i].id === bankId){ ent = banks[i]; break; } }
+    if (!ent || !ent.file) return Promise.resolve(null);
+    _egPending[bankId] = fetch(ent.file + '?v=' + (ent.v || '1'))
+      .then(function(r){ return r && r.ok ? r.json() : null; })
+      .then(function(json){
+        var map = {};
+        var list = (json && Array.isArray(json.words)) ? json.words : [];
+        for (var j = 0; j < list.length; j++){
+          var w = list[j];
+          if (!w || !w.en || !w.eg) continue;
+          map[String(w.en).trim().toLowerCase()] = String(w.eg).trim();
+        }
+        _egCache[bankId] = map;
+        return map;
+      })
+      .catch(function(){ _egPending[bankId] = null; return null; });
+    return _egPending[bankId];
+  }
+  /* practice.js 的 renderQuestion 调它取例句；同步返回当前缓存里的值，未就绪时返回空
+     并触发一次加载 → 下一题就有（当前题不闪）。 */
+  window.wdGetExample = function(w){
+    if (!w || !w.en) return '';
+    var bankId = (typeof wbActive === 'function') ? wbActive() : 'custom';
+    var key = String(w.en).trim().toLowerCase();
+    var map = _egCache[bankId];
+    if (!map){ wdEgLoad(bankId).then(function(){ try{ refreshExampleFor(w); }catch(e){} }); return ''; }
+    return map[key] || '';
+  };
+  /* 例句异步到位后，若当前还在同一词上、且例句位置是空的，补进去（不重渲染整题） */
+  function refreshExampleFor(w){
+    try{
+      var here = (typeof pq !== 'undefined' && pq && pq.answer) ? pq.answer.en : null;
+      if (!here || !w || String(here).trim().toLowerCase() !== String(w.en).trim().toLowerCase()) return;
+      if (document.getElementById('wdExample')) return;   // 已经有了，不重复插
+      var eg = window.wdGetExample(w);
+      if (!eg) return;
+      var host = document.querySelector('#practiceBody .practice-word-area');
+      if (!host) return;
+      var p = document.createElement('p');
+      p.className = 'wd-example';
+      p.id = 'wdExample';
+      p.innerHTML = (typeof highlightWord === 'function') ? highlightWord(eg, w.en) : eg;
+      host.appendChild(p);
+    }catch(e){}
+  }
+  window.__wdRefreshExample = refreshExampleFor;
+
+  /* 词库切换 / 开始练习时把例句表拉起来（失败静默，不影响背词） */
+  document.addEventListener('wb:switched', function(){ try{ wdEgLoad(typeof wbActive === 'function' ? wbActive() : 'custom'); }catch(e){} });
   /* WORD-1：把「依赖 DOM 的初始化」收成一个口子 —— 首跑与软导航重跑都走它，
      避免两处各写一份又走岔（这次的事故就是「首跑做了、重跑没做」）。 */
   window.__wwordB1Boot = function(){

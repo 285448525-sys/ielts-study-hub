@@ -1117,9 +1117,15 @@ function masterWord(cur){
 // 已掌握按钮：固定在进度条下方工具行（设置按钮左侧）——14:22 头部行只留 chip+数字（照 design/54 原型），
 // 功能按钮整体下移。按钮随每题重绑当前词；非答题态（完成页/空态/错误态）由 removeMasteredBtn 移除。
 function ensureMasteredBtn(cur){
-  const ha = document.getElementById('wordToolsRow');
-  if(!ha) return;
+  /* 🔴 WD-PAGE-REDESIGN-1（10-28）：她口述第②条「已掌握那个按钮不能去掉」——
+     按钮保留，但位置按终稿底部 .bottom-actions：和「不知道」并排、同高同圆角。
+     原来它被插进头部 #wordToolsRow 第一个位置，终稿头部没有它（头部是回看/工具），
+     放那儿会挤掉「上一个单词」的位置。
+     回退链：优先 .answer-btns（每题重建，所以每题都会新插一次）→ 没有就退回头部（保兼容）。 */
+  const row = document.querySelector('#practiceBody .answer-btns') || document.getElementById('wordToolsRow');
+  if(!row) return;
   let mb = document.getElementById('masteredBtn');
+  if(mb && mb.parentNode !== row){ mb.parentNode.removeChild(mb); mb = null; }
   if(!mb){
     mb = document.createElement('button');
     mb.id = 'masteredBtn';
@@ -1127,8 +1133,8 @@ function ensureMasteredBtn(cur){
     mb.className = 'mastered-btn';
     mb.title = '已掌握：从词库删除该词（任何学习阶段都直接删除）';
     mb.textContent = '已掌握';
-    ha.insertBefore(mb, ha.firstChild);
   }
+  if(mb.parentNode !== row) row.appendChild(mb);
   mb.onclick = () => masterWord(cur);
 }
 function removeMasteredBtn(){
@@ -1197,6 +1203,27 @@ function practiceSense(w){
    所以撤掉它不影响 w.level / w.errTotal / w.lastReview 任何一个 —— 判题与 SRS 零变化。
    ⚠️ 外科式摘除，不是整笔 revert：同提交的 1-1 搜索卡与登录引导条必须留着。 */
 
+/* WD-PAGE-REDESIGN-1（10-28）：真题原句里把目标词高亮成 <mark>（终稿 .example mark 形态）。
+   要点：① 先整体 escapeHtml 再只对「单词本身」包 mark —— 顺序反过来会把 mark 标签也转义掉；
+        ② 大小写不敏感；③ 词边界用 \b 尽量只高亮整词（species 不命中 subspecies）；
+        ④ 只替换第一处（一句话里同一词出现两次以上，高亮第一处即可，多了反而花）；
+        ⑤ 正则元字符转义（词组词库里有带空格的条目，将来出现 "e.g." 这类也安全）。 */
+function highlightWord(sentence, word){
+  const safe = (typeof escapeHtml === 'function') ? escapeHtml(sentence) : String(sentence || '');
+  const w = String(word || '').trim();
+  if(!w) return safe;
+  const escRe = (typeof escapeHtml === 'function') ? escapeHtml(w) : w;
+  const reSrc = escRe.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  try{
+    const re = new RegExp('\\b(' + reSrc + ')\\b', 'i');
+    if(re.test(safe)) return safe.replace(re, '<mark>$1</mark>');
+    /* 词组/带连字符这类 \b 边界不成立时，退回「不加边界的第一处」 */
+    const re2 = new RegExp(reSrc, 'i');
+    if(re2.test(safe)) return safe.replace(re2, '<mark>$&</mark>');
+  }catch(e){}
+  return safe;
+}
+
 function renderQuestion(cur, isRehold){
   if(!pq) return;
   pq.answer = cur;
@@ -1231,33 +1258,66 @@ function renderQuestion(cur, isRehold){
       (last.cn ? '<span class="lw-cn">' + escapeHtml(practiceSense(last).cn) + '</span>' : '') +
       '</div>';
   }
-  html += '<div class="practice-topzone">' + top + '</div>';
+  /* 🔴 WD-PAGE-REDESIGN-1（10-28）：她口述第⑦条把「上一个单词」定在**左上角**（头部）。
+     原来这题正文顶上还有一条「← actually /音标/ 释义」的回顾条（.last-word），
+     跟头部那个重复了 —— 一条信息在两处出现，就是她说的「乱」。
+     保留头部那一个（点开能看整张旧词卡），正文这条不再渲染。
+     ⚠️ 容器 .practice-topzone 仍然输出空壳 —— common.css 的 fit 布局按它排，
+       直接删节点会让上下间距变（不改共享层，改这里就够）。 */
+  html += '<div class="practice-topzone"></div>';
 
-  // ── 主区域（严格还原 v5 原型：单词+音标+中文居中，无例句无词性；中文答后才显示） ──
-  // 已掌握按钮已上移至顶部 word-stats 行（见 ensureMasteredBtn），题干区不再放按钮
-  // 听音选义：DOM 原样保留（pw-en/pw-ipa 内容照旧渲染），由 .pw-audio class + CSS 控制隐藏；
-  // 提示文案原位插入；judge() 揭示时加 .pw-reveal 恢复显示。
+  // ── 主区域 ──
+  // 🔴 WD-PAGE-REDESIGN-1（10-28）：她点头终稿 design/ssr-practice-final-2026-10-28.html 逐条落。
+  //   她 15:0x 口述 11 条里与本段直接相关的三条：
+  //   ① 顶部要真题原句（高亮目标词）—— 词库 json 的 `eg` 字段本来就存着原文例句（lstext/rdtext/phr/lstans 四本齐全），
+  //      不用造数据；aw l / qstem 两本没有 eg，那就留空不硬编。
+  //   ⑤ 答对 / 答错那一行字去掉 —— 原来 judge() 会把「✓ 释义」写进 #pwCn；
+  //      现在 #pwCn 只做「答后揭示释义」用，去掉 ✓/✗ 前缀，不再有「答对了/答错了」那句。
+  //   ⑩ 播放按钮重做 —— 新的 .wd-sound 圆钮放在音标右侧（终稿形态），旧的 #qSpeaker 通栏喇叭撤掉。
+  //   已掌握按钮已上移至顶部 word-stats 行（见 ensureMasteredBtn），题干区不再放按钮。
+  // 🔴 WD-PAGE-REDESIGN-1（10-28）：她口述第①条要「顶部真题原句」。
+  //   数据本来就在词库 json 里（rdtext/lstext/lstans/phr 四本每个词都有 `eg` 字段，存的是原文原句），
+  //   但 js/wordbank.js 的 obBankReady() 建词表时只搬了 en/cn/pos/ipa/sl，**没搬 eg** ——
+  //   那个文件是共用层（practice.html 与 home.html 共用），A2 不动它。
+  //   页面层解法：practice.html 里自己按词库 id 懒拉一份 en → eg 的只读映射（window.wdGetExample），
+  //   这里只负责用。拿不到就留空，绝不造数据 —— 她原话「词库没有例句字段的词可暂空不造数据」。
+  const _eg = (function(){
+    try{
+      if(typeof window.wdGetExample === 'function') return String(window.wdGetExample(cur) || '').trim();
+    }catch(e){}
+    return (cur.eg && String(cur.eg).trim()) ? String(cur.eg).trim() : '';
+  })();
   html += '<div class="practice-word-area' + (audioMode ? ' pw-audio' : '') + '">' +
     '<div class="pw-en"><span class="pw-en-tx">' + escapeHtml(cur.en) + '</span></div>' +
-    '<div class="pw-ipa">' + (cur.ipa ? '/ ' + escapeHtml(cur.ipa) + ' /' : '&nbsp;') + '</div>' +
+    '<div class="pw-ipa">' + (cur.ipa ? '/ ' + escapeHtml(cur.ipa) + ' /' : '&nbsp;') +
+      '<button class="wd-sound" id="qSpeaker" type="button" title="再读一遍" aria-label="播放发音">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></svg>' +
+      '</button>' +
+    '</div>' +
     (audioMode ? '<div class="pw-audio-hint">听发音，选释义 · 点喇叭重播</div>' : '') +
-    '<div class="pw-cn" id="pwCn"></div>' +   /* 9/17：不再放 &nbsp;——全屏 evenly 态 pw-cn min-height:0 需要真空才生效；普通态题干区 min-height:120px 兜底，视觉无变化 */
+    '<div class="pw-cn" id="pwCn"></div>' +
+    (_eg ? '<p class="wd-example" id="wdExample">' + highlightWord(_eg, cur.en) + '</p>' : '') +
   '</div>';
 
-  // ── 选项网格（2×2） ──
+  // ── 选项网格：电脑四宫格 / 手机四条横排（终稿 @media 700 切列）──
   html += '<div class="opts-grid" id="opts"></div>';
-  /* 10-24 RV-1：撤 P-3 v2 的两处 ——
-     ① 「不知道」恢复成原来的通栏（.answer-btns，不是 P-3 v2 的 .dunno-row 小按钮 + 键位提示）；
-     ② 底部居中那枚喇叭恢复输出（P-3 v2 把它挪到了单词右侧，本次撤掉右侧那个）。 */
-  html += '<div class="answer-btns"><button class="abtn abtn-unknown" id="unknownBtn" title="不知道（按空格）">不知道</button></div>';
-  html += '<div class="pw-speaker-wrap"><button class="btn tool-btn" id="qSpeaker" title="再读一遍"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.4 5.6a9 9 0 0 1 0 12.8"/></svg></button></div>';
+  /* ⑥ 「不知道」不学爱听写：保持原来那条长条、与上面选项同宽（终稿 .bottom-actions = flex:1 通栏）。
+     旧 #qSpeaker 通栏喇叭已撤（播放键并入音标行，见上）。 */
+  html += '<div class="answer-btns"><button class="abtn abtn-unknown" id="unknownBtn" title="不知道">不知道</button></div>';
+  /* ③ 页底进度条：无文字、跟选项区同宽、按当天配额走（终稿 .progress-track 5px）。
+     与原来的 #progBarWrap 并存 —— 那条是「本轮队列进度」（0/60），这条是「今天配额进度」（25/50），
+     两个口径不同，她要的是后者，旧的留着给别处逻辑用，但不再显示（见下面的 hidden）。 */
+  html += '<div class="wd-progress" id="wdProgress" role="progressbar" aria-label="今日背词进度">' +
+    '<i id="wdProgressFill" style="width:0%"></i></div>';
 
   const body = $('#practiceBody');
   body.innerHTML = html;
   $('#opts').innerHTML = opts.map((o, i) => {
     const ps = practiceSense(o);
     const tag = singlePos(o.pos) || ps.tag || inferPos(o.en) || '';
-    return '<button class="opt-big" data-en="' + escapeHtml(o.en) + '" data-idx="' + i + '" title="选项 ' + (i + 1) + '（按 ' + (i + 1) + '）">' +
+    /* 她口述第⑨条「快捷键这几个字不用写上」—— title 里的「（按 1）」这类键位提示一并去掉，
+       只留「选项 N」用于读屏与悬停定位。 */
+    return '<button class="opt-big" data-en="' + escapeHtml(o.en) + '" data-idx="' + i + '" title="选项 ' + (i + 1) + '">' +
       '<span class="opt-big-tag">' + escapeHtml(tag) + '</span>' +
       '<span class="opt-big-cn">' + escapeHtml(ps.cn) + '</span>' +
       '<span class="opt-big-en"></span>' +
@@ -1265,7 +1325,12 @@ function renderQuestion(cur, isRehold){
   }).join('');
   bindOpts(cur);
   // 9/26：记录「上一题」（不看 pq.idx —— 那个值恒为 0），下一题渲染时用它出回顾条；重考不覆盖
+  // 🔴 WD-PAGE-REDESIGN-1（10-28）：头部左上角要显示「上一个单词」（她口述第⑦条）。
+  //   注意 pq.lastEn 语义是「当前题」（渲染完就被覆盖成 cur），真正要显示的上一词是局部 _lastEn ——
+  //   另存到 pq._prevEn 供 practice.html 的 syncPrevWord() 读，避免把当前词当成上一词显示。
+  if(!isRehold && _lastEn) pq._prevEn = _lastEn;
   if(!isRehold) pq.lastEn = String(cur.en).trim().toLowerCase();
+  if(typeof window.syncPrevWord === 'function'){ try{ window.syncPrevWord(); }catch(e){} }
   const left0 = document.getElementById('unknownBtn');
   if(left0) left0.onclick = () => judge(cur, null, false, true);
   ensureMasteredBtn(cur);
@@ -1391,14 +1456,16 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
   // 改法：同一行升格成「结论前缀 + 释义」，✓ 绿 / ✗ 红。**不新增任何节点**
   //        （#pwCn 本来就是固定 24px min-height 的空占位，塞字不撑高 → 布局零跳动）；
   //        **不动 autoNextDelay / wrongHoldMs 任何一个时间常量**（她最烦长停顿）。
+  // 🔴 WD-PAGE-REDESIGN-1（10-28，她口述第⑤条）：「像什么答对了呀，还有一行字答错了还有一行字，
+  //   那一行字去掉，不要这个东西。」
+  //   → #pwCn 只留「这词的中文释义」（答后揭示，终稿 .sense 的形态），
+  //     不再带 ✓ / ✗ 前缀、也不再出现「答对了 / 答错了」这类结论句。
+  //     对错判断本来就靠选项本身的绿框/红框（.opt-big.correct/.wrong），不需要再多一行字重复一遍。
+  //   ⚠️ 节点与 id 不动（#pwCn 仍被 fitWordOneLine / 全屏布局依赖），只改写入内容。
   const reveal = document.getElementById('pwCn');
   if(reveal){
     const cnTxt2 = cur.cn ? practiceSense(cur).cn : '';
-    if(cnTxt2){
-      reveal.textContent = (correct ? '✓ ' : '✗ 正确答案 · ') + cnTxt2;
-    }else{
-      reveal.textContent = correct ? '✓ 答对了' : '✗ 答错了';
-    }
+    reveal.textContent = cnTxt2 || '';
     reveal.classList.add(correct ? 'fb-ok' : 'fb-bad');
   }
   // 听音题揭示：.pw-reveal 让 CSS 恢复题干英文/音标显示（提示文案随之隐藏），再按词长补一次自适应字号
@@ -1875,7 +1942,8 @@ function updateWordStats(){
 function updateProgBar(){
   if(!pq || !pq.initLen) return;
   const pct = Math.min(100, ((pq.correct || 0) / pq.initLen) * 100);
-  $('#progBarFill').style.width = pct + '%';
+  const _old = $('#progBarFill');
+  if(_old) _old.style.width = pct + '%';
   /* 10-23 P-3：新状态带里的进度条与旧条同源同步（旧条 DOM 留着，JS 写入点不改） */
   const _nf = document.getElementById('wProgFill');
   if(_nf){
@@ -1883,6 +1951,31 @@ function updateProgBar(){
     const _wrap = document.getElementById('wProg');
     if(_wrap) _wrap.setAttribute('aria-valuenow', String(Math.round(pct)));
   }
+  /* 🔴 WD-PAGE-REDESIGN-1（10-28，她口述第③条）：「下面不是有一个进度条吗？就不要加任何的文字，
+     直接下面一个进度条显示就行了。而且这个进度条是每天是固定的，就比如说我今天我一天要背 50 个，
+     我早上背了 25 个，我下午点进去的时候进度条是在一半的。」
+     → 口径 = 今日已背 / 每日上限（跨会话固定，不是本轮队列进度）。
+       所以这里不复用上面的 pq.correct/initLen（那是本轮队列），改读「今天背了多少」与 dailyCap。
+       dailyCap=0（不限）时没有分母，条按「今天已背 > 0 就显示细条」处理，不印任何文字。 */
+  updateDailyProgress();
+}
+
+/* 今日配额进度条（终稿 .progress-track 形态）：只画条，不写字。 */
+function updateDailyProgress(){
+  const wrap = document.getElementById('wdProgress');
+  const fill = document.getElementById('wdProgressFill');
+  if(!wrap || !fill) return;
+  let done = 0;
+  /* 口径就用 practicedCount()：按日期存的「今天练过的词数」，跨会话/关掉再打开都还在，
+     正是她说的「早上背 25 个，下午点进去停在一半」。不是本轮队列进度（pq.correct）。 */
+  try{
+    done = (typeof practicedCount === 'function') ? (Number(practicedCount()) || 0) : 0;
+  }catch(e){ done = 0; }
+  const cap = Number(pc().dailyCap) || 0;
+  const pct = cap > 0 ? Math.min(100, done / cap * 100) : (done > 0 ? 3 : 0);
+  fill.style.width = pct + '%';
+  wrap.setAttribute('aria-valuenow', String(Math.round(pct)));
+  if(cap > 0) wrap.setAttribute('aria-valuemax', String(cap));
 }
 
 // ======= 设置模态弹窗（齿轮触发，仅学习模块使用）=======
