@@ -4429,6 +4429,13 @@ window.__reportExamState = reportExamState;
         if(_mt === 'writing'){
           loadWritingScripts().then(function(){
             if(typeof window.renderExamList === 'function') window.renderExamList();
+            /* 10-28 WRT-FULL-ENTRY-FIX（她 13:0x「组卷那个功能有时候有有时候没有」）：
+               入口卡（#writingFullEntry 里的 .full-card）只由 writing.js 的 ready() 填一次。
+               writing.js 载过一次后 _wrtLoadOnce 会因 window.renderExamList 已存在直接 return，
+               而软导航会把 <main> 整个换成新 DOM —— 新的 #writingFullEntry 是空容器，
+               于是第二次进写作 tab 组卷卡就没了（实测：首次 412 字符，往返后 0 字符）。
+               所以这里必须跟 renderExamList 一起补渲染入口卡，每次切进来都补（幂等：整块重写）。 */
+            if(typeof window.renderWritingFullEntry === 'function') window.renderWritingFullEntry();
             renderMockTabCounts();     /* M-1：写作脚本刚到，此时才有篇数可填 */
           });
         }
