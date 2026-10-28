@@ -2983,6 +2983,12 @@ function examStopAndScore(){
   // btnHtml）→ ReferenceError；且 btn 为 null 时 btn.disabled 也直接 TypeError。声明处缓存 + finally 统一守卫。
   const btnHtml = btn ? btn.innerHTML : '';
   if(btn){ btn.disabled = true; btn.textContent = '评分中…'; }
+  /* WRT-TIMER-1（10-27 她：「提交之后还会继续计时，逻辑不对」）：
+     提交＝这一篇写完了，计时必须当场停。原来只有 exitExam() 里调 examStopTimer()，
+     她提交出分后不退场 → setInterval 继续每秒跑，屏幕上计时读数一直在涨。
+     放在「校验通过、真要发请求」这个点之后（空白卷 return 之前不能停表：
+     那时她还留在练习态，表得继续走）。 */
+  examStopTimer();
   const box = $('#examResult');
   box.hidden = false;
   box.innerHTML = wtScoringHtml('AI 正在批改中');   /* WRT-PENDANT-1 */

@@ -35,7 +35,11 @@
    ⚠️ 沉浸态（#examRoot 阅读听力 / body.exam-fullscreen 写作机考）都是 position:fixed;inset:0
    的整屏覆盖层，z-index 900 > 顶栏 50 → 覆盖时天然盖住顶栏，本页**不需要**任何额外 hide 规则。
    唯一要处理的是 body 自身的 44px 吸顶 padding：覆盖层铺满视口、内容自己管高度，互不影响。 */
-.mock-wrap{max-width:1080px;margin:0 auto}
+/* FE-FIX-1（10-27 她 19:2x：「把整个网站的 UI 设计统一」）：原 `max-width:1080px` 比全站
+   口径（main.container 1160 / 内层 1132）窄 52px，实测内层 1080、左缘比别页多缩 26px。
+   A1 表① 把它列为「确认偏离」。现在收到 1132 —— 与其余 16 个标准页逐像素一致。
+   ⚠️ 只改宽度上限，列表/分栏/考试壳内部布局一行未动（红线 5）。 */
+.mock-wrap{max-width:1132px;margin:0 auto}
 /* 小 tab 直接用全站 .pill-tabs / .pill-tab（css/common.css），此处不另造样式 */
 .mock-tabs{margin:0 0 12px}
 .partbar{display:flex;align-items:center;gap:16px;margin:0 0 10px;flex-wrap:wrap}

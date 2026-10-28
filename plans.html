@@ -65,17 +65,11 @@
      铁律：common.css:438 全站表单重置权重 (0,2,1)，故本页新 input/select 的可样式化属性
      一律挂在 #diagOverlay / #diagRoot 的 id 作用域下（权重 1,1,0+），不用裸 class。 -->
 <style id="diagStyle">
-/* PLAN-W-1（她 10:4x「上下板块宽度不一样」）：#diagRoot 与上方 .m-mk-shell 对齐 ——
-   m-mk-shell 有 padding:16px（卡片区 1100），diagRoot 满宽 1132，左右各差 16px。
-   诊断问卷/结果页同 id 作用域会一起内缩（方向正确，与上方卡片对齐）。 */
-/* 🔴 FE-FIX-1（10-27）：这条 16px 内缩是 PLAN-W-1 当时为了让诊断卡追上「卡片区 1100」而加的。
-   本轮把 .m-mk-body 的 16px 外壳内距收掉、卡片已恢复通栏 1132，这条内缩就成了新的不对齐，
-   一并归零 —— 诊断卡继续与上方卡片同宽。 */
-#diagRoot{ padding:0; box-sizing:border-box; }
-#diagRoot .dg-hero{text-align:center;padding:28px 20px}
-#diagRoot .dg-hero-ic{font-size:40px;line-height:1;margin-bottom:10px}
-#diagRoot .dg-hero h2{margin:0 0 8px;font-size:20px}
-#diagRoot .dg-hero-p{color:var(--muted);font-size:14px;line-height:1.7;margin:0 auto 16px;max-width:30em}
+/* PLAN-W-1（她 10:4x「上下板块宽度不一样」）当时给 #diagRoot 补了 16px 内缩，
+   是为了追平「上半段卡片被 .m-mk-body 挤窄后是 1100」——那是**追着错的目标对齐**。
+   PLAN-W-2（10-27）把灰壳与 .m-mk-body 内缩拆掉后，上半段卡片已回到全站口径 1132/left 67，
+   所以这 16px 内缩必须去掉，否则诊断卡反而比上面窄 16px（左右各差回来）。
+   保留 box-sizing 无害，padding 归零。 */
 #diagRoot .dg-hero-steps{text-align:left;margin:0 0 20px;padding-left:20px;color:var(--ink);font-size:13.5px;line-height:1.9}
 .dg-block-btn{width:100%;padding:13px;font-size:15px;border-radius:var(--radius-sm)}
 .dg-text-btn{display:block;width:100%;margin-top:10px;padding:8px;background:none;border:0;color:var(--muted);font:inherit;font-size:13px;text-decoration:underline;cursor:pointer}

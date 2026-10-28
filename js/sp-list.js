@@ -117,8 +117,26 @@ function renderCockpit(){
     if(jump) jump.click();
   });
 }
+/* ============================================================
+   SPK-INFO-1（10-27）：口语页「题库说明」折叠标的上次更新日期回填。
+   🔴 日期**只认 SPEAKING_BANK_META.updated**，不写死在 HTML 里 ——
+      10-27 注记滞后的教训就靠这个防（以后改题库只动 data.js 一处，页面自动跟上）。
+   META 缺失/格式异常时留空，绝不编一个日期出来（空比错好读）。
+   ============================================================ */
+function renderSpkinfo(){
+  const el = document.getElementById('spkUpdDate');
+  if(!el) return;
+  let d = '';
+  try{
+    const M = (typeof SPEAKING_BANK_META !== 'undefined') ? SPEAKING_BANK_META : null;
+    d = (M && M.updated) ? String(M.updated) : '';
+  }catch(e){ d = ''; }
+  const m = d.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  el.textContent = m ? ((+m[1]) + ' 年 ' + (+m[2]) + ' 月 ' + (+m[3]) + ' 日') : d;
+}
 function renderList(){
   renderCockpit();   // T-004：驾驶舱跟着筛选一起刷新（已练/进度会变）
+  renderSpkinfo();   // SPK-INFO-1：折叠标里的「上次更新」跟着 META 现读
   // design/88：状态下拉选项带题数（跟随其他筛选刷新，题数按当前其他筛选已生效后的剩余池统计）
   refreshStateOptions();
   const list = getFiltered();

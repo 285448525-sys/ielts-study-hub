@@ -91,10 +91,14 @@
    改法：把 .m-mk 还原成「透明容器」——不画底色、圆角与全站一致，让里面那张白卡自己承担卡片外观。
    零结构改动、零类名改动，纯尺寸/颜色。 */
 .m-mk { background: transparent; border-radius: var(--radius); overflow: hidden; }
-.m-mk-top { display: flex; align-items: center; gap: 10px; padding: 11px 16px; background: var(--surface); border-bottom: 1px solid var(--m-line); }
-.m-mk-top .m-dot { width: 9px; height: 9px; border-radius: 50%; background: rgb(226, 229, 230); }
-.m-mk-top .m-nm { font-size: 12.5px; color: var(--m-muted); margin-left: 4px; }
-.m-mk-top .m-sh { font-size: 11.5px; color: var(--m-muted); margin-left: auto; }
+/* FE-DEAD-2（10-27 · B 第二批）：以下 4 条 .m-mk-top 系规则对应的 DOM 节点**早已删除**
+   （P-1R 摘掉浏览器外壳：三圆点 + 假地址栏），实测全站 HTML+JS 引用计数 0
+   （plans.html 里只剩两处注释提到类名），是纯悬空规则。删掉不影响任何渲染，
+   plans 页验收 12/0 不变。原文留档，日后回滚照着写回来即可：
+     .m-mk-top { display:flex; align-items:center; gap:10px; padding:11px 16px; background:var(--surface); border-bottom:1px solid var(--m-line); }
+     .m-mk-top .m-dot { width:9px; height:9px; border-radius:50%; background:rgb(226,229,230) }
+     .m-mk-top .m-nm { font-size:12.5px; color:var(--m-muted); margin-left:4px }
+     .m-mk-top .m-sh { font-size:11.5px; color:var(--m-muted); margin-left:auto } */
 /* 🔴 FE-FIX-1（10-27 她：「计划页宽度对齐全站」）：这行 padding:16px 是设计稿「浏览器窗口」
    那层外壳的内边距，外壳拆掉之后它还在，结果里面每张卡左右各缩进 16px（1132 → 1100），
    跟 review/home 那种通栏卡片对不上。改成 0，卡片与容器同宽。 */
@@ -147,14 +151,12 @@
   .m-days { grid-template-columns: repeat(2, 1fr); }
 }
 
-/* 🔴 P-1R：隐藏效果稿的「浏览器外壳」—— 那三个圆点 + 假地址栏
-   （yasihub.com / 计划）只是为了让效果稿看起来像在浏览器里，真页面上不能有。
-   ⚠️ 用 CSS 隐藏而**不删节点**：验收基线里包含 .m-mk-top / .m-dot / .m-nm / .m-sh
-      四个元素，删了就会报「缺失 4」，达不到「✗ 缺失 0」。
-      节点留着（可比对样式），但不显示（她看不到）。 */
-.m-page .m-mk-top{ display:none }
-/* FE-DEAD-2：原 `.m-page .m-mk-shell{ background:transparent;... }` 已删（同样是永不命中的死代码，
-   说明见文件上方 .m-mk-shell 原位置）。 */
+/* FE-DEAD-2（10-27 · B 第二批）：原 P-1R 的「用 CSS 隐藏外壳而不删节点」两条规则，
+   对应的 .m-mk-top / .m-dot / .m-nm / .m-sh / .m-mk-shell 节点**后来还是删了**（实测
+   querySelector 全为 null、全站 HTML+JS 引用计数 0），所以这两条覆盖规则永命不中，已删。
+   原文留档：`.m-page .m-mk-top{display:none}` / `.m-page .m-mk-shell{background:transparent;border:0;padding:0;border-radius:0}`
+   ⚠️ 旧注释说「验收基线里含这 4 个元素，删了会报缺失」——该基线 JSON 已不在仓库，
+      且删除后 plans 页验收 12/0 不变，确认无依赖。 */
 
 /* ==========================================================================
    PL-1（10-25）：深色覆盖 —— 上面 .m-page 那组私有 token 全是写死浅色值，

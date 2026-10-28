@@ -48,7 +48,12 @@
 }
 </style>
 </head>
-<body>
+<!-- FE-FIX-1（10-27 她 19:2x「把整个网站的 UI 设计统一」）：本页是全站唯一漏了顶栏壳的页面 ——
+     body 上缺 data-shell="top"，于是 main.container 被老的 288px 侧栏一直挤成 945 宽
+     （其余 20 页都是 1160）。A1 表① 把它列为「确认偏离」。
+     ⚠️ 只补壳属性：`#mainNav` 容器本就在这里（下面第二行），属全站换顶栏第 5 批的漏项。
+     正文 .legal-wrap 自己的 760 窄栏**不动**（条款页故意的窄栏阅读口径，与 help / announce 同类）。 -->
+<body data-shell="top">
 <div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div></div>
 <nav class="top-nav" id="mainNav"><div class="top-nav-inner"></div></nav>
 
