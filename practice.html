@@ -31,7 +31,7 @@
 })();
 </script>
 <title>单词 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261028j" />
+<link rel="stylesheet" href="css/common.css?v=20261028k" />
 <link rel="stylesheet" href="css/p/practice.css?v=20261028k" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
@@ -43,13 +43,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
   <script defer src="js/data.js?v=20261027c"></script>
-  <script defer src="js/common.js?v=20261028j"></script>
-  <script defer src="js/common-ai.js?v=20261028j"></script>
-  <script defer src="js/common-sync.js?v=20261028j"></script>
-  <script defer src="js/common-merge.js?v=20261028j"></script>
-  <script defer src="js/common-cloud.js?v=20261028j"></script>
-  <script defer src="js/common-shell.js?v=20261028j"></script>
-  <script defer src="js/common-pwa.js?v=20261028j"></script>
+  <script defer src="js/common.js?v=20261028k"></script>
+  <script defer src="js/common-ai.js?v=20261028k"></script>
+  <script defer src="js/common-sync.js?v=20261028k"></script>
+  <script defer src="js/common-merge.js?v=20261028k"></script>
+  <script defer src="js/common-cloud.js?v=20261028k"></script>
+  <script defer src="js/common-shell.js?v=20261028k"></script>
+  <script defer src="js/common-pwa.js?v=20261028k"></script>
   <script defer src="js/feedback.js?v=20261027a"></script>
   <!-- design/78 双词库适配层：必须在 dhp_policy.js / practice.js / words.js 之前（defer 按文档序执行） -->
   <script defer src="js/wordbank.js?v=20261023s"></script>
@@ -231,6 +231,85 @@ body.word-fullscreen .hub-topbar{display:none !important}
 /* ===== 10-23 2-1d 批 B 补：单词页也撤药丸 tab（桌面 ≥861）。手机 ≤860 保留（顶栏隐藏时的唯一入口）。
    分栏改由顶栏「单词」二级菜单接管（js/common.js 的 TB_SUB.practice）。不删 DOM。 ===== */
 @media (min-width:861px){ .word-tabs{display:none} }
+
+/* ═══════════════════════════════════════════════════════════════════
+   WD-PAGE-REDESIGN-3（10-28 她点名三点，逐条落地）
+   她原话：「题干还有单词太靠下了，单词上面空那么多干嘛」/「词库的也是，就是收成一个
+   你自己设计一个书本的图案」/「那个选择模式点了一下应该是下拉下来几个…而不是点了一下
+  直接横排一排弹出去了，太丑了」
+   🔴 只动本页视觉与这三个控件，判题/SRS/切书逻辑一行不改。
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── ① 题干块上移收紧 ──
+   病根：`#practiceBody.practice-body-fit:has(.opts-grid)` 给了 `justify-content:center`（行 1196），
+   卡片又撑着整屏高 → 题干+单词整块在剩余空间里**垂直居中**，上方就空出一大片。
+   她要看的是「贴着工具行往下走」，不是浮在中间。
+   改法：普通态（非全屏）把纵排改成 flex-start + 顶部只留很小的起步间距；
+   下方选项之后仍由 flex 自然铺满，不产生新的空白。全屏沉浸态****保持原样****（那里原本就
+   是 flex-start 贴顶，且她这次报的是普通态截图）。
+   ⚠️ 用 :not 排除全屏，绝不动全屏那套已定稿的垂直分布。 */
+body:not(.word-fullscreen) #practiceBody.practice-body-fit:has(.opts-grid){
+  justify-content:flex-start;
+  padding-top:2px;
+  padding-bottom:6px;
+}
+/* 题干区与上面工具行的间距：原来 word-area 自带 padding 2/4/8 + 卡片 gap 6，
+   合计近 20px；她嫌「太靠下」→ 只压「上方那一截」，下方（题干↔选项）保持不动。 */
+body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
+  padding-top:0;
+  margin-top:0;
+}
+/* 单词盒自身 48px 恒定不变（换词不跳动是既有硬口径），只收它上面的空隙。 */
+
+/* ── ② 词书切换器：长条 → 书本图标小钮（36×36，与设置/全屏同排同高）── */
+.ws-book-btn{
+  width:36px;height:36px;padding:0;
+  display:inline-flex;align-items:center;justify-content:center;
+  border-radius:10px;border:1px solid var(--ws-line);
+  background:var(--surface);color:var(--ws-muted);
+  cursor:pointer;transition:border-color .15s,color .15s,background .15s;
+  flex:0 0 auto;
+}
+.ws-book-btn:hover{border-color:var(--ws-p);color:var(--ws-p)}
+.ws-book-btn:focus-visible{outline:none;box-shadow:0 0 0 3px var(--primary-soft)}
+/* 长条钮的旧类在别处已无引用，此页仍挂着 .ws-book-switcher 的规则一并失效即可；
+   下面这条是兜底：万一 DOM 里还留着旧长条节点，也别再撑宽。 */
+.ws-book-pop-wrap .ws-book-switcher{display:none}
+/* 弹层头部（当前词书名 + 词数·今日进度）——原来显示在长条钮上 */
+.ws-bp-cur{padding:8px 10px 10px;border-bottom:1px solid var(--ws-line);margin-bottom:4px}
+.ws-bp-cur-n{display:block;font-size:13.5px;font-weight:750;color:var(--ws-title);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ws-bp-cur-d{display:block;font-size:11.5px;color:var(--ws-muted);margin-top:2px}
+
+/* ── ③ 模式改标准向下下拉 ──
+   病根：弹出的 #wdModePopList 只有一个**从未定义过**的类名 .wd-mode-pop，
+   没有任何定位/布局规则 → 三个按钮按文档流横着排、还把工具行撑宽（她说的「横排一排弹出去」）。
+   改法：这里把 .wd-mode-pop / .wd-mode-opt 的样式补齐（竖排、向下、单独浮层）；
+   JS 建节点与移除逻辑一个字不改，仍按这两个类名走。
+   ⚠️ .wd-modes 必须是定位锚（position:relative），弹层才能贴着它下沿展开。 */
+.wd-modes{position:relative}
+#practiceArea .wd-modes{display:flex;align-items:center}
+.wd-mode-pop{
+  position:absolute;top:calc(100% + 6px);right:0;
+  min-width:132px;padding:5px;
+  background:var(--surface);border:1px solid var(--ws-line);border-radius:10px;
+  box-shadow:0 10px 26px -10px rgba(0,0,0,.28), 0 2px 8px -4px rgba(0,0,0,.12);
+  z-index:30;
+  display:flex;flex-direction:column;gap:2px;
+}
+.wd-mode-opt{
+  display:block;width:100%;text-align:left;
+  padding:8px 10px;border:0;border-radius:7px;background:none;
+  font:inherit;font-size:13px;font-weight:600;color:var(--ink-2);
+  cursor:pointer;white-space:nowrap;line-height:1.35;
+}
+.wd-mode-opt:hover{background:var(--n-100);color:var(--ink)}
+.wd-mode-opt.on{background:var(--primary-soft);color:var(--primary-700)}
+.wd-mode-opt.on::after{content:'✓';float:right;margin-left:8px;color:var(--primary-700)}
+/* 手机窄屏：弹层不能被工具行挤出去 —— 右对齐钉在本钮下沿，最小宽度收窄 */
+@media (max-width:700px){
+  .wd-mode-pop{min-width:118px;right:0}
+  .wd-mode-opt{padding:9px 10px;font-size:13px}
+}
 </style>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
@@ -406,20 +485,45 @@ body.word-fullscreen .hub-topbar{display:none !important}
         <div class="ws-wh-progress" hidden>今日已学 <b id="wsDoneN">0</b> / <b id="wsCapN">0</b></div>
         <div class="ws-wh-tools">
           <div class="ws-book-pop-wrap">
-            <div class="ws-book-switcher" id="bsSwitcher" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false">
-              <span class="ws-bs-name" id="bsName">我的词库</span>
-              <span class="ws-bs-meta" id="bsMeta">—</span>
-              <span class="ws-bs-caret" aria-hidden="true">▾</span>
-            </div>
+            <!-- 🔴 WD-PAGE-REDESIGN-3（10-28 她点名）：词书切换器从「200~360px 的长条」
+                 收成一个**书本图标小钮**（36×36，与设置/全屏同尺寸同一行），点了才弹出词书列表选。
+                 她原话：「词库的也是，就是收成一个你自己设计一个书本的图案或者怎么样，
+                 然后点了之后可以跳转词库的页面。或者是等，你弄一个小框，然后那个小框可以选择你的词书。
+                 你就不要这么长的一块。」
+                 → 这里取第二种（小钮 + 弹小框选词书）：跳词库页会打断背词，选书是原地换书。
+                 ⚠️ #bsSwitcher / #bsName / #bsMeta / #bsPop / #bsCurList / #bsOtherList / #bsAddMore
+                    七个 id 全部原样保留 —— practice.html 的切书逻辑与点击委托全按 id 找，
+                    删任何一个都会静默失效。名字与词数不再写在钮上，改由 #bsPop 里显示；
+                    #bsName/#bsMeta 仍被 syncBookName() 写值，只是 CSS 把它们视觉隐藏（不删节点）。 -->
+            <button class="ws-book-btn" id="bsSwitcher" type="button" role="button" aria-haspopup="listbox" aria-expanded="false" title="切换词书">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px" aria-hidden="true"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v17H6.5A2.5 2.5 0 0 0 4 21.5z"/><path d="M4 19.5V4.5"/><path d="M8 7h8M8 11h6"/></svg>
+            </button>
+            <span class="ws-bs-hidden" hidden><span class="ws-bs-name" id="bsName">我的词库</span><span class="ws-bs-meta" id="bsMeta">—</span></span>
             <div class="ws-book-pop" id="bsPop" role="listbox" hidden>
-              <div class="ws-bp-title">当前词书</div>
+              <!-- 弹层顶部把「当前用哪本 + 多少词 · 今日进度」写出来 —— paintSwitcher() 一直
+                   在写 #bsName / #bsMeta，原来显示在长条钮上；钮收成图标后，这两处改在这里显字，
+                   DOM 原节点不搬（搬了 paintSwitcher 的取法要跟着改，风险没必要），用 CSS 让
+                   上面那份隐藏、这份可见。 -->
+              <div class="ws-bp-cur" id="bsPopCurHead">
+                <span class="ws-bp-cur-n" id="bsPopCurName">我的词库</span>
+                <span class="ws-bp-cur-d" id="bsPopCurMeta">—</span>
+              </div>
               <div id="bsCurList"></div>
               <div class="ws-bp-title" style="margin-top:4px">我的其他词书</div>
               <div id="bsOtherList"></div>
               <div class="ws-bp-add" role="button" id="bsAddMore">＋ 添加更多词书</div>
             </div>
           </div>
-          <div class="wd-modes" id="wdModePop"><button class="wd-cur" id="wdModeBtn" type="button">模式：<b id="wdModeTxt">看词选义</b> ▾</button></div>
+          <!-- 🔴 WD-PAGE-REDESIGN-3（10-28 她点名）：模式从「点一下横排弹一排」改成**标准向下下拉**。
+               她原话：「那个选择模式，那个选择模式点了一下应该是就是下拉下来几个，可供你选择，
+               然后你点一下就会切换的这种，而不是点了一下直接横排一排弹出去了，太丑了。」
+               ⚠️ 根因就是这里：旧弹层 #wdModePopList 只用了一个 common.css/practice.css 里
+                  **从未定义过**的类名 .wd-mode-pop，没有任何定位规则 → 三个按钮按默认文档流
+                  横着排、还把工具行撑开。
+               现在三条路一起收口：① 本行给 .wd-modes 加 position:relative 当定位锚；
+               ② 弹层样式补进页面专属样式（下方 <style> 块），position:absolute 向下展开、竖排一项一行；
+               ③ 现有 JS（openModePop 建节点 / closeModePop 移除）一行不改，只认类名。 -->
+          <div class="wd-modes" id="wdModePop"><button class="wd-cur" id="wdModeBtn" type="button" aria-haspopup="listbox" aria-expanded="false">模式：<b id="wdModeTxt">看词选义</b> ▾</button></div>
           <button class="ws-tool-btn" id="cfgGear" type="button" title="练习设置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></button>
           <button class="ws-tool-btn ws-full" id="fullscreenBtn" type="button" title="全屏沉浸式背单词"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg></button>
         </div>
@@ -1655,8 +1759,14 @@ body.word-fullscreen .hub-topbar{display:none !important}
     var id = curId();
     var b = books().filter(function(x){ return x.k === id; })[0] || books()[0] || { k:'custom', name:'我的词库' };
     var n = todayNumbers();
-    nameEl.textContent = b.name || '我的词库';
-    metaEl.textContent = countOf(b) + ' 词' + (n.cap ? (' · 今日 ' + n.done + '/' + n.cap) : '');
+    var nm = b.name || '我的词库';
+    var mt = countOf(b) + ' 词' + (n.cap ? (' · 今日 ' + n.done + '/' + n.cap) : '');
+    nameEl.textContent = nm;
+    metaEl.textContent = mt;
+    /* WD-PAGE-REDESIGN-3：词书名/词数从长条钮移到弹层头部，这里同步副本 */
+    var pn = $('bsPopCurName'), pm = $('bsPopCurMeta');
+    if (pn) pn.textContent = nm;
+    if (pm) pm.textContent = mt;
   }
 
   function itemHtml(b, cur){
