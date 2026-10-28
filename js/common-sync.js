@@ -334,8 +334,12 @@ async function cloudUpload(showToast, force, opts){
   showToast = showToast !== false;
   opts = opts || {};
   /* 10/8 导航优先：自动上传（showToast=false 的定时触发）在切页瞬间让路，导航结束自动重排；
-     手动「立即同步」（showToast=true）是用户明确动作，不拦。 */
-  if(showToast === false && navBusyGrace()){ _pendingUpload = true; scheduleCloudUpload(); return false; }
+     手动「立即同步」（showToast=true）是用户明确动作，不拦。
+     🔴 AUDIT-D1-2（10-28）补一个例外：opts.noGrace —— 「清空数据补传」（hub_reset_pending）
+        必须在软导航当场推上去。那条补传是数据安全级的：它一旦被导航让路推迟，
+        导航宽限窗口一过就轮到 3s 轮询把云端旧数据拉回来合并，她刚清空的记录原地复活。
+        所以它是唯一该插队让路的上传，且带 noLock（刻意用空数据覆盖云端）。 */
+  if(showToast === false && !opts.noGrace && navBusyGrace()){ _pendingUpload = true; scheduleCloudUpload(); return false; }
   _pendingUpload = false;
   const phone = DATA.settings.syncCode;
   if(!phone){ if(showToast) toast('请先登录（设置 → 云端同步）'); return false; }

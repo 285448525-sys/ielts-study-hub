@@ -1059,6 +1059,15 @@ async function softNavigate(t, isPop){
     //    在重脚本 eval 阻塞主线程后触发“高亮闪一下”的观感。单一写入点 = 零闪烁。
     if(!isPop) history.pushState({ hub: t.id }, '', t.url || t.href);
     prefetchAll(t.id);
+    /* 🔴 AUDIT-D1-2（10-28）：`hub_reset_pending` 的**第二消费点**。
+       她清空数据 → 上传失败 → 标记写入 → 只要一直在页内软导航不重启，
+       initCloudSync（带 _cloudSyncStarted 幂等闸）这辈子不会再跑 → 标记永挂
+       → 3s 轮询把云端旧数据拉回来合并 → 「清空了怎么又回来了」。
+       所以每成功换一页就查一次标记（内部自带「只在标记存在时才检查」的短路，
+       无标记时零开销；有标记时**当场同步消费**并带 noGrace 直传，
+       不等导航宽限窗口 —— 见 common-cloud.js scheduleResetConsume 的说明）。
+       与启动消费共用同一份 consumeResetPending()，语义完全一致。 */
+    try{ if(typeof scheduleResetConsume === 'function') scheduleResetConsume(); }catch(e){}
     try{ navPendingFeedback(false); }catch(e){}        // PERF-NAV-2A：进度条与半透明一起收
     hideHubLoader();                                   // 内容切换 + 脚本执行完毕（DOM 就绪）→ 淡出遮罩
   }catch(err){

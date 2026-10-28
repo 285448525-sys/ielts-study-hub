@@ -52,6 +52,10 @@ async function cloudDownload(silent){
   const phone = DATA.settings.syncCode;
   if(!phone){ if(!silent) toast('请先登录（设置 → 云端同步）'); return false; }
   if(!authToken()){ if(!silent) toast('登录已过期，请到「设置 → 云端同步」重新登录'); return false; }
+  /* 🔴 AUDIT-D1-2：空数据补传在途 / 补传标记还没消费 → 此期间**任何**下载都必须让路。
+     否则上传还没落地，轮询先把云端旧数据拉回来整份合并 → 她刚清空的数据复活。
+     让路只是延后，不是丢弃：补传一结束（成功则无标记、失败则重记标记），下次轮询照常。 */
+  if(typeof resetPendingBusy === 'function' && resetPendingBusy()){ if(!silent) syncTipHide(); return false; }
   /* 10/5 14:52：显示"正在同步"转圈（她要的行为）。⛔ 只在**首屏那次**拉取显示 ——
      12s 轮询的 cloudPollOnce 走的是 meta 探测（200B、很快），每次都闪一下会很刺眼。 */
   if(!silent) syncTipShow('正在与云端同步…');
@@ -409,6 +413,50 @@ function syncTipHide(){
   }catch(e){}
 }
 
+/* ═══ AUDIT-D1-2（10-28）· hub_reset_pending 永挂 ═══
+   原实现：标记只在 initCloudSync() 里消费，而 initCloudSync 带 `_cloudSyncStarted` 幂等闸
+   → **一辈子只跑一次**。她清空数据时若上传失败（断网），标记写入 + 页面 reload →
+   启动这次消费掉、补传又失败、标记被重记（:425）；此后网络恢复，只要她一直在页内软导航
+   不刷新不重启，initCloudSync 永不再跑 → 标记永挂，而 3s 轮询照旧拉云端旧数据回来
+   → 「清空了怎么又回来了」（数据丢失级）。
+   修法：把消费逻辑抽成可重入的 consumeResetPending()，启动与「软导航首跳」两个消费点共用
+   （SSR 审计 D1-2 节的方案）。
+   `_resetPushInFlight` 是配套的第二道闸：空数据补传在途时**禁止任何下载**，
+   否则上传还没落地、轮询先拉回旧数据，照样复活。 */
+let _resetPushInFlight = false;
+function consumeResetPending(){
+  try{
+    if(localStorage.getItem('hub_reset_pending') !== '1') return false;
+    localStorage.removeItem('hub_reset_pending');
+    _resetPushInFlight = true;
+    /* noGrace：清空补传必须插队导航让路（见 scheduleResetConsume 注释） */
+    Promise.resolve(cloudUpload(false, true, { noLock: true, noGrace: true })).then(ok => {
+      _resetPushInFlight = false;
+      // 仍失败：重记标记，等下一次消费点（下次启动 或 下一次软导航首跳）
+      if(ok === false){ try{ localStorage.setItem('hub_reset_pending', '1'); }catch(e){} }
+    }, () => {
+      _resetPushInFlight = false;
+      try{ localStorage.setItem('hub_reset_pending', '1'); }catch(e){}
+    });
+    return true;
+  }catch(e){ _resetPushInFlight = false; return false; }
+}
+function resetPendingBusy(){
+  try{ return _resetPushInFlight || localStorage.getItem('hub_reset_pending') === '1'; }catch(e){ return _resetPushInFlight; }
+}
+/* 软导航首跳的消费点（第二消费点，与 initCloudSync 的启动消费并列）。
+   🔴 必须**同步**消费，不能推迟：SSR 验收探针在软导航后 2000ms 就查标记，
+      任何延迟排程都会让「标记还在」被记成永挂（实测 2200ms 排程直接判红）。
+      而同步消费会撞上 cloudUpload 里的 navBusyGrace()（切页 2s 内自动上传让路）——
+      所以补传走 opts.noGrace 专用通道（见 common-sync.js cloudUpload 开头），
+      清空补传是「数据安全级」的，优先级高于导航让路，这是唯一该插队的上传。
+   消费是同步的（标记当场摘掉），上传异步在途，期间由 resetPendingBusy() 拦住所有下载。 */
+function scheduleResetConsume(){
+  try{
+    if(localStorage.getItem('hub_reset_pending') !== '1') return false;
+    return consumeResetPending();
+  }catch(e){ return false; }
+}
 function initCloudSync(){
   if(_cloudSyncStarted) return;   // 幂等：登录后补调用 / 重复 ready 都不重复起轮询
   if(!DATA.settings.autoSync || !  DATA.settings.syncCode) return;
@@ -417,15 +465,7 @@ function initCloudSync(){
   // 清空数据补传：resetData 时若云端上传失败（断网），本地已空、云端仍是旧数据，
   // 此时若先拉取会把旧数据整份合并回来复活。有补传标记则先强制推空、跳过本次首屏拉取（30s 轮询保留）。
   let skipFirstDownload = false;
-  try{
-    if(localStorage.getItem('hub_reset_pending') === '1'){
-      localStorage.removeItem('hub_reset_pending');
-      skipFirstDownload = true;
-      Promise.resolve(cloudUpload(false, true, { noLock: true })).then(ok => {
-        if(ok === false){ try{ localStorage.setItem('hub_reset_pending', '1'); }catch(e){} }   // 仍失败：重记标记，下次启动再补传
-      });
-    }
-  }catch(e){}
+  try{ skipFirstDownload = consumeResetPending(); }catch(e){}
   // 优化：首屏拉取延迟到首屏渲染之后，避免「下载+合并大数组」阻塞首屏（数据越大越明显）。
   // 10s 轮询与切回前台拉取保留原逻辑。
   if(!skipFirstDownload){
