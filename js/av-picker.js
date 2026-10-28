@@ -315,7 +315,13 @@
       if(t.closest('#acctAvatarBtn')){ avOpen('user'); return; }
       if(t.closest('#coachExamAvBtn')){ avOpen('coach'); return; }
       if(t.closest('#avPopClose') || t.closest('#avPopDone')){ avClose(); return; }
-      var tab = t.closest('.av-tab');
+      /* 🔴 AV-PICKER-NARROW-1（10-28）：原来这里是裸 `.av-tab`，一条全局委托把**全站任何挂了这个类名
+         的按钮**都当成头像页签劫持 —— 设置页三组分段控件（主题外观/正文字号等）当时也挂了 .av-tab
+         却没有 data-avtab → 每点一下都跑 avSwitchTab(null)，把全组 data 为空的一起 toggle 成 on
+         （实测三档全亮、aria-selected 全写 false）。那是 SET-RE-BRK-1 的真根因之一。
+         ⇒ 收窄成只认带 data-avtab 的：命中不到就什么都不做，谁复用类名都不会再被劫持。
+         页面层那三组已改专属类 .set-seg，本行是补掉「雷本体」，防下次有人复用又踩。 */
+      var tab = t.closest('.av-tab[data-avtab]');
       if(tab){ avSwitchTab(tab.getAttribute('data-avtab')); }
     }, true);
   }
