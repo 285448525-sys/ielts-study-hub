@@ -19,7 +19,7 @@
 <meta http-equiv="Expires" content="0" />
 <title>模考 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261028f" />
-<link rel="stylesheet" href="css/p/bank.css?v=20261028f" />
+<link rel="stylesheet" href="css/p/bank.css?v=20261028g" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -2078,10 +2078,19 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
    原底 var(--primary-900)=#1a4542 近墨绿太闷；卡上 pill 深底白描边对比弱融在一起；
    数字 40/2 太扎眼。改：teal 主色渐变（亮一档）+ pill 半透明白实底（不再描边）+ 数字弱化为背景装饰。
    ⚠️ 放在文件末尾：中间加会被后面的 .fc-pill 旧规则覆盖（10/15 上午踩过「CSS 改中间不生效」）。 */
-.full-card{background:linear-gradient(158deg,#35a09a 0%,#237a74 100%);box-shadow:0 14px 34px rgba(35,122,116,.30)}
+/* 🔴 BANK-THEME-1（10-28）：原值 #35a09a → #237a74、按钮文字 #1c5f5a，全是写死的 teal。
+   她 13:0x：「这个练习页面的上面这个绿色的块也没有跟主题色统一。我只是说点进去考试的页面
+   不用跟主题色统一，外面的页面全部都是要统一的呀。」
+   边界与 applyScheme 注释一致：**列表态跟主题、考场态写死**（考场里的颜色在下面 exam 段，
+   本处不涉及）。所以这里换成主题变量渐变 ——
+     亮端 var(--primary-600) / 暗端 var(--primary-800)，正好对上原 0%/100% 两档的明度关系；
+     阴影也用 primary-800 通道，三套外观各自跟色，不再一律青绿。
+   ⚠️ 白字压 primary-600：ink #2f867f / cool #46627a / warm #64705a 三档对白字对比分别约
+      4.5:1 / 5.9:1 / 4.9:1，均达 AA 正文线（大字更是远超），深色档另走下方的深色覆盖。 */
+.full-card{background:linear-gradient(158deg,var(--primary-600) 0%,var(--primary-800) 100%);box-shadow:0 14px 34px rgba(0,0,0,.18)}
 .full-card .fc-num{opacity:.30;font-size:54px}
 .full-card .fc-pill{background:rgba(255,255,255,.18);border:1px solid transparent;color:#fff}
-.full-card .btn-primary{background:#fff;color:#1c5f5a;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.full-card .btn-primary{background:#fff;color:var(--primary-800);box-shadow:0 4px 14px rgba(0,0,0,.18)}
 .full-card .btn-primary:hover{background:#f0faf9}
 
 /* 10/17 B：没有答案的篇目 —— 未判分横幅 + 进场提示条
