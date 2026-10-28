@@ -605,7 +605,11 @@ html[data-theme="dark"] .rvx-lgd .rvx-dot-hollow{background:var(--surface);borde
 .rp-page .rp-v{border-radius:0px !important;font-size:26px !important;line-height:28.6px !important}
 .rp-page .rp-d{border-radius:0px !important;font-size:11.5px !important;line-height:19.55px !important}
 .rp-page .rp-grid2{border-radius:0px !important;font-size:15px !important;line-height:25.5px !important}
-.rp-page .rp-card{border-radius:16px !important;font-size:15px !important;line-height:25.5px !important}
+/* RV-TRAK-LAYOUT-1（10-28）：圆角 16 → 14。这一条是 1:1 基线块、带 !important，
+   是 .rp-card 圆角真正生效的地方；它原来 16px，而 .rp-rs 与 .card 都是 14px，
+   她自己看出来了「一个上一个下」。基线里 16px 是照旧设计稿抄的，
+   现在按她 10-28「一页里不要两套尺寸」的口径统一到 14 —— 只改这一个值，字号行高不动。 */
+.rp-page .rp-card{border-radius:14px !important;font-size:15px !important;line-height:25.5px !important}
 .rp-page .rp-cd{border-radius:0px !important;font-size:12.5px !important;line-height:21.25px !important}
 .rp-page .rp-tl{border-radius:0px !important;font-size:15px !important;line-height:25.5px !important}
 .rp-page .rp-tl-i{border-radius:0px !important;font-size:15px !important;line-height:25.5px !important}
@@ -770,6 +774,22 @@ html[data-theme="dark"] .rec-row.rec-focus{
   padding:16px 20px;
   border-radius:14px;
 }
+/* ── RV-TRAK-LAYOUT-1（10-28）：轨迹页「一页里几套尺寸」收口 ──
+   她 21:4x「这个轨迹页面就这一整面的 UI，就是有很多 bug」+ 10-28「中间这两个块一个上一个下」。
+   实测 1440（raw 见 _audit2_1028/_rvtrak_layout.json）：一页里同时存在三套卡片规格 ——
+     · .rp-rs（顶部四张统计卡）  圆角 14px、内距 15px 17px
+     · .rp-card（今天学了什么/本周节奏/全部记录/成就/我的数据）圆角 16px、内距 16px 20px
+     · .card  （近 30 天学习热力/每日记录/口语日常练习）圆角 14px、内距 16px 20px
+   四张统计卡跟下面的卡圆角不一致（14 vs 16），视觉上就是「上面的块跟下面的块不是一套」。
+   她定的口径是全站对齐 1132 / 24px 体系 → 这里三套统一成 **圆角 14 + 内距 16px 20px**，
+   与 #tab-record 里已经收敛好的 .rp-card/.card 一致；四张统计卡只是把 15px 17px 抬到同一档。
+   🔴 只动 padding / border-radius，不动任何布局（grid 列数、gap、margin、DOM 一行没碰）。 */
+#tab-record .rp-rs{
+  padding:16px 20px;
+  border-radius:14px;
+}
+/* ⚠️ .rp-card 的圆角真正生效的是下面第 608 行那条 `!important`（1:1 基线块，特异度高于本段），
+   所以那一条已同步改成 14px —— 只在这里再写一遍不管用，两个值必须一致。 */
 /* 卡间间距统一 14px：rp-card 原本靠相邻 margin-top，.card 原本靠 margin-bottom，
    统一成「相邻即 14」——两种写法都覆盖掉，避免一边 14 一边 24 交替出现。 */
 #tab-record .rp-card + .rp-card{ margin-top:14px; }
@@ -796,4 +816,7 @@ html[data-theme="dark"] .rec-row.rec-focus{
 @media (max-width:560px){
   #tab-record .rp-card,
   #tab-record .card{ padding:14px 13px; border-radius:14px; }
+  /* RV-TRAK-LAYOUT-1：四张统计卡原来没进这条手机规则，仍吃桌面的 16px 20px，
+     于是手机上「上面两张小卡」比下面的卡宽出一圈，看着不是一个体系。这里一并收到 14px 13px。 */
+  #tab-record .rp-rs{ padding:14px 13px; border-radius:14px; }
 }
