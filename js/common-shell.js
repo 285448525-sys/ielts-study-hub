@@ -552,6 +552,17 @@ function onHubLinkClick(e){
      她下一次点击落在面板里的子项上（plans.html?sub=today 等），于是去错页且毫无提示。 */
   try{ if(typeof tbCloseSub === 'function') tbCloseSub(); }catch(_){}
   try{ if(typeof tbCloseMe === 'function') tbCloseMe(); }catch(_){}
+  /* 🔴 P0-TAB-CROSSTALK（10-28 夜，她报「切换了几下上面的 Tab 之后」顶栏显示单词页、
+     正文却是写作页）：这是「观感先行」那三件带来的**半拉子态**。
+     点击瞬间这里就把标题 + 高亮改成了目标页，而正文要等 softNavigate 内部的
+     `main.innerHTML = newMain.innerHTML`（第 995 行那一带）才换。
+     中间这段异步窗口里只要软导航失败（异常/被下一次点击打断/跳转被拦），
+     catch 里走的是 `location.href = t.href` —— 那是异步的、还可能被模考锁或自愈闸拦掉，
+     一旦没跳成，页面就永久停在「标题=新页、高亮=新页、正文=旧页」的不一致状态。
+     修法 = 给这两个「先行」的观感留一份**可回滚快照**，由 softNavigate 在真正换完内容时
+     清掉；若走了失败分支，就按快照把标题与高亮复原，宁可回到「一致但停在旧页」，
+     也绝不留「标题页 ≠ 正文页」。 */
+  _navOptimistic = { file: t.file, title: document.title, prevFile: _hubCurrentFile };
   updateActiveNav(t.file);       // ⚠️ 关键修复（导航高亮闪烁）：点击瞬间同步高亮目标模块，
                                   //    不等 fetch/脚本执行。否则在「点击→fetch→runPageScript(重脚本 eval)」
                                   //    这段异步窗口里，旧模块高亮仍挂着，表现为「先闪其他模块、再跳回」。
@@ -568,6 +579,23 @@ function onHubLinkClick(e){
   try{ navPendingFeedback(true); }catch(_){}
   showHubLoader();                // 软导航异步窗口（fetch + 重脚本 eval）期间盖住，避免白屏闪烁
   softNavigate(t, false);
+}
+
+/* ===== P0-TAB-CROSSTALK（10-28）：软导航「观感先行」的可回滚快照 =====
+   含义：点击那一刻我们已经把**标题与导航高亮**改成了目标页，正文还没换。
+   这个对象就是那份「我提前改了啥」的记录，softNavigate 内部两种结局各自处理：
+     · 真正换完内容 → 清掉快照（内容和观感一致了，没什么要还原的）
+     · 失败/被打断 → 按快照把标题与高亮复原（回到「一致但停在旧页」）
+   为什么必须这么做：她报的串页（顶栏单词页 / 正文写作页）正是这两件事不一致的形态；
+   而失败分支里的 `location.href = t.href` 是异步的、且可能被模考锁或自愈闸拦掉，
+   一旦没跳成就会把不一致永久留在屏幕上。 */
+let _navOptimistic = null;
+function clearNavOptimistic(){ _navOptimistic = null; }
+function rollbackNavOptimistic(){
+  if(!_navOptimistic) return;
+  const snap = _navOptimistic; _navOptimistic = null;
+  try{ if(snap.title) document.title = snap.title; }catch(_){}
+  try{ if(snap.prevFile && typeof updateActiveNav === 'function') updateActiveNav(snap.prevFile); }catch(_){}
 }
 
 /* ===== PERF-NAV-2A（10-26）：软导航的「点击即反馈」三件 =====
@@ -974,7 +1002,11 @@ async function softNavigate(t, isPop){
      程序化调用（bank.js spkStartMock / writing / speaking 入口）触发。
      统一在最外层拦一次 —— 任何来源的「离开考场」都走同一条闸。 */
   if(hubExamGuardNav()) return;
-  if(_softNavBusy){ if(typeof toast === 'function') toast('页面切换中，请稍候…'); return; }
+  /* 🔴 P0-TAB-CROSSTALK（10-28）：被「切换中」挡掉的这一次，也要把点击时提前改掉的
+     标题/高亮还原 —— 否则这次点击什么都没换，标题却已经指向目标页了。
+     这一条是串页的另一个入口：她连点时，第 2 次点击被拦下，但第 1 次还没换完正文，
+     屏幕上就短暂出现「标题=第 2 页、正文=第 1 页（或更早的页）」。 */
+  if(_softNavBusy){ if(typeof toast === 'function') toast('页面切换中，请稍候…'); if(!isPop) rollbackNavOptimistic(); return; }
   _softNavBusy = true;
   _lastNavAt = Date.now();   // 10/8 导航优先：同步三路流量让路（见 navBusyGrace 注释）
   /* 🔴 10/20 模考锁的「残留保险」：软导航能走到这里，说明**没被模考锁拦住**（正常路径）。
@@ -1069,6 +1101,9 @@ async function softNavigate(t, isPop){
       setTimeout(fin, 50);
     });
     await runPageScript(t.id, doc);                     // 重新执行目标页脚本（复用 ready + 事件绑定）
+    /* 🔴 P0-TAB-CROSSTALK：正文与脚本都已换到位 → 观感与内容一致了，快照使命结束。
+       必须放在 runPageScript 之后而不是 main.innerHTML 之后：脚本执行完才算「这一页真的活了」。 */
+    clearNavOptimistic();
     // ⚠️ 不再在这里二次 updateActiveNav：点击瞬间(onHubLinkClick)已写好正确高亮，
     //    page 脚本经代码审计确认不触碰侧栏 .active，二次写只会增加一次无效重绘、
     //    在重脚本 eval 阻塞主线程后触发“高亮闪一下”的观感。单一写入点 = 零闪烁。
@@ -1089,6 +1124,12 @@ async function softNavigate(t, isPop){
   }catch(err){
     console.warn('[soft-nav] 软切换失败，回退整页跳转：', err);
     try{ navPendingFeedback(false); }catch(e){}        // PERF-NAV-2A：回退前必须收掉等待态，否则整页跳走后也不该留残影
+    /* 🔴 P0-TAB-CROSSTALK（10-28）：失败分支必须**先还原**点击时提前改掉的标题与高亮，
+       再交给整页跳转兜底。理由：`location.href = t.href` 是异步的，而且可能被
+       模考锁/自愈闸/下一次点击拦掉 —— 一旦没跳成，屏幕上就永久留着
+       「顶栏=目标页、正文=旧页」这个不一致（她截图报的串页就是它）。
+       还原之后最差也只是「一致地停在旧页」，不会再出现两页拼在一起。 */
+    rollbackNavOptimistic();
     location.href = t.href;                            // 兜底：绝不让导航“卡死”
   }finally{
     _softNavBusy = false;
