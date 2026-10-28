@@ -432,12 +432,6 @@ body{
 .side-collapse:hover{background:var(--primary-d);transform:scale(1.05)}
 
 /* 侧边栏搜索框与标题、导航视觉统一（与 side-item 12px 圆角/内边距对齐，收紧留白） */
-.top-nav .ui-search{width:100%;max-width:none}
-/* design/83：升级为 id 特异性——全站表单重置 `input:not():not()` (0,2,1) 曾压过 (0,2,0) 的
-   .top-nav .ui-search-input，把左内边距 44px 打回 14px，放大镜图标(left:12px+宽18px=30px)盖住文字 */
-#mainNav .ui-search-input{height:36px;padding:0 34px 0 40px;border-radius:12px;font-size:14px;background:var(--surface-2)}   /* 左40=图标占30px+10px间隙；右34=给原生清除×留位 */
-.top-nav .ui-search-input:focus,.top-nav .ui-search-input:hover{box-shadow:0 0 0 4px var(--primary-soft)}
-#mainNav .ui-search-icon{left:12px;width:18px;height:18px}
 
 /* design/83：查词卡动作（键盘高亮 / 喇叭 / 操作行）——明暗主题一律走 CSS 变量，禁硬编码颜色 */
 .ss-item.ss-active{background:var(--primary-soft)}
@@ -1793,45 +1787,6 @@ html[data-reduce-motion="1"] *{ animation-duration:.01ms !important; animation-i
 .ui-menu button.ui-menu-item span{ font-size:.8rem; font-weight:600; line-height:1; margin-top:4px; }
 .ui-menu button.ui-menu-item:active{ transform:scale(.98); }
 
-/* ===== 通用搜索输入 ui-search（Uiverse ozgeozkaraa01 改写：indigo rgba(129,140,248)→teal --primary；slate #f8fafc/#94a3b8/#0d0c22→--surface-2/--muted/--ink；原 .group/.input/.icon 超通用改名 .ui-search*，且原 input:hover 裸元素选择器会污染全站输入框 → 改 .ui-search-input:hover 作用域） ===== */
-.ui-search{
-  display:flex;
-  line-height:30px;
-  align-items:center;
-  position:relative;
-  max-width:200px;
-}
-.ui-search-input{
-  width:100%;
-  height:45px;
-  line-height:30px;
-  padding:0 5rem;
-  padding-left:3rem;
-  border:2px solid transparent;
-  border-radius:10px;
-  outline:none;
-  background-color:var(--surface-2);
-  color:var(--ink);
-  font-family:inherit;
-  transition:.5s ease;
-}
-.ui-search-input::placeholder{ color:var(--muted); }
-.ui-search-input:focus,
-.ui-search-input:hover{
-  outline:none;
-  border-color:var(--primary);
-  background-color:var(--surface);
-  box-shadow:0 0 0 5px color-mix(in srgb, var(--primary) 30%, transparent);
-}
-.ui-search-icon{
-  position:absolute;
-  left:1rem;
-  fill:none;
-  width:1rem;
-  height:1rem;
-  color:var(--muted);
-  pointer-events:none;
-}
 
 /* ===== 通用加载跳动点 ui-loader（Uiverse mobinkakei 改写：白球 #fff→teal --primary；黑影 rgba(0,0,0,.9)→color-mix(--ink 30%) 明暗自适应；原 .wrapper/.circle/.shadow 改名 .ui-loader*；⚠️ 原用 :nth-child(2/3/4/5) 定位/延时，DOM 顺序错一点就崩 → 改 .m2/.m3 修饰类，顺序无关；keyframes circle7124/shadow046 加 uiLoader 前缀） ===== */
 .ui-loader{
@@ -1965,7 +1920,6 @@ body.has-dock main.container{ padding-bottom:0; }
 
 /* ── 侧边栏 AI 智能搜索下拉 ── */
 .side-search-wrap{position:relative;margin:0 0 2px}   /* 9/15 收紧：4/6 → 0/2（之之：搜索栏上下空隙多） */
-.side-search-wrap .ui-search{margin:0}
 .ss-panel{position:absolute;top:calc(100% + 4px);left:0;right:0;min-width:230px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);z-index:80;max-height:60vh;overflow:auto;padding:6px}
 .ss-item{display:flex;align-items:center;gap:8px;width:100%;padding:9px 10px;border:none;background:transparent;border-radius:8px;font:inherit;font-size:13.5px;color:var(--ink);cursor:pointer;text-align:left}
 .ss-item:hover{background:var(--primary-soft)}
@@ -2804,12 +2758,6 @@ body[data-shell="top"] .container{padding-top:14px}
 /* 右侧：搜索框（186px 紧凑框 + Ctrl K）· 计时徽标 · 头像 */
 .tb-right{display:flex;align-items:center;gap:10px;flex:none}
 .tb-search{position:relative;width:186px}
-.tb-search .ui-search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;
-  color:var(--muted);pointer-events:none}
-.hub-topbar .ui-search-input{width:100%;height:28px;border:1px solid var(--line);border-radius:999px;
-  background:var(--n-50);padding:0 46px 0 30px;font-size:12.5px;font-family:inherit;color:var(--ink)}
-.hub-topbar .ui-search-input::placeholder{color:var(--n-500)}
-.hub-topbar .ui-search-input:focus{outline:none;border-color:var(--primary-300);box-shadow:0 0 0 3px var(--primary-soft);background:var(--surface)}
 .tb-search kbd{position:absolute;right:7px;top:50%;transform:translateY(-50%);font-size:10px;font-weight:700;
   color:var(--n-500);border:1px solid var(--line);border-radius:5px;padding:1px 4px;background:var(--surface);
   pointer-events:none;font-family:inherit;letter-spacing:.02em}
@@ -3291,22 +3239,12 @@ body.hub-exam-locked #ancBarHost{ display:none !important }
 
    🔴 只动视觉规格，不动任何布局/尺寸/结构；`.ui-search` 与 `.ui-field-search` 两套类各自独立。 */
 
-/* ① 顶栏搜索：`.hub-topbar` 自己那条已经写了 3px 外环（2812 行，是对的）；
-   但 `.ui-search-input:hover`（1820 行）那条 **5px** 外环仍会命中顶栏这个框 ——
-   顶栏只覆盖了 `:focus`、**没覆盖 `:hover`** → 悬停 5px / 聚焦 3px 来回跳，这就是「又套了一圈」。
-   本段把顶栏 hover 也压到 3px，两态同档。
-   ⚠️ 选择器必须是 `.hub-topbar`：实测顶栏搜索的真实祖先类名是它，
-      写 `#mainNav` / `.top-nav` 都匹配不到这个框（我第一版就写错、验证时才发现）。 */
-.hub-topbar .ui-search-input:hover{
-  box-shadow:0 0 0 3px var(--primary-soft);
-  background:var(--surface);
-}
-/* 聚焦态：全局 `input:not():not():not():focus` 是 (0,3,1)，压过 `.hub-topbar .ui-search-input:focus` (0,2,1)
-   → 实测聚焦仍是 3.5px（与悬停的 3px 不同档）。加两个 :not() 提到 (0,4,1) 才稳，
-   外环与悬停同档 3px。 */
-.hub-topbar .ui-search-input:not([type=checkbox]):not([type=radio]):focus{
-  box-shadow:0 0 0 3px var(--primary-soft);
-}
+/* 🔴 SRCH-UNIFY-1 笔 2b（10-28）：本节原来的两段修补脚本已删 ——
+   它们是给旧类 `.hub-topbar .ui-search-input` 打的外环补丁（悬停 5px→3px、聚焦 3.5px→3px）。
+   搜索框改走统一类后，外环天然由容器 `.ui-field-search:focus-within` 出一圈 3px（见上方 §S-1 段），
+   内层 input 已 `outline:none` + `box-shadow:none`，
+   所以「hover/focus 两态不同档」「内外两圈」这两个旧病在新结构下**不存在了**，补丁随之作废。
+   旧值留档：hover 曾为 `box-shadow:0 0 0 5px color-mix(...30%)`，focus 曾为 `0 0 0 3.5px var(--primary-soft)`。 */
 
 /* ② 页内统一类：内层 input 彻底剥掉自带那圈（outline 是未聚焦时也在画的第三条线），
    圆角与容器同心（10px）—— 内层不再凸出容器圆角。 */
