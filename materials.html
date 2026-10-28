@@ -400,7 +400,10 @@
 .mi-step .mi-n{ width: 24px; height: 24px; border-radius: 50%; background: var(--primary); color: rgb(255, 255, 255); font-size: 12.5px; font-weight: 800; display: flex; align-items: center; justify-content: center; margin-bottom: 9px; }
 .mi-step b{ display: block; font-size: 13.5px; font-weight: 750; margin-bottom: 4px; }
 .mi-step span{ font-size: 12px; color: var(--mi-muted); line-height: 1.7; }
-.mi-vip-bar{ display: flex; align-items: center; gap: 14px; background: var(--surface); border: 1px solid var(--primary-200); border-radius: var(--radius); padding: 20px 22px; margin-top: 14px; flex-wrap: wrap; }
+/* CARD-PAD-FIX-1 补偿（10-28，B 裁决）：会员窄条退回 15px 18px。
+   理由：它是一条**提示条**不是卡片 —— 「卡与卡同一种留白」是她拍的页内不齐；
+   条天生比卡紧凑，属于她认可的形态差异，不算混用。以后「条 / 卡不同型」都各保留原规格，只统一卡与卡。 */
+.mi-vip-bar{ display: flex; align-items: center; gap: 14px; background: var(--surface); border: 1px solid var(--primary-200); border-radius: var(--radius); padding: 15px 18px; margin-top: 14px; flex-wrap: wrap; }
 .mi-vip-bar .mi-ic{ width: 34px; height: 34px; border-radius: 10px; background: var(--primary-50); color: var(--primary-700); display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
 .mi-vip-bar .mi-tx{ flex: 1 1 0%; min-width: 200px; font-size: 13px; line-height: 1.7; color: var(--ink-2); }
 .mi-vip-bar .mi-tx b{ color: var(--mi-ink); font-weight: 750; }
@@ -482,7 +485,10 @@
 .mi-page .mi-step b{ display: block; font-size: 13.5px; font-weight: 750; margin-bottom: 4px; }
 .mi-page .mi-step span{ font-size: 12px; color: var(--mi-muted); line-height: 1.7; }
 /* CARD-PAD-FIX-1（10-28）：15px 18px → 20px 22px，与同页 .mi-card / .mi-col 统一（理由见上一条） */
-.mi-page .mi-vip-bar{ display: flex; align-items: center; gap: 14px; background: var(--surface); border: 1px solid var(--primary-200); border-radius: var(--radius); padding: 20px 22px; margin-top: 14px; flex-wrap: wrap; }
+.mi-page /* CARD-PAD-FIX-1 补偿（10-28，B 裁决）：会员窄条退回 15px 18px。
+   理由：它是一条**提示条**不是卡片 —— 「卡与卡同一种留白」是她拍的页内不齐；
+   条天生比卡紧凑，属于她认可的形态差异，不算混用。以后「条 / 卡不同型」都各保留原规格，只统一卡与卡。 */
+.mi-vip-bar{ display: flex; align-items: center; gap: 14px; background: var(--surface); border: 1px solid var(--primary-200); border-radius: var(--radius); padding: 15px 18px; margin-top: 14px; flex-wrap: wrap; }
 .mi-page .mi-vip-bar .mi-ic{ width: 34px; height: 34px; border-radius: 10px; background: var(--primary-50); color: var(--primary-700); display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
 .mi-page .mi-vip-bar .mi-tx{ flex: 1 1 0%; min-width: 200px; font-size: 13px; line-height: 1.7; color: var(--ink-2); }
 .mi-page .mi-vip-bar .mi-tx b{ color: var(--mi-ink); font-weight: 750; }
@@ -551,7 +557,7 @@
 <meta property="og:description" content="万能素材生成器：把自己的经历沉淀成可复用的口语 P2 素材。" />
 <meta property="og:url" content="https://yasihub.com/materials" />
 <meta name="twitter:card" content="summary" />
-<link rel="stylesheet" href="css/p/materials.css?v=20261028g" />
+<link rel="stylesheet" href="css/p/materials.css?v=20261028h" />
 </head>
 <body data-shell="top">
 <div id="bootLoader" class="hub-loader show" aria-hidden="true"><div class="ui-loader" role="status" aria-label="Loading"><span class="ui-loader-dot"></span><span class="ui-loader-dot m2"></span><span class="ui-loader-dot m3"></span><span class="ui-loader-shadow"></span><span class="ui-loader-shadow m2"></span><span class="ui-loader-shadow m3"></span></div></div>
