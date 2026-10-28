@@ -702,11 +702,17 @@ function topBarHtml(current){
     + '</div></nav>'
     + '<div class="tb-right">'
     + '<div class="tb-search">'
-    + '<svg class="ui-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>'
-    + '<input class="ui-search-input" type="text" id="sideSearch" placeholder="搜索功能、单词、句子" aria-label="搜索" autocomplete="off" title="输入中文搜功能；输入英文单词 AI 查词" />'
+    /* SRCH-UNIFY-1 笔 2（10-28）：顶栏这枚改用统一类 `.ui-field-search` + 导航变体 `--nav`，
+       替换旧的 `.ui-search` / `.ui-search-icon` / `.ui-search-input` 三件套。
+       🔴 `id="sideSearch"` 必须保留：Ctrl K（724 行）与 bindSideSearch（1364 行）都靠它取元素，
+          换 id 会把搜索功能整个打断。同理 `ssPanel` / `ssList` 也原样不动。
+       外观由 `--nav` 变体承载（28px 胶囊 / 12.5 字号 / 右 46px 让位 Ctrl K），与旧值逐项对齐。 */
+    + '<label class="ui-field-search ui-field-search--nav" for="sideSearch">'
+    + '<svg class="ui-field-search-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>'
+    + '<input class="ui-field-search-in" type="text" id="sideSearch" placeholder="搜索功能、单词、句子" aria-label="搜索" autocomplete="off" title="输入中文搜功能；输入英文单词 AI 查词" />'
     + '<kbd aria-hidden="true">Ctrl K</kbd>'
     + '<div class="ss-panel" id="ssPanel" hidden><div id="ssList"></div></div>'
-    + '</div>'
+    + '</label>'
     /* 🔴 10-23 她「把所有页面计时条去掉」→ 顶栏里的计时徽标容器已撤（原来这里是
        + '<div class="side-timer-wrap" id="sideTimer"></div>'）。renderSideTimer/updateSideTimerBadge 保留
        （timer.html 的结算走同一份 DATA.activeTimer），但没有容器时两者都是空转。 */
@@ -1223,10 +1229,14 @@ function injectNav(){
      两个容器都没了 → renderSideTimer()/updateSideTimerBadge() 拿不到 #sideTimer 直接返回，
      全站不再出现任何计时条/徽标。函数本体保留。 */
   // AI 智能搜索：输入中文搜站内功能跳转；输入英文单词/词组 AI 查词并自动入词库
+  /* SRCH-UNIFY-1 笔 2（10-28）：侧栏这枚改用统一类 + 侧栏变体 `--side`（45px / 10px 圆角 / 字号 14），
+     替换旧的 `.ui-search` / `.ui-search-icon` / `.ui-search-input`。
+     🔴 `id="sideSearch"` / `ssPanel` / `ssList` 原样保留（bindSideSearch 靠它们取元素）。 */
   html += '<div class="side-search-wrap">'
-    + '<div class="ui-search">'
-    + '<svg class="ui-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>'
-    + '<input class="ui-search-input" type="search" id="sideSearch" placeholder="搜功能 / 查单词" aria-label="搜索" autocomplete="off" title="输入中文搜功能；输入英文单词 AI 查词" /></div>'
+    + '<label class="ui-field-search ui-field-search--side" for="sideSearch">'
+    + '<svg class="ui-field-search-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>'
+    + '<input class="ui-field-search-in" type="search" id="sideSearch" placeholder="搜功能 / 查单词" aria-label="搜索" autocomplete="off" title="输入中文搜功能；输入英文单词 AI 查词" />'
+    + '</label>'
     + '<div class="ss-panel" id="ssPanel" hidden><div id="ssList"></div></div>'
     + '</div>';
 
@@ -1782,9 +1792,11 @@ function initSearchClear(){
   }
 }
 
-/* ===== 列表页即时搜索（.ui-search 组件配套） =====
-   用法：<input class="ui-search-input" data-search-input data-search-target="#planList" />
-   过滤目标容器内「直接子元素」的文本；空查询恢复全部显示。无匹配选择器时安全跳过。 */
+/* ===== 列表页即时搜索（配合统一搜索框 .ui-field-search 使用） =====
+   用法：<input class="ui-field-search-in" data-search-input data-search-target="#planList" />
+   过滤目标容器内「直接子元素」的文本；空查询恢复全部显示。无匹配选择器时安全跳过。
+   ⚠️ SRCH-UNIFY-1 笔 2（10-28）：本函数按 `[data-search-input]` 属性取元素，与类名无关，
+      所以旧类 `.ui-search-input` 下线不影响它；示例里只把类名换成新的，避免后人照着抄旧类。 */
 function initListSearch(){
   document.querySelectorAll('[data-search-input]').forEach(inp => {
     const sel = inp.getAttribute('data-search-target');
