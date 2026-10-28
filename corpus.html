@@ -31,8 +31,8 @@
 })();
 </script>
 <title>句子 · 雅思备考 Hub</title>
-<link rel="stylesheet" href="css/common.css?v=20261028a" />
-<link rel="stylesheet" href="css/p/corpus.css?v=20261028a" />
+<link rel="stylesheet" href="css/common.css?v=20261028b" />
+<link rel="stylesheet" href="css/p/corpus.css?v=20261028b" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -239,7 +239,7 @@ importCorpus · importHint · aiImportBox · aiImportBtn · aiImportHint · dict
 </div>
 <div id="dictView" class="kc-view-section" hidden>
 <div class="kc-dict-modes"><section class="kc-card kc-dm-card"><div class="kc-dm-body"><b>逐句默写</b><span>看中文提示，把英文默出来，AI 逐句判分挑错</span></div><button class="kc-btn kc-btn-primary" id="startWrite" type="button">开始默写</button></section><section class="kc-card kc-dm-card"><div class="kc-dm-body"><b>听写</b><span>播放英文整句，写下听到的，再逐词核对（语速可调）</span></div><button class="kc-btn" id="startDict" type="button">开始听写</button></section></div>
-<section class="kc-card"><div class="kc-card-head"><h2>我的句子库</h2><span class="kc-muted" style="font-size:13px">共 <b id="corpusCount">0</b> 条</span><button class="kc-btn" id="addToggle" type="button" aria-expanded="false">＋ 添加句子</button></div><div class="kc-cp-search"><label class="kc-search-field" for="corpusSearch"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input type="search" id="corpusSearch" placeholder="搜英文或中文…" aria-label="搜索语料" autocomplete="off"><button type="button" class="kc-ui-field-clear" hidden aria-label="清空搜索">✕</button></label></div><div id="corpusList"></div>
+<section class="kc-card"><div class="kc-card-head"><h2>我的句子库</h2><span class="kc-muted" style="font-size:13px">共 <b id="corpusCount">0</b> 条</span><button class="kc-btn" id="addToggle" type="button" aria-expanded="false">＋ 添加句子</button></div><div class="kc-cp-search"><label class="ui-field-search" for="corpusSearch"><svg class="ui-field-search-ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input class="ui-field-search-in" type="search" id="corpusSearch" placeholder="搜英文或中文…" aria-label="搜索语料" autocomplete="off"><button type="button" class="ui-field-clear" hidden aria-label="清空搜索">✕</button></label></div><div id="corpusList"></div>
 <div id="addPanel" class="kc-add-panel" hidden><div class="kc-add-tabs"><button type="button" data-amt="single" class="kc-active">单条添加</button><button type="button" data-amt="bulk">批量粘贴</button><button type="button" data-amt="ai">AI 识别导入</button></div>
 <div id="amt-single"><div class="kc-cor-fields"><label>英文<input aria-label="英文句子或词组" id="corEn" placeholder="英文句子 / 词组…"></label><label>中文<input aria-label="对应中文" id="corCn" placeholder="对应中文…"></label><button class="kc-btn kc-btn-primary" id="addCorpus" type="button">添加</button></div></div>
 <div id="amt-bulk" hidden><textarea id="bulkCorpus" aria-label="批量粘贴句子" placeholder="每行一句：英文 | 中文，如 The government should invest in public transport. | 政府应投资公交"></textarea><div class="kc-form-row"><button class="kc-btn kc-btn-primary" id="importCorpus" type="button">导入</button><span id="importHint" class="kc-muted"></span></div></div>
