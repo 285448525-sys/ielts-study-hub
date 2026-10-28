@@ -410,9 +410,19 @@ function settleOrphanActiveTimer(){
   const lastBeat = _num(m.lastBeat) || 0;
   const now = Date.now();
   const prevDay = todayKey(_num(m.startTs)) !== todayKey();
-  const ABANDON_MS = 10 * 60 * 1000;
-  // 仅当「跨天」或「运行态心跳过期超过 10 分钟」才判定为遗弃（避免误杀短暂后台节流的正常计时）
-  if(!(prevDay || (lastBeat && (now - lastBeat) > ABANDON_MS))) return;
+  /* AUDIT-D6-2（10/28 B 批准）：原判据 `prevDay || 心跳超 10 分钟` 里 prevDay 是**无条件**的，
+     只要跨天就结算 —— 哪怕 lastBeat 是刚刚（人正在前台学）。而结算段 `endTs = min(lastBeat, now)`
+     在心跳新鲜时等于 now，于是「昨天 23:50 开始 + 心跳新鲜」会被记成一段 11.3 小时的假学习记录
+     （A2 实测 dur=40772~41338s，随当前时刻浮动；她视角就是统计页出现一条长得离谱的记录）。
+     成因不是时长算法错，而是**判活条件**错：心跳新鲜说明人还在，跨零点只是日期变了。
+     改法：跨天不再单独成立，一律以心跳新鲜度为准；心跳缺失（从未刷过）才回退看 prevDay。
+     ⚠️ 下面 `endTs = Math.min(lastBeat || now, now)` 一个字没动 —— 真离线跨天时靠它把
+        离线空隙从学习时长里扣掉（A2 实测 4 号场景 1800s 不虚高，必须保留）。
+     ⚠️ 阈值 10 分钟 → 60 分钟（方案 B）：她是手机为主的备考工具，切后台一小时是常态
+        （回微信/接电话/地铁断网/锁屏）；原 10 分钟对移动端偏紧，会误杀正常计时。 */
+  const ABANDON_MS = 60 * 60 * 1000;
+  // 仅当「心跳过期超过 60 分钟」才算遗弃；心跳从未刷过时退回按跨天判定
+  if(!(lastBeat ? (now - lastBeat) > ABANDON_MS : prevDay)) return;
   // 结算真实时长：结束点取 lastBeat（最后在线时刻），不把离线空隙算进学习时长
   const endTs = Math.min(lastBeat || now, now);
   let pause = _num(m.pauseAccum) || 0;
