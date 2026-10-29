@@ -184,7 +184,15 @@ setTimeout(__rvRescue,2500);
 
 /* 头像弹层（从「一整卡」缩成弹层） */
 #avatarCard[hidden]{display:none}
-.av-pop{position:absolute;left:0;right:0;top:calc(100% + 8px);z-index:30;
+/* SET-AV-POP-FIX-1（10/29）：她 16:1x「点了一下头像，结果出来是这样的」（弹层错位铺开整条宽）。
+   🔴 根因：#avatarCard 是个 0 宽、无定位的空 div（.av-pop 是 absolute），
+      所以 .av-pop 的 left:0;right:0 是相对**整条 .set-topbar** 解析的 →
+      弹层被拉成 1130px 宽、掉在账号卡下方，而不是贴着头像按钮。
+   ✅ 改法：卡片自己变成锚点（inline-block + relative + 宽度为 0，不占位、不影响顶栏排布），
+      弹层改成相对**按钮**定位的定宽 360px 浮层，left:-8px 让左边缘与头像圆按钮对齐。
+      陪练页早就用 fixed+定宽 420 修过同一处（speaking.html:1270），这里跟它一个思路、只是跟着按钮走。 */
+#avatarCard{position:relative;display:inline-block;width:0;height:0;vertical-align:top}
+.av-pop{position:absolute;left:-8px;right:auto;top:calc(100% + 14px);width:360px;max-width:calc(100vw - 32px);z-index:30;
   background:var(--surface);color:var(--ink);border:1px solid var(--line);
   border-radius:var(--radius);box-shadow:var(--shadow-md);padding:14px 16px;text-align:left}
 .av-pop-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}
@@ -215,7 +223,9 @@ setTimeout(__rvRescue,2500);
 .set-seg.set-theme-tabs{display:inline-flex;width:auto;padding:3px;margin:0}
 .set-seg.set-theme-tabs .set-seg-btn{height:30px;flex:none}
 .set-seg.set-scheme-tabs .set-seg-btn{height:30px;display:inline-flex;align-items:center;gap:6px}
-.av-pop .av-grid{grid-template-columns:repeat(8,1fr);gap:9px}
+/* 弹层从 1130px 收到 360px 后，8 列会挤成 33px 一个、6 列还剩 2 个断在下一行：
+   改 4 列正好两整行（8 个头像 4+4），每个约 72px，比原来挤成一排好点。 */
+.av-pop .av-grid{grid-template-columns:repeat(4,1fr);gap:9px}
 @media(max-width:640px){
   .av-pop .av-grid{grid-template-columns:repeat(4,1fr)}
   /* 窄屏：弹层改为屏幕中间弹出（账户卡片下方空间不足，且露在卡片外的部分此前会被整块裁掉）。
@@ -379,7 +389,7 @@ setTimeout(__rvRescue,2500);
   <script defer src="js/feedback.js?v=20261027a"></script>
   <!-- 10/3 头像选择（DiceBear CC0 素材；必须在 data.js/common.js 之后 —— 它读 DATA.settings.avatar） -->
   <script defer src="js/av-picker.js?v=20261028j"></script>
-  <script src="js/settings.js?v=20261030a" defer></script>
+  <script src="js/settings.js?v=20261031a" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
