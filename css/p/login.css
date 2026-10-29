@@ -95,11 +95,8 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(-
 .lg-em-modal-btns{ display: flex; gap: 10px; margin-top: 12px; }
 .lg-em-modal-btns .lg-btn{ flex: 1 1 0%; }
 @media (max-width: 560px){
-  .lg-top{ padding: 12px 16px 0px; }
-  .lg-stage{ padding: 16px 16px 18px; }
   .lg-card{ padding: 24px 20px; }
   .lg-mini-brand{ margin-bottom: 20px; }
-  .lg-foot-note{ padding-left: 20px; padding-right: 20px; }
   .lg-em-modal{ padding: 16px; }
   .lg-em-modal-card{ padding: 22px 18px; }
 }
