@@ -55,6 +55,19 @@ function overall(l, r, w, s){
   return Math.round(avg * 2) / 2;
 }
 
+/* 🔴 SCORE-REFRESH-1（10-29 A2 自查发现）：
+   成绩栏现在首屏那几块（总分环 / 趋势图 / 成绩记录 / 各部正确率）全是 js/rvx-data.js 的
+   paintAll() 与 js/rec-all.js 的 render() 画的，**不是本文件的 render()**。
+   本文件原来只 render() 自己那套旧面板（早已被 CSS 清场藏掉），
+   于是「填四项分数 → 保存」存盘成功、toast 也弹了，但屏上总分还是「—」、
+   趋势图还是空的、新增的那条记录要刷新页面才出现 —— 她随便点一下就撞上。
+   这里统一补一次「存完就重画」，三个保存/删除入口（整卷成绩、分项模考、删记录）都走它。 */
+function repaintReview(){
+  try{ if(typeof window.hubRepaintReviewE === 'function') window.hubRepaintReviewE(); }catch(e){}
+  try{ if(window.RecAll && typeof window.RecAll.render === 'function') window.RecAll.render(); }catch(e){}
+}
+window.repaintReview = repaintReview;
+
 function addScore(){
   const date = $('#scoreDate').value || todayKey();
   const l = $('#scL').value, r = $('#scR').value, w = $('#scW').value, s = $('#scS').value;
@@ -86,6 +99,7 @@ function addScore(){
   $('#scL').value = $('#scR').value = $('#scW').value = $('#scS').value = '';
   $('#scNote').value = '';
   render();
+  repaintReview();
   toast('已保存 ' + date + ' 成绩');
 }
 
@@ -96,7 +110,7 @@ function deleteScore(id){
   DATA.scores = DATA.scores.filter(x => x.id !== id);
   DATA.deletedIds = DATA.deletedIds || [];
   if(id != null && !DATA.deletedIds.includes(id)) DATA.deletedIds.push(id);
-  hubSave(); render();
+  hubSave(); render(); repaintReview();
 }
 
 function render(){
@@ -562,6 +576,8 @@ function addMock(){
   if(gran === 'whole') renderPartInputs();
   else $('#mkPartInput').value = '';
   renderMock();
+  /* SCORE-REFRESH-1：分项模考同样要刷首屏那几块，否则新记录不进「全部记录」、趋势图也不动 */
+  try{ if(typeof repaintReview === 'function') repaintReview(); }catch(e){}
   // 整卷 + 客观题：顺带估算卷面雅思分
   let msg = '已保存分项模考';
   if(gran === 'whole' && !isScore){
@@ -966,7 +982,7 @@ function renderMockList(){
     b.textContent = open ? '收起' : '详情';
   }));
   box.querySelectorAll('button[data-del]').forEach(b => b.addEventListener('click', () => {
-    if(confirm('删除这条分项模考？')){ DATA.mockRecords = DATA.mockRecords.filter(x => x.id !== b.dataset.del); DATA.deletedIds = DATA.deletedIds || []; if(b.dataset.del != null && !DATA.deletedIds.includes(b.dataset.del)) DATA.deletedIds.push(b.dataset.del); hubSave(); renderMock(); }
+    if(confirm('删除这条分项模考？')){ DATA.mockRecords = DATA.mockRecords.filter(x => x.id !== b.dataset.del); DATA.deletedIds = DATA.deletedIds || []; if(b.dataset.del != null && !DATA.deletedIds.includes(b.dataset.del)) DATA.deletedIds.push(b.dataset.del); hubSave(); renderMock(); try{ if(typeof repaintReview === 'function') repaintReview(); }catch(e){} }
   }));
 
 }
