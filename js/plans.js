@@ -1814,18 +1814,24 @@ function renderDiagEntry(){
   const root = document.getElementById('diagRoot'); if(!root) return;
   const d = DATA.settings && DATA.settings.diagnosis;
   if(!d){
+    /* 🔴 PLAN-DIAG-EMPTY-COPY-1（10-29，她 19:5x 口述）：空态文案从「推销口吻」改成「不吹嘘的引导」。
+       她的原意：有清晰目标的人**不需要**诊断，按自己节奏走就行；实在没方向的小白才用这个，
+       而 AI 出的是**参考**计划，不是标准答案 —— 每个人不一样，自己知道的才适合自己。
+       旧文案「3 分钟看清你离目标多远 / 目标不切实际会直接告诉你，不哄人」是卖点式写法，
+       她说「不要过度宣传、不装牛」，所以整段换掉；结构（hero / 步骤列表 / 两个按钮）一个字没动。 */
     root.innerHTML =
       '<div class="card dg-hero">'
       + '<div class="dg-hero-ic">🎯</div>'
       + '<h2>备考诊断</h2>'
-      + '<p class="dg-hero-p">3 分钟，看清你现在的水平离目标多远、时间够不够、该把力气花在哪科。</p>'
+      + '<p class="dg-hero-p">有清晰的目标和节奏，就不需要这一步，按自己的走法来就行。'
+      + '<br>实在没方向的话，可以让 AI 结合你的情况出一份参考计划。</p>'
       + '<ul class="dg-hero-steps">'
-      + '<li>自动读取你在站内的模考与练习成绩，也可以手填，或用高考 / 四六级成绩换算</li>'
-      + '<li>告诉我们你一周哪些时段有空</li>'
-      + '<li>得到一份说实话的诊断报告——目标不切实际会直接告诉你，不哄人</li>'
+      + '<li>会读你在站内的模考与练习成绩；没有也能手填，或用高考 / 四六级成绩换算</li>'
+      + '<li>还要知道你一周哪些时段真的有空</li>'
+      + '<li>出来的是一份参考，不是标准答案——适合你的节奏，还是你自己最清楚</li>'
       + '</ul>'
-      + '<button type="button" id="dgStart" class="btn-primary dg-block-btn">开始诊断</button>'
-      + '<button type="button" id="dgSkip" class="dg-text-btn">跳过，直接用默认</button>'
+      + '<button type="button" id="dgStart" class="btn-primary dg-block-btn">需要的话，做一次诊断</button>'
+      + '<button type="button" id="dgSkip" class="dg-text-btn">不用，按我自己的来</button>'
       + '</div>';
     document.getElementById('dgStart').addEventListener('click', openDiagForm);
     document.getElementById('dgSkip').addEventListener('click', diagQuickDefault);
