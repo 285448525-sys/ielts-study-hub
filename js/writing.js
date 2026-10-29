@@ -3412,7 +3412,18 @@ function bindExam(){
        模板页上面，用户再点「评分」tab 时，评分面板被它盖住 → 页面看着一片空白，
        她的感受就是「写作整个功能用不了」。
        这里补上关回去，与 openExam 的打开严格成对。 */
-    const _panel = $('#examPanel'); if(_panel) _panel.hidden = true;
+    /* 🔴 MOCK-WRT-EXIT-BLANK-1（10-29 她：「从写作模考中退出就变成空白页面了」）：
+       上面那条修复的前提只对 **writing.html** 成立 —— 那边 #examPanel 是 main 直下的
+       覆盖层容器（`<div id="examPanel" hidden>` 里装 #examHome/#examPractice），
+       平铺页正文在它外面，关掉它天经地义。
+       但 **bank.html 的 #examPanel 就是写作 pane 的内容容器**
+       （`#pane-writing > #examPanel`，里面装着真题列表 #examHome）——
+       关掉它 = 整个写作 tab 只剩一个空 pane，页面正文高度塌到 158px，
+       正是她截图里「只剩顶栏 + 统计条」的空白页。
+       判据用 closest('.mock-pane')：#examPanel 住在某个 mock-pane 里 → 它是内容容器、不能关。
+       （writing.html 没有 .mock-pane，行为与此前一字不变。） */
+    const _panel = $('#examPanel');
+    if(_panel && !_panel.closest('.mock-pane')) _panel.hidden = true;
     /* WRT-PENDANT-1：退出时把结果区收掉。否则「正在批改」的占位会留在这里，
        下次进考场先看到上一次还在跳的三点，像卡住了。 */
     const _er = $('#examResult'); if(_er){ _er.innerHTML = ''; _er.hidden = true; }
