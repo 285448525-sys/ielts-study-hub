@@ -766,6 +766,97 @@ var SPEAKING_BANK = [
     linkedTo: "",
     proficiency: "没练"
 },
+/* ===== SPK-BANK-REFRESH-1028-1（10-29）：破壳 App 未挂「非大陆」标的 4 个话题，她拍板转正为大陆题。
+   依据：《考频清单_纯版_2026-10-28》§「10/28 转正（4）」+《口语题库-考频版_1010》正文题面。
+   ⚠️ 这 4 个 App 未给考试人数 → 档位统一 low（人数未标，不能凭空当高频）；
+   ⚠️ 10/20 那批曾把电脑平板/街市/失物招领当非大陆下线过，现在转正 = 加回来，
+      题面按 1010 版原文照搬，不自造问法。 */
+{
+    id: 'sb_p1_bored',
+    type: "P1",
+    period: "2026-10-20",
+    isNew: true,
+    frequency: 'low',
+    category: "日常",
+    titleEn: 'Feeling bored',
+    titleZh: '无聊感',
+    questions: [
+        'Do you think childhood is boring or adulthood is boring?',
+        'What do you do when you feel bored?',
+        'When would you feel bored?',
+        'Do you often feel bored?'
+    ],
+    cue: "",
+    content: "",
+    keywords: "",
+    linkedTo: "",
+    proficiency: "没练"
+},
+{
+    id: 'sb_p1_computers',
+    type: "P1",
+    period: "2026-10-20",
+    isNew: true,
+    frequency: 'low',
+    category: "事物",
+    titleEn: 'Computers/tablets',
+    titleZh: '电脑/平板',
+    questions: [
+        'Would you like to use a computer or tablet?',
+        'In what conditions would you use a computer or tablet?',
+        'When was the first time you used a computer or tablet?',
+        'What would your life be like without computers or tablets?',
+        'In what conditions would it be difficult for you to use a computer or tablet?'
+    ],
+    cue: "",
+    content: "",
+    keywords: "",
+    linkedTo: "",
+    proficiency: "没练"
+},
+{
+    id: 'sb_p1_lostfound',
+    type: "P1",
+    period: "2026-10-20",
+    isNew: true,
+    frequency: 'low',
+    category: "事件",
+    titleEn: 'Lost and found',
+    titleZh: '失物招领',
+    questions: [
+        'Have you ever lost your keys?',
+        'Will you post on social media if you lose your item?',
+        'Have you ever lost things?',
+        'Do you report to the police when finding something lost by others? Why?',
+        'What will you do if you find something lost by others?'
+    ],
+    cue: "",
+    content: "",
+    keywords: "",
+    linkedTo: "",
+    proficiency: "没练"
+},
+{
+    id: 'sb_p1_streetmarket',
+    type: "P1",
+    period: "2026-10-20",
+    isNew: true,
+    frequency: 'low',
+    category: "地点",
+    titleEn: 'Street market',
+    titleZh: '街市',
+    questions: [
+        'Are there many street markets in China?',
+        'When was the last time you went to a street market?',
+        'Do you prefer to go shopping in the shopping mall or on the street market?',
+        'What do people usually buy on the street market?'
+    ],
+    cue: "",
+    content: "",
+    keywords: "",
+    linkedTo: "",
+    proficiency: "没练"
+},
 {
     id: 'sb_p2_difficultsuccess',
     type: "P2",
@@ -819,7 +910,7 @@ var SPEAKING_BANK = [
     type: "P2",
     period: "2026-10-20",
     isNew: false,
-    frequency: "high",
+    frequency: 'medium',
     category: "人物",
     titleEn: 'a person who is good at learning and speaking new languages',
     titleZh: '擅长学习和说语言的人',
@@ -939,7 +1030,7 @@ var SPEAKING_BANK = [
     type: "P2",
     period: "2026-10-20",
     isNew: true,
-    frequency: "medium",
+    frequency: 'high',
     category: "人物",
     titleEn: 'a successful sportsperson you admire',
     titleZh: '钦佩的运动员',
@@ -1035,7 +1126,7 @@ var SPEAKING_BANK = [
     type: "P2",
     period: "2026-10-20",
     isNew: false,
-    frequency: "medium",
+    frequency: 'low',
     category: "事物",
     titleEn: 'An interesting video',
     titleZh: '有趣视频',
@@ -1564,7 +1655,7 @@ var SPEAKING_BANK = [
     type: "P2",
     period: "2026-10-20",
     isNew: true,
-    frequency: 'medium',
+    frequency: 'high',
     category: "地点",
     titleEn: 'a public building you enjoy visiting (e.g. a library, a shopping mall, a sports hall, etc.)',
     titleZh: '喜欢的公共建筑',
@@ -1612,7 +1703,7 @@ var SPEAKING_BANK = [
     type: "P2",
     period: "2026-10-20",
     isNew: true,
-    frequency: 'medium',
+    frequency: 'high',
     category: "事物",
     titleEn: 'a book you enjoyed reading and that made you happy',
     titleZh: '读起来开心的书',
@@ -1647,30 +1738,6 @@ var SPEAKING_BANK = [
         'What he/she talked about',
         'Why you kept listening',
         'And explain how you felt about the experience'
-    ],
-    questions: [],
-    cue: "",
-    content: "",
-    keywords: "",
-    linkedTo: "",
-    proficiency: "没练"
-},
-{
-    id: 'sb_p2_techcantuse',
-    type: "P2",
-    period: "2026-10-20",
-    isNew: true,
-    frequency: "low",
-    category: "事物",
-    titleEn: 'a piece of technology that you didn\'t know how to use (e.g. a computer, a smartphone, etc.)',
-    titleZh: '不会用的科技产品',
-    promptEn: 'Describe a piece of technology that you didn\'t know how to use (e.g. a computer, a smartphone, etc.)',
-    promptZh: '描述一件你一开始不会用的科技产品。',
-    youShouldSay: [
-        'What it was',
-        'Why you didn\'t know how to use it',
-        'Whether you learned to use it at last',
-        'And explain how you felt about it'
     ],
     questions: [],
     cue: "",
@@ -1850,30 +1917,6 @@ var SPEAKING_BANK = [
     proficiency: "没练"
 },
 {
-    id: 'sb_p2_decision',
-    type: "P2",
-    period: "2026-10-20",
-    isNew: false,
-    frequency: "low",
-    category: "事件",
-    titleEn: 'An important decision you made',
-    titleZh: '重要决定',
-    promptEn: 'Describe an important decision that you made',
-    promptZh: '描述你做出的一个重要决定。',
-    youShouldSay: [
-        'What the decision was',
-        'How you made your decision',
-        'What the results of the decision were',
-        'And explain why it was important'
-    ],
-    questions: [],
-    cue: "",
-    content: "",
-    keywords: "",
-    linkedTo: "",
-    proficiency: "没练"
-},
-{
     id: 'sb_p2_specialfood',
     type: "P2",
     period: "2026-10-20",
@@ -1950,7 +1993,7 @@ var SPEAKING_BANK = [
     type: "P2",
     period: "2026-10-20",
     isNew: false,
-    frequency: 'medium',
+    frequency: 'high',
     category: "地点",
     titleEn: 'a home that you like to visit but do not want to live in',
     titleZh: '喜欢拜访但不想住的家',
@@ -2042,30 +2085,6 @@ var SPEAKING_BANK = [
     proficiency: "没练"
 },
 {
-    id: 'sb_p2_envlawwish',
-    type: "P2",
-    period: "2026-10-20",
-    isNew: false,
-    frequency: "low",
-    category: "事件",
-    titleEn: 'an environmental law you would like your country to introduce',
-    titleZh: '想要颁布的环保法律',
-    promptEn: 'Describe an environmental law you would like your country to introduce',
-    promptZh: '描述一条你希望国家颁布的环保法律。',
-    youShouldSay: [
-        'What law it should be',
-        'Why people should follow the law',
-        'Whether the law will be popular',
-        'And explain how you feel about this law'
-    ],
-    questions: [],
-    cue: "",
-    content: "",
-    keywords: "",
-    linkedTo: "",
-    proficiency: "没练"
-},
-{
     id: 'sb_p2_localnews',
     type: "P2",
     period: "2026-10-20",
@@ -2081,30 +2100,6 @@ var SPEAKING_BANK = [
         'Where you saw/heard it',
         'Who was involved',
         'And explain why people were interested in it'
-    ],
-    questions: [],
-    cue: "",
-    content: "",
-    keywords: "",
-    linkedTo: "",
-    proficiency: "没练"
-},
-{
-    id: 'sb_p2_recentchange',
-    type: "P2",
-    period: "2026-10-20",
-    isNew: false,
-    frequency: "low",
-    category: "事件",
-    titleEn: 'a change that you made recently',
-    titleZh: '近期改变',
-    promptEn: 'Describe a change that you made recently',
-    promptZh: '描述一个你最近做出的改变。',
-    youShouldSay: [
-        'What the change was',
-        'What caused the change',
-        'What you did for the change',
-        'And explain how you feel about the change'
     ],
     questions: [],
     cue: "",
