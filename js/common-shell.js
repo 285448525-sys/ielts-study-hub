@@ -1455,18 +1455,33 @@ function hubResetPageScroll(){
      于是**每次软导航都新建一个 50ms 的 interval**，旧的还没到期、新的又叠上去
      （实测 5 次软导航新增 5 个 50ms interval，同时最多并存十几个，全在抢主线程）。
      改法：不管句柄在不在，先把**旧的清掉**再按新的截止时间建 —— 同一时刻只有一个在跑，
-     锁顶时长仍由 _hubScrollLockUntil 决定（600ms 语义不变）。 */
-  if(window.__hubScrollLock){ clearInterval(window.__hubScrollLock); window.__hubScrollLock = null; }
-  window.__hubScrollLock = setInterval(function(){
-    if(Date.now() > _hubScrollLockUntil){
-      clearInterval(window.__hubScrollLock); window.__hubScrollLock = null; return;
-    }
+     锁顶时长仍由 _hubScrollLockUntil 决定（600ms 语义不变）。
+     🔴 SCROLL-LOCK-1（10-29）：把「50ms 固定节拍轮询」换成**有限次阶梯检查**。
+         实测单次纠偏本身 0ms（读一次 scrollTop 再写 0），真正浪费的是「每 50ms 醒一次」
+         这个节拍 —— 600ms 醒 12 次，而页面脚本主要在前 300ms 内跑完，后段多半白醒。
+         检查点递减 [0,60,140,260,420]，唤醒 12 → 5 次，检查点之间**不留定时器**，主线程零打扰。
+         语义不变：仍是 600ms 内持续锁顶（超过 _hubScrollLockUntil 立刻停），
+         失效条件、纠偏动作、调用点全部沿用原实现。 */
+  if(window.__hubScrollLock){ clearInterval(window.__hubScrollLock); clearTimeout(window.__hubScrollLock); window.__hubScrollLock = null; }
+  const _lockSteps = [0, 60, 140, 260, 420, 580];   // 相对导航时刻的检查点（ms），覆盖到 580 ≈ 原来的 600ms 窗口
+  /* ⚠️ 必须**覆盖到接近 600ms**，不能只到 420 —— 原 interval 最后一跳在 ~600ms，
+     若新实现 420ms 之后就撒手，那么「480ms 时页面脚本 focus 把容器顶走」这种情况
+     原来会被纠回、现在不会 ⇒ 用户看到页面停在中间，等于改了行为（她的红线）。
+     5 → 6 个检查点，仍比原来 12 次少一半，且检查点之间不留定时器。 */
+  const _lockTick = (i) => {
+    if(Date.now() > _hubScrollLockUntil){ window.__hubScrollLock = null; return; }
     try{
       const m = document.querySelector('main.container');
       if(m && m.scrollTop) m.scrollTop = 0;
       if(window.scrollY) window.scrollTo(0, 0);
     }catch(_){}
-  }, 50);
+    if(i + 1 < _lockSteps.length){
+      window.__hubScrollLock = setTimeout(() => _lockTick(i + 1), _lockSteps[i + 1] - _lockSteps[i]);
+    }else{
+      window.__hubScrollLock = null;   // 最后一档到点即收，不再留定时器
+    }
+  };
+  _lockTick(0);
 }
 
 /* 🔴 10/6 01:55 「内容装得下就不要能滑动」——修「明明整屏能显示完却还能滑一点」。
