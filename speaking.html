@@ -3313,8 +3313,16 @@ html[data-theme="dark"] #detailBody .sp-tc-head{
     .sp-toolbar{flex-wrap:wrap;gap:9px}
     .sp-toolbar .sp-tb-row1{order:1;flex:1 1 100%;margin:0}
     .sp-toolbar .sp-tb-row2{order:2;flex-wrap:wrap;gap:9px}
-    .sp-toolbar .sp-search-wrap{flex:1 1 100%}
-    .sp-toolbar .sp-fsel{flex:1 1 0;min-width:0}
+    /* SPK-TOOLBAR-OVERFLOW-1（10-29 她实名报障）：①能左右滑 ②搜索框右边多两个小框两个箭头
+       —— 同一个根因。上面 3280 行 `.sp-toolbar .sp-search-wrap{...max-width:360px}` 是桌面用的
+       上限，窄屏这条只写了 flex，没把 max-width 放开 → 393 宽起（iPhone 14/15=393、Pixel=412、
+       16 Pro Max=430）搜索仍钉在 360 宽，行宽 369 里只剩 9px 给三个筛选；而 3317 的
+       `.sp-toolbar .sp-fsel{flex:1 1 0}` 允许压到 0 宽 → 第一个筛挤压成 0 宽卡在行尾（露出的
+       只有 7px 的 ::after 箭头 = 她说的「两个小框和两个箭头」），第二个被顶出视口 → main
+       横向溢出 20~34px → 整页能横滑。390 及以下刚好换行逃过（所以以前探针全绿）。
+       修法：窄屏把 max-width 放开成 none + 给筛选最小宽度，让它们规规矩矩换行三等分。 */
+    .sp-toolbar .sp-search-wrap{flex:1 1 100%;max-width:none}
+    .sp-toolbar .sp-fsel{flex:1 1 0;min-width:88px;max-width:none}
     .sp-toolbar .sp-fsel .sp-select{padding:0 26px 0 10px;font-size:12.5px}
     .sp-toolbar .sp-fsel.has-val .sp-select{padding-left:12px}
     .sp-toolbar .sp-fsel.has-val .sp-fsel-lb{display:none}
