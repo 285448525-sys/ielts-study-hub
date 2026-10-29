@@ -17,19 +17,27 @@
 const { chromium } = require('playwright-core');
 const path = require('path'), http = require('http'), fs = require('fs');
 const ROOT = path.resolve(__dirname, '..');
-const PORT = Number(process.argv[2] || 9300);
+/* 端口/服务：支持外部 BASE（_with_server.cjs 传 http://127.0.0.1:PORT 作 argv[2] 且自己起服务），
+   不传则自起静态服务。回归白名单跑的是外部模式。 */
+const ARG = process.argv[2] || '';
+const EXT_BASE = /^https?:\/\//.test(ARG) ? ARG : (process.env.BASE || '');
+const PORT = /^https?:\/\//.test(ARG) ? 0 : (Number(ARG) || 9300);
 const MIME = { '.html':'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.css':'text/css; charset=utf-8', '.json':'application/json', '.svg':'image/svg+xml', '.png':'image/png', '.jpg':'image/jpeg', '.webp':'image/webp', '.mp3':'audio/mpeg', '.woff2':'font/woff2' };
 let pass = 0, fail = 0;
 const ok = (n, c, x) => { if (c) { pass++; console.log('  ok  ' + n + (x ? '  ' + x : '')); } else { fail++; console.log('  RED ' + n + (x ? '  <<< ' + x : '')); } };
 
 (async () => {
-  const srv = http.createServer((req, res) => {
-    let u = decodeURIComponent(req.url.split('?')[0]); if (u === '/') u = '/home.html';
-    const f = path.resolve(ROOT, '.' + u);
-    if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); return res.end('nf'); }
-    res.writeHead(200, { 'Content-Type': MIME[path.extname(f)] || 'application/octet-stream' });
-    fs.createReadStream(f).pipe(res);
-  }).listen(PORT);
+  let srv = null, BASE = EXT_BASE;
+  if (!BASE) {
+    srv = http.createServer((req, res) => {
+      let u = decodeURIComponent(req.url.split('?')[0]); if (u === '/') u = '/home.html';
+      const f = path.resolve(ROOT, '.' + u);
+      if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); return res.end('nf'); }
+      res.writeHead(200, { 'Content-Type': MIME[path.extname(f)] || 'application/octet-stream' });
+      fs.createReadStream(f).pipe(res);
+    }).listen(PORT);
+    BASE = 'http://127.0.0.1:' + PORT;
+  }
 
   const b = await chromium.launch({ executablePath: 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', args: ['--proxy-server=direct://'] });
   const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });
@@ -70,7 +78,7 @@ const ok = (n, c, x) => { if (c) { pass++; console.log('  ok  ' + n + (x ? '  ' 
     };
   });
 
-  await p.goto(`http://127.0.0.1:${PORT}/home.html`, { waitUntil: 'load', timeout: 25000 });
+  await p.goto(BASE + '/home.html', { waitUntil: 'load', timeout: 25000 });
   await p.waitForTimeout(1600);
 
   const go = async (id, file) => {
@@ -112,7 +120,7 @@ const ok = (n, c, x) => { if (c) { pass++; console.log('  ok  ' + n + (x ? '  ' 
 
   ok('全程零 pageerror', errs.length === 0, errs.slice(0, 3).join(' | '));
 
-  await b.close(); srv.close();
+  await b.close(); if(srv) srv.close();
   console.log(`\n===== 软导航守卫一致性 ${pass} 过 / ${fail} 红 =====`);
   process.exit(fail ? 1 : 0);
 })();
