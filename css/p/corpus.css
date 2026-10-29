@@ -148,13 +148,8 @@
 .kc-btn-primary{ background: var(--kc-p); border-color: var(--kc-p); color: rgb(255, 255, 255); }
 .kc-btn-sm{ padding: 0px 13px; font-size: 12.5px; }
 .kc-word-status{ font-size: 12px; color: var(--kc-muted); }
-.kc-sample-label{ font-size: 11px; color: var(--kc-muted); margin-top: 3px; }
 .kc-quote{ margin-top: 18px; padding: 16px 18px; border-left: 3px solid var(--kc-p); border-radius: 0px 10px 10px 0px; background: var(--kc-ps); color: var(--kc-ink); font-size: 15px; line-height: 1.8; }
 .kc-result-grid{ display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 18px; }
-.kc-result-block{ padding: 16px; border: 1px solid var(--n-100); border-radius: 10px; background: var(--kc-soft); }
-.kc-result-block h3{ font-size: 12px; color: var(--kc-pd); font-weight: 700; margin-bottom: 6px; }
-.kc-result-block p{ font-size: 14px; line-height: 1.8; }
-.kc-result-block.kc-wide{ grid-column: 1 / -1; }
 .kc-eb-bar{ display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
 .kc-eb-input{ min-height: 190px; }
 .kc-eb-loading{ margin-top: 14px; padding: 14px; border: 1px dashed var(--kc-line); border-radius: 10px; font-size: 14px; color: var(--kc-muted); }
@@ -182,9 +177,6 @@
 .kc-cor-fields{ display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
 .kc-cor-fields label{ font-size: 12px; color: var(--kc-muted); }
 .kc-cor-fields input{ display: block; width: 260px; max-width: 100%; margin-top: 4px; padding: 0px 12px; border: 1px solid var(--kc-line); border-radius: 10px; background: var(--kc-soft); color: var(--kc-text); }
-.kc-review-note p{ display: flex; gap: 12px; }
-.kc-review-note b{ flex: 0 0 auto; color: var(--kc-text); font-weight: 650; }
-.kc-review-note .kc-disclaimer{ margin-top: 8px; font-size: 11px; opacity: 0.85; }
 @media (min-width: 861px){
 #wordTabs{ display: none; }
 .kc-card-head:first-child{ padding-right: 112px; }
@@ -195,7 +187,6 @@
 .kc-dm-card{ flex-wrap: wrap; }
 .kc-dm-card .kc-btn{ margin-left: auto; }
 .kc-result-grid{ grid-template-columns: 1fr; }
-.kc-result-block.kc-wide{ grid-column: auto; }
 }
 @media (max-width: 420px){
 .kc-view-switch{ width: 100%; }
@@ -211,8 +202,6 @@
 .kc-cor-fields{ display: block; }
 .kc-cor-fields label{ display: block; margin-bottom: 12px; }
 .kc-cor-fields input{ width: 100%; }
-.kc-review-note p{ display: block; }
-.kc-review-note b{ display: block; }
 }
 @media (prefers-reduced-motion: reduce){
 .kc-page button{ transition: none; }
@@ -222,7 +211,6 @@
 /* ===== 站点全局标签规则（common.css:470 input / :490 label）的冲突钉死 =====
    这两条标签选择器直接写在元素上，会盖掉未显式声明的 font-size / line-height。
    下面按设计稿实测值钉一遍，本文件追加在 common.css 之后 → 同比分靠顺序赢。 */
-.kc-page .kc-theme-btn button, .kc-page .kc-theme-btn>button{font-size:13px}
 .kc-page .kc-active{font-size:13px}
 .kc-page .kc-active button, .kc-page .kc-active>button{font-size:13px}
 .kc-page .kc-btn{font-size:13.5px}
@@ -262,13 +250,10 @@
 .kc-page .kc-btn-primary{ background: var(--kc-p); border-color: var(--kc-p); color: rgb(255, 255, 255); }
 .kc-page .kc-btn-sm{ padding: 0px 13px; font-size: 12.5px; }
 .kc-page .kc-word-status{ font-size: 12px; color: var(--kc-muted); }
-.kc-page .kc-sample-label{ font-size: 11px; color: var(--kc-muted); margin-top: 3px; }
 .kc-page .kc-quote{ margin-top: 18px; padding: 16px 18px; border-left: 3px solid var(--kc-p); border-radius: 0px 10px 10px 0px; background: var(--kc-ps); color: var(--kc-ink); font-size: 15px; line-height: 1.8; }
 .kc-page .kc-result-grid{ display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 18px; }
-.kc-page .kc-result-block{ padding: 16px; border: 1px solid var(--n-100); border-radius: 10px; background: var(--kc-soft); }
 .kc-page .kc-result-block h3{ font-size: 12px; color: var(--kc-pd); font-weight: 700; margin-bottom: 6px; }
 .kc-page .kc-result-block p{ font-size: 14px; line-height: 1.8; }
-.kc-page .kc-result-block.kc-wide{ grid-column: 1 / -1; }
 .kc-page .kc-eb-bar{ display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
 .kc-page .kc-eb-input{ min-height: 190px; }
 .kc-page .kc-eb-loading{ margin-top: 14px; padding: 14px; border: 1px dashed var(--kc-line); border-radius: 10px; font-size: 14px; color: var(--kc-muted); }
@@ -293,7 +278,6 @@
 .kc-page .kc-cor-fields input{ display: block; width: 260px; max-width: 100%; margin-top: 4px; padding: 0px 12px; border: 1px solid var(--kc-line); border-radius: 10px; background: var(--kc-soft); color: var(--kc-text); }
 .kc-page .kc-review-note p{ display: flex; gap: 12px; }
 .kc-page .kc-review-note b{ flex: 0 0 auto; color: var(--kc-text); font-weight: 650; }
-.kc-page .kc-review-note .kc-disclaimer{ margin-top: 8px; font-size: 11px; opacity: 0.85; }
 @media (min-width: 861px){
 .kc-page #wordTabs{ display: none; }
 .kc-page .kc-card-head:first-child{ padding-right: 112px; }
@@ -304,7 +288,6 @@
 .kc-page .kc-dm-card{ flex-wrap: wrap; }
 .kc-page .kc-dm-card .kc-btn{ margin-left: auto; }
 .kc-page .kc-result-grid{ grid-template-columns: 1fr; }
-.kc-page .kc-result-block.kc-wide{ grid-column: auto; }
 }
 @media (max-width: 420px){
 .kc-page .kc-view-switch{ width: 100%; }
