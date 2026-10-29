@@ -313,9 +313,10 @@ main.container:has(> .rvx-page) > .review-wrap{ order:1; margin-top:22px }
 .rvx-r3 span{flex:1;text-align:center;background:var(--surface-2);border-radius:8px;
   padding:7px 4px;font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums}
 
-/* ===== 版 C 时间轴 ===== */
-.rvx-tl-item::before{content:'';position:absolute;left:-27px;top:18px;width:10px;height:10px;
-  border-radius:50%;background:var(--surface);border:2.5px solid var(--line)}
+/* ===== 版 C 记录页筛选带 =====
+   🔴 FE-DEAD-CSS-2B（10-29）：原「版 C 时间轴」的 `.rvx-tl-item::before`（时间轴圆点）
+   已删 —— 全仓零使用（HTML/JS 里 `rvx-tl-item` 命中 0，也没有动态拼类），
+   时间轴版早就被记录页重设计取代了。同段保留的筛选带三件仍在用。 */
 .rvx-filters{display:flex;gap:6px;flex-wrap:wrap}
 .rvx-rec-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
 .rvx-chip{padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:var(--surface);
@@ -340,13 +341,13 @@ main.container:has(> .rvx-page) > .review-wrap{ order:1; margin-top:22px }
 .rvx-hmk span{display:inline-flex;align-items:center;gap:4px}
 .rvx-hmk i{width:9px;height:9px;border-radius:2px;display:block}
 
-/* ===== 元素核对表 ===== */
-.rvx-tabin{width:100%;border-collapse:collapse;font-size:13px;background:var(--surface);
-  border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+/* ===== 核对结论标记（原「元素核对表」）
+   🔴 FE-DEAD-CSS-2B（10-29）：原表容器 `.rvx-tabin`（border-collapse 表格壳）已删 ——
+   全仓零使用，核对表那版设计早已退役；同一小块里的 `.rvx-note` 也一并删掉（同样零使用）。
+   但 **`.rvx-yes` / `.rvx-no` 必须保留**：它们是「已达标 / 还差 N」那两句结论的配色，
+   js/rvx-data.js:98-99 在运行时直接拼这两个类，删了结论就没有颜色区分。 */
 .rvx-yes{color:var(--med);font-weight:700}
 .rvx-no{color:var(--danger);font-weight:700}
-.rvx-note{background:var(--primary-50);border:1px solid var(--primary-200);border-radius:12px;
-  padding:14px 16px;font-size:13.5px;line-height:1.62}
 .rvx-warnbox{background:rgba(255,149,0,.09);border:1px solid rgba(255,149,0,.3);border-radius:12px;
   padding:14px 16px;font-size:13.5px;line-height:1.62}
 .rvx-lgd{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:8px}
@@ -364,21 +365,19 @@ html[data-theme="dark"] .rvx-lgd .rvx-dot-hollow{background:var(--surface);borde
 .rvx-page svg{display:block}
 .rvx-fn{font-size:12.5px;color:var(--muted);margin-top:10px;line-height:1.6}
 
-/* ===== 响应式：三栏/两栏在窄屏一律叠成一列，顺序不变 ===== */
-@media (max-width:1180px){
-  .rvx-dash{grid-template-columns:1fr 1fr}
-  .rvx-dash>div:first-child{grid-column:1 / -1}
-}
+/* ===== 响应式：两栏在窄屏叠成一列，顺序不变 =====
+   🔴 FE-DEAD-CSS-2B（10-29）：原「三栏/两栏」里的 `.rvx-dash` 三条规则（1180 档两列 +
+   900 档单列 + 首格跨列还原）已删 —— `.rvx-dash` 全仓零使用，那块仪表盘布局在
+   回顾页重设计里整体退役。**`.rvx-two` 保留**（它还在用，4 处），故 900 档只摘掉
+   `.rvx-dash` 这个并列选择器、留下 `.rvx-two` 那条，不能整行删。 */
 @media (max-width:900px){
-  .rvx-dash,.rvx-two{grid-template-columns:1fr}
-  .rvx-dash>div:first-child{grid-column:auto}
+  .rvx-two{grid-template-columns:1fr}
   .rvx-subj-b{grid-template-columns:1fr}
   .rvx-trf{grid-template-columns:repeat(2,1fr)}
   .rvx-trf>div{border-right:0;border-bottom:1px solid var(--line)}
   .rvx-trf>div:nth-child(odd){border-right:1px solid var(--line)}
   .rvx-trf>div:last-child{border-bottom:0}
   .rvx-card-p{padding:16px}
-  .rvx-big{font-size:44px}
 }
 @media (max-width:520px){
   .rvx-trf{grid-template-columns:1fr}
@@ -386,7 +385,8 @@ html[data-theme="dark"] .rvx-lgd .rvx-dot-hollow{background:var(--surface);borde
   .rvx-subj-h{grid-template-columns:38px 1fr auto;gap:10px;padding:14px 16px}
   .rvx-subj-h .rvx-tag{grid-column:2 / -1;justify-self:start;margin-top:4px}
   .rvx-subj-b{padding:14px 16px;gap:16px}
-  .rvx-big{font-size:40px}
+  /* FE-DEAD-CSS-2B（10-29）：原 `.rvx-big{font-size:40px}` 已删 —— 类名零使用，
+     大数字那块随仪表盘一起退役。900 档那条同款也已删，见上。 */
 }
 
 /* ═══ R-REC-1（10-25）第二页记录重设计 · 1:1 导出块（机器生成，勿手改）═══
