@@ -36,6 +36,27 @@
   ];
 
   function scores(){ return Array.isArray(DATA.scores) ? DATA.scores.slice() : []; }
+
+  /* 🔴 RV-PAGE-REDESIGN-1（10-29）：趋势图当前选中的科目。
+     'overall' = 总分（当天有记录科目的平均）；其余为 SUBS 里的 k。 */
+  var TREND_PICK = 'overall';
+  function colorOf(k){
+    var c = 'var(--primary)';
+    SUBS.forEach(function(se){ if (se.k === k) c = se.color; });
+    return c;
+  }
+  function setTrendPick(k){
+    if (k !== 'overall' && !SUBS.some(function(se){ return se.k === k; })) return;
+    TREND_PICK = k;
+    var box = document.getElementById('rvxTrendChips');
+    if (box){
+      [].forEach.call(box.querySelectorAll('.rvx-chip'), function(b){
+        b.classList.toggle('rvx-on', b.getAttribute('data-k') === k);
+      });
+    }
+    try { paintTrend(); } catch(e){}
+  }
+  window.rvxTrendPick = setTrendPick;
   function sortedScores(){
     return scores().sort(function(a, b){ return String(a.date || '').localeCompare(String(b.date || '')); });
   }
@@ -231,12 +252,18 @@
     var wrap = host.querySelector('div[style*="overflow-x"]');
     var legend = host.querySelector('.rvx-lgd');
     if (legend){
-      /* 图例两行：第一行科目色，第二行「实心=实考 / 空心=模考·平时添加·AI 评分」 */
-      legend.innerHTML = SUBS.map(function(s){
-        return '<span><i class="rvx-dot" style="background:' + s.color + '"></i>' + s.name + '</span>';
-      }).join('')
-      + '<span class="rvx-lgd-src"><i class="rvx-dot rvx-dot-fill"></i>实考 / 整卷</span>'
-      + '<span class="rvx-lgd-src"><i class="rvx-dot rvx-dot-hollow"></i>模考 · 平时添加 · AI 评分</span>';
+      /* 一次只看一科（终稿），图例只说当前这条线是什么 + 两种点的含义 */
+      var curName = '总分';
+      SUBS.forEach(function(se){ if (se.k === TREND_PICK) curName = se.name; });
+      legend.innerHTML = '<span><i class="rvx-dot" style="background:' + (TREND_PICK === 'overall' ? 'var(--primary)' : colorOf(TREND_PICK)) + '"></i>' + curName + '</span>'
+        + '<span class="rvx-lgd-src"><i class="rvx-dot rvx-dot-fill"></i>实考 / 整卷</span>'
+        + '<span class="rvx-lgd-src"><i class="rvx-dot rvx-dot-hollow"></i>模考 · 平时添加 · AI 评分</span>';
+    }
+    var lab = document.getElementById('rvxTrendLab');
+    if (lab){
+      var nm = '总分';
+      SUBS.forEach(function(se){ if (se.k === TREND_PICK) nm = se.name; });
+      lab.textContent = nm + ' · 按考试场次' + (TREND_PICK === 'overall' ? '（当天有记录的科目取平均）' : '');
     }
     if (!wrap) return;
 
@@ -246,7 +273,11 @@
       wrap.innerHTML = '<div class="rvx-fn" style="padding:26px 4px;text-align:center">还没有成绩记录。<br>模考、AI 评分、你自己录入的成绩都会进这张图。</div>';
       return;
     }
-    var W = 720, H = 250, padL = 26, padR = 10, padT = 14, padB = 26;
+    /* 🔴 RV-PAGE-REDESIGN-1（10-29）：成绩栏改成单列后这张图占满 1132px，
+       原来的 720×250 画布被拉到 393px 高（太肥，终稿是扁的 900×205）。
+       改法：画布放宽到 900 并在 SVG 上钉 max-width:900px —— 与终稿同比例，
+       卡片更宽时也不会继续拉高（不再靠 height 硬压，避免文字变形）。 */
+    var W = 900, H = 230, padL = 26, padR = 10, padT = 14, padB = 26;
     var plotW = W - padL - padR, plotH = H - padT - padB;
     var n = dates.length;
     var X = function(i){ return n === 1 ? padL + plotW / 2 : padL + plotW * i / (n - 1); };
@@ -266,23 +297,37 @@
       var ty = Y(tgt);
       s += '<line x1="' + padL + '" y1="' + ty + '" x2="' + (W - padR) + '" y2="' + ty + '" style="stroke:' + se.color + '" stroke-width="1" stroke-dasharray="5 4" opacity=".45"></line>';
     });
-    /* 每科只连自己有点的位置：中间缺记录就断开，不拿假点把断档连成「趋势」 */
-    SUBS.forEach(function(se){
-      var cells = per[se.k];
-      var idx = [];
-      dates.forEach(function(d, i){ if (cells[d]) idx.push(i); });
-      if (!idx.length) return;
-      if (idx.length > 1){
-        var pts = idx.map(function(i){ return X(i) + ',' + Y(cells[dates[i]].v); });
-        s += '<polyline points="' + pts.join(' ') + '" fill="none" style="stroke:' + se.color + '" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" opacity=".92"></polyline>';
-      }
-      idx.forEach(function(i){
-        var c = cells[dates[i]];
-        var isLast = (i === idx[idx.length - 1]);
-        s += c.real
-          ? '<circle cx="' + X(i) + '" cy="' + Y(c.v) + '" r="' + (isLast ? 4 : 2.8) + '" style="fill:' + se.color + '"></circle>'
-          : '<circle cx="' + X(i) + '" cy="' + Y(c.v) + '" r="' + (isLast ? 3.4 : 2.6) + '" style="fill:var(--surface);stroke:' + se.color + '" stroke-width="2"></circle>';
+    /* 🔴 RV-PAGE-REDESIGN-1（10-29）：终稿的趋势图「一次只看一科」——
+       上面那排筛选器（#rvxTrendChips）决定画哪条，默认「总分」。
+       总分口径：当天有记录科目的平均，**不足两科不画点**（单科成绩不能冒充总分）。 */
+    var pick = TREND_PICK;
+    if (pick !== 'overall' && !per[pick]) pick = 'overall';
+    var cells = null, lineColor = 'var(--primary)';
+    if (pick === 'overall'){
+      cells = {};
+      dates.forEach(function(d){
+        var vs = SUBS.map(function(se){ return per[se.k][d]; }).filter(Boolean).map(function(c){ return c.v; });
+        if (vs.length >= 2){
+          cells[d] = { date: d, v: vs.reduce(function(a, b){ return a + b; }, 0) / vs.length, real: true };
+        }
       });
+    } else {
+      cells = per[pick];
+      SUBS.forEach(function(se){ if (se.k === pick) lineColor = se.color; });
+    }
+    /* 只连有点的位置：中间缺记录就断开，不拿假点把断档连成「趋势」 */
+    var idx = [];
+    dates.forEach(function(d, i){ if (cells[d]) idx.push(i); });
+    if (idx.length > 1){
+      var pts = idx.map(function(i){ return X(i) + ',' + Y(cells[dates[i]].v); });
+      s += '<polyline points="' + pts.join(' ') + '" fill="none" style="stroke:' + lineColor + '" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" opacity=".92"></polyline>';
+    }
+    idx.forEach(function(i){
+      var c = cells[dates[i]];
+      var isLast = (i === idx[idx.length - 1]);
+      s += c.real
+        ? '<circle cx="' + X(i) + '" cy="' + Y(c.v) + '" r="' + (isLast ? 4 : 2.8) + '" style="fill:' + lineColor + '"></circle>'
+        : '<circle cx="' + X(i) + '" cy="' + Y(c.v) + '" r="' + (isLast ? 3.4 : 2.6) + '" style="fill:var(--surface);stroke:' + lineColor + '" stroke-width="2"></circle>';
     });
     /* X 轴日期：点多时只标首/中/尾，避免糊成一团 */
     var step = n <= 6 ? 1 : Math.ceil(n / 6);
@@ -292,7 +337,7 @@
       var anc = (i === 0 && n > 1) ? 'start' : ((i === n - 1 && n > 1) ? 'end' : 'middle');
       s += '<text x="' + X(i) + '" y="' + (H - padB + 15) + '" text-anchor="' + anc + '" font-size="9.5" style="fill:var(--muted)" font-variant-numeric="tabular-nums">' + esc(String(d).slice(5)) + '</text>';
     });
-    wrap.innerHTML = '<svg aria-hidden="true" viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block;width:100%;height:auto;min-width:300px">' + s + '</svg>';
+    wrap.innerHTML = '<svg aria-hidden="true" viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block;width:100%;height:auto;min-width:300px;max-width:900px">' + s + '</svg>';
   }
 
   /* ===== ④ 四张科目卡：最近分 / 最近 3 次 / 该科走势 / Part 正确率 ===== */
@@ -668,6 +713,10 @@
 
   /* 筛选 chip：纯前端过滤，不重算数据 */
   document.addEventListener('click', function(ev){
+    /* 🔴 RV-PAGE-REDESIGN-1（10-29）：趋势图的科目筛选（终稿「一次只看一科」）。
+       委托绑定 —— 软导航换 DOM 后新 chip 照样生效，不用重绑。 */
+    var tc = ev.target && ev.target.closest && ev.target.closest('#rvxTrendChips [data-k]');
+    if (tc){ ev.preventDefault(); setTrendPick(tc.getAttribute('data-k')); return; }
     var chip = ev.target && ev.target.closest && ev.target.closest('#rvxRecChips [data-k]');
     if (!chip) return;
     ev.preventDefault();

@@ -323,7 +323,14 @@ main.container:has(> .rvx-page) > .review-wrap{ order:1; margin-top:22px }
 .rvx-chip.rvx-on{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600}
 
 /* ===== 版 D 双栏 ===== */
-.rvx-two{display:grid;grid-template-columns:1fr 336px;gap:16px;align-items:start}
+/* 🔴 RV-PAGE-REDESIGN-1（10-29）：终稿的成绩栏是**单列**（没有右栏）。
+   原来这里是 1fr 336px 两栏，右栏三张卡（学习轨迹 / 每天学了多久 / 口语日常练习）
+   与「学习轨迹」tab 里的四格统计、热力图、每日记录、口语日常练习**完全是同一份数据**，
+   同一页出现两遍 —— 重复的那份已删，功能在轨迹 tab 里完整保留
+   （那边对应的节点是 #heatmap / #dayList / #spPracticeList）。
+   ⚠️ 写 CSS 注释时别在正文里出现斜杠加星号 —— 会把注释提前闭合、把后面几十行 CSS 全吃掉
+   （这一条本次真踩到，症状是 .rvx-two 的 display 变成 block）。 */
+.rvx-two{display:grid;grid-template-columns:1fr;gap:16px;align-items:start}
 .rvx-hm{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin-top:10px}
 .rvx-hm i{aspect-ratio:1;border-radius:3px;background:var(--rvx-soft);display:block}
 .rvx-hm i.rvx-l1{background:rgba(58,154,147,.22)}
@@ -819,4 +826,14 @@ html[data-theme="dark"] .rec-row.rec-focus{
   /* RV-TRAK-LAYOUT-1：四张统计卡原来没进这条手机规则，仍吃桌面的 16px 20px，
      于是手机上「上面两张小卡」比下面的卡宽出一圈，看着不是一个体系。这里一并收到 14px 13px。 */
   #tab-record .rp-rs{ padding:14px 13px; border-radius:14px; }
+}
+
+/* ═══ RV-PAGE-REDESIGN-1（10-29）· 成绩趋势的科目筛选（终稿「一次只看一科」） ═══
+   终稿 .filters > .chip：透明底、未选中灰字、选中浅底+主色字、圆角 7、高 34。
+   本站已有 .rvx-chip 类，这里只补这一排的间距与说明行，不新造第二套 chip 样式。 */
+.rvx-chips{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 4px}
+.rvx-trend-lab{font-size:12px;color:var(--muted);margin:0 0 10px}
+@media (max-width:560px){
+  .rvx-chips{gap:5px}
+  .rvx-chip{padding:5px 10px;font-size:12px}
 }
