@@ -3059,7 +3059,7 @@ html[data-theme="dark"] #detailBody .sp-tc-head{
             }
             /* 只在沉浸模式（真正在考场里）才 fixed 贴视口底；非沉浸态退回普通块，不浮在页面上 */
             body.mock-immerse #mockView .mock-bar{position:fixed;left:0;right:0;bottom:0;z-index:60}
-            body.mock-immerse #mockStage{padding-bottom:70px}
+            body.mock-immerse #mockStage{padding-bottom:0}
             /* mockStage 藏起来时（列表页 / 报告页 / 评分中）底栏不出现。
                ⚠️ 选择器**不能带 body.mock-immerse 前缀** —— 退出沉浸后 mock-immerse 类会被摘掉，
                带前缀的话这条就失效，空底栏会一直钉在报告页底部。 */
