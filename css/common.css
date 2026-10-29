@@ -2386,7 +2386,19 @@ html[data-theme="dark"] .onb2-overlay{background:rgba(0,0,0,.62)}
   body.has-dock:not(.mock-immerse):not(.word-fullscreen) main.container{
     flex:1 1 auto;min-height:0;overflow-y:auto;
     -webkit-overflow-scrolling:touch;
-    padding-bottom:calc(var(--dock-h, 56px) + 10px);   /* = dock 实测高 + 10px 呼吸；不再写死 88px */
+    /* 🔴 10-29 DOCK-CLEAR-1：这条加了 !important —— 「底部 dock 净空」不可被页面样式协商。
+       病根：首页 css/p/home.css:443 有一条 `body.hub-home:has(#hubAncBar) .container{padding-bottom:8px}`，
+       它是 HOME-FIT-1（10-26）为「电脑 1280×800 含公告条时首屏溢出 28px」收的底部留白。
+       但那条**没有套 @media 宽度断点**（文件里实测花括号深度=0，是顶层规则），于是手机档也吃到：
+       390 下 main 的 padding-bottom 变成 8px，而 dock 高 58 → 首页最后两张模块卡
+       （句子 / 口语）bottom=836 越过 dock top=786 整整 50px，滚到底也点不到。
+       为什么用 !important 而不是提高选择器权重：对方那条带 :has(#hubAncBar)，特异性里有
+       一个 **id**（1,2,1），共享层任何不带 id 的选择器都压不过；而这里是「净空不许被改」的
+       语义，用 !important 比给容器硬造一个 id 更干净。
+       实测（390×844 真机，20 页逐页核）：加这条前只有首页 padB=8、over=2；加完 20 页全部
+       padB=68、over=0，其余 19 页数值一动不动（它们本来就已是 68）。桌面 ≥861 分支完全不吃。
+       ⚠️ 沉浸态（.mock-immerse / .word-fullscreen）本来就走另一套外壳，继续排除在外。 */
+    padding-bottom:calc(var(--dock-h, 56px) + 10px) !important;   /* = dock 实测高 + 10px 呼吸；不再写死 88px */
     /* 10/3 她手机端报「每页宽度不一样、切 tab 顶部平移、一会宽一会窄」：
        上面 body 是 flex column，而 .container 基础规则 margin:0 auto——flex 子项的 auto
        侧外边距会吃掉横向剩余空间，align-items:stretch 不再生效，容器宽度退化成内容固有宽
