@@ -501,36 +501,45 @@ function syncSkeleton(date, isToday, items, done, total, pct){
     var chip = phWrap.querySelector('.m-chip');
     var timeEl = phWrap.querySelector('span:nth-child(2)');
     var focusEl = phWrap.querySelector('span:nth-child(3)');
+    /* 🔴 PLAN-SKELETON-FAKE-1（10-29 A2）：这里原来是一条 `return`。
+       它跳出的是**整个 syncSkeleton**，不只是这一段 —— 于是没设考试日期的用户
+       （新用户、以及所有还没填日期的账号）后半段的「② 日期+进度」「③ 任务行」
+       「④ 诊断卡」一律不执行，可见骨架就永远停死在 plans.html 里写死的假数据：
+       日期永远是「10-24 · 周五」、进度永远「3/7 · 43%」、任务行永远是
+       「背词：List 7 复习 / 听力 P1 精听一篇 / 口语 P2 卡牌练 3 张 / 写作 Task 1 图表一篇」。
+       她随便打开计划页就会看到别人的任务和 10 月 24 号 —— 这就是「随便用一下就撞上」的那类。
+       改法：把「有考试日期才画」的部分收进 if，没日期只跳过阶段条这一小块，
+       后面进度/任务/诊断照常接（原注释写的就是这个意思，代码与注释不符）。 */
     if(!cd || !cd.hasExam || cd.daysLeft == null){
       if(chip) chip.textContent = '备考中';
       if(timeEl) timeEl.innerHTML = '还没设考试日期 · <a href="settings.html" style="color:var(--p600);font-weight:650">去设置 →</a>';
       if(focusEl) focusEl.textContent = '';
-      return;   /* 没有考试日期，后面进度/任务照常接 */
-    }
-    var days = cd.daysLeft;
-    var ph = (typeof diagPhaseOf === 'function') ? diagPhaseOf(days) : null;
-    var week = Math.max(1, Math.ceil(days / 7));
-    if(chip) chip.textContent = ph ? ph.label : '备考中';
-    if(timeEl) timeEl.innerHTML = '距考试 <b>' + days + '</b> 天 · 倒数第 ' + week + ' 周';
-    /* 本周重点：与 renderPhaseBar 完全同一套（只聚合 AI 生成项，手动项没 module 不参与） */
-    if(focusEl){
-      var focusTxt = '';
-      try{
-        var tk = todayKey(), keys = [];
-        for(var i = 0; i < 7; i++) keys.push(addDays(tk, i));
-        var cnt = {};
-        (DATA.plans || []).forEach(function(p2){
-          if(!p2 || keys.indexOf(p2.date) === -1) return;
-          (p2.items || []).forEach(function(it){
-            if(!it || it.gen !== PLAN_GEN_TAG || !it.module) return;
-            cnt[it.module] = (cnt[it.module] || 0) + 1;
+    }else{
+      var days = cd.daysLeft;
+      var ph = (typeof diagPhaseOf === 'function') ? diagPhaseOf(days) : null;
+      var week = Math.max(1, Math.ceil(days / 7));
+      if(chip) chip.textContent = ph ? ph.label : '备考中';
+      if(timeEl) timeEl.innerHTML = '距考试 <b>' + days + '</b> 天 · 倒数第 ' + week + ' 周';
+      /* 本周重点：与 renderPhaseBar 完全同一套（只聚合 AI 生成项，手动项没 module 不参与） */
+      if(focusEl){
+        var focusTxt = '';
+        try{
+          var tk = todayKey(), keys = [];
+          for(var i = 0; i < 7; i++) keys.push(addDays(tk, i));
+          var cnt = {};
+          (DATA.plans || []).forEach(function(p2){
+            if(!p2 || keys.indexOf(p2.date) === -1) return;
+            (p2.items || []).forEach(function(it){
+              if(!it || it.gen !== PLAN_GEN_TAG || !it.module) return;
+              cnt[it.module] = (cnt[it.module] || 0) + 1;
+            });
           });
-        });
-        var top = Object.keys(cnt).sort(function(a, b){ return cnt[b] - cnt[a]; }).slice(0, 2);
-        if(top.length) focusTxt = top.map(moduleLabelOf).join(' · ');
-      }catch(e){}
-      focusEl.innerHTML = focusTxt ? ('本周重点：<b>' + focusTxt + '</b>') : '';
-      focusEl.style.display = focusTxt ? '' : 'none';
+          var top = Object.keys(cnt).sort(function(a, b){ return cnt[b] - cnt[a]; }).slice(0, 2);
+          if(top.length) focusTxt = top.map(moduleLabelOf).join(' · ');
+        }catch(e){}
+        focusEl.innerHTML = focusTxt ? ('本周重点：<b>' + focusTxt + '</b>') : '';
+        focusEl.style.display = focusTxt ? '' : 'none';
+      }
     }
   }
 
@@ -573,6 +582,13 @@ function syncSkeleton(date, isToday, items, done, total, pct){
         row.innerHTML = '<span class="m-cb"></span><span class="m-t"></span><span class="m-tagline"></span><span class="m-jmp">去练 →</span>';
         taskCard.insertBefore(row, taskCard.querySelector('.m-addrow'));
       }
+      /* 🔴 PLAN-SKELETON-STALE-1（10-29 A2）：这一行必须补上。
+         下面 624 行「多出来的占位行隐藏」把没用到的骨架行写成 style.display='none'，
+         而这里**从来没把 display 还原过** → 一旦某次渲染时任务少（0 条、1 条），
+         那几行就被永久焊死成 none；之后再加任务、再进这一页，文字写进去了但行仍不显示。
+         实测：空计划页加一条任务 → 存储里真有 1 条，屏上一个字都没有。
+         与上面那条 return 是同一类「可见骨架不跟真数据」，一起修。 */
+      row.style.display = '';
       row.classList.toggle('m-done', !!it.done);
       var cb = row.querySelector('.m-cb');
       if(cb) cb.setAttribute('aria-checked', it.done ? 'true' : 'false');
