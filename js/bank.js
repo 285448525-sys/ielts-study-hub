@@ -1270,6 +1270,14 @@
     }
     if(top) top.style.display = 'none';      /* .ex-option 面板是 .ex-top 的兄弟，藏它不影响面板 */
   }
+  /* 🔴 MOCK-EXAM-TOPBAR-1（10-29 她：「最上面那个倒计时的东西，去掉多余的文案」）：
+     顶栏倒计时文案统一走这一个口子。原来写的是「N minutes remaining」一整句 ——
+     手机 390 上这句（133px）比篇名还宽，把顶栏挤成两行。
+     收敛成「N min」：分钟粒度不变、warn/soon 两级警示色不动，只去掉多余的措辞。
+     🔴 初值与 tick 必须同一个函数 —— 否则渲染瞬间显示一套、下一秒 tick 又换一套。 */
+  function examTimerLabel(s){ return Math.floor(Math.max(0, Number(s) || 0) / 60) + ' min'; }
+  window.__examTimerLabel = examTimerLabel;
+
   function shellHtml(nameText, subText, timerText){
     /* 🔴 BUGFIX（10-25 停工期间只修 bug）：顶栏那颗「暂停」用的是 `showPause`，
        但那个变量定义在**另一个函数 barHtml() 的局部作用域**里（:1392），这里根本取不到
@@ -2547,7 +2555,7 @@ window.__reportExamState = reportExamState;
     } else {
       var artHtml = '';
       parts.forEach(function(p){ artHtml += clean(p.article || ''); });
-      host.innerHTML = shellHtml(u.title, '', '01:00:00')
+      host.innerHTML = shellHtml(u.title, '', examTimerLabel(3600))
         + partBannerHtml((parts[0] && parts[0].partNum) || u.partNum || 'Part 1', nums.length ? nums[0] : null, nums.length ? nums[nums.length - 1] : null)
         + splitHtml(artHtml, groups.map(function(g, i){ return groupHtml(g, i, null, 'reading'); }).join(''))
         + barHtml() + ctxHtml();
@@ -2657,7 +2665,7 @@ window.__reportExamState = reportExamState;
         packs.forEach(function(pk){ (pk.unit.parts || []).forEach(function(pt){ (pt.groups || []).forEach(function(g){ gAll.push(g); }); }); });
         var pnAll = [];
         gAll.forEach(function(g){ (g.questions || []).forEach(function(q){ if(q.qNumber != null) pnAll.push(q.qNumber); }); });
-        host2.innerHTML = shellHtml('Reading Test', 'Full Test', '01:00:00')
+        host2.innerHTML = shellHtml('Reading Test', 'Full Test', examTimerLabel(3600))
 
           + partBannerHtml('Passage 1', pnAll.length ? pnAll[0] : null, pnAll.length ? pnAll[pnAll.length - 1] : null)
           + splitHtml('', '') + barHtml() + ctxHtml();
@@ -2739,7 +2747,7 @@ window.__reportExamState = reportExamState;
       if(host2){
         /* 10/13 她报「上面三行缩两行」→ 听力完整模考不渲染独立 Part 横幅，
            Part 信息并入音频条行首胶囊（renderListenPart 里随篇更新）。 */
-        host2.innerHTML = shellHtml('Listening Test', 'Full Test', '00:30:00')
+        host2.innerHTML = shellHtml('Listening Test', 'Full Test', examTimerLabel(1800))
           + '<div id="exAudioHost"></div>'
           + '<div class="ex-listen" id="exListen"><div class="ex-listen-in" id="exListenIn"></div></div>'
           + barHtml();
@@ -3847,11 +3855,7 @@ window.__reportExamState = reportExamState;
     var left = sec, el = document.getElementById('exTimer');
     function tick(){
       if(el){
-        /* W-EXTOP-1（10-25）：她「模考页面我就叫你改一个计时的 UI」→ 顶栏计时改官方**分钟制**。
-           原来 HH:MM:SS，现在固定「N minutes remaining」（N = Math.floor(left/60)，不显示秒）。
-           ⚠️ 单数不特判：官方自己就写「1 minutes remaining」，照抄（施工书 §一 规则 2）。
-           ⚠️ 颜色分级一行不动：下面两条 classList.toggle 原样保留（warn ≤300s / soon ≤600s）。 */
-        el.textContent = Math.floor(left / 60) + ' minutes remaining';
+        el.textContent = examTimerLabel(left);
         el.classList.toggle('warn', left <= 300 && left > 0);
         el.classList.toggle('soon', left <= 600 && left > 300);
       }

@@ -1036,6 +1036,19 @@
   .ex-article{border-right:none;border-bottom:1px solid var(--line);padding:16px 16px 40px}
   .ex-qcol{padding:14px 14px 90px}
   .ex-top{flex-wrap:wrap;gap:8px}
+  /* ═══ MOCK-EXAM-TOPBAR-1（10-29 她：「让手机…只要一行就可以解决，不要占多余的空间」）═══
+     手机顶栏原来是**两行 62px**：域名 111px + 篇名 128px + 倒计时 133px + 工具组 71px = 443px，
+     390 屏去掉左右 padding 只剩 358px，必然换行。三处收敛压成一行：
+       ① 域名整块隐藏 —— 手机端站内顶栏本来就藏了，这个域名只是装饰
+       ② 篇名下的 <small> 副标题隐藏 —— 「Reading Test」+「Full Test」两段本身就重复
+       ③ 倒计时文案由 JS 收敛成「N min」（133px → 约 44px，见 js/bank.js 的 examTimerLabel）
+     合起来最窄约 190px，一行绰绰有余。桌面一个字没动。
+     ⚠️ 选择器带 #examRoot 前缀：上面 1567 行那条 `#examRoot .ex-brand{display:flex}` 是 (1,1,0)，
+        裸 `.ex-top .ex-brand` 是 (0,2,0) 压不过它。 */
+  #examRoot .ex-top{flex-wrap:nowrap;gap:8px}
+  #examRoot .ex-top .ex-brand{display:none}
+  #examRoot .ex-top .ex-name small{display:none}
+  #examRoot .ex-top .ex-timer{white-space:nowrap}
   .mock-tabs .pill-tab,.partbar .pill-tab{padding:9px 12px;font-size:13.5px}
   .mock-tabs{width:100%}.mock-tabs .pill-tab{flex:1;justify-content:center}
   .bi-chips{display:none}.bi-qn{width:44px}
@@ -2503,7 +2516,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common-cloud.js?v=20261029e"></script>
 <script defer src="js/common-shell.js?v=20261029e"></script>
 <script defer src="js/common-pwa.js?v=20261029e"></script>
-<script defer src="js/bank.js?v=20261028a"></script>
+<script defer src="js/bank.js?v=20261029e"></script>
 <!-- M-2（10-24）：模考页「没做过/做过」分组 + 展开更多。
      ⚠️ 本文件只做展示层（读 hub_bank_last_* 分组 + 首屏 20 条），判分/SRS/本地记录一律不碰；
         单条 DOM 由 js/bank.js 的 listHtml() 生成（当参数传进来），结构零改动。
