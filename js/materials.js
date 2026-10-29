@@ -748,7 +748,7 @@
       toast('已按你的素材整理出 ' + stories.length + ' 个故事，每段都算了能串哪些题');
     }catch(e){
       console.error('[materials] 导入整理失败', e);
-      toast('整理失败：' + e.message);
+      toast('整理失败：' + relayErrMsg(e));
       if(go){ go.disabled = false; go.textContent = old || 'AI 整理成万能素材'; }
     }finally{
       importBusy = false;
@@ -1335,7 +1335,7 @@
       toast('已生成 ' + result.stories.length + ' 张全新素材卡，去口语页开练即可' + dropMsg);
     }catch(e){
       console.error('[materials] 生成失败', e);
-      toast('素材生成失败：' + e.message + '（未保存任何内容，可重试）');
+      toast('素材生成失败：' + relayErrMsg(e) + '（未保存任何内容，可重试）');
       render();
     }
   }
@@ -1399,14 +1399,46 @@
     if(b.coverageRate != null) rate = (rate == null) ? b.coverageRate : Math.max(rate, b.coverageRate);
     return { stories: a.stories.concat(b.stories), coverageRate: rate };
   }
+  /* 失败原因 → 她看得懂的一句话。
+     🔴 AI-MAT-RELAY-ERR-1（10-29 A2）：她 18:3x 那次的真凶在这里 —— 她粘了 7957 字 / 42 段，
+     服务端没接住（504/429 一类），但页面先把原因改写成了「格式错误，请少填几条经历」，
+     还连弹了 4 条 toast。真实原因被吞掉，她会以为是自己素材写坏了去删。
+     这张表按 callRelay / callSiteRelay 会抛的 code 一一对应人话；认不出来的才回落到通用句。 */
+  function relayErrMsg(e){
+    const code = (e && e.code) || '';
+    if(code === 'AI_TIMEOUT' || code === 'upstream_timeout') return 'AI 这次想得太久、超时了。你的文字没丢，过一分钟再点一次就行';
+    if(code === 'rate_limit') return 'AI 这会儿被点得太频繁，缓一分钟再点（你的文字还在，不用重输）';
+    if(code === 'upstream_error' || code === 'SITE_RELAY_FAIL') return 'AI 服务这一刻忙不过来，过一分钟再点一次就好';
+    if(code === 'vip_required') return '素材整理是会员功能，你先把文字原样存下来的话，用左边「直接加上去」不需要会员';
+    if(code === 'AUTH_REQUIRED' || code === 'auth_required') return '先登录一下，登录后就能用 AI 整理素材';
+    if(code === 'NO_SITE_RELAY') return 'AI 服务这一刻忙不过来，过一分钟再点一次就好';
+    // 无 code = 走到了 tryBatch 的「JSON 解析失败」= 输出确实被截断（唯一该怀疑她自己素材量的情况）
+    return (e && e.message) ? e.message : '整理失败，过一分钟再点一次试试';
+  }
+
   /* 截断自愈（9/21）：输出被 max_tokens 截断时 JSON 解析必然失败。此时按经历条数二分拆批重试，
-     最多两级拆分——正常路径请求次数与改前一致（1 次），拆批只是异常兜底。 */
+     最多两级拆分——正常路径请求次数与改前一致（1 次），拆批只是异常兜底。
+
+     🔴 AI-MAT-RELAY-ERR-1（10-29 A2，她 18:3x 报「添加素材 → AI 智能生成 → AI 暂时不可用」）：
+     上面这套拆批原来**不区分错误类型**——catch 里一律 `throw new Error(FAIL_MSG)`，于是
+     ① 服务端 504/502/429 中断、403 会员闸、25 秒超时，全被改写成「格式错误，请少填几条经历」，
+        让她以为是自己那 7957 个字写坏了，去删自己刚写好的素材（真凶根本不在她那儿）；
+     ② 拆批只对「输出被截断」有意义，对服务端故障拆了还是一样失败，白白多打 2 次请求
+        （实测 42 段走到底 = 3 次请求 / 4933ms），429 限流时还会**越限越打**；
+     ③ callRelay 每次失败自己会弹一条「AI 服务暂时不可用」，拆 3 次就弹 3 条，
+        连上最后那条假诊断一共 4 条 toast 糊她一脸。
+     修法：只有「JSON 解析失败」（=输出被 max_tokens 截断，唯一值得拆的情况）才拆批重试；
+     带 code 的中继/网络/额度错误原样上抛，由调用方按真实原因提示（见 relayErrMsg）。
+     ⚠️ 判据用 `!e.code`：tryBatch 里截断抛的是裸 `new Error('素材 JSON 解析失败')`（无 code），
+        而 callRelay 抛错一律带 code（AI_TIMEOUT / upstream_timeout / rate_limit / vip_required…）。 */
   async function genMaterialsBatch(exps, personaText, isImport){
     const FAIL_MSG = '素材生成失败（返回内容被截断或格式错误），请少填几条经历后重试';
     async function attempt(subset, depth, label){
       try{
         return collectBatch(await tryBatch(subset, personaText, label, isImport));
       }catch(e){
+        // 非「输出截断」类错误：服务端故障 / 网络中断 / 额度与会员闸 —— 拆批救不回来，原样上抛
+        if(e && e.code) throw e;
         // 全量失败要 >3 条才值得拆（≤3 条拆开也没多少 token 可省）；再往下最多拆到第二级
         const canSplit = subset.length > 1 && depth < 2 && (depth === 0 ? subset.length > 3 : true);
         if(!canSplit) throw new Error(FAIL_MSG);
@@ -1974,7 +2006,7 @@
       toast('AI 整理出 ' + stories.length + ' 个故事，已加到你现有素材后面');
     }catch(e){
       console.error('[materials] 添加素材（AI）失败', e);
-      toast('整理失败：' + e.message);
+      toast('整理失败：' + relayErrMsg(e));
       if(btn){ btn.disabled = false; btn.textContent = old || 'AI 智能生成素材'; }
     }finally{
       addMatBusy = false;
