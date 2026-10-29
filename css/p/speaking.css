@@ -143,3 +143,86 @@
 .spk-info-body > div{margin-top:2px}
 .spk-info-k{display:inline-block;min-width:62px;color:var(--muted);opacity:.85}
 .spk-info-body b{color:var(--ink);font-weight:650}
+
+/* ===== 10-29 手机模考 P0：固定顶部与底栏，题目区自适应，不再滚动裁切 =====
+   根因不是「多出遮挡层」：手机仍沿用桌面的大考官图和完整题目卡，
+   再叠加 stage 的 84px 底部预留，700px 高的手机不可能装下。
+   修法保留考官与全部功能，只把手机考官缩成一条实时视频头；题干卡占剩余高度，
+   长回答只在输入框内部滚动。普通题库的折叠/筛选/记录数据完全不动。 */
+@media (max-width:720px){
+  body.mock-immerse .container{padding:8px 8px 0;max-width:none}
+  body.mock-immerse #mockStage{padding:0;overflow:hidden;display:flex;flex-direction:column;gap:8px}
+  body.mock-immerse #mockTotalTimerWrap{flex:none;margin:0;padding:5px 9px;min-height:36px;flex-wrap:nowrap;font-size:12px;gap:5px;border-radius:9px}
+  body.mock-immerse #mockTotalTimerWrap b{font-size:14px}
+  body.mock-immerse #mockTotalTimerWrap svg{width:13px;height:13px}
+  body.mock-immerse .mock-exit-btn{padding:5px 8px;font-size:11px}
+  body.mock-immerse #mockMain,
+  body.mock-immerse #mockStage.p2-mode #mockMain{flex:1;min-height:0;display:flex;flex-direction:column;gap:7px;overflow:hidden}
+  body.mock-immerse .mock-examiner,
+  body.mock-immerse #mockStage.p2-mode .mock-examiner{
+    order:0;position:static;width:100%;height:72px;flex:0 0 72px;
+    display:grid;grid-template-columns:96px minmax(0,1fr);align-items:center;gap:10px;
+  }
+  body.mock-immerse .me-video{width:96px;height:72px;aspect-ratio:auto;border-radius:10px;box-shadow:none}
+  body.mock-immerse .me-name{min-width:0;flex-wrap:wrap;gap:2px 6px;padding:6px 10px;border-radius:10px;box-shadow:none;text-align:left}
+  body.mock-immerse .me-name b{font-size:12px;overflow-wrap:anywhere}
+  body.mock-immerse .me-name span{font-size:9px;letter-spacing:.03em}
+  body.mock-immerse .me-live{transform:scale(.78);transform-origin:top left}
+  body.mock-immerse .me-state{font-size:10px}
+  body.mock-immerse .mock-left{flex:1;min-height:0;display:flex;flex-direction:column;gap:7px;overflow:hidden}
+  body.mock-immerse .mock-phase{flex:none;margin:0;padding:3px 11px;font-size:11px;line-height:18px;align-self:flex-start}
+  body.mock-immerse .mock-qcard{
+    flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;
+    padding:12px;border-radius:12px;display:flex;flex-direction:column;gap:7px;
+    scroll-padding-top:10px;
+  }
+  body.mock-immerse .mock-qcard > *{flex-shrink:0}
+  body.mock-immerse .mock-q{flex:none;font-size:15px;line-height:1.45}
+  body.mock-immerse .mock-q-row{gap:7px}
+  body.mock-immerse .mock-q-topic{font-size:10px;padding:1px 6px}
+  body.mock-immerse .mock-p2-prompt{font-size:15px;line-height:1.45}
+  body.mock-immerse .mock-p2-zh{font-size:12px;line-height:1.5}
+  body.mock-immerse .mock-p2-say{font-size:12px;margin-top:5px}
+  body.mock-immerse .mock-p2-say ul{margin-top:3px;line-height:1.5}
+  body.mock-immerse .mock-prephint{font-size:11px;line-height:1.45;margin-top:4px}
+  body.mock-immerse .mock-qcard > .mock-manual{flex:1 1 auto;min-height:64px}
+  body.mock-immerse .mock-manual[hidden]{display:none}
+  body.mock-immerse #mockView .mock-manual textarea,
+  body.mock-immerse .mock-manual textarea{
+    min-height:64px;height:100%!important;max-height:none;flex:1;
+    padding:9px 10px;font-size:13px;line-height:1.5;overflow-y:auto!important;
+  }
+  body.mock-immerse #mockView .mock-note{flex:none;margin-top:0;padding:8px 10px}
+  body.mock-immerse #mockView .mock-note-t{margin-bottom:4px;font-size:11px}
+  body.mock-immerse #mockView .mock-note-h{display:none}
+  body.mock-immerse #mockView .mock-note-input{min-height:52px;height:52px;font-size:12px;line-height:1.4;padding:6px 8px}
+  body.mock-immerse #mockView .mock-note-b{max-height:52px;font-size:12px;line-height:1.4;overflow-y:auto}
+  body.mock-immerse #mockStage .mock-timer{flex:none;margin:0;padding:2px 10px;font-size:11px}
+  body.mock-immerse .mock-hint{flex:none;font-size:11px;margin:0;line-height:1.4}
+  body.mock-immerse .mock-hint:empty{display:none}
+  body.mock-immerse #mockView .mock-bar{height:52px;padding:0 12px;gap:10px}
+  body.mock-immerse #mockView .mock-bar-l{gap:8px}
+  body.mock-immerse #mockView .mock-bar-ix{font-size:11px}
+  body.mock-immerse #mockView .mock-bar .btn{max-width:58%;padding:0 12px;font-size:12px;white-space:normal;text-align:center;line-height:1.25}
+}
+@media (max-width:720px) and (max-height:740px){
+  body.mock-immerse .mock-examiner,
+  body.mock-immerse #mockStage.p2-mode .mock-examiner{height:56px;flex-basis:56px;grid-template-columns:76px minmax(0,1fr)}
+  body.mock-immerse .me-video{width:76px;height:56px}
+  body.mock-immerse #mockStage{gap:6px}
+  body.mock-immerse #mockMain,body.mock-immerse .mock-left{gap:5px}
+  body.mock-immerse .mock-qcard{padding:10px;gap:5px}
+  body.mock-immerse .mock-p2-say ul{display:grid;grid-template-columns:1fr 1fr;column-gap:12px;padding-left:18px}
+}
+/* 题库手机标题：图标/箭头不挤正文，频次说明另起一行，长英文自然换行。 */
+@media (max-width:560px){
+  .sp-panel-head{flex-wrap:nowrap;gap:8px;padding:12px 14px}
+  .sp-panel-head h3{flex:none;font-size:14px;margin:0;min-width:0}
+  .sp-panel-head .sp-panel-n{flex:1;min-width:0;white-space:normal;overflow:visible;text-overflow:clip;font-size:11px;line-height:1.45}
+  .sp-panel-head .sp-panel-caret,.sp-panel-head .sp-panel-ic{flex:none}
+  .sp-card-row{padding:13px 14px;gap:10px}
+  .sp-card-row .sp-card-title{font-size:15px;line-height:1.5;overflow-wrap:anywhere}
+  .sp-card-row .sp-card-zh{font-size:12px;line-height:1.5}
+  .sp-card-row .sp-score-badge{margin-left:5px}
+  .sp-card-tags{margin-top:6px!important}
+}
