@@ -148,17 +148,38 @@ let _softNavBusy = false;
       但顶层这批是量级主因，先收干净这层。 */
 const _navOrigAdd = { doc: document.addEventListener, win: window.addEventListener };
 let _navSink = null;        // 本轮 eval 正在收的账
-let _navBoundLog = [];      // 上一轮 eval 收下的账（下次 eval 前逐条摘掉）
-function navListenersReclaim(){
-  const log = _navBoundLog; _navBoundLog = [];
-  for(let i = 0; i < log.length; i++){
-    try{ log[i].obj.removeEventListener(log[i].type, log[i].fn, log[i].cap); }catch(e){}
-  }
+let _navBoundLog = [];      // 之前各轮 eval 收下的账（见 navListenersEnd 的淘汰规则）
+/* 🔴 第二层返工（10-29 晚，我自己探针揪的）：key 只到「事件类型」这一层，**分不清是谁绑的**。
+   一轮里 bank.js 与 bank-groups.js 各绑一条 `document:click`，两条 key 完全相同；
+   淘汰按「从旧到新」取，第 3 轮就会把**别人的**那条守卫监听摘掉（不是自己那条）→ 同样废功能。
+   修法：指纹里加 **handler 源码**。同一脚本每次 eval 出来的函数是新实例、但源码一模一样，
+   所以「事件+捕获+源码」能精确认出「这条是我的、该被我这轮的新监听取代」。 */
+const _navSigOf = e => {
+  let s = '';
+  try{ s = String(e.fn); }catch(_){ s = ''; }
+  if(s.length > 400) s = s.slice(0, 400);
+  return (e.obj === window ? 'w' : 'd') + '|' + e.type + '|' + (e.cap ? 1 : 0) + '|' + s;
+};
+/* 🔴 LISTEN-LEAK-1 返工（10-29 晚，A2 复验抓到的真回归）：
+   第一版是「下次 eval 前把上一轮的账全摘掉」。这会把**有守卫的页面脚本**搞死 ——
+   `js/bank.js:4403` 那种写法是「`window.__BANK_DELEGATE = true` + 绑一条 document:click 委托」：
+     第 1 轮 eval → 守卫为假 → 绑上、守卫置真、账本记下
+     第 2 轮 eval → 守卫为真 → **不重绑** → 但账本里还留着第 1 轮那条 → 被摘掉
+     ⇒ 守卫说「我绑好了」、监听却没了 ⇒ 该页所有 document 级交互永久死亡（实测：进 bank
+       一次软导航后科目切换/答题/右键全废，比「卡」严重得多）。
+   同样写法的页面脚本有 30 处（bank/teacher/announce/practice/sp-core/wordbank/words…）。
+
+   正解 = **只淘汰「本轮确实重新绑过同类监听」的旧账，本轮没重绑的一律保留**：
+     有守卫的脚本 → 本轮该 key 收不到新账 → 旧账保留 → 监听活着，守卫也名实相符 ✓
+     没守卫的脚本 → 本轮同 key 又绑一遍 → 旧账被摘、新的入账 → 不增长 ✓
+   这样零改页面文件，也不会再误伤任何一个守卫标记。 */
+function navListenersReclaim(){ /* 保留函数名供外部调用（清空账本，不摘监听） */
+  _navBoundLog = [];
 }
-/* ⚠️ begin/end 是**成对包住每一个脚本的 eval**，但账本 `_navBoundLog` 是**整轮累计**：
+/* ⚠️ begin/end 是**成对包住每一个脚本的 eval**，账本 `_navBoundLog` 跨轮累计：
    一轮里页面常有 3~6 个脚本（practice = practice.js + words.js + wordbank.js…）。
-   第一版每个脚本各 begin/end 且 end 直接覆盖 _navBoundLog → 只剩最后一个脚本的账，
-   前面的照样泄漏（实测每轮仍 +16 才查出这个覆盖）。现在 end 用 concat 累加。
+   第一版每个脚本各 begin/end 且 end 直接覆盖账本 → 只剩最后一个脚本的账，
+   前面的照样泄漏（实测每轮仍 +16 才查出这个覆盖）。现在 end 里做增量合并。
    ⚠️ 也不要改成「包住整个 for 循环」：循环里有 PERF-NAV-2B 的让帧 await，
       那段时间共享层自己的回调可能跑起来并绑监听，会被误记进账、下一轮被误摘。 */
 function navListenersBegin(){
@@ -176,7 +197,24 @@ function navListenersBegin(){
 function navListenersEnd(){
   document.addEventListener = _navOrigAdd.doc;
   window.addEventListener = _navOrigAdd.win;
-  if(_navSink){ if(_navSink.length) _navBoundLog = _navBoundLog.concat(_navSink); _navSink = null; }
+  const cur = _navSink; _navSink = null;
+  if(!cur || !cur.length) return;          // 本轮一个都没绑（守卫全拦住了）→ 旧账原样保留
+  /* 本轮每个指纹各出现几次 */
+  const need = Object.create(null);
+  for(let i = 0; i < cur.length; i++){ const k = _navSigOf(cur[i]); need[k] = (need[k] || 0) + 1; }
+  /* 淘汰：同指纹「本轮补了几条」就退役几条旧的（从旧到新），其余保留 */
+  const used = Object.create(null), keep = [];
+  for(let i = 0; i < _navBoundLog.length; i++){
+    const e = _navBoundLog[i], k = _navSigOf(e);
+    const n = need[k] || 0, u = used[k] || 0;
+    if(u < n){
+      used[k] = u + 1;
+      try{ e.obj.removeEventListener(e.type, e.fn, e.cap); }catch(_e){}   // 本条已被本轮的新监听取代
+    }else{
+      keep.push(e);                                                     // 本轮没重绑 → 留着（守卫型）
+    }
+  }
+  _navBoundLog = keep.concat(cur);
 }
 /* 模考中推迟的自愈刷新（navSelfHealReload 被模考锁挡下时置 true） */
 let _hubPendingHeal = false;
@@ -1312,12 +1350,12 @@ async function runPageScript(id, doc){
   const got = await Promise.all(srcs.map(s =>
     navGetCode(s).then(code => ({ code })).catch(err => ({ err }))
   ));
-  /* 🔴 LISTEN-LEAK-1（10-29）：开跑前先把上一轮 eval 绑下的那批监听摘掉。
-     位置必须在「脚本都已拉到手、即将 eval」这一刻 —— 放在函数开头会让
-     `await navGetCode` 期间页面处于「旧监听已摘、新监听未绑」的空窗，此刻若有
-     hub:data-merged 之类事件到达就没人接（数据合并不刷新）。
-     放这里：拉取已完成、eval 即将开始，空窗缩到同步执行的一瞬间。 */
-  navListenersReclaim();
+  /* 🔴 LISTEN-LEAK-1（10-29）：这里**不再**提前摘监听。
+     第一版在这里 navListenersReclaim() 把上一轮的账全摘掉 —— 结果把有守卫的页面脚本
+     搞死（标记还在、监听没了，见 navListenersReclaim 上方的返工说明）。
+     现在改为「边收边淘汰」：每个脚本 eval 完由 navListenersEnd() 判断
+     「本轮该 key 补了几条」→ 只退役对应条数的旧账，本轮没重绑的原样保留。
+     淘汰发生在**新监听已绑好之后**，天然没有「旧已摘、新未绑」的空窗。 */
   for(let i = 0; i < srcs.length; i++){
     if(got[i].err){
       if(i === MAIN){        // 主脚本失败：记日志后由 softNavigate 兜底走整页跳转，绝不卡死
