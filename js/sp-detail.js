@@ -85,8 +85,8 @@ function appendStoryTools(root, s, j){
     });
     return b;
   };
-  bar.appendChild(mkForward('tdSpeakBtn', '▶ 朗读全文'));
-  bar.appendChild(mkForward('tdCopyBtn', '📋 复制英文'));
+  bar.appendChild(mkForward('tdSpeakBtn', '朗读全文'));
+  bar.appendChild(mkForward('tdCopyBtn', '复制英文'));
 
   // 语速：三档循环
   const rates = [0.7, 0.85, 1];
@@ -190,7 +190,9 @@ function openDetail(id){
        🔴 卡头是新加的装饰层，不承担任何逻辑；下面所有业务 id 原样保留、顺序不变。 */
     html += '<div class="sp-p2-answer">';
     html += '<div class="td-anshead">'
-      +   '<span class="ic">✍️</span>'
+      +   '<span class="ic" aria-hidden="true">'
+      +     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>'
+      +   '</span>'
       +   '<h2>你的作答</h2>'
       +   '<span class="sub">照着上面串题原文讲一遍，或者用自己的话</span>'
       + '</div>';
@@ -201,7 +203,7 @@ function openDetail(id){
     html += '<div class="sp-q-btns">';
     html += '<button class="sp-diag" id="p2Diag" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;flex:none"><path d="M12 2l2.4 5.1 5.6.8-4 4.1 1 5.6-5-2.7-5 2.7 1-5.6-4-4.1 5.6-.8z"/></svg>AI 纠错</button>';
     html += '<button class="sp-ans-clear" id="p2Clear" type="button">清空</button>';
-    html += '<button class="sp-timer-btn" id="p2TimerBtn" type="button" title="开始 2 分钟倒计时，逼自己讲满 2 分钟">⏱ 2分钟</button>';
+    html += '<button class="sp-timer-btn" id="p2TimerBtn" type="button" title="开始 2 分钟倒计时，逼自己讲满 2 分钟"><svg class="sp-timer-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2"/><path d="M9 2h6"/></svg>2分钟</button>';
     html += '<span class="sp-timer-display" id="p2TimerDisplay" hidden>02:00</span>';
     // T-017d：词数（现算，不引新依赖；textarea.value.trim().split(/\s+/).length）
     html += '<span class="td-wordcount" id="p2WordCount">已写 <b>0</b> 词 · 目标 220</span>';
@@ -226,18 +228,24 @@ function openDetail(id){
        ③ 「P3 深度追问」不再折叠，提为常驻紫色卡（#p3Area 本来就在详情页容器内，与折叠无关）
        所有业务 id 一律保留：aiStoryLinkBtn / aiResult / p3GenBtn / p3Area / p3List / p3NextWrap / p3NextBtn / p3SaveWrap / p3SaveBtn */
     html += '<div class="sp-tools-wrap" id="p2ToolsWrap">';
-    // 卡 A「AI 串题思路」：常驻，不再是 <details>
+    /* 🔴 SPK-CHUANTI-COMPACT-1（10-29）：串题卡减层。
+       原结构 = 外卡(.sp-tool-card 圆角16+边框+阴影) 里嵌一条渐变卡头(.sp-tc-head 自带底色+底边线)
+                + 提示行 + 「串题素材」小标题行 + 内容区(.sp-ai-result 又一层内边距) —— 四层盒子叠着，
+                视觉上就是她说的「大壳嵌小块」。改法：只留一块，标题行与内容同在一个面上（去掉渐变带
+                与底边线），按钮进卡头同行，内边距收紧。id 与 class 一个不动，纯视觉层。
+       emoji 一并换自绘 SVG（她点名的一律换）：🌿 → 叶片、✍️ → 笔、⏱ → 表盘。 */
     html += '<section class="sp-tool-card sp-tool-card-a" id="p2ToolA">';
     html +=   '<div class="sp-tc-head">'
-      +     '<span class="sp-tc-ic">🌿</span>'
+      +     '<span class="sp-tc-ic" aria-hidden="true">'
+      +       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 4 13c0-5 4-9 9-9a7 7 0 0 1 7 7c0 4-3 6-6 6h-1a2 2 0 0 0-1 3.5"/><path d="M11 20c-1.5-3 0-6 3-8"/></svg>'
+      +     '</span>'
       +     '<b>AI 串题思路</b>'
+      +     '<span class="sp-tc-hint-inline">把素材卡改写成这道题能用的版本</span>'
       +     '<button class="btn btn-sm" id="aiStoryLinkBtn" type="button">'
       +       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:14px;height:14px;margin-right:5px"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>'
       +       escapeHtml(linkLabel)
       +     '</button>'
       +   '</div>';
-    html +=   '<div class="sp-tc-hint">把素材卡改写成这道题能用的版本；点一次重新换一个素材角度。</div>';
-    html +=   '<div class="sp-story-head"><span class="sp-story-title">串题素材（逻辑 + 原文）</span></div>';
     html +=   '<div class="sp-ai-result" id="aiResult"></div>';
     html += '</section>';
     // 卡 B「P3 深度追问」：常驻，紫色系（与上方绿色卡区分），逐题追问
@@ -422,6 +430,16 @@ function openDetail(id){
     if(p2TimerBtn && p2TimerDisp){
       const TOTAL = 120; // 2 分钟
       const fmt = s => { const m = Math.floor(s / 60), sec = s % 60; return String(m).padStart(2,'0') + ':' + String(sec).padStart(2,'0'); };
+      /* 🔴 SPK-CHUANTI-COMPACT-1（10-29）：emoji 从按钮文案里撤掉后，按钮结构变成
+         「<svg class="sp-timer-ic"> + 文字」。JS 若继续写 textContent 会把 SVG 一起抹掉，
+         所以统一走这里：保留图标节点，只换后面的文字。 */
+      const setTimerLabel = (btn, text) => {
+        if(!btn) return;
+        const ic = btn.querySelector('.sp-timer-ic');
+        if(!ic){ btn.textContent = text; return; }
+        [...btn.childNodes].forEach(n => { if(n.nodeType === 3) n.remove(); });
+        btn.appendChild(document.createTextNode(text));
+      };
       p2TimerBtn.addEventListener('click', e => {
         e.stopPropagation();
         // 9/16 修：按钮文案写的是「停止」，原来再点却是从 02:00 重来——文案与行为对不上。
@@ -430,7 +448,7 @@ function openDetail(id){
           __clearP2Timer();
           p2TimerDisp.hidden = true;
           p2TimerDisp.classList.remove('sp-timer-end');
-          p2TimerBtn.textContent = '⏱ 2分钟';
+          setTimerLabel(p2TimerBtn, '2分钟');
           p2TimerBtn.classList.remove('sp-timer-running');
           return;
         }
@@ -439,7 +457,7 @@ function openDetail(id){
         p2TimerDisp.hidden = false;
         p2TimerDisp.textContent = fmt(left);
         p2TimerDisp.classList.remove('sp-timer-end');
-        p2TimerBtn.textContent = '⏱ 停止';
+        setTimerLabel(p2TimerBtn, '停止');
         p2TimerBtn.classList.add('sp-timer-running');
         // 自动聚焦输入框，方便语音输入转文字
         const ta = $('#p2Ans'); if(ta) ta.focus();
@@ -452,9 +470,9 @@ function openDetail(id){
             __clearP2Timer();
             p2TimerDisp.textContent = '00:00';
             p2TimerDisp.classList.add('sp-timer-end');
-            p2TimerBtn.textContent = '⏱ 2分钟';
+            setTimerLabel(p2TimerBtn, '2分钟');
             p2TimerBtn.classList.remove('sp-timer-running');
-            toast('⏰ 2 分钟到！讲满啦');
+            toast('2 分钟到，讲满啦');
             return;
           }
           p2TimerDisp.textContent = fmt(left);

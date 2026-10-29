@@ -91,7 +91,7 @@
   <script defer src="js/sp-diag.js?v=20261023a"></script>
   <!-- 10-24 T-009 S-5：F 区（详情页与保存，含 515 行 openDetail）拆出 js/sp-detail.js（761 行）。
        F 是最顶层的域（调用 A/I/G/J/H/E/K 七个域）→ 排在最后、紧邻 speaking.js 之前。 -->
-  <script defer src="js/sp-detail.js?v=20261029a"></script>
+  <script defer src="js/sp-detail.js?v=20261029b"></script>
   <script defer src="js/speaking.js?v=20261026a"></script>
   <!-- 10-22 她要求：「句型闯关」这个老引擎整个删掉（页面 / 引擎 / 数据全部下线）。
        已同步删掉 js/pattern-drill.js、pattern-drill.html、data/patterns.json 与 #pdView 界面；
@@ -2480,7 +2480,6 @@ html[data-theme="dark"] #detailBody .sp-prompt{background:rgba(255,255,255,.04);
 html[data-theme="dark"] #detailBody .sp-ysay-list > div::before{background:rgba(58,154,147,.28);color:var(--primary-200)}
 html[data-theme="dark"] #detailBody .td-chip.freq{background:rgba(253,246,227,.12);color:#e5c87a;border-color:rgba(242,228,191,.24)}
 html[data-theme="dark"] #detailBody .td-chip.plain{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.10)}
-html[data-theme="dark"] #detailBody .sp-tc-head{background:linear-gradient(180deg,var(--surface),rgba(255,255,255,.03));border-bottom-color:rgba(255,255,255,.10)}
 html[data-theme="dark"] #detailBody .sp-tc-ic{background:rgba(58,154,147,.20);color:var(--primary-200)}
 html[data-theme="dark"] #detailBody .sp-ai-result .mat-logic.td-plain > .td-step{background:rgba(255,255,255,.045)}
 html[data-theme="dark"] #detailBody .sp-ai-result .mat-logic.td-plain > .td-step:hover{background:rgba(58,154,147,.14);border-color:rgba(58,154,147,.24)}
@@ -2510,6 +2509,44 @@ html[data-theme="dark"] #detailBody .td-wordcount b{color:var(--primary-200)}
    设计稿里串题素材是整页主角、P3 是它下面一条通栏，两列并排会让 P3 被拉伸成一大块空白。
    只在本页（#detailBody）覆盖，别处 .sp-tools-wrap 不受影响。 */
 #detailBody .sp-tools-wrap{display:block;grid-template-columns:none;gap:0;margin:0}
+
+/* ════════════════════════════════════════════════════════════════
+   SPK-CHUANTI-COMPACT-1（10-29 · 她：「大壳嵌小块」「减层」）
+   串题卡原来叠了四层盒子：外卡(圆角16+边框+阴影) → 渐变卡头(自带底色+底边线)
+   → 提示行 → 「串题素材」小标题行 → 内容区(再一层内边距)。视觉上就是一层套一层的壳。
+   改法：只留一块面。卡头去掉渐变带与底边线（不再像嵌了一个小条），提示文案收成行内小字
+   跟标题同行，内容区直接接在卡头下、内边距与外卡统一。业务 class / id 一个不动。 */
+#detailBody .sp-tc-head{
+  background:none;border-bottom:0;padding:15px 20px 6px;
+}
+#detailBody .sp-tc-hint-inline{
+  font-size:12.5px;color:var(--muted);line-height:1.5;margin-left:2px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;
+}
+#detailBody .sp-tc-ic svg{width:16px;height:16px;display:block}
+/* 内容区不再自成一张卡：基础类 .sp-ai-result（本页 457 行）自带 border + 白底 + 圆角 + margin-top 12px，
+   套在外卡里就是「大壳里再嵌一个小白块」——正是她说的「大壳嵌小块」。这里把它还原成纯内容容器。 */
+#detailBody .sp-ai-result{
+  margin-top:0;border:0;background:none;border-radius:0;box-shadow:none;
+  padding:6px 20px 18px;
+}
+/* 深色档原本给卡头单独写了渐变（本页 2483 行），减层后必须同步去掉，否则深色下又冒出那条带子 */
+html[data-theme="dark"] #detailBody .sp-tc-head{
+  background:none;border-bottom:0;
+}
+
+/* 计时按钮里的表盘图标（emoji ⏱ 换成自绘 SVG） */
+#detailBody .sp-timer-btn{display:inline-flex;align-items:center;gap:6px}
+#detailBody .sp-timer-btn .sp-timer-ic{width:14px;height:14px;flex:none}
+/* 作答卡头的笔图标（emoji ✍️ 换成自绘 SVG） */
+#detailBody .sp-p2-answer .td-anshead .ic svg{width:16px;height:16px;display:block}
+
+/* 手机档：提示文案在窄屏会挤掉标题，直接收起来（标题与按钮本身已说明用途） */
+@media (max-width:700px){
+  #detailBody .sp-tc-hint-inline{display:none}
+  #detailBody .sp-tc-head{padding:14px 16px 6px;gap:8px}
+  #detailBody .sp-ai-result{padding:6px 16px 16px}
+}
 
 </style>
 <!-- 10/4 16:10 陪练页整体改版（她 16:00 拍板：微信聊天布局 + 卡片化 + 标题左对齐 + 教练台别占右边）
