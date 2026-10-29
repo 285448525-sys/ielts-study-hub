@@ -30,7 +30,7 @@
 </script>
 <title>回顾 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261029a" />
-<link rel="stylesheet" href="css/p/review.css?v=20261029b" />
+<link rel="stylesheet" href="css/p/review.css?v=20261029c" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -522,13 +522,13 @@
 <!-- R-4 后半：三类成绩合一列（只读渲染，删除/详情转发到上面三个脚本里的现成逻辑）。
      ⚠️ 必须带 ?v= 声明 —— 否则 common.js 只能拿裸 URL 'js/rec-all.js'，等于向浏览器
         HTTP 缓存要「任意年代的旧副本」，改动永远推不上去（9/17 陈旧 UI 事故根因）。 -->
-<script defer src="js/rec-all.js?v=20261027u"></script>
+<script defer src="js/rec-all.js?v=20261029a"></script>
 <script defer src="js/mock-summary.js?v=20261001f"></script>
 <script defer src="js/speaking-practice.js?v=20261006a"></script>
 <script defer src="js/progress.js?v=20261024a"></script>
 <!-- R-E2（10-25）：E 版骨架接真数据。只读 DATA，不写任何东西；
      渲染目标全是 R-E1 骨架里新加的 rvx* id，旧面板节点一个都没动。 -->
-<script defer src="js/rvx-data.js?v=20261029a"></script>
+<script defer src="js/rvx-data.js?v=20261029b"></script>
 <!-- 回顾页的协调脚本：软导航下由 common.js 按其 pageScriptSources 收集执行。
      ⚠️ 必须带 ?v= 声明在这里 —— 否则 common.js 只能拿裸 URL 'js/review.js'，
      等于向浏览器 HTTP 缓存要「任意年代的旧副本」，改动永远推不上去（9/17 陈旧 UI 事故根因）。 -->
@@ -784,22 +784,8 @@
           </div>
         </details>
 
-        <details class="detail-block rv-add" id="scAddWrap">
-          <summary><span class="rv-add-plus">+</span><b>添加真题成绩</b><span class="rv-add-x">点开才展开</span></summary>
-          <div>
-            <div class="form-row">
-              <div><label>模考日期</label><input type="date" id="scoreDate" /></div>
-              <div><label>听力</label><input type="number" id="scL" step="0.5" min="0" max="9" placeholder="0–9" /></div>
-              <div><label>阅读</label><input type="number" id="scR" step="0.5" min="0" max="9" placeholder="0–9" /></div>
-            </div>
-            <div class="form-row">
-              <div><label>写作</label><input type="number" id="scW" step="0.5" min="0" max="9" placeholder="0–9" /></div>
-              <div><label>口语</label><input type="number" id="scS" step="0.5" min="0" max="9" placeholder="0–9" /></div>
-              <div><label>备注（可选）</label><input id="scNote" placeholder="备注" /></div>
-            </div>
-            <button class="btn btn-primary" id="addScore">保存成绩</button>
-          </div>
-        </details>
+        <!-- 🔴 RV-PAGE-REDESIGN-1（10-29 笔 B）：原「添加真题成绩」表单（#scAddWrap）
+             从这里搬到成绩栏首屏的录入入口行下（只搬节点、id 未改）。 -->
       </div>
 
       <!-- 口语（原「口语」栏内容，原样保留） -->
@@ -1019,6 +1005,67 @@
     </div>
   </div></div>
 
+  <!-- ═══ RV-PAGE-REDESIGN-1（10-29 笔 B）· 录入入口进首屏（她点头终稿的 .actions 三按钮行）═══
+       终稿的首屏顺序是：总分四科 → 录入入口 → 单科趋势 → 成绩记录。
+       原来两个录入表单一个埋在页面最底部（#mkAddWrap），一个在被清场规则藏掉的旧面板里
+       （#scAddWrap）—— 想记一笔成绩得先滚到最底下，这正是她说的「找不到入口」。
+       🔴 只搬节点、不改 id：#mkDate/#mkAdd/#addScore（scores.js:19-42 按它们取值）与
+          #scoreDate/#scL/#scR/#scW/#scS/#scNote 全部原样保留，两个 details 的 id
+          （mkAddWrap / scAddWrap）也不改，别的代码按 id 找节点。
+       🔴 「生成错误总结」按钮不新造第二套逻辑：点它 = 转发一次已有的 #mockSummaryBtn。 -->
+  <div class="rvx-actions" id="rvxActions">
+    <button type="button" class="rvx-act" data-open="scAddWrap"><span class="rvx-act-plus">＋</span>录入成绩</button>
+    <button type="button" class="rvx-act" data-open="mkAddWrap"><span class="rvx-act-plus">＋</span>录入分项模考</button>
+    <button type="button" class="rvx-act" id="rvxErrSum">生成错误总结</button>
+  </div>
+        <details class="detail-block rv-add" id="scAddWrap">
+          <summary><span class="rv-add-plus">+</span><b>添加真题成绩</b><span class="rv-add-x">点开才展开</span></summary>
+          <div>
+            <div class="form-row">
+              <div><label>模考日期</label><input type="date" id="scoreDate" /></div>
+              <div><label>听力</label><input type="number" id="scL" step="0.5" min="0" max="9" placeholder="0–9" /></div>
+              <div><label>阅读</label><input type="number" id="scR" step="0.5" min="0" max="9" placeholder="0–9" /></div>
+            </div>
+            <div class="form-row">
+              <div><label>写作</label><input type="number" id="scW" step="0.5" min="0" max="9" placeholder="0–9" /></div>
+              <div><label>口语</label><input type="number" id="scS" step="0.5" min="0" max="9" placeholder="0–9" /></div>
+              <div><label>备注（可选）</label><input id="scNote" placeholder="备注" /></div>
+            </div>
+            <button class="btn btn-primary" id="addScore">保存成绩</button>
+          </div>
+        </details>
+
+  <!-- 🔴 RV-PAGE-REDESIGN-1（10-29 笔 B）：原在页面最底部的「添加分项记录」
+       （#mkAddWrap）移到上面那个录入入口行下（只搬节点，id 未改）。 -->
+<details class="detail-block rv-add" id="mkAddWrap">
+          <summary><span class="rv-add-plus">+</span><b>添加分项记录</b><span class="rv-add-x">点开才展开</span></summary>
+          <div class="rv-add-body">
+            <div class="form-row mk-entry-row">
+              <div><label>粒度</label>
+                <select id="mkGran">
+                  <option value="part">单项</option>
+                  <option value="whole">整卷</option>
+                </select>
+              </div>
+              <div><label>题型</label>
+                <select id="mkType">
+                  <option value="listening">听力</option>
+                  <option value="reading">阅读</option>
+                  <option value="speaking">口语</option>
+                  <option value="writing">写作</option>
+                </select>
+              </div>
+              <div><label>日期</label><input type="date" id="mkDate" /></div>
+              <div id="mkPartPick" style="flex:0 0 110px;min-width:90px"><label>选择 Part</label><select id="mkPart"></select></div>
+              <div id="mkPartInputWrap" style="flex:1;min-width:160px"><label id="mkPartInputLabel">答对题数</label><input type="number" id="mkPartInput" min="0" placeholder="0" /></div>
+            </div>
+
+            <div id="mkParts" class="mk-parts" hidden></div>
+
+            <button class="btn btn-primary" id="mkAdd">保存分项</button>
+          </div>
+        </details>
+
   <div class="rvx-two" style="margin-top:16px">
     <div>
       <div class="rvx-card"><div class="rvx-card-p">
@@ -1043,8 +1090,33 @@
   <span><i class="rvx-dot" style="background:var(--med)"></i>口语</span>
 </div><div style="overflow-x:auto"><svg aria-hidden="true" viewBox="0 0 720 250" width="100%" style="display:block;width:100%;height:auto;min-width:300px"><line x1="26" y1="224" x2="710" y2="224" style="stroke:var(--line)" stroke-width="1" opacity="0.9"></line><text x="20" y="227.5" text-anchor="end" font-size="10" style="fill:var(--muted)" font-variant-numeric="tabular-nums">4</text><line x1="26" y1="194" x2="710" y2="194" style="stroke:var(--line)" stroke-width="1" opacity="0.4"></line><line x1="26" y1="164" x2="710" y2="164" style="stroke:var(--line)" stroke-width="1" opacity="0.9"></line><text x="20" y="167.5" text-anchor="end" font-size="10" style="fill:var(--muted)" font-variant-numeric="tabular-nums">5</text><line x1="26" y1="134" x2="710" y2="134" style="stroke:var(--line)" stroke-width="1" opacity="0.4"></line><line x1="26" y1="104" x2="710" y2="104" style="stroke:var(--line)" stroke-width="1" opacity="0.9"></line><text x="20" y="107.5" text-anchor="end" font-size="10" style="fill:var(--muted)" font-variant-numeric="tabular-nums">6</text><line x1="26" y1="74" x2="710" y2="74" style="stroke:var(--line)" stroke-width="1" opacity="0.4"></line><line x1="26" y1="44.000000000000014" x2="710" y2="44.000000000000014" style="stroke:var(--line)" stroke-width="1" opacity="0.9"></line><text x="20" y="47.500000000000014" text-anchor="end" font-size="10" style="fill:var(--muted)" font-variant-numeric="tabular-nums">7</text><line x1="26" y1="14" x2="710" y2="14" style="stroke:var(--line)" stroke-width="1" opacity="0.4"></line><polyline points="26,104 88.18181818181819,134 150.36363636363637,104 212.54545454545453,104 274.72727272727275,104 336.90909090909093,104 399.09090909090907,44.000000000000014 461.27272727272725,104 523.4545454545455,74 585.6363636363636,44.000000000000014 647.8181818181819,74 710,44.000000000000014" fill="none" style="stroke:var(--mock)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" opacity=".92"></polyline><circle cx="26" cy="104" r="2.6" style="fill:var(--mock)"></circle><circle cx="88.18181818181819" cy="134" r="2.6" style="fill:var(--mock)"></circle><circle cx="150.36363636363637" cy="104" r="2.6" style="fill:var(--mock)"></circle><circle cx="212.54545454545453" cy="104" r="2.6" style="fill:var(--mock)"></circle><circle cx="274.72727272727275" cy="104" r="2.6" style="fill:var(--mock)"></circle><circle cx="336.90909090909093" cy="104" r="2.6" style="fill:var(--mock)"></circle><circle cx="399.09090909090907" cy="44.000000000000014" r="2.6" style="fill:var(--mock)"></circle><circle cx="461.27272727272725" cy="104" r="2.6" style="fill:var(--mock)"></circle><circle cx="523.4545454545455" cy="74" r="2.6" style="fill:var(--mock)"></circle><circle cx="585.6363636363636" cy="44.000000000000014" r="2.6" style="fill:var(--mock)"></circle><circle cx="647.8181818181819" cy="74" r="2.6" style="fill:var(--mock)"></circle><circle cx="710" cy="44.000000000000014" r="4" style="fill:var(--mock)"></circle><polyline points="26,134 88.18181818181819,164 150.36363636363637,134 212.54545454545453,164 274.72727272727275,104 336.90909090909093,134 399.09090909090907,104 461.27272727272725,134 523.4545454545455,74 585.6363636363636,104 647.8181818181819,104 710,74" fill="none" style="stroke:var(--vocab)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" opacity=".92"></polyline><circle cx="26" cy="134" r="2.6" style="fill:var(--vocab)"></circle><circle cx="88.18181818181819" cy="164" r="2.6" style="fill:var(--vocab)"></circle><circle cx="150.36363636363637" cy="134" r="2.6" style="fill:var(--vocab)"></circle><circle cx="212.54545454545453" cy="164" r="2.6" style="fill:var(--vocab)"></circle><circle cx="274.72727272727275" cy="104" r="2.6" style="fill:var(--vocab)"></circle><circle cx="336.90909090909093" cy="134" r="2.6" style="fill:var(--vocab)"></circle><circle cx="399.09090909090907" cy="104" r="2.6" style="fill:var(--vocab)"></circle><circle cx="461.27272727272725" cy="134" r="2.6" style="fill:var(--vocab)"></circle><circle cx="523.4545454545455" cy="74" r="2.6" style="fill:var(--vocab)"></circle><circle cx="585.6363636363636" cy="104" r="2.6" style="fill:var(--vocab)"></circle><circle cx="647.8181818181819" cy="104" r="2.6" style="fill:var(--vocab)"></circle><circle cx="710" cy="74" r="4" style="fill:var(--vocab)"></circle><polyline points="26,194 88.18181818181819,194 150.36363636363637,164 212.54545454545453,194 274.72727272727275,164 336.90909090909093,164 399.09090909090907,134 461.27272727272725,164 523.4545454545455,134 585.6363636363636,134 647.8181818181819,134 710,104" fill="none" style="stroke:var(--warn)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" opacity=".92"></polyline><circle cx="26" cy="194" r="2.6" style="fill:var(--warn)"></circle><circle cx="88.18181818181819" cy="194" r="2.6" style="fill:var(--warn)"></circle><circle cx="150.36363636363637" cy="164" r="2.6" style="fill:var(--warn)"></circle><circle cx="212.54545454545453" cy="194" r="2.6" style="fill:var(--warn)"></circle><circle cx="274.72727272727275" cy="164" r="2.6" style="fill:var(--warn)"></circle><circle cx="336.90909090909093" cy="164" r="2.6" style="fill:var(--warn)"></circle><circle cx="399.09090909090907" cy="134" r="2.6" style="fill:var(--warn)"></circle><circle cx="461.27272727272725" cy="164" r="2.6" style="fill:var(--warn)"></circle><circle cx="523.4545454545455" cy="134" r="2.6" style="fill:var(--warn)"></circle><circle cx="585.6363636363636" cy="134" r="2.6" style="fill:var(--warn)"></circle><circle cx="647.8181818181819" cy="134" r="2.6" style="fill:var(--warn)"></circle><circle cx="710" cy="104" r="4" style="fill:var(--warn)"></circle><polyline points="26,164 88.18181818181819,164 150.36363636363637,134 212.54545454545453,164 274.72727272727275,134 336.90909090909093,134 399.09090909090907,104 461.27272727272725,134 523.4545454545455,104 585.6363636363636,104 647.8181818181819,104 710,74" fill="none" style="stroke:var(--med)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" opacity=".92"></polyline><circle cx="26" cy="164" r="2.6" style="fill:var(--med)"></circle><circle cx="88.18181818181819" cy="164" r="2.6" style="fill:var(--med)"></circle><circle cx="150.36363636363637" cy="134" r="2.6" style="fill:var(--med)"></circle><circle cx="212.54545454545453" cy="164" r="2.6" style="fill:var(--med)"></circle><circle cx="274.72727272727275" cy="134" r="2.6" style="fill:var(--med)"></circle><circle cx="336.90909090909093" cy="134" r="2.6" style="fill:var(--med)"></circle><circle cx="399.09090909090907" cy="104" r="2.6" style="fill:var(--med)"></circle><circle cx="461.27272727272725" cy="134" r="2.6" style="fill:var(--med)"></circle><circle cx="523.4545454545455" cy="104" r="2.6" style="fill:var(--med)"></circle><circle cx="585.6363636363636" cy="104" r="2.6" style="fill:var(--med)"></circle><circle cx="647.8181818181819" cy="104" r="2.6" style="fill:var(--med)"></circle><circle cx="710" cy="74" r="4" style="fill:var(--med)"></circle><text x="26" y="239" text-anchor="middle" font-size="9.5" style="fill:var(--muted)" font-variant-numeric="tabular-nums">08-15</text><text x="150.36363636363637" y="239" text-anchor="middle" font-size="9.5" style="fill:var(--muted)" font-variant-numeric="tabular-nums">08-27</text><text x="274.72727272727275" y="239" text-anchor="middle" font-size="9.5" style="fill:var(--muted)" font-variant-numeric="tabular-nums">09-08</text><text x="399.09090909090907" y="239" text-anchor="middle" font-size="9.5" style="fill:var(--muted)" font-variant-numeric="tabular-nums">09-20</text><text x="523.4545454545455" y="239" text-anchor="middle" font-size="9.5" style="fill:var(--muted)" font-variant-numeric="tabular-nums">10-02</text><text x="647.8181818181819" y="239" text-anchor="middle" font-size="9.5" style="fill:var(--muted)" font-variant-numeric="tabular-nums">10-14</text></svg></div>
       </div></div>
+    </div>
+  <!-- RV-CLEAN-1b（10-26）：`.card rv-recall`（「全部记录」#recAll + 三个筛选 chip）从 #tab-overall 里**整块搬出**。
+       根因：它原来在 #tab-overall 内部，被清场规则 `.review-wrap:has(#tab-score.active) #tab-overall{display:none}` 连坐藏掉 ——
+       而它是「看上次结果」的唯一数据入口（A 的 EXAM-PLAN-1 落点），藏了等于那条功能没有落点。
+       🔴 只搬位置、不删节点：js/rec-all.js 的 render() 靠 getElementById('recAll') 找容器，id 一个没动。
+       与 #mkAddWrap 同一个位置策略（上一批已这么搬过录入表单）。 -->
+        <section class="card rv-recall">
+          <div class="form-row mk-list-head" style="align-items:center">
+            <h2 class="inline-h2">全部记录</h2>
+            <span class="muted rv-recall-n" id="recAllCount"></span>
+            <span class="spacer"></span>
+            <!-- 只想看某一类：三个 chip，点了筛掉其他两类（默认全开） -->
+            <div class="rv-recall-chips" id="recAllChips">
+              <button type="button" class="rvc active" data-k="whole">整卷</button>
+              <button type="button" class="rvc active" data-k="part">分项</button>
+              <button type="button" class="rvc active" data-k="speaking">口语模考</button>
+            </div>
+          </div>
+          <div id="recAll"></div>
+        </section>
 
-      
+  <!-- ═══ RV-PAGE-REDESIGN-1（10-29 笔 B）：四张科目卡（各科走势 + Part 正确率）从
+       成绩趋势后面**下沉到成绩记录之后**，按终稿收进「表现统计」折叠块。
+       内容一行没删，只是位置往后挪 —— 首屏先给总分四科、录入入口、单科趋势、成绩记录。 -->
+  <details class="detail-block" id="rvxSubjWrap" open>
+    <summary><b>表现统计</b><span class="rvx-fn" style="margin:0 0 0 10px">各科走势与正确率</span></summary>
+    <div class="rvx-subj-grid">
         <div class="rvx-subj" data-subj="listening">
           <div class="rvx-subj-h">
             <div class="rvx-subj-ic" style="background:rgba(50,173,230,.14)">🎧</div>
@@ -1192,114 +1264,8 @@
       </div>
     </div>
   </div>
-
-      <div class="rvx-card" style="margin-top:16px"><div class="rvx-card-p">
-        <div class="rvx-rec-head">
-          <h3 class="rvx-h" style="margin:0">全部记录 <span class="rvx-muted" style="font-weight:400;font-size:12px" id="rvxRecCount">0 条</span></h3>
-          <div class="rvx-filters" id="rvxRecChips"><button class="rvx-chip rvx-on" data-k="all">全部</button><button class="rvx-chip" data-k="whole">整卷 <span id="rvxChipWhole">0</span></button><button class="rvx-chip" data-k="part">分项 <span id="rvxChipPart">0</span></button><button class="rvx-chip" data-k="speaking">口语模考 <span id="rvxChipSpk">0</span></button></div>
-        </div>
-        <div id="rvxRecRows"></div>
-        <div class="rvx-fn" id="rvxRecFn" hidden></div>
-        <div id="rvxRecLegacy" hidden>
-        <div class="rvx-row" style="padding:11px 0;border-bottom:1px solid var(--line-soft);gap:12px">
-      <span class="rvx-mono" style="font-size:12.5px;color:var(--muted);width:46px;flex:none">10-20</span>
-      <span class="rvx-tag" style="flex:none">整卷</span>
-      <span style="font-size:12.5px;color:var(--ink-2);flex:1" class="rvx-mono">听 7 · 读 6.5 · 写 6 · 说 6.5</span>
-      <b class="rvx-mono" style="font-size:15px">6.5</b>
-    </div><div class="rvx-row" style="padding:11px 0;border-bottom:1px solid var(--line-soft);gap:12px">
-      <span class="rvx-mono" style="font-size:12.5px;color:var(--muted);width:46px;flex:none">10-14</span>
-      <span class="rvx-tag" style="flex:none">整卷</span>
-      <span style="font-size:12.5px;color:var(--ink-2);flex:1" class="rvx-mono">听 6.5 · 读 6 · 写 5.5 · 说 6</span>
-      <b class="rvx-mono" style="font-size:15px">6.0</b>
-    </div><div class="rvx-row" style="padding:11px 0;border-bottom:1px solid var(--line-soft);gap:12px">
-      <span class="rvx-mono" style="font-size:12.5px;color:var(--muted);width:46px;flex:none">10-13</span>
-      <span class="rvx-tag" style="flex:none">分项</span>
-      <span style="font-size:12.5px;color:var(--ink-2);flex:1">写作 T2 · 9/10</span>
-      <span class="rvx-bar" style="width:70px;display:block;flex:none"><i style="width:90%;background:var(--med)"></i></span>
-      <b class="rvx-mono" style="font-size:13px;width:38px;text-align:right">90%</b>
-    </div><div class="rvx-row" style="padding:11px 0;border-bottom:1px solid var(--line-soft);gap:12px">
-    <span class="rvx-mono" style="font-size:12.5px;color:var(--muted);width:46px;flex:none">10-11</span>
-    <span class="rvx-tag rvx-up" style="flex:none">口语模考</span>
-    <span style="font-size:12.5px;color:var(--ink-2);flex:1" class="rvx-mono">语法 6.5 · 词汇 7 · 流利 6.7 · 发音 5.9</span>
-    <b class="rvx-mono" style="font-size:15px">7.0</b>
-  </div><div class="rvx-row" style="padding:11px 0;border-bottom:1px solid var(--line-soft);gap:12px">
-      <span class="rvx-mono" style="font-size:12.5px;color:var(--muted);width:46px;flex:none">10-10</span>
-      <span class="rvx-tag" style="flex:none">分项</span>
-      <span style="font-size:12.5px;color:var(--ink-2);flex:1">阅读 P1 · 9/10</span>
-      <span class="rvx-bar" style="width:70px;display:block;flex:none"><i style="width:90%;background:var(--med)"></i></span>
-      <b class="rvx-mono" style="font-size:13px;width:38px;text-align:right">90%</b>
-    </div><div class="rvx-row" style="padding:11px 0;border-bottom:1px solid var(--line-soft);gap:12px">
-      <span class="rvx-mono" style="font-size:12.5px;color:var(--muted);width:46px;flex:none">10-08</span>
-      <span class="rvx-tag" style="flex:none">整卷</span>
-      <span style="font-size:12.5px;color:var(--ink-2);flex:1" class="rvx-mono">听 7 · 读 6 · 写 5.5 · 说 6</span>
-      <b class="rvx-mono" style="font-size:15px">6.1</b>
-    </div><div class="rvx-row" style="padding:11px 0;border-bottom:1px solid var(--line-soft);gap:12px">
-      <span class="rvx-mono" style="font-size:12.5px;color:var(--muted);width:46px;flex:none">10-07</span>
-      <span class="rvx-tag" style="flex:none">分项</span>
-      <span style="font-size:12.5px;color:var(--ink-2);flex:1">听力 P4 · 9/10</span>
-      <span class="rvx-bar" style="width:70px;display:block;flex:none"><i style="width:90%;background:var(--med)"></i></span>
-      <b class="rvx-mono" style="font-size:13px;width:38px;text-align:right">90%</b>
-    </div><div class="rvx-row" style="padding:11px 0;border-bottom:1px solid var(--line-soft);gap:12px">
-      <span class="rvx-mono" style="font-size:12.5px;color:var(--muted);width:46px;flex:none">10-02</span>
-      <span class="rvx-tag" style="flex:none">整卷</span>
-      <span style="font-size:12.5px;color:var(--ink-2);flex:1" class="rvx-mono">听 6.5 · 读 6.5 · 写 5.5 · 说 6</span>
-      <b class="rvx-mono" style="font-size:15px">6.1</b>
     </div>
-        <div class="rvx-fn">还有 20 条。</div>
-        </div>
-      </div></div>
-    </div>
-  <!-- RV-CLEAN-1（10-26）：录入入口从 #tab-breakdown 提出来放这里 ——
-       旧面板整块被 CSS 藏掉了，但「+ 添加分项记录」她以后还要用。
-       🔴 只搬节点、不改 id：scores.js:19-42 按 #mkDate/#mkAdd/#addScore 取值。 -->
-<details class="detail-block rv-add" id="mkAddWrap">
-          <summary><span class="rv-add-plus">+</span><b>添加分项记录</b><span class="rv-add-x">点开才展开</span></summary>
-          <div class="rv-add-body">
-            <div class="form-row mk-entry-row">
-              <div><label>粒度</label>
-                <select id="mkGran">
-                  <option value="part">单项</option>
-                  <option value="whole">整卷</option>
-                </select>
-              </div>
-              <div><label>题型</label>
-                <select id="mkType">
-                  <option value="listening">听力</option>
-                  <option value="reading">阅读</option>
-                  <option value="speaking">口语</option>
-                  <option value="writing">写作</option>
-                </select>
-              </div>
-              <div><label>日期</label><input type="date" id="mkDate" /></div>
-              <div id="mkPartPick" style="flex:0 0 110px;min-width:90px"><label>选择 Part</label><select id="mkPart"></select></div>
-              <div id="mkPartInputWrap" style="flex:1;min-width:160px"><label id="mkPartInputLabel">答对题数</label><input type="number" id="mkPartInput" min="0" placeholder="0" /></div>
-            </div>
-
-            <div id="mkParts" class="mk-parts" hidden></div>
-
-            <button class="btn btn-primary" id="mkAdd">保存分项</button>
-          </div>
-        </details>
-  <!-- RV-CLEAN-1b（10-26）：`.card rv-recall`（「全部记录」#recAll + 三个筛选 chip）从 #tab-overall 里**整块搬出**。
-       根因：它原来在 #tab-overall 内部，被清场规则 `.review-wrap:has(#tab-score.active) #tab-overall{display:none}` 连坐藏掉 ——
-       而它是「看上次结果」的唯一数据入口（A 的 EXAM-PLAN-1 落点），藏了等于那条功能没有落点。
-       🔴 只搬位置、不删节点：js/rec-all.js 的 render() 靠 getElementById('recAll') 找容器，id 一个没动。
-       与 #mkAddWrap 同一个位置策略（上一批已这么搬过录入表单）。 -->
-        <section class="card rv-recall">
-          <div class="form-row mk-list-head" style="align-items:center">
-            <h2 class="inline-h2">全部记录</h2>
-            <span class="muted rv-recall-n" id="recAllCount"></span>
-            <span class="spacer"></span>
-            <!-- 只想看某一类：三个 chip，点了筛掉其他两类（默认全开） -->
-            <div class="rv-recall-chips" id="recAllChips">
-              <button type="button" class="rvc active" data-k="whole">整卷</button>
-              <button type="button" class="rvc active" data-k="part">分项</button>
-              <button type="button" class="rvc active" data-k="speaking">口语模考</button>
-            </div>
-          </div>
-          <div id="recAll"></div>
-        </section>
-
+  </details>
   <!-- ═══ EMP-1（10-26）· 空态区 ═══
        #scoreStats / #scoreBars 两个容器由 scores.js 的 render() 写入：
        没有数据时它们装 .empty-state 行动卡（图标+标题+指引+主按钮），有数据时 #scoreStats 清空、#scoreBars 装四科对比条。

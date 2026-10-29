@@ -837,3 +837,29 @@ html[data-theme="dark"] .rec-row.rec-focus{
   .rvx-chips{gap:5px}
   .rvx-chip{padding:5px 10px;font-size:12px}
 }
+
+/* ═══ RV-PAGE-REDESIGN-1（10-29 笔 B）· 录入入口行 + 表现统计折叠块 ═══
+   终稿 .actions：三个等宽按钮一排（＋录入成绩 / ＋录入分项模考 / 生成错误总结），
+   透明底、1px 边框、圆角 11、hover 主色描边。颜色走 token 不写死。 */
+.rvx-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.rvx-act{
+  flex:1 1 0;min-width:150px;min-height:42px;padding:10px 16px;
+  border:1px solid var(--line);border-radius:11px;background:var(--surface);
+  color:var(--ink-2);font-size:13.5px;font-weight:600;font-family:inherit;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  transition:border-color .15s,color .15s,background .15s;
+}
+.rvx-act:hover{border-color:var(--primary);color:var(--primary-700);background:var(--primary-soft)}
+.rvx-act-plus{color:var(--primary);font-weight:700}
+
+/* 表现统计折叠块里四张科目卡：桌面 2 列、窄屏 1 列（原来它们各占一整行） */
+.rvx-subj-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:14px 2px 4px}
+.rvx-subj-grid .rvx-subj{margin:0}
+@media (max-width:900px){ .rvx-subj-grid{grid-template-columns:1fr} }
+@media (max-width:560px){
+  .rvx-actions{gap:8px}
+  .rvx-act{min-width:0;flex:1 1 100%;min-height:40px;font-size:13px}
+}
+
+/* 成绩记录那一节的三个筛选 chip 现在带计数，稍宽一点 */
+.rv-recall-chips .rvc{white-space:nowrap}

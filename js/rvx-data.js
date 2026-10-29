@@ -713,6 +713,28 @@
 
   /* 筛选 chip：纯前端过滤，不重算数据 */
   document.addEventListener('click', function(ev){
+    /* 🔴 RV-PAGE-REDESIGN-1（10-29 笔 B）：首屏录入入口行。
+       两个按钮只是把已有的两个表单 details 展开/收起（节点没换位置、id 没改），
+       「生成错误总结」转发一次已有的 #mockSummaryBtn —— 不新造第二套逻辑。 */
+    var act = ev.target && ev.target.closest && ev.target.closest('#rvxActions [data-open]');
+    if (act){
+      ev.preventDefault();
+      var d = document.getElementById(act.getAttribute('data-open'));
+      if (d){
+        d.open = !d.open;
+        if (d.open) d.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+      return;
+    }
+    var es = ev.target && ev.target.closest && ev.target.closest('#rvxErrSum');
+    if (es){
+      ev.preventDefault();
+      var src2 = document.getElementById('mockSummaryBtn');
+      var sway = document.getElementById('tab-speaking');
+      if (sway) sway.open = true;
+      if (src2){ src2.click(); }
+      return;
+    }
     /* 🔴 RV-PAGE-REDESIGN-1（10-29）：趋势图的科目筛选（终稿「一次只看一科」）。
        委托绑定 —— 软导航换 DOM 后新 chip 照样生效，不用重绑。 */
     var tc = ev.target && ev.target.closest && ev.target.closest('#rvxTrendChips [data-k]');

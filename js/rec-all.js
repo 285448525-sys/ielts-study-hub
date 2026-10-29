@@ -126,6 +126,23 @@
     const cnt = document.getElementById('recAllCount');
     if (cnt) cnt.textContent = list.length ? ('共 ' + list.length + ' 条') : '';
 
+    /* 🔴 RV-PAGE-REDESIGN-1（10-29 笔 B）：这一节现在是全页**唯一**的成绩记录列表
+       （rvx 骨架里那份重复的「全部记录」已删），原来挂在它上面的三个计数
+       （整卷 N / 分项 N / 口语模考 N）搬到这里，一个数字都没丢。 */
+    try {
+      const chips = document.getElementById('recAllChips');
+      if (chips) {
+        const names = { whole: '整卷', part: '分项', speaking: '口语模考' };
+        const n = { whole: 0, part: 0, speaking: 0 };
+        all.forEach(x => { if (n[x.kind] != null) n[x.kind]++; });
+        chips.querySelectorAll('.rvc').forEach(b => {
+          const k = b.dataset.k;
+          if (n[k] == null) return;
+          b.textContent = names[k] + ' ' + n[k];
+        });
+      }
+    } catch (e) {}
+
     if (!all.length) {
       box.innerHTML = '<p class="muted" style="font-size:13.5px;margin:0">还没有任何记录。整卷、分项、口语模考都会汇总到这里，按日期排。</p>';
       return;
