@@ -3202,9 +3202,14 @@ html[data-theme="dark"] #detailBody .sp-tc-head{
 
   /* ---- 改动点 1：驾驶舱（考试日 / 主按钮 / 三项统计）----
      位置：题库 tab 顶部，替代原 .sp-banner + .sp-countdown 两条提示。 */
+  /* 🔴 SPK-STAT-CARDS-COMPACT-1（10-29）她报：「大块嵌几个小块」丑 +「每张卡就一行字却占那么宽的空隙」。
+     原结构 = 外卡里再切三格（grid 各 1fr、格与格之间 1px 竖线、上面还有一条横行分隔线），
+     每格内容只有「一行标签 + 一行数字 + 一条通栏长条」—— 一行字却撑满 361px，左右全是空。
+     改法：三格从「并排等分卡」改成一行内联的紧凑条目：去掉格间竖线与上方横线（不再像卡里嵌卡）、
+     每格宽度由内容决定、进度条改成 56px 短条跟在数字后。 */
   .sp-cockpit{
     background:var(--n-0);border:1px solid var(--n-300);border-radius:16px;
-    box-shadow:var(--sh-2);padding:22px 24px;margin:0 0 22px;
+    box-shadow:var(--sh-2);padding:18px 20px;margin:0 0 20px;
   }
   .sp-cockpit-top{display:flex;align-items:flex-start;justify-content:space-between;gap:24px}
   .sp-cockpit-left{min-width:0}
@@ -3222,20 +3227,26 @@ html[data-theme="dark"] #detailBody .sp-tc-head{
   .sp-cockpit .btn-main:hover{background:var(--primary-700)}
   .sp-cockpit .btn-main:active{transform:scale(.98)}
   .sp-cockpit .btn-main svg{width:16px;height:16px}
-  .sp-cockpit-stats{display:grid;grid-template-columns:repeat(3,1fr);margin-top:20px;padding-top:18px;border-top:1px solid var(--n-300)}
-  .sp-stat-cell{padding-right:20px;min-width:0}
-  .sp-stat-cell + .sp-stat-cell{padding-left:22px;border-left:1px solid var(--n-300)}
-  .sp-stat-k{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--n-500)}
-  .sp-stat-v{display:flex;align-items:baseline;gap:5px;margin-top:3px;font-size:17px;font-weight:600;color:var(--n-900)}
+  .sp-cockpit-stats{
+    display:flex;flex-wrap:wrap;align-items:center;gap:10px 22px;
+    margin-top:14px;padding-top:0;border-top:0;
+  }
+  .sp-stat-cell{
+    display:flex;align-items:center;gap:9px;
+    padding:0;border:0;min-width:0;width:auto;
+  }
+  .sp-stat-cell + .sp-stat-cell{padding-left:0;border-left:0}
+  .sp-stat-k{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--n-500);white-space:nowrap}
+  .sp-stat-v{display:flex;align-items:baseline;gap:4px;margin-top:0;font-size:15px;font-weight:600;color:var(--n-900);white-space:nowrap}
   .sp-stat-v i{font-style:normal;font-size:12.5px;font-weight:500;color:var(--n-500)}
-  .sp-bar{height:3px;border-radius:2px;background:var(--n-200);margin-top:8px;overflow:hidden}
+  .sp-bar{height:4px;width:56px;flex:none;border-radius:2px;background:var(--n-200);margin-top:0;overflow:hidden}
   .sp-bar span{display:block;height:100%;border-radius:2px;background:var(--primary-500)}
   @media(max-width:720px){
-    .sp-cockpit{padding:18px 16px;border-radius:14px}
+    .sp-cockpit{padding:16px 16px 18px;border-radius:14px}
     .sp-cockpit-top{flex-direction:column;gap:14px}
     .sp-cockpit-num{font-size:26px}
-    .sp-cockpit-stats{grid-template-columns:1fr;gap:14px}
-    .sp-stat-cell + .sp-stat-cell{padding-left:0;padding-top:14px;border-left:0;border-top:1px solid var(--n-300)}
+    .sp-cockpit-stats{flex-direction:column;align-items:flex-start;gap:9px}
+    .sp-stat-cell{width:100%}
   }
 
   /* ---- 改动点 3：工具行（P1/P2 分段 + 模考 + 搜索 + 三个下拉）----
