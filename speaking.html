@@ -32,7 +32,7 @@
 </script>
 <title>口语 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261029e" />
-<link rel="stylesheet" href="css/p/speaking.css?v=20261029e" />
+<link rel="stylesheet" href="css/p/speaking.css?v=20261029f" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -115,6 +115,10 @@
 
   .chip-row{display:flex;gap:8px;overflow-x:auto;padding:8px 0;scrollbar-width:none}
   .chip-row::-webkit-scrollbar{display:none}
+  /* P0-3（10-29 她 15:1x）：题库页禁左右滑动——chip-row 不再横向滚动，标签挤不下就换行 */
+  @media(max-width:860px){
+    .chip-row{flex-wrap:wrap;overflow-x:visible}
+  }
   .chip{flex:none;display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:6px 14px;border-radius:20px;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;white-space:nowrap;transition:all .15s}
   .chip:hover{border-color:var(--primary);color:var(--primary)}
   .chip.active{background:var(--primary);color:#fff;border-color:var(--primary)}
@@ -995,8 +999,11 @@ body.mock-immerse .container{height:100dvh;display:flex;flex-direction:column;ov
    #mockStage 拿不到受限高度 → overflow:auto 永不触发 → 内容超屏被裁。
    修法 = 把 #mockView 纳入 flex 链；:not([hidden]) 防 display:flex 覆盖 hidden 属性。 */
 body.mock-immerse #mockView:not([hidden]){flex:1;min-height:0;display:flex;flex-direction:column}
-body.mock-immerse #mockStage{flex:1;min-height:0;overflow:auto}
+body.mock-immerse #mockStage{flex:1;min-height:0;overflow:hidden}
 body.mock-immerse #mockStage{border:0;box-shadow:none;background:transparent}
+/* P0-3（10-29 她 15:1x）：模考页禁上下滑动——stage 不再内部滚，内容压进 100dvh。
+   原 overflow:auto 导致「黄条跟着内容滚走、题干卡被 stage 上边界裁切」。
+   改后：stage 不裁切、不滚动，黄条固定在顶部，题干区自然占满剩余空间。 */
 /* 10-22 句型闯关老引擎整体下线（她要求）→ 原「句型闯关全屏整页锁定」的 4 条 body.pd-fullscreen
    规则一并删除（已无任何调用方：#pdView 界面与 pattern-drill.js 引擎都不在了）。 */
 
@@ -2965,7 +2972,6 @@ html[data-theme="dark"] #detailBody .sp-tc-head{
       <div class="mock-total-timer" id="mockTotalTimerWrap" hidden>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg>
         整场剩余 <b id="mockTotalTimer">15:00</b>
-        <span class="mock-total-timer-note">真题约 12–15 分钟 · 时间到不强制收卷</span>
       </div>
       <!-- 10/1 批3（她拍板「考官的脸出现在屏幕上」）：考官视频窗模拟。
            默认（P1/P3）大窗居中在上；#mockStage.p2-mode 时两栏：左题目 + 右小窗。

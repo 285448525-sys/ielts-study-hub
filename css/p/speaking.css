@@ -121,14 +121,13 @@
 .mock-report-actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
 /* 整场计时条（模考总时长 12~15 分钟，用于自控节奏） */
 /* 10/2（她 10/2 反馈「三行太占地方」）：整场剩余框收窄——第一行=倒计时，第二行=时长标注（小字一行），手机端不再堆成三行 */
+/* 10/29（她 15:1x「这句话很啰嗦…在手机端看的时候就变成两行了，我叫你缩减成半行」）：删掉 .mock-total-timer-note 整句，只留倒计时+退出按钮共一行 */
 .mock-total-timer{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13.5px;font-weight:700;color:var(--warn-ink);background:var(--warn-soft);border:1px solid var(--warn);border-radius:12px;padding:8px 12px;margin-bottom:12px}
 .mock-total-timer svg{width:15px;height:15px;flex:none}
 .mock-total-timer b{font-size:17px;font-variant-numeric:tabular-nums;letter-spacing:.02em}
-.mock-total-timer-note{font-size:11.5px;font-weight:500;color:var(--muted);line-height:1.35}
 @media (max-width:560px){
   .mock-total-timer{font-size:13px;padding:7px 11px;gap:6px}
   .mock-total-timer b{font-size:16px}
-  .mock-total-timer-note{font-size:11px}
 }
 /* ===== SPK-INFO-1（10-27）：语音页「题库说明」折叠标 =====
    形态与 bank.html 的 .bank-info 同款（墨线细框 + ▸/▾ 三角 + 12.5px 小字），
