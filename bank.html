@@ -1715,6 +1715,19 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 /* ---- ⑦ 底栏 Part 行：官方口径（透明底 + 当前 Part 600 + 灰「x of y」）---- */
 #examRoot .ex-bar{background:#fff;border-top:1px solid #d5d5d5}
 #examRoot .ex-bar-main{height:44px;max-height:44px}
+
+/* ═══ MOCK-EXAM-TOPBAR-1 笔 2（10-29 她：「下面有一块是空白，就会遮住，显示不了」）═══
+   手机档底栏是**两行**（第一行 Part/题号、第二行动作按钮 —— 见上面 ≤860 那段注释），
+   但紧挨着的这条 `#examRoot .ex-bar-main{height:44px;max-height:44px}` 把两行钉成一行高：
+   44px 只够第一行，第二行的暂停/退出/交卷被挤出底栏、落到视口外 ——
+   屏上只剩三个被切掉一半的灰按钮（她截图里那块「空白遮挡」），正文最后几行也露不出来。
+   实测（390）：改前 `.ex-bar` 高 45px、scrollHeight 74px、clientHeight 44px（溢出 30px）；
+   改后栏高 74px，两行动作按钮全部落在视口内。
+   ⚠️ 必须写在**这条之后**：同特异度 (1,1,0) 时后者胜，写在上面 ≤860 那段的裸 `.ex-bar-main`
+      是 (0,1,0)，压不过这条。桌面（>860）一个字没动。 */
+@media(max-width:860px){
+  #examRoot .ex-bar-main{height:auto;max-height:none}
+}
 #examRoot .ex-pt{color:#333;font-size:14px;font-weight:400}
 #examRoot .ex-pt.on{color:#000}
 #examRoot .ex-pt.on .ex-pt-t{font-weight:600}
