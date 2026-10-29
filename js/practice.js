@@ -2309,7 +2309,21 @@ ready(() => {
   });
   $('#cfgClose').addEventListener('click', () => { $('#cfgModal').hidden = true; });
   $('#cfgModal').addEventListener('click', e => { if(e.target === $('#cfgModal')) $('#cfgModal').hidden = true; });
-  document.addEventListener('keydown', e => { if(e.key === 'Escape' && !$('#cfgModal').hidden) $('#cfgModal').hidden = true; });
+  /* 🔴 LISTEN-LEAK-ESC-1（10-29）：这两处原来有两个问题，一起修：
+     ① 无幂等守卫 —— 软导航重跑 ready 块（runPageScript → window.eval）每进一次单词页
+        就多绑一条 document:keydown，永不摘除。同一块下面 2302 行 `__wordKbdBound` 是
+        有守卫的，说明作者知道要防重绑，只是这一行漏了（与 LISTEN-LEAK-1 同一类型）。
+     ② 空引用风险 —— `!$('#cfgModal').hidden`：软导航离开单词页后这条监听仍挂在 document 上，
+        而 #cfgModal 已随 <main> 换掉 → `$('#cfgModal')` 返回 null，取 .hidden 直接抛 TypeError。
+     修法：外面套 window 级幂等闸 + 处理器内现取节点并判空（不缓存闭包，换页后也能安全工作）。 */
+  if(!window.__wordCfgEscBound){
+    window.__wordCfgEscBound = true;
+    document.addEventListener('keydown', e => {
+      if(e.key !== 'Escape') return;
+      const m = document.getElementById('cfgModal');   /* 现取：软导航换页后可能已不存在 */
+      if(m && !m.hidden) m.hidden = true;
+    });
+  }
   // ======= 电脑端键盘快捷键（9/21）：数字 1-4=选项 / 空格或 0=不知道 / R=重播；仅答题态生效 =======
   // 软导航会重跑 ready 块 → window 一次性守卫防重复绑定（重复绑定=一次按键触发多次判定）
   if(!window.__wordKbdBound){
