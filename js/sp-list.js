@@ -102,20 +102,11 @@ function renderCockpit(){
     +       '<span class="sp-cockpit-sub">' + sub + '</span>'
     +     '</div>'
     +   '</div>'
-    +   '<button type="button" class="btn-main" id="spCockpitRandom">'
-    +     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg>'
-    +     '开始模考'
-    +   '</button>'
     + '</div>'
     + '<div class="sp-cockpit-stats">' + stats + '</div>';
-  /* T-004 改动点 1 主按钮口径调整：细则要求驾驶舱主按钮 = 「原来那个模考入口」，
-     而模考真正的入口是题库筛选行那个 #spMockJumpBtn（点它 = 点隐藏的 MOCK tab）。
-     这里直接转发到 #spMockJumpBtn 的 click，复用它的全部切换/加载逻辑，不另写一份。 */
-  const rnd = document.getElementById('spCockpitRandom');
-  if(rnd) rnd.addEventListener('click', () => {
-    const jump = document.getElementById('spMockJumpBtn');
-    if(jump) jump.click();
-  });
+  /* SPK-BANK-DEDEXAM-1（10-29 她 19:1x 点名「把那个模考按钮删掉」）：
+     驾驶舱里这枚「开始模考」也删了 —— 她要的是口语题库页一个模考入口都不留
+     （模考功能仍从机经页/顶栏进，链路没动）。此处不再渲染按钮，也不再转发点击。 */
 }
 /* ============================================================
    SPK-INFO-1（10-27）：口语页「题库说明」折叠标的上次更新日期回填。

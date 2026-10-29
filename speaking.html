@@ -77,7 +77,7 @@
   <!-- 10-24 T-009 S-6：L/M 区（口语自动计时 + 回车跳题钩子）拆出 js/sp-timer.js（171 行）。
        🔴 var SPK_AUTO_MIN_SEC 必须与 commitSpkTimer 同文件且更靠前 —— 搬家时两者一起走、先后不变。 -->
   <script defer src="js/sp-timer.js?v=20261023a"></script>
-  <script defer src="js/sp-list.js?v=20261027n"></script>
+  <script defer src="js/sp-list.js?v=20261029a"></script>
   <!-- 10-23 T-009 S-4：G 区（P2 串题，design/87）拆出 js/sp-story.js（685 行）。
        排在 sp-diag.js 之前 —— J 区（诊断）要用它的 spPersonaLine / spDiagTierHead。 -->
   <script defer src="js/sp-story.js?v=20261023a"></script>
@@ -2919,7 +2919,20 @@ html[data-theme="dark"] #detailBody .sp-tc-head{
           <button type="button" data-part="P1">P1</button>
           <button type="button" data-part="P2">P2</button>
         </div>
-        <button class="sp-mock-jump" id="spMockJumpBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg>模考</button>
+        <!-- SPK-BANK-DEDEXAM-1（10-29 她 19:1x 点名「把那个模考按钮删掉」）：
+             可见的「模考」按钮删掉了（原来在工具行行尾）。
+             🔴 但 #spMockJumpBtn 这个 id 是整条模考链路的承载点（speaking.js:210 绑定、
+                sp-late.js 的懒加载卡挂它、mock.js 的出口兜底都找它），**不能删节点**，
+                改成 hidden 占位：视觉上没有按钮，点击转发能力照旧（顶栏/机经页仍能进模考）。 -->
+        <button class="sp-mock-jump" id="spMockJumpBtn" type="button" hidden></button>
+        <div class="sp-fsel">
+          <label class="sp-fsel-lb" for="stateSelect">状态</label>
+          <select id="stateSelect" class="sp-select">
+            <option value="all">全部</option>
+            <option value="new">未练过</option>
+            <option value="done">已练过</option>
+          </select>
+        </div>
       </div>
       <div class="sp-tb-row2">
         <!-- S-2b（10-24）：双层套框拆成一层 —— 原来外层 .sp-search-wrap 40px 白底带 1px 边，
@@ -2946,14 +2959,6 @@ html[data-theme="dark"] #detailBody .sp-tc-head{
             <option value="地点">地点</option>
             <option value="事物">事物</option>
             <option value="日常">日常</option>
-          </select>
-        </div>
-        <div class="sp-fsel">
-          <label class="sp-fsel-lb" for="stateSelect">状态</label>
-          <select id="stateSelect" class="sp-select">
-            <option value="all">全部</option>
-            <option value="new">未练过</option>
-            <option value="done">已练过</option>
           </select>
         </div>
       </div>
@@ -3233,15 +3238,8 @@ html[data-theme="dark"] #detailBody .sp-tc-head{
   .sp-cockpit-num{font-size:30px;font-weight:700;color:var(--primary-700);letter-spacing:-.03em;line-height:1.1}
   .sp-cockpit-unit{font-size:14px;font-weight:600;color:var(--primary-700)}
   .sp-cockpit-sub{font-size:13px;color:var(--n-600);margin-left:3px}
-  .sp-cockpit .btn-main{
-    height:38px;padding:0 17px;border-radius:10px;background:var(--primary-600);color:#fff;
-    font-size:13.5px;font-weight:600;display:inline-flex;align-items:center;gap:7px;
-    border:none;cursor:pointer;box-shadow:0 1px 2px rgba(47,134,127,.25);
-    transition:background .15s,transform .12s;white-space:nowrap;flex:none;
-  }
-  .sp-cockpit .btn-main:hover{background:var(--primary-700)}
-  .sp-cockpit .btn-main:active{transform:scale(.98)}
-  .sp-cockpit .btn-main svg{width:16px;height:16px}
+  /* SPK-BANK-DEDEXAM-1：驾驶舱里的「开始模考」按钮已删（她点名），.sp-cockpit .btn-main 一族
+     随之无引用，一并清掉（否则又是死样式）。 */
   .sp-cockpit-stats{
     display:flex;flex-wrap:wrap;align-items:center;gap:10px 22px;
     margin-top:14px;padding-top:0;border-top:0;
@@ -3257,11 +3255,22 @@ html[data-theme="dark"] #detailBody .sp-tc-head{
   .sp-bar{height:4px;width:56px;flex:none;border-radius:2px;background:var(--n-200);margin-top:0;overflow:hidden}
   .sp-bar span{display:block;height:100%;border-radius:2px;background:var(--primary-500)}
   @media(max-width:720px){
-    .sp-cockpit{padding:16px 16px 18px;border-radius:14px}
-    .sp-cockpit-top{flex-direction:column;gap:14px}
-    .sp-cockpit-num{font-size:26px}
-    .sp-cockpit-stats{flex-direction:column;align-items:flex-start;gap:9px}
-    .sp-stat-cell{width:100%}
+    /* SPK-BANK-DEDEXAM-1（10-29 她 19:1x「手机端顶部块瘦身」）：手机档头部整块收紧。
+       ① 原来 .sp-cockpit-top 是 column + gap:14（为旁边那枚「开始模考」按钮让位），按钮删了
+          再竖排就是白占一行 → 回到单行。
+       ② .sp-cockpit-stats 原来 column 一格一行（三格竖着排 = 108px），改成两列 grid，
+          P1/P2 进度并排、口语平均分有分时独占第二行，没分时只占一行。 */
+    .sp-cockpit{padding:13px 14px 14px;border-radius:14px;margin-bottom:14px}
+    .sp-cockpit-top{flex-direction:row;align-items:baseline;gap:10px}
+    .sp-cockpit-num{font-size:25px}
+    .sp-cockpit-sub{font-size:12.5px}
+    .sp-cockpit-stats{display:grid;grid-template-columns:1fr 1fr;gap:7px 12px;margin-top:10px}
+    .sp-stat-cell{width:auto;min-width:0}
+    .sp-stat-k{font-size:12px}
+    .sp-stat-v{font-size:14px}
+    /* 手机档那根 56px 小进度条去掉：两列排布后「标签+数字+条」在 360 宽会顶出 3px
+       → 产生整页横滑（她自己报的那条）。数字里本来就有「0 / 37 题」，进度信息不丢。 */
+    .sp-bar{display:none}
   }
 
   /* ---- 改动点 3：工具行（P1/P2 分段 + 模考 + 搜索 + 三个下拉）----
