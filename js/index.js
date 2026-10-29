@@ -392,42 +392,33 @@ function longestStreak(){
    不编一个「三件事完成度」（站内没有该数据，编了就是假指标）。 */
 function renderHomeRail(tkey){
   try{
-    /* 10-23 P-1：环改成**综合完成度**，与 dashStatusOf 同一处口径。
-       原来环只算计划清单（5/5 = 100%），紧挨着的卡里却说「1587 个单词要过」
-       → 「100% · 今天的任务都完成了」是**错的承诺**。
-       新口径：(计划已完成 + 今日已背词) / (计划总数 + 今日到期词)；
-       到期词为 0 时保持原来的计划完成度。 */
+    /* 🔴 HOME-RAIL-PCT-1（10-29 她：「5 个任务全完成只显示 4%」）：
+       10-23 P-1 曾把环改成「综合完成度」= (计划完成 + 今日已背词) / (计划总数 + 今日到期词)，
+       为的是修「100% 却还剩一千多个词要过」这句错承诺。
+       但她 10-28 17:0x 拍板**改法一**：环只算计划任务的 done/total（5/5 就该是 100%），
+       背词进度改由单词页底部那条进度条承接 —— 一个环不再兼两件事，
+       否则 5 项计划全勾完，分母里还压着一千多个词，永远只有 4%，看着像坏了。
+       （口径来源：队列 HOME-RAIL-PCT-1 的 note，她原话「改法1」。） */
     const st = dashStatusOf(tkey);
     const plan = (DATA.plans || []).find(p => p && p.date === (tkey || todayKey()));
     const items = (plan && Array.isArray(plan.items)) ? plan.items : [];
     const total = st.itemsTotal;
     const doneN = st.itemsDone;
-    /* W-DUE-2：分母改成「今天该做的单词量」= 她设的上限（不限时 = 算法到期数），
-       分子里的单词部分按上限封顶 —— 否则她背超了上限会把环顶成 100%，
-       而计划清单一项没勾，又变成「100% 却什么都没做」。 */
-    const _wGoal = st.wordsGoal > 0 ? st.wordsGoal : st.dueWords;
-    const _den = total + _wGoal;
-    const _num = doneN + Math.min(st.wordsDone, _wGoal);
-    const pct = _den ? Math.min(100, Math.round(_num / _den * 100)) : (total ? Math.round(doneN/total*100) : 0);
+    const pct = total ? Math.min(100, Math.round(doneN / total * 100)) : 0;
 
     const setTxt = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = v; };
     setTxt('railPct', pct + '%');
     setTxt('railTogglePct', pct + '%');
-    /* 🔴 10-23 她报「主页这里中间的字太多了，这样不好看」：
-       原来同一件事说了两遍、两遍都挤 —— 环里一行「计划 5 项完成 5 · 还有 1639 词」（96px 圆里断成 2~3 行），
-       环下又来一行「计划还剩 0 项 · 1639 个词要过」。
-       现在环里只留百分比，环下只留**一行**「计划 5/5 项 · 1639 词待过」，一句话把 12% 是怎么算的说清。
-       口径一个字没改：pct 仍是 dashStatusOf 的综合完成度（见上面 P-1 注释）。 */
+    /* 环下副文案：只说计划进度，不再掺词数（词数会让「100%」这句话又变成错的）。
+       没有计划时给去计划页的入口，与原来一致。 */
     const subEl = document.getElementById('railSub');
     if(subEl){
-      const planTxt = total ? ('计划 ' + doneN + '/' + total + ' 项') : '';
-      const wordTxt = st.dueWords > 0 ? (st.dueWords + ' 词待过') : '';
-      if(!total && !st.dueWords){
+      if(!total){
         subEl.innerHTML = '<a href="plans.html" style="color:inherit;text-decoration:underline">去计划页排一下今天 →</a>';
-      }else if(total && doneN >= total && !st.dueWords){
-        subEl.textContent = '今天的任务都完成了';
+      }else if(doneN >= total){
+        subEl.textContent = '计划 ' + doneN + '/' + total + ' 项 · 今天的任务都完成了';
       }else{
-        subEl.textContent = planTxt && wordTxt ? (planTxt + ' · ' + wordTxt) : (planTxt || wordTxt);
+        subEl.textContent = '计划 ' + doneN + '/' + total + ' 项';
       }
     }
     const ring = document.getElementById('railRingFg');
