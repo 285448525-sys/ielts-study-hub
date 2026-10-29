@@ -207,7 +207,13 @@ function aiJson(content){
   // 取「第一段开头+最后一段结尾」必然 parse 失败。改为扫描第一个括号平衡的 {...}
   // （跳过字符串字面量内部的引号/转义/花括号），取到即解析返回。
   const i0 = s.indexOf('{');
-  if(i0 !== -1){
+  /* 🔴 AIAI-SALVAGE-SHARED（10-29）：数组打头（`[{...},{...}]`）时**跳过**下面这段对象扫描。
+     否则它从第一个元素对象的 `{` 起算，到该元素自己的 `}` 就「平衡」了 → 直接返回单个元素，
+     把后面的元素和本意要的整个数组一起丢掉（截断数组的典型形态，实测就是这么错的）。
+     根是数组时交给下面的 mArr 与末尾的截断兜底（它们按 `[` 起算，能捞回多个完整元素）。 */
+  const ia0 = s.indexOf('[');
+  const rootIsArr = (ia0 !== -1 && (i0 === -1 || ia0 < i0));
+  if(i0 !== -1 && !rootIsArr){
     let depth = 0, inStr = false, esc = false;
     for(let i = i0; i < s.length; i++){
       const ch = s[i];
@@ -230,6 +236,70 @@ function aiJson(content){
   }
   const mArr = s.match(/\[[\s\S]*\]/);
   if(mArr){ try{ return JSON.parse(mArr[0]); }catch(_){} }
+  /* ═══ AIAI-SALVAGE-SHARED（10-29）· 截断兜底
+     场景（写作批改先炸过一次，30 多处 aiJson 调用点同源）：模型输出到一半被 max_tokens 截断，
+     JSON 缺尾部 → 上面四条常规路径全 parse 失败 → 调用方退回「显示 AI 原文」，
+     她看到一整段没格式的英文字，而不是已经算出来的分数。
+     修法：**不重试、不请求，纯本地把已生成的部分捞回来**。
+     ① 先扫一遍，记录所有「某个值刚写完」的安全切点（闭括号后 / 字符串收尾后 / 数字或字面量后），
+        每个切点附带「到此为止还差几个收尾符」（如 `]}}`）；
+     ② 从最后往前试：切点切片 + 补齐收尾符 → 能 parse 就返回（尽量多保留内容）；
+     ③ 字符串中途被切断（最常见的截断形态）时，额外试一次「补上收尾引号 + 补齐括号」。
+     🔴 纪律：宁可返回 null 也不返回半截脏数据 ——
+        捞出来的必须是非空对象/数组，空壳一律视为失败，否则调用方会拿到 {} 当成功、
+        显示一片空白，比显示原文更难查。 */
+  const i0c = (() => {
+    const a = s.indexOf('{'), b = s.indexOf('[');
+    if(a === -1) return b;
+    if(b === -1) return a;
+    return Math.min(a, b);
+  })();
+  if(i0c !== -1){
+    const cuts = [];          // { pos, closers } —— 安全切点 + 该点还缺的收尾串
+    const stack = [];         // 未闭合的括号
+    let inStr = false, esc2 = false;
+    const closersOf = () => stack.slice().reverse().map(c => c === '{' ? '}' : ']').join('');
+    const markCut = pos => { if(pos > i0c) cuts.push({ pos, closers: closersOf() }); };
+    for(let i = i0c; i < s.length; i++){
+      const ch = s[i];
+      if(inStr){
+        if(esc2){ esc2 = false; continue; }
+        if(ch === '\\'){ esc2 = true; continue; }
+        if(ch === '"'){ inStr = false; markCut(i + 1); }
+        continue;
+      }
+      if(ch === '"'){ inStr = true; continue; }
+      if(ch === '{' || ch === '['){ stack.push(ch); continue; }
+      if(ch === '}' || ch === ']'){
+        if(!stack.length) break;
+        stack.pop();
+        markCut(i + 1);
+        if(!stack.length) break;   // 已完整闭合 —— 常规路径本该成功，这里不再往下猜
+        continue;
+      }
+      if(ch === 't' || ch === 'f' || ch === 'n'){
+        const lit = ch === 't' ? 'true' : (ch === 'f' ? 'false' : 'null');
+        if(s.startsWith(lit, i)){ i += lit.length - 1; markCut(i + 1); }
+        continue;
+      }
+      if(/[0-9]/.test(ch)){
+        const nx = s[i + 1];
+        if(nx === undefined || nx === ',' || nx === '}' || nx === ']' || /\s/.test(nx)) markCut(i + 1);
+        continue;
+      }
+    }
+    const accept = v => (v && typeof v === 'object')
+      && (Array.isArray(v) ? v.length > 0 : Object.keys(v).length > 0) ? v : null;
+    /* ③ 字符串中途被切断：优先试「补引号」，因为这种形态下切点会停在字符串之前，
+       只走 ② 会把后面已经写出来的整段文字（长评语）全丢掉。 */
+    if(inStr){
+      try{ const v = accept(JSON.parse(s.slice(i0c) + '"' + closersOf())); if(v) return v; }catch(_){}
+    }
+    /* ② 从最后一个安全切点往回试 */
+    for(let k = cuts.length - 1; k >= 0; k--){
+      try{ const v = accept(JSON.parse(s.slice(i0c, cuts[k].pos) + cuts[k].closers)); if(v) return v; }catch(_){}
+    }
+  }
   return null;
 }
 
