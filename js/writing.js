@@ -2118,7 +2118,7 @@ ${ANCHOR_TABLE_EN}
     hubSave();
     toast('评分完成');
   }catch(e){
-    bodyEl.innerHTML = '<p class="muted">AI 服务暂不可用：' + escapeHtml(e.message) + '</p><p class="muted" style="font-size:13px">请检查「设置」中的 AI 接口地址。</p>';
+    bodyEl.innerHTML = '<p class="muted">AI 服务暂不可用：' + escapeHtml(e.message) + '</p><p class="muted" style="font-size:13px">过一会儿再试；一直这样就去「意见反馈」告诉我。</p>';
   }finally{
     btn.disabled = false; btn.innerHTML = btnHtml;
     renderScoreHist();
@@ -3155,7 +3155,7 @@ ${ANCHOR_TABLE_EN}
       }catch(e){ console.warn('exam score save failed', e); }
       toast('评分完成');
     }catch(e){
-      box.innerHTML = '<p class="muted">AI 服务暂不可用：'+escapeHtml(e.message)+'</p><p class="muted" style="font-size:13px">请检查「设置」中的 AI 接口地址。</p>';
+      box.innerHTML = '<p class="muted">AI 服务暂不可用：'+escapeHtml(e.message)+'</p><p class="muted" style="font-size:13px">过一会儿再试；一直这样就去「意见反馈」告诉我。</p>';
     }finally{
       // 修：原 finally 无空值守卫（btn 可能为 null）且引用未声明的 btnHtml → 该块每次执行必抛
       if(btn){ btn.disabled = false; btn.innerHTML = btnHtml; }

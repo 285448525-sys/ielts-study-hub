@@ -901,7 +901,7 @@ async function analyzeEntry(){
     if(first) first.scrollIntoView({ behavior:'smooth', block:'center' });
     return true;
   }catch(e){
-    load.textContent = 'AI 调不通：' + e.message + '　（可以先点「只存原文」，等有网/配好 Key 再补分析）';
+    load.textContent = 'AI 调不通：' + e.message + '　（可以先点「只存原文」，等有网再补分析）';
     return false;
   }finally{
     btn.disabled = false; btn.innerHTML = btnHtml;
