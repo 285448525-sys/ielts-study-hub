@@ -1560,12 +1560,29 @@ function prefetchPage(id){
   }).catch(() => {});
 }
 let _prefetchRunning = false;
+/* ═══ WARMUP-THROTTLE-1（10-29，她报「随便点大模块就卡住」） ═══
+   实测：进站头 3 秒内共 80 条 html/js 请求，其中 **64 条是预热**在抓其余 17 页
+   （78 请求 / 1449KB 全挤在头 15 秒）。她进站头几秒点的每个模块都在跟这批抢带宽
+   → 点击耗时 2165ms；等预热跑完（10 秒后）同样的点击只要 175ms，12~20 倍差距。
+   预热机制本身有价值（长会话切页 111ms），不删，只**挪到首屏之后、并压成慢速流水**：
+     ① 延后：进站后 8 秒才启动，首屏与她的第一批点击不受影响
+     ② 节流：一次空闲只预取一页，两页之间至少 1.5 秒（原来是一次 idle 连打到底）
+     ③ 让路：她一点导航就暂停 3 秒（原实现只在导航进行中挂起，导航一结束立刻继续猛拉）
+   ⚠️ 不动预热范围（仍是邻居+收藏+全部可见页），不动缓存机制，不改调用点。 */
+const PREFETCH_DELAY_MS = 8000;   // ① 首屏后 8 秒
+const PREFETCH_GAP_MS = 1500;     // ② 两页之间至少 1.5 秒
+const PREFETCH_PAUSE_MS = 3000;   // ③ 她一点导航，预热停 3 秒
+let _prefetchStartAt = 0;         // 本次启动时间（进站或软导航后重置为 0 表示待排）
+let _lastPrefetchAt = 0;
 function prefetchAll(curId){
   if(_softNavBusy) return;   // 10/8 导航优先：切页瞬间不排新的预热请求
   if(!navPrefetchAllowed()) return;
   if(_prefetchRunning) return;
   _prefetchRunning = true;
   const idle = window.requestIdleCallback || (cb => setTimeout(cb, 800));
+  /* ③ 她刚点过导航 → 记下时刻，流水每一步都会检查，够 3 秒才继续拉 */
+  _lastNavAt = _lastNavAt || 0;
+  const paused = () => (Date.now() - _lastNavAt) < PREFETCH_PAUSE_MS;
   const order = [];
   const push = id => { if(id && order.indexOf(id) === -1 && PAGES.some(p => p.id === id)) order.push(id); };
   if(curId){                                   // 先照顾当前页左右邻居（最可能下一个点的）
@@ -1586,13 +1603,25 @@ function prefetchAll(curId){
   let i = 0;
   const step = () => {
     if(_softNavBusy){ idle(step); return; }   // 10/8 导航优先：预热链在切页期间挂起（不丢进度，i 不前进）
+    if(paused()){ setTimeout(step, PREFETCH_PAUSE_MS); return; }   // ③ 她刚点过 → 等够 3 秒
     if(i >= order.length){ _prefetchRunning = false; return; }
+    /* ② 距上一页不足 1.5 秒 → 等等再来（一次空闲只预取一页） */
+    const wait = _lastPrefetchAt ? (PREFETCH_GAP_MS - (Date.now() - _lastPrefetchAt)) : 0;
+    if(wait > 0){ setTimeout(step, wait); return; }
     const id = order[i++];
     const p = PAGES.find(pp => pp.id === id);
     if(!p || _navDocCache.has(p.file)){ idle(step); return; }   // 已缓存 → 跳过
+    _lastPrefetchAt = Date.now();
     prefetchPage(id).then(() => idle(step)).catch(() => idle(step));
   };
-  idle(step);
+  /* ① 首屏后 8 秒才启动。每次软导航不重排（否则她一直点就永远不预热），
+     只记首次调度时刻；已排过的就直接接上流水。 */
+  if(_prefetchStartAt && Date.now() - _prefetchStartAt < PREFETCH_DELAY_MS){
+    setTimeout(() => idle(step), PREFETCH_DELAY_MS - (Date.now() - _prefetchStartAt));
+  }else{
+    _prefetchStartAt = Date.now();
+    setTimeout(() => idle(step), PREFETCH_DELAY_MS);
+  }
 }
 
 /* ⭐ 引导用的常量必须声明在「本文件末尾的引导函数区」之前：common.js 是 defer 脚本，
