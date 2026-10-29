@@ -131,6 +131,53 @@ function hubExamGuardNav(){
 })();
 let _softNavReady = false;
 let _softNavBusy = false;
+/* ═══ LISTEN-LEAK-1（10-29）· 页面脚本重跑的监听收账 ═══
+   背景：`runPageScript` 每进一页都会 `window.eval` 该页的 js/*.js（不 eval 页面就是死的，
+   这条不能删）。而那些脚本顶层大量直接 `document.addEventListener` / `window.addEventListener`
+   —— eval 一次多绑一组、进 6 遍就是 6 组，谁也没摘。
+   实测（A2 探针 + 我的复量一致）：软导航往返一轮，document:click +6、keydown +6、
+   hub:data-merged +5、wb:switched +5、window:resize +2 …… 恒定 +18/轮不收敛，
+   6 轮后一次点击被几十个处理器处理 —— 她报的「全站非常卡顿」量变到质变就是这个。
+   （B/A2 定位的 bindTopBar :787/:791 与 bindSideSearch :1620 只是其中 3 条，已按「全局只绑一次」改掉。）
+
+   修法：**eval 期间装一个收账器** —— 把这次 eval 里对 document/window 的 addEventListener
+   原样记下来；下次 eval 之前先把上一轮记的那批逐个 removeEventListener，再清账。
+   ⚠️ 只在 eval 窗口内安装/卸载 → 共享层自己的监听（common.js / common-shell.js 加载时绑一次）
+      天然不受影响，绝不会被误摘。
+   ⚠️ 页面脚本里异步再绑的（setTimeout 回调里 addEventListener）不在窗口内、属于漏网；
+      但顶层这批是量级主因，先收干净这层。 */
+const _navOrigAdd = { doc: document.addEventListener, win: window.addEventListener };
+let _navSink = null;        // 本轮 eval 正在收的账
+let _navBoundLog = [];      // 上一轮 eval 收下的账（下次 eval 前逐条摘掉）
+function navListenersReclaim(){
+  const log = _navBoundLog; _navBoundLog = [];
+  for(let i = 0; i < log.length; i++){
+    try{ log[i].obj.removeEventListener(log[i].type, log[i].fn, log[i].cap); }catch(e){}
+  }
+}
+/* ⚠️ begin/end 是**成对包住每一个脚本的 eval**，但账本 `_navBoundLog` 是**整轮累计**：
+   一轮里页面常有 3~6 个脚本（practice = practice.js + words.js + wordbank.js…）。
+   第一版每个脚本各 begin/end 且 end 直接覆盖 _navBoundLog → 只剩最后一个脚本的账，
+   前面的照样泄漏（实测每轮仍 +16 才查出这个覆盖）。现在 end 用 concat 累加。
+   ⚠️ 也不要改成「包住整个 for 循环」：循环里有 PERF-NAV-2B 的让帧 await，
+      那段时间共享层自己的回调可能跑起来并绑监听，会被误记进账、下一轮被误摘。 */
+function navListenersBegin(){
+  _navSink = [];
+  const wrap = (obj, orig) => function(type, fn, opt){
+    if(_navSink && fn){
+      const cap = (opt && typeof opt === 'object') ? !!opt.capture : !!opt;
+      _navSink.push({ obj, type, fn, cap });
+    }
+    return orig.call(this, type, fn, opt);
+  };
+  document.addEventListener = wrap(document, _navOrigAdd.doc);
+  window.addEventListener = wrap(window, _navOrigAdd.win);
+}
+function navListenersEnd(){
+  document.addEventListener = _navOrigAdd.doc;
+  window.addEventListener = _navOrigAdd.win;
+  if(_navSink){ if(_navSink.length) _navBoundLog = _navBoundLog.concat(_navSink); _navSink = null; }
+}
 /* 模考中推迟的自愈刷新（navSelfHealReload 被模考锁挡下时置 true） */
 let _hubPendingHeal = false;
 /* 10/8 「导航优先」闸（她 10:53 报「点每个页面跳转要加载好久，之前很快」）：
@@ -1265,6 +1312,12 @@ async function runPageScript(id, doc){
   const got = await Promise.all(srcs.map(s =>
     navGetCode(s).then(code => ({ code })).catch(err => ({ err }))
   ));
+  /* 🔴 LISTEN-LEAK-1（10-29）：开跑前先把上一轮 eval 绑下的那批监听摘掉。
+     位置必须在「脚本都已拉到手、即将 eval」这一刻 —— 放在函数开头会让
+     `await navGetCode` 期间页面处于「旧监听已摘、新监听未绑」的空窗，此刻若有
+     hub:data-merged 之类事件到达就没人接（数据合并不刷新）。
+     放这里：拉取已完成、eval 即将开始，空窗缩到同步执行的一瞬间。 */
+  navListenersReclaim();
   for(let i = 0; i < srcs.length; i++){
     if(got[i].err){
       if(i === MAIN){        // 主脚本失败：记日志后由 softNavigate 兜底走整页跳转，绝不卡死
@@ -1286,7 +1339,14 @@ async function runPageScript(id, doc){
       continue;
     }
     try{
-      window.eval(got[i].code);   // 幂等重跑：页面 ready 内部已各自清旧心跳 / 重绑事件，多次进入不叠加
+      /* 🔴 LISTEN-LEAK-1：eval 前后包一层监听收账器（见文件上方 navListeners* 注释）。
+         end 放 finally —— 脚本抛错也必须把 document/window 的 addEventListener 原函数还回去。 */
+      navListenersBegin();
+      try{
+        window.eval(got[i].code);   // 幂等重跑：页面 ready 内部已各自清旧心跳 / 重绑事件，多次进入不叠加
+      }finally{
+        navListenersEnd();
+      }
     }catch(err){
       if(i === MAIN){
         console.error('[soft-nav] 页面脚本执行失败，将回退整页跳转：page=' + id + ' · ' + srcs[i], err);
@@ -1324,7 +1384,15 @@ async function runPageScript(id, doc){
       hubEvalReject(id, 'body 内联脚本', '内容不像 JS');
       continue;
     }
-    try{ window.eval(code); }
+    try{
+      /* 🔴 LISTEN-LEAK-1（10-29）：内联脚本同样要收账 —— 页面 body 里的内联脚本也在往
+         document/window 上绑监听（practice.html 15 条、settings.html 14 条，实测里
+         `hub:data-merged` / `wb:switched` / `pointerdown` / `resize` 那批重复项全是它们）。
+         只包 js/*.js 的 eval 那一层不够，内联这条独立路径会漏。 */
+      navListenersBegin();
+      try{ window.eval(code); }
+      finally{ navListenersEnd(); }
+    }
     catch(err){ console.warn('[soft-nav] 页面内联脚本执行失败，已跳过：page=' + id, err); }
   }
 }

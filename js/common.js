@@ -784,13 +784,34 @@ function bindTopBar(){
       setOpen(panel.hidden);
     });
     // 点面板外 / Escape 收起；点面板内条目后由软导航换页（导航重建自然收起）
-    document.addEventListener('click', (e) => {
-      if(panel.hidden) return;
-      if(!e.target.closest('.tb-more')) setOpen(false);
-    });
-    document.addEventListener('keydown', (e) => {
-      if(e.key === 'Escape' && !panel.hidden){ setOpen(false); btn.focus(); }
-    });
+    /* 🔴 LISTEN-LEAK-1（10-29，她报「全站非常卡顿」的真根因）：
+       这两条原来直接 `document.addEventListener` —— 而 `injectNav()` 每次软导航都跑
+       `nav.innerHTML = topBarHtml()`，**整条顶栏（含这个 btn/panel）都是全新节点**，
+       `bindTopBar()` 于是每换一页就把两条新监听挂上 document，且永不摘除。
+       实测：软导航往返 6 轮，document:click 从 10 涨到 49、keydown 从 7 涨到 51，
+       斜率恒定不收敛 → 一次点击被几十个处理器处理，越逛越卡，量变到质变。
+       ⚠️ 为什么不能照 `__hubCmdKBound` 那样「绑在闭包里捕获的 btn/panel」：
+          那种闸只防「同一组节点重入」。这里每轮都是新节点，闭包里捕获的旧 btn/panel
+          早已被 innerHTML 换掉、成了脱离文档的孤儿，闸拦不住第二次绑定；
+          真绑一次的话，闭包里那份又是孤儿，点新面板外面的关闭逻辑会对着死节点操作 → 面板关不掉。
+       正解 = **全局只绑一次，处理器内部按 id 现取当前节点**（每轮都是活节点）。
+       这也是同函数里 Ctrl+K（:733）与 resize（:786）两条闸没覆盖的真缺口。 */
+    if(!window.__tbDocBound){
+      window.__tbDocBound = true;
+      document.addEventListener('click', (e) => {
+        const _p = document.getElementById('tbMorePanel');
+        if(!_p || _p.hidden) return;
+        if(!e.target.closest('.tb-more')) tbCloseMorePanel();
+      });
+      document.addEventListener('keydown', (e) => {
+        if(e.key !== 'Escape') return;
+        const _p = document.getElementById('tbMorePanel');
+        if(!_p || _p.hidden) return;
+        tbCloseMorePanel();
+        const _b = document.getElementById('tbMoreBtn');
+        if(_b) try{ _b.focus(); }catch(_){}
+      });
+    }
     // 视口变化：fixed 定位的面板必须重算，否则窗口缩放后面板会飘在错位处
     if(!window.__tbPlaceBound){
       window.__tbPlaceBound = true;
@@ -834,6 +855,17 @@ function tbPlacePanel(panel, trigger, align){
 let _tbMeTimer = null;
 let _tbMeOpen = false;
 function tbMeEl(){ return document.getElementById('tbMeMenu'); }
+/* 🔴 LISTEN-LEAK-1（10-29）：顶栏「更多」面板的**全局收起器**。
+   为什么要在模块级另写一个：原来收起逻辑藏在 bindTopBar 内的 setOpen 闭包里，
+   而 bindTopBar 每轮软导航都重跑、闭包捕获的是那一轮的节点（下一轮就被 innerHTML 换掉）。
+   document 级监听必须全局只绑一次，处理器里没法用某个特定轮次的闭包 —— 只能按 id 现取。
+   这里就是那份「现取」的收起实现，与 setOpen(false) 逐行等价（hidden / aria / on / show 四处）。 */
+function tbCloseMorePanel(){
+  const p = document.getElementById('tbMorePanel');
+  const b = document.getElementById('tbMoreBtn');
+  if(p){ p.hidden = true; p.classList.remove('show'); }
+  if(b){ b.classList.remove('on'); b.setAttribute('aria-expanded', 'false'); }
+}
 function tbCloseMe(){
   if(_tbMeTimer){ clearTimeout(_tbMeTimer); _tbMeTimer = null; }
   if(!_tbMeOpen) return;
@@ -1585,9 +1617,22 @@ function bindSideSearch(){
       toast('已撤销，「' + en + '」不会进入背词列表');
     }
   });
-  document.addEventListener('click', (e) => {
-    if(!panel.hidden && !e.target.closest('.side-search-wrap')) hide();
-  });
+  /* 🔴 LISTEN-LEAK-1（10-29）：这条原来直接绑在 document 上、无任何闸。
+     软导航每轮 `injectNav()` 重建顶栏/侧栏 → 这里是全新 input/panel 节点 →
+     每轮多一条永摘不掉的 document:click（实测 6 轮后该项从 10 涨到 49）。
+     ⚠️ A2 预警的坑：不能只在 `input` 上挂 `__ssDocBound` 就完事 ——
+        每轮 input 都是新节点、天然没有标记，闸形同虚设，照旧每轮绑一次。
+        而若改成 window 闸 + 闭包捕获当前 panel，闭包里的 panel 下一轮就被 innerHTML 换掉，
+        新搜索框会失去「点外面收起」（修 A 引 B）。
+     正解 = 全局只绑一次，处理器内部按 id 现取当前 panel；新旧节点交替都对着活节点操作。 */
+  if(!window.__ssDocBound){
+    window.__ssDocBound = true;
+    document.addEventListener('click', (e) => {
+      const _p = document.getElementById('ssPanel');
+      if(!_p || _p.hidden) return;
+      if(!e.target.closest('.side-search-wrap')) _p.hidden = true;
+    });
+  }
 }
 
 /* ===== 考试页 Option 面板（☰ 菜单：Colour / Size）=====
