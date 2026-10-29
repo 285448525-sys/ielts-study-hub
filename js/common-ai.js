@@ -274,16 +274,42 @@ Question generation rules:
 4. Each turn ask ONLY ONE question. Output ONLY the single next question — do NOT add any preamble, acknowledgment, or connector before it (no "That's interesting.", no "Now,", no "So,", no "Let me ask you..."). The question itself must be the entire response.
 5. A normal P3 round runs 3-4 follow-ups, then STOP generating — no extra closing remark.
 
-*** ADAPT DIFFICULTY TO THE CANDIDATE (added 2026-10-03) ***
-A real examiner calibrates question difficulty to how the candidate is actually performing. Read the candidate's Part 2 answer (and any earlier answers) and pick the matching tier. This is NOT optional — it is the single most important rule here.
+*** HARD RULE — P3 IS NEVER ABOUT THE CANDIDATE'S OWN LIFE (added 2026-10-29) ***
+This is the single most consequential rule in this prompt. A real IELTS examiner never asks Part 3 questions about the candidate personally — Part 1 does that. Part 3 asks what the candidate THINKS about the wider world.
+
+2a. The grammatical SUBJECT of every question must be a group or an abstraction:
+    "people", "people in your country", "young people", "older generations", "most families",
+    "children today", "employers", "society", "the government", "technology", "this trend" …
+    It must NEVER be "you" as an experiencer.
+
+2b. "you" / "your" may appear ONLY inside an opinion frame — asking for the candidate's VIEW:
+    ✅ "Do you think people today are more stressed than before?"
+    ✅ "In your opinion, why do some people prefer X?"
+    ✅ "What's your view on how this has changed?"
+    These are fine because the candidate is answering as a commentator, not telling their own life story.
+
+2c. "you" / "your" must NEVER appear inside an experience frame:
+    ❌ "Do you like it?"            ❌ "Do you often do that?"
+    ❌ "Have you ever bought one?"  ❌ "Why do you like it?"
+    ❌ "What made you want to become a psychologist?"
+    ❌ "Is it easy for you?"        ❌ "What do you usually do?"
+    Any question whose honest answer would be a fact about the candidate's own life is WRONG here, no matter how simple the wording.
+
+2d. This rule OUTRANKS difficulty calibration. If TIER A pushes you toward short, easy wording, you shorten and simplify the wording — you do NOT downgrade the subject to the candidate's personal life. Simple + general is required; simple + personal is forbidden.
+    ✅ TIER A, correct: "Is this popular in your country?" · "Why do people like it?" · "Is it common where you live?"
+    ❌ TIER A, wrong: "Do you like it?" · "Is it easy?" · "Do you do this often?"
+
+*** ADAPT DIFFICULTY TO THE CANDIDATE (added 2026-10-03; wording simplified 2026-10-29) ***
+A real examiner calibrates question difficulty to how the candidate is actually performing. Read the candidate's Part 2 answer (and any earlier answers) and pick the matching tier. This is NOT optional — it is the single most important rule here — but see 2d: difficulty changes the WORDING, never the SUBJECT.
 
 TIER A — candidate's Part 2 was WEAK (many long pauses / restarts, short choppy sentences, grammar slips, very basic vocabulary, ran out of things to say):
-  → Ask SIMPLE questions. Keep the question UNDER 12 WORDS.
+  → Ask SIMPLE questions about PEOPLE IN GENERAL. Keep the question UNDER 12 WORDS.
   → Use only everyday words (grade-school level). No idioms, no phrasal verbs, no collocations, no abstract nouns.
-  → One idea per question. Prefer direct "Do you...?" / "Is it...?" / "Why do you...?" / "What about...?" forms.
+  → One idea per question. Use simple general-subject forms: "Is it popular in your country?" / "Why do people like it?" / "Is it common where you live?" / "Do young people do this too?" / "What do people think about it?"
   → Do NOT stack two ideas with "and" or "or". Do NOT ask about reasons, impacts or comparisons yet.
-  → GOOD: "Do you like it?" · "Why do you like it?" · "Is it easy?" · "What do you think?"
-  → BAD: "To what extent has your attitude towards that particular phenomenon evolved over the past decade?"
+  → GOOD: "Is it popular in your country?" · "Why do people like it?" · "Is it common where you live?" · "What do people think about it?"
+  → BAD (personal experience — FORBIDDEN): "Do you like it?" · "Why do you like it?" · "Is it easy?" · "Do you do this often?"
+  → BAD (too abstract for this tier): "To what extent has your attitude towards that particular phenomenon evolved over the past decade?"
 
 TIER B — candidate's Part 2 was ACCEPTABLE (some hesitation but can produce connected sentences, uses a mix of simple and intermediate vocabulary):
   → Ask MEDIUM questions. Under 18 words. Everyday-to-intermediate vocabulary. May use one "because/why" clause.
@@ -295,10 +321,12 @@ TIER C — candidate's Part 2 was STRONG (fluent, long connected sentences, vari
 
 Default to TIER B when the answer is missing, very short, or you cannot tell.
 
-ALSO — the question must be rooted in WHAT THEY ACTUALLY SAID:
-- Build the question on a specific concrete thing they mentioned (a job, a place, a feeling, an object, a reason they gave). Example: if they said "my favourite job would be a psychologist", ask "What made you want to be a psychologist?" or "Do people in China often want that kind of job?" — NOT a generic "What is your favourite job?".
-- If an earlier answer mentions something specific, the next question may return to it from a wider angle.
-- If an earlier answer is vague or empty, ask something simple to draw more detail out, rather than jumping ahead.
+ALSO — the question must be rooted in WHAT THEY ACTUALLY SAID, but always widened to the general level:
+- Build the question on a specific concrete thing they mentioned (a job, a place, a feeling, an object, a reason they gave) — then ask about it as a GENERAL phenomenon, not as their private life.
+  ✅ They said "my favourite job would be a psychologist" → "Why do you think psychology is becoming a popular career?" / "Do people in China often want that kind of job?"
+  ❌ They said "my favourite job would be a psychologist" → "What made you want to be a psychologist?" (personal experience — forbidden)
+- If an earlier answer mentions something specific, the next question may return to it from a wider angle — society, generations, change over time.
+- If an earlier answer is vague or empty, ask a simple GENERAL question to draw out their view, rather than jumping ahead or falling back to personal questions.
 
 Output ONLY the single question string (or the brief acknowledgment + next question when continuing), no numbering, no quotes, no other text.`;
 
@@ -325,14 +353,77 @@ function purifyP3Question(raw){
   return cap(t);
 }
 
+/* P3 个人经历题拦截（10-29，她模考实测报障：P3 追问全是「跟你相关」的 P1 式问题）。
+   她原话：「考试 P3 考的是你对这个世界的认识，而不是聊跟你相关的。」
+   提示词已经写死规则（P3_GEN_SYS 的 HARD RULE 2a-2d），但提示词不是契约 ——
+   模型偶尔仍会滑回 P1 问法，所以她看到的那类题必须在**出口前**再拦一道。
+
+   判据（改成「白名单式」，10-29 自验后收紧）：
+   初版是黑名单（列「Do you like / Have you ever / Do you often」），自验一跑就漏 4 条：
+     「Why do you like it?」you 不在句首 → 漏
+     「What made you want to be a psychologist?」问的是本人动机 → 漏
+     「Do you think you are good at it?」观点框架里套个人框架 → 漏
+     「That's interesting. Do you like it?」带寒暄前缀 → 漏
+   黑名单天生漏：模型的个人题问法无穷，列不完。所以反过来判 ——
+   **句子里凡是出现 you / your，就必须落在「观点框架」白名单里，否则一律当成个人题。**
+   白名单只有这几种形态（P3 的正确问法全在里面）：
+     · Do/Did/Would you think …?
+     · In your opinion / In your view …
+     · What's your view / opinion on …?
+     · To what extent do you think/believe …?
+     · What do you think about …?（后接 people/this 这类群体或抽象主语，由内层再判）
+     · Does it seem to you …?（极少数自然问法）
+   这样「Do you think people…」放行、「Do you think you are good at it…」被拦，
+   而任何没见过的个人问法都自动落进拦截侧，不用穷举。 */
+const P3_GENERAL_FALLBACK = [
+  'Is this common among people in your country?',
+  'Why do you think people feel that way about it?',
+  'How has this changed compared with the past?',
+  'Do younger and older people see this differently?',
+  'What effect does this have on society?'
+];
+/* 允许出现的 you/your 形态（P3 的正确问法全在里面）。
+   做法：把这些形态**整段抹掉**，抹完若句子里还剩 you/your，那就是个人框架 → 拦。
+   这样不用穷举模型的个人问法，只需列清「合法的 few」。 */
+const P3_YOU_OK = [
+  /\b(do|did|would|will|can|could)\s+you\s+(think|believe|feel|reckon|suppose|consider|agree|say)\b/gi,
+  /\bto\s+what\s+extent\s+do\s+you\s+(think|believe|agree)\b/gi,
+  /\bhow\s+do\s+you\s+(think|feel)\s+about\b/gi,
+  /\bin\s+your\s+(opinion|view|eyes)\b/gi,
+  /\byour\s+(opinion|view|take|thought)s?\b/gi,
+  /\bdoes\s+it\s+seem\s+to\s+you\b/gi,
+  /* 「你的国家/城市/地区/这一代」是社会层地点/群体指代，不是个人经历 ——
+     真实考官就这么问（"Is it popular in your country?" 是标准 P3）。
+     ⚠️ 不要要求前面必须有 in / people in：「Do you think your country has changed?」
+     同样是社会层问法，一律放行。 */
+  /\byour\s+(country|city|area|region|town|community|society|generation)\b/gi,
+  /\bwhere\s+you\s+live\b/gi
+];
+function isPersonalP3Question(q){
+  let t = String(q || '').trim().replace(/^[^\w(]+/, '');   // 掐掉引号/编号/破折号
+  if(!t) return false;
+  /* ① 没有任何 you/your → 一定是社会/抽象主语，放行 */
+  if(!/\b(you|your)\b/i.test(t)) return false;
+  /* ② 把合法的 you/your 用法整段抹掉，看还剩不剩 */
+  P3_YOU_OK.forEach(re => { t = t.replace(re, ' '); });
+  return /\b(you|your)\b/i.test(t);
+}
+function sanitizeP3Question(q, step){
+  const t = String(q || '').trim();
+  if(!isPersonalP3Question(t)) return t;
+  const fb = P3_GENERAL_FALLBACK[(step || 0) % P3_GENERAL_FALLBACK.length];
+  try{ console.warn('[P3] 拦到个人经历题，已换成社会层问法：', t, '→', fb); }catch(e){}
+  return fb;
+}
+
 async function genSpeakingP3(p2, p2Text, step, prevQ, prevA){
   step = step || 0;
   const isFirst = !prevQ && !prevA;
   const sys = P3_GEN_SYS
     + '\n\n--- CURRENT TURN ---'
     + (isFirst
-        ? "\nThis is the FIRST follow-up (Q1): base it on something SPECIFIC the candidate actually said in their Part 2 talk (a detail, a person, a place, a feeling or a reason they gave) - then widen it to a general angle. Difficulty must already match their tier: if their Part 2 was weak, Q1 must be under 12 words and elementary."
-        : "\nThis is a CONTINUING follow-up (Q" + (step + 1) + "): it must directly build on the candidate's PREVIOUS answer below - dig deeper (cause / impact / comparison / classification / prediction). Stay on the SAME tier as Q1 unless their new answer clearly shows they can handle more; if it got weaker, step DOWN. Do NOT introduce an unrelated new topic.")
+        ? "\nThis is the FIRST follow-up (Q1): base it on something SPECIFIC the candidate actually said in their Part 2 talk (a detail, a person, a place, a feeling or a reason they gave) - then widen it to a general angle. Difficulty must already match their tier: if their Part 2 was weak, Q1 must be under 12 words and elementary. ⚠️ 'widen it to a general angle' is not advice, it is a requirement: even a weak candidate gets a SOCIAL question, just in simpler words (rule 2d). The candidate's own life is never the subject."
+        : "\nThis is a CONTINUING follow-up (Q" + (step + 1) + "): it must directly build on the candidate's PREVIOUS answer below - dig deeper (cause / impact / comparison / classification / prediction). Stay on the SAME tier as Q1 unless their new answer clearly shows they can handle more; if it got weaker, step DOWN. Do NOT introduce an unrelated new topic. ⚠️ 'Build on their answer' means build on the OPINION or EXAMPLE they gave and push it further into society / other people / the future — it does NOT mean asking them about themselves.")
     + '\nGenerate ONLY the single next question string now.';
   let user = 'Part 2 cue card (English): ' + (p2.promptEn || '') + '\nChinese: ' + (p2.promptZh || '')
     + '\nYou should say: ' + ((p2.youShouldSay || []).join('; '))
@@ -359,9 +450,11 @@ async function genSpeakingP3(p2, p2Text, step, prevQ, prevA){
     user += '\n\n--- Previous Part 3 exchange ---'
       + '\nExaminer asked: ' + (prevQ || '')
       + '\nCandidate answered: ' + (prevA || '(no answer given)')
-      + '\n\nNow ask the NEXT follow-up question. It must grow out of a SPECIFIC thing the candidate '
-      + 'just said (a detail, a reason, a feeling, an object they mentioned) — not out of the Part 2 topic in general. '
-      + 'Match the difficulty to their overall performance as analysed above.';
+      + '\n\nNow ask the NEXT follow-up question. It must grow out of a SPECIFIC opinion, reason or example the candidate '
+      + 'just voiced — then take that idea UP to the general level (other people / society / the future / comparison across groups). '
+      + 'Do NOT turn it into a question about the candidate\'s own life or habits: the subject must be people in general, '
+      + 'and "you" may only appear in an opinion frame ("Do you think people...?" / "In your opinion, why...?"). '
+      + 'Match the difficulty to their overall performance as analysed above — simpler WORDS for weaker candidates, never a personal SUBJECT.';
   }
   const content = await callRelay('mock_q', [
     { role:'system', content:sys },
@@ -369,7 +462,9 @@ async function genSpeakingP3(p2, p2Text, step, prevQ, prevA){
   ], 0.8);
   const q = String(content || '').replace(/^[\s\d."'\-]+/, '').replace(/["']+$/, '').trim();
   if(!q) throw new Error('AI 未返回有效的 P3 追问');
-  return purifyP3Question(q);
+  /* 顺序要紧：先净化（去掉寒暄/编号），再拦个人经历题 ——
+     反过来的话 "That's interesting. Do you like it?" 会先被个人题判据当成观点句漏过。 */
+  return sanitizeP3Question(purifyP3Question(q), step);
 }
 /* 兜底：按步数给固定题（首题 / 续题），AI 失败时回退。
    10/8 P3 扩到 5 题：续题池补到 5 条（5 题一场内各不相同，(step-1)%5 正好不重复）。 */
