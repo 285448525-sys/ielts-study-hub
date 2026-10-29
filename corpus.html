@@ -51,7 +51,7 @@
   <script defer src="js/common-shell.js?v=20261029l"></script>
   <script defer src="js/common-pwa.js?v=20261029l"></script>
   <script defer src="js/feedback.js?v=20261027a"></script>
-  <script src="js/corpus.js?v=20261029c" defer></script>
+  <script src="js/corpus.js?v=20261031a" defer></script>
 <style>
   /* 长难句 / 错题本 样式（原 errorbook.html 内联） */
   .eb-input{width:100%;min-height:190px;padding:14px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;font-size:14.5px;line-height:1.75;background:var(--bg);color:var(--ink);resize:vertical}
@@ -218,20 +218,23 @@ importCorpus · importHint · aiImportBox · aiImportBtn · aiImportHint · dict
 <button type="button" data-sub="dict" class="" aria-pressed="false">听写</button>
 </nav>
 <div id="lsView" class="kc-view-section">
-<section class="kc-card">
-<h2>粘贴长难句</h2>
-<div class="kc-mode-seg" id="lsModeSeg" role="group" aria-label="拆解模式"><button type="button" data-lsmode="struct" class="kc-active active" aria-pressed="true">结构拆解</button><button type="button" data-lsmode="si" class="kc-active-false" aria-pressed="false">同传对照</button></div>
-<p class="kc-intro kc-muted">看不懂的长难句贴进来，AI 帮你拆开：<b>结构拆解</b>看主干、修饰成分、逻辑信号和考点词；<b>同传对照</b>给逐句顺译，练边读边懂。拆过的句子会存到下面，随时回看。</p>
-<label for="sentInput" class="kc-muted" style="display:block;font-size:12px;margin-bottom:6px">长难句原文</label>
-<textarea id="sentInput" placeholder="在此粘贴长难句，例如：The theory suggests the decline is a deeper imbalance."></textarea>
-<div class="kc-form-row"><span id="sentStatus" class="kc-word-status" aria-live="polite"></span><button class="kc-btn kc-btn-primary" id="analyzeBtn" type="button">拆解分析</button></div>
+<!-- CORPUS-PANEL-REDESIGN-1（10/29）：长难句面板按她点头终稿重排
+     （design/ssr-corpus-panel-2026-10-28.html）。功能零删减：拆解/同传/复制全文/词汇收录/记录查看删除全在，
+     改的是「形态与展示顺序」——结果从平铺网格改成 1→6 编号分区（主干→成分→逻辑→译文→考点词→命题人视角）。
+     ⚠️ id 一个没改（sentInput/sentStatus/analyzeBtn/copyBtn/origSent/resultBody/resultCard/histCard/histCount/histList/lsModeSeg），
+        js/corpus.js 的取值与绑定零改动风险。 -->
+<section class="lsr-composer">
+<div class="lsr-composer-head"><h1>粘贴长难句</h1><div class="lsr-segment" id="lsModeSeg" role="group" aria-label="拆解模式"><button type="button" data-lsmode="struct" class="on" aria-pressed="true">结构拆解</button><button type="button" data-lsmode="si" aria-pressed="false">同传对照</button></div></div>
+<p class="lsr-intro">看不懂的长难句贴进来，AI 帮你拆开：<b>结构拆解</b>看主干、修饰成分、逻辑信号和考点词；<b>同传对照</b>给逐句顺译，练边读边懂。拆过的句子会存到下面，随时回看。</p>
+<div class="lsr-input-wrap"><textarea id="sentInput" aria-label="长难句原文" placeholder="在此粘贴长难句，例如：The theory suggests the decline is a deeper imbalance."></textarea></div>
+<div class="lsr-composer-foot"><div class="lsr-foot-l"><span class="lsr-hint">回车拆解 · 换行用 Shift + Enter</span><span id="sentStatus" class="lsr-status" aria-live="polite"></span></div><button class="lsr-btn lsr-btn-primary" id="analyzeBtn" type="button">拆解分析</button></div>
 </section>
-<section class="kc-card" id="resultCard" hidden>
-<div class="kc-card-head"><div><h2>拆解结果</h2></div><button class="kc-btn kc-btn-sm" id="copyBtn" type="button">复制全文</button></div>
-<blockquote id="origSent" class="kc-quote"></blockquote>
-<div id="resultBody" class="kc-result-grid"></div>
-</section>
-<section class="kc-card" id="histCard" hidden><h2>我的拆解记录 · <span id="histCount">0</span></h2><div id="histList"></div></section>
+<div id="resultCard" hidden>
+<div class="lsr-result-head"><h2>拆解结果</h2><button class="lsr-btn lsr-btn-sm" id="copyBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg>复制全文</button></div>
+<blockquote class="lsr-original" id="origSent"></blockquote>
+<div class="lsr-answer" id="resultBody"></div>
+</div>
+<section class="lsr-history" id="histCard" hidden><div class="lsr-history-head"><h2>我的拆解记录 <span id="histCount">0</span></h2></div><div class="lsr-history-list" id="histList"></div></section>
 </div>
 <div id="ebView" class="kc-view-section" hidden>
 <section class="kc-card"><h2 style="margin-bottom:14px">错题</h2><textarea class="kc-eb-input" id="ebInput" aria-label="错题原文" placeholder="把这道题相关的东西整段贴进来：题目、题干、你的答案、正确答案、解析…不用整理格式"></textarea><div class="kc-eb-bar"><button class="kc-btn kc-btn-primary" id="ebAnalyze" type="button">AI 收录错题</button><button class="kc-btn" id="ebRaw" type="button" title="不走 AI，先存原文，之后可补分析">只存原文</button></div><div id="ebLoading" class="kc-eb-loading" hidden></div></section>
