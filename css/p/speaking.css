@@ -158,9 +158,17 @@
   body.mock-immerse .mock-exit-btn{padding:5px 8px;font-size:11px}
   body.mock-immerse #mockMain,
   body.mock-immerse #mockStage.p2-mode #mockMain{flex:1;min-height:0;display:flex;flex-direction:column;gap:7px;overflow:hidden}
+  /* 🔴 TRAK-EXAMINER-ORDER-1（10-29 A2）：这两行的 order 从 0 改回 -1，别改回去。
+     DOM 顺序是 .mock-left（题目/黄条/输入）在前、aside.mock-examiner（考官视频窗）在后，
+     而 .mock-main 是 flex column —— 单列布局下**谁在最上面完全由 order 决定**：
+       · 基础规则 .mock-examiner{order:-1}（speaking.html:1014）→ 考官在上，改版前就是这样
+       · P2 两栏的窄屏规则也是 order:-1（speaking.html:1047）
+     15:49「手机一屏」那笔把这层写成 0：0 与默认 0 同值，浏览器退回按 DOM 顺序排，
+     于是题目跑到最上面、考官掉到底部（她 18:4x 一眼看出的就是这条）。
+     回 -1：72px 视频条的体积压缩全部保留，只还原顺序。 */
   body.mock-immerse .mock-examiner,
   body.mock-immerse #mockStage.p2-mode .mock-examiner{
-    order:0;position:static;width:100%;height:72px;flex:0 0 72px;
+    order:-1;position:static;width:100%;height:72px;flex:0 0 72px;
     display:grid;grid-template-columns:96px minmax(0,1fr);align-items:center;gap:10px;
   }
   body.mock-immerse .me-video{width:96px;height:72px;aspect-ratio:auto;border-radius:10px;box-shadow:none}
