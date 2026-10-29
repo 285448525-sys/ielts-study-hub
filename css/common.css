@@ -343,9 +343,6 @@ html[data-font] .set-row-d,
 html[data-font] .set-row-t,
 html[data-font] .card p,
 html[data-font] .muted{ font-size:1em; }
-/* 顺手把设置页第三处说明文字也接上：`set-sub`（全仓实测确认的类名，
-   见 settings.html 的 class 清单），不接的话那页看着还是「只变了一半」。 */
-html[data-font] .set-sub{ font-size:1em; }
 
 body{
   margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
@@ -389,26 +386,6 @@ body{
 .side-brand .bn{font-size:15px;font-weight:800;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .side-brand .bs{font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:3px}
 .side-today.done{border-color:var(--warn);background:rgba(217,154,78,.12);color:var(--ink);font-weight:600}
-/* 展开状态：柔和渐变浅底 + 轻阴影 + 主题色文字 */
-.side-group:not(.collapsed) .side-group-title,.side-fav:not(.collapsed) .side-group-title{
-  color:var(--primary);
-  background:linear-gradient(135deg, var(--primary-soft) 0%, var(--primary-soft-2) 100%);
-  box-shadow:0 1px 3px rgba(15,23,42,0.04);
-  margin-bottom:0;
-  border-radius:10px;
-}
-/* 收起状态：淡化 */
-.side-group.collapsed .side-group-title,.side-fav.collapsed .side-group-title{opacity:.5}
-.side-group.collapsed .side-toggle-arrow .chev,
-.side-fav.collapsed .side-toggle-arrow .chev{transform:rotate(-90deg)}
-
-
-.side-group:not(.collapsed) .side-group-body,.side-fav:not(.collapsed) .side-group-body{background:var(--primary-soft-2);border-radius:0 0 10px 10px;margin:0 0 6px;padding:4px 6px 6px}
-
-.side-group.collapsed .side-group-body,
-.side-fav.collapsed .side-group-body{grid-template-rows:0fr}
-.side-group.collapsed .side-group-inner,
-.side-fav.collapsed .side-group-inner{opacity:0;visibility:hidden;transform:translateY(-8px)}
 
 .side-item{display:flex;align-items:center;gap:10px;padding:10px 14px;margin:1px 0;border-radius:12px;color:var(--n-700);text-decoration:none;font-size:15px;transition:background .18s,color .18s,opacity .2s ease}
 /* 高亮态即时生效：避免“绿色块滑动/跳一下”的观感（点击即落在正确项，不做位置/背景过渡动画） */
@@ -422,8 +399,6 @@ body{
 .side-item .nav-icon svg{width:21px;height:21px;display:block}
 .side-item.active .nav-icon{color:var(--primary-500)}
 .side-label{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.side-item.active .side-star{color:rgba(255,255,255,.7)}
-.side-item.active .side-star.is-fav{color:var(--on-primary-soft)}
 
 /* 收起/展开：侧栏内顶部按钮（展开时可见）+ 收起后左上角浮动按钮（仅收起时可见） */
 .side-collapse-in{margin-left:auto;background:none;border:1px solid var(--line);border-radius:8px;color:var(--muted);cursor:pointer;font-size:14px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;flex:none;line-height:1;transition:.15s}
@@ -690,7 +665,6 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 .field{display:flex;flex-direction:column;gap:6px;min-width:236px}
 .field label{font-size:12.5px;font-weight:600;color:var(--ink-2);margin-bottom:0}
 .field .hint{font-size:11.5px;color:var(--muted)}
-.field .err-msg{font-size:11.5px;color:var(--err-text);display:flex;align-items:center;gap:5px}
 .stat-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 16px;text-align:center;box-shadow:var(--shadow);border-top:3px solid var(--accent);transition:transform .15s,box-shadow .15s}
 .stat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
 .stat-value{font-size:28px;font-weight:800;color:var(--accent);line-height:1;letter-spacing:-.02em}
@@ -891,12 +865,6 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 }
 #practiceBody.practice-body-fit .abtn-unknown:hover{
   border-color:var(--primary);color:var(--primary);background:var(--primary-soft);
-}
-
-/* 底部喇叭大圆按钮（严格还原 v5 原型：居中 48px 圆） */
-#practiceBody.practice-body-fit .pw-speaker-wrap{
-  margin-top:14px;padding-top:6px;   /* 9/15 之之：去掉喇叭区上方分隔线，padding 10→6 */
-  display:flex;justify-content:center;
 }
 #practiceBody.practice-body-fit .pw-speaker-wrap .tool-btn{
   width:48px;height:48px;padding:0;border-radius:50%;
@@ -1151,9 +1119,6 @@ main .quote{
   border-radius:0 var(--radius-sm) var(--radius-sm) 0;
   font-size:15px;line-height:1.8;padding:12px 16px;
 }
-
-.hero-cta{display:flex;flex-direction:column;gap:4px;background:linear-gradient(135deg,var(--primary),var(--primary-d));color:var(--on-primary);border-radius:18px;padding:22px 24px;text-decoration:none;box-shadow:var(--shadow-md);transition:transform .15s,box-shadow .15s;text-align:left}
-.hero-cta:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);color:var(--on-primary)}
 /* —— 侧边栏：一级常驻 + 更多▾ —— */
 .side-primary{display:flex;flex-direction:column;gap:2px;margin:4px 0}
 .side-primary .side-item{font-weight:600}
@@ -1253,14 +1218,6 @@ main .quote{
 .mock-fix-wrong{color:var(--err-text);text-decoration:line-through;text-decoration-color:var(--err-bg)}
 .mock-fix-correct{color:var(--ok-text);font-weight:600}
 .mock-fix-note{font-size:12.5px;color:var(--muted)}
-
-/* ====== 首页 Dashboard 简化重构（2026-08-18，teal token，C 窗口方案 v2） ======
-   信息架构：8 块 → 4 区（主行动 / 模块导航 / 今日概览 / 常用折叠）。
-   不重定义全局 .card / .btn；颜色只走 var(--xxx)；保留所有 JS 用 ID。
-   注：#aiReadiness 的 className 由 js/index.js 动态设为 'ai-readiness ok/warn'
-   （common.css:824 已定义其胶囊样式），故此处不再用 .dash-ai，仅做状态线内收紧。 */
-/* Zone1 主行动（沿用 hero-cta 渐变，内部改行布局） */
-.hero-cta{flex-direction:row;align-items:center;justify-content:space-between;margin-bottom:14px}
 .hero-cta > div{display:flex;flex-direction:column;gap:2px;min-width:0}
 
 
@@ -1268,18 +1225,10 @@ main .quote{
 
 .mod-card{display:flex;flex-direction:column;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;color:var(--ink);text-decoration:none;box-shadow:var(--shadow);transition:transform .15s,box-shadow .15s,border-color .15s}
 .mod-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:var(--primary)}
-/* ====== 计时 / 专注（2026-08-18 极简：stage 收紧 + 模块改单行 chip） ======
-   所有计时专用样式集中在此（timer.html 内联 style 已删）；
-   图标走 .mod-ic 的 teal 线性 SVG；全局 .mod-card/.btn 仅用作用域覆写，不动。 */
-/* timer 页面（紧凑居中样式） */
-.timer-stage{text-align:center;max-width:460px;margin-left:auto;margin-right:auto;padding:24px 28px 22px}
-.timer-btns{display:flex;gap:10px;justify-content:center;margin-top:0}
 .timer-btns .btn{min-width:0;padding:9px 22px;border-radius:999px}
 .timer-btns .btn:disabled{opacity:.55;cursor:not-allowed}
 .timer-stage .btn-danger{background:var(--danger-soft);color:var(--danger-text);border-color:transparent}
 .timer-stage .btn-danger:hover{background:var(--danger-soft);color:var(--danger-text);border-color:transparent}
-/* 模块选择：单行紧凑 chip（图标 + 名称 + 小按钮） */
-.timer-mods{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:6px}
 .timer-mods .mod-card{
   display:inline-flex;flex-direction:row;align-items:center;gap:7px;
   padding:5px 6px 5px 5px;border-radius:20px;cursor:pointer;
@@ -1292,14 +1241,7 @@ main .quote{
 .seg-btn + .seg-btn{border-left:1px solid var(--line)}
 .seg-btn.active{background:var(--primary);color:var(--on-primary)}
 .seg-btn.active + .seg-btn{border-left-color:transparent}
-
-
-/* ====== 页头（标题+副标题+右侧统计 chip 通用） 2026-08-22 ====== */
-.page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin:0 0 18px;padding-left:48px;flex-wrap:wrap;max-width:1160px}
 .page-head-l .page-title{margin:0}
-/* 今日学习记录 mini 卡 */
-.rec-mini{padding:18px 22px;margin-top:28px}
-.rec-mini .rec-h{margin-bottom:14px}
 /* 评分徽标（模块内自配色语义：≥6 绿 / 5–5.5 琥珀 / <5 红，严格用 Token） */
 .score-badge{font-size:12px;font-weight:700;border-radius:10px;padding:2px 9px;font-variant-numeric:tabular-nums}
 .score-badge.good{background:var(--primary-soft);color:var(--med)}
@@ -1312,7 +1254,6 @@ main .quote{
 .diag-err{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:6px;font-size:13px;line-height:1.6}
 .diag-orig{color:var(--muted);text-decoration:line-through}
 .diag-fix{color:var(--ink);font-weight:600}
-.prog-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);box-shadow:var(--shadow);padding:14px;text-align:center}
 .prog-card .n{font-size:26px;font-weight:800;color:var(--primary);font-variant-numeric:tabular-nums;line-height:1.1}
 .prog-card .l{font-size:12px;color:var(--muted);margin-top:4px}
 .freq-badge{font-size:11px;font-weight:700;color:var(--on-primary);border-radius:10px;padding:2px 9px;min-width:54px;text-align:center;flex:none}
@@ -1348,8 +1289,6 @@ main.container{padding-top:40px}
 .hero::before{content:"";position:absolute;right:-70px;top:-90px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(58,154,147,.16),transparent 66%);pointer-events:none}
 [data-theme="dark"] .hero::before{background:radial-gradient(circle,rgba(255,255,255,.13),transparent 65%)}
 .hero::after{display:none}
-/* 问候行：替代原来的独立 .hello 横条 */
-.hero-greet{display:grid;grid-template-columns:auto 1fr auto;align-items:center;column-gap:16px;margin-bottom:14px;position:relative;z-index:1}
 /* 🔴 10-23 B-6 小步1：.streak-chip 原来有三段互覆盖的定义（这里 + 下面背词段 + css/p/home.css 的 .hline 段）。
    这一段是 10/1 首页 hero 版留下的，而首页 hero 容器早已换成 .hline → 规则空转，但它排在背词段之前，
    把背词连击 chip 的配色（--ok-bg/--ok-text）静默覆盖成浅青底深青字；三段谁生效只取决于书写顺序。
@@ -1359,31 +1298,20 @@ main.container{padding-top:40px}
 [data-theme="dark"] .hero .streak-chip{background:rgba(255,255,255,.14);color:#fde68a;border:1px solid rgba(255,255,255,.20)}
 .hero .streak-chip svg{width:13px;height:13px}
 /* 停用留档（原三段里唯一被收窄的是第一行的裸选择器，原文贴在这里便于回溯）：
-   .streak-chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;background:var(--primary-50);color:var(--primary-700);border-radius:999px;padding:4px 10px;white-space:nowrap} */
-.hero-main{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;position:relative;z-index:1;flex-wrap:wrap}
-.hero-right{display:flex;flex-direction:column;align-items:flex-end;gap:10px;flex:none}
-.hero-num{display:flex;align-items:baseline;gap:8px;position:relative;z-index:1;margin-bottom:6px}
+   .streak-chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;background:var(--primary-50);color:var(--primary-700);border-radius:999px;padding:4px 10px;white-space:nowrap}
 /* 10/1 UI v2：核心数字换深 teal（示意稿口径，覆盖原「中性最深灰」）；等宽数字更板正 */
 .hero-num .big{font-size:64px;font-weight:900;letter-spacing:-.04em;line-height:1;color:var(--primary-900);font-variant-numeric:tabular-nums}
 [data-theme="dark"] .hero-num .big{color:#fff}
 .hero-num .unit{font-size:20px;font-weight:600;color:var(--primary-500)}
 [data-theme="dark"] .hero-num .unit{color:rgba(255,255,255,.78)}
-/* 10/1 UI v2：唯一主行动按钮加大加亮（渐变底），点击跳计时页自动开表 */
-.hero-cta{display:inline-flex;align-items:center;gap:9px;padding:15px 30px;background:linear-gradient(135deg,var(--primary-400),var(--primary-600));color:var(--on-primary);border-radius:15px;font-weight:800;font-size:16px;text-decoration:none;box-shadow:0 8px 22px rgba(47,134,127,.38);flex:none;transition:transform .15s,box-shadow .15s}
-.hero-cta:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(47,134,127,.46);color:var(--on-primary)}
-[data-theme="dark"] .hero-cta{background:var(--surface);color:var(--primary-300);box-shadow:0 10px 26px rgba(0,0,0,.35)}
-[data-theme="dark"] .hero-cta:hover{color:var(--primary-200)}
 .hero-cta svg{width:16px;height:16px}
 
 /* 紧凑三卡（10/1 UI v2：双卡→三卡，新增「剩余 AI 次数」转化卡；首页专属结构） */
 .meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:12px}   /* 10/1 晚修：AI 卡删除后只有 2 张卡，3 列遗留规则导致 >1100px 视口下右列空一块（她报的「铺不满」） */
 @media(max-width:1100px){ .meta{grid-template-columns:1fr 1fr} }
-.meta-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px 22px;display:flex;justify-content:space-between;align-items:center;transition:transform .2s,box-shadow .2s,border-color .2s;box-shadow:var(--shadow);text-decoration:none;color:var(--ink);position:relative}
-.meta-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-card-hover);border-color:var(--primary-200)}
 .meta-left .label{font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:4px}
 .meta-left .val{font-size:22px;font-weight:800;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
 .meta-left .val .u{font-size:13px;color:var(--muted);font-weight:500;margin-left:2px}
-.meta-ico{width:52px;height:52px;border-radius:15px;background:var(--primary-50);color:var(--primary-500);display:inline-flex;align-items:center;justify-content:center;flex:none}
 .meta-ico svg{width:24px;height:24px}
 .meta-ico.blue{background:var(--vocab-soft);color:var(--vocab-text)}
 
@@ -1405,9 +1333,7 @@ main.container{padding-top:40px}
 .quick{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:12px}
 /* 今日学习记录 */
 .rec{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 20px}
-.rec-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
 .rec-h h3{margin:0;font-size:15px;font-weight:700}
-.rec-total{font-size:13px;color:var(--muted)}
 .rec-total b{color:var(--ink);font-weight:800}
 .rec-row{display:flex;align-items:center;gap:12px;margin:6px 0;font-size:13.5px}
 .rec-row .nm{width:62px;color:var(--ink);font-weight:600;flex:none}
@@ -1554,7 +1480,6 @@ body.word-fullscreen #practiceBody.practice-body-fit .practice-word-area{
 body.word-fullscreen #practiceBody.practice-body-fit .pw-cn{ min-height:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
 body.word-fullscreen #practiceBody.practice-body-fit .opts-grid{ margin-top:14px; }   /* 10/2 她反馈「下面空隙太多、整体不协调」：段间距 12→14 微调（9/16 收紧的口径不推翻，只 +2） */
 body.word-fullscreen #practiceBody.practice-body-fit .answer-btns{ margin-top:14px; }
-body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap{ margin-top:14px; padding-top:0; }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-en{ font-size:clamp(38px,4.6vh,52px); }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-ipa{ font-size:clamp(15px,1.9vh,18px); }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-cn{ font-size:clamp(15px,1.9vh,18px); }
@@ -1562,7 +1487,6 @@ body.word-fullscreen #practiceBody.practice-body-fit .opts-grid{ gap:clamp(10px,
 body.word-fullscreen #practiceBody.practice-body-fit .opt-big{ height:clamp(80px,12.4vh,114px); }   /* 10/2 微放宽：12vh/110 → 12.4vh/114（吃掉底部空白 ~8px） */
 body.word-fullscreen #practiceBody.practice-body-fit .opt-big-cn{ font-size:clamp(14px,1.8vh,17px); }   /* 9/16 之之：选项中文字体缩小（原 15/2.2vh/21） */
 body.word-fullscreen #practiceBody.practice-body-fit .abtn-unknown{ height:clamp(40px,5.5vh,48px); }
-body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap{ padding-top:0; }
 body.word-fullscreen #practiceBody.practice-body-fit .pw-speaker-wrap .tool-btn{ width:clamp(48px,6.2vh,58px); height:clamp(48px,6.2vh,58px); }
 
 /* 窄屏（手机）：铺满态下只收窄卡片左右内边距。
@@ -1948,10 +1872,6 @@ body.has-dock main.container{ padding-bottom:0; }
   /* 完成页动作按钮窄屏全宽竖排，远离误触 */
   .dict-result-actions .btn{ min-width:46%; }
 }
-@media (max-width:860px){
-  /* 10/2：#hubFab 的移动端锚点已统一到 design/56 块（var(--dock-h) + 18px），
-     这里删除写死的 96px，避免第二个魔法数字。 */
-}
 
 /* ===== 苹果极简 · Layer③ 模块色驱动：[data-mod] 决定每页身份色 --mod ===== */
 [data-mod="teal"]{--mod:var(--primary);--mod-soft:var(--primary-soft)}
@@ -2039,16 +1959,6 @@ body.has-dock main.container{ padding-bottom:0; }
 /* ── 头部布局对齐 design/54 原型（之之 14:22/14:37 定版）：头部行只有 chip+数字，
    已掌握/设置/全屏按钮整体下移到进度条下方一行；全屏缩成纯图标小方块 ── */
 .word-stats .stat-progress{ margin-left:auto; }
-.word-tools-row{
-  display:flex;justify-content:flex-end;align-items:center;gap:8px;
-  margin:6px 0 2px;flex:none;
-}
-.word-tools-row[hidden]{ display:none; }
-.word-tools-row .icon-square-btn{
-  width:30px;height:30px;min-height:0;   /* min-height:0 抵掉移动端 .btn{min-height:44px}（331 行），否则 28/30 宽被撑成 44 高长方形（之之 9/8 晚反馈） */
-  padding:0;border-radius:9px;
-  display:inline-flex;align-items:center;justify-content:center;flex:none;
-}
 .word-tools-row .icon-square-btn svg{ width:15px;height:15px; }
 .finish-medal{
   width:80px;height:80px;border-radius:50%;flex:none;
@@ -2372,8 +2282,6 @@ html[data-theme="dark"] .onb2-overlay{background:rgba(0,0,0,.62)}
 /* 10/1 轨迹折叠（回顾页 record tab：每日记录/口语练习默认折叠，她拍板） */
 .rv-fold .rv-fold-head{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
 .rv-fold .rv-fold-head:hover{opacity:.85}
-.rv-fold .rv-arrow{margin-left:auto;font-size:13px;color:var(--muted);transition:transform .18s ease}
-.rv-fold.open .rv-arrow{transform:rotate(90deg)}
 
 /* ===== 10/2 · 移动端 App 化外壳（她拍板：页面固定一屏、禁整页竖滚；内容区内部滚不截断） =====
    适用 = 带 dock 的页面（body.has-dock，common.js 注入）；落地页/登录页无 dock 不锁。
@@ -2534,7 +2442,6 @@ button.side-item, button.sheet-item{
 .rv[data-d="3"]{transition-delay:.21s}
 @media (prefers-reduced-motion: reduce){.js .rv{opacity:1;transform:none;transition:none}}
 .dgs-item.cur{background:var(--primary-50)}
-.dgs-item.cur .dgs-ic{background:var(--primary-200);color:var(--primary-800)}
 
 /* dock 4 格：从 4 格+更多 变 4 格，按钮略宽 —— 只在移动端生效 */
 .ui-menu-grouped{justify-content:space-between}
@@ -2546,48 +2453,22 @@ button.side-item, button.sheet-item{
    —— 页面内每张卡点进原来的 plans.html / timer.html / …（原页面零改动）。
    ========================================================================== */
 #hubGroupRoot{max-width:760px;margin:0 auto}
-.hubg-head{padding:4px 2px 18px}
 .hubg-head h1{
   margin:0 0 6px;font-size:26px;line-height:1.25;font-weight:800;
   letter-spacing:-.02em;color:var(--n-900);
 }
 .hubg-head p{margin:0;font-size:13.5px;line-height:1.7;color:var(--muted)}
-.hubg-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media(max-width:520px){.hubg-grid{grid-template-columns:1fr}}
-.hubg-card{
-  display:flex;align-items:center;gap:13px;
-  min-height:78px;padding:15px 16px;
-  background:var(--surface);border:1px solid var(--line);
-  border-radius:var(--radius);text-decoration:none;color:inherit;
-  box-shadow:var(--shadow);
-  transition:border-color .16s,box-shadow .16s,transform .1s;
-}
-.hubg-card:active{transform:scale(.985)}
-.hubg-card:hover{border-color:var(--primary-200);box-shadow:var(--shadow-md)}
-/* 44px 触控命中：图标盒 44 + min-height 78 */
-.hubg-ic{
-  width:44px;height:44px;flex:none;border-radius:13px;
-  background:var(--n-100);color:var(--ink-2);
-  display:flex;align-items:center;justify-content:center;
-  transition:background .16s,color .16s;
-}
 .hubg-ic svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .hubg-card.cur{background:var(--primary-50);border-color:var(--primary-200)}
-.hubg-card.cur .hubg-ic{background:var(--primary-200);color:var(--primary-800)}
 /* 第一张卡（最该去的那个）稍加重 */
 .hubg-card.accent{
   background:linear-gradient(135deg,var(--primary-50),var(--surface));
   border-color:var(--primary-200);
 }
-.hubg-card.accent .hubg-ic{background:var(--primary-200);color:var(--primary-800)}
-.hubg-tx{min-width:0;flex:1}
 .hubg-tx b{display:block;font-size:16px;font-weight:800;color:var(--n-900);line-height:1.3;letter-spacing:-.01em}
 .hubg-tx span{display:block;font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.5}
-.hubg-ar{color:var(--n-300);flex:none}
 .hubg-ar svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-.hubg-note{
-  margin:18px 2px 0;font-size:12.5px;line-height:1.75;color:var(--muted);
-}
 #hubGroupRoot .empty{padding:40px 0;text-align:center;color:var(--muted);font-size:14px}
 @keyframes onbGlow{
   0%,100%{box-shadow:var(--shadow)}
