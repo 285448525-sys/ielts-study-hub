@@ -49,7 +49,7 @@
 <script defer src="js/common-shell.js?v=20261029k"></script>
 <script defer src="js/common-pwa.js?v=20261029k"></script>
   <script defer src="js/feedback.js?v=20261027a"></script>
-<script defer src="js/materials.js?v=20261029a"></script>
+<script defer src="js/materials.js?v=20261030a"></script>
 <style>
   /* === 万能素材生成器（沿用全站 Teal Token） === */
   .mat-intro{ padding:14px 16px; background:var(--primary); color:#fff; border-radius:var(--radius); font-size:13.5px; line-height:1.7; margin:12px 0; box-shadow:var(--shadow); }
@@ -262,6 +262,18 @@
   .mat-logic li{ counter-increment:lg86; position:relative; padding-left:24px; font-size:13px; line-height:1.7; color:var(--ink-2); margin:4px 0; list-style:none; }
   .mat-logic li::before{ content:counter(lg86); position:absolute; left:0; top:1px; width:16px; height:16px; border-radius:50%; background:var(--n-100); color:var(--n-600); font-size:9.5px; font-weight:800; line-height:16px; text-align:center; }
   .mat-mini.armed-danger{ background:var(--danger); border-color:var(--danger); color:#fff; }
+  /* MAT-BULK-EDIT-1（她：「一次性加太多进去，删也删不完」）：素材区标题行右侧的批量入口
+     + 批量态的勾选方块。方块照本站既有口径（1px 边 / 选中实心），不引入新的视觉语言；
+     卡片选中态只加一圈主色描边，不换底色（卡片底色已经承担层级）。 */
+  .mat-bulk-head{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .mat-bulk-head .mat-mini{ font-size:12px; padding:5px 11px; }
+  .mat-bulk-head .mat-mini[disabled]{ opacity:.5; cursor:not-allowed; }
+  .mat-ck{ flex:none; width:15px; height:15px; border:1px solid var(--line); border-radius:4px; background:var(--surface); position:relative; cursor:pointer; margin-right:2px; }
+  .mat-ck:hover{ border-color:var(--primary); }
+  .mat-ck.on{ background:var(--primary); border-color:var(--primary); }
+  .mat-ck.on::after{ content:""; position:absolute; left:4px; top:1px; width:5px; height:9px; border-right:2px solid #fff; border-bottom:2px solid #fff; transform:rotate(40deg); }
+  .mat-ck:focus-visible{ outline:none; box-shadow:0 0 0 3px var(--primary-soft); }
+  .mat-mat.mat-picked{ border-color:var(--primary); box-shadow:0 0 0 2px var(--primary-soft); }
   .mat-plan-skipped{ border-style:dashed; color:var(--muted); font-size:13.5px; cursor:pointer; }
   .mat-legacy{ margin:16px 0; }
   .mat-legacy summary{ cursor:pointer; user-select:none; font-size:12.5px; font-weight:600; color:var(--muted); }

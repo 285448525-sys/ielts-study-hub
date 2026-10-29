@@ -125,6 +125,12 @@
   let store = loadStore();
   let mode = 'q';
   let editing = -1;   // 当前正在「更改」编辑的素材卡下标；-1 表示无
+  /* MAT-BULK-EDIT-1（她 10-29 原话「我刚刚一次性加太多进去，删也删不完，太多了，删不过来」）：
+     批量删除的选中集与确认态。选中集存 **id** 不是下标 —— 删一批后下标会整体前移，
+     存下标会错删；老数据可能没 id（只有生成时补过），进批量前先补齐（ensureMatIds）。 */
+  let bulkMode = false;
+  let bulkSel = new Set();
+  let bulkArmed = false;
   let shortWarned = false;   // P2：质检软门槛——短答案警告只弹一次，之后点生成直接放行
   let planLoading = false;   // design/86：动态问卷规划中（渲染 loading 态，防重复点击）
   let freeMode = false;      // design/86：规划失败兜底——自由填写模式（不依赖 plan 也能生成）
@@ -1676,6 +1682,24 @@
   }
 
   /* ---------- 结果页 ---------- */
+  /* MAT-BULK-EDIT-1：批量删除要按 id 记选中，老数据可能没 id（历史上只在「生成」时补过一次，
+     直接加进去的卡不一定有）→ 进批量前补齐。id 撞车时补后缀，不覆盖已有 id。 */
+  function ensureMatIds(){
+    const used = new Set((store.materials || []).map(m => m && m.id).filter(Boolean));
+    let changed = false;
+    (store.materials || []).forEach(m => {
+      if(!m || m.id != null) return;
+      let id;
+      do { id = 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); } while(used.has(id));
+      used.add(id); m.id = id; changed = true;
+    });
+    if(changed) saveStore();
+  }
+  function bulkSelArr(){
+    const all = (store.materials || []).map(m => m && m.id);
+    return [...bulkSel].filter(id => all.includes(id));
+  }
+  function bulkReset(){ bulkMode = false; bulkSel.clear(); bulkArmed = false; }
   /* 换季重映射运行态（模块级）：映射期间整页可能因软导航/切 tab 重渲，
      把进度挂变量而不是按钮文字上，render 时按变量还原「⏳ 重新映射中…」。 */
   var remapBusy = false, remapDone = 0, remapTotal = 0;
@@ -1711,6 +1735,21 @@
         + '</div>';
     }
     // 故事卡（T-017c：两列网格；卡头 = 3px 品牌竖条 + 标签行 + 标题）
+    /* MAT-BULK-EDIT-1（她：「我刚刚一次性加太多进去，删也删不完」）：
+       素材区标题行右边放「批量管理」入口；进批量后同一行换成「全选 / 取消」+
+       「删除选中(N)」，删除需二次确认（照本页既有 armed 范式，不用原生 confirm）。 */
+    const _mats = (Array.isArray(store.materials) ? store.materials : []).filter(Boolean);
+    const _selN = bulkSelArr().length;
+    h += '<div class="mat-sec-title mat-bulk-head">'
+      + '<span>我的素材 <span class="tag">' + _mats.length + ' 张</span></span>'
+      + '<span class="spacer" style="flex:1"></span>'
+      + (bulkMode
+        ? '<button class="mat-mini" id="matBulkAll">' + (_selN && _selN === _mats.length ? '取消全选' : '全选') + '</button>'
+          + '<button class="mat-mini danger' + (bulkArmed ? ' armed-danger' : '') + '" id="matBulkDel"' + (_selN ? '' : ' disabled') + '>'
+          + (bulkArmed ? '确认删除 ' + _selN + ' 张？' : '删除选中' + (_selN ? '（' + _selN + '）' : '')) + '</button>'
+          + '<button class="mat-mini" id="matBulkExit">完成</button>'
+        : (_mats.length > 1 ? '<button class="mat-mini" id="matBulkEnter">批量管理</button>' : ''))
+      + '</div>';
     h += '<div class="mat-mgrid" id="matMGrid">';
     (Array.isArray(store.materials) ? store.materials : []).forEach((m, i) => {
       if(!m) return;
@@ -1719,8 +1758,11 @@
       const covN = Array.isArray(m.coverage) ? m.coverage.length : 0;
       const meta = (m.pinned ? '<span class="mm star">★ 最熟 · 已置顶</span>' : '')
         + (covN ? '<span class="mm">能串 ' + covN + ' 道当季题</span>' : '');
-      h += '<div class="mat-mat mat-card' + (isEditing ? ' open' : '') + '" data-i="' + i + '">'
-        + '<div class="mat-mat-head" data-toggle="' + i + '"><span class="mat-mat-title">' + escapeHtml(m.title || '未命名') + '</span>'
+      const picked = bulkMode && m.id != null && bulkSel.has(m.id);
+      h += '<div class="mat-mat mat-card' + (isEditing ? ' open' : '') + (picked ? ' mat-picked' : '') + '" data-i="' + i + '">'
+        + '<div class="mat-mat-head" data-toggle="' + i + '">'
+        + (bulkMode ? '<span class="mat-ck' + (picked ? ' on' : '') + '" data-ck="' + escapeHtml(m.id == null ? '' : m.id) + '" role="checkbox" aria-checked="' + (picked ? 'true' : 'false') + '" tabindex="0"></span>' : '')
+        + '<span class="mat-mat-title">' + escapeHtml(m.title || '未命名') + '</span>'
         + (meta ? '<span class="mat-mat-meta">' + meta + '</span>' : '')
         + '<span class="mat-caret">▶</span></div>'
         + '<div class="mat-body">';
@@ -1832,9 +1874,58 @@
       } finally{ remapBusy = false; render(); }
     };
 
-    root.querySelectorAll('[data-toggle]').forEach(el => {
-      el.onclick = () => { const card = el.closest('.mat-mat'); card.classList.toggle('open'); };
+    /* ---------- MAT-BULK-EDIT-1 批量删除 ---------- */
+    const _bulkEnter = document.getElementById('matBulkEnter');
+    if(_bulkEnter) _bulkEnter.onclick = () => { ensureMatIds(); bulkMode = true; bulkSel.clear(); bulkArmed = false; render(); };
+    const _bulkExit = document.getElementById('matBulkExit');
+    if(_bulkExit) _bulkExit.onclick = () => { bulkReset(); render(); };
+    const _bulkAll = document.getElementById('matBulkAll');
+    if(_bulkAll) _bulkAll.onclick = () => {
+      const ids = (store.materials || []).map(m => m && m.id).filter(x => x != null);
+      if(bulkSelArr().length === ids.length) bulkSel.clear();
+      else ids.forEach(id => bulkSel.add(id));
+      bulkArmed = false;
+      render();
+    };
+    const _bulkDel = document.getElementById('matBulkDel');
+    if(_bulkDel) _bulkDel.onclick = () => {
+      const ids = bulkSelArr();
+      if(!ids.length) return;
+      if(!bulkArmed){ bulkArmed = true; render(); return; }   // 第一次点 = 上膛，第二次才真删
+      // 墓碑：批量删也要写，否则云端/另一份残留会把卡并回来（同单张删除口径）
+      store.deletedIds = store.deletedIds || [];
+      ids.forEach(id => { if(!store.deletedIds.includes(id)) store.deletedIds.push(id); });
+      store.materials = (store.materials || []).filter(m => m && !ids.includes(m.id));
+      store.materialsEpoch = Date.now();
+      saveStore();
+      if(DATA.settings.autoSync && DATA.settings.syncCode && typeof cloudUpload === 'function') cloudUpload(true);
+      const n = ids.length;
+      bulkReset();
+      render();
+      toast('已删除 ' + n + ' 张素材');
+    };
+    // 勾选：点卡片头部或方块都行；批量态下卡头不再展开/收起（避免误触把卡全展开）
+    root.querySelectorAll('[data-ck]').forEach(el => {
+      const pick = () => {
+        const id = el.dataset.ck;
+        if(id == null || id === '') return;
+        if(bulkSel.has(id)) bulkSel.delete(id); else bulkSel.add(id);
+        bulkArmed = false;
+        render();
+      };
+      el.onclick = (e) => { e.stopPropagation(); pick(); };
+      el.onkeydown = (e) => { if(e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); pick(); } };
     });
+    if(bulkMode){
+      // 批量态：点卡头 = 勾/取消勾（她一次加了太多张，得能整块点，不能只点那个小方块）
+      root.querySelectorAll('[data-toggle]').forEach(el => {
+        el.onclick = () => {
+          const card = el.closest('.mat-mat');
+          const ck = card && card.querySelector('[data-ck]');
+          if(ck) ck.click();
+        };
+      });
+    }
     // T-017c：「展开完整故事」= 卡头点击同效（只切 class，不重渲，编辑中的内容不会闪）
     root.querySelectorAll('[data-expand]').forEach(b => {
       b.onclick = () => { const card = b.closest('.mat-mat'); if(card) card.classList.toggle('open'); };
