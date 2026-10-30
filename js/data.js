@@ -10,6 +10,29 @@ const HUB_KEY = 'ielts_study_hub_v1';
    写入点：hubSave()（覆盖所有保存路径）+ mergeData()（云端合并后）；读取点：hubLoad() + ready 早恢复。 */
 const CREDS_KEY = 'ielts_hub_credentials_v1';
 const CREDS_FIELDS = ['syncCode', 'relayToken', 'pronunciationScore', 'fluencyScore', 'autoSync'];
+
+/* ===== COMMON-JS-SPLIT-1 笔 1（10-30）：同步白名单常量前移到 A 档（data.js）=====
+   为什么搬：这三张表是 common-sync.js / common-merge.js 的**共同契约**，两边都要读。
+   以前它们在 common-sync.js 顶层用 const 声明 —— 谁先把 common-sync 挪走（按需加载），
+   common-merge 那边就 ReferenceError。搬到 data.js（所有页面都同步加载、且软导航不重跑）
+   之后，「常量先就位、消费方后到」这个前提对任何加载顺序都成立，笔 3/笔 4 才有得谈。
+
+   ⚠️ 用 window.X 赋值而不是顶层 const：软导航会用 window.eval 重跑目标页脚本，
+     顶层 const 在 eval 作用域里不可跨文件见（PRECORE 铁律 ③ 就是这么来的）。
+     window 属性则是全局对象自己的，重跑多少次都只有一份，也不会重复声明报错。
+
+   ⚠️ 三个常量必须与 common-sync.js / common-merge.js 同一批上线：老 common-sync 还带 const、
+     新 common-sync 不带，只升一边就是「一半有、一半没有」的 ReferenceError。
+     版本串：data.js 与 common-sync.js 本次一起 bump。 */
+window.SYNC_ARRAY_FIELDS = ['sessions','notes','meds','corpus','scores','errorbook',
+  'energy','writingScores','speakingStories','writingPhrases',
+  'mockRecords','dictationSources','dictationLogs','longSent'];
+
+window.SYNC_SETTINGS_FIELDS = ['name','examDate','examDates','targets','dailyGoalHours','pronunciationScore','fluencyScore','theme','chimeOnDone','adhd','practiceCfg','diagnosis','planLastOpen','avatar','coachAvatar','examAvatar','homeQuick','fontScale','reduceMotion','writingRedoWrong'];
+
+window.WORD_PROG_FIELDS = ['level','nextReview','lastReview','errTotal','errStreak','fuzzyStreak',
+  'okStreak','shortCount','lastShortTouch','cleanRounds','cleared','hist','dh','dd'];
+
 function saveCredsMirror(){
   try{
     const s = DATA.settings || {};

@@ -478,9 +478,8 @@ document.addEventListener('visibilitychange', () => {
  * ⚠️ 口语题库(speaking)【现已纳入同步】——用户要求口语串题答案/练习记录跨设备恢复。
  *    早期曾因"清缓存变101题"而剔除，但 v20260823u 已改 mergeSpeakingKeepAnswers 按id回填，
  *    不再有旧脏题库复活风险，故放开同步。合并时按 id 双向回填 answers，题干以官方为准。 */
-const SYNC_ARRAY_FIELDS = ['sessions','notes','meds','corpus','scores','errorbook',
-  'energy','writingScores','speakingStories','writingPhrases',
-  'mockRecords','dictationSources','dictationLogs','longSent'];
+/* ⬆️ SYNC_ARRAY_FIELDS 已前移到 js/data.js（COMMON-JS-SPLIT-1 笔 1，10-30）——
+   本文件及 common-merge.js 直接读全局 window.SYNC_ARRAY_FIELDS，此处不再声明。 */
 /* 上传/合并前剔除「官方共享、个人不应同步」的字段（仅 writing 模板），保持 DATA 其余逻辑不变。
  * 注意：speaking 现已纳入同步，不再剔除。 */
 /* ── 写作出厂内容按需加载（2026-10-17 首屏减重第二步）──────────────────────────
@@ -563,7 +562,7 @@ function stripCloudFields(d){
    以前不在白名单里，等于「背词设置完全不跨端」：电脑上把上限改成 200，手机仍是旧值。
    ⚠️ 必须配套：practice.js pcSave 要自己打 _fieldTs.practiceCfg，否则两端时间戳都是 0 →
    合并走「时间戳相同取云端」分支 → 本机刚改的上限会被云端旧值当场盖回去。 */
-const SYNC_SETTINGS_FIELDS = ['name','examDate','examDates','targets','dailyGoalHours','pronunciationScore','fluencyScore','theme','chimeOnDone','adhd','practiceCfg','diagnosis','planLastOpen','avatar','coachAvatar','examAvatar','homeQuick','fontScale','reduceMotion','writingRedoWrong'];   // 10-24 D-3：写作页「重默错句」开关状态（F-2 那批要写的字段）。⚠️ 此刻 F-2 本身还没施工（writing.js 的 redo.onchange 里没有落库代码），先把白名单补上 —— 这样 F-2 一落地就自动跨设备，不会又出现「本机记得、换设备丢」。字段是布尔、缺省 undefined = 不勾，与 HTML 里 #wtDictRedoWrong 无 checked 的默认态一致。   // 10-23 T-002 步5：正文字号三档（sm/md/lg）+ 减少动效开关   // 10-23 5-2：首页快速入口自定义（数组；空数组=未设置，合并逻辑不会用空值覆盖另一端已配置的）
+/* ⬆️ SYNC_SETTINGS_FIELDS 已前移到 js/data.js（COMMON-JS-SPLIT-1 笔 1，10-30）；上面这些字段用途注释照留。 */
 
 /* ===== 同步条目时间戳维护（9/17 修：_mergeArray 缺时间戳导致云端修改永不并入）=====
    根因：_mergeArray 以 ts/updatedAt 判「较新者胜」，但 11 个同步数组的条目大多只有 id、
@@ -643,5 +642,4 @@ function _later(a, b){
 /* 受 resetEpoch 支配的「客观进度字段」：epoch 大者整组胜出（见 words.js resetWordProgress 注释）。
    ⚠️ hardWord / keyWord 不在内——主观标注，重置也不清，永远取「或」。
    ⚠️ cn / pos / ipa 属内容字段，无论 epoch 如何都按下方取优规则合并（重构不回退释义）。 */
-const WORD_PROG_FIELDS = ['level','nextReview','lastReview','errTotal','errStreak','fuzzyStreak',
-  'okStreak','shortCount','lastShortTouch','cleanRounds','cleared','hist','dh','dd'];   // design/77：dh/dd 随 resetEpoch 整组胜负
+/* ⬆️ WORD_PROG_FIELDS 已前移到 js/data.js（COMMON-JS-SPLIT-1 笔 1，10-30）。design/77：dh/dd 随 resetEpoch 整组胜负。 */
