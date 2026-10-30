@@ -388,6 +388,34 @@ ready(() => {
   })();
   $('#addPlan').addEventListener('click', addItem);
   $('#aiPlan').addEventListener('click', aiPlanItem);
+  /* PLAN-ENTRY-VISIBLE-1（10-30 A2）：可见骨架上的入口。
+     她看到的是 .m-page 这套（旧卡整张 hidden），所以按钮必须绑在这里。
+     数据逻辑一律转发到上面现成的 addItem / aiPlanItem / startEdit / deleteItem，不另造。 */
+  (function bindSkeletonEntries(){
+    var mkIn = document.getElementById('mkAddText');
+    var mkAdd = document.getElementById('mkAddBtn');
+    var mkAi = document.getElementById('mkAiBtn');
+    var mkPrev = document.getElementById('mkDayPrev');
+    var mkNext = document.getElementById('mkDayNext');
+    var mkToday = document.getElementById('mkDayToday');
+    var dEl = document.getElementById('planDate');
+    var step = function(n){
+      if(!dEl) return;
+      var base = dEl.value || todayKey();
+      dEl.value = addDays(base, n);
+      dEl.dispatchEvent(new Event('change', { bubbles: true }));
+      /* 翻完把焦点还给输入框：手机上点完 ‹ › 直接就能写 */
+      if(mkIn) mkIn.focus();
+    };
+    if(mkAdd) mkAdd.addEventListener('click', function(){ addItem(mkIn); });
+    if(mkAi) mkAi.addEventListener('click', function(){ aiPlanItem(mkIn); });
+    if(mkIn) mkIn.addEventListener('keydown', function(e){
+      if(e.key === 'Enter'){ e.preventDefault(); addItem(mkIn); }
+    });
+    if(mkPrev) mkPrev.addEventListener('click', function(){ step(-1); });
+    if(mkNext) mkNext.addEventListener('click', function(){ step(1); });
+    if(mkToday) mkToday.addEventListener('click', function(){ if(dEl){ dEl.value = todayKey(); dEl.dispatchEvent(new Event('change', { bubbles: true })); } });
+  })();
   bindEnterSubmit($('#planText'), $('#addPlan'));   // 9/22 之之：回车即添加（原 Ctrl+Enter；换行用 Shift+Enter）
 
   // commit4：每日重排工具条（静态 DOM，显隐由 render 管；只在有 AI 任务时可见）
@@ -480,6 +508,56 @@ function currentDate(){ return $('#planDate').value || todayKey(); }
    🔴 「本周重点」只聚合 **AI 生成项**（gen === PLAN_GEN_TAG，带 module）；
       手动项只有 text 没 module，靠正则猜 = 10/5「跳错模块」的老毛病，故明确不参与（她 10/12 认可）。
    三种边界：未设考试日期 → 引导去设置；已考完（daysLeft<0）→ 整条隐藏；本周无 AI 项 → 只隐重点段。 */
+/* PLAN-ENTRY-VISIBLE-1（10-30 A2）：可见骨架的任务行里补「编辑 / 删除」两枚按钮。
+   她看到的是 .m-page 这套骨架（旧卡整张 hidden），原来编辑删除只存在旧卡的 .plan-item 里
+   —— 也就是说可见界面上根本没有这两个入口，不是「点了没反应」，是压根没有。
+   做法：不再另造一套编辑器，直接在这行里把 .m-t 换成 input（与旧卡 startEdit 同语义：
+   回车/失焦保存、Esc 取消），保存后走 hubSave() + render()。 */
+function skeletonRowHtml(){
+  return '<span class="m-cb"></span><span class="m-t"></span><span class="m-tagline"></span>'
+       + '<span class="m-jmp">去练 →</span>'
+       + '<span class="m-act">'
+       +   '<button type="button" class="m-actbtn" data-mkedit title="编辑" aria-label="编辑">✎</button>'
+       +   '<button type="button" class="m-actbtn" data-mkdel title="删除" aria-label="删除">✕</button>'
+       + '</span>';
+}
+
+/* 行内编辑：把 .m-t 换成输入框，语义照旧卡 startEdit（Enter/失焦存、Esc 取消） */
+function skeletonEdit(row, item, date){
+  if(!row || !item) return;
+  var t = row.querySelector('.m-t');
+  if(!t || row.querySelector('.m-editinput')) return;
+  var input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'm-editinput';
+  input.value = item.text || '';
+  t.replaceWith(input);
+  input.focus();
+  input.select();
+  var cancelled = false, done = false;
+  function finish(save){
+    if(done) return;   /* Enter 保存后 render() 会换掉节点，随后那次 blur 会再进一次 → 直接挡掉 */
+    done = true;
+    var v = input.value.trim();
+    var back = document.createElement('span');
+    back.className = 'm-t';
+    var cur = (typeof getPlan === 'function') ? getPlan(date) : null;
+    var it = cur && cur.items ? cur.items.filter(function(x){ return x.id === item.id; })[0] : null;
+    if(save && v && it && v !== it.text){
+      it.text = v; it.updatedAt = Date.now(); hubSave();
+    }
+    back.textContent = (it ? it.text : v) || '';
+    input.replaceWith(back);
+    if(save) render();
+  }
+  input.addEventListener('blur', function(){ if(!cancelled) finish(true); }, {once:true});
+  input.addEventListener('keydown', function(e){
+    e.stopPropagation();
+    if(e.key === 'Enter'){ e.preventDefault(); if(!cancelled) finish(true); }
+    else if(e.key === 'Escape'){ e.preventDefault(); cancelled = true; finish(false); }
+  });
+}
+
 /* ═══ P-1R2（10-25）骨架接真数据 ═══
    只做三件事，全是对着已有节点「设 text / 设属性」：
      ① 阶段条 .m-phase —— 与 renderPhaseBar() 同一套口径（examCountdown + diagPhaseOf + AI 项聚合）
@@ -553,7 +631,8 @@ function syncSkeleton(date, isToday, items, done, total, pct){
       var wk = ['周日','周一','周二','周三','周四','周五','周六'][dt.getDay()] || '';
       var lab = (isToday ? '今天' : ((dt.getMonth()+1) + ' 月 ' + dt.getDate() + ' 日'))
               + ' <span class="m-r">' + date + ' · ' + wk;
-      if(isToday) lab += ' · <span style="color:var(--p600);font-weight:650">‹ 前后翻天 ›</span>';
+      /* PLAN-ENTRY-VISIBLE-1：原来这里追加一段「‹ 前后翻天 ›」提示文字（看着能点其实没动作）。
+         现在翻页是真按钮（.m-daynav），日期行只报「今天/几月几日」+ 星期，不再放假 affordance。 */
       lab += '</span>';
       h4.innerHTML = lab;
     }
@@ -563,6 +642,14 @@ function syncSkeleton(date, isToday, items, done, total, pct){
     if(subl) subl.innerHTML = '已完成<br>还剩 ' + Math.max(0, total - done) + ' 条';
     var bar = progCard.querySelector('.m-bar i');
     if(bar) bar.style.width = Math.round(pct) + '%';
+  }
+
+  /* PLAN-ENTRY-VISIBLE-1：可见骨架的日期翻页条（#mkDayNav）。
+     显示哪些按钮由真数据决定：非今天才露「回到今天」。 */
+  var mdn = document.getElementById('mkDayNav');
+  if(mdn){
+    var mdt = document.getElementById('mkDayToday');
+    if(mdt) mdt.hidden = isToday;
   }
 
   /* ── ③ 任务行 ── */
@@ -579,7 +666,7 @@ function syncSkeleton(date, isToday, items, done, total, pct){
         /* 超过骨架占位数 → 追加同构节点（类名照抄） */
         row = document.createElement('div');
         row.className = 'm-task';
-        row.innerHTML = '<span class="m-cb"></span><span class="m-t"></span><span class="m-tagline"></span><span class="m-jmp">去练 →</span>';
+        row.innerHTML = skeletonRowHtml();
         taskCard.insertBefore(row, taskCard.querySelector('.m-addrow'));
       }
       /* 🔴 PLAN-SKELETON-STALE-1（10-29 A2）：这一行必须补上。
@@ -615,11 +702,41 @@ function syncSkeleton(date, isToday, items, done, total, pct){
           });
         }
       }
+      /* PLAN-ENTRY-VISIBLE-1：每行都要有编辑 / 删除（HTML 里那 4 行静态骨架也算） */
+      var act = row.querySelector('.m-act');
+      if(!act){
+        act = document.createElement('span');
+        act.className = 'm-act';
+        act.innerHTML = '<button type="button" class="m-actbtn" data-mkedit title="编辑" aria-label="编辑">✎</button>'
+                      + '<button type="button" class="m-actbtn" data-mkdel title="删除" aria-label="删除">✕</button>';
+        row.appendChild(act);
+      }
+      /* 绑定只做一次；处理时按「当前这一行排第几」现取 item，避免闭包拿到旧数组 */
+      if(!row.__mkActs){
+        row.__mkActs = true;
+        act.addEventListener('click', function(ev){
+          var b2 = ev.target && ev.target.closest ? ev.target.closest('.m-actbtn') : null;
+          if(!b2) return;
+          ev.stopPropagation();   /* 别触发整行的勾选/取消 */
+          var cur0 = (typeof getPlan === 'function') ? getPlan(date) : null;
+          var list0 = (cur0 && cur0.items) || [];
+          var k0 = Array.prototype.indexOf.call(taskCard.querySelectorAll('.m-task'), row);
+          var it0 = list0[k0];
+          if(!it0) return;
+          if(b2.hasAttribute('data-mkdel')){
+            if(typeof deleteItem === 'function') deleteItem(it0.id);
+          }else{
+            skeletonEdit(row, it0, date);
+          }
+        });
+      }
       /* 点整行 = 勾选/取消（与旧 .plan-item 的 checkbox 同语义） */
       if(!row.__p1r2Toggle){
         row.__p1r2Toggle = true;
         row.addEventListener('click', function(ev){
           if(ev.target && ev.target.closest && ev.target.closest('.m-jmp')) return;
+          if(ev.target && ev.target.closest && ev.target.closest('.m-act')) return;
+          if(ev.target && ev.target.tagName === 'INPUT') return;
           var cur = (typeof getPlan === 'function') ? getPlan(date) : null;
           var list = (cur && cur.items) || [];
           var k = Array.prototype.indexOf.call(taskCard.querySelectorAll('.m-task'), row);
@@ -732,8 +849,15 @@ function ensurePlan(date){
   return p;
 }
 
-function addItem(){
-  const raw = $('#planText').value.trim();
+/* PLAN-ENTRY-VISIBLE-1（10-30 A2）：可选的输入框来源。
+   可见骨架的添加行是 #mkAddText，旧卡那份是 #planText（整卡 hidden，用户看不到）。
+   两个入口共用同一套数据逻辑，只是读值的地方不同 —— 不传参时仍读 #planText，旧行为零变化。 */
+function planInputEl(src){ return (src && typeof src.value === 'string') ? src : $('#planText'); }
+
+function addItem(src){
+  const _src = planInputEl(src);
+  if(!_src) return;
+  const raw = _src.value.trim();
   if(!raw){ toast('先写点计划内容'); return; }
   const lines = raw.split('\n').map(s => s.trim()).filter(Boolean);
   if(!lines.length){ toast('先写点计划内容'); return; }
@@ -741,14 +865,16 @@ function addItem(){
   const _now = Date.now();
   lines.forEach(text => p.items.push({ id: uid(), text, done: false, updatedAt: _now }));
   hubSave();
-  $('#planText').value = '';
+  _src.value = '';
   render();
   toast('已添加 ' + lines.length + ' 个任务');
 }
 
 /* AI 安排今天：根据用户输入的一句话目标 + 考生画像，生成今日任务清单 */
-async function aiPlanItem(){
-  const raw = $('#planText').value.trim();
+async function aiPlanItem(src){
+  const _src = planInputEl(src);
+  if(!_src) return;
+  const raw = _src.value.trim();
   if(!raw){ toast('先写一句今天想完成的目标'); return; }
 
   const weak = computeWeak();
@@ -796,7 +922,12 @@ async function aiPlanItem(){
     + '\n\n请帮我安排今天的学习任务（JSON 数组），只输出任务名称，不要时间段和括号说明；考生明确说出的时长（如"背单词 40 分钟"）必须保留在任务名里，没说时长的任务不要编造时长。';
 
   const btn = $('#aiPlan');
-  btn.disabled = true; btn.textContent = '安排中…';
+  /* 可见骨架那枚「AI 安排今天」也要跟着转圈，否则用户点了没反馈 */
+  const mkBtn = document.getElementById('mkAiBtn');
+  if(btn) btn.disabled = true;
+  if(mkBtn) mkBtn.disabled = true;
+  if(btn) btn.textContent = '安排中…';
+  if(mkBtn) mkBtn.textContent = '安排中…';
   try{
     const content = await callRelay('daily', [
       { role:'system', content: sys },
@@ -817,13 +948,14 @@ async function aiPlanItem(){
     hubSave();
     // 软导航可能在 AI 等待期间离开计划页；数据已落盘，DOM 不存在则跳过渲染（f 类：跨页闭包隔离）。
     if(!document.getElementById('planText')) return;
-    $('#planText').value = '';
+    _src.value = '';
     render();
     toast('AI 已安排今天 ' + added + ' 个任务');
   }catch(e){
     toast('AI 安排失败：' + e.message);
   }finally{
-    btn.disabled = false; btn.textContent = 'AI 安排今天';
+    if(btn){ btn.disabled = false; btn.textContent = 'AI 安排今天'; }
+    if(mkBtn){ mkBtn.disabled = false; mkBtn.textContent = 'AI 安排今天'; }
   }
 }
 

@@ -49,7 +49,7 @@
   <script defer src="js/common-shell.js?v=20261029k"></script>
   <script defer src="js/common-pwa.js?v=20261029k"></script>
   <script defer src="js/feedback.js?v=20261027a"></script>
-  <script src="js/plans.js?v=20261029a" defer></script>
+  <script src="js/plans.js?v=20261030a" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -508,6 +508,45 @@
 .pt-daytoday{flex:none;border:0;background:none;color:var(--primary-700);font-size:13px;font-weight:600;
   cursor:pointer;padding:6px 8px;border-radius:8px}
 .pt-daytoday:hover{background:var(--primary-50)}
+/* ---- PLAN-ENTRY-VISIBLE-1（10-30 A2）：可见骨架上的真入口样式 ----
+   四个入口（翻日期 / 加一条 / 编辑 / 删除）都长在 .m-page 里，与旧卡的 .pt-daybar 无关。
+   色值全部取现有 token，不新增色板；手机档触控高度对齐 32~36px。 */
+.m-daynav{display:flex;align-items:center;gap:8px;margin-top:10px}
+.m-daybtn{flex:none;min-width:34px;height:32px;padding:0 11px;display:inline-flex;align-items:center;justify-content:center;
+  border:1px solid var(--n-300);border-radius:9px;background:var(--surface);color:var(--n-700);
+  font:inherit;font-size:15px;line-height:1;cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+.m-daybtn:hover{background:var(--primary-50);color:var(--primary-700);border-color:var(--primary-300)}
+.m-daybtn:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(58,154,147,.25)}
+.m-daybtn.m-daytoday{font-size:12.5px;font-weight:600;color:var(--primary-700)}
+/* 添加区：输入框 + 两枚按钮，一行能放就一行，放不下自动换行 */
+.m-addrow{display:block}
+.m-addbox{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.m-addinput{flex:1 1 160px;min-width:0;height:36px;padding:0 12px;border:1px solid var(--n-300);border-radius:9px;
+  background:var(--surface);color:var(--ink);font:inherit;font-size:13.5px}
+.m-addinput:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+.m-addbtn{flex:none;height:36px;padding:0 14px;border:1px solid var(--n-300);border-radius:9px;background:var(--surface);
+  color:var(--ink);font:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+.m-addbtn:hover{border-color:var(--primary-300);color:var(--primary-700)}
+.m-addbtn.m-pri{background:var(--primary-600);border-color:var(--primary-600);color:#fff}
+.m-addbtn.m-pri:hover{background:var(--primary-700);border-color:var(--primary-700);color:#fff}
+.m-addbtn:disabled{opacity:.55;cursor:default}
+/* 任务行的编辑 / 删除：只在 hover 或触屏常驻时露出来，不挤占正文 */
+.m-task .m-act{flex:none;display:flex;align-items:center;gap:4px;margin-left:auto}
+.m-task .m-actbtn{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;
+  border:none;background:none;border-radius:6px;color:var(--m-muted);font-size:13px;line-height:1;cursor:pointer;
+  transition:background .15s,color .15s}
+.m-task .m-actbtn:hover{background:var(--primary-50);color:var(--primary-700)}
+.m-task .m-actbtn[data-mkdel]:hover{background:var(--danger-soft);color:var(--danger-text)}
+.m-task .m-editinput{flex:1 1 0%;min-width:0;height:30px;padding:0 8px;border:1px solid var(--primary);
+  border-radius:7px;background:var(--surface);color:var(--ink);font:inherit;font-size:13.5px}
+@media (hover:none){
+  .m-task .m-actbtn{width:30px;height:30px}
+}
+@media (max-width:560px){
+  .m-daybtn{height:34px}
+  .m-addinput{flex:1 1 100%;height:38px}
+  .m-addbtn{flex:1 1 0;height:38px}
+}
 /* 备考诊断入口卡：它现在是「今天」页的最后一张卡，不再是独立分栏 */
 #diagRoot{margin-top:18px}
 #diagRoot > .card{margin-bottom:0}
@@ -569,7 +608,14 @@
         </div>
 
         <div class="m-mcard">
-          <h4>今天 <span class="m-r">10-24 · 周五 · <span style="color:var(--p600);font-weight:650">‹ 前后翻天 ›</span></span></h4>
+          <!-- PLAN-ENTRY-VISIBLE-1：原来这里写死「‹ 前后翻天 ›」当提示文字（看着像能点其实没动作）。
+               现在换成真的两枚翻页按钮 + 一个「今天」回位，走 js/plans.js 里 #planDate 的既有 change 流程。 -->
+          <h4 id="mkDateRow">今天 <span class="m-r">10-24 · 周五</span></h4>
+          <div class="m-daynav" id="mkDayNav">
+            <button type="button" class="m-daybtn" id="mkDayPrev" aria-label="前一天">‹</button>
+            <button type="button" class="m-daybtn m-daytoday" id="mkDayToday" hidden>回到今天</button>
+            <button type="button" class="m-daybtn" id="mkDayNext" aria-label="后一天">›</button>
+          </div>
           <div class="m-head-row">
             <div><div class="m-bigq">3<small>/7</small></div></div>
             <div class="m-sublab">已完成<br>还剩 4 条</div>
@@ -583,7 +629,17 @@
           <div class="m-task m-done"><span class="m-cb"></span><span class="m-t">听力 P1 精听一篇</span><span class="m-tagline">听力</span><span class="m-jmp">去练 →</span></div>
           <div class="m-task"><span class="m-cb"></span><span class="m-t">口语 P2 卡牌练 3 张</span><span class="m-tagline">口语</span><span class="m-jmp">去练 →</span></div>
           <div class="m-task"><span class="m-cb"></span><span class="m-t">写作 Task 1 图表一篇</span><span class="m-tagline">写作</span><span class="m-jmp">去练 →</span></div>
-          <div class="m-addrow"><span class="m-plus">+</span>写一条，或让 AI 安排今天</div>
+          <!-- PLAN-ENTRY-VISIBLE-1（10-30 A2，SSR 审计坐实）：这行原来是纯静态文字，点它什么都不发生。
+               现在改成真的添加入口：一个输入框 + 「加一条」+「AI 安排今天」两枚按钮。
+               🔴 数据逻辑一律复用 js/plans.js 里现成的 addItem() / aiPlanItem()，不另造一套；
+                  输入值走 #mkAddText，与旧卡 #planText 解耦（旧卡是 hidden 的，用户不该被引到那里去）。 -->
+          <div class="m-addrow" id="mkAddRow">
+            <div class="m-addbox">
+              <input type="text" id="mkAddText" class="m-addinput" placeholder="写一条今天的任务，回车即添加" autocomplete="off" />
+              <button type="button" class="m-addbtn m-pri" id="mkAddBtn">加一条</button>
+              <button type="button" class="m-addbtn" id="mkAiBtn">AI 安排今天</button>
+            </div>
+          </div>
         </div>
 
         <div class="m-dg">
