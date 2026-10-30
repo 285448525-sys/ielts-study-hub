@@ -23,19 +23,8 @@
 .plan-card a.plan-buy{text-decoration:none;text-align:center}
 #vipPlans{display:flex;gap:14px;flex-wrap:wrap;align-items:stretch}
 @media (max-width:640px){ #vipPlans{flex-direction:column} .plan-card{min-width:0} }
-
-/* ===== 收款码（10-25 深夜 VIP-PAY-QR；10-26 VIP-QR-2 去框）：微信 + 支付宝双码并排 =====
-   🔴 VIP-QR-2（她 16:0x「不要外面那个框，就只要留二维码」）：撤圆角 / 阴影 / 内边距三个「卡片感」来源。
-   🔴 白底必须留着（不是 transparent）：深色主题下 --surface 是深色卡片，二维码压在深底上手机扫不出来。 */
-.semi-qr{display:flex;gap:18px;margin:4px 0 12px;flex-wrap:wrap}
-.qr-item{margin:0;background:#fff;border-radius:0;padding:0;box-shadow:none;text-align:center}
 .qr-item img{display:block;border-radius:0;width:132px;height:auto}
 .qr-item figcaption{font-size:12px;font-weight:700;color:var(--ink-2);margin-top:8px}
-
-/* ===== 幽灵按钮（弱化次操作） ===== */
-.semi-ghost{background:none;border-color:transparent;color:var(--muted)}
-.semi-ghost:hover{color:var(--ink)}
-.semi-center{justify-content:center}
 
 .kv-page{
   --kv-teal-d:#2c7873;
@@ -74,7 +63,6 @@
 .kv-status{ border-left: 3px solid var(--kv-teal); padding: 2px 0px 2px 14px; }
 .kv-status p{ margin: 5px 0px 0px; color: var(--kv-muted); }
 .kv-status strong{ display: block; color: var(--kv-title); font-size: 20px; }
-.kv-plans{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .kv-plan{ position: relative; text-align: left; padding: 15px 12px; border: 1px solid var(--kv-line); border-radius: 12px; background: var(--surface); color: var(--kv-ink); display: flex; flex-direction: column; gap: 5px; transition: border-color 0.15s, background 0.15s; }
 .kv-plan[aria-pressed="true"]{ border: 2px solid var(--kv-teal); padding: 14px 11px; background: var(--kv-teal-s); }
 .kv-plan .kv-nm{ font-weight: 650; color: var(--kv-title); }
@@ -83,15 +71,7 @@
 .kv-tag{ font-size: 10px; color: var(--kv-teal-d); border: 1px solid var(--kv-line); padding: 0px 4px; border-radius: 4px; font-weight: 500; margin-left: 3px; }
 .kv-plan s{ font-size: 12px; color: var(--kv-muted); font-weight: 400; margin-left: 5px; }
 .kv-fine{ font-size: 12px; color: var(--kv-muted); margin: 12px 0px 0px; }
-.kv-slip{ margin-top: 20px; padding: 16px; background: var(--kv-soft); border: 1px solid var(--kv-line); border-radius: 12px; display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; }
-.kv-slip .kv-lb{ grid-column: 1 / -1; font-weight: 700; font-size: 13px; color: var(--kv-teal-d); }
-.kv-slip .kv-txt{ font-size: 15px; line-height: 1.7; }
 .kv-slip .kv-txt b{ color: var(--kv-title); overflow-wrap: anywhere; }
-.kv-btn{ border-radius: 10px; border: 1px solid var(--kv-line); padding: 10px 18px; background: var(--surface); color: var(--kv-ink); font-weight: 650; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
-.kv-btn-primary{ background: var(--kv-teal-d); border-color: var(--kv-teal-d); color: rgb(255, 255, 255); }
-.kv-acts{ display: flex; gap: 10px; margin-top: 16px; }
-.kv-acts .kv-btn-primary{ flex: 1 1 0%; }
-.kv-note{ font-size: 12px; color: var(--kv-muted); margin: 12px 0px 0px; }
 .kv-section-label{ font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--kv-teal-d); margin-bottom: 5px; }
 .kv-why-fold summary{ cursor: pointer; display: flex; flex-direction: column; gap: 7px; list-style: none; }
 .kv-why-lead{ font-size: 13px; color: var(--kv-muted); }
@@ -108,12 +88,7 @@
 .kv-compare th:last-child{ border-radius: 0px 8px 8px 0px; }
 .kv-compare td:last-child{ font-weight: 650; color: var(--kv-teal-d); background: var(--kv-teal-s); }
 .kv-compare tr:last-child td{ border-bottom: 0px; }
-.kv-done{ text-align: center; padding: 10px 0px; }
-.kv-done-ic{ display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--kv-teal-s); color: var(--kv-teal-d); font-size: 24px; margin: 0px auto 12px; }
 .kv-done p{ color: var(--kv-muted); }
-.kv-order{ display: inline-block; padding: 7px 12px; background: var(--kv-soft); border-radius: 8px; color: var(--kv-teal-d); font-size: 13px; overflow-wrap: anywhere; }
-.kv-done .kv-acts{ justify-content: center; }
-.kv-done .kv-acts .kv-btn{ min-width: 120px; }
 details.kv-faq{ border-bottom: 1px solid var(--kv-line); }
 details.kv-faq:last-of-type{ border-bottom: 0px; }
 details.kv-faq summary{ cursor: pointer; padding: 13px 0px; font-weight: 650; display: flex; justify-content: space-between; gap: 12px; list-style: none; }
@@ -124,26 +99,15 @@ details.kv-faq p{ color: var(--kv-muted); font-size: 13px; margin: 0px 0px 16px;
 .kv-legal{ text-align: center; margin: 0px 0px 22px; font-size: 12px; }
 .kv-legal a{ display: inline-flex; align-items: center; padding: 0px 8px; }
 @media (min-width: 761px){
-.kv-purchase{ grid-row: span 2; }
-.kv-purchase .kv-plans{ grid-template-columns: 1fr; }
 .kv-purchase .kv-plan{ display: grid; grid-template-columns: 1fr auto; align-items: center; }
 .kv-purchase .kv-plan .kv-pd{ grid-column: 1 / -1; }
 .kv-purchase .kv-plan .kv-pr{ grid-area: 1 / 2; }
 .kv-purchase .kv-plan .kv-nm{ grid-area: 1 / 1; }
-.kv-purchase .kv-slip{ grid-template-columns: 1fr; }
-.kv-purchase .kv-acts{ flex-direction: column; }
-.kv-purchase .kv-acts .kv-btn{ width: 100%; }
 }
 @media (max-width: 760px){
-.kv-wrap{ padding: 0px 16px; }
-.kv-bar{ padding-left: 16px; padding-right: 16px; font-size: 11px; }
-.kv-page-head{ padding: 8px 0px; align-items: center; }
 .kv-page h1{ font-size: 24px; }
-.kv-sub{ font-size: 13px; }
 .kv-layout{ grid-template-columns: minmax(0px, 1fr); gap: 0px; }
 .kv-card{ padding: 20px 16px; }
-.kv-theme{ font-size: 12px; padding: 0px 10px; }
-.kv-slip{ grid-template-columns: minmax(0px, 1fr); }
 .kv-compare thead{ display: none; }
 .kv-compare, .kv-compare tbody, .kv-compare tr, .kv-compare td{ display: block; width: 100%; }
 .kv-compare tr{ display: grid; grid-template-columns: 1fr 1fr; padding: 10px 0px; border-bottom: 1px solid var(--kv-line); }
@@ -153,8 +117,6 @@ details.kv-faq p{ color: var(--kv-muted); font-size: 13px; margin: 0px 0px 16px;
 .kv-compare td:nth-child(2)::before{ content: "免费版："; color: var(--kv-muted); font-weight: 400; }
 .kv-compare td:nth-child(3)::before{ content: "会员："; color: var(--kv-muted); font-weight: 400; }
 .kv-contact{ display: block; }
-.kv-contact .kv-btn{ margin-top: 16px; }
-.kv-plans{ gap: 8px; }
 .kv-plan{ padding: 12px 9px; }
 .kv-plan[aria-pressed="true"]{ padding: 11px 8px; }
 .kv-plan .kv-pr{ font-size: 21px; }
@@ -162,13 +124,9 @@ details.kv-faq p{ color: var(--kv-muted); font-size: 13px; margin: 0px 0px 16px;
 .kv-plan .kv-tag{ display: block; width: max-content; margin: 3px 0px 0px; }
 .kv-plan s{ display: block; margin: 0px; }
 .kv-card-head{ align-items: flex-start; }
-.kv-design-note{ padding-bottom: 20px; }
 }
 @media (max-width: 370px){
 .kv-bar span:last-child{ display: none; }
-.kv-page-head{ gap: 10px; }
-.kv-theme{ padding: 0px 8px; }
-.kv-plans{ grid-template-columns: 1fr; }
 .kv-plan .kv-tag{ display: inline-block; margin: 0px 0px 0px 3px; }
 .kv-plan s{ display: inline; margin-left: 5px; }
 }
@@ -181,10 +139,6 @@ details.kv-faq p{ color: var(--kv-muted); font-size: 13px; margin: 0px 0px 16px;
    下面按设计稿实测值钉一遍，本文件追加在 common.css 之后 → 同比分靠顺序赢。 */
 .kv-page .kv-plan{font-size:14px}
 .kv-page .kv-plan button, .kv-page .kv-plan>button{font-size:14px}
-.kv-page .kv-btn{font-size:14px}
-.kv-page .kv-btn button, .kv-page .kv-btn>button{font-size:14px}
-.kv-page .kv-btn-primary{font-size:14px}
-.kv-page .kv-btn-primary button, .kv-page .kv-btn-primary>button{font-size:14px}
 
 
 /* ===== 加固副本：选择器统一加 .kv-page（具体度 +1 级） =====
@@ -206,7 +160,6 @@ details.kv-faq p{ color: var(--kv-muted); font-size: 13px; margin: 0px 0px 16px;
 .kv-page .kv-status{ border-left: 3px solid var(--kv-teal); padding: 2px 0px 2px 14px; }
 .kv-page .kv-status p{ margin: 5px 0px 0px; color: var(--kv-muted); }
 .kv-page .kv-status strong{ display: block; color: var(--kv-title); font-size: 20px; }
-.kv-page .kv-plans{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .kv-page .kv-plan{ position: relative; text-align: left; padding: 15px 12px; border: 1px solid var(--kv-line); border-radius: 12px; background: var(--surface); color: var(--kv-ink); display: flex; flex-direction: column; gap: 5px; transition: border-color 0.15s, background 0.15s; }
 .kv-page .kv-plan[aria-pressed="true"]{ border: 2px solid var(--kv-teal); padding: 14px 11px; background: var(--kv-teal-s); }
 .kv-page .kv-plan .kv-nm{ font-weight: 650; color: var(--kv-title); }
@@ -215,15 +168,7 @@ details.kv-faq p{ color: var(--kv-muted); font-size: 13px; margin: 0px 0px 16px;
 .kv-page .kv-tag{ font-size: 10px; color: var(--kv-teal-d); border: 1px solid var(--kv-line); padding: 0px 4px; border-radius: 4px; font-weight: 500; margin-left: 3px; }
 .kv-page .kv-plan s{ font-size: 12px; color: var(--kv-muted); font-weight: 400; margin-left: 5px; }
 .kv-page .kv-fine{ font-size: 12px; color: var(--kv-muted); margin: 12px 0px 0px; }
-.kv-page .kv-slip{ margin-top: 20px; padding: 16px; background: var(--kv-soft); border: 1px solid var(--kv-line); border-radius: 12px; display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; }
-.kv-page .kv-slip .kv-lb{ grid-column: 1 / -1; font-weight: 700; font-size: 13px; color: var(--kv-teal-d); }
-.kv-page .kv-slip .kv-txt{ font-size: 15px; line-height: 1.7; }
 .kv-page .kv-slip .kv-txt b{ color: var(--kv-title); overflow-wrap: anywhere; }
-.kv-page .kv-btn{ border-radius: 10px; border: 1px solid var(--kv-line); padding: 10px 18px; background: var(--surface); color: var(--kv-ink); font-weight: 650; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
-.kv-page .kv-btn-primary{ background: var(--kv-teal-d); border-color: var(--kv-teal-d); color: rgb(255, 255, 255); }
-.kv-page .kv-acts{ display: flex; gap: 10px; margin-top: 16px; }
-.kv-page .kv-acts .kv-btn-primary{ flex: 1 1 0%; }
-.kv-page .kv-note{ font-size: 12px; color: var(--kv-muted); margin: 12px 0px 0px; }
 .kv-page .kv-section-label{ font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--kv-teal-d); margin-bottom: 5px; }
 .kv-page .kv-why-fold summary{ cursor: pointer; display: flex; flex-direction: column; gap: 7px; list-style: none; }
 .kv-page .kv-why-lead{ font-size: 13px; color: var(--kv-muted); }
@@ -240,12 +185,7 @@ details.kv-faq p{ color: var(--kv-muted); font-size: 13px; margin: 0px 0px 16px;
 .kv-page .kv-compare th:last-child{ border-radius: 0px 8px 8px 0px; }
 .kv-page .kv-compare td:last-child{ font-weight: 650; color: var(--kv-teal-d); background: var(--kv-teal-s); }
 .kv-page .kv-compare tr:last-child td{ border-bottom: 0px; }
-.kv-page .kv-done{ text-align: center; padding: 10px 0px; }
-.kv-page .kv-done-ic{ display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--kv-teal-s); color: var(--kv-teal-d); font-size: 24px; margin: 0px auto 12px; }
 .kv-page .kv-done p{ color: var(--kv-muted); }
-.kv-page .kv-order{ display: inline-block; padding: 7px 12px; background: var(--kv-soft); border-radius: 8px; color: var(--kv-teal-d); font-size: 13px; overflow-wrap: anywhere; }
-.kv-page .kv-done .kv-acts{ justify-content: center; }
-.kv-page .kv-done .kv-acts .kv-btn{ min-width: 120px; }
 .kv-page details.kv-faq{ border-bottom: 1px solid var(--kv-line); }
 .kv-page details.kv-faq:last-of-type{ border-bottom: 0px; }
 .kv-page details.kv-faq summary{ cursor: pointer; padding: 13px 0px; font-weight: 650; display: flex; justify-content: space-between; gap: 12px; list-style: none; }
@@ -256,24 +196,14 @@ details.kv-faq p{ color: var(--kv-muted); font-size: 13px; margin: 0px 0px 16px;
 .kv-page .kv-legal{ text-align: center; margin: 0px 0px 22px; font-size: 12px; }
 .kv-page .kv-legal a{ display: inline-flex; align-items: center; padding: 0px 8px; }
 @media (min-width: 761px){
-.kv-page .kv-purchase{ grid-row: span 2; }
-.kv-page .kv-purchase .kv-plans{ grid-template-columns: 1fr; }
 .kv-page .kv-purchase .kv-plan{ display: grid; grid-template-columns: 1fr auto; align-items: center; }
 .kv-page .kv-purchase .kv-plan .kv-pd{ grid-column: 1 / -1; }
 .kv-page .kv-purchase .kv-plan .kv-pr{ grid-area: 1 / 2; }
 .kv-page .kv-purchase .kv-plan .kv-nm{ grid-area: 1 / 1; }
-.kv-page .kv-purchase .kv-slip{ grid-template-columns: 1fr; }
-.kv-page .kv-purchase .kv-acts{ flex-direction: column; }
-.kv-page .kv-purchase .kv-acts .kv-btn{ width: 100%; }
 }
 @media (max-width: 760px){
-.kv-page .kv-wrap{ padding: 0px 16px; }
-.kv-page .kv-bar{ padding-left: 16px; padding-right: 16px; font-size: 11px; }
-.kv-page .kv-sub{ font-size: 13px; }
 .kv-page .kv-layout{ grid-template-columns: minmax(0px, 1fr); gap: 0px; }
 .kv-page .kv-card{ padding: 20px 16px; }
-.kv-page .kv-theme{ font-size: 12px; padding: 0px 10px; }
-.kv-page .kv-slip{ grid-template-columns: minmax(0px, 1fr); }
 .kv-page .kv-compare thead{ display: none; }
 .kv-page .kv-compare, .kv-page .kv-compare tbody, .kv-page .kv-compare tr, .kv-page .kv-compare td{ display: block; width: 100%; }
 .kv-page .kv-compare tr{ display: grid; grid-template-columns: 1fr 1fr; padding: 10px 0px; border-bottom: 1px solid var(--kv-line); }
@@ -283,8 +213,6 @@ details.kv-faq p{ color: var(--kv-muted); font-size: 13px; margin: 0px 0px 16px;
 .kv-page .kv-compare td:nth-child(2)::before{ content: "免费版："; color: var(--kv-muted); font-weight: 400; }
 .kv-page .kv-compare td:nth-child(3)::before{ content: "会员："; color: var(--kv-muted); font-weight: 400; }
 .kv-page .kv-contact{ display: block; }
-.kv-page .kv-contact .kv-btn{ margin-top: 16px; }
-.kv-page .kv-plans{ gap: 8px; }
 .kv-page .kv-plan{ padding: 12px 9px; }
 .kv-page .kv-plan[aria-pressed="true"]{ padding: 11px 8px; }
 .kv-page .kv-plan .kv-pr{ font-size: 21px; }
@@ -292,12 +220,9 @@ details.kv-faq p{ color: var(--kv-muted); font-size: 13px; margin: 0px 0px 16px;
 .kv-page .kv-plan .kv-tag{ display: block; width: max-content; margin: 3px 0px 0px; }
 .kv-page .kv-plan s{ display: block; margin: 0px; }
 .kv-page .kv-card-head{ align-items: flex-start; }
-.kv-page .kv-design-note{ padding-bottom: 20px; }
 }
 @media (max-width: 370px){
 .kv-page .kv-bar span:last-child{ display: none; }
-.kv-page .kv-theme{ padding: 0px 8px; }
-.kv-page .kv-plans{ grid-template-columns: 1fr; }
 .kv-page .kv-plan .kv-tag{ display: inline-block; margin: 0px 0px 0px 3px; }
 .kv-page .kv-plan s{ display: inline; margin-left: 5px; }
 }
@@ -334,15 +259,6 @@ details.kv-faq p{ color: var(--kv-muted); font-size: 13px; margin: 0px 0px 16px;
   --kv-ink:#e6ecea;
   --kv-soft:#202a28;
 }
-/* 🔴 深色主按钮：稿子写 color:#fff 配 --kv-teal-d（深色档是 #7ccac2 亮青）= 2.0:1 看不见。
-   按全站深色小字按钮口径（HANDOFF §三.2）改亮青底 #8fe0d6 + 深字 #0f3330 = 8.98:1。
-   浅色档保持稿子原配色不动（那是她点头的 1:1）。 */
-[data-theme="dark"] .kv-page .kv-btn-primary{background:#8fe0d6;border-color:#8fe0d6;color:#0f3330}
-
-/* ---- 本页既有组件兼容（追加在 kv- 块之后，靠顺序赢） ---- */
-/* ① 幽灵按钮：kv-btn 给了实底边框，这里把次操作按钮还原成无边框弱化态 */
-.kv-page .semi-ghost{background:none;border-color:transparent;color:var(--muted)}
-.kv-page .semi-ghost:hover{color:var(--ink)}
 /* ② 选中档：js/vip.js 用 .on 类（不是 aria-pressed），按稿子选中态补一条 */
 .kv-page .kv-plan.on{border:2px solid var(--kv-teal);padding:14px 11px;background:var(--kv-teal-s)}
 /* ③ 章标签：稿子是描边小标签，旧 .semi-plan .nm .tag 是实底青（具体度 0,3,0）——
@@ -350,8 +266,6 @@ details.kv-faq p{ color: var(--kv-muted); font-size: 13px; margin: 0px 0px 16px;
 .kv-page .kv-plan .kv-nm .kv-tag{background:transparent;color:var(--kv-teal-d);border:1px solid var(--kv-line);font-weight:500}
 /* ④ 名称行字号对齐稿子 14px（旧 .semi-plan .nm 是 13.5px） */
 .kv-page .kv-plan .kv-nm{font-size:14px}
-/* ⑤ 收款码：稿子没有码，本站有（VIP-PAY-QR 已上线，不能回退）→ 码单独占一行 */
-.kv-page .kv-slip .semi-qr{grid-column:1/-1;margin:2px 0 12px}
 /* ⑥ 对比矩阵：表格由 js/pricing.js 渲染（.mx-scroll > table），稿子类名 kv-compare
       由 js/vip.js 挂上；图例 .mx-foot 按稿子 .kv-fine 的口径收成一行小字 */
 .kv-page .mx-foot{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--kv-muted)}
@@ -361,11 +275,3 @@ details.kv-faq p{ color: var(--kv-muted); font-size: 13px; margin: 0px 0px 16px;
 .kv-page #vipPlans{gap:12px}
 .kv-page .plan-card{padding:16px 14px}
 .kv-page .plan-price-num{font-size:24px}
-
-/* ⑧ 按钮：稿子的 .kv-btn 不设 gap，而本站的 .btn 会带 gap:7px（主按钮同时挂了两套类）
-      → 把主按钮的 gap 钉回 normal（按钮里只有文字，gap 本来无视觉影响，纯为 1:1 基线）。
-      顺带补 hover/focus 态：稿子没导出 hover，按站点 .btn 的惯例补，颜色全走 kv token。 */
-.kv-page .kv-btn-primary{gap:normal}
-.kv-page .kv-btn:hover{border-color:var(--kv-teal);color:var(--kv-teal-d)}
-.kv-page .kv-btn-primary:hover{background:var(--kv-teal);border-color:var(--kv-teal);color:#fff}
-.kv-page .kv-btn:active:not(:disabled){transform:translateY(1px)}
