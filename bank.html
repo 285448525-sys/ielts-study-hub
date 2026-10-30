@@ -1175,6 +1175,26 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
   height:32px;min-height:0;padding:0 16px;font-size:13px;font-weight:600;border-radius:7px;
   display:inline-flex;align-items:center;justify-content:center;line-height:1}
 .wt-bar .ex-actions .btn-primary{padding:0 18px}
+/* MOCK-WRT-BAR-1（10-28 她报，10-30 施工）：写作考场手机档底栏三枚按钮（Pause/Exit/Finish）
+   掉出视口下沿、而且贴着左下角，不是右下角。
+   根因①高度：上面 1155 行 `.wt-bar{height:44px;max-height:44px}` 没有 media 外壳，而手机档
+     `.ex-bar-main` 是竖排两行（导航 32 + 动作 32 + gap 约 76px）→ main 76 撑在 44 的底栏里，
+     动作那排整排溢出底栏下沿（实测 360/390/412 三档按钮 bottom 都在视口外，桌面 1280/1440 正常）。
+   根因②宽度：main 是 flex 0 1 auto，宽度由内容撑成 325px 而底栏有 390px，
+     `.ex-actions{justify-content:flex-end}` 没有余量可用 → 按钮看着贴左边。
+   修法：手机档把 .wt-bar 的高度钳制放开、让 main 撑满底栏宽度。桌面段（44px 单行）一点不动。
+   ⚠️ 这段必须写在这里（1155 那条 .wt-bar 之后）—— 特异性同为 (0,1,0)，靠先后顺序才压得住；
+      先写在 972 附近时被 1155 反压，实测按钮位置一动不动。
+   注：三枚按钮合计 293px，360 宽手机物理上放不下「全都在屏幕右半」，
+      判据是「底边回到视口内 + 右键贴底栏右内边距」，不是「都在屏幕右半」。 */
+/* 桌面同理：main 是 flex 0 1 auto，只撑到内容宽（实测 1280 宽下 main 仅 489），
+   .ex-actions 的 flex-end 没有余量可用 → 三枚按钮停在底栏左侧 189px 处。
+   她这次点名的「Pause/Exit 移右下」就是指这个。让 main 撑满底栏宽度即可，
+   阅读/听力的 .ex-bar-main 本来就是撑满的（padding 0 12px 内），产物一致。 */
+.wt-bar > .ex-bar-main{width:100%}
+@media(max-width:860px){
+  .wt-bar{height:auto;max-height:none}
+}
 .exam-a{padding:16px 20px 0}
 .exam-q .exam-q-body-wrap{padding:20px 22px 26px}
 .exam-textarea{padding:14px 16px}
