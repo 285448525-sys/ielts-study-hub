@@ -360,9 +360,6 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
 .wd-go-row{ display: flex; align-items: center; gap: 16px; margin-top: 20px; flex-wrap: wrap; }
 .wd-go-row .wd-hint{ font-size: 13px; color: var(--wd-muted); }
 .wd-skip-hint{ font-size: 12px; color: var(--wd-muted); margin-top: 12px; }
-.wd-q-head{ display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
-.wd-q-head .wd-where{ font-size: 13px; color: var(--ink-2); }
-.wd-q-head .wd-where b{ color: var(--wd-ink); }
 .wd-modes{ margin-left: auto; display: flex; align-items: center; gap: 8px; }
 .wd-modes .wd-cur{ font-size: 12.5px; color: var(--ink-2); background: var(--n-100); border-radius: 20px; padding: 5px 13px; cursor: pointer; }
 .wd-modes .wd-cur b{ color: var(--primary-700); }
@@ -388,8 +385,6 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
 .wd-page .wd-btn-lg{font-size:16px}
 .wd-page .wd-btn-lg button, .wd-page .wd-btn-lg>button{font-size:16px}
 /* FE-DEAD-CSS-1：.wd-opt 两条 typography 钉死（零引用）已删 */
-.wd-page .wd-spk{font-size:13.3333px}
-.wd-page .wd-spk button, .wd-page .wd-spk>button{font-size:13.3333px}
 .wd-page .wd-btn-link{font-size:13.5px}
 .wd-page .wd-btn-link button, .wd-page .wd-btn-link>button{font-size:13.5px}
 
@@ -426,9 +421,6 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
 .wd-page .wd-go-row{ display: flex; align-items: center; gap: 16px; margin-top: 20px; flex-wrap: wrap; }
 .wd-page .wd-go-row .wd-hint{ font-size: 13px; color: var(--wd-muted); }
 .wd-page .wd-skip-hint{ font-size: 12px; color: var(--wd-muted); margin-top: 12px; }
-.wd-page .wd-q-head{ display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
-.wd-page .wd-q-head .wd-where{ font-size: 13px; color: var(--ink-2); }
-.wd-page .wd-q-head .wd-where b{ color: var(--wd-ink); }
 .wd-page .wd-modes{ margin-left: auto; display: flex; align-items: center; gap: 8px; }
 .wd-page .wd-modes .wd-cur{ font-size: 12.5px; color: var(--ink-2); background: var(--n-100); border-radius: 20px; padding: 5px 13px; cursor: pointer; }
 .wd-page .wd-modes .wd-cur b{ color: var(--primary-700); }
@@ -437,8 +429,6 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
 .wd-page .wd-q-foot .wd-bar{ flex: 1 1 0%; margin: 0px; }
 .wd-page .wd-q-foot b{ color: var(--wd-ink); font-variant-numeric: tabular-nums; }
 .wd-page .wd-skip-hint2{ font-size: 12px; color: var(--wd-muted); margin-top: 12px; }
-.wd-page .wd-pane{ display: none; }
-.wd-page .wd-pane.wd-on{ display: block; }
 
 /* ===== 站点全局标签规则（common.css:470 input / :490 label）的冲突钉死 =====
    这两条标签选择器直接写在元素上，会盖掉未显式声明的 font-size / line-height。
@@ -464,8 +454,6 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
 #wb2BackMall{ margin-bottom:10px }
 #wdBackStudy{ margin-bottom:12px }
 /* 答题态新头部（设计稿 .wd-q-head）与答题卡之间的呼吸 */
-#practiceArea .wd-q-head{ margin:0 0 12px; }
-.wd-q-head[hidden]{ display:none !important; }
 .wd-modes .wd-cur{ border:0; font-family:inherit; }
 /* ═══ W-WORD-1 · 1:1 补差（验收基线跑出来的 5 条，只在本页 .wd-page 内生效）═══
    ① 站点圆角 token 比设计稿大 2px（--radius 16 vs 14、--radius-sm 12 vs 10）
@@ -529,7 +517,6 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
 .wm-page, .wm-page *{ box-sizing: border-box; }
 .wm-note{ background: var(--n-100); border-radius: var(--radius-sm); padding: 11px 14px; font-size: 12px; color: var(--ink-2); line-height: 1.75; margin-top: 14px; }
 @media (max-width: 560px){
-.wm-opts{ grid-template-columns: 1fr; }
 }
 .wm-filters{ display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
 .wm-frow{ display: flex; gap: 5px; flex-wrap: wrap; }
@@ -556,7 +543,6 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
 .wm-kind{ font-size: 10.5px; font-weight: 700; border-radius: 5px; padding: 1px 6px; background: var(--n-100); color: var(--ink-2); }
 .wm-kind.wm-k-l{ background: rgb(232, 243, 241); color: rgb(30, 107, 98); }
 .wm-kind.wm-k-r{ background: rgb(238, 240, 251); color: rgb(74, 84, 144); }
-.wm-pane{ display: none; }
 
 /* ===== 站点全局标签规则（common.css:470 input / :490 label）的冲突钉死 =====
    这两条标签选择器直接写在元素上，会盖掉未显式声明的 font-size / line-height。
@@ -582,7 +568,6 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
    🔴 别删：删了输入框立刻变双层框。 */
 .wm-page .wm-note{ background: var(--n-100); border-radius: var(--radius-sm); padding: 11px 14px; font-size: 12px; color: var(--ink-2); line-height: 1.75; margin-top: 14px; }
 @media (max-width: 560px){
-.wm-page .wm-opts{ grid-template-columns: 1fr; }
 }
 .wm-page .wm-filters{ display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
 .wm-page .wm-frow{ display: flex; gap: 5px; flex-wrap: wrap; }
@@ -609,7 +594,6 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
 .wm-page .wm-kind{ font-size: 10.5px; font-weight: 700; border-radius: 5px; padding: 1px 6px; background: var(--n-100); color: var(--ink-2); }
 .wm-page .wm-kind.wm-k-l{ background: rgb(232, 243, 241); color: rgb(30, 107, 98); }
 .wm-page .wm-kind.wm-k-r{ background: rgb(238, 240, 251); color: rgb(74, 84, 144); }
-.wm-page .wm-pane{ display: none; }
 
 /* ===== 站点全局标签规则（common.css:470 input / :490 label）的冲突钉死 =====
    这两条标签选择器直接写在元素上，会盖掉未显式声明的 font-size / line-height。
@@ -710,16 +694,11 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
 .wb2-page, .wb2-page *{ box-sizing: border-box; }
 .wb2-card{ background: var(--surface); border: 1px solid var(--wb2-line); border-radius: var(--radius); padding: 20px 22px; }
 @media (max-width: 560px){
-.wb2-opts{ grid-template-columns: 1fr; }
 }
-.wb2-back{ display: inline-flex; align-items: center; gap: 5px; border: 0px; background: none; font-family: inherit; font-size: 13px; color: var(--primary-700); font-weight: 650; cursor: pointer; padding: 6px 0px; margin-bottom: 10px; }
-.wb2-pane{ display: none; }
 
 /* ===== 站点全局标签规则（common.css:470 input / :490 label）的冲突钉死 =====
    这两条标签选择器直接写在元素上，会盖掉未显式声明的 font-size / line-height。
    下面按设计稿实测值钉一遍，本文件追加在 common.css 之后 → 同比分靠顺序赢。 */
-.wb2-page .wb2-back{font-size:13px}
-.wb2-page .wb2-back button, .wb2-page .wb2-back>button{font-size:13px}
 
 
 /* ===== 加固副本：选择器统一加 .wb2-page（具体度 +1 级） =====
@@ -731,7 +710,6 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
    🔴 别删：删了输入框立刻变双层框。 */
 .wb2-page .wb2-card{ background: var(--surface); border: 1px solid var(--wb2-line); border-radius: var(--radius); padding: 20px 22px; }
 @media (max-width: 560px){
-.wb2-page .wb2-opts{ grid-template-columns: 1fr; }
 }
 /* BACK-BTN-PAGES-1（10-31）：上面 ① 段是**设计稿 1:1 导出原文**，那段里的 .wb2-back 三条
    一律不动（改导出块就破了 1:1 这个约定）。本文件已无元素引用 .wb2-back（#wb2BackMall 已接线
@@ -739,7 +717,6 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
    以后谁再把 .wb2-back 加回元素上，就被这里的 `border:0;background:none;padding:6px 0`
    静默压掉 .site-back 的外形，正是本批要消灭的形态。
    下次刷新 ① 段导出件时，把导出件里那三条 .wb2-back 一并删掉。 */
-.wb2-page .wb2-pane{ display: none; }
 
 /* ===== 站点全局标签规则（common.css:470 input / :490 label）的冲突钉死 =====
    这两条标签选择器直接写在元素上，会盖掉未显式声明的 font-size / line-height。
@@ -872,7 +849,6 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
 .ws-book-switcher{ display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 12px; background: var(--surface); border: 1px solid var(--ws-line); cursor: pointer; user-select: none; transition: border-color .15s, box-shadow .15s; max-width: 360px; min-width: 200px; }
 .ws-book-switcher .ws-bs-name{ font-size: 15px; font-weight: 750; color: var(--ws-title); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ws-book-switcher .ws-bs-meta{ font-size: 12px; color: var(--ws-muted); white-space: nowrap; }
-.ws-book-switcher .ws-bs-caret{ margin-left: auto; color: var(--ws-muted); font-size: 10px; transition: transform .15s; }
 .ws-wh-progress{ font-size: 12.5px; color: var(--ws-muted); margin-left: auto; white-space: nowrap; }
 .ws-wh-progress b{ color: var(--ws-title); font-weight: 700; }
 .ws-wh-tools{ display: flex; gap: 6px; align-items: center; }
@@ -1133,24 +1109,6 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
   background: var(--primary-soft);
 }
 
-/* ③ 页底进度条：无文字、与选项区同宽、5px 细条（终稿 .progress-track） */
-#practiceBody.practice-body-fit .wd-progress{
-  width: 100%;
-  flex: 0 0 auto;
-  height: 5px;
-  background: var(--line);
-  border-radius: 4px;
-  overflow: hidden;
-  margin-top: 22px;
-}
-#practiceBody.practice-body-fit .wd-progress i{
-  display: block;
-  height: 100%;
-  width: 0;
-  background: var(--primary);
-  border-radius: 4px;
-  transition: width .3s;
-}
 
 /* ⑪ 极简：终稿页底只有一条进度条，没有「0 / 60」「今日上限还剩 不限」这行字 ——
    她口述第③条原话「就不要加任何的文字，直接下面一个进度条显示就行了」。
@@ -1256,7 +1214,6 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
   #practiceBody.practice-body-fit .opt-big{ height: auto; min-height: 70px; padding: 13px 17px; }
   #practiceBody.practice-body-fit .answer-btns{ margin-top: 12px; }
   #practiceBody.practice-body-fit .answer-btns .abtn-unknown{ padding: 10px 14px; }
-  #practiceBody.practice-body-fit .wd-progress{ margin-top: 18px; }
   /* 手机档：左上「回站链接 + 上一个单词」占第一行，词书切换器独占第二行全宽；
      右上工具组单独一行右对齐。她第⑧条要求左上角写站名 —— 手机也别把文字藏掉。 */
   .ws-word-header{ gap: 8px; row-gap: 8px; }

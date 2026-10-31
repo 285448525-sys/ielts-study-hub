@@ -103,9 +103,6 @@
    那层外壳的内边距，外壳拆掉之后它还在，结果里面每张卡左右各缩进 16px（1132 → 1100），
    跟 review/home 那种通栏卡片对不上。改成 0，卡片与容器同宽。 */
 .m-mk-body { padding: 0; }
-.m-pg-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 13px; flex-wrap: wrap; }
-.m-pg-head h3 { margin: 0px; font-size: 17px; font-weight: 650; }
-.m-pg-head .m-hint { font-size: 12.5px; color: var(--m-muted); }
 .m-mcard { background: var(--surface); border: 1px solid var(--m-line); border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; }
 .m-mcard:last-child { margin-bottom: 0px; }
 .m-mcard h4 { margin: 0px 0px 11px; font-size: 13px; font-weight: 650; color: var(--ink-2); letter-spacing: 0.2px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
@@ -113,7 +110,6 @@
 .m-phase { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; padding: 9px 13px; border: 1px solid var(--primary-200); background: var(--primary-50); border-radius: 10px; margin-bottom: 12px; font-size: 12.5px; color: var(--primary-text); }
 .m-phase b { font-weight: 700; }
 .m-phase .m-chip { background: rgb(255, 255, 255); border: 1px solid var(--primary-200); border-radius: 999px; padding: 2px 9px; font-weight: 650; }
-.m-head-row { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; }
 .m-bigq { font-size: 40px; font-weight: 700; letter-spacing: -2px; line-height: 1; color: var(--m-ink); }
 .m-bigq small { font-size: 17px; font-weight: 600; color: var(--m-muted); margin-left: 1px; }
 .m-sublab { font-size: 12.5px; color: var(--m-muted); line-height: 1.4; }
@@ -127,7 +123,6 @@
 .m-task .m-tagline { font-size: 11.5px; color: var(--m-muted); border: 1px solid var(--m-line); border-radius: 5px; padding: 1px 6px; flex: 0 0 auto; }
 .m-task .m-jmp { font-size: 11.5px; color: var(--primary-700); flex: 0 0 auto; }
 .m-addrow { border: 1px dashed var(--m-line); border-radius: 10px; padding: 10px 14px; background: rgb(252, 252, 252); display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--m-muted); margin-top: 11px; }
-.m-addrow .m-plus { width: 19px; height: 19px; border-radius: 6px; background: var(--primary-50); color: var(--primary-700); display: inline-grid; place-items: center; font-size: 13px; font-weight: 700; flex: 0 0 auto; }
 .m-days { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 10px; }
 .m-day { border: 1px solid var(--m-line); border-radius: 10px; padding: 11px 13px; background: rgb(252, 252, 252); }
 .m-day .m-dh { display: flex; align-items: baseline; gap: 7px; margin-bottom: 7px; }
@@ -137,17 +132,7 @@
 .m-day .m-db i { display: block; height: 100%; background: var(--primary); border-radius: 4px; }
 .m-day .m-df { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11.5px; color: var(--m-muted); }
 .m-day.m-full .m-db i { background: var(--primary-700); }
-.m-dg { border: 1px solid var(--primary-200); background: var(--primary-50); border-radius: 12px; padding: 16px 18px; }
-.m-dg .m-dgh { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
-.m-dg .m-ic { width: 30px; height: 30px; border-radius: 9px; background: rgb(255, 255, 255); border: 1px solid var(--primary-200); display: grid; place-items: center; font-size: 15px; flex: 0 0 auto; }
-.m-dg .m-ttl { font-size: 14.5px; font-weight: 700; color: var(--primary-text); }
-.m-dg p { margin: 0px 0px 11px; font-size: 13px; color: var(--ink-2); line-height: 1.6; }
-.m-dg .m-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.m-btn { border: 1px solid var(--m-line); background: rgb(255, 255, 255); border-radius: 9px; padding: 8px 15px; font-style: inherit; font-variant: inherit; font-stretch: inherit; line-height: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 13px; font-weight: 600; color: var(--m-ink); }
-.m-btn.m-pri { background: var(--primary-700); border-color: var(--primary-700); color: rgb(255, 255, 255); }
-.m-dg .m-meta { font-size: 12px; color: var(--m-muted); margin-left: auto; }
 @media (max-width: 900px){
-  .m-two { grid-template-columns: 1fr; }
   .m-days { grid-template-columns: repeat(2, 1fr); }
 }
 
@@ -193,17 +178,13 @@
      .m-phase .m-chip{background:#fff} 与 .m-dg .m-ic{background:#fff}
    —— 深色下是「白方块压在浅青条上」，一眼跳出来。改用卡片底即可。 */
 [data-theme="dark"] .m-page .m-phase .m-chip{ background:var(--surface); border-color:var(--primary-200) }
-[data-theme="dark"] .m-page .m-dg .m-ic{ background:var(--surface) }
 /* .m-mk-top 里那颗圆点也是写死 rgb(226,229,230)，深色下是亮白点 */
-[data-theme="dark"] .m-page .m-mk-top .m-dot{ background:var(--line) }
 
 /* 补两处同样写死白底的地方（真机深色截图里跳出来的）：
    `.m-addrow` 是「写一条，或让 AI 安排今天」那条虚线输入区（background:rgb(252,252,252)），
    `.m-btn` 是普通按钮（background:rgb(255,255,255)）—— 深色下两块都是白砖。
    改用站点的表面色，描边走 --m-line，字走 --m-ink/--m-muted，不改字号与内距。 */
 [data-theme="dark"] .m-page .m-addrow{ background:var(--surface) }
-[data-theme="dark"] .m-page .m-addrow .m-plus{ background:var(--primary-soft) }
-[data-theme="dark"] .m-page .m-btn{ background:var(--surface); color:var(--m-ink) }
 /* .m-pri 是主色实底 + 白字，深色下主色不变 → 白字仍然成立，不用动 */
 
 
@@ -374,21 +355,6 @@
 #mkToday .m-empty{padding:34px 18px;text-align:center;color:var(--muted);font-size:13px}
 #mkToday .m-empty b{display:block;margin-bottom:4px;color:var(--ink);font-size:15px}
 
-/* ── 诊断卡（笔 3 挪进右栏；先保证外观不塌） ── */
-#mkToday .m-dg{margin:18px 26px 24px;padding:16px 18px;border:1px solid var(--primary-200);
-  background:var(--primary-50);border-radius:12px}
-#mkToday .m-dg .m-dgh{display:flex;align-items:center;gap:10px;margin-bottom:9px}
-#mkToday .m-dg .m-ic{width:30px;height:30px;border-radius:9px;background:var(--surface);
-  border:1px solid var(--primary-200);display:grid;place-items:center;font-size:15px;flex:none}
-#mkToday .m-dg .m-ttl{font-size:14.5px;font-weight:700;color:var(--primary-900)}
-#mkToday .m-dg .m-dgsub{font-size:12px;color:var(--muted)}
-#mkToday .m-dg p{margin:0 0 11px;font-size:13px;color:var(--ink-2);line-height:1.6}
-#mkToday .m-dg .m-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-#mkToday .m-dg .m-meta{font-size:12px;color:var(--muted);margin-left:auto}
-#mkToday .m-dg .m-btn{border:1px solid var(--line);background:var(--surface);border-radius:9px;
-  padding:8px 15px;font:inherit;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer}
-#mkToday .m-dg .m-btn.m-pri{background:var(--primary-700);border-color:var(--primary-700);color:#fff}
-
 /* ── 右栏（笔 3 填内容） ── */
 #mkToday .m-side{display:grid;gap:18px}
 
@@ -430,8 +396,6 @@
   #mkToday .m-addbox{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
   #mkToday .m-addinput{width:100%;height:46px;font-size:16px}
   #mkToday .m-addbtn{width:100%;min-height:46px}
-  #mkToday .m-dg{margin:14px 18px 18px;padding:14px}
-  #mkToday .m-dg .m-meta{display:none}
 }
 
 /* ── 深色：只补几处写死白的底面，其余全走站点 token ── */
