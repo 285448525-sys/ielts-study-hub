@@ -603,7 +603,6 @@ function onbWriteDailyCap(raw){
 }
 
 /* ---------- 五步渲染 ---------- */
-function onbSetupState(){ return (getOnboarding() || onbDefaults()).setup; }
 function _onbH(text){ const e = document.createElement('h3'); e.className = 'onb2-h'; e.textContent = text; return e; }
 function _onbNote(text){ const e = document.createElement('p'); e.className = 'onb2-note'; e.textContent = text; return e; }
 function _onbField(pane, id, labelText, type, opts){

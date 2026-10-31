@@ -142,18 +142,6 @@ async function cloudDownload(silent){
     return false;
   }
 }
-async function cloudDelete(){
-  const phone = DATA.settings.syncCode;
-  if(!phone){ toast('请先登录（设置 → 云端同步）'); return; }
-  if(!authToken()){ toast('登录已过期，请重新登录'); return; }
-  if(!confirm('确定删除云端该账号的数据？此操作不可恢复。')) return;
-  try{
-    const [res] = await syncApi('DELETE');
-    if(res.status === 404){ toast('云端未启用（需先部署 Functions）'); return; }
-    if(!res.ok) throw new Error('HTTP ' + res.status);
-    toast('已删除云端数据');
-  }catch(e){ toast('云端删除失败：' + e.message); }
-}
 /* ===== 模考估分基础设施（10/1 从 scores.js 挪入：首页冲刺卡 sprint.js 也要用，而 home.html 不加载 scores.js） ===== */
 
 var MOCK_TYPES = {
@@ -314,40 +302,6 @@ function renderLastSync(){
   const ts = DATA.settings.lastSyncTs;
   el.textContent = ts ? ('上次同步：' + new Date(ts).toLocaleString('zh-CN')) : '尚未同步';
 }
-/* 强制：本机覆盖云端（无视合并，直接 PUT 整份）
-   ⭐ 9/30 noLock：用户明确要本机覆盖，跳过乐观锁（否则会被 409 拦回去先合并，与本按钮语义相反） */
-function syncForcePush(){
-  if(!DATA.settings.syncCode){ toast('请先登录'); return; }
-  if(!authToken()){ toast('登录已过期，请重新登录'); return; }
-  cloudUpload(true, true, { noLock: true });
-  setTimeout(renderLastSync, 1800);
-}
-/* 强制：云端覆盖本机（GET 后整体替换，不保留本机独有数据） */
-async function syncForcePull(){
-  const phone = DATA.settings.syncCode;
-  if(!phone){ toast('请先登录'); return; }
-  if(!authToken()){ toast('登录已过期，请重新登录'); return; }
-  if(!confirm('⚠️ 此操作将用云端数据替换本机所有数据（含素材），本机未同步的内容会丢失！确定继续？')) return;
-  try{
-    const [res, data] = await syncApi('GET');
-    if(res.status === 404){ toast('云端没有该账号的数据'); return; }
-    if(!res.ok) throw new Error('HTTP ' + res.status);
-    if(!data || !data.data) throw new Error('返回格式异常');
-    // h 类防御：云端数据理论上只缺 writing（官方模板 stripCloudFields 剔除后从不上传）；
-    // 若云端数据异常缺 settings/words 等骨架字段，直接覆盖会让全站无 settings 可用（变砖）→ 拒绝执行。
-    if(!data.data.settings || !Array.isArray(data.data.words)) throw new Error('云端数据不完整（缺 settings/words），已取消覆盖以保护本机数据');
-    const _keepWriting = DATA.writing;
-    DATA = data.data;
-    // 2026-10-17：判空要看长度 —— 出厂内容未就绪时本机 writing 是 []（真值），旧写法 ![] 为 false 会把它留下、
-    // 反而丢掉本机官方模板。就绪后再由模板迁移补齐缺失条目。
-    if((!DATA.writing || !DATA.writing.length) && _keepWriting && _keepWriting.length) DATA.writing = _keepWriting;   // writing 永远用本机官方模板
-    DATA.settings.lastSyncTs = Date.now();
-    hubSave();
-    toast('已用云端数据覆盖本机');
-    setTimeout(() => location.reload(), 800);
-  }catch(e){ toast('云端拉取失败：' + e.message); }
-}
-
 /* 合并成功后无缝重渲染当前页：优先调用页面注册的渲染入口；未注册则退回「调用已知 render 函数名」。
    目的：另一台设备保存的变更合并进来后，本端页面自动刷新、无需手动刷新。 */
 function renderAllOnMerge(){

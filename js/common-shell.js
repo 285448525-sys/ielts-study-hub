@@ -1017,7 +1017,6 @@ function navDeployProbe(){
     })
     .catch(() => { _probeBusy = false; });
 }
-function navCached(file){ return _navDocCache.has(file); }
 async function navGetDoc(file){
   navDeployProbe();                        // 后台部署探针（节流）：内存命中路径也绕不开的漂移检测
   if(_navDocCache.has(file)){
