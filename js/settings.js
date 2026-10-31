@@ -489,7 +489,10 @@ function resetData(){
     if(settings.syncCode && typeof cloudUpload === 'function'){
       // ⭐ 9/30 noLock：清数据是「刻意要用空数据覆盖云端」，必须跳过乐观锁。
       //     不跳的话会因为 baseTs 陈旧而拿到 409 → 自动 cloudDownload 合并 → 刚清空的数据被云端整份复活。
-      Promise.resolve(cloudUpload(false, true, { noLock: true })).then(ok => {
+      /* 🔴 SYNC-FIX-1：这条是「显式清空」，必须越过官方内容就绪闸（allowMissingOfficial）。
+         理由：清空的语义就是要把云端也清成空；若被闸挡住，云端旧数据会在下次 30s 轮询整份合并
+         回来，她刚清空的记录原地复活（数据丢失级的反向事故）。 */
+      Promise.resolve(cloudUpload(false, true, { noLock: true, allowMissingOfficial: true })).then(ok => {
         if(ok === false){
           // 上传失败（断网等）：本地已清但云端仍是旧数据。记补传标记，下次启动 initCloudSync 强制补传，
           // 避免云端旧数据抢先合并回来复活。

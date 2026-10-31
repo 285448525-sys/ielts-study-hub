@@ -430,7 +430,7 @@ function consumeResetPending(){
     localStorage.removeItem('hub_reset_pending');
     _resetPushInFlight = true;
     /* noGrace：清空补传必须插队导航让路（见 scheduleResetConsume 注释） */
-    Promise.resolve(cloudUpload(false, true, { noLock: true, noGrace: true })).then(ok => {
+    Promise.resolve(cloudUpload(false, true, { noLock: true, noGrace: true, allowMissingOfficial: true })).then(ok => {
       _resetPushInFlight = false;
       // 仍失败：重记标记，等下一次消费点（下次启动 或 下一次软导航首跳）
       if(ok === false){ try{ localStorage.setItem('hub_reset_pending', '1'); }catch(e){} }

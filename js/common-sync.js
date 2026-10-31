@@ -140,16 +140,77 @@ function _syncComparableSnapshot(src){
     return c;
   }catch(e){ return null; }
 }
-function _maybePublishLocal(cloudEmpty, cloudBlob){
+/* ═══ SYNC-FIX-1（10-30，S 级 · 数据正确性）：官方内容未就绪时禁止全量 PUT ═══════════════
+   她/SSR 审计坐实的三条路径，全部通往同一后果：**云端整份被覆盖成缺字段的版本**。
+     A. 普通上传（定时/手动）—— `ensureStatic()` 的失败结果被忽略，照旧 PUT；
+     B. 首次合并后的「开机发布」—— 本机缺字段的快照与完整云快照直接比较，必然判成「本机有新增」；
+     C. 关页补传 flushCloudUpload —— 直接 sendBeacon，连 ensure 都不调，还会写已上传哈希。
+   服务端 PUT 是**整份覆盖**、只剥离 relayToken、不补缺失字段 → 一次就抹掉云端题库与出厂语料，
+   而成功后哈希/基线照常推进，缺口被当成「已同步」永久留着。
+
+   本闸的语义（不是固定 sleep，不是「大概等一下」）：
+     · 全量 PUT 前必须**真的拿到** readyStatic + readyWriting，拿到之后**复核**一次；
+     · 拿不到 → 不发 PUT、不发 beacon、不写上传哈希、不推云端基线，pending 保留；
+     · 官方内容 ready 时回调里把 pending 重排一次（见文件末尾的就绪钩子）；
+     · 加载失败按 3s / 8s / 20s 退避重试三轮，仍失败就静默等下次触发（用户操作/hubSave）。 */
+var _officialRetryStep = 0;
+var _officialRetryTimer = null;
+function _officialReadyState(){
+  var F = (typeof HUB_FACTORY !== 'undefined') ? HUB_FACTORY : null;
+  if(!F) return true;                       // 老页面/沙盒里没有出厂闸：维持原语义，不误伤
+  var s = (typeof F.fieldReady === 'function') ? !!F.fieldReady('speaking') : !!F.readyStatic;
+  var w = (typeof F.fieldReady === 'function') ? !!F.fieldReady('writingPhrases') : !!F.readyWriting;
+  return s && w;
+}
+/* 等官方内容到位；resolve(true)=两张表都拿到并复核通过，resolve(false)=本轮没拿到 */
+async function officialContentReady(){
+  if(_officialReadyState()) return true;
+  var F = (typeof HUB_FACTORY !== 'undefined') ? HUB_FACTORY : null;
+  if(!F) return true;
+  if(typeof F.ensureStatic === 'function' && !F.readyStatic){
+    try{ await F.ensureStatic(); }catch(e){}
+  }
+  if(typeof F.ensureWriting === 'function' && !F.readyWriting){
+    try{ await F.ensureWriting(); }catch(e){}
+  }
+  /* 🔴 必须复核：ensure 的 resolve(true) 只代表「加载器回调说成功」，字段是否真的落地看 fieldReady */
+  return _officialReadyState();
+}
+/* 没就绪时的退避重试：3s → 8s → 20s，共三轮；每次成功后把 pending 交给正常上传节奏 */
+function _scheduleOfficialRetry(){
+  if(_officialRetryTimer) return;
+  if(_officialRetryStep >= 3) return;
+  var delay = [3000, 8000, 20000][_officialRetryStep] || 20000;
+  _officialRetryStep++;
+  _officialRetryTimer = setTimeout(function(){
+    _officialRetryTimer = null;
+    try{ if(_pendingUpload) scheduleCloudUpload(); }catch(e){}
+  }, delay);
+}
+/* 🔴 SYNC-FIX-1 改造点 ②：就绪前**不比较、不发布**。
+   原实现拿「本机缺字段的快照」和「完整云快照」比字符串，必然判出「本机有新增」→ 立刻 PUT
+   缺字段版本 → 云端题库/出厂语料被抹。现在：先等官方内容就绪再比较；本轮没等到就什么都不做，
+   等 ready 钩子或下一次下载再试。
+   🔴 另一处：原实现 `_bootPublishTried = true` 在尝试**之前**占位，失败也不复位 →
+   本生命周期永不重试（SSR 修复单第 4 点）。现在失败复位 + 上限 3 次，防轮询期无限推。 */
+var _bootPublishTries = 0;
+async function _maybePublishLocal(cloudEmpty, cloudBlob){
   if(_bootPublishTried) return;
   if(!DATA.settings.autoSync || !DATA.settings.syncCode) return;
-  _bootPublishTried = true;   // 先占位再尝试：失败也不重试（下次打开页面再试），防轮询期反复推
+  if(_bootPublishTries >= 3) return;
+  if(!(await officialContentReady())){ _scheduleOfficialRetry(); return; }   // 未就绪：不比较不发布
+  _bootPublishTried = true;   // 占位（防并发），失败再复位
+  var ok = true;
   try{
-    if(cloudEmpty){ cloudUpload(false); return; }   // 云端没数据（404）=本机就是最全的 → 直接发布
-    const mine = JSON.stringify(_syncComparableSnapshot(stripCloudFields(DATA)));
-    const theirs = JSON.stringify(_syncComparableSnapshot(cloudBlob));
-    if(mine && theirs && mine !== theirs) cloudUpload(false);
-  }catch(e){}
+    if(cloudEmpty){
+      ok = await cloudUpload(false);            // 云端没数据（404）=本机就是最全的 → 直接发布
+    }else{
+      const mine = JSON.stringify(_syncComparableSnapshot(stripCloudFields(DATA)));
+      const theirs = JSON.stringify(_syncComparableSnapshot(cloudBlob));
+      if(mine && theirs && mine !== theirs) ok = await cloudUpload(false);
+    }
+  }catch(e){ ok = false; }
+  if(ok === false){ _bootPublishTried = false; _bootPublishTries++; }
 }
 
 function hashData(x){
@@ -354,12 +415,18 @@ async function cloudUpload(showToast, force, opts){
     return true;   // 内容与云端一致，视为成功
   }
   try{
-    /* DATA-1（10-26）：上传前先确保口语题库已到位 —— 未到位时 stripCloudFields 会把 speaking 摘掉，
-       而服务端 PUT 是**整份覆盖**，那一次上传就会把云端那份题库（含她的答案）抹掉。
-       题库通常在页面可用后 1~3s 内就拉到了，这里最多等一下（加载失败/离线时 ensureStatic 立刻返回 false，
-       继续走，闸① 继续兜底）。 */
-    if(typeof HUB_FACTORY !== 'undefined' && HUB_FACTORY && typeof HUB_FACTORY.ensureStatic === 'function' && !HUB_FACTORY.readyStatic){
-      try{ await HUB_FACTORY.ensureStatic(); }catch(e){}
+    /* 🔴 SYNC-FIX-1 改造点 ①：全量 PUT 必须先真的拿到官方内容，拿不到就**一个字节都不发**。
+       旧实现只 `await ensureStatic()` 且忽略返回值 —— 加载失败/离线/慢网时照样往下走，
+       `stripCloudFields` 把 speaking / writingPhrases 摘掉，服务端整份覆盖，云端那份题库
+       （含她的答案）与出厂语料当场没了。SSR 沙盒实测就是这样：返回 true、PUT 里没有这两个字段。
+       例外：opts.allowMissingOfficial —— 只有「显式清空数据」路径传它（那条语义本来就是要清空云端，
+       若被闸挡住，云端旧数据会在下次轮询整份合并回来，清空等于白清，数据复活级别）。 */
+    if(!opts.allowMissingOfficial && !(await officialContentReady())){
+      _pendingUpload = true;
+      if(!_firstPendingAt) _firstPendingAt = Date.now();
+      _scheduleOfficialRetry();
+      if(showToast) toast('官方题库/写作素材还没加载好，本次先不覆盖云端（稍后自动重试）');
+      return false;
     }
     const _payload = stripCloudFields(DATA);   // v7.1：先落变量——成功后记它的哈希做「自回声」基线
     const putBody = { data: _payload, ts: Date.now(), deviceId: getDeviceId() };
@@ -383,7 +450,7 @@ async function cloudUpload(showToast, force, opts){
         if(window.toast) window.toast('云端有新版本，先合并再上传…');
         const dl = await cloudDownload(true);
         // cloudDownload 已把 _cloudBaseTs 更新到服务端最新 ts
-        if(dl) return await cloudUpload(showToast, true, { retry: tries, noLock: opts.noLock });
+        if(dl) return await cloudUpload(showToast, true, { retry: tries, noLock: opts.noLock, allowMissingOfficial: opts.allowMissingOfficial });
       }
       throw new Error('云端在此期间被其他设备更新，已自动重试仍未成功，请点「立即同步」再试一次');
     }
@@ -433,6 +500,11 @@ function flushCloudUpload(){
   if(!DATA.settings.autoSync || !DATA.settings.syncCode) return;
   const tok = authToken();
   if(!tok) return;   // 未登录：无凭证可传
+  /* 🔴 SYNC-FIX-1 改造点 ③：关页补传同样受就绪闸约束（SSR 修复单的 C 路径）。
+     旧实现直接 stripCloudFields + sendBeacon，连 ensure 都不调，还立刻写 _lastUploadedCloudHash ——
+     服务端是否收到都不知道，却当成「已上传」。未就绪时：不发 beacon、不写哈希，pending 留着，
+     下次打开页面由 _scheduleOfficialRetry / 正常节奏补传。 */
+  if(!_officialReadyState()){ try{ _scheduleOfficialRetry(); }catch(e){} return; }
   try{
     stampSyncItemsForUpload();   // 关页/切后台补传也要先打戳，保证云端拿到时间戳
     const _payloadObj = { data: stripCloudFields(DATA), ts: Date.now(), deviceId: getDeviceId() };
@@ -643,3 +715,19 @@ function _later(a, b){
    ⚠️ hardWord / keyWord 不在内——主观标注，重置也不清，永远取「或」。
    ⚠️ cn / pos / ipa 属内容字段，无论 epoch 如何都按下方取优规则合并（重构不回退释义）。 */
 /* ⬆️ WORD_PROG_FIELDS 已前移到 js/data.js（COMMON-JS-SPLIT-1 笔 1，10-30）。design/77：dh/dd 随 resetEpoch 整组胜负。 */
+
+/* ═══ SYNC-FIX-1：官方内容就绪后，把因未就绪而保留的 pending 重新排队 ═══
+   为什么需要：未就绪时上传被挡住、pending 留着，但 hubSave 若不再触发，就永远没有下一次排程。
+   就绪是「一次性事件」，在这里接一下最稳（两个闸各自就绪都会调；重复调用是幂等的）。 */
+(function(){
+  if(typeof HUB_FACTORY === 'undefined' || !HUB_FACTORY) return;
+  var kick = function(){
+    try{
+      if(!_officialReadyState()) return;      // 另一个闸还没就绪，等它
+      _officialRetryStep = 0;
+      if(_pendingUpload) scheduleCloudUpload();
+    }catch(e){}
+  };
+  if(typeof HUB_FACTORY.onStaticReady === 'function') HUB_FACTORY.onStaticReady(kick);
+  if(typeof HUB_FACTORY.onWritingReady === 'function') HUB_FACTORY.onWritingReady(kick);
+})();
