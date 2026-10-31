@@ -20,9 +20,79 @@ node_modules
 #      node tests/_with_server.cjs tests/_probe_wrte2e_1027.cjs 8781
 # ========================================================================
 /tests/*
+# ---- 回归白名单放行（10-31 TESTS-GITIGNORE-1 根因修法）----
+# 🔴 病根：以前只放行 3 个文件，其余白名单探针全被 /tests/* 挡住 → 只活在一个人本地，
+#    谁 clone 出来都跑不了一遍回归；同时又出现「以为入库了其实没进」——_probe_coachav_1020
+#    就被 git add 静默忽略过（我 10-30 亲手踩到）。
+# 纪律照旧（AGENTS.md §5.1）：只有**登记进 _regress_1017.cjs 白名单**的才叫长期资产、才准许入库；
+# 一次性探针、截图、日志、输出 json 继续留在本机。
+# ⚠️ 放行清单必须与白名单同进同出：加减探针时这里跟着加减。
+#    有闸校验：node tests/_gate_gitignore_whitelist_1031.cjs（不一致即红）。
+!/tests/_diag_interact_1025.cjs
+!/tests/_diag_sitesweep_1025.cjs
+!/tests/_precore_audit_1024.cjs
+!/tests/_probe_admin_agg_1005.cjs
+!/tests/_probe_admin_judge_1005.cjs
+!/tests/_probe_adminui_1020.cjs
+!/tests/_probe_ai_caliber_1026.cjs
+!/tests/_probe_b6sweep_1023.cjs
+!/tests/_probe_bars_1020.cjs
+!/tests/_probe_bootgate_1017.cjs
+!/tests/_probe_chain_1017.cjs
+!/tests/_probe_coachav_1020.cjs
+!/tests/_probe_coachctx_1020.cjs
+!/tests/_probe_examtools_1018.cjs
+!/tests/_probe_factorygate_1017.cjs
+!/tests/_probe_fullentry_1017.cjs
+!/tests/_probe_fulllast_1018.cjs
+!/tests/_probe_guide_1018.cjs
+!/tests/_probe_homea3a_1021.cjs
+!/tests/_probe_landing114_1021.cjs
+!/tests/_probe_latespk_1017.cjs
+!/tests/_probe_latewrt_1017.cjs
+!/tests/_probe_listenleak_1029.cjs
+!/tests/_probe_manifestfail_1017.cjs
+!/tests/_probe_maprv_1019.cjs
+!/tests/_probe_mobile_1017.cjs
+!/tests/_probe_nav_1017.cjs
+!/tests/_probe_nextstep_1018.cjs
+!/tests/_probe_noans2_1017.cjs
+!/tests/_probe_noans_1017.cjs
+!/tests/_probe_prac42_1023.cjs
+!/tests/_probe_pracdarks_1023.cjs
+!/tests/_probe_q6eval_1024.cjs
+!/tests/_probe_qtype_1017.cjs
+!/tests/_probe_r1review_1024.cjs
+!/tests/_probe_role_1022.cjs
+!/tests/_probe_shell2_1022.cjs
+!/tests/_probe_shell3_1022.cjs
+!/tests/_probe_shell4_1022.cjs
+!/tests/_probe_shell5_1022.cjs
+!/tests/_probe_shell_1022.cjs
+!/tests/_probe_softnav_guard_1029.cjs
+!/tests/_probe_softnav_queue_1031.cjs
+!/tests/_probe_speakbank_1020.cjs
+!/tests/_probe_submitjump_1018.cjs
+!/tests/_probe_taskcap_1022.cjs
+!/tests/_probe_teacher_1022.cjs
+!/tests/_probe_timeline_1017.cjs
+!/tests/_probe_timer_1017.cjs
+!/tests/_probe_todaynum_1023.cjs
+!/tests/_probe_w5net_1024.cjs
+!/tests/_probe_warmup_1029.cjs
+!/tests/_probe_wbdeck_1023.cjs
+!/tests/_probe_wbview_1023.cjs
+!/tests/_probe_worddemote_1020.cjs
+!/tests/_probe_wordimport_1020.cjs
+!/tests/_probe_wrtbar_1020.cjs
 !/tests/_probe_wrte2e_1027.cjs
+!/tests/_probe_wrttpl_1021.cjs
 !/tests/_with_server.cjs
-!/tests/_static_server.cjs
+# 白名单探针的共用夹具（被 _probe_shell*_1022 与 review 系列 require，不入库则回归跑不起来）
+!/tests/_anc_seed.cjs
+!/tests/_review_util.cjs
+# 放行清单校验闸本身
+!/tests/_gate_gitignore_whitelist_1031.cjs
 
 # 测试临时产物（10/18 起）：
 # `/tests/` 已经把整个目录排除，下面三条是**语义声明 + 兜底** —— 万一将来 tests/ 要入库，
