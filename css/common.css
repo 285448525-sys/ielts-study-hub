@@ -604,7 +604,9 @@ body.sheet-open .sheet{transform:translateY(0)}
 html[data-theme="dark"] .site-back:hover{background:var(--primary-soft);color:var(--primary-300)}
 
 /* 方案1 · 侧边栏全局计时徽标（任何页面常驻：正在计时呼吸提示 + 一键结束，解决 P1/P3） */
-.side-timer-wrap{margin:0 0 4px}
+/* FE-DEAD-SWEEP-ALL-1 B3（11-01）：侧栏计时徽标容器 10-23 她「把所有页面计时条去掉」时已撤，
+   全站无 .side-timer-wrap 节点；.side-timer 本体仍在（renderSideTimer 保留），只此一条失效，留档。
+.side-timer-wrap{margin:0 0 4px} */
 /* design/53：teal 只做点睛 —— 计时徽标由实色渐变块改浅底 + teal 文字 + 左侧 3px 指示条
    （原实色块会与首页主按钮争夺"屏上唯一 teal 实色"的视觉焦点） */
 .side-timer{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:12px;cursor:pointer;background:var(--primary-50);color:var(--primary-700);font-size:13.5px;font-weight:700;box-shadow:inset 3px 0 0 var(--primary-500)}
@@ -1140,11 +1142,15 @@ main .quote{
   .btn-lg{font-size:16px;padding:12px 22px}
 .mock-start-rail .btn{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);color:var(--on-primary);align-self:flex-start}
 .mock-start-rail .btn:hover{background:rgba(255,255,255,.28)}
+/* FE-DEAD-SWEEP-ALL-1 B3（11-01）：.mock-step 系列五条对应的 DOM 从不存在 ——
+   10/6 删掉 setMockStep() 时就写明「#mockSteps .mock-step 在 speaking.html 与所有 js 里都不存在，
+   也没有任何 .mock-step 的 CSS」（其实 CSS 一直在这儿躺着，注释这句是错的）。
+   运行时实测：口语模考整轮走完，页面出现的 class 里没有 mock-step / mock-step-sep。原文留档：
 .mock-step .dot{width:24px;height:24px;border-radius:50%;background:var(--surface-2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);font-weight:800}
 .mock-step.active{color:var(--primary)}
 .mock-step.active .dot{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
 .mock-step.done .dot{background:var(--primary-soft);border-color:var(--primary);color:var(--primary)}
-.mock-step-sep.done{background:var(--primary)}
+.mock-step-sep.done{background:var(--primary)} */
 
 /* === 题目语音播放按钮（全站单色线性 SVG，teal 调性）=== */
 .sp-tts{flex:none;display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--primary-soft);color:var(--primary);cursor:pointer;transition:transform .12s,border-color .15s,color .15s,background .15s;padding:0;margin-top:1px}
@@ -2726,7 +2732,8 @@ body[data-shell="top"] .container{padding-top:14px}
   pointer-events:none;font-family:inherit;letter-spacing:.02em}
 .tb-search .ss-panel{left:auto;right:0;min-width:296px}
 
-.hub-topbar .side-timer-wrap{margin:0}
+/* FE-DEAD-SWEEP-ALL-1 B3（11-01）：顶栏那份计时徽标容器 10-23 已撤，这条永命不中，留档注释。
+.hub-topbar .side-timer-wrap{margin:0} */
 .tb-me{flex:none;width:28px;height:28px;border-radius:50%;overflow:hidden;border:1.5px solid var(--line);
   background:var(--primary-50);display:block;transition:border-color .15s,transform .12s}
 .tb-me:hover{border-color:var(--primary);transform:translateY(-1px)}
