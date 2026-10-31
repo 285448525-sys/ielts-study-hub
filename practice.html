@@ -32,7 +32,7 @@
 </script>
 <title>单词 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261029l" />
-<link rel="stylesheet" href="css/p/practice.css?v=20261029l" />
+<link rel="stylesheet" href="css/p/practice.css?v=20261031c" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -55,7 +55,7 @@
   <script defer src="js/wordbank.js?v=20261023s"></script>
   <!-- design/77 DHP+SSP-MMC 策略表：必须在 practice.js 之前（defer 按文档序执行，表未加载时 practice.js 有回退兜底） -->
   <script defer src="js/dhp_policy.js?v=20260921a"></script>
-  <script src="js/practice.js?v=20261031a" defer></script>
+  <script src="js/practice.js?v=20261031c" defer></script>
   <script src="js/words.js?v=20261023r" defer></script>
 <style>
 /* ============================================================
@@ -766,7 +766,9 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
   }
   window.__wwordB1 = true;
 
-  var MODE_TXT = { visual: '看词选义', audio: '听音选义', mixed: '混合' };
+  /* WD-DICT-MODE-1（10-31）：听写不再是 mixed 的占位，是独立的第四种模式。
+     mixed 仍是「每题约 50% 掷币走听音」的混合——两种模式互不相干，别混为一谈。 */
+  var MODE_TXT = { visual: '看词选义', audio: '听音选义', mixed: '混合', dictation: '听写模式' };
   var $ = function(id){ return document.getElementById(id); };
   var setTxt = function(id, v){ var e = $(id); if (e) e.textContent = String(v); };
 
@@ -956,7 +958,9 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
     var box = document.createElement('div');
     box.id = 'wdModePopList';
     box.className = 'wd-mode-pop';
-    [['visual','看词选义'],['audio','听音选义'],['mixed','听写']].forEach(function(it){
+    /* WD-DICT-MODE-1（10-31）：四选一。原来第三项写「听写」但点的其实是 mixed，
+       点了还会弹一句「开发中」的占位提示 —— 名不副实。现在听写是真的能用了（questionMode='dictation'）。 */
+    [['visual','看词选义'],['audio','听音选义'],['dictation','听写模式'],['mixed','混合']].forEach(function(it){
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'wd-mode-opt' + (it[0] === cur ? ' on' : '');
@@ -964,13 +968,10 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
       b.onclick = function(ev){
         ev.stopPropagation();
         closeModePop();
-        if (it[0] === 'mixed'){
-          /* 听写模式本批只做占位：设计稿有，能力没有 —— 明说，不假装能用 */
-          if (typeof toast === 'function') toast('听写模式开发中，先用看词选义');
-          return;
-        }
         try{ if (typeof pcSave === 'function') pcSave({ questionMode: it[0] }); }catch(e){}
         syncModeTxt();
+        /* 切完立刻按新模式重出当前题（不然改了设置还得等下一题才生效，像没生效） */
+        try{ if (typeof nextQuestion === 'function') nextQuestion(); }catch(e){}
       };
       box.appendChild(b);
     });

@@ -75,7 +75,10 @@ var PC_DEFAULTS = {
   autoPlay: true,
   showCn: false,
   showEn: 0,              // 0=不显示 1=答错时显示 2=始终显示
-  questionMode: 'visual', // 听音选义：visual=看词选义（默认，一切照旧）/ audio=听音选义（题干英文音标隐藏，先听后选）/ mixed=混合（每题约 50% 听音）
+  /* visual=看词选义（默认，一切照旧）/ audio=听音选义（题干隐藏、先听后选释义）
+     / mixed=混合（每题约 50% 掷币走听音）/ dictation=听写（WD-DICT-MODE-1 · 10-31：
+     题干只留音标+喇叭、选项从「选释义」换成「选拼写」，四个拼写变体） */
+  questionMode: 'visual',
   optCount: 4,
   wrongHoldMs: 2500,
   fxFeedback: true        // design/54：连击与反馈层开关（设置弹窗「连击与反馈」）
@@ -105,7 +108,7 @@ function pc(){
   c.autoPlay = !!c.autoPlay;
   c.showCn = !!c.showCn;
   c.showEn = clampNum(c.showEn, 0, 2, PC_DEFAULTS.showEn);
-  c.questionMode = (['visual','audio','mixed'].indexOf(c.questionMode) !== -1) ? c.questionMode : PC_DEFAULTS.questionMode;   // 白名单外（旧数据/云同步脏值）回退看词
+  c.questionMode = (['visual','audio','mixed','dictation'].indexOf(c.questionMode) !== -1) ? c.questionMode : PC_DEFAULTS.questionMode;   // 白名单外（旧数据/云同步脏值）回退看词
   c.optCount = clampNum(c.optCount, 2, 10, PC_DEFAULTS.optCount);
   c.wrongHoldMs = clampNum(c.wrongHoldMs, 1000, 5000, PC_DEFAULTS.wrongHoldMs);
   c.fxFeedback = !!c.fxFeedback;
@@ -661,6 +664,97 @@ function genDistractors(correct, allWords){
     for(const w of pool){ if(uniq.length >= 3) break; pushIfNew(w, true); }
   }
   return shuffle([correct, ...uniq.slice(0, 3)]);
+}
+
+/* WD-DICT-MODE-1（10-31，她 16:0x「听写样子稿不用设计，直接根据原来的 UI 设计然后把内容改了就行」）：
+   听写模式的选项 = 四个**拼写变体**，不是释义。
+   取法（三层，越靠前越像，像才有区分度）：
+     ① 同词库里的真词（原来就是最强干扰：近形词、近义不同拼）
+     ② 从正确词自己**变形**出来的假拼写（漏字母 / 双写辅音 / 元音互换 / 相邻字母颠倒）
+        —— 真词凑不满时补位；这类假拼写正好是听写最容易错的地方
+     ③ 仍不满就用同库其它词硬补（宁可不像，也不能少一个选项）
+   🔴 返回的对象必须是「有 en 字段的普通对象」：judge/bindOpts 全靠 dataset.en，不能只传字符串。
+   🔴 绝不能让假拼写和正确答案同形（生成后统一比对，撞了就换）。
+   🔴 也绝不能出现重复拼写（两个选项一模一样 = 题坏了）。 */
+function genDictationOptions(correct, allWords){
+  const cEn = String(correct.en || '');
+  const cLow = cEn.toLowerCase();
+  const out = [];
+  const seen = new Set([cLow]);
+
+  const usable = (w) => {
+    const e = String((w && w.en) || '');
+    if(!e || /\s/.test(e)) return false;            // 词组不做听写选项（太长、不是拼写题）
+    return true;
+  };
+
+  /* ① 同库近形真词
+     🔴 长度门槛很重要（10-31 实测踩过）：不加这条，resilience(10 字母) 会配上
+        sea / see / seal —— 长度差一倍，扫一眼就排除了，等于没考拼写。
+        门槛取「差不超过 max(2, 正确词长的一半)」：短词宽一点、长词紧一点。 */
+  const pool = (allWords || []).filter(w => usable(w) && String(w.en).toLowerCase() !== cLow);
+  const lenTol = Math.max(2, Math.round(cEn.length / 2));
+  const near = pool
+    .map(w => ({ w, s: confusableScore(cEn, w.en), gap: Math.abs(String(w.en).length - cEn.length) }))
+    /* 先按「像不像」排，同样像的优先长度接近 —— 长度差太大的一律排后面 */
+    .sort((a, b) => (b.s - 0.06 * Math.max(0, b.gap - 1)) - (a.s - 0.06 * Math.max(0, a.gap - 1)));
+  for(const { w, gap } of near){
+    if(out.length >= 3) break;
+    const e = String(w.en);
+    if(gap > lenTol) continue;                        // 长度差太多，一眼假，跳过
+    if(seen.has(e.toLowerCase())) continue;
+    seen.add(e.toLowerCase());
+    out.push({ en: e, _fake: false });
+  }
+
+  /* ② 自己变形出来的假拼写 */
+  const variants = dictationVariants(cEn);
+  for(const v of variants){
+    if(out.length >= 3) break;
+    if(!v || seen.has(v.toLowerCase())) continue;
+    if(v.toLowerCase() === cLow) continue;           // 变形意外还原成原词 → 作废
+    if(Math.abs(v.length - cEn.length) > 2) continue; // 变形不该把长度改太多
+    seen.add(v.toLowerCase());
+    out.push({ en: v, _fake: true });
+  }
+
+  /* ③ 兜底：同库其它词硬补 */
+  for(const w of pool){
+    if(out.length >= 3) break;
+    const e = String(w.en);
+    if(seen.has(e.toLowerCase())) continue;
+    /* 兜底也不给长度差太大的（宁可重复变形，也不给 sea 这种一眼假的） */
+    if(Math.abs(e.length - cEn.length) > Math.max(3, lenTol + 1)) continue;
+    seen.add(e.toLowerCase());
+    out.push({ en: e, _fake: false });
+  }
+
+  return shuffle([{ en: cEn, _fake: false }, ...out.slice(0, 3)]);
+}
+
+/* 拼写变体生成：听写最常错的四类，按这个顺序吐（先最像的） */
+function dictationVariants(en){
+  const out = [];
+  const n = en.length;
+  if(n < 3) return out;
+  /* ① 删一个元音（丢掉一个元音是最高频的错法），从中间往外挑，避免删首字母那种一眼假的 */
+  const vowels = [];
+  for(let i = 0; i < n; i++){ if(/[aeiou]/i.test(en[i])) vowels.push(i); }
+  for(const i of vowels){ if(i > 0 && i < n - 1) out.push(en.slice(0, i) + en.slice(i + 1)); }
+  /* ② 双写一个辅音（accommodate 那种错） */
+  for(let i = 1; i < n - 1; i++){
+    if(/[bcdfglmnprst]/.test(en[i]) && en[i] !== en[i + 1]) out.push(en.slice(0, i) + en[i] + en.slice(i));
+  }
+  /* ③ 相邻字母颠倒（ei / ie 这类） */
+  for(let i = 0; i < n - 1; i++){
+    if(en[i] !== en[i + 1]) out.push(en.slice(0, i) + en[i + 1] + en[i] + en.slice(i + 2));
+  }
+  /* ④ 换一个常见易混组合 */
+  const swaps = [['ea','ee'],['ie','ei'],['ai','ia'],['ou','au'],['en','on'],['le','el'],['ar','er'],['ce','se']];
+  for(const [a, b] of swaps){
+    if(en.toLowerCase().includes(a)) out.push(en.toLowerCase().split(a).join(b));
+  }
+  return out;
 }
 
 // 队列优先级排序（design/77 DHP 口径，p 由 buildQueue 经 pMap 注入，禁落盘）
@@ -1237,12 +1331,19 @@ function renderQuestion(cur, isRehold){
   // 混合模式每题独立掷币约 50% 听音；visual/audio 模式其余一切行为与旧版逐字节相同。
   if(!isRehold || !pq._curQMode){
     pq._curQMode = (c.questionMode === 'audio') ? 'audio'
+      : (c.questionMode === 'dictation') ? 'dictation'
       : (c.questionMode === 'mixed' ? (Math.random() < 0.5 ? 'audio' : 'visual')
       : 'visual');
   }
+  /* WD-DICT-MODE-1（10-31）：听写模式。形态与听音选义同源（题干英文隐藏、只留音标+喇叭），
+     差别只有一处 —— **选项从「选释义」换成「选拼写」**（四个拼写变体）。
+     🔴 判题链路一个字不改：选项仍然挂 data-en，点击仍然走 judge(cur, dataset.en, dataset.en===cur.en)，
+        所以 SRS / 短线重复 / 统计 / 已掌握 / 不知道 全部沿用，不存在第二套判题。 */
   const audioMode = (pq._curQMode === 'audio');
+  const dictMode  = (pq._curQMode === 'dictation');
 
-  const opts = genDistractors(cur, wbWords());
+  /* 听写只要拼写，不需要释义干扰项那套「释义撞车」判据，单独一套生成器 */
+  const opts = dictMode ? genDictationOptions(cur, wbWords()) : genDistractors(cur, wbWords());
 
   let html = '';
   // ── 顶部区：上一词回顾 ──
@@ -1288,16 +1389,21 @@ function renderQuestion(cur, isRehold){
     }catch(e){}
     return (cur.eg && String(cur.eg).trim()) ? String(cur.eg).trim() : '';
   })();
-  html += '<div class="practice-word-area' + (audioMode ? ' pw-audio' : '') + '">' +
+  /* WD-DICT-MODE-1：听写与听音共用 .pw-audio 那套「题干隐藏」的 CSS，
+     区别只在提示文案（选释义 / 选拼写）与标签。 */
+  const hideStem = (audioMode || dictMode);
+  html += '<div class="practice-word-area' + (hideStem ? ' pw-audio' : '') + (dictMode ? ' pw-dict' : '') + '">' +
     '<div class="pw-en"><span class="pw-en-tx">' + escapeHtml(cur.en) + '</span></div>' +
     '<div class="pw-ipa">' + (cur.ipa ? '/ ' + escapeHtml(cur.ipa) + ' /' : '&nbsp;') +
       '<button class="wd-sound" id="qSpeaker" type="button" title="再读一遍" aria-label="播放发音">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></svg>' +
       '</button>' +
     '</div>' +
-    (audioMode ? '<div class="pw-audio-hint">听发音，选释义 · 点喇叭重播</div>' : '') +
+    (dictMode ? '<div class="pw-audio-hint pw-dict-hint"><span class="pw-dict-tag">听写模式</span>听发音，选拼写 · 点喇叭重播</div>'
+              : (audioMode ? '<div class="pw-audio-hint">听发音，选释义 · 点喇叭重播</div>' : '')) +
     '<div class="pw-cn" id="pwCn"></div>' +
-    (_eg ? '<p class="wd-example" id="wdExample">' + highlightWord(_eg, cur.en) + '</p>' : '') +
+    /* 听写模式不显示真题例句 —— 例句里就带着目标词的拼写，等于把答案印在题干上 */
+    (_eg && !dictMode ? '<p class="wd-example" id="wdExample">' + highlightWord(_eg, cur.en) + '</p>' : '') +
   '</div>';
 
   // ── 选项网格：电脑四宫格 / 手机四条横排（终稿 @media 700 切列）──
@@ -1320,6 +1426,15 @@ function renderQuestion(cur, isRehold){
   const body = $('#practiceBody');
   body.innerHTML = html;
   $('#opts').innerHTML = opts.map((o, i) => {
+    /* WD-DICT-MODE-1：听写模式只考拼写 —— 选项里**绝不能**出现词性/释义
+       （那等于把答案说出来了）。所以这三行照旧输出，但内容换成一个字母占位，
+       布局锚点（.opt-big-tag / .opt-big-cn）保持不变，CSS 不用另开一套。 */
+    if(dictMode){
+      return '<button class="opt-big opt-big-dict" data-en="' + escapeHtml(o.en) + '" data-idx="' + i + '" title="选项 ' + (i + 1) + '">' +
+        '<span class="opt-big-tag opt-big-letter">' + String.fromCharCode(65 + i) + '</span>' +
+        '<span class="opt-big-spell">' + escapeHtml(o.en) + '</span>' +
+      '</button>';
+    }
     const ps = practiceSense(o);
     const tag = singlePos(o.pos) || ps.tag || inferPos(o.en) || '';
     /* 她口述第⑨条「快捷键这几个字不用写上」—— title 里的「（按 1）」这类键位提示一并去掉，
@@ -1350,8 +1465,8 @@ function renderQuestion(cur, isRehold){
   const bsp = document.getElementById('wdBottomSpeaker');
   if(bsp) bsp.onclick = () => speakN(cur.en);
   if(c.autoPlay) setTimeout(() => speakN(cur.en), 300);   // autoPlay=false 时不自动朗读，仅手动点喇叭
-  if(audioMode && !c.autoPlay) setTimeout(() => speakN(cur.en), 300);   // 听音题必须先发音：即便关了自动播报，本题也强制读一次（喇叭可手动重播）
-  if(!audioMode) fitWordOneLine();   // 9/9：渲染完立即按单词长度自适应字号（听音题题干隐藏，揭示后再补算）
+  if((audioMode || dictMode) && !c.autoPlay) setTimeout(() => speakN(cur.en), 300);   // 听音/听写题必须先发音：即便关了自动播报，本题也强制读一次（喇叭可手动重播）
+  if(!hideStem) fitWordOneLine();   // 9/9：渲染完立即按单词长度自适应字号（题干隐藏的模式，揭示后再补算）
 }
 
 // 9/9 之之需求：题干单词固定一行显示，字号按长度自动收缩（长词变小、短词不变）。
@@ -1447,8 +1562,11 @@ function judge(cur, pickedEn, correct, isUnknownBtn){
     const isWrong = (!correct && pickedEn != null && x.dataset.en === pickedEn);
     if(isCorrect || isWrong){
       // 在词性标签旁显示英文： "n." → "n. tone" / "n. loan"；空标签 → 直接显示英文
+      /* WD-DICT-MODE-1：听写模式的选项上已经就是拼写本身（.opt-big-spell），
+         不该再往字母占位里拼一遍英文（会变成「A seabed」压在拼写上面）。
+         这一支只在「选项是释义」的两种模式里补英文。 */
       const tagEl = x.querySelector('.opt-big-tag');
-      if(tagEl){
+      if(tagEl && !x.classList.contains('opt-big-dict')){
         var pos = tagEl.textContent.trim();
         tagEl.textContent = pos ? (pos + ' ' + x.dataset.en) : x.dataset.en;
       }
@@ -2003,7 +2121,7 @@ function renderCfgModal(){
         // 9/25：newPerDay（每日新词上限）已下线——总量只按「每日学习上限」为准
         // 9/29 之之：小字说明删掉（嫌多余）；0=不限/背满就停的逻辑不变
         { key:'dailyCap',      label:'每日学习上限',  type:'num', min:0, max:999, unit:' 个' },
-        { key:'questionMode',  label:'题型',          type:'select', opts:[{v:'visual',t:'看词选义'},{v:'audio',t:'听音选义'},{v:'mixed',t:'混合'}] },
+        { key:'questionMode',  label:'题型',          type:'select', opts:[{v:'visual',t:'看词选义'},{v:'audio',t:'听音选义'},{v:'dictation',t:'听写模式'},{v:'mixed',t:'混合'}] },
         { key:'shuffle',       label:'勾选练习乱序',  type:'toggle' },
         { key:'wrongHoldMs',   label:'答错停留',      type:'range', min:1000, max:5000, step:500, unit:'ms' },
         { key:'autoNextDelay', label:'自动间隔',      type:'range', min:300, max:3000, step:100, unit:'ms' },

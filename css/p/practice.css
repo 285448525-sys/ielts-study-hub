@@ -1316,3 +1316,56 @@ body.word-fullscreen #practiceBody.practice-body-fit .opt-big{height:auto;min-he
   #practiceArea .wd-modes #wdModeBtn{font-size:11px}
   #practiceArea .ws-tool-btn{width:32px;height:32px}
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   WD-DICT-MODE-1（10-31）听写模式
+   形态 1:1 复用「听音选义」那套：题干英文隐藏、只留音标 + 喇叭、四选项、底部不知道/已掌握、进度条。
+   差别只有一处 —— **选项从「选释义」换成「选拼写」**，所以这里只需要给选项换个排版，不新造版式。
+   依据 design/WD-DICT-MODE-1-听写模式样子稿-2026-10-31.html（她 16:0x：不用迭代稿子，按终稿形态改内容）。
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ① 题干上方那枚「听写模式」标签 + 提示语：
+      听音选义的提示条本身就有（.pw-audio-hint），这里只把文案改成带标签的一行。 */
+#practiceBody .pw-dict-hint{
+  display:flex;align-items:center;justify-content:center;gap:7px;flex-wrap:wrap;
+}
+#practiceBody .pw-dict-tag{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:2px 9px;border-radius:999px;
+  background:var(--primary-soft);color:var(--primary-700);
+  font-size:11.5px;font-weight:700;letter-spacing:.02em;line-height:1.6;
+}
+#practiceBody .pw-dict-tag::before{
+  content:'';width:5px;height:5px;border-radius:50%;background:var(--primary);
+}
+
+/* ② 选项：只考拼写 —— 左边一个字母序号，右边拼写本身，字大一号（拼写要看清每个字母）。
+      .opt-big 原有的边框/圆角/hover/对错配色全部沿用（.correct / .wrong 照旧生效）。 */
+#practiceBody .opt-big-dict{
+  align-items:center;justify-content:flex-start;gap:10px;
+  min-height:64px;padding:14px 16px;
+}
+#practiceBody .opt-big-letter{
+  flex:none;width:24px;height:24px;display:grid;place-items:center;
+  border-radius:7px;background:var(--bg);color:var(--muted);
+  font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;
+}
+#practiceBody .opt-big-spell{
+  min-width:0;flex:1;
+  font-size:19px;font-weight:650;letter-spacing:.01em;line-height:1.35;
+  color:var(--ink);
+  /* 长拼写真能在窄屏一行放不下 —— 允许断词，但不许溢出格子（她最烦横向滚动） */
+  overflow-wrap:anywhere;word-break:break-word;
+}
+/* 答对/答错时：字母块跟着变色，比只变边框更容易扫到 */
+#practiceBody .opt-big-dict.correct .opt-big-letter{background:var(--ok-soft);color:var(--ok-text)}
+#practiceBody .opt-big-dict.wrong .opt-big-letter{background:var(--danger-soft);color:var(--danger-text)}
+#practiceBody .opt-big-dict.correct .opt-big-spell{color:var(--ok-text)}
+#practiceBody .opt-big-dict.wrong .opt-big-spell{color:var(--danger-text)}
+
+/* ③ 手机档：拼写字号收一档，字母块也小一点，保证四条横排不挤 */
+@media(max-width:700px){
+  #practiceBody .opt-big-dict{min-height:60px;padding:12px 14px;gap:9px}
+  #practiceBody .opt-big-spell{font-size:17px}
+  #practiceBody .opt-big-letter{width:22px;height:22px;border-radius:6px;font-size:11px}
+}
