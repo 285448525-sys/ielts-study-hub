@@ -31,7 +31,14 @@ ready(function(){
     var det = document.getElementById('ancDetail');
     if(!list || !det) return;
     var tags = (a.tags || []).map(function(t){ return escapeHtml(String(t)); }).join(' · ');
-    det.innerHTML = '<button class="back" type="button" id="ancBack">‹ 返回公告列表</button>'
+    /* BACK-BTN-PAGES-1（10-31）：接线统一基类 .site-back。
+       🔴 只换外观：id="ancBack" 保留、click 监听照旧（下面那个 addEventListener 一个字没改）、
+          文案仍写全去向「返回公告列表」。箭头 ‹（字符）→ 16px svg。
+       ⚠️ 为什么用 .site-back--icon 的写法却不加 --icon：这里是详情页正文区左上的主返回，
+          宽度充足，去向必须写全（规范稿「不能只写笼统的返回」）。 */
+    det.innerHTML = '<button class="site-back" type="button" id="ancBack">'
+      + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M11 18l-6-6 6-6"/></svg>'
+      + '<span class="site-back-txt">返回公告列表</span></button>'
       + '<h2>' + escapeHtml(a.title || '') + '</h2>'
       + '<div class="meta">' + escapeHtml(a.date || '') + ' · ' + kindLabel(a.kind) + (tags ? ' · ' + tags : '') + '</div>'
       + '<div class="body">' + (a.body || '') + '</div>';
@@ -85,7 +92,10 @@ ready(function(){
       if(kicker) kicker.textContent = '消息中心';
       if(h1) h1.textContent = '全部消息';
       if(sub) sub.textContent = '公告、会员到期、学习提醒，都在这。';
-      list.innerHTML = '<div class="adetail"><a class="back" href="announce.html">‹ 返回公告列表</a><div id="msgAll"></div></div>';
+      /* BACK-BTN-PAGES-1（10-31）：消息中心那条同理接线，href 仍 announce.html（去向不变）。 */
+      list.innerHTML = '<div class="adetail"><a class="site-back" href="announce.html">'
+        + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M11 18l-6-6 6-6"/></svg>'
+        + '<span class="site-back-txt">返回公告列表</span></a><div id="msgAll"></div></div>';
       var box = document.getElementById('msgAll');
       /* 公告部分在下面 ancAll 遍历里统一加（含已读），这里只取会员/学习提醒，
          否则未读公告会出现两遍。 */
