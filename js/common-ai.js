@@ -303,10 +303,6 @@ function aiJson(content){
   return null;
 }
 
-/* 口语 GPT 对话 */
-async function callGPT(messages){ return callRelay('gpt', messages, 0.8); }
-/* 词库专用翻译（与口语GPT隔离，独立 service 区分，不回退） */
-async function callTrans(messages){ return callRelay('trans', messages, 0.3); }
 /* 长难句拆解 */
 async function callLongsent(messages){ return callRelay('longsent', messages, 0.4); }
 
@@ -566,14 +562,3 @@ function presetSpeakingP3Three(){
   return [ P3_PRESET[0], 'Why do you think that is the case?', 'Do you think this might change in the future? Why or why not?' ];
 }
 window.MockGenP3 = { genNext: genSpeakingP3, presetNext: presetSpeakingP3, gen3: genSpeakingP3Three, preset3: presetSpeakingP3Three };
-
-/* ===== 连续打卡 ===== */
-function computeStreak(checkins){
-  if(!checkins || !checkins.length) return 0;
-  const set = new Set(checkins);
-  let streak = 0;
-  const d = new Date();
-  if(!set.has(todayKey(d))) d.setDate(d.getDate() - 1); // 今天没打卡则从昨天起算
-  while(set.has(todayKey(d))){ streak++; d.setDate(d.getDate() - 1); }
-  return streak;
-}
