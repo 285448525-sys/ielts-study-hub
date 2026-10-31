@@ -137,6 +137,66 @@
 #examRoot.ct-yellow .bk-skel .sk-no,
 #examRoot.ct-yellow .bk-skel .sk-ln{background:rgba(0,0,0,.12)}
 @media (max-width:420px){.bk-state{padding:28px 12px}}
+
+/* ===== MOCK-LOADING-PAGE-1（10-31 她「现在的加载页不好看」）：练习/模考的载入页重做 =====
+   依据 design/MOCK-LOADING-PAGE-1-加载试卷页样子稿-2026-10-31.html（她看过说「还行」= 接受）。
+   范围只有一件事：**进考场那一刻**（openExam / 完整阅读模考 / 完整听力模考）往 #examRoot 里画的
+   载入态换成这套「试卷图标 + 旋转进度环 + 脉冲点 + 标题 + 进度条 + 提示」的居中版式。
+   🔴 目录列表（#bankList / #listenList）的骨架屏 + 四态一个类都没动 —— 那边有「取消/重试/空态」
+      四条真交互和三支探针在盯，不在本单范围。
+   🔴 结构上仍保留 .bk-state / data-bk-state="loading" / [data-bk-act=loading] 三个钩子，
+      老探针（_probe_examtools_1018 取 #examRoot .bk-state）与失败态重试链路不受影响。 */
+.bk-state.bk-loadpage{margin:auto;padding:44px 24px;max-width:420px;width:100%;text-align:center}
+
+/* 主视觉：试卷图标居中，外面套一圈旋转进度环，右下三个脉冲点 */
+.bk-lp-hero{position:relative;width:112px;height:112px;margin:0 auto 26px}
+.bk-lp-doc{position:absolute;left:50%;top:50%;width:54px;height:68px;transform:translate(-50%,-50%);
+  fill:none;stroke:var(--line);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.bk-lp-ring{position:absolute;inset:0;width:112px;height:112px;fill:none;stroke-width:3}
+.bk-lp-ringbg{stroke:var(--line)}
+.bk-lp-ringp{stroke:var(--primary);stroke-linecap:round;stroke-dasharray:277;stroke-dashoffset:193;
+  transform-origin:50% 50%;transform:rotate(-90deg);animation:bklpSpin 1.5s linear infinite}
+.bk-lp-dots{position:absolute;right:-2px;bottom:-2px;display:flex;gap:4px}
+.bk-lp-dots i{width:7px;height:7px;border-radius:50%;background:var(--primary);
+  animation:bklpPulse 1.4s ease-in-out infinite}
+.bk-lp-dots i:nth-child(2){animation-delay:.18s}
+.bk-lp-dots i:nth-child(3){animation-delay:.36s}
+@keyframes bklpSpin{to{transform:rotate(270deg)}}
+@keyframes bklpPulse{0%,100%{opacity:.3;transform:scale(.78)}50%{opacity:1;transform:scale(1.18)}}
+
+/* 文案：标题、副行、进度条、提示 */
+.bk-state.bk-loadpage .bk-st-title{font-size:17px;font-weight:700;margin:0 0 7px}
+.bk-state.bk-loadpage .bk-st-sub{margin:0 0 20px;font-size:13px}
+.bk-lp-bar{width:100%;height:4px;border-radius:2px;background:var(--line);overflow:hidden;margin:0 0 14px}
+.bk-lp-bar i{display:block;height:100%;width:38%;border-radius:2px;background:var(--primary);
+  animation:bklpBar 1.7s ease-in-out infinite}
+@keyframes bklpBar{0%{margin-left:-38%}100%{margin-left:100%}}
+.bk-lp-tip{margin:0;font-size:12px;line-height:1.75;color:var(--muted)}
+.bk-state.bk-loadpage .bk-st-act{margin-top:22px}
+
+/* 三档外观：考场内是 #examRoot.ct-* 自己的一套写死色（不跟 data-theme 走），这里按同一口径补齐 */
+#examRoot.ct-dark .bk-lp-doc,#examRoot.ct-dark .bk-lp-ringbg{stroke:#5a5f66}
+#examRoot.ct-dark .bk-lp-bar{background:#3a3f45}
+#examRoot.ct-dark .bk-state.bk-loadpage .bk-st-title{color:#f2f2f2}
+#examRoot.ct-dark .bk-state.bk-loadpage .bk-st-sub,#examRoot.ct-dark .bk-lp-tip{color:#c8cbd0}
+#examRoot.ct-yellow .bk-lp-doc,#examRoot.ct-yellow .bk-lp-ringbg{stroke:#4a4526}
+#examRoot.ct-yellow .bk-lp-bar{background:#4a4526}
+#examRoot.ct-yellow .bk-state.bk-loadpage .bk-st-title{color:#f0e3a8}
+#examRoot.ct-yellow .bk-state.bk-loadpage .bk-st-sub,#examRoot.ct-yellow .bk-lp-tip{color:#c9bd85}
+
+/* 手机档：整体收一档（稿子 @media 480 的口径），保证 390 宽不出横向滚动 */
+@media (max-width:480px){
+  .bk-state.bk-loadpage{padding:34px 20px}
+  .bk-lp-hero{width:96px;height:96px;margin-bottom:22px}
+  .bk-lp-ring{width:96px;height:96px}
+  .bk-lp-doc{width:46px;height:58px}
+  .bk-state.bk-loadpage .bk-st-title{font-size:16px}
+  .bk-state.bk-loadpage .bk-st-sub{font-size:12.5px}
+}
+/* 减少动态：旋转环与脉冲点停住，只留静态形状（与同类元件 .bk-skel 一个口径） */
+@media (prefers-reduced-motion:reduce){
+  .bk-lp-ringp,.bk-lp-dots i,.bk-lp-bar i{animation:none}
+}
 .bank-note{margin:18px 0 0;font-size:13px;color:var(--muted);line-height:1.7}
 .soon-box{background:var(--surface);border:1px dashed var(--line);border-radius:12px;padding:26px 20px;text-align:center;color:var(--muted);font-size:14px;line-height:1.9}
 
@@ -2564,7 +2624,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common-cloud.js?v=20261029l"></script>
 <script defer src="js/common-shell.js?v=20261029l"></script>
 <script defer src="js/common-pwa.js?v=20261029l"></script>
-<script defer src="js/bank.js?v=20261029e"></script>
+<script defer src="js/bank.js?v=20261031a"></script>
 <!-- M-2（10-24）：模考页「没做过/做过」分组 + 展开更多。
      ⚠️ 本文件只做展示层（读 hub_bank_last_* 分组 + 首屏 20 条），判分/SRS/本地记录一律不碰；
         单条 DOM 由 js/bank.js 的 listHtml() 生成（当参数传进来），结构零改动。
