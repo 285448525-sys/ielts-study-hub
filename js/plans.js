@@ -415,6 +415,21 @@ ready(() => {
     if(mkPrev) mkPrev.addEventListener('click', function(){ step(-1); });
     if(mkNext) mkNext.addEventListener('click', function(){ step(1); });
     if(mkToday) mkToday.addEventListener('click', function(){ if(dEl){ dEl.value = todayKey(); dEl.dispatchEvent(new Event('change', { bubbles: true })); } });
+    /* 任务筛选：只切显隐，不改数据、不重排顺序。选中态记在 sessionStorage，
+       同一会话内切日期回来保持一致。
+       PLANS-REDESIGN-CODE-1：她定稿稿里任务头右侧就是这三枚，不是新旧两套。
+       🔴 按钮是自己绑的，不再依赖 syncSkeleton 里的判断；applyTaskFilter 两处调用
+          （渲染后按当前项切一次 / 点击时切一次）用的是同一个函数，不会两套口径。
+    */
+    var mkFilter = document.getElementById('mkFilter');
+    if(mkFilter) mkFilter.addEventListener('click', function(e){
+      var b2 = e.target && e.target.closest ? e.target.closest('.m-fbtn') : null;
+      if(!b2) return;
+      var v = b2.getAttribute('data-mfilter') || 'all';
+      try{ sessionStorage.setItem('hub_plan_taskfilter', v); }catch(err){}
+      var cur2 = (typeof getPlan === 'function') ? getPlan(currentDate()) : null;
+      applyTaskFilter(document.getElementById('mkTaskCard'), (cur2 && cur2.items) || []);
+    });
   })();
   bindEnterSubmit($('#planText'), $('#addPlan'));   // 9/22 之之：回车即添加（原 Ctrl+Enter；换行用 Shift+Enter）
 
@@ -513,6 +528,41 @@ function currentDate(){ return $('#planDate').value || todayKey(); }
    —— 也就是说可见界面上根本没有这两个入口，不是「点了没反应」，是压根没有。
    做法：不再另造一套编辑器，直接在这行里把 .m-t 换成 input（与旧卡 startEdit 同语义：
    回车/失焦保存、Esc 取消），保存后走 hubSave() + render()。 */
+/* 任务筛选（全部 / 待完成 / 已完成）——纯前端显隐，不写数据。
+   PLANS-REDESIGN-CODE-1：她定稿的稿子里任务头右侧就是这三枚。实现上只切 display，
+   顺序永远照 DATA 原序（不重排，避免「点一下筛选任务顺序变了」那种困惑）。 */
+function applyTaskFilter(taskCard, items){
+  var list = document.getElementById('mkTaskList');
+  var filterEl = document.getElementById('mkFilter');
+  if(!list || !filterEl) return;
+  var cur = 'all';
+  try{ cur = sessionStorage.getItem('hub_plan_taskfilter') || 'all'; }catch(e){}
+  var rows = list.querySelectorAll('.m-task');
+  items.forEach(function(it, idx){
+    var row = rows[idx];
+    if(!row) return;
+    var show = cur === 'all' || (cur === 'done' ? !!it.done : !it.done);
+    if(show) row.removeAttribute('data-mfiltered');
+    else row.setAttribute('data-mfiltered', '1');
+  });
+  /* 按筛选后是否还有可见行，决定要不要显示「这类没有」的提示 */
+  var any = items.some(function(it){ return cur === 'all' || (cur === 'done' ? !!it.done : !it.done); });
+  var emptyEl = document.getElementById('mkEmpty');
+  if(emptyEl && items.length){
+    emptyEl.hidden = any;
+    if(!any){
+      var b = emptyEl.querySelector('b'), sp = emptyEl.querySelector('span');
+      if(b) b.textContent = cur === 'done' ? '还没有完成的任务' : '这一类都做完了';
+      if(sp) sp.textContent = cur === 'done' ? '勾掉一条就会出现在这里。' : '切回「全部」看看今天的安排。';
+    }
+  }
+  Array.prototype.forEach.call(filterEl.querySelectorAll('.m-fbtn'), function(b2){
+    var on = b2.getAttribute('data-mfilter') === cur;
+    b2.classList.toggle('active', on);
+    b2.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+
 function skeletonRowHtml(){
   return '<span class="m-cb"></span><span class="m-t"></span><span class="m-tagline"></span>'
        + '<span class="m-jmp">去练 →</span>'
@@ -572,13 +622,17 @@ function syncSkeleton(date, isToday, items, done, total, pct){
   var mk = document.getElementById('mkToday');
   if(!mk) return;
 
-  /* ── ① 阶段条 ── */
+  /* ── ① 阶段条 ──
+     PLANS-REDESIGN-CODE-1：新骨架里 .m-phase 只留「阶段胶囊 + 距考天数」两段，
+     「本周重点」挪到日期条副行（#mkDateSub，下面 ② 里填）。原来这里按
+     span:nth-child(3) 取重点段，新结构没有第三个 span → 取到 null 会静默跳过，
+     所以 focusEl 改成「有就用、没有就跳过」，判断点仍只落在 chip/timeEl 上。 */
   var phWrap = mk.querySelector('.m-phase');
   if(phWrap){
     var cd = (typeof examCountdown === 'function') ? examCountdown() : null;
     var chip = phWrap.querySelector('.m-chip');
-    var timeEl = phWrap.querySelector('span:nth-child(2)');
-    var focusEl = phWrap.querySelector('span:nth-child(3)');
+    var timeEl = phWrap.querySelector('.m-phatime') || phWrap.querySelector('span:nth-child(2)');
+    var focusEl = phWrap.querySelector('.m-phafocus');
     /* 🔴 PLAN-SKELETON-FAKE-1（10-29 A2）：这里原来是一条 `return`。
        它跳出的是**整个 syncSkeleton**，不只是这一段 —— 于是没设考试日期的用户
        （新用户、以及所有还没填日期的账号）后半段的「② 日期+进度」「③ 任务行」
@@ -621,45 +675,82 @@ function syncSkeleton(date, isToday, items, done, total, pct){
     }
   }
 
-  /* ── ② 日期 + 进度 ── */
-  var cards = mk.querySelectorAll('.m-mcard');
-  var progCard = cards[0];
-  if(progCard){
-    var h4 = progCard.querySelector('h4');
-    if(h4){
-      var dt = new Date(date + 'T00:00:00');
-      var wk = ['周日','周一','周二','周三','周四','周五','周六'][dt.getDay()] || '';
-      var lab = (isToday ? '今天' : ((dt.getMonth()+1) + ' 月 ' + dt.getDate() + ' 日'))
-              + ' <span class="m-r">' + date + ' · ' + wk;
-      /* PLAN-ENTRY-VISIBLE-1：原来这里追加一段「‹ 前后翻天 ›」提示文字（看着能点其实没动作）。
-         现在翻页是真按钮（.m-daynav），日期行只报「今天/几月几日」+ 星期，不再放假 affordance。 */
-      lab += '</span>';
-      h4.innerHTML = lab;
-    }
-    var bigq = progCard.querySelector('.m-bigq');
-    if(bigq) bigq.innerHTML = done + '<small>/' + total + '</small>';
-    var subl = progCard.querySelector('.m-sublab');
-    if(subl) subl.innerHTML = '已完成<br>还剩 ' + Math.max(0, total - done) + ' 条';
-    var bar = progCard.querySelector('.m-bar i');
+  /* ── ② 日期条 + 今日进度 ──
+     PLANS-REDESIGN-CODE-1（10-31）：新骨架里日期条与进度不再是一张 .m-mcard 里的一段，
+     改成页头下方独立的 .m-datebar + 主栏顶部的 .m-summary。取容器改为按 id（#mkSumCard），
+     不再用 cards[0] 这种下标 —— 下标一旦结构变了就会静默指向错的卡（本次重构的直接原因）。 */
+  var dt = new Date(date + 'T00:00:00');
+  var wk = ['周日','周一','周二','周三','周四','周五','周六'][dt.getDay()] || '';
+  var dateRow = document.getElementById('mkDateRow');
+  if(dateRow){
+    var dtext = dateRow.querySelector('.m-datetext');
+    var dtag = dateRow.querySelector('.m-todaytag');
+    if(dtext) dtext.textContent = (dt.getMonth() + 1) + ' 月 ' + dt.getDate() + ' 日 · ' + wk;
+    if(dtag) dtag.hidden = !isToday;
+  }
+  /* 日期副行 = 本周重点（与阶段条同一套口径：只聚合 AI 生成项） */
+  var dateSub = document.getElementById('mkDateSub');
+  if(dateSub){
+    var focusTxt2 = '';
+    try{
+      var tk2 = todayKey(), keys2 = [];
+      for(var q = 0; q < 7; q++) keys2.push(addDays(tk2, q));
+      var cnt2 = {};
+      (DATA.plans || []).forEach(function(p3){
+        if(!p3 || keys2.indexOf(p3.date) === -1) return;
+        (p3.items || []).forEach(function(it2){
+          if(!it2 || it2.gen !== PLAN_GEN_TAG || !it2.module) return;
+          cnt2[it2.module] = (cnt2[it2.module] || 0) + 1;
+        });
+      });
+      var top2 = Object.keys(cnt2).sort(function(a, b){ return cnt2[b] - cnt2[a]; }).slice(0, 2);
+      if(top2.length) focusTxt2 = top2.map(moduleLabelOf).join(' · ');
+    }catch(e){}
+    dateSub.textContent = focusTxt2 ? ('本周重点：' + focusTxt2) : (date + ' · ' + wk);
+  }
+  var mdt = document.getElementById('mkDayToday');
+  if(mdt) mdt.hidden = isToday;
+
+  var sumCard = document.getElementById('mkSumCard');
+  if(sumCard){
+    var bigq = sumCard.querySelector('.m-bigq');
+    if(bigq) bigq.innerHTML = done + '<small>/' + total + ' 项</small>';
+    var subl = sumCard.querySelector('.m-sublab');
+    if(subl) subl.innerHTML = total
+      ? ('已完成 ' + done + ' 项，还剩 <b>' + Math.max(0, total - done) + ' 条</b>')
+      : '这一天还没有任务，下面加一条。';
+    var bar = sumCard.querySelector('.m-bar i');
     if(bar) bar.style.width = Math.round(pct) + '%';
+    var barWrap = sumCard.querySelector('.m-bar');
+    if(barWrap) barWrap.setAttribute('aria-valuenow', String(Math.round(pct)));
+    var pctTxt = sumCard.querySelector('.m-pcttxt');
+    if(pctTxt) pctTxt.textContent = '完成 ' + Math.round(pct) + '%';
+    var minTxt = sumCard.querySelector('.m-mintxt');
+    if(minTxt){
+      var planMin = 0, doneMin = 0;
+      items.forEach(function(it3){
+        var mMin = (typeof it3.min === 'number' && it3.min) || (typeof planMinOf === 'function' ? planMinOf(it3.text) : 0);
+        planMin += mMin;
+        if(it3.done) doneMin += mMin;
+      });
+      minTxt.textContent = planMin ? ('已完成 ' + doneMin + ' / 计划 ' + planMin + ' 分钟') : '';
+    }
   }
 
-  /* PLAN-ENTRY-VISIBLE-1：可见骨架的日期翻页条（#mkDayNav）。
-     显示哪些按钮由真数据决定：非今天才露「回到今天」。 */
-  var mdn = document.getElementById('mkDayNav');
-  if(mdn){
-    var mdt = document.getElementById('mkDayToday');
-    if(mdt) mdt.hidden = isToday;
+  /* 顺延提示（有 carried 才显示） */
+  var carry = document.getElementById('mkCarry');
+  if(carry){
+    var carriedN = items.filter(function(i){ return i && i.carried; }).length;
+    carry.hidden = !carriedN;
+    var carryTx = carry.querySelector('.m-carry-tx');
+    if(carryTx && carriedN) carryTx.innerHTML = '<b>' + carriedN + ' 项任务从昨天顺延</b>，已排在今天前面；没做完也不会丢。';
   }
 
   /* ── ③ 任务行 ── */
-  var taskCard = cards[1];
-  if(taskCard){
-    var carried = items.filter(function(i){ return i && i.carried; }).length;
-    var tr = taskCard.querySelector('h4 .m-r');
-    if(tr) tr.textContent = carried ? ('↻ 其中 ' + carried + ' 条是昨天没做完自动挪过来的') : '';
-    var rows = taskCard.querySelectorAll('.m-task');
-    /* 太长的任务文本在窄屏会顶掉右侧标签 —— 与 .m-t 的 ellipsis 配合即可，这里不改样式 */
+  var taskCard = document.getElementById('mkTaskCard');
+  var taskList = document.getElementById('mkTaskList');
+  if(taskCard && taskList){
+    var rows = taskList.querySelectorAll('.m-task');
     items.forEach(function(it, idx){
       var row = rows[idx];
       if(!row){
@@ -667,14 +758,12 @@ function syncSkeleton(date, isToday, items, done, total, pct){
         row = document.createElement('div');
         row.className = 'm-task';
         row.innerHTML = skeletonRowHtml();
-        taskCard.insertBefore(row, taskCard.querySelector('.m-addrow'));
+        taskList.appendChild(row);
       }
       /* 🔴 PLAN-SKELETON-STALE-1（10-29 A2）：这一行必须补上。
-         下面 624 行「多出来的占位行隐藏」把没用到的骨架行写成 style.display='none'，
+         下面「多出来的占位行隐藏」把没用到的骨架行写成 style.display='none'，
          而这里**从来没把 display 还原过** → 一旦某次渲染时任务少（0 条、1 条），
-         那几行就被永久焊死成 none；之后再加任务、再进这一页，文字写进去了但行仍不显示。
-         实测：空计划页加一条任务 → 存储里真有 1 条，屏上一个字都没有。
-         与上面那条 return 是同一类「可见骨架不跟真数据」，一起修。 */
+         那几行就被永久焊死成 none；之后再加任务、再进这一页，文字写进去了但行仍不显示。 */
       row.style.display = '';
       row.classList.toggle('m-done', !!it.done);
       var cb = row.querySelector('.m-cb');
@@ -702,7 +791,7 @@ function syncSkeleton(date, isToday, items, done, total, pct){
           });
         }
       }
-      /* PLAN-ENTRY-VISIBLE-1：每行都要有编辑 / 删除（HTML 里那 4 行静态骨架也算） */
+      /* PLAN-ENTRY-VISIBLE-1：每行都要有编辑 / 删除（HTML 里那几行静态骨架也算） */
       var act = row.querySelector('.m-act');
       if(!act){
         act = document.createElement('span');
@@ -717,10 +806,10 @@ function syncSkeleton(date, isToday, items, done, total, pct){
         act.addEventListener('click', function(ev){
           var b2 = ev.target && ev.target.closest ? ev.target.closest('.m-actbtn') : null;
           if(!b2) return;
-          ev.stopPropagation();   /* 别触发整行的勾选/取消 */
+          ev.stopPropagation();
           var cur0 = (typeof getPlan === 'function') ? getPlan(date) : null;
           var list0 = (cur0 && cur0.items) || [];
-          var k0 = Array.prototype.indexOf.call(taskCard.querySelectorAll('.m-task'), row);
+          var k0 = Array.prototype.indexOf.call(taskList.querySelectorAll('.m-task'), row);
           var it0 = list0[k0];
           if(!it0) return;
           if(b2.hasAttribute('data-mkdel')){
@@ -739,7 +828,7 @@ function syncSkeleton(date, isToday, items, done, total, pct){
           if(ev.target && ev.target.tagName === 'INPUT') return;
           var cur = (typeof getPlan === 'function') ? getPlan(date) : null;
           var list = (cur && cur.items) || [];
-          var k = Array.prototype.indexOf.call(taskCard.querySelectorAll('.m-task'), row);
+          var k = Array.prototype.indexOf.call(taskList.querySelectorAll('.m-task'), row);
           var target = list[k];
           if(target && typeof toggleItem === 'function') toggleItem(target.id);
         });
@@ -747,38 +836,25 @@ function syncSkeleton(date, isToday, items, done, total, pct){
     });
     /* 多出来的占位行（真任务比骨架少）→ 隐藏，不留空行 */
     for(var ri = items.length; ri < rows.length; ri++) rows[ri].style.display = 'none';
+
+    /* 空态：一条任务都没有时，整块任务列表换成两句诚实空态 */
+    var emptyEl = document.getElementById('mkEmpty');
+    if(emptyEl) emptyEl.hidden = items.length > 0;
+    if(!items.length) taskList.style.display = 'none';
+    else taskList.style.display = '';
+
+    /* 筛选（全部 / 待完成 / 已完成）—— 纯前端过滤，不动数据。
+       没有数据可筛时（只有一排筛选按钮而下面空着）反而更困惑，故 0 条时整排隐藏。 */
+    var filterEl = document.getElementById('mkFilter');
+    if(filterEl) filterEl.hidden = items.length < 2;
+    applyTaskFilter(taskCard, items) ;
   }
 
-  /* ── ④ 诊断卡文案（真做过就改口径；不动 #diagRoot 那一套） ── */
-  var dg = mk.querySelector('.m-dg');
-  if(dg){
-    var hasDiag = !!(DATA.settings && DATA.settings.diagnosis);
-    var sub = dg.querySelector('.m-dgh div div:last-child');
-    var pEl = dg.querySelector('p');
-    var btns = dg.querySelectorAll('.m-row .m-btn');
-    if(hasDiag){
-      if(sub) sub.textContent = '已做过 · 点开看报告';
-      if(pEl) pEl.textContent = '诊断报告已经有了，想重排计划时回来重新做一次。';
-      if(btns[0]) btns[0].textContent = '查看报告';
-      if(btns[1]) btns[1].style.display = 'none';
-    }else{
-      if(sub) sub.textContent = '还没做过 · 3 分钟看清离目标多远';
-      if(btns[1]) btns[1].style.display = '';
-    }
-    /* 按钮接到现成的 renderDiagEntry 那套入口（不重写问卷） */
-    if(!dg.__p1r2Bound){
-      dg.__p1r2Bound = true;
-      dg.addEventListener('click', function(ev){
-        var t2 = ev.target;
-        if(!t2 || !t2.closest) return;
-        if(!t2.closest('.m-btn')) return;
-        ev.preventDefault();
-        var isSkip = !!t2.closest('.m-btn:not(.m-pri)');
-        if(typeof isSkip !== 'undefined' && isSkip && typeof diagQuickDefault === 'function'){ diagQuickDefault(); return; }
-        if(typeof openDiagForm === 'function') openDiagForm();
-      });
-    }
-  }
+  /* ── ④ 诊断卡 ──
+     PLANS-REDESIGN-CODE-1（10-31）：新骨架里**不再**放那张手写假诊断卡（.m-dg）。
+     原先它和页面底部 #diagRoot 渲染的真诊断卡同时可见 → 页面上出现两个「备考诊断」，
+     而且假卡永远是「还没做过」，真做过诊断的账号也是这句。
+     现在诊断只剩 #diagRoot 那一套真功能，这里不再改它的文案（它自己会渲染对）。 */
 }
 
 function renderPhaseBar(){

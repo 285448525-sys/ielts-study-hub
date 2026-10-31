@@ -585,80 +585,123 @@
   <!-- Tab 1 今天（P-1：原「今日」+ 原「历史」合并；备考诊断改成本页下端固定入口卡） -->
   <div class="tab-panel active" id="ptabToday">
   <div class="m-page">
-    <!-- ══════════════════════════════════════════════════════════
-         P-1R（10-24）计划页 1:1 重做 · 第一批：静态骨架
-         ══════════════════════════════════════════════════════════
-         数据全是写死的假值（3/7、9 天、那些任务名），下一批 P-1R2 才接真数据。
-         ⚠️ 已按施工书 §3.3 摘掉浏览器外壳：
-           · .m-mk-shell（灰底 #eef0f0 + 16px 边距）
-           · .m-mk-top（三个圆点 + 假地址栏「yasihub.com / 计划」）
-         这两个是效果稿的浏览器外框，真页面上不要。
-         ⚠️ 类名 m- 一个都不许改，样式全在 css/p/plans.css 末尾。 -->
-    <div class="m-mk" id="mkToday">
+  <!-- ══════════════════════════════════════════════════════════
+       PLANS-REDESIGN-CODE-1 · 笔 1／3：壳
+       ══════════════════════════════════════════════════════════
+       依据 design/plan-redesign-SSR-2026-10-30.html（她 10-31 回「通过」定稿）。
+       这一笔只换外层骨架：页头一行、日期条、主栏 + 右栏两列。任务行内容、
+       辅助栏两块仍用旧结构，笔 2／笔 3 分别接。
 
-      <div class="m-mk-body">
-        <div class="m-phase">
-          <span class="m-chip">冲刺期</span>
-          <span>距考试 <b>9</b> 天 · 倒数第 2 周</span>
-          <span style="margin-left:auto">本周重点：<b>听力 · 口语</b></span>
-              <div class="pill-tabs" id="planTabs">
-          <button data-ptab="today" class="pill-tab active">今天</button>
-          <button data-ptab="past" class="pill-tab">往日</button>
-          </div>
-        </div>
+       🔴 三条硬约束（自己踩过的）：
+         ① syncSkeleton() 原先是按 .m-mcard 的下标（cards[0]=进度 / cards[1]=任务）
+            取容器的。新骨架里这两块不再是并排的两张卡，而是一张卡里的两段 →
+            改为 id 取（#mkSumCard / #mkTaskCard），下标那套一并去掉，不留半截。
+         ② #mkDateRow / #mkDayNav / #mkAddText / #mkTaskCard 等所有 JS 钩子的 id 一个不动。
+         ③ 类名全部带 m- 前缀：站点 common.css 里 .card/.chip/.muted/.filter 已有定义，
+            不加前缀会打穿别的 18 个页面。
+  -->
+  <div class="m-mk" id="mkToday">
 
-        <div class="m-mcard">
-          <!-- PLAN-ENTRY-VISIBLE-1：原来这里写死「‹ 前后翻天 ›」当提示文字（看着像能点其实没动作）。
-               现在换成真的两枚翻页按钮 + 一个「今天」回位，走 js/plans.js 里 #planDate 的既有 change 流程。 -->
-          <h4 id="mkDateRow">今天 <span class="m-r">10-24 · 周五</span></h4>
-          <div class="m-daynav" id="mkDayNav">
-            <button type="button" class="m-daybtn" id="mkDayPrev" aria-label="前一天">‹</button>
-            <button type="button" class="m-daybtn m-daytoday" id="mkDayToday" hidden>回到今天</button>
-            <button type="button" class="m-daybtn" id="mkDayNext" aria-label="后一天">›</button>
+    <!-- 页头：eyebrow + 大标题 + 副行 / 右侧阶段胶囊 -->
+    <div class="m-pghead">
+      <div class="m-pghead-l">
+        <div class="m-eyebrow">MY STUDY PLAN</div>
+        <h1 class="m-h1">学习计划</h1>
+        <p class="m-pgsub">把目标拆成今天能完成的一小步。</p>
+      </div>
+      <div class="m-pghead-r">
+        <!-- 阶段胶囊与「今天／往日」两个 tab 同一行：胶囊靠左、tab 靠右。
+             🔴 #planTabs 必须留在 .m-phase 里面 —— 回归探针 _probe_p1plan_1024
+                断言的是 `.m-phase #planTabs`（P-HEAD-1 定的口径：tab 并进阶段条那一行、
+                首屏不重复页内标题）。所以这里把 .m-phase 当成「那一行」的容器，
+                胶囊外观交给里层 .m-phase-chip，两者视觉上仍是一行。 -->
+        <div class="m-phase m-phase-row">
+          <div class="m-phase-chip">
+            <span class="m-chip">冲刺期</span>
+            <span class="m-phatime">距考试 <b>9</b> 天 · 倒数第 2 周</span>
           </div>
-          <div class="m-head-row">
-            <div><div class="m-bigq">3<small>/7</small></div></div>
-            <div class="m-sublab">已完成<br>还剩 4 条</div>
-          </div>
-          <div class="m-bar"><i style="width:43%"></i></div>
-        </div>
-
-        <div class="m-mcard">
-          <h4>今天的任务 <span class="m-r">↻ 其中 2 条是昨天没做完自动挪过来的</span></h4>
-          <div class="m-task m-done"><span class="m-cb"></span><span class="m-t">背词：List 7 复习</span><span class="m-tagline">单词</span></div>
-          <div class="m-task m-done"><span class="m-cb"></span><span class="m-t">听力 P1 精听一篇</span><span class="m-tagline">听力</span><span class="m-jmp">去练 →</span></div>
-          <div class="m-task"><span class="m-cb"></span><span class="m-t">口语 P2 卡牌练 3 张</span><span class="m-tagline">口语</span><span class="m-jmp">去练 →</span></div>
-          <div class="m-task"><span class="m-cb"></span><span class="m-t">写作 Task 1 图表一篇</span><span class="m-tagline">写作</span><span class="m-jmp">去练 →</span></div>
-          <!-- PLAN-ENTRY-VISIBLE-1（10-30 A2，SSR 审计坐实）：这行原来是纯静态文字，点它什么都不发生。
-               现在改成真的添加入口：一个输入框 + 「加一条」+「AI 安排今天」两枚按钮。
-               🔴 数据逻辑一律复用 js/plans.js 里现成的 addItem() / aiPlanItem()，不另造一套；
-                  输入值走 #mkAddText，与旧卡 #planText 解耦（旧卡是 hidden 的，用户不该被引到那里去）。 -->
-          <div class="m-addrow" id="mkAddRow">
-            <div class="m-addbox">
-              <input type="text" id="mkAddText" class="m-addinput" placeholder="写一条今天的任务，回车即添加" autocomplete="off" />
-              <button type="button" class="m-addbtn m-pri" id="mkAddBtn">加一条</button>
-              <button type="button" class="m-addbtn" id="mkAiBtn">AI 安排今天</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="m-dg">
-          <div class="m-dgh">
-            <span class="m-ic">🎯</span>
-            <div>
-              <div class="m-ttl">备考诊断</div>
-              <div style="font-size:12px;color:var(--muted)">还没做过 · 3 分钟看清离目标多远</div>
-            </div>
-            <span class="m-meta">不掺进日期流里</span>
-          </div>
-          <p>这份只在你要重排计划时做一次，做完会马上向你过去几并显示这周还差多少。</p>
-          <div class="m-row">
-            <button class="m-btn m-pri">开始诊断</button>
-            <button class="m-btn">跳过，用默认值</button>
+          <div class="pill-tabs" id="planTabs">
+            <button data-ptab="today" class="pill-tab active">今天</button>
+            <button data-ptab="past" class="pill-tab">往日</button>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- 日期条：‹ 日期 · 星期 今天 ›，副行报本周重点；非今天露「回到今天」 -->
+    <div class="m-datebar">
+      <button type="button" class="m-daybtn m-daynav-lg" id="mkDayPrev" aria-label="前一天">‹</button>
+      <div class="m-datemain">
+        <div class="m-datetitle" id="mkDateRow"><span class="m-datetext">10-24 · 周五</span><span class="m-todaytag" hidden>今天</span></div>
+        <div class="m-datesub" id="mkDateSub">本周重点：听力 · 口语</div>
+        <button type="button" class="m-backtoday" id="mkDayToday" hidden>回到今天</button>
+      </div>
+      <button type="button" class="m-daybtn m-daynav-lg" id="mkDayNext" aria-label="后一天">›</button>
+    </div>
+
+    <!-- 主栏 + 右栏 -->
+    <div class="m-ws">
+
+      <section class="m-plancard" aria-labelledby="mkTaskHeading">
+
+        <!-- ① 今日进度 -->
+        <div class="m-summary" id="mkSumCard">
+          <div class="m-sumtop">
+            <span class="m-seclabel">今日进度</span>
+            <div class="m-count" aria-live="polite"><div class="m-bigq">3<small>/7 项</small></div></div>
+          </div>
+          <p class="m-sumcopy"><span class="m-sublab">已完成 3 项，还剩 4 条</span></p>
+          <div class="m-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="43"><i style="width:43%"></i></div>
+          <div class="m-summeta"><span class="m-pcttxt">完成 43%</span><span class="m-mintxt">已完成 0 / 计划 0 分钟</span></div>
+        </div>
+
+        <!-- 顺延提示（有 carried 才显示） -->
+        <div class="m-carry" id="mkCarry" hidden><span class="m-carry-ic">↻</span><span class="m-carry-tx"><b>0 项任务从昨天顺延</b>，已排在今天前面；没做完也不会丢。</span></div>
+
+        <!-- ② 今天的任务 -->
+        <div class="m-tasksec" id="mkTaskCard">
+          <div class="m-taskhead">
+            <h2 class="m-th2" id="mkTaskHeading">今天的任务</h2>
+            <div class="m-filter" role="group" aria-label="筛选任务" id="mkFilter">
+              <button type="button" class="m-fbtn active" data-mfilter="all" aria-pressed="true">全部</button>
+              <button type="button" class="m-fbtn" data-mfilter="open" aria-pressed="false">待完成</button>
+              <button type="button" class="m-fbtn" data-mfilter="done" aria-pressed="false">已完成</button>
+            </div>
+          </div>
+          <div class="m-tasklist" id="mkTaskList">
+            <div class="m-task m-done"><span class="m-cb"></span><span class="m-t">背词：List 7 复习</span><span class="m-tagline">单词</span><span class="m-jmp">去练 →</span></div>
+            <div class="m-task m-done"><span class="m-cb"></span><span class="m-t">听力 P1 精听一篇</span><span class="m-tagline">听力</span><span class="m-jmp">去练 →</span></div>
+            <div class="m-task"><span class="m-cb"></span><span class="m-t">口语 P2 卡牌练 3 张</span><span class="m-tagline">口语</span><span class="m-jmp">去练 →</span></div>
+            <div class="m-task"><span class="m-cb"></span><span class="m-t">写作 Task 1 图表一篇</span><span class="m-tagline">写作</span><span class="m-jmp">去练 →</span></div>
+          </div>
+          <div class="m-empty" id="mkEmpty" hidden><b>这一天还没有任务</b><span>写一条，或让 AI 帮你安排。</span></div>
+
+          <!-- ③ 添加区 -->
+          <div class="m-addrow" id="mkAddRow">
+            <label class="m-addlab" for="mkAddText">加一条具体、可完成的任务</label>
+            <div class="m-addbox">
+              <input type="text" id="mkAddText" class="m-addinput" placeholder="例如：精听 S1 填空 30 分钟" autocomplete="off" />
+              <button type="button" class="m-addbtn m-pri" id="mkAddBtn">添加任务</button>
+            </div>
+            <button type="button" class="m-addbtn m-aibtn" id="mkAiBtn">AI 安排今天</button>
+            <p class="m-ainote">根据诊断结果、考试日期与可用时间生成</p>
+          </div>
+        </div>
+
+        <!-- ④ 备考诊断：这一块**不在这里写**。
+             原来这位置放了一张手写的假诊断卡（.m-dg），而页面底部 #diagRoot 里
+             renderDiagEntry() 还会渲染一张**真**诊断卡 —— 实测两卡同时可见，
+             用户看到两个「备考诊断」。假卡内容也是写死的（「还没做过」），
+             真做过诊断的账号同样显示「还没做过」，等于又一处假数据。
+             笔 1 先把假卡整块去掉，只留 #diagRoot 那套真功能；
+             笔 3 再把 #diagRoot 搬进右栏做成稿子里的样子。 -->
+      </section>
+
+      <!-- 右栏（笔 3 填内容；先留空壳，避免布局跳动） -->
+      <aside class="m-side" aria-label="学习辅助信息" id="mkSide"></aside>
+
+    </div>
+  </div>
   </div><!-- /.m-page (今天) -->
 
   <!-- 🔴 P-1R：旧的「今天的计划」卡片整块隐藏（节点一个都没删）。

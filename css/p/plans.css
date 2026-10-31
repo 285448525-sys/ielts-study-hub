@@ -236,3 +236,196 @@
    不占满会被挤成 168px 一格的小方框，看着像坏了。空态本体仍走 common.js 的 renderEmpty(.empty)。 */
 #mDays .empty{ grid-column: 1 / -1; }
 
+
+/* ══════════════════════════════════════════════════════════════════════
+   PLANS-REDESIGN-CODE-1（10-31）计划页整面重做 · 笔 1／3：壳
+   ══════════════════════════════════════════════════════════════════════
+   依据 design/plan-redesign-SSR-2026-10-30.html（SSR 出稿，她 10-31 回「通过」）。
+
+   🔴 全部规则挂在 #mkToday 作用域下，配合 m- 类名双保险：
+      站点 common.css 的 .card / .chip / .filter / .muted / .btn 都是无前缀类，
+      裸 class 会打穿别的 18 个页面。这里一个新类名都不进 common.css。
+   🔴 色值一律取站点 token（--primary-*、--surface、--line），不新造色板；
+      稿子里写死的 #3a9a93 / #eef7f6 在站点就是 --primary-500 / --primary-50，同值。
+   🔴 字号/间距按稿子取，手机档再收一档（见 @media 760 段），守「不滚不裁」红线。
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── 页头：eyebrow + 大标题 + 副行 / 右侧阶段胶囊 ── */
+#mkToday .m-pghead{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin:0 0 26px}
+#mkToday .m-pghead-l{min-width:0}
+#mkToday .m-eyebrow{font-size:11px;font-weight:750;letter-spacing:.14em;color:var(--primary-700);text-transform:uppercase}
+#mkToday .m-h1{margin:5px 0 6px;font-size:30px;line-height:1.3;letter-spacing:-.035em;color:var(--ink)}
+#mkToday .m-pgsub{margin:0;color:var(--muted);font-size:14px}
+#mkToday .m-pghead-r{display:flex;align-items:center;gap:10px;flex:none}
+/* .m-phase 在新骨架里是「阶段那一行」的容器（胶囊 + 今天/往日 tab），本身不画外观；
+   胶囊外观交给 .m-phase-chip。这样 #planTabs 仍是 .m-phase 的后代，
+   P-HEAD-1 定下的回归判据（tab 并进阶段条那一行）继续成立。 */
+#mkToday .m-phase{display:flex;align-items:center;gap:10px;flex:none}
+#mkToday .m-phase.m-phase-row{padding:0;border:0;background:none;border-radius:0}
+#mkToday .m-phase-chip{display:flex;align-items:center;gap:9px;padding:9px 12px;
+  border:1px solid var(--primary-200);background:var(--primary-50);border-radius:12px;
+  color:var(--primary-900);font-size:12px;min-width:0}
+#mkToday .m-phase b{font-size:14px}
+#mkToday .m-phase .m-chip{display:inline-flex;align-items:center;gap:6px;padding:0;border:0;background:none;
+  font-size:12px;font-weight:700;color:var(--primary-900)}
+#mkToday .m-phase .m-chip::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--primary)}
+
+/* ── 日期条 ── */
+#mkToday .m-datebar{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center;gap:12px;
+  margin:0 0 22px;padding:14px 16px;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--radius);box-shadow:0 1px 2px rgba(16,24,40,.03)}
+#mkToday .m-daynav-lg{width:44px;height:44px;padding:0;border:1px solid var(--line);border-radius:12px;
+  background:var(--n-100);color:var(--ink-2);display:grid;place-items:center;
+  font:inherit;font-size:19px;line-height:1;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+#mkToday .m-daynav-lg:hover{background:var(--primary-50);border-color:var(--primary-200);color:var(--primary-700)}
+#mkToday .m-daynav-lg:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(58,154,147,.25)}
+#mkToday .m-datemain{text-align:center;min-width:0}
+#mkToday .m-datetitle{display:flex;align-items:center;justify-content:center;gap:9px;
+  font-size:18px;font-weight:750;line-height:1.3;color:var(--ink)}
+#mkToday .m-todaytag{padding:2px 7px;background:var(--primary-50);border-radius:6px;
+  color:var(--primary-700);font-size:10px;font-weight:700;letter-spacing:.04em}
+#mkToday .m-datesub{margin-top:4px;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+#mkToday .m-backtoday{display:block;margin:2px auto 0;padding:6px 8px;border:0;background:none;
+  color:var(--primary-700);font-size:12px;min-height:32px;cursor:pointer;border-radius:8px}
+#mkToday .m-backtoday:hover{background:var(--primary-50)}
+
+/* ── 两栏工作区 ── */
+#mkToday .m-ws{display:grid;grid-template-columns:minmax(0,1fr) 306px;gap:22px;align-items:start}
+#mkToday .m-plancard,#mkToday .m-side-card{background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--radius);box-shadow:0 1px 2px rgba(16,24,40,.04),0 8px 24px -4px rgba(16,24,40,.06)}
+#mkToday .m-plancard{overflow:hidden}
+
+/* ── 今日进度 ── */
+#mkToday .m-summary{padding:24px 26px 20px;border-bottom:1px solid var(--line);
+  background:linear-gradient(115deg,var(--surface) 45%,var(--primary-50))}
+#mkToday .m-sumtop{display:flex;align-items:center;justify-content:space-between;gap:16px}
+#mkToday .m-seclabel{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.03em}
+#mkToday .m-count{display:flex;align-items:baseline;gap:5px;font-variant-numeric:tabular-nums}
+#mkToday .m-bigq{font-size:32px;line-height:1;color:var(--primary-900);letter-spacing:-.04em;font-weight:750}
+#mkToday .m-bigq small{font-size:14px;color:var(--muted);font-weight:400;margin-left:3px}
+#mkToday .m-sumcopy{margin:8px 0 16px;font-size:14px;color:var(--ink-2)}
+#mkToday .m-sumcopy b{color:var(--ink);font-weight:700}
+#mkToday .m-bar{height:7px;border-radius:99px;background:var(--primary-100);overflow:hidden}
+#mkToday .m-bar i{display:block;height:100%;width:0;background:var(--primary);border-radius:inherit;transition:width .25s ease}
+#mkToday .m-summeta{display:flex;justify-content:space-between;gap:12px;margin-top:9px;color:var(--muted);font-size:11px}
+
+/* ── 顺延提示 ── */
+#mkToday .m-carry{display:flex;gap:9px;align-items:flex-start;margin:18px 26px 0;padding:11px 13px;
+  background:#fff7eb;border-radius:11px;color:#8a5200;font-size:12px}
+#mkToday .m-carry-ic{flex:none;line-height:1.4}
+#mkToday .m-carry b{font-weight:700}
+
+/* ── 任务区 ── */
+#mkToday .m-taskhead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:22px 26px 9px}
+#mkToday .m-th2{margin:0;font-size:16px;line-height:1.4;letter-spacing:-.01em;color:var(--ink)}
+#mkToday .m-filter{display:flex;gap:3px;padding:3px;background:var(--bg);border-radius:9px}
+#mkToday .m-fbtn{min-height:32px;padding:3px 10px;border:0;border-radius:7px;background:none;
+  color:var(--muted);font:inherit;font-size:11px;cursor:pointer}
+#mkToday .m-fbtn.active{background:var(--surface);color:var(--ink);font-weight:650;box-shadow:0 1px 3px rgba(16,24,40,.09)}
+#mkToday .m-tasklist{margin:0;padding:4px 18px 12px}
+#mkToday .m-tasklist .m-task{display:flex;align-items:flex-start;gap:12px;padding:16px 8px;
+  border-bottom:1px solid var(--line);transition:opacity .18s;cursor:pointer}
+#mkToday .m-tasklist .m-task:last-child{border-bottom:0}
+#mkToday .m-task[data-mfiltered]{display:none!important}
+#mkToday .m-task .m-cb{position:relative;flex:none;width:24px;height:24px;margin:1px 0 0;
+  border:1.5px solid var(--n-500);border-radius:8px;background:var(--surface);
+  display:grid;place-items:center;color:#fff;transition:background .15s,border-color .15s}
+#mkToday .m-task .m-cb::after{content:"";width:11px;height:6px;border-left:2px solid currentColor;
+  border-bottom:2px solid currentColor;transform:rotate(-45deg) translateY(-1px);opacity:0}
+#mkToday .m-task.m-done .m-cb{background:var(--primary);border-color:var(--primary)}
+#mkToday .m-task.m-done .m-cb::after{opacity:1}
+#mkToday .m-task .m-t{flex:1 1 0%;min-width:0;color:var(--ink);font-size:14px;font-weight:600;
+  line-height:1.5;overflow-wrap:anywhere}
+#mkToday .m-task.m-done .m-t{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--n-500)}
+#mkToday .m-task .m-tagline{flex:none;padding:1px 7px;border-radius:5px;background:var(--n-100);
+  border:1px solid var(--line);color:var(--ink-2);font-size:11px;font-weight:650;line-height:1.6}
+#mkToday .m-task .m-jmp{flex:none;color:var(--primary-700);font-size:12px;font-weight:650;line-height:1.8}
+
+/* ── 添加区 ── */
+#mkToday .m-addrow{margin:4px 26px 24px;padding-top:18px;border-top:1px solid var(--line);
+  background:none;border-radius:0;border-left:0;border-right:0;border-bottom:0}
+#mkToday .m-addlab{display:block;margin-bottom:8px;color:var(--ink-2);font-size:12px;font-weight:650}
+#mkToday .m-addbox{display:flex;gap:9px;flex-wrap:nowrap}
+#mkToday .m-addinput{min-width:0;flex:1;height:44px;padding:0 13px;border:1px solid var(--line);
+  border-radius:11px;background:var(--n-100);color:var(--ink);font:inherit;font-size:13px}
+#mkToday .m-addinput::placeholder{color:var(--muted)}
+#mkToday .m-addinput:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(58,154,147,.2);background:var(--surface)}
+#mkToday .m-addbtn{min-height:44px;padding:9px 15px;border:1px solid var(--line);border-radius:11px;
+  background:var(--surface);color:var(--ink-2);font:inherit;font-size:13px;font-weight:650;
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap;
+  cursor:pointer;transition:background .15s,border-color .15s}
+#mkToday .m-addbtn:hover{background:var(--n-100)}
+#mkToday .m-addbtn.m-pri{background:var(--primary-700);border-color:var(--primary-700);color:#fff}
+#mkToday .m-addbtn.m-pri:hover{background:var(--primary-900);border-color:var(--primary-900)}
+#mkToday .m-addbtn:disabled{opacity:.55;cursor:default}
+#mkToday .m-addbtn.m-aibtn{width:100%;margin-top:9px;background:var(--primary-50);
+  border-color:var(--primary-200);color:var(--primary-900)}
+#mkToday .m-addbtn.m-aibtn:hover{background:var(--primary-100)}
+#mkToday .m-ainote{margin:7px 0 0;text-align:center;color:var(--muted);font-size:10px}
+
+/* ── 空态 ── */
+#mkToday .m-empty{padding:34px 18px;text-align:center;color:var(--muted);font-size:13px}
+#mkToday .m-empty b{display:block;margin-bottom:4px;color:var(--ink);font-size:15px}
+
+/* ── 诊断卡（笔 3 挪进右栏；先保证外观不塌） ── */
+#mkToday .m-dg{margin:18px 26px 24px;padding:16px 18px;border:1px solid var(--primary-200);
+  background:var(--primary-50);border-radius:12px}
+#mkToday .m-dg .m-dgh{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+#mkToday .m-dg .m-ic{width:30px;height:30px;border-radius:9px;background:var(--surface);
+  border:1px solid var(--primary-200);display:grid;place-items:center;font-size:15px;flex:none}
+#mkToday .m-dg .m-ttl{font-size:14.5px;font-weight:700;color:var(--primary-900)}
+#mkToday .m-dg .m-dgsub{font-size:12px;color:var(--muted)}
+#mkToday .m-dg p{margin:0 0 11px;font-size:13px;color:var(--ink-2);line-height:1.6}
+#mkToday .m-dg .m-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#mkToday .m-dg .m-meta{font-size:12px;color:var(--muted);margin-left:auto}
+#mkToday .m-dg .m-btn{border:1px solid var(--line);background:var(--surface);border-radius:9px;
+  padding:8px 15px;font:inherit;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer}
+#mkToday .m-dg .m-btn.m-pri{background:var(--primary-700);border-color:var(--primary-700);color:#fff}
+
+/* ── 右栏（笔 3 填内容） ── */
+#mkToday .m-side{display:grid;gap:18px}
+
+/* ── 手机 / 窄屏：一屏收一档，不许横向溢出 ── */
+@media(max-width:900px){
+  #mkToday .m-ws{grid-template-columns:minmax(0,1fr) 270px;gap:16px}
+}
+@media(max-width:760px){
+  #mkToday .m-pghead{align-items:flex-start;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+  #mkToday .m-h1{font-size:25px;margin-top:3px}
+  #mkToday .m-pgsub{font-size:12px}
+  #mkToday .m-pghead-r{width:100%;justify-content:space-between}
+  #mkToday .m-phase-chip{padding:7px 9px;gap:6px;font-size:10px}
+  #mkToday .m-phase b{font-size:12px}
+  #mkToday .m-datebar{grid-template-columns:38px minmax(0,1fr) 38px;padding:10px;gap:8px;
+    margin-bottom:14px;border-radius:15px}
+  #mkToday .m-daynav-lg{width:38px;height:38px;border-radius:11px;font-size:17px}
+  #mkToday .m-datetitle{font-size:16px}
+  #mkToday .m-datesub{font-size:11px}
+  #mkToday .m-ws{display:flex;flex-direction:column;gap:14px}
+  #mkToday .m-plancard,#mkToday .m-side{width:100%}
+  #mkToday .m-summary{padding:18px 18px 15px}
+  #mkToday .m-bigq{font-size:28px}
+  #mkToday .m-sumcopy{font-size:13px;margin-bottom:13px}
+  #mkToday .m-carry{margin:14px 16px 0;font-size:11px}
+  #mkToday .m-taskhead{padding:18px 18px 8px}
+  #mkToday .m-th2{font-size:15px}
+  #mkToday .m-tasklist{padding:3px 10px 8px}
+  #mkToday .m-tasklist .m-task{padding:14px 6px;gap:10px}
+  #mkToday .m-task .m-cb{width:25px;height:25px}
+  #mkToday .m-task .m-t{font-size:13.5px}
+  #mkToday .m-addrow{margin:3px 18px 18px;padding-top:15px}
+  /* 手机档：输入框占满整行、按钮落到下一行。
+     并排会裁掉占位文字（实测 390 宽只剩约 200px，稿子里那句例子读不全）—
+     宁可多一行也不裁字，这是她反复强调的红线。 */
+  #mkToday .m-addbox{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+  #mkToday .m-addinput{width:100%;height:46px;font-size:16px}
+  #mkToday .m-addbtn{width:100%;min-height:46px}
+  #mkToday .m-dg{margin:14px 18px 18px;padding:14px}
+  #mkToday .m-dg .m-meta{display:none}
+}
+
+/* ── 深色：只补几处写死白的底面，其余全走站点 token ── */
+[data-theme="dark"] #mkToday .m-task .m-cb{background:var(--surface);border-color:var(--n-500)}
+[data-theme="dark"] #mkToday .m-addinput{background:var(--surface)}
+[data-theme="dark"] #mkToday .m-daynav-lg{background:var(--surface)}
+[data-theme="dark"] #mkToday .m-carry{background:var(--surface);color:var(--warn-ink,#e0a458)}
