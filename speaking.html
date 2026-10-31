@@ -32,7 +32,7 @@
 </script>
 <title>口语 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261029l" />
-<link rel="stylesheet" href="css/p/speaking.css?v=20261029l" />
+<link rel="stylesheet" href="css/p/speaking.css?v=20261031b" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -57,7 +57,7 @@
   <script defer src="js/feedback.js?v=20261027a"></script>
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
-  <script defer src="js/sentence-drill.js?v=20261001i"></script>
+  <script defer src="js/sentence-drill.js?v=20261031a"></script>
   <!-- coach 同例：必须在 speaking.js 之前，顶层 window.__COACH_ON 先立，tab 分支才接管得到 -->
   <!-- 10/3 头像选择：必须在 coach.js 之前（陪练气泡头像渲染时就要读 window.avUserSrc）。
        10/3 22:55 扩展：陪练页弹层（avOpen('coach') / avCoachSrc）。
@@ -178,8 +178,13 @@
   .sent-wrong-entry.sent-wrong-empty{background:transparent;border:1px dashed var(--line);color:var(--muted);font-size:13px;font-weight:400;cursor:default}
   .sent-wrong-entry.sent-wrong-empty:hover{border-color:var(--line);color:var(--muted)}
   .sent-wrong-list{margin-top:8px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
-  .sent-back{display:inline-block;font-size:13px;color:var(--muted);cursor:pointer;margin-bottom:10px}
-  .sent-back:hover{color:var(--primary)}
+  /* BACK-BTN-PAGES-1（10-31）：句型练习那颗 `.sent-back` 纯文字返回已换成统一基类 .site-back
+     （js/sentence-drill.js 里生成，本文件已无元素引用 .sent-back）→ 两条规则删掉。
+     留着会把它压回 13px muted 纯文字、圆角 0，与统一外形打架。
+     🔴 补两条基类不管的：① 与下方内容的间距（原 margin-bottom:10px）② 它是 div 不是 button，
+        基类不设 display:inline-block 之外的东西，这里确保它不占整行宽度。 */
+  [data-sent-back]{margin-bottom:10px}
+  [data-sent-back].site-back{width:auto}
   .sent-tag{font-size:12.5px;color:var(--muted);margin-bottom:8px}
   .sent-cn{font-size:21px;font-weight:700;color:var(--ink);line-height:1.55;letter-spacing:-.01em;margin-bottom:16px}
   .sent-orig{font-size:15.5px;line-height:1.8;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px;word-break:break-word}
@@ -434,10 +439,12 @@
   .diag-score-basis b{color:var(--primary)}
 
   /* 详情页 */
-  /* 9/15 之之：返回按钮胶囊化（原纯文字+箭头不醒目） */
-  .sp-detail-back{display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:var(--primary);font-size:14px;margin-bottom:14px;font-weight:700;padding:8px 18px 8px 14px;border-radius:999px;background:var(--primary-soft);border:1px solid rgba(58,154,147,.28);transition:.15s;user-select:none}
-  .sp-detail-back svg{width:15px;height:15px}
-  .sp-detail-back:hover{background:var(--primary);color:#fff;border-color:var(--primary)}
+  /* BACK-BTN-PAGES-1（10-31）：9/15 那套「胶囊化」.sp-detail-back 已换成全站统一基类 .site-back
+     （#backBtn 已接线，本文件里已无元素引用 .sp-detail-back）→ 三条规则一并删。
+     留着会让以后复用它的人被 `border-radius:999px;background:var(--primary-soft);padding:8px 18px`
+     静默压成胶囊，与统一外形打架。
+     🔴 只补一条基类不管的间距：原胶囊是 margin-bottom:14px，基类不给外边距。 */
+  #backBtn.site-back{margin-bottom:14px}
   .sp-detail-title{font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1.12;color:var(--ink)}
   .sp-detail-zh{font-size:14px;color:var(--muted);margin-top:5px}
   .sp-detail-tags{display:flex;gap:6px;flex-wrap:wrap;margin:0;padding-bottom:6px}
@@ -2972,7 +2979,13 @@ html[data-theme="dark"] #detailBody .sp-tc-head{
 
   <!-- 详情视图 -->
   <div id="detailView" hidden>
-    <span class="sp-detail-back" id="backBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M11 18l-6-6 6-6"/></svg>返回</span>
+    <!-- BACK-BTN-PAGES-1（10-31）：接线统一基类 .site-back。
+         🔴 只换外观：id="backBtn" 保留（js/speaking.js:213 的 addEventListener 一字未改）；
+            tag 仍 <span>（改为 button 会引入新的 focus/回车语义，不在本单范围）；
+            文案从笼统的「返回」补成「返回口语题库」（规范稿：「不能只写笼统的返回」）——
+            实际去向就是回题库列表（listView，spActivateTab('BANK')）。
+         旧的 .sp-detail-back 胶囊样式在下面 <style> 里，本笔一并撤掉（见该处注释）。 -->
+    <span class="site-back" id="backBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M11 18l-6-6 6-6"/></svg><span class="site-back-txt">返回口语题库</span></span>
     <div id="detailBody"></div>
   </div>
 

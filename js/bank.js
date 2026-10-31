@@ -153,6 +153,26 @@
       + (actText ? '<button type="button" class="btn btn-ghost btn-sm bk-st-act" data-bk-act="' + kind + '">' + actText + '</button>' : '')
       + '</div>';
   }
+  /* MOCK-LOADING-PAGE-1（10-31）：进考场那一刻的载入页。
+     依据 design/MOCK-LOADING-PAGE-1-加载试卷页样子稿-2026-10-31.html（她「还行」= 接受）。
+     🔴 钩子不变：仍是 .bk-state + data-bk-state="loading" + [data-bk-act=loading]，
+        所以 fetchWithStates 里「取消按钮重新绑事件」「失败态重试」两条链路一行都不用动。
+     🔴 不再画那 6 行列表骨架：那是**目录列表**的形态，进考场时在一张全屏白底上孤零零六根灰条
+        正是她说的「不好看」。这里换成试卷图标 + 旋转进度环 + 标题 + 不定量进度条。 */
+  function bkLoadPage(title, sub, actText){
+    return '<div class="bk-state bk-loadpage" data-bk-state="loading" role="status" aria-live="polite">'
+      + '<div class="bk-lp-hero" aria-hidden="true">'
+      +   '<svg class="bk-lp-ring" viewBox="0 0 100 100"><circle class="bk-lp-ringbg" cx="50" cy="50" r="44"/><circle class="bk-lp-ringp" cx="50" cy="50" r="44"/></svg>'
+      +   '<svg class="bk-lp-doc" viewBox="0 0 24 30"><path d="M4 1.2h10.6L20 6.6V28.8H4z"/><path d="M14.6 1.2v5.4H20"/><path d="M7.6 13h8.8M7.6 17.4h8.8M7.6 21.8h5.6"/></svg>'
+      +   '<span class="bk-lp-dots"><i></i><i></i><i></i></span>'
+      + '</div>'
+      + '<p class="bk-st-title">' + esc(title) + '</p>'
+      + (sub ? '<p class="bk-st-sub">' + esc(sub) + '</p>' : '<p class="bk-st-sub"></p>')
+      + '<div class="bk-lp-bar" aria-hidden="true"><i></i></div>'
+      + '<p class="bk-lp-tip">第一次加载需要几秒钟，之后打开会快很多</p>'
+      + (actText ? '<button type="button" class="btn btn-ghost btn-sm bk-st-act" data-bk-act="loading">' + actText + '</button>' : '')
+      + '</div>';
+  }
   function bkSkeleton(rows){
     var n = (window.matchMedia && window.matchMedia('(max-width:420px)').matches) ? 4 : (rows || 6);
     var h = '<div class="bk-skel" data-bk-state="skeleton" aria-hidden="true">';
@@ -170,8 +190,8 @@
     var hasAC = (typeof AbortController === 'function');
     var ac = hasAC ? new AbortController() : null;
     container._bkAbort = ac;
-    container.innerHTML = bkSkeleton(6)
-      + bkStateBox('loading', '正在载入' + objName + '…', '大文件第一次加载要几秒', opts.noCancel ? '' : '取消');
+    container.innerHTML = bkLoadPage(opts.lpTitle || ('正在载入' + objName), opts.lpSub || '',
+                                     opts.noCancel ? '' : '取消加载');
     var cancelBtn = container.querySelector('[data-bk-act=loading]');
     if(cancelBtn){
       cancelBtn.addEventListener('click', function(){
@@ -799,7 +819,8 @@
          但失败态仍可「重试」，取消态不会出现。 */
       fetchWithStates(host, 'Test ' + String(unitId).replace(/^.*\//, ''), 'bank/' + channel + '/' + unitId + '.json', function(box, unit){
         startUnitExam(unit, unitId, channel);
-      }, { noCancel: true });
+      }, { noCancel: true, lpTitle: '正在载入试卷',
+           lpSub: channel === 'listening' ? 'IELTS Listening · 听力练习' : 'IELTS Reading · 阅读练习' });
     }
   }
 
@@ -2624,7 +2645,7 @@ window.__reportExamState = reportExamState;
       host.hidden = false;
       fetchWithStates(host, 'Test', 'bank/reading/' + picks[0].id + '.json', function(box){
         startFullTest(picks);
-      }, { noCancel: true });
+      }, { noCancel: true, lpTitle: '正在载入试卷', lpSub: 'IELTS Reading Test · Full Test · 40 题' });
       return;
     }
     startFullTest(picks);
@@ -2707,7 +2728,7 @@ window.__reportExamState = reportExamState;
       host.hidden = false;
       fetchWithStates(host, 'Test', 'bank/listening/' + picks[0].id + '.json', function(box){
         startFullListenTest(picks);
-      }, { noCancel: true });
+      }, { noCancel: true, lpTitle: '正在载入试卷', lpSub: 'IELTS Listening Test · Full Test · 40 题' });
       return;
     }
     startFullListenTest(picks);

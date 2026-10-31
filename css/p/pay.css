@@ -9,8 +9,8 @@
 .pay-wrap{max-width:560px;margin:0 auto}
 
 .pay-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
-.pay-back{color:var(--ink-2);font-size:13px;text-decoration:none;cursor:pointer}
-.pay-back:hover{color:var(--ink)}
+/* BACK-BTN-PAGES-1（10-31）：顶部那颗返回已换成统一基类 .site-back，.pay-back / :hover 两条删掉
+   （全站已无元素引用它；留着以后谁复用这个类名会被压成 13px 纯文字、与统一外形打架）。 */
 
 .pay-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow);margin-bottom:16px}
 .pay-label{font-size:11px;font-weight:700;color:var(--primary-500);letter-spacing:.08em;margin-bottom:4px;text-transform:uppercase}
@@ -65,6 +65,12 @@
 .pay-received-acts{display:flex;gap:10px;margin-top:14px;justify-content:center;flex-wrap:wrap}
 .pay-backs{display:inline-block;padding:8px 16px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);font-size:13px;text-decoration:none;cursor:pointer;font-family:inherit}
 .pay-backs:hover{background:var(--surface-2);color:var(--ink)}
+/* BACK-BTN-PAGES-1（10-31）：完成态那颗「返回会员页」已换成统一基类 .site-back；
+   旁边「还没转，继续留在这」保持 .pay-backs（它是留在原地的次操作，不是返回）。
+   两条是基类不管的：① 与旁边那颗同高对齐（.pay-backs 实测 39px，基类桌面 36）② 横向不被压。 */
+/* 桌面与旁边那颗（.pay-backs 39px）同高；手机档不压，走基类的 40px 可点区下限。 */
+@media(min-width:641px){#backToVip.site-back{min-height:39px}}
+#backToVip.site-back{flex:none}
 
 /* 缩版 FAQ */
 .pay-faq{padding:16px 22px}

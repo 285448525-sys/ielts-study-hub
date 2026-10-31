@@ -30,8 +30,46 @@ button{cursor:pointer}
 button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(--light);outline-offset:2px}
 [hidden],.lg-hidden{display:none!important}
 .top{max-width:1040px;margin:auto;padding:16px 24px 0;display:flex;justify-content:space-between;align-items:center;gap:16px}
-.top a{color:var(--teal-d);text-decoration:none;font-weight:650;display:inline-flex;align-items:center;padding:0 3px;min-height:44px}
-.top a:hover{text-decoration:underline}
+
+/* ===== BACK-BTN-PAGES-1（10-31）：返回钮统一基类 .site-back 在本页的作用域副本 =====
+   🔴 为什么要副本：本页是独立工具页，**不加载 css/common.css**（见文件头注释），
+      所以 common.css:535 那份 .site-back 在本页根本不存在 —— 只改 class 名不会有任何视觉变化。
+   🔴 为什么不直接引 common.css：实测引入后 .stage 宽度 1040→945、`.duo` 左移 121px、
+      输入框圆角 10→12px、字号 15→14.5px，整页观感会跟着变。她明早第一眼看站，
+      「统一返回钮」不该顺带重排整张登录卡。
+   🔴 数值**逐条抄** common.css:535 那份（高 36 / 1px 边 / 10px 圆角 / 16px svg / gap 7 /
+      左内距 10 右 12 / 字重 650 / 字号 13），只是把 token 名换成本页这套
+      （--surface→--card、--line→--line、--ink-2→--muted、--primary→--teal、
+        --primary-700→--teal-d、--primary-soft→--teal-s）。
+      common.css 那边以后若改数值，本段要同步改 —— 这是副本的代价，写在这里防忘。
+   🔴 手机可点区：min-height 40px（规范稿要求），桌面 36px。 */
+.site-back{
+  display:inline-flex;align-items:center;gap:7px;
+  height:36px;padding:0 12px 0 10px;
+  border:1px solid var(--line);border-radius:10px;
+  background:var(--card);color:var(--muted);
+  font-size:13px;font-weight:650;font-family:inherit;line-height:1.3;
+  text-decoration:none;white-space:nowrap;cursor:pointer;
+  transition:background .15s ease,border-color .15s ease,color .15s ease;
+}
+.site-back svg{width:16px;height:16px;flex:none}
+.site-back:hover{border-color:var(--teal);color:var(--teal-d);background:var(--teal-s);text-decoration:none}
+.site-back:active{transform:translateY(1px)}
+.site-back:focus-visible{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-s)}
+/* 🔴 补 4px 上下外边距：原来那颗纯文字链接是 min-height:44px，顶部那行实测 44 高；
+   基类按钮只有 36 高，不补就整行矮 8px，下面整张登录卡会跟着上移 8px（亚像素级观感漂移）。
+   4+36+4=44，顶行高度与改前**逐像素一致**，页面其它元素一点不动。 */
+.top .site-back{margin:4px 0}
+/* 手机档：可点区 40（规范稿要求）+ 上下各 2 = 44，与改前那颗 44 高的文字链接等高，
+   顶行高度 56px 与改前逐像素一致（第一次只补 4px 上边距时，390 档顶行从 56 涨到 60、
+   整张登录卡下移 4px —— 基线对照量出来的，已修）。 */
+@media(max-width:640px){ .site-back{min-height:40px} .top .site-back{margin:2px 0} }
+/* BACK-BTN-PAGES-1（10-31）：返回键已换成 .site-back 基类实体按钮。
+   🔴 这两条必须加 :not(.site-back) 排除 —— 原写法 `.top a`（特异性 0,1,1）比 `.site-back`（0,1,0）
+      高，会把基类的白底/36px 高/12px 内距/灰字全部压回去，按钮看着还是"没换"（本批最典型的坑：
+      改了 class 但样式没生效）。排除后基类全权接管，页面上其余 .top 链接行为不变。 */
+.top a:not(.site-back){color:var(--teal-d);text-decoration:none;font-weight:650;display:inline-flex;align-items:center;padding:0 3px;min-height:44px}
+.top a:not(.site-back):hover{text-decoration:underline}
 .stage{max-width:1040px;width:100%;margin:auto;padding:24px 24px 20px;flex:1;display:flex;align-items:flex-start;justify-content:center}
 .duo{width:100%;max-width:460px}
 .foot-note{max-width:620px;margin:0 auto;padding:0 24px 22px;font-size:12px;color:var(--muted);text-align:center}

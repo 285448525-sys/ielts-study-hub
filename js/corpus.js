@@ -714,7 +714,8 @@ function speak(text, lang){ try{ const u=new SpeechSynthesisUtterance(text); u.l
 /* 句子结构拆解（商业版默认模式）：主干 + 成分 + 逻辑信号 + 命题人视角 */
 var SYS_STRUCT = `你是一位资深雅思阅读教学老师。用户给你一个来自雅思阅读的长难句，请做「句子结构拆解」，输出以下 JSON（不要前言、不要解释、不要 markdown 围栏）：
 
-{"backbone":"句子主干：主谓宾核心，保留原词，可用 … 截断修饰成分",
+{"backboneParts":{"subject":"主语（原句照抄）","verb":"谓语或核心动词（原句照抄）","object":"宾语或核心观点（原句照抄；是从句就整段带上）"},
+"backbone":"句子主干：主谓宾核心，保留原词，可用 … 截断修饰成分",
 "clauses":[{"text":"从句/插入语等修饰成分原文","type":"宾语从句","role":"一句话：它说明/修饰的是什么"}],
 "signals":[{"word":"逻辑信号词","logic":"转折","exam":"一句话：命题人常用它怎么设坑"}],
 "translation":"自然通顺的中文译文",
@@ -726,7 +727,8 @@ var SYS_STRUCT = `你是一位资深雅思阅读教学老师。用户给你一�
 2. signals 只挑真正影响解题的逻辑词（however/while/yet/whereas/because/in contrast 等），没有就空数组。
 3. keyWords 提取 3-6 个，note 必须具体（例：「pose 与 present/constitute 构成同义替换，判断题常考」），不写"重要词汇"这类空话。
 4. examLens 是本产品与普通翻译工具拉开差距的核心：站到出题人角度写，不许写"这句话很难"这类无信息量评价。
-5. 全部简体中文，英文片段保留英文。`;
+5. 全部简体中文，英文片段保留英文。
+6. backboneParts 的三段必须**从原句照抄原词**，不许改写、不许换词、不许自己补字；作宾语的若是从句（that…/wh-…），整段放进 object。这一段前端要按「谁 / 做什么 / 核心观点」上三色，抄错就画错。`;
 
 var LS_MODE_KEY = 'corpus_ls_mode';   // 'struct'（默认） | 'si'（同声传译，之之自用）
 function lsMode(){
@@ -735,7 +737,13 @@ function lsMode(){
 function setLsMode(m){
   try{ localStorage.setItem(LS_MODE_KEY, m === 'si' ? 'si' : 'struct'); }catch(e){}
   const seg = document.getElementById('lsModeSeg');
-  if(seg) seg.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.lsmode === lsMode()));
+  /* CORPUS-PANEL-REDESIGN-1：终稿的分段控件用 .on 点亮（旧 .active 保留一并无害，防其它路径读它） */
+  if(seg) seg.querySelectorAll('button').forEach(b => {
+    const on = b.dataset.lsmode === lsMode();
+    b.classList.toggle('on', on);
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
 }
 
 ready(() => {
@@ -777,7 +785,12 @@ ready(() => {
   /* P1 专业化：拆解模式切换（默认结构拆解；同传为自用模式），刷新后 localStorage 记忆 */
   const lsSeg = document.getElementById('lsModeSeg');
   if(lsSeg){
-    lsSeg.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.lsmode === lsMode()));
+    lsSeg.querySelectorAll('button').forEach(b => {
+      const on = b.dataset.lsmode === lsMode();
+      b.classList.toggle('on', on);
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
     lsSeg.addEventListener('click', e => {
       const btn = e.target.closest('button[data-lsmode]');
       if(btn) setLsMode(btn.dataset.lsmode);
@@ -1257,7 +1270,7 @@ async function analyze(){
   const sent = $('#sentInput').value.trim();
   if(!sent){ toast('先粘贴一个长难句'); return; }
   const status = $('#sentStatus');
-  status.textContent = '拆解中…（长句可能要 10–20 秒）'; status.className = 'word-status loading';
+  status.textContent = '拆解中…（长句可能要 10–20 秒）'; status.className = 'lsr-status is-loading';
   $('#analyzeBtn').disabled = true;
   try{
     const sys = lsMode() === 'si' ? SYS_LONG : SYS_STRUCT;
@@ -1267,12 +1280,14 @@ async function analyze(){
     body.innerHTML = renderResult(sent, text);
     bindWordHover(body);
     $('#origSent').textContent = sent;
-    $('#resultCard').style.display = '';
-    status.textContent = '拆解完成 ✓'; status.className = 'word-status ok';
+    /* CORPUS-PANEL-REDESIGN-1：显示要摘 hidden 属性 —— corpus.css 的 `.kc-page [hidden]{display:none!important}`
+       压过内联 style.display，原来那行等于没生效（结果卡一直出不来）。 */
+    $('#resultCard').hidden = false;
+    status.textContent = '拆解完成 ✓'; status.className = 'lsr-status is-ok';
     saveHist(sent, text);
     renderHistory();
   }catch(e){
-    status.textContent = '拆解失败：' + e.message; status.className = 'word-status err';
+    status.textContent = '拆解失败：' + e.message; status.className = 'lsr-status is-err';
     toast('拆解失败：' + e.message);
   }finally{
     $('#analyzeBtn').disabled = false;
@@ -1292,78 +1307,94 @@ function renderResult(sent, raw){
 }
 
 function renderNewResult(json){
+  /* 同传对照（她自用模式）· 按终稿：逐意群四列按钮 + 收录提示 + 自然译文 + 重点词汇。
+     稿子里这套是**无编号**的（编号只给结构拆解）——照稿。 */
   const wbw = (json.wordByWord || []).map(w => {
     const en = escapeHtml((w.en || '').trim());
     const cn = escapeHtml((w.cn || '').trim());
     if(!en) return '';
-    return `<div class="ls-wbw-item" tabindex="0" data-en="${en}" data-cn="${cn}" title="点击收录 · 悬停按 S 一键收录">
-      <span class="ls-wbw-en">${en}</span>
-      <span class="ls-wbw-cn">${cn}</span>
-    </div>`;
+    return `<button type="button" class="lsr-wbw-btn" data-en="${en}" data-cn="${cn}" title="点击收录 · 悬停按 S 一键收录"><b lang="en">${en}</b><span>${cn}</span></button>`;
   }).join('');
-
   const kws = (json.keyWords || []).map(w => {
     const en = escapeHtml((w.en || '').trim());
     const cn = escapeHtml((w.cn || '').trim());
     const note = escapeHtml((w.note || '').trim());
     if(!en) return '';
-    return `<div class="ls-kw-row" tabindex="0" data-en="${en}" data-cn="${cn}" title="点击收录 · 悬停按 S 一键收录">
-      <div class="ls-kw-main">
-        <span class="ls-kw-en">${en}</span>
-        <span class="ls-kw-cn">${cn}</span>
-        ${note ? `<span class="ls-kw-note">${note}</span>` : ''}
-      </div>
-      <button class="ls-kw-save" data-en="${en}" data-cn="${cn}" title="按 S 一键收录">收录</button>
+    return `<div class="lsr-word" tabindex="0" data-en="${en}" data-cn="${cn}" title="点击收录 · 悬停按 S 一键收录">
+      <div class="lsr-word-main"><b>${en}</b><span class="lsr-cn">${cn}</span>${note ? `<small>${note}</small>` : ''}</div>
+      <button type="button" class="lsr-save-word" data-en="${en}" data-cn="${cn}" title="按 S 一键收录">收录</button>
     </div>`;
   }).join('');
-
   return `
-    <div class="ls-sec">
-      <div class="ls-sec-title">同声传译 · 按语序逐字对照</div>
-      <div class="ls-wbw-grid">${wbw || renderEmpty('无逐词对照')}</div>
-      <div class="ls-save-hint">💡 悬停单词或重点词，按 <kbd>S</kbd> 一键收录到「我的词库」</div>
-    </div>
-    <div class="ls-sec">
-      <div class="ls-sec-title">自然译文 · 参考</div>
-      <div class="ls-natural">${escapeHtml(json.natural || '')}</div>
-    </div>
-    <div class="ls-sec">
-      <div class="ls-sec-title">重点词汇 · 点击/按 S 收录</div>
-      <div class="ls-kw-list">${kws || renderEmpty('无重点词汇')}</div>
-    </div>
+    <section class="lsr-asec">
+      <div class="lsr-sec-label">同声传译 · 按原句语序逐意群对照</div>
+      <div class="lsr-wbw">${wbw || renderEmpty('无逐意群对照')}</div>
+      <div class="lsr-collect-hint">点击意群收录到「我的词库」；电脑端悬停后按 S 也可以。</div>
+    </section>
+    <section class="lsr-asec">
+      <div class="lsr-sec-label">自然译文</div>
+      <div class="lsr-translation">${escapeHtml(json.natural || '')}</div>
+    </section>
+    <section class="lsr-asec">
+      <div class="lsr-sec-label">重点词汇</div>
+      <div class="lsr-word-list">${kws || renderEmpty('无重点词汇')}</div>
+    </section>
   `;
 }
 
-/* 结构拆解渲染（商业版默认）：主干/成分/逻辑信号/译文/考点词/命题人视角；考点词与同传模式同 data-en/data-cn 收录交互 */
+/* 结构拆解渲染（商业版默认）· CORPUS-PANEL-REDESIGN-1（10/29）按她点头终稿重排：
+   1 先抓主干 → 2 再看修饰成分 → 3 逻辑信号 → 4 自然译文 → 5 考点词汇 → 6 命题人视角。
+   先主干后修饰，不再平铺；编号只在结构拆解里有（同传对照那套按稿子是无编号的）。
+   收录交互零变化：仍然靠 data-en / data-cn + bindWordHover 的委托。 */
 function renderStructResult(json){
+  const bp = json.backboneParts || {};
+  /* 主干三色：AI 给了 backboneParts 才上色（老记录没有 → 纯文本，不硬猜词性） */
+  const hasParts = !!(bp.subject || bp.verb || bp.object);
+  const mainHtml = hasParts
+    ? [
+        bp.subject ? `<span class="lsr-subj">${escapeHtml(bp.subject)}</span>` : '',
+        bp.verb ? `<span class="lsr-verb">${escapeHtml(bp.verb)}</span>` : '',
+        bp.object ? `<span class="lsr-obj">${escapeHtml(bp.object)}</span>` : ''
+      ].filter(Boolean).join(' ')
+    : escapeHtml(json.backbone || '');
+  const legend = hasParts
+    ? `<div class="lsr-legend"><span><i></i>谁</span><span><i></i>做什么</span><span><i></i>核心观点</span></div>`
+    : '';
   const clauseList = (json.clauses || []).map(c => {
     const t = escapeHtml((c.text || '').trim()), ty = escapeHtml((c.type || '').trim()), ro = escapeHtml((c.role || '').trim());
     if(!t && !ty) return '';
-    return `<div class="ls-clause"><span class="ls-clause-type">${ty || '成分'}</span><span class="ls-clause-text" lang="en">${t}</span>${ro ? `<span class="ls-clause-role">${ro}</span>` : ''}</div>`;
+    return `<div class="lsr-clause"><div class="lsr-clause-top">${ty ? `<span class="lsr-tag">${ty}</span>` : ''}${t ? `<span class="lsr-clause-en" lang="en">${t}</span>` : ''}</div>${ro ? `<span class="lsr-clause-role">${ro}</span>` : ''}</div>`;
   }).join('');
   const sigs = (json.signals || []).map(s => {
     const w = escapeHtml((s.word || '').trim()), l = escapeHtml((s.logic || '').trim()), ex = escapeHtml((s.exam || '').trim());
     if(!w) return '';
-    return `<div class="ls-sig"><b class="ls-sig-word" lang="en">${w}</b><span class="ls-sig-logic">${l}</span>${ex ? `<span class="ls-sig-exam">${ex}</span>` : ''}</div>`;
+    return `<div class="lsr-signal"><b lang="en">${w}</b><span>${l}</span>${ex ? `<small>${ex}</small>` : ''}</div>`;
   }).join('');
   const kws = (json.keyWords || []).map(w => {
     const en = escapeHtml((w.en || '').trim()), cn = escapeHtml((w.cn || '').trim()), note = escapeHtml((w.note || '').trim());
     if(!en) return '';
-    return `<div class="ls-kw-row" tabindex="0" data-en="${en}" data-cn="${cn}" title="点击收录 · 悬停按 S 一键收录">
-      <div class="ls-kw-main"><span class="ls-kw-en">${en}</span><span class="ls-kw-cn">${cn}</span>${note ? `<span class="ls-kw-note">${note}</span>` : ''}</div>
-      <button class="ls-kw-save" data-en="${en}" data-cn="${cn}" title="按 S 一键收录">收录</button>
+    return `<div class="lsr-word" tabindex="0" data-en="${en}" data-cn="${cn}" title="点击收录 · 悬停按 S 一键收录">
+      <div class="lsr-word-main"><b>${en}</b><span class="lsr-cn">${cn}</span>${note ? `<small>${note}</small>` : ''}</div>
+      <button type="button" class="lsr-save-word" data-en="${en}" data-cn="${cn}" title="按 S 一键收录">收录</button>
     </div>`;
   }).join('');
   return `
-    <div class="ls-sec">
-      <div class="ls-sec-title">句子主干</div>
-      <div class="ls-backbone" lang="en">${escapeHtml(json.backbone || '')}</div>
-    </div>
-    ${clauseList ? `<div class="ls-sec"><div class="ls-sec-title">成分拆解</div><div class="ls-clause-list">${clauseList}</div></div>` : ''}
-    ${sigs ? `<div class="ls-sec"><div class="ls-sec-title">逻辑信号 · 考点预警</div><div class="ls-sig-list">${sigs}</div></div>` : ''}
-    <div class="ls-sec"><div class="ls-sec-title">译文</div><div class="ls-natural">${escapeHtml(json.translation || '')}</div></div>
-    <div class="ls-sec"><div class="ls-sec-title">考点词汇 · 点击/按 S 收录</div><div class="ls-kw-list">${kws || renderEmpty('无重点词汇')}</div></div>
-    ${json.examLens ? `<div class="ls-sec ls-exam"><div class="ls-sec-title">命题人视角</div><div class="ls-exam-lens">${escapeHtml(json.examLens)}</div></div>` : ''}
+    <section class="lsr-asec">
+      <div class="lsr-sec-label"><span class="lsr-num">1</span>先抓主干</div>
+      <div class="lsr-main" lang="en">${mainHtml}</div>${legend}
+    </section>
+    ${clauseList ? `<section class="lsr-asec"><div class="lsr-sec-label"><span class="lsr-num">2</span>再看修饰成分</div>${clauseList}</section>` : ''}
+    ${sigs ? `<section class="lsr-asec"><div class="lsr-sec-label"><span class="lsr-num">3</span>逻辑信号</div>${sigs}</section>` : ''}
+    <section class="lsr-asec">
+      <div class="lsr-sec-label"><span class="lsr-num">4</span>自然译文</div>
+      <div class="lsr-translation">${escapeHtml(json.translation || '')}</div>
+    </section>
+    <section class="lsr-asec">
+      <div class="lsr-sec-label"><span class="lsr-num">5</span>考点词汇</div>
+      <div class="lsr-word-list">${kws || renderEmpty('无考点词汇')}</div>
+      <div class="lsr-collect-hint">点击单词或「收录」加入我的词库；电脑端悬停后按 S 也可以。</div>
+    </section>
+    ${json.examLens ? `<section class="lsr-asec"><div class="lsr-sec-label"><span class="lsr-num">6</span>命题人视角</div><div class="lsr-exam">${escapeHtml(json.examLens)}</div></section>` : ''}
   `;
 }
 
@@ -1489,19 +1520,20 @@ function saveHist(sent, text){
 function renderHistory(){
   DATA.longSent = DATA.longSent || [];
   const list = DATA.longSent.slice().reverse();
-  $('#histCount').textContent = DATA.longSent.length;
-  $('#histCard').style.display = DATA.longSent.length ? '' : 'none';
+  $('#histCount').textContent = DATA.longSent.length + ' 条';
+  $('#histCard').hidden = !DATA.longSent.length;   /* 同上：必须动 hidden 属性，不是 style.display */
   const box = $('#histList');
   if(!list.length){ box.innerHTML = ''; return; }
+  /* CORPUS-PANEL-REDESIGN-1：记录列表按终稿改成整行条目（左标题+摘要 / 右查看·删除），
+     功能与原实现完全一致（data-restore / data-del 绑定在下面两行，没动）。 */
   box.innerHTML = list.map(h => {
     const snip = h.sentence.length > 70 ? h.sentence.slice(0, 70) + '…' : h.sentence;
     const preview = firstSectionPreview(h.result);
-    return `<div class="mod-card" style="padding:12px" data-id="${h.id}">
-      <div style="font-weight:700;font-size:13px;line-height:1.4">${escapeHtml(snip)}</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:6px">${escapeHtml(preview)}</div>
-      <div style="display:flex;gap:8px;margin-top:10px">
-        <button class="btn btn-sm btn-ghost" data-restore="${h.id}" style="flex:1">查看</button>
-        <button class="btn btn-sm btn-ghost" data-del="${h.id}" style="flex:none">删除</button>
+    return `<div class="lsr-history-item" data-id="${h.id}">
+      <div class="lsr-history-main"><b>${escapeHtml(snip)}</b><small>${escapeHtml(preview)}</small></div>
+      <div class="lsr-history-actions">
+        <button type="button" class="lsr-btn lsr-btn-sm" data-restore="${h.id}">查看</button>
+        <button type="button" class="lsr-btn lsr-btn-sm" data-del="${h.id}">删除</button>
       </div>
     </div>`;
   }).join('');
@@ -1528,8 +1560,8 @@ function restoreHist(id){
   body.innerHTML = renderResult(h.sentence, h.result);
   bindWordHover(body);
   $('#origSent').textContent = h.sentence;
-  $('#resultCard').style.display = '';
-  $('#sentStatus').textContent = '已从记录恢复'; $('#sentStatus').className = 'word-status ok';
+  $('#resultCard').hidden = false;
+  $('#sentStatus').textContent = '已从记录恢复'; $('#sentStatus').className = 'lsr-status is-ok';
   $('#resultCard').scrollIntoView({ behavior:'smooth', block:'start' });
 }
 

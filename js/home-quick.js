@@ -286,23 +286,34 @@
       });
     }
 
-    /* Esc 关（不保存） */
-    document.addEventListener('keydown', function(e){
-      if(!popOpen()) return;
-      if(e.key === 'Escape'){ e.preventDefault(); closePop(); }
-    });
-    /* 点面板外关（不保存）；点面板内不关 */
-    document.addEventListener('pointerdown', function(e){
-      if(!popOpen()) return;
-      var pop = popEl();
-      if(pop && pop.contains(e.target)) return;
-      var btn = document.getElementById('rqEdit');
-      if(btn && btn.contains(e.target)) return;
-      closePop();
-    });
-    window.addEventListener('resize', placePop);
+    /* 🔴 HOME-QUICK-GUARD-1（10-29）：这四条原先是**裸绑**（无守卫、无 removeEventListener 对冲），
+       而 `boot()` 每次进首页都会跑（软导航重跑本文件即重跑 boot）→ document/window 上每进一次
+       首页就多一份，永不摘除。实测首页往返后 document:keydown / pointerdown 各 2 份。
+       当前没有可见缺陷（`popOpen()` 为假时处理器立刻 return，重复不产生重复动作），
+       但它是真泄漏，且与 LISTEN-LEAK-1 同族 —— 顺手补上。
+       ⚠️ 闸挂在 window 上而不是元素上：这四条绑的都是 document/window（长生命周期），
+          用 window 级标记才拦得住；处理器内部一律**现取** rqEdit/rqPanel，不缓存闭包
+          （软导航换 <main> 后旧节点已成孤儿，缓存着会操作死节点）。 */
+    if(!window.__rqDocBound){
+      window.__rqDocBound = true;
+      /* Esc 关（不保存） */
+      document.addEventListener('keydown', function(e){
+        if(!popOpen()) return;
+        if(e.key === 'Escape'){ e.preventDefault(); closePop(); }
+      });
+      /* 点面板外关（不保存）；点面板内不关 */
+      document.addEventListener('pointerdown', function(e){
+        if(!popOpen()) return;
+        var pop = popEl();
+        if(pop && pop.contains(e.target)) return;
+        var btn = document.getElementById('rqEdit');
+        if(btn && btn.contains(e.target)) return;
+        closePop();
+      });
+      window.addEventListener('resize', placePop);
+      window.addEventListener('hub:data-merged', function(){ renderQuick(); });
+    }
     renderQuick();   /* 登录态可能在 boot 之后才落定 → 再渲染一次（readList 会重新过滤） */
-    window.addEventListener('hub:data-merged', function(){ renderQuick(); });
   }
 
   window.renderQuick = renderQuick;

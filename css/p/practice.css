@@ -450,10 +450,19 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
      所以 .wd-page 是**追加类**，不是替换外壳。
    · 导出块里的 .wd-pane 只管设计稿自己的三态，本站走 switchWordTab，不用它。 */
 #studyView.wd-page, #bankView.wd-page{ font-size:15px; line-height:1.7; }
-.wd-back{ display:inline-flex; align-items:center; height:34px; padding:0 10px; margin-bottom:12px;
-  border:1px solid var(--wd-line); border-radius:var(--radius-sm); background:var(--surface);
-  color:var(--primary-700); font-size:13px; font-weight:650; font-family:inherit; cursor:pointer; }
-.wd-back:hover{ background:var(--n-100); }
+/* BACK-BTN-PAGES-1（10-31）：原来那套 .wd-back 纯文字按钮已换成统一基类 .site-back
+   （#wdBackStudy 与 #wmBackMall 两处接线完毕，本文件里已无元素引用 .wd-back）→ 删掉，
+   只留下面这两条**必须保留**的定位与显隐规则：
+     · .wd-back-m 是「手机专用」标记（桌面隐藏、≤860 才露出），换个按钮外形不影响它
+     · #wdBackStudy 的显隐由 css:469/470 那对媒体查询管，本批一个字没动
+   留着旧 .wd-back 规则只会让以后复用它的人被 border-radius/height 静默压掉基类外形。 */
+.wd-back-m{ /* 手机专用返回钮的标记类，样式由 .site-back 决定 */ }
+/* 基类只给外形不给外边距，这里补两处呼吸：
+   · #wb2BackMall 原来是 margin-bottom:10px（导出件 .wb2-back 那个值），接线后归零
+     → 不补的话按钮底边与词书卡顶边 gap=0，看起来像贴在卡上（实测 btnBottom 122 / cardTop 122）
+   · #wdBackStudy 原来是 12px，手机档同理 */
+#wb2BackMall{ margin-bottom:10px }
+#wdBackStudy{ margin-bottom:12px }
 /* 答题态新头部（设计稿 .wd-q-head）与答题卡之间的呼吸 */
 #practiceArea .wd-q-head{ margin:0 0 12px; }
 .wd-q-head[hidden]{ display:none !important; }
@@ -494,10 +503,11 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
 }
 /* FE-DEAD-CSS-1：这里原来还有一条 `[data-theme="dark"] .wd-page .wd-swap`，
    wd-swap 全站零引用，一并删除（同组另两条仍在用，保留） */
-[data-theme="dark"] .wd-page .wd-btn-link,
-[data-theme="dark"] .wd-back{
+[data-theme="dark"] .wd-page .wd-btn-link{
   color:#8fe0d6;
 }
+/* BACK-BTN-PAGES-1（10-31）：.wd-back 那条深色覆盖随类名一并撤 —— .site-back 基类自带
+   html[data-theme="dark"] .site-back 的深色口径（common.css:605），本页不需要再叠一层。 */
 /* 三格底与卡片同深时，靠 --n-100 抬一档层次（深色下已是 #2e2e32，无需改；留注释防误改） */
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -723,7 +733,12 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
 @media (max-width: 560px){
 .wb2-page .wb2-opts{ grid-template-columns: 1fr; }
 }
-.wb2-page .wb2-back{ display: inline-flex; align-items: center; gap: 5px; border: 0px; background: none; font-family: inherit; font-size: 13px; color: var(--primary-700); font-weight: 650; cursor: pointer; padding: 6px 0px; margin-bottom: 10px; }
+/* BACK-BTN-PAGES-1（10-31）：上面 ① 段是**设计稿 1:1 导出原文**，那段里的 .wb2-back 三条
+   一律不动（改导出块就破了 1:1 这个约定）。本文件已无元素引用 .wb2-back（#wb2BackMall 已接线
+   .site-back），所以这两条**加固副本**里的 .wb2-back 重写删掉 —— 留着会变成：
+   以后谁再把 .wb2-back 加回元素上，就被这里的 `border:0;background:none;padding:6px 0`
+   静默压掉 .site-back 的外形，正是本批要消灭的形态。
+   下次刷新 ① 段导出件时，把导出件里那三条 .wb2-back 一并删掉。 */
 .wb2-page .wb2-pane{ display: none; }
 
 /* ===== 站点全局标签规则（common.css:470 input / :490 label）的冲突钉死 =====
@@ -1315,4 +1330,57 @@ body.word-fullscreen #practiceBody.practice-body-fit .opt-big{height:auto;min-he
   #practiceArea .ws-book-switcher{max-width:106px}
   #practiceArea .wd-modes #wdModeBtn{font-size:11px}
   #practiceArea .ws-tool-btn{width:32px;height:32px}
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   WD-DICT-MODE-1（10-31）听写模式
+   形态 1:1 复用「听音选义」那套：题干英文隐藏、只留音标 + 喇叭、四选项、底部不知道/已掌握、进度条。
+   差别只有一处 —— **选项从「选释义」换成「选拼写」**，所以这里只需要给选项换个排版，不新造版式。
+   依据 design/WD-DICT-MODE-1-听写模式样子稿-2026-10-31.html（她 16:0x：不用迭代稿子，按终稿形态改内容）。
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ① 题干上方那枚「听写模式」标签 + 提示语：
+      听音选义的提示条本身就有（.pw-audio-hint），这里只把文案改成带标签的一行。 */
+#practiceBody .pw-dict-hint{
+  display:flex;align-items:center;justify-content:center;gap:7px;flex-wrap:wrap;
+}
+#practiceBody .pw-dict-tag{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:2px 9px;border-radius:999px;
+  background:var(--primary-soft);color:var(--primary-700);
+  font-size:11.5px;font-weight:700;letter-spacing:.02em;line-height:1.6;
+}
+#practiceBody .pw-dict-tag::before{
+  content:'';width:5px;height:5px;border-radius:50%;background:var(--primary);
+}
+
+/* ② 选项：只考拼写 —— 左边一个字母序号，右边拼写本身，字大一号（拼写要看清每个字母）。
+      .opt-big 原有的边框/圆角/hover/对错配色全部沿用（.correct / .wrong 照旧生效）。 */
+#practiceBody .opt-big-dict{
+  align-items:center;justify-content:flex-start;gap:10px;
+  min-height:64px;padding:14px 16px;
+}
+#practiceBody .opt-big-letter{
+  flex:none;width:24px;height:24px;display:grid;place-items:center;
+  border-radius:7px;background:var(--bg);color:var(--muted);
+  font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;
+}
+#practiceBody .opt-big-spell{
+  min-width:0;flex:1;
+  font-size:19px;font-weight:650;letter-spacing:.01em;line-height:1.35;
+  color:var(--ink);
+  /* 长拼写真能在窄屏一行放不下 —— 允许断词，但不许溢出格子（她最烦横向滚动） */
+  overflow-wrap:anywhere;word-break:break-word;
+}
+/* 答对/答错时：字母块跟着变色，比只变边框更容易扫到 */
+#practiceBody .opt-big-dict.correct .opt-big-letter{background:var(--ok-soft);color:var(--ok-text)}
+#practiceBody .opt-big-dict.wrong .opt-big-letter{background:var(--danger-soft);color:var(--danger-text)}
+#practiceBody .opt-big-dict.correct .opt-big-spell{color:var(--ok-text)}
+#practiceBody .opt-big-dict.wrong .opt-big-spell{color:var(--danger-text)}
+
+/* ③ 手机档：拼写字号收一档，字母块也小一点，保证四条横排不挤 */
+@media(max-width:700px){
+  #practiceBody .opt-big-dict{min-height:60px;padding:12px 14px;gap:9px}
+  #practiceBody .opt-big-spell{font-size:17px}
+  #practiceBody .opt-big-letter{width:22px;height:22px;border-radius:6px;font-size:11px}
 }

@@ -85,6 +85,72 @@ ready(() => {
   populateSettingsForm();
   renderSyncState();
 
+  /* ===== SET-AV-POP-FIX-1（10/29）：头像弹层跟随头像按钮定位 =====
+     她 16:1x 报「点了一下头像，结果出来是这样的」（弹层错成整条宽铺开、掉在账号卡下方）。
+     🔴 根因：#avatarCard 是 .set-topbar 的兄弟节点、本身 0 宽无定位，而 .av-pop 是
+        `position:absolute; left:0; right:0` → 左右参照物变成**整条 .set-topbar**（1132px），
+        于是弹层被拉成整条宽、而不是贴着头像。
+     🔴 不碰共享层：js/av-picker.js 归 A1，这里只在页面层给弹层坐标。
+     ✅ 用法：打开后（av-picker 的 avOpen 把 card.hidden 置 false）下一帧按按钮实测位置算 fixed 坐标；
+        窗口缩放/滚动都重算，越界时夹在视口内。窄屏仍走 CSS 的居中卡片形态（≤640 那段不动）。 */
+  (function bindAvatarPopPos(){
+    var btn  = document.getElementById('acctAvatarBtn');
+    var card = document.getElementById('avatarCard');
+    if(!btn || !card) return;
+    if(btn.__avPopPosBound) return;   /* 元素级幂等：软导航换节点后要重新绑 */
+    btn.__avPopPosBound = true;
+
+    function place(){
+      if(card.hidden) return;
+      var pop = card.querySelector('.av-pop');
+      if(!pop) return;
+      var r = btn.getBoundingClientRect();
+      var W = Math.min(360, window.innerWidth - 32);
+      /* 左边缘对齐头像左边（-8 = 让圆按钮的视觉中心对到弹层内边距），越界夹回视口 */
+      var left = Math.max(12, Math.min(r.left - 8, window.innerWidth - W - 12));
+      pop.style.position = 'fixed';
+      pop.style.left = left + 'px';
+      pop.style.right = 'auto';
+      pop.style.width = W + 'px';
+      pop.style.top = (r.bottom + 8) + 'px';
+      pop.style.transform = 'none';
+      pop.style.maxHeight = Math.max(220, window.innerHeight - r.bottom - 24) + 'px';
+      pop.style.overflowY = 'auto';
+    }
+    /* 两帧：第一帧让 av-picker 的 avOpen 跑完（它会把 card.hidden 置 false），第二帧量 */
+    btn.addEventListener('click', function(){
+      requestAnimationFrame(function(){ requestAnimationFrame(place); });
+    });
+    /* 关闭时把内联坐标清掉，别把 fixed 残留在下次（下次打开会重算，但清干净更稳） */
+    ['avPopClose','avPopDone'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el && !el.__avPopResetBound){
+        el.__avPopResetBound = true;
+        el.addEventListener('click', function(){
+          var pop = card.querySelector('.av-pop');
+          if(pop){ pop.style.cssText = ''; }
+        });
+      }
+    });
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', place, true);
+
+    /* 点外部关闭：验收口径要求「Esc / 点外部 / 完成键都能关」。
+       Esc(av-picker.js:220) 与完成键/关闭键已有；点外部原来没有，补在页面层。
+       ⚠️ 用 mousedown 且判 closest，避免拖选头像时误关（avatar 网格里按下再抬起算内部）。 */
+    if(!document.__setAvPopOutsideBound){
+      document.__setAvPopOutsideBound = true;
+      document.addEventListener('mousedown', function(e){
+        var c = document.getElementById('avatarCard');
+        if(!c || c.hidden) return;
+        if(e.target.closest('#avatarCard') || e.target.closest('#acctAvatarBtn')) return;
+        c.hidden = true;
+        var b = document.getElementById('acctAvatarBtn');
+        if(b) b.setAttribute('aria-expanded', 'false');
+      });
+    }
+  })();
+
   // 10/1 晚 · 自动保存（她拍板删「保存全部设置」条）：任一设置项 change → 600ms 防抖 → saveSettings
   // 主题开关/服药开关有自己的即时 handler，不走这条防抖通道
   const AUTO_SAVE_IDS = ['sName','sExam','sGoal','tOverall','tListening','tReading','tWriting','tSpeaking','sPron','sFlu'];   /* F-4：sChime 已删（S-1），留着它只是空转 */

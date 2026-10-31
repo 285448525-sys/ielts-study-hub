@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#3a9a93" />
 <title>登录 · 雅思备考站</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-<link rel="stylesheet" href="css/p/login.css?v=20261029l" />
+<link rel="stylesheet" href="css/p/login.css?v=20261031a" />
 <meta name="description" content="登录 / 注册：登录后可使用站内 AI 功能，并跨设备同步学习数据。" />
 <link rel="canonical" href="https://yasihub.com/login" />
 <meta property="og:type" content="website" />
@@ -32,7 +32,7 @@
 </head>
 <body>
 <!-- 10/4 00:20：带了 ?from= 的进来（设置页「去登录 →」），返回键回到来源页而不是落地页 -->
-<div class="top"><a href="#" id="backLink">← 返回产品介绍</a></div>
+<div class="top"><a class="site-back" href="index.html" id="backLink"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M11 18l-6-6 6-6"/></svg><span class="site-back-txt">返回产品介绍</span></a></div>
 
 <div class="stage">
   <!-- KIMI-P6-6（10-26）：登录页按 design/kimi-visual-upgrade-2026-10-25/06-login.html 1:1 重排。
@@ -155,16 +155,20 @@
         修法：无 ?from= 时显式给 index.html（落地页 = 产品介绍）。 */
   (function(){
     var back = $('backLink'); if(!back) return;
+    /* BACK-BTN-PAGES-1（10-31）：返回键已接线 .site-back（图标 + .site-back-txt 两件套），
+       文案只能写进 .site-back-txt —— 直接 back.textContent 会把那枚 svg 箭头一起冲掉，
+       按钮就退化成纯文字（正是本批要修掉的老形态）。取不到 span 时才回退整块写。 */
+    var backTx = back.querySelector('.site-back-txt') || back;
     var f = '';
     try{ f = new URLSearchParams(location.search).get('from') || ''; }catch(_){}
     /* 与 nextAfterLogin 同一份白名单：带 ?from=<已知页> 就回那页，文案跟着变；否则回产品介绍 */
     var BACK = { settings:'设置页', plans:'计划页', speaking:'口语页', practice:'单词页',
                  writing:'写作页', review:'回顾页', corpus:'句子页', vip:'会员页' };
     if(BACK[f]){
-      back.textContent = '← 返回' + BACK[f];
+      backTx.textContent = '返回' + BACK[f];
       back.href = (f === 'settings' ? 'settings.html' : f + '.html');
     } else {
-      back.textContent = '← 返回产品介绍';
+      backTx.textContent = '返回产品介绍';
       back.href = 'index.html';        /* 默认落点 = 落地页（产品介绍） */
     }
   })();

@@ -41,7 +41,12 @@
 .legal-sec .warn{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.28);border-radius:12px;padding:14px 16px;margin:14px 0}
 .legal-sec .warn p{margin:0;font-size:13.5px;color:var(--warn-ink)}
 .legal-foot{margin-top:40px;padding-top:20px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);line-height:1.8}
-.legal-foot a{color:var(--primary);font-weight:600;text-decoration:none}
+/* BACK-BTN-PAGES-1（10-31）：.legal-foot a 特异度 (0,1,1) 会压过 .site-back (0,1,0)，
+   把统一基类的颜色/字重冲掉 → 收窄成 :not(.site-back)，普通正文链接照旧，返回钮走基类。 */
+.legal-foot a:not(.site-back){color:var(--primary);font-weight:600;text-decoration:none}
+/* 页脚这行：返回钮（实体）+「进入学习」（前进入口，保持原文字链）+ 两者基线对齐 */
+.legal-foot-act{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:10px}
+.legal-foot-go{font-size:13px}
 @media (max-width:560px){
   .legal-wrap{padding:20px 14px 48px}
   .legal-head h1{font-size:21px}
@@ -183,7 +188,13 @@
 
   <div class="legal-foot">
     <p>本页面内容更新于 2026 年 10 月 13 日，如有重大变更我们会修改本日期并在站内提示。</p>
-    <p><a href="index.html">返回产品介绍页</a> · <a href="home.html">进入学习</a></p>
+    <!-- BACK-BTN-PAGES-1（10-31）：页脚这颗「返回产品介绍页」按规范稿接入统一基类 .site-back
+         （规范稿的 14 处盘点里明确写着「法律说明回产品介绍」，属普通返回）。
+         「进入学习」不动：它是往前走的入口，不是返回，规范稿明确「不混进普通返回」。 -->
+    <p class="legal-foot-act">
+      <a class="site-back" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M11 18l-6-6 6-6"/></svg><span class="site-back-txt">返回产品介绍页</span></a>
+      <a class="legal-foot-go" href="home.html">进入学习</a>
+    </p>
   </div>
 
 </div>
