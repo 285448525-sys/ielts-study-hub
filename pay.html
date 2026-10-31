@@ -13,7 +13,7 @@
 <meta http-equiv="Expires" content="0" />
 <title>开通会员 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261029l" />
-<link rel="stylesheet" href="css/p/pay.css?v=20261029l" />
+<link rel="stylesheet" href="css/p/pay.css?v=20261031a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -72,7 +72,7 @@
            🔴 只换外观：href 仍是 vip.html（去向不变）、文案仍是「返回会员页重选档位」（去向写全），
               没有 id / 没有 JS 绑它，所以不存在行为改动。
            箭头从字符「←」换成 16px svg（规范稿：「固定一枚左箭头，不使用 ←、‹ 混写」）。
-           原来 .pay-back 那条纯文字样式保留不删（.pay-backs 那两颗带底按钮还在用同一族命名）。 -->
+           旧 .pay-back 纯文字规则已在 css/p/pay.css 删掉（全站无元素引用）；.pay-backs 那条是另一族，保留。 -->
       <a class="site-back" href="vip.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M11 18l-6-6 6-6"/></svg><span class="site-back-txt">返回会员页重选档位</span></a>
       <div></div>
     </div>
@@ -127,7 +127,12 @@
         <h3>收到了，等我确认</h3>
         <p>站长以实际到账为准开通，一般当天。<b>到账前会员页状态不变</b>（仍是免费版/到期会员）——这是预期行为，不是没生效。</p>
         <div class="pay-received-acts">
-          <a class="pay-backs" href="vip.html" id="backToVip">返回会员页</a>
+          <!-- BACK-BTN-PAGES-1（10-31）：完成态里这两颗性质不同，只有一个算普通返回。
+               #backToVip 是「回会员页」= 离开，接统一基类 .site-back；
+               #notYetBtn 是「留在原地」的次操作（撤掉完成态、回到主操作），不是返回 ——
+               按规范稿「状态出口不伪装成普通返回」保持 .pay-backs 原样。
+               id 与文案一个字没改，js/pay.js:118-135 的切换逻辑完全不受影响。 -->
+          <a class="site-back" href="vip.html" id="backToVip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M11 18l-6-6 6-6"/></svg><span class="site-back-txt">返回会员页</span></a>
           <button class="pay-backs" type="button" id="notYetBtn">还没转，继续留在这</button>
         </div>
       </div>
