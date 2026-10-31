@@ -100,7 +100,7 @@ async function overlayVsBar(p, sel) {
   console.log('== ① 桌面 1440：bank 页 ==');
   {
     const c = await b.newContext({ viewport: { width: 1440, height: 950 } });
-    await c.addInitScript(t => { try { localStorage.setItem('hub_auth_token', t); localStorage.setItem('hub_role_v1', 'teacher'); } catch (e) {} }, TOKEN);
+    await c.addInitScript(t => { try{localStorage.setItem('hub_exam_timer_auto','20');}catch(e){} try { localStorage.setItem('hub_auth_token', t); localStorage.setItem('hub_role_v1', 'teacher'); } catch (e) {} }, TOKEN);
     await mockRoutes(c);
     const p = await c.newPage();
     const errs = [];
@@ -123,7 +123,7 @@ async function overlayVsBar(p, sel) {
   console.log('== ② 阅读沉浸态：点「Start Test」→ #examRoot 盖住顶栏 ==');
   {
     const c = await b.newContext({ viewport: { width: 1440, height: 950 } });
-    await c.addInitScript(t => { try { localStorage.setItem('hub_auth_token', t); localStorage.setItem('hub_role_v1', 'teacher'); localStorage.setItem('hub_exam_guide_v2_reading', '1'); } catch (e) {} }, TOKEN);
+    await c.addInitScript(t => { try{localStorage.setItem('hub_exam_timer_auto','20');}catch(e){} try { localStorage.setItem('hub_auth_token', t); localStorage.setItem('hub_role_v1', 'teacher'); localStorage.setItem('hub_exam_guide_v2_reading', '1'); } catch (e) {} }, TOKEN);
     await mockRoutes(c);
     const p = await c.newPage();
     const errs = [];
@@ -157,7 +157,7 @@ async function overlayVsBar(p, sel) {
   console.log('== ③ 听力沉浸态：切到听力 tab 点「Start Test」→ #examRoot 盖住顶栏 ==');
   {
     const c = await b.newContext({ viewport: { width: 1440, height: 950 } });
-    await c.addInitScript(t => { try { localStorage.setItem('hub_auth_token', t); localStorage.setItem('hub_role_v1', 'teacher'); localStorage.setItem('hub_exam_guide_v2_listening', '1'); } catch (e) {} }, TOKEN);
+    await c.addInitScript(t => { try{localStorage.setItem('hub_exam_timer_auto','20');}catch(e){} try { localStorage.setItem('hub_auth_token', t); localStorage.setItem('hub_role_v1', 'teacher'); localStorage.setItem('hub_exam_guide_v2_listening', '1'); } catch (e) {} }, TOKEN);
     await mockRoutes(c);
     const p = await c.newPage();
     const errs = [];
@@ -196,7 +196,7 @@ async function overlayVsBar(p, sel) {
   console.log('== ④ 写作机考全屏：body.exam-fullscreen + #examPanel 盖住顶栏 ==');
   {
     const c = await b.newContext({ viewport: { width: 1440, height: 950 } });
-    await c.addInitScript(t => { try { localStorage.setItem('hub_auth_token', t); localStorage.setItem('hub_role_v1', 'teacher'); } catch (e) {} }, TOKEN);
+    await c.addInitScript(t => { try{localStorage.setItem('hub_exam_timer_auto','20');}catch(e){} try { localStorage.setItem('hub_auth_token', t); localStorage.setItem('hub_role_v1', 'teacher'); } catch (e) {} }, TOKEN);
     await mockRoutes(c);
     const p = await c.newPage();
     const errs = [];
@@ -252,7 +252,7 @@ async function overlayVsBar(p, sel) {
   console.log('== ⑤ 手机 390：bank 页 ==');
   {
     const c = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
-    await c.addInitScript(t => { try { localStorage.setItem('hub_auth_token', t); localStorage.setItem('hub_role_v1', 'teacher'); } catch (e) {} }, TOKEN);
+    await c.addInitScript(t => { try{localStorage.setItem('hub_exam_timer_auto','20');}catch(e){} try { localStorage.setItem('hub_auth_token', t); localStorage.setItem('hub_role_v1', 'teacher'); } catch (e) {} }, TOKEN);
     /* 🔴 10-25 W-UI-1：测「顶栏 44px 让位归零」前先把未读公告关掉 —— 公告条是 sticky、
        在文档流里真实占 34px，不关掉这条测到的是「被公告顶了一下」，两件事混着判分不清。
        夹具见 tests/_anc_seed.cjs。 */
@@ -281,7 +281,7 @@ async function overlayVsBar(p, sel) {
   console.log('== ⑥ 软导航跨壳：口语（顶栏）→ bank（换壳后仍是顶栏）→ 学习组 ==');
   {
     const c = await b.newContext({ viewport: { width: 1440, height: 950 } });
-    await c.addInitScript(t => { try { localStorage.setItem('hub_auth_token', t); localStorage.setItem('hub_role_v1', 'teacher'); } catch (e) {} }, TOKEN);
+    await c.addInitScript(t => { try{localStorage.setItem('hub_exam_timer_auto','20');}catch(e){} try { localStorage.setItem('hub_auth_token', t); localStorage.setItem('hub_role_v1', 'teacher'); } catch (e) {} }, TOKEN);
     await mockRoutes(c);
     const p = await c.newPage();
     const errs = [];

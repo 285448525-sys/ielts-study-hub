@@ -48,7 +48,7 @@ async function seed(page, recs) {
   const errs = [];
   page.on('pageerror', e => errs.push(String(e.message || e)));
   page.on('console', m => { if (m.type() === 'error' && !/cloudflareinsights/.test(m.text())) errs.push('[c] ' + m.text()); });
-  await page.addInitScript(() => { try { localStorage.setItem('hub_onboarding_v2', JSON.stringify({ finished: true })); localStorage.getItem('hub_exam_guide_v2_reading') || localStorage.setItem('hub_exam_guide_v2_reading','1'); localStorage.getItem('hub_exam_guide_v2_listening') || localStorage.setItem('hub_exam_guide_v2_listening','1'); } catch (e) { } });
+  await page.addInitScript(() => { try{localStorage.setItem('hub_exam_timer_auto','20');}catch(e){} try { localStorage.setItem('hub_onboarding_v2', JSON.stringify({ finished: true })); localStorage.getItem('hub_exam_guide_v2_reading') || localStorage.setItem('hub_exam_guide_v2_reading','1'); localStorage.getItem('hub_exam_guide_v2_listening') || localStorage.setItem('hub_exam_guide_v2_listening','1'); } catch (e) { } });
 
   console.log('=== A. 空白账号：不该出现假成绩 ===');
   await page.goto(BASE + '/bank.html', { waitUntil: 'load', timeout: 60000 });

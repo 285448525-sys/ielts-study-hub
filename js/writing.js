@@ -2560,17 +2560,35 @@ function renderWritingFullEntry(){
   if(btn) btn.addEventListener('click', startWritingFull);
 }
 
+/* ===== EXAM-TIMER-CHOICE-1（10-31）写作侧的「要不要计时」=====
+   她 11-01 0:0x 最终口径：写作模考可以计时、练习不计时 → 实际执行口径（B 定）：
+   写作完整模考与写作单篇（Task 1 / Task 2）都弹选择框，时长可自调。
+   🔴 完整模考只在「点开始」那一刻问一次 —— Task1↔Task2 切换会反复走 openFullTask，
+      在那里问会变成每切一次问一次。所以答案存 WRT_FULL.timerMin，切换沿用。 */
+function wrtTimerGate(scene, defMin, cb){
+  if(!window.ExamTimerChoice){ cb(defMin); return; }   /* 脚本没加载 → 用官方默认时长，不挡路 */
+  window.ExamTimerChoice.show(scene, defMin ? { def: defMin } : null, cb);
+}
+/* 把「分钟数」翻成 examStartTimer 的两个参数：0/null = 不计时（正计时向上跑） */
+function wrtTimerArgs(min){
+  return (min > 0) ? ['down', min * 60000] : ['up', 0];
+}
+
 function startWritingFull(){
   const data = window.WRITING_PROMPTS || { big:[], small:[] };
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
   const small = pick(data.small || []);
   const big = pick(data.big || []);
   if(!small || !big){ if(typeof toast === 'function') toast('题库未加载完，稍后再试'); return; }
-  WRT_FULL.active = true;
-  WRT_FULL.items = { small, big };
-  WRT_FULL.idx = 0;
-  WRT_FULL.deadline = Date.now() + 60 * 60 * 1000;   /* 总 60 分钟（官方：Task1 20 + Task2 40） */
-  openFullTask();
+  wrtTimerGate('wrt_full', 60, function(min){
+    WRT_FULL.active = true;
+    WRT_FULL.items = { small, big };
+    WRT_FULL.idx = 0;
+    WRT_FULL.timerMin = (min > 0) ? Math.round(min) : 0;
+    /* 总时长：选了计时就按选的（默认 60 分钟 = 官方 Task1 20 + Task2 40）；不计时给 0 */
+    WRT_FULL.deadline = Date.now() + WRT_FULL.timerMin * 60 * 1000;
+    openFullTask();
+  });
 }
 
 /* 打开当前这一篇（Task 1 → Task 2 顺序） */
@@ -2614,10 +2632,18 @@ function wrtOptionSync(){
 function openFullTask(){
   const it = WRT_FULL.idx === 0 ? WRT_FULL.items.small : WRT_FULL.items.big;
   const kind = WRT_FULL.idx === 0 ? 'small' : 'big';
-  openExam(it, kind);
-  /* openExam 内部按单篇 20/40 分钟起表 —— 连考要的是总 60 分钟，这里覆盖成剩余总时长 */
-  const left = Math.max(1, Math.round((WRT_FULL.deadline - Date.now()) / 1000));
-  examStartTimer('down', left * 1000);
+  /* 🔴 这里必须走 Direct（不弹框）：完整模考已经在「点开始」时问过一次，
+     Task1↔Task2 切换会反复进这个函数，走 openExam 会变成每切一次弹一次。 */
+  openExamDirect(it, kind, WRT_FULL.timerMin);
+  /* openExamDirect 内部按单篇 20/40 起表 —— 连考要的是「整场剩余」。
+     🔴 EXAM-TIMER-CHOICE-1：整场选了不计时（timerMin===0）就**不能**再套 60 分钟倒计时，
+        改成正计时并留着已用时间；选了计时则按剩余总时长起表。 */
+  if(WRT_FULL.timerMin === 0){
+    examStartTimer('up', 0);
+  } else {
+    const left = Math.max(1, Math.round((WRT_FULL.deadline - Date.now()) / 1000));
+    examStartTimer('down', left * 1000);
+  }
   /* 顶栏标注进的是完整模考第几篇 */
   const pl = $('#examPartLabel'); if(pl) pl.textContent = 'Task ' + (WRT_FULL.idx + 1);
   const sb = $('#examStepBadge'); if(sb) sb.textContent = String(WRT_FULL.idx + 1);
@@ -2856,7 +2882,24 @@ function examShowCount(n, kind){
   else el.classList.add('low');
 }
 
+/* EXAM-TIMER-CHOICE-1：单篇写作（Task 1 / Task 2）进场先问要不要计时。
+   默认按官方时长（Task2 40 / Task1 20），档位随题型给。 */
 function openExam(item, kind){
+  if(!examTimer) return;
+  var defMin = (kind === 'big') ? 40 : 20;
+  wrtTimerGate('wrt', defMin, function(min){
+    openExamDirect(item, kind, (min > 0) ? Math.round(min) : 0);
+  });
+}
+/* 自练题（评分 tab「保存题目，开始练」）同样先问一次，默认 40 分钟 */
+function openExamCustom(){
+  if(!examTimer) return;
+  wrtTimerGate('wrt', 40, function(min){
+    openExamCustomDirect((min > 0) ? Math.round(min) : 0);
+  });
+}
+
+function openExamDirect(item, kind, timerMin){
   if(!examTimer) return;   // 10/8 兜底：初始化异常时不许抛 TypeError 打断（她侧实抓过）
   examTimer.cur = { kind, no: item.no };
   /* 🔴 WRT-SPACE-1（10-27 她：「这个写作的练习页面不够精致，尺寸方面有问题，间距之类的都很奇怪」）：
@@ -2943,13 +2986,15 @@ function openExam(item, kind){
   const _tw = $('#examTimerWrap'); if(_tw) _tw.style.display = '';   // 从「记录回看」视图回来时还原
   const _fin = $('#examFinish'); if(_fin) _fin.hidden = false;
   examFontApply();   // 10/8 官方字号三档：进场应用本机档位
-  examStartTimer('down', examLimitMs(isBig));
+  /* EXAM-TIMER-CHOICE-1：按选择框结果起表。null/0 = 不计时 → 正计时向上跑（examLimitMs 不再套用） */
+  var _wa = wrtTimerArgs(timerMin);
+  examStartTimer(_wa[0], _wa[1]);
 }
 
 /* 10/8 她拍板：评分面板「保存题目，开始练」→ 直通真题全屏（左题右答，复用 #examPractice）。
    cur.custom 标记自练题：评分走 examStopAndScore 同一条链（prompt 带题目 → 切题度判定），
    落库 examNo 为空、topic 带题干。 */
-function openExamCustom(){
+function openExamCustomDirect(timerMin){
   if(!examTimer) return;   // 10/8 兜底：初始化异常时不许抛 TypeError 打断（她侧实抓过）
   const isBig = $('#scoreType').value !== '小作文';
   const topic = ($('#scoreTopic') ? $('#scoreTopic').value.trim() : '') || (function(){ try{ return localStorage.getItem('wt_score_topic_v1') || ''; }catch(e){ return ''; } })();
@@ -3016,7 +3061,9 @@ function openExamCustom(){
   const _tw = $('#examTimerWrap'); if(_tw) _tw.style.display = '';   // 从「记录回看」视图回来时还原
   const _fin = $('#examFinish'); if(_fin) _fin.hidden = false;
   examFontApply();   // 10/8 官方字号三档：进场应用本机档位
-  examStartTimer('down', examLimitMs(isBig));
+  /* EXAM-TIMER-CHOICE-1：按选择框结果起表。null/0 = 不计时 → 正计时向上跑（examLimitMs 不再套用） */
+  var _wa = wrtTimerArgs(timerMin);
+  examStartTimer(_wa[0], _wa[1]);
 }
 
 function examStopAndScore(){

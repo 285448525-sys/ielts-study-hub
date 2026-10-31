@@ -22,7 +22,7 @@ const ck = (n, ok, info) => { const l = (ok ? '  ✅ ' : '  ❌ ') + n + (info ?
   const errs = [];
   page.on('pageerror', e => errs.push(String(e.message || e)));
   page.on('console', m => { if (m.type() === 'error' && !/cloudflareinsights/.test(m.text())) errs.push('[c] ' + m.text()); });
-  await page.addInitScript(() => {
+  await page.addInitScript(() => { try{localStorage.setItem('hub_exam_timer_auto','20');}catch(e){}
     try {
       localStorage.setItem('hub_onboarding_v2', JSON.stringify({ finished: true }));
       localStorage.setItem('hub_exam_guide_v2_reading', '1');

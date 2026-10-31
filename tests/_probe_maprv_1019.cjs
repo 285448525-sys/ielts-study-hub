@@ -21,7 +21,7 @@ const ok = (c, m) => { if (c) { pass++; console.log('  ✓ ' + m); } else { fail
 (async () => {
   const b = await chromium.launch({ executablePath: EDGE, headless: true });
   const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
-  await ctx.addInitScript(() => {
+  await ctx.addInitScript(() => { try{localStorage.setItem('hub_exam_timer_auto','20');}catch(e){}
     try {
       localStorage.setItem('hub_exam_guide_v2_reading', '1');
       localStorage.setItem('hub_exam_guide_v2_listening', '1');

@@ -22,7 +22,7 @@ async function page(b, w, h) {
   const p = await ctx.newPage();
   const errs = [];
   p.on('pageerror', e => errs.push(String(e).slice(0, 200)));
-  await p.addInitScript(() => {
+  await p.addInitScript(() => { try{localStorage.setItem('hub_exam_timer_auto','20');}catch(e){}
     try {
       ['reading', 'listening', 'writing', 'speaking'].forEach(k => localStorage.setItem('hub_exam_guide_v2_' + k, '1'));
       localStorage.setItem('hub_onboarding_v2', JSON.stringify({ finished: true }));
@@ -332,11 +332,16 @@ async function startFull(p, btnSel) {
           stepHidden: step ? getComputedStyle(step).display === 'none' : false,
           btns: bar.querySelectorAll('.ex-actions button').length,
           partsScroll: parts ? parts.scrollWidth > parts.clientWidth : false,
-          barH: Math.round(bar.getBoundingClientRect().height)
+          barH: Math.round(bar.getBoundingClientRect().height),
+          /* 10-31 修探针自身缺陷：下面那条 ⑥2 原来在 Node 作用域里直接写
+             `document.querySelector(...)` —— 那是在 Node 里，document 根本不存在，
+             跑到这里必抛 ReferenceError，整支探针半路死掉（与产品无关）。
+             把「箭头在不在」也一起在这里取回。 */
+          hasStep: !!step
         };
       });
       ok('⑥1 手机品牌条隐藏（内容空间优先）', g.stripHidden);
-      ok(g.stepHidden === true || !document.querySelector('#examRoot .ex-step'), '⑥2 手机顶栏箭头已不存在（整块删了，无所谓隐藏）');
+      ok(g.stepHidden === true || g.hasStep === false, '⑥2 手机顶栏箭头已不存在（整块删了，无所谓隐藏）');
       ok('⑥3 三个动作按钮仍在', g.btns === 3, 'btns=' + g.btns);
       ok('⑥4 Part 行可横向滚（放不下不裁切）', g.partsScroll);
       ok('⑥5 无 JS 报错', errs.length === 0, errs.join(' | '));

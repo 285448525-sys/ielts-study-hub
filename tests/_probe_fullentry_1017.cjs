@@ -22,7 +22,7 @@ const ok = (c, m) => { if (c) { pass++; console.log('  ✓ ' + m); } else { fail
   // ---------- 第一段：桌面，验「首帧即有高度 + disabled → enabled → 能进考场」 ----------
   {
     const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
-    await ctx.addInitScript(() => {
+    await ctx.addInitScript(() => { try{localStorage.setItem('hub_exam_timer_auto','20');}catch(e){}
       try { localStorage.setItem('hub_exam_guide_v2_reading','1'); localStorage.setItem('hub_exam_guide_v2_listening','1'); } catch (e) {}
       if (!localStorage.getItem('hub_onboarding_v2')) {
         localStorage.setItem('hub_onboarding_v2', JSON.stringify({ v: 2, entered: true, finished: true, snoozed: true }));
@@ -111,7 +111,7 @@ const ok = (c, m) => { if (c) { pass++; console.log('  ✓ ' + m); } else { fail
       viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true,
       userAgent: 'Mozilla/5.0 (Linux; Android 11; Moto G4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Mobile Safari/537.36',
     });
-    await ctx.addInitScript(() => {
+    await ctx.addInitScript(() => { try{localStorage.setItem('hub_exam_timer_auto','20');}catch(e){}
       try { localStorage.setItem('hub_exam_guide_v2_reading','1'); localStorage.setItem('hub_exam_guide_v2_listening','1'); } catch (e) {}
       if (!localStorage.getItem('hub_onboarding_v2')) {
         localStorage.setItem('hub_onboarding_v2', JSON.stringify({ v: 2, entered: true, finished: true, snoozed: true }));

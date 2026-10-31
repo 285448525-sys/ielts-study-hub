@@ -14,7 +14,7 @@ const ok = (n, c, d) => { if (c) { pass++; console.log('  OK   ' + n + (d ? '  '
   const apiHits = [];
   p.on('pageerror', e => errs.push(String(e).slice(0, 160)));
   p.on('request', r => { if (r.url().includes('/api/')) apiHits.push(r.url().replace(BASE,'')); });
-  await p.addInitScript(() => { try { ['reading','listening','writing','speaking'].forEach(c => localStorage.setItem('hub_exam_guide_v2_' + c, '1')); } catch(e){} });
+  await p.addInitScript(() => { try{localStorage.setItem('hub_exam_timer_auto','20');}catch(e){} try { ['reading','listening','writing','speaking'].forEach(c => localStorage.setItem('hub_exam_guide_v2_' + c, '1')); } catch(e){} });
   await p.goto(BASE + '/bank.html', { waitUntil: 'domcontentloaded' });
   await sleep(3500);
   /* 2-1d 批 B：桌面上 #mockTabs 已 display:none → Playwright 可见性 click 会超时。改 JS click。 */

@@ -65,6 +65,10 @@
   var EX = null;              // 当前做题会话
   var _timer = null;
   var _ftTimer = null;        // 顶栏计时小徽章刷新interval（10/13）
+  /* EXAM-TIMER-CHOICE-1（10-31）：选择框选完 → 到 json 拉回来建 EX 之间有个异步间隔，
+     这段窗口里把「本次进场的时长」先存这里，startUnitExam / 完整模考渲染时取走并清空。
+     0 = 用户选了不计时；正数 = 分钟数。取完即置 null，绝不跨场残留。 */
+  var _pendingTimerMin = null;
   /* 10/12 23:2x 她「组卷改纯随机，不用提前写好题目在那」：原 _fullSet/_listenFullSet
      「渲染入口卡时组一次并缓存」的两变量已删 —— 现在点 Start 的那一刻才随机抽篇（见 openFullTest）。 */
 
@@ -808,8 +812,31 @@
     showExamGuide(ch, function(){ markGuidePassed(ch); next(); });
   }
 
+  /* ===== EXAM-TIMER-CHOICE-1（10-31）=====
+     她 11-01 0:0x 最终口径：「听力模考可以计时，练习不计时」。
+       · 阅读单篇 → 弹选择框（默认 20 分钟，可调）
+       · 阅读完整 / 听力完整 → 弹选择框（60 / 30 分钟，可调）
+       · 听力单篇 → 不弹、不计时（维持 10/20 口径）
+     时序固定：考前指南闸 → 计时选择框 → 真正进考场。指南卡是一次性的，选择框每次都问，
+     两个框绝不会同时挂在屏幕上。
+     🔴 选择结果只活在这一场（EX._timerMin / EX._noTimer），不进 localStorage 当状态用；
+        localStorage 只记「上次选的分钟数」当默认选中值，下次照样弹框。 */
+  function timerChoiceGate(scene, opts, next){
+    if(!window.ExamTimerChoice){ next(null); return; }   /* 脚本没加载成功就退化成不计时，不挡路 */
+    window.ExamTimerChoice.show(scene, opts, function(min){ next(min); });
+  }
+
   function openExam(unitId, channel){
     if(!guidePassed(channel)){ examGuideGate(channel, function(){ openExam(unitId, channel); }); return; }
+    /* 听力单篇不弹框、不计时（她 10/20 定，11-01 口径「练习不计时」再次确认） */
+    if(channel === 'listening'){ openExamNow(unitId, channel, null); return; }
+    timerChoiceGate('read_part', null, function(min){ openExamNow(unitId, channel, min); });
+  }
+
+  function openExamNow(unitId, channel, timerMin){
+    /* 🔴 timerMin 必须在这里落到 EX 之外的地方：startUnitExam 是异步（等 json 拉回来）才建 EX，
+       所以先存一个「本次进场待生效的时长」，由 startUnitExam 取走（取完即清，不跨场残留）。 */
+    _pendingTimerMin = (timerMin > 0) ? Math.round(timerMin) : 0;
     var root = document.getElementById('bankRoot');
     if(root) root.style.display = 'none';
     var host = document.getElementById('examRoot');
@@ -846,6 +873,11 @@
         listenMode: 'practice', audioStarted: false
       };
       _rateIx = 0; _audioBound = null; _audioRate = RATE_DEFAULT;
+      /* EXAM-TIMER-CHOICE-1：取走本次进场所选的时长（取完即清，不跨场残留）。
+         null = 没走选择框（听力单篇）→ 沿用原「阅读单篇 60 分钟」旧行为；
+         0 = 用户选了不计时；正数 = 分钟。 */
+      EX._timerMin = (_pendingTimerMin == null) ? null : _pendingTimerMin;
+      _pendingTimerMin = null;
       /* 3-4：换篇/重进考场要清掉上一篇的句子条缓存，否则新篇会先闪一下旧篇的句子 */
       _stLines = null; _stBound = null;
       try{ EX.user = JSON.parse(localStorage.getItem('hub_bank_draft_' + unitId) || '{}') || {}; }catch(e){ EX.user = {}; }
@@ -2595,7 +2627,8 @@ window.__reportExamState = reportExamState;
     } else {
       var artHtml = '';
       parts.forEach(function(p){ artHtml += clean(p.article || ''); });
-      host.innerHTML = shellHtml(u.title, '', examTimerLabel(3600))
+      var _rm = (EX._timerMin == null) ? 60 : EX._timerMin;
+      host.innerHTML = shellHtml(u.title, '', _rm > 0 ? examTimerLabel(_rm * 60) : examUsedLabel(0))
         + partBannerHtml((parts[0] && parts[0].partNum) || u.partNum || 'Part 1', nums.length ? nums[0] : null, nums.length ? nums[nums.length - 1] : null)
         + splitHtml(artHtml, groups.map(function(g, i){ return groupHtml(g, i, null, 'reading'); }).join(''))
         + barHtml() + ctxHtml();
@@ -2616,7 +2649,9 @@ window.__reportExamState = reportExamState;
     /* 🔴 10/20 她 ⑤：听力单篇不显示计时（音频长短不一，30 分钟倒计时对单篇没意义），
        只有「完整模考」才开倒计时（line 1500 / line 1435 那两处）。这里不再起表，
        顺带顶栏计时小徽章也不显示 —— 单篇页面整个不出现时间数字。 */
-    if(!isListen) startTimer(60 * 60);
+    /* EXAM-TIMER-CHOICE-1：阅读单篇按选择框给的分钟数起表（默认 20）；
+       选了不计时就传 0 走正计时。听力单篇永远走不到这里（isListen 挡掉）。 */
+    if(!isListen) startTimer((EX._timerMin == null ? 60 : EX._timerMin) * 60);
     if(!isListen) startFtMini();                     /* 10/13：顶栏计时小徽章（考场内替代全站 floatTimer） */
   }
 
@@ -2652,6 +2687,11 @@ window.__reportExamState = reportExamState;
         看完指南若把参数丢了，卷子就变成随机的新题 —— 她以为在重做原题，其实分数不可比（本质是骗人）。 */
   function openFullTest(fixedPicks){
     if(!guidePassed('reading')){ examGuideGate('reading', function(){ openFullTest(fixedPicks); }); return; }
+    /* EXAM-TIMER-CHOICE-1：完整阅读模考 = 模考类 → 每次都问要不要计时（默认 60 分钟可调） */
+    timerChoiceGate('read_full', null, function(min){ openFullTestNow(fixedPicks, min); });
+  }
+  function openFullTestNow(fixedPicks, timerMin){
+    _pendingTimerMin = (timerMin > 0) ? Math.round(timerMin) : 0;
     /* 纯随机组卷（她 10/12「不用提前写好题目在那」）：点 Start 这一刻才抽篇，每次都不一样 */
     var picks = fixedPicks || composeFullTest();
     if(!picks) return;
@@ -2680,6 +2720,9 @@ window.__reportExamState = reportExamState;
         scored: packs.every(function(pk){ return pk.answers && Object.keys(pk.answers).length; }),
         user: {}, submitted: false, flagged: {}, curP: 1, cur: 1, qs: [], byKey: {}, byG: {}
       };
+      /* EXAM-TIMER-CHOICE-1：取走本次进场所选时长（取完即清；null = 老路径按 60 分钟） */
+      EX._timerMin = (_pendingTimerMin == null) ? null : _pendingTimerMin;
+      _pendingTimerMin = null;
       packs.forEach(function(pk, pi){
         (pk.unit.parts || []).forEach(function(part){
           (part.groups || []).forEach(function(g){
@@ -2705,7 +2748,8 @@ window.__reportExamState = reportExamState;
         packs.forEach(function(pk){ (pk.unit.parts || []).forEach(function(pt){ (pt.groups || []).forEach(function(g){ gAll.push(g); }); }); });
         var pnAll = [];
         gAll.forEach(function(g){ (g.questions || []).forEach(function(q){ if(q.qNumber != null) pnAll.push(q.qNumber); }); });
-        host2.innerHTML = shellHtml('Reading Test', 'Full Test', examTimerLabel(3600))
+        var _fm = (EX._timerMin == null) ? 60 : EX._timerMin;
+        host2.innerHTML = shellHtml('Reading Test', 'Full Test', _fm > 0 ? examTimerLabel(_fm * 60) : examUsedLabel(0))
 
           + partBannerHtml('Passage 1', pnAll.length ? pnAll[0] : null, pnAll.length ? pnAll[pnAll.length - 1] : null)
           + splitHtml('', '') + barHtml() + ctxHtml();
@@ -2716,7 +2760,8 @@ window.__reportExamState = reportExamState;
       wireExamTools();     /* 10/18 同上（完整模考路径也要绑一次） */
       reportExamState(true);
       if(EX.scored === false) showNoAnsBanner();
-      startTimer(60 * 60);
+      /* EXAM-TIMER-CHOICE-1：按选择框给的分钟数起表（默认 60）；0 = 不计时走正计时 */
+      startTimer((_fm > 0 ? _fm : 0) * 60);
       startFtMini();                                     /* 10/13：顶栏计时小徽章 */
       bankStartTimer();                               /* C-3：完整模考（阅读）开专注计时 */
     }).catch(function(err){
@@ -2735,6 +2780,12 @@ window.__reportExamState = reportExamState;
      录音只在「到这一部分」时播一次）③ 30 分钟总倒计时。 */
   function openFullListenTest(){
     if(!guidePassed('listening')){ examGuideGate('listening', function(){ openFullListenTest(); }); return; }
+    /* EXAM-TIMER-CHOICE-1：她 11-01 拍板「听力模考可以计时，练习不计时」
+       → 完整听力模考进选择框（默认 30 分钟可调），听力单篇仍不弹不计时。 */
+    timerChoiceGate('listen_full', null, function(min){ openFullListenTestNow(min); });
+  }
+  function openFullListenTestNow(timerMin){
+    _pendingTimerMin = (timerMin > 0) ? Math.round(timerMin) : 0;
     /* 同阅读：点 Start 这一刻才随机抽 Part 1–4 各一篇 */
     var picks = composeFullListenTest();
     if(!picks) return;
@@ -2763,6 +2814,9 @@ window.__reportExamState = reportExamState;
         /* 听力完整模考全程考试模式（不给练习模式 —— 真机考没有这一说） */
         listenMode: 'exam', audioStarted: false, audioStartedBy: {}
       };
+      /* EXAM-TIMER-CHOICE-1：取走本次所选时长（0 = 不计时，正数 = 分钟） */
+      EX._timerMin = (_pendingTimerMin == null) ? null : _pendingTimerMin;
+      _pendingTimerMin = null;
       _stLines = null; _stBound = null;   /* 3-4：换场清句子条缓存 */
       packs.forEach(function(pk, pi){
         (pk.unit.parts || []).forEach(function(part){
@@ -2787,14 +2841,16 @@ window.__reportExamState = reportExamState;
       if(host2){
         /* 10/13 她报「上面三行缩两行」→ 听力完整模考不渲染独立 Part 横幅，
            Part 信息并入音频条行首胶囊（renderListenPart 里随篇更新）。 */
-        host2.innerHTML = shellHtml('Listening Test', 'Full Test', examTimerLabel(1800))
+        var _lm = (EX._timerMin == null) ? 30 : EX._timerMin;
+        host2.innerHTML = shellHtml('Listening Test', 'Full Test', _lm > 0 ? examTimerLabel(_lm * 60) : examUsedLabel(0))
           + '<div id="exAudioHost"></div>'
           + '<div class="ex-listen" id="exListen"><div class="ex-listen-in" id="exListenIn"></div></div>'
           + barHtml();
       }
       renderListenPart(1);
       if(EX.scored === false) showNoAnsBanner();
-      startTimer(30 * 60);
+      /* EXAM-TIMER-CHOICE-1：按选择框给的分钟数起表（默认 30）；0 = 不计时 */
+      startTimer((_lm > 0 ? _lm : 0) * 60);
       startFtMini();                                     /* 10/13：顶栏计时小徽章 */
       bankStartTimer();                               /* C-3：完整模考（听力）开专注计时 */
     }).catch(function(err){
@@ -3885,34 +3941,50 @@ window.__reportExamState = reportExamState;
         5 分钟 = 红色闪烁（强提醒）
      到点 = 强制交卷（所有成熟机考模拟器的通例；原文 `left<=0` 只是停表，考卷会一直挂在那）。 */
   function pad2(n){ return (n < 10 ? '0' : '') + n; }
-  /* 10/13 Pause 支持：暂停时把剩余秒数存 EX._leftSec，resume 用它重启倒计时（不重算、不丢已过时间）。 */
+  /* 10/13 Pause 支持：暂停时把剩余秒数存 EX._leftSec，resume 用它重启倒计时（不重算、不丢已过时间）。
+     🔴 EXAM-TIMER-CHOICE-1（10-31）：sec <= 0 = 用户在选择框里点了「不计时」→ 走正计时。
+        · EX._noTimer = true，倒计时那条「到点强制交卷」整条不走（不计时没有「到点」）
+        · 显示改成「已用 N min」（她自己常常想知道做了多久；显示 --:-- 等于把这块信息全丢了）
+        · EX._leftSec 在这个模式下仍是「已用秒的正值」，交卷算用时那行靠 _noTimer 分支区分
+        · 同一次考试里不再改主意（进了考场就没有第二次选择框），所以没有「计时⇄不计时」切换。 */
   function startTimer(sec){
     stopTimer();
+    var noTimer = !(Number(sec) > 0);
     /* 10/16：记下开局时长 —— 复盘要显示「用时」= 开局秒 − 剩余秒（此前没有 elapsed 概念）。
        🔴 只在头一次赋值：resumeExam() 也走 startTimer(EX._leftSec)，每次都覆盖的话
        「开局时长」会被改写成「剩余秒」，暂停一次用时就算错。 */
-    if(EX && EX._totalSec == null) EX._totalSec = sec;
-    var left = sec, el = document.getElementById('exTimer');
+    if(EX && EX._totalSec == null) EX._totalSec = noTimer ? 0 : Number(sec);
+    if(EX) EX._noTimer = noTimer;
+    /* 不计时模式的 `sec` 语义是「已用秒的负值」——resumeExam() 传回 EX._leftSec 就天然接续，
+       暂停一次不会把「已用」清零重算。startTimer(0) / startTimer(null) = 从 0 开始正计时。 */
+    var left = noTimer ? 0 : Number(sec), used = noTimer ? Math.max(0, -Number(sec)) : 0, el = document.getElementById('exTimer');
     function tick(){
+      var shown = noTimer ? used : left;
       if(el){
-        el.textContent = examTimerLabel(left);
-        el.classList.toggle('warn', left <= 300 && left > 0);
-        el.classList.toggle('soon', left <= 600 && left > 300);
+        el.textContent = noTimer ? examUsedLabel(used) : examTimerLabel(left);
+        el.classList.toggle('warn', !noTimer && left <= 300 && left > 0);
+        el.classList.toggle('soon', !noTimer && left <= 600 && left > 300);
       }
       /* 10/14 听力顶栏一行化：音频条里的整场计时同步刷新（标题行 CSS 隐藏但 JS 仍跑，双写保平安）
          10/18：听力单篇的计时已搬进音频条（#eaFullTimer），这里同步给 10/5 分钟双档警示色。 */
       var ft = document.getElementById('eaFullTimer');
       if(ft){
-        var fh = Math.floor(left / 3600), fm = Math.floor((left % 3600) / 60), fs2 = left % 60;
+        var fh = Math.floor(shown / 3600), fm = Math.floor((shown % 3600) / 60), fs2 = shown % 60;
         ft.textContent = pad2(fh) + ':' + pad2(fm) + ':' + pad2(fs2);
-        ft.classList.toggle('warn', left <= 300 && left > 0);
-        ft.classList.toggle('soon', left <= 600 && left > 300);
+        ft.classList.toggle('warn', !noTimer && left <= 300 && left > 0);
+        ft.classList.toggle('soon', !noTimer && left <= 600 && left > 300);
       }
-      if(EX) EX._leftSec = left;
+      if(EX) EX._leftSec = noTimer ? -used : left;
+      if(noTimer){ used++; return; }
       if(left <= 0){ stopTimer(); doSubmit(); return; }
       left--;
     }
     tick(); _timer = setInterval(tick, 1000);
+  }
+  /* 不计时模式的顶栏读数：「已用 N min」（与 examTimerLabel 同一套口径，只有前缀不同） */
+  function examUsedLabel(s){
+    var m = Math.floor(Math.max(0, Number(s) || 0) / 60);
+    return '已用 ' + m + ' min';
   }
   function stopTimer(){ if(_timer){ clearInterval(_timer); _timer = null; } }
 
@@ -3938,7 +4010,7 @@ window.__reportExamState = reportExamState;
     if(!EX || EX.submitted || EX.paused) return;
     if(EX.listenMode === 'exam') return;                   /* 考试模式没有暂停（按钮也不渲染，双保险） */
     EX.paused = true;
-    if(EX._leftSec == null) EX._leftSec = 60 * 60;
+    if(EX._leftSec == null) EX._leftSec = EX._noTimer ? 0 : (EX._totalSec || 60 * 60);
     stopTimer();
     var a = document.getElementById('exAudio');
     EX._wasPlaying = !!(a && !a.paused);
@@ -3949,7 +4021,9 @@ window.__reportExamState = reportExamState;
   function resumeExam(){
     if(!EX || !EX.paused) return;
     EX.paused = false;
-    startTimer(EX._leftSec == null ? 60 * 60 : EX._leftSec);
+    /* 🔴 EXAM-TIMER-CHOICE-1：原来硬编码 60*60，会让「选了不计时 → 暂停 → 恢复」凭空长出
+       一小时倒计时；现在沿用本次考试真正开局的时长（_totalSec），不计时卷接回负值继续正计时。 */
+    startTimer(EX._leftSec == null ? (EX._noTimer ? 0 : (EX._totalSec || 60 * 60)) : EX._leftSec);
     var a = document.getElementById('exAudio');
     if(a && EX._wasPlaying) a.play();
     paintPauseBtn();
@@ -4272,8 +4346,12 @@ window.__reportExamState = reportExamState;
 
     /* 10/17：复盘状态初始化（结论条展开表）。必须在 decoratePassage 之前 —— 它要读 EX._rview。 */
     EX._rview = { open: {}, expanded: false };
-    /* 用时 = 开局秒 − 剩余秒（startTimer 已记 _totalSec；EX._leftSec 每 tick 更新） */
-    EX._usedSec = (EX._totalSec && EX._leftSec != null) ? (EX._totalSec - EX._leftSec) : 0;
+    /* 用时 = 开局秒 − 剩余秒（startTimer 已记 _totalSec；EX._leftSec 每 tick 更新）
+       🔴 EXAM-TIMER-CHOICE-1：不计时卷的 _leftSec 是「已用秒的负值」（-used），
+          所以用时直接取反，而不是走 _totalSec - _leftSec（那样会算出负数或 0）。 */
+    EX._usedSec = EX._noTimer
+      ? Math.max(0, -(Number(EX._leftSec) || 0))
+      : ((EX._totalSec && EX._leftSec != null) ? (EX._totalSec - EX._leftSec) : 0);
 
     if(!_noAns){
       decoratePassage(EX.curP);

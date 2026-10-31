@@ -38,7 +38,7 @@ const SEED = () => {
   pgA.on('pageerror', e => aErrs.push(String(e && e.message || e)));
   await pgA.goto(BASE + '/bank.html', { waitUntil: 'load' });
   await pgA.waitForTimeout(1200);
-  const a = await pgA.evaluate(() => {
+  const a = await pgA.evaluate(() => { try{localStorage.setItem('hub_exam_timer_auto','20');}catch(e){}
     const n = document.querySelectorAll('#bankList .bank-item, #bankList .bank-items > *').length;
     return {
       listKids: n,
@@ -65,7 +65,7 @@ const SEED = () => {
   pgB.on('pageerror', e => bErrs.push(String(e && e.message || e)));
   pgB.on('request', r => reqs.push(r.url()));
   await pgB.goto(BASE + '/bank.html', { waitUntil: 'load' });
-  const timing = await pgB.evaluate(() => {
+  const timing = await pgB.evaluate(() => { try{localStorage.setItem('hub_exam_timer_auto','20');}catch(e){}
     const fcp = performance.getEntriesByName('first-contentful-paint')[0];
     const rs = performance.getEntriesByType('resource').filter(e => /writing(_prompts)?\.js/.test(e.name))
       .map(e => ({ n: e.name.split('/').pop().split('?')[0], s: Math.round(e.startTime), tr: e.transferSize }));
@@ -89,6 +89,10 @@ const SEED = () => {
       listText: list ? list.innerText.length : 0,
       listKids: list ? list.children.length : 0,
       hasFullCard: !!document.querySelector('#writingFullEntry .full-card'),
+      /* 10-31：只用来做「切回来数量没变」的对照基准 —— 不写死数字。
+         理由：data-late-src 是会增删的清单（EXAM-TIMER-CHOICE-1 就刚加进 exam-timer.js），
+         写死「= 2」这类字面量每次都过期一次，红的是判据不是产品。 */
+      lateScripts: document.querySelectorAll('script[data-late="1"]').length,
       loaded: performance.getEntriesByType('resource').filter(e => /writing(_prompts)?\.js/.test(e.name)).map(e => e.name.split('/').pop().split('?')[0])
     };
   });
@@ -112,7 +116,7 @@ const SEED = () => {
     kids: (document.getElementById('examList') || { children: [] }).children.length,
     errs: 0
   }));
-  ok(c.scripts === 2, '重复切 tab 不会重复插入脚本（script 标签数 = ' + c.scripts + '）');
+  ok(c.scripts === b.lateScripts && c.scripts > 0, '重复切 tab 不会重复插入脚本（首次 ' + b.lateScripts + ' → 切回 ' + c.scripts + '）');
   ok(c.facScripts === 1, '出厂内容脚本只插一次（幂等，count=' + c.facScripts + '）');
   ok(c.kids > 0, '切回后列表仍在（' + c.kids + ' 项）');
   /* ⚠️ 不能断言「网络请求恰好 2 次」：软导航的 prefetchAll 会为 writing.html 预热
