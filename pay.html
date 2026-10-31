@@ -68,7 +68,12 @@
        🔴 页面分工：vip.html 是介绍页（不放支付元素），本页是功能执行页 —— 所以支付词只出现在这里。 -->
   <div class="pay-wrap">
     <div class="pay-top">
-      <a class="pay-back" href="vip.html">← 返回会员页重选档位</a>
+      <!-- BACK-BTN-PAGES-1（10-31）：接线统一基类 .site-back。
+           🔴 只换外观：href 仍是 vip.html（去向不变）、文案仍是「返回会员页重选档位」（去向写全），
+              没有 id / 没有 JS 绑它，所以不存在行为改动。
+           箭头从字符「←」换成 16px svg（规范稿：「固定一枚左箭头，不使用 ←、‹ 混写」）。
+           原来 .pay-back 那条纯文字样式保留不删（.pay-backs 那两颗带底按钮还在用同一族命名）。 -->
+      <a class="site-back" href="vip.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M11 18l-6-6 6-6"/></svg><span class="site-back-txt">返回会员页重选档位</span></a>
       <div></div>
     </div>
 
