@@ -180,14 +180,21 @@
       }
       if(t.closest('[data-tmrgo]')){
         ev.preventDefault();
-        var v = Math.round(Number(input && input.value));
-        if(!(v >= MIN_MIN && v <= MAX_MIN)){
-          /* 越界不静默接受：夹到合法区间并当场回写，用户看得见自己最终拿到多少 */
-          v = Math.min(MAX_MIN, Math.max(MIN_MIN, v || defMin));
-          if(input) input.value = String(v);
-          paint();
-          return;
-        }
+        /* 🔴 一次点击就必须开始，不许把用户挡成「点两次」。
+           第一版写成「越界时先回写输入框再 return」，实测（_ptc_edge 11 红）就是：
+           打 999 点开始 → 弹框不动、输入框变 180、人愣在那得再点一次。
+           她按「按这个时长开始」表达的就是「开始」，中途拦一道是多余的摩擦。
+           现在的钳制口径（都在这一次点击里完成，没有第二次）：
+             · 非数字 / 空 / 0 / 负数 → 回落到本场景默认分钟（她自己选的场景默认值）
+             · 超过 180               → 夹到 180
+           回写输入框只为让返回值与屏幕一致，然后立刻 finish。 */
+        var raw = (input && input.value != null) ? String(input.value).trim() : '';
+        var n = Number(raw);
+        var v;
+        if(raw === '' || !isFinite(n) || n <= 0) v = defMin;
+        else v = Math.min(MAX_MIN, Math.max(MIN_MIN, Math.round(n)));
+        if(input) input.value = String(v);
+        paint();
         finish(v);
       }
     });
