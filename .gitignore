@@ -12,10 +12,12 @@ node_modules
 #   端到端数值判据只留在一个人本地等于没有。
 #   ⚠️ 必须用 `/tests/*` 而不是 `/tests/`：git 规则里**排除整个目录后就不再进入该目录**，
 #      后面写再多 `!` 放行都无效。
-#   ⚠️ 只放行「跑得起来的最小集」：写作打分探针 + 两个跑探针的辅助，其余测试文件继续忽略。
-#   ⚠️ `_regress_1017.cjs`（总白名单）**故意不入库**：它引用 56 支探针，
-#      其中 54 支不入库，入库会让拉代码的人跑出一片假红。要跑它得本机全集。
-#      新增探针要入库时逐个补 `!` 行。
+#   ⚠️ 【10-31 已作废的两条，留档防误读】原文写过
+#      「只放行最小集，其余测试文件继续忽略」与「_regress_1017.cjs 故意不入库，
+#        它引用的 54 支不入库，入库会让拉代码的人跑出一片假红」——
+#      这两条在 TESTS-GITIGNORE-1 之后都不成立了：白名单 60 支现已全部入库，
+#      干净 clone 出来跑 _regress 反而是**可复现**的，不再是假红。
+#      现状口径见下方「回归白名单放行」段与 tests/_gate_gitignore_whitelist_1031.cjs。
 #   跑法（在 tests/ 的上层目录）：
 #      node tests/_with_server.cjs tests/_probe_wrte2e_1027.cjs 8781
 # ========================================================================
@@ -88,6 +90,8 @@ node_modules
 !/tests/_probe_wrte2e_1027.cjs
 !/tests/_probe_wrttpl_1021.cjs
 !/tests/_with_server.cjs
+# 白名单本身（TESTS-GITIGNORE-1 起与探针同进同出，干净 clone 即可跑回归）
+!/tests/_regress_1017.cjs
 # 白名单探针的共用夹具（被 _probe_shell*_1022 与 review 系列 require，不入库则回归跑不起来）
 !/tests/_anc_seed.cjs
 !/tests/_review_util.cjs
