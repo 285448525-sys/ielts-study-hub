@@ -361,7 +361,8 @@
       const qEl = $('#mockQ');
       if(qEl){
         if(opts.allowTts){
-          // 题目文本 + 播放按钮并排（P1/P3 需要语音；P2 不加）
+          // 题目文本 + 播放按钮并排（P1/P3 给喇叭；P2 不给）。
+          // 🔴 MOCK-AUTOSPEAK-OFF-1：allowTts 只表示「这道题给不给喇叭按钮」，**不再表示自动朗读**。
           qEl.innerHTML = '<div class="mock-q-row">'
             + '<div class="mock-q-text">' + (opts.qHtml || '') + '</div>'
             + ttsBtnHtml()
@@ -370,14 +371,18 @@
           qEl.innerHTML = opts.qHtml || '';
         }
       }
-      // 题目语音：渲染后自动朗读一次（用户刚点过“下一题”，属用户手势，浏览器允许）；并绑定重播按钮
+      /* 🔴 MOCK-AUTOSPEAK-OFF-1（10-31 A2，P0 二次返工）：这里原来无条件自动朗读一次。
+         她 19:26 原话「还是一直在读啊，只不过是读一半就停了好吵」。
+         机制：模考里点下一题 → speechSynthesis.cancel 砍断上一句（=「读一半就停」）
+             → 新题又被这里自动开读（=「一直在读」）。
+         ⚠️ 原注释的理由「用户刚点过下一题，属用户手势，浏览器允许」跟我在 sp-list.js
+            删掉的那条是同一个错误理由：她的手势是「翻题」，不是「我要听」。
+         现在只保留点喇叭那一下（下面 ttsBtn 的 click 绑定），渲染完不再自动发声。
+         allowTts 语义随之收窄为「这道题要不要给喇叭按钮」。 */
       if(opts.allowTts && qEl){
         const ttsBtn = qEl.querySelector('.sp-tts');
         const ttsText = opts.ttsText || (qEl.querySelector('.mock-q-text') ? qEl.querySelector('.mock-q-text').textContent.trim() : '');
-        if(ttsText){
-          if(ttsBtn) ttsBtn.addEventListener('click', e => { e.stopPropagation(); speakQuestion.speak(ttsText, ttsBtn); });
-          speakQuestion.speak(ttsText, ttsBtn);
-        }
+        if(ttsText && ttsBtn) ttsBtn.addEventListener('click', e => { e.stopPropagation(); speakQuestion.speak(ttsText, ttsBtn); });
       }
       const liveEl = $('#mockLive'); if(liveEl) liveEl.textContent = '';
       const manual = $('#mockManual');
