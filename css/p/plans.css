@@ -334,12 +334,19 @@
   border-bottom:2px solid currentColor;transform:rotate(-45deg) translateY(-1px);opacity:0}
 #mkToday .m-task.m-done .m-cb{background:var(--primary);border-color:var(--primary)}
 #mkToday .m-task.m-done .m-cb::after{opacity:1}
-#mkToday .m-task .m-t{flex:1 1 0%;min-width:0;color:var(--ink);font-size:14px;font-weight:600;
+/* 笔 2/3：标题与元信息分两行（稿子形态）——标题一行，下面一行「科目 · N 分钟 · 昨天顺延」。
+   🔴 类名不变：标题仍是 .m-t、科目仍是 .m-tagline，只多一层 .m-taskbody/.m-tmeta 包住。 */
+#mkToday .m-task .m-taskbody{flex:1 1 0%;min-width:0;display:block}
+#mkToday .m-task .m-t{display:block;color:var(--ink);font-size:14px;font-weight:600;
   line-height:1.5;overflow-wrap:anywhere}
 #mkToday .m-task.m-done .m-t{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--n-500)}
+#mkToday .m-task .m-tmeta{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-top:6px}
 #mkToday .m-task .m-tagline{flex:none;padding:1px 7px;border-radius:5px;background:var(--n-100);
   border:1px solid var(--line);color:var(--ink-2);font-size:11px;font-weight:650;line-height:1.6}
-#mkToday .m-task .m-jmp{flex:none;color:var(--primary-700);font-size:12px;font-weight:650;line-height:1.8}
+#mkToday .m-task .m-tmin{flex:none;color:var(--muted);font-size:11px;font-variant-numeric:tabular-nums}
+#mkToday .m-task .m-tcarry{flex:none;color:#8a5200;font-size:11px}
+#mkToday .m-task .m-jmp{flex:none;color:var(--primary-700);font-size:12px;font-weight:650;
+  line-height:1.8;align-self:center}
 
 /* ── 添加区 ── */
 #mkToday .m-addrow{margin:4px 26px 24px;padding-top:18px;border-top:1px solid var(--line);
@@ -413,6 +420,9 @@
   #mkToday .m-tasklist .m-task{padding:14px 6px;gap:10px}
   #mkToday .m-task .m-cb{width:25px;height:25px}
   #mkToday .m-task .m-t{font-size:13.5px}
+  #mkToday .m-task .m-tmeta{margin-top:5px;gap:6px}
+  #mkToday .m-task .m-jmp{font-size:0;width:34px}
+  #mkToday .m-task .m-jmp::after{content:"→";font-size:15px}
   #mkToday .m-addrow{margin:3px 18px 18px;padding-top:15px}
   /* 手机档：输入框占满整行、按钮落到下一行。
      并排会裁掉占位文字（实测 390 宽只剩约 200px，稿子里那句例子读不全）—
@@ -428,4 +438,5 @@
 [data-theme="dark"] #mkToday .m-task .m-cb{background:var(--surface);border-color:var(--n-500)}
 [data-theme="dark"] #mkToday .m-addinput{background:var(--surface)}
 [data-theme="dark"] #mkToday .m-daynav-lg{background:var(--surface)}
-[data-theme="dark"] #mkToday .m-carry{background:var(--surface);color:var(--warn-ink,#e0a458)}
+[data-theme="dark"] #mkToday .m-carry{background:var(--surface);color:#e0a458}
+[data-theme="dark"] #mkToday .m-task .m-tcarry{color:#e0a458}

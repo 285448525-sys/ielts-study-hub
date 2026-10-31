@@ -30,7 +30,7 @@
 </script>
 <title>计划 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261029k" />
-<link rel="stylesheet" href="css/p/plans.css?v=20261031a" />
+<link rel="stylesheet" href="css/p/plans.css?v=20261031b" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -49,7 +49,7 @@
   <script defer src="js/common-shell.js?v=20261030b"></script>
   <script defer src="js/common-pwa.js?v=20261029k"></script>
   <script defer src="js/feedback.js?v=20261027a"></script>
-  <script src="js/plans.js?v=20261031a" defer></script>
+  <script src="js/plans.js?v=20261031b" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -669,10 +669,30 @@
             </div>
           </div>
           <div class="m-tasklist" id="mkTaskList">
-            <div class="m-task m-done"><span class="m-cb"></span><span class="m-t">背词：List 7 复习</span><span class="m-tagline">单词</span><span class="m-jmp">去练 →</span></div>
-            <div class="m-task m-done"><span class="m-cb"></span><span class="m-t">听力 P1 精听一篇</span><span class="m-tagline">听力</span><span class="m-jmp">去练 →</span></div>
-            <div class="m-task"><span class="m-cb"></span><span class="m-t">口语 P2 卡牌练 3 张</span><span class="m-tagline">口语</span><span class="m-jmp">去练 →</span></div>
-            <div class="m-task"><span class="m-cb"></span><span class="m-t">写作 Task 1 图表一篇</span><span class="m-tagline">写作</span><span class="m-jmp">去练 →</span></div>
+            <!-- 笔 2/3：这 4 行只是「占位骨架」，syncSkeleton 会按真数据覆盖文字并决定显隐；
+                 一条任务都没有时 #mkEmpty 接管，taskList 整块隐藏。
+                 🔴 行内结构 = 勾选框 / 标题+元信息 / 去练 / 编辑删除，与 skeletonRowHtml() 完全同构，
+                    否则「真数据追加的行」和「HTML 里的占位行」会长得不一样（老 bug 来源之一）。 -->
+            <div class="m-task">
+              <span class="m-cb"></span>
+              <span class="m-taskbody"><span class="m-t">背词：List 7 复习</span><span class="m-tmeta"><span class="m-tagline">单词</span><span class="m-tmin"></span><span class="m-tcarry" hidden>昨天顺延</span></span></span>
+              <span class="m-jmp">去练 →</span>
+            </div>
+            <div class="m-task">
+              <span class="m-cb"></span>
+              <span class="m-taskbody"><span class="m-t">听力 P1 精听一篇</span><span class="m-tmeta"><span class="m-tagline">听力</span><span class="m-tmin"></span><span class="m-tcarry" hidden>昨天顺延</span></span></span>
+              <span class="m-jmp">去练 →</span>
+            </div>
+            <div class="m-task">
+              <span class="m-cb"></span>
+              <span class="m-taskbody"><span class="m-t">口语 P2 卡牌练 3 张</span><span class="m-tmeta"><span class="m-tagline">口语</span><span class="m-tmin"></span><span class="m-tcarry" hidden>昨天顺延</span></span></span>
+              <span class="m-jmp">去练 →</span>
+            </div>
+            <div class="m-task">
+              <span class="m-cb"></span>
+              <span class="m-taskbody"><span class="m-t">写作 Task 1 图表一篇</span><span class="m-tmeta"><span class="m-tagline">写作</span><span class="m-tmin"></span><span class="m-tcarry" hidden>昨天顺延</span></span></span>
+              <span class="m-jmp">去练 →</span>
+            </div>
           </div>
           <div class="m-empty" id="mkEmpty" hidden><b>这一天还没有任务</b><span>写一条，或让 AI 帮你安排。</span></div>
 

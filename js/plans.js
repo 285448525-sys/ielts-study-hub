@@ -563,8 +563,22 @@ function applyTaskFilter(taskCard, items){
   });
 }
 
+/* 任务行结构（笔 2/3 按 SSR 定稿对齐）：
+     [勾选框] [标题 / 第二行元信息（科目 · N 分钟 · 昨天顺延）] [去练 →] [编辑 删除]
+   🔴 标题仍是 .m-t、科目仍是 .m-tagline —— 回归探针与其它脚本都在按这两个类名取值，
+      改名等于把别人的判据打断。这里只把它们**包进** .m-taskbody / .m-tmeta，类名一个不动。
+   🔴 分钟数是「从任务文本里抠出来的估计值」而非用户填的字段（planMinOf 只认「N 分钟」），
+      抠不到就整段不显示，不编一个数字出来。 */
 function skeletonRowHtml(){
-  return '<span class="m-cb"></span><span class="m-t"></span><span class="m-tagline"></span>'
+  return '<span class="m-cb"></span>'
+       + '<span class="m-taskbody">'
+       +   '<span class="m-t"></span>'
+       +   '<span class="m-tmeta">'
+       +     '<span class="m-tagline"></span>'
+       +     '<span class="m-tmin"></span>'
+       +     '<span class="m-tcarry" hidden>昨天顺延</span>'
+       +   '</span>'
+       + '</span>'
        + '<span class="m-jmp">去练 →</span>'
        + '<span class="m-act">'
        +   '<button type="button" class="m-actbtn" data-mkedit title="编辑" aria-label="编辑">✎</button>'
@@ -575,13 +589,18 @@ function skeletonRowHtml(){
 /* 行内编辑：把 .m-t 换成输入框，语义照旧卡 startEdit（Enter/失焦存、Esc 取消） */
 function skeletonEdit(row, item, date){
   if(!row || !item) return;
+  if(row.querySelector('.m-editinput')) return;
+  /* 笔 2/3：标题现在包在 .m-taskbody 里（下面还有元信息那一行）。
+     编辑时把**整个 body** 换成输入框 —— 只换 .m-t 会留下「科目 · 分钟」悬在输入框下面，
+     看着像两套内容并排。取消/保存时再把 body 原样长回来。 */
+  var body = row.querySelector('.m-taskbody');
   var t = row.querySelector('.m-t');
-  if(!t || row.querySelector('.m-editinput')) return;
+  if(!body || !t) return;
   var input = document.createElement('input');
   input.type = 'text';
   input.className = 'm-editinput';
   input.value = item.text || '';
-  t.replaceWith(input);
+  body.replaceWith(input);
   input.focus();
   input.select();
   var cancelled = false, done = false;
@@ -590,15 +609,31 @@ function skeletonEdit(row, item, date){
     done = true;
     var v = input.value.trim();
     var back = document.createElement('span');
-    back.className = 'm-t';
+    back.className = 'm-taskbody';
+    var backT = document.createElement('span');
+    backT.className = 'm-t';
+    var backMeta = document.createElement('span');
+    backMeta.className = 'm-tmeta';
+    back.appendChild(backT); back.appendChild(backMeta);
     var cur = (typeof getPlan === 'function') ? getPlan(date) : null;
     var it = cur && cur.items ? cur.items.filter(function(x){ return x.id === item.id; })[0] : null;
     if(save && v && it && v !== it.text){
       it.text = v; it.updatedAt = Date.now(); hubSave();
     }
-    back.textContent = (it ? it.text : v) || '';
+    backT.textContent = (it ? it.text : v) || '';
     input.replaceWith(back);
-    if(save) render();
+    /* 保存走 render() 全量重画（元信息、分钟、顺延标记一起对齐）；
+       取消则手动把元信息补回来 —— 不 render 是为了不丢「刚点的那一行」。 */
+    if(save){ render(); }
+    else{
+      var lab3 = it && it.module && typeof moduleLabelOf === 'function' ? moduleLabelOf(it.module) : '';
+      var tag3 = document.createElement('span');
+      tag3.className = 'm-tagline'; tag3.textContent = lab3; tag3.style.display = lab3 ? '' : 'none';
+      backMeta.appendChild(tag3);
+      var min3 = it ? ((typeof it.min === 'number' && it.min) || (typeof planMinOf === 'function' ? planMinOf(it.text) : 0)) : 0;
+      if(min3){ var m3 = document.createElement('span'); m3.className = 'm-tmin'; m3.textContent = min3 + ' 分钟'; backMeta.appendChild(m3); }
+      if(it && it.carried){ var c3 = document.createElement('span'); c3.className = 'm-tcarry'; c3.textContent = '昨天顺延'; backMeta.appendChild(c3); }
+    }
   }
   input.addEventListener('blur', function(){ if(!cancelled) finish(true); }, {once:true});
   input.addEventListener('keydown', function(e){
@@ -776,6 +811,22 @@ function syncSkeleton(date, isToday, items, done, total, pct){
         tag.textContent = lab2;
         tag.style.display = lab2 ? '' : 'none';
       }
+      /* 分钟：只在「标题里没写分钟」时才单独显示一小段。
+         🔴 这条判断不能省 —— 手动加的任务，分钟本来就写在标题里
+            （「听力 P1 精听一篇 30 分钟」），再在下面补一行「30 分钟」就是同一句话说两遍。
+            实测截图里正是这个重复。AI 生成项 text 也强制含分钟数，同理不重复。
+             只有 it.min 有值、而标题里没写分钟时才显示。 */
+      var tmin = row.querySelector('.m-tmin');
+      if(tmin){
+        var fromText = (typeof planMinOf === 'function') ? planMinOf(it.text) : 0;
+        var mins = (typeof it.min === 'number' && it.min) ? it.min : fromText;
+        var showMin = !!mins && !fromText;
+        tmin.textContent = showMin ? (mins + ' 分钟') : '';
+        tmin.style.display = showMin ? '' : 'none';
+      }
+      /* 顺延标记：昨天没做完自动挪过来的那几条，稿子里标成「昨天顺延」 */
+      var tcarry = row.querySelector('.m-tcarry');
+      if(tcarry) tcarry.hidden = !it.carried;
       var jmp = row.querySelector('.m-jmp');
       if(jmp){
         var j = (typeof planGenJump === 'function') ? planGenJump(it) : null;
