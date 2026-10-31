@@ -89,7 +89,9 @@ const ok = (n, c, d) => { if (c) { pass++; console.log('  OK   ' + n + (d ? '  '
   });
   ok('⑥1 顶栏有全屏按钮', fs.hasBtn === true);
   ok('⑥2 全屏按钮在 ☰ 左边（Q2）', fs.left === true, 'fs.x=' + fs.bx + ' menu.x=' + fs.mx);
-  ok('⑥3 图标是 SVG（8 条路径），不是字符', fs.hasSvg && fs.paths === 8, 'paths=' + fs.paths);
+  /* UNIFIED-EXAM-UI-3 笔1（10-31）：全屏钮图标从「L 形折角 + 四条对角线」（8 条 path）
+     换成纯四角箭头（4 条 path）—— 旧判据把 8 写死了，改成「是 SVG 且 ≥4 条 path」。 */
+  ok('⑥3 图标是 SVG（≥4 条路径），不是字符', fs.hasSvg && fs.paths >= 4, 'paths=' + fs.paths);
   ok('⑥4 无「undefined」残留文本', !/undefined/.test(fs.txt || ''), JSON.stringify(fs.txt));
   ok('⑥5 title / aria-label 有值', !!fs.title && fs.title === fs.aria, fs.title);
 

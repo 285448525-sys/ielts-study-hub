@@ -1189,9 +1189,10 @@
   var ICO_BRAND = '<svg viewBox="0 0 512 512" width="16" height="16" fill="none" aria-hidden="true">'
   + '<g fill="#fff" stroke="#fff" stroke-width="38" stroke-linejoin="round" stroke-linecap="round">'
   + '<path d="M256 136 L344 194 L256 252 L168 194 Z"/><path d="M160 304 L212 304 L256 362 L300 304 L352 304 L352 354 Q352 394 256 394 Q160 394 160 354 Z"/></g></svg>';
-  var ICO_FULL = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V5.5A1.5 1.5 0 0 1 5.5 4H9"/><path d="M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9"/><path d="M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15"/><path d="M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15"/><path d="M4 4l6 6"/><path d="M20 4l-6 6"/><path d="M20 20l-6-6"/><path d="M4 20l6-6"/></svg>';
+  /* UNIFIED-EXAM-UI-3 笔1（10-31）：四角箭头方案（原版 L 形折角+对角线在 18px 下糊在一起） */
+  var ICO_FULL = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H3v5"/><path d="M16 3h5v5"/><path d="M21 16v5h-5"/><path d="M3 16v5h5"/></svg>';
   /* 退出全屏：四角朝内箭头（↘↙↗↖，箭头指向中心） */
-  var ICO_FULL_X = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4v3.5A1.5 1.5 0 0 1 7.5 9H4"/><path d="M15 4v3.5A1.5 1.5 0 0 0 16.5 9H20"/><path d="M15 20v-3.5a1.5 1.5 0 0 1 1.5-1.5H20"/><path d="M9 20v-3.5A1.5 1.5 0 0 0 7.5 15H4"/><path d="M10 10h4v4h-4z"/></svg>';
+  var ICO_FULL_X = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h5V3"/><path d="M21 8h-5V3"/><path d="M16 21v-5h5"/><path d="M8 21v-5H3"/></svg>';
   /* 10/20：音频条音量 / 静音图标（去 emoji，SVG 线性图标与全屏/隐藏计时同款） */
   var ICO_VOL  = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h3.5L13 19V5L7.5 9H4z"/><path d="M16.5 9.5a4 4 0 0 1 0 5M19 7a7.5 7.5 0 0 1 0 10"/></svg>';
   var ICO_MUTE = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h3.5L13 19V5L7.5 9H4z"/><path d="M16.5 9.5l5 5M21.5 9.5l-5 5"/></svg>';
