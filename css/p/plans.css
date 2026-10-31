@@ -438,5 +438,80 @@
 [data-theme="dark"] #mkToday .m-task .m-cb{background:var(--surface);border-color:var(--n-500)}
 [data-theme="dark"] #mkToday .m-addinput{background:var(--surface)}
 [data-theme="dark"] #mkToday .m-daynav-lg{background:var(--surface)}
-[data-theme="dark"] #mkToday .m-carry{background:var(--surface);color:#e0a458}
-[data-theme="dark"] #mkToday .m-task .m-tcarry{color:#e0a458}
+[data-theme="dark"] #mkToday .m-carry{background:var(--surface);color:var(--warn-ink,#e0a458)}
+[data-theme="dark"] #mkToday .m-task .m-tcarry{color:var(--warn-ink,#e0a458)}
+
+/* ══════════════════════════════════════════════════════════════════════
+   PLANS-REDESIGN-CODE-1 笔 3（10-31）：右栏两块
+   依据 design/plan-redesign-SSR-2026-10-30.html 的 .sidebar / .side-card。
+   ① .m-timecard 今天的时间分配（数据由 renderTimeSplit() 真算，没数据整卡 hidden）
+   ② .m-diagcard 备考诊断（里面还是 #diagRoot 那套真功能，只改成竖窄排版）
+   ══════════════════════════════════════════════════════════════════════ */
+#mkToday .m-side-card{padding:21px}
+#mkToday .m-side-h2{margin:0;font-size:15px;line-height:1.4;letter-spacing:-.01em}
+#mkToday .m-side-kicker{margin:4px 0 16px;color:var(--muted);font-size:12px;line-height:1.5}
+#mkToday .m-side-foot{margin:15px 0 0;padding-top:12px;border-top:1px solid var(--line);
+  color:var(--muted);font-size:11px;line-height:1.6}
+
+/* 总时长：数字大、单位小，与稿子一致 */
+#mkToday .m-timetotal{display:flex;align-items:baseline;gap:5px;margin-bottom:15px;flex-wrap:wrap}
+#mkToday .m-timetotal strong{font-size:28px;line-height:1;color:var(--primary-900);
+  font-variant-numeric:tabular-nums;letter-spacing:-.03em}
+#mkToday .m-timetotal span{font-size:12px;color:var(--muted)}
+
+/* 分科条：科目名 / 细轨 / 分钟数，三列固定，数字右对齐不跳 */
+#mkToday .m-timesplit{display:grid;gap:12px}
+#mkToday .m-timeline{display:grid;grid-template-columns:38px minmax(0,1fr) 46px;align-items:center;gap:9px;font-size:11px}
+#mkToday .m-tl-lab{color:var(--ink-2);font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#mkToday .m-tl-track{height:5px;border-radius:9px;background:var(--bg);overflow:hidden}
+#mkToday .m-tl-track i{display:block;height:100%;border-radius:inherit;background:var(--primary)}
+#mkToday .m-tl-track i.m-tl-soft{background:var(--primary-200)}
+#mkToday .m-tl-min{text-align:right;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+#mkToday .m-timesplit-na{margin:0;color:var(--muted);font-size:12px;line-height:1.7}
+
+/* 诊断卡：外层卡片拆掉，让 #diagRoot 里那张 .card 自己当卡（避免卡套卡两层边框） */
+#mkToday .m-diagcard{padding:0;background:none;border:0;box-shadow:none}
+#mkToday .m-diagcard #diagRoot{margin:0}
+#mkToday .m-diagcard #diagRoot > .card{margin:0;height:100%}
+
+/* 🔴 关键：.dg-hero 原来是「左文案 / 右三步」两列（plans.html 里那套 1fr 1fr + 44px gap），
+   放进 306px 的右栏会被压成两条窄缝。右栏里一律改回竖排单列，顺序：图标 → 标题 → 正文 → 按钮 → 步骤。 */
+#mkToday .m-side #diagRoot .dg-hero{
+  display:block;padding:20px 18px;border-radius:var(--radius);
+}
+#mkToday .m-side #diagRoot .dg-hero-ic{font-size:30px;margin:0 0 12px;line-height:1}
+#mkToday .m-side #diagRoot .dg-hero h2{font-size:15px;margin:0 0 8px;line-height:1.4}
+#mkToday .m-side #diagRoot .dg-hero-p{font-size:12px;line-height:1.75;margin:0 0 15px}
+#mkToday .m-side #diagRoot .dg-hero .dg-block-btn,
+#mkToday .m-side #diagRoot .dg-hero .dg-text-btn{
+  width:100%;max-width:none;margin:0;text-align:center;
+}
+#mkToday .m-side #diagRoot .dg-hero .dg-text-btn{margin-top:9px;font-size:12px}
+/* 三步在窄栏里不做带序号的卡（太挤），改成轻量列表；手机上稿子也是收起来的 */
+#mkToday .m-side #diagRoot .dg-hero-steps{
+  display:block;counter-reset:none;margin:15px 0 0;padding:14px 0 0;
+  border-top:1px solid var(--line);
+}
+#mkToday .m-side #diagRoot .dg-hero-steps li{
+  display:block;position:static;padding:0 0 0 15px;margin:0 0 8px;
+  border:0;border-radius:0;background:none;box-shadow:none;
+  font-size:11.5px;line-height:1.7;color:var(--muted);counter-increment:none;
+}
+#mkToday .m-side #diagRoot .dg-hero-steps li:last-child{margin-bottom:0}
+#mkToday .m-side #diagRoot .dg-hero-steps li::before{
+  content:'';position:absolute;left:3px;top:7px;width:4px;height:4px;border-radius:50%;
+  background:var(--primary-200);counter-increment:none;
+}
+#mkToday .m-side #diagRoot .dg-hero-steps li{position:relative}
+
+/* 诊断「已做过」那张汇总卡（.dg-summary）在窄栏里也收一档 */
+#mkToday .m-side #diagRoot .dg-summary{padding:18px 16px}
+#mkToday .m-side #diagRoot .dg-chips{grid-template-columns:1fr 1fr;gap:8px}
+#mkToday .m-side #diagRoot .dg-block-btn{max-width:none;width:100%}
+
+/* 手机档：右栏两块跟着主栏下移（稿子里时间分配在手机上隐藏，诊断仍在） */
+@media(max-width:760px){
+  #mkToday .m-side-card{padding:18px}
+  #mkToday .m-side #diagRoot .dg-hero{padding:18px 16px}
+  #mkToday .m-side .m-timecard{display:none}
+}

@@ -30,7 +30,7 @@
 </script>
 <title>计划 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261029l" />
-<link rel="stylesheet" href="css/p/plans.css?v=20261029l" />
+<link rel="stylesheet" href="css/p/plans.css?v=20261031c" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -717,8 +717,26 @@
              笔 3 再把 #diagRoot 搬进右栏做成稿子里的样子。 -->
       </section>
 
-      <!-- 右栏（笔 3 填内容；先留空壳，避免布局跳动） -->
-      <aside class="m-side" aria-label="学习辅助信息" id="mkSide"></aside>
+      <!-- 右栏（笔 3），两块：今天的时间分配 / 备考诊断 -->
+      <aside class="m-side" aria-label="学习辅助信息" id="mkSide">
+
+        <!-- ① 今天的时间分配：按任务的 module + min 真算，没有可算的数据时整卡隐藏
+             （不印「0 分钟」这种假统计，她的红线：站上不许有写死的演示数据） -->
+        <section class="m-side-card m-timecard" id="mkTimeCard" hidden>
+          <h2 class="m-side-h2">今天的时间分配</h2>
+          <p class="m-side-kicker" id="mkTimeKicker"></p>
+          <div class="m-timetotal" id="mkTimeTotal"></div>
+          <div class="m-timesplit" id="mkTimeSplit"></div>
+          <p class="m-side-foot">先练弱项，精力更好时做输出练习。</p>
+        </section>
+
+        <!-- ② 备考诊断：容器 id 仍是 #diagRoot，renderDiagEntry() 一行没改，
+             只是从页面底部搬进右栏。里面那张 .dg-hero 靠 #mkSide 作用域重新排版成竖窄卡。 -->
+        <div class="m-side-card m-diagcard" id="mkDiagCard">
+          <div id="diagRoot"></div>
+        </div>
+
+      </aside>
 
     </div>
   </div>
@@ -785,13 +803,9 @@
     </div>
   </section>
 
-  <!-- P-1：备考诊断从「规划」分栏变成这里的一张固定入口卡（在「今天」卡片**外面、下面**）。
-       🔴 容器 id 仍是 #diagRoot，renderDiagEntry() 一行没改 —— 它照着这个 id 找。
-       🔴 内容与逻辑全保留（问卷 / 报告 / 跳转「去今日任务」都在）。
-       ⚠️ 必须放在 </section> 之后：放在 section 里会被桌面那条两栏网格（#ptabToday > .card
-          是 grid，.pt-list 占 grid-column:2）拽进右列，实测压扁成一半宽。
-       ⚠️ 不要给它加 dg-slot 类：`#diagOverlay .dg-slot` 是诊断问卷里的勾选格样式，同名易混。 -->
-  <div id="diagRoot"></div>
+  <!-- PLANS-REDESIGN-CODE-1 笔 3（10-31）：原在这里的 #diagRoot 已搬进右栏 #mkSide 的
+       .m-diagcard 里（稿子把诊断放在辅助栏）。容器 id 与 renderDiagEntry() 一字未动，
+       只是换了位置；页面上从此只有这一张诊断卡（笔 1 已删掉骨架里那张手写假卡）。 -->
   </div>
 
   <!-- Tab 2 往日（P-1：原「历史」栏，内容原样未动，只换 tab 值与选中判定） -->

@@ -807,7 +807,8 @@ function syncSkeleton(date, isToday, items, done, total, pct){
       if(t) t.textContent = it.text || '';
       var tag = row.querySelector('.m-tagline');
       if(tag){
-        var lab2 = it.module && typeof moduleLabelOf === 'function' ? moduleLabelOf(it.module) : '';
+        /* 笔 3：改用 planSubjectLabel —— 原来 moduleLabelOf('practice') 会原样印出英文 */
+        var lab2 = (typeof planSubjectLabel === 'function') ? planSubjectLabel(it) : (it.module || '');
         tag.textContent = lab2;
         tag.style.display = lab2 ? '' : 'none';
       }
@@ -901,11 +902,70 @@ function syncSkeleton(date, isToday, items, done, total, pct){
     applyTaskFilter(taskCard, items) ;
   }
 
-  /* ── ④ 诊断卡 ──
+  /* ── ④ 右栏：今天的时间分配 ──
+     PLANS-REDESIGN-CODE-1 笔 3（10-31，按 design/plan-redesign-SSR-2026-10-30.html）：
+     按每条任务的 module + min 真算，没有可算的数据就整卡隐藏 —— 不印「0 分钟」这种假统计。
+     min 优先取 item.min（AI 生成的项都带），没有再按文字里的「N 分钟」猜（planMinOf）。 */
+  renderTimeSplit(items);
+
+  /* ── ⑤ 诊断卡 ──
      PLANS-REDESIGN-CODE-1（10-31）：新骨架里**不再**放那张手写假诊断卡（.m-dg）。
      原先它和页面底部 #diagRoot 渲染的真诊断卡同时可见 → 页面上出现两个「备考诊断」，
      而且假卡永远是「还没做过」，真做过诊断的账号也是这句。
      现在诊断只剩 #diagRoot 那一套真功能，这里不再改它的文案（它自己会渲染对）。 */
+}
+
+/* PLANS-REDESIGN-CODE-1 笔 3（10-31）：右栏「今天的时间分配」。
+   数据来源只有一条：任务自己的 module + min —— 不编、不按四科固定比例硬套。
+   · 没有 module 的手写任务（比如「复习错题」）不进分科条，只进总时长
+   · 一分可算的数据都没有 → 整卡隐藏（她的红线：站上不许有写死的演示数据）
+   · module 中文名走 moduleLabelOf（与任务行标签、首页同一套 MODULES 口径） */
+function renderTimeSplit(items){
+  var card = document.getElementById('mkTimeCard');
+  if(!card) return;
+  var byMod = {}, total = 0;
+  (items || []).forEach(function(it){
+    if(!it) return;
+    var m = (typeof it.min === 'number' && it.min) || (typeof planMinOf === 'function' ? planMinOf(it.text) : 0);
+    if(!m) return;
+    total += m;
+    /* 按**科目**归并而不是按 module key：practice 底下 listen/read/mock 是不同科目，
+       照 module 归并会把「听力」和「阅读」合成一条「练习」，分科条就失去意义了。 */
+    var sub = (typeof planSubjectLabel === 'function') ? planSubjectLabel(it) : '';
+    if(sub) byMod[sub] = (byMod[sub] || 0) + m;
+  });
+  if(!total){ card.hidden = true; return; }
+  card.hidden = false;
+
+  var totEl = document.getElementById('mkTimeTotal');
+  if(totEl){
+    var h = Math.floor(total / 60), mi = total % 60;
+    var parts = [];
+    if(h) parts.push('<strong>' + h + '</strong><span>小时</span>');
+    if(mi) parts.push('<strong>' + mi + '</strong><span>分钟</span>');
+    totEl.innerHTML = parts.join('');
+  }
+
+  var keys = Object.keys(byMod).sort(function(a, b){ return byMod[b] - byMod[a]; });
+  var maxV = keys.length ? byMod[keys[0]] : 1;
+  var wrap = document.getElementById('mkTimeSplit');
+  if(wrap){
+    if(!keys.length){
+      /* 有总时长但任务都没标科目（全是手写项）→ 不画空条，说一句实话 */
+      wrap.innerHTML = '<p class="m-timesplit-na">这些任务还没标科目，先把它们做完就是最好的安排。</p>';
+    }else{
+      wrap.innerHTML = keys.map(function(k, i){
+        var v = byMod[k];
+        var w = Math.max(8, Math.round(v / maxV * 100));
+        return '<div class="m-timeline"><span class="m-tl-lab">' + escapeHtml(planSubjectLabel({ module:k })) + '</span>'
+             + '<span class="m-tl-track"><i class="' + (i > 1 ? 'm-tl-soft' : '') + '" style="width:' + w + '%"></i></span>'
+             + '<span class="m-tl-min">' + v + ' 分钟</span></div>';
+      }).join('');
+    }
+  }
+
+  var kick = document.getElementById('mkTimeKicker');
+  if(kick) kick.textContent = '按今天的任务算出 ' + total + ' 分钟' + (keys.length ? '' : '（未标科目）');
 }
 
 function renderPhaseBar(){
@@ -966,6 +1026,42 @@ function moduleLabelOf(id){
     }
   }catch(e){}
   return id;
+}
+
+/* PLANS-REDESIGN-CODE-1 笔 3（10-31）：任务里的 module 有两种来源，中文名不能只查 MODULES。
+   ① 手写任务：没有 module 字段（不算科目）
+   ② AI 生成任务：module 走 planGenJump / PLAN_WL 那套 key —— practice / speaking /
+      materials / writing / words / corpus，**这些不是 MODULES 的 id**。
+      实测：moduleLabelOf('practice') 原样返回 'practice'，任务行右侧标签会印出英文，
+      右栏分科条也会出现「practice 25 分钟」这种半中半英的东西。
+   ⇒ 这里先按 AI 那套 key 映射；命不中再退回 MODULES（手写任务将来若带科目 id 也照样对）。
+      practice 还要按 action 拆：listen/read/mock 是听读、其余是背单词（与 planGenJump 同一口径）。 */
+function planSubjectLabel(item){
+  if(!item) return '';
+  if(!item.module) return '';
+
+  /* 🔴 这张表必须写在函数**体内**，不能提成模块级 var。
+     原因：本页 ready() 注册在第 367 行，而 defer 脚本执行时 readyState 已是
+     'interactive' → ready() 会**同步**跑回调，那个时刻本轮脚本还没执行到函数定义
+     后面的 var 赋值语句。函数声明整体提升所以能调，var 赋的值却是 undefined，
+     一访问就 TypeError（实测：首帧整块 syncSkeleton 被 try/catch 静默吞掉，
+     任务行与右栏全不渲染，看着像「改了没生效」）。 */
+  var LABEL = {
+    practice:'练习', speaking:'口语', materials:'口语素材',
+    writing:'写作', words:'背单词', corpus:'长难句'
+  };
+
+  var m = String(item.module);
+  if(m === 'practice'){
+    var act = String(item.action || '');
+    var txt = String((item.params && item.params.text) || item.text || '');
+    if(/listen/i.test(act) || /听力|精听|听写/.test(txt)) return '听力';
+    if(/read/i.test(act) || /阅读/.test(txt)) return '阅读';
+    if(/mock/i.test(act) || /模考/.test(txt)) return '模考';
+    if(/单词|词汇|词库|背词/.test(txt)) return '背单词';
+    return '练习';
+  }
+  return LABEL[m] || moduleLabelOf(m);
 }
 
 function getPlan(date){ return DATA.plans.find(p => p.date === date); }
