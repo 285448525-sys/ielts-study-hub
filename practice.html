@@ -32,7 +32,7 @@
 </script>
 <title>单词 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261029l" />
-<link rel="stylesheet" href="css/p/practice.css?v=20261031c" />
+<link rel="stylesheet" href="css/p/practice.css?v=20261031d" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -544,7 +544,9 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
 
   <div id="bankView" hidden>
     <!-- W-WORD-1：页面内不再有 tab 条（她 17:1x 通过的设计稿）。手机没有顶栏二级，         所以词库态顶部放一个「回学习」返回键；桌面 ≥861 隐藏，入口仍走顶栏「单词 → 学习」。 -->
-    <button class="wd-back wd-back-m" id="wdBackStudy" type="button">&lsaquo; 回到今天要背的</button>
+    <!-- BACK-BTN-PAGES-1（10-31）：接线统一基类 .site-back。只换外观：id / 点击委托 / 桌面隐藏规则
+             （css/p/practice.css:469 的 #wdBackStudy{display:none} + ≤860px 才 inline-flex）全部原样。 -->
+    <button class="site-back wd-back-m" id="wdBackStudy" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M11 18l-6-6 6-6"/></svg><span class="site-back-txt">回到今天要背的</span></button>
     <!-- ═══ W-WORD-2（10-26）· 词库商城态 ═══
          1:1 还原 design/单词功能重设计-2026-10-25.html 的 #v-mall：
          结构原文 design/_W-word-mall_结构原文.html · 精确样式 _W-word-mall_精确样式.css
@@ -581,7 +583,8 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
          🔴 根类 .wb2-page（导出件 token 块挂在它上面）；不套稿子的 .wb2-pane
             （.wb2-pane{display:none} 是稿子三态切换用的，本站三态由 switchWordTab 管 hidden）。 -->
     <div class="wb2-page" id="vBook" hidden>
-      <button class="wb2-back" id="wb2BackMall" type="button">&lsaquo; 词库商城</button>
+      <!-- BACK-BTN-PAGES-1（10-31）：接线 .site-back，id 与点击逻辑不变（js/practice.js 委托 #wb2BackMall）。 -->
+      <button class="site-back" id="wb2BackMall" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M11 18l-6-6 6-6"/></svg><span class="site-back-txt">返回词库商城</span></button>
       <div class="wb2-card" id="bkCard"></div>
     </div>
 
@@ -590,7 +593,8 @@ body:not(.word-fullscreen) #practiceBody.practice-body-fit .practice-word-area{
          #bankImportCard …）js/words.js 全在用，**一个都不能删** —— 整块包起来默认 hidden，
          点商城卡片（或「＋ 导入我的词书」）才展开。第 3 批把它换成真正的词书详情态。 -->
     <div id="wmLegacy" hidden>
-      <button class="wd-back wd-back-m" id="wmBackMall" type="button">&lsaquo; 词库商城</button>
+      <!-- BACK-BTN-PAGES-1（10-31）：同上，接线 .site-back，id / 委托不变。 -->
+      <button class="site-back" id="wmBackMall" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M11 18l-6-6 6-6"/></svg><span class="site-back-txt">返回词库商城</span></button>
     <!-- design/78：词库切换分段条（我的词库 / 学术阅读 AWL），wbRenderSwitchers 渲染。
          10-23 4-3：词书网格（#wbDeckGrid）取代了它的展示职责 —— 这个容器与 id 保留不动
          （js/wordbank.js 的 wbSetActive 内部会调 wbRenderSwitchers 往这里写），只是不再显示。 -->

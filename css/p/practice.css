@@ -450,10 +450,19 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
      所以 .wd-page 是**追加类**，不是替换外壳。
    · 导出块里的 .wd-pane 只管设计稿自己的三态，本站走 switchWordTab，不用它。 */
 #studyView.wd-page, #bankView.wd-page{ font-size:15px; line-height:1.7; }
-.wd-back{ display:inline-flex; align-items:center; height:34px; padding:0 10px; margin-bottom:12px;
-  border:1px solid var(--wd-line); border-radius:var(--radius-sm); background:var(--surface);
-  color:var(--primary-700); font-size:13px; font-weight:650; font-family:inherit; cursor:pointer; }
-.wd-back:hover{ background:var(--n-100); }
+/* BACK-BTN-PAGES-1（10-31）：原来那套 .wd-back 纯文字按钮已换成统一基类 .site-back
+   （#wdBackStudy 与 #wmBackMall 两处接线完毕，本文件里已无元素引用 .wd-back）→ 删掉，
+   只留下面这两条**必须保留**的定位与显隐规则：
+     · .wd-back-m 是「手机专用」标记（桌面隐藏、≤860 才露出），换个按钮外形不影响它
+     · #wdBackStudy 的显隐由 css:469/470 那对媒体查询管，本批一个字没动
+   留着旧 .wd-back 规则只会让以后复用它的人被 border-radius/height 静默压掉基类外形。 */
+.wd-back-m{ /* 手机专用返回钮的标记类，样式由 .site-back 决定 */ }
+/* 基类只给外形不给外边距，这里补两处呼吸：
+   · #wb2BackMall 原来是 margin-bottom:10px（导出件 .wb2-back 那个值），接线后归零
+     → 不补的话按钮底边与词书卡顶边 gap=0，看起来像贴在卡上（实测 btnBottom 122 / cardTop 122）
+   · #wdBackStudy 原来是 12px，手机档同理 */
+#wb2BackMall{ margin-bottom:10px }
+#wdBackStudy{ margin-bottom:12px }
 /* 答题态新头部（设计稿 .wd-q-head）与答题卡之间的呼吸 */
 #practiceArea .wd-q-head{ margin:0 0 12px; }
 .wd-q-head[hidden]{ display:none !important; }
@@ -494,10 +503,11 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
 }
 /* FE-DEAD-CSS-1：这里原来还有一条 `[data-theme="dark"] .wd-page .wd-swap`，
    wd-swap 全站零引用，一并删除（同组另两条仍在用，保留） */
-[data-theme="dark"] .wd-page .wd-btn-link,
-[data-theme="dark"] .wd-back{
+[data-theme="dark"] .wd-page .wd-btn-link{
   color:#8fe0d6;
 }
+/* BACK-BTN-PAGES-1（10-31）：.wd-back 那条深色覆盖随类名一并撤 —— .site-back 基类自带
+   html[data-theme="dark"] .site-back 的深色口径（common.css:605），本页不需要再叠一层。 */
 /* 三格底与卡片同深时，靠 --n-100 抬一档层次（深色下已是 #2e2e32，无需改；留注释防误改） */
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -723,7 +733,12 @@ html[data-theme="dark"] .rw-row + .rw-row{ border-top-color:rgba(255,255,255,.14
 @media (max-width: 560px){
 .wb2-page .wb2-opts{ grid-template-columns: 1fr; }
 }
-.wb2-page .wb2-back{ display: inline-flex; align-items: center; gap: 5px; border: 0px; background: none; font-family: inherit; font-size: 13px; color: var(--primary-700); font-weight: 650; cursor: pointer; padding: 6px 0px; margin-bottom: 10px; }
+/* BACK-BTN-PAGES-1（10-31）：上面 ① 段是**设计稿 1:1 导出原文**，那段里的 .wb2-back 三条
+   一律不动（改导出块就破了 1:1 这个约定）。本文件已无元素引用 .wb2-back（#wb2BackMall 已接线
+   .site-back），所以这两条**加固副本**里的 .wb2-back 重写删掉 —— 留着会变成：
+   以后谁再把 .wb2-back 加回元素上，就被这里的 `border:0;background:none;padding:6px 0`
+   静默压掉 .site-back 的外形，正是本批要消灭的形态。
+   下次刷新 ① 段导出件时，把导出件里那三条 .wb2-back 一并删掉。 */
 .wb2-page .wb2-pane{ display: none; }
 
 /* ===== 站点全局标签规则（common.css:470 input / :490 label）的冲突钉死 =====
