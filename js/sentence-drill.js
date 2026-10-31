@@ -579,7 +579,13 @@ function sentPracticeHtml(){
   c.curTopicId = (v.topic && v.topic.id) || '';// 供 sentTouchTopic / 换主题排除用（确定性派生，重渲染幂等）
   var taskHtml = '<div class="sent-cn">' + sentEsc(v.cn) + '</div>';
   var ph = '用英文说出这句';
-  return '<div class="sent-back" data-sent-back>&larr; 返回句型列表</div>'
+  /* BACK-BTN-PAGES-1（10-31）：接线统一基类 .site-back。
+     🔴 只换外观：data-sent-back 这个钩子必须保留 —— sentBindPractice() 里
+        `host.querySelector('[data-sent-back]')` 靠它找节点绑 click（那句一字未改）。
+     箭头 &larr;（字符）→ 16px svg；文案原样「返回句型列表」已是「返回+去向」，符合规范稿。 */
+  return '<div class="site-back" data-sent-back role="button" tabindex="0">'
+    + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M11 18l-6-6 6-6"/></svg>'
+    + '<span class="site-back-txt">返回句型列表</span></div>'
     + '<div class="sent-tag">【' + sentEsc(cat.name) + ' · ' + sentEsc(cat.pos || '') + '】' + sentEsc(sceneTag) + '</div>'
     + taskHtml
     + '<input id="sentAnswer" class="pd-input" placeholder="' + ph + '" autocomplete="off" value="' + sentEsc(c.draft) + '"' + (c.revealed ? ' disabled' : '') + '>'
