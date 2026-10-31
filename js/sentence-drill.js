@@ -251,22 +251,6 @@ function sentSplitSentences(text){
   return out;
 }
 /* AI 给的 corrected 常带备选（"We have got / We've got"）→ 取第一个；顺手去掉包夹引号 */
-function sentOneFix(fix){
-  var f = String(fix == null ? '' : fix).trim().replace(/^["“”'‘’]+|["“”'‘’]+$/g, '');
-  if(f.indexOf('/') >= 0) f = f.split('/')[0].trim();
-  return f;
-}
-/* 词边界定位（禁 "is" 命中 "this"）：{at,len} 或 null */
-function sentLocate(hay, needle){
-  if(!hay || !needle) return null;
-  try{
-    var esc = String(needle).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    var m = String(hay).match(new RegExp('(?<![A-Za-z])' + esc + '(?![A-Za-z])', 'i'));
-    if(m) return { at: m.index, len: m[0].length };
-  }catch(_){}
-  var i = String(hay).toLowerCase().indexOf(String(needle).toLowerCase());
-  return i >= 0 ? { at: i, len: String(needle).length } : null;
-}
 /* 官方句型库全量：错题库计数 / 全部重练 / 错题库列表统一走它，口径一致
    （10/1 起「我的语法错题」已下线，只剩官方库） */
 function sentAllSentences(){

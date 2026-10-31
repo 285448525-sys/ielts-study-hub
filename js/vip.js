@@ -76,14 +76,6 @@ function renderVipSemi(){
      你就在旁边标注一下，付款的时候备注一下自己本人的邮箱，24 小时之内肯定给你开，没开找站长。」
      → 删掉复制按钮与全部复制逻辑（含浏览器原生弹框兜底 —— 留一段没人调的复制函数就是死代码），
        文案改成「备注自己邮箱」口径：登录态把她的邮箱直接显示出来（她本来就知道自己账号）。 ---- */
-  function slipText(){
-    const p = (window.Pricing && Pricing.VIP_PLANS.find(x => x.id === cur)) || null;
-    const amount = p ? ('¥' + p.price) : '';
-    const acct = loggedIn ? ((DATA && DATA.settings && DATA.settings.syncCode) || '') : '';
-    return '扫上方收款码转 ' + amount + '，付款时在备注里填上'
-      + (acct ? '你的邮箱 ' + acct : '你自己的邮箱') + '。\n'
-      + '24 小时内开通；超过 24 小时没开，把转账截图发给站长。';
-  }
   function renderSlip(){
     const el = document.getElementById('semiTxt');
     const p = (window.Pricing && Pricing.VIP_PLANS.find(x => x.id === cur)) || null;

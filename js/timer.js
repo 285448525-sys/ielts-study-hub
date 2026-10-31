@@ -30,7 +30,6 @@ function safeMonoNowNs(){
   _lastMono = m;
   return m;
 }
-const monoMs = () => Number(safeMonoNowNs() / 1000000n);
 
 /* ── 计时器心跳：必须挂在 window 上 ────────────────────────────────────
    软导航（common.js runPageScript）用 window.eval 重跑本脚本，每次 eval 的

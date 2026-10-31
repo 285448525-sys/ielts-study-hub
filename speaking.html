@@ -57,18 +57,18 @@
   <script defer src="js/feedback.js?v=20261027a"></script>
   <!-- sentence-drill 必须在 speaking.js 之前：其顶层置 window.__SENT_V2_ON 旗，
        speaking.js 的默认 tab 逻辑靠它决定显 #sentView 还是 #pdView（defer 按文档序执行） -->
-  <script defer src="js/sentence-drill.js?v=20261031a"></script>
+  <script defer src="js/sentence-drill.js?v=20261031n"></script>
   <!-- coach 同例：必须在 speaking.js 之前，顶层 window.__COACH_ON 先立，tab 分支才接管得到 -->
   <!-- 10/3 头像选择：必须在 coach.js 之前（陪练气泡头像渲染时就要读 window.avUserSrc）。
        10/3 22:55 扩展：陪练页弹层（avOpen('coach') / avCoachSrc）。
        10/22 T-006：考官页签已删（模考纯随机、不许选），此处不再涉及考官选择器。 -->
   <script defer src="js/av-picker.js?v=20261028j"></script>
-  <script defer src="js/coach.js?v=20261026a"></script>
+  <script defer src="js/coach.js?v=20261031n"></script>
   <!-- 10-23 T-009 S-1：口语页脚本按功能域拆分（方案 §二）。顺序 = 底层 → 顶层，
        全部 defer，**不能改相对顺序**（sentence-drill/coach 的顶层旗仍必须更早立，见上）。
        拆文件后 const 跨文件不可见 → 新文件一律 var/function 声明。 -->
   <script defer src="js/sp-core.js?v=20261026a"></script>
-  <script defer src="js/sp-stats.js?v=20261023a"></script>
+  <script defer src="js/sp-stats.js?v=20261031n"></script>
   <!-- 10-24 T-009 S-6：B 区（按需加载框架 lateReady/lateLoad + 模考忙碌态）拆出 js/sp-late.js（77 行）。
        🔴 文件名必须叫 sp-late 不叫 sp-mock —— 站点已有真正的模考脚本 js/mock.js（按需加载那四个之一），
        叫 sp-mock 会被 tests/_probe_latespk_1017.cjs 的正則 /(materials|mock(-report|-history)?)\.js/ 误判。
@@ -2993,7 +2993,7 @@ html[data-theme="dark"] #detailBody .sp-tc-head{
        10/2（她拍板）：「开始一次口语模考」介绍卡 + 「最近一次模考」记录卡整删——
        点题库页「模考」按钮直接进全屏考试（speaking.js MOCK 分支调 window.__mockEnter，
        有未完成快照则自动续考）。报告仍在考完/回顾页展示。 -->
-  <div id="mockView" hidden data-late-src="js/mock-report.js?v=20261004a,js/mock-history.js?v=20261006b,js/mock.js?v=20261031b">
+  <div id="mockView" hidden data-late-src="js/mock-report.js?v=20261004a,js/mock-history.js?v=20261006b,js/mock.js?v=20261031n">
     <!-- ② 考试舞台 -->
     <section class="card" id="mockStage" hidden>
       <div class="mock-total-timer" id="mockTotalTimerWrap" hidden>

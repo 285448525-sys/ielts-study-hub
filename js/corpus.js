@@ -250,10 +250,6 @@ function openAddPanel(){
   const t = document.getElementById('addToggle'); if(t) t.hidden = true;
   try{ const el = document.getElementById('corEn'); if(el && !p.hidden) el.focus({ preventScroll:true }); }catch(e){}
 }
-function closeAddPanel(){
-  const p = document.getElementById('addPanel'); if(p) p.hidden = true;
-  const t = document.getElementById('addToggle'); if(t) t.hidden = false;
-}
 function switchAddMode(mode){
   /* CORPUS-UI-1：选择器与绑定处同源（原来写死的 `.add-tabs` 已不存在于 DOM，见上方注释） */
   document.querySelectorAll('#addPanel .kc-add-tabs button, #addPanel .add-tabs button').forEach(b =>
@@ -979,12 +975,6 @@ async function reanalyze(id, force){
       load.textContent = prev + '⚠️ 没分析成功，这条记录仍在下面列表里、原文没丢。原文已放进上面输入框，可以改完再点「AI 收录错题」（成功后记得删掉旧的那条）。';
     }
   }
-}
-
-function toArr(v){
-  if(Array.isArray(v)) return v.map(x => String(x).trim()).filter(Boolean);
-  if(v == null || v === '') return [];
-  return [String(v).trim()];
 }
 
 /* ---------- 渲染 ---------- */

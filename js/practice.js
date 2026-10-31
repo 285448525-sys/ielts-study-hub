@@ -1047,12 +1047,6 @@ async function autoStartSeeWord(){
   }
 }
 
-function resetPractice(){
-  cancelSpeak();
-  pq = null;
-  autoStartSeeWord();
-}
-
 // ======= 勾选练习：用词库勾选的词池强制开新轮（9/17 词库四件套）=======
 // 无视当天已锁定的轮次与 batchSize 截断；session 带 poolMode 标记，题量收归段跳过。
 function startSessionFromPool(poolEn){
@@ -2317,8 +2311,6 @@ function daysBetween(a, b){
 }
 function shuffle(a){ for(let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 function speak(text, lang){ try{ const u = new SpeechSynthesisUtterance(text); u.lang = lang; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); }catch(e){} }
-function escapeRegExp(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
-
 /* ======= design/58 间隔重复算法可视化（纯只读展示层，零算法改动）=======
    只读 level / nextReview / hardWord / keyWord / cleared，不改任何字段。
    ⚠️ 展示的是真实算法结果：promoteLongTerm 是「先按当前 level 算间隔、再升级」，

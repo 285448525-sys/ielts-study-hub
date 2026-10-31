@@ -708,8 +708,6 @@ function userHtml(text){
     var n1 = $('coachMemN');
     if(n1) n1.textContent = String(a.length);
   }
-  /* 切走 / 重渲染时清掉残留思考气泡（防孤儿节点留在聊天流里） */
-  function clearThinkingOrphan(){ hideThinking(); }
   function renderCtx(){
     if(!$('coachCtxBar')) return;
     var n = ctxTurns();

@@ -70,15 +70,6 @@ function bestOfQuestion(a){
   }
   return best;
 }
-function getBestScore(s){
-  if(!s || !s.answers) return null;
-  let best = null;
-  Object.values(s.answers).forEach(a => {
-    const v = bestOfQuestion(a);
-    if(v != null && (best === null || v > best)) best = v;
-  });
-  return best;
-}
 /* === 练习次数统计 ===
    没有新口径分数时（旧数据 / 从未评分），列表显示「练过几次」而不是空白。
    P1 的各小题只要有任一题有 records，就算「练过 1 次」，并显示已完成小题数。
@@ -93,10 +84,6 @@ function countOfQuestion(a){
 function getP1Done(s){
   if(!s || !s.answers) return 0;
   return Object.keys(s.answers).filter(k => k !== 'p2' && countOfQuestion(s.answers[k]) > 0).length;
-}
-function getScoreCount(s){
-  if(!s || !s.answers) return 0;
-  return Object.values(s.answers).filter(a => countOfQuestion(a) > 0).length;
 }
 function getPracticeCount(s){
   if(!s || !s.answers) return 0;
@@ -185,26 +172,6 @@ function _scoreBadgeInner(score, count, s){
   }
   return '<span class="' + cls + '" title="' + tip + '">' + label + '</span>';
 }
-function scoreHeaderHtml(score, title){
-  if(!score || score.overall == null) return '';
-  // 维度按雅思官方顺序：流利度与连贯 → 词汇 → 语法 → 发音；自填项没填就不显示（不再摆一个「-」）
-  const dims = [
-    {k:'vocabulary',l:'词汇'},
-    {k:'grammar',l:'语法'}
-  ];
-  if(score.fluency != null) dims.unshift({k:'fluency',l:'流利度(自填)'});
-  if(score.pronunciation != null) dims.push({k:'pronunciation',l:'发音(自填)'});
-  let h = '<div class="sp-score-header">';
-  h += '<div class="sp-score-total"><span class="sp-score-num">' + scoreLabel(score.overall) + '</span><span class="sp-score-label">' + (title || '总分') + '</span></div>';
-  h += '<div class="sp-score-dims">';
-  dims.forEach(d => {
-    const v = score[d.k];
-    h += '<div class="sp-score-dim"><span class="sp-score-dim-val">' + scoreLabel(v) + '</span><span class="sp-score-dim-lab">' + d.l + '</span></div>';
-  });
-  h += '</div></div>';
-  return h;
-}
-
 /* 方案 §三：normalizeScore / clampBand 语义属 D 区（分数净化），随 sp-stats 一起搬 */
 function clampBand(v){
   if(v == null || v === '') return null;

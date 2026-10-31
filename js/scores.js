@@ -401,54 +401,6 @@ function renderTrend(){
   if(compact) box.innerHTML += `<div class="rv-trend-note">已经有 ${list.length} 场成绩，这里能看出走向了。</div>`;
 }
 
-/* ===== 综合掌握度雷达图（SVG，最新 vs 目标） ===== */
-function renderRadar(){
-  const box = $('#radarChart'); if(!box) return;
-  const list = DATA.scores.slice().sort((a,b) => String(b.date||'').localeCompare(String(a.date||'')));
-  if(list.length === 0){ box.innerHTML = renderEmpty('至少需要 1 次模考成绩，才能绘制掌握度雷达图。'); return; }
-  const t = DATA.settings.targets || {};
-  const latest = list[0];
-  const axes = [
-    { name:'听力', val: latest.listening, target: t.listening||5.5 },
-    { name:'阅读', val: latest.reading,   target: t.reading||6.5 },
-    { name:'写作', val: latest.writing,   target: t.writing||5.5 },
-    { name:'口语', val: latest.speaking,  target: t.speaking||5.5 },
-  ];
-  const W = 320, H = 320, cx = 160, cy = 160, R = 110, n = axes.length;
-  const ang = i => -Math.PI/2 + i * 2 * Math.PI / n;
-  const pt = (i, val) => { const r = R * Math.max(0, Math.min(9, val)) / 9; return [cx + r*Math.cos(ang(i)), cy + r*Math.sin(ang(i))]; };
-  let rings = '';
-  for(let g = 1; g <= 3; g++){
-    const rr = R * g / 3;
-    const p = axes.map((_, i) => { const a = ang(i); return (cx + rr*Math.cos(a)) + ',' + (cy + rr*Math.sin(a)); }).join(' ');
-    rings += `<polygon points="${p}" fill="none" style="stroke:var(--line)" stroke-width="1"/>`;
-  }
-  let axisSvg = '';
-  axes.forEach((ax, i) => {
-    const a = ang(i), ex = cx + R*Math.cos(a), ey = cy + R*Math.sin(a);
-    axisSvg += `<line x1="${cx}" y1="${cy}" x2="${ex}" y2="${ey}" style="stroke:var(--line)" stroke-width="1"/>`;
-    const lx = cx + (R+18)*Math.cos(a), ly = cy + (R+18)*Math.sin(a);
-    axisSvg += `<text x="${lx}" y="${ly+4}" text-anchor="middle" font-size="12" style="fill:var(--ink);font-weight:600">${ax.name}</text>`;
-  });
-  const tpts = axes.map((ax,i) => pt(i, ax.target).join(',')).join(' ');
-  const lpts = axes.map((ax,i) => pt(i, ax.val).join(',')).join(' ');
-  let valLab = '';
-  axes.forEach((ax,i) => { const [px,py] = pt(i, ax.val); valLab += `<text x="${px}" y="${py-6}" text-anchor="middle" font-size="11" style="fill:var(--primary);font-weight:700">${ax.val}</text>`; });
-  box.innerHTML = `<div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center">
-    <svg viewBox="0 0 ${W} ${H}" width="300" height="300" style="flex:none">${rings}${axisSvg}
-      <polygon points="${tpts}" fill="none" style="stroke:var(--muted)" stroke-width="2" stroke-dasharray="5 4"/>
-      <polygon points="${lpts}" fill="var(--primary-soft)" style="stroke:var(--primary)" stroke-width="2.5"/>${valLab}
-    </svg>
-    <div style="font-size:13px;line-height:2.2">
-      <div><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--primary);margin-right:6px;vertical-align:middle"></span>最新一次（${latest.date}）</div>
-      <div><span style="display:inline-block;width:12px;height:12px;border-radius:3px;border:2px dashed var(--muted);margin-right:6px;vertical-align:middle"></span>目标分数</div>
-    </div>
-  </div>`;
-  if(list.length === 1){
-    box.innerHTML += `<div style="margin-top:8px;font-size:13px;color:var(--muted)">🧭 已画出当前 vs 目标雷达，再考 1 次可看能力变化～</div>`;
-  }
-}
-
 /* ===== 分项模考正确率（整卷 / 单篇单项） ===== */
 function onMockType(){
   const cfg = MOCK_TYPES[$('#mkType').value];

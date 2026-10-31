@@ -897,8 +897,6 @@
     (g.questions || []).forEach(function(q){ if(q.qNumber != null) ns.push(Number(q.qNumber)); });
     return ns.filter(function(n){ return !isNaN(n); }).sort(function(a, b){ return a - b; });
   }
-  function qRange(g){ var ns = qNums(g); return ns.length ? (ns[0] + '–' + ns[ns.length - 1]) : ''; }
-
   /* 判断题：选项是 TRUE/FALSE/NOT GIVEN 或 YES/NO/NOT GIVEN → 三个内联方块 */
   var TF_SET = ['TRUE', 'FALSE', 'NOT GIVEN', 'YES', 'NO'];
   function isTFGroup(g){
@@ -969,14 +967,6 @@
         + '<span><b>' + esc(v) + '</b>' + esc(o.optionContent || '') + '</span></label>';
     });
     return h + '</div>';
-  }
-  function selectHtml(q, opts){
-    var h = '<select class="ex-sel" data-q="' + esc(q.qNumber) + '"><option value=""></option>';
-    opts.forEach(function(o){
-      var v = o.optionNum || o.option || '';
-      h += '<option value="' + esc(v) + '">' + esc(v + '. ' + (o.optionContent || o.option || '')) + '</option>';
-    });
-    return h + '</select>';
   }
   function fillHtml(g, numOf){
     var html = clean(bodyOf(g.contentHtml));
@@ -1544,10 +1534,6 @@ window.__reportExamState = reportExamState;
   function icoEyeOff(){
     return '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4l16 16"/><path d="M9.6 6.3A9.7 9.7 0 0 1 12 6c6 0 9.5 6 9.5 6a17 17 0 0 1-3 3.7"/><path d="M6.2 8.2A16.6 16.6 0 0 0 2.5 12S6 18 12 18a9.4 9.4 0 0 0 3.4-.6"/></svg>';
   }
-  function icoArrow(dir){
-    var d = dir < 0 ? 'M15 18l-6-6 6-6' : 'M9 18l6-6-6-6';
-    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + d + '"/></svg>';
-  }
   function ctxHtml(){
     /* 10/12 改：由竖排五项改横向浮动工具条。
        🔴 10/16 按她的指示 + 真实机考实证再次校正（她 18:34 两条）：
@@ -1587,7 +1573,6 @@ window.__reportExamState = reportExamState;
     if(isFinite(_v0)){ _audioVol = Math.max(0, Math.min(1, _v0)); _audioMuted = _audioVol === 0; }
   }catch(e){}
   /* 1 → "1.0×"，1.25 → "1.25×"（别用 toFixed(1)：1.25 会显示成 1.3，看着像另一个倍速） */
-  function rateLabel(r){ return (r % 1 === 0 ? r.toFixed(1) : String(r)) + '×'; }
   /* 10/20：倍速跨页记忆（音量已有 hub_bank_vol，倍速同款）。模块加载时就读回，
      audioBarHtml() 早于 wireAudio() 渲染，这里不读首屏 select 会显示默认 1.0。 */
   try{
@@ -1859,7 +1844,6 @@ window.__reportExamState = reportExamState;
     for(var i = 0; i < parts.length; i++) if(parts[i].audioUrl) return parts[i];
     return null;
   }
-  function listenPartLabel(){ var p = listenPart(); return (p && p.partNum) || 'Audio'; }
   function audioBarHtml(partLabel, nameText, timerText, showModes){   /* 10/16：nameText/timerText 参数保留签名兼容（顶栏已承载，不再渲染） */
     var p = listenPart();
     if(!p || !p.audioUrl) return '<div class="ex-audio" id="exAudioBar"><span class="ea-label">No audio for this part</span></div>';   /* 🔴 10/16：原「本部分没有音频」= 考场内中文，违反零中文铁律 */
@@ -3391,12 +3375,6 @@ window.__reportExamState = reportExamState;
       parent.insertBefore(slot, seq[i].el);                                   /* 段落**上方** */
     }
   }
-  function lohSlotsInto(){
-    /* 10/14 停用：段落信息匹配改表格行（她拍板），不再往文章里插拖放虚线槽。
-       10/16 起：heading 题的原文段落槽走独立的 headSlotsInto()（她 18:16 要求），本函数保持空壳。 */
-    return;
-  }
-
   /* ===== Highlight / Note（划词即弹 · 按篇存本地，下次打开还在）=====
      10/12 改：原来**必须右键**才能出菜单 —— 与成熟站通例不符（Notion / Medium 的 selection
      bubble menu 都是「选中即弹」，四来源口径一致，详见 bank.html 内联注释）。
@@ -3833,15 +3811,6 @@ window.__reportExamState = reportExamState;
   /* 整卷题序（顶栏箭头「到头没」/ 前后步进用）：full = EX.byG 全部键升序；单篇 = 本篇全部。
      🔴 不能改用 `#exNums .ex-num` 的 DOM 顺序 —— 10/20 起题号行只渲染当前 Part，
      按 DOM 顺序算的话，Part 1 最后一题就会被当成「最后一题」把 › 置灰。 */
-  function allOrder(){
-    if(!EX) return [];
-    if(EX.full && EX.byG){
-      var ks = Object.keys(EX.byG).map(Number).filter(function(n){ return !isNaN(n); });
-      ks.sort(function(a, b){ return a - b; });
-      if(ks.length) return ks;
-    }
-    return allNums().map(Number);
-  }
   /* 做完的 Part 的绿勾（爱听写实证：☑ Part 2，绿底白勾小方块） */
   function icoCheck(){
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>';
@@ -4266,17 +4235,6 @@ window.__reportExamState = reportExamState;
       });
     });
     return { right: right, total: total, detail: detail };
-  }
-
-  function buildExpl(q){
-    var a = (q && q.analyses) || [], out = '';
-    for(var i = 0; i < a.length; i++){
-      var label = plain(a[i].labelsOne || ''), text = plain(a[i].content || '');
-      if(!text) continue;
-      if(label.indexOf('句') > -1) out += '<div>原文：' + esc(text) + '</div>';
-      else out += '<div>' + esc(text) + '</div>';
-    }
-    return out;
   }
 
   /* ===== 交卷 =====

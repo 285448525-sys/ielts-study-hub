@@ -52,11 +52,6 @@ function wtScoringHtml(label){
     + '<span class="wt-scoring-t">' + escapeHtml(label || 'AI 正在批改中') + '</span>'
     + '</div>';
 }
-/* 收尾：把占位换成正常内容（content 为空时清空），保证任何路径都不会残留 */
-function wtScoringDone(host, html){
-  if(!host) return;
-  host.innerHTML = html || '';
-}
 /* 9/17 之之拍板：评分门槛按官方要求分题型 —— Task 1 ≥150 词、Task 2 ≥250 词。
    真题页给考生的指令一直印着 "Write at least 250/150 words"，门槛必须跟它一致。 */
 function wtMinWords(type){ return type === '大作文' ? 250 : 150; }
@@ -2788,13 +2783,6 @@ function examFontApply(){
   pr.classList.add('exam-fs-' + lv);
   /* 10/16：Aa 字号钮已删，字号走 ☰ 的 Size（wrtSizeSet） */
 }
-function examFontCycle(){
-  const next = (examFontLevel() + 1) % 3;
-  try{ localStorage.setItem(EXAM_FONT_KEY, String(next)); }catch(e){}
-  examFontApply();
-  toast('Text size: ' + ['Regular (20px)','Large (23px)','Extra large (27px)'][next]);
-}
-
 /* 🔴 10/20 模考锁（写作机考）：三处进入点（openRecordExamView / openExam / 评分面板直通）
    都会加 body.exam-fullscreen，退出统一走 exitExam()。这里封两个函数，
    避免「加了 class 但忘了加锁」——10/15 的教训就是 bank.js 加了 EXAM_STATE 上报，
