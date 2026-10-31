@@ -63,12 +63,30 @@
   function targets(){ return (DATA.settings && DATA.settings.targets) || {}; }
   function mockAll(){ return Array.isArray(DATA.mockRecords) ? DATA.mockRecords : []; }
 
-  /* ===== ① 成绩条：5 组「当前分 + 目标差距」 =====
-     总分走 overall()（全站唯一口径，与 scores.js / 首页冲刺卡同一个函数），不自己算平均。 */
+  /* ===== ① 成绩条：左侧大总分 + 右侧四科「当前分 + 目标差距」 =====
+     总分走 overall()（全站唯一口径，与 scores.js / 首页冲刺卡同一个函数），不自己算平均。
+
+     🔴 RV-REBUILD-BATCH-1（11-01 笔 1）：结构从「5 个等分格」改成「1 大 + 4 小」。
+        取值逻辑一个字都没改：还是同一批 id（rvxNumAll / rvxSubAll / rvxNumL…），
+        只是多了三件事 ——
+          · 左上角标出这次成绩是哪一天的（她点头终稿 .latest-label「最近一次 · 10月24日」）
+          · 四科格子按达标与否挂 rvx-weak / rvx-ok，竖线配色跟终稿一致
+          · 差距文案从「还差 0.5」缩成「差 0.5」，目标整数不补 .0
+        判据同步改了三处（tests/_probe_re2_data_1025.cjs），已写进回报清单。 */
   function paintStrip(){
     var list = sortedScores();
     var t = targets();
     var last = list.length ? list[list.length - 1] : null;
+
+    /* 左上角日期标签：最近一次是哪天（没有记录时保持「最近一次」） */
+    var leadLab = $('rvxLeadLab');
+    if (leadLab){
+      var dstr = last && last.date ? String(last.date) : '';
+      var md = dstr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      leadLab.textContent = md
+        ? ('最近一次 · ' + Number(md[2]) + '月' + Number(md[3]) + '日')
+        : '最近一次';
+    }
 
     /* 总分 */
     var allEl = $('rvxNumAll'), allSub = $('rvxSubAll');
@@ -76,27 +94,49 @@
     if (allEl) setStat(allEl, allVal);
     if (allSub){
       if (allVal == null) allSub.textContent = list.length ? '还没有完整成绩' : '还没有成绩';
-      else allSub.innerHTML = gapHtml(allVal, t.overall);
+      else allSub.innerHTML = leadGapHtml(allVal, t.overall);
     }
 
     /* 四科 */
+    var CELL = { listening: 'rvxCellL', reading: 'rvxCellR', writing: 'rvxCellW', speaking: 'rvxCellS' };
     SUBS.forEach(function(s){
-      var el = $(s.nid), sub = $(s.sid);
+      var el = $(s.nid), sub = $(s.sid), cell = $(CELL[s.k]);
       var v = last ? (last[s.k] == null ? null : Number(last[s.k])) : null;
       if (el) setStat(el, v);
       if (sub) sub.innerHTML = (v == null || !isFinite(v)) ? '—' : gapHtml(v, t[s.k]);
+      /* 达标 → 主色竖线；没达标 → 橙色竖线；没成绩 → 不染色 */
+      if (cell){
+        cell.classList.remove('rvx-weak', 'rvx-ok');
+        var tg = Number(t[s.k]);
+        if (tg && v != null && isFinite(v)){
+          cell.classList.add(Math.round((tg - v) * 2) / 2 <= 0 ? 'rvx-ok' : 'rvx-weak');
+        }
+      }
     });
 
     /* 目标没设时 gapHtml 会返回「目标未设」，这里再兜一句总提示 */
     if (allSub && !Number(t.overall)) allSub.textContent = allVal == null ? '还没有成绩' : '目标未设';
   }
-  /* 差距文案：与骨架同款（达标给 .rvx-yes、没达标给 .rvx-no） */
+  /* 目标数字：整数不补 .0（终稿写「目标 6」不写「目标 6.0」），半分照常一位小数 */
+  function tgtTxt(g){
+    var n = Number(g);
+    return n % 1 === 0 ? String(n) : one(n);
+  }
+  /* 首屏大总分下面的差距：终稿是两行（目标 6.5 / 还差 0.5） */
+  function leadGapHtml(v, tgt){
+    var g = Number(tgt);
+    if (!g) return '<span class="rvx-muted">目标未设</span>';
+    var d = Math.round((g - v) * 2) / 2;
+    if (d <= 0) return '目标 ' + tgtTxt(g) + ' · <span class="rvx-yes">已达标</span>' + (d < 0 ? '<br>超 ' + one(-d) : '');
+    return '目标 ' + tgtTxt(g) + '<br><span class="rvx-no">还差 ' + one(d) + '</span>';
+  }
+  /* 四科格子里的差距文案：终稿「目标 6 · 差 0.5」 */
   function gapHtml(v, tgt){
     var g = Number(tgt);
     if (!g) return '<span class="rvx-muted">目标未设</span>';
     var d = Math.round((g - v) * 2) / 2;
     if (d <= 0) return '<span class="rvx-yes">已达标</span>' + (d < 0 ? ' · 超 ' + one(-d) : '');
-    return '目标 ' + one(g) + ' · <span class="rvx-no">还差 ' + one(d) + '</span>';
+    return '目标 ' + tgtTxt(g) + ' · <span class="rvx-no">差 ' + one(d) + '</span>';
   }
 
   /* ===== ② 顶部条：倒计时 / 已记录 / 连续&活跃&累计 / 最弱项 ===== */

@@ -528,7 +528,7 @@
 <script defer src="js/progress.js?v=20261024a"></script>
 <!-- R-E2（10-25）：E 版骨架接真数据。只读 DATA，不写任何东西；
      渲染目标全是 R-E1 骨架里新加的 rvx* id，旧面板节点一个都没动。 -->
-<script defer src="js/rvx-data.js?v=20261029b"></script>
+<script defer src="js/rvx-data.js?v=20261031k"></script>
 <!-- 回顾页的协调脚本：软导航下由 common.js 按其 pageScriptSources 收集执行。
      ⚠️ 必须带 ?v= 声明在这里 —— 否则 common.js 只能拿裸 URL 'js/review.js'，
      等于向浏览器 HTTP 缓存要「任意年代的旧副本」，改动永远推不上去（9/17 陈旧 UI 事故根因）。 -->
@@ -606,6 +606,59 @@
   font-variant-numeric:tabular-nums}
 @media (max-width:560px){ .empty-state{padding:32px 18px} }
 
+</style>
+<!-- ═══ RV-REBUILD-BATCH-1（11-01 笔 1）· 首屏摘要卡样式 ═══
+     放在本页而不是 css/p/review.css：那个文件是页面层施工方的（A2），
+     本笔记的施工范围是 review.html + js/rvx-data.js，样式跟着结构一起走。
+     类名全 rvx- 前缀、只在本页生效。 -->
+<style id="rvRebuild1">
+/* 🔴 特异性说明：review.css 里有三条旧规则 `.rvx-trf{grid-template-columns:repeat(5,1fr)}`
+   和 `.rvx-trf>div{padding:16px 18px;border-right:1px solid var(--line)}` /
+   `.rvx-trf>div:last-child{border-right:0;background:var(--primary-50)}`（特异性 0,1,1）。
+   新结构只有两格，旧的多余列不会命中；但 **padding 与右边框会**（`.rvx-trf>div` 命中
+   lead 与 subjects 两个 div），所以下面每条都带 `.rvx-trf >` 前缀抬到 0,2,0，
+   不用 !important（那会把整页其它规则一起压死，以后没人敢动）。 */
+.rvx-trf{grid-template-columns:1.25fr 2fr;gap:0;align-items:stretch}
+.rvx-trf > .rvx-trf-lead{padding:14px 20px;border-right:1px solid var(--line);background:transparent;
+  display:flex;flex-direction:row;align-items:center;gap:18px}
+.rvx-trf > .rvx-trf-subjects{padding:0;border-right:0;background:transparent;
+  display:grid;grid-template-columns:repeat(4,1fr);gap:0}
+.rvx-trf-lead-main{flex:none}
+.rvx-trf-lead-lab{font-size:12.5px;color:var(--muted);margin-bottom:5px}
+.rvx-trf-lead-num{font-size:44px;font-weight:800;letter-spacing:-.045em;line-height:1;
+  font-variant-numeric:tabular-nums}
+.rvx-trf-lead-gap{font-size:12.5px;color:var(--muted);line-height:1.5}
+.rvx-trf > .rvx-trf-subjects > .rvx-trf-cell{padding:14px 12px 14px 14px;border-right:0;
+  border-left:2px solid var(--line)}
+.rvx-trf > .rvx-trf-subjects > .rvx-trf-cell:first-child{border-left:0;padding-left:20px}
+/* 差距配色：达标用主色竖线，还差用橙（与终稿 .subject.weak/.ok 一致） */
+.rvx-trf > .rvx-trf-subjects > .rvx-trf-cell.rvx-weak{border-left-color:var(--warn)}
+.rvx-trf > .rvx-trf-subjects > .rvx-trf-cell.rvx-ok{border-left-color:var(--primary)}
+.rvx-trf-cell.rvx-weak .rvx-sub{color:var(--warn)}
+.rvx-trf-cell.rvx-ok .rvx-sub{color:var(--primary-text)}
+/* 差距文案里的两级强调：够不着是橙，达标是绿（沿用骨架原有的 rvx-no / rvx-yes） */
+.rvx-trf .rvx-no{color:var(--warn);font-weight:600}
+.rvx-trf .rvx-yes{color:var(--med);font-weight:600}
+
+/* 平板/窄屏：四科仍在同一行，只是收窄 —— 不要退回「一科一行」，
+   那样又会把首屏撑到 500 多像素（改前就是这个毛病）。 */
+@media (max-width:900px){
+  .rvx-trf{grid-template-columns:1fr}
+  .rvx-trf > .rvx-trf-lead{border-right:0;border-bottom:1px solid var(--line);padding:13px 16px;gap:14px}
+  .rvx-trf-lead-num{font-size:38px}
+  .rvx-trf-lead-gap{font-size:12px}
+  .rvx-trf > .rvx-trf-subjects > .rvx-trf-cell{padding:12px 8px 12px 10px}
+  .rvx-trf > .rvx-trf-subjects > .rvx-trf-cell:first-child{padding-left:16px}
+  .rvx-trf .rvx-num{font-size:24px}
+  .rvx-trf .rvx-sub{font-size:10.5px;line-height:1.35}
+}
+@media (max-width:380px){
+  .rvx-trf > .rvx-trf-subjects > .rvx-trf-cell{padding:11px 6px 11px 8px}
+  .rvx-trf .rvx-num{font-size:21px}
+  .rvx-trf .rvx-lab{font-size:10.5px}
+  .rvx-trf .rvx-sub{font-size:9.5px}
+  .rvx-trf-lead-num{font-size:34px}
+}
 </style>
 </head>
 <body data-shell="top">
@@ -980,14 +1033,33 @@
              · 旧面板只是 hidden，节点一个都没删（R-E2 接真数据时要用）
            ⚠️ 类名 rvx- 一个都不许改，样式全在 css/p/review.css 末尾。 -->
       <div class="rvx-page" id="rvxE1">
+  <!-- ═══ RV-REBUILD-BATCH-1（11-01 笔 1）· 首屏摘要卡 ═══
+       她点头终稿 design/review-redesign-SSR-2026-10-31.html 的 .summary：
+       左边一个大总分 + 目标差距，右边四科各一格（分数 + 目标差距）。
+       改前是 5 个等分格，390 手机上每格独占一行（5 行 = 539px），
+       等于第一屏全被「分数」占满，趋势和记录要滚很久才看得见。
+       🔴 五个 id 一个都没动（rvxNumAll/rvxSubAll + 四科的 num/sub）——
+          js/rvx-data.js 的 paintStrip() 全按 id 取值，一行 JS 都不用改结构；
+          只把 rvx-num 换成 rvx-trf-lead-num（避免被 .rvx-trf .rvx-num 的 30px 盖住）。
+       🔴 类名仍以 rvx- 开头，样式全写进 css/p/review.css 本页作用域。 -->
   <div class="rvx-trf">
-    <div><div class="rvx-lab">总分 Overall</div><div class="rvx-num" id="rvxNumAll" style="color:var(--primary-700)">--</div>
-      <div class="rvx-sub" id="rvxSubAll">还没有成绩</div></div>
-    <div><div class="rvx-lab">听力</div><div class="rvx-num" id="rvxNumL">--</div>
-        <div class="rvx-sub" id="rvxSubL">--</div></div><div><div class="rvx-lab">阅读</div><div class="rvx-num" id="rvxNumR">--</div>
-        <div class="rvx-sub" id="rvxSubR">--</div></div><div><div class="rvx-lab">写作</div><div class="rvx-num" id="rvxNumW">--</div>
-        <div class="rvx-sub" id="rvxSubW">--</div></div><div><div class="rvx-lab">口语</div><div class="rvx-num" id="rvxNumS">--</div>
+    <div class="rvx-trf-lead">
+      <div class="rvx-trf-lead-main">
+        <div class="rvx-trf-lead-lab" id="rvxLeadLab">最近一次</div>
+        <div class="rvx-trf-lead-num" id="rvxNumAll" style="color:var(--primary-700)">--</div>
+      </div>
+      <div class="rvx-trf-lead-gap" id="rvxSubAll">还没有成绩</div>
+    </div>
+    <div class="rvx-trf-subjects">
+      <div class="rvx-trf-cell" id="rvxCellL"><div class="rvx-lab">听力</div><div class="rvx-num" id="rvxNumL">--</div>
+        <div class="rvx-sub" id="rvxSubL">--</div></div>
+      <div class="rvx-trf-cell" id="rvxCellR"><div class="rvx-lab">阅读</div><div class="rvx-num" id="rvxNumR">--</div>
+        <div class="rvx-sub" id="rvxSubR">--</div></div>
+      <div class="rvx-trf-cell" id="rvxCellW"><div class="rvx-lab">写作</div><div class="rvx-num" id="rvxNumW">--</div>
+        <div class="rvx-sub" id="rvxSubW">--</div></div>
+      <div class="rvx-trf-cell" id="rvxCellS"><div class="rvx-lab">口语</div><div class="rvx-num" id="rvxNumS">--</div>
         <div class="rvx-sub" id="rvxSubS">--</div></div>
+    </div>
   </div>
 
   <div class="rvx-card" style="margin-top:14px"><div class="rvx-card-p" style="padding:14px 18px">
