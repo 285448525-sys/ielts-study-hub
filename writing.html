@@ -30,7 +30,7 @@
 </script>
 <title>写作 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261029l" />
-<link rel="stylesheet" href="css/p/writing.css?v=20261029l" />
+<link rel="stylesheet" href="css/p/writing.css?v=20261031a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -106,10 +106,12 @@
 
   /* ===== 10-23 W-2：详情页头部一行（方案 §三.1）===== */
   .dtl-hd{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--line)}
-  .dtl-back{width:26px;height:26px;flex:none;display:grid;place-items:center;padding:0;
-    border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink-2);
-    cursor:pointer;transition:border-color .15s,color .15s,background .15s}
-  .dtl-back:hover{border-color:var(--primary-200);color:var(--primary-700);background:var(--primary-50)}
+  /* BACK-BTN-PAGES-1（10-31）：原 .dtl-back（26×26、圆角 8、14px 箭头）已换成统一基类
+     .site-back--icon（36×36、圆角 10、16px 箭头）。旧规则删掉 —— 留着会把它压回 26×26，
+     与「全站同一外形」直接打架。
+     下面两条是基类不管的、这一行特有的：① 不许被 flex 压缩 ② 与本行其它元素垂直居中对齐。 */
+  #backBtn.site-back{flex:none}
+  .dtl-hd .site-back{margin:0}
   .dtl-nm{margin:0;font-size:15px;font-weight:800;letter-spacing:-.01em;min-width:0}
   .dtl-lv{font-size:9.5px;font-weight:800;color:var(--primary-700);background:var(--primary-50);
     border:1px solid var(--primary-200);border-radius:999px;padding:2px 8px;white-space:nowrap;flex:none}
@@ -706,8 +708,13 @@ body.exam-fullscreen .hub-topbar{display:none !important}
           <!-- 10-23 W-2：头部一行收齐（方案 §三.1）—— 返回小方框 · 标题 · 目标分徽章 · 大作文/段数/词数 ·
                右侧「开始默写」（不再通栏；原来两个按钮各占一整行，首屏吃掉约 110px） -->
           <div class="dtl-hd">
-            <button class="dtl-back" id="backBtn" type="button" title="返回列表" aria-label="返回列表">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+            <!-- BACK-BTN-PAGES-1（10-31）：接线统一基类 .site-back 的紧凑变体 --icon。
+                 为什么用 --icon 不用常态：这颗在详情头部那一行里（标题 · 目标分 · 字数 · 开始默写 全挤一行），
+                 常态按钮宽 125px 会把标题挤到换行。规范稿对窄栏的处置就是「只留箭头，title 与 aria-label 必须写全去向」，
+                 这里 title/aria-label 都已是「返回列表」。id="backBtn" 与 js/writing.js:262 的监听一字未改。 -->
+            <button class="site-back site-back--icon" id="backBtn" type="button" title="返回列表" aria-label="返回列表">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M11 18l-6-6 6-6"/></svg>
+              <span class="site-back-txt">返回模板列表</span>
             </button>
             <h2 id="dTitle" class="dtl-nm"></h2>
             <span id="dLv" class="dtl-lv" hidden></span>
@@ -915,7 +922,10 @@ body.exam-fullscreen .hub-topbar{display:none !important}
   <div id="dictationPanel" hidden>
     <section class="card">
       <div class="card-head" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
-        <button class="btn" id="wtDictBack" type="button">← 返回模板</button>
+        <!-- BACK-BTN-PAGES-1（10-31）：接线 .site-back 常态（箭头 + 去向文字）。去向从「返回模板」补成
+             「返回模板列表」——实际落点就是模板列表（js/writing.js:287 调 switchWriteTab('tpl')）。
+             id 保留，那个 addEventListener 一字未改。 -->
+        <button class="site-back" id="wtDictBack" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M11 18l-6-6 6-6"/></svg><span class="site-back-txt">返回模板列表</span></button>
         <h2 style="margin:0" id="wtDictTitle">模板默写</h2>
         <span class="muted" style="font-size:13px" id="wtDictHint"></span>
       </div>
