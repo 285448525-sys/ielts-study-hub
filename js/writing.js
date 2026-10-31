@@ -3385,12 +3385,44 @@ function ensureExamShell(){
   if(!host || host.getAttribute('data-shell') === '1'){
     /* 10/20：壳已存在时也要刷新全屏图标（进/出全屏后回到考场，图标要反映当前态） */
     if(host) wireWrtFs();
-    return;
+    return false;             /* 没新建：调用方据此判断要不要重绑监听 */
   }
   host.innerHTML = examShellHtml();
   host.setAttribute('data-shell', '1');
   wireWrtFs();          /* 10/20 她 Q2：顶栏 ☰ 左边的全屏键（绑点击 + 刷当前图标态） */
+  return true;              /* 本次新建了壳 → 节点全是新的，旧监听已随旧节点消失 */
 }
+
+/* ===== WRT-PANE-SHELL-GAP-1（11-01）软导航后写作 pane 壳丢失 =====
+   现象（验收探针B1 真机挖出）：软导航回机经页再回题库、切到写作 tab，
+   点「完整写作模考 / 写作单篇」→ 计时选择框正常弹出，选完什么都不发生。
+
+   🔴 根因（实测，不是猜）：bank.js 的 _wrtLoadOnce 有一道「已加载就不再 append」的闸
+   （`if(typeof window.renderExamList === 'function') return Promise.resolve();`，
+   存在理由见那里的注释：writing.js 顶层有 const，重复执行会抛 already declared）。
+   于是软导航把 <main> 整个换掉之后：
+     · #examPractice 变成 bank.html 里的**空容器**（data-shell 没了、#examInstr 全没了）
+     · writing.js 不会重跑 → ready() 里那次 bindExam() 也不会重跑
+     · 结果：壳永远补不回来，openExamDirect 里 `$('#examInstr').textContent = …` 抛 TypeError，
+       #examHome 已被藏、#examPractice 又空白 → pane 卡死，Exit 也没人绑（实测点不动）。
+   实测证据（往返一次后）：data-shell=null、#examInstr=false、childCount=0，
+   而 window.renderExamList 仍是 function、data-late 脚本仍是 3 个 —— 脚本在、产物在，壳没了。
+
+   修法 = 幂等重入：新壳 = 新节点 → 必须整套重绑；老壳 = 已绑 → 一个字都不动。
+   这里用元素状态判断而不是全局标记，正合适：壳只在软导航换 main 时才会消失，
+   而「消失过」正是应该重绑的唯一时机（顶栏那种每轮 innerHTML 重建的场景才不能用元素标记）。 */
+function ensureExamPane(){
+  var host = document.getElementById('examPractice');
+  if(!host) return false;
+  var hadShell = host.getAttribute('data-shell') === '1';
+  if(hadShell){
+    ensureExamShell();       /* 壳在：只顺手刷一下全屏图标，不重绑 */
+    return false;
+  }
+  bindExam();                /* 壳不在（首次进页或软导航刚清空）→ 注入 + 整套重绑 */
+  return true;
+}
+window.wrtEnsurePane = ensureExamPane;
 
 function bindExam(){
   ensureExamShell();   // 先把机考外壳注进去（两页共用，见上）——必须在任何取 #examPractice 子元素之前

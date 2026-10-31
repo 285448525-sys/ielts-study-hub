@@ -4550,6 +4550,11 @@ window.__reportExamState = reportExamState;
            要先等它们到位再渲染；已加载过则直接进 then（缓存命中，无额外等待）。 */
         if(_mt === 'writing'){
           loadWritingScripts().then(function(){
+            /* 🔴 WRT-PANE-SHELL-GAP-1（11-01）：软导航会把 <main> 整个换掉 —— 新的 #examPractice
+               是空容器，而 writing.js 因「已加载不重复 append」不会重跑 ready()，
+               壳就永远补不回来（点写作模考没反应、Exit 无绑定）。
+               这里在每次切进写作 tab 时顺手把壳补齐（幂等：壳在就只刷图标，壳不在才注入 + 重绑）。 */
+            if(typeof window.wrtEnsurePane === 'function') window.wrtEnsurePane();
             if(typeof window.renderExamList === 'function') window.renderExamList();
             /* 10-28 WRT-FULL-ENTRY-FIX（她 13:0x「组卷那个功能有时候有有时候没有」）：
                入口卡（#writingFullEntry 里的 .full-card）只由 writing.js 的 ready() 填一次。
