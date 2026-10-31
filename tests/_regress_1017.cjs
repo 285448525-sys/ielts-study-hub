@@ -274,7 +274,8 @@ const LIST = [
      也都能独立跑（不带参数则自起静态服务）。headless 连续跑 3 次均稳。 */
   '_probe_listenleak_1029.cjs',
   '_probe_softnav_guard_1029.cjs',
-  '_probe_warmup_1029.cjs'
+  '_probe_warmup_1029.cjs',
+  '_probe_softnav_queue_1031.cjs'
 ];
 
 let pass = 0, fail = 0;

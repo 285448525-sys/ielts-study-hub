@@ -131,6 +131,7 @@ function hubExamGuardNav(){
 })();
 let _softNavReady = false;
 let _softNavBusy = false;
+let _softNavPending = null;   // 切换中再点：只保留最后一次真实目标，当前切换完成后串行接续
 /* ═══ LISTEN-LEAK-1（10-29）· 页面脚本重跑的监听收账 ═══
    背景：`runPageScript` 每进一页都会 `window.eval` 该页的 js/*.js（不 eval 页面就是死的，
    这条不能删）。而那些脚本顶层大量直接 `document.addEventListener` / `window.addEventListener`
@@ -1087,11 +1088,13 @@ async function softNavigate(t, isPop){
      程序化调用（bank.js spkStartMock / writing / speaking 入口）触发。
      统一在最外层拦一次 —— 任何来源的「离开考场」都走同一条闸。 */
   if(hubExamGuardNav()) return;
-  /* 🔴 P0-TAB-CROSSTALK（10-28）：被「切换中」挡掉的这一次，也要把点击时提前改掉的
-     标题/高亮还原 —— 否则这次点击什么都没换，标题却已经指向目标页了。
-     这一条是串页的另一个入口：她连点时，第 2 次点击被拦下，但第 1 次还没换完正文，
-     屏幕上就短暂出现「标题=第 2 页、正文=第 1 页（或更早的页）」。 */
-  if(_softNavBusy){ if(typeof toast === 'function') toast('页面切换中，请稍候…'); if(!isPop) rollbackNavOptimistic(); return; }
+  /* 🔴 NAV-SOFTNAV-HANG-1：切换中再点不能直接丢弃，也不能回滚到第一页的目标。
+     只保留最后一次真实目标，finally 完整收尾后串行接续，避免并发抢正文与历史栈。 */
+  if(_softNavBusy){
+    _softNavPending = { t, isPop: !!isPop };
+    if(typeof toast === 'function') toast('已记住这次跳转，当前页面就绪后继续…');
+    return;
+  }
   _softNavBusy = true;
   _lastNavAt = Date.now();   // 10/8 导航优先：同步三路流量让路（见 navBusyGrace 注释）
   /* 🔴 10/20 模考锁的「残留保险」：软导航能走到这里，说明**没被模考锁拦住**（正常路径）。
@@ -1220,6 +1223,9 @@ async function softNavigate(t, isPop){
     _softNavBusy = false;
     _lastNavAt = Date.now();   // 10/8 导航优先：宽限窗口从导航结束起算
     hideHubLoader();                                   // 兜底：任何异常路径下都不残留遮罩
+    /* 最后一次点击不能丢：当前切换完整收尾后再串行接续，绝不并发抢 main/history。 */
+    const pending = _softNavPending; _softNavPending = null;
+    if(pending) softNavigate(pending.t, pending.isPop);
   }
 }
 
