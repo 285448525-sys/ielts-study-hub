@@ -547,7 +547,11 @@ body.sheet-open .sheet{transform:translateY(0)}
    两种形态：
      .site-back            常态：箭头 + 去向文字（「返回口语题库」）
      .site-back--icon      紧凑：只剩箭头，文字变屏读可见（窄标题栏用）
-     .site-back--auto      自适应：宽屏正常、≤640px 自动收成纯箭头（窄栏页用它省心）
+
+   🔴 FE-DEAD（10-31）：原第三种形态 `.site-back--auto`（窄屏自动收箭头）已删除 ——
+     BACK-BTN-PAGES-1 九笔全部铺完后仍零引用，且 SSR 规范稿里也没有这个形态
+     （稿子只有常态与 compact 两态，手机档是全体抬到 40px 可点区，不是自动收箭头）。
+     要窄屏收箭头就用 .site-back--icon，别再造第三态。
 
    🔴 文案规矩（写进基类注释，防以后有人图省事写「返回」两个字）：
      必须「返回 + 去向」，不能只写笼统的「返回」—— 题库/详情/默写多层页面里去向不清。
@@ -587,15 +591,10 @@ body.sheet-open .sheet{transform:translateY(0)}
   clip-path:inset(50%);white-space:nowrap;
 }
 
-/* 自适应形态：窄屏自动收箭头（页面上写 .site-back--auto 就不必自己写媒体查询） */
-@media(max-width:640px){
-  .site-back--auto{width:40px;padding:0;justify-content:center}
-  .site-back--auto .site-back-txt{
-    position:absolute;width:1px;height:1px;overflow:hidden;
-    clip-path:inset(50%);white-space:nowrap;
-  }
-}
-/* 手机触控：可点区抬到 40px（稿子要求），只影响 --icon / --auto 这类正方形钮的宽度配套 */
+/* FE-DEAD（10-31）：这里原本是 `.site-back--auto` 的窄屏自适应块（自动收成纯箭头）。
+   全分支零引用（BACK-BTN-PAGES-1 九笔铺完也没人用），SSR 规范稿里也没有这个形态，已删。
+   窄屏要收箭头就写 .site-back--icon。 */
+/* 手机触控：可点区抬到 40px（稿子要求），只影响 --icon 这类正方形钮的宽度配套 */
 @media(max-width:640px){
   .site-back{min-height:40px}
   .site-back--icon{width:40px}
@@ -3015,8 +3014,9 @@ body.hub-exam-locked #ancBarHost{ display:none !important }
 
 /* ===== 公告详情（同页展开态）===== */
 .adetail{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:24px 26px}
-.adetail .back{border:0;background:none;font-family:inherit;font-size:13px;color:var(--primary-700);
-  font-weight:650;cursor:pointer;padding:0;margin-bottom:12px}
+/* FE-DEAD（10-31）：原 `.adetail .back` 已删除 —— BACK-BTN-PAGES-1 笔 3/9 把公告详情
+   返回钮改成统一基类 .site-back 后，全仓 class="back" 归零，这条旧样式彻底没人用。
+   .adetail 本体的卡片样式保留（公告详情容器还在用）。 */
 .adetail h2{margin:0 0 4px;font-size:20px;font-weight:750;letter-spacing:-.01em}
 .adetail .meta{font-size:12px;color:var(--muted);margin-bottom:18px}
 .adetail .body{font-size:14px;line-height:1.95;color:var(--ink-2)}
