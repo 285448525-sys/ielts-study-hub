@@ -90,8 +90,9 @@ function bindQuestionEvents(id){
       if(txt && txt.textContent.trim()) speakQuestion.speak(txt.textContent.trim(), tts);
     });
 
-    // 9/15 之之：回答面板默认展开、取消折叠——原「点题干展开/收起」交互删除，
-    // 朗读只由 p1FlowInit 切题时和喇叭按钮触发
+    // 9/15 之之：回答面板默认展开、取消折叠——原「点题干展开/收起」交互删除。
+    // SPK-AUTOSPEAK-OFF-1（10-31 A2）：朗读现在**只**由用户点这颗喇叭触发，
+    // 「切题时自动读一次」已在 sp-list.js 里删除（她「不要再播放了，我在看剧很烦」）。
 
     // AI 诊断
     const diag = li.querySelector('.sp-diag[data-qi="' + qi + '"]');

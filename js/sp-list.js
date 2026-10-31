@@ -306,13 +306,12 @@ function p1FlowInit(s){
   function render(){
     items.forEach(function(li, idx){ li.classList.toggle('active', idx === cur); });
 
-    // 切到一道小题时自动朗读一次（点“下一题/上一题”或在列表点题都会触发）
-    var activeLi = items[cur];
-    if(activeLi){
-      var qText = activeLi.querySelector('.sp-q-text');
-      var btn = activeLi.querySelector('.sp-tts');
-      if(qText && qText.textContent.trim()) speakQuestion.speak(qText.textContent.trim(), btn);
-    }
+    /* 🔴 SPK-AUTOSPEAK-OFF-1（10-31 A2，P0）：这里原来有一条「切到一道小题就自动朗读一次」，
+       点「下一题/上一题」或在列表里点题都会触发 —— 也就是说她只要翻题，机器就自己开口。
+       她 10-31 19:0x 原话：「不要再播放口语第一句话了，我在看剧很烦」。
+       朗读改为**只由用户主动点喇叭触发**（点按钮那条绑定在 sp-q.js，仍在）。
+       ⚠️ 别再以「用户刚点过下一题，算用户手势，浏览器允许」为理由加回来：
+          她的手势是「翻题」，不是「我要听」。 */
 
     // 进度点：9/15 之之要求删除（圆点 + n/n 徽章不再渲染）
 
