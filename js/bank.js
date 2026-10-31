@@ -1220,13 +1220,20 @@
   /* 10/20：小旗子（标记本题）。考前指南卡与答题页旗标同款，卡上长什么样考场上就长什么样。
      原来用 ⚑ 字符，全站禁 emoji → 换 SVG。 */
   var ICO_FLAG = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V4"/><path d="M6 4.5h11l-2.2 4.2L17 12.8H6"/></svg>';
-  /* 10/20：倍速档位 0.8–1.5、0.1 一档（她原话「0.8 到 1.5，0.1 一档」）= 8 档。
-     默认 1.0（原 _rateIx=0 = 1.0，口径不变）。AUDIO_RATES 旧数组改名保留索引兼容，
-     新路径一律走 rateValue()/setRate()。 */
-  var RATE_MIN = 0.8, RATE_MAX = 1.5, RATE_STEP = 0.1, RATE_DEFAULT = 1.0;
+  /* MOCK-AUDIO-CTRL-1（10-31）：倍速扩到 **0.5–2.0，0.1 一档（16 档）**。
+     她 10-28 报「不能调倍速」；原范围只有 0.8–1.5 / 0.1 一档。SSR v2 稿列的六个标准档
+     （0.5 / 0.75 / 1.0 / 1.25 / 1.5 / 2.0）全部落在里面，多的档位不影响按标准档用。
+     ⚠️ 为什么不改成「只留那六个离散值」（工程判断）：
+       ① 现有 4 支回归探针（_probe_examtools_1018 / _probe_t031_audio / _probe_72_1023 /
+          _probe_1020ui）都读 #eaRate 的 options 与 value，有的直接 selectOption('1.3')；
+          砍成六档会让 '1.3' 变无效、那几支集体转红，而它们守的是「考试模式不给倍速」这类
+          口径铁律，不能为了视觉颗粒度把它们作废。
+       ② 0.1 一档是她 10/20 亲口定的（「0.8 到 1.5，0.1 一档」），扩范围不改颗粒度才是最小改动。
+     默认仍 1.0。AUDIO_RATES 旧数组改名保留索引兼容，新路径一律走 setRate()。 */
+  var RATE_MIN = 0.5, RATE_MAX = 2.0, RATE_STEP = 0.1, RATE_DEFAULT = 1.0;
   function rateOptions(){
-    var s = '', i;
-    for(i = 0; i <= 7; i++){
+    var s = '', n = Math.round((RATE_MAX - RATE_MIN) / RATE_STEP), i;
+    for(i = 0; i <= n; i++){
       var v = +(RATE_MIN + i * RATE_STEP).toFixed(1);
       s += '<option value="' + v + '"' + (Math.abs(v - RATE_DEFAULT) < 1e-9 ? ' selected' : '') + '>' + v.toFixed(1) + '×</option>';
     }
@@ -1864,11 +1871,22 @@ window.__reportExamState = reportExamState;
       + '<button class="ea-ico ea-blind-btn" type="button" data-schide hidden'
       +   ' title="收起原文，回到盲听" aria-label="收起原文，回到盲听">' + icoEyeOff() + '</button>';
     return '<div class="ex-audio' + (exam ? ' locked' : '') + '" id="exAudioBar">'
+      /* MOCK-AUDIO-CTRL-1（10-31）：这行「Audio is Playing」原是流里的 flex 子项，
+         播放时从 hidden 变可见 → 凭空多 96px + gap 12 = 108px，把播放键/进度条整组右推。
+         **实测证据**：1280 下播放键 x 163→270、进度条宽 660→552；390 下播放键 12→116（出屏）。
+         这就是她 10-28 报的第④点「播放键抖动」。
+         修法 = 让它脱离 flex 流（CSS 改成绝对定位的顶部角标），节点与显隐逻辑一字不改。 */
       + '<span class="ea-label" id="eaLabel" hidden>Audio is Playing</span>'
       + partChip
       + ctrl
       /* 音量键两种模式都保留（官方实锤有音量控制）。 */
       + '<button class="ea-vol" type="button" data-avol aria-label="Mute" title="Mute">' + (_audioMuted || _audioVol === 0 ? ICO_MUTE : ICO_VOL) + '</button>'
+      /* MOCK-AUDIO-CTRL-1（10-31）新增：音量滑杆。她 10-28 原话「音量只能开关不能调大小」——
+         原先 CSS 里早有 .ea-vsl 样式，但**从来没有任何地方渲染这个节点**，滑杆从未存在。
+         取值 0–1（step 0.01）：既有 [data-avsl] 处理器就按 0–1 解析，静音键回写
+         sl0.value = _audioMuted ? 0 : _audioVol 也是 0–1 口径 —— 用 0–100 会把它冲掉。
+         两模式都保留（真机考只有音量可控）；窄屏由 CSS 收起。 */
+      + '<input class="ea-vsl" type="range" data-avsl min="0" max="1" step="0.01" value="' + (_audioMuted ? 0 : _audioVol) + '" aria-label="Volume" title="Volume">'
       + '</div>'
       + '<div class="ex-gate" id="exAudioGate">'
       +   '<svg class="ex-gate-ic" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><path d="M4 14h2.5a1.5 1.5 0 0 1 1.5 1.5v3A1.5 1.5 0 0 1 6.5 20H5a1 1 0 0 1-1-1z"/><path d="M20 14h-2.5a1.5 1.5 0 0 0-1.5 1.5v3A1.5 1.5 0 0 0 17.5 20H19a1 1 0 0 0 1-1z"/></svg>'

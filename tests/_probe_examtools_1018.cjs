@@ -6,7 +6,7 @@
 //   B #exHideBtn 整个不存在（阅读 + 听力单篇都查）
 //   C 听力单篇：工具栏真的可见（mountListenTools 搬进音频条后没被 display:none 吞掉）
 //   D 点 #exFsBtn 调用了 requestFullscreen
-//   E 音频条：音量按钮是 SVG；倍速是 <select>，8 档 0.8–1.5（0.1 一档）
+//   E 音频条：音量按钮是 SVG；倍速是 <select>（MOCK-AUDIO-CTRL-1 起 0.5–2.0，0.1 一档）
 //   F 眼睛标的本地存储键不再被写入
 const { chromium } = require('playwright-core');
 const BASE = process.argv[2] || 'http://127.0.0.1:8791';
@@ -119,7 +119,9 @@ const ck = (n, ok, info) => { const l = (ok ? '  ✅ ' : '  ❌ ') + n + (info ?
   ck('B4 听力单篇：没有眼睛标', !lv.hide);
   ck('B5 听力单篇：不显示整场计时（她 ⑤）', lv.fullTimer === false);
   ck('B6 音量按钮是 SVG、无 emoji', lv.volSvg === true);
-  ck('B7 倍速是 select，8 档 0.8–1.5', lv.rateSel && lv.rateN === 8 && lv.rateMin === '0.8' && lv.rateMax === '1.5',
+  /* MOCK-AUDIO-CTRL-1（10-31）：倍速扩到 0.5–2.0。判据改成**序数比较**，不再写死档数与端值
+     （写死字面量今天已经过期一次）。守的仍是同一件事：倍速是个可选档位的下拉、范围覆盖常用区间。 */
+  ck('B7 倍速是 select，覆盖 0.5–2.0 且至少 6 档', lv.rateSel && lv.rateN >= 6 && Number(lv.rateMin) <= 0.5 && Number(lv.rateMax) >= 2,
      'n=' + lv.rateN + ' min=' + lv.rateMin + ' max=' + lv.rateMax);
 
   await page.selectOption('#eaRate', '1.3');

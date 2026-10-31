@@ -1475,7 +1475,13 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
      不改结构、不改尺寸（不产生布局位移，符合「绝不切内容、绝不错位」）。 */
   .ex-audio .ea-play.playing{box-shadow:0 0 0 0 rgba(92,179,171,.55);animation:eapulse 1.8s ease-out infinite}
   @keyframes eapulse{0%{box-shadow:0 0 0 0 rgba(92,179,171,.5)}70%{box-shadow:0 0 0 9px rgba(92,179,171,0)}100%{box-shadow:0 0 0 0 rgba(92,179,171,0)}}
-  .ex-audio .ea-label{flex:none;font-size:12.5px;font-weight:700;color:var(--primary-text);letter-spacing:.02em}
+  /* MOCK-AUDIO-CTRL-1（10-31）：**脱离 flex 流**（原来 flex:none 占 96px+12px gap，
+   播放时凭空插入 → 整组右移 108px，实测播放键 x 163→270，就是她报的「播放键抖动」）。
+   改成音频条顶部居中的小角标：position:absolute + pointer-events:none，零布局位移、不压控件。 */
+.ex-audio{position:relative}
+.ex-audio .ea-label{position:absolute;left:50%;top:1px;transform:translateX(-50%);
+  font-size:10px;font-weight:600;line-height:1;letter-spacing:.02em;white-space:nowrap;
+  color:var(--primary-text);opacity:.85;pointer-events:none}
   /* 进度条：flex:1 吃满中间剩余宽度（10/20 实测被倍速框挤成 80px 一小截）。
      hover 放大点：轨道加高 + 手柄放大（成熟站点通行做法：默认细轨道，hover 显手柄）。 */
   .ex-audio .ea-bar{flex:1;height:6px;border-radius:999px;background:var(--n-100);position:relative;cursor:pointer;min-width:120px;transition:height .15s}
@@ -1503,7 +1509,8 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
   .ex-audio .ea-rate:hover{border-color:#111}
   /* 音量（10/12 加）：真机考只有音量可控 → 练习/考试两种模式都保留。
      10/20 她 ③：音量标去 emoji（🔇/🔊 全站禁）→ 按钮里装 SVG（JS 侧 ICO_VOL/ICO_MUTE）。 */
-  .ex-audio .ea-vol{flex:none;border:1px solid var(--line);background:transparent;border-radius:7px;padding:3px 7px;font-size:12px;line-height:1.5;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;min-width:32px;min-height:28px}
+  /* MOCK-AUDIO-CTRL-1（10-31）：与 A1 上栏笔1（UNIFIED-EXAM-UI-3）的 36px 高 / 8px 圆角对齐 */
+.ex-audio .ea-vol{flex:none;border:1px solid var(--line);background:transparent;border-radius:8px;padding:0 7px;font-size:12px;line-height:1.5;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;min-width:32px;min-height:36px}
   .ex-audio .ea-vol:hover{border-color:#111}
   .ex-audio .ea-vol svg{display:block}
   .ex-audio .ea-vsl{flex:none;width:64px;accent-color:var(--primary);cursor:pointer;margin:0}
@@ -1869,7 +1876,9 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 @media (prefers-reduced-motion:reduce){#examRoot .ex-gate-bar i{transition:none}}
 /* 播放中官方顶栏只多一行小字「Audio is Playing」（截图 02/19 实测） */
 #examRoot .ex-audio{background:#fff;border-bottom:1px solid #d5d5d5;padding:0 16px;min-height:44px;gap:14px}
-#examRoot .ex-audio .ea-label{font-size:13px;font-weight:400;color:#333}
+/* ⚠️ MOCK-AUDIO-CTRL-1（10-31）：label 已改为绝对定位的顶部角标（见上方 .ex-audio .ea-label 段），
+   这里只调字号/颜色，**不能**再给它 display/flex 之类会把它拉回流内的属性。 */
+#examRoot .ex-audio .ea-label{font-size:11px;font-weight:600;color:#333}
 #examRoot.ct-dark .ex-audio{background:#161616;border-bottom-color:#3a3f45}
 #examRoot.ct-dark .ex-audio .ea-label{color:#c8cbd0}
 #examRoot.ct-yellow .ex-audio{background:#161616;border-bottom-color:#3a3524}
@@ -1916,7 +1925,9 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 #examRoot .ex-audio.locked .ea-bar,
 #examRoot .ex-audio.locked .ea-time,
 #examRoot .ex-audio.locked .ea-rate{display:none}
-#examRoot .ex-audio .ea-play{flex:none;width:34px;height:34px;border-radius:50%;border:0;
+/* MOCK-AUDIO-CTRL-1（10-31）：照 v2 稿的 44px 圆形主按钮（原 34px；播放/暂停合一的按态
+   换图标逻辑本来就有，在 paintAudio 里，这里只放大尺寸）。 */
+#examRoot .ex-audio .ea-play{flex:none;width:44px;height:44px;border-radius:50%;border:0;
   background:var(--primary);color:var(--on-primary);cursor:pointer;
   display:inline-flex;align-items:center;justify-content:center;padding:0;
   transition:box-shadow .2s,background .15s}
@@ -1937,13 +1948,21 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 #examRoot .ex-audio .ea-bar:focus-visible .ea-knob{opacity:1}
 #examRoot .ex-audio .ea-time{flex:none;font-size:12px;color:var(--muted);
   font-variant-numeric:tabular-nums;min-width:92px;text-align:right;letter-spacing:.2px}
-#examRoot .ex-audio .ea-rate{flex:none;width:74px;border:1px solid var(--line);background:transparent;
-  color:var(--ink);border-radius:7px;padding:3px 22px 3px 8px;font-size:12px;cursor:pointer;
+/* MOCK-AUDIO-CTRL-1（10-31）：与 A1 上栏笔1 的 36px 高 / 8px 圆角对齐
+   （原来 select 原生高度撑到 44px、圆角 7px，和顶栏那排 36px 方块不在一个节奏）。 */
+#examRoot .ex-audio .ea-rate{flex:none;width:74px;height:36px;border:1px solid var(--line);background:transparent;
+  color:var(--ink);border-radius:8px;padding:0 22px 0 8px;font-size:12px;cursor:pointer;
   font-family:inherit;font-variant-numeric:tabular-nums;font-weight:700;
   appearance:none;-webkit-appearance:none;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6.5L8 10.5l4-4' fill='none' stroke='%236b7280' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 5px center;background-size:11px 11px}
 #examRoot .ex-audio .ea-rate:hover{border-color:var(--ink)}
+/* MOCK-AUDIO-CTRL-1（10-31）：音量滑杆（新节点）。72px 对齐 v2 稿的 70px 口径，
+   与倍数下拉同高 36px。窄屏收起（见下方 @media 段）。 */
+#examRoot .ex-audio .ea-vsl{flex:none;width:72px;height:36px;margin:0;
+  accent-color:var(--primary);background:transparent;cursor:pointer}
+#examRoot.ct-dark .ex-audio .ea-vsl,
+#examRoot.ct-yellow .ex-audio .ea-vsl{accent-color:#5cb3ab}
 #examRoot.ct-dark .ex-audio .ea-bar,
 #examRoot.ct-yellow .ex-audio .ea-bar{background:#3a3f45}
 #examRoot.ct-dark .ex-audio .ea-time,
@@ -2113,10 +2132,19 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
   #examRoot .ex-audio .ea-blind-btn{width:28px;height:24px}
 }
 @media (max-width:860px){
-  #examRoot .ex-audio{gap:8px;padding:8px 12px}
+  #examRoot .ex-audio{gap:6px;padding:8px 12px}
   #examRoot .ex-audio .ea-time{min-width:auto;font-size:11px}
-  #examRoot .ex-audio .ea-bar{min-width:60px}
+  #examRoot .ex-audio .ea-bar{min-width:52px}
   #examRoot .ex-audio .ea-rate{width:64px;font-size:11.5px}
+  /* 窄屏播放键收到 40px（可点区下限），44 会挤掉进度条 */
+  #examRoot .ex-audio .ea-play{width:40px;height:40px}
+  /* MOCK-AUDIO-CTRL-1（10-31）：窄屏收起音量滑杆，只留喇叭静音键 ——
+     ① 照 SSR v2 稿的手机端（那版手机端只有 播放/进度/时间/倍速，没有滑杆）
+     ② 实测 390 一行放不下：加 72px 滑杆后右侧工具组被推到 x=398（超出 390 屏宽），
+        收起后又差 1px，故把音量键右外边距再收 2px（点按区不减，只是贴边）。
+     静音键还在，音量功能不丢；滑杆是精细调节，留给宽屏。 */
+  #examRoot .ex-audio .ea-vsl{display:none}
+  #examRoot .ex-audio .ea-vol{margin-right:-2px}
 }
 /* ≤560 手机：一行塞不下 7 个元素（390 实测倍速右边缘 402 > 390）→
    Part 胶囊让位（顶栏已经有「Part 1 · Questions 1–13」，音频条里不重复），
@@ -2624,7 +2652,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common-cloud.js?v=20261031e"></script>
 <script defer src="js/common-shell.js?v=20261031e"></script>
 <script defer src="js/common-pwa.js?v=20261031e"></script>
-<script defer src="js/bank.js?v=20261031a"></script>
+<script defer src="js/bank.js?v=20261031f"></script>
 <!-- M-2（10-24）：模考页「没做过/做过」分组 + 展开更多。
      ⚠️ 本文件只做展示层（读 hub_bank_last_* 分组 + 首屏 20 条），判分/SRS/本地记录一律不碰；
         单条 DOM 由 js/bank.js 的 listHtml() 生成（当参数传进来），结构零改动。
