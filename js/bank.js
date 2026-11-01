@@ -3379,7 +3379,20 @@ window.__reportExamState = reportExamState;
               ② 点工具条按钮的 mousedown 会把选区清掉 → 对 #exCtx 做 preventDefault。 */
   var _hlRange = null, _hlSpan = null, _hlCache = null;
 
-  function artEl(){ return document.getElementById('exArt'); }
+  function artEl(){
+    var art=document.getElementById('exArt'),q=document.getElementById('exQCol');
+    /* 原文和题干共用同一套标注。题干里有答题控件，跨控件选区不包，防止高亮吃掉选项。 */
+    if(art&&q){var box=art.parentNode;if(box&&!box.__hlBoth){box.setAttribute('data-hl-both','1');box.__hlBoth=true;}return box}
+    return art||q;
+  }
+  function hlSelectionIn(range,root){
+    if(!range||!root)return false;
+    if(!root.contains(range.commonAncestorContainer))return false;
+    var c=range.cloneContents();
+    /* 题号、旗标是题干排版的一部分，不是答案控件；其余输入/拖放控件不纳入标注。 */
+    c.querySelectorAll('.ex-qn,.ex-flagq').forEach(function(n){n.remove()});
+    return !c.querySelector('input,select,textarea,button,.ex-drop,.ex-pslot,.ex-chip,.ex-lohb');
+  }
   function marksKey(){ return (EX && EX.unit) ? 'hub_bank_marks_' + EX.unit.id : ''; }
   function loadMarks(){
     try{ var a = JSON.parse(localStorage.getItem(marksKey()) || '[]'); return (a && a.length) ? a : []; }catch(e){ return []; }
@@ -3412,19 +3425,18 @@ window.__reportExamState = reportExamState;
   function selQuote(range){
     var art = artEl(); if(!art || !range) return null;
     var t = range.toString();
-    if(!t) return null;
-    var map = textMap(art), start = -1;
-    if(range.startContainer && range.startContainer.nodeType === 3){
-      for(var i = 0; i < map.nodes.length; i++){
-        if(map.nodes[i].node === range.startContainer){ start = map.nodes[i].s + range.startOffset; break; }
-      }
+    if(!t || !hlSelectionIn(range,art)) return null;
+    var map=textMap(art),start=-1;
+    /* 题号在题干节点之前：从真实起点向前逐字符找它属于哪个文本节点，避免元素节点边界误算。 */
+    if(range.startContainer&&range.startContainer.nodeType===3){
+      for(var i=0;i<map.nodes.length;i++){if(map.nodes[i].node===range.startContainer){start=map.nodes[i].s+range.startOffset;break}}
+    }else{
+      var before=document.createRange();before.selectNodeContents(art);before.setEnd(range.startContainer,range.startOffset);
+      var prefix=before.toString(),off=prefix.length,acc=0;
+      for(var j=0;j<map.nodes.length;j++){var val=map.nodes[j].node.nodeValue;if(off<=acc+val.length){start=map.nodes[j].s+Math.max(0,off-acc);break}acc+=val.length}
     }
-    if(start < 0) return { text: t, pre: '', post: '' };
-    return {
-      text: t,
-      pre:  map.full.slice(Math.max(0, start - 24), start),
-      post: map.full.slice(start + t.length, start + t.length + 24)
-    };
+    if(start<0)return{text:t,pre:'',post:''};
+    return{text:t,pre:map.full.slice(Math.max(0,start-24),start),post:map.full.slice(start+t.length,start+t.length+24)};
   }
   function markRange(a, b, cls, id){
     var r = document.createRange();
@@ -3445,8 +3457,11 @@ window.__reportExamState = reportExamState;
       if(start < 0) return;
       var a = locAt(map, start), b = locAt(map, start + m.text.length);
       if(!a || !b) return;
-      var sp = markRange(a, b, m.kind === 'hl' ? 'ex-hl' : 'ex-nt', m.id);
-      if(sp && m.rep) sp.classList.add('rep');          /* 玫红态（重复高亮）也要复原 */
+      var r=document.createRange();try{r.setStart(a.node,a.offset);r.setEnd(b.node,b.offset)}catch(e){return}
+      /* 题干重渲染会重建答题控件，包含控件的旧标注不强行套回；纯题干文字仍按原文原法回显。 */
+      if(!hlSelectionIn(r,art))return;
+      var sp = wrapRange(r, m.kind === 'hl' ? 'ex-hl' : 'ex-nt', m.id);
+      if(sp && m.rep) sp.classList.add('rep');
     });
   }
   function renderNotes(){
@@ -4486,10 +4501,10 @@ window.__reportExamState = reportExamState;
       }
       if((el = t.closest && t.closest('#exNoteClose'))){ document.getElementById('exSplit').classList.remove('hasnotes'); return; }
       if((el = t.closest && t.closest('[data-ndel]'))){ delNote(el.getAttribute('data-ndel')); return; }
-      if((el = t.closest && t.closest('#exArt .ex-nt'))){ focusNote(el.getAttribute('data-id')); return; }
+      if((el = t.closest && t.closest('#exArt .ex-nt, #exQCol .ex-nt'))){ focusNote(el.getAttribute('data-id')); return; }
       /* 真机考 2026 新版：单击已高亮文字直接出 Remove Highlight（搜狐来源口径一致）。
          仅在选区折叠（真单击）时触发 —— 拖选结束浏览器补发的 click 不走这里。 */
-      if((el = t.closest && t.closest('#exArt .ex-hl')) && window.getSelection().isCollapsed){
+      if((el = t.closest && t.closest('#exArt .ex-hl, #exQCol .ex-hl')) && window.getSelection().isCollapsed){
         openCtx(null, el, el.getBoundingClientRect());
         return;
       }
@@ -4991,6 +5006,7 @@ window.__reportExamState = reportExamState;
       if(!sel.focusNode || !art.contains(sel.focusNode)) return;               /* 跨出文章的选区不接 */
       try{
         var r = sel.getRangeAt(0).cloneRange();
+        if(!hlSelectionIn(r,art)){closeCtx();return}
         _hlCache = null;
         openCtx(r, null, r.getBoundingClientRect());
       }catch(err){}
@@ -5011,6 +5027,7 @@ window.__reportExamState = reportExamState;
     });
     document.addEventListener('contextmenu', function(e){
       var art = artEl(); if(!art || !art.contains(e.target)) return;
+      if(e.target.closest&&e.target.closest('input,select,textarea,button,.ex-drop,.ex-pslot,.ex-chip,.ex-lohb'))return;
       var sel = window.getSelection();
       _hlSpan = e.target.closest ? e.target.closest('.ex-hl, .ex-nt') : null;
       var live = (sel && !sel.isCollapsed && sel.anchorNode && art.contains(sel.anchorNode)
