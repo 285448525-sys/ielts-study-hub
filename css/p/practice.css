@@ -1279,6 +1279,24 @@ body.word-fullscreen #practiceBody.practice-body-fit .opt-big{height:auto;min-he
   #practiceArea .ws-book-switcher .ws-bs-name{font-size:12px}
   #practiceArea .wd-modes #wdModeBtn{font-size:12px;padding:6px 3px}
   #practiceArea .ws-tool-btn{width:34px;height:34px}
+  /* 手机档切书面板出界（A1 11-01，实测 390/360/700）：
+     病根 = 本文件 1251 行 `#practiceArea .ws-book-pop{left:auto;right:0}` 把 320px 宽的面板
+     右对齐到只有 58px 宽的 .ws-book-pop-wrap 右沿（390 宽下 x=145~203）→ 面板左沿被推到
+     −117（360 宽下 −133），书目名字与图标整个切掉一截，可见宽度只剩 194/302。
+     修法：手机档把锚点从 wrap（58px 宽）换成 #wdWordHeader（本档 1272 行已是 position:relative，
+     宽 290~320）→ 面板 right:0 贴 header 右沿，不再出界。
+     纵向一并收口：面板内容高 603px，原 bottom 落在 826，第 8 项「添加更多词书」（y=773）
+     被 dock（top=786）压住点不到。这里用视口比例封顶 + 内部滚动（55dvh：844 高→464、900 高→495，
+     两种高度都稳稳落在 dock 上沿之上），比按 header 位置硬算减数更耐不同机的头部高度。
+     桌面档（>700）一行不动。 */
+  #practiceArea .ws-book-pop-wrap{position:static}
+  #practiceArea .ws-book-pop{
+    left:auto;right:0;
+    width:min(320px, calc(100vw - 24px));
+    max-height:55dvh;
+    overflow:auto;
+    -webkit-overflow-scrolling:touch;
+  }
   #practiceBody.practice-body-fit:has(.opts-grid){min-height:480px;justify-content:center}
   body.word-fullscreen #practiceBody.practice-body-fit:has(.opts-grid){min-height:0}
 }

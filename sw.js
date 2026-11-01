@@ -66,7 +66,8 @@
 // 未改任何加载策略/脚本顺序（HANDOFF 铁律：defer 顺序是契约，动它会连带出事）。
 // common.js → 20261013ad（25 页）、index.js → 20261017a（仅 home.html）、
 // bank.js → 20261012ac（仅 bank.html）。上一版 v409。
-const CACHE = 'ielts-hub-v713'; // 11-01 WD-PERF-HANG-1：wordbank.js 换词本落盘改增量（只写活跃库+脏库兜底补写）+镜像只 diff 活跃库、words.js 切库重绘让帧。引用串 practice/home wordbank.js 20261023s→20261101a、words.js 20261023r→20261101a。
+const CACHE = 'ielts-hub-v714'; // 11-01 WD-BSPOP-FIT-1：手机档切书面板出界修复（css/p/practice.css 的 ≤700 档），引用串 practice.css 20261101a→20261101b。
+const _prevCacheNote37 = 'ielts-hub-v713'; // 11-01 WD-PERF-HANG-1：换词本落盘改增量 + 镜像只 diff 活跃库 + 切库重绘让帧（practice/home 的 wordbank.js、words.js 串 20261023s/20261023r→20261101a）。
 const _prevCacheNote36 = 'ielts-hub-v712'; // 11-01 BANK-DONE-ROW-1 笔 2
 const _prevCacheNote35 = 'ielts-hub-v711'; // 11-01 BANK-DONE-ROW-1 笔 2（做过篇目点击弹「看上次结果/再做一次」）
 const _prevCacheNote34 = 'ielts-hub-v710'; // 11-01 RV-REBUILD-FULL-1 三笔（重建重挂 003acb4f + chip 补回 d087d703 + chip 语义粒度修 69ce7c47）：回顾页整页重建，修深链 ?sub=（含 breakdown/overall/speaking 三个老值）、openDetail 的 CSS.escape、整卷行「看上次结果/重新做一遍」两按钮；记录筛选按 recCat 语义粒度（整卷模考 kind 恒为 part，真粒度看 gran）。
