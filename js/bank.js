@@ -902,16 +902,12 @@
       + '<button type="button" class="bdp-x" data-bdp="close" aria-label="关闭">×</button>'
       + '</div>';
     host.appendChild(ov);
-    /* 点遮罩关闭（点卡片本身不关）。Esc 也关 —— 与交卷确认弹窗同一套习惯。 */
+    /* 点遮罩关闭（点卡片本身不关）。Esc 关闭走文件下方 __BANK_DELEGATE 里那条常驻委托
+       （BANK-ESC-DELEGATE-1：不再每次开弹层都挂一个新的 keydown）。 */
     ov.addEventListener('click', function(e){ if(e.target === ov) closeDonePick(); });
-    window.__bdpEsc = function(e){
-      if(e.key === 'Escape'){ closeDonePick(); }
-    };
-    document.addEventListener('keydown', window.__bdpEsc);
   }
   function closeDonePick(){
     var m = document.getElementById('bkDonePick'); if(m) m.remove();
-    if(window.__bdpEsc){ document.removeEventListener('keydown', window.__bdpEsc); window.__bdpEsc = null; }
   }
 
   function openExam(unitId, channel){
@@ -4718,6 +4714,16 @@ window.__reportExamState = reportExamState;
   /* ===== 事件委托 ===== */
   if(!window.__BANK_DELEGATE){
     window.__BANK_DELEGATE = true;
+
+    /* BANK-ESC-DELEGATE-1（A1 11-01，B2 审计 P1）：
+       原来 showDonePick() 每打开一次弹层就 `document.addEventListener('keydown', window.__bdpEsc)`，
+       该监听只认「Escape + 自己弹层」，弹层移除后闭包仍挂在 document 上 → 开关 N 次就攒 N 个
+       永不回收的 keydown；软导航每进一次机经页再叠一轮（LISTEN-LEAK-1 同类病）。
+       改成一条常驻委托：只在弹层真的存在时响应，同一时刻只有它一个；关闭时不再 removeEventListener。 */
+    document.addEventListener('keydown', function(e){
+      if(e.key !== 'Escape') return;
+      if(document.getElementById('bkDonePick')) closeDonePick();
+    });
 
     document.addEventListener('click', function(e){
       var t = e.target, el;
