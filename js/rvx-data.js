@@ -67,11 +67,38 @@ function recActs(r){
  return '<span class="rv2-rec-acts"><button type="button" class="rv2-rec-last" data-rec-last="'+esc(r.id)+'">看上次结果</button>'
   +'<button type="button" class="rv2-rec-again" data-rec-again="'+esc(r.id)+'">重新做一遍</button></span>';
 }
+/* RV-REC-CHIP-1（11-01，B2 过闸条件）：把类型筛选补回来。
+   旧 rec-all.js 用 #recAllChips 三个 chip 做「时间 × 类型」二维筛选，重建时
+   chips 被 hidden、只剩 recordFilter 的时间维度 —— 筛选能力从 2D 降成 1D，
+   用户没法只看某一类。B2 独立判定为功能丢失，不是设计取舍。
+   做法（最小改、DOM 已在、不建新模块）：
+     · 单选 chip：全部 / 整卷 / 分项 / 口语模考，与 recordFilter 的 recent/all 做 AND
+     · chip 文案带计数（沿用旧 chips 的「整卷 5」口径，信息没丢）
+     · chip 状态存 window.__rv2Chip，与既有 pick/statRange 同级的做法一致
+   与旧版的差异（有意为之）：旧版是三键各自 toggle（要看整卷得先点掉分项和口语），
+   现在改单选 + 「全部」，同样能只看一类，点得更少。 */
+var CHIP_NAMES={all:'全部',whole:'整卷',part:'分项',speaking:'口语模考'};
+function chipKey(){return (window.__rv2Chip||'all')}
+function paintChips(all){
+ var wrap=$('recAllChips');if(!wrap)return;
+ var n={all:all.length,whole:0,part:0,speaking:0};
+ all.forEach(function(r){if(n[r.kind]!=null&&r.kind!=='all')n[r.kind]++});
+ wrap.querySelectorAll('button[data-k]').forEach(function(b){
+  var k=b.dataset.k;b.textContent=CHIP_NAMES[k]+' '+(n[k]==null?0:n[k]);
+  b.classList.toggle('active',k===chipKey())
+ })
+}
 function records(){
- var all=typeof RecAll!=='undefined'&&RecAll.collect?RecAll.collect():[];var limit=$('recordFilter').value==='recent'?3:all.length;var list=all.slice(0,limit);
+ var all=typeof RecAll!=='undefined'&&RecAll.collect?RecAll.collect():[];
+ paintChips(all);
+ /* 类型筛选（chip）→ 再套时间筛选（recordFilter），两维 AND */
+ var k=chipKey();
+ var pool=k==='all'?all:all.filter(function(r){return r&&r.kind===k});
+ var limit=$('recordFilter').value==='recent'?3:pool.length;var list=pool.slice(0,limit);
  window.__rv2RecList=all;   /* 供「重新做一遍」按 id 取回 ids/type，不二次读 DATA（同 id 可能被筛选/覆盖） */
  if(!all.length){$('recAll').innerHTML='<div class="rv2-rec-empty">保存后会在这里看到每次成绩、分项练习与口语模考。</div>';return}
- $('recAll').innerHTML=list.map(function(r){return '<div class="rv2-rec-row" data-id="'+esc(r.id)+'" data-rec-id="'+esc(r.id)+'" data-kind="'+esc(r.kind)+'"'+(r.gran?' data-gran="'+esc(r.gran)+'"':'')+'><span class="rv2-rec-date">'+esc(r.date)+'</span><div class="rv2-rec-main"><b>'+esc(r.title)+'</b><span>'+({whole:'整套真题',part:'分项练习',speaking:'口语模考'}[r.kind]||'学习记录')+'</span></div><span class="rv2-rec-score">'+esc(r.main)+'<small>'+esc(r.mainLabel)+'</small></span>'+recActs(r)+'<button class="rv2-detail" data-rv2-detail="'+esc(r.id)+'" data-kind="'+esc(r.kind)+'">详情</button></div>'}).join('')+(all.length>list.length?'<div class="rv2-rec-empty">当前显示最近三次，右上角可切换全部记录。</div>':'')
+ if(!pool.length){$('recAll').innerHTML='<div class="rv2-rec-empty">这一栏还没有记录，换个类型或选「全部」看看。</div>';return}
+ $('recAll').innerHTML=list.map(function(r){return '<div class="rv2-rec-row" data-id="'+esc(r.id)+'" data-rec-id="'+esc(r.id)+'" data-kind="'+esc(r.kind)+'"'+(r.gran?' data-gran="'+esc(r.gran)+'"':'')+'><span class="rv2-rec-date">'+esc(r.date)+'</span><div class="rv2-rec-main"><b>'+esc(r.title)+'</b><span>'+({whole:'整套真题',part:'分项练习',speaking:'口语模考'}[r.kind]||'学习记录')+'</span></div><span class="rv2-rec-score">'+esc(r.main)+'<small>'+esc(r.mainLabel)+'</small></span>'+recActs(r)+'<button class="rv2-detail" data-rv2-detail="'+esc(r.id)+'" data-kind="'+esc(r.kind)+'">详情</button></div>'}).join('')+(pool.length>list.length?'<div class="rv2-rec-empty">当前显示最近三次，右上角可切换全部记录。</div>':'')
 }
 /* ?rec=<id> 定位：渲染后按 data-rec-id 找到行、滚到中间、轻高亮 2 秒。
    找不到（记录被删/老书签/参数乱写/还没渲染出来）→ 不报错、不滚动，页面照常。
@@ -101,6 +128,8 @@ function bind(){
   var add=el.closest('[data-rv2-add]');if(add){ev.preventDefault();saveCounts={whole:scores().length,part:Array.isArray(DATA.mockRecords)?DATA.mockRecords.length:0};var d=$('rv2AddDialog');if(d&&!d.open)d.showModal();return}
   var kind=el.closest('.rv2-kind [data-kind]');if(kind){ev.preventDefault();document.querySelectorAll('.rv2-kind button').forEach(function(b){b.classList.toggle('active',b===kind)});$('scAddWrap').hidden=kind.dataset.kind!=='whole';$('mkAddWrap').hidden=kind.dataset.kind!=='part';return}
   var tr=el.closest('#rvxTrendChips [data-k]');if(tr){ev.preventDefault();pick=tr.dataset.k;document.querySelectorAll('#rvxTrendChips button').forEach(function(b){b.classList.toggle('active',b===tr)});trend();return}
+  /* RV-REC-CHIP-1：成绩记录的类型筛选。状态存 window.__rv2Chip，重绘交给 records() */
+  var chipBtn=el.closest('#recAllChips button[data-k]');if(chipBtn){ev.preventDefault();window.__rv2Chip=chipBtn.dataset.k;records();return}
   if(el.closest('#rvxWeakGo')){ev.preventDefault();var k=$('rvxWeakGo').dataset.subject;location.href=k==='settings'?'settings.html?pane=targets':k==='speaking'?'speaking.html':(k?'bank.html?ch='+k:'bank.html');return}
   /* RV-RECALL-KEEP-1：两个按钮的处理，逻辑抄 rec-all.js 同源那套 */
   var lb=el.closest('[data-rec-last]');
