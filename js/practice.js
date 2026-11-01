@@ -1234,6 +1234,179 @@ function removeMasteredBtn(){
   if(mb && mb.parentNode) mb.parentNode.removeChild(mb);
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   WD-DICT-LOG-1（11-01）· 听写记录（入口 + 列表）
+   ──────────────────────────────────────────────────────────────────
+   需求：听写页要有一个「听写记录」小入口，点开能看到自己听写过哪些词、对没对。
+   🔴 本笔的边界（一行都不许越）：
+      · 判题 / SRS / 短线重复 / 每日上限 / 今日已练 全部原样走既有 judge()，
+        这里只在 judge 之前**记一笔账**，不改任何入参、不看返回值。
+      · 记录存**站点独立 localStorage 键**（不是 DATA 字段）：
+        ① 不参与云同步/合并协议（不用改 common-merge 白名单）；
+        ② 不进 hubSave 的整包 JSON.stringify —— 11-01 词库卡死就是全量写盘压死的，
+           这里如果往 DATA 里塞数组，每答一题都多一份落盘量，属于同一类病根。
+        ③ 与 js/wd-dict.js 的 wdd_key_sound 同口径（轻量偏好类数据走独立键）。
+      · 不新增设置项、不加开关、不做导出删改，只做「入口 + 列表」。
+   🔴 样式用本文件注入 <style>（页面 CSS css/p/practice.css 属 A2 领地，本笔不动它）——
+      与 js/exam-timer.js 注入 .tmr 的写法同源。
+   🔴 软导航会 window.eval 重跑本脚本：函数声明会重新定义（幂等），
+      document 上的 keydown 委托用 window 守卫只挂一次（BANK-ESC-DELEGATE-1 的教训：
+      每次开弹层裸挂监听 = 泄漏）。
+   ══════════════════════════════════════════════════════════════════ */
+var WDD_LOG_KEY = 'ielts_hub_wdd_log_v1';
+var WDD_LOG_CAP = 300;                      // 只留最近 300 条，够看且不撑爆存储
+
+function wddLogRead(){
+  try{
+    var raw = localStorage.getItem(WDD_LOG_KEY);
+    var v = raw ? JSON.parse(raw) : null;
+    return Array.isArray(v) ? v.filter(function(x){ return x && x.en && x.ts; }) : [];
+  }catch(e){ return []; }
+}
+function wddLogWrite(list){
+  try{ localStorage.setItem(WDD_LOG_KEY, JSON.stringify((list || []).slice(0, WDD_LOG_CAP))); }catch(e){}
+}
+/* 记一笔：判定前调用。picked = 她打进去的原文（答对时不留，省体积） */
+function wddLogAdd(w, picked, ok){
+  if(!w || !w.en) return;
+  var bk = 'custom';
+  try{ if(typeof wbActive === 'function') bk = wbActive(); }catch(e){}
+  var list = wddLogRead();
+  list.unshift({
+    ts: Date.now(),
+    d: todayKey(),
+    en: String(w.en).trim(),
+    ok: !!ok,
+    in: ok ? '' : String(picked == null ? '' : picked).trim().slice(0, 40),
+    bk: bk
+  });
+  wddLogWrite(list);
+}
+
+function wddLogInjectCss(){
+  if(document.getElementById('wddLogCss')) return;
+  var st = document.createElement('style');
+  st.id = 'wddLogCss';
+  st.textContent = ''
+    /* 入口：贴着听写提示行走的小文字链，不抢戏（不放头部工具组，避免手机档挤掉模式/设置） */
+    + '#practiceBody .pw-dict-hint .wdd-log-entry{appearance:none;font:inherit;font-size:12px;font-weight:650;'
+    +   'color:var(--primary-700,#237a74);background:none;border:0;border-bottom:1px dashed currentColor;'
+    +   'padding:0 0 1px;margin-left:2px;cursor:pointer;line-height:1.5}'
+    + '#practiceBody .pw-dict-hint .wdd-log-entry:hover{color:var(--primary,#3a9a93)}'
+    /* 遮罩 + 卡片：尺寸全部按视口夹，手机档不可能出现横向溢出 */
+    + '.wddl-mask{position:fixed;inset:0;z-index:9700;background:rgba(17,24,39,.45);display:flex;'
+    +   'align-items:center;justify-content:center;padding:16px;box-sizing:border-box}'
+    + '.wddl-card{position:relative;background:var(--surface,#fff);color:var(--ink,#24272c);'
+    +   'border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.28);width:min(520px,calc(100vw - 24px));'
+    +   'max-height:min(72vh,72dvh);display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box}'
+    + '.wddl-head{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line,#e5e7eb);flex:0 0 auto}'
+    + '.wddl-t{font-size:15px;font-weight:800;letter-spacing:-.01em}'
+    + '.wddl-sub{font-size:12px;color:var(--muted,#6b7280);font-weight:600}'
+    + '.wddl-x{margin-left:auto;width:32px;height:32px;border:none;background:none;border-radius:8px;'
+    +   'font-size:19px;line-height:1;color:var(--muted,#6b7280);cursor:pointer;flex:0 0 auto;padding:0}'
+    + '.wddl-x:hover{background:var(--surface-2,#f3f4f6);color:var(--ink,#24272c)}'
+    + '.wddl-body{overflow-y:auto;overscroll-behavior:contain;padding:6px 0 10px;flex:1 1 auto}'
+    + '.wddl-day{font-size:11.5px;font-weight:800;color:var(--muted,#6b7280);letter-spacing:.02em;'
+    +   'padding:12px 16px 6px;position:sticky;top:0;background:var(--surface,#fff)}'
+    + '.wddl-row{display:flex;align-items:baseline;gap:10px;padding:8px 16px;border-top:1px solid var(--line,#f1f2f4)}'
+    + '.wddl-row:first-child{border-top:0}'
+    + '.wddl-flag{flex:0 0 auto;width:18px;height:18px;border-radius:50%;font-size:11.5px;font-weight:800;'
+    +   'line-height:18px;text-align:center;align-self:center}'
+    + '.wddl-ok .wddl-flag{background:var(--primary-soft,#e3f3f1);color:var(--primary-700,#237a74)}'
+    + '.wddl-no .wddl-flag{background:rgba(217,120,119,.16);color:#a14542}'
+    + '.wddl-en{font-size:14.5px;font-weight:700;overflow-wrap:anywhere;min-width:0}'
+    + '.wddl-mine{font-size:12px;color:var(--muted,#6b7280);overflow-wrap:anywhere;min-width:0;margin-left:auto;text-align:right;flex:0 1 auto}'
+    + '.wddl-time{font-size:11.5px;color:var(--muted,#6b7280);margin-left:auto;flex:0 0 auto;font-variant-numeric:tabular-nums}'
+    + '.wddl-empty{padding:34px 20px;text-align:center;font-size:13px;color:var(--muted,#6b7280);line-height:1.8}'
+    + '[data-theme="dark"] .wddl-card{background:#1b1b1b;color:#f2f2f4}'
+    + '[data-theme="dark"] .wddl-head,[data-theme="dark"] .wddl-row{border-color:#2e2e32}'
+    + '[data-theme="dark"] .wddl-day{background:#1b1b1b}'
+    + '[data-theme="dark"] .wddl-x:hover{background:#262626;color:#f2f2f4}'
+    + '[data-theme="dark"] .wddl-ok .wddl-flag{background:rgba(58,154,147,.2);color:#7fd6ce}'
+    + '@media(max-width:640px){.wddl-card{max-height:78dvh}.wddl-en{font-size:14px}}';
+  document.head.appendChild(st);
+}
+
+/* 关闭：只关存在的那个，不摘监听（监听是常驻委托，见下方 bindWddLogOnce） */
+function wddLogClose(){
+  var m = document.getElementById('wddLogMask');
+  if(m && m.parentNode) m.parentNode.removeChild(m);
+  document.body.classList.remove('wddl-open');
+}
+
+function wddLogRenderBody(list){
+  if(!list.length){
+    return '<div class="wddl-empty">还没有听写记录。<br>在听写模式里答过的词，会自动记在这里。</div>';
+  }
+  var today = todayKey();
+  var html = '', curDay = null, dayCount = 0, okCount = 0;
+  /* 日期分组标题：今天 / 昨天 / YYYY-MM-DD —— 只做分组，不新造统计口径 */
+  function dayLabel(d){
+    if(d === today) return '今天';
+    var y = new Date(); y.setDate(y.getDate() - 1);
+    if(d === todayKey(y)) return '昨天';
+    return d || '更早';
+  }
+  for(var i = 0; i < list.length; i++){
+    var r = list[i];
+    if(r.ok) okCount++;
+    if(r.d !== curDay){
+      if(curDay !== null) dayCount = 0;
+      curDay = r.d;
+      html += '<div class="wddl-day">' + escapeHtml(dayLabel(curDay)) + '</div>';
+    }
+    dayCount++;
+    var t = new Date(r.ts);
+    var hh = String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0');
+    html += '<div class="wddl-row ' + (r.ok ? 'wddl-ok' : 'wddl-no') + '">'
+      +   '<span class="wddl-flag" aria-hidden="true">' + (r.ok ? '✓' : '✗') + '</span>'
+      +   '<span class="wddl-en">' + escapeHtml(r.en) + '</span>'
+      +   (r.ok ? '' : '<span class="wddl-mine">' + (r.in ? ('打成 ' + escapeHtml(r.in)) : '没打出来') + '</span>')
+      +   '<span class="wddl-time">' + hh + '</span>'
+      + '</div>';
+  }
+  return html;
+}
+
+function wddLogOpen(){
+  if(!document.body) return;
+  if(document.getElementById('wddLogMask')) return;    // 已开着就不重复叠
+  try{ wddLogInjectCss(); }catch(e){}
+  var list = wddLogRead();
+  var ok = 0;
+  for(var i = 0; i < list.length; i++){ if(list[i].ok) ok++; }
+  var mask = document.createElement('div');
+  mask.className = 'wddl-mask';
+  mask.id = 'wddLogMask';
+  mask.innerHTML = '<div class="wddl-card" role="dialog" aria-modal="true" aria-label="听写记录">'
+    + '<div class="wddl-head">'
+    +   '<span class="wddl-t">听写记录</span>'
+    +   '<span class="wddl-sub">共 ' + list.length + ' 题' + (list.length ? (' · 对 ' + ok) : '') + '</span>'
+    +   '<button class="wddl-x" id="wddLogClose" type="button" title="关闭" aria-label="关闭">&times;</button>'
+    + '</div>'
+    + '<div class="wddl-body">' + wddLogRenderBody(list) + '</div>'
+    + '</div>';
+  document.body.appendChild(mask);
+  document.body.classList.add('wddl-open');
+  var cb = document.getElementById('wddLogClose');
+  if(cb) cb.onclick = wddLogClose;
+  /* 点遮罩空白处关闭（点卡片内部不关） */
+  mask.addEventListener('click', function(e){ if(e.target === mask) wddLogClose(); });
+  bindWddLogEsc();
+}
+
+/* 常驻一条 Esc 委托：只在弹层真的存在时才关闭，不重复挂（软导航重跑脚本也只会有一条） */
+function bindWddLogEsc(){
+  if(window.__wddLogEscBound) return;
+  window.__wddLogEscBound = true;
+  document.addEventListener('keydown', function(e){
+    if(e.key !== 'Escape' && e.keyCode !== 27) return;
+    if(!document.getElementById('wddLogMask')) return;
+    e.stopPropagation();
+    wddLogClose();
+  }, true);
+}
+
 function nextQuestion(){
   if(!pq) return;
   // 9/23 她改口径：进练习/出题不再自动开「背单词」计时——要等她答了第一题（judge 入口）才开表，
@@ -1395,7 +1568,10 @@ function renderQuestion(cur, isRehold){
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></svg>' +
       '</button>' +
     '</div>' +
-    (dictMode ? '<div class="pw-audio-hint pw-dict-hint"><span class="pw-dict-tag">听写模式</span>听发音，选拼写 · 点喇叭重播</div>'
+    /* WD-DICT-LOG-1（11-01）：听写提示行尾巴加一个「听写记录」小入口。
+       放这里而不是头部工具组：手机档头部右上是模式/设置/全屏三枚，加第四枚会挤掉模式钮。 */
+    (dictMode ? '<div class="pw-audio-hint pw-dict-hint"><span class="pw-dict-tag">听写模式</span>听发音，选拼写 · 点喇叭重播'
+              + '<button class="wdd-log-entry" id="wddLogEntry" type="button">听写记录</button></div>'
               : (audioMode ? '<div class="pw-audio-hint">听发音，选释义 · 点喇叭重播</div>' : '')) +
     '<div class="pw-cn" id="pwCn"></div>' +
     /* 听写模式不显示真题例句 —— 例句里就带着目标词的拼写，等于把答案印在题干上 */
@@ -1428,7 +1604,12 @@ function renderQuestion(cur, isRehold){
   if(dictMode){
     $('#opts').innerHTML = '';
     try{
-      window.__wdJudge = (c2, picked, ok) => judge(c2, picked, ok, false);
+      /* WD-DICT-LOG-1（11-01）：听写记录——本笔只在判定前后加一次「记账」，
+         判题/SRS/短线/统计/每日上限一行不动（judge 原样调用，不返回值、不改入参）。 */
+      window.__wdJudge = (c2, picked, ok) => {
+        try{ wddLogAdd(c2, picked, ok); }catch(e){}
+        judge(c2, picked, ok, false);
+      };
       if(window.WD_DICT && window.WD_DICT.mount) window.WD_DICT.mount(cur);
       else { /* wd-dict.js 未就绪的兜底：退回四选一拼写（旧形态，可作答不卡死） */
         $('#opts').innerHTML = opts.map((o, i) =>
@@ -1470,6 +1651,9 @@ function renderQuestion(cur, isRehold){
   /* WD-PAGE-REDESIGN-4：底部那颗带文字的喇叭（她第③条）—— 与音标那颗同一套 speakN，不复制发音逻辑 */
   const bsp = document.getElementById('wdBottomSpeaker');
   if(bsp) bsp.onclick = () => speakN(cur.en);
+  /* WD-DICT-LOG-1（11-01）：听写记录入口。每题重建 DOM，所以每题重新绑（onclick 直赋即幂等） */
+  const wle = document.getElementById('wddLogEntry');
+  if(wle) wle.onclick = () => { try{ wddLogOpen(); }catch(e){ try{ console.error('[wdd-log] open failed', e); }catch(_e){} } };
   if(c.autoPlay) setTimeout(() => speakN(cur.en), 300);   // autoPlay=false 时不自动朗读，仅手动点喇叭
   if((audioMode || dictMode) && !c.autoPlay) setTimeout(() => speakN(cur.en), 300);   // 听音/听写题必须先发音：即便关了自动播报，本题也强制读一次（喇叭可手动重播）
   if(!hideStem) fitWordOneLine();   // 9/9：渲染完立即按单词长度自适应字号（题干隐藏的模式，揭示后再补算）

@@ -66,8 +66,9 @@
 // 未改任何加载策略/脚本顺序（HANDOFF 铁律：defer 顺序是契约，动它会连带出事）。
 // common.js → 20261013ad（25 页）、index.js → 20261017a（仅 home.html）、
 // bank.js → 20261012ac（仅 bank.html）。上一版 v409。
-const CACHE = 'ielts-hub-v717'; // 11-01 TREND-AXIS-1（她点头趋势图纵轴改造）：纵轴固定 4-9 改自适应收紧（min-max+上下留白），新增「按对题个数」视图（仅听/读模考有真数据，其他科自动弹回+2.4s 提示）；目标线口径不变（分数用 targets，个数用 BAND_TABLE 反算×实际 total）；空点折线 gap 不穿。review.html rvx-data 串 20261101j→20261101l。（她报「导入失败只弹一句失败：xxx，看不懂」）：全站 AI 失败提示统一说人话。共享层 js/common-ai.js 新增 aiErrMsg(e)（全站唯一一张 code→人话表，补齐 daily_limit / ip_limit / relay_not_configured / upstream_429 / upstream_timeout 五个原先漏掉的码；每条都带下一步，原始报错串只进 console 不上界面）；素材页 relayErrMsg 改薄壳转发它（保留「直接加上去」这句素材页独有出路）；单词页 AI 导入、单词页阶段②补全、语料页 AI 导入、写作语料 AI 导入四处 catch 全部改调 aiErrMsg。common-ai.js 在 PRECORE → 共享外壳整组串 20261031o→20261101k（23 页 / 154 js 标签 / 39 css 标签）；words/corpus/writing/materials 四个页面 js 同步 20261101k。
-const _prevCacheNote40 = 'ielts-hub-v716'; // 11-01 TREND-AXIS-1：趋势图纵轴自适应 + 按对题个数视图（她点头样子稿 1:1 落地）。
+const CACHE = 'ielts-hub-v718'; // 11-01 WD-DICT-LOG-1（她 11-01 要听写页有个「听写记录」入口）：听写模式下判题前记一笔账，答过的词按天分组列进一个弹层。🔴 边界：判题/SRS/短线/每日上限一行不动（judge 原样调用），只做「入口+列表」。记录**不进 DATA**（新 DATA 字段不在云合并白名单会丢；且往 DATA 塞数组会让每答一题多一份落盘量——与 11-01 词库卡死同一类病根），走站点独立键 ielts_hub_wdd_log_v1，上限 300 条，答对时不存输入值省体积。样式由 js/practice.js 注入 <style>（css/p/practice.css 属 A2 领地，本笔不动）。Esc 用一条常驻 document 委托 + window 守卫（BANK-ESC-DELEGATE-1 教训：每次开弹层裸挂监听 = 泄漏）。js/practice.js 在 PRECORE，串 20261101a→20261101m。上一版 v717 = TREND-AXIS-1。
+const _prevCacheNote41 = 'ielts-hub-v717'; // 11-01 TREND-AXIS-1：趋势图纵轴自适应 + 按对题个数视图（她点头样子稿 1:1 落地）。
+const _prevCacheNote40 = 'ielts-hub-v716'; // 11-01 AI-ERR-RELAY-1：全站 AI 失败提示统一说人话（共享层 js/common-ai.js 新增 aiErrMsg(e)，全站唯一一张 code→人话表）；PRECORE common*.js 串 20261031o→20261101k。
 const _prevCacheNote39 = 'ielts-hub-v715'; // 11-01 BANK-ESC-DELEGATE-1（Esc 常驻委托，bank.js 串 20261101h）+ WD-BSPOP-FIT-1（practice.css 串 20261101b）。
 const _prevCacheNote38 = 'ielts-hub-v714'; // 11-01 WD-BSPOP-FIT-1：手机档切书面板出界 + 最后一项被 dock 压住（practice.css ≤700 档），practice.css 串 20261101a→20261101b。
 const _prevCacheNote37 = 'ielts-hub-v713'; // 11-01 WD-PERF-HANG-1：换词本落盘改增量 + 镜像只 diff 活跃库 + 切库重绘让帧（practice/home 的 wordbank.js、words.js 串 20261023s/20261023r→20261101a）。
