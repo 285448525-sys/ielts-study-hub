@@ -882,8 +882,8 @@ setTimeout(__rvRescue,2500);
           不挂 window（不污染全局，也避免和别的页撞名）。
         这是 AGENTS.md §12.3 硬规则 2「禁止调用后面才声明的名字」的翻版：
         跨 IIFE 等于跨作用域，var 提升只在自己的那个 IIFE 内生效。 */
-  var PANES = ['profile', 'targets', 'prefs', 'about'];
-  var PANE_ALIAS = { data: 'profile', fb: 'about', profile: 'prefs' };   /* SET-1：账号组已并入顶部身份卡 → 老书签 ?pane=profile 落学习偏好不空页 */
+  var PANES = ['targets', 'prefs', 'about'];   /* SETTINGS-BLANK-1：'profile' 面板已不存在（SET-1 并进顶部身份卡），留在名单里会让 go('profile') 判 hit=false 直接 return，右侧全空 */
+  var PANE_ALIAS = { data: 'targets', fb: 'about', profile: 'targets' };   /* SETTINGS-BLANK-1：别名链必须一步到**现存**分组。原来 data→profile→prefs 是两跳，中继态 'profile' 已不在 PANES 里；?pane=profile 落 prefs 语义也更远（那是学习偏好，不是账号）。现在统一落「备考目标」= 导航第一项、默认组，身份卡就在它上方常驻。 */
   function paneFromUrl(){
     try{
       var v = new URLSearchParams(location.search).get('pane') || '';
@@ -1097,8 +1097,15 @@ setTimeout(__rvRescue,2500);
   window.__hubSetNavHandler = handleNavActivate;
   document.addEventListener('pointerdown', handleNavActivate, true);
   document.addEventListener('click', handleNavActivate);
-  go('profile');   /* 她拍板：默认停在「个人设置」，不记忆上次 */
-  moveHit('profile');
+  /* 🔴 SETTINGS-BLANK-1（11-01 她 09:47 报障「设置页打开右侧全空」）：
+     原来这里 go('profile') —— 但 SET-1（10-26）把「我的账号」整组并进了顶部身份卡，
+     DOM 里只剩 targets / prefs / about 三个 pane。go() 找不到同名面板 → 三个全 hidden=true、
+     hit=false 直接 return → 右侧一片空白，而左侧高亮还停在 HTML 写死的 targets。
+     现在默认落「备考目标」：它就是 HTML 里 .set-pane.on / .set-nav-item.on 的那一个
+     （导航第一项），不再切换 → 首帧零跳动。账号相关内容在顶部身份卡里常驻可见，
+     所以「个人设置」这个默认值已经没有对应内容了。 */
+  go('targets');
+  moveHit('targets');
   /* 🔴 10-23 T-003：顶栏头像菜单 / Ctrl+, 带 ?pane=profile|targets|data|fb 来的时候
      要直接落在那一组（任务书验收第 2 条：「不是停在默认第一组」）。
      ⚠️ **本段是内联非 defer 脚本，比 common.js（defer）先跑** —— 不能在这里直接调
@@ -1110,8 +1117,8 @@ setTimeout(__rvRescue,2500);
     /* 🔴🔴 本 IIFE 与上面「步 6」那段**不是同一个作用域** —— PANES / PANE_ALIAS /
        paneFromUrl 必须在这里**重新声明一份**（原因见步 6 那处的详细注释）。
        值必须与那边完全一致，改要一起改。 */
-    var PANES = ['profile', 'targets', 'prefs', 'about'];
-    var PANE_ALIAS = { data: 'profile', fb: 'about', profile: 'prefs' };   /* SET-1：账号组已并入顶部身份卡 → 老书签 ?pane=profile 落学习偏好不空页 */
+    var PANES = ['targets', 'prefs', 'about'];   /* SETTINGS-BLANK-1：'profile' 面板已不存在（SET-1 并进顶部身份卡），留在名单里会让 go('profile') 判 hit=false 直接 return，右侧全空 */
+    var PANE_ALIAS = { data: 'targets', fb: 'about', profile: 'targets' };   /* SETTINGS-BLANK-1：别名链必须一步到**现存**分组。原来 data→profile→prefs 是两跳，中继态 'profile' 已不在 PANES 里；?pane=profile 落 prefs 语义也更远（那是学习偏好，不是账号）。现在统一落「备考目标」= 导航第一项、默认组，身份卡就在它上方常驻。 */
     function paneFromUrl(){
       try{
         var v = new URLSearchParams(location.search).get('pane') || '';
@@ -1132,14 +1139,16 @@ setTimeout(__rvRescue,2500);
       try{ want = tbPanePending() || ''; }catch(_){}
       if(PANE_ALIAS[want]) want = PANE_ALIAS[want];
     }
-    if(PANES.indexOf(want) >= 0 && want !== 'profile'){
+    /* SETTINGS-BLANK-1：原来这里还有 `&& want !== 'profile'` 这半句 —— profile 已不在 PANES
+       名单里，那个例外条件永远为真，留着会让下一个人以为 profile 还是个合法分组。 */
+    if(PANES.indexOf(want) >= 0){
       try{ go(want); moveHit(want); }catch(_){}
     }
     /* 🔴 10-24 G4：落个标记给下面步 6 的 applyPendingPane 用。
        软导航时 pushState 排在页面脚本之后 → 那段若去读 location.search，读到的是
        **上一个**分栏的旧参数，会把这里刚切好的分组又拉回去（实测：切到 profile，
        地址栏写对了、内容还停在 data）。标记只在本文档内有效，整页刷新自然消失。 */
-    window.__hubPaneApplied = (PANES.indexOf(want) >= 0) ? want : 'profile';
+    window.__hubPaneApplied = (PANES.indexOf(want) >= 0) ? want : 'targets';   /* SETTINGS-BLANK-1：兜底也要是**存在**的分组，否则步6 的守卫 PANES.indexOf(...) 认不出、白跑一遍 */
   }
   _applyPane();
   document.addEventListener('DOMContentLoaded', _applyPane);
