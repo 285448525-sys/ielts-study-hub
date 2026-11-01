@@ -66,7 +66,8 @@
 // 未改任何加载策略/脚本顺序（HANDOFF 铁律：defer 顺序是契约，动它会连带出事）。
 // common.js → 20261013ad（25 页）、index.js → 20261017a（仅 home.html）、
 // bank.js → 20261012ac（仅 bank.html）。上一版 v409。
-const CACHE = 'ielts-hub-v709'; // 11-01 MOCK-SPLIT-DRAG-1：阅读练习/模考桌面端分栏可拖动，刷新保持，手机上下布局不变。
+const CACHE = 'ielts-hub-v710'; // 11-01 RV-REBUILD-FULL-1：回顾页整页重建，修复深链与记录选择器，接真实成绩。
+const _prevCacheNote33 = 'ielts-hub-v709'; // 11-01 MOCK-SPLIT-DRAG-1：阅读练习/模考桌面端分栏可拖动，刷新保持，手机上下布局不变。
 const _prevCacheNote32 = 'ielts-hub-v708'; // 11-01 BANK-DONE-ROW-1 笔 1（机经列表撤题数列 + 撤做过区进度条）
 const _prevCacheNote31 = 'ielts-hub-v707'; // 11-01 READ-HIGHLIGHT-1：题干与原文共用划词高亮、保存和重开回显；题号旗标保留，答题控件不纳入标注。
 const _prevCacheNote30 = 'ielts-hub-v706'; // 11-01 MOCK-RATE-RANGE-1（她 14:3x「倍速不要弄这么多档 0.7-1.5 就够了」）：RATE_MIN/MAX 0.5/2.0 → 0.7/1.5，档数 16→9（0.1 一档照旧，默认仍 1.0）。① 收回她 10/20 亲口定的原始区间，前一版 MOCK-AUDIO-CTRL-1 按 SSR v2 稿扩到 0.5–2.0 被她否掉；② 1.3 仍在区间内，_probe_examtools_1018 / _probe_t031_audio / _probe_72_1023 三支硬编码 selectOption('1.3') 不用改判据；③ 探针判据同步改口语：'覆盖 0.5–2.0 且至少 6 档' → '覆盖 0.7–1.5 且至少 6 档'（仍是序数比较，不写死档数）。实测 9 档 0.7/0.8/0.9/1/1.1/1.2/1.3/1.4/1.5，_probe_t031_audio 全绿、_probe_examtools_1018 16/17（D1 存量噪声）。js/bank.js 引用串 20261101b → 20261101c。上一版 v705 = UNIFIED-EXAM-UI-3 笔2 收尾。
