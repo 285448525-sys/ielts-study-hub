@@ -670,13 +670,20 @@ async function importSmart(){
           toast(okMsg); if(hint) hint.textContent = okMsg;
         }
       }catch(e2){
-        const fMsg = msg + '；词性/音标补全失败：' + e2.message + '（重新导入一次即可重试）';
+        /* AI-ERR-RELAY-1：阶段②（补全词性/音标）失败同样不许透原始串 —— 释义已经导进来了，
+           这句话的顺序要先说「词已经导好」，再说补全没成，别让她以为整批白导。 */
+        console.error('[words] 词性/音标补全失败', e2);
+        const fMsg = msg + '；词性/音标补全没成（' + ((typeof aiErrMsg === 'function') ? aiErrMsg(e2) : '过一分钟可重试') + '），不影响已经导进来的词';
         toast(fMsg); if(hint) hint.textContent = fMsg;
       }
     }
   }catch(e){
-    toast('AI 提取失败：' + e.message + '（可重试）');
-    if(hint) hint.textContent = 'AI 提取失败：' + e.message;
+    /* AI-ERR-RELAY-1（11-01）：原来把 e.message 原样拼给用户（「AI 提取失败：站内 AI 通道返回 502」），
+       既不说人话也不说下一步。改走共享层 aiErrMsg()：原因说人话 + 带下一步 + 原始串只进 console。 */
+    console.error('[words] AI 导入失败', e);
+    const fMsg = 'AI 提取失败：' + ((typeof aiErrMsg === 'function') ? aiErrMsg(e) : '过一分钟可重试');
+    toast(fMsg);
+    if(hint) hint.textContent = fMsg;
   }finally{
     btn.disabled = false; btn.textContent = 'AI 导入';
   }
@@ -869,8 +876,14 @@ async function handleExcelFile(f){
     const msg = '已读入 ' + entries.length + ' 行（' + miss + ' 行缺释义），点「AI 导入」补全翻译';
     toast(msg); if(hint) hint.textContent = msg;
   }catch(err){
-    toast('Excel 读取失败：' + err.message);
-    if(hint) hint.textContent = 'Excel 读取失败：' + err.message;
+    /* AI-ERR-RELAY-1（11-01）：Excel 这条不是 AI 失败（是解析库下载 / 表格格式），不套 aiErrMsg
+       的 AI 话术；但同一条口径要守：**原始报错串绝不拼进界面**。解析库下载失败和表格异常
+       我们自己都写了中文原因，直接透出；其它（第三方解析库抛的英文串）走通用句。 */
+    console.error('[words] Excel 导入失败', err);
+    const m = String((err && err.message) || '');
+    const why = (/[\u4e00-\u9fa5]/.test(m) && m) || '文件打不开，确认是 .xlsx / .xls 表格后可重试';
+    toast('Excel 读取失败：' + why);
+    if(hint) hint.textContent = 'Excel 读取失败：' + why;
   }
 }
 

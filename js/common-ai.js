@@ -120,6 +120,53 @@ function aiAvailable(){
   try{ return !!(typeof authToken === 'function' && authToken()); }catch(e){ return false; }
 }
 
+/* ═══ AI-ERR-RELAY-1（11-01，她报「导入失败只弹一句失败：xxx，看不懂」）═══
+   全站 AI 调用失败时**唯一**的人话翻译口径。此前每个页面各写一套：
+   · 素材页 10-29 自己做了个 relayErrMsg，只认 6 个 code —— 服务端 ai.js 另外还会返回
+     daily_limit / ip_limit / relay_not_configured / upstream_429 / upstream_timeout，
+     认不出就落到 e.message，把原始串直接漏到界面上；
+   · 单词 / 语料 / 写作三页更早，一律 `toast('…失败：' + e.message)`，她看到的是
+     「AI 导入失败：站内 AI 通道返回 502」这类，既不知道发生了什么、也不知道下一步该干什么。
+
+   三条硬口径：
+     ① 原因说人话：额度用完就明说「今天的次数用完了，明天再来」，不甩 code；
+     ② 每句都给下一步（可重试 / 明天再来 / 先登录 / 开会员），不让人对着「失败」两个字发愣；
+     ③ 🔴 原始报错串只进 console，**绝不拼进界面文案**。
+
+   认不出来的（比如自备 Key 直连 DeepSeek 抛的英文串）走兜底句，同样不透原文。 */
+function aiErrMsg(e){
+  const code = String((e && e.code) || '');
+
+  /* —— 超时 / 网络抖动：内容一定没丢，等一分钟重来 —— */
+  if(code === 'AI_TIMEOUT' || code === 'upstream_timeout') return 'AI 想得太久超时了，你填的内容还在，过一分钟可重试';
+  if(code === 'rate_limit')    return 'AI 这会儿被点得太频繁，缓一分钟可重试（内容还在，不用重输）';
+  if(code === 'upstream_error' || code === 'SITE_RELAY_FAIL' || code === 'NO_SITE_RELAY') return 'AI 服务这会儿忙不过来，过一分钟可重试';
+  if(/^upstream_\d+$/.test(code)) return 'AI 服务这会儿忙不过来，过一分钟可重试';
+
+  /* —— 额度 / 会员：再点一次也救不回来，别骗她「可重试」 —— */
+  if(code === 'daily_limit') return '站内 AI 今天的次数用完了，明天再来（你填的内容还在）';
+  if(code === 'ip_limit')    return '今天这台设备的 AI 次数到上限了，明天再来（你填的内容还在）';
+  if(code === 'user_limit')  return '你本周的免费 AI 额度用完了，开会员可继续用';
+  if(code === 'writing_limit' || code === 'mock_limit' || code === 'trans_limit') return '这项功能的次数用完了，开会员可继续用';
+  if(code === 'vip_required') return '这是会员功能，开通后就能用';
+
+  /* —— 登录 / 配置 —— */
+  if(code === 'AUTH_REQUIRED' || code === 'auth_required') return '先登录一下，登录后就能用';
+  if(code === 'relay_not_configured' || code === 'NO_RELAY_KEY') return '站内 AI 通道没配置好，请联系站长';
+
+  /* —— 无 code：走到的是「AI 输出被截断 / JSON 解析失败」——
+     这种时候**确实**可能是她一次粘太多，所以允许露出我们自己写的那句中文提示
+     （素材页的 FAIL_MSG「请少填几条经历后重试」就属这类，是有用的建议）；
+     但英文原文（fetch 报错、{"error":…}、站内返回格式异常）一律不透出。 */
+  const m = String((e && e.message) || '');
+  if(m && /[\u4e00-\u9fa5]/.test(m) && !/^AI 接口返回/.test(m)){
+    /* 已经自带「重试 / 再来」这类下一步的（如素材页 FAIL_MSG「…请少填几条经历后重试」）原样返回，
+       别在后面再糊一句「，可重试」变成同一句话说两遍。 */
+    return /重试|再试|再来|重来|重输/.test(m) ? m : (m + '，可重试');
+  }
+  return 'AI 这次没返回成功，过一分钟可重试';
+}
+
 async function callRelayInner(service, messages, temperature, opts){
   const s = DATA.settings || {};
   const key = s.relayToken || '';

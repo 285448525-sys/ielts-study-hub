@@ -1409,17 +1409,16 @@
      🔴 AI-MAT-RELAY-ERR-1（10-29 A2）：她 18:3x 那次的真凶在这里 —— 她粘了 7957 字 / 42 段，
      服务端没接住（504/429 一类），但页面先把原因改写成了「格式错误，请少填几条经历」，
      还连弹了 4 条 toast。真实原因被吞掉，她会以为是自己素材写坏了去删。
-     这张表按 callRelay / callSiteRelay 会抛的 code 一一对应人话；认不出来的才回落到通用句。 */
+     🔴 AI-ERR-RELAY-1（11-01 A1）：**这张表已经搬到共享层 js/common-ai.js 的 aiErrMsg()**，
+        全站（单词 / 语料 / 写作 / 素材）统一用那一份，别在这儿养第二份 —— 两处各改一半
+        就是这次重做的起因（旧表只认 6 个 code，daily_limit / ip_limit /
+        relay_not_configured / upstream_429 / upstream_timeout 全漏到原始报错串上）。
+        本函数保留成薄壳，只为补一句**素材页独有**的出路：会员闸时告诉她左下角
+        「直接加上去」不花额度也能把文字存下来。 */
   function relayErrMsg(e){
-    const code = (e && e.code) || '';
-    if(code === 'AI_TIMEOUT' || code === 'upstream_timeout') return 'AI 这次想得太久、超时了。你的文字没丢，过一分钟再点一次就行';
-    if(code === 'rate_limit') return 'AI 这会儿被点得太频繁，缓一分钟再点（你的文字还在，不用重输）';
-    if(code === 'upstream_error' || code === 'SITE_RELAY_FAIL') return 'AI 服务这一刻忙不过来，过一分钟再点一次就好';
-    if(code === 'vip_required') return '素材整理是会员功能，你先把文字原样存下来的话，用左边「直接加上去」不需要会员';
-    if(code === 'AUTH_REQUIRED' || code === 'auth_required') return '先登录一下，登录后就能用 AI 整理素材';
-    if(code === 'NO_SITE_RELAY') return 'AI 服务这一刻忙不过来，过一分钟再点一次就好';
-    // 无 code = 走到了 tryBatch 的「JSON 解析失败」= 输出确实被截断（唯一该怀疑她自己素材量的情况）
-    return (e && e.message) ? e.message : '整理失败，过一分钟再点一次试试';
+    const base = (typeof aiErrMsg === 'function') ? aiErrMsg(e) : 'AI 这次没返回成功，过一分钟可重试';
+    if(e && e.code === 'vip_required') return base + '；不想开会员也可以点左边「直接加上去」，把文字原样存成素材';
+    return base;
   }
 
   /* 截断自愈（9/21）：输出被 max_tokens 截断时 JSON 解析必然失败。此时按经历条数二分拆批重试，

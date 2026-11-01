@@ -189,8 +189,12 @@ async function aiImportCorpus(){
     if(hint) hint.textContent = msg;
     if(box) box.value = '';
   }catch(e){
-    toast('AI 导入失败：' + e.message);
-    if(hint) hint.textContent = '失败：' + e.message;
+    /* AI-ERR-RELAY-1（11-01）：原来 `toast('AI 导入失败：' + e.message)` 把站内返回的原始串
+       直接甩给用户。改走共享层 aiErrMsg()：说人话 + 带下一步 + 原文只进 console。 */
+    console.error('[corpus] AI 导入失败', e);
+    const why = (typeof aiErrMsg === 'function') ? aiErrMsg(e) : '过一分钟可重试';
+    toast('AI 导入失败：' + why);
+    if(hint) hint.textContent = '导入失败：' + why;
   }finally{
     btn.disabled = false; btn.textContent = 'AI 识别并导入';
   }

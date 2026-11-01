@@ -66,7 +66,8 @@
 // 未改任何加载策略/脚本顺序（HANDOFF 铁律：defer 顺序是契约，动它会连带出事）。
 // common.js → 20261013ad（25 页）、index.js → 20261017a（仅 home.html）、
 // bank.js → 20261012ac（仅 bank.html）。上一版 v409。
-const CACHE = 'ielts-hub-v715'; // 11-01 BANK-ESC-DELEGATE-1：机经「做过的篇目」弹层 Esc 从每次开关都裸挂 document keydown 改成一条常驻委托，开关 N 次不再叠监听。bank.js 串 20261101g→20261101h。
+const CACHE = 'ielts-hub-v716'; // 11-01 AI-ERR-RELAY-1（她报「导入失败只弹一句失败：xxx，看不懂」）：全站 AI 失败提示统一说人话。共享层 js/common-ai.js 新增 aiErrMsg(e)（全站唯一一张 code→人话表，补齐 daily_limit / ip_limit / relay_not_configured / upstream_429 / upstream_timeout 五个原先漏掉的码；每条都带下一步，原始报错串只进 console 不上界面）；素材页 relayErrMsg 改薄壳转发它（保留「直接加上去」这句素材页独有出路）；单词页 AI 导入、单词页阶段②补全、语料页 AI 导入、写作语料 AI 导入四处 catch 全部改调 aiErrMsg。common-ai.js 在 PRECORE → 共享外壳整组串 20261031o→20261101k（23 页 / 154 js 标签 / 39 css 标签）；words/corpus/writing/materials 四个页面 js 同步 20261101k。
+const _prevCacheNote39 = 'ielts-hub-v715'; // 11-01 BANK-ESC-DELEGATE-1（Esc 常驻委托，bank.js 串 20261101h）+ WD-BSPOP-FIT-1（practice.css 串 20261101b）。
 const _prevCacheNote38 = 'ielts-hub-v714'; // 11-01 WD-BSPOP-FIT-1：手机档切书面板出界 + 最后一项被 dock 压住（practice.css ≤700 档），practice.css 串 20261101a→20261101b。
 const _prevCacheNote37 = 'ielts-hub-v713'; // 11-01 WD-PERF-HANG-1：换词本落盘改增量 + 镜像只 diff 活跃库 + 切库重绘让帧（practice/home 的 wordbank.js、words.js 串 20261023s/20261023r→20261101a）。
 const _prevCacheNote36 = 'ielts-hub-v712'; // 11-01 BANK-DONE-ROW-1 笔 2
