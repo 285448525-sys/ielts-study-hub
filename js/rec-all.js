@@ -31,7 +31,7 @@
 
   /* 整卷：四科 + 总分 */
   function overall(l, r, w, s) {
-    return Math.round(((Number(l) + Number(r) + Number(w) + Number(s)) / 4) * 2) / 2;
+    return (Number(l) + Number(r) + Number(w) + Number(s)) / 4;
   }
 
   /* ---- 读三个源，归一成行 ---- */
@@ -121,9 +121,6 @@
   function render() {
     const box = document.getElementById('recAll');
     if (!box) return;
-    /* RV-REBUILD-FULL-1：可见列表由 rvx-data.js 统一按最近三次/全部渲染；
-       本模块只保留 collect() 数据归一与既有跳转能力，避免两套记录互相覆盖。 */
-    if (document.getElementById('reviewMain')) return;
     const all = collect();
     const list = all.filter(x => ACTIVE[x.kind]);
     const cnt = document.getElementById('recAllCount');
