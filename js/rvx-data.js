@@ -52,10 +52,42 @@ function trend(){
  var step=Math.max(1,Math.ceil(dates.length/5));dates.forEach(function(d,i){if(i%step&&i!==dates.length-1)return;var anchor=i===0?'start':(i===dates.length-1?'end':'middle');s+='<text x="'+X(i)+'" y="212" text-anchor="'+anchor+'" fill="var(--muted)" font-size="11">'+esc(d.slice(5))+'</text>'});
  $('rv2TrendCanvas').innerHTML='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+name+'成绩趋势">'+s+'</svg>';$('rvxTrendLab').textContent='近 '+idx.length+' 次'+name+'记录';$('rv2RangeText').textContent=dates[0].slice(5)+' — '+dates[dates.length-1].slice(5)
 }
+/* RV-RECALL-KEEP-1（11-01）：整页重建时 rec-all.js 的 render() 被一行早退挡掉
+   （`if(document.getElementById('reviewMain'))return`），连带丢了它给整卷行挂的
+   「看上次结果 / 重新做一遍」两个按钮，以及 ?rec=<id> 定位。rec-all.js:230 的注释
+   写得很清楚「老记录没 ids → 按钮照样显示，不点了先 confirm 说明降级；不藏按钮、
+   不静默随机（B 明令）」—— 重建把这条明令一并抹掉了，是回归不是取舍。
+   修法 = 新结构自己把这套挂回来，逻辑与 rec-all.js 完全同源（不重写、不新建存储）：
+     · 只给「整卷 + src:bank」的行挂两个按钮（单篇走原有「再做一次」那条路，不重复给）
+     · 看上次结果 → review.html?rec=<id>（本页软导航同页重跑脚本读 ?rec=）
+     · 重新做一遍 → window.__hubOpenFullTestFromIds(ids)（与点 Start 同一条路径）
+     · 老记录没 ids → 按钮照样显示，点了先 confirm 说明降级（不藏、不静默随机） */
+function recActs(r){
+ if(!r||r.gran!=='whole'||r.src!=='bank')return '';
+ return '<span class="rv2-rec-acts"><button type="button" class="rv2-rec-last" data-rec-last="'+esc(r.id)+'">看上次结果</button>'
+  +'<button type="button" class="rv2-rec-again" data-rec-again="'+esc(r.id)+'">重新做一遍</button></span>';
+}
 function records(){
  var all=typeof RecAll!=='undefined'&&RecAll.collect?RecAll.collect():[];var limit=$('recordFilter').value==='recent'?3:all.length;var list=all.slice(0,limit);
+ window.__rv2RecList=all;   /* 供「重新做一遍」按 id 取回 ids/type，不二次读 DATA（同 id 可能被筛选/覆盖） */
  if(!all.length){$('recAll').innerHTML='<div class="rv2-rec-empty">保存后会在这里看到每次成绩、分项练习与口语模考。</div>';return}
- $('recAll').innerHTML=list.map(function(r){return '<div class="rv2-rec-row" data-id="'+esc(r.id)+'" data-kind="'+esc(r.kind)+'"><span class="rv2-rec-date">'+esc(r.date)+'</span><div class="rv2-rec-main"><b>'+esc(r.title)+'</b><span>'+({whole:'整套真题',part:'分项练习',speaking:'口语模考'}[r.kind]||'学习记录')+'</span></div><span class="rv2-rec-score">'+esc(r.main)+'<small>'+esc(r.mainLabel)+'</small></span><button class="rv2-detail" data-rv2-detail="'+esc(r.id)+'" data-kind="'+esc(r.kind)+'">详情</button></div>'}).join('')+(all.length>list.length?'<div class="rv2-rec-empty">当前显示最近三次，右上角可切换全部记录。</div>':'')
+ $('recAll').innerHTML=list.map(function(r){return '<div class="rv2-rec-row" data-id="'+esc(r.id)+'" data-rec-id="'+esc(r.id)+'" data-kind="'+esc(r.kind)+'"'+(r.gran?' data-gran="'+esc(r.gran)+'"':'')+'><span class="rv2-rec-date">'+esc(r.date)+'</span><div class="rv2-rec-main"><b>'+esc(r.title)+'</b><span>'+({whole:'整套真题',part:'分项练习',speaking:'口语模考'}[r.kind]||'学习记录')+'</span></div><span class="rv2-rec-score">'+esc(r.main)+'<small>'+esc(r.mainLabel)+'</small></span>'+recActs(r)+'<button class="rv2-detail" data-rv2-detail="'+esc(r.id)+'" data-kind="'+esc(r.kind)+'">详情</button></div>'}).join('')+(all.length>list.length?'<div class="rv2-rec-empty">当前显示最近三次，右上角可切换全部记录。</div>':'')
+}
+/* ?rec=<id> 定位：渲染后按 data-rec-id 找到行、滚到中间、轻高亮 2 秒。
+   找不到（记录被删/老书签/参数乱写/还没渲染出来）→ 不报错、不滚动，页面照常。
+   ⚠️ 必须从 paint() 里调，不能只在 boot() 调一次：boot 那一刻 DATA 可能还没到
+   （paint 会早退），rows 还不存在 —— 早设 done 就永久错过（实测踩过）。
+   一次定位成功后就锁死（软导航重跑不反复滚）。 */
+function focusRec(){
+ if(window.__rv2RecFocusDone)return;
+ var rid='';try{rid=new URLSearchParams(location.search).get('rec')||''}catch(e){rid=''}
+ if(!rid)return;
+ var row=document.querySelector('#recAll .rv2-rec-row[data-rec-id="'+cssq(rid)+'"]');
+ if(!row)return;                     /* 还没渲染出来 → 下次 paint 再试 */
+ window.__rv2RecFocusDone=true;
+ try{row.scrollIntoView({block:'center',behavior:'smooth'})}catch(e){row.scrollIntoView()}
+ row.classList.add('rv2-rec-focus');
+ setTimeout(function(){try{row.classList.remove('rv2-rec-focus')}catch(e){}},2000)
 }
 function performance(){
  var cutoff=new Date();cutoff.setDate(cutoff.getDate()-29);var cut=statRange==='recent'?todayKey(cutoff):'';var recs=(Array.isArray(DATA.mockRecords)?DATA.mockRecords:[]).filter(function(r){return !cut||String(r.date||'')>=cut});
@@ -70,6 +102,22 @@ function bind(){
   var kind=el.closest('.rv2-kind [data-kind]');if(kind){ev.preventDefault();document.querySelectorAll('.rv2-kind button').forEach(function(b){b.classList.toggle('active',b===kind)});$('scAddWrap').hidden=kind.dataset.kind!=='whole';$('mkAddWrap').hidden=kind.dataset.kind!=='part';return}
   var tr=el.closest('#rvxTrendChips [data-k]');if(tr){ev.preventDefault();pick=tr.dataset.k;document.querySelectorAll('#rvxTrendChips button').forEach(function(b){b.classList.toggle('active',b===tr)});trend();return}
   if(el.closest('#rvxWeakGo')){ev.preventDefault();var k=$('rvxWeakGo').dataset.subject;location.href=k==='settings'?'settings.html?pane=targets':k==='speaking'?'speaking.html':(k?'bank.html?ch='+k:'bank.html');return}
+  /* RV-RECALL-KEEP-1：两个按钮的处理，逻辑抄 rec-all.js 同源那套 */
+  var lb=el.closest('[data-rec-last]');
+  if(lb){ev.preventDefault();var lid=lb.dataset.recLast;if(lid)location.href='review.html?rec='+encodeURIComponent(lid);return}
+  var ab=el.closest('[data-rec-again]');
+  if(ab){ev.preventDefault();var aid=ab.dataset.recAgain;
+   var src=(window.__rv2RecList||[]).filter(function(x){return x&&String(x.id)===String(aid)})[0];
+   var opener=window.__hubOpenFullTestFromIds;
+   if(typeof opener!=='function'){alert('重做入口还没就绪，请刷新页面后再试。');return}
+   var rt=src&&src.type||'reading';
+   if(rt==='listening'){alert('听力整卷重做会在下一批开放。现在可以点「看上次结果」看那场的成绩与错题。');return}
+   var ids=src&&Array.isArray(src.ids)?src.ids:null;
+   if(!ids||ids.length!==3){
+    if(!confirm('这场是老记录，当时没存用的是哪几篇，将随机组一套新的。\n新卷和这场成绩不能直接比，继续？'))return;
+    opener(null);return}
+   if(!opener(ids)&&confirm('这套卷里有篇目已经找不到了（题库更新过），重做只能随机组一套新的。继续？'))opener(null);
+   return}
   var det=el.closest('[data-rv2-detail]');if(det){ev.preventDefault();openDetail(det.dataset.rv2Detail,det.dataset.kind);return}
   if(el.closest('[data-close-detail]')){$('rv2DetailDialog').close();return}
   var del=el.closest('#rv2DetailBody .rec-del');if(del){ev.preventDefault();var orig=document.querySelector('#rvLegacy '+(del.dataset.kind==='whole'?'#scoreList':del.dataset.kind==='part'?'#mkList':'#mockHistoryList')+' [data-del="'+cssq(del.dataset.id)+'"],#rvLegacy #mockHistoryList [data-id="'+cssq(del.dataset.id)+'"]');if(orig){orig.click();$('rv2DetailDialog').close()}return}
@@ -85,7 +133,7 @@ function bind(){
  document.addEventListener('hub:data-merged',function(){setTimeout(paint,50)});
 }
 function openDetail(id,kind){var body=$('rv2DetailBody'),src=kind==='whole'?$('scoreList'):kind==='part'?$('mkList'):$('mockHistoryList');body.innerHTML='';if(src)Array.prototype.forEach.call(src.children,function(node){if(kind==='whole'&&!node.querySelector('[data-del="'+cssq(id)+'"]'))return;if(kind==='part'&&!node.querySelector('[data-del="'+cssq(id)+'"]'))return;if(kind==='speaking'&&node.dataset.id!==String(id))return;body.appendChild(node.cloneNode(true))});if(kind==='whole'){var t=targets(),has=Number(t.overall)>0;body.querySelectorAll('.badge.up,.badge.down').forEach(function(b){if(!has){b.textContent='目标未设';b.classList.remove('up','down')}})}if(!body.children.length)body.innerHTML='<p>这条记录的原始明细暂未加载，请稍后再看。</p>';var d=$('rv2DetailDialog');if(!d.open)d.showModal()}
-function paint(){if(typeof DATA==='undefined'||!DATA)return;summary();trend();records();performance()}
+function paint(){if(typeof DATA==='undefined'||!DATA)return;summary();trend();records();performance();focusRec()}
 function deepLink(){
  var sub=new URLSearchParams(location.search).get('sub');
  if(sub==='record'||sub==='trajectory'||sub==='history'){
