@@ -2363,6 +2363,42 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 .ex-modal-c .ex-modal-chip:hover{border-color:var(--primary);color:var(--primary-900)}
 .ex-modal-c .ex-modal-more{font-size:12px;color:var(--muted)}
 
+/* ===== BANK-DONE-ROW-1 笔 2（11-01）：做过篇目的「看上次结果 / 再做一次」弹层 =====
+   她给的爱听写截图：主按钮实心、次按钮白描边、两个都带小图标。
+   复用 .ex-modal 的遮罩与卡片语言（白底 / 细边 / 不加色块），只补这一组按钮。 */
+/* 🔴 必须 position:fixed：.ex-modal 原本是 absolute（只挂在 #examRoot 里用过，那里本身就是全屏定位的）。
+   这个弹层挂在 body 上 —— 列表页很长，absolute inset:0 会铺满整个文档高度、把卡片摆到文档正中，
+   桌面滚在下面时卡片直接跑到视口外（探针实测 cardIn=false、两按钮 elementFromPoint 全不命中）。
+   fixed 才是「盖住在看的那一屏」。 */
+.bk-donepick{position:fixed}
+.bk-donepick .bdp-meta{margin:0 0 4px;font-size:13.5px;color:var(--muted)}
+.bk-donepick .bdp-meta b{color:var(--ink);font-size:15px;font-variant-numeric:tabular-nums}
+.bk-donepick .bdp-warn{margin:8px 0 0;font-size:12.5px;color:#8a6238}
+.bk-donepick .bdp-b{display:flex;gap:10px;margin:16px 0 0}
+.bk-donepick .bdp-view,.bk-donepick .bdp-redo{appearance:none;font:inherit;font-size:13.5px;font-weight:700;
+  cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  min-height:44px;padding:0 16px;border-radius:8px;flex:1}
+.bk-donepick .bdp-view svg,.bk-donepick .bdp-redo svg{width:16px;height:16px;flex:none;
+  fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.bk-donepick .bdp-redo svg{fill:currentColor;stroke:none}
+.bk-donepick .bdp-view{border:1px solid var(--line);background:#fff;color:var(--ink)}
+.bk-donepick .bdp-view:hover{border-color:var(--primary);color:var(--primary-900)}
+.bk-donepick .bdp-view:disabled{opacity:.5;cursor:default;border-color:var(--line);color:var(--n-500)}
+.bk-donepick .bdp-redo{border:1px solid var(--primary);background:var(--primary);color:#fff}
+.bk-donepick .bdp-redo:hover{filter:brightness(1.06)}
+.bk-donepick .bdp-x{appearance:none;font:inherit;cursor:pointer;position:absolute;top:10px;right:12px;
+  width:28px;height:28px;border:0;border-radius:7px;background:transparent;color:var(--n-500);font-size:19px;line-height:1}
+.bk-donepick .bdp-x:hover{background:var(--n-100);color:var(--ink)}
+.bk-donepick .ex-modal-c{position:relative}
+@media(max-width:640px){.bk-donepick .bdp-b{flex-direction:column-reverse}}
+
+/* 只读复盘顶部标记（看上次结果时挂在考场根节点上） */
+#examRoot .rv-ro-badge{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:0 0 10px;
+  padding:7px 12px;border-radius:8px;background:var(--primary-50);border:1px solid var(--primary-100);
+  font-size:12.5px;color:var(--primary-900)}
+#examRoot .rv-ro-badge span:first-child{font-weight:800}
+@media(max-width:640px){#examRoot .rv-ro-badge{font-size:12px;gap:9px;padding:6px 10px}}
+
 /* ===== 10/18 考前操作指南卡（P1-2 · 一次性）=====
    对标雅思哥「每科 2 分钟操作视频」，我们换成一张静态卡（不做视频）。
    只 4 条、只出现一次、右上 ✕ 与 Esc 都等于看过；图标复用顶栏真实 SVG，卡上长什么样考场上就长什么样。
@@ -2662,7 +2698,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common-shell.js?v=20261031o"></script>
 <script defer src="js/common-pwa.js?v=20261031o"></script>
 <script defer src="js/exam-timer.js?v=20261031b"></script>
-<script defer src="js/bank.js?v=20261101f"></script>
+<script defer src="js/bank.js?v=20261101g"></script>
 <!-- M-2（10-24）：模考页「没做过/做过」分组 + 展开更多。
      ⚠️ 本文件只做展示层（读 hub_bank_last_* 分组 + 首屏 20 条），判分/SRS/本地记录一律不碰；
         单条 DOM 由 js/bank.js 的 listHtml() 生成（当参数传进来），结构零改动。

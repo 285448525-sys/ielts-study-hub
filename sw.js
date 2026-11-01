@@ -66,7 +66,8 @@
 // 未改任何加载策略/脚本顺序（HANDOFF 铁律：defer 顺序是契约，动它会连带出事）。
 // common.js → 20261013ad（25 页）、index.js → 20261017a（仅 home.html）、
 // bank.js → 20261012ac（仅 bank.html）。上一版 v409。
-const CACHE = 'ielts-hub-v711'; // 11-01 RV-REC-CHIP-2 bump 补枪：69ce7c47 改了 js/rvx-data.js 内容，但 review.html 的引用串与前一笔 d087d703 同为 20261101i → 同一 ?v= 下内容已换，SW 的 stale-while-revalidate 会把旧副本先发出去（caches.match(pathname+search) 精确命中即返回旧体）。本笔只换串不动逻辑：rvx-data.js 20261101i→20261101j、CACHE v710→v711。
+const CACHE = 'ielts-hub-v712'; // 11-01 RV-REC-CHIP-2 bump 补枪：69ce7c47 改了 js/rvx-data.js 内容，但 review.html 的引用串与前一笔 d087d703 同为 20261101i → 同一 ?v= 下内容已换，SW 的 stale-while-revalidate 会把旧副本先发出去（caches.match(pathname+search) 精确命中即返回旧体）。本笔只换串不动逻辑：rvx-data.js 20261101i→20261101j、CACHE v710→v711。
+const _prevCacheNote35 = 'ielts-hub-v711'; // 11-01 BANK-DONE-ROW-1 笔 2（做过篇目点击弹「看上次结果/再做一次」）
 const _prevCacheNote34 = 'ielts-hub-v710'; // 11-01 RV-REBUILD-FULL-1 三笔（重建重挂 003acb4f + chip 补回 d087d703 + chip 语义粒度修 69ce7c47）：回顾页整页重建，修深链 ?sub=（含 breakdown/overall/speaking 三个老值）、openDetail 的 CSS.escape、整卷行「看上次结果/重新做一遍」两按钮；记录筛选按 recCat 语义粒度（整卷模考 kind 恒为 part，真粒度看 gran）。
 const _prevCacheNote33 = 'ielts-hub-v709'; // 11-01 MOCK-SPLIT-DRAG-1：阅读练习/模考桌面端分栏可拖动，刷新保持，手机上下布局不变。
 const _prevCacheNote32 = 'ielts-hub-v708'; // 11-01 BANK-DONE-ROW-1 笔 1（机经列表撤题数列 + 撤做过区进度条）

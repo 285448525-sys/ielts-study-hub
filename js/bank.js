@@ -125,7 +125,10 @@
         }
       }catch(e){}
       (u.types || []).forEach(function(t, i){ chips += '<span class="bi-ch ' + chipCls(t, i) + '">' + esc(t) + '</span>'; });
-      h += '<li class="bank-item" data-unit="' + esc(u.id) + '" data-ch="' + esc(channel) + '">'
+      /* BANK-DONE-ROW-1 笔 2：做过 = 有本地成绩记录 → 点它先弹「看上次结果 / 再做一次」，
+         不直接进做题页。标记挂在行上，由事件委托读，不另存状态。 */
+      h += '<li class="bank-item" data-unit="' + esc(u.id) + '" data-ch="' + esc(channel) + '"'
+        +    (st ? ' data-done="1"' : '') + '>'
         +    '<span class="bi-no">' + (k + 1) + '</span>'
         +    '<span class="bi-tt"><b>' + esc(u.title || '未命名') + '</b>'
         +      (u.titleZh ? '<i>' + esc(u.titleZh) + '</i>' : '') + '</span>'
@@ -825,6 +828,92 @@
     window.ExamTimerChoice.show(scene, opts, function(min){ next(min); });
   }
 
+  /* ===== BANK-DONE-ROW-1 笔 2：做过的篇目 → 先弹「看上次结果 / 再做一次」=====
+     她 11-01 16:1x 给截图（爱听写）提的第三条：做过的篇目点击不直接进做题页，
+     改成弹两个按钮 —— 查看上次结果（看全篇错题页）/ 再做一次（进做题）。
+     按钮样式照她截图：主按钮实心（再做一次）、次按钮白描边（查看上次结果）。
+
+     🔴 数据从哪来（实测核过，不新增任何存储）：
+        交卷时 doSubmit 已把逐题明细落进 DATA.mockRecords[].detail（qn/user/right/ok/t 五个标量），
+        那份数据本身就在云同步白名单里。所以「查看上次结果」不用另存一份，
+        直接按 unitId 找最近一条 src:'bank' + granularity:'part' 的记录即可。
+        列表行上那句「8/13」读的是 hub_bank_last_<id>，两者是同一次交卷写的，不会互相打架。
+
+     🔴 只读 = 真的只读：复盘视图复用做题页的壳（renderExam → EX），但不绑任何输入、
+        不写草稿、不计时、不落库。退出走 exitExam 同一路径，回到列表。
+        这样「看错题」看到的是和刚交卷时一模一样的界面，不另造一套「历史详情页」。 */
+  function findLastRec(unitId, channel){
+    try{
+      if(typeof DATA === 'undefined' || !Array.isArray(DATA.mockRecords)) return null;
+      var ch = channel === 'listening' ? 'listening' : 'reading';
+      var hit = null;
+      for(var i = 0; i < DATA.mockRecords.length; i++){
+        var r = DATA.mockRecords[i];
+        if(!r || r.src !== 'bank') continue;
+        if(r.type !== ch) continue;
+        if(r.granularity !== 'part' || r.unitId !== unitId) continue;
+        hit = r; break;                        /* unshift 入队 → 第一条就是最近一次 */
+      }
+      return hit;
+    }catch(e){ return null; }
+  }
+
+  function fmtUsed(sec){
+    var u = Math.max(0, Math.round(Number(sec) || 0));
+    var mm = Math.floor(u / 60), ss = u % 60;
+    return mm + ':' + (ss < 10 ? '0' : '') + ss;
+  }
+
+  function showDonePick(unitId, channel){
+    var host = document.body;
+    var old = document.getElementById('bkDonePick'); if(old) old.remove();
+    var rec = findLastRec(unitId, channel);
+    var lsRaw = null;
+    try{ lsRaw = localStorage.getItem('hub_bank_last_' + unitId); }catch(e){}
+    var ls = null; try{ ls = lsRaw ? JSON.parse(lsRaw) : null; }catch(e){}
+    /* 两处记录同一次交卷写，正常情况下一致；万一只有一处（历史遗留），有哪个用哪个。 */
+    var ok = rec && rec.parts && rec.parts.length ? (Number(rec.parts[0].correct) || 0) : (ls ? Number(ls.correct) || 0 : 0);
+    var tot = rec && rec.parts && rec.parts.length ? (Number(rec.parts[0].total) || 0) : (ls ? Number(ls.total) || 0 : 0);
+    var ts = (rec && rec.updatedAt) || (rec && rec.ts) || (ls && ls.ts) || 0;
+    var usedTxt = rec && rec.usedSec != null ? fmtUsed(rec.usedSec) : '';
+    var hasDetail = !!(rec && Array.isArray(rec.detail) && rec.detail.length);
+
+    var ov = document.createElement('div');
+    ov.className = 'ex-modal bk-donepick';
+    ov.id = 'bkDonePick';
+    /* 按钮点击时从这里回读，不靠闭包（探针也能直接看这两个属性） */
+    ov.setAttribute('data-unit', String(unitId));
+    ov.setAttribute('data-ch', channel === 'listening' ? 'listening' : 'reading');
+    ov.innerHTML = '<div class="ex-modal-c" role="dialog" aria-modal="true" aria-label="这次做过了">'
+      + '<h4>这篇你做过了</h4>'
+      + '<p class="bdp-meta">上次 <b>' + esc(String(ok) + '/' + String(tot)) + '</b>'
+      +   (usedTxt ? ' · 用时 ' + esc(usedTxt) : '')
+      +   (ts ? ' · ' + esc(relTime(ts)) : '')
+      + '</p>'
+      + (hasDetail ? '' : '<p class="bdp-warn">这篇上次没留下逐题明细，只能看成绩。</p>')
+      + '<div class="bdp-b">'
+      +   '<button type="button" class="bdp-view" data-bdp="view"' + (hasDetail ? '' : ' disabled') + '>'
+      +     '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v14H3z"/><path d="M7 10h10M7 14h6"/></svg>'
+      +     '<span>查看上次结果</span></button>'
+      +   '<button type="button" class="bdp-redo" data-bdp="redo">'
+      +     '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l11 7-11 7z"/></svg>'
+      +     '<span>再做一次</span></button>'
+      + '</div>'
+      + '<button type="button" class="bdp-x" data-bdp="close" aria-label="关闭">×</button>'
+      + '</div>';
+    host.appendChild(ov);
+    /* 点遮罩关闭（点卡片本身不关）。Esc 也关 —— 与交卷确认弹窗同一套习惯。 */
+    ov.addEventListener('click', function(e){ if(e.target === ov) closeDonePick(); });
+    window.__bdpEsc = function(e){
+      if(e.key === 'Escape'){ closeDonePick(); }
+    };
+    document.addEventListener('keydown', window.__bdpEsc);
+  }
+  function closeDonePick(){
+    var m = document.getElementById('bkDonePick'); if(m) m.remove();
+    if(window.__bdpEsc){ document.removeEventListener('keydown', window.__bdpEsc); window.__bdpEsc = null; }
+  }
+
   function openExam(unitId, channel){
     if(!guidePassed(channel)){ examGuideGate(channel, function(){ openExam(unitId, channel); }); return; }
     /* 听力单篇不弹框、不计时（她 10/20 定，11-01 口径「练习不计时」再次确认） */
@@ -889,6 +978,106 @@
         + '<p><button class="btn-ghost" type="button" data-exit>Back</button></p></div>';
       if(root) root.style.display = '';
     });
+  }
+
+  /* ===== BANK-DONE-ROW-1 笔 2：「查看上次结果」=======
+     只读复盘：把上次的记录还原成一套 EX（submitted + result + user），复用现有渲染链，
+     于是看到的就是「刚交卷那一刻」的同一套界面 —— 逐题对错、结论条、答题卡红绿、
+     正确答案 vs 你的答案，一个不少。不答题、不写草稿、不计时、不落库。
+
+     🔴 为什么不另写一个「历史详情页」：那等于把复盘渲染逻辑复制一份，
+        两边迟早长歪（现有复盘已经踩过「map 组交卷后没有逐题结论条」那种坑）。
+        复用 EX 就只有一个真相源。 */
+  function openLastResult(unitId, channel){
+    var rec = findLastRec(unitId, channel);
+    if(!rec || !Array.isArray(rec.detail) || !rec.detail.length){
+      /* 没明细就如实说，不画假红绿 */
+      var host0 = document.body;
+      var ov = document.createElement('div');
+      ov.className = 'ex-modal';
+      ov.innerHTML = '<div class="ex-modal-c" role="dialog" aria-modal="true">'
+        + '<h4>没有可看的明细</h4>'
+        + '<p>这篇上次交卷时没留下逐题对错，只能看到总分与用时。</p>'
+        + '<div class="ex-modal-b"><button class="btn-primary" type="button" data-bdpx>知道了</button></div>'
+        + '</div>';
+      ov.addEventListener('click', function(e){
+        if(e.target === ov || (e.target.closest && e.target.closest('[data-bdpx]'))) ov.remove();
+      });
+      host0.appendChild(ov);
+      return;
+    }
+    _pendingTimerMin = 0;                            /* 只读：不选时长、不起表 */
+    var root = document.getElementById('bankRoot');
+    if(root) root.style.display = 'none';
+    var host = document.getElementById('examRoot');
+    if(host){ host.hidden = false; }
+    fetchWithStates(host, 'Result', 'bank/' + channel + '/' + unitId + '.json', function(box, unit){
+      var p2 = fetch('bank/answers/' + unitId + '.json', { cache: 'no-cache' })
+                  .then(function(r){ return r.ok ? r.json() : {}; }).catch(function(){ return {}; });
+      Promise.all([Promise.resolve(unit), p2]).then(function(res){
+        var ansFile = res[1] || {};
+        annotateGroups(unit, ansFile.answers || {});
+        var user = {}, detail = [];
+        rec.detail.forEach(function(d){
+          if(!d) return;
+          var qn = String(d.qn);
+          if(d.user != null && String(d.user).length) user[qn] = d.user;
+          detail.push({ qn: qn, user: d.user == null ? '' : String(d.user),
+                        right: d.right == null ? '' : String(d.right), ok: !!d.ok, t: d.t || '' });
+        });
+        var total = 0, right = 0;
+        detail.forEach(function(d){ /* 口径同 score()：只统计有答案键的题 */
+          if(d.right != null && String(d.right).length){ total++; if(d.ok) right++; }
+        });
+        /* parts[0].total 是交卷时真正的分母（含无答案题也照原样）—— 有就用它，别自己重算歪了 */
+        if(rec.parts && rec.parts.length && rec.parts[0].total != null) total = Number(rec.parts[0].total) || total;
+        if(rec.parts && rec.parts.length && rec.parts[0].correct != null) right = Number(rec.parts[0].correct) || 0;
+
+        EX = {
+          unit: unit, channel: channel,
+          answers: ansFile.answers || {}, alts: ansFile.alts || {},
+          scored: !!(ansFile.answers && Object.keys(ansFile.answers).length),
+          user: user, submitted: true, groups: [], total: 0, correct: 0,
+          listenMode: 'practice', audioStarted: false,
+          readonly: true,                              /* ← 只读标记：不起表、不挂徽章 */
+          _usedSec: Number(rec.usedSec) || 0,
+          result: { right: right, total: total, detail: detail }
+        };
+        EX.correct = right;
+        _rateIx = 0; _audioBound = null; _audioRate = RATE_DEFAULT;
+        EX._timerMin = 0; _pendingTimerMin = null;
+        _stLines = null; _stBound = null;
+        renderExam();
+        /* renderExam 里 EX.submitted 的先手只覆盖了听力分支（showScript/decoratePassage），
+           阅读要在这里补：逐题结论条 + 成绩卡，与刚交卷时一致。 */
+        if(channel !== 'listening'){
+          if(EX.result) decoratePassage(1);
+          addReadonlyBadge(rec);
+        } else {
+          addReadonlyBadge(rec);
+        }
+      }).catch(function(err){
+        if(window.console && console.error) console.error('[bank] 复盘加载失败：', err);
+        var h = document.getElementById('examRoot');
+        if(h) h.innerHTML = '<div class="bank-empty"><p>这篇的复盘没能加载出来。</p>'
+          + '<p><button class="btn-ghost" type="button" data-exit>返回</button></p></div>';
+        if(root) root.style.display = '';
+      });
+    }, { noCancel: true, lpTitle: '正在载入上次结果', lpSub: '只读复盘 · 不重新计时' });
+  }
+
+  /* 只读复盘顶部的小标记：明确告诉用户「这是上次的记录，不是现在在做题」。 */
+  function addReadonlyBadge(rec){
+    var root = document.getElementById('examRoot'); if(!root) return;
+    var old = root.querySelector('.rv-ro-badge'); if(old) old.remove();
+    var used = rec && rec.usedSec != null ? fmtUsed(rec.usedSec) : '';
+    var when = rec && (rec.updatedAt || rec.ts) ? relTime(rec.updatedAt || rec.ts) : '';
+    var el = document.createElement('div');
+    el.className = 'rv-ro-badge';
+    el.innerHTML = '<span>上次的结果 · 只读</span>'
+      + (used ? '<span>用时 ' + esc(used) + '</span>' : '')
+      + (when ? '<span>' + esc(when) + '</span>' : '');
+    root.appendChild(el);
   }
 
   function qNums(g){
@@ -2656,15 +2845,19 @@ window.__reportExamState = reportExamState;
     else { setExSplit(_exSplitPct); renderNotes(); replayMarks(); }
     wireOptionPanel();   /* 10/14 Option 面板交互（Colour/Size/Audio 分组点击） */
     wireExamTools();     /* 10/18 顶栏工具栏：全屏（眼睛标 10/20 删除） */
-    reportExamState(true);   /* 10/15 告诉 SW：我在考试中，别刷我 */
+    /* BANK-DONE-ROW-1 笔 2：只读复盘不是考试 —— 不上考试锁、不告诉 SW「我在考试中」，
+       否则她只是想看一眼上次错题，却被锁住切不了页面。 */
+    if(!EX.readonly) reportExamState(true);   /* 10/15 告诉 SW：我在考试中，别刷我 */
     if(EX.submitted){ if(isListen){ showScript(); decoratePassage(EX.curP); hideAudioGate(); } }
     /* 🔴 10/20 她 ⑤：听力单篇不显示计时（音频长短不一，30 分钟倒计时对单篇没意义），
        只有「完整模考」才开倒计时（line 1500 / line 1435 那两处）。这里不再起表，
        顺带顶栏计时小徽章也不显示 —— 单篇页面整个不出现时间数字。 */
     /* EXAM-TIMER-CHOICE-1：阅读单篇按选择框给的分钟数起表（默认 20）；
        选了不计时就传 0 走正计时。听力单篇永远走不到这里（isListen 挡掉）。 */
-    if(!isListen) startTimer((EX._timerMin == null ? 60 : EX._timerMin) * 60);
-    if(!isListen) startFtMini();                     /* 10/13：顶栏计时小徽章（考场内替代全站 floatTimer） */
+    /* BANK-DONE-ROW-1 笔 2：只读复盘（看上次结果）不起表、不挂小徽章 —— 它不是一场考试，
+       时间数字会让人以为「我现在还在做题」。用时在上次成绩里另给。 */
+    if(!isListen && !EX.readonly) startTimer((EX._timerMin == null ? 60 : EX._timerMin) * 60);
+    if(!isListen && !EX.readonly) startFtMini();     /* 10/13：顶栏计时小徽章（考场内替代全站 floatTimer） */
   }
 
   /* ===== 完整模考（3 篇一套 · 40 题 / 60 分钟 · 随机组卷）=====
@@ -4489,14 +4682,16 @@ window.__reportExamState = reportExamState;
     var au = document.getElementById('exAudio');
     if(au){ try{ au.pause(); }catch(e){} }
     _audioBound = null;                                /* 音频元素随 innerHTML 一起没了，解绑记录 */
-    if(EX && !EX.submitted) saveDraft();
-    bankCommitTimer();                                /* C-3：未交卷退出也要结算（别只挂交卷上） */
+    var _wasReadonly = !!(EX && EX.readonly);
+    if(EX && !EX.submitted && !EX.readonly) saveDraft();
+    if(!_wasReadonly) bankCommitTimer();              /* C-3：未交卷退出也要结算（别只挂交卷上）；只读复盘不算专注 */
     EX = null;
     var host = document.getElementById('examRoot'); if(host){ host.hidden = true; host.innerHTML = ''; }
     var root = document.getElementById('bankRoot'); if(root) root.style.display = '';
     /* 组卷缓存 _fullSet/_listenFullSet 已随「纯随机」口径删除（10/12）：每次 Start 现抽，无需重置 */
     boot();
-    reportExamState(false, true);   /* 10/15 考试结束，可以刷新了 · 10/20 真正离开考场 → 执行待刷新 */
+    /* 只读复盘退出：本来就什么都没锁，不需要「解除 + 补刷新」那一套 */
+    if(!_wasReadonly) reportExamState(false, true);   /* 10/15 考试结束，可以刷新了 · 10/20 真正离开考场 → 执行待刷新 */
   }
 
   /* ===== 口语模考入口（10/11 第 8 项）=====
@@ -4588,7 +4783,26 @@ window.__reportExamState = reportExamState;
       /* 10/11 第 8 项：口语 pane「开始模考」→ 软导航到口语页并自动进其模考流程 */
       if((el = t.closest && t.closest('[data-spkstart]'))){ spkStartMock(); return; }
       /* 完整模考：Passage 1/2/3（阅读）或 Part 1–4（听力）切篇 —— 10/12 批A 已挪到底部切换器（paintPgSwitch） */
+      /* BANK-DONE-ROW-1 笔 2：做过篇目那两个按钮（在弹层里，事件委托统一收） */
+      if((el = t.closest && t.closest('[data-bdp]'))){
+        var _act = el.getAttribute('data-bdp');
+        var _ov = document.getElementById('bkDonePick');
+        var _uid = _ov ? _ov.getAttribute('data-unit') : null;
+        var _ch2 = _ov ? _ov.getAttribute('data-ch') : null;
+        closeDonePick();
+        if(_act === 'redo' && _uid) openExam(_uid, _ch2 || 'reading');
+        else if(_act === 'view' && _uid) openLastResult(_uid, _ch2 || 'reading');
+        return;
+      }
       if((el = t.closest && t.closest('.bank-item[data-unit]'))){
+        /* BANK-DONE-ROW-1 笔 2（她 11-01 16:1x 给截图提第三条）：
+           做过的篇目点它不再直接进做题页，先弹两个按钮 ——
+           「查看上次结果」= 只读复盘（上次逐题对错，不答题）/ 「再做一次」= 进做题页。
+           没做过（没有本地成绩记录）的篇目照旧一点就进，不弹。 */
+        if(el.getAttribute('data-done') === '1'){
+          showDonePick(el.getAttribute('data-unit'), el.getAttribute('data-ch'));
+          return;
+        }
         openExam(el.getAttribute('data-unit'), el.getAttribute('data-ch'));
         return;
       }
