@@ -99,7 +99,8 @@
 .bi-ch.t1{color:var(--primary-900);background:var(--primary-50);border:1px solid var(--primary-100)}
 .bi-ch.t2{color:#4a6b8a;background:#eef2f6;border:1px solid #dbe4ee}
 .bi-ch.t3{color:#8a6238;background:#f7f0e8;border:1px solid #eddfcd}
-.bi-qn{width:50px;flex:none;text-align:right;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+/* BANK-DONE-ROW-1（11-01）：题数列整列撤除（她给截图点名「倒数第二列题数整列去掉」）。
+   行结构 = 序号 / 标题 / 题型芯 / 状态 / 箭头，本来 5 列已够挤，题数对选篇没有决策价值。 */
 .bi-st{width:76px;flex:none;text-align:right;font-size:12.5px;color:var(--n-500);font-variant-numeric:tabular-nums}
 .bi-st.ok{color:var(--primary-900);font-weight:700}
 /* 10/17 #9 层次 1：列表页留痕 —— 做过的一行显示「分数 + 相对时间 + 细进度条」。
@@ -107,8 +108,6 @@
 .bi-st b{display:block;font-size:12.5px;line-height:1.3}
 .bi-st.ok b{color:var(--primary-900)}
 .bi-when{display:block;font-style:normal;font-size:11px;color:var(--n-500);font-weight:400;line-height:1.3;margin-top:1px}
-.bi-bar{display:block;height:3px;border-radius:2px;background:var(--n-300);margin-top:4px;overflow:hidden}
-.bi-bar > i{display:block;height:100%;background:var(--primary);border-radius:2px}
 .bi-chev{width:14px;flex:none;text-align:right;color:var(--n-400);font-size:15px;transition:color .12s}
 .bank-loading,.bank-empty{padding:40px 16px;text-align:center;color:var(--muted);font-size:14px;line-height:1.8}
 /* ===== B-1a 加载四态 + 骨架屏（2026-10-23 新增，勿与上面 .bank-loading 旧规则混用）=====
@@ -1134,9 +1133,9 @@
   #examRoot .ex-top .ex-timer{white-space:nowrap}
   .mock-tabs .pill-tab,.partbar .pill-tab{padding:9px 12px;font-size:13.5px}
   .mock-tabs{width:100%}.mock-tabs .pill-tab{flex:1;justify-content:center}
-  .bi-chips{display:none}.bi-qn{width:44px}
+  .bi-chips{display:none}
   /* W-BANKTT-1（10-25）：手机端文章标题只分到 118px，被截成「The Blockbuste…」。
-     逐元素实测（390）：li 内容区 332px，被 .bi-no(24)+.bi-qn(44)+.bi-st(76)+.bi-chev(14)+4×gap(56)
+     逐元素实测（390）：li 内容区 332px，被 .bi-no(24)+.bi-st(76)+.bi-chev(14)+3×gap(42)（BANK-DONE-ROW-1 已撤题数列）
      先拿走 214px（64%），标题只剩 118px，而标题要 204px → 全部吃省略号。
      修：① 标题允许两行（只截在词边界，不再是半截词）② 序号不占位，还 24+14=38px 给标题。
      ⚠️ 只加移动端覆盖：桌面的 .bank-item / .bi-* 数值一个字不动，gap:14px 也没改小（桌面同用）。 */
@@ -2663,7 +2662,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common-shell.js?v=20261031o"></script>
 <script defer src="js/common-pwa.js?v=20261031o"></script>
 <script defer src="js/exam-timer.js?v=20261031b"></script>
-<script defer src="js/bank.js?v=20261101e"></script>
+<script defer src="js/bank.js?v=20261101f"></script>
 <!-- M-2（10-24）：模考页「没做过/做过」分组 + 展开更多。
      ⚠️ 本文件只做展示层（读 hub_bank_last_* 分组 + 首屏 20 条），判分/SRS/本地记录一律不碰；
         单条 DOM 由 js/bank.js 的 listHtml() 生成（当参数传进来），结构零改动。

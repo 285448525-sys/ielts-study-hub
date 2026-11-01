@@ -112,15 +112,16 @@
   function listHtml(units, channel){
     var h = '<ul class="bank-items">';
     for(var k = 0; k < units.length; k++){
-      var u = units[k], st = '', oc = '未做', chips = '', when = '', pct = -1;
+      var u = units[k], st = '', oc = '未做', chips = '', when = '';
       try{
         var rec = localStorage.getItem('hub_bank_last_' + u.id);
         if(rec){
           var r = JSON.parse(rec); st = 'ok'; oc = r.correct + '/' + r.total;
-          /* 10/17 #9 层次 1：列表页留痕 —— 相对时间 + 细进度条。
-             此前只有「8/13」三个字符，用户看不出是刚才做的还是上个月做的。 */
+          /* 10/17 #9 层次 1：列表页留痕 —— 做过的一行带一句相对时间，
+             否则只有「8/13」三个字符，看不出是刚才做的还是上个月做的。
+             BANK-DONE-ROW-1（11-01 她给截图提）：做过区不再画进度条 ——
+             对几题在状态位里写「8/13」已经说清了，条是重复表达，还占一行高度。 */
           if(r.ts) when = relTime(r.ts);
-          if(r.total > 0) pct = Math.round(r.correct / r.total * 100);
         }
       }catch(e){}
       (u.types || []).forEach(function(t, i){ chips += '<span class="bi-ch ' + chipCls(t, i) + '">' + esc(t) + '</span>'; });
@@ -129,11 +130,9 @@
         +    '<span class="bi-tt"><b>' + esc(u.title || '未命名') + '</b>'
         +      (u.titleZh ? '<i>' + esc(u.titleZh) + '</i>' : '') + '</span>'
         +    '<span class="bi-chips">' + chips + '</span>'
-        +    '<span class="bi-qn">' + (u.qCount || 0) + ' 题</span>'
         +    '<span class="bi-st ' + st + '">'
         +      (st ? '<b>' + esc(oc) + '</b>' : esc(oc))
         +      (when ? '<i class="bi-when">' + esc(when) + '</i>' : '')
-        +      (pct >= 0 ? '<i class="bi-bar"><i style="width:' + pct + '%"></i></i>' : '')
         +    '</span>'
         +    '<span class="bi-chev">›</span>'
         +  '</li>';
