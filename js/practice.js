@@ -76,8 +76,9 @@ var PC_DEFAULTS = {
   showCn: false,
   showEn: 0,              // 0=不显示 1=答错时显示 2=始终显示
   /* visual=看词选义（默认，一切照旧）/ audio=听音选义（题干隐藏、先听后选释义）
-     / mixed=混合（每题约 50% 掷币走听音）/ dictation=听写（WD-DICT-MODE-1 · 10-31：
-     题干只留音标+喇叭、选项从「选释义」换成「选拼写」，四个拼写变体） */
+     / dictation=听写（WD-DICT-TYPE-1 · 11-01 她口令：删混合只留三模式；
+       听写改打字型——听音打出单词，逐键音效+对错反馈音，判题仍走 judge）。
+     mixed 已删除：旧数据/云同步脏值落白名单外自动回退看词。 */
   questionMode: 'visual',
   optCount: 4,
   wrongHoldMs: 2500,
@@ -108,7 +109,7 @@ function pc(){
   c.autoPlay = !!c.autoPlay;
   c.showCn = !!c.showCn;
   c.showEn = clampNum(c.showEn, 0, 2, PC_DEFAULTS.showEn);
-  c.questionMode = (['visual','audio','mixed','dictation'].indexOf(c.questionMode) !== -1) ? c.questionMode : PC_DEFAULTS.questionMode;   // 白名单外（旧数据/云同步脏值）回退看词
+  c.questionMode = (['visual','audio','dictation'].indexOf(c.questionMode) !== -1) ? c.questionMode : PC_DEFAULTS.questionMode;   // mixed 已删：旧值/云同步脏值回退看词
   c.optCount = clampNum(c.optCount, 2, 10, PC_DEFAULTS.optCount);
   c.wrongHoldMs = clampNum(c.wrongHoldMs, 1000, 5000, PC_DEFAULTS.wrongHoldMs);
   c.fxFeedback = !!c.fxFeedback;
@@ -893,7 +894,9 @@ async function autoStartSeeWord(){
         _markEmptyState(true);   // 10/12：空态 → 取消「撑满一屏」，否则底部空一大片（新用户观感）
         return;
       }
-      if(_wbAll.length < 2){
+      /* WD-DICT-TYPE-1：听写已改打字型（不靠选项干扰项），1 个词也能练；
+         只有需要选项的两种模式（看词/听音）才保住 2 词门槛。 */
+      if(_wbAll.length < 2 && pc().questionMode !== 'dictation'){
         $('#practiceBody').innerHTML = '<div class="q-word">词库至少需要 2 个单词</div><div class="q-cn">「看词选义」需要选项作干扰项，请先加至少 2 个词。</div>';
         _markEmptyState(true);
         return;
@@ -1321,13 +1324,12 @@ function renderQuestion(cur, isRehold){
   pq.revealed = false;
   pq._picked = false;
   pq._qStartAt = Date.now();   // ETA：本题作答起点（重考/requeue 重置，重复作答时间自然累计；纯内存不落库）
-  // 听音选义：决定本题呈现模式。当场重考（isRehold）沿用原模式（不让用户换题后从听切看）；
-  // 混合模式每题独立掷币约 50% 听音；visual/audio 模式其余一切行为与旧版逐字节相同。
+  // 听音选义：决定本题呈现模式。当场重考（isRehold）沿用原模式（不让用户换题后从听切看）。
+  // 混合模式已删（11-01 她口令「把那个混合模式删掉，就只要三个模式就行了」）。
   if(!isRehold || !pq._curQMode){
     pq._curQMode = (c.questionMode === 'audio') ? 'audio'
       : (c.questionMode === 'dictation') ? 'dictation'
-      : (c.questionMode === 'mixed' ? (Math.random() < 0.5 ? 'audio' : 'visual')
-      : 'visual');
+      : 'visual';
   }
   /* WD-DICT-MODE-1（10-31）：听写模式。形态与听音选义同源（题干英文隐藏、只留音标+喇叭），
      差别只有一处 —— **选项从「选释义」换成「选拼写」**（四个拼写变体）。
@@ -1419,16 +1421,25 @@ function renderQuestion(cur, isRehold){
 
   const body = $('#practiceBody');
   body.innerHTML = html;
+  /* WD-DICT-TYPE-1（11-01 她口令）：听写模式改打字型 —— 不再渲染四选一拼写变体，
+     改成「听发音 → 键盘打出单词 → 逐键打字音 + 对/错反馈音」（音效素材与逻辑在 js/wd-dict.js，
+     与她自己 sentence-typing 站同一套）。判定走既有 judge(cur, 输入值, 对错)：
+     SRS / 短线重复 / 统计 / 已掌握 / 不知道 全部沿用，不存在第二套判题。 */
+  if(dictMode){
+    $('#opts').innerHTML = '';
+    try{
+      window.__wdJudge = (c2, picked, ok) => judge(c2, picked, ok, false);
+      if(window.WD_DICT && window.WD_DICT.mount) window.WD_DICT.mount(cur);
+      else { /* wd-dict.js 未就绪的兜底：退回四选一拼写（旧形态，可作答不卡死） */
+        $('#opts').innerHTML = opts.map((o, i) =>
+          '<button class="opt-big opt-big-dict" data-en="' + escapeHtml(o.en) + '" data-idx="' + i + '" title="选项 ' + (i + 1) + '">' +
+          '<span class="opt-big-tag opt-big-letter">' + String.fromCharCode(65 + i) + '</span>' +
+          '<span class="opt-big-spell">' + escapeHtml(o.en) + '</span></button>').join('');
+        bindOpts(cur);
+      }
+    }catch(e){ try{ console.error('[wd-dict] mount failed', e); }catch(_e){} }
+  } else {
   $('#opts').innerHTML = opts.map((o, i) => {
-    /* WD-DICT-MODE-1：听写模式只考拼写 —— 选项里**绝不能**出现词性/释义
-       （那等于把答案说出来了）。所以这三行照旧输出，但内容换成一个字母占位，
-       布局锚点（.opt-big-tag / .opt-big-cn）保持不变，CSS 不用另开一套。 */
-    if(dictMode){
-      return '<button class="opt-big opt-big-dict" data-en="' + escapeHtml(o.en) + '" data-idx="' + i + '" title="选项 ' + (i + 1) + '">' +
-        '<span class="opt-big-tag opt-big-letter">' + String.fromCharCode(65 + i) + '</span>' +
-        '<span class="opt-big-spell">' + escapeHtml(o.en) + '</span>' +
-      '</button>';
-    }
     const ps = practiceSense(o);
     const tag = singlePos(o.pos) || ps.tag || inferPos(o.en) || '';
     /* 她口述第⑨条「快捷键这几个字不用写上」—— title 里的「（按 1）」这类键位提示一并去掉，
@@ -1440,6 +1451,7 @@ function renderQuestion(cur, isRehold){
     '</button>';
   }).join('');
   bindOpts(cur);
+  }
   // 9/26：记录「上一题」（不看 pq.idx —— 那个值恒为 0），下一题渲染时用它出回顾条；重考不覆盖
   // 🔴 WD-PAGE-REDESIGN-1（10-28）：头部左上角要显示「上一个单词」（她口述第⑦条）。
   //   注意 pq.lastEn 语义是「当前题」（渲染完就被覆盖成 cur），真正要显示的上一词是局部 _lastEn ——
@@ -2115,7 +2127,7 @@ function renderCfgModal(){
         // 9/25：newPerDay（每日新词上限）已下线——总量只按「每日学习上限」为准
         // 9/29 之之：小字说明删掉（嫌多余）；0=不限/背满就停的逻辑不变
         { key:'dailyCap',      label:'每日学习上限',  type:'num', min:0, max:999, unit:' 个' },
-        { key:'questionMode',  label:'题型',          type:'select', opts:[{v:'visual',t:'看词选义'},{v:'audio',t:'听音选义'},{v:'dictation',t:'听写模式'},{v:'mixed',t:'混合'}] },
+        { key:'questionMode',  label:'题型',          type:'select', opts:[{v:'visual',t:'看词选义'},{v:'audio',t:'听音选义'},{v:'dictation',t:'听写模式'}] },
         { key:'shuffle',       label:'勾选练习乱序',  type:'toggle' },
         { key:'wrongHoldMs',   label:'答错停留',      type:'range', min:1000, max:5000, step:500, unit:'ms' },
         { key:'autoNextDelay', label:'自动间隔',      type:'range', min:300, max:3000, step:100, unit:'ms' },
@@ -2188,7 +2200,7 @@ function renderCfgModal(){
   });
   body.querySelectorAll('.cfg-select').forEach(el => {
     el.addEventListener('change', () => {
-      // questionMode 是字符串枚举（visual/audio/mixed），parseInt 会变 NaN——只有数值型 select 才转数字
+      // questionMode 是字符串枚举（visual/audio/dictation），parseInt 会变 NaN——只有数值型 select 才转数字
       const v = (el.dataset.key === 'questionMode') ? el.value : parseInt(el.value, 10);
       pcSave({ [el.dataset.key]: v });
     });

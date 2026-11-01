@@ -1341,3 +1341,26 @@ body.word-fullscreen #practiceBody.practice-body-fit .opt-big{height:auto;min-he
   #practiceBody .opt-big-spell{font-size:17px}
   #practiceBody .opt-big-letter{width:22px;height:22px;border-radius:6px;font-size:11px}
 }
+
+/* ── WD-DICT-TYPE-1（11-01 她口令）：听写打字型 ──
+   听发音→键盘打出单词。样式与选项卡同族（同底色/圆角/边框变量），不另起一套视觉。 */
+#practiceBody .wdd-wrap{display:grid;gap:9px;margin:2px 0 0}
+#practiceBody .wdd-input{
+  width:100%;box-sizing:border-box;
+  font:inherit;font-size:21px;font-weight:650;letter-spacing:.04em;line-height:1.3;
+  padding:13px 16px;border-radius:12px;
+  border:1.5px solid var(--line);background:var(--surface);color:var(--ink);
+  text-align:center;text-transform:none;
+}
+#practiceBody .wdd-input::placeholder{font-size:14.5px;font-weight:500;letter-spacing:0;color:var(--ink2);opacity:.75}
+#practiceBody .wdd-input:focus{outline:none;border-color:var(--primary,#5cb3ab);box-shadow:0 0 0 3px rgba(92,179,171,.16)}
+#practiceBody .wdd-hint{font-size:12px;color:var(--ink2);text-align:center;letter-spacing:.02em}
+/* 答后：judge 会锁指针并揭示（.pw-reveal），输入框降透明度只读，别抢戏 */
+#practiceBody .pw-reveal ~ .opts-grid .wdd-input,
+#practiceBody .opts-grid .wdd-input:disabled{opacity:.55;pointer-events:none}
+/* 深色档：跟随站点 token，不写死浅色值（站内深色口径=settings.theme） */
+[data-theme="dark"] #practiceBody .wdd-input{background:var(--surface);border-color:var(--line);color:var(--ink)}
+/* 手机档：字号/内边距收一档 */
+@media(max-width:700px){
+  #practiceBody .wdd-input{font-size:18px;padding:11px 13px;border-radius:10px}
+}
