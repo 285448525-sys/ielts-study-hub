@@ -77,12 +77,24 @@ function recActs(r){
      · chip 状态存 window.__rv2Chip，与既有 pick/statRange 同级的做法一致
    与旧版的差异（有意为之）：旧版是三键各自 toggle（要看整卷得先点掉分项和口语），
    现在改单选 + 「全部」，同样能只看一类，点得更少。 */
+/* ⚠️ 分类口径（重要，别只看 kind）：rec-all.js 的 collect() 有个历史包袱 ——
+   整卷模考记录的 kind 恒为 'part'（注释见 rec-all.js:74「整卷记录也被标成分项…
+   kind 保持 part 不动 —— 它同时被筛选 chip 与删除转发复用」），真正的粒度在 gran。
+   所以筛选/计数**必须按语义粒度**：speaking 看 kind，whole/part 看 gran。
+   只用 kind 的话，「阅读 · 整卷」那条会被归到「分项」里，而点「整卷」又看不到它 ——
+   用户看到的标题与筛选结果自相矛盾。 */
+function recCat(r){
+ if(!r)return '';
+ if(r.kind==='speaking')return 'speaking';
+ if(r.kind==='whole')return 'whole';          /* DATA.scores 的真题录入行 */
+ return r.gran==='whole'?'whole':'part';      /* mockRecords：整卷模考 gran=whole，kind 恒为 part（历史包袱） */
+}
 var CHIP_NAMES={all:'全部',whole:'整卷',part:'分项',speaking:'口语模考'};
 function chipKey(){return (window.__rv2Chip||'all')}
 function paintChips(all){
  var wrap=$('recAllChips');if(!wrap)return;
  var n={all:all.length,whole:0,part:0,speaking:0};
- all.forEach(function(r){if(n[r.kind]!=null&&r.kind!=='all')n[r.kind]++});
+ all.forEach(function(r){var c=recCat(r);if(n[c]!=null)n[c]++});
  wrap.querySelectorAll('button[data-k]').forEach(function(b){
   var k=b.dataset.k;b.textContent=CHIP_NAMES[k]+' '+(n[k]==null?0:n[k]);
   b.classList.toggle('active',k===chipKey())
@@ -91,14 +103,14 @@ function paintChips(all){
 function records(){
  var all=typeof RecAll!=='undefined'&&RecAll.collect?RecAll.collect():[];
  paintChips(all);
- /* 类型筛选（chip）→ 再套时间筛选（recordFilter），两维 AND */
+ /* 类型筛选（chip）→ 再套时间筛选（recordFilter），两维 AND。按 recCat 的语义粒度 */
  var k=chipKey();
- var pool=k==='all'?all:all.filter(function(r){return r&&r.kind===k});
+ var pool=k==='all'?all:all.filter(function(r){return recCat(r)===k});
  var limit=$('recordFilter').value==='recent'?3:pool.length;var list=pool.slice(0,limit);
  window.__rv2RecList=all;   /* 供「重新做一遍」按 id 取回 ids/type，不二次读 DATA（同 id 可能被筛选/覆盖） */
  if(!all.length){$('recAll').innerHTML='<div class="rv2-rec-empty">保存后会在这里看到每次成绩、分项练习与口语模考。</div>';return}
  if(!pool.length){$('recAll').innerHTML='<div class="rv2-rec-empty">这一栏还没有记录，换个类型或选「全部」看看。</div>';return}
- $('recAll').innerHTML=list.map(function(r){return '<div class="rv2-rec-row" data-id="'+esc(r.id)+'" data-rec-id="'+esc(r.id)+'" data-kind="'+esc(r.kind)+'"'+(r.gran?' data-gran="'+esc(r.gran)+'"':'')+'><span class="rv2-rec-date">'+esc(r.date)+'</span><div class="rv2-rec-main"><b>'+esc(r.title)+'</b><span>'+({whole:'整套真题',part:'分项练习',speaking:'口语模考'}[r.kind]||'学习记录')+'</span></div><span class="rv2-rec-score">'+esc(r.main)+'<small>'+esc(r.mainLabel)+'</small></span>'+recActs(r)+'<button class="rv2-detail" data-rv2-detail="'+esc(r.id)+'" data-kind="'+esc(r.kind)+'">详情</button></div>'}).join('')+(pool.length>list.length?'<div class="rv2-rec-empty">当前显示最近三次，右上角可切换全部记录。</div>':'')
+ $('recAll').innerHTML=list.map(function(r){var cat=recCat(r);return '<div class="rv2-rec-row" data-id="'+esc(r.id)+'" data-rec-id="'+esc(r.id)+'" data-kind="'+esc(r.kind)+'" data-cat="'+esc(cat)+'"'+(r.gran?' data-gran="'+esc(r.gran)+'"':'')+'><span class="rv2-rec-date">'+esc(r.date)+'</span><div class="rv2-rec-main"><b>'+esc(r.title)+'</b><span>'+({whole:'整套真题',part:'分项练习',speaking:'口语模考'}[cat]||'学习记录')+'</span></div><span class="rv2-rec-score">'+esc(r.main)+'<small>'+esc(r.mainLabel)+'</small></span>'+recActs(r)+'<button class="rv2-detail" data-rv2-detail="'+esc(r.id)+'" data-kind="'+esc(r.kind)+'">详情</button></div>'}).join('')+(pool.length>list.length?'<div class="rv2-rec-empty">当前显示最近三次，右上角可切换全部记录。</div>':'')
 }
 /* ?rec=<id> 定位：渲染后按 data-rec-id 找到行、滚到中间、轻高亮 2 秒。
    找不到（记录被删/老书签/参数乱写/还没渲染出来）→ 不报错、不滚动，页面照常。
