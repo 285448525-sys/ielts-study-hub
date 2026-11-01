@@ -119,9 +119,9 @@ const ck = (n, ok, info) => { const l = (ok ? '  ✅ ' : '  ❌ ') + n + (info ?
   ck('B4 听力单篇：没有眼睛标', !lv.hide);
   ck('B5 听力单篇：不显示整场计时（她 ⑤）', lv.fullTimer === false);
   ck('B6 音量按钮是 SVG、无 emoji', lv.volSvg === true);
-  /* MOCK-AUDIO-CTRL-1（10-31）：倍速扩到 0.5–2.0。判据改成**序数比较**，不再写死档数与端值
-     （写死字面量今天已经过期一次）。守的仍是同一件事：倍速是个可选档位的下拉、范围覆盖常用区间。 */
-  ck('B7 倍速是 select，覆盖 0.5–2.0 且至少 6 档', lv.rateSel && lv.rateN >= 6 && Number(lv.rateMin) <= 0.5 && Number(lv.rateMax) >= 2,
+  /* 11-01 她定档：0.7–1.5（0.1 一档 = 9 档），「别弄那么多档」。
+     判据仍是序数比较、不写死档数：守住「是可选档位的下拉 + 覆盖 0.7~1.5 常用区间」。 */
+  ck('B7 倍速是 select，覆盖 0.7–1.5 且至少 6 档', lv.rateSel && lv.rateN >= 6 && Number(lv.rateMin) <= 0.7 && Number(lv.rateMax) >= 1.5,
      'n=' + lv.rateN + ' min=' + lv.rateMin + ' max=' + lv.rateMax);
 
   await page.selectOption('#eaRate', '1.3');

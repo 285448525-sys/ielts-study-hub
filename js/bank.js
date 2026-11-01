@@ -1242,17 +1242,12 @@
   /* 10/20：小旗子（标记本题）。考前指南卡与答题页旗标同款，卡上长什么样考场上就长什么样。
      原来用 ⚑ 字符，全站禁 emoji → 换 SVG。 */
   var ICO_FLAG = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V4"/><path d="M6 4.5h11l-2.2 4.2L17 12.8H6"/></svg>';
-  /* MOCK-AUDIO-CTRL-1（10-31）：倍速扩到 **0.5–2.0，0.1 一档（16 档）**。
-     她 10-28 报「不能调倍速」；原范围只有 0.8–1.5 / 0.1 一档。SSR v2 稿列的六个标准档
-     （0.5 / 0.75 / 1.0 / 1.25 / 1.5 / 2.0）全部落在里面，多的档位不影响按标准档用。
-     ⚠️ 为什么不改成「只留那六个离散值」（工程判断）：
-       ① 现有 4 支回归探针（_probe_examtools_1018 / _probe_t031_audio / _probe_72_1023 /
-          _probe_1020ui）都读 #eaRate 的 options 与 value，有的直接 selectOption('1.3')；
-          砍成六档会让 '1.3' 变无效、那几支集体转红，而它们守的是「考试模式不给倍速」这类
-          口径铁律，不能为了视觉颗粒度把它们作废。
-       ② 0.1 一档是她 10/20 亲口定的（「0.8 到 1.5，0.1 一档」），扩范围不改颗粒度才是最小改动。
+  /* 11-01 她定档：**0.7–1.5，0.1 一档（9 档）**，别弄那么多档。
+     前一版 MOCK-AUDIO-CTRL-1 扩到 0.5–2.0（16 档），她说太多，收回她 10/20 亲口定的原始区间。
+     1.3 仍在区间内 —— _probe_examtools_1018 / _probe_t031_audio / _probe_72_1023
+     三支探针都硬编码 selectOption('1.3')，不用改判据就能继续跑。
      默认仍 1.0。AUDIO_RATES 旧数组改名保留索引兼容，新路径一律走 setRate()。 */
-  var RATE_MIN = 0.5, RATE_MAX = 2.0, RATE_STEP = 0.1, RATE_DEFAULT = 1.0;
+  var RATE_MIN = 0.7, RATE_MAX = 1.5, RATE_STEP = 0.1, RATE_DEFAULT = 1.0;
   function rateOptions(){
     var s = '', n = Math.round((RATE_MAX - RATE_MIN) / RATE_STEP), i;
     for(i = 0; i <= n; i++){
