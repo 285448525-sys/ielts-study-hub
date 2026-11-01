@@ -1392,6 +1392,7 @@
   function splitHtml(artHtml, qHtml){
     return '<div class="ex-split" id="exSplit">'
       +    '<div class="ex-article" id="exArt">' + artHtml + '</div>'
+      +    '<button type="button" class="ex-split-handle" id="exSplitHandle" role="separator" aria-label="拖动调整原文和题目宽度" aria-orientation="vertical" aria-valuemin="25" aria-valuemax="75" aria-valuenow="50" tabindex="0"></button>'
       +    '<div class="ex-qcol" id="exQCol">' + qHtml + '</div>'
       +    '<aside class="ex-notes" id="exNotes">'
       +      '<div class="ex-notes-h"><b>Notes</b><button type="button" id="exNoteClose" title="Hide">×</button></div>'
@@ -1399,6 +1400,39 @@
       +    '</aside>'
       +  '</div>';
   }
+  /* 只调整原文与题目宽度，不移动底栏、答题控件或手机布局。 */
+  var _exSplitPct = 50;
+  try{ _exSplitPct = Math.max(25,Math.min(75,Number(localStorage.getItem('hub_ex_split_pct')) || 50)); }catch(e){}
+  function setExSplit(pct){
+    var sp=document.getElementById('exSplit'); if(!sp)return;
+    _exSplitPct=Math.max(25,Math.min(75,Number(pct)||50));
+    sp.style.setProperty('--ex-art-pct',_exSplitPct);
+    var h=document.getElementById('exSplitHandle'); if(h)h.setAttribute('aria-valuenow',Math.round(_exSplitPct));
+    var a=document.getElementById('exArt'),q=document.getElementById('exQCol');
+    if(window.innerWidth>860){
+      sp.style.gridTemplateColumns='minmax(0,'+_exSplitPct+'fr) minmax(0,'+(100-_exSplitPct)+'fr)'+(sp.classList.contains('hasnotes')?' minmax(240px,288px)':'');
+    }
+    try{localStorage.setItem('hub_ex_split_pct',String(_exSplitPct))}catch(e){}
+  }
+  document.addEventListener('pointerdown',function(e){
+    var h=e.target.closest&&e.target.closest('#exSplitHandle'); if(!h||window.innerWidth<=860)return;
+    e.preventDefault(); e.stopPropagation();
+    h.setPointerCapture&&h.setPointerCapture(e.pointerId);
+    var move=function(ev){
+      var sp=document.getElementById('exSplit'); if(!sp)return;
+      var r=sp.getBoundingClientRect(),notes=sp.classList.contains('hasnotes')?Math.min(288,r.width*.25):0;
+      var pct=(ev.clientX-r.left)/Math.max(1,r.width-notes)*100;
+      setExSplit(pct);
+    };
+    var up=function(){document.removeEventListener('pointermove',move,true);document.removeEventListener('pointerup',up,true);document.removeEventListener('pointercancel',up,true)};
+    document.addEventListener('pointermove',move,true);document.addEventListener('pointerup',up,true);document.addEventListener('pointercancel',up,true);
+  },true);
+  document.addEventListener('keydown',function(e){
+    var h=e.target.closest&&e.target.closest('#exSplitHandle'); if(!h)return;
+    if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();setExSplit(_exSplitPct+(e.key==='ArrowLeft'?-5:5))}
+    else if(e.key==='Home'||e.key==='End'){e.preventDefault();setExSplit(e.key==='Home'?25:75)}
+  });
+  window.addEventListener('hub:exam-rendered',function(){setExSplit(_exSplitPct)});
   /* ===== 10/14 补 Option 面板交互 =====
    既有 bug：Colour / Size / Audio 三个分组行点击无反应 —— .ex-opsub.on 这个类从来没有任何 JS 去加
    （CSS 写好了显示规则，JS 侧缺失）。本批补齐：点分组 → 显示子页；点 Back/✕ → 回主列表。 */
@@ -2620,7 +2654,7 @@ window.__reportExamState = reportExamState;
     paintSheet();
     if(EX.scored === false) showNoAnsBanner();
     if(isListen){ wireAudio(); mountListenTools(); watchAudioReady(); }
-    else { renderNotes(); replayMarks(); }
+    else { setExSplit(_exSplitPct); renderNotes(); replayMarks(); }
     wireOptionPanel();   /* 10/14 Option 面板交互（Colour/Size/Audio 分组点击） */
     wireExamTools();     /* 10/18 顶栏工具栏：全屏（眼睛标 10/20 删除） */
     reportExamState(true);   /* 10/15 告诉 SW：我在考试中，别刷我 */
@@ -3520,7 +3554,7 @@ window.__reportExamState = reportExamState;
         if(wrapRange(_hlRange, 'ex-nt', id2)){
           list.push({ id: id2, kind: 'nt', text: q2.text, pre: q2.pre, post: q2.post, note: '' });
           saveMarks(list);
-          var sp = document.getElementById('exSplit'); if(sp) sp.classList.add('hasnotes');
+          var sp = document.getElementById('exSplit'); if(sp){sp.classList.add('hasnotes');setExSplit(_exSplitPct)}
           renderNotes(); focusNote(id2);
         }
       }
@@ -3547,7 +3581,7 @@ window.__reportExamState = reportExamState;
   function hlReset(){
     _hlRange = null; _hlSpan = null; _hlCache = null;
     closeCtx();
-    var sp = document.getElementById('exSplit'); if(sp) sp.classList.remove('hasnotes');
+    var sp = document.getElementById('exSplit'); if(sp){sp.classList.remove('hasnotes');setExSplit(_exSplitPct)}
   }
 
   /* ===== 划词浮动工具条（选中即弹）—— 定位 / 显隐 / 开合 =====
@@ -4499,7 +4533,7 @@ window.__reportExamState = reportExamState;
         var cx = document.getElementById('exCtx'); if(cx) cx.classList.remove('on');
         return;
       }
-      if((el = t.closest && t.closest('#exNoteClose'))){ document.getElementById('exSplit').classList.remove('hasnotes'); return; }
+      if((el = t.closest && t.closest('#exNoteClose'))){ document.getElementById('exSplit').classList.remove('hasnotes'); setExSplit(_exSplitPct); return; }
       if((el = t.closest && t.closest('[data-ndel]'))){ delNote(el.getAttribute('data-ndel')); return; }
       if((el = t.closest && t.closest('#exArt .ex-nt, #exQCol .ex-nt'))){ focusNote(el.getAttribute('data-id')); return; }
       /* 真机考 2026 新版：单击已高亮文字直接出 Remove Highlight（搜狐来源口径一致）。
