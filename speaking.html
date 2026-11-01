@@ -92,7 +92,7 @@
   <!-- 10-24 T-009 S-5：F 区（详情页与保存，含 515 行 openDetail）拆出 js/sp-detail.js（761 行）。
        F 是最顶层的域（调用 A/I/G/J/H/E/K 七个域）→ 排在最后、紧邻 speaking.js 之前。 -->
   <script defer src="js/sp-detail.js?v=20261029b"></script>
-  <script defer src="js/speaking.js?v=20261026a"></script>
+  <script defer src="js/speaking.js?v=20261101a"></script>
   <!-- 10-22 她要求：「句型闯关」这个老引擎整个删掉（页面 / 引擎 / 数据全部下线）。
        已同步删掉 js/pattern-drill.js、pattern-drill.html、data/patterns.json 与 #pdView 界面；
        口语「陪练」tab 仍由 AI 陪练（coach.js）接管，句型练习（sentence-drill.js）不受影响。 -->
@@ -2862,6 +2862,24 @@ html[data-theme="dark"] #detailBody .sp-tc-head{
   animation:spTabSpin .7s linear infinite}
 @keyframes spTabSpin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion: reduce){#tabs .pill-tab.is-loading::after, #spMockJumpBtn.is-loading::after{animation:none;opacity:.6}}
+
+/* ===== SPK-CORE-FALLBACK-1（11-01）：sp-core.js 没加载出来时的可读兜底 =====
+   原状态是页面只剩空壳、题卡区一片空白，人不知道是自己点错了还是站坏了。
+   样式照全站既有卡片口径（白底+浅边+10px 圆角），不新造视觉语言。
+   正常加载时这段样式不命中任何元素（#spCoreFail 不存在）。 */
+.sp-core-fail{background:var(--card,#fff);border:1px solid var(--line,#e6eaea);border-radius:10px;
+  padding:22px 20px;margin:4px 0 14px;text-align:center}
+.sp-core-fail .sp-cf-t{font-size:15px;font-weight:700;color:var(--ink,#1c2b2a);margin-bottom:6px}
+.sp-core-fail .sp-cf-d{font-size:13px;line-height:1.6;color:var(--muted,#6b7a78);margin-bottom:14px}
+.sp-core-fail .sp-cf-btn{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:0 18px;
+  border-radius:10px;font-size:14px;font-weight:650;cursor:pointer}
+@media (max-width:640px){
+  .sp-core-fail{padding:18px 14px}
+  .sp-core-fail .sp-cf-btn{min-height:40px}
+}
+html[data-theme="dark"] .sp-core-fail{background:#1e2226;border-color:#333a40}
+html[data-theme="dark"] .sp-core-fail .sp-cf-t{color:#f2f2f2}
+html[data-theme="dark"] .sp-core-fail .sp-cf-d{color:#c8cbd0}
 
 </style>
 <style id="bootLoaderStyle">

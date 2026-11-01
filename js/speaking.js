@@ -39,7 +39,45 @@ ready(function(){
   setTimeout(go, 300);
 });
 
+/* ===== SPK-CORE-FALLBACK-1（11-01）=====
+   她报过的形态：脚本没下下来时页面只剩空壳、点哪都没反应，人不知道为什么。
+   js/sp-core.js 提供 populateFreqOptions / getFiltered / freqTag / refreshStateOptions 等，
+   speaking.js 的初始化链直接调它们 —— 少一个就是 ReferenceError，ready 回调当场中断，
+   后面 renderList / 事件绑定一条都跑不到，题卡区一片空白（实测 h=2px）。
+   这里只在**确实缺失**时接管：给一张可读的提示 + 重试钮，然后把后续初始化跳过（否则会连炸一串）。
+   正常加载时 missing 为空数组 → 一个分支都不进，原链路一行不变。 */
+function spkCoreMissing(){
+  return ['populateFreqOptions', 'getFiltered', 'freqTag', 'refreshStateOptions']
+    .filter(n => typeof window[n] !== 'function');
+}
+function spkShowCoreFail(){
+  try{
+    var host = document.getElementById('listView');
+    if(!host || document.getElementById('spCoreFail')) return;
+    var box = document.createElement('div');
+    box.id = 'spCoreFail';
+    box.className = 'sp-core-fail';
+    box.innerHTML = '<div class="sp-cf-t">题库数据没加载出来</div>'
+      + '<div class="sp-cf-d">多半是网络抖了一下，点下面重试就行。反复出现的话告诉我。</div>'
+      + '<button type="button" class="btn btn-primary sp-cf-btn">重新加载</button>';
+    box.querySelector('.sp-cf-btn').addEventListener('click', function(){
+      try{ location.reload(); }catch(e){}
+    });
+    host.insertBefore(box, host.firstChild);
+    /* 题卡区留个明确的空态，别让人对着空白猜是不是自己操作错了 */
+    var list = host.querySelector('.sp-list');
+    if(list && !list.innerText.trim()) list.innerHTML = '<div class="empty">题库内容还没准备好</div>';
+  }catch(e){}
+}
+
 ready(() => {
+  var _spkMissing = spkCoreMissing();
+  if(_spkMissing.length){
+    /* 只记录、不抛错；不自动刷新（10-23 那条「不自动 reload」的红线照旧） */
+    try{ console.error('[sp-core-missing] ' + _spkMissing.join(', ')); }catch(e){}
+    spkShowCoreFail();
+    return;
+  }
   $('#tabs').querySelectorAll('[data-type]').forEach(b => {
     b.addEventListener('click', () => {
       const t = b.dataset.type;
@@ -62,7 +100,8 @@ ready(() => {
         }
       } else if(t === 'BANK'){
         curType = 'ALL';
-        populateFreqOptions();
+        /* SPK-CORE-FALLBACK-1：切 tab 也要能在脚本缺失时活下来（否则点一下就断） */
+        if(typeof populateFreqOptions === 'function') populateFreqOptions();
         const cs = $('#catSelect'); if(cs) cs.value = 'all';
         curCat = 'all';
         const ps = $('#partSelect'); if(ps) ps.value = 'all';
