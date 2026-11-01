@@ -38,19 +38,100 @@ function trendPoints(){
  (Array.isArray(DATA.mockRecords)?DATA.mockRecords:[]).forEach(function(r){if(!r)return;if(r.kind==='speaking'||(!Array.isArray(r.parts)&&r.p1)){put('speaking',r.date,r.overall,false);return}if(!Array.isArray(r.parts)||!per[r.type])return;var cfg=typeof MOCK_TYPES!=='undefined'&&MOCK_TYPES[r.type];if(!cfg)return;var v=null;if(cfg.mode==='score'){var sum=0,w=0;r.parts.forEach(function(p){if(typeof p.score==='number'){var weight=typeof p.weight==='number'?p.weight:1;sum+=p.score*weight;w+=weight}});if(w)v=sum/w}else{var c=0,t=0;r.parts.forEach(function(p){c+=Number(p.correct)||0;t+=Number(p.total)||0});if(typeof r.overall==='number')v=r.overall;else if(t&&typeof estimateBand==='function')v=estimateBand(r.type,c,t)}put(r.type,r.date,v,false)});
  return{dates:Object.keys(seen).sort(),per:per}
 }
+/* TREND-AXIS-1：视图状态（按分数/按对题个数）。挂 window 加守卫——软导航重跑脚本时
+   顶层 var 会重置，但 window 上的值保留，切到个数视角后软导航回来不掉回分数（R4）。 */
+var view=(window.__rvxTrendView==='count'?'count':'score');
+window.__rvxTrendView=view;
+/* 对题数数据源：只有听/读模考记录的 parts[].correct/total 有真值；真题录入只有 band 分（R1）。
+   按日期聚合成 {date,c,t}，c=null 表示该日没有对题数（折线做 gap 处理）。 */
+function countPoints(){
+ var per={listening:{},reading:{}};
+ (Array.isArray(DATA.mockRecords)?DATA.mockRecords:[]).forEach(function(r){
+  if(!r||!Array.isArray(r.parts)||!per[r.type])return;
+  /* R2：整卷模考（gran=whole）的 parts 是整套 40 题，不是单科片段——个数视角只看分项模考记录 */
+  if(r.gran==='whole')return;
+  var c=0,t=0;r.parts.forEach(function(p){c+=Number(p.correct)||0;t+=Number(p.total)||0});
+  if(!t)return;
+  var d=String(r.date||'').slice(0,10);if(!d)return;
+  /* 同一天多次练习：累加对题数与总题数（与表现统计的聚合口径一致） */
+  if(!per[r.type][d])per[r.type][d]={date:d,c:0,t:0};
+  per[r.type][d].c+=c;per[r.type][d].t+=t;
+ });
+ return per;
+}
+/* R6：目标分→目标对题数。用记录里的实际 total（max，整套模考总数），不硬编码 40。
+   反算 = 目标 band 在 BAND_TABLE 里对应的最低对题比例 × 实际 total。 */
+function goalCountFor(type){
+ var t=Number(targets()[type]);if(!(t>0))return null;
+ var tbl=typeof BAND_TABLE!=='undefined'&&BAND_TABLE[type];if(!tbl)return null;
+ var minRatio=null;
+ for(var i=0;i<tbl.length;i++){if(tbl[i][1]===t){minRatio=tbl[i][0]/40;break}}
+ if(minRatio==null)return null;
+ /* total 取该科对题数记录里的最大值（最接近整套模考的真实题量） */
+ var cp=countPoints()[type]||{},maxT=0;
+ Object.keys(cp).forEach(function(d){if(cp[d].t>maxT)maxT=cp[d].t});
+ if(!maxT)return null;
+ return Math.round(minRatio*maxT);
+}
 function trend(){
- var got=trendPoints(),dates=got.dates,per=got.per,cells={},color='var(--primary)',name='总分';
- if(pick==='overall'){dates.forEach(function(d){var vals=SUBS.map(function(s){return per[s.k][d]}).filter(Boolean);if(vals.length>=2)cells[d]={v:vals.reduce(function(a,x){return a+x.v},0)/vals.length,real:vals.some(function(x){return x.real})}})}else{cells=per[pick];SUBS.forEach(function(s){if(s.k===pick)name=s.n})}
- if(!dates.length){$('rv2TrendCanvas').innerHTML='<div class="rv2-chart-empty">有两次以上成绩后，这里会出现趋势。<br>真题、模考和手动录入都会计入。</div>';$('rvxTrendLab').textContent='录入成绩后开始记录变化';$('rv2RangeText').textContent='暂无成绩记录';$('rv2GoalText').textContent='';return}
- var idx=dates.map(function(d,i){return cells[d]?i:-1}).filter(function(i){return i>=0});if(!idx.length){$('rv2TrendCanvas').innerHTML='<div class="rv2-chart-empty">这一科还没有可画的成绩记录。</div>';$('rvxTrendLab').textContent=name+' · 暂无记录';return}
- var W=640,H=218,left=40,right=12,top=12,bottom=28,pw=W-left-right,ph=H-top-bottom;
- var X=function(i){return dates.length===1?left+pw/2:left+pw*i/(dates.length-1)},Y=function(v){return top+ph*(1-Math.max(4,Math.min(9,v)-4)/5)};
- var s='';for(var g=4;g<=9;g++){var y=Y(g);s+='<line x1="'+left+'" y1="'+y+'" x2="'+(W-right)+'" y2="'+y+'" stroke="var(--line)"/><text x="5" y="'+(y+4)+'" fill="var(--muted)" font-size="11">'+g+'</text>'}
- var t=Number(targets()[pick]);if(t>=4&&t<=9){var gy=Y(t);s+='<line x1="'+left+'" y1="'+gy+'" x2="'+(W-right)+'" y2="'+gy+'" stroke="var(--warn)" stroke-dasharray="5 5" opacity=".65"/>';$('rv2GoalText').textContent='虚线 = 目标 '+targetText(t)}else $('rv2GoalText').textContent='';
- if(idx.length>1){var pts=idx.map(function(i){return X(i)+','+Y(cells[dates[i]].v)}).join(' ');s+='<polyline points="'+pts+'" fill="none" stroke="'+color+'" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>'}
- idx.forEach(function(i){var c=cells[dates[i]],x=X(i),y=Y(c.v);s+='<circle cx="'+x+'" cy="'+y+'" r="4" fill="'+(c.real?color:'var(--surface)')+'" stroke="'+color+'" stroke-width="2"><title>'+dates[i]+'：'+one(c.v)+'</title></circle>'});
- var step=Math.max(1,Math.ceil(dates.length/5));dates.forEach(function(d,i){if(i%step&&i!==dates.length-1)return;var anchor=i===0?'start':(i===dates.length-1?'end':'middle');s+='<text x="'+X(i)+'" y="212" text-anchor="'+anchor+'" fill="var(--muted)" font-size="11">'+esc(d.slice(5))+'</text>'});
- $('rv2TrendCanvas').innerHTML='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+name+'成绩趋势">'+s+'</svg>';$('rvxTrendLab').textContent='近 '+idx.length+' 次'+name+'记录';$('rv2RangeText').textContent=dates[0].slice(5)+' — '+dates[dates.length-1].slice(5)
+ var isCount=(view==='count');
+ var applicable=!isCount||(pick==='listening'||pick==='reading');
+ var color='var(--primary)',name='总分';SUBS.forEach(function(s){if(s.k===pick)name=s.n});
+ /* 个数视角不适用（写作/口语/总分）→ 出解释文案，不出假图 */
+ if(!applicable){
+  $('rv2TrendCanvas').innerHTML='<div class="rv2-chart-empty">对题个数只对听力和阅读才有意义。<br>写作、口语、总分没有「对几题」的概念，请切回「按分数」。</div>';
+  $('rvxTrendLab').textContent='按对题个数 · 此视角不适用';$('rv2RangeText').textContent='';$('rv2GoalText').textContent='';return;
+ }
+ var dates,cells;
+ if(isCount){
+  var cp=countPoints()[pick]||{};
+  dates=Object.keys(cp).sort();
+  cells={};dates.forEach(function(d){cells[d]={v:cp[d].c,total:cp[d].t,real:false}});
+ }else{
+  var got=trendPoints();dates=got.dates;var per=got.per;cells={};
+  if(pick==='overall'){dates.forEach(function(d){var vals=SUBS.map(function(s){return per[s.k][d]}).filter(Boolean);if(vals.length>=2)cells[d]={v:vals.reduce(function(a,x){return a+x.v},0)/vals.length,real:vals.some(function(x){return x.real})}})}else{cells=per[pick]}
+ }
+ if(!dates.length){
+  $('rv2TrendCanvas').innerHTML='<div class="rv2-chart-empty">有两次以上成绩后，这里会出现趋势。<br>真题、模考和手动录入都会计入。</div>';
+  $('rvxTrendLab').textContent='录入成绩后开始记录变化';$('rv2RangeText').textContent='暂无成绩记录';$('rv2GoalText').textContent='';return;
+ }
+ var idx=dates.map(function(d,i){return cells[d]?i:-1}).filter(function(i){return i>=0});
+ if(!idx.length){
+  $('rv2TrendCanvas').innerHTML='<div class="rv2-chart-empty">'+(isCount?'这一科还没有可画的对题数记录。':'这一科还没有可画的成绩记录。')+'</div>';
+  $('rvxTrendLab').textContent=name+' · 暂无记录';return;
+ }
+ /* 纵轴自适应（替换原固定 4-9 档）：数据 min-max + 目标值纳入 + 上下留白。
+    分数视角 tick 压回 0.5 档（R5），个数视角取整。 */
+ var vals=idx.map(function(i){return cells[dates[i]].v});
+ var goalV=isCount?goalCountFor(pick):Number(targets()[pick]);
+ var lo=Math.min.apply(null,vals),hi=Math.max.apply(null,vals);
+ if(goalV!=null&&isFinite(goalV)&&goalV>0){lo=Math.min(lo,goalV);hi=Math.max(hi,goalV)}
+ var pad=isCount?Math.max(2,Math.round((hi-lo)*0.15)):0.5;
+ lo=Math.max(0,lo-pad);hi=hi+pad;
+ if(isCount){lo=Math.floor(lo);hi=Math.ceil(hi)}
+ var steps=4,span=hi-lo,tick=[];steps=(span/(isCount?5:1))>4?4:3;
+ for(var gi=0;gi<=steps;gi++){var gv=lo+span*gi/steps;tick.push(isCount?Math.round(gv):Math.round(gv*2)/2)}
+ var W=640,H=230,left=44,right=14,top=14,bottom=30,pw=W-left-right,ph=H-top-bottom;
+ var X=function(i){return dates.length===1?left+pw/2:left+pw*i/(dates.length-1)};
+ var Y=function(v){return top+ph*(1-(v-lo)/(hi-lo))};
+ var s='';tick.forEach(function(v){var y=Y(v);s+='<line x1="'+left+'" y1="'+y+'" x2="'+(W-right)+'" y2="'+y+'" stroke="var(--line)"/><text x="6" y="'+(y+4)+'" fill="var(--muted)" font-size="12">'+v+(isCount?' 题':'')+'</text>'});
+ if(goalV!=null&&isFinite(goalV)&&goalV>0){
+  var gy=Y(goalV);s+='<line x1="'+left+'" y1="'+gy+'" x2="'+(W-right)+'" y2="'+gy+'" stroke="var(--warn)" stroke-dasharray="5 5" opacity=".65"/>';
+  $('rv2GoalText').textContent=isCount?('虚线 = 目标 '+goalV+' 题（由目标分 '+targetText(Number(targets()[pick]))+' 换算）'):('虚线 = 目标 '+targetText(goalV));
+ }else $('rv2GoalText').textContent='';
+ /* R1：折线分段——对题数视角下没有对题数的日期不画点，折线在空点处断开（gap），不穿空点 */
+ if(idx.length>1){
+  var segs=[],cur=[];
+  idx.forEach(function(i){var v=cells[dates[i]].v;if(v==null||!isFinite(v)){if(cur.length)segs.push(cur);cur=[];return}cur.push(X(i)+','+Y(v))});
+  if(cur.length)segs.push(cur);
+  segs.forEach(function(seg){if(seg.length>1)s+='<polyline points="'+seg.join(' ')+'" fill="none" stroke="'+color+'" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>'});
+ }
+ idx.forEach(function(i){var c=cells[dates[i]];if(c.v==null||!isFinite(c.v))return;var x=X(i),y=Y(c.v);
+  s+='<circle cx="'+x+'" cy="'+y+'" r="4.5" fill="'+(c.real?color:'var(--surface)')+'" stroke="'+color+'" stroke-width="2"><title>'+dates[i]+'：'+(isCount?c.v+' / '+c.total+' 题':one(c.v)+' 分')+'</title></circle>'});
+ var step=Math.max(1,Math.ceil(dates.length/5));dates.forEach(function(d,i){if(i%step&&i!==dates.length-1)return;var anchor=i===0?'start':(i===dates.length-1?'end':'middle');s+='<text x="'+X(i)+'" y="'+(H-6)+'" text-anchor="'+anchor+'" fill="var(--muted)" font-size="12">'+esc(d.slice(5))+'</text>'});
+ $('rv2TrendCanvas').innerHTML='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+name+'成绩趋势">'+s+'</svg>';
+ $('rvxTrendLab').textContent='近 '+idx.length+' 次'+name+(isCount?' · 对题个数':' 记录');
+ $('rv2RangeText').textContent=dates[0].slice(5)+' — '+dates[dates.length-1].slice(5);
 }
 /* RV-RECALL-KEEP-1（11-01）：整页重建时 rec-all.js 的 render() 被一行早退挡掉
    （`if(document.getElementById('reviewMain'))return`），连带丢了它给整卷行挂的
@@ -139,7 +220,28 @@ function bind(){
  document.addEventListener('click',function(ev){var el=ev.target&&ev.target.closest?ev.target:null;if(!el)return;
   var add=el.closest('[data-rv2-add]');if(add){ev.preventDefault();saveCounts={whole:scores().length,part:Array.isArray(DATA.mockRecords)?DATA.mockRecords.length:0};var d=$('rv2AddDialog');if(d&&!d.open)d.showModal();return}
   var kind=el.closest('.rv2-kind [data-kind]');if(kind){ev.preventDefault();document.querySelectorAll('.rv2-kind button').forEach(function(b){b.classList.toggle('active',b===kind)});$('scAddWrap').hidden=kind.dataset.kind!=='whole';$('mkAddWrap').hidden=kind.dataset.kind!=='part';return}
-  var tr=el.closest('#rvxTrendChips [data-k]');if(tr){ev.preventDefault();pick=tr.dataset.k;document.querySelectorAll('#rvxTrendChips button').forEach(function(b){b.classList.toggle('active',b===tr)});trend();return}
+  var tr=el.closest('#rvxTrendChips [data-k]');if(tr){ev.preventDefault();
+   /* 个数视角下点不适用科目 → 自动弹回分数 + 琥珀提示 2.4s（与样子稿口径一致，R7 弹回不另造空态） */
+   var nk=tr.dataset.k;
+   var _bounced=false;
+   if(view==='count'&&nk!=='listening'&&nk!=='reading'){
+    view='score';window.__rvxTrendView='score';_bounced=true;
+    document.querySelectorAll('#rvxTrendView button').forEach(function(b){b.classList.toggle('active',b.dataset.view==='score')});
+   }
+   pick=nk;document.querySelectorAll('#rvxTrendChips button').forEach(function(b){b.classList.toggle('active',b===tr)});
+   trend();  /* 先画正常图（trend() 会重写 goalText），再盖弹回提示 */
+   if(_bounced){
+    var gEl=$('rv2GoalText');gEl.textContent=(SUBS.filter(function(s){return s.k===nk})[0]||{n:'总分'}).n+'没有对题个数概念，已切回按分数';
+    gEl.style.color='var(--warn)';
+    clearTimeout(window.__rvxTrendBounceT);
+    window.__rvxTrendBounceT=setTimeout(function(){gEl.style.color='';trend()},2400);
+   }
+   return}
+  /* TREND-AXIS-1：按分数/按对题个数视图切换 */
+  var vw=el.closest('#rvxTrendView [data-view]');if(vw){ev.preventDefault();
+   view=vw.dataset.view;window.__rvxTrendView=view;
+   document.querySelectorAll('#rvxTrendView button').forEach(function(b){b.classList.toggle('active',b===vw)});
+   trend();return}
   /* RV-REC-CHIP-1：成绩记录的类型筛选。状态存 window.__rv2Chip，重绘交给 records() */
   var chipBtn=el.closest('#recAllChips button[data-k]');if(chipBtn){ev.preventDefault();window.__rv2Chip=chipBtn.dataset.k;records();return}
   if(el.closest('#rvxWeakGo')){ev.preventDefault();var k=$('rvxWeakGo').dataset.subject;location.href=k==='settings'?'settings.html?pane=targets':k==='speaking'?'speaking.html':(k?'bank.html?ch='+k:'bank.html');return}
