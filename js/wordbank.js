@@ -60,17 +60,30 @@
       return (v && typeof v === 'object' && v.banks) ? v : null;
     }catch(e){ return null; }
   }
+  // 11-01 WD-PERF-HANG-1：_persist 原来把全部官方词库整包 JSON.stringify 同步写盘，
+  // 六库叠加 4-8 MB，换词本一次就两轮整包序列化+镜像 diff，主线程秒级阻塞 → 页面无响应。
+  // 改法：只写 state.active 那一个库；非活跃库只标 _dirty[id]，hub:data-merged / beforeunload /
+  // 下次 _persist 顺路时再合并补写。对读写方完全透明（内存 rec 仍是全量）。
+  var _dirty = {};   // { bankId: true } 非活跃库有未落盘的四件套变更
+  function _serializeBank(b){
+    return { prog: b.prog, session: b.session, seen: b.seen, wrong: b.wrong, dayStats: b.dayStats,
+             practiced: b.practiced || { date: '', words: [] } };
+  }
   function _persist(skipMirror){
     if(state.memOnly) return;
     try{
       var out = { active: state.active, banks: {} };
       for(var id in state.banks){
         if(!Object.prototype.hasOwnProperty.call(state.banks, id)) continue;
-        var b = state.banks[id];
-        out.banks[id] = { prog: b.prog, session: b.session, seen: b.seen, wrong: b.wrong, dayStats: b.dayStats,
-                          practiced: b.practiced || { date: '', words: [] } };
+        if(id === state.active){ out.banks[id] = _serializeBank(state.banks[id]); }
+        else if(!_dirty[id]){ // 未标脏的非活跃库，盘上就是最新的，原样带上（体积不变、只省序列化后的写入波动）
+          var raw = _readStore();
+          if(raw && raw.banks && raw.banks[id]) out.banks[id] = raw.banks[id];
+        }
+        // 标脏的非活跃库：跳过，等 _flushDirty 补写
       }
       localStorage.setItem(OB_KEY, JSON.stringify(out));
+      delete _dirty[state.active];
     }catch(e){
       state.memOnly = true;
       _toastOnce('官方词库进度暂时无法保存（浏览器存储不可用），本次进度只保留在内存');
@@ -84,7 +97,35 @@
       }catch(e1){}
     }
   }
-  // 镜像写入 DATA.obank；返回是否发生变化（无变化不触发 hubSave，防无谓整库序列化）
+  // 补写标脏的非活跃库：hub:data-merged / beforeunload / 页面空闲时调用。
+  // 只做「读盘 → 改脏库字段 → 写回」，活跃库与未脏库字段不动。
+  function _flushDirty(){
+    if(state.memOnly) return;
+    var dirtyIds = [];
+    for(var id in _dirty){ if(_dirty[id] && state.banks[id]) dirtyIds.push(id); }
+    if(!dirtyIds.length) return;
+    try{
+      var raw = _readStore() || { active: wbActive(), banks: {} };
+      if(!raw.banks) raw.banks = {};
+      for(var i = 0; i < dirtyIds.length; i++){
+        raw.banks[dirtyIds[i]] = _serializeBank(state.banks[dirtyIds[i]]);
+        delete _dirty[dirtyIds[i]];
+      }
+      raw.active = wbActive();
+      localStorage.setItem(OB_KEY, JSON.stringify(raw));
+    }catch(e){}
+  }
+  // 空闲时顺手补写（不抢主线程：idle 不支持就退 2s 定时，均为一次性）
+  function _scheduleFlush(){
+    try{
+      if(window.requestIdleCallback) requestIdleCallback(_flushDirty, { timeout: 4000 });
+      else setTimeout(_flushDirty, 2000);
+    }catch(e){ try{ setTimeout(_flushDirty, 2000); }catch(e2){} }
+  }
+  // 镜像写入 DATA.obank；返回是否发生变化（无变化不触发 hubSave，防无谓整库序列化）。
+  // 11-01 卡死修复：原来对全部库各跑两轮 JSON.stringify 做 diff（六库 4-8 MB ×2）。
+  // 改为只对活跃库做完整 diff；非活跃库只比对 prog 词数 + session/seen/practiced 的 date 做轻量探测，
+  // 探测到差异才标脏并整库替换镜像（正常情况零差异零开销）。
   function _mirrorToData(){
     if(state.memOnly) return false;
     try{
@@ -97,7 +138,19 @@
         var next = { prog: b.prog || {}, session: b.session || null,
                      seen: b.seen || { date: '', words: [] },
                      practiced: b.practiced || { date: '', words: [] } };
-        if(JSON.stringify(DATA.obank[id]) !== JSON.stringify(next)){ DATA.obank[id] = next; changed = true; }
+        if(id === state.active){
+          if(JSON.stringify(DATA.obank[id]) !== JSON.stringify(next)){ DATA.obank[id] = next; changed = true; }
+        } else {
+          // 轻量探测：活跃库才会高频变化；非活跃库只在会话/当日seen/练习日期变动时才可能不同
+          var cur = DATA.obank[id];
+          var probeSame = cur && cur.session === next.session
+            && (!cur.seen || cur.seen.date === next.seen.date)
+            && (!cur.practiced || cur.practiced.date === next.practiced.date)
+            && (!cur.prog || Object.keys(cur.prog).length === Object.keys(next.prog).length);
+          if(!probeSame){
+            if(JSON.stringify(cur) !== JSON.stringify(next)){ DATA.obank[id] = next; changed = true; }
+          }
+        }
       }
       return changed;
     }catch(e){ return false; }
@@ -221,9 +274,21 @@
       // 9/26：切换前钩子—— practice.js 用它把「今日已练」记数先按**旧词库**落盘。
       // 必须在改 state.active 之前调用：wbMarkPracticed 按 wbActive() 路由，切完再写就写错库了。
       try{ if(typeof window.__onBeforeWbSwitch === 'function') window.__onBeforeWbSwitch(state.active, next); }catch(e0){}
+      // 11-01 卡死修复：旧活跃库若有变更，先标脏（延后 idle 补写），不再现场整包序列化
+      if(state.active !== 'custom' && state.banks[state.active]){
+        var _oldRec = state.banks[state.active];
+        var _rawNow = null;
+        try{ _rawNow = _readStore(); }catch(eQ){ _rawNow = null; }
+        var _onDisk = (_rawNow && _rawNow.banks && _rawNow.banks[state.active]) || null;
+        if(!_onDisk || JSON.stringify(_onDisk) !== JSON.stringify(_serializeBank(_oldRec))){
+          _dirty[state.active] = true;
+        }
+      }
       state.active = next;
     }
     _persist();
+    // 11-01：切库后顺手安排脏库补写（idle/2s 后），不等 beforeunload 兜底
+    if(Object.keys(_dirty).length) _scheduleFlush();
     // design/78：直接调用（非点击委托路径）也要刷新 #wbStudyTag/#wbSwitcher 高亮，
     // 否则 #emptyGoOfficial / onbGoOfficial / officialStartBtn 切库后标签停留旧态
     if(typeof wbRenderSwitchers === 'function') wbRenderSwitchers();
@@ -266,6 +331,7 @@
     }
     rec.prog = prog;
     _persist();
+    // 11-01：非活跃库在此路径不会进来（wbSave 只处理活跃库），无需标脏；补写兜底交给 _scheduleFlush
   }
 
   // ---------- 当日 session ----------
@@ -549,10 +615,19 @@
       for(var id in DATA.obank){
         if(!Object.prototype.hasOwnProperty.call(DATA.obank, id)) continue;
         if(!_findEnt(id)) continue;   // 只认注册表内的官方词库
-        if(_applyMergedBank(id)) touched = true;
+        if(_applyMergedBank(id)){
+          touched = true;
+          if(id !== state.active) _dirty[id] = true;   // 非活跃库被回灌改了内存 rec，标脏等补写
+        }
       }
       if(touched) _persist(true);
+      if(Object.keys(_dirty).length) _scheduleFlush();
     }catch(e){}
+  });
+  // 11-01 卡死修复：脏库兜底补写——页面要关了、或云端合并回来时，把标脏的库写盘，不丢进度
+  window.addEventListener('beforeunload', function(){ try{ _flushDirty(); }catch(e){} });
+  document.addEventListener('visibilitychange', function(){
+    try{ if(document.visibilityState === 'hidden') _flushDirty(); }catch(e){}
   });
 
   // ---------- 对外暴露 ----------

@@ -463,12 +463,18 @@ ready(() => {
     });
   }
   // 切换词库：重置筛选与折叠/分页/勾选状态后重渲（renderWords 按 wbActive 取数）
+  // 11-01 卡死修复：换库瞬间主线程刚经历序列化落盘，立即全量重渲（2779 词整包 DOM 重建）
+  // 会把点击响应整段堵死 → 「页面无响应」。先让浏览器出一帧再重渲，点击立刻有反馈。
   document.addEventListener('wb:switched', () => {
     setWordFilterType('all'); setWordFilterErr('all');
     _bankExpanded = {}; _bankShown = {}; _bankGroups = {};
     _bankChecked.clear(); _bankOpenCat = null;
-    
-    renderWords();
+
+    if(window.requestAnimationFrame){
+      requestAnimationFrame(() => renderWords());
+    } else {
+      renderWords();
+    }
     bankUpdateActionBar();
   });
   renderWords();
