@@ -1668,7 +1668,7 @@
   }
   document.addEventListener('pointerdown',function(e){
     var h=e.target.closest&&e.target.closest('#exAiHandle'); if(!h||window.innerWidth<=860)return;
-    e.preventDefault(); e.stopPropagation();
+    e.preventDefault();
     h.setPointerCapture&&h.setPointerCapture(e.pointerId);
     var move=function(ev){
       var card=document.getElementById('exAiCard'); if(!card)return;

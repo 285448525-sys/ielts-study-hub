@@ -66,7 +66,7 @@
 // 未改任何加载策略/脚本顺序（HANDOFF 铁律：defer 顺序是契约，动它会连带出事）。
 // common.js → 20261013ad（25 页）、index.js → 20261017a（仅 home.html）、
 // bank.js → 20261012ac（仅 bank.html）。上一版 v409。
-const CACHE = 'ielts-hub-v737'; // 11-02 RV-FIX5 她复盘真机五问题返工（S 级，按序一笔一验收）：①底栏复盘态回做题同构 row——左题号排（paintSheet hit/miss 红绿同源答题卡）+Exit 小钮贴右下（撤 v733 占满）；②选项族框外 Correct 行全删+多选逐选项判色（勾对绿/勾错红/未勾不标——她勾对的选择关闭态照显）+关闭态不再藏 .right（原口径连她的选择都藏成浅圈）；③填空她的原词永远红字保留、正答绿字 .ex-ca-in 追加同框（不再替换 input.value）；④.ex-ca 框外族死 CSS 清除；⑤AI 讲解右下浮卡退役→右栏上下分栏（上题干下讲解、#exAiHandle 垂直分隔线可拖、高度记忆 hub_ex_ai_h；手机贴题下方限高 42vh），触发方式不变；⑥划词工具条页签对调 Note 左 / Highlight 右（她 11-02 定）。bank.js →20261102f。上一版 v736 = RV-SW-26。
+const CACHE = 'ielts-hub-v738'; // 11-02 P2 清理批（B2/B1 审计+真机各报一笔，零行为变化）：①bank.html .ex-opt .ex-ca 死规则删（.ex-ca 全族已退役，运行时零引用）；②#exAiHandle pointerdown 去掉 stopPropagation（捕获期 stop 无必要，防未来同 handle 监听被吃）。bank.js →20261102g。上一版 v737 = RV-FIX5 六笔。
 const _prevCacheNote54 = 'ielts-hub-v732'; // 11-02 MAT-DEAD-THEMEBTN-1：素材页死按钮「切到深色」删除。上一版 v731 = RV-BLANK-CA-2。
 const _prevCacheNote53 = 'ielts-hub-v731'; // 11-02 RV-BLANK-CA-2：填空正答框内绿显。bank.js →20261101v。上一版 v729 = WD-DICT-TYPE-2。
 const _prevCacheNote52 = 'ielts-hub-v729'; // 11-02 WD-DICT-TYPE-2：听写打字型收尾（不泄答案/文案对上/模式菜单可反复开）。上一版 v728 = RV-COLOR-LOGIC-1。
