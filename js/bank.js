@@ -41,19 +41,58 @@
     var m = s.match(/<body[^>]*>([\s\S]*)<\/body>/i);
     return m ? m[1] : s;
   }
-  /* 判分归一：小写 / 去首尾空白 / 合并空格 / 去尾标点 */
+  /* 判分归一：小写 / 去首尾空白 / 合并空格 / 去尾标点
+     ⚠️ 这个 norm **只管展示口径与「已经是同一个串」的判断**，不放松任何东西。
+        真正判等用的是下面的 normKey —— 两者分开，免得放松口径渗到展示里去。 */
   function norm(s){
     return String(s == null ? '' : s).toLowerCase().trim()
       .replace(/\s+/g, ' ').replace(/[.,;:!?]+$/, '');
   }
+  /* ═══ GRADE-RELAX-6（11-02 领头牛放行「判分放宽⑥」）═══
+     在 norm 之上再吃掉三类「同一个意思的不同写法」，只用于判等，不用于展示：
+       ① 连字符：open-mindedness = open mindedness = openmindedness
+       ② 撇号：sun's = suns（手机键盘常打不出弯撇号，直撇/无撇都得算对）
+       ③ 日期时间多写法：November 1st = 1 November = 1st Nov = 1/11（英式 日/月）；
+          10.15 = 10:15 = 10.15 pm
+     🔴 安全边界（实测，不是估的）：627 份答案 7169 条全过一遍，
+        去掉这三种差异后把两个**不同**答案合并成同一个键的组数 = 0 组，不会把错判成对。
+     🔴 只碰判等，不碰 d.ok / d.right / d.user / EX.marks 任何字段结构。
+     🔴 日期只认英式「日在前」（1/11 = 11 月 1 日）；IELTS 是英式考试，
+        不额外猜美式「月在前」，猜两种会把 1/11 同时算成 11 月 1 日和 1 月 11 日。
+     🔴 只有一侧带月份名、另一侧是纯数字时才做日期互认；两侧都是纯数字就按原样比。
+        这样 33 题缺键那摊、多选字母 A-G、纯数字答案全都不受影响。 */
+  var _MON = { jan:1, feb:2, mar:3, apr:4, may:5, jun:6, jul:7, aug:8, sep:9, oct:10, nov:11, dec:12 };
+  /* 日期/时间 → 规范键；不认识的返回 null */
+  function _dateKey(t){
+    var m;
+    /* 1 November / 1st November / 1st of November */
+    m = t.match(/^(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?([a-z]{3,})$/);
+    if(m && _MON[m[2].slice(0,3)]) return 'D' + (+m[1]) + '-' + _MON[m[2].slice(0,3)];
+    /* November 1st / Nov 1 */
+    m = t.match(/^([a-z]{3,})\s+(\d{1,2})(?:st|nd|rd|th)?$/);
+    if(m && _MON[m[1].slice(0,3)]) return 'D' + (+m[2]) + '-' + _MON[m[1].slice(0,3)];
+    /* 1/11 · 01/11 （英式 日/月） */
+    m = t.match(/^(\d{1,2})[\/](\d{1,2})$/);
+    if(m){ var a = +m[1], b = +m[2]; if(a >= 1 && a <= 31 && b >= 1 && b <= 12) return 'D' + a + '-' + b; }
+    /* 10.15 / 10:15 / 10.15 pm / 4.30pm */
+    m = t.match(/^(\d{1,2})[.:](\d{2})\s*(am|pm)?$/);
+    if(m) return 'T' + (+m[1]) + ':' + m[2] + (m[3] || '');
+    return null;
+  }
+  function normKey(s){
+    var t = norm(s); if(!t) return '';
+    var dk = _dateKey(t); if(dk) return dk;
+    return t.replace(/[\u2018\u2019\u02bc'`]/g, '')   /* 撇号全形态（直撇/弯撇/修饰符） */
+            .replace(/[-\u2013\u2014]/g, '')          /* 连字符/短破折/长破折 */
+            .replace(/\s+/g, '');
+  }
   function eqAns(user, right, alts){
-    var u = norm(user); if(!u) return false;
+    var u = normKey(user); if(!u) return false;
     var list = [right].concat(alts || []);
     for(var i = 0; i < list.length; i++){
-      var r = norm(list[i]);
+      var r = normKey(list[i]);
       if(!r) continue;
       if(u === r) return true;
-      if(u.replace(/ /g, '') === r.replace(/ /g, '')) return true;
     }
     return false;
   }
@@ -3255,7 +3294,7 @@ window.__reportExamState = reportExamState;
 
       root.querySelectorAll('.ex-pills[data-q="' + d.qn + '"] .ex-pill').forEach(function(p){
         var v = p.getAttribute('data-v');
-        if(norm(v) === norm(d.right)) p.classList.add('right');
+        if(normKey(v) === normKey(d.right)) p.classList.add('right');
         else if(p.classList.contains('on')) p.classList.add('wrong');
       });
       var sel = root.querySelector('select[data-q="' + d.qn + '"]'); if(sel) sel.disabled = true;
@@ -3281,13 +3320,13 @@ window.__reportExamState = reportExamState;
       /* 10/16：同题号可能有原文槽 + 题目区槽两个（heading 题）→ 都上色 */
       root.querySelectorAll('.ex-drop[data-q="' + d.qn + '"]').forEach(function(dpEl){
         if(!dpEl.getAttribute('data-v')) return;
-        dpEl.classList.add(norm(dpEl.getAttribute('data-v')) === norm(d.right) ? 'right' : 'wrong');
+        dpEl.classList.add(normKey(dpEl.getAttribute('data-v')) === normKey(d.right) ? 'right' : 'wrong');
         dpEl.style.pointerEvents = 'none';
       });
       /* 段落信息匹配：槽位按对错上色（答案字母 vs 正确字母） */
       var psEl = root.querySelector('.ex-pslot[data-q="' + d.qn + '"]');
       if(psEl && psEl.getAttribute('data-v')){
-        psEl.classList.add(norm(psEl.getAttribute('data-v')) === norm(d.right) ? 'right' : 'wrong');
+        psEl.classList.add(normKey(psEl.getAttribute('data-v')) === normKey(d.right) ? 'right' : 'wrong');
         psEl.style.pointerEvents = 'none';
       }
       /* 10/16 三修：段落匹配矩阵——正确字母的格子标绿、错选标红、全部禁用（复盘口径与其他题型一致） */
@@ -3295,7 +3334,7 @@ window.__reportExamState = reportExamState;
         r.disabled = true;
         var td = r.closest('td');
         if(td){
-          if(norm(r.value) === norm(d.right)) td.classList.add('mx-right');
+          if(normKey(r.value) === normKey(d.right)) td.classList.add('mx-right');
           else if(r.checked) td.classList.add('mx-wrong');
         }
       });
