@@ -1538,7 +1538,11 @@
       if(icons) bar.appendChild(icons);
       bar.classList.add('has-tools');
     }
-    if(top) top.style.display = 'none';      /* .ex-option 面板是 .ex-top 的兄弟，藏它不影响面板 */
+    if(top) top.style.display = (EX && EX.submitted) ? '' : 'none';
+    /* LISTEN-RV-TOP-1（11-02 B1 真机定性）：做题态照旧藏 .ex-top（并入音频条一行）；复盘态不藏 ——
+       四钮/对错小字全住顶栏（mountReviewTools），inline display:none 藏了它们就全不可达。
+       这里是源头守卫（renderExam 路径：只读复盘/软导航重渲染每次都走这里）；
+       刚交卷 doSubmit 路径不重跑 renderExam，inline 已挂上时由 mountReviewTools 兜底摘除。 */
   }
   /* 🔴 MOCK-EXAM-TOPBAR-1（10-29 她：「最上面那个倒计时的东西，去掉多余的文案」）：
      顶栏倒计时文案统一走这一个口子。原来写的是「N minutes remaining」一整句 ——
@@ -3383,6 +3387,12 @@ window.__reportExamState = reportExamState;
     if(icons){ top.insertBefore(tg, icons); }
     else top.appendChild(tg);
     applyReviewToggles();
+    /* LISTEN-RV-TOP-1（11-02 B1 真机定性）兜底：刚交卷（doSubmit）不重跑 renderExam/mountListenTools，
+       L1541 挂上的 inline display:none 还在 —— mountReviewTools 注入的四钮/对错小字全住这个藏着的
+       .ex-top 里，整排不可达（阅读不受影响是因为阅读路径没有这条藏顶栏逻辑）。
+       mountReviewTools 是三条路径（doSubmit/renderExam 先手/openLastResult）的公共必经口，
+       在这里统一摘掉 inline（提交时 EX.submitted 恒 true，做题态到不了这里，零误伤）。 */
+    top.style.display = '';
     if(EX.submitted && EX.result) mountAiExplain();          /* RV-AI-EXPLAIN-1：讲解卡宿主（无图标无按钮，点答案才出） */
   }
 

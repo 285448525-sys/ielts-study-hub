@@ -8,7 +8,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const ROOT = 'C:\\Users\\Camille\\Desktop\\雅思\\ielts-study-hub';
+const ROOT = path.resolve(process.env.PROBE_ROOT || 'C:\\Users\\Camille\\Desktop\\雅思\\ielts-study-hub');   /* PROBE_ROOT：worktree 探针用（serve worktree 文件），默认主 checkout */
 const PORT = Number(process.argv[2]) || 8778;
 
 const MIME = {
