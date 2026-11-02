@@ -329,6 +329,34 @@
 #examRoot.ct-dark .ex-score-mini,#examRoot.ct-yellow .ex-score-mini{color:#c8cbd0}
 #examRoot.ct-dark .ex-score-mini b{color:#f2f2f2}
 #examRoot.ct-yellow .ex-score-mini b{color:#f0e3a8}
+/* ===== RV-AI-EXPLAIN-1（11-02 她口径：点答案 → 右下角 AI 讲解）=====
+   卡片锚定考场右下角（fixed 相对 #examRoot 全屏层），不加图标不加触发按钮——
+   只有她点作答控件/题号时才出现；✕ 收卡不动作答与判分数据。
+   宽度桌面 320、手机左右各留 12px 安全边（390 档三查：不横滑/不被裁/可点）。
+   🔴 样式写死 hex（考场钉死色系口径，不用外观变量）。 */
+.ex-ai-card{position:fixed;right:14px;bottom:64px;z-index:120;width:320px;max-width:calc(100vw - 28px);
+  max-height:46vh;display:flex;flex-direction:column;background:#fff;border:1px solid #d5d9de;
+  border-radius:12px;box-shadow:0 10px 34px rgba(0,0,0,.22)}
+.ex-ai-h{display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:9px 12px;border-bottom:1px solid #eceff2;flex:none}
+.ex-ai-h b{font-size:12.5px;font-weight:800;color:#111}
+.ex-ai-x{appearance:none;border:none;background:transparent;color:#6b7280;font-size:13px;cursor:pointer;
+  width:28px;height:28px;border-radius:6px;line-height:1;flex:none}
+.ex-ai-x:hover{background:#f3f4f6;color:#111}
+.ex-ai-b{padding:11px 13px 13px;font-size:13px;line-height:1.75;color:#24272c;overflow:auto;
+  white-space:pre-wrap;word-break:break-word}
+.ex-qn.ai-cur{outline:2px solid #237a74;outline-offset:1px}
+.ex-blankw.ai-cur{outline:2px solid #237a74;outline-offset:1px;border-radius:3px}
+.mx-no.ai-cur{outline:2px solid #237a74;outline-offset:1px;border-radius:3px}
+@media(max-width:640px){
+.ex-ai-card{right:12px;left:12px;width:auto;bottom:58px;max-height:42vh}
+}
+#examRoot.ct-dark .ex-ai-card,#examRoot.ct-yellow .ex-ai-card{background:#1c1f22;border-color:#5a5f66}
+#examRoot.ct-dark .ex-ai-h,#examRoot.ct-yellow .ex-ai-h{border-bottom-color:#33383d}
+#examRoot.ct-dark .ex-ai-h b,#examRoot.ct-yellow .ex-ai-h b{color:#f2f2f2}
+#examRoot.ct-dark .ex-ai-b,#examRoot.ct-yellow .ex-ai-b{color:#d7dade}
+#examRoot.ct-dark .ex-ai-x,#examRoot.ct-yellow .ex-ai-x{color:#9aa0a6}
+#examRoot.ct-dark .ex-ai-x:hover,#examRoot.ct-yellow .ex-ai-x:hover{background:#2a2e33;color:#f2f2f2}
 .ex-timer{margin:0 auto;font-variant-numeric:tabular-nums;font-weight:700;font-size:12px;color:#111;background:none;border:none;border-radius:0;padding:0}
 .ex-timer.warn{color:#b3261e;animation:exblink 1s step-start infinite}
 .ex-timer.soon{color:#8a5a00}
@@ -2666,7 +2694,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common-shell.js?v=20261101m"></script>
 <script defer src="js/common-pwa.js?v=20261101m"></script>
 <script defer src="js/exam-timer.js?v=20261102b"></script>
-<script defer src="js/bank.js?v=20261101r"></script>
+<script defer src="js/bank.js?v=20261101s"></script>
 <!-- M-2（10-24）：模考页「没做过/做过」分组 + 展开更多。
      ⚠️ 本文件只做展示层（读 hub_bank_last_* 分组 + 首屏 20 条），判分/SRS/本地记录一律不碰；
         单条 DOM 由 js/bank.js 的 listHtml() 生成（当参数传进来），结构零改动。

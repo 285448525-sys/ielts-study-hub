@@ -66,9 +66,9 @@
 // 未改任何加载策略/脚本顺序（HANDOFF 铁律：defer 顺序是契约，动它会连带出事）。
 // common.js → 20261013ad（25 页）、index.js → 20261017a（仅 home.html）、
 // bank.js → 20261012ac（仅 bank.html）。上一版 v409。
-const CACHE = 'ielts-hub-v725'; // 11-02 WD-OPEN-LAG-1：她「打开词库就是渲染几个词库的块就行了，又不是叫你渲染所有词」。① 官方词库默认只展开第一组（原来 50 章全展开 → 一次塞 1500 行 / 13176 个 DOM 节点，实测 390 档这就是那段长任务），改后 30 行 / 1410 节点，点哪章展哪章、收起即释放；custom 视图与「用户手动点开过的组」照旧尊重。② wbSetActive→_persist 里 _readStore() 原来写在 for 循环中，每个未标脏的非活跃库都重解析一遍整个 obank 包（六库 1.4MB，五次换书实测 JSON.parse 30 次 158ms），改成一整轮只读一次 → 10 次 55ms，换书中位 49.8→29.3ms。practice/home 的 wordbank.js 串 20261101a→20261102c、practice 的 words.js 串 20261101k→20261102c。上一版 v724 = EXAM-TIMER-POP-DUP-1。
-const _prevCacheNote47 = 'ielts-hub-v724'; // 11-02 EXAM-TIMER-POP-DUP-1：删计时弹框残留旧「自定义」死输入行（v723 两行时长并存，querySelector 永远绑步进器 input，旧行点了没反应）。exam-timer.js 20261102a→b，SW v723→v724。
-const _prevCacheNote46 = 'ielts-hub-v723'; // 11-02 EXAM-TIMER-POP-DUP-1：删弹框残留旧「自定义」死输入行（v723 遗留，点不了）。exam-timer.js 20261102a→b（bank.html defer+预载、writing.html defer）。上一版 v723。
+const CACHE = 'ielts-hub-v726'; // 11-02 RV-AI-EXPLAIN-1（她口径「点了答案会显示 AI 讲解的功能在右下角」）：复盘态（交卷/只读回看）点作答控件或题号 → 右下角锚定该题 AI 讲解卡，无图标无触发按钮；走 common-ai 现有出口 callRelay（登录/额度/超时继承），失败走 aiErrMsg 人话表；无答案键篇目不触发；每题结果内存缓存（EX._aiExp）不重复扣额度；讲解只喂题干+作答+正答+文章相关一句（不整篇上传、禁编造）；当前题高亮（ex-qn/blankw/mx-no 三兜底）。bank.js 20261101r→s、bank.html 内联 AI 卡样式。上一版 v725 = WD-OPEN-LAG-1。
+const _prevCacheNote48 = 'ielts-hub-v725'; // 11-02 WD-OPEN-LAG-1：词库默认只展开第一组 + 换书 _readStore 整轮一次。wordbank.js/words.js 串 →20261102c。上一版 v724 = EXAM-TIMER-POP-DUP-1。
+const _prevCacheNote47 = 'ielts-hub-v724'; // 11-02 EXAM-TIMER-POP-DUP-1：删计时弹框残留旧「自定义」死输入行（v723 两行时长并存，querySelector 永远绑步进器 input，旧行点了没反应）。exam-timer.js 20261102a→b，SW v723→v724。const _prevCacheNote46 = 'ielts-hub-v723'; // 11-02 EXAM-TIMER-POP-DUP-1：删弹框残留旧「自定义」死输入行（v723 遗留，点不了）。exam-timer.js 20261102a→b（bank.html defer+预载、writing.html defer）。上一版 v723。
 const _prevCacheNote45 = 'ielts-hub-v722'; // 11-02 RV-TOP390-1：复盘态手机 390 顶栏两开关出屏修复（rv-tooled 类放行换行）。js/bank.js 串 → 20261101q。
 const _prevCacheNote44 = 'ielts-hub-v721'; // 11-02 BK-LOAD-CANCEL-1：进场载入页出「取消加载」+ 25s 超时兜底。js/bank.js 串 → 20261101p。上一版 v720。
 const _prevCacheNote43 = 'ielts-hub-v720'; // 11-02 RV-RVROW-RETIRE-1：交卷后逐题结论条「Q1 Incorrect / Show」整块退役（渲染+样式+监听零残留，判分与上色一字未动）。js/bank.js 串 → 20261101o。上一版 v719。

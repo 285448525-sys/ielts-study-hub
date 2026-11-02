@@ -3318,6 +3318,157 @@ window.__reportExamState = reportExamState;
     if(icons){ top.insertBefore(tg, icons); top.insertBefore(mini, icons); }
     else top.appendChild(tg), top.appendChild(mini);
     applyReviewToggles();
+    if(EX.submitted && EX.result) mountAiExplain();          /* RV-AI-EXPLAIN-1：讲解卡宿主（无图标无按钮，点答案才出） */
+  }
+
+  /* ===== RV-AI-EXPLAIN-1（11-02 她口径：「点了答案会显示 AI 讲解的功能在右下角」）=====
+     复盘态（交卷 / 只读回看）点某题的作答控件（选项 / 空格 / 槽 / 题号）→
+     右下角锚定该题 AI 讲解卡。**不加任何图标、不加触发按钮、不改卷面 DOM**（解析位已退役，她不另加）。
+     · 走 common-ai 现有出口 callRelay（站内中转 / 自备 Key 自动降级、25s 超时、额度闸全继承），
+       失败文案走 aiErrMsg 人话表（额度用完 / 先登录 / 稍后重试，原始串只进 console）。
+     · 无答案键篇目（EX.scored===false / 该题 d.right 为空）不触发——没有正答就没有可讲的对象。
+     · 每题结果存内存缓存 EX._aiExp（同场不重复扣额度）；点另一题才换题，同题再点不重复请求。
+     · 讲解生成只喂「题干 + 她的作答 + 正确答案 + 文章里相关的一句」（不整篇上传，省 token），
+       模型被要求「依据给定内容讲，不编造文章外的信息」。 */
+  var AI_EXP_CACHE_KEY = '_aiExp';
+  function mountAiExplain(){
+    var root = document.getElementById('examRoot'); if(!root) return;
+    if(root.querySelector('#exAiCard')) return;             /* 幂等：mountReviewTools 三处挂载点会重复进 */
+    if(!EX || !EX.submitted || !EX.result) return;
+    if(EX.scored === false) return;                         /* 无答案键篇目不挂（无正答可讲） */
+    if(EX[AI_EXP_CACHE_KEY] == null) EX[AI_EXP_CACHE_KEY] = {};
+    var card = document.createElement('div');
+    card.className = 'ex-ai-card'; card.id = 'exAiCard'; card.hidden = true;
+    card.innerHTML = '<div class="ex-ai-h"><b id="exAiTitle">AI 讲解</b>'
+      + '<button type="button" class="ex-ai-x" data-aiexpclose aria-label="Close">✕</button></div>'
+      + '<div class="ex-ai-b" id="exAiBody"></div>';
+    root.appendChild(card);
+  }
+  /* 点击锚：作答控件优先（选项 / 空格 / 槽 / 矩阵格），都没有再认题号徽章。
+     返回 { qn, detail }；detail 取自 EX.result.detail（含 right/user/ok/q）。 */
+  function aiExpTargetOf(t){
+    if(!EX || !EX.submitted || !EX.result || EX.scored === false) return null;
+    if(!t || !t.closest) return null;
+    var host = t.closest('#exQCol, #exArt'); if(!host) return null;
+    var qn = null;
+    var ctl = t.closest('.ex-opt[data-v], .ex-pill[data-v], .ex-drop[data-q], .ex-pslot[data-q], .ex-lohb[data-q], input.ex-blank[data-q], .ex-lomatrix input[data-q]');
+    if(ctl){
+      qn = ctl.getAttribute('data-q');
+      if(!qn){ var row = ctl.closest('.ex-q'); var badge = row && row.querySelector('.ex-qn[data-qn]'); if(badge) qn = badge.getAttribute('data-qn'); }
+    }
+    if(!qn){
+      var badge2 = t.closest('.ex-qn[data-qn]');
+      if(badge2) qn = badge2.getAttribute('data-qn');
+    }
+    if(qn == null || qn === '') return null;
+    var d = (EX.result.detail || []).filter(function(x){ return String(x.qn) === String(qn); })[0];
+    if(!d) return null;
+    if(d.right == null || String(d.right).length === 0) return null;   /* 无答案键的题不触发 */
+    return { qn: String(qn), detail: d };
+  }
+  function openAiExplain(hit){
+    var root = document.getElementById('examRoot'); if(!root) return;
+    var card = root.querySelector('#exAiCard'); if(!card) return;
+    card.hidden = false;
+    var title = card.querySelector('#exAiTitle');
+    if(title) title.textContent = 'Q' + hit.qn + ' · AI 讲解';
+    var body = card.querySelector('#exAiBody'); if(!body) return;
+    /* 高亮当前题：题号徽章优先；填空题等无徽章的退到 .ex-blankw 容器（只留当前题） */
+    root.querySelectorAll('.ai-cur').forEach(function(n){ n.classList.remove('ai-cur'); });
+    var qnEl = root.querySelector('.ex-qn[data-qn="' + hit.qn + '"]') || root.querySelector('.ex-qn[data-qns~="' + hit.qn + '"]');
+    if(qnEl) qnEl.classList.add('ai-cur');
+    else {
+      /* 填空题（文章内 blankw）/ 矩阵题（mx-no 题号格）兜底高亮 */
+      var bw = root.querySelector('.ex-blankw[data-q="' + hit.qn + '"]');
+      if(bw) bw.classList.add('ai-cur');
+      else {
+        var mxNo = null;
+        root.querySelectorAll('.mx-no').forEach(function(n){ if(n.textContent.trim() === String(hit.qn)) mxNo = n; });
+        if(mxNo) mxNo.classList.add('ai-cur');
+      }
+    }
+    var cache = EX[AI_EXP_CACHE_KEY] || {};
+    var cached = cache[hit.qn];
+    if(cached && cached.text){ body.textContent = cached.text; return; }
+    if(EX._aiExpLoading === hit.qn) return;                  /* 同题请求在飞，别重复发 */
+    EX._aiExpLoading = hit.qn;
+    body.textContent = 'AI 正在看这道题…';
+    var d = hit.detail;
+    /* 题目上下文：题干（detail.q.question 在交卷/只读内存链上都活着；没有就从 DOM 题干取） */
+    var stem = '';
+    if(d.q && d.q.question) stem = String(d.q.question).replace(/<[^>]*>/g, '').trim();
+    if(!stem){
+      var qRow = root.querySelector('.ex-qn[data-qn="' + hit.qn + '"]');
+      var qWrap = qRow && qRow.closest('.ex-q');
+      var qt = qWrap && qWrap.querySelector('.ex-qt');
+      if(qt) stem = (qt.textContent || '').trim().slice(0, 400);
+    }
+    /* 文章相关句：只取文章里包含正确答案串的那一句（没有就空，不整篇上传） */
+    var evidence = '';
+    var art = document.getElementById('exArt');
+    if(art && d.right){
+      var needle = String(d.right).trim();
+      if(needle && needle.length > 1 && !/^[A-Z]$/i.test(needle)){
+        var txt = art.textContent || '';
+        var ix = txt.indexOf(needle);
+        if(ix > -1){
+          var a = Math.max(0, txt.lastIndexOf('.', ix) + 1);
+          var b = txt.indexOf('.', ix + needle.length);
+          evidence = txt.slice(a, b > -1 ? b + 1 : ix + needle.length + 160).trim().slice(0, 400);
+        }
+      }
+    }
+    var optsText = '';
+    if(d.q && Array.isArray(d.q.options) && d.q.options.length){
+      optsText = d.q.options.map(function(o){ return (o.optionNum || '') + '. ' + (o.optionContent || ''); }).join(' / ').slice(0, 500);
+    }
+    var sys = '你是一位雅思阅读/听力老师。只依据给你的题目、她的作答、正确答案与文章原句来讲，'
+      + '不要编造文章里没有的信息，不要扯考试技巧空话。'
+      + '用中文回答，分三小段（每段 1-3 句，别堆长段）：'
+      + '①答案定位——正确答案是什么、在文章哪一句能对应上（没有原句就依据题干与选项讲）；'
+      + '②为什么她对/错——她的作答与正确答案差在哪，判断逻辑是什么；'
+      + '③这一题容易踩的坑——同义替换、范围偷换、NOT GIVEN 与 FALSE 的区分（只挑和本题有关的说，没有就省）。';
+    var usr = '【题型】' + (d.t || '未知')
+      + '\n【题干】' + (stem || '（未取到题干文本）')
+      + (optsText ? '\n【选项】' + optsText : '')
+      + '\n【她的作答】' + (d.user == null || d.user === '' ? '（未作答）' : String(d.user))
+      + '\n【正确答案】' + String(d.right)
+      + '\n【判分结果】' + (d.ok ? '答对了' : '答错了')
+      + (evidence ? '\n【文章原句】' + evidence : '\n【文章原句】（未定位到，请依据题干与选项讲，不要编造原文）');
+    var reqQn = hit.qn;
+    if(typeof callRelay !== 'function'){
+      body.textContent = 'AI 讲解暂时用不了（AI 模块没加载上），刷新一下页面再点这题。';
+      EX._aiExpLoading = null;
+      return;
+    }
+    callRelay('gpt', [
+      { role: 'system', content: sys },
+      { role: 'user', content: usr }
+    ], 0.35, { max_tokens: 1200 }).then(function(content){
+      EX._aiExpLoading = null;
+      if(!EX || !EX.result) return;
+      var txt = String(content || '').trim();
+      if(!txt) txt = 'AI 这次没说出内容，再点一次这题试试。';
+      (EX[AI_EXP_CACHE_KEY] = EX[AI_EXP_CACHE_KEY] || {})[reqQn] = { text: txt };
+      /* 只回写仍停留在本题的卡（她可能等的时候点了别的题） */
+      var t2 = document.getElementById('exAiTitle');
+      if(t2 && t2.textContent.indexOf('Q' + reqQn + ' ') === 0){
+        var b2 = document.getElementById('exAiBody'); if(b2) b2.textContent = txt;
+      }
+    }).catch(function(e){
+      EX._aiExpLoading = null;
+      var msg = (typeof aiErrMsg === 'function') ? aiErrMsg(e) : 'AI 服务这会儿忙不过来，过一分钟可重试';
+      if(window.console && console.error) console.error('[bank] AI 讲解失败：', e);
+      var t3 = document.getElementById('exAiTitle');
+      if(t3 && t3.textContent.indexOf('Q' + reqQn + ' ') === 0){
+        var b3 = document.getElementById('exAiBody'); if(b3) b3.textContent = msg;
+      }
+    });
+  }
+  function closeAiExplain(){
+    var root = document.getElementById('examRoot'); if(!root) return;
+    var card = root.querySelector('#exAiCard'); if(card) card.hidden = true;
+    root.querySelectorAll('.ai-cur').forEach(function(n){ n.classList.remove('ai-cur'); });
   }
   /* 开关落内容：答案 = .right/.wrong 上色 + 结论条 Show/Hide 显隐 + 空格填正答；
      高亮 = ex-hl/ex-nt 显隐（visibility 而非 remove —— 再点开要原样回来，replayMarks 不重跑）。 */
@@ -4642,7 +4793,7 @@ window.__reportExamState = reportExamState;
     var _wasReadonly = !!(EX && EX.readonly);
     if(EX && !EX.submitted && !EX.readonly) saveDraft();
     if(!_wasReadonly) bankCommitTimer();              /* C-3：未交卷退出也要结算（别只挂交卷上）；只读复盘不算专注 */
-    EX = null;
+    EX = null;                                        /* RV-AI-EXPLAIN-1：讲解卡与缓存随 EX 一起清（innerHTML 清空即消失） */
     var host = document.getElementById('examRoot'); if(host){ host.hidden = true; host.innerHTML = ''; }
     var root = document.getElementById('bankRoot'); if(root) root.style.display = '';
     /* 组卷缓存 _fullSet/_listenFullSet 已随「纯随机」口径删除（10/12）：每次 Start 现抽，无需重置 */
@@ -4778,6 +4929,15 @@ window.__reportExamState = reportExamState;
       if((el = t.closest && t.closest('.ex-tg[data-rvtg]'))){
         toggleReview(el.getAttribute('data-rvtg'));
         return;
+      }
+      /* RV-AI-EXPLAIN-1：讲解卡 ✕ = 只收卡（不动作答/判分数据） */
+      if((el = t.closest && t.closest('[data-aiexpclose]'))){
+        e.preventDefault(); closeAiExplain(); return;
+      }
+      /* RV-AI-EXPLAIN-1：复盘态点作答控件/题号 → 右下角 AI 讲解（仅复盘；做题态 EX.submitted 为 false 自然不触发） */
+      if(EX && EX.submitted && EX.result){
+        var aiHit = aiExpTargetOf(t);
+        if(aiHit){ openAiExplain(aiHit); }
       }
       if(t.closest && t.closest('[data-exit]')){ exitExam(); return; }
       if(t.closest && t.closest('[data-submit]')){ submit(); return; }
