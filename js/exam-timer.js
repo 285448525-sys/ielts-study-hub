@@ -19,7 +19,8 @@
 
   var KEY = 'hub_exam_timermin_';
 
-  /* 五个场景：default 是她口径里的默认值，presets 是快捷档位（分钟） */
+  /* 五个场景：default 是她口径里的默认值。
+     EXAM-TIMER-POP-FIX-1：presets 档位排已退役（不再渲染），字段保留只为 opts.presets 兼容不炸。 */
   var SCENES = {
     read_part:   { title: '这篇阅读要计时吗？', desc: '单篇练习默认 20 分钟，可以自己改。',  def: 20, presets: [10, 15, 20, 30] },
     read_full:   { title: '这套阅读要计时吗？', desc: '完整模考默认 60 分钟，可以自己改。',  def: 60, presets: [40, 50, 60, 75] },
@@ -28,7 +29,15 @@
     wrt_full:    { title: '这场写作要计时吗？', desc: '完整模考默认 60 分钟，可以自己改。',  def: 60, presets: [40, 50, 60, 75] }
   };
 
-  var MIN_MIN = 1, MAX_MIN = 180;
+  var MIN_MIN = 1, MAX_MIN = 180, STEP_MIN = 5;
+
+  function clampMin(n){
+    return Math.min(MAX_MIN, Math.max(MIN_MIN, Math.round(Number(n) || 0)));
+  }
+  function bumpMin(v, dir){
+    var n = (Number(v) || 0) + dir * STEP_MIN;
+    return clampMin(n < 1 && dir < 0 ? MAX_MIN : n);
+  }
 
   function lastMin(scene){
     try{
@@ -58,11 +67,13 @@
       + '.tmr-x:hover{background:#f3f4f6;color:#111}'
       + '.tmr-c h4{margin:0 14px 6px 0;font-size:16px;font-weight:800;color:#111;line-height:1.45}'
       + '.tmr-d{font-size:12.5px;color:#6b7280;line-height:1.6;margin:0 0 14px}'
-      + '.tmr-ps{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}'
-      + '.tmr-p{appearance:none;font:inherit;font-size:13.5px;font-weight:700;color:#111;cursor:pointer;'
-      +   'border:1px solid #d5d9de;background:#fff;border-radius:9px;padding:8px 14px;line-height:1.2}'
-      + '.tmr-p:hover{border-color:#111}'
-      + '.tmr-p.on{background:#237a74;border-color:#237a74;color:#fff}'
+      + '.tmr-stepper{gap:10px}'
+      + '.tmr-arr{appearance:none;font:inherit;font-size:16px;font-weight:800;color:#111;cursor:pointer;'
+      +   'width:40px;height:40px;border:1px solid #d5d9de;background:#fff;border-radius:9px;line-height:1;'
+      +   'flex:none;display:inline-flex;align-items:center;justify-content:center;user-select:none}'
+      + '.tmr-arr:hover{border-color:#111}'
+      + '.tmr-arr:focus-visible{outline:2px solid #237a74;outline-offset:2px}'
+      + '.tmr-unit{color:#374151}'
       + '.tmr-row{display:flex;align-items:center;gap:8px;font-size:13px;color:#374151;margin:0 0 16px}'
       + '.tmr-i{appearance:none;font:inherit;font-size:13.5px;font-weight:700;color:#111;width:74px;'
       +   'text-align:center;border:1px solid #d5d9de;background:#fff;border-radius:9px;padding:7px 6px;'
@@ -79,7 +90,7 @@
       + '[data-theme="dark"] .tmr-c{background:#1b1b1b;box-shadow:0 20px 60px rgba(0,0,0,.55)}'
       + '[data-theme="dark"] .tmr-c h4{color:#f2f2f4}'
       + '[data-theme="dark"] .tmr-d,[data-theme="dark"] .tmr-row{color:#9aa0a6}'
-      + '[data-theme="dark"] .tmr-p,[data-theme="dark"] .tmr-i,[data-theme="dark"] .tmr-no{'
+      + '[data-theme="dark"] .tmr-i,[data-theme="dark"] .tmr-no,[data-theme="dark"] .tmr-arr{'
       +   'background:#262626;border-color:#3a3f45;color:#f2f2f4}'
       + '[data-theme="dark"] .tmr-x{color:#9aa0a6}'
       + '[data-theme="dark"] .tmr-x:hover{background:#262626;color:#f2f2f4}'
@@ -119,15 +130,22 @@
 
     var wrap = document.createElement('div');
     wrap.className = 'tmr'; wrap.id = 'tmrBox';
+    /* EXAM-TIMER-POP-FIX-1（11-02 她四条口径）：
+       ① 档位排整删（presets 不再渲染，data-tmrp 分支退役）；
+       ② 自定义行改「− 输入框 ＋」左右箭头，一次 5 分钟，钳 1–180；
+       ③ ✕/Esc = 放弃退出回列表（cb 传 'exit'，消费方识别后不开卷）；
+       ④ 「不计时」「按这个时长开始」两按钮保留（❌ 与「不计时」语义分开：❌ 是不做这篇）。
+       ❌ 退出协议：cb('exit') —— bank.js/writing.js 消费方判 'exit' 走退列表路径。 */
     wrap.innerHTML = '<div class="tmr-c" role="dialog" aria-modal="true" aria-label="计时设置">'
-      + '<button type="button" class="tmr-x" data-tmrclose aria-label="Close">\u2715</button>'
+      + '<button type="button" class="tmr-x" data-tmrclose aria-label="Close">✕</button>'
       + '<h4>' + cfg.title + '</h4>'
       + '<p class="tmr-d">' + cfg.desc + '</p>'
-      + '<div class="tmr-ps">'
-      +   presets.map(function(m){
-            return '<button type="button" class="tmr-p' + (m === cur ? ' on' : '') + '" data-tmrp="' + m + '">'
-              + m + ' 分钟</button>';
-          }).join('')
+      + '<div class="tmr-row tmr-stepper">'
+      +   '<button type="button" class="tmr-arr" data-tmrdn aria-label="减少 5 分钟">−</button>'
+      +   '<input class="tmr-i" type="number" inputmode="numeric" min="' + MIN_MIN + '" max="' + MAX_MIN
+      +     '" step="' + STEP_MIN + '" value="' + cur + '" data-tmrin aria-label="自定义分钟数">'
+      +   '<button type="button" class="tmr-arr" data-tmrup aria-label="增加 5 分钟">＋</button>'
+      +   '<span class="tmr-unit">分钟</span>'
       + '</div>'
       + '<div class="tmr-row"><span>自定义</span>'
       +   '<input class="tmr-i" type="number" inputmode="numeric" min="' + MIN_MIN + '" max="' + MAX_MIN
@@ -144,10 +162,7 @@
     var fired = false;
 
     function paint(){
-      var v = Number(input && input.value);
-      wrap.querySelectorAll('[data-tmrp]').forEach(function(b){
-        b.classList.toggle('on', Number(b.getAttribute('data-tmrp')) === v);
-      });
+      /* 档位排已退役，paint 不再有档位点亮职责（保留空钩子，越界回写仍调用它） */
     }
     function teardown(){
       var el = document.getElementById('tmrBox');
@@ -158,24 +173,31 @@
     function finish(min){
       if(fired) return; fired = true;
       teardown();
+      if(min === 'exit'){ cb('exit'); return; }   /* ✕/Esc = 放弃这篇，消费方退回列表 */
       if(min > 0) saveMin(scene, min);
       cb(min > 0 ? min : null);
     }
     function onKey(ev){
-      if(ev.key === 'Escape' || ev.keyCode === 27){ ev.preventDefault(); finish(null); }
+      if(ev.key === 'Escape' || ev.keyCode === 27){ ev.preventDefault(); finish('exit'); }
     }
     document.addEventListener('keydown', onKey, true);
 
     wrap.addEventListener('click', function(ev){
       var t = ev.target;
       if(!t || !t.closest) return;
-      if(t === wrap || t.closest('[data-tmrclose]')){ ev.preventDefault(); finish(null); return; }
+      if(t === wrap || t.closest('[data-tmrclose]')){ ev.preventDefault(); finish('exit'); return; }
       if(t.closest('[data-tmrno]')){ ev.preventDefault(); finish(null); return; }
-      var pb = t.closest('[data-tmrp]');
-      if(pb){
+      /* ± 箭头：一次 5 分钟，1–180 钳制（减到 0 以下绕回 180，与数字输入 min/max 同口径） */
+      var dn = t.closest('[data-tmrdn]');
+      if(dn){
         ev.preventDefault();
-        if(input) input.value = pb.getAttribute('data-tmrp');
-        paint();
+        if(input) input.value = String(bumpMin(input.value, -1));
+        return;
+      }
+      var up = t.closest('[data-tmrup]');
+      if(up){
+        ev.preventDefault();
+        if(input) input.value = String(bumpMin(input.value, +1));
         return;
       }
       if(t.closest('[data-tmrgo]')){

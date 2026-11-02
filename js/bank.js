@@ -860,7 +860,11 @@
         localStorage 只记「上次选的分钟数」当默认选中值，下次照样弹框。 */
   function timerChoiceGate(scene, opts, next){
     if(!window.ExamTimerChoice){ next(null); return; }   /* 脚本没加载成功就退化成不计时，不挡路 */
-    window.ExamTimerChoice.show(scene, opts, function(min){ next(min); });
+    window.ExamTimerChoice.show(scene, opts, function(min){
+      /* EXAM-TIMER-POP-FIX-1：✕/Esc = 放弃这篇 → 退回题库列表，不开卷、不计时 */
+      if(min === 'exit'){ bkExitLoading(); return; }
+      next(min);
+    });
   }
 
   /* ===== BANK-DONE-ROW-1 笔 2：做过的篇目 → 先弹「看上次结果 / 再做一次」=====

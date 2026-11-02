@@ -66,7 +66,8 @@
 // 未改任何加载策略/脚本顺序（HANDOFF 铁律：defer 顺序是契约，动它会连带出事）。
 // common.js → 20261013ad（25 页）、index.js → 20261017a（仅 home.html）、
 // bank.js → 20261012ac（仅 bank.html）。上一版 v409。
-const CACHE = 'ielts-hub-v722'; // 11-02 RV-TOP390-1（B1 真机抓的 v719 遗留红）：交卷复盘态手机 390，篇名 183+倒计时 64+对错小字 109+工具组 72 已占 428px，再加 Answers/Highlights 两个 chip（130）→ 实测 .ex-toggles x=476、.ex-icons x=397，整排落在 390 视口外看不见点不着（无横滚可救，纯裁切）。修法：mountReviewTools 给 .ex-top 打 rv-tooled，CSS 只对复盘态放开换行（order:9+width:100% 的开关整排落到第二行、.ex-name 允许收缩）。10-29 她定的「手机顶栏只要一行」是**做题态**口径，做题态没有这个类 → 一个像素不变。js/bank.js 串 → 20261101q。上一版 v721 = BK-LOAD-CANCEL-1。
+const CACHE = 'ielts-hub-v723'; // 11-02 EXAM-TIMER-POP-FIX-1（她四条口径）：计时弹框档位排整删、自定义行改 −/＋ 箭头一次 5 分钟（1–180 钳制）、✕/Esc=放弃退出回列表（cb 传 'exit'，bank.js/writing.js 消费方分流）、「不计时」「按这个时长开始」保留。exam-timer.js（bank/writing 两页共用）20261031b→20261102a、bank.js 20261101q→r、writing.js 20261101k→l。上一版 v722 = RV-TOP390-1。
+const _prevCacheNote45 = 'ielts-hub-v722'; // 11-02 RV-TOP390-1：复盘态手机 390 顶栏两开关出屏修复（rv-tooled 类放行换行）。js/bank.js 串 → 20261101q。
 const _prevCacheNote44 = 'ielts-hub-v721'; // 11-02 BK-LOAD-CANCEL-1：进场载入页出「取消加载」+ 25s 超时兜底。js/bank.js 串 → 20261101p。上一版 v720。
 const _prevCacheNote43 = 'ielts-hub-v720'; // 11-02 RV-RVROW-RETIRE-1：交卷后逐题结论条「Q1 Incorrect / Show」整块退役（渲染+样式+监听零残留，判分与上色一字未动）。js/bank.js 串 → 20261101o。上一版 v719。
 const _prevCacheNote42 = 'ielts-hub-v719'; // 11-02 EXAM-SCORE-COMPACT-1（她 8 条口径）：成绩卡整删（.fx-score 分数块/WHAT TO DO NEXT/fx-chip 筛选全族删除，addScoreCard/fxNext 函数退役）；交卷=回看同页（不另做成绩视图）；对错个数顶栏一行小字 .ex-score-mini；「显示答案/显示高亮」开关住顶栏（mountReviewTools + rv-noans/rv-nohl 根类，默认答案关/高亮开）；答题卡红绿底色不动；分隔线拖动（exSplitHandle）交卷态不没收。bank.js/bank.css 串 → 20261101n。未判分横幅 .fx-noscore 保留（如实告知，非成绩卡）。上一版 v718 = WD-DICT-LOG-1。

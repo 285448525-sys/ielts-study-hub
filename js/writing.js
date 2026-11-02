@@ -2565,7 +2565,11 @@ function renderWritingFullEntry(){
       在那里问会变成每切一次问一次。所以答案存 WRT_FULL.timerMin，切换沿用。 */
 function wrtTimerGate(scene, defMin, cb){
   if(!window.ExamTimerChoice){ cb(defMin); return; }   /* 脚本没加载 → 用官方默认时长，不挡路 */
-  window.ExamTimerChoice.show(scene, defMin ? { def: defMin } : null, cb);
+  window.ExamTimerChoice.show(scene, defMin ? { def: defMin } : null, function(min){
+    /* EXAM-TIMER-POP-FIX-1：✕/Esc = 放弃这篇 → 回写作首页（列表在 DOM 里，show 一下即可） */
+    if(min === 'exit'){ const home = document.getElementById('examHome'); if(home) home.hidden = false; return; }
+    cb(min);
+  });
 }
 /* 把「分钟数」翻成 examStartTimer 的两个参数：0/null = 不计时（正计时向上跑） */
 function wrtTimerArgs(min){
