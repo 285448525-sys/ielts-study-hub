@@ -30,7 +30,7 @@
 </script>
 <title>计划 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261101m" />
-<link rel="stylesheet" href="css/p/plans.css?v=20261101m" />
+<link rel="stylesheet" href="css/p/plans.css?v=20261102h" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -49,7 +49,7 @@
   <script defer src="js/common-shell.js?v=20261101m"></script>
   <script defer src="js/common-pwa.js?v=20261101m"></script>
   <script defer src="js/feedback.js?v=20261027a"></script>
-  <script src="js/plans.js?v=20261031n" defer></script>
+  <script src="js/plans.js?v=20261102h" defer></script>
 <style id="bootLoaderStyle">
 #bootLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(1100px 560px at 100% -8%,rgba(58,154,147,.05),transparent 60%),var(--bg,#f6f9fb);opacity:1;pointer-events:auto;transition:opacity .18s ease}
 #bootLoader.hide{opacity:0;pointer-events:none}
@@ -582,6 +582,22 @@
        ⚠️ renderPhaseBar() 函数体保留、不删 —— 它开头就是 getElementById('phaseBar')，
           拿不到元素直接 return，空转无害；万一要回滚只需把上面那个 div 加回来。 -->
 
+  <!-- 今天／往日 分段控件（PLAN-VISIBLE-4，11-02）。
+       🔴 为什么必须放在两个 tab-panel 之外：它原来挂在
+          #ptabToday > .m-page > .m-mk > .m-pghead-r > .m-phase 里。切到「往日」时
+          `.tab-panel:not(.active){display:none}`（common.css:1132）把整个 #ptabToday 藏掉，
+          它跟着塌成 0×0（offsetParent=null）—— 用户在往日页面上物理看不见、也点不到
+          切回「今天」的入口，只能刷新页面。实测 390 / 1280 两档：切往日后 tabsBox 全 0、
+          elementFromPoint 命不中、点「今天」100% 无效。
+       ✅ 放在 <main> 直属层后，它不再随任何一个 panel 的显隐消失。
+       视觉：桌面 ≥861 由本文件顶部那条媒体查询按 id 隐藏（顶栏二级菜单接管）；
+             手机 ≤860 显示在内容区顶部 —— 与回顾页 .review-pill-tabs 的位置一致（全站惯例）。 -->
+  <div class="plan-tabsbar">
+    <div class="pill-tabs" id="planTabs">
+      <button data-ptab="today" class="pill-tab active">今天</button>
+      <button data-ptab="past" class="pill-tab">往日</button>
+    </div>
+  </div>
   <!-- Tab 1 今天（P-1：原「今日」+ 原「历史」合并；备考诊断改成本页下端固定入口卡） -->
   <div class="tab-panel active" id="ptabToday">
   <div class="m-page">
@@ -610,19 +626,17 @@
         <p class="m-pgsub">把目标拆成今天能完成的一小步。</p>
       </div>
       <div class="m-pghead-r">
-        <!-- 阶段胶囊与「今天／往日」两个 tab 同一行：胶囊靠左、tab 靠右。
-             🔴 #planTabs 必须留在 .m-phase 里面 —— 回归探针 _probe_p1plan_1024
-                断言的是 `.m-phase #planTabs`（P-HEAD-1 定的口径：tab 并进阶段条那一行、
-                首屏不重复页内标题）。所以这里把 .m-phase 当成「那一行」的容器，
-                胶囊外观交给里层 .m-phase-chip，两者视觉上仍是一行。 -->
+        <!-- 阶段胶囊（「今天／往日」两个 tab 已提走，见 <main> 下同级的 #planTabs）。
+             🔴 PLAN-VISIBLE-4（11-02）：#planTabs 原来挂在这里 = 挂在 #ptabToday 内部 ——
+                切到「往日」时 `.tab-panel:not(.active){display:none}` 把整个 #ptabToday 藏掉，
+                #planTabs 跟着塌成 0×0（offsetParent=null），用户在往日页面上物理看不到、
+                也点不到切回「今天」的入口。实测 390 / 1280 两档：切往日后 tabsBox 全 0、
+                elementFromPoint 命不中。改法：#planTabs 提到两个 tab-panel 同级，
+                永远不随哪个 panel 显隐而消失；视觉位置由 plans.css 的 #planTabs 规则管。 -->
         <div class="m-phase m-phase-row">
           <div class="m-phase-chip">
             <span class="m-chip">冲刺期</span>
             <span class="m-phatime">距考试 <b>9</b> 天 · 倒数第 2 周</span>
-          </div>
-          <div class="pill-tabs" id="planTabs">
-            <button data-ptab="today" class="pill-tab active">今天</button>
-            <button data-ptab="past" class="pill-tab">往日</button>
           </div>
         </div>
       </div>

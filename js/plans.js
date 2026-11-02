@@ -686,6 +686,13 @@ function syncSkeleton(date, isToday, items, done, total, pct){
     }catch(e){}
     dateSub.textContent = focusTxt2 ? ('本周重点：' + focusTxt2) : (date + ' · ' + wk);
   }
+  /* 任务区标题：翻到哪天就写哪天（PLAN-VISIBLE-4，11-02）。
+     原来 h2 在 plans.html 里写死「今天的任务」，syncSkeleton 从没碰过它 ——
+     翻到 11-01 标题仍是「今天的任务」，日期条已经变了，两处自相矛盾（她原话「非常明显的 bug」）。
+     ⚠️ 只在 isToday 时用「今天的任务」这个固定说法，其余天数写「X 月 X 日的任务」，
+        与日期条 .m-datetext 同一套格式（同一个月内天数也不省略月份，避免「1 日的任务」歧义）。 */
+  var th2 = document.getElementById('mkTaskHeading');
+  if(th2) th2.textContent = isToday ? '今天的任务' : ((dt.getMonth() + 1) + ' 月 ' + dt.getDate() + ' 日的任务');
   var mdt = document.getElementById('mkDayToday');
   if(mdt) mdt.hidden = isToday;
 

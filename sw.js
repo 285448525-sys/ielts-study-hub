@@ -66,7 +66,8 @@
 // 未改任何加载策略/脚本顺序（HANDOFF 铁律：defer 顺序是契约，动它会连带出事）。
 // common.js → 20261013ad（25 页）、index.js → 20261017a（仅 home.html）、
 // bank.js → 20261012ac（仅 bank.html）。上一版 v409。
-const CACHE = 'ielts-hub-v738'; // 11-02 P2 清理批（B2/B1 审计+真机各报一笔，零行为变化）：①bank.html .ex-opt .ex-ca 死规则删（.ex-ca 全族已退役，运行时零引用）；②#exAiHandle pointerdown 去掉 stopPropagation（捕获期 stop 无必要，防未来同 handle 监听被吃）。bank.js →20261102g。上一版 v737 = RV-FIX5 六笔。
+const CACHE = 'ielts-hub-v739'; // 11-02 PLAN-VISIBLE-4：计划页两个真 bug（她点名三次的明显 bug 里成立的两条）。① 今天／往日 tab 条塌掉：原来挂在 #ptabToday > .m-page > .m-mk > .m-pghead-r > .m-phase 里，切到往日时 .tab-panel:not(.active){display:none} 把整个 #ptabToday 藏掉，tab 跟着塌成 0×0（offsetParent=null）——用户在往日页面上物理看不见也点不到切回「今天」的入口，只能刷新。实测 390/1280 两档切往日后 tabsBox 全 0、elementFromPoint 命不中、点「今天」100% 无效。改法：DOM 提到 <main> 直属层（两个 tab-panel 之外），plans.css 里那条依赖 .m-phase 后代的 4 条规则整组删除、换成 .plan-tabsbar 自己一套；桌面 ≥861 仍由页内媒体查询按 id 隐藏。② 翻日期后标题写死「今天的任务」：h2 id=mkTaskHeading 在 HTML 里硬写「今天的任务」，syncSkeleton 从没碰过它；改成 isToday ? '今天的任务' : 'X 月 X 日的任务'（与日期条同格式）。【两条报错但实测不成立的已核掉】③ 筛选三钮没「永远 hidden」——syncSkeleton 里 filterEl.hidden = items.length < 2 一直在跑，实测 2 条以上正常出现、点「已完成」筛得动（0/1 条时故意隐藏是设计：一排按钮配空列表更困惑）；④ 「回到今天」不是 hidden 属性卡点击——实测翻到昨天后按钮 display:block、elementFromPoint 命中自身、真点击能回到今天。所以本笔只改两条，没动 ③④ 的代码。plans.js/plans.css/plans.html 均在 PRECORE，三个都 bump 到 20261102h。上一版 v738 = P2 清理批。
+const _prevCacheNote55 = 'ielts-hub-v738'; // 11-02 P2 清理批（.ex-opt .ex-ca 死规则删 + #exAiHandle 去 stopPropagation）。上一版 v737 = RV-FIX5 六笔。
 const _prevCacheNote54 = 'ielts-hub-v732'; // 11-02 MAT-DEAD-THEMEBTN-1：素材页死按钮「切到深色」删除。上一版 v731 = RV-BLANK-CA-2。
 const _prevCacheNote53 = 'ielts-hub-v731'; // 11-02 RV-BLANK-CA-2：填空正答框内绿显。bank.js →20261101v。上一版 v729 = WD-DICT-TYPE-2。
 const _prevCacheNote52 = 'ielts-hub-v729'; // 11-02 WD-DICT-TYPE-2：听写打字型收尾（不泄答案/文案对上/模式菜单可反复开）。上一版 v728 = RV-COLOR-LOGIC-1。

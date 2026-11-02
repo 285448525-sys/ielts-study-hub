@@ -188,25 +188,34 @@
 /* .m-pri 是主色实底 + 白字，深色下主色不变 → 白字仍然成立，不用动 */
 
 
-/* ═══ P-HEAD-1（10-25）首屏对齐：tab 条并进阶段条右侧 ═══
+/* ═══ PLAN-VISIBLE-4（11-02）今天／往日 tab 条独立成行 ═══
+   原状：#planTabs 挂在 #ptabToday > .m-page > .m-mk > .m-pghead-r > .m-phase 里，
+   切到「往日」时 #ptabToday 整块 display:none → tab 一并消失，用户回不来。
+   现在 DOM 提到 <main> 直属层（plans.html），这里只负责它自己的外观与位置：
+   · 手机 ≤860：内容区顶部、左对齐，与回顾页 .review-pill-tabs 的位置一致（全站惯例）。
+   · 桌面 ≥861：plans.html 顶部那条媒体查询按 id 隐藏，由顶栏二级菜单接管，不重复。
+   🔴 之所以不复用 `.m-page .m-phase #planTabs` 那套（原来靠它定位）：
+      那条选择器要求 #planTabs 是 .m-phase 的后代，提出来之后必然失配；
+      与其留一堆永命不中的死规则，不如把这层样式收进这里一份。 */
+.plan-tabsbar{padding:12px 16px 0}
+.plan-tabsbar #planTabs{margin:0}
+@media(max-width:860px){
+  .plan-tabsbar{padding:14px 16px 4px}
+  .plan-tabsbar #planTabs{display:inline-flex;gap:4px}
+  .plan-tabsbar #planTabs .pill-tab{padding:5px 13px;font-size:13px;border:1px solid var(--primary-200);background:rgb(255,255,255);color:var(--primary-text);border-radius:999px}
+  .plan-tabsbar #planTabs .pill-tab.active{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+}
+
+/* ═══ P-HEAD-1（10-25）首屏对齐 ═══
    她 17:0x 两条一起提：「计划这个页面第一尺寸跟其他页面不一样，不对」+
    「所有页面上面不能有 tab 标题…记住这个规矩」。
+   删掉 .m-pg-head（页内标题行）与 .m-mk-top（假浏览器框）两个节点后，
+   首屏直接是页头一行 + 日期条，不再有第二层标题。
 
-   做了什么：删掉 .m-pg-head（页内标题行）与 .m-mk-top（假浏览器框）两个节点，
-   把 #planTabs（今天/往日）搬进 .m-phase 同一行右侧。
-   .m-phase 本身是 flex + wrap，插进去天然同行；这里只补「靠右」和 tab 自身尺寸。 */
-.m-page .m-phase #planTabs{margin-left:auto;flex:none;display:inline-flex;gap:4px}
-.m-page .m-phase #planTabs .pill-tab{
-  padding:4px 11px;font-size:12.5px;border-radius:999px;
-  border:1px solid var(--primary-200);background:rgb(255,255,255);color:var(--primary-text)
-}
-.m-page .m-phase #planTabs .pill-tab.active{
-  background:var(--primary);border-color:var(--primary);color:var(--on-primary)
-}
-/* 手机：阶段条那一行放不下时 tab 换到下面一行，占满整行 */
-@media(max-width:860px){
-  .m-page .m-phase #planTabs{margin-left:0;flex:1 1 100%;justify-content:flex-start;margin-top:4px}
-}
+   ⚠️ PLAN-VISIBLE-4（11-02）：这里原来还有 4 条 `.m-page .m-phase #planTabs{…}` 规则
+      （把 tab 条并进阶段条右侧）。#planTabs 已从 .m-phase 里提出去、放到 <main> 直属层，
+      那 4 条选择器从此永远命不中 —— 已整组删除，别再加回来。
+      现役样式在下面「今天／往日 tab 条独立成行」那一段。 */
 /* 🔴 首屏贴顶对齐：.m-mk 原来靠 .m-mk-top 的高度 + .m-pg-head 的内边距把内容顶到 76px。
    两个节点删掉后，把 .m-mk / .m-mk-body 的上内距收成与其他页卡片一致（目标 ≤20px）。 */
 .m-page .m-mk{padding-top:0}
