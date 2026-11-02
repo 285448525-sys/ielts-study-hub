@@ -3256,7 +3256,14 @@ window.__reportExamState = reportExamState;
         }
       });
       var bl = root.querySelector('input.ex-blank[data-q="' + d.qn + '"]'); if(bl) bl.disabled = true;
-      if(bl && !d.ok){ bl.style.borderBottomColor = '#e6b3ae'; bl.style.color = '#b3261e'; }
+      /* RV-COLOR-LOGIC-1：填词题对错改 class（原内联红边在答案关闭态退化成「红变黑」她不接受——
+         其实那版语义是「关闭态隐藏判分色」，她新口径是「关闭态照显对错但正确零标识」，
+         填词的错要一直红、对要一直绿；正答填入只在答案打开态，见 applyReviewToggles）。 */
+      if(bl){
+        bl.classList.add(d.ok ? 'right' : 'wrong');
+        bl.style.borderBottomColor = ''; bl.style.color = '';   /* 清掉旧内联（老复盘记录重挂时残留） */
+        if(bl.getAttribute('data-rv-user') == null) bl.setAttribute('data-rv-user', bl.value || '');
+      }
 
       /* 11-02 她拍板：逐题结论条（Q<n> / Correct|Incorrect / Show）整块退役，
          这里不再往题组里 append 任何节点 —— 复盘只靠上面那套上色（.ex-qn.hit/.miss、
@@ -3476,6 +3483,42 @@ window.__reportExamState = reportExamState;
     var root = document.getElementById('examRoot'); if(!root || !EX || !EX.submitted) return;
     root.classList.toggle('rv-noans', !EX._rvShowAns);
     root.classList.toggle('rv-nohl', !EX._rvShowHl);
+    /* RV-COLOR-LOGIC-1 ④：答案打开态错项旁加绿色正确答案（.ex-ca 行，只挂错的、只挂答案打开态）；
+       空格正答 = 打开态把 input 值换成本题正答、关闭态还原她的作答（data-rv-user 里存着原值）。
+       判分数据（d.ok/d.right/d.user、EX.marks）一字不动；她的作答有 data-rv-user 兜底不丢。 */
+    var showAns = !!EX._rvShowAns;
+    root.querySelectorAll('.ex-ca').forEach(function(n){ n.parentNode && n.parentNode.removeChild(n); });
+    if(!EX.result || !Array.isArray(EX.result.detail)) return;
+    EX.result.detail.forEach(function(d){
+      var qn = String(d.qn);
+      /* 空格：正答填入/还原 */
+      var bl = root.querySelector('input.ex-blank[data-q="' + qn + '"]');
+      if(bl){
+        if(bl.getAttribute('data-rv-user') == null) bl.setAttribute('data-rv-user', bl.value || '');
+        if(showAns && d.right != null && String(d.right).length){
+          bl.value = String(d.right);
+        }else{
+          bl.value = bl.getAttribute('data-rv-user') || '';
+        }
+        var w = bl.closest('.ex-blankw'); if(w) w.classList.toggle('filled', !!bl.value);
+      }
+      /* 错项旁绿字正答行：答错 + 有正答 + 答案打开态才挂 */
+      if(!showAns || d.ok || d.right == null || !String(d.right).length) return;
+      var anchorEl = root.querySelector('.ex-opt.wrong[data-v], .ex-pill.wrong[data-v], .ex-drop.wrong[data-q="' + qn + '"], .ex-pslot.wrong[data-q="' + qn + '"]');
+      /* 行内归属：优先本题 qn 关联容器内的错项；找不到再退到全局（同题多错只挂一次） */
+      var scoped = root.querySelectorAll('.ex-opts[data-q="' + qn + '"] .ex-opt.wrong, .ex-pills[data-q="' + qn + '"] .ex-pill.wrong');
+      if(scoped.length) anchorEl = scoped[0];
+      else if(!anchorEl){
+        var mxw = root.querySelector('.ex-lomatrix input[data-q="' + qn + '"]:checked');
+        if(mxw) anchorEl = mxw.closest('tr');
+        else if(bl) anchorEl = bl.closest('.ex-blankw') || bl;
+      }
+      if(!anchorEl) return;
+      var ca = document.createElement('span');
+      ca.className = 'ex-ca' + (anchorEl.classList && anchorEl.classList.contains('ex-blankw') ? ' ex-ca--blank' : '');
+      ca.textContent = String(d.right);
+      anchorEl.insertAdjacentElement('afterend', ca);
+    });
   }
   /* 🔴 答案开关语义（她 11-02 两图口径）：图一「显示答案」= 正确答案标进空格 + 标绿；
      图二「不显示」= 空格只留她的作答。关掉时**上色隐藏但不弃判分数据**：

@@ -311,10 +311,19 @@
 /* 复盘开关落内容（JS 侧 applyReviewToggles 切这两个根类，不改任何判分数据）：
    rv-noans = 隐藏正确答案标记（.right 标绿/correct-answer 行）→ 回到「只看自己作答」；
    rv-nohl  = 隐藏她做题画的标注（.ex-hl/.ex-nt），visibility 保位（再开原样回来）。 */
+/* RV-COLOR-LOGIC-1（11-02 她口径改）：答案关闭态 = 只隐「正确标识」，对错照显——
+   · 正确选项/正答标记（.right / .mx-right）零标识：背景、边框、文字色、圆点边全部回默认；
+   · 错项（.wrong / .mx-wrong）保留红（她自己选错的地方要看得见）；
+   · 题号徽章 hit/miss 照显（对错是她的作答结果，不属于「答案」）。 */
 #examRoot.rv-noans .ex-opt.right,#examRoot.rv-noans .ex-pill.right,#examRoot.rv-noans .ex-drop.right,
-#examRoot.rv-noans .ex-pslot.right,#examRoot.rv-noans .ex-qn.hit,#examRoot.rv-noans .ex-qn.miss,
-#examRoot.rv-noans td.mx-right,#examRoot.rv-noans td.mx-wrong{background:transparent !important;border-color:var(--line) !important;color:inherit !important}
-#examRoot.rv-noans input.ex-blank[data-q]{border-bottom-color:var(--line) !important;color:inherit !important}
+#examRoot.rv-noans .ex-pslot.right,#examRoot.rv-noans td.mx-right{background:transparent !important;border-color:transparent !important;color:inherit !important}
+#examRoot.rv-noans .ex-opt.right::before{border-color:var(--line) !important}
+#examRoot.rv-noans .ex-pill.right::before{border-color:var(--line) !important;background:none !important}
+#examRoot.rv-noans td.mx-right input[type=radio]{accent-color:#6b7280 !important}
+/* 填词题红变黑修复（她截图：答案关闭态填空错字不该红）：
+   decoratePassage 给错 blank 写的内联 style.borderBottomColor/color 在关闭态盖回默认墨色，
+   开启态由内联样式恢复红（不动判分数据、不动她的作答值）。 */
+#examRoot.rv-noans input.ex-blank[data-q]{border-bottom-color:var(--line) !important;color:#24272c !important}
 #examRoot.rv-nohl .ex-hl,#examRoot.rv-nohl .ex-nt{background:transparent !important;color:inherit !important;outline:none !important;box-shadow:none !important}
 @media(max-width:860px){
 .ex-toggles{order:9;width:100%;justify-content:flex-start;padding-top:2px}
@@ -470,8 +479,8 @@
   .ex-pool--side .ex-pool-c{flex-direction:row;flex-wrap:wrap}
   .ex-pool--side .ex-chip{width:auto}
 }
-.ex-qn.miss{color:#b3261e;border-color:#b3261e}
-.ex-qn.hit{color:var(--primary-900);border-color:var(--primary)}
+#examRoot .ex-qn.miss{color:#b3261e;border-color:#b3261e}
+#examRoot .ex-qn.hit{color:#1f7a5c;border-color:#1f7a5c}
 /* 10/16 二修：共享选项组（Questions X–Y Choose N）合并题号框（如「9–10」）——真机考/104 样子稿同形 */
 .ex-qn--wide{min-width:46px;padding:0 7px;letter-spacing:.3px}
 /* 选项（判断/单选/多选/字母匹配）：竖排整行，选中 = 圈实心 + 行浅 teal（样子稿 104，颜色本站 teal）
@@ -482,7 +491,7 @@
 .ex-pill:hover{background:#f4f6f8;border-color:transparent}
 .ex-pill.on{background:var(--primary-50)}
 .ex-pill.on::before{border-color:var(--primary);background:radial-gradient(circle,var(--primary) 0 4px,transparent 4.5px)}
-.ex-pill.right{background:var(--primary-50);border-color:var(--primary)}
+.ex-pill.right{background:#eaf6f0;border-color:#1f7a5c;color:#1f7a5c}
 .ex-pill.wrong{background:#fdf3f2;border-color:#b3261e;color:#b3261e}
 .ex-opts{display:flex;flex-direction:column;gap:3px;margin-top:10px}
 .ex-opt{display:flex;align-items:center;gap:10px;min-height:34px;padding:7px 11px;border:1px solid transparent;border-radius:3px;background:#fff;font-size:.94em;cursor:pointer;color:#111;position:relative}   /* 10/14 17.5→14.5px、行高 37→32px */
@@ -548,7 +557,7 @@
 .ex-drop.filled b{font-weight:400}
 .ex-drop .ex-x{font-size:.8em;color:var(--muted);cursor:pointer;padding:0 2px;font-weight:400}
 .ex-drop .ex-x:hover{color:#b3261e}
-.ex-drop.filled.right{border-color:var(--primary);background:var(--primary-50)}
+.ex-drop.filled.right{border-color:#1f7a5c;background:#eaf6f0;color:#1f7a5c}
 .ex-drop.filled.wrong{border-color:#b3261e;background:#fdf3f2;color:#b3261e}
 /* 🔴 10/16 她 18:16：「heading 题是把右边的选项拖到原文里的，每一段的上面会有一个虚像框让你拖的」
    → 原文段落上方的虚线槽（.ex-hslot 同时带 .ex-drop 类，拖放/点选/清除/复盘上色全部复用既有手势层）。
@@ -610,11 +619,21 @@
 .ex-blankw input::placeholder{color:#9ca3af;opacity:1}
 .ex-blankw.filled b{display:none}
 .ex-blankw.filled{border-color:#374151}
-.ex-blankw.right{border-color:var(--primary)}
+.ex-blankw.right{border-color:#1f7a5c}
 .ex-blankw.wrong{border-color:#b3261e}
-.ex-blank.right{border-color:var(--primary);color:var(--primary-900)}
+.ex-blank.right{border-color:#1f7a5c;color:#1f7a5c}
 .ex-blank.wrong{border-color:#b3261e;color:#b3261e}
-.ex-blankw.right input{color:var(--primary-900)}
+/* RV-COLOR-LOGIC-1 修：#examRoot .ex-blankw input（0,1,2 + 元素选择器）写死 color:#111，
+   裸 .ex-blank.wrong（0,1,0）压不过 → 填空对错色被默认墨色吃掉。
+   提到同族 + 类：#examRoot .ex-blankw input.ex-blank.right/.wrong 特异性 (1,2,1) 反超。 */
+#examRoot .ex-blankw input.ex-blank.right{color:#1f7a5c}
+#examRoot .ex-blankw input.ex-blank.wrong{color:#b3261e}
+/* RV-COLOR-LOGIC-1：答案打开态错项旁的绿色正确答案行（JS 挂 .ex-ca，rv-noans 时整行藏） */
+.ex-ca{display:block;margin:3px 0 0 34px;font-size:12px;font-weight:700;color:#1f7a5c;line-height:1.5}
+.ex-ca::before{content:'Correct: ';font-weight:400;color:#1f7a5c;opacity:.8}
+.ex-ca--blank{margin-left:0;display:inline-block;vertical-align:middle}
+.ex-opt .ex-ca{flex-basis:100%;margin-left:0}
+.ex-blankw.right input{color:#1f7a5c}
 .ex-blankw.wrong input{color:#b3261e}
 /* 段落信息匹配（她 10/12 22:16 截图要求的真机考形态）：文章每段上方虚线槽 + 题号气泡。
    槽 = .ex-pslot（细虚线，放入题号后变实线）；气泡 = .ex-lohb（可拖可点选）。
@@ -624,7 +643,7 @@
 .ex-pslot .ex-psl-box{flex:1;min-height:calc(var(--exfs) * 1);font-size:calc(var(--exfs) * .675);font-weight:700;color:#111}
 .ex-pslot.filled{border-style:solid;border-color:#374151;background:#fff}
 .ex-pslot.over{border-color:var(--primary);background:var(--primary-50)}
-.ex-pslot.right{border-color:var(--primary)}
+.ex-pslot.right{border-color:#1f7a5c}
 .ex-pslot.wrong{border-color:#b3261e}
 /* 10/14 她拍板：段落信息匹配改表格行（题号 | 题干 | 右侧字母框）。
    真实机考同形态（IDP 官方样题 + 104 样子稿）。字母框做成 select：点开选 A–H，
@@ -643,9 +662,9 @@
 .ex-lomatrix .mx-no{font-weight:800;margin-right:8px}
 .ex-lomatrix .mx-cell{padding:12px 4px;text-align:center}
 .ex-lomatrix input[type=radio]{width:15px;height:15px;accent-color:var(--primary);cursor:pointer;margin:0;vertical-align:middle}
-.ex-lomatrix td.mx-right{background:var(--primary-50)}
+.ex-lomatrix td.mx-right{background:#eaf6f0}
 .ex-lomatrix td.mx-wrong{background:#fdf3f2}
-.ex-lomatrix td.mx-right input[type=radio]{accent-color:var(--primary)}
+.ex-lomatrix td.mx-right input[type=radio]{accent-color:#1f7a5c}
 #examRoot.ct-dark .ex-lomatrix th,#examRoot.ct-dark .ex-lomatrix td{border-color:#3a3f45}
 #examRoot.ct-dark .ex-lomatrix thead th{background:#1c1f22;color:#f2f2f2}
 #examRoot.ct-dark .ex-lomatrix .mx-stem{color:#f2f2f2}
@@ -659,9 +678,9 @@
 .ex-lohb.ghost{position:fixed;left:0;top:0;z-index:999;pointer-events:none;opacity:.92}
 .ex-lohv{margin-left:8px;font-size:calc(var(--exfs) * .65);font-weight:700;color:var(--primary-900)}   /* 10/16：字号跟 --exfs */
 /* 交卷后选项上色（兼容新选项行） */
-.ex-opt.right{background:var(--primary-50)}
-.ex-opt.wrong{background:#fdf3f2}
-.ex-opt.right::before,.ex-radio-box .ex-opt.right::before{border-color:var(--primary)}
+#examRoot .ex-opt.right{background:#eaf6f0}
+#examRoot .ex-opt.wrong{background:#fdf3f2}
+.ex-opt.right::before,.ex-radio-box .ex-opt.right::before{border-color:#1f7a5c}
 .ex-opt.wrong::before{border-color:#b3261e}
 /* Option 覆盖面板（☰ 菜单，照她截图的 Option 居中列表 + 子面板 + Back） */
 .ex-option{position:absolute;inset:0;background:rgba(255,255,255,.99);z-index:95;display:none;overflow:auto}
@@ -2697,7 +2716,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common-shell.js?v=20261101m"></script>
 <script defer src="js/common-pwa.js?v=20261101m"></script>
 <script defer src="js/exam-timer.js?v=20261102b"></script>
-<script defer src="js/bank.js?v=20261101s"></script>
+<script defer src="js/bank.js?v=20261101t"></script>
 <!-- M-2（10-24）：模考页「没做过/做过」分组 + 展开更多。
      ⚠️ 本文件只做展示层（读 hub_bank_last_* 分组 + 首屏 20 条），判分/SRS/本地记录一律不碰；
         单条 DOM 由 js/bank.js 的 listHtml() 生成（当参数传进来），结构零改动。
