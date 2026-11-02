@@ -30,6 +30,7 @@ node_modules
 # 一次性探针、截图、日志、输出 json 继续留在本机。
 # ⚠️ 放行清单必须与白名单同进同出：加减探针时这里跟着加减。
 #    有闸校验：node tests/_gate_gitignore_whitelist_1031.cjs（不一致即红）。
+!/tests/README.md
 !/tests/_diag_interact_1025.cjs
 !/tests/_diag_sitesweep_1025.cjs
 !/tests/_precore_audit_1024.cjs
