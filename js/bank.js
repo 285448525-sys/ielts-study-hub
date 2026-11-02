@@ -1105,18 +1105,15 @@
     }, { onCancel: bkExitLoading, noTimeout: true, lpTitle: '正在载入上次结果', lpSub: '只读复盘 · 不重新计时' });
   }
 
-  /* 只读复盘顶部的小标记：明确告诉用户「这是上次的记录，不是现在在做题」。 */
+  /* RV-BOTTOM-23（11-02 她催的底部布局笔·条①）：底部「上次的结果·只读·用时」信息条
+     （rv-ro-badge）整条退役 —— 她原话「最下面那个显示时间的栏怎么还不删掉」。
+     顶栏已有对错小字（ex-score-mini），信息不丢；函数保留空壳 + 调用点保留，
+     只读标记改由题号行上方无样式小字承担？——不造新东西，直接什么都不挂（按字面执行）。 */
   function addReadonlyBadge(rec){
-    var root = document.getElementById('examRoot'); if(!root) return;
+    /* RV-BOTTOM-23：整条退役，不再渲染（含「用时」）。参数 rec 保留签名兼容。 */
+    var root = document.getElementById('examRoot');
+    if(!root) return;
     var old = root.querySelector('.rv-ro-badge'); if(old) old.remove();
-    var used = rec && rec.usedSec != null ? fmtUsed(rec.usedSec) : '';
-    var when = rec && (rec.updatedAt || rec.ts) ? relTime(rec.updatedAt || rec.ts) : '';
-    var el = document.createElement('div');
-    el.className = 'rv-ro-badge';
-    el.innerHTML = '<span>上次的结果 · 只读</span>'
-      + (used ? '<span>用时 ' + esc(used) + '</span>' : '')
-      + (when ? '<span>' + esc(when) + '</span>' : '');
-    root.appendChild(el);
   }
 
   function qNums(g){
@@ -1617,7 +1614,8 @@
       + '</div>';
   }
   function splitHtml(artHtml, qHtml){
-    return '<div class="ex-split" id="exSplit">'
+    /* RV-BOTTOM-23：复盘态（EX.submitted）挂 rv-done → 手机并一列、分隔线只留桌面档 */
+    return '<div class="ex-split' + ((EX && EX.submitted) ? ' rv-done' : '') + '" id="exSplit">'
       +    '<div class="ex-article" id="exArt">' + artHtml + '</div>'
       +    '<button type="button" class="ex-split-handle" id="exSplitHandle" role="separator" aria-label="拖动调整原文和题目宽度" aria-orientation="vertical" aria-valuemin="25" aria-valuemax="75" aria-valuenow="50" tabindex="0"></button>'
       +    '<div class="ex-qcol" id="exQCol">' + qHtml + '</div>'
@@ -1756,7 +1754,10 @@ window.__reportExamState = reportExamState;
        牌子取 yasihub.com（她 22:5x 给的两个候选里选带域名的 —— 光写 yasihub 像内部代号，
        带上 .com 顺便提醒用户这是哪）。 */
     var chLabel = (EX && EX.channel === 'listening') ? '听力' : '阅读';
-    return '<div class="ex-bar">'
+    /* RV-BOTTOM-23（她 11-02 三条口径）：交卷/复盘态底栏 = 题号行 + Exit 整行压底；
+       做题态（!EX.submitted）一个字节不变。类名挂 .ex-bar 上，CSS 按 rv-done 分叉。 */
+    var rvDone = !!(EX && EX.submitted);
+    return '<div class="ex-bar' + (rvDone ? ' rv-done' : '') + '">'
       +    '<div class="ex-bar-main">'
       +      '<div class="ex-nav' + (full ? '' : ' ex-nav--plain') + '" id="exNav">'
       /* full = Part 行（当前 Part 内嵌题号容器 #exNums，由 paintPgSwitch 建、paintSheet 填）；
@@ -1765,9 +1766,9 @@ window.__reportExamState = reportExamState;
       :               '<div class="ex-nums" id="exNums"></div>')
       +      '</div>'
       +      '<div class="ex-actions">'
-      +        (showPause ? '<button type="button" class="btn-ghost ex-pause" id="exPauseBtn">Pause</button>' : '')
+      +        (!rvDone && showPause ? '<button type="button" class="btn-ghost ex-pause" id="exPauseBtn">Pause</button>' : '')
       +        '<button class="btn-ghost" type="button" data-exit>Exit</button>'
-      +        '<button class="btn-primary" type="button" data-submit>Finish section</button>'
+      +        (!rvDone ? '<button class="btn-primary" type="button" data-submit>Finish section</button>' : '')
       +      '</div>'
       +    '</div>'
       +    '<div class="ex-strip">'
@@ -4833,6 +4834,15 @@ window.__reportExamState = reportExamState;
        改成灰底 + 文案 Submitted，与 button:disabled 的状态语义一致。 */
     var sb = document.querySelector('#examRoot [data-submit]');
     if(sb){ sb.disabled = true; sb.textContent = 'Submitted'; sb.classList.add('is-done'); }
+    /* RV-BOTTOM-23：交卷瞬间补挂复盘态钩子（不重渲染，类随类挂）——
+       底栏 .ex-bar 与 .ex-split 打 rv-done：CSS 把 Exit 撑成整行压底、
+       Submitted/Pause 藏（手机 split 并一列），做题态（未交卷）零影响。 */
+    (function(){
+      var _b = document.querySelector('#examRoot .ex-bar');
+      if(_b) _b.classList.add('rv-done');
+      var _sp = document.getElementById('exSplit');
+      if(_sp) _sp.classList.add('rv-done');
+    })();
     bankCommitTimer();                                /* C-3：交卷即结算专注计时（含 <30s 过滤） */
   }
 

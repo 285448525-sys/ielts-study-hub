@@ -66,7 +66,8 @@
 // 未改任何加载策略/脚本顺序（HANDOFF 铁律：defer 顺序是契约，动它会连带出事）。
 // common.js → 20261013ad（25 页）、index.js → 20261017a（仅 home.html）、
 // bank.js → 20261012ac（仅 bank.html）。上一版 v409。
-const CACHE = 'ielts-hub-v732'; // 11-02 MAT-DEAD-THEMEBTN-1（A1 全站按钮点击巡检挖出）：素材页引导屏右上角「切到深色」是设计稿残留的死按钮 —— 全仓没有任何地方给它绑过点击事件（CDP 实测监听器为空、真实鼠标点击后 data-theme/文案/存储三元不变），点了一点反应都没有。同批设计稿注释里明确写过「切到深色按钮是给评审用的，不进正式页」，这里漏了。删掉该按钮节点，引导屏其余内容（标题/三个数/会员条/生成按钮）一字未动。materials.js 串 20261101k→20261102d（materials.html 与 speaking.html 的 data-late-src 两处同 bump）。上一版 v731 = RV-BLANK-CA-2。
+const CACHE = 'ielts-hub-v733'; // 11-02 RV-BOTTOM-23（她催的复盘页底部布局三条口径，只作用交卷/复盘态 .rv-done，做题态一字不动）：①底部「上次的结果·只读·用时」信息条（rv-ro-badge）整条退役——她原话「最下面那个显示时间的栏怎么还不删掉」；②Exit 行压底占满（复盘态底栏只留 Exit 一钮 width:100%，Pause/Submitted 不渲染）；③手机 ≤860 复盘态 .ex-split 两段式并一列去空隙、分隔线拖动保留桌面档。bank.js →20261102b。上一版 v732 = MAT-DEAD-THEMEBTN-1。
+const _prevCacheNote54 = 'ielts-hub-v732'; // 11-02 MAT-DEAD-THEMEBTN-1：素材页死按钮「切到深色」删除。上一版 v731 = RV-BLANK-CA-2。
 const _prevCacheNote53 = 'ielts-hub-v731'; // 11-02 RV-BLANK-CA-2：填空正答框内绿显。bank.js →20261101v。上一版 v729 = WD-DICT-TYPE-2。
 const _prevCacheNote52 = 'ielts-hub-v729'; // 11-02 WD-DICT-TYPE-2：听写打字型收尾（不泄答案/文案对上/模式菜单可反复开）。上一版 v728 = RV-COLOR-LOGIC-1。
 const _prevCacheNote51 = 'ielts-hub-v728'; // 11-02 RV-COLOR-LOGIC-1：复盘对错颜色口径统一（对=浅绿/错=红），bank.js →20261101t。上一版 v727 = EXAM-QNBAR-LEFT-1。

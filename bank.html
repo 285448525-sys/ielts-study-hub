@@ -19,7 +19,7 @@
 <meta http-equiv="Expires" content="0" />
 <title>模考 · 雅思备考 Hub</title>
 <link rel="stylesheet" href="css/common.css?v=20261101m" />
-<link rel="stylesheet" href="css/p/bank.css?v=20261101n" />
+<link rel="stylesheet" href="css/p/bank.css?v=20261102a" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=7">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png?v=7">
@@ -1171,6 +1171,7 @@
   #examRoot .ex-top.rv-tooled .ex-name{flex:0 1 auto;min-width:64px}
   #examRoot .ex-top.rv-tooled .ex-toggles{order:9;width:100%;justify-content:flex-start;padding-top:2px}
   #examRoot .ex-top.rv-tooled .ex-score-mini{margin-left:auto}
+
   .mock-tabs .pill-tab,.partbar .pill-tab{padding:9px 12px;font-size:13.5px}
   .mock-tabs{width:100%}.mock-tabs .pill-tab{flex:1;justify-content:center}
   .bi-chips{display:none}
@@ -1887,9 +1888,37 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 #examRoot.ct-yellow .ex-pt.on{color:#ffd400}
 /* 底栏三个动作键：官方截图（爱听写）是同款浅灰 → 本站已是浅灰，只把圆角压成官方方角 */
 #examRoot .ex-actions .btn{border-radius:0}
+/* ═══ RV-BOTTOM-23（11-02 她催的复盘页底部布局三条口径）═══
+   只作用在交卷/复盘态（.ex-bar.rv-done，barHtml 按 EX.submitted 挂类），做题态零影响：
+   ② Exit 行压底占满：复盘态 .ex-actions 只剩 Exit 一钮 → 整行 width:100% 压在最底；
+     Submitted/Pause 在 JS 侧已不渲染，双保险 CSS 兜底再藏一次。
+   ③ 两列并一列去空隙：手机（≤860）复盘态 .ex-split 从「文章一行+题目一行」两段式
+     （rows 36vh+1fr + 分隔线）连成一列去空隙；分隔线拖动（exSplitHandle）保留在桌面档
+     （>860 不动，632/632 拖动口径不破）。 */
+#examRoot .ex-bar.rv-done .ex-bar-main{flex-wrap:wrap;height:auto;max-height:none;padding:0 0 8px}
+#examRoot .ex-bar.rv-done .ex-actions{flex:1 1 100%;width:100%;padding:0 8px}
+#examRoot .ex-bar.rv-done .ex-actions .btn-ghost[data-exit]{flex:1 1 auto;width:100%;height:40px}
+#examRoot .ex-bar.rv-done .ex-pause,
+#examRoot .ex-bar.rv-done [data-submit]{display:none !important}
+@media(max-width:860px){
+  #examRoot .ex-split.rv-done{grid-template-columns:1fr;grid-template-rows:none}
+  #examRoot .ex-split.rv-done .ex-article{border-bottom:none;padding-bottom:10px}
+  #examRoot .ex-split.rv-done #exSplitHandle{display:none}
+}
 /* 第二行品牌条：官方没有 → 抹平（她 22:5x 要过「弄成两行」，现按官方口径收掉）。
    类名与 DOM 保留（JS 与探针都引用），只收视觉不删结构。 */
 #examRoot .ex-strip{display:none}
+
+  /* ═══ RV-BOTTOM-LAYOUT-1（11-02 她拍板：「最下面那个显示时间的栏怎么还不删掉」+ B 口径
+     「删用时行 + Exit 占满 + 并两列」）═══
+     取证实锤（_diag_bottbar_1102）：交卷复盘后顶栏仍挂着废计时（时间已停，「19 min」纯摆设），
+     她说的「显示时间的栏」就是它。刀口全走 .rv-tooled（复盘态专属钩子），做题态零影响：
+     ① 复盘态顶栏计时整藏 —— 时间数字会让人以为还在做题，与 renderExam 只读复盘不起表
+        同一口径（BANK-DONE-ROW-1 笔 2 注释）；用时信息不丢，回顾页记录行本来就显示。 */
+  #examRoot .ex-top.rv-tooled .ex-timer{display:none}
+  /* ②③ 底栏 Exit 占满 / 藏废按钮（Pause/Submitted）由下方 .rv-done 块统一承担，
+     那套走 JS 渲染层（barHtml 按 EX.submitted 挂类 + doSubmit 补挂），单一真相源不双轨。 */
+
 
 /* ---- ⑧ 右下 Review 勾：官方 #efefef 方块（截图 15/17 实测）---- */
 #examRoot .ex-review{background:#efefef;color:#000;border:0;border-radius:0;
@@ -2722,7 +2751,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common-shell.js?v=20261101m"></script>
 <script defer src="js/common-pwa.js?v=20261101m"></script>
 <script defer src="js/exam-timer.js?v=20261102b"></script>
-<script defer src="js/bank.js?v=20261101v"></script>
+<script defer src="js/bank.js?v=20261102b"></script>
 <!-- M-2（10-24）：模考页「没做过/做过」分组 + 展开更多。
      ⚠️ 本文件只做展示层（读 hub_bank_last_* 分组 + 首屏 20 条），判分/SRS/本地记录一律不碰；
         单条 DOM 由 js/bank.js 的 listHtml() 生成（当参数传进来），结构零改动。
