@@ -97,7 +97,8 @@
 | 在途 | `_probe_rvtop_1102.cjs` | RV-TOP-24/25 复盘顶部布局+用时进顶栏（在途） |
 | 在途 | `_probe_rvcolor_1102.cjs` | RV-COLOR-LOGIC-1/RV-BLANK-CA-2 对错颜色+框内正答（在途） |
 | 在途 | `_probe_timerpop_1102.cjs` | EXAM-TIMER-POP 两笔 计时弹窗四条口径（在途） |
-| 在途 | `_probe_aiexplain_1102.cjs` | RV-AI-EXPLAIN-1 复盘态 AI 讲解（在途） |
+| 在途 | `_probe_aiexplain_1102.cjs` | RV-AI-EXPLAIN-1 复盘态 AI 讲解（v737 分栏口径） |
+| 在途 | `_probe_rvfix5_1102.cjs` | RV-FIX5 v737 六笔（底栏/判色/填空/绿标/分栏/工具条） |
 | 在途 | `_probe_examui3_p1_1031.cjs` | UNIFIED-EXAM-UI-3 笔1（在途） |
 | 在途 | `_probe_hl_1101.cjs` | HIGHLIGHT-REGRESS-1101 划词高亮（在途） |
 | 在途 | `smoke_sd_1415.cjs` | 14 砍换词 + 15 堵 AI 超时静默放行 回归 |
