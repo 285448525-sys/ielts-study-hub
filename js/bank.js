@@ -3000,7 +3000,7 @@ window.__reportExamState = reportExamState;
         var _fm = (EX._timerMin == null) ? 60 : EX._timerMin;
         host2.innerHTML = shellHtml('Reading Test', 'Full Test', _fm > 0 ? examTimerLabel(_fm * 60) : examUsedLabel(0))
 
-          + partBannerHtml('Passage 1', pnAll.length ? pnAll[0] : null, pnAll.length ? pnAll[pnAll.length - 1] : null)
+          + (!EX.submitted ? partBannerHtml('Passage 1', pnAll.length ? pnAll[0] : null, pnAll.length ? pnAll[pnAll.length - 1] : null) : '')   /* RV-TOP-24：复盘态同款守卫（B2 红修），做题态照旧 */
           + splitHtml('', '') + barHtml() + ctxHtml();
       }
       renderPassage(1);

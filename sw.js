@@ -66,7 +66,7 @@
 // 未改任何加载策略/脚本顺序（HANDOFF 铁律：defer 顺序是契约，动它会连带出事）。
 // common.js → 20261013ad（25 页）、index.js → 20261017a（仅 home.html）、
 // bank.js → 20261012ac（仅 bank.html）。上一版 v409。
-const CACHE = 'ielts-hub-v734'; // 11-02 RV-TOP-24+25（台账 24/25 号，她催，复盘态专属、做题态零碰）：①「Part 1 · Questions 1–13」淡绿横幅复盘态整行退役（renderExam 按 EX.submitted 跳过）；②红绿对错块移到最左（mini 插到篇名右侧第一格，原计时位）；③用时数字进顶栏中间原计时位（ex-score-mini 前缀「X min ·」，EX._usedSec 实际用时）。做题态横幅/计时/三钮全照旧。bank.js →20261102c。上一版 v733 = RV-BOTTOM-23。
+const CACHE = 'ielts-hub-v735'; // 11-02 RV-TOP-24 红修（B2 抓）：完整模考路径 partBannerHtml 漏 EX.submitted 守卫——只读复盘进完整模考时「Passage 1 · Questions」绿横幅照渲染，违反她复盘态删横幅口径。一行补守卫与单篇路径 L2874 同款。bank.js →20261102d。上一版 v734 = RV-TOP-24/25。
 const _prevCacheNote54 = 'ielts-hub-v732'; // 11-02 MAT-DEAD-THEMEBTN-1：素材页死按钮「切到深色」删除。上一版 v731 = RV-BLANK-CA-2。
 const _prevCacheNote53 = 'ielts-hub-v731'; // 11-02 RV-BLANK-CA-2：填空正答框内绿显。bank.js →20261101v。上一版 v729 = WD-DICT-TYPE-2。
 const _prevCacheNote52 = 'ielts-hub-v729'; // 11-02 WD-DICT-TYPE-2：听写打字型收尾（不泄答案/文案对上/模式菜单可反复开）。上一版 v728 = RV-COLOR-LOGIC-1。
