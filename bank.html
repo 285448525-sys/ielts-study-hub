@@ -311,15 +311,11 @@
 /* 复盘开关落内容（JS 侧 applyReviewToggles 切这两个根类，不改任何判分数据）：
    rv-noans = 隐藏正确答案标记（.right 标绿/correct-answer 行）→ 回到「只看自己作答」；
    rv-nohl  = 隐藏她做题画的标注（.ex-hl/.ex-nt），visibility 保位（再开原样回来）。 */
-/* RV-COLOR-LOGIC-1（11-02 她口径改）：答案关闭态 = 只隐「正确标识」，对错照显——
-   · 正确选项/正答标记（.right / .mx-right）零标识：背景、边框、文字色、圆点边全部回默认；
-   · 错项（.wrong / .mx-wrong）保留红（她自己选错的地方要看得见）；
-   · 题号徽章 hit/miss 照显（对错是她的作答结果，不属于「答案」）。 */
-#examRoot.rv-noans .ex-opt.right,#examRoot.rv-noans .ex-pill.right,#examRoot.rv-noans .ex-drop.right,
-#examRoot.rv-noans .ex-pslot.right,#examRoot.rv-noans td.mx-right{background:transparent !important;border-color:transparent !important;color:inherit !important}
-#examRoot.rv-noans .ex-opt.right::before{border-color:var(--line) !important}
-#examRoot.rv-noans .ex-pill.right::before{border-color:var(--line) !important;background:none !important}
-#examRoot.rv-noans td.mx-right input[type=radio]{accent-color:#6b7280 !important}
+/* RV-FIX5-2（她 11-02 复盘截图推翻 RV-COLOR-LOGIC-1 关闭态口径）：关闭答案态 = 她的选择照显、对绿错红、
+   正确答案零泄露。前提（JS 侧 decoratePassage 同步改）：.right 类现在只挂「她勾对/答对的作答」，
+   未作答的正答项不再提前标 right —— 所以这里不再需要把 .right 藏成透明（藏掉=她说的「连选了什么都消失」）。
+   .wrong 保留红照旧。正答的展示完全由「打开答案态」接管（.right 只有勾对时存在；blank 正答走 .ex-ca-in）。 */
+/* 原 rv-noans 隐藏 .right/.mx-right 的整段规则退役 —— 保留 .wrong 一直红。 */
 /* 填词题关闭态口径（11-02 她定）：对错都照显——
    对的 blank 零标识（边框/字色回默认），错的 blank 一直红；
    decoratePassage 的内联红边已改 class（.ex-blank.right/.wrong），
@@ -345,24 +341,35 @@
    只有她点作答控件/题号时才出现；✕ 收卡不动作答与判分数据。
    宽度桌面 320、手机左右各留 12px 安全边（390 档三查：不横滑/不被裁/可点）。
    🔴 样式写死 hex（考场钉死色系口径，不用外观变量）。 */
-.ex-ai-card{position:fixed;right:14px;bottom:64px;z-index:120;width:320px;max-width:calc(100vw - 28px);
-  max-height:46vh;display:flex;flex-direction:column;background:#fff;border:1px solid #d5d9de;
-  border-radius:12px;box-shadow:0 10px 34px rgba(0,0,0,.22)}
+/* ═══ RV-FIX5-5（她 11-02 口径）：AI 讲解从右下浮卡改右栏上下分栏 ═══
+   桌面：#exAiCard 挂 #exQCol 尾部 sticky 底部 —— 上=题干滚动区（不受影响），下=讲解面板；
+   中间 #exAiHandle 分隔线可上下拖（JS 改 --ex-ai-h，记忆 hub_ex_ai_h）。手机：讲解贴题目下方，限高 42vh。 */
+#exQCol .ex-ai-panel{position:sticky;bottom:0;flex:none;display:flex;flex-direction:column;
+  height:var(--ex-ai-h,240px);min-height:120px;background:#fff;border-top:1px solid #d5d9de;
+  box-shadow:0 -6px 18px rgba(0,0,0,.08);z-index:6}
+#exQCol .ex-ai-handle{appearance:none;border:0;background:transparent;height:10px;margin-top:-5px;
+  cursor:row-resize;flex:none;position:relative;touch-action:none}
+#exQCol .ex-ai-handle::after{content:'';position:absolute;left:0;right:0;top:4px;height:2px;background:rgba(0,0,0,.35)}
+#exQCol .ex-ai-handle:hover::after,#exQCol .ex-ai-handle:focus-visible::after{height:4px;top:3px;background:var(--primary)}
 .ex-ai-h{display:flex;align-items:center;justify-content:space-between;gap:8px;
-  padding:9px 12px;border-bottom:1px solid #eceff2;flex:none}
+  padding:8px 12px;border-bottom:1px solid #eceff2;flex:none}
 .ex-ai-h b{font-size:12.5px;font-weight:800;color:#111}
 .ex-ai-x{appearance:none;border:none;background:transparent;color:#6b7280;font-size:13px;cursor:pointer;
   width:28px;height:28px;border-radius:6px;line-height:1;flex:none}
 .ex-ai-x:hover{background:#f3f4f6;color:#111}
 .ex-ai-b{padding:11px 13px 13px;font-size:13px;line-height:1.75;color:#24272c;overflow:auto;
-  white-space:pre-wrap;word-break:break-word}
+  white-space:pre-wrap;word-break:break-word;flex:1;min-height:0}
+@media(max-width:860px){
+  #exQCol .ex-ai-panel{position:static;height:auto;max-height:42vh}
+  #exQCol .ex-ai-handle{display:none}
+}
 .ex-qn.ai-cur{outline:2px solid #237a74;outline-offset:1px}
 .ex-blankw.ai-cur{outline:2px solid #237a74;outline-offset:1px;border-radius:3px}
 .mx-no.ai-cur{outline:2px solid #237a74;outline-offset:1px;border-radius:3px}
 @media(max-width:640px){
-.ex-ai-card{right:12px;left:12px;width:auto;bottom:58px;max-height:42vh}
+
 }
-#examRoot.ct-dark .ex-ai-card,#examRoot.ct-yellow .ex-ai-card{background:#1c1f22;border-color:#5a5f66}
+#examRoot.ct-dark .ex-ai-panel,#examRoot.ct-yellow .ex-ai-panel{background:#1c1f22;border-color:#5a5f66}
 #examRoot.ct-dark .ex-ai-h,#examRoot.ct-yellow .ex-ai-h{border-bottom-color:#33383d}
 #examRoot.ct-dark .ex-ai-h b,#examRoot.ct-yellow .ex-ai-h b{color:#f2f2f2}
 #examRoot.ct-dark .ex-ai-b,#examRoot.ct-yellow .ex-ai-b{color:#d7dade}
@@ -630,10 +637,8 @@
    提到同族 + 类：#examRoot .ex-blankw input.ex-blank.right/.wrong 特异性 (1,2,1) 反超。 */
 #examRoot .ex-blankw input.ex-blank.right{color:#1f7a5c}
 #examRoot .ex-blankw input.ex-blank.wrong{color:#b3261e}
-/* RV-COLOR-LOGIC-1：答案打开态错项旁的绿色正确答案行（JS 挂 .ex-ca，rv-noans 时整行藏） */
-.ex-ca{display:block;margin:3px 0 0 34px;font-size:12px;font-weight:700;color:#1f7a5c;line-height:1.5}
-.ex-ca::before{content:'Correct: ';font-weight:400;color:#1f7a5c;opacity:.8}
-.ex-ca--blank{margin-left:0;display:inline-block;vertical-align:middle}
+/* RV-FIX5-4（她 11-02 复盘截图：框外「Correct: xx」绿标乱叠全删）——.ex-ca 框外行整族退役
+   （JS 已不挂，这里清掉死 CSS）。正确答案展示只剩：选项勾对绿标 + 填空框内绿字后缀 .ex-ca-in。 */
 /* RV-CA-IN-1（她 11-02 口径）：填空正答不再走框外「Correct: xx」行（.ex-ca--blank 退役），
    改框内绿字后缀 .ex-ca-in（JS 挂进 .ex-blankw，跟在她写的红字后面）；关闭态随 rv-noans 整藏。 */
 .ex-ca-in{display:inline-block;margin-left:6px;font-size:12px;font-weight:700;color:#1f7a5c;line-height:1.4;vertical-align:middle}
@@ -1907,8 +1912,11 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
      （rows 36vh+1fr + 分隔线）连成一列去空隙；分隔线拖动（exSplitHandle）保留在桌面档
      （>860 不动，632/632 拖动口径不破）。 */
 #examRoot .ex-bar.rv-done .ex-bar-main{height:auto;max-height:none;padding:0 0 8px}
-#examRoot .ex-bar.rv-done .ex-actions{flex:1 1 100%;width:100%;padding:0 8px}
-#examRoot .ex-bar.rv-done .ex-actions .btn-ghost[data-exit]{flex:1 1 auto;width:100%;height:40px}
+/* RV-FIX5-1（她 11-02 复盘截图推翻 RV-BOTTOM-23 的「Exit 占满」）：复盘态底栏回到
+   做题态同构 row —— 左侧题号排（#exNums 复用 paintSheet 的 hit/miss 红绿，同源答题卡），
+   Exit 回小钮贴右下角；Pause/Submitted 仍藏。 */
+#examRoot .ex-bar.rv-done .ex-actions{padding:0 8px}
+#examRoot .ex-bar.rv-done .ex-actions .btn-ghost[data-exit]{flex:none;height:32px;padding:0 16px}
 #examRoot .ex-bar.rv-done .ex-pause,
 #examRoot .ex-bar.rv-done [data-submit]{display:none !important}
 @media(max-width:860px){
@@ -2762,7 +2770,7 @@ body.exam-fullscreen #examPanel > #examPractice{flex:1 1 auto;min-height:0;displ
 <script defer src="js/common-shell.js?v=20261101m"></script>
 <script defer src="js/common-pwa.js?v=20261101m"></script>
 <script defer src="js/exam-timer.js?v=20261102b"></script>
-<script defer src="js/bank.js?v=20261102e"></script>
+<script defer src="js/bank.js?v=20261102f"></script>
 <!-- M-2（10-24）：模考页「没做过/做过」分组 + 展开更多。
      ⚠️ 本文件只做展示层（读 hub_bank_last_* 分组 + 首屏 20 条），判分/SRS/本地记录一律不碰；
         单条 DOM 由 js/bank.js 的 listHtml() 生成（当参数传进来），结构零改动。

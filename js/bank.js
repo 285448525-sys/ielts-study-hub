@@ -1657,6 +1657,31 @@
     if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();setExSplit(_exSplitPct+(e.key==='ArrowLeft'?-5:5))}
     else if(e.key==='Home'||e.key==='End'){e.preventDefault();setExSplit(e.key==='Home'?25:75)}
   });
+  /* RV-FIX5-5：AI 讲解面板垂直分隔线拖动（桌面档）——改 --ex-ai-h（面板高度），上栏自适应。 */
+  var _exAiH = 240;
+  try{ _exAiH = Math.max(120,Math.min(560,Number(localStorage.getItem('hub_ex_ai_h')) || 240)); }catch(e){}
+  function setExAiH(px){
+    var card=document.getElementById('exAiCard'); if(!card)return;
+    _exAiH=Math.max(120,Math.min(560,Number(px)||240));
+    card.style.setProperty('--ex-ai-h',_exAiH+'px');
+    try{localStorage.setItem('hub_ex_ai_h',String(_exAiH))}catch(e){}
+  }
+  document.addEventListener('pointerdown',function(e){
+    var h=e.target.closest&&e.target.closest('#exAiHandle'); if(!h||window.innerWidth<=860)return;
+    e.preventDefault(); e.stopPropagation();
+    h.setPointerCapture&&h.setPointerCapture(e.pointerId);
+    var move=function(ev){
+      var card=document.getElementById('exAiCard'); if(!card)return;
+      var top=card.getBoundingClientRect().top;
+      setExAiH(top - ev.clientY + 14);   /* 拖点以上全是面板（14=手柄半高近似，clamp 兜底） */
+    };
+    var up=function(){document.removeEventListener('pointermove',move,true);document.removeEventListener('pointerup',up,true);document.removeEventListener('pointercancel',up,true)};
+    document.addEventListener('pointermove',move,true);document.addEventListener('pointerup',up,true);document.addEventListener('pointercancel',up,true);
+  },true);
+  document.addEventListener('keydown',function(e){
+    var h=e.target.closest&&e.target.closest('#exAiHandle'); if(!h)return;
+    if(e.key==='ArrowUp'||e.key==='ArrowDown'){e.preventDefault();setExAiH(_exAiH+(e.key==='ArrowUp'?20:-20))}
+  });
   window.addEventListener('hub:exam-rendered',function(){setExSplit(_exSplitPct)});
   /* ===== 10/14 补 Option 面板交互 =====
    既有 bug：Colour / Size / Audio 三个分组行点击无反应 —— .ex-opsub.on 这个类从来没有任何 JS 去加
@@ -1794,7 +1819,7 @@ window.__reportExamState = reportExamState;
   function ctxHtml(){
     /* 10/12 改：由竖排五项改横向浮动工具条。
        🔴 10/16 按她的指示 + 真实机考实证再次校正（她 18:34 两条）：
-          · 选中**普通文字** → 只有 Note / Highlight
+          · 选中**普通文字** → Note 左 / Highlight 右（她 11-02 定的顺序）
             —— 原先多给的 "Clear all" **真题里没有**，已整块删掉（她原话「真题里没有的功能不要加」）。
           · 选中**已高亮文字** → 只有 Clear Highlight
             —— 她记的「好像是 delete」（NOTE 按钮删除笔记），实际这条是 Clear Highlight，
@@ -1805,8 +1830,8 @@ window.__reportExamState = reportExamState;
             → 「Remove」这个我自己编的词一并去掉，改成机考实际用的 Clear Highlight。
        显示哪一个由 paintCtxButtons() 按上下文决定。 */
     return '<div class="ex-ctx" id="exCtx">'
-      +    '<button type="button" data-hact="hl">Highlight</button>'
       +    '<button type="button" data-hact="note">Note</button>'
+      +    '<button type="button" data-hact="hl">Highlight</button>'
       +    '<hr>'
       +    '<button type="button" data-hact="unhl">Clear Highlight</button>'
       +  '</div>';
@@ -3227,13 +3252,22 @@ window.__reportExamState = reportExamState;
       });
       var sel = root.querySelector('select[data-q="' + d.qn + '"]'); if(sel) sel.disabled = true;
       root.querySelectorAll('.ex-cbox[data-q="' + d.qn + '"] input').forEach(function(b){ b.disabled = true; });
-      /* 选项（单选/多选）：正确的标绿、选错的标红 */
+      /* 选项（单选/多选）：正确的标绿、选错的标红。
+         RV-FIX5-2（她 11-02 复盘截图：多选三选项全绿）——多选判色改为「勾选为准」：
+         勾了且在正答集 → 绿（她勾对的）；勾了但不在正答集 → 红（她勾错的）；
+         没勾的选项一律不标（连正答项也不提前标绿——正答展示由「打开答案态」接管）。
+         单选（本组只有一个勾选）行为不变：勾=绿/红、未勾的错项不标。 */
       var rights = String(d.right == null ? '' : d.right).toUpperCase().split(/[,\s\/]+/).filter(Boolean);
+      var multi = root.querySelector('.ex-opts[data-q="' + d.qn + '"].ex-cbox, .ex-cbox[data-q="' + d.qn + '"]');
       root.querySelectorAll('.ex-opts[data-q="' + d.qn + '"] .ex-opt').forEach(function(lb){
         var inp = lb.querySelector('input'); if(inp) inp.disabled = true;
         var v = String(lb.getAttribute('data-v') || '').toUpperCase();
-        if(v && rights.indexOf(v) > -1) lb.classList.add('right');
-        else if(inp && inp.checked) lb.classList.add('wrong');
+        var picked = inp && inp.checked;
+        if(multi){
+          if(picked) lb.classList.add(rights.indexOf(v) > -1 ? 'right' : 'wrong');
+        }else{
+          if(picked) lb.classList.add(rights.indexOf(v) > -1 ? 'right' : 'wrong');
+        }
       });
       /* 配对题：拖入的答案标对错 */
       /* 10/16：同题号可能有原文槽 + 题目区槽两个（heading 题）→ 都上色 */
@@ -3364,12 +3398,17 @@ window.__reportExamState = reportExamState;
     if(!EX || !EX.submitted || !EX.result) return;
     if(EX.scored === false) return;                         /* 无答案键篇目不挂（无正答可讲） */
     if(EX[AI_EXP_CACHE_KEY] == null) EX[AI_EXP_CACHE_KEY] = {};
-    var card = document.createElement('div');
-    card.className = 'ex-ai-card'; card.id = 'exAiCard'; card.hidden = true;
-    card.innerHTML = '<div class="ex-ai-h"><b id="exAiTitle">AI 讲解</b>'
+    /* RV-FIX5-5（她 11-02 口径）：右下角浮卡退役 → 右栏上下分栏：上=题干（原 #exQCol 内容），
+       下=AI 讲解面板，中间分隔线可上下拖（桌面档）；手机档讲解贴在题目下方（面板固定高度上限）。
+       panel 挂在 #exQCol 尾部（它已 overflow:auto —— 拖动改的是面板高度变量，不是滚动）。 */
+    var qcol = root.querySelector('#exQCol') || root;
+    var card = document.createElement('section');
+    card.className = 'ex-ai-panel'; card.id = 'exAiCard'; card.hidden = true;
+    card.innerHTML = '<button type="button" class="ex-ai-handle" id="exAiHandle" role="separator" aria-orientation="horizontal" aria-label="拖动调整讲解区高度" tabindex="0"></button>'
+      + '<div class="ex-ai-h"><b id="exAiTitle">AI 讲解</b>'
       + '<button type="button" class="ex-ai-x" data-aiexpclose aria-label="Close">✕</button></div>'
       + '<div class="ex-ai-b" id="exAiBody"></div>';
-    root.appendChild(card);
+    qcol.appendChild(card);
   }
   /* 点击锚：作答控件优先（选项 / 空格 / 槽 / 矩阵格），都没有再认题号徽章。
      返回 { qn, detail }；detail 取自 EX.result.detail（含 right/user/ok/q）。 */
@@ -3507,48 +3546,36 @@ window.__reportExamState = reportExamState;
        空格正答 = 打开态把 input 值换成本题正答、关闭态还原她的作答（data-rv-user 里存着原值）。
        判分数据（d.ok/d.right/d.user、EX.marks）一字不动；她的作答有 data-rv-user 兜底不丢。 */
     var showAns = !!EX._rvShowAns;
-    root.querySelectorAll('.ex-ca, .ex-ca-in').forEach(function(n){ n.parentNode && n.parentNode.removeChild(n); });
+    root.querySelectorAll('.ex-ca-in').forEach(function(n){ n.parentNode && n.parentNode.removeChild(n); });
     if(!EX.result || !Array.isArray(EX.result.detail)) return;
     EX.result.detail.forEach(function(d){
       var qn = String(d.qn);
-      /* 空格：正答填入/还原 */
+      /* 空格：RV-FIX5-3（她 11-02 复盘截图：正答替换了她的原词、两个词全红）——
+         她的原词永远留在 input 里（红字，不换值）；打开答案态把正答作为绿字 span 追加在
+         同一 .ex-blankw 框内（.ex-ca-in 跟在红字后面），关闭态只摘正答 span、原词不丢。
+         data-rv-user 仍兜底存原值（防渲染链早段清值），判分数据零碰。 */
       var bl = root.querySelector('input.ex-blank[data-q="' + qn + '"]');
       if(bl){
         if(bl.getAttribute('data-rv-user') == null) bl.setAttribute('data-rv-user', bl.value || '');
-        if(showAns && d.right != null && String(d.right).length){
-          bl.value = String(d.right);
-        }else{
-          bl.value = bl.getAttribute('data-rv-user') || '';
-        }
         var w = bl.closest('.ex-blankw'); if(w) w.classList.toggle('filled', !!bl.value);
       }
       /* 错项旁绿字正答行：答错 + 有正答 + 答案打开态才挂。
          她 11-02 口径：填空不再挂框外「Correct: xx」行 —— 正答直接进框内，绿字跟在她写的红字后面；
          选择/胶囊/拖槽/矩阵仍走 .ex-ca 行（她只嫌填空那个形式）。 */
-      if(!showAns || d.ok || d.right == null || !String(d.right).length) return;
-      if(bl){
-        var w2 = bl.closest('.ex-blankw'); if(!w2) return;
-        var oldIn = w2.querySelector('.ex-ca-in'); if(oldIn) oldIn.parentNode.removeChild(oldIn);
-        var cin = document.createElement('span');
-        cin.className = 'ex-ca-in';
-        cin.textContent = String(d.right);
-        w2.appendChild(cin);
-        return;
+      /* 正答绿字：只挂填空（.ex-ca-in 框内后缀，跟在她写的红字后面）；其他题型没有框外行（笔②已退役）。
+         答对/关答案态/无正答都不挂；重复进出开关先清旧再挂（幂等）。 */
+      if(bl && showAns && !d.ok && d.right != null && String(d.right).length){
+        var w2 = bl.closest('.ex-blankw'); if(w2){
+          var oldIn = w2.querySelector('.ex-ca-in'); if(oldIn) oldIn.parentNode.removeChild(oldIn);
+          var cin = document.createElement('span');
+          cin.className = 'ex-ca-in';
+          cin.textContent = String(d.right);
+          w2.appendChild(cin);
+        }
       }
-      var anchorEl = root.querySelector('.ex-opt.wrong[data-v], .ex-pill.wrong[data-v], .ex-drop.wrong[data-q="' + qn + '"], .ex-pslot.wrong[data-q="' + qn + '"]');
-      /* 行内归属：优先本题 qn 关联容器内的错项；找不到再退到全局（同题多错只挂一次） */
-      var scoped = root.querySelectorAll('.ex-opts[data-q="' + qn + '"] .ex-opt.wrong, .ex-pills[data-q="' + qn + '"] .ex-pill.wrong');
-      if(scoped.length) anchorEl = scoped[0];
-      else if(!anchorEl){
-        var mxw = root.querySelector('.ex-lomatrix input[data-q="' + qn + '"]:checked');
-        if(mxw) anchorEl = mxw.closest('tr');
-        else if(bl) anchorEl = bl.closest('.ex-blankw') || bl;
-      }
-      if(!anchorEl) return;
-      var ca = document.createElement('span');
-      ca.className = 'ex-ca' + (anchorEl.classList && anchorEl.classList.contains('ex-blankw') ? ' ex-ca--blank' : '');
-      ca.textContent = String(d.right);
-      anchorEl.insertAdjacentElement('afterend', ca);
+      /* RV-FIX5-2（她 11-02 复盘截图：框外「Correct: C,E,F」行全删 + 共享选项组曾重复挂 3 遍）——
+         框外 .ex-ca 行整族退役；正确答案的展示只剩两条路：选项本题内 green 标（.right）与
+         填空框内绿字后缀（.ex-ca-in）。判分数据零碰。 */
     });
   }
   /* 🔴 答案开关语义（她 11-02 两图口径）：图一「显示答案」= 正确答案标进空格 + 标绿；
